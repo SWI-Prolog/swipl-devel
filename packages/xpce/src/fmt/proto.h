@@ -12,13 +12,12 @@ status		changedAreaLayoutInterface(LayoutInterface itf);
 status		makeClassLayoutInterface(Class class);
 
 /* fmt/table.c */
-TableRow	getRowTable(Table tab, Int y, Bool create);
-TableColumn	getColumnTable(Table tab, Int x, Bool create);
+TableRow	getRowTable(Table tab, Any y, Bool create);
+TableColumn	getColumnTable(Table tab, Any x, Bool create);
 status		changedTable(Table tab);
 status		makeClassTable(Class class);
 
 /* fmt/tabcell.c */
-status		initialiseTableCell(TableCell c, Graphical image);
 Name		getHalignTableCell(TableCell cell);
 Name		getValignTableCell(TableCell cell);
 void		table_cell_padding(TableCell cell, int *pxptr, int *pyptr);
@@ -27,11 +26,10 @@ status		placeImageTableCell(TableCell cell);
 status		makeClassTableCell(Class class);
 
 /* fmt/tabslice.c */
-status		initialiseTableSlice(TableSlice c);
+Any		findNamedSlice(Vector v, Name name);
 status		makeClassTableSlice(Class class);
-TableCell	getCellTableColumn(TableColumn col, Int y);
 status		makeClassTableColumn(Class class);
-TableCell	getCellTableRow(TableRow row, Int x);
+TableCell	getCellTableRow(TableRow row, Any x);
 status		cellTableRow(TableRow row, Int col, TableCell cell);
 status		indexTableRow(TableRow row, Int index);
 status		makeClassTableRow(Class class);

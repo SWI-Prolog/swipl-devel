@@ -71,22 +71,37 @@ struct global
   { NAME_nomarkImage,		NAME_image },
   { NAME_pullRightImage,	NAME_image },
   { NAME_markHandleImage,	NAME_image },
+  { NAME_pceImage,		NAME_image },
   { NAME_defaultSyntaxTable,	NAME_syntaxTable },
-  { NAME_resourceParser,	NAME_resource },
-  { NAME_notObtained,		NAME_resource },
+  { NAME_objectParser,		NAME_classVariable },
+  { NAME_notObtained,		NAME_classVariable },
 
   { NULL,	  		NULL}
 };
 
-static HashTable GlobalTable;		/* name --> class-name */
 
-void
-initGlobals()
+static int
+realiseClassOfGlobal(Name ref)
 { struct global *g = globals;
 
-  GlobalTable = createHashTable(toInt(32), NAME_none);
   for(; g->reference; g++)
-    appendHashTable(GlobalTable, g->reference, g->classname);
+  { if ( g->reference == ref )
+    { Class class;
+
+#if 1
+      class = getMemberHashTable(classTable, g->classname);
+      if ( class && !instanceOfObject(class, ClassClass) )
+	class = get(class, NAME_realise, 0);
+#else
+      class = getConvertClass(ClassClass, g->classname);
+#endif
+
+      if ( class )
+	return realiseClass(class);
+    }
+  }
+
+  fail;
 }
 
 
@@ -108,15 +123,11 @@ isFontReference(Name name)
 Any
 findGlobal(Name name)
 { Any obj;
-  Name classname;
-  Class class;
 
   if ( (obj = getObjectAssoc(name)) )
     answer(obj);
 
-  if ( (classname = getMemberHashTable(GlobalTable, name)) &&
-       (class = getConvertClass(ClassClass, classname)) &&
-       realiseClass(class) &&
+  if ( realiseClassOfGlobal(name) &&
        (obj = getObjectAssoc(name)) )
     answer(obj);
 
@@ -125,6 +136,9 @@ findGlobal(Name name)
     if ( (obj = getObjectAssoc(name)) )
       answer(obj);
   }
+
+  if ( name == NAME_postscriptDefs )
+    answer(makePSDefinitions());
 
   if ( exceptionPce(PCE, NAME_undefinedAssoc, name, 0) &&
        (obj = getObjectAssoc(name)) )

@@ -21,15 +21,10 @@ initialiseTable(Table tab)
   assign(tab, rows,         newObject(ClassVector, 0));
   assign(tab, columns,      newObject(ClassVector, 0));
   assign(tab, current,      newObject(ClassPoint, ONE, ONE, 0));
-  assign(tab, border,       DEFAULT);	/* resource */
-  assign(tab, frame,	    DEFAULT);	/* resource */
-  assign(tab, rules,	    DEFAULT);	/* resource */
-  assign(tab, cell_padding, DEFAULT);	/* resource */
-  assign(tab, cell_spacing, DEFAULT);	/* resource */
   assign(tab, area,	    newObject(ClassArea, 0));
   assign(tab, changed,	    OFF);
 
-  obtainResourcesObject(tab);
+  obtainClassVariablesObject(tab);
 
   succeed;
 }
@@ -106,45 +101,61 @@ table_of_cell(TableCell cell)
 		 *******************************/
 
 TableRow
-getRowTable(Table tab, Int y, Bool create)
-{ TableRow row = getElementVector(tab->rows, y);
+getRowTable(Table tab, Any y, Bool create)
+{ if ( isInteger(y) )
+  { TableRow row = getElementVector(tab->rows, y);
 
-  if ( isNil(row) )
-    row = FAIL;
+    if ( isNil(row) )
+      row = FAIL;
+  
+    if ( !row && create == ON )
+    { elementVector(tab->rows, y, (row=newObject(ClassTableRow, 0)));
+      assign(row, table, tab);
+      assign(row, index, y);
+    }
 
-  if ( !row && create == ON )
-  { elementVector(tab->rows, y, (row=newObject(ClassTableRow, 0)));
-    assign(row, table, tab);
-    assign(row, index, y);
+    return row;
   }
 
-  return row;
+  answer(findNamedSlice(tab->rows, y));
 }
 
 
 TableColumn
-getColumnTable(Table tab, Int x, Bool create)
-{ TableColumn col = getElementVector(tab->columns, x);
+getColumnTable(Table tab, Any x, Bool create)
+{ if ( isInteger(x) )
+  { TableColumn col = getElementVector(tab->columns, x);
 
-  if ( isNil(col) )
-    col = FAIL;
-
-  if ( !col && create == ON )
-  { elementVector(tab->columns, x, (col=newObject(ClassTableColumn, 0)));
-    assign(col, table, tab);
-    assign(col, index, x);
+    if ( isNil(col) )
+      col = FAIL;
+  
+    if ( !col && create == ON )
+    { elementVector(tab->columns, x, (col=newObject(ClassTableColumn, 0)));
+      assign(col, table, tab);
+      assign(col, index, x);
+    }
+  
+    return col;
   }
 
-  return col;
+  answer(findNamedSlice(tab->columns, x));
 }
 
 
 static TableCell
-getCellTable(Table tab, Int x, Int y)
-{ TableRow row = getElementVector(tab->rows, y);
+getCellTable(Table tab, Any x, Any y)
+{ TableRow row = getRowTable(tab, y, OFF);
 
   if ( row && notNil(row) )
-  { TableCell cell = getElementVector((Vector)row, x);
+  { TableCell cell = NULL;
+
+    if ( isInteger(x) )
+    { cell = getElementVector((Vector)row, x);
+    } else
+    { TableColumn col = getColumnTable(tab, x, OFF);
+      if ( col )
+	cell = getElementVector((Vector)row, col->index);
+    }
 
     if ( cell && notNil(cell) )
       answer(cell);
@@ -253,8 +264,14 @@ appendTable(Table tab, TableCell cell, Int x, Int y)
 
 
 static status
-nextRowTable(Table tab)
-{ assign(tab->current, x, ONE);
+nextRowTable(Table tab, Bool end_group)
+{ if ( end_group == ON )
+  { TableRow r = getRowTable(tab, tab->current->y, ON);
+
+    send(r, NAME_endGroup, ON, 0);
+  }
+
+  assign(tab->current, x, ONE);
   assign(tab->current, y, add(tab->current->y, ONE));
   advance_table(tab);
 
@@ -330,7 +347,7 @@ deleteRowTable(Table tab, TableRow row)
 					/* deal with cells spanned over */
 					/* this row */
   for_vector_i(row, TableCell cell, i,
-	       { if ( i == valInt(cell->column) )
+	       { if ( notNil(cell) && i == valInt(cell->column) )
 		 { if ( cell->row_span != ONE )
 		   { if ( cell->row == row->index )
 		       assign(cell, row, inc(cell->row));
@@ -387,7 +404,11 @@ deleteColumnTable(Table tab, TableColumn col)
 	      assign(cell, column, inc(cell->column));
 	    assign(cell, col_span, dec(cell->col_span));
 	  } else if ( cell->column == col->index && notNil(cell->image) )
+	  { if ( !isFreeingObj(col) )
+	      elementVector((Vector)col, toInt(y), cell);
+
 	    DeviceGraphical(cell->image, NIL);
+	  }
 	}
       }
 
@@ -437,32 +458,62 @@ deleteTable(Table tab, Any obj)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This one uses a different algorithm when the full table is deleted, as a
+partial delete requires a lot of work to deal properly with spanning.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static status
-deleteRowsTable(Table tab)
-{ int y, rmin, rmax;
+deleteRowsTable(Table tab, Int from, Int to)
+{ int y, rmin, rmax, f, t;
 
   row_range(tab, &rmin, &rmax);
-  for(y=rmin; y<=rmax; y++)
-  { TableRow r = getRowTable(tab, toInt(y), OFF);
+  if ( isDefault(from) )
+  { f = rmin;
+  } else
+  { f = valInt(from);
+    f = max(rmin, f);
+  }
+  if ( isDefault(to) )
+  { t = rmax;
+  } else
+  { t = valInt(to);
+    t = min(rmax, t);
+  }
 
-    if ( r )
-    { for_vector_i(r, TableCell cell, i,
-	       { if ( i == valInt(cell->column) &&
-		      cell->row == r->index &&
-		      notNil(cell->image) )
-		 { DeviceGraphical(cell->image, NIL);
-		 }
-	       });
-      assign(r, table, NIL);
-      freeObject(r);
+  if ( f == rmin && t == rmax )		/* full delete */
+  { for(y=rmin; y<=rmax; y++)
+    { TableRow r = getRowTable(tab, toInt(y), OFF);
+  
+      if ( r )
+      { for_vector_i(r, TableCell cell, i,
+		 { if ( i == valInt(cell->column) &&
+			cell->row == r->index &&
+			notNil(cell->image) )
+		   { DeviceGraphical(cell->image, NIL);
+		   }
+		 });
+	assign(r, table, NIL);
+	freeObject(r);
+      }
+    }  
+  
+    clearVector(tab->rows);
+    setPoint(tab->current, ONE, ONE);
+  
+    changedTable(tab);
+
+    return requestComputeLayoutManager((LayoutManager)tab, DEFAULT);
+  } else				/* partial delete */
+  { for(y=t; y>=f; y--)
+    { TableRow r = getRowTable(tab, toInt(y), OFF);
+
+      if ( r )
+	deleteRowTable(tab, r);
     }
-  }  
 
-  clearVector(tab->rows);
-  setPoint(tab->current, ONE, ONE);
-
-  changedTable(tab);
-  return requestComputeLayoutManager((LayoutManager)tab, DEFAULT);
+    return setPoint(tab->current, ONE, toInt(f));
+  }
 }
 
 
@@ -506,7 +557,7 @@ insertRowTable(Table tab, Int at)
 
 
 static status
-insertColumnTable(Table tab, Int at)
+insertColumnTable(Table tab, Int at, TableColumn new)
 { int y, ymin, ymax;
   int here = valInt(at);
   int x, cmax;
@@ -548,10 +599,6 @@ insertColumnTable(Table tab, Int at)
     elementVector(tab->columns, toInt(x+1), col);
   }
 
-					/* make room and insert a new column */
-  elementVector(tab->columns, at, NIL);
-  getColumnTable(tab, at, ON);
-
 					/* fix spanned cells */
   for(y=ymin; y<=ymax; y++)
   { TableRow row = getRowTable(tab, toInt(y), OFF);
@@ -570,13 +617,88 @@ insertColumnTable(Table tab, Int at)
 	for(y2 = y; y2 < y + valInt(cell->row_span); y2++)
 	{ TableRow r2 = getRowTable(tab, toInt(y2), ON);
 
-	  Cprintf("Copying spanned cell to %s %d\n", pp(at), y2);
+	  DEBUG(NAME_colSpan,
+		Cprintf("Copying spanned cell to %s %d\n", pp(at), y2));
+
 	  cellTableRow(r2, at, cell);
 	}
       }
     }
   }
 
+					/* make room and insert a new column */
+  elementVector(tab->columns, at, NIL);
+  if ( isDefault(new) )
+  { getColumnTable(tab, at, ON);
+  } else
+  { elementVector(tab->columns, at, new);
+    assign(new, table, tab);
+    assign(new, index, at);
+
+    for_vector_i(new, TableCell cell, i,
+		 if ( notNil(cell) )
+		 { appendTable(tab, cell, at, toInt(i));
+		   elementVector((Vector)new, toInt(i), NIL);
+		 });
+    clearVector((Vector)new);
+  }
+
+
+  changedTable(tab);
+  return requestComputeLayoutManager((LayoutManager)tab, DEFAULT);
+}
+
+		 /*******************************
+		 *	      SORTING		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Sort a range of rows in the table:
+
+	(1) Sort the underlying row-structures.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static status
+sortRowsTable(Table tab, Code cmp, Int from, Int to)
+{ int y, ymin, ymax;
+  Vector rows = tab->rows;
+
+  row_range(tab, &ymin, &ymax);		/* deteymine row-range */
+  if ( notDefault(from) )
+    ymin = max(ymin, valInt(from));
+  if ( notDefault(to) )
+    ymax = min(ymax, valInt(to));
+  if ( ymax <= ymin )
+    succeed;
+
+  for(y=ymin; y<=ymax; y++)		/* check row-spanned references */
+  { TableRow r = getRowTable(tab, toInt(y), OFF);
+
+    if ( r )
+    { for_vector(r, TableCell cell,
+		 { if ( notNil(cell) && cell->row != r->index )
+		   { errorPce(tab, NAME_spannedRow, cell);
+		   }
+		 });
+    }
+  }
+
+  send(rows, NAME_sort, cmp, toInt(ymin), toInt(ymax), 0);
+  
+  for(y=ymin; y<=ymax; y++)		/* correct row-offsets */
+  { TableRow r = getRowTable(tab, toInt(y), OFF);
+
+    if ( r )
+    { assign(r, index, toInt(y));
+
+      for_vector(r, TableCell cell,
+		 { if ( notNil(cell) )
+		   { assign(cell, row, r->index);
+		   }
+		 });
+    }
+  }
+  
   changedTable(tab);
   return requestComputeLayoutManager((LayoutManager)tab, DEFAULT);
 }
@@ -1154,22 +1276,22 @@ static Bool
 getSelectedTableCell(TableCell cell)
 { Table tab;
 
-  if ( notDefault(cell->selected) )
-    answer(cell->selected);
+  if ( cell->selected == ON )
+    answer(ON);
 
   if ( (tab=table_of_cell(cell) ) )
   { TableRow row;
     TableColumn col;
 
     if ( (row = getRowTable(tab, cell->row, OFF)) &&
-	 notDefault(row->selected) )
-      answer(row->selected);
+	 row->selected == ON )
+      answer(ON);
     if ( (col = getColumnTable(tab, cell->column, OFF)) &&
-	 notDefault(col->selected) )
-      answer(row->selected);
+	 col->selected == ON )
+      answer(ON);
   }
 
-  fail;
+  answer(OFF);
 }
 
 
@@ -1195,6 +1317,15 @@ RedrawRulesTableCell(TableCell cell, Name style, int b)
   if ( getSelectedTableCell(cell) == ON )
   { r_thickness(b+1);
     r_box(d.x, d.y, d.w, d.h, 0, NIL);
+  }
+  if ( notNil(cell->note_mark) )
+  { int mw = valInt(cell->note_mark->size->w);
+    int mh = valInt(cell->note_mark->size->h);
+
+    if ( mw > d.x ) mw = d.x;		/* clip the image */
+    if ( mh > d.y ) mh = d.y;
+      
+    r_image(cell->note_mark, 0, 0, d.x+d.w-mw, d.y, mw, mh, ON);
   }
 
   { if ( style == NAME_all )
@@ -1328,7 +1459,7 @@ assignTable(Table tab, Name slot, Any value, int compute)
   Variable var;
 
   if ( (var = getInstanceVariableClass(class, (Any) slot)) )
-  { if ( getGetVariable(var, tab, 0, NULL) != value )
+  { if ( getGetVariable(var, tab) != value )
     { setSlotInstance(tab, var, value);
       changedTable(tab);
       if ( compute )
@@ -1387,11 +1518,17 @@ cellSpacingTable(Table tab, Any spacing)
 static char *T_append[] =
 	{ "cell=table_cell", "x=[int]", "y=[int]" };
 static char *T_xy[] =
-	{ "x=int", "y=int" };
+	{ "x=int|name", "y=int|name" };
 static char *T_row[] =
-	{ "y=int", "create=[bool]" };
+	{ "y=int|name", "create=[bool]" };
 static char *T_col[] =
-	{ "x=int", "create=[bool]" };
+	{ "x=int|name", "create=[bool]" };
+static char *T_sort[] =
+	{ "compare=code", "from=[int]", "to=[int]" };
+static char *T_deleteRows[] =
+	{ "from=[int]", "to=[int]" };
+static char *T_insert_column[] =
+	{ "at=int", "new=table_column" };
 static char T_frame[] = "{void,above,below,hsides,vsides,box}";
 static char T_rules[] = "{none,groups,rows,cols,all}";
 
@@ -1430,16 +1567,18 @@ static senddecl send_table[] =
 					/* building */
   SM(NAME_append, 3, T_append, appendTable,
      NAME_cell, "Append a cell"),
-  SM(NAME_nextRow, 0, NULL, nextRowTable,
-     NAME_cell, "Start next row"),
+  SM(NAME_nextRow, 1, "end_group=[bool]", nextRowTable,
+     NAME_cell, "Start next row (group)"),
   SM(NAME_insertRow, 1, "at=int", insertRowTable,
      NAME_cell, "Insert new row at the specified index"),
-  SM(NAME_insertColumn, 1, "at=int", insertColumnTable,
+  SM(NAME_insertColumn, 2, T_insert_column, insertColumnTable,
      NAME_cell, "Insert new column at the specified index"),
   SM(NAME_delete, 1, "table_cell|table_row|table_column", deleteTable,
      NAME_cell, "Delete a cell, row or column"),
-  SM(NAME_deleteRows, 0, NULL, deleteRowsTable,
+  SM(NAME_deleteRows, 2, T_deleteRows, deleteRowsTable,
      NAME_cell, "Delete a all rows"),
+  SM(NAME_sortRows, 3, T_sort, sortRowsTable,
+     NAME_order, "Sort rows in indicated range"),
 					/* attributes */
   SM(NAME_cellPadding, 1, "int|size", cellPaddingTable,
      DEFAULT, NULL),
@@ -1486,7 +1625,7 @@ static getdecl get_table[] =
 
 /* Resources */
 
-static resourcedecl rc_table[] =
+static classvardecl rc_table[] =
 { RC(NAME_border, "0..", "1",
      "Default thickness of lines around cells"),
   RC(NAME_frame, T_frame, "void",

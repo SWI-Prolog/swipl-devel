@@ -89,7 +89,7 @@ static getdecl get_box[] =
 
 #define rc_box NULL
 /*
-static resourcedecl rc_box[] =
+static classvardecl rc_box[] =
 { 
 };
 */

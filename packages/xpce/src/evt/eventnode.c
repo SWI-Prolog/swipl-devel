@@ -107,7 +107,7 @@ static getdecl get_eventNode[] =
 
 #define rc_eventNode NULL
 /*
-static resourcedecl rc_eventNode[] =
+static classvardecl rc_eventNode[] =
 { 
 };
 */

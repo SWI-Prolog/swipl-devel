@@ -60,7 +60,7 @@ RedrawBoxFigure(Figure f, Area area)
 }
 
 
-status
+static status
 RedrawAreaFigure(Figure f, Area area)
 { Any bg, obg;
 
@@ -101,7 +101,7 @@ computeBoundingBoxFigure(Figure f)
 }
 
 
-status
+static status
 computeFigure(Figure f)
 { if ( notNil(f->request_compute) )
   { if ( f->pen != ZERO || notNil(f->background) )

@@ -19,9 +19,9 @@ static status
 initialiseTextMargin(TextMargin m, Editor e, Int w, Int h)
 { initialiseGraphical(m, ZERO, ZERO, w, h);
   assign(m, editor, e);
-  assign(m, background, getResourceValueObject(m, NAME_background));
+  assign(m, background, getClassVariableValueObject(m, NAME_background));
   assign(m, gap, newObject(ClassSize, 0));
-  copySize(m->gap, getResourceValueObject(m, NAME_gap));
+  copySize(m->gap, getClassVariableValueObject(m, NAME_gap));
 
   succeed;
 }
@@ -65,7 +65,7 @@ paint_fragment(TextMargin m, int x, int y, Fragment fragment)
 static status
 RedrawAreaTextMargin(TextMargin m, Area a)
 { int x, y, w, h;
-  Elevation z = getResourceValueObject(m, NAME_elevation);
+  Elevation z = getClassVariableValueObject(m, NAME_elevation);
   Any obg;
 
   initialiseDeviceGraphical(m, &x, &y, &w, &h);
@@ -263,7 +263,7 @@ static getdecl get_textMargin[] =
 
 /* Resources */
 
-static resourcedecl rc_textMargin[] =
+static classvardecl rc_textMargin[] =
 { RC(NAME_gap, "size", "size(5,2)",
      "Distance between icons in X and Y"),
   RC(NAME_placement, "{left,right}", "left",

@@ -39,8 +39,9 @@ allocFileHandle()
 { int handle;
 
   for(handle = 0; handle < max_handles; handle++)
-    if ( handles[handle] == NULL )
+  { if ( handles[handle] == NULL )
       return handle;
+  }
 
   { PceFileHandle *newhandles;
     int n;
@@ -70,40 +71,33 @@ allocFileHandle()
 }
 
 
-#ifndef ENOSR				/* WIN32: what to reply? */
-#define ENOSR EINVAL
-#endif
-
 int
 pceOpen(Any obj, int flags)
 { int handle = allocFileHandle();
   PceFileHandle h;
 
   if ( handle < 0 )
-  { errno = ENOSR;
-    return -1;
-  }
+    return handle;
 
   if ( !isProperObject(obj) )
   { errno = EINVAL;
     return -1;
   }
 
-  ServiceMode(MODE_SYSTEM,
-    if ( flags & (PCE_WRONLY|PCE_RDWR) )
-    { if ( !hasSendMethodObject(obj, NAME_writeAsFile) )
+  if ( flags & (PCE_WRONLY|PCE_RDWR) )
+  { if ( !hasSendMethodObject(obj, NAME_writeAsFile) )
+    { errno = EACCES;
+      return -1;
+    }
+
+    if ( flags & PCE_TRUNC )
+    { if ( !hasSendMethodObject(obj, NAME_truncateAsFile) ||
+	   !send(obj, NAME_truncateAsFile, 0) )
       { errno = EACCES;
 	return -1;
       }
-  
-      if ( flags & PCE_TRUNC )
-      { if ( !hasSendMethodObject(obj, NAME_truncateAsFile) ||
-	     !send(obj, NAME_truncateAsFile, 0) )
-	{ errno = EACCES;
-	  return -1;
-	}
-      }
-    })
+    }
+  }
 
   h = alloc(sizeof(struct pce_file_handle));
   h->object = obj;
@@ -155,11 +149,10 @@ pceWrite(int handle, const char *buf, int size)
     s.size     = size;
     s.s_text8  = (unsigned char *)buf;
 
-    ServiceMode(MODE_SYSTEM,
-		ca = StringToScratchCharArray(&s);
-		if ( (rval = send(h->object, NAME_writeAsFile, where, ca, 0)) )
-		  h->point += size;
-		doneScratchCharArray(ca));
+    ca = StringToScratchCharArray(&s);
+    if ( (rval = send(h->object, NAME_writeAsFile, where, ca, 0)) )
+      h->point += size;
+    doneScratchCharArray(ca);
 
     if ( rval )
       return size;
@@ -193,15 +186,14 @@ pceSeek(int handle, long offset, int whence)
         h->point += offset;
         break;
       case PCE_SEEK_END:
-      { ServiceMode(MODE_SYSTEM,
-	  if ( hasGetMethodObject(h->object, NAME_sizeAsFile) &&
-	       (size = get(h->object, NAME_sizeAsFile, 0)) )
-	  { h->point = valInt(size) - offset;
-	    break;
-	  } else
-	  { errno = EPIPE;		/* better idea? */
-	    return -1;
-	  })
+      { if ( hasGetMethodObject(h->object, NAME_sizeAsFile) &&
+	     (size = get(h->object, NAME_sizeAsFile, 0)) )
+	{ h->point = valInt(size) - offset;
+	  break;
+	} else
+	{ errno = EPIPE;		/* better idea? */
+	  return -1;
+	}
       }
       default:
       { errno = EINVAL;
@@ -225,6 +217,7 @@ pceRead(int handle, char *buf, int size)
        h->flags & (PCE_RDWR|PCE_RDONLY) )
   { Any argv[2];
     CharArray sub;
+    int chread;
 
     if ( isFreedObj(h->object) )
     { errno = EIO;
@@ -234,20 +227,18 @@ pceRead(int handle, char *buf, int size)
     argv[0] = toInt(h->point);
     argv[1] = toInt(size);
 
-    ServiceMode(MODE_SYSTEM,
-      if ( (sub = getv(h->object, NAME_readAsFile, 2, argv)) &&
-	   instanceOfObject(sub, ClassCharArray) )
-      { int chread = sub->data.size;
-  
-	assert(chread <= size);
-	memcpy(buf, sub->data.s_text8, chread);
-	h->point += chread;
-  
-	return chread;
-      })
+    if ( (sub = getv(h->object, NAME_readAsFile, 2, argv)) &&
+	 instanceOfObject(sub, ClassCharArray) )
+    { chread = sub->data.size;
+      assert(chread <= size);
+      memcpy(buf, sub->data.s_text8, chread);
+      h->point += chread;
+    } else
+    { errno = EIO;
+      chread = -1;
+    }
 
-    errno = EIO;
-    return -1;
+    return chread;
   } else
   { errno = EBADF;
     return -1;

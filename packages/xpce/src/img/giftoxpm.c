@@ -16,7 +16,6 @@
 #include <X11/xpm.h>
 #endif
 
-#include <stdio.h>
 #include "gif.h"
 #include <stdlib.h>
 #ifdef HAVE_STRING_H
@@ -24,9 +23,6 @@
 #endif
 
 #define XpmMalloc(size) (void *)malloc((size))
-#ifndef SEEK_SET
-#define SEEK_SET 0
-#endif
 
 int
 alloc_colortable(int ncolors, void *closure)
@@ -60,8 +56,8 @@ alloc_color(int index, int r, int g, int b, void *closure)
 
 
 int
-XpmReadGIF(FILE *fd, XpmImage *img)
-{ long here = ftell(fd);
+XpmReadGIF(IOSTREAM *fd, XpmImage *img)
+{ long here = Stell(fd);
 
   img->ncolors    = 0;
   img->colorTable = NULL;
@@ -77,11 +73,11 @@ XpmReadGIF(FILE *fd, XpmImage *img)
   { case GIF_OK:
       return XpmSuccess;
     case GIF_NOMEM:
-      fseek(fd, here, SEEK_SET);
+      Sseek(fd, here, SIO_SEEK_SET);
       return XpmNoMemory;
     case GIF_INVALID:
     default:
-      fseek(fd, here, SEEK_SET);
+      Sseek(fd, here, SIO_SEEK_SET);
       return XpmFileInvalid;
   }
 }

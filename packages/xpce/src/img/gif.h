@@ -37,7 +37,7 @@ typedef int (*GIFAllocColorTable)(int size, void *closure);
 #define UCHAR unsigned char
 #define MAX_LZW_BITS	12
 
-extern int GIFReadFD(FILE *fd,
+extern int GIFReadFD(IOSTREAM *fd,
 		     PIXEL **data, int *width, int *height,
 		     GIFAllocColorTable at, GIFAllocColor ac, void *closure);
 extern const char  *GIFError(void);
@@ -48,7 +48,7 @@ giftoxpm.c. The usage in x11/xconvert.c.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifdef XPM_h
-extern int XpmReadGIF(FILE *fd, XpmImage *image);
+extern int XpmReadGIF(IOSTREAM *fd, XpmImage *image);
 #endif
 
-#endif // GIFHDRH
+#endif /*GIFHDRH*/

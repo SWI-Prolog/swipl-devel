@@ -194,7 +194,7 @@ static getdecl get_spatial[] =
 
 #define rc_spatial NULL
 /*
-static resourcedecl rc_spatial[] =
+static classvardecl rc_spatial[] =
 { 
 };
 */

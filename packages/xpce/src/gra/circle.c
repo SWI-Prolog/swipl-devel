@@ -122,8 +122,8 @@ static getdecl get_circle[] =
 
 /* Resources */
 
-static resourcedecl rc_circle[] =
-{ RC(NAME_selectionHandles, "name", "side_handles",
+static classvardecl rc_circle[] =
+{ RC(NAME_selectionHandles, "name", "sides",
      "Visual feedback of <->selected")
 };
 

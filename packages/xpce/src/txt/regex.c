@@ -25,7 +25,9 @@ End;
 
 static status
 initialiseRegex(Regex re, CharArray pattern)
-{ assign(re, pattern, pattern);
+{ if ( isDefault(pattern) )
+    pattern = (CharArray)NAME_;
+  assign(re, pattern, pattern);
 
   re->registers    = NULL;
   re->compiled     = alloc(sizeof(struct re_pattern_buffer));
@@ -90,7 +92,7 @@ storeRegex(Regex re, FileObj file)
 
 
 static status
-loadRegex(Regex re, FILE *fd, ClassDef def)
+loadRegex(Regex re, IOSTREAM *fd, ClassDef def)
 { TRY(loadSlotsObject(re, fd, def));
 
   re->registers	  	  = NULL;
@@ -645,6 +647,59 @@ getQuoteRegex(Regex re, CharArray ca)
 }
 
 
+static status
+filePatternRegex(Regex re, CharArray file_pattern)
+{ char *s = strName(file_pattern);
+  LocalArray(char, tmp, strlen(s)*2+2);
+  char *q = tmp;
+
+  for(; *s; s++)
+  { switch(*s)
+    { case '*':
+	*q++ = '.';
+        *q++ = '*';
+        continue;
+      case '?':
+	*q++ = '.';
+        continue;
+      case '\\':
+	*q++ = *s++;
+        *q++ = *s;
+        continue;
+      case '[':
+	do
+	{ *q++ = *s;
+	} while(*s && *s++ != ']');
+	continue;
+      case '{':
+	*q++ = '\\';
+        *q++ = '(';
+        for( ; *s && *s != '}'; s++ )
+	{ if ( *s == ',' )
+	  { *q++ = '\\';
+	    *q++ = '|';
+	  } else
+	    *q++ = *s;
+	}
+	if ( *s == '}' )
+	{ *q++ = '\\';
+	  *q++ = ')';
+	}
+	continue;
+      case '.':
+	*q++ = '\\';
+	*q++ = *s;
+        continue;
+      default:
+	*q++ = *s;
+    }
+  }
+  *q++ = '$';
+  *q = EOS;
+
+  return patternRegex(re, CtoString(tmp));
+}
+
 
 		 /*******************************
 		 *	 CLASS DECLARATION	*
@@ -677,7 +732,7 @@ static vardecl var_regex[] =
 /* Send Methods */
 
 static senddecl send_regex[] =
-{ SM(NAME_initialise, 1, "pattern=char_array", initialiseRegex,
+{ SM(NAME_initialise, 1, "pattern=[char_array]", initialiseRegex,
      DEFAULT, "Create regex from pattern"),
   SM(NAME_unlink, 0, NULL, unlinkRegex,
      DEFAULT, "Deallocate private storage"),
@@ -689,6 +744,8 @@ static senddecl send_regex[] =
      NAME_pattern, "@on: case is ignored during match"),
   SM(NAME_pattern, 1, "pattern=char_array", patternRegex,
      NAME_pattern, "Set pattern searched for"),
+  SM(NAME_filePattern, 1, "file_pattern=char_array", filePatternRegex,
+     NAME_pattern, "Translate file-pattern to regex and ->pattern"),
   SM(NAME_registerValue, 3, T_sregisterValue, registerValueRegex,
      NAME_registers, "Replace indicated register"),
   SM(NAME_replace, 2, T_replace, replaceRegex,
@@ -730,7 +787,7 @@ static getdecl get_regex[] =
 
 #define rc_regex NULL
 /*
-static resourcedecl rc_regex[] =
+static classvardecl rc_regex[] =
 { 
 };
 */

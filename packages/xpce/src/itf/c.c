@@ -379,12 +379,8 @@ XPCE_status
 XPCE_sendv(XPCE_Object receiver, XPCE_Object selector,
 	   int argc, const XPCE_Object argv[])
 { if ( receiver )
-  { status rval;
-
-    CHECKARGV;
-    Mode(MODE_USER,
-	 rval = vm_send(receiver, selector, NULL, argc, (Any *)argv));
-    return rval;
+  { CHECKARGV;
+    return vm_send(receiver, selector, NULL, argc, argv);
   }
   fail;
 }
@@ -394,12 +390,8 @@ XPCE_Object
 XPCE_getv(XPCE_Object receiver, XPCE_Object selector,
 	   int argc, const XPCE_Object argv[])
 { if ( receiver )
-  { Any rval;
-
-    CHECKARGV;
-    Mode(MODE_USER,
-	 rval = vm_get(receiver, selector, NULL, argc, (Any *)argv));
-    return rval;
+  { CHECKARGV;
+    return vm_get(receiver, selector, NULL, argc, argv);
   }
   fail;
 }
@@ -408,45 +400,22 @@ XPCE_getv(XPCE_Object receiver, XPCE_Object selector,
 XPCE_Object
 XPCE_newv(XPCE_Object class, const XPCE_Object name,
 	  int argc, const XPCE_Object argv[])
-{ Any rval;
+{ XPCE_Object rval;
 
   XPCE_initialise();
   CHECKARGV;
-  Mode(MODE_USER,
-       if ( (rval = createObjectv(name ? name : (Name) NIL,
-				  class, argc, (Any *)argv)) )
-         pushAnswerObject(rval));
+  rval = createObjectv(name ? name : (Name) NIL, class, argc, argv);
+  if ( rval )
+    pushAnswerObject(rval);
 
   return rval;
 }
 
 
+
 XPCE_status
 XPCE_free(XPCE_Object object)
 { return freeObject(object);
-}
-
-
-					/* -super versions */
-XPCE_status
-XPCE_send_superv(XPCE_Object receiver, XPCE_Object selector,
-	   int argc, const XPCE_Object argv[])
-{ if ( receiver )
-  { CHECKARGV;
-    return sendSuperObject(receiver, selector, argc, argv);
-  }
-  fail;
-}
-
-
-XPCE_Object
-XPCE_get_superv(XPCE_Object receiver, XPCE_Object selector,
-	   int argc, const XPCE_Object argv[])
-{ if ( receiver )
-  { CHECKARGV;
-    return getGetSuperObject(receiver, selector, argc, argv);
-  }
-  fail;
 }
 
 
@@ -461,7 +430,7 @@ XPCE_send(XPCE_Object receiver, XPCE_Object selector, ...)
   va_start(args, selector);
   for(argc=0; (argv[argc] = va_arg(args, Any)) != XPCE_END; argc++)
   { if ( argc > VA_PCE_MAX_ARGS )
-      return errorPce(VmiSend, NAME_badCArgList, receiver, selector);
+      return errorPce(receiver, NAME_badCArgList, CtoName("->"), selector);
   }
   va_end(args);
 
@@ -478,7 +447,7 @@ XPCE_get(XPCE_Object receiver, XPCE_Object selector, ...)
   va_start(args, selector);
   for(argc=0; (argv[argc] = va_arg(args, Any)) != XPCE_END; argc++)
   { if ( argc > VA_PCE_MAX_ARGS )
-    { errorPce(VmiGet, NAME_badCArgList, receiver, selector);
+    { errorPce(receiver, NAME_badCArgList, CtoName("<-"), selector);
       fail;
     }
   }
@@ -497,8 +466,7 @@ XPCE_new(XPCE_Object class, const XPCE_Object name, ...)
   va_start(args, name);
   for(argc=0; (argv[argc] = va_arg(args, Any)) != XPCE_END; argc++)
   { if ( argc > VA_PCE_MAX_ARGS )
-    { errorPce(VmiNew, NAME_badCArgList,
-	       class, name ? CtoName(name) : (Name) NIL);
+    { errorPce(class, NAME_badCArgList, CtoName("<-"), NAME_instance);
       fail;
     }
   }
@@ -564,7 +532,7 @@ XPCE_call(XPCE_Procedure function, ...)
   va_start(args, function);
   for(argc=0; (argv[argc] = va_arg(args, Any)) != XPCE_END; argc++)
   { if ( argc > VA_PCE_MAX_ARGS )
-    { errorPce(VmiNew, NAME_badCArgList); /* TBD */
+    { errorPce(XPCE_CHost(), NAME_badCArgList, CtoName("->"), NAME_call);
       fail;
     }
   }
@@ -583,7 +551,7 @@ XPCE_funcall(XPCE_Function function, ...)
   va_start(args, function);
   for(argc=0; (argv[argc] = va_arg(args, Any)) != XPCE_END; argc++)
   { if ( argc > VA_PCE_MAX_ARGS )
-    { errorPce(VmiNew, NAME_badCArgList); /* TBD */
+    { errorPce(XPCE_CHost(), NAME_badCArgList, CtoName("<-"), NAME_call);
       fail;
     }
   }
@@ -636,7 +604,7 @@ XPCE_makeclass(XPCE_Object name, XPCE_Object super, XPCE_Object summary)
 { Class class, superclass;
 
   if ( !(superclass = getConvertClass(ClassClass, super)) )
-  { errorPce(VmiNew, NAME_noSuperClass, super);
+  { errorPce(name, NAME_noSuperClass, super);
     fail;
   }
 
@@ -664,7 +632,7 @@ XPCE_defvar(XPCE_Object class,
   if ( !(type = checkType(type, TypeType, NIL)) )
     type = TypeAny;
 
-  var = newObject(ClassVariable, name, type, access, summary, group, 0);
+  var = newObject(ClassObjOfVariable, name, type, access, summary, group, 0);
   initialValueVariable(var, initial);
   TRY(instanceVariableClass(class, var));
 
@@ -703,7 +671,7 @@ XPCE_defsendmethodv(XPCE_Object class,
 		     summary, DEFAULT, group, 0);
   assign(method, message, NIL);
   setDFlag(method, D_CXX);
-  method->function = (Func)implementation;
+  method->function = (SendFunc)implementation;
 
   return sendMethodClass(class, method);
 }
@@ -738,7 +706,7 @@ XPCE_store(XPCE_Object in, XPCE_Variable var, XPCE_Object value)
 { if ( !in || !value )
     fail;
 
-  return sendVariable(var, in, 1, &value);
+  return sendVariable(var, in, value);
 }
 
 
@@ -747,7 +715,7 @@ XPCE_fetch(XPCE_Object in, XPCE_Variable var)
 { if ( !in )
     fail;
 
-  return getGetVariable(var, in, 0, NULL);
+  return getGetVariable(var, in);
 }
 
 		 /*******************************

@@ -159,44 +159,14 @@ ws_open_display(DisplayObj d)
 { DisplayWsXref ref = d->ws_ref;
   char *address;
   Display *display;
-  CharArray home = get(PCE, NAME_home, 0);
-  char *oldxapplresdir = getenv("XAPPLRESDIR");
-  char applresdir[512];
 
-  if ( home )
-  { char *s;
-
-    strcpy(applresdir, "XAPPLRESDIR=");
-    if ( oldxapplresdir )
-    { strcat(applresdir, oldxapplresdir);
-      strcat(applresdir, ":");
-    }
-    strcat(applresdir, strName(home));
-    s = &applresdir[strlen(applresdir)];
-    if ( s[-1] == '/' && s > applresdir )
-      s--;
-    *s = EOS;
-
-					/* does or doesn't putenv copy? */
-					/* Read the SunOs 4.1 manual */
-					/* ... and tell me if you understand */
-    putenv(save_string(applresdir));
-  }
-  
   address = isDefault(d->address) ? NULL : strName(d->address);
   display = XtOpenDisplay(pceXtAppContext(NULL),
 			  address, "xpce",
-			  strName(d->resource_class),
+			  "Pce",	/* resource class (not used) */
 			  opTable, XtNumber(opTable),
 			  &PCEargc, PCEargv);
 
-/*
-  if ( resdirpushed )
-  { sprintf(applresdir, "XAPPLRESDIR=%s", oldxapplresdir);
-    putenv(save_string(applresdir));
-  }
-*/
-    
   if ( !display )
   { char problem[LINESIZE];
     char *theaddress = XDisplayName(address);
@@ -229,7 +199,7 @@ ws_open_display(DisplayObj d)
     XtSetArg(args[n], XtNheight,      	    64);    n++;
 
     ref->shell_xref = XtAppCreateShell("xpce",
-				       strName(d->resource_class),
+				       "Pce", /* Resource Class */
 				       applicationShellWidgetClass,
 				       display,
 				       args, n);
@@ -775,35 +745,3 @@ ws_grab_image_display(DisplayObj d, int x, int y, int width, int height)
 
   answer(i);
 }
-
-#ifndef O_NOX11RESOURCES
-
-		 /*******************************
-		 *	     RESOURCES		*
-		 *******************************/
-
-StringObj
-ws_get_resource_value(DisplayObj d,
-		      Name cc, Name cn, Name rc, Name rn,
-		      int accept_default)
-{ DisplayWsXref r = d->ws_ref;
-  char *val;				/* actually X11 String ... */
-  XtResource res;
-  
-  res.resource_name   = resourceName(rn);
-  res.resource_class  = strName(rc);
-  res.resource_type   = XtRString;
-  res.resource_size   = sizeof(String);
-  res.resource_offset = 0;
-  res.default_type    = XtRString;
-  res.default_addr    = NULL;
-
-  XtGetSubresources(r->shell_xref, &val,
-		    strName(cn), strName(cc), &res, 1, NULL, 0);
-  if ( val )
-    answer(CtoString(val));
-
-  fail;
-}
-
-#endif /*O_NOX11RESOURCES*/

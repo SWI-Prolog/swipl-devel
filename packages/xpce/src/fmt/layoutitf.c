@@ -16,9 +16,8 @@ initialiseLayoutInterface(Any obj, Graphical image)
 { LayoutInterface itf = obj;
 
   assign(itf,   image,            image);
-  assign(image, layout_interface, itf);
 
-  succeed;
+  return qadSendv(image, NAME_layoutInterface, 1, &obj);
 }
 
 
@@ -27,7 +26,10 @@ unlinkLayoutInterface(Any obj)
 { LayoutInterface itf = obj;
 
   if ( notNil(itf->image) && !isFreedObj(itf->image) )
-    assign(itf->image, layout_interface, NIL);
+  { Any nil = NIL;
+
+    return qadSendv(itf->image, NAME_layoutInterface, 1, &nil);
+  }
 
   succeed;
 }
@@ -85,7 +87,7 @@ static getdecl get_layoutitf[] =
 
 #define rc_layoutitf NULL
 /*
-static resourcedecl rc_layoutitf[] =
+static classvardecl rc_layoutitf[] =
 {
 };
 */

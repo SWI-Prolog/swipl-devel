@@ -15,9 +15,7 @@
 void
 resetDebugger(void)
 { CurrentGoal = NULL;
-  ExecuteMode = MODE_SYSTEM;
   ServiceMode = PCE_EXEC_USER;
-  SkipMode    = FALSE;
   GoalDepth   = 0;
 }
 
@@ -25,98 +23,36 @@ resetDebugger(void)
 void
 initDebugger(void)
 { resetDebugger();
-
-  VmiSend = globalObject(NAME_vmiSend, ClassVmi, NAME_send, 0);
-  VmiGet  = globalObject(NAME_vmiGet,  ClassVmi, NAME_get,  0);
-  VmiNew  = globalObject(NAME_vmiNew,  ClassVmi, NAME_new,  0);
-  VmiFree = globalObject(NAME_vmiFree, ClassVmi, NAME_free, 0);
-
-  systemProgramObject(VmiSend, OFF);
-  systemProgramObject(VmiGet,  OFF);
-  systemProgramObject(VmiNew,  OFF);
-  systemProgramObject(VmiFree, OFF);
 }
 
 
-status
-parentGoal(ProgramObject obj, Any rec, Name sel) /* goal is on stack */
-{ Goal g;
+int
+isProperGoal(PceGoal g)
+{ int dummy;
 
-  for(g = CurrentGoal; g; g = g->parent)
-    if ( g->object == obj &&
-	 g->receiver == rec &&
-	 g->selector == sel )
-      succeed;
+  if ( !g )
+    fail;
 
+#if defined(STACK_DIRECTION) && STACK_DIRECTION > 0
+  if ( (unsigned long)g > (unsigned long)&dummy ) /* stack grows up */
+#else
+  if ( (unsigned long)g < (unsigned long)&dummy ) /* stack grows down */
+#endif
+    fail;
+  if ( isProperObject(g->implementation) &&
+       isProperObject(g->receiver) )
+    succeed;
+  
   fail;
 }
-
 
 #ifndef O_RUNTIME
 
 static int
-tracingGoal(Goal g, Name port)
-{ ProgramObject obj = g->object;
-  ulong flag = nameToTraceFlag(port);
-
-  if ( ServiceMode == PCE_EXEC_SERVICE && TraceMode != TRACE_ALWAYS )
-    fail;
-
-  if ( onDFlag(obj, D_TRACE_INHERIT) )
-  { Class class = classOfObject(obj);
-
-    if ( isName(g->selector) &&
-	 strName(g->selector)[0] == syntax.word_separator &&
-	 TraceMode != TRACE_ALWAYS )
-      fail;
-
-    while(notNil(class) && onDFlag(class, D_TRACE_INHERIT))
-      class = class->super_class;
-    
-    return notNil(class) &&
-           onDFlag(class, flag) &&
-	   evalTraceConditionProgramObject((ProgramObject) class, g);
-  }
-  
-  return onDFlag(obj, flag) &&
-         evalTraceConditionProgramObject(obj, g);
-}
-
-
-static int
-breakingGoal(Goal g, Name port)
-{ ProgramObject obj = g->object;
-  ulong flag = nameToBreakFlag(port);
-
-  if ( ServiceMode == PCE_EXEC_SERVICE && TraceMode != TRACE_ALWAYS )
-    fail;
-
-  if ( onDFlag(obj, D_BREAK_INHERIT) )
-  { Class class = classOfObject(obj);
-
-    if ( isName(g->selector) &&
-	 strName(g->selector)[0] == syntax.word_separator &&
-	 TraceMode != TRACE_ALWAYS )
-      fail;
-
-    while(notNil(class) && onDFlag(class, D_BREAK_INHERIT))
-      class = class->super_class;
-    
-    return notNil(class) &&
-           onDFlag(class, flag) &&
-	   evalBreakConditionProgramObject((ProgramObject) class, g);
-  }
-  
-  return onDFlag(obj, flag) &&
-         evalBreakConditionProgramObject(obj, g);
-}
-
-
-static int
-levelGoal(Goal g)
+levelGoal(PceGoal g)
 { int i;
   
-  for(i=0; g; g=g->parent)
+  for(i=0; isProperGoal(g); g=g->parent)
     i++;
 
   return i;
@@ -128,340 +64,226 @@ actionHelp(void)
 { writef("\nXPCE Tracer options:\n");
   writef(" a\t\tabort\t\tAbort to host-language toplevel\n");
   writef(" b\t\tbreak\t\tStart interactive toplevel\n");
-  writef(" c[neua]\t\tcontinue\tContinue to next break-point in trace-mode\n");
-  writef("\t\t\t\t[never/user/always]\n");
   writef(" e[iwef] [id]\terror kind\tSet kind to [ignored/warning/error/fatal]\n");
-  writef(" g[ah] [depth]\tgoals\t\tPrint stack [always/host]\n");
+  writef(" g[h] [depth]\tgoals\t\tPrint stack [host]\n");
   writef(" q\t\tquit\t\tQuit XPCE\n");
-  writef(" s [level]\tskip\t\tSkip to the exit/fail of goal at [level]\n");
-  writef(" t\t\ttrace\t\tSwitch to host language tracer\n");
-  writef(" n\t\tnever trace\tDisable tracer\n");
+  writef(" c\t\tcontinue\tContinue execution\n");
   writef(" ? (h)\t\thelp\t\tPrint this text\n\n");
 }
 
 
 static void
-actionGoal(Goal g, Name port, Any rval)
-{ int do_break, do_trace;
+breakGoal(PceGoal g)
+{ char buf[LINESIZE];
+  char *s;
 
-  if ( SkipMode )
-  { if ( offGFlag(g, G_SKIP) )
+start:
+  writef(" ? ");
+  Cflush();
+  s = Cgetline(buf, sizeof(buf));
+
+  if ( s )
+  { int argc = 0;
+    char *argv[100];
+    char *q;
+    Int numarg = DEFAULT;
+
+    for(q = s; *q; )
+    { while(*q && islayout(*q))
+	q++;
+      if ( *q == EOS )
+	break;
+      argv[argc++] = q;
+      while(*q && !islayout(*q))
+	q++;
+      if ( *q != EOS )
+	*q++ = EOS;
+    }
+	
+    if ( argc >= 2 && isdigit(argv[1][0]) )
+      numarg = toInt(atoi(argv[1]));
+
+    if ( argc == 0 )
       return;
-    else
-      SkipMode = FALSE;
+
+    switch(argv[0][0])
+    { case 'g':
+	ServiceMode(PCE_EXEC_SERVICE,
+		    if ( argv[0][1] == 'h' )
+		      hostAction(HOST_BACKTRACE,
+				 isDefault(numarg) ? 5 : valInt(numarg));
+		    else
+		      pceBackTrace(g, isDefault(numarg) ? 5 : valInt(numarg)));
+        goto again;
+      case 'b':
+	if ( !hostAction(HOST_BREAK) )
+	  send(HostObject(), NAME_break, 0);
+        goto again;
+      case 'a':
+	if ( !hostAction(HOST_ABORT) )
+	  send(HostObject(), NAME_abort, 0);
+        goto again;			/* should not happen */
+      case 'e':
+      { Error e;
+
+	if ( argc == 2 )
+	{ if ( !(e = getConvertError(ClassError, CtoName(argv[1]))) )
+	  { writef("No such error: %s\n", CtoName(argv[1]));
+	    goto again;
+	  }
+	} else
+	{ if ( !(e = getConvertError(ClassError, PCE->last_error)) )
+	  { writef("No current error\n");
+	    goto again;
+	  }
+	}
+
+	if ( !e )
+	{ writef("No current error\n");
+	  goto again;
+	}
+
+	switch(argv[0][1])
+	{ case 'i':
+	    assign(e, kind, NAME_ignored);
+	    break;
+	  case 'e':
+	    assign(e, kind, NAME_error);
+	    break;
+	  case 'f':
+	    assign(e, kind, NAME_fatal);
+	    break;
+	  default:
+	  case 'w':
+	    assign(e, kind, NAME_warning);
+	    break;
+	}
+
+	writef("Switched error \"%s\" to ->kind \"%s\"\n",
+	       e->id, e->kind);
+
+	goto again;
+      }
+      case 'q':
+	debuggingPce(PCE, OFF);
+	send(PCE, NAME_die, 0);
+        exit(1);			/* should not happen */
+      case 'c':
+      case EOS:
+	return;
+      case '?':
+      case 'h':
+	actionHelp();
+        goto again;
+      default:
+	writef("Unknown option. (? for help)\n");
+        goto again;
+    }
+  } else
+  { hostAction(HOST_HALT);
+    exit(1);
   }
 
-again:
-  Trace(TRACE_NEVER,
-	do_break = (breakingGoal(g, port) || onGFlag(g, G_EXCEPTION));
-	do_trace = do_break || tracingGoal(g, port));
+  again:
+    writef("[%d] ", toInt(levelGoal(g)));
+    writeGoal(g);
+    goto start;
+}
 
-  if ( do_trace )
-  { Trace(TRACE_NEVER,
-	  writef("PCE: %2d ", toInt(levelGoal(g)));
-    
-	  writeGoal(g, port);
-	  if ( rval )
-	    writef(" --> %O", rval));
-     
 
-    if ( do_break )
-    { char buf[LINESIZE];
-      char *s;
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+NOTES:
+	* not-yet-filled aguments are NULL
+	* Foreign-arguments are non-NULL, but otherwise only know to the
+	  foreogn-language.  This must be handled using a call-back.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-      Trace(TRACE_NEVER,
-	    writef(" ? ");
-	    Cflush();
-	    s = Cgetline(buf, sizeof(buf)));
+void
+writeGoal(PceGoal g)
+{ Name id, arrow;
+  int i, argn = 0;
 
-      if ( s )
-      { int argc = 0;
-	char *argv[100];
-	char *q;
-	Int numarg = DEFAULT;
+  if ( !isProperGoal(g) )
+  { writef("<bad goal-frame>");
+    return;
+  }
 
-	for(q = s; *q; )
-	{ while(*q && islayout(*q))
-	    q++;
-	  if ( *q == EOS )
-	    break;
-	  argv[argc++] = q;
-	  while(*q && !islayout(*q))
-	    q++;
-	  if ( *q != EOS )
-	    *q++ = EOS;
-	}
-	
-	if ( argc >= 2 && isdigit(argv[1][0]) )
-	  numarg = toInt(atoi(argv[1]));
+  if ( g->flags & PCE_GF_SEND )
+    arrow = CtoName("->");
+  else if ( g->flags & PCE_GF_GET )
+    arrow = CtoName("<-");
+  else
+    return;				/* unknown goal */
 
-	if ( argc == 0 )
-	  return;
+  if ( notNil(g->implementation) )
+    id = qadGetv(g->implementation, NAME_manIndicator, 0, NULL);
+  else
+    id = CtoName("?");
 
-	switch(argv[0][0])
-	{ case 'g':
-	    Trace(TRACE_NEVER,
-		  if ( argv[0][1] == 'h' )
-		    hostAction(HOST_BACKTRACE,
-			       isDefault(numarg) ? 5 : valInt(numarg));
-		  else
-		    traceBackPce(numarg, argv[0][1] == 'a' ? NAME_always
-				 		           : NAME_user));
-	    goto again;
-	  case 'b':
-	    Trace(TRACE_NEVER,
-		  if ( !hostAction(HOST_BREAK) )
-		    send(HostObject(), NAME_break, 0));
-	    goto again;
-	  case 'a':
-	    Trace(TRACE_NEVER,
-		  if ( !hostAction(HOST_ABORT) )
-		    send(HostObject(), NAME_abort, 0));
-	    goto again;			/* should not happen */
-	  case 'q':
-	    Trace(TRACE_NEVER, hostAction(HOST_HALT));
-	    exit(1);
-	  case 'n':
-	    tracePce(PCE, NoTraceMode);
-	    return;
-	  case 'e':
-	    { Error e;
+  writef("%s %O %s%s(", id, g->receiver, arrow, g->selector);
 
-	      if ( argc == 2 )
-	      { if ( !(e = getConvertError(ClassError, CtoName(argv[1]))) )
-		{ writef("No such error: %s\n", CtoName(argv[1]));
-		  goto again;
-		}
-	      } else
-	      { if ( !(e = getConvertError(ClassError, PCE->last_error)) )
-		{ writef("No current error\n");
-		  goto again;
-		}
-	      }
-
-	      if ( !e )
-	      { writef("No current error\n");
-		goto again;
-	      }
-
-	      switch(argv[0][1])
-	      { case 'i':
-		  assign(e, kind, NAME_ignored);
-		  break;
-		case 'e':
-		  assign(e, kind, NAME_error);
-		  break;
-		case 'f':
-		  assign(e, kind, NAME_fatal);
-		  break;
-		default:
-		case 'w':
-		  assign(e, kind, NAME_warning);
-		  break;
-	      }
-
-	      writef("Switched error \"%s\" to ->kind \"%s\"\n",
-		     e->id, e->kind);
-
-	      goto again;
-	    }
-	  case 's':
-	    if ( port == NAME_enter )
-	    { int level = levelGoal(g);
-	      int skiplevel = isDefault(numarg) ? level : valInt(numarg);
-
-	      if ( skiplevel < 0 )	/* negative: relative to top */
-		skiplevel += level;
-	      if ( skiplevel > level )	/* boundaries */
-		skiplevel = level;
-	      else if ( skiplevel < 0 )
-		skiplevel = 0;
-
-	      while(level > skiplevel && g)
-	      { g = g->parent;
-		level--;
-	      }
-
-	      setGFlag(g, G_SKIP);
-	      SkipMode = TRUE;
-	      return;
-	    }
-	    return;
-	  case 't':
-	    if ( hostAction(HOST_TRACE) )
-	    { tracePce(PCE, NoTraceMode);
-	      return;
-	    } else
-	    { writef("Trace not supported by host-language\n");
-	      goto again;
-	    }
-	  case 'c':
-	    switch(argv[0][1])
-	    { case 'n':
-		tracePce(PCE, NAME_never);
-		break;
-	      case 'e':
-		tracePce(PCE, NAME_error);
-	        break;
-	      case 'u':
-		tracePce(PCE, NAME_user);
-		break;
-	      case 'a':
-		tracePce(PCE, NAME_always);
-		break;
-	    }
-	    return;
-	  case EOS:
-	    return;
-	  case '?':
-	  case 'h':
-	    actionHelp();
-	    goto again;
-	  default:
-	    writef("Unknown option. (? for help)\n");
-	    goto again;
-	}
-      } else
-      { Trace(TRACE_NEVER, hostAction(HOST_HALT));
-	exit(1);
+  if ( g->flags & PCE_GF_HOSTARGS )
+  { if ( TheCallbackFunctions.writeGoalArgs )
+      (*TheCallbackFunctions.writeGoalArgs)(g);
+    else
+      writef("<host goal-frame>");
+  } else
+  { for(i=0; i<g->argc; i++)
+    { if ( argn++ )
+	writef(", ");
+      if ( g->argv[i] )
+	writef("%O", g->argv[i]);
+      else
+	writef("(nil)");
+    }
+    if ( g->va_type )
+    { for(i=0; i<g->va_argc; i++)
+      { if ( argn++ )
+	  writef(", ");
+	writef("%O", g->va_argv[i]);
       }
-    } else
-    { writef("\n");
     }
   }
-}
-
-
-void
-doTraceEnter(Goal g)
-{ if ( offDFlag(g->object, D_TRACE_ENTER|D_BREAK_ENTER) &&
-       offGFlag(g, G_EXCEPTION) &&
-       TraceMode == TRACE_USER &&
-       ExecuteMode == MODE_SYSTEM )
-    return;
-
-  actionGoal(g, NAME_enter, NULL);
-}
-
-
-void
-doTraceReturn(Goal g, status rval)
-{ if ( offDFlag(g->object, D_TRACE_EXIT|D_BREAK_EXIT) &&
-       offGFlag(g, G_EXCEPTION) &&
-       TraceMode == TRACE_USER &&
-       ExecuteMode == MODE_SYSTEM )
-    return;
-
-  actionGoal(g, rval ? NAME_exit : NAME_fail, NULL);
-}
-
-
-void
-doTraceAnswer(Goal g, Any rval)
-{ if ( offDFlag(g->object, D_TRACE_EXIT|D_BREAK_EXIT) &&
-       offGFlag(g, G_EXCEPTION) &&
-       TraceMode == TRACE_USER &&
-       ExecuteMode == MODE_SYSTEM )
-    return;
-
-  actionGoal(g, rval ? NAME_exit : NAME_fail, rval);
-}
-
-
-static void
-writeVmGoal(Goal g, Name vm)
-{ int i;
-
-  writef("%s(%O, %O", vm, g->receiver, g->selector);
-  for(i=0; i<g->argc; i++)
-    writef(", %O", g->argv[i]);
-  writef(")");
-}
-
-
-static void
-writeNewGoal(Goal g)
-{ int i;
-  Class class = g->receiver;
-
-  writef("new(%s", instanceOfObject(class, ClassClass) ? class->name
-						       : (Name) class);
-  if ( g->argc > 0 )
-  { writef("(");
-    for(i=0; i<g->argc; i++)
-      writef(i == 0 ? "%O" : ", %O", g->argv[i]);
-    writef(")");
-  }
 
   writef(")");
 }
 
 
-static void
-writeFreeGoal(Goal g)
-{ writef("free(%O)", g->receiver);
-}
-
-
 void
-writeGoal(Goal g, Name port)
-{ Class class = classOfObject(g->object);
-
-  if ( notNil(port) )
-    writef("%s: ", port);
-
-  if ( class->trace_function )
-    (*class->trace_function)(g->object, g, port);
-  else if ( g->object == VmiSend )
-    writeVmGoal(g, NAME_send);
-  else if ( g->object == VmiGet )
-    writeVmGoal(g, NAME_get);
-  else if ( g->object == VmiNew )
-    writeNewGoal(g);
-  else if ( g->object == VmiFree )
-    writeFreeGoal(g);
-}
-
-
-void
-traceBackPce(Int depth, Name mode)
-{ int n = isDefault(depth) ? 5 : valInt(depth);
-  Goal g = CurrentGoal;
-  int level = levelGoal(g);
+pceBackTrace(PceGoal g, int depth)
+{ int level;
 
   if ( !g )
-    writef("\t<No goal>\n");
+  { g = CurrentGoal;
+    if ( !g )
+      writef("\t<No goal>\n");
+  }
+  level = levelGoal(g);
 
-  for(; n > 0 && g; g = g->parent, level--)
-  { if ( onGFlag(g, G_SYSTEM) && mode == NAME_user )
-      continue;
+  if ( !depth )
+    depth = 5;
 
-    writef("\t[%2d] ", toInt(level));
-    writeGoal(g, NIL);
+  for( ; depth-- > 0 && isProperGoal(g); g = g->parent, level-- )
+  { writef("\t[%2d] ", toInt(level));
+    writeGoal(g);
     writef("\n");
-    n--;
   }
 }
 
-#endif /*O_RUNTIME*/
 
-int
-getModeGoal(Any obj)
-{ Goal g = CurrentGoal;
+void
+writeErrorGoal()
+{ PceGoal g = CurrentGoal;
 
-  if ( obj )
-  { for(; g && g->object != obj; g = g->parent)
-      ;
-  }
+  while(isProperGoal(g) && !(g->flags & PCE_GF_EXCEPTION) )
+    g = g->parent;
 
-  if ( g && offGFlag(g, G_SYSTEM) )
-    return MODE_USER;
-
-  return MODE_SYSTEM;
+  if ( isProperGoal(g) )
+    writeGoal(g);
+  else
+    writef("\t<No exception goal>\n");
 }
 
-
-#ifndef O_RUNTIME
 int
 pceDebugging(Name subject)
 { if ( ServiceMode == PCE_EXEC_SERVICE )
@@ -469,4 +291,54 @@ pceDebugging(Name subject)
 
   return memberChain(PCEdebugSubjects, subject);
 }
-#endif
+
+void
+pcePrintEnterGoal(PceGoal g)
+{ if ( DebuggingProgramObject(g->implementation,
+			      D_TRACE_ENTER|D_BREAK_ENTER) &&
+       !(g->flags & PCE_GF_HOST) )
+  { writef("[%d] enter ", toInt(levelGoal(g)));
+    writeGoal(g);
+    if ( DebuggingProgramObject(g->implementation, D_BREAK_ENTER) )
+      breakGoal(g);
+    else
+      writef("\n");
+  }
+}
+
+
+void
+pcePrintReturnGoal(PceGoal g, status rval)
+{ Name port;
+  int do_break;
+
+  if ( g->flags & PCE_GF_HOST )
+    return;
+
+  if ( rval )
+  { if ( !DebuggingProgramObject(g->implementation,
+				 D_TRACE_EXIT|D_BREAK_EXIT) )
+      return;
+    do_break = DebuggingProgramObject(g->implementation, D_BREAK_EXIT);
+    port = NAME_exit;
+  } else
+  { if ( !DebuggingProgramObject(g->implementation,
+				 D_TRACE_FAIL|D_BREAK_FAIL) )
+      return;
+    port = NAME_fail;
+    do_break = DebuggingProgramObject(g->implementation, D_BREAK_FAIL);
+  }
+
+  writef("[%d] %s ", toInt(levelGoal(g)), port);
+  writeGoal(g);
+
+  if ( rval && g->flags & PCE_GF_GET )
+    writef(" --> %O", g->rval);
+
+  if ( do_break )
+    breakGoal(g);
+  else
+    writef("\n");
+}
+
+#endif /*O_RUNTIME*/

@@ -14,11 +14,13 @@ static status
 initialiseResizeOutlineGesture(ResizeOutlineGesture g, Name button,
 			       Modifier modifier)
 { initialiseResizeGesture((ResizeGesture) g, button, modifier);
+  obtainClassVariablesObject(g);
   assign(g, outline, newObject(ClassBox, 0));
   assign(g, outline_gesture, newObject(ClassResizeGesture,
 				       g->button, g->modifier, 0));
 
-  send(g->outline, NAME_texture, getResourceValueObject(g, NAME_texture), 0);
+  send(g->outline, NAME_texture,
+       getClassVariableValueObject(g, NAME_texture), 0);
   
   succeed;
 }
@@ -128,7 +130,7 @@ static getdecl get_resizeOutlineGesture[] =
 
 /* Resources */
 
-static resourcedecl rc_resizeOutlineGesture[] =
+static classvardecl rc_resizeOutlineGesture[] =
 { RC(NAME_button, "button_name", "middle",
      "Active on which button (middle)"),
   RC(NAME_texture, "texture_name", "dotted",

@@ -67,7 +67,7 @@ static getdecl get_not[] =
 
 #define rc_not NULL
 /*
-static resourcedecl rc_not[] =
+static classvardecl rc_not[] =
 { 
 };
 */

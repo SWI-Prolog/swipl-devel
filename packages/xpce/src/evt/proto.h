@@ -11,7 +11,6 @@ PceWindow	WindowOfLastEvent(void);
 void		unlinkedWindowEvent(Any sw);
 ulong		LastEventTime(void);
 void		setLastEventTime(ulong time);
-Int		getTimeEvent(EventObj ev, EventObj ev2);
 status		isAEvent(EventObj e, Any id);
 status		eventName(Name name);
 status		allButtonsUpEvent(EventObj e);
@@ -29,11 +28,9 @@ Point		getAreaPositionEvent(EventObj ev, Graphical gr);
 Int		getXEvent(EventObj ev, Any obj);
 Int		getYEvent(EventObj ev, Any obj);
 status		insideEvent(EventObj ev, Graphical gr);
-Any		getInsideSubWindow(EventObj ev, Any root);
 Int		getDistanceEvent(EventObj ev1, EventObj ev2);
 Any		getIdEvent(EventObj ev);
 Any		getReceiverEvent(EventObj ev);
-Name		getKeyEvent(EventObj ev);
 status		postEvent(EventObj ev, Graphical obj, Recogniser rec);
 Any		getMasterEvent(EventObj ev);
 DisplayObj	getDisplayEvent(EventObj ev);
@@ -86,5 +83,4 @@ status		makeClassResizeGesture(Class class);
 status		makeClassResizeOutlineGesture(Class class);
 
 /* evt/edittextgest.c */
-status		initialiseEditTextGesture(EditTextGesture g, Name button, Modifier modifier);
 status		makeClassEditTextGesture(Class class);

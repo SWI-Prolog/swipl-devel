@@ -14,10 +14,6 @@ static status
 initialiseButton(Button b, Name name, Message msg, Name acc)
 { createDialogItem(b, name);
 
-  assign(b, pen,            DEFAULT);	/* resources */
-  assign(b, radius,         DEFAULT);
-  assign(b, shadow,         DEFAULT);
-  assign(b, popup_image,    DEFAULT);
   assign(b, default_button, OFF);
 
   assign(b, message, msg);
@@ -53,8 +49,8 @@ RedrawWinMenuBarButton(Button b, Area a)
   NormaliseArea(x, y, w, h);
   
   if ( b->status == NAME_preview )
-  { Any fg = getResourceValueObject(b, NAME_selectedForeground);
-    Any bg = getResourceValueObject(b, NAME_selectedBackground);
+  { Any fg = getClassVariableValueObject(b, NAME_selectedForeground);
+    Any bg = getClassVariableValueObject(b, NAME_selectedBackground);
 
     if ( !fg ) fg = WHITE_COLOUR;
     if ( !bg ) bg = BLACK_COLOUR;
@@ -80,7 +76,7 @@ static void
 draw_generic_button_face(Button b,
 			 int x, int y, int w, int h,
 			 int up, int defb, int focus)
-{ Elevation z = getResourceValueObject(b, NAME_elevation);
+{ Elevation z = getClassVariableValueObject(b, NAME_elevation);
   
   if ( z && notNil(z) )			/* 3-d style */
   { int up = (b->status == NAME_inactive || b->status == NAME_active);
@@ -161,7 +157,7 @@ draw_button_popup_indicator(Button b, int x, int y, int w, int h, int up)
     rm = iw+8;
     r_image(b->popup_image, 0, 0, x+w-rm, y + (h-ih)/2, iw, ih, ON);
   } else
-  { Elevation z = getResourceValueObject(b, NAME_elevation);
+  { Elevation z = getClassVariableValueObject(b, NAME_elevation);
 
     if ( b->look == NAME_motif )
     { int bw = 12;
@@ -225,7 +221,7 @@ RedrawAreaButton(Button b, Area a)
     draw_generic_button_face(b, x, y, w, h, up, defb, kbf && focus);
 
   if ( b->look == NAME_openLook && b->status == NAME_preview &&
-       !((z = getResourceValueObject(b, NAME_elevation)) && notNil(z)) )
+       !((z = getClassVariableValueObject(b, NAME_elevation)) && notNil(z)) )
   { swapbg = TRUE;
     r_swap_background_and_foreground();
   }
@@ -249,7 +245,7 @@ computeButton(Button b)
 { if ( notNil(b->request_compute) )
   { int w, h, isimage;
 
-    TRY(obtainResourcesObject(b));
+    TRY(obtainClassVariablesObject(b));
 
     dia_label_size(b, &w, &h, &isimage);
 
@@ -265,7 +261,7 @@ computeButton(Button b)
       { w += 4;
 	h += 4;
       } else
-      { Size size = getResourceValueObject(b, NAME_size);
+      { Size size = getClassVariableValueObject(b, NAME_size);
 
 	h += 6; w += 10 + valInt(b->radius);
 	if ( notNil(b->popup) )
@@ -417,25 +413,36 @@ keyButton(Button b, Name key)
 static status
 executeButton(Button b)
 { if ( notNil(b->message) )
-  { statusButton(b, NAME_execute);
+  { DisplayObj d = getDisplayGraphical((Graphical) b);
+
+    statusButton(b, NAME_execute);
     flushGraphical(b);
-    if ( notDefault(b->message) )
-    { DisplayObj d = getDisplayGraphical((Graphical) b);
-
+    if ( d )
       busyCursorDisplay(d, DEFAULT, DEFAULT);
-      forwardReceiverCode(b->message, b, 0);
+    send(b, NAME_forward, 0);
+    if ( d )
       busyCursorDisplay(d, NIL, DEFAULT);
-    }
-    else if ( notNil(b->device) )
-      send(b->device, b->name, 0);
-  }
 
-  if ( !isFreedObj(b) )
-    statusButton(b, NAME_inactive);
+    if ( !isFreedObj(b) )
+      statusButton(b, NAME_inactive);
+  }
 
   succeed;
 }
   
+
+static status
+forwardButton(Button b)
+{ if ( isNil(b->message) )
+    succeed;
+
+  if ( notDefault(b->message) )
+    return forwardReceiverCode(b->message, b, 0);
+
+  return send(b->device, b->name, 0);
+}
+
+
 		/********************************
 		*          ATTRIBUTES		*
 		********************************/
@@ -491,7 +498,7 @@ labelButton(Button b, Any label)
     int sametype = (instanceOfObject(b->label, ClassImage) == ltype);
 
     if ( !sametype )
-      assign(b, radius, ltype ? ZERO : getResourceValueObject(b, NAME_radius));
+      assign(b, radius, ltype ? ZERO : getClassVariableValueObject(b, NAME_radius));
     assignGraphical(b, NAME_label, label);
   }
 
@@ -554,7 +561,9 @@ static senddecl send_button[] =
   SM(NAME_key, 1, "key=name", keyButton,
      NAME_accelerator, "Handle accelerator key `name'"),
   SM(NAME_execute, 0, NULL, executeButton,
-     NAME_action, "Execute associated command"),
+     NAME_action, "->forward and deal with UI"),
+  SM(NAME_forward, 0, NULL, forwardButton,
+     NAME_action, "Perform associated action"),
   SM(NAME_font, 1, "font", labelFontDialogItem,
      NAME_appearance, "same as ->label_font"),
   SM(NAME_WantsKeyboardFocus, 0, NULL, WantsKeyboardFocusButton,
@@ -578,8 +587,8 @@ static getdecl get_button[] =
 
 /* Resources */
 
-static resourcedecl rc_button[] =
-{ RC(NAME_alignment, "{column,left,center,right}", "left",
+static classvardecl rc_button[] =
+{ RC(NAME_alignment, "{column,left,center,right}", "center",
      "Alignment in the row"),
   RC(NAME_labelFont, "font", "normal",
      "Default font for labels"),
@@ -587,18 +596,26 @@ static resourcedecl rc_button[] =
      "Ensured suffix of label"),
   RC(NAME_pen, "int", "2",
      "Thickness of box"),
-  RC(NAME_selectedForeground, "colour", "white",
+  RC(NAME_selectedForeground, "colour",
+     UXWIN("white", "win_highlighttext"),
      "Colour when in preview mode (Windows menu-bar)"),
-  RC(NAME_selectedBackground, "colour", "black",
+  RC(NAME_selectedBackground, "colour",
+     UXWIN("black", "win_highlight"),
      "Background when in preview mode (Windows menu-bar)"),
-  RC(NAME_popupImage, "image*", "@nil",
+  RC(NAME_popupImage, "image*",
+     "when(@colour_display, @nil, @ol_pulldown_image)",
      "Image to indicate presence of popup menu"),
-  RC(NAME_radius, "int", "4",
+  RC(NAME_radius, "int",
+     UXWIN("when(@colour_display, 8, 12)", "0"),
      "Rounding radius of box"),
-  RC(NAME_shadow, "int", "0",
+  RC(NAME_shadow, "int", "when(@colour_display, 0, 1)",
      "Shadow shown around the box"),
-  RC(NAME_size, "size", "size(80,20)",
-     "Minimum size in pixels")
+  RC(NAME_size, "size", UXWIN("size(50,20)", "size(80,24)"),
+     "Minimum size in pixels"),
+  RC(NAME_elevation, RC_REFINE,
+     UXWIN("when(@colour_display, button, @nil)",
+	   "elevation(@nil, 2, @_dialog_bg)"),
+     NULL)  
 };
 
 /* Class Declaration */

@@ -15,6 +15,13 @@ initialiseCode(Code c)
 { return initialiseProgramObject(c);
 }
 
+
+static Function
+getConvertCode(Class class, QuoteFunction q)
+{ answer(q->function);
+}
+
+
 		/********************************
 		*           FORWARDING		*
 		********************************/
@@ -168,32 +175,6 @@ getExecuteCode(Code c)
 }
 
 
-#ifndef O_RUNTIME
-static void
-traceCode(Code c)
-{ Any f;
-  int arity;
-
-  f = get(c, NAME_functor, 0);
-  writef("%s", f);
-  arity = valInt(get(c, NAME_Arity, 0));
-  if ( arity > 0 )
-  { int i;
-
-    writef("(");
-    for(i=1; i<=arity; i++)
-    { Any arg = get(c, NAME_Arg, toInt(i), 0);
-
-      if ( i == 1 )
-	writef("%O", arg);
-      else
-	writef(", %O", arg);
-    }
-    writef(")");
-  }
-}
-#endif /*O_RUNTIME*/
-
 
 		/********************************
 		*         CLASS CODE_VECTOR	*
@@ -218,6 +199,15 @@ createCodeVectorv(int argc, const Any argv[])
   clearCreatingObj(v);
 
   return v;
+}
+
+
+static Vector
+getConvertCodeVector(Any ctx, Any in)
+{ if ( in == name_nil )
+    answer(createCodeVectorv(0, NULL));
+
+  fail;
 }
 
 
@@ -287,18 +277,17 @@ static senddecl send_codeVector[] =
 
 /* Get Methods */
 
-#define get_codeVector NULL
-/*
 static getdecl get_codeVector[] =
-{ 
+{ GM(NAME_convert, 1, "code_vector", "any", getConvertCodeVector,
+     DEFAULT, "Convert [] into empty code-vector"),
+
 };
-*/
 
 /* Resources */
 
 #define rc_codeVector NULL
 /*
-static resourcedecl rc_codeVector[] =
+static classvardecl rc_codeVector[] =
 { 
 };
 */
@@ -356,14 +345,16 @@ static senddecl send_code[] =
 
 static getdecl get_code[] =
 { GM(NAME_Execute, 0, "unchecked", NULL, getExecuteCode,
-     NAME_internal, "Execute the function object (error)")
+     NAME_internal, "Execute the function object (error)"),
+  GM(NAME_convert, 1, "function", "quote=quote_function", getConvertCode,
+     DEFAULT, "Convert quoted function to value quoted")
 };
 
 /* Resources */
 
 #define rc_code NULL
 /*
-static resourcedecl rc_code[] =
+static classvardecl rc_code[] =
 { 
 };
 */
@@ -380,7 +371,6 @@ status
 makeClassCode(Class class)
 { declareClass(class, &code_decls);
 
-  setTraceFunctionClass(class, traceCode);
   cloneStyleClass(class, NAME_none);
   assign(class, un_answer, OFF);
 

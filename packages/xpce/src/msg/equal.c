@@ -73,7 +73,7 @@ static getdecl get_equal[] =
 
 #define rc_equal NULL
 /*
-static resourcedecl rc_equal[] =
+static classvardecl rc_equal[] =
 { 
 };
 */

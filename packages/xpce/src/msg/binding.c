@@ -58,7 +58,7 @@ static getdecl get_binding[] =
 
 #define rc_binding NULL
 /*
-static resourcedecl rc_binding[] =
+static classvardecl rc_binding[] =
 { 
 };
 */

@@ -17,17 +17,10 @@
 Read various bitmap-formats and  convert them into  an X11 bitmap-data
 string to be used with XCreateBitmapFromData().  Functions provided:
 
-unsigned char *read_bitmap_data(FILE *fd, int *w, int *h)
+unsigned char *read_bitmap_data(IOSTREAM *fd, int *w, int *h)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static unsigned char *read_x11_bitmap_file(FILE *, int *, int *);
-static unsigned char *read_sun_icon_file(FILE *, int *, int *);
-#if O_CONVERT_SUNVIEW_IMAGES
-static unsigned char *read_sun_image_file(FILE *fd, int *width, int *height);
-#include <pixrect/pixrect.h>
-#include <pixrect/memvar.h>
-#endif
-
+static unsigned char *read_x11_bitmap_file(IOSTREAM *, int *, int *);
 
 #define Round(n, r) ((((n) + (r) - 1) / (r)) * (r))
 
@@ -36,21 +29,13 @@ static unsigned char *read_sun_image_file(FILE *fd, int *width, int *height);
 		********************************/
 
 unsigned char *
-read_bitmap_data(FILE *fd, int *w, int *h)
-{ long offset = ftell(fd);
+read_bitmap_data(IOSTREAM *fd, int *w, int *h)
+{ long offset = Stell(fd);
   unsigned char *rval;
 
   if ( (rval = read_x11_bitmap_file(fd, w, h)) != NULL )
     return rval;
-  fseek(fd, offset, 0);
-  if ( (rval = read_sun_icon_file(fd, w, h)) != NULL )
-    return rval;
-  fseek(fd, offset, 0);
-#if O_CONVERT_SUNVIEW_IMAGES
-  if ( (rval = read_sun_image_file(fd, w, h)) != NULL )
-    return rval;
-  fseek(fd, offset, 0);  
-#endif
+  Sseek(fd, offset, 0);
 
   return NULL;
 }
@@ -109,7 +94,7 @@ initHexTable(void)
  */
 
 static int
-NextInt(FILE *fstream)
+NextInt(IOSTREAM *fstream)
 { int ch;
   int value = 0;
   int gotone = 0;
@@ -119,13 +104,13 @@ NextInt(FILE *fstream)
     /* skip any initial delimiters found in read stream */
 
   while (!done)
-  { if ( feof(fstream) )
+  { if ( Sfeof(fstream) )
     { value = -1;
       done++;
     } else
     { int dvalue;
 
-      ch = getc(fstream) & 0xff;
+      ch = Sgetc(fstream) & 0xff;
       dvalue = hexTable[ch];
       if ( dvalue >= 0 )
       { value = (value << 4) + dvalue;
@@ -140,7 +125,7 @@ NextInt(FILE *fstream)
 
 
 static unsigned char *
-read_x11_bitmap_file(FILE *fd, int *w, int *h)
+read_x11_bitmap_file(IOSTREAM *fd, int *w, int *h)
 { unsigned char *data = NULL;
   char line[LINESIZE];
   int size = 0;
@@ -160,7 +145,7 @@ read_x11_bitmap_file(FILE *fd, int *w, int *h)
 
 #define	RETURN_ERROR { if (data) pceFree(data); return NULL; }
 
-  while (fgets(line, LINESIZE, fd))
+  while (Sfgets(line, LINESIZE, fd))
   { if ( sscanf(line,"#define %s %d",name_and_type,&value) == 2)
     { if (!(type = strrchr(name_and_type, '_')))
 	type = name_and_type;
@@ -246,93 +231,3 @@ read_x11_bitmap_file(FILE *fd, int *w, int *h)
 }
 
 
-		/********************************
-		*        SUN-ICON EDITOR	*
-		********************************/
-
-static unsigned char *
-read_sun_icon_file(FILE *fd, int *width, int *height)
-{ unsigned char *data, *dst;
-  int x, y, w, h;
-  int size;
-  int skip_last;
-
-  if ( fscanf(fd, 
-"/* Format_version=1, Width=%d, Height=%d, Depth=1, Valid_bits_per_item=16\n */", 
-	&w, &h) != 2 )
-    return NULL;
-
-  if (initialized == FALSE)
-    initHexTable();
-
-  size = Round(w, 8) * h;
-  dst = data = (unsigned char *) pceMalloc(size);
-  
-  skip_last = (w % 16) <= 8 && (w % 16) > 0;
-
-  for(y = 0; y < h; y++)
-  { for(x = ((w+15)/16) - 1; x >= 0 ; x--)
-    { int s;
-      int d = 0;
-      int n;
-      
-      s = NextInt(fd);
-
-      for( n=0; n < 16 ; n++ )		/* revert all bits in the short */
-        d |= ((s >> n) & 1) << (15-n);
-
-      *dst++ = d & 0xff;
-      if ( x != 0 || !skip_last )
-	*dst++ = (d >> 8) & 0xff;
-    }
-  }
-
-  *width = w;
-  *height = h;
-  return data;
-}
-
-
-#if O_CONVERT_SUNVIEW_IMAGES
-
-static unsigned char *
-read_sun_image_file(FILE *fd, int *width, int *height)
-{ Pixrect *pr;
-  int w, h;
-  unsigned char *data, *dst;
-  short *src;
-  int x, y;
-  int skip_last;
-
-  if ( (pr = (Pixrect *) pr_load(fd, NULL)) == NULL )
-    return NULL;
-
-  w = pr->pr_size.x;
-  h = pr->pr_size.y;
-  data = dst = (unsigned char *) pceMalloc(((w + 7) / 8) * h);
-
-  skip_last = (w % 16) <= 8 && (w % 16) > 0;
-
-  for(y = 0; y < h; y++)
-  { src = &((struct mpr_data *)pr->pr_data)->md_image[((w+15)/16) * y];
-
-    for(x = ((w+15)/16) - 1; x >= 0 ; x--)
-    { int s = *src++, d = 0;
-      int n;
-      
-      for( n=0; n < 16 ; n++ )		/* revert all bits in the short */
-        d |= ((s >> n) & 1) << (15-n);
-
-      *dst++ = d & 0xff;
-      if ( x != 0 || !skip_last )
-	*dst++ = (d >> 8) & 0xff;
-    }
-  }
-
-  *width = w;
-  *height = h;
-
-  return data;
-}
-
-#endif

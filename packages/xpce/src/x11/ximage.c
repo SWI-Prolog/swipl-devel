@@ -54,28 +54,6 @@ ws_destroy_image(Image image)
 
 #define DataSize(Image) ((Image)->bytes_per_line * (Image)->height)
 
-#ifndef O_PPM
-
-static status
-dumpXImage(XImage *image, FILE *fd)
-{ putc('I', fd);
-  putstdw(image->width, fd);
-  putstdw(image->height, fd);
-  putstdw(image->xoffset, fd);
-  putstdw(image->format, fd);
-  putstdw(image->byte_order, fd);
-  putstdw(image->bitmap_unit, fd);
-  putstdw(image->bitmap_bit_order, fd);
-  putstdw(image->bitmap_pad, fd);
-  putstdw(image->depth, fd);
-  putstdw(image->bytes_per_line, fd);
-  fwrite(image->data, 1, DataSize(image), fd);
-
-  succeed;
-}
-#endif /*O_PPM*/
-
-
 static void
 getXImageImageFromScreen(Image image)
 { if ( notNil(image->display) /* && image->kind == NAME_bitmap */ )
@@ -103,27 +81,26 @@ ws_store_image(Image image, FileObj file)
   }
 
   if ( i )
-#if O_PPM
   { DisplayObj d = image->display;
     DisplayWsXref r;
+    IOSTREAM *fd = Sopen_FILE(file->fd, SIO_OUTPUT); /* HACK */
 
     if ( isNil(d) )
       d = CurrentDisplay(image);
+    
     r = d->ws_ref;
 
-    putc('P', file->fd);
-    DEBUG(NAME_ppm, Cprintf("Saving PNM image from index %d\n", ftell(file->fd)));
-    if ( write_pnm_file(file->fd, i, r->display_xref, 0, 0, 0, PNM_RUNLEN) < 0 )
+    Sputc('P', fd);
+    DEBUG(NAME_ppm, Cprintf("Saving PNM image from index %d\n", Stell(fd)));
+    if ( write_pnm_file(fd, i, r->display_xref, 0, 0, 0, PNM_RUNLEN) < 0 )
+    { Sclose(fd);
       fail;
-    DEBUG(NAME_ppm, Cprintf("Saved PNM image to index %d\n", ftell(file->fd)));
+    }
+
+    Sclose(fd);
+    DEBUG(NAME_ppm, Cprintf("Saved PNM image to index %d\n", Stell(fd)));
   } else
     return errorPce(image, NAME_cannotSaveObject, NAME_noImage);
-#else /*O_PPM*/
-  { putc('X', file->fd);
-    dumpXImage(i, file->fd);
-  } else
-    return errorPce(image, NAME_cannotSaveObject, NAME_noImage);
-#endif /*O_PPM*/
 
   succeed;
 }
@@ -132,7 +109,7 @@ ws_store_image(Image image, FileObj file)
 
 
 status
-loadXImage(Image image, FILE *fd)
+loadXImage(Image image, IOSTREAM *fd)
 { XImage *im, *tmp = (XImage *)XMalloc(sizeof(XImage));
   char *data;
   int c;
@@ -140,8 +117,8 @@ loadXImage(Image image, FILE *fd)
   DisplayObj d = image->display;
   DisplayWsXref r;
 
-  if ( (c = getc(fd)) != 'I' )
-  { ungetc(c, fd);
+  if ( (c = Sgetc(fd)) != 'I' )
+  { Sungetc(c, fd);
     fail;
   }
 
@@ -159,7 +136,7 @@ loadXImage(Image image, FILE *fd)
   size = DataSize(tmp);
   data = XMalloc(size);
   tmp->data = data;
-  fread(data, 1, size, fd);
+  Sfread(data, 1, size, fd);
 
   if ( isNil(d) )
     d = CurrentDisplay(image);
@@ -183,7 +160,7 @@ loadXImage(Image image, FILE *fd)
 
 
 status
-loadPNMImage(Image image, FILE *fd)
+loadPNMImage(Image image, IOSTREAM *fd)
 { DisplayWsXref r;
   Display *d;
   XImage *i;
@@ -195,12 +172,12 @@ loadPNMImage(Image image, FILE *fd)
   r = image->display->ws_ref;
   d = r->display_xref;
 
-  DEBUG(NAME_ppm, Cprintf("Loading PNM image from index %d\n", ftell(fd)));
+  DEBUG(NAME_ppm, Cprintf("Loading PNM image from index %d\n", Stell(fd)));
   if ( (i = read_ppm_file(d, 0, 0, fd)) )
   { setXImageImage(image, i);
     assign(image, depth, toInt(i->depth));
 
-    DEBUG(NAME_ppm, Cprintf("Image loaded, index = %d\n", ftell(fd)));
+    DEBUG(NAME_ppm, Cprintf("Image loaded, index = %d\n", Stell(fd)));
     succeed;
   }
 
@@ -210,7 +187,7 @@ loadPNMImage(Image image, FILE *fd)
 
 
 status
-ws_load_old_image(Image image, FILE *fd)
+ws_load_old_image(Image image, IOSTREAM *fd)
 { XImage *im = readImageFile(image, fd);
 
   setXImageImage(image, im);
@@ -224,9 +201,12 @@ ws_load_old_image(Image image, FILE *fd)
 status
 ws_load_image_file(Image image)
 { XImage *i;
+  IOSTREAM *fd;
 
-  TRY( openFile(image->file, NAME_read, DEFAULT, DEFAULT) );
-  if ( !(i = readImageFile(image, image->file->fd)) )
+  if ( !(fd = Sopen_object(image->file, "rbr")) )
+    fail;
+
+  if ( !(i = readImageFile(image, fd)) )
   { DisplayWsXref r;
     Display *d;
 
@@ -237,9 +217,9 @@ ws_load_image_file(Image image)
     r = image->display->ws_ref;
     d = r->display_xref;
 
-    i = read_ppm_file(d, 0, 0, image->file->fd);
+    i = read_ppm_file(d, 0, 0, fd);
   }
-  closeFile(image->file);
+  Sclose(fd);
 
   if ( i )
   { if ( getXImageImage(image) )
@@ -255,6 +235,14 @@ ws_load_image_file(Image image)
   }
 
   return errorPce(image->file, NAME_badFile, NAME_image);
+}
+
+
+Image
+ws_std_xpm_image(Name name, Image *global, char **data)
+{ assert(0);				/* must be implemented later */
+
+  fail;
 }
 
 
@@ -323,14 +311,17 @@ ws_save_image_file(Image image, FileObj file, Name fmt)
     }
   
     if ( i )
-    { send(file, NAME_kind, NAME_binary, 0);
-      TRY(send(file, NAME_open, NAME_write, 0));
-      if ( write_pnm_file(file->fd, i, r->display_xref, 0, 0, 0,
+    { IOSTREAM *fd;
+
+      if ( !(fd=Sopen_object(file, "rbr")) )
+	fail;
+      if ( write_pnm_file(fd, i, r->display_xref, 0, 0, 0,
 			  PNM_RAWBITS) < 0 )
 	rval = errorPce(image, NAME_xError);
       else
 	rval = SUCCEED;
-      send(file, NAME_close, 0);
+
+      Sclose(fd);
     } else
       rval = FAIL;
 
@@ -557,7 +548,7 @@ buildIndex(unsigned width, unsigned rwidth)
   return index;
 }
 
-XImage *
+static XImage *
 ZoomXImage(Display *dsp, Visual *v, XImage *oimage,
 	   unsigned xwidth, unsigned ywidth)
 { XImage       *image;
@@ -633,7 +624,7 @@ ws_scale_image(Image image, int w, int h)
 #define falmost(f1, f2) (fabs((f1)-(f2)) < 0.001)
 
 
-XImage *
+static XImage *
 RotateXImage(Display *dsp, XImage *oimage, float angle, Pixel bg)
 { int ow = oimage->width;
   int oh = oimage->height;
@@ -933,4 +924,10 @@ ws_create_image_from_x11_data(Image image,
 ColourMap
 ws_colour_map_for_image(Image image)
 { fail;
+}
+
+
+void
+ws_system_images()
+{
 }

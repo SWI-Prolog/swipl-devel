@@ -63,13 +63,13 @@ cloneTokeniser(Tokeniser t, Tokeniser clone)
 		 *	 READ ALIEN SLOTS	*
 		 *******************************/
 
-Int
+static Int
 getLineTokeniser(Tokeniser t)
 { answer(toInt(t->line));
 }
 
 
-Int
+static Int
 getCaretTokeniser(Tokeniser t)
 { answer(toInt(t->caret));
 }
@@ -563,7 +563,7 @@ static getdecl get_tokeniser[] =
 
 #define rc_tokeniser NULL
 /*
-static resourcedecl rc_tokeniser[] =
+static classvardecl rc_tokeniser[] =
 { 
 };
 */

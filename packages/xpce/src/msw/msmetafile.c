@@ -133,11 +133,11 @@ storeWinMF(WinMF mf, FileObj file)
 
 
 static status
-loadFdWinMF(WinMF mf, FILE *fd, ClassDef def)
+loadFdWinMF(WinMF mf, IOSTREAM *fd, ClassDef def)
 { TRY( loadSlotsObject(mf, fd, def) );
   mf->hmf = NULL;
 
-  switch(getc(fd))
+  switch(Sgetc(fd))
   { case 'X':
       if ( notNil(mf->file) )
 	getDimensionsWinMF(mf);
@@ -145,7 +145,7 @@ loadFdWinMF(WinMF mf, FILE *fd, ClassDef def)
     case 'E':
     { UINT size = loadWord(fd);
       LPBYTE data = pceMalloc(size);
-      fread(data, sizeof(char), size, fd);
+      Sfread(data, sizeof(char), size, fd);
       mf->hmf = SetEnhMetaFileBits(size, data);
       pceFree(data);
       break;
@@ -402,7 +402,7 @@ ErrorExit1:
 static status
 getMhfWinMF(WinMF mf)
 { if ( !mf->hmf && notNil(mf->file) )
-  { CharArray path = getResourceValueObject(mf, NAME_path);
+  { CharArray path = getClassVariableValueObject(mf, NAME_path);
 
     if ( findFile(mf->file, path ? path : (CharArray) DEFAULT, NAME_read) )
     { char *rawfn = strName(getOsNameFile(mf->file));
@@ -694,7 +694,7 @@ saveWinMF(WinMF mf, FileObj file, Name format)
 			      ON) )
       format = NAME_emf;
     else
-      format = getResourceValueObject(mf, NAME_format);
+      format = getClassVariableValueObject(mf, NAME_format);
   }
 
   if ( format == NAME_wmf || format == NAME_aldus )
@@ -846,7 +846,7 @@ static getdecl get_winmf[] =
 
 /* Resources */
 
-static resourcedecl rc_winmf[] =
+static classvardecl rc_winmf[] =
 { RC(NAME_path, "string",
      "\".:mf:~/lib/mf:$PCEHOME/mf:\"",
      "Search path for loading Windows metafiles"),

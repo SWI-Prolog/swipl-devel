@@ -23,7 +23,7 @@ initialiseParagraph(Paragraph par, Int width, Int indent, Bool justify)
   assign(c, justify, justify);
   assign(c, words,   newObject(ClassChain, 0));
 
-  return obtainResourcesObject(par);
+  return obtainClassVariablesObject(par);
 }
 
 		 /*******************************
@@ -127,7 +127,7 @@ static getdecl get_paragraph[] =
 
 /* Resources */
 
-static resourcedecl rc_paragraph[] =
+static classvardecl rc_paragraph[] =
 { RC(NAME_width, "0..", "200",
      "Total width of the paragraph"),
   RC(NAME_indent, "int", "0",

@@ -11,13 +11,18 @@
 
 CPointer
 CtoCPointer(void *ptr)
-{ return answerObjectv(ClassCPointer, 1, &ptr);
+{ CPointer p = answerObjectv(ClassCPointer, 0, NULL);
+  
+  p->pointer = ptr;
+
+  return p;
 }
 
 
 static status
-initialiseCPointer(CPointer p, void *value)
-{ p->pointer = value;
+initialiseCPointer(CPointer p, CPointer value)
+{ if ( notDefault(value) )
+    p->pointer = value->pointer;
 
   succeed;
 }
@@ -57,8 +62,8 @@ static vardecl var_cPointer[] =
 /* Send Methods */
 
 static senddecl send_cPointer[] =
-{ SM(NAME_initialise, 1, "alien:void *", initialiseCPointer,
-     DEFAULT, "Create c_pointer from alien pointer"),
+{ SM(NAME_initialise, 1, "[c_pointer]", initialiseCPointer,
+     DEFAULT, "Create c_pointer from other c_pointer"),
   SM(NAME_equal, 1, "to=c_pointer", equalCPointer,
      NAME_compare, "Test if argument is same position")
 };
@@ -74,7 +79,7 @@ static getdecl get_cPointer[] =
 
 #define rc_cPointer NULL
 /*
-static resourcedecl rc_cPointer[] =
+static classvardecl rc_cPointer[] =
 { 
 };
 */

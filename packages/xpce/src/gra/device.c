@@ -538,7 +538,7 @@ computeBoundingBoxDevice(Device dev)
 }
 
 
-status
+static status
 changedUnionDevice(Device dev, Int ox, Int oy, Int ow, Int oh)
 { succeed;
 }
@@ -678,10 +678,7 @@ displayDevice(Any Dev, Any Gr, Point pos)
   { Variable var;
 
     if ( (var = getInstanceVariableClass(classOfObject(gr), NAME_autoAlign)) )
-    { Any off = OFF;
-
-      sendVariable(var, gr, 1, &off);
-    }
+      sendVariable(var, gr, OFF);
 
     setGraphical(gr, pos->x, pos->y, DEFAULT, DEFAULT);
   }
@@ -835,9 +832,20 @@ selectionDevice(Device dev, Any obj)
 { Cell cell;
 
   if ( instanceOfObject(obj, ClassChain) )
-  { for_cell(cell, dev->graphicals)
-    { if ( memberChain(obj, cell->value) )
-        send(cell->value, NAME_selected, ON, 0);
+  { int size = valInt(getSizeChain(obj));
+    ArgVector(selection, size);
+    int i = 0;
+
+    for_cell(cell, (Chain)obj)
+      selection[i++] = checkType(cell->value, TypeGraphical, dev);
+
+    for_cell(cell, dev->graphicals)
+    { for(i=0; i<size; i++)
+      { if ( selection[i] == cell->value )
+	  break;
+      }
+      if ( i < size )
+	send(cell->value, NAME_selected, ON, 0);
       else
 	send(cell->value, NAME_selected, OFF, 0);
     }
@@ -1188,24 +1196,6 @@ placeDialogItem(Device d, Matrix m, Graphical i,
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Distribute `total' pixels over n buckets.  Remaining pixels are distributed
-outward-in.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static void
-distribute(int total, int n, int *buckets)
-{ int l, i, m = total/n;
-
-  for(i=0; i<n; i++)
-    buckets[i] = m;
-  total -= m * n;
-
-  for(i=0, l=TRUE; total > 0; l = !l, total--, i++ )
-    buckets[l ? i : n-i]++;
-}
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Adjust  to  the  bounding  box  by   adjusting  all  columns  containing
 stretchable items.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -1278,6 +1268,52 @@ determineXColumns(Matrix m, Size gap, Size bb, Size border)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+stretchRows()  stretches  the  rows   to    deal   with  objects  having
+<-ver_stretch defined. bbh is the total height   that should be taken by
+the objects. itemssh is the amount currently used.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+stretchRows(Matrix m, int bbh)
+{ int x, y;
+
+  Stretch s = alloca(sizeof(stretch) * m->rows);
+  int ndist = m->rows;
+
+  for(y=0; y<m->rows; y++)
+  { int stretch = 0, noshrink=FALSE;
+    s[y].ideal  = m->units[0][y].height + m->units[0][y].depth;
+
+    for(x=0; x<m->cols; x++)
+    { stretch = max(stretch, m->units[x][y].vstretch);
+      if ( m->units[x][y].vstretch == 0 )
+	noshrink = TRUE;
+    }
+
+    s[y].stretch = stretch;
+    if ( stretch > 0 && !noshrink )
+      s[y].shrink = stretch;
+    else
+      s[y].shrink = 0;
+
+    if ( stretch == 0 && y < m->rows - 1 )
+      s[y].stretch = 1;
+  }
+
+  distribute_stretches(s, ndist, bbh);
+
+  for(x=0; x<m->cols; x++)
+  { for(y=0; y<ndist; y++)
+    { if ( !(s[y].shrink == 0 &&
+	     s[y].size < m->units[x][y].depth + m->units[x][y].height) )
+	m->units[x][y].depth = s[y].size - m->units[x][y].height;
+    } 
+  }
+}
+
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 adjustDialogItem() is as doSetGraphical, but returns 0 if there was no
 change and 1 if there was a change.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -1319,12 +1355,9 @@ layoutDialogDevice(Device d, Size gap, Size bb, Size border)
   { PceWindow sw = getWindowGraphical((Graphical) d);
 
     if ( instanceOfObject(sw, ClassDialog) )
-      gap = getResourceValueObject(sw, NAME_gap);
+      gap = getClassVariableValueObject(sw, NAME_gap);
     else
-    { Resource r = get(ClassDialog, NAME_resource, NAME_gap, 0);
-      if ( r )
-	gap = get(r, NAME_value, 0);
-    }
+      gap = getClassVariableValueClass(ClassDialog, NAME_gap);
 
     if ( !gap )
       gap = answerObject(ClassSize, toInt(15), toInt(8), 0);
@@ -1469,8 +1502,6 @@ layoutDialogDevice(Device d, Size gap, Size bb, Size border)
     
 
   { int gaph = valInt(gap->h);
-    int ideal_y = valInt(border->h) * 2;
-    int ngaps = -1;
 
     for(y=0; y<max_y; y++)		/* Determine unit height */
     { int h = -1000, d = -1000;
@@ -1483,30 +1514,12 @@ layoutDialogDevice(Device d, Size gap, Size bb, Size border)
       { m.units[x][y].height = h;
 	m.units[x][y].depth = d;
       }
-
-      ideal_y += (h+d);
-      ngaps++;
     }
-    ideal_y += ngaps * gaph;
 
-    if ( notDefault(bb) && ngaps > 0 )	/* distribute in Y-direction */
-    { int extra_y = valInt(bb->h) - ideal_y;
-
-      if ( extra_y > 0 )
-      { int *distributed = (int *)alloca(sizeof(int) * ngaps);
-	int ngap = 0;
-
-	distribute(extra_y, ngaps, distributed);
-
-	for(y=0; y<max_y; y++)
-	{ for(x=0; x<max_x; x++)
-	  { m.units[x][y].depth += distributed[ngap];
-	  }
-	      
-	  ngap++;
-	}
-      }
-    }
+					/* distribute in Y-direction */
+    if ( notDefault(bb) && max_y > 1 && valInt(bb->h) > 0 )
+      stretchRows(&m,
+		  valInt(bb->h) - valInt(border->h) * 2 - (max_y-1) * gaph);
 
 					  /* Place the items */
     for(py = valInt(border->h), y=0; y<max_y; y++)
@@ -1522,6 +1535,7 @@ layoutDialogDevice(Device d, Size gap, Size bb, Size border)
 	  int ry = (reference ? valInt(reference->y) : 0);
 	  int ix, iy = py + m.units[x][y].height;
 	  Int iw = DEFAULT;
+	  Int ih = DEFAULT;
 	  
 	  if ( m.units[x][y].alignment == NAME_column )
 	    ix = m.units[x][y].x;
@@ -1564,8 +1578,13 @@ layoutDialogDevice(Device d, Size gap, Size bb, Size border)
 	      iw = toInt(nx - gapw - (ix - rx));
 	  }
 
-	  changed += adjustDialogItem(gr, toInt(ix - rx), toInt(iy - ry),
-				      iw, DEFAULT);
+	  if ( m.units[x][y].vstretch )	/* ver_stretch handling */
+	  { ih = toInt(m.units[x][y].height + m.units[x][y].depth);
+	  }
+
+	  changed += adjustDialogItem(gr,
+				      toInt(ix - rx), toInt(iy - ry),
+				      iw, ih);
 	  lx = valInt(gr->area->x) + valInt(gr->area->w) + gapw;
 	}
 	px += m.units[x][y].left + m.units[x][y].right + gapw;
@@ -1787,7 +1806,6 @@ resizeDevice(Device dev, Real xfactor, Real yfactor, Point origin)
 
   p = tempObject(ClassPoint, toInt(ox - valInt(dev->offset->x)),
 		 	     toInt(oy - valInt(dev->offset->y)), 0);
-
   for_cell(cell, dev->graphicals)
     send(cell->value, NAME_resize, xfactor, yfactor, p, 0);
   considerPreserveObject(p);
@@ -1893,34 +1911,6 @@ geometryDevice(Device dev, Int x, Int y, Int w, Int h)
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Quick and dirty	move as used by class text_image to move devices for
-event-handling.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-status
-textMoveDevice(Device dev, Int x, Int y)
-{ ComputeGraphical(dev);
-
-  if ( x != dev->area->x || y != dev->area->y )
-  { Int dx = sub(x, dev->area->x);
-    Int dy = sub(y, dev->area->y);
-
-    assign(dev->offset, x, add(dev->offset->x, dx));
-    assign(dev->offset, y, add(dev->offset->y, dy));
-
-    if ( notNil(dev->clip_area) )
-    { assign(dev, badBoundingBox, ON); /* TBD: ??? */
-      computeBoundingBoxDevice(dev);
-    } else
-    { assign(dev->area, x, x);
-      assign(dev->area, y, y);
-    }
-  }
-
-  succeed;
-}
-
 		/********************************
 		*           REFERENCE		*
 		********************************/
@@ -2023,6 +2013,7 @@ getCatchAllDevice(Device dev, Name name)
   if ( (base = getDeleteSuffixName(name, NAME_Member)) )
     answer(getMemberDevice(dev, base));
 
+  errorPce(dev, NAME_noBehaviour, CtoName("<-"), name);
   fail;
 }
 
@@ -2199,7 +2190,7 @@ static getdecl get_device[] =
 
 #define rc_device NULL
 /*
-static resourcedecl rc_device[] =
+static classvardecl rc_device[] =
 { 
 };
 */

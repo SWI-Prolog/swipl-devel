@@ -406,7 +406,7 @@ static getdecl get_binaryExpression[] =
 
 #define rc_binaryExpression NULL
 /*
-static resourcedecl rc_binaryExpression[] =
+static classvardecl rc_binaryExpression[] =
 { 
 };
 */
@@ -497,7 +497,7 @@ static getdecl get_minus[] =
 
 #define rc_minus NULL
 /*
-static resourcedecl rc_minus[] =
+static classvardecl rc_minus[] =
 { 
 };
 */

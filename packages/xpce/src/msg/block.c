@@ -94,7 +94,7 @@ static getdecl get_block[] =
 
 #define rc_block NULL
 /*
-static resourcedecl rc_block[] =
+static classvardecl rc_block[] =
 { 
 };
 */

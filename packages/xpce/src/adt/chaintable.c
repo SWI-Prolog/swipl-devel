@@ -100,7 +100,7 @@ static getdecl get_chainTable[] =
 
 #define rc_chainTable NULL
 /*
-static resourcedecl rc_chainTable[] =
+static classvardecl rc_chainTable[] =
 { 
 };
 */

@@ -7,6 +7,7 @@
     Copyright (C) 1992 University of Amsterdam. All rights reserved.
 */
 
+#define INLINE_UTILITIES 1
 #include <h/kernel.h>
 
 
@@ -22,6 +23,12 @@ initialiseObtainv(Obtain obt, Any receiver, Name selector, int argc, Any *argv)
 
   if ( argc )
     assign(obt, arguments, newObjectv(ClassCodeVector, argc, argv));
+
+  if ( TheCallbackFunctions.getHostContext )
+  { Any context = (*TheCallbackFunctions.getHostContext)(receiver);
+
+    assign(obt, context, context);
+  }
 
   return initialiseFunction((Function) obt);
 }
@@ -53,11 +60,24 @@ getArgObtain(Obtain msg, Int arg)
 static Any
 getExecuteObtain(Obtain obt)
 { Any receiver;
+  Name selector;
+  Any rval = FAIL;
+  void *savedcontext;
 
-  TRY(receiver = expandCodeArgument(obt->receiver));
+  if ( notNil(obt->context) &&
+       TheCallbackFunctions.setHostContext )
+  { savedcontext =
+	(*TheCallbackFunctions.setHostContext)(obt->context);
+  } else
+    savedcontext = NIL;
+
+  if ( !(receiver = expandCodeArgument(obt->receiver)) )
+    goto out;
+  if ( !(selector = checkSelector(obt->selector)) )
+    goto out;
 
   if ( isNil(obt->arguments) )
-  { answer(getv(receiver, obt->selector, 0, NULL));
+  { rval = getv(receiver, selector, 0, NULL);
   } else
   { int n;
     int argc = valInt(obt->arguments->size);
@@ -65,10 +85,18 @@ getExecuteObtain(Obtain obt)
     Any *elms = obt->arguments->elements;
 
     for(n = 0; n < argc; n++)
-      TRY(argv[n] = expandCodeArgument(elms[n]));
+    { if ( !(argv[n] = expandCodeArgument(elms[n])) )
+	goto out;
+    }
 
-    answer(getv(receiver, obt->selector, argc, argv));
+    rval = getv(receiver, selector, argc, argv);
   }
+
+out:
+  if ( notNil(savedcontext) )
+    (*TheCallbackFunctions.setHostContext)(savedcontext);
+
+  return rval;
 }
 
 
@@ -89,7 +117,9 @@ static vardecl var_obtain[] =
   IV(NAME_selector, "name|function", IV_NONE,
      NAME_storage, "Name of the operation"),
   IV(NAME_arguments, "code_vector*", IV_NONE,
-     NAME_storage, "Vector of arguments")
+     NAME_storage, "Vector of arguments"),
+  IV(NAME_Context, "any*", IV_GET,
+     NAME_storage, "Host context information")
 };
 
 /* Send Methods */
@@ -114,7 +144,7 @@ static getdecl get_obtain[] =
 
 #define rc_obtain NULL
 /*
-static resourcedecl rc_obtain[] =
+static classvardecl rc_obtain[] =
 { 
 };
 */

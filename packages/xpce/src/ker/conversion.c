@@ -186,7 +186,7 @@ do_pp(Any obj)
 /*  case SUCCEED:		return ppsavestring("SUCCEED"); (= ONE)*/
   }
 
-  if ( isInteger(obj) && abs(valInt(obj)) < 10000000)
+  if ( isInteger(obj) )
   { sprintf(tmp, "%ld", valInt(obj));
     return ppsavestring(tmp);
   }
@@ -208,6 +208,17 @@ do_pp(Any obj)
     } else if ( instanceOfObject(obj, ClassReal) )
     { sprintf(summary, "%g", valReal(obj));
       s = summary;
+    } else if ( instanceOfObject(obj, ClassNumber) )
+    { sprintf(summary, "%ld", ((Number)obj)->value);
+      s = summary;
+    } else if ( instanceOfObject(obj, ClassHostData) )
+    { Any pn = qadGetv(obj, NAME_printName, 0, NULL);
+      char *tmp;
+
+      if ( pn && (tmp = toCharp(pn)) )
+	return ppsavestring(tmp);
+      else
+	s = strName(classOfObject(obj)->name);
     } else
       s = strName(classOfObject(obj)->name);
 
@@ -231,6 +242,16 @@ do_pp(Any obj)
   return ppsavestring(tmp);
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The biggest mess of all.  Basically,  the   above  may  yield error when
+passed wrong data. The code below catches   these  errors and prints the
+value hexadecimal in case of error.
+
+We have structure exception-handling of   Windows, Unix with traditional
+signal(), Unix with sigaction (preserves more  context) and systems with
+and without SIGBUS ...
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifdef __WIN32__
 
@@ -269,25 +290,71 @@ pcePP(Any obj)
 
 jmp_buf pp_env;
 
-static SIGNAL_HANDLER_TYPE
+static RETSIGTYPE
 pp_sig(sig)
 int sig;
 { longjmp(pp_env, 1);
 }
 
+typedef RETSIGTYPE (*handler_t)();
+
+#ifdef HAVE_SIGACTION
+
+typedef struct sigaction sigsave_t;
+
+static void
+set_sighandler(int sig, handler_t func, sigsave_t *old)
+{ struct sigaction new;
+
+  memset(&new, 0, sizeof(new));	/* deal with other fields */
+  new.sa_handler = func;
+
+  sigaction(sig, &new, (struct sigaction *)old);
+/*Cprintf("pcePP: handler = %p, flags = 0x%x\n",
+	  old->sa_handler, old->sa_flags);
+*/
+}
+
+static void
+restore_handler(int sig, struct sigaction *old)
+{ sigaction(sig, old, NULL);
+}
+
+#else /*HAVE_SIGACTION*/
+
+typedef handler_t sigsave_t;
+
+static void
+set_sighandler(int sig, handler_t func, handler_t *old)
+{ old = signal(sig, new);
+}
+
+static void
+restore_handler(int sig, handler_t *old)
+{ signal(sig, *old);
+}
+
+#endif /*HAVE_SIGACTION*/
+
 char *
 pcePP(Any obj)
 { char *s;
-  RETSIGTYPE (*old_segv)(int) = signal(SIGSEGV, pp_sig);
-#ifdef SIGBUS
-  RETSIGTYPE (*old_bus)(int) = signal(SIGBUS, pp_sig);
-#endif
 #ifndef O_RUNTIME
   int old = PCEdebugging;
-
-  PCEdebugging = FALSE;
+#endif
+  sigsave_t oldsegv;
+#ifdef SIGBUS
+  sigsave_t oldbus;
 #endif
 
+  set_sighandler(SIGSEGV, pp_sig, &oldsegv);
+#ifdef SIGBUS
+  set_sighandler(SIGBUS, pp_sig, &oldbus);
+#endif
+
+#ifndef O_RUNTIME
+  PCEdebugging = FALSE;
+#endif
   if ( setjmp(pp_env) == 0 )
   { s = do_pp(obj);
   } else
@@ -295,14 +362,13 @@ pcePP(Any obj)
     sprintf(tmp, "0x%lx", (unsigned long)obj);
     s = ppsavestring(tmp);
   }
-
 #ifndef O_RUNTIME
   PCEdebugging = old;
 #endif
 
-  signal(SIGSEGV, old_segv);
+  restore_handler(SIGSEGV, &oldsegv);
 #ifdef SIGBUS
-  signal(SIGBUS, old_bus);
+  restore_handler(SIGBUS, &oldbus);
 #endif
 
   return s;

@@ -27,6 +27,7 @@
 #define TXT_HIDDEN	0x10	/* invisible fragment */
 
 NewClass(text_buffer)
+  ABSTRACT_SOURCE_SINK
   Fragment	first_fragment;		/* first fragment */
   Fragment	last_fragment;		/* last fragment */
   Chain		editors;		/* editors associated buffer */
@@ -109,7 +110,7 @@ NewClass(editor)
   Int		right_margin;		/* Right margin */
   Int		indent_increment; 	/* Steps taken by region in/undent1 */
   Bool		auto_newline;		/* Auto newline on ->append */
-  FileObj	file;			/* Name of file or NIL */
+  SourceSink	file;			/* Name of file or NIL */
   Name		dabbrev_target;		/* Base of the dabbrev expansion */
   Chain		dabbrev_reject;		/* Hits rejected by dabbrev */
   Int		dabbrev_pos;		/* Current search position */

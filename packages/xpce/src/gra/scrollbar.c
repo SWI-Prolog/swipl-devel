@@ -66,7 +66,7 @@ static status	detachTimerScrollBar(ScrollBar s);
 
 static status
 initialiseScrollBar(ScrollBar s, Any obj, Name orientation, Message msg)
-{ Int w = getResourceValueObject(s, NAME_width);
+{ Int w = getClassVariableValueObject(s, NAME_width);
 
   if ( !w || isDefault(w) )
     w = ws_default_scrollbar_width();
@@ -74,11 +74,6 @@ initialiseScrollBar(ScrollBar s, Any obj, Name orientation, Message msg)
   initialiseGraphical(s, ZERO, ZERO, w, toInt(100));
   assign(s, orientation,   NAME_vertical);
 
-  assign(s, look,	   DEFAULT);
-  assign(s, placement,	   DEFAULT);
-  assign(s, distance,	   DEFAULT);
-  assign(s, pen,	   DEFAULT);
-  
   assign(s, view,	   toInt(-1));	/* length of view */
   assign(s, start,	   toInt(-1));	/* position in object */
   assign(s, length,	   toInt(-1));	/* length of scrollable object */
@@ -95,9 +90,8 @@ initialiseScrollBar(ScrollBar s, Any obj, Name orientation, Message msg)
   assign(s, unit,	   NAME_file);
   assign(s, status,	   NAME_inactive);
   assign(s, offset,	   ZERO);
-  assign(s, auto_hide,	   DEFAULT);
 
-  obtainResourcesObject(s);
+  obtainClassVariablesObject(s);
   if ( orientation == NAME_horizontal )
     orientationScrollBar(s, orientation);
 
@@ -394,7 +388,7 @@ compute_arrow_corners(int x, int y, int w, int h,
 
 static Elevation
 getElevationScrollBar(ScrollBar s)
-{ Elevation z = getResourceValueObject(s, NAME_elevation);
+{ Elevation z = getClassVariableValueObject(s, NAME_elevation);
 
 					/* TBD: make default one */
   return z;
@@ -460,7 +454,7 @@ draw_arrows(ScrollBar s, SbDrawData d)
 static void
 draw_bubble(ScrollBar s, SbDrawData d)
 { int p = valInt(s->pen);
-  Elevation z = getResourceValueObject(s, NAME_elevation);
+  Elevation z = getClassVariableValueObject(s, NAME_elevation);
   int x = d->x, y = d->y, w = d->w, h = d->h;
   BubbleInfo bi = &d->bubble;
   int pf=FALSE, pb=FALSE;
@@ -543,9 +537,9 @@ draw_bubble(ScrollBar s, SbDrawData d)
 }
 
 
-status
+static status
 RedrawAreaScrollBar(ScrollBar s, Area a)
-{ Any bg = getResourceValueObject(s, NAME_background);
+{ Any bg = getClassVariableValueObject(s, NAME_background);
   Any obg = NIL;
 
   if ( bg && (instanceOfObject(bg, ClassColour) ||
@@ -627,7 +621,7 @@ repeatScrollBar(ScrollBar s)
     forwardScrollBar(s);
     synchroniseGraphical((Graphical) s, ON);
     if ( Repeating(s) )		/* synchroniseGraphical() can handle up */
-    { Real t = getResourceValueObject(s, NAME_repeatInterval);
+    { Real t = getClassVariableValueObject(s, NAME_repeatInterval);
       int ct = (int)(valReal(t) * 1000.0) - (float)(mclock() - clk);
 
       assign(s, status, NAME_repeat);
@@ -670,7 +664,7 @@ attachTimerScrollBar(ScrollBar s)
 { Timer t = scrollBarRepeatTimer();
 
   detachTimerScrollBar(s);
-  intervalTimer(t, getResourceValueObject(s, NAME_repeatDelay));
+  intervalTimer(t, getClassVariableValueObject(s, NAME_repeatDelay));
   assign(ScrollBarRepeatMessage, receiver, s);
   startTimer(t, NAME_once);
 }
@@ -731,7 +725,7 @@ OpenLookRedrawAreaScrollBar(ScrollBar s, Area a)
   struct bubble_info bar_bi;
   struct bubble_info button_bi;
   iarea redraw;
-  Elevation z = getResourceValueObject(s, NAME_elevation);
+  Elevation z = getClassVariableValueObject(s, NAME_elevation);
   int boxh = BOXHEIGHT;
   int boxm = BOX_MARGIN;
 
@@ -1435,26 +1429,29 @@ static getdecl get_scrollBar[] =
 
 /* Resources */
 
-static resourcedecl rc_scrollBar[] =
-{ RC(NAME_background, "[elevation|colour|pixmap]", "white",
+static classvardecl rc_scrollBar[] =
+{ RC(NAME_background, "[elevation|colour|pixmap]",
+     UXWIN("@_dialog_bg", "win_window"),
      "Colour of background parts"),
-  RC(NAME_colour, "[colour]", "@default",
+  RC(NAME_colour, "[colour]", UXWIN("@default", "win_btnface"),
      "Colour of foreground parts"),
-  RC(NAME_distance, "int", "-1",
+  RC(NAME_distance, "int", "0",
      "Distance to graphical"),
-  RC(NAME_elevation, "elevation*", "@nil",
+  RC(NAME_elevation, "elevation*",
+     UXWIN("when(@colour_display, 1, @nil)",
+	   "elevation(@nil, 2, win_menu)"),
      "3-D effect elevation"),
-  RC(NAME_look, "{x,open_look,motif,win}", "x",
+  RC(NAME_look, "{x,open_look,motif,win}", UXWIN("open_look", "win"),
      "Look-and-feel"),
-  RC(NAME_pen, "int", "1",
+  RC(NAME_pen, "int", UXWIN("@_win_pen", "0"),
      "Thickness of surrounding box"),
-  RC(NAME_placement, "chain", "[top,left]",
+  RC(NAME_placement, "chain", "[right,bottom]",
      "Relative placement"),
   RC(NAME_repeatDelay, "real", "0.35",
      "OpenLook: time to wait until start of repeat"),
   RC(NAME_repeatInterval, "real", "0.06",
      "OpenLook: interval between repeats"),
-  RC(NAME_width, "[int]", "16",
+  RC(NAME_width, "[int]", UXWIN("16", "@default"),
      "Width of the scroll_bar"),
   RC(NAME_autoHide, "bool", "@on",
      "Automatically hide bar if all is shown")

@@ -125,7 +125,12 @@ valueSheet(Sheet sh, Any name, Any value)
 
 static Any
 getCatchAllSheet(Sheet sh, Name name)
-{ return getValueSheet(sh, (Any) name);
+{ Any rval = getValueSheet(sh, (Any) name);
+
+  if ( !rval )
+    errorPce(sh, NAME_noBehaviour,  CtoName("<-"), name);
+
+  answer(rval);
 }
 
 
@@ -247,7 +252,7 @@ static getdecl get_sheet[] =
 
 #define rc_sheet NULL
 /*
-static resourcedecl rc_sheet[] =
+static classvardecl rc_sheet[] =
 { 
 };
 */

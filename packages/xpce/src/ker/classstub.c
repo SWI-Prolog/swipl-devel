@@ -198,7 +198,7 @@ static getdecl get_classStub[] =
 
 #define rc_classStub NULL
 /*
-static resourcedecl rc_classStub[] =
+static classvardecl rc_classStub[] =
 { 
 };
 */

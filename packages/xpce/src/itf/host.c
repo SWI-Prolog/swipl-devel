@@ -132,9 +132,11 @@ getMessageHost(Host h)
 /* Type declarations */
 
 static char *T_name_any_XXX[] =
-        { "name", "any ..." };
+        { "name", "any|host_data ..." };
 static char *T_name_unchecked_XXX[] =
         { "name", "unchecked ..." };
+static char *T_sendCall[] =
+	{ "name|host_data", "unchecked ..." };
 
 /* Instance Variables */
 
@@ -154,8 +156,8 @@ static vardecl var_host[] =
 static senddecl send_host[] =
 { SM(NAME_initialise, 1, "name=name", initialiseHost,
      DEFAULT, "Create host from name"),
-  SM(NAME_call, 2, T_name_unchecked_XXX, callHostv,
-     NAME_callback, "Invoke a host defined send_method"),
+  SM(NAME_call, 2, T_sendCall, callHostv,
+     NAME_callback, "Invoke a host defined send operation"),
   SM(NAME_catchAll, 2, T_name_any_XXX, catchAllHostv,
      NAME_callback, "Call procedure on host")
 };
@@ -175,7 +177,7 @@ static getdecl get_host[] =
 
 #define rc_host NULL
 /*
-static resourcedecl rc_host[] =
+static classvardecl rc_host[] =
 { 
 };
 */

@@ -123,7 +123,7 @@ label_name(DI, Id:name, Label:'name|image') :<-
 	"Multi-lingual label service"::
 	message(Id, Label0),
 	(   atomic(Label0)
-	->  get(DI, resource_value, label_suffix, Suffix),
+	->  get(DI, label_suffix, Suffix),
 	    get(Label0, ensure_suffix, Suffix, Label)
 	;   Label = Label0
 	).

@@ -61,7 +61,7 @@ WinPopupFrameClass()
     wndClass.style		= /*CS_HREDRAW|CS_VREDRAW|*/CS_SAVEBITS;
     wndClass.lpfnWndProc	= (LPVOID) frame_wnd_proc;
     wndClass.cbClsExtra		= 0;
-    wndClass.cbWndExtra		= sizeof(long);
+    wndClass.cbWndExtra		= 0;
     wndClass.hInstance		= PceHInstance;
     wndClass.hIcon		= NULL; /*LoadIcon(NULL, IDI_APPLICATION);*/
     wndClass.hCursor		= LoadCursor(NULL, IDC_ARROW);
@@ -551,7 +551,10 @@ outer_frame_area(FrameObj fr, int *x, int *y, int *w, int *h, int limit)
     th = 19;				/* title hight */
   } else if ( fr->kind == NAME_transient )
   { dw = 4;
-    th = 0;
+    if ( getClassVariableValueObject(fr, NAME_decorateTransient) == ON )
+      th = 19;
+    else
+      th = 0;
   } else
     dw = th = 0;
 
@@ -567,21 +570,43 @@ outer_frame_area(FrameObj fr, int *x, int *y, int *w, int *h, int limit)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+NOTE: transients are a bit complicated.	 I'd like to have a window with
+just a title and a close-button.  The below appears to achieve that.  The
+icon_image must be set to @nil.  
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 status
 ws_create_frame(FrameObj fr)
 { HWND ref;
   DWORD style, exstyle = 0;
   int x, y, w, h;
 
-  if ( fr->kind == NAME_toplevel )
-  { style = WS_OVERLAPPEDWINDOW;
-  } else if ( fr->kind == NAME_transient )
-  { style = WS_DLGFRAME|WS_POPUP; /*exstyle = WS_EX_DLGMODALFRAME;*/
-  } else /* popup */
+  if ( fr->kind == NAME_popup )
   { style = WS_POPUP;
     if ( fr->border != ZERO )
       style |= WS_BORDER;
     exstyle |= WS_EX_TOOLWINDOW;
+  } else
+  { if ( fr->kind == NAME_toplevel )
+    { style = WS_OVERLAPPEDWINDOW;
+    } else if ( fr->kind == NAME_transient )
+    { style = WS_POPUP;
+      if ( getClassVariableValueObject(fr, NAME_decorateTransient) == ON )
+      { Image deficon = getClassVariableValueClass(ClassFrame, NAME_iconImage);
+
+	style    = WS_POPUPWINDOW|WS_CAPTION;
+	exstyle |= WS_EX_DLGMODALFRAME;
+      } else
+	style |= WS_DLGFRAME;
+    }
+
+    if ( fr->can_resize == ON )
+    { style |= (WS_MAXIMIZEBOX|WS_MINIMIZEBOX|WS_SIZEBOX);
+    } else
+    { style &= ~(WS_MAXIMIZEBOX|WS_MINIMIZEBOX|WS_SIZEBOX);
+    }
   }
     
   outer_frame_area(fr, &x, &y, &w, &h, TRUE);
@@ -589,8 +614,8 @@ ws_create_frame(FrameObj fr)
   current_frame = fr;
   ref = CreateWindowEx(exstyle,
 		       fr->kind == NAME_popup ? WinPopupFrameClass()
-		       			      : WinFrameClass(),
-		       strName(getIconLabelFrame(fr)),
+					      : WinFrameClass(),
+		       strName(fr->label),
 		       style,
 		       x, y, w, h,
 		       NULL, NULL, PceHInstance, NULL);
@@ -820,7 +845,7 @@ ws_busy_cursor_frame(FrameObj fr, CursorObj c)
       
     } else
     { if ( isDefault(c) )
-	c = getResourceValueObject(fr, NAME_busyCursor);
+	c = getClassVariableValueObject(fr, NAME_busyCursor);
 
       if ( c )
       { r->hbusy_cursor = (HCURSOR)getXrefObject(c, fr->display);
@@ -839,17 +864,18 @@ ws_set_icon_frame(FrameObj fr)
   if ( (hwnd = getHwndFrame(fr)) && fr->status != NAME_unlinking )
   { HICON icon;
 
-    if ( notNil(fr->icon_image) &&
-	 (icon = ws_icon_from_image(fr->icon_image)) )
-    {
-#if 1
-      SendMessage(hwnd,
+    if ( notNil(fr->icon_image) )
+    { if ( (icon = ws_icon_from_image(fr->icon_image)) )
+      { SendMessage(hwnd,
+		    WM_SETICON,
+		    (WPARAM)ICON_SMALL,
+		    (LPARAM)icon);
+      }
+    } else
+    { SendMessage(hwnd,
 		  WM_SETICON,
-		  (WPARAM)(BOOL)FALSE,
-		  (LPARAM)(HICON)icon);
-#else
-      SetClassLong(hwnd, GCL_HICON, icon);
-#endif
+		  (WPARAM)ICON_SMALL,
+		  (LPARAM)NULL);
     }
 
     if ( IsIconic(hwnd) )
@@ -913,7 +939,7 @@ ws_set_label_frame(FrameObj fr)
 { HWND hwnd = getHwndFrame(fr);
 
   if ( hwnd )
-    SetWindowText(hwnd, strName(getIconLabelFrame(fr)));
+    SetWindowText(hwnd, strName(fr->label));
 }
 
 

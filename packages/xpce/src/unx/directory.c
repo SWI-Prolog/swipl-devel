@@ -82,15 +82,20 @@ nameOfDirectoryEntry(struct dirent *d)
 static status
 initialiseDirectory(Directory d, Name name)
 { char *expanded;
+  char bin[MAXPATHLEN];
 
   assign(d, name, name);
 
-  if ( !(expanded = expandFileName(strName(name))) )
+  if ( !(expanded = expandFileName(strName(name), bin)) )
     return errorPce(d, NAME_badFileName, ExpandProblem);
 
 #ifdef O_XOS
   { char buf[MAXPATHLEN];
     expanded = _xos_canonical_filename(expanded, buf);
+    if ( isletter(expanded[0]) && expanded[1] == ':' && expanded[2] == EOS )
+    { expanded[2] = '/';
+      expanded[3] = EOS;
+    }
   }
 #endif
 
@@ -115,7 +120,7 @@ storeDirectory(Directory d, FileObj file)
 
 
 static status
-loadDirectory(Directory d, FILE *fd, ClassDef def)
+loadDirectory(Directory d, IOSTREAM *fd, ClassDef def)
 { TRY(loadSlotsObject(d, fd, def));
 
   d->modified = MODIFIED_NOT_SET;
@@ -247,9 +252,9 @@ scanDirectory(Directory d, Chain files, Chain dirs, Regex pattern, Bool all)
     popDirectory(d);
 
     if ( notNil(dirs) )
-      sortNamesChain(dirs);
+      sortNamesChain(dirs, OFF);
     if ( notNil(files) )
-      sortNamesChain(files);
+      sortNamesChain(files, OFF);
   } else if ( notNil(files) )
   { if ( !(dirp = opendir(strName(d->path))) )
       return errorPce(d, NAME_readDirectory, getOsErrorPce(PCE));
@@ -271,7 +276,7 @@ scanDirectory(Directory d, Chain files, Chain dirs, Regex pattern, Bool all)
     }
     closedir(dirp);
 
-    sortNamesChain(files);
+    sortNamesChain(files, OFF);
   }
 
   succeed;
@@ -317,9 +322,54 @@ getParentDirectory(Directory d)
 }
 
 
+static Chain
+getRootsDirectory(Directory dir)
+{ Chain ch = answerObject(ClassChain, 0);
+#ifdef WIN32
+  char buf[1024];
+  extern int get_logical_drive_strings(int, char *);
+
+  if ( get_logical_drive_strings(sizeof(buf)-1, buf) )
+  { char *s = buf;
+
+    while(*s)
+    { char buf2[1024];
+
+      appendChain(ch, CtoName(_xos_canonical_filename(s, buf2)));
+      s += strlen(s)+1;
+    }
+  }
+#else
+  appendChain(ch, CtoName("/"));
+#endif
+  
+  answer(ch);
+}
+
+
 static Name
 getBaseNameDirectory(Directory d)
 { answer(d->name);
+}
+
+
+static Date
+getTimeDirectory(Directory d, Name which)
+{ struct stat buf;
+  Name name = d->path;
+
+  if ( isDefault(which) )
+    which = NAME_modified;
+
+  if ( stat(strName(name), &buf) < 0 )
+  { errorPce(d, NAME_cannotStat, getOsErrorPce(PCE));
+    fail;
+  }
+
+  if ( which == NAME_modified )
+    answer(CtoDate(buf.st_mtime));
+  else
+    answer(CtoDate(buf.st_atime));
 }
 
 
@@ -465,14 +515,19 @@ static getdecl get_directory[] =
   GM(NAME_parent, 0, "directory", NULL, getParentDirectory,
      NAME_hierarchy, "New directory for parent directory"),
   GM(NAME_baseName, 0, "name", NULL, getBaseNameDirectory,
-     NAME_name, "Same as <-name, cf. `file <-base_name'")
+     NAME_name, "Same as <-name, cf. `file <-base_name'"),
+  GM(NAME_roots, 0, "chain", NULL, getRootsDirectory,
+     NAME_name, "Unix: chain(/), Win32: GetLogicalDriveNames()"),
+  GM(NAME_time, 1, "date=date", "which_time=[{modified,access}]",
+     getTimeDirectory,
+     NAME_time, "New date holding modification/access time")
 };
 
 /* Resources */
 
 #define rc_directory NULL
 /*
-static resourcedecl rc_directory[] =
+static classvardecl rc_directory[] =
 { 
 };
 */
@@ -551,6 +606,13 @@ dirName(const char *f)
       dir[1] = EOS;
     }
   
+#ifdef O_XOS
+    if ( isletter(dir[0]) && dir[1] == ':' && dir[2] == EOS )
+    { dir[2] = '/';
+      dir[3] = EOS;
+    }
+#endif
+
     return dir;
   }
   
@@ -700,9 +762,8 @@ GETENV(char *var)
 
 
 char *
-expandFileName(char *pattern)
-{ static char bin[MAXPATHLEN];
-  char *expanded = bin;
+expandFileName(char *pattern, char *bin)
+{ char *expanded = bin;
   int size = 0;
   char c;
 

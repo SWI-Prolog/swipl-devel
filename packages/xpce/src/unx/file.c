@@ -38,7 +38,9 @@ static Sheet FileFilters;
 
 static status
 initialiseFile(FileObj f, Name name, Name kind)
-{ if ( isDefault(kind) )
+{ initialiseSourceSink((SourceSink)f);
+
+  if ( isDefault(kind) )
     kind = NAME_text;
 
   if ( isDefault(name) )
@@ -81,10 +83,12 @@ kindFile(FileObj f, Name kind)
 
 Name
 getOsNameFile(FileObj f)
-{ if ( notDefault(f->path) )
+{ char bin[MAXPATHLEN];
+
+  if ( notDefault(f->path) )
     answer(CtoName(strName(f->path)));
 
-  answer(CtoName(expandFileName(strName(f->name))));
+  answer(CtoName(expandFileName(strName(f->name), bin)));
 }
 
 
@@ -101,7 +105,7 @@ storeFile(FileObj f, FileObj file)
 
 
 static status
-loadFile(FileObj f, FILE *fd, ClassDef def)
+loadFile(FileObj f, IOSTREAM *fd, ClassDef def)
 { TRY(loadSlotsObject(f, fd, def));	/* reopen? */
 
   if ( isNil(f->path) )
@@ -202,7 +206,8 @@ sameFile(FileObj f1, FileObj f2)
 
 static status
 absolutePathFile(FileObj f)
-{ char *path = absolutePath(expandFileName(strName(f->name)));
+{ char bin[MAXPATHLEN];
+  char *path = absolutePath(expandFileName(strName(f->name), bin));
 
   if ( path )
   { assign(f, path, CtoName(path));
@@ -215,10 +220,12 @@ absolutePathFile(FileObj f)
 
 Name
 getAbsolutePathFile(FileObj f)
-{ if ( notDefault(f->path) )
+{ char bin[MAXPATHLEN];
+
+  if ( notDefault(f->path) )
     answer(f->path);
 
-  answer(CtoName(absolutePath(expandFileName(strName(f->name)))));
+  answer(CtoName(absolutePath(expandFileName(strName(f->name), bin))));
 }
 
 
@@ -237,14 +244,15 @@ is_absolute_name(const char *s)
 
 status
 isAbsoluteFile(FileObj f)
-{ char *name = strName(f->name);
+{ char bin[MAXPATHLEN];
+  char *name = strName(f->name);
   int n;
 
   for(n=0; n < 2; n++)
   { if ( is_absolute_name(name) )
       succeed;
 
-    name = expandFileName(name);
+    name = expandFileName(name, bin);
   }
 
   fail;
@@ -420,7 +428,7 @@ getBackupFileNameFile(FileObj f, Name ext)
 }
 
 
-status
+static status
 backupFile(FileObj f, Name ext)
 { if ( existsFile(f, ON) )
   { Name newname = get(f, NAME_backupFileName, ext, 0);
@@ -470,12 +478,12 @@ accessFile(FileObj f, Name mode)
   Name name = getOsNameFile(f);
 
   if ( name )
-  { if ( equalName(mode, NAME_read) )
+  { if ( mode == NAME_read )
       m = R_OK;
-    else if ( equalName(mode, NAME_write) || equalName(mode, NAME_append) )
+    else if ( mode == NAME_write || mode == NAME_append )
       m = W_OK;
 #ifdef X_OK
-    else /*if ( equalName(mode, NAME_execute) )*/
+    else /*if ( mode == NAME_execute )*/
       m = X_OK;
 #endif
   
@@ -594,6 +602,8 @@ openFile(FileObj f, Name mode, Name filter, CharArray extension)
   }
 
   assign(f, filter, filter);
+  if ( mode == NAME_append )
+    mode = NAME_write;
   assign(f, status, mode);
 
   succeed;
@@ -622,15 +632,16 @@ static status
 nameFile(FileObj f, Name name)
 { int rval;
   Name nm = getOsNameFile(f);
-  char *old, *new;
+  char *old, new[MAXPATHLEN];
 
-  if ( !nm || !(new = expandFileName(strName(name))) )
+  if ( !nm || !expandFileName(strName(name), new) )
     fail;
   old = strName(nm);
 
   if ( existsFile(f, OFF) )
   {
-#ifndef __unix__
+#ifdef HAVE_RENAME
+    remove(new);
     rval = rename(old, new);
 #else
     unlink(new);
@@ -733,7 +744,7 @@ flushFile(FileObj f)
 }
 
 
-Int
+static Int
 getSizeFile(FileObj f)
 { struct stat buf;
   int rval;
@@ -782,13 +793,17 @@ getTimeFile(FileObj f, Name which)
 
 Name
 getBaseNameFile(FileObj f)
-{ answer(CtoName(baseName(expandFileName(strName(f->name)))));
+{ char bin[MAXPATHLEN];
+
+  answer(CtoName(baseName(expandFileName(strName(f->name), bin))));
 }
 
 
 static Name
 getDirectoryNameFile(FileObj f)
-{ answer(CtoName(dirName(expandFileName(strName(f->name)))));
+{ char bin[MAXPATHLEN];
+
+  answer(CtoName(dirName(expandFileName(strName(f->name), bin))));
 }
 
 
@@ -818,14 +833,18 @@ getReadFile(FileObj f, Int n)
 
   size = valInt(n);
   { CharBuf(buf, size);
+    string q;
 
-    if ( (m = fread(buf, 1, size, f->fd)) == 0 )
+    if ( (m = fread(buf, 1, size, f->fd)) < 0 )
     { errorPce(f, NAME_ioError, getOsErrorPce(PCE), 0);
       fail;
     }
-    buf[m] = EOS;
 
-    answer(CtoString((char *)buf));
+    str_inithdr(&q, ENC_ASCII);
+    q.size    = m;
+    q.s_text8 = buf;
+
+    answer(StringToString(&q));
   }
 }
 
@@ -937,7 +956,8 @@ storeIntFile(FileObj f, Int i)
 
 status
 findFile(FileObj f, CharArray path, Name mode)
-{ char *exp = expandFileName(strName(f->name));
+{ char bin[MAXPATHLEN];
+  char *exp = expandFileName(strName(f->name), bin);
   char base[MAXPATHLEN];
   char name[MAXPATHLEN];
   char *pathstr;
@@ -949,11 +969,11 @@ findFile(FileObj f, CharArray path, Name mode)
   if ( isAbsolutePath(exp) || streq(exp, ".") )
     succeed;
 
-  if ( isDefault(mode) || equalName(mode, NAME_read) )
+  if ( isDefault(mode) || mode == NAME_read )
     m = R_OK;
-  else if ( equalName(mode, NAME_write) || equalName(mode, NAME_append) )
+  else if ( mode == NAME_write || mode == NAME_append )
     m = W_OK;
-  else /*if ( equalName(mode, NAME_execute) )*/
+  else /*if ( mode == NAME_execute )*/
     m = X_OK;
 
   if ( notDefault(f->path) && access(strName(f->path), m) == 0 )
@@ -990,7 +1010,7 @@ findFile(FileObj f, CharArray path, Name mode)
       name[end-pathstr] = EOS;
       pathstr = &end[1];
     }
-    if ( (exp = expandFileName(name)) )
+    if ( (exp = expandFileName(name, bin)) )
       strcpy(name, exp);
     else
       continue;
@@ -1008,57 +1028,6 @@ findFile(FileObj f, CharArray path, Name mode)
 
 nofind:
   return errorPce(f, NAME_cannotFindFile, path);
-}
-
-
-		/********************************
-		*     OBJECT LOADING SAVING	*
-		********************************/
-
-status
-checkObjectFile(FileObj f)
-{ FILE *fd;
-  int close = TRUE;
-  status rval;
-  long l;
-  int ls;
-  Name okind = f->kind;
-
-  if ( f->status == NAME_read )
-  { close = FALSE;
-  } else
-  { assign(f, kind, NAME_binary);
-    TRY(send(f, NAME_open, NAME_read, 0));
-  }
-  fd = f->fd;
-  
-  if ( SaveMagic == NULL )
-    SaveMagic = SAVEMAGIC;
-
-  ls = strlen(SaveMagic);
-
-  if ( (l=loadWord(fd)) == ls )
-  { char tmp[LINESIZE];
-
-    fread(tmp, sizeof(char), sizeof(SAVEMAGIC)-1, fd);
-    tmp[ls] = EOS;
-    DEBUG(NAME_save, Cprintf("magic = ``%s''; SaveMagic = ``%s''\n",
-			     tmp, SaveMagic) );
-    if ( strncmp(tmp, SaveMagic, ls - 1) == 0 )
-      rval = SUCCEED;
-    else
-      rval = FAIL;
-  } else
-  { rval = FAIL;
-    DEBUG(NAME_save, Cprintf("First word = %ld, should be %d\n", l, ls) );
-  }
-
-  if ( close )
-  { assign(f, kind, okind);
-    closeFile(f);
-  }
-
-  return rval;
 }
 
 
@@ -1110,8 +1079,6 @@ static senddecl send_file[] =
      NAME_copy, "Copy to destination file"),
   SM(NAME_remove, 0, NULL, removeFile,
      NAME_delete, "Unlink from Unix file system"),
-  SM(NAME_checkObject, 0, NULL, checkObjectFile,
-     NAME_file, "Test if file contains a saved PCE object"),
   SM(NAME_find, 2, T_find, findFile,
      NAME_location, "Find file in search-path"),
   SM(NAME_seek, 2, T_seek, seekFile,
@@ -1150,8 +1117,6 @@ static getdecl get_file[] =
      NAME_copy, "Name for storing ->backup data"),
   GM(NAME_size, 0, "bytes=int", NULL, getSizeFile,
      NAME_dimension, "Size in characters"),
-  GM(NAME_object, 0, "object=any|function", NULL, getObjectFile,
-     NAME_file, "New object from file created with ->save_in_file"),
   GM(NAME_filter, 0, "extension_and_filter=attribute", NULL, getFilterFile,
      NAME_filter, "Determine input filter from extension"),
   GM(NAME_index, 0, "byte=int", NULL, getIndexFile,
@@ -1176,7 +1141,7 @@ static getdecl get_file[] =
 
 #define rc_file NULL
 /*
-static resourcedecl rc_file[] =
+static classvardecl rc_file[] =
 { 
 };
 */

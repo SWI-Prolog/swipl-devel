@@ -89,7 +89,7 @@ static getdecl get_and[] =
 
 #define rc_and NULL
 /*
-static resourcedecl rc_and[] =
+static classvardecl rc_and[] =
 { 
 };
 */

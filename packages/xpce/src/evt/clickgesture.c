@@ -25,8 +25,6 @@ initialiseClickGesture(ClickGesture g, Name button,
   assign(g, execute_message,   execute);
   assign(g, preview_message,   preview);
   assign(g, cancel_message,    cancel);
-  assign(g, execute_cursor,    DEFAULT);
-  assign(g, max_drag_distance, DEFAULT);
 
   succeed;
 }
@@ -161,7 +159,7 @@ static getdecl get_clickGesture[] =
 
 /* Resources */
 
-static resourcedecl rc_clickGesture[] =
+static classvardecl rc_clickGesture[] =
 { RC(NAME_button, "button_name", "left",
      "Active on which button (left)"),
   RC(NAME_cursor, "[cursor]", "@default",

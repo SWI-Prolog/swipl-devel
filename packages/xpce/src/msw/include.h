@@ -88,10 +88,10 @@ typedef struct
 void		ws_renderall(void);
 int		ws_provide_selection(int format);
 HWND		PceHiddenWindow(void);
-HBITMAP		read_ppm_file(FILE *fd, Name *kind);
-int		write_pnm_file(FILE *fd, HBITMAP bm,
+HBITMAP		read_ppm_file(IOSTREAM *fd, Name *kind);
+int		write_pnm_file(IOSTREAM *fd, HBITMAP bm,
 			       int scale, int fmt, int encode);
-unsigned char *	read_bitmap_data(FILE *fd, int *w, int *h);
+unsigned char *	read_bitmap_data(IOSTREAM *fd, int *w, int *h);
 void		assocObjectToHWND(HWND hwnd, Any obj);
 Any		getObjectFromHWND(HWND hwnd);
 HWND		getHwndFrame(FrameObj fr);
@@ -117,7 +117,7 @@ void		PceWhDeleteWindow(HWND win);
 void		PceEventInWindow(HWND win);
 
 void		ws_system_colours(DisplayObj d);
-void		ws_system_images(DisplayObj d);
+Colour		ws_system_colour(DisplayObj d, const char *name, COLORREF rgb);
 void		declareWindowsBrush(Any obj, HBRUSH brush);
 status		d_winmf(const char *fn,
 			int x, int y, int w, int h,

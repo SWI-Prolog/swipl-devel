@@ -259,6 +259,7 @@ NewClass(textobj)
   FontObj    font;		/* font */
   Name       format;		/* NAME_left, NAME_center, NAME_right */
   Int	     margin;		/* Right margin (pixels) */
+  Bool	     underline;		/* Underline the text? */
   Point	     position;		/* reference position of text */
   Int        caret;		/* current insertion/deletion point */
   Any	     show_caret;	/* show the caret (default OFF) */
@@ -305,8 +306,10 @@ NewClass(label)
   ABSTRACT_DIALOGITEM
   FontObj    font;			/* Font of the text */
   Int	     length;			/* Length in characters */
+  Int	     width;			/* Width of field in pixels */
   Any	     selection;			/* Currently displayed value */
   Int	     border;			/* additional space */
+  Elevation  elevation;			/* Elevation of the area */
 End;
 
 NewClass(button)
@@ -613,7 +616,7 @@ End;
   ABSTRACT_VISUAL \
   Name		name;			/* Name of the image */ \
   Name		kind;			/* {pixmap,bitmap} */ \
-  FileObj	file;			/* Resolved file */ \
+  SourceSink	file;			/* Resolved file */ \
   Name		access;			/* {read,both} */ \
   Colour	background;		/* Background-colour (pixmap) */ \
   Colour	foreground;		/* Foreground-colour (pixmap) */ \
@@ -688,7 +691,6 @@ NewClass(displayobj)
   ABSTRACT_VISUAL
   Size		size;			/* size of the display in pixels */
   Name		address;		/* Display address specification */
-  Name		resource_class;		/* Resource class name */
   HashTable	font_table;		/* Table holding font-mappings */
   Chain		frames;			/* Created frames on this display */
   Chain		inspect_handlers;	/* Event-handlers for inspector */
@@ -742,7 +744,9 @@ NewClass(frameobj)
   Bool		input_focus;		/* @on: focus for keyboard events */
   Name		status;			/* {unmapped,iconic,open} */
   Bool		can_delete;		/* User can delete the frame */
+  Bool		can_resize;		/* User can resize the frame */
   Bool		confirm_done;		/* User must confirm delete */
+  Bool		fitting;		/* We are running ->fit */
   Sheet		wm_protocols;		/* WM protocols understood */
   Bool		wm_protocols_attached;	/* Have the protocols been attached */
 					/* start private data */
@@ -805,16 +809,6 @@ End;
 NewClass(browser)
   ABSTRACT_WINDOW
   ListBrowser	list_browser;		/* ListBrowser implementing browser */
-End;
-
-NewClass(resource)
-  Name		name;			/* Name of this resource */
-  Name		r_class;		/* Class of this resource */
-  Type		r_type;			/* Type of this resource */
-  StringObj	r_default;		/* Default value */
-  Any		context;		/* Context object we belong to */
-  Any		value;			/* Value of the resource */
-  StringObj	summary;		/* Short documentation */
 End;
 
 NewClass(timer)

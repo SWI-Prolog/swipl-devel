@@ -120,7 +120,7 @@ static getdecl get_sourceLocation[] =
 
 #define rc_sourceLocation NULL
 /*
-static resourcedecl rc_sourceLocation[] =
+static classvardecl rc_sourceLocation[] =
 { 
 };
 */

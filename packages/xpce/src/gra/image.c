@@ -23,29 +23,37 @@ static status drawInImage(Image image, Graphical gr, Point pos);
 		********************************/
 
 status
-initialiseImage(Image image, Name name, Int w, Int h, Name kind)
-{ if ( isDefault(name) )
-    name = (Name) NIL;
+initialiseImage(Image image, SourceSink data, Int w, Int h, Name kind)
+{ Name name = FAIL;
+  Name access;
 
+  if ( isDefault(data) )
+    data = (SourceSink) NIL;
+
+  if ( notNil(data) && hasGetMethodObject(data, NAME_name) )
+    name = get(data, NAME_name, 0);
+  if ( !name )
+    name = NIL;
+  access = (isNil(name) ? NAME_both : NAME_read);
+    
   assign(image, name,       name);
   assign(image, background, DEFAULT);
   assign(image, foreground, DEFAULT);
+  assign(image, access,	    access);
   ws_init_image(image);
 
-  if ( isNil(name) || notDefault(w) || notDefault(h) || notDefault(kind) )
+  if ( isNil(data) || notDefault(w) || notDefault(h) || notDefault(kind) )
   { if ( isDefault(w) )    w = toInt(16);
     if ( isDefault(h) )    h = toInt(16);
     if ( isDefault(kind) ) kind = NAME_bitmap;
 
     assign(image, kind,   kind);
     assign(image, file,   NIL);
-    assign(image, access, NAME_both);
     assign(image, depth,  kind == NAME_bitmap ? ONE : (Int) DEFAULT);
     assign(image, size,	  newObject(ClassSize, w, h, 0));
   } else
   { assign(image, kind,	  NAME_bitmap);
-    assign(image, file,	  newObject(ClassFile, getExternalName(name), 0));
-    assign(image, access, NAME_read);
+    assign(image, file,	  data);
     assign(image, depth,  ONE);
     assign(image, size,	  newObject(ClassSize, 0));
     TRY(loadImage(image, DEFAULT, DEFAULT));
@@ -61,8 +69,11 @@ initialiseImage(Image image, Name name, Int w, Int h, Name kind)
 
 
 static Image
-getLookupImage(Class class, Name name)
-{ answer(getMemberHashTable(ImageTable, name));
+getLookupImage(Class class, Any from)
+{ if ( !isName(from) )
+    from = qadGetv(from, NAME_name, 0, NULL);
+
+  answer(getMemberHashTable(ImageTable, from));
 }
 
 
@@ -107,6 +118,15 @@ getConvertImage(Class class, Any obj)
 
   if ( instanceOfObject(obj, ClassBitmap) )
     answer(((BitmapObj)obj)->image);
+
+  if ( instanceOfObject(obj, ClassRC) )
+  { RC rc = obj;
+
+    if ( (image = getMemberHashTable(ImageTable, rc->name)) )
+      answer(image);
+
+    answer(answerObject(ClassImage, obj, 0));
+  }
 
   if ( (name = checkType(obj, TypeName, class)) )
   { if ( (image = getMemberHashTable(ImageTable, name)) )
@@ -180,19 +200,21 @@ storeImage(Image image, FileObj file)
 
 
 static status
-loadFdImage(Image image, FILE *fd, ClassDef def)
-{ TRY( loadSlotsObject(image, fd, def) );
+loadFdImage(Image image, IOSTREAM *fd, ClassDef def)
+{ FileObj file;
+
+  TRY( loadSlotsObject(image, fd, def) );
   ws_init_image(image);
 
 					/* convert old path-representation */
-  if ( notNil(image->file) &&
-       isAbsoluteFile(image->file) &&
-       getBaseNameFile(image->file) == image->name )
-  { assign(image->file, path, image->file->name);
-    assign(image->file, name, image->name);
+  if ( instanceOfObject((file=(FileObj)image->file), ClassFile) &&
+       isAbsoluteFile(file) &&
+       getBaseNameFile(file) == image->name )
+  { assign(file, path, file->name);
+    assign(file, name, image->name);
   }
 
-  switch( getc(fd) )
+  switch( Sgetc(fd) )
   { case 'O':				/* no image */
       break;
     case 'X':
@@ -227,7 +249,7 @@ XcloseImage(Image image, DisplayObj d)
 		 *	    COLOURMAP		*
 		 *******************************/
 
-ColourMap
+static ColourMap
 getColourMapImage(Image image)
 { if ( image->kind != NAME_bitmap )
     return ws_colour_map_for_image(image);
@@ -241,7 +263,7 @@ getColourMapImage(Image image)
 		********************************/
 
 status
-loadImage(Image image, FileObj file, CharArray path)
+loadImage(Image image, SourceSink file, CharArray path)
 { status rval;
 
   if ( notDefault(file) )
@@ -249,10 +271,13 @@ loadImage(Image image, FileObj file, CharArray path)
     
   if ( isNil(image->file) )
     fail;
-  if ( isDefault(path) )
-    TRY(path = getResourceValueObject(image, NAME_path));
 
-  TRY( findFile(image->file, path, NAME_read) );
+  if ( instanceOfObject(image->file, ClassFile) )
+  { if ( isDefault(path) )
+      TRY(path = getClassVariableValueObject(image, NAME_path));
+
+    TRY(send(image->file, NAME_find, path, NAME_read, 0));
+  }
 
   CHANGING_IMAGE(image,
 		 (rval = ws_load_image_file(image)));
@@ -264,7 +289,7 @@ loadImage(Image image, FileObj file, CharArray path)
 static status
 saveImage(Image image, FileObj file, Name fmt)
 { if ( isDefault(file) )
-    file = image->file;
+    file = (FileObj) image->file;
   if ( isDefault(fmt) )
     fmt = NAME_xbm;
 
@@ -346,7 +371,7 @@ clearImage(Image image)
 }
 
 
-status
+static status
 resizeImage(Image image, Int w, Int h)
 { TRY( verifyAccessImage(image, NAME_resize) );
 
@@ -497,42 +522,23 @@ fillImage(Image image, Any pattern, Area area)
 
 
 static status
-pixelImage(Image image, Int X, Int Y, Any obj)
+pixelImage(Image image, Int X, Int Y, Any val)
 { int x = valInt(X);
   int y = valInt(Y);
 
   TRY( verifyAccessImage(image, NAME_pixel) );
 
   if ( inImage(image, X, Y) )
-  { if ( image->kind == NAME_bitmap )
-    { Bool val = checkType(obj, TypeBool, image);
-
-      if ( !val )
-	return errorTypeMismatch(image,
-				 getMethodFromFunction((Any) pixelImage), 3,
-				 TypeBool);
-
-      CHANGING_IMAGE(image,
+  { if ( (image->kind == NAME_bitmap && !instanceOfObject(val, ClassBool)) ||
+	 !instanceOfObject(val, ClassColour) )
+      return errorPce(image, NAME_pixelMismatch, val);
+    
+    CHANGING_IMAGE(image,
 	  d_image(image, 0, 0, valInt(image->size->w), valInt(image->size->h));
 	  d_modify();
 	  r_pixel(x, y, val);
 	  d_done();
 	  changedImageImage(image, X, Y, ONE, ONE));
-    } else
-    { Colour val = checkType(obj, TypeColour, image);
-
-      if ( !val )
-	return errorTypeMismatch(image,
-				 getMethodFromFunction((Any) pixelImage), 3,
-				 TypeColour);
-
-      CHANGING_IMAGE(image,
-	  d_image(image, 0, 0, valInt(image->size->w), valInt(image->size->h));
-	  d_modify();
-	  r_pixel(x, y, val);
-	  d_done();
-	  changedImageImage(image, X, Y, ONE, ONE));
-    }
 
     succeed;
   }
@@ -832,7 +838,6 @@ getPostscriptDepthImage(Image image)
 #include "bitmaps/ol_pulldown.bm"
 #include "bitmaps/ol_pullright.bm"
 #include "bitmaps/ol_cycle.bm"
-#include "bitmaps/pce.bm"
 #include "bitmaps/cnode.bm"
 #include "bitmaps/enode.bm"
 #include "bitmaps/intarrows.bm"
@@ -850,6 +855,11 @@ stdImage(Name name, Image *global, char *bits, int w, int h)
   return image;
 }
 
+#ifdef WIN32
+#include "bitmaps/pce16.xpm"
+#else
+#include "bitmaps/pce.bm"
+#endif
 
 #include "bitmaps/white_bm"
 #include "bitmaps/grey12_bm"
@@ -906,17 +916,23 @@ standardImages(void)
 	   ol_pulldown_bits, ol_pulldown_width, ol_pulldown_height);
   stdImage(NAME_olCycleImage, NULL,
 	   ol_cycle_bits, ol_cycle_width, ol_cycle_height);
-  stdImage(NAME_pceImage, NULL,
-	   pce_bm_bits, pce_bm_width, pce_bm_height);
   stdImage(NAME_treeExpandedImage, NULL,
 	   enode_bits, enode_width, enode_height);
   stdImage(NAME_treeCollapsedImage, NULL,
 	   cnode_bits, cnode_width, cnode_height);
   stdImage(NAME_intItemImage, &INT_ITEM_IMAGE,
 	   intarrows_bits, intarrows_width, intarrows_height);
+#if defined(WIN32)
+  ws_std_xpm_image(NAME_pceImage, NULL, pce16_xpm);
+#else
+  stdImage(NAME_pceImage, NULL,
+	   pce_bm_bits, pce_bm_width, pce_bm_height);
+#endif
 
   stdImage(NAME_nullImage, &NULL_IMAGE,
 	   NULL, 0, 0);
+
+  ws_system_images();			/* make sure system images exist */
 }
 
 
@@ -927,13 +943,13 @@ standardImages(void)
 /* Type declarations */
 
 static char *T_load[] =
-        { "from=[file]", "path=[char_array]" };
+        { "from=[source_sink]", "path=[char_array]" };
 static char *T_drawIn[] =
         { "graphical", "at=[point]" };
 static char *T_fill[] =
         { "image", "[area]" };
 static char *T_initialise[] =
-	{ "name=[name]*", "width=[int]", "height=[int]",
+	{ "name=[source_sink]*", "width=[int]", "height=[int]",
 	  "kind=[{bitmap,pixmap}]" };
 static char *T_image_atADpointD[] =
         { "image", "at=[point]" };
@@ -946,7 +962,7 @@ static char *T_resize[] =
 static char *T_xAint_yAint[] =
         { "x=int", "y=int" };
 static char *T_pixel[] =
-        { "x=int", "y=int", "value=bool|colour" };
+        { "x=int", "y=int", "value=colour|bool" };
 #ifdef O_XLI
 static char *T_loadXli[] =
 	{ "file=file", "bright=[0..]" };
@@ -959,8 +975,8 @@ static vardecl var_image[] =
      NAME_name, "Name of the image"),
   IV(NAME_kind, "{bitmap,pixmap}", IV_GET,
      NAME_colour, "`bitmap' (0 and 1's) or `pixmap' (coloured)"),
-  IV(NAME_file, "file*", IV_GET,
-     NAME_file, "File from which to load"),
+  IV(NAME_file, "source_sink*", IV_GET,
+     NAME_file, "Source (file,resource) from which to load"),
   IV(NAME_access, "{read,both}", IV_GET,
      NAME_permission, "One of {read, both}"),
   IV(NAME_background, "[colour|pixmap]", IV_BOTH,
@@ -993,7 +1009,7 @@ static senddecl send_image[] =
 { SM(NAME_initialise, 4, T_initialise, initialiseImage,
      DEFAULT, "Create from name, [width, height, kind]"),
   SM(NAME_unlink, 0, NULL, unlinkImage,
-     DEFAULT, "Destroy private memory and X-resources"),
+     DEFAULT, "Destroy private memory and window-system resources"),
   SM(NAME_copy, 1, "from=image", copyImage,
      NAME_copy, "Copy contents of argument in image"),
   SM(NAME_drawIn, 2, T_drawIn, drawInImage,
@@ -1031,7 +1047,7 @@ static senddecl send_image[] =
   SM(NAME_DrawPostScript, 0, NULL, drawPostScriptImage,
      NAME_postscript, "Create PostScript"),
   SM(NAME_Xclose, 1, "display", XcloseImage,
-     NAME_x, "Closedown resources at server"),
+     NAME_x, "Destroy associated window-system resources"),
   SM(NAME_Xopen, 1, "display", XopenImage,
      NAME_x, "Open X-image")
 };
@@ -1041,7 +1057,7 @@ static senddecl send_image[] =
 static getdecl get_image[] =
 { GM(NAME_containedIn, 0, "bitmap", NULL, getContainedInImage,
      DEFAULT, "Equivalent to <-bitmap if ot @nil"),
-  GM(NAME_convert, 1, "image", "bitmap|name|graphical", getConvertImage,
+  GM(NAME_convert, 1, "image", "bitmap|name|resource|graphical", getConvertImage,
      DEFAULT, "Convert bitmap or (file-)name"),
   GM(NAME_clip, 1, "image", "[area]", getClipImage,
      NAME_copy, "Get a subimage"),
@@ -1051,7 +1067,7 @@ static getdecl get_image[] =
      NAME_copy, "Get copy with different dimensions"),
   GM(NAME_rotate, 1, "image", "degrees=int", getRotateImage,
      NAME_copy, "Get anti-clockwise rotated copy"),
-  GM(NAME_lookup, 1, "image", "name", getLookupImage,
+  GM(NAME_lookup, 1, "image", "name|resource", getLookupImage,
      NAME_oms, "Lookup in @images table"),
   GM(NAME_pixel, 2, "value=bool|colour", T_xAint_yAint, getPixelImage,
      NAME_pixel, "Get 0-1 (image) or colour for x-y"),
@@ -1067,7 +1083,7 @@ static getdecl get_image[] =
 
 /* Resources */
 
-static resourcedecl rc_image[] =
+static classvardecl rc_image[] =
 { RC(NAME_path, "string",
      "\".:bitmaps:~/lib/bitmaps:$PCEHOME/bitmaps:" /* concat */
      "/usr/include/X11/bitmaps\"",

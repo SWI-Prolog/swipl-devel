@@ -11,10 +11,100 @@
 #include <h/trace.h>
 #include <h/graphics.h>
 #include <h/interface.h>
+#include <rel/proto.h>
 
 static int	check_object(Any, Bool, HashTable, int);
 static status	makeTempObject(Any obj);
-static status	unlinkObject(Any obj);
+
+		/********************************
+		*        SLOT ASSIGNMENT	*
+		********************************/
+
+static inline void
+unallocObject(Any obj)
+{ unalloc(valInt(classOfObject(obj)->instance_size), obj);
+}
+
+
+inline void
+addRefObject(Any from, Any to)
+{ if ( inBoot || classOfObject(from)->un_answer == ON )
+    deleteAnswerObject(to);
+
+  addRefObj(to);
+
+  if ( onFlag(to, F_INSPECT) )
+  { addCodeReference(from);
+    changedObject(to, NAME_addReference, from, 0);
+    delCodeReference(from);
+  }
+}
+
+
+inline void
+delRefObject(Any from, Any to)
+{ delRefObj(to);
+
+  if ( onFlag(to, F_INSPECT) )
+  { addCodeReference(to);
+    addCodeReference(from);
+    changedObject(to, NAME_delReference, from, 0);
+    delCodeReference(from);
+    delCodeReference(to);
+  }
+
+  if ( refsObject(to) <= 0 )
+  { if ( refsObject(to) == 0 )
+    { if ( isFreedObj(to) )
+      { DEBUG(NAME_free, Cprintf("Doing deferred unalloc on %s\n", pp(to)));
+	unallocObject(to);
+	deferredUnalloced--;
+      } else
+      { freeableObj(to);
+      }
+    } else
+    { if ( onFlag(to, F_CREATING|F_FREEING|F_FREED) )
+	errorPce(PCE, NAME_negativeRefCountInCreate, to);
+      else
+	errorPce(PCE, NAME_negativeRefCount, to);
+    }
+  }
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This function is responsible  for assignments to  an instance variable
+(slot) of any object.  It is a wrapper arround  C's assignment to take
+care of reference counts and the garbage collection issues.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+
+void
+assignField(Instance instance, Any *field, Any value)
+{ Any old;
+
+  if ((old = *field) == value)		/* no change */
+    return;
+
+  if ( PCEdebugging && !onFlag(instance, F_CREATING|F_FREEING) )
+  { int offset = field - &instance->slots[0];
+    Class class = classOfObject(instance);
+    Variable v = getElementVector(class->instance_variables, toInt(offset));
+
+    if ( v && DebuggingProgramObject(v, D_TRACE) )
+      writef("V %O ->%s: %O --> %O\n", instance, v->name, old, value);
+  }
+
+  *field = value;
+  if ( isObject(value) && !isProtectedObj(value) )
+    addRefObject(instance, value);
+  if ( isObject(old) && !isProtectedObj(old) )
+    delRefObject(instance, old);
+
+  if ( onFlag(instance, F_INSPECT) )
+    (*(classOfObject(instance))->changedFunction)(instance, field);
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 			  CREATING OBJECTS	
@@ -88,6 +178,28 @@ follows:
 #undef offset
 #define offset(t, f) ((int)(&((struct t *)0)->f))
 
+static status
+hasClassVariableVariable(Variable v)
+{ if ( instanceOfObject(v->context, ClassClass) )
+  { Class class = v->context;
+
+    for( ; notNil(class); class=class->super_class )
+    { Cell cell;
+
+      for_cell(cell, class->class_variables)
+      { ClassVariable cv = cell->value;
+
+	if ( cv->name == v->name )
+	  succeed;
+      }
+    }
+  }
+  
+  fail;
+}
+
+
+
 static void
 updateInstanceProtoClass(Class class)
 { int slots = valInt(class->slots);
@@ -103,7 +215,16 @@ updateInstanceProtoClass(Class class)
 
   field = &obj->slots[0];
   for( ; --slots >= 0; var++, field++)
-    *field = (*var)->alloc_value;
+  { Variable v = *var;
+
+    if ( isNil(v->alloc_value) &&
+	 hasClassVariableVariable(v) )
+    { *field = CLASSDEFAULT;
+      setFlag(obj, F_OBTAIN_CLASSVARS);
+      DEBUG(NAME_classVariable, writef("Set %N to @class_default\n", v));
+    } else
+      *field = v->alloc_value;
+  }
 }
 
 
@@ -125,7 +246,7 @@ again:
   if ( class->proto )
   { size = class->proto->size;
     obj = alloc(size);
-    memcpy(obj, &class->proto->proto, size);
+    cpdata((Any)obj, (Any)&class->proto->proto, Any, size/sizeof(Any));
 
     return obj;
   }
@@ -157,7 +278,7 @@ init_slots(Instance obj, int slots, Variable *var, Any *field)
 
     if ( notNil(f) )
     { if ( !(value = expandCodeArgument(f)) ||
-	   !sendVariable(*var, obj, 1, &value) ) /* assignField? */
+	   !sendVariable(*var, obj, value) ) 		/* assignField? */
 	return errorPce(*var, NAME_initVariableFailed, obj);
     }
   }
@@ -190,71 +311,54 @@ initialiseObject(Instance obj, int argc, const Any argv[])
 }
 
 
-static void
-unallocObject(Any obj)
-{ unalloc(valInt(classOfObject(obj)->instance_size), obj);
-}
-
-
 Any
 createObjectv(Name assoc, Class class, int argc, const Any argv[])
 { Any rval;
-  goal goal;
-  Goal g = &goal;
 
-  pushGoal(g, VmiNew, class, NAME_new, argc, argv);
-  traceEnter(g);
-  
+					/* Resolve the class (caller?) */
   if ( !instanceOfObject(class, ClassClass) )
   { Class c2;
 
-    if ( !(c2 = checkType(class, TypeClass, NIL)) )
-    { errorPce(VmiNew, NAME_noClass, class);
-      failGoal;
+    if ( (c2 = getMemberHashTable(classTable, class)) ||
+	 (c2 = checkType(class, TypeClass, NIL)) )
+    { class = c2;
     } else
-      class = c2;
+    { errorPce(class, NAME_noClass);
+      fail;
+    }
   }
+					/* Prepare the class */
   if ( class->realised != ON )
     realiseClass(class);
+  if ( isDefault(class->lookup_method) ||
+       isDefault(class->initialise_method) )
+    bindNewMethodsClass(class);
 
-  if ( isDefault(class->lookup_method) )
-  { GetMethod m = getGetMethodClass(class, NAME_lookup);
 
-    if ( m )
-      setDFlag(m, D_TYPENOWARN);
-    else
-      m = NIL;
-
-    assign(class, lookup_method, m);
-  }
-
+					/* Try lookup of existing object */
   if ( notNil(class->lookup_method) )
   { if ( (rval = getGetGetMethod(class->lookup_method,
 				 class, argc, argv)) )
-      goto out;
+      answer(rval);
   }
 
+					/* Check assoc redefinition */
   if ( notNil(assoc) )
   { if ( getObjectAssoc(assoc) )
       exceptionPce(PCE, NAME_redefinedAssoc, assoc, 0);
     if ( getObjectAssoc(assoc) )
-    { errorPce(VmiNew, NAME_redefinedAssoc, assoc, 0);
-      failGoal;
+    { errorPce(PCE, NAME_redefinedAssoc, assoc, 0);
+      fail;
     }
   }
 
+					/* Allocate the object */
   rval = allocObject(class, TRUE);
-  addCodeReference(rval);
-  if ( notNil(assoc) )
+  addCodeReference(rval);		/* avoid drop-out */
+  if ( notNil(assoc) )			/* Create name association */
     newAssoc(assoc, rval);
 
-  if ( isDefault(class->initialise_method) )
-  { Any m = getSendMethodClass(class, NAME_initialise);
-
-    assert(instanceOfObject(m, ClassSendMethod));
-    assign(class, initialise_method, m);
-  }
-
+					/* Initialise the object */
   if ( sendSendMethod(class->initialise_method, rval, argc, argv) )
   { createdClass(class, rval, NAME_new);
   } else
@@ -268,15 +372,10 @@ createObjectv(Name assoc, Class class, int argc, const Any argv[])
     exceptionPcev(PCE, NAME_initialiseFailed, ac, av);
     deleteAssoc(rval);
     unallocObject(rval);
-    rval = FAIL;
+    fail;
   }
 
-out:
-  traceAnswer(g, rval);
-  popGoal();
-  if ( rval )
-    delCodeReference(rval);
-
+  delCodeReference(rval);
   answer(rval);
 }
 
@@ -294,16 +393,6 @@ globalObjectv(Name assoc, Class class, int argc, const Any argv[])
   DEBUG_BOOT(Cprintf("globalObject @%s ... ", pp(assoc)));
   rval = createObjectv(assoc, class, argc, argv);
   DEBUG_BOOT(Cprintf("ok\n"););
-
-  return rval;
-}
-
-
-Any
-tempObjectv(Class class, int argc, const Any argv[])
-{ Any rval = newObjectv(class, argc, argv);
-
-  makeTempObject(rval);
 
   return rval;
 }
@@ -332,7 +421,7 @@ considerPreserveObject(Any obj)
 
 
 Any
-answerObjectv(Class class, int argc, Any *argv)
+answerObjectv(Class class, int argc, const Any *argv)
 { Any rval = newObjectv(class, argc, argv);
 
   if ( rval != FAIL )
@@ -415,69 +504,33 @@ answerObject(Class class, ...)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-			    DESTROYING OBJECTS
+unlinkObject()
+
+Disconnect the object from its environment.   The  first loop resets all
+instance-variables to NIL that  do  not   contain  integers  of reusable
+objects. This process could be  optimised   a  little  further by closer
+examination of the variable properties  of   the  class  and adding this
+information (for example) to the prototype used in createObject().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-status
-freeObject(Any obj)
-{ Instance inst = obj;
-  Class class;
-  status rval;
-  goal goal;
-  Goal g = &goal;
-
-  if ( nonObject(inst) || onFlag(inst, F_FREED|F_FREEING) )
-    succeed;
-
-  pushGoal(g, VmiFree, obj, NAME_free, 0, NULL);
-  traceEnter(g);
-
-  if ( isProtectedObj(inst) )		/* cannot be freed */
-  { rval = FAIL;
-    goto out;
-  }
-
-  class = classOfObject(inst);
-  freedClass(class, inst);
-
-  unlockObj(inst);			/* release possible lock */
-  deleteAnswerObject(inst);		/* delete from AnswerStack */
-  setFreeingObj(inst);			/* mark */
-  deleteAssoc(inst);			/* delete name association */
-
-  if ( !qadSendv(inst, NAME_unlink, 0, NULL) )
-    errorPce(inst, NAME_unlinkFailed);
-
-  rval = SUCCEED;
-  unlinkObject(inst);
-  setFreedObj(inst);			/* freeing finished */
-
-  if ( refsObject(inst) == 0 )
-    unallocObject(inst);
-  else
-  { deferredUnalloced++;
-    DEBUG(NAME_free, Cprintf("%s has %ld refs.  Deferring unalloc\n",
-			     pp(inst), refsObject(inst)));
-  }
-
-out:
-  traceReturn(g, rval);
-  popGoal();
-
-  return rval;
-}
-
-
-static status
+static inline void
 unlinkObject(Any obj)
-{ Instance inst = obj;
-  Class class = classOfObject(obj);
-  int slots = valInt(class->slots);
+{ Instance  inst  = obj;
+  Class     class = classOfObject(obj);
+  Variable *var   = (Variable *)class->instance_variables->elements;
+  Any      *field = inst->slots;
   int i;
 
-  for(i=0; i < slots; i++)
-    if ( isPceSlot(class, i) && isObject(inst->slots[i]) )
-      assignField(inst, &inst->slots[i], NIL);
+  for(i=valInt(class->slots); --i >= 0; var++, field++)
+  { if ( var[0]->type->kind != NAME_alien )
+    { if ( isObject(*field) && !isProtectedObj(*field) )
+      { Any old = *field;
+
+	*field = NIL;
+	delRefObject(inst, old);
+      }
+    }
+  }
 
   if ( onFlag(obj, F_ATTRIBUTE|F_CONSTRAINT|F_SENDMETHOD|
 	           F_GETMETHOD|F_RECOGNISER|F_HYPER) )
@@ -520,6 +573,41 @@ unlinkObject(Any obj)
     { clearFlag(obj, F_RECOGNISER);
       deleteHashTable(ObjectRecogniserTable, obj);
     }
+  }
+}
+
+
+status
+freeObject(Any obj)
+{ Instance inst = obj;
+  Class class;
+
+  if ( nonObject(inst) || onFlag(inst, F_FREED|F_FREEING) )
+    succeed;
+  if ( isProtectedObj(inst) )		/* cannot be freed */
+    fail;
+
+  class = classOfObject(inst);
+  freedClass(class, inst);
+
+  unlockObj(inst);			/* release possible lock */
+  deleteAnswerObject(inst);		/* delete from AnswerStack */
+  setFreeingObj(inst);			/* mark */
+  if ( onFlag(obj, F_ASSOC) )
+    deleteAssoc(inst);			/* delete name association */
+
+  if ( !qadSendv(inst, NAME_unlink, 0, NULL) )
+    errorPce(inst, NAME_unlinkFailed);
+
+  unlinkObject(inst);
+  setFreedObj(inst);			/* freeing finished */
+
+  if ( refsObject(inst) == 0 )
+    unallocObject(inst);
+  else
+  { deferredUnalloced++;
+    DEBUG(NAME_free, Cprintf("%s has %ld refs.  Deferring unalloc\n",
+			     pp(inst), refsObject(inst)));
   }
 
   succeed;
@@ -570,8 +658,32 @@ virtualObject(Any obj)
 }
 
 
+status
+virtualObject1(Any obj, Any a1)
+{ fail;
+}
+
+
+status
+virtualObject2(Any obj, Any a1, Any a2)
+{ fail;
+}
+
+
 Any
 getVirtualObject(Any obj)
+{ fail;
+}
+
+
+Any
+getVirtualObject1(Any obj, Any a1)
+{ fail;
+}
+
+
+Any
+getVirtualObject2(Any obj, Any a1, Any a2)
 { fail;
 }
 
@@ -582,7 +694,7 @@ getReferencesObject(Any obj)
 }
 
 
-Int
+static Int
 getCodeReferencesObject(Any obj)
 { answer(toInt(codeRefsObject(obj)));
 }
@@ -635,9 +747,18 @@ lockObject(Any obj, Bool val)
     lockObj(obj);
   } else
   { unlockObj(obj);
-  /*freeableObj(obj);			??? */
+    freeableObj(obj);
   }
   succeed;
+}
+
+
+static Any
+getUnlockObject(Any obj)
+{ unlockObj(obj);
+  pushAnswerObject(obj);
+
+  answer(obj);
 }
 
 
@@ -793,7 +914,7 @@ attachHyperObject(Any obj, Hyper h, Any to)
 }
 
 
-status
+static status
 deleteHyperObject(Any obj, Hyper h)
 { Chain ch;
 
@@ -845,21 +966,31 @@ attributeObject(Any obj, Any name, Any value)
 status
 deleteAttributeObject(Any obj, Any att)
 { Chain ch;
-  Cell cell;
+  status rval = FAIL;
 
   TRY(ch = getAllAttributesObject(obj, OFF));
 
   if ( instanceOfObject(att, ClassAttribute) )
-    return deleteChain(ch, att);
+    rval = deleteChain(ch, att);
+  else
+  { Cell cell;
 
-  for_cell(cell, ch)
-  { Attribute a = cell->value;
+    for_cell(cell, ch)
+    { Attribute a = cell->value;
 
-    if ( a->name == att )
-      return deleteChain(ch, a);
+      if ( a->name == att )
+      { rval = deleteChain(ch, a);
+	break;
+      }
+    }
   }
 
-  fail;
+  if ( rval && emptyChain(ch) )
+  { deleteHashTable(ObjectAttributeTable, obj);
+    clearFlag(obj, F_ATTRIBUTE);
+  }
+
+  return rval;
 }
 
 
@@ -880,21 +1011,48 @@ getAttributeObject(Any obj, Name name)
   fail;
 }
 
+		 /*******************************
+		 *          CONSTRAINTS		*
+		 *******************************/
+
+status
+updateConstraintsObject(Any obj)
+{ if ( onFlag(obj, F_CONSTRAINT) && !isFreedObj(obj) )
+  { Chain constraints = getAllConstraintsObject(obj, ON);
+    Cell cell;
+
+    DEBUG(NAME_constraint,
+	  Cprintf("Called %s->update_constraints\n", pp(obj)));
+
+    for_cell(cell, constraints)
+      lockConstraint(cell->value, obj);
+
+    for_cell(cell, constraints)
+      executeConstraint(cell->value, obj);
+
+    for_cell(cell, constraints)
+      unlockConstraint(cell->value, obj);
+  }
+
+  succeed;
+}
+
+
 		/********************************
 		*       RESOLVING METHODS	*
 		********************************/
 
-static Tuple
+Tuple
 getSendMethodObject(Any obj, Name selector)
 { Any m, rec;
 
-  TRY( m = resolveSendMethodObject(obj, NULL, selector, &rec, NULL) );
+  TRY( m = resolveSendMethodObject(obj, NULL, selector, &rec) );
 
   answer(answerObject(ClassTuple, rec, m, 0));
 }
 
 
-static Tuple
+Tuple
 getGetMethodObject(Any obj, Name selector)
 { Any m, rec;
 
@@ -908,7 +1066,7 @@ status
 hasSendMethodObject(Any obj, Name selector)
 { Any m, rec;
 
-  TRY(m = resolveSendMethodObject(obj, NULL, selector, &rec, NULL));
+  TRY(m = resolveSendMethodObject(obj, NULL, selector, &rec));
   succeed;
 }
 
@@ -972,7 +1130,7 @@ mergeSendMethodsObject(Any obj, Chain ch, HashTable done, Code cond)
   { Variable var = cell->value;
     Any val;
 
-    if ( (val = getGetVariable(var, obj, 0, NULL)) )
+    if ( (val = getGetVariable(var, obj)) )
       mergeSendMethodsObject(val, ch, done, cond);
   }
 }
@@ -1263,6 +1421,8 @@ getClone2Object(Any obj)
     answer(NIL);
 
   clone = (Instance) allocObject(class, FALSE);
+  if ( offFlag(obj, F_OBTAIN_CLASSVARS) )
+    clearFlag(clone, F_OBTAIN_CLASSVARS);
   DEBUG(NAME_clone, Cprintf("%s cloned into %s\n", pp(me), pp(clone)));
   appendHashTable(CloneTable, me, clone);
 
@@ -1321,7 +1481,7 @@ getSlotObject(Any obj, Any which)
 	 var->name != CtoName("alien:Any") )
       answer(toInt((long)inst->slots[valInt(var->offset)]));
     else
-      answer(getGetVariable(var, obj, 0, NULL));
+      answer(getGetVariable(var, obj));
   }
 
   fail;
@@ -1333,7 +1493,7 @@ slotObject(Any obj, Any which, Any value)
 { Variable var;
 
   if ( (var = getInstanceVariableClass(classOfObject(obj), which)) )
-    return sendVariable(var, obj, 1, &value);
+    return sendVariable(var, obj, value);
 
   return errorPce(obj, NAME_noVariable, which);
 }
@@ -1433,7 +1593,7 @@ sendSuperObject(Any obj, Name selector, int argc, const Any argv[])
 }
 
 
-Any
+static Any
 getGetSuperObject(Any obj, Name selector, int argc, const Any argv[])
 { if ( obj == RECEIVER->value )
   { Class current = RECEIVER_CLASS->value;
@@ -1489,25 +1649,33 @@ getGetClassObject(Any obj, Name selector, int argc, Any *argv)
 
 static status
 sendVectorObject(Any obj, int argc, Any *argv)
-{ Vector v;
+{ Any a;
+  Vector v;
   int shift;
   int args;
 
   if ( argc == 0 )
     goto usage;
   if ( argc >= 2 && isInteger(argv[argc-1]) )
-  { v = argv[argc-2];
+  { a = argv[argc-2];
     shift = valInt(argv[argc-1]);
     args = argc-2;
   } else
-  { v = argv[argc-1];
+  { a = argv[argc-1];
     shift = 0;
     args = argc-1;
   }
 
-  if ( !(v = checkType(v, TypeVector, NIL)) )
+  if ( !(v = checkType(a, TypeVector, NIL)) )
+  { if ( a == name_nil )
+    { Name sel;
+
+      if ( args >= 1 && (sel = checkType(argv[0], TypeName, NIL)) )
+        return sendv(obj, sel, args-1, argv+1);
+      fail;
+    }
     goto usage;
-  else
+  } else
   { int argn = args+valInt(v->size)-shift;
     ArgVector(av, argn);
     int i, n;
@@ -1518,7 +1686,13 @@ sendVectorObject(Any obj, int argc, Any *argv)
       av[i++] = v->elements[n];
 
     if ( argn >= 1 )
-      return sendv(obj, av[0], argn-1, av+1);
+    { Name sel;
+
+      if ( (sel = checkType(av[0], TypeName, NIL)) )
+	return sendv(obj, sel, argn-1, av+1);
+      goto usage;
+    }
+
     fail;
   }
 
@@ -1529,25 +1703,31 @@ usage:
 
 static Any
 getVectorObject(Any obj, int argc, Any *argv)
-{ Vector v;
+{ Any a;
+  Vector v;
   int shift;
   int args;
 
   if ( argc == 0 )
     goto usage;
   if ( argc >= 2 && isInteger(argv[argc-1]) )
-  { v = argv[argc-2];
+  { a = argv[argc-2];
     shift = valInt(argv[argc-1]);
     args = argc-2;
   } else
-  { v = argv[argc-1];
+  { a = argv[argc-1];
     shift = 0;
     args = argc-1;
   }
 
-  if ( !(v = checkType(v, TypeVector, NIL)) )
+  if ( !(v = checkType(a, TypeVector, NIL)) )
+  { if ( a == name_nil )
+    { if ( args >= 1 )
+	return getv(obj, (Name) argv[0], args-1, argv+1);
+      fail;
+    }
     goto usage;
-  else
+  } else
   { int argn = args+valInt(v->size)-shift;
     ArgVector(av, argn);
     int i, n;
@@ -1722,95 +1902,6 @@ freeHypersObject(Any obj, Name hname, Code cond)
 
 
 		/********************************
-		*        SLOT ASSIGNMENT	*
-		********************************/
-
-inline void
-addRefObject(Any from, Any to)
-{ if ( inBoot || classOfObject(from)->un_answer == ON )
-    deleteAnswerObject(to);
-
-  addRefObj(to);
-
-  if ( onFlag(to, F_INSPECT) )
-  { addCodeReference(from);
-    changedObject(to, NAME_addReference, from, 0);
-    delCodeReference(from);
-  }
-}
-
-
-inline void
-delRefObject(Any from, Any to)
-{ delRefObj(to);
-
-  if ( onFlag(to, F_INSPECT) )
-  { addCodeReference(to);
-    addCodeReference(from);
-    changedObject(to, NAME_delReference, from, 0);
-    delCodeReference(from);
-    delCodeReference(to);
-  }
-
-  if ( refsObject(to) <= 0 )
-  { if ( refsObject(to) == 0 )
-    { if ( isFreedObj(to) )
-      { DEBUG(NAME_free, Cprintf("Doing deferred unalloc on %s\n", pp(to)));
-	unallocObject(to);
-	deferredUnalloced--;
-      } else
-      { freeableObj(to);
-      }
-    } else
-    { if ( onFlag(to, F_CREATING|F_FREEING|F_FREED) )
-	errorPce(PCE, NAME_negativeRefCountInCreate, to);
-      else
-	errorPce(PCE, NAME_negativeRefCount, to);
-    }
-  }
-}
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This function is responsible  for assignments to  an instance variable
-(slot) of any object.  It is a wrapper arround  C's assignment to take
-care of reference counts and the garbage collection issues.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-
-void
-assignField(Instance instance, Any *field, Any value)
-{ Any old;
-
-  if ((old = *field) == value)		/* no change */
-    return;
-
-  if ( TraceMode &&
-       (!onFlag(instance, F_CREATING|F_FREEING) || TraceMode == TRACE_ALWAYS) )
-  { int offset = field - &instance->slots[0];
-    Class class = classOfObject(instance);
-    Variable v = getElementVector(class->instance_variables, toInt(offset));
-
-    if ( !v )
-      goto nodebug;
-
-    sendVariable(v, instance, 1, &value);
-  } else
-  { nodebug:
-
-    *field = value;
-    if ( isObject(value) && !isProtectedObj(value) )
-      addRefObject(instance, value);
-    if ( isObject(old) && !isProtectedObj(old) )
-      delRefObject(instance, old);
-
-    if ( onFlag(instance, F_INSPECT) )
-      (*(classOfObject(instance))->changedFunction)(instance, field);
-  }
-}
-
-
-		/********************************
 		*        TRAPPING CHANGES	*
 		********************************/
 
@@ -1893,17 +1984,17 @@ changedFieldObject(Any obj, Any *field)
 		********************************/
 
 Any
-getResourceValueObject(Any obj, Name name)
+getClassVariableValueObject(Any obj, Name name)
 { if ( !isObject(obj) )
     fail;
   
-  answer(getResourceValueClass(classOfObject(obj), name));
+  answer(getClassVariableValueClass(classOfObject(obj), name));
 }
 
 
 status
-obtainResourcesObject(Any obj)
-{ if ( offFlag(obj, F_RESOURCES_OBTAINED) )
+obtainClassVariablesObject(Any obj)
+{ if ( onFlag(obj, F_OBTAIN_CLASSVARS) )
   { Instance inst = obj;
     Class class = classOfObject(obj);
     int slots = valInt(class->slots);
@@ -1911,30 +2002,27 @@ obtainResourcesObject(Any obj)
     status rval = SUCCEED;
 
     for(i=0; i<slots; i++)
-    { if ( isDefault(inst->slots[i]) )
+    { if ( isClassDefault(inst->slots[i]) )
       { Variable var = class->instance_variables->elements[i];
-	
-	if ( !mayBeDefaultType(var->type) )
-	{ Any value;
+	Any value;
 
-	  if ( (value = getResourceValueObject(obj, var->name)) )
-	  { Any v2;
+	if ( (value = getClassVariableValueObject(obj, var->name)) )
+	{ Any v2;
 
-	    if ( (v2 = checkType(value, var->type, obj)) )
-	      assignField(inst, &inst->slots[i], v2);
-	    else
-	    { errorPce(var, NAME_incompatibleResource);
-	      rval = FAIL;
-	    }
-	  } else
-	  { errorPce(var, NAME_noResource);
+	  if ( (v2 = checkType(value, var->type, obj)) )
+	    assignField(inst, &inst->slots[i], v2);
+	  else
+	  { errorPce(var, NAME_incompatibleResource);
 	    rval = FAIL;
 	  }
+	} else
+	{ errorPce(var, NAME_noClassVariable);
+	  rval = FAIL;
 	}
       }
     }
 
-    setFlag(obj, F_RESOURCES_OBTAINED);
+    clearFlag(obj, F_OBTAIN_CLASSVARS);
     return rval;
   }
 
@@ -1957,9 +2045,7 @@ initialiseNewSlotObject(Any obj, Variable var)
 { if ( validateType(var->type, NIL, obj) )
     succeed;
   if ( validateType(var->type, DEFAULT, obj) )
-  { Any val = DEFAULT;
-    return sendVariable(var, obj, 1, &val);
-  }
+    return sendVariable(var, obj, DEFAULT);
 
   fail;
 }
@@ -1975,6 +2061,9 @@ Translates text of the form
 Any
 getConvertObject(Class class, Any x)
 { char *s;
+
+  if ( isInteger(x) )
+    answer(answerObject(ClassNumber, x, 0));
 
   if ( (s = toCharp(x)) )
   { char *start;
@@ -2063,6 +2152,9 @@ check_object(Any obj, Bool recursive, HashTable done, int errs)
     errs++;
   }
 
+  if ( onFlag(obj, F_OBTAIN_CLASSVARS) )
+    errorPce(obj, NAME_classVariablesNotObtained);
+
   DEBUG(NAME_codeReferences,
 	if ( codeRefsObject(obj) != 0 )
 	  writef("\t%s has %d code references\n",
@@ -2085,10 +2177,12 @@ check_object(Any obj, Bool recursive, HashTable done, int errs)
       	continue;
       }
 
-      if ( isDefault(value) &&
-	   (getResourceClass(class, var->name) ||
-	    (instanceOfObject(obj, ClassClass) &&
-	     ((Class)obj)->realised != ON)) )
+      if ( isClassDefault(value) &&
+	   getClassVariableClass(class, var->name) )
+	continue;
+      if ( isClassDefault(value) &&
+	   instanceOfObject(obj, ClassClass) &&
+	   ((Class)obj)->realised != ON )
 	continue;
 
       if ( !validateType(var->type, value, obj) )
@@ -2248,8 +2342,8 @@ for_slot_reference_object(Any obj, Code msg, Bool recursive, HashTable done)
       	continue;
       }
 
-      if ( isDefault(value) && getResourceClass(class, var->name) )
-	value = getGetVariable(var, inst, 0, NULL);
+      if ( isDefault(value) && getClassVariableClass(class, var->name) )
+	value = getGetVariable(var, inst);
 
       forwardCode(msg, inst, NAME_slot, var->name, value, 0);
       if ( recursive == ON && isObject(value) )
@@ -2323,21 +2417,38 @@ errorObjectv(Any obj, Error e, int argc, Any *argv)
 
   if ( !catchedErrorPce(PCE, e->id) || e->kind == NAME_fatal )
   { ArgVector(av, argc+1);
+    PceGoal g = CurrentGoal;
     int i;
-
-    if ( e->kind == NAME_error || e->kind == NAME_fatal )
-    { Goal g = CurrentGoal;
-      int i;
-
-      for(i=0; i<2 && g; i++)
-	g = g->parent;
-      if ( g )
-	setGFlag(g, G_EXCEPTION);
-    }
 
     av[0] = obj;
     for(i=0; i<argc; i++)
       av[i+1] = argv[i];
+
+    for(i=0; i++ < 1 && isProperGoal(g); ) /* go one up for the real error */
+      g = g->parent;
+
+    if ( e->kind == NAME_error && isProperGoal(g) )
+    { g->flags |= PCE_GF_EXCEPTION;
+      g->errcode = PCE_ERR_ERROR;
+      g->errc1   = e;
+      g->errc2   = createCodeVectorv(argc+1, av);
+    }
+
+    if ( e->feedback == NAME_throw && e->kind != NAME_fatal )
+    {					/* See if host wants to catch */
+					/* the error.  If so, put it into */
+					/* the goal and return silently */
+      for( ; isProperGoal(g); g = g->parent )
+      { if ( g->flags & PCE_GF_CATCH )
+	{ g->flags |= PCE_GF_THROW;
+	  g->errcode = PCE_ERR_ERROR;
+	  g->errc1   = e;
+	  g->errc2   = createCodeVectorv(argc+1, av);
+
+	  fail;
+	}
+      }
+    }
   
     sendv(e, NAME_display, argc+1, av);
   }
@@ -2359,7 +2470,19 @@ static status
 reportObject(Any obj, Name kind, CharArray fmt, int argc, Any *argv)
 { Any to;
 
-  if ( (to = get(obj, NAME_reportTo, 0)) )
+  if ( !(to = get(obj, NAME_reportTo, 0)) )
+  {
+#ifdef O_RUNTIME
+    to = CurrentDisplay(NIL);
+#else
+    if ( PCE->trap_errors == OFF )	/* Separate flag? */
+      to = CurrentDisplay(NIL);
+    else if ( obj != PCE )
+      to = PCE;
+#endif
+  }
+
+  if ( to && notNil(to) )
   { ArgVector(av, argc + 2);
 
     av[0] = kind;
@@ -2372,7 +2495,7 @@ reportObject(Any obj, Name kind, CharArray fmt, int argc, Any *argv)
     Any av[2];
 
     if ( isDefault(fmt) )
-      fmt = (CharArray) (kind == NAME_done ? NAME_done : CtoName(""));
+      fmt = (CharArray) (kind == NAME_done ? NAME_done : NAME_);
     TRY(swritefv(buf, fmt, argc, argv));
     av[0] = kind;
     av[1] = CtoTempString(buf);
@@ -2440,7 +2563,7 @@ static char *T_forSlotReference[] =
 static char *T_attribute[] =
         { "attribute|name", "value=[any]" };
 static char *T_error[] =
-        { "error=error", "context=any ..." };
+        { "error=error", "context=unchecked ..." };
 static char *T_hyper_nameADnameD_selectorAname_argumentAunchecked_XXX[] =
         { "hyper_name=[name]", "selector=name", "argument=unchecked ..." };
 static char *T_hyper_nameADnameD_testADcodeD[] =
@@ -2457,7 +2580,7 @@ static char *T_name_any[] =
         { "name", "any" };
 static char *T_convertLoadedObject[] =
         { "old_version=int", "current_version=int" };
-static char *T_selectorAname_argumentAunchecked_XXX[] =
+static char *T_relayed_invocation[] =
         { "selector=name", "argument=unchecked ..." };
 
 /* Instance Variables */
@@ -2503,7 +2626,7 @@ static senddecl send_object[] =
   SM(NAME_free, 0, NULL, freeObject,
      NAME_oms, "Delete object from the object-base"),
   SM(NAME_initialise, 1, "unchecked ...", initialiseObject,
-     NAME_oms, "Initialise variables and resources"),
+     NAME_oms, "Initialise variables"),
   SM(NAME_lockObject, 1, "bool", lockObject,
      NAME_oms, "Lock object for incremental garbage collection"),
   SM(NAME_protect, 0, NULL, protectObject,
@@ -2514,13 +2637,13 @@ static senddecl send_object[] =
      NAME_oms, "Try if ->unlink is in progress"),
   SM(NAME_getMethod, 1, "get_method|chain", getMethodObject,
      NAME_programming, "Add an object-level get_method"),
-  SM(NAME_sendClass, 2, T_selectorAname_argumentAunchecked_XXX, sendClassObject,
+  SM(NAME_sendClass, 2, T_relayed_invocation, sendClassObject,
      NAME_programming, "Send using method of class of object"),
   SM(NAME_sendMethod, 1, "send_method|chain", sendMethodObject,
      NAME_programming, "Add an object-level send_method"),
-  SM(NAME_sendSub, 2, T_selectorAname_argumentAunchecked_XXX, sendSubObject,
+  SM(NAME_sendSub, 2, T_relayed_invocation, sendSubObject,
      NAME_programming, "Send using method of subclass"),
-  SM(NAME_sendSuper, 2, T_selectorAname_argumentAunchecked_XXX, sendSuperObject,
+  SM(NAME_sendSuper, 2, T_relayed_invocation, sendSuperObject,
      NAME_programming, "Send using method of super-class"),
   SM(NAME_sendSuperVector, 1, "unchecked ...", sendSuperVectorObject,
      NAME_programming, "Varargs: any ..., vector, [int]"),
@@ -2542,8 +2665,8 @@ static senddecl send_object[] =
      NAME_report, "Initiate an error: id, context ..."),
   SM(NAME_report, 3, T_report, reportObject,
      NAME_report, "Report message (send to @event <-receiver)"),
-  SM(NAME_obtainResources, 0, NULL, obtainResourcesObject,
-     NAME_resource, "Obtain resources for @default-valued slots"),
+  SM(NAME_obtainClassVariables, 0, NULL, obtainClassVariablesObject,
+     NAME_resource, "Obtain class-variable values for @default-valued slots"),
   SM(NAME_attribute, 2, T_attribute, attributeObject,
      NAME_storage, "Append/change object-level attribute"),
   SM(NAME_deleteAttribute, 1, "name|attribute", deleteAttributeObject,
@@ -2559,7 +2682,9 @@ static senddecl send_object[] =
   SM(NAME_instanceOf, 1, "class", instanceOfObject,
      NAME_type, "Test of object is an instance of class"),
   SM(NAME_sameClass, 1, "object", sameClassObject,
-     NAME_type, "Is object of the same class as argument")
+     NAME_type, "Is object of the same class as argument"),
+  SM(NAME_updateConstraints, 0, NULL, updateConstraintsObject,
+     NAME_constraint, "Execute all constraints")
 #ifndef O_RUNTIME
   ,
   SM(NAME_inspect, 1, "bool", inspectObject,
@@ -2606,19 +2731,21 @@ static getdecl get_object[] =
      NAME_meta, "Tuple containing receiver and implementing object"),
   GM(NAME_sendMethod, 1, "tuple", "name", getSendMethodObject,
      NAME_meta, "Tuple containing receiver and implementing object"),
-  GM(NAME_convert, 1, "object", "char_array", getConvertObject,
+  GM(NAME_convert, 1, "object", "int|char_array", getConvertObject,
      NAME_oms, "Convert '@reference' into object"),
+  GM(NAME_unlock, 0, "unchecked", NULL, getUnlockObject,
+     NAME_oms, "Unlock object and return <-self"),
   GM(NAME_lockObject, 0, "bool", NULL, getLockObject,
      NAME_oms, "Boolean to indicate locked for GC"),
   GM(NAME_protect, 0, "bool", NULL, getProtectObject,
      NAME_oms, "Boolean to indicate locked for ->free"),
   GM(NAME_self, 0, "object", NULL, getSelfObject,
      NAME_oms, "Returns itself"),
-  GM(NAME_getClass, 2, "unchecked", T_selectorAname_argumentAunchecked_XXX, getGetClassObject,
+  GM(NAME_getClass, 2, "unchecked", T_relayed_invocation, getGetClassObject,
      NAME_programming, "Get, using method of class of object"),
-  GM(NAME_getSub, 2, "unchecked", T_selectorAname_argumentAunchecked_XXX, getGetSubObject,
+  GM(NAME_getSub, 2, "unchecked", T_relayed_invocation, getGetSubObject,
      NAME_programming, "Get, using method of sub-class"),
-  GM(NAME_getSuper, 2, "unchecked", T_selectorAname_argumentAunchecked_XXX, getGetSuperObject,
+  GM(NAME_getSuper, 2, "unchecked", T_relayed_invocation, getGetSuperObject,
      NAME_programming, "Get, using method of super-class"),
   GM(NAME_getVector, 1, "unchecked", "unchecked ...", getVectorObject,
      NAME_programming, "Varargs: any ..., vector, [int]"),
@@ -2634,8 +2761,8 @@ static getdecl get_object[] =
      NAME_relation, "Find hyper-related object"),
   GM(NAME_reportTo, 0, "object", NULL, getReportToObject,
      NAME_report, "Object for ->report (@event <-receiver)"),
-  GM(NAME_resourceValue, 1, "any", "name", getResourceValueObject,
-     NAME_resource, "Get value of associated resource"),
+  GM(NAME_classVariableValue, 1, "any", "name", getClassVariableValueObject,
+     NAME_default, "Get value of associated Default"),
   GM(NAME_attribute, 1, "unchecked", "name", getAttributeObject,
      NAME_storage, "Get value of a object-level attribute"),
   GM(NAME_Arg, 1, "unchecked", "int", getArgObject,
@@ -2669,7 +2796,7 @@ static getdecl get_object[] =
 
 #define rc_object NULL
 /*
-static resourcedecl rc_object[] =
+static classvardecl rc_object[] =
 { 
 };
 */

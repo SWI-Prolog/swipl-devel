@@ -22,10 +22,10 @@ initialiseLabel(Label lb, Name name, Any selection, FontObj font)
 
   createDialogItem(lb, name);
 
-  assign(lb, font,      font);
-  assign(lb, length,    DEFAULT);
-  assign(lb, border,    DEFAULT);
+  if ( notDefault(font) )
+    assign(lb, font, font);
   selectionLabel(lb, selection);
+  assign(lb, width, DEFAULT);
   
   return requestComputeGraphical(lb, DEFAULT);
 }
@@ -34,12 +34,12 @@ initialiseLabel(Label lb, Name name, Any selection, FontObj font)
 static status
 RedrawAreaLabel(Label lb, Area a)
 { int x, y, w, h;
-  Elevation z = getResourceValueObject(lb, NAME_elevation);
+  Elevation z = lb->elevation;
   int preview = (lb->status == NAME_preview && notNil(lb->message));
 
   initialiseDeviceGraphical(lb, &x, &y, &w, &h);
 
-  if ( z && notNil(z) )
+  if ( notNil(z) )
     r_3d_box(x, y, w, h, 0, z, !preview);
 
   x += valInt(lb->border);
@@ -47,6 +47,9 @@ RedrawAreaLabel(Label lb, Area a)
 
   if ( instanceOfObject(lb->selection, ClassCharArray) )
   { CharArray s = lb->selection;
+
+    if ( notNil(z) )
+      x += valInt(getExFont(lb->font))/2;
 
     str_label(&s->data, 0, lb->font, x, y, w, h, NAME_left, NAME_top,
 	      lb->active == ON ? 0 : LABEL_INACTIVE);
@@ -56,7 +59,7 @@ RedrawAreaLabel(Label lb, Area a)
     r_image(image, 0, 0, x, y, w, h, ON);
   }
 
-  if ( preview && !z )
+  if ( preview && isNil(z) )
     r_complement(x, y, w, h);    
 
   return RedrawAreaGraphical(lb, a);
@@ -113,16 +116,27 @@ statusLabel(Label lb, Name stat)
 static status
 computeLabel(Label lb)
 { if ( notNil(lb->request_compute) )
-  { int w, h;
+  { int w, h, b;
 
-    TRY(obtainResourcesObject(lb));
+    TRY(obtainClassVariablesObject(lb));
+    b = valInt(lb->border);
+    if ( notNil(lb->elevation) )
+      b += abs(valInt(lb->elevation->height));
 
     if ( instanceOfObject(lb->selection, ClassCharArray) )
     { CharArray s = (CharArray) lb->selection;
+      int minw;
       int ex = valInt(getExFont(lb->font));
 
       str_size(&s->data, lb->font, &w, &h);
-      w = max(w, valInt(lb->length) * ex);
+      w += ex;
+
+      if ( notDefault(lb->width) )
+	minw = valInt(lb->width) - 2*b;
+      else
+	minw = (valInt(lb->length)+1) * ex;
+
+      w = max(w, minw);
     } else /*if ( instanceOfObject(lb->selection, ClassImage) )*/
     { Image image = (Image) lb->selection;
 
@@ -130,8 +144,8 @@ computeLabel(Label lb)
       h = valInt(image->size->h);
     }
 
-    w += 2*valInt(lb->border);
-    h += 2*valInt(lb->border);
+    w += 2*b;
+    h += 2*b;
 
     CHANGING_GRAPHICAL(lb,
 	assign(lb->area, w, toInt(w));
@@ -212,12 +226,22 @@ fontLabel(Label lb, FontObj font)
 
 static status
 lengthLabel(Label lb, Int length)
-{ if ( lb->length != length )
-  { assign(lb, length, length);
-    requestComputeGraphical(lb, DEFAULT);
-  }
+{ return assignGraphical(lb, NAME_length, length);
+}
 
-  succeed;
+
+static status
+widthLabel(Label lb, Int w)
+{ return assignGraphical(lb, NAME_width, w);
+}
+
+
+static status
+geometryLabel(Label lb, Int x, Int y, Int w, Int h)
+{ if ( notDefault(w) && valInt(w) > 0 )
+    assign(lb, width, w);
+
+  return geometryGraphical(lb, x, y, w, h);
 }
 
 
@@ -228,22 +252,33 @@ borderLabel(Label lb, Int border)
 
 
 static status
+elevationLabel(Label lb, Elevation e)
+{ return assignGraphical(lb, NAME_elevation, e);
+}
+
+
+static status
 catchAllLabelv(Label lb, Name selector, int argc, Any *argv)
 { if ( hasSendMethodObject(lb->selection, selector) )
-  { assign(PCE, last_error, NIL);
+  { status rval = sendv(lb->selection, selector, argc, argv);
 
-    if ( sendv(lb->selection, selector, argc, argv) )
-      return requestComputeGraphical(lb, DEFAULT);
+    if ( rval )
+      requestComputeGraphical(lb, DEFAULT);
+
+    return rval;
   } else if ( instanceOfObject(lb->selection, ClassCharArray) &&
 	      getSendMethodClass(ClassString, selector) )
-  { assign(lb, selection, newObject(ClassString,
+  { status rval;
+
+    assign(lb, selection, newObject(ClassString,
 				    name_procent_s, lb->selection, 0));
-    assign(PCE, last_error, NIL);
-    if ( sendv(lb->selection, selector, argc, argv) )
-      return requestComputeGraphical(lb, DEFAULT);
+    if ( (rval = sendv(lb->selection, selector, argc, argv)) )
+      requestComputeGraphical(lb, DEFAULT);
+
+    return rval;
   }
 
-  fail;
+  return errorPce(lb, NAME_noBehaviour, CtoName("->"), selector);
 }
 
 
@@ -302,18 +337,24 @@ static char *T_format[] =
         { "name", "any ..." };
 static char *T_catchAll[] =
         { "name", "unchecked ..." };
+static char *T_geometry[] =
+	{ "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
 
 /* Instance Variables */
 
 static vardecl var_label[] =
 { SV(NAME_font, "font", IV_GET|IV_STORE, fontLabel,
      NAME_appearance, "Font for selection"),
-  SV(NAME_length, "int", IV_GET|IV_STORE, lengthLabel,
+  SV(NAME_length, "0..", IV_GET|IV_STORE, lengthLabel,
      NAME_area, "Length in characters (with text)"),
+  SV(NAME_width, "[0..]", IV_NONE|IV_STORE, widthLabel,
+     NAME_area, "Width in pixels"),
   SV(NAME_selection, "char_array|image", IV_GET|IV_STORE, selectionLabel,
      NAME_selection, "Text or image displayed"),
   SV(NAME_border, "0..", IV_GET|IV_STORE, borderLabel,
-     NAME_appearance, "Space around the image")
+     NAME_appearance, "Space around the image"),
+  SV(NAME_elevation, "elevation*", IV_GET|IV_STORE, elevationLabel,
+     NAME_appearance, "3D-Elevation of the area")
 };
 
 /* Send Methods */
@@ -327,6 +368,8 @@ static senddecl send_label[] =
      DEFAULT, "Act as button if <-message not @nil"),
   SM(NAME_initialise, 3, T_initialise, initialiseLabel,
      DEFAULT, "Create from name, selection and font"),
+  SM(NAME_geometry, 4, T_geometry, geometryLabel,
+     DEFAULT, "Resize, sets ->width if not @default"),
   SM(NAME_catchAll, 2, T_catchAll, catchAllLabelv,
      NAME_delegate, "Delegate to <->selection"),
   SM(NAME_execute, 0, NULL, executeLabel,
@@ -348,15 +391,14 @@ static getdecl get_label[] =
 
 /* Resources */
 
-static resourcedecl rc_label[] =
-{ RC(NAME_border, "0..", "0",
+static classvardecl rc_label[] =
+{ RC(NAME_border, "0..", "1",
      "Space around image/string"),
   RC(NAME_font, "font", "normal",
      "Default font for selection"),
   RC(NAME_length, "int", "25",
      "Default length in characters"),
-  RC(NAME_length, "int", "25",
-     "Default length in characters")
+  RC(NAME_elevation, RC_REFINE, "@nil", NULL)
 };
 
 /* Class Declaration */

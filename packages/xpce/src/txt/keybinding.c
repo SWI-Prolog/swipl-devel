@@ -38,6 +38,7 @@ initialiseKeyBinding(KeyBinding kb, Name name, int argc, KeyBinding *argv)
   assign(kb, defaults, newObjectv(ClassChain, 0, NULL));
 
   resetKeyBinding(kb, NIL);
+  obtainClassVariablesObject(kb);	/* actually, argument is a conflict! */
 
   if ( notDefault(name) )
   { assign(kb, name, name);
@@ -104,7 +105,7 @@ resetKeyBinding(KeyBinding kb, Any receiver)
     receiver = NIL;
 
   receiverKeyBinding(kb, receiver);
-  assign(kb, prefix,   CtoName(""));
+  assign(kb, prefix,   NAME_);
   assign(kb, argument, DEFAULT);
 
   succeed;
@@ -244,7 +245,8 @@ typedKeyBinding(KeyBinding kb, EventId id, Graphical receiver)
       { resetKeyBinding(kb, receiver);
 	rval = SUCCEED;
       } else if ( cmd == NAME_nextLine || cmd == NAME_previousLine )
-      { Method impl = resolveSendMethodObject(receiver, NULL, cmd, NULL, NULL);
+      { Any rec;
+	Method impl = resolveSendMethodObject(receiver, NULL, cmd, &rec);
 	Type argt;
 
 	argv[argc++] = kb->argument;
@@ -323,13 +325,19 @@ static status
 fillArgumentsAndExecuteKeyBinding(KeyBinding kb,
 				  EventId id, Any receiver, Name cmd,
 				  int ac, Any av[])
-{ Any impl;
+{ Tuple t;
+  Any impl;
 
-  impl = resolveSendMethodObject(receiver, NULL, cmd, NULL, NULL);
-  if ( !impl && cmd == NAME_insertQuoted )
+  t = get(receiver, NAME_sendMethod, cmd, 0);
+  if ( !t && cmd == NAME_insertQuoted )
   { cmd = NAME_insertSelf;
-    impl = resolveSendMethodObject(receiver, NULL, cmd, NULL, NULL);
+    t = get(receiver, NAME_sendMethod, cmd, 0);
   }
+  if ( t )
+  { impl = t->second;
+    doneObject(t);
+  } else
+    impl = NULL;
 
   DEBUG(NAME_keyBinding, Cprintf("%s: impl of %s is %s\n",
 				 pp(kb), pp(cmd), pp(impl)));
@@ -362,15 +370,11 @@ fillArgumentsAndExecuteKeyBinding(KeyBinding kb,
 	{ if ( (val = checkType(val, type, receiver)) )
 	    argv[argc++] = val;
 	  else
-	  { errorPce(kb, NAME_noArgument, toInt(argc+1), impl);
-	    fail;
-	  }
+	    return errorPce(kb, NAME_noArgument, toInt(argc+1), impl);
 	} else
 	  fail;
       } else
-      { errorPce(kb, NAME_noArgument, toInt(argc+1), impl);
-	fail;
-      }
+        return errorPce(kb, NAME_noArgument, toInt(argc+1), impl);
     }
 
     return sendv(kb, NAME_execute, argc+2, theargv);
@@ -474,7 +478,7 @@ static getdecl get_keyBinding[] =
 
 /* Resources */
 
-static resourcedecl rc_keyBinding[] =
+static classvardecl rc_keyBinding[] =
 { RC(NAME_insert,           "chain", "[]", "Bind printable to ->insert_self"),
   RC(NAME_argument,         "chain", "[]", "C-u and M-digit binding"),
   RC(NAME_emacsSpecial,     "chain", "[]", "argument, prefix, quote and quit"),
@@ -745,7 +749,7 @@ static kbDef editor[] =
 
 static status
 bindResourcesKeyBinding(KeyBinding kb)
-{ Chain ch = getResourceValueObject(kb, kb->name);
+{ Chain ch = getClassVariableValueObject(kb, kb->name);
 
   if ( instanceOfObject(ch, ClassChain) )
   { Cell cell;

@@ -71,7 +71,7 @@ static getdecl get_when[] =
 
 #define rc_when NULL
 /*
-static resourcedecl rc_when[] =
+static classvardecl rc_when[] =
 { 
 };
 */

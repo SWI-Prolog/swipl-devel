@@ -18,9 +18,5 @@ int		Stub__HostActionv(int action, va_list args);
 int		Stub__HostQuery(int what, PceCValue *value);
 int		Stub__HostSend(PceObject prolog, PceName sel, int argc, PceObject *argv);
 PceObject	Stub__HostGet(PceObject prolog, PceName sel, int argc, PceObject *argv);
-int		Stub__HostCallProc(PceObject handle,
-				   PceObject rec, PceObject sel,
-				   int ac, PceObject *av);
-PceObject	Stub__HostCallFunc(PceObject handle,
-				   PceObject rec, PceObject sel,
-				   int ac, PceObject *av);
+int		Stub__HostCall(PceGoal goal);
+

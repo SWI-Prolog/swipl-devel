@@ -25,7 +25,7 @@ StringToString(String s)
 
 
 StringObj
-CtoString(char *s)
+CtoString(const char *s)
 { CharArray c = CtoScratchCharArray(s);
   StringObj str =  answerObject(ClassString, name_procent_s, c, 0);
   doneScratchCharArray(c);
@@ -154,7 +154,7 @@ storeString(StringObj s, FileObj file)
 
 
 static status
-loadString(StringObj s, FILE *fd, ClassDef def)
+loadString(StringObj s, IOSTREAM *fd, ClassDef def)
 { TRY(loadSlotsObject(s, fd, def));
   CsetString(s, loadCharp(fd));
 
@@ -599,7 +599,7 @@ static char *T_character[] =
         { "at=int", "char=char" };
 static char *T_insertCharacter[] =
         { "char=char", "at=[0..]", "times=[0..]" };
-static char *T_formatADchar_arrayD_argumentAany_XXX[] =
+static char *T_format[] =
         { "format=[char_array]", "argument=any ..." };
 static char *T_translate[] =
         { "from=char", "into=char*" };
@@ -620,7 +620,7 @@ vardecl var_string[] =
 /* Send Methods */
 
 static senddecl send_string[] =
-{ SM(NAME_initialise, 2, T_formatADchar_arrayD_argumentAany_XXX, initialiseStringv,
+{ SM(NAME_initialise, 2, T_format, initialiseStringv,
      DEFAULT, "Create a string, initialise as ->format"),
   SM(NAME_downcase, 0, NULL, downcaseString,
      NAME_case, "Change all letters in string to lower case"),
@@ -654,7 +654,7 @@ static senddecl send_string[] =
      NAME_copy, "Set the contents of the string"),
   SM(NAME_bitsPerCharacter, 1, "int", bitsPerCharacterString,
      NAME_encoding, "8- or 16-bits per character"),
-  SM(NAME_format, 2, T_formatADchar_arrayD_argumentAany_XXX, formatString,
+  SM(NAME_format, 2, T_format, formatString,
      NAME_format, "Format (like printf) in string"),
   SM(NAME_untabify, 1, "tabs=[int|vector]", untabifyString,
      NAME_indentation, "Replace tab characters by spaces")
@@ -675,7 +675,7 @@ static getdecl get_string[] =
 
 #define rc_string NULL
 /*
-static resourcedecl rc_string[] =
+static classvardecl rc_string[] =
 { 
 };
 */

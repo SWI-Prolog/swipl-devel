@@ -8,17 +8,16 @@
 */
 
 #include <h/kernel.h>
-#include <h/graphics.h>		/* resource handling */
 #include <h/unix.h>
 
-static Any	loadNameObject(FILE *);
+static Any	loadNameObject(IOSTREAM *);
 static int	pceSlotsClass(Class);
 static status	checkConvertedObject(Any, ClassDef);
 static Int	storeClass(Class, FileObj);
 static status	storeExtensionsObject(Any obj, FileObj file);
 static status	storeIdObject(Any obj, Int id, FileObj file);
 static status	storeSlotsClass(Class class, FileObj file);
-static status	restoreClass(FILE *fd);
+static status	restoreClass(IOSTREAM *fd);
 static int	offsetVariable(Class class, Name name);
 
 static int objects_saved;
@@ -486,7 +485,7 @@ static HashTable restoreTable;		/* restored objects table */
 static Chain	 restoreMessages;	/* messages for restoration */
 
 long
-loadWord(FILE *fd)
+loadWord(IOSTREAM *fd)
 {
 #ifndef WORDS_BIGENDIAN
   union
@@ -495,7 +494,7 @@ loadWord(FILE *fd)
   } cvrt;
   long rval;
 
-  cvrt.l = getw(fd);
+  cvrt.l = Sgetw(fd);
   rval = (cvrt.c[0] << 24) |
          (cvrt.c[1] << 16) |
 	 (cvrt.c[2] << 8) |
@@ -503,19 +502,19 @@ loadWord(FILE *fd)
   DEBUG(NAME_byteOrder, Cprintf("loadWord(0x%lx) --> %ld\n", cvrt.l, rval));
   return rval;
 #else /*WORDS_BIGENDIAN*/
-  return getw(fd);
+  return Sgetw(fd);
 #endif /*WORDS_BIGENDIAN*/
 }
 
 
 char *
-loadCharp(FILE *fd)
+loadCharp(IOSTREAM *fd)
 { DEBUG(NAME_save,
-	{ long here = ftell(fd);
+	{ long here = Stell(fd);
 	  int size = loadWord(fd);
 	  char *s = alloc(size+1);
 
-	  fread(s, sizeof(char), size, fd);
+	  Sfread(s, sizeof(char), size, fd);
 	  s[size] = '\0';
 	  Cprintf("Loaded from %d chars from %ld: `%s'\n", size, here, s);
 	  return s;
@@ -524,7 +523,7 @@ loadCharp(FILE *fd)
   { int size = loadWord(fd);
     char *s = alloc(size+1);
 
-    fread(s, sizeof(char), size, fd);
+    Sfread(s, sizeof(char), size, fd);
     s[size] = '\0';
 
     return s;
@@ -533,7 +532,7 @@ loadCharp(FILE *fd)
 
 
 static Name
-loadName(FILE *fd)
+loadName(IOSTREAM *fd)
 { char *s = loadCharp(fd);
   Name name = CtoName(s);
 
@@ -553,7 +552,7 @@ restoreMessage(Any msg)
 
 
 static status
-loadNilRef(FILE * fd)
+loadNilRef(IOSTREAM * fd)
 { Int classid  = toInt(loadWord(fd));
   Any r1       = loadNameObject(fd);
   int offset   = loadWord(fd);
@@ -581,7 +580,7 @@ loadNilRef(FILE * fd)
 
 
 static status
-loadReferenceChain(FILE *fd)
+loadReferenceChain(IOSTREAM *fd)
 { Int classid  = toInt(loadWord(fd));
   Any r1       = loadNameObject(fd);
   int offset   = loadWord(fd);
@@ -599,7 +598,7 @@ loadReferenceChain(FILE *fd)
 
     assignField(f, &(f->slots[def->offset[offset]]), ch);
     do
-    { switch((c=getc(fd)))
+    { switch((c=Sgetc(fd)))
       { case 'R':
 	{ Any r2 = loadNameObject(fd);
 	  Any o2 = getMemberHashTable(restoreTable, r2);
@@ -612,7 +611,7 @@ loadReferenceChain(FILE *fd)
 	case 'x':
 	  break;
 	default:
-	  errorPce(f, NAME_illegalCharacter, toInt(c), toInt(ftell(fd)));
+	  errorPce(f, NAME_illegalCharacter, toInt(c), toInt(Stell(fd)));
 	  fail;
       }
     } while( c != 'x' );
@@ -623,19 +622,50 @@ loadReferenceChain(FILE *fd)
 }
 
 
+status
+checkObjectMagic(IOSTREAM *fd)
+{ status rval;
+  long l;
+  int ls;
+
+  if ( SaveMagic == NULL )
+    SaveMagic = SAVEMAGIC;
+
+  ls = strlen(SaveMagic);
+
+  if ( (l=loadWord(fd)) == ls )
+  { char tmp[LINESIZE];
+
+    Sfread(tmp, sizeof(char), sizeof(SAVEMAGIC)-1, fd);
+    tmp[ls] = EOS;
+    DEBUG(NAME_save, Cprintf("magic = ``%s''; SaveMagic = ``%s''\n",
+			     tmp, SaveMagic) );
+    if ( strncmp(tmp, SaveMagic, ls - 1) == 0 )
+      rval = SUCCEED;
+    else
+      rval = FAIL;
+  } else
+  { rval = FAIL;
+    DEBUG(NAME_save, Cprintf("First word = %ld, should be %d\n", l, ls) );
+  }
+
+  return rval;
+}
+
+
 Any
-getObjectFile(FileObj f)
-{ FILE *fd;
+getObjectSourceSink(SourceSink f)
+{ IOSTREAM *fd;
   Any result;
 
-  TRY(send(f, NAME_kind, NAME_binary, 0) &&
-      send(f, NAME_open, NAME_read, 0));
+  if ( !(fd = Sopen_object(f, "rbr")) )
+    fail;
 
   LoadFile = f;				/* TBD: pass as argument */
-  fd = f->fd;
 
-  if ( !checkObjectFile(f) )
-  { closeFile(f);
+  if ( !checkObjectMagic(fd) )
+  { Sclose(fd);
+
     errorPce(f, NAME_badFile, NAME_object);
     fail;
   }
@@ -655,7 +685,7 @@ getObjectFile(FileObj f)
   { char c;
 
     do
-    { switch((c=getc(fd)))
+    { switch((c=Sgetc(fd)))
       { case 's':			/* support (relation) objects */
 	  if ( !loadObject(fd) )
 	    fail;			/* TBD */
@@ -671,7 +701,7 @@ getObjectFile(FileObj f)
 	case 'x':
 	  break;
 	default:
-	  errorPce(f, NAME_illegalCharacter, toInt(c), toInt(ftell(fd)));
+	  errorPce(f, NAME_illegalCharacter, toInt(c), toInt(Stell(fd)));
 	  fail;
       }
     } while( c != 'x' );
@@ -679,7 +709,7 @@ getObjectFile(FileObj f)
 
   freeHashTable(restoreTable);
   freeHashTable(savedClassTable);
-  closeFile(f);
+  Sclose(fd);
 
   if ( result )
   { if ( restoreMessages )
@@ -707,7 +737,7 @@ updateFlagsObject(Any obj)
 
 
 static status
-loadExtensionsObject(Instance obj, FILE *fd)
+loadExtensionsObject(Instance obj, IOSTREAM *fd)
 { if ( restoreVersion <= 7 )
     succeed;				/* extensions in interceptor */
 
@@ -716,13 +746,13 @@ loadExtensionsObject(Instance obj, FILE *fd)
     Any ext;
 
     if ( restoreVersion == 8 )
-    { if ( (c=getc(fd)) != 'e' )
-      { ungetc(c, fd);
+    { if ( (c=Sgetc(fd)) != 'e' )
+      { Sungetc(c, fd);
 	succeed;
       }
     }
 
-    switch(c=getc(fd))
+    switch(c=Sgetc(fd))
     { case 'x':
 	succeed;
       case 'a':
@@ -756,7 +786,7 @@ loadExtensionsObject(Instance obj, FILE *fd)
 	addRefObj(ext);
 	break;
       default:
-	errorPce(LoadFile, NAME_illegalCharacter, toInt(c), toInt(ftell(fd)));
+	errorPce(LoadFile, NAME_illegalCharacter, toInt(c), toInt(Stell(fd)));
 	fail;
     }
   }
@@ -764,15 +794,15 @@ loadExtensionsObject(Instance obj, FILE *fd)
 
 
 Any
-loadObject(FILE *fd)
-{ char c;
+loadObject(IOSTREAM *fd)
+{ int c;
 #ifndef O_RUNTIME
   long start = 0;
 #endif
 
-  DEBUG(NAME_save, start = ftell(fd));
+  DEBUG(NAME_save, start = Stell(fd));
 
-  switch( c = getc(fd) )
+  switch( c = Sgetc(fd) )
   { case 'd':	return DEFAULT;
     case 'n':	return NIL;
     case 'a':	return ON;
@@ -825,9 +855,9 @@ loadObject(FILE *fd)
 		return NIL;
 	      }
     case 'C':	restoreClass(fd);
-		if ( (c=getc(fd)) != 'O' )
+		if ( (c=Sgetc(fd)) != 'O' )
 		{ errorPce(LoadFile, NAME_illegalCharacter,
-			   toInt(c), toInt(ftell(fd)));
+			   toInt(c), toInt(Stell(fd)));
 		  fail;
 		}
 		/* FALLTHROUGH */
@@ -907,7 +937,7 @@ loadObject(FILE *fd)
     
     default:  { long index;
 
-		index = ftell(fd) - 1;
+		index = Stell(fd) - 1;
 		errorPce(LoadFile, NAME_illegalCharacter,
 			 toInt(c), toInt(index));
 		fail;
@@ -917,22 +947,21 @@ loadObject(FILE *fd)
 
 
 static Any
-loadNameObject(FILE *fd)
-{ char c;
+loadNameObject(IOSTREAM *fd)
+{ int c;
 
-  switch( c = getc(fd) )
+  switch( (c = Sgetc(fd)) )
   { case 'I':	return (Any) toInt(loadWord(fd));
     case 'N':	return (Any) loadName(fd);
-    default:	ungetc(c, fd);
-		errorPce(LoadFile, NAME_illegalCharacter,
-			 toInt(getc(fd)), toInt(ftell(fd)));
+    default:	errorPce(LoadFile, NAME_illegalCharacter,
+			 toInt(c), toInt(Stell(fd)-1));
 		fail;
   }
 }
 
 
 static status
-restoreClass(FILE *fd)
+restoreClass(IOSTREAM *fd)
 { Name name = loadName(fd);
   Int classid = toInt(loadWord(fd));
   int slots = loadWord(fd);
@@ -995,7 +1024,7 @@ offsetVariable(Class class, Name name)
 
 
 status
-loadSlotsObject(Any obj, FILE *fd, ClassDef def)
+loadSlotsObject(Any obj, IOSTREAM *fd, ClassDef def)
 { int i;
   Any slotValue;
   Instance inst = obj;
@@ -1046,7 +1075,7 @@ checkConvertedObject(Any obj, ClassDef def)
 	continue;
       }
 
-      if ( isDefault(value) && getResourceClass(class, var->name) )
+      if ( isDefault(value) && getClassVariableClass(class, var->name) )
 	continue;
 
       if ( hasSendMethodObject(inst, NAME_initialiseNewSlot) &&

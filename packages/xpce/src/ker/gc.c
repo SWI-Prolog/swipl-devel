@@ -9,7 +9,6 @@
 
 
 #include <h/kernel.h>
-#include <h/interface.h>		/* export for _markAnswerStack() */
 
 #undef DEBUG				/* only if needed on this module */
 #define DEBUG(t, g)
@@ -60,61 +59,58 @@ deleteAnswerObject(Any obj)
 }
 
 
-export void
-_markAnswerStack(AnswerMark *mark)
-{ *mark = AnswerStack->index;
-}
-
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 NOTE: deletion of the  head  is  avoided   to  ensure  this  routine  is
-reentrant. This may be necessary if unlinking   an object causes the new
+reentrant. This may be  necessary  if   unlinking  an  object causes new
 mark/rewind actions. 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 export void
 _rewindAnswerStack(AnswerMark *mark, Any obj)
-{ ToCell c, n;
-  ToCell preserve = NULL;
+{ ToCell c = AnswerStack;
   long index = *mark;
-  int freehead = FALSE;
 
-  for( c = AnswerStack; c->index > index; c = n )
-  { n = c->next;
-    DEBUG(NAME_gc, Cprintf("Cell at 0x%lx\n", (unsigned long)c));
-    if ( c->value )
-    { if ( c->value != obj )
-      { Any o = c->value;
-
-	if ( noRefsObj(o) && !onFlag(o, F_LOCKED|F_PROTECTED) )
-	{ DEBUG(NAME_gc, 
-		Cprintf("Removing %s from AnswerStack\n", pp(o)));
-	  clearAnswerObj(c->value);
-	  freeObject(o);
-	}
-	if ( c != AnswerStack )
+  if ( c->index > index )
+  { ToCell n, preserve = NULL;
+    int freehead = FALSE;
+    
+    for( ; c->index > index; c = n )
+    { n = c->next;
+      DEBUG(NAME_gc, Cprintf("Cell at 0x%lx\n", (unsigned long)c));
+      if ( c->value )
+      { if ( c->value != obj )
+	{ Any o = c->value;
+  
+	  if ( noRefsObj(o) && !onFlag(o, F_LOCKED|F_PROTECTED) )
+	  { DEBUG(NAME_gc, 
+		  Cprintf("Removing %s from AnswerStack\n", pp(o)));
+	    clearAnswerObj(c->value);
+	    freeObject(o);
+	  }
+	  if ( c != AnswerStack )
+	    unalloc(sizeof(struct to_cell), c);
+	  else
+	    freehead = TRUE;
+	} else
+	  preserve = c;
+      } else
+      { if ( c != AnswerStack )
 	  unalloc(sizeof(struct to_cell), c);
 	else
 	  freehead = TRUE;
-      } else
-	preserve = c;
-    } else
-    { if ( c != AnswerStack )
-	unalloc(sizeof(struct to_cell), c);
-      else
-	freehead = TRUE;
+      }
     }
-  }
+    
+    if ( freehead )
+      unalloc(sizeof(struct to_cell), AnswerStack);
   
-  if ( freehead )
-    unalloc(sizeof(struct to_cell), AnswerStack);
-
-  AnswerStack = c;
-
-  if ( preserve )
-  { preserve->next  = AnswerStack;
-    preserve->index = AnswerStack->index + 1;
-    AnswerStack     = preserve;
+    AnswerStack = c;
+  
+    if ( preserve )
+    { preserve->next  = AnswerStack;
+      preserve->index = AnswerStack->index + 1;
+      AnswerStack     = preserve;
+    }
   }
 }
 

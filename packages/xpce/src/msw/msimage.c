@@ -18,22 +18,6 @@
 
 #define OsError() getOsErrorPce(PCE)
 
-#ifdef O_IMGLIB
-#include "imglib.h"
-
-#ifdef HAVE_SYS_PARAM_H
-#include <sys/param.h>
-#else
-#ifndef MAXPATHLEN
-#define MAXPATHLEN 256
-#endif
-#endif
-#endif /*O_IMGLIB*/
-
-#ifdef O_GIFREAD
-extern LPVOID CALLBACK gifLoad(char *);
-#endif /*O_GIFREAD*/
-
 #ifdef O_XPM
 #define FOR_MSW 1
 #include <msw/xpm.h>
@@ -48,7 +32,8 @@ extern LPVOID CALLBACK gifLoad(char *);
 
 
 static int	ws_sizeof_bits(int w, int h);
-
+static status	ws_attach_xpm_image(Image image,
+				    XpmImage* xpmimg, XpmInfo* xpminfo);
 
 void
 ws_init_image(Image image)
@@ -101,11 +86,17 @@ ws_store_image(Image image, FileObj file)
     d = CurrentDisplay(image);
 
   if ( (bm = getXrefObject(image, d)) )
-  { putc('P', file->fd);
+  { IOSTREAM *fd = Sopen_FILE(file->fd, SIO_OUTPUT); /* HACK */
+
+    Sputc('P', fd);
     DEBUG(NAME_ppm, Cprintf("Saving PNM image from index %d\n",
 			    ftell(file->fd)));
-    if ( write_pnm_file(file->fd, bm, 0, 0, PNM_RUNLEN) < 0 )
+    if ( write_pnm_file(fd, bm, 0, 0, PNM_RUNLEN) < 0 )
+    { Sclose(fd);
       fail;
+    }
+
+    Sclose(fd);
   }
 
   succeed;
@@ -113,7 +104,7 @@ ws_store_image(Image image, FileObj file)
 
 
 status
-loadXImage(Image image, FILE *fd)
+loadXImage(Image image, IOSTREAM *fd)
 { fail;
 }
 
@@ -123,7 +114,7 @@ loadPNMImage() is used for loading saved-objects holding images.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 status
-loadPNMImage(Image image, FILE *fd)
+loadPNMImage(Image image, IOSTREAM *fd)
 { Name kind;
   HBITMAP bm = read_ppm_file(fd, &kind);
 
@@ -149,13 +140,7 @@ loadPNMImage(Image image, FILE *fd)
 
 
 status
-loadPPMImage(Image image, FileObj f)
-{ return loadPNMImage(image, f->fd);
-}
-
-
-status
-ws_load_old_image(Image image, FILE *fd)
+ws_load_old_image(Image image, IOSTREAM *fd)
 { fail;
 }
 
@@ -177,14 +162,13 @@ color_quads_in_bitmap_info(BITMAPINFOHEADER *hdr)
 }
 
 static BITMAPINFO *
-read_bitmap_info(FileObj f)
-{ FILE *fd = f->fd;
-  BITMAPINFOHEADER bmih;
+read_bitmap_info(Image img, IOSTREAM *fd)
+{ BITMAPINFOHEADER bmih;
   int rgbquads;
   BITMAPINFO *bmi;
   
-  if ( fread(&bmih, sizeof(bmih), 1, fd) != 1 )
-  { errorPce(f, NAME_ioError, OsError());
+  if ( Sfread(&bmih, sizeof(bmih), 1, fd) != 1 )
+  { checkErrorSourceSink(img->file, fd);
     return NULL;
   }
   rgbquads = color_quads_in_bitmap_info(&bmih);
@@ -192,8 +176,8 @@ read_bitmap_info(FileObj f)
 			    bmih.biWidth, bmih.biHeight, rgbquads));
   bmi = pceMalloc(sizeof(bmih) + sizeof(RGBQUAD)*rgbquads);
   memcpy(&bmi->bmiHeader, &bmih, sizeof(bmih));
-  if ( fread(&bmi->bmiColors, sizeof(RGBQUAD), rgbquads, fd) != rgbquads )
-  { errorPce(f, NAME_ioError, OsError());
+  if ( Sfread(&bmi->bmiColors, sizeof(RGBQUAD), rgbquads, fd) != rgbquads )
+  { checkErrorSourceSink(img->file, fd);
     return NULL;
   }
 
@@ -252,22 +236,19 @@ attach_dib_image(Image image, BITMAPINFO *bmi, BYTE *bits)
 }
 
 
-#ifndef O_IMGLIB
-
 static status
-ws_load_windows_bmp_file(Image image, FileObj f)
+ws_load_windows_bmp_file(Image image, IOSTREAM *fd)
 { BITMAPFILEHEADER bmfh;
   BITMAPINFO *bmi;
   BITMAPINFOHEADER *bmih;
   BYTE *aBitmapBits;
   int databytes;
-  FILE *fd = f->fd;
-  long pos = ftell(fd);
+  long pos = Stell(fd);
 
-  if ( fread(&bmfh, sizeof(bmfh), 1, fd) != 1 ||
+  if ( Sfread(&bmfh, sizeof(bmfh), 1, fd) != 1 ||
        bmfh.bfType != BM ||
-       !(bmi=read_bitmap_info(f)) )
-  { fseek(fd, pos, SEEK_SET);
+       !(bmi=read_bitmap_info(image, fd)) )
+  { Sseek(fd, pos, SIO_SEEK_SET);
     fail;				/* not a MS-Windows .bmp file */
   }
   databytes = bmfh.bfSize - bmfh.bfOffBits;
@@ -276,24 +257,31 @@ ws_load_windows_bmp_file(Image image, FileObj f)
 	Cprintf("%dx%dx%d image; %d data bytes\n",
 		bmih->biWidth, bmih->biHeight, bmih->biBitCount, databytes));
   aBitmapBits = pceMalloc(databytes);
-  if ( fread(aBitmapBits, sizeof(BYTE), databytes, fd) != databytes )
+  if ( Sfread(aBitmapBits, sizeof(BYTE), databytes, fd) != databytes )
   { pceFree(bmi);
     pceFree(aBitmapBits);
 
-    return errorPce(f, NAME_ioError, getOsErrorPce(PCE));
+    return checkErrorSourceSink(image->file, fd);
   }
   
   attach_dib_image(image, bmi, aBitmapBits);
   succeed;
 }
 
-#endif /*O_IMGLIB*/
-
 
 static status
 ws_load_windows_ico_file(Image image)
-{ char *fname = strName(getOsNameFile(image->file));
+{ char *fname;
   HICON hi;
+
+  if ( instanceOfObject(image->file, ClassFile) )
+  { FileObj file = (FileObj) image->file;
+
+    fname = strName(getOsNameFile(file));
+  } else
+  { Cprintf("Cannot (yet) load .ICO image from %s", pp(image->file));
+    fail;
+  }
 
   if ( (hi=(HICON)LoadCursorFromFile(fname)) )
   { ICONINFO info;
@@ -413,9 +401,11 @@ ws_load_windows_ico_file(Image image)
 
 static int
 readXpmImage(Image image, XpmImage *img, XpmInfo *info)
-{ if ( send(image->file, NAME_open, NAME_read, 0) )
-  { FILE *fd = image->file->fd;
-    int rval;
+{ IOSTREAM *fd;
+
+  if ( (fd = Sopen_object(image->file, "rbr")) )
+  { int rval;
+    int size;
 
 #ifdef HAVE_LIBJPEG
     if ( (rval=readJPEGtoXpmImage(fd, img)) == XpmSuccess )
@@ -426,75 +416,80 @@ readXpmImage(Image image, XpmImage *img, XpmInfo *info)
       goto out;
 #endif
 
-    send(image->file, NAME_close, 0);
+    if ( (size = Ssize(fd)) > 0 )
+    { int malloced;
+      char *buffer;
 
-    { char *fname = strName(getOsNameFile(image->file));
-      return XpmReadFileToXpmImage(fname, img, info);
+      if ( size < 10000 )
+      { buffer = (char *)alloca(size+1);
+	malloced = FALSE;
+      } else
+      { buffer = pceMalloc(size+1);
+	malloced = TRUE;
+      }
+
+      if ( Sfread(buffer, sizeof(char), size, fd) != size )
+	goto out;
+
+      buffer[size] = '\0';
+      rval = XpmCreateXpmImageFromBuffer(buffer, img, info);
+      if ( malloced )
+        pceFree(buffer);
     }
 
 out:
     memset(info, 0, sizeof(*info));
     info->valuemask = XpmReturnColorTable;
-    send(image->file, NAME_close, 0);
+    Sclose(fd);
     return rval;
   }
 
   return XpmOpenFailed;
 }
-#endif
 
 
-status
-ws_load_image_file(Image image)
-{ status rval = FAIL;
+Image
+ws_std_xpm_image(Name name, Image *global, char **data)
+{ Image image = globalObject(name, ClassImage, name, ZERO, ZERO, 0);
+  XpmImage img;
+  XpmInfo info;
 
-  assign(image->file, kind, NAME_binary);
+  assign(image, display, CurrentDisplay(NIL));
 
-#ifdef O_XPM
+  XpmCreateXpmImageFromData(data, &img, &info);
+  ws_attach_xpm_image(image, &img, &info);
+  XpmFreeXpmImage(&img);
+
+  assign(image, access, NAME_read);
+  if ( global )
+    *global = image;
+
+  return image;
+}
+
+
+static status
+ws_attach_xpm_image(Image image, XpmImage* xpmimg, XpmInfo* xpminfo)
 { XImage *img, *shape;
   HDC hdc;
   HPALETTE hpal = NULL, ohpal = NULL;
-  int rval;
-  DisplayObj d;
+  DisplayObj d = image->display;
   int as = XpmAttributesSize();
   XpmAttributes *atts = (XpmAttributes *)alloca(as);
-  XpmImage xpmimg;
-  XpmInfo  xpminfo;
+  int rval;
 
-  memset(&xpmimg,  0, sizeof(xpmimg));
-  memset(&xpminfo, 0, sizeof(xpminfo));
-  memset(atts, 0, as);
-
-  d = image->display;
-  if ( isNil(d) )
+  if ( isNil(d) )			/* fix the display reference */
   { d = CurrentDisplay(image);
     assign(image, display, d);
   }
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-First step. Read the file  into  an   XpmImage,  so  we  can extract and
-register the colours.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-  xpminfo.valuemask = XpmColorTable|XpmReturnColorTable;
-  rval = readXpmImage(image, &xpmimg, &xpminfo);
-  switch(rval)
-  { case XpmOpenFailed:
-      return errorPce(image->file, NAME_openFile,
-		      NAME_read, getOsErrorPce(PCE));
-    case XpmFileInvalid:
-      goto noxpm;
-    case XpmNoMemory:
-      return sysPce("Not enough memory");
-    case XpmSuccess:
-      break;
-    default:
-      return errorPce(image, NAME_unknownError, toInt(rval));
-  }
-  if ( xpminfo.valuemask & XpmHotspot )
+  memset(atts, 0, as);
+  
+					/* Step 1: hot-stop handling */
+  if ( xpminfo->valuemask & XpmHotspot )
   { assign(image, hot_spot, newObject(ClassPoint,
-				      toInt(xpminfo.x_hotspot),
-				      toInt(xpminfo.y_hotspot), 0));
+				      toInt(xpminfo->x_hotspot),
+				      toInt(xpminfo->y_hotspot), 0));
   } else
   { assign(image, hot_spot, NIL);
   }
@@ -509,12 +504,12 @@ of that, and left the code for later.  This is the XPMTODIB.
 #undef XPMTODIB				/* make sure ... */
 
 #ifndef XPMTODIB
-  if ( (xpminfo.valuemask & XpmReturnColorTable) &&
+  if ( (xpminfo->valuemask & XpmReturnColorTable) &&
        instanceOfObject(d->colour_map, ClassColourMap) )
-  { XpmColor *xpmc = xpmimg.colorTable;
+  { XpmColor *xpmc = xpmimg->colorTable;
     int n;
 
-    for(n=0; n<xpmimg.ncolors; n++, xpmc++)
+    for(n=0; n<xpmimg->ncolors; n++, xpmc++)
     { Colour c;
 
       if ( streq_ignore_case(xpmc->c_color, "none") )
@@ -530,14 +525,14 @@ of that, and left the code for later.  This is the XPMTODIB.
 
 #else /*XPMTODIB*/
 
-  if ( xpminfo.valuemask & XpmReturnColorTable )
+  if ( xpminfo->valuemask & XpmReturnColorTable )
   { LOGPALETTE *lp;
     PALETTEENTRY *pe;
-    XpmColor *xpmc = xpmimg.colorTable;
+    XpmColor *xpmc = xpmimg->colorTable;
     int n;
     int pentries=0;
 
-    lp = pceMalloc(offset(LOGPALETTE, palPalEntry[xpmimg.ncolors]));
+    lp = pceMalloc(offset(LOGPALETTE, palPalEntry[xpmimg->ncolors]));
     lp->palVersion    = 0x300;
     pe                = &lp->palPalEntry[0];
 
@@ -588,9 +583,7 @@ palette.
   } else
     hdc = CreateCompatibleDC(NULL);
 
-  rval = XpmCreateImageFromXpmImage(&hdc, &xpmimg, &img, &shape, atts);
-  XpmFreeXpmImage(&xpmimg);
-  switch(rval)
+  switch((rval=XpmCreateImageFromXpmImage(&hdc, xpmimg, &img, &shape, atts)))
   { case XpmNoMemory:
       return sysPce("Not enough memory");
     case XpmSuccess:
@@ -624,74 +617,68 @@ palette.
     XImageFree(shape);
   }
 
-  DEBUG(NAME_xpm, Cprintf("%s: loaded XPM file%s\n",
-			  pp(image), shape ? " with shape" : ""));
-
   succeed;
+}
+#endif
 
-  noxpm:
-    ;
+
+status
+ws_load_image_file(Image image)
+{ status rval = FAIL;
+
+#ifdef O_XPM
+{ int rval;
+  XpmImage xpmimg;
+  XpmInfo  xpminfo;
+
+  memset(&xpmimg,  0, sizeof(xpmimg));
+  memset(&xpminfo, 0, sizeof(xpminfo));
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+First step. Read the file  into  an   XpmImage,  so  we  can extract and
+register the colours.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+  xpminfo.valuemask = (XpmColorTable|XpmReturnColorTable);
+  rval = readXpmImage(image, &xpmimg, &xpminfo);
+  switch(rval)
+  { case XpmOpenFailed:
+      return errorPce(image->file, NAME_openFile,
+		      NAME_read, getOsErrorPce(PCE));
+    case XpmFileInvalid:
+      break;
+    case XpmNoMemory:
+      return sysPce("Not enough memory");
+    case XpmSuccess:
+      rval = ws_attach_xpm_image(image, &xpmimg, &xpminfo);
+      XpmFreeXpmImage(&xpmimg);
+      return rval;
+    default:
+      return errorPce(image, NAME_unknownError, toInt(rval));
+  }
 }
 #endif /*O_XPM*/
 
-#ifdef O_IMGLIB
-{ char fname[MAXPATHLEN];
-  Name fn = getOsNameFile(image->file);
-  BITMAPINFO *bmi;
+{ IOSTREAM *fd;
 
-  _xos_os_filename(strName(fn), fname);
-
-  if ( (bmi = ReadFileIntoDIB(fname))
-#ifdef O_GIFREAD
-       || (bmi = gifLoad(fname))
-#endif
-     )
-  { HDC      hdc       = GetDC(NULL);
-    int     iPixelBits = GetDeviceCaps (hdc, BITSPIXEL);
-    int     iPlanes    = GetDeviceCaps (hdc, PLANES);
-    int     lColors    = 1 << iPixelBits * iPlanes;
-    BITMAPINFO *displdib;
-
-    displdib = ReduceDIB (bmi, lColors, TRUE);
-    if ( displdib && displdib != bmi )
-    { DIBFree(bmi);
-      bmi = displdib;
-    }
-
-    ReleaseDC(NULL, hdc);
-
-    { RGBQUAD *colors  = (RGBQUAD *)((char *)bmi + bmi->bmiHeader.biSize);
-      BYTE    *data    = (BYTE *)&colors[bmi->bmiHeader.biClrUsed];
-    
-      attach_dib_image(image, bmi, data);
-    }
-
-    rval = SUCCEED;
-  } else				/* other formats */
-  { return ws_load_windows_ico_file(image);
-  }
-}
-#else /*O_IMGLIB*/
-  if ( send(image->file, NAME_open, NAME_read, 0) )
+  if ( (fd = Sopen_object(image->file, "rbr")) )
   { int w, h;
     unsigned char *data;
     
-    DEBUG(NAME_image, Cprintf("Trying to read bitmap from %s\n",
-			      pp(image->file->path)));
-    if ( (data = read_bitmap_data(image->file->fd, &w, &h)) )
+    if ( (data = read_bitmap_data(fd, &w, &h)) )
     { ws_create_image_from_x11_data(image, data, w, h);
       pceFree(data);
       rval = SUCCEED;
-    } else if ( ws_load_windows_bmp_file(image, image->file) )
+    } else if ( ws_load_windows_bmp_file(image, fd) )
     { rval = SUCCEED;
     } else if ( ws_load_windows_ico_file(image) )
     { rval = SUCCEED;
     } else
-      rval = loadPPMImage(image, image->file);
+      rval = loadPNMImage(image, fd);
 
-    send(image->file, NAME_close, 0);
+    Sclose(fd);
   }
-#endif /*O_IMGLIB*/
+}
 
   return rval;
 }
@@ -780,13 +767,15 @@ ws_save_image_file(Image image, FileObj file, Name fmt)
     else fail;
     
     if ( (bm = getXrefObject(image, d)) )
-    { send(file, NAME_kind, NAME_binary, 0);
-      TRY(send(file, NAME_open, NAME_write, 0));
-      if ( write_pnm_file(file->fd, bm, 0, 0, PNM_RAWBITS) < 0 )
-	rval = errorPce(image, NAME_xError);
-      else
+    { IOSTREAM *fd;
+
+      if ( (fd = Sopen_object(file, "wbr")) )
+      { if ( write_pnm_file(fd, bm, 0, 0, PNM_RAWBITS) < 0 )
+	  rval = errorPce(image, NAME_xError);
+      } else
 	rval = SUCCEED;
-      send(file, NAME_close, 0);
+
+      Sclose(fd);
     } else
       rval = FAIL;
 
@@ -1688,8 +1677,14 @@ ws_system_brushes(DisplayObj d)
 
 
 void
-ws_system_images(DisplayObj d)
-{ struct system_image *si = window_images;
+ws_system_images()
+{ static int done = FALSE;
+  struct system_image *si = window_images;
+  DisplayObj d = CurrentDisplay(NIL);
+
+  if ( done )
+    return;
+  done = TRUE;
 
   for( ; si->name; si++)
   { Name name = CtoKeyword(si->name);
@@ -1728,21 +1723,5 @@ ws_system_images(DisplayObj d)
 
 ColourMap
 ws_colour_map_for_image(Image img)
-{ WsImage wsi = img->ws_ref;
-
-#ifdef O_IMGLIB
-  if ( wsi && wsi->msw_info )
-  { HPALETTE hpal = CreateDIBPalette(wsi->msw_info);
-
-    if ( hpal )
-    { ColourMap cm = answerObject(ClassColourMap, 0);
-      
-      setPaletteColourMap(cm, hpal);
-
-      answer(cm);
-    }
-  }
-#endif
-
-  fail;
+{ fail;
 }

@@ -7,6 +7,8 @@
     Copyright (C) 1992 University of Amsterdam. All rights reserved.
 */
 
+#define PCE_INCLUDED 1
+
 #include <md.h>
 
 #define O_NOX11RESOURCES 1		/* use own resource parser */
@@ -15,6 +17,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <h/stream.h>			/* IOSTREAM interface */
 
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
@@ -27,8 +30,6 @@
 #ifdef HAVE_SYS_FILE_H
 #include <sys/file.h>
 #endif
-
-#define PCE_INCLUDED
 
 #ifndef GLOBAL
 #define GLOBAL extern			/* global variables */
@@ -168,6 +169,29 @@ typedef void			(*atexit_function)(int status);
 #define ArgVector(name, s)	LocalArray(Any, name, s)
 #define CharBuf(name, s)	LocalArray(unsigned char, name, (s)+1)
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+cpdata(to, from, type, n)
+    copies n objects of type type from `from' to `to'.  Does not deal with
+    overlapping, but is much faster on relatively small data pieces then
+    memcpy(to, from, (n)*sizeof(type)), to which it is equivalent.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#if 1
+#define cpdata(to, from, type, n) memcpy(to, from, (n)*sizeof(type))
+#else
+#define cpdata(to, from, type, n) do \
+	{ type *_t = (type*)(to)-1; \
+	  type *_f = (type*)(from)-1; \
+	  int   _i = (n); \
+	  while(--_i >= 0) *++_t = *++_f; \
+	} while(0)
+#endif
+#define setdata(to, val, type, n) do \
+	{ type *_t = (to)-1; \
+	  int   _i = (n); \
+	  type  _v = (val); \
+	  while(--_i >= 0) *++_t = _v; \
+	} while(0)
 
 #define NOTREACHED	assert(0)	/* should not get here */
 
@@ -291,6 +315,7 @@ GLOBAL unsigned long pce_data_pointer_offset;
 		********************************/
 
 #define isFunction(obj)		(isObject(obj) && onFlag(obj, F_ACTIVE))
+#define isHostData(obj)		(isObject(obj) && onFlag(obj, F_ISHOSTDATA))
 
 
 		/********************************
@@ -392,10 +417,17 @@ void	clearDFlagProgramObject(Any, ulong);
 #define D_ALIEN		   makeDFlag(20) /* Variable is alien */
 #define D_TYPENOWARN	   makeDFlag(21) /* Methods: donot warn */
 
-					/* Class attributes */
+					 /* Class attributes */
 #define DC_LAZY_GET	   makeDFlag(24) /* bind get-behaviour lazy */
 #define DC_LAZY_SEND	   makeDFlag(25) /* bind send-behaviour lazy */
 #define D_CXX		   makeDFlag(26) /* C++ defined method/class */
+
+					 /* ClassVariable attributes */
+#define DCV_TEXTUAL	   makeDFlag(27) /* Default is textual */
+
+					/* Method */
+#define D_HOSTMETHOD	   makeDFlag(28) /* Implementation is in the host */
+
 
 		/********************************
 		*    CHAR_ARRAY, STRING, NAME	*
@@ -462,11 +494,12 @@ extern struct name builtin_names[];	/* object-array of built-in's */
 #define F_ASSOC			makeFlag(15) /* has name-assoc */
 #define F_ITFNAME		makeFlag(16) /* Name known to itf table */
 #define F_SOLID			makeFlag(17) /* Solid graphical object */
-#define F_RESOURCES_OBTAINED	makeFlag(18) /* obtainResourcesObject() */
+#define F_OBTAIN_CLASSVARS	makeFlag(18) /* obtainClassVariablesObject() */
 #define F_TEMPLATE_METHOD	makeFlag(19) /* method<-instantiate_template */
 #define F_ISBINDING		makeFlag(20) /* instanceOf(x, ClassBinding) */
 #define F_ISNAME		makeFlag(21) /* instanceOf(x, ClassName) */
 #define F_ISREAL		makeFlag(22) /* instanceOf(x, ClassReal) */
+#define F_ISHOSTDATA		makeFlag(23) /* instanceOf(x, ClassHostData) */
 
 #define OBJ_MAGIC		((unsigned long)(0x95L << 24))
 #define OBJ_MAGIC_MASK		((unsigned long)(0xffL << 24))
@@ -527,6 +560,7 @@ extern struct name builtin_names[];	/* object-array of built-in's */
 
 #define NIL		((Any)(&ConstantNil))
 #define DEFAULT		((Any)(&ConstantDefault))
+#define CLASSDEFAULT	((Any)(&ConstantClassDefault))
 #define ON		(&BoolOn)
 #define OFF		(&BoolOff)
 
@@ -538,6 +572,8 @@ extern struct name builtin_names[];	/* object-array of built-in's */
 #define notNil(o)	((Constant)(o) != NIL)
 #define isDefault(o)	((Constant)(o) == DEFAULT)
 #define notDefault(o)	((Constant)(o) != DEFAULT)
+#define isClassDefault(o)	((Constant)(o) == CLASSDEFAULT)
+#define notClassDefault(o)	((Constant)(o) != CLASSDEFAULT)
 
 #define TrueOrFalse(b)	(isOn(b) ? TRUE : FALSE)
 
@@ -702,7 +738,7 @@ End;
 
 NewClass(send_method)
   ABSTRACT_METHOD
-  Func		function;		/* C-function implementing method */
+  SendFunc	function;		/* C-function implementing method */
 End;
 
 NewClass(get_method)
@@ -715,15 +751,18 @@ NewClass(variable)
   ABSTRACT_VARIABLE
 End;
 
-NewClass(delegate_variable)
-  ABSTRACT_VARIABLE
-  Name		wrapper;		/* Wrapper for side-effects */
-End;
-
 NewClass(attribute)
   ABSTRACT_PROGRAM_OBJECT
   Any		name;			/* name of the attribute */
   Any		value;			/* value for the attribute */
+End;
+
+NewClass(class_variable)
+  ABSTRACT_BEHAVIOUR
+  Type		type;			/* Type of this variable */
+  Any		value;			/* Value of the variable */
+  Any		cv_default;		/* Default value */
+  StringObj	summary;		/* Short documentation */
 End;
 
 NewClass(binding)
@@ -743,25 +782,6 @@ NewClass(chain)
   Cell		head;			/* first element */
   Cell		tail;			/* last element */
   Cell		current;		/* current element */
-End;
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-      NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE
-
-If you  add/delete slots, do  not forget to  change PCE_CLASS_SLOTS in
-pce-class.c
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#define ABSTRACT_CLASS_STUB \
-  ABSTRACT_PROGRAM_OBJECT \
-  Name		name;			/* (2) name for this class */ \
-  StringObj	summary;		/* Summary of the class */ \
-  Name		creator;		/* Created from where? */ \
-  Class		super_class;		/* (abstract) super-class */ \
-  Chain		sub_classes;		/* list of sub-classes */
-  
-NewClass(class_stub)
-  ABSTRACT_CLASS_STUB
 End;
 
 typedef struct instance_proto *InstanceProto;
@@ -803,22 +823,22 @@ typedef struct _getdecl
   char	       *summary;		/* documentation summary */
 } getdecl;
 
-typedef struct _resourcedecl
-{ Name		name;			/* Name of the resource */
+typedef struct _classvardecl
+{ Name		name;			/* Name of the class-variable */
   char	       *type;			/* type description */
   char	       *value;			/* (default) value */
   char	       *summary;		/* documentation summary */
-} resourcedecl;
+} classvardecl;
 
 typedef struct _classdecl
 { vardecl      *variables;		/* Instance variables */
   senddecl     *send_methods;		/* Send methods of class */
   getdecl      *get_methods;		/* get methods of class */
-  resourcedecl *resources;		/* Resources of the class */
+  classvardecl *class_variables;	/* Variables of the class */
   int		nvar;			/* number of entries in tables */
   int		nsend;
   int		nget;
-  int		nresources;
+  int		nclassvars;
   int		term_arity;		/* Arity of term description */
   Name	       *term_names;		/* Array of term-names */
   char	       *source_file;		/* Name of the source-file */
@@ -842,7 +862,7 @@ typedef struct _classdecl
 #define IV_FETCH	0x10		/* has fetch method */
 #define IV_REDEFINE	0x20		/* redefine existing variable */
 
-#define RC_REFINE	(char *)(-1)	/* type for refinement of resource */
+#define RC_REFINE	(char *)(-1)	/* refinement of class-variable */
 
 #define SM(n, a, t, f, g, s)	{ n, a, t, (SendFunc) f, (Name) g, s }
 #define GM(n, a, r, t, f, g, s) { n, a, r, t, (GetFunc) f, (Name) g, s }
@@ -852,16 +872,32 @@ typedef struct _classdecl
 #define IVEntries(l)		(sizeof(l) / sizeof(vardecl))
 #define SMEntries(l)		(sizeof(l) / sizeof(senddecl))
 #define GMEntries(l)		(sizeof(l) / sizeof(getdecl))
-#define RCEntries(l)		(sizeof(l) / sizeof(resourcedecl))
+#define RCEntries(l)		(sizeof(l) / sizeof(classvardecl))
+
+#ifndef UXWIN
+#define UXWIN(unx, win) unx
+#endif
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE
+
+If you  add/delete slots, do  not forget to  change PCE_CLASS_SLOTS in
+pce-class.c
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 NewClass(class)
-  ABSTRACT_CLASS_STUB
+  ABSTRACT_PROGRAM_OBJECT \
+  Name		name;			/* (2) name for this class */ \
+  StringObj	summary;		/* Summary of the class */ \
+  Name		creator;		/* Created from where? */ \
+  Class		super_class;		/* (abstract) super-class */ \
+  Chain		sub_classes;		/* list of sub-classes */
   Vector	instance_variables;	/* (7) local variables */
   Chain		send_methods;		/* send methods for this class */
   Chain		get_methods;		/* get methods for this class */
   Vector	term_names;		/* get method to obtain arguments */
   Chain		delegate;		/* variables I delegate to */
-  Chain		resources;		/* resources of this class */
+  Chain		class_variables;	/* Class variables of this class */
   Name		cloneStyle;		/* style of clone method */
   Name		saveStyle;		/* special save method */
   Sheet		features;		/* installed features */
@@ -892,7 +928,7 @@ NewClass(class)
   HashTable	send_table;		/* hash-table of send methods */
   HashTable	get_table;		/* hash-table of get methods */
   HashTable	local_table;		/* hash-table of instance variables */
-  HashTable	resource_table;		/* hash-table of resources */
+  HashTable	class_variable_table;	/* hash-table of class-variables */
   HashTable	instances;		/* hash-table holding the instances */
 
   Bool		realised;		/* Class has been realised? */
@@ -911,7 +947,6 @@ NewClass(class)
   SendFunc	changedFunction;	/* Trap instance changes */
   SendFunc	in_event_area_function;	/* Test if event is in area */
   SendFunc	make_class_function;	/* makeClass function pointer */
-  VoidFunc	trace_function;		/* Trace execution */
   int		boot;			/* When booting: #pce-slots; else 0 */
 
   classdecl    *c_declarations;		/* Non-object declarations */
@@ -925,7 +960,7 @@ NewClass(type)
   Chain		supers;			/* Super-types */
   Any		context;		/* Context argument for functions */
   Bool		vector;			/* Method: vector of these */
-  SendFunc	validate_function;	/* Function to check the type */
+  int		validate_function;	/* Function to check the type */
   Func		translate_function;	/* Function to convert the type */
 End;
 
@@ -1046,6 +1081,8 @@ NewClass(minus)
   ABSTRACT_BINARY_EXPRESSION
 End;
 
+#define ABSTRACT_SOURCE_SINK
+
 #define ABSTRACT_CHAR_ARRAY \
   string	data;			/* the represented data */
 
@@ -1061,6 +1098,10 @@ NewClass(string)
   ABSTRACT_CHAR_ARRAY
 End;
 
+NewClass(source_sink)
+  ABSTRACT_SOURCE_SINK
+End;
+
 NewClass(number)
   long		value;			/* value of the number */
 End;
@@ -1069,7 +1110,6 @@ NewClass(pce)
 #ifndef O_RUNTIME
   Bool		debugging;		/* debugging? (watching spy points) */
   Bool		trap_errors;		/* Trap tracer on errors */
-  Name		trace;			/* Current trace mode */
 #endif
   Name		last_error;		/* Last error occured */
   Chain		catched_errors;		/* Stack of catched error-id's */
@@ -1077,7 +1117,9 @@ NewClass(pce)
 
   Chain		exit_messages;		/* Called on exit */
   Sheet		exception_handlers;	/* exception-name --> code */
+
   Name		home;			/* Home directory */
+  SourceSink	defaults;		/* Location to load defaults from */
 
   Name		version;		/* Version number of PCE */
   Name		machine;		/* Architecture */
@@ -1106,6 +1148,10 @@ End;
 
 NewClass(host)
   ABSTRACT_HOST
+End;
+
+NewClass(host_data)
+  void *	handle;			/* the host handle */
 End;
 
 NewClass(real)
@@ -1234,6 +1280,7 @@ NewClass(obtain)
   Any		receiver;		/* receiver of the message */
   Name		selector;		/* selector of the message */
   Vector	arguments;		/* argument vector of the message */
+  Any		context;		/* Host context */
 End;
 
 NewClass(create_obj)
@@ -1248,6 +1295,7 @@ NewClass(message)
   Name		selector;		/* selector of the message */
   Int		arg_count;		/* number of arguments */
   Vector	arguments;		/* argument vector of the message */
+  Any		context;		/* Host context */
 End;
 
 NewClass(block)
@@ -1445,14 +1493,21 @@ __pce_export char *	Cgetline(char *line, int size);
 CPointer	CtoCPointer(void *);
 __pce_export Any	cToPceName(const char *text);
 status		makeClassC(Class class);
+status		makeClassRC(Class class);
 status		makeClassCPointer(Class class);
 status		initialiseHost(Host h, Name which);
 status		makeClassHost(Class class);
+status		makeClassHostData(Class class);
+status		makeClassSourceSink(Class class);
 Host		HostObject(void);
 int		hostGetc(void);
 void		pceWriteErrorGoal(void);
-status		attach_resource(Class cl, char *name, char *type,
-				char *def, char *doc);
+
+status		initialiseSourceSink(SourceSink ss);
+status		checkErrorSourceSink(SourceSink ss, IOSTREAM *fd);
+IOSTREAM *	Sopen_object(Any obj, const char *mode);
+IOSTREAM *	Sopen_FILE(FILE *fd, int flags);
+
 
 #if O_CPLUSPLUS
 status 	callCPlusPlusProc(void *f, int ac, const Any av[]);
@@ -1478,6 +1533,7 @@ GLOBAL ulong	ExecuteCalls;		/* Executed methods */
 
 GLOBAL struct constant ConstantNil;	/* MUST be first! */
 GLOBAL struct constant ConstantDefault;
+GLOBAL struct constant ConstantClassDefault;
 GLOBAL struct bool     BoolOn;
 GLOBAL struct bool     BoolOff;
 
@@ -1505,7 +1561,7 @@ GLOBAL HashTable TypeTable;		/* @types (name --> type) */
 
 GLOBAL int	CheckTypeError;		/* Why did checkType fail? */
 GLOBAL int	restoreVersion;		/* Version of save file */
-GLOBAL FileObj	LoadFile;		/* Current file for <-object */
+GLOBAL SourceSink LoadFile;		/* Current file for <-object */
 GLOBAL char    *SaveMagic;		/* Magic string for saved objects */
 GLOBAL int	inBoot;			/* is the system in the boot cycle? */
 GLOBAL ulong	allocBase;		/* lowest allocated memory */
@@ -1532,6 +1588,7 @@ GLOBAL HashTable ObjectHyperTable;	/* object-level hypers */
 
 GLOBAL Name	name_procent_s;		/* "%s" */
 GLOBAL Name	name_cxx;		/* "C++" */
+GLOBAL Name	name_nil;		/* "[]" */
 GLOBAL Code	qsortCompareCode;	/* used by qsortCompareObjects() */
 GLOBAL int	qsortReverse;		/* used by qsortCompareObjects() */
 

@@ -86,7 +86,7 @@ static getdecl get_ellipse[] =
 
 /* Resources */
 
-static resourcedecl rc_ellipse[] =
+static classvardecl rc_ellipse[] =
 { RC(NAME_selectionHandles, RC_REFINE, "sides",
      NULL)
 };

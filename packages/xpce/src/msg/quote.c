@@ -52,7 +52,7 @@ static getdecl get_quoteFunction[] =
 
 #define rc_quoteFunction NULL
 /*
-static resourcedecl rc_quoteFunction[] =
+static classvardecl rc_quoteFunction[] =
 { 
 };
 */

@@ -108,7 +108,7 @@ str_ncpy(String dest, int at, String src, int from, int len)
 { if ( isstr8(dest) )
     memcpy(&dest->s_text8[at], &src->s_text8[from], len * sizeof(char8));
   else
-    memcpy(&dest->s_text16[at], &src->s_text16[from], len * sizeof(char16));
+    cpdata(&dest->s_text16[at], &src->s_text16[from], char16, len);
 }
 
 

@@ -29,17 +29,14 @@ to standard C for easier integration in  XPCE and modified the interface
 to reuse the Xpm package to do the tricky work.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#include <h/kernel.h>
 #include <fcntl.h>
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdarg.h>
 #include "gif.h"
 
 #define INTERLACE	0x40
 #define LOCALCOLORMAP   0x80
 #define BitSet(byte,bit) (((byte) & (bit))==(bit))
-#define ReadOK(file,buffer,len) (fread(buffer,1,(len),file)==(len))
+#define ReadOK(file,buffer,len) (Sfread(buffer,1,(len),file)==(len))
 #define LM_to_uint(a,b)	(((b)<<8)|(a))
 
 typedef short int		code_int;	/* was int */
@@ -47,14 +44,14 @@ typedef long int		count_int;
 typedef unsigned char pixval;
 
 static int 
-ReadColorMap(FILE *fd, int number,
+ReadColorMap(IOSTREAM *fd, int number,
 	     GIFAllocColorTable at, GIFAllocColor ac, void *closure);
-static int DoExtension(FILE *fd,int label);
-static int GetDataBlock(FILE *fd, UCHAR *buf);
-static int GetCode (FILE *fd, int code_size, int flag);
-static int LZWReadByte (FILE *fd,int flag, int  input_code_size);
+static int DoExtension(IOSTREAM *fd,int label);
+static int GetDataBlock(IOSTREAM *fd, UCHAR *buf);
+static int GetCode (IOSTREAM *fd, int code_size, int flag);
+static int LZWReadByte (IOSTREAM *fd,int flag, int  input_code_size);
 
-static int ReadImage(FILE *fd,
+static int ReadImage(IOSTREAM *fd,
 		     PIXEL *bigMemBuf,
 		     int width, int height,
 		     int interlace);
@@ -93,27 +90,22 @@ setError(const char *fmt, ...)
   va_end(args);
 
   if ( GIFErrorText )
-    free(GIFErrorText);
+    pceFree(GIFErrorText);
 
-  if ( (GIFErrorText = malloc(strlen(buf)+1)) )
+  if ( (GIFErrorText = pceMalloc(strlen(buf)+1)) )
     strcpy(GIFErrorText, buf);
 }
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-char * GIFFile::GIFReadInputFile(const char * path, 
-				 UINT *width, 
-				 UINT *height)
-
-Give a path. It will read the .GIF   at that path, allocate a buffer and
-give you an RGB buffer back. width   and  height are modified to reflect
-the image dim's.
-
-m_GIFErrorText is modifed to reflect error status
+GIFReadFD(IOSTREAM *fd,
+	  PIXEL **data, int *width, int *height,
+	  GIFAllocColorTable at, GIFAllocColor ac, void *closure)
+	Read GIF image from the given IO/stream
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-GIFReadFD(FILE *fd,
+GIFReadFD(IOSTREAM *fd,
 	  PIXEL **data, int *width, int *height,
 	  GIFAllocColorTable at, GIFAllocColor ac, void *closure)
 {
@@ -230,7 +222,7 @@ GIFReadFD(FILE *fd,
       return GIF_INVALID;
     }
     bufsize = (long) w *(long) h;
-    bigBuf  = (PIXEL *)malloc(bufsize * sizeof(PIXEL));
+    bigBuf  = (PIXEL *)pceMalloc(bufsize * sizeof(PIXEL));
 
     if (bigBuf == NULL)
     {
@@ -240,21 +232,21 @@ GIFReadFD(FILE *fd,
     if (!useGlobalColormap)
     { if ( (rval=ReadColorMap(fd, bitPixel, at, ac, closure)) != GIF_OK )
       {	setError("Error reading GIF colormap. Giving up");
-	free(bigBuf);
+	pceFree(bigBuf);
 	return rval;
       }
       /*read image */
       if ( (rval=ReadImage(fd, bigBuf, w, h,
 			   BitSet((UCHAR) buf[8], INTERLACE))) != GIF_OK )
       { setError("Error reading GIF file.  LocalColorMap. Giving up");
-	free(bigBuf);
+	pceFree(bigBuf);
 	return rval;
       }
     } else
     { if ( (rval=ReadImage(fd, bigBuf, w, h,
 			   BitSet((UCHAR) buf[8], INTERLACE))) != GIF_OK )
       { setError("Error reading GIF file.  GIFScreen Colormap.  Giving up");
-	free(bigBuf);
+	pceFree(bigBuf);
 	return rval;
       }
     }
@@ -270,7 +262,7 @@ GIFReadFD(FILE *fd,
 
 
 static int 
-ReadColorMap(FILE *fd, int number,
+ReadColorMap(IOSTREAM *fd, int number,
 	     GIFAllocColorTable at, GIFAllocColor ac, void *closure)
 { int i;
   UCHAR rgb[3];
@@ -293,7 +285,7 @@ ReadColorMap(FILE *fd, int number,
 
 
 static int 
-DoExtension(FILE * fd, int label)
+DoExtension(IOSTREAM * fd, int label)
 {
   static char buf[256];
   char *str;
@@ -340,7 +332,7 @@ DoExtension(FILE * fd, int label)
 static int ZeroDataBlock = FALSE;
 
 static int 
-GetDataBlock(FILE * fd, UCHAR * buf)
+GetDataBlock(IOSTREAM * fd, UCHAR * buf)
 {
   UCHAR count;
 
@@ -360,7 +352,7 @@ GetDataBlock(FILE * fd, UCHAR * buf)
 }
 
 static int 
-GetCode(FILE * fd, int code_size, int flag)
+GetCode(IOSTREAM * fd, int code_size, int flag)
 {
   static UCHAR buf[280];
   static int curbit, lastbit, done, last_byte;
@@ -407,7 +399,7 @@ GetCode(FILE * fd, int code_size, int flag)
 }
 
 static int 
-LZWReadByte(FILE * fd, int flag, int input_code_size)
+LZWReadByte(IOSTREAM * fd, int flag, int input_code_size)
 {
   static int fresh = FALSE;
   int code, incode;
@@ -534,7 +526,7 @@ LZWReadByte(FILE * fd, int flag, int input_code_size)
 
 
 static int
-ReadImage(FILE *fd,
+ReadImage(IOSTREAM *fd,
 	  PIXEL *bigMemBuf,
 	  int width, int height,
 	  int interlace)

@@ -62,7 +62,7 @@ static getdecl get_relation[] =
 
 #define rc_relation NULL
 /*
-static resourcedecl rc_relation[] =
+static classvardecl rc_relation[] =
 { 
 };
 */

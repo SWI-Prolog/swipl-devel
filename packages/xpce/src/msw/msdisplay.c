@@ -212,7 +212,7 @@ init_area_enter_exit_handling(DisplayObj d)
 { Name dllname;
   FARPROC hookf;
   
-  if ( isName(dllname = getResourceValueObject(d, NAME_whMouseDll)) )
+  if ( isName(dllname = getClassVariableValueObject(d, NAME_whMouseDll)) )
   { HINSTANCE hlib;
 
     DEBUG(NAME_dll, Cprintf("loading DLL %s\n", strName(dllname)));
@@ -270,7 +270,7 @@ static void
 init_area_enter_exit_handling(DisplayObj d)
 { Name dllname;
   
-  if ( isName(dllname = getResourceValueObject(d, NAME_whMouseDll)) )
+  if ( isName(dllname = getClassVariableValueObject(d, NAME_whMouseDll)) )
   { HINSTANCE hlib;
 
     DEBUG(NAME_dll, Cprintf("loading DLL %s\n", strName(dllname)));
@@ -347,9 +347,6 @@ ws_init_graphics_display(DisplayObj d)
   at_pce_exit(exit_update_hook, ATEXIT_FILO);
 #endif
   initDraw();
-
-  ws_system_images(d);
-  ws_system_colours(d);
 
   init_area_enter_exit_handling(d);
 

@@ -49,10 +49,6 @@ static void	run_pce_atexit_hooks(void);
 #endif
 #endif
 
-#ifndef O_RUNTIME
-static status	debuggingPce(Pce pce, Bool val);
-#endif
-
 static status
 initialisePce(Pce pce)
 { if ( PCE && notNil(PCE) )
@@ -61,7 +57,6 @@ initialisePce(Pce pce)
 #ifndef O_RUNTIME
   assign(pce, debugging,              OFF);
   assign(pce, trap_errors,	      ON);
-  assign(pce, trace, 	              NAME_error);
 #endif
   assign(pce, catched_errors,	      newObject(ClassChain, 0));
   assign(pce, catch_error_signals,    OFF);
@@ -70,6 +65,9 @@ initialisePce(Pce pce)
   assign(pce, exception_handlers,     newObject(ClassSheet, 0));
 
   assign(pce, home,		      DEFAULT);
+  assign(pce, defaults,		      newObject(ClassFile,
+						CtoString("$PCEHOME/Defaults"),
+						0));
 
   assign(pce, version,                CtoName(PCE_VERSION));
   assign(pce, machine,                CtoName(MACHINE));
@@ -214,6 +212,14 @@ getUnresolvedTypesPce(Pce pce)
 #endif /*O_RUNTIME*/
 
 
+static status
+crashPce(Pce pce)
+{ int *p = 0;
+  *p = 1;
+  fail;					/* 'ed to crash ... */
+}
+
+
 status
 catchErrorPce(Pce pce, Any ids)
 { assign(pce, last_error, NIL);
@@ -233,7 +239,10 @@ catchedErrorPce(Pce pce, Name id)
 { Cell cell;
 
   for_cell(cell, pce->catched_errors)
-  { if ( (Name) cell->value == id )
+  { if ( isDefault(cell->value) )
+      succeed;				/* catch all of them */
+
+    if ( (Name) cell->value == id )
       succeed;
 
     if ( instanceOfObject(cell->value, ClassChain) &&
@@ -285,13 +294,15 @@ exitMessagePce(Pce pce, Code code)
 
 static void
 callExitMessagesPce(int stat, Pce pce)
-{ static int done = FALSE;
+{ static int done = 0;
 
   if ( !done++ && pce && notNil(pce) )
-  { Cell cell;
+  { Cell cell, q;
 
-    for_cell(cell, pce->exit_messages)
+    for_cell_save(cell, q, pce->exit_messages)
+    { addCodeReference(cell->value);
       forwardCode(cell->value, toInt(stat), 0);
+    }
   }
 }
 
@@ -351,7 +362,7 @@ nodebugSubjectPce(Pce pce, Name what)
 }
 
 
-static status
+status
 debuggingPce(Pce pce, Bool val)
 { assign(pce, debugging, val);
 
@@ -361,38 +372,19 @@ debuggingPce(Pce pce, Bool val)
 }
 
 
-status
-tracePce(Pce pce, Name val)
-{ if ( isDefault(val) )
-    val = NAME_user;
-
-  assign(pce, trace, val);
-
-  if ( val == NAME_never )
-    TraceMode = TRACE_NEVER;
-  else if ( val == NAME_error )
-    TraceMode = TRACE_ERROR;
-  else if ( val == NAME_user )
-    TraceMode = TRACE_USER;
-  else
-    TraceMode = TRACE_ALWAYS;
-
-  succeed;
-}
-
-
 static status
 trapErrorsPce(Pce pce, Bool trap)
 { assign(pce, trap_errors, trap);
-  tracePce(pce, trap == ON ? NAME_error : NAME_never);
 
   succeed;
 }
 
 
 static status
-printStackPce(Pce pce, Int depth, Bool all)
-{ traceBackPce(depth, all == ON ? NAME_always : NAME_user);
+printStackPce(Pce pce, Int depth)
+{ int n = isDefault(depth) ? 5 : valInt(depth);
+
+  pceBackTrace(NULL, n);
 
   succeed;
 }
@@ -576,7 +568,7 @@ bannerPce(Pce pce)
 { Name host = get(HostObject(), NAME_system, 0);
 
 #ifdef __WIN32__
-  writef("PCE %s (%s for %I%IWin32: NT and '95%I%I)\n",
+  writef("PCE %s (%s for %I%IWin32: NT and '9x%I%I)\n",
 #else
   writef("PCE %s (%s for %s-%s and X%dR%d)\n",
 #endif
@@ -589,7 +581,7 @@ bannerPce(Pce pce)
 	 pce->window_system_version,
 	 pce->window_system_revision);
 
-  writef("Copyright 1993-1997, University of Amsterdam.  All rights reserved.\n");
+  writef("Copyright 1993-1999, University of Amsterdam.  All rights reserved.\n");
 
   if ( host != NAME_unknown )
     writef("The host-language is %s\n", host);
@@ -651,7 +643,7 @@ infoPce(Pce pce)
   writef("	Jan Wielemaker\n");
   writef("\n");
 
-  writef("Copyright (c) 1993-1997 University of Amsterdam.  All rights reserved.");
+  writef("Copyright (C) 1993-1998 University of Amsterdam.  All rights reserved.");
   writef("\n\n");
 
   succeed;
@@ -700,13 +692,13 @@ getMinIntegerPce(Pce pce)
 }
 
 
-status
+static status
 featurePce(Pce pce, Any feature)
 { return appendChain(pce->features, feature);
 }
 
 
-status
+static status
 hasFeaturePce(Pce pce, Any feature)
 { return memberChain(pce->features, feature);
 }
@@ -1018,16 +1010,6 @@ benchPce(Pce pce, Message msg, Int count, Name how)
     } else if ( how == NAME_qad )
     { while( cnt-- > 0 )
 	qadSendv(receiver, selector, argc, argv);
-    } else /* if ( how == NAME_invoke ) */
-    { Any implementation;
-      Class cl;
-
-      TRY(implementation = resolveSendMethodObject(receiver, NULL, selector,
-						   &receiver, NULL));
-      cl = classOfObject(implementation);
-      FixSendFunctionClass(cl, NAME_send);
-      while( cnt-- > 0 )
-	(*cl->send_function)(implementation, receiver, argc, argv);
     }
   }
 
@@ -1042,11 +1024,12 @@ resetPce(Pce pce)
   changedLevel = 0;
   resetDebugger();			/* these first, so the system */
   resetAnswerStack();			/* can push/pop goal again */
+  resetMessageResolve();		/* and resolve methods */
 
   if ( notNil(pce) )
   {
 #ifndef O_RUNTIME
-    tracePce(pce, NoTraceMode);
+    debuggingPce(pce, OFF);
 #endif
     clearChain(pce->catched_errors);
   }
@@ -1054,6 +1037,7 @@ resetPce(Pce pce)
   resetTypes();
   resetVars();
   resetDraw();
+  resetDispatch();
 
   resetApplications();
   if ( (dm = getObjectAssoc(NAME_displayManager)) )
@@ -1078,17 +1062,6 @@ diePce(Pce pce, Int rval)
 
   exit(rv);
   fail;					/* should not be reached */
-}
-
-
-static Name
-getPostscriptHeaderPce(Pce pce)
-{ char buf[LINESIZE];
-
-  sprintf(buf, "%s/postscript/pce.ps",
-	  strName(get(pce, NAME_home, 0)));
-  
-  answer(CtoName(buf));
 }
 
 
@@ -1213,11 +1186,9 @@ getVersionPce(Pce pce, Name how)
 static char *T_instance[] =
         { "class=class", "argument=unchecked ..." };
 #ifndef O_RUNTIME
-static char *T_printStack[] =
-        { "depth=[int]", "always=[bool]" };
 static char *T_bench[] =
         { "message=message", "times=int",
-	  "how={forward,execute,qad,send,invoke}" };
+	  "how={forward,execute,qad,send}" };
 #endif /*O_RUNTIME*/
 static char *T_userInfo[] =
         { "field={name,password,user_id,group_id,gecos,home,shell}",
@@ -1244,8 +1215,6 @@ static vardecl var_pce[] =
      NAME_debugging, "Add consistency checks"),
   SV(NAME_trapErrors, "bool", IV_GET|IV_STORE, trapErrorsPce,
      NAME_debugging, "Trap tracer on errors"),
-  IV(NAME_trace, "{never,error,user,always}", IV_GET,
-     NAME_debugging, "Trace message passing"),
 #endif
   IV(NAME_lastError, "name*", IV_BOTH,
      NAME_exception, "Id of last occurred error"),
@@ -1259,6 +1228,8 @@ static vardecl var_pce[] =
      NAME_exception, "Exception-name -> handler mapping"),
   IV(NAME_home, "[name]", IV_SEND,
      NAME_environment, "PCE's home directory"),
+  IV(NAME_defaults, "source_sink", IV_BOTH,
+     NAME_environment, "File/rc from which to load defaults"),
   IV(NAME_version, "name", IV_NONE,
      NAME_version, "Version indication"),
   IV(NAME_machine, "name", IV_GET,
@@ -1305,16 +1276,16 @@ static senddecl send_pce[] =
      NAME_debugging, "List wasted core map"),
   SM(NAME_nodebugSubject, 1, "subject=name", nodebugSubjectPce,
      NAME_debugging, "Don't Report internal event on terminal"),
-  SM(NAME_printStack, 2, T_printStack, printStackPce,
+  SM(NAME_printStack, 1, "depth=[0..]", printStackPce,
      NAME_debugging, "Print PCE message stack to host-window"),
-  SM(NAME_trace, 1, "level=[{never,error,user,always}]", tracePce,
-     NAME_debugging, "Set trace mode (default = user)"),
   SM(NAME_debugSubject, 1, "subject=name", debugSubjectPce,
      NAME_debugging, "Report internal event on terminal"),
   SM(NAME_bench, 3, T_bench, benchPce,
      NAME_statistics, "Benchmark for message passing"),
 #endif
-  SM(NAME_catchError, 1, "identifier=name|chain", catchErrorPce,
+  SM(NAME_crash, 0, NULL, crashPce,
+     NAME_debugging, "Write in an illegal address to force a crash"),
+  SM(NAME_catchError, 1, "identifier=[name|chain]", catchErrorPce,
      NAME_exception, "Indicate code is prepared to handle errors"),
   SM(NAME_catchPop, 0, NULL, catchPopPce,
      NAME_exception, "Pop pushed error handlers"),
@@ -1347,7 +1318,9 @@ static senddecl send_pce[] =
   SM(NAME_feature, 1, "any", featurePce,
      NAME_version, "Define new feature"),
   SM(NAME_hasFeature, 1, "any", hasFeaturePce,
-     NAME_version, "Test if feature is defined")
+     NAME_version, "Test if feature is defined"),
+  SM(NAME_loadDefaults, 1, "source_sink", loadDefaultsPce,
+     NAME_default, "Load class variable defaults from file")
 };
 
 /* Get Methods */
@@ -1358,11 +1331,6 @@ static getdecl get_pce[] =
   GM(NAME_convert, 2, "converted=unchecked", T_convert, getConvertPce,
      NAME_conversion, "Convert anything to specified type"),
 #ifndef O_RUNTIME
-  GM(NAME_cFunctionName, 1, "function=name",
-     "address=int", getCFunctionNamePce,
-     NAME_debugging, "Translate address into C-function name"),
-  GM(NAME_cSymbolFile, 0, "path=name", NULL, getCSymbolFilePce,
-     NAME_debugging, "Name of Unix format symbol-file"),
   GM(NAME_unresolvedTypes, 0, "chain", NULL, getUnresolvedTypesPce,
      NAME_debugging, "New chain with unresolved types"),
 #endif
@@ -1388,8 +1356,6 @@ static getdecl get_pce[] =
   GM(NAME_objectFromReference, 1, "object=unchecked", "reference=int|name",
      getObjectFromReferencePce,
      NAME_oms, "Convert object-name or integer reference into object"),
-  GM(NAME_postscriptHeader, 0, "path=name", NULL, getPostscriptHeaderPce,
-     NAME_postscript, "Find path-name of PostScript header"),
   GM(NAME_pid, 0, "identifier=int", NULL, getPidPce,
      NAME_process, "Process id of this process"),
   GM(NAME_osError, 0, "identifier=name", NULL, getOsErrorPce,
@@ -1422,12 +1388,25 @@ static getdecl get_pce[] =
 
 /* Resources */
 
-#define rc_pce NULL
-/*
-static resourcedecl rc_pce[] =
-{ 
+static classvardecl rc_pce[] =
+{ RC(NAME_initialise, "code*",
+     UXWIN(/*UNIX*/
+	   "and(_dialog_bg        @= when(@colour_display, grey80, white),\n"
+	   "    _button_elevation @= elevation(button, 1, @default,\n"
+	   "				       grey95, grey30,\n"
+	   "				      '3d', grey70),\n"
+	   "    _mark_elevation   @= elevation(mark, 0),\n"
+	   "    _win_pen	  @= when(@colour_display, 0, 1))",
+	   /*WIN32*/
+           "and(_dialog_bg     @= colour(win_menu),\n"
+	   "    _graph_bg      @= colour(win_window),\n"
+	   "    _win_pen       @= number(1),\n"
+	   "    _isearch_style @= style(background := green),\n"
+	   "    _select_style  @= style(background := win_highlight,\n"
+	   "                            colour     := win_highlighttext),\n"
+	   "    _txt_height    @= elevation(@nil, 2, win_window))"),
+     "Code object to run when initialising defaults")
 };
-*/
 
 /* Class Declaration */
 
@@ -1437,7 +1416,6 @@ ClassDecl(pce_decls,
           var_pce, send_pce, get_pce, rc_pce,
           1, pce_termnames,
           "$Rev$");
-
 
 status
 makeClassPce(Class class)
@@ -1504,10 +1482,11 @@ pceInitialise(int handles, const char *home, int argc, char **argv)
 
   DEBUG_BOOT(Cprintf("Alloc ...\n"));
   initAlloc();
-  allocRange(&ConstantNil,     sizeof(struct constant));
-  allocRange(&ConstantDefault, sizeof(struct constant));
-  allocRange(&BoolOff,         sizeof(struct bool));
-  allocRange(&BoolOn,          sizeof(struct bool));
+  allocRange(&ConstantNil,          sizeof(struct constant));
+  allocRange(&ConstantDefault,      sizeof(struct constant));
+  allocRange(&ConstantClassDefault, sizeof(struct constant));
+  allocRange(&BoolOff,              sizeof(struct bool));
+  allocRange(&BoolOn,               sizeof(struct bool));
   initNamesPass1();
   DEBUG_BOOT(Cprintf("Types ...\n"));
   initTypes();
@@ -1521,6 +1500,12 @@ pceInitialise(int handles, const char *home, int argc, char **argv)
   t = createType(CtoName("any ..."), NAME_any, NIL);
   vectorType(t, ON);
 }
+
+  /* Make instanceOfObject(impl, ClassMethod) work ... */
+  ClassMethod->tree_index      = 1;
+  ClassMethod->neighbour_index = 4;
+  ClassSendMethod->tree_index  = 2;
+  ClassGetMethod->tree_index   = 3;
 
   DEBUG_BOOT(Cprintf("Boot classes ...\n"));
 
@@ -1648,17 +1633,8 @@ pceInitialise(int handles, const char *home, int argc, char **argv)
 	      initialiseTuple,
 	      2, "any", "any");
 
-  ClassVmi =
-    bootClass(NAME_vmi,
-	      NAME_programObject,
-	      sizeof(struct vmi),
-	      1,
-	      initialiseVmi,
-	      1, "name");
-
   DEBUG_BOOT(Cprintf("Initialised boot classes\n"));
   
-  initGlobals();
   classTable		= globalObject(NAME_classes,       ClassHashTable, 0);
 #ifndef O_RUNTIME
   PCEdebugSubjects	= globalObject(NAME_DebugSubjects, ClassChain, 0);
@@ -1690,8 +1666,9 @@ pceInitialise(int handles, const char *home, int argc, char **argv)
 
   name_procent_s	= CtoName("%s");
   name_cxx		= CtoName("C++");
+  name_nil		= CtoName("[]");
 
-  DEBUG_BOOT(Cprintf("Building class definitions"));
+  DEBUG_BOOT(Cprintf("Building class definitions\n"));
   initClassDefs();
   DEBUG_BOOT(Cprintf("Realising Boot classes ...\n"));
   realiseBootClass(ClassObject);
@@ -1709,7 +1686,6 @@ pceInitialise(int handles, const char *home, int argc, char **argv)
   realiseBootClass(ClassName);
   realiseBootClass(ClassString);
   realiseBootClass(ClassTuple);
-  realiseBootClass(ClassVmi);
   DEBUG_BOOT(Cprintf("Boot classes realised.\n"));
   initTypeAliases();
 
@@ -1764,7 +1740,7 @@ pceInitialise(int handles, const char *home, int argc, char **argv)
     ClassEvent->initialise_method = (SendMethod)0x47;
 #endif
 
-  DEBUG_BOOT(Cprintf("Pce initialisation complete.\n"));
+  DEBUG_BOOT(Cprintf("Initialisation complete.\n"));
   succeed;
 }
 

@@ -362,6 +362,12 @@ d_mswindow(PceWindow sw, IArea a, int clear)
     SetBkMode(context.hdc, TRANSPARENT);
 
     succeed;
+  } else
+  { DEBUG(NAME_redraw, Cprintf("Empty rect: (ltrb) %d-%d %d-%d\n",
+			       context.ps.rcPaint.left,
+			       context.ps.rcPaint.top,
+			       context.ps.rcPaint.right,
+			       context.ps.rcPaint.bottom));
   }
 
   fail;
@@ -2489,42 +2495,6 @@ str_size(String s, FontObj font, int *width, int *height)
 }
 
 
-void
-str_string(String s, FontObj font,
-	   int x, int y, int w, int h,
-	   Name hadjust, Name vadjust)
-{ RECT rect;
-  UINT flags = DT_EXTERNALLEADING|DT_NOCLIP|DT_NOPREFIX;
-  
-  if ( hadjust == NAME_left )
-    flags |= DT_LEFT;
-  else if ( hadjust == NAME_center )
-    flags |= DT_CENTER;
-  else
-    flags |= DT_RIGHT;
-
-  if ( vadjust != NAME_top )
-  { int th = valInt(getHeightFont(font)) *
-             (str_count_chr(s, 0, s->size, '\n')+1);
-
-    if ( vadjust == NAME_center )
-      y += (h-th)/2;
-    else
-      y += h-th;
-  } else
-    h = 10000;				/* hack: 0x0 does not draw??? */
-  if ( hadjust == NAME_left )
-    w = 10000;
-
-  rect.left   = x;
-  rect.top    = y;
-  rect.right  = rect.left + w;
-  rect.bottom = rect.top + h;
-
-  s_font(font);
-  DrawText(context.hdc, s->s_text8, s->size, &rect, flags);
-}
-
 
 		/********************************
 		*         MULTILINE TEXT	*
@@ -2611,7 +2581,7 @@ str_compute_lines(strTextLine *lines, int nlines, FontObj font,
 
 
 void
-ps_string(String s, FontObj font, int x, int y, int w, Name format)
+ps_string(String s, FontObj font, int x, int y, int w, Name format, int flags)
 { strTextLine lines[MAX_TEXT_LINES];
   strTextLine *line;
   int nlines, n;
@@ -2629,11 +2599,85 @@ ps_string(String s, FontObj font, int x, int y, int w, Name format)
 
   for(n=0, line = lines; n++ < nlines; line++)
   { if ( line->text.size > 0 )
-      ps_output("~D ~D 0 ~D ~a text\n",
+    { ps_output("~D ~D 0 ~D ~a text\n",
 		line->x, line->y+baseline,
 		line->width, &line->text);
+      if ( flags & TXT_UNDERLINED )
+      { ps_output("nodash 1 ~D ~D ~D ~D linepath draw\n",
+		  line->x, line->y+baseline+2, line->width, 0);
+      }
+    }
   }
 }
+
+
+void
+str_string(String s, FontObj font,
+	   int x, int y, int w, int h,
+	   Name hadjust, Name vadjust, int flags)
+{ strTextLine lines[MAX_TEXT_LINES];
+  int nlines;
+  UINT oalign;
+  strTextLine *line;
+  int n;
+  int baseline;
+
+  if ( s->size == 0 )
+    return;
+
+  s_font(font);
+  baseline = s_ascent(font);
+  str_break_into_lines(s, lines, &nlines);
+  str_compute_lines(lines, nlines, font, x, y, w, h, hadjust, vadjust);
+
+  oalign = SetTextAlign(context.hdc, TA_BASELINE|TA_LEFT|TA_NOUPDATECP);
+
+  for(n=0, line = lines; n++ < nlines; line++)
+  { str_text(&line->text, line->x, line->y+baseline);
+
+    if ( flags & TXT_UNDERLINED )
+    { int ly = line->y+baseline+1;
+
+      r_line(line->x, ly, line->x + line->width, ly);
+    }
+  }
+
+  SetTextAlign(context.hdc, oalign);
+}
+
+#if 0
+{ RECT rect;
+  UINT flags = DT_EXTERNALLEADING|DT_NOCLIP|DT_NOPREFIX;
+  
+  if ( hadjust == NAME_left )
+    flags |= DT_LEFT;
+  else if ( hadjust == NAME_center )
+    flags |= DT_CENTER;
+  else
+    flags |= DT_RIGHT;
+
+  if ( vadjust != NAME_top )
+  { int th = valInt(getHeightFont(font)) *
+             (str_count_chr(s, 0, s->size, '\n')+1);
+
+    if ( vadjust == NAME_center )
+      y += (h-th)/2;
+    else
+      y += h-th;
+  } else
+    h = 10000;				/* hack: 0x0 does not draw??? */
+  if ( hadjust == NAME_left )
+    w = 10000;
+
+  rect.left   = x;
+  rect.top    = y;
+  rect.right  = rect.left + w;
+  rect.bottom = rect.top + h;
+
+  s_font(font);
+  DrawText(context.hdc, s->s_text8, s->size, &rect, flags);
+}
+#endif
 
 
 static void
@@ -2722,15 +2766,17 @@ static void
 str_stext(String s, int f, int len, Style style)
 { if ( len > 0 )
   { Any ofg = NULL;
+    int w;
+    POINT here;
 
     if ( notNil(style) )
-    { if ( notDefault(style->background) )
-      { POINT here;
-	int w = s_width_(s, f, f+len);
-	int a = context.wsf->ascent;
+    { w = s_width_(s, f, f+len);
+      MoveToEx(context.hdc, 0, 0, &here);
+
+      if ( notDefault(style->background) )
+      { int a = context.wsf->ascent;
 	int b = context.wsf->descent;
 
-	MoveToEx(context.hdc, 0, 0, &here);
 	r_fill(here.x, here.y-a, w, b+a, style->background);
 	MoveToEx(context.hdc, here.x, here.y, NULL);
       }
@@ -2743,6 +2789,9 @@ str_stext(String s, int f, int len, Style style)
     } else
     { Cprintf("16-bits characters are not supported on XPCE for Windows\n");
     }
+
+    if ( style->attributes & TXT_UNDERLINED )
+      r_line(here.x, here.y, here.x+w, here.y);
 
     if ( ofg )
       r_colour(ofg);

@@ -15,8 +15,6 @@
 
 #define MAX_TYPE_TRANSLATE_NESTING 10
 
-static status	failType(Type, Any, Any);
-static Any	getFailType(Type, Any, Any);
 static status	kindType(Type t, Name kind);
 
 #define TV_CLASS	0
@@ -36,6 +34,7 @@ static status	kindType(Type t, Name kind);
 #define TV_ALIAS	14
 #define TV_CHAR		15
 #define TV_EVENTID	16
+#define TV_ATOMIC	17
 
 status
 initialiseType(Type t, Name name, Name kind, Any context, Chain supers)
@@ -77,7 +76,7 @@ storeType(Type t, FileObj file)
 
 
 static status
-loadType(Type t, FILE *fd, ClassDef def)
+loadType(Type t, IOSTREAM *fd, ClassDef def)
 { TRY(loadSlotsObject(t, fd, def));
 
   return kindType(t, t->kind);
@@ -173,16 +172,76 @@ vectorType(Type t, Bool val)
 		********************************/
 
 status
-mayBeDefaultType(Type t)
-{ return validateType(t, DEFAULT, NIL);
-}
-
-
-status
 isClassType(Type t)
 { return t->kind == NAME_class || t->kind == NAME_object;
 }
 
+
+status
+NEW_specialisedType(Type t1, Type t2)	/* t1 is specialised regarding to t2 */
+{
+l1:
+  while(t1->validate_function == TV_ALIAS )
+    t1 = t1->context;
+
+l2:
+  switch(t2->validate_function)
+  { case TV_ALIAS:
+      t2 = t2->context;
+      goto l2;
+    case TV_CLASS:
+      if ( t1->validate_function == TV_CLASS &&
+	   isAClass(t1->context, t2->context) )
+	succeed;
+      break;
+    case TV_OBJECT:
+      if ( t1->validate_function == TV_CLASS &&
+	   !isAClass(t1->context, ClassFunction) )
+	succeed;
+      break;
+    case TV_ANY:
+      if ( !(t1->validate_function == TV_CLASS &&
+	     isAClass(t1->context, ClassFunction)) )
+	succeed;
+      break;
+    case TV_UNCHECKED:
+      succeed;
+  }
+
+  if ( t1->validate_function == t2->validate_function &&
+       t1->context           == t2->context )
+    succeed;
+
+  switch(t1->validate_function)
+  { case TV_NAMEOF:
+      t1 = TypeName;
+      goto l1;
+    case TV_INTRANGE:
+      t1 = TypeInt;
+      goto l1;
+    case TV_REALRANGE:
+      t1 = TypeReal;
+      goto l1;
+    case TV_CHAR:
+      t1 = TypeInt;
+      goto l1;
+  }
+
+  if ( notNil(t2->supers) )
+  { Cell cell;
+
+    for_cell(cell, t2->supers)
+    { if ( specialisedType(t1, cell->value) )
+      	succeed;
+    }
+  }
+
+  fail;
+}
+
+
+#define SpecialClass(c) ( isAClass(c, ClassFunction) || \
+			  isAClass(c, ClassHostData) )
 
 status
 specialisedType(Type t1, Type t2)	/* t1 is specialised regarding to t2 */
@@ -201,12 +260,15 @@ specialisedType(Type t1, Type t2)	/* t1 is specialised regarding to t2 */
   
 					/* class object */
   if ( t2->kind == NAME_object && t1->kind == NAME_class &&
-       !isAClass(t1->context, ClassFunction) )
+       !SpecialClass(t1->context) )
     succeed;
 
 					/* relative to any */
   if ( t2->kind == NAME_any &&
-       !(t1->kind == NAME_class && isAClass(t1->context, ClassFunction)) )
+       !(t1->kind == NAME_class && SpecialClass(t1->context)) )
+    succeed;
+
+  if ( t2->kind == NAME_unchecked )
     succeed;
 
 					/* special types. */
@@ -231,7 +293,7 @@ specialisedType(Type t1, Type t2)	/* t1 is specialised regarding to t2 */
 }
 
 
-static status
+status
 equalType(Type t1, Type t2)
 { while(t1->kind == NAME_alias)
     t1 = t1->context;
@@ -243,6 +305,7 @@ equalType(Type t1, Type t2)
 
   fail;
 }
+
 
 
 status
@@ -260,8 +323,9 @@ includesType(Type t1, Type t2)		/* t1 includes t2 */
   { Cell cell;
 
     for_cell(cell, t1->supers)
-      if ( includesType(cell->value, t2) )
+    { if ( includesType(cell->value, t2) )
       	succeed;
+    }
   }
 
   fail;
@@ -355,13 +419,20 @@ static int translate_type_nesting = 0;
 Any
 getTranslateType(Type t, Any val, Any ctx)
 { Any rval;
-  goal goal;
-  Goal g = &goal;
 
   CheckTypeError = CTE_OK;
 
-  if ( isFunction(val) )
-  { if ( !(val = expandFunction(val)) )
+  if ( isObject(val) && onFlag(val, F_ACTIVE|F_ISHOSTDATA) )
+  { if ( onFlag(val, F_ISHOSTDATA) )
+    { if ( !(val = (*TheCallbackFunctions.translate)(val, t)) )
+	fail;
+      if ( validateType(t, val, ctx) )
+	return val;
+      if ( !isFunction(val) )
+	goto skipf;
+    }
+					/* i.e. isFunction(val) */
+    if ( !(val = expandFunction(val)) )
     { CheckTypeError = CTE_OBTAINER_FAILED;
       fail;
     }
@@ -369,50 +440,29 @@ getTranslateType(Type t, Any val, Any ctx)
       return val;
   }
 
-  pushGoal(g, t, val, NAME_convert, 0, NULL);
-  traceEnter(g);
-
+skipf:
   if ( translate_type_nesting++ > MAX_TYPE_TRANSLATE_NESTING )
   { errorPce(t, NAME_typeLoop, val);
-    failGoal;
+    fail;
   }
 
-  Mode(MODE_SYSTEM, rval = (*t->translate_function)(t, val, ctx));
+  rval = (*t->translate_function)(t, val, ctx);
   if ( rval )
-    outGoal(rval);
+    goto out;
 
   if ( notNil(t->supers) )
   { Cell cell;
 
     for_cell(cell, t->supers)
-    { Mode(MODE_SYSTEM, rval = getTranslateType(cell->value, val, ctx));
+    { rval = getTranslateType(cell->value, val, ctx);
       if ( rval )
-	outGoal(rval);
+	goto out;
     }
   }
   
 out:
   translate_type_nesting--;
-  traceAnswer(g, rval);
-  popGoal();
   return rval;
-}
-
-
-#ifndef O_RUNTIME
-static void
-traceType(Type t, Goal g, Name port)
-{ writef("Convert %O to %N", g->receiver, t);
-}
-#endif
-
-
-Any
-checkType(Any val, Type t, Any ctx)	/* NOTE: argument order!!!! */
-{ if ( validateType(t, val, ctx) )
-    return val;
-  
-  return getTranslateType(t, val, ctx);
 }
 
 
@@ -430,19 +480,19 @@ getCheckType(Type t, Any val, Any ctx)
 		********************************/
 
 static inline status
-failType(Type t, Any val, Any ctx)
+failType(const Type t, const Any val, const Any ctx)
 { fail;
 }
 
 
 static inline status
-succeedType(Type t, Any val, Any ctx)
+succeedType(const Type t, const Any val, const Any ctx)
 { succeed;
 }
 
 
 static inline status
-valueType(Type t, Any val, Any ctx)
+valueType(const Type t, const Any val, const Any ctx)
 { if ( val == t->context )
     succeed;
 
@@ -451,13 +501,13 @@ valueType(Type t, Any val, Any ctx)
 
 
 static inline status
-intType(Type t, Any val, Any ctx)
+intType(const Type t, const Any val, const Any ctx)
 { return isInteger(val);
 }
 
 
 static inline status
-classType(Type t, Any val, Any ctx)
+classType(const Type t, const Any val, const Any ctx)
 { if ( onFlag(t->context, F_ISNAME) )	/* isName(), but it *is* an object */
   { Class class;
 
@@ -472,37 +522,54 @@ classType(Type t, Any val, Any ctx)
 
 
 static inline status
-objectType(Type t, Any val, Any ctx)
-{ return isObject(val) && !isFunction(val);
+objectType(const Type t, const Any val, const Any ctx)
+{ if ( isObject(val) && !onFlag(val, F_ACTIVE|F_ISHOSTDATA) )
+    succeed;
+
+  fail;
 }
 
 
 static inline status
-anyType(Type t, Any val, Any ctx)
-{ return !isFunction(val);
+anyType(const Type t, const Any val, const Any ctx)
+{ if ( isObject(val) )
+    return offFlag(val, F_ACTIVE|F_ISHOSTDATA);
+
+  succeed;
 }
 
 
 static inline status
-argType(Type t, Any val, Any ctx)
+argType(const Type t, const Any val, const Any ctx)
 { return isFunction(val);
 }
 
 
 static inline status
-charType(Type t, Any val, Any ctx)
+charType(const Type t, const Any val, const Any ctx)
 { return isInteger(val) && valInt(val) >= 0 && valInt(val) <= 2*META_OFFSET;
 }
 
 
 static inline status
-eventIdType(Type t, Any val, Any ctx)
+eventIdType(const Type t, const Any val, const Any ctx)
 { return charType(t, val, ctx) || (isName(val) && eventName(val));
 }
 
 
 static inline status
-nameOfType(Type t, Any val, Any ctx)
+atomicType(const Type t, const Any val, const Any ctx)
+{ if ( isInteger(val) )
+    succeed;
+  if ( isObject(val) && onFlag(val, F_ISREAL|F_ISNAME) )
+    succeed;
+
+  fail;
+}
+
+
+static inline status
+nameOfType(const Type t, const Any val, const Any ctx)
 { if ( isName(val) )
     return memberChain(t->context, val);
 
@@ -511,7 +578,7 @@ nameOfType(Type t, Any val, Any ctx)
 
 
 static inline status
-valueSetType(Type t, Any val, Any ctx)
+valueSetType(const Type t, const Any val, const Any ctx)
 { if ( isFunction(t->context) )
   { Any rval;
 
@@ -535,7 +602,7 @@ valueSetType(Type t, Any val, Any ctx)
 
 
 static inline status
-intRangeType(Type t, Any val, Any ctx)
+intRangeType(const Type t, const Any val, const Any ctx)
 { if ( isInteger(val) )
   { Tuple tp = t->context;
     int i = valInt(val);
@@ -549,7 +616,7 @@ intRangeType(Type t, Any val, Any ctx)
 
 
 static inline status
-realRangeType(Type t, Any val, Any ctx)
+realRangeType(const Type t, const Any val, const Any ctx)
 { if ( instanceOfObject(val, ClassReal) )
   { Tuple tp = t->context;
     Real low = tp->first, high = tp->second, r = val;
@@ -563,37 +630,37 @@ realRangeType(Type t, Any val, Any ctx)
 
 
 static inline status
-memberType(Type t, Any val, Any ctx)
+memberType(const Type t, const Any val, const Any ctx)
 { return validateType(t->context, val, ctx);
 }
 
 
 static inline status
-aliasType(Type t, Any val, Any ctx)
+aliasType(const Type t, const Any val, const Any ctx)
 { return validateType(t->context, val, ctx);
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+NOTE: only alien and unchecked types   pass HostData. Anything else will
+force conversion.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 status
-validateType(Type t, Any val, Any ctx)
-{ 
-#ifdef USE_FUNCP
-  if ( (*t->validate_function)(t, val, ctx) )
-    succeed;
-#else
-  int rval;
+validateType(Type t, const Any val, const Any ctx)
+{ int rval;
   again:
 
-  switch( (int)t->validate_function )
+  switch( t->validate_function )
   { case TV_CLASS:	rval = classType(t, val, ctx);		break;
     case TV_OBJECT:	rval = objectType(t, val, ctx);		break;
     case TV_INT:	rval = intType(t, val, ctx);		break;
     case TV_ARG:	rval = argType(t, val, ctx);		break;
     case TV_VALUE:	rval = valueType(t, val, ctx);		break;
     case TV_VALUESET:	rval = valueSetType(t, val, ctx);	break;
-    case TV_UNCHECKED:	rval = SUCCEED;				break;
+    case TV_UNCHECKED:	succeed;
     case TV_ANY:	rval = anyType(t, val, ctx);		break;
-    case TV_ALIEN:	rval = SUCCEED;				break;
+    case TV_ALIEN:	succeed;
     case TV_NAMEOF:	rval = nameOfType(t, val, ctx);		break;
     case TV_INTRANGE:	rval = intRangeType(t, val, ctx);	break;
     case TV_REALRANGE:	rval = realRangeType(t, val, ctx);	break;
@@ -608,11 +675,15 @@ validateType(Type t, Any val, Any ctx)
 			}
     case TV_CHAR:	rval = charType(t, val, ctx);		break;
     case TV_EVENTID:	rval = eventIdType(t, val, ctx);	break;
+    case TV_ATOMIC:	rval = atomicType(t, val, ctx);		break;
     default:
       return sysPce("%s: Invalid type.  Kind is %s, validate = 0x%x",
 		    pp(t), pp(t->kind), (int)t->validate_function);
   }
-#endif/*USE_FUNCP*/
+
+/*if ( isHostData(val) )
+    fail;
+*/
 
   if ( rval )
     return rval;
@@ -634,13 +705,13 @@ validateType(Type t, Any val, Any ctx)
 		********************************/
 
 static Any
-getFailType(Type t, Any val, Any ctx)
+getFailType(const Type t, const Any val, const Any ctx)
 { fail;
 }
 
 
 static Any
-getIntType(Type t, Any val, Any ctx)
+getIntType(const Type t, const Any val, const Any ctx)
 { return (Any) toInteger(val);
 }
 
@@ -676,7 +747,7 @@ charpToChar(char *s)
 
 
 static Any
-getCharType(Type t, Any val, Any ctx)
+getCharType(const Type t, const Any val, const Any ctx)
 { if ( instanceOfObject(val, ClassCharArray) )
   { CharArray ca = val;
     String s = &ca->data;
@@ -698,7 +769,7 @@ getCharType(Type t, Any val, Any ctx)
 
 
 static Any
-getEventIdType(Type t, Any val, Any ctx)
+getEventIdType(const Type t, const Any val, const Any ctx)
 { Any rval;
 
   if ( instanceOfObject(val, ClassEvent) )
@@ -716,7 +787,22 @@ getEventIdType(Type t, Any val, Any ctx)
 
 
 static Any
-getClassType(Type t, Any val, Any ctx)
+getAtomicType(const Type t, const Any val, const Any ctx)
+{ Any rval;
+
+  if ( (rval = toInteger(val)) )
+    return rval;
+  if ( (rval = toReal(val)) )
+    return rval;
+  if ( (rval = toName(val)) )
+    return rval;
+
+  fail;
+}
+
+
+static Any
+getClassType(const Type t, const Any val, const Any ctx)
 { Class class = t->context;
 
   if ( isName(class) )
@@ -746,7 +832,7 @@ getClassType(Type t, Any val, Any ctx)
 
 
 static Any
-getValueType(Type t, Any val, Any ctx)
+getValueType(const Type t, const Any val, const Any ctx)
 { Any obj;
 
   if ( (obj = getConvertObject(ctx, val)) && valueType(t, obj, ctx) )
@@ -757,7 +843,7 @@ getValueType(Type t, Any val, Any ctx)
 
 
 static Any
-convertValueSetType(Type t, Any val, Any ctx)
+convertValueSetType(const Type t, const Any val, const Any ctx)
 { Any obj;
 
   if ( (obj = getConvertObject(ctx, val)) && valueSetType(t, obj, ctx) )
@@ -768,7 +854,7 @@ convertValueSetType(Type t, Any val, Any ctx)
 
 
 static Any
-getNameOfType(Type t, Any val, Any ctx)
+getNameOfType(const Type t, const Any val, const Any ctx)
 { Name name = getClassType(TypeName, val, ctx);
   
   if ( name != FAIL && nameOfType(t, (Any)name, ctx) )
@@ -779,7 +865,7 @@ getNameOfType(Type t, Any val, Any ctx)
 
 
 static Any
-getIntRangeType(Type t, Any val, Any ctx)
+getIntRangeType(const Type t, const Any val, const Any ctx)
 { Int i = (Int) getIntType(t, val, ctx);
   
   if ( i != FAIL && intRangeType(t, (Any)i, ctx) )
@@ -790,7 +876,7 @@ getIntRangeType(Type t, Any val, Any ctx)
 
 
 static Any
-getRealRangeType(Type t, Any val, Any ctx)
+getRealRangeType(const Type t, const Any val, const Any ctx)
 { Real r = getConvertReal(ClassReal, val);
   
   if ( r != FAIL && realRangeType(t, r, ctx) )
@@ -806,7 +892,7 @@ possible as this might give typing errors.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static Any
-getMemberType(Type t, Any val, Any ctx)
+getMemberType(const Type t, const Any val, const Any ctx)
 { GetMethod m;
   Type at;
   Any rval, a;
@@ -824,69 +910,67 @@ getMemberType(Type t, Any val, Any ctx)
 
 
 static Any
-getAliasType(Type t, Any val, Any ctx)
+getAliasType(const Type t, const Any val, const Any ctx)
 { return getTranslateType(t->context, val, ctx);
 }
 
-#ifdef USE_FUNCP
-#define TV_FUNC(i, f) (f)
-#else
-#define TV_FUNC(i, f) ((SendFunc)(i))
-#endif
 
 static status
 kindType(Type t, Name kind)
 { if ( equalName(kind, NAME_class) )
-  { t->validate_function  = TV_FUNC(TV_CLASS, classType);
+  { t->validate_function  = TV_CLASS;
     t->translate_function = getClassType;
   } else if ( equalName(kind, NAME_object) )
-  { t->validate_function  = TV_FUNC(TV_OBJECT, objectType);
+  { t->validate_function  = TV_OBJECT;
     t->translate_function = getClassType;
   } else if ( equalName(kind, NAME_int) )
-  { t->validate_function  = TV_FUNC(TV_INT, intType);
+  { t->validate_function  = TV_INT;
     t->translate_function = getIntType;
   } else if ( equalName(kind, NAME_arg) )
-  { t->validate_function  = TV_FUNC(TV_ARG, argType);
+  { t->validate_function  = TV_ARG;
     t->translate_function = getFailType;
   } else if ( equalName(kind, NAME_value) )
-  { t->validate_function  = TV_FUNC(TV_VALUE, valueType);
+  { t->validate_function  = TV_VALUE;
     t->translate_function = getValueType;
   } else if ( equalName(kind, NAME_valueSet) )
-  { t->validate_function  = TV_FUNC(TV_VALUESET, valueSetType);
+  { t->validate_function  = TV_VALUESET;
     t->translate_function = convertValueSetType;
   } else if ( equalName(kind, NAME_unchecked) )
-  { t->validate_function  = TV_FUNC(TV_UNCHECKED, succeedType);
+  { t->validate_function  = TV_UNCHECKED;
     t->translate_function = getFailType;
   } else if ( equalName(kind, NAME_any) )
-  { t->validate_function  = TV_FUNC(TV_ANY, anyType);
+  { t->validate_function  = TV_ANY;
     t->translate_function = getFailType;
   } else if ( equalName(kind, NAME_alien) )
-  { t->validate_function  = TV_FUNC(TV_ALIEN, succeedType);
+  { t->validate_function  = TV_ALIEN;
     t->translate_function = getFailType;
   } else if ( equalName(kind, NAME_nameOf) )
-  { t->validate_function  = TV_FUNC(TV_NAMEOF, nameOfType);
+  { t->validate_function  = TV_NAMEOF;
     t->translate_function = getNameOfType;
   } else if ( equalName(kind, NAME_intRange) )
-  { t->validate_function  = TV_FUNC(TV_INTRANGE, intRangeType);
+  { t->validate_function  = TV_INTRANGE;
     t->translate_function = getIntRangeType;
   } else if ( equalName(kind, NAME_realRange) )
-  { t->validate_function  = TV_FUNC(TV_REALRANGE, realRangeType);
+  { t->validate_function  = TV_REALRANGE;
     t->translate_function = getRealRangeType;
   } else if ( equalName(kind, NAME_member) )
-  { t->validate_function  = TV_FUNC(TV_MEMBER, memberType);
+  { t->validate_function  = TV_MEMBER;
     t->translate_function = getMemberType;
   } else if ( equalName(kind, NAME_compound) )
-  { t->validate_function  = TV_FUNC(TV_COMPOUND, failType);
+  { t->validate_function  = TV_COMPOUND;
     t->translate_function = getFailType;
   } else if ( equalName(kind, NAME_alias) )
-  { t->validate_function  = TV_FUNC(TV_ALIAS, aliasType);
+  { t->validate_function  = TV_ALIAS;
     t->translate_function = getAliasType;
   } else if ( equalName(kind, NAME_char) )
-  { t->validate_function  = TV_FUNC(TV_CHAR, charType);
+  { t->validate_function  = TV_CHAR;
     t->translate_function = getCharType;
   } else if ( equalName(kind, NAME_eventId) )
-  { t->validate_function  = TV_FUNC(TV_EVENTID, eventIdType);
+  { t->validate_function  = TV_EVENTID;
     t->translate_function = getEventIdType;
+  } else if ( equalName(kind, NAME_atomic) )
+  { t->validate_function  = TV_ATOMIC;
+    t->translate_function = getAtomicType;
   } else
     return errorPce(t, NAME_noTypeKind, kind);
 
@@ -935,10 +1019,10 @@ static senddecl send_type[] =
      DEFAULT, "Create type from name, kind, context and supers"),
   SM(NAME_validate, 2, T_validate, validateType,
      NAME_check, "Validate argument is of this type"),
-  SM(NAME_includes, 1, "type", includesType,
-     NAME_meta, "Type includes its argument"),
   SM(NAME_equal, 1, "type", equalType,
      NAME_compare, "Test if both types are the same"),
+  SM(NAME_includes, 1, "type", includesType,
+     NAME_meta, "Type includes its argument"),
   SM(NAME_specialised, 1, "type", specialisedType,
      NAME_meta, "Test if argument is a specialised type")
 };
@@ -966,7 +1050,7 @@ static getdecl get_type[] =
 
 #define rc_type NULL
 /*
-static resourcedecl rc_type[] =
+static classvardecl rc_type[] =
 { 
 };
 */
@@ -987,7 +1071,6 @@ makeClassType(Class class)
 { declareClass(class, &type_decls);
 
   setLoadStoreFunctionClass(class, loadType, storeType);
-  setTraceFunctionClass(class, traceType);
   cloneStyleClass(class, NAME_none);
 
   succeed;
@@ -1421,6 +1504,7 @@ struct built_in_type
   { &TypeInt,       NAME_int,       NAME_int,	    NIL },
   { &TypeChar,      NAME_char,      NAME_char,	    NIL },
   { &TypeEventId,   NAME_eventId,   NAME_eventId,   NIL },
+  { &TypeAtomic,    NAME_atomic,    NAME_atomic,    NIL },
   { NULL,	    NAME_none,	    NAME_none,      NIL }
 };
     
@@ -1458,18 +1542,19 @@ initTypes(void)
   TypeBool     = createType(NAME_bool,     NAME_class,  ClassBool);
   TypeConstant = createType(NAME_constant, NAME_class,  ClassConstant);
 
-  bootType(NAME_charArray,  &ClassCharArray,  &TypeCharArray);
-  bootType(NAME_name,       &ClassName,       &TypeName);
-  bootType(NAME_var,        &ClassVar,        &TypeVar);
-  bootType(NAME_variable,   &ClassVariable,   NULL);
-  bootType(NAME_vector,     &ClassVector,     &TypeVector);
-  bootType(NAME_getMethod,  &ClassGetMethod,  NULL);
-  bootType(NAME_sendMethod, &ClassSendMethod, NULL);
-  bootType(NAME_hashTable,  &ClassHashTable,  NULL);
-  bootType(NAME_chain,      &ClassChain,      &TypeChain);
-  bootType(NAME_function,   &ClassFunction,   &TypeFunction);
-  bootType(NAME_graphical,  &ClassGraphical,  &TypeGraphical);
-  bootType(NAME_real,       &ClassReal,       &TypeReal);
+  bootType(NAME_charArray,  &ClassCharArray,     &TypeCharArray);
+  bootType(NAME_name,       &ClassName,          &TypeName);
+  bootType(NAME_var,        &ClassVar,           &TypeVar);
+  bootType(NAME_variable,   &ClassObjOfVariable, NULL);
+  bootType(NAME_vector,     &ClassVector,        &TypeVector);
+  bootType(NAME_method,     &ClassMethod,        NULL);
+  bootType(NAME_getMethod,  &ClassGetMethod,     NULL);
+  bootType(NAME_sendMethod, &ClassSendMethod,    NULL);
+  bootType(NAME_hashTable,  &ClassHashTable,     NULL);
+  bootType(NAME_chain,      &ClassChain,         &TypeChain);
+  bootType(NAME_function,   &ClassFunction,      &TypeFunction);
+  bootType(NAME_graphical,  &ClassGraphical,     &TypeGraphical);
+  bootType(NAME_real,       &ClassReal,          &TypeReal);
 
   for( ; i->global; i++ )
     *i->global = createType(i->name, i->kind, i->context);
@@ -1481,5 +1566,156 @@ defineType(char *name, char *def)
 { Type t = CtoType(def);
 
   return getCopyType(t, CtoName(name));
+}
+
+		 /*******************************
+		 *    DIRECT CALLING SUPPORT	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This series of functions is exported   from  the XPCE shared object/DLL.
+They are added to the interface to facilitate direct calling. I.e. calls
+from the host directly back into the   host because the method called is
+defined in the host-language.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+/* t is included in super.  I.e. any object satisfying type t will also
+   satisfy type super
+*/
+
+int
+pceIncludesType(PceType t, PceType super)
+{ return specialisedType(super, t);
+}
+
+
+PceObject
+pceCheckType(PceGoal g, PceType t, PceObject val)
+{ PceObject rval;
+
+  if ( validateType(t, val, g->receiver) )
+    return val;
+  
+  if ( (rval = getTranslateType(t, val, g->receiver)) )
+    return rval;
+
+  if ( CheckTypeError == CTE_OBTAINER_FAILED )
+    pceSetErrorGoal(g, PCE_ERR_FUNCTION_FAILED, val);
+
+  fail;
+}
+
+
+int
+pceCheckIntType(PceType t, long val)
+{ return validateType(t, toInt(val), NIL);
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+pceCheckNameType()
+    This is the hard one, as there is no way to create a temporary name in
+    XPCE, and we want to avoid creating a permantent one.  In many cases this
+    is not required too, and we just want to know the type accepts an
+    name.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+pceCheckNameType(PceType t, const char *s)
+{ int rval = FALSE;
+  again:
+
+  switch( t->validate_function )
+  { case TV_CLASS:
+    { if ( onFlag(t->context, F_ISNAME) )	/* isName() */
+      { Class class;
+
+	if ( (class=getConvertClass(ClassClass, t->context)) )
+	  assign(t, context, class);
+	else
+	  fail;
+      }
+      
+      rval = isAClass(ClassName, t->context);
+      break;
+    }
+    case TV_OBJECT:
+    case TV_ANY:
+    case TV_ALIEN:
+    case TV_UNCHECKED:
+    case TV_ATOMIC:
+      succeed;
+    case TV_MEMBER:
+    case TV_COMPOUND:
+    case TV_INT:
+    case TV_INTRANGE:
+    case TV_ARG:
+    case TV_REALRANGE:
+    case TV_CHAR:
+      break;
+    case TV_VALUE:
+      if ( isName(t->context) && streq(s, strName(t->context)) )
+	succeed;
+      break;
+    case TV_VALUESET:
+    case TV_NAMEOF:
+    { Chain ch = getValueSetType(t, NIL);
+      
+      if ( ch )
+      { Cell cell;
+	
+	for_cell(cell, ch)
+	{ if ( isName(cell->value) && streq(s, strName(cell->value)) )
+	    succeed;
+	}
+      }
+      break;
+    }
+    case TV_ALIAS:
+      if ( isNil(t->supers) )
+      { t = t->context;
+	goto again;
+      } else
+      { rval = pceCheckNameType(t->context, s);
+	break;
+      }
+    case TV_EVENTID:
+      if ( eventName(CtoName(s)) )
+	succeed;
+    break;
+    default:
+      return sysPce("%s: Invalid type.  Kind is %s, validate = %d",
+		    pp(t), pp(t->kind), t->validate_function);
+  }
+  
+  if ( rval )
+    return rval;
+
+  if ( notNil(t->supers) )
+  { Cell cell;
+
+    for_cell(cell, t->supers)
+    { if ( pceCheckNameType(cell->value, s) )
+      	succeed;
+    }
+  }
+
+  fail;
+}
+
+
+int
+pceCheckFloatType(PceType t, double f)
+{ static Real tmp = NULL;
+
+  if ( !tmp )
+  { tmp = newObject(ClassReal, ZERO, 0);
+    assert(tmp);
+    lockObj(tmp);
+  }
+
+  setReal(tmp, f);
+
+  return validateType(t, tmp, NIL);
 }
 

@@ -18,7 +18,7 @@ initialiseDialog(Dialog d, Name name, Size size, DisplayObj display)
   initialiseWindow((PceWindow) d, name, size, display);
 
   assign(d, gap, newObject(ClassSize, 0));
-  copySize(d->gap, getResourceValueObject(d, NAME_gap));
+  copySize(d->gap, getClassVariableValueObject(d, NAME_gap));
   assign(d, size_given, NAME_none);
 
   t = getTileWindow((PceWindow) d);
@@ -31,7 +31,7 @@ initialiseDialog(Dialog d, Name name, Size size, DisplayObj display)
 }
 
 
-status
+static status
 displayDialog(Dialog d, Graphical item, Point pos)
 { if ( displayDevice(d, item, pos) )
   { if ( instanceOfObject(item, ClassDialogItem) )
@@ -79,7 +79,7 @@ layoutDialog(Dialog d, Size size)
 
 
 static status
-computeDesiredSizeDialog(Dialog d)
+ComputeDesiredSizeDialog(Dialog d)
 { Name given;
 
   TRY(send(d, NAME_layout, 0));
@@ -94,7 +94,7 @@ computeDesiredSizeDialog(Dialog d)
     int empty;
 
     if ( (empty=emptyChain(d->graphicals)) )
-    { Size sz = getResourceValueObject(d, NAME_size);
+    { Size sz = getClassVariableValueObject(d, NAME_size);
 
       w = sz->w;
       h = sz->h;
@@ -369,7 +369,7 @@ static senddecl send_dialog[] =
      NAME_area, "Give dialog an explicit height"),
   SM(NAME_caret, 1, "member:graphical", caretDialog,
      NAME_focus, "Assign the caret to an input object"),
-  SM(NAME_ComputeDesiredSize, 0, NULL, computeDesiredSizeDialog,
+  SM(NAME_ComputeDesiredSize, 0, NULL, ComputeDesiredSizeDialog,
      NAME_layout, "Compute the desired size"),
   SM(NAME_layout, 1, "size=[size]", layoutDialog,
      NAME_layout, "(Re)compute layout of dialog_items"),
@@ -400,9 +400,10 @@ static getdecl get_dialog[] =
 
 /* Resources */
 
-static resourcedecl rc_dialog[] =
+static classvardecl rc_dialog[] =
 { RC(NAME_gap, "size", "size(15,8)",
-     "Distance between items in X and Y")
+     "Distance between items in X and Y"),
+  RC(NAME_background, RC_REFINE, "@_dialog_bg", NULL)
 };
 
 /* Class Declaration */

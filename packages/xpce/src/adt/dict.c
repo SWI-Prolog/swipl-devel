@@ -183,7 +183,7 @@ appendDict(Dict dict, DictItem di)
 }
 
 
-status
+static status
 membersDict(Dict dict, Chain members)
 { Cell cell;
 
@@ -387,9 +387,9 @@ sortDict(Dict dict, Any code_or_ign_case, Bool ign_blanks, Bool reverse)
     codesort++;
   } else
   { if ( isDefault(code_or_ign_case) )
-      code_or_ign_case =  getResourceValueObject(dict, NAME_sortIgnoreCase);
+      code_or_ign_case =  getClassVariableValueObject(dict, NAME_sortIgnoreCase);
     if ( isDefault(ign_blanks) )
-      ign_blanks = getResourceValueObject(dict, NAME_sortIgnoreBlanks);
+      ign_blanks = getClassVariableValueObject(dict, NAME_sortIgnoreBlanks);
 
     sort_ignore_case   = (code_or_ign_case == ON);
     sort_ignore_blanks = (ign_blanks == ON);
@@ -516,7 +516,7 @@ getFindAllDict(Dict d, Code code)
 }
 
 
-Any
+static Any
 getBrowserDict(Dict d)
 { if ( notNil(d->browser) )
   { ListBrowser lb = d->browser;
@@ -621,7 +621,7 @@ static getdecl get_dict[] =
 
 /* Resources */
 
-static resourcedecl rc_dict[] =
+static classvardecl rc_dict[] =
 { RC(NAME_sortIgnoreBlanks, "bool", "@off",
      "@on: ignore leading blanks when sorting"),
   RC(NAME_sortIgnoreCase, "bool", "@off",

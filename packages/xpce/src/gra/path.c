@@ -23,7 +23,7 @@ initialisePath(Path p, Name kind, Int radius_or_interval, Chain points)
     kind = NAME_poly;
 
   assign(p, radius, ZERO);		/* defaults */
-  assign(p, intervals, getResourceValueObject(p, NAME_intervals));
+  assign(p, intervals, getClassVariableValueObject(p, NAME_intervals));
 
   if ( kind == NAME_poly )
   { if ( notDefault(radius_or_interval) )
@@ -915,7 +915,7 @@ static getdecl get_path[] =
 
 /* Resources */
 
-static resourcedecl rc_path[] =
+static classvardecl rc_path[] =
 { RC(NAME_intervals, "int", "10",
      "Number of interpolated points"),
   RC(NAME_selectionHandles, RC_REFINE, "@nil",

@@ -22,7 +22,7 @@ initialiseConnectGesture(ConnectGesture g,
   assign(g, to_handle,       DEFAULT);
   assign(g, from_indicators, newObject(ClassChain, 0));
   assign(g, to_indicators,   newObject(ClassChain, 0));
-  assign(g, mark,	     getResourceValueObject(g, NAME_mark));
+  assign(g, mark,	     getClassVariableValueObject(g, NAME_mark));
 
   succeed;
 }
@@ -287,7 +287,7 @@ static getdecl get_connectGesture[] =
 
 /* Resources */
 
-static resourcedecl rc_connectGesture[] =
+static classvardecl rc_connectGesture[] =
 { RC(NAME_button, "button_name", "left",
      "Active on which button (left)"),
   RC(NAME_mark, "image", "@mark_handle_image",

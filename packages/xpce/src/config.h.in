@@ -42,6 +42,10 @@
 /* Define if you can safely include both <sys/time.h> and <time.h>.  */
 #undef TIME_WITH_SYS_TIME
 
+/* Define if your processor stores words with the most significant
+   byte first (like Motorola and SPARC, unlike Intel and VAX).  */
+#undef WORDS_BIGENDIAN
+
 /* Define if the type ulong is not in <sys/types.h> */
 #undef NEED_ULONG
 
@@ -51,17 +55,20 @@
 /* Define if you have BSD signals (i.e. signal handler does *not* reset */
 #undef BSD_SIGNALS
 
-/* Define if you have the jpeg library (-ljpeg).  */
-#undef HAVE_LIBJPEG
-
-/* Define if you have the Xpm library (-lXpm).  */
-#undef HAVE_LIBXPM
+/* Define if siginfo() should be used */
+#undef USE_SIGINFO
 
 /* Define if you have the nsl library (-lnsl).  */
 #undef HAVE_LIBNSL
 
 /* Define if you have the socket library (-lsocket).  */
 #undef HAVE_LIBSOCKET
+
+/* Define if you have the jpeg library (-ljpeg).  */
+#undef HAVE_LIBJPEG
+
+/* Define if you have the Xpm library (-lxpm).  */
+#undef HAVE_LIBXPM
 
 /* Define if wait() uses union wait* for the 2nd argument. */
 #undef UNION_WAIT
@@ -78,6 +85,9 @@
 /* Define if data-pointer is in high memory */
 #undef POINTER_OFFSET
 
+/* Define if data-pointer is not constant on your machine */
+#undef VARIABLE_POINTER_OFFSET
+
 /* Define to "file.h" to include additional system prototypes */
 #undef SYSLIB_H
 
@@ -87,20 +97,14 @@
 /* Define if struct tm has tm_gmtoff field */
 #undef HAVE_TM_GMTOFF
 
+/* Define if ioctl(fd, I_PUSH, "ttcompat") is required (solaris) */
+#undef HAVE_TTCOMPAT
+
 /* Define if you want the C++ interface compiled in */
 #undef O_CPLUSPLUS
 
 /* Define to include the password checking code */
 #undef O_LICENCE
-
-/* Define if position of data-segment isn't more or less constant */
-#undef VARIABLE_POINTER_OFFSET
-
-/* Define if iocll(tty, I_PUSH, "ttcompat") works on your machine */
-#undef HAVE_TTCOMPAT
-
-/* Define if sigaction() supports SA_SIGINFO and passes thechild pid in info */
-#undef USE_SIGINFO
 
 /* Define if you have the XmIsMotifWMRunning function.  */
 #undef HAVE_XMISMOTIFWMRUNNING
@@ -152,6 +156,9 @@
 
 /* Define if you have the popen function.  */
 #undef HAVE_POPEN
+
+/* Define if you have the rename function.  */
+#undef HAVE_RENAME
 
 /* Define if you have the select function.  */
 #undef HAVE_SELECT

@@ -106,7 +106,7 @@ static getdecl get_moveGesture[] =
 
 /* Resources */
 
-static resourcedecl rc_moveGesture[] =
+static classvardecl rc_moveGesture[] =
 { RC(NAME_button, "button_name", "middle",
      "Active on which button (middle)"),
   RC(NAME_cursor, "cursor", "fleur",

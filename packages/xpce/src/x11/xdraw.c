@@ -2428,14 +2428,14 @@ s_width_(String s, int from, int to)
     if ( isstr8(s) )
     { char8 *q = &s->s_text8[from];
 
-      width = abs(lbearing(*q, context.gcs->font_info));
+      width = lbearing(*q, context.gcs->font_info);
       for(; n-- > 1; q++)
 	width += widths[*q];
       width += rbearing(*q, context.gcs->font_info);
     } else
     { char16 *q = &s->s_text16[from];
 
-      width = abs(lbearing(*q, context.gcs->font_info));
+      width = lbearing(*q, context.gcs->font_info);
       for(; n-- > 1; q++)
 	width += widths[*q];
       width += rbearing(*q, context.gcs->font_info);
@@ -2540,13 +2540,15 @@ str_stext(String s, int f, int len, int x, int y, Style style)
 { if ( len > 0 )
   { string s2;
     Any ofg = NULL;
+    int w = 0;				/* make compiler happy */
 
     if ( notNil(style) )
-    { if ( notDefault(style->background) )
-      { int w = s_advance_x(s, f, f+len);
-	int a = context.gcs->font_info->ascent;
-	int b = context.gcs->font_info->descent;
+    { w = s_advance_x(s, f, f+len);
 
+      if ( notDefault(style->background) )
+      { int a = context.gcs->font_info->ascent;
+	int b = context.gcs->font_info->descent;
+	
 	r_fillpattern(style->background, NAME_foreground);
 	XFillRectangle(context.display, context.drawable, context.gcs->fillGC,
 		       x, y-a, w, b+a);
@@ -2578,6 +2580,10 @@ str_stext(String s, int f, int len, int x, int y, Style style)
       XDrawString(context.display, context.drawable, context.gcs->workGC,
 		  x, y, s->s_text8+f, len);
     }
+
+    if (  notNil(style) && style->attributes & TXT_UNDERLINED )
+      XDrawLine(context.display, context.drawable, context.gcs->workGC,
+		x, y, x+w, y);
 
     if ( ofg )
       r_colour(ofg);
@@ -2736,7 +2742,7 @@ str_size(String s, FontObj font, int *width, int *height)
 
 void
 str_string(String s, FontObj font, int x, int y, int w, int h,
-	   Name hadjust, Name vadjust)
+	   Name hadjust, Name vadjust, int flags)
 { strTextLine lines[MAX_TEXT_LINES];
   strTextLine *line;
   int nlines, n;
@@ -2751,8 +2757,18 @@ str_string(String s, FontObj font, int x, int y, int w, int h,
   str_break_into_lines(s, lines, &nlines);
   str_compute_lines(lines, nlines, font, x, y, w, h, hadjust, vadjust);
 
+  if ( flags & TXT_UNDERLINED )
+  { r_dash(NAME_none);
+    r_thickness(1);
+  }
+
   for(n=0, line = lines; n++ < nlines; line++)
-    str_text(&line->text, line->x, line->y+baseline);
+  { str_text(&line->text, line->x, line->y+baseline);
+    if ( flags & TXT_UNDERLINED )
+      XDrawLine(context.display, context.drawable, context.gcs->workGC,
+		line->x, line->y+baseline+1,
+		line->x+line->width, line->y+baseline+1);
+  }
 }
 
 
@@ -2810,7 +2826,7 @@ str_selected_string(String s, FontObj font,
 		 *******************************/
 
 void
-ps_string(String s, FontObj font, int x, int y, int w, Name format)
+ps_string(String s, FontObj font, int x, int y, int w, Name format, int flags)
 { strTextLine lines[MAX_TEXT_LINES];
   strTextLine *line;
   int nlines, n;
@@ -2828,9 +2844,14 @@ ps_string(String s, FontObj font, int x, int y, int w, Name format)
 
   for(n=0, line = lines; n++ < nlines; line++)
   { if ( line->text.size > 0 )
-      ps_output("~D ~D 0 ~D ~a text\n",
+    { ps_output("~D ~D 0 ~D ~a text\n",
 		line->x, line->y+baseline,
 		line->width, &line->text);
+      if ( flags & TXT_UNDERLINED )
+      { ps_output("nodash 1 ~D ~D ~D ~D linepath draw\n",
+		  line->x, line->y+baseline+2, line->width, 0);
+      }
+    }
   }
 }
 

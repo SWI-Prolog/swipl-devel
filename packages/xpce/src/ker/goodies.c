@@ -272,7 +272,7 @@ vwritef(char *fm, va_list args)
 
   writef_arguments(fm, args, &argc, argv);
   ca = CtoScratchCharArray(fm);
-  Trace(TRACE_NEVER, formatPcev(PCE, ca, argc, argv));
+  ServiceMode(PCE_EXEC_SERVICE, formatPcev(PCE, ca, argc, argv));
   doneScratchCharArray(ca);
 }
 
@@ -305,7 +305,7 @@ Comment to avoid mkproto not generating the prototype for this function
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 status
-swritefv(char *buf, CharArray format, int argc, Any *argv)
+swritefv(char *buf, CharArray format, int argc, const Any argv[])
 { char *fmt, *s, *q;
 
   fmt = strName(format);
@@ -345,7 +345,7 @@ swritefv(char *buf, CharArray format, int argc, Any *argv)
 
 	    if ( argc <= 0 )
 	      arg = 0;
-	    else if ( (i = toInteger(argv[0])) != FAIL )
+	    else if ( (i = checkType(argv[0], TypeInt, NIL)) )
 	      arg = valInt(i);
 	    else
 	      arg = 0;
@@ -371,7 +371,7 @@ swritefv(char *buf, CharArray format, int argc, Any *argv)
 	      if ( argc <= 0 )
 	      	a = 0;
 	      else
-	      { if ( (i = toInteger(argv[0])) != FAIL )
+	      { if ( (i = checkType(argv[0], TypeInt, NIL)) )
 		  a = valInt(i);
 	        else
 		{ DoPP();
@@ -401,7 +401,7 @@ swritefv(char *buf, CharArray format, int argc, Any *argv)
 	      if ( argc <= 0 )
 	      	a = 0.0;
 	      else
-	      { if ( (f = toReal(argv[0])) != FAIL )
+	      { if ( (f = checkType(argv[0], TypeReal, NIL)) )
 		  a = valReal(f);
 	        else
 		{ DoPP();
@@ -420,14 +420,22 @@ swritefv(char *buf, CharArray format, int argc, Any *argv)
 	      continue;
 	    }
 	    case 's':
+	    case 'N':
 	    { char *a;
 
 	      if ( argc <= 0 )
-	      	a = "(nil)";
-	      else if ( !(a = toCharp(argv[0])) )
-		a = pp(argv[0]);
+	      { a = "(nil)";
+	      } else if ( !(a = toCharp(argv[0])) )
+	      { Any pn;
 
-	      *r++ = *s++;
+		ServiceMode(PCE_EXEC_SERVICE,
+			    pn = get(argv[0], NAME_printName, 0));
+		if ( !(a = toCharp(pn)) )
+		  a = pp(argv[0]);
+	      }
+
+	      *r++ = 's';
+	      s++;
 	      *r = EOS;
 	      if ( arg == NOT_SET )
 		sprintf(q, fmtbuf, a);
@@ -444,30 +452,6 @@ swritefv(char *buf, CharArray format, int argc, Any *argv)
 	      	a = save_string("(nil)");
 	      else
 	      	a = pp(argv[0]);
-
-	      *r++ = 's';
-	      *r = EOS;
-	      s++;
-	      if ( arg == NOT_SET )
-		sprintf(q, fmtbuf, a);
-	      else
-	      	sprintf(q, fmtbuf, arg, a);
-	      Skip(q);
-	      argc--, argv++;
-	      continue;
-	    }
-	    case 'N':			/* object via <-print_name */
-	    { char *a;
-
-	      if ( argc <= 0 )
-	      	a = "(nil)";
-	      else
-	      { Any pn;
-
-		Trace(TRACE_NEVER, pn = get(argv[0], NAME_printName, 0));
-		if ( !(a = toCharp(pn)) )
-		  a = pp(argv[0]);
-	      }
 
 	      *r++ = 's';
 	      *r = EOS;
@@ -823,7 +807,7 @@ sysPce(char *fm, ...)
 
 #ifndef O_RUNTIME
   Cprintf("\n\tStack:\n");
-  pceTraceBack(20);
+  pceBackTrace(NULL, 20);
   Cprintf("]\n");
 
   catchErrorSignalsPce(PCE, ON);
@@ -1023,8 +1007,8 @@ run_pce_exit_hooks(int rval)
 
 #ifndef O_RUNTIME
   assign(PCE, trap_errors, OFF);
+  debuggingPce(PCE, OFF);
 #endif
-  tracePce(PCE, NAME_never);
 
   if ( exit_running++ )
     return;

@@ -20,19 +20,15 @@ status
 initialiseWindow(PceWindow sw, Name label, Size size, DisplayObj display)
 { initialiseDevice((Device) sw);
 
-  assign(sw, pen,		   DEFAULT);
-  assign(sw, cursor,		   DEFAULT);
   assign(sw, scroll_offset,	   newObject(ClassPoint, 0));
   assign(sw, input_focus,	   OFF);
   assign(sw, has_pointer,	   OFF);
-  assign(sw, background,	   DEFAULT);
-  assign(sw, selection_feedback,   DEFAULT);
   assign(sw, sensitive,		   ON);
   assign(sw, bounding_box,	   newObject(ClassArea, 0));
-  obtainResourcesObject(sw);
+  obtainClassVariablesObject(sw);
 
   if ( isDefault(size) )
-    TRY( size = getResourceValueObject(sw, NAME_size) );
+    TRY( size = getClassVariableValueObject(sw, NAME_size) );
   setArea(sw->area, ZERO, ZERO, size->w, size->h);
 
   sw->changes_data = NULL;
@@ -61,7 +57,7 @@ storeWindow(PceWindow sw, FileObj file)
 
 
 static status
-loadWindow(PceWindow sw, FILE *fd, ClassDef def)
+loadWindow(PceWindow sw, IOSTREAM *fd, ClassDef def)
 { TRY(loadSlotsObject(sw, fd, def));
 
   sw->ws_ref = NULL;
@@ -94,7 +90,10 @@ uncreateWindow(PceWindow sw)
 
 status
 grabPointerWindow(PceWindow sw, Bool val)
-{ ws_grab_pointer_window(sw, val);
+{ DEBUG(NAME_focus,
+	Cprintf("FOCUS: grabPointerWindow(%s, %s)\n", pp(sw), pp(val)));
+
+  ws_grab_pointer_window(sw, val);
 
   succeed;
 }
@@ -305,7 +304,7 @@ decorateWindow(PceWindow sw, Name how, Int lb, Int tb, Int rb, Int bb,
 }
 
 
-PceWindow
+PceWindow				/* used in MSW binding */
 userWindow(PceWindow sw)
 { if ( instanceOfObject(sw, ClassWindowDecorator) )
   { WindowDecorator dw = (WindowDecorator)sw;
@@ -399,20 +398,7 @@ displayedWindow(PceWindow sw, Bool val)
     displayedWindow(sw->decoration, val);
 
   if ( val == ON )
-  {
-#if 0					/* does not solve windows redraw */
-					/* problems ... */
-    int x, y, w, h; 
-    int p = valInt(sw->pen);
-
-    compute_window(sw, &x, &y, &w, &h);
-    x -= valInt(sw->scroll_offset->x) + p;
-    y -= valInt(sw->scroll_offset->y) + p;
-
-    changed_window(sw, x, y, w, h, TRUE);
-#endif
     addChain(ChangedWindows, sw);
-  }
 
   succeed;
 }
@@ -605,9 +591,6 @@ eventWindow(PceWindow sw, EventObj ev)
   if ( sw->sensitive == OFF || blockedByModalWindow(sw, ev) )
     fail;
 
-  if ( sw->current_event == ev )	/* Hack to avoid a loop */
-    return eventDevice((Device)sw, ev);
-
   old_event = sw->current_event;
   addCodeReference(old_event);
   assign(sw, current_event, ev);
@@ -645,9 +628,18 @@ eventWindow(PceWindow sw, EventObj ev)
   }
 
   if ( notNil(sw->focus) )
-  { rval = postEvent(ev, sw->focus,
-		     isNil(sw->focus_recogniser) ? DEFAULT
-		     				 : sw->focus_recogniser);
+  { if ( sw->focus == (Graphical) sw && isNil(sw->focus_recogniser) )
+      rval = eventDevice((Device)sw, ev);
+    else
+    { DEBUG(NAME_focus,
+	    Cprintf("FOCUS: Directing focussed event to %s\n",
+		    isNil(sw->focus_recogniser) ? pp(sw->focus)
+		    				: pp(sw->focus_recogniser)));
+
+      rval = postEvent(ev, sw->focus,
+		       isNil(sw->focus_recogniser) ? DEFAULT
+		     				   : sw->focus_recogniser);
+    }
 
     if ( isFreedObj(sw) )
       return rval;
@@ -660,7 +652,8 @@ eventWindow(PceWindow sw, EventObj ev)
     goto out;
   }
 
-  rval = postEvent(ev, (Graphical) sw, DEFAULT);
+  if ( sw->focus != (Graphical) sw || notNil(sw->focus_recogniser) )
+    rval = eventDevice((Device)sw, ev);
 
   if ( rval == FAIL &&
        notNil(sw->popup) &&
@@ -750,7 +743,11 @@ keyboardFocusWindow(PceWindow sw, Graphical gr)
 status
 focusWindow(PceWindow sw, Graphical gr, Recogniser recogniser,
 	    CursorObj cursor, Name button)
-{ if ( isNil(gr) )
+{ DEBUG(NAME_focus,
+	Cprintf("FOCUS: focusWindow(%s, %s, %s, %s, %s)\n",
+		pp(sw), pp(gr), pp(recogniser), pp(cursor), pp(button)));
+
+  if ( isNil(gr) )
   { if ( notNil(sw->focus) )
       generateEventGraphical(sw->focus, NAME_releaseFocus);
 
@@ -1368,7 +1365,7 @@ view_region(int x, int w, int rx, int rw)
 }
 	
 
-status					/* update bubble of scroll_bar */
+static status				/* update bubble of scroll_bar */
 bubbleScrollBarWindow(PceWindow sw, ScrollBar sb)
 { Area bb = sw->bounding_box;
   int x, y, w, h;
@@ -1498,10 +1495,8 @@ requestGeometryWindow(PceWindow sw, Int X, Int Y, Int W, Int H)
 
     setTile(sw->tile, DEFAULT, DEFAULT, ww, wh);
 
-    if ( notNil(sw->frame) && createdFrame(sw->frame) )
-    { if ( !parentGoal(VmiSend, sw->frame, NAME_fit) ) /* avoid loop */
-	send(sw->frame, NAME_fit, 0);
-    }
+    if ( notNil(sw->frame) )
+      send(sw->frame, NAME_fit, 0);
 
     succeed;
   } else if ( notNil(sw->decoration) )
@@ -1818,7 +1813,7 @@ backgroundWindow(PceWindow sw, Colour colour)
 static status
 selectionFeedbackWindow(PceWindow sw, Any feedback)
 { if ( isDefault(feedback) )
-    TRY(feedback = getResourceValueObject(sw, NAME_selectionFeedback));
+    TRY(feedback = getClassVariableValueObject(sw, NAME_selectionFeedback));
 
   if ( feedback != sw->selection_feedback )
   { assign(sw, selection_feedback, feedback);
@@ -1862,7 +1857,7 @@ flashWindow(PceWindow sw, Area a, Int time)
   { int t;
     
     if ( isDefault(time) )
-      time = getResourceValueObject(sw, NAME_visualBellDuration);
+      time = getClassVariableValueObject(sw, NAME_visualBellDuration);
     t = (isInteger(time) ? valInt(time) : 250);
 
     if ( isDefault(a) )
@@ -1945,18 +1940,15 @@ catchAllWindowv(PceWindow sw, Name selector, int argc, Any *argv)
   { newObject(ClassWindowDecorator, sw, 0);
 
     if ( notNil(sw->decoration) )
-    { assign(PCE, last_error, NIL);
       return sendv(sw->decoration, selector, argc, argv);
-    }
   }
 
   if ( getSendMethodClass(ClassFrame, selector) )
   { FrameObj fr = getFrameWindow(sw, DEFAULT);
 
     if ( fr && notNil(fr) )
-    { assign(PCE, last_error, NIL);
       return sendv(fr, selector, argc, argv);
-    } else
+    else
       fail;
   }	
 
@@ -1965,11 +1957,10 @@ catchAllWindowv(PceWindow sw, Name selector, int argc, Any *argv)
       return catchAllWindowv(sw->decoration, selector, argc, argv);
 
     tileWindow(sw, DEFAULT);
-    assign(PCE, last_error, NIL);
     return sendv(sw->tile, selector, argc, argv);
   }
 
-  fail;
+  return errorPce(sw, NAME_noBehaviour, CtoName("->"), selector);
 }
 
 
@@ -2085,7 +2076,7 @@ static senddecl send_window[] =
   SM(NAME_reset, 0, NULL, resetWindow,
      DEFAULT, "Reset window after an abort"),
   SM(NAME_unlink, 0, NULL, unlinkWindow,
-     DEFAULT, "Destroy related X-resources"),
+     DEFAULT, "Destroy related window-system resources"),
   SM(NAME_x, 1, "int", xGraphical,
      DEFAULT, "Move graphical horizontally"),
   SM(NAME_y, 1, "int", yGraphical,
@@ -2179,6 +2170,8 @@ static getdecl get_window[] =
      NAME_area, "Union of graphicals"),
   GM(NAME_visible, 0, "area", NULL, getVisibleWindow,
      NAME_area, "New area representing visible part"),
+  GM(NAME_size, 0, "size", NULL, getSizeGraphical,
+     NAME_area, "New size representing size (avoid class-variable)"),
   GM(NAME_displayedCursor, 0, "cursor*", NULL, getDisplayedCursorDevice,
      NAME_cursor, "Currently displayed cursor"),
   GM(NAME_confirm, 3, "any", T_confirm, getConfirmWindow,
@@ -2193,19 +2186,15 @@ static getdecl get_window[] =
 
 /* Resources */
 
-static resourcedecl rc_window[] =
-{ RC(NAME_background, "colour|pixmap", "white",
-     "Colour/fill pattern of the background"),
-  RC(NAME_cursor, "cursor", "top_left_arrow",
-     "Default window cursor"),
-  RC(NAME_pen, "int", "1",
-     "Thickness of outside line"),
-  RC(NAME_selectionFeedback, NULL, "handles",
+static classvardecl rc_window[] =
+{ RC(NAME_background, "colour|pixmap", UXWIN("white", "@_graph_bg"), NULL),
+  RC(NAME_cursor, "cursor", UXWIN("top_left_arrow", "win_arrow"), NULL),
+  RC(NAME_pen,              "0..",	     "@_win_pen",      NULL),
+  RC(NAME_selectionHandles, RC_REFINE,	     "@nil",	       NULL),
+  RC(NAME_size,		    "size",	     "size(200,100)",  NULL),
+  RC(NAME_selectionFeedback, NULL,
+     "when(@colour_display,  colour,  invert)",
      NULL),
-  RC(NAME_selectionHandles, RC_REFINE, "@nil",
-     NULL),
-  RC(NAME_size, "size", "size(200,100)",
-     "Default size (pixels)")
 };
 
 /* Class Declaration */

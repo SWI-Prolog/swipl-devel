@@ -92,9 +92,9 @@ initialiseTextImage(TextImage ti, Any obj, Int w, Int h)
   assign(ti, text,	   obj);
   assign(ti, start,        ZERO);
   assign(ti, end,	   ZERO);
-  assign(ti, background,   getResourceValueObject(ti, NAME_background));
-  assign(ti, wrap,	   getResourceValueObject(ti, NAME_wrap));
-  assign(ti, tab_distance, getResourceValueObject(ti, NAME_tabDistance));
+  assign(ti, background,   getClassVariableValueObject(ti, NAME_background));
+  assign(ti, wrap,	   getClassVariableValueObject(ti, NAME_wrap));
+  assign(ti, tab_distance, getClassVariableValueObject(ti, NAME_tabDistance));
 
   return reinitTextImage(ti);
 }
@@ -228,15 +228,15 @@ reinitTextImage(TextImage ti)
   ti->map->allocated       = ti->map->length = ti->map->skip = 0;
   ti->map->lines           = NULL;
 
-  if ( (z = getResourceValueObject(ti, NAME_elevation)) && notNil(z) )
+  if ( (z = getClassVariableValueObject(ti, NAME_elevation)) && notNil(z) )
     assign(ti, pen, absInt(z->height));
 
-  return obtainResourcesObject(ti);
+  return obtainClassVariablesObject(ti);
 }
 
 
 static status
-loadTextImage(TextImage ti, FILE *fd, ClassDef def)
+loadTextImage(TextImage ti, IOSTREAM *fd, ClassDef def)
 { TRY(loadSlotsObject(ti, fd, def));
 
   return reinitTextImage(ti);
@@ -1437,7 +1437,7 @@ RedrawAreaTextImage(TextImage ti, Area a)
   obg = r_background(ti->background);
   if ( sx < TXT_X_MARGIN || sx + w > ti->w - TXT_X_MARGIN ||
        sy < TXT_Y_MARGIN || sy + h > ti->h - TXT_Y_MARGIN )
-  { Elevation z = getResourceValueObject(ti, NAME_elevation);
+  { Elevation z = getClassVariableValueObject(ti, NAME_elevation);
     
     if ( z && notNil(z) )
     { r_3d_box(bx, by, bw, bh, 0, z, FALSE);
@@ -1766,6 +1766,17 @@ wrapTextImage(TextImage ti, Name wrap)
 }
 
 
+static status
+backgroundTextImage(TextImage ti, Any bg)
+{ if ( ti->background != bg )
+  { assign(ti, background, bg);
+    changedEntireImageGraphical(ti);		/* only visual effect */
+  }
+
+  succeed;
+}
+
+
 status
 tabDistanceTextImage(TextImage ti, Int tab)
 { if ( ti->tab_distance != tab )
@@ -1858,7 +1869,7 @@ static char *T_geometry[] =
 static vardecl var_textImage[] =
 { IV(NAME_text, "object", IV_GET,
      NAME_storage, "Source of the text"),
-  IV(NAME_background, "[colour|pixmap]", IV_GET,
+  SV(NAME_background, "[colour|pixmap]", IV_GET|IV_STORE, backgroundTextImage,
      NAME_appearance, "Background colour"),
   IV(NAME_start, "int", IV_NONE,
      NAME_scroll, "Index of first character displayed"),
@@ -1944,15 +1955,17 @@ static getdecl get_textImage[] =
 
 /* Resources */
 
-static resourcedecl rc_textImage[] =
-{ RC(NAME_background, "[colour|pixmap]", "white",
+static classvardecl rc_textImage[] =
+{ RC(NAME_background, "[colour|pixmap]",
+     UXWIN("@default", "win_window"),
      "Background colour for the text"),
-  RC(NAME_elevation, "elevation*", "@nil",
+  RC(NAME_elevation, "elevation*", "when(@colour_display, 1, @nil)",
      "Elevation from the background"),
   RC(NAME_tabDistance, "int", "64",
      "Tabstop interval (pixels)"),
   RC(NAME_wrap, "{none,character,word}", "character",
-     "Wrap unit for long lines")
+     "Wrap unit for long lines"),
+  RC(NAME_colour, RC_REFINE, "black", NULL)
 };
 
 /* Class Declaration */

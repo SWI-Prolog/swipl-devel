@@ -60,7 +60,7 @@ static getdecl get_recogniser[] =
 
 #define rc_recogniser NULL
 /*
-static resourcedecl rc_recogniser[] =
+static classvardecl rc_recogniser[] =
 { 
 };
 */

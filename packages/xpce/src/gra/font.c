@@ -100,7 +100,7 @@ replaceFont(FontObj f, DisplayObj d)
 { FontObj nofont;
   void *wsref;
 
-  if ( !(nofont = getResourceValueObject(d, NAME_noFont)) )
+  if ( !(nofont = getClassVariableValueObject(d, NAME_noFont)) )
     errorPce(f, NAME_noDefaultFont);
   
   if ( !(wsref = getXrefObject(nofont, d)) )
@@ -360,9 +360,9 @@ static senddecl send_font[] =
   SM(NAME_member, 1, "char", memberFont,
      NAME_set, "Test if font defines character"),
   SM(NAME_Xclose, 1, "display", XcloseFont,
-     NAME_x, "Destroy associated X-resources"),
+     NAME_x, "Destroy associated window-system resources"),
   SM(NAME_Xopen, 1, "display", XopenFont,
-     NAME_x, "Open the associated X-resources")
+     NAME_x, "Open the associated window-system resources")
 };
 
 /* Get Methods */
@@ -398,7 +398,7 @@ static getdecl get_font[] =
 
 /* Resources */
 
-static resourcedecl rc_font[] =
+static classvardecl rc_font[] =
 { RC(NAME_scale, "real", "1.4",
      "Multiplication factor for all fonts")
 };

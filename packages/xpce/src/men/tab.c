@@ -17,9 +17,7 @@
 
 static status
 initialiseTab(Tab t, Name name)
-{
-  assign(t, label_size,   DEFAULT);	/* Resource */
-  assign(t, label_offset, ZERO);
+{ assign(t, label_offset, ZERO);
   assign(t, status,	  NAME_onTop);
   assign(t, size,	  DEFAULT);
 
@@ -36,7 +34,7 @@ static status
 computeLabelTab(Tab t)
 { if ( notNil(t->label) && t->label != NAME_ && notNil(t->label_size) )
   { int w, h;
-    Size minsize = getResourceValueObject(t, NAME_labelSize);
+    Size minsize = getClassVariableValueObject(t, NAME_labelSize);
     int ex = valInt(getExFont(t->label_font));
 
     compute_label_size_dialog_group((DialogGroup) t, &w, &h);
@@ -44,7 +42,10 @@ computeLabelTab(Tab t)
     w = max(w, valInt(minsize->w));
     h = max(h, valInt(minsize->h));
 
-    setSize(t->label_size, toInt(w), toInt(h));
+    if ( t->label_size != minsize )
+      setSize(t->label_size, toInt(w), toInt(h));
+    else				/* do not write the class-variable! */
+      assign(t, label_size, newObject(ClassSize, toInt(w), toInt(h), 0));
   }
 
   succeed;
@@ -57,7 +58,7 @@ computeTab(Tab t)
   { int x, y, w, h;
     Area a = t->area;
 
-    obtainResourcesObject(t);
+    obtainClassVariablesObject(t);
     computeLabelTab(t);
     computeGraphicalsDevice((Device) t);
     
@@ -125,7 +126,7 @@ geometryTab(Tab t, Int x, Int y, Int w, Int h)
 
 static status
 ChangedLabelTab(Tab t)
-{ Elevation e = getResourceValueObject(t, NAME_elevation);
+{ Elevation e = getClassVariableValueObject(t, NAME_elevation);
   Int eh = e->height;
 
   assign(t, request_compute, ON);
@@ -187,7 +188,7 @@ statusTab(Tab t, Name stat)
 static status
 RedrawAreaTab(Tab t, Area a)
 { int x, y, w, h;
-  Elevation e = getResourceValueObject(t, NAME_elevation);
+  Elevation e = getClassVariableValueObject(t, NAME_elevation);
   int lh      = valInt(t->label_size->h);
   int lw      = valInt(t->label_size->w);
   int loff    = valInt(t->label_offset);
@@ -410,13 +411,13 @@ static getdecl get_tab[] =
 
 /* Resources */
 
-static resourcedecl rc_tab[] =
+static classvardecl rc_tab[] =
 { RC(NAME_elevation, "elevation",
      "when(@colour_display, " /* concat */
            "1, " /* concat */
      	   "elevation(tab, 2, relief := @grey50_image, shadow := black))",
      "Elevation above environment"),
-  RC(NAME_gap, "size", "size(15,8)",
+  RC(NAME_gap, "size", "size(15, 8)",
      "Distance between items in X and Y"),
   RC(NAME_labelFont, "font", "normal",
      "Font used to display the label"),

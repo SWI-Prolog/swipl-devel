@@ -31,33 +31,28 @@ initialiseTextItem(TextItem ti, Name name, Any val, Code msg)
 { CharArray str;
 
   if ( isDefault(name) )
-    name = NAME_textItem;
+    name = getClassNameObject(ti);
   if ( isDefault(val) )
     val = NAME_;
 
   createDialogItem(ti, name);
 
-  assign(ti, message, 	    msg);
-  assign(ti, value_set,	    DEFAULT);
-  assign(ti, print_name,    CtoString(""));
+  assign(ti, message, 	       msg);
+  assign(ti, value_set,	       DEFAULT);
+  assign(ti, value_width,      DEFAULT);
+  assign(ti, print_name,       CtoString(""));
 
-  assign(ti, label_font,    DEFAULT); /* resources */
-  assign(ti, value_font,    DEFAULT);
-  assign(ti, length,	    DEFAULT);
-  assign(ti, pen,	    DEFAULT);
-  assign(ti, value_width,   DEFAULT);
-  assign(ti, advance,       NAME_next);
-  assign(ti, show_label,    ON);
-  assign(ti, value_text,    newObject(ClassText, 0));
-  assign(ti, label_width,   DEFAULT);
-  assign(ti, editable,	    ON);
+  assign(ti, advance,          NAME_next);
+  assign(ti, show_label,       ON);
+  assign(ti, value_text,       newObject(ClassText, 0));
+  assign(ti, editable,	       ON);
 
-  assign(ti, default_value, val);
-  assign(ti, selection,     getDefaultTextItem(ti));
-  assign(ti, type,	    getSelectionTypeTextItem(ti));
-  assign(ti, auto_value_align,	 OFF);
-  assign(ti, hor_stretch,   toInt(100));
-  assign(ti, style,	    NAME_normal);
+  assign(ti, default_value,    val);
+  assign(ti, selection,        getDefaultTextItem(ti));
+  assign(ti, type,	       getSelectionTypeTextItem(ti));
+  assign(ti, auto_value_align, OFF);
+  assign(ti, hor_stretch,      toInt(100));
+  assign(ti, style,	       NAME_normal);
 
   if ( (str = get(ti, NAME_printNameOfValue, val, 0)) )
     valueString(ti->print_name, str);
@@ -75,13 +70,13 @@ unlinkTextItem(TextItem ti)
 }
 
 
-status
+static status
 RedrawAreaTextItem(TextItem ti, Area a)
 { int x, y, w, h;
   int al, av, am;
   int lw, lh;
   int fw = valInt(getExFont(ti->value_text->font));
-  Elevation z = getResourceValueObject(ti, NAME_elevation);
+  Elevation z = getClassVariableValueObject(ti, NAME_elevation);
   int tx, ty, tw, th;
   TextObj vt = ti->value_text;
   int flags = 0;
@@ -143,7 +138,7 @@ RedrawAreaTextItem(TextItem ti, Area a)
       int bx = x+w-sw;
       int bh = (h+1)/2;
       int iw, ih, ix, dy;
-      Elevation e = getResourceValueClass(ClassButton, NAME_elevation);
+      Elevation e = getClassVariableValueClass(ClassButton, NAME_elevation);
 
       r_3d_box(bx, y,    sw, bh,   0, e, !(flags & TEXTFIELD_INCREMENT));
       r_3d_box(bx, y+bh, sw, h-bh, 0, e, !(flags & TEXTFIELD_DECREMENT));
@@ -188,7 +183,7 @@ updateShowCaretTextItem(TextItem ti)
 
 static status
 activateTextItem(TextItem ti, Bool val)
-{ if ( getResourceValueObject(ti, NAME_autoSelect) == ON )
+{ if ( getClassVariableValueObject(ti, NAME_autoSelect) == ON )
   { if ( val == ON )
     { send(ti->value_text, NAME_selection,
 	   ZERO, getSizeCharArray(ti->value_text->string), 0);
@@ -201,7 +196,7 @@ activateTextItem(TextItem ti, Bool val)
 }
 
 
-status
+static status
 statusTextItem(TextItem ti, Name stat)
 { if ( ti->status != stat )
   { int incdec = (ti->status == NAME_increment ||
@@ -224,7 +219,7 @@ static void
 compute_label_text_item(TextItem ti, int *lw, int *lh)
 { if ( ti->show_label == ON )
   { if ( isDefault(ti->label_font) )
-      obtainResourcesObject(ti);
+      obtainClassVariablesObject(ti);
 
     dia_label_size(ti, lw, lh, NULL);
     *lw += valInt(getExFont(ti->label_font));
@@ -236,16 +231,16 @@ compute_label_text_item(TextItem ti, int *lw, int *lh)
 }
 
 
-status
+static status
 computeTextItem(TextItem ti)
 { if ( notNil(ti->request_compute) )
   { int lw, lh, w, h;
     int al, av, am;
-    Int b = getResourceValueObject(ti, NAME_border);
+    Int b = getClassVariableValueObject(ti, NAME_border);
     int cwb = text_item_combo_width(ti);
     TextObj vt = ti->value_text;
 
-    obtainResourcesObject(ti);
+    obtainClassVariablesObject(ti);
     fontText(vt, ti->value_font);
     borderText(vt, b);
     if ( notDefault(ti->value_width) )
@@ -438,7 +433,7 @@ selectCompletionDialogItem(Any item, Chain matches,
 
   lines = valInt(getSizeChain(c->list_browser->dict->members));
   if ( lines > 6 )
-    lines = 6;				/* resource? */
+    lines = 6;				/* class-variable? */
   bh = lines * valInt(getHeightFont(c->list_browser->font));
   bh += 2 * TXT_X_MARGIN + 2;
 
@@ -566,7 +561,7 @@ completeTextItem(TextItem ti, EventId id)
     if ( completions(ti, ti->value_text->string, OFF, &dir, &file, &files) )
     { Tuple t;
       int dirmode;
-      Bool ignore_case = getResourceValueObject(ti, NAME_searchIgnoreCase);
+      Bool ignore_case = getClassVariableValueObject(ti, NAME_searchIgnoreCase);
       
       if ( !(dirmode = notNil(dir)) )
 	dir = (CharArray)NAME_;
@@ -787,7 +782,7 @@ getIncDecTextItem(TextItem ti, EventObj ev)
 
 static status
 attachTimerTextItem(TextItem ti)
-{ Real delay = getResourceValueObject(ti, NAME_repeatDelay);
+{ Real delay = getClassVariableValueObject(ti, NAME_repeatDelay);
 
   if ( delay )
   { Timer t = newObject(ClassTimer, delay,
@@ -816,7 +811,7 @@ detachTimerTextItem(TextItem ti)
 static status
 repeatTextItem(TextItem ti)
 { Timer t;
-  Real i = getResourceValueObject(ti, NAME_repeatInterval);
+  Real i = getClassVariableValueObject(ti, NAME_repeatInterval);
 
   if ( ti->status == NAME_increment ||
        ti->status == NAME_decrement )
@@ -841,7 +836,7 @@ getPointedTextItem(TextItem ti, Point pos)
 
 
 
-status
+static status
 eventTextItem(TextItem ti, EventObj ev)
 { static Int origin;			/* Multithread dubious! */
   Name dir;
@@ -950,7 +945,7 @@ eventTextItem(TextItem ti, EventObj ev)
     }
   } else if ( isAEvent(ev, NAME_msLeftUp) )
   { if ( notNil(ti->selection) &&
-	 getResourceValueObject(ti, NAME_autoCopy) == ON )
+	 getClassVariableValueObject(ti, NAME_autoCopy) == ON )
       send(ti, NAME_copy, 0);
   } else if ( isAEvent(ev, NAME_focus) )
   { if ( isAEvent(ev, NAME_obtainKeyboardFocus) )
@@ -1303,7 +1298,7 @@ static Int
 getLabelWidthTextItem(TextItem ti)
 { int lw, lh;
 
-  obtainResourcesObject(ti);
+  obtainClassVariablesObject(ti);
   compute_label_text_item(ti, &lw, &lh);
   answer(toInt(lw));
 }
@@ -1359,22 +1354,80 @@ geometryTextItem(TextItem ti, Int x, Int y, Int w, Int h)
 		*       DELEGATE TO TEXT	*
 		********************************/
 
+
 static status
-delegateTextItem(TextItem ti, Any impl, Any part, int argc, Any *argv)
-{ Bool old = getModifiedTextItem(ti);
+catchAllTextItem(TextItem ti, Name sel, int argc, Any *argv)
+{ if ( qadSendv(ti->value_text, NAME_hasSendMethod, 1, (Any*)&sel) )
+  { Bool old = getModifiedTextItem(ti);
+    status rval = vm_send(ti->value_text, sel, NULL, argc, argv);
 
-  if ( sendImplementation(impl, part, argc, argv) )
-  { Bool new;
+    if ( rval )
+    { Bool new;
+    
+      requestComputeGraphical(ti, DEFAULT);
+      if ( (new = getModifiedTextItem(ti)) != old &&
+	   hasSendMethodObject(ti->device, NAME_modifiedItem) )
+	send(ti->device, NAME_modifiedItem, ti, new, 0);
+    }
 
-    requestComputeGraphical(ti, DEFAULT);
-    if ( (new = getModifiedTextItem(ti)) != old &&
-	 hasSendMethodObject(ti->device, NAME_modifiedItem) )
-      send(ti->device, NAME_modifiedItem, ti, new, 0);
-
-    succeed;
+    return rval;
   }
 
+  return errorPce(ti, NAME_noBehaviour, CtoName("->"), sel);
+}
+
+
+static Any
+getCatchAllTextItem(TextItem t, Name sel, int argc, Any *argv)
+{ if ( qadSendv(t->value_text, NAME_hasGetMethod, 1, (Any*)&sel) )
+  { assign(PCE, last_error, NIL);
+
+    answer(vm_get(t->value_text, sel, NULL, argc, argv));
+  }
+
+  errorPce(t, NAME_noBehaviour, CtoName("<-"), sel);
   fail;
+} 
+
+static status
+hasSendMethodTextItem(TextItem t, Name sel)
+{ if ( hasSendMethodObject(t, sel) ||
+       hasSendMethodObject(t->value_text, sel) )
+    succeed;
+
+  fail;
+}
+
+
+static status
+hasGetMethodTextItem(TextItem t, Name sel)
+{ if ( hasGetMethodObject(t, sel) ||
+       hasGetMethodObject(t->value_text, sel) )
+    succeed;
+
+  fail;
+}
+
+
+static Tuple
+getSendMethodTextItem(TextItem ti, Name sel)
+{ Tuple t;
+
+  if ( (t = getSendMethodObject(ti, sel)) )
+    answer(t);
+
+  answer(getSendMethodObject(ti->value_text, sel));
+}
+
+
+static Tuple
+getGetMethodTextItem(TextItem ti, Name sel)
+{ Tuple t;
+
+  if ( (t = getGetMethodObject(ti, sel)) )
+    answer(t);
+
+  answer(getGetMethodObject(ti->value_text, sel));
 }
 
 
@@ -1402,8 +1455,6 @@ WantsKeyboardFocusTextItem(TextItem ti)
 
 static char *T_initialise[] =
         { "name=[name]", "default=[any|function]", "message=[code]*" };
-static char *T_delegate[] =
-        { "program_object", "text", "unchecked ..." };
 static char *T_selectCompletion[] =
         { "value_set=chain", "prefix=[char_array]*",
 	  "search=[char_array]*", "auto_hide=[0..]" };
@@ -1411,6 +1462,8 @@ static char *T_geometry[] =
         { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
 static char *T_selectedCompletion[] =
 	{ "item=char_array", "apply=[bool]" };
+static char *T_catchAll[] =
+        { "selector=name", "argument=unchecked ..." };
 
 
 /* Instance Variables */
@@ -1420,7 +1473,6 @@ static vardecl var_textItem[] =
      IV_GET|IV_STORE|IV_REDEFINE,
      statusTextItem,
      NAME_event, "Status for event-processing"),
-
   SV(NAME_selection, "any", IV_NONE|IV_STORE, selectionTextItem,
      NAME_selection, "Current value"),
   IV(NAME_default, "any|function", IV_NONE,
@@ -1439,7 +1491,7 @@ static vardecl var_textItem[] =
      NAME_appearance, "Font for entry field"),
   SV(NAME_showLabel, "bool", IV_GET|IV_STORE, showLabelTextItem,
      NAME_appearance, "Whether label is visible"),
-  SV(NAME_valueText, "text", IV_GET|IV_SUPER, NAME_delegate,
+  IV(NAME_valueText, "text", IV_GET,
      NAME_visualisation, "Graphical text object for selection"),
   SV(NAME_editable, "bool", IV_GET|IV_STORE, editableTextItem,
      NAME_event, "TextItem may be edited"),
@@ -1501,8 +1553,6 @@ static senddecl send_textItem[] =
      NAME_complete, "Handle selection from browser"),
   SM(NAME_showComboBox, 1, "bool", showComboBoxTextItem,
      NAME_complete, "Show the combo-box browser"),
-  SM(NAME_delegate, 3, T_delegate, delegateTextItem,
-     NAME_delegate, "Delegate to <-value_text and update"),
   SM(NAME_WantsKeyboardFocus, 0, NULL, WantsKeyboardFocusTextItem,
      NAME_event, "Test if ready to accept input"),
   SM(NAME_event, 1, "event", eventTextItem,
@@ -1524,7 +1574,13 @@ static senddecl send_textItem[] =
   SM(NAME_paste, 1, "[int]", pasteTextItem,
      NAME_selection, "Paste value of cut-buffer"),
   SM(NAME_displayedValue, 1, "char_array", displayedValueTextItem,
-     NAME_textual, "Visible (typed) textual value")
+     NAME_textual, "Visible (typed) textual value"),
+  SM(NAME_catchAll, 2, T_catchAll, catchAllTextItem,
+     NAME_delegate, "Delegate to <-value_text"),
+  SM(NAME_hasSendMethod, 1, "name", hasSendMethodTextItem,
+     DEFAULT, "Test if text or <-value_text defines method"),
+  SM(NAME_hasGetMethod, 1, "name", hasGetMethodTextItem,
+     DEFAULT, "Test if text or <-value_text defines method")
 };
 
 /* Get Methods */
@@ -1551,14 +1607,21 @@ static getdecl get_textItem[] =
      NAME_event, "Convert position to character index"),
   GM(NAME_displayedValue, 0, "char_array", NULL, getDisplayedValueTextItem,
      NAME_textual, "Visible (typed) textual value"),
-  GM(NAME_printNameOfValue, 1, "char_array", "any", getPrintNameOfValueTextItem,
-     NAME_textual, "Determine printable representation")
+  GM(NAME_printNameOfValue, 1, "char_array", "any",
+     getPrintNameOfValueTextItem,
+     NAME_textual, "Determine printable representation"),
+  GM(NAME_catchAll, 2, "unchecked", T_catchAll, getCatchAllTextItem,
+     NAME_delegate, "Delegate to <-value_text"),
+  GM(NAME_sendMethod, 1, "tuple", "name", getSendMethodTextItem,
+     NAME_delegate, "Get send_method from self or <-value_text"),
+  GM(NAME_getMethod, 1, "tuple", "name", getGetMethodTextItem,
+     NAME_delegate, "Get get_method from self or <-value_text")
 };
 
 /* Resources */
 
-static resourcedecl rc_textItem[] =
-{ RC(NAME_border, "0..", "0",
+static classvardecl rc_textItem[] =
+{ RC(NAME_border, "0..", UXWIN("2", "4"),
      "Border around <-value_text"),
   RC(NAME_length, "int", "25",
      "Width of area for selection (chars)"),
@@ -1573,7 +1636,10 @@ static resourcedecl rc_textItem[] =
   RC(NAME_repeatDelay, "real", "0.35",
      "Time to wait until start of repeat"),
   RC(NAME_repeatInterval, "real", "0.06",
-     "Interval between repeats")
+     "Interval between repeats"),
+  RC(NAME_look, RC_REFINE, UXWIN("open_look", "win"), NULL),
+  RC(NAME_elevation, RC_REFINE,
+     UXWIN("when(@colour_display, 1, @nil)", "@_txt_height"), NULL)
 };
 
 /* Class Declaration */

@@ -12,13 +12,6 @@
 #define FONTTABLESIZE	256
 #define STOCKFMT "GetStockObject(%d)"
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-We should consider parsing the x_name value as a description of an
-MS-Windows LOGFONT structure.  Something like this:
-
-height(16):italic:weight(700):face(blabla) 
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
 typedef struct _lname
 { char *name;
   int   value;
@@ -39,8 +32,13 @@ static lname charset_names[] =
 static lname outprecision_names[] = 
 { { "character",OUT_CHARACTER_PRECIS },
   { "default",	OUT_DEFAULT_PRECIS },
+  { "device",	OUT_DEVICE_PRECIS },
+  { "outline",	OUT_OUTLINE_PRECIS },
+  { "raster",	OUT_RASTER_PRECIS },
   { "string",	OUT_STRING_PRECIS },
   { "stroke",	OUT_STROKE_PRECIS },
+  { "tt_only",	OUT_TT_ONLY_PRECIS },
+  { "tt",	OUT_TT_PRECIS },
   { NULL,	0 }
 };
 
@@ -227,7 +225,7 @@ ws_create_font(FontObj f, DisplayObj d)
     wsf->from_stock = TRUE;
   } else
   { LOGFONT lfont;
-    Real  scale  = getResourceValueObject(f, NAME_scale);
+    Real  scale  = getClassVariableValueObject(f, NAME_scale);
     float fscale = (scale ? valReal(scale) : 1.4);
 
     memset(&lfont, 0, sizeof(lfont));
@@ -246,6 +244,9 @@ ws_create_font(FontObj f, DisplayObj d)
     { strcpy(lfont.lfFaceName, strName(f->family));
 
       parse_font(strName(f->x_name), &lfont);
+    } else
+    { lfont.lfOutPrecision  = OUT_TT_ONLY_PRECIS;
+      lfont.lfQuality	    = PROOF_QUALITY;
     }
 
     if ( !(wsf->hfont = CreateFontIndirect(&lfont)) )
@@ -278,8 +279,18 @@ ws_create_font(FontObj f, DisplayObj d)
   for(n=0; n<FONTTABLESIZE; n++)
     wsf->widths[n] = widths[n];
   GetTextMetrics(hdc, &tm);
-  wsf->ascent = tm.tmAscent + tm.tmExternalLeading;
+  wsf->ascent  = tm.tmAscent + tm.tmExternalLeading;
   wsf->descent = tm.tmDescent;
+/*if ( !(tm.tmPitchAndFamily & TMPF_TRUETYPE) && f->family != NAME_win )
+    Cprintf("%s (%s/%s): not a TrueType font\n",
+	    pp(f), pp(f->family), pp(f->style));
+*/
+  if ( isDefault(f->x_name) )
+  { char buf[256];
+
+    if ( GetTextFace(hdc, sizeof(buf), buf) )
+      assign(f, x_name, CtoName(buf));
+  }
   SelectObject(hdc, old);
   ReleaseDC(NULL, hdc);
 

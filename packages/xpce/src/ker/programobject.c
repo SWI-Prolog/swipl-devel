@@ -10,21 +10,11 @@
 #include <h/kernel.h>
 #include <h/trace.h>
 
-#ifndef O_RUNTIME
-static status	breakConditionProgramObject(ProgramObject, Code);
-static status	traceConditionProgramObject(ProgramObject obj, Code c);
-
-static HashTable TraceConditionTable;
-static HashTable BreakConditionTable;
-#endif /*O_RUNTIME*/
-
 status
 initialiseProgramObject(Any obj)
-{ ((ProgramObject)obj)->dflags = (ulong) ZERO;
-  setDFlag(obj, D_TRACE_INHERIT|D_BREAK_INHERIT);
+{ ProgramObject o = obj;
 
-  if ( getModeGoal(VmiNew) == MODE_SYSTEM )
-    setDFlag(obj, D_SYSTEM);
+  o->dflags = (ulong) ZERO | D_SYSTEM;
 
   succeed;
 }
@@ -33,16 +23,14 @@ initialiseProgramObject(Any obj)
 status
 initialiseNewSlotProgramObject(ProgramObject obj, Variable var)
 { if ( var->name == NAME_dflags )
-  { obj->dflags = (ulong) ZERO;
-    setDFlag(obj, D_TRACE_INHERIT|D_BREAK_INHERIT);
-  }
+    obj->dflags = (ulong) ZERO;
 
   succeed;
 }
 
 
 #ifndef O_RUNTIME
-ulong
+static ulong
 nameToTraceFlag(Name name)
 { if ( name == NAME_enter )
     return D_TRACE_ENTER;
@@ -55,7 +43,7 @@ nameToTraceFlag(Name name)
 }
 
 
-ulong
+static ulong
 nameToBreakFlag(Name name)
 { if ( name == NAME_enter )
     return D_BREAK_ENTER;
@@ -69,24 +57,14 @@ nameToBreakFlag(Name name)
 
 
 static status
-traceProgramObject(ProgramObject obj, Bool val, Name what, Code cond)
-{ if ( isDefault(val) )
-  { setDFlag(obj, D_TRACE_INHERIT);
-    clearDFlag(obj, D_TRACE);
+traceProgramObject(ProgramObject obj, Name what, Bool val)
+{ ulong flag = nameToTraceFlag(what);
+
+  if ( val != OFF )
+  { setDFlag(obj, flag);
+    debuggingPce(PCE, ON);
   } else
-  { ulong flag = nameToTraceFlag(what);
-
-    clearDFlag(obj, D_TRACE_INHERIT);
-    if ( val == ON )
-    { setDFlag(obj, flag);
-      if ( PCE->trace == NAME_never || PCE->trace == NAME_error )
-	tracePce(PCE, NAME_user);
-    } else
-      clearDFlag(obj, flag);
-
-    if ( notDefault(cond) )
-      traceConditionProgramObject(obj, cond);
-  }
+    clearDFlag(obj, flag);
 
   succeed;
 }
@@ -101,24 +79,14 @@ getTraceProgramObject(ProgramObject obj, Name what)
 
 
 static status
-breakProgramObject(ProgramObject obj, Bool val, Name what, Code cond)
-{ if ( isDefault(val) )
-  { setDFlag(obj, D_BREAK_INHERIT);
-    clearDFlag(obj, D_BREAK);
+breakProgramObject(ProgramObject obj, Name what, Bool val)
+{ ulong flag = nameToBreakFlag(what);
+
+  if ( val != OFF )
+  { setDFlag(obj, flag);
+    debuggingPce(PCE, ON);
   } else
-  { ulong flag = nameToBreakFlag(what);
-
-    clearDFlag(obj, D_BREAK_INHERIT);
-    if ( val == ON )
-    { setDFlag(obj, flag);
-      if ( PCE->trace == NAME_never || PCE->trace == NAME_error )
-	tracePce(PCE, NAME_user);
-    } else
-      clearDFlag(obj, flag);
-
-    if ( notDefault(cond) )
-      breakConditionProgramObject(obj, cond);
-  }
+    clearDFlag(obj, flag);
 
   succeed;
 }
@@ -133,7 +101,7 @@ getBreakProgramObject(ProgramObject obj, Name what)
 
 #endif /*O_RUNTIME*/
 
-status
+static status
 systemProgramObject(ProgramObject obj, Bool val)
 { if ( val == ON )
     setDFlag(obj, D_SYSTEM);
@@ -149,102 +117,10 @@ getSystemProgramObject(ProgramObject obj)
 { answer(onDFlag(obj, D_SYSTEM) ? ON : OFF);
 }
 
-#ifndef O_RUNTIME
-
-		/********************************
-		*          CONDITIONS		*
-		********************************/
-
-static status
-traceConditionProgramObject(ProgramObject obj, Code c)
-{ if ( isNil(c) )
-  { clearDFlag(obj, D_TRACE_CONDITION);
-    deleteHashTable(TraceConditionTable, obj);
-  } else
-  { setDFlag(obj, D_TRACE_CONDITION);
-    appendHashTable(TraceConditionTable, obj, c);
-  }
-  
-  succeed;
-}
-
-
-static status
-breakConditionProgramObject(ProgramObject obj, Code c)
-{ if ( isNil(c) )
-  { clearDFlag(obj, D_BREAK_CONDITION);
-    deleteHashTable(BreakConditionTable, obj);
-  } else
-  { setDFlag(obj, D_BREAK_CONDITION);
-    appendHashTable(BreakConditionTable, obj, c);
-  }
-  
-  succeed;
-}
-
-
-static Code
-getTraceConditionProgramObject(ProgramObject obj)
-{ if ( onDFlag(obj, D_TRACE_CONDITION) )
-    answer(getMemberHashTable(TraceConditionTable, obj));
-
-  fail;
-}
-
-
-static Code
-getBreakConditionProgramObject(ProgramObject obj)
-{ if ( onDFlag(obj, D_BREAK_CONDITION) )
-    answer(getMemberHashTable(BreakConditionTable, obj));
-
-  fail;
-}
-
-
-status
-evalTraceConditionProgramObject(ProgramObject obj, Goal g)
-{ Code c;
-
-  if ( (c = getTraceConditionProgramObject(obj)) )
-  { status rval;
-
-    withLocalVars({ assignVar(SELECTOR, g->selector, NAME_local);
-		    rval = forwardReceiverCodev(c, g->receiver,
-						g->argc, g->argv);
-		  });
-
-    return rval;
-  }
-
-  succeed;
-}
-
-
-status
-evalBreakConditionProgramObject(ProgramObject obj, Goal g)
-{ Code c;
-
-  if ( (c = getBreakConditionProgramObject(obj)) )
-  { status rval;
-
-    withLocalVars({ assignVar(SELECTOR, g->selector, NAME_local);
-		    rval = forwardReceiverCodev(c, g->receiver,
-						g->argc, g->argv);
-		  });
-
-    return rval;
-  }
-
-  succeed;
-}
-
-#endif /*O_RUNTIME*/
 
 #ifndef TAGGED_LVALUE
 void
-setDFlagProgramObject(obj, mask)
-Any obj;
-ulong mask;
+setDFlagProgramObject(Any obj, ulong mask)
 { ProgramObject po = obj;
 
   po->dflags |= mask;
@@ -252,9 +128,7 @@ ulong mask;
 
 
 void
-clearDFlagProgramObject(obj, mask)
-Any obj;
-ulong mask;
+clearDFlagProgramObject(Any obj, ulong mask)
 { ProgramObject po = obj;
 
   po->dflags &= ~mask;
@@ -270,7 +144,7 @@ ulong mask;
 
 #ifndef O_RUNTIME
 static char *T_debug[] =
-        { "value=[bool]", "ports=[{full,enter,exit,fail}]", "condition=[code]" };
+        { "ports=[{full,enter,exit,fail}]", "value=[bool]" };
 #endif
 
 /* Instance Variables */
@@ -288,14 +162,10 @@ static senddecl send_programObject[] =
   SM(NAME_initialiseNewSlot, 1, "variable", initialiseNewSlotProgramObject,
      NAME_compatibility, "Initialise <-dflags"),
 #ifndef O_RUNTIME
-  SM(NAME_break, 3, T_debug, breakProgramObject,
+  SM(NAME_break, 2, T_debug, breakProgramObject,
      NAME_debugging, "set/clear break-point on object"),
-  SM(NAME_breakCondition, 1, "code*", breakConditionProgramObject,
-     NAME_debugging, "Condition associated with this break-point"),
-  SM(NAME_trace, 3, T_debug, traceProgramObject,
+  SM(NAME_trace, 2, T_debug, traceProgramObject,
      NAME_debugging, "set/clear trace-point on object"),
-  SM(NAME_traceCondition, 1, "code*", traceConditionProgramObject,
-     NAME_debugging, "Condition associated with this trace-point"),
 #endif /*O_RUNTIME*/
   SM(NAME_system, 1, "bool", systemProgramObject,
      NAME_meta, "System defined object?")
@@ -308,12 +178,8 @@ static getdecl get_programObject[] =
 #ifndef O_RUNTIME
   GM(NAME_break, 1, "bool", "port=[{enter,exit,fail}]", getBreakProgramObject,
      NAME_debugging, "Current setting of break-point"),
-  GM(NAME_breakCondition, 0, "code", NULL, getBreakConditionProgramObject,
-     NAME_debugging, "Associated break-condition"),
   GM(NAME_trace, 1, "bool", "port=[{enter,exit,fail}]", getTraceProgramObject,
      NAME_debugging, "Current setting of trace-point"),
-  GM(NAME_traceCondition, 0, "code", NULL, getTraceConditionProgramObject,
-     NAME_debugging, "Associated trace-condition"),
 #endif /*O_RUNTIME*/
   GM(NAME_system, 0, "bool", NULL, getSystemProgramObject,
      NAME_meta, "System defined object?")
@@ -323,7 +189,7 @@ static getdecl get_programObject[] =
 
 #define rc_programObject NULL
 /*
-static resourcedecl rc_programObject[] =
+static classvardecl rc_programObject[] =
 { 
 };
 */
@@ -340,11 +206,6 @@ ClassDecl(programObject_decls,
 status
 makeClassProgramObject(Class class)
 { declareClass(class, &programObject_decls);
-
-#ifndef O_RUNTIME
-  TraceConditionTable = globalObject(NAME_traceConditions, ClassHashTable, 0);
-  BreakConditionTable = globalObject(NAME_breakConditions, ClassHashTable, 0);
-#endif
 
   succeed;
 }

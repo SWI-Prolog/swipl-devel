@@ -56,7 +56,7 @@ storeNumber(Number n, FileObj file)
 
 
 static status
-loadNumber(Number n, FILE *fd, ClassDef def)
+loadNumber(Number n, IOSTREAM *fd, ClassDef def)
 { TRY(loadSlotsObject(n, fd, def));
   if ( restoreVersion >= 16 )
     n->value = loadWord(fd);
@@ -94,27 +94,49 @@ getPrintNameNumber(Number n)
 }
 
 
+static Name
+getCompareNumber(Number n, Any i)
+{ long v;
+
+  if ( isInteger(i) )
+    v = valInt(i);
+  else if ( instanceOfObject(i, ClassNumber) )
+  { Number n = i;
+    v = n->value;
+  } else
+  { double va = valReal(i);
+    double vm = (double) n->value;
+
+    answer(vm > va ? NAME_larger : vm < va ? NAME_smaller : NAME_equal);
+  }
+
+  if ( n->value > v )
+    answer(NAME_larger);
+  if ( n->value < v )
+    answer(NAME_smaller);
+  answer(NAME_equal);
+}
+
+
 static status
 equalNumber(Number n, Any i)
-{ if ( n->value == valArg(i) )
+{ if ( getCompareNumber(n, i) == NAME_equal )
     succeed;
-
   fail;
 }
 
 
 static status
 notEqualNumber(Number n, Any i)
-{ if ( n->value != valArg(i) )
-    succeed;
-
-  fail;
+{ if ( getCompareNumber(n, i) == NAME_equal )
+    fail;
+  succeed;
 }
 
 
 static status
 smallerNumber(Number n, Int i)
-{ if ( n->value < valArg(i) )
+{ if ( getCompareNumber(n, i) == NAME_smaller )
     succeed;
   fail;
 }
@@ -122,7 +144,7 @@ smallerNumber(Number n, Int i)
 
 static status
 largerNumber(Number n, Any i)
-{ if ( n->value > valArg(i) )
+{ if ( getCompareNumber(n, i) == NAME_larger )
     succeed;
   fail;
 }
@@ -130,7 +152,7 @@ largerNumber(Number n, Any i)
 
 static status
 lessEqualNumber(Number n, Any i)
-{ if ( n->value <= valArg(i) )
+{ if ( getCompareNumber(n, i) != NAME_larger )
     succeed;
   fail;
 }
@@ -138,7 +160,7 @@ lessEqualNumber(Number n, Any i)
 
 static status
 largerEqualNumber(Number n, Any i)
-{ if ( n->value >= valArg(i) )
+{ if ( getCompareNumber(n, i) != NAME_smaller )
     succeed;
   fail;
 }
@@ -195,16 +217,6 @@ minimumNumber(Number n, Any i)
 }
 
 
-static Name
-getCompareNumber(Number n, Any i)
-{ if ( n->value > valArg(i) )
-    answer(NAME_larger);
-  if ( n->value < valArg(i) )
-    answer(NAME_smaller);
-  answer(NAME_equal);
-}
-
-
 static Number
 getCatchAllNumber(Number n, Name selector, int argc, Any *argv)
 { Number result;
@@ -252,6 +264,7 @@ static char *T_convertOldSlot[] =
 	{ "slot=name", "value=unchecked" };
 
 static char T_arg[] = "int|number";
+static char T_rarg[] = "int|number|real";
 
 /* Instance Variables */
 
@@ -281,17 +294,17 @@ static senddecl send_number[] =
      NAME_calculate, "Add argument to value"),
   SM(NAME_times, 1, T_arg, timesNumber,
      NAME_calculate, "Multiply value by argument"),
-  SM(NAME_equal, 1, T_arg, equalNumber,
+  SM(NAME_equal, 1, T_rarg, equalNumber,
      NAME_compare, "Test if equal to argument"),
-  SM(NAME_larger, 1, T_arg, largerNumber,
+  SM(NAME_larger, 1, T_rarg, largerNumber,
      NAME_compare, "Test if larger than argument"),
-  SM(NAME_largerEqual, 1, T_arg, largerEqualNumber,
+  SM(NAME_largerEqual, 1, T_rarg, largerEqualNumber,
      NAME_compare, "Test if larger-or-equal than argument"),
-  SM(NAME_lessEqual, 1, T_arg, lessEqualNumber,
+  SM(NAME_lessEqual, 1, T_rarg, lessEqualNumber,
      NAME_compare, "Test if less-or-equal than argument"),
-  SM(NAME_notEqual, 1, T_arg, notEqualNumber,
+  SM(NAME_notEqual, 1, T_rarg, notEqualNumber,
      NAME_compare, "Test if not-equal to argument"),
-  SM(NAME_smaller, 1, T_arg, smallerNumber,
+  SM(NAME_smaller, 1, T_rarg, smallerNumber,
      NAME_compare, "Test if less than argument")
 };
 
@@ -300,7 +313,7 @@ static senddecl send_number[] =
 static getdecl get_number[] =
 { GM(NAME_convert, 1, "number", "any", getConvertNumber,
      DEFAULT, "Converts int, real and char_array"),
-  GM(NAME_compare, 1, "{smaller,equal,larger}", "int", getCompareNumber,
+  GM(NAME_compare, 1, "{smaller,equal,larger}", T_rarg, getCompareNumber,
      NAME_compare, "Compare with argument"),
   GM(NAME_catchAll, 2, "copy=number", T_catchAll, getCatchAllNumber,
      NAME_copy, "Create copy and run method on it"),
@@ -314,7 +327,7 @@ static getdecl get_number[] =
 
 #define rc_number NULL
 /*
-static resourcedecl rc_number[] =
+static classvardecl rc_number[] =
 { 
 };
 */

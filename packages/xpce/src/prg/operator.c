@@ -108,7 +108,7 @@ static getdecl get_operator[] =
 
 #define rc_operator NULL
 /*
-static resourcedecl rc_operator[] =
+static classvardecl rc_operator[] =
 { 
 };
 */

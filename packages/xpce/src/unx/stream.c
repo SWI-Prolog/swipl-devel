@@ -13,6 +13,9 @@
 
 #ifdef HAVE_WINSOCK
 #include "mswinsock.h"
+#define StreamError() SockError()
+#else
+#define StreamError() OsError()
 #endif
 
 #include <h/kernel.h>
@@ -26,7 +29,6 @@
 #endif
 
 static status recordSeparatorStream(Stream s, Any sep);
-static status closeStream(Stream s);
 
 #define OsError() getOsErrorPce(PCE)
 
@@ -54,9 +56,7 @@ initialiseStream(Stream s, Int rfd, Int wfd, Code input, Any sep)
 
 static status
 unlinkStream(Stream s)
-{ closeStream(s);
-
-  succeed;
+{ return closeStream(s);
 }
 
 		 /*******************************
@@ -64,7 +64,7 @@ unlinkStream(Stream s)
 		 *******************************/
 
 
-static status
+status
 closeStream(Stream s)
 { closeOutputStream(s);
   closeInputStream(s);
@@ -77,14 +77,16 @@ closeStream(Stream s)
 
 status
 closeInputStream(Stream s)
-{ DEBUG(NAME_stream, Cprintf("%s: Closing input\n", pp(s)));
+{ if ( s->rdfd >= 0 )
+  { DEBUG(NAME_stream, Cprintf("%s: Closing input\n", pp(s)));
 
-  ws_close_input_stream(s);
-  s->rdfd = -1;
+    ws_close_input_stream(s);
+    s->rdfd = -1;
 
-  if ( s->input_buffer )
-  { pceFree(s->input_buffer);
-    s->input_buffer = NULL;
+    if ( s->input_buffer )
+    { pceFree(s->input_buffer);
+      s->input_buffer = NULL;
+    }
   }
 
   succeed;
@@ -93,10 +95,12 @@ closeInputStream(Stream s)
 
 status
 closeOutputStream(Stream s)
-{ DEBUG(NAME_stream, Cprintf("Closing output\n"));
+{ if ( s->wrfd >= 0 )
+  { DEBUG(NAME_stream, Cprintf("%s: Closing output\n", pp(s)));
 
-  ws_close_output_stream(s);
-  s->wrfd = -1;
+    ws_close_output_stream(s);
+    s->wrfd = -1;
+  }
 
   succeed;
 }
@@ -303,10 +307,14 @@ handleInputStream(Stream s)
       dispatch_input_stream(s);
     }
   } else
-  { DEBUG(NAME_stream,
+  { 
+    DEBUG(NAME_stream,
 	  if ( n < 0 )
-	    Cprintf("Read failed: %s\n", strName(OsError())));
-    closeStream(s);
+	    Cprintf("Read failed: %s\n", strName(StreamError()));
+	  else
+	    Cprintf("%s: Got 0 characters: EOF\n", pp(s));
+	 );
+    send(s, NAME_closeInput, 0);
     send(s, NAME_endOfFile, 0);
   }
 
@@ -470,7 +478,7 @@ static getdecl get_stream[] =
 
 #define rc_stream NULL
 /*
-static resourcedecl rc_stream[] =
+static classvardecl rc_stream[] =
 { 
 };
 */
@@ -541,7 +549,7 @@ static getdecl get_stream[] =
 
 #define rc_stream NULL
 /*
-static resourcedecl rc_stream[] =
+static classvardecl rc_stream[] =
 { 
 };
 */

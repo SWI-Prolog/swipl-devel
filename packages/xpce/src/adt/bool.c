@@ -71,7 +71,7 @@ static getdecl get_bool[] =
 
 #define rc_bool NULL
 /*
-static resourcedecl rc_bool[] =
+static classvardecl rc_bool[] =
 { 
 };
 */

@@ -100,7 +100,7 @@ static getdecl get_modifier[] =
 
 #define rc_modifier NULL
 /*
-static resourcedecl rc_modifier[] =
+static classvardecl rc_modifier[] =
 { 
 };
 */

@@ -482,14 +482,6 @@ getDeleteSuffixName(Name n, Name suffix)
 }
 
 
-Name
-getExternalName(Name n)			/* map to lower  */
-{ if ( syntax.uppercase )
-    return (Name) getDowncaseCharArray((CharArray)n);
-  
-  return n;
-}
-
 		/********************************
 		*          C-CONVERSIONS	*
 		********************************/
@@ -532,7 +524,7 @@ StringToName(String s)
   { CharArray scratch = StringToScratchCharArray(s);
     Name name;
 
-    Mode(MODE_SYSTEM, name = newObject(ClassName, scratch, 0));
+    ServiceMode(PCE_EXEC_SERVICE, name = newObject(ClassName, scratch, 0));
 
     doneScratchCharArray(scratch);
     return name;
@@ -672,7 +664,7 @@ static getdecl get_name[] =
 
 #define rc_name NULL
 /*
-static resourcedecl rc_name[] =
+static classvardecl rc_name[] =
 { 
 };
 */

@@ -46,7 +46,7 @@ static status		selectionToCutBufferEditor(Editor, Int);
 static status		insertCutBufferEditor(Editor, Int);
 static status		insertEditor(Editor e, CharArray str);
 static status		lineNumberEditor(Editor, Int);
-static status		saveEditor(Editor, FileObj);
+static status		saveEditor(Editor, SourceSink);
 static status		newKill(CharArray);
 static CharArray	killRegister(Int);
 static status		tabDistanceEditor(Editor e, Int tab);
@@ -82,7 +82,7 @@ static Timer	ElectricTimer;
 static status
 initialiseEditor(Editor e, TextBuffer tb, Int w, Int h, Int tmw)
 { Int fw, fh, iw, ih, ew;
-  Size sz = getResourceValueObject(e, NAME_size);
+  Size sz = getClassVariableValueObject(e, NAME_size);
 
   if ( isDefault(tb) ) tb = newObject(ClassTextBuffer, 0);
   if ( isDefault(tmw)) tmw = ZERO;
@@ -91,10 +91,10 @@ initialiseEditor(Editor e, TextBuffer tb, Int w, Int h, Int tmw)
   if ( notDefault(w) ) assign(e->size, w, w);
   if ( notDefault(h) ) assign(e->size, h, h);
 
-  initialiseDevice((Device) e);
-  assign(e, pen, getResourceValueObject(e, NAME_pen));
+  initialiseDevice((Device) e);		/* also obtains class-variables! */
+/*assign(e, pen, getClassVariableValueObject(e, NAME_pen));*/
   assign(e, text_buffer, tb);
-  assign(e, font, getResourceValueObject(e, NAME_font));
+/*assign(e, font, getClassVariableValueObject(e, NAME_font));*/
   fw = getExFont(e->font);
   fh = getHeightFont(e->font);
   iw = toInt(valInt(e->size->w) * valInt(fw) + 2 * TXT_X_MARGIN);
@@ -116,8 +116,8 @@ initialiseEditor(Editor e, TextBuffer tb, Int w, Int h, Int tmw)
   boldStyle(e->selected_fragment_style, ON);
   assign(e, bindings, newObject(ClassKeyBinding, NIL, NAME_editor, 0));
   assign(e, focus_function, NIL);
-  assign(e, fill_mode, getResourceValueObject(e, NAME_fillMode));
-  assign(e, exact_case, getResourceValueObject(e, NAME_exactCase));
+/*assign(e, fill_mode, getClassVariableValueObject(e, NAME_fillMode));
+  assign(e, exact_case, getClassVariableValueObject(e, NAME_exactCase));*/
   assign(e, kill_location, NIL);
   assign(e, search_direction, NAME_forward);
   assign(e, search_string, NIL);
@@ -125,12 +125,12 @@ initialiseEditor(Editor e, TextBuffer tb, Int w, Int h, Int tmw)
   assign(e, search_base, ZERO);
   assign(e, selection_origin, ZERO);
   assign(e, selection_unit, NAME_character);
-  assign(e, selection_style, getResourceValueObject(e, NAME_selectionStyle));
+/*assign(e, selection_style, getClassVariableValueObject(e, NAME_selectionStyle));*/
   assign(e, editable, ON);
   assign(e, error_message, NIL);
   assign(e, left_margin, ZERO);
-  assign(e, right_margin, getResourceValueObject(e, NAME_rightMargin));
-  assign(e, indent_increment, getResourceValueObject(e, NAME_indentIncrement));
+/*assign(e, right_margin, getClassVariableValueObject(e, NAME_rightMargin));
+  assign(e, indent_increment, getClassVariableValueObject(e, NAME_indentIncrement)); */
   assign(e, auto_newline, OFF);
   assign(e, file, NIL);
   assign(e, dabbrev_target, NIL);
@@ -142,9 +142,10 @@ initialiseEditor(Editor e, TextBuffer tb, Int w, Int h, Int tmw)
   e->selection_start = e->selection_end = 0;
   e->fragment_cache = newFragmentCache(e);
 
-  send(e->image, NAME_cursor, getResourceValueObject(e, NAME_cursor), 0);
+  send(e->image, NAME_cursor, getClassVariableValueObject(e, NAME_cursor), 0);
   send(e->image, NAME_set, e->scroll_bar->area->w, ZERO, 0);
-  tabDistanceEditor(e, getResourceValueObject(e, NAME_tabDistance));
+/*tabDistanceEditor(e, getClassVariableValueObject(e, NAME_tabDistance));*/
+  tabDistanceTextImage(e->image, mul(e->tab_distance, getExFont(e->font)));
   heightGraphical((Graphical) e->scroll_bar, ih);
   displayDevice(e, e->scroll_bar, DEFAULT);
   displayDevice(e, e->image, DEFAULT);
@@ -217,7 +218,7 @@ lostTextBufferEditor(Editor e)
 
 static status
 RedrawAreaEditor(Editor e, Area a)
-{ Any obg = r_background(getResourceValueObject(e, NAME_background));
+{ Any obg = r_background(getClassVariableValueObject(e, NAME_background));
 
   RedrawAreaDevice((Device)e, a);
   if ( e->pen != ZERO )
@@ -256,7 +257,7 @@ storeEditor(Editor e, FileObj file)
 
 
 static status
-loadFdEditor(Editor e, FILE *fd, ClassDef def)
+loadFdEditor(Editor e, IOSTREAM *fd, ClassDef def)
 { TRY(loadSlotsObject(e, fd, def));
 
   e->selection_start = e->selection_end = 0;
@@ -439,22 +440,13 @@ labelEditor(Editor e, Name lbl)
 }
 
 
-Name
-getLabelEditor(Editor e)
-{ if ( notNil(e->label_text) )
-    answer(getValueCharArray((CharArray) e->label_text->string));
-
-  fail;
-}
-
-
 static status
 showLabelEditor(Editor e, Bool val)
 { if ( isNil(e->label_text) )
   { if ( val == ON )
     { assign(e, label_text,
 	     newObject(ClassText, getLabelNameName(e->name), NAME_left,
-		       getResourceValueObject(e, NAME_labelFont), 0));
+		       getClassVariableValueObject(e, NAME_labelFont), 0));
       marginText(e->label_text, e->area->w, NAME_clip);
       displayDevice(e, e->label_text, DEFAULT);
       return geometryEditor(e, DEFAULT, DEFAULT, DEFAULT, DEFAULT);
@@ -609,7 +601,7 @@ geometryEditor(Editor e, Int x, Int y, Int w, Int h)
   mx = ix + iw - pen;
 
   if ( notNil(e->margin) )
-  { if ( getResourceValueObject(e->margin, NAME_placement) == NAME_left )
+  { if ( getClassVariableValueObject(e->margin, NAME_placement) == NAME_left )
     { mx = ix;
       ix += mw;
     } else
@@ -966,7 +958,7 @@ fetch_editor(Any obj, TextChar tc)
 
   if ( InRegion(index, e->selection_start, e->selection_end) )
   { Style s = (isisearchingEditor(e)
-	       ? getResourceValueObject(e, NAME_isearchStyle)
+	       ? getClassVariableValueObject(e, NAME_isearchStyle)
 	       : e->selection_style);
 
     if ( !s || isDefault(s) )
@@ -1333,8 +1325,8 @@ event_editor(Editor e, EventObj ev)
 
   if ( isAEvent(ev, NAME_button) )
   { Int where = getIndexTextImage(e->image, ev);
-    Modifier select_modifier = getResourceValueObject(e, NAME_selectModifier);
-    Modifier caret_modifier = getResourceValueObject(e, NAME_caretModifier);
+    Modifier select_modifier = getClassVariableValueObject(e, NAME_selectModifier);
+    Modifier caret_modifier = getClassVariableValueObject(e, NAME_caretModifier);
 
     if ( !where )
       fail;
@@ -1437,7 +1429,7 @@ insert_editor(Editor e, Int times, Int chr, int fill)
 
   MustBeEditable(e);
   if ( HasSelection(e) &&
-       getResourceValueObject(e, NAME_insertDeletesSelection) == ON )
+       getClassVariableValueObject(e, NAME_insertDeletesSelection) == ON )
     deleteSelectionEditor(e);
 
   if ( fill && e->fill_mode == ON )
@@ -1461,7 +1453,7 @@ insert_editor(Editor e, Int times, Int chr, int fill)
   insert_textbuffer(e->text_buffer, Caret(e), valInt(times), s);
 
   if ( tisclosebrace(e->text_buffer->syntax, c) &&
-       getResourceValueObject(e, NAME_showOpenBracket) == ON )
+       getClassVariableValueObject(e, NAME_showOpenBracket) == ON )
     showMatchingBracketEditor(e, sub(e->caret, ONE));
 
   succeed;
@@ -1700,12 +1692,23 @@ pointToBottomOfWindowEditor(Editor e, Int arg)
 static status
 nextLineEditor(Editor e, Int arg, Int column)
 { Int caret;
+  TextBuffer tb = e->text_buffer;
+  int n = UArg(arg);
 
   if ( isDefault(column) )
     column = getColumnEditor(e, e->caret);
 
-  caret = getScanTextBuffer(e->text_buffer,
-			    e->caret, NAME_line, toInt(UArg(arg)), NAME_start);
+  caret = getScanTextBuffer(tb, e->caret, NAME_line, toInt(n), NAME_start);
+
+  if ( valInt(caret) ==	tb->size &&
+       ( caret == e->caret || Fetch(e, tb->size-1) != '\n' ) &&
+       n == 1 &&
+       e->editable == ON )
+  { endOfLineEditor(e, DEFAULT);
+
+    return send(e, NAME_newline, ONE, 0);
+  }
+
   assign(e, caret, caret);
   
   return columnEditor(e, column);
@@ -1785,7 +1788,7 @@ pasteEditor(Editor e)
 
   if ( d && (selection=get(d, NAME_paste, 0)) )
   { if ( HasSelection(e) &&
-	 getResourceValueObject(e, NAME_insertDeletesSelection) == ON )
+	 getClassVariableValueObject(e, NAME_insertDeletesSelection) == ON )
       deleteSelectionEditor(e);
 
     return insertEditor(e, selection);
@@ -2193,13 +2196,13 @@ saveBufferEditor(Editor e, Int arg)
 
   if ( e->text_buffer->modified == ON && isDefault(arg) )
   { if ( notNil(e->file) )
-    { if ( saveEditor(e, DEFAULT) == SUCCEED )
+    { if ( saveEditor(e, DEFAULT) )
       { CmodifiedTextBuffer(e->text_buffer, OFF);
 	send(e, NAME_report, NAME_status,
-	     CtoName("Buffer saved in file %s"), e->file->name, 0);
+	     CtoName("Buffer saved in %N"), e->file, 0);
       } else
       { send(e, NAME_report, NAME_error,
-	     CtoName("Failed to save buffer into %s"), e->file->name);
+	     CtoName("Failed to save buffer into %N"), e->file);
 	rval = FAIL;
       }      
     } else
@@ -2784,7 +2787,7 @@ insertSelfFillEditor(Editor e, Int times, Int chr)
   }
 
   if ( tisclosebrace(e->text_buffer->syntax, c) &&
-       getResourceValueObject(e, NAME_showOpenBracket) == ON )
+       getClassVariableValueObject(e, NAME_showOpenBracket) == ON )
     showMatchingBracketEditor(e, sub(e->caret, ONE));
 
   succeed;
@@ -2859,6 +2862,7 @@ beginIsearchEditor(Editor e, Name direction)
   assign(e, search_base,      e->caret);
   assign(e, search_origin,    e->caret);
   assign(e, focus_function,   NAME_StartIsearch);
+  attributeObject(e, NAME_SavedDisplayedCaret, e->text_cursor->displayed);
   selection_editor(e, e->caret, e->caret); /* clear the selection */
   send(e, NAME_report, NAME_status, CtoName("isearch %s"), direction, 0);
 
@@ -2869,9 +2873,15 @@ beginIsearchEditor(Editor e, Name direction)
 static status
 abortIsearchEditor(Editor e)
 { if ( isisearchingEditor(e) )
-  { assign(e, focus_function, NIL);
+  { Bool old = getAttributeObject(e, NAME_SavedDisplayedCaret);
+
+    if ( !old )
+      old = ON;
+
+    deleteAttributeObject(e, NAME_SavedDisplayedCaret);
+    assign(e, focus_function, NIL);
     selection_editor(e, ZERO, ZERO);
-    DisplayedGraphical(e->text_cursor, ON);
+    DisplayedGraphical(e->text_cursor, old);
   }
   
   succeed;
@@ -2886,7 +2896,7 @@ endIsearchEditor(Editor e)
 
     CaretEditor(e, toInt(caret));
     abortIsearchEditor(e);
-    send(e, NAME_report, NAME_status, CtoName(""), 0);
+    send(e, NAME_report, NAME_status, NAME_, 0);
   }
 
   succeed;
@@ -2911,10 +2921,7 @@ extendSearchStringToWordEditor(Editor e)
   Int start = toInt(e->selection_start);
   Int end   = toInt(e->selection_end);
 
-  if ( e->search_direction == NAME_forward )
-    end   = getScanTextBuffer(tb, end,   NAME_word, ZERO, NAME_end);
-  else
-    start = getScanTextBuffer(tb, start, NAME_word, ZERO, NAME_start);
+  end = getScanTextBuffer(tb, end, NAME_word, ZERO, NAME_end);
 
   assign(e, search_string, getContentsTextBuffer(tb, start, sub(end, start)));
   selection_editor(e, start, end);
@@ -3504,7 +3511,7 @@ getSelectionEditor(Editor e)
 }
 
 
-Int
+static Int
 getSelectionStartEditor(Editor e)
 { if ( e->selection_start != e->selection_end )
     answer(toInt(e->selection_start));
@@ -3513,7 +3520,7 @@ getSelectionStartEditor(Editor e)
 }
 
 
-Int
+static Int
 getSelectionEndEditor(Editor e)
 { if ( e->selection_start != e->selection_end )
     answer(toInt(e->selection_end));
@@ -3873,13 +3880,16 @@ getLineNumberEditor(Editor e, Int where)
 		********************************/
 
 static status
-loadEditor(Editor e, FileObj file)
+loadEditor(Editor e, SourceSink file)
 { TextBuffer tb = e->text_buffer;
   status rval;
 
   clearTextBuffer(tb);
-  if ( (rval = insertFileTextBuffer(tb, ZERO, file, ONE)) == SUCCEED ) 
-  { assign(e, file, file);
+  if ( (rval = insertFileTextBuffer(tb, ZERO, file, ONE)) ) 
+  { Bool editable = (send(file, NAME_access, NAME_write, 0) ? ON : OFF);
+
+    assign(e, file, file);
+    send(e, NAME_editable, editable, 0);
     CaretEditor(e, ZERO);
     CmodifiedTextBuffer(tb, OFF);
     resetUndoTextBuffer(tb);
@@ -3890,14 +3900,15 @@ loadEditor(Editor e, FileObj file)
 
 
 static status
-saveEditor(Editor e, FileObj file)
+saveEditor(Editor e, SourceSink file)
 { if ( isDefault(file) )
     file = e->file;
 
   if ( isNil(file) )
     fail;
   
-  if ( existsFile(file, DEFAULT) )
+  if ( instanceOfObject(file, ClassFile) &&
+       existsFile((FileObj)file, DEFAULT) )
     TRY(send(file, NAME_backup, 0));
 
   TRY(saveTextBuffer(e->text_buffer, file, DEFAULT, DEFAULT));
@@ -3911,7 +3922,7 @@ saveEditor(Editor e, FileObj file)
 		*          ATTRIBUTES		*
 		********************************/
 
-status
+static status
 fontEditor(Editor e, FontObj font)
 { if ( e->font != font )
   { assign(e, font, font);
@@ -4182,7 +4193,7 @@ static vardecl var_editor[] =
      NAME_indentation, "Indent/undent amount"),
   IV(NAME_autoNewline, "bool", IV_BOTH,
      NAME_mode, "If @on, append newline after ->append"),
-  IV(NAME_file, "file*", IV_GET,
+  IV(NAME_file, "source_sink*", IV_GET,
      NAME_file, "Associated file"),
   IV(NAME_dabbrevTarget, "name*", IV_NONE,
      NAME_internal, "Dynamic abbreviation target"),
@@ -4347,7 +4358,7 @@ static senddecl send_editor[] =
      NAME_event, "Handle a general event"),
   SM(NAME_label, 1, "name", labelEditor,
      NAME_label, "Set the name of the label"),
-  SM(NAME_load, 1, "file=file", loadEditor,
+  SM(NAME_load, 1, "file=source_sink", loadEditor,
      NAME_file, "Clear editor and load a file"),
   SM(NAME_save, 1, "file=[file]", saveEditor,
      NAME_file, "Save to current or given file"),
@@ -4574,12 +4585,12 @@ static getdecl get_editor[] =
 
 /* Resources */
 
-static resourcedecl rc_editor[] =
+static classvardecl rc_editor[] =
 { RC(NAME_background, "colour|pixmap", "white",
      "Colour/fill pattern of the background"),
   RC(NAME_caretModifier, "modifier", "",
      "Modify caret using this modifier"),
-  RC(NAME_cursor, "cursor", "xterm",
+  RC(NAME_cursor, "cursor", UXWIN("xterm", "win_ibeam"),
      "Default cursor"),
   RC(NAME_exactCase, "bool", "@off",
      "Search/replace case"),
@@ -4591,17 +4602,25 @@ static resourcedecl rc_editor[] =
      "Font used to display the label"),
   RC(NAME_indentIncrement, "int", "2",
      "Indent/undent amount"),
-  RC(NAME_isearchStyle, "style", "style(highlight := @on)",
+  RC(NAME_isearchStyle, "style",
+     UXWIN("when(@colour_display,\n"
+	   "     style(background := green),\n"
+	   "     style(background:= @grey25_image))",
+	   "@_isearch_style"),
      "Style for incremental search"),
   RC(NAME_keyBinding, "string", "",
      "`Key = selector' binding list"),
-  RC(NAME_pen, "0..", "0",
+  RC(NAME_pen, "0..", UXWIN("0", "1"),
      "Thickness of box around editor"),
   RC(NAME_rightMargin, "int", "72",
      "Auto-fill margin width"),
   RC(NAME_selectModifier, "modifier", "s",
      "Modify selection using this modifier"),
-  RC(NAME_selectionStyle, "[style]", "@default",
+  RC(NAME_selectionStyle, "[style]",
+     UXWIN("when(@colour_display,\n"
+	   "     style(background := yellow),\n"
+	   "     style(highlight := @on))",
+	   "@_select_style"),
      "Style for <-selection"),
   RC(NAME_insertDeletesSelection, "bool", "@on",
      "->insert_self and ->paste delete the selection"),

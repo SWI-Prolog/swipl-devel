@@ -37,18 +37,24 @@ area of the graphical) should not be used.  Changing the area of an arrow
 has no well-defined meaning.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static status pointsArrow(Arrow a, Int tx, Int ty, Int rx, Int ry);
+
 static status
 initialiseArrow(Arrow a, Int length, Int wing, Name style, Any fill)
 { initialiseGraphical(a, ZERO, ZERO, ONE, ONE);
-  assign(a, length, length);
-  assign(a, wing, wing);
-  assign(a, tip, newObject(ClassPoint, toInt(10), toInt(10), 0));
+
+  if ( notDefault(length) )	assign(a, length, length);
+  if ( notDefault(wing) )	assign(a, wing, wing);
+  if ( notDefault(style) )	assign(a, style, style);
+  if ( notDefault(fill) )	assign(a, fill_pattern, fill);
+
+  assign(a, tip,       newObject(ClassPoint, toInt(10), toInt(10), 0));
   assign(a, reference, newObject(ClassPoint, 0));
-  assign(a, left, newObject(ClassPoint, 0));
-  assign(a, right, newObject(ClassPoint, 0));
-  assign(a, fill_pattern, fill);
-  assign(a, style, style);
-  obtainResourcesObject(a);
+  assign(a, left,      newObject(ClassPoint, 0));
+  assign(a, right,     newObject(ClassPoint, 0));
+
+  obtainClassVariablesObject(a);
+
   if ( notNil(a->fill_pattern) )
     assign(a, pen, ZERO);
 
@@ -58,7 +64,7 @@ initialiseArrow(Arrow a, Int length, Int wing, Name style, Any fill)
 }
 
 
-status
+static status
 computeArrow(Arrow a)
 { if ( notNil(a->request_compute) )
   { int x1, y1, x2, y2;
@@ -284,7 +290,7 @@ wingArrow(Arrow a, Int w)
 }
 
 
-status
+static status
 pointsArrow(Arrow a, Int tx, Int ty, Int rx, Int ry)
 { Point tip = a->tip;
   Point ref = a->reference;
@@ -302,21 +308,6 @@ pointsArrow(Arrow a, Int tx, Int ty, Int rx, Int ry)
     requestComputeGraphical(a, DEFAULT);
   }
   
-  succeed;
-}
-
-
-status
-paintArrow(Arrow a, Int tx, Int ty, Int rx, Int ry)
-{ pointsArrow(a, tx, ty, rx, ry);
-  computeArrow(a);
-
-  drawArrow(valInt(a->left->x), valInt(a->left->y),
-	    valInt(a->tip->x), valInt(a->tip->y),
-	    valInt(a->right->x), valInt(a->right->y),
-	    a->fill_pattern, valInt(a->pen), a->texture,
-	    a->style);
-
   succeed;
 }
 
@@ -398,7 +389,7 @@ static getdecl get_arrow[] =
 
 /* Resources */
 
-static resourcedecl rc_arrow[] =
+static classvardecl rc_arrow[] =
 { RC(NAME_fillPattern, "image|colour", "@black_image",
      "Fill pattern for the triangle"),
   RC(NAME_length, "int", "10",

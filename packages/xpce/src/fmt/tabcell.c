@@ -28,7 +28,7 @@ table_of_cell(TableCell cell)
 		 *	      CREATE		*
 		 *******************************/
 
-status
+static status
 initialiseTableCell(TableCell c, Graphical image)
 { initialiseLayoutInterface(c, image);
 
@@ -100,6 +100,17 @@ static status
 backgroundTableCell(TableCell c, Any bg)
 { if ( c->background != bg )
   { assign(c, background, bg);
+    modifiedImageTableCell(c);
+  }
+
+  succeed;
+}
+
+
+static status
+noteMarkTableCell(TableCell c, Image mark)
+{ if ( c->note_mark != mark )
+  { assign(c, note_mark, mark);
     modifiedImageTableCell(c);
   }
 
@@ -314,6 +325,25 @@ dims_table_cell(TableCell cell, TableCellDimensions dims)
 }
 
 
+static Area
+getAreaTableCell(TableCell c)
+{ Table tab = table_of_cell(c);
+  Device dev;
+
+  if ( tab && notNil(dev=tab->device) )
+  { table_cell_dimensions d;
+
+    ComputeGraphical(dev);		/* make sure area is up-to-date */
+    dims_table_cell(c, &d);
+    answer(answerObject(ClassArea,
+			toInt(d.x), toInt(d.y), toInt(d.w), toInt(d.h),
+			0));
+  }
+
+  fail;
+}
+
+
 		 /*******************************
 		 *	      LAYOUT		*
 		 *******************************/
@@ -425,7 +455,9 @@ static vardecl var_table_cell[] =
   SV(NAME_selected, "bool", IV_GET|IV_STORE, selectedTableCell,
      NAME_selection, "Is cell selected?"),
   SV(NAME_background, "[colour|pixmap]", IV_GET|IV_STORE, backgroundTableCell,
-     NAME_colour, "Backround colour for the cell")
+     NAME_colour, "Backround colour for the cell"),
+  SV(NAME_noteMark, "image*", IV_GET|IV_STORE, noteMarkTableCell,
+     NAME_appearance, "Image painted in the top-right corner")
 };
   
 /* Send Methods */
@@ -451,14 +483,17 @@ static getdecl get_table_cell[] =
      DEFAULT, "Current vertical alignment"),
   GM(NAME_table, 0, "table", NULL,
      getTableTableCell,
-     DEFAULT, "The <-layout_manager if not @nil")
+     DEFAULT, "The <-layout_manager if not @nil"),
+  GM(NAME_area, 0, "area", NULL,
+     getAreaTableCell,
+     NAME_area, "Area in device coordinates")
 };
 
 /* Resources */
 
 #define rc_table_cell NULL
 /*
-static resourcedecl rc_table_cell[] =
+static classvardecl rc_table_cell[] =
 {
 };
 */

@@ -53,7 +53,7 @@ storeDate(Date d, FileObj file)
 
 
 static status
-loadDate(Date d, FILE *fd, ClassDef def)
+loadDate(Date d, IOSTREAM *fd, ClassDef def)
 { if ( restoreVersion != 2 )
     TRY(loadSlotsObject(d, fd, def));
   d->unix_date = loadWord(fd);
@@ -408,7 +408,7 @@ static getdecl doget_date[] =
 
 #define rc_date NULL
 /*
-static resourcedecl rc_date[] =
+static classvardecl rc_date[] =
 { 
 };
 */

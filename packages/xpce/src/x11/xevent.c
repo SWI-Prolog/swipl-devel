@@ -29,7 +29,13 @@
 #define DISPATCH_INPUT		1
 #define DISPATCH_TIMEOUT	2
 
-static int* dispatch_status_address;
+static int*	    dispatch_status_address;
+
+void
+resetDispatch()
+{ dispatch_status_address = NULL;
+}
+
 
 static void
 is_pending(XtPointer ctx, int *source, XtInputId *id)

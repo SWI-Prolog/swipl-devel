@@ -207,7 +207,7 @@ setLastEventTime(ulong time)
 }
 
 
-Int
+static Int
 getTimeEvent(EventObj ev, EventObj ev2)
 { if ( notDefault(ev2) )
     answer(toInt(ev2->time - ev->time));
@@ -618,7 +618,7 @@ insideEvent(EventObj ev, Graphical gr)
 }
 
 
-Any
+static Any
 getInsideSubWindow(EventObj ev, Any root)
 { return ws_event_in_subwindow(ev, root);
 }
@@ -653,7 +653,7 @@ getReceiverEvent(EventObj ev)
 }
 
 
-Name
+static Name
 getKeyEvent(EventObj ev)
 { answer(characterName(ev->id));
 }
@@ -825,7 +825,7 @@ static getdecl get_event[] =
 
 #define rc_event NULL
 /*
-static resourcedecl rc_event[] =
+static classvardecl rc_event[] =
 { 
 };
 */
@@ -973,15 +973,11 @@ add_node(Name n, Name super)
 static void
 init_event_tree(void)
 { struct namepair *np;
-  int oldtrace = TraceMode;
 
-  TraceMode = TRACE_NEVER;
   EventTree = globalObject(NAME_eventTree, ClassEventTree, 0);
 
   send(EventTree, NAME_root, newObject(ClassEventNode, NAME_any, 0), 0);
 
   for(np = initial_tree; np->son; np++)
     add_node(np->son, np->parent);
-
-  TraceMode = oldtrace;
 }

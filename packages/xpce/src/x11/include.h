@@ -157,18 +157,17 @@ void		freeSparceCInfo(XColor **table, int depth);
 void		x11_set_gc_foreground(DisplayObj d, Any fg, int gcs, GC *gc);
 
 /* x11-conversion.c */
-XImage *	readImageFile(Image image, FILE *fd);
+XImage *	readImageFile(Image image, IOSTREAM *fd);
 XImage *	CreateXImageFromData(unsigned char *data, int w, int h);
 XImage *	read_ppm_file(Display *disp, Colormap map,
-			      int depth, FILE *fd);
-int		write_pnm_file(FILE *fd, XImage *img,
+			      int depth, IOSTREAM *fd);
+int		write_pnm_file(IOSTREAM *fd, XImage *img,
 			       Display *disp, Colormap cmap,
 			       int scale, int fmt, int asascii);
 
 /* xcolour.c */
 status		allocNearestColour(Display *display, Colormap map,
 				   int depth, Name vt, XColor *c);
-int		intensityXColor(XColor *c);
 
 extern XtAppContext ThePceXtAppContext;	/* X toolkit application context */
 

@@ -72,7 +72,7 @@ static getdecl get_nonEqual[] =
 
 #define rc_nonEqual NULL
 /*
-static resourcedecl rc_nonEqual[] =
+static classvardecl rc_nonEqual[] =
 { 
 };
 */

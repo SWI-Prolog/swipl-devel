@@ -11,6 +11,9 @@
 #include <h/graphics.h>
 #include <h/text.h>
 
+static status	fontTextCursor(TextCursor c, FontObj font);
+static status	styleTextCursor(TextCursor c, Name style);
+
 static status
 initialiseTextCursor(TextCursor c, FontObj font)
 { initialiseGraphical(c, ZERO, ZERO, ZERO, ZERO);
@@ -18,7 +21,7 @@ initialiseTextCursor(TextCursor c, FontObj font)
   if ( notDefault(font) )
     return fontTextCursor(c, font);
   else
-    return styleTextCursor(c, getResourceValueObject(c, NAME_style));
+    return styleTextCursor(c, getClassVariableValueObject(c, NAME_style));
 }
 
 
@@ -80,11 +83,11 @@ RedrawAreaTextCursor(TextCursor c, Area a)
 }
 
 
-status
+static status
 fontTextCursor(TextCursor c, FontObj font)
 { Int h = getHeightFont(font);
   Int w = getExFont(font);
-  Name style = getResourceValueObject(c, getFixedWidthFont(font) == ON ?
+  Name style = getClassVariableValueObject(c, getFixedWidthFont(font) == ON ?
 				      		NAME_fixedFontStyle :
 						NAME_proportionalFontStyle);
 
@@ -129,7 +132,7 @@ setTextCursor(TextCursor c, Int x, Int y, Int w, Int h, Int b)
 		********************************/
 
 
-status
+static status
 styleTextCursor(TextCursor c, Name style)
 { Int w = DEFAULT;
   Int h = DEFAULT;
@@ -205,13 +208,14 @@ static getdecl get_textCursor[] =
 
 /* Resources */
 
-static resourcedecl rc_textCursor[] =
-{ RC(NAME_fixedFontStyle, "name", "block",
+static classvardecl rc_textCursor[] =
+{ RC(NAME_fixedFontStyle, "name", "open_look",
      "->style for fixed fonts"),
   RC(NAME_proportionalFontStyle, "name", "open_look",
      "->style for proportional fonts"),
-  RC(NAME_style, NULL, "open_look",
-     NULL)
+  RC(NAME_style, NULL, "open_look", NULL),
+  RC(NAME_colour, RC_REFINE, "when(@colour_display, red, black)", NULL),
+  RC(NAME_inactiveColour, RC_REFINE, "black", NULL)
 };
 
 /* Class Declaration */

@@ -30,19 +30,12 @@ initialiseGraphical(Any obj, Int x, Int y, Int w, Int h)
 
   assign(gr, displayed,        OFF);
   assign(gr, area,             newObject(ClassArea, 0));
-  assign(gr, pen,              ONE);
-  assign(gr, texture,          NAME_none);
-  assign(gr, colour,           getResourceValueObject(obj, NAME_colour));
   assign(gr, selected,         OFF);
   assign(gr, name,             class->name);
   assign(gr, inverted,         OFF);
   assign(gr, active,	       ON);
-/*assign(gr, handles,          NIL);	// defaults
-  assign(gr, device,           NIL);
-  assign(gr, cursor,           NIL);
-  assign(gr, layout_interface, NIL);
-  assign(gr, request_compute,  NIL);
-*/
+  obtainClassVariablesObject(obj);
+
   if ( class->solid == ON )
     setFlag(gr, F_SOLID);
 
@@ -416,7 +409,7 @@ changedAreaGraphical(Any obj, Int x, Int y, Int w, Int h)
 
     for(d = gr->device; notNil(d); d = d->device)
     { if ( d->displayed == OFF )
-	succeed;
+	break;
 
       offx += valInt(d->offset->x);
       offy += valInt(d->offset->y);
@@ -430,7 +423,7 @@ changedAreaGraphical(Any obj, Int x, Int y, Int w, Int h)
             cw = valInt(a->w), ch = valInt(a->h);
 
 	if ( !createdWindow(sw) )
-	  succeed;
+	  break;
 
 	NormaliseArea(ox, oy, ow, oh);
 	NormaliseArea(cx, cy, cw, ch);
@@ -453,6 +446,9 @@ changedAreaGraphical(Any obj, Int x, Int y, Int w, Int h)
       }
     }
   }
+
+  if ( onFlag(gr, F_CONSTRAINT) )
+    return updateConstraintsObject(gr);
 
   succeed;
 }
@@ -647,7 +643,7 @@ RedrawArea(Any obj, Area area)
   ComputeGraphical(obj);		/* should not be necessary: */
 
   if ( gr->active == OFF )
-  { Any c2 = getResourceValueObject(gr, NAME_inactiveColour);
+  { Any c2 = getClassVariableValueObject(gr, NAME_inactiveColour);
 
     fix++;
     r_fix_colours(c2, DEFAULT, &ctx);
@@ -663,8 +659,8 @@ RedrawArea(Any obj, Area area)
       } else if ( feedback == NAME_colour )
       { Any c1, c2;
 
-	c1 = getResourceValueObject(obj, NAME_selectedForeground);
-	c2 = getResourceValueObject(obj, NAME_selectedBackground);
+	c1 = getClassVariableValueObject(obj, NAME_selectedForeground);
+	c2 = getClassVariableValueObject(obj, NAME_selectedBackground);
 
 	fix++;
 	clearbg++;
@@ -718,7 +714,7 @@ paintSelectedGraphical(Graphical gr)
     if ( feedback == (Any) NAME_invert )
     { r_complement(x, y, w, h);
     } else if ( feedback == (Any) NAME_handles )
-    { Name which = getResourceValueObject(gr, NAME_selectionHandles);
+    { Name which = getClassVariableValueObject(gr, NAME_selectionHandles);
 
       if ( which == NAME_corners )
       { selection_bubble(x, y, w, h, 0, 0);
@@ -1465,7 +1461,7 @@ assignDialogItem(Graphical gr, Name slot, Any value)
   Graphical gr2;
 
   if ( (var = getInstanceVariableClass(classOfObject(gr), slot)) )
-    return sendVariable(var, gr, 1, &value);
+    return sendVariable(var, gr, value);
 
   if ( isNil(value) )
     deleteAttributeObject(gr, slot);
@@ -1574,7 +1570,7 @@ getAlignmentGraphical(Graphical gr)
 
   if ( isName(alignment = getAttributeObject(gr, NAME_alignment)) )
     answer(alignment);
-  if ( isName(alignment = getResourceValueObject(gr, NAME_alignment)) )
+  if ( isName(alignment = getClassVariableValueObject(gr, NAME_alignment)) )
     answer(alignment);
 
   answer(NAME_left);
@@ -1673,12 +1669,6 @@ shadowGraphical(Graphical gr, Int s)
 
 
 status
-elevationGraphical(Graphical gr, Elevation e)
-{ return assignGraphical(gr, NAME_elevation, e);
-}
-
-
-status
 fillPatternGraphical(Graphical gr, Image pattern)
 { return assignGraphical(gr, NAME_fillPattern, pattern);
 }
@@ -1730,7 +1720,7 @@ toggleSelectedGraphical(Graphical gr)
 }
 
 
-status
+static status
 selectedGraphical(Graphical gr, Bool val)
 { if (gr->selected != val)
   { CHANGING_GRAPHICAL(gr, assign(gr, selected, val);
@@ -1906,7 +1896,7 @@ cursorGraphical(Graphical gr, CursorObj cursor)
 
   assign(gr, cursor, cursor);
   
-  if ( w != FAIL )
+  if ( w )
     updateCursorWindow(w);
 
   flushGraphical(gr);
@@ -1919,7 +1909,7 @@ status
 focusCursorGraphical(Graphical gr, CursorObj cursor)
 { PceWindow w = getWindowGraphical(gr);
 
-  if ( w != FAIL )
+  if ( w )
     return focusCursorWindow(w, cursor);
 
   succeed;
@@ -2035,7 +2025,7 @@ match_connection(Connection c, Link link, Name from, Name to)
 }
 
 
-static status
+status
 connectedGraphical(Graphical gr, Graphical gr2,
 		   Link link, Name from, Name to)
 { Chain ch;
@@ -2423,7 +2413,7 @@ inEventAreaGraphical(Graphical gr, Int xc, Int yc)
   static int evtol = -1;
 
   if ( evtol < 0 )
-  { Int v = getResourceValueObject(gr, NAME_eventTolerance);
+  { Int v = getClassVariableValueObject(gr, NAME_eventTolerance);
     evtol = (v ? valInt(v) : 5);
   }
 
@@ -2508,7 +2498,7 @@ assignGraphical(Any obj, Name slot, Any value)
   Variable var;
 
   if ( (var = getInstanceVariableClass(class, (Any) slot)) != FAIL )
-  { if ( getGetVariable(var, gr, 0, NULL) != value )
+  { if ( getGetVariable(var, gr) != value )
     { setSlotInstance(gr, var, value);
       requestComputeGraphical(gr, DEFAULT);
       if ( gr->displayed == ON )
@@ -2545,7 +2535,7 @@ flashGraphical(Graphical gr, Area a, Int time)
     Area a2;
 
     if ( isDefault(time) )
-      time = getResourceValueObject(gr, NAME_visualBellDuration);
+      time = getClassVariableValueObject(gr, NAME_visualBellDuration);
     if ( !isInteger(time) )
       time = toInt(250);
 
@@ -2574,7 +2564,7 @@ flashGraphical(Graphical gr, Area a, Int time)
 
 status
 alertGraphical(Graphical gr)
-{ if ( getResourceValueObject(gr, NAME_visualBell) == ON )
+{ if ( getClassVariableValueObject(gr, NAME_visualBell) == ON )
     return send(gr, NAME_flash, 0);
   else
     return send(gr, NAME_bell, 0);
@@ -2681,6 +2671,20 @@ overlapGraphical(Graphical gr, Any obj)
     return overlapArea(getAreaGraphical(gr), getAreaGraphical(obj));
   else
     return overlapArea(getAreaGraphical(gr), obj);
+}
+
+		 /*******************************
+		 *   GENERIC LAYOUT MANAGEMENT	*
+		 *******************************/
+
+static status
+layoutInterfaceGraphical(Graphical gr, LayoutInterface itf)
+{ if ( notNil(itf) && notNil(gr->layout_interface) )
+    return errorPce(gr, NAME_noChangeLayoutInterface);
+
+  assign(gr, layout_interface, itf);
+
+  succeed;
 }
 
 
@@ -2939,7 +2943,7 @@ drawTextGraphical(Graphical gr, CharArray txt, FontObj font,
 
     str_string(&txt->data, font,
 	       valInt(x), valInt(y), valInt(w), valInt(h), 
-	       hadjust, vadjust);
+	       hadjust, vadjust, 0);
   }
 
   succeed;
@@ -3028,7 +3032,8 @@ static vardecl var_graphical[] =
      NAME_event, "If @off, greyed out and insensitive"),
   SV(NAME_cursor, "cursor*", IV_GET|IV_STORE, cursorGraphical,
      NAME_cursor, "Cursor when in focus of events"),
-  IV(NAME_layoutInterface, "layout_interface*", IV_GET,
+  SV(NAME_layoutInterface, "layout_interface*", IV_GET|IV_STORE,
+     layoutInterfaceGraphical,
      NAME_layout, "Interface to layout-manager"),
   IV(NAME_requestCompute, "any*", IV_GET,
      NAME_update, "Graphical requests recomputing")
@@ -3342,19 +3347,25 @@ static getdecl get_graphical[] =
 
 /* Resources */
 
-static resourcedecl rc_graphical[] =
+static classvardecl rc_graphical[] =
 { RC(NAME_colour, "[colour|pixmap]", "@default",
      "Default colour for this object"),
-  RC(NAME_inactiveColour, "colour|pixmap*", "grey",
+  RC(NAME_pen, "0..", "1", NULL),
+  RC(NAME_texture, NULL, "none", NULL),
+  RC(NAME_inactiveColour, "colour|pixmap*",
+     "when(@colour_display,  colour(grey60),  @grey50_image)",
      "Colour when <-active == @off"),
-  RC(NAME_selectedForeground, "colour*", "white",
+  RC(NAME_selectedForeground, "colour*",
+     UXWIN("white", "win_highlighttext"),
      "Colour when <-selected == @on"),
-  RC(NAME_selectedBackground, "colour*", "black",
+  RC(NAME_selectedBackground, "colour*",
+     UXWIN("black", "win_highlight"),
      "Background when <-selected == @on"),
   RC(NAME_selectionHandles, "{corners,sides,corners_and_sides,line}*",
      "corners_and_sides",
      "Visual feedback of <->selected"),
-  RC(NAME_visualBell, "bool", "@on",
+  RC(NAME_visualBell, "bool",
+     UXWIN("when(@colour_display, @off, @on)", "@on"),
      "@on: flash; @off: ring bell on ->alert"),
   RC(NAME_visualBellDuration, "int", "100",
      "Length of flash in milliseconds"),

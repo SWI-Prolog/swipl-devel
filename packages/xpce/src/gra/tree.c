@@ -25,10 +25,6 @@ initialiseTree(Tree t, Node node)
 
   initialiseFigure((Figure) t);
   assign(t, auto_layout, 	ON);
-  assign(t, direction,		DEFAULT);
-  assign(t, levelGap,		DEFAULT);
-  assign(t, neighbourGap,	DEFAULT);
-  assign(t, linkGap,		DEFAULT);
   assign(t, link, 		newObject(ClassLink,
 					  NAME_parent, NAME_son, 0));
   assign(t, rootHandlers,	newObject(ClassChain, 0));
@@ -36,7 +32,7 @@ initialiseTree(Tree t, Node node)
   assign(t, nodeHandlers,	newObject(ClassChain, 0));
   assign(t, collapsedHandlers,	newObject(ClassChain, 0));
 
-  obtainResourcesObject(t);
+  obtainClassVariablesObject(t);
     
   if ( !div_h_2 )
   { div_h_2 = newObject(ClassDivide, NAME_h, TWO, 0);
@@ -116,9 +112,9 @@ leading_x_tree(Tree t)
   { Image img = NULL;
 
     if ( n->collapsed == ON )
-      img = getResourceValueObject(t, NAME_collapsedImage);
+      img = getClassVariableValueObject(t, NAME_collapsedImage);
     else if ( n->collapsed == OFF )
-      img = getResourceValueObject(t, NAME_expandedImage);
+      img = getClassVariableValueObject(t, NAME_expandedImage);
 
     if ( img && notNil(img) )
     { int lg = valInt(t->levelGap)/2;
@@ -192,8 +188,8 @@ RedrawAreaTree(Tree t, Area area)
 
       if ( proto->pen != ZERO )
       { Colour old = NULL;
-	Image cimg = getResourceValueObject(t, NAME_collapsedImage);
-	Image eimg = getResourceValueObject(t, NAME_expandedImage);
+	Image cimg = getClassVariableValueObject(t, NAME_collapsedImage);
+	Image eimg = getClassVariableValueObject(t, NAME_expandedImage);
 
 	r_thickness(valInt(proto->pen));
 	r_dash(proto->texture);
@@ -317,8 +313,8 @@ eventTree(Tree t, EventObj ev)
   if ( t->direction == NAME_list &&
        notNil(t->displayRoot) &&
        isAEvent(ev, NAME_msLeftDown) )
-  { Image cimg = getResourceValueObject(t, NAME_collapsedImage);
-    Image eimg = getResourceValueObject(t, NAME_expandedImage);
+  { Image cimg = getClassVariableValueObject(t, NAME_collapsedImage);
+    Image eimg = getClassVariableValueObject(t, NAME_expandedImage);
     Int x, y;
     Node n;
 
@@ -350,13 +346,21 @@ levelGapTree(Tree t, Int i)
 
 status
 displayTree(Tree t, Node n)
-{ if ( notNil(n->tree) )
-    return errorPce(t, NAME_alreadyShown, n, n->tree);
+{ if ( n->tree != t )
+  { Cell cell;
 
-  send(n->image, NAME_handle,     t->sonHandle, 0);
-  send(n->image, NAME_handle,     t->parentHandle, 0);
+    if ( notNil(n->tree) )
+      return errorPce(t, NAME_alreadyShown, n, n->tree);
 
-  assign(n, tree, t);
+    send(n->image, NAME_handle,     t->sonHandle, 0);
+    send(n->image, NAME_handle,     t->parentHandle, 0);
+
+    assign(n, tree, t);
+    for_cell(cell, n->parents)
+      relateImageNode(cell->value, n);
+    for_cell(cell, n->sons)
+      displayTree(t, cell->value);
+  }
   
   succeed;
 }
@@ -411,7 +415,7 @@ computeBoundingBoxFigureTree(Tree t)
 }
 
 
-status
+static status
 computeFigureTree(Tree t)
 { if ( notNil(t->request_compute) )
   { if ( t->pen != ZERO || notNil(t->background) )
@@ -683,7 +687,9 @@ static senddecl send_tree[] =
   SM(NAME_zoom, 1, "node", zoomTree,
      NAME_scroll, "Zoom to a particular node"),
   SM(NAME_layout, 0, NULL, layoutTree,
-     NAME_update, "Recompute layout")
+     NAME_update, "Recompute layout"),
+  SM(NAME_DrawPostScript, 0, NULL, drawPostScriptTree,
+     NAME_postscript, "Create PostScript")
 };
 
 /* Get Methods */
@@ -695,7 +701,7 @@ static getdecl get_tree[] =
 
 /* Resources */
 
-static resourcedecl rc_tree[] =
+static classvardecl rc_tree[] =
 { RC(NAME_direction, "name", "horizontal",
      "Default style {horizontal,vertical,list}"),
   RC(NAME_levelGap, "int", "50",

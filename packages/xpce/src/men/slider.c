@@ -30,15 +30,14 @@ initialiseSlider(Slider s, Name name, Any low, Any high, Any def, Message msg)
 { createDialogItem(s, name);
 
   assign(s, label_width,   DEFAULT);
-  assign(s, value_font,    DEFAULT);
   assign(s, show_label,    ON);
   assign(s, show_value,    ON);
-  assign(s, format,	   DEFAULT);
   assign(s, low,	   low);
   assign(s, high,	   high);
   assign(s, message,	   msg);
   assign(s, width,	   toInt(200));
   assign(s, drag,	   OFF);
+  assign(s, format,	   DEFAULT);
 
   assign(s, default_value, def);
   if ( !restoreSlider(s) )
@@ -109,7 +108,7 @@ RedrawAreaSlider(Slider s, Area a)
   if ( s->look == NAME_motif )
   { int by = y+sy+(SLIDER_HEIGHT-OL_BAR_HEIGHT)/2;
     int ex  = x + sx + valInt(s->width);
-    Elevation z = getResourceValueObject(s, NAME_elevation);
+    Elevation z = getClassVariableValueObject(s, NAME_elevation);
 
     r_3d_box(x+sx, by, vv, OL_BAR_HEIGHT, 0, z, FALSE);
     r_3d_box(x+sx+vv+bw, by, ex-(x+sx+vv+bw), OL_BAR_HEIGHT, 0, z, FALSE);
@@ -159,7 +158,7 @@ static void
 compute_label_slider(Slider s, int *lw, int *lh)
 { if ( s->show_label == ON )
   { if ( isDefault(s->label_font) )
-      obtainResourcesObject(s);
+      obtainClassVariablesObject(s);
 
     dia_label_size(s, lw, lh, NULL);
     *lw += valInt(getExFont(s->label_font));
@@ -217,7 +216,7 @@ computeSlider(Slider s)
     int w, h;
     int sw, sh;
 
-    obtainResourcesObject(s);
+    obtainClassVariablesObject(s);
     compute_slider(s, &ny, &vx, &vy, &lx, &ly, &sx, &sy, &hx, &hy);
     h = SLIDER_HEIGHT;
     h = max(h, ly+valInt(getHeightFont(s->label_font)));
@@ -604,12 +603,10 @@ static getdecl get_slider[] =
 
 /* Resources */
 
-#define rc_slider NULL
-/*
-static resourcedecl rc_slider[] =
-{ 
+static classvardecl rc_slider[] =
+{ RC(NAME_look, RC_REFINE, "when(@colour_display, motif, open_look)", NULL)
+
 };
-*/
 
 /* Class Declaration */
 

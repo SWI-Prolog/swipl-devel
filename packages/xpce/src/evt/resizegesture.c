@@ -12,7 +12,7 @@
 
 status
 initialiseResizeGesture(ResizeGesture g, Name button, Modifier modifier)
-{ Size ms = getResourceValueObject(g, NAME_minSize);
+{ Size ms = getClassVariableValueObject(g, NAME_minSize);
 
   initialiseGesture((Gesture) g, button, modifier);
 
@@ -30,8 +30,8 @@ initialiseResizeGesture(ResizeGesture g, Name button, Modifier modifier)
 
 static status
 verifyResizeGesture(ResizeGesture g, EventObj ev)
-{ int frac = valInt(getResourceValueObject(g, NAME_marginFraction));
-  int mx   = valInt(getResourceValueObject(g, NAME_marginWidth));
+{ int frac = valInt(getClassVariableValueObject(g, NAME_marginFraction));
+  int mx   = valInt(getClassVariableValueObject(g, NAME_marginWidth));
   Int X, Y;
   int x, y, w, h;
   Graphical gr = ev->receiver;
@@ -257,7 +257,7 @@ static getdecl get_resizeGesture[] =
 
 /* Resources */
 
-static resourcedecl rc_resizeGesture[] =
+static classvardecl rc_resizeGesture[] =
 { RC(NAME_button, "button_name", "middle",
      "Active on which button (middle)"),
   RC(NAME_marginFraction, "int", "4",

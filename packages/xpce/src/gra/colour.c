@@ -12,16 +12,22 @@
 
 static status XCloseColour(Colour c, DisplayObj d);
 
-static Int
+static Name
 defcolourname(Int r, Int g, Int b)
-{ char buf[50];
+{ if ( isInteger(r) &&
+       isInteger(g) &&
+       isInteger(b) )
+  { char buf[50];
 
-  sprintf(buf, "#%02x%02x%02x",
-	  (unsigned int)valInt(r)>>8,
-	  (unsigned int)valInt(g)>>8,
-	  (unsigned int)valInt(b)>>8);
+    sprintf(buf, "#%02x%02x%02x",
+	    (unsigned int)valInt(r)>>8,
+	    (unsigned int)valInt(g)>>8,
+	    (unsigned int)valInt(b)>>8);
 
-  return CtoName(buf);
+    return CtoName(buf);
+  }
+
+  fail;
 }
 
 
@@ -71,7 +77,10 @@ getLookupColour(Class class, Name name, Int r, Int g, Int b)
 { if ( isDefault(name) )
     name = defcolourname(r, g, b);
 
-  answer(getMemberHashTable(ColourTable, (Any) name));
+  if ( name )
+    answer(getMemberHashTable(ColourTable, name));
+
+  fail;
 }
 
 
@@ -80,19 +89,11 @@ getStorageReferenceColour(Colour c)
 { if ( c->kind == NAME_named )
     answer(c->name);
   else
-  { char tmp[256];
-
-    sprintf(tmp, "#%02x%02x%02x",
-	    (unsigned int) valInt(c->red)/256,
-	    (unsigned int) valInt(c->green)/256,
-	    (unsigned int) valInt(c->blue)/256);
-
-    answer(CtoName(tmp));
-  }
+    answer(defcolourname(c->red, c->green, c->blue));
 }
 
 
-status
+static status
 equalColour(Colour c1, Colour c2)
 { if ( c1 == c2 )
     succeed;
@@ -123,7 +124,7 @@ storeColour(Colour c, FileObj file)
 
 
 static status
-loadColour(Colour c, FILE *fd, ClassDef def)
+loadColour(Colour c, IOSTREAM *fd, ClassDef def)
 { TRY( loadSlotsObject(c, fd, def) );
 
   if ( c->kind == NAME_named )
@@ -249,7 +250,7 @@ getHiliteColour(Colour c)
 
   if ( (c2 = getAttributeObject(c, NAME_hilite)) )
     answer(c2);
-  h  = getResourceValueObject(c, NAME_hiliteFactor);
+  h  = getClassVariableValueObject(c, NAME_hiliteFactor);
   hf = h ? valReal(h) : 0.5;
   if ( isDefault(c->green) )
     getXrefObject(c, CurrentDisplay(NIL));
@@ -280,7 +281,7 @@ getReduceColour(Colour c)
 
   if ( (c2 = getAttributeObject(c, NAME_reduce)) )
     answer(c2);
-  rfactor = getResourceValueObject(c, NAME_reduceFactor);
+  rfactor = getClassVariableValueObject(c, NAME_reduceFactor);
   rf = rfactor ? valReal(rfactor) : 0.5;
   if ( isDefault(c->green) )
     getXrefObject(c, CurrentDisplay(NIL));
@@ -322,11 +323,11 @@ getIntensityColour(Colour c)
 /* Type declarations */
 
 static char *T_lookup[] =
-        { "[name|int]", "red=[0..65535]", "green=[0..65535]",
-	  "blue=[0..65535]" };
+        { "[name|int]",
+	  "red=[0..65535]", "green=[0..65535]", "blue=[0..65535]" };
 static char *T_initialise[] =
-        { "name=[name]", "red=[0..65535]", "green=[0..65535]",
-	  "blue=[0..65535]" };
+        { "name=[name]",
+	  "red=[0..65535]", "green=[0..65535]", "blue=[0..65535]" };
 
 /* Instance Variables */
 
@@ -377,7 +378,7 @@ static getdecl get_colour[] =
 
 /* Resources */
 
-static resourcedecl rc_colour[] =
+static classvardecl rc_colour[] =
 { RC(NAME_hiliteFactor, "real", "0.9",
      "Factor for <-hilite'd colour"),
   RC(NAME_reduceFactor, "real", "0.5",
@@ -403,6 +404,8 @@ makeClassColour(Class class)
 
   ColourTable = globalObject(NAME_colours, ClassHashTable, toInt(32), 0);
   assign(ColourTable, refer, NAME_none);
+
+  ws_colour_name(CurrentDisplay(NIL), NAME_black);
 
   succeed;
 }

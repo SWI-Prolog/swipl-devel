@@ -82,7 +82,7 @@ The layout inside a dialog window may be specified by two means, either
 using pixel-coordinates or using symbolic layout descriptions. The
 latter is strongly encouraged, both because it is generally much easier
 and because the layout will work properly if the end-user uses different
-preferences (resources) than the application developer.
+preferences (see \chapref{classvar}) than the application developer.
 
 The following methods can be used to define the layout of a dialog. All
 methods actually have both send- and get-versions. The methods listed
@@ -122,7 +122,7 @@ row. An item with ->alignment: {\tt column} will be alignment horizontally
 using the references of its upper or lower neighbour.  Horizontally
 adjacent items with the same alignment will be flushed left, centered
 or flushed right if the alignment is one of {\tt left}, {\tt center}
-or {\tt right}.  The alignment value is normally specified as a resource
+or {\tt right}.  The alignment value is normally specified as a class-variable
 and used to determine the layout of rows of \class{button} objects.
     \sendmethod{dialog_item}{hor_stretch}{}{0..100}
 After completing the initial layout, possibly remaining horizontal space

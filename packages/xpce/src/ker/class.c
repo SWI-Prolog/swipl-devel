@@ -10,7 +10,6 @@
 #include <h/kernel.h>
 #include <itf/c.h>
 #include <h/interface.h>		/* hostCallProc() */
-#include <h/graphics.h>			/* resource access functions */
 
 static status	recordInstancesClass(Class class, Bool keep, Bool recursive);
 static status	fill_slots_class(Class class, Class super);
@@ -32,10 +31,11 @@ resetSlotsClass(Class class, Name name)
   setProtectedObj(class);
 
   for(i=0; i<CLASS_PCE_SLOTS; i++)
-    ((Instance)class)->slots[i] = DEFAULT;
+    ((Instance)class)->slots[i] = CLASSDEFAULT;
   for( ; i < slots; i++ )
     ((Instance)class)->slots[i] = NULL;
 
+  class->resolve_method_message = DEFAULT;
   class->created_messages       = NIL;
   class->freed_messages         = NIL;
   class->make_class_message     = NIL;
@@ -127,15 +127,15 @@ defineClass(Name name, Name super, StringObj summary, SendFunc makefunction)
   { TRY(superclass = nameToTypeClass(super));
     linkSubClass(superclass, class);
   }
-  if ( isDefault(class->creator) )
+  if ( isClassDefault(class->creator) )
     assign(class, creator, inBoot ? NAME_builtIn : NAME_host);
   if ( notDefault(summary) )
     assign(class, summary, summary);
 
-  if ( notDefault(class->realised) )
+  if ( notClassDefault(class->realised) )
     return class;			/* existing (boot) class */
 
-  if ( isDefault(class->sub_classes) )
+  if ( isClassDefault(class->sub_classes) )
     assign(class, sub_classes, NIL);
 
   assign(class, realised, OFF);
@@ -193,10 +193,12 @@ realiseClass(Class class)
 { if ( class->realised != ON )
   { status rval;
 
+    DEBUG_BOOT(Cprintf("Realising class %s ... ", strName(class->name)));
+
     if ( notNil(class->super_class) )
       TRY(realiseClass(class->super_class));
 
-    Mode(MODE_SYSTEM,
+    ServiceMode(PCE_EXEC_SERVICE,
 	 if ( class->make_class_function )
 	 { assign(class, realised, ON);
 	   rval = (fill_slots_class(class, class->super_class) &&
@@ -205,6 +207,8 @@ realiseClass(Class class)
 	 } else
 	   rval = FAIL;);
 
+    DEBUG_BOOT(Cprintf("%s\n", rval ? "ok" : "FAILED"));
+
     return rval;
   }
 
@@ -212,21 +216,38 @@ realiseClass(Class class)
 }
 
 
+void
+bindNewMethodsClass(Class class)
+{ if ( isDefault(class->lookup_method) ||
+       isDefault(class->initialise_method) )
+  { GetMethod l = getGetMethodClass(class, NAME_lookup);
+    Any       s = getSendMethodClass(class, NAME_initialise);
+
+    assert(instanceOfObject(s, ClassSendMethod));
+
+    if ( l )
+      setDFlag(l, D_TYPENOWARN);
+    else
+      l = NIL;
+
+    assign(class, lookup_method, l);
+    assign(class, initialise_method, s);
+  }
+}
+
+
 status
 realiseBootClass(Class class)
 { assign(class, realised, OFF);
 
-  DEBUG_BOOT(Cprintf("Realising boot class %s ...", strName(class->name)));
   realiseClass(class);
-/*  if ( class->name == NAME_type || class->name == NAME_charArray ) */
-  { bindMethod(class, NAME_send, NAME_initialise);
-    bindMethod(class, NAME_get,  NAME_lookup);
-  }
+  bindMethod(class, NAME_send, NAME_initialise);
+  bindMethod(class, NAME_get,  NAME_lookup);
   deleteHashTable(class->send_table, NAME_initialise);
-  deleteHashTable(class->get_table, NAME_lookup);
-  assign(class, initialise_method, DEFAULT); /* rebind cache */
+  deleteHashTable(class->get_table,  NAME_lookup);
   assign(class, lookup_method,     DEFAULT);
-  DEBUG_BOOT(Cprintf("ok.\n"));
+  assign(class, initialise_method, DEFAULT);
+
   succeed;
 }
 
@@ -244,27 +265,28 @@ fill_slots_class(Class class, Class super)
     setDFlag(class, D_CXX);
 #endif
 
-  assign(class, realised,        ON);
-  assign(class, send_methods,    newObject(ClassChain, 0));
-  assign(class, get_methods,     newObject(ClassChain, 0));
-  assign(class, resources,       newObject(ClassChain, 0));
-  assign(class, send_table,      newObject(ClassHashTable, 0));
-  assign(class, get_table,       newObject(ClassHashTable, 0));
-  assign(class, local_table,     newObject(ClassHashTable, 0));
-  assign(class, resource_table,  NIL);
-  assign(class, selection_style, NIL);
-  assign(class, rcs_revision,	 NIL);
-  assign(class, source,		 NIL);
-  if ( isDefault(class->summary) )
-    assign(class, summary,	 NIL);
+  assign(class, realised,             ON);
+  assign(class, send_methods,         newObject(ClassChain, 0));
+  assign(class, get_methods,          newObject(ClassChain, 0));
+  assign(class, class_variables,      newObject(ClassChain, 0));
+  assign(class, send_table,           newObject(ClassHashTable, 0));
+  assign(class, get_table,            newObject(ClassHashTable, 0));
+  assign(class, local_table,          newObject(ClassHashTable, 0));
+  assign(class, class_variable_table, NIL);
+  assign(class, selection_style,      NIL);
+  assign(class, rcs_revision,	      NIL);
+  assign(class, source,		      NIL);
+  if ( isClassDefault(class->summary) )
+    assign(class, summary, NIL);
 
 					/* special method cache */
   assign(class, send_catch_all,	   DEFAULT);
   assign(class, get_catch_all,	   DEFAULT);
   assign(class, convert_method,	   DEFAULT);
-  assign(class, lookup_method,	   DEFAULT);
   if ( !class->boot )
-    assign(class, initialise_method, DEFAULT);
+  { assign(class, initialise_method, DEFAULT);
+    assign(class, lookup_method,     DEFAULT);
+  }
 
   class->send_function     = NULL;
   class->get_function      = NULL;
@@ -301,7 +323,6 @@ fill_slots_class(Class class, Class super)
     class->redrawFunction		= super->redrawFunction;
     class->changedFunction		= super->changedFunction;
     class->in_event_area_function	= super->in_event_area_function;
-    class->trace_function		= super->trace_function;
   } else
   { assign(class, term_names,	        NIL);
     assign(class, delegate,	        newObject(ClassChain, 0));
@@ -345,7 +366,10 @@ the real class definition: freeObject doesn't yet work properly.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static Class
-_bootClass(Name name, Name super_name, int size, int slots, SendFunc initF, int argc, va_list args)
+_bootClass(Name name, Name super_name,
+	   int size, int slots,
+	   SendFunc initF,
+	   int argc, va_list args)
 { Type type = nameToType(name);
   Class cl = type->context;
   Class super;
@@ -452,18 +476,12 @@ getConvertClass(Class class_class, Any obj)
       return t->context;
   }
 
-  if ( instanceOfObject(obj, ClassClassStub) )
-    return get(obj, NAME_realise, 0);
-      
   if ( (name = toName(obj)) )
   { if ( !(class = getMemberHashTable(classTable, name)) )
     { exceptionPce(PCE, NAME_undefinedClass, name, 0);
       if ( !(class = getMemberHashTable(classTable, name)) )
 	fail;
     }
-
-    if ( !instanceOfObject(class, ClassClass) )
-      return get(class, NAME_realise, 0);
 
     return class;
   }
@@ -520,7 +538,6 @@ installClass(Class class)
   succeed;
 }
 
-
 status
 initClass(Class class)
 { class->boot = 0;
@@ -533,11 +550,7 @@ initClass(Class class)
 	    sizeof(Any));
 #endif
 
-  installClass(class);
-
-  DEBUG_BOOT(Cprintf("ok\n"));
-
-  succeed;
+  return installClass(class);
 }
 
 
@@ -555,18 +568,6 @@ prepareClass(Class class)		/* prepare for making instances */
   assign(class, has_init_functions, has_init_functions);
 
   succeed;
-}
-
-
-void
-makeBuiltInClasses(VoidFunc *f)
-{ for(; *f; f++)
-  { AnswerMark mark;
-
-    markAnswerStack(mark);
-    (*(*f))();
-    rewindAnswerStack(mark, NIL);
-  }
 }
 
 		/********************************
@@ -608,8 +609,6 @@ initialiseClass(Class class, Name name, Class super)
   assign(class, no_created, ZERO);
   assign(class, no_freed,   ZERO);
   numberTreeClass(ClassObject, 0);
-/*installClass(class);*/
-  createdObject(class, NAME_new);
 
   succeed;
 }
@@ -619,8 +618,7 @@ static Class
 getLookupClass(Class class, Name name, Class super)
 { Class cl;
 
-  if ( (cl = getMemberHashTable(classTable, name)) &&
-       instanceOfObject(cl, ClassClass) ) /* fail on class_stub objects */
+  if ( (cl = getMemberHashTable(classTable, name)) )
   { if ( notNil(cl->super_class) )	/* no longer a typeClass() */
     { if ( isDefault(super) || cl->super_class == super )
 	answer(cl);
@@ -676,6 +674,8 @@ fixSubClassVariableClass(Class class, Variable old, Variable new)
   { Cell cell;
     Int offset = new->offset;
 
+    unallocInstanceProtoClass(class);
+
     if ( (getElementVector(class->instance_variables, offset) == old) || !old )
     { deleteHashTable(class->get_table,   new->name);
       deleteHashTable(class->send_table,  new->name);
@@ -721,8 +721,6 @@ instanceVariableClass(Class class, Variable var)
   Int offset;
 
   realiseClass(class);
-  if ( class->proto )
-    unallocInstanceProtoClass(class);
 					/* redefinition of a variable */
   if ( (old = getInstanceVariableClass(class, var->name)) )
   { if ( old->context != class &&
@@ -767,9 +765,6 @@ refineVariableClass(Class class, Variable var)
 
   if ( !(old = getInstanceVariableClass(class, var->name)) )
     return instanceVariableClass(class, var); /* no redefinition (error?) */
-
-  if ( class->proto )
-    unallocInstanceProtoClass(class);
 
   assign(var, offset, old->offset);
   assign(var, context, class);
@@ -943,15 +938,6 @@ setChangedFunctionClass(Class class, SendFunc func)
 }
 
 
-#ifndef O_RUNTIME
-status
-setTraceFunctionClass(Class class, VoidFunc func)
-{ class->trace_function = func;
-
-  succeed;
-}
-#endif
-
 status
 setInEventAreaFunctionClass(Class class, SendFunc func)
 { class->in_event_area_function = func;
@@ -1029,8 +1015,8 @@ termClass(Class class, char *name, int argc, ...)
 }
 
 
-static inline status
-_sendMethod(Class class, Name name, Name group, int argc, va_list args)
+status
+sendMethodv(Class class, Name name, Name group, int argc, va_list args)
 { SendMethod m;
   Type types[METHOD_MAX_ARGS];
   int i;
@@ -1082,7 +1068,7 @@ sendMethod(Class class, Name name, Name group, int argc, ...)
   status rval;
 
   va_start(args, argc);
-  rval = _sendMethod(class, name, group, argc, args);
+  rval = sendMethodv(class, name, group, argc, args);
   va_end(args);
 
   return rval;
@@ -1110,7 +1096,7 @@ storeMethod(Class class, Name name, SendFunc function)
 }
 
 
-status
+static status
 fetchMethod(Class class, Name name, void *function)
 { Variable var = getInstanceVariableClass(class, (Any) name);
   Vector tv;
@@ -1131,9 +1117,9 @@ fetchMethod(Class class, Name name, void *function)
 }
 
 
-static inline status
-_getMethod(Class class, Name name, Name group,
-	   char *rtype, int argc, va_list args)
+status
+getMethodv(Class class, Name name, Name group,
+	   const char *rtype, int argc, va_list args)
 { GetMethod m;
   Type rt;
   Type types[METHOD_MAX_ARGS];
@@ -1181,12 +1167,12 @@ _getMethod(Class class, Name name, Name group,
 }
 
 status
-getMethod(Class class, Name name, Name group, char *rtype, int argc, ...)
+getMethod(Class class, Name name, Name group, const char *rtype, int argc, ...)
 { va_list args;
   status rval;
 
   va_start(args, argc);
-  rval = _getMethod(class, name, group, rtype, argc, args);
+  rval = getMethodv(class, name, group, rtype, argc, args);
   va_end(args);
 
   return rval;
@@ -1364,7 +1350,7 @@ status
 declareClass(Class class, const classdecl *decls)
 { int i;
   const vardecl *iv;
-  const resourcedecl *rc;
+  const classvardecl *cv;
 
   class->c_declarations = (classdecl *)decls; /* TBD: const */
 
@@ -1382,65 +1368,27 @@ declareClass(Class class, const classdecl *decls)
   for( i=decls->nvar, iv = decls->variables; i-- > 0; iv++ )
   { Name acs = iv_access_names[iv->flags & (IV_GET|IV_SEND)];
 
-    if ( iv->flags & IV_SUPER )
-    { Name wrap = iv->context;
-      assert(isName(wrap));
+    if ( iv->flags & IV_REDEFINE )
+      redefineLocalClass(class, iv->name, iv->group,
+			 iv->type, acs, iv->summary);
+    else
+      localClass(class, iv->name, iv->group,
+		 iv->type, acs, iv->summary);
 
-      superClass(class, iv->name, iv->group, iv->type, acs, wrap, iv->summary);
-    } else
-    { if ( iv->flags & IV_REDEFINE )
-	redefineLocalClass(class, iv->name, iv->group,
-			   iv->type, acs, iv->summary);
-      else
-	localClass(class, iv->name, iv->group,
-		   iv->type, acs, iv->summary);
-
-      if ( iv->flags & IV_STORE )
-	storeMethod(class, iv->name, (SendFunc) iv->context);
-      else if ( iv->flags & IV_FETCH )
-	fetchMethod(class, iv->name, (GetFunc) iv->context);
-    }
+    if ( iv->flags & IV_STORE )
+      storeMethod(class, iv->name, (SendFunc) iv->context);
+    else if ( iv->flags & IV_FETCH )
+      fetchMethod(class, iv->name, (GetFunc) iv->context);
   }
-
 					/* should be delayed too? */
-  for( i=decls->nresources, rc=decls->resources; i-- > 0; rc++ )
-  { if ( rc->type == RC_REFINE )
-    { refine_resource(class, strName(rc->name), rc->value);
-    } else
-    { Resource r;
-      StringObj s = (rc->summary && strlen(rc->summary) > 0
-		     		? staticCtoString(rc->summary) : DEFAULT);
-      Name tp = (rc->type ? CtoName(rc->type) : DEFAULT);
-
-      TRY( r = newObject(ClassResource, rc->name, DEFAULT, tp,
-			 staticCtoString(rc->value), class, s, 0) );
-
-      resourceClass(class, r);
-    }
+  for( i=decls->nclassvars, cv=decls->class_variables; i-- > 0; cv++ )
+  { if ( cv->type == RC_REFINE )
+      refine_class_variable(class, strName(cv->name), cv->value);
+    else
+      attach_class_variable(class, cv->name, cv->type, cv->value, cv->summary);
   }
 
   succeed;
-}
-
-
-void
-superClass(Class class, Name name, Name group,
-	   char *type, Name access, Name wrapper, char *doc)
-{ Variable v;
-  Type t;
-  StringObj summary;
-
-  if ( !(t = CtoType(type)) )
-    sysPce("Bad type in localClass(): %s.%s: %s",
-	   pp(class->name), pp(name), type);
-
-  checkSummaryCharp(class->name, name, doc);
-  summary = (strlen(doc) > 0 ? staticCtoString(doc) : NIL);
-
-  v = newObject(ClassDelegateVariable, name, t, access, wrapper,
-		summary, group, 0);
-
-  instanceVariableClass(class, v);
 }
 
 
@@ -1656,6 +1604,12 @@ attachLazyGetMethodClass(Class class, const getdecl *gm)
   return m;
 }
 
+static int bind_nesting;
+
+void
+resetMessageResolve()
+{ bind_nesting = 0;
+}
 
 static Any
 bindMethod(Class class, Name code, Name selector)
@@ -1678,17 +1632,17 @@ bindMethod(Class class, Name code, Name selector)
     }
   }
 
-  if ( notNil((c=class->resolve_method_message)) && notDefault(c) )
-  { if ( instanceOfObject(c, ClassCode) )
-      rval = forwardReceiverCode(c, class, code, class->name, selector, 0);
-    else
-    { Any av[2];
-
-      av[0] = class->name;
-      av[1] = selector;
-
-      rval = hostCallProc(c, class, code, 2, av);
+  if ( !bind_nesting )
+  { bind_nesting++;
+    if ( notNil((c=class->resolve_method_message)) && notDefault(c) )
+    { if ( instanceOfObject(c, ClassCode) )
+      { DEBUG(NAME_class,
+	      Cprintf("Asking host to resolve %s %s %s\n",
+		      pp(code), pp(class->name), pp(selector)));
+	rval = forwardCode(c, code, class->name, selector, 0);
+      }
     }
+    bind_nesting--;
   }
 
   if ( isDefault(selector) )
@@ -1781,18 +1735,31 @@ getResolveSendMethodClass(Class class, Name name)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Find the implementation for get-behaviour defined on a class. This isn't
+very critical, as it is shielded  by getGetMethodClass(), which performs
+caching.
+
+Class-variables  are  a  nuisance,  as   it    is   defined  that  other
+get-implementation always precedes class-variables, even   if  the other
+behaviour is defined higher in the hierarchy.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 Any
 getResolveGetMethodClass(Class class, Name name)
-{ Cell cell;
-  Class super;
+{ Class super;
+  ClassVariable cv = NULL;
 
   realiseClass(class);
 
   for(super = class; notNil(super); super = super->super_class)
   { Any gm;
-
+    Cell cell;
+    
     if ( (gm = getMemberHashTable(super->get_table, name)) )
-    { if ( class != super )
+    { if ( cv && instanceOfObject(gm, ClassClassVariable) )
+	gm = cv;
+      if ( class != super )
 	appendHashTable(class->get_table, name, gm);
       answer(gm);
     }
@@ -1821,6 +1788,22 @@ getResolveGetMethodClass(Class class, Name name)
 		   answer(var);
 		 }
 	       });
+
+    if ( !cv )
+    { for_cell(cell, super->class_variables)
+      { ClassVariable v = cell->value;
+  
+	if ( v->name == name )
+	{ cv = v;
+	  break;
+	}
+      }
+    }
+  }
+
+  if ( cv )
+  { appendHashTable(class->get_table, name, cv);
+    answer(cv);
   }
 
   appendHashTable(class->get_table, name, NIL);
@@ -1846,7 +1829,7 @@ clearCacheClass(Class class)
 }
 
 
-status
+static status
 deleteSendMethodClass(Class class, Name selector)
 { if ( class->realised == ON )
   { Cell cell;
@@ -1871,7 +1854,7 @@ deleteSendMethodClass(Class class, Name selector)
 }
 
 
-status
+static status
 deleteGetMethodClass(Class class, Name selector)
 { if ( class->realised == ON )
   { Cell cell;
@@ -2041,6 +2024,22 @@ getSuperClassNameClass(Class cl)
 		/********************************
 		*        MANUAL SUPPORT		*
 		********************************/
+
+static Name
+getManIdClass(Class class)
+{ char buf[LINESIZE];
+
+  sprintf(buf, "C.%s", strName(class->name));
+
+  answer(CtoName(buf));
+}
+
+
+static Name
+getManIndicatorClass(Class class)
+{ answer(CtoName("C"));
+}
+
 
 static StringObj
 getManHeaderClass(Class cl)
@@ -2229,10 +2228,30 @@ getGetMethodsClass(Class class)
 }
 
 
+static Chain
+getSubClassesClass(Class class)
+{ if ( notNil(class->sub_classes) )
+    answer(class->sub_classes);
+
+  fail;
+}
+
+
+
 status
 makeClassClass(Class class)
 { sourceClass(class, makeClassClass, __FILE__, "$Revision$");
 
+  localClass(class, NAME_name, NAME_name, "name", NAME_get,
+	     "Name of the class");
+  localClass(class, NAME_summary, NAME_manual, "string*", NAME_both,
+	     "Summary documentation for class");
+  localClass(class, NAME_creator, NAME_manual, "{built_in,host,C++}", NAME_get,
+	     "Who created the class");
+  localClass(class, NAME_superClass, NAME_type, "class*", NAME_get,
+	     "Immediate super class");
+  localClass(class, NAME_subClasses, NAME_type, "chain*", NAME_none,
+	     "Sub classes");
   localClass(class, NAME_instanceVariables, NAME_behaviour, "vector", NAME_get,
 	     "Vector object holding all instance variables");
   localClass(class, NAME_sendMethods, NAME_behaviour, "chain", NAME_none,
@@ -2243,8 +2262,8 @@ makeClassClass(Class class)
 	     "Selectors to obtain term arguments");
   localClass(class, NAME_delegate, NAME_behaviour, "chain", NAME_get,
 	     "Instance variables for delegation");
-  localClass(class, NAME_resources, NAME_resource, "chain", NAME_get,
-	     "User setable resources (via Xdefaults)");
+  localClass(class, NAME_classVariables, NAME_default, "chain", NAME_get,
+	     "User setable class-variables");
   localClass(class, NAME_cloneStyle, NAME_copy,
 	     "{recursive,none,relation}", NAME_both,
 	     "How to clone instances");
@@ -2307,8 +2326,9 @@ makeClassClass(Class class)
 	     "Hash table for all get methods");
   localClass(class, NAME_localTable, NAME_cache, "hash_table", NAME_get,
 	     "Hash table for all instance variables");
-  localClass(class, NAME_resourceTable, NAME_cache, "hash_table*", NAME_get,
-	     "Hash table for all resources");
+  localClass(class, NAME_classVariableTable, NAME_cache, "hash_table*",
+	     NAME_get,
+	     "Hash table for all class-variables");
 
   localClass(class, NAME_instances, NAME_debugging, "hash_table*", NAME_get,
 	     "Hash table holding existing instances");
@@ -2349,9 +2369,6 @@ makeClassClass(Class class)
   localClass(class, NAME_makeClassFunction, NAME_internal,
 	     "alien:VoidFunc", NAME_none,
 	     "C-function that created the class");
-  localClass(class, NAME_traceFunction, NAME_internal,
-	     "alien:VoidFunc", NAME_none,
-	     "C-function to handle trace message");
   localClass(class, NAME_boot, NAME_internal,
 	     "alien:int", NAME_none,
 	     "#PCE slots when booting; 0 otherwise");
@@ -2466,6 +2483,12 @@ makeClassClass(Class class)
 	    "Get instance variable from name of offset",
 	    getInstanceVariableClass);
 #ifndef O_RUNTIME
+  getMethod(class, NAME_manId, NAME_manual, "name", 0,
+	    "Identifier for the manual (C.<name>)",
+	    getManIdClass),
+  getMethod(class, NAME_manIndicator, NAME_manual, "name", 0,
+	    "Indicator for the manual (C)",
+	    getManIndicatorClass),
   getMethod(class, NAME_manHeader, NAME_manual, "string", 0,
 	    "New string with with term description",
 	    getManHeaderClass);
@@ -2473,16 +2496,18 @@ makeClassClass(Class class)
 	    "New string with header and summary",
 	    getManSummaryClass);
 #endif
-  getMethod(class, NAME_getMethod, NAME_meta, "get_method|variable", 1, "name",
+  getMethod(class, NAME_getMethod, NAME_meta, "behaviour", 1, "name",
 	    "Method implementing named get behaviour",
 	    getGetMethodClass);
-  getMethod(class, NAME_sendMethod, NAME_meta, "send_method|variable", 1,
-	    "name",
+  getMethod(class, NAME_sendMethod, NAME_meta, "behaviour", 1, "name",
 	    "Method implementing named get behaviour",
 	    getSendMethodClass);
   getMethod(class, NAME_superClassName, NAME_type, "name", 0,
 	    "Name of super-class or @nil (term description",
 	    getSuperClassNameClass);
+  getMethod(class, NAME_subClasses, NAME_type, "chain", 0,
+	    "Chain holding sub-classes of this class",
+	    getSubClassesClass);
   getMethod(class, NAME_convert, DEFAULT, "class", 1, "any",
 	    "Convert class name",
 	    getConvertClass);
@@ -2502,19 +2527,13 @@ makeClassClass(Class class)
 		 *	   RESOURCE FUNCTIONS	*
 		 *******************************/
 
-  sendMethod(class, NAME_resource, NAME_resource, 1, "resource",
-	     "Attach a resource to a class",
-	     resourceClass);
-  sendMethod(class, NAME_resourceValue, NAME_resource, 2, "name", "any",
-	     "Set value of named resource",
-	     resourceValueClass);
-  getMethod(class, NAME_resource, NAME_resource, "resource", 1, "name",
-	    "Associated resource from name",
-	    getResourceClass);
-  getMethod(class, NAME_catchAll, NAME_resource, "value=any", 1,
-	    "resource=name",
-	    "Get resource-value",
-	    getResourceValueClass);
+  sendMethod(class, NAME_classVariableValue, NAME_default, 2, "name", "any",
+	     "Set value of named class variable",
+	     classVariableValueClass);
+  getMethod(class, NAME_classVariable, NAME_default,
+	    "class_variable", 1, "name",
+	    "Associated class variable from name",
+	    getClassVariableClass);
 
   succeed;
 }

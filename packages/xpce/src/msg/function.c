@@ -29,7 +29,7 @@ getConvertFunction(Class class, QuoteFunction q)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Any
-getForwardFunctionv(Function f, int argc, Any *argv)
+getForwardFunctionv(Function f, int argc, const Any argv[])
 { Any rval;
 
   withArgs(argc, argv, rval = getExecuteFunction(f));
@@ -46,7 +46,8 @@ check whether the message actually is send to @receiver
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Any
-getForwardReceiverFunctionv(Function f, Any receiver, int argc, Any *argv)
+getForwardReceiverFunctionv(Function f, Any receiver,
+			    int argc, const Any argv[])
 { if ( RECEIVER->value != receiver )
   { Any receiver_save = RECEIVER->value;
     Any receiver_class_save = RECEIVER_CLASS->value;
@@ -227,7 +228,7 @@ static getdecl get_function[] =
 
 #define rc_function NULL
 /*
-static resourcedecl rc_function[] =
+static classvardecl rc_function[] =
 { 
 };
 */

@@ -91,7 +91,7 @@ static getdecl get_or[] =
 
 #define rc_or NULL
 /*
-static resourcedecl rc_or[] =
+static classvardecl rc_or[] =
 { 
 };
 */

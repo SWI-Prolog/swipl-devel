@@ -14,8 +14,9 @@
 #define __WINDOWS__
 #endif
 
-
 #pragma warning(4:4244 4305 4018)
+
+#define UXWIN(unx, win) win
 
 #define HAVE_UXNT_H 1
 #include <uxnt.h>			/* must be first! */
@@ -128,6 +129,9 @@
 
 /* Define if you have the getcwd function.  */
 #define HAVE_GETCWD 1
+
+/* Define if you have the rename function.  */
+#define HAVE_RENAME 1
 
 /* Define if you have the getdtablesize function.  */
 #undef HAVE_GETDTABLESIZE

@@ -11,7 +11,7 @@
 #include <h/graphics.h>
 
 static status nameDialogGroup(DialogGroup g, Name name);
-static status labelDialogGroup(DialogGroup g, Name name);
+static status labelDialogGroup(DialogGroup g, Any name);
 
 
 		/********************************
@@ -26,14 +26,9 @@ initialiseDialogGroup(DialogGroup g, Name name, Name kind)
     name = getClassNameObject(g);
 
   assign(g, label,	  DEFAULT);	/* see nameDialogGroup() */
-  assign(g, label_font,   DEFAULT);	/* Resource */
-  assign(g, label_format, DEFAULT);	/* Resource */
-  assign(g, radius,       DEFAULT);	/* Resource */
   assign(g, size,	  DEFAULT);
-  assign(g, gap,	  DEFAULT);	/* Resource */
-  assign(g, border,	  getResourceValueObject(g, NAME_border));
+  assign(g, border,	  getClassVariableValueObject(g, NAME_border));
   assign(g, auto_align,	  ON);
-  assign(g, alignment,	  DEFAULT);	/* Resource */
   assign(g, elevation,	  NIL);
 
   nameDialogGroup(g, name);
@@ -59,9 +54,6 @@ compute_label_size_dialog_group(DialogGroup g, int *w, int *h)
   { if ( instanceOfObject(g->label, ClassCharArray) )
     { CharArray ca = g->label;
 
-      if ( isDefault(g->label_font) )
-	obtainResourcesObject(g);
-      
       str_size(&ca->data, g->label_font, w, h);
     } else
     { *w = *h = 0;
@@ -81,17 +73,22 @@ compute_label(DialogGroup g, int *x, int *y, int *w, int *h)
     if ( h ) *h = th;
     if ( y )
     { if ( g->label_format == NAME_top )
-	*y = -th;
-      else if ( g->label_format == NAME_bottom )
 	*y = 0;
-      else /* center */
+      else if ( g->label_format == NAME_bottom )
+	*y = -th;
+      else if ( g->label_format == NAME_hotSpot &&
+		instanceOfObject(g->label, ClassImage) )
+      { Image img = (Image)g->label;
+
+	if ( notNil(img->hot_spot) )
+	  *y = -valInt(img->hot_spot->y);
+	else
+	  *y = -th/2;
+      } else /* center */
 	*y = -th/2;
     }
     if ( x )
-    { if ( isDefault(g->label_font) )
-	  obtainResourcesObject(g);
-	
-      *x = valInt(g->radius) + valInt(getExFont(g->label_font));
+    { *x = valInt(g->radius) + valInt(getExFont(g->label_font));
     }
   } else
   { if ( x ) *x = 0;
@@ -110,7 +107,7 @@ computeDialogGroup(DialogGroup g)
     Area a = g->area;
     Size border;
 
-    obtainResourcesObject(g);
+    obtainClassVariablesObject(g);
     border = (isDefault(g->border) ? g->gap : g->border);
 
     CHANGING_GRAPHICAL(g,
@@ -191,10 +188,15 @@ geometryDialogGroup(DialogGroup g, Int x, Int y, Int w, Int h)
 
 static status
 sizeDialogGroup(DialogGroup g, Size s)
-{ assign(g, size, s);
+{ if ( notDefault(g->size) && equalSize(g->size, s) )
+    succeed;
 
-  if ( !parentGoal(VmiSend, g, NAME_layout) )
-    send(g, NAME_layoutDialog, 0);
+  if ( notDefault(g->size) )
+    copySize(g->size, s);
+  else
+    assign(g, size, s);
+  
+  send(g, NAME_layoutDialog, 0);
 
   return requestComputeGraphical(g, DEFAULT);
 }
@@ -206,7 +208,7 @@ sizeDialogGroup(DialogGroup g, Size s)
 
 static status
 layoutDialogDialogGroup(DialogGroup g)
-{ obtainResourcesObject(g);
+{ obtainClassVariablesObject(g);
 
   return layoutDialogDevice((Device)g, g->gap, g->size, g->border);
 }
@@ -216,7 +218,8 @@ static status
 gapDialogGroup(DialogGroup g, Size gap)
 { if ( !equalSize(gap, g->gap) )
   { assign(g, gap, gap);
-    send(g, NAME_layoutDialog, 0);
+    if ( isNil(g->request_compute) && notNil(g->device) )
+      send(g, NAME_layoutDialog, 0);
   }
 
   succeed;
@@ -230,7 +233,8 @@ borderDialogGroup(DialogGroup g, Size border)
        (notDefault(border) && notDefault(g->border) &&
 	!equalSize(border, g->border)) )
   { assign(g, border, border);
-    send(g, NAME_layoutDialog, 0);
+    if ( isNil(g->request_compute) && notNil(g->device) )
+      send(g, NAME_layoutDialog, 0);
   }
 
   succeed;
@@ -264,7 +268,7 @@ ChangedLabelDialogGroup(DialogGroup g)
 
 
 static status
-labelDialogGroup(DialogGroup g, Name label)
+labelDialogGroup(DialogGroup g, Any label)
 { if ( g->label != label )
   { assign(g, label, label);
     qadSendv(g, NAME_ChangedLabel, 0, NULL);
@@ -318,7 +322,7 @@ static CharArray
 getLabelNameDialogGroup(DialogGroup g, Name name)
 { Any suffix, label = get(name, NAME_labelName, 0);
 
-  if ( label && (suffix = getResourceValueObject(g, NAME_labelSuffix)) )
+  if ( label && (suffix = getClassVariableValueObject(g, NAME_labelSuffix)) )
     label = getEnsureSuffixCharArray(label, suffix);
 
   answer(label);
@@ -345,7 +349,7 @@ static status
 kindDialogGroup(DialogGroup g, Name kind)
 { if ( kind == NAME_box )
   { assign(g, pen, toInt(1));
-    assign(g, border, getResourceValueObject(g, NAME_border));
+    assign(g, border, getClassVariableValueObject(g, NAME_border));
     nameDialogGroup(g, g->name);
   } else if ( kind == NAME_group )
   { assign(g, pen, toInt(0));
@@ -410,7 +414,7 @@ RedrawAreaDialogGroup(DialogGroup g, Area a)
   compute_label(g, &lx, &ly, &lw, &lh);
 
   if ( g->pen != ZERO )
-  { Elevation e = getResourceValueObject(g, NAME_elevation);
+  { Elevation e = getClassVariableValueObject(g, NAME_elevation);
 
     if ( e && instanceOfObject(e, ClassElevation) )
     { int bx = x;
@@ -609,7 +613,7 @@ static vardecl var_diagroup[] =
      NAME_label, "Displayed label"),
   SV(NAME_labelFont, "font", IV_GET|IV_STORE, labelFontDialogGroup,
      NAME_appearance, "Font used to display textual label"),
-  SV(NAME_labelFormat, "{top,center,bottom}", IV_GET|IV_STORE,
+  SV(NAME_labelFormat, "{top,center,bottom,hot_spot}", IV_GET|IV_STORE,
      labelFormatDialogGroup,
      NAME_appearance, "Alignment of label with top"),
   SV(NAME_elevation, "elevation*", IV_GET|IV_STORE, elevationDialogGroup,
@@ -645,7 +649,7 @@ static senddecl send_diagroup[] =
      NAME_area, "Size, @default implies minimal size"),
   SM(NAME_layoutDialog, 0, NULL, layoutDialogDialogGroup,
      NAME_layout, "(Re)compute layout of dialog_items"),
-  SM(NAME_label, 1, "name", labelDialogGroup,
+  SM(NAME_label, 1, "name|image", labelDialogGroup,
      NAME_name, "Change visual label"),
   SM(NAME_name, 1, "name", nameDialogGroup,
      NAME_name, "Change <-name, update <-label"),
@@ -688,13 +692,13 @@ static getdecl get_diagroup[] =
 
 /* Resources */
 
-static resourcedecl rc_diagroup[] =
+static classvardecl rc_diagroup[] =
 { RC(NAME_alignment, "{column,left,center,right}", "column",
      "Alignment in the row"),
   RC(NAME_elevation, "elevation*",
    "when(@colour_display, 1, @nil)",
      "Elevation above environment"),
-  RC(NAME_radius, "0..", "0",
+  RC(NAME_radius, "0..", "when(@colour_display, 8, 12)",
      "Radius for the corners"),
   RC(NAME_gap, "size", "size(15,8)",
      "Distance between items in X and Y"),

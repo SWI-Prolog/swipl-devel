@@ -1,7 +1,7 @@
 ################################################################
 # $Id$
 #
-# Makefile for XPCE-4.9
+# Makefile for XPCE-5
 #
 # NOTE NOTE NOTE: This Makefile only works with GNU-Make!!
 #
@@ -26,7 +26,7 @@
 #	+ If you want a licence, contact xpce-request@swi.psy.uva.nl
 #	+ Please inform us where you found the illegal copy.
 #
-# Copyright (C) 1997, University of Amsterdam
+# Copyright (C) 1998, University of Amsterdam
 ################################################################
 
 .EXPORT_ALL_VARIABLES:
@@ -136,8 +136,7 @@ SICSTARGET=xpce-sicstus
 VMAJOR=@VMAJOR@
 VMINOR=@VMINOR@
 VPATCH=@VPATCH@
-PCEVERSIONDATE=April 1998
-RESOURCE_CLASS=Pce
+PCEVERSIONDATE=January 1999
 
 SOMAJOR=$(VMAJOR)
 SOMINOR=$(VMINOR).$(VPATCH)
@@ -255,13 +254,6 @@ $(LIBXPCEMAIN):	$(srcdir)/itf/main.cxx
 
 Initialize.o:	
 		ar x $(XLIB)/libXt.a $@
-
-################################################################
-# The Pce resource file
-################################################################
-
-../$(RESOURCE_CLASS):	Makefile $(srcdir)/Pce.in
-	$(SED) "s/\<Pce\./$(RESOURCE_CLASS)./" $(srcdir)/Pce.in > $@
 
 ################################################################
 # XPCE's modules
@@ -399,7 +391,7 @@ gra/proto.h:	$(GRASRC)
 ################################################################
 
 ITF1OBJS=	c.o host.o interface.o cpointer.o asfile.o console.o \
-		stub.o xmalloc.o
+		stub.o xmalloc.o iostream.o srcsink.o rc.o hostdata.o
 ITF2OBJS=	@CXXTARGETS@
 ITFOBJS=	$(ITF1OBJS) $(ITF2OBJS)
 ITFSRC=		$(addprefix itf/, $(ITF1OBJS:.o=.c) $(ITF2OBJS:.o=.cxx))
@@ -415,18 +407,17 @@ itf/cpp.o:	itf/cpp.cxx
 ################################################################
 
 KER1OBJS=	alloc.o assoc.o behaviour.o class.o conversion.o \
-		csymbol.o debug.o declarations.o error.o gc.o \
+		debug.o declarations.o error.o gc.o \
 		getmethod.o glob.o global.o goodies.o passing.o \
 		method.o name.o object.o programobject.o save.o \
 		self.o sendmethod.o srclocation.o timer.o \
-		trace.o type.o variable.o vmi.o xref.o \
-		classstub.o
+		trace.o type.o variable.o xref.o classvar.o
 KER2OBJS=	inline.o
 KEROBJS=	$(KER1OBJS) $(KER2OBJS)
 KER1SRC=	$(addprefix ker/, $(KER1OBJS:.o=.c))
 
 ker/proto.h:	$(KER1SRC)
-		$(MKPROTO) $(KER1SRC) | $(CLPROTO) > $@
+		$(MKPROTO) $(KER1SRC) | $(CLPROTO) | grep -v PceGoal | grep -v PceType > $@
 
 version.h:	Makefile
 		@echo "#define MACHINE \"$(ARCH)\"" > $@%
@@ -538,25 +529,19 @@ xpce-client:	unx/client.c
 ################################################################
 
 WINOBJS=	browser.o decorate.o dialog.o display.o \
-		displaymgr.o frame.o picture.o resource.o \
+		displaymgr.o frame.o picture.o \
 		setup.o tile.o view.o window.o application.o
 WINSRC=		$(addprefix win/, $(WINOBJS:.o=.c))
 
 win/proto.h:	$(WINSRC)
 		$(MKPROTO) $(WINSRC) | $(CLPROTO) > $@
 
-rclass.h:	Makefile
-		@echo "#define RESOURCE_CLASS \"$(RESOURCE_CLASS)\"" > $@%
-		@if cmp -s $@% $@; then rm $@%; else mv $@% $@; fi
-
-$(LIB)(display.o):	rclass.h
-
 
 ################################################################
 # IMG 		--- Platform independent low-level image stuff
 ################################################################
 
-IMGOBJS=	jpegtoxpm.o gifread.o giftoxpm.o
+IMGOBJS=	jdatasrc.o jpegtoxpm.o gifread.o giftoxpm.o
 IMGSRC=		$(addprefix img/, $(IMGOBJS:.o=.c))
 
 img/proto.h:	$(IMGSRC)
@@ -603,7 +588,7 @@ OBJECTS=	$(addprefix adt/, $(ADTOBJS)) \
 XOBJECTS=	$(addprefix x11/, $(X11OBJS)) \
 		$(addprefix img/, $(IMGOBJS))
 
-libXPCE:	version.h rclass.h $(OBJECTS) doxobjs
+libXPCE:	version.h $(OBJECTS) doxobjs
 		@echo "Running ar ru $(LIB) objects ..."
 		@$(AR) ru $(LIB) $(OBJECTS) $(XOBJECTS)
 		$(RANLIB) $(LIB)
@@ -628,9 +613,9 @@ DVLIBDIRS=	lib lib/compatibility lib/dialog lib/draw lib/emacs lib/man \
 		lib/xref lib/english demo contrib contrib/rubik
 DVBOOTDIRS=	boot
 DVMISCFILES=	ChangeLog LICENCE
-RTMISC=		Pce RT-LICENCE README README.RT
+RTMISC=		Defaults RT-LICENCE README README.RT
 
-rt-install:	rt-home rt-files rt-misc rt-postscript rt-bitmaps rt-bins \
+rt-install:	rt-home rt-files rt-misc rt-bitmaps rt-bins \
 		rt-link
 		-@touch $@
 
@@ -651,9 +636,6 @@ rt-home:
 rt-bitmaps:
 	BMFS=`find ../bitmaps/ \( -name '*.bm' -o -name '*.xpm' -o -name '*.xbm' \) -print` && \
 	$(INSTALL_DATA) -vp1 ../bitmaps/README $$BMFS $(RTHOME) >> $(RTFILES)
-
-rt-postscript:
-	$(INSTALL_DATA) -vpC .. postscript/pce.ps $(RTHOME) >> $(RTFILES)
 
 rt-misc:
 	$(INSTALL_DATA) -vC .. $(RTMISC) $(RTHOME) >> $(RTFILES)
@@ -806,9 +788,9 @@ clean:
 
 distclean:	clean
 		for d in ../pl/src; do (cd $$d; $(MAKE) distclean); done
-		$(RM) -f version.h rclass.h
+		$(RM) -f version.h
 		$(RM) -f h/names.ic h/names.ih
 		$(RM) -rf names Names.Gen Names.X
 		$(RM) -f $(LIB)
 		$(RM) -f bin/xpce bin/xpce-client
-		$(RM) -f config.cache Pce
+		$(RM) -f config.cache

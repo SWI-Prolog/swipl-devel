@@ -69,6 +69,21 @@ initialiseChainv(Chain ch, int argc, Any *argv)
   succeed;
 }
 
+
+static Chain
+getConvertChain(Any ctx, Vector v)
+{ Chain ch = answerObject(ClassChain, 0);
+  int n = valInt(v->size);
+  Any *e = v->elements;
+
+  for( ; --n >= 0; e++ )
+  { appendChain(ch, *e);
+  }  
+
+  answer(ch);
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Load/store a chain on a file. Format:
 
@@ -93,7 +108,7 @@ storeChain(Chain ch, FileObj file)
 }
     
 static status
-loadChain(Chain ch, FILE *fd, ClassDef def)
+loadChain(Chain ch, IOSTREAM *fd, ClassDef def)
 { Any obj;
   Cell current;
   char c;
@@ -105,7 +120,7 @@ loadChain(Chain ch, FILE *fd, ClassDef def)
   assign(ch, size, ZERO);
 
   for(;;)
-    switch( c=getc(fd) )
+    switch( c=Sgetc(fd) )
     { case 'e':
       case 'E':
 	  TRY( obj=loadObject(fd) );
@@ -118,7 +133,7 @@ loadChain(Chain ch, FILE *fd, ClassDef def)
 	  succeed;
       default:
 	  errorPce(LoadFile, NAME_illegalCharacter,
-		   toInt(c), toInt(ftell(fd)));
+		   toInt(c), toInt(Stell(fd)));
     }
 } 
 
@@ -196,10 +211,11 @@ appendChain(register Chain ch, Any obj)
   cell = newCell(ch, obj);
 
   if (isNil(ch->head))
-    ch->head = ch->tail = cell;
-  else
-    ch->tail->next = cell, 
+  { ch->head = ch->tail = cell;
+  } else
+  { ch->tail->next = cell;
     ch->tail = cell;
+  }
 
   assign(ch, size, inc(ch->size));
   ChangedChain(ch, NAME_insert, getSizeChain(ch));
@@ -865,9 +881,9 @@ qsortCompareObjects(const void *o1, const void *o2)
 
 
 status
-sortChain(Chain ch, Code msg)
+sortChain(Chain ch, Code msg, Bool unique)
 { if ( isDefault(msg) )
-    return sortNamesChain(ch);
+    return sortNamesChain(ch, unique);
   else
   { int size = valInt(ch->size);
     Any *buf = (Any *)alloca(sizeof(Any) * size);
@@ -887,9 +903,16 @@ sortChain(Chain ch, Code msg)
     qsort(buf, size, sizeof(Any), qsortCompareObjects);
     clearChain(ch);
     for(i=0; i<size; i++)
-    { appendChain(ch, buf[i]);
-      if ( isObject(buf[i]) )
-	delRefObj(buf[i]);
+    { if ( unique != ON ||
+	   i == 0 ||
+	   qsortCompareObjects(&buf[i-1], &buf[i]) != 0 )
+	appendChain(ch, buf[i]);
+    }
+    for(i=0; i<size; i++)
+    { if ( isObject(buf[i]) )
+      {	delRefObj(buf[i]);
+	freeableObj(buf[i]);
+      }
     }
 
     qsortCompareCode = old;
@@ -913,11 +936,14 @@ compare_names(const void *p1, const void *p2)
 
 
 status
-sortNamesChain(Chain ch)
+sortNamesChain(Chain ch, Bool unique)
 { int size = valInt(ch->size);
   Scell buf = (Scell)alloca(sizeof(scell) * size);
   Cell cell;
   int i;
+  AnswerMark m;
+
+  markAnswerStack(m);
 
   i = 0;
   for_cell(cell, ch)
@@ -933,10 +959,19 @@ sortNamesChain(Chain ch)
   qsort(buf, size, sizeof(scell), compare_names);
   clearChain(ch);
   for(i=0; i<size; i++)
-  { appendChain(ch, buf[i].object);
-    if ( isObject(buf[i].object) ) delRefObj(buf[i].object);
-    doneObject(buf[i].name);
+  { if ( unique != ON ||
+	 i == 0 ||
+	 compare_names(&buf[i-1], &buf[i]) != 0 )
+      appendChain(ch, buf[i].object);
   }
+  for(i=0; i<size; i++)
+  { if ( isObject(buf[i].object) )
+    { delRefObj(buf[i].object);
+      freeableObj(buf[i].object);
+    }
+  }
+
+  rewindAnswerStack(m, NIL);
 
   succeed;
 }
@@ -1069,7 +1104,7 @@ moveBeforeChain(Chain ch, Any obj1, Any obj2)
   TRY( currentChain(ch, obj2) );
   cell = ch->current;
   addCodeReference(obj1);
-  if ( deleteChain(ch, obj1) != SUCCEED )
+  if ( !deleteChain(ch, obj1) )
   { delCodeReference(obj1);
     fail;
   }
@@ -1355,6 +1390,8 @@ static char *T_moveBefore[] =
         { "value=any", "before=any" };
 static char *T_swap[] =
         { "value_1=any", "value_2=any" };
+static char *T_sort[] =
+	{ "compare=[code|function]", "unique=[bool]" };
 
 /* Instance Variables */
 
@@ -1380,7 +1417,7 @@ static senddecl send_chain[] =
      NAME_cardinality, "Test if chain has no elements"),
   SM(NAME_cellValue, 2, T_cellValue, cellValueChain,
      NAME_cell, "Change value of cell"),
-  SM(NAME_equal, 1, "[chain]*", equalChain,
+  SM(NAME_equal, 1, "chain", equalChain,
      NAME_compare, "Test if both chains have the same objects"),
   SM(NAME_current, 1, "value=any*", currentChain,
      NAME_current, "Make cell with `value' the current cell"),
@@ -1432,8 +1469,8 @@ static senddecl send_chain[] =
      NAME_order, "Move 1st object just after second"),
   SM(NAME_moveBefore, 2, T_moveBefore, moveBeforeChain,
      NAME_order, "Move 1st object just before second"),
-  SM(NAME_sort, 1, "compare=[code|function]", sortChain,
-     NAME_order, "Sort according to code's return-value (or name)"),
+  SM(NAME_sort, 2, T_sort, sortChain,
+     NAME_order, "Sort according to code (or name)"),
   SM(NAME_swap, 2, T_swap, swapChain,
      NAME_order, "Swap position of arguments"),
   SM(NAME_add, 1, "value=any", addChain,
@@ -1465,6 +1502,8 @@ static getdecl get_chain[] =
      NAME_completion, "New tuple with matches and common prefix"),
   GM(NAME_copy, 0, "chain", NULL, getCopyChain,
      NAME_copy, "New chain with same elements"),
+  GM(NAME_convert, 1, "chain", "vector", getConvertChain,
+     DEFAULT, "Convert array to linked list"),
   GM(NAME_current, 0, "any", NULL, getCurrentChain,
      NAME_current, "Value for the current cell"),
   GM(NAME_currentNo, 0, "int", NULL, getCurrentNoChain,
@@ -1507,7 +1546,7 @@ static getdecl get_chain[] =
 
 #define rc_chain NULL
 /*
-static resourcedecl rc_chain[] =
+static classvardecl rc_chain[] =
 { 
 };
 */

@@ -12,30 +12,24 @@ CharArray	getDowncaseCharArray(CharArray n);
 CharArray	getAppendCharArray(CharArray n1, CharArray n2);
 CharArray	getDeleteSuffixCharArray(CharArray n, CharArray s);
 CharArray	getEnsureSuffixCharArray(CharArray n, CharArray s);
-CharArray	getDeletePrefixCharArray(CharArray n, CharArray s);
 Int		getSizeCharArray(Any n);
 void		initCharArrays(void);
 CharArray	CtoScratchCharArray(const char *s);
 CharArray	StringToScratchCharArray(const String s);
 void		doneScratchCharArray(CharArray n);
 CharArray	CtoCharArray(char *s);
-CharArray	stringToCharArray(String s);
 status		makeClassCharArray(Class class);
 
 /* txt/editor.c */
-Name		getLabelEditor(Editor e);
 status		normaliseEditor(Editor e, Int start, Int end);
 Any		ReceiverOfEditor(Editor e);
 status		forwardModifiedEditor(Editor e, Bool val);
 status		scrollToEditor(Editor e, Int pos);
 status		selectionEditor(Editor e, Int from, Int to);
 Point		getSelectionEditor(Editor e);
-Int		getSelectionStartEditor(Editor e);
-Int		getSelectionEndEditor(Editor e);
 StringObj	getSelectedEditor(Editor e);
 status		formatEditor(Editor e, CharArray fmt, int argc, Any *argv);
 status		clearEditor(Editor e);
-status		fontEditor(Editor e, FontObj font);
 status		makeClassEditor(Class class);
 
 /* txt/fragment.c */
@@ -100,7 +94,7 @@ int		str_icase_common_length(String s1, String s2);
 
 /* txt/string.c */
 StringObj	StringToString(String s);
-StringObj	CtoString(char *s);
+StringObj	CtoString(const char *s);
 StringObj	staticCtoString(const char *s);
 StringObj	CtoTempString(char *s);
 status		initialiseStringv(StringObj str, CharArray fmt, int argc, Any *argv);
@@ -125,11 +119,11 @@ status		changedTextBuffer(TextBuffer tb);
 status		ChangedRegionTextBuffer(TextBuffer tb, Int start, Int end);
 status		ChangedFragmentListTextBuffer(TextBuffer tb);
 status		clearTextBuffer(TextBuffer tb);
-status		insertFileTextBuffer(TextBuffer tb, Int where, FileObj file, Int times);
+status		insertFileTextBuffer(TextBuffer tb, Int where, SourceSink file, Int times);
 status		insertTextBuffer(TextBuffer tb, Int where, CharArray ca, Int times);
 status		appendTextBuffer(TextBuffer tb, CharArray ca, Int times);
 status		deleteTextBuffer(TextBuffer tb, Int where, Int times);
-status		saveTextBuffer(TextBuffer tb, FileObj file, Int from, Int len);
+status		saveTextBuffer(TextBuffer tb, SourceSink file, Int from, Int len);
 status		CmodifiedTextBuffer(TextBuffer tb, Bool val);
 status		characterTextBuffer(TextBuffer tb, Int where, Int c);
 status		transposeTextBuffer(TextBuffer tb, Int f1, Int t1, Int f2, Int t2);
@@ -156,9 +150,7 @@ status		delete_textbuffer(TextBuffer tb, int where, int length);
 status		makeClassTextBuffer(Class class);
 
 /* txt/textcursor.c */
-status		fontTextCursor(TextCursor c, FontObj font);
 status		setTextCursor(TextCursor c, Int x, Int y, Int w, Int h, Int b);
-status		styleTextCursor(TextCursor c, Name style);
 status		makeClassTextCursor(Class class);
 
 /* txt/textimage.c */

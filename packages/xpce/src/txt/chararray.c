@@ -10,6 +10,8 @@
 #include <h/kernel.h>
 #include <h/unix.h>			/* storeCharpFile() prototype */
 
+static CharArray	stringToCharArray(String s);
+
 		/********************************
 		*         CREATE/CONVERT	*
 		********************************/
@@ -55,7 +57,7 @@ storeCharArray(CharArray s, FileObj file)
 
 
 static status
-loadCharArray(CharArray s, FILE *fd, ClassDef def)
+loadCharArray(CharArray s, IOSTREAM *fd, ClassDef def)
 { unsigned char *data;
 
   TRY(loadSlotsObject(s, fd, def));
@@ -213,33 +215,32 @@ CharArray
 getLabelNameCharArray(CharArray n)
 { String s = &n->data;
   int size = s->size;
-  int i, l = 0, u = 0;
+  int i;
 
   if ( size == 0 )
     return n;
 
-  for(i=0; i < size; i++)
-  { l |= isupper(str_fetch(s, i));
-    u |= islower(str_fetch(s, i));
-
-    if ( (u && l) || (!u && !l) )		/* mixed case or no letters */
-      return n;
-  }
-
   { LocalString(buf, s, size);
     int o = 0;
+    int c = str_fetch(s, 0);
 
     i = 0;
-    str_store(buf, o, toupper(str_fetch(s, i)));
+    str_store(buf, o, toupper(c));
     i++, o++;
 
     for( ; i < size; i++, o++ )
-    { if ( iswordsep(str_fetch(s, i)) )
+    { c = str_fetch(s, i);
+
+      if ( iswordsep(c) )
       { str_store(buf, o, ' ');
-	i++, o++;
-	str_store(buf, o, toupper(str_fetch(s, i)));
+#if 0
+	if ( ++i < size )
+	{ o++;
+	  str_store(buf, o, toupper(str_fetch(s, i)));
+	}
+#endif
       } else
-	str_store(buf, o, tolower(str_fetch(s, i)));
+	str_store(buf, o, c);
     }
 
     answer(ModifiedCharArray(n, buf));
@@ -349,11 +350,11 @@ getAppendCharArrayv(CharArray ca, int argc, CharArray *argv)
     } else
     { char16 *d = buf->s_text16;
       
-      memcpy(d, ca->data.s_text16, ca->data.size * sizeof(char16));
+      cpdata(d, ca->data.s_text16, char16, ca->data.size);
       d += ca->data.size;
 
       for( i=0; i<argc; i++ )
-      { memcpy(d, argv[i]->data.s_text16, argv[i]->data.size*sizeof(char16));
+      { cpdata(d, argv[i]->data.s_text16, char16, argv[i]->data.size);
 	d += argv[i]->data.size;
       }
     }
@@ -389,7 +390,7 @@ getEnsureSuffixCharArray(CharArray n, CharArray s)
 }
 
 
-CharArray
+static CharArray
 getDeletePrefixCharArray(CharArray n, CharArray s)
 { if ( prefixCharArray(n, s) )
   { string buf;
@@ -605,7 +606,7 @@ CtoCharArray(char *s)
 }
 
 
-CharArray
+static CharArray
 stringToCharArray(String s)
 { CharArray name = StringToScratchCharArray(s);
   CharArray rval = answerObject(ClassCharArray, name, 0);
@@ -713,7 +714,7 @@ static getdecl get_charArray[] =
 
 #define rc_charArray NULL
 /*
-static resourcedecl rc_charArray[] =
+static classvardecl rc_charArray[] =
 { 
 };
 */

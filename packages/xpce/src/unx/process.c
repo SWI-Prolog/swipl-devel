@@ -171,19 +171,42 @@ to myself?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
+syncSend(Any rec, Name sel, int argc, const Any *argv)
+{ ArgVector(av, argc+2);
+  int i, ac = 0;
+  Timer t;
+
+  av[ac++] = rec;
+  av[ac++] = sel;
+  for(i=0; i<argc; i++)
+    av[ac++] = argv[i];
+
+  t = newObject(ClassTimer, ZERO,
+		newObject(ClassAnd,
+			  newObjectv(ClassMessage, ac, av),
+			  newObject(ClassMessage, RECEIVER, NAME_free, 0),
+			  0), 0);
+
+  statusTimer(t, NAME_once);
+}
+
+
+
+static void
 #if USE_SIGINFO
 child_changed(int sig, siginfo_t *info, void *uctx)
 #else
 child_changed(int sig)
 #endif
-{ Process p;
-
+{ Any rstat = NIL;
+  Any sel   = NIL;
+  Process p = NIL;
+		
 #ifdef UNION_WAIT
 #define wait_t union wait
 #else
 #define wait_t int
 #endif
-
 
 #if USE_SIGINFO
   DEBUG(NAME_process, Cprintf("child %d changed called\n", info->si_pid));
@@ -194,21 +217,34 @@ child_changed(int sig)
 	      if ( pid == info->si_pid )
 	      { switch( info->si_code )
 		{ case CLD_EXITED:
-		    send(p, NAME_exited, toInt(info->si_status), 0);
+		    sel   = NAME_exited;
+		    rstat = toInt(info->si_status);
 		    break;
 		  case CLD_KILLED:
 		  case CLD_STOPPED:
-		    send(p, NAME_killed, signames[info->si_status], 0);
+		    sel   = NAME_killed;
+		    rstat = signames[info->si_status];
 		    break;
 		  case CLD_DUMPED:
-		    send(p, NAME_exited, toInt(-1), 0);
+		    sel   = NAME_exited;
+		    rstat = toInt(-1);
 		    break;
 		  case CLD_CONTINUED:
 		    break;
 		}
+
+		break;
 	      }
 	    });
+
+  if ( notNil(rstat) )
+  { DEBUG(NAME_process, Cprintf("Posting %s->%s: %s\n",
+				pp(p), pp(sel), pp(rstat)));
+    syncSend(p, sel, 1, &rstat);
+  }
+
 #else /*USE_SIGINFO*/
+
   DEBUG(NAME_process, Cprintf("child_changed() called\n"));
 
   for_chain(ProcessChain, p,
@@ -217,13 +253,24 @@ child_changed(int sig)
 
 	      if ( waitpid(pid, &status, WNOHANG|WUNTRACED) == pid )
 	      { if ( WIFSTOPPED(status) )
-		  send(p, NAME_stopped, signames[WSTOPSIG(status)], 0);
-	        else if ( WIFSIGNALED(status) )
-		  send(p, NAME_killed, signames[WTERMSIG(status)], 0);
-	        else if ( WIFEXITED(status) )
-		  send(p, NAME_exited, toInt(WEXITSTATUS(status)), 0);
+		{ sel   = NAME_stopped;
+		  rstat = signames[WSTOPSIG(status)];
+		} else if ( WIFSIGNALED(status) )
+		{ sel   = NAME_killed;
+		  rstat = signames[WTERMSIG(status)];
+		} else if ( WIFEXITED(status) )
+		{ sel   = NAME_exited;
+		  rstat = toInt(WEXITSTATUS(status));
+		}
+
+		if ( notNil(rstat) )
+		{ DEBUG(NAME_process, Cprintf("Posting %s->%s: %s\n",
+				pp(p), pp(sel), pp(rstat)));
+		  syncSend(p, sel, 1, &rstat);
+		}
 	      }
 	    });
+
 #endif /*USE_SIGINFO*/
 
 #if !defined(BSD_SIGNALS) && !defined(HAVE_SIGACTION)
@@ -305,7 +352,7 @@ unlinkProcess(Process p)
 }
 
 
-status
+status					/* exported to msw/msprocess.c */
 pidProcess(Process p, Int pid)
 { setupProcesses();
 
@@ -799,7 +846,7 @@ static getdecl get_process[] =
 
 #define rc_process NULL
 /*
-static resourcedecl rc_process[] =
+static classvardecl rc_process[] =
 { 
 };
 */

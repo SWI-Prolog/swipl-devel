@@ -16,14 +16,14 @@
 
 #ifdef HAVE_LIBXPM
 #include <X11/xpm.h>
-static XImage *readXpmFile(Image image, FILE *fd);
+static XImage *readXpmFile(Image image, IOSTREAM *fd);
 #ifdef O_GIFTOXPM
 #include <img/gif.h>
-static XImage *readGIFFile(Image image, FILE *fd);
+static XImage *readGIFFile(Image image, IOSTREAM *fd);
 #endif
 #include <img/jpeg.h>
 #ifdef HAVE_LIBJPEG
-static XImage *readJPEGFile(Image image, FILE *fd);
+static XImage *readJPEGFile(Image image, IOSTREAM *fd);
 #endif
 #endif
 
@@ -32,36 +32,25 @@ static XImage *readJPEGFile(Image image, FILE *fd);
 Read various bitmap-formats and  convert them into  an X11 bitmap-data
 string to be used with XCreateBitmapFromData().  Functions provided:
 
-char *read_bitmap_file(FILE *fd, int *w, int *h)
+char *read_bitmap_file(IOSTREAM *fd, int *w, int *h)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static unsigned char *read_x11_bitmap_file(FILE *, int *, int *);
-static unsigned char *read_sun_icon_file(FILE *, int *, int *);
-#if O_CONVERT_SUNVIEW_IMAGES
-static unsigned char *read_sun_image_file(FILE *fd, int *width, int *height);
-#include <pixrect/pixrect.h>
-#include <pixrect/memvar.h>
-#endif
-
+static unsigned char *read_x11_bitmap_file(IOSTREAM *, int *, int *);
+static unsigned char *read_sun_icon_file(IOSTREAM *, int *, int *);
 
 #define Round(n, r) ((((n) + (r) - 1) / (r)) * (r))
 
 static unsigned char *
-read_bitmap_data(FILE *fd, int *w, int *h)
-{ long offset = ftell(fd);
+read_bitmap_data(IOSTREAM *fd, int *w, int *h)
+{ long offset = Stell(fd);
   unsigned char *rval;
 
   if ( (rval = read_x11_bitmap_file(fd, w, h)) != NULL )
     return rval;
-  fseek(fd, offset, 0);
+  Sseek(fd, offset, SIO_SEEK_SET);
   if ( (rval = read_sun_icon_file(fd, w, h)) != NULL )
     return rval;
-  fseek(fd, offset, 0);
-#if O_CONVERT_SUNVIEW_IMAGES
-  if ( (rval = read_sun_image_file(fd, w, h)) != NULL )
-    return rval;
-  fseek(fd, offset, 0);  
-#endif
+  Sseek(fd, offset, SIO_SEEK_SET);
 
   return NULL;
 }
@@ -111,7 +100,7 @@ CreateXImageFromData(unsigned char *data, int width, int height)
 
 
 XImage *
-readImageFile(Image image, FILE *fd)
+readImageFile(Image image, IOSTREAM *fd)
 { unsigned char *data;
   int w, h;
   XImage *img=NULL;
@@ -141,7 +130,7 @@ readImageFile(Image image, FILE *fd)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The code below is copied from the MIT X11R5 distribution and modified for
-the interface required in PCE.
+the interface required in XPCE.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define MAX_SIZE 255
@@ -188,9 +177,8 @@ initHexTable(void)
  */
 
 static int
-NextInt(FILE *fstream)
-{ int ch;
-  int value = 0;
+NextInt(IOSTREAM *fstream)
+{ int value = 0;
   int gotone = 0;
   int done = 0;
     
@@ -198,14 +186,13 @@ NextInt(FILE *fstream)
     /* skip any initial delimiters found in read stream */
 
   while (!done)
-  { if ( feof(fstream) )
-    { value = -1;
-      done++;
-    } else
-    { int dvalue;
+  { int ch = Sgetc(fstream);
 
-      ch = getc(fstream) & 0xff;
-      dvalue = hexTable[ch];
+    if ( ch == EOF )
+    { return -1;
+    } else
+    { int dvalue = hexTable[ch];
+
       if ( dvalue >= 0 )
       { value = (value << 4) + dvalue;
 	gotone++;
@@ -219,7 +206,7 @@ NextInt(FILE *fstream)
 
 
 static unsigned char *
-read_x11_bitmap_file(FILE *fd, int *w, int *h)
+read_x11_bitmap_file(IOSTREAM *fd, int *w, int *h)
 { unsigned char *data = NULL;
   char line[LINESIZE];
   int size = 0;
@@ -239,7 +226,7 @@ read_x11_bitmap_file(FILE *fd, int *w, int *h)
 
 #define	RETURN_ERROR { if (data) XFree(data); return NULL; }
 
-  while (fgets(line, LINESIZE, fd))
+  while (Sfgets(line, LINESIZE, fd))
   { if ( sscanf(line,"#define %s %d",name_and_type,&value) == 2)
     { if (!(type = strrchr(name_and_type, '_')))
 	type = name_and_type;
@@ -330,16 +317,20 @@ read_x11_bitmap_file(FILE *fd, int *w, int *h)
 		********************************/
 
 static unsigned char *
-read_sun_icon_file(FILE *fd, int *width, int *height)
+read_sun_icon_file(IOSTREAM *fd, int *width, int *height)
 { unsigned char *data, *dst;
-  int x, y, w, h;
+  int c, x, y, w, h;
   int size;
   int skip_last;
+  char hdr[256];
 
-  if ( fscanf(fd, 
-"/* Format_version=1, Width=%d, Height=%d, Depth=1, Valid_bits_per_item=16\n */", 
+  if ( !Sfgets(hdr, sizeof(hdr), fd) ||
+       sscanf(hdr, 
+"/* Format_version=1, Width=%d, Height=%d, Depth=1, Valid_bits_per_item=16", 
 	&w, &h) != 2 )
     return NULL;
+  while( (c=Sgetc(fd)) != EOF && c != '/' ) /* skip to end of comment */
+    ;
 
   if (initialized == FALSE)
     initHexTable();
@@ -372,50 +363,6 @@ read_sun_icon_file(FILE *fd, int *width, int *height)
 }
 
 
-#if O_CONVERT_SUNVIEW_IMAGES
-
-static unsigned char *
-read_sun_image_file(FILE *fd, int *width, int *height)
-{ Pixrect *pr;
-  int w, h;
-  unsigned char *data, *dst;
-  short *src;
-  int x, y;
-  int skip_last;
-
-  if ( (pr = (Pixrect *) pr_load(fd, NULL)) == NULL )
-    return NULL;
-
-  w = pr->pr_size.x;
-  h = pr->pr_size.y;
-  data = dst = (unsigned char *) XMalloc(((w + 7) / 8) * h);
-
-  skip_last = (w % 16) <= 8 && (w % 16) > 0;
-
-  for(y = 0; y < h; y++)
-  { src = &((struct mpr_data *)pr->pr_data)->md_image[((w+15)/16) * y];
-
-    for(x = ((w+15)/16) - 1; x >= 0 ; x--)
-    { int s = *src++, d = 0;
-      int n;
-      
-      for( n=0; n < 16 ; n++ )		/* revert all bits in the short */
-        d |= ((s >> n) & 1) << (15-n);
-
-      *dst++ = d & 0xff;
-      if ( x != 0 || !skip_last )
-	*dst++ = (d >> 8) & 0xff;
-    }
-  }
-
-  *width = w;
-  *height = h;
-
-  return data;
-}
-
-#endif
-
 #ifdef HAVE_LIBXPM
 #include <sys/stat.h>
 
@@ -424,8 +371,8 @@ read_sun_image_file(FILE *fd, int *width, int *height)
 		 *******************************/
 
 static XImage *
-readXpmFile(Image image, FILE *fd)
-{ int offset = ftell(fd);
+readXpmFile(Image image, IOSTREAM *fd)
+{ int offset = Stell(fd);
   char *buffer = NULL;			/* make compiler happy */
   XImage *i = NULL;
   XImage *shape = NULL;
@@ -433,11 +380,10 @@ readXpmFile(Image image, FILE *fd)
   Display *disp = defaultXDisplay();
 
   if ( offset == 0 )			/* only entire file for now */
-  { struct stat buf;
+  { int size;
 
-    if ( fstat(fileno(fd), &buf) == 0 )
-    { int size = buf.st_size;
-      int as = XpmAttributesSize();
+    if ( (size = Ssize(fd)) >= 0 )
+    { int as = XpmAttributesSize();
       XpmAttributes *atts = (XpmAttributes *)alloca(as);
 
       memset(atts, 0, as);
@@ -449,7 +395,7 @@ readXpmFile(Image image, FILE *fd)
 	malloced = TRUE;
       }
 
-      if ( fread(buffer, sizeof(char), size, fd) != size )
+      if ( Sfread(buffer, sizeof(char), size, fd) != size )
 	goto out;
 
       buffer[size] = '\0';
@@ -483,7 +429,7 @@ out:
   if ( malloced )
     pceFree(buffer);
   if ( !i )
-    fseek(fd, offset, 0);
+    Sseek(fd, offset, 0);
 
   return i;
 }
@@ -491,7 +437,7 @@ out:
 #ifdef O_GIFTOXPM
 
 static XImage *
-readGIFFile(Image image, FILE *fd)
+readGIFFile(Image image, IOSTREAM *fd)
 { XpmImage img;
 
   switch( XpmReadGIF(fd, &img) )
@@ -526,7 +472,7 @@ readGIFFile(Image image, FILE *fd)
 #ifdef HAVE_LIBJPEG
 
 static XImage *
-readJPEGFile(Image image, FILE *fd)
+readJPEGFile(Image image, IOSTREAM *fd)
 { XpmImage img;
 
   switch( readJPEGtoXpmImage(fd, &img) )

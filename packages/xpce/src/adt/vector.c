@@ -89,7 +89,7 @@ storeVector(Vector v, FileObj file)
 }
     
 static status
-loadVector(Vector v, FILE *fd, ClassDef def)
+loadVector(Vector v, IOSTREAM *fd, ClassDef def)
 { int n;
   Any obj;
   int size;
@@ -116,6 +116,27 @@ unlinkVector(Vector v)
 }
 
 
+static status
+equalVector(Vector v1, Vector v2)
+{ if ( classOfObject(v1) == classOfObject(v2) &&
+       v1->size == v2->size &&
+       v1->offset == v2->offset )
+  { Any *e1 = v1->elements;
+    Any *e2 = v2->elements;
+    int n = valInt(v1->size);
+
+    for(; --n >= 0; e1++, e2++)
+    { if ( *e1 != *e2 )
+	fail;
+    }
+
+    succeed;
+  }
+
+  fail;
+}
+
+
 Int
 getLowIndexVector(Vector v)
 { answer(add(v->offset, ONE));
@@ -139,7 +160,7 @@ highIndexVector(Vector v, Int high)
     { Any *elms = alloc(size * sizeof(Any));
 
       fillVector(v, NIL, inc(high), DEFAULT); /* dereference */
-      memcpy(elms, v->elements, size * sizeof(Any));
+      cpdata(elms, v->elements, Any, size);
       unalloc(valInt(v->size)*sizeof(Any), v->elements);
       v->elements = elms;
       assign(v, size, toInt(size));
@@ -167,7 +188,7 @@ lowIndexVector(Vector v, Int low)
     { Any *elms = alloc(size * sizeof(Any));
 
       fillVector(v, NIL, toInt(l), toInt(ol-1)); /* dereference */
-      memcpy(elms, &v->elements[l-ol], size * sizeof(Any));
+      cpdata(elms, &v->elements[l-ol], Any, size);
       unalloc(valInt(v->size)*sizeof(Any), v->elements);
       v->elements = elms;
       assign(v, size, toInt(size));
@@ -219,7 +240,7 @@ getTailVector(Vector v)
 }
 
 
-Any
+static Any
 getHeadVector(Vector v)
 { if ( v->size != ZERO )
     answer(v->elements[0]);
@@ -318,7 +339,7 @@ elementVector(Vector v, Int e, Any obj)
     int m;
 
     if ( v->elements )
-    { memcpy(&newElements[-n], v->elements, valInt(v->size)*sizeof(Any));
+    { cpdata(&newElements[-n], v->elements, Any, valInt(v->size));
       unalloc(valInt(v->size)*sizeof(Any), v->elements);
     }
     v->elements = newElements;
@@ -337,7 +358,7 @@ elementVector(Vector v, Int e, Any obj)
     int m;
 
     if ( v->elements )
-    { memcpy(newElements, v->elements, valInt(v->size)*sizeof(Any));
+    { cpdata(newElements, v->elements, Any, valInt(v->size));
       unalloc(valInt(v->size)*sizeof(Any), v->elements);
     }
     v->elements = newElements;
@@ -370,7 +391,7 @@ appendVector(Vector v, int argc, Any obj[])
 }
 
 
-status
+static status
 insertVector(Vector v, Int where, Any obj)
 { int size   = valInt(v->size);
   int offset = valInt(v->offset);
@@ -398,12 +419,26 @@ insertVector(Vector v, Int where, Any obj)
 
 
 static status
-sortVector(Vector v, Code code)
-{ if ( valInt(v->size) > 1 )
+sortVector(Vector v, Code code, Int from, Int to)
+{ int f, t, n;
+
+  f = valInt(v->offset) + 1;
+  t = f + valInt(v->size) - 1;
+
+  if ( notDefault(from) && valInt(from) > f )
+    f = valInt(from);
+  if ( notDefault(to) && valInt(to) > t )
+    t = valInt(to);
+  if ( t <= f )
+    succeed;
+
+  n = t-f+1;
+  f -= valInt(v->offset) + 1;
+
   { Code old = qsortCompareCode;		/* make reentrant */
     qsortCompareCode = code;
 
-    qsort(v->elements, valInt(v->size), sizeof(Any), qsortCompareObjects);
+    qsort(&v->elements[f], n, sizeof(Any), qsortCompareObjects);
 
     qsortCompareCode = old;
   }
@@ -552,6 +587,8 @@ static char *T_fill[] =
         { "value=any", "from=[int]", "to=[int]" };
 static char *T_range[] =
         { "from=[int]", "to=[int]" };
+static char *T_sort[] =
+        { "compare=code", "from=[int]", "to=[int]" };
 
 /* Instance Variables */
 
@@ -571,6 +608,8 @@ static senddecl send_vector[] =
      DEFAULT, "Create vector with elements at 1, ..."),
   SM(NAME_unlink, 0, NULL, unlinkVector,
      DEFAULT, "Deallocates -elements"),
+  SM(NAME_equal, 1, "vector", equalVector,
+     NAME_compare, "Test if both vectors contain the same objects"),
   SM(NAME_element, 2, T_element, elementVector,
      NAME_element, "Set specified element"),
   SM(NAME_insert, 2, T_element, insertVector,
@@ -583,7 +622,7 @@ static senddecl send_vector[] =
      NAME_iterate, "Run code on all elements"),
   SM(NAME_append, 1, "value=any ...", appendVector,
      NAME_list, "Append element at <-high_index+1"),
-  SM(NAME_sort, 1, "compare=code", sortVector,
+  SM(NAME_sort, 3, T_sort, sortVector,
      NAME_order, "Sort according to code exit status"),
   SM(NAME_swap, 2, T_swap, swapVector,
      NAME_order, "Swap two elements"),
@@ -628,7 +667,7 @@ static getdecl get_vector[] =
 
 #define rc_vector NULL
 /*
-static resourcedecl rc_vector[] =
+static classvardecl rc_vector[] =
 { 
 };
 */

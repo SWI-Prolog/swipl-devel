@@ -143,7 +143,7 @@ storeHashTable(HashTable ht, FileObj file)
 
 
 static status
-loadHashTable(HashTable ht, FILE *fd, ClassDef def)
+loadHashTable(HashTable ht, IOSTREAM *fd, ClassDef def)
 { int buckets;
   Symbol s;
 
@@ -164,7 +164,7 @@ loadHashTable(HashTable ht, FILE *fd, ClassDef def)
   for(;;)
   { int c;
 
-    switch(c=getc(fd))
+    switch(c=Sgetc(fd))
     { case 's':
 	{ Any key, value;
 
@@ -181,7 +181,7 @@ loadHashTable(HashTable ht, FILE *fd, ClassDef def)
 	succeed;
       default:
 	return errorPce(LoadFile, NAME_illegalCharacter,
-			toInt(c), toInt(ftell(fd)));
+			toInt(c), toInt(Stell(fd)));
     }
   }
 }
@@ -584,7 +584,7 @@ static getdecl get_hashTable[] =
 
 #define rc_hashTable NULL
 /*
-static resourcedecl rc_hashTable[] =
+static classvardecl rc_hashTable[] =
 { 
 };
 */

@@ -19,25 +19,19 @@ initialiseElevation(Elevation e, Any name,
 { if ( isDefault(name) )
     name = NIL;
   
-  if ( isDefault(height) )
-  { if ( isInteger(name) )
-      height = name;
-    else
-      height = getResourceValueObject(e, NAME_height);
-  }
-  if ( isDefault(colour) ) colour = getResourceValueObject(e, NAME_colour);
-  if ( isDefault(relief) ) relief = getResourceValueObject(e, NAME_relief);
-  if ( isDefault(shadow) ) shadow = getResourceValueObject(e, NAME_shadow);
-  if ( isDefault(kind) )   kind   = getResourceValueObject(e, NAME_kind);
-  if ( isDefault(bg) )	   bg     = colour;
-
   assign(e, name,       name);
-  assign(e, height,     height);
-  assign(e, colour,     colour);
-  assign(e, relief,     relief);
-  assign(e, shadow,     shadow);
-  assign(e, kind,       kind);
   assign(e, background, bg);
+
+  if ( isDefault(height) && isInteger(name) )
+    height = name;
+
+  if ( notDefault(colour) ) assign(e, colour,     colour);
+  if ( notDefault(relief) ) assign(e, relief,     relief);
+  if ( notDefault(shadow) ) assign(e, shadow,     shadow);
+  if ( notDefault(kind) )   assign(e, kind,       kind);
+  if ( notDefault(height) ) assign(e, height,     height);
+
+  obtainClassVariablesObject(e);
 
   if ( notNil(name) )
     appendHashTable(ElevationTable, name, e);
@@ -232,7 +226,7 @@ static getdecl get_elevation[] =
 
 /* Resources */
 
-static resourcedecl rc_elevation[] =
+static classvardecl rc_elevation[] =
 { RC(NAME_colour, T_cbg, "@default",
      "Colour of the top"),
   RC(NAME_height, "int", "2",

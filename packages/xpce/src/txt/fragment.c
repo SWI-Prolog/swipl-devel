@@ -67,7 +67,7 @@ storeFragment(Fragment f, FileObj file)
 
 
 static status
-loadFragment(Fragment f, FILE *fd, ClassDef def)
+loadFragment(Fragment f, IOSTREAM *fd, ClassDef def)
 { TRY(loadSlotsObject(f, fd, def));
   if ( restoreVersion >= 10 )
   { f->start  = loadWord(fd);
@@ -655,7 +655,7 @@ static getdecl get_fragment[] =
 
 #define rc_fragment NULL
 /*
-static resourcedecl rc_fragment[] =
+static classvardecl rc_fragment[] =
 { 
 };
 */

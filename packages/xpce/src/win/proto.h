@@ -1,6 +1,5 @@
 
 /* win/browser.c */
-status		requestGeometryBrowser(Browser b, Int x, Int y, Int w, Int h);
 status		makeClassBrowser(Class class);
 
 /* win/decorate.c */
@@ -8,7 +7,6 @@ status		requestComputeScrollbarsWindowDecorator(WindowDecorator dw);
 status		makeClassWindowDecorator(Class class);
 
 /* win/dialog.c */
-status		displayDialog(Dialog d, Graphical item, Point pos);
 status		makeClassDialog(Class class);
 
 /* win/display.c */
@@ -28,7 +26,6 @@ status		confirmDisplay(DisplayObj d, CharArray fmt, int argc, Any *argv);
 status		informDisplay(DisplayObj d, CharArray fmt, int argc, Any *argv);
 status		busyCursorDisplay(DisplayObj d, CursorObj c, Bool block_events);
 status		inspectDisplay(DisplayObj d, Graphical gr, EventObj ev);
-status		loadResourceFileDisplay(DisplayObj d, FileObj f);
 status		makeClassDisplay(Class class);
 
 /* win/displaymgr.c */
@@ -43,9 +40,7 @@ status		makeClassDisplayManager(Class class);
 /* win/frame.c */
 Any		getConfirmFrame(FrameObj fr, Point pos, Bool grab, Bool normalise);
 Any		getConfirmCenteredFrame(FrameObj fr, Point pos, Bool grab);
-status		resizeFrame(FrameObj fr);
 status		createdFrame(FrameObj fr);
-status		fitFrame(FrameObj fr);
 status		exposeFrame(FrameObj fr);
 status		hideFrame(FrameObj fr);
 status		forwardColourMapChangeFrame(FrameObj fr);
@@ -62,20 +57,6 @@ status		makeClassFrame(Class class);
 /* win/picture.c */
 status		makeClassPicture(Class class);
 
-/* win/resource.c */
-char *		resourceName(Name name);
-Resource	getSubResource(Resource r, Class class);
-status		resourceClass(Class class, Resource r);
-Resource	getResourceClass(Class class, Name name);
-status		resourceValueClass(Class cl, Name name, Any val);
-Any		getResourceValueClass(Class cl, Name name);
-status		attach_resource(Class cl, char *name, char *type, char *def, char *doc);
-status		refine_resource(Class cl, char *name_s, char *def);
-status		variable_resource(Class cl, Name name, char *def);
-status		makeClassResource(Class class);
-status		load_resource_file(FileObj f);
-StringObj	ws_get_resource_value(DisplayObj d, Name cc, Name cn, Name rc, Name rn, int accept_default);
-
 /* win/setup.c */
 
 /* win/tile.c */
@@ -88,7 +69,6 @@ TileObj		getSubTileToResizeTile(TileObj t, Point pos);
 status		makeClassTile(Class class);
 
 /* win/view.c */
-status		requestGeometryView(View v, Int x, Int y, Int w, Int h);
 status		makeClassView(Class class);
 
 /* win/window.c */
@@ -115,7 +95,6 @@ status		redrawWindow(PceWindow sw, Area a);
 status		RedrawWindow(PceWindow sw);
 status		RedrawAreaWindow(PceWindow sw, IArea a, int clear);
 status		changedUnionWindow(PceWindow sw, Int ox, Int oy, Int ow, Int oh);
-status		bubbleScrollBarWindow(PceWindow sw, ScrollBar sb);
 status		pointerWindow(PceWindow sw, Point pos);
 status		focusCursorWindow(PceWindow sw, CursorObj cursor);
 status		updateCursorWindow(PceWindow sw);

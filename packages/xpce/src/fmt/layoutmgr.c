@@ -135,7 +135,7 @@ static getdecl get_layoutmgr[] =
 
 #define rc_layoutmgr NULL
 /*
-static resourcedecl rc_layoutmgr[] =
+static classvardecl rc_layoutmgr[] =
 {
 };
 */

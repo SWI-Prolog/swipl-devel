@@ -112,7 +112,7 @@ relationConstraint(Constraint c, Relation relation)
 static status
 forwardCreateConstraint(Constraint c)
 { if ( notNil(c->from) && notNil(c->to) )
-    send(c->relation, NAME_create, c->from, c->to, 0);
+    updateConstraintsObject(c->from);
 
   succeed;
 }
@@ -220,7 +220,7 @@ static getdecl get_constraint[] =
 
 #define rc_constraint NULL
 /*
-static resourcedecl rc_constraint[] =
+static classvardecl rc_constraint[] =
 { 
 };
 */

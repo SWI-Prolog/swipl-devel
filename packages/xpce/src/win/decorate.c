@@ -217,10 +217,8 @@ requestGeometryWindowDecorator(WindowDecorator dw, Int x, Int y, Int w, Int h)
   if ( notNil(dw->tile) )
   { setTile(dw->tile, DEFAULT, DEFAULT, nw, nh);
 
-    if ( notNil(dw->frame) && createdFrame(dw->frame) )
-    { if ( !parentGoal(VmiSend, dw->frame, NAME_fit) ) /* avoid loop */
-	send(dw->frame, NAME_fit, 0);
-    }
+    if ( notNil(dw->frame) )
+      send(dw->frame, NAME_fit, 0);
   } else
     geometryWindowDecorator(dw, x, y, nw, nh);
 
@@ -270,7 +268,7 @@ labelWindowDecorator(WindowDecorator dw, CharArray fmt, int argc, Any *argv)
     assign(dw, label_text, NIL);
   } else
   { char buf[LINESIZE];
-    FontObj font = getResourceValueObject(dw, NAME_labelFont);
+    FontObj font = getClassVariableValueObject(dw, NAME_labelFont);
 
     TRY(swritefv(buf, fmt, argc, argv));
     if ( isNil(dw->label_text) )
@@ -370,13 +368,15 @@ static getdecl get_windowDecorator[] =
 
 /* Resources */
 
-static resourcedecl rc_windowDecorator[] =
+static classvardecl rc_windowDecorator[] =
 { RC(NAME_border, "int", "0",
      "Distance between outside and inside"),
   RC(NAME_labelFont, "font", "bold",
      "Font to display label"),
   RC(NAME_pen, "int", "0",
-     "Thickness of outside line")
+     "Thickness of outside line"),
+  RC(NAME_background, RC_REFINE, "@_dialog_bg",
+     NULL)
 };
 
 /* Class Declaration */

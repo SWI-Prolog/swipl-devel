@@ -49,7 +49,6 @@ void		ws_synchronous(DisplayObj d);
 void		ws_asynchronous(DisplayObj d);
 status		ws_postscript_display(DisplayObj d);
 Image		ws_grab_image_display(DisplayObj d, int x, int y, int width, int height);
-StringObj	ws_get_resource_value(DisplayObj d, Name cc, Name cn, Name rc, Name rn, int accept_default);
 
 /* x11/xdraw.c */
 void		resetDraw(void);
@@ -120,12 +119,13 @@ void		s_print8(char8 *s, int l, int x, int y, FontObj f);
 void		s_print16(char16 *s, int l, int x, int y, FontObj f);
 void		s_print(String s, int x, int y, FontObj f);
 void		str_size(String s, FontObj font, int *width, int *height);
-void		str_string(String s, FontObj font, int x, int y, int w, int h, Name hadjust, Name vadjust);
+void		str_string(String s, FontObj font, int x, int y, int w, int h, Name hadjust, Name vadjust, int flags);
 void		str_selected_string(String s, FontObj font, int f, int t, Style style, int x, int y, int w, int h, Name hadjust, Name vadjust);
-void		ps_string(String s, FontObj font, int x, int y, int w, Name format);
+void		ps_string(String s, FontObj font, int x, int y, int w, Name format, int flags);
 void		str_label(String s, int acc, FontObj font, int x, int y, int w, int h, Name hadjust, Name vadjust, int flags);
 
 /* x11/xevent.c */
+void		resetDispatch(void);
 status		ws_dispatch(Int FD, Int timeout);
 void		ws_discard_input(const char *msg);
 Any		ws_event_in_subwindow(EventObj ev, Any root);
@@ -167,10 +167,11 @@ status		ws_postscript_frame(FrameObj fr);
 void		ws_init_image(Image image);
 void		ws_destroy_image(Image image);
 status		ws_store_image(Image image, FileObj file);
-status		loadXImage(Image image, FILE *fd);
-status		loadPNMImage(Image image, FILE *fd);
-status		ws_load_old_image(Image image, FILE *fd);
+status		loadXImage(Image image, IOSTREAM *fd);
+status		loadPNMImage(Image image, IOSTREAM *fd);
+status		ws_load_old_image(Image image, IOSTREAM *fd);
 status		ws_load_image_file(Image image);
+Image		ws_std_xpm_image(Name name, Image *global, char **data);
 status		ws_save_image_file(Image image, FileObj file, Name fmt);
 status		ws_open_image(Image image, DisplayObj d);
 void		ws_close_image(Image image, DisplayObj d);
@@ -182,6 +183,7 @@ void		ws_postscript_image(Image image, Int depth);
 status		loadXliImage(Image image, FileObj file, Int bright);
 void		ws_create_image_from_x11_data(Image image, unsigned char *data, int w, int h);
 ColourMap	ws_colour_map_for_image(Image image);
+void		ws_system_images(void);
 
 /* x11/xstream.c */
 void		ws_close_input_stream(Stream s);

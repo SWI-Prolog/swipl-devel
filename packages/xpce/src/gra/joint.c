@@ -186,7 +186,7 @@ static getdecl get_joint[] =
 
 #define rc_joint NULL
 /*
-static resourcedecl rc_joint[] =
+static classvardecl rc_joint[] =
 { 
 };
 */

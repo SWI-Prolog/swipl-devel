@@ -227,7 +227,7 @@ getUndoBufferTextBuffer(TextBuffer tb)
 
   if ( isDefault(tb->undo_buffer_size) )
     assign(tb, undo_buffer_size,
-	   getResourceValueObject(tb, NAME_undoBufferSize));
+	   getClassVariableValueObject(tb, NAME_undoBufferSize));
 
   if ( tb->undo_buffer_size != ZERO )
   { tb->undo_buffer = createUndoBuffer(valInt(tb->undo_buffer_size),

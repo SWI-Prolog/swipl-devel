@@ -143,7 +143,7 @@ mirrorPoint(Point p, Point q)
 }
 
 
-Point
+static Point
 getPlusPoint(Point p1, Point p2)
 { Point p = getCopyPoint(p1);
 
@@ -153,7 +153,7 @@ getPlusPoint(Point p1, Point p2)
 }
 
 
-Point
+static Point
 getMinusPoint(Point p1, Point p2)
 { Point p = getCopyPoint(p1);
 
@@ -163,7 +163,7 @@ getMinusPoint(Point p1, Point p2)
 }
 
 
-Point
+static Point
 getMirrorPoint(Point p1, Point p2)
 { Point p = getCopyPoint(p1);
 
@@ -233,7 +233,7 @@ static getdecl get_point[] =
 
 #define rc_point NULL
 /*
-static resourcedecl rc_point[] =
+static classvardecl rc_point[] =
 { 
 };
 */

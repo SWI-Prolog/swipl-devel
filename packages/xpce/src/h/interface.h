@@ -16,7 +16,7 @@
 		********************************/
 
 #ifndef PCE_VERSION
-#define PCE_VERSION "4.10.1, April 1998"
+#define PCE_VERSION "5.0.0, January 1999"
 #endif
 
 #ifndef OS_VERSION
@@ -48,12 +48,16 @@
 #ifndef PCE_INCLUDED
 typedef void *		PceObject;	/* PCE's view of an object */
 typedef void *		PceName;	/* PCE's view of a name */
+typedef void *		PceMethod;	/* PCE's view of a method */
+typedef void *		PceType;	/* PCE's view of a type */
+typedef void *		PceClass;	/* PCE's view of a class */
+typedef void *		PceHostData;	/* PCE's view of a host data handle */
 
 #define INT_MASK_SHIFT	1
 #define PCE_MAX_INT	((long)((1L<<(sizeof(Any)*8 - INT_MASK_SHIFT-1))-1))
 #define PCE_MIN_INT	(-(PCE_MAX_INT-1))
 
-typedef void *		AnswerMark;	/* Mark on AnswerStack */
+typedef long		AnswerMark;	/* Mark on AnswerStack */
 
 __pce_export void _markAnswerStack(AnswerMark *);
 __pce_export void _rewindAnswerStack(AnswerMark *, PceObject);
@@ -73,8 +77,10 @@ typedef struct pceITFSymbol    *PceITFSymbol;
 
 #define PceObject	Any
 #define PceName		Name
-
-char *	getHostSymbolTable(void);
+#define PceMethod	Method
+#define PceType		Type
+#define PceClass	Class
+#define PceHostData	HostData
 
 #define PCE_MAX_HOSTHANDLES 10
 
@@ -82,6 +88,9 @@ GLOBAL HashTable	ObjectToITFTable;
 GLOBAL HashTable	NameToITFTable;
 GLOBAL HashTable        HandleToITFTables[PCE_MAX_HOSTHANDLES];
 #endif /*PCE_INCLUDED*/
+
+
+
 
 		/********************************
 		*        INTERFACE TABLE	*
@@ -135,26 +144,127 @@ typedef union
 #define PCE_REFERENCE	3
 #define PCE_ASSOC	4 
 #define PCE_REAL	5
+#define PCE_HOSTDATA	6
 
 #define PCE_NO_POINTER  ((void *) ~0L)
+
+#define PCE_ANSWER	0x1		/* CtoHostData() flags */
 
 __pce_export int    pceToC(PceObject datum, PceCValue *rval);
 __pce_export int    pceToCReference(PceObject datum, PceCValue *rval);
 __pce_export char * pceCharArrayToC(PceObject datum);
 __pce_export char * pceStringToC(PceObject datum);
 __pce_export void * pcePointerToC(PceObject datum);
+__pce_export PceHostData  CtoHostData(PceClass class, void *handle, int flags);
+__pce_export void *    getHostDataHandle(PceHostData hd);
+__pce_export void  setHostDataHandle(PceHostData hd, void *handle);
+__pce_export int   freeHostData(PceHostData hd);
+
 
 		/********************************
 		*             VMI		*
 		********************************/
 
-__pce_export PceObject	pceNew(PceName, PceObject, int, PceObject *);
-__pce_export int	pceSend(PceObject, PceName, int, PceObject *);
-__pce_export PceObject	pceGet(PceObject, PceName, int, PceObject *);
+__pce_export PceObject	pceNew (PceName classname,
+				PceObject assoc,
+				int argc, PceObject *argv);
+__pce_export int	pceSend(PceObject receiver,
+				PceName classname,
+				PceName selector,
+				int argc, PceObject * argv);
+__pce_export PceObject	pceGet (PceObject receiver,
+				PceName classname,
+				PceName selector,
+				int argc, PceObject * argv);
 
+__pce_export PceClass	nameToExistingClass(PceName name);
 
-__pce_export void *	pceResolveSend(PceObject receiver, PceName selector,
-				       int *argc, PceObject **types);
+		 /*******************************
+		 *     DIRECT GOAL-INTERFACE	*
+		 *******************************/
+
+#define PCE_GOAL_DIRECT_ARGS 4		/* # in-line optimised arguments */
+
+					/* Goal errno values */
+#define PCE_ERR_OK			0
+#define PCE_ERR_NO_BEHAVIOUR		1
+#define PCE_ERR_ARGTYPE			2
+#define PCE_ERR_TOO_MANY_ARGS		3
+#define PCE_ERR_ANONARG_AFTER_NAMED	4
+#define PCE_ERR_NO_NAMED_ARGUMENT	5
+#define PCE_ERR_MISSING_ARGUMENT	6
+#define PCE_ERR_CODE_AS_GETMETHOD	7
+#define PCE_ERR_PERMISSION		8
+#define PCE_ERR_FUNCTION_FAILED		9
+#define PCE_ERR_ERROR			10   /* id, vector(...args...) */
+#define PCE_ERR_RETTYPE			11
+#define PCE_ERR_USER_BASE		1000 /* base for user (host) errors */
+
+#define	PCE_GF_CATCHALL			0x001 /* <->catch_all implemeted */
+#define PCE_GF_SEND			0x002 /* a send operation */
+#define PCE_GF_GET			0x004 /* a get operation */
+#define PCE_GF_EXCEPTION		0x008 /* an error occurred */
+#define PCE_GF_HOST			0x010 /* Implemented by the host */
+#define PCE_GF_ALLOCATED		0x020 /* g->argv is allocated */
+#define PCE_GF_VA_ALLOCATED		0x040 /* g->va_argv is allocated */
+#define PCE_GF_CATCH			0x080 /* Catch exceptions */
+#define PCE_GF_THROW			0x100 /* Ok, here is one :-) */
+#define PCE_GF_HOSTARGS			0x200 /* Arguments are not in argv */
+
+typedef struct _pce_goal
+{ PceObject	implementation;		/* implementation of the method */
+  PceObject	receiver;		/* Receiver */
+  PceClass	class;			/* Class used for resolve action */
+
+  struct _pce_goal *parent;		/* Parent goal (if any) */
+
+  int		argc;			/* # arguments */
+  PceObject    *argv;			/* argument vector */
+  int		va_argc;		/* Vararg # arguments (-1: none) */
+  PceObject    *va_argv;		/* Vararg argument vector */
+
+  int		argn;			/* Current argument */
+  PceName	selector;
+  PceType      *types;
+  int		flags;
+  int		errcode;		/* Error code */
+  void *	host_closure;		/* Arbitrary host-handle */
+  PceObject	errc1;			/* Error context #1 */
+  PceObject	errc2;			/* Error context #2 */
+  PceObject	rval;			/* get-goal return-value */
+  PceType	va_type;		/* type for varargs */
+  PceType	return_type;		/* return-type (get-methods) */
+  int		va_allocated;
+  PceObject	_av[PCE_GOAL_DIRECT_ARGS];
+} pce_goal, *PceGoal;
+
+__pce_export int pcePushArgument(PceGoal g, PceObject argument);
+__pce_export int pceResolveImplementation(PceGoal goal);
+__pce_export void pceInitArgumentsGoal(PceGoal goal);
+__pce_export void pceVaAddArgGoal(PceGoal goal, PceObject value);
+__pce_export int  pcePushNamedArgument(PceGoal goal,
+				       PceName name, PceObject arg);
+__pce_export int  pceGetArgumentTypeGoal(PceGoal goal, PceName name,
+					 PceType *type, int *i);
+__pce_export int  pceSetErrorGoal(PceGoal goal, int err, ...);
+__pce_export int  pceExecuteGoal(PceGoal goal);
+__pce_export void pceFreeGoal(PceGoal goal);
+__pce_export void pcePushGoal(PceGoal goal);
+__pce_export void pceTraceBack(PceGoal from, int depth);
+__pce_export void pceReportErrorGoal(PceGoal goal);
+__pce_export void pcePrintEnterGoal(PceGoal goal);
+__pce_export void pcePrintReturnGoal(PceGoal goal, int rval);
+					/* Type logic */
+__pce_export int	pceIncludesType(PceType t, PceType super);
+__pce_export PceObject	pceCheckType(PceGoal g, PceType t, PceObject in);
+__pce_export int	pceCheckIntType(PceType t, long val);
+__pce_export int	pceCheckNameType(PceType t, const char *s);
+__pce_export int	pceCheckFloatType(PceType t, double f);
+
+__pce_export int	pceEnumElements(PceObject collection,
+					int (*enumfunc)(PceObject element,
+							void *closure),
+					void *closure);
 
 		/********************************
 		*          PCE CALLING C	*
@@ -173,23 +283,57 @@ __pce_export void *	pceResolveSend(PceObject receiver, PceName selector,
 #define HOST_CONSOLE	11		/* Win32: query HWND of console */
 #define HOST_CHECK_INTERRUPT 12		/* Win32: periodic check for ^C */
 
+#define PCE_METHOD_INFO_HANDLE_ONLY	0x01
+#define PCE_METHOD_INFO_TRACE_ENTER	0x02
+#define PCE_METHOD_INFO_TRACE_EXIT	0x04
+#define PCE_METHOD_INFO_TRACE_FAIL	0x08
+#define PCE_METHOD_INFO_TRACE		0x0E
+#define PCE_METHOD_INFO_BREAK_ENTER	0x10
+#define PCE_METHOD_INFO_BREAK_EXIT	0x20
+#define PCE_METHOD_INFO_BREAK_FAIL	0x40
+#define PCE_METHOD_INFO_BREAK		0x70
+
 typedef struct
-{ int       (*hostSend)   (PceObject, PceName, int, PceObject *);
-  PceObject (*hostGet)    (PceObject, PceName, int, PceObject *);
-  int	    (*hostCallProc)(PceObject, PceObject, PceObject, int, PceObject *);
-  PceObject (*hostCallFunc)(PceObject, PceObject, PceObject, int, PceObject *);
-  int       (*hostQuery)  (int, PceCValue *);
-  int	    (*hostActionv)(int, va_list args);
-  void	    (*vCprintf)	  (const char *fmt, va_list args);
-  int	    (*Cputchar)	  (int);
-  void	    (*Cflush)	  (void);
-  char *    (*Cgetline)	  (char *line, int size);
-  void *    (*malloc)	  (size_t size);
-  void *    (*realloc)	  (void *ptr, size_t size);
-  void      (*free)	  (void *ptr);
-  void *    pad13;			/* future enhancements */
-  void *    pad14;
-  void *    pad15;
+{ void *	handle;			/* anonymous data-handle */
+  PceName	name;			/* name of the method */
+  PceName	context;		/* Name of the context-class */
+  int		flags;			/* Additional info */
+  int		argc;			/* Argument-count */
+  PceType      *types;			/* Type-vector */
+} pce_method_info;
+
+__pce_export int pceGetMethodInfo(PceMethod m, pce_method_info *info);
+
+typedef struct
+{ int       (*hostSend)     (PceObject, PceName, int, PceObject *);
+  PceObject (*hostGet)      (PceObject, PceName, int, PceObject *);
+  int	    (*hostCall)	    (PceGoal goal);
+  int       (*hostQuery)    (int, PceCValue *);
+  int	    (*hostActionv)  (int, va_list args);
+  void	    (*vCprintf)	    (const char *fmt, va_list args);
+  int	    (*Cputchar)	    (int);
+  void	    (*Cflush)	    (void);
+  char *    (*Cgetline)	    (char *line, int size);
+  void *    (*malloc)	    (size_t size);
+  void *    (*realloc)	    (void *ptr, size_t size);
+  void      (*free)	    (void *ptr);
+#ifdef SIO_MAGIC			/* defined from <SWI-Stream.h> */
+  IOSTREAM* (*rc_open)	    (const char *name, const char *class,
+			     const char *mode);
+#else
+  void *    rc_open;
+#endif
+  PceObject (*getHostContext)(PceObject host);
+  PceObject (*setHostContext)(PceObject context);
+  PceObject (*translate)     (PceObject handle, PceObject type);
+  int       (*writeGoalArgs) (PceGoal g);
+  void *    pad17;
+  void *    pad18;
+  void *    pad19;
+  void *    pad20;
+  void *    pad21;
+  void *    pad22;
+  void *    pad23;
 } pce_callback_functions;
 
 __pce_export void pceRegisterCallbacks(pce_callback_functions *funcs);
@@ -248,7 +392,6 @@ __pce_export void	pceRedraw(int);
 __pce_export int	pceExecuteMode(void);
 __pce_export void	pceReset(void);
 __pce_export void	pceTrace(int); /* 1: trace; 0: notrace */
-__pce_export void	pceTraceBack(int depth); /* dump message stack */
 __pce_export void	pceWriteCurrentGoal(void); /* dump top stack */
 
 
@@ -267,12 +410,37 @@ __pce_export char *	Cgetline(char *line, int size);
 #ifndef PCE_INCLUDED
 __pce_export void *	pceMalloc(int size);
 __pce_export void *	pceRealloc(void *ptr, int size);
-__pce_export void	pceFree(void);
+__pce_export void	pceFree(void *ptr);
 #endif
 
 __pce_export void *	pceAlloc(int bytes);
 __pce_export void	pceUnAlloc(int bytes, void *p);
 
+
+		 /*******************************
+		 *	     OBJECTS		*
+		 *******************************/
+
+
+__pce_export PceClass	pceClassOfObject(PceObject obj);
+__pce_export int	pceReferencesOfObject(PceObject obj);
+__pce_export int	pceFreeObject(PceObject obj);
+
+		 /*******************************
+		 *	       METHODS		*
+		 *******************************/
+
+__pce_export void	pceSendMethod(PceClass class,
+				      const char *name,
+				      const char *group,
+				      int argc,
+				      ...);
+__pce_export void	pceGetMethod(PceClass class,
+				     const char *name,
+				     const char *group,
+				     const char *rtype,
+				     int argc,
+				     ...);
 
 		 /*******************************
 		 *	   STREAM INTERFACE	*
@@ -305,10 +473,8 @@ __pce_export const char *pceOsError();
 #ifdef PCE_INCLUDED
 extern pce_callback_functions TheCallbackFunctions;
 
-#define hostCallProc(h, r, s, ac, av) \
-	(*TheCallbackFunctions.hostCallProc)((h), (r), (s), (ac), (av))
-#define hostCallFunc(h, r, s, ac, av) \
-	(*TheCallbackFunctions.hostCallFunc)((h), (r), (s), (ac), (av))
+#define hostCall(info) \
+	(*TheCallbackFunctions.hostCall)(info)
 #define pceMalloc(n) \
 	(*TheCallbackFunctions.malloc)((n))
 #define pceRealloc(ptr, n) \

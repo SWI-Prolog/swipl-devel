@@ -183,7 +183,10 @@ ws_3d_grey()
 { static Colour c = NULL;
 
   if ( !c )
-    c = newObject(ClassColour, CtoKeyword("_win_3d_grey"), 0);
+  { COLORREF rgb = ws_3d_grey_rgb();
+
+    c = ws_system_colour(CurrentDisplay(NIL), "_win_3d_grey", rgb);
+  }
 
   return c;
 }

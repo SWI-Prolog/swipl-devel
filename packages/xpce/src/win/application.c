@@ -166,7 +166,7 @@ static getdecl get_application[] =
 
 #define rc_application NULL
 /*
-static resourcedecl rc_application[] =
+static classvardecl rc_application[] =
 { 
 };
 */

@@ -137,7 +137,7 @@ static getdecl get_region[] =
 
 #define rc_region NULL
 /*
-static resourcedecl rc_region[] =
+static classvardecl rc_region[] =
 { 
 };
 */

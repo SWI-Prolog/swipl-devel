@@ -150,7 +150,7 @@ loadBitmap(BitmapObj bm, FileObj file, CharArray path)
 { Image image;
   
   if ( isDefault(path) )
-    TRY( path = getResourceValueClass(ClassImage, NAME_path));
+    TRY( path = getClassVariableValueClass(ClassImage, NAME_path));
 
   TRY(findFile(file, path, NAME_read));
 
@@ -172,7 +172,7 @@ storeBitmap(BitmapObj bm, FileObj file)
 
 
 static status
-loadFdBitmap(BitmapObj bm, FILE *fd, ClassDef def)
+loadFdBitmap(BitmapObj bm, IOSTREAM *fd, ClassDef def)
 { TRY(loadSlotsObject(bm, fd, def));
 
   if ( restoreVersion < 7 )
@@ -186,7 +186,7 @@ loadFdBitmap(BitmapObj bm, FILE *fd, ClassDef def)
       assign(bm, pen, ZERO);
       assign(bm, request_compute, NIL);
 
-      switch( getc(fd) )
+      switch( Sgetc(fd) )
       { case 'O':				/* no image */
 	  setSize(bm->image->size, ZERO, ZERO);
 	  break;
@@ -271,7 +271,7 @@ static getdecl get_bitmap[] =
 
 #define rc_bitmap NULL
 /*
-static resourcedecl rc_bitmap[] =
+static classvardecl rc_bitmap[] =
 { 
 };
 */

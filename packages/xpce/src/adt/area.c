@@ -30,6 +30,7 @@ NAME_southEast
 		        assign(a, h, toInt(ah));
 
 static status normaliseArea(Area a);
+static status inArea(Area a, Int x, Int y);
 
 static status
 initialiseArea(Area a, Int x, Int y, Int w, Int h)
@@ -256,7 +257,7 @@ getPositionArea(Area a)
 }
 
 
-status
+static status
 inArea(Area a, Int x, Int y)
 { InitAreaA;
 
@@ -485,9 +486,11 @@ decreaseArea(Area a, Int i)
 
 static status
 normaliseArea(Area a)
-{ InitAreaA;
-  NormaliseArea(ax, ay, aw, ah);
-  ExitAreaA;
+{ if ( valInt(a->w) < 0 || valInt(a->h) < 0 )
+  { InitAreaA;
+    NormaliseArea(ax, ay, aw, ah);
+    ExitAreaA;
+  }
 
   succeed;
 }
@@ -807,7 +810,7 @@ static getdecl get_area[] =
 
 #define rc_area NULL
 /*
-static resourcedecl rc_area[] =
+static classvardecl rc_area[] =
 { 
 };
 */

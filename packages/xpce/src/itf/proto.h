@@ -19,8 +19,6 @@ XPCE_status	XPCE_sendv(XPCE_Object receiver, XPCE_Object selector, int argc, con
 XPCE_Object	XPCE_getv(XPCE_Object receiver, XPCE_Object selector, int argc, const XPCE_Object argv []);
 XPCE_Object	XPCE_newv(XPCE_Object class, const XPCE_Object name, int argc, const XPCE_Object argv []);
 XPCE_status	XPCE_free(XPCE_Object object);
-XPCE_status	XPCE_send_superv(XPCE_Object receiver, XPCE_Object selector, int argc, const XPCE_Object argv []);
-XPCE_Object	XPCE_get_superv(XPCE_Object receiver, XPCE_Object selector, int argc, const XPCE_Object argv []);
 XPCE_status	XPCE_send(XPCE_Object receiver, XPCE_Object selector, ...);
 XPCE_Object	XPCE_get(XPCE_Object receiver, XPCE_Object selector, ...);
 XPCE_Object	XPCE_new(XPCE_Object class, const XPCE_Object name, ...);
@@ -66,27 +64,31 @@ char *		pcePPReference(PceObject ref);
 int		pceExistsAssoc(PceName assoc);
 PceObject	cToPceTmpCharArray(const char *s);
 void		donePceTmpCharArray(Any ca);
+export void	_markAnswerStack(AnswerMark *mark);
 status		pceInstanceOf(Any obj, Any classspec);
+PceClass	nameToExistingClass(PceName Name);
+PceClass	pceClassOfObject(PceObject obj);
+int		pceReferencesOfObject(PceObject obj);
+int		pceFreeObject(PceObject obj);
+void		pceSendMethod(PceClass class, const char *name, const char *group, int argc, ...);
+void		pceGetMethod(PceClass class, const char *name, const char *group, const char *rtype, int argc, ...);
 int		pceToCReference(Any obj, PceCValue *rval);
 int		pceToC(Any obj, PceCValue *rval);
 char *		pceStringToC(Any val);
 char *		pceCharArrayToC(Any val);
 int		pceObject(Any obj);
+int		pceGetMethodInfo(PceMethod m, pce_method_info *info);
 PceITFSymbol	getITFSymbolName(Name name);
 PceITFSymbol	pceLookupHandle(int n, hostHandle handle);
 void		pceRegisterName(int n, hostHandle handle, Name name);
 void		pceRegisterAssoc(int n, hostHandle handle, Any obj);
-status		pceSend(Any receiver, Name selector, int argc, Any *argv);
-Any		pceGet(Any receiver, Name selector, int argc, Any *argv);
 Any		pceNew(Name assoc, Any class, int argc, Any *argv);
-void *		pceResolveSend(PceObject receiver, PceName selector, int *argc, PceObject **types);
+status		pceSend(Any receiver, Name classname, Name selector, int argc, Any *argv);
+Any		pceGet(Any receiver, Name classname, Name selector, int argc, Any *argv);
 int		pceDispatch(int fd, int time);
-void		pceRedraw(void);
-char *		getHostSymbolTable(void);
+void		pceRedraw(int sync);
 int		pceExecuteMode(void);
 void		pceReset(void);
-void		pceTrace(int on);
-void		pceTraceBack(int depth);
 void		pceWriteCurrentGoal(void);
 void		pceWriteErrorGoal(void);
 void		pceRegisterCallbacks(pce_callback_functions *fs);
@@ -104,6 +106,7 @@ void *		pceRealloc(void *ptr, int size);
 void		pceFree(void *ptr);
 void *		pceAlloc(int bytes);
 void		pceUnAlloc(int bytes, void *p);
+int		pceEnumElements(PceObject collection, int (*enumfunc)(PceObject,void *), void *closure);
 
 /* itf/cpointer.c */
 CPointer	CtoCPointer(void *ptr);
@@ -128,12 +131,30 @@ int		Stub__HostActionv(int action, va_list args);
 int		Stub__HostQuery(int what, PceCValue *value);
 int		Stub__HostSend(PceObject prolog, PceName sel, int argc, PceObject *argv);
 PceObject	Stub__HostGet(PceObject prolog, PceName sel, int argc, PceObject *argv);
-int		Stub__HostCallProc(PceObject handle, PceObject rec, PceObject sel, int argc, PceObject *argv);
-PceObject	Stub__HostCallFunc(PceObject handle, PceObject rec, PceObject sel, int argc, PceObject *argv);
+int		Stub__HostCall(PceGoal goal);
 
 /* itf/xmalloc.c */
 void *		xmalloc(size_t nbytes);
 void *		xrealloc(void *ptr, size_t nbytes);
+
+/* itf/iostream.c */
+IOSTREAM *	Sopen_FILE(FILE *fd, int flags);
+IOSTREAM *	Sopen_object(Any obj, const char *mode);
+
+/* itf/srcsink.c */
+status		initialiseSourceSink(SourceSink ss);
+status		checkErrorSourceSink(SourceSink ss, IOSTREAM *fd);
+status		makeClassSourceSink(Class class);
+
+/* itf/rc.c */
+status		makeClassRC(Class class);
+
+/* itf/hostdata.c */
+HostData	CtoHostData(Class class, void *h, int flags);
+void		setHostDataHandle(HostData hd, void *h);
+void *		getHostDataHandle(HostData hd);
+int		freeHostData(HostData hd);
+status		makeClassHostData(Class class);
 
 /* itf/cpp.cxx */
 PceStatus	callCPlusPlusProc(Any f, int ac, const Any av []);

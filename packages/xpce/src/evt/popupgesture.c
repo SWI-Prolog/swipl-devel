@@ -37,9 +37,10 @@ updatePopupGesture(PopupGesture g, EventObj ev)
 { PopupObj p;
 
   if ( notNil(g->popup) )
-  { if ( instanceOfObject(g->popup, ClassCode) )
-    { TRY( p = getForwardFunction((Function) g->popup,
-				  getMasterEvent(ev), ev, 0) );
+  { if ( instanceOfObject(g->popup, ClassFunction) )
+    { Any rec = getMasterEvent(ev);
+      TRY( p = getForwardReceiverFunction((Function) g->popup, rec,
+				  rec, ev, 0) );
       TRY( p = checkType(p, nameToType(NAME_popup), g));
     } else
       p = g->popup;
@@ -216,7 +217,7 @@ static getdecl get_popupGesture[] =
 
 /* Resources */
 
-static resourcedecl rc_popupGesture[] =
+static classvardecl rc_popupGesture[] =
 { RC(NAME_button, "button_name", "right",
      "Active on which button (right)"),
   RC(NAME_cursor, "cursor", "right_ptr",

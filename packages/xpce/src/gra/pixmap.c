@@ -181,7 +181,7 @@ static getdecl get_pixmap[] =
 
 /* Resources */
 
-static resourcedecl rc_pixmap[] =
+static classvardecl rc_pixmap[] =
 { RC(NAME_background, "colour", "white",
      "Default background colour"),
   RC(NAME_foreground, "colour", "black",

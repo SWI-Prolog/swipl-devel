@@ -14,6 +14,11 @@
     objects called \g{instances} of the \g{class}.  Besides various
     house-keeping information, a PCE \g{class} describes the \g
     {instance-variables} and \g{methods}  of its \g{instances}.
+\glossitem{Class-Variable}
+    A \g{class-variable} defines a constant for all instances of the
+    class.  Class variables can be used to define default values for
+    an \g{instance-variable}.  Initial values for class-variables can
+    be specified in the \file{Defaults} file.  See \secref{classvar}.
 \glossitem{Code}
     A \g{code} object is an object that represents a procedure.  \g{Code}
     objects are used for implementation of methods and to associate
@@ -85,10 +90,6 @@
     when evaluated.  The class name is `?'.
 \glossitem{Recogniser}
     A \g{recogniser} object parses \g{events} for a graphical object.
-\glossitem{Resource}
-    A \g{resource} is a default read from the X-window resource manager.
-    User resources are specified in the file \verb$~/.Xdefaults$ and take the
-    form `Pce.Class.instance_variable: Value'.
 \glossitem{Selector}
     A \g{selector} is the name of a \g{send-operation} or \g{get-operation}.
 \glossitem{Send Method}

@@ -9,6 +9,11 @@
 
 #include "include.h"
 
+void
+resetDispatch()
+{
+}
+
 #ifdef USE_RLC_FUNCTIONS
 
 status

@@ -53,22 +53,26 @@ compute_label(LabelBox lb, int *w, int *h, int *y)
     *w = valInt(lb->label_width);
 
   if ( y )
-  { Graphical gr1 = getHeadChain(lb->graphicals);
-    Point pt;
+  { *y = 0;
 
-    *y = 0;
+    if ( instanceOfObject(lb->label, ClassCharArray) )
+    { Graphical gr = getHeadChain(lb->graphicals);
 
-    if ( gr1 &&
-	 (pt = get(gr1, NAME_reference, 0)) &&
-	 instanceOfObject(lb->label, ClassCharArray) )
-    { int ry = valInt(pt->y);
-      int af = valInt(getAscentFont(lb->label_font));
-      
-      if ( ry > af )
-	*y = ry-af;
+      for( ; gr && notNil(gr); gr = get(gr, NAME_right, 0))
+      { Point pt;
+
+	if ( (pt = get(gr, NAME_reference, 0)) )
+	{ int ry = valInt(pt->y);
+	  int af = valInt(getAscentFont(lb->label_font));
+	
+	  if ( ry > af )
+	    *y = ry-af;
+
+	  break;
+	}
+      }
     }
   }
-
 }
 
 
@@ -116,7 +120,7 @@ computeLabelBox(LabelBox lb)
     int lw, lh;
     Size border;
 
-    obtainResourcesObject(lb);
+    obtainClassVariablesObject(lb);
     border = (isDefault(lb->border) ? lb->gap : lb->border);
     compute_label(lb, &lw, &lh, NULL);
     computeGraphicalsDevice((Device) lb);
@@ -203,7 +207,7 @@ getReferenceLabelBox(LabelBox lb)
        instanceOfObject(pt, ClassPoint) )
     answer(pt);
 
-  obtainResourcesObject(lb);
+  obtainClassVariablesObject(lb);
 
   answer(answerObject(ClassPoint, ZERO, getAscentFont(lb->label_font), 0));
 }
@@ -338,8 +342,8 @@ static getdecl get_label_box[] =
 
 /* Resources */
 
-static resourcedecl rc_label_box[] =
-{ RC(NAME_labelFormat, "{left,center,right}", "left",
+static classvardecl rc_label_box[] =
+{ RC(NAME_labelFormat, "{left,center,right}", "right",
      "Alignment of the label in its box"),
   RC(NAME_labelSuffix, "name", ":",
      "Ensured suffix of label")

@@ -23,8 +23,8 @@ forwards Int    getSizeTextBuffer(TextBuffer);
 forwards status store_textbuffer(TextBuffer, int, wchar);
 forwards status transpose_textbuffer(TextBuffer, int, int, int, int);
 forwards status upcase_textbuffer(TextBuffer, int, int);
-forwards status save_textbuffer(TextBuffer, int, int, FileObj);
-forwards status insert_file_textbuffer(TextBuffer, int, int, FileObj);
+forwards status save_textbuffer(TextBuffer, int, int, SourceSink);
+forwards status insert_file_textbuffer(TextBuffer, int, int, SourceSink);
 forwards status shift_fragments(TextBuffer, long, long);
 forwards void	start_change(TextBuffer, int);
 forwards status insert_textbuffer_shift(TextBuffer, int, int, String, int);
@@ -44,15 +44,15 @@ forwards status insert_textbuffer_shift(TextBuffer, int, int, String, int);
 
 static status
 initialiseTextBuffer(TextBuffer tb, CharArray ca)
-{ assign(tb, first_fragment, NIL);
-  assign(tb, last_fragment, NIL);
-  assign(tb, editors, newObject(ClassChain, 0));
-  assign(tb, undo_buffer_size, DEFAULT);
-  assign(tb, syntax, DEFAULT);
-  obtainResourcesObject(tb);
+{ initialiseSourceSink((SourceSink)tb);
+
+  assign(tb, first_fragment, NIL);
+  assign(tb, last_fragment,  NIL);
+  assign(tb, editors,	     newObject(ClassChain, 0));
+  obtainClassVariablesObject(tb);	/* dubious: subclassing? */
 
   tb->undo_buffer = NULL;
-  tb->tb_buffer8 = NULL;
+  tb->tb_buffer8  = NULL;
   if ( notDefault(ca) )
     str_cphdr(&tb->buffer, &ca->data);
   else
@@ -120,18 +120,18 @@ storeTextBuffer(TextBuffer tb, FileObj file)
 
 
 static status
-loadTextBuffer(TextBuffer tb, FILE *fd, ClassDef def)
+loadTextBuffer(TextBuffer tb, IOSTREAM *fd, ClassDef def)
 { TRY( loadSlotsObject(tb, fd, def) );
 
   if ( isNil(tb->syntax) )
-    assign(tb, syntax, getResourceValueObject(tb, NAME_syntax));
+    assign(tb, syntax, getClassVariableValueObject(tb, NAME_syntax));
 
   assign(tb, editors, newObject(ClassChain, 0));
   tb->size = loadWord(fd);
   tb->allocated = ROUND(tb->size, ALLOC);
   str_cphdr(&tb->buffer, str_nl(NULL));	/* ASCII */
   tb->tb_buffer8 = pceMalloc(tb->allocated);
-  fread(Address(tb, 0), sizeof(char), tb->size, fd); /* TBD */
+  Sfread(Address(tb, 0), sizeof(char), tb->size, fd); /* TBD */
   tb->gap_start = tb->size;
   tb->gap_end = tb->allocated - 1;
 
@@ -260,7 +260,7 @@ clearTextBuffer(TextBuffer tb)
 
 
 status
-insertFileTextBuffer(TextBuffer tb, Int where, FileObj file, Int times)
+insertFileTextBuffer(TextBuffer tb, Int where, SourceSink file, Int times)
 { if ( isDefault(times) )
     times = ONE;
 
@@ -328,7 +328,7 @@ deleteTextBuffer(TextBuffer tb, Int where, Int times)
 
 
 status
-saveTextBuffer(TextBuffer tb, FileObj file, Int from, Int len)
+saveTextBuffer(TextBuffer tb, SourceSink file, Int from, Int len)
 { int clear_modified = (isDefault(from) && isDefault(len));
 
   if ( isDefault(from) )
@@ -827,7 +827,7 @@ getMatchingQuoteTextBuffer(TextBuffer tb, Int idx, Name direction)
 
       if ( c2 == c )
       { if ( quoteisescape && i+1 < tb->size && fetch(i+1) == c )
-	{ i++;
+	{ i++;				/* Prolog 'Can''t' syntax! */
 	  continue;
 	}
 	if ( i-1 > i0 &&
@@ -842,8 +842,15 @@ getMatchingQuoteTextBuffer(TextBuffer tb, Int idx, Name direction)
   { for(i--; i>=0; i--)
     { int c2 = fetch(i);
       
-      if ( c2 == c && (i == 0 || !tisstringescape(syntax, c, fetch(i-1))) )
-	answer(toInt(i));
+      if ( c2 == c )
+      { if ( i == 0 )
+	  answer(toInt(i));
+	if ( tisstringescape(syntax, c, fetch(i-1)) )
+	{ if ( tisstringescape(syntax, c, c) )
+	    i--;			/* Prolog 'Can''t' syntax! */
+	} else
+	  answer(toInt(i));
+      }
     }
   }
 
@@ -1769,21 +1776,26 @@ capitalise_textbuffer(TextBuffer tb, int from, int len)
 
 
 static status
-save_textbuffer(TextBuffer tb, int from, int len, FileObj file)
+save_textbuffer(TextBuffer tb, int from, int len, SourceSink file)
 { int unitsize = (istb8(tb) ? sizeof(char8) : sizeof(char16));
+  IOSTREAM *fd;
+  status rval;
 
   room(tb, tb->size, 0);		/* move the gap to the end */
 
-  TRY(send(file, NAME_open, NAME_write, 0));
+  if ( !(fd = Sopen_object(file, "wr")) )
+    fail;				/* error message? */
 
   from = NormaliseIndex(tb, from);
   if ( (from + len) > tb->size )
     len = tb->size - from;
 
-  if ( len && fwrite(Address(tb, from), unitsize, len, file->fd) == 0 )
-    return reportErrorFile(file);
+  Sfwrite(Address(tb, from), unitsize, len, fd);
 
-  return send(file, NAME_close, 0);
+  rval = checkErrorSourceSink(file, fd);
+  Sclose(fd);
+
+  return rval;
 }
   
 
@@ -1828,17 +1840,20 @@ str_sub_text_buffer(TextBuffer tb, String s, int start, int len)
 */
 
 static int
-insert_file_textbuffer(TextBuffer tb, int where, int times, FileObj file)
+insert_file_textbuffer(TextBuffer tb, int where, int times, SourceSink file)
 { int size;
   char8 *addr;
   int unitsize = (istb8(tb) ? sizeof(char8) : sizeof(char16));
   int grow, here;
+  IOSTREAM *fd;
+  status rval;
 
   if ( times <= 0 )
     succeed;
 
-  TRY(openFile(file, NAME_read, DEFAULT, DEFAULT));
-  size = valInt(getSizeFile(file));
+  if ( !(fd = Sopen_object(file, "rr")) )
+    fail;
+  size = Ssize(fd);
   if ( !istb8(tb) )
   { if ( size % 2 )
       errorPce(tb, NAME_oddDataSize);
@@ -1848,12 +1863,13 @@ insert_file_textbuffer(TextBuffer tb, int where, int times, FileObj file)
   room(tb, where, times*size);
   start_change(tb, tb->gap_start);
   addr = Address(tb, tb->gap_start);
+
+  size = Sfread(addr, unitsize, size, fd);
+  rval = checkErrorSourceSink(file, fd);
+  Sclose(fd);
+  TRY(rval);
+
   grow = times*size;
-
-  size = fread(addr, unitsize, size, file->fd);
-  TRY(checkErrorFile(file) &&
-      closeFile(file));
-
   register_insert_textbuffer(tb, where, grow);
 
   tb->gap_start += size;
@@ -1872,7 +1888,7 @@ insert_file_textbuffer(TextBuffer tb, int where, int times, FileObj file)
       tb->lines++;
   }
 
-  shift_fragments(tb, where, times*size);
+  shift_fragments(tb, where, grow);
   CmodifiedTextBuffer(tb, ON);
     
   succeed;
@@ -2050,11 +2066,14 @@ shift_fragments(TextBuffer tb, long int from, long int shift)
 	  }
 	}
       }
-      if ( f->length == 0 && oldlen != 0 )
-	send(f, NAME_emptied, 0);
 
       DEBUG(NAME_shift, Cprintf("start = %ld, length = %ld\n",
 				f->start, f->length));
+
+      if ( f->length == 0 && oldlen != 0 )
+      { DEBUG(NAME_shift, Cprintf("Invoking %s->emptied\n", pp(f)));
+	send(f, NAME_emptied, 0);
+      }
     }
   }
 
@@ -2162,7 +2181,7 @@ static char *T_character[] =
 static char *T_delete[] =
         { "at=int", "characters=[int]" };
 static char *T_insertFile[] =
-        { "at=int", "data=file", "times=[int]" };
+        { "at=int", "data=source_sink", "times=[int]" };
 static char *T_insert[] =
         { "at=int", "text=char_array", "times=[int]" };
 static char *T_format[] =
@@ -2333,7 +2352,7 @@ static getdecl get_textBuffer[] =
 
 /* Resources */
 
-static resourcedecl rc_textBuffer[] =
+static classvardecl rc_textBuffer[] =
 { RC(NAME_syntax, "[syntax_table]", "default",
      "Syntax definition"),
   RC(NAME_undoBufferSize, "int", "10000",
@@ -2360,4 +2379,3 @@ makeClassTextBuffer(Class class)
 
   succeed;
 }
-

@@ -106,7 +106,7 @@ static getdecl get_handlerGroup[] =
 
 #define rc_handlerGroup NULL
 /*
-static resourcedecl rc_handlerGroup[] =
+static classvardecl rc_handlerGroup[] =
 { 
 };
 */

@@ -13,8 +13,10 @@
 
 static status
 initialiseHyper(Hyper h, Any from, Any to, Name fname, Name bname)
-{ initialiseProgramObject(h);
+{ Any av[2];
 
+  initialiseProgramObject(h);
+  
   if ( isDefault(bname) )
     bname = fname;
   
@@ -23,20 +25,21 @@ initialiseHyper(Hyper h, Any from, Any to, Name fname, Name bname)
   assign(h, forward_name, fname);
   assign(h, backward_name, bname);
 
-  if ( send(from, NAME_attachHyper, h, to,   0) &&
-       send(to,   NAME_attachHyper, h, from, 0) )
-    succeed;
+  av[0] = h;
+  av[1] = to;
 
-  fail;
+  TRY(sendv(from,  NAME_attachHyper, 2, av));
+  av[1] = from;
+  return sendv(to, NAME_attachHyper, 2, av);
 }
 
 
 static status
 unlinkHyper(Hyper h)
 { if ( !onFlag(h->to, F_FREED|F_FREEING) )
-    deleteHyperObject(h->to, h);
+    sendv(h->to, NAME_deleteHyper, 1, (Any *)&h);
   if ( !onFlag(h->from, F_FREED|F_FREEING) )
-    deleteHyperObject(h->from, h);
+    sendv(h->from, NAME_deleteHyper, 1, (Any *)&h);
 
   succeed;
 }
@@ -69,7 +72,7 @@ SaveRelationHyper(Hyper h, FileObj f)
 
 
 static status
-loadHyper(Hyper h, FILE *fd, ClassDef def)
+loadHyper(Hyper h, IOSTREAM *fd, ClassDef def)
 { TRY(loadSlotsObject(h, fd, def));
   
   if ( restoreVersion >= 13 )
@@ -131,7 +134,7 @@ static getdecl get_hyper[] =
 
 #define rc_hyper NULL
 /*
-static resourcedecl rc_hyper[] =
+static classvardecl rc_hyper[] =
 { 
 };
 */

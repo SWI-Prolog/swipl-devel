@@ -466,7 +466,7 @@ static getdecl get_connection[] =
 
 #define rc_connection NULL
 /*
-static resourcedecl rc_connection[] =
+static classvardecl rc_connection[] =
 { 
 };
 */

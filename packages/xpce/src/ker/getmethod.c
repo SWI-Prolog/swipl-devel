@@ -39,39 +39,6 @@ initialiseGetMethod(GetMethod m, Name name, Type rtype,
 }
 
 
-Any
-getGetGetMethod(GetMethod m, Any receiver, int argc, const Any argv[])
-{ Any rval, rv2;
-  AnswerMark mark;
-  goal goal;
-  Goal g = &goal;
-
-  addCodeReference(m);
-  pushGoal(g, m, receiver, m->name, argc, argv);
-  traceEnter(g);
-
-  markAnswerStack(mark);
-
-  Mode(MODE_SYSTEM,
-       rval = invokeMethod((Method) m, NAME_get, receiver, argc, argv);
-       if ( rval )
-       { if ( !(rv2 = CheckType(rval, m->return_type, NIL)) )
-	   errorPce(m, NAME_badReturnValue, rval, m->return_type);
-         else if ( rv2 != rval )
-	   errorPce(m, NAME_convertedReturnValue, rval, rv2);
-       } else
-         rv2 = rval;
-       rewindAnswerStack(mark, rv2));
-
-  traceAnswer(g, rv2);
-  popGoal();
-  delCodeReference(m);
-  freeableObj(m);
-
-  return rv2;
-}
-
-
 		 /*******************************
 		 *	 CLASS DECLARATION	*
 		 *******************************/
@@ -79,7 +46,10 @@ getGetGetMethod(GetMethod m, Any receiver, int argc, const Any argv[])
 /* Type declaractions */
 
 static char *T_initialise[] =
-        { "name=name", "return=[type]", "types=[vector]", "implementation=function|c_pointer", "summary=[string]*", "source=[source_location]*", "group=[name]*" };
+        { "name=name", "return=[type]", "types=[vector]",
+	  "implementation=function|c_pointer",
+	  "summary=[string]*",
+	  "source=[source_location]*", "group=[name]*" };
 static char *T_get[] =
         { "receiver=object", "argument=unchecked ..." };
 
@@ -108,14 +78,16 @@ static getdecl get_getMethod[] =
 
 #define rc_getMethod NULL
 /*
-static resourcedecl rc_getMethod[] =
+static classvardecl rc_getMethod[] =
 { 
 };
 */
 
 /* Class Declaration */
 
-static Name getMethod_termnames[] = { NAME_name, NAME_returnType, NAME_types, NAME_message, NAME_summary, NAME_source };
+static Name getMethod_termnames[] = { NAME_name, NAME_returnType, NAME_types,
+				      NAME_message, NAME_summary, NAME_source
+				    };
 
 ClassDecl(getMethod_decls,
           var_getMethod, send_getMethod, get_getMethod, rc_getMethod,

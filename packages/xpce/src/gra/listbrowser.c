@@ -41,13 +41,13 @@ initialiseListBrowser(ListBrowser lb, Dict dict, Int w, Int h)
     return errorPce(lb, NAME_alreadyShown, dict, dict->browser);
 
   assign(lb, size, newObject(ClassSize, 0));
-  copySize(lb->size, getResourceValueObject(lb, NAME_size));
+  copySize(lb->size, getClassVariableValueObject(lb, NAME_size));
   if ( notDefault(w) ) assign(lb->size, w, w);
   if ( notDefault(h) ) assign(lb->size, h, h);
 
   initialiseDevice((Device) lb);
 
-  assign(lb,   pen,		      getResourceValueObject(lb, NAME_pen));
+  assign(lb,   pen,		      getClassVariableValueObject(lb, NAME_pen));
   assign(lb,   dict,                  dict);
   assign(dict, browser,               lb);
   assign(lb,   status, 		      NAME_inactive);
@@ -64,11 +64,11 @@ initialiseListBrowser(ListBrowser lb, Dict dict, Int w, Int h)
   assign(lb,   search_hit,	      toInt(-1));
   assign(lb,   label_text,	      NIL);
   assign(lb,   styles,		      newObject(ClassSheet, 0));
-  assign(lb, selection_style, getResourceValueObject(lb, NAME_selectionStyle));
+  assign(lb, selection_style, getClassVariableValueObject(lb, NAME_selectionStyle));
 
   lb->start_cell = NIL;
 
-  assign(lb, font, getResourceValueObject(lb, NAME_font));
+  assign(lb, font, getClassVariableValueObject(lb, NAME_font));
   fw = valInt(getExFont(lb->font));
   fh = valInt(getHeightFont(lb->font));
   iw = valInt(lb->size->w) * fw + 2 * TXT_X_MARGIN;
@@ -78,7 +78,7 @@ initialiseListBrowser(ListBrowser lb, Dict dict, Int w, Int h)
   assign(lb->image, wrap, NAME_none);
   assign(lb, scroll_bar, newObject(ClassScrollBar, lb, NAME_vertical, 0));
 
-  send(lb->image, NAME_cursor, getResourceValueObject(lb, NAME_cursor), 0);
+  send(lb->image, NAME_cursor, getClassVariableValueObject(lb, NAME_cursor), 0);
   send(lb->image, NAME_set,
        lb->scroll_bar->area->w, ZERO, DEFAULT, toInt(ih), 0);
   displayDevice(lb, lb->scroll_bar, DEFAULT);
@@ -117,7 +117,7 @@ lbReceiver(ListBrowser lb)
 
 static status
 RedrawAreaListBrowser(ListBrowser lb, Area a)
-{ Any obg = r_background(getResourceValueObject(lb, NAME_background));
+{ Any obg = r_background(getClassVariableValueObject(lb, NAME_background));
 
   RedrawAreaDevice((Device)lb, a);
   if ( lb->pen != ZERO )
@@ -152,7 +152,7 @@ storeListBrowser(ListBrowser lb, FileObj file)
 
 
 static status
-loadListBrowser(ListBrowser lb, FILE *fd, ClassDef def)
+loadListBrowser(ListBrowser lb, IOSTREAM *fd, ClassDef def)
 { TRY(loadSlotsObject(lb, fd, def));
 
   if ( isNil(lb->status) )
@@ -179,7 +179,7 @@ labelListBrowser(ListBrowser lb, Name lbl)
 }
 
 
-Name
+static Name
 getLabelListBrowser(ListBrowser lb)
 { if ( notNil(lb->label_text) )
     answer(getValueCharArray((CharArray) lb->label_text->string));
@@ -194,7 +194,7 @@ showLabelListBrowser(ListBrowser lb, Bool val)
   { if ( val == ON )
     { assign(lb, label_text,
 	     newObject(ClassText, getLabelNameName(lb->name), NAME_left,
-		       getResourceValueObject(lb, NAME_labelFont), 0));
+		       getClassVariableValueObject(lb, NAME_labelFont), 0));
       marginText(lb->label_text, lb->area->w, NAME_clip);
       displayDevice(lb, lb->label_text, DEFAULT);
       return geometryListBrowser(lb, DEFAULT, DEFAULT,
@@ -234,7 +234,7 @@ statusListBrowser(ListBrowser lb, Name stat)
     assign(lb, status, stat);
 
 				/* avoid unnecessary flickering (hack) */
-    if ( !((z = getResourceValueObject(lb->image, NAME_elevation)) &&
+    if ( !((z = getClassVariableValueObject(lb->image, NAME_elevation)) &&
 	   notNil(z)) )
     { penGraphical((Graphical) lb->image,
 		   stat == NAME_active ? add(lb->pen, ONE) : lb->pen);
@@ -563,7 +563,7 @@ fetch_list_browser(Any obj, TextChar tc)
   tc->index        = index;
 
   if ( pos > 0 && pos <= current_search )
-  { Style s = getResourceValueObject(lb, NAME_isearchStyle);
+  { Style s = getClassVariableValueObject(lb, NAME_isearchStyle);
 
     if ( s && notDefault(s) )
     { tc->attributes |= s->attributes;
@@ -714,7 +714,7 @@ extendPrefixListBrowser(ListBrowser lb)
 			      isNil(lb->search_string)
 			        ? (CharArray) CtoName("")
 			        : (CharArray) lb->search_string,
-			      getResourceValueObject(lb,
+			      getClassVariableValueObject(lb,
 						     NAME_searchIgnoreCase));
 
     assign(lb, search_string, ext);
@@ -764,7 +764,7 @@ executeSearchListBrowser(ListBrowser lb)
   if ( isNil(lb->dict) ||
        !(di=getFindPrefixDict(lb->dict, lb->search_string,
 			      lb->search_origin,
-			      getResourceValueObject(lb,
+			      getClassVariableValueObject(lb,
 						     NAME_searchIgnoreCase))))
     fail;
 
@@ -841,7 +841,7 @@ insertSelfListBrowser(ListBrowser lb, Int times, Int chr)
 
     if ( isNil(lb->search_string) )
     { assign(lb, search_string, StringToString(s));
-      if ( getResourceValueObject(lb, NAME_clearSelectionOnSearch) == ON )
+      if ( getClassVariableValueObject(lb, NAME_clearSelectionOnSearch) == ON )
 	clearSelectionListBrowser(lb);
     } else
     { if ( !instanceOfObject(lb->search_string, ClassString) )
@@ -1367,7 +1367,7 @@ dictListBrowser(ListBrowser lb, Dict dict)
 }
 
 
-status
+static status
 fontListBrowser(ListBrowser lb, FontObj font)
 { if ( lb->font != font )
   { assign(lb, font, font);
@@ -1739,7 +1739,7 @@ static getdecl get_listBrowser[] =
 
 /* Resources */
 
-static resourcedecl rc_listBrowser[] =
+static classvardecl rc_listBrowser[] =
 { RC(NAME_background, "colour|pixmap", "white",
      "Colour/fill pattern of the background"),
   RC(NAME_clearSelectionOnSearch, "bool", "@on",
@@ -1748,15 +1748,24 @@ static resourcedecl rc_listBrowser[] =
      "Default cursor"),
   RC(NAME_font, "font", "normal",
      "Default font"),
-  RC(NAME_isearchStyle, "[style]", "@default",
+  RC(NAME_isearchStyle, "[style]",
+     UXWIN("when(@colour_display,\n"
+	   "     style(background := green),\n"
+	   "     style(background:= @grey25_image))",
+	   "@_isearch_style"),
      "Style for incremental search"),
   RC(NAME_labelFont, "font", "bold",
      "Font used to display the label"),
-  RC(NAME_pen, "0..", "0",
+  RC(NAME_pen, "0..",
+     UXWIN("when(@colour_display, 0, 1)", "1"),
      "Thickness of box around list_browser"),
   RC(NAME_searchIgnoreCase, "bool", "@on",
      "@on: ignore case when searching"),
-  RC(NAME_selectionStyle, "[style]", "@default",
+  RC(NAME_selectionStyle, "[style]",
+     UXWIN("when(@colour_display,\n"
+	   "     style(background := black, colour := white),\n"
+	   "     style(highlight  := @on))",
+	   "@_select_style"),
      "Style object for <-selection"),
   RC(NAME_size, "size", "size(15,10)",
      "Default size in `characters x lines'")

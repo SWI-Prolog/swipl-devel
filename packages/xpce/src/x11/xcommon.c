@@ -18,6 +18,7 @@
 #define rescale(v, o, n)	((v) * (n) / (o))
 #define XBRIGHT ((1L<<16)-1)
 
+static int	intensityXColor(XColor *c);
 
 XtAppContext	ThePceXtAppContext;	/* X toolkit application context */
 
@@ -271,7 +272,7 @@ postscriptXImage(XImage *im,
 		 *       COLOUR HANDLING	*
 		 *******************************/
 
-int
+static int
 intensityXColor(XColor *c)
 { unsigned int r = c->red;
   unsigned int g = c->green;

@@ -4,9 +4,6 @@ void		points_arc(Arc a, int *sx, int *sy, int *ex, int *ey);
 status		makeClassArc(Class class);
 
 /* gra/arrow.c */
-status		computeArrow(Arrow a);
-status		pointsArrow(Arrow a, Int tx, Int ty, Int rx, Int ry);
-status		paintArrow(Arrow a, Int tx, Int ty, Int rx, Int ry);
 status		makeClassArrow(Class class);
 
 /* gra/bitmap.c */
@@ -20,7 +17,6 @@ status		makeClassBox(Class class);
 status		makeClassCircle(Class class);
 
 /* gra/colour.c */
-status		equalColour(Colour c1, Colour c2);
 Int		getRedColour(Colour c);
 Int		getGreenColour(Colour c);
 Int		getBlueColour(Colour c);
@@ -50,7 +46,6 @@ status		computeLayoutDevice(Device dev);
 status		computeDevice(Any obj);
 status		updateBoundingBoxDevice(Device dev, Int *od);
 status		computeBoundingBoxDevice(Device dev);
-status		changedUnionDevice(Device dev, Int ox, Int oy, Int ow, Int oh);
 status		EnterRedrawAreaDevice(Device dev, Area a, DeviceDrawContext ctx);
 void		ExitRedrawAreaDevice(Device dev, Area a, DeviceDrawContext ctx);
 status		RedrawAreaDevice(Device dev, Area a);
@@ -67,7 +62,6 @@ status		layoutDialogDevice(Device d, Size gap, Size bb, Size border);
 status		appendDialogItemDevice(Device d, Graphical item, Name where);
 Graphical	getMemberDevice(Device dev, Name name);
 status		geometryDevice(Device dev, Int x, Int y, Int w, Int h);
-status		textMoveDevice(Device dev, Int x, Int y);
 status		makeClassDevice(Class class);
 
 /* gra/ellipse.c */
@@ -76,8 +70,6 @@ status		makeClassEllipse(Class class);
 /* gra/figure.c */
 status		initialiseFigure(Figure f);
 Any		RedrawBoxFigure(Figure f, Area area);
-status		RedrawAreaFigure(Figure f, Area area);
-status		computeFigure(Figure f);
 status		makeClassFigure(Class class);
 
 /* gra/font.c */
@@ -160,11 +152,9 @@ status		leftGraphical(Graphical gr1, Graphical gr2);
 status		referenceGraphical(Graphical gr, Point ref);
 status		penGraphical(Graphical gr, Int pen);
 status		shadowGraphical(Graphical gr, Int s);
-status		elevationGraphical(Graphical gr, Elevation e);
 status		fillPatternGraphical(Graphical gr, Image pattern);
 status		colourGraphical(Graphical gr, Any c);
 Any		getDisplayColourGraphical(Graphical gr);
-status		selectedGraphical(Graphical gr, Bool val);
 Handle		getHandleGraphical(Graphical gr, Name name);
 Point		getHandlePositionGraphical(Graphical gr, Name name, Device dev);
 Chain		getHandlesGraphical(Graphical gr, Point pos, Name kind, Int distance);
@@ -175,6 +165,7 @@ status		updateConnectionsGraphical(Graphical gr, Int level);
 status		connectGraphical(Graphical gr, Graphical gr2, Link link, Name from, Name to);
 status		attachConnectionGraphical(Graphical gr, Connection c);
 status		detachConnectionGraphical(Graphical gr, Connection c);
+status		connectedGraphical(Graphical gr, Graphical gr2, Link link, Name from, Name to);
 status		disconnectGraphical(Graphical gr, Graphical gr2, Link link, Name from, Name to);
 status		eventGraphical(Any obj, EventObj ev);
 Bool		getKeyboardFocusGraphical(Graphical gr);
@@ -200,13 +191,11 @@ Int		getYHandle(Handle h, Graphical gr, Device dev);
 status		makeClassHandle(Class class);
 
 /* gra/image.c */
-status		initialiseImage(Image image, Name name, Int w, Int h, Name kind);
+status		initialiseImage(Image image, SourceSink data, Int w, Int h, Name kind);
 Image		getConvertImage(Class class, Any obj);
 status		XopenImage(Image image, DisplayObj d);
 status		XcloseImage(Image image, DisplayObj d);
-ColourMap	getColourMapImage(Image image);
-status		loadImage(Image image, FileObj file, CharArray path);
-status		resizeImage(Image image, Int w, Int h);
+status		loadImage(Image image, SourceSink file, CharArray path);
 status		fillImage(Image image, Any pattern, Area area);
 Image		getMonochromeImage(Image image);
 status		makeClassImage(Class class);
@@ -233,7 +222,6 @@ status		makeClassLine(Class class);
 status		makeClassLink(Class class);
 
 /* gra/listbrowser.c */
-Name		getLabelListBrowser(ListBrowser lb);
 status		requestGeometryListBrowser(ListBrowser lb, Int x, Int y, Int w, Int h);
 Size		getSizeListBrowser(ListBrowser lb);
 status		executeSearchListBrowser(ListBrowser lb);
@@ -243,13 +231,13 @@ status		selectionListBrowser(ListBrowser lb, Any obj);
 Any		getSelectionListBrowser(ListBrowser lb);
 status		scrollToListBrowser(ListBrowser lb, Int index);
 status		normaliseListBrowser(ListBrowser lb, DictItem di);
-status		fontListBrowser(ListBrowser lb, FontObj font);
 DictItem	getMemberListBrowser(ListBrowser lb, Any key);
 Chain		getContainsListBrowser(ListBrowser lb);
 status		makeClassListBrowser(Class class);
 
 /* gra/node.c */
 status		updateDisplayedTree(Tree t);
+status		relateImageNode(Node n, Node n2);
 status		forAllNode(Node n, Code msg);
 status		forSomeNode(Node n, Code msg);
 Node		getFindNodeNode(Node n, Graphical gr);
@@ -266,9 +254,11 @@ void		ps_put_char(int c);
 void		ps_output(char *fm, ...);
 status		ps_font(FontObj font);
 status		postscriptDrawable(int ox, int oy, int w, int h);
+Sheet		makePSDefinitions(void);
 status		postscriptGraphical(Any obj);
 status		drawPostScriptDevice(Device dev);
 status		drawPostScriptFigure(Figure f);
+status		drawPostScriptTree(Tree tree);
 status		drawPostScriptBox(Box b);
 status		drawPostScriptCircle(Circle c);
 status		drawPostScriptEllipse(Ellipse e);
@@ -285,22 +275,18 @@ status		postscriptDisplay(DisplayObj d);
 /* gra/scrollbar.c */
 Int		getMarginScrollBar(ScrollBar sb);
 status		placeScrollBar(ScrollBar sb, Graphical gr);
-status		RedrawAreaScrollBar(ScrollBar s, Area a);
 status		bubbleScrollBar(ScrollBar sb, Int l, Int s, Int v);
 status		makeClassScrollBar(Class class);
 
 /* gra/text.c */
-status		computeText(TextObj t);
 void		str_format(String out, const String in, const int width, const FontObj font);
 status		repaintText(TextObj t, int x, int y, int w, int h);
 Int		get_pointed_text(TextObj t, int x, int y);
 status		transparentText(TextObj t, Bool val);
-Bool		getTransparentText(TextObj t);
 status		fontText(TextObj t, FontObj font);
 status		borderText(TextObj t, Int border);
 status		stringText(TextObj t, CharArray s);
 status		showCaretText(TextObj t, Any val);
-status		caretText(TextObj t, Int where);
 status		pasteText(TextObj t, Int buffer);
 status		lengthText(TextObj t, Int l);
 status		marginText(TextObj t, Int width, Name wrap);
@@ -309,7 +295,6 @@ status		makeClassText(Class class);
 /* gra/tree.c */
 status		requestComputeTree(Tree t);
 status		displayTree(Tree t, Node n);
-status		computeFigureTree(Tree t);
 status		unzoomTree(Tree t);
 status		zoomTree(Tree t, Node n);
 status		makeClassTree(Class class);

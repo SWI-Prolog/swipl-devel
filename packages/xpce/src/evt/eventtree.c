@@ -84,7 +84,7 @@ static getdecl get_eventTree[] =
 
 #define rc_eventTree NULL
 /*
-static resourcedecl rc_eventTree[] =
+static classvardecl rc_eventTree[] =
 { 
 };
 */

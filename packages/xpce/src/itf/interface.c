@@ -9,7 +9,6 @@
 
 #define INLINE_UTILITIES 1
 #include <h/kernel.h>
-#define  PCE_INCLUDED
 #include <h/trace.h>
 #include <h/interface.h>
 #include <h/graphics.h>
@@ -85,7 +84,11 @@ cToPceName(const char *text)
 
 Any
 cToPcePointer(void *ptr)
-{ return (Any) answerObjectv(ClassCPointer, 1, &ptr);
+{ CPointer p = answerObjectv(ClassCPointer, 0, NULL);
+  
+  p->pointer = ptr;
+
+  return p;
 }
 
 
@@ -182,9 +185,19 @@ cToPceTmpCharArray(const char *s)
 { return CtoScratchCharArray(s);
 }
 
+
 void
 donePceTmpCharArray(Any ca)
 { doneScratchCharArray(ca);
+}
+
+		 /*******************************
+		 *		GC		*
+		 *******************************/
+
+export void
+_markAnswerStack(AnswerMark *mark)
+{ *mark = AnswerStack->index;
 }
 
 
@@ -201,6 +214,76 @@ pceInstanceOf(Any obj, Any classspec)
     
   errorPce(CtoName(pp(classspec)), NAME_unexpectedType, TypeClass);
   fail;
+}
+
+
+PceClass
+nameToExistingClass(PceName Name)
+{ return getMemberHashTable(classTable,	Name);
+}
+
+
+PceClass
+pceClassOfObject(PceObject obj)
+{ if ( isObject(obj) )
+    return classOfObject(obj);
+
+  fail;
+}
+
+
+int
+pceReferencesOfObject(PceObject obj)
+{ if ( isObject(obj) )
+    return refsObject(obj);
+
+  return -1;
+}
+
+
+int
+pceFreeObject(PceObject obj)
+{ if ( isObject(obj) )
+    return freeObject(obj);
+
+  fail;
+}
+
+
+void
+pceSendMethod(PceClass class,
+	      const char *name,
+	      const char *group,
+	      int argc,
+	      ...)
+{ Name n, g;
+  va_list args;
+
+  va_start(args, argc);
+
+  n = cToPceName(name);
+  g = group ? cToPceName(group) : (Name)DEFAULT;
+  sendMethodv(class, n, g, argc, args);
+  va_end(args);
+}
+
+
+void
+pceGetMethod(PceClass class,
+	     const char *name,
+	     const char *group,
+	     const char *rtype,
+	     int argc,
+	     ...)
+{ Name n, g;
+  va_list args;
+
+  va_start(args, argc);
+
+  n = cToPceName(name);
+  g = group ? cToPceName(group) : (Name)DEFAULT;
+  getMethodv(class, n, g, rtype, argc, args);
+  va_end(args);
 }
 
 
@@ -231,7 +314,7 @@ pceToC(Any obj, PceCValue *rval)
 
   assert(obj);
 
-  if ( onFlag(obj, F_ASSOC|F_ISNAME|F_ISREAL) )
+  if ( onFlag(obj, F_ASSOC|F_ISNAME|F_ISREAL|F_ISHOSTDATA) )
   { if ( onFlag(obj, F_ASSOC) )
     { rval->itf_symbol = getMemberHashTable(ObjectToITFTable, obj);
       return PCE_ASSOC;
@@ -239,6 +322,10 @@ pceToC(Any obj, PceCValue *rval)
     if ( onFlag(obj, F_ISNAME) )
     { rval->itf_symbol = getITFSymbolName(obj);
       return PCE_NAME;
+    }
+    if ( onFlag(obj, F_ISHOSTDATA) )
+    { rval->pointer = ((HostData)obj)->handle;
+      return PCE_HOSTDATA;
     }
     { rval->real = valReal(obj);
       return PCE_REAL;
@@ -278,6 +365,56 @@ int
 pceObject(Any obj)
 { return isObject(obj) ? PCE_SUCCEED : PCE_FAIL;
 }
+
+		 /*******************************
+		 *	      METHOD		*
+		 *******************************/
+
+static void
+convert_trace_flags(PceMethod m, int *flags)
+{ static struct dflagmap
+  { int internal;
+    int external;
+  } staticmap[] = 
+  { { D_TRACE_ENTER, PCE_METHOD_INFO_TRACE_ENTER },
+    { D_TRACE_EXIT,  PCE_METHOD_INFO_TRACE_EXIT },  
+    { D_TRACE_FAIL,  PCE_METHOD_INFO_TRACE_FAIL },
+    { D_BREAK_ENTER, PCE_METHOD_INFO_BREAK_ENTER },
+    { D_BREAK_EXIT,  PCE_METHOD_INFO_BREAK_EXIT },  
+    { D_BREAK_FAIL,  PCE_METHOD_INFO_BREAK_FAIL },
+    { 0, 0 }
+  };
+  struct dflagmap *map = staticmap;
+  
+  for( ; map->internal; map++ )
+  { if ( onDFlag(m, map->internal) )
+      *flags |= map->external;
+  }
+}
+
+
+int
+pceGetMethodInfo(PceMethod m, pce_method_info *info)
+{ if ( onDFlag(m, D_HOSTMETHOD) )
+  { CPointer p = (CPointer)m->message;
+
+    info->handle = p->pointer;
+    if ( DebuggingProgramObject(m, D_TRACE|D_BREAK) )
+      convert_trace_flags(m, &info->flags);
+  
+    if ( !(m->flags & PCE_METHOD_INFO_HANDLE_ONLY) )
+    { info->name    = m->name;
+      info->context = ((Class)m->context)->name;
+      info->argc    = valInt(m->types->size);
+      info->types   = (PceType*)m->types->elements;
+    }
+  
+    succeed;
+  }
+
+  fail;
+}
+
 
 		/********************************
 		*          SYMBOL-TABLE		*
@@ -335,59 +472,46 @@ pceRegisterAssoc(int n, hostHandle handle, Any obj)
 		*  VIRTUAL MACHINE INSTRUCTIONS	*
 		********************************/
 
-status
-pceSend(Any receiver, Name selector, int argc, Any *argv)
-{ status rval;
-
-  Mode(MODE_USER,
-       rval = vm_send(receiver, selector, NULL, argc, argv));
-
-  return rval;
-}
-
-
-Any
-pceGet(Any receiver, Name selector, int argc, Any *argv)
-{ Any rval;
-
-  Mode(MODE_USER,
-       rval = vm_get(receiver, selector, NULL, argc, argv));
-
-  return rval;
-}
-
-
 Any
 pceNew(Name assoc, Any class, int argc, Any *argv)
 { Any rval;
 
-  Mode(MODE_USER,
-       if ( (rval = createObjectv(assoc, class, argc, argv)) )
-         pushAnswerObject(rval));
+  if ( (rval = createObjectv(assoc, class, argc, argv)) )
+    pushAnswerObject(rval);
 
   return rval;
 }
 
-		 /*******************************
-		 *     PROLOG OBJECT SUPPORT	*
-		 *******************************/
 
-void *
-pceResolveSend(PceObject receiver, PceName selector,
-	       int *argc, PceObject **types)
-{ SendMethod impl;
-  
-  if ( (impl = getSendMethodClass(classOfObject(receiver), selector)) &&
-       instanceOfObject(impl, ClassSendMethod) &&
-       instanceOfObject(impl->message, ClassCPointer) )
-  { CPointer ptr = (CPointer)impl->message;
-    *types = impl->types->elements;
-    *argc  = valInt(impl->types);
+status
+pceSend(Any receiver, Name classname, Name selector, int argc, Any *argv)
+{ Class cl;
 
-    return ptr->pointer;
-  }
+  if ( classname )
+  { if ( !(cl = getMemberHashTable(classTable, classname)) )
+      return errorPce(receiver, NAME_noClass, classname);
+    if ( !instanceOfObject(receiver, cl) )
+      return errorPce(receiver, NAME_noSuperClassOf, classname);
+  } else
+    cl = NULL;
 
-  return NULL;
+  return vm_send(receiver, selector, cl, argc, argv);
+}
+
+
+Any
+pceGet(Any receiver, Name classname, Name selector, int argc, Any *argv)
+{ Class cl;
+
+  if ( classname )
+  { if ( !(cl = getMemberHashTable(classTable, classname)) )
+      return (Any)errorPce(receiver, NAME_noClass, classname);
+    if ( !instanceOfObject(receiver, cl) )
+      return (Any)errorPce(receiver, NAME_noSuperClassOf, classname);
+  } else
+    cl = NULL;
+
+  return vm_get(receiver, selector, cl, argc, argv);
 }
 
 
@@ -462,22 +586,6 @@ pceRedraw(int sync)
   }
 }
 
-
-		/********************************
-		*   HOSTACTION()/HOSTQUERY()	*
-		********************************/
-
-char *
-getHostSymbolTable(void)
-{ PceCValue value;
-
-  if ( hostQuery(HOST_SYMBOLFILE, &value) )
-    return value.string;
-
-  return NULL;
-}
-
-
 		/********************************
 		*           DEBUGGING		*
 		********************************/
@@ -502,28 +610,10 @@ pceReset(void)
 
 
 void
-pceTrace(int on)
-{
-#ifndef O_RUNTIME
- tracePce(PCE, on ? NAME_user : NoTraceMode);
-#endif
-}
-
-
-void
-pceTraceBack(int depth)
-{
-#ifndef O_RUNTIME
-  traceBackPce(toInt(depth), NAME_always);
-#endif
-}
-
-
-void
 pceWriteCurrentGoal(void)
 {
 #ifndef O_RUNTIME
-  writeGoal(CurrentGoal, NIL);
+  writeGoal(CurrentGoal);
 #endif
 }
 
@@ -532,15 +622,7 @@ void
 pceWriteErrorGoal(void)
 {
 #ifndef O_RUNTIME
-  Goal g = CurrentGoal;
-
-  while(g && offGFlag(g, G_EXCEPTION))
-    g = g->parent;
-
-  if ( g )
-    writeGoal(g, NIL);
-  else
-    writef("\t<No exception goal>\n");
+  writeErrorGoal();
 #endif
 }
 
@@ -551,8 +633,7 @@ pceWriteErrorGoal(void)
 pce_callback_functions TheCallbackFunctions =
 { Stub__HostSend,			/* hostSend() */
   Stub__HostGet,			/* hostGet() */
-  Stub__HostCallProc,			/* hostCallProc() */
-  Stub__HostCallFunc,			/* hostCallFunc() */
+  Stub__HostCall,			/* hostCallProc() */
   Stub__HostQuery,			/* hostQuery() */
   Stub__HostActionv,			/* hostActionv() */
   Stub__vCprintf,			/* console IO */
@@ -561,10 +642,7 @@ pce_callback_functions TheCallbackFunctions =
   Stub__Cgetline,			/* read line from console */
   malloc,				/* malloc */
   realloc,				/* realloc */
-  free,					/* free */
-  NULL,					/* pad13 */
-  NULL,					/* pad14 */
-  NULL					/* pad15 */
+  free					/* free */
 };
 
 
@@ -710,4 +788,44 @@ pceAlloc(int bytes)
 void
 pceUnAlloc(int bytes, void *p)
 { unalloc(bytes, p);
+}
+
+
+		 /*******************************
+		 *	    COLLECTIONS		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Function to help foreign-code enumerating the elements of XPCE chains
+and vectors.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+pceEnumElements(PceObject collection,
+		int (*enumfunc)(PceObject, void *),
+		void *closure)
+{ if ( instanceOfObject(collection, ClassChain) )
+  { Chain ch = collection;
+    PceObject e;
+
+    for_chain(ch, e,
+	      if ( !(*enumfunc)(e, closure) )
+	        fail;
+	     );
+    succeed;
+  }
+
+  if ( instanceOfObject(collection, ClassVector) )
+  { Vector v = collection;
+    PceObject e;
+
+    for_vector(v, e,
+	       if ( !(*enumfunc)(e, closure) )
+	         fail;
+	      );
+    succeed;
+  }
+
+  assert(0);
+  fail;
 }

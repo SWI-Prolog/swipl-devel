@@ -104,7 +104,7 @@ static getdecl get_identity[] =
 
 #define rc_identity NULL
 /*
-static resourcedecl rc_identity[] =
+static classvardecl rc_identity[] =
 { 
 };
 */

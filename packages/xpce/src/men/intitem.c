@@ -51,9 +51,9 @@ rangeIntItem(IntItem ii, Int low, Int high)
 { char buf[40];
   Type t = NULL;
   char s1[20], s2[20];
-  int b = valInt(getResourceValueObject(ii, NAME_border));
+  int b = valInt(getClassVariableValueObject(ii, NAME_border));
 
-  obtainResourcesObject(ii);
+  obtainClassVariablesObject(ii);
 
   if ( isDefault(low) )
   { if ( isDefault(high) )
@@ -232,7 +232,7 @@ static getdecl get_int_item[] =
 
 #define rc_int_item NULL
 /*
-static resourcedecl rc_int_item[] =
+static classvardecl rc_int_item[] =
 {
 };
 */

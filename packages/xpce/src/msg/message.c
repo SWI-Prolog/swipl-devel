@@ -28,6 +28,12 @@ initialiseMessagev(Message msg, Any rec, Name sel, int argc, Any *argv)
       break;
   }
 
+  if ( TheCallbackFunctions.getHostContext )
+  { Any context = (*TheCallbackFunctions.getHostContext)(rec);
+
+    assign(msg, context, context);
+  }
+
   return initialiseCode((Code) msg);
 }
 
@@ -86,17 +92,31 @@ getArgumentMessage(Message msg, Int n)
 status
 ExecuteMessage(Message msg)
 { Any receiver;
+  Any selector;
+  Any savedcontext;
+  status rval = FAIL;
 
-  TRY(receiver = expandCodeArgument(msg->receiver));
+  if ( notNil(msg->context) &&
+       TheCallbackFunctions.setHostContext )
+  { savedcontext =
+	(*TheCallbackFunctions.setHostContext)(msg->context);
+  } else
+    savedcontext = NIL;
+
+  if ( !(receiver = expandCodeArgument(msg->receiver)) )
+    goto out;
+  if ( !(selector = checkSelector(msg->selector)) )
+    goto out;
 
   if ( msg->arg_count == ZERO )
-  { return sendv(receiver, msg->selector, 0, NULL);
+  { return sendv(receiver, selector, 0, NULL);
   } else if ( msg->arg_count == ONE )
   { Any arg;
 
-    TRY(arg = expandCodeArgument(msg->arguments));
+    if ( !(arg = expandCodeArgument(msg->arguments)) )
+      goto out;
 
-    return sendv(receiver, msg->selector, 1, &arg);
+    rval = sendv(receiver, selector, 1, &arg);
   } else
   { int n;
     int argc = valInt(msg->arguments->size);
@@ -105,10 +125,18 @@ ExecuteMessage(Message msg)
     Any *av = argv;
 
     for(n = argc; --n >=0 ; )
-      TRY(*av++ = expandCodeArgument(*elms++));
+    { if ( !(*av++ = expandCodeArgument(*elms++)) )
+	goto out;
+    }
 
-    return sendv(receiver, msg->selector, argc, argv);
+    rval = sendv(receiver, selector, argc, argv);
   }
+
+out:
+  if ( notNil(savedcontext) )
+    (*TheCallbackFunctions.setHostContext)(savedcontext);
+
+  return rval;
 }
 
 
@@ -134,7 +162,9 @@ static vardecl var_message[] =
   IV(NAME_argCount, "0..", IV_GET,
      NAME_storage, "Argument-count"),
   IV(NAME_arguments, "code_vector|any|function*", IV_GET,
-     NAME_storage, "Vector of arguments")
+     NAME_storage, "Vector of arguments"),
+  IV(NAME_context, "any*", IV_GET,
+     NAME_storage, "Host context information")
 };
 
 /* Send Methods */
@@ -163,7 +193,7 @@ static getdecl get_message[] =
 
 #define rc_message NULL
 /*
-static resourcedecl rc_message[] =
+static classvardecl rc_message[] =
 { 
 };
 */

@@ -91,7 +91,7 @@ static getdecl get_handler[] =
 
 #define rc_handler NULL
 /*
-static resourcedecl rc_handler[] =
+static classvardecl rc_handler[] =
 { 
 };
 */

@@ -96,12 +96,12 @@ found at \url{ftp://swi.psy.uva.nl/pub/xpce/util/images/}
 
 \paragraph{Windows}
 
-\product{} supports the Windows native .ICO, .CUR and .BMP formats. Any
-editor, such as the resource editors that comes with most C(++)
-development environments can be used.  When portability of the
-application becomes an issue, simply load the icons into \product{},
-and write them in the XPM format using the `image ->save' method.
-See the skeleton below:
+\product{} supports the Windows native \fileext{ICO}, \fileext{CUR} and
+\fileext{BMP} formats. Any editor, such as the resource editors that
+comes with most C(++) development environments can be used. When
+portability of the application becomes an issue, simply load the icons
+into \product{}, and write them in the XPM format using the `image
+->save' method. See the skeleton below:
 
 \begin{code}
 to_xpm(In, Out) :-

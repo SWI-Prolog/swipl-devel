@@ -21,6 +21,7 @@ static HashTable X11ColourNames;	/* rgb --> X11-name */
 
 static status	ws_alloc_colour(ColourMap cm, Colour c);
 static void	ws_unalloc_colour(ColourMap cm, Colour c);
+static void	ws_system_colours(DisplayObj d);
 
 #ifdef USE_CONVERTED_COLOURS
 
@@ -46,6 +47,8 @@ LoadColourNames()
       *q = '\0';
       appendHashTable(ColourNames, CtoKeyword(buf), toInt(rgb));
     }
+
+    ws_system_colours(CurrentDisplay(NIL));
   }
 
   return ColourNames;
@@ -370,7 +373,7 @@ static struct system_colour window_colours[] =
 };
 
 
-static void
+Colour
 ws_system_colour(DisplayObj d, const char *name, COLORREF rgb)
 { Name ref = CtoKeyword(name);
   int r = GetRValue(rgb);
@@ -386,10 +389,12 @@ ws_system_colour(DisplayObj d, const char *name, COLORREF rgb)
   { lockObject(c, ON);
     registerXrefObject(c, d, (void *)rgb);
   }
+
+  return c;
 }
 
 
-void
+static void
 ws_system_colours(DisplayObj d)
 { struct system_colour *sc = window_colours;
 
@@ -398,8 +403,6 @@ ws_system_colours(DisplayObj d)
 
     ws_system_colour(d, sc->name, rgb);
   }
-
-  ws_system_colour(d, "_win_3d_grey", ws_3d_grey_rgb());
 }
 
 

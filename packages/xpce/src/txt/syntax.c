@@ -83,13 +83,13 @@ storeSyntaxTable(SyntaxTable t, FileObj file)
 
 
 static status
-loadSyntaxTable(SyntaxTable t, FILE *fd, ClassDef def)
+loadSyntaxTable(SyntaxTable t, IOSTREAM *fd, ClassDef def)
 { TRY(loadSlotsObject(t, fd, def));
 
   t->table   = alloc(FLAGS_SIZE(t));
   t->context = alloc(CONTEXT_SIZE(t));
-  fread(t->table,   sizeof(char), FLAGS_SIZE(t), fd);
-  fread(t->context, sizeof(char), CONTEXT_SIZE(t), fd);
+  Sfread(t->table,   sizeof(char), FLAGS_SIZE(t), fd);
+  Sfread(t->context, sizeof(char), CONTEXT_SIZE(t), fd);
 
   swapBytesTable(t);
 

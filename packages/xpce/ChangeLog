@@ -1,16 +1,268 @@
-* ProWindows 3.2 intergration
-	* Updated :- require statements
-	* Included expandgoal.pl expandmath.pl in pce_qpc.qof to deal with
-	  arithmetic expressions such as `A is sqrt(A**2+B**2)'.
-	* Deleted biff.pl and dialog.pl demo programs.
-	* FIXED: pl_getn() for if the XPCE method fails.
-	* FIXED: force screen-update using message_hook/3 interface in
-	  pce_principal.pl.  This ensures proper update of ProWindows
-	  windows after user-queries that modify them.
+* MODIFIED: `device->selection: chain' now converts all members of the
+  chain to type graphical.  This makes `tree->selection: chain-of-nodes'
+  work as expected.
+
+* ADDED: Error <->report: throw to make an error raise a Prolog
+  (host-language) exception.
+
+* ADDED: `regex ->file_pattern' to easily define regular expressions
+  representing (Unix csh) file-patterns.
+
+* FIXED: PostScript image rendering details: rounded horizontal
+  scaling: old code rounded the image width up to the next multiple
+  of 8 pixels.
+
+* ADDED: PostScript generation for tree objects displayed using the
+  `list' representation: connecting lines and open/close images.
+
+* ADDED: PceEmacs prolog-mode: completion on M-. (find-definition).
+
+* ADDED: `chain ->sort': optional `unique' argument to remove duplicates
+  from the chain.
+
+* FIXED: `text_buffer <-matching_quote' to deal properly scanning
+  Prolog quoted strings like `can''t do that' backwards.
+
+* ADDED: Possibility to relate nodes (using node->son) before attaching
+  them to a tree.
+
+================================================================
+= Preparing for new message-passing			       =
+================================================================
+
+* MODIFIED: If an object as an implementation for <->catch_all the
+  kernel no longer raise no_behaviour error.  Instead, the method itself
+  should generate a warning to indicate it is not willing to accept the
+  message.
+
+* DELETED: class class_stub, once experimentally introduced to deal
+  with class-autoloading.  Now obsolete.
+
+* DELETED: `vmi->parent_goal'.  This mechanism harms any potential
+  optimisation too much.
+
+* MODIFIED: @reportee is now a chain of visited canditates (used to
+  avoid delegation loops).
+
+* MODIFIED: object->update_constraints is now only invoked automatically
+  on graphical objects that have their <-area changed.  For all other
+  cases, an explicit call to this method is required.
+
+* FIXED/MODIFIED: text->string now copies the string if the argument
+  has a different reference, instead of just testing for equality of
+  the contents.
+
+* DELETED: class delegate_variable, dealing with delegation that
+  required a wrapper.  Unnecessary complicated message-passing, with
+  little befinits that can't be achieved using catch_all.  Class text
+  and text_item, using these, have been modified using <->catch_all.
+
+* MODIFIED: use_class_template is now only available as a directive
+  inside a class definition.
+
+* MODIFIED: no longer pushes @receiver and @receiver_class variables.
+
+* ADDED send_class(Receiver, Class, Message) and
+	get_class(Receiver. Class, Message, Result)
+
+================================================================
+
+* FIXED: `file->name' removed file instead of renaming it!  Now also
+  dynamically checks for HAVE_RENAME instead of testing __unix__
+  expandFileName() function has been redefined to avoid overwriting the
+  buffer (and make this thread-safe).
+
+* ADDED: popup->append: gap to attach a line (end_group) with the previous
+  item.
+
+* FIXED: Unix handling of process-status change (handled from SIG_CHLD)
+  to merge message properly in the event-queue instead of performing
+  an asynchronous message-invocation.
+
+* FIXED: `pce->die' to call the <-exit_messages in `safe' mode.  Could
+  cause a crash if running an exit-message destroyed the message.
+
+* ADDED: `frame ->attach_transient' and `frame ->detach_transient' methods
+  to monitor transient frames.
+
+* ADDED: `device ->layout_dialog' to deal with dialog_item<-ver_stretch
+
+* ADDED: Class tab_stack to make the stack as wide as required by the
+  labels (There should be more options: multiple-rows, scroll).
+
+* ADDED: `text_image ->background' to change the background of editors.
+
+* FIXED: pcePP signal-handling to restore all state.  Leads to
+  segmentation-faults in SWI-Prolog/XPCE on machines doing memory-mapped
+  stacks and using sigaction() (Linux, Solaris for example).
+
+* FIXED: silently ignore personal initialisation file if present
+
+* ADDED: `table_cell <->note_mark' to attach a little mark in the top-right
+  corner of the cell.
+
+* FIXED: Updating the send/get cache table on reloading a class.
+
+* ADDED: `display_manager->redraw' as an explicit method call to allow
+  hooking into XPCE's redraw main-loop.
+
+* FIXED: Windows 95/98 handling of input from sockets.
+
+* FIXED: added resetDispatch() to deal properly with breaking out of a
+  confirmer or otherwise interrupting XPCE while waiting for an event.
+
+* FIXED: various minor issues to make the Prolog debugger work naturally
+  again.
+
+* MODIFIED: `editor->next_line' automatically adds new lines to the buffer
+  when going down past the end of the file if <-editable equals @on.
+
+* FIXED/MODIFIED: `dialog_group->label_format: top,bottom' was implemented
+  the other-way around.  Fixed.
+
+* ADDED: `dialog_group->label' to allow for image labels.  Also allow
+  for `dialog_group->label_format: hot_spot', which allignes the hot-spot
+  of the image with the box of the dialog-group.
+
+* FIXED: Win32: Client sockets to deal properly with releasing the
+  associated Windows resources.
+
+* FIXED: PceEmacs: improved implementation of ->align_close_bracket.
+
+* ADDED: `Button ->executes' invokes the (new) method ->forward to actually
+  perform the desired action.  ->execute acts as a wrapper dealing with the
+  visual feedback.
+
+* ADDED: `table->sort_rows' and optional range-limitation arguments to 
+  `vector->sort'.
+
+* ADDED: library(pce_toc): ->son now also accepts a node as argument.
+  The Id may be @default, making the node it's own id (modified in
+  `toc_node->initialise'.
+
+* FIXED: Win32 fonts: force the use of TrueType fonts for the default
+  fonts to improve MetaFile (WMF/EMF) generation.
+
+* ADDED: Win32: `font <-x_name' is now initialised to the Windows
+  fontface name for the default fonts.  Debugging support only.
+
+* ADDED: Win32: Completed coverage of the Win32 font attributes.
+
+* ADDED: `directory <-roots' to find the logical drives on a Windows
+  system.  Also added an interface for this in library(find_file) and
+  an icon in bitmaps/16x16/drive.xpm.
+
+* FIXED: Win32: directory('D:/foobar')<-parent yeilds D:/ instead of D:
+
+* FIXED: `frame ->label' with two arguments (Win32 version)
+
+* FIXED: included `region' PostScript commands as dependency for clear.
+
+* ADDED: `text ->underline: Bool': allow for underlined text objects.
+
+* ADDED: PceEmacs: M-x comment_region
+
+* ADDED: A list passed from Prolog is nor translated into a code_vector
+  of objects.  Class code_vector is used to achieve compatibility for
+  the new way of passing a variable-argument list to a method as well
+  as to avoid garbage-collection suprises, as code-vector do not change
+  the GC status of the objects they reference.
+
+* ADDED: `chain <-convert: vector --> chain' to automatically convert an
+  array into a linked list.
+
+* ADDED: `object ->update_constraints' to deal explicitely with constraint
+  handling.
+
+* ADDED: `@pce ->catch_error: @default' to trap *any* error.  See also
+  pce_catch_error/2.
+
+* FIXED: PceEmacs double-beep on some cases, as well as double-prompt for
+  saving buffers sometimes.
+
+* MODIFIED: Prolog interface
+	# Module information for the classes message and ? (obtain) are
+	now kept in message<-context and ?<-_context, rather than tagged
+	to the name.  Same holds for the new class rc, handling resources.
+
+	# send/2 and get/3 now can handle the arguments as arguments to
+	the selector.  Thus, the following is identical:
+
+		send(Dialog, append, button(quit)),
+		send(Dialog, append(button(quit))),
+
+* MODIFIED/COMPATIBILITY Complete rewrite of class resource and anything
+  related to it.  The functionality has been taken over by class
+  class_variable.  Consequences:
+
+	* Renamed methods
+
+		Old				New
+		======================================================
+		object<-resource_value		object<-class_variable
+					     or object<-Name
+		class<-resource			class<-class_variable
+		class->resource			new(_, class_variable(Class,
+		class<-resources		class<-class_variables
+		display<-resource_class		<deleted>
+
+	* Modified methods
+
+		+ display ->initialise: address=name
+			Lost `resource_class' argument
+
+	* Display term description is now display(address)
+
+	* Class Definition
+
+		resource(Name, Type, Default, [Summary])
+
+	  is now
+
+		class_variable(Name, Type, Default, [Summary])
+
+  Defaults are now in the file <pcehome>/Defaults.  Syntax has changed.
+  Lines now read:
+
+	<class>.<class_variable>:	<value>
+
+  For saved-states, the system first attempts to read rc('Defaults', pce).
+  if this resource cannot be found, it will try the file named above.
+
+* ADDED: object->delete_hyper calls from `hyper->unlink' are now real
+  methods calls, so they may be refined.  Suggested by Jelmer Jellema.
+
+* MODIFIED: Macro Definition mechanism for PostScript generation.  The file
+  <pcehome>/postscript/pce.ps is no longer used.  See `graphical <-postcript'
+  for the current mechanism used.
+
+* IMPROVED: `object ->delete_attribute' now deallocates the object extension
+  if the last attribute is deleted.
+
+* MODIFIED: `Editor->load' now checks for write access of the file.  If not
+  present, it will automatically turn the editor into read-only mode.
+
+* ADDED: Editor isearch: remember displayed status of caret, so it can be
+  restored to the same state afterwards, and send(Editor?text_cursor,
+  displayed, @off) becomes an effective way to get rid of the caret.
+
+* FIXED: Editor backward isearch (extend-to-word) to extend in the proper
+  direction.
+
+* FIXED: Pce.Circle.selection_handles: sides.  Thanks to Peter Mott.
+
+* MODIFIED: Added class source_sink as super-class for objects that represent
+  some form of byte-stream: char_array, file, text_buffer.  Consequences:
+
+	* `file <-object' has moved to `source_sink <-object'.
+
+* FIXED: `file <-read' now can deal with binary files that include the 0-byte.
 
 * FIXED: byte-order problem in socket->bind, registering the address.  Found
   and patched by Frank Cornelissen.  Only applies to little-endian machines
   (Intel).
+
+[VERSION 4.10.1]
 
 * FIXED: Using XPCE objects in Prolog streams: report IO-error if the object
   was freed.

@@ -18,7 +18,7 @@ initialiseView(View v, Name name, Size size, DisplayObj display, Editor editor)
   if ( isDefault(editor) )
   { Size s2;
 
-    if ( isDefault(size) && (s2 = getResourceValueObject(v, NAME_size)) )
+    if ( isDefault(size) && (s2 = getClassVariableValueObject(v, NAME_size)) )
       size = newObject(ClassSize, s2->w, s2->h, 0);
 
     TRY(e = get(v, NAME_createEditor, size, 0));
@@ -75,7 +75,7 @@ getCreateEditorView(View v, Size size)
   if ( (e = newObject(ClassEditor, DEFAULT, w, h, 0)) )
   { FontObj f;
 
-    if ( (f = getResourceValueObject(v, NAME_font)) )
+    if ( (f = getClassVariableValueObject(v, NAME_font)) )
       send(e, NAME_font, f, 0);
 
     answer(e);
@@ -91,7 +91,7 @@ getSelectionView(View v)
 }
 
 
-status
+static status
 requestGeometryView(View v, Int x, Int y, Int w, Int h)
 { Editor e = v->editor;
 
@@ -202,11 +202,12 @@ static getdecl get_view[] =
 
 /* Resources */
 
-static resourcedecl rc_view[] =
+static classvardecl rc_view[] =
 { RC(NAME_pen, "int", "0",
      "Pen (done by <-editor)"),
   RC(NAME_size, "size", "size(80,20)",
-     "Default size in `characters x lines'")
+     "Default size in `characters x lines'"),
+  RC(NAME_background, RC_REFINE, "@_dialog_bg", NULL)
 };
 
 /* Class Declaration */

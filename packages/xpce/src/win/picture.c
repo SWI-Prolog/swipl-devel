@@ -55,7 +55,7 @@ static getdecl get_picture[] =
 
 /* Resources */
 
-static resourcedecl rc_picture[] =
+static classvardecl rc_picture[] =
 { RC(NAME_size, "size", "size(400,200)",
      "Default size in pixels")
 };

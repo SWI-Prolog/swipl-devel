@@ -17,13 +17,16 @@ button-down upto the corresponding button-up event.
 
 status
 initialiseGesture(Gesture g, Name button, Modifier modifier)
-{ assign(g, active,       ON);
-  assign(g, button,	  button);
-  assign(g, modifier,     modifier);
-  assign(g, status,       NAME_inactive);
-  assign(g, cursor,       DEFAULT);
+{ if ( notDefault(button) )
+    assign(g, button, button);
+  if ( notDefault(modifier) )
+    assign(g, modifier, modifier);
 
-  succeed;
+  assign(g, active, ON);
+  assign(g, status, NAME_inactive);
+  assign(g, cursor, DEFAULT);
+
+  return obtainClassVariablesObject(g);
 }
 
 
@@ -33,8 +36,6 @@ eventGesture(Any obj, EventObj ev)
 
   if ( g->active == OFF )
     fail;
-
-  obtainResourcesObject(g);
 
   if ( isDownEvent(ev) &&
        hasModifierEvent(ev, g->modifier) &&
@@ -156,7 +157,7 @@ static getdecl get_gesture[] =
 
 /* Resources */
 
-static resourcedecl rc_gesture[] =
+static classvardecl rc_gesture[] =
 { RC(NAME_button, "button_name", "left",
      "Active on which button?"),
   RC(NAME_cursor, "[cursor]", "@default",

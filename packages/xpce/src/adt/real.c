@@ -83,7 +83,7 @@ getConvertReal(Class class, Any obj)
 
   if ( isInteger(obj) || instanceOfObject(obj, ClassNumber) )
     answer(answerObjectv(ClassReal, 1, &obj));
-  else if ( (s = toCharp(obj)) != FAIL && s[0] != EOS )
+  else if ( (s = toCharp(obj)) && s[0] != EOS )
   { char *end;
     double f;
 
@@ -130,7 +130,7 @@ storeReal(Real r, FileObj file)
 
 
 static status
-loadReal(Real r, FILE *fd, ClassDef def)
+loadReal(Real r, IOSTREAM *fd, ClassDef def)
 { TRY(loadSlotsObject(r, fd, def));
 
   setFlag(r, F_ISREAL);
@@ -345,7 +345,7 @@ static getdecl get_real[] =
 
 #define rc_real NULL
 /*
-static resourcedecl rc_real[] =
+static classvardecl rc_real[] =
 { 
 };
 */

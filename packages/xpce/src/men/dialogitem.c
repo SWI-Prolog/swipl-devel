@@ -26,23 +26,18 @@ createDialogItem(Any obj, Name name)
     name = getClassNameObject(di);
   nameDialogItem(di, name);
 
-  assign(di, label_font,	 DEFAULT); /* resource */
-  assign(di, label_format,	 DEFAULT); /* resource */
-  assign(di, background,	 DEFAULT); /* resource */
   assign(di, status,		 NAME_inactive);
-  assign(di, message,		 NIL);
+/*assign(di, message,		 NIL);
   assign(di, popup,		 NIL);
-  assign(di, reference,		 DEFAULT);
   assign(di, above,		 NIL);
   assign(di, below,		 NIL);
   assign(di, right,		 NIL);
-  assign(di, left,		 NIL);
-  assign(di, alignment,	 	 DEFAULT);
+  assign(di, left,		 NIL); */
+  assign(di, reference,		 DEFAULT);
+  assign(di, label_width,	 DEFAULT);
   assign(di, auto_label_align,	 ON);
   assign(di, auto_value_align,	 ON);
-  assign(di, label_width,	 DEFAULT);
   assign(di, auto_align,	 ON);
-  assign(di, look,		 DEFAULT);
 
   succeed;
 }
@@ -164,7 +159,7 @@ static CharArray
 getLabelNameDialogItem(DialogItem di, Name name)
 { Any suffix, label = getLabelNameName(name);
 
-  if ( (suffix = getResourceValueObject(di, NAME_labelSuffix)) )
+  if ( (suffix = getClassVariableValueObject(di, NAME_labelSuffix)) )
     label = getEnsureSuffixCharArray(label, suffix);
 
   answer(label);
@@ -210,26 +205,6 @@ labelFormatDialogItem(DialogItem di, Name format)
 		/********************************
 		*        EVENT_HANDLING		*
 		********************************/
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Menus are treated special  here.  This is  not very clean.   How to do
-this better?
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-status
-forwardDialogItem(DialogItem di, Code msg, EventObj ev)
-{ if ( notNil(msg) && notDefault(msg) )
-  { Any val;
-
-    if ( (val = get(di, NAME_selection, 0)) == FAIL )
-      val = (Any) di->label;
-
-    forwardReceiverCode(msg, di, val, ev, 0);
-  }
-
-  succeed;
-}
-
 
 status
 eventDialogItem(Any obj, EventObj ev)
@@ -337,7 +312,7 @@ openDialogItem(DialogItem di)
 		*        COMMUNICATION		*
 		********************************/
 
-Bool
+static Bool
 getModifiedDialogItem(Dialog di)
 { answer(OFF);
 }
@@ -639,20 +614,21 @@ static getdecl get_dialogItem[] =
 
 /* Resources */
 
-static resourcedecl rc_dialogItem[] =
+static classvardecl rc_dialogItem[] =
 { RC(NAME_alignment, "{column,left,center,right}", "column",
      "Alignment in the row"),
-  RC(NAME_background, "colour|pixmap*", "@nil",
+  RC(NAME_background, "colour|pixmap*", "@_dialog_bg",
      "Background of the item"),
-  RC(NAME_elevation, "elevation*", "@nil",
+  RC(NAME_elevation, "elevation*", "when(@colour_display, 1, 0)",
      "3-D elevation"),
   RC(NAME_labelFont, "font", "bold",
      "Default font for labels"),
-  RC(NAME_labelFormat, "{left,center,right}", "left",
+  RC(NAME_labelFormat, "{left,center,right}", "right",
      "Alignment of the label in its box"),
   RC(NAME_labelSuffix, "name", ":",
      "Ensured suffix of label"),
-  RC(NAME_look, "{x,open_look,motif,win}", "x",
+  RC(NAME_look, "{x,open_look,motif,win}",
+     UXWIN("open_look", "win"),
      "Look-and-feel switch"),
   RC(NAME_selectionHandles, RC_REFINE, "@nil",
      NULL),

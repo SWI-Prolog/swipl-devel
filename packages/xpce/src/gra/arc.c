@@ -22,7 +22,7 @@ initialiseArc(Arc a, Int radius, Real start_angle, Real size_angle)
 { initialiseJoint((Joint) a, ZERO, ZERO, ZERO, ZERO, DEFAULT);
 
   if ( isDefault(radius) )
-    radius = getResourceValueObject(a, NAME_radius);
+    radius = getClassVariableValueObject(a, NAME_radius);
   if ( isDefault(start_angle) )
     start_angle = CtoReal(0.0);
   if ( isDefault(size_angle) )
@@ -604,7 +604,7 @@ static getdecl get_arc[] =
 
 /* Resources */
 
-static resourcedecl rc_arc[] =
+static classvardecl rc_arc[] =
 { RC(NAME_radius, "int", "30",
      "Default radius")
 };

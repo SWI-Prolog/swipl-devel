@@ -119,7 +119,7 @@ static getdecl get_progn[] =
 
 #define rc_progn NULL
 /*
-static resourcedecl rc_progn[] =
+static classvardecl rc_progn[] =
 { 
 };
 */

@@ -69,7 +69,7 @@ statusTimer(Timer tm, Name stat)
 }
 
 
-status
+static status
 delayTimer(Timer tm)
 { DisplayObj d = CurrentDisplay(NIL);
 
@@ -158,7 +158,7 @@ static getdecl get_timer[] =
 
 #define rc_timer NULL
 /*
-static resourcedecl rc_timer[] =
+static classvardecl rc_timer[] =
 { 
 };
 */

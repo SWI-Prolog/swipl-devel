@@ -44,3 +44,9 @@ pceInitApplication(int argc, char *argv[])
 
   return SUCCEED;
 }
+
+
+extern "C"
+install()
+{ pceInitApplication(0, NULL);
+}

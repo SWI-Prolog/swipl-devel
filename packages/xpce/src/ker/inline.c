@@ -44,6 +44,15 @@ instanceOfObject(const Any obj, const Class super)
 }
 
 
+INLINE constf status
+objectIsInstanceOf(const Any obj, const Class super)
+{ const Class class = classOfObject(obj);
+    
+  return class == super || (class->tree_index >= super->tree_index &&
+			    class->tree_index <  super->neighbour_index);
+}
+
+
 INLINE status
 isProperObject(const Any obj)
 { return (obj && isAddress(obj) && hasObjectMagic(obj));
@@ -87,17 +96,11 @@ INLINE status
 executeCode(Code c)
 { Class cl = classOfObject(c);
   status rval;
-  goal goal;
-  Goal g = &goal;
 
-  pushGoal(g, c, c, NAME_execute, 0, NULL);
-  traceEnter(g);
   addCodeReference(c);
   FixSendFunctionClass(cl, NAME_Execute);
   rval = (*cl->send_function)(c);
   delCodeReference(c);
-  traceReturn(g, rval);
-  popGoal();
 
   return rval;
 }
@@ -108,22 +111,20 @@ forwardBlockv(Block b, int argc, const Any argv[])
 { status rval;
 
   if ( isNil(b->parameters) )
-  { Mode(onDFlag(b, D_SYSTEM) ? MODE_SYSTEM : MODE_USER,
-	 withArgs(argc, argv, rval = executeCode((Code) b)));
+  { withArgs(argc, argv, rval = executeCode((Code) b));
   } else
-  { Mode(onDFlag(b, D_SYSTEM) ? MODE_SYSTEM : MODE_USER,
-	 withLocalVars({ int i;
-			 Var *vars = (Var *) b->parameters->elements;
-			 int nvars = valInt(b->parameters->size);
-
-			 for(i=0; i<argc; i++)
-			 { if ( i < nvars )
-			     assignVar(vars[i], argv[i], DEFAULT);
-			   else
-			     assignVar(Arg(i-nvars+1), argv[i], DEFAULT);
-			 }
-			 rval = executeCode((Code) b);
-		        }));
+  { withLocalVars({ int i;
+		    Var *vars = (Var *) b->parameters->elements;
+		    int nvars = valInt(b->parameters->size);
+		    
+		    for(i=0; i<argc; i++)
+		    { if ( i < nvars )
+			assignVar(vars[i], argv[i], DEFAULT);
+		      else
+			assignVar(Arg(i-nvars+1), argv[i], DEFAULT);
+		    }
+		    rval = executeCode((Code) b);
+		  });
   }
 
   return rval;
@@ -138,8 +139,7 @@ forwardCodev(Code c, int argc, const Any argv[])
   if ( c->class == ClassBlock )
     return forwardBlockv((Block) c, argc, argv);
 
-  Mode(onDFlag(c, D_SYSTEM) ? MODE_SYSTEM : MODE_USER,
-       withArgs(argc, argv, rval = executeCode(c)));
+  withArgs(argc, argv, rval = executeCode(c));
 
   return rval;
 }
@@ -153,17 +153,11 @@ INLINE Any
 getExecuteFunction(Function f)
 { Class cl = classOfObject(f);
   Any rval;
-  goal goal;
-  Goal g = &goal;
 
-  pushGoal(g, f, f, NAME_execute, 0, NULL);
-  traceEnter(g);
   addCodeReference(f);
   FixGetFunctionClass(cl, NAME_Execute);
   rval = (*cl->get_function)(f);
   delCodeReference(f);
-  traceAnswer(g, rval);
-  popGoal();
 
   return rval;
 }
@@ -190,7 +184,7 @@ getSendMethodClass(Class class, Name name)
 
   RealiseClass(class);
   if ( !(rval = getMemberHashTable(class->send_table, name)) )
-    Mode(MODE_SYSTEM, rval = getResolveSendMethodClass(class, name));
+    rval = getResolveSendMethodClass(class, name);
 
   if ( notNil(rval) )
     answer(rval);
@@ -205,7 +199,7 @@ getGetMethodClass(Class class, Name name)
 
   RealiseClass(class);
   if ( !(rval = getMemberHashTable(class->get_table, name)) )
-    Mode(MODE_SYSTEM, rval = getResolveGetMethodClass(class, name));
+    rval = getResolveGetMethodClass(class, name);
 
   if ( notNil(rval) )
     answer(rval);
@@ -218,7 +212,7 @@ getGetMethodClass(Class class, Name name)
 		 *******************************/
 
 INLINE Any
-CheckType(Any val, Type t, Any ctx)
+checkType(const Any val, const Type t, const Any ctx)
 { if ( validateType(t, val, ctx) )
     return val;
 
@@ -226,9 +220,18 @@ CheckType(Any val, Type t, Any ctx)
 }
 
 
+INLINE Name
+checkSelector(Any sel)
+{ if ( isName(sel) )
+    return sel;
+
+  return checkType(sel, TypeName, NIL);
+}
+
 #else /*USE_INLINE*/
 
 status	 constf instanceOfObject(const Any, const Class);
+status   constf objectIsInstanceOf(const Any obj, const Class super);
 status		isProperObject(const Any);
 Any		getSendMethodClass(Class, Name);
 Any		getGetMethodClass(Class, Name);
@@ -238,7 +241,8 @@ Any		getExecuteFunction(Function);
 status		forwardCodev(Code, int, const Any[]);
 status		forwardBlockv(Block, int, const Any[]);
 Any		expandCodeArgument(Any);
-Any		CheckType(Any val, Type t, Any ctx);
+Any		checkType(const Any val, const Type t, const Any ctx);
+Name		checkSelector(Any sel);
 
 /* Donot write below this line */
 #endif /*USE_INLINE*/

@@ -10,13 +10,14 @@
 #include <h/kernel.h>
 #include <h/graphics.h>
 
-status
+static status
 initialiseTableSlice(TableSlice c)
 { initialiseVectorv((Vector)c, 0, NULL);
 
   assign(c, background, DEFAULT);
-  assign(c, selected,   DEFAULT);
+  assign(c, selected,   OFF);
   assign(c, end_group,  OFF);
+  assign(c, name,	NIL);
   assign(c, index,      ZERO);
   assign(c, width,      ZERO);
   assign(c, reference,  ZERO);
@@ -26,6 +27,20 @@ initialiseTableSlice(TableSlice c)
 */
 
   succeed;
+}
+
+
+Any
+findNamedSlice(Vector v, Name name)
+{ TableSlice slice;
+
+  for_vector(v, slice,
+	     if ( instanceOfObject(slice, ClassTableSlice) &&
+		  slice->name == name )
+	       answer(slice);
+	    );
+
+  fail;
 }
 
 
@@ -70,13 +85,15 @@ static vardecl var_table_slice[] =
      NAME_organisation, "Table I belong to"),
   IV(NAME_background, "[colour|pixmap]", IV_GET,
      NAME_colour, "Default background of the cells"),
-  IV(NAME_selected, "[bool]", IV_GET,
-     NAME_selection, "Default <-selected of the cells"),
+  IV(NAME_selected, "bool", IV_GET,
+     NAME_selection, "If @on, all cells in the row/column are selected"),
   IV(NAME_alignment, "{top,bottom,left,right,center,reference,stretch}",
      IV_GET,
      NAME_layout, "Default alignment of cells"),
   SV(NAME_endGroup, "bool", IV_GET|IV_STORE, endGroupTableSlice,
      NAME_appearance, "Row/column ends a group (rules)"),
+  IV(NAME_name, "name*", IV_BOTH,
+     NAME_name, "Name of the column/row"),
   IV(NAME_index, "int", IV_GET,
      NAME_position, "X/Y position for column/row"),
   IV(NAME_fixed, "bool", IV_BOTH,
@@ -113,7 +130,7 @@ static getdecl get_table_slice[] =
 
 #define rc_table_slice NULL
 /*
-static resourcedecl rc_table_slice[] =
+static classvardecl rc_table_slice[] =
 {
 };
 */
@@ -218,7 +235,7 @@ selectedTableColumn(TableColumn col, Bool selected)
 }
 
 
-TableCell
+static TableCell
 getCellTableColumn(TableColumn col, Int y)
 { Table tab = col->table;
   TableRow row = getElementVector(tab->rows, y);
@@ -295,7 +312,7 @@ static senddecl send_table_column[] =
      DEFAULT, "Remove from <-table"),
   SM(NAME_background, 1, "[colour|pixmap]", backgroundTableColumn,
      NAME_colour, NULL),
-  SM(NAME_selected, 1, "[bool]", selectedTableColumn,
+  SM(NAME_selected, 1, "bool", selectedTableColumn,
      NAME_selection, NULL),
   SM(NAME_halign, 1, T_halign, halignTableColumn,
      NAME_alignment, "Default horizontal alignment"),
@@ -318,7 +335,7 @@ static getdecl get_table_column[] =
 
 #define rc_table_column NULL
 /*
-static resourcedecl rc_table_column[] =
+static classvardecl rc_table_column[] =
 {
 };
 */
@@ -412,8 +429,20 @@ selectedTableRow(TableRow row, Bool selected)
 
 
 TableCell
-getCellTableRow(TableRow row, Int x)
+getCellTableRow(TableRow row, Any x)
 { TableCell cell;
+
+  if ( !isInteger(x) )
+  { if ( notNil(row->table) )
+    { TableColumn col = findNamedSlice(row->table->columns, x);
+      
+      if ( col )
+	x = col->index;
+      else
+	fail;
+    } else
+      fail;				/* error */
+  }
 
   if ( (cell = getElementVector((Vector)row, x)) && notNil(cell) )
     answer(cell);
@@ -512,7 +541,7 @@ static senddecl send_table_row[] =
      DEFAULT, "Remove from <-table"),
   SM(NAME_background, 1, "[colour|pixmap]", backgroundTableRow,
      NAME_colour, NULL),
-  SM(NAME_selected, 1, "[bool]", selectedTableRow,
+  SM(NAME_selected, 1, "bool", selectedTableRow,
      NAME_selection, NULL),
   SM(NAME_valign, 1, T_valign, valignTableRow,
      NAME_alignment, "Default vertical alignment"),
@@ -528,7 +557,7 @@ static getdecl get_table_row[] =
 { GM(NAME_valign, 0, T_valign, NULL,
      getHalignTableRow,
      NAME_alignment, "Default horizontal alignment"),
-  GM(NAME_cell, 1, "table_cell", "int",
+  GM(NAME_cell, 1, "table_cell", "int|name",
      getCellTableRow,
      NAME_contents, "Cell at indicated column")
 };
@@ -537,7 +566,7 @@ static getdecl get_table_row[] =
 
 #define rc_table_row NULL
 /*
-static resourcedecl rc_table_row[] =
+static classvardecl rc_table_row[] =
 {
 };
 */

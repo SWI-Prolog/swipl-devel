@@ -317,8 +317,9 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       { ZSetCursor(wfr->hbusy_cursor);
       } else
       { if ( w = sw->ws_ref )
-	{ if ( w->hcursor )
-	    ZSetCursor(w->hcursor);
+	{ if ( !w->hcursor )
+	    w->hcursor = LoadCursor(NULL, IDC_ARROW);
+	  ZSetCursor(w->hcursor);
 	}
       }
 
@@ -619,7 +620,7 @@ ws_window_cursor(PceWindow sw, CursorObj c)
     exit_big_cursor();			/* should there be one */
 
     if ( isNil(c) )
-      c = getResourceValueObject(sw, NAME_cursor);
+      c = getClassVariableValueObject(sw, NAME_cursor);
 
     if ( notNil(c->image) &&
 	 (valInt(c->image->size->w) > 32 || valInt(c->image->size->h) > 32) &&

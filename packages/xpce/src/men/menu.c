@@ -17,6 +17,7 @@ static status	ensureSingleSelectionMenu(Menu m);
 static status	multipleSelectionMenu(Menu m, Bool val);
 static status	restoreMenu(Menu m);
 static status	compute_popup_indicator(Menu m, MenuItem mi, int *w, int *h);
+static status	modifiedMenu(Menu m, Bool val);
 
 #define CYCLE_DROP_WIDTH 14
 #define CYCLE_DROP_HEIGHT 14
@@ -37,34 +38,16 @@ initialiseMenu(Menu m, Name name, Name kind, Code msg)
   assign(m, multiple_selection, OFF);
 
   assign(m, preview,		NIL);
-  assign(m, preview_feedback,	DEFAULT);
 
   assign(m, kind,		kind);
-  assign(m, feedback,		DEFAULT);
-  assign(m, pen,		DEFAULT);
-  assign(m, show_label,         DEFAULT); /* resource */
-  assign(m, label_width,        DEFAULT); /* dialog layout system */
-  assign(m, value_font,         DEFAULT); /* resource */
-  assign(m, value_width,        DEFAULT); /* minimum width of values */
-  assign(m, accelerator_font,   DEFAULT);
-  assign(m, layout,             DEFAULT);
   assign(m, columns,            ONE);
-  assign(m, format,		DEFAULT);
-  assign(m, vertical_format,	DEFAULT);
-  assign(m, gap,		DEFAULT);
-  assign(m, border,		DEFAULT);
-  assign(m, margin,		DEFAULT);
   
-  assign(m, on_image,	        DEFAULT); /* Image for selected == @on */
-  assign(m, off_image,		DEFAULT); /* Image for selected == @off */
-  assign(m, popup_image,	DEFAULT); /* Image for popup != @nil */
-
   assign(m, left_offset,	ZERO);
   assign(m, right_offset,	ZERO);
   assign(m, label_area,		NIL);
   assign(m, item_offset,	newObject(ClassPoint, 0));
   assign(m, item_size,		newObject(ClassSize, 0));
-  obtainResourcesObject(m);
+  obtainClassVariablesObject(m);
 
   kindMenu(m, kind);
 
@@ -156,9 +139,9 @@ computeLabelMenu(Menu m)
 { int iox;				/* item_offset <- x */
   int ioy;				/* item_offset <- y */
 
-  obtainResourcesObject(m);
+  obtainClassVariablesObject(m);
   if ( isDefault(m->show_label) )
-    assign(m, show_label, getResourceValueObject(m, NAME_showLabel));
+    assign(m, show_label, getClassVariableValueObject(m, NAME_showLabel));
 
   if ( m->show_label == ON )
   { int w, h;
@@ -189,7 +172,7 @@ computeLabelMenu(Menu m)
     iox = valInt(m->label_width);
 
   if ( m->feedback == NAME_showSelectionOnly )
-  { Any ci = getResourceValueObject(m, NAME_cycleIndicator);
+  { Any ci = getClassVariableValueObject(m, NAME_cycleIndicator);
     
     if ( (Name)ci == NAME_comboBox )
     { iox += 0;
@@ -253,7 +236,7 @@ computeItemsMenu(Menu m)
   h += 2 * border;
 
   if ( m->feedback == NAME_showSelectionOnly )
-  { Image ci = getResourceValueObject(m, NAME_cycleIndicator);
+  { Image ci = getClassVariableValueObject(m, NAME_cycleIndicator);
 
     if ( (Name)ci == NAME_comboBox )
       rm = ws_combo_box_width();
@@ -281,7 +264,7 @@ computeItemsMenu(Menu m)
   
   if ( isDefault(m->accelerator_font) )
     assign(m, accelerator_font,
-	   getResourceValueObject(m, NAME_acceleratorFont));
+	   getClassVariableValueObject(m, NAME_acceleratorFont));
 
   if ( notNil(m->accelerator_font) )
   { int am = 0;
@@ -495,7 +478,7 @@ draw_popup_indicator(Menu m, MenuItem mi, int x, int y, int w, int h, int b)
 
   if ( notNil(m->popup_image) )
   { r_image(m->popup_image, 0, 0, ix, iy, iw, ih, ON);
-  } else if ( (z = getResourceValueObject(m, NAME_elevation)) )
+  } else if ( (z = getClassVariableValueObject(m, NAME_elevation)) )
   { r_3d_triangle(ix, iy+ih, ix, iy, ix+iw, iy+ih/2,
 		  z, m->preview != mi, 0x3);
   }
@@ -545,7 +528,7 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h, Elevation iz)
 			   pp(mi->value), x, y, w, h));
 
   if ( mi->active == OFF )
-  { Any c2 = getResourceValueObject(m, NAME_inactiveColour);
+  { Any c2 = getClassVariableValueObject(m, NAME_inactiveColour);
 
     if ( c2 && notNil(c2) )
       colour = c2;
@@ -555,9 +538,9 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h, Elevation iz)
 
 					/* Windows '95 popup */
   if ( m->preview_feedback == NAME_colour && m->preview == mi )
-  { Any fg = getResourceValueObject(m, NAME_selectedForeground);
-    Any bg = getResourceValueObject(m, NAME_selectedBackground);
-    Elevation mz = getResourceValueObject(m, NAME_elevation);
+  { Any fg = getClassVariableValueObject(m, NAME_selectedForeground);
+    Any bg = getClassVariableValueObject(m, NAME_selectedBackground);
+    Elevation mz = getClassVariableValueObject(m, NAME_elevation);
     int bw = (mz && notNil(mz) ? valInt(mz->height) : 0);
     int bh = valInt(m->border);
 
@@ -566,7 +549,7 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h, Elevation iz)
     r_colour(fg);
   }
   if ( mi->end_group == ON && m->look == NAME_win )
-  { Elevation mz = getResourceValueObject(m, NAME_elevation);
+  { Elevation mz = getClassVariableValueObject(m, NAME_elevation);
 
     if ( m->layout == NAME_vertical )
       r_3d_line(x, y+h, x+w, y+h, mz, FALSE);
@@ -583,7 +566,7 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h, Elevation iz)
   { int up = TRUE;
 
     if ( m->preview == mi )
-    { z = getResourceValueObject(m, NAME_previewElevation);
+    { z = getClassVariableValueObject(m, NAME_previewElevation);
     } else if ( mi->selected == ON )
       up = FALSE;
 
@@ -591,7 +574,7 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h, Elevation iz)
       r_3d_box(x, y, w, h, 0, z, up);
 
     if ( mi->end_group == ON )
-    { Elevation mz = getResourceValueObject(m, NAME_elevation);
+    { Elevation mz = getClassVariableValueObject(m, NAME_elevation);
 
       if ( m->layout == NAME_vertical )
 	r_3d_line(x, y+h, x+w, y+h, mz, FALSE);
@@ -654,7 +637,7 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h, Elevation iz)
   } else
   { if ( instanceOfObject(leftmark, ClassImage) )
     { int bw, bh, by;
-      Elevation mz = getResourceValueObject(m, NAME_markElevation);
+      Elevation mz = getClassVariableValueObject(m, NAME_markElevation);
       
       bw = valInt(leftmark->size->w);
       bh = valInt(leftmark->size->h);
@@ -668,7 +651,7 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h, Elevation iz)
       r_image(leftmark, 0, 0, x+b, by, bw, bh, ON);
     } else if ( (Name) leftmark == NAME_marked )
     { if ( m->look == NAME_motif )
-      { Elevation mz = getResourceValueObject(m, NAME_markElevation);
+      { Elevation mz = getClassVariableValueObject(m, NAME_markElevation);
   
 	if ( m->multiple_selection == ON )
 	{ int dy = item_mark_y(m, y, h, MARK_BOX_SIZE);
@@ -767,8 +750,8 @@ RedrawAreaMenu(Menu m, Area a)
   int bx, by, cx, cy, iw, ih;
   int gx = x_gap(m);
   int gy = y_gap(m);
-  Elevation z  = getResourceValueObject(m, NAME_elevation);
-  Elevation iz = getResourceValueObject(m, NAME_itemElevation);
+  Elevation z  = getClassVariableValueObject(m, NAME_elevation);
+  Elevation iz = getClassVariableValueObject(m, NAME_itemElevation);
 
   initialiseDeviceGraphical(m, &x, &y, &w, &h);
   NormaliseArea(x, y, w, h);
@@ -796,7 +779,7 @@ RedrawAreaMenu(Menu m, Area a)
   
   if ( m->feedback == NAME_showSelectionOnly )
   { MenuItem mi = getItemSelectionMenu(m);
-    Any ci = getResourceValueObject(m, NAME_cycleIndicator);
+    Any ci = getClassVariableValueObject(m, NAME_cycleIndicator);
 
     if ( (Name)ci == NAME_comboBox )
     { int flags = TEXTFIELD_COMBO;
@@ -1001,7 +984,14 @@ forwardMenu(Menu m, Code msg, EventObj ev)
     succeed;
   }
 
-  return forwardDialogItem((DialogItem) m, msg, ev);
+  if ( notNil(m->message) && notDefault(m->message) )
+  { Any val;
+
+    if ( (val = get(m, NAME_selection, 0)) )
+      forwardReceiverCode(m->message, m, val, ev, 0);
+  }
+
+  succeed;
 }
 
   
@@ -1062,7 +1052,7 @@ executeMenu(Menu m, EventObj ev)
 { MenuItem mi;
 
   if ( m->feedback == NAME_showSelectionOnly )
-  { Any img = getResourceValueObject(m, NAME_cycleIndicator); /* TBD */
+  { Any img = getClassVariableValueObject(m, NAME_cycleIndicator); /* TBD */
 
     if ( img == NAME_comboBox )
       return openComboBoxMenu(m);
@@ -1359,7 +1349,7 @@ append_menu(Menu m, MenuItem mi, Name where)
 }
 
 
-static status
+status
 appendMenu(Menu m, Any mi)
 { return append_menu(m, mi, NAME_tail);
 }
@@ -1823,7 +1813,7 @@ marginMenu(Menu m, Int margin)
 
 static status
 sortMenu(Menu m, Code msg)
-{ sortChain(m->members, msg);
+{ sortChain(m->members, msg, OFF);
 
   return requestComputeGraphical(m, NAME_assignAccelerators);
 }
@@ -1884,7 +1874,7 @@ getModifiedMenu(Menu m)
 }
 
 
-status
+static status
 modifiedMenu(Menu m, Bool val)
 { if ( val == OFF )
     getSelectionMenu(m);
@@ -2125,12 +2115,14 @@ static getdecl get_menu[] =
 
 /* Resources */
 
-static resourcedecl rc_menu[] =
+static classvardecl rc_menu[] =
 { RC(NAME_acceleratorFont, "font*", "@nil",
      "Show the accelerators"),
-  RC(NAME_border, "int", "0",
+  RC(NAME_border, "int", "2",
      "Border around each item"),
-  RC(NAME_cycleIndicator, "{combo_box}|image|elevation", "@cycle_image",
+  RC(NAME_cycleIndicator, "{combo_box}|image|elevation",
+     UXWIN("when(@colour_display,  elevation(1), @ol_cycle_image)",
+	   "combo_box"),
      "Indication of a ->kind: cycle menu"),
   RC(NAME_feedback, "name", "image",
      "Type of feedback for selection"),
@@ -2138,9 +2130,12 @@ static resourcedecl rc_menu[] =
      "Adjust items {left,center,right} in their box"),
   RC(NAME_gap, "size", "size(0,0)",
      "Gap between items (XxY)"),
-  RC(NAME_itemElevation, "elevation*", "0",
+  RC(NAME_itemElevation, "elevation*",
+     UXWIN("when(@colour_display, button, @nil)", "2"),
      "Elevation of items in the menu"),
-  RC(NAME_markElevation, "elevation*", "@nil",
+  RC(NAME_markElevation, "elevation*",
+     UXWIN("when(@colour_display, mark, @nil)",
+	   "elevation(mark, 2, colour := white)"),
      "Elevation of marks"),
   RC(NAME_kind, "name", "marked",
      "Default menu kind"),
@@ -2148,11 +2143,13 @@ static resourcedecl rc_menu[] =
      "Layout of the menu: {horizontal,vertical}"),
   RC(NAME_margin, "0..", "0",
      "Margin to the left and right"),
-  RC(NAME_offImage, "image|{marked}*", "@nomark_image",
+  RC(NAME_offImage, "{marked}|image*",
+     UXWIN("@nomark_image", "marked"),
      "Marker for items not in selection"),
-  RC(NAME_onImage, "image|{marked}*", "@mark_image",
+  RC(NAME_onImage, "{marked}|image*",
+     UXWIN("@mark_image", "marked"),
      "Marker for items in selection"),
-  RC(NAME_pen, "int", "0",
+  RC(NAME_pen, "int", "when(@colour_display, 0, 1)",
      "Thickness of pen around items"),
   RC(NAME_popupImage, "image*", "@nil",
      "Marker for items with popup"),
@@ -2166,10 +2163,15 @@ static resourcedecl rc_menu[] =
      "Minimum width for popup menu"),
   RC(NAME_verticalFormat, "{top,center,bottom}", "center",
      "Adjust items {top,center,bottom} in their box"),
-  RC(NAME_selectedForeground, "colour|pixmap", "white",
+  RC(NAME_selectedForeground, "colour|pixmap",
+     UXWIN("white", "win_highlighttext"),
      "Text colour for selected item"),
-  RC(NAME_selectedBackground, "colour|pixmap", "black",
-     "Background colour for selected item")
+  RC(NAME_selectedBackground, "colour|pixmap",
+     UXWIN("black", "win_highlight"),
+     "Background colour for selected item"),
+  RC(NAME_elevation, RC_REFINE,
+     UXWIN("when(@colour_display, 0, @nil)", "@nil"), NULL),
+  RC(NAME_valueFont, RC_REFINE, "normal", NULL)
 };
 
 /* Class Declaration */

@@ -334,7 +334,7 @@ static getdecl get_menuItem[] =
 
 #define rc_menuItem NULL
 /*
-static resourcedecl rc_menuItem[] =
+static classvardecl rc_menuItem[] =
 { 
 };
 */

@@ -48,11 +48,7 @@ static status
 displayError(Error e, int argc, Any *argv)
 { char buf[FORMATSIZE];
 
-  if ( e->feedback == NAME_report
-#ifndef O_RUNTIME
-       || (PCE->trace == NAME_never && e->kind != NAME_fatal)
-#endif
-     )
+  if ( e->feedback == NAME_report )
   { ArgVector(av, argc+2);
     int i;
 
@@ -79,11 +75,9 @@ displayError(Error e, int argc, Any *argv)
 	  e->kind != NAME_warning) )
     { Cprintf("\n\tin: ");
       pceWriteErrorGoal();
-      if ( PCE->trace != NAME_never )
-      { send(PCE, NAME_exposeConsole, 0);
-	Cputchar('\007');		/* ^G: ASCII bell */
-	tracePce(PCE, NAME_user);
-      }
+      send(PCE, NAME_exposeConsole, 0);
+      Cputchar('\007');			/* ^G: ASCII bell */
+      debuggingPce(PCE, ON);
     }
 #endif
     Cprintf("]\n");
@@ -92,6 +86,18 @@ displayError(Error e, int argc, Any *argv)
   succeed;
 }
 
+
+static StringObj
+getFormatError(Error e, int argc, const Any argv[])
+{ char buf[FORMATSIZE];
+
+  TRY(swritefv(buf, (CharArray)e->format, argc, argv));
+
+  answer(CtoString(buf));
+}
+
+
+
 		 /*******************************
 		 *	 CLASS DECLARATION	*
 		 *******************************/
@@ -99,7 +105,11 @@ displayError(Error e, int argc, Any *argv)
 /* Type declaractions */
 
 static char *T_initialise[] =
-        { "name=name", "format=string", "kind=[{status,inform,warning,error,fatal,ignored}]", "feedback=[{report,print}]" };
+        { "name=name",
+	  "format=string",
+	  "kind=[{status,inform,warning,error,fatal,ignored}]",
+	  "feedback=[{report,throw,print}]"
+	};
 
 /* Instance Variables */
 
@@ -110,7 +120,7 @@ static vardecl var_error[] =
      NAME_report, "Format used to print the message"),
   IV(NAME_kind, "{status,inform,warning,error,fatal,ignored}", IV_BOTH,
      NAME_report, "Kind of message"),
-  IV(NAME_feedback, "{report,print}", IV_GET,
+  IV(NAME_feedback, "{report,throw,print}", IV_BOTH,
      NAME_report, "Where (how) the report is reported")
 };
 
@@ -119,7 +129,7 @@ static vardecl var_error[] =
 static senddecl send_error[] =
 { SM(NAME_initialise, 4, T_initialise, initialiseError,
      DEFAULT, "-> id, format, [kind], [feedback]"),
-  SM(NAME_display, 1, "any|function ...", displayError,
+  SM(NAME_display, 1, "unchecked ...", displayError,
      NAME_report, "Display the error message using context")
 };
 
@@ -129,21 +139,25 @@ static getdecl get_error[] =
 { GM(NAME_convert, 1, "error", "name", getConvertError,
      NAME_oms, "Convert id into error"),
   GM(NAME_lookup, 1, "error", "name", getConvertError,
-     NAME_oms, "Convert id into error")
+     NAME_oms, "Convert id into error"),
+  GM(NAME_format, 1, "string", "unchecked ...", getFormatError,
+     NAME_report, "Return a formatted error message")
 };
 
 /* Resources */
 
 #define rc_error NULL
 /*
-static resourcedecl rc_error[] =
+static classvardecl rc_error[] =
 { 
 };
 */
 
 /* Class Declaration */
 
-static Name error_termnames[] = { NAME_id, NAME_format, NAME_kind, NAME_feedback };
+static Name error_termnames[] = { NAME_id, NAME_format,
+				  NAME_kind, NAME_feedback
+				};
 
 ClassDecl(error_decls,
           var_error, send_error, get_error, rc_error,
@@ -174,19 +188,18 @@ makeClassError(Class class)
 #define ET_IGNORED	0x05
 #define ET_MASK		0x0f
 
-#define EF_PRINT	0x00
-#define EF_REPORT	0x10
+#define EF_THROW	0x00
+#define EF_PRINT	0x10
+#define EF_REPORT	0x20
 #define EF_MASK		0xf0
 
-typedef struct error_def *ErrorDef;
+typedef struct
+{ const Name id;
+  const int  flags;
+  const char *format;
+} error_def;
 
-struct error_def
-{ Name id;
-  int  flags;
-  char *format;
-};
-
-static struct error_def errors[] =
+static const error_def errors[] =
 {					/* Files */
   { NAME_badFile,		EF_REPORT,
     "%N: Not an %s file" },
@@ -255,12 +268,6 @@ static struct error_def errors[] =
 					/* C-symbols */
   { NAME_notEnoughMemory,	ET_WARNING|EF_REPORT,
     "%N: Not enough memory" },
-  { NAME_loadingCSymbols,	ET_STATUS|EF_REPORT,
-    "%N: Loading C-symbols\n\t(running %s)" },
-  { NAME_CSymbolOffset,		ET_STATUS|EF_REPORT,
-    "%N: Symbol offset: %d" },
-  { NAME_cannotLoadCSymbols,	ET_WARNING|EF_REPORT,
-    "%I: Failed to load C-symbols: %s" },
   { NAME_stackOverflow,		ET_ERROR,
     "%N: Stack overflow (@pce <-max_goal_depth: %d)" },
 
@@ -276,15 +283,17 @@ static struct error_def errors[] =
   { NAME_noSocketDomain,	ET_WARNING|EF_REPORT,
     "%N: No support for %s domain sockets" },
 
-					/* Resources */
-  { NAME_incompatibleResource,	0,
-    "%N: Resource has incompatible type" },
-  { NAME_noResource,		0,
-    "%N: No associated resource" },
-  { NAME_resourceSyntaxError,	ET_WARNING,
-    "%I: %N:%d Syntax error in resource-file" },
-  { NAME_oldResourceFormat,	ET_WARNING,
-    "%N: old fashioned resource syntax: %s" },
+					/* Class Variables */
+  { NAME_incompatibleClassVariable,	0,
+    "%N: Associated class-variable has incompatible type" },
+  { NAME_noClassVariable,	0,
+    "%N: No associated class_variable" },
+  { NAME_defaultSyntaxError,	ET_WARNING|EF_PRINT,
+    "%I: %N:%d Syntax error in Defaults-file" },
+  { NAME_oldDefaultFormat,	ET_WARNING|EF_PRINT,
+    "%N: old fashioned default syntax: %s" },
+  { NAME_classVariablesNotObtained, ET_WARNING|EF_PRINT,
+    "%O: class-variables have not been obtained" },
 
 					/* Display */
   { NAME_noCurrentDisplay,	0,
@@ -314,7 +323,7 @@ static struct error_def errors[] =
 					/* Fonts */
   { NAME_noDefaultFont,		ET_FATAL,
     "%N: No default font defined (Pce.Display.no_font)" },
-  { NAME_replacedFont,		ET_WARNING,
+  { NAME_replacedFont,		ET_WARNING|EF_PRINT,
     "%N: Failed to open; replaced by %N" },
   { NAME_no16BitFontsSupported,	ET_WARNING,
     "%N: 16-bit fonts are not (yet) supported" },
@@ -336,27 +345,27 @@ static struct error_def errors[] =
     "* the access rights to your X11 server.  See xauth(1) and xhost(1). *\n"
     "*********************************************************************"
   },
-  { NAME_xMovedDisplay,		ET_STATUS,
+  { NAME_xMovedDisplay,		ET_STATUS|EF_PRINT,
     "%N: Moved to display %s" },
-  { NAME_cannotGrabPointer,	ET_WARNING,
+  { NAME_cannotGrabPointer,	ET_WARNING|EF_PRINT,
     "%N: Failed to grab pointer: %s" },
   { NAME_noRelatedXFont,	ET_WARNING,
     "%N: No related X-font" },
-  { NAME_cannotConvertResource,	ET_WARNING,
-    "%N: Failed to convert %s.  Trying default" },
-  { NAME_cannotConvertResourceDefault,	ET_FATAL,
-    "%N: Failed to default %s" },
+  { NAME_cannotConvertDefault,	ET_WARNING|EF_PRINT,
+    "%N: Failed to convert %s.  Trying program default" },
+  { NAME_cannotConvertProgramDefault,	ET_FATAL,
+    "%N: Failed to convert program default %O" },
   { NAME_winMetafile, 		ET_WARNING,
     "%O: API operation %s failed: %s" },
 
 					/* Save/Load */
-  { NAME_newSaveVersion,	ET_IGNORED,
+  { NAME_newSaveVersion,	ET_IGNORED|EF_PRINT,
     "%N: Saved as version %d, current version is %d" },
   { NAME_cannotSaveObject,	0,
     "%O: Cannot save object: %s" },
   { NAME_noAssoc,		0,
     "%N: No external object @%s" },
-  { NAME_loadMessage,		ET_STATUS,
+  { NAME_loadMessage,		ET_STATUS|EF_PRINT,
     "%O: %s" },
   { NAME_illegalCharacter,	ET_FATAL,
     "%O: Illegal character (%c) at index %d" },
@@ -364,14 +373,16 @@ static struct error_def errors[] =
     "%N: Referenced object %O not loaded" },
   { NAME_noSavedClassDef,	ET_FATAL,
     "%N: Cannot find class-definition from id = %d" },
-  { NAME_loadNoClass,		ET_WARNING,
+  { NAME_loadNoClass,		ET_WARNING|EF_PRINT,
     "%N: Referenced class %s does not exist" },
-  { NAME_loadOldSlot,		ET_WARNING,
+  { NAME_loadOldSlot,		ET_WARNING|EF_PRINT,
     "%N: Slot %s<-%s is is not in current class definition" },
 
 					/* Types */
   { NAME_argumentType,		0,
-    "%N: Argument %d (%s) should be a %s" },
+    "%N: Argument %d (%s): `%s' expected, found `%O'" },
+  { NAME_missingArgument,	0,
+    "%N: Missing argument %d (%s): `%s' expected" },
   { NAME_unexpectedType,	0,
     "%O: Should be a %N" },
   { NAME_elementType,		0,
@@ -457,15 +468,17 @@ static struct error_def errors[] =
     "%N: Freed object: %O" },
 #ifndef O_RUNTIME
   { NAME_noBehaviour,		ET_WARNING,
-    "%N: No implementation for: %O %s%s" },
+    "%O: No implementation for: %s%s" },
 #else
   { NAME_noBehaviour,		ET_WARNING,
-    "%N: Failed on not-implemented method" },
+    "%IFailed on not-implemented behaviour" },
 #endif /*O_RUNTIME*/
   { NAME_noTextBehaviour,	ET_WARNING,
     "%O: No implementation for interactive function: ->%s" },
   { NAME_noClass,		0,
-    "%N: Unknown class: %s" },
+    "%N: Unknown class" },
+  { NAME_noSuperClassOf,	0,
+    "%N: \"%s\" is not a super-class of my class" },
   { NAME_noImplementation,	0,
     "%N: Not implementated" },
   { NAME_badReturnValue,	0,
@@ -504,40 +517,45 @@ static struct error_def errors[] =
     "%IReference-count of %O drops below zero" },
   { NAME_negativeCodeReferenceCount, ET_FATAL,
     "%O: Code reference-count drops below zero" },
+  { NAME_cannotCreateInstances, 0,
+    "%O: It is not allowed to create instances of this class" },
+  { NAME_badCArgList,		0,
+    "%O%s%s: Unterminated argument list on call from C?" },
+
 					/* consistency-check (object) */
-  { NAME_checkedObjects, 	ET_INFORM,
+  { NAME_checkedObjects, 	ET_INFORM|EF_PRINT,
     "%IChecked %d objects" },
-  { NAME_noExtension, 		ET_WARNING,
+  { NAME_noExtension, 		ET_WARNING|EF_PRINT,
     "%O: No attribute of extension %s" },
-  { NAME_noProperObject,	ET_WARNING,
+  { NAME_noProperObject,	ET_WARNING|EF_PRINT,
     "%O: Not a proper object" },
-  { NAME_creating,		ET_WARNING,
+  { NAME_creating,		ET_WARNING|EF_PRINT,
     "%O: Creating flag set" },
-  { NAME_badSlotValue,		ET_WARNING,
+  { NAME_badSlotValue,		ET_WARNING|EF_PRINT,
     "%O: Illegal value in slot %N: %s" },
-  { NAME_badCellValue,		ET_WARNING,
+  { NAME_badCellValue,		ET_WARNING|EF_PRINT,
     "%O: Illegal cell %d: %s" },
-  { NAME_badElementValue,	ET_WARNING,
+  { NAME_badElementValue,	ET_WARNING|EF_PRINT,
     "%O: Illegal element %d: %s" },
-  { NAME_badKeyValue,		ET_WARNING,
+  { NAME_badKeyValue,		ET_WARNING|EF_PRINT,
     "%O: Illegal key in %s --> %s" },
-  { NAME_badValueValue,		ET_WARNING,
+  { NAME_badValueValue,		ET_WARNING|EF_PRINT,
     "%O: Illegal value in %s --> %s" },
-  { NAME_failedToConvert,	ET_WARNING,
+  { NAME_failedToConvert,	ET_WARNING|EF_PRINT,
     "%O: Failed to convert %s for slot %N" },
-  { NAME_badSlotValue,		ET_WARNING,
+  { NAME_badSlotValue,		ET_WARNING|EF_PRINT,
     "%O: Illegal value in slot %N: %s" },
-  { NAME_freedSlotValue,	ET_WARNING,
+  { NAME_freedSlotValue,	ET_WARNING|EF_PRINT,
     "%O: Freed object in slot %N: %s" },
-  { NAME_freedCellValue,	ET_WARNING,
+  { NAME_freedCellValue,	ET_WARNING|EF_PRINT,
     "%O: Freed object in cell %d: %s" },
-  { NAME_freedElementValue,	ET_WARNING,
+  { NAME_freedElementValue,	ET_WARNING|EF_PRINT,
     "%O: Freed object in element %d: %s" },
-  { NAME_freedKeyValue,		ET_WARNING,
+  { NAME_freedKeyValue,		ET_WARNING|EF_PRINT,
     "%O: Freed key in %s --> %s" },
-  { NAME_freedValueValue,	ET_WARNING,
+  { NAME_freedValueValue,	ET_WARNING|EF_PRINT,
     "%O: Freed value in %s --> %s" },
-  { NAME_tooFewBuckets,		ET_WARNING,
+  { NAME_tooFewBuckets,		ET_WARNING|EF_PRINT,
     "%O: %d elements in only %d buckets?" },
 
 					/* Classes */
@@ -561,16 +579,14 @@ static struct error_def errors[] =
   { NAME_unknownError,		0,
     "%N: Unknown error: %s" },
 					/* Host */
-  { NAME_startOfBuffer,		ET_WARNING,
-    "%N: Start of buffer" },
-  { NAME_endOfBuffer,		ET_WARNING,
-    "%N: End of buffer" },
-					/* Host */
   { NAME_noCallBack,		0,
     "%N: Host does not support call-back" },
 					/* Images */
   { NAME_noImageFormat,		EF_REPORT,
     "%N: Image format %s is not supported by this version" },
+  { NAME_pixelMismatch,		0,
+    "%O: Incompatible pixel-type: %O" },
+
 					/* Miscellaneous */
   { NAME_readOnly,		0,
     "%N: Read only" },
@@ -634,6 +650,14 @@ static struct error_def errors[] =
     "%N: operation not supported in runtime system"
   },
 
+					/* Tables/layout managament */
+  { NAME_spannedRow,	0,	/* tables */
+    "%O: Table contains row-spanned cell %O in sort range"
+  },
+  { NAME_noChangeLayoutInterface, 0,
+    "%O: cannot change layout-interface"
+  },
+
 #ifdef __WINDOWS__
 					/* MS-Windows errors */
   { NAME_failedToLoadDll,	EF_REPORT,
@@ -649,7 +673,7 @@ static struct error_def errors[] =
 
 static void
 initErrorDatabase(HashTable db)
-{ ErrorDef err = errors;
+{ const error_def *err = errors;
 
   for(; err->id; err++)
   { Name feedback = NIL, kind = NIL;
@@ -662,12 +686,17 @@ initErrorDatabase(HashTable db)
       case ET_INFORM:	kind = NAME_inform;	break;
       case ET_FATAL:	kind = NAME_fatal;	break;
       case ET_IGNORED:	kind = NAME_ignored;	break;
+      default:
+	assert(0);
     }
 
 #ifndef O_RUNTIME
     switch(err->flags & EF_MASK)
-    { case EF_REPORT:	feedback = NAME_report;	break;
+    { case EF_THROW:	feedback = NAME_throw;  break;
+      case EF_REPORT:	feedback = NAME_report;	break;
       case EF_PRINT:	feedback = NAME_print;	break;
+      default:
+	assert(0);
     }
 #else
     feedback = NAME_report;
@@ -709,7 +738,7 @@ _errorPce(Any obj, Name id, va_list args)
 
     if ( inBoot )
     { if ( CurrentGoal )
-	setGFlag(CurrentGoal, G_EXCEPTION);
+	CurrentGoal->flags |= PCE_GF_EXCEPTION;
 
       Cprintf("[PCE BOOT ERROR: ");
       writef(strName(e->format), argc-1, argv+1)	;
@@ -720,13 +749,12 @@ _errorPce(Any obj, Name id, va_list args)
       hostAction(HOST_HALT);
       exit(1);
     } else
-    { Mode(MODE_SYSTEM, sendv(obj, isFunction(obj) ? NAME_Error : NAME_error,
-			      argc, argv));
+    { sendv(obj, isFunction(obj) ? NAME_Error : NAME_error, argc, argv);
       if ( e->kind == NAME_fatal )
       {
 #ifndef O_RUNTIME
 	if ( id != NAME_noXServer )	/* little hack ... */
-          traceBackPce(toInt(20), NAME_always);
+          pceBackTrace(NULL, 20);
 #endif
 	hostAction(HOST_RECOVER_FROM_FATAL_ERROR);
 	hostAction(HOST_HALT);
@@ -735,7 +763,7 @@ _errorPce(Any obj, Name id, va_list args)
     }
   } else				/* undefined error */
   { if ( CurrentGoal )
-      setGFlag(CurrentGoal, G_EXCEPTION);
+      CurrentGoal->flags |= PCE_GF_EXCEPTION;
 
     if ( inBoot )
       sysPce("Unknown error at boot: %s", strName(id));
@@ -755,4 +783,46 @@ errorPce(Any obj, Name id, ...)
 
   fail;
 }
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+errorTypeMismatch()
+	Utility routine to report type-mismatch on implementation objects.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+status
+errorTypeMismatch(Any rec, Any impl, int arg, Type type, Any val)
+{ Type argtype;
+  Name argname = NIL;
+
+  if ( instanceOfObject(impl, ClassMethod) )
+  { Method m = impl;
+
+    argtype = m->types->elements[arg-1];
+  } else if ( instanceOfObject(impl, ClassObjOfVariable) )
+  { Variable v = impl;
+    argtype = v->type;
+    argname = v->name;
+  } else
+  { argtype = type;
+  }
+
+  if ( isNil(argname) )
+  { if ( instanceOfObject(argtype, ClassType) )
+      argname = argtype->argument_name;
+    if ( isNil(argname) )
+      argname = CtoName("?");
+  }
+
+  return errorPce(impl, NAME_argumentType,
+		  toInt(arg), argname, getNameType(type), val);
+}
+
+
+
+
+
+
+
+
 

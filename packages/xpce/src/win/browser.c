@@ -17,7 +17,7 @@ initialiseBrowser(Browser b, Name name, Size size, DisplayObj display)
   TileObj t;
 
   if ( isDefault(size) )
-    size = getResourceValueObject(b, NAME_size);
+    size = getClassVariableValueObject(b, NAME_size);
 
   TRY(lb = newObject(ClassListBrowser, DEFAULT, size->w, size->h, 0) );
   initialiseWindow((PceWindow)b, name,
@@ -52,7 +52,7 @@ unlinkBrowser(Browser b)
 		*           OVERRULE		*
 		********************************/
 
-status
+static status
 requestGeometryBrowser(Browser b, Int x, Int y, Int w, Int h)
 { ListBrowser lb = b->list_browser;
 
@@ -207,11 +207,12 @@ static getdecl get_browser[] =
 
 /* Resources */
 
-static resourcedecl rc_browser[] =
+static classvardecl rc_browser[] =
 { RC(NAME_pen, "int", "0",
      "Pen (done by <-list_browser)"),
   RC(NAME_size, "size", "size(25,10)",
-     "Size in `characters x lines'")
+     "Size in `characters x lines'"),
+  RC(NAME_background, RC_REFINE, "@_dialog_bg", NULL)
 };
 
 /* Class Declaration */

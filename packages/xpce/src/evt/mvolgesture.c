@@ -14,11 +14,12 @@ static status
 initialiseMoveOutlineGesture(MoveOutlineGesture g,
 			     Name button, Modifier modifier)
 { initialiseMoveGesture((MoveGesture) g, button, modifier);
-  assign(g, outline, newObject(ClassBox, ZERO, ZERO, 0));
-  send(g->outline, NAME_texture, getResourceValueObject(g, NAME_texture), 0);
+  obtainClassVariablesObject(g);
+  assign(g, outline, newObject(ClassBox, 0));
+  send(g->outline, NAME_texture,
+       getClassVariableValueObject(g, NAME_texture), 0);
   send(g->outline, NAME_recogniser,
        newObject(ClassMoveGesture, g->button, g->modifier, 0), 0);
-  
   
   succeed;
 }
@@ -104,7 +105,7 @@ static getdecl get_moveOutlineGesture[] =
 
 /* Resources */
 
-static resourcedecl rc_moveOutlineGesture[] =
+static classvardecl rc_moveOutlineGesture[] =
 { RC(NAME_button, "button_name", "middle",
      "Active on which button (middle)"),
   RC(NAME_cursor, "cursor", "fleur",

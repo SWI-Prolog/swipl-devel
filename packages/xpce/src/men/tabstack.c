@@ -138,6 +138,8 @@ layoutDialogTabStack(TabStack ts, Size s)
 
   if ( isDefault(s) )
   { struct area a;
+    Tab last;
+    int lw;
 
     for_cell(cell, ts->graphicals)
     { Graphical gr = cell->value;
@@ -157,6 +159,11 @@ layoutDialogTabStack(TabStack ts, Size s)
     }
     w = valInt(a.w);
     h = valInt(a.h);
+
+    if ( !instanceOfObject((last=getTailChain(ts->graphicals)), ClassTab) )
+      fail;
+    lw = valInt(last->label_offset) + valInt(last->label_size->w);
+    w = max(w, lw);
   } else
   { w = valInt(s->w);
     h = valInt(s->h);

@@ -215,7 +215,7 @@ pushStack(Stack s, Any v)
 
     if ( s->values == s->fast_values )
     { s->values = pceMalloc(sizeof(Any) * new);
-      memcpy(s->values, s->fast_values, sizeof(Any) * s->size);
+      cpdata(s->values, s->fast_values, Any, s->size);
     } else
       s->values = pceRealloc(s->values, sizeof(Any) * new);
   }
@@ -499,7 +499,7 @@ static getdecl get_parser[] =
 
 #define rc_parser NULL
 /*
-static resourcedecl rc_parser[] =
+static classvardecl rc_parser[] =
 { 
 };
 */

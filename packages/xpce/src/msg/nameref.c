@@ -75,7 +75,7 @@ static getdecl get_assoc[] =
 
 #define rc_assoc NULL
 /*
-static resourcedecl rc_assoc[] =
+static classvardecl rc_assoc[] =
 { 
 };
 */

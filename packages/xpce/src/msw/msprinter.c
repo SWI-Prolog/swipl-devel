@@ -533,7 +533,7 @@ static getdecl get_winprinter[] =
 
 /* Resources */
 
-static resourcedecl rc_winprinter[] =
+static classvardecl rc_winprinter[] =
 { RC(NAME_path, "string",
      "\".:prt:~/lib/prt:$PCEHOME/prt:\"",
      "Search path for loading Windows metafiles")

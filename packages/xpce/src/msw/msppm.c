@@ -19,32 +19,32 @@
 		 *******************************/
 
 static int
-getNum(FILE *fd)
+getNum(IOSTREAM *fd)
 { int c;
   int v;
 
   for(;;)
   { do
-    { c = getc(fd);
+    { c = Sgetc(fd);
     } while(isspace(c));
 
     if ( isdigit(c) )
     { v = valdigit(c);
       for(;;)
-      { c = getc(fd);
+      { c = Sgetc(fd);
 	if ( isdigit(c) )
 	  v = v*10 + valdigit(c);
 	else
 	  break;
       }
       if ( !isspace(c) )
-	ungetc(c, fd);
+	Sungetc(c, fd);
 
       return v;
     }
     if ( c == '#' )
     { do
-      { c = getc(fd);
+      { c = Sgetc(fd);
       } while( c != '\n' && c != EOF );
     } else
       return -1;
@@ -53,20 +53,20 @@ getNum(FILE *fd)
 
 
 HBITMAP
-read_ppm_file(FILE *fd, Name *kind)
+read_ppm_file(IOSTREAM *fd, Name *kind)
 { HBITMAP obm = 0, bm = 0;
   HDC hdc = 0;
-  long here = ftell(fd);
+  long here = Stell(fd);
   int c;
   int fmt, encoding;
   int width, height, scale=0;
 
-  if ( (c=getc(fd)) != 'P' )
-  { ungetc(c, fd);
+  if ( (c=Sgetc(fd)) != 'P' )
+  { Sungetc(c, fd);
     return NULL;
   }
 
-  c = getc(fd);
+  c = Sgetc(fd);
   if ( c < '1' || c > '9' )
     goto errout;
   c -= '0';
@@ -180,7 +180,7 @@ read_ppm_file(FILE *fd, Name *kind)
 	  for(y=0; y<height; y++)
 	  { for(x=0; x<width; x++)
 	    { if ( !bit )
-	      { byte = getc(fd);
+	      { byte = Sgetc(fd);
 		bit = 8;
 	      }
   
@@ -196,7 +196,7 @@ read_ppm_file(FILE *fd, Name *kind)
 	  { for(x=0; x<width; x++)
 	    { unsigned int g;
   
-	      if ( feof(fd) || (g=getc(fd)) > scale )
+	      if ( Sfeof(fd) || (g=Sgetc(fd)) > scale )
 		goto errout;
 	      if ( scale != 255 )
 		g = rescale(g, scale, 255);
@@ -212,10 +212,10 @@ read_ppm_file(FILE *fd, Name *kind)
 	  { for(x=0; x<width; x++)
 	    { unsigned int r, g, b;
 
-	      if ( feof(fd) ||
-		   (r=getc(fd)) > scale ||
-		   (g=getc(fd)) > scale ||
-		   (b=getc(fd)) > scale )
+	      if ( Sfeof(fd) ||
+		   (r=Sgetc(fd)) > scale ||
+		   (g=Sgetc(fd)) > scale ||
+		   (b=Sgetc(fd)) > scale )
 		goto errout;
   
 	      if ( scale != 255 )
@@ -249,8 +249,8 @@ read_ppm_file(FILE *fd, Name *kind)
 	      } else
 	      { unsigned int g;
   
-		if ( (g=getc(fd)) > scale ||
-		     (rlen = getc(fd)) == EOF )
+		if ( (g=Sgetc(fd)) > scale ||
+		     (rlen = Sgetc(fd)) == EOF )
 		  goto errout;
 		rlen &= 0xff;
 		if ( scale != 255 )
@@ -273,10 +273,10 @@ read_ppm_file(FILE *fd, Name *kind)
 	      } else
 	      { unsigned int r, g, b;
   
-		if ( (r=getc(fd)) > scale ||
-		     (g=getc(fd)) > scale ||
-		     (b=getc(fd)) > scale ||
-		     (rlen = getc(fd)) == EOF )
+		if ( (r=Sgetc(fd)) > scale ||
+		     (g=Sgetc(fd)) > scale ||
+		     (b=Sgetc(fd)) > scale ||
+		     (rlen = Sgetc(fd)) == EOF )
 		  goto errout;
 
 		rlen &= 0xff;
@@ -311,7 +311,7 @@ read_ppm_file(FILE *fd, Name *kind)
   return bm;
 
 errout:
-  Cprintf("PNM: Format error, index = %d\n", ftell(fd));
+  Cprintf("PNM: Format error, index = %d\n", Stell(fd));
 
   if ( hdc )
   { if ( obm )
@@ -319,7 +319,7 @@ errout:
     DeleteDC(hdc);
   }
 
-  fseek(fd, here, SEEK_SET);
+  Sseek(fd, here, SIO_SEEK_SET);
   return NULL;
 }
 
@@ -332,19 +332,19 @@ errout:
 static int file_col;
 
 static int
-putNum(int n, FILE *fd)
-{ if ( file_col != 0 && putc(' ', fd) == EOF )
+putNum(int n, IOSTREAM *fd)
+{ if ( file_col != 0 && Sputc(' ', fd) == EOF )
     return -1;
 
   do
-  { if ( putc(n % 10 + '0', fd) == EOF )
+  { if ( Sputc(n % 10 + '0', fd) == EOF )
 	return -1;
     file_col++;
     n /= 10;
   } while( n > 0 );
 
   if ( file_col >= 70 )
-  { if ( putc('\n', fd) == EOF )
+  { if ( Sputc('\n', fd) == EOF )
       return -1;
     file_col = 0;
   }
@@ -359,7 +359,7 @@ putNum(int n, FILE *fd)
 #define NOPIXEL (COLORREF) -1;
 
 int
-write_pnm_file(FILE *fd, HBITMAP bm, int scale, int fmt, int encode)
+write_pnm_file(IOSTREAM *fd, HBITMAP bm, int scale, int fmt, int encode)
 { BITMAP bitmap;
   int width, height, depth;
   int x, y;
@@ -404,14 +404,14 @@ write_pnm_file(FILE *fd, HBITMAP bm, int scale, int fmt, int encode)
   } else if ( encode == PNM_RUNLEN )	/* no use to runlen encode a bitmap */
     encode = PNM_RAWBITS;
 
-  fprintf(fd, "P%c\n", fmt + encode + '0');
-  fprintf(fd, "# Creator: XPCE version %s\n",
-	  strName(get(PCE, NAME_version, 0)));
+  Sfprintf(fd, "P%c\n", fmt + encode + '0');
+  Sfprintf(fd, "# Creator: XPCE version %s\n",
+	   strName(get(PCE, NAME_version, 0)));
   if ( fmt != PNM_PBM )
-  { fprintf(fd, "%d %d\n", width, height);
-    fprintf(fd, "%d\n", scale);
+  { Sfprintf(fd, "%d %d\n", width, height);
+    Sfprintf(fd, "%d\n", scale);
   } else
-    fprintf(fd, "%d %d\n", width, height);
+    Sfprintf(fd, "%d %d\n", width, height);
 
   file_col = 0;
     
@@ -465,7 +465,7 @@ write_pnm_file(FILE *fd, HBITMAP bm, int scale, int fmt, int encode)
 	  break;
 	}
       }
-      if ( file_col && putc('\n', fd) == EOF )
+      if ( file_col && Sputc('\n', fd) == EOF )
 	return -1;
       file_col = 0;
     }
@@ -480,14 +480,14 @@ write_pnm_file(FILE *fd, HBITMAP bm, int scale, int fmt, int encode)
 	    { if ( !GetPixel(hdc, x, y) )
 		byte |= 1<<bit;
 	      if ( bit-- == 0 )
-	      { if ( putc(byte, fd) == EOF )
+	      { if ( Sputc(byte, fd) == EOF )
 		  return -1;
 		bit = 7;
 		byte = 0;
 	      }
 	    }
 	    if ( bit != 7 )		/* flush the scanline */
-	    { if ( putc(byte, fd) == EOF )
+	    { if ( Sputc(byte, fd) == EOF )
 		return -1;
 	      bit = 7;
 	      byte = 0;
@@ -495,7 +495,7 @@ write_pnm_file(FILE *fd, HBITMAP bm, int scale, int fmt, int encode)
 	  }
   
 	  if ( bit != 7 )
-	  { if ( putc(byte, fd) == EOF )
+	  { if ( Sputc(byte, fd) == EOF )
 	      return -1;
 	  }
 	  break;
@@ -509,7 +509,7 @@ write_pnm_file(FILE *fd, HBITMAP bm, int scale, int fmt, int encode)
 	      if ( scale != 255 )
 		r = rescale(r, BRIGHT, scale);
   
-	      if ( putc(r, fd) == EOF )
+	      if ( Sputc(r, fd) == EOF )
 		return -1;
 	    }
 	  }
@@ -529,9 +529,9 @@ write_pnm_file(FILE *fd, HBITMAP bm, int scale, int fmt, int encode)
 		b = rescale(r, BRIGHT, scale);
 	      }
   
-	      if ( putc(r, fd) == EOF ||
-		   putc(g, fd) == EOF ||
-		   putc(b, fd) == EOF )
+	      if ( Sputc(r, fd) == EOF ||
+		   Sputc(g, fd) == EOF ||
+		   Sputc(b, fd) == EOF )
 		return -1;
 	    }
 	  }
@@ -555,19 +555,19 @@ write_pnm_file(FILE *fd, HBITMAP bm, int scale, int fmt, int encode)
 	      else
 	      { int r;
 
-		if ( rlen > 0 && putc(rlen, fd) == EOF )
+		if ( rlen > 0 && Sputc(rlen, fd) == EOF )
 		  return -1;
 		cpixel = pixel;
 		rlen = 1;
 		r = GetRValue(pixel);
 		if ( scale != 255 )
 		  r = rescale(r, BRIGHT, scale);
-  		if ( putc(r, fd) == EOF )
+  		if ( Sputc(r, fd) == EOF )
 		  return -1;
 	      }
 	    }
 	  }
-	  if ( putc(rlen, fd) == EOF )
+	  if ( Sputc(rlen, fd) == EOF )
 	    return -1;
 
 	  break;
@@ -582,7 +582,7 @@ write_pnm_file(FILE *fd, HBITMAP bm, int scale, int fmt, int encode)
 	      else
 	      { unsigned int r, g, b;
   
-		if ( rlen > 0 && putc(rlen, fd) == EOF )
+		if ( rlen > 0 && Sputc(rlen, fd) == EOF )
 		  return -1;
 		cpixel = pixel;
 		rlen = 1;
@@ -597,14 +597,14 @@ write_pnm_file(FILE *fd, HBITMAP bm, int scale, int fmt, int encode)
 		  b = rescale(r, BRIGHT, scale);
 		}
   
-		if ( putc(r, fd) == EOF ||
-		     putc(g, fd) == EOF ||
-		     putc(b, fd) == EOF )
+		if ( Sputc(r, fd) == EOF ||
+		     Sputc(g, fd) == EOF ||
+		     Sputc(b, fd) == EOF )
 		  return -1;
 	      }
 	    }
 	  }
-	  if ( putc(rlen, fd) == EOF )
+	  if ( Sputc(rlen, fd) == EOF )
 	    return -1;
   
 	  break;

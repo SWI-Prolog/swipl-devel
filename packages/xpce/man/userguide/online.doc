@@ -230,11 +230,11 @@ class-browser will automatically display only the one method that will
 actually be used by this class.
 
 The large right window displays a list of matching classes, variables,
-methods and resources. When an item is tagged with a ``\idx{(+)}'' there
-is additional information that may be obtained by (double-) clicking the
-card to start the ``Card Viewer'' (see \secref{card}).
+methods and class-variables. If an item is tagged with a ``\idx{(+)}''
+there is additional information that may be obtained by (double-)
+clicking the card to start the ``Card Viewer'' (see \secref{card}).
 
-\subsubsection{The ClassBrowser dialog}
+\subsubsection{The ClassBrowser dialog}		\label{sec:classbrowser}
 
 The {\bf Class} text_item (text-entry-field) may be used to  switch to
 a new class. Note that this text_item implements \idx{completion} (bound
@@ -277,7 +277,7 @@ Methods implemented in the host-language.
 The {\bf Display} menu determines the objects searched for.  {\sf
 Self} refers to the class itself, {\sf Sub Class} refers to the direct
 sub classes of this class. The other fields refer to instance-variables,
-methods with send- and get-access and resources.
+methods with send- and get-access and class-variables.
 
 The {\bf Search} and {\bf ... In} controllers limit the displayed cards
 to those that have the specified search string in one of the specified

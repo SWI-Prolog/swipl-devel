@@ -41,24 +41,21 @@ initialiseFrame(FrameObj fr, Name label, Name kind,
   if ( isDefault(app) )
     app = NIL;
 
-  assign(fr, name,	    getClassNameObject(fr));
-  assign(fr, label,         label);
-  assign(fr, display,       display);	/* Host on which to open frame */
-  assign(fr, geometry,	    DEFAULT);	/* resources */
-  assign(fr, icon_label,    DEFAULT);
-  assign(fr, icon_image,    DEFAULT);
-  assign(fr, border,	    DEFAULT);
-  assign(fr, background,    DEFAULT);
-  assign(fr, confirm_done,  DEFAULT);
-  assign(fr, colour_map,    DEFAULT);
-  assign(fr, area,	    newObject(ClassArea, 0));
-  assign(fr, members,	    newObject(ClassChain, 0));
-  assign(fr, kind,	    kind);
-  assign(fr, status,	    NAME_unmapped);
-  assign(fr, can_delete,    ON);
-  assign(fr, input_focus,   OFF);
-  assign(fr, wm_protocols,  newObject(ClassSheet, 0));
+  assign(fr, name,	    	    getClassNameObject(fr));
+  assign(fr, label,         	    label);
+  assign(fr, display,       	    display);
+  assign(fr, colour_map,    	    DEFAULT);
+  assign(fr, border,		    DEFAULT);
+  assign(fr, area,	    	    newObject(ClassArea, 0));
+  assign(fr, members,	    	    newObject(ClassChain, 0));
+  assign(fr, kind,	    	    kind);
+  assign(fr, status,	    	    NAME_unmapped);
+  assign(fr, can_delete,    	    ON);
+  assign(fr, input_focus,   	    OFF);
+  assign(fr, fitting,		    OFF);
+  assign(fr, wm_protocols,  	    newObject(ClassSheet, 0));
   assign(fr, wm_protocols_attached, OFF);
+  obtainClassVariablesObject(fr);
 
   doneMessageFrame(fr, newObject(ClassMessage, RECEIVER, NAME_wmDelete, 0));
 
@@ -87,9 +84,9 @@ unlinkFrame(FrameObj fr)
     }
 
     if ( notNil(fr->transients) )
-      for_chain(fr->transients, sfr, send(sfr, NAME_free, 0));
+      for_chain(fr->transients, sfr, send(sfr, NAME_destroy, 0));
     if ( notNil(fr->transient_for) && notNil(fr->transient_for->transients) )
-      deleteChain(fr->transient_for->transients, fr);
+      send(fr->transient_for, NAME_detachTransient, fr, 0);
 
     ws_uncreate_frame(fr);
     deleteChain(fr->display->frames, fr);
@@ -121,7 +118,7 @@ storeFrame(FrameObj fr, FileObj file)
 
 
 static status
-loadFrame(FrameObj fr, FILE *fd, ClassDef def)
+loadFrame(FrameObj fr, IOSTREAM *fd, ClassDef def)
 { TRY(loadSlotsObject(fr, fd, def));
   assign(fr, wm_protocols_attached, OFF);
   assign(fr, input_focus, OFF);
@@ -148,7 +145,7 @@ convertOldSlotFrame(FrameObj fr, Name var, Any value)
 static status
 initialiseNewSlotFrame(FrameObj fr, Variable var)
 { if ( var->name == NAME_background )
-    assign(fr, background, getResourceValueObject(fr, NAME_background));
+    assign(fr, background, getClassVariableValueObject(fr, NAME_background));
 
   succeed;
 }
@@ -263,7 +260,7 @@ openCenteredFrame(FrameObj fr, Point pos, Bool grab)
 }
 
 
-status
+static status
 resizeFrame(FrameObj fr)
 { Area a = fr->area;
   TileObj t = getTileFrame(fr);
@@ -368,7 +365,7 @@ createFrame(FrameObj fr)
   if ( createdFrame(fr) )
     succeed;
 
-  obtainResourcesObject(fr);
+  obtainClassVariablesObject(fr);
   TRY(openDisplay(fr->display));
   appendChain(fr->display->frames, fr);
 
@@ -408,13 +405,17 @@ uncreateFrame(FrameObj fr)
 }
 
 
-status
+static status
 fitFrame(FrameObj fr)
 { TileObj t;
   Cell cell;
   Int border;
 
-  TRY(t = getTileFrame(fr));
+  if ( fr->fitting == ON ||
+       !(t = getTileFrame(fr)) )
+    fail;
+
+  assign(fr, fitting, ON);
   enforceTile(t, OFF);
 
   for_cell(cell, fr->members)
@@ -425,9 +426,12 @@ fitFrame(FrameObj fr)
 
   assign(fr->area, w, ZERO);		/* ensure ->resize */
 
-  return setFrame(fr, DEFAULT, DEFAULT,
-		  add(t->idealWidth, border),
-		  add(t->idealHeight, border));
+  setFrame(fr, DEFAULT, DEFAULT,
+	   add(t->idealWidth, border),
+	   add(t->idealHeight, border));
+  assign(fr, fitting, OFF);
+
+  succeed;
 }
 
 
@@ -815,6 +819,7 @@ busyCursorFrame(FrameObj fr, CursorObj c, Bool block_events)
 static status
 resetFrame(FrameObj fr)
 { busyCursorFrame(fr, NIL, DEFAULT);
+  assign(fr, fitting, OFF);
 
   return resetVisual((VisualObj) fr);
 }
@@ -971,7 +976,7 @@ AppendFrame(FrameObj fr, PceWindow sw)
 
     ws_manage_window(sw);
 
-    if ( getResourceValueObject(fr, NAME_fitAfterAppend) == ON )
+    if ( getClassVariableValueObject(fr, NAME_fitAfterAppend) == ON )
       send(fr, NAME_fit, 0);
     else
       send(fr, NAME_resize, 0);
@@ -999,7 +1004,7 @@ DeleteFrame(FrameObj fr, PceWindow sw)
   { ws_unmanage_window(sw);
     TRY(send(sw, NAME_uncreate, 0));
     unrelateTile(sw->tile);
-    if ( getResourceValueObject(fr, NAME_fitAfterAppend) == ON )
+    if ( getClassVariableValueObject(fr, NAME_fitAfterAppend) == ON )
       send(fr, NAME_fit, 0);
     else
       send(fr, NAME_resize, 0);
@@ -1268,7 +1273,7 @@ resizeTileEventFrame(FrameObj fr, EventObj ev)
     { Name rcname = (rzt->super->orientation == NAME_horizontal
 				? NAME_horizontalResizeCursor
 				: NAME_verticalResizeCursor);
-      CursorObj c = getResourceValueObject(fr, rcname);
+      CursorObj c = getClassVariableValueObject(fr, rcname);
 
       if ( !c )
 	fail;
@@ -1433,6 +1438,11 @@ kindFrame(FrameObj fr, Name kind)
   { if ( createdFrame(fr) )
       return errorPce(fr, NAME_noChangeAfterOpen);
 
+    if ( kind == NAME_transient )
+    { assign(fr, icon_image, NIL);
+      assign(fr, can_resize, OFF);
+    }
+
     assign(fr, kind, kind);
   }
 
@@ -1447,14 +1457,12 @@ transientForFrame(FrameObj fr, FrameObj fr2)
       kindFrame(fr, NAME_transient);
 
     if ( notNil(fr->transient_for) && notNil(fr->transient_for->transients) )
-      deleteChain(fr->transient_for->transients, fr);
+      send(fr->transient_for, NAME_detachTransient, fr, 0);
 
     assign(fr, transient_for, fr2);
 
     if ( notNil(fr2) )
-    { if ( isNil(fr2->transients) )
-	assign(fr2, transients, newObject(ClassChain, 0));
-      addChain(fr2->transients, fr);
+    { send(fr2, NAME_attachTransient, fr, 0);
 
       if ( fr->kind == NAME_transient )
 	ws_transient_frame(fr, fr2);
@@ -1462,6 +1470,26 @@ transientForFrame(FrameObj fr, FrameObj fr2)
   }
 
   succeed;
+}
+
+
+static status
+attachTransientFrame(FrameObj fr, FrameObj tr)
+{ if ( isNil(fr->transients) )
+    assign(fr, transients, newObject(ClassChain, tr, 0));
+  else
+    addChain(fr->transients, tr);
+
+  succeed;
+}
+
+
+static status
+detachTransientFrame(FrameObj fr, FrameObj tr)
+{ if ( notNil(fr->transients) )
+    return deleteChain(fr->transients, tr);
+
+  fail;
 }
 
 
@@ -1487,6 +1515,7 @@ getCatchAllFramev(FrameObj fr, Name name)
   if ( (base = getDeleteSuffixName(name, NAME_Member)) )
     answer(getMemberFrame(fr, base));
 
+  errorPce(fr, NAME_noBehaviour, CtoName("<-"), name);
   fail;
 }
 
@@ -1511,8 +1540,9 @@ reportFrame(FrameObj fr, Name kind, CharArray fmt, int argc, Any *argv)
     return sendv(reporter, NAME_report, argc+2, av);
 
   for_chain(fr->members, window,
-	    if ( !parentGoal(VmiSend, window, NAME_report) &&
-	         sendv(window, NAME_report, argc+2, av) )
+	    if ( !(notNil(REPORTEE->value) &&
+		   memberChain(REPORTEE->value, window)) &&
+		 sendv(window, NAME_report, argc+2, av) )
 	      succeed);
 
   if ( notNil(fr->transient_for) &&
@@ -1614,8 +1644,12 @@ static vardecl var_frame[] =
      NAME_visibility, "Current visibility of the frame"),
   IV(NAME_canDelete, "bool", IV_BOTH,
      NAME_permission, "Frame can be deleted by user"),
+  IV(NAME_canResize, "bool", IV_BOTH,
+     NAME_permission, "Frame can be resized by user"),
   IV(NAME_confirmDone, "bool", IV_BOTH,
      NAME_permission, "Ask confirmation on user-delete"),
+  IV(NAME_fitting, "bool", IV_BOTH,
+     NAME_internal, "We are running ->fit"),
   IV(NAME_wmProtocols, "sheet", IV_GET,
      NAME_windowManager, "Protocol-name --> message"),
   IV(NAME_wmProtocolsAttached, "bool", IV_GET,
@@ -1732,7 +1766,11 @@ static senddecl send_frame[] =
   SM(NAME_cursor, 1, "[cursor]", cursorFrame,
      NAME_event, "Define the cursor for the frame-background"),
   SM(NAME_grabPointer, 2, T_grab_pointer, grabPointerFrame,
-     NAME_event, "Grap all pointer-events")
+     NAME_event, "Grap all pointer-events"),
+  SM(NAME_attachTransient, 1, "frame", attachTransientFrame,
+     NAME_transient, "A frame is attached as a transient for me"),
+  SM(NAME_detachTransient, 1, "frame", detachTransientFrame,
+     NAME_transient, "A frame is detached as a transient for me")
 };
 
 /* Get Methods */
@@ -1784,12 +1822,12 @@ static getdecl get_frame[] =
 
 /* Resources */
 
-static resourcedecl rc_frame[] =
-{ RC(NAME_background, "colour|pixmap", "white",
+static classvardecl rc_frame[] =
+{ RC(NAME_background, "colour|pixmap", "@_dialog_bg",
      "Default background colour"),
-  RC(NAME_busyCursor, "cursor*", "watch",
+  RC(NAME_busyCursor, "cursor*", UXWIN("watch", "win_wait"),
      "Default cursor displayed by ->busy_cursor"),
-  RC(NAME_confirmDone, "bool", "@on",
+  RC(NAME_confirmDone, "bool", "@off",
      "Show confirmer on `Delete'"),
   RC(NAME_geometry, "name*", "@nil",
      "Position/size of the frame"),
@@ -1797,12 +1835,18 @@ static resourcedecl rc_frame[] =
      "Image displayed for an icon"),
   RC(NAME_iconLabel, "name*", "@nil",
      "Label displayed in the icon"),
-  RC(NAME_horizontalResizeCursor, "cursor", "sb_h_double_arrow",
+  RC(NAME_canResize, "bool", "@on",
+     "Window can be resized by user"),
+  RC(NAME_horizontalResizeCursor, "cursor",
+     UXWIN("sb_h_double_arrow", "win_sizewe"),
      "Cursor for horizontally resizing tile"),
-  RC(NAME_verticalResizeCursor, "cursor", "sb_v_double_arrow",
+  RC(NAME_verticalResizeCursor, "cursor",
+     UXWIN("sb_v_double_arrow", "win_sizens"),
      "Cursor for vertically resizing tile"),
   RC(NAME_fitAfterAppend, "bool", "@off",
-     "Automatically ->fit the frame after a subwindow was added")
+     "Automatically ->fit the frame after a subwindow was added"),
+  RC(NAME_decorateTransient, "bool", "@on",
+     "Decorate transient windows (if possible)")
 };
 
 /* Class Declaration */

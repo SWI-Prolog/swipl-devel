@@ -9,6 +9,7 @@
 
 #include <h/kernel.h>
 #include <h/graphics.h>
+#include <h/text.h>
 
 static status	initOffsetText(TextObj, int);
 static status	initPositionText(TextObj);
@@ -16,6 +17,7 @@ static status	initAreaText(TextObj);
 static status	recomputeText(TextObj t, Name what);
 static status	get_char_pos_text(TextObj t, Int chr, int *X, int *Y);
 static status	prepareEditText(TextObj t);
+static status	caretText(TextObj t, Int where);
 
 #define Wrapped(t)      ((t)->wrap == NAME_wrap || \
 			 (t)->wrap == NAME_wrapFixedWidth)
@@ -39,17 +41,18 @@ initialiseText(TextObj t, CharArray string, Name format, FontObj font)
 
   initialiseGraphical(t, ZERO, ZERO, ZERO, ZERO);
 
-  assign(t, pen,	  ZERO);
-  assign(t, format,       format);
+  if ( notDefault(format) )
+    assign(t, format,     format);
+  if ( notDefault(font) )
+    assign(t, font,       font);
+  assign(t, underline,	  OFF);
   assign(t, string,       string);
   assign(t, margin,	  toInt(100));
   assign(t, wrap,         NAME_extend);
-  assign(t, font,         font);
   assign(t, position,     newObject(ClassPoint, 0));
   assign(t, caret,        getSizeCharArray(string));
   assign(t, show_caret,   OFF);
   assign(t, background,   NIL);
-  assign(t, border,	  DEFAULT);
   assign(t, x_offset,	  ZERO);
   assign(t, x_caret,	  ZERO);
   assign(t, y_caret,	  ZERO);
@@ -62,10 +65,10 @@ initialiseText(TextObj t, CharArray string, Name format, FontObj font)
 		*            COMPUTE		*
 		********************************/
 
-status
+static status
 computeText(TextObj t)
 { if ( notNil(t->request_compute) )
-  { obtainResourcesObject(t);
+  { obtainClassVariablesObject(t);
 
     CHANGING_GRAPHICAL(t,
 	if ( t->request_compute == NAME_position )
@@ -257,6 +260,7 @@ repaintText(TextObj t, int x, int y, int w, int h)
 { String s = &t->string->data;
   int b = valInt(t->border);
   int sf, st;
+  int flags = 0;
   Style style = NIL;
 
   if ( notNil(t->background) )
@@ -265,6 +269,9 @@ repaintText(TextObj t, int x, int y, int w, int h)
     else
       r_fill(x, y, w, h, t->background);
   }
+
+  if ( t->underline == ON )
+    flags |= TXT_UNDERLINED;
 
   x += b;
   y += b;
@@ -276,7 +283,7 @@ repaintText(TextObj t, int x, int y, int w, int h)
 
   if ( notNil(t->selection) )
   { GetSel(t->selection, &sf, &st);
-    style = getResourceValueObject(t, NAME_selectionStyle);
+    style = getClassVariableValueObject(t, NAME_selectionStyle);
   }
 
   if ( Wrapped(t) )
@@ -285,7 +292,7 @@ repaintText(TextObj t, int x, int y, int w, int h)
     str_format(buf, s, valInt(t->margin), t->font);
     str_string(buf, t->font,
 	       x+valInt(t->x_offset), y, w, h,
-	       t->format, NAME_top);
+	       t->format, NAME_top, flags);
   } else
   { if ( t->wrap == NAME_clip )
     { LocalString(buf, s, s->size);
@@ -300,7 +307,7 @@ repaintText(TextObj t, int x, int y, int w, int h)
     } else
     { str_string(s, t->font,
 		 x+valInt(t->x_offset), y, w, h,
-		 t->format, NAME_top);
+		 t->format, NAME_top, flags);
     }
   }
 
@@ -310,9 +317,9 @@ repaintText(TextObj t, int x, int y, int w, int h)
   if ( t->show_caret != OFF )
   { int fh = valInt(getAscentFont(t->font));
     int active = (t->show_caret == ON);
-    Any colour = getResourceValueClass(ClassTextCursor,
-				       active ? NAME_colour
-					      : NAME_inactiveColour);
+    Any colour = getClassVariableValueClass(ClassTextCursor,
+					    active ? NAME_colour
+					           : NAME_inactiveColour);
     Any old = r_colour(colour);
 
     draw_caret(valInt(t->x_caret) - OL_CURSOR_SIZE/2 + x - b,
@@ -670,6 +677,17 @@ backgroundText(TextObj t, Any bg)
 }
 
 
+static status
+underlineText(TextObj t, Bool underline)
+{ if ( t->underline != underline )
+  { CHANGING_GRAPHICAL(t, assign(t, underline, underline);
+		       changedEntireImageGraphical(t));
+  }
+  
+  succeed;  
+}
+
+
 status
 transparentText(TextObj t, Bool val)
 { Any bg = (val == ON ? NIL : DEFAULT);
@@ -678,7 +696,7 @@ transparentText(TextObj t, Bool val)
 }
 
 
-Bool
+static Bool
 getTransparentText(TextObj t)
 { answer(isNil(t->background) ? ON : OFF);
 }
@@ -717,7 +735,7 @@ borderText(TextObj t, Int border)
 
 status
 stringText(TextObj t, CharArray s)
-{ if ( !equalCharArray(t->string, s) )
+{ if ( t->string != s )
   { prepareEditText(t);
 
     valueString((StringObj) t->string, s);
@@ -894,7 +912,7 @@ geometryText(TextObj t, Int x, Int y, Int w, Int h)
   { int tw, h;
 
     if ( isDefault(t->font) )
-      obtainResourcesObject(t);		/* resolve the font */
+      obtainClassVariablesObject(t);		/* resolve the font */
     str_size(&t->string->data, t->font, &tw, &h);
     initOffsetText(t, tw);
   }
@@ -999,7 +1017,7 @@ deselectText(TextObj t)
 }
 
 
-status
+static status
 caretText(TextObj t, Int where)
 { int size = t->string->data.size;
 
@@ -1130,7 +1148,7 @@ prepareInsertText(TextObj t)
     assign(t, string, newObject(ClassString, name_procent_s,
 				t->string, 0));
 
-  if ( getResourceValueObject(t, NAME_insertDeletesSelection) == ON )
+  if ( getClassVariableValueObject(t, NAME_insertDeletesSelection) == ON )
     deleteSelectionText(t);
 }
 
@@ -1419,7 +1437,7 @@ lengthText(TextObj t, Int l)
 { int fw, len;
     
   if ( isDefault(t->font) )
-    obtainResourcesObject(t);
+    obtainClassVariablesObject(t);
 
   fw = valInt(getExFont(t->font));
   len = (valInt(l)+1) * fw;
@@ -1455,27 +1473,13 @@ marginText(TextObj t, Int width, Name wrap)
   succeed;
 }
 
-		/********************************
-		*       DELEGATE TO STRING	*
-		********************************/
-
-static status
-delegateTextv(TextObj t, Any impl, Any part, int argc, Any *argv)
-{ if ( sendImplementation(impl, part, argc, argv) )
-  { recomputeText(t, NAME_area);
-    succeed;
-  }
-
-  fail;
-}
-
 
 		/********************************
 		*          LOAD-STORE		*
 		********************************/
 
 static status
-loadText(TextObj t, FILE *fd, ClassDef def)
+loadText(TextObj t, IOSTREAM *fd, ClassDef def)
 { TRY(loadSlotsObject(t, fd, def));
   if ( restoreVersion <= 6 && t->pen != ZERO )
     assign(t, pen, ZERO);
@@ -1486,6 +1490,8 @@ loadText(TextObj t, FILE *fd, ClassDef def)
     assign(t, margin, toInt(100));
   if ( isNil(t->border) )
     assign(t, border, ZERO);
+  if ( isNil(t->underline) )
+    assign(t, underline, OFF);
     
   succeed;
 }
@@ -1498,6 +1504,55 @@ convertOldSlotText(TextObj t, Name slot, Any value)
 
   succeed;
 }
+
+		 /*******************************
+		 *	    DELEGATION		*
+		 *******************************/
+
+static status
+catchAllText(TextObj t, Name sel, int argc, Any* argv)
+{ if ( qadSendv(t->string, NAME_hasSendMethod, 1, (Any *)&sel) )
+  { status rval;
+
+    if ( (rval = vm_send(t->string, sel, NULL, argc, argv)) )
+      recomputeText(t, NAME_area);
+
+    return rval;
+  }
+
+  return errorPce(t, NAME_noBehaviour, CtoName("->"), sel);
+}
+
+
+static Any
+getCatchAllText(TextObj t, Name sel, int argc, Any *argv)
+{ if ( qadSendv(t->string, NAME_hasGetMethod, 1, (Any *)&sel) )
+    answer(vm_get(t->string, sel, NULL, argc, argv));
+
+  errorPce(t, NAME_noBehaviour, CtoName("<-"), sel);
+  fail;
+} 
+
+
+static status
+hasSendMethodText(TextObj t, Name sel)
+{ if ( hasSendMethodObject(t, sel) ||
+       hasSendMethodObject(t->string, sel) )
+    succeed;
+
+  fail;
+}
+
+
+static status
+hasGetMethodText(TextObj t, Name sel)
+{ if ( hasGetMethodObject(t, sel) ||
+       hasGetMethodObject(t->string, sel) )
+    succeed;
+
+  fail;
+}
+
 
 		 /*******************************
 		 *	 CLASS DECLARATION	*
@@ -1513,8 +1568,6 @@ static char *T_margin[] =
         { "int*", "[{wrap,wrap_fixed_width,clip}]" };
 static char *T_linesADintD_columnADintD[] =
         { "lines=[int]", "column=[int]" };
-static char *T_delegate[] =
-        { "program_object", "string", "unchecked ..." };
 static char *T_convertOldSlot[] =
         { "slot=name", "value=unchecked" };
 static char *T_initialise[] =
@@ -1526,12 +1579,13 @@ static char *T_geometry[] =
         { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
 static char *T_selection[] =
         { "from=[int]*", "to=[int]" };
-
+static char *T_catchAll[] =
+        { "selector=name", "argument=unchecked ..." };
 
 /* Instance Variables */
 
 static vardecl var_text[] =
-{ SV(NAME_string, "char_array", IV_GET|IV_SUPER, NAME_delegate,
+{ IV(NAME_string, "char_array", IV_GET,
      NAME_storage, "Represented string (may contain newlines)"),
   SV(NAME_font, "font", IV_GET|IV_STORE, fontText,
      NAME_appearance, "Font used to draw the string"),
@@ -1539,6 +1593,8 @@ static vardecl var_text[] =
      NAME_appearance, "Left, center or right alignment"),
   IV(NAME_margin, "int", IV_GET,
      NAME_appearance, "Margin for <->wrap equals wrap"),
+  SV(NAME_underline, "bool", IV_GET|IV_STORE, underlineText,
+     NAME_appearance, "Underlined text?"),
   IV(NAME_position, "point", IV_NONE,
      NAME_internal, "Avoid `walking' with alignment"),
   IV(NAME_caret, "int", IV_GET,
@@ -1608,8 +1664,6 @@ static senddecl send_text[] =
      NAME_compatibility, "Convert <-transparent to <-background"),
   SM(NAME_transparent, 1, "bool", transparentText,
      NAME_compatibility, "Defines <-background"),
-  SM(NAME_delegate, 3, T_delegate, delegateTextv,
-     NAME_delegate, "Delegate to string"),
   SM(NAME_backwardDeleteChar, 1, "times=[int]", backwardDeleteCharText,
      NAME_delete, "Delete chars backward from caret (DEL)"),
   SM(NAME_backwardKillWord, 1, "times=[int]", backwardKillWordText,
@@ -1654,7 +1708,13 @@ static senddecl send_text[] =
   SM(NAME_cut, 0, NULL, cutText,
      NAME_selection, "Copy and delete selection"),
   SM(NAME_cutOrDeleteChar, 1, "times=[int]", cutOrDeleteCharText,
-     NAME_delete, "Delete characters forwards (DEL)")
+     NAME_delete, "Delete characters forwards (DEL)"),
+  SM(NAME_catchAll, 2, T_catchAll, catchAllText,
+     NAME_delegate, "Delegate to <-string"),
+  SM(NAME_hasSendMethod, 1, "name", hasSendMethodText,
+     DEFAULT, "Test if text or <-string defines method"),
+  SM(NAME_hasGetMethod, 1, "name", hasGetMethodText,
+     DEFAULT, "Test if text or <-string defines method")
 };
 
 /* Get Methods */
@@ -1672,20 +1732,24 @@ static getdecl get_text[] =
   GM(NAME_selectedText, 0, "string", NULL, getSelectedTextText,
      NAME_selection, "New string with contents of selection"),
   GM(NAME_selection, 0, "point", NULL, getSelectionText,
-     NAME_selection, "New point with start and end of selection")
+     NAME_selection, "New point with start and end of selection"),
+  GM(NAME_catchAll, 2, "unchecked", T_catchAll, getCatchAllText,
+     NAME_delegate, "Delegate to <-string")
 };
 
 /* Resources */
 
-static resourcedecl rc_text[] =
-{ RC(NAME_border, "0..", "0",
+static classvardecl rc_text[] =
+{ RC(NAME_pen, RC_REFINE, "0", NULL),
+  RC(NAME_border, "0..", "0",
      "Space around the actual text"),
   RC(NAME_font, "font", "normal",
      "Default font"),
   RC(NAME_format, "name", "left",
      "Default adjustment: {left,center,right}"),
   RC(NAME_selectionStyle, "style",
-     "style(colour := white, background := black)",
+     UXWIN("style(colour := white, background := black)",
+	   "@_select_style"),
      "Style for <-selection"),
   RC(NAME_insertDeletesSelection, "bool", "@on",
      "->insert_self and ->paste delete the selection"),

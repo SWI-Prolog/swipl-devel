@@ -52,7 +52,7 @@ storeStyle(Style s, FileObj file)
 
 
 static status
-loadStyle(Style s, FILE *fd, ClassDef def)
+loadStyle(Style s, IOSTREAM *fd, ClassDef def)
 { loadSlotsObject(s, fd, def);
   s->attributes = loadWord(fd);
   if ( s->font == NIL )			/* prior version 10 */
@@ -210,7 +210,7 @@ static getdecl get_style[] =
 
 #define rc_style NULL
 /*
-static resourcedecl rc_style[] =
+static classvardecl rc_style[] =
 { 
 };
 */

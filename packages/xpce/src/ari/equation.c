@@ -58,7 +58,7 @@ static getdecl get_binaryCondition[] =
 
 #define rc_binaryCondition NULL
 /*
-static resourcedecl rc_binaryCondition[] =
+static classvardecl rc_binaryCondition[] =
 { 
 };
 */
@@ -272,7 +272,7 @@ static getdecl get_equation[] =
 
 #define rc_equation NULL
 /*
-static resourcedecl rc_equation[] =
+static classvardecl rc_equation[] =
 { 
 };
 */
@@ -411,7 +411,7 @@ static getdecl get_less[] =
 
 #define rc_less NULL
 /*
-static resourcedecl rc_less[] =
+static classvardecl rc_less[] =
 { 
 };
 */
@@ -462,7 +462,7 @@ static getdecl get_lessEqual[] =
 
 #define rc_lessEqual NULL
 /*
-static resourcedecl rc_lessEqual[] =
+static classvardecl rc_lessEqual[] =
 { 
 };
 */
@@ -517,7 +517,7 @@ static getdecl get_greater[] =
 
 #define rc_greater NULL
 /*
-static resourcedecl rc_greater[] =
+static classvardecl rc_greater[] =
 { 
 };
 */
@@ -572,7 +572,7 @@ static getdecl get_greaterEqual[] =
 
 #define rc_greaterEqual NULL
 /*
-static resourcedecl rc_greaterEqual[] =
+static classvardecl rc_greaterEqual[] =
 { 
 };
 */

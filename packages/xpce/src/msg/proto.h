@@ -29,8 +29,8 @@ status		makeClassEqual(Class class);
 
 /* msg/function.c */
 status		initialiseFunction(Function f);
-Any		getForwardFunctionv(Function f, int argc, Any *argv);
-Any		getForwardReceiverFunctionv(Function f, Any receiver, int argc, Any *argv);
+Any		getForwardFunctionv(Function f, int argc, const Any argv []);
+Any		getForwardReceiverFunctionv(Function f, Any receiver, int argc, const Any argv []);
 Any		getForwardFunction(Function f, ...);
 Any		getForwardReceiverFunction(Function f, Any receiver, ...);
 Any		getSendMethodFunction(Function f, Name selector);
@@ -63,7 +63,6 @@ status		makeClassProgn(Class class);
 status		makeClassQuoteFunction(Class class);
 
 /* msg/var.c */
-Any		getValueVar(Var v);
 status		makeClassVar(Class class);
 void		resetVars(void);
 void		popVarEnvironment(void);

@@ -236,3 +236,9 @@ WinStrError(int error, ...)
 
   return CtoName(msg);
 }
+
+
+int
+get_logical_drive_strings(int bufsize, char *buf)
+{ return GetLogicalDriveStrings(bufsize, buf);
+}

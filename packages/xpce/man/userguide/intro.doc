@@ -220,10 +220,8 @@ controllers (called dialog-items in its jargon) on top of the virtual
 machine and therefore bypasses the graphical libraries of the hosting
 system.
 
-The look-and-feel of \product{} is tailured by a resource file located in
-\file{<pcehome>/Pce}. The Win32 version is shipped with a resource file
-that makes the system look nice in the Windows 95 and Windows-NT 4.0
-environments.
+The look-and-feel of \product{} may be tailured using the defaults file
+located in \file{<pcehome>/Defaults}.
 
 
 \subsubsection{Currently unsupported features in the Win32 version}
@@ -278,8 +276,8 @@ provide access to related Window resources.
 \strong{It is NOT adviced to use these objects in your application code
 directly as this will stop the application to run on the Unix/X11
 version of \product{}. We advice using these objects in the \product{}
-resource file (\file{<pcehome>/Pce}) only, or use conditional code using
-`pce <-window_system'.}
+defaults file (\file{<pcehome>/Defaults}) only, or use conditional code
+using `pce <-window_system'.}
 
 
 \subsubsection{Accessing Windows Colours}
@@ -397,7 +395,7 @@ in \tabref{winfontattributes}.
 \begin{tabularlp}{\const{win_inactivecaptiontext}}
 \hline
 \const{charset}		& ansi \\
-\const{height}		& $<points> \times Pce.Font.scale$ \\
+\const{height}		& $<points> \times font.scale$ \\
 \const{weigth}		& bold if <style> is bold, normal otherwise \\
 \const{italic}		& TRUE if <style> is italic or oblique \\
 \const{pitch}		& fixed if <family> is screen \\
@@ -535,10 +533,8 @@ other applications in the same windowing environment.
 
 The visual feedback (look) and to some extend the reactions to user
 actions (feel) of the \product{} controllers is determined by
-\product{}'s {\em resource} file, located in \file{<pcehome>/Pce}. The
-Win32 version contains a parser for the X11 resource files. \product{}
-is currently shipped with two resource files, one for OpenWindows and
-one for \idx{Windows 95}. Support for Motif is still rudimentary.
+\product{}'s {\em defaults} file, located in \file{<pcehome>/Defaults}.
+See \secref{classvar}.
 
 
 \begin{xpceonly}

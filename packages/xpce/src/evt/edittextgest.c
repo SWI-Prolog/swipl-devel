@@ -10,7 +10,7 @@
 #include <h/kernel.h>
 #include <h/graphics.h>
 
-status
+static status
 initialiseEditTextGesture(EditTextGesture g, Name button, Modifier modifier)
 { initialiseGesture((Gesture) g, button, modifier);
   assign(g, selection_origin, ZERO);
@@ -118,7 +118,7 @@ static getdecl get_editTextGesture[] =
 
 /* Resources */
 
-static resourcedecl rc_editTextGesture[] =
+static classvardecl rc_editTextGesture[] =
 { RC(NAME_button, "button_name", "left",
      "Active on which button (middle)"),
   RC(NAME_cursor, "[cursor]", "@default",

@@ -32,12 +32,14 @@
 #endif
 #include <setjmp.h>
 
-#define XpmMalloc(n) (void *)malloc(n)
+#define XpmMalloc(n) (void *)pceMalloc(n)
 typedef unsigned int XpmPixel;
 
 #ifndef SEEK_SET
 #define SEEK_SET 0
 #endif
+
+extern void	jpeg_iostream_src(j_decompress_ptr cinfo, IOSTREAM* infile);
 
 int
 convert_colourmap(int ncolors,
@@ -84,13 +86,13 @@ my_exit(j_common_ptr cl)
 
 
 int
-readJPEGtoXpmImage(FILE *fd, XpmImage *img)
+readJPEGtoXpmImage(IOSTREAM *fd, XpmImage *img)
 { struct jpeg_decompress_struct cinfo;
   struct my_jpeg_error_mgr jerr;
   long row_stride;
   JSAMPLE **buffer;
   int rval;
-  long here = ftell(fd);
+  long here = Stell(fd);
 
   if ( !img )
     return XpmNoMemory;
@@ -119,13 +121,13 @@ readJPEGtoXpmImage(FILE *fd, XpmImage *img)
 
     jpeg_destroy_decompress(&cinfo);
 
-    fseek(fd, here, SEEK_SET);
+    Sseek(fd, here, SEEK_SET);
     return rval;
   }
   jerr.jerr.error_exit = my_exit;
 
   jpeg_create_decompress(&cinfo);
-  jpeg_stdio_src(&cinfo, fd);
+  jpeg_iostream_src(&cinfo, fd);
 
   jpeg_read_header(&cinfo, TRUE);
   cinfo.quantize_colors = TRUE;

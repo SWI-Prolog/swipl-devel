@@ -102,8 +102,8 @@ eventQueuedDisplayManager(DisplayManager dm)
 
 #define TestBreakDraw(dm) if ( eventQueuedDisplayManager(dm) ) fail;
 
-status
-RedrawDisplayManager(DisplayManager dm)
+static status
+redrawDisplayManager(DisplayManager dm)
 { if ( ChangedWindows && !emptyChain(ChangedWindows) )
   { PceWindow sw = WindowOfLastEvent();
 
@@ -129,6 +129,12 @@ RedrawDisplayManager(DisplayManager dm)
   }
 
   succeed;
+}
+
+
+status
+RedrawDisplayManager(DisplayManager dm)
+{ return qadSendv(dm, NAME_redraw, 0, NULL);
 }
 
 
@@ -203,7 +209,9 @@ static senddecl send_displayManager[] =
   SM(NAME_append, 1, "display", appendDisplayManager,
      NAME_display, "Attach a new display to the manager"),
   SM(NAME_dispatch, 2, T_dispatch, dispatchDisplayManager,
-     NAME_event, "Dispatch events for 1/4th second")
+     NAME_event, "Dispatch events for 1/4th second"),
+  SM(NAME_redraw, 0, NULL, redrawDisplayManager,
+     NAME_event, "Flush all pending changes to the screen")
 };
 
 /* Get Methods */
@@ -221,7 +229,7 @@ static getdecl get_displayManager[] =
 
 #define rc_displayManager NULL
 /*
-static resourcedecl rc_displayManager[] =
+static classvardecl rc_displayManager[] =
 { 
 };
 */

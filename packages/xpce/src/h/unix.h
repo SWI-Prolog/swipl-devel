@@ -60,12 +60,21 @@
 
 
 NewClass(fileobj)
+  ABSTRACT_SOURCE_SINK
   Name		name;			/* name of the file */
   Name		path;			/* full path-name of the file */
   Name		kind;			/* {text,binary} */
   Name		status;			/* current open mode */
   Name		filter;			/* I/O filter used */
   FILE		*fd;			/* file descriptor */
+End;
+
+
+NewClass(rc)
+  ABSTRACT_SOURCE_SINK
+  Name		name;			/* name of the resource */
+  Name		rc_class;		/* class of the resource */
+  Any		context;		/* Module info */
 End;
 
 

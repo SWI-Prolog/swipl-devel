@@ -180,32 +180,32 @@ colourPixel(Display *disp, int depth, Colormap cmap,
 		 *******************************/
 
 static int
-getNum(FILE *fd)
+getNum(IOSTREAM *fd)
 { int c;
   int v;
 
   for(;;)
   { do
-    { c = getc(fd);
+    { c = Sgetc(fd);
     } while(isspace(c));
 
     if ( isdigit(c) )
     { v = valdigit(c);
       for(;;)
-      { c = getc(fd);
+      { c = Sgetc(fd);
 	if ( isdigit(c) )
 	  v = v*10 + valdigit(c);
 	else
 	  break;
       }
       if ( !isspace(c) )
-	ungetc(c, fd);
+	Sungetc(c, fd);
 
       return v;
     }
     if ( c == '#' )
     { do
-      { c = getc(fd);
+      { c = Sgetc(fd);
       } while( c != '\n' && c != EOF );
     } else
       return -1;
@@ -214,9 +214,9 @@ getNum(FILE *fd)
 
 
 XImage *
-read_ppm_file(Display *disp, Colormap cmap, int depth, FILE *fd)
+read_ppm_file(Display *disp, Colormap cmap, int depth, IOSTREAM *fd)
 { XImage *img;
-  long here = ftell(fd);
+  long here = Stell(fd);
   int c;
   int fmt, encoding;
   int width, height, bytes_per_line, scale=0;
@@ -227,15 +227,15 @@ read_ppm_file(Display *disp, Colormap cmap, int depth, FILE *fd)
   ncolours = nmapped = nfailed = 0;	/* statistics */
   assert(pad%8 == 0);
 
-  if ( (c=getc(fd)) != 'P' )
-  { ungetc(c, fd);
+  if ( (c=Sgetc(fd)) != 'P' )
+  { Sungetc(c, fd);
     return NULL;
   }
 
   if ( !cmap )
     cmap = DefaultColormap(disp, DefaultScreen(disp));
 
-  c = getc(fd);
+  c = Sgetc(fd);
   if ( c < '1' || c > '9' )
     goto errout;
   c -= '0';
@@ -350,7 +350,7 @@ read_ppm_file(Display *disp, Colormap cmap, int depth, FILE *fd)
 	  for(y=0; y<height; y++)
 	  { for(x=0; x<width; x++)
 	    { if ( !bit )
-	      { byte = getc(fd);
+	      { byte = Sgetc(fd);
 		bit = 8;
 	      }
   
@@ -369,7 +369,7 @@ read_ppm_file(Display *disp, Colormap cmap, int depth, FILE *fd)
 	    { unsigned int g;
 	      ulong pixel;
   
-	      if ( feof(fd) || (g=getc(fd)) > scale )
+	      if ( Sfeof(fd) || (g=Sgetc(fd)) > scale )
 		goto errout;
 	      if ( scale != 255 )
 		g = rescale(g, scale, 255);
@@ -390,10 +390,10 @@ read_ppm_file(Display *disp, Colormap cmap, int depth, FILE *fd)
 	    { unsigned int r, g, b;
 	      ulong pixel;
   
-	      if ( feof(fd) ||
-		   (r=getc(fd)) > scale ||
-		   (g=getc(fd)) > scale ||
-		   (b=getc(fd)) > scale )
+	      if ( Sfeof(fd) ||
+		   (r=Sgetc(fd)) > scale ||
+		   (g=Sgetc(fd)) > scale ||
+		   (b=Sgetc(fd)) > scale )
 		goto errout;
   
 	      if ( scale != 255 )
@@ -432,8 +432,8 @@ read_ppm_file(Display *disp, Colormap cmap, int depth, FILE *fd)
 	      } else
 	      { unsigned int g;
   
-		if ( (g=getc(fd)) > scale ||
-		     (rlen = getc(fd)) == EOF )
+		if ( (g=Sgetc(fd)) > scale ||
+		     (rlen = Sgetc(fd)) == EOF )
 		  goto errout;
 		rlen &= 0xff;
 		if ( scale != 255 )
@@ -459,10 +459,10 @@ read_ppm_file(Display *disp, Colormap cmap, int depth, FILE *fd)
 	      } else
 	      { unsigned int r, g, b;
   
-		if ( (r=getc(fd)) > scale ||
-		     (g=getc(fd)) > scale ||
-		     (b=getc(fd)) > scale ||
-		     (rlen = getc(fd)) == EOF )
+		if ( (r=Sgetc(fd)) > scale ||
+		     (g=Sgetc(fd)) > scale ||
+		     (b=Sgetc(fd)) > scale ||
+		     (rlen = Sgetc(fd)) == EOF )
 		  goto errout;
 
 		rlen &= 0xff;
@@ -495,8 +495,8 @@ read_ppm_file(Display *disp, Colormap cmap, int depth, FILE *fd)
 
 errout:
   DEBUG(NAME_ppm,
-	Cprintf("PNM: Format error, index = %d\n", ftell(fd)));
-  fseek(fd, here, SEEK_SET);
+	Cprintf("PNM: Format error, index = %d\n", Stell(fd)));
+  Sseek(fd, here, SEEK_SET);
   return NULL;
 }
 
@@ -508,19 +508,19 @@ errout:
 static int file_col;
 
 static int
-putNum(int n, FILE *fd)
-{ if ( file_col != 0 && putc(' ', fd) == EOF )
+putNum(int n, IOSTREAM *fd)
+{ if ( file_col != 0 && Sputc(' ', fd) == EOF )
     return -1;
 
   do
-  { if ( putc(n % 10 + '0', fd) == EOF )
-	return -1;
+  { if ( Sputc(n % 10 + '0', fd) == EOF )
+      return -1;
     file_col++;
     n /= 10;
   } while( n > 0 );
 
   if ( file_col >= 70 )
-  { if ( putc('\n', fd) == EOF )
+  { if ( Sputc('\n', fd) == EOF )
       return -1;
     file_col = 0;
   }
@@ -530,7 +530,7 @@ putNum(int n, FILE *fd)
 
 
 int
-write_pnm_file(FILE *fd, XImage *img,
+write_pnm_file(IOSTREAM *fd, XImage *img,
 	       Display *disp, Colormap cmap, int scale, int fmt, int encode)
 { int width  = img->width;
   int height = img->height;
@@ -572,14 +572,14 @@ write_pnm_file(FILE *fd, XImage *img,
   } else if ( encode == PNM_RUNLEN )	/* no use to runlen encode a bitmap */
     encode = PNM_RAWBITS;
 
-  fprintf(fd, "P%c\n", fmt + encode + '0');
-  fprintf(fd, "# Creator: XPCE version %s\n", strName(get(PCE,NAME_version,0)));
+  Sfprintf(fd, "P%c\n", fmt + encode + '0');
+  Sfprintf(fd, "# Creator: XPCE version %s\n", strName(get(PCE,NAME_version,0)));
   if ( fmt != PNM_PBM )
-  { fprintf(fd, "# %d colours found\n", colours);
-    fprintf(fd, "%d %d\n", width, height);
-    fprintf(fd, "%d\n", scale);
+  { Sfprintf(fd, "# %d colours found\n", colours);
+    Sfprintf(fd, "%d %d\n", width, height);
+    Sfprintf(fd, "%d\n", scale);
   } else
-    fprintf(fd, "%d %d\n", width, height);
+    Sfprintf(fd, "%d %d\n", width, height);
 
   file_col = 0;
     
@@ -632,7 +632,7 @@ write_pnm_file(FILE *fd, XImage *img,
 	  break;
 	}
       }
-      if ( file_col && putc('\n', fd) == EOF )
+      if ( file_col && Sputc('\n', fd) == EOF )
 	return -1;
       file_col = 0;
     }
@@ -647,14 +647,14 @@ write_pnm_file(FILE *fd, XImage *img,
 	    { if ( XGetPixel(img, x, y) )
 		byte |= 1<<bit;
 	      if ( bit-- == 0 )
-	      { if ( putc(byte, fd) == EOF )
+	      { if ( Sputc(byte, fd) == EOF )
 		  return -1;
 		bit = 7;
 		byte = 0;
 	      }
 	    }
 	    if ( bit != 7 )		/* flush after finishing scanline */
-	    { if ( putc(byte, fd) == EOF )
+	    { if ( Sputc(byte, fd) == EOF )
 		return -1;
 	      bit = 7;
 	      byte = 0;
@@ -662,7 +662,7 @@ write_pnm_file(FILE *fd, XImage *img,
 	  }
   
 	  if ( bit != 7 )
-	  { if ( putc(byte, fd) == EOF )
+	  { if ( Sputc(byte, fd) == EOF )
 	      return -1;
 	  }
 	  break;
@@ -678,7 +678,7 @@ write_pnm_file(FILE *fd, XImage *img,
 	      c = cinfo[XGetPixel(img, x, y)];
 	      r = rescale(c->red, BRIGHT, scale);
   
-	      if ( putc(r, fd) == EOF )
+	      if ( Sputc(r, fd) == EOF )
 		return -1;
 	    }
 	  }
@@ -695,9 +695,9 @@ write_pnm_file(FILE *fd, XImage *img,
 	      g = rescale(c->green, BRIGHT, scale);
 	      b = rescale(c->blue,  BRIGHT, scale);
   
-	      if ( putc(r, fd) == EOF ||
-		   putc(g, fd) == EOF ||
-		   putc(b, fd) == EOF )
+	      if ( Sputc(r, fd) == EOF ||
+		   Sputc(g, fd) == EOF ||
+		   Sputc(b, fd) == EOF )
 		return -1;
 	    }
 	  }
@@ -724,18 +724,18 @@ write_pnm_file(FILE *fd, XImage *img,
 	      { XColor *c;
 		int r;
 
-		if ( rlen > 0 && putc(rlen, fd) == EOF )
+		if ( rlen > 0 && Sputc(rlen, fd) == EOF )
 		  return -1;
 		cpixel = pixel;
 		rlen = 1;
 		c = cinfo[pixel];
 		r = rescale(c->red, BRIGHT, scale);
-  		if ( putc(r, fd) == EOF )
+  		if ( Sputc(r, fd) == EOF )
 		  return -1;
 	      }
 	    }
 	  }
-	  if ( putc(rlen, fd) == EOF )
+	  if ( Sputc(rlen, fd) == EOF )
 	    return -1;
 
 	  break;
@@ -751,7 +751,7 @@ write_pnm_file(FILE *fd, XImage *img,
 	      { XColor *c;
 		unsigned int r, g, b;
   
-		if ( rlen > 0 && putc(rlen, fd) == EOF )
+		if ( rlen > 0 && Sputc(rlen, fd) == EOF )
 		  return -1;
 		cpixel = pixel;
 		rlen = 1;
@@ -760,14 +760,14 @@ write_pnm_file(FILE *fd, XImage *img,
 		g = rescale(c->green, BRIGHT, scale);
 		b = rescale(c->blue,  BRIGHT, scale);
   
-		if ( putc(r, fd) == EOF ||
-		     putc(g, fd) == EOF ||
-		     putc(b, fd) == EOF )
+		if ( Sputc(r, fd) == EOF ||
+		     Sputc(g, fd) == EOF ||
+		     Sputc(b, fd) == EOF )
 		  return -1;
 	      }
 	    }
 	  }
-	  if ( putc(rlen, fd) == EOF )
+	  if ( Sputc(rlen, fd) == EOF )
 	    return -1;
   
 	  break;

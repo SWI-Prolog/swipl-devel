@@ -79,6 +79,9 @@ static struct class_definition classdefs[] =
   { NAME_c, NAME_host, makeClassC,
     &ClassC, "C language (for communication)" },
 
+  { NAME_classVariable, NAME_behaviour, makeClassClassVariable,
+    &ClassClassVariable, "Class variables (defaults)" },
+
   { NAME_cPointer, NAME_object, makeClassCPointer,
     &ClassCPointer, "C void * encapsulation" },
 
@@ -94,10 +97,7 @@ static struct class_definition classdefs[] =
   { NAME_circle, NAME_graphical, makeClassCircle,
     &ClassCircle, "Circle" },
 
-  { NAME_classStub, NAME_programObject, makeClassClassStub,
-    &ClassClassStub, "Autoload stub for a class" },
-
-  { NAME_class, NAME_classStub, makeClassClass,
+  { NAME_class, NAME_programObject, makeClassClass,
     &ClassClass, "Represent classes" },
 
   { NAME_clickGesture, NAME_gesture, makeClassClickGesture,
@@ -135,9 +135,6 @@ static struct class_definition classdefs[] =
 
   { NAME_date, NAME_object, makeClassDate,
     &ClassDate, "Represent point in time" },
-
-  { NAME_delegateVariable, NAME_variable, makeClassDelegateVariable,
-    &ClassDelegateVariable, "Instance-variable for delegation" },
 
   { NAME_device, NAME_graphical, makeClassDevice,
     &ClassDevice, "Collection of graphicals" },
@@ -190,7 +187,7 @@ static struct class_definition classdefs[] =
   { NAME_figure, NAME_device, makeClassFigure,
     &ClassFigure, "Collection of graphicals" },
 
-  { NAME_file, NAME_object, makeClassFile,
+  { NAME_file, NAME_sourceSink, makeClassFile,
     &ClassFile, "Unix file" },
 
   { NAME_font, NAME_object, makeClassFont,
@@ -231,6 +228,9 @@ static struct class_definition classdefs[] =
 
   { NAME_host, NAME_object, makeClassHost,
     &ClassHost, "Host language (for communication)" },
+
+  { NAME_hostData, NAME_object, makeClassHostData,
+    &ClassHostData, "Handle to native data of the host language" },
 
   { NAME_hyper, NAME_programObject, makeClassHyper,
     &ClassHyper, "Named binary association (hyper link)" },
@@ -349,6 +349,9 @@ static struct class_definition classdefs[] =
   { NAME_quoteFunction, NAME_object, makeClassQuoteFunction,
     &ClassQuoteFunction, "Quote functions" },
 
+  { NAME_resource, NAME_sourceSink, makeClassRC,
+    &ClassRC, "Resource data" },
+
   { NAME_real, NAME_object, makeClassReal,
     &ClassReal, "Floating point number" },
 
@@ -369,9 +372,6 @@ static struct class_definition classdefs[] =
 
   { NAME_resizeOutlineGesture, NAME_resizeGesture, makeClassResizeOutlineGesture,
     &ClassResizeOutlineGesture, "Gesture to resize an object by outline" },
-
-  { NAME_resource, NAME_object, makeClassResource,
-    &ClassResource, "Access to the X11 resource manager" },
 
   { NAME_scrollBar, NAME_graphical, makeClassScrollBar,
     &ClassScrollBar, "Scroll windows, text or other objects" },
@@ -395,6 +395,9 @@ static struct class_definition classdefs[] =
 
   { NAME_sourceLocation, NAME_object, makeClassSourceLocation,
     &ClassSourceLocation, "Position in a sourcefile" },
+
+  { NAME_sourceSink, NAME_object, makeClassSourceSink,
+    &ClassSourceSink, "Source or destination of data" },
 
   { NAME_spatial, NAME_relation, makeClassSpatial,
     &ClassSpatial, "Spatial relation between grahicals" },
@@ -426,7 +429,7 @@ static struct class_definition classdefs[] =
   { NAME_text, NAME_graphical, makeClassText,
     &ClassText, "Draw text on graphical devices" },
 
-  { NAME_textBuffer, NAME_object, makeClassTextBuffer,
+  { NAME_textBuffer, NAME_sourceSink, makeClassTextBuffer,
     &ClassTextBuffer, "Editable text with fragments" },
 
   { NAME_textCursor, NAME_graphical, makeClassTextCursor,
@@ -466,7 +469,7 @@ static struct class_definition classdefs[] =
     &ClassVar, "Variable (as a function)" },
 
   { NAME_variable, NAME_behaviour, makeClassVariable,
-    &ClassVariable, "Instance- or local-variable" },
+    &ClassObjOfVariable, "Instance- or local-variable" },
 
   { NAME_vector, NAME_object, makeClassVector,
     &ClassVector, "Dynamic array of objects" },
@@ -476,9 +479,6 @@ static struct class_definition classdefs[] =
 
   { NAME_visual, NAME_object, makeClassVisual,
     &ClassVisual, "Superclass of everything that is visible" },
-
-  { NAME_vmi, NAME_programObject, makeClassVmi,
-    &ClassVmi, "Virtual machine instruction" },
 
   { NAME_when, NAME_function, makeClassWhen,
     &ClassWhen, "Conditional function" },

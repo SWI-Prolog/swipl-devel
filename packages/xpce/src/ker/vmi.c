@@ -66,7 +66,7 @@ static getdecl get_vmi[] =
 
 #define rc_vmi NULL
 /*
-static resourcedecl rc_vmi[] =
+static classvardecl rc_vmi[] =
 { 
 };
 */

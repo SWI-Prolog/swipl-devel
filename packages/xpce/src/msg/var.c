@@ -80,7 +80,7 @@ valueVar(Var v, Any value)
 }
 */
 
-Any
+static Any
 getValueVar(Var v)
 { answer(v->value);
 }
@@ -136,7 +136,7 @@ static getdecl get_var[] =
 
 #define rc_var NULL
 /*
-static resourcedecl rc_var[] =
+static classvardecl rc_var[] =
 { 
 };
 */
@@ -182,7 +182,7 @@ initVars(void)
   RECEIVER_CLASS = initVar(NAME_receiverClass,	"class*",  NIL);
   EVENT		 = initVar(NAME_event,		"event*",  NIL);
   SELECTOR	 = initVar(NAME_selector,	"name*",   NIL);
-  REPORTEE	 = initVar(NAME_reportee,	"visual*", NIL);
+  REPORTEE	 = initVar(NAME_reportee,	"chain*",  NIL);
 
   VarX		 = initGrVar(NAME_xVar, NAME_x);
   VarY		 = initGrVar(NAME_yVar, NAME_y);

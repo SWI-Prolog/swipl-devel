@@ -17,7 +17,6 @@ static status	unrelate_node(Node, Node);
 static status	unlinkParentsNode(Node n);
 static status	unlinkSonsNode(Node n);
 static status	relateNode(Node n, Node n2);
-static status	relateImageNode(Node n, Node n2);
 static status	unrelateImageNode(Node n, Node n2);
 static status	unrelateImagesNode(Node n);
 static status	relateImagesNode(Node n);
@@ -357,8 +356,6 @@ static status
 sonNode(Node n, Node n2)		/* make n2 a son of n */
 { if ( notNil(n2->tree) && n2->tree != n->tree )
     return errorPce(n, NAME_alreadyShown, n2, n2->tree);
-  if ( isNil(n->tree) )
-    return errorPce(n, NAME_nodeNotInTree);
 
   if ( memberChain(n->sons, n2) )
     succeed;
@@ -366,11 +363,14 @@ sonNode(Node n, Node n2)		/* make n2 a son of n */
   if ( isParentNode(n, n2) || n2 == n )
     return errorPce(n, NAME_wouldBeCyclic);
 
-  if ( isNil(n2->tree) )
-    displayTree(n->tree, n2);
-
   relateNode(n, n2);
-  requestComputeTree(n->tree);
+
+  if ( notNil(n->tree) )
+  { if ( isNil(n2->tree) )
+      displayTree(n->tree, n2);
+
+    requestComputeTree(n->tree);
+  }
 
   succeed;
 }
@@ -448,17 +448,18 @@ deleteNode(Node n)
 }
 
 
+/* swap the positions of two entire subtrees */
+
 static status
-swapTreeNode(Node n, Node n2)		/* swap the positions of two entire subtrees */
-           
+swapTreeNode(Node n, Node n2)
 { Cell cell;
   Chain intersection, tmp;
   Node parent;
 
   if ( n->tree != n2->tree ||
        isNil(n->tree) ||
-       isSonNode(n, n2) == SUCCEED ||
-       isSonNode(n2, n) == SUCCEED )
+       isSonNode(n, n2) ||
+       isSonNode(n2, n) )
     fail;
 
   TRY( intersection = getIntersectionChain(n->parents, n2->parents) );
@@ -493,7 +494,7 @@ swap_parents(Node n, Node n2, Chain intersection)
 
   for_cell(cell, n->parents)
   { parent = cell->value;
-    if ( memberChain(intersection, parent) == SUCCEED )
+    if ( memberChain(intersection, parent) )
       continue;
     for_cell(cell2, parent->sons)
     { if ( (Node) cell2->value == n )
@@ -534,15 +535,17 @@ static status
 relateNode(Node n, Node n2)
 { appendChain(n->sons, n2);
   appendChain(n2->parents, n);
-  relateImageNode(n, n2);
+  if ( notNil(n->tree) )
+    relateImageNode(n, n2);
 
   succeed;
 }
 
 
-static status
+status
 relateImageNode(Node n, Node n2)
-{ connectGraphical(n->image, n2->image, n->tree->link, DEFAULT, DEFAULT);
+{ if ( !connectedGraphical(n->image, n2->image, DEFAULT, DEFAULT, DEFAULT) )
+    connectGraphical(n->image, n2->image, n->tree->link, DEFAULT, DEFAULT);
 
   succeed;
 }
@@ -869,7 +872,7 @@ static getdecl get_node[] =
 
 #define rc_node NULL
 /*
-static resourcedecl rc_node[] =
+static classvardecl rc_node[] =
 { 
 };
 */

@@ -336,7 +336,7 @@ static getdecl get_atable[] =
 
 #define rc_atable NULL
 /*
-static resourcedecl rc_atable[] =
+static classvardecl rc_atable[] =
 { 
 };
 */

@@ -20,7 +20,7 @@ createVariable(Name name, Type type, Name access)
 { Variable var;
 
   var = alloc(sizeof(struct variable));
-  initHeaderObj(var, ClassVariable);
+  initHeaderObj(var, ClassObjOfVariable);
   var->name          = var->access = (Name) NIL;
   var->group	     = NIL;
   var->offset        = (Int) NIL;
@@ -183,7 +183,7 @@ getReturnTypeVariable(Variable var)
 		 *	   INITIAL VALUE	*
 		 *******************************/
 
-status
+static status
 allocValueVariable(Variable var, Any value)
 { Any old = var->alloc_value;
 
@@ -197,13 +197,13 @@ allocValueVariable(Variable var, Any value)
 }
 
 
-Any
+static Any
 getAllocValueVariable(Variable var)
 { answer(var->alloc_value);		/* alien = NULL --> fail */
 }
 
 
-status
+static status
 initFunctionVariable(Variable var, Any f)
 { assign(var, init_function, f);
 
@@ -234,131 +234,50 @@ initialValueVariable(Variable var, Any value)
 		*          EXECUTION		*
 		********************************/
 
-#ifdef O_RUNTIME
-#undef failGoal
-#undef outGoal
-#define failGoal rval = FAIL; goto out
-#define outGoal(v) rval = (v); goto out
-#endif
-
-
 status
-sendVariable(Variable var, Any rec, int argc, const Any argv[])
-{ status rval;
-  Any value, old;
+sendVariable(Variable var, Any rec, Any val)
+{ Any value;
   Any *field = &(((Instance)rec)->slots[valInt(var->offset)]);
-#ifndef O_RUNTIME
-  goal goal;
-  Goal g = &goal;
 
-  pushGoal(g, var, rec, var->name, argc, argv);
-  traceEnter(g);
-#endif
+  if ( !(value = checkType(val, var->type, rec)) )
+    return errorTypeMismatch(rec, var, 1, var->type, val);
 
-  if ( argc != 1 )
-  { errorPce(var, NAME_argumentCount, ONE);
-    failGoal;
-  }
-  if ( !(value = checkType(argv[0], var->type, rec)) &&
-       !(isFreeingObj(rec) && isNil(value = argv[0])) &&
-       !(isCreatingObj(rec) && isDefault(value = argv[0])) )
-	
-  { errorTypeMismatch(rec, var, 1, var->type);
-    failGoal;
-  }
+  assignField(rec, field, value);
 
-  rval = SUCCEED;
-
-  if ( (old = *field) != value )
-  { *field = value;
-
-    if ( isObject(value) && !isProtectedObj(value) )
-      addRefObject(rec, value);
-    if ( isObject(old) && !isProtectedObj(old) )
-      delRefObject(rec, old);
-#ifndef O_RUNTIME
-    if ( onFlag(rec, F_INSPECT) )
-      (*(classOfObject(rec))->changedFunction)(rec, field);
-#endif
-  }
-
-out:
-#ifndef O_RUNTIME
-  traceReturn(g, rval);
-  popGoal();
-#endif
-  return rval;
+  succeed;
 }
 
 
 Any
-getGetVariable(Variable var, Any rec, int argc, const Any argv[])
+getGetVariable(Variable var, Any rec)
 { Any *field = &(((Instance)rec)->slots[valInt(var->offset)]);
   Any rval = *field;
 
-#ifndef O_RUNTIME
-  goal goal;
-  Goal g = &goal;
-
-  pushGoal(g, var, rec, var->name, argc, argv);
-  traceEnter(g);
-#endif
-
-  if ( argc != 0 )
-  { errorPce(var, NAME_argumentCount, ZERO);
-    failGoal;
-  }
-
-  if ( isDefault(rval) && !mayBeDefaultType(var->type) )
+  if ( isClassDefault(rval) )
   { Any value;
 
-    if ( (value = getResourceValueObject(rec, var->name)) )
+    if ( (value = getClassVariableValueObject(rec, var->name)) )
     { Any v2;
 
       if ( (v2 = checkType(value, var->type, rec)) )
       { assignField(rec, field, v2);
-	outGoal(v2);
+	answer(v2);
       } else
-      { errorPce(var, NAME_incompatibleResource, 0);
-	failGoal;
+      { errorPce(var, NAME_incompatibleClassVariable, 0);
+	fail;
       }
     } else if ( instanceOfObject(rec, ClassClass) &&
 		((Class)rec)->realised != ON )
     { realiseClass(rec);
       rval = *field;
     } else
-    { errorPce(var, NAME_noResource, 0);
-      failGoal;
+    { errorPce(var, NAME_noClassVariable, 0);
+      fail;
     }
   }
 
-out:
-#ifndef O_RUNTIME
-  traceAnswer(g, rval);
-  popGoal();
-#endif
-  return rval;
+  answer(rval);
 }
-
-
-		/********************************
-		*            TRACING		*
-		********************************/
-
-#ifndef O_RUNTIME
-static void
-traceVariable(Variable v, Goal g, Name port)
-{ int i;
-
-  writef("V %O %s%s: ", g->receiver, getAccessArrowVariable(v), v->name);
-  for(i = 0; i < g->argc; i++)
-  { if ( i == 0 )
-      writef("%O", g->argv[i]);
-    else
-      writef(", %O", g->argv[i]);
-  }
-}
-#endif
 
 
 Name
@@ -389,12 +308,12 @@ getGroupVariable(Variable v)
 		*        MANUAL SUPPORT		*
 		********************************/
 
-Name
+static Name
 getAccessArrowVariable(Variable v)
-{ if ( equalName(v->access, NAME_none) ) return CtoName("-");
-  if ( equalName(v->access, NAME_get)  ) return CtoName("<-");
-  if ( equalName(v->access, NAME_send) ) return CtoName("->");
-  if ( equalName(v->access, NAME_both) ) return CtoName("<->");
+{ if ( v->access == NAME_none ) return CtoName("-");
+  if ( v->access == NAME_get  ) return CtoName("<-");
+  if ( v->access == NAME_send ) return CtoName("->");
+  if ( v->access == NAME_both ) return CtoName("<->");
 
   fail;
 }
@@ -481,11 +400,11 @@ getPrintNameVariable(Variable var)
 /* Type declaractions */
 
 static char *T_initialise[] =
-        { "name=name", "type=[type]", "access=[{none,send,get,both}]", "summary=[string]*", "group=[name]", "initial_value=[any|function]" };
-static char *T_get[] =
-        { "receiver=object", "unchecked ..." };
+        { "name=name", "type=[type]", "access=[{none,send,get,both}]",
+	  "summary=[string]*", "group=[name]",
+	  "initial_value=[any|function]" };
 static char *T_send[] =
-        { "receiver=object", "value=unchecked ..." };
+        { "receiver=object", "value=unchecked" };
 
 /* Instance Variables */
 
@@ -532,7 +451,7 @@ static senddecl send_variable[] =
 static getdecl get_variable[] =
 { GM(NAME_cloneStyle, 0, "name", NULL, getCloneStyleVariable,
      NAME_copy, "Clone style for this slot"),
-  GM(NAME_get, 2, "unchecked", T_get, getGetVariable,
+  GM(NAME_get, 1, "unchecked", "object", getGetVariable,
      NAME_execute, "Invoke (read) variable in object"),
   GM(NAME_saveStyle, 0, "{normal,nil}", NULL, getSaveStyleVariable,
      NAME_file, "Save style for this slot"),
@@ -564,7 +483,7 @@ static getdecl get_variable[] =
 
 #define rc_variable NULL
 /*
-static resourcedecl rc_variable[] =
+static classvardecl rc_variable[] =
 { 
 };
 */
@@ -582,85 +501,6 @@ ClassDecl(variable_decls,
 status
 makeClassVariable(Class class)
 { declareClass(class, &variable_decls);
-  setTraceFunctionClass(class, traceVariable);
 
   succeed;
 }
-
-
-		/********************************
-		*    CLASS DELEGATE-VARIABLE	*
-		********************************/
-
-static status
-initialiseDelegateVariable(DelegateVariable var, Name name, Type type,
-			   Name access, Name wrapper,
-			   StringObj doc, Name group, Any initial)
-{ initialiseVariable((Variable) var, name, type, access, doc, group, initial);
-
-  assign(var, wrapper, wrapper);
-  succeed;
-}
-
-
-		 /*******************************
-		 *	 CLASS DECLARATION	*
-		 *******************************/
-
-/* Type declaractions */
-
-static char *T_initialise_delegate[] =
-        { "name=name", "type=[type]", "access=[{none,send,get,both}]",
-	  "wrapper=name", "summary=[string]*", "group=[name]*",
-	  "initial_value=[any|function]" };
-
-/* Instance Variables */
-
-static vardecl var_delegateVariable[] =
-{ IV(NAME_wrapper, "name*", IV_BOTH,
-     NAME_change, "Wrapper to take care of side-effects")
-};
-
-/* Send Methods */
-
-static senddecl send_delegateVariable[] =
-{ SM(NAME_initialise, 7, T_initialise_delegate, initialiseDelegateVariable,
-     DEFAULT, "Create from name, type, access and doc")
-};
-
-/* Get Methods */
-
-#define get_delegateVariable NULL
-/*
-static getdecl get_delegateVariable[] =
-{ 
-};
-*/
-
-/* Resources */
-
-#define rc_delegateVariable NULL
-/*
-static resourcedecl rc_delegateVariable[] =
-{ 
-};
-*/
-
-/* Class Declaration */
-
-static Name delegateVariable_termnames[] =
-	{ NAME_name, NAME_type, NAME_access, NAME_wrapper };
-
-ClassDecl(delegateVariable_decls,
-          var_delegateVariable, send_delegateVariable,
-	  get_delegateVariable, rc_delegateVariable,
-          4, delegateVariable_termnames,
-          "$Rev$");
-
-
-status
-makeClassDelegateVariable(Class class)
-{ return declareClass(class, &delegateVariable_decls);
-}
-
-

@@ -50,7 +50,7 @@ initialiseLine(Line ln, Int xa, Int ya, Int xb, Int yb, Name arrows)
                                         }
 
 static status
-loadLine(Line ln, FILE *fd, ClassDef def)
+loadLine(Line ln, IOSTREAM *fd, ClassDef def)
 { TRY(loadSlotsObject(ln, fd, def));
 
   if ( isNil(ln->start_x) )		/* convert old (pre-4.9.4) line */
@@ -375,7 +375,7 @@ inEventAreaLine(Line ln, Int x, Int y)
   static int evtol = -1;
 
   if ( evtol < 0 )
-  { Int v = getResourceValueObject(ln, NAME_eventTolerance);
+  { Int v = getClassVariableValueObject(ln, NAME_eventTolerance);
     evtol = (v ? valInt(v) : 5);
   }
 
@@ -589,7 +589,7 @@ static getdecl get_line[] =
 
 /* Resources */
 
-static resourcedecl rc_line[] =
+static classvardecl rc_line[] =
 { RC(NAME_selectionHandles, RC_REFINE, "line",
      NULL)
 };

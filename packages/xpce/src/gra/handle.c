@@ -134,7 +134,7 @@ static getdecl get_handle[] =
 
 #define rc_handle NULL
 /*
-static resourcedecl rc_handle[] =
+static classvardecl rc_handle[] =
 { 
 };
 */

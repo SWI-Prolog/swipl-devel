@@ -22,6 +22,19 @@ initialiseConstant(Constant c, Name name, StringObj summary)
 }
 
 
+static void
+mkconstant(Class class, Constant c, Name name, const char *summary)
+{ initHeaderObj(c, class);
+  setProtectedObj(c);
+  clearCreatingObj(c);
+  
+  assign(c, name,    name);
+  assign(c, summary, staticCtoString(summary));
+
+  newAssoc(name, c);
+}
+
+
 status
 makeClassConstant(Class class)
 { localClass(class, NAME_name, NAME_name, "name", NAME_both,
@@ -38,17 +51,20 @@ makeClassConstant(Class class)
 	     "Create constant",
 	     initialiseConstant);
 
-  newAssoc(NAME_nil, NIL);
-  newAssoc(NAME_default, DEFAULT);
+  mkconstant(class,
+	     NIL,
+	     NAME_nil,
+	     "Representation of not-filled, nothing");
+  mkconstant(class,
+	     DEFAULT,
+	     NAME_default,
+	     "Representation of default/optional");
+  mkconstant(class,
+	     CLASSDEFAULT,
+	     NAME_classDefault,
+	     "Use class-variable value");
 
-  ((Constant)NIL)->name = ((Constant)DEFAULT)->name = NIL;
-  ((Constant)NIL)->summary = ((Constant)DEFAULT)->summary = NIL;
-  assign(((Constant)NIL), name, NAME_nil);
-  assign(((Constant)DEFAULT), name, NAME_default);
-  assign(((Constant)NIL), summary,
-	 CtoString("Representation of not-filled, nothing"));
-  assign(((Constant)DEFAULT), summary,
-	 CtoString("Representation of default/optional"));
+  assign(class, no_created, toInt(3));
 
   succeed;
 }

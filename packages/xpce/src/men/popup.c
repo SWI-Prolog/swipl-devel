@@ -19,7 +19,6 @@ initialisePopup(PopupObj p, Name label, Code msg)
 
   assign(p, update_message, NIL);
   assign(p, button,	    NAME_right);
-  assign(p, default_item,   DEFAULT);	/* resource */
   assign(p, show_current,   OFF);
   initialiseMenu((Menu) p, label, NAME_popup, msg);
   assign(p, auto_align,	    OFF);
@@ -251,7 +250,7 @@ closePopup(PopupObj p)
 		*         EVENT HANDLING	*
 		********************************/
 
-status
+static status
 keyPopup(PopupObj p, Name key)
 { Cell cell;
 
@@ -467,7 +466,7 @@ eventPopup(PopupObj p, EventObj ev)
 	  return send(p, NAME_drag, ev, 0);
 	}
       }
-    } else if ( isAEvent(ev, NAME_locStill) )
+    } else if ( isAEvent(ev, NAME_locMove) )
     { if ( isNil(p->pullright->preview) )
       { MenuItem mi;
 
@@ -538,7 +537,7 @@ eventPopup(PopupObj p, EventObj ev)
   { return typedPopup(p, ev->id);
   }
 
-  fail;
+  succeed;				/* accept all events */
 }
 
 
@@ -553,6 +552,20 @@ endGroupPopup(PopupObj p, Bool val)
     return send(p->context, NAME_endGroup, val, 0);
 
   fail;
+}
+
+
+static status
+appendPopup(PopupObj p, Any obj)
+{ if ( obj == NAME_gap )
+  { MenuItem tail = getTailChain(p->members);
+
+    if ( tail )
+      send(tail, NAME_endGroup, ON, 0);
+
+    succeed;
+  } else
+    return appendMenu((Menu)p, obj);
 }
 
 
@@ -638,6 +651,8 @@ static senddecl send_popup[] =
      NAME_event, "If @off, greyed out and insensitive"),
   SM(NAME_endGroup, 1, "bool", endGroupPopup,
      NAME_appearance, "Pullright: separation line below item in super"),
+  SM(NAME_append, 1, "menu_item|{gap}", appendPopup,
+     DEFAULT, "Append menu-item or gap (end_group)"),
   SM(NAME_drag, 2, T_drag, dragPopup,
      NAME_event, "Handle a drag event"),
   SM(NAME_showPullrightMenu, 3, T_showPullrightMenu, showPullrightMenuPopup,
@@ -663,10 +678,10 @@ static getdecl get_popup[] =
 
 /* Resources */
 
-static resourcedecl rc_popup[] =
-{ RC(NAME_acceleratorFont, "font*", "small",
+static classvardecl rc_popup[] =
+{ RC(NAME_acceleratorFont, "font*", "@nil",
      "Show the accelerators"),
-  RC(NAME_border, "int", "2",
+  RC(NAME_border, "int", UXWIN("4", "5"),
      "Default border around items"),
   RC(NAME_cursor, "cursor", "right_ptr",
      "Cursor when popup is active"),
@@ -676,26 +691,38 @@ static resourcedecl rc_popup[] =
      "Feedback style"),
   RC(NAME_kind, "name", "popup",
      "Menu kind"),
-  RC(NAME_labelSuffix, "name", "",
-     "Ensured suffix of label"),
   RC(NAME_layout, "name", "vertical",
      "Put items below each other"),
   RC(NAME_multipleSelection, "bool", "@off",
      "Can have multiple selection"),
-  RC(NAME_offImage, "image*", "@nil",
+  RC(NAME_offImage, "{marked}|image*", "@nil",
      "Marker for items not in selection"),
-  RC(NAME_onImage, "image*", "@nil",
+  RC(NAME_onImage, "{marked}|image*", "@nil",
      "Marker for items in selection"),
   RC(NAME_pen, "int", "0",
      "Thickness of the drawing-pen"),
-  RC(NAME_popupImage, "image*", "@pull_right_image",
+  RC(NAME_popupImage, "image*",
+     UXWIN("when(@colour_display, @nil, @ol_pullright_image)",
+	   "@ms_left_arrow_image"),
      "Marker for items with popup"),
-  RC(NAME_previewFeedback, "name", "invert",
+  RC(NAME_previewFeedback, "name", UXWIN("box", "colour"),
      "Feedback on `preview' item"),
   RC(NAME_showLabel, "bool", "@off",
      "Label is visible"),
   RC(NAME_valueWidth, "int", "80",
-     "Minimum width in pixels")
+     "Minimum width in pixels"),
+  RC(NAME_itemElevation, RC_REFINE,
+     UXWIN("when(@colour_display, 0, @nil)", "0"),
+     NULL),
+  RC(NAME_elevation, RC_REFINE, "when(@colour_display, 1, @nil)", NULL),
+  RC(NAME_labelSuffix, RC_REFINE, "", NULL),
+  RC(NAME_previewElevation, RC_REFINE, "1", NULL),
+  RC(NAME_format, RC_REFINE, "left", NULL),
+  RC(NAME_margin, RC_REFINE, "1",    NULL),
+  RC(NAME_look,   RC_REFINE,
+     UXWIN("when(@colour_display, motif, open_look)",
+	   "win"),
+     NULL)
 };
 
 /* Class Declaration */

@@ -30,9 +30,7 @@ the areas of the windows in a frame.
 
 static status
 initialiseTile(TileObj t, Any object, Int w, Int h)
-{ Int border = (Int) getResourceValueObject(t, NAME_border);
-
-  if ( notNil(object) )
+{ if ( notNil(object) )
   { if ( isDefault(w) )
       w = get(object, NAME_width, 0);
     if ( isDefault(h) )
@@ -40,7 +38,6 @@ initialiseTile(TileObj t, Any object, Int w, Int h)
   } 
 
   assign(t, enforced,	 OFF);		/* building stage */
-  assign(t, border,      border);
   assign(t, idealWidth,  w);		/* ideal size */
   assign(t, idealHeight, h);
   assign(t, horStretch,  toInt(100));	/* stretchabilities */
@@ -53,8 +50,8 @@ initialiseTile(TileObj t, Any object, Int w, Int h)
   assign(t, object,  object);		/* managed object */
 					/* Actual area */
   assign(t, area, newObject(ClassArea, ZERO, ZERO, w, h, 0));
-  
-  succeed;
+
+  return obtainClassVariablesObject(t);
 }
 
 
@@ -919,7 +916,7 @@ static getdecl get_tile[] =
 
 /* Resources */
 
-static resourcedecl rc_tile[] =
+static classvardecl rc_tile[] =
 { RC(NAME_border, "int", "3",
      "Border between subtiles")
 };

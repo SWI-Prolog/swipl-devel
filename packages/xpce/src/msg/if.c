@@ -81,7 +81,7 @@ static getdecl get_if[] =
 
 #define rc_if NULL
 /*
-static resourcedecl rc_if[] =
+static classvardecl rc_if[] =
 { 
 };
 */

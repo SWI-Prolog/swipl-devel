@@ -76,7 +76,7 @@ static getdecl get_while[] =
 
 #define rc_while NULL
 /*
-static resourcedecl rc_while[] =
+static classvardecl rc_while[] =
 { 
 };
 */

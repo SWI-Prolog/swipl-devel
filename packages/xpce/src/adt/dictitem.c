@@ -213,7 +213,7 @@ static getdecl get_dictItem[] =
 
 #define rc_dictItem NULL
 /*
-static resourcedecl rc_dictItem[] =
+static classvardecl rc_dictItem[] =
 { 
 };
 */

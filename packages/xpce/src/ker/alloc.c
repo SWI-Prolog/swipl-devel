@@ -140,8 +140,8 @@ alloc(register int n)
   allocbytes += n;
 
   if ( n <= ALLOCFAST )
-  { register Zone z;
-    register int m = n / sizeof(Zone);
+  { Zone z;
+    int m = n / sizeof(Zone);
 
     if ( (z = freeChains[m]) != NULL )	/* perfect fit */
     { 
@@ -164,7 +164,9 @@ alloc(register int n)
 	  assert(*p == ALLOC_MAGIC_BYTE);
       }
 #else
-      memset(&z->start, 0, n);		/* should not be there */
+#if ALLOC_DEBUG
+      setdata(&z->start, 0, Zone, m);	/* should not be there */
+#endif
 #endif
 
 #if ALLOC_DEBUG

@@ -37,12 +37,10 @@ initialiseCursor(CursorObj c, Name name,
 		 Image image, Image mask,
 		 Point hot,
 		 Colour foreground, Colour background)
-{ char tmp[100];
-
-  assign(c, name, name);
+{ assign(c, name, name);
 
   if ( isDefault(image) )
-  { if ( ws_cursor_font_index(name) == FAIL )
+  { if ( !ws_cursor_font_index(name) )
       return errorPce(NAME_noNamedCursor, name);
 
     assign(c, font_id, DEFAULT);
@@ -66,9 +64,11 @@ initialiseCursor(CursorObj c, Name name,
   }
 
   if ( notNil(name) )
-  { protectObject(c);
-    sprintf(tmp, "%s_cursor", strName(c->name));
-    newAssoc(CtoKeyword(tmp), c);
+  { Name assoc = getAppendName(c->name, NAME_Cursor);
+
+    protectObject(c);
+    newAssoc(assoc, c);
+
     appendHashTable(CursorTable, c->name, c);
   }
 
@@ -172,7 +172,7 @@ static getdecl get_cursor[] =
 
 #define rc_cursor NULL
 /*
-static resourcedecl rc_cursor[] =
+static classvardecl rc_cursor[] =
 { 
 };
 */

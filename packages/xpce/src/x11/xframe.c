@@ -74,7 +74,9 @@ ws_uncreate_frame(FrameObj fr)
 { Widget w;
 
   if ( (w = widgetFrame(fr)) )
-  { assign(fr, status, NAME_unmapped);
+  { DEBUG(NAME_frame, Cprintf("ws_uncreate_frame(%s)\n", pp(fr)));
+
+    assign(fr, status, NAME_unmapped);
     setWidgetFrame(fr, NULL);
 
     XtRemoveCallback(w, XtNdestroyCallback,
@@ -648,7 +650,7 @@ ws_busy_cursor_frame(FrameObj fr, CursorObj c)
     Window bw;
 
     if ( isDefault(c) )
-    { if ( !(c = getResourceValueObject(fr, NAME_busyCursor)) )
+    { if ( !(c = getClassVariableValueObject(fr, NAME_busyCursor)) )
 	return;				/* TBD: default? */
       if ( isNil(c) )
 	goto out;

@@ -60,7 +60,7 @@ static getdecl get_behaviour[] =
 
 #define rc_behaviour NULL
 /*
-static resourcedecl rc_behaviour[] =
+static classvardecl rc_behaviour[] =
 { 
 };
 */

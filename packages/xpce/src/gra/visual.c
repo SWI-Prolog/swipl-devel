@@ -140,10 +140,16 @@ reportVisual(VisualObj v, Name kind, CharArray fmt, int argc, Any *argv)
     copyArgs(argc, argv, &av[2]);
 
     if ( isNil(REPORTEE->value) )
-    { withLocalVars(assignVar(REPORTEE, v, NAME_local);
+    { Chain visited = answerObject(ClassChain, v, 0);
+
+      withLocalVars(assignVar(REPORTEE, visited, NAME_local);
 		    rval = sendv(super, NAME_report, argc+2, av));
+
+      doneObject(visited);
     } else
+    { appendChain(REPORTEE->value, v);
       rval = sendv(super, NAME_report, argc+2, av);
+    }
   }
 
   return rval;
@@ -152,7 +158,7 @@ reportVisual(VisualObj v, Name kind, CharArray fmt, int argc, Any *argv)
 
 status
 alertReporteeVisual(Any v)
-{ Any obj = (isNil(REPORTEE->value) ? v : REPORTEE->value);
+{ Any obj = (isNil(REPORTEE->value) ? v : getHeadChain(REPORTEE->value));
 
   while( obj && !isNil(obj) && !hasSendMethodObject(obj, NAME_alert) )
     obj = getv(obj, NAME_containedIn, 0, NULL);
@@ -216,7 +222,7 @@ static getdecl get_visual[] =
 
 #define rc_visual NULL
 /*
-static resourcedecl rc_visual[] =
+static classvardecl rc_visual[] =
 { 
 };
 */

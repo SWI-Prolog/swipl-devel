@@ -77,7 +77,7 @@ static getdecl get_assign[] =
 
 #define rc_assign NULL
 /*
-static resourcedecl rc_assign[] =
+static classvardecl rc_assign[] =
 { 
 };
 */

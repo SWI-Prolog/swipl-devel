@@ -56,7 +56,7 @@ static getdecl get_tuple[] =
 
 #define rc_tuple NULL
 /*
-static resourcedecl rc_tuple[] =
+static classvardecl rc_tuple[] =
 { 
 };
 */
