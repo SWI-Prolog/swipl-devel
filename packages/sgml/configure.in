@@ -88,6 +88,14 @@ else
 fi
 
 AC_CHECK_PROGS(MAKE, gmake make, "make")
+AC_MSG_CHECKING("whether make is GNU-make")
+if ($MAKE -v 2>&1) | grep GNU > /dev/null; then
+    AC_MSG_RESULT(yes)
+    gmake=yes
+else
+    VPATH="VPATH = "
+    gmake=no
+fi
 AC_CHECK_PROGS(ETAGS, etags ctags, ":")
 AC_CHECK_PROGS(RUNTEX, runtex, ":")
 AC_PROG_INSTALL
@@ -95,7 +103,11 @@ AC_PROG_CPP
 AC_ISC_POSIX
 AC_HEADER_STDC
 if test ! -z "$GCC"; then
-    COFLAGS=-O2
+    if test $gmake = yes; then
+        COFLAGS='$(shell if test -r .coflags; then cat .coflags; else echo "-O2"; fi)'
+    else
+	COFLAGS=-O2
+    fi
     CWFLAGS=-Wall
 else
     COFLAGS=-O

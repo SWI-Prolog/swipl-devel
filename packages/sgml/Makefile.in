@@ -41,7 +41,10 @@ PROGRAMS=	dtd2pl sgml
 DTDFILES=	HTML4.dcl HTML4.dtd HTML4.soc \
 		HTMLlat1.ent HTMLspec.ent HTMLsym.ent
 
-all:		$(TARGETS) $(PROGRAMS)
+all:		coflags $(TARGETS) $(PROGRAMS)
+
+coflags:
+		@echo $(COFLAGS) > .coflags
 
 sgml2pl.so:	$(PLOBJ)
 		$(LD) $(LDSOFLAGS) -o $@ $(PLOBJ)
@@ -86,4 +89,5 @@ clean:
 
 distclean:	clean
 		rm -f $(TARGETS) config.cache config.h config.status Makefile
+		rm -f .coflags
 

@@ -1389,6 +1389,36 @@ def_shortref(dtd_parser *p, dtd_symbol *name)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Create an array with TRUE in any character   that can be the last of the
+shortref map.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+compile_map(dtd *dtd, dtd_shortref *sr)
+{ dtd_map *map;
+
+  for(map = sr->map; map; map = map->next)
+  { ichar last = map->from[map->len-1];
+
+    switch( last )
+    { case CHR_BLANK:
+      case CHR_DBLANK:
+      { int i;
+
+	for( i=0; i< ICHARSET_SIZE; i++)
+	{ if ( HasClass(dtd, i, CH_BLANK) )
+	    sr->ends[i] = TRUE;
+	}
+      }
+
+      default:
+	sr->ends[last] = TRUE;
+    }
+  }
+}
+
+
 static int
 process_shortref_declaration(dtd_parser *p, const ichar *decl)
 { dtd *dtd = p->dtd;
@@ -1416,6 +1446,7 @@ process_shortref_declaration(dtd_parser *p, const ichar *decl)
 
   while( *decl && (s=shortref_add_map(dtd, decl, sr)) )
     decl = s;
+  compile_map(dtd, sr);
 
   if ( *decl )
     return gripe(ERC_SYNTAX_ERROR, "Map expected", decl);
@@ -1553,9 +1584,11 @@ match_map(dtd *dtd, dtd_map *map, int len, ichar *data)
 }
 
 
-static int
+static void
 match_shortref(dtd_parser *p)
-{ if ( p->map )
+{ 
+					/* condition in caller */
+  if ( p->map /*&& p->map->ends[p->cdata->data[p->cdata->size-1]]*/ )
   { dtd_map *map;
 
     for(map = p->map->map; map; map = map->next)
@@ -1599,8 +1632,6 @@ match_shortref(dtd_parser *p)
       }
     }
   }
-
-  return TRUE;
 }
 
 
@@ -2853,7 +2884,7 @@ process_end_element(dtd_parser *p, const ichar *decl)
 
 
 static int				/* <!DOCTYPE ...> */
-process_doctype(dtd_parser *p, const ichar *decl)
+process_doctype(dtd_parser *p, const ichar *decl, const ichar *decl0)
 { dtd *dtd = p->dtd;
   dtd_symbol *id;
   const ichar *s;
@@ -2900,9 +2931,16 @@ local:
     data_mode oldmode  = p->dmode;
     dtdstate  oldstate = p->state;
     locbuf oldloc;
+    const ichar *q;
 
     push_location(p, &oldloc);
-    p->location = p->startloc;		/* not really accurate */
+					/* try to find start-location. */
+					/* fails if there is comment before */
+					/* the []! */
+    sgml_cplocation(&p->location, &p->startloc);
+    inc_location(&p->location, '<');
+    for(q=decl0; q < s; q++)
+      inc_location(&p->location, *q);
     p->dmode = DM_DTD;
     p->state = S_PCDATA;
     empty_icharbuf(p->buffer);		/* dubious */
@@ -3048,7 +3086,7 @@ process_declaration(dtd_parser *p, const ichar *decl)
       process_usemap_declaration(p, s);
     else if ( (s = isee_identifier(dtd, decl, "doctype")) )
     { if ( p->dmode != DM_DTD )
-	process_doctype(p, s);
+	process_doctype(p, s, decl-1);
     } else
     { s = iskip_layout(dtd, decl);
   
@@ -3720,7 +3758,7 @@ a single \n for Windows newline conventions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-add_cdata(dtd_parser *p, int chr, int verbatim)
+add_cdata(dtd_parser *p, int chr)
 { if ( p->mark_state == MS_INCLUDE )
   { ocharbuf *buf = p->cdata;
 
@@ -3730,7 +3768,8 @@ add_cdata(dtd_parser *p, int chr, int verbatim)
     }
 
     if ( chr == '\n' && buf->size > 0 )
-    { if ( p->map && buf->data[buf->size-1] != '\r' && !verbatim )
+    { if ( p->map && p->map->ends['\r'] &&
+	   buf->data[buf->size-1] != '\r' )
       { add_ocharbuf(buf, '\r');
 	match_shortref(p);
       }
@@ -3741,8 +3780,26 @@ add_cdata(dtd_parser *p, int chr, int verbatim)
   
     add_ocharbuf(buf, chr);
   
-    if ( p->map && !verbatim )
+    if ( p->map && p->map->ends[chr] )
       match_shortref(p);
+  }
+}
+
+
+static void
+add_verbatim_cdata(dtd_parser *p, int chr)
+{ if ( p->mark_state == MS_INCLUDE )
+  { ocharbuf *buf = p->cdata;
+
+    if ( p->blank_cdata == TRUE && !HasClass(p->dtd, chr, CH_BLANK) )
+    { p->cdata_must_be_empty = !open_element(p, CDATA_ELEMENT, FALSE);
+      p->blank_cdata = FALSE;
+    }
+
+    if ( chr == '\n' && buf->size > 0 && buf->data[buf->size-1] == '\r' )
+      buf->size--;
+  
+    add_ocharbuf(buf, chr);
   }
 }
 
@@ -3756,9 +3813,9 @@ recover_parser(dtd_parser *p)
   dtd *dtd = p->dtd;
 
   terminate_icharbuf(p->buffer);
-  add_cdata(p, dtd->charmap->map[p->saved], FALSE);
+  add_cdata(p, dtd->charmap->map[p->saved]);
   for(s=p->buffer->data; *s; s++)
-    add_cdata(p, dtd->charmap->map[*s], FALSE);
+    add_cdata(p, dtd->charmap->map[*s]);
   p->state = S_PCDATA;
 }
 
@@ -3825,7 +3882,7 @@ reprocess:
 #endif
       if ( p->cdata->size == 0 )
         setlocation(&p->startcdata, &p->location, line, lpos);
-      add_cdata(p, dtd->charmap->map[chr], FALSE);
+      add_cdata(p, dtd->charmap->map[chr]);
       return;
     }
     case S_ECDATA2:			/* Seen </ in CDATA/RCDATA */
@@ -3844,7 +3901,7 @@ reprocess:
 	empty_icharbuf(p->buffer);
 	p->cdata_state = p->state = S_PCDATA;
       } else
-      { add_cdata(p, dtd->charmap->map[chr], TRUE);
+      { add_verbatim_cdata(p, dtd->charmap->map[chr]);
 	if ( p->etaglen < p->buffer->size || !HasClass(dtd, chr, CH_NAME))
 	{ empty_icharbuf(p->buffer);	/* mismatch */
 	  p->state = p->cdata_state;
@@ -3854,7 +3911,7 @@ reprocess:
       return;
     }
     case S_ECDATA1:			/* seen < in CDATA */
-    { add_cdata(p, dtd->charmap->map[chr], TRUE);
+    { add_verbatim_cdata(p, dtd->charmap->map[chr]);
       if ( f[CF_ETAGO2] == chr )	/* / */
       { empty_icharbuf(p->buffer);
 	p->state = S_ECDATA2;
@@ -3871,7 +3928,7 @@ reprocess:
       /*FALLTHROUGH*/
     }
     case S_CDATA:
-    { add_cdata(p, dtd->charmap->map[chr], TRUE);
+    { add_verbatim_cdata(p, dtd->charmap->map[chr]);
 
       if ( f[CF_MDO1] == chr )		/* < */
       { setlocation(&p->startloc, &p->location, line, lpos);
@@ -3881,13 +3938,13 @@ reprocess:
       return;
     }
     case S_MSCDATA:
-    { add_cdata(p, dtd->charmap->map[chr], TRUE);
+    { add_verbatim_cdata(p, dtd->charmap->map[chr]);
       if ( f[CF_DSC] == chr )		/* ] */
         p->state = S_EMSCDATA1;
       return;
     }
     case S_EMSCDATA1:
-    { add_cdata(p, dtd->charmap->map[chr], TRUE);
+    { add_verbatim_cdata(p, dtd->charmap->map[chr]);
       if ( f[CF_DSC] == chr )		/* ]] */
         p->state = S_EMSCDATA2;
       else
@@ -3895,7 +3952,7 @@ reprocess:
       return;
     }
     case S_EMSCDATA2:
-    { add_cdata(p, dtd->charmap->map[chr], TRUE);
+    { add_verbatim_cdata(p, dtd->charmap->map[chr]);
       if ( f[CF_MDC] == chr )		/* ]]> */
       { p->cdata->size -= 3;		/* Delete chars for ]] */
 	pop_marked_section(p);
@@ -3950,8 +4007,8 @@ reprocess:
 	add_icharbuf(p->buffer, chr);
 	p->state = S_ENT;
       } else
-      { add_cdata(p, f[CF_ERO], FALSE);
-	add_cdata(p, chr,       FALSE);
+      { add_cdata(p, f[CF_ERO]);
+	add_cdata(p, chr);
 	p->state = p->cdata_state;
       }
 
@@ -3987,8 +4044,8 @@ reprocess:
       } else if ( f[CF_PRO2] == chr )	/* <? */
       { p->state = S_PI;
       } else				/* recover */
-      { add_cdata(p, f[CF_MDO1], FALSE);
-	add_cdata(p, chr, FALSE);
+      { add_cdata(p, f[CF_MDO1]);
+	add_cdata(p, chr);
 	p->state = S_PCDATA;
       }
 
@@ -4076,7 +4133,7 @@ reprocess:
 	p->state = S_PCDATA;
 	WITH_CLASS(p, EV_SHORTTAG, close_current_element(p));
       } else
-	add_cdata(p, dtd->charmap->map[chr], FALSE);
+	add_cdata(p, dtd->charmap->map[chr]);
 
       return;
     }
@@ -4116,10 +4173,10 @@ reprocess:
       { p->state = S_CMT;
 	return;
       } else
-      { add_cdata(p, f[CF_MDO1], FALSE);
-	add_cdata(p, f[CF_MDO2], FALSE);
-	add_cdata(p, f[CF_CMT],  FALSE);
-	add_cdata(p, chr,        FALSE);
+      { add_cdata(p, f[CF_MDO1]);
+	add_cdata(p, f[CF_MDO2]);
+	add_cdata(p, f[CF_CMT]);
+	add_cdata(p, chr);
 	p->state = S_PCDATA;
 	return;
       }
@@ -4162,7 +4219,7 @@ reprocess:
       p->utf8_char <<= 6;
       p->utf8_char |= (chr & 0xc0);
       if ( --p->utf8_left == 0 )
-      { add_cdata(p, p->utf8_char, FALSE); /* ? */
+      { add_cdata(p, p->utf8_char);	/* verbatim? */
 	p->state = p->saved_state;
       }
     }
