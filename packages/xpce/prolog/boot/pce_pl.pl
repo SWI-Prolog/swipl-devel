@@ -37,7 +37,6 @@
 
 
 :- module_transparent
-	strip_module/3,
 	'$load_pce'/0.
 
 :- use_module(library(quintus), [(meta_predicate)/1]).
@@ -61,14 +60,6 @@ property(string).			% Supports string datatype
 property(runtime) :-
 	get(@(pce), is_runtime_system, @(on)).
 	
-
-		/********************************
-		*         STRIP_MODULE		*
-		********************************/
-
-strip_module(Raw, Module, Term) :-
-	'$strip_module'(Raw, Module, Term).
-
 
 		 /*******************************
 		 *	     ERRORS		*
