@@ -578,7 +578,7 @@ int
 declareModule(atom_t name, SourceFile sf)
 { GET_LD
   Module module;
-  term_t tmp, rdef = 0, rtail = 0;
+  term_t tmp = 0, rdef = 0, rtail = 0;
 
   LOCK();
   module = _lookupModule(name);
