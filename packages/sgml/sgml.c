@@ -20,6 +20,7 @@
 #define streq(s1, s2) (strcmp(s1, s2) == 0)
 
 char *program;
+int nerrors;
 
 static void
 usage()
@@ -218,6 +219,7 @@ on_error(dtd_parser *p, dtd_error *error)
     case ERS_ERROR:
     default:				/* make compiler happy */
       severity = "Error";
+      nerrors++;
       break;
   }
 
@@ -311,7 +313,7 @@ main(int argc, char **argv)
     { set_functions(p, output);
       sgml_process_file(p, argv[0]);
       free_dtd_parser(p);
-      if ( output )
+      if ( output && nerrors == 0 )
 	printf("C\n");
       return 0;
     }
