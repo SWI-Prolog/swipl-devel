@@ -46,7 +46,7 @@ make install \
 )
 
 # why are manpages installed twice?
-rm -rf /usr/lib/pl-%{version}/man
+rm -rf $RPM_BUILD_ROOT/usr/lib/pl-%{version}/man
 
 %clean
 rm -rf $RPM_BUILD_ROOT
