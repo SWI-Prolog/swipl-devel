@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Popup handling with library(pce_unclip).
+
 VERSION 6.2.6, distributed with SWI-Prolog 5.2.6
 ================================================
 

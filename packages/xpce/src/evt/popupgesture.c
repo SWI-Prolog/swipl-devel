@@ -82,8 +82,11 @@ updatePopupGesture(PopupGesture g, EventObj ev)
 static status
 eventPopupGesture(PopupGesture g, EventObj ev)
 { if ( g->status == NAME_active && isUpEvent(ev) )
-  { PceWindow sw = ev->window;
-
+  { PceWindow sw;
+    
+    if ( !(sw = getWindowGraphical(ev->receiver)) )
+      sw = ev->window;
+    
     if ( valInt(getClickTimeEvent(ev)) < 400 &&
 	 /*valInt(getClickDisplacementEvent(ev)) < 10 &&*/
 	 getAttributeObject(g, NAME_Stayup) != ON )
@@ -172,12 +175,17 @@ terminatePopupGesture(PopupGesture g, EventObj ev)
   { postEvent(ev, (Graphical) current, DEFAULT);
   
     if ( current->displayed == OFF )	/* for stayup */
-    { assign(g, context, NIL);
+    { PceWindow sw;
+
+      if ( !(sw = getWindowGraphical(ev->receiver)) )
+	sw = ev->window;
+
+      assign(g, context, NIL);
       assign(g, current, NIL);
 
-      grabPointerWindow(ev->window, OFF);
+      grabPointerWindow(sw, OFF);
       send(current, NAME_execute, context, EAV);
-      focusWindow(ev->window, NIL, NIL, NIL, NIL);
+      focusWindow(sw, NIL, NIL, NIL, NIL);
     }
   }
 
