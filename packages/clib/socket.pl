@@ -68,4 +68,4 @@ is extracted from the operating system.
 	prolog:message/3.
 
 prolog:message(error(socket_error(Message), _)) -->
-	[ 'Socket error: ~W'-[Message] ].
+	[ 'Socket error: ~w'-[Message] ].
