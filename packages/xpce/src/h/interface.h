@@ -157,6 +157,7 @@ __pce_export char * pceStringToC(PceObject datum);
 __pce_export void * pcePointerToC(PceObject datum);
 __pce_export PceHostData  CtoHostData(PceClass class, void *handle, int flags);
 __pce_export void *    getHostDataHandle(PceHostData hd);
+__pce_export void  makeAnyHostData(PceHostData hd);
 __pce_export void  setHostDataHandle(PceHostData hd, void *handle);
 __pce_export int   freeHostData(PceHostData hd);
 

@@ -732,7 +732,7 @@ getObjectSourceSink(SourceSink f)
 static void
 updateFlagsObject(Any obj)
 { if ( instanceOfObject(obj, ClassFunction) )
-    setFlag(obj, F_ACTIVE);
+    setFlag(obj, F_ACTIVE|F_NOTANY);
 }
 
 

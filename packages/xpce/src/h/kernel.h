@@ -492,9 +492,10 @@ extern struct name builtin_names[];	/* object-array of built-in's */
 #define F_ISNAME		makeFlag(21) /* instanceOf(x, ClassName) */
 #define F_ISREAL		makeFlag(22) /* instanceOf(x, ClassReal) */
 #define F_ISHOSTDATA		makeFlag(23) /* instanceOf(x, ClassHostData) */
+#define F_NOTANY		makeFlag(24) /* Not acceptable to any/object */
 
-#define OBJ_MAGIC		((unsigned long)(0x95L << 24))
-#define OBJ_MAGIC_MASK		((unsigned long)(0xffL << 24))
+#define OBJ_MAGIC		((unsigned long)(0x94L << 25))
+#define OBJ_MAGIC_MASK		((unsigned long)(0xfeL << 25))
 
 #define hasObjectMagic(obj)	((((Instance)(obj))->flags&OBJ_MAGIC_MASK) == \
 					OBJ_MAGIC)

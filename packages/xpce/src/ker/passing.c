@@ -840,6 +840,8 @@ pceReportErrorGoal(PceGoal g)
     }
     case PCE_ERR_FUNCTION_FAILED:	/* this is not (yet) reported */
       break;
+    case PCE_ERR_ERROR:
+      break;
     default:
       Cprintf("Unknown error: %d\n", g->errcode);
   }

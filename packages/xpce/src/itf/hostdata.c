@@ -21,7 +21,7 @@ CtoHostData(Class class, void *h, int flags)
   hd = allocObject(class, TRUE);
 
   hd->handle = h;
-  setFlag(hd, F_ISHOSTDATA);
+  setFlag(hd, F_ISHOSTDATA|F_NOTANY);
   incrInt(class->no_created);
   clearCreatingObj(hd);
 #else
@@ -72,6 +72,13 @@ freeHostData(HostData hd)
 }
 
 
+void
+makeAnyHostData(HostData hd)
+{ clearFlag(hd, F_NOTANY);
+}
+
+
+
 
 		 /*******************************
 		 *	      CLASS		*
@@ -85,7 +92,7 @@ initialiseHostData(HostData hd, void *h)
   return errorPce(classOfObject(hd), NAME_cannotCreateInstances);
 #else
   hd->handle = h;
-  setFlag(hd, F_ISHOSTDATA);
+  setFlag(hd, F_ISHOSTDATA|F_NOTANY);
 
   succeed;
 #endif

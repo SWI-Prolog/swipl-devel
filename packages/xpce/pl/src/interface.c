@@ -187,6 +187,7 @@ static Atom ATOM_unknownReference;	/* "unknown_reference" */
 static Atom ATOM_update;		/* "update" */
 static Atom ATOM_user;			/* "user" */
 static Atom ATOM_write;			/* "write" */
+static Atom ATOM_prolog;		/* "prolog" */
 
 static Module MODULE_user;		/* Handle for user-module */
 
@@ -235,6 +236,7 @@ initPrologConstants()
   ATOM_update			= AtomFromString("update");
   ATOM_user			= AtomFromString("user");
   ATOM_write			= AtomFromString("write");
+  ATOM_prolog			= AtomFromString("prolog");
 
   MODULE_user			= ModuleFromAtom(ATOM_user);
 }
@@ -1335,6 +1337,17 @@ termToObject(Term t, PceType type, Atom assoc, int new)
       return PCE_FAIL;
     }
 
+					/* prolog(Term) */
+    if ( functor == ATOM_prolog && arity == 1 )
+    { PceObject h;
+      Term a = NewTerm();
+      
+      QGetArg(1, t, a);
+      h = makeTermHandle(a);
+      makeAnyHostData(h);		/* make acceptable to any/object */
+
+      return h;
+    }
 					/* A list */
     if ( functor == ATOM_dot && arity == 2 )
     { Term tail = CopyTerm(t);
@@ -1555,9 +1568,11 @@ pl_new(Term assoc, Term descr)
   Term d = NewTerm();
   Module odm;
   pce_goal goal;
+  HostStackEntry hmark;
 
   LOCK();
   odm		      =	PushDefaultModule();
+  hmark               = host_handle_stack;
   goal.flags	      =	PCE_GF_CATCH;
   goal.errcode	      =	PCE_ERR_OK;
   goal.argc	      =	0;
@@ -1569,6 +1584,7 @@ pl_new(Term assoc, Term descr)
   markAnswerStack(mark);
   obj = do_new(assoc, d);
   rewindAnswerStack(mark, obj);
+  rewindHostHandles(hmark);
   PopDefaultModule(odm);
 
   if ( !obj && (goal.flags & PCE_GF_THROW) )

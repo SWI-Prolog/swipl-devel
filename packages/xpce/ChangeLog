@@ -1,3 +1,12 @@
+* ADDED: Allow for handling native Prolog data by methods and slots of
+  type any.  This allows for passing Prolog data in messages (->for_all),
+  and storing Prolog data in sheets, vectors, chains, etc.
+
+* FIXED: Removed printing "Unknown error: 10", on typing errors.
+
+* ADDED: Class resize_table_slice_gesture to allow user-controlled
+  manipulation of row and column widths in class table.
+
 * FIXED: BoundingBox calculation by class table using negative cell_spacing.
 
 * FIXED: Win32: Repainting windows after removing transient windows sometimes

@@ -12,7 +12,7 @@
 
 status
 initialiseFunction(Function f)
-{ setFlag(f, F_ACTIVE);
+{ setFlag(f, F_ACTIVE|F_NOTANY);
 
   return initialiseCode((Code) f);
 }

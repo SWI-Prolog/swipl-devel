@@ -538,7 +538,7 @@ objectType(const Type t, const Any val, const Any ctx)
 static inline status
 anyType(const Type t, const Any val, const Any ctx)
 { if ( isObject(val) )
-    return offFlag(val, F_ACTIVE|F_ISHOSTDATA);
+    return offFlag(val, F_NOTANY);
 
   succeed;
 }

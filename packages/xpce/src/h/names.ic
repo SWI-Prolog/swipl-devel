@@ -2180,6 +2180,7 @@
   BUILTIN_NAME("user_fonts")
   BUILTIN_NAME("user_id")
   BUILTIN_NAME("user_info")
+  BUILTIN_NAME("user_resize_slice")
   BUILTIN_NAME("usr1")
   BUILTIN_NAME("usr2")
   BUILTIN_NAME("v_mode")
@@ -2310,4 +2311,3 @@
   BUILTIN_NAME("yref")
   BUILTIN_NAME("yref_var")
   BUILTIN_NAME("zoom")
-  BUILTIN_NAME("user_resize_slice")
