@@ -477,7 +477,9 @@ freeSocket(int socket)
   }
   UNLOCK();
 
+#ifndef WIN32
 again:
+#endif
   if ( (rval=closesocket(socket)) == SOCKET_ERROR )
   {
 #ifdef WIN32
@@ -1288,12 +1290,12 @@ tcp_close_output(void *handle)
   if ( s->output )
   { s->output = NULL;
     s->flags &= ~SOCK_OUTSTREAM;
-#if 0
+#if WIN32
     if ( shutdown(socket, SD_SEND) == SOCKET_ERROR )
     {
 #ifdef O_DEBUG
       if ( debugging )
-      { char *msg;
+      { const char *msg;
 #ifdef WIN32
 	msg = WinSockError(WSAGetLastError());
 #else
