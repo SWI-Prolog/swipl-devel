@@ -53,6 +53,7 @@ status		flashDevice(Device dev, Area a, Int time);
 status		clearDevice(Device dev);
 status		displayDevice(Any Dev, Any Gr, Point pos);
 status		appendDevice(Device dev, Graphical gr);
+status		subGraphical(Graphical gr, Graphical sub);
 status		eraseDevice(Device dev, Graphical gr);
 status		displayedGraphicalDevice(Device dev, Graphical gr, Bool val);
 status		exposeDevice(Device dev, Graphical gr, Graphical gr2);

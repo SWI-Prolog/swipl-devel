@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: `device->erase' to reset the windows focus also the erased graphical
+  is a sub-graphical of the focus.  This can cause crashes in applications.
+
 * FIXED: `table_cell->note_mark' for cells in top row or left column.
 
 * FIXED: Colour update in class reporter on ->report: progress, ... 
