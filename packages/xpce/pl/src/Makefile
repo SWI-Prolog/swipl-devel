@@ -31,7 +31,7 @@ LIBQLFS=	pce_manual.qlf dialog/dialog.qlf emacs/emacs.qlf pcedraw.qlf
 nosoall:	$(QLF) pl-crt0.o
 
 soall:		$(PLBASE)/plrc $(PLBASE)/xpce ../$(PLARCH)/$(XPCESO) \
-		pl-crt0.o bootqlf libqlfs
+		../$(PLARCH)/pl-crt0.o bootqlf libqlfs
 
 interface.o:	$(ITF) interface.c
 
@@ -53,7 +53,7 @@ Initialize.o:
 		ar x $(XLIB)/libXt.a $@
 
 $(XPCESO):	shitf.o $(XPCEOBJ) $(SOEXTRAOBJ)
-		$(LD) shitf.o $(XPCEOBJ) $(SOEXTRAOBJ) $(GCCLIB) $(XLIBS) -o $@
+		$(LD) $(LDSOFLAGS) shitf.o $(XPCEOBJ) $(SOEXTRAOBJ) $(GCCLIB) $(XLIBS) -o $@
 
 libqlfs:	$(addprefix ../../prolog/lib/, $(LIBQLFS))
 bootqlf:	$(addprefix ../../prolog/lib/, $(BOOTQLF))
@@ -68,7 +68,10 @@ bootqlf:	$(addprefix ../../prolog/lib/, $(BOOTQLF))
 		mkdir $@
 
 ../$(PLARCH)/$(XPCESO): ../$(PLARCH) $(XPCESO)
-		(cd ../$(PLARCH); ln -s ../src/$(XPCESO) .)
+		(cd ../$(PLARCH); rm -f $(XPCESO); ln -s ../src/$(XPCESO) .)
+
+../$(PLARCH)/pl-crt0.o: ../$(PLARCH) pl-crt0.o
+		(cd ../$(PLARCH); rm -f pl-crt0.o; ln -s ../src/pl-crt0.o .)
 
 $(PLBASE)/plrc:	plrc
 		cp plrc $@

@@ -45,9 +45,9 @@ PL=pl
 NETLIBS=
 PLLIBS=-lreadline -ltermcap -lm -ldl
 XLIBS=-lXt -lX11
-STATICLIBS=
+STATICLIBS=/usr/lib/libc.a
 LDFLAGS=
-GCCLIB=/usr/local/lib/gcc-lib/sparc-sun-sunos4.1/2.5.7/libgcc.a
+GCCLIB=/usr/local/lib/gcc-lib/sparc-sun-sunos4.1.3/2.6.3/libgcc.a
 LDSOFLAGS=
 SOEXTRAOBJ=Initialize.o
 SO=so
@@ -62,7 +62,7 @@ CMFLAGS= -fPIC -funsigned-char -DHAVE_CONFIG_H
 # Paths for host-languages
 ################################################################
 
-PLBASE=/staff/jan/lib/pl-2.0.7
+PLBASE=/staff/jan/lib/pl-2.0.8
 PLARCH=sparc-sunos4.1.3
 
 SICSHOME=/staff/jan/src/sicstus2.1
