@@ -19,10 +19,11 @@ function texclean
 { rm -f *.idx *.ind *.ilg *.aux *.log *.lof *.out *.toc
 }
 
-if [ "`getopt --test`" = "--" ]; then
+if [ x`getopt --test` = x-- ]; then
    case "$1" in
      --clean)
 	texclean
+	exit 0
 	;;
      *)
         echo "ERROR: runtex requires GNU getopt"
