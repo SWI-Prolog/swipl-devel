@@ -132,7 +132,7 @@ void
 freeHeap__LD(void *mem, size_t n ARG_LD)
 { long *p = mem;
 
-  assert(p[-1] == n);
+  assert(p[-1] == (long)n);
   assert(p[-2] == INUSE_MAGIC);
   p[-2] = FREE_MAGIC;			/* trap double free */
   memset(mem, ALLOC_FREE_MAGIC, n);

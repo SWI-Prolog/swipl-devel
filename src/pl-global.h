@@ -263,6 +263,9 @@ typedef struct PL_local_data
   int		aborted;		/* thread asked for abort */
   Stack		outofstack;		/* thread is out of stack */
   int		trim_stack_requested;	/* perform a trim-stack */
+#ifdef O_PLMT
+  int		exit_requested;		/* Thread is asked to exit */
+#endif
   int		in_arithmetic;		/* doing arithmetic */
   int		autoload_nesting;	/* Nesting level in autoloader */
   void *	glob_info;		/* pl-glob.c */

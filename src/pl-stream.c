@@ -1060,11 +1060,17 @@ Svsprintf(char *buf, const char *fm, va_list args)
 int
 Svdprintf(const char *fm, va_list args)
 { int rval;
+  IOSTREAM *s = Soutput;
 
-  SLOCK(Soutput);
-  rval = Svfprintf(Soutput, fm, args);
-  Sflush(Soutput);
-  SUNLOCK(Soutput);
+  SLOCK(s);
+  rval = Svfprintf(s, fm, args);
+#ifdef WIN32
+  Sputc('\0', s);
+  s->bufp--;				/* `Unput' */
+  OutputDebugString(s->buffer);
+#endif
+  Sflush(s);
+  SUNLOCK(s);
 
   return rval;
 }

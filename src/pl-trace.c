@@ -1172,6 +1172,15 @@ interruptHandler(int sig)
   }  
 
 again:
+#ifdef O_PLMT
+  if ( LD->exit_requested )
+  { term_t rval = PL_new_term_ref();
+    PL_put_atom(rval, ATOM_true);
+    pl_thread_exit(rval);
+    assert(0);				/* should not return */
+  }
+#endif
+
   Sfputs("\nAction (h for help) ? ", Sdout);
   Sflush(Sdout);
   ResetTty();                           /* clear pending input -- atoenne -- */

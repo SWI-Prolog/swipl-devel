@@ -1286,13 +1286,18 @@ rlc_dispatch(RlcData b)
 { MSG msg;
 
   if ( GetMessage(&msg, NULL, 0, 0) && msg.message != WM_RLC_CLOSEWIN )
-  { DEBUG(Dprintf("Got message 0x%04x", msg.message));
+  { /* DEBUG(Dprintf("Thread %x got message 0x%04x\n",
+		     GetCurrentThreadId(), msg.message));
+    */
     TranslateMessage(&msg);
     DispatchMessage(&msg);
     rlc_flush_output(b);
     return;
   } else
+  { DEBUG(Dprintf("Thread %x got WM_RLC_CLOSEWIN\n",
+		  GetCurrentThreadId()));
     b->queue->flags |= RLC_EOF;
+  }
 }
 
 
@@ -3155,9 +3160,12 @@ and proved to be sound on Windows-NT, but not on 95 and '98.
 
 int
 rlc_close(rlc_console c)
-{ RlcData b = rlc_get_data(c);
+{ RlcData b = (RlcData)c;
   MSG msg;
   int i;
+
+  if ( b->magic != RLC_MAGIC )
+    return -1;
 
   rlc_save_options(b);
   b->closing = 3;
@@ -3170,6 +3178,7 @@ rlc_close(rlc_console c)
     Sleep(50);
   }
 
+  b->magic = 0;
   free_user_data(c);
   free_rlc_data(b);
 
@@ -3357,7 +3366,10 @@ rlc_set(rlc_console c, int what, unsigned long data, RlcFreeDataHook hook)
 
 int
 rlc_get(rlc_console c, int what, unsigned long *data)
-{ RlcData b = rlc_get_data(c);
+{ RlcData b = (RlcData)c;
+
+  if ( !b )
+    return FALSE;
 
   switch(what)
   { case RLC_APPLICATION_THREAD:

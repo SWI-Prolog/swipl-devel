@@ -1022,6 +1022,7 @@ PL_cleanup(int rval)
 
   GD->cleaning = CLN_FOREIGN;
 
+					/* run PL_on_halt() hooks */
   for(h = GD->os.on_halt_list; h; h = h->next)
     (*h->function)(rval, h->argument);
 
@@ -1084,7 +1085,6 @@ PL_cleanup(int rval)
   memset(LD, 0, sizeof(*LD));
 #endif
 
-  GD->cleaning = CLN_NORMAL;			/* prepare for another */
   UNLOCK();
 
   return TRUE;

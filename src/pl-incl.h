@@ -1459,12 +1459,12 @@ typedef struct chunk *Chunk;		/* Allocation-chunk */
 typedef struct alloc_pool *AllocPool;	/* Allocation pool */
 
 struct chunk
-{ Chunk next;				/* next of chain */
+{ Chunk		next;			/* next of chain */
 };
 
 struct free_chunk
-{ FreeChunk next;			/* next of chain */
-  int   size;				/* size of free bit */
+{ FreeChunk	next;			/* next of chain */
+  size_t	size;			/* size of free bit */
 };
 
 struct alloc_pool

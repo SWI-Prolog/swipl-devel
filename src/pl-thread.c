@@ -291,15 +291,18 @@ static void
 free_prolog_thread(void *data)
 { PL_local_data_t *ld = data;
   PL_thread_info_t *info;
+  int acknowlege;
 
   if ( threads_exited )
     return;				/* Post-mortem */
 
-  DEBUG(1, Sdprintf("Freeing prolog thread %d\n", PL_thread_self()));
-
   info = ld->thread.info;
+  acknowlege = (info->status == PL_THREAD_CANCELED);
+  DEBUG(1, Sdprintf("Freeing prolog thread %d\n", info-threads));
+
   run_thread_exit_hooks();
   
+  DEBUG(2, Sdprintf("Destroying data\n"));
   freeStacks(ld);
   freeLocalData(ld);
 
@@ -322,7 +325,7 @@ free_prolog_thread(void *data)
   if ( info->detached )
     free_thread_info(info);
 
-  if ( info->status == PL_THREAD_CANCELED )
+  if ( acknowlege )
     sem_post(&sem_canceled);
 }
 
@@ -364,50 +367,61 @@ There are a lot of problems however.
 
 void
 exitPrologThreads()
-{ int i;
+{ PL_thread_info_t *t;
+  int i;
   int me = PL_thread_self();
   int canceled = 0;
 
   sem_init(&sem_canceled, USYNC_THREAD, 0);
 
-  for(i=1; i<MAX_THREADS; i++)
-  { if ( threads[i].thread_data && i != me )
-    { switch(threads[i].status)
+  for(t=threads, i=1; i<MAX_THREADS; i++, t++)
+  { if ( t->thread_data && i != me )
+    { switch(t->status)
       { case PL_THREAD_FAILED:
 	case PL_THREAD_EXITED:
 	case PL_THREAD_EXCEPTION:
 	{ void *r;
-	  if ( pthread_join(threads[i].tid, &r) )
+	  if ( pthread_join(t->tid, &r) )
 	    Sdprintf("Failed to join thread %d: %s\n", i, OsError());
 
 	  break;
 	}
 	case PL_THREAD_RUNNING:
-	  if ( pthread_cancel(threads[i].tid) == 0 )
-	  { threads[i].status = PL_THREAD_CANCELED;
+#ifdef WIN32
+  	  t->thread_data->exit_requested = TRUE;
+	  t->thread_data->pending_signals |= (1L << (SIGINT-1));
+	  PostThreadMessage(t->w32id, WM_QUIT, 0, 0);
+	  canceled++;
+#else
+	  if ( pthread_cancel(t->tid) == 0 )
+	  { t->status = PL_THREAD_CANCELED;
 	    canceled++;
 	  } else
 	  { Sdprintf("Failed to cancel thread %d: %s\n", i, OsError());
 	  }
+#endif
 	  break;
       }
     }
   }
 
-  while(canceled)
-  { 
-    int maxwait = 10;
+  Sdprintf("Waiting for %d threads ...", canceled);
+  for(i=canceled; i-- > 0;)
+  { int maxwait = 10;
 
     while(maxwait--)
-    { if ( sem_trywait(&sem_canceled) == 0 )
+    { if ( sem_wait(&sem_canceled) == 0 ) /* sem_trywait? */
+      { Sdprintf(" (ok)");
+	canceled--;
 	break;
+      }
       Pause(0.1);
     }
-
-    canceled--;
   }
+  Sdprintf("done\n");
 
-  sem_destroy(&sem_canceled);
+  if ( canceled == 0 )			/* safe */
+    sem_destroy(&sem_canceled);
 
   threads_exited = TRUE;
 }
@@ -813,12 +827,18 @@ pl_thread_exit(term_t retcode)
 { PL_thread_info_t *info = LD->thread.info;
 
   LOCK();
-  info->status = PL_THREAD_EXITED;
+  if ( LD->exit_requested )
+    info->status = PL_THREAD_CANCELED;
+  else
+    info->status = PL_THREAD_EXITED;
   info->return_value = PL_record(retcode);
   UNLOCK();
 
+  DEBUG(1, Sdprintf("thread_exit(%d)\n", info-threads));
+
   pthread_exit(NULL);
-  fail;					/* should not happen */
+  assert(0);
+  fail;
 }
 
 

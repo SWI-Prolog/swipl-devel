@@ -53,6 +53,78 @@ static int		get_chars_arg_ex(int a, term_t t, char **v, unsigned flags);
 #define RLC_PROLOG_INPUT	RLC_VALUE(1) /* Input  stream (IOSTREAM*) */
 #define RLC_PROLOG_OUTPUT	RLC_VALUE(2) /* Output stream (IOSTREAM*) */
 #define RLC_PROLOG_ERROR	RLC_VALUE(3) /* Error  stream (IOSTREAM*) */
+#define RLC_REGISTER		RLC_VALUE(4) /* Trap destruction */
+
+		 /*******************************
+		 *	    CONSOLE ADM		*
+		 *******************************/
+
+CRITICAL_SECTION mutex;
+#define LOCK()   EnterCriticalSection(&mutex)
+#define UNLOCK() LeaveCriticalSection(&mutex)
+
+static rlc_console *consoles;		/* array of consoles */
+static int consoles_length;		/* size of this array */
+
+static void
+unregisterConsole(unsigned long data)
+{ rlc_console c = (rlc_console)data;
+  rlc_console *p;
+  int n;
+
+  LOCK();
+  for(p=consoles, n=0; n++<consoles_length; p++)
+  { if ( *p == c )
+    { *p = NULL;
+      break;
+    }
+  }
+  UNLOCK();
+}
+
+
+static void
+registerConsole(rlc_console c)
+{ rlc_console *p;
+  int n;
+
+  LOCK();
+  for(;;)
+  { for(p=consoles, n=0; n++<consoles_length; p++)
+    { if ( !*p )
+      { *p = c;
+        rlc_set(c, RLC_REGISTER, (unsigned long)c, unregisterConsole);
+	UNLOCK();
+	return;
+      }
+    }
+    if ( consoles_length )
+    { int bytes = consoles_length*sizeof(rlc_console);
+
+      consoles = PL_realloc(consoles, bytes*2);
+      memset(consoles+consoles_length, 0, bytes);
+      consoles_length *= 2;
+    } else
+    { consoles_length = 10;
+      consoles = PL_malloc(consoles_length*sizeof(rlc_console));
+      memset(consoles, 0, consoles_length*sizeof(rlc_console));
+    }
+  }
+}
+
+
+void
+closeConsoles()
+{ int i;
+  rlc_console *p;
+
+  LOCK();
+  for(i=0, p=consoles; i<consoles_length; i++, p++)
+  { if ( *p )
+      rlc_close(*p);
+  }
+  UNLOCK();
+}
 
 
 		 /*******************************
@@ -195,6 +267,7 @@ pl_win_open_console(term_t title, term_t input, term_t output, term_t error,
 
   c = rlc_create_console(&attr);
   create_prolog_hidden_window(c);	/* for sending messages */
+  registerConsole(c);
 
 #define STREAM_COMMON (SIO_TEXT|	/* text-stream */ 		\
 		       SIO_NOCLOSE|	/* do no close on abort */	\
@@ -351,7 +424,7 @@ pl_window_title(term_t old, term_t new)
   char *n;
 
   if ( !PL_get_atom_chars(new, &n) )
-    return PL_warning("window_title/2: instantiation fault");
+    return type_error(new, "atom");
 
   rlc_title(current_console(), n, buf, sizeof(buf));
 
@@ -542,16 +615,24 @@ pl_win_insert_menu(foreign_t label, foreign_t before)
 
 #ifdef O_PLMT
 
+static void
+free_interactor(void *closure)
+{ PL_thread_destroy_engine();
+}
+
+
 static void *
 run_interactor(void *closure)
 { predicate_t pred;
 
   PL_thread_attach_engine(NULL);
-  
+  pthread_cleanup_push(free_interactor, NULL);
+
   pred = PL_predicate("thread_run_interactor", 0, "user");
   PL_call_predicate(NULL, PL_Q_NORMAL, pred, 0);
 
-  PL_thread_destroy_engine();
+  pthread_cleanup_pop(1);
+
   return NULL;
 }
 
@@ -781,19 +862,11 @@ static void
 closeWin(int s, void *a)
 { rlc_console c = a;
 
+//  closeConsoles();
+
   if ( c == main_console )
   { main_console = NULL;
     rlc_close(c);
-  }
-}
-
-void
-atexitfunc(void)
-{ rlc_console c;
-
-  if ( (c=main_console) ) 
-  { main_console = NULL;
-    rlc_close(c); 
   }
 }
 
@@ -807,7 +880,6 @@ win32main(rlc_console c, int argc, char **argv)
   PL_action(PL_ACTION_GUIAPP, TRUE);
   main_console = c;
   PL_on_halt(closeWin, c);
-  atexit(atexitfunc);
 
   create_prolog_hidden_window(c);
   PL_set_feature("hwnd", PL_INTEGER, (long)rlc_hwnd(c));
@@ -840,7 +912,8 @@ console.c for further details.
 int PASCAL
 WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 	LPSTR lpszCmdLine, int nCmdShow)
-{
+{ InitializeCriticalSection(&mutex);
+
   return rlc_main(hInstance, hPrevInstance, lpszCmdLine, nCmdShow,
 		  win32main, LoadIcon(hInstance, "SWI_Icon"));
 }
