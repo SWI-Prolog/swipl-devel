@@ -47,7 +47,6 @@ initialiseFrame(FrameObj fr, Name label, Name kind,
   assign(fr, name,	    	    getClassNameObject(fr));
   assign(fr, label,         	    label);
   assign(fr, display,       	    display);
-  assign(fr, colour_map,    	    DEFAULT);
   assign(fr, border,		    DEFAULT);
   assign(fr, area,	    	    newObject(ClassArea, 0));
   assign(fr, members,	    	    newObject(ClassChain, 0));
@@ -1874,7 +1873,9 @@ static classvardecl rc_frame[] =
   RC(NAME_fitAfterAppend, "bool", "@off",
      "Automatically ->fit the frame after a subwindow was added"),
   RC(NAME_decorateTransient, "bool", "@on",
-     "Decorate transient windows (if possible)")
+     "Decorate transient windows (if possible)"),
+  RC(NAME_colourMap, "[colour_map]*", "@default",
+     "Colourmap for the window's frame")
 };
 
 /* Class Declaration */
