@@ -310,6 +310,7 @@ if test ! "$runtime" = "yes" -a "$configreadline" = "yes"; then
     AC_CHECK_FUNCS(rl_completion_matches rl_insert_close rl_readline_state)
     AC_CHECK_FUNCS(rl_set_prompt rl_clear_pending_input)
     AC_CHECK_FUNCS(rl_event_hook rl_cleanup_after_signal)
+    AC_CHECK_FUNCS(rl_filename_completion_function)
     AC_MSG_CHECKING(whether to install readline.3)
     INSTALLRLMAN=install_rlman
     if test -z "$MANPATH"; then MANPATH=/usr/man; fi

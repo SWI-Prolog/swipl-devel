@@ -263,6 +263,9 @@
 /* Define if you have the rl_event_hook function.  */
 #undef HAVE_RL_EVENT_HOOK
 
+/* Define if you have the rl_filename_completion_function function.  */
+#undef HAVE_RL_FILENAME_COMPLETION_FUNCTION
+
 /* Define if you have the rl_insert_close function.  */
 #undef HAVE_RL_INSERT_CLOSE
 

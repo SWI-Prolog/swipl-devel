@@ -70,7 +70,10 @@ extern void add_history(char *);	/* should be in readline.h */
 extern int rl_begin_undo_group(void);	/* delete when conflict arrises! */
 extern int rl_end_undo_group(void);
 extern Function *rl_event_hook;
+#ifndef HAVE_RL_FILENAME_COMPLETION_FUNCTION
+#define rl_filename_completion_function filename_completion_function
 extern char *filename_completion_function(char *, int);
+#endif
 
 #ifndef HAVE_RL_COMPLETION_MATCHES
 #define rl_completion_matches completion_matches
@@ -342,7 +345,7 @@ prolog_completion(const char *text, int start, int end)
   if ( (start == 1 && rl_line_buffer[0] == '[') ||	/* [file */
        (start == 2 && strncmp(rl_line_buffer, "['", 2)) )
     matches = rl_completion_matches((char *)text,	/* for pre-4.2 */
-				    (void *)filename_completion_function);
+				    (void *)rl_filename_completion_function);
   else
     matches = rl_completion_matches((char *)text,
 				    atom_generator);
