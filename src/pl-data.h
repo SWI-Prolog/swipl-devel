@@ -273,7 +273,6 @@ and while loading .wic files.  It comes at no price.
 #define mkPadHdr(n)	(((n)&PADMASK) << LMASK_BITS)
 #define mkStrHdr(n,p)	(mkIndHdr(n, TAG_STRING)|mkPadHdr(pad))
 
-#define valString(w)	((char *)valIndirectP(w))
 #define valBignum(w)	(*(long *)valIndirectP(w))
 #define isBignum(w)	(isInteger(w) && storage(w) != STG_INLINE)
 #define isTaggedInt(w)	(tagex(w) == (TAG_INTEGER|STG_INLINE))

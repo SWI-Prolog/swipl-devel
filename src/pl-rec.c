@@ -403,7 +403,7 @@ right_recursion:
     case TAG_STRING:
     { Word f  = addressIndirect(w);
       int n   = wsizeofInd(*f);
-      int pad = padHdr(*f);		/* see also sizeString() */
+      int pad = padHdr(*f);		/* see also getCharsString() */
       long l  = n*sizeof(word)-pad;
 
       info->size += n+2;
@@ -1161,7 +1161,7 @@ unref_cont:
       if ( stag == PL_TYPE_STRING )
       { Word f  = addressIndirect(w);
 	int n   = wsizeofInd(*f);
-	int pad = padHdr(*f);		/* see also sizeString() */
+	int pad = padHdr(*f);		/* see also getCharsString() */
 	uint l  = n*sizeof(word)-pad;
 
 	uint llen = fetchSizeInt(info);

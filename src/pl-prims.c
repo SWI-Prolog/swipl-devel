@@ -326,8 +326,14 @@ termHashValue(word term, long *hval ARG_LD)
 	*hval = atomValue(term)->hash_value;
         succeed;
       case TAG_STRING:
-	*hval = unboundStringHashValue(valString(term), sizeString(term));
+      { unsigned len;
+	char *s;
+
+	s = getCharsString(term, &len);
+	*hval = unboundStringHashValue(s, len);
+
         succeed;
+      }
       case TAG_INTEGER:
 	*hval = valInteger(term);
         succeed;
@@ -425,12 +431,12 @@ compareAtoms(atom_t w1, atom_t w2)
 
 static int
 compareStrings(word w1, word w2 ARG_LD)
-{ char *s1 = valString(w1);
-  char *s2 = valString(w2);
-  int l1 = sizeString(w1);
-  int l2 = sizeString(w2);
-  int l = (l1 < l2 ? l1 : l2);
-  int v;
+{ char *s1, *s2;
+  int l1, l2, l, v;
+
+  s1 = getCharsString(w1, &l1);
+  s2 = getCharsString(w2, &l2);
+  l = (l1 < l2 ? l1 : l2);
 
   if ( (v=memcmp(s1, s2, l)) != 0 )
     return v;

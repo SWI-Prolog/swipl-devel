@@ -3455,7 +3455,7 @@ wamListInstruction(IOSTREAM *out, Clause clause, Code bp)
 	      Sfprintf(out, " %ld", valInteger(xr));
 	      break;
 	    case TAG_STRING:
-	      Sfprintf(out, " \"%s\"", valString(xr));
+	      Sfprintf(out, " \"%s\"", getCharsString(xr, NULL));
 	      break;
 	    default:
 	      assert(0);

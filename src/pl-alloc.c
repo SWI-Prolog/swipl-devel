@@ -820,19 +820,8 @@ globalLong(long l ARG_LD)
 		 *    OPERATIONS ON STRINGS	*
 		 *******************************/
 
-int
-sizeString(word w)
-{ GET_LD
-  word m  = *((Word)addressIndirect(w));
-  int wn  = wsizeofInd(m);
-  int pad = padHdr(m);
-
-  return wn*sizeof(word) - pad;
-}
-
-
 word
-globalNString(long l, const char *s)
+globalString(long l, const char *s)
 { GET_LD
   int lw = (l+sizeof(word))/sizeof(word);
   int pad = (lw*sizeof(word) - l);
@@ -853,9 +842,18 @@ globalNString(long l, const char *s)
 }
 
 
-word
-globalString(const char *s)
-{ return globalNString(strlen(s), s);
+char *
+getCharsString__LD(word w, unsigned *len ARG_LD)
+{ Word p = valPtr(w);
+  word m = *p;
+  int wn  = wsizeofInd(m);
+  int pad = padHdr(m);
+
+  if ( len )
+    *len = wn*sizeof(word) - pad;
+  
+  p++;
+  return (char *)p;
 }
 
 

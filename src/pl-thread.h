@@ -400,6 +400,7 @@ extern void		initPrologThreads(void);
 #define makeNum(n)		makeNum__LD(n PASS_LD)
 #define getInputStream(t, s)	getInputStream__LD(t, s PASS_LD)
 #define valReal(w)		valReal__LD(w PASS_LD)
+#define getCharsString(s, l)	getCharsString__LD(s, l PASS_LD)
 #define compileTermToHeap(t, f)	compileTermToHeap__LD(t, f PASS_LD)
 #define linkVal(p)		linkVal__LD(p PASS_LD)
 #ifdef O_SHIFT_STACKS

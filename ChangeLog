@@ -8,6 +8,8 @@
 					--------------------------------------
 
 
+  * CLEANUP: interfaces for storing, accessing and save/load of strings.
+
   * ADDED: wide character encoding/decoding support for character I/O.
     See open/4 and set_stream/2.
 

@@ -678,7 +678,7 @@ PL_get_term_value(term_t t, term_value_t *val)
       val->a = (atom_t)w;
       break;
     case PL_STRING:
-      val->s = valString(w);
+      val->s = getCharsString(w, NULL);
       break;
     case PL_TERM:
     { FunctorDef fd = valueFunctor(functorTerm(w));
@@ -779,8 +779,7 @@ PL_get_string(term_t t, char **s, unsigned int *len)
   word w = valHandle(t);
 
   if ( isString(w) )
-  { *s = valString(w);
-    *len = sizeString(w);
+  { *s = getCharsString(w, len);
     succeed;
   }
   fail;
@@ -1006,8 +1005,7 @@ PL_get_nchars(term_t l, unsigned int *length, char **s, unsigned flags)
   } else if ( (flags & CVT_STRING) && isString(w) )
   { type = PL_STRING;
     flags |= BUF_RING;			/* always buffer strings */
-    r = valString(w);
-    len = sizeString(w);
+    r = getCharsString(w, &len);
 #endif
   } else if ( (flags & CVT_LIST) &&
 	      (isList(w) || isNil(w)) &&
@@ -1124,8 +1122,7 @@ PL_get_wchars(term_t l, unsigned int *length, pl_wchar_t **s, unsigned flags)
   } else if ( (flags & CVT_STRING) && isString(w) )
   { type = PL_STRING;
     flags |= BUF_RING;			/* always buffer strings */
-    r = valString(w);
-    len = sizeString(w);
+    r = getCharsString(w, &len);
 #endif
   } else if ( (flags & CVT_LIST) &&
 	      (isList(w) || isNil(w)) )
@@ -1791,7 +1788,7 @@ PL_is_string(term_t t)
 int
 PL_unify_string_chars(term_t t, const char *s)
 { GET_LD
-  word str = globalString((char *)s);
+  word str = globalString(strlen(s), (char *)s);
 
   return unifyAtomic(t, str PASS_LD);
 }
@@ -1799,7 +1796,7 @@ PL_unify_string_chars(term_t t, const char *s)
 int
 PL_unify_string_nchars(term_t t, unsigned int len, const char *s)
 { GET_LD
-  word str = globalNString(len, s);
+  word str = globalString(len, s);
 
   return unifyAtomic(t, str PASS_LD);
 }
@@ -1858,7 +1855,7 @@ PL_put_atom_nchars(term_t t, unsigned int len, const char *s)
 void
 PL_put_string_chars(term_t t, const char *s)
 { GET_LD
-  word w = globalString(s);
+  word w = globalString(strlen(s), s);
 
   setHandle(t, w);
 }
@@ -1867,7 +1864,7 @@ PL_put_string_chars(term_t t, const char *s)
 void
 PL_put_string_nchars(term_t t, unsigned int len, const char *s)
 { GET_LD
-  word w = globalNString(len, s);
+  word w = globalString(len, s);
 
   setHandle(t, w);
 }

@@ -54,7 +54,7 @@ _PL_float_value(PL_atomic_t a)
 #if O_STRING
 char *
 _PL_string_value(PL_atomic_t a)
-{ return valString(a);
+{ return getCharsString(a, NULL);
 }
 #endif /* O_STRING */
 
@@ -144,7 +144,7 @@ _PL_new_float(double f)
 #if O_STRING
 PL_atomic_t
 _PL_new_string(const char *s)
-{ return globalString(s);
+{ return globalString(strlen(s), s);
 }
 #endif /* O_STRING */
 

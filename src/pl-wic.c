@@ -31,13 +31,13 @@
 #include <unistd.h>
 #endif
 
-static char *	getString(IOSTREAM *);
+static char *	getString(IOSTREAM *, unsigned *len);
 static long	getNum(IOSTREAM *);
 static real	getReal(IOSTREAM *);
 static bool	loadWicFd(IOSTREAM *);
 static bool	loadPredicate(IOSTREAM *, int skip ARG_LD);
 static bool	loadImport(IOSTREAM *, int skip ARG_LD);
-static void	putString(char *, IOSTREAM *);
+static void	putString(const char *, unsigned len, IOSTREAM *);
 static void	putAtom(atom_t, IOSTREAM *);
 static void	putNum(long, IOSTREAM *);
 static void	putReal(real, IOSTREAM *);
@@ -167,8 +167,8 @@ between  16  and  32  bits  machines (arities on 16 bits machines are 16
 bits) as well as machines with different byte order.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define LOADVERSION 38			/* load all versions later >= X */
-#define VERSION 38			/* save version number */
+#define LOADVERSION 39			/* load all versions later >= X */
+#define VERSION 39			/* save version number */
 #define QLFMAGICNUM 0x716c7374		/* "qlst" on little-endian machine */
 
 #define XR_REF     0			/* reference to previous */
@@ -309,33 +309,42 @@ qlfLoadError(IOSTREAM *fd, char *ctx)
 }
 
 
-static char *getstr_buffer;
-static char *getstr_buffer_end;
-static int   getstr_buffer_size = 512;
+static char *getstr_buffer = NULL;
+static int  getstr_buffer_size = 0;
 
 static char *
-getString(IOSTREAM *fd)
+getString(IOSTREAM *fd, unsigned *length)
 { char *s;
-  Char c;
+  int len = getNum(fd);
+  int i;
 
-  if ( getstr_buffer == NULL )
-  { if ( !(getstr_buffer = malloc(getstr_buffer_size)) )
+  if ( getstr_buffer_size < len+1 )
+  { int size = ((len+1+1023)/1024)*1024;
+
+    if ( getstr_buffer )
+      getstr_buffer = realloc(getstr_buffer, size);
+    else
+      getstr_buffer = malloc(size);
+
+    if ( getstr_buffer )
+      getstr_buffer_size = size;
+    else
       outOfCore();
-    getstr_buffer_end = &getstr_buffer[getstr_buffer_size-1];
   }
 
-  for( s = getstr_buffer; (*s = c = Getc(fd)) != EOS; s++ )
-  { if ( s == getstr_buffer_end )
-    { if ( !(getstr_buffer = realloc(getstr_buffer, getstr_buffer_size+512)) )
-	outOfCore();
-      s = &getstr_buffer[getstr_buffer_size-1];
-      getstr_buffer_size += 512;
-      getstr_buffer_end = &getstr_buffer[getstr_buffer_size-1];
-    }
+  for( i=0, s = getstr_buffer; i<len; i++ )
+  { int c = Getc(fd);
+
     if ( c == EOF )
       fatalError("Unexpected EOF on intermediate code file at offset %d",
 		 Stell(fd));
+
+    *s++ = c;
   }
+  *s = EOS;
+
+  if ( length )
+    *length = (unsigned) len;
 
   return getstr_buffer;
 }
@@ -533,7 +542,13 @@ loadXRc(int c, IOSTREAM *fd ARG_LD)
       return globalReal(getReal(fd));
 #if O_STRING
     case XR_STRING:
-      return globalString(getString(fd));
+    { char *s;
+      unsigned len;
+
+      s = getString(fd, &len);
+
+      return globalString(len, s);
+    }
 #endif
     case XR_FILE:
     { int c;
@@ -705,7 +720,7 @@ loadWicFd(IOSTREAM *fd)
 	popPathTranslation();
 	succeed;
       case 'W':
-	{ char *name = store_string(getString(fd) );
+	{ char *name = store_string(getString(fd, NULL) );
 
 	  loadWicFile(name);
 	  continue;
@@ -986,7 +1001,7 @@ qlfFixSourcePath(const char *raw)
 
 static bool
 qlfLoadSource(IOSTREAM *fd)
-{ char *str = getString(fd);
+{ char *str = getString(fd, NULL);
   long time = getNum(fd);
   int issys = (Qgetc(fd) == 's') ? TRUE : FALSE;
   atom_t fname;
@@ -1153,14 +1168,21 @@ of a predicate together.
 static Table savedXRTable;		/* saved XR entries */
 static long  savedXRTableId;		/* next id */
 
+#define STR_NOLEN (~(unsigned)0)
+
 static void
-putString(char *s, IOSTREAM *fd)
-{ while(*s)
+putString(const char *s, unsigned len, IOSTREAM *fd)
+{ const char *e;
+
+  if ( len == STR_NOLEN )
+    len = strlen(s);
+  e = &s[len];
+
+  putNum(len, fd);
+  while(s<e)
   { Sputc(*s, fd);
     s++;
   }
-
-  Sputc(EOS, fd);
 }
 
 
@@ -1315,8 +1337,12 @@ saveXR__LD(word xr, IOSTREAM *fd ARG_LD)
     return;
 #if O_STRING
   } else if ( isString(xr) )
-  { Sputc(XR_STRING, fd);
-    putString(valString(xr), fd);
+  { char *s;
+    unsigned len;
+
+    Sputc(XR_STRING, fd);
+    s = getCharsString(xr, &len);
+    putString(s, len, fd);
     return;
 #endif /* O_STRING */
   }
@@ -1594,16 +1620,26 @@ openProcedureWic(Procedure proc, IOSTREAM *fd, atom_t sclass ARG_LD)
 
 
 static bool
+putMagic(const char *s, IOSTREAM *fd)
+{ for(; *s; s++)
+    Sputc(*s, fd);
+  Sputc(EOS, fd);
+
+  succeed;
+}
+
+
+static bool
 writeWicHeader(IOSTREAM *fd)
 { wicFd = fd;
 
-  putString(saveMagic, fd);
+  putMagic(saveMagic, fd);
   putNum(VERSION, fd);
   putNum(sizeof(word)*8, fd);	/* bits-per-word */
   if ( systemDefaults.home )
-    putString(systemDefaults.home,  fd);
+    putString(systemDefaults.home, STR_NOLEN, fd);
   else
-    putString("<no home>",  fd);
+    putString("<no home>",  STR_NOLEN, fd);
 
   currentProc    = (Procedure) NULL;
   currentSource  = (SourceFile) NULL;
@@ -1744,7 +1780,7 @@ qlfSourceInfo(IOSTREAM *s, long offset, term_t list ARG_LD)
 
   if ( Sseek(s, offset, SIO_SEEK_SET) != offset )
     return warning("%s: seek failed: %s", wicFile, OsError());
-  if ( Getc(s) != 'F' || !(str=getString(s)) )
+  if ( Getc(s) != 'F' || !(str=getString(s, NULL)) )
     return warning("QLF format error");
   
   return PL_unify_list(list, head, list) &&
@@ -1850,11 +1886,11 @@ qlfOpen(atom_t name)
 
   mkWicFile = wicFile;
 
-  putString(qlfMagic, wicFd);
+  putMagic(qlfMagic, wicFd);
   putNum(VERSION, wicFd);
   putNum(sizeof(word)*8, wicFd);
 
-  putString(absname, wicFd);
+  putString(absname, STR_NOLEN, wicFd);
 
   currentProc    = (Procedure) NULL;
   currentSource  = (SourceFile) NULL;
@@ -1908,7 +1944,7 @@ pushPathTranslation(IOSTREAM *fd, const char *absloadname, int flags)
   new->previous = load_state;
   load_state = new;
   
-  abssavename = getString(fd);
+  abssavename = getString(fd, NULL);
   if ( absloadname && !streq(absloadname, abssavename) )
   { char load[MAXPATHLEN];
     char save[MAXPATHLEN];
@@ -2011,9 +2047,11 @@ qlfLoad(char *file, Module *module ARG_LD)
 
 static bool
 qlfSaveSource(SourceFile f, IOSTREAM *fd ARG_LD)
-{ sourceMark(fd PASS_LD);
+{ Atom a = atomValue(f->name);
+
+  sourceMark(fd PASS_LD);
   Sputc('F', fd);
-  putString(stringAtom(f->name), fd);
+  putString(a->name, a->length, fd);
   putNum(f->time, fd);
   Sputc(f->system ? 's' : 'u', fd);
 

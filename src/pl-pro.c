@@ -473,11 +473,14 @@ last_arg:
       return key+(word) valReal(*p);
     if ( isString(*p) )
     { long sz, len;
+      char *s;
 
-      if ( (sz=sizeString(*p)) != (len=strlen(valString(*p))) )
+      s = getCharsString(*p, &sz);
+
+      if ( sz != (len=strlen(valString(*p))) )
       { if ( sz < len )
 	  printk("String has inconsistent length: 0x%x", *p);
-	else if ( valString(*p)[sz] )
+	else if ( s[sz] )
 	  printk("String not followed by NUL-char: 0x%x", *p);
 /*	else
 	  printf("String contains NUL-chars: 0x%x", *p);
