@@ -22,7 +22,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#define O_DEBUG 1
+/*#define O_DEBUG 1*/
 #include "pl-incl.h"
 
 #undef LD
@@ -638,7 +638,7 @@ PRED_IMPL("reset_profiler", 0, reset_profiler, 0)
 		 *******************************/
 
 static
-PRED_IMPL("$profi<le", 1, profile, PL_FA_TRANSPARENT)
+PRED_IMPL("$profile", 1, profile, PL_FA_TRANSPARENT)
 { PRED_LD
   int rc;
   ulong ticks;
