@@ -310,10 +310,14 @@ or C interface function.
 C or C++ code that can be loaded into SWI-Prolog and called as a 
 predicate. You can also embed SWI-Prolog in C/C++ applications.
 
-<P>Details on how to interact with Prolog are in the SWI-Prolog 
-reference manual. The mailing list archives and TWiki web provide 
-problems and solutions to the many problems that may occur. This section 
-only discusses some Windows specific issues.
+<P>Details on how to interact with Prolog are in the
+<A HREF="http://hcs.science.uva.nl/projects/SWI-Prolog/Manual/">SWI-Prolog 
+reference manual</A>. The mailing list archives and TWiki web provide 
+problems and solutions to the many problems that may occur. 
+Documentation of the <CODE>SWI-cpp.h</CODE> C++ include file is 
+available from the <A HREF="http://www.swi-prolog.org/packages">package 
+documentation</A>. This section only discusses some Windows specific 
+issues.
 
 <H3><A NAME="sec:2.1">2.1 Using DevStudio</A></H3>
 
@@ -328,16 +332,16 @@ runtime library.
 embed Prolog, care should be taken that Prolog can find the Prolog 
 installation. For <EM>development</EM>, the simplest way to ensure this 
 is by adding the installation <CODE>bin</CODE> folder to the <CODE>%PATH%</CODE> 
-environment and call <B>PL_inifialise()</B> as illustrated below.
-<B>PL_inifialise()</B> uses the path of the loaded <CODE>libpl.dll</CODE> 
-module to find the Prolog installation folder.
+environment and call <B>PL_initialise()</B> as illustrated below.
+<B>PL_initialise()</B> uses the path of the loaded <CODE>libpl.dll</CODE> 
+module to find the Prolog installation folder.<A NAME=back-to-note-3 HREF="windows.html#note-3"> (3)</A>
 
 <P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
 <PRE>
 
   { static char *av[] = { "libpl.dll", NULL };
 
-    if ( !PL_inifialise(1, av) )
+    if ( !PL_initialise(1, av) )
     { &lt;error&gt;
     }
   }
@@ -575,6 +579,9 @@ The .PL file extension can be changed during installation. See <A HREF="#sec:ext
 <DT><A NAME=note-2 HREF="windows.html#back-to-note-2">note-2</A><DD>
 On most installations, single-character commands are executed without 
 waiting for the <font size=-1>RETURN</font> key.
+<DT><A NAME=note-3 HREF="windows.html#back-to-note-3">note-3</A><DD>
+When the C++ interface from <CODE>SWI-cpp.h</CODE>, these comments apply 
+to the arguments for PlEngine().
 </DL>
 
 <H1><A NAME="document-index">Index</A></H1>

@@ -244,9 +244,13 @@ Using MSVC or a compiler with compatible calling format you can write
 C or C++ code that can be loaded into SWI-Prolog and called as a
 predicate.  You can also embed SWI-Prolog in C/C++ applications.
 
-Details on how to interact with Prolog are in the SWI-Prolog reference
-manual.  The mailing list archives and TWiki web provide problems and
-solutions to the many problems that may occur. This section only
+Details on how to interact with Prolog are in the
+\url[SWI-Prolog reference
+manual]{http://hcs.science.uva.nl/projects/SWI-Prolog/Manual/}. The
+mailing list archives and TWiki web provide problems and solutions to
+the many problems that may occur. Documentation of the \file{SWI-cpp.h}
+C++ include file is available from the \url[package
+documentation]{http://www.swi-prolog.org/packages}. This section only
 discusses some Windows specific issues.
 
 \subsection{Using DevStudio}
@@ -261,14 +265,16 @@ To create extensions, simply use the Win32 DLL project template.  To
 embed Prolog, care should be taken that Prolog can find the Prolog
 installation. For \emph{development}, the simplest way to ensure this is
 by adding the installation \file{bin} folder to the \verb|%PATH%|
-environment and call PL_inifialise() as illustrated below.
-PL_inifialise() uses the path of the loaded \file{libpl.dll} module
-to find the Prolog installation folder.
+environment and call PL_initialise() as illustrated below.
+PL_initialise() uses the path of the loaded \file{libpl.dll} module
+to find the Prolog installation folder.%
+	\footnote{When the C++ interface from \file{SWI-cpp.h}, these
+		  comments apply to the arguments for PlEngine().}
 
 \begin{code}
   { static char *av[] = { "libpl.dll", NULL };
 
-    if ( !PL_inifialise(1, av) )
+    if ( !PL_initialise(1, av) )
     { <error>
     }
   }
