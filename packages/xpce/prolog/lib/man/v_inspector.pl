@@ -646,12 +646,8 @@ inspect(MP, Object:'object|function', Pos:[point]) :->
 	    (	Pos == @default
 	    ->	get(MP, visible, area(X, Y, W, H)),
 		get(OS, size, size(OW, OH)),
-		WRI is W-OW-20,
-		HRI is H-OH-20,
-		random(0,WRI,WRAND),
-		random(0,HRI,HRAND),
-		OX is X + WRAND + 10,
-		OY is Y + HRAND + 10,
+		random_pos(X, W, OW, OX),
+		random_pos(Y, H, OH, OY),
 		ThePos = point(OX, OY)
 	    ;	ThePos = Pos
 	    ),
@@ -666,6 +662,18 @@ inspect(MP, Object:'object|function', Pos:[point]) :->
 	    prepare_class(Object)
 	).
 	
+
+%	Place object with with OW at random location in window at X
+%	with visual width W.
+
+random_pos(X, W, OW, OX) :-
+	WRI is W - OW - 20,
+	(   WRI > 0
+	->  random(0, WRI, WRAND),
+	    OX is X + WRAND + 10
+	;   OX is X + 10
+	).
+
 
 check_not_self(MP, Display) :-
 	send(Display, '_instance_of', display), !,

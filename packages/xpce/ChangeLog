@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: avoid domain error on random/1 in the manual object-inspector tool.
+
 * FIXED: Many issues to subwindow layout handling for the user.  Added new
   class tile_adjuster for this purpose.
 
