@@ -1660,9 +1660,9 @@ Although characters are uniquely coded using the UCS standard
 internally, streams and files are byte (8-bit) oriented and there are a
 variety of ways to represent the larger UCS codes in an 8-bit octet
 stream. The most popular one, especially in the context of the web, is
-UTF-8. Bytes 0 \ldots 127 represent simply the corresponding US-ASCII
-character, while bytes 128 \ldots 255 are used for multi-byte encoding
-encoding of characters placed higher in the UCS space. Especially on
+UTF-8. Bytes 0 \ldots{} 127 represent simply the corresponding US-ASCII
+character, while bytes 128 \ldots{} 255 are used for multi-byte encoding
+of characters placed higher in the UCS space. Especially on
 MS-Windows the 16-bit UNICODE standard, represented by pairs of bytes is
 also popular.
 
