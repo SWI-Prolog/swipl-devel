@@ -237,3 +237,4 @@
 #define ATOM_float_format MK_ATOM(236)
 #define ATOM_stand_alone  MK_ATOM(237)
 #define ATOM_tty_control  MK_ATOM(238)
+#define ATOM_readline     MK_ATOM(239)
