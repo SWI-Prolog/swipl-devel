@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * MODIFIED: hide predicates starting with $ from listing/0.  Paulo Moura.
+
   * FIXED: compiler warnings on initPrologThreads().  Paulo Moura.
 
   * MODIFIED: Predicates whose name starts with '$' are automatically
