@@ -2170,6 +2170,7 @@
   BUILTIN_NAME("unused")
   BUILTIN_NAME("unzoom")
   BUILTIN_NAME("up")
+  BUILTIN_NAME("up_down_column")
   BUILTIN_NAME("upcase")
   BUILTIN_NAME("upcase_previous_word")
   BUILTIN_NAME("upcase_region")
@@ -2320,4 +2321,3 @@
   BUILTIN_NAME("yref")
   BUILTIN_NAME("yref_var")
   BUILTIN_NAME("zoom")
-  BUILTIN_NAME("up_down_column")
