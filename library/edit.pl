@@ -214,11 +214,22 @@ remove_same_location(Pair0, H, [Pair1|T0], L) :-
 	remove_same_location(Pair2, H, T0, L).
 remove_same_location(H, H, L, L).
 
-merge_locations(Loc-Spec1, Loc-Spec2, Loc-Spec) :- !,
+merge_locations(Loc1-Spec1, Loc2-Spec2, Loc-Spec) :-
+	same_location(Loc1, Loc2, Loc), !,
 	(   merge_specs(Spec1, Spec2, Spec)
 	;   merge_specs(Spec2, Spec1, Spec)
 	;   Spec = Spec1
 	), !.
+
+same_location(L, L, L).
+same_location([file(F1)], [file(F2)], [file(F)]) :-
+	catch(same_file(F1, F2), _, fail), !,
+	atom_length(F1, L1),
+	atom_length(F2, L2),
+	(   L1 < L2
+	->  F = F1
+	;   F = F2
+	).
 
 merge_specs(source_file(Path), _, source_file(Path)).
 
