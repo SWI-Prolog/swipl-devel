@@ -779,13 +779,23 @@ flushFile(FileObj f)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+We can use the faster fstat() here, but confirmed by various messages on
+the web, MS-Windows implementation  of   _fstat()  is  broken, returning
+EBADF for perfectly valid filedescriptors.  Shouldn't make a difference,
+only slow ...
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
 statFile(FileObj f, STAT_TYPE *buf)
-{ int fno;
+{ 
+#ifndef WIN32
+  int fno;
 
   if ( f->fd != NULL && (fno = Sfileno(f->fd)) >= 0)
   { return FSTAT_FUNC(fno, buf);
   } else
+#endif
   { Name name = getOsNameFile(f);
 
     return STAT_FUNC(nameToFN(name), buf);
