@@ -1598,6 +1598,7 @@ undo_while_saving_term(mark *m, Word term)
   Word *p;
 
   SECURE(checkData(term));
+  assert(onStack(local, term));
 
   initBuffer(&info.code);
   initBuffer(&info.vars);

@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Preserve exceptions in GUI tracer (notably abort).  Kanwischer
+    Holger.
+
 VERSION 5.1.1 (Nov 16, 2002)
 ============================
 

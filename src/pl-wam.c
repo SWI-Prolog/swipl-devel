@@ -1584,6 +1584,28 @@ discardChoicesAfter(LocalFrame fr ARG_LD)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Discard choicepoints in debugging mode.  As we might be doing callbacks
+on behalf of the debugger we need to preserve the pending exception.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+dbg_discardChoicesAfter(LocalFrame fr ARG_LD)
+{ blockGC(PASS_LD1);
+
+  if ( exception_term )
+  { Word p = valTermRef(exception_term);
+    exception_term = 0;
+    discardChoicesAfter(fr PASS_LD);
+    *valTermRef(exception_bin) = *p;
+    exception_term = exception_bin;
+  } else
+    discardChoicesAfter(fr PASS_LD);
+
+  unblockGC(PASS_LD1);
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 newChoice(CH_*, FR) Creates a new  choicepoint.   After  creation of the
 choice-point, the user has to fill the choice-points mark as well as the
 required context value. We do not need finish_foreign_frame() here as in
@@ -2660,7 +2682,6 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 		   Sdprintf("\n");
 		 });
 
-	deRef(catcher);
 	except = *catcher;
         catchfr = findCatcher(FR, catcher PASS_LD);
 
@@ -2698,7 +2719,7 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 
 					/* needed to avoid destruction */
 					/* in the undo */
-	      discardChoicesAfter((LocalFrame)ch PASS_LD);
+	      dbg_discardChoicesAfter((LocalFrame)ch PASS_LD);
 	      undo_while_saving_term(&ch->mark, catcher);
 	      except = *catcher;
 	      *valTermRef(LD->exception.pending) = except;
