@@ -1,3 +1,8 @@
+Feb 21, 2005
+
+   * JW: Fixed various module imports and expanded SWI-Prolog
+     library(ordsets) to support all of the clp(R) library.
+
 Dec 16, 2004
 
    * JW: Make loading parts silent

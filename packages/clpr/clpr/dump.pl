@@ -68,6 +68,9 @@
 	[
 		project_attributes/2
 	]).
+:- use_module(ordering,
+	      [ ordering/1
+	      ]).
 :- dynamic blackboard_copy/1.	% replacement of bb_put and bb_delete by dynamic predicate
 
 this_linear_solver(clpr). 
@@ -113,7 +116,8 @@ dump(Target,NewVars,Constraints) :-
 
 :- meta_predicate projecting_assert(:).
 
-projecting_assert(Module:Clause) :-
+projecting_assert(QClause) :-
+	strip_module(QClause, Module, Clause),  % JW: SWI-Prolog not always qualifies the term! 
 	copy_term(Clause,Copy,Constraints),
 	l2c(Constraints,Conj),			% fails for []
 	this_linear_solver(Sm),			% proper module for {}/1

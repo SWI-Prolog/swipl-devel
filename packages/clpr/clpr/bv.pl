@@ -113,7 +113,7 @@
 		ineq/4
 	]).
 :- use_module(nf,
-	[
+	[	{}/1,
 		split/3,
 		wait_linear/3
 	]).

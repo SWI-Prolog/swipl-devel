@@ -58,22 +58,14 @@
 	coloring/3,
 	colouring/3
    ]).
-/*
-:- use_module(ordsets, [
-	ord_add_element/3,
-	ord_del_element/3,
-	ord_disjoint/2,
-	ord_intersection/3,
-	ord_subset/2,
-	ord_subtract/3,
-	ord_union/3,
-	ord_union/4
-   ]).*/
 :- use_module(library(ordsets),
-	  [ 
+	  [ ord_del_element/3,
 	    ord_add_element/3,
 	    ord_subset/2,
-	    ord_union/3
+	    ord_union/3,
+	    ord_union/4,
+	    ord_disjoint/2,
+	    ord_intersection/3
 	  ]).
 
 
@@ -647,6 +639,8 @@ random_neighbors(N, J, P, S0, S) :-
 	M is N-1,
 	random_neighbors(M, J, P, S0, S1).
 
+random(X) :-				% JW: was undefined.  Assume
+	X is random(10000)/10000.	% we need 0<=X<=1
 
 
 %   min_tree(+Graph, -Tree, -Cost)

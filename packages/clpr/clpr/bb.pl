@@ -56,7 +56,7 @@
 		var_with_def_assign/2
 	]).
 :- use_module(nf,
-	[
+	[	{}/1,
 		entailed/1,
 		nf/2,
 		nf_constant/2,

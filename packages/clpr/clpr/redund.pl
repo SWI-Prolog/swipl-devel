@@ -53,6 +53,7 @@
 	[
 		class_allvars/2
 	]).
+:- use_module(nf, [{}/1]).
 
 %
 % redundancy removal (semantic definition)
