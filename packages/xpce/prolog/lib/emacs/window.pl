@@ -306,10 +306,8 @@ append_item(P, Mode:emacs_mode, Item:any) :->
 	->  send(P, append, gap)
 	;   atom(Item)
 	->  send(P, append, new(MI, menu_item(Item))),
-	    (   get(Mode, bindings, KeyBindings),
-		get(KeyBindings, binding, Item, Key)
-	    ->  human_accelerator(Key, Human),
-		send(MI, accelerator, Human)
+	    (	accelerator(Item, Mode, Accell)
+	    ->	send(MI, accelerator, Accell)
 	    ;   true
 	    ),
 	    (   get(Mode, send_method, Item, tuple(_, Impl))
@@ -323,6 +321,18 @@ append_item(P, Mode:emacs_mode, Item:any) :->
 	    )
 	;   send(P, append, Item?clone)
 	).
+
+%	accelerator(+Command, +Mode, -Accelerator)
+%	
+%	Copy/cut are hacked due to the tricky combination of CUA and
+%	native Emacs mode.
+
+accelerator(copy, _, 'Control-c') :- !.
+accelerator(cut,  _, 'Control-x') :- !.
+accelerator(Cmd,  Mode, Accell) :-
+	get(Mode, bindings, KeyBindings),
+	get(KeyBindings, binding, Cmd, Key),
+	human_accelerator(Key, Accell).
 
 %	human_accelerator(+Key, -Human)
 %
@@ -338,8 +348,6 @@ human_accelerator(Key, Text) :-
 	new(S, string('%s', Key)),
 	send(regex('\\\\C-\\(.\\)'), for_all, S,
 	     message(@arg1, replace, @arg2, 'Control-\\1 ')),
-	send(regex('RET'), for_all, S,
-	     message(@arg1, replace, @arg2, 'Control-m ')),
 	send(regex('\\\\e'), for_all, S,
 	     message(@arg1, replace, @arg2, 'Alt-')),
 	get(S, value, Text),

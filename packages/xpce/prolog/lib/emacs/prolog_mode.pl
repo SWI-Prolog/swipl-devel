@@ -59,7 +59,12 @@ resource(breakpoint,   image, image('16x16/stop.xpm')).
 					% BINDINGS
 	[ insert_if_then_else	       = key('(') + key(';') + key('>'),
 
+					% delete some things
 	  manual_entry		       = -button(help),
+	  find_tag		       = -button(browse),
+	  compile		       = -button(compile),
+
+					% extend the menus
 	  prolog_manual		       = button(help),
 	  (spy)			       = button(prolog),
 	  trace			       = button(prolog),
@@ -69,10 +74,8 @@ resource(breakpoint,   image, image('16x16/stop.xpm')).
 	  -			       = button(prolog),
 	  check_clause		       = key('\\C-c\\C-s') + button(prolog),
 	  insert_full_stop	       = key(.),
-	  find_tag		       = -button(browse),
 	  find_definition	       = key('\\e.') + button(browse),
 	  -			       = button(prolog),
-	  compile		       = -button(compile),
 	  make			       = key('\\C-c\\C-m') + button(compile),
 	  compile_buffer	       = key('\\C-c\\C-b') + button(compile),
 	  consult_selection	       = button(compile) + button(compile),
