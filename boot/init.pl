@@ -902,7 +902,7 @@ $load_file(FirstClause, In, File, _, false, Module) :- !,
 	$set_source_module(Module, Module),
 	$ifcompiling($qlf_start_file(File)),
 	ignore($consult_clause(FirstClause, File)),
-	$consult_clauses(In, File),
+	$consult_stream(In, File),
 	$ifcompiling($qlf_end_part).
 
 $reserved_module(system).
@@ -916,7 +916,7 @@ $load_module(Module, Public, Import, In, File) :-
 	$declare_module(Module, File),
 	$export_list(Module, Public),
 	$ifcompiling($qlf_start_module(Module)),
-	$consult_clauses(In, File),
+	$consult_stream(In, File),
 	Module:$check_export,
 	$ifcompiling($qlf_end_part),
 	$import_list(OldModule, Module, Import).
@@ -949,20 +949,20 @@ $export_list(Module, [Term|Rest]) :-
 	print_message(error, type_error(predicate_indicator, Term)),
 	$export_list(Module, Rest).
 
-%	$consult_clauses(+File)
+%	$consult_stream(+Stream, +File)
 %
 %	Read and record all clauses until the rest of the file.
 
-$consult_clauses(In, File) :-
+$consult_stream(In, File) :-
 	repeat,
-	catch($consult_clauses2(In, File),
+	catch($consult_stream2(In, File),
 	      E,
 	      (	  print_message(error, E),
 		  fail
 	      )), !.
 
 	      
-$consult_clauses2(In, File) :-
+$consult_stream2(In, File) :-
 	repeat,
 	    read_clause(In, Clause),
 	    expand_term(Clause, Expanded),

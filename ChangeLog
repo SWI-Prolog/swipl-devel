@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: include/1, reported by Sebastian Sardina.  Bug introduced in
+    4.0.4.
+
 VERSION 4.0.6
 =============
 
