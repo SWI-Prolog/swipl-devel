@@ -30,15 +30,40 @@ ws_flush_display(DisplayObj d)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Seems this can get into a loop. Why? For   now  we will jump out after a
+while. Seems processing 1000 messages is   more  then enough to fullfill
+the aim of this function.
+
+Maybe  we  should  somehow   check   the    state   of   the  connecting
+file-descriptor to see whether the server is lost?
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 void
 ws_synchronise_display(DisplayObj d)
 { DisplayWsXref r = d->ws_ref;
+  static int retry=0;
+  int i;
 
   XFlush(r->display_xref);
   XSync(r->display_xref, False);
 
-  while( XtAppPending(pceXtAppContext(NULL)) & XtIMAll )
+  
+  for(i=1000; (XtAppPending(pceXtAppContext(NULL)) & XtIMAll) && --i > 0; )
     XtAppProcessEvent(pceXtAppContext(NULL), XtIMAll);
+
+  if ( i == 0 )
+  { Cprintf("ws_synchronise_display(): looping??\n");
+
+    if ( ++retry == 10 )
+    { Cprintf("Trouble, trying to abort\n");
+      hostAction(HOST_ABORT);
+    } else if ( retry == 20 )
+    { Cprintf("Serious trouble, calling exit()\n");
+      exit(1);
+    }
+  } else
+    retry = 0;				/* seems to work again */
 }
 
 
