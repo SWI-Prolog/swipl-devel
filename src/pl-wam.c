@@ -1083,6 +1083,33 @@ findBlock(LocalFrame fr, Word block)
 
 #endif /*O_BLOCK*/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+findStartChoice(LocalFrame fr, Choice ch)
+    Within the same query, find the choice-point that was created at the
+    start of this frame.  This is used for the debugger at the fail-port
+    as well as for realising retry.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static Choice
+findStartChoice(LocalFrame fr, Choice ch)
+{ for( ;
+       (void *)ch > (void *)fr || (ch && ch->type == CHP_TOP);
+       ch = ch->parent )
+  { if ( ch->frame == fr )
+    { switch ( ch->type )
+      { case CHP_JUMP:
+	case CHP_NONE:
+	  continue;			/* might not be at start */
+	default:
+	  return ch;
+      }
+    }
+  }
+
+  return NULL;
+}
+
+
 #if O_CATCHTHROW
 		/********************************
 		*        EXCEPTION SUPPORT      *
@@ -1267,6 +1294,12 @@ copyFrameArguments(LocalFrame from, LocalFrame to, int argc ARG_LD)
 
 #ifndef ulong
 #define ulong unsigned long
+#endif
+
+#ifdef O_PROFILE
+#define Profile(g) if ( LD->statistics.profiling ) g
+#else
+#define Profile(g) (void)0
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3400,10 +3433,7 @@ increase lTop too to prepare for asynchronous interrupts.
 	    next->generation     = GD->generation;
 #endif
 	    incLevel(next);
-#ifdef O_PROFILE
-	    if ( LD->statistics.profiling )
-	      def->profile_calls++;
-#endif /* O_PROFILE */
+	    Profile(def->profile_calls++);
 	    environment_frame = next;
 
 	    exception_term = 0;
@@ -3663,11 +3693,7 @@ possible to be able to call-back to Prolog.
 	}
 #endif
 
-#ifdef O_PROFILE
-	if ( LD->statistics.profiling )
-	  DEF->profile_calls++;
-#endif /* O_PROFILE */
-
+	Profile(DEF->profile_calls++);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Undefined predicate detection and handling.   trapUndefined() takes care
@@ -3964,17 +3990,9 @@ retry:					MARK(RETRY);
   rframe0 = rframe;
 
   for( ; rframe; rframe = rframe->parent )
-  { for(ch = BFR; ch; ch = ch->parent)
-    { if ( ch->frame == rframe )
-      { switch ( ch->type )
-	{ case CHP_JUMP:
-	  case CHP_NONE:
-	    continue;			/* might not be at start */
-	  default:
-	    m = ch->mark;
-	    goto do_retry;
-	}
-      }
+  { if ( (ch = findStartChoice(rframe, BFR)) )
+    { m = ch->mark;
+      goto do_retry;
     }
   }
   Sdprintf("[Could not find retry-point]\n");
@@ -4018,34 +4036,42 @@ body_failed:				MARK(BKTRK);
 clause_failed:
 frame_failed:
 
-{ Choice ch = BFR;
-  LocalFrame fr0 = FR;
+{ Choice ch0 = BFR;
+  Choice ch;
+  LocalFrame fr0;
 
   DEBUG(3, Sdprintf("BACKTRACKING\n"));
 
+next_choice:
+  ch = BFR;
+  fr0 = FR;
 					/* leave older frames */
-  for(; (void *)FR > (void *)ch; FR = FR->parent)
-  {
 #ifdef O_DEBUGGER
-    if ( debugstatus.debugging )
-    { if ( debugstatus.debugging )
-      { if ( false(FR->predicate, FOREIGN) ) /* done by callForeign() */
-	{ switch( tracePort(FR, BFR, FAIL_PORT, NULL) )
+  if ( debugstatus.debugging )
+  { for(; (void *)FR > (void *)ch; FR = FR->parent)
+    { if ( false(FR->predicate, FOREIGN) ) /* done by callForeign() */
+      { Choice sch = findStartChoice(FR, ch0);
+
+	if ( sch )
+	{ Undo(sch->mark);
+
+	  switch( tracePort(FR, BFR, FAIL_PORT, NULL) )
 	  { case ACTION_RETRY:
 	      debugstatus.retryFrame = FR;
 	    goto retry;
 	  }
 	}
       }
+
+      Profile(FR->predicate->profile_fails++);
+      leaveFrame(FR);
     }
+  } else
 #endif /*O_DEBUGGER*/
-
-#ifdef O_PROFILE
-    if ( LD->statistics.profiling )
-      FR->predicate->profile_fails++;
-#endif /* O_PROFILE */
-
-    leaveFrame(FR);
+  { for(; (void *)FR > (void *)ch; FR = FR->parent)
+    { Profile(FR->predicate->profile_fails++);
+      leaveFrame(FR);
+    }
   }
 
   environment_frame = FR = ch->frame;
@@ -4073,7 +4099,7 @@ frame_failed:
       ARGP = argFrameP(FR, 0);
       BFR = ch->parent;
       if ( !(CL = findClause(ch->value.clause, ARGP, FR, DEF, &next)) )
-	FRAME_FAILED;
+	goto next_choice;
 
 #ifdef O_DEBUGGER
       if ( debugstatus.debugging && fr0 != FR )
@@ -4107,10 +4133,7 @@ frame_failed:
 
 			/* require space for the args of the next frame */
       requireStack(local, (int)argFrameP((LocalFrame)NULL, MAXARITY));
-#ifdef O_PROFILE
-      if ( LD->statistics.profiling )
-	DEF->profile_redos++;
-#endif /* O_PROFILE */
+      Profile(DEF->profile_redos++);
       NEXT_INSTRUCTION;
     }
     case CHP_FOREIGN:
@@ -4122,10 +4145,7 @@ frame_failed:
 		        ch->value.foreign));
       BFR  = ch->parent;
       lTop = (LocalFrame)ch;
-#ifdef O_PROFILE
-      if ( LD->statistics.profiling )
-	DEF->profile_redos++;
-#endif /* O_PROFILE */
+      Profile(DEF->profile_redos++);
 
       SAVE_REGISTERS(qid);
       rval = callForeign(FR, ch->value.foreign PASS_LD);
@@ -4147,7 +4167,7 @@ frame_failed:
     case CHP_DEBUG:			/* Just for debugging purposes */
     case CHP_NONE:			/* used for C_SOFTCUT */
       BFR  = ch->parent;
-      goto frame_failed;
+      goto next_choice;
   }
 }
   assert(0);

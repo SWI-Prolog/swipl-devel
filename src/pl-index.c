@@ -619,10 +619,14 @@ addClauseToIndex(Definition def, Clause cl, int where)
 
   if ( cl->index.varmask == 0 )		/* a non-indexable field */
   { int n = ci->buckets;
+
+    SECURE({ word k;
+	     assert(!arg1Key(cl, &k));
+	   });
     
     DEBUG(1,
 	  if ( def->indexPattern == 0x1 )
-	    Sdprintf("Adding unindexed clause to index of %s\n",
+	    Sdprintf("*** Adding unindexed clause to index of %s\n",
 		     predicateName(def)));
 
     for(; n; n--, ch++)
@@ -675,7 +679,9 @@ hashDefinition(Definition def, int buckets)
   def->hash_info = newClauseIndexTable(buckets);
 
   for(cref = def->definition.clauses; cref; cref = cref->next)
-    addClauseToIndex(def, cref->clause, CL_END);
+  { if ( false(cref->clause, ERASED) )
+      addClauseToIndex(def, cref->clause, CL_END);
+  }
   UNLOCK();
 
   succeed;

@@ -1487,12 +1487,12 @@ assert_term(term_t term, int where, SourceLoc loc)
   def = proc->definition;
 
   if ( def->indexPattern && !(def->indexPattern & NEED_REINDEX) )
-    getIndex(argTermP(*h, 0),
-	     def->indexPattern, 
+  { getIndex(argTermP(*h, 0),
+	     def->indexPattern,
 	     def->indexCardinality,
 	     &clause->index
 	     PASS_LD);
-  else
+  } else
     clause->index.key = clause->index.varmask = 0L;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

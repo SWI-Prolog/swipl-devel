@@ -689,13 +689,16 @@ assertProcedure(Procedure proc, Clause clause, int where)
   if ( def->hash_info )
   { assert(!(def->indexPattern & NEED_REINDEX));
 
-    DEBUG(1,
+//    DEBUG(1,
 	  if ( !clause->index.varmask )
-	    Sdprintf("Adding non-indexed clause to %s\n", predicateName(def)));
+	    Sdprintf("Adding non-indexed clause to %s\n", predicateName(def));
+//	 );
 
     addClauseToIndex(def, clause, where);
   } else
-  { if ( def->number_of_clauses == 25 && true(def, AUTOINDEX) )
+  { if ( def->number_of_clauses == 25 &&
+	 true(def, AUTOINDEX) &&
+	 !def->hash_info )
       def->indexPattern |= NEED_REINDEX;
   }
   UNLOCK();
@@ -1600,6 +1603,12 @@ reindexDefinition()
     This implies two threads may do the same job at the same time, but I
     think this is fully safe: they will create the same data and both
     threads are guaranteed not to continue before this is completed.
+
+    We cannot re-index if the predicate is referenced and hashed: other
+    predicates are operating on the hashed clauses-lists.  If we are not
+    hashed there is no problem: the clause-list remains unaltered.  Therefore
+    assertProcedure() only signals a re-index request if the predicate is
+    not yet hashed.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
@@ -1608,7 +1617,7 @@ reindexDefinition(Definition def)
   int do_hash = 0;
   unsigned long pattern;
 
-  assert(def->references == 1);
+  assert(def->references == 1 || !def->hash_info);
 
   DEBUG(2, if ( def->definition.clauses )
 	   { Procedure proc = def->definition.clauses->clause->procedure;
@@ -2163,6 +2172,28 @@ checkDefinition(Definition def)
     }
   }
 }
+
+
+#if 0
+void
+check_t5rdb()
+{ Procedure proc = PL_predicate("t5rdb", 7, "user");
+  Definition def = proc->definition;
+  static struct clause_index ci;
+
+  if ( def->hash_info )
+  { if ( ci.buckets != def->hash_info->buckets ||
+         ci.entries != def->hash_info->entries )
+    { Sdprintf("%d buckets at %p\n",
+	       def->hash_info->buckets,
+	       def->hash_info->entries);
+      ci = *def->hash_info;
+    }
+  }
+
+  checkDefinition(def);
+}
+#endif
 
 
 foreign_t
