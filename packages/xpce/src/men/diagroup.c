@@ -118,15 +118,18 @@ computeDialogGroup(DialogGroup g)
       compute_label(g, &lx, &ly, &lw, &lh);
       
       if ( isDefault(g->size) )		/* implicit size */
-      { Cell cell;
+      { if ( isNil(g->layout_manager) ||
+	     !qadSendv(g->layout_manager, NAME_computeBoundingBox, 0, NULL) )
+	{ Cell cell;
   
-	clearArea(a);
-	for_cell(cell, g->graphicals)
-	{ Graphical gr = cell->value;
-	  
-	  unionNormalisedArea(a, gr->area);
+	  clearArea(a);
+	  for_cell(cell, g->graphicals)
+	  { Graphical gr = cell->value;
+	    
+	    unionNormalisedArea(a, gr->area);
+	  }
+	  relativeMoveArea(a, g->offset);
 	}
-	relativeMoveArea(a, g->offset);
   
 	x = valInt(a->x) -     valInt(border->w);
 	y = valInt(a->y) -     valInt(border->h);
