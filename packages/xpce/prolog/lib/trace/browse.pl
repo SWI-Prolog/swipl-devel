@@ -38,8 +38,7 @@
 :- use_module(library('trace/util')).
 :- use_module(browse_xref).
 :- use_module(library(persistent_frame)).
-:- require([ start_emacs/0
-	   , '$qlf_info'/4
+:- require([ '$qlf_info'/4
 	   , append/3
 	   , concat/3
 	   , concat_atom/2
@@ -208,8 +207,7 @@ edit(FB) :->
 	    get(Sel, head, FileNode),
 	    send(FileNode, instance_of, sb_prolog_file),
 	    get(FileNode, identifier, File),
-	    start_emacs,
-	    send(@emacs, open_file, File)
+	    edit(file(File))
 	;   send(FB, report, warning, 'No selected file'),
 	    fail
 	).
@@ -397,8 +395,7 @@ edit(TE) :->
 	get(TE, file_id, File),
 	get(TE, line, Line),
 	(   integer(Line)
-	->  start_emacs,
-	    send(@emacs, goto_source_location, source_location(File, Line))
+	->  edit(file(File, line(Line)))
 	;   send(TE, report, error, 'No source')
 	).
 
@@ -448,8 +445,7 @@ edit(TE) :->
 	get(TE, file_id, File),
 	get(TE, line, Line),
 	(   integer(Line)
-	->  start_emacs,
-	    send(@emacs, goto_source_location, source_location(File, Line))
+	->  edit(file(File, line(Line)))
 	;   send(TE, report, error, 'No source')
 	).
 
