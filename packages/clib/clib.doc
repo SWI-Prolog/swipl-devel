@@ -31,6 +31,8 @@ libraries.
     \item[\pllib{unix}]
 This library provides Unix process control using fork(),
 exec(), pipe(), etc.
+    \item[\pllib{files}]
+This library provides low-level access to file objects.
     \item[\pllib{cgi}]
 This library provides access to CGI form-data if Prolog is used for
 CGI-scripting.
@@ -192,6 +194,42 @@ Finally, the process is detached from the current process-group and its
 controlling terminal.
 \end{description}
 
+
+\section{File manipulation library}
+
+The \pllib{files} library provides additional operations on files from
+SWI-Prolog.  It is currently very incomplete.
+
+\begin{description}
+    \predicate{set_time_file}{3}{+File, -OldTimes, +NewTimes}
+Query and set POSIX time attributes of a file.  Both \arg{OldTimes}
+and \arg{NewTimes} are lists of option-terms.  Times are represented
+in SWI-Prolog's standard floating point numbers.  New times may
+be specified as \const{now} to indicate the current time.  Defined
+options are:
+
+\begin{description}
+    \termitem{access}{Time}
+Describes the time of last access of the file.  This value can be
+read and written.
+
+    \termitem{modified}{Time}
+Describes the time the contents of the file was last modified.
+This value can be read and written.
+
+    \termitem{changed}{Time}
+Describes the time the file-structure itself was changed by adding
+(link()) or removing (unlink()) names.
+\end{description}
+
+Here are some example queries.  The first retrieves the access-time,
+while the second sets the last-modified time to the current time.
+
+\begin{code}
+?- set_time_file(foo, [acess(Access)], []).
+?- set_time_file(foo, [], [modified(now)]).
+\end{code}
+\end{description}
 
 \section{Socket library}
 

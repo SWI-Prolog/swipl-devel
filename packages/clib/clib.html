@@ -40,6 +40,8 @@ of Prolog libraries with accompagnying foreign libraries.
 <DT><B><CODE>library(unix)</CODE></B><DD>
 This library provides Unix process control using fork(), exec(), pipe(), 
 etc.
+<DT><B><CODE>library(files)</CODE></B><DD>
+This library provides low-level access to file objects.
 <DT><B><CODE>library(cgi)</CODE></B><DD>
 This library provides access to CGI form-data if Prolog is used for 
 CGI-scripting.
@@ -65,22 +67,23 @@ ported to native Windows.
 <UL>
 <LI><A HREF="#sec:1"><B>1 Introduction</B></A>
 <LI><A HREF="#sec:2"><B>2 Unix Process manipulation library</B></A>
-<LI><A HREF="#sec:3"><B>3 Socket library</B></A>
+<LI><A HREF="#sec:3"><B>3 File manipulation library</B></A>
+<LI><A HREF="#sec:4"><B>4 Socket library</B></A>
 <UL>
-<LI><A HREF="#sec:3.1">3.1 Server applications</A>
-<LI><A HREF="#sec:3.2">3.2 Client applications</A>
+<LI><A HREF="#sec:4.1">4.1 Server applications</A>
+<LI><A HREF="#sec:4.2">4.2 Client applications</A>
 </UL>
-<LI><A HREF="#sec:4"><B>4 CGI Support library</B></A>
+<LI><A HREF="#sec:5"><B>5 CGI Support library</B></A>
 <UL>
-<LI><A HREF="#sec:4.1">4.1 Some considerations</A>
+<LI><A HREF="#sec:5.1">5.1 Some considerations</A>
 </UL>
-<LI><A HREF="#sec:5"><B>5 MIME decoding library</B></A>
-<LI><A HREF="#sec:6"><B>6 Unix password encryption library</B></A>
-<LI><A HREF="#sec:7"><B>7 Memory files</B></A>
-<LI><A HREF="#sec:8"><B>8 Time and alarm library</B></A>
-<LI><A HREF="#sec:9"><B>9 Installation</B></A>
+<LI><A HREF="#sec:6"><B>6 MIME decoding library</B></A>
+<LI><A HREF="#sec:7"><B>7 Unix password encryption library</B></A>
+<LI><A HREF="#sec:8"><B>8 Memory files</B></A>
+<LI><A HREF="#sec:9"><B>9 Time and alarm library</B></A>
+<LI><A HREF="#sec:10"><B>10 Installation</B></A>
 <UL>
-<LI><A HREF="#sec:9.1">9.1 Unix systems</A>
+<LI><A HREF="#sec:10.1">10.1 Unix systems</A>
 </UL>
 </UL>
 
@@ -231,7 +234,55 @@ Finally, the process is detached from the current process-group and its
 controlling terminal.
 </DL>
 
-<H2><A NAME="sec:3">3 Socket library</A></H2>
+<H2><A NAME="sec:3">3 File manipulation library</A></H2>
+
+<P>The <CODE>library(files)</CODE> library provides additional 
+operations on files from SWI-Prolog. It is currently very incomplete.
+
+<DL>
+
+<P>
+<DT><A NAME="set_time_file/3"><STRONG>set_time_file</STRONG>(<VAR>+File, 
+-OldTimes, +NewTimes</VAR>)</A><DD>
+Query and set POSIX time attributes of a file. Both <VAR>OldTimes</VAR> 
+and <VAR>NewTimes</VAR> are lists of option-terms. Times are represented 
+in SWI-Prolog's standard floating point numbers. New times may be 
+specified as <CODE>now</CODE> to indicate the current time. Defined 
+options are:
+
+<DL>
+
+<P>
+<DT><STRONG>access</STRONG>(<VAR>Time</VAR>)<DD>
+Describes the time of last access of the file. This value can be read 
+and written.
+
+<P>
+<DT><STRONG>modified</STRONG>(<VAR>Time</VAR>)<DD>
+Describes the time the contents of the file was last modified. This 
+value can be read and written.
+
+<P>
+<DT><STRONG>changed</STRONG>(<VAR>Time</VAR>)<DD>
+Describes the time the file-structure itself was changed by adding 
+(link()) or removing (unlink()) names.
+</DL>
+
+<P>Here are some example queries. The first retrieves the access-time, 
+while the second sets the last-modified time to the current time.
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+?- set_time_file(foo, [acess(Access)], []).
+?- set_time_file(foo, [], [modified(now)]).
+</PRE>
+</TABLE>
+
+<P>
+</DL>
+
+<H2><A NAME="sec:4">4 Socket library</A></H2>
 
 <P>The <CODE>library(socket)</CODE> library provides TCP inet-domain 
 sockets from SWI-Prolog, both client and server-side communication. The 
@@ -362,7 +413,7 @@ official name of the host (<CODE>h_name</CODE>) of the structure
 returned by the latter function.
 </DL>
 
-<H3><A NAME="sec:3.1">3.1 Server applications</A></H3>
+<H3><A NAME="sec:4.1">4.1 Server applications</A></H3>
 
 <P>The typical sequence for generating a server application is defined 
 below:
@@ -407,7 +458,7 @@ dispatch(AcceptFd) :-
 </PRE>
 </TABLE>
 
-<H3><A NAME="sec:3.2">3.2 Client applications</A></H3>
+<H3><A NAME="sec:4.2">4.2 Client applications</A></H3>
 
 <P>The skeleton for client-communication is given below.
 
@@ -428,7 +479,7 @@ create_client(Host, Port) :-
 and/or non-blocking streams (see <A NAME="idx:tcpfcntl3:32"></A><A HREF="#tcp_fcntl/3">tcp_fcntl/3</A>) 
 can be used.
 
-<H2><A NAME="sec:4">4 CGI Support library</A></H2>
+<H2><A NAME="sec:5">5 CGI Support library</A></H2>
 
 <P>This is currently a very simple library, providing support for 
 obtaining the form-data for a CGI script:
@@ -480,14 +531,14 @@ print_args([A0|T]) :-
 </PRE>
 </TABLE>
 
-<H3><A NAME="sec:4.1">4.1 Some considerations</A></H3>
+<H3><A NAME="sec:5.1">5.1 Some considerations</A></H3>
 
 <P>Printing an HTML document using <A NAME="idx:format2:33"></A><B>format/2</B> 
 is not really a neat way of producing HTML. A high-level alternative is 
 provided by
 <CODE>library(http/html_write)</CODE> from the XPCE package.
 
-<H2><A NAME="sec:5">5 MIME decoding library</A></H2>
+<H2><A NAME="sec:6">6 MIME decoding library</A></H2>
 
 <P>MIME (Multipurpose Internet Mail Extensions) is a format for 
 serializing multiple typed data objects. It was designed for E-mail, but 
@@ -585,7 +636,7 @@ Name of the file the data should be stored in.
 <P><B>NOTE</B> This library is only built and installed if the maildrop 
 libraries are installed on your system.
 
-<H2><A NAME="sec:6">6 Unix password encryption library</A></H2>
+<H2><A NAME="sec:7">7 Unix password encryption library</A></H2>
 
 <P>The <CODE>library(crypt)</CODE> library defines <A NAME="idx:crypt2:34"></A><A HREF="#crypt/2">crypt/2</A> 
 for encrypting and testing Unix passwords:
@@ -609,7 +660,7 @@ as this implies the password will be available from the Prolog heap as a
 defined atom.
 </DL>
 
-<H2><A NAME="sec:7">7 Memory files</A></H2>
+<H2><A NAME="sec:8">8 Memory files</A></H2>
 
 <P>The <CODE>library(memfile)</CODE> provides an alternative to 
 temporary files, intended for temporary buffering of data. Memory files 
@@ -667,7 +718,7 @@ Return the content of the memory-file in <VAR>Atom</VAR>.
 Return the content of the memory-file as a list of character-codes in <VAR>Codes</VAR>.
 </DL>
 
-<H2><A NAME="sec:8">8 Time and alarm library</A></H2>
+<H2><A NAME="sec:9">9 Time and alarm library</A></H2>
 
 <P>The <CODE>library(time)</CODE> provides timing and alarm functions.
 
@@ -725,9 +776,9 @@ doesn't complete within
 <CODE>time_limit_exceeded</CODE>. See <A NAME="idx:catch3:42"></A><B>catch/3</B>.
 </DL>
 
-<H2><A NAME="sec:9">9 Installation</A></H2>
+<H2><A NAME="sec:10">10 Installation</A></H2>
 
-<H3><A NAME="sec:9.1">9.1 Unix systems</A></H3>
+<H3><A NAME="sec:10.1">10.1 Unix systems</A></H3>
 
 <P>Installation on Unix system uses the commonly found <EM>configure</EM>,
 <EM>make</EM> and <EM>make install</EM> sequence. SWI-Prolog should be 
