@@ -1378,26 +1378,59 @@ $t_head(LP, S, SR, H) :-
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Somewhere in the past, {X}  was  translated   into  X,  S=SR by the line
-marked (*) below. I cannot recall any longer   why  this is the case. An
-example is
+On the DCG Translation of {}
 
-a --> x, {y}.
+	a --> x, {y}.
 
-which used to be translated into
+There are two options.  In traditional systems we see:
 
-a(A, B) :-
-	x(A, C),
-	y,
-	B=C.
+	a(A, B) :- x(A, B), y.
 
-Now, this causes trouble as pointed  out by Martin Sondergaard. Throwing
-the above call through SICStus and Amzi gives the answer that used to be
-produced by SWI-Prolog as well:
+And in modern system we see:
 
-a(A, B) :-
-	x(A, B),
-	y.
+	a(A, B) :- x(A, C), y, B=C.
+
+
+Martin Sondergaard's grammar was breaking down on
+=================================================
+
+s --> v, star0, {write('You can not do that')}.
+star0 --> [].
+star0 --> [_], star0.
+
+meaning to write a  message  for  any   sentence  starting  with  a `v',
+skipping the remainder. With delayed binding  this causes a large number
+of messages as star0 only eats one token on backtracing.
+
+You can fix this using remaining as below rather then star0.
+
+remaining --> [_], !, remaining.
+remaining --> [].
+
+
+Without delayed unification of the tail we get the following trouble
+====================================================================
+(comment from Richard O'Keefe)
+
+Suppose I have
+
+    p --> [a], !, {fail}. p --> [].
+
+That is, p//0 is suppose to match the empty  string as long as it is not
+followed by a. Now consider
+
+    p([a], [a])
+
+If the first clause is translated as
+
+    p(S0, S) :- S0 = [a|S1], !, fail, S = S1.
+
+then it will work *correctly*, and the call  p([a], [a]) will fail as it
+is supposed to. If the first clause is translated as
+
+    p(S0, S) :- S0 = [a|S], !, fail.
+
+then the call p([a], [a]) will succeed, which is quite definitely wrong.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 $t_body(Var, S, SR, phrase(Var, S, SR)) :-
@@ -1410,8 +1443,8 @@ $t_body(List, S, SR, C) :-
 	;   C = append(List, SR, S)
 	).
 $t_body(!, S, S, !) :- !.
-%$t_body({T}, S, SR, (T, SR = S)) :- !.		% (*)
-$t_body({T}, S, S, T) :- !.
+$t_body({T}, S, SR, (T, SR = S)) :- !.		% (*)
+%$t_body({T}, S, S, T) :- !.			% (*)
 $t_body((T, R), S, SR, (Tt, Rt)) :- !,
 	$t_body(T, S, SR1, Tt),
 	$t_body(R, SR1, SR, Rt).
