@@ -664,14 +664,21 @@ pl_functor(Word t, Word f, Word a)
 { int arity;
 
   if ( isVar(*t) )
-  { if (isAtom(*f) && isInteger(*a) )
-    { arity = (int) valNum(*a);
-      if (arity == 0)
+  { if ( !isInteger(*a) )
+      fail;
+
+    arity = (int) valNum(*a);
+
+    if ( isAtom(*f) )
+    { if (arity == 0)
 	return unifyAtomic(t, *f);
       if (arity < 0)
         fail;
       return unifyFunctor(t, lookupFunctorDef((Atom)*f, arity));
     }
+    if ( isNumber(*f) && arity == 0 )
+      return unifyAtomic(t, *f);
+
     fail;
   }
   if ( isAtom(*t) || isNumber(*t) )

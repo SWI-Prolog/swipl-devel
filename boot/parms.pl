@@ -6,7 +6,7 @@
     Purpose: Installation dependant parts of the prolog code
 */
 
-:- user:assert(library_directory('.')).
+%:- user:assert(library_directory('.')).
 :- user:assert(library_directory(lib)).
 :- user:assert(library_directory('~/lib/prolog')).
 :- user:assert((

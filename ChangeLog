@@ -1,6 +1,11 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: functor(X, 8, 0) to yield X = 8.
+
+  * DELETED: library_directory(.).  Gives too much problems because the
+    system picks wrong files or directories.
+
 Version 2.1.10
 ==============
 

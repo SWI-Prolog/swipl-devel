@@ -59,14 +59,14 @@ progman_group_info(Group, File, Items) :-
 
 progman_make_group(Name) :-
 	open_dde_conversation(progman, progman, DDE),
-	dde_execute(DDE, '[CreateGroup("~w")]', [Name]),
+	dde_fmt_execute(DDE, '[CreateGroup("~w")]', [Name]),
 	close_dde_conversation(DDE).
 progman_make_group(Name, File) :-
 	open_dde_conversation(progman, progman, DDE),
-	dde_execute(DDE, '[CreateGroup("~w", "~w")]', [Name, File]),
+	dde_fmt_execute(DDE, '[CreateGroup("~w", "~w")]', [Name, File]),
 	close_dde_conversation(DDE).
 
-%	progman_make_itme(+Group, +Title, +CmdLine, +Dir)
+%	progman_make_item(+Group, +Title, +CmdLine, +Dir)
 %	
 %	Make a new program item in the named group.  If the item already
 %	exists, ask to delete the item.
@@ -76,13 +76,13 @@ progman_make_item(Group, Title, CmdLine, Dir) :-
 	open_dde_conversation(progman, progman, DDE),
 	(   memberchk(item(Title, _, _), Items)
 	->  (   '$confirm'('Replace item ~w from group ~w', [Title, Group])
-	    ->	dde_execute(DDE, '[ReplaceItem("~w")]', [Title])
+	    ->	dde_fmt_execute(DDE, '[ReplaceItem("~w")]', [Title])
 	    ;	format('Adding duplicate item~n', [])
 	    )
 	;   true
 	),
-	dde_execute(DDE, '[ShowGroup("~w", 1)]', Group),
-	dde_execute(DDE, '[addItem(~w, "~w",,,,, "~w",,)]',
+	dde_fmt_execute(DDE, '[ShowGroup("~w", 1)]', Group),
+	dde_fmt_execute(DDE, '[addItem(~w, "~w",,,,, "~w",,)]',
 		    [CmdLine, Title, Dir]),
 	close_dde_conversation(DDE).
 
@@ -105,21 +105,6 @@ program_group(Default, Default).
 		 /*******************************
 		 *	       INSTALL		*
 		 *******************************/
-
-progman_setup :-
-	feature(xpce, true), !,
-
-	explain(start),
-	program_group('XPCE & SWI-Prolog', Group),
-
-	feature(symbol_file, PlExe),
-	prolog_to_os_filename(PlExe, OsPlExe),
-
-	progman_make_group(Group),
-	progman_make_item(Group, 'SWI-Prolog', OsPlExe, 'c:'),
-	concat(OsPlExe, ' "--" "-pce"', PceCmdLine),
-	progman_make_item(Group, 'XPCE', PceCmdLine, 'c:').
-	explain(end).
 
 progman_setup :-
 	explain(start),
@@ -240,10 +225,10 @@ read_chars([C|T]) :-
 	read_chars(T).
 read_chars([]).
 
-%	dde_execute(+DdeId, +Format, +Args)
+%	dde_fmt_execute(+DdeId, +Format, +Args)
 %
 %	Utility predicate to create DDE commands from a formatted spec.
 
-dde_execute(DDE, Fmt, Args) :-
+dde_fmt_execute(DDE, Fmt, Args) :-
 	sformat(Cmd, Fmt, Args),
 	dde_execute(DDE, Cmd).

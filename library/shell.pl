@@ -89,7 +89,7 @@ dirs :-
 pwd :-
 	absolute_file_name('', D),
 	dir_name(D, Name),
-	format('~w ', [Name]).
+	format('~w~n', [Name]).
 
 dir_name('/', '/') :- !.
 dir_name(Path, Name) :-

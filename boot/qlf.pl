@@ -20,7 +20,8 @@
 :- module_transparent
 	qcompile/1,
 	qload/1,
-	qload/2.
+	qload/2,
+	yesno/2.
 
 
 qcompile([]) :- !.
@@ -37,7 +38,10 @@ qcompile(File) :-
 	ensure_suffix(ABase, '.qlf', Qlf),
 	$qlf_open(Qlf),
 	flag($compiling, Old, qlf),
-	consult(Module:Absolute),
+	$set_source_module(OldModule, Module), % avoid this in the module!
+	yesno(consult(Module:Absolute), Yes),
+	$set_source_module(_, OldModule),
+	Yes,
 	flag($compiling, _, Old),
 	$qlf_close.
 
@@ -49,6 +53,12 @@ ensure_suffix(X, S, X) :-
 	concat(_, S, X), !.
 ensure_suffix(X, S, XS) :-
 	concat(X, S, XS).
+
+yesno(G, Yes) :-
+	(   G
+	->  Yes = true
+	;   Yes = fail
+	).
 
 	
 		 /*******************************
