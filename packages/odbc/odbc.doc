@@ -1,4 +1,5 @@
 \documentclass[11pt]{article}
+\usepackage{times}
 \usepackage{pl}
 \usepackage{html}
 \sloppy

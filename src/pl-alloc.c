@@ -907,5 +907,53 @@ xrealloc(void *mem, size_t size)
 
 #endif /*xmalloc*/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Allocation on behalf of foreign code. There  is generally no need to use
+this, unless malloced data is returned by Prolog and the foreign routine
+wants to free it (e.g. using BUF_MALLOC).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void *
+PL_malloc(size_t size)
+{ void *mem;
+
+  if ( !size )
+    return NULL;
+  if ( (mem = malloc(size)) )
+    return mem;
+
+  outOfCore();
+
+  return NULL;
+}
+
+
+void
+PL_free(void *mem)
+{ if ( mem )
+    free(mem);
+}
+
+
+void *
+PL_realloc(void *mem, size_t size)
+{ void *newmem;
+
+  if ( mem )
+  { if ( size )
+    { if ( !(newmem = realloc(mem, size)) )
+	outOfCore();
+
+      return newmem;
+    } else
+    { free(mem);
+      return NULL;
+    }
+  } 
+  
+  return PL_malloc(size);
+}
+
+
 #undef LOCK
 #undef UNLOCK

@@ -1,3 +1,7 @@
+Jul 24, 2002
+
+* FIXED: Check malloc() return and use PL_* allocation where necessary.
+
 Jul 17, 2002
 
 * ADDED: consistency check betweem declared and used parameters in

@@ -407,6 +407,18 @@ context_error(term_t term, const char *error, const char *what)
 }
 
 
+static void *
+odbc_malloc(size_t bytes)
+{ void *ptr = malloc(bytes);
+
+  if ( !ptr )
+    resource_error("memory");
+
+  return ptr;
+}
+
+
+
 		 /*******************************
 		 *	     PRIMITIVES		*
 		 *******************************/
@@ -509,7 +521,10 @@ static nulldef *
 nulldef_spec(term_t t)
 { atom_t a;
   functor_t f;
-  nulldef *nd = malloc(sizeof(*nd));
+  nulldef *nd;
+
+  if ( !(nd=odbc_malloc(sizeof(*nd))) )
+    return NULL;
   
   memset(nd, 0, sizeof(*nd));
 
@@ -684,7 +699,7 @@ typedef union
 } u_double;
 
 
-static void
+static int
 compile_arg(compile_info *info, term_t t)
 { int tt;
 
@@ -722,7 +737,8 @@ compile_arg(compile_info *info, term_t t)
 	  char *s, *cp;
 
 	  PL_get_string_chars(t, &s, &len);
-	  cp = malloc(len+1);
+	  if ( !(cp = odbc_malloc(len+1)) )
+	    return FALSE;
 	  memcpy(cp, s, len+1);
 	  ADDCODE(info, PL_STRING);
 	  ADDCODE(info, len);
@@ -756,6 +772,8 @@ compile_arg(compile_info *info, term_t t)
     default:
       assert(0);
   }
+
+  return TRUE;
 }
 
 
@@ -786,7 +804,8 @@ compile_findall(term_t all, unsigned flags)
   PL_get_arg(1, all, t);
   compile_arg(&info, t);
   
-  f = malloc(FND_SIZE(info.size));
+  if ( !(f = odbc_malloc(FND_SIZE(info.size))) )
+    return NULL;
   f->references = 1;
   f->flags = flags;
   memcpy(f->codes, info.buf, sizeof(code)*info.size);
@@ -959,10 +978,8 @@ alloc_connection(atom_t alias, atom_t dsn)
   if ( alias && find_connection(alias) )
     return NULL;			/* already existenting */
   
-  if ( !(c = malloc(sizeof(*c))) )
-  { resource_error("memory");
+  if ( !(c = odbc_malloc(sizeof(*c))) )
     return NULL;
-  }
   memset(c, 0, sizeof(*c));
   c->alias = alias;
   if ( alias )
@@ -1437,8 +1454,10 @@ odbc_end_transaction(term_t conn, term_t action)
 
 static context *
 new_context(connection *cn)
-{ context *ctxt = (context *) malloc(sizeof(context));
+{ context *ctxt = odbc_malloc(sizeof(context));
 
+  if ( !ctxt )
+    return NULL;
   memset(ctxt, 0, sizeof(*ctxt));
   ctxt->magic = CTX_MAGIC;
   ctxt->henv  = henv;
@@ -1494,7 +1513,7 @@ free_context(context *ctx)
   free_parameters(ctx->NumCols,   ctx->result);
   free_parameters(ctx->NumParams, ctx->params);
   if ( true(ctx, CTX_SQLMALLOCED) )
-    free(ctx->sqltext);
+    PL_free(ctx->sqltext);
   if ( true(ctx, CTX_OWNNULL) )
     free_nulldef(ctx->null);
   if ( ctx->findall )
@@ -1515,10 +1534,13 @@ have multiple cursors on one statement?
 
 static context *
 clone_context(context *in)
-{ context *new = new_context(in->connection);
+{ context *new;
 
+  if ( !(new = new_context(in->connection)) )
+    return NULL;
 					/* Copy SQL statement */
-  new->sqltext = malloc(in->sqllen+1);
+  if ( !(new->sqltext = PL_malloc(in->sqllen+1)) )
+    return NULL;
   new->sqllen = in->sqllen;
   memcpy(new->sqltext, in->sqltext, in->sqllen+1);
   set(new, CTX_SQLMALLOCED);
@@ -1531,7 +1553,8 @@ clone_context(context *in)
   { int pn;
     parameter *p;
 
-    new->params = malloc(sizeof(parameter)*new->NumParams);
+    if ( !(new->params = odbc_malloc(sizeof(parameter)*new->NumParams)) )
+      return NULL;
     memcpy(new->params, in->params, sizeof(parameter)*new->NumParams);
 
     for(p=new->params, pn=1; pn<=new->NumParams; pn++, p++)
@@ -1540,7 +1563,8 @@ clone_context(context *in)
       switch(p->cTypeID)
       { case SQL_C_CHAR:
 	case SQL_C_BINARY:
-	  p->ptr_value = malloc(p->length_ind);
+	  if ( !(p->ptr_value = odbc_malloc(p->length_ind)) )
+	    return NULL;
 	  vlenptr = &p->len_value;
 	  break;
       }
@@ -1563,7 +1587,8 @@ clone_context(context *in)
 
   if ( in->result )
   { new->NumCols = in->NumCols;
-    new->result  = malloc(in->NumCols*sizeof(parameter));
+    if ( !(new->result  = odbc_malloc(in->NumCols*sizeof(parameter))) )
+      return NULL;
     memcpy(new->result, in->result, in->NumCols*sizeof(parameter));
 
     if ( true(in, CTX_BOUND) )
@@ -1572,8 +1597,9 @@ clone_context(context *in)
 
       for(i = 1; i <= new->NumCols; i++, p++)
       { if ( p->len_value > PARAM_BUFSIZE )
-	  p->ptr_value = malloc(p->len_value);
-	else
+	{ if ( !(p->ptr_value = odbc_malloc(p->len_value)) )
+	    return NULL;
+	} else
 	  p->ptr_value = (SQLPOINTER)p->buf;
 
 	TRY(new, SQLBindCol(new->hstmt, (SWORD)i,
@@ -1595,10 +1621,10 @@ clone_context(context *in)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Oops. The string is malloced by Prolog  and this probably poses problems
-when using on Windows, where each DLL has  its own memory pool. Guess we
-need PL_malloc() and PL_free() to get access   to the memory malloced by
-Prolog.
+The string is malloced by Prolog and   this probably poses problems when
+using on Windows, where each DLL  has   its  own memory pool. SWI-Prolog
+5.0.9 introduces PL_malloc(), PL_realloc()  and   PL_free()  for foreign
+code to synchronise this problem.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -1645,7 +1671,8 @@ prepare_result(context *ctxt)
   } else
   { ctxt->NumCols = ncol;
     ctxt->db_row = PL_new_functor(ATOM_row, ctxt->NumCols);
-    ctxt->result = malloc(sizeof(parameter)*ctxt->NumCols);
+    if ( !(ctxt->result = odbc_malloc(sizeof(parameter)*ctxt->NumCols)) )
+      return FALSE;
     memset(ctxt->result, 0, sizeof(parameter)*ctxt->NumCols);
   }
 
@@ -1706,7 +1733,9 @@ prepare_result(context *ctxt)
     if ( ptr_result->len_value <= PARAM_BUFSIZE )
       ptr_result->ptr_value = (void *)ptr_result->buf;
     else
-      ptr_result->ptr_value = malloc(ptr_result->len_value);
+    { if ( !(ptr_result->ptr_value = odbc_malloc(ptr_result->len_value)) )
+	return FALSE;
+    }
 
     TRY(ctxt, SQLBindCol(ctxt->hstmt, i,
 			 ptr_result->cTypeID,
@@ -1827,7 +1856,8 @@ set_column_types(context *ctxt, term_t option)
 
   ctxt->NumCols = ntypes;
   ctxt->db_row = PL_new_functor(ATOM_row, ctxt->NumCols);
-  ctxt->result = malloc(sizeof(parameter)*ctxt->NumCols);
+  if ( !(ctxt->result = odbc_malloc(sizeof(parameter)*ctxt->NumCols)) )
+    return FALSE;
   memset(ctxt->result, 0, sizeof(parameter)*ctxt->NumCols);
 
   for(p = ctxt->result; PL_get_list(tail, head, tail); p++)
@@ -2218,7 +2248,8 @@ declare_parameters(context *ctxt, term_t parms)
   if ( nparams == 0 )
     return TRUE;			/* no parameters */
 
-  ctxt->params = malloc(sizeof(parameter)*nparams);
+  if ( !(ctxt->params = odbc_malloc(sizeof(parameter)*nparams)) )
+    return FALSE;
   memset(ctxt->params, 0, sizeof(parameter)*nparams);
   params = ctxt->params;
 
@@ -2273,10 +2304,13 @@ declare_parameters(context *ctxt, term_t parms)
       case SQL_C_BINARY:
 	if ( cbColDef > 0 )
 	{ if ( cbColDef+1 > PARAM_BUFSIZE )
-	    params->ptr_value = malloc(cbColDef+1);
+	  { if ( !(params->ptr_value = odbc_malloc(cbColDef+1)) )
+	      return FALSE;
+	  }
 	  params->length_ind = cbColDef;
 	} else
-	{ params->ptr_value = malloc(256);
+	{ if ( !(params->ptr_value = odbc_malloc(256)) )
+	    return FALSE;
 	  params->length_ind = 255;
 	}
         vlenptr = &params->len_value;
@@ -2290,17 +2324,20 @@ declare_parameters(context *ctxt, term_t parms)
         vlenptr = &params->len_value;
 	break;
       case SQL_C_DATE:
-	params->ptr_value = malloc(sizeof(DATE_STRUCT));
+	if ( !(params->ptr_value = odbc_malloc(sizeof(DATE_STRUCT))) )
+	  return FALSE;
         params->len_value = sizeof(DATE_STRUCT);
 	vlenptr = &params->len_value;
         break;
       case SQL_C_TIME:
-	params->ptr_value = malloc(sizeof(TIME_STRUCT));
+	if ( !(params->ptr_value = odbc_malloc(sizeof(TIME_STRUCT))) )
+	  return FALSE;
         params->len_value = sizeof(TIME_STRUCT);
 	vlenptr = &params->len_value;
         break;
       case SQL_C_TIMESTAMP:
-	params->ptr_value = malloc(sizeof(SQL_TIMESTAMP_STRUCT));
+	if ( !(params->ptr_value = odbc_malloc(sizeof(SQL_TIMESTAMP_STRUCT))) )
+	  return FALSE;
         params->len_value = sizeof(SQL_TIMESTAMP_STRUCT);
 	vlenptr = &params->len_value;
         break;

@@ -26,6 +26,7 @@
 #define _FLI_H_INCLUDED
 
 #include <stdarg.h>
+#include <stdlib.h>			/* get size_t */
 
 #ifdef __cplusplus
 extern "C" {
@@ -584,6 +585,14 @@ __pl_export void	PL_prompt_next(int fd);
 __pl_export char *	PL_atom_generator(const char *prefix, int state);
 __pl_export void	PL_clock_wait_ticks(long waited);
 
+
+		 /*******************************
+		 *	MEMORY ALLOCATION	*
+		 *******************************/
+
+__pl_export void *	PL_malloc(size_t size);
+__pl_export void *	PL_realloc(void *mem, size_t size);
+__pl_export void	PL_free(void *mem);
 
 		/********************************
 		*             HOOKS		*
