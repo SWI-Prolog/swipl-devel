@@ -1,7 +1,24 @@
 			SWI-Prolog ChangeLog
 			====================
 
-  * ADDED: use expand_file_name in load_files/2, underlying all consult
+  * FIXED: \+ (true, !, fail): ! cutted local choice-point created by
+    \+ (same for if->then;else).  Thanks to Pierre Nugues.
+
+  * FIXED: VM listing for the C_LCUT instruction.
+
+  * MODIFIED: Syntax error exceptions on file-realated streams are now
+    reported as error(syntax_error(Message), file(File, Line, CharNo)).
+    (reported by Robert van Engelen, who concluded that getting character
+    offset was no longer supported).
+
+  * ADDED: on_signal/3 to report foreign-functions bound using PL_signal().
+
+  * FIXED: current_signal/3.
+
+  * ADDED: PL_new_atom_nchars() and PL_get_atom_nchars() to create and query
+    atoms using length/chars notation rather than 0-terminated strings.
+
+  * ADDED: use expand_file_name/1 in load_files/2, underlying all consult
     and compile predicates.  This allows for ?- ['~/.foo'].
 
   * ADDED: PL_record_external() Experimental recorded-database support
