@@ -112,9 +112,6 @@ forwards char	*compile_pattern(compiled_pattern *, char *, int);
 forwards bool	match_pattern(matchcode *, char *);
 forwards int	stringCompare(const void *, const void *);
 forwards bool	expand(char *, char **, int *);
-#ifdef O_EXPANDS_TESTS_EXISTS
-forwards bool	Exists(char *);
-#endif
 forwards char	*change_string(char *, char *);
 forwards bool	expandBag(struct bag *);
 
@@ -378,6 +375,7 @@ stringCompare(const void *a1, const void *a2)
     return stricmp(*((char **)a1), *((char **)a2));
 }
 
+
 static bool
 expand(char *f, char **argv, int *argc)
 { struct bag b;
@@ -409,43 +407,12 @@ expand(char *f, char **argv, int *argc)
   }
 }
 
-#ifdef O_EXPANDS_TESTS_EXISTS
-#if defined(HAVE_STAT) || defined(__unix__)
-static bool
-Exists(const char *path)
-{ char tmp[MAXPATHLEN];
-  struct stat buf;
-
-  if ( stat(OsPath(path, tmp), &buf) == -1 )
-    fail;
-
-  succeed;
-}
-#endif
-
-#if tos
-static bool
-Exists(const path)
-char *path;
-{ struct ffblk buf;
-  char tmp[MAXPATHLEN];
-
-  DEBUG(2, Sdprintf("Checking existence of %s ... ", path));
-  if ( findfirst(OsPath(path, tmp), &buf, SUBDIR|HIDDEN) == 0 )
-  { DEBUG(2, Sdprintf("yes\n"));
-    succeed;
-  }
-  DEBUG(2, Sdprintf("no\n"));
-
-  fail;
-}
-#endif
-#endif /*O_EXPANDS_TESTS_EXISTS*/
 
 static char *
 change_string(char *old, char *new)
 { return store_string(new);
 }
+
 
 static bool
 expandBag(struct bag *b)
@@ -536,6 +503,10 @@ expandBag(struct bag *b)
 		 matchPattern(e->d_name, &cbuf) )
 	    { strcpy(expanded, prefix);
 	      strcat(expanded, e->d_name);
+
+	      if ( *tail && !ExistsDirectory(expanded) )
+		continue;
+		  
 	      strcat(expanded, tail);
 
 	      b->bag[b->in] = change_string(b->bag[b->out], expanded);
@@ -549,42 +520,10 @@ expandBag(struct bag *b)
 	}
       }
 #endif /*HAVE_OPENDIR*/
-
-#if tos
-      { char dpat[MAXPATHLEN];
-	struct ffblk buf;
-	int r;
-	char tmp[MAXPATHLEN];
-
-	strcpy(dpat, path);
-	strcat(dpat, "\\*.*");
-
-	DEBUG(2, Sdprintf("match path = %s\n", dpat));
-	for( r=findfirst(OsPath(dpat, tmp), &buf, SUBDIR|HIDDEN);
-	     r == 0;
-	     r=findnext(&buf) )
-	{ char *name = buf.ff_name;
-	  strlwr(name);		/* match at lower case */
-
-	  DEBUG(2, Sdprintf("found %s\n", name));
-	  if ( (dot || name[0] != '.') && matchPattern(name, &cbuf) )
-	  { strcpy(expanded, prefix);
-	    strcat(expanded, name);
-	    strcat(expanded, tail);
-
-	    DEBUG(2, Sdprintf("%s matches pattern\n", name));
-	    b->bag[b->in] = change_string(b->bag[b->out], expanded);
-	    b->in = NextIndex(b->in);
-	    b->size++;
-	    if ( b->in == b->out )
-	      return warning("Too many matches");
-	  }
-	}
-      }
-#endif /* tos */
     }
   next_bag:;
   }
 
   succeed;
 }
+
