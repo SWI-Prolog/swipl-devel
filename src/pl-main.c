@@ -693,7 +693,16 @@ PL_initialise(int argc, char **argv)
   script_argv(argc, argv);		/* hande #! arguments */
   argc = GD->cmdline.argc;
   argv = GD->cmdline.argv;
+  DEBUG(1,
+  { int i;
+    
+    Sdprintf("argv =");
+    for(i=0; i<argc; i++)
+      Sdprintf(" %s", argv[i]);
+    Sdprintf("\n");
+  });
 
+      
   GD->debug_level  = 0;			/* 1-9: debug, also -d <level> */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
