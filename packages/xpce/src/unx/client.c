@@ -20,9 +20,11 @@
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/socket.h>
+/* Work around solaris 2.5 problems.  In 2.7 this causes a problem ...
 #ifdef HAVE_SYS_SOCKETVAR_H
 #include <sys/socketvar.h>
 #endif
+*/
 #include <sys/un.h>
 #include <netinet/in.h>
 #include <netdb.h>
