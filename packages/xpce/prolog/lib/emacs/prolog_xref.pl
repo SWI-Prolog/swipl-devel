@@ -109,16 +109,18 @@ xref_source(Source) :-
 	xref_setup(State),
 	call_cleanup(collect(Src), xref_cleanup(State)).
 
-xref_setup(state(Xref, Ref)) :-
+xref_setup(state(Xref, Ref, SM)) :-
 	(   current_prolog_flag(xref, Xref)
 	->  true
 	;   Xref = false
 	),
 	set_prolog_flag(xref, true),
+	'$set_source_module'(SM, SM),
 	asserta(user:message_hook(_,_,_), Ref).
-xref_cleanup(state(Xref, Ref)) :-
+xref_cleanup(state(Xref, Ref, SM)) :-
 	set_prolog_flag(xref, Xref),
-	erase(Ref).
+	erase(Ref),
+	'$set_source_module'(_, SM).
 
 %	xref_clean(+Src)
 %	
@@ -510,9 +512,15 @@ assert_import(Src, Name/Arity, From) :-
 	functor(Term, Name, Arity),
 	assert(imported(Term, Src, From)).
 
+%	assert_module(+Src, +Module)
+%	
+%	Assert we are loading code into Module.  This is also used to
+%	exploit local term-expansion and other rules.
+
 assert_module(Src, Module) :-
 	xmodule(Module, Src), !.
 assert_module(Src, Module) :-
+	'$set_source_module'(_, Module),
 	assert(xmodule(Module, Src)).
 
 assert_export(_, []) :- !.
