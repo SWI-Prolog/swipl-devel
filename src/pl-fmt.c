@@ -50,6 +50,9 @@ source should also use format() to produce error messages, etc.
 #define OUTSTRING(s, n)	{ int _i; char *q = s; \
 			  for(_i=0; _i++<(int)(n); q++) OUTCHR(*q); \
 			}
+#define OUTSTRING0(s)	{ char *q = s; \
+			  for( ; *q; q++ ) OUTCHR(*q); \
+			}
 #define OUTCHR(c)	{ if ( pending_rubber ) \
 			    buffer[index++] = (c); \
 			  else \
@@ -323,7 +326,7 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 		  SHIFT;
 		  Ssprintf(tmp, "%%.%d%c", arg == DEFAULT ? 6 : arg, *fmt);
 		  Ssprintf(buf, tmp, f);
-		  OUTSTRING(buf, strlen(buf));
+		  OUTSTRING0(buf);
 		  fmt++;
 		  break;
 		}
@@ -344,7 +347,7 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 		    formatInteger(*fmt == 'D', arg, 10, TRUE, i, tmp);
 		  else
 		    formatInteger(FALSE, 0, arg, *fmt == 'r', i, tmp);
-		  OUTSTRING(tmp, strlen(tmp));			
+		  OUTSTRING0(tmp);			
 		  fmt++;
 		  break;
 		}
