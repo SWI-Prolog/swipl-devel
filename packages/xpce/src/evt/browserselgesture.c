@@ -70,7 +70,9 @@ eventBrowserSelectGesture(BrowserSelectGesture g, EventObj ev)
 
   rval = eventGesture(g, ev);
 
-  if ( g->status == NAME_active && isAEvent(ev, NAME_locMove) )
+  if ( g->status == NAME_active &&
+       (isAEvent(ev, NAME_locMove) ||
+	isAEvent(ev, NAME_wheel)) )
   { send(g, NAME_drag, ev, 0);
     succeed;
   }

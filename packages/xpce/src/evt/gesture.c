@@ -13,8 +13,9 @@
 #include <h/kernel.h>
 #include <h/graphics.h>
 
-static int tryDragScrollGesture(Gesture g, EventObj ev);
-static int cancelDragScrollGesture(Gesture g);
+static int	 tryDragScrollGesture(Gesture g, EventObj ev);
+static int	 cancelDragScrollGesture(Gesture g);
+static Graphical getScrollTarget(Gesture g, EventObj ev);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 A  gesture describes  a  sequence  of mouse-events,   starting  with a
@@ -44,9 +45,15 @@ eventGesture(Any obj, EventObj ev)
     fail;
 
   if ( g->status == NAME_active &&
-       notNil(g->drag_scroll) &&
-       tryDragScrollGesture(g, ev) )
-    succeed;
+       notNil(g->drag_scroll) )
+  { Graphical gr;
+
+    if ( tryDragScrollGesture(g, ev) )
+      succeed;
+    if ( isAEvent(ev, NAME_wheel) &&
+	 (gr=getScrollTarget(g, ev)) )
+      return postEvent(ev, gr, DEFAULT);
+  }
 
   if ( isDownEvent(ev) &&
        hasModifierEvent(ev, g->modifier) &&
@@ -178,19 +185,9 @@ restrictAreaEvent(EventObj ev, Graphical gr)
 }
 
 
-static status
-scrollMessage(Gesture g, EventObj ev,
-	      Graphical *client, Name *Msg, Int *Amount)
+static Graphical
+getScrollTarget(Gesture g, EventObj ev)
 { Graphical gr = ev->receiver;
-  Int X, Y;
-  int ex, ey, aw, ah;
-  Name msg;
-  Int amount;
-
-  if ( !(isDragEvent(ev) ||
-	 isAEvent(ev, NAME_locMove) ||
-	 isAEvent(ev, NAME_area)) )
-    fail;
 
   if ( g->drag_scroll == NAME_device )
   { gr = (Graphical)gr->device;
@@ -206,6 +203,26 @@ scrollMessage(Gesture g, EventObj ev,
     }
   }
 
+  return gr;
+}
+
+
+static status
+scrollMessage(Gesture g, EventObj ev,
+	      Graphical *client, Name *Msg, Int *Amount)
+{ Graphical gr = ev->receiver;
+  Int X, Y;
+  int ex, ey, aw, ah;
+  Name msg;
+  Int amount;
+
+  if ( !(isDragEvent(ev) ||
+	 isAEvent(ev, NAME_locMove) ||
+	 isAEvent(ev, NAME_area)) )
+    fail;
+
+  if ( !(gr = getScrollTarget(g, ev)) )
+    fail;
   if ( !get_xy_event(ev, gr, ON, &X, &Y) )
     fail;
   ex = valInt(X);
