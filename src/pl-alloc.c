@@ -75,8 +75,8 @@ register alloc_t n;
     }
     f = allocate(n);			/* allocate from core */
 
-    if ((char *)f < hBase) hBase = (char *)f;
-    if ((char *)f > hTop)  hTop  = (char *)f;
+    SetHBase(f);
+    SetHTop((char *)f + n);
 
     DEBUG(9, printf("(n) %ld (0x%lx)\n", f, f));
     return f;
@@ -222,6 +222,16 @@ char *s;
 }
 
 #endif /* O_STRING */
+
+Word
+newTerm()
+{ Word t = allocGlobal(sizeof(word));
+
+  setVar(*t);
+
+  return t;
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 To allow for garbage collection,  reals  are  packed  into  two  tagged

@@ -228,3 +228,4 @@ bool accept;
   else
     debugstatus.styleCheck &= ~DOLLAR_STYLE;
 }
+

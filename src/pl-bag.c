@@ -7,6 +7,7 @@
     Purpose: Support predicates for bagof
 */
 
+/*#define O_SECURE 1*/
 #include "pl-incl.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -57,6 +58,17 @@ register Word key, value;
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This predicate will fail if no more records are left before the mark.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#if O_SECURE
+checkBags()
+{ Assoc a;
+
+  for(a=bags; a; a = a->next)
+  { checkData(&a->key->term, TRUE);
+    checkData(&a->value->term, TRUE);
+  }
+}
+#endif
 
 word
 pl_collect_bag(bindings, bag)

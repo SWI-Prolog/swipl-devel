@@ -1,4 +1,4 @@
-/*  pl-save.c,v 1.12 1993/03/22 10:40:08 jan Exp
+/*  $Id$
 
     Copyright (c) 1991 Jan Wielemaker. All rights reserved.
     See ../LICENCE to find out about your rights.
@@ -111,7 +111,6 @@ extern long _heap_end;
 #endif /* OS2 */
 
 extern char **environ;
-extern etext;
 
 #ifndef DATA_START
 #ifndef FIRST_DATA_SYMBOL
@@ -189,17 +188,8 @@ an ideal solution: it forces the entire text to be loaded.
 static long
 saveVersion()
 { if ( save_version == 0 )
-  {
-#ifdef TEXT_START
-    long *start = (long *) TEXT_START;
-#else
-    long *start = (long *) saveVersion;
-#endif
-#ifdef TEXT_END
-    long *end = (long *) TEXT_END;
-#else
+  { long *start = (long *) saveVersion;
     long *end	= (long *) startProlog;
-#endif
     int  step   = (end - start) / 500;
     
     DEBUG(1, printf("Computing saveVersion in 0x%x .. 0x%x\n", start, end));

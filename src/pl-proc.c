@@ -400,11 +400,10 @@ Clause clause;
 void
 unallocClause(clause)
 Clause clause;
-{ DEBUG(1, word w;
-	   setVar(w);
-	   decompile(clause, &w);
+{ DEBUG(1, Word w = newTerm();
+	   decompile(clause, w);
 	   Putf("removing clause ");
-	   pl_write(&w);
+	   pl_write(w);
 	   Putf(" of %s\n", procedureName(clause->procedure));
        );
 
@@ -660,7 +659,7 @@ word h;
 	unlockMark(&m);
 	if ( det == TRUE )
 	  succeed;
-	next->references++;	/* avoid the next beeing deleted */
+	next->references++;	/* avoid the next being deleted */
 
 	ForeignRedo(next);
       }

@@ -257,17 +257,17 @@ char *name;
 int arity;
 Func f;
 va_list args;
-{ static word input;
-  SourceFile sf;
+{ SourceFile sf;
   Procedure proc;
   Definition def;
   int n;
   Module m;
   int attribute;
+  Word t = newTerm();
 
-  setVar(input);
-  pl_seeing(&input);
-  sf = lookupSourceFile((Atom)input);
+  pl_seeing(t);
+  deRef(t);
+  sf = lookupSourceFile((Atom) *t);
 
   m = (environment_frame ? contextModule(environment_frame)
 			 : MODULE_system);
@@ -277,7 +277,7 @@ va_list args;
 
   if ( true(def, SYSTEM) )
     return warning("PL_register_foreign(): Attempt to redefine a system predicate: %s",
-							procedureName(proc));
+		   procedureName(proc));
   if ( def->source != (SourceFile) NULL && def->source != sf )
     warning("PL_register_foreign(): redefined %s", procedureName(proc));
   def->source = sf;

@@ -29,10 +29,10 @@ and libraries.  If you are not sure, run `which cc' which should yield
 #define M_CC			gcc
 #define M_OPTIMIZE	        -O2
 #define M_LDFLAGS		-static
-#define M_CFLAGS		-Wall -funsigned-char
+#define M_CFLAGS		-funsigned-char
 #endif
 
-/*#define M_OPTIMIZE		-g -DO_DEBUG*/
+/*#define M_OPTIMIZE		-g -DO_SECURE*/
 
 #define M_LIBS			-lm -ltermcap
 

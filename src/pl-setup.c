@@ -13,6 +13,8 @@
 #include "pl-incl.h"
 #include <sys/stat.h>
 
+#define K * 1024
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module initialises the system and defines the global variables.  It
 also holds the code  for  dynamically  expanding  stacks  based  on  MMU
@@ -307,8 +309,8 @@ Stack s;
     fatalError("Failed to map memory at 0x%x for %d bytes on fd=%d: %s\n",
 	       s->max, size_alignment, mapfd, OsError());
 
-  DEBUG(2, printf("mapped %d bytes from 0x%x\n",
-		  size_alignment, (unsigned) s->max));
+  DEBUG(1, printf("mapped %d bytes from 0x%x to 0x%x\n",
+		  size_alignment, (unsigned) s->max, s->max + size_alignment));
   s->max += size_alignment;
 }
 
@@ -553,15 +555,12 @@ Stack s;
 #endif /* O_SHM_ALIGN_FAR_APART */
 #endif /* O_SHARED_MEMORY */
 
+#if !O_NO_SEGV_ADDRESS
 static bool
 expandStack(s, addr)
 Stack s;
 caddress addr;
-{
-#if O_NO_SEGV_ADDRESS
-  addr = s->top + STACK_SEPARATION;
-#endif
-  if ( addr < s->max || addr >= s->base + s->maxlimit + STACK_SEPARATION )
+{ if ( addr < s->max || addr >= s->base + s->maxlimit + STACK_SEPARATION )
     fail;				/* outside this area */
 
   if ( addr <= s->max + STACK_SEPARATION*2 )
@@ -578,6 +577,7 @@ caddress addr;
 
   fail;
 }
+#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This the the signal handler for segmentation faults if we are using  MMU
@@ -592,13 +592,26 @@ segv_handler(sig, type, scp, addr)
 int sig, type;
 SIGNAL_CONTEXT_TYPE scp;
 char *addr;
-{ DEBUG(1, printf("Page fault at %ld (0x%x)\n", (long) addr, (unsigned) addr));
+{ Stack stacka = (Stack) &stacks;
+  int i;
 
-  if ( expandStack(&stacks.global, addr) ||
-       expandStack(&stacks.local, addr) ||
-       expandStack(&stacks.trail, addr) ||
-       expandStack(&stacks.argument, addr) ||
-       expandStack(&stacks.lock, addr) )
+#if O_NO_SEGV_ADDRESS
+  int mapped = 0;
+
+  DEBUG(1, printf("Page fault.  Free room (g+l+t) = %ld+%ld+%ld\n",
+		  roomStack(global), roomStack(local), roomStack(trail)));
+
+  for(i=0; i<N_STACKS; i++)
+  { long r = stacka[i].max - stacka[i].top;
+
+    if ( r < size_alignment )
+    { map(&stacka[i]);
+      considerGarbageCollect(&stacka[i]);
+      mapped++;
+    }
+  }
+
+  if ( mapped )
   {
 #if O_SIG_AUTO_RESET
     signal(SIGSEGV, segv_handler);
@@ -606,10 +619,19 @@ char *addr;
     return;
   }
 
-  deliverSignal(sig, type, scp, addr);
+#else
+  DEBUG(1, printf("Page fault at %ld (0x%x)\n", (long) addr, (unsigned) addr));
+  for(i=0; i<N_STACKS; i++)
+    if ( expandStack(&stacka[n], addr) )
+    {
 #if O_SIG_AUTO_RESET
-  signal(SIGSEGV, segv_handler);
+      signal(sig, segv_handler);
 #endif
+      return;
+    }
+#endif
+
+  deliverSignal(sig, type, scp, addr);
 }
 
 static bool
@@ -633,10 +655,13 @@ Stack s;
 char *name;
 caddress base;
 long limit, minsize;
-{ s->maxlimit = limit;			/* deleted this notion */
-  s->name     = name;
-  s->base     = s->max = s->top = base;
-  s->min      = s->base + minsize;	/* No need to get below this value */
+{ s->maxlimit  = limit;			/* deleted this notion */
+  s->name      = name;
+  s->base      = s->max = s->top = base;
+  s->min       = s->base + minsize;	/* No need to get below this value */
+  s->gced_size = 0L;			/* size after last gc */
+  s->gc	       = ((s == &stacks.global || s == &stacks.trail) ? TRUE : FALSE);
+  s->small     = (s->gc ? 100 K : 0);
   limit_stack(s, limit);
 #if O_SHARED_MEMORY
 #if O_SHM_ALIGN_FAR_APART
@@ -768,6 +793,8 @@ pl_trim_stacks()
   unmap(&stacks.trail);
   unmap(&stacks.argument);
   unmap(&stacks.lock);
+  stacks.global.gced_size = usedStack(global);
+  stacks.trail.gced_size  = usedStack(trail);
 
   succeed;
 }
@@ -801,7 +828,7 @@ Word s, l;
 		*    SIMPLE STACK ALLOCATION    *
 		*********************************/
 
-forwards void init_stack P((Stack, char *, long));
+forwards void init_stack P((Stack, char *, long, long, long));
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 On systems that do not allow us to get access to the MMU (or that do not
@@ -825,10 +852,10 @@ pl_trim_stacks()
 }
 
 static void
-init_stack(s, name, size)
+init_stack(s, name, size, limit, minfree)
 Stack s;
 char *name;
-long size;
+long size, limit, minfree;
 { if ( s->base == NULL )
   { fatalError("Not enough core to allocate stacks");
     return;
@@ -836,8 +863,12 @@ long size;
 
   s->name 	= name;
   s->top	= s->base;
-  s->limit	= size;
+  s->limit	= limit;
+  s->minfree	= minfree;
   s->max	= s->base + size;
+  s->gced_size = 0L;			/* size after last gc */
+  s->gc	       = ((s == &stacks.global || s == &stacks.trail) ? TRUE : FALSE);
+  s->small     = (s->gc ? 100 K : 0);
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -856,25 +887,34 @@ static void
 initStacks(local, global, trail, argument, lock)
 long local, global, trail, argument, lock;
 { long old_heap = statistics.heap;
+#if O_SHIFT_STACKS
+  long itrail  = 8 K;
+  long iglobal = 16 K;
+  long ilocal  = 32 K;
+#else
+  long itrail  = trail;
+  long iglobal = global;
+  long ilocal  = local;
+#endif
 
   if ( status.dumped == FALSE )
   { hBase = (char *)0x20000000L;
     hTop  = (char *)NULL;
   }
 
-  gBase = (Word) MALLOC(gBase, global + sizeof(word) +
-			       local + sizeof(struct localFrame) +
+  gBase = (Word) MALLOC(gBase, iglobal + sizeof(word) +
+			       ilocal + sizeof(struct localFrame) +
 			       MAXARITY * sizeof(word));
-  lBase = (LocalFrame)	addPointer(gBase, global+sizeof(word));
-  tBase = (TrailEntry)	MALLOC(tBase, trail);
+  lBase = (LocalFrame)	addPointer(gBase, iglobal+sizeof(word));
+  tBase = (TrailEntry)	MALLOC(tBase, itrail);
   aBase = (Word *)	MALLOC(aBase, argument);
   pBase = (Lock)	MALLOC(pBase, lock);
 
-  init_stack((Stack)&stacks.global,	"global",	global);
-  init_stack((Stack)&stacks.local,	"local",	local);
-  init_stack((Stack)&stacks.trail,	"trail",	trail);
-  init_stack((Stack)&stacks.argument,	"argumet",	argument);
-  init_stack((Stack)&stacks.lock,	"lock",		lock);
+  init_stack((Stack)&stacks.global,   "global",	 iglobal,  global,   8 K);
+  init_stack((Stack)&stacks.local,    "local",	 ilocal,   local,    16 K);
+  init_stack((Stack)&stacks.trail,    "trail",	 itrail,   trail,    4 K);
+  init_stack((Stack)&stacks.argument, "argumet", argument, argument, 0);
+  init_stack((Stack)&stacks.lock,     "lock",    lock,     lock,     0);
 
   statistics.heap = old_heap;
 }

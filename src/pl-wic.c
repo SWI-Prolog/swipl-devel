@@ -334,22 +334,25 @@ bool toplevel, load_options;
 	  continue;
 	}
       case 'D':
-	{ word directive;
+	{ Word directive;
 	  word rval;
+	  mark m;
 
+	  Mark(m);
+	  directive = newTerm();
 	  s = getString(fd);
 	  seeString(s);
-	  setVar(directive);
-	  rval = pl_read(&directive);
+	  rval = pl_read(directive);
 	  seenString();
 	  if (rval == TRUE)
 	  { environment_frame = (LocalFrame) NULL;
-	    if (callGoal(MODULE_user, directive, FALSE) == FALSE)
+	    if (callGoal(MODULE_user, *directive, FALSE) == FALSE)
 	    { printf("[WARNING: directive failed: ");
-	      pl_write(&directive);
+	      pl_write(directive);
 	      printf("]\n");
 	    }
 	  }
+	  Undo(m);
 
 	  continue;
 	}	  
@@ -987,6 +990,7 @@ compileFile(file)
 char *file;
 { char *path;
   word f;
+  Word term = newTerm();
 
   DEBUG(1, printf("Boot compilation of %s\n", file));
   if ((path = AbsoluteFile(file)) == (char *) NULL)
@@ -1001,28 +1005,27 @@ char *file;
   pl_start_consult(&f);
   
   for(;;)
-  { word term, directive;
+  { word directive;
     mark m;
     
     Mark(m);
-    setVar(term);
     DEBUG(2, printf("pl_read_clause() -> "));
-    if (pl_read_clause(&term) == FALSE)
+    if (pl_read_clause(term) == FALSE)
       continue;
-    DEBUG(2, pl_write(&term); pl_nl());
-    if (term == (word) ATOM_end_of_file)
+    DEBUG(2, pl_write(term); pl_nl());
+    if (*term == (word) ATOM_end_of_file)
       break;
-    if ((directive = directiveClause(term, ":-")) != (word) NULL)
+    if ((directive = directiveClause(*term, ":-")) != (word) NULL)
     { environment_frame = (LocalFrame) NULL;
       DEBUG(1, Putf(":- "); pl_write(&directive); Putf(".\n") );
       callGoal(MODULE_user, directive, FALSE);
       addDirectiveWic(directive);
-    } else if ((directive = directiveClause(term, "$:-")) != (word) NULL)
+    } else if ((directive = directiveClause(*term, "$:-")) != (word) NULL)
     { environment_frame = (LocalFrame) NULL;
       DEBUG(1, Putf("$:- "); pl_write(&directive); Putf(".\n") );
       callGoal(MODULE_user, directive, FALSE);
     } else
-      addClauseWic(&term, (Atom)f);
+      addClauseWic(term, (Atom)f);
     Undo(m);
   }
   pl_seen();

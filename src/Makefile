@@ -1,4 +1,3 @@
-
 # /* SWI-Prolog 1.6        Toplevel Makefile                            */
 
 # /* This is the toplevel makefile for SWI Prolog.                      */
@@ -71,7 +70,7 @@ OBJ=	pl-wam.o pl-save.o \
 	pl-gc.o pl-glob.o pl-index.o pl-itf.o pl-list.o pl-load.o \
 	pl-modul.o pl-op.o pl-os.o pl-prims.o pl-pro.o pl-proc.o \
 	pl-prof.o pl-read.o pl-rec.o pl-setup.o pl-sys.o pl-table.o \
-	pl-trace.o pl-util.o pl-wic.o pl-write.o pl-term.o
+	pl-trace.o pl-util.o pl-wic.o pl-write.o pl-term.o pl-buffer.o
 DEPOBJ=	pl-main.o
 EXT=	pl-extend.o
 
@@ -159,7 +158,7 @@ $(OS-STARTUPPATH):	$(PLBOOT) $(PLINIT) pl-wam.o
 		rm xxfoo.c xxfoo
 		cmd /C boot
 #else
-		./$(SYS) -d 2 -O -o $(OS-STARTUPPATH) -b $(PLINIT) -c $(PLBOOT)
+		./$(SYS) -O -o $(OS-STARTUPPATH) -b $(PLINIT) -c $(PLBOOT)
 #endif /* OS2MAKE */
 
 $(RUNTIMEDIR):
@@ -241,7 +240,7 @@ xclean:
 		$(CC) -c $(CFLAGS) $*.c
 
 saber_src:
-		#load $(OBJ) $(DEPOBJ) $(CFLAGS) $(LIBS)
+		#load $(OBJ) $(DEPOBJ) $(LIBS)
 
 
 

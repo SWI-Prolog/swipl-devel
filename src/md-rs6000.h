@@ -1,4 +1,4 @@
-/*  md-rs6000.h,v 1.7 1993/02/18 15:16:15 jan Exp
+/*  $Id$
 
     Copyright (c) 1990 Jan Wielemaker. All rights reserved.
     See ../LICENCE to find out about your rights.
@@ -65,7 +65,6 @@ file.
 #define O_AIX_FOREIGN		1
 #define O_SAVE			1
 #define UNEXEC_SOURCE		"gnu/unexaix.c"
-#define TEXT_END		(&etext)
 #define TEXT_START		0x10000000
 #define DATA_START		0x20000000
 #define DEFAULT_PATH		":/usr/ucb:/bin:/usr/bin:/usr/local/bin:.:";

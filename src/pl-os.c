@@ -250,8 +250,6 @@ Allocate(n)
 long n;
 { Void mem = Malloc(n);
 
-  SECURE(assert(malloc_verify() == 1));
-
   return (Void) mem;
 }
 
@@ -1841,9 +1839,13 @@ ResetTty()
 #ifdef RESET_STDIN
   RESET_STDIN;
 #else
-#if unix && !linux
+#if unix
+#if linux				/* actually gcc libc (4.3.3) */
+  stdin->_gptr = stdin->_egptr;
+#else
   stdin->_ptr = stdin->_base;
   stdin->_cnt = 0;
+#endif
 #endif
 #if EMX
   stdin->ptr = stdin->buffer;

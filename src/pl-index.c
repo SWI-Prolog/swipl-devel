@@ -199,7 +199,7 @@ part of the stacks (e.g. backtrailing is not needed).
 bool
 reindexClause(clause)
 Clause clause;
-{ word head;
+{ Word head;
   Procedure proc = clause->procedure;
   mark m;
 
@@ -207,14 +207,15 @@ Clause clause;
     succeed;
 
   Mark(m);
-  setVar(head);
-  if (decompileHead(clause, &head) == FALSE)
+  head = newTerm();
+  if ( !decompileHead(clause, head) )
   { sysError("Failed to decompile head of %s", procedureName(proc));
     fail;
   }
 
-  clause->index = getIndex(argTermP(head, 0), proc->definition->indexPattern, 
-					      proc->definition->indexCardinality);
+  clause->index = getIndex(argTermP(*head, 0),
+			   proc->definition->indexPattern, 
+			   proc->definition->indexCardinality);
   Undo(m);
 
   succeed;

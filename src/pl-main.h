@@ -78,26 +78,18 @@ GLOBAL struct
 #define OPERATING_SYSTEM "unknown"
 #endif
 
-#if O_CAN_MAP || O_SHARED_MEMORY
+#if O_CAN_MAP || O_SHARED_MEMORY || O_SHIFT_STACKS
 #define DEF_DEFLOCAL	2000
 #define DEF_DEFGLOBAL	4000
 #define DEF_DEFTRAIL	4000
 #define DEF_DEFARGUMENT 8
 #define DEF_DEFLOCK	8
-#else
-#if O_SHIFT_STACKS			/* shiftable stack areas */
-#define DEF_DEFLOCAL	32
-#define DEF_DEFGLOBAL	16
-#define DEF_DEFTRAIL	16
-#define DEF_DEFARGUMENT 5
-#define DEF_DEFLOCK	5
 #else					/* static stack areas */
 #define DEF_DEFLOCAL	200
 #define DEF_DEFGLOBAL	200
 #define DEF_DEFTRAIL	200
 #define DEF_DEFARGUMENT 5
 #define DEF_DEFLOCK	5
-#endif
 #endif
 
 #ifndef DEFLOCAL

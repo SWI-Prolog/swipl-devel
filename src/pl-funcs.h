@@ -34,6 +34,7 @@ word		globalString P((char *)),
 		globalReal P((real)),
 		heapReal P((real)),
 		globalFunctor P((FunctorDef));
+Word		newTerm P((void));
 real		unpack_real P((Word));
 volatile void	outOf P((Stack));
 void		free_heap P((Void, alloc_t)),
@@ -188,7 +189,7 @@ void		garbageCollect P((LocalFrame)),
 		resetGC P((void)),
 		considerGarbageCollect P((Stack)),
 		lockw P((Word)), unlockw P((Word)),
-		lockp P((Word *)), unlockp P((Word *)),
+		lockp P((void *)), unlockp P((void *)),
 		lockMark P((mark *)), unlockMark P((mark *));
 LocalFrame	growStacks P((LocalFrame, int, int, int));
 word		pl_garbage_collect P((Word)),

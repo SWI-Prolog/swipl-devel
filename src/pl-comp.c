@@ -8,7 +8,7 @@
 */
 
 #include "pl-incl.h"
-
+#include "pl-buffer.h"
 
 #define CODE(c, n, a)	{ n, a, c }
 
@@ -397,12 +397,17 @@ calculation at runtime.
 #define ISVOID 0			/* compileArgument produced H_VOID */
 #define NONVOID 1			/* ... anything else */
 
-#define Output_0(ci, c)		((ci)->codes[(ci)->tc++] = encode(c))
-#define Output_a(c1, c)		((ci)->codes[(ci)->tc++] = (c))
-#define Output_1(ci, c, a)	Output_0(ci, c), Output_a(ci, a)
-#define Output_2(ci, c, a0, a1)	Output_1(ci, c, a0), Output_a(ci, a1)
+#define BLOCK(s) do { s; } while (0)
+
+#define Output_0(ci, c)		addBuffer(&(ci)->codes, encode(c), code);
+#define Output_a(ci, c)		addBuffer(&(ci)->codes, c, code);
+#define Output_1(ci, c, a)	BLOCK(Output_0(ci, c); Output_a(ci, a))
+#define Output_2(ci, c, a0, a1)	BLOCK(Output_1(ci, c, a0); Output_a(ci, a1))
 
 #define BITSPERINT (sizeof(int)*8)
+
+#define PC(ci)		entriesBuffer(&(ci)->codes, code)
+#define OpCode(ci, pc)	(baseBuffer(&(ci)->codes, code)[pc])
 
 struct vartable
 { int	entry[MAXVARIABLES/BITSPERINT];
@@ -412,11 +417,9 @@ typedef struct
 { Module	module;			/* module to compile into */
   int		arity;			/* arity of top-goal */
   Clause	clause;			/* clause we are constructing */
-  int		tc;			/* index in tc table */
-  int		tx;			/* index in XR table */
   struct vartable used_var;		/* boolean array of used variables */
-  word		XR[MAXEXTERNALS];	/* scratch XR table */
-  Code		codes;			/* scratch code table */
+  buffer	XR;			/* scratch XR table */
+  buffer	codes;			/* scratch code table */
 } compileInfo;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -558,17 +561,6 @@ Allocate the clause and fill initialise the field we already know.
   clause->subclauses = 0;
   clause->procedure = proc;
 
-#if O_AUTOINDEX
-  if ( ci.arity > 0 )
-  { register Word a = argTermP(*head, 0);
-
-    deRef(a);
-    DEBUG(9, printf("a = 0x%lx, *a = 0x%lx\n", a, *a));
-    if ( isAtom(*a) || isInteger(*a) || isTerm(*a) )
-      set(clause, INDEXABLE);
-  }
-#endif /* O_AUTOINDEX */
-
   DEBUG(9, printf("clause struct initialised\n"));
 
   { register Definition def = proc->definition;
@@ -587,9 +579,8 @@ Allocate the clause and fill initialise the field we already know.
 Initialise the `compileInfo' structure.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  ci.tx = ci.tc = 0;
-  initAllocLocal();
-  ci.codes = alloc_local(MAXCODES);
+  initBuffer(&ci.codes);
+  initBuffer(&ci.XR);
   ci.module = module;
   ci.clause = clause;
   ClearVarTable(&ci);
@@ -606,8 +597,8 @@ before the I_ENTER instructions.
 
     for ( arg = argTermP(*head, 0), n = 0; n < ci.arity; n++, arg++ )
       if ( compileArgument(arg, HEAD, &ci) == NONVOID )
-	lastnonvoid = ci.tc;
-    ci.tc = lastnonvoid;
+	lastnonvoid = PC(&ci);
+    seekBuffer(&ci.codes, lastnonvoid, code);
   }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -637,18 +628,30 @@ become variables again.
 Finish up the clause.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  if ( ci.tx > 0 )
-  { clause->externals = (Word) allocHeap(sizeof(word) * ci.tx);
-    memcpy(clause->externals, ci.XR, sizeof(word) * ci.tx);
-  } else
-    clause->externals = NULL;
-  clause->XR_size = ci.tx;
-  clause->codes = (Code) allocHeap(sizeof(code) * ci.tc);
-  memcpy(clause->codes, ci.codes, sizeof(code) * ci.tc);
-  clause->code_size = ci.tc;
-  stopAllocLocal();
-  statistics.externals += clause->XR_size;
-  statistics.codes += clause->code_size;
+  { int entries = entriesBuffer(&ci.XR, word);
+
+    if ( entries > 0 )
+    { if ( entries > MAXEXTERNALS )
+      { warning("Compiler limit: too many (> %d) external references",
+		MAXEXTERNALS);
+	fail;
+      }
+      clause->externals = (Word) allocHeap(sizeOfBuffer(&ci.XR));
+      memcpy(clause->externals, baseBuffer(&ci.XR, word), sizeOfBuffer(&ci.XR));
+    } else
+      clause->externals = NULL;
+    clause->XR_size = entries;
+
+    clause->codes = (Code) allocHeap(sizeOfBuffer(&ci.codes));
+    memcpy(clause->codes, baseBuffer(&ci.codes, code), sizeOfBuffer(&ci.codes));
+    clause->code_size = entriesBuffer(&ci.codes, code);
+
+    discardBuffer(&ci.XR);
+    discardBuffer(&ci.codes);
+
+    statistics.externals += clause->XR_size;
+    statistics.codes += clause->code_size;
+  }
 
   return clause;
 }
@@ -727,32 +730,32 @@ register compileInfo *ci;
 	int tc_or, tc_jmp;
 
 	Output_2(ci, C_IFTHENELSE, var, (code)0);
-	tc_or = ci->tc;
+	tc_or = PC(ci);
 	TRY( compileBody(argTermP(*a0, 0), I_CALL, ci) );	
 	Output_1(ci, C_CUT, var);
 	TRY( compileBody(argTermP(*a0, 1), I_CALL, ci) );	
 	balanceVars(&valt1, &valt2, ci);
 	Output_1(ci, C_JMP, (code)0);
-	tc_jmp = ci->tc;
-	ci->codes[tc_or-1] = (code)(ci->tc - tc_or);
+	tc_jmp = PC(ci);
+	OpCode(ci, tc_or-1) = (code)(PC(ci) - tc_or);
 	ci->used_var = vsave;
 	TRY( compileBody(argTermP(*body, 1), call, ci) );
 	balanceVars(&valt2, &valt1, ci);
-	ci->codes[tc_jmp-1] = (code)(ci->tc - tc_jmp);
+	OpCode(ci, tc_jmp-1) = (code)(PC(ci) - tc_jmp);
       } else					/* A ; B */
       { int tc_or, tc_jmp;
 
 	Output_1(ci, C_OR, (code)0);
-	tc_or = ci->tc;
+	tc_or = PC(ci);
 	TRY( compileBody(argTermP(*body, 0), I_CALL, ci) );
 	balanceVars(&valt1, &valt2, ci);
 	Output_1(ci, C_JMP, (code)0);
-	tc_jmp = ci->tc;
-	ci->codes[tc_or-1] = (code)(ci->tc - tc_or);
+	tc_jmp = PC(ci);
+	OpCode(ci, tc_or-1) = (code)(PC(ci) - tc_or);
 	ci->used_var = vsave;
 	TRY( compileBody(argTermP(*body, 1), call, ci) );
 	balanceVars(&valt2, &valt1, ci);
-	ci->codes[tc_jmp-1] = (code)(ci->tc - tc_jmp);
+	OpCode(ci, tc_jmp-1) = (code)(PC(ci) - tc_jmp);
       }
 
       orVars(&valt1, &valt2);
@@ -778,11 +781,11 @@ register compileInfo *ci;
       vsave = ci->used_var;
 
       Output_2(ci, C_NOT, var, (code)0);
-      tc_or = ci->tc;
+      tc_or = PC(ci);
       TRY( compileBody(argTermP(*body, 0), I_CALL, ci) );	
       Output_1(ci, C_CUT, var);
       Output_0(ci, C_FAIL);
-      ci->codes[tc_or-1] = (code)(ci->tc - tc_or);
+      OpCode(ci, tc_or-1) = (code)(PC(ci) - tc_or);
       ci->used_var = vsave;
       
       succeed;
@@ -941,85 +944,80 @@ Non-void variables. There are many cases for this.
       { Output_1(ci, where & BODY ? B_FUNCTOR : H_FUNCTOR, index);
       }
     }
-    lastnonvoid = ci->tc;
+    lastnonvoid = PC(ci);
     ar = fdef->arity;
     for(arg = argTermP(*arg, 0); ar > 0; ar--, arg++)
     { if ( compileArgument(arg, (where & BODY) ? BODYARG : HEADARG, ci)
 							== NONVOID )
-	lastnonvoid = ci->tc;
+	lastnonvoid = PC(ci);
     }
-    ci->tc = lastnonvoid;
+    seekBuffer(&ci->codes, lastnonvoid, code);
     switch(lastPopped)
     { case 0:		Output_0(ci, I_POP);
     			break;
-      case 1:		ci->codes[ci->tc-1] = encode(I_POPN);
+      case 1:		OpCode(ci, PC(ci)-1) = encode(I_POPN);
 			Output_a(ci, 2);
 			break;
       case 65535L:	Output_0(ci, I_POP);	/* I_POPN 65535, I_POP... */
 			lastPopped = 0;
 			break;
-      default:		ci->codes[ci->tc-1]++;
+      default:		OpCode(ci, PC(ci)-1)++;
     }
     lastPopped++;
     return NONVOID;
   }
 }
 
-#define CheckMaxExternals(ci)	\
-	{ if ( ci->tx >= MAXEXTERNALS ) \
-	  { warning("Compiler limit: too many external references"); \
-	    pl_abort(); \
-	  } \
-	}
 
 static int
 add_xr_table(entry, ci)
-register word entry;
-register compileInfo *ci;
-{ register int n;
-  register Word XR = ci->XR;
+word entry;
+compileInfo *ci;
+{ int n, m = entriesBuffer(&ci->XR, word);
+  Word XR = baseBuffer(&ci->XR, word);
 
-  for(n=0; n<ci->tx; n++, XR++)
-    if (entry == *XR)
+  for(n=0; n < m; n++, XR++)
+    if ( entry == *XR )
       return n;
-  CheckMaxExternals(ci);
-  *XR = entry;
 
-  return ci->tx++;
+  addBuffer(&ci->XR, entry, word);
+
+  return m;
 }
+
 
 static int
 addRealXRtable(entry, ci)
-register word entry;
-register compileInfo *ci;
-{ register int n;
-  register Word XR = ci->XR;
+word entry;
+compileInfo *ci;
+{ int n, m = entriesBuffer(&ci->XR, word);
+  Word XR = baseBuffer(&ci->XR, word);
 
-  for(n=0; n<ci->tx; n++, XR++)
+  for(n=0; n<m; n++, XR++)
     if (isReal(*XR) && valReal(entry) == valReal(*XR) )
       return n;
-  CheckMaxExternals(ci);
-  *XR = heapReal(valReal(entry));
 
-  return ci->tx++;
+  addBuffer(&ci->XR, heapReal(valReal(entry)), word);
+
+  return m;
 }
 
 
 #if O_STRING
 static int
 addStringXRtable(entry, ci)
-register word entry;
-register compileInfo *ci;
-{ register int n;
-  register Word XR = ci->XR;
+word entry;
+compileInfo *ci;
+{ int n, m = entriesBuffer(&ci->XR, word);
+  Word XR = baseBuffer(&ci->XR, word);
 
-  for(n=0; n<ci->tx; n++, XR++)
+  for(n=0; n<m; n++, XR++)
     if ( isString(*XR) && equalString(entry, *XR) )
       return n;
-  CheckMaxExternals(ci);
-  *XR = heapString(valString(entry));
 
-  return ci->tx++;
+  addBuffer(&ci->XR, heapString(valString(entry)), word);
+
+  return m;
 }
 #endif /* O_STRING */
 
@@ -1473,6 +1471,7 @@ calling code.  This provides us the functor and arity of the  subclause.
 Then we create a term, back up and fill the arguments.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#undef PC
 #define PC	(di->pc)
 #define XR	(di->xr)
 #define ARGP	(di->argp)
@@ -1653,17 +1652,17 @@ Word term;
 
   decompileBody(di, I_EXIT, (Code) NULL);
 
-  { word b;
+  { Word b;
     int var;
 
-    setVar(b);
+    b = newTerm();
     ARGP--;
     if ( (var = isVarRef(*ARGP)) >= 0 )
-      unifyVar(&b, di->variables, var);
+      unifyVar(b, di->variables, var);
     else
-      b = *ARGP;
+      *b = *ARGP;
 
-    return (bool) pl_unify(body, &b);
+    return (bool) pl_unify(body, b);
   }
 }
 

@@ -7,6 +7,7 @@
     Purpose: Virtual machine instruction interpreter
 */
 
+/*#define O_SECURE 1*/
 #include "pl-incl.h"
 
 #if sun
@@ -15,9 +16,10 @@
 #define MARK(label)
 #endif
 
-forwards void	copyFrameArguments P((LocalFrame, LocalFrame, int));
+forwards void		copyFrameArguments P((LocalFrame, LocalFrame, int));
 forwards inline bool	callForeign P((const Procedure, LocalFrame));
-forwards void	leaveForeignFrame P((LocalFrame));
+forwards void		leaveForeignFrame P((LocalFrame));
+forwards inline void    Trail(Word, LocalFrame);
 
 #if COUNTING
 
@@ -212,7 +214,7 @@ register LocalFrame frame;
   SECURE(
   int n;
   for(n = 0; n < argc; n++)
-    checkData(argv[n]);
+    checkData(argv[n], FALSE);
   );
 
   function = proc->definition->definition.function;
@@ -261,7 +263,7 @@ register LocalFrame frame;
   SECURE(
   int n;
   for(n=0;n<argc; n++)
-    checkData(argv[n]);
+    checkData(argv[n], FALSE);
   );
 
   if ( top != pTop )
@@ -325,6 +327,195 @@ register LocalFrame fr;
 #undef U
 }
 
+
+		 /*******************************
+		 *	     TRAILING		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Trail an assignment.  This function  is  now   local  to  this module to
+exploit inlining facilities provided  by   good  C-compilers.  Note that
+-when using dynamic stacks-, the  assignment   should  be  made *before*
+calling Trail()!
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static inline void
+Trail(p, fr)
+Word p;
+LocalFrame fr;
+{ if ( fr && p > fr->mark.globaltop && p < gTop )
+    return;
+
+  (tTop++)->address = p;
+  verifyStack(trail);
+}
+
+
+		/********************************
+		*          UNIFICATION          *
+		*********************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Unify is the general unification procedure.   This  raw  routine  should
+only be called by interpret as it does not undo bindings made during the
+unification  in  case  the  unification fails.  pl_unify() (implementing
+=/2) does undo bindings and should be used by foreign predicates.
+
+Unification depends on the datatypes available in the system and will in
+general need updating if new types are added.  It should be  noted  that
+unify()  is  not  the only place were unification happens.  Other points
+are:
+  - various of the virtual machine instructions
+  - various macros, for example APPENDLIST and CLOSELIST
+  - unifyAtomic(), unifyFunctor(): unification of atomic data.
+  - various builtin predicates. They should be flagged some way.
+
+The Gould does not accept the construct (word)t1 = *t1.  This implies we
+have to define extra variables, slowing down execution a bit (on the SUN
+this trick saves about 10% on this function).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#if !O_NO_LEFT_CAST
+#define w1 ((word)t1)
+#define w2 ((word)t2)
+#endif
+
+bool
+unify(t1, t2)
+register Word t1, t2;
+{
+#if O_NO_LEFT_CAST
+  register word w1, w2;
+#endif
+
+  deRef(t1);  
+  deRef(t2);
+
+  if (isVar(*t1) )
+  { if (isVar(*t2) )
+    { if (t1 < t2)		/* always point downwards */
+      { *t2 = makeRef(t1);
+        Trail(t2, environment_frame);
+	succeed;
+      }
+      if (t1 == t2)
+	succeed;
+      *t1 = makeRef(t2);
+      Trail(t1, environment_frame);
+      succeed;
+    }
+    *t1 = *t2;
+    Trail(t1, environment_frame);
+    succeed;
+  }
+  if (isVar(*t2) )
+  { *t2 = *t1;
+    Trail(t2, environment_frame);
+    succeed;
+  }
+
+  if ( (w1 = *t1) == (w2 = *t2) )
+    succeed;
+  if ( mask(w1) != mask(w2) )
+    fail;
+
+  if ( mask(w1) != 0 )
+  { if ( !isIndirect(w1) )
+      fail;
+#if O_STRING
+    if ( isString(w1) && isString(w2) && equalString(w1, w2) )
+      succeed;
+#endif /* O_STRING */
+    if ( isReal(w1) && isReal(w2) && valReal(w1) == valReal(w2) )
+      succeed;
+    fail;
+  }
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Now both w1 and w2 can still represent a term or an atom.  If  both  are
+atoms  they are not the same atom.  We can do a quick and dirty test for
+atom as it is not a variable, nor a masked type.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+  { register int arity;
+    register FunctorDef fd;
+
+    if ( pointerIsAtom(w1) || 
+	 pointerIsAtom(w2) ||
+	 (fd = functorTerm(w1)) != functorTerm(w2) )
+      fail;
+
+    arity = fd->arity;
+    t1 = argTermP(w1, 0);
+    t2 = argTermP(w2, 0);
+    for(; arity > 0; arity--, t1++, t2++)
+      if (unify(t1, t2) == FALSE)
+	fail;
+  }
+
+  succeed;
+}
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+unify_atomic(p, a) is normally called through unifyAtomic(). It  unifies
+a  term,  represented  by  a pointer to it, with an atomic value.  It is
+intended for foreign language functions.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+bool
+unify_atomic(p, a)
+register Word p;
+word a;
+{ deRef(p);
+
+  if (*p == a)
+    succeed;
+
+  if (isVar(*p) )
+  { *p = a;
+    Trail(p, environment_frame);
+    succeed;
+  }
+
+  if (isIndirect(a) && isIndirect(*p) )
+  { if (isReal(a) && isReal(*p) && valReal(a) == valReal(*p))
+      succeed;
+#if O_STRING
+    if (isString(a) && isString(*p) && equalString(a, *p))
+      succeed;
+#endif /* O_STRING */
+  }
+
+  fail;
+}
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Unify a (pointer to a) term with a functor (is name/arity pair).  If the
+term is instantiated to a term of the name and arity  indicated  by  the
+functor  this  call just succeeds.  If the term is a free variable it is
+bound to a term whose arguments are all variables.  Otherwise this  call
+fails.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+bool
+unifyFunctor(term, functor)
+register Word term;
+register FunctorDef functor;
+{ if (functor->arity == 0)
+    return unifyAtomic(term, functor->name);
+
+  deRef(term);
+
+  if (isVar(*term) )
+  { *term = globalFunctor(functor);
+    Trail(term, environment_frame);
+    succeed;
+  }
+  if (isTerm(*term) && functorTerm(*term) == functor)
+    succeed;
+
+  fail;
+}
 
 		/********************************
 		*          INTERPRETER          *
@@ -631,8 +822,8 @@ constant from the external reference array XR.
   common_hconst:
         deRef2(ARGP++, k);
         if (isVar(*k))
-	{ Trail(k);
-	  *k = c;
+	{ *k = c;
+	  Trail(k, FR);
 	  NEXT_INSTRUCTION;
 	}
         if (*k == c)
@@ -653,8 +844,8 @@ to copy the real on the global stack as the user might retract the clause:
 
 	deRef2(ARGP++, k);
 	if (isVar(*k))
-	{ Trail(k);
-	  *k = globalReal(valReal(XR[*PC++]));
+	{ *k = globalReal(valReal(XR[*PC++]));
+	  Trail(k, FR);
 	  NEXT_INSTRUCTION;
 	}
 	if (isReal(*k) && valReal(*k) == valReal(XR[*PC++]))
@@ -673,8 +864,8 @@ String in the head. See H_REAL and H_CONST for details.
 	deRef2(ARGP++, k);
 	if (isVar(*k))
 	{ word str = XR[*PC++];
-	  Trail(k);
 	  *k = globalString(valString(str));
+	  Trail(k, FR);
 	  NEXT_INSTRUCTION;
 	}
 	if ( isString(*k) )
@@ -746,8 +937,8 @@ of the reference link in case *k turns out to be variable.
 	if (isVar(*k))
 	{ if (ARGP < k)
 	  { setVar(*ARGP);
-	    Trail(k);
 	    *k = makeRef(ARGP++);
+	    Trail(k, FR);
 	    NEXT_INSTRUCTION;
 	  }
 	  *ARGP++ = makeRef(k);		/* both on global stack! */
@@ -855,8 +1046,8 @@ the global stack (should we check?  Saves trail! How often?).
 	verifyStack(argument);
         deRef(ARGP);
 	if (isVar(*ARGP) )
-	{ Trail(ARGP);
-	  *ARGP = globalFunctor(fdef);
+	{ *ARGP = globalFunctor(fdef);
+	  Trail(ARGP, FR);
 	  ARGP = argTermP(*ARGP, 0);
 	  NEXT_INSTRUCTION;
 	}
@@ -880,8 +1071,8 @@ the global stack (should we check?  Saves trail! How often?).
 	deRef(ARGP);
 	if (isVar(*ARGP) )
 	{ STACKVERIFY( if (gTop + 3 > gMax) outOf((Stack)&stacks.global) );
-	  Trail(ARGP);
 	  *ARGP = (word) gTop;
+	  Trail(ARGP, FR);
 	  *gTop++ = (word) FUNCTOR_dot2;
 	  ARGP = gTop;
 	  setVar(*gTop++);
@@ -1575,17 +1766,33 @@ Testing is suffices to find out that the predicate is defined.
 	}
 #else
 #if O_SHIFT_STACKS
-	if ( gMax - gTop < 1024L || tMax - tTop < 1024L )
+      { int gshift = narrowStack(global);
+	int lshift = narrowStack(local);
+	int tshift = narrowStack(trail);
+
+	if ( gshift || lshift || tshift )
 	{ lTop = (LocalFrame) argFrameP(FR, PROC->functor->arity);
-	  garbageCollect(FR);
-	  FR = growStacks(FR,
-			   ((long)lMax - (long)lTop) < 8192L,
-			   (gMax - gTop) * 2 < (gTop - gBase),
-			   (tMax - tTop) * 2 < (tTop - tBase));
-	} else if ( ((long)lMax - (long)lTop) < 8192L )
-	  FR = growStacks(FR, TRUE, FALSE, FALSE);
+
+	  if ( gshift || tshift )
+	  { long groom = roomStack(global);
+	    long troom = roomStack(trail);
+
+	    garbageCollect(FR);
+	    if ( gshift )
+	      gshift = (roomStack(global) - groom < sizeStack(global) / 4);
+	    if ( tshift )
+	      tshift = (roomStack(trail)  - troom < sizeStack(trail) / 4);
+	  }
+
+	  if ( gshift || tshift || lshift )
+	  { lockp(&BFR);
+	    FR = growStacks(FR, lshift, gshift, tshift);
+	    unlockp(&BFR);
+	  }
+	}
+      }
 #else
-	if ( gMax - gTop < 1024L || tMax - tTop < 1024L )
+	if ( narrowStack(global) || narrowStack(trail) )
 	{ lTop = (LocalFrame) argFrameP(FR, PROC->functor->arity);
 	  garbageCollect(FR);
 	}
@@ -1638,7 +1845,7 @@ values  found  in  the  clause, give a referecence to the clause and set
 	int argc; int n;
 	argc = PROC->functor->arity;
 	for(n=0; n<argc; n++)
-	  checkData(argFrameP(FR, n) );
+	  checkData(argFrameP(FR, n), FALSE);
 	);
 
 	NEXT_INSTRUCTION;
@@ -1893,8 +2100,6 @@ visited for dereferencing.
       for(; fr; fr = fr->parent)
         leaveFrame(fr);
 
-      gc_status.segment = NULL;
-
       fail;
     }
 
@@ -1904,12 +2109,6 @@ visited for dereferencing.
 
       for( ; fr > FR; fr = fr->parent )
         leaveFrame(fr);
-    }
-
-    { register LocalFrame bfr = FR->backtrackFrame;
-
-      if ( bfr < gc_status.segment )
-        gc_status.segment = bfr;
     }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

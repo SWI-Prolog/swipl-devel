@@ -218,7 +218,7 @@ again:
 static int
 setupFind(buf)
 char *buf;
-{ static word w;
+{ Word w;
   mark m;
   long rval;
   char *s;
@@ -257,8 +257,8 @@ char *buf;
 
   Mark(m);
   seeString(s);
-  setVar(w);
-  rval = pl_read(&w);
+  w = newTerm();
+  rval = pl_read(w);
   seenString();
 
   if ( rval == FALSE )
@@ -269,7 +269,7 @@ char *buf;
   if ( find.goal != NULL )
     freeRecord(find.goal);
   find.port      = port;
-  find.goal      = copyTermToHeap(&w);
+  find.goal      = copyTermToHeap(w);
   find.searching = TRUE;
   Undo(m);
 

@@ -182,3 +182,6 @@
 #define ATOM_unique       (&atoms[181])
 #define ATOM_not_unique   (&atoms[182])
 #define ATOM_warning      (&atoms[183])
+#define ATOM_local_shifts (&atoms[184])
+#define ATOM_global_shifts (&atoms[185])
+#define ATOM_trail_shifts (&atoms[186])

@@ -9,8 +9,9 @@
 
 #include "pl-incl.h"
 #include "pl-ctype.h"
+#include "pl-buffer.h"
 
-forwards int	pl_se P((Word, Word, int));
+forwards int	pl_se P((Word, Word, Buffer));
 forwards void	resetVariables P((Word));
 forwards bool	freeVariables P((Word, Word *, bool));
 forwards char 	*prependBase P((int, char *));
@@ -320,14 +321,12 @@ register Word t1, t2;
 word
 pl_compare(rel, t1, t2)
 Word rel, t1, t2;
-{ switch( compareStandard(t1, t2) )
-  { case LESS:	return unifyAtomic(rel, ATOM_smaller);
-    case EQUAL:	return unifyAtomic(rel, ATOM_equals);
-    case GREATER:	
-    default:	return unifyAtomic(rel, ATOM_larger);
-  }
-}
+{ int val = compareStandard(t1, t2);
 
+  return unifyAtomic(rel, val < 0 ? ATOM_smaller :
+		          val > 0 ? ATOM_larger :
+		                    ATOM_equals);
+}
 
 
 word
@@ -373,36 +372,46 @@ Structural equivalency is stronger then unifyable (=), but  weaker  then
 pure equivalence (==). Two terms are structural equivalent if their tree
 representation is equivalent. Examples:
 
-  a =@= A		--> false
-  A =@= B		--> true
+  a =@= A			--> false
+  A =@= B			--> true
   foo(A, B) =@= foo(C, D)	--> true
   foo(A, A) =@= foo(B, C)	--> false
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+typedef struct 
+{ Word	v1;
+  Word  v2;
+} reset, *Reset;
 
-static int
-pl_se(t1, t2, index)
-register Word t1, t2;
-int index;
+
+static bool
+pl_se(t1, t2, buf)
+Word t1, t2;
+Buffer buf;
 { int arity, n;
 
   deRef(t1);
   deRef(t2);
 
-  if (isVar(*t1))
-  { if (isVar(*t2))
-    { unifyFunctor(t1, FUNCTOR_var1);
-      unifyFunctor(t2, FUNCTOR_var1);
-      unifyAtomic(argTermP(*t1, 0), consNum(index));
-      unifyAtomic(argTermP(*t2, 0), consNum(index));
-      
-      return ++index;
+  if ( isVar(*t1) )
+  { if ( isVar(*t2) )
+    { word id = (word) topBuffer(buf, reset);
+      reset r;
+
+      r.v1 = t1;
+      r.v2 = t2;
+      addBuffer(buf, r, reset);
+      *t1 = *t2 = id;
+
+      succeed;
     }
     fail;
   }
 
   if (*t1 == *t2)
     succeed;
+  if ( inBuffer(buf, *t1) || inBuffer(buf, *t2) )
+    fail;
 
   if (isIndirect(*t1) )
   { 
@@ -426,10 +435,10 @@ int index;
   t1 = argTermP(*t1, 0);
   t2 = argTermP(*t2, 0);
   for(n=0; n<arity; n++, t1++, t2++)
-    if ((index = pl_se(t1, t2, index)) == FALSE)
+    if ( !pl_se(t1, t2, buf) )
       fail;
 
-  return index;
+  succeed;
 }
 
 word
@@ -437,10 +446,16 @@ pl_structural_equal(t1, t2)
 Word t1, t2;
 { mark m;
   bool rval;
+  buffer buf;
+  Reset r;
 
-  DoMark(m);
-  rval = pl_se(t1, t2, 1);
-  DoUndo(m);
+  initBuffer(&buf);
+  rval = pl_se(t1, t2, &buf);
+  for(r = baseBuffer(&buf, reset); r < topBuffer(&buf, reset); r++)
+  { setVar(*r->v1);
+    setVar(*r->v2);
+  }
+  discardBuffer(&buf);
 
   return rval == FALSE ? FALSE : TRUE;
 }
@@ -1394,6 +1409,24 @@ Word k, value;
   else if (key == ATOM_core_left)			/* core left */
 #if tos
     result = consNum((long)coreleft());
+#else
+    fail;
+#endif
+  else if (key == ATOM_global_shifts)
+#if O_SHIFT_STACKS
+    result = consNum(statistics.global_shifts);
+#else
+    fail;
+#endif
+  else if (key == ATOM_local_shifts)
+#if O_SHIFT_STACKS
+    result = consNum(statistics.local_shifts);
+#else
+    fail;
+#endif
+  else if (key == ATOM_trail_shifts)
+#if O_SHIFT_STACKS
+    result = consNum(statistics.trail_shifts);
 #else
     fail;
 #endif

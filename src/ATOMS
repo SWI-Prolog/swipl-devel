@@ -193,6 +193,9 @@ A singleton		"singleton"
 A unique		"unique"
 A not_unique		"not_unique"
 A warning		"warning"
+A local_shifts		"local_shifts"
+A global_shifts		"global_shifts"
+A trail_shifts		"trail_shifts"
 
 F apply			2
 F call			1

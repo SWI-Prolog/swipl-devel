@@ -220,8 +220,7 @@ redesign of parts of the compiler.
 #define LINESIZ			1024	/* size of a data line */
 #define MAXARITY		128	/* arity of predicate */
 #define MAXVARIABLES		256	/* number of variables/clause */
-#define MAXEXTERNALS		512	/* external references of a clause */
-#define MAXCODES		20000	/* number of byte codes of a clause */
+#define MAXEXTERNALS	    ((1<<15)-1)	/* external references of a clause */
 #define MAXSIGNAL		32	/* highest system signal number */
 
 				/* Prolog's largest int */
@@ -448,10 +447,11 @@ structures  at  a  fixed  point, so the runtime environment can tell the
 difference.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define ATOM_TYPE	1		/* an atom */
-#define FUNCTOR_TYPE	2		/* a Functor */
-#define PROCEDURE_TYPE	3		/* a procedure */
-#define RECORD_TYPE	4		/* a record list */
+#define HeapMagic(n)	((n) | 0x25678000)
+#define ATOM_TYPE	HeapMagic(1)	/* an atom */
+#define FUNCTOR_TYPE	HeapMagic(2)	/* a Functor */
+#define PROCEDURE_TYPE	HeapMagic(3)	/* a procedure */
+#define RECORD_TYPE	HeapMagic(4)	/* a record list */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 			  PROLOG DATA REPRESENTATION
@@ -835,32 +835,6 @@ LIST processing macros.
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Handling variables: creating a variable, trailing its assignment, making
-a snap shot of the runtime environment and backtrack back to it.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#define setVar(w)	((w) = (word) NULL)
-#define Trail(p)	{ (tTop++)->address = (p); \
-			  verifyStack(trail); \
-			}
-#define DoMark(b)	{ (b).trailtop = tTop; \
-			  (b).globaltop = gTop; \
-			}
-#define DoUndo(b)	{ register TrailEntry tt = tTop; \
-			  while(tt > (b).trailtop) \
-			    setVar(*(--tt)->address); \
-			  tTop = tt; \
-			  gTop = (b).globaltop; \
-			}
-#define Mark(b)		{ DoMark(b); \
-			  lockMark(&b); \
-			}
-#define Undo(b)		{ DoUndo(b); \
-			  unlockMark(&b); \
-			}
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Structure declarations that must be shared across multiple files.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -1032,6 +1006,30 @@ struct lock
   unsigned	value : 30;	/* Anonymous value */
 };  
 
+		 /*******************************
+		 *	     MARK/UNDO		*
+		 *******************************/
+
+#define setVar(w)	((w) = (word) NULL)
+
+#define DoUndo(b)	{ register TrailEntry tt = tTop; \
+			  while(tt > (b).trailtop) \
+			    setVar(*(--tt)->address); \
+			  tTop = tt; \
+			  gTop = (b).globaltop; \
+			}
+#define DoMark(b)	{ (b).trailtop = tTop; \
+			  (b).globaltop = gTop; \
+			}
+
+#define Mark(b)		{ DoMark(b); \
+			  lockMark(&b); \
+			}
+#define Undo(b)		{ DoUndo(b); \
+			  unlockMark(&b); \
+			}
+
+
 		/********************************
 		*             STACKS            *
 		*********************************/
@@ -1066,11 +1064,17 @@ struct lock
 	  type		max;		/* allocated maximum */		    \
 	  long		limit;		/* how big it is allowed to grow */ \
 	  long		maxlimit;	/* maximum limit */                 \
+	  long		minfree;	/* minimum amount of free space */  \
+	  int		gc;		/* Garbage collect? */		    \
+	  long		gced_size;	/* size after last GC */	    \
+	  long		small;		/* Donot GC below this size */	    \
 	  char		*name;		/* Symbolic name of the stack */    \
 	}
 #endif
 
 struct stack STACK(caddress);		/* Anonymous stack */
+
+#define N_STACKS (5)
 
 GLOBAL struct
 { struct STACK(LocalFrame) local;	/* local (environment) stack */
@@ -1103,14 +1107,31 @@ GLOBAL struct
 GLOBAL char *	hTop;			/* highest allocated heap address */
 GLOBAL char *	hBase;			/* lowest allocated heap address */
 
+#define SetHTop(val)	{ if ( (char *)(val) > hTop  ) hTop  = (char *)(val); }
+#define SetHBase(val)	{ if ( (char *)(val) < hBase ) hBase = (char *)(val); }
+
+#define onStack(name, addr) \
+	((char *)(addr) >= (char *)stacks.name.base && \
+	 (char *)(addr) <  (char *)stacks.name.top)
+#define onStackArea(name, addr) \
+	((char *)(addr) >= (char *)stacks.name.base && \
+	 (char *)(addr) <  (char *)stacks.name.max)
+#define usedStack(name) ((char *)stacks.name.top - (char *)stacks.name.base)
+#define sizeStack(name) ((char *)stacks.name.max - (char *)stacks.name.base)
+#define roomStack(name) ((char *)stacks.name.max - (char *)stacks.name.top)
+#define narrowStack(name) (roomStack(name) < stacks.name.minfree)
+
 #if O_DYNAMIC_STACKS
 #define STACKVERIFY(g)			/* hardware stack verify */
 #define verifyStack(s)
 #else
 #define STACKVERIFY(g)	{ g; }
-#define verifyStack(s)	{ if ( stacks.s.top >= stacks.s.max ) \
-			    outOf((Stack)&stacks.s); }
+#define verifyStack(s) \
+	{ if ( roomStack(s) < 100 ) \
+ 	    outOf((Stack)&stacks.s); \
+	}
 #endif
+
 
 		/********************************
 		*       GLOBAL VARIABLES        *
@@ -1155,7 +1176,6 @@ GLOBAL struct
 { bool		requested;		/* GC is requested by stack expander */
   int		blocked;		/* GC is blocked now */
   bool		active;			/* Currently running? */
-  LocalFrame	segment;		/* Collected segment boundary */
   long		collections;		/* # garbage collections */
   long		global_gained;		/* global stack bytes collected */
   long		trail_gained;		/* trail stack bytes collected */
@@ -1190,6 +1210,11 @@ GLOBAL struct
   int		profiling;		/* profiler is on? */
   long		profile_ticks;		/* profile ticks total */
 #endif /* O_PROFILE */
+#if O_SHIFT_STACKS
+  int		local_shifts;		/* Shifts of the local stack */
+  int		global_shifts;		/* Shifts of the global stack */
+  int		trail_shifts;		/* Shifts of the trail stack */
+#endif
 } statistics;
 
 		/********************************
@@ -1297,8 +1322,11 @@ decrease).
 #define DEBUG(a, b) 
 #endif
 
-/*#define SECURE(g) {g;}*/
+#if O_SECURE
+#define SECURE(g) {g;}
+#else
 #define SECURE(g)
+#endif
 
 #include "pl-os.h"			/* OS dependencies */
 #include "pl-funcs.h"			/* global functions */

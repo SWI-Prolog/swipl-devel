@@ -7,6 +7,7 @@
     Purpose: recorded database (record[az], recorded, erase)
 */
 
+/*#define O_SECURE 1*/
 #include "pl-incl.h"
 
 forwards RecordList lookupRecordList P((word));
@@ -137,6 +138,7 @@ Word term;
   register int n;
   register Word v;
 
+  SECURE(checkData(term, FALSE));
   result = (Record) allocHeap(sizeof(struct record) );
   Mark(m);
   result->n_vars = numberVars(term, FUNCTOR_var1, 0);
@@ -147,8 +149,9 @@ Word term;
     setVar(*v);
 
   copyTermToHeap2(term, result, &result->term);
-
   Undo(m);
+  SECURE(checkData(term, FALSE));
+  SECURE(checkData(&result->term, TRUE));
 
   return result;
 }
@@ -203,7 +206,9 @@ register Record term;
   } else
     vars = (Word) NULL;
 
+  SECURE(checkData(&term->term, TRUE));
   copyTermToGlobal2(term->variables, vars, &term->term, &copy);
+  SECURE(checkData(&copy, FALSE));
 
   return copy;
 }
@@ -242,7 +247,8 @@ register Word term;
 bool
 freeRecord(record)
 Record record;
-{ freeHeapTerm(&record->term);
+{ SECURE(checkData(&record->term, TRUE));
+  freeHeapTerm(&record->term);
   if (record->n_vars > 0)
     freeHeap(record->variables, sizeof(word)*record->n_vars);
   record->list = (RecordList) NULL;

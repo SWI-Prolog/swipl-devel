@@ -134,18 +134,7 @@ char **env;
 
   } else
   { DEBUG(1, printf("Restarting from dumped state\n"));
-    SECURE( extern char *sbrk();
-	    extern char *thebreak;
-	    if ( thebreak != (char *)sbrk(0) )
-	      printf("Saved break = %ld; reloaded = %ld\n", thebreak, sbrk(0))
-	  );
   }
-
-  SECURE(
-    malloc_debug(1);
-    if ( malloc_verify() != 1 )
-      sysError("Memory allocation corrupted");
-  );
 
   compile			= FALSE;
   state				= systemDefaults.state;
@@ -421,11 +410,17 @@ char *fm;
 va_list args;
 { fprintf(stderr, "[PROLOG INTERNAL ERROR:\n\t");
   vfprintf(stderr, fm, args);
-  fprintf(stderr, "\n[Switched to system mode: style_check(+dollar)]\n");
-  debugstatus.styleCheck |= DOLLAR_STYLE;
-  fprintf(stderr, "PROLOG STACK:\n");
-  backTrace(NULL, 10);
-  fprintf(stderr, "]\n");
+  if ( gc_status.active )
+  { fprintf(stderr,
+	    "\n[While in %d-th garbage collection; skipping stacktrace]\n",
+	    gc_status.collections);
+  } else
+  { fprintf(stderr, "\n[Switched to system mode: style_check(+dollar)]\n");
+    debugstatus.styleCheck |= DOLLAR_STYLE;
+    fprintf(stderr, "PROLOG STACK:\n");
+    backTrace(NULL, 10);
+    fprintf(stderr, "]\n");
+  }
 
   pl_abort();
   Halt(3);
