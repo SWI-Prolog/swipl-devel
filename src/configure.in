@@ -1019,6 +1019,9 @@ case "$ARCH" in
 	SO_LD=ld
 	SO_LDFLAGS="-shared -expect_unresolved \*"
 	SO_pic="-std"
+	if test "$MT" = yes; then
+	  AC_CHECK_LIB(exc, main)
+	fi
 	;;
   *aix*)
 	SO_EXT="o"
