@@ -114,7 +114,7 @@ PLSRC=	../boot/syspred.pl ../boot/toplevel.pl ../boot/listing.pl \
 	../boot/topvars.pl ../boot/messages.pl ../boot/load.pl
 PLLIBS= MANUAL helpidx.pl help.pl explain.pl \
 	qsave.pl shlib.pl statistics.pl system.pl \
-	backcomp.pl \
+	backcomp.pl gensym.pl \
 	bim.pl quintus.pl edinburgh.pl ctypes.pl files.pl \
 	edit.pl emacs_interface.pl shell.pl check.pl \
 	tty.pl readln.pl \
