@@ -2494,7 +2494,7 @@ s_font(FontObj f)
 
 
 int
-s_has_char(FontObj f, wint_t c)
+s_has_char(FontObj f, unsigned int c)
 { s_font(f);
 
   return XftCharExists(context.display, context.gcs->xft_font, c);
