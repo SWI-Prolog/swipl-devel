@@ -201,7 +201,7 @@ typedef struct move_gesture     	* MoveGesture;
 typedef struct move_outline_gesture     * MoveOutlineGesture;
 typedef struct node			* Node;
 typedef struct path			* Path;
-typedef struct picture			* Picture;
+typedef struct picture			* PictureObj;
 typedef struct pixmapobj		* PixmapObj;
 typedef struct popup_gesture    	* PopupGesture;
 typedef struct popupobj			* PopupObj;

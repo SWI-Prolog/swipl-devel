@@ -2544,7 +2544,7 @@ s_advance(String s, int from, int to)
 		     s->s_textW, s->size, &info);
   }
 
-  return info.width;
+  return info.width;			/* Xoff? */
 }
 
 
@@ -2583,11 +2583,30 @@ s_printA(charA *s, int l, int x, int y, FontObj f)
 void
 s_printW(charW *s, int l, int x, int y, FontObj f)
 { if ( l > 0 )
-  { 
+  { XftColor color;
+
+    color.pixel = getPixelColour(context.gcs->colour, context.pceDisplay);
+    color.color.red   = valInt(context.gcs->colour->red);
+    color.color.green = valInt(context.gcs->colour->green);
+    color.color.blue  = valInt(context.gcs->colour->blue);
+    color.color.alpha = 0;
+
+    Translate(x, y);
+    s_font(f);
+    
+    if ( sizeof(charW) == 2 )
+    { XftDrawString16(&color, context.gcs->xft_font, x, y, 
+		      s->s_textW, l);
+    } else if ( sizeof(charW) == 4 )
+    { XftDrawString32(&color, context.gcs->xft_font, x, y, 
+		      s->s_textW, l);
+    } else
+    { assert(0);
+    }
   }
 }
 
-#endif /*USE_XFT*/
+#else /*USE_XFT*/
 
 		 /*******************************
 		 *    Xwc* Function version	*
@@ -2926,6 +2945,7 @@ s_printW(charW *s, int l, int x, int y, FontObj f)
 }
 
 #endif /*USE_XFONTSET*/
+#endif /*USE_XFT*/
 
 int
 s_height(FontObj f)

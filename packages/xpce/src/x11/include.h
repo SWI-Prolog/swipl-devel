@@ -27,7 +27,7 @@
 
 #define O_XDND 1			/* include Gnome/KDE drag-and-drop */
 #define USE_XFONTSET 1			/* Use Xwc* functions */
-#undef  USE_XFT				/* Use Xft library */
+#define USE_XFT 1			/* Use Xft library */
 
 #ifdef HAVE_XMISMOTIFWMRUNNING
 #define O_MOTIF 1
@@ -137,7 +137,8 @@ typedef struct xpce_font_info *XpceFontInfo;
 struct xpce_font_info
 { XftFont	 xft_font;		/* FontSet structure */
 };
-#endif
+
+#else /*USE_XFT*/
 
 #ifdef USE_XFONTSET
 
@@ -159,6 +160,7 @@ struct xpce_font_info
 };
 
 #endif /*USE_XFONTSET*/
+#endif /*USE_XFT*/
 
 		/********************************
 		*        GRAPHICS CONTEXT	*
@@ -185,17 +187,18 @@ struct draw_context
   Any		fill;			/* Image or Colour */
   Image		and_pattern;		/* Current andpattern */
   FontObj	font;			/* Current font */
-#ifdef USE_XFONTSET
-  XFontSet      font_set;		/* font-set description */
-#else
 #ifdef USE_XFT
   XftDraw	xft_draw;		/* XFT drawable */
   XftFont	xft_font;		/* XFT font representation */
-#endif
+#else
+#ifdef USE_XFONTSET
+  XFontSet      font_set;		/* font-set description */
+#else
   XFontStruct * font_info;		/* X-font for this display */
   wint_t	maxchar;		/* max char value for font */
   cwidth      * char_widths;		/* array with widths of characters */
-#endif
+#endif /*USE_XFONTSET*/
+#endif /*USE_XFT*/
   Any		colour;			/* Current colour */
   Any		background;		/* Current background colour */
   unsigned long foreground_pixel;	/* X pixel value of foreground */
