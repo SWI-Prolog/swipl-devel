@@ -82,7 +82,7 @@ type(integer,
        float = integer_to_float		% exchange as float
      ],
      []).
-type(double,
+type(float,
      float   = [-1.0, 0.0, 42.0, 3.2747, '$null$' ],
      [ 
      ],
@@ -144,7 +144,7 @@ type(varchar(2000),				% can we access as integers?
      ]) :-
 	findall(a, between(1, 1500, _), LongChars),
 	atom_chars(Long, LongChars).
-type(binary(20),
+type(varbinary(20),
      atom = [ foo,
 	      '',
 	      'With a \0\ character'
@@ -166,23 +166,27 @@ type(date - 'Type date',
      date = [ date(1960,3,19) ],
      [
      ],
-     []).
+     [ \+ dbms_name('Microsoft SQL Server')
+     ]).
 type(date - 'Type date: NULL',
      date = [ '$null$' ],
      [
      ],
-     [ \+ dbms_name('MySQL')
+     [ \+ dbms_name('Microsoft SQL Server'),
+       \+ dbms_name('MySQL')
      ]).
 type(time - 'Type time',
      time = [ time(18,23,19) ],
      [
      ],
-     []).
+     [ \+ dbms_name('Microsoft SQL Server')
+     ]).
 type(time - 'Type time: NULL',
      time = [ '$null$' ],
      [
      ],
-     [ \+ dbms_name('MySQL')
+     [ \+ dbms_name('Microsoft SQL Server'),
+       \+ dbms_name('MySQL')
      ]).
 type(timestamp,				% MySQL uses POSIX stamps
      timestamp = [ timestamp(1990,5,18,18,23,19,0) ],
