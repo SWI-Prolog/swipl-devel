@@ -892,7 +892,7 @@ unlinkClause(Definition def, Clause clause ARG_LD)
   startCritical;
 
   if ( def->hash_info )
-    delClauseFromIndex(def->hash_info, clause);
+    delClauseFromIndex(def, clause);
 
   for(c = def->definition.clauses; c; prev = c, c = c->next)
   { if ( c->clause == clause )
@@ -938,7 +938,12 @@ retractClauseProcedure(Procedure proc, Clause clause ARG_LD)
        def->number_of_clauses > 16 )
   { set(clause, ERASED);
     if ( def->hash_info )
-      markDirtyClauseIndex(def->hash_info, clause);
+    { markDirtyClauseIndex(def->hash_info, clause);
+      if ( false(def, NEEDSREHASH) &&
+	   def->hash_info->size * 4 > def->hash_info->buckets )
+      { set(def, NEEDSREHASH);
+      }
+    }
     def->number_of_clauses--;
     def->erased_clauses++;
     if ( def->erased_clauses > def->number_of_clauses/(unsigned)16 )
@@ -1012,7 +1017,7 @@ cleanDefinition(Definition def, ClauseRef garbage)
   { if ( false(def, NEEDSREHASH) )
       gcClauseIndex(def->hash_info PASS_LD);
     else
-    { rehash = def->hash_info->size * 2;
+    { rehash = def->number_of_clauses * 2;
       unallocClauseIndexTable(def->hash_info);
       def->hash_info = NULL;
     }

@@ -170,7 +170,7 @@ bool		unify_index_pattern(Procedure proc, term_t value);
 bool		hashDefinition(Definition def, int buckets);
 word		pl_hash(term_t pred);
 void		addClauseToIndex(Definition def, Clause cl, int where ARG_LD);
-void		delClauseFromIndex(ClauseIndex ci, Clause cl);
+void		delClauseFromIndex(Definition def, Clause cl);
 void		gcClauseIndex(ClauseIndex ci ARG_LD);
 void		unallocClauseIndexTable(ClauseIndex ci);
 void		markDirtyClauseIndex(ClauseIndex ci, Clause cl);

@@ -7,6 +7,10 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ENHANCED: Reduce hash-table size on retract/retractall, avoiding
+    performance problems with retract after shrinking a very large
+    predicate (Leo Khramov).
+
   * FIXED: Memory leak in hash/1 (Sergey Tikhonov).
 
   * ADDED: Partial support for large files (>2GB) on Unix systems.  Tested

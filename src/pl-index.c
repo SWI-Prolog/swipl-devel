@@ -615,8 +615,9 @@ addClauseToIndex(Definition def, Clause cl, int where ARG_LD)
 
 
 void
-delClauseFromIndex(ClauseIndex ci, Clause cl)
-{ ClauseChain ch = ci->entries;
+delClauseFromIndex(Definition def, Clause cl)
+{ ClauseIndex ci = def->hash_info;
+  ClauseChain ch = ci->entries;
 
   if ( cl->index.varmask == 0 )		/* a non-indexable field */
   { int n = ci->buckets;
@@ -628,6 +629,15 @@ delClauseFromIndex(ClauseIndex ci, Clause cl)
     
     deleteClauseChain(&ch[hi], cl);
     ci->size--;
+    if ( false(def, NEEDSREHASH) && ci->size*4 < ci->buckets )
+    { set(def, NEEDSREHASH);
+      if ( true(def, DYNAMIC) && def->references == 0 )
+      { DEBUG(0, Sdprintf("Should clean %s\n", predicateName(def)));
+        /* TBD: need to clear right away if dynamic and not referenced */
+        /* see assertProcedure() for similar case.  To do that locking */
+        /* needs to be sorted out */
+      }
+    }
   }
 }
 
