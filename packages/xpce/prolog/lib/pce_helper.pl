@@ -71,16 +71,23 @@ help_file(Helper, Name:name, File:file) :->
 
 give_help(Helper, Database:name, Label:[name]) :->
 	"View given database at label"::
+	get(Helper, buffer, Database, @on, Buffer),
+	(   get(Buffer?editors, head, Editor)
+	->  true
+	;   get(Buffer, open, Editor)
+	),
+	(   get(Buffer, size, 0)
+	->  send(Editor, editable, @on)
+	;   Label == @default
+	->  send(Editor, caret, 0)
+	;   send(Editor, goto, Label)
+	).
+
+
+buffer(Helper, Database:name, Interactive:[bool], Buffer:hlp_buffer) :<-
+	"Return hlp-buffer holding help-text"::
 	(   get(Helper?buffers, value, Database, Buffer)
-	->  (	get(Buffer?editors, head, Editor)
-	    ->	true
-	    ;	get(Buffer, open, Editor)
-	    ),
-	    (	Label == @default
-	    ->	send(Editor, caret, 0)
-	    ;   send(Editor, goto, Label)
-	    ),
-	    send(Editor?frame, expose)
+	->  true
 	;   (	get(Helper, value, Database, RC)
 	    ;	new(RC, pce_help_file:resource(Database, help))
 	    )
@@ -94,34 +101,29 @@ give_help(Helper, Database:name, Label:[name]) :->
 		    get(RC, object, Buffer),
 		    send(Buffer, instance_of, hlp_buffer)
 		->  send(Helper?buffers, value, Database, Buffer),
-		    send(Buffer, file, File),
-		    get(Buffer, open, Editor),
-		    (	Label == @default
-		    ->	send(Editor, caret, 0)
-		    ;   send(Editor, goto, Label)
-		    )
+		    send(Buffer, file, File)
 		;   send(Helper, report, error,
 			 'Illegal data-format in "%N"', RC),
 		    fail
 		)
-	    ;	(   get(@pce, is_runtime_system, @on)
+	    ;	Interactive == @on,
+	        (   get(@pce, is_runtime_system, @on)
 		->  send(@display, inform,
 			 'No help available for "%s"', Database),
 		    fail
 		;   send(@display, confirm,
 			 'No help-database "%s"\n\nCreate it?', Database),
 		    new(Buffer, hlp_buffer),
-		    send(Buffer, file, File),
-		    get(Buffer, open, Editor),
-		    send(Editor, editable, @on)
+		    send(Buffer, file, File)
 		)
 	    )
 	;   term_to_atom(DBTerm, Database),
 	    functor(DBTerm, _, 1),
 	    arg(1, DBTerm, DBname)
 	->  assert(pce_help_file:resource(DBname, help, DBTerm)),
-	    send(Helper, give_help, DBname, Label)
-	;   send(Helper, report, error,
+	    get(Helper, buffer, DBname, Buffer)
+	;   Interactive == @on,
+	    send(Helper, report, error,
 		 'No help-database called %s', Database),
 	    fail
 	).
