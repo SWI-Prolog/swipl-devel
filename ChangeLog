@@ -1,6 +1,13 @@
 
 			SWI-Prolog ChangeLog
 			====================
+VERSION 2.9.2
+=============
+
+  * IMPROVED: Format ~s accepts both a list of ASCII chars or a
+    string (see string/1) object.  Thanks to Peter Ludeman.
+
+
 VERSION 2.9.1
 =============
 
