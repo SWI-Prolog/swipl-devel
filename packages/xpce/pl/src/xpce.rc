@@ -1,3 +1,0 @@
-#include "windows.h"
-
-XPCE_Icon ICON xpce.ico
