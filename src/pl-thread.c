@@ -288,6 +288,10 @@ start_thread(void *closure)
   term_t ex, goal;
   int rval;
 
+#ifdef __linux__
+  info->pid = getpid();
+#endif
+
   PL_initialise_thread(info);
   goal = PL_new_term_ref();
   
@@ -1221,11 +1225,21 @@ static sem_t sem_mark;
 
 static void
 threadMarkAtoms(int sig)
-{ pthread_t me = pthread_self();
+{
+#ifdef __linux__
+  pid_t me = getpid();
+#else
+  pthread_t me = pthread_self();
+#endif
   int i;
 
   for(i=0; i<MAX_THREADS; i++)
-  { if ( threads[i].tid == me )
+  {
+#ifdef __linux__
+    if ( threads[i].pid == me )
+#else
+    if ( threads[i].tid == me )
+#endif
     { markAtomsOnStacks(threads[i].thread_data);
       break;
     }

@@ -24,6 +24,9 @@ typedef struct _PL_thread_info_t
   bool		    detached;		/* detached thread */
   int		    status;		/* PL_THREAD_* */
   pthread_t	    tid;		/* Thread identifier */
+#ifdef __linux__
+  pid_t		    pid;		/* for identifying */
+#endif
   PL_local_data_t  *thread_data;	/* The thread-local data  */
   module_t	    module;		/* Module for starting goal */
   record_t	    goal;		/* Goal to start thread */
