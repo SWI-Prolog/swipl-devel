@@ -579,13 +579,6 @@ eventWindow(PceWindow sw, EventObj ev)
 { int rval = FAIL;
   EventObj old_event;
 
-/* Moved to x11/xwindow.c and msw/mswindow.c as it should be before
-   ->post to avoid focus redirection
-
-  if ( sw->sensitive == OFF || blockedByModalWindow(sw, ev) )
-    fail;
-*/
-
   if ( sw->current_event == ev )
     fail;				/* I don't want loops */
 
@@ -1301,8 +1294,14 @@ normaliseWindow(PceWindow sw, Any obj, Name mode)
 
 
 static status
-scrollHorizontalWindow(PceWindow sw, Name dir, Name unit, Int amount)
-{ if ( equalName(unit, NAME_file) )
+scrollHorizontalWindow(PceWindow sw,
+		       Name dir, Name unit, Int amount, Bool force)
+{ if ( force != ON &&
+       (!instanceOfObject(sw->decoration, ClassWindowDecorator) ||
+	isNil(((WindowDecorator)sw->decoration)->horizontal_scrollbar)) )
+    fail;
+
+  if ( unit == NAME_file )
   { Area bb = sw->bounding_box;
 
     if ( dir == NAME_goto )
@@ -1310,7 +1309,7 @@ scrollHorizontalWindow(PceWindow sw, Name dir, Name unit, Int amount)
 
       scrollWindow(sw, toInt(h + valInt(bb->x)), DEFAULT, ON, ON);
     }
-  } else if ( equalName(unit, NAME_page) )
+  } else if ( unit == NAME_page )
   { Area a = sw->area;
     int d = (valInt(a->w) * valInt(amount)) / 1000;
 
@@ -1326,8 +1325,14 @@ scrollHorizontalWindow(PceWindow sw, Name dir, Name unit, Int amount)
 
 
 static status
-scrollVerticalWindow(PceWindow sw, Name dir, Name unit, Int amount)
-{ if ( equalName(unit, NAME_file) )
+scrollVerticalWindow(PceWindow sw,
+		     Name dir, Name unit, Int amount, Bool force)
+{ if ( force != ON &&
+       (!instanceOfObject(sw->decoration, ClassWindowDecorator) ||
+	isNil(((WindowDecorator)sw->decoration)->vertical_scrollbar)) )
+    fail;
+
+  if ( unit == NAME_file )
   { Area bb = sw->bounding_box;
 
     if ( dir == NAME_goto )
@@ -1335,7 +1340,7 @@ scrollVerticalWindow(PceWindow sw, Name dir, Name unit, Int amount)
       
       scrollWindow(sw, DEFAULT, toInt(h + valInt(bb->y)), ON, ON);
     }
-  } else if ( equalName(unit, NAME_page) )
+  } else if ( unit == NAME_page )
   { Area a = sw->area;
     int d = (valInt(a->h) * valInt(amount)) / 1000;
 
@@ -1986,8 +1991,12 @@ catchAllWindowv(PceWindow sw, Name selector, int argc, Any *argv)
 
 static char *T_open[] =
         { "[point]", "normalise=[bool]" };
-static char *T_LforwardsObackwardsOgotoL_LpageOfileOlineL_int[] =
-        { "{forwards,backwards,goto}", "{page,file,line}", "int" };
+static char *T_scrollHV[] =
+        { "direction={forwards,backwards,goto}",
+	  "unit={page,file,line}",
+	  "amount=int",
+	  "force=[bool]"
+	};
 static char *T_decorate[] =
         { "area=[{grow,shrink}]", "left_margin=[int]", "right_margin=[int]", "top_margin=[int]", "bottom_margin=[int]", "decorator=[window]" };
 static char *T_confirmCentered[] =
@@ -2151,11 +2160,11 @@ static senddecl send_window[] =
      NAME_scroll, "Request scroll_bar update"),
   SM(NAME_normalise, 2, T_normalise, normaliseWindow,
      NAME_scroll, "Ensure area|graphical|chain is visible"),
-  SM(NAME_scrollHorizontal, 3, T_LforwardsObackwardsOgotoL_LpageOfileOlineL_int, scrollHorizontalWindow,
+  SM(NAME_scrollHorizontal, 4, T_scrollHV, scrollHorizontalWindow,
      NAME_scroll, "Trap message from horizontal scrollbar"),
   SM(NAME_scrollTo, 1, "point", scrollToWindow,
      NAME_scroll, "Make point top-left of window"),
-  SM(NAME_scrollVertical, 3, T_LforwardsObackwardsOgotoL_LpageOfileOlineL_int, scrollVerticalWindow,
+  SM(NAME_scrollVertical, 4, T_scrollHV, scrollVerticalWindow,
      NAME_scroll, "Trap message from vertical scrollbar"),
   SM(NAME_expose, 0, NULL, exposeWindow,
      NAME_stacking, "Expose (raise) related frame"),

@@ -18,21 +18,21 @@
 	   , ignore/1
 	   , member/2
 	   ]).
-:- set_prolog_flag(character_escapes, false).
 
 :- emacs_begin_mode(language, fundamental,
 		    "Edit (programming) languages",
 	[ indent_line			= key('TAB'),
 	  backward_delete_char_untabify	= key(backspace),
 	  align_close_bracket		= key(']') + key('}') + key(')'),
-	  insert_section_header		= key('\eh'),
-	  insert_comment_block		= key('\C-c\C-q'),
-	  insert_line_comment		= key('\e;'),
-	  find_tag			= key('\e.') + button(browse)
+	  insert_file_header		= key('\\C-c\\C-f'),
+	  insert_section_header		= key('\\eh'),
+	  insert_comment_block		= key('\\C-c\\C-q'),
+	  insert_line_comment		= key('\\e;'),
+	  find_tag			= key('\\e.') + button(browse)
 	],
 	[ '"'  = string_quote('"'),
 	  '''' = string_quote(''''),
-	  paragraph_end(regex('\s *$\|/\* - - -\|- - -.*\*/$'))
+	  paragraph_end(regex('\\s *$\\|/\\* - - -\\|- - -.*\\*/$'))
 	]).
 
 :- pce_autoload(emacs_tag_item, library(emacs_tags)).
@@ -55,7 +55,7 @@ line_comment(E, CS:name) :<-
 	member(CSlen, [1, 2]),
 	get(Syntax, comment_start, CSlen, CS),
 	get(Syntax, comment_end, CSlen, CE),
-	send(CE, equal, string('\n')).
+	send(CE, equal, '\n').
 
 insert_line_comment(E) :->
 	"Insert (line) comment"::
@@ -73,7 +73,7 @@ insert_line_comment(E) :->
 	    send(E, just_one_space),
 	    send(E, align, E?comment_column),
 	    get(E?syntax, comment_end, CSlen, CE),
-	    (	send(CE, equal, string('\n'))
+	    (	send(CE, equal, '\n')
 	    ->  send(E, format, '%s ', CS)
 	    ;   send(E, format, '%s  %s', CS, CE),
 		send(E, backward_char, CSlen + 1)
@@ -125,6 +125,80 @@ insert_section_header(E) :->
 		 *               C		*
 		 *******************************/
 ').
+
+		 /*******************************
+		 *	    FILE HEADER		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+->insert_file_header
+	Inserts a .fileheader it finds in the current directory or one of
+	its parent directories.  If no file it found it uses a default.
+
+	Next it makes the substitutions from file_header_parameter/3 and
+	finally, if the header contains %. it removes this and sets the
+	caret at this position.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+insert_file_header(M) :->
+	"Insert .fileheader or default file-header"::
+	get(M, directory, Dir),
+	find_file_header(Dir, Header),
+	(   file_header_parameter(Escape, M, Value),
+	    substitute(Header, Escape, Value),
+	    fail
+	;   true
+	),
+	(   new(Here, regex('%\\.')),
+	    send(Here, search, Header)
+	->  send(Here, register_value, Header, ''),
+	    get(Here, register_start, Offset),
+	    get(M, caret, Caret),
+	    send(M, insert, Header),
+	    send(M, caret, Caret+Offset)
+	;   send(M, insert, Header)
+	).
+
+
+find_file_header(Dir, Header) :-
+	get(Dir, file, '.fileheader', File),
+	send(File, access, read), !,
+	send(File, open, read),
+	get(File, read, Header),
+	send(File, close).
+find_file_header(Dir, Header) :-
+	get(Dir, parent, Parent),
+	find_file_header(Parent, Header).
+find_file_header(_, Header) :-
+	new(Header, string),
+	send_list(Header, append,
+		  [ '/*  File:    %F\n',
+		    '    Author:  %U\n',
+		    '    Created: %D\n',
+		    '    Purpose: %.\n',
+		    '*/\n\n'
+		  ]).
+
+file_header_parameter('%Y', _,  Year) :-
+	get(new(date), year, Year).
+file_header_parameter('%F', M, FileName) :-
+	get(M?file, base_name, FileName).
+file_header_parameter('%U', _, UserName) :-
+	get(@pce, user, User),
+	(   get(@pce, user_info, gecos, User, UserName)
+	->  true
+	;   UserName = User
+	).
+file_header_parameter('%D', _, Date) :-
+	new(D, date),
+	get(D, year, Year),
+	get(D, month_name, @on, Month),
+	get(D, day, Day),
+	new(Date, string('%s %2d %d', Month, Day, Year)).
+
+substitute(String, From, To) :-
+	send(regex(From), for_all, String,
+	     message(@arg1, replace, @arg2, To)).
 
 
 		 /*******************************
@@ -304,8 +378,8 @@ adjust_tag(E, Tag) :-
 	get(E, caret, Here),
 	new(Re, regex('')),
 	get(Re, quote, Tag, QTag),
-	(   send(Re, pattern, string('\\b%s\\b', QTag))
-	;   send(Re, pattern, string('\\b%s', QTag))
+	(   send(Re, pattern, string('\\\\b%s\\\\b', QTag))
+	;   send(Re, pattern, string('\\\\b%s', QTag))
 	),
 	closest(Re, TB, Here, Pos), !,
 	send(E, caret, Pos).

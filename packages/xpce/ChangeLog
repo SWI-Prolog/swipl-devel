@@ -1,3 +1,15 @@
+* FIXED: PceEmacs: Enable timed auto-colouring after ->paste
+
+* ADDED: PceEmacs: language mode: ->insert_file_header.
+
+* FIXED: `text_item->clear' sets <-print_name to '', so the item considers
+  itself not modified.
+
+* ENHANCED: Stop wheel-mouse from scrolling windows that have no scrollbar
+  (introduced extra optional argument to `window->scroll_vertical' and
+  `window->scroll_horizontal').
+
+
 VERSION 5.1.4
 =============
 

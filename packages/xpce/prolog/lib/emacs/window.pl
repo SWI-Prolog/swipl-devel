@@ -631,6 +631,11 @@ event(E, Ev:event) :->
 	).
 
 
+paste(E) :->
+	send(E, start_idle_timer),
+	send_super(E, paste).
+
+
 mode(E, ModeName:mode_name) :->
 	"Associate argument mode"::
 	get(E, mode, OldMode),
