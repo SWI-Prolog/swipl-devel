@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: proper writing of variables in the normal terminal debugger.
+    (Marc B).
+
   * FIXED: absolute_file_name/[3] to return order consistently.
 
   * ENHANCED: handling of redo in the debugger.

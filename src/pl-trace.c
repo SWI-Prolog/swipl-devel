@@ -1594,13 +1594,20 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
 
     if ((arity = fr->predicate->functor->arity) == 0)
     { PL_unify_atom(arg, fr->predicate->functor->name);
-    } else
-    { term_t a = PL_new_term_ref();
+    } else				/* see put_frame_goal(); must be one */
+    { Word argv = argFrameP(fr, 0);
+      Word argp;
 
       PL_unify_functor(arg, fr->predicate->functor->functor);
+      argp = valTermRef(arg);
+      deRef(argp);
+      argp = argTermP(*argp, 0);
+
       for(n=0; n < arity; n++)
-      { PL_get_arg(n+1, arg, a);
-	unify_ptrs(valTermRef(a), argFrameP(fr, n) PASS_LD);
+      { Word a;
+
+	deRef2(argv+n, a);
+	*argp++ = (isVar(*a) ? makeRef(a) : *a);
       }
     }
   } else if ( key == ATOM_pc )
