@@ -10,6 +10,7 @@ marking and atom-reference counting.
 
 agc :-
 	repeat,
+	sleep(0.01),
 	garbage_collect_atoms,
 	fail.
 

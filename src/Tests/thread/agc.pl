@@ -12,6 +12,7 @@ This test validates the marking of atoms by the atom garbage collector.
 
 agc_loop :-
 	repeat,
+	sleep(0.01),			% avoid eating CPU here
 	garbage_collect_atoms,
 	fail.
 
