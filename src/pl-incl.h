@@ -1025,11 +1025,19 @@ erase and assert/2, clause/3, etc.  really points to a clause or record.
 At times an abort is not allowed because the heap  is  inconsistent  the
 programmer  should  call  startCritical  to start such a code region and
 endCritical to end it.
+
+MT/TBD: how to handle this gracefully in the multi-threading case.  Does
+it mean anything?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifdef O_PLMT
+#define startCritical (void)(GD->critical++)
+#define endCritical   (void)(GD->critical--)
+#else
 #define startCritical (void)(GD->critical++)
 #define endCritical   if ( --(GD->critical) == 0 && LD->aborted ) \
 			pl_abort(ABORT_NORMAL)
+#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 LIST processing macros.

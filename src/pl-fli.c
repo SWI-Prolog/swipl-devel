@@ -2511,7 +2511,7 @@ PL_open_resource(Module m,
 void
 PL_raise(int sig)
 { GET_LD
-  if ( sig > 0 && sig <= MAXSIGNAL )
+  if ( sig > 0 && sig <= MAXSIGNAL && LD )
     LD->pending_signals |= (1L << (sig-1));
 }
 
@@ -2842,8 +2842,7 @@ PL_fatal_error(const char *fm, ...)
 
 int
 PL_action(int action, ...)
-{ GET_LD
-  int rval;
+{ int rval;
   va_list args;
 
   va_start(args, action);
@@ -2858,7 +2857,8 @@ PL_action(int action, ...)
       break;
     case PL_ACTION_BACKTRACE:
 #ifdef O_DEBUGGER
-    { int a = va_arg(args, int);
+    { GET_LD
+      int a = va_arg(args, int);
       int om;
 
       if ( gc_status.active )
@@ -2902,13 +2902,16 @@ PL_action(int action, ...)
       break;
     }
     case PL_ACTION_WRITE:
-    { char *s = va_arg(args, char *);
+    { GET_LD
+      char *s = va_arg(args, char *);
       rval = Sfputs(s, Scurout) < 0 ? FALSE : TRUE;
       break;
     }
     case PL_ACTION_FLUSH:
+    { GET_LD
       rval = Sflush(Scurout);
       break;
+    }
     default:
       sysError("PL_action(): Illegal action: %d", action);
       /*NOTREACHED*/

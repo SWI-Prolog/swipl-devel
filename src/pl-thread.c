@@ -88,6 +88,7 @@ static sema_t sem_canceled;		/* used on halt */
 
 static Table threadAliases;		/* name --> integer-id */
 static PL_thread_info_t threads[MAX_THREADS];
+static int threads_exited = FALSE;	/* Prolog threads are finished */
 
 pthread_key_t PL_ldata;			/* key for thread PL_local_data */
 
@@ -193,10 +194,14 @@ free_prolog_thread()
 static void
 free_prolog_thread(void *data)
 { PL_local_data_t *ld = data;
-  PL_thread_info_t *info = ld->thread.info;
+  PL_thread_info_t *info;
+
+  if ( threads_exited )
+    return;				/* Post-mortem */
 
   DEBUG(1, Sdprintf("Freeing prolog thread %u\n", pthread_self()));
 
+  info = ld->thread.info;
   pthread_setspecific(PL_ldata, data);	/* put it back */
   run_thread_exit_hooks();
   
@@ -323,6 +328,8 @@ exitPrologThreads()
   sema_destroy(&sem_canceled);
 #endif
 #endif
+
+  threads_exited = TRUE;
 }
 
 
@@ -377,7 +384,7 @@ alloc_thread()
 
       threads[i].pl_tid = i;
       threads[i].thread_data = ld;
-            threads[i].status = PL_THREAD_CREATED;
+      threads[i].status = PL_THREAD_CREATED;
       ld->thread.info = &threads[i];
       ld->thread.magic = PL_THREAD_MAGIC;
 
@@ -678,9 +685,12 @@ pl_thread_exit(term_t retcode)
 
 word
 pl_thread_kill(term_t t, term_t sig)
-{ PL_thread_info_t *info;
+{
+#ifdef HAVE_PTHREAD_KILL
+  PL_thread_info_t *info;
   int s;
 
+  
   if ( !get_thread(t, &info, TRUE) )
     fail;
   if ( !_PL_get_signum(sig, &s) )
@@ -693,6 +703,9 @@ pl_thread_kill(term_t t, term_t sig)
   }
 
   succeed;
+#else
+  return notImplemented("thread_kill", 2);
+#endif
 }
 
 
@@ -1534,8 +1547,13 @@ as it may stop referencing atoms but   this  doesn't matter. It can only
 refer to new atoms by creating them, in which case the thread will block
 or by executing an instruction that refers to the atom. In this case the
 atom is locked by the instruction anyway.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+[WIN32]  The  windows  case  is  entirely    different  as  we  have  no
+asynchronous signals. Fortunately we  can   suspend  and resume threads.
+This makes the code a lot easier as   you can see below. Problem is that
+only one processor is doing the  job,   where  atom-gc  is a distributed
+activity in the POSIX based code.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #include <signal.h>
 
@@ -1575,6 +1593,32 @@ threadMarkAtoms(int sig)
 
 
 #define SIG_MARKATOMS SIGHUP
+
+#ifdef WIN32
+#undef FD_SET
+#undef FD_ZERO
+#undef FD_ISSET
+#include <windows.h>
+
+void					/* For comments, see above */
+threadMarkAtomsOtherThreads()
+{ int i;
+  int me = PL_thread_self();
+
+  for(i=1; i<MAX_THREADS; i++)
+  { if ( threads[i].thread_data && i != me &&
+	 threads[i].status == PL_THREAD_RUNNING )
+    { HANDLE win_thread = pthread_getw32threadhandle_np(threads[i].tid);
+
+      if ( SuspendThread(win_thread) != -1L )
+      { markAtomsOnStacks(threads[i].thread_data);
+	ResumeThread(win_thread);
+      }
+    }
+  }
+}
+
+#else /*WIN32*/
 
 void
 threadMarkAtomsOtherThreads()
@@ -1633,6 +1677,8 @@ threadMarkAtomsOtherThreads()
 
   sigaction(SIG_MARKATOMS, &old, NULL);
 }
+
+#endif /*WIN32*/
 
 		 /*******************************
 		 *	DEBUGGING SUPPORT	*

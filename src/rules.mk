@@ -10,7 +10,7 @@
 # copy the result to wherever you want.
 
 # prefix=C:\Program Files
-prefix=E:\jan\installed
+prefix=E:\jan\src\mt\installed
 PLBASE=$(prefix)\pl
 BINDIR=$(PLBASE)\bin
 LIBDIR=$(PLBASE)\lib
@@ -26,8 +26,12 @@ LIB=$(LIB);E:\jan\lib
 
 # Configuration selection
 
+# CFG: dev=development environment; rt=runtime system only
+# DBG: true=for C-level debugging; false=non-debugging
+# MT:  true=multi-threading version; false=normal single-threading
 CFG=dev
-DBG=false
+DBG=true
+MT=true
 
 !IF "$(CFG)" == "rt"
 CMFLAGS=/DO_RUNTIME
@@ -63,6 +67,9 @@ MKDIR=mkdir
 MAKE=nmake CFG="$(CFG)" DBG="$(DBG)" /nologo /f Makefile.mak
 
 LIBS=user32.lib shell32.lib gdi32.lib advapi32.lib wsock32.lib
+!if "$(MT)" == "true"
+LIBS=$(LIBS) pthreadVC.lib
+!ENDIF
 
 # Architecture identifier for Prolog's current_prolog_flag(arch, Arch)
 
@@ -85,6 +92,10 @@ LD=link.exe /nologo /incremental:yes
 LDFLAGS=/DEBUG
 D=D
 DBGLIBS=msvcrtd.lib
+!ENDIF
+
+!IF "$(MT)" == "true"
+CFLAGS=/DO_PLMT /D_REENTRANT $(CFLAGS)
 !ENDIF
 
 .c.obj:

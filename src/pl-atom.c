@@ -870,11 +870,19 @@ pl_atom_completions(term_t prefix, term_t alternatives)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Completeness generation for the GNU readline library. This function uses
 a state variable to indicate  the   generator  should maintain/reset its
-state. Horrible! We use the thread-local   structure to store the state,
-so multiple Prolog threads can use this routine.
+state. Horrible! 
+
+We must use thread-local data here.  Worse   is  we can't use the normal
+Prolog one as there might  not  be   a  Prolog  engine associated to the
+thread.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define is_signalled() (LD->pending_signals != 0)
+#ifdef O_PLMT
+#include <pthread.h>
+static pthread_key_t key;
+#endif
+
+#define is_signalled() (LD && LD->pending_signals != 0)
 
 char *
 PL_atom_generator(const char *prefix, int state)
@@ -883,7 +891,15 @@ PL_atom_generator(const char *prefix, int state)
   if ( !state )
     i = 0;
   else
+  {
+#ifdef O_PLMT
+    if ( !key )
+      pthread_key_create(&key, NULL);
+    i = (long)pthread_getspecific(key);
+#else
     i = LD->atoms.generator;
+#endif
+  }
 
   for(; i<mx; i++)
   { Atom a;
@@ -897,7 +913,12 @@ PL_atom_generator(const char *prefix, int state)
     if ( strprefix(a->name, prefix) &&
 	 allAlpha(a->name) &&
 	 strlen(a->name) < ALT_SIZ )
-    { LD->atoms.generator = i+1;
+    {
+#ifdef O_PLMT
+      pthread_setspecific(key, (void *)(i+1));
+#else   
+      LD->atoms.generator = i+1;
+#endif
       return a->name;
     }
   }

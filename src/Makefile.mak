@@ -85,10 +85,16 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl \
 	qpforeign.pl \
 	$(PLWINLIBS)
 
-all:	banner \
+all:	lite packages
+
+lite:	banner \
 	headers	swipl subdirs \
 	$(PLCON) startup index $(PLWIN) $(PLLD) \
-	dlldemos packages
+	dlldemos
+
+plcon:	$(PLCON)
+plwin:	$(PLWIN)
+plld:	$(PLLD)
 
 system:		$(PLCON)
 startup:	$(STARTUPPATH)

@@ -369,6 +369,12 @@ typedef unsigned long sigset_t;		/* we don't have this */
 /* Define if you have the ucb library (-lucb).  */
 /* #undef HAVE_LIBUCB */
 
+/* Define to make use of standard (UNIX98) pthread recursive mutexes */
+#define RECURSIVE_MUTEXES 1
+
+/* Define if pthread has pthread_mutexattr_settype() */
+#define HAVE_PTHREAD_MUTEXATTR_SETTYPE 1
+
 		 /*******************************
 		 *	     FUNCTIONS		*
 		 *******************************/

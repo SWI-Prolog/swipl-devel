@@ -1092,7 +1092,9 @@ PL_cleanup(int rval)
   Scleanup();
 
   memset(GD, 0, sizeof(*GD));
+#ifndef O_PLMT					/* TBD: is this correct? */
   memset(LD, 0, sizeof(*LD));
+#endif
 
   GD->cleaning = CLN_NORMAL;			/* prepare for another */
   UNLOCK();
