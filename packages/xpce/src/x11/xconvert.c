@@ -59,13 +59,23 @@ static unsigned char *
 read_bitmap_data(IOSTREAM *fd, int *w, int *h)
 { long offset = Stell(fd);
   unsigned char *rval;
+  int c0;
 
-  if ( (rval = read_x11_bitmap_file(fd, w, h)) != NULL )
-    return rval;
-  Sseek(fd, offset, SIO_SEEK_SET);
-  if ( (rval = read_sun_icon_file(fd, w, h)) != NULL )
-    return rval;
-  Sseek(fd, offset, SIO_SEEK_SET);
+  c0 = Sgetc(fd);
+  Sungetc(c0, fd);
+
+  switch(c0)
+  { case '#':
+      if ( (rval = read_x11_bitmap_file(fd, w, h)) != NULL )
+	return rval;
+      Sseek(fd, offset, SIO_SEEK_SET);
+      break;
+    case '/':
+      if ( (rval = read_sun_icon_file(fd, w, h)) != NULL )
+	return rval;
+      Sseek(fd, offset, SIO_SEEK_SET);
+      break;
+  }
 
   return NULL;
 }
