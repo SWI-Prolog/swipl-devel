@@ -5,6 +5,10 @@
 Version 2.7.16
 ==============
 
+  * FIXED: Various minor issues in the Makefiles and configure for
+    generating a runtime version.  Error message if the runtime
+    system cannot find its state.
+
   * FIXED: Heuristics for making hash-index.
 
 Version 2.7.15
