@@ -33,9 +33,17 @@ make
 %install
 rm -rf $RPM_BUILD_ROOT
 mkdir -p $RPM_BUILD_ROOT/usr
-make install prefix=$RPM_BUILD_ROOT/usr bindir=$RPM_BUILD_ROOT/usr/bin \
+make install \
+	prefix=$RPM_BUILD_ROOT/usr \
+	bindir=$RPM_BUILD_ROOT/usr/bin \
 	man_prefix=$RPM_BUILD_ROOT/usr/man
-(cd packages && make rpm-install)
+( cd packages && \
+  make rpm-install \
+	PLBASE=$RPM_BUILD_ROOT/usr/lib/pl-%{version} \
+	prefix=$RPM_BUILD_ROOT/usr \
+        bindir=$RPM_BUILD_ROOT/usr/bin \
+	man_prefix=$RPM_BUILD_ROOT/usr/man \
+)
 
 # why are manpages installed twice?
 rm -rf /usr/lib/pl-%{version}/man

@@ -3,8 +3,8 @@
 # configuration in .../pl/src/configure.
 #
 # It can be used to configure and make the add-on packages.  
-
 ################################################################
+.EXPORT_ALL_VARIABLES:
 
 PKG=	clib \
 	table \
