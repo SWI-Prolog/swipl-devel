@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* MODIFIED: Allow drag_and_drop_gesture->cursor: @default to create the
+  cursor from the dragged graphical.
 
 * ADDED: `node->move_before' to move a node just before another.
 

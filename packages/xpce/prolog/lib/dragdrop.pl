@@ -57,8 +57,8 @@ class_variable(warp,   bool,        '@on',
 	       "Pointer in center?").
 class_variable(button, button_name, left,
 	       "Button on which gesture operates").
-class_variable(cursor, cursor*,     cross_reverse,
-	       "Cursor to display.  @nil: use graphical").
+class_variable(cursor, [cursor],    cross_reverse,
+	       "Cursor to display.  @default: use graphical").
 
 active_distance(_G, D) :-
 	D > 5.
@@ -67,12 +67,14 @@ initialise(G, But:button=[button_name],
 	   M:modifier=[modifier], W:warp=[bool],
 	   S:get_source=[function]*) :->
 	"Create from button, modifiers and warp"::
-	send(G, send_super, initialise, But, M),
+	send_super(G, initialise, But, M),
 	default(W, class_variable(G, warp), Warp),
 	default(S, @nil, GS),
 	send(G, warp, Warp),
 	send(G, get_source, GS),
-	send(G, slot, offset, new(point)).
+	send(G, slot, offset, new(point)),
+	get(G, class_variable_value, cursor, Cursor),
+	send(G, cursor, Cursor).
 
 
 verify(_G, Ev:event) :->
@@ -101,13 +103,10 @@ set_source(G, Ev:event) :->
 	).
 
 
-cursor(G, Gr, Cursor:cursor) :<-
+cursor(G, Gr:graphical, Cursor:cursor) :<-
 	"Create cursor from the graphical"::
-	(   get(G, slot, cursor, Cursor),
+	(   get_super(G, cursor, Cursor),
 	    send(Cursor, instance_of, cursor)
-	->  true
-	;   get(G, class_variable_value, cursor, Cursor),
-	    Cursor \== @nil
 	->  true
 	;   get(Gr?area, size, size(W, H)),
 	    (   get(G, warp, @on)
