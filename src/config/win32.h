@@ -74,6 +74,9 @@ typedef unsigned long sigset_t;		/* we don't have this */
 /* Define if you disk-drives are special to you (DOS, Windows, OS/2) */
 #define O_HASDRIVES 1
 
+/* Define if you have shares using the notation //host/share */
+#define O_HASSHARES 1
+
 /* Maximum length of a path-name.  Note XOS! */
 #define MAXPATHLEN 512
 

@@ -593,8 +593,16 @@ canonisePath(char *path)
 
   while( IsDirSep(in[0]) && in[1] == '.' && in[2] == '.' && IsDirSep(in[3]) )
     in += 3;
+  while( in[0] == '.' && in[1] == '/' )
+    in += 2;
   if ( IsDirSep(in[0]) )
     *out++ = '/';
+#ifdef O_HASSHARES
+  if ( in[1] == '/' )
+  { in++;
+    *out++ = '/';
+  }
+#endif
   osave[osavep++] = out;
 
   while(*in)
@@ -642,14 +650,17 @@ dirName(const char *f)
     const char *base, *p;
 
     for(base = p = f; *p; p++)
-    { if ( IsDirSep(*p) && !IsDirSep(f[1]) && p[1] != EOS )
+    { if (*p == '/' && p[1] != EOS )
 	base = p;
     }
-    strncpy(dir, f, base-f);
-    dir[base-f] = EOS;
-    if ( IsDirSep(*f) && dir[0] == EOS )
-    { dir[0] = *f;
-      dir[1] = EOS;
+    if ( base == f )
+    { if ( *f == '/' )
+	strcpy(dir, "/");
+      else
+	strcpy(dir, ".");
+    } else
+    { strncpy(dir, f, base-f);
+      dir[base-f] = EOS;
     }
   
 #ifdef O_XOS
@@ -877,10 +888,9 @@ expandFileName(char *pattern, char *bin)
     strcpy(expanded, value);
     expanded += l;
 
-    if ( IsDirSep(pattern[0]) )		/* try to get one / */
-    { while(expanded > bin && IsDirSep(expanded[-1]))
-	expanded--;
-    }
+					/* avoid ~/ --> // */
+    if ( IsDirSep(expanded[-1]) && isDefault(pattern[0]) )
+      pattern++;
   }
 
 nouser:

@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: Windows: support for UNC-filenames (//host/share/...)
+
 * FIXED: scrollbar thumb handling if the scrolled object size > 2M (notably
   large editors).  Fabien Todescato.
 

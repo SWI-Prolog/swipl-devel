@@ -206,6 +206,9 @@ _xos_os_filename(const char *cname, char *osname)
     q += 3;
   }
 
+  if ( q[0] == '/' || q[0] == '\\' )	/* deal with //host/share */
+    *s++ = '\\';
+
   while( *q )				/* map / --> \, delete multiple '\' */
   { if ( *q == '/' || *q == '\\' )
     { *s++ = '\\';
@@ -259,7 +262,9 @@ _xos_is_absolute_filename(const char *spec)
 { char buf[PATH_MAX];
 
   _xos_os_filename(spec, buf);
-  if ( buf[1] == ':' && islower(buf[0]) )
+  if ( buf[1] == ':' && isalpha(buf[0]) )
+    return TRUE;
+  if ( buf[0] == '\\' && buf[1] == '\\' )
     return TRUE;
 
   return FALSE;

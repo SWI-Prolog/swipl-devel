@@ -291,8 +291,10 @@ is_absolute_name(const char *s)
 #ifdef __WIN32__
   if ( isletter(s[0]) && s[1] == ':' )
     succeed;
+  if ( IsDirSep(s[0]) && IsDirSep(s[1]) )
+    succeed;
 #endif
-  if ( s[0] == '/' )
+  if ( IsDirSep(s[0]) )
     succeed;
 
   fail;

@@ -34,6 +34,8 @@
 #define HAVE_UXNT_H 1
 #include <uxnt.h>			/* must be first! */
 #define O_XOS 1				/* specific hooks */
+#define O_DOSFILENAMES 1
+#define O_HASSHARES			/* UNC filenames: //host/share */
 #define VARIABLE_POINTER_OFFSET 1	/* Tagged int <-> pointer (win32s) */
 #define HAVE_WINSOCK 1			/* try using winsock.dll */
 #define HAVE_FSTAT 1			/* fstat() function */

@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: Windows: support for UNC-filenames (\\host\share\...).
+
   * FIXED: call_cleanup/3 crashed if the cleanup handler invoked GC.  GC
     is now explicitely blocked.  Found by Mike Elston.
 

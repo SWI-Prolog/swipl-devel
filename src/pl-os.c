@@ -1177,6 +1177,12 @@ canoniseFileName(char *path)
     in += 2;
   if ( in[0] == '/' )
     *out++ = '/';
+#ifdef O_HASSHARES
+  if ( in[1] == '/' )
+  { in++;
+    *out++ = '/';
+  }
+#endif
   osave[osavep++] = out;
 
   while(*in)
@@ -1333,6 +1339,10 @@ expandVars(const char *pattern, char *expanded)
       return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_max_path_length);
     strcpy(expanded, value);
     expanded += l;
+
+					/* ~/ should not become // */
+    if ( expanded[-1] == '/' && pattern[0] == '/' )
+      pattern++;
   }
 
   for( ;; )
@@ -1443,6 +1453,11 @@ IsAbsolutePath(const char *p)		/* /d:/ or d:/ */
 
   if ( p[1] == ':' && isLetter(p[0]) && (p[2] == '/' || p[2] == '\0') )
     succeed;
+
+#ifdef O_HASSHARES
+  if ( p[0] == '/' && p[1] == '/' )	/* //host/share */
+    succeed;
+#endif
 
   fail;
 }
