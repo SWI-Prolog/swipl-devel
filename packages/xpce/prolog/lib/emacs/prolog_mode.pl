@@ -46,6 +46,7 @@ resource(breakpoint,   image, image('16x16/stop.xpm')).
 	  (spy)			       = button(prolog),
 	  trace			       = button(prolog),
 	  break_at		       = key('\\C-cb') + button(prolog),
+	  edit_breakpoints	       = button(prolog),
 	  -			       = button(prolog),
 	  check_clause		       = key('\\C-c\\C-s') + button(prolog),
 	  insert_full_stop	       = key(.),
@@ -374,7 +375,8 @@ what_module(M) :->
 		 *	   BROWSE STUFF		*
 		 *******************************/
 
-:- pce_autoload(prolog_navigator, library('trace/browse')).
+:- pce_autoload(prolog_navigator,    library('trace/browse')).
+:- pce_autoload(prolog_debug_status, library('trace/status')).
 
 prolog_navigator(M) :->
 	Browser = @prolog_navigator,
@@ -389,6 +391,13 @@ prolog_navigator(M) :->
 	),
 	send(Browser, goto, Path, Line).
 
+
+edit_breakpoints(M) :->
+	get(M, application, Emacs),
+	(   get(Emacs, member, prolog_debug_status, Dialog)
+	->  send(Dialog, expose)
+	;   send(prolog_debug_status(Emacs), open)
+	).
 
 		 /*******************************
 		 *	   COMPILATION		*

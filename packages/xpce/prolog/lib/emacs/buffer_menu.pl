@@ -15,6 +15,11 @@
 :- require([ send_list/3
 	   ]).
 
+:- pce_autoload(tool_bar, library(toolbar)).
+
+resource(open,	  image, image('16x16/open.xpm')).
+resource(saveall, image, image('16x16/saveall.xpm')).
+resource(help,    image, image('16x16/help.xpm')).
 
 :- pce_begin_class(emacs_buffer_menu, frame,
 		   "List showing all PceEmacs buffers").
@@ -26,47 +31,24 @@ initialise(BM, Emacs:emacs) :->
 	send(BM, send_super, initialise,
 	     'PCE Emacs Buffers', application := Emacs),
 	send(BM, name, buffer_menu),
-	send(BM, append, new(B, browser)),
-	send(B, send_method,
-	     send_method(drop_files, vector(chain, point),
-			 message(@arg1, for_all,
-				 message(Emacs, open_file, @arg1)))),
-			 
-	send(B, tab_stops, vector(150)),
-	send(new(D, dialog), below, B),
-	send(D, gap, size(10, 0)),
+	send(BM, append, new(D, dialog)),
 	send(D, pen, 0),
-	send(D, append, label(reporter)),
+	send(D, gap, size(0, 5)),
+	send(D, append, new(TB, tool_bar(Emacs))),
+	send_list(TB, append,
+		  [ tool_button(find_file,
+				resource(open),
+				'Open file for editing'),
+		    tool_button(save_some_buffers,
+				resource(saveall),
+				'Save all modified buffers'),
+		    tool_button(help,
+				resource(help),
+				'Help on PceEmacs')
+		  ]),
 
-	send(B, dict, Emacs?buffer_list),
-	send(B, open_message, message(@arg1?object, open)),
- 	send(B, popup, new(P, popup)),
-
-	new(Buffer, @arg1?object),
-	send(P, update_message,
-	     message(B, selection, @arg1)),
-	send_list(P, append,
-		  [ menu_item(help,
-			      message(Emacs, help),
-			      end_group := @on)
-		  , menu_item(open_buffer,
-			      message(Buffer, open))
-		  , menu_item(open_other_window,
-			      message(Buffer, open, @on),
-			      @default, @on)
-		  , menu_item(find_file,
-			      message(Emacs, find_file),
-			      @default, @on)
-		  , menu_item(identify,
-			      message(BM, identify_buffer, Buffer),
-			      @default, @on)
-		  , menu_item(save_some_buffers,
-			      message(Emacs, save_some_buffers),
-			      @default, @on)
-		  , menu_item(kill_buffer,
-			      message(Buffer, kill))
-		  ]).
-
+	send(new(B, emacs_buffer_browser(Emacs)), below, D),
+	send(new(report_dialog), below, B).
 
 selection(BM, B:emacs_buffer*) :->
 	"Select emacs buffer"::
@@ -79,9 +61,49 @@ selection(BM, B:emacs_buffer*) :->
 	    send(Browser, selection, DictItem)
 	).
 
+:- pce_end_class(emacs_buffer_menu).
 
-identify_buffer(_BM, Buffer:emacs_buffer) :->
-	"Show description of buffer"::
-	send(Buffer, identify).
+:- pce_begin_class(emacs_buffer_browser, browser,
+		   "Browse the emacs buffers").
 
-:- pce_end_class.
+initialise(B, Emacs:emacs) :->
+	"Create for Emacs"::
+	send_super(B, initialise, 'Emacs buffers'),
+	send(B, name, browser),
+	send(B, open_message, message(@arg1?object, open)),
+	send(B, tab_stops, vector(150)),
+	send(B, attach_popup),
+	send(B, dict, Emacs?buffer_list).
+
+attach_popup(B) :->
+	"Attach the popup menu"::
+	send(B, popup, new(P, popup)),
+
+	new(Buffer, @arg1?object),
+	send(P, update_message,
+	     message(B, selection, @arg1)),
+	send_list(P, append,
+		  [ menu_item(open_buffer,
+			      message(Buffer, open)),
+		    menu_item(open_new_window,
+			      message(Buffer, open, @on),
+			      @default, @on),
+		    menu_item(identify,
+			      message(Buffer, identify),
+			      @default, @on),
+		    menu_item(kill_buffer,
+			      message(Buffer, kill))
+		  ]).
+
+
+drop_files(B, Files:chain, _At:point) :->
+	"Drag-and-drop interface"::
+	get(B, application, Emacs),
+	send(Files, for_all,
+	     message(Emacs, open_file, @arg1)).
+
+:- pce_end_class(emacs_buffer_browser).
+
+
+
+
