@@ -323,6 +323,7 @@ layout(head,	   1-1,	1-1).
 layout(body,	   1-1,	1-1).
 layout(script,	   1-1,	1-1).
 layout(select,	   1-1,	1-1).
+layout(map,	   1-1,	1-1).
 
 layout(tr,	   1-0,	0-1).
 layout(option,	   1-0,	0-1).
@@ -345,6 +346,7 @@ layout(link,	   1-1, empty).
 layout(input,	   0-0, empty).
 layout(frame,	   1-1, empty).
 layout(col,	   0-0, empty).
+layout(area,	   1-0, empty).
 
 layout(p,	   2-1, -).		% omited close
 layout(td,	   0-0, 0-0).
