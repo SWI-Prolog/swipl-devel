@@ -134,6 +134,7 @@ do_intercept(exit, Frame, CHP, Action) :-
 	      )),
 	    \+(( last_action(skip),
 		 prolog_skip_level(L,L),
+		 L \== very_deep,
 		 prolog_frame_attribute(Frame, level, FL),
 		 FL >= L
 	      ))

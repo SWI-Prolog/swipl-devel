@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Source level debugger: ERROR: Arithmetic: `very_deep/0' is
+    not a function.  David Reitter.
+
   * ENHANCED: library(check) only reports redefinition on modules that
     default to user and system (otherwise we are dealing with special
     purpose usage of the module system that must be handled seperately).
