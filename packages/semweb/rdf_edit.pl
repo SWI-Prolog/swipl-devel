@@ -49,6 +49,8 @@
 	    rdfe_transaction_name/2,	% +Transactions, -Name
 	    rdfe_set_transaction_name/1,% +Name
 
+	    rdfe_set_watermark/1,	% +Name
+
 	    rdfe_undo/0,		% 
 	    rdfe_redo/0,
 	    rdfe_can_undo/1,		% -TID
@@ -219,13 +221,16 @@ delete(Subject) :-
 
 rdfe_load(File) :-
 	rdfe_current_transaction(TID),
-	rdf_load(File,
+	absolute_file_name(File,
+			   [ access(read),
+			     extensions([rdf,rdfs,owl,''])
+			   ], Path),
+	rdf_load(Path,
 		 [ result(_Action, Triples)
 		 ]),
-	absolute_file_name(File, Path),
 	absolute_file_name('.', PWD),
-	size_file(File, Size),
-	time_file(File, Modified),
+	size_file(Path, Size),
+	time_file(Path, Modified),
 	SecTime is round(Modified),
 	assert_action(TID, load_file(Path), -, -, -),
 	journal(rdf_load(TID,
@@ -233,7 +238,8 @@ rdfe_load(File) :-
 			 [ pwd(PWD),
 			   size(Size),
 			   modified(SecTime),
-			   triples(Triples)
+			   triples(Triples),
+			   from(File)
 			 ])).
 
 rdfe_unload(Path) :-
@@ -574,6 +580,21 @@ rdfe_clear_modified(File) :-
 
 
 		 /*******************************
+		 *	     WATERMARKS		*
+		 *******************************/
+
+%	rdfe_set_watermark(Name)
+%	
+%	Create a watermark for undo and replay journal upto this point.
+%	The rest of the logic needs to be written later.
+
+rdfe_set_watermark(Name) :-
+	rdfe_current_transaction(TID),
+	assert_action(TID, watermark(Name), -, -, -),
+	journal(watermark(TID, Name)).
+
+
+		 /*******************************
 		 *	       RESET		*
 		 *******************************/
 
@@ -797,6 +818,8 @@ replay_action(ns(_, register(ID, URI))) :- !,
 	rdf_register_ns(ID, URI).
 replay_action(ns(_, unregister(ID, URI))) :-
 	retractall(rdf_db:ns(ID, URI)).
+replay_action(watermark(_, _Name)) :-
+	true.
 
 find_file(File, _, File) :-
 	exists_file(File), !.

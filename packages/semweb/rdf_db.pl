@@ -521,22 +521,6 @@ assert_triples([rdf(S,P,O)|T], DB) :- !,
 assert_triples([H|_], _) :-
 	throw(error(type_error(rdf_triple, H), _)).
 
-%	load_triples_from_stream(+PayLoad, +Stream)
-%	
-%	Read triples from a file and assert them into the database.
-
-load_triples_from_stream(In) :-
-	read(In, T0),
-	load_triples_from_stream(T0, In).
-
-load_triples_from_stream(end_of_file, _) :- !.
-load_triples_from_stream(rdf(S,P,O,DB), In) :- !,
-	rdf_assert(S, P, O, DB),
-	read(In, T),
-	load_triples_from_stream(T, In).
-load_triples_from_stream(T, _) :-
-	throw(error(type_error(rdf_triple, T), _)).
-
 
 		 /*******************************
 		 *	       RESET		*
