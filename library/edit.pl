@@ -310,7 +310,11 @@ read_line(C, [C|T]) :-
 	prolog:message/3.
 
 prolog:message(edit(not_found(Spec))) -->
-	[ 'Cannot find anything to edit from "~p"'-[Spec] ].
+	[ 'Cannot find anything to edit from "~p"'-[Spec] ],
+	(   { atom(Spec) }
+	->  [ nl, '    Use edit(file(~q)) to create a new file'-[Spec] ]
+	;   []
+	).
 prolog:message(edit(select)) -->
 	[ 'Please select item to edit:', nl, nl ].
 prolog:message(edit(prompt_select)) -->
