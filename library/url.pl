@@ -738,6 +738,9 @@ www_encode([0'+|T]) -->
 www_encode([C|T]) -->
 	alphanum(C), !,
 	www_encode(T).
+www_encode([C|T]) -->
+	no_enc_extra(C), !,
+	www_encode(T).
 www_encode(Enc) -->
 	(   "\r\n"
 	;   "\n"
@@ -747,7 +750,6 @@ www_encode(Enc) -->
 	www_encode(T).
 www_encode([]) -->
 	[].
-
 www_encode([0'%,D1,D2|T]) -->
 	[C],
 	{ Dv1 is (C>>4 /\ 0xf),
@@ -757,6 +759,13 @@ www_encode([0'%,D1,D2|T]) -->
 	},
 	www_encode(T).
 	
+%	characters that do not need  encoding.   Officially  we can pass
+%	them encoded too, but it makes the   URL  less readable and some
+%	servers are broken, not running decoding over the field value.
+
+no_enc_extra(0'_) --> "_".
+no_enc_extra(0':) --> ":".
+
 www_decode([0' |T]) -->
 	"+", !,
         www_decode(T).

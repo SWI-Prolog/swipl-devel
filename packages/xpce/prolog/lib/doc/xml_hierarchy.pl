@@ -95,7 +95,10 @@ expand_node(H, Node:xml_node) :->
 
 caption(_, XML:prolog, Title:name) :<-
 	"Get title for a node"::
-	XML = element(Title, _, _).
+	element_name(XML, Title).
+
+element_name(element(_NS:Title, _, _), Title) :- !.
+element_name(element(Title, _, _), Title).
 
 icon(_H, _XML:prolog, _HasSub:bool, Tuple:tuple) :<-
 	"Return open/close icon"::

@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ENHANCED: library url www_form_encode/2 not to encode _, and :.  Needed
+    for some broken servers.  What is the full list we must use here?
+
   * FIXED: PL_get_chars() using CVT_WRITE.  Wim Delvaux.
 
 
