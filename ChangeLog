@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Deadlock in thread_statistics on `self'.  Sergey Tikhonov.
+
   * FIXED: plwin.exe menu link to the XPCE documentation.  Robert Shiplett.
 
   * INSTALL: fixed various path-problems in the packages.  Michael Piefel.
