@@ -15,6 +15,8 @@
 #define M_LDFLAGS	     
 #define M_CFLAGS		-Wall -DOS2 -DEMX
 #define M_LIBS			-lm -ltermc -los2
+#define M_SEP       		\\
+
 
 			/* compiler */
 #define ANSI			1

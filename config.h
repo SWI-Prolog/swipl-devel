@@ -7,18 +7,18 @@
 #define M_SYSTEMHOME "/staff/jan/src/pl"
 
 /*
-  M_DEFSTARTUP      The SWI Prolog path to the user's Prolog environment.
-                    The default is ".plrc".
-*/
-
-#define M_DEFSTARTUP ".plrc"
-
-/*
   M_BINDIR          The real path to the-SWI Prolog binaries.
 		    The default is "/usr/local/bin"
 */
 
 #define M_BINDIR "/staff/jan/bin/sun4"
+
+/*
+  M_DEFSTARTUP      The SWI Prolog path to the user's Prolog environment.
+                    The default is ".plrc".
+*/
+
+#define M_DEFSTARTUP ".plrc"
 
 /*
   M_PROLOG          The name for SWI-Prolog. This name is used for naming
@@ -39,13 +39,6 @@
 		    Set this define for OS/2, TOS, Mac-OS.
 */
 /*#define M_SYSTEMDIR  "C:\usr\public\SWI" */
-
-/*
-  M_SEP             Set this define to the path separator of your OS.
-                    The default is "/".
-*/
-/*#define M_SEP       \\*/
-
 
 /*
   M_SYS             The executable name for SWI-Prolog.

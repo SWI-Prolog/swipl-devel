@@ -29,7 +29,7 @@ ln -s ../src/pl-*.[ch] .
 ln -s ../src/pl-*.i[ch] .
 ln -s ../src/pl-export .
 ln -s ../src/{ATOMS,defatom.awk,gnu,dump} .
-ln -s ../src/{extract,make,simplify,strip}.sed .
+ln -s ../src/{extract,make,simpl,strip}.sed .
 
 switch ( $arch )
     case atari:
