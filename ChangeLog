@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Doc says PL_get_string_chars(), Impl PL_get_string().  Fixed
+    in the impl. using a macro.  Thanks to Nicos Angelopoulo.
+
 VERSION 3.3.6#2
 ===============
 
