@@ -944,7 +944,7 @@ getReadLineFile(FileObj f)
       break;
     }
 
-    str_tmp_put(&tmp, c);
+    str_tmp_put(&tmp, (wint_t)c);
     if ( c == '\n' )
       break;
   }
@@ -999,7 +999,7 @@ getReadFile(FileObj f, Int n)
 
     str_tmp_init(&tmp);
     while(tmp.s.size < size && (c = Sgetcode(f->fd)) != EOF )
-    { str_tmp_put(&tmp, c);
+    { str_tmp_put(&tmp, (wint_t)c);
     }
     if ( !checkErrorFile(f) )
     { str_tmp_done(&tmp);
