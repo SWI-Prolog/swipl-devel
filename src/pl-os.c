@@ -1140,6 +1140,10 @@ canoniseFileName(char *path)
 	       (in[3] == '/' || in[3] == EOS) && osavep > 0 )
 	  { out = osave[--osavep];
 	    in += 3;
+	    if ( in[0] == EOS && out > path )
+	    { out[-1] = EOS;		/* delete trailing / */
+	      return path;
+	    }
 	    goto again;
 	  }
 	}

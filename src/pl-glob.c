@@ -50,6 +50,7 @@
 #define IS_DIR_SEPARATOR(c)	((c) == '/')
 #endif
 
+#define char_to_int(c)	(0xff & (int)(c))
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Unix Wildcard Matching.  Recognised:
@@ -142,10 +143,10 @@ compilePattern(char *p, compiled_pattern *cbuf)
 
 static char *
 compile_pattern(compiled_pattern *Out, char *p, int curl)
-{ char c;
+{ int c;
 
   for(;;)
-  { switch(c = *p++)
+  { switch(c = char_to_int(*p++))
     { case EOS:
 	break;
       case '\\':
@@ -228,6 +229,15 @@ compile_pattern(compiled_pattern *Out, char *p, int curl)
 	  
 	  continue;
 	}
+      case ANY:
+      case STAR:
+      case ALT:
+      case JMP:
+      case ANYOF:
+      case EXIT:
+	PL_error(NULL, 0, "Reserved character",
+		 ERR_REPRESENTATION, ATOM_pattern);
+	return NULL;
       case '}':
       case ',':
 	if ( curl == CURL )
@@ -236,8 +246,8 @@ compile_pattern(compiled_pattern *Out, char *p, int curl)
 	}
 	/*FALLTHROUGH*/
       default:
-	c &= 0x7f;
-	c = makeLower(c);
+        if ( !trueFeature(FILE_CASE_FEATURE) )
+	  c = makeLower(c);
 	Output(c);
 	continue;
     }
@@ -309,19 +319,20 @@ match_pattern(matchcode *p, char *str)
 
 word
 pl_wildcard_match(term_t pattern, term_t string)
-{ char *p;
+{ char *p, *s;
   compiled_pattern buf;
 
-  if ( PL_get_chars(pattern, &p, CVT_ALL) &&
-       compilePattern(p, &buf) )
-  { char *s;
+  if ( !PL_get_chars_ex(pattern, &p, CVT_ALL) ||
+       !PL_get_chars_ex(string,  &s, CVT_ALL) )
+    fail;
 
-    if ( PL_get_chars(string, &s, CVT_ALL) )
-      return matchPattern(s, &buf);
+  if ( compilePattern(p, &buf) )
+  { return matchPattern(s, &buf);
   }
-    
-  return warning("wildcard_match/2: instantiation fault");
+
+  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_pattern, pattern);
 }
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 File Name Expansion.
@@ -337,10 +348,11 @@ pl_expand_file_name(term_t f, term_t list)
   term_t l    = PL_copy_term_ref(list);
   term_t head = PL_new_term_ref();
 
-  if ( !PL_get_chars(f, &s, CVT_ALL) )
-    return warning("expand_file_name/2: instantiation fault");
+  if ( !PL_get_chars_ex(f, &s, CVT_ALL) )
+    fail;
   if ( strlen(s) > MAXPATHLEN-1 )
-    return warning("expand_file_name/2: name too long");
+    return PL_error(NULL, 0, "File name too long",
+		    ERR_DOMAIN, ATOM_pattern, f);
 
   TRY( expandVars(s, spec) );
   TRY( expand(spec, vector, &filled) );

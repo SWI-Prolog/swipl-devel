@@ -13,6 +13,12 @@
 :- use_module(library(progman)).
 :- use_module(library(registry)).
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Helper module to get SWI-Prolog and   XPCE  installed properly under the
+Wise installation shield. This module is  *not* for end-users (but might
+be useful as an example for handling some Windows infra-structure).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 get_wise_variable(Name, Value) :-
 	open_dde_conversation('WiseInst', Name, Handle),
 	dde_request(Handle, -, RawVal),

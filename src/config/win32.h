@@ -192,6 +192,9 @@
 /* Define if you have the gettimeofday function.  */
 #undef HAVE_GETTIMEOFDAY
 
+/* Define if you have the ftime function.  */
+#define HAVE_FTIME 1
+
 /* Define if you have the getw function.  */
 #undef HAVE_GETW
 

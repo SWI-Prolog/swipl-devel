@@ -145,6 +145,9 @@ const char *		threadName(int id);
 void			executeThreadSignals(int sig);
 foreign_t		pl_attach_xterm(term_t in, term_t out);
 void			threadMarkAtomsOtherThreads(void);
+
+pthread_mutex_t *	newRecursiveMutex(void);
+int			freeRecursiveMutex(pthread_mutex_t *m);
 #else /*O_PLMT*/
 
 		 /*******************************

@@ -438,3 +438,4 @@
 #define ATOM_yfx          MK_ATOM(437)
 #define ATOM_yfy          MK_ATOM(438)
 #define ATOM_zero_divisor MK_ATOM(439)
+#define ATOM_pattern      MK_ATOM(440)

@@ -1,6 +1,19 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * WIN32: get_time/1 now returns the time in 1/1000 of a second rather
+    then whole seconds.
+
+  * FIXED: expand_file_name/2 and wildchard_match/2 for filenames containing
+    uppercase characters on systems with case-sensitive filenames (Unix).
+    Also fixed for handling pattern and names containing non-ASCII characters.
+
+  * MODIFIED: expand_file_name/2 and wildchard_match/2 to raise exceptions
+    on instantiation errors.
+
+VERSION 3.3.0 (release-4)
+=========================
+
   * FIXED: unload_foreign_library/[1,2] calling of the uninstall hook.
     Might fix exit problems in the Windows version.
 

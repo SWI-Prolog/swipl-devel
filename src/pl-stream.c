@@ -27,7 +27,7 @@ locking is required.
 #ifdef MD
 #include MD
 #else
-#include "config.h"
+#include <config.h>
 #endif
 
 #define PL_KERNEL 1
@@ -79,7 +79,14 @@ static void	run_close_hooks(IOSTREAM *s);
 #define SUNLOCK(s)
 #endif
 
-
+#include "pl-error.h"
+extern int 			fatalError(const char *fm, ...);
+extern int 			PL_error(const char *pred, int arity,
+					 const char *msg, int id, ...);
+#ifdef O_PLMT
+extern pthread_mutex_t *	newRecursiveMutex(void);
+extern int			freeRecursiveMutex(pthread_mutex_t *m);
+#endif
 
 		 /*******************************
 		 *	      BUFFER		*
@@ -287,11 +294,6 @@ S___fupdatefilepos(IOSTREAM *s, int c)
 { IOPOS *p;
 
 #if 1
-#include "pl-error.h"
-  extern int fatalError(const char *fm, ...);
-  extern int PL_error(const char *pred,
-		      int arity, const char *msg, int id, ...);
-
   if ( s->magic != SIO_MAGIC )
   { if ( s->magic == SIO_CMAGIC )
       PL_error(NULL, 0, NULL, ERR_CLOSED_STREAM, s);
@@ -639,7 +641,9 @@ Sclose(IOSTREAM *s)
 
 #ifdef O_PLMT
   if ( s->mutex )
-    free(s->mutex);
+  { freeRecursiveMutex(s->mutex);
+    s->mutex = NULL;
+  }
 #endif
 
   s->magic = SIO_CMAGIC;
@@ -885,6 +889,8 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	  }
 	  case 's':
 	    fs = va_arg(args, char *);
+	    if ( !fs )
+	      fs = "(null)";
 	    break;
 	}
 
@@ -974,6 +980,7 @@ Svsprintf(char *buf, const char *fm, va_list args)
   s.position  = NULL;
   s.handle    = NULL;
   s.functions = NULL;
+  s.mutex     = NULL;
   
   if ( (rval = Svfprintf(&s, fm, args)) >= 0 )
     *s.bufp = '\0';
@@ -1365,11 +1372,8 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
     s->posbuf.lineno = 1;
   }
 #ifdef O_PLMT
-  if ( !(s->mutex = malloc(sizeof(IOLOCK))) )
-  { errno = ENOMEM;
+  if ( !(s->mutex = newRecursiveMutex()) )
     return NULL;
-  }
-  s->mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
 #endif
 
   return s;
@@ -1476,21 +1480,10 @@ Sfileno(IOSTREAM *s)
 }
 
 
-#ifdef O_PLMT
-static IOLOCK S__locks[] =
-{ PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP,
-  PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP,
-  PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP
-};
-#define MUTEX(n) &S__locks[n]
-#else
-#define MUTEX(n) NULL
-#endif
-
 #define STDIO(n, f) { NULL, NULL, NULL, NULL, \
 		      EOF, SIO_MAGIC, 0, f, {0, 0, 0}, NULL, \
 		      ((void *)(n)), &Sfilefunctions, \
-		      0, MUTEX(n) \
+		      0, NULL \
 		    }
 
 IOSTREAM S__iob[] =
@@ -1501,6 +1494,21 @@ IOSTREAM S__iob[] =
   STDIO(1, SIO_STDIO|SIO_LBUF|SIO_OUTPUT), 		/* Soutput */
   STDIO(2, SIO_STDIO|SIO_NBUF|SIO_OUTPUT)		/* Serror */
 };
+
+
+void
+SinitStreams()
+{ static int done;
+
+  if ( !done++ )
+  {
+#ifdef O_PLMT
+    S__iob[0].mutex = newRecursiveMutex();
+    S__iob[1].mutex = newRecursiveMutex();
+    S__iob[2].mutex = newRecursiveMutex();
+#endif
+  }
+}
 
 
 IOSTREAM *
@@ -1818,6 +1826,7 @@ Sopen_string(IOSTREAM *s, char *buf, int size, const char *mode)
   s->position  = NULL;
   s->handle    = s;			/* for Sclose_string() */
   s->functions = &Sstringfunctions;
+  s->mutex     = NULL;
 
   switch(*mode)
   { case 'r':

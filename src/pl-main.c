@@ -504,6 +504,8 @@ PL_initialise(int argc, char **argv)
   initHeapDebug();
 #endif
 
+  SinitStreams();			/* before anything else */
+
   GD->cmdline.argc = argc;
   GD->cmdline.argv = argv;
   GD->debug_level  = 0;			/* 1-9: debug, also -d <level> */

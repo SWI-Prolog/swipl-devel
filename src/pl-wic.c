@@ -745,8 +745,10 @@ loadStatement(int c, IOSTREAM *fd, int skip)
       { if ( !callProlog(MODULE_user, goal, PL_Q_NODEBUG, NULL) )
 	{ Sfprintf(Serror,
 		   "[WARNING: %s:%d: (loading %s) directive failed: ",
-		   stringAtom(source_file_name), source_line_no, wicFile);
-	  pl_write(goal);
+		   source_file_name ? stringAtom(source_file_name)
+		                    : "<no file>",
+		   source_line_no, wicFile);
+	  PL_write_term(Serror, goal, 1200, 0);
 	  Sfprintf(Serror, "]\n");
 	}
       }

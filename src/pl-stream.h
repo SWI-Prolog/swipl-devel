@@ -217,6 +217,7 @@ __pl_export_data IOSTREAM    S__iob[];		/* Libs standard streams */
 		 *	    PROTOTYPES		*
 		 *******************************/
 
+__pl_export void	SinitStreams();
 __pl_export int		S__fupdatefilepos(IOSTREAM *s, int c);
 __pl_export int		S__fillbuf(IOSTREAM *s);
 __pl_export int		Sputc(int c, IOSTREAM *s);

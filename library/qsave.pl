@@ -381,9 +381,16 @@ save_prolog_flags :-
 	feedback('~nPROLOG FLAGS~n~n', []),
 	$current_prolog_flag(Feature, Value, global, write, _Type),
 	feedback('~t~8|~w: ~w~n', [Feature, Value]),
-	$add_directive_wic(set_prolog_flag(Feature, Value)),
+	$add_directive_wic(qsave:restore_prolog_flag(Feature, Value)),
 	fail.
 save_prolog_flags.
+
+%	Deal with possibly protected flags (debug_on_error and
+%	report_error are protected flags for the runtime kernel).
+
+restore_prolog_flag(Flag, Value) :-
+	catch(set_prolog_flag(Flag, Value), _, true).
+
 
 		 /*******************************
 		 *	     OPERATORS		*

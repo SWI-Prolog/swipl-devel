@@ -875,6 +875,38 @@ unify_mutex_owner(term_t t, int owner)
 }
 
 
+pthread_mutex_t *
+newRecursiveMutex()
+{ pthread_mutex_t *m = allocHeap(sizeof(*m));
+  pthread_mutexattr_t attr;
+
+  if ( !m )
+    return NULL;
+
+  pthread_mutexattr_init(&attr);
+#ifdef HAVE_PTHREAD_MUTEXATTR_SETKIND_NP
+  pthread_mutexattr_setkind_np(&attr, PTHREAD_MUTEX_RECURSIVE_NP);
+#else
+#ifdef HAVE_PTHREAD_MUTEXATTR_SETTYPE
+  pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+#endif
+#endif
+  pthread_mutex_init(m, &attr);
+
+  return m;
+}
+
+
+int
+freeRecursiveMutex(pthread_mutex_t *m)
+{ if ( pthread_mutex_destroy(m) != 0 )
+    fail;
+
+  freeHeap(m, sizeof(*m));
+  succeed;
+}
+
+
 static pl_mutex *
 unlocked_pl_mutex_create(term_t mutex)
 { Symbol s;
@@ -1074,7 +1106,7 @@ pl_mutex_destroy(term_t mutex)
   if ( !get_mutex(mutex, &m, FALSE) )
     fail;
 
-  if ( pthread_mutex_destroy(&m->mutex) != 0 )
+  if ( !freeRecursiveMutex(&m->mutex) )
     return PL_error("mutex_destroy", 1, NULL,
 		    ERR_PERMISSION, ATOM_mutex, ATOM_destroy, mutex);
 
