@@ -37,10 +37,14 @@ source should also use format() to produce error messages, etc.
 			  { FMT_ERROR("not enough arguments"); \
 			  } \
 			}
-#define FMT_ERROR(fmt)	return warning("format/2: %s", fmt)
+#define FMT_ERROR(fmt)	do \
+			{ Sunlock(fd); \
+			  return warning("format/2: %s", fmt); \
+			} while(0)
 #define FMT_ERROR1(fmt, a)	{ char tp[50]; \
 			  strcpy(tp, "format/2: "); \
 			  strcat(tp, fmt); \
+			  Sunlock(fd); \
 			  return warning(tp, a); \
 			}
 #define OUTSTRING(s)	{ char *q = s; \
@@ -172,10 +176,12 @@ pl_format3(term_t stream, term_t fmt, term_t Args)
     PL_put_term(argv, args);
   }
   
-  rval = do_format(out, f, len, argc, argv);
-  PL_release_stream(out);
-
-  return rval;
+  if ( (rval = do_format(out, f, len, argc, argv)) )
+    return streamStatus(out);
+  else
+  { PL_release_stream(out);
+    fail;
+  }
 }
 
 
@@ -521,7 +527,7 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 
   Sunlock(fd);
 
-  return streamStatus(fd);
+  succeed;
 }
 
 
