@@ -364,9 +364,15 @@ midstring(ABC, B, AC, LenA) :-
 	midstring(ABC, B, AC, LenA, _, _).
 midstring(ABC, B, AC, LenA, LenB) :-
 	midstring(ABC, B, AC, LenA, LenB, _).
-midstring(ABC, B, AC, LenA, LenB, LenC) :-
+midstring(ABC, B, AC, LenA, LenB, LenC) :-	% -ABC, +B, +AC
 	var(ABC), !,
+	atom_length(AC, LenAC),
+	(   nonvar(LenA) ; nonvar(LenC)
+	->  plus(LenA, LenC, LenAC)
+	;   true
+	),
 	sub_atom(AC, 0, LenA, _, A),
+	LenC is LenAC - LenA,
 	sub_atom(AC, _, LenC, 0, C),
 	atom_length(B, LenB),
 	concat_atom([A,B,C], ABC).
