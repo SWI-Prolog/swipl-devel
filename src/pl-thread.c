@@ -755,6 +755,7 @@ set_system_thread_id(PL_thread_info_t *info)
 #ifdef WIN32
   info->w32id = GetCurrentThreadId();
 #endif
+#endif
 }
 
 
