@@ -19,6 +19,11 @@ SWI-Prolog
     gathering system and a GUI frontent to browse the results.  See
     http://www.swi.psy.uva.nl/projects/SWI-Prolog/Manual/profile.html
 
+  * Added the possibility to detach and re-attach Prolog engines to
+    threads, so the multi-threaded version can have N engines on M threads.
+    A single thread can access multiple engines and an engine can be
+    migrated from one thread to another.
+
   * Get Richard O'Keefs fast `natural-merge' sort to replace sort,
     msort and keysort.  Saves space on the first 2 and a huge performance
     gain on keysort.
