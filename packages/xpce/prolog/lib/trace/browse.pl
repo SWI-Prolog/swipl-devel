@@ -119,9 +119,10 @@ class_variable(auto_refresh, int*, @nil).
 class_variable(size,	size,	size(200, 500),
 	       "Intial window size").
 
-variable(file_pattern,	regex := '.*\.pl$', get, "Pattern of showed files").
+variable(file_pattern,	regex, get, "Pattern of showed files").
 
 initialise(FB, Root:directory) :->
+	send(FB, slot, file_pattern, '.*\.pl$'),
 	send_super(FB, initialise, Root),
 	send(FB?frame, label, 'SWI-Prolog Navigator'),
 	asserta(prolog_overview_window(FB)).

@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Bug #53: Restarting the Prolog Navigator (Holger Kanwischer).
+
 VERSION 6.1.13, distributed with SWI-Prolog 5.1.13
 ==================================================
 
