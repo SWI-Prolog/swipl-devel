@@ -608,6 +608,7 @@ word		pl_clause_from_source(term_t file, term_t line, term_t clause);
 foreign_t	pl_list_generations(term_t desc);
 foreign_t	pl_check_procedure(term_t desc);
 void		checkDefinition(Definition def);
+Procedure	isStaticSystemProcedure(functor_t fd);
 
 
 /* pl-prof.c */

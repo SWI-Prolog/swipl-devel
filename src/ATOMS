@@ -470,6 +470,7 @@ A foreign_function	"$foreign_function"
 A signal_handler	"signal_handler"
 A asserta		"asserta"
 A assert		"assert"
+A export		"export"
 
 F abs			1
 F acos			1

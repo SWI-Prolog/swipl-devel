@@ -363,7 +363,7 @@ expansion_module(term_t name, functor_t func, word h)
   while(1)
   { if ( (proc = isCurrentProcedure(func, m)) &&
 	 proc->definition->definition.clauses &&
-	 PL_unify_atom(name, LD->modules.source->name) )
+	 PL_unify_atom(name, m->name) )
     { if ( m == MODULE_user )
 	PL_succeed;
       else
@@ -493,6 +493,10 @@ pl_export(term_t pred)
   if ( PL_get_functor(head, &fd) )
   { Procedure proc;
 
+    if ( (proc = isStaticSystemProcedure(fd)) )
+      return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
+		      ATOM_export, ATOM_built_in_procedure, proc->definition);
+
     LOCK();
     proc = lookupProcedure(fd, module);
     addHTable(module->public,
@@ -502,7 +506,7 @@ pl_export(term_t pred)
     succeed;
   }
 
-  return warning("export/1: illegal predicate specification");
+  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, pred);
 }
 
 word

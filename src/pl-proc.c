@@ -63,6 +63,9 @@ lookupProcedure(functor_t f, Module m)
   resetProcedure(proc);
   UNLOCK();
 
+  if ( streq(procedureName(proc), "select:select/3") )
+    trap_gdb();
+
   DEBUG(1, Sdprintf("Created %s\n", procedureName(proc)));
   return proc;
 }
@@ -152,8 +155,8 @@ Find a procedure for defining it.  Here   we check whether the procedure
 to be defined is a system predicate.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
-checkModifySystemProc(functor_t fd)
+Procedure
+isStaticSystemProcedure(functor_t fd)
 { Procedure proc;
 
   if ( !SYSTEM_MODE &&
@@ -161,6 +164,17 @@ checkModifySystemProc(functor_t fd)
        (proc=isCurrentProcedure(fd, MODULE_system)) &&
        true(proc->definition, LOCKED) &&
        false(proc->definition, DYNAMIC) )
+    return proc;
+
+  return NULL;
+}
+
+
+static int
+checkModifySystemProc(functor_t fd)
+{ Procedure proc;
+
+  if ( (proc = isStaticSystemProcedure(fd)) )
     return PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PROC, proc);
 
   succeed;
