@@ -142,6 +142,11 @@ demo('Emacs',
      library(pce_emacs),
      emacs).
 
+demo('XMLView',
+     'Browse structure of HTML/SGML and XML files',
+     library('doc/xml_browse'),
+     send(new(xml_browser), open)).
+
 demo('FontViewer',
      'Examine PCE predefined fonts',
      demo(fontviewer),

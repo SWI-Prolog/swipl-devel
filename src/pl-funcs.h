@@ -162,6 +162,7 @@ int		cardinalityPattern(unsigned long pattern);
 void		getIndex(Word argv, unsigned long pattern, int card,
 			 struct index *
 			 ARG_LD);
+word		getIndexOfTerm(term_t t);
 ClauseRef	firstClause(Word argv, LocalFrame fr, Definition def,
 			    ClauseRef *next ARG_LD);
 ClauseRef	findClause(ClauseRef cl, Word argv, LocalFrame fr,

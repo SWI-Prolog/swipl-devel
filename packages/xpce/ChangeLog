@@ -1,6 +1,12 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.1.9, distributed with SWI-Prolog 5.1.9
+================================================
+
+* ADDED: Enhanced HTML/XGML/XML structure viewer from library(doc/xml_browse)
+  with search and some more goodies.  Added this tool to to demo programs.
+
 * MODIFIED: Use win_btnface for default background colour of dialog
   windows.  Seems to make more sense to get a reasonable default
   colour on Windows XP.

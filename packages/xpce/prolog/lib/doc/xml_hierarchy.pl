@@ -41,10 +41,10 @@ resource(open,	image, image('16x16/book2.xpm')).
 resource(close,	image, image('16x16/manual.xpm')).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Show hierarchy of elements as produced by  xml2pl. This class is kept as
-simple as possible. In general it  requires subclassing and defining the
-select_node message to do anything sensible.   See  class toc_window for
-details on programming this library.
+Show hierarchy of elements as produced   by library(sgml). This class is
+kept as simple as  possible.  In   general  it  requires subclassing and
+defining the select_node message to  do   anything  sensible.  See class
+toc_window for details on programming this library.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 :- pce_begin_class(xml_hierarchy, toc_window,
@@ -52,9 +52,12 @@ details on programming this library.
 
 variable(xml,	prolog,	get, "Represented XML term").
 
-initialise(H, XML:prolog) :->
+initialise(H, XML:[prolog]) :->
 	send_super(H, initialise),
-	send(H, xml, XML).
+	(   XML == @default
+	->  true
+	;   send(H, xml, XML)
+	).
 
 xml(H, XML:prolog) :->			% list of elements
 	"Visualise an XML structure"::
@@ -99,7 +102,25 @@ icon(_H, _XML:prolog, _HasSub:bool, Tuple:tuple) :<-
 	new(Tuple, tuple(image(resource(open)),
 			 image(resource(close)))).
 
-:- pce_end_class.
+:- pce_group(path).
+
+node_from_path(H, Path:prolog, Node:xml_node) :<-
+	"Find node at given path (possibly expanding tree)"::
+	get(H, root, Root),
+	find_node(Path, Root, Node).
+
+find_node([], Node, Node).
+find_node([N|T], Node, Sub) :-
+	(   get(Node, sons, Sons),
+	    get(Sons, nth1, N, Sub0)
+	->  find_node(T, Sub0, Sub)
+	;   send(Node, collapsed, @off),
+	    get(Node, sons, Sons),
+	    get(Sons, nth1, N, Sub0)
+	->  find_node(T, Sub0, Sub)
+	).
+
+:- pce_end_class(xml_hierarchy).
 
 
 :- pce_begin_class(xml_node, toc_folder,
@@ -125,6 +146,6 @@ find_xml([H|T], element(_, _, Content), XML) :-
 	nth1(H, Content, XML0),
 	find_xml(T, XML0, XML).
 
-:- pce_end_class.
+:- pce_end_class(xml_node).
 
 

@@ -180,6 +180,15 @@ getIndex(Word argv, unsigned long pattern, int card, struct index *index
 }
 
 
+word
+getIndexOfTerm(term_t t)
+{ GET_LD
+  word w = *valTermRef(t);
+
+  return indexOfWord(w PASS_LD);
+}
+
+
 static ClauseRef
 nextClauseMultiIndexed(ClauseRef cref, unsigned long generation,
 		       Word argv, Definition def,

@@ -1486,6 +1486,7 @@ Messages are sent asynchronously.
 typedef struct _thread_msg
 { struct _thread_msg *next;		/* next in queue */
   record_t            message;		/* message in queue */
+  word		      key;		/* Indexing key */
 } thread_message;
 
 
@@ -1496,6 +1497,7 @@ queue_message(message_queue *queue, term_t msg)
   msgp = allocHeap(sizeof(*msgp));
   msgp->next    = NULL;
   msgp->message = PL_record(msg);
+  msgp->key     = getIndexOfTerm(msg);
   
   pthread_mutex_lock(&queue->mutex);
   if ( !queue->head )
@@ -1512,6 +1514,7 @@ queue_message(message_queue *queue, term_t msg)
 static int
 get_message(message_queue *queue, term_t msg)
 { term_t tmp = PL_new_term_ref();
+  word key = getIndexOfTerm(msg);
   mark m;
 
   Mark(m);
@@ -1524,7 +1527,10 @@ get_message(message_queue *queue, term_t msg)
     thread_message *prev = NULL;
 
     for( ; msgp; prev = msgp, msgp = msgp->next )
-    { PL_recorded(msgp->message, tmp);
+    { if ( key && msgp->key && key != msgp->key )
+	continue;			/* fast search */
+
+      PL_recorded(msgp->message, tmp);
 
       if ( PL_unify(msg, tmp) )
       { if ( prev )

@@ -7,7 +7,14 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
-  * FIXED: Bug#28: race condition on message queues.  Mike Elston.
+VERSION 5.1.9 (Mar 05, 2003)
+============================
+
+  * ENHANCED: Use a key	to speedup searching for potentionally matching
+    messages in long message queues.
+
+  * FIXED: Bug#28: race condition on message queues.  Mike Elston.  Added
+    abstracted version of his test to the thread test-suite.
 
   * FIXED: Error-reporting in thread_join/2.  Added check to avoid joining
     detached threads.
@@ -36,6 +43,7 @@
 
   * ADDED: op(1150, fx, meta_predicate) to avoid syntax errors if library
     quintus is not loaded explcitely.
+
 
 VERSION 5.1.8 (Feb 24, 2003)
 ============================

@@ -104,9 +104,10 @@ attach_console :-
 		[Id, SysId]),
 	(   current_prolog_flag(windows, true)
 	->  regkey(Id, Key),
-	    win_open_console(Title, In, Out, Err,
-			     [ registry_key(Key)
-			     ])
+					% Avoid undefined predicate listing
+	    call(win_open_console(Title, In, Out, Err,
+				  [ registry_key(Key)
+				  ]))
 	;   open_xterm(Title, In, Out, Err)
 	),
 	assert(has_console(Id, In, Out, Err)),

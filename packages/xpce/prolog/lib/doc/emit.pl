@@ -37,6 +37,7 @@
 :- use_module(doc(layout)).
 :- use_module(doc(table)).
 :- use_module(doc(util)).
+:- use_module(doc(url_fetch)).
 :- use_module(library(help_message)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
