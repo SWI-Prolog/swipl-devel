@@ -11,13 +11,49 @@
 */
 
 :- module(rdf_diagram,
-	  [
+	  [ rdf_diagram_from_file/1	% +File
 	  ]).
 :- use_module(library(pce)).
 :- use_module(library(pce_tagged_connection)).
 :- use_module(library(autowin)).
 :- use_module(library(print_graphics)).
 :- use_module(rdf_parser).		% get access to declared namespaces
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This file defines the class rdf_diagram, a   window capable of showing a
+set of triples.
+
+The predicate rdf_diagram_from_file(+File) is a   simple demo and useful
+tool to show RDF from simple RDF files.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+
+		 /*******************************
+		 *	    SIMPLE ENTRY	*
+		 *******************************/
+
+%	rdf_diagram_from_file(+File)
+%	
+%	Show the triples from File in a window.
+
+rdf_diagram_from_file(File) :-
+	absolute_file_name(File,
+			   [ access(read),
+			     extensions([rdf,rdfs,owl,''])
+			   ], AbsFile),
+	load_rdf(AbsFile, Triples,
+		 [ expand_foreach(true)
+		 ]),
+	new(D, rdf_diagram(string('RDF diagram for %s', File))),
+	send(new(report_dialog), below, D),
+	send(D, triples, Triples),
+	send(D, open).
+
+
+		 /*******************************
+		 *	CLASS RDF-DIAGRAM	*
+		 *******************************/
 
 :- pce_begin_class(rdf_diagram, auto_sized_picture,
 		   "Show set of RDF triples in a window").
@@ -42,6 +78,8 @@ fill_popup(D) :->
 		    menu_item(print, message(D, print))
 		  ]).
 
+:- pce_group(triples).
+
 append(D, Triple:prolog) :->
 	"Append and rdf(Subject, Predicate, Object) triple"::
 	subject_name(Triple, SubjectName),
@@ -58,6 +96,13 @@ append(D, Triple:prolog) :->
 	    send(Subject, connect, PredName, Object)
 	).
 	
+triples(D, Triples:prolog) :->
+	"Show disgram from Prolog triples"::
+	send(D, clear),
+	forall(member(T, Triples),
+	       send(D, append, T)),
+	send(D, layout).
+
 resource(D, Resource:name, Create:[bool], Subject:rdf_resource) :<-
 	"Get reference for a subject or create one"::
 	(   get(D, member, Resource, Subject)
@@ -77,14 +122,6 @@ literal(D, Value:prolog, Gr:rdf_literal) :<-
 	).
 
 
-triples(D, Triples:prolog) :->
-	"Show disgram from Prolog triples"::
-	send(D, clear),
-	forall(member(T, Triples),
-	       send(D, append, T)),
-	send(D, layout).
-
-
 :- pce_group(layout).
 
 layout(D) :->
@@ -97,20 +134,6 @@ layout(D) :->
 	     iterations := 200,
 	     area := D?visible,
 	     network := Nodes).
-
-/*
-	get(D?graphicals, copy, ToDo),
-	layout(ToDo).
-
-layout(Chain) :-
-	get(Chain, head, Head), !,
-	get(Head, network, Network),
-	send(Chain, subtract, Network),
-	send(Head, layout, 2, 40, iterations := 200),
-	layout(Chain).
-layout(_).
-*/
-
 
 copy_layout(D, From:rdf_diagram, Subst:prolog) :->
 	"Copy the layout from another windows"::

@@ -329,20 +329,7 @@ run :-
 
 
 show(File) :-
-	absolute_file_name(File,
-			   [ access(read),
-			     extensions([rdf,rdfs,owl,''])
-			   ], AbsFile),
-	load_rdf(AbsFile, Triples,
-		 [ expand_foreach(true)
-		 ]),
-	new(D, rdf_diagram(string('RDF diagram for %s', File))),
-	send(new(report_dialog), below, D),
-	forall(member(T, Triples),
-	       send(D, append, T)),
-	send(D, layout),
-	send(D, open).
-
+	rdf_diagram_from_file(File).
 	
 
 		 /*******************************
