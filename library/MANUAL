@@ -13,7 +13,7 @@
                          SSWWII--PPrroolloogg 55..44
                         RReeffeerreennccee MMaannuuaall
 
-           _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _5_._4_._1_, _S_e_p_t_e_m_b_e_r _2_0_0_4
+            _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _5_._4_._3_, _O_c_t_o_b_e_r _2_0_0_4
 
                          _J_a_n _W_i_e_l_e_m_a_k_e_r
                        jan@swi.psy.uva.nl
@@ -13029,7 +13029,11 @@ C_type PPLL__qquueerryy(_i_n_t)
     |                        |as 10; 000M* +100m* +p, where  M is  the |
     |                        |major,  m the  minor version  number and |
     |                        |p the  patch-level.   For  example, 20717|
-    |________________________|means_2.7.17.____________________________|
+    |                        |means 2.7.17.                            |
+    | PL_QUERY_MAX_THREADS   |Return  the  maximum  number  of  threads|
+    |                        |that  can  be created  in  this  version.|
+    |                        |Return  values  of  PL_thread_self()  are|
+    |________________________|between_0_and_this_number._______________|
 
                      Table 9.2:  PL_query() options
 

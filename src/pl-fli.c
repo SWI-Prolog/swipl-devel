@@ -3373,6 +3373,12 @@ PL_query(int query)
       return (long) Sgetchar();		/* normal reading */
     case PL_QUERY_VERSION:
       return PLVERSION;
+    case PL_QUERY_MAX_THREADS:
+#ifdef O_PLMT
+      return 1;
+#else
+      return MAX_THREADS;
+#endif
     default:
       sysError("PL_query: Illegal query: %d", query);
       /*NOTREACHED*/
