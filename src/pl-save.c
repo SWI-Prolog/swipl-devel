@@ -111,7 +111,7 @@ PORTABILITY/OPTIONS
 #include <fcntl.h>
 #include "pl-save.h"
 
-#if sun
+#if sun && !solaris
 int	brk P((caddr_t));
 caddr_t sbrk P((int));
 #endif

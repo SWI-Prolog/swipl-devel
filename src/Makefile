@@ -106,7 +106,7 @@ PARMS=	-DSYSTEMHOME=\"$(SYSTEMHOME)\" \
 	-DDEFSTARTUP=\"$(DEFSTARTUP)\"
 #endif
 
-TARGETS=	$(EXPORTS) $(CINCLUDE) system startup pl-bite
+TARGETS=	$(EXPORTS) $(CINCLUDE) system startup index pl-bite
 
 all:		xmakefile
 		make -f xmakefile ${TARGETS}
@@ -167,6 +167,14 @@ $(OS-STARTUPPATH):	$(PLBOOT) $(PLINIT) pl-wam.o
 #else
 		./$(SYS) -O -o $(OS-STARTUPPATH) -b $(PLINIT) -c $(PLBOOT)
 #endif /* OS2MAKE */
+
+index:		xmakefile
+		make -f xmakefile xindex
+xindex:		
+		./$(SYS) -f none \
+			-g make_library_index\(\'$(LIBRARYDIR)\'\) \
+			-t halt
+
 
 $(RUNTIMEDIR):
 		@-mkdir $(SYSTEMDIR)$(SEP)runtime

@@ -34,7 +34,7 @@ The types below should (mostly) be in stdlib.h.  They are not and this
 file keeps GCC silent while using the -Wall flag.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if sun
+#if sun && !solaris
 extern int	getpid P((void));
 extern int	isatty P((int));
 extern int	fclose P(( FILE * ));

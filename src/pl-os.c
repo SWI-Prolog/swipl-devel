@@ -516,7 +516,7 @@ GetDTableSize()
 #ifdef DESCRIPTOR_TABLE_SIZE
   return DESCRIPTOR_TABLE_SIZE;
 #else
-#  if hpux
+#  if hpux || SGU
 #    include <sys/resource.h>
      struct rlimit rlp;
      (void) getrlimit(RLIMIT_NOFILE,&rlp);
@@ -1268,7 +1268,7 @@ char *spec;
 
 
 #if unix
-#if O_GETCWD
+#if O_GETCWD || SGU
 char	*getcwd P((char *, size_t));
 
 char *
@@ -1597,10 +1597,15 @@ GetChar()
     }
   } else
   { if ( !line )
-    { rl_event_hook = (PL_dispatch_events ? (Function *) event_hook
+    { ttybuf buf;
+      rl_event_hook = (PL_dispatch_events ? (Function *) event_hook
 					  : (Function *) NULL);
 
-      if ( !(line = readline(PrologPrompt())) )
+      PushTty(&buf, TTY_SAVE);
+      line = readline(PrologPrompt());
+      PopTty(&buf);
+
+      if ( !line )
       { return EOF;
       } else
       { char *s;
@@ -1669,7 +1674,8 @@ int start, end;
 
 void
 ResetTty()				/* used to initialise readline */
-{ rl_readline_name = "Prolog";
+{ stdin->_cnt = 0;			/* empty the buffer */
+  rl_readline_name = "Prolog";
   rl_attempted_completion_function = (Function *)prolog_completion;
   rl_basic_word_break_characters = "\t\n\"\\'`@$><= [](){}+*!";
   rl_add_defun("prolog-complete", prolog_complete, '\t');
@@ -1755,8 +1761,8 @@ int mode;
 	/*NOTREACHED*/
   }
 
-  if ( ioctl(0, TCSETA, &tio) )
-    fail;
+  ioctl(0, TCSETAW, &tio);
+  ioctl(0, TCXONC, 1);
 
   succeed;
 }
@@ -1769,8 +1775,8 @@ ttybuf *buf;
   if ( status.notty )
     succeed;
 
-  if ( ioctl(0, TCSETA, &buf->tab) )
-    fail;
+  ioctl(0, TCSETA, &buf->tab);
+  ioctl(0, TCXONC, 1);
   ttymode = buf->mode;
 
   succeed;
@@ -2018,7 +2024,7 @@ char *cmd;
     fail;
     /*NOTREACHED*/
   } else
-#if v7 || hpux
+#if v7 || hpux || SGU
   { int waitstat, retstat;		/* the parent */
 
     old_int  = signal(SIGINT,  SIG_IGN);

@@ -630,7 +630,8 @@ int query;
 	return (long) NULL;
       return (long) stringAtom(loaderstatus.orgsymbolfile);
     case PL_QUERY_GETC:
-      return (long) GetChar();
+      PopTty(&ttytab);			/* restore terminal mode */
+      return (long) getchar();		/* normal reading */
     default:
       sysError("PL_query: Illegal query: %d", query);
       /*NOTREACHED*/
