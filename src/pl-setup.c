@@ -176,7 +176,7 @@ initFeatures()
 #if defined(O_FOREIGN) || defined(O_MACH_FOREIGN) || defined(O_AIX_FOREIGN)
   CSetFeature("load_foreign",  "true");
 #endif
-#if defined(HAVE_DLOPEN) || defined(HAVE_SLH_LOAD)
+#if defined(HAVE_DLOPEN) || defined(HAVE_SHL_LOAD)
   CSetFeature("open_shared_object", "true");
 #endif
 #ifdef O_DLL
@@ -210,6 +210,7 @@ initFeatures()
   CSetFeature("max_arity", "unbounded");
   CSetFeature("float_format", "%g");
   CSetFeature("character_escapes", "true");
+  CSetFeature("tty_control", status.notty ? "false" : "true");
 
 #if defined(__DATE__) && defined(__TIME__)
   { char buf[100];
@@ -350,7 +351,19 @@ static RETSIGTYPE segv_handler(int sig);
 #endif
 #endif
 
-#define STACK_SEPARATION size_alignment
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+STACK_SEPARATION defines the  space  between   the  stacks.  The maximum
+discontinuity while writing the local stack  is determined by the number
+of variables in the clause.  An example worst case is:
+
+foo :-
+	(   failing_goal,
+	    bar(term(A, B, C, ....))
+	;   hello(AnotherVar)
+	).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define STACK_SEPARATION ROUND(MAXVARIABLES*sizeof(word), size_alignment)
 #define STACK_MINIMUM    (32 * 1024)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -486,6 +499,7 @@ mapOrOutOf(Stack s)
   DEBUG(1, Sdprintf("mapped %d bytes from 0x%x to 0x%x\n",
 		    size_alignment, (unsigned) s->max, s->max + incr));
   s->max += incr;
+  considerGarbageCollect(s);
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -651,8 +665,7 @@ long size;
 
 
 void
-mapOrOutOf(s)
-Stack s;
+mapOrOutOf(Stack s)
 { long new_size = new_stack_size(s);
   int  top_segment = new_size / base_alignment;
   int  n;
@@ -668,12 +681,12 @@ Stack s;
     resize_segment(s, n, 0L);
 
   s->max = s->base + new_size;
+  considerGarbageCollect(s);
 }
 
 
 static void
-unmap(s)
-Stack s;
+unmap(Stack s)
 { if ( new_stack_size(s) < s->max - s->base )
     mapOrOutOf(s);
 }
@@ -681,8 +694,7 @@ Stack s;
 #else /* O_SHM_ALIGN_FAR_APART */
 
 void
-mapOrOutOf(s)
-Stack s;
+mapOrOutOf(Stack s)
 { int id;
   char *rval;
   long len;
@@ -707,12 +719,12 @@ Stack s;
 
   s->segment_top++;
   s->max = s->segments[s->segment_top].base = addr+len;
+  considerGarbageCollect(s);
 }
 
 
 static void
-unmap(s)
-Stack s;
+unmap(Stack s)
 { while( s->segment_top > 0 && s->segments[s->segment_top-1].base > s->top )
   { s->segment_top--;
     if ( shmdt(s->segments[s->segment_top].base) < 0 )
@@ -734,7 +746,6 @@ expandStack(Stack s, caddress addr)
   { if ( addr < s->limit )
     { DEBUG(1, Sdprintf("Expanding %s stack\n", s->name));
       mapOrOutOf(s);
-      considerGarbageCollect(s);
 
       succeed;
     }
@@ -776,7 +787,8 @@ mapOrOutOf(Stack s)
 		    incr, (unsigned) s->max,
 		    (ulong) s->max + size_alignment));
 
-  s->max = (void *)((ulong)s->max + incr);
+  s->max = addPointer(s->max, incr);
+  considerGarbageCollect(s);
 }
 
 
@@ -807,8 +819,6 @@ initStacks(long local, long global, long trail, long argument)
   size_alignment = info.dwPageSize;
   base_alignment = size_alignment;
 /*base_alignment = info.dwAllocationGranularity;*/
-
-  assert(MAXVARIABLES*sizeof(word) < STACK_SEPARATION);
 
   local    = (long) align_size(local);	/* Round up to page boundary */
   global   = (long) align_size(global);
@@ -917,7 +927,6 @@ segv_handler(int sig)
     if ( r < size_alignment )
     { DEBUG(1, Sdprintf("Mapped %s stack (free was %d)\n", stacka[i].name, r));
       mapOrOutOf(&stacka[i]);
-      considerGarbageCollect(&stacka[i]);
       mapped++;
     }
   }
@@ -999,9 +1008,7 @@ MMAP_MAX_ADDRESS a bit (if you have 100 MB virtual address  space  or
 more,  I  would  suggest  16 MB), so space is allocated for the C-stack.
 The stacks are allocated right below MMAP_MAX_ADDRESS, at a  distance
 STACK_SEPARATION  from  each other.  STACK_SEPARATION must be a multiple
-of the page size and must be at least  MAXVARIABLES  *  sizeof(word)  as
-this  is the maximum discontinuity in writing the stacks.  On almost any
-machine size_alignment will do.
+of the page size.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifdef FORCED_MALLOC_BASE
@@ -1031,8 +1038,6 @@ initStacks(long local, long global, long trail, long argument)
   DEBUG(0, Sdprintf("Shared memory must be aligned to %d (0x%x) bytes\n",
 		  base_alignment, base_alignment));
 #endif
-
-  assert(MAXVARIABLES*sizeof(word) < STACK_SEPARATION);
 
   local    = (long) align_size(local);	/* Round up to page boundary */
   global   = (long) align_size(global);

@@ -247,6 +247,7 @@ A trace_gc		"trace_gc"
 A xpceref		"@"
 A float_format		"float_format"
 A stand_alone		"stand_alone"
+A tty_control		"tty_control"
 
 F abs			1
 F acos			1

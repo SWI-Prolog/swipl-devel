@@ -50,6 +50,9 @@ Prolog int) is used by the garbage collector to update the stack frames.
 #endif
 #define valHandleP(h)		valTermRef(h)
 
+#undef ulong
+#define ulong unsigned long
+
 static inline word
 valHandle(term_t r)
 { Word p = valTermRef(r);
@@ -930,7 +933,7 @@ pointerToLong(void *ptr)
 
 void
 PL_put_pointer(term_t t, void *ptr)
-{ return PL_put_integer(t, pointerToLong(ptr));
+{ PL_put_integer(t, pointerToLong(ptr));
 }
 
 

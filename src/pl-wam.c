@@ -1048,9 +1048,9 @@ PL_close_query(qid_t qid)
 int
 PL_next_solution(qid_t qid)
 { QueryFrame QF;			/* Query frame */
-  register   LocalFrame FR;		/* current frame */
-  register   Word	ARGP;		/* current argument pointer */
-  register   Code	PC;		/* program counter */
+  LocalFrame FR;			/* current frame */
+  Word	     ARGP;			/* current argument pointer */
+  Code	     PC;			/* program counter */
   LocalFrame BFR;			/* last backtrack frame */
   Definition DEF;			/* definition of current procedure */
   bool	     deterministic;		/* clause found deterministically */
@@ -1277,7 +1277,7 @@ variable, compare the numbers otherwise.
 	  *p++ = (long)*PC++;
 	  *p++ = mkIndHdr(1, TAG_INTEGER);
 	  NEXT_INSTRUCTION;
-	} else if ( isBignum(*k) && valBignum(*k) == *PC++ )
+	} else if ( isBignum(*k) && valBignum(*k) == (long)*PC++ )
 	  NEXT_INSTRUCTION;
 
       	CLAUSE_FAILED;
@@ -1569,10 +1569,11 @@ the global stack (should we check?  Saves trail! How often?).
 #ifdef O_SHIFT_STACKS
 	  if ( gTop + 1 + arity > gMax )
 	    growStacks(FR, PC, FALSE, TRUE, FALSE);
+#else
+	  requireStack(global, sizeof(word)*(1+arity));
 #endif
+
 	  ap = gTop;
- 	  STACKVERIFY(if (ap + 1 + arity > gMax)
-			outOf((Stack)&stacks.global));
 	  *ARGP = consPtr(ap, TAG_COMPOUND|STG_GLOBAL);
 	  TrailLG(ARGP, FR);
 	  *ap++ = fdef->functor;
@@ -1598,8 +1599,9 @@ the global stack (should we check?  Saves trail! How often?).
 #if O_SHIFT_STACKS
   	  if ( gTop + 3 > gMax )
 	    growStacks(FR, PC, FALSE, TRUE, FALSE);
+#else
+	  requireStack(global, 3*sizeof(word));
 #endif
-	  STACKVERIFY(if (gTop + 3 > gMax) outOf((Stack)&stacks.global));
 	  *ARGP = consPtr(gTop, TAG_COMPOUND|STG_GLOBAL);
 	  TrailLG(ARGP, FR);
 	  *gTop++ = FUNCTOR_dot2->functor;
@@ -2413,7 +2415,7 @@ the first call of $alt/1 simply succeeds.
         DEF  = next->predicate;
 	goto normal_call;
 #else
-	STACKVERIFY( if (next > lMax) outOf((Stack)&stacks.local) );
+        requireStack(local, (int)argFrameP((LocalFrame)NULL, 1));
 	next->backtrackFrame = BFR;
 	next->parent = FR;
 	incLevel(next);
@@ -2697,7 +2699,7 @@ true:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
       normal_call:
-	STACKVERIFY( if (next > lMax) outOf((Stack)&stacks.local) );
+	requireStack(local, argFrameP((LocalFrame)NULL, MAXARITY));
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Initialise those slots of the frame that are common to Prolog predicates
@@ -2959,9 +2961,7 @@ Leave the clause:
 	  QF->bfr = BFR;
 	  QF->deterministic = deterministic;
 
-	  if ( !deterministic )		/* alternatives */
-	  { succeed;
-	  } else
+	  if ( deterministic )		/* alternatives */
 	  { LocalFrame fr, fr2;
 
 	    set(FR, FR_CUT);		/* execute I_CUT */
@@ -2973,7 +2973,6 @@ Leave the clause:
 	      }
 	    }
 	    leaveFrame(FR);
-	    succeed;
 	  }
 
 	  succeed;

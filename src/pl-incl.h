@@ -14,7 +14,7 @@
 #define MD	     "config/win32.h"
 #define PLHOME       "c:/pl"
 #define DEFSTARTUP   ".plrc"
-#define PLVERSION    "2.6.0"
+#define PLVERSION    "2.7.0"
 #define ARCH	     "i386-win32"
 #define C_LIBS	     "-lreadline -lconsole -luxnt"
 #define C_STATICLIBS ""
@@ -275,16 +275,30 @@ typedef void *			caddress;
 			     LIMITS
 
 Below are some arbitrary limits on object sizes.  Feel free  to  enlarge
-them,  but  be aware of the fact that this increases memory requirements
-and  slows  down  for  some  of  these  options.    Also,   MAXARITY   <
-MAXVARIABLES, MAXVARIABLES and MAXEXTERNALS must be lower that 32 K. One
-day,  I  should  try  to  get  rid  of these limits.  This requires some
-redesign of parts of the compiler.
+them.  Descriptions:
+
+	* LINESIZ
+	Buffer used to store textual info.  It is not concerned with
+	critical things, just things like building an error message,
+	reading a command for the tracer, etc.
+
+	* MAXARITY
+	Maximum arity of a predicate.  May be enarged further, but
+	wastes stack (4 bytes for each argument) on machines that
+	use malloc() for allocating the stack as the local and global
+	stack need to be apart by this amount.  Also, an interrupt
+	skips this amount of stack.
+	
+	* MAXVARIABLES
+	Maximum number of variables in a clause.  May be increased
+	further, but the global local stacks need to be separated
+	by this amount for the segmentation-fault based stack expansion
+	version (just costs virtual memory).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define LINESIZ			1024	/* size of a data line */
-#define MAXARITY		128	/* arity of predicate */
-#define MAXVARIABLES		256	/* number of variables/clause */
+#define MAXARITY		1024	/* arity of predicate */
+#define MAXVARIABLES		65536	/* number of variables/clause */
 #define SMALLSTACK		200 * 1024 /* GC policy */
 
 				/* Prolog's integer range */
@@ -1263,21 +1277,21 @@ GLOBAL char *	hBase;			/* lowest allocated heap address */
 
 #if O_DYNAMIC_STACKS
 #ifdef NO_SEGV_HANDLING
-#define STACKVERIFY(g)	{ g; }
-#define verifyStack(s) \
-	{ if ( roomStack(s) < 100 ) \
+#define requireStack(s, n) \
+	{ if ( roomStack(s) < (int)(n) ) \
  	    mapOrOutOf((Stack)&stacks.s); \
 	}
+#define verifyStack(s) requireStack(s, 64)
 #else /*NO_SEGV_HANDLING*/
-#define STACKVERIFY(g)			/* hardware stack verify */
+#define requireStack(s, n)
 #define verifyStack(s)
 #endif /*NO_SEGV_HANDLING*/
 #else
-#define STACKVERIFY(g)	{ g; }
-#define verifyStack(s) \
-	{ if ( roomStack(s) < 100 ) \
+#define requireStack(s, n) \
+	{ if ( roomStack(s) < (n) ) \
  	    outOf((Stack)&stacks.s); \
 	}
+#define verifyStack(s) requireStack(s, 64)
 #endif
 
 
@@ -1450,6 +1464,7 @@ GLOBAL struct debuginfo
 #define CHARESCAPE_FEATURE	0x1	/* handle \ in atoms */
 #define GC_FEATURE		0x2	/* do GC */
 #define TRACE_GC_FEATURE	0x4	/* verbose gc */
+#define TTY_CONTROL_FEATURE	0x8	/* allow for tty control */
 
 GLOBAL struct _feature
 { unsigned long flags;			/* the feature flags */

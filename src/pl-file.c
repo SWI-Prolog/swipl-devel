@@ -369,7 +369,8 @@ readLine(char *buffer)
 
   Input = 0;
   Output = 1;
-  PushTty(&tbuf, TTY_RAW);		/* just donot prompt */
+  if ( !status.notty )
+    PushTty(&tbuf, TTY_RAW);		/* just donot prompt */
 
   for(;;)
   { pl_flush();
@@ -381,17 +382,19 @@ readLine(char *buffer)
         *buf++ = EOS;
         Input = oldin;
 	Output = oldout;
-	PopTty(&tbuf);
+	if ( !status.notty )
+	  PopTty(&tbuf);
 
 	return c == EOF ? FALSE : TRUE;
       case '\b':
       case DEL:
-	if ( buf > buffer )
+	if ( !status.notty && buf > buffer )
 	{ Putf("\b \b");
 	  buf--;
 	}
       default:
-	Put(c);
+	if ( !status.notty )
+	  Put(c);
 	*buf++ = c;
     }
   }

@@ -351,6 +351,19 @@ Version 2.6.0 can create stand-alone executables by attaching the
 saved-state to the emulator.  See qsave_program/2.
 \end{itemize}
 
+.S Version 2.7 Release Notes
+
+Version 2.7 reorganises the entire data-represention of the Prolog data
+itself.  The aim is to remove most of the assumption on the machine's
+memory layout to improve portabilily in general and enable embedding on
+systems where the memory layout may depend on invocation or on how the
+executable is linked.  The latter is notably a problem on the Win32
+platforms.  Porting to 64-bit architectures should be feasible now.
+
+Furthermore, 2.7 lifts the limits on arity of predicates and number of
+variables in a clause considerably and allow for further expansion at
+minimal cost.
+
 
 .S Acknowledgements
 

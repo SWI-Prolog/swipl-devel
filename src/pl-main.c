@@ -260,8 +260,10 @@ startProlog(int argc, char **argv, char **env)
     systemDefaults.argument    = DEFARGUMENT;
     systemDefaults.goal	       = "'$welcome'";
     systemDefaults.toplevel    = "prolog";
-    systemDefaults.notty       = FALSE;
-
+#ifndef NOTTYCONTROL
+#define NOTTYCONTROL FALSE
+#endif
+    systemDefaults.notty       = NOTTYCONTROL;
   } else
   { DEBUG(1, Sdprintf("Restarting from dumped state\n"));
   }
@@ -309,14 +311,16 @@ startProlog(int argc, char **argv, char **env)
 #endif /*ASSOCIATE_STATE*/
   }
   
-  if ( argc >= 1 && streq(argv[0], "-help") )
-    usage();
-  if ( argc >= 1 && streq(argv[0], "-arch") )
-    arch();
-  if ( argc >= 1 && streq(argv[0], "-v") )
-    version();
-  if ( argc >= 1 && streq(argv[0], "-dump-runtime-variables") )
-    runtime_vars();
+  if ( argc >= 1 )
+  { if ( streq(argv[0], "-help") )
+      usage();
+    if ( streq(argv[0], "-arch") )
+      arch();
+    if ( streq(argv[0], "-v") )
+      version();
+    if ( streq(argv[0], "-dump-runtime-variables") )
+      runtime_vars();
+  }
 
 #define K * 1024L
 
@@ -467,12 +471,15 @@ usage()
     "%s: Usage:\n",
     "    1) %s -help     Display this message\n",
     "    2) %s -v        Display version information\n",
-    "    3) %s [options]\n",
-    "    4) %s [options] [-o output] -c file ...\n",
-    "    5) %s [options] [-o output] -b bootfile -c file ...\n",
+    "    3) %s -arch     Display architecture\n",
+    "    4) %s -dump-runtime-variables\n"
+    "                    Dump link info in sh(1) format\n",
+    "    5) %s [options]\n",
+    "    6) %s [options] [-o output] -c file ...\n",
+    "    7) %s [options] [-o output] -b bootfile -c file ...\n",
     "Options:\n",
     "    -x state        Start from state (must be first)\n",
-    "    -[LGTAP]kbytes  Specify {Local,Global,Trail,Argument,Lock} stack sizes\n",
+   "    -[LGTA]kbytes   Specify {Local,Global,Trail,Argument} stack limits\n",
     "    -B              Small stack sizes to prepare for boot\n",
     "    -t toplevel     Toplevel goal\n",
     "    -g goal         Initialisation goal\n",

@@ -4,13 +4,28 @@
 Version 2.7.0
 =============
 
+  * WIN32: The kernel is now in libpl.dll, which comes with two toplevel
+    drivers: plcon.exe for a standard IO version and plwin.exe for the
+    windows based version.  New directory embed with the sources of
+    both toplevels.
+
   * FIXED: memory leak after assert/retract of code holding floats,
-    32-bit integers or strings (not lists of char-code).  Also
+    32-bit integers or strings (not lists of char-codes).  Also
     provides more compact code for floats and large integers
     (both small and large integers require 2 words, doubles 3 words).
 
-  * MODIFIED: Complete rewrite of the internal datastructures.
+  * IMPROVED: More compact representation of compiled floats, long
+    integers and strings.
 
+  * MODIFIED: Complete rewrite of the internal datastructures.  The
+    aim is to avoid mixing pointers and unsigned longs on the stacks
+    and thus remove the various assumptions on the memory model underlying
+    the prior versions. See pl-data.h for details.
+
+  * IMPROVED: Lifted the maximum number of variables in a clause from
+    256 to 65536, maximum arity of predicates from 128 to 1024.  Both
+    numbers are fairly arbitrary and can be raised further at the cost
+    of wasting a little more memory.
 
 Version 2.6.0
 =============

@@ -68,10 +68,6 @@ word		pl_atom_completions(term_t prefix, term_t alts);
 
 /* pl-arith.c */
 
-#ifdef AVOID_0X80000000_BIT
-word		fconsInt(long i);
-long		fvalInt(word w);
-#endif
 word		pl_between(term_t l, term_t h, term_t n, word b);
 word		pl_succ(term_t n1, term_t n2);
 word		pl_plus(term_t a, term_t b, term_t c);

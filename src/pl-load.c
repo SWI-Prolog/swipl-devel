@@ -832,7 +832,11 @@ dlsym(shl_t handle, const char *name)
 }
 
 #define RTLD_LAZY	BIND_DEFERRED
+#ifdef BIND_IMMEDIATE
 #define RTLD_NOW	BIND_IMMEDIATE
+#else
+#define RTLD_NOW 	0
+#endif
 #define RTLD_GLOBAL	0
 
 #endif
@@ -875,7 +879,7 @@ pl_open_shared_object(term_t file, term_t plhandle,
   if ( !PL_get_atom(file, &afile) )
     return warning("open_shared_object/2: instantiation fault");
   if ( !(dlhandle = dlopen(stringAtom(afile), dlflags)) )
-    return warning("load_shared_object/2: %s", dlerror());
+    return warning("open_shared_object/2: %s", dlerror());
   e = allocHeap(sizeof(struct dl_entry));
   e->id       = ++dl_plid;
   e->dlhandle = dlhandle;

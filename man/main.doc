@@ -6,7 +6,7 @@
 #endif
 
 \newcommand{\vmajor}{2}
-\newcommand{\vminor}{6}
+\newcommand{\vminor}{7}
 \newcommand{\vpatch}{0}
 \newcommand{\vmonth}{April}
 \newcommand{\vyear}{1996}

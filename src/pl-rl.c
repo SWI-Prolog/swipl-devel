@@ -235,6 +235,7 @@ PL_install_readline()
   PL_register_foreign("rl_read_init_file", 1, pl_rl_read_init_file, 0);
   PL_register_foreign("rl_add_history",    1, pl_rl_add_history,    0);
   PL_set_feature("readline", PL_ATOM, "true");
+  PL_set_feature("tty_control", PL_ATOM, "true");
 }
 
 #else /*HAVE_LIBREADLINE*/

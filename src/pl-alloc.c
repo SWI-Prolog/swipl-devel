@@ -178,15 +178,27 @@ outOf(Stack s)
 		 *	REFS AND POINTERS	*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+__consPtr() is inlined for this module (including pl-wam.c), but external
+for the other modules, where it is far less fime-critical.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 #ifndef consPtr
 inline word
-consPtr(void *p, int ts)
+__consPtr(void *p, int ts)
 { unsigned long v = (unsigned long) p;
 
   v -= base_addresses[ts&STG_MASK];
-/*assert(v < MAXTAGGEDPTR);*/
+  assert(v < MAXTAGGEDPTR);
   return (v<<5)|ts;
 }
+
+word
+consPtr(void *p, int ts)
+{ return __consPtr(p, ts);
+}
+
+#define consPtr(p, s) __consPtr(p, s)
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -1882,6 +1882,7 @@ builtin_boolean_feature builtin_boolean_features[] =
 { { ATOM_character_escapes,	CHARESCAPE_FEATURE },
   { ATOM_gc,			GC_FEATURE },
   { ATOM_trace_gc,		TRACE_GC_FEATURE },
+  { ATOM_tty_control,		TTY_CONTROL_FEATURE },
   { NULL_ATOM,			0L }
 };
 
@@ -1917,6 +1918,8 @@ setFeature(atom_t name, word value)
       { warning("set_feature/2: %s feature is boolean", stringAtom(name));
 	fail;
       }
+      if ( name == ATOM_tty_control )	/* status.notty should be feature */
+	status.notty = (trueFeature(TTY_CONTROL_FEATURE) ? FALSE : TRUE);
       goto doset;
     }
   }

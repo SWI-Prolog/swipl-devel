@@ -96,20 +96,20 @@ dde_warning(char *cmd)
 }
 
 
-static Atom
+static atom_t
 hszToAtom(HSZ hsz)
 { char buf[FASTBUFSIZE];
   int len;
 
   if ( !(len=DdeQueryString(ddeInst, hsz, buf, sizeof(buf)-1, CP_WINANSI)) )
   { dde_warning("string handle");
-    return NULL;
+    return NULL_ATOM;
   }
 
   if ( len == sizeof(buf)-1 )
   { if ( (len=DdeQueryString(ddeInst, hsz, NULL, 0, CP_WINANSI)) > 0 )
     { char *b2 = malloc(len+1);
-      Atom a;
+      atom_t a;
       
       DdeQueryString(ddeInst, hsz, b2, len+1, CP_WINANSI);
       a = lookupAtom(b2);
@@ -345,7 +345,7 @@ dde_initialise()
 word
 pl_dde_register_service(term_t topic, term_t onoff)
 { HSZ t;
-  Atom a;
+  atom_t a;
 
   TRY(dde_initialise());
 

@@ -84,7 +84,7 @@ again:
 		     (LPTSTR) &msg,
 		     0,				/* size */
 		     NULL) )			/* arguments */
-  { Atom a = lookupAtom(msg);
+  { atom_t a = lookupAtom(msg);
 
     LocalFree(msg);
     lang_initialised = 1;

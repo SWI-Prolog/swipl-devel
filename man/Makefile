@@ -9,7 +9,7 @@ LATEX=		latex
 MANUAL=		./MANUAL.dvi
 ONLINE=		../library/MANUAL
 ONLINE_INDEX=	../library/helpidx.pl
-PL=		../sun4/pl
+PL=		../solaris/pl
 
 ALLFILES=	Makefile biblio.doc builtin.doc correct_idx correct_ind   \
 		doc_to_tex foreign.doc hack.doc intro.doc latex_if_needed \

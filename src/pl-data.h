@@ -229,7 +229,7 @@ extern const unsigned int tagtypeex[];
 
 #define MAXTAGGEDPTR	((1L<<(32-5-1)) - 1)
 
-#define consInt(n)	(((n)<<7) | TAG_INTEGER)
+#define consInt(n)	(((word)(n)<<7) | TAG_INTEGER)
 #if 0					/* O_DEBUG */
 #define consPtr(p,ts)	((word)((((word)(p)-base_addresses[s])<<5)|(ts)))
 #endif

@@ -1388,20 +1388,26 @@ simple_term(bool must_be_op, term_t term, bool *name)
 	{ *name = TRUE;
 	  PL_put_atom(term, token->value.atom);
 	} else
-	{ term_t argv[MAXARITY+1];
-	  term_t *argp;
+	{ term_t av[16];
+	  int avn = 16;
+	  term_t *argv = av;
 	  int argc;
 	  atom_t functor;
 
 	  functor = token->value.atom;
-	  argc = 0, argp = argv;
+	  argc = 0, argv;
 	  get_token(must_be_op);	/* skip '(' */
 
 	  do
-	  { *argp = PL_new_term_ref();
-	    TRY( complex_term(",)", *argp++) );
-	    if (++argc > MAXARITY)
-	      syntaxError("Arity too high");
+	  { if ( argc == avn )
+	    { term_t *nargv = alloca(sizeof(term_t) * avn * 2);
+	      memcpy(nargv, argv, sizeof(term_t) * avn);
+	      avn *= 2;
+	      argv = nargv;
+	    }
+	    argv[argc] = PL_new_term_ref();
+	    TRY( complex_term(",)", argv[argc]) );
+	    argc++;
 	    token = get_token(must_be_op); /* `,' or `)' */
 	  } while(token->value.character == ',');
 

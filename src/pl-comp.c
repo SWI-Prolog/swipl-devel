@@ -243,25 +243,47 @@ forwards int	analyseVariables2(Word, int, int, int);
 #define A_ERROR		2
 #endif /* O_COMPILE_ARITH */
 
-typedef struct vardef *VarDef;
-struct vardef
+typedef struct
 { word		functor;		/* mimic a functor (FUNCTOR_var1) */
   Word		address;		/* address of the variable */
   int		times;			/* occurences */
   int		offset;			/* offset in environment frame */
-};
+} vardef, *VarDef;
 
-VarDef vars;
-
+static VarDef  *vardefs;		/* variables defined */
+static int      nvardefs;		/* # vardefs in array above */
 static int	filledVars;		/* vardef structures filled */
 
-static void
-initVarTable()
-{ if ( !vars )
-  { vars = allocHeap(sizeof(struct vardef) * MAXVARIABLES);
-    memset(vars, 0, sizeof(struct vardef) * MAXVARIABLES);
-    filledVars = 0;
+static VarDef
+getVarDef(int i)
+{ VarDef vd;
+
+  if ( i >= nvardefs )
+  { VarDef *vdp;
+    int nvd, n;
+
+    if ( nvardefs )
+    { nvd = nvardefs * 2;
+      vardefs = realloc(vardefs, sizeof(VarDef) * nvd);
+    } else
+    { nvd = 32;
+      vardefs = malloc(sizeof(VarDef) * nvd);
+    }
+    if ( !vardefs )
+      fatalError("Not enough memory");
+
+    for(vdp = &vardefs[nvardefs], n=nvardefs; n++ < nvd; )
+      *vdp++ = NULL;
+    nvardefs = nvd;
   }
+
+  if ( !(vd = vardefs[i]) )
+  { vd = vardefs[i] = allocHeap(sizeof(vardef));
+    memset(vd, 0, sizeof(*vd));
+    vd->functor = FUNCTOR_var1->functor;
+  }
+
+  return vd;
 }
 
 #define VAROFFSET(var) ( (var) + ARGOFFSET / (int) sizeof(word) )
@@ -323,13 +345,11 @@ are made variables again.
 static bool
 analyse_variables(Word head, Word body, int arity, int *nv)
 { int nvars = 0;
-  register VarDef vd;
-  register int n;
+  int n;
   int body_voids = 0;
 
-  initVarTable();
-  for(n=0, vd = vars; n<arity; n++, vd++)
-    vd->address = (Word) NULL;
+  for(n=0; n<arity; n++)
+    getVarDef(n)->address = NULL;
 
   if ( (nvars = analyseVariables2(head, 0, arity, -1)) < 0 )
     fail;
@@ -337,8 +357,11 @@ analyse_variables(Word head, Word body, int arity, int *nv)
     if ( (nvars = analyseVariables2(body, nvars, arity, arity)) < 0 )
       fail;
 
-  for(n=0, vd = vars; n<arity+nvars; n++, vd++)
-  { if (vd->address == (Word) NULL)
+  for(n=0; n<arity+nvars; n++)
+  { VarDef vd = vardefs[n];
+
+    assert(vd->functor == FUNCTOR_var1->functor);
+    if (vd->address == (Word) NULL)
       continue;
     if (vd->times == 1)				/* ISVOID */
     { setVar(*(vd->address));
@@ -355,19 +378,14 @@ analyse_variables(Word head, Word body, int arity, int *nv)
 }
 
 static int
-analyseVariables2(register Word head, int nvars, int arity, int argn)
+analyseVariables2(Word head, int nvars, int arity, int argn)
 { deRef(head);
 
   if ( isVar(*head) )
-  { register VarDef vd;
+  { VarDef vd;
     int index = ((argn >= 0 && argn < arity) ? argn : (arity + nvars++));
 
-    if ( index >= MAXVARIABLES-1 )
-    { warning("Compiler: Too many variables in clause");
-      return -1;
-    }
-    vd = &vars[index];
-    vd->functor = FUNCTOR_var1->functor;
+    vd = getVarDef(index);
     vd->address = head;
     vd->times = 1;
     *head = consPtr(vd, TAG_COMPOUND|STG_HEAP);
@@ -434,16 +452,24 @@ calculation at runtime.
 #define PC(ci)		entriesBuffer(&(ci)->codes, code)
 #define OpCode(ci, pc)	(baseBuffer(&(ci)->codes, code)[pc])
 
-static struct vartable
-{ int	entry[MAXVARIABLES/BITSPERINT];
-} empty_var_table;
+typedef struct
+{ int	isize;
+  int	entry[1];
+} var_table, *VarTable;
+
+#undef offset
+#define offset(t, f) ((int)&((t*)0)->f)
+#define sizeofVarTable(isize) (offset(var_table, entry) + sizeof(int)*(isize))
+
+#define mkCopiedVarTable(o) copyVarTable(alloca(sizeofVarTable(o->isize)), o)
 
 typedef struct
 { Module	module;			/* module to compile into */
   int		arity;			/* arity of top-goal */
   Clause	clause;			/* clause we are constructing */
-  struct vartable used_var;		/* boolean array of used variables */
+  int		vartablesize;		/* size of the vartable */
   buffer	codes;			/* scratch code table */
+  VarTable	used_var;		/* boolean array of used variables */
 } compileInfo;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -453,10 +479,10 @@ Variable table operations.
 forwards bool	compileBody(Word, code, compileInfo *);
 forwards int	compileArgument(Word, int, compileInfo *);
 forwards bool	compileSubClause(Word, code, compileInfo *);
-forwards bool	isFirstVar(struct vartable *vt, int n);
-forwards void	balanceVars(struct vartable *, struct vartable *, compileInfo *);
-forwards void	orVars(struct vartable *, struct vartable *);
-forwards void	setVars(Word t, struct vartable *);
+forwards bool	isFirstVar(VarTable vt, int n);
+forwards void	balanceVars(VarTable, VarTable, compileInfo *);
+forwards void	orVars(VarTable, VarTable);
+forwards void	setVars(Word t, VarTable);
 forwards Clause	compile(Word, Word, Module);
 #if O_COMPILE_ARITH
 forwards int	compileArith(Word, compileInfo *);
@@ -473,10 +499,18 @@ isIndexedVarTerm(word w)
   return -1;
 }
 
-#define ClearVarTable(ci)	((ci)->used_var = empty_var_table)
+static void
+clearVarTable(compileInfo *ci)
+{ int *pi = ci->used_var->entry;
+  int n   = ci->vartablesize;
+
+  ci->used_var->isize = n;
+  while(--n >= 0)
+    *pi++ = 0;
+}
 
 static bool
-isFirstVar(struct vartable *vt, register int n)
+isFirstVar(VarTable vt, register int n)
 { register int m  = 1 << (n % BITSPERINT);
   register int *p = &vt->entry[n / BITSPERINT];
   register int result;
@@ -488,12 +522,13 @@ isFirstVar(struct vartable *vt, register int n)
 }
 
 static void
-balanceVars(struct vartable *valt1, struct vartable *valt2, compileInfo *ci)
+balanceVars(VarTable valt1, VarTable valt2, compileInfo *ci)
 { int *p1 = &valt1->entry[0];
   int *p2 = &valt2->entry[0];
+  int vts = ci->vartablesize;
   register int n;
 
-  for( n = 0; n < MAXVARIABLES/BITSPERINT; p1++, p2++, n++ )
+  for( n = 0; n < vts; p1++, p2++, n++ )
   { register int m = (~(*p1) & *p2);
 
     if ( m )
@@ -507,17 +542,17 @@ balanceVars(struct vartable *valt1, struct vartable *valt2, compileInfo *ci)
 }
 
 static void
-orVars(struct vartable *valt1, struct vartable *valt2)
+orVars(VarTable valt1, VarTable valt2)
 { register int *p1 = &valt1->entry[0];
   register int *p2 = &valt2->entry[0];
   register int n;
 
-  for( n = 0; n < MAXVARIABLES/BITSPERINT; n++ )
+  for( n = 0; n < valt1->isize; n++ )
     *p1++ |= *p2++;
 }
 
 static void
-setVars(register Word t, register struct vartable *vt)
+setVars(register Word t, VarTable vt)
 { deRef(t);
 
   if ( isTerm(*t) )
@@ -532,6 +567,20 @@ setVars(register Word t, register struct vartable *vt)
     for(t = argTermP(*t, 0); arity > 0; t++, arity--)
       setVars(t, vt);
   }
+}
+
+
+static VarTable
+copyVarTable(VarTable to, VarTable from)
+{ int *t = to->entry;
+  int *f = from->entry;
+  int n  = from->isize;
+
+  to->isize = n;
+  while(--n>=0)
+    *t++ = *f++;
+
+  return to;
 }
 
 
@@ -600,7 +649,10 @@ Initialise the `compileInfo' structure.
   initBuffer(&ci.codes);
   ci.module = module;
   ci.clause = clause;
-  ClearVarTable(&ci);
+
+  ci.vartablesize = (nvars + ci.arity + BITSPERINT-1)/BITSPERINT;
+  ci.used_var = alloca(sizeofVarTable(ci.vartablesize));
+  clearVarTable(&ci);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 First compile  the  head  of  the  term.   The  arguments  are  compiled
@@ -613,8 +665,9 @@ before the I_ENTER instructions.
     Word arg;
 
     for ( arg = argTermP(*head, 0), n = 0; n < ci.arity; n++, arg++ )
-      if ( compileArgument(arg, HEAD, &ci) == NONVOID )
+    { if ( compileArgument(arg, HEAD, &ci) == NONVOID )
 	lastnonvoid = PC(&ci);
+    }
     seekBuffer(&ci.codes, lastnonvoid, code);
   }
 
@@ -622,7 +675,7 @@ before the I_ENTER instructions.
 Now compile the body.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  if ( body != (Word) NULL && *body != ATOM_true )
+  if ( body && *body != ATOM_true )
   { Output_0(&ci, I_ENTER);
     compileBody(body, I_DEPART, &ci);
   }
@@ -633,12 +686,14 @@ Reset all variables we initialised to the variable analysis  functor  to
 become variables again.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  { register VarDef vd;
-    register int n;
+  { int n;
 
-    for(vd=vars, n=0; n < filledVars; n++, vd++)
-      if (vd->address != (Word) NULL)
+    for(n=0; n < filledVars; n++)
+    { VarDef vd = vardefs[n];
+
+      if ( vd->address != (Word) NULL )
 	setVar(*(vd->address));
+    }
   }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -646,7 +701,7 @@ Finish up the clause.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   { clause->codes = (Code) allocHeap(sizeOfBuffer(&ci.codes));
-    memcpy(clause->codes, baseBuffer(&ci.codes, code), sizeOfBuffer(&ci.codes));
+    memcpy(clause->codes,baseBuffer(&ci.codes, code),sizeOfBuffer(&ci.codes));
     clause->code_size = entriesBuffer(&ci.codes, code);
 
     discardBuffer(&ci.codes);
@@ -711,11 +766,12 @@ compileBody(register Word body, code call, register compileInfo *ci)
     } else if ( fd == FUNCTOR_semicolon2 ||
 		fd == FUNCTOR_bar2 )		/* A ; B and (A -> B ; C) */
     { register Word a0 = argTermP(*body, 0);
-      struct vartable vsave, valt1, valt2;
-
-      vsave = valt1 = valt2 = ci->used_var;
-      setVars(argTermP(*body, 0), &valt1);
-      setVars(argTermP(*body, 1), &valt2);
+      VarTable vsave = mkCopiedVarTable(ci->used_var);
+      VarTable valt1 = mkCopiedVarTable(ci->used_var);
+      VarTable valt2 = mkCopiedVarTable(ci->used_var);
+      
+      setVars(argTermP(*body, 0), valt1);
+      setVars(argTermP(*body, 1), valt2);
 
       deRef(a0);
       if ( hasFunctor(*a0, FUNCTOR_ifthen2) )	/* A -> B ; C */
@@ -727,13 +783,13 @@ compileBody(register Word body, code call, register compileInfo *ci)
 	TRY( compileBody(argTermP(*a0, 0), I_CALL, ci) );	
 	Output_1(ci, C_CUT, var);
 	TRY( compileBody(argTermP(*a0, 1), I_CALL, ci) );	
-	balanceVars(&valt1, &valt2, ci);
+	balanceVars(valt1, valt2, ci);
 	Output_1(ci, C_JMP, (code)0);
 	tc_jmp = PC(ci);
 	OpCode(ci, tc_or-1) = (code)(PC(ci) - tc_or);
-	ci->used_var = vsave;
+	copyVarTable(ci->used_var, vsave);
 	TRY( compileBody(argTermP(*body, 1), call, ci) );
-	balanceVars(&valt2, &valt1, ci);
+	balanceVars(valt2, valt1, ci);
 	OpCode(ci, tc_jmp-1) = (code)(PC(ci) - tc_jmp);
       } else					/* A ; B */
       { int tc_or, tc_jmp;
@@ -741,18 +797,18 @@ compileBody(register Word body, code call, register compileInfo *ci)
 	Output_1(ci, C_OR, (code)0);
 	tc_or = PC(ci);
 	TRY( compileBody(argTermP(*body, 0), I_CALL, ci) );
-	balanceVars(&valt1, &valt2, ci);
+	balanceVars(valt1, valt2, ci);
 	Output_1(ci, C_JMP, (code)0);
 	tc_jmp = PC(ci);
 	OpCode(ci, tc_or-1) = (code)(PC(ci) - tc_or);
-	ci->used_var = vsave;
+	copyVarTable(ci->used_var, vsave);
 	TRY( compileBody(argTermP(*body, 1), call, ci) );
-	balanceVars(&valt2, &valt1, ci);
+	balanceVars(valt2, valt1, ci);
 	OpCode(ci, tc_jmp-1) = (code)(PC(ci) - tc_jmp);
       }
 
-      orVars(&valt1, &valt2);
-      ci->used_var = valt1;
+      orVars(valt1, valt2);
+      copyVarTable(ci->used_var, valt1);
 
       succeed;
     } else if ( fd == FUNCTOR_ifthen2 )		/* A -> B */
@@ -769,9 +825,7 @@ compileBody(register Word body, code call, register compileInfo *ci)
     } else if ( fd == FUNCTOR_not_provable1 )		/* \+/1 */
     { int var = VAROFFSET(ci->clause->variables++);
       int tc_or;
-      struct vartable vsave;
-
-      vsave = ci->used_var;
+      VarTable vsave = mkCopiedVarTable(ci->used_var);
 
       Output_2(ci, C_NOT, var, (code)0);
       tc_or = PC(ci);
@@ -779,7 +833,7 @@ compileBody(register Word body, code call, register compileInfo *ci)
       Output_1(ci, C_CUT, var);
       Output_0(ci, C_FAIL);
       OpCode(ci, tc_or-1) = (code)(PC(ci) - tc_or);
-      ci->used_var = vsave;
+      copyVarTable(ci->used_var, vsave);
       
       succeed;
 #endif /* O_COMPILE_OR */
@@ -866,7 +920,7 @@ Non-void variables. There are many cases for this.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   if ( (index = isIndexedVarTerm(*arg)) >= 0 )
-  { first = isFirstVar(&ci->used_var, index);
+  { first = isFirstVar(ci->used_var, index);
 
     if ( index < ci->arity )		/* variable on its own in the head */
     { switch ( where )
@@ -1025,7 +1079,7 @@ operator.
 	}
 
 	for(n = 0; n < ar; n++)
-	{ if ( isFirstVar(&ci->used_var, vars[n]) )
+	{ if ( isFirstVar(ci->used_var, vars[n]) )
 	  { Output_1(ci, C_VAR, VAROFFSET(vars[n]));
 	  }
 	}
@@ -1170,7 +1224,7 @@ compileArithArgument(register Word arg, register compileInfo *ci)
   }
 					/* variable */
   if ( isTerm(*arg) && (index = isIndexedVarTerm(*arg)) >= 0 )
-  { int first = isFirstVar(&ci->used_var, index);
+  { int first = isFirstVar(ci->used_var, index);
 
     if ( index < ci->arity )		/* shared in the head */
     { if ( index < 3 )
@@ -1445,7 +1499,7 @@ typedef struct
 { Code	 pc;				/* pc for decompilation */
   Word   xr;				/* xr table for decompilation */
   Word	 argp;				/* argument pointer */
-  term_t variables[MAXVARIABLES];	/* variable table */
+  term_t *variables;			/* variable table */
 } decompileInfo;
 
 forwards bool	decompile_head(Clause, term_t, decompileInfo *);
@@ -1517,6 +1571,8 @@ valHandle(term_t r)
 bool
 decompileHead(Clause clause, term_t head)
 { decompileInfo di;
+  di.variables = alloca((VAROFFSET(1) + clause->prolog_vars) *
+			sizeof(term_t));
 
   return decompile_head(clause, head, &di);
 }
@@ -1687,6 +1743,9 @@ decompile(Clause clause, term_t term)
 { decompileInfo dinfo;
   decompileInfo *di = &dinfo;
   Word body;
+
+  di->variables = alloca((VAROFFSET(1) + clause->prolog_vars) *
+			 sizeof(term_t));
 
 #ifdef O_RUNTIME
   if ( false(clause->procedure->definition, DYNAMIC) )

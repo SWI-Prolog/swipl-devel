@@ -875,6 +875,7 @@ loadPredicate(IOSTREAM *fd, int skip)
 	      *bp++ = 0L;
 	      while(--l >= 0)
 		*s++ = Getc(fd);
+	      n++;
 	      break;
 	    }
 	  }
@@ -1403,6 +1404,7 @@ saveWicClause(Clause clause, IOSTREAM *fd)
 	putNum(l, fd);
 	while(--l >= 0)
 	  Putc(*s++&0xff, fd);
+	n++;
 	break;
       }
     }

@@ -7,11 +7,11 @@
                   The Netherlands
                 Tel. (+31) 20 5256786
 
-                    SWI-Prolog 2.6
+                    SWI-Prolog 2.7
 
                    Reference Manual
 
-       Updated for version 2.6.0, April 1996
+       Updated for version 2.7.0, April 1996
 
                     Jan Wielemaker
 
@@ -86,7 +86,7 @@ and BIM_Prolog .
 
 1.2  Status
 
-This manual describes version 2.6 of SWI-Prolog. SWI-Prolog has been
+This manual describes version 2.7 of SWI-Prolog. SWI-Prolog has been
 used now for several years. The application range includes Prolog
 course material, meta-interpreters, simulation of parallel Prolog,
 learning systems, natural language processing and two large
@@ -407,7 +407,21 @@ features that may have impact on the system stability.
      saved-state to the emulator. See qsave_program/2.
 
 
-1.14  Acknowledgements
+1.14  Version 2.7 Release Notes
+
+Version 2.7 reorganises the entire data-represention of the Prolog data
+itself. The aim is to remove most of the assumption on the machine's
+memory layout to improve portabilily in general and enable embedding
+on systems where the memory layout may depend on invocation or on
+how the executable is linked. The latter is notably a problem on the
+Win32 platforms. Porting to 64-bit architectures should be feasible now.
+
+Furthermore, 2.7 lifts the limits on arity of predicates and number of
+variables in a clause considerably and allow for further expansion at
+minimal cost.
+
+
+1.15  Acknowledgements
 
 Some small parts of the Prolog code of SWI-Prolog are modified
 versions of the corresponding Edinburgh C-Prolog code: grammar rule
@@ -442,10 +456,10 @@ necessary initialisations and then enter the interactive top level.
 
 After the necessary system initialisation the system consults (see
 consult/1) the user's initialisation file. This initialisation file should be
-named `verb:plrc' and reside either in the current directory or in the
-user's home directory. If both exist the initialisation file from the
-current directory is loaded. The name of the initialisation file can be
-changed with the `-f file ' option. After loading the initialisation file
+named `.plrc' and reside either in the current directory or in the user's
+home directory. If both exist the initialisation file from the current
+directory is loaded. The name of the initialisation file can be changed
+with the `-f file ' option. After loading the initialisation file
 SWI-Prolog executes a user initialisation goal. The default goal is a
 system predicate that prints the banner message. The default can be
 modified with the `-g goal ' option. Next the toplevel goal is started.
@@ -1102,6 +1116,11 @@ feature(?Key, -Value)
      bounded (true)
          ISO feature describing integer representation is bound by
          min_integer and min_integer.
+
+     tty_control (bool)
+         Tertermines whether the terminal is switched to raw mode for
+         get_single_char/1, which also reads the user-actions for the
+         trace. May be set. See also the +/-tty command-line option.
 
 
 set_feature(+Key, +Value)
@@ -1479,9 +1498,8 @@ SWI-Prolog.
 2.13.2  Other Limits
 
 Clauses  Currently the following limitations apply to clauses. The arity
-     may not be more than 128, the number of links to the `outside
-     world' (predicates, atoms, (large) integers, etc) may not exceed
-     512 and the number of variables should be less than 256.
+     may not be more than 1024 and the number of variables should be
+     less than 65536.
 
 Atoms and Strings   SWI-Prolog has no limits on the sizes of atoms
      and strings. read/1 and its derivates however normally limit the
@@ -1489,17 +1507,18 @@ Atoms and Strings   SWI-Prolog has no limits on the sizes of atoms
      detection and recovery. This can be switched off with
      style_check/1.
 
-Address space   SWI-Prolog uses tagged pointers internally. This
-     limits the number of available bits for addressing memory to 29
-     (512 Mb).
+Address space   SWI-Prolog data is packed in a 32-bit word, which
+     contains both type and value information. The size of the various
+     memory areas is limited to 128 Mb for each of the areas. With
+     some redesign, the program area could be split into data that
+     should be within this range and the rest of the data, virtually
+     unlimiting the program size.
 
-Integers Integers are tagged values. Their value is limited between
-     226 and 226 1. See also feature/2.
+Integers Integers are 32-bit to the user, but integers upto the value of
+     the max_tagged_integer feature is represented more efficiently.
 
-Floats Floating point numbers are C-doubles with a 12 bit reduction of
-     the mantisse. For machines using IEEE floating point format, this
-     implies the range is about 10308and the accurracy about 10
-     digits.
+Floats Floating point numbers are represented as native double
+     precision floats, 64 bit IEEE on most machines.
 
 
 2.13.3  Reserved Names

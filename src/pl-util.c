@@ -96,7 +96,7 @@ isUserSystemPredicate(Definition def)
 
 word
 notImplemented(char *name, int arity)
-{ return warning("%s/%d is not implemented in this version");
+{ return warning("%s/%d is not implemented in this version", name, arity);
 }
 
 word

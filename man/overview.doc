@@ -10,7 +10,7 @@ level.
 
 After the necessary system initialisation the system consults (see
 consult/1) the user's initialisation file.  This initialisation file
-should be named `$verb.plrc$'%
+should be named `\verb$.plrc$'%
     \footnote{Windows: `\verb$_plrc$' as files cannot be named
 	      `\verb$.plrc$'.}
 and reside either in the current directory or in the user's home
@@ -668,6 +668,10 @@ functions. Value depends on the C-compiler used.
     \option{bounded}{true}
 ISO feature describing integer representation is bound by
 {\tt min_integer} and {\tt min_integer}.
+    \option{tty_control}{bool}
+Tertermines whether the terminal is switched to raw mode for
+get_single_char/1, which also reads the user-actions for the trace.  May
+be set.  See also the \tty{+/-tty} command-line option.
 \end{description}
 .C set_feature 2 +Key, +Value
 Define a new feature or change its value. Both arguments must be atoms.
@@ -1068,26 +1072,25 @@ Option & Default\footnote{Defaults may depend on local installation.}
 \begin{description}
     \item[Clauses]
 Currently the following limitations apply to clauses.  The arity may
-not be more than 128, the number of links to the `outside world'
-(predicates, atoms, (large) integers, etc) may not exceed 512 and
-the number of variables should be less than 256.%
-    \footnote{I plan to raise all these limits to 65536, the maximum
-	      addressable range by the 16 bits virtual machine codes.}
+not be more than 1024 and the number of variables should be less than
+65536.
     \item[Atoms and Strings]
 SWI-Prolog has no limits on the sizes of atoms and strings.  read/1 and
 its derivates however normally limit the number of newlines in an atom
 or string to 5 to improve error detection and recovery.  This can be
 switched off with style_check/1.
     \item[Address space]
-SWI-Prolog uses tagged pointers internally. This limits the number of
-available bits for addressing memory to 29 (512 Mb).
+SWI-Prolog data is packed in a 32-bit word, which contains both type
+and value information.  The size of the various memory areas is limited
+to 128 Mb for each of the areas.  With some redesign, the program area
+could be split into data that should be within this range and the rest
+of the data, virtually unlimiting the program size.
     \item[Integers]
-Integers are tagged values. Their value is limited between
-$-2^{26}$ and $2^{26} - 1$.  See also feature/2.
+Integers are 32-bit to the user, but integers upto the value of the
+{\tt max_tagged_integer} feature is represented more efficiently.
     \item[Floats]
-Floating point numbers are C-doubles with a 12 bit reduction of the
-mantisse.  For machines using IEEE floating point format, this implies
-the range is about $\pm 10^{308}$ and the accurracy about 10 digits.
+Floating point numbers are represented as native double precision
+floats, 64 bit IEEE on most machines.
 \end{description}
 
 \subsection{Reserved Names}

@@ -35,6 +35,9 @@ $portray_variable($VAR(N)) :-
 $varname(N, [C]) :-
 	N < 26, !, 
 	C is N + 0'A.
-$varname(N, [C1, C2]) :-
-	C1 is N // 26 + 0'A, 
-	C2 is N mod 26 + 0'A.
+$varname(N, L) :-
+	LD is N mod 26 + 0'A,
+	NN is N // 26,
+	$varname(NN, L0),
+	append(L0, [LD], L).
+	

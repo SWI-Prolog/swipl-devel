@@ -17,6 +17,8 @@
 #ifndef HAVE_MEMMOVE			/* Note order!!!! */
 #define memmove(dest, src, n) bcopy(src, dest, n)
 #endif
+#undef ulong
+#define ulong unsigned long
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module is based on
@@ -1395,9 +1397,9 @@ garbageCollect(LocalFrame fr)
   relocated_cells   = 0;
   local_marked	    = 0;
 
-  STACKVERIFY( if ( gTop + 1 >= gMax ) outOf((Stack) &stacks.global) );
+  requireStack(global, sizeof(word));
+  requireStack(trail, sizeof(struct trail_entry));
   setVar(*gTop);
-  STACKVERIFY( if ( tTop + 1 >= tMax ) outOf((Stack) &stacks.trail) );
   tTop->address = 0;
 
   mark_phase(fr);
