@@ -104,7 +104,7 @@ do_term_expand(In0, Out) :-
 	), !.
 do_term_expand((Head :- Body), _) :-	% check for :- instead of :-> or :<-
 	pce_compiling,
-	(   Body = ([A|B] :: _Body),
+	(   Body = ::([A|B], _Body),
 	    is_string([A|B])
 	;   typed_head(Head)
 	),
@@ -303,7 +303,7 @@ do_expand((:- pce_class_directive(Goal)), []) :-
 	pce_compiling(ClassName),
 	prolog_load_context(module, M),
 	add_attribute(ClassName, directive, M:Goal).
-do_expand((Head :-> DocBody),
+do_expand(:->(Head, DocBody),
 	  [ pce_principal:pce_lazy_send_method(Selector, ClassName, LSM)
 	  | Clauses
 	  ]) :-
@@ -325,7 +325,7 @@ do_expand((Head :-> DocBody),
 	;   true
 	),
 	feedback(expand_send(ClassName, Selector)).
-do_expand((Head :<- DocBody),
+do_expand(:<-(Head, DocBody),
 	  [ pce_principal:pce_lazy_get_method(Selector, ClassName, LGM)
 	  | Clauses
 	  ]) :-
