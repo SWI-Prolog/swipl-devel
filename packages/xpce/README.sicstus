@@ -1,5 +1,7 @@
 Dear SICStus Prolog user,
 
+[sorry, no SICStus support yet]
+
 The installation for XPCE/SICStus has  been   tested  on a SPARC station
 running SunOs 4.1.3 and SICStus 2.1#9.    For  compilation, see the file
 COMPILATION.  The make target for building XPCE/SICStus is

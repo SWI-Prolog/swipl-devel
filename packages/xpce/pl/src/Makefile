@@ -58,7 +58,7 @@ LIBQLFS=	pce_manual.qlf dialog/dialog.qlf emacs/emacs.qlf pcedraw.qlf
 
 nosoall:	$(QLF) $(CRT0)
 
-soall:		$(PLBASE)/plrc $(PLBASE)/xpce $(XPCESO) $(CRT0) bootqlf libqlfs
+soall:		$(PLBASE)/plrc $(PLBASE)/xpce $(XPCESO) $(CRT0) bootqlf
 
 ################################################################
 # Objects for $(OBJDIR)

@@ -433,7 +433,7 @@ fi
 rm -rf conftest*
 
 
-AC_OUTPUT(Makefile install-pl-bins install make-bin-tape make-so-bin)
+AC_OUTPUT(Makefile)
 
 chmod +x install-pl-bins install
 echo "chmod +x install-pl-bins install" >> config.status

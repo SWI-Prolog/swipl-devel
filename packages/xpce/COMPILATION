@@ -2,7 +2,7 @@
 				Jan Wielemaker
 				   01/11/94
 
-Updated for xpce-4.8.9 at Tue Apr 25 22:25:48 1995
+Updated for xpce-4.8.13 at Tue Sep  5 18:09:18 1995
 
 Prerequisites:
 ==============
@@ -14,15 +14,15 @@ Prerequisites:
 * A recent copy of the GNU-Project C-compiler gcc.  Versions known to
   work are gcc-2.x.y, where 3<=x<=5 and y>x or gcc 2.6.3. Some others
   are fine too. The C++ interface is written in C++ and therefore you
-  need to have g++ installed too to include this (./configure is clever
+  need to have g++ installed too to include this (configure is clever
   enough to omit the C++ interface if you have g++ not installed).
 
 * A recent copy of the GNU-Project `make' utility.  Versions tested are
-  3.62 and 3.71.  Most versions will do.  The native make utility provided
-  with many operating systems won't.
+  3.62 and 3.71 and 3.74.  Most versions will do.  The native make
+  utility provided with many operating systems won't.
 
 * If you want to link to SWI-Prolog to create XPCE/SWI-Prolog, SWI-Prolog
-  version 2.0.8 or later must be installed (using make install) as one
+  version 2.1.5 or later must be installed (using make install) as one
   of `pl', `swipl' or `swi-prolog'. The automatic configuration script
   will call SWI-Prolog to determine system parameters of it.
 
@@ -30,13 +30,27 @@ Prerequisites:
 Preparation:
 ============
 
-* Run ./configure.  On some systems this requires
+You can either compile  in  the  source   directory,  or  in  a separate
+directory. We advice the latter, as  it   makes  it more easy to compile
+multiple versions from the same sources   (for  example both the runtime
+and the development version or versions for different hardware).  In the
+first case simply
 
-	% sh configure
+	cd src
+
+in the latter case, invent a nice directory name and do (for example):
+
+	mkdir sunos
+	cd sunos
+
+* Run configure.  The example works always, but of course you can simply
+  use `sh configure' if you compile in the source directory.
+
+	% sh ../src/configure
 
   If you do not want to install XPCE with SWI-Prolog, you should do
 
-	% sh configure --without-pl
+	% sh ../src/configure --without-pl
 
   configure creates config.h, describing many aspects of your compiler
   and C-libraries.
@@ -49,9 +63,8 @@ Preparation:
      If it detects the SWI-Prolog feature `open_shared_object' it
      assumes SWI-Prolog can dynamically load shared object files
      (extension .so on sysvr4 Unix systems) and will try to make
-     the target pl/<plarch>/xpce4pl.<so>, where <plarch> is the
-     value of the `arch' feature of SWI-Prolog and <so> is the
-     extension used for shared objects on this Unix platform.
+     the target lib/xpce4pl.<so>, where <so> is the extension used for
+     shared objects on this Unix platform.
 
      In addition, it will target a couple of `.qlf' (SWI-Prolog
      Quick Load Files) that allow for quick dynamic loading of
@@ -62,13 +75,13 @@ Preparation:
      * Statically linked version
      
      If SWI-Prolog cannot load shared objects, configure will set
-     up the target pl/src/xpce, a statically linked SWI-Prolog
+     up the target bin/xpce, a statically linked SWI-Prolog
      version that includes XPCE.  NOTE: `statically linked' here
      is the opposite of dynamic linking of shared objects in the
      running executable.  It does *not* necessarily mean using
      static C libraries.
 
-     It will also create the target pl/src/xpce.qlf, a Prolog boot
+     It will also create the target bin/xpce.qlf, a Prolog boot
      image containing the normal Prolog boot files as well as the
      XPCE kernel files.
 
@@ -83,8 +96,8 @@ Preparation:
 XPCE/SICStus Prolog (make target `xpce-sicstus'):
 -------------------------------------------------
 
-[ Unfortunately version 4.8.9 is not updated for SICStus Prolog.  It
-  is likely *not* to run without modifications.  Our SICStus market
+[ Unfortunately version 4.8.13 is not updated for SICStus Prolog.  It
+  will *not* to run without modifications.  Our SICStus market
   is very small, so please contact me if you have troubles/plans.
 ]
 
@@ -112,29 +125,29 @@ Compilation:
   where `make' MUST BE GNU-MAKE!!!!
 
   This is what the *start* of the compilation should look like
-  (on a SUN sparc workstation running Solaris 2.4, using gcc 2.5.8
-  and gnu-make 3.71):
+  (on a SUN sparc workstation running SunOs 4.1.3, using gcc
+  2.6.3 and gnu-make 3.74):
 
   ================================================================
-  cd ~/src/xpce-4.8.4/
-  make
+  swisun31 (sunos) 7_> make
   ****************
-  Making XPCE 4.8.4, Nov 1994 for sparc-solaris2.4
+  Making XPCE 4.8.13, Sep 1995 for sparc-sunos4.1.3
   ****************
-  sed "s/\<Pce\./Pce./" Pce.in > Pce
-  cd src; make  WST=x11 xpcelib
-  make[1]: Entering directory `/lri2/jan/src/xpce-4.8.4/src'
-  gcc -Wall -O2 -I.. -fPIC -funsigned-char -DHAVE_CONFIG_H -I. -o Names.Gen Names.Gen.c
-  gcc -Wall -O2 -I.. -fPIC -funsigned-char -DHAVE_CONFIG_H -I. -o Names.X Names.X.c
-  if [ ! -d names ]; then mkdir names; fi
-  ./FN -a h/*.h ???/*.c
-  make[2]: Entering directory `/lri2/jan/src/xpce-4.8.4/src/adt'
-  gcc -Wall -O2 -I.. -fPIC -funsigned-char -DHAVE_CONFIG_H   -c area.c -o area.o
-  gcc -Wall -O2 -I.. -fPIC -funsigned-char -DHAVE_CONFIG_H   -c atable.c -o atable.o
-  ...
+  mkdir bin
+  mkdir lib
+  ln -s ../src/h .
+  if [ ! -d ../src/names ]; then mkdir ../src/names; fi
+  if [ ! -d names ]; then ln -s ../src/names .; fi
+  gcc  -O2 -I. -I../src -fPIC -funsigned-char -DHAVE_CONFIG_H -o Names.Gen ../src/Names.Gen.c
+  gcc  -O2 -I. -I../src -fPIC -funsigned-char -DHAVE_CONFIG_H -o Names.X ../src/Names.X.c
+  ../src/FN -a ../src/h/*.h ../src/???/*.c
+  gcc -c  -O2 -I. -I../src -fPIC -funsigned-char -DHAVE_CONFIG_H ../src/adt/area.c -o area.o
+  ar: creating libXPCE.a
+  gcc -c  -O2 -I. -I../src -fPIC -funsigned-char -DHAVE_CONFIG_H ../src/adt/atable.c -o atable.o
+  gcc -c  -O2 -I. -I../src -fPIC -funsigned-char -DHAVE_CONFIG_H ../src/adt/attribute.c -o attribute.o
   ================================================================
 
-* If you just want XPCE.a, use the target `make xpce' instead of just
+* If you just want libXPCE.a, use the target `make xpce' instead of just
   `make', which is equivalent to `make xpce-pl'.  NOTE: if you ran configure
   with the option `--without-pl', the default target is just `xpce'.
 
@@ -165,21 +178,16 @@ Compilation:
 Public Installation 
 ===================
 
-You may make the system public by   creating  links from a public binary
-directory to the executables in the bin subdirectory.  If you decide for
-this option, you are must make this directory world-readable.  According
-to the `Non Disclosure'  term  in   the  licence  agreement,  you should
-protect the `src'  directory  to  be   read-only  for  all  users except
-maintenance personnel.
+There are two install-options to install the XPCE files with SWI-Prolog.
+The first option only copies the runtime  files, while the second option
+compies the entire development environment.   To install the DEVELOPMENT
+environment, now type:
 
-Alternatively, when using SWI-Prolog, you may run
+	make dv-install
 
-	% make install-pl
+To just build the runtime environment, type:
 
-which will copy the runtime   files  to /usr/local/lib/xpce-$version and
-install a public executable /usr/local/bin/xpce-$version.  After command
-you may discard the distribution directory.
-
+	make rt-install
 
 Overview of the compilation process
 ===================================
@@ -187,20 +195,19 @@ Overview of the compilation process
 To help you understand where to look if  anything goes wrong, below is a
 short overview of the compilation process:
 
-    XPCE.a
-    ------
+    libXPCE.a
+    ---------
 
 	1) Build a table for C-code used XPCE atoms.  This compiles
 	Names.Gen.c and Names.X.c and next runs the shell-script src/FN
 	to create a database in the directory `src/names' and C-files in
 	`src/h/names.ic' and `src/h/names.ih'.
 
-	2) make is fired in each of the directories below src with
-	the target `addlib'.  This will make the object files of the
-	module and next run `ar ru ../XPCE.a <object files> to add/update
-	the main XPCE library.
+	2) Compiles the files for libXPCE.a and puts them in the library.
+	This uses GNU-extensions to make and is one of the reasons why you
+	need GNU-make.
 
-	5) a change of XPCE.a is detected and ranlib(1) is ran if XPCE.a
+	3) a change of XPCE.a is detected and ranlib(1) is ran if XPCE.a
 	has changed and ranlib is detected by configure
 
     XPCE/SWI-Prolog
