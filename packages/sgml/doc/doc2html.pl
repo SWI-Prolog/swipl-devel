@@ -47,12 +47,30 @@ doc2html(In) :-
 	close(Out).
 	
 write_doc([], _).
+write_doc([nl(N)|T0], Out) :- !,
+	join_nl(N, Lines, T0, T),
+	write_lines(Lines, Out),
+	write_doc(T, Out).
 write_doc([H|T], Out) :-
 	(   atom(H)
 	->  write(Out, H)
 	;   put_code(Out, H)
 	),
 	write_doc(T, Out).
+
+write_lines(N, Out) :-
+	(   N > 0
+	->  N1 is N - 1,
+	    nl(Out),
+	    write_lines(N1, Out)
+	;   true
+	).
+
+join_nl(N0, N, [nl(N2)|T0], T) :- !,
+	N1 is max(N0, N2),
+	join_nl(N1, N, T0, T).
+join_nl(N, N, T, T).
+
 
 x :-
 	doc2html(sgml2pl).
@@ -351,9 +369,9 @@ html(titlepage, _, Content) -->
 		      *Abstract,
 		      \hr
 		    ]),
-	\content([ \h1('Table of Content'),
-		   Toc
-		 ]).
+	content([ \h1('Table of Content'),
+		  Toc
+		]).
 
 		    
 		 /*******************************
@@ -376,7 +394,7 @@ html(S, A, Content) -->
 	(   { member(name=Ref, A)
 	    }
 	->  \a([name=Ref], Title)
-	;   \content(Title)
+	;   content(Title)
 	),
 	endtag(H),
 	content(Body).
@@ -470,9 +488,9 @@ html(desc, _, Body) -->
 html(pred, A, [Name, Arglist]) -->
 	{ member(name=Ref, A)
 	}, !,
-	\content(\a([name=Ref], [Name, '(', \var(Arglist), ')'])).
+	content(\a([name=Ref], [Name, '(', \var(Arglist), ')'])).
 html(pred, _, [Name, Arglist]) -->
-	\content([Name, '(', \var(Arglist), ')']).
+	content([Name, '(', \var(Arglist), ')']).
 html(arglist, _, Args) -->
 	arglist(Args).
 
@@ -487,17 +505,17 @@ arglist([], A, A) -->
 arglist([Last], A0, A) --> !,
 	{ A is A0+1
 	},
-	\content(Last).
+	content(Last).
 arglist([H|T], A0, A) -->
 	{ A1 is A0+1
 	},
-	\content([H, ', ']),
+	content([H, ', ']),
 	arglist(T, A1, A).
 
 html(arg, _, Arg) -->
-	\content(Arg).
+	content(Arg).
 html(name, _, Name) -->
-	\content(Name).
+	content(Name).
 
 %	Arguments
 
@@ -506,9 +524,9 @@ html(argval, _, [Head, Body]) -->
 	\dt(\b(Head)),
 	\dd(Body).
 html(termitem, _, [element(name, _, Name), Arglist]) -->
-	\content([*Name, '(', \var(Arglist), ')']).
+	content([*Name, '(', \var(Arglist), ')']).
 html(termitem, _, Content) -->
-	\content(Content).
+	content(Content).
 
 		 /*******************************
 		 *	       LISTS		*
@@ -631,25 +649,29 @@ lines(Tag, end(after)) -->
 lines(_, _) -->
 	"".
 
-lines(0) --> !,
-	"".
 lines(N) -->
-	[ 10 ],
-	{ N1 is N - 1
-	},
-	lines(N1).
+	[ nl(N)
+	].
 
 layout(p,	   2-1, -).
 layout(br,	   0-1, -).
 layout(hr,	   1-1, -).
-layout(h1,	   2-0,	0-1).
-layout(h2,	   2-0,	0-1).
-layout(h3,	   2-0,	0-1).
-layout(h4,	   2-0,	0-1).
-layout(blockquote, 1-1,	1-1).
-layout(center,	   1-1,	1-1).
+layout(h1,	   2-0,	0-2).
+layout(h2,	   2-0,	0-2).
+layout(h3,	   2-0,	0-2).
+layout(h4,	   2-0,	0-2).
+layout(blockquote, 2-1,	1-2).
+layout(center,	   2-1,	1-2).
 layout(head,	   1-1,	1-1).
-layout(body,	   1-1,	1-1).
+layout(body,	   2-1,	1-1).
+layout(ul,	   1-1,	1-1).
+layout(dl,	   1-1,	1-1).
+layout(dt,	   1-0, -).
+layout(dd,	   0-1, -).
+layout(li,	   1-0,	-).
+layout(pre,	   1-1, 1-1).
+layout(table,	   1-1, 1-1).
+layout(tr,	   1-0, 0-1).
 
 content([]) --> !,
 	[].
