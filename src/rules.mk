@@ -34,7 +34,7 @@ LIB=$(LIB);$(HOME)\lib
 # MT:  true=multi-threading version; false=normal single-threading
 CFG=dev
 DBG=false
-MT=false
+MT=true
 DBGOPT=/Od
 #DBGOPT=/O2
 

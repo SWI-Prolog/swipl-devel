@@ -10,7 +10,7 @@
 VERSION 5.2.0 (May 22, 2003)
 ============================
 
-  * FIXED: Various issues with indexing on multiple arguments.
+  * FIXED: Various issues with indexing on multiple arguments (JAcques).
 
   * FIXED: '\<NL>' to read as '' (JAcques).
 
