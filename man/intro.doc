@@ -2,15 +2,15 @@
 
 \section{SWI-Prolog}			\label{sec:swiprolog}
 
-SWI-Prolog has been designed and implemented to get a Prolog
-implementation which can be used for experiments with logic programming
-and the relation to other programming paradigms. The intention was to
-build a Prolog environment which offers enough power and flexibility to
-write substantial applications, but is straightforward enough to be
-modified for experiments with debugging, optimisation or the
-introduction of non-standard data types. Performance optimisation is
-limited due to the main objectives:  portability (SWI-Prolog is
-entirely written in C and Prolog) and modifiability.
+SWI-Prolog started back in 1986 with the requirement for a Prolog that
+could handle recursive interaction with the C-language: Prolog calling C
+and C calling Prolog recursively. Those days Prolog systems were very
+aware of its environment and we needed such a system to support
+interactive applications. Since then, SWI-Prolog's development has been
+guided by requests from the user community, especially focussing on
+(in arbitrary order) interaction with the environment, scalability,
+(I/O) performance, standard compliance, teaching and the program
+development environment.
 
 SWI-Prolog is based on a very restricted form of the WAM (Warren
 Abstract Machine) described in \cite{Bowen:83} which defines only 7
@@ -35,7 +35,7 @@ unification, predicate invocation, some frequently used built-in
 predicates, arithmetic, and control (\predref{;}{2}, \predref{|}{2}),
 if-then (\predref{->}{2}) and negation-by-failure (\predref{\+}{1}).
 
-\subsection{Other books about Prolog}		\label{sec:books}
+\subsection{Books about Prolog}		\label{sec:books}
 
 This manual does not describe the full syntax and semantics of Prolog,
 nor how one should write a program in Prolog. These subjects have been

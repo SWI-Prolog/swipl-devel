@@ -1,11 +1,17 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Various minor problems in barchart/plotter.
+
+* FIXED: Generating PostScript from bitmaps filled with ->draw_in
+  (X11 version).
+
 * FIXED: Generating PostScript from boxes with negative dimension.
 
 * FIXED: bar->compute can fail.
 
 * FIXED: Prolog navigator loading wrong Prolog module.  Fabien Todescato.
+
 
 VERSION 6.1.11, distributed with SWI-Prolog 5.1.11
 ==================================================

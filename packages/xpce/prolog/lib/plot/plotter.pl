@@ -119,7 +119,16 @@ modified_plot_axis(P, _A:[plot_axis]) :->
 	     if(message(@arg1, instance_of, plot_graph),
 		message(@arg1, request_compute),
 		if(message(@arg1, instance_of, plot_mark),
-		   message(@arg1, modified)))).
+		   message(@arg1, modified)))),
+	send(P, expose_member, x),
+	send(P, expose_member, y).
+
+expose_member(P, Name:name) :->
+	"Expose named member"::
+	(   get(P, member, Name, Gr)
+	->  send(Gr, expose)
+	;   true
+	).
 
 :- pce_end_class.
 

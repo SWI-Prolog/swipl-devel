@@ -708,6 +708,10 @@ clear(BC) :->
 	send(Bars, for_all, message(@arg1, destroy)),
 	send(Bars, clear).
 
+modified_plot_axis(P, A:[plot_axis]) :->
+	send_super(P, modified_plot_axis, A),
+	send(P, expose_member, bar_base).
+
 :- pce_group(value).
 
 value(BC, BarName:name, Value:real) :->

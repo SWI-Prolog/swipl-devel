@@ -82,6 +82,12 @@ getXImageImageFromScreen(Image image)
 		  valInt(image->size->w), valInt(image->size->h),
 		  AllPlanes, ZPixmap);
 
+				/* very dubious; Seems to work though */
+    if ( i && image->kind == NAME_bitmap )
+    { assert(i->depth == 1);
+      i->format = XYBitmap;
+    }
+
     if ( i && !i->red_mask && i->depth > 8 )
     { Visual *v = DefaultVisual(d, DefaultScreen(d));
 
