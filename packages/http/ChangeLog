@@ -1,3 +1,8 @@
+Sep 23, 2004
+
+  * FIXED: Ignore minor types when deciding which plugin to use for the
+    SGML plugin.
+
 Aug 30, 2004
 
   * FIXED: Bug#179: Avoid XPCE dependency on strip_module/3.  Sandro Hawke.

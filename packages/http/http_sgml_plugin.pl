@@ -51,7 +51,8 @@ http_client:http_convert_data(In, Fields, Data, Options) :-
 	memberchk(content_type(Type), Fields),
 	(   markup_type(Type, ParseOptions)
 	->  true
-	;   default_markup_type(Type, ParseOptions)
+	;   major_type(Type, Major),
+	    default_markup_type(Major, ParseOptions)
 	),
 	merge_options([ max_errors(-1),
 			syntax_errors(quiet)
@@ -59,6 +60,21 @@ http_client:http_convert_data(In, Fields, Data, Options) :-
 		      ], Options, Merged),
 	markup_options(Fields, Merged, MarkupOptions),
 	load_structure(stream(In), Data, MarkupOptions).
+
+
+major_type(Type0, Type) :-
+	sub_atom(Type0, B, _, _, ;), !,
+	sub_atom(Type0, 0, B, _, Major),
+	atom_codes(Major, Codes),
+	delete_white(Codes, NonWhite),
+	atom_codes(Type, NonWhite).
+major_type(Type, Type).
+
+delete_white([], []).
+delete_white([H|_], []) :-
+	code_type(H, white), !.
+delete_white([H|T0], [H|T]) :-
+	delete_white(T0, T).
 
 
 %	default_markup_type(+MimeType, -ParseOptions)
