@@ -97,7 +97,9 @@ indexed_directory(Dir) :-
 			     solutions(all),
 			     file_errors(fail)
 			   ], MkIndexFile),
-	file_directory_name(MkIndexFile, Dir).
+	file_directory_name(MkIndexFile, Dir),
+	plfile_in_dir(Dir, 'INDEX', _, IndexFile),
+	access_file(IndexFile, write).
 
 
 %	clear_library_index/0
