@@ -703,6 +703,8 @@ do_write2(term_t stream, term_t term, int flags)
     options.module    = MODULE_user;
     if ( options.module && true(options.module, CHARESCAPE) )
       options.flags |= PL_WRT_CHARESCAPES;
+    if ( trueFeature(BACKQUOTED_STRING_FEATURE) )
+      options.flags |= PL_WRT_BACKQUOTED_STRING;
 
     PutOpenToken(EOF, s);		/* reset this */
     writeTerm(term, 1200, &options);
