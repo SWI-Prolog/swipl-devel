@@ -1856,7 +1856,7 @@ else
 fi
 done
 
-for ac_func in atexit on_exit
+for ac_func in atexit on_exit tmpnam
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
 if eval "test \"`echo '$''{'ac_cv_func_$ac_func'+set}'`\" = set"; then
@@ -2195,12 +2195,40 @@ fi
 rm -f conftest*
 
 
+echo $ac_n "checking "for type long long"""... $ac_c" 1>&6
+if test "$cross_compiling" = yes; then
+  echo "$ac_t""assuming no" 1>&6
+else
+cat > conftest.$ac_ext <<EOF
+#line 2204 "configure"
+#include "confdefs.h"
+
+main()
+{ if ( sizeof(long long) == 8 )
+    exit(0);
+  exit(1);
+}
+
+EOF
+eval $ac_link
+if test -s conftest && (./conftest; exit) 2>/dev/null; then
+  cat >> confdefs.h <<\EOF
+#define LONGLONG long long
+EOF
+
+   echo "$ac_t""yes" 1>&6
+else
+  echo "$ac_t""no" 1>&6
+fi
+fi
+rm -fr conftest*
+
 echo $ac_n "checking return type of signal handlers""... $ac_c" 1>&6
 if eval "test \"`echo '$''{'ac_cv_type_signal'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 2204 "configure"
+#line 2232 "configure"
 #include "confdefs.h"
 #include <sys/types.h>
 #include <signal.h>
@@ -2237,7 +2265,7 @@ if test "$cross_compiling" = yes; then
   echo "$ac_t"""assuming Posix signals"" 1>&6
 else
 cat > conftest.$ac_ext <<EOF
-#line 2241 "configure"
+#line 2269 "configure"
 #include "confdefs.h"
 
 #include <stdio.h>
@@ -2278,7 +2306,7 @@ if test "$GCC" = yes; then
     CFLAGS="$CFLAGS -Werror"
 fi
 cat > conftest.$ac_ext <<EOF
-#line 2282 "configure"
+#line 2310 "configure"
 #include "confdefs.h"
 
 #include <sys/wait.h>
@@ -2307,7 +2335,7 @@ if test "$GCC" = "yes"; then CFLAGS="$ac_oldcflags"; fi
 
 echo $ac_n "checking "for tagged lvalues"""... $ac_c" 1>&6
 cat > conftest.$ac_ext <<EOF
-#line 2311 "configure"
+#line 2339 "configure"
 #include "confdefs.h"
 
 
@@ -2335,7 +2363,7 @@ rm -f conftest*
 
 echo $ac_n "checking "Checking struct termios.c_line"""... $ac_c" 1>&6
 cat > conftest.$ac_ext <<EOF
-#line 2339 "configure"
+#line 2367 "configure"
 #include "confdefs.h"
 
 #include <termios.h>
@@ -2423,7 +2451,7 @@ test -z "$x_direct_test_library" && x_direct_test_library=Xt
 test -z "$x_direct_test_function" && x_direct_test_function=XtMalloc
 test -z "$x_direct_test_include" && x_direct_test_include=X11/Intrinsic.h
 cat > conftest.$ac_ext <<EOF
-#line 2427 "configure"
+#line 2455 "configure"
 #include "confdefs.h"
 #include <$x_direct_test_include>
 EOF
@@ -2486,7 +2514,7 @@ rm -f conftest*
 ac_save_LIBS="$LIBS"
 LIBS="-l$x_direct_test_library $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 2490 "configure"
+#line 2518 "configure"
 #include "confdefs.h"
 
 int main() { return 0; }
@@ -2580,7 +2608,7 @@ if eval "test \"`echo '$''{'ac_cv_func_$ac_func'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 2584 "configure"
+#line 2612 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char $ac_func(); below.  */

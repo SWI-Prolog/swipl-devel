@@ -48,6 +48,9 @@
 /* Define if the type ushort is not in <sys/types.h> */
 #undef NEED_USHORT
 
+/* If your compiler supports an 8-byte integer, define this to the type */
+#undef LONGLONG
+
 /* Define if you have BSD signals (i.e. signal handler does *not* reset */
 #undef BSD_SIGNALS
 
@@ -149,6 +152,9 @@
 
 /* Define if you have the timelocal function.  */
 #undef HAVE_TIMELOCAL
+
+/* Define if you have the tmpnam function.  */
+#undef HAVE_TMPNAM
 
 /* Define if you have the vsscanf function.  */
 #undef HAVE_VSSCANF

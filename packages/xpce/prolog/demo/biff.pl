@@ -13,6 +13,8 @@
 	  ]).
 
 :- use_module(library(pce)).
+:- require([ default/3
+	   ]).
 
 biff :-
 	send(new(biff), open).

@@ -1,10 +1,11 @@
-\documentstyle[local,twoside,pce,psfig,logo,11pt]{report}
+\documentstyle[pce,11pt]{book}
+\def\booktitle{Programming in PCE/Prolog}
 
 %\psdraft
 
 \makeindex
 
-%\includeonly{intro}
+\includeonly{online}
 
 \begin{document}
 
@@ -12,31 +13,41 @@
 \titlepageheader
 
 \vfil\vfil\vfil
-\begin{center}
-	{\Huge \bf Programming in \\ PCE/Prolog}	\\[1.5cm]
-	{\large \it Jan Wielemaker}			\\
-	{\large \it Anjo Anjewierden}			\\[7mm]
-	{\large jan@swi.psy.uva.nl}
-\end{center}
-\vfil
-\begin{quote}
-This document is part of the documentation of XPCE version 4 for
-X-windows.  XPCE is an object-oriented system providing a portable UI
-development environment for symbolic languages.  This is an
-introduction to the PCE/Prolog programming environment.
-
-Last updated March 25, 1994 for XPCE version 4.7.1.
-\end{quote}
-\vfil
-\vfil
-\begin{quote}
-Copyright \copyright\ 1992-1994 University of Amsterdam
-\end{quote}
+\centerline{\psfig{figure=figs/title.ps,width=\textwidth}}
+\vfil\vfil\vfil
+\noindent
+Copyright \copyright\ 1992-1995 University of Amsterdam
 \end{titlepage}
 
-\pagestyle{esprit}
-\newcommand{\bottomleft}{\mbox{}}
-\newcommand{\bottomright}{\mbox{}}
+\begin{titlepage}
+\vfil\vfil
+
+\noindent
+Programming in PCE/Prolog \\[2cm]
+Jan Wielemaker \\
+Anjo Anjewierden \\[1cm]
+jan@swi.psy.uva.nl \\
+anjo@swi.psy.uva.nl
+\vfil
+\noindent
+XPCE/Prolog is a hybrid environment integrating logic programming and
+object-oriented programming for Graphical User Interfaces.  Applications
+in XPCE/Prolog are fully compatible accross the supported X11 and
+Win32 platforms.
+\vfil\vfil
+Last updated October 17, 1995 for XPCE version 4.8.14
+\end{titlepage}
+
+\pagestyle{fancyplain}
+\renewcommand{\chaptermark}[1]{\markboth{#1}{#1}} % remember chapter title
+\renewcommand{\sectionmark}[1]{\markright{\thesection\ #1}}
+                                                % section number and title
+\lhead[\fancyplain{}{\bf\thepage}]{\fancyplain{}{\bf\rightmark}}
+\rhead[\fancyplain{}{\bf\leftmark}]{\fancyplain{}{\bf\thepage}}
+\footrulewidth 0.2pt
+\lfoot[\tiny XPCE \pceversion]{}
+\rfoot[]{\tiny XPCE \pceversion}
+\cfoot{}
 
 {\parskip 0pt
 \tableofcontents
@@ -48,6 +59,8 @@ Copyright \copyright\ 1992-1994 University of Amsterdam
 \include{online}
 \include{graphics}
 \include{pceprolog}
+\include{udc}
+\include{techniques}
 \include{chess}
 \include{debug}
 \bibliographystyle{name}
@@ -55,7 +68,6 @@ Copyright \copyright\ 1992-1994 University of Amsterdam
 \appendix
 \include{interface}
 \include{memory}
-%\include{architecture}
 \include{trouble}
 \include{glossary}
 

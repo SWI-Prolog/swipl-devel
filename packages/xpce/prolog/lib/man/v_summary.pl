@@ -19,8 +19,8 @@
 
 :- pce_begin_class(man_summary_browser(displayed_attribute, size), browser).
 
-resource(header_font,	font,	'@helvetica_bold_12').
-resource(list_font,	font,	'@helvetica_roman_12').
+resource(header_font,	font,	bold).
+resource(list_font,	font,	normal).
 
 variable(displayed_attribute, name, get,
 	 "Get method for getting string").
@@ -130,7 +130,7 @@ initialise(S, Att:name, Size:size) :->
 	ClassifyTab = @man_classification,
 
 	send(CM, popup, new(CP, popup(class))),
-	send(CP, on_image, 'toggle_on.bm'),
+	send(CP, show_current, @on),
 	send(CP, update_message,
 	     message(CP, selection,
 		     ?(ClassifyTab, member, Obj?man_id))),

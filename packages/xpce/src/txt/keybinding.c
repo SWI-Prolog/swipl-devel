@@ -197,15 +197,19 @@ eventKeyBinding(KeyBinding kb, EventObj ev)
 
 #define RESET_COLUMN   1
 #define RESET_ARGUMENT 2
+#define RESET_STATUS   4
 
-#define MAX_ARGS 100
+#define MAX_ARGS 16
 
 status
 typedKeyBinding(KeyBinding kb, EventId id, Graphical receiver)
 { Name key;
   Any cmd;
   Any crec = getReceiverKeyBinding(kb);
-
+  Any argv[MAX_ARGS];
+  int argc = 0;
+  int reset = 0;
+    
   if ( notDefault(receiver) )
   { if ( receiver != crec )
       resetKeyBinding(kb, receiver);
@@ -214,17 +218,25 @@ typedKeyBinding(KeyBinding kb, EventId id, Graphical receiver)
   } else
     errorPce(kb, NAME_noReceiver);
 
-  key = getAppendName(kb->prefix, characterName(id));
-  DEBUG(NAME_keyBinding, writef("Key = %s\n", key));
+  if ( kb->status == NAME_quotedInsert )
+  { cmd = NAME_insertQuoted;
+    reset |= RESET_STATUS;
+  } else
+  { key = getAppendName(kb->prefix, characterName(id));
+    DEBUG(NAME_keyBinding, writef("Key = %s\n", key));
 
-  if ( (cmd = get(kb, NAME_function, key, 0)) )
-  { Any argv[MAX_ARGS];
-    int argc = 0;
-    status rval = FAIL;
-    int reset = 0;
+    cmd = get(kb, NAME_function, key, 0);
+  }
+
+  if ( cmd )
+  { status rval = FAIL;
 
     if ( isName(cmd) )
-    { if ( cmd == NAME_prefix )		/* Prefix (multikey)  */
+    { argv[argc++] = id;
+      argv[argc++] = receiver;
+      argv[argc++] = cmd;
+
+      if ( cmd == NAME_prefix )		/* Prefix (multikey)  */
 	assign(kb, prefix, key);
 					/* Keyboard quit */
       else if ( cmd == NAME_keyboardQuit )
@@ -235,9 +247,7 @@ typedKeyBinding(KeyBinding kb, EventId id, Graphical receiver)
 	     hasGetMethodObject(receiver, NAME_column) )
 	  assign(kb, saved_column, get(receiver, NAME_column, 0));
 
-	if ( argc == 0 )
-	  argv[argc++] = kb->argument;
-
+	argv[argc++] = kb->argument;
 	argv[argc++] = kb->saved_column;
 	reset |= RESET_ARGUMENT;
 					/* Universal argument specification */
@@ -268,21 +278,13 @@ typedKeyBinding(KeyBinding kb, EventId id, Graphical receiver)
 	  assign(kb, argument, toInt(valInt(kb->argument) * 10 +
 				     valInt(id) - '0'));
 	cmd = NAME_universalArgument;
-      } else
-	reset |= (RESET_ARGUMENT|RESET_COLUMN);
-
-      { ArgVector(av, argc+3);
-	int ac = 0;
-	int i=0;
-
-	av[ac++] = id;
-	av[ac++] = receiver;
-	av[ac++] = cmd;
-	for(; i < argc; i++)
-	  av[ac++] = argv[i++];
-
-	rval = sendv(kb, NAME_fillArgumentsAndExecute, ac, av);
+      } else if ( cmd == NAME_quotedInsert )
+      { assign(kb, status, NAME_quotedInsert );
+      } else 
+      { reset |= (RESET_ARGUMENT|RESET_COLUMN);
       }
+
+      rval = sendv(kb, NAME_fillArgumentsAndExecute, argc, argv);
     } else if ( instanceOfObject(cmd, ClassCode) )
     { rval = forwardReceiverCode(cmd, receiver, kb->argument, id, 0);
     }
@@ -291,6 +293,8 @@ typedKeyBinding(KeyBinding kb, EventId id, Graphical receiver)
       assign(kb, saved_column, NIL);
     if ( reset & RESET_ARGUMENT )
       assign(kb, argument, DEFAULT);
+    if ( reset & RESET_STATUS )
+      assign(kb, status, NIL);
 
     if ( cmd != NAME_prefix )
       assign(kb, prefix, CtoName(""));
@@ -307,17 +311,27 @@ fillArgumentsAndExecuteKeyBinding(KeyBinding kb,
 				  EventId id, Any receiver, Name cmd,
 				  int ac, Any av[])
 { Any impl;
-  int argc=0; Any theargv[MAX_ARGS];
-  Any *argv = &theargv[2];
 
-  theargv[0] = receiver;
-  theargv[1] = cmd;
-  for(; argc<ac; argc++)
-    argv[argc] = av[argc];
+  impl = resolveSendMethodObject(receiver, NULL, cmd, NULL, NULL);
+  if ( !impl && cmd == NAME_insertQuoted )
+  { cmd = NAME_insertSelf;
+    impl = resolveSendMethodObject(receiver, NULL, cmd, NULL, NULL);
+  }
 
-  if ( (impl=resolveSendMethodObject(receiver, NULL, cmd, NULL, NULL)) )
+  DEBUG(NAME_keyBinding, Cprintf("%s: impl of %s is %s\n",
+				 pp(kb), pp(cmd), pp(impl)));
+
+  if ( impl )
   { Type type;
     Any val;
+    int argc=0; Any theargv[MAX_ARGS];
+    Any *argv = &theargv[2];
+
+    theargv[0] = receiver;
+    theargv[1] = cmd;
+    for(; argc<ac; argc++)
+    { argv[argc] = av[argc];
+    }
 
     while( (type = get(impl, NAME_argumentType, toInt(argc+1), 0)) &&
 	   argc < MAX_ARGS )
@@ -351,6 +365,7 @@ fillArgumentsAndExecuteKeyBinding(KeyBinding kb,
   { if ( cmd != NAME_digitArgument &&
 	 cmd != NAME_universalArgument &&
 	 cmd != NAME_keyboardQuit &&
+	 cmd != NAME_quotedInsert &&
 	 cmd != NAME_prefix )
       errorPce(receiver, NAME_noTextBehaviour, cmd);
   }
@@ -382,7 +397,8 @@ makeClassKeyBinding(Class class)
 	     "Currently parsed prefix");
   localClass(class, NAME_argument, NAME_argument, "[int]", NAME_get,
 	     "Universal (numerical) argument");
-  localClass(class, NAME_status, NAME_event, "{universal_argument}*",
+  localClass(class, NAME_status, NAME_event,
+	     "{universal_argument,quoted_insert}*",
 	     NAME_none, "Internal flag");
   localClass(class, NAME_savedColumn, NAME_caret, "int*", NAME_get,
 	     "Saved {next_line,previous_line} column");
@@ -495,6 +511,7 @@ static kbDef emacs_special[] =
 
   { "\\C-c",		NAME_prefix },
   { "\\C-g",		NAME_keyboardQuit },
+  { "\\C-q",		NAME_quotedInsert },
   { "\\C-x",		NAME_prefix },
   { "\\e",		NAME_prefix },
 
@@ -593,6 +610,7 @@ static kbDef list_browser[] =
 { { SUPER,		NAME_insert },
 
   { "\\C-g",		NAME_keyboardQuit },
+  { "\\e",		NAME_keyboardQuit },
   { "RET",		NAME_enter },
   { "LFD",		NAME_enter },
   { "DEL",		NAME_backwardDeleteChar },
@@ -619,7 +637,6 @@ static kbDef editor[] =
 
   { "\\C-@",		NAME_setMark },
   { "LFD", 		NAME_newlineAndIndent },
-  { "\\C-q", 		NAME_quotedInsert },
   { "\\C-r", 		NAME_isearchBackward },
   { "\\C-s", 		NAME_isearchForward },
   { "\\C-w",		NAME_killOrGrabRegion },

@@ -191,7 +191,7 @@ frame_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       HBRUSH hbrush;
       
       rgb = GetNearestColor(hdc, rgb);
-      hbrush = CreateSolidBrush(rgb);
+      hbrush = ZCreateSolidBrush(rgb);
       GetClipBox(hdc, &rect);
       FillRect(hdc, &rect, hbrush);
       ZDeleteObject(hbrush);
@@ -291,12 +291,32 @@ frame_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
     }
 
     case WM_DESTROY:
-      if ( getHwndFrame(fr) )
+    { HWND hwnd = getHwndFrame(fr);
+
+      DEBUG(NAME_window, Cprintf("WM_DESTROY on %s, hwnd 0x%x\n",
+				 pp(fr), hwnd)); 
+      if ( hwnd )
       { setHwndFrame(fr, 0);
 	freeObject(fr);
       }
 
       return 0;
+    }
+
+#if 0
+    case WM_PARENTNOTIFY:
+    { int  fwEvent = LOWORD(wParam);
+      HWND child   = HIWORD(wParam);
+
+      if ( fwEvent == WM_DESTROY )
+      { DEBUG(NAME_window, Cprintf("%s: child 0x%x destroyed\n",
+				   pp(fr), hwnd));
+	return 0;
+      }
+
+      break;
+    }
+#endif
   }
 
   return DefWindowProc(hwnd, message, wParam, lParam);
@@ -803,7 +823,7 @@ ws_image_of_frame(FrameObj fr)
     image = answerObject(ClassImage, NIL,
 			 toInt(w), toInt(h), NAME_pixmap, 0);
     assign(image, display, fr->display);
-    bm = CreateCompatibleBitmap(hdc, w, h);
+    bm = ZCreateCompatibleBitmap(hdc, w, h);
     hdcimg = CreateCompatibleDC(hdc);
     obm = SelectObject(hdcimg, bm);
 

@@ -134,16 +134,30 @@ predicate(Spec, Module:Pred/Arity) :-
 	    functor(Head, Pred, Arity)
 	).
 		
+method(->(Receiver, Selector), Method) :- !,
+	(   atom(Receiver)
+	->  get(@pce, convert, Receiver, class, Class),
+	    get(Class, send_method, Selector, Method)
+	;   object(Receiver)
+	->  get(Receiver, send_method, Selector, tuple(_, Method))
+	).
+method(<-(Receiver, Selector), Method) :- !,
+	(   atom(Receiver)
+	->  get(@pce, convert, Receiver, class, Class),
+	    get(Class, get_method, Selector, Method)
+	;   object(Receiver)
+	->  get(Receiver, get_method, Selector, tuple(_, Method))
+	).
+method((Receiver-Selector), Method) :- !,
+	(   atom(Receiver)
+	->  get(@pce, convert, Receiver, class, Class),
+	    get(Class, instance_variable, Selector, Method)
+	;   get(Receiver, attribute, Method)
+	->  true
+	;   get(Receiver, class, Class),
+	    get(Class, instance_variable, Selector, Method)
+	).
 
-method((ClassName->Selector), Method) :- !,
-	get(@pce, convert, ClassName, class, Class),
-	get(Class, send_method, Selector, Method).
-method((ClassName<-Selector), Method) :- !,
-	get(@pce, convert, ClassName, class, Class),
-	get(Class, get_method, Selector, Method).
-method((ClassName-Selector), Method) :- !,
-	get(@pce, convert, ClassName, class, Class),
-	get(Class, instance_variable, Selector, Method).
 
 trace_feedback(OnOff, Obj) :-
 	get(Obj?context, name, ClassName),

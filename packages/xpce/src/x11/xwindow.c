@@ -419,6 +419,26 @@ ws_ungrab_all()
   }
 }
 
+
+void
+ws_flash_window(PceWindow sw, int msecs)
+{ if ( sw->displayed == ON )
+  { int w = valInt(sw->area->w);
+    int h = valInt(sw->area->h);
+
+    d_offset(0, 0);
+    d_window(sw, 0, 0, w, h, FALSE, FALSE);
+
+    r_complement(0, 0, w, h);
+    d_flush();
+    msleep(msecs);
+    r_complement(0, 0, w, h);
+    d_flush();
+
+    d_done();
+  }
+}
+
 		 /*******************************
 		 *	      POINTER		*
 		 *******************************/

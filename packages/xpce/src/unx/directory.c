@@ -296,7 +296,7 @@ static FileObj
 getFileDirectory(Directory d, Name name)
 { char *fn = strName(name);
 
-  if ( fn[0] == '/' || fn[0] == '~' )
+  if ( isAbsolutePath(fn) )
     answer(answerObject(ClassFile, name, 0));
   else
   { char buf[MAXPATHLEN];
@@ -312,7 +312,7 @@ static Directory
 getDirectoryDirectory(Directory d, Name name)
 { char *dn = strName(name);
 
-  if ( dn[0] == '/' || dn[0] == '~' )
+  if ( isAbsolutePath(dn) )
     answer(answerObject(ClassDirectory, name, 0));
 
   if ( streq(dn, "..") )
@@ -671,8 +671,12 @@ expandFileName(char *pattern)
       }
       value = fredLogin;
 #else
+#if __WIN32__
+      value = "/";			/* ~/bla --> /bla */
+#else
       ExpandProblem = CtoName("Unknown user");
       return NULL;
+#endif
 #endif /*HAVE_PWD_H*/
     }	  
     size += (l = (int) strlen(value));

@@ -303,8 +303,9 @@ NewClass(slider)
   FontObj    value_font;		/* Font of the value */
   Bool	     show_label;		/* Display the label */
   Bool	     show_value;		/* Display the value numerical */
-  Int	     low;
-  Int	     high;			/* Low and high values */
+  Name	     format;			/* format for the value */
+  Any	     low;
+  Any	     high;			/* Low and high values */
   Int	     width;			/* Width in pixels */
   Bool	     drag;			/* Dragging gives messages */
 End;
@@ -354,6 +355,7 @@ NewClass(popupobj)
   Any	     selected_item;		/* What has been selected? */
   Name	     button;			/* Invoking button */
   Name	     default_item;		/* Initial previewed item */
+  Bool	     show_current;		/* Show current selection? */
 End;
 
 NewClass(menu_bar)
@@ -623,6 +625,7 @@ NewClass(displayobj)
   Size		size;			/* size of the display in pixels */
   Name		address;		/* Display address specification */
   Name		resource_class;		/* Resource class name */
+  HashTable	font_table;		/* Table holding font-mappings */
   Chain		frames;			/* Created frames on this display */
   Chain		inspect_handlers;	/* Event-handlers for inspector */
   Colour	foreground;		/* Window default foreground */
@@ -857,8 +860,10 @@ GLOBAL Colour BLACK_COLOUR;
 GLOBAL Colour WHITE_COLOUR;
 
 GLOBAL Image CYCLE_IMAGE;		/* image of a cycle */
-GLOBAL Image MARK_IMAGE;		/* images for toggle and choice */
+GLOBAL Image MARK_IMAGE;		/* images for toggle and marked */
 GLOBAL Image NOMARK_IMAGE;
+GLOBAL Image MS_MARK_IMAGE;		/* MS images for toggle and marked */
+GLOBAL Image MS_NOMARK_IMAGE;
 GLOBAL Image PULLRIGHT_IMAGE;		/* Popup menu pullright marker */
 GLOBAL Image MARK_HANDLE_IMAGE;		/* connect_gesture */
 

@@ -249,10 +249,10 @@ make_proto_menu(Menu, Proto, Attribute, Values) :-
 	),
 	(   member(Value, Values),
 		send(Proto, Attribute, Value),
-		new(Bm, bitmap(image(@nil, 30, 16, Kind))),
-		send(Bm, draw_in, @menu_proto_box),
-		send(Bm, draw_in, Proto),
-		send(Menu, append, menu_item(Value, @default, Bm)),
+		new(I, image(@nil, 30, 16, Kind)),
+		send(I, draw_in, @menu_proto_box),
+		send(I, draw_in, Proto),
+		send(Menu, append, menu_item(Value, @default, I)),
 		fail
 	;   true
 	).

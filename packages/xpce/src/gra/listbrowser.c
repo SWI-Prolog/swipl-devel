@@ -20,8 +20,6 @@ static status executeSearchListBrowser(ListBrowser);
 static status forwardListBrowser(ListBrowser, DictItem, Name);
 static status deselectListBrowser(ListBrowser, DictItem);
 static status showLabelListBrowser(ListBrowser, Bool);
-static status setSelectionListBrowser(ListBrowser, DictItem);
-static status toggleSelectionListBrowser(ListBrowser, DictItem);
 static status openListBrowser(ListBrowser, DictItem);
 static status selectListBrowser(ListBrowser, DictItem);
 static status scrollUpListBrowser(ListBrowser, Int);
@@ -536,6 +534,24 @@ fetch_list_browser(Any obj, TextChar tc)
   return current_index;
 }
 
+static void
+rewind_list_browser(Any obj)
+{ ListBrowser lb = (ListBrowser) obj;
+  DictItem di;
+
+  assign(lb, start, normalise_index(lb, lb->start));
+
+  if ( isNil(lb->start_cell) ||
+       !isProperObject((di = lb->start_cell->value)) ||
+       di->index != lb->start )
+    lb->start_cell = find_cell_dict(lb->dict, lb->start);
+
+  current_cell = lb->start_cell;
+  current_item = valInt(lb->start);
+  current_dict = lb->dict;
+  compute_current(lb);
+}
+
 
 static SeekFunction
 getSeekFunctionListBrowser(ListBrowser lb)
@@ -563,6 +579,13 @@ getMarginFunctionListBrowser(ListBrowser lb)
 }
 
 
+static RewindFunction
+getRewindFunctionListBrowser(ListBrowser lb)
+{ answer(rewind_list_browser);
+}
+
+
+
 		/********************************
 		*            REDRAW		*
 		********************************/
@@ -570,21 +593,7 @@ getMarginFunctionListBrowser(ListBrowser lb)
 static status
 computeListBrowser(ListBrowser lb)
 { if ( notNil(lb->request_compute) )
-  { DictItem di;
-
-    assign(lb, start, normalise_index(lb, lb->start));
-
-    if ( isNil(lb->start_cell) ||
-	 !isProperObject((di = lb->start_cell->value)) ||
-	 di->index != lb->start )
-      lb->start_cell = find_cell_dict(lb->dict, lb->start);
-
-    current_cell = lb->start_cell;
-    current_item = valInt(lb->start);
-    current_dict = lb->dict;
-    compute_current(lb);
-
-    computeTextImage(lb->image);
+  { computeTextImage(lb->image);
     requestComputeGraphical(lb->scroll_bar, DEFAULT); /* TBD: where to put? */
     return computeDevice(lb);
   }
@@ -821,8 +830,7 @@ enterListBrowser(ListBrowser lb)
 
   TRY( notNil(lb->dict) && (di=getFindIndexDict(lb->dict, lb->search_hit)) );
 
-  cancelSearchListBrowser(lb);
-  setSelectionListBrowser(lb, di);
+  send(lb, NAME_changeSelection, NAME_set, di, 0);
   forwardListBrowser(lb, di, NAME_left);
   openListBrowser(lb, di);
 
@@ -870,11 +878,6 @@ eventListBrowser(ListBrowser lb, EventObj ev)
   if ( isAEvent(ev, NAME_keyboard) )
     return send(lb, NAME_typed, getIdEvent(ev), 0);
 
-/*
-  if ( isAEvent(ev, NAME_areaEnter) )
-    return send(lb, NAME_keyboardFocus, 0);
-*/
-
   if ( isAEvent(ev, NAME_button) )
   { DictItem di = getDictItemListBrowser(lb, ev);
 
@@ -887,22 +890,23 @@ eventListBrowser(ListBrowser lb, EventObj ev)
     } else if ( isAEvent(ev, NAME_msLeftDown) ||
 	        isAEvent(ev, NAME_msMiddleDown) )
     { if ( di == FAIL )
-	return clearSelectionListBrowser(lb);
-
+      { send(lb, NAME_changeSelection, NAME_clear, 0);
+	succeed;
+      }
 					  /* Single selection selection */
       if ( lb->multiple_selection == OFF )
       { Name multi = getMulticlickEvent(ev);
 
-	if ( equalName(multi, NAME_single) )
-	{ setSelectionListBrowser(lb, di);
+	if ( multi == NAME_single )
+	{ send(lb, NAME_changeSelection, NAME_set, di, 0);
 	  return forwardListBrowser(lb, di, getButtonEvent(ev));
-	} if ( equalName(multi, NAME_double) )
+	} if ( multi == NAME_double )
 	  return openListBrowser(lb, di);
       } else				/* Multiple selection */
       { if ( hasModifierEvent(ev, findGlobal(NAME_ModifierShift)) )
-	  toggleSelectionListBrowser(lb, di);
+	  send(lb, NAME_changeSelection, NAME_toggle, di, 0);
         else
-	  setSelectionListBrowser(lb, di);
+	  send(lb, NAME_changeSelection, NAME_set, di, 0);
 
 	return forwardListBrowser(lb, di, getButtonEvent(ev));
       }
@@ -919,6 +923,7 @@ eventListBrowser(ListBrowser lb, EventObj ev)
 static status
 forwardListBrowser(ListBrowser lb, DictItem di, Name button)
 { Code msg = NIL;
+  Bool val = selectedListBrowser(lb, di) ? ON : OFF;
 
   if ( button == NAME_middle )
   { if ( notNil(lb->select_middle_message) )
@@ -931,30 +936,31 @@ forwardListBrowser(ListBrowser lb, DictItem di, Name button)
   }
 
   if ( notNil(msg) )
-    forwardReceiverCode(msg, lbReceiver(lb), di, 0);
+    forwardReceiverCode(msg, lbReceiver(lb), di, val, 0);
 
   succeed;
 }
 
 
 static status
-setSelectionListBrowser(ListBrowser lb, DictItem di)
+changeSelectionListBrowser(ListBrowser lb, Name action, DictItem di)
 { cancelSearchListBrowser(lb);
-  clearSelectionListBrowser(lb);
-  selectListBrowser(lb, di);
 
-  succeed;
-}
+  if ( action != NAME_clear && isDefault(di) )
+    return errorPce(di, NAME_unexpectedType, nameToType(NAME_dictItem));
 
-
-static status
-toggleSelectionListBrowser(ListBrowser lb, DictItem di)
-{ cancelSearchListBrowser(lb);
-  if ( selectedListBrowser(lb, di) )
-    deselectListBrowser(lb, di);
-  else
+  if ( action == NAME_set )
+  { clearSelectionListBrowser(lb);
     selectListBrowser(lb, di);
-    
+  } else if ( action == NAME_toggle )
+  { if ( selectedListBrowser(lb, di) )
+      deselectListBrowser(lb, di);
+    else
+      selectListBrowser(lb, di);
+  } else /* clear */
+  { clearSelectionListBrowser(lb);
+  }
+
   succeed;
 }
 
@@ -1315,6 +1321,12 @@ getMemberListBrowser(ListBrowser lb, Any key)
 }
 
 
+static status
+referenceListBrowser(ListBrowser lb, Point ref)
+{ return referenceGraphical((Graphical) lb, ref);
+}
+
+
 		/********************************
 		*             VISUAL		*
 		********************************/
@@ -1490,7 +1502,10 @@ makeClassListBrowser(Class class)
   sendMethod(class, NAME_deselect, NAME_selection, 1, "member:dict_item",
 	     "Unselect (remove from selection) item",
 	     deselectListBrowser);
-
+  sendMethod(class, NAME_changeSelection, NAME_selection, 2,
+	     "action={set,toggle,clear}", "context=[dict_item]",
+	     "Hook in selection management",
+	     changeSelectionListBrowser);
   sendMethod(class, NAME_insertSelf, NAME_search, 2,
 	     "times=[int]", "character=[char]",
 	     "Start/Continue incremental search",
@@ -1516,6 +1531,9 @@ makeClassListBrowser(Class class)
   sendMethod(class, NAME_repeatSearch, NAME_search, 0,
 	     "Repeat with same string",
 	     repeatSearchListBrowser);
+  sendMethod(class, NAME_reference, NAME_dialogItem, 1, "point",
+	     "Set reference as dialog_item",
+	     referenceListBrowser);
 
   getMethod(class, NAME_selection, DEFAULT, "chain|dict_item", 0,
 	    "Current value of selection",
@@ -1535,9 +1553,12 @@ makeClassListBrowser(Class class)
   getMethod(class, NAME_FetchFunction, NAME_internal, "alien:FetchFunction", 0,
 	    "Pointer to C-function to fetch char",
 	    getFetchFunctionListBrowser);
-  getMethod(class, NAME_MarginFunction, NAME_internal, "alien:MarginFunction",0,
+  getMethod(class, NAME_MarginFunction, NAME_internal,"alien:MarginFunction",0,
 	    "Pointer to C-function to fetch margins",
 	    getMarginFunctionListBrowser);
+  getMethod(class, NAME_RewindFunction, NAME_internal,"alien:RewindFunction",0,
+	    "Pointer to C-function to rewind object",
+	    getRewindFunctionListBrowser);
   getMethod(class, NAME_contains, DEFAULT, "chain", 0,
 	    "Dict visualised",
 	    getContainsListBrowser);
@@ -1566,7 +1587,7 @@ makeClassListBrowser(Class class)
 
   attach_resource(class, "size",  	 "size",      "size(15,10)",
 		  "Default size in `characters x lines'");
-  attach_resource(class, "font",   	 "font",      "@helvetica_roman_14",
+  attach_resource(class, "font",   	 "font",      "normal",
 		  "Default font");
   attach_resource(class, "cursor", 	 "cursor",    "right_ptr",
 		  "Default cursor");
@@ -1574,7 +1595,7 @@ makeClassListBrowser(Class class)
 		  "@on: clear selection when searching");
   attach_resource(class, "search_ignore_case",        "bool", "@on",
 		  "@on: ignore case when searching");
-  attach_resource(class, "label_font", "font", "@helvetica_bold_14",
+  attach_resource(class, "label_font", "font", "bold",
 		  "Font used to display the label");
   attach_resource(class, "selection_style", "[style]",
 		  "@default", "Style object for <-selection");

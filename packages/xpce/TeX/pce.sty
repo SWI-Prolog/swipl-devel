@@ -1,12 +1,33 @@
 %			PCE DOCUMENTATION STYLE
 
-\newcommand{\pceversion}{4.8.0, April 1994}
+\newcommand{\pceversion}{4.8.14, October 1995}
+
+%	Other styles
+
+\input local.sty
+\input psfig.sty
+\input logo.sty
+\input fancyheadings.sty
+\input fancychap.sty
 
 \catcode`\@=11\relax
 
 \catcode`\^^A=8% downarrow are for subscripts
 \catcode`\_=\active
 \def_{\ifmmode\else\_\fi}
+\def\vobeyspaces{\@vobeyspaces}
+
+%	References
+
+\newcommand{\secref}[1]{section~\ref{sec:#1}}
+\newcommand{\chapref}[1]{chapter~\ref{sec:#1}}
+\newcommand{\figref}[1]{figure~\ref{fig:#1}}
+\newcommand{\tabref}[1]{table~\ref{tab:#1}}
+
+\newcommand{\Secref}[1]{Section~\ref{sec:#1}}
+\newcommand{\Chapref}[1]{Chapter~\ref{sec:#1}}
+\newcommand{\Figref}[1]{Figure~\ref{fig:#1}}
+\newcommand{\Tabref}[1]{Table~\ref{tab:#1}}
 
 
 \newlength{\arrowwidth}
@@ -31,6 +52,8 @@
 
 \newcommand{\definition}[1]{%
 	\item[\mbox{#1}]\mbox{}\\}
+
+\newcommand{\emptydescription}{\vspace{-.8cm}}
 
 \newcommand{\directive}[3]{%
 	\definition{:- #1(\it #3)}%
@@ -58,7 +81,7 @@
 	\index{#2()}\label{func:#2}\relax}
 
 \renewcommand{\arg}[1]{{\em #1}}
-\newcommand{\bnfmeta}[1]{$<$#1$>$}
+\newcommand{\bnfmeta}[1]{$<${\it #1}$>$}
 
 \newcommand{\class}[1]{{\em #1}\index{#1 \string\idxtype{class}}}
 \newcommand{\file}[1]{{\tt #1}\index{#1 \string\idxtype{file}}}
@@ -114,6 +137,32 @@
 	    \label{fig:#1}
 	\end{figure}}
 
+
+%	PAGESTYLE PCE
+%
+%       Chapter                            date
+%       ---------------------------------------
+%
+%	bla, bla, bla, ...
+%	
+%       \bottomleft    - page -    \bottomright
+
+\def\arabicday{\number\year-\number\month-\number\day}
+\def\ps@pce{\let\@mkboth\markboth
+\def\@oddfoot{\makebox[0pt][l]{\sl \bottomleft} \hfil
+		-- \thepage\ -- \hfil
+	      \makebox[0pt][r]{\sl \bottomright}}%
+\def\@evenfoot{\makebox[0pt][l]{\sl \bottomleft} \hfil
+		-- \thepage\ -- \hfil
+	      \makebox[0pt][r]{\sl \bottomright}}%
+\def\@oddhead{\parbox{\textwidth}{%
+	    \makebox[\textwidth]{\rightmark \hfill \rm\arabicday}
+	    \vspace{-7pt}\hrule}}%
+\def\@evenhead{\parbox{\textwidth}{%
+	    \makebox[\textwidth]{\rightmark \hfill \rm\arabicday}
+	    \vspace{-7pt}\hrule}}%
+\def\chaptermark##1{\markright {\uppercase{\ifnum \c@secnumdepth >\m@ne
+  \@chapapp\ \thechapter. \ \fi ##1}}}}
 
 %	Turn @ into a symbol
 

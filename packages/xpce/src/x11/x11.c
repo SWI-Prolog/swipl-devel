@@ -59,3 +59,9 @@ ws_console_label(CharArray label)
 
   succeed;
 }
+
+
+Int
+ws_default_scrollbar_width()
+{ return toInt(16);
+}

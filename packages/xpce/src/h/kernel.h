@@ -117,7 +117,7 @@ typedef void			(*atexit_function)(void);
 		********************************/
 
 #undef assert
-#ifdef NDEBUG
+#ifdef NOASSERT
 #define assert(expr) ((void)0)
 #else
 #define assert(expr) ((expr) ? (void)0 : \
@@ -545,15 +545,9 @@ extern struct name builtin_names[];	/* object-array of built-in's */
 #define succeed		return SUCCEED
 #define answer(v)	return (v)
 
-#define DONE(goal)	{ if ( (status) (goal) == SUCCEED ) \
-			    succeed; \
-			}
-#define TRY(goal)	{ if ( (status) (goal) == FAIL ) \
-			    fail; \
-			}
-#define EXISTS(object)	{ if ( isNil(object) ) \
-			    fail; \
-			}
+#define DONE(goal)	if ( (status) (goal) ) succeed
+#define TRY(goal)	if ( !((status) (goal)) ) fail
+#define EXISTS(object)	if ( isNil(object) ) fail
 
 
 		/********************************
@@ -1528,9 +1522,9 @@ GLOBAL int	qsortReverse;		/* used by qsortCompareObjects() */
 #define NormaliseArea(x,y,w,h)	OrientateArea(x,y,w,h,NAME_northWest)
 
 #ifndef O_RUNTIME
-#define DEBUG(subject, goal)	{ if ( PCEdebugging && \
-				       memberChain(PCEdebugSubjects, subject) \
-								== SUCCEED ) \
+#define DEBUGGING(subject)	( PCEdebugging && \
+				  memberChain(PCEdebugSubjects, subject) )
+#define DEBUG(subject, goal)	{ if ( DEBUGGING(subject) ) \
 				  { goal; \
 				  } \
 				}

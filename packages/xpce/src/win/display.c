@@ -31,6 +31,7 @@ initialiseDisplay(DisplayObj d, Name address, Name resource_class)
   assign(d, size,        	NIL);
   assign(d, address,     	address);
   assign(d, resource_class,    	resource_class);
+  assign(d, font_table,		newObject(ClassHashTable, 0));
   assign(d, frames,	 	newObject(ClassChain, 0));
   assign(d, inspect_handlers,	newObject(ClassChain, 0));
   assign(d, foreground,	 	DEFAULT);
@@ -728,6 +729,104 @@ quitDisplay(DisplayObj d)
 }
 
 		/********************************
+		*          FONT TABLES		*
+		********************************/
+
+static status
+loadFontFamilyDisplay(DisplayObj d, Name fam)
+{ Class class = classOfObject(d);
+
+  if ( !getResourceClass(class, fam) )
+    attach_resource(class, strName(fam), "chain", "[]", "Font family set");
+
+  if ( !getResourceValueObject(d, fam) )
+    return errorPce(d, NAME_noFontsInFamily, fam);
+
+  succeed;
+} 
+
+
+static status
+loadFontsDisplay(DisplayObj d)
+{ Chain fams;
+  static int done = FALSE;
+
+  if ( done )
+    succeed;
+  done = TRUE;
+
+  if ( (fams = getResourceValueObject(d, NAME_fontFamilies)) )
+  { Cell cell;
+
+    for_cell(cell, fams)
+      send(d, NAME_loadFontFamily, cell->value, 0);
+  }
+
+  succeed;
+}
+
+
+static status
+loadFontAliasesDisplay(DisplayObj d, Name res)
+{ Chain ch = getResourceValueObject(d, res);
+
+  if ( ch )
+  { Cell cell;
+    Type type_font = nameToType(NAME_font);
+
+    for_cell(cell, ch)
+    { Name name;
+      FontObj font;
+      Any n, f;
+
+      if ( instanceOfObject(cell->value, ClassBinding) )
+      { Binding b = cell->value;
+	n = b->name;
+	f = b->value;
+      } else if ( instanceOfObject(cell->value, ClassTuple) )
+      { Tuple t = cell->value;
+	n = t->first;
+	f = t->second;
+      } else if ( instanceOfObject(cell->value, ClassAttribute) )
+      { Attribute a = cell->value;
+	n = a->name;
+	f = a->value;
+      } else
+      { errorPce(cell->value, NAME_unexpectedType,
+		 CtoType(":=|tuple|attribute"));
+	continue;
+      }
+
+      if ( !(name = checkType(n, TypeName, d)) ||
+	   !(font = checkType(f, type_font, d)) )
+	errorPce(d, NAME_badFontAlias, n, f);
+      else
+	send(d, NAME_fontAlias, name, font, 0);
+    }
+
+    succeed;
+  }
+
+  fail;
+}
+
+
+static status
+fontAliasDisplay(DisplayObj d, Name name, FontObj font, Bool force)
+{ if ( force == ON || !getMemberHashTable(d->font_table, name) )
+    appendHashTable(d->font_table, name, font);
+
+  succeed;
+}
+
+
+static FontObj
+getFontAliasDisplay(DisplayObj d, Name name)
+{ answer(getMemberHashTable(d->font_table, name));
+}
+
+
+		/********************************
 		*             VISUAL		*
 		********************************/
 
@@ -755,6 +854,8 @@ makeClassDisplay(Class class)
 	     "Host/screen on which display resides");
   localClass(class, NAME_resourceClass, NAME_resource, "name", NAME_get,
 	     "Resource class of display [Pce]");
+  localClass(class, NAME_fontTable, NAME_font, "hash_table", NAME_both,
+	     "Mapping for logical font-names to fonts");
   localClass(class, NAME_frames, NAME_organisation, "chain", NAME_get,
 	     "Frames displayed on this display");
   localClass(class, NAME_inspectHandlers, NAME_event, "chain", NAME_get,
@@ -857,15 +958,23 @@ makeClassDisplay(Class class)
 	     "loose=[code]",
 	     "Define the owner of the X11 selection",
 	     selectionOwnerDisplay);
+  sendMethod(class, NAME_quit, NAME_quit, 0,
+	     "Destroy all window-system references",
+	     quitDisplay);
+
   sendMethod(class, NAME_loadFonts, NAME_font, 0,
 	     "Create predefined font set from resources",
 	     loadFontsDisplay);
   sendMethod(class, NAME_loadFontFamily, NAME_font, 1, "family=name",
 	     "Create predefined fonts from family",
 	     loadFontFamilyDisplay);
-  sendMethod(class, NAME_quit, NAME_quit, 0,
-	     "Destroy all window-system references",
-	     quitDisplay);
+  sendMethod(class, NAME_loadFontAliases, NAME_font, 1, "resource=name",
+	     "Load font aliases from named resource",
+	     loadFontAliasesDisplay);
+  sendMethod(class, NAME_fontAlias, NAME_font, 3,
+	     "name=name", "font=font", "force=[bool]",
+	     "Define a logical name for a font",
+	     fontAliasDisplay);
 
   getMethod(class, NAME_size, NAME_dimension, "size", 0,
 	    "Size of the display",
@@ -920,6 +1029,9 @@ makeClassDisplay(Class class)
   getMethod(class, NAME_connectionFd, NAME_host, "int", 0,
 	    "Unix file descriptor for X-display connection",
 	    getConnectionFdDisplay);
+  getMethod(class, NAME_fontAlias, NAME_font, "font", 1, "name=name",
+	     "Lookup logical name",
+	     getFontAliasDisplay);
 
   initClass(class);
 					/* set up the displays */
@@ -929,11 +1041,23 @@ makeClassDisplay(Class class)
 	       newObject(ClassObtain, TheDisplay, NAME_depth, 0),
 	       ONE, 0);
 
-  attach_resource(class, "label_font",	   "font",    "@helvetica_bold_14",
+  attach_resource(class, "label_font",	   "font",    "bold",
 		  "Label font for confirm/inform");
-  attach_resource(class, "value_font",     "font",    "@helvetica_roman_14",
+  attach_resource(class, "value_font",     "font",    "normal",
 		  "Text font for confirm/inform");
-  attach_resource(class, "no_font",	   "font",    "@screen_roman_13",
+  attach_resource(class, "system_fonts", "chain",
+		  "[ normal    := font(helvetica, roman, 12),\n"
+		  "  bold      := font(helvetica, bold, 12),\n"
+		  "  italic    := font(helvetica, oblique, 12),\n"
+		  "  small     := font(helvetica, roman, 10),\n"
+		  "  large     := font(helvetica, roman, 14),\n"
+		  "  boldlarge := font(helvetica, bold, 14),\n"
+		  "  huge      := font(helvetica, roman, 18),\n"
+		  "  boldhuge  := font(helvetica, bold, 18),\n"
+		  "  fixed     := font(screen, roman, 13)\n"
+		  "]",
+		  "Predefined font-aliases");
+  attach_resource(class, "no_font",	   "font",    "fixed",
 		  "Replacement for undefined fonts");
   attach_resource(class, "graphics_cache", "[size]",  "@default",
 		  "Size of cache image to avoid flickering");
@@ -964,127 +1088,139 @@ makeClassDisplay(Class class)
   succeed;
 }
   
+
+#ifdef __WINDOWS__
+#define PFONT(n, p, x) { n, p }
+#define ENDFONTLIST    { NULL, 0 }
+#else
+#define PFONT(n, p, x) { n, p, x }
+#define ENDFONTLIST    { NULL, 0, NULL}
+#endif
+
 typedef struct
 { Name style;
   int  points;
+#ifndef __WINDOWS__
   char *xname;
+#endif
 } fontdef, *FontDef;
 
+
 static fontdef screen_fonts[] =
-{ { NAME_roman,	10,	"6x10" },
-  { NAME_roman,	12,	"6x12" },
-  { NAME_roman,	13,	"8x13" },
-  { NAME_roman,	14,	"7x14" },
-  { NAME_roman,	15,	"9x15" },
-  { NAME_bold,	13,	"8x13bold" },
-  { NAME_bold,	14,	"7x14bold" },
-  { NAME_bold,	15,	"9x15bold" },
-  { NULL,	0,	NULL }
+{ PFONT(NAME_roman, 10, "6x10"),
+  PFONT(NAME_roman, 12, "6x12"),
+  PFONT(NAME_roman, 13, "8x13"),
+  PFONT(NAME_roman, 14, "7x14"),
+  PFONT(NAME_roman, 15, "9x15"),
+  PFONT(NAME_bold,  13, "8x13bold"),
+  PFONT(NAME_bold,  14, "7x14bold"),
+  PFONT(NAME_bold,  15, "9x15bold"),
+  ENDFONTLIST
 };
 
 
 static fontdef courier_fonts[] =
-{ { NAME_roman, 10,
-      "-adobe-courier-medium-r-normal--10-100-75-75-m-60-iso8859-1" },
-  { NAME_roman,	12,
-      "-adobe-courier-medium-r-normal--12-120-75-75-m-70-iso8859-1" },
-  { NAME_roman,	14,
-      "-adobe-courier-medium-r-normal--14-140-75-75-m-90-iso8859-1" },
-  { NAME_roman,	18,
-      "-adobe-courier-medium-r-normal--18-180-75-75-m-110-iso8859-1" },
-  { NAME_roman,	24,
-      "-adobe-courier-medium-r-normal--24-240-75-75-m-150-iso8859-1" },
-  { NAME_bold,	10,
-      "-adobe-courier-bold-r-normal--10-100-75-75-m-60-iso8859-1" },
-  { NAME_bold,	12,
-      "-adobe-courier-bold-r-normal--12-120-75-75-m-70-iso8859-1" },
-  { NAME_bold,	14,
-      "-adobe-courier-bold-r-normal--14-140-75-75-m-90-iso8859-1" },
-  { NAME_bold,	18,
-      "-adobe-courier-bold-r-normal--18-180-75-75-m-110-iso8859-1" },
-  { NAME_bold,	24,
-      "-adobe-courier-bold-r-normal--24-240-75-75-m-150-iso8859-1" },
-  { NAME_oblique,	10,
-      "-adobe-courier-medium-o-normal--10-100-75-75-m-60-iso8859-1" },
-  { NAME_oblique,	12,
-      "-adobe-courier-medium-o-normal--12-120-75-75-m-70-iso8859-1" },
-  { NAME_oblique,	14,
-      "-adobe-courier-medium-o-normal--14-140-75-75-m-90-iso8859-1" },
-  { NAME_oblique,	18,
-      "-adobe-courier-medium-o-normal--18-180-75-75-m-110-iso8859-1" },
-  { NAME_oblique,	24,
-      "-adobe-courier-medium-o-normal--24-240-75-75-m-150-iso8859-1" },
-  { NULL, 0, NULL }   
+{ PFONT(NAME_roman, 10,
+	"-adobe-courier-medium-r-normal--10-100-75-75-m-60-iso8859-1"),
+  PFONT(NAME_roman, 12,
+	"-adobe-courier-medium-r-normal--12-120-75-75-m-70-iso8859-1"),
+  PFONT(NAME_roman, 14,
+	"-adobe-courier-medium-r-normal--14-140-75-75-m-90-iso8859-1"),
+  PFONT(NAME_roman, 18,
+	"-adobe-courier-medium-r-normal--18-180-75-75-m-110-iso8859-1"),
+  PFONT(NAME_roman, 24,
+	"-adobe-courier-medium-r-normal--24-240-75-75-m-150-iso8859-1"),
+  PFONT(NAME_bold, 10,
+	"-adobe-courier-bold-r-normal--10-100-75-75-m-60-iso8859-1"),
+  PFONT(NAME_bold, 12,
+	"-adobe-courier-bold-r-normal--12-120-75-75-m-70-iso8859-1"),
+  PFONT(NAME_bold, 14,
+	"-adobe-courier-bold-r-normal--14-140-75-75-m-90-iso8859-1"),
+  PFONT(NAME_bold, 18,
+	"-adobe-courier-bold-r-normal--18-180-75-75-m-110-iso8859-1"),
+  PFONT(NAME_bold, 24,
+	"-adobe-courier-bold-r-normal--24-240-75-75-m-150-iso8859-1"),
+  PFONT(NAME_oblique, 10,
+	"-adobe-courier-medium-o-normal--10-100-75-75-m-60-iso8859-1"),
+  PFONT(NAME_oblique, 12,
+	"-adobe-courier-medium-o-normal--12-120-75-75-m-70-iso8859-1"),
+  PFONT(NAME_oblique, 14,
+	"-adobe-courier-medium-o-normal--14-140-75-75-m-90-iso8859-1"),
+  PFONT(NAME_oblique, 18,
+	"-adobe-courier-medium-o-normal--18-180-75-75-m-110-iso8859-1"),
+  PFONT(NAME_oblique, 24,
+	"-adobe-courier-medium-o-normal--24-240-75-75-m-150-iso8859-1"),
+  ENDFONTLIST
 };
 
 
 static fontdef helvetica_fonts[] =
-{ { NAME_bold,	10,
-      "-adobe-helvetica-bold-r-normal--10-100-75-75-p-60-iso8859-1" },
-  { NAME_bold,	12,
-      "-adobe-helvetica-bold-r-normal--12-120-75-75-p-70-iso8859-1" },
-  { NAME_bold,	14,
-      "-adobe-helvetica-bold-r-normal--14-140-75-75-p-82-iso8859-1" },
-  { NAME_bold,	18,
-      "-adobe-helvetica-bold-r-normal--18-180-75-75-p-103-iso8859-1" },
-  { NAME_bold,	24,
-      "-adobe-helvetica-bold-r-normal--24-240-75-75-p-138-iso8859-1" },
-  { NAME_roman,	10,
-      "-adobe-helvetica-medium-r-normal--10-100-75-75-p-56-iso8859-1" },
-  { NAME_roman,	12,
-      "-adobe-helvetica-medium-r-normal--12-120-75-75-p-67-iso8859-1" },
-  { NAME_roman,	14,
-      "-adobe-helvetica-medium-r-normal--14-140-75-75-p-77-iso8859-1" },
-  { NAME_roman,	18,
-      "-adobe-helvetica-medium-r-normal--18-180-75-75-p-98-iso8859-1" },
-  { NAME_roman,	24,
-      "-adobe-helvetica-medium-r-normal--24-240-75-75-p-130-iso8859-1" },
-  { NAME_oblique,	10,
-      "-adobe-helvetica-medium-o-normal--10-100-75-75-p-57-iso8859-1" },
-  { NAME_oblique,	12,
-      "-adobe-helvetica-medium-o-normal--12-120-75-75-p-67-iso8859-1" },
-  { NAME_oblique,	14,
-      "-adobe-helvetica-medium-o-normal--14-140-75-75-p-78-iso8859-1" },
-  { NAME_oblique,	18,
-      "-adobe-helvetica-medium-o-normal--18-180-75-75-p-98-iso8859-1" },
-  { NAME_oblique,	24,
-      "-adobe-helvetica-medium-o-normal--24-240-75-75-p-130-iso8859-1" },
-  { NULL, 0, NULL }
+{ PFONT(NAME_bold, 10,
+	"-adobe-helvetica-bold-r-normal--10-100-75-75-p-60-iso8859-1"),
+  PFONT(NAME_bold, 12,
+	"-adobe-helvetica-bold-r-normal--12-120-75-75-p-70-iso8859-1"),
+  PFONT(NAME_bold, 14,
+	"-adobe-helvetica-bold-r-normal--14-140-75-75-p-82-iso8859-1"),
+  PFONT(NAME_bold, 18,
+	"-adobe-helvetica-bold-r-normal--18-180-75-75-p-103-iso8859-1"),
+  PFONT(NAME_bold, 24,
+	"-adobe-helvetica-bold-r-normal--24-240-75-75-p-138-iso8859-1"),
+  PFONT(NAME_roman, 10,
+	"-adobe-helvetica-medium-r-normal--10-100-75-75-p-56-iso8859-1"),
+  PFONT(NAME_roman, 12,
+	"-adobe-helvetica-medium-r-normal--12-120-75-75-p-67-iso8859-1"),
+  PFONT(NAME_roman, 14,
+	"-adobe-helvetica-medium-r-normal--14-140-75-75-p-77-iso8859-1"),
+  PFONT(NAME_roman, 18,
+	"-adobe-helvetica-medium-r-normal--18-180-75-75-p-98-iso8859-1"),
+  PFONT(NAME_roman, 24,
+	"-adobe-helvetica-medium-r-normal--24-240-75-75-p-130-iso8859-1"),
+  PFONT(NAME_oblique, 10,
+	"-adobe-helvetica-medium-o-normal--10-100-75-75-p-57-iso8859-1"),
+  PFONT(NAME_oblique, 12,
+	"-adobe-helvetica-medium-o-normal--12-120-75-75-p-67-iso8859-1"),
+  PFONT(NAME_oblique, 14,
+	"-adobe-helvetica-medium-o-normal--14-140-75-75-p-78-iso8859-1"),
+  PFONT(NAME_oblique, 18,
+	"-adobe-helvetica-medium-o-normal--18-180-75-75-p-98-iso8859-1"),
+  PFONT(NAME_oblique, 24,
+	"-adobe-helvetica-medium-o-normal--24-240-75-75-p-130-iso8859-1"),
+  ENDFONTLIST
 };
 
 
 static fontdef times_fonts[] =
-{ { NAME_roman,	10,
-      "-adobe-times-medium-r-normal--10-100-75-75-p-54-iso8859-1" },
-  { NAME_roman,	12,
-      "-adobe-times-medium-r-normal--12-120-75-75-p-64-iso8859-1" },
-  { NAME_roman,	14,
-      "-adobe-times-medium-r-normal--14-140-75-75-p-74-iso8859-1" },
-  { NAME_roman,	18,
-      "-adobe-times-medium-r-normal--18-180-75-75-p-94-iso8859-1" },
-  { NAME_roman,	24,
-      "-adobe-times-medium-r-normal--24-240-75-75-p-124-iso8859-1" },
-  { NAME_bold,	10,
-      "-adobe-times-bold-r-normal--10-100-75-75-p-57-iso8859-1" },
-  { NAME_bold,	12,
-      "-adobe-times-bold-r-normal--12-120-75-75-p-67-iso8859-1" },
-  { NAME_bold,	14,
-      "-adobe-times-bold-r-normal--14-140-75-75-p-77-iso8859-1" },
-  { NAME_bold,	18,
-      "-adobe-times-bold-r-normal--18-180-75-75-p-99-iso8859-1" },
-  { NAME_bold,	24,
-      "-adobe-times-bold-r-normal--24-240-75-75-p-132-iso8859-1" },
-  { NAME_italic,	10,
-      "-adobe-times-medium-i-normal--10-100-75-75-p-52-iso8859-1" },
-  { NAME_italic,	12,
-      "-adobe-times-medium-i-normal--12-120-75-75-p-63-iso8859-1" },
-  { NAME_italic,	14,
-      "-adobe-times-medium-i-normal--14-140-75-75-p-73-iso8859-1" },
-  { NAME_italic,	18,
-      "-adobe-times-medium-i-normal--18-180-75-75-p-94-iso8859-1" },
-  { NAME_italic,	24,
-      "-adobe-times-medium-i-normal--24-240-75-75-p-125-iso8859-1" },
-  { NULL, 0, NULL }
+{ PFONT(NAME_roman, 10,
+	"-adobe-times-medium-r-normal--10-100-75-75-p-54-iso8859-1"),
+  PFONT(NAME_roman, 12,
+	"-adobe-times-medium-r-normal--12-120-75-75-p-64-iso8859-1"),
+  PFONT(NAME_roman, 14,
+	"-adobe-times-medium-r-normal--14-140-75-75-p-74-iso8859-1"),
+  PFONT(NAME_roman, 18,
+	"-adobe-times-medium-r-normal--18-180-75-75-p-94-iso8859-1"),
+  PFONT(NAME_roman, 24,
+	"-adobe-times-medium-r-normal--24-240-75-75-p-124-iso8859-1"),
+  PFONT(NAME_bold, 10,
+	"-adobe-times-bold-r-normal--10-100-75-75-p-57-iso8859-1"),
+  PFONT(NAME_bold, 12,
+	"-adobe-times-bold-r-normal--12-120-75-75-p-67-iso8859-1"),
+  PFONT(NAME_bold, 14,
+	"-adobe-times-bold-r-normal--14-140-75-75-p-77-iso8859-1"),
+  PFONT(NAME_bold, 18,
+	"-adobe-times-bold-r-normal--18-180-75-75-p-99-iso8859-1"),
+  PFONT(NAME_bold, 24,
+	"-adobe-times-bold-r-normal--24-240-75-75-p-132-iso8859-1"),
+  PFONT(NAME_italic, 10,
+	"-adobe-times-medium-i-normal--10-100-75-75-p-52-iso8859-1"),
+  PFONT(NAME_italic, 12,
+	"-adobe-times-medium-i-normal--12-120-75-75-p-63-iso8859-1"),
+  PFONT(NAME_italic, 14,
+	"-adobe-times-medium-i-normal--14-140-75-75-p-73-iso8859-1"),
+  PFONT(NAME_italic, 18,
+	"-adobe-times-medium-i-normal--18-180-75-75-p-94-iso8859-1"),
+  PFONT(NAME_italic, 24,
+	"-adobe-times-medium-i-normal--24-240-75-75-p-125-iso8859-1"),
+  ENDFONTLIST
 };
 
 
@@ -1097,11 +1233,19 @@ default_font_list(Name fam, FontDef defs)
   *s++ = '[';
   
   while(defs->style)
-  { sprintf(s, "font(%s, %s, %d, \"%s\")",
+  {
+#ifdef __WINDOWS__
+    sprintf(s, "font(%s, %s, %d)",
+	    strName(fam),
+	    strName(defs->style),
+	    defs->points);
+#else
+    sprintf(s, "font(%s, %s, %d, \"%s\")",
 	    strName(fam),
 	    strName(defs->style),
 	    defs->points,
 	    defs->xname);
+#endif
     s += strlen(s);
     defs++;
     if ( defs->style )

@@ -506,11 +506,33 @@ getMethodCallsPce(Pce pce)
 
 
 static status
+licenceInfoPce(Pce pce)
+{ Name holder    = getAttributeObject(pce, NAME_licenceHolder);
+  Int  left      = getAttributeObject(pce, NAME_daysToExpiration);
+  Bool nolicence = getAttributeObject(pce, NAME_unlicencedCopy);
+
+  if ( nolicence == ON )
+  { if ( holder )
+      writef("Licence to %s has expired\n", holder);
+    else
+      writef("Unlicenced copy\n");
+  } else if ( holder )
+  { if ( left && valInt(left) < 15 )
+      writef("Licenced to %s, %d days to expiration\n", holder, left);
+    else
+      writef("Licenced to %s\n", holder);
+  }
+
+  succeed;
+}
+
+
+static status
 bannerPce(Pce pce)
 { Name host = get(HostObject(), NAME_system, 0);
 
-#ifdef __WINDOWS__
-  writef("PCE %s (%s for %I%IWindows-NT and Win32S %d.%d)\n",
+#ifdef __WIN32__
+  writef("PCE %s (%s for %I%IWin32: NT, '95 and win32s%I%I)\n",
 #else
   writef("PCE %s (%s for %s-%s and X%dR%d)\n",
 #endif
@@ -528,7 +550,7 @@ bannerPce(Pce pce)
   if ( host != NAME_unknown )
     writef("The host-language is %s\n", host);
 
-  succeed;
+  return licenceInfoPce(pce);
 }
 
 
@@ -654,6 +676,13 @@ getDatePce(Pce pce)
   tmp[24] = '\0';
   answer(CtoString(tmp));
 }
+
+
+static Int
+getMclockPce(Pce pce)
+{ return toInt(mclock());
+}
+
 
 #ifndef HAVE_GETLOGIN
 #define getlogin _emu_getlogin
@@ -1314,6 +1343,9 @@ makeClassPce(Class class)
   getMethod(class, NAME_date, NAME_time, "string", 0,
 	    "Unix's standard time string for now",
 	    getDatePce);
+  getMethod(class, NAME_mclock, NAME_time, "int", 0,
+	    "#Elapsed milliseconds since XPCE was started",
+	    getMclockPce);
   getMethod(class, NAME_fd, NAME_file, "number=int", 0,
 	    "Number of free file descriptors",
 	    getFdPce);
@@ -1387,25 +1419,12 @@ makeClassPce(Class class)
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Reinitialise after restoring from some kind of saved-state
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+		 /*******************************
+		 *	  INITIALISATION	*
+		 *******************************/
 
 export status
-pceReInitialise(int argc, char **argv)
-{ PCEargc = argc;
-  PCEargv = argv;
-
-  if ( PCE->catch_error_signals == ON )
-    catchErrorSignals(ON);
-  ExecuteCalls = 0L;
-
-  succeed;
-}
-
-
-export status
-pceInitialise(int handles, int argc, char **argv)
+pceInitialise(int handles, char *home, int argc, char **argv)
 { AnswerMark mark;
 
   if ( XPCE_initialised )
@@ -1419,6 +1438,7 @@ pceInitialise(int handles, int argc, char **argv)
 
   MaxGoalDepth = PCE_MAX_INT;
   initAnswerStack();
+  initMClock();
 
 #ifndef O_RUNTIME
   PCEdebugging = FALSE;
@@ -1681,6 +1701,8 @@ pceInitialise(int handles, int argc, char **argv)
 #if O_CPLUSPLUS
   initCPlusPlusGlobals();
 #endif
+  if ( home )
+    send(PCE, NAME_home, CtoName(home), 0);
 
   rewindAnswerStack(mark, NIL);
   inBoot = FALSE;
@@ -1688,6 +1710,90 @@ pceInitialise(int handles, int argc, char **argv)
   ws_initialise(argc, argv);
   hostAction(HOST_ATEXIT, run_pce_exit_hooks);
 
+#ifdef O_LICENCE
+  if ( check_licence() != LICENCE_MAGIC )
+    ClassEvent->initialise_method = (SendMethod)0x47;
+#endif
+
   DEBUG_BOOT(Cprintf("Pce initialisation complete.\n"));
   succeed;
 }
+
+		 /*******************************
+		 *	  LICENCE STUFF		*
+		 *******************************/
+
+#ifdef O_LICENCE
+extern void ws_timer();
+
+#ifndef MAXPATHLEN
+#define MAXPATHLEN 1024
+#endif
+
+#undef TEST
+#define check_passwd pceSetup
+#include "../../../licence/licence.c"
+
+
+int
+check_licence()
+{ Name h = get(PCE, NAME_home, 0);
+  char pwdfile[MAXPATHLEN];
+
+  if ( h )
+  { FILE *fd;
+
+    sprintf(pwdfile, "%s/passwd", strName(h));
+
+    if ( (fd = fopen(pwdfile, "r")) )
+    { char holder[100];
+      int left;
+      int ok;
+      
+      holder[0] = EOS;
+
+      switch((left = check_passwd(fd, "xpce", holder)))
+      { case LIC_NONE:
+	case LIC_EXPIRED:
+	{ int rleft;
+
+	  rewind(fd);
+	  switch((rleft = check_passwd(fd, "xpce-runtime", holder)))
+	  { case LIC_NONE:
+	    case LIC_EXPIRED:
+	      rleft = 0;
+	      /* setup runtime stuff */
+	      ok = FALSE;
+	      break;
+	    case LIC_OK:
+	      rleft = 0;
+	    default:
+	      ok = TRUE;
+	  }
+	  left = rleft;
+	  break;
+	}
+	case LIC_OK:			/* permanent licence */
+	  left = 0;
+	default:			/* temp licence */
+	  ok = TRUE;
+      }
+
+      fclose(fd);
+      if ( holder[0] )
+	attributeObject(PCE, NAME_licenceHolder, CtoName(holder));
+      if ( left )
+	attributeObject(PCE, NAME_daysToExpiration, toInt(left));
+
+      if ( ok )
+	return LICENCE_MAGIC;
+    }
+  }
+
+  attributeObject(PCE, NAME_unlicencedCopy, ON);
+  ws_timer(20*60);
+
+  return LICENCE_MAGIC;
+}
+
+#endif /*O_LICENCE*/

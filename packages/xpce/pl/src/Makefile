@@ -44,7 +44,7 @@ SOEXTR=		$(addprefix $(OBJDIR)/, $(SOEXTRAOBJ))
 
 CFLAGS= 	$(COFLAGS) $(CMFLAGS) $(CPLIFLAGS)
 ITF=		../../prolog/c/interface.c ../../prolog/c/interface.h
-SOOBJ=		$(SOITF) $(SOEXTR) $(GCCLIB)
+SOOBJ=		$(SOITF) $(SOEXTR)
 
 PCEPLS=		pce_expand.pl english/pce_messages.pl pce_pl.pl \
 		pce_principal.pl pce_error.pl pce_autoload.pl pce_global.pl \
@@ -95,7 +95,7 @@ $(OBJDIR)/Initialize.o:
 		ar x $(XLIB)/libXt.a $@
 
 $(XPCESO):	$(SOITF) $(libXPCE) $(SOEXTR)
-		$(LD) $(LDSOFLAGS) $(SOOBJ) -L$(LIBDIR) -lXPCE $(XLIBS) -o $@
+		$(LD) $(LDSOFLAGS) $(SOOBJ) -L$(LIBDIR) -lXPCE $(GCCLIB) $(XLIBS) -o $@
 
 ################################################################$
 # QLF generation
@@ -123,7 +123,7 @@ $(PLBASE)/xpce:
 $(PLBASE)/xpce/lib/$(PLARCH):
 	(cd ../../lib; rm -f $(PLARCH); ln -s ../$(builddir) $(PLARCH))
 
-$(PLARCH)/Makefile:	Makefile.bin
+$(PLBASE)/Makefile:	Makefile.bin
 	cp $< $@
 
 ################################################################

@@ -143,6 +143,36 @@ mirrorPoint(Point p, Point q)
 }
 
 
+Point
+getPlusPoint(Point p1, Point p2)
+{ Point p = getCopyPoint(p1);
+
+  plusPoint(p, p2);
+  
+  answer(p);
+}
+
+
+Point
+getMinusPoint(Point p1, Point p2)
+{ Point p = getCopyPoint(p1);
+
+  minusPoint(p, p2);
+  
+  answer(p);
+}
+
+
+Point
+getMirrorPoint(Point p1, Point p2)
+{ Point p = getCopyPoint(p1);
+
+  mirrorPoint(p, p2);
+  
+  answer(p);
+}
+
+
 status
 makeClassPoint(Class class)
 { sourceClass(class, makeClassPoint, __FILE__, "$Revision$");
@@ -194,6 +224,15 @@ makeClassPoint(Class class)
   getMethod(class, NAME_copy, NAME_copy, "point", 0,
 	    "New point with same <-x and <-y",
 	    getCopyPoint);
+  getMethod(class, NAME_plus, NAME_calculate, "point", 1, "point",
+	    "New point p1 + p2",
+	    getPlusPoint);
+  getMethod(class, NAME_minus, NAME_calculate, "point", 1, "point",
+	    "New point p1 - p2",
+	    getMinusPoint);
+  getMethod(class, NAME_mirror, NAME_calculate, "point", 1, "origin=[point]",
+	    "New point mirrored over argument",
+	    getMirrorPoint);
 
   succeed;
 }

@@ -292,7 +292,7 @@ makeClassDialogItem(Class class)
   localClass(class, NAME_popup, NAME_menu, "popup*", NAME_both,
 	     "Associated popup menu");
   localClass(class, NAME_look, NAME_appearance,
-	     "{x,open_look,motif}", NAME_get,
+	     "{x,open_look,motif,win}", NAME_get,
 	     "Look-and-feel switch");
   localClass(class, NAME_autoAlign, NAME_layout, "bool", NAME_both,
 	     "Item is automatically placed by its dialog");
@@ -386,12 +386,16 @@ makeClassDialogItem(Class class)
 	    getReferenceDialogItem);
 
   refine_resource(class, "selection_handles", "@nil");
-  attach_resource(class, "look", "{x,open_look,motif}", "x",
+  attach_resource(class, "look", "{x,open_look,motif,win}", "x",
 		  "Look-and-feel switch");
   attach_resource(class, "label_format", "{left,center,right}", "left",
 		  "Alignment of the label in its box");
   attach_resource(class, "label_suffix", "name", ":",
 		  "Ensured suffix of label");
+  attach_resource(class, "label_font", "font", "bold",
+		  "Default font for labels");
+  attach_resource(class, "value_font", "font", "normal",
+		  "Default font for values");
   attach_resource(class, "alignment", "{column,left,center,right}", "column",
 		  "Alignment in the row");
   attach_resource(class, "background", "colour|pixmap*", "@nil",

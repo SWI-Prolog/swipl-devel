@@ -91,7 +91,7 @@ initialiseTextImage(TextImage ti, Any obj, Int w, Int h)
   assign(ti, text,	   obj);
   assign(ti, start,        ZERO);
   assign(ti, end,	   ZERO);
-  assign(ti, background,   DEFAULT);
+  assign(ti, background,   getResourceValueObject(ti, NAME_background));
   assign(ti, wrap,	   getResourceValueObject(ti, NAME_wrap));
   assign(ti, tab_distance, getResourceValueObject(ti, NAME_tabDistance));
 
@@ -217,6 +217,7 @@ reinitTextImage(TextImage ti)
   ti->scan   = (ScanFunction)   get(obj, NAME_ScanFunction, 0);
   ti->fetch  = (FetchFunction)  get(obj, NAME_FetchFunction, 0);
   ti->margin = (MarginFunction) get(obj, NAME_MarginFunction, 0);
+  ti->rewind = (RewindFunction) get(obj, NAME_RewindFunction, 0);
 
   if ( !ti->seek || !ti->scan || !ti->fetch )
     return errorPce(ti, NAME_noFetchFunction, obj);
@@ -593,6 +594,9 @@ updateMapTextImage(TextImage ti)
   
     DEBUG(NAME_text, Cprintf("Updating map from %d to %d ",
 			     ti->change_start, ti->change_end));
+
+    if ( ti->rewind )
+      (*ti->rewind)(ti->text);
 
     for(line = 0; ; line++)
     { long next_index;
@@ -1720,6 +1724,9 @@ makeClassTextImage(Class class)
   localClass(class, NAME_MarginFunction, NAME_internal,
 	     "alien:MarginFunction", NAME_none,
 	     "C-function to fetch margins from source");
+  localClass(class, NAME_RewindFunction, NAME_internal,
+	     "alien:RewindFunction", NAME_none,
+	     "C-function to rewind input");
   localClass(class, NAME_map, NAME_cache, "alien:TextScreen", NAME_none,
 	     "2-dimensional map of source");
 

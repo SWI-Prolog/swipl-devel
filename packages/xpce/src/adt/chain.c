@@ -883,7 +883,10 @@ getCompleteNameChain(Chain ch, CharArray prefix, Function map,
 	{ matches = answerObject(ClassChain, obj, 0);
 	  str_cpy(common, &prt);
 	} else
-	{ common->size = str_common_length(&prt, common);
+	{ if ( ignore_case == ON )
+	    common->size = str_icase_common_length(&prt, common);
+	  else
+	    common->size = str_common_length(&prt, common);
 
 	  appendChain(matches, obj);
 	}

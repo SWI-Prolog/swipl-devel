@@ -1478,7 +1478,7 @@ r_3d_diamond(int x, int y, int w, int h, Elevation e, int up)
 
 
 void
-r_arc(int x, int y, int w, int h, int s, int e, Image fill)
+r_arc(int x, int y, int w, int h, int s, int e, Any fill)
 { int pen = context.gcs->pen;
   int drawpen;
   int oldpen = pen;
@@ -1526,7 +1526,7 @@ r_arc(int x, int y, int w, int h, int s, int e, Image fill)
 
 
 void
-r_ellipse(int x, int y, int w, int h, Image fill)
+r_ellipse(int x, int y, int w, int h, Any fill)
 { r_arc(x, y, w, h, 0, 360*64, fill);
 }
 

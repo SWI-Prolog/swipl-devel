@@ -56,13 +56,18 @@ variable(object, object*, both, "Related object").
 
 :- pce_begin_class(man_editor, view).
 
-resource(man_font,   font, '@helvetica_roman_14',   "Font for running text").
-resource(out_font,   font, '@helvetica_oblique_14', "Font outside frags").
-resource(title_font, font, '@helvetica_bold_14',    "Font for titles").
-resource(section_font,font,'@helvetica_bold_18',    "Font for sections").
-resource(tag_font,   font, '@helvetica_oblique_14', "Font for tags").
-resource(code_font,  font, '@screen_roman_13',      "Font for code att").
-resource(size,	     size, 'size(80,15)',	    "Size in chars").
+resource(man_font,     font,   normal,		"Font for running text").
+resource(out_font,     font,   italic,		"Font outside frags").
+resource(title_font,   font,   bold,		"Font for titles").
+resource(section_font, font,   huge,      	"Font for sections").
+resource(tag_font,     font,   italic,		"Font for tags").
+resource(code_font,    font,   fixed,		"Font for code att").
+resource(jump_style,   style,  when(@colour_display,
+				    style(colour := dark_green,
+					  underline := @on),
+				    style(font := bold)),
+	 "Style for `jump' fragment").
+resource(size,	       size,   size(80,15),	"Size in chars").
 
 
 initialise(E) :->
@@ -72,6 +77,7 @@ initialise(E) :->
 	get(E, resource_value, section_font, SectionFont),
 	get(E, resource_value, code_font, CodeFont),
 	get(E, resource_value, tag_font, TagFont),
+	get(E, resource_value, jump_style, JumpStyle),
 
 	send(E, send_super, initialise),
 	send(E, font, OutFont),
@@ -88,7 +94,7 @@ initialise(E) :->
 	send(E, style, user_interface, style(font := ManFont)),
 	send(E, style, last_modified, style(font := ManFont)),
 	send(E, style, defaults, style(font := ManFont)),
-	send(E, style, jump, style(bold := @on)),
+	send(E, style, jump, JumpStyle),
 	send(E, style, example_code, style(font := CodeFont)),
 	send(E, style, mark, style(underline := @on)),
 
@@ -146,6 +152,10 @@ make_editor_recogniser(G) :-
 	new(Manual, Tool?manual),
 	new(Selection, Manual?selection),
 	new(Obj, AF?object),
+	new(Class, when(message(Obj, has_get_method, context),
+			Obj?context, Obj)),
+	new(HasClass, and(AF \== @nil,
+			  message(Class, instance_of, class))),
 
 	send_list(P, append,
 		  [ menu_item(jump,
@@ -156,11 +166,14 @@ make_editor_recogniser(G) :-
 			      message(E, jump_previous),
 			      @default, @on,
 			      Manual?selection_history?size > 1)
+		  , menu_item(class_browser,
+			      message(@manual, request_tool_focus, Class),
+			      @default, @on,
+			      HasClass)
 		  , menu_item(source,
 			      message(@manual, request_source, Obj),
 			      @default, @on,
 			      and(AF \== @nil,
-				  Obj \== @nil,
 				  message(Obj, has_send_method, has_source),
 				  message(Obj, has_source)))
 		  , menu_item(consult,

@@ -5,7 +5,10 @@ s/\\unhbox.*\\leftarrow.*\\ninit /\\get{/g;
 s/\\unhbox.*\\rightarrow.*\\ninit /\\send{/g;
 s/\\unhbox.*\\leftarrow.*\\pit /\\get{/g;
 s/\\unhbox.*\\rightarrow.*\\pit /\\send{/g;
+s/\\unhbox.*\\rightarrow.*\\it +/\\send{/g;
+s/\\unhbox.*\\leftarrow.*\\it +/\\get{/g;
 s/\\unhbox[^}]*\\hrule[^}]*}/_/g;
+s/\\relax +\\_/\\_/g;
 s/{\\accent "7E \/}/~/g;
 s/(\[\d+),(\d+\])/\1{,}\2/g;
 

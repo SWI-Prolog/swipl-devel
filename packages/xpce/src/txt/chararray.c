@@ -495,14 +495,14 @@ getCompareCharArray(CharArray n1, CharArray n2, Bool ignore_case)
 
 #define SCRATCH_CHAR_ARRAYS	(10)
 
-static struct char_array scratch_char_arrays[SCRATCH_CHAR_ARRAYS];
+static CharArray scratch_char_arrays;
 
 void
 initCharArrays(void)
 { CharArray ca;
   int n;
 
-  allocRange(scratch_char_arrays, sizeof(scratch_char_arrays));
+  scratch_char_arrays = alloc(sizeof(struct char_array) * SCRATCH_CHAR_ARRAYS);
 
   for(ca=scratch_char_arrays, n = 0; n < SCRATCH_CHAR_ARRAYS; ca++, n++)
   { initHeaderObj(ca, ClassCharArray);

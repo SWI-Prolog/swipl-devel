@@ -14,6 +14,8 @@ static void	compute_slider(Slider, int *, int *, int *, int *,
 			       int *, int *, int *, int *, int *);
 static status	applySlider(Slider, Bool);
 static status	restoreSlider(Slider s);
+static Type	getTypeSlider(Slider s);
+static status	displayedValueSlider(Slider s, Any val);
 
 #define SLIDER_HEIGHT 20
 #define VALUE_GAP 20
@@ -23,7 +25,7 @@ static status	restoreSlider(Slider s);
 #define OL_BOX_WIDTH 10
 
 static status
-initialiseSlider(Slider s, Name name, Int low, Int high, Int def, Message msg)
+initialiseSlider(Slider s, Name name, Any low, Any high, Any def, Message msg)
 { createDialogItem(s, name);
 
   assign(s, label_font,    DEFAULT);
@@ -31,6 +33,7 @@ initialiseSlider(Slider s, Name name, Int low, Int high, Int def, Message msg)
   assign(s, value_font,    DEFAULT);
   assign(s, show_label,    ON);
   assign(s, show_value,    ON);
+  assign(s, format,	   DEFAULT);
   assign(s, low,	   low);
   assign(s, high,	   high);
   assign(s, message,	   msg);
@@ -38,7 +41,10 @@ initialiseSlider(Slider s, Name name, Int low, Int high, Int def, Message msg)
   assign(s, drag,	   OFF);
 
   assign(s, default_value, def);
-  restoreSlider(s);
+  if ( !restoreSlider(s) )
+  { assign(s, selection, s->low);
+    displayedValueSlider(s, s->low);
+  }
 
   return requestComputeGraphical(s, DEFAULT);
 }
@@ -51,11 +57,13 @@ convert_value(Any val)
 
 
 static void
-format_value(char *buf, Any val)
-{ if ( isInteger(val) )
-    sprintf(buf, "%ld", valInt(val));
+format_value(Slider s, char *buf, Any val)
+{ int deffmt = isDefault(s->format);
+
+  if ( isInteger(val) )
+    sprintf(buf, deffmt ? "%ld" : strName(s->format), valInt(val));
   else
-    sprintf(buf, "%f", ((Real)val)->value);
+    sprintf(buf, deffmt ? "%f"  : strName(s->format), ((Real)val)->value);
 }
 
 
@@ -124,14 +132,14 @@ RedrawAreaSlider(Slider s, Area a)
     string str;
 
     buf[0] = '[';
-    format_value(&buf[1], s->displayed_value);
+    format_value(s, &buf[1], s->displayed_value);
     strcat(buf, "]");
     str_set_ascii(&str, buf);
     str_string(&str, s->value_font, x+vx, y+vy, 0, 0, NAME_left, NAME_top);
-    format_value(buf, s->low);
+    format_value(s, buf, s->low);
     str_set_ascii(&str, buf);
     str_string(&str, s->value_font, x+lx, y+ly, 0, 0, NAME_left, NAME_top);
-    format_value(buf, s->high);
+    format_value(s, buf, s->high);
     str_set_ascii(&str, buf);
     str_string(&str, s->value_font, x+hx, y+hy, 0, 0, NAME_left, NAME_top);
   }
@@ -171,11 +179,11 @@ compute_slider(Slider s, int *ny, int *vx, int *vy, int *lx, int *ly, int *sx, i
     string str;
 
     buf[0] = '[';
-    format_value(&buf[1], s->high);
+    format_value(s, &buf[1], s->high);
     strcat(buf, "]");
     str_set_ascii(&str, buf);
     str_size(&str, s->value_font, &shw, &sh);
-    format_value(buf, s->low);
+    format_value(s, buf, s->low);
     str_set_ascii(&str, buf);
     str_size(&str, s->value_font, &slw, &sh);
     if ( convert_value(s->low) < 0.0 &&
@@ -264,7 +272,7 @@ labelWidthSlider(Slider s, Int w)
 		********************************/
 
 static status
-displayedValueSlider(Slider s, Int val)
+displayedValueSlider(Slider s, Any val)
 { if ( s->displayed_value != val )
   { assign(s, displayed_value, val);
 
@@ -357,22 +365,35 @@ showValueSlider(Slider s, Bool val)
 
 
 static status
-lowSlider(Slider s, Int val)
+formatSlider(Slider s, Name val)
+{ return assignGraphical(s, NAME_format, val);
+}
+
+
+static status
+lowSlider(Slider s, Any val)
 { return assignGraphical(s, NAME_low, val);
 }
 
 
 static status
-selectionSlider(Slider s, Int val)
-{ assign(s, selection, val);
-  displayedValueSlider(s, val);
+selectionSlider(Slider s, Any val)
+{ Any v;
+  Type t = getTypeSlider(s);
+
+  if ( (v = checkType(val, t, s)) )
+  { assign(s, selection, val);
+    displayedValueSlider(s, val);
   
-  succeed;
+    succeed;
+  }
+
+  return errorPce(t, NAME_unexpectedType, val);
 }
 
 
 static status
-highSlider(Slider s, Int val)
+highSlider(Slider s, Any val)
 { return assignGraphical(s, NAME_high, val);
 }
 
@@ -393,7 +414,7 @@ getWidthSlider(Slider s)
 		*         COMMUNICATION		*
 		********************************/
 
-static Int
+static Any
 getSelectionSlider(Slider s)
 { assign(s, selection, s->displayed_value);
 
@@ -416,9 +437,18 @@ modifiedSlider(Slider s, Bool val)
 }
 
 
-static Int
+static Type
+getTypeSlider(Slider s)
+{ if ( isInteger(s->low) && isInteger(s->high) )
+    answer(TypeInt);
+  
+  answer(TypeReal);
+}
+
+
+static Any
 getDefaultSlider(Slider s)
-{ answer(checkType(s->default_value, TypeInt, s));
+{ answer(checkType(s->default_value, getTypeSlider(s), s));
 }
 
 
@@ -436,7 +466,7 @@ defaultSlider(Slider s, Any val)
 
 static status
 restoreSlider(Slider s)
-{ Int val;
+{ Any val;
 
   if ( (val = getDefaultSlider(s)) )
     return selectionSlider(s, val);
@@ -447,7 +477,7 @@ restoreSlider(Slider s)
 
 static status
 applySlider(Slider s, Bool always)
-{ Int val;
+{ Any val;
 
   if ( instanceOfObject(s->message, ClassCode) &&
        (always == ON || getModifiedSlider(s) == ON) &&
@@ -464,11 +494,11 @@ status
 makeClassSlider(Class class)
 { sourceClass(class, makeClassSlider, __FILE__, "$Revision$");
 
-  localClass(class, NAME_selection, NAME_selection, "int", NAME_get,
+  localClass(class, NAME_selection, NAME_selection, "int|real", NAME_get,
 	     "Current selection");
-  localClass(class, NAME_default, NAME_apply, "int|function", NAME_none,
+  localClass(class, NAME_default, NAME_apply, "int|real|function", NAME_none,
 	     "The default selection or function to get it");
-  localClass(class, NAME_displayedValue, NAME_selection, "int", NAME_get,
+  localClass(class, NAME_displayedValue, NAME_selection, "int|real", NAME_get,
 	     "Currently displayed value");
   localClass(class, NAME_labelFont, NAME_appearance, "font", NAME_get,
 	     "Font for label");
@@ -478,6 +508,8 @@ makeClassSlider(Class class)
 	     "Whether label is shown");
   localClass(class, NAME_showValue, NAME_appearance, "bool", NAME_get,
 	     "Whether selection is shown");
+  localClass(class, NAME_format, NAME_appearance, "[name]", NAME_get,
+	     "Format for the printed values");
   localClass(class, NAME_low, NAME_selection, "int|real", NAME_get,
 	     "Minimum of range");
   localClass(class, NAME_high, NAME_selection, "int|real", NAME_get,
@@ -495,6 +527,7 @@ makeClassSlider(Class class)
   storeMethod(class, NAME_valueFont, 	  valueFontSlider);
   storeMethod(class, NAME_showLabel, 	  showLabelSlider);
   storeMethod(class, NAME_showValue, 	  showValueSlider);
+  storeMethod(class, NAME_format,	  formatSlider);
   storeMethod(class, NAME_low,       	  lowSlider);
   storeMethod(class, NAME_high,      	  highSlider);
   storeMethod(class, NAME_selection, 	  selectionSlider);
@@ -546,11 +579,6 @@ makeClassSlider(Class class)
   getMethod(class, NAME_reference, DEFAULT, "point", 0,
 	    "Baseline of label",
 	    getReferenceSlider);
-
-  attach_resource(class, "label_font", "font", "@helvetica_bold_14",
-		  "Font for label");
-  attach_resource(class, "value_font", "font", "@helvetica_roman_14",
-		  "Font for limits and selection");
 
   succeed;
 }

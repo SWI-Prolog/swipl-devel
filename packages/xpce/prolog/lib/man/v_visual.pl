@@ -17,6 +17,7 @@
 	   , send_list/3
 	   , shell/1
 	   , term_to_atom/2
+	   , tmp_file/2
 	   ]).
 
 :- pce_autoload(tile_hierarchy, library('man/v_tile')).
@@ -272,6 +273,9 @@ freed(W, V) :->
 variable(selection,	vis_node*,	get, "Currently selected node").
 variable(handler,	handler,	get, "Inspect handler used").
 
+resource(postscript_print_command, name, lpr,
+	 "Shell command to send a file to the printer").
+
 initialise(F, Manual:man_manual) :->
 	send(F, send_super, initialise, Manual, 'PCE Visual'),
 	send(F, append, new(V, vis_window)),
@@ -284,8 +288,8 @@ initialise(F, Manual:man_manual) :->
 	send(D, append, button(quit, message(F, quit))),
 	send(D, append,
 	     new(TI, text_item(visual, '',
-			       block(message(V, visual_atom, @arg1),
-				     message(@receiver, clear)))),
+			       and(message(V, visual_atom, @arg1),
+				   message(@receiver, clear)))),
 	     right),
 	send(TI, length, 20),
 	send(F?display, inspect_handler,
@@ -329,13 +333,19 @@ selection(F, Node:vis_node*) :->
 
 print(F) :->
 	"Print on Postscript printer"::
-	new(File, file('/tmp/xpce_visual')),
+	tmp_file(visual, FileName),
+	new(File, file(FileName)),
 	send(File, open, write),
 	send(File, append, F?tree?postscript),
 	send(File, append, showpage),
 	send(File, close),
-	shell('lpr /tmp/xpce_visual'),
-	send(File, remove).
+	get(F, resource_value, postscript_print_command, Lpr),
+	concat_atom([Lpr, ' ', FileName], Cmd),
+	(   shell(Cmd)
+	->  send(File, remove),
+	    fail
+	;   send(F, report, error, 'Command failed: %s', Cmd)
+	).
 
 
 postscript(_F, V:visual) :->

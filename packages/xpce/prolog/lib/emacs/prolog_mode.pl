@@ -15,6 +15,7 @@
 	   , forall/2
 	   , list_to_set/2
 	   , member/2
+	   , tmp_file/2
 	   ]).
 
 
@@ -197,11 +198,15 @@ make(E) :->				% SWI-Prolog specific
 
 compile_buffer(E) :->
 	"Save current buffer and (re)consult its file"::
-	send(E, save_if_modified),
 	get(E?text_buffer, file, File),
-	get(File, name, Path),
-	[user:Path],
-	send(E, report, status, '%s compiled', Path).
+	(   send(File, instance_of, file)
+	->  send(E, save_if_modified),
+	    get(File, name, Path),
+	    [user:Path],
+	    send(E, report, status, '%s compiled', Path)
+	;   send(E, report, error,
+		 'Buffer is not connected to a file')
+	).
 
 
 		/********************************
@@ -345,10 +350,11 @@ consult_region(M, From:[int], To:[int]) :->
 	->  Start = F, Size = S
 	;   Start = T, Size is -S
 	),
-	get(string('/tmp/xpce-consult-%d', @pce?pid), value, TmpNam),
+	tmp_file(consult, TmpNam),
 	new(File, file(TmpNam)),
 	send(File, open, write),
 	send(File, append, ?(M, contents, Start, Size)),
+	send(File, newline),		% make sure it ends with a newline
 	send(File, close),
 	consult(user:TmpNam),
 	send(M, report, status, 'Region consulted'),

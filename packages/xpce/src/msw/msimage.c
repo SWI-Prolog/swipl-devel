@@ -50,7 +50,21 @@ ws_destroy_image(Image image)
 
 status
 ws_store_image(Image image, FileObj file)
-{ fail;
+{ HBITMAP bm;
+  DisplayObj d = image->display;
+
+  if ( isNil(d) )
+    d = CurrentDisplay(image);
+
+  if ( (bm = getXrefObject(image, d)) )
+  { putc('P', file->fd);
+    DEBUG(NAME_ppm, Cprintf("Saving PNM image from index %d\n",
+			    ftell(file->fd)));
+    if ( write_pnm_file(file->fd, bm, 0, 0, PNM_RUNLEN) < 0 )
+      fail;
+  }
+
+  succeed;
 }
 
 
@@ -60,10 +74,39 @@ loadXImage(Image image, FILE *fd)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+loadPNMImage() is used for loading saved-objects holding images.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 status
 loadPNMImage(Image image, FILE *fd)
-{ DEBUG(NAME_ppm, Cprintf("Failed to load image\n"));
+{ Name kind;
+  HBITMAP bm = read_ppm_file(fd, &kind);
+
+  if ( isNil(image->display) )
+    assign(image, display, CurrentDisplay(NIL));
+
+  if ( bm )
+  { BITMAP bitmap;
+
+    if ( !GetObject(bm, sizeof(BITMAP), &bitmap) )
+      Cprintf("loadPPMImage(): GetObject() failed\n");
+    assign(image->size, w, toInt(bitmap.bmWidth));
+    assign(image->size, h, toInt(bitmap.bmHeight));
+    assign(image, kind, kind);
+    assign(image, depth, toInt(bitmap.bmPlanes * bitmap.bmBitsPixel));
+    registerXrefObject(image, image->display, (void *) bm);
+
+    succeed;
+  }
+
   fail;
+}
+
+
+status
+loadPPMImage(Image image, FileObj f)
+{ return loadPNMImage(image, f->fd);
 }
 
 
@@ -259,8 +302,10 @@ ws_load_image_file(Image image)
       rval = SUCCEED;
     } else if ( ws_load_windows_bmp_file(image, image->file) )
     { rval = SUCCEED;
+    } else if ( ws_load_windows_ico_file(image) )
+    { rval = SUCCEED;
     } else
-      rval = ws_load_windows_ico_file(image);
+      rval = loadPPMImage(image, image->file);
 
     send(image->file, NAME_close, 0);
   }
@@ -271,7 +316,38 @@ ws_load_image_file(Image image)
 
 status
 ws_save_image_file(Image image, FileObj file, Name fmt)
-{ fail;
+{ DisplayObj d = image->display;
+
+  if ( isNil(d) )
+    d = CurrentDisplay(image);
+
+  if ( fmt == NAME_xbm )
+  { Cprintf("No support for writing XBM files, try format PNM\n");
+    fail;
+  } else
+  { int pnm_fmt;
+    HBITMAP bm;
+    status rval;
+
+    if ( fmt == NAME_pnm )	pnm_fmt = PNM_PNM;
+    else if ( fmt == NAME_pbm )	pnm_fmt = PNM_PBM;
+    else if ( fmt == NAME_pgm )	pnm_fmt = PNM_PGM;
+    else if ( fmt == NAME_ppm )	pnm_fmt = PNM_PPM;
+    else fail;
+    
+    if ( (bm = getXrefObject(image, d)) )
+    { send(file, NAME_kind, NAME_binary, 0);
+      TRY(send(file, NAME_open, NAME_write, 0));
+      if ( write_pnm_file(file->fd, bm, 0, 0, PNM_RAWBITS) < 0 )
+	rval = errorPce(image, NAME_xError);
+      else
+	rval = SUCCEED;
+      send(file, NAME_close, 0);
+    } else
+      rval = FAIL;
+
+    return rval;
+  }
 }
 
 
@@ -284,12 +360,12 @@ windows_bitmap_from_dbi(Image image)
     HBITMAP bm;
 
     hdc = GetDC(NULL);
-    bm = CreateDIBitmap(hdc,
-			(LPBITMAPINFOHEADER) wsi->msw_info,
-			CBM_INIT,
-			wsi->data,
-			(LPBITMAPINFO) wsi->msw_info,
-			DIB_RGB_COLORS);
+    bm = ZCreateDIBitmap(hdc,
+			 (LPBITMAPINFOHEADER) wsi->msw_info,
+			 CBM_INIT,
+			 wsi->data,
+			 (LPBITMAPINFO) wsi->msw_info,
+			 DIB_RGB_COLORS);
     assign(image, depth, toInt(GetDeviceCaps(hdc, BITSPIXEL)));
     assign(image, kind, image->depth == ONE ? NAME_bitmap : NAME_pixmap);
     ReleaseDC(NULL, hdc);
@@ -310,7 +386,7 @@ windows_bitmap_from_bits(Image image)
     if ( r->msw_info )
     { bm = windows_bitmap_from_dbi(image);
     } else
-    { bm = CreateBitmap(r->w, r->h, 1, 1, NULL);
+    { bm = ZCreateBitmap(r->w, r->h, 1, 1, NULL);
       SetBitmapBits(bm, ws_sizeof_bits(r->w, r->h), r->data);
     }
 
@@ -357,13 +433,13 @@ ws_open_image(Image image, DisplayObj d)
       if ( isDefault(image->foreground) )
 	assign(image, foreground, d->foreground);
       
-      bm = CreateCompatibleBitmap(hdc, w, h);
+      bm = ZCreateCompatibleBitmap(hdc, w, h);
       GetObject(bm, sizeof(BITMAP), &bitmap);
       assign(image, depth, toInt(bitmap.bmPlanes * bitmap.bmBitsPixel));
       ReleaseDC(NULL, hdc);
     } else
     { assign(image, depth, ONE);
-      bm = CreateBitmap(w, h, 1, 1, NULL);
+      bm = ZCreateBitmap(w, h, 1, 1, NULL);
     }
 
     if ( bm )
@@ -402,7 +478,7 @@ ws_resize_image(Image image, Int w, Int h)
       { HDC hdcsrc = CreateCompatibleDC(NULL);
 	HDC hdcdst = CreateCompatibleDC(hdcsrc);
 	HBITMAP osbm = ZSelectObject(hdcsrc, sbm);
-	HBITMAP  dbm = CreateCompatibleBitmap(hdcsrc, valInt(w), valInt(h));
+	HBITMAP  dbm = ZCreateCompatibleBitmap(hdcsrc, valInt(w), valInt(h));
 	HBITMAP odbm = ZSelectObject(hdcdst, dbm);
 	int minw = min(valInt(w), valInt(image->size->w));
 	int minh = min(valInt(h), valInt(image->size->h));
@@ -576,6 +652,48 @@ ws_image_bits_for_cursor(Image image, Name kind, int w, int h)
 
   DEBUG(NAME_cursor, Cprintf("Returning %dx%d bits\n", w, h));
   return cbits;
+}
+
+		 /*******************************
+		 *    WINDOWS SYSTEM BRUSHES	*
+		 *******************************/
+
+struct system_brush
+{ char *name;
+  int  id;
+};
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Windows system colors as obtained from GetSysColor()
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static struct system_brush window_brushes[] =
+{ { "win_black_image",	BLACK_BRUSH },
+  { "win_dkgray_image",	DKGRAY_BRUSH },
+  { "win_gray_image",	GRAY_BRUSH },
+  { "win_hollow_image",	HOLLOW_BRUSH },
+  { "win_ltgray_image",	LTGRAY_BRUSH },
+  { "win_null_image",	NULL_BRUSH },
+  { NULL,		0 }
+};
+
+
+void
+ws_system_images(DisplayObj d)
+{ struct system_brush *sb = window_brushes;
+
+  for( ; sb->name; sb++)
+  { Name name = CtoKeyword(sb->name);
+    HBRUSH brush = GetStockObject(sb->id);
+
+    if ( brush )
+    { Image image = globalObject(name, ClassImage, name,
+				 toInt(16), toInt(16), 0);
+      assign(image, access, NAME_read);
+      declareWindowsBrush(image, brush);
+    } else
+      Cprintf("Could not GetStockObject for %s\n", sb->name);
+  }
 }
 
 

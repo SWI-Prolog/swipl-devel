@@ -243,14 +243,14 @@ initNamesPass2(void)
 		*       CHECK CONSISTENCY	*
 		********************************/
 
-static int shifts;
+static int shifted;
 
 void
 checkNames(int prt)
 { int n;
   int cnt = 0;
-  shifts = 0;
-  
+
+  shifted = 0;
 
   for(n=0; n < buckets; n++)
   { Name name = name_table[n];
@@ -268,7 +268,7 @@ checkNames(int prt)
 
   if ( prt )
     Cprintf("%d names in %d buckets. %d shifts\n",
-	    names, buckets, shifts);
+	    names, buckets, shifted);
 
   assert(cnt == names);
 }
@@ -315,7 +315,7 @@ getLookupName(Class class, CharArray value)
   { if ( str_eq(&(*name)->data, &value->data) )
       answer(*name);
 
-    shifts++;				/* debugging */
+    shifted++;				/* debugging */
     if ( ++hashkey == buckets )
     { hashkey = 0;
       name = name_table;

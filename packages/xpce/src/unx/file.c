@@ -37,6 +37,15 @@ initialiseFile(FileObj f, Name name, Name kind)
 { if ( isDefault(kind) )
     kind = NAME_text;
 
+  if ( isDefault(name) )
+  {
+#ifdef HAVE_TMPNAM
+    char namebuf[L_tmpnam];
+
+    name = CtoName(tmpnam(namebuf));
+#endif
+  }
+
 #if O_XOS
   { char buf[MAXPATHLEN];
     
@@ -243,9 +252,9 @@ out:
 }
 
 
-#if O_DOSFILENAMES
-status
-backup_name(char *old, char *ext, char *bak)
+#ifdef __WIN32__
+static status
+dos_backup_name(char *old, char *ext, char *bak)
 { char base[100];
   char dir[MAXPATHLEN];
 
@@ -296,7 +305,18 @@ backup_name(char *old, char *ext, char *bak)
   succeed;
 }
 
-#else /*O_DOSFILENAMES*/
+status
+backup_name(char *old, char *ext, char *bak)
+{ if ( iswin32s() )
+    return dos_backup_name(old, ext, bak);
+  else
+  { sprintf(bak, "%s%s", old, ext);
+
+    succeed;
+  }
+}
+
+#else /*__WIN32__*/
 
 status
 backup_name(char *old, char *ext, char *bak)
@@ -305,7 +325,7 @@ backup_name(char *old, char *ext, char *bak)
   succeed;
 }
 
-#endif /*O_DOSFILENAMES*/
+#endif /*__WIN32__*/
 
 static Name
 getBackupFileNameFile(FileObj f, Name ext)
@@ -322,27 +342,34 @@ getBackupFileNameFile(FileObj f, Name ext)
 status
 backupFile(FileObj f, Name ext)
 { if ( existsFile(f, ON) )
-  { Name new = get(f, NAME_backupFileName, ext, 0);
+  { Name newname = get(f, NAME_backupFileName, ext, 0);
+    char *new;
     char *old = strName(getOsNameFile(f));
     int fdfrom = -1, fdto = -1;
     status rval = FAIL;
 
-    if ( (fdfrom = open(old, O_RDONLY)) > 0 &&
-	 (fdto   = open(strName(new), O_WRONLY|O_CREAT|O_TRUNC, 0666)) )
+    if ( newname )
+      new = strName(newname);
+    else
+      fail;				/* or succeed? */
+
+    if ( (fdfrom = open(old, O_RDONLY)) >= 0 &&
+	 (fdto   = open(new, O_WRONLY|O_CREAT|O_TRUNC, 0666)) >= 0 )
     { char buf[CPBUFSIZE];
       int n;
 
       while( (n = read(fdfrom, buf, CPBUFSIZE)) > 0 )
-	if ( write(fdto, buf, n) != n )
+      { if ( write(fdto, buf, n) != n )
 	{ rval = FAIL;
 	  goto out;
 	}
+      }
       rval = (n == 0) ? SUCCEED : FAIL;
     }
 
 out:
     if ( rval == FAIL )
-      errorPce(f, NAME_backupFile, new, getOsErrorPce(PCE));
+      errorPce(f, NAME_backupFile, newname, getOsErrorPce(PCE));
 
     if ( fdfrom >= 0 )
       close(fdfrom);
@@ -874,7 +901,10 @@ findFile(FileObj f, CharArray path, Name mode)
       name[end-pathstr] = EOS;
       pathstr = &end[1];
     }
-    strcpy(name, expandFileName(name));
+    if ( (exp = expandFileName(name)) )
+      strcpy(name, exp);
+    else
+      continue;
 
     strcat(name, "/");
     strcat(name, base);
@@ -964,7 +994,7 @@ makeClassFile(Class class)
   storeMethod(class, NAME_kind, kindFile);
   
   sendMethod(class, NAME_initialise, DEFAULT, 2,
-	     "path=name", "kind=[{text,binary}]",
+	     "path=[name]", "kind=[{text,binary}]",
 	     "Create from name and kind",
 	     initialiseFile);
   sendMethod(class, NAME_unlink, DEFAULT, 0,
@@ -1067,6 +1097,19 @@ makeClassFile(Class class)
 	    "extension_and_filter=attribute", 0,
 	    "Determine input filter from extension",
 	    getFilterFile);
+
+#if defined(__WIN32__)
+{ int w32s = iswin32s();
+
+  featureClass(class, NAME_caseSensitive, OFF);
+  featureClass(class, NAME_casePreserving, w32s ? OFF : ON);
+  featureClass(class, NAME_8plus3names, w32s ? ON : OFF);
+}
+#else
+  featureClass(class, NAME_caseSensitive, ON);
+  featureClass(class, NAME_casePreserving, ON);
+  featureClass(class, NAME_8plus3names, OFF);
+#endif
 
   FileFilters = globalObject(NAME_compressionFilters, ClassSheet,
 			     newObject(ClassAttribute,

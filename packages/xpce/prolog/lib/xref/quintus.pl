@@ -191,7 +191,7 @@ built_in(socket_select(_,_,_,_,_)).
 built_in(sort(_,_)).
 built_in(source_file(_)).
 built_in(source_file(_,_)).
-built_in(spy _).
+built_in(spy(_)).
 built_in(statistics(_,_)).
 built_in(statistics).
 built_in(stream_code(_,_)).

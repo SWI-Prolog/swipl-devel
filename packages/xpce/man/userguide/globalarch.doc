@@ -1,8 +1,8 @@
 \chapter{Global architecture}
 
-Section~\ref{sec:starting} introduced the basic principles of
-PCE/Prolog with examples.  In this section we present a rough
-conceptual overview of PCE and the PCE/Prolog environment.
+Section~\ref{sec:starting} introduced the basic principles of PCE/Prolog
+with examples.  In this section we present a conceptual overview of PCE
+and the PCE/Prolog environment.
 
 
 \section{What is ``Object-Oriented''?}
@@ -12,7 +12,7 @@ entity in PCE's world is an object, which is an observable entity
 with persistent state capable of performing actions.  Such an action
 is activated by sending the object a {\em message}.
 
-So far most object oriented systems agree.  Starting from these
+So far, most object oriented systems agree.  Starting from these
 notions however one can find object oriented environments that take
 widely different approaches for representing objects, actions on
 objects and sending messages.
@@ -41,7 +41,7 @@ to by its {\em object reference}. An object is an instantiation of
 a {\em class}.  A class holds the key to decoding the information of
 its instances:% 
     \footnote{We will mix the terms {\em instance} and {\em object}
-              freely in this document.  They must be considered synonyms.}
+              freely in this document.  They are considered synonyms.}
 the instance variables.  The class also serves as a placeholder
 for storing the methods understood by its instances.  Figure~\ref
 {fig:arch1} illustrates this.
@@ -64,9 +64,10 @@ As in most OO systems PCE classes may inherit from a {\em
 super-class}.  PCE classes are organised in a single-inheritance
 hierarchy.%
     \footnote{Multiple inheritance introduces various technical and
-	      conceptual problems.  PCE uses delegation to achieve
-	      similar results.  This is explained in section~\ref
-	      {sec:delegation}.}
+	      conceptual problems.  PCE uses delegation and
+	      templates to achieve similar results.  This is
+	      explained in section~\ref{sec:delegation} and
+	      section~\ref{sec:template}.}
 The root of this hierarchy is class {\em object}.  Class object is the
 only class without a super-class.  Figure~\ref{fig:classhierarchy} gives
 the complete hierarchy of PCE classes.
@@ -117,10 +118,10 @@ Using multiple inheritance would require a class {\em box_node},
 \index{program,as object}\index{lambda functions}
 PCE defines {\em executable} objects.  Executable objects (often
 called \idx{code object}s) may be compared to lambda functions is Lisp.
-They are used for:
+They are used in the contexts given below.
 
 \begin{itemize}
-    \tick{To define `\idx{call-back}' actions}
+    \tick{Definition of `\idx{call-back}' actions}
 The traditional and most common usage of executable objects is to
 specify the action undertaken by interactive UI components when they
 are activated.  We have seen examples of this in
@@ -152,20 +153,39 @@ further explained in section~\ref {sec:function}.
 Two major groups of code objects are distinguished: {\em procedures}
 and {\em functions}.  The first only returns status information
 similar to the send-operation.  The latter returns a value or failure
-status information similar to the get-operation.  The most important
-`procedure' code objects are:
+status information similar to the get-operation.
 
-\begin{itemize}
-    \tick{message}
-A \class{message} object starts a send-operation when executed.
-    \tick{and}
+\subsection{Procedures}
+
+The most important `procedure' code objects are:
+
+\begin{shortlist}
+    \tick{message(Receiver, Selector, Argument ...)}
+A \class{message} object starts a send-operation when executed.  The
+arguments of a message are either objects or {\em functions}.  In the
+latter case these are evaluated before the message itself is evaluated.
+If the evaluation of one of the argument functions fails, the message
+is not executed.  The {\em Receiver} of a the message can be @prolog to
+invoke a predicate in the Prolog environment.
+    \tick{and(Statement, ...)}
 An \class{and} is a sequence of code objects.  It fails if one of the
-members fails and succeeds otherwise.
-    \tick{if}
-An \class{if} implements a branch.
-\end{itemize}
+members fails and succeeds otherwise.  If a statement is a function,
+it will be evaluated.  Functions fail only if they return the fail
+control-value.  Notably, a function that returned the boolean @off (false)
+is considered to have succeeded.
+    \tick{if(Condition, Then, Else)}
+An \class{if} implements a branch.  It first evaluates {\em Condition}
+and then either of {\em Then} or {\em Else}.  The success of the entire
+if is determined by the success of the executed {\em Then} or {\em
+Else}.  Either or both of these statements may be omited.  The construct
+\mbox{\tt if({\em Statement})} may be used to force success of a code
+object.
+    \tick{Conditions: (A verb$==$ B, A \verb$\==$ B, A \verb$<$ B, ...)}
+These executable objects are commonly used as conditions for the
+\class{if} object.
+\end{shortlist}
 
-The online manual may be used to get an overview of the available
+The online manual may be used to get an overview of the other available
 code objects.  See section~\ref{sec:classhierarchy}.
 
 
@@ -177,7 +197,7 @@ objects or as arguments to any method.  A function is automatically
 evaluated iff:
 
 \begin{shortlist}
-    \tick{It appears as an argument of a code object that is executed}
+    \tick{It appears as part of a code object that is executed}
     \tick{Type checking demands execution} 
 \end{shortlist}
 
@@ -185,18 +205,112 @@ evaluated iff:
 The most important function objects are:
 
 \begin{itemize}
-    \tick{`?'}
+    \tick{?(Receiver, Selector, Argument, ...}
 Class \class{?} starts a get-operation when executed (= evaluated).  It
-may be compared to \class{message}.
+may be compared to \class{message}.  The classname is pronounced as
+{\em \idx{obtainer}}.  All the arguments may be functions.  These
+will be evaluated before the get-operation is performed.  As with
+\class{message}, a failing evaluation of one of the arguments forces
+failure of the whole.
     \tick{var}
-Class \class{var} describes a variable.  The definition of this
-class is not yet stable.  The objects @arg1, @arg2, ..., @arg10,
-@receiver and @event are the most commonly used var objects.
+Class \class{var} describes a variable.  The objects @arg1, @arg2, ...,
+@arg10, @receiver and @event are the most commonly used var objects.
+
+The objects @arg1, ...  are the message {\em forwarding} arguments.
+Assume the following message.
+
+\begin{code}
+?- new(@m, message(@pce, format, 'Hello %s\n', @arg1)).
+\end{code}
+
+When executed, @arg1 (a \class{function}) will first be evaluated.  The
+method `code ->forward: a1, ...' binds these \class{var} objects
+locally:
+
+\begin{code}
+?- send(@m, execute),
+   send(@m, forward, world),
+   send(@m, execute).
+@default
+world
+@default
+\end{code}
+
+The objects @receiver and @event are functions refering to the receiver
+of the currently executing method and the current user-event.  Var
+objects are rarely created explicitely by application programmers.
     \tick{arithmetic functions (+, -, *, /)}
 \index{arithmetic}%
 These functions define {\em integer} arithmetic and are commonly used
 to deal with graphical computations in code objects.
 \end{itemize}
+
+
+\subsection{Example}
+
+Code objects are most commonly used to specify the internal behaviour of
+dialog windows, such that the call-back predicate can concentrate on the
+real function.  We have seen an example of this in \secref{fileviewer}.
+
+\index{PostScript}%
+Below there is another example.  {\em Data} is assumed to be an XPCE
+\class{string} object containing a PostScript\tm\ description of a
+graphical object as can be obtained using
+
+\begin{code}
+	...,
+	get(Graphical, postscript, PostScriptString),
+	...,
+\end{code}
+
+In this example both the internal dynamic of the dialog window (the
+label of the text-entry fields changes if the user switches from
+file to printer) and grabbing the arguments from the various
+dialog items is written using XPCE executable objects.  Prolog
+will only be called to do the real work: printing the data to
+the requested destination.
+
+Note that XPCE/Prolog does not {\bf require} you to use XPCE executable
+objects this way.  It is also possible to call Prolog from both the menu
+and the buttons, passing the dialog window as argument and write all
+behaviour in Prolog.  We leave this as an exercise to the user.
+
+
+\begin{pcecode}
+postscript(Data) :-
+	  new(D, dialog('Print destination')),
+	  send(D, append, new(T, menu(destination, marked))),
+	  send_list(T, append, [printer, file]),
+	  send(T, layout, horizontal),
+	  send(D, append, new(A, text_item(printer_name, 'PostScript'))),
+	  send(T, message,
+	       if(T?selection == printer,
+		  message(A, label, ?(A, label_name, printer_name)),
+		  message(A, label, ?(A, label_name, file_name)))),
+	  send(D, append,
+	       button(ok, and(message(@prolog, print_postscript,
+				      T?selection, A?selection, Data),
+			      message(D, destroy)))),
+	  send(D, append,
+	       button(cancel, message(D, destroy))),
+	  send(D, default_button, ok),
+	  send(D, open).
+	  
+print_postscript(printer, Address, Data) :- !,
+	  new(F, file),
+	  send(F, open, write),
+	  send(F, append, Data),
+	  send(F, close),
+	  get(F, name, TmpFile),
+	  get(string('lpr -P%s %s &', Address, TmpFile),
+	      value, Command),
+	  unix(shell(Command)).
+print_postscript(file, Address, Data) :-
+	  new(F, file(Address)),
+	  send(F, open, write),
+	  send(F, append, Data),
+	  send(F, close).
+\end{pcecode}
 
 
 \section{Prolog}
@@ -212,7 +326,7 @@ The small size of the interface (only four predicates) makes it easy
 to connect PCE to another environment.  This simple interface
 nevertheless provides a powerful and fast communication channel.
 
-As we have seen in section~\ref{sec:starting} activating PCE is done by
+As we have seen in section~\ref{sec:starting}, activating PCE is done by
 providing the user with access to PCE's message passing
 primitives.  Near the end of section~\ref{sec:starting} we briefly
 explained how control is passed from PCE to Prolog. The predefined

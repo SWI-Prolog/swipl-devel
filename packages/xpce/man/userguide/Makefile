@@ -9,7 +9,9 @@ MAKEINDEX=makeindex -s ../../TeX/makeindex.sty
 TEX=	doc.tex \
 	intro.tex starting.tex globalarch.tex online.tex debug.tex \
 	interface.tex graphics.tex pceprolog.tex chess.tex \
-	trouble.tex memory.tex glossary.tex	
+	trouble.tex memory.tex glossary.tex techniques.tex \
+	report.tex font.tex hyper.tex udc.tex dragdrop.tex \
+	dragdropdemo.tex control.tex whoiswho.tex namedref.tex
 
 LOGO=	figs/uva.ps figs/swi.ps
 
@@ -32,8 +34,11 @@ figs/swi.ps:	../../TeX/figs/swi.ps
 
 $(TEX):	$(DOCTOTEX)
 
-chess.tex:	../../prolog/lib/demo/chess.pl $(PLTOTEX)
-	$(PLTOTEX) ../../prolog/lib/demo/chess.pl > chess.tex
+chess.tex:	../../prolog/demo/chess.pl $(PLTOTEX)
+	$(PLTOTEX) ../../prolog/demo/chess.pl > $@
+
+dragdropdemo.tex:	examples/dragdrop.pl
+	$(PLTOTEX) examples/dragdrop.pl > $@
 
 .doc.tex:
 	$(DOCTOTEX) $*.doc > $*.tex

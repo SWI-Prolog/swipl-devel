@@ -28,8 +28,8 @@ together (e.g.\ person(Name, Age, Address)), PCE uses objects for this
 purpose:%
     \footnote{This example uses PCE user-defined classes.  The details
 	      of this mechanism do not matter for the argument in this
-	      section.  User-defined classes are described in
-	      \cite{PCE:udc}.}
+	      section. User-defined classes are described in
+	      section~\ref{sec:udc}.}
 
 \begin{code}
 :- pce_begin_class(person(name, age, address), object).
@@ -54,16 +54,16 @@ These two representations have very different properties:
 
 \begin{itemize}
     \tick{Equality}
-Prolog cannot distinguish between `person(fred, 30, 'Long Street 45)'
-and a second instance of the same term.  In PCE two instances of the
-same class having the same state are different entities.
+Prolog cannot distinguish between `{\tt person('Fred', 30, 'Long Street
+45')}' and a second instance of the same term. In PCE two instances of
+the same class having the same state are different entities.
     \tick{Attributes}
 Whereas an attribute (argument) of a Prolog term is either a logical
 variable or instantiated to a Prolog data object, an attribute of
 an object may be assigned to.  The assignment is destructive.
     \tick{Types}
-PCE is a partially typed language and PCE object attributes may have
-types.  Prolog is untyped.
+PCE is a partially dynamically typed language and PCE object attributes
+may have types. Prolog is untyped.
 \end{itemize}
 
 Because there is no straight-forward translation from Prolog data
@@ -109,9 +109,9 @@ Prolog list actually is the term .(hello,.(world,[])) (see the
 Prolog predicate display/2).  As PCE does not define a class `.'
 an error message results.
 
-Below is a very realistic example of this misconception:
+Below is a very realistic example of this misconception.
 
-\begin{code}
+\begin{pcecode}
 ?- new(D, dialog('Bug')),
    send(D, append, button(verbose,
 			  message(@prolog, assert,
@@ -119,488 +119,21 @@ Below is a very realistic example of this misconception:
    send(D, open).
 [PCE warning: new: Unknown class: verbose
         in: new(verbose(on)) ]
-\end{code}
+\end{pcecode}
 
-\section{Architecture of PCE/Prolog applications}
+A correct solution for this task is.
 
-This section deals with the architecture of interactive applications
-written in PCE/Prolog.  Interactive graphical applications are very
-different from terminal oriented applications.  Terminal oriented
-applications often have a toplevel control structure of the form:
-
-\begin{code}
-go :-
-	initialise,
-	main_loop.
-
-main_loop :-
-	present_question,
-	read_answer(Answer),
-	process_answer(Answer),
-	main_loop.
-\end{code}
-
-This schema is often refined with sub-loops dealing with
-question/answers in a specific context.
-
-Many interactive graphical applications present various UI components
-simultaneously: the user is free on which component s/he wants to
-operate next.  The users actions (keyboard-typing, mouse movement, and
-mouse-button press/release) have to be related to the correct UI
-component and accordingly interpreted in the application.  It should
-be clear that this interpretation is much more complex than the
-interpretation of a stream of ASCII characters typed by the user.
-
-One approach is to write a main-loop that reads events, locates the
-UI-component referred to and executes the appropriate actions.  This
-loop, which has to take care of repaint-requests, various local feedback
-procedures (changing the mouse-cursor, inverting objects, etc.), is
-complicated.  The approach taken by most graphical programming systems
-including PCE is to move this loop into the infra-structure (i.e.\ into
-the PCE kernel).  The application programmer creates the desired UI
-components and supplies code fragments that will be called by the
-main-loop when a certain event happens.  Consider a button:
-
-\begin{code}
-1 ?- new(B, button(hello, message(@pce, write_ln, hello))),
-     send(B, open).
-\end{code}
-
-In this example the application has created and displayed a button UI
-component and associated a code fragment (the message) to be executed
-when the button is depressed.  The PCE kernel will loop through the
-main event-loop.  For each event it will locate the UI component that
-should handle the event.  When the button has recognised a `click' it
-will execute the code fragment attached to it.  This behaviour is part
-of the definition of class \class{button}.
-
-It is clear that this approach relieves the application programmer of
-many of the complications associated with event-processing.  As a
-consequence, the `main-loop' of a PCE application is no longer in the
-application itself, but in the PCE kernel.  Below is an outline of
-the control structure of a PCE/Prolog application:
-
-\begin{code}
-go :-
-	initialise,
-	create_ui_components.
-
-handle_help_pressed :-
-	create_help_window.
-
-handle_solve :-
-	solve_the_problem,
-	create_solution_window.
-
-...
-\end{code}
-
-The predicate go will exit after it has initialised your application and
-created the UI components.  Assuming the application window has a button
-invoking the predicate handle_help_pressed, PCE will call this
-predicate when the user presses the help button.
-
-
-\subsection{PCE and existing applications}
-
-Due to the different control-regime described in the previous section,
-traditional terminal oriented applications are not easily transformed
-into PCE/Prolog graphical applications.  Depending on the application
-there are two ways to proceed.
-
-The first is to keep the existing control-regime.  This implies that
-the questions asked on the terminal will be replaced by \idx{modal}
-dialog windows.  The main loop will be:
-
-\begin{code}
-go :-
-	initialise,
-	create_dialog.
-
-main_loop :-
-	fill_dialog_with_next_question(Dialog),
-	send(Dialog, fit),
-	get(Dialog, confirm, Answer),
-	process_answer(Answer),
-	main_loop.
-\end{code}
-
-This example reuses the same dialog window for all questions.  It is
-trivial to change this loop to use a new dialog window for each
-question. Output from the program may be presented in other windows.
-The approach does not exploit the potentialy larger freedom for the
-user that is possible in graphical user interfaces.
-
-If the application could be viewed as a number of commands operating
-on some data-structure and this data-structure is stored on the Prolog
-heap using assert/1 or recorda/2 one could consider rewriting the
-toplevel control and provide a more flexible interface.  A typical
-application consists of a main window with a menu_bar object attached
-to it which allows the user to select from the available operations.
-
-
-\section{Using object references: ``Who's Who?''}
-
-A user interface generally consists of a large amount of UI
-components.  Some of these are used as input devices and some as
-output devices.  Input devices generally activate functionality in the
-host system.  Output devices are addressed by the host system to
-present results.  Both input- and output devices may be related to
-entities within the application.  For example, a particular icon may
-be the visualisation of a file in the computer's file-system.
-
-The application must be able to find the references to these UI
-components.  Various techniques are available to keep track of
-objects in the user interface.  Below we will discuss the following
-case:
-
-\begin{quote}
-We want to create a frame, consisting of a dialog window and a picture
-window.  The dialog contains a label for feedback.  The picture
-contains a box that, when clicked, should write its name in the
-feedback label.
-\end{quote}
-
-
-\subsection{Global named references}
-
-Using this approach, we will call the label @feedback_label.  It leads
-to the following (minimal) program:
-
-\begin{code}
-feedback_1(P) :-
-	new(D, dialog('Feedback 1')),
-	send(D, append, new(@feedback_label, label(feedback, ''))),
-	new(P, picture),
-	send(P, below, D),
+\begin{pcecode}
+make_verbose_dialog :-
+	new(D, dialog('Correct')),
+	send(D, append,
+	     button(verbose,
+		    message(@prolog, set_verbose, on))),
 	send(D, open).
 
-draw_box_1(P, Name) :-
-	send(P, display, new(B, box(100,100)), point(20,20)),
-	send(B, name, Name),
-	send(B, recogniser,
-	     click_gesture(left, '', single,
-			   message(@feedback_label, selection,
-				   @receiver?name))).
-
-1 ?- feedback_1(@p1),
-     draw_box_1(@p1, hello).
-\end{code}
-
-This approach is very straight-forward.  Unfortunately it has various
-serious disadvantages:
-
-\begin{itemize}
-    \tick{Name conflicts}
-Large applications will have many objects whose reference needs
-to be available.  Unless the application provides a structure
-that can be used to generate meaningful names, one is likely to run
-into name conflicts quickly.
-    \tick{Object life-time}
-With named references, PCE assumes Prolog wants to be responsible
-for destruction of the object.  Thus, if a window holding named
-objects is freed, the named objects will not be destroyed.  This
-has to be done explicitly from Prolog. See appendix~\ref{sec:memory}.
-    \tick{Too specific}
-We have to attach code to the box to make it display its name.
-The way this is solved above is very specific and will only 
-work in the given context, which makes the code very sensitive
-to changes.
-    \tick{No multiple instances}
-The code above cannot be called more than once to create more than one
-such frame.
-\end{itemize}
-
-Global references are part of PCE to keep track of objects that are
-created once and will remain in existence during the entire PCE
-session.  Examples are the predefined global objects @pce, @prolog,
-@display, etc.  Other examples are reusable objects such as
-relations, messages, event handlers, methods, bitmaps to be used
-as fill-patterns, etc.  See below:
-
-\begin{code}
-new(@center, spatial(xref=x+w/2, yref=y+h/2,
-		     xref=x+w/2, yref=y+h/2)).
-new(@move_middle, move_outline_gesture).
-\end{code}
-
-
-\subsection{Using the Prolog database}
-
-Dynamic predicates form another technique often used by novice
-PCE users.  Using dynamic predicates the ``label'' would result in:
-
-\begin{code}
-:- dynamic
-	feedback_label/2.
-
-feedback_2(P) :-
-	new(D, dialog('Feedback 2')),
-	send(D, append, new(FL, label(feedback, ''))),
-	new(P, picture),
-	send(P, below, D),
-	send(D, open),
-	asserta(feedback_label(P, FL)).
-
-draw_box_2(P, Name) :-
-	send(P, display, new(B, box(100,100)), point(20,20)),
-	send(B, name, Name),
-	feedback_label(P, FL),
-	send(B, recogniser,
-	     click_gesture(left, '', single,
-			   message(FL, selection,
-				   @receiver?name))).
-1 ?- feedback_2(@p2),
-     draw_box_2(@p2, hello_2).
-\end{code}
-
-Neither this is a proper way to deal with references. First of all, it
-does not really solve the danger of name conflicts unless one is using
-Prolog modules to establish storage of the dynamic predicates local to
-the module that uses them.  More seriously, using implicit object
-references, PCE assumes it is allowed to destroy the object whenever
-no other PCE object has a reference to it.  The feedback_label/2
-predicate then holds an invalid reference.
-
-
-\subsection{Using PCE attributes}
-
-PCE object-level attributes provide another approach:
-
-\begin{code}
-feedback_3(P) :-
-	new(D, dialog('Feedback 3')),
-	send(D, append, new(FL, label(feedback, ''))),
-	new(P, picture),
-	send(P, below, D),
-	send(D, open),
-	send(P, attribute, attribute(feedback_label, FL)).
-
-draw_box_3(P, Name) :-
-	send(P, display, new(B, box(100,100)), point(20,20)),
-	send(B, name, Name),
-	send(B, recogniser,
-	     click_gesture(left, '', single,
-			   message(P?feedback_label, selection,
-				   @receiver?name))).
-1 ?- feedback_3(@p3),
-     draw_box_3(@p3, hello_3).
-\end{code}
-
-This approach is much better.  There no longer is a potential
-name-conflict and PCE has access to all information it needs to do
-proper memory management.  Two disadvantages remain.  First of all,
-the message object has a direct reference to `P' and therefore the
-entire recogniser object cannot be shared by multiple graphical
-objects (reused\index{re-usability}).  Second, the code for the box
-assumes the picture has an attribute feedback_label and this attribute
-refers to a label object (or, at least an object understanding
-->selection).
-
-
-\subsection{Using window and graphical behaviour} \label{sec:devicemember}
-
-\index{graphical,finding}\index{finding,graphicals}\index{graphical,name}%
-All graphicals in PCE have a name, and graphical devices define the
-method `device <-member: name' to find the (first) graphical with this
-name. The default name for a graphical is its class name.  For
-dialog-items it is the label of the item.  Using <-member results in:
-
-\begin{code}
-feedback_4(P) :-
-	new(D, dialog('Feedback 4')),
-	send(D, append, label(feedback, '')),
-	new(P, picture),
-	send(P, below, D),
-	send(D, open).
-
-:- new(@feedback_name,
-       click_gesture(left, '', single,
-		     message(?(?(@receiver?frame, member, dialog),
-			       member, feedback),
-			     selection,
-			     @receiver?name))).
-
-draw_box_4(P, Name) :-
-	send(P, display, new(B, box(100,100)), point(20,20)),
-	send(B, name, Name),
-	send(B, recogniser, @feedback_name).
-
-1 ?- feedback_4(@p4),
-     draw_box_4(@p4, hello_4).
-\end{code}
-
-In this example we made the recogniser generic.  This saves both
-time and memory.  Note however that this approach could be used in
-the previous example as well.
-
-This example has largely the same (dis)advantages as the previous two.
-As an advantage, the attribute object may be omitted.  The assumption
-here is that the frame the box is in contains a dialog which in turn
-contains a graphical object named `feedback' and understanding the
-`selection' message.
-
-
-\subsection{Using methods}
-
-Another solution is to attach methods to objects to pass the feedback
-information.
-
-\begin{code}
-feedback_5(P) :-
-	new(D, dialog('Feedback 5')),
-	send(D, append, new(FL, label(feedback, ''))),
-	new(P, picture),
-	send(P, below, D),
-	send(P?frame, send_method,
-	     send_method(feedback, vector(char_array),
-			 message(FL, selection, @arg1))),
-	send(D, open).
-
-:- new(@feedback_name,
-       click_gesture(left, '', single,
-		     message(@receiver?frame,
-			     feedback, @receiver?name))).
-
-draw_box_5(P, Name) :-
-	send(P, display, new(B, box(100,100)), point(20,20)),
-	send(B, name, Name),
-	send(B, recogniser, @feedback_name).
-
-1 ?- feedback_5(@p5),
-     draw_box_5(@p5, hello_5).
-\end{code}
-
-The main advantage of this approach is that the assumptions on the
-environment of the `feedback_name' recogniser have been weakened.  It
-now only requires the frame (which is always available if a graphical
-is visible) to have a `feedback' method.
-
-
-\subsection{Summary}
-
-Using global references or the Prolog database to keep track of
-instances in the UI is not the appropriate way.  This approach 
-quickly leads to name-conflicts, harms the memory management of
-PCE and makes it difficult to write reusable code.  
-
-Using attributes or standard PCE methods to find (graphical) objects
-solves the name-conflict problems and allows PCE to perform proper
-memory management.  It also allows multiple copies of these windows to
-run simultaneously.  Using methods allows one to make the code more
-robust against later changes and allow low-level objects to be better
-reusable.
-
-Which of the last two approaches is the most appropriate is largely
-a matter of taste.  In large applications that are largely developed
-bottom-up by lack of sufficient experience in the application domain,
-the most flexible approach is to be advocated.
-
-Large applications should carefully design the infra-structure
-to manage the structure of the UI components as well as the relation
-between UI objects and application entities.  See \cite{Wielemaker:89}.
-
-
-\section{Defining global named objects}
-
-As explained above, named references should be restricted to debugging
-and reusable objects.  A couple of problems related to their creation
-and usage can be identified:
-
-\begin{itemize}
-    \tick{Creating}
-Objects need to be created before they can be used.  Reusable
-objects generally are used from various places in the application.
-How are they best declared and when are they best created?
-    \tick{Versioning}
-Symbolic programming languages generally allow the programmer to
-change the program when it is running.  This property makes them
-suitable for rapid-prototyping.  Global objects are created from
-the Prolog system.  It is desirable that the global object changes
-if the source-code that declares it has been changed.
-\end{itemize}
-
-Various alternatives to creating global objects have been tried.  We
-will present some of the straight-forward approaches below and
-describe the (dis)advantages.  Section~\ref{sec:interface} describes
-the pce_global/2 directive to solve this problem. We will use a
-particular fill-pattern (image) as an example.
-
-\subsection{Using directives}
-
-Using a directive to create a reusable global object appears to be
-a logical way of dealing with them.  This leads to the following code:
-
-\begin{code}
-:- new(@stones_image, image(stones)).
-
-	...,
-	send(Box, fill_pattern, @stones_image),
-	...
-\end{code}
-
-This code has a serious disadvantage.  Whenever this file is reloaded
-after the Prolog code inside them has changed, the directive will be
-executed as well.  The predicate new/2 will generate a warning an
-attempt to create an object with an existing name.
-
-
-\index{display,open}\index{open,display}
-Using directives, all global objects are created while the program
-is loaded.  This has two disadvantages.  It slows down loading the
-program but ---more important--- creating global objects might require
-the X-server connection.  After this connection has been opened it is
-no longer possible to create a \idx{saved-state} of the program using
-save/1.%
-    \footnote{To find out when the display is opened, invoke the
-	      Prolog query `debugpce(display)'.  This makes PCE
-	      print a message to the terminal when it opens the
-	      connection to the X-server.}.
-
-
-\subsection{Inline testing}
-
-Another commonly found approach is to test inline.  For the example, this
-would look like:
-
-\begin{code}
-	...,
-	(   object(@stones_image)
-	->  true
-	;   new(@stones_image, image(stones))
-	),
-	send(Box, fill_pattern, @stones_image),
-	...
-\end{code}
-
-This approach is to be regarded as bad programming style.  If
-@stones_bitmap is required at various places in the source files this
-construct needs to be repeated at various places.  
-
-
-\subsection{The :- pce_global/2 directive}	\label{sec:global}
-
-This approach is based on \idx{exception-handling}.  If PCE translates
-a named reference into an internal reference and the named reference
-does not exist it will raise an exception.  The pce_global/2 directive
-installs an exception handler dealing with a specific global reference.
-The example becomes:
-
-\begin{code}
-:- pce_global(@stones_image, new(image(stones))).
-
-	...,
-	send(Box, fill_pattern, @stones_image),
-	...
-\end{code}
-
-\index{global objects,with reconsult}%
-This directive applies some heuristics to take care of redefinitions
-when the file is reconsulted: if the definition is still the same it
-will not complain.  If the definition has modified and the object is
-already created it will rename the object (using
-`object ->name_reference').  A later reference to the object will
-again trap the exception handler creating a new object according to
-the current specification.  The directive prints diagnostics messages
-on redefinitions and other possible problems during compilation.  See
-appendix~\ref{sec:interface} for details on pce_global/2.
+set_verbose(Value) :-
+	retractall(verbose(_)),
+	assert(verbose(Value)).
+\end{pcecode}
+
+\mbox{}

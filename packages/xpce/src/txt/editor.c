@@ -778,7 +778,8 @@ fetch_editor(Any obj, TextChar tc)
   tc->index	   = index;
 
   if ( tc->value.c == GRAPHICS_START &&
-       Fetch(e, index+2) == GRAPHICS_START )
+       Fetch(e, index+2) == GRAPHICS_START &&
+       hasGetMethodObject(e, NAME_diagram) )
   { int grindex = Fetch(e, index+1);
     Graphical gr = get(e, NAME_diagram, toInt(grindex), 0);
 
@@ -869,6 +870,15 @@ static Int
 getFetchEditor(Editor e, Int where)
 { answer(toInt(Fetch(e, valInt(where))));
 }
+
+
+static RewindFunction
+getRewindFunctionEditor(Editor e)
+{ answer((RewindFunction) NULL);
+}
+
+
+
 
 		/********************************
 		*            REDRAW		*
@@ -1244,14 +1254,14 @@ verify_editable_editor(Editor e)
 
 
 static status
-insertSelfEditor(Editor e, Int times, Int chr)
+insert_editor(Editor e, Int times, Int chr, int fill)
 { wchar c;
   TextBuffer tb = e->text_buffer;
   LocalString(s, &tb->buffer, 1);
 
   MustBeEditable(e);
 
-  if ( e->fill_mode == ON )
+  if ( fill && e->fill_mode == ON )
     return insertSelfFillEditor(e, times, chr);
 
   if ( isDefault(times) )
@@ -1276,6 +1286,18 @@ insertSelfEditor(Editor e, Int times, Int chr)
     showMatchingBracketEditor(e, sub(e->caret, ONE));
 
   succeed;
+}
+
+
+static status
+insertSelfEditor(Editor e, Int times, Int chr)
+{ return insert_editor(e, times, chr, TRUE);
+}
+
+
+static status
+insertQuotedEditor(Editor e, Int times, Int chr)
+{ return insert_editor(e, times, chr, FALSE);
 }
 
 
@@ -1307,26 +1329,6 @@ showMatchingBracketEditor(Editor e, Int arg)
   } else
     return errorPce(e, NAME_noMatchingBracket);
 
-  succeed;
-}
-
-
-static status
-quotedInsertEditor(Editor e)
-{ assign(e, focus_function, NAME_QuotedInsert);
-
-  succeed;
-}
-
-
-static status
-QuotedInsertEditor(Editor e, EventId id)
-{ if ( isInteger(id) )
-    insertSelfEditor(e, get(e->bindings, NAME_argument, 0), id);
-  else
-    send(e, NAME_report, NAME_warning, CtoName("Illegal character"), 0);
-
-  assign(e, focus_function, NIL);
   succeed;
 }
 
@@ -3756,6 +3758,16 @@ ChangedEditor(Editor e)
   succeed;
 }
 
+		 /*******************************
+		 *	     DELEGATION		*
+		 *******************************/
+
+static status
+referenceEditor(Editor e, Point ref)
+{ return referenceGraphical((Graphical) e, ref);
+}
+
+
 		/********************************
 		*            VISUAL		*
 		********************************/
@@ -4037,6 +4049,10 @@ makeClassEditor(Class class)
 	     "Set a local key binding",
 	     keyBindingEditor);
 
+  sendMethod(class, NAME_reference, NAME_dialogItem, 1, "point",
+	     "Set reference as dialog_item",
+	     referenceEditor);
+
 #define noArgMethod(name, func, group, doc) \
   sendMethod(class, name, group, 0, doc, func)
 
@@ -4060,8 +4076,6 @@ makeClassEditor(Class class)
 	      NAME_reset, "Cancel current operation");
   noArgMethod(NAME_pointToMark,		pointToMarkEditor,
 	      NAME_caret, "Move to mark");
-  noArgMethod(NAME_quotedInsert,	quotedInsertEditor,
-	      NAME_insert, "Insert next character");
   noArgMethod(NAME_toggleCharCase,	toggleCharCaseEditor,
 	      NAME_case, "Toggle case of character before caret");
   noArgMethod(NAME_transposeWord,	transposeWordEditor,
@@ -4209,7 +4223,6 @@ makeClassEditor(Class class)
   sendMethod(class, name, NAME_editContinue, \
 	     1, "event_id", "Focus function", func);
   
-  continueMethod(NAME_QuotedInsert,	QuotedInsertEditor);
   continueMethod(NAME_Isearch,		IsearchEditor);
   continueMethod(NAME_StartIsearch,	StartIsearchEditor);
   continueMethod(NAME_DabbrevExpand,	DabbrevExpandEditor);
@@ -4234,6 +4247,10 @@ makeClassEditor(Class class)
 	     "times=[int]", "character=[char]",
 	     "Insert typed character n times",
 	     insertSelfEditor);
+  sendMethod(class, NAME_insertQuoted, NAME_insert, 2,
+	     "times=[int]", "character=[char]",
+	     "Insert typed character n times (no fill)",
+	     insertQuotedEditor);
   sendMethod(class, NAME_nextLine, NAME_caret, 2,
 	     "lines=[int]", "column=[int]",
 	     "Move lines downward; place caret at column",
@@ -4268,9 +4285,12 @@ makeClassEditor(Class class)
   getMethod(class, NAME_FetchFunction, NAME_internal, "alien:FetchFunction", 0,
 	    "Pointer to C-function to fetch char",
 	    getFetchFunctionEditor);
-  getMethod(class, NAME_MarginFunction, NAME_internal, "alien:MarginFunction",0,
+  getMethod(class, NAME_MarginFunction, NAME_internal,"alien:MarginFunction",0,
 	    "Pointer to C-function to fetch margins",
 	    getMarginFunctionEditor);
+  getMethod(class, NAME_RewindFunction, NAME_internal,"alien:RewindFunction",0,
+	    "Pointer to C-function to rewind object",
+	    getRewindFunctionEditor);
   getMethod(class, NAME_size, NAME_area, "characters=size", 0,
 	    "Size in character units",
 	    getSizeEditor);
@@ -4348,7 +4368,7 @@ makeClassEditor(Class class)
 
   attach_resource(class, "size",	       "size",    "size(40,20)",
 		  "Default size in `characters x lines'");
-  attach_resource(class, "font",	       "font",    "@screen_roman_13",
+  attach_resource(class, "font",	       "font",    "fixed",
 		  "Default font");
   attach_resource(class, "cursor",	       "cursor",  "xterm",
 		  "Default cursor");

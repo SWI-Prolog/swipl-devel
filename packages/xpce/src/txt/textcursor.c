@@ -50,8 +50,9 @@ RedrawAreaTextCursor(TextCursor c, Area a)
   } else if ( c->style == NAME_openLook )
   { if ( c->active == ON )
     { int cx = x + w/2;
+      Any colour = getDisplayColourGraphical((Graphical)c);
 
-      r_fillpattern(BLACK_IMAGE);
+      r_fillpattern(colour ? colour : (Any) BLACK_IMAGE);
       r_fill_triangle(cx, y, x, y+h, x+w, y+h);
     } else
     { struct ipoint pts[4];

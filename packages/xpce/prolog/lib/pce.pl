@@ -53,6 +53,8 @@ reexports the content of these files.
 
 	  , pce_catch_error/2		% pce_error
 
+	  , pce_open/3
+
 	  , strip_module/3		% pce_pl (module pce_host)
 	  , require/1
 	  , auto_call/1
@@ -67,6 +69,8 @@ reexports the content of these files.
 	  , pce_info/1
 	  , pce_welcome/0
 	  ]).
+
+:- system_module.
 
 user:term_expansion((:- require(_)), []).
 
@@ -111,23 +115,6 @@ get_pce_version :-
 
 :- initialization get_pce_version.
 
-		/********************************
-		*           SET PCE HOME	*
-		********************************/
-
-set_xpce_home :-
-	absolute_file_name(pce('Pce'), [exists], ResourceFile), !,
-	file_directory_name(ResourceFile, PceHome),
-	send(@pce, home, PceHome).
-set_xpce_home :-
-	prolog_load_context(directory, LibDir),
-	file_directory_name(LibDir, PrologDir),
-	file_directory_name(PrologDir, PceHome),
-	absolute_file_name(PceHome, CanonicalHome),
-	send(@pce, home, CanonicalHome).
-
-:- initialization set_xpce_home.
-
 
 		 /*******************************
 		 *	     CONSOLE		*
@@ -166,5 +153,5 @@ pce_welcome :-
 		*        LOCK LOADED FILES	*
 		********************************/
 
-:- '$make_system_source_files'.
-:- '$autoload':clear_library_index.
+%:- '$make_system_source_files'.
+%:- '$autoload':clear_library_index.

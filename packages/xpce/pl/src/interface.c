@@ -48,6 +48,14 @@ static IOSTREAM *S__iob;		/* Windows DLL version */
 #define O_SHAREDLIBRARY
 #endif
 
+foreign_t
+pl_pce_init(term_t h)
+{ if ( !PL_is_atom(h) )
+    return PL_warning("$pce_init/1: instantiation fault");
+
+  return prolog_pce_init(PL_atom_value(PL_atomic(h)));
+}
+
 #ifdef O_SHAREDLIBRARY
 #ifndef PROLOG_ITF_INIT
 #define PROLOG_ITF_INIT() { }
@@ -59,7 +67,7 @@ static OnExitFunction exitpce_hook;
 install_t
 install()
 { /*Sdprintf("initialising XPCE ...");*/
-  prolog_pce_init();
+  PL_register_foreign("$pce_init", 1, pl_pce_init, PL_FA_TRANSPARENT);
   /*Sdprintf(" ok\n");*/
 }
 
@@ -162,15 +170,13 @@ static module_t  MODULE_user;		/* Global module */
 #define PROLOG_ONEXIT(f)	PL_on_halt(f, NULL)
 #endif
 
-#define PROLOG_INSTALL_REINIT_FUNCTION(f) \
-				{ PL_reinit_hook((PL_reinit_hook_t)(f)); }
+#define PROLOG_INSTALL_REINIT_FUNCTION(f) 
 #define PROLOG_INSTALL_RESET_FUNCTION(f) \
 				{ PL_abort_hook(f); }
 #if defined(__WATCOMC__) || defined(__WIN32__)
 #define PROLOG_INSTALL_DISPATCH_FUNCTION(f) {}
 #else
-#define PROLOG_INSTALL_DISPATCH_FUNCTION(f) \
-				{ PL_dispatch_hook(f); }
+#define PROLOG_INSTALL_DISPATCH_FUNCTION(f) PL_dispatch_hook(f)
 #endif
 
 #define PROLOG_INSTALL_CALLBACKS() init_pce_callbacks()
@@ -663,7 +669,7 @@ pl_pce_open(Term t, Term mode, Term plhandle)
 { PceObject obj;
 
   if ( (obj = termToObject(t, NULL, FALSE)) )
-  { int flags, sflags = SIO_FBUF|SIO_RECORDPOS;
+  { int flags, sflags = SIO_LBUF|SIO_RECORDPOS;
     int handle;
 
     if ( PL_atomic(mode) == ATOM_read )

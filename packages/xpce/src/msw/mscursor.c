@@ -26,10 +26,10 @@ The converted cursor  file  is   located  in  $PCEHOME/lib/X11.crs.  The
 format on this (binary) file is described in the file "xcursor.h".
 
 The function read_cursor_glyphs() reads this binary file into memory and
-provides a cache for the final MS-Window images for CreateCursor().  The
+provides a cache for the final  MS-Window images for CreateCursor(). The
 function get_cursor_bits() used the X11Glyhps() to return mask and image
-bitmaps of the size demanded by CreateCursor().  It performs the following
-tasks:
+bitmaps  of  the  size  demanded  by  CreateCursor().  It  performs  the
+following tasks:
 
 	1) Copy the mask and images into a pattern of the desired size
 	2) Convert the bits such that the intended cursor is displayed:
@@ -53,6 +53,8 @@ static int cursor_width;		/* only width allowed */
 static int cursor_height;		/* only height allowed */
 
 #define SEC(c) (((int)(c) << 24) >> 24)	/* sign-extend-character */
+#define XID_MIN 0
+#define XID_MAX 152
 
 
 		 /*******************************
@@ -142,8 +144,37 @@ static struct standardCursor
   { "ur_angle",			148 },
   { "watch",			150 },
   { "xterm",			152 },
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+These are the standard windows  ones.   MAKEINTRESOURCE()  just tags the
+value. We tag it back to int  ...   This  is  a bit dangerous for future
+compatibility, but the compiler is likely to  complain if it changes and
+it shouldn't be hard to find another trick.
+
+We use negative numbers, just to distinguish   them  from the others and
+avoid too much dependency on where Microsoft places these numbers.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define MSINTVAL(charp) (-((int)(charp)))
+
+  { "win_arrow",		MSINTVAL(IDC_ARROW) },
+  { "win_ibeam",		MSINTVAL(IDC_IBEAM) },
+  { "win_wait",			MSINTVAL(IDC_WAIT) },
+  { "win_cross",		MSINTVAL(IDC_CROSS) },
+  { "win_uparrow",		MSINTVAL(IDC_UPARROW) },
+  { "win_size",			MSINTVAL(IDC_SIZE) },
+  { "win_icon",			MSINTVAL(IDC_ICON) },
+  { "win_sizenwse",		MSINTVAL(IDC_SIZENWSE) },
+  { "win_sizenesw",		MSINTVAL(IDC_SIZENESW) },
+  { "win_sizewe",		MSINTVAL(IDC_SIZEWE) },
+  { "win_sizens",		MSINTVAL(IDC_SIZENS) },
+  { "win_sizeall",		MSINTVAL(IDC_SIZEALL) },
+  { "win_no",			MSINTVAL(IDC_NO) },
+  { "win_appstarting",		MSINTVAL(IDC_APPSTARTING) },
+
   { NULL,			0 }
 };
+
 
 
 void
@@ -157,6 +188,8 @@ ws_init_cursor_font()
 
   cursor_width  = GetSystemMetrics(SM_CXCURSOR);
   cursor_height = GetSystemMetrics(SM_CYCURSOR);
+
+  
 }
 
 
@@ -475,6 +508,7 @@ ws_create_cursor(CursorObj c, DisplayObj d)
   if ( notNil(c->font_id) )
   { CursorBits bits;
     int hx, hy;				/* hot spot */
+    int id;
 
     if ( isDefault(c->font_id) )
     { Int id;
@@ -484,14 +518,18 @@ ws_create_cursor(CursorObj c, DisplayObj d)
 
       assign(c, font_id, id);
     }
-
-    if ( (bits = get_cursor_bits(X11Glyhps(), valInt(c->font_id), &hx, &hy)) )
-    { /*DEBUG(NAME_cursor, print_bits(X11Glyhps(), bits, hx, hy, 'b'));*/
-
-      msc = CreateCursor(PceHInstance,
-			 hx, hy,
-			 cursor_width, cursor_height,
-			 bits->mask, bits->image);
+    
+    id = valInt(c->font_id);
+    if ( id >= XID_MIN && id <= XID_MAX )
+    { if ( (bits = get_cursor_bits(X11Glyhps(), id, &hx, &hy)) )
+      { msc = CreateCursor(PceHInstance,
+			   hx, hy,
+			   cursor_width, cursor_height,
+			   bits->mask, bits->image);
+      }
+    } else if ( id < 0 )
+    { id = -id;
+      msc = LoadCursor(NULL, MAKEINTRESOURCE(id));
     }
   } else
   { void *source = ws_image_bits_for_cursor(c->image, NAME_image,
@@ -514,7 +552,6 @@ ws_create_cursor(CursorObj c, DisplayObj d)
   { Cprintf("Failed to create cursor for %s\n", pp(c));
     msc = LoadCursor(NULL, IDC_ARROW);
   }
-/*    return errorPce(c, NAME_xOpen, d); */
 
   return registerXrefObject(c, d, (void *) msc);
 }
@@ -567,8 +604,8 @@ save_big_cursor_background()
   saved_y = pt.y - hot_y;
 
   if ( !saved_bits )
-  { saved_bits = CreateCompatibleBitmap(hdc,
-					big_cursor_width, big_cursor_height);
+  { saved_bits = ZCreateCompatibleBitmap(hdc,
+					 big_cursor_width, big_cursor_height);
     if ( !saved_bits )
       fail;
   }
@@ -641,7 +678,7 @@ MASK	IMG	IMAGE
 static HBITMAP
 mask_image(HBITMAP img, HBITMAP mask, int w, int h)
 { HDC src       = CreateCompatibleDC(NULL);
-  HBITMAP image = CreateCompatibleBitmap(src, w, h);
+  HBITMAP image = ZCreateCompatibleBitmap(src, w, h);
   HDC dst	= CreateCompatibleDC(src);
   HBITMAP osrc, odst;
 

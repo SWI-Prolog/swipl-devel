@@ -83,7 +83,7 @@ proto_class(Class, ProtoClass) :-
 
 proto_name(label(reporter, _),	reporter) :- !.
 proto_name(label(_, image(_)),	image) :- !.
-proto_name(menu(_, choice),	choice) :- !.
+proto_name(menu(_, marked),	marked) :- !.
 proto_name(menu(_, toggle),	toggle) :- !.
 proto_name(menu(_, cycle),	cycle) :- !.
 proto_name(Term, Proto) :-

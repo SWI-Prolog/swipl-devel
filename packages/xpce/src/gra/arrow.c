@@ -373,7 +373,7 @@ makeClassArrow(Class class)
 		  "Distance tip to base (10)");
   attach_resource(class, "wing", "int", "7",
 		  "Width of wing (7)");
-  attach_resource(class, "fill_pattern", "image", "@black_image",
+  attach_resource(class, "fill_pattern", "image|colour", "@black_image",
 		  "Fill pattern for the triangle");
   attach_resource(class, "style", "{open,closed}", "closed",
 		  "Whether or not the wing is closed");

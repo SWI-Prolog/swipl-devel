@@ -10,6 +10,8 @@ manipulation of the environment.  For example, you cannot {\em undo}
 operations in PCE, change the program and redo the goal as you can
 in Prolog.
 
+\section{Object-base consistency}
+
 Unlike Prolog, PCE is not {\em secure}: if a Prolog environment traps
 a fatal error there is almost always a bug in the Prolog system.
 Except for violating system limits there is no Prolog program that can
@@ -41,24 +43,29 @@ PCE uses heuristics trying to avoid that such problems actually
 crash the system (in the example above execution continues
 normally).
 
+We advice using checkpce/0 regulary during program development to
+verify your application is not violating object consistency.  Please
+see section~\ref{sec:whoiswho} and~\ref{sec:hyper} for technique
+to avoid `dangling' object references.
+
+
 \section{The PCE tracer}
 
-The PCE tracer allows both for interactive execution as for printing
-the entry and/or completion of operations.  This section first
-introduces some common ways the exploit the tracer.
-Section~\ref{sec:tracemodel} discusses the underlying concepts.
-The end of this section provides examples of advanced queries to the
-tracer such as conditional trace- and break-points.
+The PCE tracer allows both for interactive execution as for printing the
+entry and/or completion of operations. This section first introduces
+some common ways the exploit the tracer. Section~\ref{sec:tracemodel}
+discusses the underlying concepts. The end of this section provides
+examples of advanced queries to the tracer such as conditional trace-
+and break-points.
 
-\subsection{Simple examples}
-
-\subsubsection{Inspection execution}
+\subsection{XPCE in trace mode}
 
 The execution of the virtual-machine instructions may be inspected
-using:
+using:%
+    \footnote{Implemented as {\tt send(class(vmi), trace, @on).}}
 
 \begin{code}
-1 ?- send(class(vmi), trace, @on).
+1 ?- tracepce.
 [ 1] exit: send(@vmi_class/class, trace, @on/bool)
 
 2 ?- new(@v, view).
@@ -67,7 +74,7 @@ using:
 \end{code}
 
 
-\subsubsection{Tracing behaviour execution}
+\subsection{Tracing specific methods}
 
 It is often useful to inspect the execution of a particular method.
 Suppose we'd like to monitor geometry-changes of graphical objects.
@@ -78,6 +85,7 @@ may be used:
 1 ?- tracepce(graphical->geometry).
 Trace method: graphical ->geometry
 \end{code}
+
 
 \subsubsection{Breaking on certain operations}.
 

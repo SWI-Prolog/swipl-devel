@@ -22,8 +22,12 @@ completions(_FI, Tuple:tuple, Matches:chain) :<-
 	get(Tuple, first, DirName),
 	get(Tuple, second, FileName),
 	new(Matches, chain),
-	send(directory(DirName), scan,
-	     Matches, Matches, regex(string('^%s', FileName))).
+	new(Re, regex((string('^%s', FileName)))),
+	(   send(class(file), has_feature, case_sensitive, @off)
+	->  send(Re, ignore_case, @on)
+	;   true
+	),
+	send(directory(DirName), scan, Matches, Matches, Re).
 	
 
 split_completion(_FI, Value, Tuple:tuple) :<-

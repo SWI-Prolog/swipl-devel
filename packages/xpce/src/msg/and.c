@@ -32,8 +32,7 @@ ExecuteAnd(And a)
 { Cell cell;
 
   for_cell(cell, a->members)
-  { TRY( executeCode(cell->value) )
-  }
+    TRY(executeCode(cell->value));
 
   succeed;
 }

@@ -226,9 +226,12 @@ postscriptXImage(XImage *im,
       int i, psscale = (1<<depth)-1;
 
       for(i=0; i<entries; i++, xc++)
-      { int val = intensityXColor(*xc);
+      { if ( *xc )
+	{ int val = intensityXColor(*xc);
 
-	psmap[i] = rescale(val, XBRIGHT, psscale);
+	  psmap[i] = rescale(val, XBRIGHT, psscale);
+	} else
+	  psmap[i] = 0;
       }
       freeSparceCInfo(cinfo, im->depth);
     }

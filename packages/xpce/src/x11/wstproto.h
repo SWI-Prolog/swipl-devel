@@ -80,8 +80,8 @@ void		r_3d_box(int x, int y, int w, int h, int radius, Elevation e, int up);
 void		r_3d_line(int x1, int y1, int x2, int y2, Elevation e, int up);
 void		r_3d_triangle(int x1, int y1, int x2, int y2, int x3, int y3, Elevation e, int up, int map);
 void		r_3d_diamond(int x, int y, int w, int h, Elevation e, int up);
-void		r_arc(int x, int y, int w, int h, int s, int e, Image fill);
-void		r_ellipse(int x, int y, int w, int h, Image fill);
+void		r_arc(int x, int y, int w, int h, int s, int e, Any fill);
+void		r_ellipse(int x, int y, int w, int h, Any fill);
 void		r_3d_ellipse(int x, int y, int w, int h, Elevation z, int up);
 void		r_line(int x1, int y1, int x2, int y2);
 void		r_polygon(IPoint pts, int n, int close);
@@ -122,6 +122,7 @@ Any		ws_event_in_subwindow(EventObj ev, Any root);
 /* xfont.c */
 status		ws_create_font(FontObj f, DisplayObj d);
 void		ws_destroy_font(FontObj f, DisplayObj d);
+status		ws_system_fonts(DisplayObj d);
 
 /* xframe.c */
 status		ws_created_frame(FrameObj fr);
@@ -195,6 +196,7 @@ void		ws_window_cursor(PceWindow sw, CursorObj cursor);
 void		ws_window_background(PceWindow sw, Any c);
 void		ws_raise_window(PceWindow sw);
 void		ws_lower_window(PceWindow sw);
+void		ws_flash_window(PceWindow sw, int msecs);
 
 /* x11.c */
 void		ws_initialise(int argc, char **argv);
@@ -203,3 +205,4 @@ int		ws_revision(void);
 status		ws_expose_console(void);
 status		ws_iconify_console(void);
 status		ws_console_label(CharArray label);
+Int		ws_default_scrollbar_width();

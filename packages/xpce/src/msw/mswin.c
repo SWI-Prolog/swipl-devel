@@ -33,12 +33,17 @@ ws_revision(void)
 }
 
 
+int
+iswin32s()
+{ if( GetVersion() & 0x80000000 && (GetVersion() & 0xFF) == 3 )
+    return TRUE;
+  return FALSE;
+}
+
+
 char *
 ws_os(void)
-{ if( GetVersion() & 0x80000000 && (GetVersion() & 0xFF) == 3 )
-    return "win32s";
-  else
-    return "win32";
+{ return iswin32s() ? "win32s" : "win32";
 }
 
 
@@ -106,3 +111,10 @@ ws_initialise(int argc, char **argv)
   rlc_word_char('@', TRUE);
 }
 
+
+Int
+ws_default_scrollbar_width()
+{ int w = GetSystemMetrics(SM_CXVSCROLL);	/* Is this the right one? */
+
+  return toInt(w);
+}

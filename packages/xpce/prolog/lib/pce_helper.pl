@@ -372,8 +372,8 @@ delete_other_views(E) :->
 	send(Frame?members, for_all,
 	     if(and(message(@arg1, instance_of, view),
 		    @arg1 \== V),
-		message(Frame, delete, @arg1))).
-%		message(@arg1, destroy))).
+		and(message(Frame, delete, @arg1),
+		    message(@arg1, destroy)))).
 
 
 		 /*******************************

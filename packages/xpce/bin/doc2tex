@@ -10,9 +10,13 @@ sub printTeX
   s/(\w+)\/((\d+|\[\d+(-|,)\d+\]))/\\index{\1\/\2}\\predrefer{\1}{\2}/g;
   s/(\w\.\w)\.(\s+[a-z])/\1.\\\2/g;
   s/(^|[^\w}])@(\w+)/\1\\index{@\2}\\objectname{\2}/g;
-  s/<(\w[-\w]+)>/\\bnfmeta{\1}/g;
+  s/<(\w[-\w]*)>/\\bnfmeta{\1}/g;
   s/\\class{([<\\=>]*)}/\\verb!\1!/g;
   s/==>/\$\\longrightarrow$/g;
+  s/^(\s *\\sendmethod\{.*\}) *$/\1%/;
+  s/^(\s *\\getmethod\{.*\}) *$/\1%/;
+  s/^(\s *\\bothmethod\{.*\}) *$/\1%/;
+  s/^((\\index{[^}]+})+) *$/\1%/;
 
   print;
 }

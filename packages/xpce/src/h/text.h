@@ -150,6 +150,7 @@ typedef void (*SeekFunction)(Any, long);
 typedef long (*ScanFunction)(Any, long, int, int, int, int *);
 typedef long (*FetchFunction)(Any, TextChar);
 typedef void (*MarginFunction)(Any, int *, int*);
+typedef void (*RewindFunction)(Any);
 
 struct text_char
 { union
@@ -207,6 +208,7 @@ NewClass(text_image)			/* TBD: subclass of bitmap? */
   ScanFunction	scan;			/* Scan for character type */
   FetchFunction fetch;			/* Function to fetch characters */
   MarginFunction margin;		/* Function to fetch margins */
+  RewindFunction rewind;		/* Rewind (prepare) input */
   TextScreen	map;			/* Describes the text object */
 End;
 

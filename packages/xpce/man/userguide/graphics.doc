@@ -100,14 +100,14 @@ value on the other object.  Class \class{spatial} defines more
 general geometrical constraints between graphicals.
 
 
-\section{Activating graphicals using the mouse}
+\section{Activating graphicals using the mouse}		\label{sec:recogniser}
 
-\index{event,processing}\index{sensitive}\index{moving graphicals}
-{\em Recogniser} objects enable detection of mouse- and keyboard activities.
-PCE defines both primitive and complex recognisers.  The first (called
-{\em handler}) processes a single event.  The latter processes a {\em
+\index{event,processing}\index{sensitive}\index{moving graphicals} {\em
+Recogniser} objects enable detection of mouse- and keyboard activities.
+PCE defines both primitive and complex recognisers. The first (called
+{\em handler}) processes a single event. The latter processes a {\em
 gesture}: sequence of events starting with a mouse-button-down up to the
-corresponding mouse-button-up.  The following example allows us to move
+corresponding mouse-button-up. The following example allows us to move
 the icon by dragging with the middle mouse button:
 
 \begin{code}

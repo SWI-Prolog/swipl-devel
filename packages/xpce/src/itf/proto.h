@@ -1,5 +1,5 @@
 
-/* c.c */
+/* itf/c.c */
 status		makeClassC(Class class);
 void		XPCE_initialise(void);
 XPCE_Object	XPCE_to_string(char *text);
@@ -42,12 +42,12 @@ XPCE_Object	XPCE_funcallCPlusPlusMethodv(XPCE_Function function, void *obj, int 
 XPCE_Object	XPCE_callCPlusPlusv(XPCE_Procedure f, int argc, const XPCE_Object argv []);
 XPCE_Object	XPCE_funcallCPlusPlusv(XPCE_Function f, int argc, const XPCE_Object argv []);
 
-/* host.c */
+/* itf/host.c */
 status		initialiseHost(Host h, Name which);
 status		makeClassHost(Class class);
 Host		HostObject(void);
 
-/* interface.c */
+/* itf/interface.c */
 Any		cToPceInteger(long int i);
 Any		cToPceReal(double f);
 Any		cToPceString(char *assoc, char *s);
@@ -91,11 +91,11 @@ void		Cvprintf(const char *fmt, va_list args);
 int		Cputchar(int chr);
 char *		Cgetline(char *line, int size);
 
-/* cpointer.c */
+/* itf/cpointer.c */
 CPointer	CtoCPointer(void *ptr);
 status		makeClassCPointer(Class class);
 
-/* asfile.c */
+/* itf/asfile.c */
 int		pceOpen(Any obj, int flags);
 int		pceClose(int handle);
 int		pceWrite(int handle, const char *buf, int size);
@@ -103,12 +103,12 @@ long		pceSeek(int handle, long offset, int whence);
 int		pceRead(int handle, char *buf, int size);
 const char *	pceOsError(void);
 
-/* console.c */
+/* itf/console.c */
 void		Stub__vCprintf(const char *fmt, va_list args);
 int		Stub__Cputchar(int chr);
 char *		Stub__Cgetline(char *line, int size);
 
-/* stub.c */
+/* itf/stub.c */
 int		Stub__HostActionv(int action, va_list args);
 int		Stub__HostQuery(int what, PceCValue *value);
 int		Stub__HostSend(PceObject prolog, PceName sel, int argc, PceObject *argv);
@@ -116,14 +116,14 @@ PceObject	Stub__HostGet(PceObject prolog, PceName sel, int argc, PceObject *argv
 int		Stub__HostCallProc(PceObject handle, PceObject rec, PceObject sel, int argc, PceObject *argv);
 PceObject	Stub__HostCallFunc(PceObject handle, PceObject rec, PceObject sel, int argc, PceObject *argv);
 
-/* xmalloc.c */
+/* itf/xmalloc.c */
 void *		xmalloc(size_t nbytes);
 void *		xrealloc(void *ptr, size_t nbytes);
 
-/* main.c */
+/* itf/main.c */
 int		main(int argc, char *argv []);
 
-/* cpp.cxx */
+/* itf/cpp.cxx */
 PceStatus	callCPlusPlusProc(Any f, int ac, const Any av []);
 Any		callCPlusPlusFunc(Any f, int ac, const Any av []);
 PceStatus	callCPlusPlusMethodProc(Any obj, Any f, int ac, const Any av []);

@@ -92,12 +92,16 @@ that documents the tool.
     \index{demo programs}%
 The `Demo Programs' entry of the `File' menu starts an overview of the
 available demo programs and lets you start these demos.  The sources of
-the demos may be found in \file{.../xpce/prolog/lib/demo}, where ...
+the demos may be found in \file{.../xpce/prolog/demo}, where ...
 refers to the PCE installation directory, which may be obtained using
 \begin{code}
 1 ?- get(@pce, home, Home).
-Home = '/usr/local/lib/xpce-4.7.1'
+Home = '/usr/local/lib/pl-2.1.10/xpce'
 \end{code}
+Note that the DemoBrowser allows to view the sources of the main file
+of a demo application immediately. Also consider using the
+VisualHierarchy and ClassBrowser to analyse the structure of the demo
+programs.
     \tick{Examples}
     \index{examples}
 The `Examples' tool provides an overview of various short pieces of
@@ -128,15 +132,20 @@ described object itself:
 \begin{center}
 \begin{tabular}{|l|p{3in}|}
 \hline
-V class \verb$-$selector: type	& Variable that cannot be accessed directly \\
-V class \verb$<-$selector: type	& Variable that may be read, but not written \\
-V class \verb$<->$selector: type& Variable that may be read and written \\
-V class \verb$->$selector: type	& Variable that may only be written \\
-M class \verb$->$selector: type ...	& Send-Method with argument-types \\
-M class \verb$<-$selector: type ... \verb$-->$type	& Get-Method with
-			   argument-types returning value of type \\
-R Class.attribute: type & Resource of specified class for specified
-		        attribute.  \\
+{\tt V} class \verb$ - $selector: type
+	& Variable that cannot be accessed directly \\
+{\tt V} class \verb$<- $selector: type
+	& Variable that may be read, but not written \\
+{\tt V} class \verb$<->$selector: type
+	& Variable that may be read and written \\
+{\tt V} class \verb$ ->$selector: type
+	& Variable that may only be written \\
+{\tt M} class \verb$ ->$selector: type ...
+	& Send-Method with argument-types \\
+{\tt M} class \verb$<- $selector: type ... \verb$-->$type
+	& Get-Method with argument-types returning value of type \\
+{\tt R} Class.attribute:   type &
+	Resource of specified class for specified attribute \\
 \hline
 \end{tabular}
 \end{center}
@@ -145,7 +154,7 @@ The same notational conventions are used in the running text of a
 card.  See section~\ref{sec:card}.
 
 
-\subsection{Argument types}
+\subsection{Argument types}		\label{sec:atype}
 
 \index{argument,type}\index{type}
 PCE is a partially typed language.  Types may be defined for both
@@ -197,74 +206,106 @@ omitted.
 
 \section{Guided tour}
 
-This section provides a `guided tour' through the manual system.  If
-you have the system at hand, please start it and try the examples.
-For each of the central tools of the manual we will present a
-screendump in a typical situation and explain the purpose and some
-common ways to use the tool.
+This section provides a `guided tour' through the manual system. If you
+have XPCE/Prolog at hand, please start it and try the examples. For each
+of the central tools of the manual we will present a screendump in a
+typical situation and explain the purpose and some common ways to use
+the tool.
 
 
 \subsection{Class browser}		\label{sec:classbrowser}
 
-\postscriptfig{classbrowser}{The Class Browser}
+\postscriptfig[width=\textwidth]{classbrowser}{The Class Browser}
 
-The ``Class Browser'' is the central tool of the online manual.  It
+The ``Class Browser'' is the central tool of the online manual. It
 provides an overview of the functionality of a class and options to
-limit the displayed information.  Figure~\ref{fig:classbrowser} shows
-this tool in a typical situation.  In this example the user is
-interested in methods dealing with selecting a box object.
+limit the displayed information. \Figref{classbrowser} shows this tool
+in a typical situation. In this example the user is interested in
+methods dealing with selection in an \class{editor}.
 
-The dialog to the left-side of the tool specifies {\em what}
-information is displayed.  The top-right window displays the class
-together with the initialisation arguments (the arguments needed to
-create an instance of this class) as well as its super-classes (see
-also the ``Class Hierarchy'' tool).  The large right window displays a
-list of matching classes, variables, methods and resources.  When an
-item is tagged with a ``\idx{(+)}'' there is additional information
-that may be obtained by (double-) clicking the card to start the
-``Card Viewer'' (see section~\ref{sec:card}).
+The dialog to the left-side of the tool specifies {\em what} information
+is displayed. The top-right window displays the class together with the
+initialisation arguments (the arguments needed to create an instance of
+this class).  Double-left-click on this text will open the description
+for ->initialise.
+
+Below this text a hierarchy is displayed that indicates the place in the
+inheritance hierarchy as well as the classes to which messages are {\em
+delegated} (see \secref{delegation}).  After switching to a class, the
+class switched to will be the only selected class.  The user can
+select multiple classes%
+    \footnote{multiple classes can only be selected if there is
+	      delegation and the tree actually has branches. Use for
+	      example class editor or class view to explore these
+	      facilities}
+(using the left-mouse-button) and press the {\sc apply} button to make
+the class-browser search for methods in all classes below the selected
+classes.  If a method is found in multiple classes the class-browser
+will automatically display only the one method that will actually be
+used by this class.
+
+The large right window displays a list of matching classes, variables,
+methods and resources. When an item is tagged with a ``\idx{(+)}'' there
+is additional information that may be obtained by (double-) clicking the
+card to start the ``Card Viewer'' (see \secref{card}).
+
+\subsubsection{The ClassBrowser dialog}
 
 The class browser may be used for various queries ranging from a
-simple overview of variables to an `apropos' search through the class
-hierarchy.
+simple overview of variables to an `apropos' search.
+
+The {\bf Class} text_item (text-entry-field) may be used to  switch to
+a new class. Note that this text_item implements \idx{completion} (bound
+to pressing the space-bar).
+
+The {\bf Filter} menu filters the candidate objects according to their
+categorisation.  Selecting {\sf all} switches off filtering, which is
+often useful in combination with {\bf Search}.  Clicking {\sf all}
+again switches back to the old selection of categories.  The meaning
+of the categories is:
+
+\begin{itemize}
+    \tick{Basic}
+Principal methods that are used very often. This is ---together with
+{\em Application}--- the default selection of this menu.
+    \tick{Advanced}
+Less often used and sometimes complicated methods.
+    \tick{Rare}
+Infrequently used methods.  Note that does not mean they are complicated
+or do things you'd hardly ever want to use.  For example, most of the
+caret-manipulation of class editor is in this category.  It is essential
+and commonly used behaviour of the editor, but hardly ever used directly
+from program-control.
+    \tick{Internal}
+Behaviour that is not directly intended for public usage.  It may be
+useful to understand how other methods interact.  Try to avoid using
+these methods or variables in your code.
+    \tick{Basic OO}
+Methods intended to be redefined in user-defined classes. See
+\chapref{udc}.
+    \tick{Advanced OO}
+Methods that may be redefined in user-defined classes, but for which
+this is far less common.
+    \tick{Application}
+Methods implemented in the host-language.
+\end{itemize}
+
 
 The {\bf Display} menu determines the objects searched for.  {\sf
 Self} refers to the class itself, {\sf Sub Class} refers to a direct
 subclass of this class.  The other fields refer to instance-variables,
-methods with send- and get-access and X-resources.  By default {\em
-Self} and {\em Variable} are selected, providing an entry for the
-class itself and each of its instance variables in the right-window.
-The variables often provide a good overview of the functionality of
-the class.  When the user is interested in a particular operation
-s/he normally selects {\sf Send Method}, {\sf Get Method} too.
+methods with send- and get-access and X-resources.
 
-The {\bf Class} text_item (text-entry-field) may be used to  switch to
-a new class.
-
-The {\bf Field} and {\bf Search} menus limit the displayed cards to
-those that have the specified search string in one of the specified
-fields.  While searching, the case of the characters is ignored (i.e.\
-lower- and uppercase versions of the same letter match).  Searching in
+The {\bf Search} and {\bf ... In} controllers limit the displayed cards
+to those that have the specified search string in one of the specified
+fields. While searching, the case of the characters is ignored (i.e.\
+lower- and uppercase versions of the same letter match). Searching in
 the {\sf Name} field is useful to find a particular method if the name
-(or part of it) is known.  Searching in the {\sf Summary} is similar
-to Unix ``man -k(1)'' or ``apropos(1)''.\index{apropos (unix)}
+(or part of it) is known. Searching in the {\sf Summary} is similar to
+Unix ``man -k(1)'' or ``apropos(1)''.\index{apropos}
 
-The {\bf Scope} menu determines how the inheritance hierarchy is used
-to direct the query.  When {\sf Own}, only objects (variables,
-methods, etc.) {\em directly} associated to this class are displayed.
-This is the default.  When {\sf Super}, the inheritance hierarchy is
-traversed and all inherited aspects of the class are displayed as
-well.  When {\sf Sub} all material in the entire subtree whose root is
-the current class is considered.  When using either {\sf Super} or
-{\sf Sub} it is advised to provide a search string to limit the number
-of displayed card summaries.%
-    \footnote{The current implementation of the class-browser does not
-	      display methods realised with delegation (see section~
-	      \ref{sec:delegation}).  Delegation is implemented using
-	      the methods `object ->send_catch_all' and
-	      `object <-get_catch_all'.   The delegation relations
-	      are normally described there.}
-	      
+
+\subsubsection{Example queries to the ClassBrowser}
 
 Below we illustrate how some commonly asked questions may be answered
 with the class browser.
@@ -272,66 +313,72 @@ with the class browser.
 \begin{itemize}
     \tick{What are variables of a bitmap?}
 Select {\sf variable} in the {\bf Display} menu, clear {\bf Search},
-set {\bf Scope} to {\sf Own} or {\sf Super}.  Finally type `bitmap'
-in {\bf Class} and hit return.
+set {\bf Filer} to {\sf All}. Finally type `bitmap' in {\bf Class} and
+hit return.  Note that bu double-clicking on class \class{graphical}
+in the inheritance display, not only the variables of class
+\class{bitmap} itself are shown, but also those of class
+\class{graphical}.
     \tick{How can I position the caret in an editor?} The caret can
 only be changed using send-methods. Either the name or the summary is
 likely to have `caret' as a substring.  Thus, {\bf Display} is set to
 {\sf Send Method}, {\bf Field} to {\sf Name} and {\sf Summary}, search
-to `caret'.  {\bf Scope} is specified to { \sf Own} as editor is a
-subclass of device, which has nothing to do with text-processing.
-    \tick{Which graphical classes have specialised event processing?}
-A graphical has specialised event-processing if the send-method `event'
-is defined.  Therefore {\bf Display} is set to {\sf Send method}, {
-\bf Field} to {\sf Name} and {\bf Search} to {\sf event}.  {\bf Scope}
-is set to {\sf Sub} as we are interested in redefinitions in
-sub-classes.  Finally `graphical' is entered in the {\bf Class}
-field.
-    \tick{Which methods handle image objects}
-This very general query may be asked by selecting the appropriate
-method type(s) in {\bf Display}.  {\bf Field} is set to {\sf Name} and
-{\sf Summary}, {\bf Search} is set to `image', {\bf Scope} to {\sf Sub}
-and finally {\bf Class} is filled with `object' to search the entire
-PCE hierarchy.
+to `caret'.
 \end{itemize}
 
 
 \subsection{Reading cards}		\label{sec:card}
 
-\postscriptfig{card}{The Card Viewer}
+\postscriptfig[width=\textwidth]{card}{The Card Viewer}
 
 The other tools of the manual allow the user to {\em find} cards with
-documentation on the topic(s) the user is looking for.  Experienced
-users often are only interested in the exact name or arguments of a
-method.  The information provided by the summary-lists often suffices
-for this purpose.  Whenever a card is marked with a ``(+)'' in the summary
-list it may be opened by double-clicking it.  This starts the ``Card
-Viewer'' tool.  Figure~\ref{fig:card} is a screendump of this tool
-showing the description of the send-method `selection' of class
-`device'.
+documentation on the topic(s) the user is looking for. Experienced users
+often are only interested in the exact name or arguments of a method.
+The information provided by the summary-lists often suffices for this
+purpose. Whenever a card is marked with a ``(+)'' in the summary list it
+may be opened by double-clicking it. This starts the ``Card Viewer''
+tool. \Figref{card} is a screendump of this tool showing the description
+of the send-method `selection' of class `device'.
 
 The ``Card Viewer'' displays the formal information and all available
-attributes from the card related to the displayed object (method, variable,
-class, ...).  It uses a couple of patterns to determine relations to other
-manual material from the text.  Each hit of these patterns is highlighted.
-When the user double-clicks on highlighted text the ``Card Viewer'' will
-jump to the related material.
+attributes from the card related to the displayed object (method,
+variable, class, ...). It uses patterns to determine relations to other
+manual material from the text. Each hit of these patterns is
+highlighted. When the user double-clicks on highlighted text the ``Card
+Viewer'' will jump to the related material.
 
-The ``See Also'' labeled browser in the bottom-right corner shows
-explicitly related material.  If the user single-clicks an entry
-the contents of the related card will be displayed in the editor
-part of the ``Card Viewer'' while the ``See Also'' will not change.
-If the user double-clicks in the browser both the editor and the
-``See Also'' browser will switch to the related information.
+If the user double-clicks a group-title in the ClassBrowser, all cards
+in the group will be displayed in the CardViewer.  Some objects share
+their documentation with another object.  Opening the card for such
+an object will show two titles above the card.  The card from which the
+documentation originates will have an underlined type-indicator.
+
+The {\bf Goto} field allows for switching to a new card. The syntax for
+this field is similar as for the predicates manpce/1 and, tracepce/1 and
+editpce/1. It consists of a classname, followed by \verb$->$ to indicate
+a send-method, \verb$<-$ for a get-method and \verb$-$ to specify an
+instance-variable without considering associated methods.
+
+The item performs {\em completion} bound to the space-bar.  The first
+word is completed to a class-name. The second to a send-method, variable
+or get-method.  Method completion considers inheritance and delegation.%
+    \footnote{Given the dynamic nature of delegation, the system cannot
+	      possibly determine all methods available through
+	      delegation. Consider a slot specified with type
+	      \class{graphical}.  The system can infere it will surely
+	      be able to use behaviour defined at class
+	      \class{graphical}.  If at runtime, the slot is filled with
+	      a \class{box}, all methods defined at class box will be
+	      available too.}
+
 
 \subsection{Keyword browser}
 
-\postscriptfig{keyword}{The Keyword Browser}
+\postscriptfig[width=\textwidth]{keyword}{The Keyword Browser}
 
-The ``Keyword Browser'' provides access on keywords.  Figure~\ref
-{fig:keyword} shows this tool in a typical configuration.  The
-browser on the left-side provides all defined keywords.  The browser
-on the right-side shows related manual material.
+The ``Keyword Browser'' provides access on keywords. \Figref{keyword}
+shows this tool in a typical configuration. The browser on the left-side
+provides all defined keywords. The browser on the right-side shows
+related manual material.
 
 \index{search,in browser}\index{browser,searching}
 PCE browsers have (incremental-) searching facilities.  If the user
@@ -341,7 +388,7 @@ search string.  The other bindings are described in the figure.
 
 \subsection{Class hierarchy}		\label{sec:classhierarchy}
 
-\postscriptfig{hierarchy}{Class Hierachy Tool}
+\postscriptfig[width=\textwidth]{hierarchy}{Class Hierachy Tool}
 
 The ``Class Hierachy'' tool may be used to get an overview of PCE's
 class hierarchy or to find the (inheritance) relations of a
@@ -352,10 +399,10 @@ Super-classes are motivated by the need for code-sharing.
 
 \section{Special Methods}
 
-The methods described below are activated from PCE's virtual machine
-and allow a class to define creation, destruction, type conversion,
-delegation, etc.  These methods may be found using the ``Class
-Browser'' after which their documentation card may be requested.
+The methods described below are activated from PCE's virtual machine and
+allow a class to define creation, destruction, type conversion,
+delegation, etc. These methods may be found using the ``Class Browser''
+after which their documentation card may be requested.
 
 \begin{description}
 \sendmethod{object}{initialise}{<Class-Defined>}

@@ -249,6 +249,9 @@ initialise(D) :->
 	send(D, height, MH),
 	send(D, name, mini_window).
 
+'_compute_desired_size'(_) :->
+	"We have fixed size"::
+	true.
 
 report(D, Type:name, Fmt:[char_array], Args:any ...) :->
 	"Report"::

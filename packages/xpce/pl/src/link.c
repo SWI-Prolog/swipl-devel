@@ -35,20 +35,14 @@ If there are prolog parts involved:
      save_program/2.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-extern foreign_t prolog_pce_init();
-
-static foreign_t
-pl_pce_init()
-{ return prolog_pce_init();
-}
-
+extern foreign_t pl_pce_init(term_t h);
 
 PL_extension PL_extensions [] =
 {
-/*{ "name",	arity,  function,	PL_FA_<flags> },*/
-  { "$pce_init", 0,	pl_pce_init,	PL_FA_TRANSPARENT },
+/*{ "name",	 arity, function,	PL_FA_<flags> },*/
+  { "$pce_init", 1,	pl_pce_init,	PL_FA_TRANSPARENT },
 
-  { NULL,	0, 	NULL,		0 }	/* terminating line */
+  { NULL,	 0, 	NULL,		0 }	/* terminating line */
 };
 
 int

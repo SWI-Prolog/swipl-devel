@@ -28,6 +28,7 @@ file is a list of available demo's.
 
 pcedemo :-
 	new(B, browser('PCE Demo''s', size(60,10))),
+	send(B, confirm_done, @off),
 	send(B, tab_stops, vector(150)),
 	fill_browser(B),
 

@@ -532,7 +532,7 @@ makeClassMenuBar(Class class)
 	    getPopupFromEventMenuBar);
 
 
-  attach_resource(class, "label_font", "font",    "@helvetica_bold_14",
+  attach_resource(class, "label_font", "font",    "normal",
 		  "Default font for labels");
   attach_resource(class, "size",       "size",    "size(80,20)",
 		  "Mimimum size for labels");

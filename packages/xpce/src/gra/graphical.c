@@ -1148,6 +1148,54 @@ getBottomSideGraphical(Graphical gr)
 }
 
 
+static status
+rightSideGraphical(Graphical gr, Int right)
+{ Int cl = getLeftSideGraphical(gr);
+  Int av[4];
+
+  av[0] = av[1] = av[3] = (Int) DEFAULT;
+  av[2] = sub(right, cl);
+
+  return qadSendv(gr, NAME_doSet, 4, av);
+}
+
+
+static status
+leftSideGraphical(Graphical gr, Int left)
+{ Int cr = getRightSideGraphical(gr);
+  Int av[4];
+
+  av[0] = av[1] = av[3] = (Int) DEFAULT;
+  av[2] = sub(cr, left);
+
+  return qadSendv(gr, NAME_doSet, 4, av);
+}
+
+
+static status
+bottomSideGraphical(Graphical gr, Int bottom)
+{ Int ct = getTopSideGraphical(gr);
+  Int av[4];
+
+  av[0] = av[1] = av[2] = (Int) DEFAULT;
+  av[3] = sub(bottom, ct);
+
+  return qadSendv(gr, NAME_doSet, 4, av);
+}
+
+
+static status
+topSideGraphical(Graphical gr, Int top)
+{ Int cb = getBottomSideGraphical(gr);
+  Int av[4];
+
+  av[0] = av[1] = av[2] = (Int) DEFAULT;
+  av[3] = sub(cb, top);
+
+  return qadSendv(gr, NAME_doSet, 4, av);
+}
+
+
 static Point
 getPositionGraphical(Graphical gr)
 { answer(answerObject(ClassPoint,getAreaGraphical(gr)->x,
@@ -1421,7 +1469,7 @@ leftGraphical(Graphical gr1, Graphical gr2)
 }
 
 
-static status
+status
 referenceGraphical(Graphical gr, Point ref)
 { return assignDialogItem(gr, NAME_reference, ref);
 }
@@ -2690,6 +2738,18 @@ makeClassGraphical(Class class)
   sendMethod(class, NAME_size, NAME_area, 1, "size",
 	     "Resize to specified size",
 	     sizeGraphical);
+  sendMethod(class, NAME_leftSide, NAME_area, 1, "int",
+	     "Resize graphical to set left-side",
+	     leftSideGraphical);
+  sendMethod(class, NAME_topSide, NAME_area, 1, "int",
+	     "Resize graphical to set top-side",
+	     topSideGraphical);
+  sendMethod(class, NAME_bottomSide, NAME_area, 1, "int",
+	     "Resize graphical to set bottom-side",
+	     bottomSideGraphical);
+  sendMethod(class, NAME_rightSide, NAME_area, 1, "int",
+	     "Resize graphical to set right-side",
+	     rightSideGraphical);
   sendMethod(class, NAME_swap, NAME_stacking, 1, "graphical",
 	     "Swap stacking order of graphicals",
 	     swapGraphical);

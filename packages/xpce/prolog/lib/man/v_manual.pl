@@ -75,6 +75,7 @@ and possible broadcasted by ManualTool.  These messages are:
 resource(geometry,	geometry,		'+0+0').
 resource(user_scope,	chain,			'[basic, user]',
 	 "Default scoping of manual material").
+resource(edit,		bool,			@off).
 
 variable(selection,		object*,	get,
 	 "Currently selected object").
@@ -107,15 +108,10 @@ variable(user_scope,		chain,		get,
 initialise(M, Dir:[directory]) :->
 	"Create the manual main object"::
 	send(M, send_super, initialise, 'PCE Manual'),
-	(   get(@pce, is_runtime_system, @on)
-	->  send(@display, inform,
-		 '%s\n%s',
-		 'This is a runtime version of XPCE.  Most of the manual will not work.',
-		 'Contact xpce-request@swi.psy.uva.nl for a information on the development version')
-	;   true
-	),
 	default(Dir, directory('$PCEHOME/man/reference'), Directory),
 	get(M, resource_value, user_scope, Scope),
+	get(M, resource_value, edit, Edit),
+	send(M, slot, maintainer, Edit),
 	send(M, check_directory, Directory),
 	send(M, slot, space, new(Space, man_space(reference, Directory))),
 	send(M, slot, tools, new(sheet)),
@@ -126,13 +122,20 @@ initialise(M, Dir:[directory]) :->
 
 	send(Space, attribute, attribute(report_to, M)),
 	send(M, append, new(D, dialog)),
-	fill_dialog(D),
+	send(M, fill_dialog, D),
 
 	ifmaintainer((
 	  send(@pce, exit_message, new(Msg, message(M, save_if_modified))),
           send(M, slot, exit_message, Msg))),
 
+	send(M, check_runtime),
 	send(M, report, status, 'For help, see `File'' menu').
+
+
+open(M, Pos:[point]) :->
+	send(M, send_super, open, Pos),
+	send(M, check_licence).
+
 
 unlink(M) :->
 	"Manual is destroyed"::
@@ -145,19 +148,32 @@ check_directory(M, Dir:directory) :->
 	"Check the manual directory"::
 	(   send(Dir, exists)
 	->  true
-	;   send(@display, inform,
-		 'Cannot find manual directory %s\n%s',
-		 Dir?path,
-		 'Please touch `.../xpce/build'' and reinstall')
-	),
-	(   send(Dir, access, write)
-	->  send(M, slot, maintainer, @on)
-	;   send(M, slot, maintainer, @off)
+	;   send(M, report, error, 'Cannot find manual directory %s', Dir?path)
 	).
 
 
-fill_dialog(D) :-
-	new(M, D?frame),
+check_runtime(_M) :->
+	"Check for runtime system"::
+	(   get(@pce, is_runtime_system, @on)
+	->  send(@display, inform,
+		 '%s.  %s\n%s %s',
+		 'This is a runtime version of XPCE',
+		 'Most of the manual will not work.',
+		 'Contact xpce-request@swi.psy.uva.nl',
+		 'for a information on the development version')
+	;   true
+	).
+
+
+check_licence(M) :->
+	"Open about box if not licenced"::
+	(   get(@pce, attribute, unlicenced_copy, @on)
+	->  send(M, about)
+	;   true
+	).
+
+
+fill_dialog(M, D) :->
 	send(D, append, new(MB, menu_bar(options))),
 	send(MB, append, new(F, popup(file))),
 	send(MB, append, new(V, popup(browsers,
@@ -464,18 +480,44 @@ library_overview(_M) :->
 
 
 		/********************************
-		*              HELP		*
+		*	   ABOUT/LICENCE	*
 		********************************/
 
-about(_M) :->
-	send(@display, inform,
-	     'XPCE version %s\n\nCopyright 1992-1995, University of Amsterdam\n\ninfo: jan@swi.psy.uva.nl\n\n',
-	     @pce?version).
+about('XPCE version %s'+[@pce?version], boldhuge).
+about('Copyright 1992-1995, University of Amsterdam', normal).
+about('xpce-request@swi.psy.uva.nl', bold).
+about('Jan Wielemaker\nAnjo Anjewierden', italic).
+about('SWI\nUniversity of Amsterdam\nRoetersstraat 15\n1018 WB  Amsterdam\nThe Netherlands', normal).
+about('Licenced to "%s"'+[Holder], bold) :-
+	get(@pce, attribute, licence_holder, Holder).
+about('Licence will expire in %d days'+[Days]) :-
+	get(@pce, attribute, days_to_expiration, Days).
+about('Unregistered copy\nXPCE will CRASH after about 20 minutes', bold) :-
+	get(@pce, attribute, unlicenced_copy, @on).
 
+about(M) :->
+	"Print about and licence info"::
+	new(D, dialog('About XPCE')),
+	send(D, transient_for, M),
+	forall(about(Txt, Font),
+	       (   (   Txt = Fmt+Args
+		   ->  Term =.. [string, Fmt | Args]
+		   ;   Term = string(Txt)
+		   ),
+		   send(D, append, new(T, text(Term, center, Font))),
+		   send(T, alignment, center)
+	       )),
+	send(D, append, button(ok, message(D, destroy))),
+	send(D, open_centered).
+
+		 /*******************************
+		 *	       HELP		*
+		 *******************************/
 
 help(M) :->
 	"Give help on the overall manual"::
 	give_help(M, @nil, manual).
+
 
 printed_copy(_M) :->
 	"Where to obtain printed copies"::

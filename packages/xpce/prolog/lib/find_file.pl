@@ -4,10 +4,32 @@
     jan@swi.psy.uva.nl
 
     Purpose: Find a file
+    History:
+
+	# Oct 4 1995
+	Updated under Windows-'95 to use automatic dialog layout rather
+	than the fixed position-layout used in the original version. This
+	ensures this library cooperates better with different look-and-feel
+	styles.  Exploited new `graphical ->right_side' method to fix the
+	size of the browser in the dialog.
+
+	Automatically ajusts to case-insensitive completion if necessary.
 */
 
 
-:- module(pce_file, []).
+:- module(pce_finder, []).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This module defines a simple file-finder.  The   normal  way to use this
+finder in an application is:
+
+:- pce_autoload(finder, library(find_file)).
+:- pce_global(@finder, new(finder)).
+
+	...,
+	get(@finder, file, FileName),
+	...,
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 :- use_module(library(pce)).
 :- use_module(file_item).
@@ -41,61 +63,75 @@ initialise(F) :->
 	send(F, slot, extension, ''),
 	send(F, slot, directory, new(directory('.'))),
 
-	send(F, append, new(P, dialog)),
-	fill_window(P),
+	send(F, append, new(D, dialog)),
+	send(F, fill_dialog, D),
 	send(F, create),
 	send(F, center).
 
 
-window(F, W:window) :<-
-	"Return main window"::
+dialog(F, W:dialog) :<-
+	"Return main dialog"::
 	get(F, member, dialog, W).
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This  is  a  difficult  layout.  The   original  version  used  explicit
+positions. In the  meanwhile  the  layout   system  of  XPCE  has become
+powerful enough to use automatic layout and a few tricks:
 
-fill_window(P) :-
-	new(F, P?frame),
-	new(OK, ?(P, member, ok)),
+To get the three buttons stacked next to the dialog, we first place them
+in a device. As we want them to  be far apart, we use explicit positions
+here. This isn't too bad as we only   assume  a distance of 60 pixels is
+enough to separate two buttons vertically. Next  we append all the items
+the normal way to the dialog. This will do the job, but the browser will
+not be nicely alligned. Therefore we align the right and bottom sides of
+the browser with the text-items and the buttons.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-	send(P, cursor, top_left_arrow),
+fill_dialog(F, D) :->
+	send(D, append, label(reporter)),
 
-	send(P, display, label(reporter), point(10, 5)),
-
-	send(P, display,
+	send(D, append,
 	     new(DI, directory_item(directory, '',
-				    message(F, directory, @arg1))),
-	     point(10, 25)),
-	send(P, display,
-	     new(FI, text_item(file, '', message(OK, execute))),
-	     point(10, 45)),
+				    message(F, directory, @arg1)))),
+	send(D, append, new(FI, text_item(file, ''))),
+	send_list([DI, FI], width, 50),
+
 	send(FI, value_set, ?(@prolog, complete_file, DI?selection, @arg1)),
-	send_list([DI, FI], width, 33),
-	send(FI, label_width, DI?label_width),
 
-	send(P, display, button(up, message(F, up)), point(10, 70)),
-	send(P, display, button(ok, message(F, ok)), point(10, 130)),
-	send(P, display, button(cancel, message(F, cancel)), point(10,190)),
+	new(Sub, device),
+	send(Sub, display, button(up, message(F, up)), point(0, 0)),
+	send(Sub, display, new(OK, button(ok, message(F, ok))), point(0, 60)),
+	send(Sub, display, button(cancel, message(F, cancel)), point(0,120)),
+	send(OK, default_button, @on),
+	send(D, append, Sub),
 
-	send(P, display, new(L, list_browser), point(100, 70)),
-        send(L, do_set, @default, @default, 220, 143),
+	new(DoOK, message(OK, execute)),
+	send(D, append, new(L, list_browser), right),
 	send(L, select_message, message(F, select, @arg1?key)),
-	send(L, open_message, message(OK, execute)),
-	send(L, recogniser, handler(area_enter,
-				    message(L?window, keyboard_focus, L))),
-
-	get(P, bounding_box, BB),
-        send(P, size, size(BB?width + 20, BB?height + 10)).
+	send(L, open_message, DoOK),
+	send(L, recogniser,
+	     handler(area_enter, message(D, keyboard_focus, L))),
+	send(FI, message, DoOK),
+	send(D, layout),
+	send(L, right_side, DI?right_side),
+	send(L, bottom_side, Sub?bottom_side).
 
 
 complete_file(Dir, Prefix, Files) :-
-	get(directory(Dir), files, string('^%s', Prefix), Files).
+	new(Re, regex(string('^%s', Prefix))),
+	(   send(class(file), has_feature, case_sensitive, @off)
+	->  send(Re, ignore_case, @on)
+	;   true
+	),	     
+	get(directory(Dir), files, Re, Files).
 
 
 select(F, Name:string) :->
 	"Handle selection from browser"::
-	get(F?window, file_member, FI),
+	get(F?dialog, file_member, FI),
 	(   send(Name, suffix, /),
 	    get(Name, scan, '%[^/]/', vector(string(DirName)))
-	->  get(F?window, directory_member, DI),
+	->  get(F?dialog, directory_member, DI),
 	    send(F, directory, string('%s/%s', DI?selection, DirName))
 	;   send(FI, selection, Name)
 	).
@@ -111,7 +147,7 @@ up(F) :->
 
 selection(F, File:file) :<-
 	"Get the currently selected file"::
-	get(F, window, P),
+	get(F, dialog, P),
 	get(P?directory_member, selection, DirName),
 	get(P?file_member, selection, FileName),
 	FileName \== '',
@@ -157,7 +193,7 @@ directory(F, Dir:[directory], Ext:[name]) :->
 	"Set current directory and fill browser"::
 	(   Dir \== @default -> send(F, slot, directory, Dir) ; true ),
 	(   Ext \== @default -> send(F, slot, extension, Ext) ; true ),
-	get(F, window, P),
+	get(F, dialog, P),
 	get(P, member, list_browser, B),
 	get(F, directory, D),
 
@@ -197,7 +233,7 @@ file(F, Exists:exists=[bool], Ext:extension=[name],
 	default(Ext, '', Extension),
 	ignore(send(F, directory, Dir, Extension)),
 	(   Default \== @default
-	->  send(F?window?file_member, selection, Default?base_name)
+	->  send(F?dialog?file_member, selection, Default?base_name)
 	;   true
 	),
 	send(F, show, @on),
@@ -212,7 +248,8 @@ file(F, Exists:exists=[bool], Ext:extension=[name],
 
 :- pce_end_class.
 
-
+/*
 test :-
 	get(@finder, file, File),
 	format('File = ~w~n', File).
+*/

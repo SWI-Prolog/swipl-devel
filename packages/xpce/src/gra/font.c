@@ -11,15 +11,26 @@
 #include <h/graphics.h>
 
 static status	defaultPostScriptFont(FontObj f);
+static Int	getPointsFont(FontObj f);
+
+static Name
+fontName(Name family, Name style, Int points)
+{ char buf[100];
+  char *s;
+
+  s = strcpyskip(buf, strName(family));
+  *s++ = '_';
+  s = strcpyskip(s, strName(style));
+  if ( notDefault(points) )
+    sprintf(s, "_%ld", valInt(points));
+
+  return CtoKeyword(buf);
+}
+
 
 static status
 initialiseFont(FontObj f, Name family, Name style, Int points, Name xname)
-{ char tmp[100];
-  Name name;
-
-  sprintf(tmp, "%s_%s_%ld",
-	  strName(family), strName(style), valInt(points));
-  name = CtoKeyword(tmp);
+{ Name name = fontName(family, style, points);
 
   assign(f, family,      family);
   assign(f, style,       style);
@@ -39,13 +50,8 @@ initialiseFont(FontObj f, Name family, Name style, Int points, Name xname)
 
 static FontObj
 getLookupFont(Class class, Name family, Name style, Int points)
-{ char tmp[100];
-  Name name;
+{ Name name = fontName(family, style, points);
   FontObj f2;
-
-  sprintf(tmp, "%s_%s_%ld",
-	  strName(family), strName(style), valInt(points));
-  name = CtoKeyword(tmp);
 
   makeBuiltinFonts();
   if ( (f2 = getMemberHashTable(FontTable, name)) )
@@ -71,15 +77,12 @@ getConvertFont(Class class, Name name)
     answer(getMemberHashTable(FontTable, ref_name));
   } else
   { DisplayObj d = CurrentDisplay(NIL);
-    Sheet sh;
     FontObj f;
-    Name fn = CtoKeyword(s);
+    Name fn = (syntax.uppercase ? CtoKeyword(s) : name);
 
-    if ( d && hasGetMethodObject(d, NAME_fontTable) &&
-	 (sh = get(CurrentDisplay(NIL), NAME_fontTable, 0)) &&
-	 (f = get(sh, NAME_value, fn)) )
-      answer(f);
-    else
+    if ( d && (f = getMemberHashTable(d->font_table, fn)) )
+    { answer(f);
+    } else
     { for_hash_table(FontTable, sy,
 		     { FontObj f = sy->value;
 		       if ( f->x_name == fn ) /* case? */
@@ -117,15 +120,14 @@ XopenFont(FontObj f, DisplayObj d)
 { if ( isDefault(d) )
     d = CurrentDisplay(f);
 
-  if ( isDefault(f->x_name) )
-  { makeBuiltinFonts();
-    if ( isDefault(f->x_name) )
-    { errorPce(f, NAME_noRelatedXFont);
-      return replaceFont(f, d);
-    }      
-  } 
+  makeBuiltinFonts();
 
-  return ws_create_font(f, d);
+  if ( !ws_create_font(f, d) )
+  { errorPce(f, NAME_noRelatedXFont);
+    return replaceFont(f, d);
+  }      
+
+  succeed;
 }
 
 
@@ -137,78 +139,22 @@ XcloseFont(FontObj f, DisplayObj d)
 }
 
 
-		/********************************
-		*        BUILT-IN FONTS		*
-		********************************/
-
-#define skip_until(c) { while(*s && *s != (c)) s++; \
-			{ if ( *s == EOS ) \
-			    continue; \
-			  else \
-			    s++; \
-			} \
-		      }
-#define integer(n)    { n = 0; \
-			if ( !isdigit(*s) ) continue; \
-			while( isdigit(*s) ) \
-			  n = n * 10 + *s++ - '0'; \
-		      }
-#define name_until(n, c) { char *_s = s; \
-			   char _c; \
-			   skip_until(c); \
-			   _c = s[-1]; s[-1] = EOS; \
-			   n = CtoKeyword(_s); \
-			   s[-1] = _c; \
-			 }
-
-status
-loadFontFamilyDisplay(DisplayObj d, Name fam)
-{ Chain list = getResourceValueObject(d, fam);
-
-  if ( !list )
-  { Class class = classOfObject(d);
-
-    if ( !getResourceClass(class, fam) )
-    { resourceClass(class, newObject(ClassResource, fam, DEFAULT,
-				     NAME_class, CtoString("[]"), class,
-				     CtoString("Font family set"), 0));
-      list = getResourceValueObject(d, fam);
-    }
-
-    if ( !list )
-      return errorPce(d, NAME_noFontsInFamily, fam);
-  }
-
-  succeed;
-} 
-
-
-status
-loadFontsDisplay(DisplayObj d)
-{ Chain fams;
-  static int done = FALSE;
-
-  if ( done == TRUE )
-    succeed;
-  done = TRUE;
-
-  if ( (fams = getResourceValueObject(d, NAME_fontFamilies)) )
-  { Cell cell;
-
-    for_cell(cell, fams)
-      send(d, NAME_loadFontFamily, cell->value, 0);
-  }
-
-  succeed;
-}
-
-
 status
 makeBuiltinFonts(void)
 { DisplayObj d;
+  static int done = FALSE;
 
-  if ( (d = CurrentDisplay(NIL)) )
-    return send(d, NAME_loadFonts, 0);
+  if ( done )
+    succeed;
+  done = TRUE;
+
+  if ( (d = CurrentDisplay(NIL)) &&
+       send(d, NAME_loadFonts, 0) &&	/* XPCE predefined fonts */
+       ws_system_fonts(d) &&		/* Window-system fonts */
+       send(d, NAME_loadFontAliases, NAME_systemFonts, 0) )
+  { send(d, NAME_loadFontAliases, NAME_userFonts, 0);
+    succeed;
+  }
 
   fail;
 }
@@ -221,33 +167,33 @@ static status
 defaultPostScriptFont(FontObj f)
 { char buf[LINESIZE];
 
-  if ( equalName(f->family, NAME_helvetica) )
+  if ( f->family == NAME_helvetica )
   { strcpy(buf, "Helvetica");
 
-    if ( equalName(f->style, NAME_bold) )
+    if ( f->style == NAME_bold )
       strcat(buf, "-Bold");
-    else if ( equalName(f->style, NAME_oblique) )
+    else if ( f->style == NAME_oblique )
       strcat(buf, "-Oblique");
-  } else if ( equalName(f->family, NAME_times) )
+  } else if ( f->family == NAME_times )
   { strcpy(buf, "Times");
 
-    if ( equalName(f->style, NAME_bold) )
+    if ( f->style == NAME_bold )
       strcat(buf, "-Bold");
-    else if ( equalName(f->style, NAME_italic) )
+    else if ( f->style == NAME_italic )
       strcat(buf, "-Italic");
-    else /*if ( equalName(f->style, NAME_roman) )*/
+    else /*if ( f->style == NAME_roman )*/
       strcat(buf, "-Roman");
-  } else /*if ( equalName(f->family, NAME_screen) ||
-	        equalName(f->family, NAME_courier) )*/
+  } else /*if ( f->family == NAME_screen ||
+	        f->family == NAME_courier )*/
   { strcpy(buf, "Courier");
 
-    if ( equalName(f->style, NAME_bold) )
+    if ( f->style == NAME_bold )
       strcat(buf, "-Bold");
-    else if ( equalName(f->style, NAME_oblique) )
+    else if ( f->style == NAME_oblique )
       strcat(buf, "-Oblique");
   }
 
-  assign(f, postscript_size, f->points);
+  assign(f, postscript_size, getPointsFont(f));
   assign(f, postscript_font, CtoName(buf));
 
   succeed;
@@ -362,6 +308,16 @@ getDomainFont(FontObj f, Name which)
 }
 
 
+static Int
+getPointsFont(FontObj f)
+{ if ( notDefault(f->points) )
+    answer(f->points);
+
+  answer(getHeightFont(f));
+}
+
+
+
 status
 makeClassFont(Class class)
 { sourceClass(class, makeClassFont, __FILE__, "$Revision$");
@@ -370,12 +326,12 @@ makeClassFont(Class class)
 	     "Family the font belongs to (times, etc.)");
   localClass(class, NAME_style, NAME_name, "name", NAME_get,
 	     "Style of the font (bold, italic, etc.)");
-  localClass(class, NAME_points, NAME_name, "int", NAME_get,
+  localClass(class, NAME_points, NAME_name, "[int]", NAME_none,
 	     "Point-size of the font");
   localClass(class, NAME_ex, NAME_dimension, "int*", NAME_none,
 	     "Width of the letter `x' in this font");
-  localClass(class, NAME_xName, NAME_x, "name", NAME_get,
-	     "X-name of the font");
+  localClass(class, NAME_xName, NAME_x, "[name]", NAME_get,
+	     "Window-system name for the font");
   localClass(class, NAME_fixedWidth, NAME_property, "[bool]", NAME_none,
 	     "If @off, font is proportional");
   localClass(class, NAME_b16, NAME_property, "[bool]", NAME_none,
@@ -390,7 +346,7 @@ makeClassFont(Class class)
   cloneStyleClass(class, NAME_none);
 
   sendMethod(class, NAME_initialise, DEFAULT, 4,
-	     "family=name", "style=name", "points=int", "x_name=[name]",
+	     "family=name", "style=name", "points=[int]", "x_name=[name]",
 	     "Create from fam, style, points, name",
 	     initialiseFont);
   sendMethod(class, NAME_Xopen, NAME_x, 1, "display",
@@ -430,7 +386,7 @@ makeClassFont(Class class)
   getMethod(class, NAME_convert, NAME_conversion, "font", 1, "name",
 	    "Convert logical font-name and @family_style_points",
 	    getConvertFont);
-  getMethod(class, NAME_lookup, NAME_oms, "font", 3, "name", "name", "int",
+  getMethod(class, NAME_lookup, NAME_oms, "font", 3, "name", "name", "[int]",
 	    "Lookup in @fonts table",
 	    getLookupFont);
   getMethod(class, NAME_defaultCharacter, NAME_property, "char", 0,
@@ -439,6 +395,9 @@ makeClassFont(Class class)
   getMethod(class, NAME_domain, NAME_property, "tuple", 1, "[{x,y}]",
 	    "Range of valid characters",
 	    getDomainFont);
+  getMethod(class, NAME_points, DEFAULT, "int", 0,
+	    "Specified point-size or <-height",
+	    getPointsFont);
 
   FontTable = globalObject(NAME_fonts, ClassHashTable, toInt(101), 0);
 

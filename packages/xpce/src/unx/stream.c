@@ -214,7 +214,7 @@ handleInputStream(Stream s)
   { DEBUG(NAME_stream,
 	  if ( n < 0 )
 	    Cprintf("Read failed: %s\n", strName(OsError())));
-    closeInputStream(s);
+    closeStream(s);
     send(s, NAME_endOfFile, 0);
   }
 

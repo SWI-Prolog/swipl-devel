@@ -9,6 +9,26 @@
 
 #include "include.h"
 
+
+		 /*******************************
+		 *	     DEBUGGING		*
+		 *******************************/
+
+HashTable
+MsObjectTable()
+{ static HashTable table;
+
+  if ( !table )
+    table = globalObject(CtoName("ms_objects"), ClassHashTable, 0);
+
+  return table;
+}
+
+
+		 /*******************************
+		 *	INPUT (MODAL LOOP)	*
+		 *******************************/
+
 void
 ws_discard_input(const char *msg)
 { char buf[1024];
@@ -18,6 +38,9 @@ ws_discard_input(const char *msg)
   Cprintf("ok\n");
 }
 
+		 /*******************************
+		 *	       FRAME		*
+		 *******************************/
 
 HWND
 getHwndFrame(FrameObj fr)
@@ -60,8 +83,8 @@ getHwndWindow(PceWindow sw)
 { WsWindow w;
 
   if ( (w = sw->ws_ref) )
-  { DEBUG(NAME_window, Cprintf("HWND of %s --> 0x%04x\n",
-			      pp(sw), w->hwnd));
+  { /*DEBUG(NAME_window, Cprintf("HWND of %s --> 0x%04x\n",
+			      pp(sw), w->hwnd));*/
     return w->hwnd;
   }
 

@@ -14,6 +14,7 @@
 #endif
 
 #define MAX_CLIP_DEPTH (5)		/* clip nesting depth */
+#define MAX_CTX_DEPTH (10)		/* Max draw context depth */
 
 typedef struct
 { HWND		hwnd;			/* current Windows window */
@@ -24,8 +25,12 @@ typedef struct
   HRGN		hrgn;			/* Current created region */
   HBRUSH	hbrush;			/* Currently selected brush */
 
+  HPEN		ohpen;			/* Original pen */
   HRGN		ohrgn;			/* Original region */
   HBITMAP	ohbitmap;		/* Original bitmap */
+  HBRUSH	ohbrush;		/* Original brush */
+  int		stockpen;		/* Pen comes from GetStockObject() */
+  HFONT		ohfont;			/* Original font */
 
   HBITMAP	cache;			/* background drawing */
   HDC		cached_hdc;		/* hdc of original device */
@@ -79,10 +84,12 @@ typedef struct
 static int		cache = 1;	/* Do or don't */
 static int		quick;		/* Prefer speed */
 static wdraw_context	context; 	/* current context */
-static wdraw_context	ctx_stack[10];  /* Context stack */
+static wdraw_context	ctx_stack[MAX_CTX_DEPTH];  /* Context stack */
 static int		ctx_stacked;	/* Saved frames */
 
 static HDC		default_hdc;	/* Default context */
+static HBITMAP		default_hdc_hbitmap; /* Memory for default_hdc */
+static HBITMAP		default_hdc_ohbitmap; /* Original memory */
 static DisplayObj	TheDisplay;	/* @display */
 static int		display_depth;	/* depth of the display */
 
@@ -91,6 +98,7 @@ static void	r_default_background(Any bg);
 static COLORREF cref_colour(Colour c);
 static void	push_context(void);
 static void	empty_brush_cache(void);
+static void	make_default_context(void);
 
 static void
 reset_context()
@@ -99,10 +107,15 @@ reset_context()
   context.thickness          = 1;
   context.texture            = NAME_none;
   context.hbrush	     = 0;
+  context.ohbrush	     = 0;
+  context.ohpen		     = 0;
+  context.ohfont	     = 0;
+  context.hpen 		     = 0;
+  context.stockpen	     = FALSE;
   context.colour             = BLACK_COLOUR;
   context.background         = WHITE_COLOUR;	/* is this true? */
   context.default_background = WHITE_COLOUR;
-  context.rgb	             = RGB(0,0,0);
+  context.rgb	             = RGB(0, 0, 0);
   context.background_rgb     = RGB(255, 255, 255);
   context.hwnd	             = 0;
   context.hbitmap            = 0;
@@ -122,8 +135,7 @@ reset_context()
 
 void
 initDraw()
-{ if ( !default_hdc )
-    default_hdc = CreateCompatibleDC(NULL);
+{ make_default_context();
   if ( !TheDisplay )
     TheDisplay = CurrentDisplay(NIL);
   if ( !display_depth )
@@ -147,9 +159,27 @@ resetDraw()
 static void
 make_default_context()
 { if ( !default_hdc )
-    default_hdc = CreateCompatibleDC(NULL);
+  { if ( !(default_hdc = CreateCompatibleDC(NULL)) ||
+	 !(default_hdc_hbitmap = ZCreateCompatibleBitmap(default_hdc,16,16)) ||
+	 !(default_hdc_ohbitmap = ZSelectObject(default_hdc,
+						default_hdc_hbitmap)) )
+      Cprintf("WARNING: Failed to make scratch context");
+					/* TBD: Must be fatal error */
+  }
 
   resetDraw();
+}
+
+
+static void
+remove_default_context()
+{ if ( default_hdc )
+  { ZSelectObject(default_hdc, default_hdc_ohbitmap);
+    ZDeleteObject(default_hdc_hbitmap);
+    DeleteDC(default_hdc);
+
+    default_hdc = NULL;
+  }
 }
 
 
@@ -157,10 +187,7 @@ void
 exitDraw()
 { DisplayObj d = TheDisplay;
 
-  if ( default_hdc )			/* The default DC */
-  { DeleteDC(default_hdc);
-    default_hdc = NULL;
-  }
+  remove_default_context();
 					/* Windows frames and windows */
   if ( d && notNil(d) )
   { Cell cell;
@@ -281,9 +308,9 @@ d_mswindow(PceWindow sw, IArea a, int clear)
       context.cache_y        = a->y;
       context.cache_w        = a->w + 1;
       context.cache_h        = a->h + 1;
-      context.cache	     = CreateCompatibleBitmap(context.hdc,
-						      context.cache_w,
-						      context.cache_h);
+      context.cache	     = ZCreateCompatibleBitmap(context.hdc,
+						       context.cache_w,
+						       context.cache_h);
       context.hdc            = CreateCompatibleDC(context.hdc);
       context.cache_ohbitmap = ZSelectObject(context.hdc, context.cache);
       context.background_rgb = cref_colour(sw->background);
@@ -292,7 +319,7 @@ d_mswindow(PceWindow sw, IArea a, int clear)
       rect.top    = 0;
       rect.right  = context.cache_w;
       rect.bottom = context.cache_h;
-      hbrush = CreateSolidBrush(context.background_rgb);
+      hbrush = ZCreateSolidBrush(context.background_rgb);
       FillRect(context.hdc, &rect, hbrush);
       ZDeleteObject(hbrush);
 
@@ -336,6 +363,8 @@ static void
 push_context()
 { if ( context.open )
     ctx_stack[ctx_stacked++] = context;
+  if ( ctx_stacked >= MAX_CTX_DEPTH )
+    Cprintf("**************** ERROR: Draw Context Stack overflow\n");
 
   reset_context();
 }
@@ -360,7 +389,7 @@ d_image(Image i, int x, int y, int w, int h)
   context.depth    = valInt(i->depth);
 
   if ( x != 0 || y != 0 || w != valInt(i->size->w) || h != valInt(i->size->h) )
-  { HRGN clip_region = CreateRectRgn(x, y, x+w, y+h);
+  { HRGN clip_region = ZCreateRectRgn(x, y, x+w, y+h);
 
     ZSelectObject(context.hdc, clip_region);
     ZDeleteObject(clip_region);
@@ -458,7 +487,7 @@ d_clip(int x, int y, int w, int h)
       y -= offset.y;
     }
 
-    hrgn = CreateRectRgn(x, y, x+w, y+h);
+    hrgn = ZCreateRectRgn(x, y, x+w, y+h);
     ZSelectObject(context.hdc, hrgn);
     ZDeleteObject(hrgn);
 
@@ -484,15 +513,21 @@ d_done(void)
 			       pp(GetWindowLong(context.hwnd, GWL_DATA)) :
 			       "(image)"));
 
-    if ( context.hbrush )
-    { ZSelectObject(context.hbrush, GetStockObject(WHITE_BRUSH));
+    if ( context.ohbrush )
+    { ZSelectObject(context.hdc, context.ohbrush);
       context.hbrush = 0;
+      context.ohbrush = 0;
     }
     empty_brush_cache();
     if ( context.hpen )
-    { ZSelectObject(context.hdc, GetStockObject(BLACK_PEN));
-      ZDeleteObject(context.hpen);
+    { ZSelectObject(context.hdc, context.ohpen);
+      if ( !context.stockpen )
+	ZDeleteObject(context.hpen);
       context.hpen = 0;
+    }
+    if ( context.ohfont )
+    { ZSelectObject(context.hdc, context.ohfont);
+      context.ohfont = 0;
     }
     if ( context.relief_pen )
     { ZDeleteObject(context.relief_pen);
@@ -561,7 +596,7 @@ d_clip_done(void)
   rect->right  += ox;
   rect->bottom += oy;
 
-  hrgn = CreateRectRgnIndirect(rect);
+  hrgn = ZCreateRectRgnIndirect(rect);
   ZSelectObject(context.hdc, hrgn);
   ZDeleteObject(hrgn);
 
@@ -595,7 +630,7 @@ intersection_iarea(IArea a, IArea b)
 
 void
 r_clear(int x, int y, int w, int h)
-{ HBRUSH hbrush = CreateSolidBrush(context.background_rgb);
+{ HBRUSH hbrush = ZCreateSolidBrush(context.background_rgb);
   RECT rect;
 
   rect.left   = x;
@@ -625,7 +660,7 @@ r_complement(int x, int y, int w, int h)
 void
 r_and(int x, int y, int w, int h, Image pattern)
 { HBITMAP bm = (HBITMAP) getXrefObject(pattern, context.display);
-  HBRUSH brush = CreatePatternBrush(bm);
+  HBRUSH brush = ZCreatePatternBrush(bm);
   HBRUSH obrush = ZSelectObject(context.hdc, brush);
 
   PatBlt(context.hdc, x, y, w, h, 0xFA0089); /* P|D */
@@ -634,28 +669,51 @@ r_and(int x, int y, int w, int h, Image pattern)
   ZDeleteObject(brush);
 }
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+It appears you cannot create a NULL_PEN using CreatePen(). As we need to
+use stock pens anyway, I decided to use   one  for the very common solid
+1-thick  black  pen  too,  assuming    GetStockObject()  will  use  less
+resources. In this  implementation,  we   will  call  DeleteObject() for
+stock-objects. Should this be done or not?
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
 r_update_pen()
 { if ( context.modified_pen )
-  { HPEN old = context.hpen;
-    int style;
+  { HPEN org, old = (!context.stockpen ? context.hpen : 0);
 
-    if ( context.texture == NAME_none )
-      style = PS_SOLID;
-    else if ( context.texture == NAME_dotted )
-      style = PS_DOT;
-    else if ( context.texture == NAME_dashed )
-      style = PS_DASH;
-    else if ( context.texture == NAME_dashdot )
-      style = PS_DASHDOT;
-    else if ( context.texture == NAME_dashdotted )
-      style = PS_DASHDOTDOT;
-    else if ( context.texture == NAME_longdash )
-      style = PS_DASH;		/* not supported */
-    
-    context.hpen = CreatePen(style, context.thickness, context.rgb);
-    ZSelectObject(context.hdc, context.hpen);
+    if ( context.thickness <= 0 )
+    { context.hpen = GetStockObject(NULL_PEN);
+      context.stockpen = TRUE;
+    } else
+    { int style;
+
+      if ( context.texture == NAME_none )
+      { if ( context.rgb == RGB(0,0,0) && context.thickness == 1 )
+	{ context.hpen = GetStockObject(BLACK_PEN);
+	  context.stockpen = TRUE;
+	  goto out;
+	} else
+	  style = PS_SOLID;
+      } else if ( context.texture == NAME_dotted )
+	style = PS_DOT;
+      else if ( context.texture == NAME_dashed )
+	style = PS_DASH;
+      else if ( context.texture == NAME_dashdot )
+	style = PS_DASHDOT;
+      else if ( context.texture == NAME_dashdotted )
+	style = PS_DASHDOTDOT;
+      else if ( context.texture == NAME_longdash )
+	style = PS_DASH;		/* not supported */
+      
+      context.hpen = ZCreatePen(style, context.thickness, context.rgb);
+      context.stockpen = FALSE;
+    }
+
+  out:
+    org = ZSelectObject(context.hdc, context.hpen);
+    if ( !context.ohpen )
+      context.ohpen = org;
 
     if ( old )
       ZDeleteObject(old);
@@ -772,6 +830,9 @@ add_brush(Any fill, HBRUSH brush)
     }
   }
 
+  if ( context.hbrush == leastused->brush )
+    Cprintf("%s:%d: Attempt to delete current brush", __FILE__, __LINE__);
+
   ZDeleteObject(leastused->brush);
   leastused->object = fill;
   leastused->brush  = brush;
@@ -779,24 +840,55 @@ add_brush(Any fill, HBRUSH brush)
 }
 
 
+static HashTable
+winBrushTable()
+{ static HashTable table;
+
+  if ( !table )
+  { table = createHashTable(toInt(16), ON);
+
+    declareWindowsBrush(NIL,     GetStockObject(NULL_BRUSH));
+    declareWindowsBrush(DEFAULT, GetStockObject(NULL_BRUSH)); /* play safe */
+  }
+
+  return table;
+}
+
+
+void
+declareWindowsBrush(Any obj, HBRUSH brush)
+{ Int b = toInt((long)brush);
+
+  assert((HBRUSH) valInt(b) == brush);
+  appendHashTable(winBrushTable(), obj, b);
+}
+
+
+static HBRUSH
+standardWindowsBrush(Any obj)
+{ Int b;
+
+  if ( (b = getMemberHashTable(winBrushTable(), obj)) )
+    return (HBRUSH) valInt(b);
+  
+  return 0;
+}
 
 
 static HBRUSH
 r_fillbrush(Any fill)
 { HBRUSH hbrush;
 
-  if ( isNil(fill) )
-  { hbrush = GetStockObject(NULL_BRUSH);
-  } else
+  if ( !(hbrush = standardWindowsBrush(fill)) )
   { if ( !(hbrush = lookup_brush(fill)) )
     { if ( instanceOfObject(fill, ClassImage) )
       { HBITMAP bm = (HBITMAP) getXrefObject(fill, context.display);     
 
-	hbrush = CreatePatternBrush(bm);
+	hbrush = ZCreatePatternBrush(bm);
       } else /* instanceOfObject(fill, ClassColour) */
       { COLORREF rgb = cref_colour(fill);
 
-	hbrush = CreateSolidBrush(rgb);
+	hbrush = ZCreateSolidBrush(rgb);
       }
 
       DEBUG(NAME_fill, Cprintf("add_brush(%s, 0x%x)\n", pp(fill), hbrush));
@@ -811,12 +903,14 @@ r_fillbrush(Any fill)
 void
 r_fillpattern(Any fill)			/* colour or image */
 { if ( context.fill_pattern != fill )
-  { HBRUSH new;
+  { HBRUSH new, old;
     
     DEBUG(NAME_fill, Cprintf("Selecting fill-pattern %s\n", pp(fill)));
     new = r_fillbrush(fill);
     context.hbrush = new;
-    ZSelectObject(context.hdc, new);
+    old = ZSelectObject(context.hdc, new);
+    if ( !context.ohbrush )
+      context.ohbrush = old;
 
     context.fill_pattern = fill;
   }
@@ -908,26 +1002,32 @@ r_translate(int x, int y, int *ox, int *oy)
 
 void
 r_box(int x, int y, int w, int h, int r, Image fill)
-{ int da = context.thickness / 2;
-  int db = max(0, (context.thickness - 1) / 2);
+{ if ( context.thickness > 0 || notNil(fill) )
+  { if ( context.thickness > 0 || r > 1 )
+    { int da = context.thickness / 2;
+      int db = max(0, (context.thickness - 1) / 2);
   
-  DEBUG(NAME_redraw, Cprintf("r_box(%d, %d, %d, %d, %d, %s)\n",
-			     x, y, w, h, r, pp(fill)));
+      DEBUG(NAME_redraw, Cprintf("r_box(%d, %d, %d, %d, %d, %s)\n",
+				 x, y, w, h, r, pp(fill)));
 
-  DEBUG(NAME_pen, Cprintf("context.thickness = %d\n", context.thickness));
-  x += da;    y += da;
-  w -= da+db; h -= da+db;
+      DEBUG(NAME_pen, Cprintf("context.thickness = %d\n", context.thickness));
+      x += da;    y += da;
+      w -= da+db; h -= da+db;
 
-  if ( w < 2 || h < 2 )
-    return;				/* TBD: too small (make line) */
+      if ( w < 2 || h < 2 )
+	return;				/* TBD: too small (make line) */
 
-  r_fillpattern(fill);
-  r_update_pen();
+      r_fillpattern(fill);
+      r_update_pen();
 
-  if ( r == 0 )
-  { Rectangle(context.hdc, x, y, x+w, y+h);
-  } else
-  { RoundRect(context.hdc, x, y, x+w, y+h, r*2, r*2);
+      if ( r == 0 )
+      { Rectangle(context.hdc, x, y, x+w, y+h);
+      } else
+      { RoundRect(context.hdc, x, y, x+w, y+h, r*2, r*2);
+      }
+    } else
+    { r_fill(x, y, w, h, fill);
+    }
   }
 }
 
@@ -953,8 +1053,12 @@ r_shadow_box(int x, int y, int w, int h, int r, int shadow, Image fill)
 static COLORREF
 cref_colour(Colour c)
 { COLORREF r = (COLORREF) getXrefObject(c, context.display);
+  int exact;
 
-  return GetNearestColor(context.hdc, r);
+  exact = (r & EXACT_COLOUR_MASK);
+  r &= ~EXACT_COLOUR_MASK;
+
+  return exact ? r : GetNearestColor(context.hdc, r);
 }
 
 
@@ -991,8 +1095,8 @@ r_elevation(Elevation e)
     if ( context.shadow_pen )
       ZDeleteObject(context.shadow_pen);
 
-    context.relief_pen = CreatePen(PS_SOLID, 1, cref_colour(relief));
-    context.shadow_pen = CreatePen(PS_SOLID, 1, cref_colour(shadow));
+    context.relief_pen = ZCreatePen(PS_SOLID, 1, cref_colour(relief));
+    context.shadow_pen = ZCreatePen(PS_SOLID, 1, cref_colour(shadow));
 
     DEBUG(NAME_elevation, Cprintf("ok\n"));
 
@@ -1113,7 +1217,7 @@ r_3d_box(int x, int y, int w, int h, int radius, Elevation e, int up)
     if ( shadow > MAX_SHADOW )
       shadow = MAX_SHADOW;
 
-    r_box(x, y, w-shadow, h-shadow, radius-shadow, e->colour);
+    r_box(x, y, w-shadow, h-shadow, max(0, radius-shadow), e->colour);
     
     xt = x, yt = y;
 
@@ -1484,7 +1588,7 @@ r_msarc(int x, int y, int w, int h,	/* bounding box */
 	int sx, int sy,			/* starting point */
 	int ex, int ey,			/* end point */
 	Name close,			/* none,pie_slice,chord */
-	Image fill)			/* @nil or fill pattern */
+	Any fill)			/* @nil or fill pattern */
 { if ( close == NAME_none )
   { Arc(context.hdc, x, y, x+w, y+h, sx, sy, ex, ey);
   } else if ( close == NAME_pieSlice )
@@ -1498,7 +1602,7 @@ r_msarc(int x, int y, int w, int h,	/* bounding box */
 
 
 void
-r_ellipse(int x, int y, int w, int h, Image fill)
+r_ellipse(int x, int y, int w, int h, Any fill)
 { r_fillpattern(fill);
   r_update_pen();
 
@@ -1595,8 +1699,8 @@ r_image(Image image,
 	Cprintf("r_image(%s, %d, %d, %d, %d, %d, %d) (bm=0x%x, mhdc=0x%x)\n",
 		pp(image), sx, sy, x, y, w, h, (long)bm, (long)mhdc));
     
-  if ( transparent == ON )
-  { HBRUSH hbrush = CreateSolidBrush(context.rgb);
+  if ( transparent == ON && valInt(image->depth) <= 1 )
+  { HBRUSH hbrush = ZCreateSolidBrush(context.rgb);
     HBRUSH oldbrush = ZSelectObject(context.hdc, hbrush);
     COLORREF oldbk = SetBkColor(context.hdc, RGB(255,255,255));
     COLORREF oldtx = SetTextColor(context.hdc, RGB(0,0,0));
@@ -1780,15 +1884,24 @@ static void
 s_font(FontObj font)
 { if ( context.font != font )
   { WsFont wsf;
+    HFONT org;
 
     if ( !context.hdc )
+    { DEBUG(NAME_redraw, Cprintf("!! Making default context\n"));
       make_default_context();
+    }
     wsf = getXrefObject(font, context.display);
   
-    DEBUG(NAME_font, Cprintf("s_font(%s) (hfont = 0x%x)\n",
-			     pp(font), (int)wsf->hfont));
+    DEBUG(NAME_font,
+	  Cprintf("s_font(%s) (hfont = 0x%x)%s\n",
+		  pp(font), (int)wsf->hfont,
+		  context.hdc == default_hdc ? " (default_hdc)" : ""));
+
     context.wsf = wsf;
-    ZSelectObject(context.hdc, wsf->hfont);
+    org = ZSelectObject(context.hdc, wsf->hfont);
+    if ( !context.ohfont )
+      context.ohfont = org;
+
     context.font = font;
   }
 }
@@ -1954,6 +2067,7 @@ str_size(String s, FontObj font, int *width, int *height)
 { if ( s->size > 0 )
   { RECT rect;
     UINT flags = DT_CALCRECT|DT_EXTERNALLEADING|DT_NOCLIP|DT_NOPREFIX;
+    int rval;
 
     rect.left   = 0;
     rect.top    = 0;
@@ -1961,7 +2075,17 @@ str_size(String s, FontObj font, int *width, int *height)
     rect.bottom = 0;
 
     s_font(font);
-    DrawText(context.hdc, s->s_text8, s->size, &rect, flags);
+    rval = DrawText(context.hdc, s->s_text8, s->size, &rect, flags);
+    DEBUG(NAME_font,
+	  { char buf[32];
+	    int n = min(s->size, 25);
+	    strncpy(buf, s->s_text8, n);
+	    buf[n] = EOS;
+	    if ( s->size > 25 )
+	      strcat(buf, " ...");
+
+	    Cprintf("DrawText(\"%s\") --> %d\n", buf, rval);
+	  });
 
     *width = rect.right;
   } else

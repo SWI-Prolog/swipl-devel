@@ -100,7 +100,12 @@ append_attribute(DE, A:'name|tuple') :->
 	), !,
 	get(DE, client, Client),
 	(   get(Client, send_method, Attr, tuple(_, Method)),
-	    get(Method, argument_type, 1, Type)
+	    (	send(Method, instance_of, attribute),
+		get(Client?class, send_method, Attr, SendMethod)
+	    ->	TheMethod = SendMethod
+	    ;	TheMethod = Method
+	    ),
+	    get(TheMethod, argument_type, 1, Type)
 	->  make_item(Attr, Type, Client, Item),
 	    send(DE, append, Item),
 	    (	nonvar(Cond)
@@ -146,7 +151,7 @@ make_item(Attr, Type, Client, Item) :-		% we have a small value-set
 	get(Type, value_set, ValueSet),
 	get(ValueSet, size, Size),
 	Size =< 4, !,
-	new(Item, menu(Attr, choice, @att_generic)),
+	new(Item, menu(Attr, marked, @att_generic)),
 	send(ValueSet, for_all, message(Item, append, @arg1)),
 	send(Item, default, Client?Attr).
 make_item(Attr, Type, Client, Item) :-		% FONT

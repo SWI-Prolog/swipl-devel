@@ -69,3 +69,8 @@ ws_status_timer(Timer tm, Name status)
     setIdTimer(tm, nid);
   }
 }
+
+
+#ifdef O_LICENCE
+#include "../../../licence/xtimeout.c"
+#endif

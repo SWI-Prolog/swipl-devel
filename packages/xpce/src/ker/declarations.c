@@ -316,10 +316,8 @@ static struct class_definition classdefs[] =
   { NAME_popupGesture, NAME_gesture, makeClassPopupGesture,
     &ClassPopupGesture, "Gesture to display a popup menu" },
 
-#ifdef HAVE_FORK
   { NAME_process, NAME_stream, makeClassProcess,
     &ClassProcess, "Unix process" },
-#endif
 
   { NAME_progn, NAME_function, makeClassProgn,
     &ClassProgn, "Sequence (as function)" },

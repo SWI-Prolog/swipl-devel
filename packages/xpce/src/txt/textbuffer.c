@@ -1841,6 +1841,37 @@ room(TextBuffer tb, int where, int grow)
 }
 
 
+		 /*******************************
+		 *	 ASFILE INTERFACE	*
+		 *******************************/
+
+static status
+writeAsFileTextBuffer(TextBuffer tb, Int where, CharArray txt)
+{ if ( isDefault(where) )
+    where = toInt(tb->size);
+
+  return insertTextBuffer(tb, where, txt, ONE);
+}
+
+
+static status
+truncateAsFileTextBuffer(TextBuffer tb)
+{ return clearTextBuffer(tb);
+}
+
+
+static Int
+getSizeAsFileTextBuffer(TextBuffer tb)
+{ answer(toInt(tb->size));
+}
+
+
+static StringObj
+getReadAsFileTextBuffer(TextBuffer tb, Int from, Int size)
+{ return getContentsTextBuffer(tb, from, size);
+}
+
+
 status
 makeClassTextBuffer(Class class)
 { sourceClass(class, makeClassTextBuffer, __FILE__, "$Revision$");
@@ -1976,6 +2007,15 @@ makeClassTextBuffer(Class class)
 	     "Iterate code over all fragments",
 	     forAllFragmentsTextBuffer);
 
+  sendMethod(class, NAME_writeAsFile, NAME_stream, 2,
+	     "at=[int]", "text=char_array",
+	     "Implements handling a buffer as a file",
+	     writeAsFileTextBuffer);
+  sendMethod(class, NAME_truncateAsFile, NAME_stream, 0,
+	     "Implements handling a buffer as a file",
+	     truncateAsFileTextBuffer);
+
+
   getMethod(class, NAME_convert, DEFAULT, "text_buffer", 1, "editor",
 	    "Return `editor <-text_buffer'",
 	    getConvertTextBuffer);
@@ -2029,6 +2069,14 @@ makeClassTextBuffer(Class class)
 	    "from=int", "to=[int]", "skip_layout=[bool]",
 	    "Skip comments and optionally white space",
 	    getSkipCommentTextBuffer);
+
+  getMethod(class, NAME_sizeAsFile, NAME_stream, "characters=int", 0,
+	    "Implement seek when using as a file",
+	    getSizeAsFileTextBuffer);
+  getMethod(class, NAME_readAsFile, NAME_stream, "string", 2,
+	    "from=int", "size=int",
+	    "Implement reading as a file",
+	    getReadAsFileTextBuffer);
 
   attach_resource(class, "undo_buffer_size", "int", "10000",
 		  "Memory allocated to store undo");

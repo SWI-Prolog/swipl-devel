@@ -256,7 +256,9 @@ resolve_method_message(X) :-
 	X = @pce_resolve_method_message,
 	(   object(X)
 	->  true
-	;   new(X, message(@prolog, call, bind_lazy, @arg1, @arg2, @arg3))
+%	;   new(X, message(@prolog, '_bind_lazy', @arg1, @arg2, @arg3))
+	;   pce_predicate_reference('_bind_lazy'(_,_,_,_), CPtr),
+	    send(CPtr, name_reference, pce_resolve_method_message)
 	).
 
 doretract :- fail.
@@ -269,10 +271,11 @@ find_data(Goal) :-
 	Goal.
 
 pce_ifhostproperty(prolog(swi),
-		   (:- '$hide'(bind_lazy, 3)),
+		   (:- '$hide'('_bind_lazy', 4)),
 		   (notrace(G) :- G)).
+pce_ifhostproperty(need_extern_declaration, (:- extern('_bind_lazy', 4))).
 
-bind_lazy(Type, Class, Selector) :-
+'_bind_lazy'(_Class, Type, Class, Selector) :-
 	notrace(do_bind_lazy(Type, Class, Selector)).
 
 do_bind_lazy(send, ClassName, @default) :- !,

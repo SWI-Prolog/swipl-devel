@@ -22,6 +22,7 @@
 	  , '$pce_get_object'/4			  % to lib/pce_util.pl
 	  ]).
 
+pce_ifhostproperty(prolog(swi), (:- export(pce_open(_,_,_)))).
 
 :- meta_predicate
 	send(+, :),

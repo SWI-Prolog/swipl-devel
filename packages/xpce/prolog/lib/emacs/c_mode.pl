@@ -23,10 +23,10 @@
 		      insert_NAME_	= key('\C-c\C-n'),
 		      gdb		= button(gdb)
 		    ],
-		    [ '"'  = string_quote('\'),
-		      '''' = string_quote('\'),
-		      '/'  + comment_start('*'),
-		      '*'  + comment_end('/'),
+		    [ '"'  = string_quote(\),
+		      '''' = string_quote(\),
+		      (/)  + comment_start(*),
+		      (*)  + comment_end(/),
 
 		      paragraph_end(regex('\s *$\|/\*\|.*\*/'))
 		    ]).

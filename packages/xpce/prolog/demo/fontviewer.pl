@@ -16,7 +16,7 @@
 
 fontviewer :-
 	new(FontViewer, frame('Font Viewer')),
-	send(FontViewer, append, new(B, browser)),
+	send(FontViewer, append, new(B, browser(size := size(35, 10)))),
 	send(FontViewer, append, new(D, dialog)),
 	send(FontViewer, append, new(P, picture(size := size(350,350)))),
 	send(P, right, B),
@@ -27,8 +27,9 @@ fontviewer :-
 					    P, B?selection?object)))),
 	send(D, append,
 	     button(quit, message(FontViewer, destroy))),
+	send(D, default_button, open),
 
-	send(B, tab_stops, vector(80, 140)),
+	send(B, tab_stops, vector(80, 180)),
 	send(B, open_message, message(Open, execute)),
 	send(FontViewer, open),
 
@@ -58,25 +59,27 @@ append_font_browser(B, Font) :-
 				  string('%s\t%s\t%d', Fam, Style, Points),
 				  Font)).
 
-:- pce_global(@show_font_text, make_show_font_text).
-
-make_show_font_text(S) :-
-	new(S, string),
-	between(0, 15, Y),
-	    (	send(S, append, string('%03o: ', Y*16)),
-		between(0, 15, X),
-		    C is 16*Y + X,
-		    C \== 0, C \== 10,
-		    get(S, size, I),
-		    send(S, append, a),
-		    send(S, character, I, C),
-		fail
-	    ;	true
-	    ),
-	    send(S, append, string('\n')),
-	fail;true.
 
 show_font(P, Font) :-
 	send(P, clear),
-	send(P, display,
-	     text(@show_font_text, left, Font)).
+	new(F, format(horizontal, 2, @on)),
+	send(F, row_sep, 0),
+	send(P, format, F),
+	new(A, string(x)),
+	(   between(0, 15, Y),
+	    I is Y*16,
+	    send(P, display,
+		 text(string('%03o/0x%02x/%03d:', I, I, I), left, fixed)),
+	    new(S, string),
+	    (   between(0, 15, X),
+		C is 16*Y + X,
+		C \== 0, C \== 10, C \== 13,
+		send(A, character, 0, C),
+		send(S, append, A),
+		fail
+	    ;   send(P, display, text(S, left, Font))
+	    ),
+	    fail
+	;   true
+	).
+

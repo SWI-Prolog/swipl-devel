@@ -1,17 +1,17 @@
 
-/* and.c */
+/* msg/and.c */
 status		makeClassAnd(Class class);
 
-/* assign.c */
+/* msg/assign.c */
 status		makeClassAssign(Class class);
 
-/* binding.c */
+/* msg/binding.c */
 status		makeClassBinding(Class class);
 
-/* block.c */
+/* msg/block.c */
 status		makeClassBlock(Class class);
 
-/* code.c */
+/* msg/code.c */
 status		initialiseCode(Code c);
 status		forwardReceiverCodev(Code c, Any receiver, int argc, const Any argv []);
 status		forwardCode(Code c, ...);
@@ -21,13 +21,13 @@ void		doneCodeVector(Vector v);
 status		makeClassCodeVector(Class class);
 status		makeClassCode(Class class);
 
-/* create.c */
+/* msg/create.c */
 status		makeClassCreate(Class class);
 
-/* equal.c */
+/* msg/equal.c */
 status		makeClassEqual(Class class);
 
-/* function.c */
+/* msg/function.c */
 status		initialiseFunction(Function f);
 Any		getForwardFunctionv(Function f, int argc, Any *argv);
 Any		getForwardReceiverFunctionv(Function f, Any receiver, int argc, Any *argv);
@@ -37,43 +37,43 @@ Any		getSendMethodFunction(Function f, Name selector);
 Any		getGetMethodFunction(Function f, Name selector);
 status		makeClassFunction(Class class);
 
-/* if.c */
+/* msg/if.c */
 status		makeClassIf(Class class);
 
-/* message.c */
+/* msg/message.c */
 status		ExecuteMessage(Message msg);
 status		makeClassMessage(Class class);
 
-/* nonequal.c */
+/* msg/nonequal.c */
 status		makeClassNonEqual(Class class);
 
-/* not.c */
+/* msg/not.c */
 status		makeClassNot(Class class);
 
-/* obtain.c */
+/* msg/obtain.c */
 status		makeClassObtain(Class class);
 
-/* or.c */
+/* msg/or.c */
 status		makeClassOr(Class class);
 
-/* progn.c */
+/* msg/progn.c */
 status		makeClassProgn(Class class);
 
-/* quote.c */
+/* msg/quote.c */
 status		makeClassQuoteFunction(Class class);
 
-/* var.c */
+/* msg/var.c */
 Any		getValueVar(Var v);
 status		makeClassVar(Class class);
 void		resetVars(void);
 void		popVarEnvironment(void);
 status		assignVar(Var v, Any value, Name scope);
 
-/* when.c */
+/* msg/when.c */
 status		makeClassWhen(Class class);
 
-/* while.c */
+/* msg/while.c */
 status		makeClassWhile(Class class);
 
-/* nameref.c */
+/* msg/nameref.c */
 status		makeClassAssoc(Class class);

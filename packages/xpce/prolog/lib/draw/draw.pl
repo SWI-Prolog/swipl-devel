@@ -370,7 +370,7 @@ fill_dialog(D) :-
 		  ]),
 
 	send(S, multiple_selection, @on),
-	send(S, on_image, @mark_image),
+	send(S, show_current, @on),
 	send_list(S, append,
 		  [ menu_item(auto_align,
 			      message(Canvas, auto_align_mode, @arg1))

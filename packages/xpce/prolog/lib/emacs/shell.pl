@@ -107,13 +107,14 @@ map_status(_,       '??').
 		 *******************************/
 
 process(B, Process:process*) :->
-	"Associate process with buffer and start it"::
+	"Associate process with buffer"::
 	(   get(B, process, OldProcess),
 	    OldProcess \== @nil
 	->  send(OldProcess, free)
 	;   true
 	),
 	send(B, slot, process, Process),
+	send(Process, attribute, report_to, B),
 	get(B, process_fragment, Fragment),
 	send(Fragment, start, B?size),
 	send(Fragment, length, 0),

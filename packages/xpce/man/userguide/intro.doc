@@ -1,10 +1,185 @@
 \chapter{Introduction}
 
-XPCE is an object-oriented symbolic environment indented to be used in
-cooperation with a symbolic language.  The combination provides a
-hybrid environment with a small but powerful and transparent
-interface.  Although PCE provides many general-purpose classes, it is
-primarily designed to implement user-interfaces.
+XPCE is an object-oriented symbolic environment for symbolic languages
+or strongly typed languages. The combination provides a hybrid
+environment with a small but powerful and transparent interface.
+Although PCE provides many general-purpose classes, it is primarily
+designed to implement user-interfaces.
+
+XPCE is not a programming language in the traditional sence. Contructs
+of the system do not have a textual representation. The interface to the
+`hosting' language defines what the XPCE looks like from the programmers
+point of view. As a consequence, the programmer will first of all
+experience XPCE as a {\em library}.
+
+XPCE however, does provide the semantic elements that can be found in
+many object-oriented programming languages: classes, objects, methods,
+instance-variables, inheritance, statements, conditions, iteration, etc.
+
+All the above primitives are represented by first-class {\em objects}
+that may be created, modified, inspected and destroyed. This allows the
+programmer to extend the XPCE object-oriented system with new methods
+and classes from the host-language. In addition, small procedures can be
+expressed as objects and then given to XPCE for execution.
+
+The main target language for XPCE is {\em Prolog} and this document
+concentrates on XPCE/Prolog rather then XPCE/Lisp or XPCE/C++.
+XPCE/Prolog comes with a graphical programming environment that allows
+for quick browsing of the source-code, provided debugging tools and
+allows for the graphical construction of {\em dialog boxes} (graphical
+windows with {\em controllers}). XPCE's built-in editor is modelled
+after the standard (GNU-)Emacs editor and can be programmed in
+XPCE/Prolog.
+
+
+\section{Organisation of the XPCE documentation}
+
+This document describes the basics of XPCE and its relation to Prolog.
+It provides the background material needed to understand the other
+documentation:
+
+\begin{itemize}
+    \tick{The XPCE Reference Manual} \cite{PCE:reference}
+The reference manual is available in two formats: printed and by
+means of the Prolog predicate manpce/0.  The reference manual provides
+detailed descriptions of all classes, methods, etc.\ which may be accessed
+from various viewpoints. See also Chapter~\ref{sec:online}.
+    \tick{PceDraw: An example of using PCE-4 \cite{PCE:draw}}
+This document contains the annotated sources of the drawing tool PceDraw.
+It illustrates many of the (graphical) functionality of XPCE.  Useful as
+a source of examples.
+    \tick{{XPCE/Prolog} Course Notes} \cite{PCE:course}
+Course-notes, examples and exercises for programming XPCE/Prolog.  The
+course-notes have a large overlap in contents with this userguide, but
+the material is more concise.  If you are familiar with object-oriented
+systems, Prolog and graphical user interfaces the course-notes may be
+a quick alternative to the userguide.
+\end{itemize}
+
+
+\section{Other sources of information}		\label{sec:faq}
+
+Luca Passani maintains a programmers FAQ (Frequently Asked Questions)
+on the internet.  The address is:
+
+\begin{code}
+http://www.stud.unit.no:80/~passani/FAQ.html
+\end{code}
+
+A snapshot of this file is in the file {\tt man/faq/faq.html} in the
+XPCE distribution hierarchy. Various other information can be found on
+or through the XPCE internet home-page:
+
+\begin{code}
+http://www.swi.psy.uva.nl/projects/xpce/xpce.html
+\end{code}
+
+Utility programs, recent examples, documentation, etc.\ can be found
+in the primary XPCE anonymous ftp archive:
+
+\begin{code}
+ftp://swi.psy.uva.nl/pub/xpce/
+\end{code}
+
+There is a mailing list for exchanging information and problems between
+programmers as well as for us to announce new releases and developments.
+The address is {\tt xpce@swi.psy.uva.nl}. Please send mail to
+{\tt xpce-request@swi.psy.uva.nl} to subscribe or unsubscribe to this
+list.  This E-mail address can also be used to communicate with the
+authors.
+
+
+\section{Language interfaces}
+
+The interface between PCE and the application (host) language is very
+small. This feature makes it easy to connect PCE to a new language. PCE
+fits best with dynamically typed or strongly statically typed langages
+with pogrammable type-conversion.  XPCE itself is dynamically typed.
+Cooperating with languages with the named properties avoid the need
+for explicitely programmed type-conversion.
+
+\begin{itemize}
+    \tick{SWI-Prolog}\index{SWI-Prolog (binding)}
+The combination SWI-Prolog/PCE is the development version.
+    \tick{Quintus Prolog}\index{Quintus Prolog (binding)}
+Distributed by AIIL (UK) under the name ProWindows-3/XPCE.  This version
+is commerically supported.  Contact chris@aiil.co.uk for details.
+    \tick{SICStus Prolog}\index{SICStus Prolog (binding)}
+This binding has been implemented in close cooperation with SICS. Prolog
+libraries delivered with PCE run both on SICStus and SWI-Prolog.
+    \tick{Lucid Common Lisp 4}\index{Lucid CommonLisp (binding)}
+The Lisp language binding is described in \cite{PCE:lisp}.
+    \tick{Harlequin LispWorks 3.1}
+\index{Harlequin LispWorks (binding)}%
+\index{LispWorks (binding)}%
+The Lisp language binding is described in \cite{PCE:lisp}.
+    \tick{GNU-C++ (g++)}
+    \index{C++ (binding)}\index{g++ (binding)}
+This binding is described in \cite{PCE:cpp}.  It allows for the
+definition of both stand-alone C++/XPCE applications as well as
+mixed Prolog/C++/XPCE applications.%
+	\footnote{Mixed Lisp/SomeThing/XPCE applications are hard to handle
+		  as XPCE atoms are {\sc uppercase} when linked to Lisp.}
+\end{itemize}
+
+
+\section{Portability}
+
+The XPCE virtual machine and built-in class library is written in
+standard ANSI-C and is portable to any machine offering a flat
+sufficiently large memory model (32 or 64 bits). XPCE's graphical
+classes (including windows, etc.) interface to XPCE {\em Virtual Windows
+System} (VWS). Currently there are VWS implementations for X11 and the
+Microsoft Win32 API. Please contact the authors if you are interrested
+in other implementations.
+
+
+\subsection{Unix/X-Windows}
+
+\index{X-windows}\index{OpenWindows}\index{Motif}
+XPCE runs on most Unix/X11 platforms.  Tested platforms include SunOs,
+Solaris, AIX, HPUX, IRIX, OSF/1 and Linux.  Platform configuration is
+realised using GNU autoconf with an extensive test-suite.
+
+
+\subsection{Win32}
+
+The Win32 API provided the required 32-bit flat memory model, making a
+port of XPCE feasible.  Currently XPCE/Prolog is only available with
+the SWI-Prolog host language.  A Quintus port will be available shortly.
+
+
+\section{Look-and-feel}
+
+\index{look-and-feel}\index{Motif}\index{OpenWindows} PCE is not
+implemented on top of a standard UI library such as Motif, OpenWindows,
+or Win32. Instead, it is built on top of its own VWS defining
+primitives to create and manipulate windows, draw primitives such as
+lines, circles, text and handle user-events.
+
+As a consequence, XPCE programs are fully compatible over the available
+platforms, except that some (almost exclusively obscure) features may
+have a different or no effect on some implementations. For example,
+Window icons in win32 are always scaled to $32 \times 32$ pixels, where
+they can have arbitrary size in X11.
+
+The implementation of all of XPCE on top of its primitive graphicals
+guarantees there are no platform-specific limitations in the
+manipulation and semantics of certain controllers. XPCE defines the
+look-and-feel for each of the controllers.  As a consequence, XPCE
+controllers may not behave exactly the same as controllers of other
+applications in the same windowing environment. 
+
+The visual feedback (look) and to some extend the reactions to user
+actions (feel) of the XPCE controllers is determined by XPCE's {\em
+resource} file. The X11 version examines the resources through the
+standard X11 resource manager. The Win32 version contains a parser for
+the X11 resource files. XPCE is currently shipped with two resource
+files, one for OpenWindows and one for Windows-'95. Support for Motif
+is still rudimentary.
+
+
+\section{A brief history of (X)PCE}
 
 The ``PCE Project'' was started in 1985 by Anjo Anjewierden.  His aim
 was to develop a high-level UI environment for (C-)Prolog.  The
@@ -22,113 +197,18 @@ knowledge engineering workbench called Shelley
 (\cite{Anjewierden:90b}).  During this period PCE/Prolog has been used by
 various research groups to implement graphical interfaces for
 applications implemented in Prolog.  Most of these interfaces stressed
-the use of \idx {direct-manipulation} graphical interfaces. Feedback
+the use of \idx{direct-manipulation} graphical interfaces. Feedback
 from these projects has made PCE generally useful and mature.
 
-This document describes version 4 of PCE.  Version 4 is a major release.
-PCE has been moved from SunView to the X-window platform.  In the course
-of this the entire graphics and standard UI component (menu) have been
-reorganised.  The object-oriented infra-structure of PCE has been made
-available to the application programmer.  Performance and memory
-management have been improved considerably.
-
-
-\section{Organisation of the PCE documentation}
-
-This document describes the basics of PCE and its relation to Prolog.
-It provides the background material needed to understand the other
-documentation:
-
-\begin{itemize}
-    \tick{PCE-4 Functional Overview \cite{PCE:overview}}
-This document provides an overview of the functionality provided by PCE.
-It may be used to find relevant PCE material to satisfy a particular
-functionality in your program.
-    \tick{PCE-4 User Defined Classes Manual \cite{PCE:udc}}
-This document describes the definition of PCE classes from Prolog.
-    \tick{PceDraw: An example of using PCE-4 \cite{PCE:draw}}
-This document contains the annotated sources of the drawing tool PceDraw.
-It illustrates many of the (graphical) functionality of PCE.  Useful as
-a source of examples.
-    \tick{{XPCE/Prolog} Course Notes} \cite{PCE:course}
-Course-notes, examples and exercises for programming XPCE/Prolog.
-    \tick{The XPCE Reference Manual} \cite{PCE:reference}
-The reference manual is available in two formats: printed and by
-means of the Prolog predicate manpce/0.  The reference manual provides
-detailed descriptions of all classes, methods, etc.\ which may be accessed
-from various viewpoints.  Chapter~\ref{sec:online} describes how to
-use the online manual.
-\end{itemize}
-
-
-\section{Language interfaces}
-
-The interface between PCE and the application language is very
-small.  This feature makes it easy to connect PCE to a new
-language.  PCE fits best with {\em symbolic} languages such as Lisp
-and Prolog.  Currently the following interfaces have been implemented:
-
-\begin{itemize}
-    \tick{SWI-Prolog}\index{SWI-Prolog (binding)}
-The combination SWI-Prolog/PCE is the development version.
-    \tick{Quintus Prolog}\index{Quintus Prolog (binding)}
-Distributed by AIIL (UK) under the name ProWindows-3/XPCE.  This version
-is commerically supported.  Contact sheywood@@aiil.co.uk for details.
-    \tick{SICStus Prolog}\index{SICStus Prolog (binding)}
-This binding has been implemented in close cooperation with SICS.  It
-is complete.  The Prolog libraries delivered with PCE run both on
-SICStus and SWI-Prolog.
-    \tick{Lucid Common Lisp 4}\index{Lucid CommonLisp (binding)}
-The Lisp language binding is described in \cite{PCE:lisp}.
-    \tick{Harlequin LispWorks 3.1}
-    \index{Harlequin LispWorks (binding)}%
-    \index{LispWorks (binding)}%
-The Lisp language binding is described in \cite{PCE:lisp}.
-    \tick{GNU-C++ (g++)}
-    \index{C++ (binding)}\index{g++ (binding)}
-This binding is described in \cite{PCE:cpp}.  It allows for the
-definition of both stand-alone C++/XPCE applications as well as
-mixed Prolog/C++/XPCE applications.%
-	\footnote{Mixed Lisp/SomeThing/XPCE applications are hard to handle
-		  as XPCE atoms are {\sc uppercase} when linked to Lisp.}
-\end{itemize}
-
-
-\section{Window environment}
-
-\index{X-windows}\index{OpenWindows}\index{Motif}
-For PCE to be of any use, it must run under the X-window environment.
-The X-versions supported are X11R3-5 SUN OpenWindows, Motif and
-many more that are based on X11R3 or later.
-
-
-\section{Look-and-feel}
-
-\index{look-and-feel}\index{Motif}\index{OpenWindows}
-PCE is not implemented on top of a standard UI library such as Motif,
-OpenWindows, etc.  It is based on the lowest level of the X11/C
-interface called Xlib.  This implies that the look and feel of PCE's
-UI components is defined by PCE itself.  The current PCE `look-and-feel'
-is influenced by various standards.  Part of them (notably scrollbars) are
-based on the scrollbars provided by the MIT distribution of X-windows.
-The dialog items are largely compatible to those provided by the SunView
-version of PCE (PCE 3.8).
-
-\index{OpenLook}\index{Pce.Openlook}
-For better cooperation with OpenLook applications, PCE defines a
-set of resources that make most of PCE's dialog objects similar to
-the corresponding OpenLook objects.  See the file {\tt Pce.OpenLook}
-in the PCE distribution directory.
-
-\index{window,manager}\index{TWM}
-PCE's `look-and-feel' fits well with an environment running MIT
-X-windows and the TWM window manager.  If PCE is run with OpenWindows
-or Motif, buttons, scrollbars, menus, etc.\ have a different
-look-and-feel than those of other applications.
-
-There are plans to make PCE's UI component's look-and-feel sensitive to
-the look-and-feel of the environment.  This would make it possible
-to run the same application under different look-and-feel regimes.
+This document describes version 4.8 of PCE. Version 4 is a major
+release. During the versions 4.0 to 4.5, XPCE was moved from SunView to
+X-windows and since 4.7 to the Win32 platform. In addition, the virtual
+machine has been made available to the application programmer, allowing
+for the definition of new XPCE classes. These versions have been used
+mainly for small internal case-studies to validate the new approach.
+Larger-scale external usage started from version 4.6 and introduced the
+vital requirement to reduce incompatible changes to the absolute
+minimum.
 
 
 \section{Acknowledgements}
@@ -138,20 +218,23 @@ was  then called PCE.  He designed  and implemented  version  1 and 2.
 Version 3 is the result of a joint effort from  Anjo Anjewierden and Jan
 Wielemaker.
 
-XPCE, offering support for X-windows and user-defined classes, has
-been implemented by the author.  The implementation of user-defined
-classes was initiated when Jan Wielemaker was guest at SERC (Software
-Engineering Research Centre).  Gert Florijn has contributed in the
-initial discussions on user-defined classes.  Frans Heeman has been
-the first user.
+XPCE, offering support for X-windows and user-defined classes, has been
+implemented by the author. The implementation of user-defined classes
+was initiated when I was guest at SERC (Software Engineering Research
+Centre). Gert Florijn has contributed in the initial discussions on
+user-defined classes. Frans Heeman has been the first user.
 
 The interface to SICStus Prolog has been implemented in cooperation with
 Stefan Andersson and Mats Carlsson from SICS.
 
 The interface to Quintus Prolog was initiated by Paul-Holmes Higgins.  The
-project was realised by James Little, Mark Vines and Simon Heywood
+project was realised by James Little, Mike Vines and Simon Heywood
 from AIIL.
 
-(X)PCE has been used by many people.  They have often been puzzled by
-bugs, incompatibilities with older versions, etc.  We would like to
-thank them for their patience and remarks.
+Luca Passani has bothered me with many questions, but was so kind to
+organise this material and make it available to other (novice) XPCE
+programmers in the form of a FAQ (see section~\ref{sec:faq}).
+
+(X)PCE is used by many people. They have often been puzzled by bugs,
+incompatibilities with older versions, etc. We would like to thank them
+for their patience and remarks.

@@ -81,15 +81,20 @@ ws_create_colour(Colour c, DisplayObj d)
       int g = GetGValue(RGB);
       int b = GetBValue(RGB);
 
-      r = 256*r;
-      g = 256*g;
-      b = 256*b;
+      r = 256*r + r;
+      g = 256*g + g;
+      b = 256*b + b;
 
       assign(c, red,   toInt(r));
       assign(c, green, toInt(g));
       assign(c, blue,  toInt(b));
 
-      return registerXrefObject(c, d, (void *)valInt(rgb));
+#if 0
+      if ( r == g && r == b )		/* grey */
+	RGB |= EXACT_COLOUR_MASK;	/* Avoid GetNearestColor() */
+#endif
+
+      return registerXrefObject(c, d, (void *)RGB);
     }
   } else
     return registerXrefObject(c, d, (void *)RGB(valInt(c->red)/256,
@@ -109,4 +114,92 @@ ws_uncreate_colour(Colour c, DisplayObj d)
 Colour
 ws_pixel_to_colour(DisplayObj d, ulong pixel)
 { fail;
+}
+
+
+struct system_colour
+{ char *name;
+  int  id;
+};
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Windows system colors as obtained from GetSysColor()
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static struct system_colour window_colours[] =
+{ { "sys_scrollbar_background",	COLOR_BTNFACE },
+  { "sys_dialog_background",	COLOR_MENU },
+  { "sys_dialog_foreground",	COLOR_MENUTEXT },
+  { "sys_window_background",	COLOR_WINDOW },
+  { "sys_window_foreground",	COLOR_WINDOWTEXT },
+  { "sys_relief",		COLOR_BTNFACE },
+  { "sys_shadow",		COLOR_BTNSHADOW },
+  { "sys_inactive",		COLOR_GRAYTEXT },
+
+  { "win_activeborder",		COLOR_ACTIVEBORDER },
+  { "win_activecaption",	COLOR_ACTIVECAPTION },
+  { "win_appworkspace",		COLOR_APPWORKSPACE },
+  { "win_background",		COLOR_BACKGROUND },
+  { "win_btnface",		COLOR_BTNFACE },
+  { "win_btnshadow",		COLOR_BTNSHADOW },
+  { "win_btntext",		COLOR_BTNTEXT },
+  { "win_captiontext",		COLOR_CAPTIONTEXT },
+  { "win_graytext",		COLOR_GRAYTEXT },
+  { "win_highlight",		COLOR_HIGHLIGHT },
+  { "win_highlighttext",	COLOR_HIGHLIGHTTEXT },
+  { "win_inactiveborder",	COLOR_INACTIVEBORDER },
+  { "win_inactivecaption",	COLOR_INACTIVECAPTION },
+  { "win_inactivecaptiontext",	COLOR_INACTIVECAPTIONTEXT },
+  { "win_menu",			COLOR_MENU },
+  { "win_menutext",		COLOR_MENUTEXT },
+  { "win_scrollbar",		COLOR_SCROLLBAR },
+/*{ "win_shadow",		COLOR_SHADOW },	*/
+  { "win_window",		COLOR_WINDOW },
+  { "win_windowframe",		COLOR_WINDOWFRAME },
+  { "win_windowtext",		COLOR_WINDOWTEXT },
+
+  { NULL, 			0 }
+};
+
+
+void
+ws_system_colours(DisplayObj d)
+{ struct system_colour *sc = window_colours;
+
+  for( ; sc->name; sc++ )
+  { Name ref = CtoKeyword(sc->name);
+    DWORD rgb = GetSysColor(sc->id);
+    int r = GetRValue(rgb);
+    int g = GetGValue(rgb);
+    int b = GetBValue(rgb);
+    Colour c;
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This is odd, these report the same as their window!?
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+    if ( sc->id == COLOR_SCROLLBAR || sc->id == COLOR_BTNFACE )
+    { DWORD fg = GetSysColor(COLOR_MENU);
+
+      if ( rgb == fg )
+      { r = (r+256)/2;
+	g = (g+256)/2;
+	b = (b+256)/2;
+	rgb = RGB(r, g, b);
+      }
+    }
+
+    DEBUG(NAME_win, Cprintf("Colour %s = %d %d %d\n", sc->name, r, g, b));
+    
+    r = r*256 + r;
+    g = g*256 + g;
+    b = b*256 + b;
+
+    rgb |= EXACT_COLOUR_MASK;	/* Avoid GetNearestColor() */
+
+    if ( (c = newObject(ClassColour, ref, toInt(r), toInt(g), toInt(b), 0)) )
+    { lockObject(c, ON);
+      registerXrefObject(c, d, (void *)rgb);
+    }
+  }
 }

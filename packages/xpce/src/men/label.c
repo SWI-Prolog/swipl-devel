@@ -344,7 +344,7 @@ makeClassLabel(Class class)
 	    "Baseline or bottom (image)",
 	    getReferenceLabel);
 
-  attach_resource(class, "font", "font", "@helvetica_roman_14",
+  attach_resource(class, "font", "font", "normal",
 		  "Default font for selection");
   attach_resource(class, "length", "int", "25",
 		  "Default length in characters");

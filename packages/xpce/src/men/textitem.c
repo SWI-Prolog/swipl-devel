@@ -62,6 +62,9 @@ initialiseTextItem(TextItem ti, Name name, Any val, Code msg)
 }
 
 
+#define InBox(ti, z) ((ti->look == NAME_motif || ti->look == NAME_win) && \
+		      z && notNil(z))
+
 static status
 RedrawAreaTextItem(TextItem ti, Area a)
 { int x, y, w, h;
@@ -90,9 +93,9 @@ RedrawAreaTextItem(TextItem ti, Area a)
   tw = valInt(vt->area->w);
   th = valInt(vt->area->h);
 
-  if ( z && notNil(z) && ti->look == NAME_motif )
+  if ( InBox(ti, z) )
     r_3d_box(tx, ty, tw, th, 0, z, FALSE);
-  else if ( ti->look != NAME_motif )
+  else if ( ti->look != NAME_motif && ti->look != NAME_win )
   { if ( z && notNil(z) )
     { int zh = abs(valInt(z->height));
       int ly = y+am+zh+valInt(getDescentFont(vt->font));
@@ -228,32 +231,29 @@ static Any
 completer(void)
 { if ( !Completer )
   { KeyBinding kb;
+    Any client;
+    Any quit;
 
     Completer = globalObject(NAME_completer, ClassBrowser, 0);
+    client    = newObject(ClassObtain, Completer, NAME_client, 0);
+    quit      = newObject(ClassMessage, client, NAME_keyboardQuit, 0);
+
     protectObject(Completer);
     protectObject(Completer->frame);
     attributeObject(Completer, NAME_client, NIL);
     attributeObject(Completer, NAME_prefix, CtoName(""));
     send(Completer, NAME_selectMessage,
-	 newObject(ClassMessage,
-		   newObject(ClassObtain, Completer, NAME_client, 0),
-		   NAME_selectedCompletion, Arg(1), 0), 0);
+	 newObject(ClassMessage, client, NAME_selectedCompletion, Arg(1), 0),
+	 0);
     send(get(Completer, NAME_tile, 0), NAME_border, ZERO, 0);
     send(Completer, NAME_kind, NAME_popup, 0);
     send(Completer, NAME_create, 0);
     send(Completer->frame, NAME_border, ZERO, 0);
-/*  send(Completer->list_browser, NAME_recogniser,
-	 newObject(ClassHandler, NAME_area, newObject(ClassAnd, 0), 0), 0);
-*/
 
     kb = get(Completer, NAME_keyBinding, 0);
-
-    functionKeyBinding(kb, CtoName("\\C-g"), /* TBD: make dynamic! */
-		       newObject(ClassMessage, newObject(ClassObtain, Completer,
-							 NAME_client, 0),
-				 NAME_keyboardQuit, 0));
-    functionKeyBinding(kb, CtoName("SPC"),
-		       NAME_extendPrefix);
+    functionKeyBinding(kb, CtoName("\\C-g"), quit);
+    functionKeyBinding(kb, CtoName("\\e"),   quit);
+    functionKeyBinding(kb, CtoName("SPC"),   NAME_extendPrefix);
   }
 
   return Completer;
@@ -1031,10 +1031,6 @@ makeClassTextItem(Class class)
 	    getReferenceTextItem);
 
 
-  attach_resource(class, "label_font", "font",    "@helvetica_bold_14",
-		  "Font for label");
-  attach_resource(class, "value_font", "font",    "@helvetica_roman_14",
-		  "Font for value");
   attach_resource(class, "length",     "int", "25",
 		  "Width of area for selection (chars)");
   attach_resource(class, "pen",        "int", "1",

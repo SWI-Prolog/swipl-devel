@@ -11,8 +11,6 @@
 
 static HashTable TimerTable;
 
-static void init_timers(void);
-
 static UINT
 getIdTimer(Timer tm)
 { return (UINT) tm->ws_ref;
@@ -26,8 +24,8 @@ setIdTimer(Timer tm, UINT id)
 }
 
 
-static void
-timer_proc(int id)
+VOID CALLBACK
+timer_proc(HWND hwnd, UINT msg, UINT id, DWORD now)
 { DEBUG(NAME_timer, Cprintf("Fireing timer %d\n", id));
 
   if ( TimerTable )
@@ -37,24 +35,17 @@ timer_proc(int id)
     { executeTimer(tm);
       RedrawDisplayManager(TheDisplayManager());
 
-      if ( tm->status == NAME_once )
-      { KillTimer(rlc_hwnd(), id);
+      if ( tm->status != NAME_repeat )
+      { KillTimer(NULL, id);
 	deleteHashTable(TimerTable, toInt(id));
 	assign(tm, status, NAME_idle);
       }
+
+      return;
     }
   }
-}
 
-
-int
-new_timer_id()
-{ int id = RLC_APPTIMER_ID;
-
-  while( TimerTable && getMemberHashTable(TimerTable, toInt(id)) )
-    id++;
-
-  return id;
+  KillTimer(NULL, id);			/* Unexpected timer.  Get rid of it */
 }
 
 
@@ -63,19 +54,17 @@ ws_status_timer(Timer tm, Name status)
 { UINT id;
 
   if ( (id = getIdTimer(tm)) )
-  { KillTimer(rlc_hwnd(), id);
+  { KillTimer(NULL, id);
     deleteHashTable(TimerTable, toInt(id));
+    setIdTimer(tm, 0);
   }
 
   if ( status != NAME_idle )
   { long msec = (long) (tm->interval->value * 1000.0);
     
-    id = new_timer_id();
-
-    if ( (SetTimer(rlc_hwnd(), id, (UINT)msec, NULL)) )
+    if ( (id = SetTimer(NULL, 0, (UINT)msec, (TIMERPROC) timer_proc)) )
     { if ( !TimerTable )
-      { rlc_timer_hook(timer_proc);
-	TimerTable = globalObject(CtoName("active_timers"),
+      { TimerTable = globalObject(CtoName("active_timers"),
 				  ClassHashTable, 0);
 	assign(TimerTable, refer, OFF);
       }
@@ -89,29 +78,6 @@ ws_status_timer(Timer tm, Name status)
 }
 
 
-static RlcTimerHook system_timer_hook;
-static int	    timers_initialised;
-
-static void
-exit_timers(void)
-{ if ( timers_initialised )
-  { rlc_timer_hook(system_timer_hook);
-    timers_initialised = FALSE;
-  }
-}
-
-
-static void
-init_timers(void)
-{ if ( !timers_initialised )
-  { system_timer_hook = rlc_timer_hook(timer_proc);
-    timers_initialised++;
-
-    TimerTable = globalObject(CtoName("active_timers"),
-				  ClassHashTable, 0);
-    assign(TimerTable, refer, OFF);
-    at_pce_exit(exit_timers, ATEXIT_FIFO);
-  }
-}
-
-
+#ifdef O_LICENCE
+#include "../../../licence/mstimeout.c"
+#endif

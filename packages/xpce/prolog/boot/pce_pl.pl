@@ -186,16 +186,25 @@ actions_to_format([Fmt0-Args0|Tail], Fmt, Args) :-
 		*             ENTRY		*
 		********************************/
 
+pce_home(PceHome) :-
+	absolute_file_name(pce('.'), [file_type(directory)], PceHome), !.
+pce_home(_) :-
+	$warning('Cannot find XPCE home directory'),
+	fail.
+
 '$load_pce' :-
 	'$c_current_predicate'('$pce_init', user:'$pce_init'), !,
-	pce_principal:'$pce_init',
+	absolute_file_name(pce(.), [file_type(directory)], PceHome),
+	pce_principal:'$pce_init'(PceHome),
 	set_feature(xpce, true).
 '$load_pce' :-
 	(   feature(dll, true)
 	;   feature(open_shared_object, true),
 	    push_library_dir
 	), !,
-	pce_principal:load_foreign_library(foreign(pl2xpce)),
+	load_foreign_library(pce_principal:foreign(pl2xpce)),
+	absolute_file_name(pce(.), [file_type(directory)], PceHome),
+	pce_principal:'$pce_init'(PceHome),
 	set_feature(xpce, true).
 
 %	Pushes LD_LIBRARY_PATH, so -lXPCE will be resolved correctly.

@@ -91,6 +91,9 @@ ws_create_font(FontObj f, DisplayObj d)
   XpceFontInfo xref;
   DisplayWsXref r = d->ws_ref;
 
+  if ( !instanceOfObject(f->x_name, ClassCharArray) )
+    fail;
+
   if ( (info = XLoadQueryFont(r->display_xref, strName(f->x_name))) == NULL )
     return replaceFont(f, d);
 
@@ -130,4 +133,10 @@ ws_destroy_font(FontObj f, DisplayObj d)
   { XFreeFont(r->display_xref, xref);
     unregisterXrefObject(f, d);
   }
+}
+
+
+status
+ws_system_fonts(DisplayObj d)
+{ succeed;
 }

@@ -1409,7 +1409,7 @@ makeClassText(Class class)
 	    "Map <-background",
 	    getTransparentText);
 
-  attach_resource(class, "font", "font", "@screen_roman_13",
+  attach_resource(class, "font", "font", "normal",
 		  "Default font");
   attach_resource(class, "format", "name", "left",
 		  "Default adjustment: {left,center,right}");

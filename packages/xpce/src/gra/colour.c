@@ -341,7 +341,7 @@ makeClassColour(Class class)
 	     "Destroy window-system counterpart",
 	     XCloseColour);
 
-  getMethod(class, NAME_convert, NAME_conversion, "colour", 1, "name|int",
+  getMethod(class, NAME_convert, NAME_conversion, "colour", 1, "name",
 	    "Convert X-colour name",
 	    getConvertColour);
   getMethod(class, NAME_lookup, NAME_oms, "colour", 4,

@@ -873,6 +873,59 @@ sysPce(char *fm, ...)
 }
 
 
+		 /*******************************
+		 *	  TIME SUPPORT		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+These functions get the time since XPCE was started in milliseconds.  Used
+for timing of GUI actions (see scrollbar.c for example).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifdef HAVE_GETTIMEOFDAY
+#include <sys/time.h>
+static struct timeval epoch;
+
+void
+initMClock()
+{ gettimeofday(&epoch, NULL);
+} 
+
+
+unsigned long
+mclock()
+{ struct timeval now;
+
+  gettimeofday(&now, NULL);
+  return (now.tv_sec - epoch.tv_sec) * 1000 +
+	 (now.tv_usec - epoch.tv_usec)/1000;
+}
+
+#else
+#if HAVE_FTIME
+#include <sys/timeb.h>
+
+static struct _timeb epoch;
+
+void
+initMClock()
+{ _ftime(&epoch);
+} 
+
+
+unsigned long
+mclock()
+{ struct _timeb now;
+
+  _ftime(&now);
+  return (now.time - epoch.time) * 1000 +
+	 (now.millitm - epoch.millitm);
+}
+
+#endif /*HAVE_FTIME*/
+#endif
+
+
 		/********************************
 		*            SLEEP		*
 		********************************/

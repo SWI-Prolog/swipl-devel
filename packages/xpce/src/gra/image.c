@@ -658,6 +658,9 @@ getPostscriptDepthImage(Image image)
 #include "bitmaps/nomark_bm"
 #include "bitmaps/pullright_bm"
 #include "bitmaps/mark_handle_bm"
+#include "bitmaps/ms_mark.bm"
+#include "bitmaps/ms_nomark.bm"
+
 
 static Image
 stdImage(Name name, Image *global, char *bits, int w, int h)
@@ -692,28 +695,32 @@ greyImage(Name name, int grey, Image *global,
 static void
 standardImages(void)
 { greyImage(NAME_whiteImage,  0,  &WHITE_IMAGE,
-	     white_bm_bits, white_bm_width, white_bm_height);
+	    white_bm_bits, white_bm_width, white_bm_height);
   greyImage(NAME_grey12Image, 12, &GREY12_IMAGE,
-	     grey12_bm_bits, grey12_bm_width, grey12_bm_height);
+	    grey12_bm_bits, grey12_bm_width, grey12_bm_height);
   greyImage(NAME_grey25Image, 25, &GREY25_IMAGE,
-	     grey25_bm_bits, grey25_bm_width, grey25_bm_height);
+	    grey25_bm_bits, grey25_bm_width, grey25_bm_height);
   greyImage(NAME_grey50Image, 50, &GREY50_IMAGE,
-	     grey50_bm_bits, grey50_bm_width, grey50_bm_height);
+	    grey50_bm_bits, grey50_bm_width, grey50_bm_height);
   greyImage(NAME_grey75Image, 75, &GREY75_IMAGE,
-	     grey75_bm_bits, grey75_bm_width, grey75_bm_height);
+	    grey75_bm_bits, grey75_bm_width, grey75_bm_height);
   greyImage(NAME_blackImage, 100, &BLACK_IMAGE,
-	     black_bm_bits, black_bm_width, black_bm_height);
+	    black_bm_bits, black_bm_width, black_bm_height);
 
   stdImage(NAME_cycleImage, &CYCLE_IMAGE,
-	     cycle_bm_bits, cycle_bm_width, cycle_bm_height);
+	   cycle_bm_bits, cycle_bm_width, cycle_bm_height);
   stdImage(NAME_markImage, &MARK_IMAGE,
-	     mark_bm_bits, mark_bm_width, mark_bm_height);
+	   mark_bm_bits, mark_bm_width, mark_bm_height);
   stdImage(NAME_nomarkImage, &NOMARK_IMAGE,
-	     nomark_bm_bits, nomark_bm_width, nomark_bm_height);
+	   nomark_bm_bits, nomark_bm_width, nomark_bm_height);
+  stdImage(NAME_msMarkImage, &MS_MARK_IMAGE,
+	   ms_mark_bits, ms_mark_width, ms_mark_height);
+  stdImage(NAME_msNomarkImage, &MS_NOMARK_IMAGE,
+	   ms_nomark_bits, ms_nomark_width, ms_nomark_height);
   stdImage(NAME_pullRightImage, &PULLRIGHT_IMAGE,
-	     pullright_bm_bits, pullright_bm_width, pullright_bm_height);
+	   pullright_bm_bits, pullright_bm_width, pullright_bm_height);
   stdImage(NAME_markHandleImage, &MARK_HANDLE_IMAGE,
-	    mark_handle_bm_bits, mark_handle_bm_width, mark_handle_bm_height);
+	   mark_handle_bm_bits, mark_handle_bm_width, mark_handle_bm_height);
 }
 
 

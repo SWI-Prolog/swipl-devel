@@ -20,6 +20,7 @@ initialisePopup(PopupObj p, Name label, Code msg)
   assign(p, update_message, NIL);
   assign(p, button,	    NAME_right);
   assign(p, default_item,   DEFAULT);	/* resource */
+  assign(p, show_current,   OFF);
   initialiseMenu((Menu) p, label, NAME_popup, msg);
 
   succeed;
@@ -467,6 +468,30 @@ endGroupPopup(PopupObj p, Bool val)
 
 
 status
+defaultPopupImages(PopupObj p)
+{ if ( p->show_current == ON )
+  { if ( p->multiple_selection == ON && p->look == NAME_win )
+      assign(p, on_image, MS_MARK_IMAGE);
+    else
+      assign(p, on_image, NAME_marked);
+  } else
+    assign(p, on_image, NIL);
+
+  assign(p, off_image, NIL);
+
+  succeed;
+}
+
+
+static status
+showCurrentPopup(PopupObj p, Bool show)
+{ assign(p, show_current, show);
+
+  return defaultPopupImages(p);
+}
+
+
+status
 makeClassPopup(Class class)
 { sourceClass(class, makeClassPopup, __FILE__, "$Revision$");
 
@@ -484,8 +509,12 @@ makeClassPopup(Class class)
   localClass(class, NAME_defaultItem, NAME_appearance, 
 	     "{first,selection}|any*", NAME_both,
 	     "Initial previewed item");
+  localClass(class, NAME_showCurrent, NAME_appearance, "bool", NAME_get,
+	     "If @on, show the currently selected value");
 
   termClass(class, "popup", 2, NAME_name, NAME_message);
+
+  storeMethod(class, NAME_showCurrent, showCurrentPopup);
 
   sendMethod(class, NAME_initialise, DEFAULT, 2,
 	     "name=[name]", "message=[code]*",
@@ -529,10 +558,8 @@ makeClassPopup(Class class)
 
   attach_resource(class, "show_label", "bool", "@off",
 		  "Label is visible");
-  attach_resource(class, "accelerator_font", "font*", "@screen_roman_12",
+  attach_resource(class, "accelerator_font", "font*", "small",
 		  "Show the accelerators");
-  attach_resource(class, "value_font", "font", "@helvetica_bold_14",
-		  "Font for the items");
   attach_resource(class, "default_item", "name*", "first",
 		  "Item to select as default");
   attach_resource(class, "cursor",     "cursor",  "right_ptr",

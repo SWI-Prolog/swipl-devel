@@ -344,6 +344,9 @@ ws_init_graphics_display(DisplayObj d)
   at_pce_exit(exit_update_hook, ATEXIT_FILO);
   initDraw();
 
+  ws_system_colours(d);
+  ws_system_images(d);
+
   init_area_enter_exit_handling(d);
 
   succeed;

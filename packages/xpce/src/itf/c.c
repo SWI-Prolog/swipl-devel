@@ -242,7 +242,7 @@ makeClassC(Class class)
 void
 XPCE_initialise()
 { if ( !XPCE_initialised )
-    pceInitialise(0, 0, NULL);
+    pceInitialise(0, NULL, 0, NULL);
 }
 
 					/* C ---> XPCE */

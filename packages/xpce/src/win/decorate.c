@@ -351,7 +351,7 @@ makeClassWindowDecorator(Class class)
 		  "Distance between outside and inside");
   attach_resource(class, "pen", "int", "0",
 		  "Thickness of outside line");
-  attach_resource(class, "label_font", "font", "@helvetica_bold_14",
+  attach_resource(class, "label_font", "font", "bold",
 		  "Font to display label");
 
   succeed;

@@ -9,6 +9,7 @@
 
 #include <h/kernel.h>
 #include <itf/c.h>
+#include <h/interface.h>		/* hostCallProc() */
 #include <h/graphics.h>			/* resource access functions */
 
 static status	recordInstancesClass(Class class, Bool keep, Bool recursive);
@@ -1413,6 +1414,26 @@ boundGetMethodClass(Class class, Name name)
 }
 
 
+static void
+bindMethod(Class class, Name code, Name selector)
+{ Any c;
+
+  if ( notNil((c=class->resolve_method_message)) && notDefault(c) )
+  { if ( instanceOfObject(c, ClassCode) )
+      forwardReceiverCode(c, class, code, class->name, selector, 0);
+    else
+    { Any av[2];
+
+      av[0] = class->name;
+      av[1] = selector;
+
+      hostCallProc(c, code, class, 2, av);
+    }
+  }
+}
+
+
+
 Any
 getResolveSendMethodClass(Class class, Name name)
 { Cell cell;
@@ -1421,8 +1442,7 @@ getResolveSendMethodClass(Class class, Name name)
   realiseClass(class);
 
   for(super = class; notNil(super); super = super->super_class)
-  { Code c;
-    Any sm;
+  { Any sm;
 
     if ( (sm = getMemberHashTable(super->send_table, name)) )
     { if ( class != super )
@@ -1430,12 +1450,7 @@ getResolveSendMethodClass(Class class, Name name)
       answer(sm);
     }
 
-    if ( notNil((c=super->resolve_method_message)) && notDefault(c) )
-      forwardReceiverCode(c,
-			  super,
-			  NAME_send,
-			  super->name, 
-			  name, 0);
+    bindMethod(super, NAME_send, name);
 
     for_cell(cell, super->send_methods)
     { SendMethod m = cell->value;
@@ -1469,8 +1484,7 @@ getResolveGetMethodClass(Class class, Name name)
   realiseClass(class);
 
   for(super = class; notNil(super); super = super->super_class)
-  { Code c;
-    Any gm;
+  { Any gm;
 
     if ( (gm = getMemberHashTable(super->get_table, name)) )
     { if ( class != super )
@@ -1478,12 +1492,7 @@ getResolveGetMethodClass(Class class, Name name)
       answer(gm);
     }
 
-    if ( notNil(c=super->resolve_method_message) && notDefault(c) )
-      forwardReceiverCode(c,
-			  super,
-			  NAME_get,
-			  super->name, 
-			  name, 0);
+    bindMethod(super, NAME_get, name);
 
     for_cell(cell, super->get_methods)
     { GetMethod m = cell->value;
@@ -1812,12 +1821,7 @@ Chain
 getSendMethodsClass(Class class)
 { realiseClass(class);
 
-  if ( notNil(class->resolve_method_message) )
-    forwardReceiverCode(class->resolve_method_message,
-			class,
-			NAME_send,
-			class->name, 
-			DEFAULT, 0);
+  bindMethod(class, NAME_send, DEFAULT);
 
   answer(class->send_methods);
 }
@@ -1827,12 +1831,7 @@ static Chain
 getGetMethodsClass(Class class)
 { realiseClass(class);
 
-  if ( notNil(class->resolve_method_message) )
-    forwardReceiverCode(class->resolve_method_message,
-			class,
-			NAME_get,
-			class->name, 
-			DEFAULT, 0);
+  bindMethod(class, NAME_get, DEFAULT);
 
   answer(class->get_methods);
 }
@@ -1911,7 +1910,8 @@ makeClassClass(Class class)
   localClass(class, NAME_lookupMethod, NAME_cache, "[get_method]*", NAME_none,
 	     "Type conversion");
 
-  localClass(class, NAME_resolveMethodMessage, NAME_cache, "[code]*",NAME_both,
+  localClass(class, NAME_resolveMethodMessage, NAME_cache,
+	     "[code|c_pointer]*",NAME_both,
 	     "Hook for lazy attachment of methods");
 
   localClass(class, NAME_sendTable, NAME_cache, "hash_table", NAME_get,

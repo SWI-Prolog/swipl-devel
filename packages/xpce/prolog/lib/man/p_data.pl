@@ -558,9 +558,9 @@ man_name(Class, Name:string) :<-
 	new(Name, string('C\t%s', Class?name)).
 	
 
-has_source(_Class) :->
+has_source(Class) :->
 	"Test if object may have associated sources"::
-	true.
+	\+ get(Class, creator, built_in).
 
 
 source(Class, Loc) :<-
@@ -673,9 +673,9 @@ man_header(Var, Header:string) :<-
 	new(Header, string('V\t%s %s%s: %s',
 			   ClassName, Arrow, Name, TypeName)).
 
-has_source(_Var) :->
+has_source(Var) :->
 	"Test if object may have associated sources"::
-	true.
+	send(Var?context, has_source).
 
 source(Var, Src) :<-
 	"Find source (same as related class"::
@@ -712,10 +712,10 @@ man_card_class(_M, Class:class) :<-
 	get(@pce, convert, man_method_card, class, Class).
 
 
-has_source(_M) :->
+has_source(M) :->
 	"Test if object may have associated sources"::
-	true.
-
+	get(M, slot, source, Loc), Loc \== @nil,
+	get(Loc, line_no, LineNo), LineNo \== @nil.
 
 source(M, Loc) :<-
 	"Find source definition"::

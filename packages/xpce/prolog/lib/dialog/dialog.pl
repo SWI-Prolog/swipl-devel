@@ -38,16 +38,17 @@ standard XPCE library directory.
 	   , pce_image_directory/1
 	   , postscript/2
 	   , send_list/3
+	   , tmp_file/2
 	   ]).
 
 
-:- pce_autoload(drag_and_drop_gesture, library(pce_drag_and_drop)).
+:- pce_autoload(drag_and_drop_gesture, library(dragdrop)).
 :- pce_autoload(drag_and_drop_dict_item_gesture, library(dragdict)).
 :- pce_autoload(dia_attribute_editor, library('dialog/attribute')).
 :- pce_autoload(finder, library(find_file)).
 :- pce_global(@finder, new(finder)).
 
-dia_version('0.6').
+dia_version('0.7').
 
 :- initialization pce_help_file(dialog, pce_help('dialog.hlp')).
 :- initialization pce_image_directory(library('dialog/bitmaps')).
@@ -74,7 +75,7 @@ make_dia_proto_recogniser(R) :-
 	new(CanResize, @event?receiver?can_resize == @on),
 
 	new(R, handler_group(
-		new(RG, resize_gesture(@default, c)),
+		new(RG, resize_gesture(left)),
 		new(_DG, drag_and_drop_gesture(left, '', @off)),
 		new(_,  click_gesture(left, '', single,
 				      message(DI, help_ui))),
@@ -128,24 +129,34 @@ reference_x(DI, X:'0..100') :->
 	"X-coordinate of <->reference"::
 	get(DI?area, width, W),
 	RX is (W*X)//100,
-	send(DI?reference, x, RX),
-	send(DI, reference, DI?reference). % update indicator
+	(   get(DI, reference, Ref)
+	->  send(Ref, x, RX),
+	    send(DI, send_class, reference, Ref) % avoid addressing attribute
+	;   send(DI, reference, point(RX, 0))
+	).
 reference_x(DI, X:'0..100') :<-
 	"X-coordinate of <->reference"::
-	get(DI?reference, x, RX),
-	get(DI?area, width, W),
-	X is (100*RX) // W.
+	(   get(DI?reference, x, RX)
+	->  get(DI?area, width, W),
+	    X is (100*RX) // W
+	;   X = 0
+	).
 reference_y(DI, Y:'0..100') :->
 	"Y-coordinate of <->reference"::
 	get(DI?area, height, H),
 	RY is (H*Y)//100,
-	send(DI?reference, y, RY),
-	send(DI, reference, DI?reference).
+	(   get(DI, reference, Ref)
+	->  send(Ref, y, RY),
+	    send(DI, send_class, reference, Ref) % avoid addressing attribute
+	;   send(DI, reference, point(0, RY))
+	).
 reference_y(DI, Y:'0..100') :<-
 	"Y-coordinate of <->reference"::
-	get(DI?reference, y, RY),
-	get(DI?area, height, H),
-	Y is (100*RY) // H.
+	(   get(DI?reference, y, RY)
+	->  get(DI?area, height, H),
+	    Y is (100*RY) // H
+	;   Y = 0
+	).
 
 
 fixed_reference(DI, Val:bool) :->
@@ -169,26 +180,28 @@ fixed_reference(DI, Val:bool) :<-
 geometry(DI, X:[int], Y:[int], W:[int], H:[int]) :->
 	"Handle ref-indicator"::
 	send(DI, send_super, geometry, X, Y, W, H),
-	(   get(DI, ref_indicator, Ind), Ind \== @nil
-	->  update_indicator_position(DI, Ind)
-	;   true
-	).
+	update_indicator_position(DI).
+
 
 update_indicator_position(DI, Ind) :-
+	get(DI, displayed, @on),
 	get(DI, reference, point(RX, RY)), !,
 	send(Ind, displayed, @on),
 	send(Ind, center, point(DI?x + RX, DI?y + RY)).
 update_indicator_position(_DI, Ind) :-
 	send(Ind, displayed, @off).
 
+update_indicator_position(DI) :-
+	get(DI, ref_indicator, Ind),
+	(   Ind \== @nil
+	->  update_indicator_position(DI, Ind)
+	;   true
+	).
 
 displayed(DI, Val:bool) :->
 	"Handle ref-indicator"::
 	send(DI, send_super, displayed, Val),
-	(   get(DI, ref_indicator, Ind), Ind \== @nil
-	->  send(Ind, displayed, Val)
-	;   true
-	).
+	update_indicator_position(DI).
 
 	
 device(DI, Dev:device*) :->
@@ -197,7 +210,8 @@ device(DI, Dev:device*) :->
 	(   get(DI, ref_indicator, Ind), Ind \== @nil
 	->  (	Dev == @nil
 	    ->	send(Ind, device, @nil)
-	    ;	send(Ind, device, Dev?overlay)
+	    ;	send(Ind, device, Dev?overlay),
+		update_indicator_position(DI)
 	    )
 	;   true
 	).
@@ -206,11 +220,7 @@ device(DI, Dev:device*) :->
 reference(DI, Ref:[point]) :->
 	"Handle ref-indicator"::
 	send(DI, send_super, reference, Ref),
-	(   get(DI, ref_indicator, Ind), Ind \== @nil
-	->  update_indicator_position(DI, Ind)
-	;   true
-	).
-
+	update_indicator_position(DI).
 
 
 ref_indicator(DI, Ind:graphical*) :->
@@ -222,9 +232,8 @@ ref_indicator(DI, Ind:graphical*) :->
 	),
 	send(DI, slot, ref_indicator, Ind),
 	(   Ind \== @nil
-	->  update_indicator_position(DI, Ind),
-	    send(Ind, device, DI?device?overlay),
-	    send(Ind, displayed, DI?displayed)
+	->  send(Ind, device, DI?device?overlay),
+	    update_indicator_position(DI, Ind)
 	;   true
 	).
 		 
@@ -373,7 +382,7 @@ initialise(D, Label:[name], Size:[size]) :->
 
 :- pce_begin_class(dia_target_dialog, dia_dialog, "Target dialog").
 
-resource(size,	size, 'size(400,200)').
+resource(size,	size, size(400, 200)).
 
 initialise(D, Label:[name], Size:[size]) :->
 	default(Size, resource(D, size), Sz),
@@ -623,7 +632,8 @@ fit_size(D) :->
 		 *******************************/
 
 pretty_print(Term, String) :-
-	get(string('/tmp/xpce-pp-%d', @pce?pid), value, TmpNam),
+	tmp_file(xpcepp, TmpNam),
+%	get(string('/tmp/xpce-pp-%d', @pce?pid), value, TmpNam),
 	telling(Old), tell(TmpNam),
 	pretty_print(Term),
 	told, tell(Old),
@@ -875,11 +885,10 @@ fill_top_dialog(D) :-
 
 fill_menu_dialog(D) :-
 	send(D, name, mode_dialog),
-	new(Dc, window_decorator(D)),
-	send(Dc, label, mode),
 	get(D, frame, Frame),
-	send(D, append, new(M, menu(mode, choice,
-				    message(Frame, mode, @arg1)))),
+	send(D, append, label(title, 'Mode', bold)),
+	send(D, append,
+	     new(M, menu(mode, marked, message(Frame, mode, @arg1)))),
 	send(M, append, create),
 	send(M, append, layout),
 	send(M, append, action),
@@ -914,7 +923,7 @@ mode(DE, Mode:{create,layout,action,run}) :->
 :- pce_global(@dia_target, new(@receiver?frame?target)).
 
 mode_button(layout, layout,      message(@dia_target, fix_layout)).
-mode_button(layout, undo_layout, message(@dia_target, restore_dialog_layout)).
+mode_button(layout, undo,	 message(@dia_target, restore_dialog_layout)).
 mode_button(layout, fit,         message(@dia_target, fit_size)).
 mode_button(action, behaviour_model,
 			         message(@dia_target, open_behaviour_model)).

@@ -195,8 +195,8 @@ __pce_export void pceRegisterCallbacks __P((pce_callback_functions *funcs));
 		*         INITIALISATION	*
 		********************************/
 
-__pce_export int pceInitialise __P((int handles, int argc, char **argv));
-__pce_export int pceReInitialise __P((int argc, char **argv));
+__pce_export int pceInitialise __P((int handles, char *home,
+				    int argc, char **argv));
 
 
 		/********************************

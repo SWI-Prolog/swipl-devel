@@ -28,7 +28,7 @@ status		busyCursorDisplay(DisplayObj d, CursorObj c, Bool block_events);
 status		inspectDisplay(DisplayObj d, Graphical gr, EventObj ev);
 status		makeClassDisplay(Class class);
 
-/* win/displaymanager.c */
+/* win/displaymgr.c */
 status		appendDisplayManager(DisplayManager dm, DisplayObj d);
 DisplayObj	getMemberDisplayManager(DisplayManager dm, Name address);
 DisplayObj	CurrentDisplay(Any obj);

@@ -22,9 +22,9 @@
 :- pce_begin_class(man_class_hierarchy, man_frame,
 		   "Display hiearchy of classes").
 
-resource(leaf_font,		font,	'@helvetica_roman_12',
+resource(leaf_font,		font,	normal,
 	 "Font for built-in classes without sub-classes").
-resource(non_leaf_font,		font,	'@helvetica_bold_12',
+resource(non_leaf_font,		font,	bold,
 	 "Font for built-in classes with sub-classes").
 resource(user_defined_leaf_font, font, '@times_roman_12',
 	 "Font for user defined classes with sub-classes").
@@ -59,6 +59,23 @@ unlink(CH) :->
 		     if(@arg1?created_messages \== @nil,
 			message(@arg1?created_messages, delete_all, CM))),
 	send(CH, send_super, unlink).
+
+
+font(Tool, Class:class, Font:font) :<-
+	"Get font for class"::
+	get(Class, creator, Creator),
+	(   Creator == built_in
+	->  (   get(Class?sub_classes, size, Size),
+	        Size > 0
+	    ->  get(Tool, resource_value, non_leaf_font, Font)
+	    ;   get(Tool, resource_value, leaf_font, Font)
+	    )
+	;   (   get(Class?sub_classes, size, Size),
+	        Size > 0
+	    ->  get(Tool, resource_value, user_defined_non_leaf_font, Font)
+	    ;   get(Tool, resource_value, user_defined_leaf_font, Font)
+	    )
+	).
 
 
 for_subclass(Class, Msg) :-
@@ -253,19 +270,7 @@ add_subnode(Node, Class) :-
 
 
 create_node(Tool, Class, Node) :-
-	get(Class, creator, Creator),
-	(   Creator == built_in
-	->  (   get(Class?sub_classes, size, Size),
-	        Size > 0
-	    ->  get(Tool, resource_value, non_leaf_font, Font)
-	    ;   get(Tool, resource_value, leaf_font, Font)
-	    )
-	;   (   get(Class?sub_classes, size, Size),
-	        Size > 0
-	    ->  get(Tool, resource_value, user_defined_non_leaf_font, Font)
-	    ;   get(Tool, resource_value, user_defined_leaf_font, Font)
-	    )
-	),
+	get(Tool, font, Class, Font),
 	new(Node, node(text(Class?name, left, Font))),
 	send(Node, attribute, attribute(context, Class)).
 
@@ -306,7 +311,8 @@ created_class(CH, Class) :->
 	"Handle a new class"::
 	(   get(Class, super_class, Super),
 	    get(CH, node, Super, Node)
-	->  send(Node, font, font(helvetica, bold, 12)),
+	->  get(CH, font, Super, Font),
+	    send(Node, font, Font),
 	    (   send(Node?sons, empty)
 	    ->  true
 	    ;   add_subnode(Node, Class)		  % TBD: alphabetical

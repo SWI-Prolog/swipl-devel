@@ -44,7 +44,7 @@ RedrawAreaButton(Button b, Area a)
   { int up = (b->status == NAME_inactive || b->status == NAME_active);
     Colour oldc = NIL;
    
-    if ( b->look == NAME_motif )
+    if ( b->look == NAME_motif || b->look == NAME_win )
     { int bx = x, by = y, bw = w, bh = h;
       PceWindow sw;
       int kbf;				/* Button has keyboard focus */
@@ -58,19 +58,31 @@ RedrawAreaButton(Button b, Area a)
       } else
 	kbf = obhf = focus = FALSE;	/* should not happen */
 
-      if ( (defb && !obhf) || (focus && kbf) )
-      { static Elevation e = NULL;
-
-	if ( !e )
-	  e = newObject(ClassElevation, ONE, 0);
-
-	bx -= 4; by -= 4; bw += 8; bh += 8;
-	r_3d_box(bx, by, bw, bh, valInt(b->radius), e, FALSE);
-      }
-      if ( kbf && focus )
-      { bx -= 2; by -= 2; bw += 4; bh += 4;
-	r_thickness(2);
-	r_box(bx, by, bw, bh, valInt(b->radius), NIL);
+      if ( b->look == NAME_motif )
+      { if ( (defb && !obhf) || (focus && kbf) )
+	{ static Elevation e = NULL;
+  
+	  if ( !e )
+	    e = newObject(ClassElevation, ONE, 0);
+  
+	  bx -= 4; by -= 4; bw += 8; bh += 8;
+	  r_3d_box(bx, by, bw, bh, valInt(b->radius), e, FALSE);
+	}
+	if ( kbf && focus )
+	{ int pen = valInt(b->pen);
+  
+	  bx -= pen; by -= pen; bw += 2*pen; bh += 2*pen;
+	  r_thickness(pen);
+	  r_box(bx, by, bw, bh, valInt(b->radius), NIL);
+	}
+      } else
+      { if ( defb )
+	{ int pen = valInt(b->pen);
+  
+	  bx -= pen; by -= pen; bw += 2*pen; bh += 2*pen;
+	  r_thickness(pen);
+	  r_box(bx, by, bw, bh, valInt(b->radius), NIL);
+	}
       }
     }
 
@@ -84,15 +96,19 @@ RedrawAreaButton(Button b, Area a)
 	rm = bw+8;
 	r_3d_box(x+w-bw-8, y+(h-bh)/2, bw, bh, 0, z, TRUE);
       } else
-      { int th = 8;
-	int tw = 9;
+      { int th = (b->look == NAME_win ? 5 : 8);
+	int tw = (b->look == NAME_win ? 7 : 9);
 	int tx, ty;
 
 	rm = tw+8;
 	tx = x+w-rm;
 	ty = y + (h-th)/2;
 
-	r_3d_triangle(tx+tw/2, ty+th, tx, ty, tx+tw, ty, z, up, 0x3);
+	if ( b->look == NAME_win )
+	{ r_fillpattern(BLACK_COLOUR);
+	  r_fill_triangle(tx+tw/2, ty+th, tx, ty, tx+tw, ty);
+	} else
+	  r_3d_triangle(tx+tw/2, ty+th, tx, ty, tx+tw, ty, z, up, 0x3);
       }
     }
 
@@ -239,7 +255,7 @@ makeButtonGesture()
 
 static status
 WantsKeyboardFocusButton(Button b)
-{ if ( b->active == ON && b->look == NAME_motif )
+{ if ( b->active == ON && (b->look == NAME_motif || b->look == NAME_win) )
     succeed;
 
   fail;
@@ -454,8 +470,6 @@ makeClassButton(Class class)
 	    getReferenceButton);
 
 
-  attach_resource(class, "label_font", "font", "@helvetica_bold_14",
-		  "Default font for label text");
   attach_resource(class, "size", "size", "size(80,20)",
 		  "Mimimum size in pixels");
   attach_resource(class, "pen", "int", "2",

@@ -14,6 +14,8 @@ static PceWindow current_window; /* hack to avoid Windows timing problem */
 static WinAPI window_wnd_proc(HWND win, UINT msg, UINT wP, LONG lP);
 
 static int clearing_update;		/* from ws_redraw_window() */
+static int invert_window = FALSE;	/* invert the window */
+static int drawnest;			/* Draw nesting */
 
 static char *
 WinWindowClass()
@@ -33,7 +35,7 @@ WinWindowClass()
     wndClass.hInstance		= PceHInstance;
     wndClass.hIcon		= NULL; /*LoadIcon(NULL, IDI_APPLICATION); */
     wndClass.hCursor		= NULL;
-    wndClass.hbrBackground	= CreateSolidBrush(COLOR_WINDOW + 1);
+    wndClass.hbrBackground	= (HBRUSH)(COLOR_WINDOW+1);
     wndClass.lpszMenuName	= NULL;
     wndClass.lpszClassName	= strName(winclassname);
 
@@ -42,6 +44,19 @@ WinWindowClass()
 
   return strName(winclassname);
 }
+
+
+static FrameObj
+getExistingFrameWindow(PceWindow sw)
+{ PceWindow root = (PceWindow) getRootGraphical((Graphical) sw);
+  
+  if ( instanceOfObject(root, ClassWindow) &&
+       instanceOfObject(root->frame, ClassFrame) )
+    answer(root->frame);
+
+  fail;
+}
+
 
 
 static WinAPI
@@ -119,7 +134,7 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 					      getDisplayWindow(sw));
 
       rgb = GetNearestColor(hdc, rgb);
-      hbrush = CreateSolidBrush(rgb);
+      hbrush = ZCreateSolidBrush(rgb);
       GetClipBox(hdc, &rect);
       FillRect(hdc, &rect, hbrush);
       ZDeleteObject(hbrush);
@@ -134,25 +149,39 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
     }
 
     case WM_PAINT:
-    { struct iarea a;
+    if ( invert_window )		/* see ws_flash_window() */
+    { HWND hwnd = getHwndWindow(sw);
+      PAINTSTRUCT ps;
+      HDC hdc = BeginPaint(hwnd, &ps);
 
-      DEBUG(NAME_redraw, Cprintf("%s (%ld) received WM_PAINT\n",
-				 pp(sw), (long)hwnd));
+      InvertRect(hdc, &ps.rcPaint);
+
+      EndPaint(hwnd, &ps);
+    } else
+    { struct iarea a;
+      
+      DEBUG(NAME_redraw,
+	    Cprintf("%s (%ld) received WM_PAINT (%s clear)\n",
+		    pp(sw), (long)hwnd, clearing_update ? "" : "no"));
 
       if ( sw->displayed == OFF )
 	send(sw, NAME_displayed, ON, 0);
 
       if ( d_mswindow(sw, &a, clearing_update) )
 	RedrawAreaWindow(sw, &a, clearing_update);
+      else
+      { DEBUG(NAME_redraw, Cprintf("d_mswindow() failed: empty area\n"));
+      }
       d_done();
-
-      return 0;
     }
+    return 0;
 
     case WM_DESTROY:
-    { HWND hwnd;
+    { HWND hwnd = getHwndWindow(sw);
 
-      if ( (hwnd = getHwndWindow(sw)) )
+      DEBUG(NAME_window, Cprintf("WM_DESTROY on %s, hwnd 0x%x\n",
+				 pp(sw), hwnd)); 
+      if ( hwnd )
       { PceWhDeleteWindow(hwnd);
 	setHwndWindow(sw, 0);
 	assign(sw, displayed, OFF);
@@ -165,7 +194,7 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
     { WsWindow w;
       WsFrame wfr;
 
-      if ( (fr = getFrameWindow(sw)) &&
+      if ( (fr = getExistingFrameWindow(sw)) &&
 	   (wfr = fr->ws_ref) &&
 	   wfr->hbusy_cursor )
       { ZSetCursor(wfr->hbusy_cursor);
@@ -180,7 +209,7 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
     }
   }
 
-  if ( (fr = getFrameWindow(sw)) &&
+  if ( (fr = getExistingFrameWindow(sw)) &&
        (wfr = fr->ws_ref) &&
        wfr->hbusy_cursor )
   { ZSetCursor(wfr->hbusy_cursor);
@@ -239,6 +268,9 @@ ws_uncreate_window(PceWindow sw)
     setHwndWindow(sw, 0);
     PceWhDeleteWindow(hwnd);
     DestroyWindow(hwnd);
+    DEBUG(NAME_window,
+	  Cprintf("ws_uncreate_window(%s) (=0x%04x) completed\n",
+		  pp(sw), hwnd));
   }
 }
 
@@ -356,6 +388,22 @@ ws_redraw_window(PceWindow sw, IArea a, int clear)
     clearing_update = clear;
     UpdateWindow(hwnd);			/* will start WM_PAINT */
     clearing_update = FALSE;		/* ok for normal WM_PAINT call */
+  }
+}
+
+
+void
+ws_flash_window(PceWindow sw, int msecs)
+{ HWND hwnd = getHwndWindow(sw);
+
+  if ( hwnd && sw->displayed == ON )
+  { invert_window = TRUE;
+    InvalidateRect(hwnd, NULL, FALSE);
+    UpdateWindow(hwnd);
+    msleep(msecs);
+    InvalidateRect(hwnd, NULL, FALSE);
+    UpdateWindow(hwnd);
+    invert_window = FALSE;
   }
 }
 

@@ -124,6 +124,9 @@ SockError()
   wsock_err *e = wsock_err_list;
   char buf[50];
 
+  if ( !err )
+    return (Name) NIL;
+
   for( ; e->description; e++ )
   { if ( e->id == err )
       return CtoName(e->description);

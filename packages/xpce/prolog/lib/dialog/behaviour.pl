@@ -1808,7 +1808,7 @@ fill_editor_dialog(D) :-
 	get(D, frame, Frame),
 	send(D, append, new(MB, menu_bar)),
 	send(MB, alignment, right),
-	send(D, append, new(A, menu(animate, choice)), right),
+	send(D, append, new(A, menu(animate, marked)), right),
 	send(A, append, @off),
 	send(A, append, @on),
 	send(A, append, step),

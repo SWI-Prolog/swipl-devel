@@ -107,19 +107,32 @@ pce_ifhostproperty(prolog(swi),
 :- pce_global(@emacs,
 	      new(emacs_buffer_menu(@emacs_buffers))).
 :- pce_global(@emacs_comment_column, new(number(40))).
-:- pce_global(@emacs_mode_list,			  % regex --> mode
-	      new(sheet(attribute(regex('.*\.pl~?$'),   	prolog),
-			attribute(regex('\.\(pl\|xpce\|pceemacs\)rc~?'),
-				  prolog),
-			attribute(regex('.*\.\(tex\|sty\)~?$'), latex),
-			attribute(regex('.*\.doc~?$'),	 	latex),
-			attribute(regex('.*\.ann~?$'),	 	annotate),
-			attribute(regex('.*\.[ch]~?$'), 	c),
-			attribute(regex('.*\.C$'),		'c++'),
-			attribute(regex('.*\.cc$'),		'c++'),
-			attribute(regex('.*\.cpp$'),		'c++'),
-			attribute(regex('[Cc]ompose\|README'),	text)))).
 :- pce_global(@emacs_default_mode, new(var(value := script))).
+:- pce_global(@emacs_mode_list, make_emacs_mode_list).
+
+make_emacs_mode_list(Sheet) :-
+	new(Sheet, sheet),
+	(   send(class(file), has_feature, case_sensitive, @off)
+	->  FixMode = send(Re, ignore_case, @on)
+	;   FixMode = true
+	),
+	(   default_emacs_mode(Regex, Mode),
+	       send(Sheet, value, new(Re, regex(Regex)), Mode),
+	       FixMode,
+	    fail
+	;   true
+	).
+	
+default_emacs_mode('.*\.pl~?$',   		   	prolog).
+default_emacs_mode('\.\(pl\|xpce\|pceemacs\)rc~?', 	prolog).
+default_emacs_mode('.*\.\(tex\|sty\)~?$', 		latex).
+default_emacs_mode('.*\.doc~?$',	 		latex).
+default_emacs_mode('.*\.ann~?$',	 		annotate).
+default_emacs_mode('.*\.[ch]~?$', 			c).
+default_emacs_mode('.*\.C$',				'c++').
+default_emacs_mode('.*\.cc$',				'c++').
+default_emacs_mode('.*\.cpp$',				'c++').
+default_emacs_mode('[Cc]ompose\|README',		text).
 
 :- free(@loading_emacs).
 

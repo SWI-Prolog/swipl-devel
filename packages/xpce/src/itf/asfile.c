@@ -90,21 +90,14 @@ pceOpen(Any obj, int flags)
   }
 
   if ( flags & (PCE_WRONLY|PCE_RDWR) )
-  { if ( (flags & PCE_APPEND) )
-    { if ( !hasSendMethodObject(obj, NAME_append) )
-      { errno = EACCES;
-	return -1;
-      }
-    } else
-    { if ( !hasSendMethodObject(obj, NAME_insert) )
-      { errno = EACCES;
-	return -1;
-      }
+  { if ( !hasSendMethodObject(obj, NAME_writeAsFile) )
+    { errno = EACCES;
+      return -1;
     }
 
     if ( flags & PCE_TRUNC )
-    { if ( !hasSendMethodObject(obj, NAME_clear) ||
-	   !send(obj, NAME_clear, 0) )
+    { if ( !hasSendMethodObject(obj, NAME_truncateAsFile) ||
+	   !send(obj, NAME_truncateAsFile, 0) )
       { errno = EACCES;
 	return -1;
       }
@@ -150,6 +143,7 @@ pceWrite(int handle, const char *buf, int size)
   { string s;
     CharArray ca;
     status rval;
+    Int where = (h->flags & PCE_APPEND ? (Int) DEFAULT : toInt(h->point));
 
     s.s_text8  = (char *)buf;
     s.b16      = FALSE;
@@ -157,15 +151,10 @@ pceWrite(int handle, const char *buf, int size)
     s.encoding = ENC_ASCII;
 
     ca = StringToScratchCharArray(&s);
-
-    if ( h->flags & PCE_APPEND )
-      rval = send(h->object, NAME_append, ca, 0);
-    else
-    { if ( (rval = send(h->object, NAME_insert, toInt(h->point), ca, 0)) )
-	h->point += size;
-    }
-    
+    if ( (rval = send(h->object, NAME_writeAsFile, where, ca, 0)) )
+      h->point += size;
     doneScratchCharArray(ca);
+
     if ( rval )
       return size;
 
@@ -182,37 +171,32 @@ long
 pceSeek(int handle, long offset, int whence)
 { PceFileHandle h;
 
-  if ( handle >= 0 && handle < max_handles &&
-       (h = handles[handle]) &&
-       h->flags & (PCE_RDWR|PCE_RDONLY) )
-  { switch(whence)
+  if ( handle >= 0 && handle < max_handles && (h = handles[handle]) )
+  { Int size;
+
+    switch(whence)
     { case PCE_SEEK_SET:
 	h->point = offset;
-        return h->point;
+        break;
       case PCE_SEEK_CUR:
-	h->point += offset;
-        if ( h->point < 0 )
-	  h->point = 0;
-        return h->point;
+        h->point += offset;
+        break;
       case PCE_SEEK_END:
-      { Any size;
-
-	if ( hasGetMethodObject(h->object, NAME_size) &&
-	     (size = get(h->object, NAME_size, 0)) &&
-	     isInteger(size) )
+      { if ( hasGetMethodObject(h->object, NAME_sizeAsFile) &&
+	     (size = get(h->object, NAME_sizeAsFile, 0)) )
 	{ h->point = valInt(size) - offset;
-	  if ( h->point < 0 )
-	    h->point = 0;
-	  return h->point;
+	  break;
 	} else
 	{ errno = EPIPE;		/* better idea? */
 	  return -1;
 	}
       }
       default:
-	errno = EINVAL;
-        return -1;
+      { errno = EINVAL;
+	return -1;
+      }
     }
+    return h->point;
   } else
   { errno = EBADF;
     return -1;
@@ -231,9 +215,9 @@ pceRead(int handle, char *buf, int size)
     CharArray sub;
 
     argv[0] = toInt(h->point);
-    argv[1] = toInt(h->point + size);
+    argv[1] = toInt(size);
 
-    if ( (sub = getv(h->object, NAME_sub, 2, argv)) &&
+    if ( (sub = getv(h->object, NAME_readAsFile, 2, argv)) &&
 	 instanceOfObject(sub, ClassCharArray) )
     { int chread = sub->data.size;
 

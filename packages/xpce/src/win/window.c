@@ -1661,21 +1661,10 @@ flushWindow(PceWindow sw)
 
 static status
 flashWindow(PceWindow sw)
-{ if ( sw->displayed == ON )
-  { int w = valInt(sw->area->w);
-    int h = valInt(sw->area->h);
+{ Int msecs = getResourceValueObject(sw, NAME_visualBellDuration);
 
-    d_offset(0, 0);
-    d_window(sw, 0, 0, w, h, FALSE, FALSE);
-
-    r_complement(0, 0, w, h);
-    d_flush();
-    msleep(valInt(getResourceValueObject(sw, NAME_visualBellDuration)));
-    r_complement(0, 0, w, h);
-    d_flush();
-
-    d_done();
-  }
+  if ( msecs && sw->displayed == ON )
+    ws_flash_window(sw, valInt(msecs));
 
   succeed;
 }

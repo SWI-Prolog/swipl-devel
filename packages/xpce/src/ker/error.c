@@ -212,6 +212,10 @@ static struct error_def errors[] =
     "%N: Process exit status %d" },
   { NAME_brokenPipe,		ET_IGNORED,
     "%N: Broken pipe" },
+  { NAME_ptyError,		EF_REPORT,
+    "%N: Could not get pseudo terminal" },
+  { NAME_execError,		EF_REPORT,
+    "%N: Failed to execute" },
 
 					/* C-symbols */
   { NAME_notEnoughMemory,	ET_WARNING|EF_REPORT,
@@ -275,6 +279,8 @@ static struct error_def errors[] =
     "%N: 16-bit fonts are not (yet) supported" },
   { NAME_noFontsInFamily, ET_WARNING,
     "%N: No fonts in font-family %s" },
+  { NAME_badFontAlias, ET_WARNING,
+    "%O: Bad font alias %N --> %O" },
 
 					/* COLOURS */
   { NAME_replacedColour,	ET_WARNING,

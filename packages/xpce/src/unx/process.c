@@ -9,30 +9,66 @@
 
 #include <h/kernel.h>
 
-#ifdef HAVE_FORK
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Portability issues
+
+The initial version of this module  was   based  on Unix.  It depends on
+four notions in Unix: pipes, pseudo-terminals, the fork/exec combination
+to create a new process and  the   kill  mechanims  to communicate in an
+asynchronous manner between processes.
+
+This call subsumes from class stream,  that implements the communication
+to  the  exernal  process.   In  Unix,    pipes  are  sockets  and  this
+communication is thus uniform.  In Win32  it appears there are different
+types for these things that all require their own communicaton.
+
+Win32 doesn't know about psuedo  terminals.  Pipe()/Fork()/exec() may be
+simulated using CreatePipe() and CreateProcess().  The kill mechanism is
+reduced to the facility to terminate the inferior process.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifdef __unix__
+#define HAVE_FORK	1
+#define HAVE_PTYS	1
+#define HAVE_KILL	1
+#define HAVE_WAIT	1
+#define HAVE_TERMIOS_H	1
+#define HAVE_TERMIO_H	1
+#define HAVE_SYS_WAIT_H	1
+#define HAVE_SYS_IOCTL_H 1
+#endif
 
 #include <h/unix.h>
 #include <h/interface.h>
-#include <termios.h>
 #include <sys/types.h>
-#include <sys/wait.h>
-#include <signal.h>
-#include <sys/time.h>
 #include <sys/stat.h>
-#if !sun				/* leads to redefines */
+#include <signal.h>
+#include <fcntl.h>
+#ifdef HAVE_SYS_TIME_H
+#include <sys/time.h>
+#endif
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+
+#ifdef HAVE_TERMIOS_H
+#include <termios.h>
+#endif
+#ifdef HAVE_SYS_WAIT_H
+#include <sys/wait.h>
+#endif
+#if defined(HAVE_SYS_IOCTL_H) && !defined(sun) /* leads to redefines */
 #include <sys/ioctl.h>
 #endif
-#include <fcntl.h>
-#include <unistd.h>
 
 extern char **environ;
 
 					/* this fixes RS6000/AIX problems */
-#ifndef TCGETS
+#if !defined(TCGETS) && defined(HAVE_TERMIO_H)
 #include <termio.h>
 #endif
 
-#if HAVE_STROPTS_H && HAVE_GRANTPT
+#if HAVE_STROPTS_H && HAVE_GRANTPT	/* Solaris */
 #define USE_GRANTPT 1
 #include <stropts.h>
 #endif
@@ -88,6 +124,7 @@ static Name signames[] =
 };
 
 
+#if defined(SIGCHLD) && defined(HAVE_WAIT)
 
 static void
 child_changed(int sig)
@@ -119,6 +156,7 @@ child_changed(int sig)
 #endif
 }
 
+#endif /*defined(SIGCHLD) && defined(HAVE_WAIT)*/
 
 void
 killAllProcesses(void)
@@ -137,7 +175,10 @@ killAllProcesses(void)
 static void
 setupProcesses()
 { if ( !initialised )
-  { hostAction(HOST_SIGNAL, SIGCHLD, child_changed);
+  {
+#if defined(SIGCHLD) && defined(HAVE_WAIT)
+    hostAction(HOST_SIGNAL, SIGCHLD, child_changed);
+#endif
     at_pce_exit(killAllProcesses, ATEXIT_FIFO);
     initialised++;
   }
@@ -171,7 +212,7 @@ unlinkProcess(Process p)
 }
 
 
-static status
+status
 pidProcess(Process p, Int pid)
 { setupProcesses();
 
@@ -250,6 +291,8 @@ environmentProcess(Process p, Name name, CharArray value)
 }
 
 
+#ifdef HAVE_FORK			/* The Unix fork()/exec one */
+
 		 /*******************************
 		 *	       OPEN		*
 		 *******************************/
@@ -258,6 +301,10 @@ environmentProcess(Process p, Name name, CharArray value)
 Solaris stuff with many thanks to Andrew Chittenden, ADT
 (asc@concurrent.co.uk)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define CHILD_BASE		128
+#define CHILD_NOPTY		(CHILD_BASE+1)
+#define CHILD_NOEXEC		(CHILD_BASE+2)
 
 static status
 openProcess(Process p, CharArray cmd, int argc, CharArray *argv)
@@ -326,14 +373,14 @@ openProcess(Process p, CharArray cmd, int argc, CharArray *argv)
 #else
 	if ( (slave = getSlave(p, line)) < 0 )
 	{ Cprintf("[PCE: failed to open %s: %s]\n", line, strName(OsError()));
-	  exit(1);
+	  exit(CHILD_NOPTY);
 	}
 #endif
 
 	DEBUG(NAME_process, Cprintf("Slave %s at %d\n", line, slave));
 	if ( !copyTty(p, line, slave) )
 	{ Cprintf("[PCE: failed to reset %s: %s]\n", line, strName(OsError()));
-	  exit(1);
+	  exit(CHILD_NOPTY);
 	}
 	DEBUG(NAME_process, Cprintf("%s initialised\n", line));
 
@@ -354,8 +401,9 @@ openProcess(Process p, CharArray cmd, int argc, CharArray *argv)
 	argv[i+1] = NULL;
 
 	if ( execvp(strName(p->name), argv) )
-	{ errorPce(p, NAME_cannotStartProcess, OsError());
-	  exit(1);
+	{ Cprintf("[PCE: Failed to start %s: %s]\n",
+		  strName(p->name), strName(OsError()));
+	  exit(CHILD_NOEXEC);
 	}
       } else				/* parent process  */
       {
@@ -394,6 +442,8 @@ openProcess(Process p, CharArray cmd, int argc, CharArray *argv)
 	  if ( i != wrfd[0] && i != rdfd[1] )
 	    close(i);
 
+
+
 	dup2(wrfd[0], 0);
 	dup2(rdfd[1], 1);
 	dup2(rdfd[1], 2);
@@ -410,8 +460,9 @@ openProcess(Process p, CharArray cmd, int argc, CharArray *argv)
 	argv[i+1] = NULL;
 
 	if ( execvp(strName(p->name), argv) )
-	{ errorPce(p, NAME_cannotStartProcess, OsError());
-	  exit(1);
+	{ Cprintf("[PCE: Failed to start %s: %s]\n",
+		  strName(p->name), strName(OsError()));
+	  exit(CHILD_NOEXEC);
 	}
       } else
       { close(wrfd[0]);
@@ -429,13 +480,16 @@ openProcess(Process p, CharArray cmd, int argc, CharArray *argv)
   succeed;
 }
 
+#else /*HAVE_FORK*/
+#ifdef __WIN32__
+extern status openProcess(Process p, CharArray cmd, int argc, CharArray *argv);
+#endif
+#endif /*HAVE_FORK*/
+
 
 static status
 killProcess(Process p, Any sig)
 { int n;
-
-  if ( isNil(p->pid) )
-    return errorPce(p, NAME_notOpen);
 
   if ( isDefault(sig) )
     sig = NAME_term;
@@ -450,7 +504,17 @@ killProcess(Process p, Any sig)
       return errorPce(p, NAME_unknownSignal, sig);
   }
 
+  if ( isNil(p->pid) )
+  { if ( n != 1 && n != 9 && n != 15 )
+      errorPce(p, NAME_notOpen);
+    fail;
+  }
+
+#ifdef HAVE_KILL
   kill(valInt(p->pid), n);
+#else
+  Cprintf("kill(%d, %d) not yet implemented\n", valInt(p->pid), n);
+#endif
 
   succeed;
 }
@@ -488,16 +552,44 @@ static status
 exitedProcess(Process p, Int stat)
 { DEBUG(NAME_process, Cprintf("Process %s: exited with status %s\n",
 			      pp(p->name), pp(stat)));
-  assign(p, status, NAME_exited);
-  assign(p, code, stat);
-  addCodeReference(p);
-  deleteChain(ProcessChain, p);
-  assign(p, pid, NIL);
-  if ( notNil(p->terminate_message) )
-    forwardReceiverCodev(p->terminate_message, p, 1, (Any *)&stat);
-  delCodeReference(p);
-  if ( stat != ZERO )
-    errorPce(p, NAME_processExitStatus, stat);
+
+  if ( p->status != NAME_exited )
+  { addCodeReference(p);
+
+    assign(p, status, NAME_exited);
+    assign(p, code, stat);
+    deleteChain(ProcessChain, p);
+    assign(p, pid, NIL);
+
+#ifdef CHILD_NOPTY
+    if ( stat == toInt(CHILD_NOPTY) )
+    { errorPce(p, NAME_ptyError);
+      closeInputProcess(p);
+    } else
+#endif
+#ifdef CHILD_NOEXEC
+    if ( stat == toInt(CHILD_NOEXEC) )
+    { closeInputProcess(p);
+      errorPce(p, NAME_execError);
+    } else
+#endif
+    if ( stat != ZERO )
+      errorPce(p, NAME_processExitStatus, stat);
+
+    if ( notNil(p->terminate_message) )
+      forwardReceiverCodev(p->terminate_message, p, 1, (Any *)&stat);
+    delCodeReference(p);
+  }
+
+  succeed;
+}
+
+
+static status
+endOfFileProcess(Process p)
+{ DEBUG(NAME_stream, Cprintf("Process %s: end of input\n", pp(p)));
+
+  send(p, NAME_exited, ZERO, 0);
 
   succeed;
 }
@@ -579,6 +671,9 @@ makeClassProcess(Class class)
   sendMethod(class, NAME_exited, NAME_input, 1, "status=int",
 	     "Process has exited with status",
 	     exitedProcess);
+  sendMethod(class, NAME_endOfFile, NAME_input, 0,
+	     "Send when end-of-file is reached",
+	     endOfFileProcess);
   sendMethod(class, NAME_directory, NAME_environment, 1, "[directory]",
 	     "Start process in this directory",
 	     directoryProcess);
@@ -596,6 +691,8 @@ makeClassProcess(Class class)
   succeed;
 }
 
+
+#ifdef HAVE_PTYS
 #ifndef USE_GRANTPT
 		/********************************
 		*        PROCESS/TTY STUFF	*
@@ -744,11 +841,4 @@ copyTty(Process p, char *pty, int fd)
   succeed;
 }
 
-#else /*HAVE_FORK*/
-
-void
-killAllProcesses(void)
-{
-}
-
-#endif /*HAVE_FORK*/
+#endif HAVE_PTYS

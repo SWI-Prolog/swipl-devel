@@ -14,7 +14,7 @@ is to move next, etc.  The (annotated) sources of this example  may be
 found in the library file demo/chess.pl.  The chesstool may be started
 from the manual tools or from the Prolog top level by typing:
 
-	1 ?- [library('demo/chess')].
+	1 ?- [demo(chess)].
 	2 ?- chess.
 
 Which will (after some moves) produce the window shown in
@@ -523,12 +523,20 @@ notation expected by the chess-program and invokes `process ->format'.
 This call sends the  data to  the process and returns  without waiting
 for a response.  The chess program will echo the move if  it was legal
 and `Illegal Move' otherwise.
+
+As the process may have died or could not be started in the first place,
+pce_catch_error/2 is used  to  send  the   message.  If  the  error {\tt
+not_open} is raised by `process ->format', the call will fail silently.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 user_move(Board, Piece, FromLocation, ToLocation) :-
 	chess_move_name(Piece, FromLocation, ToLocation, Move),
 	get(Board, process, ChessProcess),
-	send(ChessProcess, format, '%s\n', Move).
+	(   pce_catch_error(not_open,
+			    send(ChessProcess, format, '%s\n', Move))
+	->  true
+	;   send(Board, report, error, 'No chess process')
+	).
 	     
 
 chess_move_name(Piece, F, T, Move) :-

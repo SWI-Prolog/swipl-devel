@@ -24,9 +24,14 @@
 		********************************/
 
 typedef struct _goal	       *Goal;
-typedef	long			PseudoFloat;
 typedef struct pceITFSymbol    *PceITFSymbol;
 typedef struct _string	       *String;
+
+#ifndef LONGLONG
+#define LONGLONG long
+#endif
+
+typedef	LONGLONG		PseudoFloat;
 
 		/********************************
 		*         KERNEL TYPES		*
