@@ -8,9 +8,6 @@
 */
 
 #include <windows.h>
-#ifndef PL_WIN
-#define PL_KERNEL 1
-#endif
 #include <stdio.h>
 #include "pl-itf.h"
 #include "pl-stream.h"
@@ -77,20 +74,28 @@ set_window_title()
   rlc_title(title, NULL, 0);
 }
 
-IOSTREAM *S__iob;
+
+PL_extension extensions[] =
+{
+/*{ "name",	arity,  function,	PL_FA_<flags> },*/
+
+  { "window_title", 2,  pl_window_title, 0 },
+  { NULL,	    0, 	NULL,		 0 }	/* terminating line */
+};
+
 
 int
 win32main(int argc, char **argv, char **env)
-{ S__iob = S__getiob();
+{ set_window_title();
   rlc_bind_terminal();
 
+  PL_register_extensions(extensions);
   if ( !PL_initialise(argc, argv, env) )
     PL_halt(1);
   
+  PL_install_readline();
   PL_async_hook(4000, rlc_check_intr);
   rlc_interrupt_hook(PL_interrupt);
-  set_window_title();
-  PL_register_foreign("window_title", 2, pl_window_title, 0);
   PL_halt(PL_toplevel() ? 0 : 1);
 
   return 0;

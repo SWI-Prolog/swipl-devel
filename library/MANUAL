@@ -239,7 +239,7 @@ version. Changes to the Prolog system include:
      `Answer' reuse
      The toplevel maintains a table of bindings returned by toplevel
      goals and allows for reuse of these bindings by prefixing the
-     variables with the $ sign. See section 2.5.
+     variables with the $ sign. See section ??.
 
      Better sourcecode administration
      Allows for proper updating of multifile predicates and finding the
@@ -401,6 +401,10 @@ features that may have impact on the system stability.
      C-applications. Two front ends are provided, one for
      window-based operation and one to run as a Win32 console
      application.
+
+     Creating stand-alone executables
+     Version 2.6.0 can create stand-alone executables by attaching the
+     saved-state to the emulator. See qsave_program/2.
 
 
 1.14  Acknowledgements
@@ -485,7 +489,7 @@ The full set of command line options is given below:
          Mbytes. See -L for more details.
      -c file ...
          Compile files into an `intermediate code file'. See
-         section 2.7.
+         section ??.
      -o output
          Used in combination with -c or -b to determine output
          file for compilation.
@@ -621,7 +625,7 @@ allows to correct queries and syntax errors. SWI-Prolog does not offer
 the Unix csh capabilities to include arguments. This is omitted as it is
 unclear how the first, second, etc. argument should be defined.
 
-The available history commands are shown in table 2.1. Figure 2.1 gives
+The available history commands are shown in table ??. Figure ?? gives
 some examples.
 
     !!.                Repeat last query
@@ -750,7 +754,7 @@ interactive toplevel goal trace/0 means \trace the next query". The
 tracer shows the port, displaying the port name, the current depth of
 the recursion and the goal. The goal is printed using the Prolog
 predicate print/1 (default), write/1 or display/1. An example using
-all five ports is shown in figure 2.3.
+all five ports is shown in figure ??.
 
      Yes
      2 ?- visible(+all), leash(-exit).
@@ -809,7 +813,7 @@ A    Alternatives           all
 
 C    Context                all
      Toggle `Show Context'. If on the context module of the goal is
-     displayed between square brackets (see section 4). Default is off.
+     displayed between square brackets (see section ??). Default is off.
 
 L    Listing                all
      List the current predicate with listing/1.
@@ -950,7 +954,7 @@ please(+Key, -Old, +New)
 
      autoload on/off (default:  on)
          If on autoloading of library functions is enabled. If off
-         autoloading is disabled. See section 2.10.
+         autoloading is disabled. See section ??.
 
      verbose_autoload on/off (default:  off)
          If on the normal consult message will be printed if a library
@@ -1130,7 +1134,7 @@ save_program(+NewProgram, +ListOfOptions)
      default command line options that will be saved into the new
      program. If a default is not specified the default compiled into the
      currently running Prolog executable is used. The available keys
-     are given in table 2.2
+     are given in table ??
 
   Key          Option       Type     Description
   local          -L       K-bytes    Size (Limit) of local stack
@@ -1151,7 +1155,7 @@ save_program(+NewProgram, +ListOfOptions)
      not possible try to find the smallest possible stack sizes to compile
      the program. On machines with dynamic stack allocation the
      stacks are not written to file and so their size does not matter.
-     Figure 2.4 shows a possible session. Note the use of `initialise',
+     Figure ?? shows a possible session. Note the use of `initialise',
      which is supposed to be a predicate of the application doing time
      consuming initialisation.
 
@@ -1237,7 +1241,7 @@ option autoload can be used to enable/disable the entire auto load
 system.
 
 Autoloading only handles (library) source files that use the module
-mechanism described in chapter 4. The files are loaded with
+mechanism described in chapter ??. The files are loaded with
 use_module/2 and only the trapped undefined predicate will be
 imported to the module where the undefined predicate was called. Each
 library directory must hold a file INDEX.pl that contains an index to all
@@ -1422,7 +1426,7 @@ column gives the option name to modify the size of the area. This
 option character should be followed immediately by a number and
 expresses the number of kilo bytes to use for the area. There are no
 other limits than the available memory of the machine to the sizes of the
-areas. The areas are described in table 2.3.
+areas. The areas are described in table ??.
 
 The heap is a memory area to store atoms, clauses, records, flags, etc.
 This area is dynamically enlarged at runtime on all versions of
@@ -1751,7 +1755,7 @@ As of version 2.0.0, SWI-Prolog supports compilation of individual or
 multiple Prolog sourcefiles into `Quick Load Files'. A `Quick Load Files'
 (.qlf file) stores the contents of the file in a precompiled format very
 similar to compiled files created using the -b and -c flags (see
-section 2.7).
+section ??).
 
 These files load considerably faster than sourcefiles and are normally
 more compact. They are machine independent and may thus be loaded
@@ -1761,7 +1765,7 @@ generally make old compiled files unusable.
 
 Quick Load Files are created using qcompile/1. They may be loaded
 explicitely using qload/1 or implicitely using consult/1 or one of the
-other file-loading predicates described in section 3.2. If consult is given
+other file-loading predicates described in section ??. If consult is given
 the explicit .pl file, it will load the Prolog source. When given the .qlf
 file, it will call qload/1 to load the file. When no extension is specified,
 it will load the .qlf file when present and the .pl file otherwise.
@@ -1778,7 +1782,7 @@ qcompile(+File)
      Other directives will be stored in the .qlf file and executed in the
      same fashion as when loading the .pl file.
 
-     For term_expansion/2, the same rules as described in section 2.7
+     For term_expansion/2, the same rules as described in section ??
      apply.
 
      Source references (source_file/2) in the Quick Load File refer
@@ -2625,7 +2629,7 @@ examples of source/destination specifications.
     ?- tell(pipe(lpr)).     % Start writing to the printer.
 
 Another example of using the pipe/1 construct is shown on in
-figure 3.1. Note that the pipe/1 construct is not part of Prolog's
+figure ??. Note that the pipe/1 construct is not part of Prolog's
 standard I/O reportoire.
 
      getwd(Wd) :-
@@ -2852,7 +2856,7 @@ put(+Stream, +Char)
 tab(+Amount)
      Writes Amount spaces on the current output stream. Amount
      should be an expression that evaluates to a positive integer (see
-     section 3.21).
+     section ??).
 
 
 tab(+Stream, +Amount)
@@ -3054,7 +3058,7 @@ read_history(+Show, +Help, +Special, +Prompt, -Term, -Bindings)
      capabilities. Special is a list of commands that are not saved in
      the history. Prompt is the first prompt given. Continuation
      prompts for more lines are determined by prompt/2. A %w in the
-     prompt is substituted by the event number. See section 2.4 for
+     prompt is substituted by the event number. See section ?? for
      available substitutions.
 
      SWI-Prolog calls history_read/6 as follows:
@@ -3324,7 +3328,7 @@ op(+Precedence, +Type, +Name)
      operator, in which case the precedence is the precedence of this
      operator. A term enclosed in brackets ((...) ) has precedence 0.
 
-     The predefined operators are shown in table 3.1. Note that all
+     The predefined operators are shown in table ??. Note that all
      operators can be redefined by the user.
 
     1200    xfx    --> , :-
@@ -3370,7 +3374,7 @@ optional.
 
 The general arithmetic predicates all handle expressions. An
 expression is either a simple number or a function. The arguments of a
-function are expressions. The functions are described in section 3.22.
+function are expressions. The functions are described in section ??.
 
 
 between(+Low, +High, ?Value)
@@ -3782,8 +3786,8 @@ length(?List, ?Int)
 
 merge(+List1, +List2, -List3)
      List1 and List2 are lists, sorted to the standard order of terms
-     (see section 3.5). List3 will be unified with an ordered list
-     holding both the elements of List1 and List2. Duplicates are not
+     (see section ??). List3 will be unified with an ordered list holding
+     both the elements of List1 and List2. Duplicates are not
      removed.
 
 
@@ -3831,7 +3835,7 @@ merge_set(+Set1, +Set2, -Set3)
 
 sort(+List, -Sorted)
      Succeeds if Sorted can be unified with a list holding the elements
-     of List, sorted to the standard order of terms (see section 3.5).
+     of List, sorted to the standard order of terms (see section ??).
      Duplicates are removed.
 
 
@@ -3992,7 +3996,7 @@ writef(+Format, +Arguments)
                 DECIMAL)
 
      Note that \l, \nnn and \\ are interpreted differently when
-     character-escapes are in effect. See section 2.12.1.1.
+     character-escapes are in effect. See section ??.
 
      Escape sequences to include arguments from Arguments. Each
      time a % escape sequence is found in Format the next argument
@@ -4557,7 +4561,7 @@ debugging
 
 spy(+Pred)
      Put a spy point on all predicates meeting the predicate
-     specification Pred. See section 3.3.
+     specification Pred. See section ??.
 
 
 nospy(+Pred)
@@ -4635,7 +4639,7 @@ style_check(+Spec)
 
 statistics(+Key, -Value)
      Unify system statistics determined by Key with Value. The
-     possible keys are given in the table 3.2.
+     possible keys are given in the table ??.
 
   cputime       (User) cpu time since Prolog was started in seconds
   inferences    Total number of passes via the call and redo ports since Prolog
@@ -4806,7 +4810,7 @@ Exchange' or DDE protocol. A Windows DDE conversation is a form of
 interprocess communication based on sending reserved window-events
 between the communicating processes.
 
-See also section 5.4 for loading Windows DLL's into SWI-Prolog.
+See also section ?? for loading Windows DLL's into SWI-Prolog.
 
 
 3.40.1  DDE client interface
@@ -5198,8 +5202,8 @@ communicate using the message passing predicates.
 Another typical way to use the module system is for defining classes
 within an object oriented paradigm. The class structure and the
 methods of a class can be defined in a module and the explicit
-module-boundary overruling describes in section 4.6.2 can by used by
-the message passing code to invoke the behaviour. An outline of this
+module-boundary overruling describes in section ?? can by used by the
+message passing code to invoke the behaviour. An outline of this
 mechanism is given below.
 
      %        Define class point
@@ -5237,7 +5241,7 @@ passing can easily be implemented:
               Class:Goal.
 
 The construct `Module:Goal' explicitely calls Goal in module Module.
-It is discussed in more detail in section 3.7.
+It is discussed in more detail in section ??.
 
 
 4.6  Meta-Predicates in Modules
@@ -5301,7 +5305,7 @@ overrule this schema and explicitely call a predicate in some module or
 assert explicitly in some module. The first is useful to invoke goals in
 some module from the user's toplevel or to implement a object-oriented
 system (see above). The latter is useful to create and modify dynamic
-modules (see section 4.7).
+modules (see section ??).
 
 For this purpose, the reserved term :/2 has been introduced. All
 built-in predicates that transform a term into a predicate reference will
@@ -5426,7 +5430,7 @@ Quintus approach only A needs to be treated special (i.e. declared with
 meta_predicate/1). A second problem arises if the body of a
 transparent predicate uses module sensitive predicates for which it
 wants to refer to its own module. Suppose we want to define findall/3
-using assert/1 and retract/1. The example in figure 4.1 gives the
+using assert/1 and retract/1. The example in figure ?? gives the
 solution.
 
      :- module(findall, [findall/3]).
@@ -5456,7 +5460,7 @@ solution.
                 Figure 4.1: findall using modules
 
 The Quintus meta_predicate/1 directive can in many cases be
-replaced by the transparent declaration. Figure 4.2 gives a definition of
+replaced by the transparent declaration. Figure ?? gives a definition of
 meta_predicate/1 as available from the `quintus' library package.
 
      :- op(1150, fx, (meta_predicate)).
@@ -5549,11 +5553,11 @@ methods are provided for this version.
      If this succeeds the system provides the open_shared_object/2
      and related predicates that allow for handling Unix shared object
      files based on the Unix library functions dlopen() and friends. See
-     section 5.4.
+     section ??.
 
      feature(dll, true)
      If this succeeds the system provides an interface for loading .DLL
-     files by means of open_dll/2 and friends. See section 5.4.
+     files by means of open_dll/2 and friends. See section ??.
 
 If either the feature open_shared_object or dll is true, the library
 library(shlib)  provides a common interface for loading foreign files
@@ -5583,7 +5587,7 @@ The interface defined in this section allows the user to load shared
 libraries (.so files on most Unix systems). This interface is portable to
 all machines providing the function dlopen() or an equivalent, normally
 from the library -ldl. These functions provide the basic interface layer.
-It is advised to use the predicates from section 5.4 in your application.
+It is advised to use the predicates from section ?? in your application.
 
 
 open_shared_object(+File, -Handle)
@@ -5661,7 +5665,7 @@ current_foreign_library(-Lib, -Predicates)
      the entry-point of the library was called.
 
 
-Figure 5.1 connects a Windows message-box using a foreign function.
+Figure ?? connects a Windows message-box using a foreign function.
 This example was tested using Windows NT and Microsoft Visual C++
 2.0.
 
@@ -5696,11 +5700,11 @@ SWI-Prolog with foreign extensions. .../pl refers to the SWI-Prolog
 home directory (see feature/2). <arch> refers to the architecture
 identifier that may be obtained using feature/2.
 
-  .../pl/runtime/<arch>/pl.o       Main object-file
-  .../pl/include/SWI-Prolog.h      Include file
-  .../pl/include/SWI-Stream.h      Stream I/O include file
-  .../pl/include/SWI-Exports       Export declarations (AIX only)
-  .../pl/include/stub.c            Extension stub
+  .../pl/runtime/<arch>/libpl.a       SWI-Library
+  .../pl/include/SWI-Prolog.h         Include file
+  .../pl/include/SWI-Stream.h         Stream I/O include file
+  .../pl/include/SWI-Exports          Export declarations (AIX only)
+  .../pl/include/stub.c               Extension stub
 
 The definition of the foreign predicates is the same as for dynamic
 linking. Unlike with dynamic linking however, there is no initialisation
@@ -5733,51 +5737,15 @@ chapter:
      { if ( !PL_initialise(argc, argv, env) )
          PL_halt(1);
 
+       PL_install_readline();                  /* delete if not required */
+
        PL_halt(PL_toplevel() ? 0 : 1);
      }
 
-Now, a new executable may be created using the make(1) Makefile
-fragment below. The correct versions for the variables may be obtained
-using the feature/2 predicate as shown below. The variable
-STATICLIBS refers to libc.a on systems for which save/1 and friends
-work, but only if the standard C-library is linked statically. If you do
-not intend to use save/1, all libraries can be linked dynamically.
-
-     ?- feature(c_cc,          CC).
-     ?- feature(c_ldflags,     LDFLAGS).
-     ?- feature(c_staticlibs, STATICLIBS).
-     ?- feature(c_libs,        LIBS).
-     ?- feature(arch,          ARCH).
-     ?- feature(home,          HOME).
-
-     CC=gcc
-     HOME=/usr/local/lib/pl-2.2.0
-     CFLAGS=-I$(HOME)/include
-     LDFLAGS=
-     STATICLIBS=
-     LIBS=-ldl -lreadline -ltermcap -lm
-     ARCH=i486-linux
-
-     PLOBJ=$(HOME)/$(ARCH)/pl.o
-     OBJ=lowercase.o stub.o
-
-     lwpl:    $(PLOBJ) $(OBJ)
-              $(CC) -o $@ $(LDFLAGS) $(PLOBJ) $(OBJ) $(STATICLIBS) $(LIBS)
-
-The resulting lwpl file will load the standard prolog bootstrap file.
-Normally, your extensions will partly be written in Prolog. In this case
-you may wish to create a new bootfile that includes the standard Prolog
-system and your extensions. Write a toplevel loadfile that loads your
-application and add the following to your Makefile:
-
-     PLFILES:         load.pl foo.pl bar.pl
-
-     lwpl.qlf:        lwpl $(PLFILES)
-                      ./lwpl -g mytoplevel \
-                              -b $(HOME)/boot/init.pl \
-                              -c load.pl
-
-See also section 2.7 for compiling Prolog sources using the -c option.
+Now, a new executable may be created by compilign this file and linking
+it to libpl.a from the runtime directory and the libraries required by
+both the extensions and the SWI-Prolog kernel. This may be done by
+hand, or using the plld utility described in section ??.
 
 
 5.4.2  Dynamic Linking based on load_foreign/[2,5]
@@ -5869,7 +5837,7 @@ Term references are obtained in any of the following ways.
 
      Created by PL_copy_term_ref(term_t t)
      Creates a new term-reference to the same term as the argument.
-     The term may be written to. See figure 5.3.
+     The term may be written to. See figure ??.
 
 Term-references can savely be copied to other C-variables of type
 term_t, but all copies will always refer to the same term.
@@ -5956,7 +5924,7 @@ control_t Passed as additional argument to non-deterministic foreign
      functions. See PL_retry*() and PL_foreign_context*().
 
 install_tType for the install() and uninstall()  functions of shared
-     or dynamic link libraries. See section 5.4.
+     or dynamic link libraries. See section ??.
 
 
 5.6  The Foreign Include File
@@ -6064,7 +6032,7 @@ Note: If a non-deterministic foreign function returns using PL_succeed
 or PL_fail, Prolog assumes the foreign function has cleaned its
 environment. No call with control argument PL_CUTTED will follow.
 
-The code of figure 5.2 shows a skeleton for a non-deterministic foreign
+The code of figure ?? shows a skeleton for a non-deterministic foreign
 predicate definition.
 
      typedef struct                    /* define a context structure */
@@ -6367,7 +6335,7 @@ int PL_get_nil(term_t +l)
 
 5.6.3.4  An example: defining display/1 in C
 
-Figure 5.3 shows a definition of display/1 to illustrate the described
+Figure ?? shows a definition of display/1 to illustrate the described
 functions.
 
      foreign_t
@@ -6752,7 +6720,7 @@ int PL_call(term_t, module_t)
     Call term just like the Prolog predicate once/1. Term is called in
     the specified module, or in the context module if module_t =
     NULL. Returns TRUE if the call succeeds, FALSE otherwise.
-    Figure 5.4 shows an example to obtain the number of defined
+    Figure ?? shows an example to obtain the number of defined
     atoms. All checks are omitted to improve readability.
 
 
@@ -6762,7 +6730,7 @@ The Prolog data created and term-references needed to setup the call
 and/or analyse the result can in most cases be discarded right after the
 call. PL_close_query() allows for destructing the data, while leaving the
 term-references. The calls below may be used to destroy
-term-references and data. See figure 5.4 for an example.
+term-references and data. See figure ?? for an example.
 
 
 fid_t  PL_open_foreign_frame()
@@ -6888,7 +6856,7 @@ int PL_warning(format, a1, ...)
 int PL_action(int, C_type)
     Perform some action on the Prolog system. int describes the
     action, C_type provides the argument if necessary. The actions
-    are listed in table 5.1.
+    are listed in table ??.
 
      PL_ACTION_TRACE              Start Prolog tracer
      PL_ACTION_DEBUG              Switch on Prolog debug mode
@@ -6915,7 +6883,7 @@ int PL_action(int, C_type)
 C_type  PL_query(int)
         Obtain status information on the Prolog system. The actual
         argument type depends on the information required. int describes
-        what information is wanted. The options are given in table 5.2.
+        what information is wanted. The options are given in table ??.
 
          PL_QUERY_ARGC                Return an integer holding the number of arguments
                                       given to Prolog from Unix.
@@ -7001,14 +6969,17 @@ int PL_reinit_unhook(PL_reinit_hook_t)
 As of version 2.1.0, SWI-Prolog may be embedded in a C-program. To
 reach at a compiled C-program with SWI-Prolog as an embedded
 application is very similar to creating a statically linked SWI-Prolog
-executable as described in section 5.4.1.
+executable as described in section ??.
 
-The file pl-stub.c defines SWI-Prologs default main program:
+The file .../pl/include/stub.c defines SWI-Prologs default main
+program:
 
      int
      main(int argc, char **argv, char **env)
      { if ( !PL_initialise(argc, argv, env) )
          PL_halt(1);
+
+       PL_install_readline();         /* delete if you don't want readline */
 
        PL_halt(PL_toplevel() ? 0 : 1);
      }
@@ -7031,6 +7002,12 @@ int PL_initialise(int argc, char **argv, char **environ)
     PL_halt(1), preventing it from returning at all.
 
 
+void PL_install_readline()
+     Installs the GNU-readline line-editor. Embedded applications that
+     donot use the Prolog toplevel should normally delete this line,
+     shrinking the Prolog kernel significantly.
+
+
 int PL_toplevel()
     Runs the goal of the -ttoplevel switch (default prolog/0) and
     returns 1 if successful, 0 otherwise.
@@ -7041,12 +7018,149 @@ void PL_halt(int status)
      argument.
 
 
-5.7  Example of Using the Foreign Interface
+5.7  Linking embedded applications using plld
+
+The utility program plld may be used to link a combination of C-files
+and Prolog files into a stand-alone executable. It is a simple
+Bourne-shell script that automates most of the steps outlined in the
+previous sections.
+
+In the normal usage, a copy is made of the default embedding template
+.../pl/include/stub.c. Additional foreign predicates are defined and
+added to the extension table PL_extensions. The main() routine is
+modified to suit your application. PL_initialise() must be passed the
+program-name (argv[0]). The other elements of the command-line may
+be modified. Next, plld is typically invoked as:
+
+     plld -o output stubfile.c [other-c-or-o-files] [plfiles]
+
+plld will first split the options into various groups for both the
+C-compiler and the Prolog compiler. Next, it will add various default
+options to the C-compiler and call it to create an executable holding the
+user's C-code and the Prolog kernel. Then, it will call the SWI-Prolog
+compiler to create a saved state from the provided Prolog files and
+finally, it will attach this saved state to the created emulator to create
+the requested executable.
+
+Below, it is described how the options are split and which additional
+options are passed.
+
+-o outfile
+     Reserved to specify the final output file.
+
+-llibrary
+     Specifies a library for the C-compiler. By default, -lpl and the
+     libraries needed by the Prolog kernel are given.
+
+-Llibrary-directory
+     Specifies a library directory for the C-compiler. By default the
+     directory containing -lpl for the current architecture is passed.
+
+-g or -Iinclude-directory
+     These options are passed to the C-compiler. By default, the
+     include directory containing <SWI-Prolog.h> is passed.
+
+*.o or *.c or *.C or *.cxx or *.cpp
+     Passed as input files to the C-compiler
+
+*.pl or *.qlf
+     Passed as input files to the Prolog compiler to create the
+     saved-state.
+
+*
+     I.e. all other options. These are passed as linker options to the
+     C-compiler.
+
+
+5.7.1  A simple example
+
+The following is a very simple example going through all the steps
+outlined above. It provides an arithmetic expression evaluator. We will
+call the application calc and define it in the files calc.c and calc.pl.
+The Prolog file is simple:
+
+     calc(Atom) :-
+              term_to_atom(Expr, Atom),
+              A is Expr,
+              write(A),
+              nl.
+
+The C-part of the application parses the command-line options,
+initialises the Prolog engine, locates the calc/1 predicate and calls it.
+The coder is in figure ??.
+
+     #include <stdio.h>
+     #include <SWI-Prolog.h>
+
+     PL_extension PL_extensions [] =
+     {
+     /*{ "name",      arity,  function,        PL_FA_<flags> },*/
+
+       { NULL,        0,       NULL,            0 }      /* terminating line */
+     };
+
+     #define MAXLINE 1024
+
+     int
+     main(int argc, char **argv, char **env)
+     { char expression[MAXLINE];
+       char *e = expression;
+       char *program = argv[0];
+       char *plav[2];
+       int n;
+
+       /* combine all the arguments in a single string */
+
+       for(n=1; n<argc; n++)
+       { if ( n != 1 )
+           *e++ = ' ';
+         strcpy(e, argv[n]);
+         e += strlen(e);
+       }
+
+       /* make the argument vector for Prolog */
+
+       plav[0] = program;
+       plav[1] = NULL;
+
+       /* initialise Prolog */
+
+       if ( !PL_initialise(1, plav, env) )
+         PL_halt(1);
+
+       /* Lookup calc/1 and make the arguments and call */
+
+       { predicate_t pred = PL_predicate("calc", 1, "user");
+         term_t h0 = PL_new_term_refs(1);
+         int rval;
+
+         PL_put_atom_chars(h0, expression);
+         rval = PL_call_predicate(NULL, FALSE, pred, h0);
+
+         PL_halt(rval ? 0 : 1);
+       }
+
+       return 0;
+     }
+
+            Figure 5.5: C-source for the calc application
+
+The application is now created using the following command-line:
+
+     % plld -o calc calc.c calc.pl
+
+The following indicates the usage of the application:
+
+     % calc pi/2
+     1.5708
+
+
+5.8  Example of Using the Foreign Interface
 
 Below is an example showing all stages of the declaration of a foreign
 predicate that transforms atoms possibly holding uppercase letters into
-an atom only holding lower case letters. Figure 5.5 shows the C-source
-file, figure 5.6 illustrates compiling and loading of foreign code.
+an atom only holding lower case letters. Figure ?? shows the C-source
+file, figure ?? illustrates compiling and loading of foreign code.
 
      /*  Include file depends on local installation */
      #include <SWI-Prolog.h>
@@ -7078,7 +7192,7 @@ file, figure 5.6 illustrates compiling and loading of foreign code.
      { PL_register_foreign("lowercase", 2, pl_lowercase, 0);
      }
 
-                  Figure 5.5: Lowercase source file
+                  Figure 5.6: Lowercase source file
 
      % gcc -I/usr/local/lib/pl-2.2.0/include -fpic -c lowercase.c
      % gcc -shared -o lowercase.so lowercase.o
@@ -7095,13 +7209,13 @@ file, figure 5.6 illustrates compiling and loading of foreign code.
 
      Yes
 
-    Figure 5.6: Compiling the C-source and loading the object file
+    Figure 5.7: Compiling the C-source and loading the object file
 
 
-5.8  Notes on Using Foreign Code
+5.9  Notes on Using Foreign Code
 
 
-5.8.1  Memory Allocation
+5.9.1  Memory Allocation
 
 SWI-Prolog's memory allocation is based on the malloc() library
 routines. Foreign applications can savely use malloc(), realloc() and
@@ -7109,7 +7223,7 @@ free(). Memory allocation using brk() or sbrk() is not allowed as these
 calls conflict with malloc().
 
 
-5.8.2  Debugging Foreign Code
+5.9.2  Debugging Foreign Code
 
 Statically linked foreign code or embedded systems can be debugged
 normally. Most modern environments provide debugging tools for
@@ -7131,7 +7245,7 @@ environment.
      ?- lowercase('HELLO', X).
 
 
-5.8.3  Name Conflicts in C modules
+5.9.3  Name Conflicts in C modules
 
 In the current version of the system all public C functions of
 SWI-Prolog are in the symbol table. This can lead to name clashes with
@@ -7149,7 +7263,7 @@ library loader will only look for symbols in the main executable for
 symbols that are not defined in the library itself.
 
 
-5.8.4  Compatibility of the Foreign Interface
+5.9.4  Compatibility of the Foreign Interface
 
 The term-reference mechanism was first used by Quintus Prolog version
 3. SICStus Prolog version 3 is strongly based on the Quintus interface.
@@ -7197,19 +7311,20 @@ qsave_program(+File, +ListOfOptions)
      Saves the current state of the program to the file `File'. The result
      is an executable shell-script, that will start the emulator.
      ListOfOptions is a list of Key = Value  pairs. The available keys
-     are described in table 6.1.
+     are described in table ??.
 
-  Key         Option          Type          Description
-  local          -L          K-bytes        Size (Limit) of local stack
-  global         -G          K-bytes        Size (Limit) of global stack
-  trail          -T          K-bytes        Size (Limit) of trail stack
-  argument       -A          K-bytes        Size (Limit) of argument stack
-  goal           -g           atom          Initialisation goal
-  toplevel       -t           atom          Prolog toplevel goal
-  init_file      -f           atom          Personal initialisation file
-  autoload                    bool          If true, run autoload/0 first
-  map                         atom          File containing info on dump
-  op                     save/standard      Save operator declarations?
+  Key           Option          Type         Description
+  local           -L          K-bytes        Size (Limit) of local stack
+  global          -G          K-bytes        Size (Limit) of global stack
+  trail           -T          K-bytes        Size (Limit) of trail stack
+  argument        -A          K-bytes        Size (Limit) of argument stack
+  goal            -g            atom         Initialisation goal
+  toplevel        -t            atom         Prolog toplevel goal
+  init_file       -f            atom         Personal initialisation file
+  autoload                      bool         If true, run autoload/0 first
+  map                           atom         File containing info on dump
+  op                       save/standard     Save operator declarations?
+  stand_alone                   bool         Include the emulator in the state
 
          Table 6.1: Key = Value pairs for qsave_program/2
 
@@ -7256,6 +7371,13 @@ qsave_program(+File, +ListOfOptions)
      the development emulator. The runtime emulator is similar, but
      lacks the tracer. The stand-alone program chpl may be used to
      change the default path to the emulator.
+
+     If the option stand_alone(on) is present, the emulator is
+     prepended for the state. If the emulator is started and no state is
+     specified using the -x flag, it will test whether a boot-file (state) is
+     attached to the emulator itself and load this state. Provided the
+     application has all libraries loaded, the resulting file may be
+     started anywhere.
 
 
 qsave_program(+File)
@@ -7315,7 +7437,7 @@ qsave_program/[1,2].
 
      If the program is an embedded Prolog application or uses the
      foreign language interface, care has to be taken to restore the
-     appropriate foreign context. See section 6.2 for details.
+     appropriate foreign context. See section ?? for details.
 
      If the program uses directives (:- goal. lines) that perform other
      actions then setting predicate attributes (dynamic, volatile, etc.)
@@ -7572,7 +7694,7 @@ prolog_frame_attribute(+Frame, +Key, -Value)
      Obtain information about the local stack frame Frame. Frame is a
      frame reference as obtained through prolog_current_frame/1,
      prolog_trace_interception/3 or this predicate. The key values
-     are described in table 7.1.
+     are described in table ??.
 
   Key               Value
   alternative       Value is unified with an integer reference to the local
@@ -7621,13 +7743,13 @@ prolog_trace_interception(+Port, +Frame, -Action)
      execution), retry (retry the current goal) or fail (force the
      current goal to fail). Leaving it a variable is identical to continue .
 
-     Together with the predicates described in section 3.36 and the
-     other predicates of this chapter this predicate enables the Prolog
-     user to define a complete new debugger in Prolog. Besides this it
-     enables the Prolog programmer monitor the execution of a
-     program. The example shown in figure 7.1 records all goals
-     trapped by the tracer in the database. To trace the execution of
-     `go' this way the following query should be given:
+     Together with the predicates described in section ?? and the other
+     predicates of this chapter this predicate enables the Prolog user to
+     define a complete new debugger in Prolog. Besides this it enables
+     the Prolog programmer monitor the execution of a program. The
+     example shown in figure ?? records all goals trapped by the tracer
+     in the database. To trace the execution of `go' this way the
+     following query should be given:
 
          ?- trace, go, notrace.
 

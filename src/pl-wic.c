@@ -575,13 +575,13 @@ loadWicFile(char *file, int flags)
   }
 
   if ( flags & QLF_EXESTATE )
-  { if ( Sseek(fd, -2 * sizeof(long), SIO_SEEK_END) > 0 )
+  { if ( Sseek(fd, -2 * (long)sizeof(long), SIO_SEEK_END) > 0 )
     { long size, magic;
 
       size = getstdw(fd);
       magic = getstdw(fd);
       if ( magic == QLFMAGICNUM )
-	Sseek(fd, -2 * sizeof(long) - size, SIO_SEEK_END);
+	Sseek(fd, -2 * (long)sizeof(long) - size, SIO_SEEK_END);
       else
 	rval = -1;
     } else
@@ -1347,7 +1347,7 @@ copyEmulator(IOSTREAM *out, IOSTREAM *in)
   long sizepos;
   int n = 0, c;
 
-  if ( (sizepos = Sseek(in, -2 * sizeof(long), SIO_SEEK_END)) >= 0 )
+  if ( (sizepos = Sseek(in, -2 * (long)sizeof(long), SIO_SEEK_END)) >= 0 )
   { long size, magic;
 
     size = getstdw(in);

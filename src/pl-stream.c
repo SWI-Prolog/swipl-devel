@@ -18,8 +18,7 @@
 #include "config.h"
 #endif
 
-#define _MAKE_DLL
-#undef _export
+#define PL_KERNEL 1
 #include "pl-stream.h"
 #include <sys/types.h>
 #include <errno.h>

@@ -7,9 +7,6 @@
     Purpose: Binding to the GNU readline library
 */
 
-#if defined(__WIN32__) && !defined(PL_WIN)
-#define PL_KERNEL
-#endif
 #include "pl-stream.h"
 #include "pl-itf.h"
 #include <string.h>

@@ -187,7 +187,11 @@ $load_associated_file :-
 	chdir(Dir),
 	consult(user:File), !,
 	concat('SWI-Prolog -- ', File, Title),
-	call(window_title(_, Title)),
+	G = user:window_title(_, Title),
+	(   current_predicate(_, G)
+	->  G
+	;   true
+	),
 	nl.
 $load_associated_file.
 

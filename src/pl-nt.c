@@ -19,6 +19,22 @@
 #include <console.h>
 #include <process.h>
 
+
+		 /*******************************
+		 *	  DUMMY EXTENSION	*
+		 *******************************/
+
+PL_extension PL_extensions [] =
+{
+/*{ "name",	arity,  function,	PL_FA_<flags> },*/
+
+  { NULL,	0, 	NULL,		0 }	/* terminating line */
+};
+
+		 /*******************************
+		 *	    MESSAGE BOX		*
+		 *******************************/
+
 void
 PlMessage(const char *fm, ...)
 { va_list(args);

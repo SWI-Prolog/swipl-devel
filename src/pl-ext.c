@@ -397,11 +397,63 @@ static struct foreign {
   FRG((char *)NULL,		0, (Func)NULL,			0)
 };
 
+
+typedef struct extension_cell *ExtensionCell;
+
+struct extension_cell
+{ PL_extension *extensions;
+  ExtensionCell next;
+};
+
+static ExtensionCell extensions = NULL;
+static ExtensionCell ext_tail = NULL;
+static extensions_loaded = FALSE;
+
+static void
+bindExtensions(PL_extension *e)
+{ Definition def;
+
+  for(; e->predicate_name; e++)
+  { short flags = TRACE_ME;
+
+    if ( e->flags & PL_FA_NOTRACE )	     flags &= ~TRACE_ME;
+    if ( e->flags & PL_FA_TRANSPARENT )	     flags |= TRANSPARENT;
+    if ( e->flags & PL_FA_NONDETERMINISTIC ) flags |= NONDETERMINISTIC;
+
+    def = lookupProcedure(lookupFunctorDef(lookupAtom(e->predicate_name),
+					   e->arity), 
+			  MODULE_user)->definition;
+    set(def, FOREIGN);
+    set(def, flags);
+    def->definition.function = e->function;
+    def->indexPattern = 0;
+    def->indexCardinality = 0;
+  }    
+}
+
+
+void
+PL_register_extensions(PL_extension *e)
+{ if ( extensions_loaded )
+    bindExtensions(e);
+  else
+  { ExtensionCell cell = malloc(sizeof *cell);
+    cell->extensions = e;
+    cell->next = NULL;
+    if ( ext_tail )
+    { ext_tail->next = cell;
+      ext_tail = cell;
+    } else
+    { extensions = ext_tail = cell;
+    }
+  }
+}
+
+
 void
 initBuildIns(void)
 { struct foreign *f;
-  register Definition def;
-  PL_extension *e;
+  Definition def;
 
   for(f = &foreigns[0]; f->name; f++)
   { FunctorDef fdef = lookupFunctorDef(lookupAtom(f->name), f->arity);
@@ -425,20 +477,6 @@ initBuildIns(void)
   PROCEDURE_true0  = lookupProcedure(FUNCTOR_true0, MODULE_system);
   PROCEDURE_fail0  = lookupProcedure(FUNCTOR_fail0, MODULE_system);
 
-  for(e = &PL_extensions[0]; e->predicate_name; e++)
-  { short flags = TRACE_ME;
-
-    if ( e->flags & PL_FA_NOTRACE )	     flags &= ~TRACE_ME;
-    if ( e->flags & PL_FA_TRANSPARENT )	     flags |= TRANSPARENT;
-    if ( e->flags & PL_FA_NONDETERMINISTIC ) flags |= NONDETERMINISTIC;
-
-    def = lookupProcedure(lookupFunctorDef(lookupAtom(e->predicate_name),
-					   e->arity), 
-			  MODULE_user)->definition;
-    set(def, FOREIGN);
-    set(def, flags);
-    def->definition.function = e->function;
-    def->indexPattern = 0;
-    def->indexCardinality = 0;
-  }    
+  bindExtensions(PL_extensions);
+  extensions_loaded = TRUE;
 }

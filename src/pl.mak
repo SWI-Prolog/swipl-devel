@@ -86,7 +86,6 @@ LINK32_OBJS= \
 	$(INTDIR)/"PL-ATOM.OBJ" \
 	$(INTDIR)/"PL-GC.OBJ" \
 	$(INTDIR)/"PL-DWIM.OBJ" \
-	$(INTDIR)/"pl-extend.obj" \
 	$(INTDIR)/"PL-COMP.OBJ" \
 	$(INTDIR)/"PL-ARITH.OBJ" \
 	$(INTDIR)/"PL-FMT.OBJ" \
@@ -191,7 +190,6 @@ LINK32_OBJS= \
 	$(INTDIR)/"PL-ATOM.OBJ" \
 	$(INTDIR)/"PL-GC.OBJ" \
 	$(INTDIR)/"PL-DWIM.OBJ" \
-	$(INTDIR)/"pl-extend.obj" \
 	$(INTDIR)/"PL-COMP.OBJ" \
 	$(INTDIR)/"PL-ARITH.OBJ" \
 	$(INTDIR)/"PL-FMT.OBJ" \
@@ -340,14 +338,6 @@ $(INTDIR)/"PL-GC.OBJ" :  $(SOURCE)  $(INTDIR)
 SOURCE=".\PL-DWIM.C"
 
 $(INTDIR)/"PL-DWIM.OBJ" :  $(SOURCE)  $(INTDIR)
-
-# End Source File
-################################################################################
-# Begin Source File
-
-SOURCE=".\pl-extend.c"
-
-$(INTDIR)/"pl-extend.obj" :  $(SOURCE)  $(INTDIR)
 
 # End Source File
 ################################################################################
@@ -637,12 +627,12 @@ SOURCE=".\PL-RL.C"
 DEP_PL_RL=\
 	".\pl-stream.h"\
 	".\PL-ITF.H"\
-	.\config\win32.h\
-	\JAN\SRC\xnt\uxnt.h\
+	.\CONFIG\WIN32.H\
+	\JAN\SRC\XNT\UXNT.H\
 	\JAN\SRC\CONSOLE\CONSOLE.H\
-	\JAN\SRC\readline\readline.h\
-	\JAN\SRC\readline\keymaps.h\
-	\JAN\SRC\readline\proto.h
+	\JAN\SRC\READLINE\READLINE.H\
+	\JAN\SRC\READLINE\KEYMAPS.H\
+	\JAN\SRC\READLINE\PROTO.H
 
 $(INTDIR)/"PL-RL.OBJ" :  $(SOURCE)  $(DEP_PL_RL) $(INTDIR)
 

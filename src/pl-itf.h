@@ -29,18 +29,34 @@ before loading this file.  See end of this file.
 _declspec(dllexport) is used by MSVC++ 2.0 to declare exports from DLL's.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if (defined(__WIN32__) || defined(WIN32)) && defined(PL_KERNEL)
-#define __WIN32_DLL__
-#define __pl_export _declspec(dllexport)
-#else
-#define __pl_export extern
+/* Get export declarations right.  Also in SWI-Stream.h, hence the
+   check to avoid doing it twice.
+*/
+
+#ifndef _PL_EXPORT_DONE
+#define _PL_EXPORT_DONE
+#ifdef WIN32
+#ifndef __WIN32__
+#define __WIN32__
+#endif
 #endif
 
-#if defined(__WIN32__) || defined(WIN32)
-#define install_t _declspec(dllexport) void
+#ifdef __WIN32__
+#ifdef PL_KERNEL
+#define __pl_export	 _declspec(dllexport)
+#define __pl_export_data _declspec(dllexport)
+#define install_t	 void
 #else
-#define install_t void
+#define __pl_export	 extern
+#define __pl_export_data _declspec(dllimport)
+#define install_t	 _declspec(dllexport) void
 #endif
+#else /*__WIN32__*/
+#define __pl_export	 extern
+#define __pl_export_data extern
+#define install_t	 void
+#endif /*__WIN32__*/
+#endif /*_PL_EXPORT_DONE*/
 
 #ifdef _PL_INCLUDE_H
 typedef FunctorDef	functor_t;	/* Name/arity pair */
@@ -119,14 +135,14 @@ typedef struct _PL_extension
   short		flags;			/* Or of PL_FA_... */
 } PL_extension;
 
-extern PL_extension PL_extensions[];	/* see pl-extend.c */
-
 #define PL_FA_NOTRACE		(0x01)	/* foreign cannot be traced */
 #define PL_FA_TRANSPARENT	(0x02)	/* foreign is module transparent */
 #define PL_FA_NONDETERMINISTIC	(0x04)	/* foreign is non-deterministic */
 
-__pl_export int	PL_register_foreign(const char *name, int arity,
-				    pl_function_t func, int flags);
+extern			PL_extension PL_extensions[]; /* not Win32! */
+__pl_export void	PL_register_extensions(PL_extension *e);
+__pl_export int		PL_register_foreign(const char *name, int arity,
+					    pl_function_t func, int flags);
 
 
 		/********************************

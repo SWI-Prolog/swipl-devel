@@ -190,9 +190,10 @@ install:	idirs iboot ilib iinclude iruntime iman
 		if [ -r $(bindir)/$(PL) ]; then \
 		    mv $(bindir)/$(PL) $(bindir)/$(PL).old; \
 		fi
-		for f in $(PL) pl-bite chpl plld; do \
+		for f in $(PL) pl-bite chpl; do \
 		    $(INSTALL_PROGRAM) $$f $(PLBASE)/bin/$(ARCH); \
 		done
+		$(INSTALL_PROGRAM) $(srcdir)/plld $(PLBASE)/bin/$(ARCH)
 		cd $(PLBASE)/library; \
 		   ../bin/$(ARCH)/$(PL) \
 			-f none \

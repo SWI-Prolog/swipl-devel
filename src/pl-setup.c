@@ -324,11 +324,13 @@ static void init_stack(Stack s, char *name,
 		       caddress base, long limit, long minsize);
 static void gcPolicy(Stack s, int policy);
 
+#ifndef NO_SEGV_HANDLING
 #ifdef SIGNAL_HANDLER_PROVIDES_ADDRESS
 static RETSIGTYPE segv_handler(int sig, int type,
 			       SignalContext scp, char *addr);
 #else
 static RETSIGTYPE segv_handler(int sig);
+#endif
 #endif
 
 #define STACK_SEPARATION size_alignment
@@ -446,8 +448,8 @@ SunOs  4.0.0  on SUN-3 has a bug that causes the various mapped pages to
 point to the same physical memory.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void
-map(Stack s)
+void
+mapOrOutOf(Stack s)
 { ulong incr;
 
   if ( s->top > s->max )
@@ -630,8 +632,8 @@ long size;
 }
 
 
-static void
-map(s)
+void
+mapOrOutOf(s)
 Stack s;
 { long new_size = new_stack_size(s);
   int  top_segment = new_size / base_alignment;
@@ -655,13 +657,13 @@ static void
 unmap(s)
 Stack s;
 { if ( new_stack_size(s) < s->max - s->base )
-    map(s);
+    mapOrOutOf(s);
 }
 
 #else /* O_SHM_ALIGN_FAR_APART */
 
-static void
-map(s)
+void
+mapOrOutOf(s)
 Stack s;
 { int id;
   char *rval;
@@ -715,7 +717,7 @@ caddress addr;
   if ( addr <= s->max + STACK_SEPARATION*2 )
   { if ( addr < s->base + s->limit )
     { DEBUG(1, Sdprintf("Expanding %s stack\n", s->name));
-      map(s);
+      mapOrOutOf(s);
       considerGarbageCollect(s);
 
       succeed;
@@ -737,8 +739,8 @@ caddress addr;
 #include <windows.h>
 #undef small
 
-static void
-map(Stack s)
+void
+mapOrOutOf(Stack s)
 { ulong incr;
 
   if ( s->top > s->max )
@@ -842,7 +844,9 @@ initStacks(long local, long global, long trail, long argument)
   INIT_STACK(trail,    "trail",    trail,    8 K);
   INIT_STACK(argument, "argument", argument, 1 K);
 
+#ifndef NO_SEGV_HANDLING
   pl_signal(SIGSEGV, (handler_t) segv_handler);
+#endif
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -858,7 +862,9 @@ resetStacks()
   gTop = gBase;
   aTop = aBase;
 
+#ifndef NO_SEGV_HANDLING
   pl_signal(SIGSEGV, (handler_t) segv_handler);
+#endif
   trimStacks();
   PL_open_foreign_frame();
 }
@@ -878,6 +884,7 @@ provided an address, there  is  no   problem.   Otherwise  we  check the
 exported variable localScratchBase (see pl-alloc.c).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifndef NO_SEGV_HANDLING
 static RETSIGTYPE
 #ifdef SIGNAL_HANDLER_PROVIDES_ADDRESS
 segv_handler(int sig, int type, SignalContext scp, char *addr)
@@ -899,7 +906,7 @@ segv_handler(int sig)
 
     if ( r < size_alignment )
     { DEBUG(1, Sdprintf("Mapped %s stack (free was %d)\n", stacka[i].name, r));
-      map(&stacka[i]);
+      mapOrOutOf(&stacka[i]);
       considerGarbageCollect(&stacka[i]);
       mapped++;
     }
@@ -911,7 +918,7 @@ segv_handler(int sig)
     if ( (unsigned long)localScratchBase > (unsigned long)ls->top &&
 	 (unsigned long)localScratchBase < (unsigned long)ls->base +
 				           ls->maxlimit )
-    { map(ls);
+    { mapOrOutOf(ls);
       mapped++;
     }
   }
@@ -943,6 +950,8 @@ segv_handler(int sig)
   deliverSignal(sig, 0, 0, NULL);	/* for now ... */
 #endif
 }
+
+#endif /*NO_SEGV_HANDLING*/
 
 static bool
 limit_stack(Stack s, ulong limit)
@@ -989,7 +998,7 @@ init_stack(Stack s, char *name, caddress base, long limit, long minsize)
 		    s->name, (ulong)s->base, (ulong)s->base + s->maxlimit));
 
   while(s->max < s->min)
-    map(s);
+    mapOrOutOf(s);
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1089,7 +1098,9 @@ initStacks(long local, long global, long trail, long argument)
   INIT_STACK(trail,    "trail",    trail,    8 K);
   INIT_STACK(argument, "argument", argument, 1 K);
 
+#ifndef NO_SEGV_HANDLING
   pl_signal(SIGSEGV, (handler_t) segv_handler);
+#endif
 }
 
 void
@@ -1101,10 +1112,13 @@ resetStacks()
   gTop = gBase;
   aTop = aBase;
 
+#ifndef NO_SEGV_HANDLING
   pl_signal(SIGSEGV, (handler_t) segv_handler);
+#endif
   trimStacks();
   PL_open_foreign_frame();
 }
+
 
 #endif /*SPECIFIC_INIT_STACK*/
 

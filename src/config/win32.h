@@ -4,6 +4,8 @@
 #define __WIN32__ 1
 
 #define O_ASYNC_HOOK 1
+#define NO_SEGV_HANDLING 1		/* at least, when making a DLL */
+#define COPY_ATOMS_TO_HEAP 1		/* place in DLL isn't known */
 
 #define OPEN_MAX 32
 

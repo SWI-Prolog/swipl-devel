@@ -1527,8 +1527,16 @@ GLOBAL char *	hBase;			/* lowest allocated heap address */
 #define narrowStack(name) (roomStack(name) < stacks.name.minfree)
 
 #if O_DYNAMIC_STACKS
+#ifdef NO_SEGV_HANDLING
+#define STACKVERIFY(g)	{ g; }
+#define verifyStack(s) \
+	{ if ( roomStack(s) < 100 ) \
+ 	    mapOrOutOf((Stack)&stacks.s); \
+	}
+#else /*NO_SEGV_HANDLING*/
 #define STACKVERIFY(g)			/* hardware stack verify */
 #define verifyStack(s)
+#endif /*NO_SEGV_HANDLING*/
 #else
 #define STACKVERIFY(g)	{ g; }
 #define verifyStack(s) \
@@ -1762,7 +1770,11 @@ decrease).
 #include "pl-funcs.h"			/* global functions */
 #include "pl-main.h"			/* Declarations needed by pl-main.c */
 
+#ifdef COPY_ATOMS_TO_HEAP
+extern Atom atoms;
+#else
 extern struct atom atoms[];
+#endif
 extern struct functorDef functors[];
 
 #include "pl-atom.ih"

@@ -60,7 +60,8 @@ STREAMH=$(INCLUDEDIR)/SWI-Stream.h
 STUBC=$(INCLUDEDIR)/stub.c
 STARTUPPATH=$(PL).qlf
 RUNTIMEDIR=../runtime/$(ARCH)
-RUNTIME=$(RUNTIMEDIR)/$(PL).o
+PLLIB=libpl.a
+RUNTIME=$(RUNTIMEDIR)/$(PLLIB)
 LIBRARYDIR=${PLBASE}/library
 
 
@@ -109,7 +110,8 @@ $(STARTUPPATH):	$(PLINIT) pl-wam.o pl-wic.o
 $(RUNTIME):	$(OBJ) $(DEPOBJ)
 		if [ ! -d ../runtime ]; then mkdir ../runtime; fi
 		if [ ! -d $(RUNTIMEDIR) ]; then mkdir $(RUNTIMEDIR); fi
-		$(LD_R) -o $@ $(OBJ) $(DEPOBJ)
+		rm -f $@
+		$(AR) -r $@ $(OBJ) $(DEPOBJ)
 
 index:
 		./$(PL) -x $(STARTUPPATH) \
@@ -192,12 +194,13 @@ install:	idirs iboot ilib iinclude iruntime iman
 		for f in $(PL) pl-bite chpl; do \
 		    $(INSTALL_PROGRAM) $$f $(PLBASE)/bin/$(ARCH); \
 		done
+		$(INSTALL_PROGRAM) $(srcdir)/plld $(PLBASE)/bin/$(ARCH)
 		cd $(PLBASE)/library; \
 		   ../bin/$(ARCH)/$(PL) \
 			-f none \
 			-g make_library_index\('.'\) \
 			-t halt
-		-for f in $(PL) pl-bite chpl; do \
+		-for f in $(PL) pl-bite chpl plld; do \
 		    ( cd $(bindir); rm -f $$f; ln -s $(PLBASE)/bin/$(ARCH)/$$f . ); \
 		done
 
@@ -208,11 +211,9 @@ iruntime:
 		if [ ! -d $(PLBASE)/runtime/$(ARCH) ]; then \
 			mkdir $(PLBASE)/runtime/$(ARCH); \
 		fi
-		if [ -f ../runtime/$(ARCH)/$(PL).o ]; then \
-			$(INSTALL_DATA) ../runtime/$(ARCH)/$(PL).o \
-					$(PLBASE)/runtime/$(ARCH); \
+		if [ -f $(RUNTIME) ]; then \
+			$(INSTALL_DATA) $(RUNTIME) $(PLBASE)/runtime/$(ARCH); \
 		fi
-		$(INSTALL_DATA) $(srcdir)/pl-extend.c $(PLBASE)/runtime
 
 idirs:
 		-mkdir $(PLBASE)
@@ -244,9 +245,11 @@ iinclude:
 iman:
 		$(SED) 's/PL/$(PL)/' $(srcdir)/pl.1 > $(PLBASE)/man/$(PL).$(mansec)
 		$(INSTALL_DATA) $(srcdir)/chpl.1 $(PLBASE)/man/chpl.$(mansec)
+		$(INSTALL_DATA) $(srcdir)/plld.1 $(PLBASE)/man/plld.$(mansec)
 		$(INSTALL_DATA) $(srcdir)/readline.3 $(PLBASE)/man/readline.$(lmansec)
 		-$(INSTALL_DATA) $(PLBASE)/man/$(PL).$(mansec) $(mandir)
 		-$(INSTALL_DATA) $(PLBASE)/man/chpl.$(mansec) $(mandir)
+		-$(INSTALL_DATA) $(PLBASE)/man/plld.$(mansec) $(mandir)
 		-$(INSTALL_DATA) $(PLBASE)/man/readline.$(lmansec) $(lmandir)
  
 #

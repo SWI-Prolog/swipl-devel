@@ -1481,7 +1481,7 @@ Cleanup the Prolog environment and calls exit() with the status
 argument.
 .EF
 
-\section{Linking embedded and statically linked extensions using plld}
+\section{Linking embedded applications using plld}
 \label{sec:plld}
 
 The utility program {\tt plld} may be used to link a combination of
@@ -1604,7 +1604,7 @@ main(int argc, char **argv, char **env)
     PL_put_atom_chars(h0, expression);
     rval = PL_call_predicate(NULL, FALSE, pred, h0);
 
-    PL_halt(rval);
+    PL_halt(rval ? 0 : 1);
   }
 
   return 0;

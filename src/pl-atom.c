@@ -25,6 +25,7 @@ static Atom *atomTable;
 #if O_DEBUG
 static int	lookups;
 static int	cmps;
+static void	exitAtoms(int status, void *arg);
 #endif
 
 Atom
@@ -52,6 +53,8 @@ lookupAtom(const char *s)
 
   if ( atom_buckets * 2 < statistics.atoms && !atom_locked )
     rehashAtoms();
+
+  DEBUG(0, assert(isAtom((word)a) && !isInteger((word)a)));
 
   return a;
 }
@@ -120,7 +123,13 @@ pl_atom_hashstat(term_t idx, term_t n)
 #define ATOM(s) { (Atom)NULL, ATOM_TYPE, s }
 #endif
 
-struct atom atoms[] = {
+#ifdef COPY_ATOMS_TO_HEAP
+Atom atoms;
+#else
+#define static_atoms atoms
+#endif
+
+struct atom static_atoms[] = {
 #include "pl-atom.ic"
   ATOM((char *)NULL)
 };
@@ -132,17 +141,21 @@ struct atom atoms[] = {
    segment.
 */
 
-#if O_DEBUG
-exitAtoms(void *arg)
-{ Sdprintf("hashstat: %d lookupAtom() calls used %d strcmp() calls\n",
-	   lookups, cmps);
+#ifdef COPY_ATOMS_TO_HEAP
+static void
+copyAtomsToHeap()
+{ atoms = allocHeap(sizeof(static_atoms));
+  memcpy(atoms, static_atoms, sizeof(static_atoms));
 }
+#else
+#define copyAtomsToHeap()
 #endif
 
 void
 initAtoms(void)
 { atomTable = allocHeap(atom_buckets * sizeof(Atom));
   makeAtomRefPointers();
+  copyAtomsToHeap();
 
   { Atom a;
 
@@ -156,12 +169,22 @@ initAtoms(void)
       a->hash_value = v0;
 #endif
       atomTable[v]  = a;
+      DEBUG(0, assert(isAtom((word)a) && !isInteger((word)a)));
       statistics.atoms++;
     }
   }    
 
   DEBUG(0, PL_on_halt(exitAtoms, NULL));
 }
+
+
+#if O_DEBUG
+static void
+exitAtoms(int status, void *arg)
+{ Sdprintf("hashstat: %d lookupAtom() calls used %d strcmp() calls\n",
+	   lookups, cmps);
+}
+#endif
 
 
 word
