@@ -359,6 +359,43 @@ getDifferenceDate(Date d1, Date d2, Name units)
 }
 
 
+static status
+advanceDate(Date d, Int times, Name units)
+{ long mult, i, n;
+
+  if ( isDefault(units) )
+    units = NAME_second;
+
+  if ( units == NAME_second )
+    mult = 1;
+  else if ( units == NAME_minute )
+    mult = 60;
+  else if ( units == NAME_hour )
+    mult = 3600;
+  else if ( units == NAME_day )
+    mult = 3600*24;
+  else if ( units == NAME_week )
+    mult = 3600*24*7;
+  else
+  { assert(0);
+    mult = 0;
+  }
+
+  i = valInt(times) * mult;
+
+  n = d->unix_date + i;
+  if ( (d->unix_date > 0 && i > 0 && i < 0) ||
+       (d->unix_date < 0 && i < 0 && i > 0) )
+    return errorPce(d, NAME_intRange);
+
+  d->unix_date = n;
+
+  succeed;
+}
+
+
+
+
 		 /*******************************
 		 *	 CLASS DECLARATION	*
 		 *******************************/
@@ -371,6 +408,8 @@ static char *T_initialise[] =
 	  "year=[1970..2050]" };
 static char *T_difference[] =
         { "to=[date]", "unit=[{second,minute,hour,day,week,year}]" };
+static char *T_advance[] =
+	{ "with=int", "unit=[{second,minute,hour,day,week}]" };
 
 /* Instance Variables */
 
@@ -411,7 +450,9 @@ static senddecl send_date[] =
   SM(NAME_posixValue, 1, "real", posixValueDate,
      NAME_set, "Set date from POSIX timestamp"),
   SM(NAME_convert, 1, "description=char_array", convertDate,
-     NAME_textual, "Set date conform time description")
+     NAME_textual, "Set date conform time description"),
+  SM(NAME_advance, 2, T_advance, advanceDate,
+     NAME_compute, "Advance date with amount")
 };
 
 /* Get Methods */
