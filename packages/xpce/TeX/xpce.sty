@@ -1,6 +1,6 @@
 %			PCE DOCUMENTATION STYLE
 
-\newcommand{\pceversion}{5.0.0, January 1999}
+\newcommand{\pceversion}{5.1.0, March 2001}
 
 \makeatletter
 
@@ -62,7 +62,9 @@
 \def\sendmethod{\@ifstar{\@emptysendmethod}{\@sendmethod}}
 \def\getmethod{\@ifstar{\@emptygetmethod}{\@getmethod}}
 
-\newcommand{\@methodarg}[1]{\ifthenelse{\equal{}{#1}}{}{: \parbox[t]{0.6\linewidth}{\raggedright#1}}}
+\newcommand{\@methodarg}[1]{\ifthenelse{\equal{}{#1}}{}{: #1}}
+
+\newcommand{\@argline}[1]{\parbox[t]{0.6\linewidth}{\raggedright#1}}
 
 \def\@emptybothmethod#1#2#3{%
 	\emptydefinition{#1 $\botharrow$ #2\@methodarg{#3}}%
@@ -74,14 +76,14 @@
 	\emptydefinition{#1 $\rightarrow$ #2\@methodarg{#3}}%
 			 \index{#1,\string\send{#2}}\ignorespaces}
 \def\@sendmethod#1#2#3{%
-	\definition{#1 $\rightarrow$ #2\@methodarg{#3}}%
+	\definition{#1 $\rightarrow$ #2\@argline{\@methodarg{#3}}}%
 		    \index{#1,\string\send{#2}}\ignorespaces}
 \def\@emptygetmethod#1#2#3#4{%
 	\emptydefinition{#1 $\leftarrow$ #2\@methodarg{#3} $\rightarrow$ #4}%
 			 \index{#1,\string\get{#2}}\ignorespaces}
 \def\@getmethod#1#2#3#4{%
-	\definition{#1 $\leftarrow$ #2\@methodarg{#3} $\rightarrow$ #4}%
-		    \index{#1,\string\get{#2}}\ignorespaces}
+	\definition{#1 $\leftarrow$ #2\@argline{\@methodarg{#3} $\rightarrow$ #4}}%
+	\index{#1,\string\get{#2}}\ignorespaces}
 
 \renewcommand{\arg}[1]{{\em #1}}
 
