@@ -43,6 +43,17 @@ system_predicate(Head) :-
 		*            TOPLEVEL		*
 		********************************/
 
+:- dynamic
+	verbose/0.
+
+%verbose.
+
+xref_source(Source) :-
+	verbose, !,				% do not suppress messages
+	canonical_source(Source, Src),
+	xref_clean(Src),
+	assert(source(Src)),
+	collect(Src).
 xref_source(Source) :-
 	canonical_source(Source, Src),
 	xref_clean(Src),
@@ -115,7 +126,7 @@ xref_expand(Term, _) :-
 	ensure_loaded(user:Lib),
 	fail.
 xref_expand(Term, T) :-
-	expand_term(Term, Expanded),
+	catch(expand_term(Term, Expanded), _, Expanded=Term),
 	(   is_list(Expanded)
 	->  member(T, Expanded)
 	;   T = Expanded

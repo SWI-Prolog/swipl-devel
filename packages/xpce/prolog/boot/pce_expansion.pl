@@ -87,6 +87,8 @@ pce_term_expansion(In, Out) :-
 list([]).
 list([_|_]).
 
+map_term_expand(X, X) :-
+	var(X), !.
 map_term_expand(X, Y) :-
 	do_term_expand(X, Y), !.
 map_term_expand(X, X).
