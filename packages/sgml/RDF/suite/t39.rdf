@@ -6,7 +6,7 @@
  xmlns:rdfutil="http://www.w3.org/rdfutil#"
  xmlns:protege="http://smi-web.stanford.edu/projects/protege/protege-rdf/protege-19992012#">
 
- <rdf:Description rdf:ID="#OntologyObjectMetaClass">
+ <rdf:Description rdf:ID="OntologyObjectMetaClass">
   <rdf:type rdf:resource="http://www.w3.org/TR/1999/PR-rdf-schema-19990303#Class"/>
   <rdfs:subClassOf rdf:resource="http://www.w3.org/TR/1999/PR-rdf-schema-19990303#Class"/>
   <protege:abstractProperty>concrete</protege:abstractProperty>
