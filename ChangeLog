@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ENHANCED: Make library(gensym) thread-safe.
+
+
 VERSION 5.1.7 (Feb 02, 2003)
 ============================
 

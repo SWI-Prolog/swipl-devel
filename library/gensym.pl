@@ -43,11 +43,14 @@
 
 gensym(Base, Atom) :-
 	atom_concat($gs_, Base, Key), 
+	with_mutex('$gensym', increment_key(Key, N)),
+	atom_concat(Base, N, Atom).
+
+increment_key(Key, New) :-
 	flag(Key, Old, Old), 
 	record_gensym(Key, Old),
 	succ(Old, New), 
-	flag(Key, _, New), 
-	atom_concat(Base, New, Atom).
+	flag(Key, _, New). 
 
 record_gensym(Key, 0) :- !,
 	recordz($gensym, Key).
@@ -60,11 +63,15 @@ record_gensym(_, _).
 %	be reset!
 
 reset_gensym :-
-	recorded($gensym, Key, Ref),
+	with_mutex('$gensym', do_reset_gensym).
+
+do_reset_gensym :-
+	(   recorded($gensym, Key, Ref),
 	    erase(Ref),
 	    flag(Key, _, 0),
-	fail.
-reset_gensym.
+	    fail
+	;   true
+	).
 
 %	reset_gensym(+Base)
 %
@@ -73,4 +80,4 @@ reset_gensym.
 
 reset_gensym(Base) :-
 	atom_concat($gs_, Base, Key), 
-	flag(Key, _, 0).
+	with_mutex('$gensym', flag(Key, _, 0)).
