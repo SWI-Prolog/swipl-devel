@@ -10,7 +10,7 @@
 <center>
 
 <h1>SWI-Prolog SGML/XML parser<br>
-<font size="+0"><em>Version 1.0.14, March 2001</em></font></h1>
+<font size="+0"><em>Version 1.0.15, September 2002</em></font></h1>
 
 <br>
 <a href="mailto:jan@swi.psy.uva.nl"><em>Jan Wielemaker</em></a><br>
@@ -823,7 +823,7 @@ Returns a list holding the names of all <a name="const:NOTATION"><b><tt>NOTATION
     
 <dt>&nbsp;<br>
 <b>notation(<var>Name, Decl</var>)</b><dd>
-Unify <var>Decl</var> with a list if <code>system(+File)</code> and/or
+Unify <var>Decl</var> with a list if <code>system(+File)</code> andor
 <code>public(+PublicId)</code>.
 </dl>
 </dl>
@@ -962,9 +962,19 @@ This dialect is selected automatically if the processing instruction
 <dt>&nbsp;<br>
 <b><a name="const:xmlns%5"><b><tt>xmlns</tt></b></a></b><dd>
 Process file as XML file with namespace support. See <a href="#sec:xmlns">xmlns</a> for
-details. 
+details.  See also the <code>qualify_attributes</code> option below.
 </dl>
 
+    
+<dt>&nbsp;<br>
+<b>qualify_attributes(<var>Boolean</var>)</b><dd>
+How to handle unqualified attribute (i.e. without an explicit namespace)
+in XML namespace (<a name="const:xmlns%6"><b><tt>xmlns</tt></b></a>) mode.  Default and standard compliant
+is not to qualify such elements.  If <a name="const:true%2"><b><tt>true</tt></b></a>, such attributes are qualified
+with the namespace of the element they appear in.  This option is for
+backward compatibility as this is the behaviour of older versions.  In
+addition, the namespace document suggests unqualified attributes are
+often interpreted in the namespace of their element.
     
 <dt>&nbsp;<br>
 <b>space(<var>SpaceMode</var>)</b><dd>
@@ -1024,7 +1034,7 @@ callbacks from <a href="#sgml_parse/2"><b>sgml_parse/2</b></a>.
     
 <dt>&nbsp;<br>
 <b>dialect(<var>-Dialect</var>)</b><dd>
-Return the current dialect used by the parser (<a name="const:sgml%5"><b><tt>sgml</tt></b></a>, <a name="const:xml%4"><b><tt>xml</tt></b></a> or <a name="const:xmlns%6"><b><tt>xmlns</tt></b></a>).
+Return the current dialect used by the parser (<a name="const:sgml%5"><b><tt>sgml</tt></b></a>, <a name="const:xml%4"><b><tt>xml</tt></b></a> or <a name="const:xmlns%7"><b><tt>xmlns</tt></b></a>).
 
     
 <dt>&nbsp;<br>
@@ -1278,14 +1288,14 @@ If this option is present, errors and warnings are not reported using
     
 <dt>&nbsp;<br>
 <b>xmlns</b><dd>
-When parsing an in <a name="const:xmlns%7"><b><tt>xmlns</tt></b></a> mode, a new namespace declaraction is 
+When parsing an in <a name="const:xmlns%8"><b><tt>xmlns</tt></b></a> mode, a new namespace declaraction is 
 pushed on the environment. The named handler is called with three 
 arguments: <code><var>Handler</var>(+NameSpace, +URL, +Parser)</code>.
 See <a href="#sec:xmlns">xmlns</a> for details. 
     
 <dt>&nbsp;<br>
 <b>urlns</b><dd>
-When parsing an in <a name="const:xmlns%8"><b><tt>xmlns</tt></b></a> mode, this predicate can be used to map a 
+When parsing an in <a name="const:xmlns%9"><b><tt>xmlns</tt></b></a> mode, this predicate can be used to map a 
 url into either a canonical URL for this namespace or another internal 
 identifier. See <a href="#sec:xmlns">xmlns</a> for details. 
 </dl>
@@ -1761,13 +1771,13 @@ deleted. This is not yet implemented.
 <li><a href="#const:shorttag"><b><tt>shorttag</tt></b></a>
 <li><a href="#const:start"><b><tt>start</tt></b></a>
 <li><a href="#const:token"><b><tt>token</tt></b></a> [ <a href="#const:token%2">2</a>]
-<li><a href="#const:true"><b><tt>true</tt></b></a>
+<li><a href="#const:true"><b><tt>true</tt></b></a> [ <a href="#const:true%2">2</a>]
 <li><a href="#const:urlns"><b><tt>urlns</tt></b></a>
 <li><a href="#const:warning"><b><tt>warning</tt></b></a>
 <li><a href="#const:xml"><b><tt>xml</tt></b></a> [ <a href="#const:xml%2">2</a> <a href="#const:xml%3">3</a> <a href="#const:xml%4">4</a>]
 <li><a href="#xml_quote_attribute/2"><b>xml_quote_attribute/2</b></a>
 <li><a href="#xml_quote_cdata/2"><b>xml_quote_cdata/2</b></a>
-<li><a href="#const:xmlns"><b><tt>xmlns</tt></b></a> [ <a href="#const:xmlns%2">2</a> <a href="#const:xmlns%3">3</a> <a href="#const:xmlns%4">4</a> <a href="#const:xmlns%5">5</a> <a href="#const:xmlns%6">6</a> <a href="#const:xmlns%7">7</a> <a href="#const:xmlns%8">8</a>]
+<li><a href="#const:xmlns"><b><tt>xmlns</tt></b></a> [ <a href="#const:xmlns%2">2</a> <a href="#const:xmlns%3">3</a> <a href="#const:xmlns%4">4</a> <a href="#const:xmlns%5">5</a> <a href="#const:xmlns%6">6</a> <a href="#const:xmlns%7">7</a> <a href="#const:xmlns%8">8</a> <a href="#const:xmlns%9">9</a>]
 </ul>
 </body>
 </html>

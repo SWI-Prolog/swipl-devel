@@ -2,8 +2,8 @@
 
 <pldoc>
 <head>
-<version>1.0.14
-<release-date>March 2001
+<version>1.0.15
+<release-date>September 2002
 <package>sgml2pl
 </head>
 
@@ -706,8 +706,16 @@ This dialect is selected automatically if the processing instruction
 <verb><?xml ...></verb> is encountered. See <ref sec/xml/ for details. 
     <termitem><c/xmlns/
 Process file as XML file with namespace support. See <ref sec/xmlns/ for
-details. 
+details.  See also the <verb>qualify_attributes</verb> option below.
 </argdef>
+    <termitem>qualify_attributes(Boolean)
+How to handle unqualified attribute (i.e. without an explicit namespace)
+in XML namespace (<c/xmlns/) mode.  Default and standard compliant
+is not to qualify such elements.  If <c/true/, such attributes are qualified
+with the namespace of the element they appear in.  This option is for
+backward compatibility as this is the behaviour of older versions.  In
+addition, the namespace document suggests unqualified attributes are
+often interpreted in the namespace of their element.
     <termitem>space(SpaceMode)
 Define the initial handling of white-space in PCDATA.  This attribute is
 described in <ref sec/space/.

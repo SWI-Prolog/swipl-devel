@@ -1,3 +1,6 @@
+* MODIFIED/ADDED: qualify_attributes option for xmlns mode.  Default is
+  now *not* to qualify attributes.
+
 * FIXED: Handle elements inside shorttag values.  Thanks Richard O'Keefe
   for providing a clear description how to handle this.
 

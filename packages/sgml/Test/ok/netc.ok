@@ -1,2 +1,2 @@
-[element(shref, [], [element(netc, [], [element(frob, [], [element(twit, [], ['This slash should end netc:'])])]), element(twit, [], ['This is a simple shortref'])])].
+[element(shref, [], [element(netc, [], [element(frob, [], [element(twit, [], ['This slash should end netc:'])])]), element(twat, [], ['This is a twat']), element(twit, [], ['This is a simple shortref'])])].
 [].

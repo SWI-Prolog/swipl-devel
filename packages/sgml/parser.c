@@ -3366,7 +3366,9 @@ process_net(dtd_parser *p)
       p->first = FALSE;
 
       if ( p->on_end_element )
-	(*p->on_end_element)(p, env->element);
+      { WITH_CLASS(p, EV_SHORTTAG,
+		   (*p->on_end_element)(p, env->element));
+      }
 
       free_environment(env);
       p->environments = parent;
@@ -4459,7 +4461,8 @@ reprocess:
       }
 
       if ( p->waiting_for_net && f[CF_ETAGO2] == chr ) /* shorttag */
-      { WITH_PARSER(p,
+      { setlocation(&p->startloc, &p->location, line, lpos);
+	WITH_PARSER(p,
 		    process_net(p));
 	return;
       }
@@ -4523,7 +4526,23 @@ reprocess:
       if ( f[CF_MDO1] == chr )		/* < */
       { setlocation(&p->startloc, &p->location, line, lpos);
 	p->state = S_ECDATA1;
-      } 
+      }
+
+					/* / in CDATA shorttag element */
+      if ( p->waiting_for_net && f[CF_ETAGO2] == chr )
+      { setlocation(&p->startloc, &p->location, line, lpos);
+	p->cdata->size--;
+	terminate_ocharbuf(p->cdata);
+	terminate_icharbuf(p->buffer);
+	if ( p->mark_state == MS_INCLUDE )
+	{ WITH_PARSER(p,
+		      process_cdata(p, TRUE);
+		      process_net(p));
+	  empty_cdata(p);
+	}
+	empty_icharbuf(p->buffer);
+	p->cdata_state = p->state = S_PCDATA;
+      }
 
       return;
     }

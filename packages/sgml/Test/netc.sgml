@@ -1,10 +1,12 @@
 <!DOCTYPE shref [
-  <!ELEMENT shref - - (netc|twit)*>
+  <!ELEMENT shref - - (netc|twit|twat)*>
   <!ELEMENT netc  - - (frob+)>
   <!ELEMENT frob  O O (twit)>
   <!ELEMENT twit  - O (#PCDATA)>
+  <!ELEMENT twat  - - CDATA>
 ]>    
 <shref>
 <netc/<frob><twit>This slash should end netc:/
+<twat/This is a twat/
 <twit/This is a simple shortref/
 </shref>
