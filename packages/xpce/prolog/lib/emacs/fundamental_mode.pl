@@ -31,6 +31,7 @@
 
 :- module(emacs_fundamental_mode, []).
 :- use_module(library(pce)).
+:- use_module(library(print_text)).
 :- require([ append/3
 	   , auto_call/1
 	   , between/3
@@ -65,6 +66,7 @@
 	  save_buffer		   = key('\\C-x\\C-s') + button(file),
 	  save_as		   = button(file),
 	  print			   = button(file),
+	  print_selection	   = button(file),
 	  -			   = button(file),
 	  revert		   = button(file),
 	  kill_buffer		   = key('\\C-xk') + button(file),
@@ -468,36 +470,31 @@ comment_column(M, Col:[int]) :->
 		 *	       PRINT		*
 		 *******************************/
 
-print(M) :->
-	"Print associated file"::
-	get(M, print_command, Cmd),
-	send(M, save_if_modified),
+print(M, From:[int], To:[int]) :->
+	"Print contentx of the buffer"::
+	get(M, text_buffer, TB),
+	get(M, editor, E),
 	(   get(M, file, File),
 	    File \== @nil
-	->  get(File, name, Name),
-	    prolog_to_os_filename(Name, OsName),
-	    new(S, string(Cmd, OsName)),
-	    new(D, dialog('Print command')),
-	    send(D, append, new(TI, text_item(print_command, S))),
-	    send(TI, length, 50),
-	    send(D, append, button(print, message(D, return, TI?selection))),
-	    send(D, append, button(cancel, message(D, destroy))),
-	    send(D, default_button, print),
-	    (	get(M, frame, Frame)
-	    ->	send(D, transient_for, Frame),
-		send(D, modal, transient),
-		get(Frame?area, center, Pos)
-	    ;	Pos = @default
-	    ),
-	    get(D, confirm_centered, Pos, CmdAtom),
-	    send(M, report, progress, 'Running %s ...', CmdAtom),
-	    (	shell(CmdAtom)
-	    ->	send(M, report, done)
-	    ;	send(M, report, warning, 'Print command %s failed', CmdAtom)
-	    )
-	;   send(M, report, warning, 'No file')
-	).
-	
+	->  get(File, absolute_path, Path),
+	    prolog_to_os_filename(Path, Job)
+	;   Job = @default
+	),
+	send(TB, print, From, To,
+	     editor := E,
+	     job := Job).
+
+
+print_region(M) :->
+	"Print current region"::
+	get(M, line_region, tuple(From, To)),
+	send(M, print, From, To).
+
+
+print_selection(M) :->
+	"Print the current selection (=region)"::
+	send(M, print_region).
+
 
 		 /*******************************
 		 *	    FIND/REPLACE	*

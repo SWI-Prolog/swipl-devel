@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: Print and Print Selection to PceEmacs, both working on Windows and
+  Unix platforms.
+
 * ADDED: `text_image<-character_position'.
 
 * ADDED: Make `text_image <->elevation' an instance-variable instead of a
