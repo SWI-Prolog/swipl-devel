@@ -146,7 +146,7 @@ tex(titlepage, _, Content) -->
 	  { \parskip('0pt'),
 	    \tableofcontents
 	  },
-	  pagebreak
+	  \pagebreak
 	].
 		    
 section(s1, section).
@@ -167,7 +167,8 @@ tex(S, A, Content) -->
 	Body.
 
 label(Attr) -->
-	{ member(name=Label, Attr)
+	{ member(name=Name, Attr),
+	  atom_concat('sec:', Name, Label)
 	},
 	[ \label(#Label)
 	].

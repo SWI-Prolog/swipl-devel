@@ -688,7 +688,7 @@ highlighting.  Defined values are:
     <termitem><c/shorttag/
 	The current event (<c/begin/ or <c/end/) is caused by an
 	element written down using the <jargon/shorttag/ notation
-	(<verb><tag/value></verb>.
+	(<verb><tag/value/</verb>).
     <termitem><c/shortref/
 	The current event is caused by the expansion of a
 	<jargon/shortref/. This allows for highlighting shortref strings
