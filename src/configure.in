@@ -13,7 +13,7 @@ AC_SUBST(MKDIR)
 AC_SUBST(ETAGS)
 AC_SUBST(LDFLAGS)
 AC_SUBST(ARCH)
-AC_SUBST(PLFOREIGN)
+AC_SUBST(PLSHARED)
 AC_SUBST(PL)
 AC_SUBST(RT)
 AC_SUBST(PLVERSION)
@@ -284,6 +284,7 @@ AC_ARG_ENABLE(shared, [  --disable-shared	  No shared-lib interface],
 	      configshared="$enableval",
 	      configshared=yes)
 
+PLSHARED=no
 if test "$configshared" = "yes"; then
   AC_CHECK_LIB(dl, dlopen)
   if test "$ac_cv_lib_dl_dlopen" = "yes"; then
@@ -312,6 +313,9 @@ AC_TRY_COMPILE(
    AC_MSG_RESULT(no))
 fi
 
+if test "$ac_cv_func_dlopen" = yes -o "$ac_cv_func_shl_load" = yes; then
+  PLSHARED=yes
+fi
 
 AC_MSG_CHECKING(for cc -c -o)
   cat > conftest.c << _EOP_

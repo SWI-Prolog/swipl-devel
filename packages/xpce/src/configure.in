@@ -10,7 +10,7 @@ AC_SUBST(PLLIBS)
 AC_SUBST(PLBASE)
 AC_SUBST(PLARCH)
 AC_SUBST(BOOTPL)
-AC_SUBST(PLINCLUDE)
+AC_SUBST(PLINCL)
 AC_SUBST(XLIB)
 AC_SUBST(XINCLUDES)
 AC_SUBST(XLIBS)
@@ -70,7 +70,6 @@ changequote([,])dnl
 
 swipl=maybe
 runtime=no
-
 
 AC_ARG_ENABLE(syslibh, [  --enable-syslibh	  Prototype file to enable gcc -Wall],
 	      [case "$enableval" in
@@ -155,8 +154,10 @@ if test "$swipl" != "no"; then
      fi
   else
      swipl=yes
-     AC_CHECKING("Running $PL -dump-runtime-variables")
-     eval `$PL -dump-runtime-variables`
+     if test -z "$PLICL"; then
+         AC_CHECKING("Running $PL -dump-runtime-variables")
+         eval `$PL -dump-runtime-variables`
+     fi
   fi
   if test "$swipl" = yes; then
     if test -z "$MAKE_SHARED_OBJECT" && test "$PLSHARED" = "yes"; then
@@ -186,11 +187,13 @@ dnl version. Is up to the user?
 AC_ARG_WITH(pl-include,[  --with-pl-include=DIR   find the pl include files in DIR],
 	[ case $withval in
 		no|yes) echo 'Specify dir for pl-include please (ignored)';;
-		*)	PLINCLUDE="$withval";;
+		*)	PLINCL="$withval";;
 	  esac
 	],
 	[
-		PLINCLUDE="$PLBASE/include"
+		if test -z "$PLINCL"; then
+	 	  PLINCL="$PLBASE/include"
+		fi
 	])
 
 dnl The following part is to decide for making a shared library or

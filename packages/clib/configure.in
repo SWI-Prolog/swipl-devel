@@ -8,8 +8,7 @@ AC_SUBST(PL)
 AC_SUBST(PLLIBS)
 AC_SUBST(PLBASE)
 AC_SUBST(PLARCH)
-AC_SUBST(BOOTPL)
-AC_SUBST(PLINCLUDE)
+AC_SUBST(PLINCL)
 AC_SUBST(COFLAGS)
 AC_SUBST(CWFLAGS)
 AC_SUBST(CMFLAGS)
@@ -17,8 +16,6 @@ AC_SUBST(ETAGS)
 AC_SUBST(LD)
 AC_SUBST(SO)
 AC_SUBST(LDSOFLAGS)
-AC_SUBST(SONAMEFLAG)
-AC_SUBST(SOWHOLEARCHIVE)
 
 AC_ARG_ENABLE(mt, [  --enable-mt		  Enable Multi-threading],
 	      [case "$enableval" in
@@ -30,6 +27,7 @@ AC_ARG_ENABLE(mt, [  --enable-mt		  Enable Multi-threading],
 LD=ld
 AC_PROG_CC
 
+if test -z "$PLINCL"; then
 plcandidates="pl swipl swi-prolog"
 AC_CHECK_PROGS(PL, $plcandidates, "none")
 if test $PL = "none"; then
@@ -38,20 +36,19 @@ else
    AC_CHECKING("Running $PL -dump-runtime-variables")
    eval `$PL -dump-runtime-variables`
 fi
-if test "$PLSHARED" = "yes"; then
-   MAKE_SHARED_OBJECT=yes
-fi
+PLINCL=$PLBASE/include
 AC_MSG_RESULT("		PLBASE=$PLBASE")
 AC_MSG_RESULT("		PLARCH=$PLARCH")
 AC_MSG_RESULT("		PLLIBS=$PLLIBS")
 AC_MSG_RESULT("		PLLDFLAGS=$PLLDFLAGS")
-AC_MSG_RESULT("		MAKE_SHARED_OBJECT=$MAKE_SHARED_OBJECT")
+AC_MSG_RESULT("		PLSHARED=$PLSHARED")
+fi
 
 case "$PLARCH" in
     *)			LDFLAGS="$PLLDFLAGS" ;;
 esac
 
-if test "$MAKE_SHARED_OBJECT" = "yes"; then
+if test "$PLSHARED" = "yes"; then
   if test ! -z "$GCC"; then
     CMFLAGS="$CMFLAGS -fpic"
   fi
@@ -59,9 +56,6 @@ if test "$MAKE_SHARED_OBJECT" = "yes"; then
   SO="so"				 # Default shared object extension
   LD="gcc"				 # Default linking through gcc
   LDSOFLAGS="-shared"			 # Create a shared object
-  SONAMEFLAG='-Wl,-soname,$(LIBXPCESOM)' # Set the internal name
-  SOWHOLEARCHIVE="-Wl,-whole-archive"	 # Link the whole archive
-  PLTARGET=soall			 # Link XPCE dynamically to prolog
 
   case "$OS" in
     *solaris* | *sunos5*)	LD=/usr/ccs/bin/ld

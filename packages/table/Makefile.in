@@ -4,22 +4,18 @@
 # Copyright: Same as SWI-Prolog
 ################################################################
 
-################################################################
-#
-################################################################
-
 .SUFFIXES: .tex .dvi .doc .pl
 
 PL=@PL@
 PLBASE=@PLBASE@
 PLARCH=@PLARCH@
-PCEHOME=/oorlam/jan/src/xpce
+PCEHOME=../../xpce
 
 CC=@CC@
 COFLAGS=@COFLAGS@
 CWFLAGS=@CWFLAGS@
 CMFLAGS=@CMFLAGS@
-CIFLAGS=-I. -I$(PLBASE)/include
+CIFLAGS=-I. -I@PLINCL@
 CFLAGS=$(COFLAGS) $(CWFLAGS) $(CMFLAGS) $(CIFLAGS) @DEFS@
 
 DOCTOTEX=$(PCEHOME)/bin/doc2tex

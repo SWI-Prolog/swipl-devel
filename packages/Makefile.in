@@ -4,6 +4,14 @@
 ################################################################
 
 prefix=@prefix@
+PL=@PL@@RT@
+PLVERSION=@PLVERSION@
+PLBASE=$(prefix)/lib/@PL@-$(PLVERSION)
+PLLIBS=@LIBS@
+PLARCH=@ARCH@
+PLLDFLAGS=@LDFLAGS@
+PLINCL=$(shell dirname `pwd`)/include
+PLSHARED=@PLSHARED@
 
 PKG=	clib \
 	table \
@@ -11,32 +19,35 @@ PKG=	clib \
 	sgml/RDF \
 	xpce
 
-CONFIG=	./configure --enable-mt --prefix=$(prefix)
+CONFIG=	env PL="$(PL)" PLBASE="$(PLBASE)" PLARCH="$(PLARCH)" \
+	    PLLIBS="$(PLLIBS)" PLLDFLAGS="$(PLLDFLAGS)" \
+	    PLINCL="$(PLINCL)" PLSHARED="$(PLSHARED)" \
+	    ./configure --enable-mt --prefix=$(prefix)
 
 all:	objects
 	
 objects:
 	for p in $(PKG); do \
-	    ( cd $$p && $(MAKE) ) \
+	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) ); fi \
         done
 	
 install:
 	for p in $(PKG); do \
-	    ( cd $$p && $(MAKE) install ) \
+	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) install ); fi \
         done
 	
 configure::
 	for p in $(PKG); do \
-	    ( cd $$p && $(CONFIG) ) \
+	    if [ -r $$p/configure ]; ( cd $$p && $(CONFIG) ); fi \
         done
 	
 distclean:
 	for p in $(PKG); do \
-	    ( cd $$p && $(MAKE) distclean ) \
+	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) distclean ); fi \
         done
 
 clean:
 	for p in $(PKG); do \
-	    ( cd $$p && $(MAKE) clean ) \
+	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) clean ); fi \
         done
 

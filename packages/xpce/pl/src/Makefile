@@ -17,7 +17,7 @@
 # $(PL)		SWI-Prolog executable
 # $(PLBASE)	SWI-Prolog's home directory
 # $(PLARCH)	SWI-Prolog's architecture identifier
-# $(PLINCLUDE)  SWI-Prolog's include files
+# $(PLINCL)     SWI-Prolog's include files
 # $(builddir)	Path from XPCE home to build directory
 # $(C?FLAGS)	The various C-compiler flags
 # $(SOEXTRAOBJ)	Possibly non-standard .o files for creating pl2xpce.so
@@ -33,7 +33,7 @@ BINDIR=		../../$(builddir)
 OBJDIR=		../../$(builddir)/pl
 CONFIG=		../../$(builddir)/config.h
 
-CPLIFLAGS=	-I$(PLINCLUDE) -I../../$(builddir) -I../../src
+CPLIFLAGS=	-I$(PLINCL) -I../../$(builddir) -I../../src
 PL=     	pl
 ITFOBJ= 	$(addprefix $(OBJDIR)/, interface.o link.o)
 ITFSRC=		interface.c table.c
@@ -61,7 +61,7 @@ LIBQLFS=	pce_manual.qlf dialog/dialog.qlf emacs/emacs.qlf pcedraw.qlf
 
 nosoall:	common $(XPCE)
 
-soall:		common $(PLBASE)/xpce/lib/$(PLARCH) $(XPCESO) bootqlf
+soall:		common $(PLBASE)/xpce/lib/$(PLARCH) $(XPCESO)
 
 common:		$(PLBASE)/pl.rc $(PLBASE)/xpce.rc $(PLBASE)/xpce \
 		$(PLBASE)/Makefile \

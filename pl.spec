@@ -20,12 +20,12 @@ sockets), cpp (C++ interface), sgml (reading XML/SGML), sgml/RDF (reading
 RDF into triples) and XPCE (Graphics UI toolkit, integrated editor
 (Emacs-clone) and graphical debugger).
 
+If you only want the plain compiler, there is also SWI-Prolog/lite.
 %prep
 %setup
 
 %build
-env CFLAGS="$RPM_OPT_FLAGS" \
-  ./configure --prefix=/usr
+env CFLAGS="$RPM_OPT_FLAGS" ./configure --prefix=/usr
 make
 
 %install
