@@ -11,6 +11,7 @@
 :- module(pce_expansion,
 	[ pce_term_expansion/2,		% +In, -Out
 	  pce_compiling/1,		% -ClassName
+	  pce_compiling/2,		% -ClassName, -Path
 	  pce_begin_recording/1,	% +- source|documentation
 	  pce_end_recording/0
 	]).
@@ -36,7 +37,7 @@
 	   ]).
 
 :- dynamic
-	compiling/1,			% -ClassName
+	compiling/2,			% -ClassName
 	attribute/3,			% ClassName, Attribute, Value
 	verbose/0,
 	recording/2.			% items recorded
@@ -557,12 +558,16 @@ isa_prolog_class(Class, Super) :-		% Loaded Prolog class
 %	Start compiling the argument class.
 
 push_class(ClassName) :-
-	compiling(ClassName), !,
+	compiling(ClassName, _), !,
 	pce_error(resursive_loading_class(ClassName)),
 	fail.
 push_class(ClassName) :-
 	push_compile_operators,
-	asserta(compiling(ClassName)),
+	(   source_location(Path, _Line)
+	->  true
+	;   Path = []
+	),
+	asserta(compiling(ClassName, Path)),
 	(   realised_class(ClassName)
 	->  get(@class, '_value', OldClassVal),
 	    asserta(attribute(ClassName, old_class_val, OldClassVal)),
@@ -575,7 +580,7 @@ push_class(ClassName) :-
 %	End class compilation.
 
 pop_class :-
-	retract(compiling(ClassName)), !,
+	retract(compiling(ClassName, _)), !,
 	(   attribute(ClassName, old_class_val, OldClassVal)
 	->  send(@class, assign, OldClassVal, global)
 	;   true
@@ -815,12 +820,17 @@ head_arg(Arg:Name=Type, Arg, Name=Type).
 %	pce_compiling(-ClassName)
 %	External function to get the current classname
 
+pce_compiling(ClassName, Path) :-
+	compiling(X, Y), !,
+	X = ClassName,
+	Y = Path.
+
 pce_compiling(ClassName) :-
-	compiling(X), !,
+	compiling(X, _), !,
 	X = ClassName.
 
 pce_compiling :-
-	compiling(_), !.
+	compiling(_, _), !.
 
 
 		 /*******************************
