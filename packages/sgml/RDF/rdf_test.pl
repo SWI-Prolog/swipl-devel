@@ -26,6 +26,8 @@
 :- use_module(rdf).
 :- use_module(pretty_print).
 
+:- set_prolog_flag(rdf_container, true).
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Test file for the SWI-Prolog RDF parser.  Toplevel predicates:
 
