@@ -488,11 +488,21 @@ forwardCompletionEvent(EventObj ev)
       { EventObj ev2 = answerObject(ClassEvent, NAME_msLeftDown, EAV);
 	PceWindow sw = ev2->window;
 
+	DEBUG(NAME_focus, Cprintf("Sending artificial ms_left_down to %s\n",
+				  pp(Completer)));
 	postEvent(ev2, (Graphical) Completer, DEFAULT);
 	if ( notNil(sw) )
 	  assign(sw, focus_button, NIL); /* Hack to keep the focus */
 	succeed;
       }
+    } else if ( insideEvent(ev, (Graphical)lb->scroll_bar) && isDownEvent(ev) )
+    { PceWindow sw = ev->window;
+
+      DEBUG(NAME_focus, Cprintf("Initiating scrollbar\n"));
+      postEvent(ev, (Graphical) Completer, DEFAULT);
+      if ( notNil(sw) )
+	assign(sw, focus_button, NIL); /* Hack to keep the focus */
+      succeed;
     }
   }
 

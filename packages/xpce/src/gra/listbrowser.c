@@ -898,11 +898,13 @@ typedListBrowser(ListBrowser lb, EventId id)
 
 DictItem
 getDictItemListBrowser(ListBrowser lb, EventObj ev)
-{ Int where = getIndexTextImage(lb->image, ev);
+{ if ( insideEvent(ev, (Graphical)lb->image) )
+  { Int where = getIndexTextImage(lb->image, ev);
 
-  if ( where && notNil(lb->dict) )
-    answer(getFindIndexDict(lb->dict,
-			    toInt(valInt(where)/BROWSER_LINE_WIDTH)));
+    if ( where && notNil(lb->dict) )
+      answer(getFindIndexDict(lb->dict,
+			      toInt(valInt(where)/BROWSER_LINE_WIDTH)));
+  }
 
   fail;
 }

@@ -205,7 +205,9 @@ getScrollTarget(Gesture g, EventObj ev)
 
   return gr;
 }
+  
 
+#define DRAGSCROLL_MARGIN 50
 
 static status
 scrollMessage(Gesture g, EventObj ev,
@@ -235,16 +237,16 @@ scrollMessage(Gesture g, EventObj ev,
 	Cprintf("Event on %s at %d,%d, area 0,0-%d,%d\n",
 		pp(gr), ex, ey, aw, ah));
 
-  if ( ex < 0 )
+  if ( ex < 0 && ey >= 0 && ey <= ah && ex > -DRAGSCROLL_MARGIN )
   { msg = NAME_scrollHorizontal;
     amount = toInt(-1);
-  } else if ( ex > aw )
+  } else if ( ex > aw && ey >= 0 && ey <= ah && ex < aw + DRAGSCROLL_MARGIN )
   { msg = NAME_scrollHorizontal;
     amount = toInt(1);
-  } else if ( ey < 0 )
+  } else if ( ey < 0 && ex >= 0 && ey <= aw && ey > -DRAGSCROLL_MARGIN )
   { msg = NAME_scrollVertical;
     amount = toInt(-1);
-  } else if ( ey > ah )
+  } else if ( ey > ah && ex >= 0 && ey <= aw && ey < ah + DRAGSCROLL_MARGIN )
   { msg = NAME_scrollVertical;
     amount = toInt(1);
   } else

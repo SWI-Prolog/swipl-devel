@@ -147,7 +147,7 @@ terminateBrowserSelectGesture(BrowserSelectGesture g, EventObj ev)
 { ListBrowser lb = get_list_browser(ev);
 
   if ( lb )
-  { if ( !insideEvent(ev, (Graphical)lb) )		/* cancel action */
+  { if ( !insideEvent(ev, (Graphical)lb/*->image*/) ) /* cancel action */
     { send(lb, NAME_changeSelection, NAME_cancel, g->saved_selection, EAV);
     } else
     { if ( notNil(lb->open_message) &&
