@@ -18,7 +18,7 @@
 \linkimage{next}{next.gif}
 \linkimage{summary}{info.gif}
 
-%\includeonly{ide}
+\includeonly{ide}
 
 \usepackage{times}
 \usepackage{fancyheadings}
@@ -110,25 +110,25 @@ Copyright \copyright\ 1990--\year, University of Amsterdam
 		Tel. (+31) 20 5256121
     \end{center}}}
 
-\mbox{}\vspace{-1in}
+\raisebox{4cm}{
 \parbox{\textwidth}{%
     \makebox[\textwidth]{%
-	\UvA{1in}%
+        \includegraphics{figs/swipl}
 	\hfill%
-	\raisebox{-12pt}{\uvaaddress}
-	\hfill%
-	\SWI{1in}}
-}
+	\raisebox{15mm}{\uvaaddress}}
+}}
 \vfil\vfil\vfil
 \begin{center}
 	{\Huge \bf SWI-Prolog \versionshort	\\[3mm]
 	 \LARGE Reference Manual}		\\[3mm]
-        {\it Updated for version \versionlong}	\\[1.5cm]
-	{\large \it Jan Wielemaker}		\\[7mm]
-	{\large jan@swi.psy.uva.nl}		\	{\large	http://www.swi.psy.uva.nl/projects/SWI-Prolog/}
-
+        {\it Updated for version \versionlong}	\\[10mm]
+	{\large \it Jan Wielemaker}		\\[0mm]
+	{\large \email{jan@swi.psy.uva.nl}}	\\[0mm]
+	{\large	http://www.swi-prolog.org}
 \end{center}
+
 \vfil
+
 \begin{quote}
 SWI-Prolog is a Prolog implementation based on a subset of the WAM
 (Warren Abstract Machine). SWI-Prolog was developed as an {\em open}
