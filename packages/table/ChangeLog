@@ -1,3 +1,6 @@
+* Fri Mar 26 16:52:14 1999
+  Avoid off_t type conflict
+
 * Mon Apr 20 14:36:08 1998
   Added standard order tables iso_latin_1 and iso_latin_1_case_insensitive
 

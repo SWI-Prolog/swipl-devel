@@ -22,9 +22,7 @@
 #include <assert.h>
 #ifdef __unix__
 #include <errno.h>
-#define off_t unix_off_t
 #include <sys/types.h>
-#undef off_t
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -812,8 +810,8 @@ Returns the start of the next non-empty  record. Returns the argument if
 the pointer is at the start of a record.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static off_t
-find_next_record(Table t, off_t start)
+static table_offset_t
+find_next_record(Table t, table_offset_t start)
 { int er = t->record_sep;
   char *s = t->window + start;
   char *e = t->window + t->window_size;
@@ -837,8 +835,8 @@ out:
 }
 
 
-static off_t
-find_start_of_record(Table t, off_t start)
+static table_offset_t
+find_start_of_record(Table t, table_offset_t start)
 { char *s;
   int er = t->record_sep;
 
@@ -866,8 +864,8 @@ find_start_of_record(Table t, off_t start)
 }
 
 
-static off_t
-previous_record(Table t, off_t start)
+static table_offset_t
+previous_record(Table t, table_offset_t start)
 { char *s;
   int er = t->record_sep;
     
@@ -886,7 +884,7 @@ previous_record(Table t, off_t start)
 static foreign_t
 pl_previous_record(term_t handle, term_t here, term_t prev)
 { Table t;
-  off_t start;
+  table_offset_t start;
 
   if ( !get_table(handle, &t) )
     return error(ERR_INSTANTIATION, "previous_record/3", 1, handle);
@@ -918,7 +916,7 @@ pl_start_of_record(term_t handle,		/* table */
 		   term_t recstart,		/* return */
 		   control_t control)		/* backtracking control */
 { Table table;
-  off_t n, f, t;
+  table_offset_t n, f, t;
   char *end;				/* pointer to end of search */
   char *start;				/* start of search */
   int er;
@@ -986,8 +984,8 @@ found:
 		 *******************************/
 
 static int
-field_boundaries(Table t, Field f, off_t start,
-		 char **sf, char **zf, off_t *next)
+field_boundaries(Table t, Field f, table_offset_t start,
+		 char **sf, char **zf, table_offset_t *next)
 { char *s = t->window + start;
   char *e = t->window + t->window_size;
   char *z;
@@ -1091,7 +1089,7 @@ tab_memcpy(Table table, int flags, char *to, char *from, int len)
 
 
 static int
-read_field(Table t, Field f, off_t start, off_t *end, term_t arg)
+read_field(Table t, Field f, table_offset_t start, table_offset_t *end, term_t arg)
 { char *s, *z;
   int type;
 
@@ -1178,7 +1176,7 @@ read_field(Table t, Field f, off_t start, off_t *end, term_t arg)
 
 
 static int
-read_record(Table t, off_t start, off_t *end, term_t record)
+read_record(Table t, table_offset_t start, table_offset_t *end, term_t record)
 { int n;
   Field f;
   term_t arg = PL_new_term_ref();
@@ -1211,7 +1209,7 @@ read_record(Table t, off_t start, off_t *end, term_t record)
 foreign_t
 pl_read_record(term_t handle, term_t from, term_t to, term_t record)
 { Table table;
-  off_t start, end;
+  table_offset_t start, end;
 
   if ( !get_table(handle, &table) )
     return error(ERR_INSTANTIATION, "read_record/4", 1, handle);
@@ -1234,7 +1232,7 @@ pl_read_record(term_t handle, term_t from, term_t to, term_t record)
 foreign_t
 pl_read_record_data(term_t handle, term_t from, term_t to, term_t record)
 { Table table;
-  off_t start, end;
+  table_offset_t start, end;
   int len;
 
   if ( !get_table(handle, &table) )
@@ -1271,7 +1269,7 @@ foreign_t
 pl_read_fields(term_t handle, term_t from, term_t to, term_t fields)
 { Table table;
   Field f;
-  off_t start;
+  table_offset_t start;
   term_t tail = PL_copy_term_ref(fields);
   term_t head = PL_new_term_ref();
   int i;
@@ -1356,7 +1354,7 @@ pl_read_fields(term_t handle, term_t from, term_t to, term_t fields)
 #define MATCH_NE	2		/* != */
 
 static int
-match_field(Table t, Field f, QueryField q, off_t start, off_t *end, int bind)
+match_field(Table t, Field f, QueryField q, table_offset_t start, table_offset_t *end, int bind)
 { char *a, *z;
 
   if ( !field_boundaries(t, f, start, &a, &z, end) )
@@ -1496,13 +1494,13 @@ match_field(Table t, Field f, QueryField q, off_t start, off_t *end, int bind)
 
 
 static int
-match_record(Query q, off_t start, off_t *end, int flags)
+match_record(Query q, table_offset_t start, table_offset_t *end, int flags)
 { int n;
   Field f;
   int rval = MATCH_EQ;
   Table t = q->table;
   QueryField qf = q->field;
-  off_t orgstart = start;
+  table_offset_t orgstart = start;
 
   f = t->fields;
   for(n=1; n<=t->nfields; n++, f++, qf++)
@@ -1539,15 +1537,15 @@ match_record(Query q, off_t start, off_t *end, int flags)
 }
 
 
-static off_t
+static table_offset_t
 execute_binary_search(Query q)
 { Table t       = q->table;
-  off_t low     = 0;
-  off_t high    = t->window_size;
-  off_t here    = find_start_of_record(t, (low+high)/2);
+  table_offset_t low     = 0;
+  table_offset_t high    = t->window_size;
+  table_offset_t here    = find_start_of_record(t, (low+high)/2);
 
   for(;;)
-  { off_t next;
+  { table_offset_t next;
 
     switch( match_record(q, here, &next, MR_KEY_ONLY) )
     { case MATCH_NORECORD:
@@ -1574,7 +1572,7 @@ execute_binary_search(Query q)
 	{ q->technique |= TECH_UNIQUE;
 	  return here;
 	} else
-	{ off_t first = here, prev = here;
+	{ table_offset_t first = here, prev = here;
 	
 	  while(prev > 0)		/* find the first */
 	  { prev = previous_record(t, prev);
@@ -1834,7 +1832,7 @@ pl_in_table(term_t handle, term_t spec, term_t record, control_t control)
 
 
   if ( q->technique & TECH_BINARY )
-  { off_t next;
+  { table_offset_t next;
 
     DEBUG(Sdprintf("Binary search, match at offset=%ld\n", q->offset));
 
@@ -1877,7 +1875,7 @@ pl_in_table(term_t handle, term_t spec, term_t record, control_t control)
 
 
   while(q->offset < q->table->window_size)
-  { off_t next;
+  { table_offset_t next;
 
     if ( match_record(q, q->offset, &next, 0) == MATCH_EQ )
     { match_record(q, q->offset, &next, MR_BIND);

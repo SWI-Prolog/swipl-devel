@@ -36,7 +36,7 @@
 #define CMP_DICT	0x1		/* dictionary order */
 #define CMP_IGNORECASE	0x2		/* ignore case */
 
-typedef long	off_t;			/* general offset */
+typedef long	table_offset_t;			/* general offset */
 
 typedef struct fieldtag
 { atom_t	name;			/* name of the field */
@@ -100,7 +100,7 @@ typedef struct fieldquerytag
 
 typedef struct querytag
 { Table		table;			/* table to work on */
-  off_t		offset;			/* current working offset */
+  table_offset_t offset;		/* current working offset */
   int		nvars;			/* number of variable (read) fields */
   int		technique;		/* use binary search */
   queryfield	field[1];		/* the fields */
