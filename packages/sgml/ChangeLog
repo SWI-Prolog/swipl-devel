@@ -1,3 +1,5 @@
+* ADDED: space(sgml) option.  Was documented but omitted.
+
 * MODIFIED: When processing non-validated data in space-preserve mode, emit
   ALL blank data (Richard O'Keefe).
 
