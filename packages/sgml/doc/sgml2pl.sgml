@@ -1190,6 +1190,15 @@ the outer element.
     <termitem>header(Bool)
 If <aref/Bool/ is <c/false/, the XML header is suppressed.  Useful for
 embedding in other XML streams.
+    <termitem>layout(Bool)
+Do/do not emit layout characters to make the output readable, Default is
+to emit layout. With layout enabled, elements only containing other
+elements are written using increasing indentation. This introduces
+(depending on the mode and defined whitespace handling) CDATA sequences
+with only layout between elements when read back in.  If <c/false/, no
+layout characters are added.  As this mode does not need to analyse the
+document it is faster and guarantees correct output when read back.  Unfortunately the output is hardly human readable and cause problems with many
+editors.
     <termitem>indent(Integer)
 Set the initial element indentation.  It more than zero, the indent
 is written before the document.

@@ -82,6 +82,10 @@ stage.
 %		* indent(Indent)
 %		Indentation of the document (for embedding)
 %	
+%		* layout(Bool)
+%		Emit/do not emit layout characters to make output
+%		readable.
+%	
 %	Note that if the stream is UTF-8,  the system will write special
 %	characters as UTF-8 sequences, while  if   it  is ISO Latin-1 it
 %	will use (character) entities.
@@ -129,11 +133,24 @@ update_state(dtd(DTD), State) :- !,
 update_state(nsmap(Map), State) :- !,
 	set_state(State, nsmap, Map).
 update_state(indent(Indent), State) :- !,
+	must_be(Indent, integer),
 	set_state(State, indent, Indent).
+update_state(layout(Bool), State) :- !,
+	must_be(Bool, bool),
+	set_state(State, layout, Bool).
 update_state(doctype(_), _) :- !.
-update_state(header(_), _) :- !.
+update_state(header(Bool), _) :- !,
+	must_be(Bool, bool).
 update_state(Option, _) :-
 	throw(error(domain_error(xml_write_option, Option), _)).
+
+must_be(Arg, Type) :-
+	call(Type, Arg), !.
+must_be(Arg, Type) :-
+	throw(error(type_error(Type, Arg), _)).
+
+bool(true).
+bool(false).
 
 
 %	emit_xml_encoding(+Stream, +Options)
@@ -307,6 +324,7 @@ content([Atom], Out, Element, State) :-
 	sgml_write_content(Out, Atom, State),
 	emit_close(Element, Out, State).
 content(Content, Out, Element, State) :-
+	get_state(State, layout, true),
 	element_content(Content, Elements), !,
 	format(Out, '>', []),
 	\+ \+ (inc_indent(State),
@@ -507,6 +525,8 @@ write_initial_indent(State, Out) :-
 	;   true
 	).
 
+write_indent(State, _) :-
+	get_state(State, layout, false), !.
 write_indent(State, Out) :-
 	get_state(State, indent, Indent),
 	emit_indent(Indent, Out).
@@ -583,13 +603,15 @@ fill_entity_map([H|T], DTD, Map0, Map) :-
 		 *	      FIELDS		*
 		 *******************************/
 
-state(indent,     1).
-state(dtd,        2).
-state(entity_map, 3).
-state(dialect,	  4).
-state(nsmap,	  5).
+state(indent,     1).			% current indentation
+state(layout,	  2).			% use layout (true/false)
+state(dtd,        3).			% DTD for entity names
+state(entity_map, 4).			% compiled entity-map
+state(dialect,	  5).			% xml/sgml
+state(nsmap,	  6).			% defined namespaces
 
 new_state(state(0,			% indent
+		true,			% layout
 		-,			% DTD
 		EntityMap,		% entity_map
 		xml,			% dialect

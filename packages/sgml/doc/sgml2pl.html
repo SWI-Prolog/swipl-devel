@@ -1596,6 +1596,17 @@ If <var>Bool</var> is <a name="const:false%3"><b><tt>false</tt></b></a>, the XML
 embedding in other XML streams.
     
 <dt>&nbsp;<br>
+<b>layout(<var>Bool</var>)</b><dd>
+Do/do not emit layout characters to make the output readable, Default is
+to emit layout. With layout enabled, elements only containing other
+elements are written using increasing indentation. This introduces
+(depending on the mode and defined whitespace handling) CDATA sequences
+with only layout between elements when read back in.  If <a name="const:false%4"><b><tt>false</tt></b></a>, no
+layout characters are added.  As this mode does not need to analyse the
+document it is faster and guarantees correct output when read back.  Unfortunately the output is hardly human readable and cause problems with many
+editors.
+    
+<dt>&nbsp;<br>
 <b>indent(<var>Integer</var>)</b><dd>
 Set the initial element indentation.  It more than zero, the indent
 is written before the document.
@@ -1884,7 +1895,7 @@ deleted. This is not yet implemented.
 <li><a href="#const:entity"><b><tt>entity</tt></b></a>
 <li><a href="#const:error"><b><tt>error</tt></b></a>
 <li><a href="#const:explicit"><b><tt>explicit</tt></b></a>
-<li><a href="#const:false"><b><tt>false</tt></b></a> [ <a href="#const:false%2">2</a> <a href="#const:false%3">3</a>]
+<li><a href="#const:false"><b><tt>false</tt></b></a> [ <a href="#const:false%2">2</a> <a href="#const:false%3">3</a> <a href="#const:false%4">4</a>]
 <li><a href="#const:file"><b><tt>file</tt></b></a>
 <li><a href="#free_dtd/1"><b>free_dtd/1</b></a>
 <li><a href="#free_sgml_parser/1"><b>free_sgml_parser/1</b></a>
