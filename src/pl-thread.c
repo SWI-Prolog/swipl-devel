@@ -1632,7 +1632,31 @@ dispatch_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
 }
 
 #else
-#define dispatch_cond_wait(cond, mutex) pthread_cond_wait(cond, mutex)
+
+static int
+dispatch_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
+{ struct timeval now;
+  struct timespec timeout;
+  int rc;
+
+  for(;;)
+  { gettimeofday(&now, NULL);
+    timeout.tv_sec  = now.tv_sec;
+    timeout.tv_nsec = (now.tv_usec+250000) * 1000;
+
+    switch( (rc=pthread_cond_timedwait(cond, mutex, &timeout)) )
+    { case ETIMEDOUT:
+      { if ( LD->pending_signals )
+	  return EINTR;
+
+	continue;
+      }
+      default:
+	return rc;
+    }
+  }
+}
+
 #endif
 
 static int
@@ -1683,7 +1707,8 @@ get_message(message_queue *queue, term_t msg)
     queue->waiting_var += isvar;
     DEBUG(1, Sdprintf("%d: waiting on queue\n", PL_thread_self()));
     while( dispatch_cond_wait(&queue->cond_var, &queue->mutex) == EINTR )
-    { if ( PL_handle_signals() < 0 )	/* thread-signal */
+    { DEBUG(1, Sdprintf("%d: EINTR\n", PL_thread_self()));
+      if ( PL_handle_signals() < 0 )	/* thread-signal */
       { queue->waiting--;
 	queue->waiting_var -= isvar;
 	rval = FALSE;
@@ -1834,7 +1859,7 @@ unlocked_message_queue_create(term_t queue)
     return NULL;
   }
 
-  q = alignedAllocHeap(sizeof(*q));
+  q = PL_malloc(sizeof(*q));
   init_message_queue(q);
   q->id    = id;
   addHTable(queueTable, (void *)id, q);
@@ -1932,7 +1957,7 @@ PRED_IMPL("message_queue_destroy", 1, message_queue_destroy, 0)
   destroy_message_queue(q);
   s = lookupHTable(queueTable, (void *)q->id);
   deleteSymbolHTable(queueTable, s);
-  freeHeap(q, sizeof(*q));
+  PL_free(q);
   UNLOCK();
 
   succeed;
@@ -2114,7 +2139,7 @@ recursiveMutexUnlock(recursiveMutex *m)
 
 counting_mutex *
 allocSimpleMutex(const char *name)
-{ counting_mutex *m = alignedAllocHeap(sizeof(*m));
+{ counting_mutex *m = PL_malloc(sizeof(*m));
 
   simpleMutexInit(&m->mutex);
   m->count = 0L;
@@ -2149,7 +2174,7 @@ freeSimpleMutex(counting_mutex *m)
   UNLOCK();
 
   remove_string((char *)m->name);
-  freeHeap(m, sizeof(*m));
+  PL_free(m);
 }
 
 

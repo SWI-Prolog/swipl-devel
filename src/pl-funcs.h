@@ -28,7 +28,6 @@ word		outOfStack(Stack s, stack_overflow_action how);
 volatile void	outOfCore(void);
 Word		allocGlobal__LD(int words ARG_LD);
 void *		allocHeap__LD(size_t n ARG_LD);
-void *		alignedAllocHeap(size_t n);
 void		initMemAlloc(void);
 void		cleanupMemAlloc(void);
 void		mergeAllocPool(AllocPool to, AllocPool from);

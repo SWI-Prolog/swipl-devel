@@ -910,6 +910,7 @@ usage()
     "    -F file          System initialisation file\n",
     "    -s file          Script source file\n",
     "    [+/-]tty         Allow tty control\n",
+    "    -nosignals       Do not modify any signal handling\n",
     "    -O               Optimised compilation\n",
     "    -q               Quiet operation\n",
     NULL

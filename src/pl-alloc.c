@@ -424,31 +424,6 @@ cleanupMemAlloc(void)
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Align for arbitrary structures.  For now we'll use JMPBUF_ALIGNMENT
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-void *
-alignedAllocHeap(size_t n)
-{ GET_LD
-  char *ptr;
-#ifdef JMPBUF_ALIGNMENT
-  ptr = allocHeap__LD((n + JMPBUF_ALIGNMENT - ALIGN_SIZE) PASS_LD);
-
-  if ( JMPBUF_ALIGNMENT != ALIGN_SIZE )
-  { assert(JMPBUF_ALIGNMENT%ALIGN_SIZE == 0);
-
-    while((unsigned long)ptr % JMPBUF_ALIGNMENT)
-      ptr += ALIGN_SIZE;
-  }
-#else
-  ptr = allocHeap__LD(n PASS_LD);
-#endif
-
-  return ptr;
-}
-
-
 		 /*******************************
 		 *	 EXCHANGING POOLS	*
 		 *******************************/

@@ -7,6 +7,14 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Memory management problem in message_queue create/destroy.
+
+  * FIXED: proper hidden window handling in Windows version.  Shows up as
+    MS-Word not starting or very slowly on NT4 if a thread is blocked in
+    in thread_get_message/[1,2].
+
+  * ADDED: handle thread_signal/2 inside thread_get_message/[1,2].
+
   * FIXED: pl -o myexe --goal=hello,halt -c hello.pl (handling complex
     terms in --goal= and --toplevel=)
 
