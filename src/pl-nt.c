@@ -52,23 +52,37 @@ char *
 WinError()
 { int id = GetLastError();
   char *msg;
+  static WORD lang;
+  static lang_initialised = 0;
 
+  if ( !lang_initialised )
+    lang = MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_UK);
+
+again:
   if ( FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER|
 		     FORMAT_MESSAGE_IGNORE_INSERTS|
 		     FORMAT_MESSAGE_FROM_SYSTEM,
 		     NULL,			/* source */
 		     id,			/* identifier */
-		     LANG_ENGLISH,
+		     lang,
 		     (LPTSTR) &msg,
 		     0,				/* size */
 		     NULL) )			/* arguments */
   { Atom a = lookupAtom(msg);
 
     LocalFree(msg);
+    lang_initialised = 1;
 
     return stringAtom(a);
   } else
+  { if ( lang_initialised == 0 )
+    { lang = MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT);
+      lang_initialised = 1;
+      goto again;
+    }
+
     return "Unknown Windows error";
+  }
 }
 
 
@@ -136,7 +150,7 @@ System(char *command)
 
     return shell_rval;
   } else
-  { warning("shell('%s') failed: %d\n", command, WinError());
+  { warning("shell('%s') failed: %s\n", command, WinError());
     return -1;
   }
 }

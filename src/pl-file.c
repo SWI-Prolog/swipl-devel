@@ -1647,7 +1647,9 @@ pl_access_file(Word name, Word mode)
   if ( AccessFile(n, md) )
     succeed;
 
-  if ( md == ACCESS_WRITE && AccessFile(DirName(n), md) )
+  if ( md == ACCESS_WRITE && 
+       !AccessFile(n, ACCESS_EXIST) &&
+       AccessFile(DirName(n), md) )
     succeed;
 
   fail;

@@ -1,4 +1,4 @@
 #include "windows.h"
 
-MainIcon ICON pl.ico
-PceIcon  ICON xpce.ico
+SWI_Icon  ICON pl.ico
+XPCE_Icon ICON xpce.ico
