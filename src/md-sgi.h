@@ -58,11 +58,10 @@ want to start debugging.
 #define vfork()			fork()
 
 			/* terminal driver */
+#define O_READLINE		1
 #define O_TERMIOS 		1
-#define O_EXTEND_ATOMS 		1
-#define O_LINE_EDIT 		1
-#define O_MAP_TAB_ON_ESC	1
 #define O_FOLD 			0
+
 
 			/* Interfaces */
 #define O_PCE 			1

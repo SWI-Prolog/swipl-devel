@@ -203,32 +203,15 @@ this.
 
 		        TERMINAL DRIVER OPTIONS
 
+  O_READLINE
+      Use the GNU  library  readline.    This  library  is  distributed
+      separately from many ftp sites.  When 0 SWI-Prolog is supposed to
+      read its input just using getchar().
+
   O_TERMIOS
-      Use the System-V termio terminal driver. If not set the BSD sgtty
-      package is used.  Set this flag if you can!
-
-  O_EXTEND_ATOMS
-      Include automatic extension of atoms if the user  types  ^[  (ESC)
-      and inform the user about existing atoms on ^D similar to the Unix
-      4.2  and  newer  csh(1)  do  to  files.  It can be included if the
-      terminal driver allows for a second end-of-line character  (t_brkc
-      in  struct tchars) or has the new `termios' terminal driver.  This
-      is still somewhat experimental (in particular we should try to  be
-      a bit more selective than returning any atom).
-
-      The current implementation  also  allows  this  option  if  it  is
-      possible to read characters without waiting for a return.  See the
-      O_LINE_EDIT option.
-
-  O_LINE_EDIT
-      Makes Prolog reading terminal input in  Unix  cbreak  mode.   Line
-      editing  capabilities  are  provided by Prolog itself.  Allows for
-      O_EXTEND_ATOMS, even if the terminal driver does not  support  the
-      necessary options.
-
-  O_MAP_TAB_ON_ESC	1
-      Makes the prolog reader mapping the TAB character on ESC (for
-      extending atoms) when reading from a terminal.
+      Use   the   System-V   termio   terminal    driver.    Used   for
+      get_single_char/1 and by the tracer.  When 0 the user should type
+      a return after each tracer command.
 
   O_FOLD
       Integer specifying default line folding for your  OS.   0  implies
@@ -262,11 +245,10 @@ this.
 #define DEFAULT_PATH		":/usr/ucb:/bin:/usr/bin:/usr/local:.:"
 
 			/* terminal driver */
+#define O_READLINE		1
 #define O_TERMIOS 		1
-#define O_EXTEND_ATOMS 		1
-#define O_LINE_EDIT 		1
-#define O_MAP_TAB_ON_ESC	1
 #define O_FOLD 			0
+
 			/* Interfaces */
 #define O_PCE 			0
 

@@ -29,12 +29,12 @@
 #define O_FOREIGN		0
 #define O_STORE_PROGRAM		1
 #define DEFAULT_PATH		":/bin:/usr/bin:/usr/local:.:"
+
 			/* terminal driver */
+#define O_READLINE		1
 #define O_TERMIOS 		1
-#define O_EXTEND_ATOMS 		1
-#define O_LINE_EDIT 		0
-#define O_MAP_TAB_ON_ESC	1
 #define O_FOLD 			0
+
 			/* Interfaces */
 #define O_PCE 			0
 

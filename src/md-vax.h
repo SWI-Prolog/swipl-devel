@@ -42,11 +42,11 @@ of 1.5 is a bit different this md-file is not guarantied to work.
 #define DEFAULT_PATH		":/usr/ucb:/bin:/usr/bin:/usr/local/bin:.:";
 #define STREAM_OPEN_BIN_READ	"r"
 #define STREAM_OPEN_BIN_WRITE	"w"
+
 			/* terminal driver */
-#define O_TERMIOS		1	/* 1 suggested */
-#define O_EXTEND_ATOMS		1
-#define O_LINE_EDIT		1	/* 1 gives extra echo */
-#define O_MAP_TAB_ON_ESC	1
-#define O_FOLD			0
+#define O_READLINE		1
+#define O_TERMIOS 		1
+#define O_FOLD 			0
+
 			/* Interfaces */
 #define O_PCE			0

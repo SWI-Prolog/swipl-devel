@@ -43,10 +43,8 @@ NOTE:  This port is not yet complete.  Known problems:
 #define DESCRIPTOR_TABLE_SIZE	OPEN_MAX
 
 			/* terminal driver */
-#define O_TERMIOS 		0
-#define O_EXTEND_ATOMS 		1
-#define O_LINE_EDIT 		1
-#define O_MAP_TAB_ON_ESC	1
+#define O_TERMIOS 		1	/* Won't work!  Update! */
+#define O_READLINE		1
 #define O_FOLD 			0
 
 			/* Interfaces */

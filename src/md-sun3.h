@@ -52,12 +52,12 @@ Note: From SunOs 4.1.1 this fix appears no longer necessary.
 #define O_STRUCT_DIRECT		1
 #define DIR_INCLUDE		<sys/dir.h>
 #endif
+
 			/* terminal driver */
-#define O_TERMIOS 		SUNOS_4
-#define O_EXTEND_ATOMS 		1
-#define O_LINE_EDIT 		1
-#define O_MAP_TAB_ON_ESC	1
+#define O_READLINE		1
+#define O_TERMIOS 		1
 #define O_FOLD 			0
+
 			/* Interfaces */
 #define O_PCE 			1
 

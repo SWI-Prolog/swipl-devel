@@ -404,6 +404,15 @@ char *s;
   return copy;
 }
 
+
+void
+remove_string(s)
+char *s;
+{ if ( s )
+    freeHeap(s, strlen(s)+1);
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Hash function for strings.  This function has been evaluated on Shelley,
 which defines about 5000 Prolog atoms.  It produces a very nice  uniform

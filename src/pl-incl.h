@@ -1258,6 +1258,7 @@ GLOBAL Procedure	PROCEDURE_garbage_collect0;
 
 extern struct code_info	codeTable[];
 
+
 		/********************************
 		*            DEBUGGER           *
 		*********************************/

@@ -263,8 +263,7 @@ clearBuffer()
 
 #if PROTO
 static void
-addToBuffer(
-register char c)
+addToBuffer(register char c)
 #else
 static void
 addToBuffer(c)
@@ -290,58 +289,6 @@ delBuffer()
   }
 }
 
-#if O_EXTEND_ATOMS
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Primitive functions to print and delete characters for  atom-completion.
-Should be abstracted from a bit and incorporated in the operating system
-interface.   As  this  model of atom-completion is unlikely to work on a
-non-Unix machine anyway this will do for the moment.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static void
-extendBeep()
-{ if ( status.beep == TRUE )
-  { putchar(07);		/* ^G: the bel */
-    fflush(stdout);
-  }
-}
-
-#if O_LINE_EDIT				/* otherwise, define in md.h */
-#define DEL_ESC	"\b\b  \b\b"
-#define DEL_EOF "\b\b  \b\b"
-#endif /* O_LINE_EDIT */
-
-static void
-extendDeleteEscape()
-{ printf(DEL_ESC);
-  fflush(stdout);
-}
-
-static void
-extendDeleteEof()
-{ printf(DEL_EOF);
-  fflush(stdout);
-}
-
-static void
-extendReprint(reprint)
-bool reprint;
-{ ttybuf buf;
-  char *s, *start = rb.here - 1;
-
-  for(; *start != '\n' && start >= rb.base; start-- ) ;
-  start++;
-  PushTty(&buf, reprint ? TTY_APPEND : TTY_RETYPE);
-  for( s=start; s < rb.here; s++ )
-    PretendTyped(*s);
-  PopTty(&buf);
-  while(rb.here > start)
-    delBuffer();
-  fflush(stdout);
-}
-
-#endif /* O_EXTEND_ATOMS */
 
 static Char
 getchr()
@@ -379,14 +326,17 @@ raw_read2()
   int newlines;
 
   clearBuffer();				/* clear input buffer */
-  prompt(FALSE);				/* give prompt */
   source_line_no = -1;
 
   for(;;)
   { c = getchr();
     DEBUG(3, if ( Input == 0 ) printf("getchr() -> %d (%c)\n", c, c));
     DEBUG(3, if ( Input == 0 ) printf("here = %d, base = %d", rb.here, rb.base));
-    if ( c == ttytab.tab.c_cc[ VEOF ] ) c = EOF ;
+#if !O_READLINE
+    if ( c == ttytab.tab.c_cc[VEOF] )		/* little hack ... */
+      c = EOF ;
+#endif
+
     switch(c)
     { case EOF:
 		if (seeingString())		/* do not require '. ' when */
@@ -397,29 +347,7 @@ raw_read2()
 		  return rb.base;
 		}
 		if (something_read)
-		{
-#if O_EXTEND_ATOMS
-		  if ( rb.doExtend == TRUE )
-		  { char *a;
-
-		    addToBuffer(EOS);		/* allocates if need be */
-		    delBuffer();
-		    a = rb.here - 1;
-		    for( ;a >= rb.base && isAlpha(*a); a--) ;
-		    a++;
-		    extendDeleteEof();
-		    if ( a >= rb.here || !isLower(*a) )
-		    { extendReprint(FALSE);
-		      extendBeep();
-		      break;
-		    }
-		    Put('\n');
-		    extendAlternatives(a);
-		    extendReprint(TRUE);
-		    break;
-		  }		  
-#endif /* O_EXTEND_ATOMS */
-		  rawSyntaxError("Unexpected end of file");
+		{ rawSyntaxError("Unexpected end of file");
 		}
       e_o_f:
 		strcpy(rb.base, "end_of_file. ");
@@ -506,43 +434,6 @@ raw_read2()
 		  rawSyntaxError("End of file in string");
 		addToBuffer(c);
 		break;
-#if O_EXTEND_ATOMS
-      case ESC: if ( rb.doExtend == TRUE )
-		{ char *a;
-		  char *extend;
-		  bool unique;
-
-		  addToBuffer(EOS);		/* allocates if need be */
-		  delBuffer();
-		  a = rb.here - 1;
-		  for( ;a >= rb.base && isAlpha(*a); a--) ;
-		  a++;
-		  if ( a >= rb.here || !isLower(*a) )
-		  { extendDeleteEscape();
-		    extendReprint(FALSE);
-		    extendBeep();
-		    break;
-		  }
-		  if ( (extend = extendAtom(a, &unique)) != (char *)NULL )
-		  { ttybuf buf;
-
-		    extendDeleteEscape();
-		    extendReprint(FALSE);
-		    PushTty(&buf, TTY_APPEND);
-		    while(*extend)
-		      PretendTyped(*extend++);
-		    PopTty(&buf);
-		    if ( unique == FALSE )
-		      extendBeep();
-		  } else
-		  { extendDeleteEscape();
-		    extendReprint(FALSE);
-		    extendBeep();
-		  }
-		  break;		  
-		}
-		/*FALLTHROUGH*/
-#endif /* O_EXTEND_ATOMS */
       case_default:				/* Hack, needs fixing */
       default:	if ( isBlank(c) )
 		{ long rd;
@@ -560,8 +451,6 @@ raw_read2()
 		    }
 		  }
 		  ensure_space(c);
-		  if ( c == '\n' )
-		    prompt(TRUE);
 		} else
 		{ addToBuffer(c);
 		  if ( c != '/' )	/* watch comment start */
@@ -577,16 +466,7 @@ raw_read()
 { char *s;
 
   startRead();
-#if O_EXTEND_ATOMS
-  if ( Input == 0 && status.notty == FALSE )
-  { ttybuf buf;
-
-    PushTty(&buf, TTY_EXTEND_ATOMS);
-    s = raw_read2();
-    PopTty(&buf);
-  } else
-#endif
-    s = raw_read2();
+  s = raw_read2();
   stopRead();
 
   return s;

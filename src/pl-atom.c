@@ -118,28 +118,32 @@ word h;
   fail;
 }
 
-#ifdef O_EXTEND_ATOMS
+		 /*******************************
+		 *	 ATOM COMPLETION	*
+		 *******************************/
 
-#define ALT_MAX 256		/* maximum number of alternatives */
 #define ALT_SIZ 80		/* maximum length of one alternative */
-
-#define IS_MODULE	0x1
-#define IS_FUNCTOR	0x2
-#define IS_PROCEDURE	0x4
-
+#define ALT_MAX 256		/* maximum number of alternatives */
 #define stringMatch(m)	(stringAtom((m)->name))
 
-typedef struct match *Match;
-
-struct match
-{ Atom	name;
-  short length;
-  short	flags;
-};
-
 forwards bool 	allAlpha P((char *));
-forwards short	type_flags P((Atom));
-forwards void	listAtoms P((int, Match));
+
+typedef struct match
+{ Atom	name;
+  int	length;
+} *Match;
+
+
+static bool
+allAlpha(s)
+register char *s;
+{ for( ; *s; s++)
+   if ( !isAlpha(*s) )
+     fail;
+
+  succeed;
+}
+
 
 char *
 extendAtom(prefix, unique)
@@ -207,80 +211,6 @@ const void * m1, * m2;
 }
 
 
-static short
-type_flags(name)
-Atom name;
-{ short flags;
-
-  flags = 0;
-  if ( isCurrentModule(name) != (Module) NULL )
-    flags |= IS_MODULE;
-  if ( atomIsFunctor(name) >= 0 )
-  { flags |= IS_FUNCTOR;
-    if ( atomIsProcedure(name) )
-      flags |= IS_PROCEDURE;
-  }
-
-  return flags;
-}
-
-
-static void
-listAtoms(nm, vm)
-int nm;
-Match vm;
-{ int maxlength = 8;
-  int columns, colwidth;
-  int rows, spaces;
-  int n, m, r, c;
- 
-  for(n = 0; n < nm; n++ )
-    if ( vm[n].length+3 > maxlength )
-      maxlength = vm[n].length+3;
-
-  columns = 78 / maxlength;
-  if ( columns == 0 )
-    columns = 1;
-  colwidth = 78 / columns;
-  rows = (nm + columns - 1) / columns;
-
-  for(r = 0; r < rows; r++)
-  { for(c = 0; c < columns; c++)
-    { n = c * rows + r;
-      if ( n >= nm )
-        continue;
-      Putf("%s", stringMatch(&vm[n]));
-      spaces = colwidth - vm[n].length;
-      if ( vm[n].flags & IS_MODULE )
-      { Put(':');
-	spaces--;
-      }
-      if ( vm[n].flags & IS_PROCEDURE )
-      { Put('*');
-	spaces--;
-      } else
-      { if ( vm[n].flags & IS_FUNCTOR )
-	{ Put('/');
-	  spaces--;
-	}
-      }
-      for( m=0; m < spaces; m++ )
-        Put(' ');
-    }
-    Put('\n');
-  }
-}
-
-static bool
-allAlpha(s)
-register char *s;
-{ for( ; *s; s++)
-   if ( !isAlpha(*s) )
-     fail;
-
-  succeed;
-}
-
 bool
 extend_alternatives(prefix, altv, altn)
 char *prefix;
@@ -304,7 +234,6 @@ int *altn;
     { Match m = &altv[(*altn)++];
       m->name = a;
       m->length = l;
-      m->flags = type_flags(m->name);
       if ( *altn > ALT_MAX )
 	break;
     }
@@ -315,17 +244,6 @@ int *altn;
   succeed;
 }
 
-bool
-extendAlternatives(prefix)
-char *prefix;
-{ struct match altv[ALT_MAX];
-  int altn;
-
-  extend_alternatives(prefix, altv, &altn);
-  listAtoms(altn, altv);
-
-  succeed;
-}
 
 word
 pl_atom_completions(prefix, alts)
@@ -351,4 +269,41 @@ Word prefix, alts;
   return unifyAtomic(alts, ATOM_nil);
 } 
 
-#endif /* O_EXTEND_ATOMS */
+
+#if O_READLINE
+
+char *
+atom_generator(prefix, state)
+char *prefix;
+int state;
+{ static Atom a;
+
+  if ( !state )
+  { assert(!a);
+    a = atomTable[0];
+  } 
+
+  for(; a; a=a->next)
+  { char *as;
+    int l;
+
+    while( isRef((word)a) )
+    { a = *((Atom *)unRef(a));
+      if ( !a )
+	return NULL;
+    }
+    
+    assert(a->type == ATOM_TYPE);
+    as = stringAtom(a);
+    if ( strprefix(as, prefix) &&
+	 allAlpha(as) &&
+	 (l = strlen(as)) < ALT_SIZ )
+    { a = a->next;
+      return as;
+    }
+  }
+
+  return NULL;
+}
+
+#endif /*O_READLINE*/

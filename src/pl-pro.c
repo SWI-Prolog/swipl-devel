@@ -116,7 +116,9 @@ pl_abort()
   { aborted = TRUE;
     succeed;
   }
+#if !O_READLINE
   PopTty(&ttytab);
+#endif
   resetRead();
   closeFiles();
   resetReferences();

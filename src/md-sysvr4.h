@@ -47,11 +47,10 @@ Port to System V Release 4.0 by Eric S. Raymond <esr@snark.thyrsus.com>
 #define TERMIO_INCLUDE		<termio.h>
 
 			/* terminal driver */
+#define O_READLINE		1
 #define O_TERMIOS 		1
-#define O_EXTEND_ATOMS 		1
-#define O_LINE_EDIT 		1
-#define O_MAP_TAB_ON_ESC	1
-#define O_FOLD 		 	0
+#define O_FOLD 			0
+
 			/* Interfaces */
 #define O_PCE 			1
 

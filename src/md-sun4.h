@@ -22,7 +22,7 @@ and libraries.  If you are not sure, run `which cc' which should yield
 #ifdef USE_CC				/* Sun cc (slower) */
 #define M_CC			cc
 #define M_OPTIMIZE		-O	/* O2 hardly helps */
-#define M_LDFLAGS		-Bstatic
+#define M_LDFLAGS		-Bstatic -L/usr/local/lib
 #define M_CFLAGS		
 #include <alloca.h>
 #else					/* gcc (preferred) */
@@ -34,7 +34,7 @@ and libraries.  If you are not sure, run `which cc' which should yield
 
 /*#define M_OPTIMIZE		-g -DO_SECURE*/
 
-#define M_LIBS			-lm -ltermcap
+#define M_LIBS			-lm -ltermcap -lreadline
 
 /* #define O_VMCODE_IS_ADDRESS	0	/* temporary */
 
@@ -59,11 +59,10 @@ and libraries.  If you are not sure, run `which cc' which should yield
 #define RANDOM()		random()
 
 			/* terminal driver */
+#define O_READLINE		1
 #define O_TERMIOS 		1
-#define O_EXTEND_ATOMS 		1
-#define O_LINE_EDIT 		1
-#define O_MAP_TAB_ON_ESC	1
 #define O_FOLD 			0
+
 			/* Interfaces */
 #define O_PCE 			1
 

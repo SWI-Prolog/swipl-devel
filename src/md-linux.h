@@ -28,11 +28,11 @@ appears not to be necessary with linux.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define M_CC			gcc
-#define M_OPTIMIZE	        -O6
-/*#define M_OPTIMIZE		-g*/
+/*#define M_OPTIMIZE	        -O6*/
+#define M_OPTIMIZE		-g
 #define M_LDFLAGS		
 #define M_CFLAGS		-funsigned-char
-#define M_LIBS			-lm -ltermcap
+#define M_LIBS			-lm -ltermcap -lreadline
 
 #define v7			1	/* Mostly v7 unix */
 
@@ -63,12 +63,12 @@ appears not to be necessary with linux.
 #define DIR_INCLUDE2		<dirent.h>
 #define TERMIO_INCLUDE		<termio.h>
 #define O_GETCWD		1
+
 			/* terminal driver */
+#define O_READLINE		1
 #define O_TERMIOS 		1
-#define O_EXTEND_ATOMS 		1
-#define O_LINE_EDIT 		1
-#define O_MAP_TAB_ON_ESC	1
-#define O_FOLD 		 	0
+#define O_FOLD 			0
+
 			/* Interfaces */
 #define O_PCE 			1
 

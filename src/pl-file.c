@@ -47,6 +47,8 @@ ttybuf	ttytab;				/* saved terminal status on entry */
 int	ttymode;			/* Current tty mode */
 
 static Atom prompt_atom;		/* current prompt */
+static char *first_prompt;		/* First-line prompt */
+static first_prompt_used;		/* flag */
 int    protocolStream = -1;		/* doing protocolling on stream <n> */
 
 static struct
@@ -67,13 +69,6 @@ static int   fold = O_FOLD;		/* default line folding */
 static int   fold = -1;			/* line folding */
 #endif
 
-#ifdef SIGSTOP
-#define JOBCONTROL 1
-#endif
-
-#if JOBCONTROL
-forwards void	stopHandler P((int));
-#endif
 forwards void	pipeHandler P((int));
 forwards void	protocol P((Char c, int mode));
 forwards bool	openStream P((word file, int mode, int fresh));
@@ -86,32 +81,6 @@ forwards bool	unifyStreamName P((Word, int));
 forwards bool	unifyStreamNo P((Word, int));
 forwards bool	setUnifyStreamNo P((Word, int));
 forwards bool	unifyStreamMode P((Word, int));
-
-
-#if JOBCONTROL
-/*  Signal handler for SIGTSTP (user typing  ^Z).  Restores the  terminal
-    flags  to when Prolog was started and restores them to their current
-    setting after the continue.
-
- ** Sun Jun 19 16:32:30 1988  jan@swivax.UUCP (Jan Wielemaker)  */
-
-static
-void
-stopHandler(sig)
-int sig;
-{ ttybuf tab;
-
-  if (novice == TRUE)
-  { warning("Job control (^Z) disabled");
-    return;
-  }
-
-  PushTty(&tab, TTY_SAVE);
-  PopTty(&ttytab);
-  kill(getpid(), SIGSTOP);		/* Who has SISSTOP probably also */
-  PopTty(&tab);				/* has kill() and getpid() */
-}
-#endif /* JOBCONTROL */
 
 #if PIPE
 static void
@@ -186,15 +155,9 @@ the Unix assumptions?
       warning("Stream %d is not open", n);
   }
 
-  ttymode = TTY_COOKED;			/* initial tty mode */
-  PushTty(&ttytab, TTY_COOKED);
-#if O_LINE_EDIT
-  stdin_driver.eol = ttytab.tab.c_cc[ VEOF ] ;
-#endif /* O_LINE_EDIT */
   ResetTty();
-#if JOBCONTROL
-  signal(SIGTSTP, stopHandler);
-#endif
+  ttymode = TTY_COOKED;
+  PushTty(&ttytab, TTY_SAVE);
 
   Input = 0;
   Output = 1;
@@ -408,6 +371,7 @@ getSingleChar()
 
   return c;
 }
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The central character output function.  Normally called  via  the  macro
@@ -735,22 +699,6 @@ closeProtocol()
   }
 
   succeed;
-}
-
-void
-prompt(always)
-bool always;
-{ if ( Input == 0 &&
-       inString == (char *) NULL &&
-       fileTable[Input].isatty &&
-       (always || ttyLinePos == 0))
-  { int oldOut = Output;
-
-    Output = 1;
-    Putf("%s", stringAtom(prompt_atom));
-    flush();
-    Output = oldOut;
-  }
 }
 
 
@@ -1091,6 +1039,25 @@ Word old, new;
   succeed;
 }
 
+
+word
+pl_prompt1(prompt)
+Word prompt;
+{ char *s;
+
+  if ( !(s = primitiveToString(*prompt, FALSE)) &&
+       !(s = listToString(*prompt)) )
+    return warning("prompt1/1: instantiation fault");
+
+  if ( first_prompt )
+    remove_string(first_prompt);
+  first_prompt = store_string(s);
+  first_prompt_used = FALSE;
+
+  succeed;
+}
+
+
 word
 pl_tab(n)
 Word n;
@@ -1106,6 +1073,19 @@ Word n;
 
   succeed;
 }
+
+
+char *
+PrologPrompt()
+{ if ( !first_prompt_used )
+  { first_prompt_used = TRUE;
+
+    return first_prompt;
+  }
+
+  return stringAtom(prompt_atom);
+}
+
 
 word
 pl_tab2(stream, n)

@@ -1521,84 +1521,131 @@ void *p;
 }
 #endif
 
-		/********************************
-		*        TERMINAL CONTROL       *
-		*********************************/
+#if O_READLINE
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Terminal control probably is the biggest mess.  One day (v7) things used
-to be simple.  New features made a mess of it.  System V then defined  a
-much  more powerful terminal interface using a single control structure.
-Unfortunately at this moment every Unix system seems  to  have  its  own
-driver:  v7  drivers, various extended versions of this and the System V
-drivers.
+#undef ESC				/* will be redefined ... */
+#include <readline/readline.h>
 
-SWI-Prolog uses the following terminal modes:
+int (*PL_dispatch_events)() = NULL;	/* event-dIspatching */
 
-  - If it wants to know what action to perform when in trace mode or has
-    trapped a signal (^C). In this  case  it  wants  the  input  without
-    waiting for a return and without echoing.
+static int
+event_hook()
+{ ttybuf tab;
+  int rval;
 
-  - If it is reading a Prolog term from the terminal.  In this  case  it
-    wants  to  trap ESC and EOF without waiting for a return in order to
-    do `atom-completion': finishing atoms after a unique prefix has been
-    typed by the user.  This mode askes for some sub-modes to let Prolog
-    act as if the characters are typed by the user.
+  PushTty(&tab, TTY_OUTPUT);
+  rval = (*PL_dispatch_events)();
+  PopTty(&tab);
 
-  - Prolog assumes the terminal is initialy in  `COOKED'  mode:  the  OS
-    reads  the characters from the terminal and allows for line editing.
-    The line is passed as a whole if the user hits return.
+  return rval;
+}
 
-As we usualy want to go back to the previous mode two  functions  should
-be provided by this layer of the terminal driver:
 
-    void PushTty(buf, mode)
-	 ttybuf *buf;
-	 int mode;
+Char
+GetChar()
+{ static char *line;			/* read line */
+  static char *line_p;			/* pointer in it */
+  Atom sfn = source_file_name;		/* save over call-back */
+  int  sln = source_line_no;
+  Char c;
 
-    Save the current settings in `buf' and switch to mode  `mode'.   The
-    type ttybuf should be defined in pl-os.h. Modes:
+  if ( ttymode == TTY_RAW )
+  { if ( PL_dispatch_events )
+    { for(;;)
+      { if ( (*PL_dispatch_events)() == PL_DISPATCH_INPUT )
+	{ char chr;
 
-	 TTY_SAVE		Only save current setting: do not change
-	 TTY_RAW		Non-Echoing, not waiting for return
-	 TTY_COOKED		Initial mode (asumes echo)
-	 TTY_EXTEND_ATOMS	Tty flushes on ESC, EOF and NL. Used by
-				read/1.
-	 TTY_RETYPE		Push back characters without showing them
-				on the terminal.
-	 TTY_APPEND		Push back characters, showing them on the
-				terminal.
+	  if (read(0, &chr, 1) == 0)
+	    c = EOF;
+	  else
+	    c = (Char) chr;
+	  break;
+	}
+      }
+    } else
+      c = getchar();
+  } else
+  { if ( !line )
+    { rl_event_hook = (PL_dispatch_events ? (Function *) event_hook
+					  : (Function *) NULL);
 
-    The  last  three  serve  for  the  atom-completion.   This  is  only
-    interesting  if  you  can  provide a function to fake input from the
-    user by the program.  if this cannot be done you may wish to include
-    the O_LINE_EDIT option, which  makes  Prolog  defines  it's  own  line
-    editing cababilities.
+      if ( !(line = readline(PrologPrompt())) )
+      { return EOF;
+      } else
+      { char *s;
+	  
+	for(s = line; *s; s++)
+	{ if ( !isBlank(*s) )
+	  { add_history(line);
+	    break;
+	  }
+	}
 
-    void PopTty(buf)
-	 ttybuf *buf;
+	line_p = line;
+      }
+    }
 
-    Restore the terminal into the mode saved in buf by a PushTty() call.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+    if ( *line )
+    { c = *line++;
+    } else
+    { free(line);
+      line = NULL;
+      c = '\n';
+    }
+  }
 
-#if O_LINE_EDIT
-#define CRLF		(0x0001)	/* map CR -> LF */
-#define Empty(d)	( (d)->in == (d)->out )
-#define Advance(p)	{ if ( ++(p) == QSIZE ) (p) = 0; }
-#define Retreat(p)	{ if ( --(p) < 0 ) (p) = QSIZE-1; }
+  source_line_no   = sln;
+  source_file_name = sfn;
+  return c;
+}
 
-struct tty_driver stdin_driver =
-{ Control('W'), Control('U'), Control('?'), Control('H'),
-  Control('D'), Control('['), Control('R'), Control('C'),
-  TTY_EXTEND_ATOMS,		/* mode */
-  0,			/* no lines yet */
-  TRUE,			/* line 0 is a tty */
-  0, 0, 0,		/* colunm, in, out */
-  CRLF			/* flags */
-};
-#endif /* O_LINE_EDIT */
 
-#if O_TERMIOS				/* System V termio system */
+static void
+prolog_complete(ignore, key)
+int ignore;
+int key;
+{ if ( rl_point > 0 && rl_line_buffer[rl_point-1] != ' ' )
+  { rl_begin_undo_group();
+    rl_complete(ignore, key);
+    if ( rl_point > 0 && rl_line_buffer[rl_point-1] == ' ' )
+      rl_delete(-1);
+    rl_end_undo_group();
+  } else
+    rl_complete(ignore, key);
+}
+
+
+static char **
+prolog_completion(text, start, end)
+char *text;
+int start, end;
+{ extern char *filename_completion_function P((char *, int));
+  extern char *rindex P((char *, char));
+  char **matches = NULL;
+
+  if ( (start == 0 && text[0] == '[') )	/* [file */
+    matches = completion_matches(&text[1],
+				 (Function *) filename_completion_function);
+  else if (start == 2 && strncmp(text, "['", 2))
+    matches = completion_matches(&text[2],
+				 (Function *) filename_completion_function);
+  else
+    matches = completion_matches(&text[start], atom_generator);
+
+  return matches;
+}
+
+
+void
+ResetTty()				/* used to initialise readline */
+{ rl_readline_name = "Prolog";
+  rl_attempted_completion_function = (Function *)prolog_completion;
+  rl_basic_word_break_characters = "\t\n\"\\'`@$><= [](){}+*/!";
+  rl_special_prefixes = "[";
+  rl_add_defun("prolog-complete", prolog_complete, '\t');
+}
+
+#if O_TERMIOS				/* System V/POSIX termio system */
 
 bool
 PushTty(buf, mode)
@@ -1613,52 +1660,18 @@ int mode;
     fail;
   tio = buf->tab;
   buf->mode = ttymode;
-
-  if ( mode != TTY_SAVE )
-    ttymode = mode;
-
-#if O_LINE_EDIT
-  stdin_driver.mode = mode;
-#endif
+  ttymode = mode;
 
   switch( mode )
-  { case TTY_SAVE:
-	succeed;
-#if O_EXTEND_ATOMS
-#if O_LINE_EDIT
-    case TTY_COOKED:
-    case TTY_RAW:
+  { case TTY_RAW:
 	tio.c_lflag &= ~(ECHO|ICANON);
 	tio.c_cc[VTIME] = 0, tio.c_cc[VMIN] = 1;
 	break;
-    case TTY_EXTEND_ATOMS:
-	tio.c_lflag &= ~(ICANON|ECHO|ECHOE);
-	tio.c_cc[VTIME] = 0, tio.c_cc[VMIN] = 1;
-	stdin_driver.erase  = tio.c_cc[VERASE];
-	stdin_driver.kill   = tio.c_cc[VKILL];
-	break;
-    case TTY_RETYPE:
-	break;
-    case TTY_APPEND:
-	break;
-#else /* O_LINE_EDIT */
-    case TTY_RAW:
-	tio.c_lflag &= ~(ECHO|ICANON);
-	tio.c_cc[VTIME] = 0, tio.c_cc[VMIN] = 1;
-	break;
-    case TTY_EXTEND_ATOMS:
-	tio.c_cc[VEOF]	= 0;			 /* disable EOF */
-	tio.c_cc[VEOL]  = ttytab.tab.c_cc[VEOF]; /* EOF: give alternatives */
-	tio.c_cc[VEOL2]	= ESC;			 /* ESC: complete */
-	break;
-    case TTY_RETYPE:
-	tio.c_lflag &= ~ECHO;
-	break;
-    case TTY_APPEND:
-	tio.c_lflag |= ECHO;
-	break;
-#endif /* O_LINE_EDIT */
-#endif /* O_EXTEND_ATOMS */
+    case TTY_OUTPUT:
+	tio.c_oflag |= (OPOST|ONLCR);
+        break;
+    case TTY_SAVE:
+        succeed;
     default:
 	sysError("Unknown PushTty() mode: %d", mode);
 	/*NOTREACHED*/
@@ -1677,9 +1690,7 @@ ttybuf *buf;
 {
   if ( status.notty )
     succeed;
-#if O_LINE_EDIT
-  stdin_driver.mode = buf->mode;
-#endif
+
   if ( ioctl(0, TCSETA, &buf->tab) )
     fail;
   ttymode = buf->mode;
@@ -1687,91 +1698,25 @@ ttybuf *buf;
   succeed;
 }
 
-#endif
+#else					/* Use Readline's functions */
 
-#if !O_TERMIOS && unix			/* Unix with (old) sgtty() driver */
 
 bool
 PushTty(buf, mode)
 ttybuf *buf;
 int mode;
-{ struct tchars chrs;
-  struct sgttyb flgs;
-  bool flags_set = FALSE;
-  bool chars_set = FALSE;
-
-  if ( status.notty )
-    succeed;
-
-  DEBUG(1, printf("PushTty(0x%x, %d)\n", buf, mode));
-
-  if ( ioctl(0, TIOCGETP, &buf->tab) ||
-       ioctl(0, TIOCGETC, &buf->chars) )
-  { DEBUG(1, printf("Failed to get terminal parameters: %s\n", OsError()));
-    fail;
-  }
-
-  flgs = buf->tab;
-  chrs = buf->chars;
-  buf->mode = ttymode;
-
-  if ( mode != TTY_SAVE )
-    ttymode = mode;
-
-#if O_LINE_EDIT
-  stdin_driver.mode = mode;
-#endif
-
-  switch( mode )
-  { case TTY_SAVE:
-#if !O_LINE_EDIT
+{ switch(mode)
+  { case TTY_RAW:
+      rl_prep_terminal();
+      break;
     case TTY_COOKED:
-#endif
-	succeed;
-#if O_LINE_EDIT
-    case TTY_COOKED:
-#endif
-    case TTY_RAW:
-	flgs.sg_flags &= ~(ECHO);
-	flgs.sg_flags |= CBREAK;
-	flags_set = TRUE;
-	break;
-#if O_LINE_EDIT
-    case TTY_EXTEND_ATOMS:
-	flgs.sg_flags &= ~(ECHO);
-	flgs.sg_flags |= CBREAK;
-	stdin_driver.erase = flgs.sg_erase;
-	stdin_driver.kill  = flgs.sg_kill;
-	flags_set = TRUE;
-	break;
-    case TTY_RETYPE:
-    case TTY_APPEND:
-	break;
-#else /* O_LINE_EDIT */
-    case TTY_EXTEND_ATOMS:
-	chrs.t_brkc = ESC;		/* ESC, EOF already on 04 */
-	chars_set = TRUE;
-	break;
-    case TTY_RETYPE:
-	flgs.sg_flags &= ~ECHO;
-	flags_set = TRUE;
-	break;
-    case TTY_APPEND:
-	flgs.sg_flags |= ECHO;
-	flags_set = TRUE;
-	break;
-#endif /* O_LINE_EDIT */
-    default:
-	sysError("Unknown PushTty() mode: %d", mode);
-	/*NOTREACHED*/
+      rl_deprep_terminal();
+      break;
   }
-
-  if ( flags_set )
-    if ( ioctl(0, TIOCSETN, &flgs) != 0 )
-      return warning("Failed to set terminal flags: %s", OsError());
-  if ( chars_set )
-    if ( ioctl(0, TIOCSETC, &chrs) != 0 )
-      return warning("Failed to set terminal characters: %s", OsError());
+    
+  if ( buf )
+    buf->mode = mode;
+  ttymode = mode;
 
   succeed;
 }
@@ -1780,408 +1725,18 @@ int mode;
 bool
 PopTty(buf)
 ttybuf *buf;
-{ if ( status.notty )
-    succeed;
-
-  if ( ioctl(0, TIOCSETN, &buf->tab) ||
-       ioctl(0, TIOCSETC, &buf->chars) )
-    fail;
-  ttymode = buf->mode;
-
-  succeed;
-}
-#endif /* unix && !O_TERMIOS */
-
-#if tos					/* ATARI_ST, running TOS */
-bool
-PushTty(buf, mode)
-ttybuf *buf;
-int mode;
-{ if ( mode != TTY_SAVE )
-    ttymode = mode;
-
-  switch( mode )
-  { case TTY_SAVE:
-	buf->mode = stdin_driver.mode;
-	succeed;
-    case TTY_RAW:
-    case TTY_EXTEND_ATOMS:
-    case TTY_RETYPE:
-    case TTY_APPEND:
-	stdin_driver.mode = mode;
-	succeed;			/* to be implemented later */
-    default:
-	return sysError("Unknown PushTty() mode: %d", mode);
-	/*NOTREACHED*/
-  }
+{ return PushTty(NULL, buf->mode);
 }
 
-bool
-PopTty(buf)
-ttybuf *buf;
-{ stdin_driver.mode = buf->mode;
-  ttymode = buf->mode;
-  succeed;
-}
-#endif /* tos */
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    void ResetTty()
-
-    Reset terminal to a sensible state after an abort ore restore()
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-void
-ResetTty()
-{
-#ifdef RESET_STDIN
-  RESET_STDIN;
-#else
-#if unix
-#if linux				/* actually gcc libc (4.3.3) */
-  stdin->_gptr = stdin->_egptr;
-#else
-  stdin->_ptr = stdin->_base;
-  stdin->_cnt = 0;
-#endif
-#endif
-#if EMX
-  stdin->ptr = stdin->buffer;
-  stdin->rcount = 0;
-  stdin->wcount = 0;
-#endif
-  clearerr(stdin);
-#endif
-
-#if O_LINE_EDIT
-  stdin_driver.in = stdin_driver.out = 0;
-  stdin_driver.emitting = 0;
-#if unix || EMX
-  stdin_driver.isatty = isatty(fileno(stdin));
-#endif
-#if tos
-  stdin_driver.isatty = TRUE;		/* how to find out? */
-#endif
-#endif /* O_LINE_EDIT */
-}
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    void PretendTyped(c)
-         char c;
-
-    Pretend the user typed character `c'. If the tty mode is  TTY_RETYPE
-    the  character  should  just  be  pushed  in  the  input buffer.  If
-    TTY_APPEND it should also be echoed to the user.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#if O_EXTEND_ATOMS && !O_LINE_EDIT
-void
-PretendTyped(c)
-char c;
-{ ioctl(0, TIOCSTI, &c);
-}
-#endif /* O_EXTEND_ATOMS */
-
-#if O_LINE_EDIT
-		/********************************
-		*         LINE EDITING          *
-		*********************************/
-
-forwards bool	tty_erase P((struct tty_driver *));
-forwards void	tty_werase P((struct tty_driver *));
-forwards void	tty_kill P((struct tty_driver *));
-forwards void	tty_reprint P((struct tty_driver *));
-forwards bool	tty_insert P((struct tty_driver *, Char));
-forwards void	add_char P((struct tty_driver *, Char));
-forwards Char	get_edit_char P((struct tty_driver *));
-forwards bool	tty_endsline P((struct tty_driver *, Char));
-forwards void	tty_putc P((Char));
-forwards void	tty_putstr P((char *));
-
-static void
-tty_putc(c)
-Char c;
-{
-#if OS2 && EMX
-  if (c == '\n')
-    putchar('\r');
-#endif
-
-#if unix || EMX
-  putchar(c);
-#endif
-
-#if tos
-  if ( c == '\n' )
-    putch('\r');
-  putch(c);
-#endif
-}
-
-static void
-tty_putstr(s)
-char *s;
-{ for( ; *s; s++ )
-    tty_putc(*s);
-}
-
-static bool
-tty_erase(d)
-register struct tty_driver *d;
-{ Char c;
-
-  if ( Empty(d) )
-    fail;
-
-  Retreat(d->in);
-  switch( c = d->queue[d->in] )
-  { case '\t':		do
-			{ tty_putc('\b');
-			  d->column--;
-			} while( d->column % 8 );
-			break;
-    default:		if ( c < ' ' || c == 127 )
-			{ tty_putstr("\b\b  \b\b");
-			  d->column -= 2;
-			} else
-			{ d->column--;
-			  tty_putstr("\b \b");
-			  break;
-			}
-  }  
-
-  succeed;
-}
-
-static void
-tty_werase(d)
-register struct tty_driver *d;
-{ int last;
-
-  do
-  { last = d->in;
-    Retreat(last);
-  } while( isBlank(d->queue[last]) && tty_erase(d) );
-
-  do
-  { last = d->in;
-    Retreat(last);
-  } while( !isBlank(d->queue[last]) && tty_erase(d) );
-}
-
-static void
-tty_kill(d)
-register struct tty_driver *d;
-{ while( tty_erase(d) )
-   ;
-}
-
-static bool
-tty_endsline(d, c)
-register struct tty_driver *d;
-Char c;
-{ return c == '\n' || c == d->eol || c == d->eol2;
-}
-
-static bool
-tty_insert(d, c)
-register struct tty_driver *d;
-Char c;
-{ d->queue[d->in] = c;
-  Advance(d->in);
-
-  if ( tty_endsline(d, c) )
-    d->emitting++;
-
-  if ( d->mode != TTY_RETYPE )
-  { switch(c)
-    { case '\t':
-	  tty_putc(c);
-	  d->column = ((d->column + 8)/8)*8;
-	  break;
-      case '\n':
-	  tty_putc(c);
-	  d->column = 0;
-	  break;
-      default:
-	  if ( c < ' ' || c == 127 )
-	  { tty_putc('^');
-	    tty_putc(c < ' ' ? c + '@' : '?');
-	    d->column += 2;
-	  } else
-	  { tty_putc(c);
-	    d->column++;
-	  }
-    }
-  }
-
-  succeed;
-}
-
-static void
-tty_reprint(d)
-register struct tty_driver *d;
-{ int n;
-
-  tty_putc('\n');
-  for(n = d->out; n != d->in; )
-  { tty_putc(d->queue[n]);
-    Advance(n)
-  }
-}
-
-void
-TtyAddChar(c)
-Char c;
-{ add_char(&stdin_driver, c);
-}
-
-static void
-add_char(d, c)
-register struct tty_driver *d;
-Char c;
-{ if ( d->flags & CRLF && c == '\r' )
-    c = '\n';
-
-  if ( c == d->werase )
-    tty_werase(d);
-  else if ( c == d->erase || c == d->erase2 )
-    tty_erase(d);
-  else if ( c == d->kill )
-    tty_kill(d);
-  else if ( c == d->reprint )
-    tty_reprint(d);
-  else if ( c == d->intr )
-  { d->in = d->out = 0;		/* empty queue */
-    d->emitting = 0;
-    interruptHandler(3);
-  }
-  else
-    tty_insert(d, c);
-
-  fflush(stdout);		/* needed to get unbuffered output after a */
-			      	/* dump on hpux */
-}
-
-#if unix || EMX
-#define GETC()	do_get_char()
-#endif
-#if tos
-#define GETC()	tos_getch()
-
-static Char
-tos_getch(void)
-{ long t = clock();
-  Char c = getch();
-  wait_ticks += clock() - t;
-
-  return c == '\r' ? '\n' : c;
-}
-#endif
-
-static Char
-GetCMap()
-{ Char c = GETC();
-
-#if O_MAP_TAB_ON_ESC
-  if ( c == '\t' )
-    c = ESC;
-#endif
-
-  return c;
-}
-
-
-static Char
-get_edit_char(d)
-register struct tty_driver *d;
-{ Char c;
-  
-  if ( status.notty || !d->isatty )
-    return do_get_char();
-
-  DEBUG(3, printf("entering get_edit_char(); d->in = %d, d->out = %d\n",
-		  d->in, d->out));
-  if ( d->mode == TTY_RAW )
-  { if ( Empty(d) )
-      return GetCMap();
-  } else
-  { while( d->emitting == 0 )
-      add_char(d, GetCMap());
-  }
-  
-  c = d->queue[d->out];
-  DEBUG(3, printf("Returning %d (%c) from %d\n", c, c, d->out));
-  Advance(d->out);
-  if ( tty_endsline(d, c) )
-    d->emitting--;    
-
-  return c;
-}
-
-#if PROTO
-void
-PretendTyped(char c)
-#else
-void
-PretendTyped(c)
-char c;
-#endif
-{ struct tty_driver *d = &stdin_driver;
-
-  tty_insert(d, c);  
-  d->emitting = FALSE;
-}
-
-#endif /* O_LINE_EDIT */
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Read a character.   When using PCE  we  should be  prepared to  handle
-notification correctly here.  Otherwise live is simple.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-int (*PL_dispatch_events)() = NULL;
-
-static Char
-do_get_char()
-{ Char c;
-
-  if ( PL_dispatch_events != NULL )
-  { Atom sfn = source_file_name;	/* save over call-back */
-    int  sln = source_line_no;
-
-    DEBUG(3, printf("do_get_char() --> "));
-    for(;;)
-    { if ( (*PL_dispatch_events)() == PL_DISPATCH_INPUT )
-      { char chr;
-
-	if (read(0, &chr, 1) == 0)
-	  c = EOF;
-	else
-	  c = (Char) chr;
-	break;
-      }
-    }
-
-    source_line_no   = sln;
-    source_file_name = sfn;
-    DEBUG(3, printf("%d (%c) --> ", c, c));
-  } else
-    c = (Char) getchar();
-
-  return c;
-}
-
+#endif O_TERMIOS
+#else /*!O_READLINE*/
 
 Char
 GetChar()
-{
-#if O_LINE_EDIT
-  return (Char) get_edit_char(&stdin_driver);
-#else
-  return do_get_char();
-#endif
+{ return getchar();
 }
+
+#endif /*O_READLINE*/
 
 		/********************************
 		*      ENVIRONMENT CONTROL      *
@@ -2387,8 +1942,10 @@ char *cmd;
 /*if ((shell = getenv("SHELL")) == (char *)NULL) bourne shell for speed now */
     shell = "/bin/sh";
 
+#if !O_READLINE
   PushTty(&buf, TTY_SAVE);
   PopTty(&ttytab);			/* restore cooked mode */
+#endif
 
   if ( (pid = vfork()) == -1 )
   { return warning("Fork failed: %s\n", OsError());
@@ -2451,7 +2008,9 @@ char *cmd;
 #ifdef SIGTSTP
   signal(SIGTSTP, old_stop);
 #endif /* SIGTSTP */
+#if !O_READLINE
   PopTty(&buf);
+#endif
 
   return rval;
 }

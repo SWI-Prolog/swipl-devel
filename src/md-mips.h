@@ -40,12 +40,12 @@ cooperate does not allow calling of vsprintf(), etc.
 #define TEXT_START		0x400000
 #define DATA_START		0x10000000
 #define O_DATA_AT_OX1		1
+
 			/* terminal driver */
+#define O_READLINE		1
 #define O_TERMIOS 		1
-#define O_EXTEND_ATOMS 		1
-#define O_LINE_EDIT 		1
-#define O_MAP_TAB_ON_ESC	1
 #define O_FOLD 			0
+
 			/* Interfaces */
 #define O_PCE 			1
 

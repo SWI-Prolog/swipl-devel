@@ -195,13 +195,10 @@ extern real	  CpuTime P((void));
 		*********************************/
 
 #define TTY_COOKED	 1		/* Initial mode: echo */
-#define TTY_EXTEND_ATOMS 2		/* Atom-completion Mode: echo */
-#define TTY_APPEND	 3		/* Add input from Prolog: echo */
-#define TTY_RAW		 4		/* Non-blocking, non-echo */
-#define TTY_RETYPE	 5		/* Retype input: non-echo */
-#define	TTY_SAVE	 6		/* Save parameters only */
+#define TTY_RAW		 2		/* Non-blocking, non-echo */
+#define TTY_OUTPUT	 3		/* enable post-processing */
+#define TTY_SAVE	 4		/* just save status */
 
-#if unix
 #if O_TERMIOS
 #ifdef TERMIO_INCLUDE
 #include TERMIO_INCLUDE
@@ -214,78 +211,22 @@ typedef struct
   int		mode;		/* Prolog;'s view on mode */
 } ttybuf;
 
-#else /* O_TERMIOS */
-
-#include <sgtty.h>
+#else /* !O_TERMIOS */
 
 typedef struct
-{ struct sgttyb tab;		/* saved tty flags */
-  struct tchars chars;		/* tty characters */
-  int		mode;		/* Prolog's view on mode */
+{ int		mode;		/* Prolog;'s view on mode */
 } ttybuf;
+
 #endif /* O_TERMIOS */
-
-#else
-#if OS2 && EMX
-#if O_TERMIOS
-#include <sys/termio.h>
-#include <sys/kbdscan.h>
-
-
-typedef struct
-{ struct termio tab;		/* saved tty status */
-  int		mode;		/* Prolog;'s view on mode */
-} ttybuf;
-
-#else /* ! O_TERMIOS */
-
-#include <sgtty.h>
-
-typedef struct
-{ struct sgttyb tab;		/* saved tty flags */
-  struct tchars chars;		/* tty characters */
-  int		mode;		/* Prolog's view on mode */
-} ttybuf;
-#endif /* O_TERMIOS */
-
-#else /* OS2 */
-#endif
-typedef struct
-{ int		mode;		/* Prolog's view on mode */
-} ttybuf;
-#endif /* unix */
 
 extern ttybuf	ttytab;			/* saved tty status */
 extern int	ttymode;		/* Current tty mode */
 
-#if O_LINE_EDIT
-#define QSIZE (256)
-extern struct tty_driver
-{ char  werase;         /* word erase character */
-  char  kill;           /* kill character */
-  char  erase;          /* erase character */
-  char  erase2;         /* alternative erase character */
-  char  eol;            /* alternative end-of-line */
-  char  eol2;           /* 2nd alternative end-of-line */
-  char  reprint;        /* reprint input */
-  char  intr;           /* interrupt */
-  int   mode;           /* mode of the driver */
-  int   emitting;       /* Lines available */
-  bool  isatty;         /* stdin actually is a terminal? */
-  int   column;         /* current cursor column */
-  int   in;             /* in-pointer in queue */
-  int   out;            /* out-pointer in queue */
-  short flags;          /* FLAGS */
-  char  queue[QSIZE];   /* character queue */
-} stdin_driver ;
-#endif /* O_LINE_EDIT */
 #define IsaTty(fd)	isatty(fd)
 
 extern bool PushTty P((ttybuf *, int mode));
 extern bool PopTty P((ttybuf *));
-extern void PretendTyped P((char));
 extern void ResetTty P((void));
-extern void TtyAddChar P((Char));
 
 
 		/********************************

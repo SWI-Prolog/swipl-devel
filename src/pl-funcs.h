@@ -76,6 +76,7 @@ word		pl_current_atom P((Word, word)),
 char *		extendAtom P((char *, bool *));
 bool		extendAlternatives P((char *));
 void		initAtoms P((void));
+char *		atom_generator P((char *, int));
 
 		/* pl-bags.c */
 word		pl_collect_bag P((Word, Word)),
@@ -137,6 +138,7 @@ word		vPutf P((char *, va_list)),
 		pl_noprotocol P((void)),
 		pl_protocolling P((Word)),
 		pl_prompt P((Word, Word)),
+		pl_prompt1 P((Word)),
 		pl_tab P((Word)),
 		pl_tab2 P((Word, Word)),
 		pl_tmp_file P((Word, Word)),
@@ -174,8 +176,7 @@ FILE *		checkInput P((int));
 void		initIO P((void)),
 		dieIO P((void)),
 		closeFiles P((void)),
-		newLineInput P((void)),
-		prompt P((bool));
+		newLineInput P((void));
 int		streamNo P((Word, int));
 
 		/* pl-glob.c */
