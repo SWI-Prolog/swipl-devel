@@ -357,7 +357,7 @@ concurrent(Times, 1, Goal) :- !,
 	forall(between(1, Times, _),
 	       ok(Goal)).
 concurrent(Times, Threads, Goal) :-
-	'$strip_module'(Goal, M, G),
+	strip_module(Goal, M, G),
 	message_queue_create(Done),
 	message_queue_create(Queue),
 	create_workers(Threads, M, Queue, Done),

@@ -50,7 +50,7 @@ open_resource(Name, Class, Handle) :-
 	open_resource(Name, Class, read, Handle).
 
 open_resource(Name, Class, RW, Handle) :-
-	$strip_module(Name, Module, RcName),
+	strip_module(Name, Module, RcName),
 	(   catch(Module:resource(RcName, Class, FileSpec),
 		  error(existence_error(procedure, Module:resource/3), _),
 		  user:resource(RcName, Class, FileSpec))

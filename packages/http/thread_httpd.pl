@@ -77,7 +77,7 @@ is not elegant.
 %					the HTTP reply.
 
 http_server(Goal, Options) :-
-	'$strip_module'(Goal, Module, G),
+	strip_module(Goal, Module, G),
 	select(port(Port), Options, Options1), !,
 	http_server(G, Module, Port, Options1).
 http_server(_Goal, _Options) :-
@@ -111,7 +111,7 @@ http_server(Goal, Module, Port, Options0) :-
 
 after_option(Options0, Module, Options) :-
 	select(after(After), Options0, Options1), !,
-	'$strip_module'(Module:After, MA, A),
+	strip_module(Module:After, MA, A),
 	Options = [after(MA:A) | Options1].
 after_option(Options, _, Options).
 
@@ -133,7 +133,7 @@ create_server(Socket, Goal, Port, Queue, Options) :-
 %	Enumerate the created servers.
 
 http_current_server(Goal, Port) :-
-	'$strip_module'(Goal, Module, G),
+	strip_module(Goal, Module, G),
 	current_server(Port, Module:G, _).
 
 

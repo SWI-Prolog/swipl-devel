@@ -52,7 +52,7 @@ qsave_program(File) :-
 
 qsave_program(FileSpec, Options0) :-
 	check_options(Options0),
-	'$strip_module'(FileSpec, Module, FileBase),
+	strip_module(FileSpec, Module, FileBase),
 	exe_file(FileBase, File),
 	option(Options0, autoload/true,	   Autoload,  Options1),
 	option(Options1, map/[],	   Map,	      Options2),
@@ -274,7 +274,7 @@ special_module(user).
 define_predicate(Head) :-
 	'$define_predicate'(Head), !.	% autoloader
 define_predicate(Head) :-
-	'$strip_module'(Head, _, Term),
+	strip_module(Head, _, Term),
 	functor(Term, Name, Arity),
 	throw(error(existence_error(procedure, Name/Arity), _)).
 
@@ -333,7 +333,7 @@ pred_attrib(discontiguous, P, $set_predicate_attribute(P, discontiguous, 1)).
 pred_attrib(notrace,       P, $set_predicate_attribute(P, trace,         0)).
 pred_attrib(show_childs,   P, $set_predicate_attribute(P, hide_childs,   0)).
 pred_attrib(indexed(Term), P, M:index(Term)) :-
-	$strip_module(P, M, _).
+	strip_module(P, M, _).
 
 predicate_attribute(P, Attribute) :-
 	pred_attrib(Attribute, P, _),

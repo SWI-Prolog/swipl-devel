@@ -97,7 +97,7 @@ pagehead(Head) -->
 	}, !,
 	html(Head).
 pagehead(Head) -->
-	{ '$strip_module'(Head, M, _),
+	{ strip_module(Head, M, _),
 	  hook_module(M, head(_,_,_))
 	}, !,
 	M:head(Head).
@@ -110,7 +110,7 @@ pagebody(Body) -->
 	}, !,
 	html(Body).
 pagebody(Body) -->
-	{ '$strip_module'(Body, M, _),
+	{ strip_module(Body, M, _),
 	  hook_module(M, body(_,_,_))
 	}, !,
 	M:body(Body).
@@ -126,7 +126,7 @@ hook_module(user, P) :-
 
 
 html(Spec) -->
-	{ '$strip_module'(Spec, M, T)
+	{ strip_module(Spec, M, T)
 	},
 	html(T, M).
 

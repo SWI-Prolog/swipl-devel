@@ -88,7 +88,7 @@ $in_library(Name, Arity) :-
 $define_predicate(Head) :-
 	$defined_predicate(Head), !.
 $define_predicate(Term) :-
-	$strip_module(Term, Module, Head),
+	strip_module(Term, Module, Head),
 	functor(Head, Name, Arity),
 	current_prolog_flag(autoload, true),
 	$find_library(Module, Name, Arity, LoadModule, Library),

@@ -83,13 +83,13 @@ dde_poke(Handle, Item, Data) :-
 
 dde_register_service(Template, Goal) :-
 	Template =.. [Service, Topic, Item, Value], !,
-	'$strip_module'(Goal, Module, PlainGoal),
+	strip_module(Goal, Module, PlainGoal),
 	'$dde_register_service'(Service, on),
 	asserta(win_dde:dde_service(Service, Topic, Item,
 				    Value, Module, PlainGoal)).
 dde_register_service(Template, Goal) :-
 	Template =.. [Service, Topic, Command], !,
-	'$strip_module'(Goal, Module, PlainGoal),
+	strip_module(Goal, Module, PlainGoal),
 	'$dde_register_service'(Service, on),
 	asserta(win_dde:dde_service(Service, Topic, -,
 				    Command, Module, PlainGoal)).

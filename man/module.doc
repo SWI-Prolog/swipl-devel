@@ -424,6 +424,13 @@ source_file/[1,2].
 Unify \arg{Module} with the context module of the current goal.
 context_module/1 itself is transparent.
 
+    \predicate{strip_module}{3}{+Term, -Module, -Plain}
+Used in module transparent or meta predicates to extract the referenced
+module and plain term. If \arg{Term} is a module-qualified term, i.e.\
+of the format \arg{Module}:\arg{Plain}, \arg{Module} and \arg{Plain}
+are unified to these values.  Otherwise \arg{Plain} is unified to
+\arg{Term} and \arg{Module} to the context module.
+
     \predicate{export}{1}{+Head}
 Add a predicate to the public list of the context module.  This implies
 the predicate will be imported into another module if this module is

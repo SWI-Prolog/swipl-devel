@@ -34,6 +34,7 @@
 	    '$version'/1,
 	    '$home'/1,
 	    '$argv'/1,
+	    '$strip_module'/3,
 	    displayq/1,
 	    displayq/2,
 	    concat/3,
@@ -141,3 +142,16 @@ free_variables(Term, Variables) :-
 
 checklist(Goal, List) :-
 	maplist(Goal, List).
+
+%	strip_module(+Term, -Module, -Plain)
+%	
+%	This used to be an internal predicate.  It was added to the XPCE
+%	compatibility library without $ and  since   then  used at manay
+%	places. From 5.4.1 onwards strip_module/3 is  built-in and the $
+%	variation is added here for compatibility.
+
+:- module_transparent
+	'$strip_module'/3.
+
+'$strip_module'(Term, Module, Plain) :-
+	strip_module(Term, Module, Plain).

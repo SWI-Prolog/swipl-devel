@@ -477,6 +477,7 @@ suggest predicates from a keyword.
 \predicatesummary{string_length}{2}{Determine length of a string}
 \predicatesummary{string_to_atom}{2}{Conversion between string and atom}
 \predicatesummary{string_to_list}{2}{Conversion between string and list of character codes}
+\predicatesummary{strip_module}{3}{Extract context module and term}
 \predicatesummary{style_check}{1}{Change level of warnings}
 \predicatesummary{sub_atom}{5}{Take a substring from an atom}
 \predicatesummary{sublist}{3}{Determine elements that meet condition}

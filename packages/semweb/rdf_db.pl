@@ -750,7 +750,7 @@ meta_options([Name=Value|T0], List) :-
 	meta_options([Opt|T0], List).
 meta_options([H0|T0], [H|T]) :-
 	(   H0 = convert_typed_literal(Handler)
-	->  '$strip_module'(Handler, M, P),
+	->  strip_module(Handler, M, P),
 	    H = convert_typed_literal(M:P)
 	;   H = H0
 	),

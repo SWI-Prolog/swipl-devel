@@ -73,7 +73,7 @@ system_module :-
 %	Transform a predicate into a system predicate. 
 
 lock_predicate(Spec, Arity) :-
-	$strip_module(Spec, Module, Name),
+	strip_module(Spec, Module, Name),
 	functor(Head, Name, Arity ),
 	$set_predicate_attribute(Module:Head, system, 1).
 
@@ -81,6 +81,6 @@ lock_predicate(Spec, Arity) :-
 %	Transform a system predicate into a normal system predicate.
 
 unlock_predicate(Spec, Arity) :-
-	$strip_module(Spec, Module, Name),
+	strip_module(Spec, Module, Name),
 	functor(Head, Name, Arity ),
 	$set_predicate_attribute(Module:Head, system, 0).

@@ -73,7 +73,7 @@ $dwim_correct_goal(Goal, Bindings, NewGoal) :-	% correct the goal
 	principal_predicates(C, DWIMs0, DWIMs),
 	correct_goal(Goal, Bindings, DWIMs, NewGoal).
 $dwim_correct_goal(Goal, _, NewGoal) :-
-	$strip_module(Goal, Module, G1),
+	strip_module(Goal, Module, G1),
 	functor(G1, Name, Arity),
 	$undefined_procedure(Module, Name, Arity, Action),
 	(   Action == error
@@ -89,8 +89,8 @@ existence_error(PredSpec) :-
 	throw(error(existence_error(procedure, PredSpec), _)).
 
 correct_goal(Goal, Bindings, [Dwim], DwimGoal) :-
-	$strip_module(Goal, _, G1), 
-	$strip_module(Dwim, DM, G2), 
+	strip_module(Goal, _, G1), 
+	strip_module(Dwim, DM, G2), 
 	functor(G1, _, Arity), 
 	functor(G2, Name, Arity), !, 
 	G1 =.. [_|Arguments], 
@@ -100,7 +100,7 @@ correct_goal(Goal, Bindings, [Dwim], DwimGoal) :-
 	goal_name(DwimGoal, Bindings, String),
 	$confirm(dwim_correct(String)).
 correct_goal(Goal, Bindings, Dwims, NewGoal) :-
-	$strip_module(Goal, _, G1), 
+	strip_module(Goal, _, G1), 
 	functor(G1, _, Arity), 
 	sublist($dwim:has_arity(Arity), Dwims, [Dwim]), !,
 	correct_goal(Goal, Bindings, [Dwim], NewGoal).
@@ -115,7 +115,7 @@ correct_goal(Goal, _, Dwims, _) :-
 	tag_modules/2.
 
 tag_module(T, M:T2) :-
-	$strip_module(T, M, T2).
+	strip_module(T, M, T2).
 
 tag_modules([], []).
 tag_modules([H0|T0], [H|T]) :-
@@ -123,7 +123,7 @@ tag_modules([H0|T0], [H|T]) :-
 	tag_modules(T0, T).
 
 has_arity(A, G) :-
-	$strip_module(G, _, G1), 
+	strip_module(G, _, G1), 
 	functor(G1, _, A).
 
 %	goal_name(+Goal, +Bindings, -Name)
@@ -164,7 +164,7 @@ goal_name_(Goal, String) :-
 	$find_predicate/2.
 
 $find_predicate(Spec, List) :-
-	$strip_module(Spec, M, S),
+	strip_module(Spec, M, S),
 	name_arity(S, Name, Arity),
 	context_module(C),
 	(   M == user
@@ -174,7 +174,7 @@ $find_predicate(Spec, List) :-
 	sort(L0, L1),
 	principal_predicates(C, L1, List).
 $find_predicate(Spec, List) :-
-	$strip_module(Spec, _M, S),
+	strip_module(Spec, _M, S),
 	name_arity(S, Name, Arity),
 	findall(Head, ('$in_library'(Name, Arity),
 		       functor(Head, Name, Arity)), List),
@@ -291,14 +291,14 @@ delete_defaults([H|T], L, [H|R]) :-
 	delete_defaults(T, L, R).
 
 find_public(Head, user:Term) :-
-	$strip_module(Head, M, Term),
+	strip_module(Head, M, Term),
 	current_predicate(_, user:Term),
 	$predicate_property(imported_from(M), user:Term), !.
 find_public(Head, Head).
 
 find_definition(C, Head, Principal) :-
 	$predicate_property(imported_from(Module), C:Head), !,
-	$strip_module(Head, _, Term),
+	strip_module(Head, _, Term),
 	$prefix_module(Module, C, Term, P0),
 	find_definition(C, P0, Principal).
 find_definition(_, Head, Head).
@@ -324,18 +324,18 @@ dwim_predicate_list(Head, DWIMs) :-
 dwim_predicate_list(Head, DWIMs) :-
 	setof(DWIM, $similar_module(Head, DWIM), DWIMs), !.
 dwim_predicate_list(Head, DWIMs) :-
-	$strip_module(Head, _, Goal),
+	strip_module(Head, _, Goal),
 	setof(Module:Goal, ( current_module(Module),
 			     current_predicate(_, Module:Goal)
 			   ), DWIMs).
 
 dwim_pred(Head, Dwim) :-
-	'$strip_module'(Head, Module, H),
+	strip_module(Head, Module, H),
 	default_module(Module, M),
 	'$dwim_predicate'(M:H, Dwim).
 
 $similar_module(Head, DwimModule:Goal) :-
-	$strip_module(Head, Module, Goal),
+	strip_module(Head, Module, Goal),
 	current_module(DwimModule),
 	dwim_match(Module, DwimModule),
 	current_predicate(_, DwimModule:Goal).

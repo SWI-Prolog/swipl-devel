@@ -51,7 +51,7 @@
 %	Call Goal whenever there is input on Stream.
 
 add_stream_to_pool(Stream, Action) :-
-	'$strip_module'(Action, Module, Plain),
+	strip_module(Action, Module, Plain),
 	register_stream(Stream, Module:Plain).
 
 register_stream(Stream, Goal) :-

@@ -344,7 +344,7 @@ load_module(Module) -->
 	[ ' into ~w'-[Module] ].
 
 goal_to_predicate_indicator(Goal, PI) :-
-	$strip_module(Goal, Module, Head),
+	strip_module(Goal, Module, Head),
 	functor(Head, Name, Arity),
 	user_predicate_indicator(Module:Name/Arity, PI).
 

@@ -63,7 +63,7 @@ win_has_menu :-
 win_insert_menu_item(Popup, --, Before, _Goal) :- !,
 	call($win_insert_menu_item(Popup, --, Before)). % fool check/0
 win_insert_menu_item(Popup, Item, Before, Goal) :-
-	$strip_module(Goal, Module, PlainGoal),
+	strip_module(Goal, Module, PlainGoal),
 	insert_menu_item(Popup, Item, Before, Module:PlainGoal).
 
 insert_menu_item(Popup, Item, Before, Goal) :-

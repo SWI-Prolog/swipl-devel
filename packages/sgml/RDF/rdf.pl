@@ -144,7 +144,7 @@ process_rdf(File, OnObject, Options0) :-
 	meta_options(Options0, Options),
 	option(base_uri(BaseURI), Options, []),
 	rdf_start_file(Options, Cleanup),
-	'$strip_module'(OnObject, Module, Pred),
+	strip_module(OnObject, Module, Pred),
 	nb_setval(rdf_object_handler, Module:Pred),
 	nb_setval(rdf_options, Options),
 	nb_setval(rdf_state, -),
@@ -272,7 +272,7 @@ meta_options([Name=Value|T0], List) :-
 	meta_options([Opt|T0], List).
 meta_options([H0|T0], [H|T]) :-
 	(   H0 = convert_typed_literal(Handler)
-	->  '$strip_module'(Handler, M, P),
+	->  strip_module(Handler, M, P),
 	    H = convert_typed_literal(M:P)
 	;   H = H0
 	),

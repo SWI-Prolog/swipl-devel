@@ -281,7 +281,7 @@ utter_referenced(Module:Head, N, _Ref, Text, Explanation) :-
 	
 xpce_method_id(Ref, Id) :-
 	clause(Head, _Body, Ref),
-	'$strip_module'(Head, _, H),
+	strip_module(Head, _, H),
 	arg(1, H, Id).
 
 

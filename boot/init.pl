@@ -867,7 +867,7 @@ $consult_goal(Path, Goal) :-
 load_files(Files) :-
 	load_files(Files, []).
 load_files(Files, Options) :-
-	$strip_module(Files, Module, TheFiles),
+	strip_module(Files, Module, TheFiles),
         with_mutex('$load', $load_files(TheFiles, Module, Options)).
 
 $load_files(Id, Module, Options) :-	% load_files(foo, [stream(In)])
@@ -887,7 +887,7 @@ $load_files(Spec, Module, Options) :-
 	expand_file_name(Spec, Files),
 	$load_files(Files, Module, [expand(false)|Options]).
 $load_files(File, Module, Options) :-
-	$strip_module(Module:File, Into, PlainFile),
+	strip_module(Module:File, Into, PlainFile),
 	$load_file(PlainFile, Into, Options).
 
 
@@ -1716,7 +1716,7 @@ $copy_args(_, _, _, _).
 phrase(RuleSet, Input) :-
 	phrase(RuleSet, Input, []).
 phrase(RuleSet, Input, Rest) :-
-	$strip_module(RuleSet, M, Plain),
+	strip_module(RuleSet, M, Plain),
 	$t_body(Plain, S0, S, Body),
 	Input = S0, Rest = S,
 	M:Body.
@@ -1824,7 +1824,7 @@ halt :-
 	$at_halt/1.
 
 at_halt(Spec) :-
-	$strip_module(Spec, Module, Goal),
+	strip_module(Spec, Module, Goal),
 	asserta(system:$at_halt(Module:Goal)).
 
 $run_at_halt :-

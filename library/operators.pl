@@ -78,7 +78,7 @@ to the generic SWI-Prolog library in version 5.3.9.
 %	in a matching call to pop_operators/0.
 
 push_operators(New) :-
-	'$strip_module'(New, Module, Ops0),
+	strip_module(New, Module, Ops0),
 	tag_ops(Ops0, Module, Ops),
 	assert_op(mark),
 	undo_operators(Ops, Undo),

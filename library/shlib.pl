@@ -126,7 +126,7 @@ load_foreign_library(Library) :-
 	load_foreign_library(Library, default(install)).
 
 load_foreign_library(LibFileSpec, Entry) :-
-	'$strip_module'(LibFileSpec, Module, LibFile),
+	strip_module(LibFileSpec, Module, LibFile),
 	with_mutex('$foreign',
 		   shlib:load_foreign_library(LibFile, Module, Entry)).
 

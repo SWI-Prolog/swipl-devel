@@ -426,15 +426,15 @@ pl_current_module(term_t module, term_t file, control_t h)
 }
 
 
-word
-pl_strip_module(term_t spec, term_t module, term_t term)
+static
+PRED_IMPL("strip_module", 3, strip_module, PL_FA_TRANSPARENT)
 { GET_LD
   Module m = (Module) NULL;
   term_t plain = PL_new_term_ref();
 
-  PL_strip_module(spec, &m, plain);
-  if ( PL_unify_atom(module, m->name) &&
-       PL_unify(term, plain) )
+  PL_strip_module(A1, &m, plain);
+  if ( PL_unify_atom(A2, m->name) &&
+       PL_unify(A3, plain) )
     succeed;
 
   fail;
@@ -901,4 +901,5 @@ BeginPredDefs(module)
   PRED_DEF("add_import_module", 3, add_import_module, 0)
   PRED_DEF("delete_import_module", 2, delete_import_module, 0)
   PRED_DEF("$module_property", 2, module_property, 0)
+  PRED_DEF("strip_module", 3, strip_module, PL_FA_TRANSPARENT)
 EndPredDefs

@@ -282,7 +282,7 @@ meta_predicate((Head, More)) :- !,
 	meta_predicate(Head), 
 	meta_predicate(More).
 meta_predicate(Spec) :-
-	'$strip_module'(Spec, M, Head),
+	strip_module(Spec, M, Head),
 	meta_predicate(M, Head).
 
 meta_predicate(M, Head) :-

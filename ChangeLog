@@ -7,8 +7,14 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
-VERSION 5.4.1 (September 28, 2004)
+VERSION 5.4.1 (September 30, 2004)
 ==================================
+
+  * ADDED/MODIFIED: strip_module/3 is now a public and documented
+    built-in.  The old undocumented '$strip_module'/3 has been moved
+    to the backward compatibility library.  Applications should not
+    notice the difference, but it is adviced to update your application
+    accordingly.
 
   * ADDED: '$btree_find_node'/4 to speed up binary tree handling.
 
@@ -16,7 +22,7 @@ VERSION 5.4.1 (September 28, 2004)
 
   * FIXED: nb_setarg/3 using compound terms.
 
-  * FIXED: Attributes should influence the standard order of terms for
+  * FIXED: Attributes should not influence the standard order of terms for
     variables.
 
   * FIXED: allow for ISO :- dynamic(a/2, b/3, c/4). style declarations.

@@ -394,13 +394,13 @@ current_predicate(Name, Term) :-
 	$c_current_predicate(Name, Term),
 	$defined_predicate(Term), !.
 current_predicate(Name, Term) :-
-	$strip_module(Term, Module, Head),
+	strip_module(Term, Module, Head),
 	default_module(Module, DefModule),
 	$c_current_predicate(Name, DefModule:Head),
 	$defined_predicate(DefModule:Head), !.
 current_predicate(Name, Term) :-
 	current_prolog_flag(autoload, true),
-	$strip_module(Term, Module, Head),
+	strip_module(Term, Module, Head),
 	functor(Head, Name, Arity),
 	$find_library(Module, Name, Arity, _LoadModule, _Library), !.
 
@@ -420,7 +420,7 @@ predicate_property(Pred, Property) :-
 	Property == undefined, !,
 	(   Pred = Module:Head,
 	    var(Module)
-	;   $strip_module(Pred, Module, Head)
+	;   strip_module(Pred, Module, Head)
 	), !,
 	current_module(Module),
 	Term = Module:Head,
@@ -731,7 +731,7 @@ garbage_collect :-
 	arithmetic_function/1.
 
 arithmetic_function(Spec) :-
-	$strip_module(Spec, Module, Term),
+	strip_module(Spec, Module, Term),
 	(   Term = Name/Arity
 	;   functor(Term, Name, Arity)
 	), !,

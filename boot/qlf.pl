@@ -47,7 +47,7 @@ qcompile([H|T]) :- !,
 	qcompile(H),
 	qcompile(T).
 qcompile(File) :-
-	$strip_module(File, Module, FileName),
+	strip_module(File, Module, FileName),
 	absolute_file_name(FileName,
 			   [ file_type(prolog),
 			     access(read)

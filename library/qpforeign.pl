@@ -361,7 +361,7 @@ make_C_init(Out, InstallFunc, Preds) :-
 	    get_foreign_head(Pred, _Func, Head),
 	    functor(Head, Name, Arity),
 	    wrapper_name(Head, Wrapper),
-	    '$strip_module'(Head, M, H),
+	    strip_module(Head, M, H),
 	    foreign_attributes(M:H, Atts),
 	    format(Out, '  { "~w", ~d, ~w, ~w },~n',
 		   [Name, Arity, Wrapper, Atts]),

@@ -116,7 +116,7 @@ $load_gnu_emacs_interface :-
 	$at_initialization/1.
 
 at_initialization(Spec) :-
-	$strip_module(Spec, Module, Goal),
+	strip_module(Spec, Module, Goal),
 	'$toplevel':assert($at_initialization(Module:Goal)).
 
 $run_at_initialization :-

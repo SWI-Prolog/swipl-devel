@@ -160,7 +160,7 @@ about :-
 		 *******************************/
 
 action(Action) :-
-	'$strip_module'(Action, Module, Plain),
+	strip_module(Action, Module, Plain),
 	Plain =.. [Name|Args],
 	gather_args(Args, Values),
 	Goal =.. [Name|Values],

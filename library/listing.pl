@@ -54,7 +54,7 @@ listing :-
 	context_module(Context),
 	current_predicate(_, Pred),
 	\+ predicate_property(Pred, imported_from(_)),
-	'$strip_module'(Pred, Module, Head),
+	strip_module(Pred, Module, Head),
 	functor(Head, Name, _Arity),
 	(   (   predicate_property(Pred, built_in)
 	    ;	sub_atom(Name, 0, _, _, $)
@@ -101,7 +101,7 @@ list_predicates(Preds, X) :-
 	unify_args(Pred, X),
 	nl, 
 	'$define_predicate'(Pred),
-	'$strip_module'(Pred, Module, Head), 
+	strip_module(Pred, Module, Head), 
         list_predicate(Module:Head, Context), 
         fail.
 list_predicates(_, _).
@@ -128,7 +128,7 @@ list_predicate(Pred, Context) :-
 	list_clauses(Pred, Context).
 
 decl_term(Pred, Context, Decl) :-
-	'$strip_module'(Pred, Module, Head),
+	strip_module(Pred, Module, Head),
 	functor(Head, Name, Arity),
 	(   (Module == system; Context == Module)
 	->  Decl = Name/Arity
@@ -163,7 +163,7 @@ write_declarations([H|T], Module) :-
 	write_declarations(T, Module).
 
 list_clauses(Pred, Source) :-
-	'$strip_module'(Pred, Module, Head), 
+	strip_module(Pred, Module, Head), 
 	clause(Pred, Body), 
 	    write_module(Module, Source), 
 	    portray_clause((Head:-Body)), 
@@ -175,7 +175,7 @@ write_module(Module, _) :-
 	format('~q:', [Module]).
 
 notify_changed(Pred) :-
-	'$strip_module'(Pred, user, Head),
+	strip_module(Pred, user, Head),
 	'$c_current_predicate'(_, system:Head),
 	\+ ( predicate_property(user:Head, imported_from(System)),
 	     (System == system ; import_module(System, system))

@@ -45,7 +45,7 @@
 	callable_predicate/1.
 
 strip_module(T, M, G) :-
-	'$strip_module'(T, M, G).
+	strip_module(T, M, G).
 
 auto_call(G) :-
 	G.
