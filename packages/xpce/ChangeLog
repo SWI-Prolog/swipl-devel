@@ -1,6 +1,10 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 5.1.7
+=============
+
+
 * FIXED: Image scaling and rotation in 24-bit colourmode for the X11
   version (memory corruption).
 

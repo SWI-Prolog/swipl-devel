@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 			
+VERSION 4.0.7
+=============
+
   * FIXED: stream_property/2 to report close_on_abort.  Was documented,
     but not implemented ...
 
