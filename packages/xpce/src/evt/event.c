@@ -133,10 +133,13 @@ initialiseEvent(EventObj e, Name id, Any window,
 
   if ( loc_still_posted )
   { if ( isAEvent(e, NAME_locMove) )
-    { DEBUG(NAME_locStill,
-	    Cprintf("Re-enabled loc-still on %s\n", pp(e->id)));
+    { DEBUG(NAME_locStill, Cprintf("Re-enabled loc-still on %s\n", pp(e->id)));
       loc_still_posted = FALSE;
     }
+  } else if ( isAEvent(e, NAME_area) ||
+	      isAEvent(e, NAME_deactivateKeyboardFocus) )
+  { DEBUG(NAME_locStill, Cprintf("Disabled loc-still on %s\n", pp(e->id)));
+    loc_still_posted = TRUE;
   }
 
   succeed;
