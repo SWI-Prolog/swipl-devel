@@ -153,21 +153,21 @@ little choice.
 
 static word
 pl_throw_abort()
-{ fid_t fid = PL_open_foreign_frame();
-  term_t ex = PL_new_term_ref();
-
-  pl_notrace();
+{ pl_notrace();
 
   if ( GD->critical > 0 )		/* abort in critical region: delay */
   { LD->aborted = TRUE;
     succeed;
+  } else
+  { fid_t fid = PL_open_foreign_frame();
+    term_t ex = PL_new_term_ref();
+
+    PL_put_atom(ex, ATOM_aborted);
+    PL_throw(ex);			/* use longjmp() to ensure */
+
+    PL_close_foreign_frame(fid);	/* should not be reached */
+    fail;				
   }
-
-  PL_put_atom(ex, ATOM_aborted);
-  PL_throw(ex);				/* use longjmp() to ensure */
-
-  PL_close_foreign_frame(fid);		/* should not be reached */
-  fail;				
 }
 
 
@@ -224,13 +224,14 @@ interpreter with the toplevel goal.
 bool
 prologToplevel(volatile atom_t goal)
 { bool rval;
+  volatile int aborted = FALSE;
 
 #ifndef O_ABORT_WITH_THROW
   if ( setjmp(abort_context) != 0 )
   { if ( LD->current_signal )
       unblockSignal(LD->current_signal);
     
-    goal = ATOM_abort;
+    aborted = TRUE;
   } else
 #endif
   { debugstatus.debugging = FALSE;
@@ -257,11 +258,20 @@ prologToplevel(volatile atom_t goal)
   can_abort = TRUE;
 #endif
   { fid_t fid = PL_open_foreign_frame();
-    Procedure p = lookupProcedure(lookupFunctorDef(goal, 0), MODULE_system);
 
     for(;;)
     { qid_t qid;
       term_t except;
+      Procedure p;
+      word gn;
+
+      if ( aborted )
+      { aborted = FALSE;
+	gn = ATOM_abort;
+      } else
+	gn = goal;
+
+      p = lookupProcedure(lookupFunctorDef(gn, 0), MODULE_system);
 
       qid = PL_open_query(MODULE_system, PL_Q_NORMAL, p, 0);
       rval = PL_next_solution(qid);
@@ -283,6 +293,7 @@ prologToplevel(volatile atom_t goal)
       PL_close_query(qid);
       break;
     }
+
     PL_discard_foreign_frame(fid);
   }
 #ifndef O_ABORT_WITH_THROW
