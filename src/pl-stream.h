@@ -148,7 +148,7 @@ typedef struct io_stream
 #define	SIO_SEEK_CUR	1	/* From current position.  */
 #define	SIO_SEEK_END	2	/* From end of file.  */
 
-__pl_export IOSTREAM *S__getiob(void);	/* get DLL's S__iob[] address */
+__pl_export IOSTREAM *S__getiob(void);	/* get DLL's __iob[] address */
 
 __pl_export_data IOFUNCTIONS Sfilefunctions;	/* OS file functions */
 __pl_export_data int	     Slinesize;		/* Sgets() linesize */
