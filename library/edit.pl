@@ -143,7 +143,9 @@ locate(Module:Name/Arity, [file(File), line(Line)]) :-
 	->  functor(Head, Name, Arity)
 	;   true
 	),
-	(   var(Module)
+	(   (   var(Module)
+	    ;	var(Name)
+	    )
 	->  NonImport = true
 	;   NonImport = false
 	),
