@@ -17,9 +17,10 @@ The    file    pl-extend.c,    copied    by    the    installation    to
 embedded application.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#include "pl-incl.h"
-
 #ifdef WIN32
+#include <process.h>
+#include <io.h>
+
 #define popen _popen
 #define pclose _pclose
 #define O_WRONLY _O_WRONLY
@@ -35,6 +36,8 @@ embedded application.
 #define EXT_OBJ "obj"
 #define OPT_DEBUG "/debug"
 #else /*WIN32*/
+#include "pl-incl.h"
+
 #define PROG_PL "pl"
 #define PROG_LD cc
 #define PROG_OUT "a.out"
@@ -164,6 +167,7 @@ error(int status)
   fprintf(stderr, "*** %s exit status %d\n", plld, status);
 
   exit(status);
+  return 1;				/* not reached */
 }
 
 
@@ -949,7 +953,13 @@ createOutput()
 { int ifd, ofd = -1;
 
   if ( verbose )
+  {
+#ifdef WIN32
+    printf("\tcopy /b %s+%s %s\n", ctmp, pltmp, out);
+#else
     printf("\tcat %s %s > %s\n", ctmp, pltmp, out);
+#endif
+  }
 
   if ( !fake )
   { if ( (ofd = open(out, O_WRONLY|O_CREAT|O_TRUNC|O_BINARY, 0666)) < 0 )
@@ -1054,5 +1064,5 @@ main(int argc, char **argv)
 
   removeTempFiles();
 
-  exit(0);
+  return 0;
 }

@@ -234,7 +234,6 @@ DdeCallback(UINT type, UINT fmt, HCONV hconv, HSZ hsz1, HSZ hsz2,
      { fid_t cid = PL_open_foreign_frame();
        term_t argv = PL_new_term_refs(3);
        predicate_t pred = PL_pred(FUNCTOR_dde_connect_confirm3, MODULE_dde);
-       int rval;
        int plhandle;
 
        if ( (plhandle = allocServerHandle(hconv)) >= 0 )
@@ -246,30 +245,28 @@ DdeCallback(UINT type, UINT fmt, HCONV hconv, HSZ hsz1, HSZ hsz2,
 	 PL_put_atom(   argv+1, hszToAtom(hsz1)); /* service */
 	 PL_put_integer(argv+2, plhandle);
 
-	 rval = PL_call_predicate(MODULE_dde, TRUE, pred, argv);
+	 PL_call_predicate(MODULE_dde, TRUE, pred, argv);
 	 PL_discard_foreign_frame(cid);
        } else
        { warning("No more DDE server handles");
-	 rval = FALSE;
        }
 
-       return (void *)rval; 
+       return NULL;
      }
      case XTYP_DISCONNECT:
      { fid_t cid = PL_open_foreign_frame();
        term_t argv = PL_new_term_refs(1);
        predicate_t pred = PL_pred(FUNCTOR_dde_disconnect1, MODULE_dde);
-       int rval;
        int plhandle = findServerHandle(hconv);
        
        if ( plhandle >= 0 && plhandle < MAX_CONVERSATIONS )
 	 server_handle[plhandle] = (HCONV)NULL;
 
        PL_put_integer(argv+0, plhandle);
-       rval = PL_call_predicate(MODULE_dde, TRUE, pred, argv);
+       PL_call_predicate(MODULE_dde, TRUE, pred, argv);
        PL_discard_foreign_frame(cid);
 
-       return (void *)rval;
+       return NULL;
      }
      case XTYP_EXECUTE:
      { int plhandle = findServerHandle(hconv);
