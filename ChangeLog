@@ -1,6 +1,12 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Quoted write issues around the ,.  Thanks to Jan Echternach.
+
+  * PORT: Added __unix__ definition for __APPLE__ in pl-incl.h, fixing
+    one of the problems on MacOS X Public Beta.  Thanks to Paulo
+    Moura.
+
   * ADDED: concat_atom/3 to work the other way around:
     concat_atom(X, -, 'aap-noot-mies') --> X = [aap, noot, mies]
 
