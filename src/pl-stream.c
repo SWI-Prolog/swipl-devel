@@ -51,6 +51,7 @@ locking is required.
 
 #define PL_KERNEL 1
 #include "pl-stream.h"
+#include <time.h>
 #include <sys/types.h>
 #include <errno.h>
 #ifdef HAVE_MALLOC_H
