@@ -59,11 +59,7 @@ initialise(B, File:file*, Name:[name]) :->
 	    send(B, pool, file),
 	    send(B, auto_save_mode, @on),
 	    send(@emacs_base_names, append, FileBaseName, B),
-	    (   get(@emacs_mode_list?members, find,
-		    message(@arg1?name, match, FileBaseName), Att)
-	    ->  send(B, slot, mode, Att?value)
-	    ;   send(B, slot, mode, @emacs_default_mode)
-	    ),
+	    send(B, determine_initial_mode),
 	    (	object(@emacs_mark_list)
 	    ->	ignore(send(@emacs_mark_list, loaded_buffer, B))
 	    ;	true
@@ -85,6 +81,24 @@ unlink(B) :->
 	;   true
 	),
 	send(B, send_super, unlink).
+
+:- pce_global(@emacs_interpreter_regex,
+	      new(regex('#!\\(\\S +\\)\\s '))).
+
+determine_initial_mode(B) :->
+	"Determine initial mode"::
+	(   (   send(@emacs_interpreter_regex, match, B),
+		get(@emacs_interpreter_regex, register_value, B, 1, Match),
+		To = @emacs_interpreter_mode_list
+	    ;   get(B, file, File),
+		get(File, base_name, Match),
+		To = @emacs_mode_list
+	    ),
+	    get(To?members, find,
+		message(@arg1?name, match, Match), Att)
+	->  send(B, slot, mode, Att?value)
+	;   send(B, slot, mode, @emacs_default_mode)
+	).
 
 
 attach(B, E:editor) :->

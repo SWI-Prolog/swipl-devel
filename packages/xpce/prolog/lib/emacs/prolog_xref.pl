@@ -445,10 +445,14 @@ do_xref_source_file(Spec, File) :-
 
 
 open_source(Src, Fd) :-
-	object(Src),
-	pce_open(Src, read, Fd).
-open_source(File, Fd) :-
-	open(File, read, Fd).
+	(   object(Src)
+	->  pce_open(Src, read, Fd)
+	;   open(Src, read, Fd)
+	),
+	(   peek_char(Fd, #)		% Deal with #! script
+	->  skip(Fd, 10)
+	;   true
+	).
 
 canonical_source(Object, Object) :-
 	object(Object), !.

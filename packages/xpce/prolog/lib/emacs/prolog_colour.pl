@@ -112,6 +112,10 @@ colourise_or_recenter(M) :->
 
 colourise_text_buffer(TB) :-
 	pce_open(TB, read, Fd),
+	(   peek_char(Fd, #)		% skip #! script line
+	->  skip(Fd, 10)
+	;   true
+	),
 	repeat,
 	    catch(read_term(Fd, Term,
 			    [ subterm_positions(TermPos),

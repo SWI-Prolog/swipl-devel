@@ -119,6 +119,7 @@ pce_ifhostproperty(prolog(swi),
 :- pce_global(@emacs_comment_column, new(number(40))).
 :- pce_global(@emacs_default_mode, new(var(value := script))).
 :- pce_global(@emacs_mode_list, make_emacs_mode_list).
+:- pce_global(@emacs_interpreter_mode_list, make_emacs_interpreter_mode_list).
 :- pce_global(@emacs_no_backup_list, make_no_backup_list).
 
 make_emacs_mode_list(Sheet) :-
@@ -148,6 +149,19 @@ default_emacs_mode('.*\\.cc$',				cpp).
 default_emacs_mode('.*\\.cpp$',				cpp).
 default_emacs_mode('.*\\.idl$',				cpp).
 default_emacs_mode('[Cc]ompose\\|README',		text).
+
+make_emacs_interpreter_mode_list(Sheet) :-
+	new(Sheet, sheet),
+	(   emacs_interpreter_mode(Regex, Mode),
+	       send(Sheet, value, regex(Regex), Mode),
+	    fail
+	;   true
+	).
+
+emacs_interpreter_mode('.*/pl',				prolog).
+emacs_interpreter_mode('.*/xpce',			prolog).
+emacs_interpreter_mode('.*/perl',			c).
+emacs_interpreter_mode('.*/awk',			c).
 
 %	Do not make backup of a file matching this pattern
 
