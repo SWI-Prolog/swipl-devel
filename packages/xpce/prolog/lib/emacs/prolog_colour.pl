@@ -44,8 +44,10 @@ setup_styles(M) :->
 
 reload_styles(M) :->
 	"Force reloading the styles"::
-	(   style_object(Name, Style),
+	retractall(style_name(_,_)),
+	(   style(Class, Name, Style),
 	    send(M, style, Name, Style),
+	    assert(style_name(Class, Name)),
 	    fail
 	;   true
 	).
@@ -223,8 +225,7 @@ colourise_goals(::(_Comment, Body), TB,	% XPCE <Comment>::Body construct
 	colour_item(pce(comment), TB, CommentPos),
 	colourise_goals(Body, TB, BodyPos).
 colourise_goals(Goal, TB, Pos) :-
-	colourise_goal(Goal, TB, Pos),
-	colourise_term_args(Goal, TB, Pos).
+	colourise_goal(Goal, TB, Pos).
 
 colourise_subgoals([], _, _, _).
 colourise_subgoals([Pos|T], N, Body, TB) :-
@@ -273,15 +274,44 @@ colourise_dcg_goal(Goal, TB, TermPos) :-
 colourise_dcg_goal(Goal, TB, Pos) :-
 	colourise_term_args(Goal, TB, Pos).
 
+
 %	colourise_goal(+Goal, +TB, +Pos).
 
-colourise_goal(Goal, TB, 
-	       term_position(_,_,FF,FT,_ArgPos)) :- !,
-	classify_goal(TB, Goal, Class),
-	colour_item(goal(Class), TB, FF-FT).
 colourise_goal(Goal, TB, Pos) :-
 	classify_goal(TB, Goal, Class),
-	colour_item(goal(Class), TB, Pos).
+	(   Pos = term_position(_,_,FF,FT,_ArgPos)
+	->  FPos = FF-FT
+	;   FPos = Pos
+	),
+	colour_item(goal(Class), TB, FPos),
+	colourise_goal_args(Goal, TB, Pos).
+
+%	colourise_goal_args(+Goal, +TB, +Pos)
+%
+%	Colourise the arguments to a goal.
+
+colourise_goal_args(use_module(Files), TB,
+		    term_position(_,_,_,_,[ArgPos])) :-
+	colourise_files(Files, TB, ArgPos).
+colourise_goal_args(Goal, TB, Pos) :-
+	colourise_term_args(Goal, TB, Pos).
+
+%	colourise_files(+Arg, +TB, +Pos)
+%
+%	Colourise the argument list of one of the file-loading predicates.
+
+colourise_files(List, TB, list_position(_,_,Elms,_)) :- !,
+	colourise_file_list(List, TB, Elms).
+colourise_files(Spec, TB, Pos) :-
+	(   xref_source_file(Spec, Path, TB)
+	->  colour_item(file(Path), TB, Pos)
+	;   colour_item(nofile, TB, Pos)
+	).
+
+colourise_file_list([], _, _).
+colourise_file_list([H|T], TB, [PH|PT]) :-
+	colourise_files(H, TB, PH),
+	colourise_file_list(T, TB, PT).
 
 %	colourise_term_args(+Term, +TB, +Pos)
 %
@@ -334,11 +364,30 @@ colour_item(Class, TB, Pos) :-
 	arg(1, Pos, F),
 	arg(2, Pos, T),
 	L is T - F,
-	new(_, emacs_colour_fragment(TB, F, L, Name)).
+	new(Fragment, emacs_colour_fragment(TB, F, L, Name)),
+	message(Class, Fragment).
 colour_item(_, _, _).
 	
 colour_item(Class, TB, F, T) :-
 	colour_item(Class, TB, F-T).
+
+:- pce_global(@prolog_mode_file_popup,
+	      make_prolog_mode_file_popup).
+
+make_prolog_mode_file_popup(G) :-
+	new(G, popup(file_options)),
+	send_list(G, append,
+		  [ menu_item(open,
+			      message(@emacs, open_file, @arg1?message)),
+		    menu_item(open_other_window,
+			      message(@emacs, open_file, @arg1?message, @on))
+		  ]).
+
+message(file(Path), F) :-
+	send(F, message, Path),
+	send(F, attribute, popup, @prolog_mode_file_popup).
+message(_, _).
+
 
 		 /*******************************
 		 *	  CONFIGURATION		*
@@ -362,7 +411,11 @@ classify_goal(_TB, Goal, autoload) :-			% SWI-Prolog
 	functor(Goal, Name, Arity),
 	'$in_library'(Name, Arity), !.
 classify_goal(_, SS, expanded) :-	% XPCE (TBD)
-	functor(SS, send_super, _), !.
+	functor(SS, send_super, A),
+	A >= 2, !.
+classify_goal(_, SS, expanded) :-	% XPCE (TBD)
+	functor(SS, get_super, A), 
+	A >= 3, !.
 classify_goal(_TB, _Goal, undefined).
 
 classify_head(TB, Goal, exported) :-
@@ -378,6 +431,15 @@ classify_head(_TB, _Goal, undefined).
 built_in_predicate(Goal) :-
 	predicate_property(system:Goal, built_in), !.
 built_in_predicate(module(_, _)).
+
+%	Goals loading files, so we can classify the files
+
+load_goal(use_module(F), F).
+load_goal(use_module(F, _), F).
+load_goal([H|T], [H|T]).
+load_goal(consult(F), F).
+load_goal(ensure_loaded(F), F).
+
 
 		 /*******************************
 		 *	       STYLES		*
@@ -408,6 +470,9 @@ style(method(_),	  style(bold       := @on)).
 style(var,		  style(colour	   := red4)).
 style(quoted_atom,        style(colour	   := blue4)).
 style(string,		  style(colour	   := blue4)).
+style(nofile,		  style(colour	   := red)).
+style(file(_),		  style(colour	   := blue,
+				underline  := @on)).
 
 style(identifier,	  style(bold       := @on)).
 style(expanded,		  style(colour	   := blue,
@@ -415,24 +480,13 @@ style(expanded,		  style(colour	   := blue,
 style(error,		  style(background := orange)).
 
 :- dynamic
-	style_name_cache/2.
+	style_name/2.
 
-style_name(Class, Name) :-
-	style_name_cache(Class, Name), !.
-style_name(Class, Name) :-
-	style(Class, _),
+style(Class, Name, Style) :-
+	style(Class, Style),
 	copy_term(Class, Copy),
 	numbervars(Copy, 0, _),
-	term_to_atom(Copy, Name),
-	assert(style_name_cache(Class, Name)).
-
-%	style_object(-Name, -Style)
-%
-%	Enumerate the registered styled.
-
-style_object(Name, Style) :-
-	style(Class, Style),
-	style_name(Class, Name).
+	term_to_atom(Copy, Name).
 
 
 %	term_colours(+Term, -FunctorColour, -ArgColours)

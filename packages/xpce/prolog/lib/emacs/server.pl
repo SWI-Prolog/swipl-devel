@@ -29,7 +29,7 @@
 
 make_emacs_server_address(F) :-
 	get(@pce, hostname, Host),
-	concat('~/.xpce_emacs_server.', Host, Server),
+	atom_concat('~/.xpce_emacs_server.', Host, Server),
 	new(F, file(Server)).
 
 

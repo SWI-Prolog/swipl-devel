@@ -888,8 +888,12 @@ variable(message,  string*,	     both, "Message displayed").
 identify(F) :->
 	(   get(F, message, Msg),
 	    Msg \== @nil
-	->  send(F?text_buffer, report, warning,
-		 string('%s: %s', F?severity, Msg))
+	->  get(F, severity, Severity),
+	    (	Severity == status
+	    ->	send(F?text_buffer, report, inform, Msg)
+	    ;	send(F?text_buffer, report, inform,
+		     string('%s: %s', F?severity, Msg))
+	    )
 	;   true
 	).
 

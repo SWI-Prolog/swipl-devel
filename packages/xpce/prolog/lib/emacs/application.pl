@@ -93,10 +93,10 @@ buffers(Emacs, Buffers:chain) :<-
 	get(Emacs?buffer_list?members, map, @arg1?object, Buffers).
 
 
-open_file(_Emacs, File:file) :->
+open_file(_Emacs, File:file, NewWindow:[bool]) :->
 	"Open a file"::
 	new(B, emacs_buffer(File)),
-	send(B, open).
+	send(B, open, NewWindow).
 
 
 find_file(Emacs, Dir:[directory]) :->

@@ -1026,9 +1026,21 @@ select_line(E, Line:int) :->
 
 event(M, Ev:event) :->
 	"Allow for gestures to be appended to modes"::
-	get(M, all_recognisers, Chain),
-	get(Chain, find,
-	    message(@arg1, event, Ev), _).
+	(   get(M, all_recognisers, Chain),
+		get(Chain, find,
+		    message(@arg1, event, Ev), _)
+	;   send(Ev, is_a, ms_right_down), % show fragment popup (if any)
+	    get(M?image, index, Caret),
+	    get(M?text_buffer, find_all_fragments,
+		message(@arg1, overlap, Caret),
+		Fragments),
+	    send(Fragments, sort, ?(@arg1?length, compare, @arg2?length)),
+	    get(Fragments, find, message(@arg1, has_get_method, popup), F),
+	    get(F, popup, P),
+	    new(G, popup_gesture(P)),
+	    send(G, context, F),	% make fragment available as @arg1
+	    send(G, event, Ev)
+	).
 
 
 		 /*******************************

@@ -15,7 +15,8 @@
 	    xref_clean/1,		% +Source
 	    xref_current_source/1,	% ?Source
 	    xref_built_in/1,		% ?Callable
-	    xref_expand/2		% +Term, -Expanded
+	    xref_expand/2,		% +Term, -Expanded
+	    xref_source_file/3		% +Spec, -Path, +Source
 	  ]).
 :- use_module(library(pce)).
 
@@ -117,13 +118,17 @@ xref_built_in(Head) :-
 
 collect(Src) :-
 	open_source(Src, Fd),
+	'$style_check'(Old, Old),
+	style_check(+dollar),
 	repeat,
 	    catch(read_term(Fd, Term,
 			    [ character_escapes(true) % TBD: how to switch!?
 			    ]), _, fail),
 	    xref_expand(Term, T),
 	    (   T == end_of_file
-	    ->  !, close(Fd)
+	    ->  !,
+	        '$style_check'(_, Old),
+	        close(Fd)
 	    ;   process(T, Src),
 		fail
 	    ).
@@ -286,7 +291,7 @@ pce_goal(get(_,_,_)).
 
 process_xpce_goal(G, Src) :-
 	pce_goal(G), !,
-	assert_called(G, Src),
+	assert_called(Src, G),
 	(   term_member(Term, G),
 	    compound(Term),
 	    arg(1, Term, Prolog),
@@ -337,7 +342,7 @@ process_use_module(File, Src) :-
 	).
 
 file_public_list(File, Public, Src) :-
-	find_source_file(File, Source, Src),
+	xref_source_file(File, Source, Src),
 	open(Source, read, Fd),
 	read(Fd, ModuleDecl),
 	close(Fd),
@@ -393,10 +398,10 @@ assert_dynamic(Src, Name/Arity) :-
 		*            UTILITIES		*
 		********************************/
 
-%	find_source_file(+Spec, -File, +Src)
+%	xref_source_file(+Spec, -File, +Src)
 %	Find named source file.
 
-find_source_file(Plain, File, Src) :-
+xref_source_file(Plain, File, Src) :-
 	atom(Plain),
 	(   object(Src)
 	->  get(Src?file, absolute_path, Path)
@@ -404,14 +409,14 @@ find_source_file(Plain, File, Src) :-
 	),
 	file_directory_name(Path, Dir),
 	concat_atom([Dir, /, Plain], Spec),
-	do_find_source_file(Spec, File), !.
-find_source_file(Spec, File, _) :-
-	do_find_source_file(Spec, File), !.
-find_source_file(Spec, _, _) :-
+	do_xref_source_file(Spec, File), !.
+xref_source_file(Spec, File, _) :-
+	do_xref_source_file(Spec, File), !.
+xref_source_file(Spec, _, _) :-
 	print_message(warning, error(existence_error(file, Spec), _)),
 	fail.
 
-do_find_source_file(Spec, File) :-
+do_xref_source_file(Spec, File) :-
 	absolute_file_name(Spec,
 			   [ file_type(prolog),
 			     access(read),
