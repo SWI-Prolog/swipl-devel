@@ -1800,8 +1800,6 @@ cont:
       rval = PL_unify_atom(t, va_arg(args, atom_t));
       break;
     case PL_SHORT:
-      rval = PL_unify_integer(t, va_arg(args, short));
-      break;
     case PL_INT:
       rval = PL_unify_integer(t, va_arg(args, int));
       break;
@@ -1813,8 +1811,6 @@ cont:
       rval = PL_unify_pointer(t, va_arg(args, void *));
       break;
     case PL_FLOAT:
-      rval = PL_unify_float(t, va_arg(args, float));
-      break;
     case PL_DOUBLE:
       rval = PL_unify_float(t, va_arg(args, double));
       break;
