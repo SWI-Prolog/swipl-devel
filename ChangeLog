@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: erase/1 test for clause or record.  Bug introduced with the
+    addition of PL_record_external().  Found by Uwe Lesta.  Thanks.
+
 VERSION 3.4.2
 =============
 
