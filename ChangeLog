@@ -1,6 +1,20 @@
 			SWI-Prolog ChangeLog
 			====================
  
+VERSION 3.2.3
+=============
+
+  * ADDED: Win32: Some project settings and debug-options to plld contributed
+    by Lutz Wohlrab.
+
+  * ADDED: RPM Packages for swi-prolog, xpce and the GUI tracer.  See the
+    new home-page.
+
+  * FIXED: Recursion problem in calling prolog_event_hook/1, causing crashes
+    in the graphical debugger.
+
+  * FIXED: Crash after set_feature(history, on).  Thanks to Anjo Anjewierden.
+
 VERSION 3.2.2
 =============
 
