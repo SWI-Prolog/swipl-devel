@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.0.2, distributed with SWI-Prolog 5.0.2
+================================================
+
 * FIXED: Error handling red-slider in HSV colour demo (Geof Bishop).
 
 * FIXED: Draw the label of tab objects that are not `on top'.
