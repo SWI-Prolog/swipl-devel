@@ -30,11 +30,15 @@
 	- Kernel running on top of pthread-win32
 	- Console code (plterm.dll/plwin.exe) allows for multiple consoles
 	- Basics seem to work fine.
+	- Now uses CRITICAL_SECTIONS and Windows native TslGetValue() to
+	  improve performance.  Slow down is now 12% compared to
+	  single-threading.
 
     Consequences:
 
 	- All access to the console using plterm.dll and console.h is
-	  totally incompatible.
+	  incompatible due to an extra console-handle argument required
+	  by all functions.
 
 VERSION 5.0.10 (Sep 26, 2002)
 =============================
