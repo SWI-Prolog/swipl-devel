@@ -11,8 +11,6 @@
 
 [ Introduction of 16-bit text issues ]
 
-*) Sort-out pce-name.c type handling
-
 *) Store/load 16-bit and encoding info for string, char_array and text_buffer
 
 *) Names: make them unique over encodings
