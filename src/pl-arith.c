@@ -36,6 +36,10 @@ day.
 #define M_E (2.718282)
 #endif
 
+#ifdef WIN32
+#include <excpt.h>
+#endif
+
 #define MAXARITHFUNCTIONS (100)
 
 #define V_ERROR		FALSE		/* so we can use `fail' */
@@ -350,6 +354,9 @@ realExceptionHandler(int sig, int type, SignalContext scp, char *addr)
 #endif
   if ( status.arithmetic > 0 )
   { warning("Floating point exception");
+    Sfprintf(Serror, "[PROLOG STACK:\n");
+    backTrace(NULL, 10);
+    Sfprintf(Serror, "]\n");
 
     pl_abort();
   } else
@@ -494,7 +501,12 @@ valueExpression(register Word t, Number r)
   { int type;
     Word a0, a1;
 
+#ifdef WIN32
+    __try
+    {
+#else
     status.arithmetic++;
+#endif
     switch(fDef->arity)
     { case 0:	type = (*f->function)(r); break;
       case 1:	deRef2(args, a0);
@@ -507,7 +519,17 @@ valueExpression(register Word t, Number r)
       default:	sysError("Illegal arity for arithmic function");
 		type = V_ERROR;
     }
+#ifdef WIN32
+    } __except(EXCEPTION_EXECUTE_HANDLER)
+    { warning("Floating point exception");
+      Sfprintf(Serror, "[PROLOG STACK:\n");
+      backTrace(NULL, 10);
+      Sfprintf(Serror, "]\n");
+      pl_abort();
+    }
+#else
     status.arithmetic--;
+#endif
 
     if ( type == V_REAL )
     { if ( r->f >= PLMININT && r->f <= PLMAXINT )

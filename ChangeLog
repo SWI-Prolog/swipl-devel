@@ -1,6 +1,17 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.1.3
+=============
+
+  * MODIFIED: PL_new_integer() now returns a floating point value if the
+    argument exceeds SWI-Prolog's integer range.
+
+  * ADDED: Automatically dumps the top of the runtime stack on floating
+    point exceptions.
+
+  * FIXED: Trap floating point exceptions for the win32 version.
+
 Version 2.1.2
 =============
 
@@ -229,7 +240,7 @@ Version 2.0.0
 Version 1.9.6:
 ==============
 
-  * Fixed for BIN_ENDIAN machines (Intel, VAX, ...)
+  * Fixed for BIG_ENDIAN machines (Intel, VAX, ...)
   * Windows version: added dde_execute/2
   * Added Quintus compatible foreign-language (C) interface.
   * Changed .qlf (former .wic) format drastically.  The current

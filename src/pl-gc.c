@@ -80,7 +80,7 @@ performance degradation, but for the moment is worth this I think.
 
 If the O_SECURE cpp flag is set  some  additional  expensive  consistency
 checks  that need considerable amounts of memory and cpu time are added.
-Garbage collection Sgets about 3-4 times as slow.
+Garbage collection gets about 3-4 times as slow.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -215,7 +215,10 @@ PL_new_atom(char *s)
 
 atomic_t
 PL_new_integer(int i)
-{ return (atomic_t) consNum(i);
+{ if ( i < PLMININT || i > PLMAXINT )
+    return (atomic_t) globalReal((real) i);
+  else
+    return (atomic_t) consNum(i);
 }
 
 

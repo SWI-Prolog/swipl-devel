@@ -169,7 +169,7 @@ findCreateProcedure(Word descr)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This function  implements  $c_current_predicate/2.   current_predicate/2
 itself  is  written  in  Prolog, based on this function.  Having dynamic
-linking from super modules and dynamoc loading from the  libraries,  the
+linking from super modules and dynamic loading from the  libraries,  the
 definition  of current predicate has become a difficult issue.  Normally
 it is used for meta-programming and program analysis.  I think it should
 succeed  for  each  predicate  that  can   be   called.    The   current
