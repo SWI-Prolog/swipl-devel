@@ -67,6 +67,9 @@ static atomic	 ATOM_call;		/* call */
 static atomic	 ATOM_read;		/* read */
 static atomic	 ATOM_write;		/* write */
 static atomic	 ATOM_append;		/* append */
+static atomic	 ATOM_ref;		/* @ */
+static atomic	 ATOM_new;		/* new */
+static atomic	 ATOM_string;		/* string */
 static functor_t FUNCTOR_ref1;		/* @/1 */
 static functor_t FUNCTOR_new1;		/* new/1 */
 static functor_t FUNCTOR_new2;		/* new/2 */
@@ -217,11 +220,20 @@ FatalError(char *fm, ...)
 }
 
 
-static void
-GetCompound(Term t, char **n, int *a)
-{ functor f = PL_functor(t);
-  *n = PL_atom_value(PL_functor_name(f));
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Warning: this function returns a pointer to a static value.  As long as
+it is used as now (see termToObject(), this will be ok.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static Term
+GetCompound(Term t, int *a)
+{ static atomic_t n;
+
+  functor f = PL_functor(t);
+  n = PL_functor_name(f);
   *a = PL_functor_arity(f);
+
+  return &n;
 }
 
 
@@ -256,6 +268,9 @@ InitPrologConstants(void)
   ATOM_read		= PL_new_atom("read");
   ATOM_write		= PL_new_atom("write");
   ATOM_append		= PL_new_atom("append");
+  ATOM_ref		= PL_new_atom("@");
+  ATOM_new		= PL_new_atom("new");
+  ATOM_string		= PL_new_atom("string");
 
   FUNCTOR_ref1		= PL_new_functor(PL_new_atom("@"), 1);
   FUNCTOR_new1		= PL_new_functor(PL_new_atom("new"), 1);

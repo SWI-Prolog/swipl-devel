@@ -1,6 +1,6 @@
 Dear Linux user,
 
-I'm happy to announce XPE/SWI-Prolog  versions 4.8.0/1.9.0 for PC/Linux.
+I'm happy to announce XPE/SWI-Prolog  versions 4.8.9/2.0.8 for PC/Linux.
 XPCE is a  symbolic  object-oriented   interface  toolkit  for  symbolic
 programming languages (Oops, if this doesn't sell  it I give up!).  XPCE
 offers a high level of  abstraction   for  communication  with X11, Unix
@@ -13,6 +13,12 @@ classes from Prolog.
 XPCE's  window  related  classes  provide   various  styles  of  menu's,
 primitive  graphical  objects,  compound  graphical  objects  and  Emacs
 oriented programmable text manipulation windows.
+
+Version 4.8.9 uses a completely different  directory and file structure.
+It is no longer based  on   SWI-Prolog  save_program/1, but instead uses
+.qlf (Quick Load Format) files.  It is  compiled with X11R6 (Xfree 3.1).
+As soon as there is an `officially' available elf version of Linux, XPCE
+will switch and be implemented as a dynamically loadable shared library.
 
 Version  4.8.0  provides  good  colour  support,  requires  less  memory
 (notably when dealing with text), is   much  faster in text-handling and
@@ -31,22 +37,17 @@ The distribution entails various demo programs, including
 
 TESTED LIB/OS VERSIONS:
 
-	* Linix-1.0.9
-	* XFree 2.1
+	* Linix-1.1.59
+	* XFree 3.1
 	* Compiled by GCC 2.5.8
-	* ldd pl/src/xpce.base
-        libXt.so.3 (DLL Jump 3.1) => /usr/X11/lib/libXt.so.3.1.0
-        libX11.so.3 (DLL Jump 3.1) => /usr/X11/lib/libX11.so.3.1.0
-        libm.so.4 (DLL Jump 4.5pl24) => /lib/libm.so.4.5.24
-        libc.so.4 (DLL Jump 4.5pl24) => /lib/libc.so.4.5.24
-        librl.so.2 (DLL Jump 2.0pl3) => /lib/librl.so.2.0.3
-
-The  binaries  for  /lib/librl.so.2.0.3  are    available  in  the  same
-directory.  This is librl from sunsite,   but recompiled with the option
-to indicate matching brackets.
+	* ldd pl-2.0.8/bin/xpce
+        libXt.so.6 (DLL Jump 6.0) => /usr/X11/lib/libXt.so.6.0
+        libX11.so.6 (DLL Jump 6.0) => /usr/X11/lib/libX11.so.6.0
+        libc.so.4 (DLL Jump 4.5pl26) => /lib/libc.so.4.5.26
+        libm.so.4 (DLL Jump 4.5pl26) => /lib/libm.so.4.5.26
 
 With the proper libraries installed,  XPCE   should  run  on most modern
-Linux systems that have ld.so installed.
+Linux systems.
 
 
 FTP SITE
@@ -62,7 +63,6 @@ directory pub/xpce/linux:
          415 Dec 15 22:36 README.rs6000
      1326376 Oct 11 10:08 xpcebin.tgz
      1064913 Oct 11 10:09 xpcelib.tgz
-      108670 Oct 11 10:23 librl-2.03.tgz
 
 
 FURTHER INFO

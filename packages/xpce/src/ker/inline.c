@@ -46,14 +46,7 @@ instanceOfObject(const Any obj, const Class super)
 
 INLINE status
 isProperObject(const Any obj)
-{ if ( isObject(obj) && isAddress(obj) )
-  { Class class = classOfObject(obj);
-    
-    if ( isAddress(class) && instanceOfObject(class, ClassClass) )
-      succeed;
-  }
-
-  fail;
+{ return (obj && isAddress(obj) && hasObjectMagic(obj));
 }
 
 
@@ -100,6 +93,7 @@ executeCode(Code c)
   pushGoal(g, c, c, NAME_execute, 0, NULL);
   traceEnter(g);
   addCodeReference(c);
+  FixSendFunctionClass(cl, NAME_Execute);
   rval = (*cl->send_function)(c);
   delCodeReference(c);
   traceReturn(g, rval);
@@ -165,6 +159,7 @@ getExecuteFunction(Function f)
   pushGoal(g, f, f, NAME_execute, 0, NULL);
   traceEnter(g);
   addCodeReference(f);
+  FixGetFunctionClass(cl, NAME_Execute);
   rval = (*cl->get_function)(f);
   delCodeReference(f);
   traceAnswer(g, rval);
@@ -224,10 +219,10 @@ getGetMethodClass(Class class, Name name)
 
 INLINE Any
 CheckType(Any val, Type t, Any ctx)
-{ if ( (*t->validate_function)(t, val, ctx) )
+{ if ( validateType(t, val, ctx) )
     return val;
 
-  return checkType(val, t, ctx);
+  return getTranslateType(t, val, ctx);
 }
 
 

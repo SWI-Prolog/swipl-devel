@@ -50,6 +50,7 @@ typedef struct _string
 			     (t)->encoding = (f)->encoding; \
 			     (t)->b16      = (f)->b16; \
 			   } while(0)
+#define str_datasize(s) (isstr8(s) ? (s)->size : (s)->size * 2)
 
 #ifndef FALSE
 #define FALSE 0

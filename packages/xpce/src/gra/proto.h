@@ -114,7 +114,7 @@ status		RedrawArea(Any obj, Area area);
 status		paintSelectedGraphical(Graphical gr);
 status		RedrawAreaGraphical(Any obj, Area area);
 status		flushGraphical(Any gr);
-status		synchroniseGraphical(Graphical gr);
+status		synchroniseGraphical(Graphical gr, Bool always);
 status		exposeGraphical(Any obj1, Any obj2);
 status		setGraphical(Any obj, Int x, Int y, Int w, Int h);
 status		doSetGraphical(Any obj, Int x, Int y, Int w, Int h);

@@ -14,6 +14,15 @@
 #define O_MOTIF 1
 #endif
 
+#ifndef O_PPM
+#define O_PPM 1
+
+#define PNM_PNM	0			/* Portable aNy Map */
+#define PNM_PBM	1			/* Portable BitMap */
+#define PNM_PGM	2			/* Portable GreyMap */
+#define PNM_PPM	3			/* Portable PixMap */
+#endif
+
 #define String XString
 #include <X11/Intrinsic.h>
 #include <X11/IntrinsicP.h>		/* XtConfigureWidget() prototype */
@@ -137,6 +146,16 @@ void		x11_set_gc_foreground(DisplayObj d, Any fg, int gcs, GC *gc);
 /* x11-conversion.c */
 XImage *	readImageFile(FILE *fd);
 XImage *	CreateXImageFromData(unsigned char *data, int w, int h);
+XImage *	read_ppm_file(Display *disp, Colormap map,
+			      int depth, FILE *fd);
+int		write_pnm_file(FILE *fd, XImage *img,
+			       Display *disp, Colormap cmap,
+			       int scale, int fmt, int asascii);
+
+/* xcolour.c */
+status		findNearestColour(Display *display, Colormap map,
+				  int depth, Name vt, XColor *c);
+int		intensityXColor(XColor *c);
 
 extern XtAppContext ThePceXtAppContext;	/* X toolkit application context */
 

@@ -49,121 +49,9 @@ about  the same  relative numbers.    For  this reason  PCE addopts  a
 perfect fit strategy for memory allocation.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static Zone allocate(int);		/* forwards */
-
-Any
-alloc(register int n)
-{ n = roundAlloc(n);
-  allocbytes += n;
-
-  DEBUG(NAME_allocate, Cprintf("alloc(%d)\n", n));
-
-  if ( n <= ALLOCFAST )
-  { register Zone z;
-    register int m = n / sizeof(Zone);
-
-    if ( (z = freeChains[m]) != NULL )	/* perfect fit */
-    { freeChains[m] = (Zone) z->next;
-      if ( freeChains[m] == NULL )
-	tailFreeChains[m] = NULL;
-
-      wastedbytes -= n;
-
-#if ALLOC_DEBUG
-      assert((long) z >= allocBase && (long) z <= allocTop);
-      z->in_use = TRUE;
-#endif
-
-#if ALLOC_DEBUG > 1
-      { char *p;
-	for(p = (char *)&z->start + n;
-	    --p >= ((char *)&z->next + sizeof(z->next));
-	    )
-	  assert(*p == ALLOC_MAGIC_BYTE);
-      }
-#else
-      memset(&z->start, 0, n);
-#endif
-
-      return &z->start;
-    }
-
-    return allocate(n);			/* new memory */
-  }
-
-#if ALLOC_DEBUG > 1
-{ Any p = malloc(n);
-  memset(p, ALLOC_MAGIC_BYTE, n);
-  return p;
-}
-#else
-  return malloc(n);			/* malloc() it */
-#endif
-}
-
-
-#if ALLOC_DEBUG
-void
-checkFreeChains()
-{ int n;
-
-  for(n=0; n<=ALLOCFAST/sizeof(Zone); n++)
-  { Zone z = freeChains[n];
-
-    for(; z != NULL; z = z->next)
-    { assert((long)z >= allocBase && (long)z <= allocTop);
-      assert(z->next == NULL ||
-	     ((long)z->next >= allocBase && (long)z->next <= allocTop));
-    }
-  }
-}
-#endif 
-
 #define offset(structure, field) ((int) &(((structure *)NULL)->field))
 
-void
-unalloc(register int n, Any p)
-{ register Zone z = p;
-  n = roundAlloc(n);
-  allocbytes -= n;
-  
-  DEBUG(NAME_allocate, Cprintf("unalloc(%d)\n", n));
-
-  if ( n <= ALLOCFAST )
-  { assert((long)z >= allocBase && (long)z <= allocTop);
-
-#if ALLOC_DEBUG
-#if ALLOC_DEBUG > 1
-    memset(p, ALLOC_MAGIC_BYTE, n);
-#endif
-    z = (Zone) ((char *)z - offset(struct zone, start));
-    assert(z->in_use == TRUE);
-    assert(z->size == n);
-    z->in_use = FALSE;
-#endif
-
-    wastedbytes += n;
-    n /= sizeof(Zone);
-    z->next = freeChains[n];
-    freeChains[n] = z;
-    if ( !tailFreeChains[n] )
-      tailFreeChains[n] = z;
-
-    DEBUG(NAME_allocate,
-	  Cprintf("unalloc for %s, m = %d\n", pp(z), n));
-    
-    return;
-  }
-
-#if ALLOC_DEBUG > 1
-  memset(p, ALLOC_MAGIC_BYTE, n);
-#endif
-
-  free(z);
-}
-
-
-static Zone
+static inline Zone
 allocate(int size)
 { char *p;
   long top, base;
@@ -229,6 +117,101 @@ allocate(int size)
 }
 
 
+Any
+alloc(register int n)
+{ n = roundAlloc(n);
+  allocbytes += n;
+
+#if ALLOC_DEBUG
+  DEBUG(NAME_allocate, Cprintf("alloc(%d)\n", n));
+#endif
+
+  if ( n <= ALLOCFAST )
+  { register Zone z;
+    register int m = n / sizeof(Zone);
+
+    if ( (z = freeChains[m]) != NULL )	/* perfect fit */
+    { freeChains[m] = (Zone) z->next;
+      if ( freeChains[m] == NULL )
+	tailFreeChains[m] = NULL;
+
+      wastedbytes -= n;
+
+#if ALLOC_DEBUG
+      assert((long) z >= allocBase && (long) z <= allocTop);
+      z->in_use = TRUE;
+#endif
+
+#if ALLOC_DEBUG > 1
+      { char *p;
+	for(p = (char *)&z->start + n;
+	    --p >= ((char *)&z->next + sizeof(z->next));
+	    )
+	  assert(*p == ALLOC_MAGIC_BYTE);
+      }
+#else
+      memset(&z->start, 0, n);
+#endif
+
+      return &z->start;
+    }
+
+    return allocate(n);			/* new memory */
+  }
+
+#if ALLOC_DEBUG > 1
+{ Any p = malloc(n);
+  memset(p, ALLOC_MAGIC_BYTE, n);
+  return p;
+}
+#else
+  return malloc(n);			/* malloc() it */
+#endif
+}
+
+
+void
+unalloc(register int n, Any p)
+{ register Zone z = p;
+  n = roundAlloc(n);
+  allocbytes -= n;
+  
+  DEBUG(NAME_allocate, Cprintf("unalloc(%d)\n", n));
+
+  if ( n <= ALLOCFAST )
+  { assert((long)z >= allocBase && (long)z <= allocTop);
+
+#if ALLOC_DEBUG
+#if ALLOC_DEBUG > 1
+    memset(p, ALLOC_MAGIC_BYTE, n);
+#endif
+    z = (Zone) ((char *)z - offset(struct zone, start));
+    assert(z->in_use == TRUE);
+    assert(z->size == n);
+    z->in_use = FALSE;
+#endif
+
+    wastedbytes += n;
+    n /= sizeof(Zone);
+    z->next = freeChains[n];
+    freeChains[n] = z;
+    if ( !tailFreeChains[n] )
+      tailFreeChains[n] = z;
+
+    DEBUG(NAME_allocate,
+	  Cprintf("unalloc for %s, m = %d\n", pp(z), n));
+    
+    return;
+  }
+
+#if ALLOC_DEBUG > 1
+  memset(p, ALLOC_MAGIC_BYTE, n);
+#endif
+
+  free(z);
+}
+
+
 void
 initAlloc(void)
 { int t;
@@ -258,6 +241,24 @@ allocRange(void *low, int size)
   if ( l+size > allocTop )
     allocTop = l+size;
 }
+
+
+#if ALLOC_DEBUG
+void
+checkFreeChains()
+{ int n;
+
+  for(n=0; n<=ALLOCFAST/sizeof(Zone); n++)
+  { Zone z = freeChains[n];
+
+    for(; z != NULL; z = z->next)
+    { assert((long)z >= allocBase && (long)z <= allocTop);
+      assert(z->next == NULL ||
+	     ((long)z->next >= allocBase && (long)z->next <= allocTop));
+    }
+  }
+}
+#endif 
 
 
 status

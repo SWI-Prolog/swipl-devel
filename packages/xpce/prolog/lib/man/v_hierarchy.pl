@@ -56,7 +56,8 @@ initialise(CH, Manual:man_manual) :->
 unlink(CH) :->
 	get(CH, create_message, CM),
 	for_subclass(@class_class,
-		     message(@arg1?created_messages, delete_all, CM)),
+		     if(@arg1?created_messages \== @nil,
+			message(@arg1?created_messages, delete_all, CM))),
 	send(CH, send_super, unlink).
 
 

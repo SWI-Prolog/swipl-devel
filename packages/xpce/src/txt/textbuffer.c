@@ -203,9 +203,13 @@ changedTextBuffer(TextBuffer tb)
 { Cell cell;
 
   if ( tb->changed_start <= tb->changed_end )
-  { for_cell(cell, tb->editors)
-      send(cell->value, NAME_ChangedRegion, toInt(tb->changed_start),
-					    toInt(tb->changed_end), 0);
+  { Any av[2];
+
+    av[0] = toInt(tb->changed_start);
+    av[1] = toInt(tb->changed_end);
+
+    for_cell(cell, tb->editors)
+      qadSendv(cell->value, NAME_ChangedRegion, 2, av);
   }
 
   tb->changed_start = tb->size;
@@ -233,7 +237,7 @@ ChangedFragmentListTextBuffer(TextBuffer tb)
 { Cell cell;
 
   for_cell(cell, tb->editors)
-    sendv(cell->value, NAME_ChangedFragmentList, 0, NULL);
+    qadSendv(cell->value, NAME_ChangedFragmentList, 0, NULL);
 
   succeed;
 }
@@ -447,8 +451,10 @@ contentsTextBuffer(TextBuffer tb, CharArray ca)
 static StringObj
 getSubTextBuffer(TextBuffer tb, Int from, Int to)
 { string s;
+  int f = valInt(from);
+  int t = (isDefault(to) ? tb->size : valInt(to));
 
-  str_sub_text_buffer(tb, &s, valInt(from), valInt(to)-valInt(from));
+  str_sub_text_buffer(tb, &s, f, t-f);
   answer(StringToString(&s));
 }
 

@@ -492,8 +492,10 @@ enterTextItem(TextItem ti, EventId id)
   }
 
   if ( !(notNil(dev) && send(dev, NAME_typed, id, ON, 0)) && !isFreedObj(ti) )
-  { if ( applyTextItem(ti, OFF) && !isFreedObj(ti) )
-    { if ( ti->advance == NAME_clear && getModifiedTextItem(ti) == ON )
+  { int modified = (getModifiedTextItem(ti) == ON);
+
+    if ( applyTextItem(ti, OFF) && !isFreedObj(ti) )
+    { if ( ti->advance == NAME_clear && modified )
 	selectionTextItem(ti, CtoName(""));
       else
 	nextTextItem(ti);

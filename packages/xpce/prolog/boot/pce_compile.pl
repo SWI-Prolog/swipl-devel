@@ -52,8 +52,12 @@ pce_ifhostproperty(prolog(quintus),
 	compiling/1,
 	load_module/1,
 	current_group_/1,
-	verbose/0.
+	verbose/0,
+	lazy_method/4.
+:- multifile
+	lazy_method/4.
 
+% verbose.
 
 %	Function that allows you to send messages to the currently compiling
 %	class.  Should be made a var pushed/popped by pce_begin_class and
@@ -159,6 +163,8 @@ start_class(ClassName, Doc) :-
 start_class(ClassName) :-
 	class_name(Class, ClassName),
 	send(@class, assign, Class, global),
+	send(@class, clear_cache),
+	send(@class, resolve_method_message, @pce_resolve_method_message),
 	asserta(compiling(ClassName)),
 	asserta(current_group_(@default)),
 	push_compile_operators.
@@ -338,7 +344,9 @@ do_expand(delegate_to(VarName),
 
 do_expand((Head :-> DocBody),			% Prolog send
 	[ (PlHead :- Body)
-	, (?- Goal)
+	, pce_compile:lazy_method(Selector, ClassName, send,
+				  lazy_send_method(Module:PlHead, Types,
+						   Doc, Loc, Group))
 	]) :- !,
 	extract_documentation(DocBody, Doc, Body),
 	source_location_term(Loc),
@@ -346,14 +354,15 @@ do_expand((Head :-> DocBody),			% Prolog send
 	current_group(Group),
 	class_name(Class, ClassName),
 	prolog_head(send, Head, Selector, Types, PlHead),
-	Goal = pce_send_method(Class, Selector, PlHead, Types,
-			       Doc, Loc, Group),
+	prolog_load_context(module, Module),
 	feedback(expand_send(ClassName, Selector)).
 
 
 do_expand((Head :<- DocBody),			% Prolog get
 	[ (PlHead :- Body)
-	, (?- Goal)
+	, pce_compile:lazy_method(Selector, ClassName, get,
+				  lazy_get_method(RType, Module:PlHead, Types,
+						  Doc, Loc, Group))
 	]) :- !,
 	extract_documentation(DocBody, Doc, Body),
 	source_location_term(Loc),
@@ -362,11 +371,14 @@ do_expand((Head :<- DocBody),			% Prolog get
 	class_name(Class, ClassName),
 	return_type(Head, RType),
 	prolog_head(get, Head, Selector, Types, PlHead),
-	Goal = pce_get_method(Class, Selector, RType, PlHead, Types,
-			      Doc, Loc, Group),
+	prolog_load_context(module, Module),
 	feedback(expand_get(ClassName, Selector)).
 
-extract_documentation((DocText::Body), string(DocText), Body) :- !.
+pce_ifhostproperty(string, 
+(extract_documentation((DocText::Body), Str, Body) :- !,
+	       string_to_list(Str, DocText)),
+(extract_documentation((DocText::Body), string(DocText), Body) :- !)
+	      ).
 extract_documentation((DocText,Body), string(DocText), Body) :-
 	is_string(DocText), !,
 	pce_error(summary_not_closed(DocText)).
@@ -554,6 +566,41 @@ pce_send_method(Class, Selector, Head, Types, Doc, Loc, Group) :-
 
 pce_get_method(Class, Selector, RType, Head, Types, Doc, Loc, Group) :-
 	pce_get_method_message(Head, Message),
+	send(Class, get_method,
+	     get_method(Selector, RType, Types, Message, Doc, Loc, Group)).
+
+
+		 /*******************************
+		 *    LAZY METHOD RESOLUTION	*
+		 *******************************/
+
+:- pce_global(@pce_resolve_method_message,
+	      new(message(@prolog, call, bind_lazy, @arg1, @arg2, @arg3))).
+
+pce_ifhostproperty(prolog(swi),		% Hide from the tracer
+		   (:- '$hide'(bind_lazy, 3))).
+
+bind_lazy(Kind, ClassName, @default) :- !,
+%	format('bind_lazy(~p, ~p)~n', [Kind, ClassName]),
+	retract(lazy_method(Selector, ClassName, Kind, Arguments)),
+	call(Arguments, ClassName, Selector),
+	fail ; true.
+bind_lazy(Kind, ClassName, Selector) :-
+%	format('bind_lazy(~p, ~p, ~p)~n', [Kind, ClassName, Selector]),
+	retract(lazy_method(Selector, ClassName, Kind, Arguments)),
+	call(Arguments, ClassName, Selector).
+
+lazy_send_method(Head, Types, Doc, Loc, Group,
+		 ClassName, Selector) :-
+	pce_send_method_message(Head, Message),
+	get(@pce, convert, ClassName, class, Class),
+	send(Class, send_method,
+	     send_method(Selector, Types, Message, Doc, Loc, Group)).
+	
+lazy_get_method(RType, Head, Types, Doc, Loc, Group,
+		ClassName, Selector) :-
+	pce_get_method_message(Head, Message),
+	get(@pce, convert, ClassName, class, Class),
 	send(Class, get_method,
 	     get_method(Selector, RType, Types, Message, Doc, Loc, Group)).
 

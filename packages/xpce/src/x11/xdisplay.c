@@ -142,21 +142,39 @@ ws_opened_display(DisplayObj d)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+We'd like to keep the XPCE resource  file `Pce' in XPCE's homedirectory,
+so we can have multiple versions of this   file. For this reason we push
+$XAPPLRESDIR.
+
+I've diagnosed that actually, the primary path searched is not the first
+element of this path, but the  last!?  If   anyone  can  point me to the
+proper  semantics  of  $XAPPLRESDIR.   grep  through  /usr/man/man3/X*.3
+doesn't give any hints ...
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 void
 ws_open_display(DisplayObj d)
 { DisplayWsXref ref = d->ws_ref;
   char *address;
   Display *display;
-  char applresdir[512];
   CharArray home = get(PCE, NAME_home, 0);
+  char *oldxapplresdir = getenv("XAPPLRESDIR");
+  char applresdir[512];
 
   if ( home )
-  { char *oldxapplresdir = getenv("XAPPLRESDIR");
+  { char *s;
 
+    strcpy(applresdir, "XAPPLRESDIR=");
     if ( oldxapplresdir )
-      sprintf(applresdir, "XAPPLRESDIR=%s:%s", strName(home), oldxapplresdir);
-    else
-      sprintf(applresdir, "XAPPLRESDIR=%s", strName(home));
+    { strcat(applresdir, oldxapplresdir);
+      strcat(applresdir, ":");
+    }
+    strcat(applresdir, strName(home));
+    s = &applresdir[strlen(applresdir)];
+    if ( s[-1] == '/' && s > applresdir )
+      s--;
+    *s = EOS;
 
 					/* does or doesn't putenv copy? */
 					/* Read the SunOs 4.1 manual */
@@ -171,6 +189,13 @@ ws_open_display(DisplayObj d)
 			  opTable, XtNumber(opTable),
 			  &PCEargc, PCEargv);
 
+/*
+  if ( resdirpushed )
+  { sprintf(applresdir, "XAPPLRESDIR=%s", oldxapplresdir);
+    putenv(save_string(applresdir));
+  }
+*/
+    
   if ( !display )
   { char problem[LINESIZE];
     char *theaddress = XDisplayName(address);

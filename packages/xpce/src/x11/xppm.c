@@ -1,0 +1,746 @@
+/*  $Id$
+
+    Part of XPCE
+    Designed and implemented by Anjo Anjewierden and Jan Wielemaker
+    E-mail: jan@swi.psy.uva.nl
+
+    Copyright (C) 1995 University of Amsterdam. All rights reserved.
+*/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The XPCE PNM interface. Converts between   X11 images and p[bgp]m images
+for loading and saving XPCE  bitmaps  in   a  form  accessible for other
+applications.
+
+PNM (Portable aNy  Map)  is  a   public  simple  format  for  exchanging
+bitmap/pixmap  information.  It  has  6  flavours,  three  of  them  are
+`rawbits' (binary) versions of the  three   main  formats: PBM (Portable
+BitMap), PGM (Portable GrayMap) and PPM (Portable PixMap).
+
+The PNM package is public domain  and available as pbmplus10dec91.tar.gz
+on many anonymous ftp servers. Search for   pbmplus is you want to check
+for more recent releases.
+
+The magnificient tool xv by John Bradley (bradley@cis.upenn.edu) version
+3 can also generate ppm files.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#include <h/kernel.h>
+#include "include.h"
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+#ifdef HAVE_MALLOC_H
+#include <malloc.h>
+#endif
+
+#define PNM_PBM	1
+#define PNM_PGM	2
+#define PNM_PPM	3
+
+#define BRIGHT ((1L<<16)-1)
+#define NOPIXEL (~0L)
+
+#undef roundup
+#define valdigit(d)		((d) - '0')
+#define roundup(v, n)		((((v)+(n)-1)/(n))*(n))
+#define rescale(v, o, n)	((v) * (n) / (o))
+
+#undef ulong
+#define ulong unsigned long
+
+#ifndef TRUE
+#define TRUE 1
+#define FALSE 0
+#endif
+
+#ifndef XMalloc
+#define XMalloc malloc
+#endif
+
+#define Symbol PixSymbol		/* name-clash with kernel */
+#define symbol pix_symbol
+
+static int ncolours;			/* colours in image */
+static int nmapped;			/* remapped colours */
+static int nfailed;			/* failed conversions */
+
+		 /*******************************
+		 * HASH-TABLE FOR PIXEL LOOKUP	*
+		 *******************************/
+
+typedef struct symbol *Symbol;
+typedef struct table  *Table;
+
+struct symbol
+{ ulong		name;
+  ulong		value;
+  Symbol	next;
+};
+
+struct table
+{ int 		size;
+  Symbol	symbols[1];
+};
+
+
+#define hashvalue(size, v) ((v) % size)
+
+static Table
+newTable(int size)
+{ Table t = (Table)malloc(sizeof(struct table) + (size-1) * sizeof(Symbol));
+  int i;
+  Symbol *s;
+
+  t->size = size;
+  for(i=size, s=t->symbols; --i >= 0; s++)
+    *s = NULL;
+
+  return t;
+}
+
+
+static void
+freeTable(Table t)
+{ Symbol *s;
+  int i;
+
+  for(i=t->size, s=t->symbols; --i >= 0; s++)
+  { Symbol n, m = *s;
+
+    for( ; m; m = n)
+    { n = m->next;
+      free(m);
+    }
+  }
+
+  free(t);
+}
+
+
+static void
+addTable(Table t, ulong name, ulong value)
+{ Symbol *l = &t->symbols[hashvalue(t->size, name)];
+  Symbol s = (Symbol)malloc(sizeof(struct symbol));
+
+  s->name = name;
+  s->value = value;
+  s->next = *l;
+  *l = s;
+}
+
+
+static ulong
+memberTable(Table t, ulong name)
+{ Symbol s = t->symbols[hashvalue(t->size, name)];
+
+  for(; s; s = s->next)
+  { if ( s->name == name )
+      return s->value;
+  }
+
+  return NOPIXEL;
+}
+
+
+		 /*******************************
+		 *	   COLOUR PIXELS	*
+		 *******************************/
+
+static ulong
+colourPixel(Display *disp, int depth, Colormap cmap,
+	    Table t, int r, int g, int b)
+{ ulong pixel;
+  ulong direct = (r << 16) + (g << 8) + b;
+  XColor c;
+
+  if ( (pixel = memberTable(t, direct)) != NOPIXEL )
+    return pixel;
+
+  ncolours++;
+
+  c.red   = r * 256 + r;
+  c.green = g * 256 + g;
+  c.blue  = b * 256 + b;
+  if ( !XAllocColor(disp, cmap, &c) )
+  { if ( findNearestColour(disp, cmap, depth, DEFAULT, &c) )
+    { if ( !XAllocColor(disp, cmap, &c) )
+      { Cprintf("PNM: failed to alloc pixel %d/%d/%d\n", r, g, b);
+	c.pixel = 0;			/* TMP */
+	nfailed++;
+      } else
+	nmapped++;
+    }
+  }
+  
+  addTable(t, direct, c.pixel);
+
+  DEBUG(NAME_ppm, Cprintf("PNM: Colour %d %d %d on pixel %d\n",
+			  r, g, b, c.pixel));
+  return c.pixel;
+}
+
+		 /*******************************
+		 *     ASCII FORMAT PARSING	*
+		 *******************************/
+
+static int
+getNum(FILE *fd)
+{ int c;
+  int v;
+
+  for(;;)
+  { do
+    { c = getc(fd);
+    } while(isspace(c));
+
+    if ( isdigit(c) )
+    { v = valdigit(c);
+      for(;;)
+      { c = getc(fd);
+	if ( isdigit(c) )
+	  v = v*10 + valdigit(c);
+	else
+	  break;
+      }
+      if ( !isspace(c) )
+	ungetc(c, fd);
+
+      return v;
+    }
+    if ( c == '#' )
+    { do
+      { c = getc(fd);
+      } while( c != '\n' && c != EOF );
+    } else
+      return -1;
+  }
+}
+
+
+XImage *
+read_ppm_file(Display *disp, Colormap cmap, int depth, FILE *fd)
+{ XImage *img;
+  long here = ftell(fd);
+  int c;
+  int fmt, ascifmt;
+  int width, height, bytes_per_line, scale=0;
+  char *data;
+  int pad = XBitmapPad(disp);
+
+  ncolours = nmapped = nfailed = 0;	/* statistics */
+  assert(pad%8 == 0);
+
+  if ( (c=getc(fd)) != 'P' )
+  { ungetc(c, fd);
+    return NULL;
+  }
+
+  if ( !cmap )
+    cmap = DefaultColormap(disp, DefaultScreen(disp));
+
+  switch((c=getc(fd)))
+  { case '1':				/* ascii pbm format */
+	ascifmt = TRUE;
+        fmt     = PNM_PBM;
+	break;
+    case '2':				/* ascii pgm format */
+	ascifmt = TRUE;
+    	fmt     = PNM_PGM;
+	break;
+    case '3':				/* ascii ppm format */
+	ascifmt = TRUE;
+	fmt     = PNM_PPM;
+	break;
+    case '4':				/* rawbits pbm format */
+	ascifmt = FALSE;
+        fmt     = PNM_PBM;
+	break;
+    case '5':				/* rawbits pgm format */
+	ascifmt = FALSE;
+    	fmt     = PNM_PGM;
+	break;
+    case '6':				/* rawbits ppm format */
+	ascifmt = FALSE;
+	fmt     = PNM_PPM;
+	break;
+    default:
+      goto errout;
+  }
+    
+  width = getNum(fd);
+  height = getNum(fd);
+
+  if ( fmt == PNM_PBM )
+  { depth = 1;
+  } else
+  { scale = getNum(fd);
+    if ( !depth )
+      depth = DefaultDepth(disp, DefaultScreen(disp));
+  }
+
+  if ( width < 0 || height < 0 || scale < 0 )
+    goto errout;
+
+  bytes_per_line = roundup((width*depth+7)/8, pad/8);
+  data = (char *)XMalloc(height * bytes_per_line);
+
+  img = XCreateImage(disp,
+		     DefaultVisual(disp, DefaultScreen(disp)),
+		     depth,
+		     fmt == PNM_PBM ? XYBitmap : ZPixmap,
+		     0,
+		     data,
+		     width, height,
+		     pad, bytes_per_line);
+
+  if ( ascifmt )
+  { int x, y;
+
+    switch(fmt)
+    { case PNM_PBM:
+	for(y=0; y<height; y++)
+	{ for(x=0; x<width; x++)
+	  { int value = getNum(fd);
+
+	    if ( value < 0 || value > 1 )
+	      goto errout;
+
+	    XPutPixel(img, x, y, value);
+	  }
+	}
+	break;
+      case PNM_PGM:
+      { Table t = newTable(64);
+
+	for(y=0; y<height; y++)
+	{ for(x=0; x<width; x++)
+	  { int g = getNum(fd);
+	    ulong pixel;
+
+	    if ( g < 0 || g > scale )
+	      goto errout;
+	    if ( scale != 255 )
+	      g = rescale(g, scale, 255);
+
+	    pixel = colourPixel(disp, depth, cmap, t, g, g, g);
+	    XPutPixel(img, x, y, pixel);
+	  }
+	}
+	freeTable(t);
+	    
+	break;
+      }
+      case PNM_PPM:
+      { Table t = newTable(64);
+
+	for(y=0; y<height; y++)
+	{ for(x=0; x<width; x++)
+	  { int r = getNum(fd);
+	    int g = getNum(fd);
+	    int b = getNum(fd);
+	    ulong pixel;
+
+	    if ( r < 0 || r > scale ||
+		 g < 0 || g > scale ||
+		 b < 0 || b > scale )
+	      goto errout;
+
+	    if ( scale != 255 )
+	    { r = rescale(r, scale, 255);
+	      g = rescale(g, scale, 255);
+	      b = rescale(b, scale, 255);
+	    }
+
+	    pixel = colourPixel(disp, depth, cmap, t, r, g, b);
+
+	    XPutPixel(img, x, y, pixel);
+	  }
+	}
+	freeTable(t);
+
+	break;
+      }
+    }
+  } else
+  { int x, y;
+
+    switch(fmt)
+    { case PNM_PBM:
+      { int byte = 0;
+	int bit = 0;
+      
+	for(y=0; y<height; y++)
+	{ for(x=0; x<width; x++)
+	  { if ( !bit )
+	    { byte = getc(fd);
+	      bit = 8;
+	    }
+
+	    bit--;
+	    XPutPixel(img, x, y, (byte & (1<<bit)) ? 1 : 0);
+	  }
+	}
+ 	break;
+      }
+      case PNM_PGM:
+      { Table t = newTable(64);
+
+	for(y=0; y<height; y++)
+	{ for(x=0; x<width; x++)
+	  { unsigned int g;
+	    ulong pixel;
+
+	    if ( feof(fd) || (g=getc(fd)) > scale )
+	      goto errout;
+	    if ( scale != 255 )
+	      g = rescale(g, scale, 255);
+
+	    pixel = colourPixel(disp, depth, cmap, t, g, g, g);
+	    XPutPixel(img, x, y, pixel);
+	  }
+	}
+	freeTable(t);
+	    
+	break;
+      }
+      case PNM_PPM:
+      { Table t = newTable(64);
+
+	for(y=0; y<height; y++)
+	{ for(x=0; x<width; x++)
+	  { unsigned int r, g, b;
+	    ulong pixel;
+
+	    if ( feof(fd) ||
+		 (r=getc(fd)) > scale ||
+		 (g=getc(fd)) > scale ||
+		 (b=getc(fd)) > scale )
+	      goto errout;
+
+	    if ( scale != 255 )
+	    { r = rescale(r, scale, 255);
+	      g = rescale(g, scale, 255);
+	      b = rescale(b, scale, 255);
+	    }
+
+	    pixel = colourPixel(disp, depth, cmap, t, r, g, b);
+
+	    XPutPixel(img, x, y, pixel);
+	  }
+	}
+	freeTable(t);
+
+	break;
+      }
+    }
+  }
+
+  DEBUG(NAME_ppm,
+	Cprintf("PNM: Converted %dx%dx%d image, %d colours (%d mapped, %d failed)\n",
+		width, height, depth, ncolours, nmapped, nfailed));
+
+  return img;
+
+errout:
+  Cprintf("PNM: Format error, index = %d\n", ftell(fd));
+  fseek(fd, here, SEEK_SET);
+  return NULL;
+}
+
+		 /*******************************
+		 *	     WRITING		*
+		 *******************************/
+
+static XColor **
+makeSparceCInfo(Display *disp, Colormap cmap, XImage *img, int *ncolours)
+{ int entries = 1L<<img->depth;
+  XColor **info = (XColor **)malloc(sizeof(XColor *) * entries);
+  XColor *data;
+  int width = img->width;
+  int height = img->height;
+  int x, y, i;
+  int colours = 0;
+
+  for(i=0; i<entries; i++)
+    info[i] = NULL;
+      
+  for(y=0; y<height; y++)
+  { for(x=0; x<width; x++)
+    { ulong pixel = XGetPixel(img, x, y);
+
+      if ( pixel > entries )
+      { Cprintf("PNM: Illegal pixel value at %d,%d: %d\n", x, y, pixel);
+	pixel = 0;
+      }
+      if ( !info[pixel] )
+      { info[pixel] = (XColor *) 1;
+	colours++;
+      }
+    }
+  }
+
+  if ( ncolours )
+    *ncolours = colours;
+  data = (XColor *)malloc(sizeof(XColor) * colours);
+  colours=0;
+  for(i=0; i<entries; i++)
+  { if ( info[i] )
+    { info[i] = &data[colours++];
+      info[i]->pixel = i;
+    }
+  }
+
+  if ( !XQueryColors(disp, cmap, data, colours) )
+  { Cprintf("PNM: XQueryColors() failed\n");
+    return NULL;
+  }
+
+  return info;
+}
+
+
+static void
+greySparceCInfo(XColor **cinfo, int depth)
+{ int i;
+  int entries = 1 << depth;
+
+  for(i=0; i<entries; i++)
+  { if ( cinfo[i] )
+    { XColor *c = cinfo[i];
+      int value = intensityXColor(c);
+      
+      c->red = c->green = c->blue = value;
+    }
+  }
+}
+
+
+static void
+freeSparceCInfo(XColor **table, int depth)
+{ int entries = 1<<depth;
+  int i;
+
+  for(i=0; i<entries; i++)
+  { if ( table[i] )
+    { free(table[i]);
+      break;
+    }
+  }
+
+  free(table);
+}
+
+
+static int file_col;
+
+static int
+putNum(int n, FILE *fd)
+{ if ( file_col != 0 && putc(' ', fd) == EOF )
+    return -1;
+
+  do
+  { if ( putc(n % 10 + '0', fd) == EOF )
+	return -1;
+    file_col++;
+    n /= 10;
+  } while( n > 0 );
+
+  if ( file_col >= 70 )
+  { if ( putc('\n', fd) == EOF )
+      return -1;
+    file_col = 0;
+  }
+
+  return 0;
+}
+
+
+int
+write_pnm_file(FILE *fd, XImage *img,
+	       Display *disp, Colormap cmap, int scale, int fmt, int asascii)
+{ int width  = img->width;
+  int height = img->height;
+  int depth  = img->depth;
+  int colours;
+  XColor **cinfo = NULL;
+  int x, y;
+
+  if ( !cmap )
+    cmap = DefaultColormap(disp, DefaultScreen(disp));
+  if ( !scale )
+    scale = 255;
+  if ( !fmt && img->format == XYBitmap )
+    fmt = PNM_PBM;
+
+  if ( fmt != PNM_PBM )
+  { if ( depth > 16 )
+    { Cprintf("PPM/PGM generation not yet supported for depth > 16\n");
+      return -1;
+    }
+    if ( !(cinfo = makeSparceCInfo(disp, cmap, img, &colours)) )
+      return -1;
+    if ( !fmt )
+    { int i, entries = 1<<depth;
+
+      for(i=0; i<entries; i++)
+      { if ( cinfo[i] )
+	{ XColor *c = cinfo[i];
+	  
+	  if ( c->red != c->green || c->red != c->blue )
+	  { fmt = PNM_PPM;
+	    break;
+	  }
+	}
+      }
+      if ( !fmt )
+	fmt = PNM_PGM;
+    }
+  }
+
+  putc('P', fd);
+
+  switch(fmt)
+  { case PNM_PBM:
+      putc(asascii ? '1' : '4', fd);
+      break;
+    case PNM_PGM:
+      putc(asascii ? '2' : '5', fd);
+      break;
+    case PNM_PPM:
+      putc(asascii ? '3' : '6', fd);
+      break;
+  }
+
+  fprintf(fd, "\n# Creator: XPCE version %s\n",
+	  strName(get(PCE, NAME_version, 0)));
+  if ( fmt != PNM_PBM )
+  { fprintf(fd, "# %d colours found\n", colours);
+    fprintf(fd, "%d %d\n", width, height);
+    fprintf(fd, "%d\n", scale);
+  } else
+    fprintf(fd, "%d %d\n", width, height);
+
+  if ( asascii )
+  { file_col = 0;
+
+    switch(fmt)
+    { case PNM_PBM:
+      { for(y=0; y<height; y++)
+	{ for(x=0; x<width; x++)
+	  { if ( putNum(XGetPixel(img, x, y) ? 1 : 0, fd) < 0 )
+	      return -1;
+	  }
+	}
+	break;
+      }
+      case PNM_PGM:
+      { greySparceCInfo(cinfo, depth);
+
+	for(y=0; y<height; y++)
+	{ for(x=0; x<width; x++)
+	  { XColor *c;
+	    unsigned int r;
+
+	    c = cinfo[XGetPixel(img, x, y)];
+	    r = rescale(c->red, BRIGHT, scale);
+
+	    if ( putNum(r, fd) < 0 )
+	      return -1;
+	  }
+	}
+	break;
+      }
+      case PNM_PPM:
+      { for(y=0; y<height; y++)
+	{ for(x=0; x<width; x++)
+	  { XColor *c;
+	    unsigned int r, g, b;
+
+	    c = cinfo[XGetPixel(img, x, y)];
+	    r = rescale(c->red,   BRIGHT, scale);
+	    g = rescale(c->green, BRIGHT, scale);
+	    b = rescale(c->blue,  BRIGHT, scale);
+
+	    if ( putNum(r, fd) < 0 ||
+		 putNum(g, fd) < 0 ||
+		 putNum(b, fd) < 0 )
+	      return -1;
+	  }
+	}
+	break;
+      }
+    }
+    if ( file_col && putc('\n', fd) == EOF )
+      return -1;
+    file_col = 0;
+  } else				/* rawbits */
+  { switch(fmt)
+    { case PNM_PBM:
+      { int byte = 0;
+	int bit = 7;
+
+	for(y=0; y<height; y++)
+	{ for(x=0; x<width; x++)
+	  { if ( XGetPixel(img, x, y) )
+	      byte |= 1<<bit;
+	    if ( bit-- == 0 )
+	    { if ( putc(byte, fd) == EOF )
+		return -1;
+	      bit = 7;
+	      byte = 0;
+	    }
+	  }
+	}
+
+	if ( bit != 7 )
+	{ if ( putc(byte, fd) == EOF )
+	    return -1;
+	}
+	break;
+      }
+      case PNM_PGM:
+      { greySparceCInfo(cinfo, depth);
+
+	for(y=0; y<height; y++)
+	{ for(x=0; x<width; x++)
+	  { XColor *c;
+	    unsigned int r;
+
+	    c = cinfo[XGetPixel(img, x, y)];
+	    r = rescale(c->red, BRIGHT, scale);
+
+	    if ( putc(r, fd) == EOF )
+	      return -1;
+	  }
+	}
+	break;
+      }
+      case PNM_PPM:
+      { for(y=0; y<height; y++)
+	{ for(x=0; x<width; x++)
+	  { XColor *c;
+	    unsigned int r, g, b;
+
+	    c = cinfo[XGetPixel(img, x, y)];
+	    r = rescale(c->red,   BRIGHT, scale);
+	    g = rescale(c->green, BRIGHT, scale);
+	    b = rescale(c->blue,  BRIGHT, scale);
+
+	    if ( putc(r, fd) == EOF ||
+		 putc(g, fd) == EOF ||
+		 putc(b, fd) == EOF )
+	      return -1;
+	  }
+	}
+
+	break;
+      }
+    }
+  }
+
+  if ( cinfo )
+    freeSparceCInfo(cinfo, img->depth);
+
+  return 0;
+}

@@ -366,7 +366,7 @@ static status
 repeatScrollBar(ScrollBar s)
 { if ( s->status == NAME_repeat )
   { forwardScrollBar(s);
-    synchroniseGraphical((Graphical) s);
+    synchroniseGraphical((Graphical) s, ON);
     intervalTimer(scrollBarRepeatTimer(),
 		  getResourceValueObject(s, NAME_repeatInterval));
   }

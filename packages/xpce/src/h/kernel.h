@@ -194,11 +194,13 @@ typedef void			(*atexit_function)(void);
 		*         NAME CONFLICTS	*
 		********************************/
 
-#define	CtoInt(i)	toInt(i)	/* int --> Int */
-#define	pp(x)		pcePP((Any)(x))	/* interface name */
-#define get             getPCE          /* avoid common name-conflict */
-#define send            sendPCE         /* same */
-#define toString	toStringPCE	/* SWI-Prolog name-conflict */
+#define	CtoInt(i)	toInt(i)		/* int --> Int */
+#define CtoName(s)	(Name)cToPceName((s))	/* const char * --> Name */
+#define CtoType(s)	nameToType(CtoName(s))  /* char * --> type object */
+#define	pp(x)		pcePP((Any)(x))		/* interface name */
+#define get             getPCE          	/* avoid common name-conflict */
+#define send            sendPCE         	/* same */
+#define toString	toStringPCE		/* SWI-Prolog name-conflict */
 
 		 /*******************************
 		 *	    BASIC TYPES		*
@@ -444,9 +446,15 @@ extern struct name builtin_names[];	/* object-array of built-in's */
 #define F_ISNAME		makeFlag(21) /* instanceOf(x, ClassName) */
 #define F_ISREAL		makeFlag(22) /* instanceOf(x, ClassReal) */
 
+#define OBJ_MAGIC		(0x95L << 24)
+#define OBJ_MAGIC_MASK		(0xffL << 24)
+
+#define hasObjectMagic(obj)	((((Instance)(obj))->flags&OBJ_MAGIC_MASK) == \
+					OBJ_MAGIC)
+
 #define initHeaderObj(obj, cl) \
   { obj->class	      = cl; \
-    obj->flags        = F_CREATING; \
+    obj->flags        = F_CREATING|OBJ_MAGIC; \
     obj->references   = 0L; \
   }
 
@@ -518,9 +526,9 @@ extern struct name builtin_names[];	/* object-array of built-in's */
 		*         CAREFUL CHECKERS	*
 		********************************/
 
-#define isAddress(a)	((ulong)(a) >= allocBase && \
-			 (ulong)(a) < allocTop && \
-			 !((ulong)(a) & (sizeof(Any)-1)))
+#define validAddress(a)	((ulong)(a) >= allocBase && \
+			 (ulong)(a) < allocTop)
+#define isAddress(a)	(validAddress(a) && !((ulong)(a) & (sizeof(Any)-1)))
 #define validPceDatum(x) (isInteger(x) || isProperObject(x))
 
 
@@ -729,7 +737,7 @@ pce-class.c
 
 #define ABSTRACT_CLASS_STUB \
   ABSTRACT_PROGRAM_OBJECT \
-  Name		name;			/* name for this class */ \
+  Name		name;			/* (2) name for this class */ \
   StringObj	summary;		/* Summary of the class */ \
   Name		creator;		/* Created from where? */ \
   Class		super_class;		/* (abstract) super-class */ \
@@ -739,9 +747,16 @@ NewClass(class_stub)
   ABSTRACT_CLASS_STUB
 End;
 
+typedef struct instance_proto *InstanceProto;
+
+struct instance_proto
+{ int		size;			/* Size of the prototype (bytes) */
+  struct object proto;			/* the proto itself */
+};
+
 NewClass(class)
   ABSTRACT_CLASS_STUB
-  Vector	instance_variables;	/* local variables */
+  Vector	instance_variables;	/* (7) local variables */
   Chain		send_methods;		/* send methods for this class */
   Chain		get_methods;		/* get methods for this class */
   Name		term_functor;		/* functor name of term */
@@ -759,9 +774,9 @@ NewClass(class)
   Int		instance_size;		/* Instance size in bytes */
   Int		slots;			/* # instance variables */
 #ifndef O_RUNTIME
-  SourceLocation source;		/* Source location */
+  SourceLocation source;		/* (24) Source location */
 #endif
-  Name		rcs_revision;		/* Current rcs-revision of source */
+  Name		rcs_revision;		/* (25) Current rcs-revision of source */
   Chain		changed_messages;	/* Trap instance changes */
   Chain		created_messages;	/* Trap instance creation */
   Chain		freed_messages;		/* Trap instance destruction */
@@ -775,6 +790,8 @@ NewClass(class)
   GetMethod	convert_method;		/* Convert to this type */
   GetMethod	lookup_method;		/* Reusable object-lookup */
 
+  Code		resolve_method_message;	/* Lazy definition of methods */
+
   HashTable	send_table;		/* hash-table of send methods */
   HashTable	get_table;		/* hash-table of get methods */
   HashTable	local_table;		/* hash-table of instance variables */
@@ -784,12 +801,12 @@ NewClass(class)
   Bool		realised;		/* Class has been realised? */
   Bool		has_init_functions;	/* instance variables use functions */
 
+  InstanceProto	proto;			/* Prototype instance */
   int		tree_index;		/* Index in depth-first tree */
   int		neighbour_index;	/* Index of my neighbour */
 
   GetFunc	get_function;		/* `Get' on Code objects */
   SendFunc	send_function;		/* `Send' on Code objects */
-  SendFunc	unlink_function;	/* Unlink from environment */
   SendFunc	saveFunction;		/* function handling saveFile */
   SendFunc	loadFunction;		/* function handling loadFile */
   SendFunc	cloneFunction;		/* function to clone object */
@@ -1318,9 +1335,10 @@ __pce_export int	Cputchar(int chr);
 __pce_export char *	Cgetline(char *line, int size);
 
 					/* interface prototypes */
+CPointer	CtoCPointer(void *);
+Any		cToPceName(const char *text);
 status		makeClassC(Class class);
 status		makeClassCPointer(Class class);
-CPointer	CtoCPointer(void *);
 status		initialiseHost(Host h, Name which);
 status		makeClassHost(Class class);
 Host		HostObject(void);
@@ -1546,6 +1564,16 @@ GLOBAL int hash_resizes;		/* # resizes done */
 
 #include <h/syntax.h>
 
+		 /*******************************
+		 *	 SPEEDUP MACROS		*
+		 *******************************/
+
+#define sendv(rec, sel, ac, av) vm_send((rec), (sel), NULL, (ac), (av))
+#define getv(rec, sel, ac, av) vm_get((rec), (sel), NULL, (ac), (av))
+#define FixSendFunctionClass(cl, m) if ( !(cl)->send_function ) \
+				      fixSendFunctionClass((cl), (m))
+#define FixGetFunctionClass(cl, m) if ( !(cl)->get_function ) \
+				      fixGetFunctionClass((cl), (m))
 
 		/********************************
 		*        INLINE SUPPORT		*
@@ -1560,11 +1588,3 @@ GLOBAL int hash_resizes;		/* # resizes done */
 
 
 #include "../ker/inline.c"
-
-		 /*******************************
-		 *	 SPEEDUP MACROS		*
-		 *******************************/
-
-#define sendv(rec, sel, ac, av) vm_send((rec), (sel), NULL, (ac), (av))
-#define getv(rec, sel, ac, av) vm_get((rec), (sel), NULL, (ac), (av))
-

@@ -22,16 +22,7 @@
 		 *	       ALLOC		*
 		 *******************************/
 
-int
-str_datasize(String s)
-{ if ( isstr8(s) )
-    return s->size;
-  else
-    return s->size * 2;
-}
-
-
-int
+inline int
 str_allocsize(String s)
 { if ( isstr8(s) )
     return (((s->size + sizeof(long)) / sizeof(long)) * sizeof(long));
@@ -40,7 +31,7 @@ str_allocsize(String s)
 }
 
 
-void
+inline void
 str_pad(String s)			/* only 8-bit strings */
 { if ( isstr8(s) )
   { int from = s->size;

@@ -27,9 +27,10 @@
 %	file `FileSpec'.  This will actually be done if either the class
 %	is actually needed by PCE or pce_autoload_all/0 is called.
 
-pce_autoload(Class, library(Library)) :-
+pce_autoload(Class, PathAlias) :-	% trap library(), demo(), contrib(), ..
+	functor(PathAlias, _, 1), !,
 	retractall(autoload(Class, _)),
-	assert(autoload(Class, library(Library))).
+	assert(autoload(Class, PathAlias)).
 pce_autoload(Class, Abs) :-
 	is_absolute_file_name(Abs), !,
 	absolute_file_name(Abs, Canonical),

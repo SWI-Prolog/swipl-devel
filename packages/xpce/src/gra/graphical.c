@@ -11,6 +11,10 @@
 #include <h/graphics.h>
 #include <math.h>
 
+#ifdef HAVE_SYS_TIME_H
+#include <sys/time.h>
+#endif
+
 static int	distance_area(int, int, int, int, int, int, int, int);
 static status	orientationGraphical(Graphical gr, Name orientation);
 static Point	getCenterGraphical(Graphical gr);
@@ -598,10 +602,13 @@ RedrawArea(Any obj, Area area)
   c = gr->colour;
   if ( gr->selected == ON )
   { PceWindow sw = getWindowGraphical(gr);
-    Any feedback = sw->selection_feedback;
 
-    if ( instanceOfObject(feedback, ClassColour) )
-      c = feedback;
+    if ( sw )
+    { Any feedback = sw->selection_feedback;
+
+      if ( instanceOfObject(feedback, ClassColour) )
+	c = feedback;
+    }
   }
   if ( gr->active == OFF )
   { Any c2;
@@ -708,8 +715,19 @@ flushGraphical(Any gr)
 
 
 status
-synchroniseGraphical(Graphical gr)
+synchroniseGraphical(Graphical gr, Bool always)
 { DisplayObj d;
+  static struct timeval last;
+
+  if ( always != ON )
+  { struct timeval now;
+
+    gettimeofday(&now, NULL);
+    if ( ((now.tv_sec - last.tv_sec) * 1000 +
+	  (now.tv_usec - last.tv_usec) / 1000) < 200 )
+      succeed;
+    last = now;
+  } 
 
   if ( (d = getDisplayGraphical(gr)) )
     synchroniseDisplay(d);
@@ -2617,7 +2635,7 @@ makeClassGraphical(Class class)
   sendMethod(class, NAME_flush, NAME_animate, 0,
 	     "Flush changes to the display",
 	     flushGraphical);
-  sendMethod(class, NAME_synchronise, NAME_animate, 0,
+  sendMethod(class, NAME_synchronise, NAME_animate, 1, "[always=bool]",
 	     "->flush and process all events",
 	     synchroniseGraphical);
   sendMethod(class, NAME_move, NAME_area, 1, "point",

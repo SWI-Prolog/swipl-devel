@@ -346,6 +346,8 @@ static struct error_def errors[] =
     "%N: Unknown type-kind: %s" },
   { NAME_badTypeSyntax,		0,
     "%N: Syntax error in type-specification" },
+  { NAME_instantiationFault,	0,
+    "%N: %N: Instantiation fault" },
 
 					/* text_item */
   { NAME_cannotConvertText,	EF_REPORT|ET_WARNING,

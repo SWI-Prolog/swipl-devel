@@ -915,6 +915,7 @@ benchPce(Pce pce, Message msg, Int count, Name how)
       TRY(implementation = resolveSendMethodObject(receiver, NULL, selector,
 						   &receiver, NULL));
       cl = classOfObject(implementation);
+      FixSendFunctionClass(cl, NAME_send);
       while( cnt-- > 0 )
 	(*cl->send_function)(implementation, receiver, argc, argv);
     }
@@ -1375,10 +1376,10 @@ pceInitialise(int handles, int argc, char **argv)
   markAnswerStack(mark);
   syntax.word_separator = '_';
 
-  setProtectedObj(NIL);
-  setProtectedObj(DEFAULT);
-  setProtectedObj(ON);
-  setProtectedObj(OFF);
+  ((Instance)NIL)->flags     = F_PROTECTED|OBJ_MAGIC;
+  ((Instance)DEFAULT)->flags = F_PROTECTED|OBJ_MAGIC;
+  ((Instance)ON)->flags      = F_PROTECTED|OBJ_MAGIC;
+  ((Instance)OFF)->flags     = F_PROTECTED|OBJ_MAGIC;
 
   DEBUG_BOOT(Cprintf("Alloc ...\n"));
   initAlloc();

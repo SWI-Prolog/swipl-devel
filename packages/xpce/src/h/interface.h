@@ -203,7 +203,7 @@ __pce_export int pceReInitialise __P((int argc, char **argv));
 		*           C --> PCE		*
 		********************************/
 
-__pce_export PceObject	cToPceName __P((char *));
+__pce_export PceObject	cToPceName __P((const char *));
 __pce_export PceObject	cToPceInteger __P((long));
 __pce_export PceObject	cToPceReal __P((double));
 __pce_export PceObject	cToPceString __P((char *, char *));
@@ -215,7 +215,7 @@ __pce_export int	pceLock __P((PceObject));
 __pce_export PceObject	cToPceTmpCharArray __P((char *text));
 __pce_export void	donePceTmpCharArray __P((PceObject));
 
-__pce_export int	pceExistsReference __P((long));
+__pce_export int	pceExistsReference __P((unsigned long));
 __pce_export int	pceExistsAssoc __P((char *));
 
 __pce_export int	pceInstanceOf __P((PceObject obj, PceObject class));

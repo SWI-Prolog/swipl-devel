@@ -32,11 +32,12 @@ file_search_path(so, SoDir) :-
 
 :-  (   pcehome_(PceHome),
 	exists_directory(PceHome),
-	unix(argv([Proc|Args])),
+	'$argv'([Proc|Args]),
 	(   member('-pce', Args)
 	;   '$apropos_match'(pce, Proc)
 	)
-    ->  object(@pce),
+    ->  object(@pce),			% silent autoload loading
+	use_module(library(pce)),	% import all
 	flag('$banner_goal', _, pce_welcome)
     ;   true
     ).

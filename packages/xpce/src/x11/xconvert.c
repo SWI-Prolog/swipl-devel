@@ -76,7 +76,7 @@ CreateXImageFromData(unsigned char *data, int width, int height)
     image->width = width;
     image->depth = 1;
     image->xoffset = 0;
-    image->format = ZPixmap;
+    image->format = XYBitmap /*ZPixmap*/;
     image->data = (char *)data;
     image->byte_order = LSBFirst;
     image->bitmap_unit = 8;

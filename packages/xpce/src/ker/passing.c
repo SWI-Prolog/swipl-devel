@@ -59,6 +59,7 @@ status
 sendImplementation(Any implementation, Any receiver, int argc, Any *argv)
 { Class class = classOfObject(implementation);
 
+  FixSendFunctionClass(class, NAME_send);
   return (*class->send_function)(implementation, receiver, argc, argv);
 }
 
@@ -295,14 +296,26 @@ vm_send(Any receiver, Name selector, Class class, int argc, const Any argv[])
       for(i=0; i<argc; i++)
 	av[ac++] = argv[i];
       freeDList(dlist);
+      FixSendFunctionClass(dmcl, NAME_send);
       rval = (*dmcl->send_function)(dm, dmrec, ac, av);
     } else
     { Class ic = classOfObject(implementation);
 
+      FixSendFunctionClass(ic, NAME_send);
       rval = (*ic->send_function)(implementation, rec, argc, argv);
     }
   } else
   { Class cl = class ? class : classOfObject(rec);
+
+    if ( isDefault(cl->send_catch_all) )
+    { SendMethod m;
+
+      if ( (m=getSendMethodClass(cl, NAME_catchAll)) )
+      { setDFlag(m, D_TYPENOWARN);
+	assign(cl, send_catch_all, m);
+      } else
+	assign(cl, send_catch_all, NIL);
+    }
 
     if ( notNil(cl->send_catch_all) )
     { int ac;
@@ -324,10 +337,10 @@ vm_send(Any receiver, Name selector, Class class, int argc, const Any argv[])
 	  errorPce(VmiSend, NAME_noBehaviour);
 #endif
       }
-    } else 
+    } else
     { if ( resolve_errno == RE_NOIMPLEMENTATION )
 #ifndef O_RUNTIME
-	errorPce(VmiSend, NAME_noBehaviour, rec, CtoName("->"), selector);
+        errorPce(VmiSend, NAME_noBehaviour, rec, CtoName("->"), selector);
 #else
 	errorPce(VmiSend, NAME_noBehaviour);
 #endif
@@ -439,9 +452,20 @@ vm_get(Any receiver, Name selector, Class class, int argc, const Any argv[])
   if ( implementation )			/* Execute implementation */
   { Class ic = classOfObject(implementation);
 
+    FixGetFunctionClass(ic, NAME_get);
     rval = (*ic->get_function)(implementation, rec, argc, argv);
   } else
   { Class cl = class ? class : classOfObject(rec);
+
+    if ( isDefault(cl->get_catch_all) )
+    { GetMethod m;
+
+      if ( (m=getGetMethodClass(cl, NAME_catchAll)) )
+      { setDFlag(m, D_TYPENOWARN);
+	assign(cl, get_catch_all, m);
+      } else
+	assign(cl, get_catch_all, NIL);
+    }
 
     if ( notNil(cl->get_catch_all) )
     { int ac;

@@ -519,6 +519,7 @@ variable(editor,	  editor*,	both, "Associated editor").
 variable(m_x_history,	  chain*,	both, "Current M-x command history").
 variable(m_x_index,	  int*,		both, "M-p/M-n current index").
 variable(m_x_argn,	  int*,		both, "M-p/M-n current argument").
+variable(keep_selection,  bool := @off, both, "Keep selection for this method").
 
 delegate_to(editor).
 
@@ -769,10 +770,29 @@ typed(M, Id:event_id, Editor:editor) :->
 	    send(Binding, typed, Id, M),
 	    (	object(M),		% may be deleted ...
 	        get(M, focus_function, @nil)
-	    ->  send(M, selection, 0, 0)
+	    ->  (   get(M, keep_selection, @off)
+		->  send(M?editor, selection, 0, 0)
+		;   true
+		),
+		send(M, keep_selection, @off)
 	    ;	true
 	    )
 	).
+
+
+		 /*******************************
+		 *	     SELECTION		*
+		 *******************************/
+
+selection(E, From:int, To:int) :->
+	"Set selection and keep it one action"::
+	send(E?editor, selection, From, To),
+	send(E, keep_selection, @on).
+
+select_line(E, Line:int) :->
+	"Set selection and keep it one action"::
+	send(E?editor, select_line, Line),
+	send(E, keep_selection, @on).
 
 
 		 /*******************************

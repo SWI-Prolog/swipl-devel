@@ -142,6 +142,7 @@ insert_section_header(E) :->
 	send(@latex_environment_name_type, slot, context, @latex_envionments).
 
 make_environment(M, Env:'latex_environment_name|name') :->
+	"Insert \begin{env} ... \end{env} with completion"::
 	send(M, format, '\\begin{%s}\n\n\\end{%s}\n', Env, Env),
 	send(M, previous_line, 1),
 	send(M, align_with_previous_line),
@@ -266,6 +267,7 @@ latex_tabbing_commands(
    send(Chain, sort).
 
 make_command(M, Cmd:'latex_command_name|name') :->
+	"Insert a \command sequence with completion"::
 	send(M, format, '\\%s', Cmd).
 
 :- emacs_end_mode. 

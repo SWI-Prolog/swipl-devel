@@ -91,7 +91,7 @@ extern char  char_context[];		/* Initial context table */
 #define isalpha(c)		HasSyntax((c), LC|UC)
 #define iscntrl(c)		HasSyntax((c), CT)
 #define isprint(c)		(!iscntrl((c)))
-#define isspace(c)		isblank((c))
+#define isspace(c)		islayout((c))
 #define ispunct(c)		HasSyntax((c), PU)
 #define isxdigit(c)		HasSyntax((c), XD)
 

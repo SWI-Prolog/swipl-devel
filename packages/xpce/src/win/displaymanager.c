@@ -104,26 +104,28 @@ eventQueuedDisplayManager(DisplayManager dm)
 
 status
 RedrawDisplayManager(DisplayManager dm)
-{ PceWindow sw = WindowOfLastEvent();
-
-  TestBreakDraw();
-  if ( memberChain(ChangedWindows, sw) )
-    RedrawWindow(sw);
-
-  while( !emptyChain(ChangedWindows) )
-  { TestBreakDraw();
-
-    for_chain(ChangedWindows, sw,
-	      { if ( !instanceOfObject(sw, ClassWindowDecorator) )
-		  RedrawWindow(sw);
-	      });
+{ if ( ChangedWindows && !emptyChain(ChangedWindows) )
+  { PceWindow sw = WindowOfLastEvent();
 
     TestBreakDraw();
+    if ( memberChain(ChangedWindows, sw) )
+      RedrawWindow(sw);
 
-    for_chain(ChangedWindows, sw,
-	      { if ( instanceOfObject(sw, ClassWindowDecorator) )
-		RedrawWindow(sw);
-	      });
+    while( !emptyChain(ChangedWindows) )
+    { TestBreakDraw();
+
+      for_chain(ChangedWindows, sw,
+		{ if ( !instanceOfObject(sw, ClassWindowDecorator) )
+		    RedrawWindow(sw);
+		});
+
+      TestBreakDraw();
+
+      for_chain(ChangedWindows, sw,
+		{ if ( instanceOfObject(sw, ClassWindowDecorator) )
+		    RedrawWindow(sw);
+		});
+    }
   }
 
   succeed;

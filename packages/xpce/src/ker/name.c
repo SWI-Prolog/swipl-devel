@@ -527,22 +527,6 @@ StringToName(String s)
 
 
 Name
-CtoName(const char *text)
-{ if ( text )
-  { string s;
-
-    s.size = strlen(text);
-    s.encoding = ENC_ASCII;
-    s.b16 = FALSE;
-    s.s_text8 = (char8 *)text;
-
-    return StringToName(&s);
-  } else
-    fail;
-}
-
-
-Name
 CtoKeyword(const char *s)
 { if ( syntax.uppercase )
   { CharBuf(buf, strlen(s));

@@ -1,4 +1,88 @@
-[VERSION 4.8.8]
+[VERSION 4.8.10]
+
+* ADDED: Image interface for PNM (PPM, PBM, PGM): Portable aNy Map format.
+  Allows for reading and writing colour images.  PNM is the central format
+  of a set of public domain tools for the conversion of bitmaps to numerous
+  formats.  Added format argument to image->save for saving in different
+  formats.
+
+* FIXED: Incremental garbage-collector error.  The incremental garbage
+  collector missed objects reaching 0 reference count when not running
+  in debug mode.  This fix should have serious impact on memory usage.
+  There may be cases where old code used to run and now yields `bad PCE
+  integer reference' or `send to freed object' warnings. If you know
+  what object is deleted, you can try to find the context of the
+  deletion using:
+
+  ?- get(class(<theclass>), send_method, unlink, M),
+     send(M, trace, @on, full,
+	  message(@pce, print_stack, 10, @on)).
+
+  Which will cause a dump of the top-10 stackframes whenever an instance
+  of <theclass> is destroyed.
+
+* ADDED: Automatic mapping of colours to nearest available colour if the
+  colour map is full.  Avoids `PCE fatal error: red: ->_xopen failed"
+  messages (notably on colour displays when running together with netscape
+  that unkindly allocate lots of colours).
+
+* ADDED: `colour ->unlink' and changed definition of class colour such that
+  colours are destroyed if they reach 0 reference count.  This should minimise
+  the amount of colours used by XPCE.  Colour objects no longer have a global
+  reference.  Thus, @white_colour, etc. no longer exist.
+
+* FIXED: Better checking for valid colour specification in colour->initialise.
+
+* PERFORMANCE: Various minor and major changed to improve performance:
+	+ Exploit new SWI-Prolog 2.0.10 C-interface function PL_univg()
+	  to speed up the interface.
+	+ Prolog interface GetCompound changed to exploit name interface
+	  table.
+	+ cToPceReference() reimplemented
+	+ Type-checker improvements
+	+ Efficient structure initialisation for new objects by maintaining
+	  a prototype
+	+ Editor Fragment-linking algoritm improved
+
+* ADDED: Lazy method-binding schema to speedup loading of Prolog (precompiled)
+  files.  Changed pce_term_expansion/2 and adds various features to class
+  class.  Should be 100% compatible, except for applications redefining 
+  PCE's term_expansion.
+  
+* FIXED: hash-table resize problem that wasted memory (result was ok).
+
+* ADDED: `always' argument to `graphical ->synchronise'.  If not @on,
+  synchronise will be a no-op if the last executed synchronise was less
+  then 200 milliseconds before.  Symplifies user-interaction in loops.
+
+* FIXED: Bug in `text_buffer <-content'.  Could lead to various kinds
+  of problems depending on the memory layout of the target system:
+  false answer (too short, padded with rubish) or crashes.
+
+* FIXED: `image ->draw_in' if the object has <-selected: @on.
+
+* FIXED: Redraw of figures with >0 ->border and an outline/background.
+
+* FIXED: `directory ->scan' to honour the hidden_too argument if the same
+  chain is given for files and directories.
+
+* CLASS COMPILER: Changed various things to the method resolution system to
+  allow for lazy binding of methods.  See `class <->resolve_method_message'.
+  This changes the class compiler and the semantics of pce_expand/2.
+
+* FIXED: Bug in `display_manager ->dispatch'.  May have let to crashes on
+  some platforms.  Once the system has an open window the problem
+  (initialisation ordering) was gone.
+
+* ADDED: `connection ->event' to consider recognisers associated with the
+  line of the link.
+
+* FIXED: 'text_item ->advance: clear'.
+
+* FIXED: pce_autoload(class, demo(ispell)) and similar calls.
+
+
+[VERSION 4.8.9]
 
 * ADDED: PostScript generation for *all* graphical objects using intermediate
   image objects.  See `graphical ->_draw_post_script'.

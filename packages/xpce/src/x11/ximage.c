@@ -42,6 +42,8 @@ ws_destroy_image(Image image)
 
 #define DataSize(Image) ((Image)->bytes_per_line * (Image)->height)
 
+#ifndef O_PPM
+
 static status
 dumpXImage(XImage *image, FILE *fd)
 { putc('I', fd);
@@ -59,11 +61,12 @@ dumpXImage(XImage *image, FILE *fd)
 
   succeed;
 }
+#endif /*O_PPM*/
 
 
 static void
 getXImageImageFromScreen(Image image)
-{ if ( notNil(image->display) && image->kind == NAME_bitmap )
+{ if ( notNil(image->display) /* && image->kind == NAME_bitmap */ )
   { DisplayWsXref r = image->display->ws_ref;
     XImage *i;
 
@@ -88,8 +91,23 @@ ws_store_image(Image image, FileObj file)
   }
 
   if ( i )
+#if O_PPM
+  { DisplayObj d = image->display;
+    DisplayWsXref r;
+
+    if ( isNil(d) )
+      d = CurrentDisplay(image);
+    r = d->ws_ref;
+
+    putc('P', file->fd);
+    DEBUG(NAME_ppm, Cprintf("Saving PNM image from index %d\n", ftell(file->fd)));
+    if ( write_pnm_file(file->fd, i, r->display_xref, 0, 0, 0, 0) < 0 )
+      fail;
+    DEBUG(NAME_ppm, Cprintf("Saved PNM image to index %d\n", ftell(file->fd)));
+#else
   { putc('X', file->fd);
     dumpXImage(i, file->fd);
+#endif
   } else
     return errorPce(image, NAME_cannotSaveObject, NAME_noImage);
 
@@ -103,7 +121,7 @@ status
 loadXImage(Image image, FILE *fd)
 { XImage *im, *tmp = (XImage *)XMalloc(sizeof(XImage));
   char *data;
-  char c;
+  int c;
   int size;
   DisplayObj d = image->display;
   DisplayWsXref r;
@@ -151,6 +169,33 @@ loadXImage(Image image, FILE *fd)
 
 
 status
+loadPNMImage(Image image, FILE *fd)
+{ DisplayWsXref r;
+  Display *d;
+  XImage *i;
+
+  if ( isNil(image->display) )
+    assign(image, display, CurrentDisplay(image));
+  openDisplay(image->display);
+
+  r = image->display->ws_ref;
+  d = r->display_xref;
+
+  DEBUG(NAME_ppm, Cprintf("Loading PNM image from index %d\n", ftell(fd)));
+  if ( (i = read_ppm_file(d, 0, 0, fd)) )
+  { setXImageImage(image, i);
+    assign(image, depth, toInt(i->depth));
+
+    DEBUG(NAME_ppm, Cprintf("Image loaded, index = %d\n", ftell(fd)));
+    succeed;
+  }
+
+  DEBUG(NAME_ppm, Cprintf("Failed to load image\n"));
+  fail;
+}
+
+
+status
 ws_load_old_image(Image image, FILE *fd)
 { XImage *im = readImageFile(fd);
 
@@ -167,7 +212,19 @@ ws_load_image_file(Image image)
 { XImage *i;
 
   TRY( openFile(image->file, NAME_read, DEFAULT, DEFAULT) );
-  i = readImageFile(image->file->fd);
+  if ( !(i = readImageFile(image->file->fd)) )
+  { DisplayWsXref r;
+    Display *d;
+
+    if ( isNil(image->display) )
+      assign(image, display, CurrentDisplay(image));
+    openDisplay(image->display);
+
+    r = image->display->ws_ref;
+    d = r->display_xref;
+
+    i = read_ppm_file(d, 0, 0, image->file->fd);
+  }
   closeFile(image->file);
 
   if ( i )
@@ -175,33 +232,61 @@ ws_load_image_file(Image image)
     { XcloseImage(image, DEFAULT);
       ws_destroy_image(image);
     }
+    assign(image, depth, toInt(i->depth));
+    assign(image, kind, image->depth == ONE ? NAME_bitmap : NAME_pixmap);
     setXImageImage(image, i);
     setSize(image->size, toInt(i->width), toInt(i->height));
-  } else
-    return errorPce(image->file, NAME_badFile, NAME_image);
 
-  succeed;
+    succeed;
+  }
+
+  return errorPce(image->file, NAME_badFile, NAME_image);
 }
 
 
 status
-ws_save_image_file(Image image, FileObj file)
+ws_save_image_file(Image image, FileObj file, Name fmt)
 { DisplayObj d = image->display;
-  Pixmap pix;
   DisplayWsXref r;
 
   if ( isNil(d) )
     d = CurrentDisplay(image);
   r = d->ws_ref;
 
-  pix = (Pixmap) getXrefObject(image, d);
+  if ( fmt == NAME_xbm )
+  { Pixmap pix = (Pixmap) getXrefObject(image, d);
 
-  if ( XWriteBitmapFile(r->display_xref,
-			strName(file->name),
-			pix,
-			valInt(image->size->w), valInt(image->size->h),
-			-1, -1) != BitmapSuccess )
-    return errorPce(image, NAME_xError);
+    if ( XWriteBitmapFile(r->display_xref,
+			  strName(file->name),
+			  pix,
+			  valInt(image->size->w), valInt(image->size->h),
+			  -1, -1) != BitmapSuccess )
+      return errorPce(image, NAME_xError);
+  } else
+  { int pnm_fmt;
+    XImage *i;
+    status rval;
+
+    if ( fmt == NAME_pnm )	pnm_fmt = 0;
+    else if ( fmt == NAME_pbm )	pnm_fmt = PNM_PBM;
+    else if ( fmt == NAME_pgm )	pnm_fmt = PNM_PGM;
+    else if ( fmt == NAME_ppm )	pnm_fmt = PNM_PPM;
+    else fail;
+    
+    if ( !(i=getXImageImage(image)) )
+    { getXImageImageFromScreen(image);
+      i=getXImageImage(image);
+    }
+  
+    send(file, NAME_kind, NAME_binary, 0);
+    TRY(send(file, NAME_open, NAME_write, 0));
+    if ( write_pnm_file(file->fd, i, r->display_xref, 0, 0, 0, 0) < 0 )
+      rval = errorPce(image, NAME_xError);
+    else
+      rval = SUCCEED;
+    send(file, NAME_close, 0);
+    return rval;
+  }
   
   succeed;
 }
@@ -236,7 +321,15 @@ ws_open_image(Image image, DisplayObj d)
 		i, 0, 0, 0, 0, i->width, i->height);
     }
   } else if ( notNil(image->file) )
-  { TRY(loadImage(image, DEFAULT, DEFAULT));
+  {
+#ifdef O_PPM
+    if ( notNil(image->display) && image->display != d )
+    { errorPce(image, NAME_xMovedDisplay, d);
+      XcloseImage(image, image->display);
+    }
+    assign(image, display, d);
+#endif
+    TRY(loadImage(image, DEFAULT, DEFAULT));
     return XopenImage(image, d);
   } else if ( w != 0 && h != 0 && image->access == NAME_both )
   { if ( notNil(image->display) && image->display != d )

@@ -85,29 +85,67 @@ follows:
 	3) Otherwise the object is freed (argument)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#undef offset
+#define offset(t, f) ((int)(&((struct t *)0)->f))
+
+static void
+updateInstanceProtoClass(Class class)
+{ int slots = valInt(class->slots);
+  int size = valInt(class->instance_size);
+  Variable *var = (Variable *) &class->instance_variables->elements[0];
+  Any *field;
+  Instance obj;
+
+  class->proto = alloc(offset(instance_proto, proto) + size);
+  class->proto->size = size;
+  obj = (Instance) &class->proto->proto;
+  initHeaderObj(obj, class);
+
+  field = &obj->slots[0];
+  for( ; --slots >= 0; var++, field++)
+    *field = (*var)->alloc_value;
+}
+
+
+void
+unallocInstanceProtoClass(Class class)
+{ if ( class->proto )
+  { unalloc(offset(instance_proto, proto) + class->proto->size, class->proto);
+    class->proto = NULL;
+  }
+}
+
+
 Any
 allocObject(Class class, int funcs)
 { Instance obj;
-  int size = valInt(class->instance_size);
-  int i, slots = valInt(class->slots);
+  int size;
 
-  obj = alloc(size);
-  initHeaderObj(obj, class);
+again:
+  if ( class->proto )
+  { size = class->proto->size;
+    obj = alloc(size);
+    memcpy(obj, &class->proto->proto, size);
 
-  if ( class->boot )			/* TBD: use prototypes? */
-  { slots = (size - ((int) &((Instance) NULL)->slots[0])) / sizeof(Any);
+    return obj;
+  }
+
+  if ( class->boot )
+  { int size = valInt(class->instance_size);
+    int slots = (size - offset(instance, slots[0])) / sizeof(Any);
+    int i;
+
+    obj = alloc(size);
+    initHeaderObj(obj, class);
 
     for (i = 0; i < slots; i++)
       obj->slots[i] = ((i < class->boot) ? NIL : (Any) NULL);
+
+    return obj;
   } else
-  { Variable *var = (Variable *) &class->instance_variables->elements[0];
-    Any *field = &obj->slots[0];
-
-    for( ; --slots >= 0; var++, field++)
-      *field = (*var)->alloc_value;
+  { updateInstanceProtoClass(class);
+    goto again;
   }
-
-  return obj;
 }
 
 
@@ -179,6 +217,17 @@ createObjectv(Name assoc, Class class, int argc, const Any argv[])
   if ( class->realised != ON )
     realiseClass(class);
 
+  if ( isDefault(class->lookup_method) )
+  { GetMethod m = getGetMethodClass(class, NAME_lookup);
+
+    if ( m )
+      setDFlag(m, D_TYPENOWARN);
+    else
+      m = NIL;
+
+    assign(class, lookup_method, m);
+  }
+
   if ( notNil(class->lookup_method) )
   { if ( (rval = getGetGetMethod(class->lookup_method,
 				 class, argc, argv)) )
@@ -195,8 +244,16 @@ createObjectv(Name assoc, Class class, int argc, const Any argv[])
   }
 
   rval = allocObject(class, TRUE);
+  addCodeReference(rval);
   if ( notNil(assoc) )
     newAssoc(assoc, rval);
+
+  if ( isDefault(class->initialise_method) )
+  { Any m = getSendMethodClass(class, NAME_initialise);
+
+    assert(instanceOfObject(m, ClassSendMethod));
+    assign(class, initialise_method, m);
+  }
 
   if ( sendSendMethod(class->initialise_method, rval, argc, argv) )
   { createdClass(class, rval, NAME_new);
@@ -217,6 +274,7 @@ createObjectv(Name assoc, Class class, int argc, const Any argv[])
 out:
   traceAnswer(g, rval);
   popGoal();
+  delCodeReference(rval);
 
   answer(rval);
 }
@@ -386,12 +444,7 @@ freeObject(Any obj)
   setFreeingObj(inst);			/* mark */
   deleteAssoc(inst);			/* delete name association */
 
-  if ( class->unlink_function && !TraceMode )
-    rval = (*class->unlink_function)(inst);
-  else
-    rval = simpleSendv(inst, NAME_unlink, 0, NULL);
-
-  if ( !rval )
+  if ( !qadSendv(inst, NAME_unlink, 0, NULL) )
     errorPce(inst, NAME_unlinkFailed);
 
   rval = SUCCEED;
@@ -908,7 +961,7 @@ mergeSendMethodsObject(Any obj, Chain ch, HashTable done, Code cond)
   for(class = classOfObject(obj); notNil(class); class = class->super_class)
   { Variable var;
 
-    mergeMethods(ch, class->send_methods, done, cond);
+    mergeMethods(ch, getSendMethodsClass(class), done, cond);
     for_vector(class->instance_variables, var,
 	       if ( sendAccessVariable(var) )
 	         mergeMethod(ch, var, done, cond));
@@ -1671,30 +1724,31 @@ addRefObject(Any from, Any to)
 
 inline void
 delRefObject(Any from, Any to)
-{ if ( refsObject(to) <= 0 )
-  { if ( onFlag(to, F_CREATING|F_FREEING|F_FREED) )
-      errorPce(PCE, NAME_negativeRefCountInCreate, to);
-    else
-      errorPce(PCE, NAME_negativeRefCount, to);
+{ delRefObj(to);
 
-    return;				/* safer to leave it around! */
-  }
-
-  delRefObj(to);
-  
-  if ( isFreedObj(to) )
-  { if ( refsObject(to) == 0 )
-    { DEBUG(NAME_free, Cprintf("Doing deferred unalloc on %s\n", pp(to)));
-      unallocObject(to);
-      deferredUnalloced--;
-    }
-  } else if ( onFlag(to, F_INSPECT) )
+  if ( onFlag(to, F_INSPECT) )
   { addCodeReference(to);
     addCodeReference(from);
     changedObject(to, NAME_delReference, from, 0);
     delCodeReference(from);
     delCodeReference(to);
-    freeableObj(to);
+  }
+
+  if ( refsObject(to) <= 0 )
+  { if ( refsObject(to) == 0 )
+    { if ( isFreedObj(to) )
+      { DEBUG(NAME_free, Cprintf("Doing deferred unalloc on %s\n", pp(to)));
+	unallocObject(to);
+	deferredUnalloced--;
+      } else
+      { freeableObj(to);
+      }
+    } else
+    { if ( onFlag(to, F_CREATING|F_FREEING|F_FREED) )
+	errorPce(PCE, NAME_negativeRefCountInCreate, to);
+      else
+	errorPce(PCE, NAME_negativeRefCount, to);
+    }
   }
 }
 

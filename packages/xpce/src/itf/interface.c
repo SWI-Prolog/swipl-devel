@@ -51,8 +51,18 @@ cToPceString(char *assoc, char *s)
 
 
 Any
-cToPceName(char *s)
-{ return (Any) CtoName(s);
+cToPceName(const char *text)
+{ if ( text )
+  { string s;
+
+    s.size = strlen(text);
+    s.encoding = ENC_ASCII;
+    s.b16 = FALSE;
+    s.s_text8 = (char8 *)text;
+
+    return StringToName(&s);
+  } else
+    fail;
 }
 
 
@@ -82,12 +92,19 @@ cToPceAssoc(char *s)
 
 Any
 cToPceReference(ulong val)
-{ return getObjectFromReferencePce(PCE, toInt(val));
+{ Instance rval = longToPointer(val);
+
+  if ( rval &&
+       validAddress(rval) &&
+       (rval->flags & (OBJ_MAGIC_MASK|F_FREED)) == OBJ_MAGIC )
+    answer(rval);
+
+  fail;
 }
 
 
 int
-pceExistsReference(long int ref)
+pceExistsReference(ulong ref)
 { Any addr = longToPointer(ref);
 
   if ( !isProperObject(addr) || isFreedObj(addr) )

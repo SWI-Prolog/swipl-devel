@@ -62,7 +62,7 @@ CMFLAGS= -fPIC -funsigned-char -DHAVE_CONFIG_H
 # Paths for host-languages
 ################################################################
 
-PLBASE=/staff/jan/lib/pl-2.0.8
+PLBASE=/staff/jan/lib/pl-2.0.10
 PLARCH=sparc-sunos4.1.3
 
 SICSHOME=/staff/jan/src/sicstus2.1
@@ -79,7 +79,7 @@ ETAGS=etags
 SED=sed
 RM=rm
 
-VERSION=4.8.9, Apr. 1995
+VERSION=4.8.10, May. 1995
 RTSUFFIX=
 ARCH=sparc
 OS=sunos4.1.3

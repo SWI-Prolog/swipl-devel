@@ -10,11 +10,13 @@
 #include <h/kernel.h>
 #include <h/graphics.h>
 
+static XCloseColour(Colour c, DisplayObj d);
+
 static status
 initialiseColour(Colour c, Name name, Int r, Int g, Int b)
-{ char tmp[256];
+{ /*char tmp[256];*/
 
-  assign(c, name,    name);
+  assign(c, name, name);
 
   if ( isDefault(r) && isDefault(g) && isDefault(b) )
   { DisplayObj d;
@@ -23,17 +25,28 @@ initialiseColour(Colour c, Name name, Int r, Int g, Int b)
       return errorPce(c, NAME_noNamedColour, name);
 
     assign(c, kind, NAME_named);
+  } else if ( notDefault(r) && notDefault(g) && notDefault(b) )
+  { assign(c, kind, NAME_rgb);
   } else
-    assign(c, kind, NAME_rgb);
+    return errorPce(c, NAME_instantiationFault,
+		    getMethodFromFunction(initialiseColour));
 
   assign(c, red,   r);
   assign(c, green, g);
   assign(c, blue,  b);
 
-  protectObject(c);
-  sprintf(tmp, "%s_colour", strName(name));
-  newAssoc(CtoKeyword(tmp), c);
+/*sprintf(tmp, "%s_colour", strName(name));
+  newAssoc(CtoKeyword(tmp), c); */
   appendHashTable(ColourTable, c->name, c);
+
+  succeed;
+}
+
+
+static status
+unlinkColour(Colour c)
+{ deleteHashTable(ColourTable, c->name);
+  XCloseColour(c, DEFAULT);
 
   succeed;
 }
@@ -151,7 +164,7 @@ XopenColour(Colour c, DisplayObj d)
 
 
 static status
-XcloseColour(Colour c, DisplayObj d)
+XCloseColour(Colour c, DisplayObj d)
 { ws_uncreate_colour(c, d);
 
   succeed;
@@ -163,11 +176,13 @@ getHiliteColour(Colour c)
 { Colour c2;
   int r, g, b;
   Name n2;
-  Real h = getResourceValueObject(c, NAME_hiliteFactor);
-  float hf = h ? h->value : 0.5;
+  Real h;
+  float hf;
 
   if ( (c2 = getAttributeObject(c, NAME_hilite)) )
     answer(c2);
+  h  = getResourceValueObject(c, NAME_hiliteFactor);
+  hf = h ? h->value : 0.5;
   if ( isDefault(c->green) )
     getXrefObject(c, CurrentDisplay(NIL));
   
@@ -192,11 +207,13 @@ getReduceColour(Colour c)
 { Colour c2;
   int r, g, b;
   Name n2;
-  Real rfactor = getResourceValueObject(c, NAME_reduceFactor);
-  float rf = rfactor ? rfactor->value : 0.5;
+  Real rfactor;
+  float rf;
 
   if ( (c2 = getAttributeObject(c, NAME_reduce)) )
     answer(c2);
+  rfactor = getResourceValueObject(c, NAME_reduceFactor);
+  rf = rfactor ? rfactor->value : 0.5;
   if ( isDefault(c->green) )
     getXrefObject(c, CurrentDisplay(NIL));
   
@@ -231,7 +248,7 @@ makeClassColour(Class class)
   localClass(class, NAME_blue, NAME_colour, "[0..65535]", NAME_get,
 	     "Blue value");
 
-  termClass(class, "colour", 4, NAME_name, NAME_red, NAME_green, NAME_blue);
+  termClass(class, "colour", 1, NAME_name);
   setLoadStoreFunctionClass(class, loadColour, storeColour);
   cloneStyleClass(class, NAME_none);
 
@@ -240,12 +257,15 @@ makeClassColour(Class class)
 	     "red=[0..65535]", "green=[0..65535]", "blue=[0..65535]",
 	     "Create from name and optional rgb",
 	     initialiseColour);
+  sendMethod(class, NAME_unlink, DEFAULT, 0,
+	     "Deallocate the colour object",
+	     unlinkColour);
   sendMethod(class, NAME_Xopen, NAME_x, 1, "display",
 	     "Create window-system counterpart",
 	     XopenColour);
   sendMethod(class, NAME_Xclose, NAME_x, 1, "display",
 	     "Destroy window-system counterpart",
-	     XcloseColour);
+	     XCloseColour);
 
   getMethod(class, NAME_convert, NAME_conversion, "colour", 1, "name",
 	    "Convert X-colour name",
@@ -261,6 +281,7 @@ makeClassColour(Class class)
 	    getReduceColour);
 
   ColourTable = globalObject(NAME_colours, ClassHashTable, toInt(32), 0);
+  assign(ColourTable, refer, OFF);
 
   attach_resource(class, "reduce_factor", "real", "0.5",
 		  "Factor for <-reduce'd colour");

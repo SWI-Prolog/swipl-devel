@@ -270,6 +270,7 @@ invokeMethod(Method m, Name c, Any receiver, int argc, const Any argv[])
 
       if ( vararg >= 0 )
       { av[vararg] = createCodeVectorv((int)av[vararg], (Any *)av[vararg+1]);
+	addCodeReference(av[vararg]);
 	ac--;
       }
 
@@ -288,7 +289,9 @@ invokeMethod(Method m, Name c, Any receiver, int argc, const Any argv[])
       RECEIVER->value = receiver_save;
 
       if ( vararg >= 0 )
+      { delCodeReference(av[vararg]);
 	doneCodeVector(av[vararg]);
+      }
 
       return rval;
     }
@@ -337,7 +340,9 @@ invokeMethod(Method m, Name c, Any receiver, int argc, const Any argv[])
     }
       
     if ( vararg >= 0 )
-      av[vararg] = createCodeVectorv((int)av[vararg], (Any *)av[vararg+1]);
+    { av[vararg] = createCodeVectorv((int)av[vararg], (Any *)av[vararg+1]);
+      addCodeReference(av[vararg]);
+    }
 
     receiver_save = RECEIVER->value;
     receiver_class_save = RECEIVER_CLASS->value;
@@ -361,7 +366,9 @@ invokeMethod(Method m, Name c, Any receiver, int argc, const Any argv[])
     RECEIVER->value = receiver_save;
 
     if ( vararg >= 0 )
+    { delCodeReference(av[vararg]);
       doneCodeVector(av[vararg]);
+    }
   }
 
   return rval;

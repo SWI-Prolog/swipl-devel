@@ -347,6 +347,26 @@ getOppositeConnection(Connection c, Graphical gr)
 }
 
 
+static status
+eventConnection(Connection c, EventObj ev)
+{ if ( eventGraphical(c, ev) )
+    succeed;
+
+  if ( c->active != OFF )
+  { Chain recognisers;
+    Cell cell;
+
+    TRY( recognisers = getAllRecognisersGraphical(c->link->line, OFF) );
+  
+    for_cell(cell, recognisers)
+      if ( qadSendv(cell->value, NAME_event, 1, (Any*)&ev) )
+	succeed;
+  }
+
+  fail;
+}
+
+
 status
 makeClassConnection(Class class)
 { sourceClass(class, makeClassConnection, __FILE__, "$Revision$");
@@ -392,6 +412,9 @@ makeClassConnection(Class class)
   sendMethod(class, NAME_updateLinkAttributes, NAME_update, 0,
 	     "Re-read the link properties",
 	     updateLinkAttributesConnection);
+  sendMethod(class, NAME_event, NAME_event, 1, "event",
+	     "Process an event",
+	     eventConnection);
 
   getMethod(class, NAME_opposite, NAME_relation, "graphical", 1, "graphical",
 	    "Other side of the connection",

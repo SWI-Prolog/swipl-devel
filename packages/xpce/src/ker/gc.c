@@ -11,6 +11,9 @@
 #include <h/kernel.h>
 #include <h/interface.h>		/* export for _markAnswerStack() */
 
+#undef DEBUG				/* only if needed on this module */
+#define DEBUG(t, g)
+
 static struct to_cell AnswerStackBaseCell;
 
 void

@@ -21,16 +21,19 @@ initialise(B, Target:file) :->
 	send(B, prompt_regex, '(gdb) ').
 
 :- pce_global(@gdb_fullname_regex,	% 26 == Ctrl-Z!
-	      new(regex(string('%c%c\\([^:]+\\):\\(\\sd+\\):', 26, 26)))).
+	      new(regex(string('%c%c\\([^:]+\\):\\(\\sd+\\):.*', 26, 26)))).
 :- pce_global(@gdb_at_regex,
 	      new(regex('at \([^:]\):\(\sd+\)'))).
 
 insert_process_input(B, Input:string) :->
 	"Trap input from gdb"::
+%	send(@pce, write_ln, insert, Input),
+%	trace, true,
 	(   get(Input, index, 26, I0),
 	    send(@gdb_fullname_regex, match, Input, I0),
 	    send(B, show_match, @gdb_fullname_regex, Input)
-	->  send(Input, delete, I0)
+	->  get(@gdb_fullname_regex, register_end, 0, End),
+	    send(Input, delete, I0, End + 1 - I0)
 %	;   send(@gdb_at_regex, search, Input),
 %	    send(B, show_match, @gdb_at_regex, Input)
 	;   true

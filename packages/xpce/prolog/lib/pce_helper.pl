@@ -628,7 +628,7 @@ keyword_fragments(E, Frags:chain) :<-
 		 *	       ISPELL		*
 		 *******************************/
 
-:- pce_autoload(ispell, library('demo/ispell')).
+:- pce_autoload(ispell, demo(ispell)).
 
 ispell(E) :->
 	"Start ispell on this help-file"::

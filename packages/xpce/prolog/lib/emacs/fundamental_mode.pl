@@ -361,7 +361,7 @@ has_processes(M) :->
 		 *	     SPELLING		*
 		 *******************************/
 
-:- pce_autoload(ispell, library('demo/ispell')).
+:- pce_autoload(ispell, demo(ispell)).
 
 ispell(M) :->
 	"Start ispell on this text_buffer"::

@@ -1,10 +1,10 @@
 
 /* alloc.c */
 Any		alloc(register int n);
-void		checkFreeChains(void);
 void		unalloc(register int n, Any p);
 void		initAlloc(void);
 void		allocRange(void *low, int size);
+void		checkFreeChains(void);
 status		listWastedCorePce(Pce pce, Bool ppcells);
 char *		save_string(const char *s);
 void		free_string(char *s);
@@ -31,12 +31,14 @@ status		defineClasses(struct class_definition *classes);
 status		realiseClass(Class class);
 status		realiseBootClass(Class class);
 Class		bootClass(Name name, Name super_name, int size, int slots, SendFunc newF, int argc, ...);
-void		lookupBootClass(Class class, Func func, int argc, ...);
+void		lookupBootClass(Class class, Func f, int argc, ...);
 Class		getConvertClass(Class class_class, Any obj);
 status		initClass(Class class);
 status		prepareClass(Class class);
 void		makeBuiltInClasses(VoidFunc *f);
 status		instanceVariableClass(Class class, Variable var);
+void		fixSendFunctionClass(Class class, Name selector);
+void		fixGetFunctionClass(Class class, Name selector);
 status		sendMethodClass(Class class, SendMethod m);
 status		getMethodClass(Class class, GetMethod m);
 status		setChangedFunctionClass(Class class, SendFunc func);
@@ -71,6 +73,7 @@ status		freedClass(Class class, Any instance);
 status		isAClass(Class class, Class super);
 int		numberTreeClass(Class class, int n);
 status		featureClass(Class class, Name name, Any value);
+Chain		getSendMethodsClass(Class class);
 status		makeClassClass(Class class);
 
 /* conversion.c */
@@ -188,12 +191,12 @@ Name		getLabelNameName(Name n);
 Name		getDeleteSuffixName(Name n, Name suffix);
 Name		getExternalName(Name n);
 Name		StringToName(String s);
-Name		CtoName(const char *text);
 Name		CtoKeyword(const char *s);
 char *		saveStringName(Name n);
 status		makeClassName(Class class);
 
 /* object.c */
+void		unallocInstanceProtoClass(Class class);
 Any		allocObject(Class class, int funcs);
 status		initialiseObject(Instance obj, int argc, const Any argv []);
 Any		createObjectv(Name assoc, Class class, int argc, const Any argv []);
@@ -354,11 +357,11 @@ status		isClassType(Type t);
 status		specialisedType(Type t1, Type t2);
 status		includesType(Type t1, Type t2);
 Chain		getValueSetType(Type t, Any ctx);
-status		validateType(Type t, Any val, Any ctx);
+Any		getTranslateType(Type t, Any val, Any ctx);
 Any		checkType(Any val, Type t, Any ctx);
+status		validateType(Type t, Any val, Any ctx);
 status		makeClassType(Class class);
 Type		nameToType(Name name);
-Type		CtoType(char *s);
 void		resetTypes(void);
 void		initTypes(void);
 Type		defineType(char *name, char *def);

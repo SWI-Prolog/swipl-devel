@@ -42,6 +42,7 @@
 property(prolog(swi)).			% this is SWI-Prolog
 property(file_extensions([pl])).	% list of file extensions
 property(use_predicate_references).	% use direct predicate refs in methods
+property(string).			% Supports string datatype
 property(runtime) :-
 	get(@(pce), is_runtime_system, @(on)).
 	

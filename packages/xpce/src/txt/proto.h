@@ -57,7 +57,6 @@ Int		getRegisterEndRegex(Regex re, Int which);
 status		makeClassRegex(Class class);
 
 /* str.c */
-int		str_datasize(String s);
 int		str_allocsize(String s);
 void		str_pad(String s);
 void		str_alloc(String s);

@@ -153,6 +153,7 @@ static status
 ExecuteCode(Code c)
 { Class cl = classOfObject(c);
 
+  FixGetFunctionClass(cl, NAME_Execute);
   if ( cl->get_function )
     return (*cl->get_function)(c) ? SUCCEED : FAIL;
 

@@ -190,6 +190,8 @@ loadFdImage(Image image, FILE *fd, ClassDef def)
       break;
     case 'X':
       return loadXImage(image, fd);
+    case 'P':
+      return loadPNMImage(image, fd);
   }
 
   succeed;
@@ -240,14 +242,16 @@ loadImage(Image image, FileObj file, CharArray path)
 
 
 static status
-saveImage(Image image, FileObj file)
+saveImage(Image image, FileObj file, Name fmt)
 { if ( isDefault(file) )
     file = image->file;
+  if ( isDefault(fmt) )
+    fmt = NAME_xbm;
 
   if ( isNil(file) )
     return errorPce(image, NAME_noFile);
 
-  return ws_save_image_file(image, file);
+  return ws_save_image_file(image, file, fmt);
 }
 
 
@@ -758,7 +762,8 @@ makeClassImage(Class class)
   sendMethod(class, NAME_drawIn, NAME_copy, 2, "graphical", "at=[point]",
 	     "Paint graphical in image [at point]",
 	     drawInImage);
-  sendMethod(class, NAME_save, NAME_file, 1, "in=[file]",
+  sendMethod(class, NAME_save, NAME_file, 2,
+	     "in=[file]", "format=[{xbm,pnm,pbm,pgm,ppm}]",
 	     "Save bits in standard X11 format",
 	     saveImage);
   sendMethod(class, NAME_fill, NAME_edit, 2, "image", "[area]",

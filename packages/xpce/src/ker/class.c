@@ -14,9 +14,9 @@ static status	recordInstancesClass(Class class, Bool keep, Bool recursive);
 static status	fill_slots_class(Class class, Class super);
 
 #ifndef O_RUNTIME
-#define CLASS_PCE_SLOTS 44
+#define CLASS_PCE_SLOTS 43
 #else
-#define CLASS_PCE_SLOTS 43		/* no source slot! */
+#define CLASS_PCE_SLOTS 42		/* no source slot! */
 #endif
 
 #define InstanceSize(c)	((int) &((Instance) NULL)->slots[valInt((c)->slots)])
@@ -35,13 +35,12 @@ resetSlotsClass(Class class, Name name)
   for( ; i < slots; i++ )
     ((Instance)class)->slots[i] = NULL;
 
-  class->created_messages   = NIL;
-  class->freed_messages     = NIL;
-  class->convert_method     = NIL;
-  class->make_class_message = NIL;
-  class->instances          = NIL;
-  class->super_class        = NIL;
-  class->sub_classes        = NIL;
+  class->created_messages       = NIL;
+  class->freed_messages         = NIL;
+  class->make_class_message     = NIL;
+  class->instances              = NIL;
+  class->super_class            = NIL;
+  class->sub_classes            = NIL;
 
   assign(class, name,	    name);
   assign(class, no_created, ZERO);
@@ -65,9 +64,11 @@ nameToTypeClass(Name name)
 { Type type;
 
   if ( (type = nameToType(name)) )
-  { if ( !isClassType(type) ||
-	 type->vector != OFF ||
-	 notNil(type->supers) )
+  { if ( !inBoot &&
+	 ( !isClassType(type) ||
+	   type->vector != OFF ||
+	   notNil(type->supers)
+	 ) )
     { errorPce(type, NAME_notClassType);
       fail;
     }
@@ -138,9 +139,12 @@ defineClass(Name name, Name super, StringObj summary, SendFunc makefunction)
 
   assign(class, realised, OFF);
   { char tmp[LINESIZE];
+    char *s, *d = tmp;
 
     appendHashTable(classTable, class->name, class);
-    sprintf(tmp, "%s_class", strName(class->name));
+    for(s = strName(class->name); (*d++ = *s++); );
+    d--;
+    for(s = "_class"; (*d++ = *s++); );
     newAssoc(CtoKeyword(tmp), class);
   }
   appendHashTable(classTable, name, class);
@@ -215,6 +219,10 @@ realiseBootClass(Class class)
 
   DEBUG_BOOT(Cprintf("Realising boot class %s ...", strName(class->name)));
   realiseClass(class);
+  deleteHashTable(class->send_table, NAME_initialise);
+  deleteHashTable(class->get_table, NAME_lookup);
+  assign(class, initialise_method, DEFAULT); /* rebind cache */
+  assign(class, lookup_method,     DEFAULT);
   DEBUG_BOOT(Cprintf("ok.\n"));
   succeed;
 }
@@ -243,6 +251,16 @@ fill_slots_class(Class class, Class super)
   if ( isDefault(class->summary) )
     assign(class, summary,	 NIL);
 
+					/* special method cache */
+  assign(class, send_catch_all,	   DEFAULT);
+  assign(class, get_catch_all,	   DEFAULT);
+  assign(class, convert_method,	   DEFAULT);
+  assign(class, lookup_method,	   DEFAULT);
+  if ( !class->boot )
+    assign(class, initialise_method, DEFAULT);
+  class->send_function = NULL;
+  class->get_function = NULL;
+
   if ( notNil(super) )
   { assign(class, term_names,	        super->term_names);
     assign(class, delegate,	        getCopyChain(super->delegate));
@@ -256,24 +274,18 @@ fill_slots_class(Class class, Class super)
     assign(class, slots,	        super->slots);
 
     if ( !class->boot )
-    { assign(class, initialise_method,  super->initialise_method);
-      assign(class, instance_size,	super->instance_size);
+    { assign(class, instance_size,	super->instance_size);
       assign(class, has_init_functions, super->has_init_functions);
     }
-    assign(class, send_catch_all,	super->send_catch_all);
-    assign(class, get_catch_all,	super->get_catch_all);
-    assign(class, convert_method,       super->convert_method);
-    assign(class, lookup_method,        super->lookup_method);
     assign(class, changed_messages,     getCopyChain(super->changed_messages));
     assign(class, created_messages,     getCopyChain(super->created_messages));
     assign(class, freed_messages,       getCopyChain(super->freed_messages));
+    if ( isDefault(class->resolve_method_message) )
+      assign(class, resolve_method_message, super->resolve_method_message);
 
     if ( notNil(super->instances) )
       recordInstancesClass(class, ON, OFF);
 
-    class->unlink_function		= super->unlink_function;
-    class->get_function			= super->get_function;
-    class->send_function		= super->send_function;
     class->saveFunction			= super->saveFunction;
     class->loadFunction			= super->loadFunction;
     class->cloneFunction		= super->cloneFunction;
@@ -294,12 +306,9 @@ fill_slots_class(Class class, Class super)
     assign(class, un_answer,	        ON);
     assign(class, handles,		NIL);
     assign(class, changed_messages,	NIL);
-    assign(class, send_catch_all,	NIL);
-    assign(class, get_catch_all,	NIL);
-    assign(class, convert_method,	NIL);
+    assign(class, resolve_method_message, NIL);
 
     assign(class, has_init_functions,	OFF);
-    assign(class, lookup_method,        NIL);
     assign(class, changed_messages,     NIL);
     assign(class, created_messages,     NIL);
     assign(class, freed_messages,       NIL);
@@ -369,6 +378,7 @@ _bootClass(Name name, Name super_name, int size, int slots, SendFunc initF, int 
     lockObj(cl->initialise_method);	/* avoid reclaim on sdcClass */
     assign(cl, lookup_method, NIL);
     assign(cl, has_init_functions, OFF); /* not support for boot stuff */
+    assign(cl, resolve_method_message, NIL);
   }
 
   DEBUG_BOOT(Cprintf("ok\n"));
@@ -391,36 +401,30 @@ bootClass(Name name, Name super_name, int size, int slots,
 }
 
 
-static inline void
-_lookupBootClass(Class class, Func f, int argc, va_list args)
+void
+lookupBootClass(Class class, Func f, int argc, ...)
 { int i;
   Type types[VA_PCE_MAX_ARGS];
   Vector tv;
+  va_list args;
+  GetMethod m;
 
+  va_start(args, argc);
   for(i=0; i<argc; i++)
   { char *type = va_arg(args, char *);
 
-    if ( (types[i] = CtoType(type)) == FAIL )
+    if ( !(types[i] = CtoType(type)) )
       sysPce("Bad type in lookupBootClass(): %s: %s",
 	     pp(class->name), type);
   }
+  va_end(args);
 
   tv = createVectorv(argc, (Any *)types);
+  m = createGetMethod(NAME_lookup, TypeAny, tv, NIL, f);
+  lockObj(m);				/* avoid reclaim on sdcClass */
+  setDFlag(m, D_TYPENOWARN);
 
-  assign(class, lookup_method,
-	 createGetMethod(NAME_lookup, TypeAny, tv, NIL, f));
-  lockObj(class->lookup_method);	/* avoid reclaim on sdcClass */
-  setDFlag(class->lookup_method, D_TYPENOWARN);
-}
-
-
-void
-lookupBootClass(Class class, Func func, int argc, ...)
-{ va_list args;
-
-  va_start(args, argc);
-  _lookupBootClass(class, func, argc, args);
-  va_end(args);
+  assign(class, lookup_method, m);
 }
 
 
@@ -458,6 +462,11 @@ getConvertClass(Class class_class, Any obj)
   fail;
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Called from clearCacheClass().  Change this if this class is to do anything
+else ...
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static status
 installClass(Class class)
@@ -627,6 +636,8 @@ instanceVariableClass(Class class, Variable var)
   Int offset;
 
   realiseClass(class);
+  if ( class->proto )
+    unallocInstanceProtoClass(class);
 					/* redefinition of a variable */
   if ( (old = getInstanceVariableClass(class, var->name)) )
   { if ( old->context != class )
@@ -679,28 +690,14 @@ codeExecuteCode(Code c)
 }
 
 
-static status
-fixReservedSendMethodClass(Class class, SendMethod m)
-{ int typenowarn = 0;
-  Name name = m->name;
+void
+fixSendFunctionClass(Class class, Name selector)
+{ SendMethod m = getSendMethodClass(class, selector);
 
-  if ( name == NAME_initialise )
-  { assign(class, initialise_method, m);
-  } else if ( name == NAME_catchAll )
-  { assign(class, send_catch_all, m);
-    typenowarn++;
-  } else if ( name == NAME_unlink )
-  { class->unlink_function = (SendFunc) m->function;
-  } else if ( name == NAME_Execute || name == NAME_send )
-  { class->send_function = (SendFunc) m->function;
-    if ( !class->send_function )
-      class->send_function = codeExecuteCode;
-  }
+  class->send_function = (m ? (SendFunc) m->function : (SendFunc) NULL);
 
-  if ( typenowarn )
-    setDFlag(m, D_TYPENOWARN);
-
-  succeed;
+  if ( !class->send_function )
+    class->send_function = codeExecuteCode;
 }
 
 
@@ -710,30 +707,14 @@ codeGetExecuteCode(Code c)
 }
 
 
-static status
-fixReservedGetMethodClass(Class class, GetMethod m)
-{ int typenowarn = 0;
-  Name name = m->name;
+void
+fixGetFunctionClass(Class class, Name selector)
+{ GetMethod m = getGetMethodClass(class, selector);
 
-  if ( name == NAME_convert )
-  { assign(class, convert_method, m);
-    typenowarn++;
-  } else if ( name == NAME_lookup )
-  { assign(class, lookup_method, m);
-    typenowarn++;
-  } else if ( name == NAME_catchAll )
-  { assign(class, get_catch_all, m);
-    typenowarn++;
-  } else if ( name == NAME_Execute || name == NAME_get )
-  { class->get_function = m->function;
-    if ( !class->get_function )
-      class->get_function = codeGetExecuteCode;
-  }
+  class->get_function = (m ? (GetFunc) m->function : (GetFunc) NULL);
 
-  if ( typenowarn )
-    setDFlag(m, D_TYPENOWARN);
-
-  succeed;
+  if ( !class->get_function )
+    class->get_function = codeGetExecuteCode;
 }
 
 
@@ -747,6 +728,10 @@ fixSubClassSendMethodsClass(Class class, Method m)
     { for_cell(cell, class->sub_classes)
 	fixSubClassSendMethodsClass(cell->value, m);
     }
+    if ( m->name == NAME_initialise )
+      assign(class, initialise_method, DEFAULT);
+    else if ( m->name == NAME_catchAll )
+      assign(class, send_catch_all, DEFAULT);
   }
 }
 
@@ -781,7 +766,6 @@ sendMethodClass(Class class, SendMethod m)
 
   appendChain(class->send_methods, m);
   assign(m, context, class);
-  fixReservedSendMethodClass(class, m);
 
   succeed;
 }
@@ -797,6 +781,10 @@ fixSubClassGetMethodsClass(Class class, Method m)
     { for_cell(cell, class->sub_classes)
 	fixSubClassGetMethodsClass(cell->value, m);
     }
+    if ( m->name == NAME_lookup )
+      assign(class, lookup_method, DEFAULT);
+    else if ( m->name == NAME_convert )
+      assign(class, convert_method, DEFAULT);
   }
 }
 
@@ -832,7 +820,6 @@ getMethodClass(Class class, GetMethod m)
 					/* Insert new one */
   appendChain(class->get_methods, m);
   assign(m, context, class);
-  fixReservedGetMethodClass(class, m);
 
   succeed;
 }
@@ -962,7 +949,6 @@ _sendMethod(Class class, Name name, Name group, int argc, va_list args)
   
   assign(m, context, class);
   appendChain(class->send_methods, m);
-  fixReservedSendMethodClass(class, m);
 
   if ( isNil(m->summary) )
   { SendMethod super;
@@ -1004,7 +990,27 @@ storeMethod(Class class, Name name, SendFunc function)
   assign(m, context, class);
   assign(m, group, var->group);
   appendChain(class->send_methods, m);
-  fixReservedSendMethodClass(class, m);
+
+  succeed;
+}
+
+
+static status
+fetchMethod(Class class, Name name, void *function)
+{ Variable var = getInstanceVariableClass(class, (Any) name);
+  Vector tv;
+  GetMethod m;
+
+  if ( !var )
+    return sysPce("fetchMethod(): no variable %s on class %s",
+		  pp(name), pp(class->name));
+  tv = inBoot ? createVectorv(0, NULL)
+              : answerObjectv(ClassVector, 0, NULL);
+
+  m = createGetMethod(name, var->type, tv, var->summary, function);
+  assign(m, context, class);
+  assign(m, group, var->group);
+  appendChain(class->get_methods, m);
 
   succeed;
 }
@@ -1048,7 +1054,6 @@ _getMethod(Class class, Name name, Name group, char *rtype, int argc, va_list ar
   
   assign(m, context, class);
   appendChain(class->get_methods, m);
-  fixReservedGetMethodClass(class, m);
   if ( isNil(m->summary) )
   { GetMethod super;
 
@@ -1305,7 +1310,16 @@ getResolveSendMethodClass(Class class, Name name)
   realiseClass(class);
 
   for(super = class; notNil(super); super = super->super_class)
-  { for_cell(cell, super->send_methods)
+  { Code c;
+
+    if ( notNil((c=super->resolve_method_message)) && notDefault(c) )
+      forwardReceiverCode(c,
+			  super,
+			  NAME_send,
+			  super->name, 
+			  name, 0);
+
+    for_cell(cell, super->send_methods)
     { SendMethod m = cell->value;
 
       if ( m->name == name )
@@ -1337,7 +1351,16 @@ getResolveGetMethodClass(Class class, Name name)
   realiseClass(class);
 
   for(super = class; notNil(super); super = super->super_class)
-  { for_cell(cell, super->get_methods)
+  { Code c;
+
+    if ( notNil(c=super->resolve_method_message) && notDefault(c) )
+      forwardReceiverCode(c,
+			  super,
+			  NAME_get,
+			  super->name, 
+			  name, 0);
+
+    for_cell(cell, super->get_methods)
     { GetMethod m = cell->value;
 
       if ( m->name == name )
@@ -1358,6 +1381,22 @@ getResolveGetMethodClass(Class class, Name name)
 
   appendHashTable(class->get_table, name, NIL);
   fail;
+}
+
+
+static status
+clearCacheClass(Class class)
+{ if ( class->realised == ON )
+  { clearHashTable(class->send_table);
+    clearHashTable(class->get_table);
+
+    assign(class, initialise_method, DEFAULT);
+    assign(class, lookup_method,     DEFAULT);
+
+    installClass(class);		/* Enter function special methods */
+  }
+    
+  succeed;
 }
 
 
@@ -1644,15 +1683,46 @@ getFeatureClass(Class class, Name name)
 
 
 
+Chain
+getSendMethodsClass(Class class)
+{ realiseClass(class);
+
+  if ( notNil(class->resolve_method_message) )
+    forwardReceiverCode(class->resolve_method_message,
+			class,
+			NAME_send,
+			class->name, 
+			DEFAULT, 0);
+
+  answer(class->send_methods);
+}
+
+
+static Chain
+getGetMethodsClass(Class class)
+{ realiseClass(class);
+
+  if ( notNil(class->resolve_method_message) )
+    forwardReceiverCode(class->resolve_method_message,
+			class,
+			NAME_get,
+			class->name, 
+			DEFAULT, 0);
+
+  answer(class->get_methods);
+}
+
+
+
 status
 makeClassClass(Class class)
 { sourceClass(class, makeClassClass, __FILE__, "$Revision$");
 
   localClass(class, NAME_instanceVariables, NAME_behaviour, "vector", NAME_get,
 	     "Vector object holding all instance variables");
-  localClass(class, NAME_sendMethods, NAME_behaviour, "chain", NAME_get,
+  localClass(class, NAME_sendMethods, NAME_behaviour, "chain", NAME_none,
 	     "Send methods not inherited");
-  localClass(class, NAME_getMethods, NAME_behaviour, "chain", NAME_get,
+  localClass(class, NAME_getMethods, NAME_behaviour, "chain", NAME_none,
 	     "Get methods not inherited");
   localClass(class, NAME_termFunctor, NAME_term, "name", NAME_both,
 	     "Functor used for term description");
@@ -1704,16 +1774,20 @@ makeClassClass(Class class)
   localClass(class, NAME_makeClassMethod, NAME_realise, "code*", NAME_get,
 	     "Code object to ->realise the class");
 	     
-  localClass(class, NAME_initialiseMethod, NAME_cache, "send_method", NAME_get,
+  localClass(class, NAME_initialiseMethod, NAME_cache, "[send_method]",
+	     NAME_none,
 	     "Used to initialise a new instance");
-  localClass(class, NAME_sendCatchAll, NAME_cache, "send_method*", NAME_get,
+  localClass(class, NAME_sendCatchAll, NAME_cache, "[send_method]*", NAME_none,
 	     "Handle not-yet-handled send messages");
-  localClass(class, NAME_getCatchAll, NAME_cache, "get_method*", NAME_get,
+  localClass(class, NAME_getCatchAll, NAME_cache, "[get_method]*", NAME_none,
 	     "Handle not-yet-handled get messages");
-  localClass(class, NAME_convertMethod, NAME_cache, "get_method*", NAME_get,
+  localClass(class, NAME_convertMethod, NAME_cache, "[get_method]*", NAME_none,
 	     "Type conversion");
-  localClass(class, NAME_lookupMethod, NAME_cache, "get_method*", NAME_get,
+  localClass(class, NAME_lookupMethod, NAME_cache, "[get_method]*", NAME_none,
 	     "Type conversion");
+
+  localClass(class, NAME_resolveMethodMessage, NAME_cache, "[code]*",NAME_both,
+	     "Hook for lazy attachment of methods");
 
   localClass(class, NAME_sendTable, NAME_cache, "hash_table", NAME_get,
 	     "Hash table for all send methods");
@@ -1731,6 +1805,8 @@ makeClassClass(Class class)
   localClass(class, NAME_hasInitFunctions, NAME_cache, "bool", NAME_get,
 	     "@on if one or more variables use functions");
 
+  localClass(class, NAME_proto, NAME_cache, "alien:InstanceProto", NAME_none,
+	     "Prototype instance + info for fast creation");
   localClass(class, NAME_treeIndex, NAME_cache, "alien:int", NAME_none,
 	     "Index in depth-first numbering of hierarchy");
   localClass(class, NAME_neighbourIndex, NAME_cache, "alien:int", NAME_none,
@@ -1740,9 +1816,6 @@ makeClassClass(Class class)
   localClass(class, NAME_sendFunction, NAME_internal,
 	     "alien:SendFunc", NAME_none,
 	     "Execute code-objects");
-  localClass(class, NAME_unlinkFunction, NAME_internal,
-	     "alien:SendFunc", NAME_none,
-	     "C-function to unlink from environment");
   localClass(class, NAME_saveFunction, NAME_internal,
 	     "alien:SendFunc", NAME_none,
 	     "C-function to save alien data");
@@ -1774,6 +1847,9 @@ makeClassClass(Class class)
   termClass(class, "class", 2, NAME_name, NAME_superClassName);
   saveStyleClass(class, NAME_external);
   cloneStyleClass(class, NAME_none);
+
+  fetchMethod(class, NAME_sendMethods, getSendMethodsClass);
+  fetchMethod(class, NAME_getMethods, getGetMethodsClass);
 
   sendMethod(class, NAME_initialise, DEFAULT, 2, "name=name", "super=[class]*",
 	     "Create from name and super class",
@@ -1832,6 +1908,9 @@ makeClassClass(Class class)
   sendMethod(class, NAME_install, NAME_behaviour, 0,
 	     "Prepare class for creating instances",
 	     installClass);
+  sendMethod(class, NAME_clearCache, NAME_cache, 0,
+	     "Clear method resolution cache",
+	     clearCacheClass);
   sendMethod(class, NAME_feature, NAME_version, 2,
 	     "feature=name", "value=[any]",
 	     "Register class feature",

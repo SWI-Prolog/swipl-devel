@@ -196,9 +196,6 @@ scanDirectory(Directory d, Chain files, Chain dirs, Regex pattern, Bool all)
     { char *name = nameOfDirectoryEntry(dp);
       struct stat buf;
 
-      if ( all != ON && name[0] == '.' )
-	continue;
-
       if ( stat(name, &buf) != 0 )
 	continue;
 
@@ -213,10 +210,15 @@ scanDirectory(Directory d, Chain files, Chain dirs, Regex pattern, Bool all)
 	  doneScratchCharArray(ca);
 	}
 	appendChain(files, CtoName(name));
+
+	if ( all != ON && name[0] == '.' )
+	  continue;
       } else if ( (notNil(dirs) && (buf.st_mode & S_IFMT) == S_IFDIR) )
+      { if ( all != ON && name[0] == '.' )
+	  continue;
+
 	appendChain(dirs, CtoName(name));
-
-
+      }
     }
     closedir(dirp);
     popDirectory(d);
@@ -240,6 +242,9 @@ scanDirectory(Directory d, Chain files, Chain dirs, Regex pattern, Bool all)
 	}
 	doneScratchCharArray(ca);
       }
+
+      if ( all != ON && name[0] == '.' )
+	continue;
 
       appendChain(files, CtoName(name));
     }

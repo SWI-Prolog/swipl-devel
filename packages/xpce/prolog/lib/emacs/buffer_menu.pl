@@ -127,7 +127,7 @@ goto_source_location(_BM, Location:source_location) :->
 	(   get(Location, line_no, Line),
 	    Line \== @nil
 	->  get(B?editors, head, E),
-	    send(E, select_line, Line),
+	    send(E?mode, select_line, Line),
 	    send(E, caret, E?selection?x) % dubious!
 	;   true
 	).
@@ -197,7 +197,9 @@ free_window(BM, Pool:[name], Frame:emacs_window) :<-
 	    get(Dict, find,
 		and(assign(new(B, var), @arg1?object),
 		    assign(Ed, ?(B?editors, find,
-				 and(or(@arg1?frame?pool == Pool,
+				 and(message(@arg1?frame, instance_of,
+					     emacs_window),
+				     or(@arg1?frame?pool == Pool,
 					@arg1?frame?pool == @default),
 				     @arg1?frame?sticky_window == @off)),
 			   global)),

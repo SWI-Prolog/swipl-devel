@@ -44,7 +44,7 @@ static int
 nextBucketSize(int n)
 { int m;
 
-  for(m=2; m<n; m<<=2);
+  for(m=2; m<n; m<<=1);
     return m;
 }
 #endif
@@ -194,6 +194,53 @@ convertOldSlotHashTable(HashTable ht, Name slot, Any value)
     return vm_send(ht, NAME_convertOldSlot, ht->class->super_class, 2, argv);
   }
 }
+
+
+#ifndef O_RUNTIME
+static int
+checkMemberHashTable(const HashTable ht, const Any name, const Any value)
+{ int hashkey = hashKey(name, ht->buckets);
+  Symbol s = &ht->symbols[hashkey];
+  int shifts=0;
+
+  for(;;)
+  { if ( s->name == name )
+    { assert(s->value == value);
+      return shifts;
+    }
+    if ( !s->name )
+      fail;
+    shifts++;
+    if ( ++hashkey == ht->buckets )
+    { hashkey = 0;
+      s = ht->symbols;
+    } else
+      s++;
+  }
+
+  fail;
+}
+
+static status
+infoHashTable(HashTable ht)
+{ Symbol s = ht->symbols;
+  int n = ht->buckets;
+  int shifts = 0;
+  int members = 0;
+
+  for( ; --n >= 0; s++ )
+  { if ( s->name )
+    { shifts += checkMemberHashTable(ht, s->name, s->value);
+      members++;
+    }
+  }
+
+  Cprintf("%s: %d buckets holding %d members, %d shifts\n",
+	  pp(ht), ht->buckets, members, shifts);
+  
+  succeed;
+}
+#endif /*O_RUNTIME*/
 
 
 static status
@@ -495,6 +542,11 @@ makeClassHashTable(Class class)
   sendMethod(class, NAME_printStatistics, NAME_statistics, 0,
 	     "Print statistics on all tables",	
 	     printStatisticsHashTable);
+#endif
+#ifndef O_RUNTIME
+  sendMethod(class, NAME_info, NAME_statistics, 0,
+	     "Check consistency and print statistics",
+	     infoHashTable);
 #endif
 
 

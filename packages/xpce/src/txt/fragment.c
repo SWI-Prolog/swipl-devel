@@ -126,6 +126,15 @@ to their start-index to speedup repaint management.  If the start index is
 equal, the largest fragment is first to ensure optimal `nesting'.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static int mis;
+
+static status
+dumpMisFragment(Fragment f)
+{ Cprintf("mis = %d\n", mis);
+
+  succeed;
+}
+
 static int
 link_fragment(Fragment f)
 { Fragment b;
@@ -149,23 +158,54 @@ link_fragment(Fragment f)
       succeed;
     }
 
-    for( ; notNil(b->next); b = b->next)
-    { if ( b->next->start < f->start ||
-	   (b->next->start == f->start && b->next->length > f->length) )
-	continue;
+    if ( (tb->last_fragment->start - f->start) < (f->start - b->start) )
+    { b = tb->last_fragment;
 
+      for( ; notNil(b); b = b->prev )
+      { if ( b->start > f->start ||
+	     (b->start == f->start && b->length < f->length) )
+	{ mis++;
+	  continue;			/* f must be before b */
+	}
+	
+	assign(f, next, b->next);
+	assign(f, prev, b);
+	if ( notNil(b->next) )
+	{ assign(b, next, f);
+	  assign(f->next, prev, f);
+	} else
+	{ assign(tb, last_fragment, f);
+	  assign(b, next, f);
+	}
 
-      assign(f, next, b->next);		/* somewere in the middle */
+	succeed;
+      }
+
+      b = tb->first_fragment;
+      assign(f, next, b);		/* at the start */
+      assign(b, prev, f);
+      assign(tb, first_fragment, f);
+    } else
+    { for( ; notNil(b->next); b = b->next)
+      { if ( b->next->start < f->start ||
+	     (b->next->start == f->start && b->next->length > f->length) )
+	{ mis++;
+	  continue;
+	}
+
+	assign(f, next, b->next);	/* somewere in the middle */
+	assign(f, prev, b);
+	assign(b, next, f);
+	assign(f->next, prev, f);
+
+	succeed;
+      }
+
+      assign(b, next, f);		/* at the end (should not happen) */
       assign(f, prev, b);
-      assign(b, next, f);
-      assign(f->next, prev, f);
-
-      succeed;
+      assign(tb, last_fragment, f);
     }
 
-    assign(b, next, f);			/* at the end (should not happen) */
-    assign(f, prev, b);
-    assign(tb, last_fragment, f);
 
     succeed;
   }
@@ -379,21 +419,21 @@ overlapFragment(Fragment f, Any obj)
 {
 #define OVERLAPS(f, i) ( (i) >= f->start && (i) < f->start + f->length )
 
-  if ( instanceOfObject(obj, ClassFragment) )
+  if ( isInteger(obj) )
+  { if ( OVERLAPS(f, valInt(obj)) )	  
+      succeed;
+  } else if ( instanceOfObject(obj, ClassFragment) )
   { Fragment f2 = obj;
     
     if ( max(f->start, f2->start) <
 	 min(f->start + f->length, f2->start + f2->length) )
       succeed;
-  } else if ( instanceOfObject(obj, ClassPoint) )
+  } else /* if ( instanceOfObject(obj, ClassPoint) ) */
   { Point p = obj;
     int x = valInt(p->x);
     int y = valInt(p->y);
 	
     if ( max(f->start, x) < min(f->start + f->length, y) )
-      succeed;
-  } else /*if ( isInteger(obj) )*/
-  { if ( OVERLAPS(f, valInt(obj)) )	  
       succeed;
   }
 
@@ -487,6 +527,22 @@ deleteFragment(Fragment f, Int from, Int len)
   succeed;
 }
 
+		 /*******************************
+		 *	       VISUAL		*
+		 *******************************/
+
+static Any
+getContainedInFragment(Fragment f)
+{ TextBuffer tb = f->textbuffer;
+
+  if ( tb && notNil(tb) &&
+       notNil(tb->editors) &&
+       !emptyChain(tb->editors) )
+    answer(getHeadChain(tb->editors));
+
+  fail;
+}
+
 
 status
 makeClassFragment(Class class)
@@ -556,6 +612,9 @@ makeClassFragment(Class class)
 	     "what={start,end}",
 	     "Test whether start or end is included",
 	     doesIncludeFragment);
+  sendMethod(class, NAME_dumpMap, NAME_internal, 0,
+	     "dumo `mis' info",
+	     dumpMisFragment);
 
   getMethod(class, NAME_string, NAME_contents, "string", 0,
 	    "New string with contents",
@@ -579,6 +638,9 @@ makeClassFragment(Class class)
   getMethod(class, NAME_previous, NAME_list, "fragment", 1, "condition=[code]",
 	    "Previous in list for which condition is true",
 	    getPreviousFragment);
+  getMethod(class, NAME_containedIn, DEFAULT, "editor", 0,
+	    "editor object I'm contained in",
+	    getContainedInFragment);
 
   succeed;
 }

@@ -58,6 +58,8 @@ pce_ifhostproperty(prolog(swi),
 :- consult(buffer_menu).
 :- consult(server).
 :- consult(fundamental_mode).
+:- consult(language_mode).
+:- consult(outline_mode).
 
 
 		 /*******************************
@@ -77,8 +79,8 @@ pce_ifhostproperty(prolog(swi),
 
 
 
-:- declare_emacs_mode(outline,		library('emacs/outline_mode')).
-:- declare_emacs_mode(language,		library('emacs/language_mode')).
+%:- declare_emacs_mode(outline,		library('emacs/outline_mode')).
+%:- declare_emacs_mode(language,	library('emacs/language_mode')).
 :- declare_emacs_mode(prolog,		library('emacs/prolog_mode')).
 :- declare_emacs_mode(latex,		library('emacs/latex_mode')).
 :- declare_emacs_mode(c,		library('emacs/c_mode')).

@@ -184,7 +184,7 @@ static struct class_definition classdefs[] =
   { NAME_format, NAME_object, makeClassFormat,
     &ClassFormat, "Tabular specification for device" },
 
-  { NAME_fragment, NAME_object, makeClassFragment,
+  { NAME_fragment, NAME_visual, makeClassFragment,
     &ClassFragment, "Fragment (range) of a text_buffer" },
 
   { NAME_frame, NAME_visual, makeClassFrame,

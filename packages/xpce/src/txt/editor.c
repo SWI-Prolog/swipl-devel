@@ -520,6 +520,7 @@ struct fragment_cache
   Any		background;		/* curremt (fragment) background */
   int		left_margin;		/* current left margin */
   int		right_margin;		/* current right margin */
+  int		initial_state;		/* state after reset */
 };
 
 
@@ -528,6 +529,7 @@ newFragmentCache(Editor e)
 { FragmentCache fc = alloc(sizeof(struct fragment_cache));
 
   fc->active = NULL;
+  fc->initial_state = FALSE;
   resetFragmentCache(fc, e->text_buffer);
 
   return fc;
@@ -544,22 +546,26 @@ freeFragmentCache(FragmentCache fc)
 
 static void
 resetFragmentCache(FragmentCache fc, TextBuffer tb)
-{ FragmentCell c, c2;
+{ if ( !fc->initial_state )
+  { FragmentCell c, c2;
 
-  for(c=fc->active; c; c = c2)
-  { c2 = c->next;
-    unalloc(sizeof(struct fragment_cell), c);
+    for(c=fc->active; c; c = c2)
+    { c2 = c->next;
+      unalloc(sizeof(struct fragment_cell), c);
+    }
+
+    fc->active        = NULL;
+    fc->index         = -1;
+    fc->attributes    = 0;
+    fc->font	      = DEFAULT;
+    fc->colour	      = DEFAULT;
+    fc->background    = DEFAULT;
+    fc->left_margin   = 0;
+    fc->right_margin  = 0;
+    fc->initial_state = TRUE;
   }
 
-  fc->active       = NULL;
-  fc->current      = (isNil(tb) ? NIL : tb->first_fragment);
-  fc->index        = -1;
-  fc->attributes   = 0;
-  fc->font	   = DEFAULT;
-  fc->colour	   = DEFAULT;
-  fc->background   = DEFAULT;
-  fc->left_margin  = 0;
-  fc->right_margin = 0;
+  fc->current         = (isNil(tb) ? NIL : tb->first_fragment);
 }
 
 
@@ -666,6 +672,7 @@ indexFragmentCache(FragmentCache fc, Editor e, long int i)
 				 pp(f), attributes));
   }
 
+  fc->initial_state = FALSE;
   fc->index = i;
 }
 
