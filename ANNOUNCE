@@ -1,4 +1,4 @@
-SWI-Prolog 5.2.11/XPCE 6.2.11 stable release
+SWI-Prolog 5.2.13/XPCE 6.2.13 stable release
 
 Status
 ======
@@ -6,25 +6,31 @@ Status
   * Stable release integrating shared-database multi-threaded execution.
 
 
-Brief summary of changes since 5.2.10
-=====================================
+Brief summary of changes since 5.2.11/12
+========================================
 
 SWI-Prolog
 ----------
 
-  * Small patches
+  * 5.2.13: fixed saved-state crashes that became more
+    likely due to changes in the tag-schema in 5.2.12
+
+  * Fixed various atom-gc problems (5.2.13 incoporates
+    patch for Unix; 5.2.12 platform independent patches) 
+
+  * Fixed hashed dynamic predicate update problems
+
+  * Added file-locking in MS-Windows
 
 Packages
 --------
 
-  * XPCE: Added library(scaledbitmap) and library(url_image).
-
-  * RDF support: various minor problems.
+  * XPCE: Minor patches (only in 6.2.12)
 
 Development environment
 -----------------------
 
-  (none)
+  * Minor patches (only in 6.2.12)
 
 INCOMPATIBILITIES
 =================
