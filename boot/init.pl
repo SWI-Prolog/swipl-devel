@@ -1310,12 +1310,13 @@ resulting code is simply the same), I've removed that.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 $translate_rule((LP-->List), H) :-
-	is_list(List), !,
-	(   List = []
+	nonvar(List),
+	(   List == []
 	->  $t_head(LP, S, S, H)
-	;   List = [X]
+	;   List  = [X]
 	->  $t_head(LP, [X|S], S, H)
-	;   append(List, SR, S),
+	;   List  = [_|_]
+	->  append(List, SR, S),
 	    $extend([S, SR], LP, H)
 	), !.
 $translate_rule((LP-->RP), (H:-B)):-
@@ -1336,14 +1337,8 @@ $t_head(LP, S, SR, H) :-
 
 $t_body(Var, S, SR, phrase(Var, S, SR)) :-
 	var(Var), !.
-$t_body(List, S, SR, C) :-
-	is_list(List), !,
-	(   List = []
-	->  C = (S=SR)
-	;   List = [X]
-	->  C = 'C'(S, X, SR)
-	;   C = append(List, SR, S)
-	).
+$t_body([], S, SR, S=SR) :- !.
+$t_body([X], S, SR, 'C'(S, X, SR)) :- !.
 $t_body(List, S, SR, C) :-
 	List = [_|_], !,
 	C = append(List, SR, S).
@@ -1397,7 +1392,10 @@ phrase(RuleSet, Input) :-
 	phrase(RuleSet, Input, []).
 phrase(RuleSet, Input, Rest) :-
 	$strip_module(RuleSet, _, Head),
-	(   is_list(Head)
+	(   Head == []
+	->  Rest = Input
+	;   nonvar(Head),
+	    Head = [_|_]
 	->  append(Head, Rest, Input)
 	;   call(RuleSet, Input, Rest)
 	).
