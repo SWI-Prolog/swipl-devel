@@ -59,7 +59,7 @@ resource(drive,	image,	image('16x16/drive.xpm')).
 
 variable(exists,	bool,		both,
 	 "Should files exist?").
-variable(extension,	name,		get,
+variable(extensions,	chain*,		get,
 	 "Extension of the requested file").
 variable(directory,	directory,	get,
 	 "Current directory").
@@ -72,7 +72,6 @@ variable(directory,	directory,	get,
 initialise(F) :->
 	send(F, send_super, initialise, finder, transient),
 	send(F, slot, exists, @off),
-	send(F, slot, extension, ''),
 	send(F, slot, directory, new(directory('.'))),
 
 	send(new(ButtonDialog, dialog), left,
@@ -141,23 +140,6 @@ directory_item(F, DI:text_item) :<-
 	get(ID, member, directory, DI).
 
 
-complete_file(_F,
-	      Dir:char_array, Prefix:char_array, Extension:name,
-	      Files:chain) :<-
-	extension_regex(Extension, Ext),
-	new(Re, regex(string('^%s.*%s$', Prefix, Ext))),
-	(   send(class(file), has_feature, case_sensitive, @off)
-	->  send(Re, ignore_case, @on)
-	;   true
-	),	     
-	get(directory(Dir), files, Re, Files).
-
-
-extension_regex('', '') :- !.
-extension_regex(Ext, Re) :-
-	get(regex(''), quote, Ext, Re).
-
-
 select(F, Name:string, Type:{directory,file,drive}) :->
 	"Handle selection from browser"::
 	get(F, file_item, FI),
@@ -184,9 +166,18 @@ selection(F, File:file) :<-
 	get(F?file_item, selection, FileName),
 	FileName \== '',
 	get(F?directory_item, selection, DirName),
-	get(F, extension, Ext),
 	clean_name(DirName, /, CleanDir),
-	clean_name(FileName, Ext, CleanFile),
+	clean_name(FileName, '', CleanFile0),
+	get(F, extension_regex, Re),
+	(   Re == @nil
+	->  CleanFile = CleanFile0
+	;   (   send(Re, match, CleanFile0)
+	    ->  CleanFile = CleanFile0
+	    ;	get(F, extensions, Exts),
+		get(Exts, head, Ext),
+		clean_name(FileName, Ext, CleanFile)
+	    )
+	),
 	send(F, slot, directory, DirName),
 	new(File, file(string('%s%s', CleanDir, CleanFile))).
 
@@ -199,7 +190,7 @@ clean_name(Name, Ext, Clean) :-
 	;   send(S, ensure_suffix, Ext)
 	),
 	get(S, value, Clean),
-	send(S, free).
+	free(S).
 
 
 ok(F) :->
@@ -227,18 +218,58 @@ cancel(F) :->
 	send(F, show, @off),			  % savety to get rid of it
 	send(F, transient_for, @nil).
 
-ensure_dot('', '') :- !.
-ensure_dot(Ext, Ext) :-
-	atom_concat('.', _, Ext), !.
-ensure_dot(Ext0, Ext) :-
-	atom_concat('.', Ext0, Ext).
+extensions(F, Ext:'name|chain') :->
+	"Set <-extensions to chain of dot-less names"::
+	send(F, slot, extensions, new(E, chain)),
+	(   atom(Ext)
+	->  remove_dot(Ext, E2),
+	    send(E, append, E2)
+	;   chain_list(Ext, List),
+	    maplist(remove_dot, List, Plain),
+	    send_list(E, append, Plain)
+	).
+	
+remove_dot('', '') :- !.
+remove_dot(Ext0, Ext) :-
+	atom_concat('.', Ext, Ext0), !.
+remove_dot(Ext, Ext).
 
-directory(F, Dir:[directory], Ext0:[name]) :->
+extension_regex(F, Re:regex*) :<-
+	"Return regex from <-extensions"::
+	(   get(F, extensions, Exts),
+	    Exts \== @nil,
+	    \+ send(Exts, member, '')
+	->  new(Re, regex('')),
+	    new(P, string('.*\\\\.\\\\(')),
+	    chain_list(Exts, List),
+	    maplist(re_quote, List, QList),
+	    concat_atom(QList, '\\|', P0),
+	    send(P, append, P0),
+	    send(P, append, '\\)$'),
+	    send(Re, pattern, P),
+	    (   send(class(file), has_feature, case_sensitive, @off)
+	    ->  send(Re, ignore_case, @on)
+	    ;   true
+	    )
+	;   Re = @nil			% pattern should accept anything
+	).
+
+:- pce_global(@finder_quote_regex, new(regex(''))).
+
+re_quote(Ext, Q) :-
+	get(@finder_quote_regex, quote, Ext, QS),
+	get(QS, value, Q),
+	free(QS).
+
+
+directory(F, Dir:[directory], Ext:[name|chain]) :->
 	"Set current directory and fill browser"::
-	(   Dir \== @default -> send(F, slot, directory, Dir) ; true ),
-	(   Ext0 \== @default
-	->  ensure_dot(Ext0, Ext),
-	    send(F, slot, extension, Ext)
+	(   Dir \== @default
+	->  send(F, slot, directory, Dir)
+	;   true
+	),
+	(   Ext \== @default
+	->  send(F, extensions, Ext)
 	;   true
 	),
 	get(F, directory_item, DI),
@@ -257,16 +288,10 @@ directory(F, Dir:[directory], Ext0:[name]) :->
 	new(Dirs, chain),
 	send(D, scan, AllFiles, Dirs),
 
-	get(F, extension, Extension),
-	(   Extension == ''
+	get(F, extension_regex, Re),
+	(   Re == @nil
 	->  Files = AllFiles
-	;   new(R, regex('')),
-	    send(R, pattern, string('.*%s$', ?(R, quote, Extension))),
-	    (	send(class(file), has_feature, case_sensitive, @off)
-	    ->	send(R, ignore_case, @on)
-	    ;	true
-	    ),
-	    get(AllFiles, find_all, message(R, match, @arg1), Files),
+	;   get(AllFiles, find_all, message(Re, match, @arg1), Files),
 	    send(AllFiles, done)
 	),
 	send(Dirs, for_all,
@@ -296,13 +321,16 @@ select_drive(F) :->
 	).
 
 
-file(F, Exists:exists=[bool], Ext0:extension=[name],
+file(F, Exists:exists=[bool], Ext0:extension=[name|chain],
      Dir:directory=[directory], Default:default=[file], File:name) :<-
  	"Get [existing] file with [extension]"::
 	send(F, report, status, ''),
-	(   Exists \== @default -> send(F, exists, Exists) ; true ),
-	default(Ext0, '', Ext1),
-	ignore(send(F, directory, Dir, Ext1)),
+	(   Exists \== @default
+	->  send(F, exists, Exists)
+	;   true
+	),
+	default(Ext0, @nil, Ext),
+	ignore(send(F, directory, Dir, Ext)),
 	(   Default \== @default
 	->  send(F?file_item, selection, Default?base_name)
 	;   true
