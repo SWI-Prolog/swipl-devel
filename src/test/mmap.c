@@ -49,6 +49,7 @@ int	provides_address = 1;		/* assume */
 #define RoundUp(x, y)	((x)%(y) == 0 ? (x) : ((x)|((y)-1))+1)
 #define RoundDown(p, n)	((p) & ~((n)-1))
 #define min(x, y)	((x) < (y) ? (x) : (y))
+#define max(x, y)	((x) > (y) ? (x) : (y))
 
 typedef SIGRETTYPE (*handler_t)(int signal);
 
@@ -127,7 +128,7 @@ test_map(int *low)
   int n;
 
 #ifdef VERBOSE
-  printf("write-test from %p\n", low);
+  printf("\nwrite-test from %p\n", low);
 #endif
   for(n=0; n<size; n++)
   { wraddr = &low[n];
@@ -221,13 +222,33 @@ testarea(ulong base, ulong top)
 { ulong step = 8 * pagsiz;
   ulong addr;
 
+#ifdef VERBOSE
+  printf("Testing area %p ... %p\n", base, top);
+#endif
+
   for(addr=base; addr<top; addr += step)
-  { if ( (ulong) mmap((void *) addr, pagsiz,
+  {
+#if VERBOSE >= 2
+    printf("%p ... ", addr); fflush(stdout);
+#else
+#ifdef VERBOSE
+    if ( ((addr-base)/step) % 64 == 0 )
+    { printf("\n%p ", addr);
+      fflush(stdout);
+    }
+#endif
+#endif
+
+    if ( (ulong) mmap((void *) addr, pagsiz,
 		      PROT_READ|PROT_WRITE, STACK_MAP_TYPE,
 		      mapfd, 0L) == addr )
     {
+#if VERBOSE >= 2
+      printf("ok\n");
+#else
 #ifdef VERBOSE
       printf("."); fflush(stdout);
+#endif
 #endif
       if ( munmap((void *) addr, pagsiz) != 0 )
       { perror("munmap");
@@ -265,22 +286,27 @@ int
 main(int argc, char **argv)
 { ulong top, htop = topOfHeap();
   ulong base;
+  ulong hbase;
 
   pagsiz = getpagesize();
   mapfd  = get_map_fd();
+  hbase  = RoundDown((ulong)sbrk(0) + 8 MB, pagsiz);
 
   if ( htop )
   { top  = RoundDown(htop, pagsiz);
     base = top - (64 MB * 3 + 8 MB);
 
+    base = max(base, hbase);
     if ( testarea(base, top) )
     { ok();
       exit(0);
     }
   }
 
-  base = RoundDown((ulong)sbrk(0) + 64 MB, pagsiz);
+  base = hbase;
   top = base + (64 MB * 3 + 8 MB);
+  if ( htop )
+    top = min(top, htop);
 
   if ( testarea(base, top) )
   { if ( htop )

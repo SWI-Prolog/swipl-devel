@@ -70,7 +70,7 @@ isCurrentRecordList(register word key)
 #define offsetof(structure, field) ((int) &(((structure *)NULL)->field))
 #endif
 
-#define SIZERECORD  offsetof(struct record, buffer)
+#define SIZERECORD  offsetof(struct record, buffer[0])
 
 typedef struct
 { tmp_buffer code;			/* code buffer */

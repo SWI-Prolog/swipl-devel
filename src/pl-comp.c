@@ -2481,7 +2481,7 @@ wouldBindToDefinition(Definition from, Definition to)
   Definition def = from;
   Procedure proc;
 
-  while(m)
+  for(;;)
   { if ( def )
     { if ( def == to )			/* found it */
 	succeed;
@@ -2492,9 +2492,11 @@ wouldBindToDefinition(Definition from, Definition to)
 	fail;
     }
 
-    m = m->super;			/* see in super module */
-    proc = isCurrentProcedure(from->functor, m);
-    def = proc ? proc->definition : (Definition)NULL;
+    if ( (m = m->super) )
+    { proc = isCurrentProcedure(from->functor, m);
+      def = proc ? proc->definition : (Definition)NULL;
+    } else
+      break;
   }
 
   fail;

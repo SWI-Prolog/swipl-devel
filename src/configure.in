@@ -9,6 +9,7 @@ AC_SUBST(COFLAGS)
 AC_SUBST(CWFLAGS)
 AC_SUBST(CMFLAGS)
 AC_SUBST(CIFLAGS)
+AC_SUBST(AR)
 AC_SUBST(ETAGS)
 AC_SUBST(LDFLAGS)
 AC_SUBST(STATICLIBS)
@@ -78,6 +79,7 @@ dnl ****************************************************************
 dnl Finding various programs
 dnl ****************************************************************
 
+AC_CHECK_PROG(AR, ar, ar, ar)
 AC_CHECK_PROGS(ETAGS, etags ctags, ":")
 AC_PROG_AWK
 AC_PROG_INSTALL

@@ -1814,7 +1814,7 @@ align_char(Chr) -->		% D{inputsep}{outputsep}{decimal places}
 	"}{",
 	number(_),
 	"}",
-	{ atom_char(Chr, W)
+	{ atom_chars(Chr, W)
 	}.
 
 string_without(L, [C|T]) -->
