@@ -340,7 +340,7 @@ Changes the second field of the triple.
 Changes the last field of the triple to the given resource or
 \term{literal}{Value}.
     \termitem{source}{Source}
-Changes the source location (\jargon{payload}).  Not that updating the
+Changes the source location (\jargon{payload}).  Note that updating the
 source has no consequences for the semantics and therefore the
 \jargon{generation} (see rdf_generation/1) is \emph{not} updated.
 \end{description}
@@ -393,7 +393,7 @@ that can be in the same thread. For this reason we added
 rdf_transaction/1.
 
 \begin{description}
-    \predicate{rdf_transaction}{:Goal}
+    \predicate{rdf_transaction}{1}{:Goal}
 After starting a transaction, all predicates from \secref{modpreds}
 append their operation to the \emph{transaction} instead of modifying
 the database. If \arg{Goal} succeeds rdf_transaction cuts all
