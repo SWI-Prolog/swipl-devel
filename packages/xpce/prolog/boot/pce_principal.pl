@@ -388,7 +388,8 @@ get_implementation(trace(Id), Args, Obj, Rval) :-
 	pce_info(pce_trace(enter, get_implementation(Id, Args, Obj, Rval))),
 	(   get_implementation(Id, Args, Obj, Rval)
 	->  pce_info(pce_trace(exit, get_implementation(Id, Args, Obj, Rval)))
-	;   pce_info(pce_trace(fail, get_implementation(Id, Args, Obj, Rval)))
+	;   pce_info(pce_trace(fail, get_implementation(Id, Args, Obj, Rval))),
+	    fail
 	).
 
 %	SWI-Prolog: make this a normal user (debug-able) predicate.

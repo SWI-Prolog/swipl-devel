@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: tracepce/1 on Prolog-defined get-methods that fail (crashed).
+
 * FIXED: Properly deal with := in variable initialisations if the value is
   shareable, but converted to a non-shareable value due to the variable
   type.  Anjo Anjewierden.
