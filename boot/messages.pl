@@ -434,7 +434,7 @@ prolog_message(trace(Head, Ports)) -->
 	},
 	[ '        ~p: ~w'-[Pred, Ports], nl].
 prolog_message(tracing([])) --> !,
-	[ 'No spy points' ].
+	[ 'No traced predicates (see trace/1)' ].
 prolog_message(tracing(Heads)) -->
 	[ 'Trace points (see trace/1) on:', nl ],
 	tracing_list(Heads).
