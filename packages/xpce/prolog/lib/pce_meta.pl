@@ -50,9 +50,11 @@ pce_to_method((Receiver-Selector), Method) :- !,
 	(   atom(Receiver)
 	->  get(@pce, convert, Receiver, class, Class),
 	    get(Class, instance_variable, Selector, Method)
-	;   get(Receiver, attribute, Method)
+	;   object(Receiver),
+	    get(Receiver, attribute, Method)
 	->  true
-	;   get(Receiver, class, Class),
+	;   object(Receiver),
+	    get(Receiver, class, Class),
 	    get(Class, instance_variable, Selector, Method)
 	).
 pce_to_method(ClassName, Class) :-
