@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Various GUI-Tracer problems concerning source-location in DCG
+    rules.
+
   * FIXED: Properly handle breakpoints in $xr_member/2 (used by explain/1).
 
 

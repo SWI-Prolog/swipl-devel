@@ -1,6 +1,10 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Memory problem in `display->inspect', used by the balloon system.
+
+* FIXED: Disable drabbrev_expand in read-only editor.
+
 * FIXED: PceEmacs Prolog mode: avoid an XPCE crash when replacing
   singletons.
 
