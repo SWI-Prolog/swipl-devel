@@ -247,6 +247,16 @@ and <c/xmlns/. See <ref sec/xml/ for details on the differences.
 Sets the `space-handling-mode' for the initial environment. This mode is
 inherited by the other environments and subject to the XML reserved tag <elem/
 xml:space/. See <ref sec/space/.
+    <termitem>number(+NumberMode)
+Determines how attributes of type <c/NUMBER/ and <c/NUMBERS/ are handled.
+If <c/token/ (default) they are passed as an atom.  If <c/integer/ the
+parser attempts to convert the value to an integer.  If successfull, the
+attribute is passed as a Prolog integer.  Otherwise it is still passed
+as an atom.  Note that SGML defines a numeric attribute to be a sequence
+of digits.  The <c/-/ sign is not allowed and <xmp/1/ is different from
+<xmp/01/.  For this reason the default is to handle numeric attributes as
+tokens.  If conversion to integer is enabled, negative values are silently
+accepted.
     <termitem>file(+Name)
 Sets the name of the file on which errors are reported. Sets the 
 linenumber to 1.
@@ -925,8 +935,8 @@ The SGML SHORTTAG syntax is only partially implemented. Currently,
 <verb><tag/content/</verb> is a valid abbreviation for
 <verb><tag>content</tag></verb>, which can also be written as
 <verb><tag>content</></verb>.
-    <tag>Declared content c/RCDATA/
-The <jargon/declared/ type c/RCDATA/ is not supported.
+    <tag>Declared content <c/RCDATA/
+The <jargon/declared/ type <c/RCDATA/ is not supported.
     <tag>SGML declaration
 The `SGML declaration' is fixed, though most of the parameters are 
 handled through indirections in the implementation. 
@@ -959,7 +969,7 @@ This installs the foreign libraries in <ref file>$PLBASE/lib/$PLARCH</ref> and
 the Prolog library files in <ref file>$PLBASE/library</ref>, where
 <ref file/$PLBASE/ refers to the SWI-Prolog `home-directory'.
 
-<s2>Acknowledgements</title>
+<s1>Acknowledgements</title>
 
 <p>
 The Prolog representation for parsed documents is based on the 

@@ -740,12 +740,31 @@ itake_nutoken(dtd *dtd, const ichar *in, dtd_symbol **id)
 
 
 static const ichar *
-itake_number(dtd *dtd, const ichar *in, long *v)
-{ char *end;
+itake_number(dtd *dtd, const ichar *in, dtd_attr *at)
+{ in = iskip_layout(dtd, in);
 
-  *v = strtol((const char *)in, &end, 10);
-  if ( end > (char *)in )
-    return iskip_layout(dtd, (const ichar *)end);
+  switch(dtd->number_mode)
+  { case NU_TOKEN:
+    { ichar buf[MAXNMLEN];
+      ichar *o = buf;
+
+      while( HasClass(dtd, *in, CH_DIGIT) )
+	*o++ = *in++;
+      if ( o == buf )
+	return NULL;			/* empty */
+      *o = '\0';
+      at->att_def.name = dtd_add_symbol(dtd, buf);
+
+      return iskip_layout(dtd, (const ichar *)in);
+    }
+    case NU_INTEGER:
+    { char *end;
+
+      at->att_def.number = strtol((const char *)in, &end, 10);
+      if ( end > (char *)in )
+	return iskip_layout(dtd, (const ichar *)end);
+    }
+  }
 
   return NULL;
 }
@@ -868,7 +887,8 @@ new_dtd(const ichar *doctype)
   dtd->charmap	 = new_charmap();
   dtd->space_mode = SP_SGML;
   dtd->ent_case_sensitive = TRUE;	/* case-sensitive entities */
-  dtd->shorttag  = TRUE;		/* allow for <tag/value/ */
+  dtd->shorttag    = TRUE;		/* allow for <tag/value/ */
+  dtd->number_mode = NU_TOKEN;
 
   return dtd;
 }
@@ -2019,7 +2039,7 @@ process_attlist_declaraction(dtd_parser *p, const ichar *decl)
 	  break;
 	}
 	case AT_NUMBER:
-	{ if ( !(s=itake_number(dtd, buf, &at->att_def.number)) || *s )
+	{ if ( !(s=itake_number(dtd, buf, at)) || *s )
 	     return gripe(ERC_DOMAIN, "number", decl);
 	  break;
 	}
@@ -2393,20 +2413,41 @@ get_attribute_value(dtd_parser *p, const ichar *decl, sgml_attribute *att)
   if ( !end )
     return NULL;
 
+  att->value.cdata  = NULL;
+  att->value.text   = NULL;
+  att->value.number = 0;
+
   switch(att->definition->type)
   { case AT_NUMBER:			/* number */
-    { long v;
+    { if ( buf[0] )
+      { switch(dtd->number_mode)
+	{ case NU_TOKEN:
+	  { const ichar *s = buf;
 
-      if ( buf[0] )
-      { char *e;
-	
-	v = strtol((const char *)buf, &e, 10);
-	if ( !e[0] )
-	{ att->value.number = v;
-	  return end;
+	    while( *s && HasClass(dtd, *s, CH_DIGIT) )
+	      s++;
+
+	    if ( *s )
+	      gripe(ERC_SYNTAX_WARNING, "NUMBER expected", decl);
+
+	    att->value.text = istrdup(buf);
+	    return end;
+	  }
+	  case NU_INTEGER:
+	  { long v;
+	    char *e;
+	      
+	    v = strtol((const char *)buf, &e, 10);
+	    if ( !e[0] )
+	    { att->value.number = v;
+	      return end;
+	    }
+	  }
 	}
       }
-      gripe(ERC_SYNTAX_WARNING, "Attribute value is not numeric", decl);
+      gripe(ERC_SYNTAX_WARNING, "NUMBER expected", decl);
+      att->value.text = istrdup(buf);
+      return end;
     }
     case AT_CDATA:			/* CDATA attribute */
       expand_entities(p, buf, cdata, MAXSTRINGLEN);
@@ -2503,8 +2544,10 @@ process_attributes(dtd_parser *p, dtd_element *e, const ichar *decl,
 	      { if ( dtd->dialect != DL_SGML )
 		  gripe(ERC_SYNTAX_WARNING,
 			"Value short-hand in XML mode", decl);
-		atts[attn].definition = a;
-		atts[attn].value.text = istrdup(nm->name);
+		atts[attn].definition   = a;
+		atts[attn].value.cdata  = NULL;
+		atts[attn].value.number = 0;
+		atts[attn].value.text   = istrdup(nm->name);
 		attn++;
 		goto next;
 	      }
@@ -2536,16 +2579,10 @@ free_attribute_values(int argc, sgml_attribute *argv)
 { int i;
 
   for(i=0; i<argc; i++, argv++)
-  { switch(argv->definition->type)
-    { case AT_CDATA:
-	free(argv->value.cdata);
-        break;
-      case AT_NUMBER:
-        break;
-      default:
-	free(argv->value.text);
-        break;
-    }
+  { if ( argv->value.cdata )
+      free(argv->value.cdata);
+    if ( argv->value.text )
+      free(argv->value.text);
   }
 }
 

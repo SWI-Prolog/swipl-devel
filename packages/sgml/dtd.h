@@ -157,6 +157,13 @@ typedef enum
   SP_INHERIT				/* DTD: inherit from environment */
 } dtd_space_mode;
 
+
+typedef enum
+{ NU_TOKEN,				/* Treat numbers as tokens */
+  NU_INTEGER				/* Convert to integer */
+} dtd_number_mode;
+
+
 		 /*******************************
 		 *	      ERRORS		*
 		 *******************************/
@@ -394,6 +401,7 @@ typedef struct _dtd
   dtd_charmap	       *charmap;	/* ichar ->ochar */
   dtd_char_encoding	encoding;	/* document encoding */
   dtd_space_mode	space_mode;	/* Default for handling white-space */
+  dtd_number_mode	number_mode;	/* How to treat number attributes */
   int			shorttag;	/* support SHORTTAG */
   int			references;	/* destruction reference count */
 } dtd;

@@ -30,7 +30,7 @@ doc2tex(In) :-
 			   ], InFile),
 	file_name_extension(Base, _, InFile),
 	file_name_extension(Base, tex, TeXFile),
-	load_sgml_file(In, Term),
+	load_sgml_file(InFile, Term),
 	del(_),
 	telling(Old),
 	tell(TeXFile),

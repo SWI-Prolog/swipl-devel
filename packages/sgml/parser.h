@@ -19,7 +19,7 @@
 		 *******************************/
 
 typedef struct _sgml_attribute
-{ union
+{ struct				/* so we can free members */
   { ochar *cdata;			/* CDATA value */
     ichar *text;			/* other textual value */
     long   number;			/* numeric value */

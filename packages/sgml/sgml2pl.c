@@ -119,6 +119,7 @@ static functor_t FUNCTOR_space1;
 static functor_t FUNCTOR_pi1;
 static functor_t FUNCTOR_sdata1;
 static functor_t FUNCTOR_ndata1;
+static functor_t FUNCTOR_number1;
 
 static atom_t ATOM_sgml;
 static atom_t ATOM_dtd;
@@ -167,6 +168,7 @@ initConstants()
   FUNCTOR_pi1	       = mkfunctor("pi", 1);
   FUNCTOR_sdata1       = mkfunctor("sdata", 1);
   FUNCTOR_ndata1       = mkfunctor("ndata", 1);
+  FUNCTOR_number1      = mkfunctor("number", 1);
 
   ATOM_dtd  = PL_new_atom("dtd");
   ATOM_sgml = PL_new_atom("sgml");
@@ -379,6 +381,20 @@ pl_set_sgml_parser(term_t parser, term_t option)
 
     else
       return sgml2pl_error(ERR_DOMAIN, "space", a);
+  } else if ( PL_is_functor(option, FUNCTOR_number1) )
+  { term_t a = PL_new_term_ref();
+    char *s;
+
+    PL_get_arg(1, option, a);
+    if ( !PL_get_atom_chars(a, &s) )
+      return sgml2pl_error(ERR_TYPE, "atom", a);
+
+    if ( streq(s, "token") )
+      p->dtd->number_mode = NU_TOKEN;
+    else if ( streq(s, "integer") )
+      p->dtd->number_mode = NU_INTEGER;
+    else
+      return sgml2pl_error(ERR_DOMAIN, "number", a);
   } else
     return sgml2pl_error(ERR_DOMAIN, "sgml_parser_option", option);
 
@@ -583,8 +599,9 @@ istrblank(const ichar *s)
 
 
 static int
-unify_listval(term_t t, attrtype type, int len, const char *text)
-{ if ( type == AT_NUMBERS )
+unify_listval(dtd_parser *p,
+	      term_t t, attrtype type, int len, const char *text)
+{ if ( type == AT_NUMBERS && p->dtd->number_mode == NU_INTEGER )
   { char *e;
     long v = strtol(text, &e, 10);
 
@@ -598,14 +615,18 @@ unify_listval(term_t t, attrtype type, int len, const char *text)
 
 
 static void
-put_attribute_value(term_t t, sgml_attribute *a)
+put_attribute_value(dtd_parser *p, term_t t, sgml_attribute *a)
 { switch(a->definition->type)
   { case AT_CDATA:
       PL_put_atom_chars(t, a->value.cdata);
       break;
     case AT_NUMBER:
-      PL_put_integer(t, a->value.number);
+    { if ( a->value.text )
+	PL_put_atom_chars(t, a->value.text);
+      else
+	PL_put_integer(t, a->value.number);
       break;
+    }
     default:
     { const ichar *val = a->value.text;
       const ichar *e;
@@ -620,10 +641,10 @@ put_attribute_value(term_t t, sgml_attribute *a)
 	{ if ( e == val )
 	    continue;			/* skip spaces */
 	  PL_unify_list(tail, head, tail);
-	  unify_listval(head, a->definition->type, e-val, val);
+	  unify_listval(p, head, a->definition->type, e-val, val);
 	}
         PL_unify_list(tail, head, tail);
-	unify_listval(head, a->definition->type, istrlen(val), val);
+	unify_listval(p, head, a->definition->type, istrlen(val), val);
         PL_unify_nil(tail);
       } else
 	PL_put_atom_chars(t, val);
@@ -642,7 +663,7 @@ unify_attribute_list(dtd_parser *p, term_t alist,
 
   for(i=0; i<argc; i++)
   { put_name(p, a+0, argv[i].definition->name);
-    put_attribute_value(a+1, &argv[i]);
+    put_attribute_value(p, a+1, &argv[i]);
     PL_cons_functor_v(a, FUNCTOR_equal2, a);
     if ( !PL_unify_list(tail, h, tail) ||
 	 !PL_unify(h, a) )

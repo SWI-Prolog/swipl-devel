@@ -105,9 +105,14 @@ print_open(dtd_parser *p, dtd_element *e, int argc, sgml_attribute *argv)
 	       argv[i].value.cdata);
 	break;
       case AT_NUMBER:
-	printf("A%s NUMBER %ld\n",
-	       mkupper(argv[i].definition->name->name),
-	       argv[i].value.number);
+	printf("A%s NUMBER ",
+	       mkupper(argv[i].definition->name->name));
+
+	if ( argv[i].value.text )
+	  printf("%s\n", argv[i].value.text);
+	else
+	  printf("%ld\n", argv[i].value.number);
+
 	break;
       case AT_NAMEOF:
 	printf("A%s NAME %s\n",
