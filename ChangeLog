@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug #23: profiler on Windows platform crashed.  Holger Kanwischer.
+
   * DOC: Bug #24: Rearranged description of Prolog flags to be alphabetical
     and added missing documentation.  Holger Kanwischer.
 

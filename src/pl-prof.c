@@ -324,7 +324,7 @@ static void
 #ifdef __WIN32__
 profile(long ticks, PL_local_data_t *__PL_ld)
 { 
-#else __WIN32__
+#else /*__WIN32__*/
 profile(int sig)
 { GET_LD
 
@@ -339,7 +339,7 @@ profile(int sig)
   signal(SIGPROF, profile);
 #endif
 
-#endif __WIN32__
+#endif /*__WIN32__*/
   { LocalFrame fr = environment_frame;
 
     LD->statistics.profile_ticks += ticks;
