@@ -220,6 +220,7 @@ static struct
 #define CTX_OWNNULL	0x0010		/* null-definition is not shared */
 #define CTX_SOURCE	0x0020		/* include source of results */
 #define CTX_SILENT	0x0040		/* don't produce messages */
+#define CTX_PREFETCHED	0x0080		/* we have a prefetched value */
 
 #define FND_SIZE(n)	((int)&((findall*)NULL)->codes[n])
 
@@ -1731,7 +1732,7 @@ odbc_row(context *ctxt, term_t trow)
     set(ctxt, CTX_BOUND);
   }
       
-  if ( !ctxt->result )
+  if ( !ctxt->result )			/* not a SELECT statement */
   { DWORD rows;
     int rval;
 
@@ -1749,7 +1750,7 @@ odbc_row(context *ctxt, term_t trow)
     return rval;
   }
 
-  if ( ctxt->findall )
+  if ( ctxt->findall )			/* findall: return the whole set */
   { term_t tail = PL_copy_term_ref(trow);
     term_t head = PL_new_term_ref();
     term_t tmp  = PL_new_term_ref();
@@ -1774,12 +1775,15 @@ odbc_row(context *ctxt, term_t trow)
     }      
   }
 
-  for(;;)
-  { TRY(ctxt, SQLFetch(ctxt->hstmt));
+  for(;;)				/* normal non-deterministic access */
+  { if ( !true(ctxt, CTX_PREFETCHED) )
+    { TRY(ctxt, SQLFetch(ctxt->hstmt));
+      clear(ctxt, CTX_PREFETCHED);
+    }
 
     if ( !pl_put_row(local_trow, ctxt) )
     { close_context(ctxt);
-      return FALSE;		/* with pending exception */
+      return FALSE;			/* with pending exception */
     }
       
     if ( !PL_unify(trow, local_trow) )
@@ -1787,7 +1791,22 @@ odbc_row(context *ctxt, term_t trow)
       continue;
     }
       
-    PL_retry_address(ctxt);
+					/* success! */
+					/* pre-fetch to get determinism */
+    ctxt->rc = SQLFetch(ctxt->hstmt);
+    switch(ctxt->rc)
+    { case SQL_NO_DATA_FOUND:		/* no alternative */
+	close_context(ctxt);
+	return TRUE;
+      case SQL_SUCCESS_WITH_INFO:
+	report_status(ctxt);
+        /*FALLTHROUGH*/
+      case SQL_SUCCESS:
+	set(ctxt, CTX_PREFETCHED);
+	PL_retry_address(ctxt);
+      default:
+	return report_status(ctxt);
+    }
   }
 }
 
@@ -2574,6 +2593,7 @@ odbc_execute(term_t qid, term_t args, term_t row, control_t handle)
 	return FALSE;
 
       set(ctxt, CTX_INUSE);
+      clear(ctxt, CTX_PREFETCHED);
       TRY(ctxt, SQLExecute(ctxt->hstmt));
 
       return odbc_row(ctxt, row);

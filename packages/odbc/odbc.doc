@@ -1,6 +1,8 @@
 \documentclass[11pt]{article}
 \usepackage{pl}
 \usepackage{html}
+\sloppy
+\makeindex
 
 \onefile
 \htmloutput{html}				% Output directory
@@ -35,7 +37,9 @@ relation between Prolog predicates and database tables, providing
 interface only covers the first layer.
 \end{abstract}
 
+\pagebreak
 \tableofcontents
+\pagebreak
 
 \section{Introduction}
 
@@ -48,7 +52,7 @@ persistency requirements or there is too much data to fit in memory.
 The popularity of ODBC makes it possible to design a single
 foreign-language module that provides RDMS access for a wide variety
 of databases on a wide variety of platforms. The SWI-Prolog RDMS
-interface is closely modelled after the ODBC API.  This API is rather
+interface is closely modeled after the ODBC API.  This API is rather
 low-level, but defaults and dynamic typing provided by Prolog give the
 user quite simple access to RDMS, while the interface provides the best
 possible performance given the RDMS independency constraint.
@@ -111,7 +115,7 @@ open_wordnet :-
 \end{code}
 
 \predicate{odbc_disconnect}{1}{+Connection}
-Close the given \arg{Connection}.  This destroyes the connection alias
+Close the given \arg{Connection}.  This destroys the connection alias
 or, if there is no alias, makes further use of the \arg{Connection}
 handle illegal.
 
@@ -203,19 +207,31 @@ through SQL-syntax and thus avoiding the need for quoting.
 \subsubsection{One-time invocation}
 
 \begin{description}
-    \predicate{odbc_query}{3}{+Connection, +SQL, -Row}
+    \predicate{odbc_query}{3}{+Connection, +SQL, -RowOrAffected}
 Same as odbc_query/4 using \const{[]} for \arg{Options}.
 
-    \predicate{odbc_query}{4}{+Connection, +SQL, -Row, +Options}
-Fire a query on the database represented by \arg{Connection}. \arg{SQL}
-is any valid SQL statement. SQL statements can be specified as a plain
-atom, string or a term of the format
+    \predicate{odbc_query}{4}{+Connection, +SQL, -RowOrAffected, +Options}
+Fire an SQL query on the database represented by \arg{Connection}.
+\arg{SQL} is any valid SQL statement. SQL statements can be specified as
+a plain atom, string or a term of the format
 \mbox{\arg{Format}-\arg{Arguments}}, which is converted using format/2.
-After executing the query, result-rows are returned one-by-one as terms
-of the functor \functor{row}{\arg{Arity}}, where \arg{Arity} denotes the
-number of columns in the result-set. If the query has no results (such
-as \const{INSERT}) use odbc_query/2. Here is a small example using the
-connection created from odbc_connect/3.
+
+If the statement is a \const{SELECT} statement the result-set is
+returned in \arg{RowOrAffected}. By default rows are returned one-by-one
+on backtracking as terms of the functor \functor{row}{\arg{Arity}},
+where \arg{Arity} denotes the number of columns in the result-set. The
+library pre-fetches the next value to be able to close the statement and
+return deterministic success when returning the last row of the
+result-set. Using the option \funcref{findall}{2} (see below) the
+result-set is returned as a list of user-specified terms. For other
+statements this argument returns \term{affected}{Rows}, where \arg{Rows}
+represents the number of rows affected by the statement.
+
+Bwlow is a small example using the connection created from
+odbc_connect/3. Please note that the SQL-statement does not end in the
+\chr{;} character. \arg{Options} defines the following options.  If you
+are not interested in the number of affected rows odbc_query/2 provides
+a simple interface for sending SQL-statements.
 
 \begin{code}
 lemma(Lemma) :-
@@ -224,8 +240,16 @@ lemma(Lemma) :-
 		   row(Lemma).
 \end{code}
 
-Please note that the SQL-statement does not end in the \chr{;}
-character.  \arg{Options} defines the following options:
+The following example adds a name to a table with parent-relations,
+returning the number of rows affected by the statement.
+
+\begin{code}
+insert_child(Child, Mother, Father, Affected) :-
+	odbc_query(parents,
+		   'INSERT INTO parents (name,mother,father) \
+		      VALUES ("mary", "christine", "bob")',
+		   affected(Affected)).
+\end{code}
 
 \begin{description}
     \termitem{types}{ListOfTypes}
@@ -262,8 +286,8 @@ the \funcref{row}{\arg{N}}-term is of the format below.  \arg{TableName}
 or \arg{ColumnName} may be the empty atom if the information is not
 available.%
 	\footnote{This is one possible interface to this information.
-		  In many cases it is more efficient and conveniant to
-		  provide this information seperately as it is the same
+		  In many cases it is more efficient and convenient to
+		  provide this information separately as it is the same
 		  for each result-row.}
 
 \begin{quote}
@@ -301,7 +325,7 @@ lemmas(Lemmas) :-
 \begin{quote}\it
 The current implementation is incomplete. It does not allow arguments of
 \term{row}{\ldots} to be instantiated. Plain instantiation can always
-be avoided using a proper SELECT statement. Potentionally useful however
+be avoided using a proper SELECT statement. Potentially useful however
 would be the translation of compound terms, especially to translate
 date/time/timestamp structures to a format for use by the application. 
 \end{quote}
@@ -314,7 +338,7 @@ predicate prints a diagnostic message if the query returns a result.
 \end{description}
 
 
-\subsubsection{Paramaterised queries}
+\subsubsection{Parameterised queries}
 
 ODBC provides for `parameterized queries'.  These are SQL queries with
 a \chr{?}-sign at places where parameters appear.  The ODBC interface
@@ -345,9 +369,9 @@ details.
     \termitem{\arg{SqlType}}{Specifier, ...}
 Declare the parameter to be of type \arg{SqlType} with the given
 specifiers. Specifiers are required for \type{char}, \type{varchar},
-etc.\ to specify the field-width. In odbc_execute/2, the must supply the
-value in default Prolog type for this SQL type. See \secref{sqltypes}
-for details.
+etc.\ to specify the field-width. In odbc_execute/[2-3], the must supply
+the value in default Prolog type for this SQL type. See
+\secref{sqltypes} for details.
 
     \definition{\arg{PrologType} $>$ \arg{SqlType}}
 As above, but supply values of the given \arg{PrologType}, using the
@@ -367,10 +391,10 @@ Prolog.
 \arg{Options} defines a list of options for executing the statement.  See
 odbc_query/4 for details.
 
-    \predicate{odbc_execute}{3}{+Statement, +ParameterValues, -Row}
+    \predicate{odbc_execute}{3}{+Statement, +ParameterValues, -RowOrAffected}
 Execute a statement prepared with odbc_prepare/4 with the given
-\arg{ParameterValues} and return the rows one-by-one on backtracking as
-odbc_query/4. This predicate may return type_error exceptions if the
+\arg{ParameterValues} and return the rows or number of affected rows 
+as odbc_query/4. This predicate may return type_error exceptions if the
 provided parameter values cannot be converted to the declared types.
 
 ODBC doesn't appear to allow for multiple cursors on the same
@@ -394,6 +418,10 @@ same_age(X, Y) :-
 	AgeX = AgeY.
 \end{code}
 
+    \predicate{odbc_execute}{2}{+Statement, +ParameterValues}
+Like odbc_query/2, this predicate is meant to execute simple SQL 
+statements without interest in the result.
+
     \predicate{odbc_free_statement}{1}{+Statement}
 Destroy a statement prepared with odbc_prepare/4. If the statement is
 currently executing (i.e. odbc_execute/3 left a choice-point), the
@@ -406,7 +434,7 @@ destruction is delayed until the execution terminates.
 ODBC can run in two modi. By default, all update actions are immediately
 committed on the server.  Using odbc_set_connection/2 this behaviour can
 be switched off, after which each SQL statement that can be inside a
-transaction implicitely starts a new transaction.   This transaction can
+transaction implicitly starts a new transaction.   This transaction can
 be ended using odbc_end_transaction/2.
 
 \begin{description}
@@ -416,7 +444,7 @@ End the currently open transaction if there is one.  Using \arg{Action}
 \const{rollback} they are discarded.
 \end{description}
 
-The ODBC documentation has many comments on transation management and
+The ODBC documentation has many comments on transaction management and
 its interaction with database cursors.  
 
 
@@ -481,7 +509,7 @@ of this ODBC function:
     \termitem{name}{Name}
 Name used by the data-source.  Use this in CREATE statements
     \termitem{data_type}{DataType}
-Numeric indentifier of the type
+Numeric identifier of the type
     \termitem{precision}{Precision}
 When available, maximum precision of the type.
     \termitem{literal_prefix}{Prefix}
@@ -516,9 +544,9 @@ Maximum scale of the type.
 Query the defined data sources.  It is not required to have any open
 connections before calling this predicate. \arg{DSN} is the name
 of the data source as required by odbc_connect/3. \arg{Description} is
-the name of the driver.  The driver name may be used to tailure the
+the name of the driver.  The driver name may be used to tailor the
 SQL statements used on the database.  Unfortunately this name depends
-on the local installing details and is therefore not universially 
+on the local installing details and is therefore not universally 
 useful.
 \end{description}
 
@@ -532,10 +560,10 @@ Get statistical data on the ODBC interface.  Currently defined keys are:
 \begin{description}
     \termitem{statements}{Created, Freed}
 Number of SQL statements that have been \arg{Created} and \arg{Freed}
-over all connections. Statements executed with odbc_query/[2,3]
+over all connections. Statements executed with odbc_query/[2-3]
 increment \arg{Created} as the query is created and \arg{Freed} if
 the query is terminated due to deterministic success, failure, cut
-or exception.  Statements created with odbc_prepare/[4,5] are freed
+or exception.  Statements created with odbc_prepare/[4-5] are freed
 by odbc_free_statement/1 or due to a fatal error with the statement.
 \end{description}
 \end{description}
@@ -631,7 +659,7 @@ If an ODBC operation signals an error, it throws the exception
 of the \funcref{odbc}{3} term are explained in \secref{successwithinfo}.
 
 In addition, the Prolog layer performs the normal tests for proper
-arguments and state, signalling the conventional instantiation, type,
+arguments and state, signaling the conventional instantiation, type,
 domain and resource exceptions.
 
 
@@ -661,7 +689,7 @@ On MS-Windows, the ODBC interface is a standard package, linked against
 
 \subsection{Remaining issues}
 
-The following issues are indentified and waiting for concrete problems
+The following issues are identified and waiting for concrete problems
 and suggestions.
 
 \begin{description}
@@ -698,11 +726,14 @@ the Prolog library files in \file{$PLBASE/library}, where
 \file{$PLBASE} refers to the SWI-Prolog `home-directory'.
 
 
-\section{Acknowledgements}
+\section{Acknowledgments}
 
 The SWI-Prolog ODBC interface started from a partial interface by
 Stefano De Giorgi. Mike Elston suggested programmable
-null-representation.
+null-representation with many other suggestions while doing the first
+field-tests with this package.
+
+\printindex
 
 \end{document}
 

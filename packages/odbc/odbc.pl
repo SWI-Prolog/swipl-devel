@@ -49,7 +49,7 @@
 	    odbc_clone_statement/2,	% +Statement, -Clone
 	    odbc_free_statement/1,	% +Statement
 
-					% DB Schema info
+					% DB dictionary info
 	    odbc_current_table/2,	% +Conn, -Table
 	    odbc_current_table/3,	% +Conn, -Table, ?Facet
 	    odbc_table_column/3,	% +Conn, ?Table, ?Column
