@@ -124,7 +124,7 @@ public:
   }
 
 					/* PlTerm --> C */
-  operator term_t(void)
+  operator term_t(void) const
   { return ref;
   }
   operator char *(void) const;

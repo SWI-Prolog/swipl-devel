@@ -1,3 +1,8 @@
+Jan 21, 2003
+
+ * One more const to avoid confusing the compiler.  Thanks to Alan Baljeu
+   and Fabien Todescato.
+
 Jan 12, 2003
 
  * Patches by Alan Baljeu, adding many const declarations to the interface.
