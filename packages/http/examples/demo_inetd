@@ -1,4 +1,4 @@
-#!/staff/jan/bin/pl -t main -q -f
+#!/usr/bin/pl -t main -q -f
 /*  $Id$
 
     Part of SWI-Prolog
