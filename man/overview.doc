@@ -1704,7 +1704,7 @@ encodings that are compatible to US-ASCII (\const{ascii},
 SWI-Prolog currently defines and supports the following encodings:
 
 \begin{description}
-    \termitem{octed}{}
+    \termitem{octet}{}
 Default encoding for \const{binary} streams.  This causes
 the stream to be read and written fully untranslated.
 

@@ -1648,17 +1648,17 @@ Currently these are <a name="const:&lt;&gt;&amp;'&quot;"><b><tt>&lt;&gt;&amp;'&q
 cannot represented in <var>Encoding</var> are mapped to XML character entities.
     
 <dt>&nbsp;<br>
-<b><a name="xml_quote_attribute/3%2">xml_quote_attribute(<var>+In, -Quoted, +Encoding</var>)</a></b><dd>
+<b><a name="xml_quote_attribute/2">xml_quote_attribute(<var>+In, -Quoted</var>)</a></b><dd>
 Backward compatibility version for <a href="#xml_quote_attribute/3"><b>xml_quote_attribute/3</b></a>.
 Assumes <a name="const:ascii%3"><b><tt>ascii</tt></b></a> encoding.
     
 <dt>&nbsp;<br>
-<b><a name="xml_quote_cdata/2">xml_quote_cdata(<var>+In, -Quoted</var>)</a></b><dd>
-Very similar to <a href="#xml_quote_attribute/2"><b>xml_quote_attribute/2</b></a>, but does not quote the
+<b><a name="xml_quote_cdata/3">xml_quote_cdata(<var>+In, -Quoted, +Encoding</var>)</a></b><dd>
+Very similar to <a href="#xml_quote_attribute/3"><b>xml_quote_attribute/3</b></a>, but does not quote the
 single- and double-quotes.
     
 <dt>&nbsp;<br>
-<b><a name="xml_quote_cdata/2%2">xml_quote_cdata(<var>+In, -Quoted</var>)</a></b><dd>
+<b><a name="xml_quote_cdata/2">xml_quote_cdata(<var>+In, -Quoted</var>)</a></b><dd>
 Backward compatibility version for <a href="#xml_quote_cdata/3"><b>xml_quote_cdata/3</b></a>.
 Assumes <a name="const:ascii%4"><b><tt>ascii</tt></b></a> encoding.
     
@@ -1822,8 +1822,10 @@ standard.  He also made many suggestions for improving this document.
 <tr><td><a href="#xml_is_dom/1"><b>xml_is_dom/1</b></a></td><td>Validate an SGML/XML DOM term.</td></tr>
 <tr><td><a href="#xml_name/1"><b>xml_name/1</b></a></td><td>Test atom for valid XML name</td></tr>
 <tr><td><a href="#xml_name/2"><b>xml_name/2</b></a></td><td>Test atom for valid XML name</td></tr>
+<tr><td><a href="#xml_quote_attribute/2"><b>xml_quote_attribute/2</b></a></td><td>Quote text for use as an attribute</td></tr>
 <tr><td><a href="#xml_quote_attribute/3"><b>xml_quote_attribute/3</b></a></td><td>Quote text for use as an attribute</td></tr>
 <tr><td><a href="#xml_quote_cdata/2"><b>xml_quote_cdata/2</b></a></td><td>Quote text for use as PCDATA</td></tr>
+<tr><td><a href="#xml_quote_cdata/3"><b>xml_quote_cdata/3</b></a></td><td>Quote text for use as PCDATA</td></tr>
 <tr><td><a href="#xml_write/3"><b>xml_write/3</b></a></td><td>Write an XML document from a parser-compatible term</td></tr>
 </table>
 
@@ -1944,8 +1946,10 @@ deleted. This is not yet implemented.
 <li><a href="#xml_is_dom/1"><b>xml_is_dom/1</b></a>
 <li><a href="#xml_name/1"><b>xml_name/1</b></a>
 <li><a href="#xml_name/2"><b>xml_name/2</b></a>
-<li><a href="#xml_quote_attribute/3"><b>xml_quote_attribute/3</b></a> [ <a href="#xml_quote_attribute/3%2">2</a>]
-<li><a href="#xml_quote_cdata/2"><b>xml_quote_cdata/2</b></a> [ <a href="#xml_quote_cdata/2%2">2</a>]
+<li><a href="#xml_quote_attribute/2"><b>xml_quote_attribute/2</b></a>
+<li><a href="#xml_quote_attribute/3"><b>xml_quote_attribute/3</b></a>
+<li><a href="#xml_quote_cdata/2"><b>xml_quote_cdata/2</b></a>
+<li><a href="#xml_quote_cdata/3"><b>xml_quote_cdata/3</b></a>
 <li><a href="#xml_write/3"><b>xml_write/3</b></a>
 <li><a href="#const:xmlns"><b><tt>xmlns</tt></b></a> [ <a href="#const:xmlns%2">2</a> <a href="#const:xmlns%3">3</a> <a href="#const:xmlns%4">4</a> <a href="#const:xmlns%5">5</a> <a href="#const:xmlns%6">6</a> <a href="#const:xmlns%7">7</a> <a href="#const:xmlns%8">8</a> <a href="#const:xmlns%9">9</a> <a href="#const:xmlns%10">10</a>]
 </ul>

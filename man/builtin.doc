@@ -2055,7 +2055,7 @@ option as stream-names are global.  See also set_stream/2.
 Define the encoding used for reading and writing text to this stream.
 The default encoding for type \const{text} is derived from the Prolog
 flag \const{encoding}. For \const{binary} streams the default encoding
-is \const{octed}.  For details on encoding issues, see \secref{encoding}.
+is \const{octet}. For details on encoding issues, see \secref{encoding}.
 
     \termitem{eof_action}{Action}
 Defines what happens if the end of the input stream is reached. Action

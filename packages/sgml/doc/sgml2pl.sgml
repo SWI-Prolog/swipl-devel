@@ -1233,13 +1233,13 @@ arguments are provided for backward compatibility, making the safe
 Map the characters that may not appear in XML attributes to entities.
 Currently these are <c>&lt;&gt;&amp;&apos;&quot</c>.  Characters that
 cannot represented in <aref/Encoding/ are mapped to XML character entities.
-    <pred>xml_quote_attribute(+In, -Quoted, +Encoding)
+    <pred>xml_quote_attribute(+In, -Quoted)
     <summary>Quote text for use as an attribute
 Backward compatibility version for <pref>xml_quote_attribute/3</pref>.
 Assumes <c/ascii/ encoding.
-    <pred>xml_quote_cdata(+In, -Quoted)
+    <pred>xml_quote_cdata(+In, -Quoted, +Encoding)
     <summary>Quote text for use as PCDATA
-Very similar to <pref>xml_quote_attribute/2</pref>, but does not quote the
+Very similar to <pref>xml_quote_attribute/3</pref>, but does not quote the
 single- and double-quotes.
     <pred>xml_quote_cdata(+In, -Quoted)
     <summary>Quote text for use as PCDATA
