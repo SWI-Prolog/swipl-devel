@@ -29,7 +29,7 @@ pce_manual.qlf:	.pwd pce_manual.pl man/util.pl man/p_card.pl man/p_data.pl \
 		man/classmap.pl man/v_manual.pl
 
 pcedraw.qlf:	.pwd pcedraw.pl draw/draw.pl draw/gesture.pl draw/shapes.pl \
-		draw/canvas.pl draw/align.pl draw/menu.pl
+		draw/canvas.pl draw/align.pl draw/menu.pl draw/config.pl
 
 dialog/dialog.qlf:	.pwd dialog/dialog.pl dialog/proto.pl \
 			dialog/layout.pl dialog/generate.pl \

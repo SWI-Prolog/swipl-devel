@@ -18,16 +18,17 @@ static void	points_to_path(Path p, float *x, float *y, int n);
 static status   computeBoundingBoxPath(Path);
 
 static status
-initialisePath(Path p, Name kind, Int radius_or_interval)
+initialisePath(Path p, Name kind, Int radius_or_interval, Chain points)
 { if ( isDefault(kind) )
     kind = NAME_poly;
+
   assign(p, radius, ZERO);		/* defaults */
   assign(p, intervals, getResourceValueObject(p, NAME_intervals));
 
-  if ( equalName(kind, NAME_poly) )
+  if ( kind == NAME_poly )
   { if ( notDefault(radius_or_interval) )
       assign(p, radius, radius_or_interval);
-  } else if ( equalName(kind, NAME_smooth) )
+  } else /*if ( kind == NAME_smooth )*/
   { if ( notDefault(radius_or_interval) )
       assign(p, intervals, radius_or_interval);
   }
@@ -39,6 +40,9 @@ initialisePath(Path p, Name kind, Int radius_or_interval)
   assign(p, interpolation, NIL);
   assign(p, fill_pattern,  NIL);
   assign(p, closed,	   OFF);
+
+  if ( notDefault(points) )
+    send(p, NAME_points, points, 0);
 
   succeed;
 }
@@ -485,6 +489,31 @@ clearPath(Path p)
 
 
 static status
+pointsPath(Path p, Chain points)
+{ if ( p->points != points )
+  { Cell cell;
+    Type TypePoint = nameToType(NAME_point);
+
+    for_cell(cell, points)
+    { if ( !instanceOfObject(cell->value, ClassPoint) )
+      { Point pt = checkType(cell->value, TypePoint, p);
+  
+	if ( pt )
+	  cellValueChain(points, PointerToInt(cell), pt);
+	else
+	  return errorPce(cell->value, NAME_unexpectedType, TypePoint);
+      }
+    }
+  
+    assign(p, points, points);
+    requestComputeGraphical(p, DEFAULT);
+  }
+
+  succeed;
+}
+
+
+static status
 appendPath(Path p, Point pt)
 { appendChain(p->points, pt);
   return requestComputeGraphical(p, DEFAULT);
@@ -802,7 +831,10 @@ initialiseNewSlotPath(Path p, Variable var)
 static char *T_resize[] =
         { "factor_x=real", "factor_y=[real]", "origin=[point]" };
 static char *T_initialise[] =
-        { "kind=[{poly,smooth}]", "intervals=[int]" };
+        { "kind=[{poly,smooth}]",
+	  "radius_or_interval=[int]",
+	  "points=[chain]"
+	};
 static char *T_point[] =
         { "near=point|event", "max_distance=[int]" };
 static char *T_setPoint[] =
@@ -823,7 +855,7 @@ static vardecl var_path[] =
      NAME_appearance, "Rounding radius for `poly' type"),
   SV(NAME_intervals, "0..100", IV_GET|IV_STORE, intervalsPath,
      NAME_interpolation, "Interpolation intervals between points"),
-  IV(NAME_points, "chain", IV_GET,
+  SV(NAME_points, "chain", IV_GET|IV_STORE, pointsPath,
      NAME_points, "Chain of points"),
   SV(NAME_fillPattern, "image|colour*", IV_GET|IV_STORE, fillPatternGraphical,
      NAME_appearance, "Fill pattern"),
@@ -842,7 +874,7 @@ static senddecl send_path[] =
      DEFAULT, "Recompute interpolation and area"),
   SM(NAME_geometry, 4, T_geometry, geometryPath,
      DEFAULT, "Move and/or resize the path"),
-  SM(NAME_initialise, 2, T_initialise, initialisePath,
+  SM(NAME_initialise, 3, T_initialise, initialisePath,
      DEFAULT, "Create from kind and intervals/radius"),
   SM(NAME_resize, 3, T_resize, resizePath,
      DEFAULT, "Resize path with specified factor"),

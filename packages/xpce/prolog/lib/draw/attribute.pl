@@ -203,7 +203,8 @@ make_line_menu(Menu, Attribute, Values) :-
 
 
 make_arrow_menu(Menu, _Draw, Attribute) :-
-	get_config(draw_config:resources/arrows, Arrows),
+	get_config(draw_config:resources/arrows, ArrowsChain),
+	chain_list(ArrowsChain, Arrows),
 	make_line_menu(Menu, Attribute, [@nil|Arrows]),
 	send(Menu, attribute, equal_predicate, equal_arrows).
 
@@ -224,7 +225,8 @@ equal_attributes([A|T], O1, O2) :-
 	equal_attributes(T, O1, O2).
 
 make_fill_pattern_menu(_Draw, Menu) :-
-	get_config(draw_config:resources/fill_palette, Patterns),
+	get_config(draw_config:resources/fill_palette, PatternsChain),
+	chain_list(PatternsChain, Patterns),
 	new(Proto, box(30, 16)),
 	make_proto_menu(Menu, Proto, fill_pattern, Patterns),
 	send(Proto, done).
@@ -253,7 +255,8 @@ colour_display :-
 
 colour(_Draw, Colour) :-
 	colour_display, !,
-	get_config(draw_config:resources/colour_palette, Colours),
+	get_config(draw_config:resources/colour_palette, ColoursChain),
+	chain_list(ColoursChain, Colours),
 	member(ColourName, Colours),
 	get(@pce, convert, ColourName, colour, Colour).
 colour(_, colour(white)).

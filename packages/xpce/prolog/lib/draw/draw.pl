@@ -36,7 +36,6 @@ as SWI-Prolog will  inherit the PCE system  predicates from the module
 
 :- use_module(library(pce)).
 :- use_module(library(pce_config)).
-:- use_module(library('draw/config')).
 :- ensure_loaded(library(help_message)).
 :- require([ concat/3
 	   , pce_help_file/2
@@ -47,11 +46,13 @@ as SWI-Prolog will  inherit the PCE system  predicates from the module
 With this declaration we load the other Prolog modules of PceDraw.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-:- consult([ gesture			% Gestures
+:- consult([ config			% Configuration declarations
+	   , gesture			% Gestures
 	   , shapes			% Drawable shapes
 	   , canvas			% Drawing plain
 	   , menu			% Icon Menu
 	   , undo			% Undo Recording
+	   , exportpl			% Export using drag-and-drop
 	   ]).
 
 
@@ -76,6 +77,8 @@ database of global declarations is searched.
 :- pce_autoload(draw_attribute_editor, library('draw/attribute')).
 :- pce_autoload(finder, library(find_file)).
 :- pce_global(@finder, new(finder)).
+
+%:- pce_image_directory(library('draw/bitmaps')).
 
 		/********************************
 		*           ENTRY POINT		*
@@ -171,7 +174,7 @@ frame, making the frame responsible for its destruction.
 
 initialise(Draw, Title:[name]) :->
 	fix_fonts,
-	ensure_loaded_config(draw_config:'PceDraw'),
+	ensure_loaded_config(draw_config:_ConfigFile),
 	default(Title, 'PceDraw', TheTitle),
 	send(Draw, send_super, initialise, TheTitle),
 	send(Draw, slot, title, TheTitle),
@@ -187,9 +190,14 @@ initialise(Draw, Title:[name]) :->
 	(   get_config(draw_config:history/geometry/main_window, Geometry)
 	->  send(Draw, geometry, Geometry)
 	;   true
-	).
+	),
+	listen(Draw,
+	       set_config(draw_config:resources/default_font, Font),
+	       send(Draw, default_font, Font)).
+
 
 unlink(Draw) :->
+	unlisten(Draw),
 	get(Draw, geometry, Geometry),
 	send(Draw, send_super, unlink),
 	set_config(draw_config:history/geometry/main_window, Geometry).
@@ -273,12 +281,14 @@ fill_dialog(Draw, D:dialog) :->
 	new(Menu, Draw?menu),
 	new(Selection, Canvas?selection),
 	new(NonEmptySelection, not(message(Selection, empty))),
+	new(OneSelected, Selection?size == 1),
 	new(NonEmptyDrawing, not(message(Canvas?graphicals, empty))),
 	new(HasCurrentFile, Canvas?file \== @nil),
 	new(HasMetaFile, ?(@pce, convert, win_metafile, class)),
 
 	send(D, append, new(MB, menu_bar(actions))),
-	send(D, append, label(reporter, 'Welcome to PceDraw'), right),
+	send(D, append, new(RL, label(reporter, 'Welcome to PceDraw')), right),
+	send(RL, alignment, left),
 
 	send(MB, append, new(F, popup(file))),
 	send(MB, append, new(P, popup(proto))),
@@ -286,7 +296,7 @@ fill_dialog(Draw, D:dialog) :->
 	send(MB, append, new(S, popup(settings))),
 
 	new(UM, message(@arg1?frame, select_mode)),
-	send_list([F, P, E, S], update_message, UM),
+	send_list([F, E, S], update_message, UM),
 
 	send_list(F, append,
 		  [ menu_item(about,
@@ -337,10 +347,7 @@ fill_dialog(Draw, D:dialog) :->
 			    message(Draw, load_recent_file, @arg1)))),
 	send(RFP, update_message, message(Draw, fill_recent_files, RFP)),
 	send_list(P, append,
-		  [ menu_item(create,
-			      message(Menu, create_proto, Selection),
-			      @default, @off,
-			      NonEmptySelection)
+		  [ new(CreateProto, popup(create))
 		  , menu_item(delete,
 			      message(Menu, delete),
 			      @default, @on,
@@ -356,6 +363,16 @@ fill_dialog(Draw, D:dialog) :->
 			      message(Menu, save_as),
 			      @default, @on,
 			      Menu?modified == @on)
+		  ]),
+	send_list(CreateProto, append,
+		  [ menu_item(as_is,
+			      message(Menu, create_proto, Selection, as_is),
+			      @default, @off,
+			      NonEmptySelection),
+		    menu_item(virgin,
+			      message(Menu, create_proto, Selection, virgin),
+			      @default, @off,
+			      OneSelected)
 		  ]),
 	new(UndoBuffer, Canvas?undo_buffer),
 	send_list(E, append,
@@ -414,21 +431,11 @@ fill_dialog(Draw, D:dialog) :->
 	send(ClipBoard, end_group, @on),
 	send(ClipBoard?context, condition, HasMetaFile),
 	send_list(ClipBoard, append,
-		  [ menu_item(clip_as_picture,
-			      message(Canvas, export_win_metafile,
-				      drawing, wmf),
+		  [ menu_item(clip_drawing,
+			      message(Canvas, export_win_metafile, drawing),
 			      condition := NonEmptyDrawing),
-		    menu_item(clip_as_enhanced_metafile,
-			      message(Canvas, export_win_metafile,
-				      drawing, emf),
-			      condition := NonEmptyDrawing),
-		    menu_item(clip_selection_as_picture,
-			      message(Canvas, export_win_metafile,
-				      selection, wmf),
-			      condition := NonEmptySelection),
-		    menu_item(clip_selection_as_metafile,
-			      message(Canvas, export_win_metafile,
-				      selection, emf),
+		    menu_item(clip_selection,
+			      message(Canvas, export_win_metafile, selection),
 			      condition := NonEmptySelection,
 			      end_group := @on),
 		    menu_item(paste,
@@ -439,25 +446,15 @@ fill_dialog(Draw, D:dialog) :->
 	send(SaveAsMetaFile?context, condition, and(NonEmptyDrawing,
 						    HasMetaFile)),
 	send_list(SaveAsMetaFile, append,
-		  [ menu_item(picture,
-			      message(Canvas, windows_metafile,
-				      ?(Canvas, default_file, wmf), aldus),
+		  [ menu_item(current_file,
+			      message(Canvas, save_default_windows_metafile),
 			      condition := HasCurrentFile),
-		    menu_item(enhanced_metafile,
-			      message(Canvas, windows_metafile,
-				      ?(Canvas, default_file, emf), emf),
-			      condition := HasCurrentFile),
-		    menu_item(picture_as,
-			      message(Canvas, windows_metafile,
-				      @default, aldus)),
-		    menu_item(enhanced_metafile_as,
-			      message(Canvas, windows_metafile,
-				      @default, emf))
+		    menu_item(ask_file,
+			      message(Canvas, windows_metafile))
 		  ]),
 
 	send(S, multiple_selection, @on),
 	send(S, show_current, @on),
-%	send(S, on_image, @mark_image),
 	send_list(S, append,
 		  [ menu_item(auto_align,
 			      message(Canvas, auto_align_mode, @arg1),
@@ -468,11 +465,15 @@ fill_dialog(Draw, D:dialog) :->
 			      'Preferences ...')
 		  ]),
 
-	(   get_config(draw_config:edit/auto_align, true)
+	(   get_config(draw_config:edit/auto_align, @on)
 	->  send(S, selected, auto_align, @on),
 	    send(Canvas, auto_align_mode, @on)
 	;   true
-	).
+	),
+	send(D, append, new(DDD, draw_drag_drawing), right),
+	send(DDD, reference, point(0, 10)),
+	send(DDD, alignment, right),
+	send(D, resize_message, message(D, layout, @arg2)).
 
 
 exists_clipboard :-
@@ -498,8 +499,6 @@ fill_menu(Draw) :->
 	get(Draw, menu, M),
 	send(M, proto, @nil,
 	     select, top_left_arrow, tag:='Select mode'),
-%	send(M, proto, @nil,
-%	     draw_edit, xterm, tag:='Modify text'),
 	send(M, proto, draw_text(''),
 	     draw_text, xterm, tag:='Add text'),
 	send(M, proto, draw_box(0,0),
@@ -516,6 +515,19 @@ fill_menu(Draw) :->
 	     draw_cconnect, plus, tag:='Link at choosen position'),
 	send(M, modified, @off).
 
+
+default_font(Draw, Font:font) :->
+	"Change the default font"::
+	(   get(Draw, menu, Menu),
+	    get(Menu, find_icon,
+		message(@arg1?proto, instance_of, text),
+		Icon)
+	->  get(Icon, proto, Text),
+	    send(Text, font, Font),
+	    send(Icon, paint_proto)
+	;   true
+	).
+	
 
 		/********************************
 		*        FINDING PARTS		*

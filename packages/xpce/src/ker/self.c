@@ -1039,6 +1039,10 @@ status
 resetPce(Pce pce)
 { Any dm;
 
+  changedLevel = 0;
+  resetDebugger();			/* these first, so the system */
+  resetAnswerStack();			/* can push/pop goal again */
+
   if ( notNil(pce) )
   {
 #ifndef O_RUNTIME
@@ -1047,9 +1051,6 @@ resetPce(Pce pce)
     clearChain(pce->catched_errors);
   }
 
-  changedLevel = 0;
-  resetDebugger();
-  resetAnswerStack();
   resetTypes();
   resetVars();
   resetDraw();

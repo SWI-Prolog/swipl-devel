@@ -424,7 +424,10 @@ handle(w,   h/2, link, east).
 initialise(T, String:[string], Format:[name], Font:[font]) :->
 	default(String, '',     Str),
 	default(Format, center, Fmt),
-	default(Font,   normal, Fnt),
+	(   Font == @default
+	->  get_config(draw_config:resources/default_font, Fnt)
+	;   Fnt = Font
+	),
 	send(T, send_super, initialise, Str, Fmt, Fnt).
 
 
@@ -539,20 +542,23 @@ string(T, Str:char_array) :->
 
 :- pce_group(menu).
 
-menu_text(T) :->
+menu_text(T, Scale:[bool]) :->
 	"Prepare text for menu ('T')"::
 	send(T, string, 'T'),
-	get(T, font, Font),
-	get(Font, family, Family),
-	get(Font, style, Style),
-	new(S, var(value := Font)),
-	send(@fonts, for_all,
-	     if(and(@arg2?family == Family,
-		    @arg2?style == Style,
-		    @arg2?points < S?points,
-		    @arg2?points > 5),
-		assign(S, @arg2, global))),
-	send(T, font, S).
+	(   Scale == @on
+	->  get(T, font, Font),
+	    get(Font, family, Family),
+	    get(Font, style, Style),
+	    new(S, var(value := Font)),
+	    send(@fonts, for_all,
+		 if(and(@arg2?family == Family,
+			@arg2?style == Style,
+			@arg2?points < S?points,
+			@arg2?points > 5),
+		    assign(S, @arg2, global))),
+	    send(T, font, S)
+	;   true
+	).
 
 :- draw_end_shape.
 
@@ -803,7 +809,7 @@ menu_text(C) :->
 	"Set all <-graphicals to `T'"::
 	send(C?graphicals, for_all,
 	     if(message(@arg1, has_send_method, menu_text),
-		message(@arg1, menu_text))).
+		message(@arg1, menu_text, @on))).
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

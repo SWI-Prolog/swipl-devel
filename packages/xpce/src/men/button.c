@@ -486,15 +486,16 @@ getPopupButton(Button b, Bool create)
 
 static status
 labelButton(Button b, Any label)
-{ int ltype = instanceOfObject(label, ClassImage);
-  int sametype = (instanceOfObject(b->label, ClassImage) == ltype);
+{ if ( b->label != label )
+  { int ltype = instanceOfObject(label, ClassImage);
+    int sametype = (instanceOfObject(b->label, ClassImage) == ltype);
 
-  assign(b, label, label);
-  if ( !sametype )
-  { assign(b, radius, ltype ? ZERO : getResourceValueObject(b, NAME_radius));
+    if ( !sametype )
+      assign(b, radius, ltype ? ZERO : getResourceValueObject(b, NAME_radius));
+    assignGraphical(b, NAME_label, label);
   }
 
-  return requestComputeGraphical(b, DEFAULT);
+  succeed;
 }
 
 

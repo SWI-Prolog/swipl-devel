@@ -851,7 +851,11 @@ inside_iarea(IArea a, IArea b)
   fail;
 }
 
+#ifdef O_CHDEBUG
+#define CHDEBUG(s, g) DEBUG(s, g)
+#else
 #define CHDEBUG(s, g)
+#endif
 
 void
 changed_window(PceWindow sw, int x, int y, int w, int h, int clear)

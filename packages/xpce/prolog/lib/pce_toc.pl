@@ -274,9 +274,11 @@ update_image(_) :->
 select(Node, Modified:[bool]) :->
 	(   Modified == @on
 	->  send(Node, toggle_selected)
-	;   send(Node?tree, selection, Node?image),
+	;   get(Node, tree, Tree),
+	    send(Tree, compute),
+	    send(Tree, selection, Node?image),
 	    send(Node, flush),
-	    send(Node?window, select_node, Node?identifier)
+	    send(Tree?window, select_node, Node?identifier)
 	).
 
 
@@ -332,6 +334,24 @@ selected(TF, Sel:bool) :<-
 	get(TF, member, text, Text),
 	get(Text, selected, Sel).
 
+label(TF, Label:char_array) :->
+	"Modify the textual label"::
+	get(TF, member, text, Text),
+	send(Text, string, Label).
+label(TF, Label:char_array) :<-
+	"Get the textual label"::
+	get(TF, member, text, Text),
+	get(Text, string, Label).
+
+image(TF, Image:image) :->
+	"Modify the icon"::
+	get(TF, member, bitmap, BM),
+	send(BM, image, Image).
+image(TF, Image:image) :->
+	"Get the icon"::
+	get(TF, member, bitmap, BM),
+	get(BM, image, Image).
+
 :- pce_group(event).
 
 event(TF, Ev:event) :->
@@ -383,7 +403,18 @@ initialise(TF,
 	;   send(TF, collapsed, @on)
 	).
 
-:- pce_group(build).
+:- pce_group(appearance).
+
+collapsed_image(TF, Img:image) :->
+	"Image in collapsed state"::
+	send(TF, slot, collapsed_image, Img),
+	send(TF, update_image).
+
+expanded_image(TF, Img:image) :->
+	"Image in expanded state"::
+	send(TF, slot, expanded_image, Img),
+	send(TF, update_image).
+
 
 :- pce_group(open).
 

@@ -66,11 +66,18 @@ _markAnswerStack(AnswerMark *mark)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+NOTE: deletion of the  head  is  avoided   to  ensure  this  routine  is
+reentrant. This may be necessary if unlinking   an object causes the new
+mark/rewind actions. 
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 export void
 _rewindAnswerStack(AnswerMark *mark, Any obj)
 { ToCell c, n;
   ToCell preserve = NULL;
   long index = *mark;
+  int freehead = FALSE;
 
   for( c = AnswerStack; c->index > index; c = n )
   { n = c->next;
@@ -85,13 +92,23 @@ _rewindAnswerStack(AnswerMark *mark, Any obj)
 	  clearAnswerObj(c->value);
 	  freeObject(o);
 	}
-	unalloc(sizeof(struct to_cell), c);
+	if ( c != AnswerStack )
+	  unalloc(sizeof(struct to_cell), c);
+	else
+	  freehead = TRUE;
       } else
-      	preserve = c;
+	preserve = c;
     } else
-      unalloc(sizeof(struct to_cell), c);
+    { if ( c != AnswerStack )
+	unalloc(sizeof(struct to_cell), c);
+      else
+	freehead = TRUE;
+    }
   }
   
+  if ( freehead )
+    unalloc(sizeof(struct to_cell), AnswerStack);
+
   AnswerStack = c;
 
   if ( preserve )

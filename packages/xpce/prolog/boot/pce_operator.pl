@@ -49,10 +49,12 @@ pop_operators :-
 	retract(operator_stack(Undo)), !,
 	call_list(Undo).
 
-call_list([]).
-call_list([H|T]) :-
-	call(H),
+call_list([]) :- !.
+call_list([H|T]) :- !,
+	call_list(H),
 	call_list(T).
+call_list(G) :-
+	G.
 
 undo_operators([], []).
 undo_operators([O0|T0], [U0|T]) :-
@@ -62,6 +64,10 @@ undo_operators([O0|T0], [U0|T]) :-
 undo_operator(op(_P, T, N), op(OP, OT, N)) :-
 	current_op(OP, OT, N),
 	same_op_type(T, OT), !.
+undo_operator(op(P, T, [H|R]), [OH|OT]) :- !,
+	undo_operator(op(P, T, H), OH),
+	undo_operator(op(P, T, R), OT).
+undo_operator(op(_, _, []), []) :- !.
 undo_operator(op(_P, T, N), op(0, T, N)).
 	
 same_op_type(T, OT) :-

@@ -789,7 +789,7 @@ ws_x_geometry_frame(FrameObj fr, Name spec)
 { char *s = strName(spec);
   UINT flags = SWP_NOACTIVATE|SWP_NOZORDER;
   int x, y, w, h;
-  char signx[1], signy[1];
+  char signx[10], signy[10];
   int ok=0;
   WsFrame f = fr->ws_ref;
 

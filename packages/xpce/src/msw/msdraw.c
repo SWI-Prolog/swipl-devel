@@ -346,6 +346,7 @@ d_mswindow(PceWindow sw, IArea a, int clear)
 	context.ohpal = SelectPalette(context.hdc, hpal, FALSE);
 
       r_default_background(sw->background);
+      SetBrushOrgEx(context.hdc, -context.cache_x, -context.cache_y, NULL);
       SetViewportOrg(context.hdc, -context.cache_x, -context.cache_y);
 
       r_clear(context.cache_x, context.cache_y,
@@ -401,6 +402,13 @@ push_context()
 void
 d_image(Image i, int x, int y, int w, int h)
 { Colour background;
+  DisplayObj d = CurrentDisplay(NIL);
+  HPALETTE hpal;
+
+  if ( notNil(d->colour_map) && notDefault(d->colour_map) )
+    hpal = getPaletteColourMap(d->colour_map);
+  else
+    hpal = NULL;
 
   push_context();
 
@@ -415,6 +423,20 @@ d_image(Image i, int x, int y, int w, int h)
   context.hdc      = CreateCompatibleDC(NULL);
   context.ohbitmap = ZSelectObject(context.hdc, context.hbitmap);
   context.depth    = valInt(i->depth);
+  context.hpal     = hpal;
+
+  if ( hpal )
+  { int mapped;
+    context.ohpal = SelectPalette(context.hdc, hpal, FALSE);
+    if ( !context.ohpal )
+      Cprintf("Failed to select palette: %s\n",
+	      strName(WinStrError(GetLastError())));
+    mapped = RealizePalette(context.hdc);
+    DEBUG(NAME_colourMap,
+	  Cprintf("%s: added %d colours\n", pp(i), mapped));
+    if ( mapped == GDI_ERROR )
+      Cprintf("RealizePalette(): %s\n", strName(WinStrError(GetLastError())));
+  }
 
   if ( x != 0 || y != 0 || w != valInt(i->size->w) || h != valInt(i->size->h) )
   { HRGN clip_region = ZCreateRectRgn(x, y, x+w, y+h);

@@ -68,6 +68,7 @@ computeArrow(Arrow a)
     int cdl1, sdl1, cl2, sl2;
     float l1, l2, d;
     float sin_theta, cos_theta;
+    int changed = 0;
 
     x1 = valInt(a->reference->x);
     y1 = valInt(a->reference->y);
@@ -99,18 +100,34 @@ computeArrow(Arrow a)
     rx = x1 + cdl1 + sl2;
     ry = y1 + sdl1 - cl2;
 
-    assign(a->left, x, toInt(sx));
-    assign(a->left, y, toInt(sy));
-    assign(a->right, x, toInt(rx));
-    assign(a->right, y, toInt(ry));
+    if ( a->left->x != toInt(sx) )
+    { assign(a->left, x, toInt(sx));
+      changed++;
+    }
+    if ( a->left->y != toInt(sy) )
+    { assign(a->left, y, toInt(sy));
+      changed++;
+    }
+    if ( a->right->x != toInt(rx) )
+    { assign(a->right, x, toInt(rx));
+      changed++;
+    }
+    if ( a->right->y != toInt(ry) )
+    { assign(a->right, y, toInt(ry));
+      changed++;
+    }
 
     x = min(x2, min(sx, rx));
     y = min(y2, min(sy, ry));
     w = max(x2, max(sx, rx)) - x + 1;
     h = max(y2, max(sy, ry)) - y + 1;
 
-    CHANGING_GRAPHICAL(a, setArea(a->area,
-				  toInt(x), toInt(y), toInt(w), toInt(h)));
+    CHANGING_GRAPHICAL(a,
+		       { setArea(a->area,
+				 toInt(x), toInt(y), toInt(w), toInt(h));
+			 if ( changed )
+			   changedEntireImageGraphical(a);
+		       });
 
     assign(a, request_compute, NIL);
   }
@@ -140,20 +157,13 @@ geometryArrow(Arrow a, Int x, Int y, Int w, Int h)
 
 static status
 RedrawAreaArrow(Arrow a, Area area)
-{ int x, y;
-  int x1, y1, x2, y2, x3, y3;
-
-  offsetDeviceGraphical(a, &x, &y);
-
-  x1 = valInt(a->left->x) + x;
-  y1 = valInt(a->left->y) + y;
-  x2 = valInt(a->tip->x) + x;
-  y2 = valInt(a->tip->y) + y;
-  x3 = valInt(a->right->x) + x;
-  y3 = valInt(a->right->y) + y;
-
-  drawArrow(x1, y1, x2, y2, x3, y3, a->fill_pattern, valInt(a->pen), 
-	    a->texture, a->style);
+{ drawArrow(valInt(a->left->x),  valInt(a->left->y),
+	    valInt(a->tip->x),   valInt(a->tip->y),
+	    valInt(a->right->x), valInt(a->right->y),
+	    a->fill_pattern,
+	    valInt(a->pen), 
+	    a->texture,
+	    a->style);
 
   return RedrawAreaGraphical(a, area);
 }
@@ -257,10 +267,8 @@ styleArrow(Arrow a, Name style)
 static status
 lengthArrow(Arrow a, Int l)
 { if ( a->length != l )
-  { CHANGING_GRAPHICAL(a,
-	assign(a, length, l);
-	computeArrow(a);
-	changedEntireImageGraphical(a));
+  { assign(a, length, l);
+    requestComputeGraphical(a, DEFAULT);
   }
   succeed;
 }
@@ -268,11 +276,9 @@ lengthArrow(Arrow a, Int l)
 
 static status
 wingArrow(Arrow a, Int w)
-{ if (a->wing != w)
-  { CHANGING_GRAPHICAL(a,
-	assign(a, wing, w);
-	computeArrow(a);
-	changedEntireImageGraphical(a));
+{ if ( a->wing != w )
+  { assign(a, wing, w);
+    requestComputeGraphical(a, DEFAULT);
   }
   succeed;
 }

@@ -1082,6 +1082,7 @@ executeMenu(Menu m, EventObj ev)
   if ( m->multiple_selection == ON )
   { toggleMenu(m, mi);
     flushGraphical(m);
+    send(m->device, NAME_modifiedItem, m, ON, 0);
     
     if ( notDefault(mi->message) )
     { if ( notNil(mi->message) )
@@ -1096,6 +1097,7 @@ executeMenu(Menu m, EventObj ev)
   } else
   { selectionMenu(m, mi);
     flushGraphical(m);
+    send(m->device, NAME_modifiedItem, m, ON, 0);
 
     if ( notDefault(mi->message) )
     { if ( notNil(mi->message) )

@@ -23,38 +23,12 @@
 		 *	      TYPES		*
 		 *******************************/
 
-builtin_config_type(bool,		[ editor(config_bool_item),
-					  term(map([@off=false, @on=true]))
-					]).
-builtin_config_type(font,		[ editor(font_item),
-					  term([family, style, points]),
-					  icon('16x16/font.xpm')
-					]).
-builtin_config_type(colour,		[ editor(colour_item),
-					  term(name, @arg1?kind == named),
-					  term([@default, red, green, blue])
-					]).
-builtin_config_type(setof(colour),	[ editor(colour_palette_item),
-					  icon('16x16/cpalette2.xpm')
-					]).
-builtin_config_type(file,		[ editor(file_item)
-					]).
-builtin_config_type(directory,		[ editor(directory_item)
-					]).
-builtin_config_type(_,			[ editor(config_generic_item)
-					]).
-
-config_type(Type, Attributes) :-
-	current_config_type(Type, Attributes).
-config_type(Type, Attributes) :-
-	builtin_config_type(Type, Attributes).
-
 config_attribute(Key, Attribute) :-
 	config_attributes(Key, Attributes),
 	(   memberchk(Attribute, Attributes)
 	->  true
 	;   memberchk(type(Type), Attributes),
-	    config_type(Type, TypeAttributes),
+	    current_config_type(Type, TypeAttributes),
 	    memberchk(Attribute, TypeAttributes)
 	).
 
@@ -64,15 +38,19 @@ config_attribute(Key, Attribute) :-
 		 *******************************/
 
 :- dynamic
-	tmp_config/2.			% +Key, +Value
+	tmp_config/3.			% +Key, +Value
 
 set_tmp_config(Key, Value) :-
-	retractall(tmp_config(Key, _)),
-	asserta(tmp_config(Key, Value)).
+	(   retract(tmp_config(Key, _, Type))
+	->  true
+	;   config_attributes(Key, Attributes),
+	    memberchk(type(Type), Attributes)
+	),
+	assert(tmp_config(Key, Value, Type)).
 
 get_tmp_config(Key, Value) :-
-	tmp_config(Key, RawValue), !,
-	Value = RawValue.
+	tmp_config(Key, RawValue, Type), !,
+	config_term_to_object(Type, RawValue, Value).
 get_tmp_config(Key, Value) :-
 	get_config(Key, Value).
 
@@ -89,7 +67,7 @@ variable(module,	name,	get, "Viewed module").
 variable(current_id,	chain*,	get, "Id of current config key").
 
 initialise(F, M:name) :->
-	retractall(tmp_config(M:_, _)),
+	retractall(tmp_config(M:_, _, _)),
 	send(F, send_super, initialise, 'Properties'),
 	send(F, slot, module, M),
 	send(F, append, new(D1, dialog)),
@@ -114,7 +92,7 @@ initialise(F, M:name) :->
 cancel(F) :->
 	"Cancel (restore old settings)"::
 	get(F, module, M),
-	retractall(tmp_config(M:_, _)),
+	retractall(tmp_config(M:_, _, _)),
 	send(F, destroy).
 
 save(F) :->
@@ -126,8 +104,8 @@ ok(F) :->
 	"OK: make changes permanent"::
 	send(F, save_if_modified),
 	get(F, module, M),
-	forall(retract(tmp_config(M:Path, Value)),
-	       set_config(M:Path, Value)).
+	forall(retract(tmp_config(M:Path, Value, Type)),
+	       pce_config:set_config_term(M, Path, Value, Type)). % export?
 	
 
 config_base_name(_/Base, Base) :- !.
@@ -187,59 +165,15 @@ save_if_modified(F) :->
 	    get(D, attribute, config_item, Item),
 	    get(Item, modified, @on)
 	->  get(Item, selection, NewValue),
-	    value_to_prolog(NewValue, PlValue),
-	    chain_to_path(Id, Path),
 	    get(F, module, M),
+	    chain_to_path(Id, Path),
+	    config_attributes(M:Path, Attributes),
+	    memberchk(type(Type), Attributes),
+	    config_term_to_object(Type, PlValue, NewValue),
 	    set_tmp_config(M:Path, PlValue)
 	;   true
 	).
 
-
-value_to_prolog(@off, false) :- !.
-value_to_prolog(@on, true) :- !.
-value_to_prolog(Chain, List) :-
-	send(Chain, instance_of, chain), !,
-	chain_list(Chain, List0),
-	maplist(value_to_prolog, List0, List).
-value_to_prolog(Obj, Term) :-
-	object(Obj),
-	get(Obj, class_name, ClassName),
-	term_description(ClassName, Attributes, Condition),
-	send(Condition, forward, Obj),
-	value_to_prolog(Attributes, Obj, Term).
-value_to_prolog(Obj, Term) :-
-	object(Obj),
-	get(Obj, class_name, ClassName),
-	term_description(ClassName, Attributes),
-	value_to_prolog(Attributes, Obj, Term).
-value_to_prolog(V, V).
-
-value_to_prolog(map(Mapping), Obj, Term) :- !,
-	memberchk(Obj=Term, Mapping).
-value_to_prolog(Attributes, Obj, Term) :-
-	is_list(Attributes), !,
-	get(Obj, class_name, ClassName),
-	maplist(prolog_value_argument(Obj), Attributes, InitArgs),
-	Term =.. [ClassName|InitArgs].
-value_to_prolog(Attribute, Obj, Term) :-
-	prolog_value_argument(Obj, Attribute, Term).
-
-					% unconditional term descriptions
-term_description(Type, TermDescription) :-
-	config_type(Type, Attributes),
-	member(term(TermDescription), Attributes).
-term_description(Type, TermDescription, Condition) :-
-	config_type(Type, Attributes),
-	member(term(TermDescription, Condition), Attributes).
-
-prolog_value_argument(Obj, Arg, ArgTerm) :-
-	atom(Arg), !,
-	get(Obj, Arg, V0),
-	value_to_prolog(V0, ArgTerm).
-prolog_value_argument(Obj, Arg, Value) :-
-	functor(Arg, ?, _),
-	get(Arg, '_forward', Obj, Value).
-prolog_value_argument(_, Arg, Arg).
 
 select_key(F, Id:chain) :->
 	"Show selected key"::
@@ -254,7 +188,10 @@ select_key(F, Id:chain) :->
 	    memberchk(comment(Comment), Attributes)
 	->  (   is_list(Comment)
 	    ->	new(C, string),
-		forall(member(C0, Comment), send(C, append, C0))
+		forall(member(C0, Comment),
+		       (   send(C, ensure_suffix, ' '),
+			   send(C, append, C0)
+		       ))
 	    ;	C = Comment
 	    ),
 	    get(D, gap, size(GW, _)),
@@ -277,8 +214,10 @@ select_key(F, Id:chain) :->
 
 initialise(T, Module:name) :->
 	send(T, send_super, initialise),
-	config_attributes(Module:config, AppAtts),
-	memberchk(application(AppName), AppAtts),
+	(   get_config(Module:config/application, AppName)
+	->  true
+	;   AppName = 'Application'
+	),
 	send(T, root, toc_folder(AppName, new(chain))).
 
 expand_node(T, Id:chain) :->
@@ -287,16 +226,35 @@ expand_node(T, Id:chain) :->
 	findall(Sub, dir_path_members(M, Path, Sub), Subs),
 	expand_nodes(Subs, [], T, Id).
 
-dir_path_members(M, Super, Sub) :-
-	config_attributes(M:Path, _),
-	path_prefix(Super, Path, Sub).
+dir_path_members(M, Path, Sub) :-
+	config_attributes(M:Path/Sub, Attributes),
+	atom(Sub),
+	memberchk(type(_), Attributes).
+dir_path_members(M, Super, tree(Sub)) :-
+	config_attributes(M:Path, Attributes),
+	memberchk(type(_), Attributes),
+	path_prefix(Super, Path, Sub0),
+	\+ atom(Sub0),
+	root(Sub0, Sub).
 
 path_prefix(-, Sub, Sub).
 path_prefix(Pref, Pref/Sub, Sub).
 path_prefix(Pref, Super/Sub0, Sub/Sub0) :-
 	path_prefix(Pref, Super, Sub).
 
+root(A/_, R) :- !,
+	root(A, R).
+root(A, A).
+
 expand_nodes([], _, _, _).
+expand_nodes([H|T], Done, Tree, Parent) :-
+	memberchk(H, Done), !,
+	expand_nodes(T, Done, Tree, Parent).
+expand_nodes([tree(H)|T], Done, Tree, Parent) :- !,
+	get(Parent, copy, Id),
+	send(Id, append, H),
+	send(Tree, son, Parent, toc_folder(H?label_name, Id)),
+	expand_nodes(T, [tree(H)|Done], Tree, Parent).
 expand_nodes([H|T], Done, Tree, Parent) :-
 	atom(H),
 	get(Parent, copy, Id),
@@ -309,20 +267,7 @@ expand_nodes([H|T], Done, Tree, Parent) :-
 	;   Image = @default
 	),
 	send(Tree, son, Parent, toc_file(H?label_name, Id, Image)),
-	expand_nodes(T, Done, Tree, Parent).
-expand_nodes([H|T], Done, Tree, Parent) :-
-	root(H, Root),
-	(   memberchk(Root, Done)
-	->  expand_nodes(T, Done, Tree, Parent)
-	;   get(Parent, copy, Id),
-	    send(Id, append, Root),
-	    send(Tree, son, Parent, toc_folder(Root?label_name, Id)),
-	    expand_nodes(T, [Root|Done], Tree, Parent)
-	).
-
-root(A/_, R) :- !,
-	root(A, R).
-root(A, A).
+	expand_nodes(T, [H|Done], Tree, Parent).
 
 select_node(T, Id:chain) :->
 	send(T?frame, select_key, Id).
@@ -361,6 +306,10 @@ make_config_item(Key, Item) :-
 	make_item(Type, Name, Value, Item).
 
 
+make_item({}(Names), Label, Value, Item) :- !,
+	curl_to_chain(Names, Chain),
+	new(Item, text_item(Label, Value)),
+	send(Item, value_set, Chain).
 make_item(Type, Label, Value, Item) :-
 	config_editor_class(Type, Class),
 	Class \== config_generic_item, !,
@@ -383,7 +332,7 @@ make_item(Type, Label, Value, Item) :-
 	).
 
 config_editor_class(Type, Class) :-
-	config_type(Type, Attributes),
+	current_config_type(Type, Attributes),
 	memberchk(editor(Class), Attributes).
 
 
@@ -410,6 +359,21 @@ selection(I, Selection:bool) :->	% force type conversion
 	send(I, send_super, selection, Selection).
 
 :- pce_end_class.
+
+
+		 /*******************************
+		 *      CONFIG-ONE-OF-ITEM	*
+		 *******************************/
+
+curl_to_chain(Term, Chain) :-
+	new(Chain, chain),
+	curl_to_chain_(Term, Chain).
+
+curl_to_chain_((A,B), Chain) :- !,
+	curl_to_chain_(A, Chain),
+	curl_to_chain_(B, Chain).
+curl_to_chain_(A, Chain) :-
+	send(Chain, append, A).
 
 
 		 /*******************************

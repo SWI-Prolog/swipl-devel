@@ -149,7 +149,7 @@ computeLine(Line ln)
       h += ey;
     }
 
-    if ( ln->selected == ON )
+    if ( ln->selected == ON )	/* should be solved elsewhere */
     { x -= 3;
       y -= 3;
       w += 6;

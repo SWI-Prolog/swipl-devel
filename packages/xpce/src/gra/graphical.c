@@ -64,7 +64,7 @@ copyGraphical(Any obj1, Any obj2)
   Graphical gr2 = obj2;
 
   copyArea(gr1->area, gr2->area);
-  assign(gr1, device,    gr2->device);
+/*assign(gr1, device,    gr2->device);	very dubious */
   assign(gr1, pen,       gr2->pen);
   assign(gr1, texture,   gr2->texture);
   assign(gr1, handles,   gr2->handles);

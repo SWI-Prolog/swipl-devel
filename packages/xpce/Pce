@@ -150,4 +150,4 @@ Pce.*.isearch_style:			when(@colour_display, \
 
 ! Finally, parse the user's defaults file.
 
-#include ~/.Xpce
+#include ~/.xpce/Xpce

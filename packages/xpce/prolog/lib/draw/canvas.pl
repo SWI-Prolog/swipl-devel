@@ -473,11 +473,18 @@ paste(Canvas, At:[point]) :->
 		 *	 WINDOWS CLIPBOARD	*
 		 *******************************/
 
+map_format(aldus, mwf) :- !.
+map_format(Fmt, Fmt).
+
 export_win_metafile(Canvas, What:[{selection,drawing}], Format:[{wmf,emf}]) :->
 	"Export to the Windows clipboard"::
 	send(Canvas, keyboard_focus, @nil),
 	default(What, selection, TheWhat),
-	default(Format, wmf, TheFormat),
+	(   Format == @default
+	->  get_config(draw_config:file/meta_file_format, TheFormat0),
+	    map_format(TheFormat0, TheFormat)
+	;   TheFormat = Format
+	),
 	get(Canvas, selection, OldSelection),
 	send(Canvas, selection, @nil),
 	(   TheWhat == selection
@@ -784,15 +791,27 @@ save(Canvas, File:[file]) :->
 	get(Canvas?frame, version, Version),
 	new(Sheet, sheet(attribute(graphicals, Canvas?graphicals),
 			 attribute(version, Version))),
+	(   get_config(draw_config:file/save_prototypes, @on)
+	->  get(Canvas?frame?menu, proto_sheet, ProtoTypes),
+	    send(Sheet, value, prototypes, ProtoTypes)
+	;   true
+	),
 	send(Sheet, save_in_file, SaveFile),
 	send(Canvas, slot, modified, @off),
 	send(Sheet, free),
-	(   get_config(draw_config:file/save_postscript_on_save, true)
+	new(Which, string('pd')),
+	(   get_config(draw_config:file/save_postscript_on_save, @on)
 	->  send(Canvas, postscript),
-	    Fmt = 'Saved (pd+ps) %s'
-	;   Fmt = 'Saved %s'
+	    send(Which, append, '+ps')
+	;   true
 	),
-	send(Canvas, report, status, Fmt, SaveFile?base_name).
+	(   get_config(draw_config:file/save_metafile_on_save, @on)
+	->  send(Canvas, save_default_windows_metafile),
+	    send(Which, append, '+mf')
+	;   true
+	),
+	send(Canvas, report, status, 'Saved (%s) %s',
+	     Which, SaveFile?base_name).
 
 save_if_modified(Canvas, AllowQuit:[bool]) :->
 	"Save if the drawing is modified"::
@@ -852,9 +871,11 @@ load(Canvas, File:file, Clear:[bool]) :->
 	;    true
 	),
 	get(File, object, Sheet),
-	send(Sheet?graphicals, for_all,
+	get(Sheet, graphicals, Grs),
+	send(Grs, for_all,
 	     and(message(Canvas, display, @arg1),
 		 message(@arg1, selected, @off))),
+	send(Canvas, normalise, Grs),
 	(   Clear == @on
 	->  send(Canvas, file, File)
 	;   true
@@ -862,6 +883,11 @@ load(Canvas, File:file, Clear:[bool]) :->
 	(   get(Sheet, value, version, SaveVersion)
 	->  true
 	;   SaveVersion = @nil
+	),
+	(   Clear == @on,
+	    get(Sheet, value, prototypes, ProtoTypes)
+	->  send(Canvas?frame?menu, proto_sheet, ProtoTypes, @on)
+	;   true
 	),
 	send(Canvas, convert_old_drawing, SaveVersion),
 	send(Canvas, report, status, 'Loaded %s', File?base_name),
@@ -974,18 +1000,29 @@ default_file(Canvas, Ext:[name], DefName:name) :<-
 Windows MetaFile generation
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+save_default_windows_metafile(Canvas) :->
+	"Save default format to default file"::
+	get_config(draw_config:file/meta_file_format, Fmt),
+ 	wmf_extension(Fmt, Ext),
+	get(Canvas, default_file, Ext, DefFile),
+	send(Canvas, generate_metafile, DefFile, Fmt).
+
 wmf_extension(aldus, wmf) :- !.
 wmf_extension(Fmt, Fmt).
 
-windows_metafile(Canvas, File:[file], Format:{emf,wmf,aldus}) :->
+windows_metafile(Canvas, File:[file], Format:[{emf,wmf,aldus}]) :->
 	"Write Windows Metafile"::
-	wmf_extension(Format, Ext),
+	(   Format == @default
+	->  get_config(draw_config:file/meta_file_format, Fmt)
+	;   Fmt = Format
+	),
+	wmf_extension(Fmt, Ext),
 	(   File == @default
 	->  get(Canvas, default_file, Ext, DefFile),
 	    get(@finder, file, @off, Ext, @default, DefFile, TheFile)
 	;   TheFile = File
 	),
-	send(Canvas, generate_metafile, TheFile, Format).
+	send(Canvas, generate_metafile, TheFile, Fmt).
 	
 
 generate_metafile(Canvas, File:file, Format:{emf,wmf,aldus}) :->
@@ -994,7 +1031,7 @@ generate_metafile(Canvas, File:file, Format:{emf,wmf,aldus}) :->
 	send(MF, draw_in, Canvas?graphicals),
 	send(MF, save, File, Format),
 	send(Canvas, report, status,
-	     'Written "%s" format Window MetaFile', Format).
+	     'Saved as "%s" file to %s', Format, File?absolute_path).
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

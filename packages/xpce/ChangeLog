@@ -1,14 +1,49 @@
 [VERSION 4.9.7]
 
+* ADDED: `path ->points' and an optional additional argument to
+  `path->initialise' for specifying the points as new() arguments.
+
+* FIXED: push_operators/pop_operators to deal with op(Num, Kind, ListOfAtoms).
+
+* FIXED: reentrance in rewindAnswerStack(), which may be caused
+  by exception-handling and unlink-handling during a free invoked by
+  another rewindAnswerStack().  Thanks to Heddrik van Rijn for providing
+  me with a program to reproduce this error, which may leave the system 
+  with an illegal answerStack, causing an infinite loop of crashes.
+
+* FIXED: Win32 `frame->geometry' for WxH-x-y, position relative to the right
+  edge of the screen.
+
+* FIXED: Win32: realise XPCE's pallete before `image->draw_in' and
+  similar operations.
+
+* ADDED: Win32 colour garbage-collection.
+
+* FIXED: sometimes no redraw after `button->label'
+
+* FIXED: Various things around plain display of arrow instances: proper
+  redraw when displayed on nested devices, automatic update on attribute
+  changes.
+
+* ADDED: Application configuration library: library(pce_config).  See
+  PceDraw for an example.  The definition of the PceDraw configuration options
+  is in library('draw/config.pl').  The personal X11 config data has been
+  moved from ~/.Xpce has been moved to ~/.xpce/Xpce.
+
+* CLEANUP: The Reference Manual database was cleaned to unreachable
+  cards using `man_space ->delete_unreferenced'.
+
 * ADDED: Class int_item: specialised text item for entering integer values
-  with increment/decrement buttons.
+  with increment/decrement buttons.  The buttons themselves are added to
+  class text_item (see `text_item ->style: stepper'), and may be used for
+  -for example- ordinal scales.
 
 * ADDED/FIXED: `arrow ->geometry', which now moves the arrow, rather than
   making it invalid.
 
 * ADDED: `arrow->initialise': additional arguments for `style' and `fill'.
 
-* ADDED: class `label_box' for making labeled dialog items consisting
+* ADDED: class label_box for making labeled dialog items consisting
   of multiple parts.  Used for the new implementation of font_item, making
   it much easier to understand.
 

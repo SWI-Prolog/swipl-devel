@@ -92,8 +92,10 @@ Attach   a new prototype.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 proto(M, Proto:proto='graphical|link*', Mode:mode=name,
-      Cursor:cursor=cursor, Icon:icon=[image], Tag:tag=[name]) :->
+      Cursor:cursor=cursor, Icon:icon=[image], Tag:tag=[name],
+      UserProto:user_proto=[bool]) :->
 	"Attach a new prototype"::
+	default(UserProto, @off, UProto),
 	get(M, member, proto, Menu),
 	send(Menu, append, new(I, draw_icon(Proto, Mode, Cursor, Icon))),
 	(   Tag \== @default,
@@ -101,6 +103,7 @@ proto(M, Proto:proto='graphical|link*', Mode:mode=name,
 	->  send(I, help_message, tag, Tag) 	   % loaded
 	;   true
 	),
+	send(I, user_proto, UProto),
 	send(M, adjust),
 	send(M, modified, @on).
 
@@ -169,13 +172,14 @@ NOTE:	Due to the improper functioning of <-clone with regards to
 	later.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-create_proto(M, Graphicals:chain) :->
+create_proto(M, Graphicals:chain, How:{as_is,virgin}) :->
 	"Create a prototype from a chain of graphicals"::
 	get(Graphicals, size, Size),
 	(   Size == 0
-	->  send(@display, inform, 'No selection')
+	->  send(M, report, error, 'No selection')
 	;   Size == 1
-	->  get(Graphicals?head, clone, Proto),
+	->  get(Graphicals, head, Sel1),
+	    clone_proto(How, Sel1, Proto),
 	    send(Proto, selected, @off)
 	;   new(Proto, draw_compound),
 	    get(Graphicals, clone, Members),
@@ -185,8 +189,33 @@ create_proto(M, Graphicals:chain) :->
 	    send(Proto, reference, @default),
 	    send(Proto, string, '')
 	),
-	send(M, proto, Proto, draw_proto, dotbox).
+	mode_and_cursor_from_proto(How, Proto, Mode, Cursor),
+	send(M, proto, Proto, Mode, Cursor, user_proto := @on).
 	
+clone_proto(_, Connection, Clone) :-
+	send(Connection, instance_of, connection), !,
+	get(Connection, link, Link),
+	get(Link, clone, Clone),
+	send(Clone, copy, Connection).
+clone_proto(virgin, Path, Clone) :-
+	send(Path, instance_of, path),
+	get(Path, clone, Clone),
+	send(Clone, clear).
+clone_proto(_, Graphical, Clone) :-
+	get(Graphical, clone, Clone).
+
+
+mode_and_cursor(text,  		draw_text,    xterm).
+mode_and_cursor(box,   		draw_resize,  crosshair).
+mode_and_cursor(ellipse,	draw_resize,  crosshair).
+mode_and_cursor(line,  		draw_line,    crosshair).
+mode_and_cursor(path,  		draw_path,    cross).
+mode_and_cursor(link,  		draw_connect, plus).
+
+mode_and_cursor_from_proto(as_is, _Proto, draw_proto, dotbox) :- !.
+mode_and_cursor_from_proto(virgin, Proto, Mode, Cursor) :-
+	mode_and_cursor(Class, Mode, Cursor),
+	send(Proto, instance_of, Class).
 
 		/********************************
 		*            DELETE		*
@@ -235,8 +264,48 @@ save(M, File:[file]) :->
 	;   send(M, file, File),
 	    SaveFile = File
 	),
-	send(M?graphicals, save_in_file, SaveFile),
+	get(M, proto_sheet, Sheet),
+	send(Sheet, save_in_file, SaveFile),
+	send(M, report, status,
+	     'Prototypes saved in %s', SaveFile?absolute_path),
 	send(M, modified, @off).
+
+proto_sheet(M, Sheet:sheet) :<-
+	"Fetch description of user prototypes in a sheet"::
+	new(Sheet, sheet(attribute(pcedraw_prototype_version, 1),
+			 attribute(protos, new(Protos, chain)))),
+	get(M, member, proto, Menu),
+	send(Menu?members, for_all,
+	     message(M, append_proto_sheet, Protos, @arg1)).
+
+
+append_proto_sheet(_M, Protos:chain, Icon:draw_icon) :->
+	"Append a single proto to Protos"::
+	(   get(Icon, user_proto, @on)
+	->  get(Icon, mode_cursor, CursorName),
+	    get(Icon, mode, Mode),
+	    get(Icon, slot, proto, Proto), % also @nil !
+	    send(Protos, append,
+		 sheet(attribute(cursor, CursorName),
+		       attribute(mode, Mode),
+		       attribute(proto, Proto)))
+	;   true
+	).
+
+
+proto_sheet(M, Sheet:sheet, Clear:[bool]) :->
+	"Load prototype definitions from sheet"::
+	get(M, member, proto, Menu),
+	(   Clear == @on
+	->  send(Menu, clear),
+	    send(M?frame, fill_menu)
+	;   true
+	),
+	get(Sheet, protos, Chain),
+	send(Chain, for_all,
+	     message(M, proto,
+		     @arg1?proto, @arg1?mode, @arg1?cursor,
+		     user_proto := @on)).
 
 
 load_from(M) :->
@@ -253,36 +322,18 @@ load(M, File:[file]) :->
 	;   send(M, file, File),
 	    LoadFile = File
 	),
-	send(M, clear),
-	get(LoadFile, object, Chain),
-	fix_compound_version(Chain),
-	send(Chain, for_all, message(M, display, @arg1)),
-	send(M, activate_select),
-	send(M, adjust),
-	send(M, modified, @off).
+	get(LoadFile, object, ProtoSheet),
+	(   send(ProtoSheet, instance_of, sheet),
+	    get(ProtoSheet, pcedraw_prototype_version, 1)
+	->  send(M, proto_sheet, ProtoSheet, @on),
+	    send(M, activate_select),
+	    send(M, adjust),
+	    send(M, modified, @off)
+	;   send(M, report, error,
+		 'File contains old or no PceDraw prototypes')
+	).
 	
 :- pce_end_class.
-
-fix_compound_version(Menus) :-
-	send(Menus, for_all,
-	     message(@prolog, fix_compound_version_menu, @arg1)).
-fix_compound_version_menu(Menu) :-
-	send(Menu?members, for_some,
-	     message(@prolog, fix_compound_version_proto, @arg1?proto)).
-fix_compound_version_proto(Proto) :-
-	send(Proto, instance_of, device),
-	get(Proto, find, @default,
-	    if(message(@arg1, instance_of, draw_compound),
-	       and(if(@arg1?radius == @nil,
-		      and(message(@arg1, slot, status, all_active),
-			  message(@arg1, slot, radius, 0),
-			  message(@arg1, slot, border, 0),
-			  message(@arg1, slot, pen,    0))),
-		   new(or)),
-	       new(or)),
-	    _), !.
-fix_compound_version_proto(_).
-
 
 
 		/********************************
@@ -317,12 +368,15 @@ variable(mode,		name,		both,
 	 "Mode initiated by the icon").
 variable(mode_cursor,	name,		both,
 	 "Associated cursor-name").
+variable(user_proto,	bool := @off,	both,
+	 "Prototype was created by the user").
+
+item_size(48,32).
 
 initialise(I, Proto:'graphical|link*', Mode:name,
 	   Cursor:cursor, Image:[image]) :->
 	"Create an icon for a specific mode"::
-	send(I, send_super, initialise,
-	     @nil, @default, image(@nil, 48, 32)),
+	send(I, send_super, initialise, @nil),
 	send(I, slot, value, I),	% hack, needs to be fixed!
 	send(I, mode, Mode),
 	send(I, proto, Proto, Image),
@@ -335,7 +389,7 @@ proto(I, Proto:'graphical|link') :<-
 
 can_delete(I) :->
 	"Can I delete this icon?"::
-	get(I, mode, draw_proto).
+	get(I, user_proto, @on).
 
 
 		/********************************
@@ -346,9 +400,8 @@ proto(I, Proto:'graphical|link*', Image:[image]) :->
 	"Set the prototype"::
 	send(I, slot, proto, Proto),
 	(   Image == @default
-	->  send(I, paint_proto, Proto)
-	;   get(I, label, Img),
-	    send(Img, copy, Image)
+	->  send(I, paint_proto)
+	;   send(I, label, Image)
 	).
 
 
@@ -361,10 +414,12 @@ draw the prototype  in the icon and  send `Object ->done' to the clone
 to inform PCE we have done with it.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-paint_proto(MI, Proto:'link|graphical*') :->
+paint_proto(MI) :->
 	"Paint a small version of the prototype"::
+	get(MI, slot, proto, Proto),
+	item_size(IW, IH),
+	send(MI, label, new(I, image(@nil, IW, IH))),
 	send(MI, paint_outline),
-	get(MI, label, I),
 	(   Proto == @nil
 	->  true
 	;   send(Proto, instance_of, link)
@@ -411,7 +466,8 @@ paint_proto(MI, Proto:'link|graphical*') :->
 	    send(Clone, size, size(DW, DH)),
 	    send(Clone, center, point(22, 14)),
 	    send(I, draw_in, Clone)
-	).
+	),
+	send(MI, label, I).
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -424,9 +480,17 @@ paint_outline(MI) :->
 	"Paint the mode indicating bitmap"::
 	get(MI, label, I),
 	get(MI, mode, Mode),
-	concat(Mode, '.bm', Outline),
-	send(I, copy, image(Outline)).
+	outline_image(Mode, ImageFile),
+	send(I, copy, image(ImageFile)).
 
+outline_image(select,	     'select.bm').
+outline_image(draw_text,     'draw_text.bm').
+outline_image(draw_resize,   'draw_resize.bm').
+outline_image(draw_line,     'draw_line.bm').
+outline_image(draw_path,     'draw_path.bm').
+outline_image(draw_connect,  'draw_connect.bm').
+outline_image(draw_cconnect, 'draw_cconnect.bm').
+outline_image(draw_proto,    'draw_proto.bm').
 
 		/********************************
 		*           ATTRIBUTES		*

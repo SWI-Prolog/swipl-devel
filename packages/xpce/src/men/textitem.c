@@ -818,7 +818,9 @@ repeatTextItem(TextItem ti)
 { Timer t;
   Real i = getResourceValueObject(ti, NAME_repeatInterval);
 
-  send(ti, ti->status, 0);
+  if ( ti->status == NAME_increment ||
+       ti->status == NAME_decrement )
+    send(ti, ti->status, 0);
 
   if ( (t = getAttributeObject(ti, NAME_Timer)) )
   { intervalTimer(t, i);
@@ -852,12 +854,12 @@ eventTextItem(TextItem ti, EventObj ev)
       detachTimerTextItem(ti);
       statusTextItem(ti, NAME_active);
     } else
-    { statusTextItem(ti, dir);
-
-      if ( isDownEvent(ev) )
+    { if ( isDownEvent(ev) )
       { send(ti, NAME_keyboardFocus, 0);
 	attachTimerTextItem(ti);
       }
+
+      statusTextItem(ti, dir);
     }
 
     succeed;

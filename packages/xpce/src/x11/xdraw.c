@@ -699,6 +699,12 @@ r_fillpattern(Any fill, Name which)	/* image or colour */
     }
 
     XChangeGC(context.display, context.gcs->fillGC, mask, &values);
+
+					/* maintain a reference to */
+    delRefObj(context.gcs->fill);	/* avoid drop-out */
+    freeableObj(context.gcs->fill);
+    addRefObj(fill);
+
     context.gcs->fill = fill;
   } else
   { DEBUG(NAME_fillPattern, Cprintf("Not changed\n"));

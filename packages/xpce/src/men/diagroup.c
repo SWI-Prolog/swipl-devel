@@ -25,6 +25,7 @@ initialiseDialogGroup(DialogGroup g, Name name, Name kind)
   if ( isDefault(name) )
     name = getClassNameObject(g);
 
+  assign(g, label,	  DEFAULT);	/* see nameDialogGroup() */
   assign(g, label_font,   DEFAULT);	/* Resource */
   assign(g, label_format, DEFAULT);	/* Resource */
   assign(g, radius,       DEFAULT);	/* Resource */
@@ -100,41 +101,46 @@ computeDialogGroup(DialogGroup g)
 
     obtainResourcesObject(g);
     border = (isDefault(g->border) ? g->gap : g->border);
-    computeGraphicalsDevice((Device) g);
-    compute_label(g, &lx, &ly, &lw, &lh);
-    
-    if ( isDefault(g->size) )		/* implicit size */
-    { Cell cell;
-
-      clearArea(a);
-      for_cell(cell, g->graphicals)
-      { Graphical gr = cell->value;
-	
-	unionNormalisedArea(a, gr->area);
-      }
-      relativeMoveArea(a, g->offset);
-
-      x = valInt(a->x) -     valInt(border->w);
-      y = valInt(a->y) -     valInt(border->h);
-      w = valInt(a->w) + 2 * valInt(border->w);
-      h = valInt(a->h) + 2 * valInt(border->h);
-    } else				/* explicit size */
-    { x = valInt(g->offset->x);
-      y = valInt(g->offset->y);
-      w = valInt(g->size->w);
-      h = valInt(g->size->h);
-    }
-
-    if ( ly < 0 )
-    { h -= ly;
-      y += ly;
-    }
 
     CHANGING_GRAPHICAL(g,
-	assign(a, x, toInt(x));
-	assign(a, y, toInt(y));
-	assign(a, w, toInt(w));
-	assign(a, h, toInt(h)));
+    { computeGraphicalsDevice((Device) g);
+      compute_label(g, &lx, &ly, &lw, &lh);
+      
+      if ( isDefault(g->size) )		/* implicit size */
+      { Cell cell;
+  
+	clearArea(a);
+	for_cell(cell, g->graphicals)
+	{ Graphical gr = cell->value;
+	  
+	  unionNormalisedArea(a, gr->area);
+	}
+	relativeMoveArea(a, g->offset);
+  
+	x = valInt(a->x) -     valInt(border->w);
+	y = valInt(a->y) -     valInt(border->h);
+	w = valInt(a->w) + 2 * valInt(border->w);
+	h = valInt(a->h) + 2 * valInt(border->h);
+      } else				/* explicit size */
+      { x = valInt(g->offset->x);
+	y = valInt(g->offset->y);
+	w = valInt(g->size->w);
+	h = valInt(g->size->h);
+      }
+  
+      if ( w < 2*lx + lw )
+	w = 2*lx + lw;
+
+      if ( ly < 0 )
+      { h -= ly;
+	y += ly;
+      }
+  
+      assign(a, x, toInt(x));
+      assign(a, y, toInt(y));
+      assign(a, w, toInt(w));
+      assign(a, h, toInt(h));
+    });
 
     assign(g, request_compute, NIL);
   }
@@ -226,10 +232,15 @@ borderDialogGroup(DialogGroup g, Size border)
 
 static status
 nameDialogGroup(DialogGroup g, Name name)
-{ Any label = get(g, NAME_labelName, name, 0);
+{ Any label;
 
   assign(g, name, name);
-  return labelDialogGroup(g, label ? label : name);
+
+  if ( notNil(g->label) &&
+       (label = get(g, NAME_labelName, name, 0)) )
+    labelDialogGroup(g, label ? label : name);
+
+  succeed;
 }
 
 
@@ -270,9 +281,11 @@ showLabelDialogGroup(DialogGroup g, Bool show)
     succeed;
   
   if ( show == OFF )
-    labelDialogGroup(g, NIL);
-  else
+  { labelDialogGroup(g, NIL);
+  } else
+  { assign(g, label, DEFAULT);
     nameDialogGroup(g, g->name);
+  }
 
   succeed;
 }
@@ -581,7 +594,7 @@ static char *T_modifiedItem[] =
 /* Instance Variables */
 
 static vardecl var_diagroup[] =
-{ IV(NAME_label, "name|image*", IV_GET,
+{ IV(NAME_label, "[name|image]*", IV_GET,
      NAME_label, "Displayed label"),
   SV(NAME_labelFont, "font", IV_GET|IV_STORE, labelFontDialogGroup,
      NAME_appearance, "Font used to display textual label"),

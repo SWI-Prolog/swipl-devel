@@ -946,7 +946,7 @@ findFile(FileObj f, CharArray path, Name mode)
   if ( !exp )
     fail;
 
-  if ( isAbsolutePath(exp) || exp[0] == '.' )
+  if ( isAbsolutePath(exp) || streq(exp, ".") )
     succeed;
 
   if ( isDefault(mode) || equalName(mode, NAME_read) )

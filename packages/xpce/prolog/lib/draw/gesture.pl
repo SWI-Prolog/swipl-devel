@@ -337,10 +337,12 @@ initiate(G, Ev:event) :->
 	"Paint the prototype"::
 	get(Ev, receiver, Canvas),
 	get(Canvas?proto, clone, Object),
+        get(Ev, position, point(X, Y)),
+	send(Object, do_set, X, Y, 0, 0),
 	send(G, object, Object),
 	send(Canvas, open_undo_group),
 	send(Canvas, undo_action, message(Object, cut)),
-	send(Canvas, display, Object, Ev?position).
+	send(Canvas, display, Object).
 	
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -406,6 +408,13 @@ resource(cursor,	 cursor,	plus).
 verify(_G, Ev:event) :->
 	"Only active when in create_line_mode"::
 	get(Ev?receiver, mode, draw_line).
+
+initiate(G, Ev:event) :->
+	 send(G, send_super, initiate, Ev),
+	 get(G, object, Line),
+	 get(Ev, position, Pos),
+	 send(Line, start, Pos),
+	 send(Line, end, Pos).
 
 drag(G, Ev:event) :->
 	send(G?object, end, Ev?position).
@@ -549,6 +558,7 @@ initiate(G, Ev:event) :->
 	->  get(Ev, receiver, Canvas),
 	    get(Ev, position, Canvas, Pos),
 	    get(Canvas?proto, clone, Path),
+	    send(Path, clear),
 	    send(G, path, Path),
 	    get(G, line, Line),
 	    send(Line, start, Pos),
@@ -755,6 +765,7 @@ make_draw_create_text_recogniser(R) :-
 create_text(Canvas, Pos) :-
 	send(Canvas, keyboard_focus, @nil), % close open text if there
 	get(Canvas?proto, clone, Text),
+	send(Text, string, ''),
 	send(Canvas, open_undo_group),
 	send(Canvas, display, Text, Pos),
 	send(Canvas, keyboard_focus, Text),

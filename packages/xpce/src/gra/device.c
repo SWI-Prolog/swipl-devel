@@ -1020,6 +1020,7 @@ static HashTable PlacedTable = NULL;	/* placed objects */
 
 typedef struct _unit			/* can't use cell! */
 { Graphical item;			/* Item displayed here */
+  short x;				/* X-position (of column) */
   short height;				/* Height above reference */
   short	depth;				/* Depth below reference */
   short right;				/* Right of reference point */
@@ -1030,7 +1031,10 @@ typedef struct _unit			/* can't use cell! */
   int	flags;				/* Misc alignment flags */
 } unit, *Unit;
 
-static unit empty_unit = {(Graphical) NIL, 0, 0, 0, 0, 0, 0, NAME_column, 0};
+static unit empty_unit = { (Graphical) NIL,
+			   0, 0, 0, 0, 0, 0, 0,
+			   NAME_column, 0
+			 };
 
 typedef struct _matrix
 { int cols;				/* actual size */
@@ -1161,7 +1165,7 @@ distribute(int total, int n, int *buckets)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Adjust  to  the  bounding  box  by  adjustting  all  columns  containing
+Adjust  to  the  bounding  box  by   adjusting  all  columns  containing
 stretchable items.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -1204,6 +1208,32 @@ stretchColumns(Matrix m, Size gap, Size bb, Size border)
   }
 }
 
+
+static void
+determineXColumns(Matrix m, Size gap, Size bb, Size border)
+{ int x, y;
+  int cx = valInt(border->w);
+
+  for(x=0; x<m->cols; x++)
+  { int maxr = 0;
+
+    for(y=0; y<m->rows; y++)
+    { int r;
+
+      if ( x == 0 || m->units[x][y].alignment == NAME_column )
+	m->units[x][y].x = cx;
+      else
+	m->units[x][y].x = m->units[x-1][y].x +
+			   m->units[x-1][y].left +
+			   m->units[x-1][y].right +
+			   valInt(gap->w);
+      r = m->units[x][y].x + m->units[x][y].left + m->units[x][y].right;
+      maxr = max(maxr, r);
+    }
+
+    cx = maxr + valInt(gap->w);
+  }
+}
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1394,6 +1424,7 @@ layoutDialogDevice(Device d, Size gap, Size bb, Size border)
       }
     }
     stretchColumns(&m, gap, bb, border);
+    determineXColumns(&m, gap, bb, border);
     
 
   { int gaph = valInt(gap->h);
@@ -1448,11 +1479,15 @@ layoutDialogDevice(Device d, Size gap, Size bb, Size border)
 	{ Point reference = get(gr, NAME_reference, 0);
 	  int rx = (reference ? valInt(reference->x) : 0);
 	  int ry = (reference ? valInt(reference->y) : 0);
-	  int iy = py + m.units[x][y].height;
-	  int ix = (m.units[x][y].alignment == NAME_column ? px : lx) +
-		    					m.units[x][y].left;
+	  int ix, iy = py + m.units[x][y].height;
 	  Int iw = DEFAULT;
 	  
+	  if ( m.units[x][y].alignment == NAME_column )
+	    ix = m.units[x][y].x;
+	  else
+	    ix = lx;
+	  ix += m.units[x][y].left;
+
 					/* hor_stretch handling */
 	  if ( m.units[x][y].hstretch )
 	  { int nx=0;			/* make compiler happy */

@@ -19,9 +19,6 @@ label. The selection is expressed as a boolean.
 
 resource(item_elevation, elevation*, @nil, "Elevation of the label").
 
-:- pce_global(@tick_box_message,
-	      new(message(@receiver, forward))).
-
 initialise(TB, Name:name, Value:[bool], Message:[code]*) :->
 	default(Value, @off, Def),
 	send(TB, send_super, initialise, Name, marked, Message),
@@ -29,11 +26,25 @@ initialise(TB, Name:name, Value:[bool], Message:[code]*) :->
 	send(TB, show_label, @off),
 	get(TB, resource_value, label_font, Font),
 	send(TB, value_font, Font),
-	send(TB, append, menu_item(Name, @tick_box_message)),
+	send(TB, append, menu_item(Name,
+				   message(@receiver, forward))),
 	send(TB, default, Def).
+
+:- pce_group(appearance).
 
 label_width(_TB, _LW:int) :->
 	true.
+
+label(TB, Label:'name|image') :->
+	"Set the label"::
+	(   get(TB, members, Members),
+	    Members \== @nil
+	->  get(Members, head, Item),
+	    send(Item, label, Label)
+	;   send(TB, send_super, label, Label) % during initialise
+	).
+
+:- pce_group(selection).
 
 selection(TB, Val:bool) :->
 	"Set selection as boolean"::

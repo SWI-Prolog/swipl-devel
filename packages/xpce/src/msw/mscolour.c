@@ -14,6 +14,7 @@ static HashTable ColourNames;		/* name --> rgb (packed in Int) */
 static HashTable X11ColourNames;	/* rgb --> X11-name */
 
 static status	ws_alloc_colour(ColourMap cm, Colour c);
+static void	ws_unalloc_colour(ColourMap cm, Colour c);
 
 static HashTable
 LoadColourNames()
@@ -244,7 +245,13 @@ ws_create_colour(Colour c, DisplayObj d)
 
 void
 ws_uncreate_colour(Colour c, DisplayObj d)
-{ unregisterXrefObject(c, d);
+{ if ( isDefault(d) )
+    d = CurrentDisplay(NIL);
+
+  if ( notNil(d->colour_map) && notDefault(d->colour_map) )
+    ws_unalloc_colour(d->colour_map, c);
+
+  unregisterXrefObject(c, d);
 }
 
 
@@ -531,11 +538,19 @@ need to be updated (or all images should be stored as DIB images).
 
 static status
 ws_alloc_colour(ColourMap cm, Colour c)
-{ if ( isNil(cm->colours) )
+{ Int i;
+
+  if ( isNil(cm->colours) )
     ws_colour_map_colours(cm);
 
   if ( getIndexVector(cm->colours, c) )
     succeed;		/* already there (basically for my own colours) */
+
+  if ( (i=getIndexVector(cm->colours, NIL)) )
+    elementVector(cm->colours, i, c);
+  else
+    appendVector(cm->colours, 1, (Any *)&c);
+  delRefObj(c);
 
   if ( cm->ws_ref )
   { HPALETTE hpal = (HPALETTE) cm->ws_ref;
@@ -548,20 +563,42 @@ ws_alloc_colour(ColourMap cm, Colour c)
     pe->peBlue  = valInt(c->blue)  >> 8;
     pe->peFlags = 0;
       
-    if ( ResizePalette(hpal, ne) )
-    { if ( SetPaletteEntries(hpal, ne-1, 1, pe) != 1 )
+    if ( i )
+    { if ( SetPaletteEntries(hpal, valInt(i)-1, 1, pe) != 1 )
       { DEBUG(NAME_colour,
-	      Cprintf("Failed to add %s to %s\n", pp(c), pp(cm)));
+	      Cprintf("Failed to set %s at index %d of %s\n",
+		      pp(c), valInt(i)-1, pp(cm)));
 	fail;
       }
+      DEBUG(NAME_colour,
+	    Cprintf("Reused colour entry %d for %s\n", valInt(i)-1, pp(c)));
     } else
-    { DEBUG(NAME_colour,
-	    Cprintf("Failed to extend %s\n", pp(cm)));
-      fail;
+    { if ( ResizePalette(hpal, ne) )
+      { if ( SetPaletteEntries(hpal, ne-1, 1, pe) != 1 )
+	{ DEBUG(NAME_colour,
+		Cprintf("Failed to add %s to %s\n", pp(c), pp(cm)));
+	  fail;
+	}
+      } else
+      { DEBUG(NAME_colour,
+	      Cprintf("Failed to extend %s\n", pp(cm)));
+	fail;
+      }
     }
   }
 
-  appendVector(cm->colours, 1, (Any *)&c);
-
   succeed;
+}
+
+
+static void
+ws_unalloc_colour(ColourMap cm, Colour c)
+{ if ( notNil(cm->colours) )
+  { Int i;
+
+    if ( (i = getIndexVector(cm->colours, c)) )
+    { addRefObj(c);
+      elementVector(cm->colours, i, NIL);
+    }
+  }
 }

@@ -1786,7 +1786,7 @@ assignField(Instance instance, Any *field, Any value)
     return;
 
   if ( TraceMode &&
-       (!onFlag(instance, F_CREATING) || TraceMode == TRACE_ALWAYS) )
+       (!onFlag(instance, F_CREATING|F_FREEING) || TraceMode == TRACE_ALWAYS) )
   { int offset = field - &instance->slots[0];
     Class class = classOfObject(instance);
     Variable v = getElementVector(class->instance_variables, toInt(offset));
