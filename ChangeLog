@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: compilation of pl-load.c on MacOS X (Paulo Moura).
+
   * ADDED: library(qpforeign) to load Quintus foreign code.
 
 VERSION 4.0.8
