@@ -62,7 +62,7 @@
 \def\sendmethod{\@ifstar{\@emptysendmethod}{\@sendmethod}}
 \def\getmethod{\@ifstar{\@emptygetmethod}{\@getmethod}}
 
-\newcommand{\@methodarg}[1]{\ifthenelse{\equal{}{#1}}{}{: #1}}
+\newcommand{\@methodarg}[1]{\ifthenelse{\equal{}{#1}}{}{: \parbox[t]{0.6\linewidth}{\raggedright#1}}}
 
 \def\@emptybothmethod#1#2#3{%
 	\emptydefinition{#1 $\botharrow$ #2\@methodarg{#3}}%
