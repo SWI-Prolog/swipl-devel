@@ -293,4 +293,5 @@ Colour		getReplacementColourPixmap(PixmapObj pm);
 status		makeClassPixmap(Class class);
 
 /* elevation.c */
+Elevation	getModifyElevation(Elevation e, Name att, Any val);
 status		makeClassElevation(Class class);

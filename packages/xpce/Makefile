@@ -51,7 +51,7 @@ LIBS=	$(XLIBS) $(PLLIBS) $(NETLIBS) $(STATICLIBS)
 COFLAGS=-O2
 CWFLAGS=
 CIFLAGS=-I..
-CMFLAGS=-funsigned-char -DHAVE_CONFIG_H
+CMFLAGS=-funsigned-char -fPIC -DHAVE_CONFIG_H
 
 ################################################################
 # Paths for host-languages

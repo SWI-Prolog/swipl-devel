@@ -1,5 +1,9 @@
 [VERSION 4.8.8]
 
+* FIXED: elevation handling associated with `figure->elevation', followed
+  by figure->background.  Now uses the new method `elevation <-modify' to
+  avoid messing up read-only elevation objects.
+
 * CHANGED: Library structure for demo and contrib modules.  Instead of
   library('demo/something') or library('contrib/something'), you should
   now use deme(something) or contrib(something).  Part of ProWindows

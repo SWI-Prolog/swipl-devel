@@ -13,7 +13,7 @@
 	  , manpce/1
 	  ]).
 :- use_module(library(pce)).
-:- use_module(
+:- consult(
 	[ 'man/p_card'		% General card infra-structure
 	, 'man/p_data'		% Manual specific infra-structure
 	, 'man/v_manual'	% Top level window

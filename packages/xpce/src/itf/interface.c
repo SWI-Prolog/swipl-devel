@@ -434,7 +434,7 @@ pceWriteErrorGoal(void)
 		 *	    DLL CALLBACK	*
 		 *******************************/
 
-pce_callback_functions CallbackFunctions =
+pce_callback_functions TheCallbackFunctions =
 { Stub__HostSend,			/* hostSend() */
   Stub__HostGet,			/* hostGet() */
   Stub__HostCallProc,			/* hostCallProc() */
@@ -449,14 +449,14 @@ pce_callback_functions CallbackFunctions =
 
 void
 pceRegisterCallbacks(pce_callback_functions *fs)
-{ CallbackFunctions = *fs;		/* structure copy! */
+{ TheCallbackFunctions = *fs;		/* structure copy! */
 }
 
 
 int
 hostSend(PceObject host, PceName selector, int argc, PceObject argv[])
-{ if ( CallbackFunctions.hostSend )
-    return (*CallbackFunctions.hostSend)(host, selector, argc, argv);
+{ if ( TheCallbackFunctions.hostSend )
+    return (*TheCallbackFunctions.hostSend)(host, selector, argc, argv);
 
   return FAIL;
 }
@@ -464,26 +464,8 @@ hostSend(PceObject host, PceName selector, int argc, PceObject argv[])
 
 PceObject
 hostGet(PceObject host, PceName selector, int argc, PceObject argv[])
-{ if ( CallbackFunctions.hostGet )
-    return (*CallbackFunctions.hostGet)(host, selector, argc, argv);
-
-  return FAIL;
-}
-
-
-int
-hostCallProc(PceObject handle, PceObject receiver, int argc, PceObject argv[])
-{ if ( CallbackFunctions.hostCallProc )
-    return (*CallbackFunctions.hostCallProc)(handle, receiver, argc, argv);
-
-  return FAIL;
-}
-
-
-PceObject
-hostCallFunc(PceObject handle, PceObject receiver, int argc, PceObject argv[])
-{ if ( CallbackFunctions.hostCallFunc )
-    return (*CallbackFunctions.hostCallFunc)(handle, receiver, argc, argv);
+{ if ( TheCallbackFunctions.hostGet )
+    return (*TheCallbackFunctions.hostGet)(host, selector, argc, argv);
 
   return FAIL;
 }
@@ -491,8 +473,8 @@ hostCallFunc(PceObject handle, PceObject receiver, int argc, PceObject argv[])
 
 int
 hostQuery(int what, PceCValue *value)
-{ if ( CallbackFunctions.hostQuery )
-    return (*CallbackFunctions.hostQuery)(what, value);
+{ if ( TheCallbackFunctions.hostQuery )
+    return (*TheCallbackFunctions.hostQuery)(what, value);
 
   return FAIL;
 }
@@ -500,12 +482,12 @@ hostQuery(int what, PceCValue *value)
 
 int
 hostAction(int what, ...)
-{ if ( CallbackFunctions.hostActionv )
+{ if ( TheCallbackFunctions.hostActionv )
   { va_list args;
     int rval;
 
     va_start(args, what);
-    rval = (*CallbackFunctions.hostActionv)(what, args);
+    rval = (*TheCallbackFunctions.hostActionv)(what, args);
     va_end(args);
     return rval;
   }
@@ -516,11 +498,11 @@ hostAction(int what, ...)
 
 void
 Cprintf(const char *fmt, ...)
-{ if ( CallbackFunctions.vCprintf )
+{ if ( TheCallbackFunctions.vCprintf )
   { va_list args;
 
     va_start(args, fmt);
-    (*CallbackFunctions.vCprintf)(fmt, args);
+    (*TheCallbackFunctions.vCprintf)(fmt, args);
     va_end(args);
   }
 }
@@ -528,16 +510,16 @@ Cprintf(const char *fmt, ...)
 
 void
 Cvprintf(const char *fmt, va_list args)
-{ if ( CallbackFunctions.vCprintf )
-  { (*CallbackFunctions.vCprintf)(fmt, args);
+{ if ( TheCallbackFunctions.vCprintf )
+  { (*TheCallbackFunctions.vCprintf)(fmt, args);
   }
 }
 
 
 int
 Cputchar(int chr)
-{ if ( CallbackFunctions.Cputchar )
-    return (*CallbackFunctions.Cputchar)(chr);
+{ if ( TheCallbackFunctions.Cputchar )
+    return (*TheCallbackFunctions.Cputchar)(chr);
   else
   { Cprintf("%c", chr);
     return chr;
@@ -547,8 +529,8 @@ Cputchar(int chr)
 
 char *
 Cgetline(char *line, int size)
-{ if ( CallbackFunctions.Cgetline )
-    return (*CallbackFunctions.Cgetline)(line, size);
+{ if ( TheCallbackFunctions.Cgetline )
+    return (*TheCallbackFunctions.Cgetline)(line, size);
   else
   { size = 0;				/* signal end-of-file */
     line[0] = '\0';

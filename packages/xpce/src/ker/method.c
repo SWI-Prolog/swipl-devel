@@ -648,7 +648,8 @@ makeClassMethod(Class class)
   localClass(class, NAME_source, NAME_manual, "source_location*", NAME_both,
 	     "Location of definition in the sources");
 #endif
-  localClass(class, NAME_message, NAME_implementation, "code|any*", NAME_both,
+  localClass(class, NAME_message, NAME_implementation, "code|c_pointer*",
+	     NAME_both,
 	     "If implemented in PCE: the code object");
   localClass(class, NAME_function, NAME_implementation, "alien:Func", NAME_none,
 	     "If implemented in C: function pointer");
@@ -664,7 +665,7 @@ makeClassMethod(Class class)
   cloneStyleVariableClass(class, NAME_message, NAME_reference);
 
   sendMethod(class, NAME_initialise, DEFAULT, 6,
-	     "name=name", "types=[vector]", "implementation=code|any",
+	     "name=name", "types=[vector]", "implementation=code|c_pointer",
 	     "summary=[string]*", "source=[source_location]*", "group=[name]*",
 	     "Create from name, types, code and doc",
 	     initialiseMethod);

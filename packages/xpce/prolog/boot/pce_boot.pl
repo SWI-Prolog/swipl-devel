@@ -29,9 +29,12 @@ PCE public predicates
 	  , pce_extend_class/1
 	  , pce_end_class/0
 	  , pce_group/1
+	  , pce_predicate_reference/2
 	  , default/3
 	  , pce_term_expansion/2
 	  , pce_compiling/1
+	  , pce_send_method/7
+	  , pce_get_method/8
 
 	  , pce_catch_error/2
 	  ]).
@@ -63,7 +66,10 @@ pce_ifhostproperty(repeat_meta_declaraction,
 	get(+, :, +, +, +, +, +, +, +, +, +, -),
 	get(+, :, +, +, +, +, +, +, +, +, +, +, -),
 
-	new(?, :))).
+	new(?, :),
+
+	pce_send_method(+, :, +, +, +, +, +),
+	pce_get_method(+, :, +, +, +, +, +, +))).
 
 
 		/********************************

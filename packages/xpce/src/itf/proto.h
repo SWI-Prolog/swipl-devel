@@ -84,8 +84,6 @@ void		pceWriteErrorGoal(void);
 void		pceRegisterCallbacks(pce_callback_functions *fs);
 int		hostSend(PceObject host, PceName selector, int argc, PceObject argv []);
 PceObject	hostGet(PceObject host, PceName selector, int argc, PceObject argv []);
-int		hostCallProc(PceObject handle, PceObject receiver, int argc, PceObject argv []);
-PceObject	hostCallFunc(PceObject handle, PceObject receiver, int argc, PceObject argv []);
 int		hostQuery(int what, PceCValue *value);
 int		hostAction(int what, ...);
 void		Cprintf(const char *fmt, ...);

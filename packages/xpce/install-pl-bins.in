@@ -54,7 +54,8 @@ filesd="STAMP VERSION ChangeLog licence/licence.tex"
 filese="src/unx/client.c src/h/interface.h"
 filesf="Pce bitmaps postscript man/reference man/faq"
 filesg="prolog/boot prolog/lib pl/library pl/boot pl/include"
-allfiles="$filesa $filesb $filesc $filesd $filese $filesf $filesg"
+filesh="prolog/demo prolog/contrib"
+allfiles="$filesa $filesb $filesc $filesd $filese $filesf $filesg $filesh"
 
 # Remove possible existing directory
 
@@ -74,6 +75,7 @@ if [ ! -d $libdir ]; then mkdir $libdir; fi
 
 echo -n "Copying files to $libdir ... "
 ${TAR-tar} ${TAR_CP_FLAGS}f - $allfiles | (cd $libdir; tar xf -)
+#cp -pr $allfiles $libdir
 echo "done."
 echo -n "Cleaning $libdir ... "
 (cd $libdir; rm -rf `find . \( -name CVS -o -name '*~' \) -print`)

@@ -10,7 +10,8 @@
 :- module(pce_editor_buttons, []).
 :- use_module(pce_global).
 :- use_module(pce_principal, [send/2, send/3, send/6, get/3, new/2]).
-:- use_module(pce_compile, [pce_extend_class/1, pce_end_class/0]).
+:- use_module(pce_compile, [pce_extend_class/1, pce_end_class/0,
+			    pce_send_method/7]).
 :- use_module(pce_error, [pce_catch_error/2]).
 
 

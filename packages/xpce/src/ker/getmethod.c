@@ -82,7 +82,7 @@ makeClassGetMethod(Class class)
 
   sendMethod(class, NAME_initialise, DEFAULT, 7,
 	     "name=name", "return=[type]", "types=[vector]",
-	     "implementation=function|any", "summary=[string]*",
+	     "implementation=function|c_pointer", "summary=[string]*",
 	     "source=[source_location]*", "group=[name]*",
 	     "->selector, return_type, types, msg, doc, location",
 	     initialiseGetMethod);

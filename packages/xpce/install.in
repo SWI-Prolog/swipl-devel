@@ -5,7 +5,7 @@
 # Author:  	  Jan Wielemaker, University of Amsterdam
 # Last Modified:  Thu Feb 23 11:34:30 1995
 #		  + Added RTSUFFIX support for installing RUNTIME
-#		  + Updated for SWI-Prolog 2.0.4
+#		  + Updated for SWI-Prolog 2.0.6
 ################################################################
 
 PLBASE=@PLBASE@
@@ -15,11 +15,16 @@ emulator=bin/xpce$RTSUFFIX.base
 xpce=bin/xpce
 PWD=`pwd`
 
+if [ "x$1" = "x-nosave" ]; then save=no; shift; fi
 if [ $# = 1 ]; then xpce=$1; fi
 
 for d in library boot include; do
     if [ ! -d pl/$d ]; then (cd pl; $LN_S $PLBASE/$d .); fi
 done
+
+if [ ! -r bin/xpce.base ]; then
+    ( cd bin; ln -s ../pl/src/xpce.base . )
+fi
 
 if [ -r $PWD/Pce ]; then
     PCEHOME=""
@@ -60,6 +65,8 @@ Using the following paths:
 
 EOF
 
+if [ ! "$save" = "no" ]; then
+echo "Check whether we can create a saved state"
 $emulator -o bin/pl.qlf -b pl/boot/init.pl
 
 $emulator -x bin/pl.qlf -f none -g true >.plparms << _EOS_
@@ -72,52 +79,29 @@ _EOS_
 . ./.plparms
 
 if [ "$O_SAVE" != "yes" ]; then
-    echo "SWI-Prolog cannot save on this system.  Will create quick"
-    echo "load file"
+    save=no
+    echo "SWI-Prolog cannot save on this machine"
+fi
+fi
+
+if [ "$save" = "no" ]; then
+    echo -n "Copying $emulator to $xpce" ...
+    (rm -f $xpce; cp -p $emulator $xpce)
+    echo "ok"
+    cmd="$xpce -b $PCEHOME/pl/boot/init.pl -c $PCEHOME/pl/load.pl"
+    echo "Creating quick load file using the command"
+    echo "	$cmd"
     echo ""
-    target=`basename $xpce`
-    prefix=`dirname $xpce`
-    prefix=`dirname $prefix`
-    echo "Linking $prefix/bin/$target to $PCEHOME/$emulator"
-    (cd $prefix/bin; rm -f $target; $LN_S $PCEHOME/$emulator $target)
-    echo "Creating quick load file"
-    $xpce -b $PCEHOME/pl/boot/init.pl \
-          -c $PCEHOME/pl/load.pl
+    $cmd
     echo "Done"
     rm -f bin/pl.qlf
     exit 0
 fi
 
 
-
 rm -f $xpce				# Make sure it is gone
 $emulator -x bin/pl.qlf -f none << _EOS_
-['prolog/boot/pce_expand'].
-use_module('prolog/boot/pce_pl').
-absolute_file_name('prolog/lib', Dir),
-assert(library_directory(Dir), Ref),
-use_module('prolog/lib/pce'),
-erase(Ref).
-
-'\$version'(PlVersion),
-send(@pce, catch_error_signals, @on),
-concat('SWI-Prolog version ', PlVersion, PlId),
-send(@prolog, system, PlId).
-   
-absolute_file_name('', Home),
-format('PCE home directory = ~w~n', Home),
-send(@pce, home, Home).
-
-
-assert((library_directory(PceLib) :-
-	get(@pce, home, Home),
-	concat(Home, '/prolog/lib', PceLib))).
-
-'\$autoload':clear_library_index.
-use_module(library(pce_manual)).
-
-'\$make_system_source_files'.
-'\$autoload':clear_library_index.
+['pl/load'].
 
 format('Saving to ~w~n', ['$xpce']),
 save_program('$xpce',
@@ -133,4 +117,3 @@ halt.
 _EOS_
 
 rm -f bin/pl.qlf
-

@@ -272,14 +272,17 @@ __pce_export const char *pceOsError();
 #define PCE_SEEK_END	2
 
 #ifdef PCE_INCLUDED
+extern pce_callback_functions TheCallbackFunctions;
+
+#define hostCallProc(h, r, ac, av) \
+	(*TheCallbackFunctions.hostCallProc)((h), (r), (ac), (av))
+#define hostCallFunc(h, r, ac, av) \
+	(*TheCallbackFunctions.hostCallFunc)((h), (r), (ac), (av))
+
 int		hostSend(PceObject host, PceName selector,
 			 int argc, PceObject argv []);
 PceObject	hostGet(PceObject host, PceName selector,
 			int argc, PceObject argv []);
-int		hostCallProc(PceObject handle, PceObject receiver,
-			     int argc, PceObject argv[]);
-PceObject	hostCallFunc(PceObject handle, PceObject receiver,
-			     int argc, PceObject argv[]);
 int		hostQuery(int what, PceCValue *value);
 int		hostAction(int what, ...);
 #endif

@@ -13,10 +13,15 @@
 		********************************/
 
 :- ['../prolog/boot/pce_expand',
-    '../prolog/boot/pce_pl',
-    '../prolog/lib/pce'
+    '../prolog/boot/pce_pl'
    ].
 
+:- prolog_load_context(directory, Here),
+   concat(Here, '/../prolog/lib/', RawLib),
+   absolute_file_name(RawLib, Lib),
+   asserta(library_directory(Lib)).
+:- use_module(library(pce)).
+:- retract(library_directory(_)).
 
 :- feature(version, PlVersion),
    send(@pce, catch_error_signals, @on),
@@ -28,9 +33,8 @@
 		*           SET PCE HOME	*
 		********************************/
 
-:- feature(symbol_file, Exec),
-   '$file_dir_name'(Exec, BinDir),
-   '$file_dir_name'(BinDir, PceHome),
+:- prolog_load_context(directory, Dir),
+   '$file_dir_name'(Dir, PceHome),
    send(@pce, home, PceHome).
 
 
@@ -47,10 +51,21 @@
 
 library_directory(PceLib) :-
 	get(@pce, home, Home),
-	concat(Home, '/prolog/lib', PceLib).
+	concat(Home, '/prolog/lib', RawLib),
+	absolute_file_name(RawLib, PceLib).
 
-:- '$autoload':clear_library_index.
-:- ensure_loaded(library(pce_manual)).
+file_search_path(demo, DemoDir) :-
+	get(@pce, home, Home),
+	concat(Home, '/prolog/demo', Raw),
+	absolute_file_name(Raw, DemoDir).
+
+file_search_path(contrib, ContribDir) :-
+	get(@pce, home, Home),
+	concat(Home, '/prolog/contrib', Raw),
+	absolute_file_name(Raw, ContribDir).
+
+%:- '$autoload':clear_library_index.
+%:- ensure_loaded(library(pce_manual)).
 
 
 		/********************************

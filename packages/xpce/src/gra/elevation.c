@@ -51,11 +51,20 @@ getLookupElevation(Any receiver, Any name,
 { Elevation e = getMemberHashTable(ElevationTable, name);
 
   if ( e &&
+       isName(name) &&
        (isDefault(height) || height == e->height) &&
        (isDefault(colour) || colour == e->colour) &&
        (isDefault(relief) || relief == e->relief) &&
        (isDefault(shadow) || shadow == e->shadow) &&
        (isDefault(kind)   || kind   == e->kind) )
+    answer(e);
+  if ( e &&
+       isInteger(name) &&
+       isDefault(height) &&
+       isDefault(colour) &&
+       isDefault(relief) &&
+       isDefault(shadow) &&
+       isDefault(kind) )
     answer(e);
 
   fail;
@@ -126,7 +135,31 @@ shadowElevation(Elevation e, Any colour)
 
 static status
 kindElevation(Elevation e, Name kind)
-{ return attributeElevation(e, NAME_shadow, kind);
+{ return attributeElevation(e, NAME_kind, kind);
+}
+
+
+Elevation
+getModifyElevation(Elevation e, Name att, Any val)
+{ if ( notNil(e->name) )
+  { Int height = e->height;
+    Any colour = e->colour;
+    Any relief = e->relief;
+    Any shadow = e->shadow;
+    Name kind  = e->kind;
+
+    if      ( att == NAME_height ) height = val;
+    else if ( att == NAME_colour ) colour = val;
+    else if ( att == NAME_relief ) relief = val;
+    else if ( att == NAME_shadow ) shadow = val;
+    else if ( att == NAME_kind   ) kind   = val;
+    
+    answer(answerObject(ClassElevation, NIL, height, colour,
+			relief, shadow, kind, 0));
+  } else
+  { attributeElevation(e, att, val);
+    answer(e);
+  }
 }
 
 
@@ -178,6 +211,10 @@ makeClassElevation(Class class)
 	    "kind=[{3d,shadow}]",
 	    "Lookup from @elevations",
 	    getLookupElevation);
+  getMethod(class, NAME_modify, NAME_appearance, "elevation", 2,
+	    "attribute={height,colour,relief,shadow,kind}", "value=any",
+	    "Return modified (new) elevation object",
+	    getModifyElevation);
 
   attach_resource(class, "height", "int", "2",
 		  "Default height of the evaluation");

@@ -365,7 +365,7 @@ pl_pce_predicate_reference(term_t pred, term_t ref)
 
     PL_fail;
   } else
-  { module_t module = MODULE_user;
+  { module_t module = NULL;
 
     if ( (pred = PL_strip_module(pred, &module)) )
     { functor_t functor;
@@ -415,11 +415,12 @@ pushObject(PceObject obj)
       }
       goto ref_val;
     ref_val:
-      rval = alloc_global(2);
+      rval = alloc_global(3);
       rval[0] = (atomic_t) FUNCTOR_ref1;
       rval[1] = avalue;
-      
-      return rval;
+      rval[2] = (atomic_t) rval;
+
+      return &rval[2];
     case PCE_INTEGER:
       avalue = PL_new_integer(value.integer);
       goto atomic_val;
@@ -457,7 +458,7 @@ PrologCallProc(PceObject handle, PceObject rec, int argc, PceObject objv[])
   if ( ptr != PCE_NO_POINTER )
   { predicate_t pred = ptr;
     int arity = PL_predicate_arity(pred);
-    TermVector(termv, arity+1);
+    TermVector(termv, arity);
     int i, rval;
     bktrk_buf buf;
 

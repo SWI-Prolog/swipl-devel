@@ -110,22 +110,28 @@ nospypce(Spec) :-
 predicate(Spec, Module:Pred/Arity) :-
 	method(Spec, Method),
 	get(Method, message, Message),		  % @prolog, call, selector, ..
-	get(Message, '_slot', receiver, @prolog),
-	get(Message, '_slot', arguments, ArgVector),
-	get(ArgVector, element, 1, Selector),
-	(    name(Selector, C0),
-	     append(C1, [0':|C2], C0)
-	->   name(Module, C1),
-	     name(Pred, C2)
-	;    Module = user,
-	     Pred = Selector
-	),
-	get(ArgVector, size, Args),
-	(   send(Message, '_instance_of', ?)
-	->  Arity = Args
-	;   Arity is Args - 1
+	(   send(Method, instance_of, code)
+	->  get(Message, '_slot', receiver, @prolog),
+	    get(Message, '_slot', arguments, ArgVector),
+	    get(ArgVector, element, 1, Selector),
+	    (	name(Selector, C0),
+		append(C1, [0':|C2], C0)
+	    ->  name(Module, C1),
+	        name(Pred, C2)
+	    ;   Module = user,
+	        Pred = Selector
+	    ),
+	    get(ArgVector, size, Args),
+	    (   send(Message, '_instance_of', ?)
+	    ->  Arity = Args
+	    ;   Arity is Args - 1
+	    )
+	;   send(Message, instance_of, c_pointer),
+	    pce_predicate_reference(PredRef, Message),
+	    PredRef = Module:Head,
+	    functor(Head, Pred, Arity)
 	).
-	
+		
 
 method((ClassName->Selector), Method) :- !,
 	get(@pce, convert, ClassName, class, Class),

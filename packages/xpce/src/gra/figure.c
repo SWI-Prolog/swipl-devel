@@ -160,7 +160,8 @@ backgroundFigure(Figure f, Image bg)
   { CHANGING_GRAPHICAL(f,
 		       assign(f, background, bg);
 		       if ( notNil(f->elevation) )
-		         assign(f->elevation, colour, isNil(bg) ? DEFAULT : bg);
+		         assign(f, elevation, getModifyElevation(f->elevation, NAME_colour,
+								 isNil(bg) ? DEFAULT : bg));
 		       changedEntireImageGraphical(f));
   }
   

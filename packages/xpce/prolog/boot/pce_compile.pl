@@ -18,6 +18,8 @@
 	, pce_end_class/0
 	, pce_term_expansion/2
 	, pce_compiling/1
+	, pce_send_method/7
+	, pce_get_method/8
 	, pce_group/1
 	, default/3
 	]).
@@ -25,7 +27,9 @@
 :- meta_predicate
       pce_begin_class(:, +),
       pce_begin_class(:, +, +),
-      pce_extend_class(:).
+      pce_extend_class(:),
+      pce_send_method(+, :, +, +, +, +, +),
+      pce_get_method(+, :, +, +, +, +, +, +).
 
 
 :- use_module(pce_principal).
@@ -329,24 +333,23 @@ do_expand(delegate_to(VarName),
 	current_class(Class).
 
 do_expand((Head :-> DocBody),			% Prolog send
-	[ (?- send(Class, send_method,
-		  send_method(Selector, Types, Cascade, Doc, Loc, Group)))
-	, (PlHead :- Body)
+	[ (PlHead :- Body)
+	, (?- Goal)
 	]) :- !,
 	extract_documentation(DocBody, Doc, Body),
 	source_location_term(Loc),
 	current_class(Class),
 	current_group(Group),
 	class_name(Class, ClassName),
-	prolog_head(send, Head, Selector, Types, PlHead, Cascade),
+	prolog_head(send, Head, Selector, Types, PlHead),
+	Goal = pce_send_method(Class, Selector, PlHead, Types,
+			       Doc, Loc, Group),
 	feedback(expand_send(ClassName, Selector)).
 
 
 do_expand((Head :<- DocBody),			% Prolog get
-	[ (?- send(Class, get_method,
-		   get_method(Selector, RType, Types,
-			      Cascade, Doc, Loc, Group)))
-	, (PlHead :- Body)
+	[ (PlHead :- Body)
+	, (?- Goal)
 	]) :- !,
 	extract_documentation(DocBody, Doc, Body),
 	source_location_term(Loc),
@@ -354,7 +357,9 @@ do_expand((Head :<- DocBody),			% Prolog get
 	current_group(Group),
 	class_name(Class, ClassName),
 	return_type(Head, RType),
-	prolog_head(get, Head, Selector, Types, PlHead, Cascade),
+	prolog_head(get, Head, Selector, Types, PlHead),
+	Goal = pce_get_method(Class, Selector, RType, PlHead, Types,
+			      Doc, Loc, Group),
 	feedback(expand_get(ClassName, Selector)).
 
 extract_documentation((DocText::Body), string(DocText), Body) :- !.
@@ -374,17 +379,13 @@ return_type(Term, RType) :-
 	).
 
 
-prolog_head(SendGet, Head, Selector, TypeVector, PlHead, Cascade) :-
+prolog_head(SendGet, Head, Selector, TypeVector, PlHead) :-
 	Head =.. [Selector, Receiver | Args],
 	predicate_name(SendGet, Selector, PredName),
-	pl_head_args(SendGet, Args, Types, PlArgs, FArgs),
+	pl_head_args(SendGet, Args, Types, PlArgs),
 	create_type_vector(Types, TypeVector),
-	PlHead =.. [PredName, Receiver | PlArgs],
-	(   SendGet == send
-	->  Class = message
-	;   Class = ?
-	),
-	Cascade =.. [Class, @prolog, call, PredName, @receiver | FArgs].
+	PlHead =.. [PredName, Receiver | PlArgs].
+
 
 create_type_vector([],      @default) :- !.
 create_type_vector(List,    new(VectorTerm)) :-
@@ -397,21 +398,16 @@ predicate_name(SendGet, Selector, Name) :-
 	concat_atom([SendGet, '_', Selector, '_', ClassName], Name).
 
 
-pl_head_args(SendGet, Args, Types, PlArgs, FArgs) :-
-	pl_head_args(SendGet, Args, 1, Types, PlArgs, FArgs).
-	
-pl_head_args(send, [], _, [], [], []) :- !.
-pl_head_args(get,  [Return], _, [], [ReturnVar], []) :- !,
+pl_head_args(send, [], [], []) :- !.
+pl_head_args(get,  [Return], [], [ReturnVar]) :- !,
 	(   var(Return)
 	->  ReturnVar = Return
 	;   Return = ReturnVar:_Type
 	).
-pl_head_args(SG, [ArgAndType|RA], AN, [T|RT], [Arg|TA], [@ArgN|MArgs]) :- !,
+pl_head_args(SG, [ArgAndType|RA], [T|RT], [Arg|TA]) :- !,
 	head_arg(ArgAndType, Arg, Type),
 	type(Type, T),
-	concat(arg, AN, ArgN),
-	ANN is AN + 1,
-	pl_head_args(SG, RA, ANN, RT, TA, MArgs).
+	pl_head_args(SG, RA, RT, TA).
 
 
 head_arg(Var, Var, any) :-
@@ -503,6 +499,58 @@ feedback(Term) :-
 :- initialization(user:assert((term_expansion(A, B) :-
 			      pce_compile:pce_term_expansion(A, B)))).
 
+
+		 /*******************************
+		 *	METHOD REGISTRATION	*
+		 *******************************/
+
+pce_ifhostproperty(use_predicate_references,
+[
+(pce_send_method(Class, Selector0, Head, Types, Doc, Loc, Group) :-
+	strip_module(Selector0, Module, Selector),
+	pce_predicate_reference(Module:Head, PceRef),
+	send(Class, send_method,
+	     send_method(Selector, Types, PceRef, Doc, Loc, Group))),
+
+(pce_get_method(Class, Selector0, RType, Head, Types, Doc, Loc, Group) :-
+	strip_module(Selector0, Module, Selector),
+	pce_predicate_reference(Module:Head, PceRef),
+	send(Class, get_method,
+	     get_method(Selector, RType, Types, PceRef, Doc, Loc, Group)))
+],
+[
+(:- dynamic
+	fwd_arg_cache/2),
+
+(fwd_args(E, N, []) :-
+	E > N, !),
+(fwd_args(I, N, [@A|T]) :-
+	concat(arg, I, A),
+	NI is I + 1,
+	fwd_args(NI, N, T)),
+(forward_arguments(N, Args) :-
+	fwd_arg_cache(N, Args), !),
+(forward_arguments(N, Args) :-
+	fwd_args(1, N, Args),
+	assert(fwd_arg_cache(N, Args))),
+
+(message_parms(Head, Selector, Sub, FwdArgs) :-
+	functor(Head, Selector, Arity),
+	FwdNArgs is Arity - Sub,
+	forward_arguments(FwdNArgs, FwdArgs)),
+
+(pce_send_method(Class, Selector, Head, Types, Doc, Loc, Group) :-
+	message_parms(Head, PredName, 1, FwdArgs),
+	Message =.. [message, @prolog, call, PredName, @receiver|FwdArgs],
+	send(Class, send_method,
+	     send_method(Selector, Types, Message, Doc, Loc, Group))),
+
+(pce_get_method(Class, Selector, RType, Head, Types, Doc, Loc, Group) :-
+	message_parms(Head, PredName, 2, FwdArgs),
+	Message =.. [?, @prolog, call, PredName, @receiver|FwdArgs],
+	send(Class, get_method,
+	     get_method(Selector, RType, Types, Message, Doc, Loc, Group)))
+]).
 
 		/********************************
 		*             DEFAULTS		*

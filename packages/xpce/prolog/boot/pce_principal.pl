@@ -17,6 +17,7 @@
 	  , get/9, get/10, get/11, get/12, get/13
 
 	  , object/1, object/2
+	  , pce_predicate_reference/2
 
 	  , '$pce_get_object'/4			  % to lib/pce_util.pl
 	  ]).
@@ -47,7 +48,9 @@
 	get(+, :, +, +, +, +, +, +, +, +, +, -),
 	get(+, :, +, +, +, +, +, +, +, +, +, +, -),
 
-	new(?, :).
+	new(?, :),
+
+	pce_predicate_reference(:, +).
 
 
 :- op(100, fx, @).
