@@ -46,11 +46,13 @@ valHandle__LD(term_t r ARG_LD)
 		 *******************************/
 
 static inline int
-bufsize_text(PL_chars_t *text)
+bufsize_text(PL_chars_t *text, unsigned int len)
 { int unit;
 
   switch(text->encoding)
   { case ENC_ISO_LATIN_1:
+    case ENC_ASCII:
+    case ENC_UTF8:
       unit = sizeof(char);
       break;
     case ENC_WCHAR:
@@ -60,14 +62,14 @@ bufsize_text(PL_chars_t *text)
       assert(0);
   }
 
-  return (text->length+1)*unit;
+  return len*unit;
 }
 
 
 void
 PL_save_text(PL_chars_t *text, int flags)
 { if ( !(flags & BUF_MALLOC) && text->storage != PL_CHARS_MALLOC )
-  { int bl = bufsize_text(text);
+  { int bl = bufsize_text(text, text->length+1);
     void *new = PL_malloc(bl);
 
     memcpy(new, text->text.t, bl);
@@ -708,4 +710,18 @@ PL_concat_text(int n, PL_chars_t **text, PL_chars_t *result)
   }
 
   return TRUE;
+}
+
+
+IOSTREAM *
+Sopen_text(PL_chars_t *txt, const char *mode)
+{ IOSTREAM *stream;
+
+  stream = Sopen_string(NULL,
+			txt->text.t,
+			bufsize_text(txt, txt->length),
+			"r");
+  stream->encoding = txt->encoding;
+
+  return stream;
 }

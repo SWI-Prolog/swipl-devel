@@ -2713,8 +2713,7 @@ pl_atom_to_term(term_t atom, term_t term, term_t bindings)
     IOSTREAM *stream;
     source_location oldsrc = LD->read_source;
 
-    stream = Sopen_string(NULL, txt.text.t, -1, "r");
-    stream->encoding = txt.encoding;
+    stream = Sopen_text(&txt, "r");
 
     init_read_data(&rd, stream PASS_LD);
     if ( PL_is_variable(bindings) || PL_is_list(bindings) )

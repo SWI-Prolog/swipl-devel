@@ -688,6 +688,30 @@ Sgetcode(IOSTREAM *s)
 
       break;
     }
+    case ENC_WCHAR:
+    { pl_wchar_t chr;
+      char *p = (char*)&chr;
+      int n;
+
+      for(n=0; n<sizeof(pl_wchar_t); n++)
+      { int c1 = Snpgetc(s);
+
+	if ( c1 == EOF )
+	{ if ( n == 0 )
+	  { return EOF;
+	  } else
+	  { Sseterr(s, SIO_WARN, "EOF in UCS character");
+	    c = UTF8_MALFORMED_REPLACEMENT; 
+	    goto out;
+	  }
+	}
+
+	*p++ = c1;
+      }
+
+      c = chr;
+      break;
+    }
     default:
       assert(0);
       c = -1;
