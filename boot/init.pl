@@ -448,29 +448,33 @@ $check_file(File, Absolute) :-
 	$chk_file(File, ['.pl', ''], exists, Absolute).
 
 $chk_file(Spec, Extensions, Cond, FullName) :-
+	$canonise_extensions(Extensions, Exts),
+	$dochk_file(Spec, Exts, Cond, FullName).
+
+$dochk_file(Spec, Extensions, Cond, FullName) :-
 	functor(Spec, Alias, 1),
 	user:file_search_path(Alias, _), !,
 	$chk_alias_file(Spec, Extensions, Cond, FullName).
-$chk_file(Term, Ext, Cond, FullName) :-	% allow a/b, a-b, etc.
+$dochk_file(Term, Ext, Cond, FullName) :-	% allow a/b, a-b, etc.
 	\+ atomic(Term), !,
 	term_to_atom(Term, Raw),
 	atom_chars(Raw, S0),
 	delete(S0, 0' , S1),
 	atom_chars(Atom, S1),
-	$chk_file(Atom, Ext, Cond, FullName).
-$chk_file(File, Exts, Cond, FullName) :-
+	$dochk_file(Atom, Ext, Cond, FullName).
+$dochk_file(File, Exts, Cond, FullName) :-
 	is_absolute_file_name(File), !,
 	$extend_file(File, Exts, Extended),
 	$file_condition(Cond, Extended),
 	$absolute_file_name(Extended, FullName).
-$chk_file(File, Exts, Cond, FullName) :-
+$dochk_file(File, Exts, Cond, FullName) :-
 	source_location(ContextFile, _Line),
 	file_directory_name(ContextFile, ContextDir),
 	$concat_atom([ContextDir, /, File], AbsFile),
 	$extend_file(AbsFile, Exts, Extended),
 	$file_condition(Cond, Extended), !,
 	$absolute_file_name(Extended, FullName).
-$chk_file(File, Exts, Cond, FullName) :-
+$dochk_file(File, Exts, Cond, FullName) :-
 	$extend_file(File, Exts, Extended),
 	$file_condition(Cond, Extended),
 	$absolute_file_name(Extended, FullName).
@@ -523,14 +527,10 @@ $ensure_extensions([E|E0], F, [FE|E1]) :-
 $ensure_extension('', File, FileEx) :- !,
 	FileEx = File.
 $ensure_extension(Ext, File, FileEx) :-
-	concat('.', _, Ext), !,
 	(   concat(_, Ext, File)
 	->  FileEx = File
 	;   concat(File, Ext, FileEx)
 	).
-$ensure_extension(Ext, File, FileEx) :-
-	concat('.', Ext, DotExt),
-	$ensure_extension(DotExt, File, FileEx).
 
 $list_to_set([], []).
 $list_to_set([H|T], R) :-
@@ -538,6 +538,25 @@ $list_to_set([H|T], R) :-
 	$list_to_set(T, R).
 $list_to_set([H|T], [H|R]) :-
 	$list_to_set(T, R).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Canonise the extension list. Old SWI-Prolog   require  `.pl', etc, which
+the Quintus compatibility  requests  `pl'.   This  layer  canonises  all
+extensions to .ext
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+$canonise_extensions([], []) :- !.
+$canonise_extensions([H|T], [CH|CT]) :- !,
+	$canonise_extension(H, CH),
+	$canonise_extensions(T, CT).
+$canonise_extensions(E, [CE]) :-
+	$canonise_extension(E, CE).
+
+$canonise_extension('', '') :- !.
+$canonise_extension(DotAtom, DotAtom) :-
+	concat('.', _, DotAtom), !.
+$canonise_extension(Atom, DotAtom) :-
+	concat('.', Atom, DotAtom).
 
 
 		/********************************

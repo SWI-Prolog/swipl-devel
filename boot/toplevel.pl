@@ -342,6 +342,7 @@ $execute_goal(Goal, Bindings) :-
 	TypeIn:asserta(($user_query(Bindings) :- Goal), Ref),
 	$set_user_goal_attributes(TypeIn),
 	(   TypeIn:$user_query(Bindings),
+	    flush,
 	    call_expand_answer(Bindings, NewBindings),
 	    $ttyformat('~n'),
 	    (	$write_bindings(NewBindings)
