@@ -251,7 +251,7 @@ register_colours(BITMAPINFO *bmi)
 }
 
 
-static void
+void
 attach_dib_image(Image image, BITMAPINFO *bmi, BYTE *bits)
 { WsImage wsi;
   BITMAPINFOHEADER *bmih = &bmi->bmiHeader;
@@ -436,53 +436,46 @@ ws_load_windows_ico_file(Image image)
 #endif
 
 static int
-readXpmImage(Image image, XpmImage *img, XpmInfo *info)
-{ IOSTREAM *fd;
-
-  if ( (fd = Sopen_object(image->file, "rbr")) )
-  { int rval;
-    int size;
+readXpmImage(IOSTREAM *fd, Image image, XpmImage *img, XpmInfo *info)
+{ int rval;
+  int size;
 
 #ifdef HAVE_LIBJPEG
-    if ( (rval=readJPEGtoXpmImage(fd, img, image)) == XpmSuccess )
-      goto out;
+  if ( (rval=readJPEGtoXpmImage(fd, img, image)) == XpmSuccess )
+    return XpmSuccess;
 #endif
 #ifdef O_GIF
-    if ( (rval=XpmReadGIF(fd, img)) == XpmSuccess )
-      goto out;
+  if ( (rval=XpmReadGIF(fd, img)) == XpmSuccess )
+    return XpmSuccess;
 #endif
 
-    if ( (size = Ssize(fd)) > 0 )
-    { int malloced;
-      char *buffer;
-
-      if ( size < 10000 )
-      { buffer = (char *)alloca(size+1);
-	malloced = FALSE;
-      } else
-      { buffer = pceMalloc(size+1);
-	malloced = TRUE;
-      }
-
-      if ( Sfread(buffer, sizeof(char), size, fd) != size )
-      { if ( malloced )
-	  pceFree(buffer);
-	Sclose(fd);
-	return XpmOpenFailed;
-      }
-
-      buffer[size] = '\0';
-      rval = XpmCreateXpmImageFromBuffer(buffer, img, info);
-      if ( malloced )
-        pceFree(buffer);
+  if ( (size = Ssize(fd)) > 0 )
+  { int malloced;
+    char *buffer;
+    
+    if ( size < 10000 )
+    { buffer = (char *)alloca(size+1);
+      malloced = FALSE;
+    } else
+    { buffer = pceMalloc(size+1);
+      malloced = TRUE;
     }
 
-out:
-    Sclose(fd);
-    return rval;
-  }
+    if ( Sfread(buffer, sizeof(char), size, fd) != size )
+    { if ( malloced )
+	pceFree(buffer);
+      Sclose(fd);
+      return XpmOpenFailed;
+    }
 
-  return XpmOpenFailed;
+    buffer[size] = '\0';
+    rval = XpmCreateXpmImageFromBuffer(buffer, img, info);
+    if ( malloced )
+      pceFree(buffer);
+  } else
+    rval = XpmFileInvalid;
+
+  return rval;
 }
 
 
@@ -646,6 +639,14 @@ palette.
 status
 ws_load_image_file(Image image)
 { status rval = FAIL;
+  IOSTREAM *fd;
+
+  if ( !(fd = Sopen_object(image->file, "rbr")) )
+    return errorPce(image->file, NAME_openFile,
+		    NAME_read, getOsErrorPce(PCE));
+
+  if ( read_jpeg_file(IOSTREAM *fd, Image image) )
+    succeed;
 
 #ifdef O_XPM
 { int rval;
@@ -661,12 +662,9 @@ register the colours.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   xpminfo.valuemask = (XpmColorTable|XpmReturnColorTable);
-  rval = readXpmImage(image, &xpmimg, &xpminfo);
+  rval = readXpmImage(fd, image, &xpmimg, &xpminfo);
   switch(rval)
-  { case XpmOpenFailed:
-      return errorPce(image->file, NAME_openFile,
-		      NAME_read, getOsErrorPce(PCE));
-    case XpmFileInvalid:
+  { case XpmFileInvalid:
       break;
     case XpmNoMemory:
       return sysPce("Not enough memory");
@@ -680,9 +678,6 @@ register the colours.
 }
 #endif /*O_XPM*/
 
-{ IOSTREAM *fd;
-
-  if ( (fd = Sopen_object(image->file, "rbr")) )
   { int w, h;
     unsigned char *data;
     
@@ -696,10 +691,9 @@ register the colours.
     { rval = SUCCEED;
     } else
       rval = loadPNMImage(image, fd);
-
-    Sclose(fd);
   }
-}
+
+  Sclose(fd);
 
   return rval;
 }

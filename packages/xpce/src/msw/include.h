@@ -162,6 +162,7 @@ COLORREF	ws_3d_grey_rgb();
 HPALETTE	window_palette(PceWindow sw);
 HPALETTE	frame_palette(FrameObj fr);
 int		write_jpeg_file(IOSTREAM *fd, Image image, HBITMAP bm);
+status		read_jpeg_file(IOSTREAM *fd, Image image);
 int		write_gif_file(IOSTREAM *fd, Image image, HBITMAP bm);
 HWND		HostConsoleHWND();
 Name		getWinFileNameDisplay(DisplayObj d,

@@ -42,6 +42,8 @@ gra/image.c implementing class image.
 #include <jerror.h>
 
 extern void jpeg_iostream_dest(j_compress_ptr cinfo, IOSTREAM *outfile);
+extern void jpeg_iostream_src(j_decompress_ptr cinfo, IOSTREAM* infile);
+extern void void attach_dib_image(Image image, BITMAPINFO *bmi, BYTE *bits);
 
 int
 write_jpeg_file(IOSTREAM *fd, Image image, HBITMAP bm)
@@ -122,7 +124,135 @@ write_jpeg_file(IOSTREAM *fd, Image image, HBITMAP bm)
   return 0;
 }
 
+		 /*******************************
+		 *	   READING JPEG		*
+		 *******************************/
+
+struct my_jpeg_error_mgr
+{ struct jpeg_error_mgr	jerr;
+  jmp_buf 		jmp_context;
+};
+
+
+static void
+my_exit(j_common_ptr cl)
+{ struct jpeg_decompress_struct *cinfo = (struct jpeg_decompress_struct *)cl;
+  struct my_jpeg_error_mgr *jerr = (struct my_jpeg_error_mgr *)cinfo->err;
+
+  longjmp(jerr->jmp_context, 1);
+}
+
+
+status
+read_jpeg_file(IOSTREAM *fd, Image image)
+{ struct jpeg_decompress_struct cinfo;
+  struct my_jpeg_error_mgr jerr;
+  long here = Stell(fd);
+  int width, height, bwidth, image_size;
+  BYTE *data;
+  BITMAPINFO *dib = pceMalloc(sizeof(*dib));
+  BITMAPINFOHEADER *header = &dib->bmiHeader;
+
+  cinfo.err = jpeg_std_error((struct jpeg_error_mgr *)&jerr);
+  if ( setjmp(jerr.jmp_context) )
+  { switch(jerr.jerr.msg_code)
+    { case JERR_OUT_OF_MEMORY:
+	return sysPce("Not enough memory");
+      case JERR_NO_SOI:
+	fail;				/* invalid */
+      default:
+      DEBUG(NAME_image,
+	    { char buf[1024];
+
+	      (*jerr.jerr.format_message)((j_common_ptr)&cinfo, buf);
+	      Cprintf("JPEG: %s\n", buf);
+	    });
+        fail;				/* also invalid */
+    }
+
+    jpeg_destroy_decompress(&cinfo);
+
+    Sseek(fd, here, SEEK_SET);
+    fail;
+  }
+  jerr.jerr.error_exit = my_exit;
+
+  jpeg_create_decompress(&cinfo);
+  jpeg_iostream_src(&cinfo, fd);
+
+  jpeg_save_markers(&cinfo, JPEG_COM, 0xffff);
+  jpeg_read_header(&cinfo, TRUE);
+  jpeg_start_decompress(&cinfo);
+  row_stride = cinfo.output_width * cinfo.output_components;
+  buffer = (*cinfo.mem->alloc_sarray)((j_common_ptr)&cinfo,
+				      JPOOL_IMAGE, row_stride, 1);
+
+  width  = cinfo.image_width;
+  height = cinfo.image_height;
+  bwidth = ((width*3+3)&0xfffc);
+  image_size = bwidth*height;
+  
+  data = pceMalloc(image_size);
+  dest = data + bwidth*(height-1);
+
+  while(cinfo.output_scanline < cinfo.output_height)
+  { jpeg_read_scanlines(&cinfo, buff, 1);
+    i = width;
+    src = (char *)buff[0];
+
+    while(i--)
+    { *dest++ = src[2];
+      *dest++ = src[1];
+      *dest++ = src[0];
+      src += 3;
+    }
+
+    memset(dest, 0, bwidth - width*3);
+    dest -= bwidth+width*3;
+  }
+
+  if ( cinfo.marker_list )
+  { jpeg_saved_marker_ptr m;
+    Chain ch;
+
+    attributeObject(image, NAME_comment, (ch=newObject(ClassChain, EAV)));
+
+    for(m = cinfo.marker_list; m; m = m->next )
+    { if ( m->marker == JPEG_COM )
+      { string s;
+
+	str_inithdr(&s, ENC_ASCII);
+	s.size = m->data_length;
+	s.s_text8 = m->data;
+
+	appendChain(ch, StringToString(&s));
+      }
+    }
+  }
+
+  jpeg_finish_decompress(&cinfo);
+  jpeg_destroy_decompress(&cinfo);
+
+  memset(dib, 0, sizeof(*dib));
+  header->biSize      =	sizeof(BITMAPINFOHEADER) ;
+  header->biWidth     =	width;
+  header->biHeight    =	height;
+  header->biPlanes    =	1;
+  header->biBitCount  =	24;
+  header->biSizeImage =	image_size;
+
+  attach_dib_image(image, dib, data);
+  
+  succeed;
+}
+
 #endif /*HAVE_LIBJPEG*/
+
+
+
+		 /*******************************
+		 *	 GIF (SHOULD MOVE)	*
+		 *******************************/
 
 #ifdef O_GIFWRITE
 #include <img/gifwrite.h>
