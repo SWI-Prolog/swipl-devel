@@ -80,9 +80,6 @@ leave the details to this function.
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
-#ifdef HAVE_MALLOC_H
-#include <malloc.h>
-#endif
 #include <sys/types.h>
 #ifdef WIN32
 #include <io.h>
@@ -137,13 +134,25 @@ static atom_t ATOM_dispatch;		/* "dispatch" */
 #define set(s, f)   ((s)->flags |= (f))
 #define clear(s, f) ((s)->flags &= ~(f))
 #define true(s, f)  ((s)->flags & (f))
+#define false(s, f) (!true(s, f))
 
 typedef struct _plsocket
 { struct _plsocket *next;		/* next in list */
   int		    socket;		/* The OS socket */
   int		    flags;		/* Misc flags */
+#ifdef WIN32
+  int		    w32_flags;		/* FD_* */
+#endif
 } plsocket;
 
+static plsocket *lookupSocket(int socket);
+static plsocket *lookupExistingSocket(int socket);
+
+#if 0
+#define DEBUG(g) g
+#else
+#define DEBUG(g) (void)0
+#endif
 
 		 /*******************************
 		 *	  COMPATIBILITY		*
@@ -182,7 +191,44 @@ static HWND sock_hidden_window;		/* Our secret window */
 
 static int WINAPI
 socket_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
-{
+{ switch( message )
+  { case WM_SOCKET:
+    { SOCKET sock = (SOCKET) wParam;
+      int err     = WSAGETSELECTERROR(lParam);
+      int evt     = WSAGETSELECTEVENT(lParam);
+      plsocket *s = lookupExistingSocket(sock);
+      char *evtname;
+
+      if ( s )
+	s->w32_flags |= evt;
+      else
+	DEBUG(Sdprintf("Socket %d is gone\n", sock));
+
+      switch(evt)
+      { case FD_READ:
+	  evtname = "FD_READ";
+	  break;
+	case FD_ACCEPT:
+	  evtname = "FD_ACCEPT";
+	  break;
+	case FD_CONNECT:
+	  evtname = "FD_CONNECT";
+	  break;
+	case FD_CLOSE:
+	  evtname = "FD_CLOSE";
+	  if ( !s )
+	    closesocket(sock);
+	  break;
+	case FD_WRITE:
+	  evtname = "FD_WRITE";
+	  break;
+	default:
+	  evtname = "???";
+      }
+      DEBUG(Sdprintf("%s on %d\n", evtname, sock));
+    }
+  }
+
   return DefWindowProc(hwnd, message, wParam, lParam);
 }
 
@@ -271,6 +317,22 @@ static plsocket *sockets;
 static int initialised = FALSE;		/* Windows only */
 
 static plsocket *
+lookupExistingSocket(int socket)
+{ plsocket *p;
+
+  LOCK();
+  for(p=sockets; p; p = p->next)
+  { if ( p->socket == socket )
+    { UNLOCK();
+      return p;
+    }
+  }
+  UNLOCK();
+  return NULL;
+}
+
+
+static plsocket *
 lookupSocket(int socket)
 { plsocket *p;
 
@@ -282,7 +344,7 @@ lookupSocket(int socket)
     }
   }
 
-  if ( !(p = malloc(sizeof(plsocket))) )
+  if ( !(p = PL_malloc(sizeof(plsocket))) )
   { pl_error(NULL, 0, NULL, ERR_ERRNO);
     UNLOCK();
     return NULL;
@@ -298,25 +360,27 @@ lookupSocket(int socket)
 }
 
 
-static int
+static void
 freeSocket(int socket)
 { plsocket **p;
+
+  DEBUG(Sdprintf("Closing %d\n", socket));
 
   LOCK();
   p = &sockets;
 
   for( ; *p; p = &(*p)->next)
   { if ( (*p)->socket == socket )
-    { plsocket *tmp = *p;
+    { plsocket *s = *p;
       
-      *p = tmp->next;
-      free(tmp);
+      *p = s->next;
+      PL_free(s);
       break;
     }
   }
   UNLOCK();
 
-  return closesocket(socket);
+  closesocket(socket);
 }
 
 
@@ -523,7 +587,7 @@ tcp_error(int code, error_codes *map)
 		  PL_VARIABLE);
 
 #if defined(WIN32) && 0
-  free(msg);
+  PL_free(msg);
 #endif
 
   return PL_raise_exception(except);
@@ -593,7 +657,7 @@ tcp_socket(term_t Socket)
 #ifdef WIN32
   fcntl(sock, F_SETFL, O_NONBLOCK);
   WSAAsyncSelect(sock, SocketHiddenWindow(), WM_SOCKET,
-		 FD_READ|FD_WRITE|FD_ACCEPT|FD_CONNECT);
+		 FD_READ|FD_WRITE|FD_ACCEPT|FD_CONNECT|FD_CLOSE);
 #endif
 
   if ( !lookupSocket(sock) )		/* register it */
@@ -616,7 +680,7 @@ tcp_close_socket(term_t Socket)
   WSAAsyncSelect(socket, SocketHiddenWindow(), 0, 0);
 #endif
 
-  closesocket(socket);
+  freeSocket(socket);
 
   return TRUE;
 }
@@ -793,22 +857,32 @@ tcp_setopt(term_t Socket, term_t opt)
 
 #ifdef WIN32
 static void
-waitMsg(plsocket *s)
+waitMsg(plsocket *s, int flags)
 { MSG msg;
   HWND hwnd;
+  HWND sockwin;
 
+  sockwin = SocketHiddenWindow();
   if ( true(s, SOCK_DISPATCH) )
     hwnd = NULL;
   else
-    hwnd = SocketHiddenWindow();
+    hwnd = sockwin;
 
-  if ( GetMessage(&msg, hwnd, 0, 0) )
-  { TranslateMessage(&msg);
-    DispatchMessage(&msg);
-  } else
-  { ExitProcess(0);			/* WM_QUIT received */
+  for(;;)
+  { if ( (s->w32_flags & flags) )
+    { s->w32_flags &= ~flags;
+      return;
+    }
+    if ( GetMessage(&msg, hwnd, 0, 0) )
+    { TranslateMessage(&msg);
+      DispatchMessage(&msg);
+    } else
+    { ExitProcess(0);			/* WM_QUIT received */
+    }
   }
 }
+#else
+#define waitMsg(s, f)
 #endif
 
 
@@ -855,7 +929,7 @@ again:
     { case WSAEWOULDBLOCK:
       case WSAEINVAL:
       case WSAEALREADY:
-	waitMsg(s);
+	waitMsg(s, FD_CONNECT);
         goto again;
       case WSAEISCONN:
 	break;				/* ok, we're done */
@@ -886,6 +960,7 @@ tcp_accept(term_t Master, term_t Slave, term_t Peer)
 
 #ifdef WIN32
 again:
+  waitMsg(m, FD_ACCEPT);
 #else
   wait_socket(m, master);
 #endif
@@ -894,10 +969,7 @@ again:
   {
 #ifdef WIN32
     if ( WSAGetLastError() == WSAEWOULDBLOCK )
-    { waitMsg(m);
-
       goto again;
-    }
 #endif  
     return tcp_error(errno, NULL);
   }
@@ -951,24 +1023,23 @@ tcp_read(void *handle, char *buf, int bufSize)
   }
 
 #ifdef WIN32
-again:
-#else
-  wait_socket(s, socket);
-#endif
+  if ( false(s, SOCK_NONBLOCK) )
+    waitMsg(s, FD_READ|FD_CLOSE);
 
   n = recv(socket, buf, bufSize, 0);
 
-#ifdef WIN32
   if ( n < 0 && WSAGetLastError() == WSAEWOULDBLOCK )
   { if ( s->flags & SOCK_NONBLOCK )
     { errno = EWOULDBLOCK;
-      return n;
     }
-    waitMsg(s);
+  } 
 
-    goto again;
-  }
-#endif  
+#else /*WIN32*/
+
+  wait_socket(s, socket);
+  n = recv(socket, buf, bufSize, 0);
+
+#endif /*WIN32*/
 
   return n;
 }
@@ -983,15 +1054,15 @@ tcp_write(void *handle, char *buf, int bufSize)
 #endif
 
   while( len > 0 )
-  { int n = send(socket, str, len, 0);
+  { int n;
 
+    waitMsg(s, FD_WRITE);
+    n = send(socket, str, len, 0);
     if ( n < 0 )
     {
 #ifdef WIN32
       if ( WSAGetLastError() == WSAEWOULDBLOCK )
-      { waitMsg(s);			/* The process gets FD_WRITE */
 	continue;
-      }
 #endif
       return -1;
     }
@@ -1018,7 +1089,7 @@ tcp_close_input(void *handle)
   s->flags &= ~SOCK_INSTREAM;
 
   if ( !(s->flags & (SOCK_INSTREAM|SOCK_OUTSTREAM)) )
-    return freeSocket(socket);
+    freeSocket(socket);
 
   return 0;
 }
@@ -1032,7 +1103,7 @@ tcp_close_output(void *handle)
   s->flags &= ~SOCK_OUTSTREAM;
 
   if ( !(s->flags & (SOCK_INSTREAM|SOCK_OUTSTREAM)) )
-    return freeSocket(socket);
+    freeSocket(socket);
 
   return 0;
 }
