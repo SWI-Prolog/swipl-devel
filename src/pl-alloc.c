@@ -906,6 +906,26 @@ getCharsString__LD(word w, unsigned *len ARG_LD)
 }
 
 
+pl_wchar_t *
+getCharsWString__LD(word w, unsigned *len ARG_LD)
+{ Word p = valPtr(w);
+  word m = *p;
+  int wn  = wsizeofInd(m);
+  char *s;
+  pl_wchar_t *ws;
+
+  s = (char *)&p[1];
+  if ( *s != 'W' )
+    return NULL;
+  
+  if ( len )
+    *len = wn - 2;		/* 1 for 'W', 1 for terminating 0-char */
+  
+  ws = (pl_wchar_t *)&p[1];
+  return ws+1;
+}
+
+
 
 		 /*******************************
 		 *     OPERATIONS ON DOUBLES	*

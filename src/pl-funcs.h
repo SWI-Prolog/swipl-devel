@@ -47,6 +47,7 @@ COMMON(void) 		mergeAllocPool(AllocPool to, AllocPool from);
 COMMON(word) 		globalFunctor(functor_t def);
 COMMON(word) 		globalString(long len, const char *s);
 COMMON(char *)		getCharsString__LD(word w, unsigned *len ARG_LD);
+COMMON(pl_wchar_t *)	getCharsWString__LD(word w, unsigned *len ARG_LD);
 COMMON(Word) 		newTerm(void);
 COMMON(void) 		doublecpy(void *to, void *from);
 COMMON(word) 		globalReal(real f);
