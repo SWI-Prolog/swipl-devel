@@ -236,10 +236,10 @@ getDefaultLabelMenuItem(MenuItem m, Any value)
   }
 
   if ( (name = checkType(value, TypeName, m)) )
-    answer(getLabelNameName(name));
+    answer(GetLabelNameName(name));
   
   if ( isObject(value) && (name = get(value, NAME_name, 0)) )
-    answer(getLabelNameName(name));
+    answer(GetLabelNameName(name));
 
   answer((Any) CtoName(pp(value)));
 }

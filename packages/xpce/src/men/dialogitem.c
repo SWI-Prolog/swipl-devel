@@ -157,7 +157,7 @@ labelFontDialogItem(DialogItem di, FontObj font)
 
 static CharArray
 getLabelNameDialogItem(DialogItem di, Name name)
-{ Any suffix, label = getLabelNameName(name);
+{ Any suffix, label = GetLabelNameName(name);
 
   if ( (suffix = getClassVariableValueObject(di, NAME_labelSuffix)) )
     label = getEnsureSuffixCharArray(label, suffix);
