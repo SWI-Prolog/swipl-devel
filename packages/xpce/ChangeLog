@@ -1,6 +1,11 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: First version of system-dependent and hot-switchable key-bindings
+  (accelerators).  Provides the important CUA (Common User Access, used
+  in Windows) key-bindings by default on Windows and Emacs bindings on
+  Unix systems.
+
 * ADDED: Print and Print Selection to PceEmacs, both working on Windows and
   Unix platforms.
 

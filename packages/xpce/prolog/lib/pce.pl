@@ -99,6 +99,7 @@ reexports the content of these files.
 		pce_boot(pce_goal_expansion),
 		pce_boot(pce_autoload),
 		pce_boot(pce_editor),
+		pce_boot(pce_keybinding),
 		pce_boot(pce_portray)
 	      ],
 	      [ qcompile(true),
