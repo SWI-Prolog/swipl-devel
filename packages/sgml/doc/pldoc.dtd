@@ -1,0 +1,180 @@
+<!-- SWI-Prolog documentation DTD
+  -->
+
+<!ENTITY lt CDATA "&#60;">
+<!ENTITY gt CDATA "&#62;">
+<!ENTITY amp CDATA "&#38;">
+<!ENTITY apos CDATA "&#39;">
+<!ENTITY quot CDATA "&#34;">
+
+<!ENTITY % Title 	"#PCDATA">
+<!ENTITY % Font  	"b|em">
+<!ENTITY % Extra 	"jargon|fn">
+<!ENTITY % HtmlList	"dl|ul">
+<!ENTITY % Ref   	"aref|pref|ref">
+<!ENTITY % Obj		"c|var|term|elem|xmp|sh">
+<!ENTITY % Layout	"quote">
+<!ENTITY % Text  	"#PCDATA|%Font;|%Ref;|%Obj;|%Extra;|verb">
+<!ENTITY % SectionBody  "(p|definitions|valdef|code|%HtmlList;|%Layout;)*">
+<!ENTITY % DescBody	"(p|code|argdef|%HtmlList;|%Layout;|%Text;)*">
+<!ENTITY % Section	"s1|s2|s3|s4|appendix">
+<!ENTITY % Language	"pl|html|sgml|xml|c|cxx|sh">
+
+<!-- DOCUMENT STRUCTURE -->
+
+<!ELEMENT pldoc - - (head?,titlepage?,s1*,appendix*)>
+
+<!-- DOCUMENT HEAD -->
+
+<!ELEMENT head	       - - ( runningtitle?
+			   & version?
+			   & release-date
+			   & package
+			   )>
+<!ELEMENT runningtitle - o (#PCDATA)>
+<!ELEMENT version      - o (#PCDATA)>
+<!ELEMENT release-date - o (#PCDATA)>
+<!ELEMENT package      - o (#PCDATA)>
+
+<!-- TITLEPAGE STRUCTURE -->
+
+<!ELEMENT titlepage o o (title&author&abstract?)>
+
+<!ELEMENT title   o o (%Title)>
+
+<!ELEMENT author  - o (name,address,email?)>
+<!ELEMENT address - o (%Title|br)*>
+<!ELEMENT email   - o (%Title)>
+
+<!ELEMENT abstract - - (p|%Text)*>
+
+<!-- SECTION STRUCTURE -->
+
+<!ATTLIST (%Section;)
+	name	nmtoken #IMPLIED
+>
+
+<!ELEMENT s1 - o (title,body1)>
+<!ELEMENT s2 - o (title,body2)>
+<!ELEMENT s3 - o (title,body3)>
+<!ELEMENT s4 - o (title,body4)>
+<!ELEMENT appendix - o (title,body1)>
+
+<!ELEMENT body1	o o (%SectionBody|s2)+>
+<!ELEMENT body2	o o (%SectionBody|s3)+>
+<!ELEMENT body3	o o (%SectionBody|s4)+>
+<!ELEMENT body4	o o (%SectionBody)>
+
+<!-- LAYOUT -->
+
+<!ELEMENT br	   - o EMPTY>
+<!ELEMENT quote	   - - (p|%Text)*>
+<!ELEMENT fn	   - - (%Text;) -(fn)>
+
+<!-- PARAGRAPH STRUCTURE -->
+
+<!ELEMENT P     o o (%Text;)*>
+<!--
+<!ENTITY beg-p STARTTAG "p">
+<!SHORTREF in.p
+	'&#RS;B&#RE'	beg-p>
+<!USEMAP in.p p>
+-->
+
+<!-- RUNNING TEXT -->
+
+<!ELEMENT (%Font) - - (%Text;)*>
+
+<!-- LISTINGS -->
+
+<!ELEMENT code		- - CDATA>
+<!ATTLIST code
+	language  (%Language;) pl
+	placement (inline|block)  block>
+
+<!ELEMENT xmp           - - (%Text;)*>
+<!ELEMENT sh		- - (#PCDATA|var)*>
+
+<!ATTLIST xmp
+	language  (%Language;) pl
+	placement (inline|block) inline>
+
+<!ELEMENT verb		- - CDATA>
+<!ATTLIST verb
+	type (pl) pl>
+
+<!-- VOCABULARY -->
+
+<!ELEMENT jargon       - - (%Title)>
+<!ELEMENT c	       - - (%Title)>
+<!ELEMENT var	       - - (%Title)>
+<!ELEMENT elem	       - - (%Title)>
+
+<!-- REFERENCES -->
+
+<!ELEMENT ref	       - - CDATA>
+<!ELEMENT aref         - - (%Title)>
+<!ELEMENT pref	       - - (name,arity)>
+<!ELEMENT arity	       - o (#PCDATA)>
+
+<!ATTLIST ref
+	type (pkg|lib|env|exe|file|sec) #REQUIRED
+	lang (c|pl) #IMPLIED>
+
+<!ENTITY beg-arity STARTTAG "arity">
+<!SHORTREF in.pref
+	'/'	beg-arity>
+<!USEMAP in.pref pref> 
+
+<!-- DEFINITIONS -->
+
+<!ELEMENT definitions  - - (definition+)>
+<!ELEMENT definition   o o (pred,summary?,desc)>
+<!ELEMENT desc         o o (%DescBody)>
+
+<!ELEMENT summary      - - (#PCDATA)>
+<!ENTITY end-summary ENDTAG "summary">
+<!SHORTREF in.summary '&#RE;' end-summary>
+<!USEMAP in.summary summary>
+
+<!ELEMENT (argdef,valdef) - - (argval+)>
+<!ELEMENT argval       o o (termitem,desc)>
+
+<!-- PREDICATES -->
+
+<!ELEMENT pred         - o (name,arglist?)>
+<!ELEMENT termitem     - o ((name|var|c),arglist?)>
+<!ELEMENT term         - o (#PCDATA|aref|arg|c)*>
+<!ELEMENT arglist      - o (arg)*>
+<!ELEMENT arg	       o o (#PCDATA|term)*>
+<!ELEMENT name	       o o (#PCDATA)>
+
+<!ENTITY beg-arglist	"<arglist><!USEMAP in.arglist>">
+<!ENTITY end-arglist	ENDTAG "arglist">
+<!ENTITY end-arg	ENDTAG "arg">
+<!ENTITY end-term	"</>">
+
+<!SHORTREF in.termitem
+	'&#RE;'	end-term
+	'('	beg-arglist>
+<!SHORTREF in.arglist
+	','	end-arg
+	')'	end-arglist>
+
+<!USEMAP in.termitem (pred|termitem)>
+
+<!-- HTML LISTS -->
+
+<!ELEMENT dl	- - (dt|dd)+>
+<!ELEMENT dt	- o (%Text)*>
+<!ELEMENT dd	- o (%Text)*>
+
+<!ELEMENT ul	- - (item)*>
+<!ELEMENT item	o o (tag,desc)>
+<!ELEMENT tag   - o (%Text;)>
+
+<!ENTITY end-tag ENDTAG "tag">
+
+<!SHORTREF in.tag '&#RE;' end-tag>
+
+<!USEMAP in.tag tag>
