@@ -1,6 +1,6 @@
 \documentclass[11pt]{article}
-\usepackage{html}
 \usepackage{pl}
+\usepackage{html}
 
 \onefile
 \htmloutput{html}				% Output directory
