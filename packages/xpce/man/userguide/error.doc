@@ -1,7 +1,7 @@
 \section{Errors}		\label{sec:errors}
 
 Errors are abnormalities that are detected during a programs
-execution.  Errors may be caused by internal bugs in \product{}, bugs
+execution.  Errors may be caused by bugs in \product{}, bugs
 in the application program and finally by the application user
 making errors in operating the application (e.g. specifying
 a protected file).
@@ -114,7 +114,7 @@ The example below illustrates this:
 \begin{code}
 :- new(_, error(no_user,
 		'%N: Unknown user: %s',
-		warning, inform)).
+		warning, report)).
 
 	...,
 	(   get(UserDatabase, user, Name)
