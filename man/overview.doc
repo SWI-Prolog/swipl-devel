@@ -1696,11 +1696,11 @@ the stream to be read and written fully untranslated.
 Multi-byte encoding of full UCS, compatible to \const{ascii}.
 See above.
 
-    \termitem{unicode_be}
+    \termitem{unicode_be}{}
 UNICODE \jargon{Big Endian}.  Reads input in pairs of bytes, most
 significant byte first.  Can only represent 16-bit characters.
 
-    \termitem{unicode_le}
+    \termitem{unicode_le}{}
 UNICODE \jargon{Little Endian}.  Reads input in pairs of bytes, least
 significant byte first.  Can only represent 16-bit characters.
 \end{description}

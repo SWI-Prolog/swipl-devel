@@ -82,6 +82,8 @@ tex(pldoc, _, Content) -->
 	  \usepackage(#a4wide), \n,
 	  \usepackage(#longtable), \n,
 	  \usepackage(#times), \n,
+	  \usepackage(?(#('pdftex,colorlinks=true,urlcolor=blue')),
+		      #hyperref), \n,
 	  \parskip('5pt'),
 	  \makeindex,
 	  \n,

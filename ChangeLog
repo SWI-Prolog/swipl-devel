@@ -8,6 +8,9 @@
 					--------------------------------------
 
 
+  * FIXED: Bug#215: Encoding documentation issues.  Holger Kanwischer.
+
+
 VERSION 5.5.1 (December 17, 2004)
 =================================
 

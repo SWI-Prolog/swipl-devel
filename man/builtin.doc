@@ -2046,6 +2046,11 @@ option as stream-names are global.  See also set_stream/2.
 	...
 \end{code}
 
+    \termitem{encoding}{Encoding}
+Define the encoding used for reading and writing text to this stream.
+The default encoding is derived from the Prolog flag \const{encoding}.
+For details on encoding issues, see \secref{encoding}.
+
     \termitem{eof_action}{Action}
 Defines what happens if the end of the input stream is reached. Action
 \const{eof_code} makes get0/1 and friends return -1 and read/1 and friends
@@ -2133,6 +2138,10 @@ True if \arg{Stream} has mode \const{write}, \const{append} or
 If \arg{Atom} is bound, test of the stream has the specified alias.
 Otherwise unify \arg{Atom} with the first alias of the stream.%
 	\bug{Backtracking does not give other aliases.}
+
+    \termitem{encoding}{Encoding}
+Query the encoding used for text.  See \secref{encoding} for an
+overview of wide character and encoding issues in SWI-Prolog.
 
     \termitem{position}{Term}
 Unify \arg{Term} with the current stream-position.  A stream-position
