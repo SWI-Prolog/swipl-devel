@@ -4783,7 +4783,10 @@ modules         & Total number of module definitions. \\
 codes           & Total amount of byte codes in all clauses. \\
 threads		& MT-version: number of active threads \\
 threads_created & MT-version: number of created threads \\
-thread_cputime  & MT-version: seconds CPU time used by finished threads \\
+thread_cputime  & MT-version: seconds CPU time used by finished threads.
+	          Supported on Windows-NT and later, Linux and possibly
+		  a few more.  Verify it gives plausible results before
+		  using. \\
 \hline
 \multicolumn{2}{|c|}{Compatibility keys} \\
 \hline
