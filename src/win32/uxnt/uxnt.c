@@ -155,10 +155,10 @@ _xos_home()				/* expansion of ~ */
 					/* Unix, set by user */
     if ( GetEnvironmentVariable(_T("HOME"), h, sizeof(h)) &&
 	 existsAndWriteableDir(h) )
-    { _xos_canonical_filenameW(h, home, sizeof(home));
+    { _xos_canonical_filenameW(h, home, sizeof(home), 0);
     } else if ( GetEnvironmentVariable(_T("USERPROFILE"), h, sizeof(h)) &&
 		existsAndWriteableDir(h) )
-    { _xos_canonical_filenameW(h, home, sizeof(home));
+    { _xos_canonical_filenameW(h, home, sizeof(home), 0);
     } else
     { TCHAR d[100];
       TCHAR p[MAXPATHLEN];
@@ -184,7 +184,7 @@ _xos_home()				/* expansion of ~ */
 	_tcscpy(&tmp[1], _T(":\\"));
       }
 
-      _xos_canonical_filenameW(tmp, home, sizeof(home));
+      _xos_canonical_filenameW(tmp, home, sizeof(home), 0);
     }
 
     done = TRUE;
@@ -281,7 +281,9 @@ filename in Prolog canonical representation.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 char *
-_xos_canonical_filenameW(const wchar_t *spec, char *xname, size_t len)
+_xos_canonical_filenameW(const wchar_t *spec,
+			 char *xname, size_t len,
+			 int flags)
 { const wchar_t *s = spec;
   char *p = xname;
   char *e = &xname[len];
@@ -296,7 +298,10 @@ _xos_canonical_filenameW(const wchar_t *spec, char *xname, size_t len)
   { int c = *s;
     
     if ( c == '\\' )
-      c = '/';
+    { c = '/';
+    } else if ( (flags&XOS_DOWNCASE) )
+    { c = towlower(c);
+    }
 
     if ( p+6 >= e )
     { errno = ENAMETOOLONG;
@@ -311,13 +316,13 @@ _xos_canonical_filenameW(const wchar_t *spec, char *xname, size_t len)
 
 
 char *
-_xos_canonical_filename(const char *spec, char *xname, size_t len)
+_xos_canonical_filename(const char *spec, char *xname, size_t len, int flags)
 { TCHAR buf[PATH_MAX];
 
   if ( !utf8towcs(buf, spec, PATH_MAX) )
     return NULL;
   
-  return _xos_canonical_filenameW(buf, xname, len);
+  return _xos_canonical_filenameW(buf, xname, len, flags);
 }
 
 
@@ -430,7 +435,7 @@ _xos_absolute_filename(const char *local, char *absolute, size_t len)
     return NULL;
 
   if ( GetFullPathName(buf, PATH_MAX, abs, &filepart) )
-    return _xos_canonical_filenameW(abs, absolute, len);
+    return _xos_canonical_filenameW(abs, absolute, len, 0);
 
   return NULL;
 }
@@ -774,7 +779,7 @@ _xos_getcwd(char *buf, int len)
 
   if ( _wgetcwd(buf0, sizeof(buf0)/sizeof(TCHAR)) &&
        _xos_long_file_nameW(buf0, buf1, sizeof(buf0)/sizeof(TCHAR)) )
-  { return _xos_canonical_filenameW(buf1, buf, len);
+  { return _xos_canonical_filenameW(buf1, buf, len, 0);
   }
 
   return NULL;

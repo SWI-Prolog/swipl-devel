@@ -99,9 +99,9 @@ _export wchar_t*_xos_os_filenameW(const char *cname,
 _export char *	_xos_os_filename(const char *cname,
 				 char *osname, size_t len);
 _export char *	_xos_canonical_filenameW(const wchar_t *cname,
-					 char *osname, size_t len);
+					 char *osname, size_t len, int flags);
 _export char *	_xos_canonical_filename(const char *cname,
-					char *osname, size_t len);
+					char *osname, size_t len, int flags);
 _export int	_xos_is_absolute_filename(const char *spec);
 _export char *	_xos_absolute_filename(const char *local, char *absolute, size_t len);
 _export char *	_xos_limited_os_filename(const char *spec, char *limited);
@@ -134,5 +134,7 @@ _export int	_xos_exists(const char *path, int flags);
 
 #define _XOS_FILE	0x0001		/* is a file */
 #define _XOS_DIR	0x0002		/* is a directory */
+
+#define XOS_DOWNCASE	0x01		/* _xos_canonical_filename() */
 
 #endif /*_XNT_H_INCLUDED*/

@@ -91,15 +91,17 @@ findHome(char *symbols)
   
   if ( (val  = exec_var("homevar")) &&
        (home = getenv3(val, envbuf, sizeof(envbuf))) &&
-       (home = PrologPath(home, plp)) )
+       (home = PrologPath(home, plp, sizeof(plp))) )
     return store_string(home);
   if ( (val = exec_var("home")) &&
-       (home = PrologPath(home, plp)) )
+       (home = PrologPath(val, plp, sizeof(plp))) )
     return store_string(home);
 
   if ( !(home = getenv3("SWI_HOME_DIR", envbuf, sizeof(envbuf))) )
     home = getenv3("SWIPL", envbuf, sizeof(envbuf));
-  if ( home && (home = PrologPath(home, plp)) && ExistsDirectory(home) )
+  if ( home &&
+       (home = PrologPath(home, plp, sizeof(plp))) &&
+       ExistsDirectory(home) )
     return store_string(home);
 
   if ( (home = symbols) )
@@ -142,7 +144,7 @@ findHome(char *symbols)
     }
   }
 
-  if ( (home = PrologPath(PLHOME, plp)) &&
+  if ( (home = PrologPath(PLHOME, plp, sizeof(plp))) &&
        ExistsDirectory(home) )
     return store_string(home);
 
@@ -166,7 +168,7 @@ basename of the running program, taking all the leading alnum characters.
 static char *
 defaultSystemInitFile(char *a0)
 { char plp[MAXPATHLEN];
-  char *base = BaseName(PrologPath(a0, plp));
+  char *base = BaseName(PrologPath(a0, plp, sizeof(plp)));
   char buf[256];
   char *s = buf;
 
@@ -261,7 +263,7 @@ initPaths()
 #endif
   }
 
-  systemDefaults.startup = store_string(PrologPath(DEFSTARTUP, plp));
+  systemDefaults.startup = store_string(PrologPath(DEFSTARTUP, plp, sizeof(plp)));
 
 #ifdef O_XOS
   if ( systemDefaults.home )

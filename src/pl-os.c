@@ -510,7 +510,7 @@ TemporaryFile(const char *id)
 #else
   if ( (tmp = _tempnam(tmpdir, id)) )
 #endif
-  { PrologPath(tmp, temp);
+  { PrologPath(tmp, temp, sizeof(temp));
   } else
     Ssprintf(temp, "%s/pl_%s_%d", tmpdir, id, temp_counter++);
 }
@@ -653,9 +653,9 @@ getpagesize()
 */
 
 char *
-PrologPath(char *ospath, char *path)
+PrologPath(char *ospath, char *path, size_t len)
 { char *s = ospath, *p = path;
-  int limit = MAXPATHLEN-1;
+  int limit = len-1;
 
   if (isLetter(s[0]) && s[1] == ':')
   { *p++ = '/';
@@ -697,8 +697,8 @@ OsPath(const char *plpath, char *path)
 
 #ifdef __unix__
 char *
-PrologPath(const char *p, char *buf)
-{ strcpy(buf, p);
+PrologPath(const char *p, char *buf, size_t len)
+{ strncpy(buf, p, len);
 
   return buf;
 }
@@ -713,12 +713,10 @@ OsPath(const char *p, char *buf)
 
 #if O_XOS
 char *
-PrologPath(const char *p, char *buf)
-{ _xos_canonical_filename(p, buf, MAXPATHLEN);
-  if ( !trueFeature(FILE_CASE_FEATURE) )
-    strlwr(buf);
+PrologPath(const char *p, char *buf, size_t len)
+{ int flags = (trueFeature(FILE_CASE_FEATURE) ? 0 : XOS_DOWNCASE);
 
-  return buf;
+  return _xos_canonical_filename(p, buf, len, flags);
 }
 
 char *
@@ -1373,10 +1371,11 @@ expandVars(const char *pattern, char *expanded, int maxlen)
       if ( !(value = GD->os.myhome) )
       { char envbuf[MAXPATHLEN];
 
-	if ( (value = getenv3("HOME", envbuf, sizeof(envbuf))) )
-	{ value = GD->os.myhome = store_string(PrologPath(value, wordbuf));
+	if ( (value = getenv3("HOME", envbuf, sizeof(envbuf))) &&
+	     (value = PrologPath(value, wordbuf, sizeof(wordbuf))) )
+	{ GD->os.myhome = store_string(value);
 	} else
-	{ value = GD->os.myhome = "/";
+	{ value = GD->os.myhome = store_string("/");
 	}
       }
 #endif /*O_XOS*/
@@ -1601,7 +1600,7 @@ char *
 AbsoluteFile(const char *spec, char *path)
 { char tmp[MAXPATHLEN];
   char buf[MAXPATHLEN];
-  char *file = PrologPath(spec, buf);
+  char *file = PrologPath(spec, buf, sizeof(buf));
   
   if ( trueFeature(FILEVARS_FEATURE) )
   { if ( !(file = ExpandOneFile(buf, tmp)) )
@@ -2624,9 +2623,7 @@ char *command;
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     char *Symbols(char *buf)
 
-    Return the path name of the executable of SWI-Prolog. Used by the -c
-    compiler to generate the #!<path> header line and by the incremental
-    loader, who gives this path to ld, using ld -A <path>.
+    Return the path name of the executable of SWI-Prolog.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifndef __WIN32__			/* Win32 version in pl-nt.c */
@@ -2637,7 +2634,8 @@ findExecutable(const char *av0, char *buffer)
   char buf[MAXPATHLEN];
   char tmp[MAXPATHLEN];
 
-  PrologPath(av0, buf);
+  if ( !av0 || !PrologPath(av0, buf, sizeof(buf)) )
+    return NULL;
   file = Which(buf, tmp);
 
 #if __unix__				/* argv[0] can be an #! script! */

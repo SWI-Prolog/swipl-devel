@@ -1120,13 +1120,17 @@ equalIndirectFromCode(word a, Code *PC)
 
 char *
 store_string(const char *s)
-{ GET_LD
-  char *copy = (char *)allocHeap(strlen(s)+2);
+{ if ( s )
+  { GET_LD
+    char *copy = (char *)allocHeap(strlen(s)+2);
 
-  *copy++ = CHAR_INUSE;
-  strcpy(copy, s);
+    *copy++ = CHAR_INUSE;
+    strcpy(copy, s);
 
-  return copy;
+    return copy;
+  } else
+  { return NULL;
+  }
 }
 
 
@@ -1145,11 +1149,16 @@ remove_string(char *s)
 
 char *
 store_string(const char *s)
-{ GET_LD
-  char *copy = (char *)allocHeap(strlen(s)+1);
-
-  strcpy(copy, s);
-  return copy;
+{ if ( s )
+  { GET_LD
+  
+    char *copy = (char *)allocHeap(strlen(s)+1);
+    
+    strcpy(copy, s);
+    return copy;
+  } else
+  { return NULL;
+  }
 }
 
 

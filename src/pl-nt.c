@@ -256,7 +256,7 @@ findExecutable(const char *module, char *exe)
     return _xos_long_file_name_toA(wbuf, buf2, MAXPATHLEN);
   } else if ( module )
   { char buf[MAXPATHLEN];
-    PrologPath(module, buf);
+    PrologPath(module, buf, sizeof(buf));
 
     strcpy(exe, buf);
   } else
