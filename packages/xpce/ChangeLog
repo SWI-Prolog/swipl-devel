@@ -1,6 +1,11 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ENHANCED: reset the display after an abort.
+
+* FIXED/ENHANCED: Various issues and expensions with PceEmacs bookmark
+  window.
+
 * FIXED: MS-Windows: painting (redraw) in windows displayed inside a
   `tabbed_window'.
 
