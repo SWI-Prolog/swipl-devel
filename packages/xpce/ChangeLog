@@ -1,3 +1,7 @@
+* ADDED: plot library
+
+* UPDATED: The XPCE/Prolog User Guide.  Please check the home-page.
+
 * ENHANCED: Win32: Use same bitmap-scaling as the X11 version.  This produces
   much better results than the MS BitBlt() operations.
 
