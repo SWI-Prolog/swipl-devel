@@ -1,8 +1,37 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.0.10
+==============
+
+  * Fixed semantics of the cut in toplevel queries by compiling the query
+    instead of using meta-call.
+
+  * Fixed bagof(A, member([B, C]), L) to yield L = [B,C] instead of making
+    new variables.
+
+  * Fixed typo in dde.pl (reported by Thiebaut Moeglin)
+
+  * Integration of NeXT patches from Thomas Hoppe (hoppet@cs.tu-berlin.de).
+    Probably still not 100% ok, but should be closer now.
+
+  * Fixed XPCE event dispatching for pl -tty
+
+  * PL_univg() C-interface function added for supporting XPCE > 4.8.10
+    with better interface performance.
+
+  * Fixed operator precedence problem (reported by Dave Moffat)
+
 Version 2.0.9
 =============
+
+  * ADDED: HPUX interface for shared libraries, but a HPUX guru should
+    fix the import/export details (line was too slow to browse to lots
+    of manual pages).
+
+  * FIXED: pl-incl.h typo (breaks IRIX 5.3 port and propably others)
+
+  * FIXED: HPUX detection of mmap()'able stacks fixed.
 
   * FIXED: generation of include/SWI-Exports, the AIX export declaration
     file.

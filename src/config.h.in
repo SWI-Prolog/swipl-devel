@@ -82,7 +82,7 @@
 /* Define if (type)var = value is allowed */
 #undef TAGGED_LVALUE
 
-/* Define as 0 if text addresses start above 40K */
+/* Define as 0 if it gives problems (shouldn't do anymore) */
 #undef VMCODE_IS_ADDRESS
 
 /* Define if first data symbol not is environ */
@@ -126,6 +126,9 @@
 
 /* Define to make runtime version */
 #undef O_RUNTIME
+
+/* Define if you don't have termio(s), but struct sgttyb */
+#undef HAVE_SGTTYB
 
 /* Define if you have the access function.  */
 #undef HAVE_ACCESS
@@ -222,6 +225,9 @@
 
 /* Define if you have the <dirent.h> header file.  */
 #undef HAVE_DIRENT_H
+
+/* Define if you have the <mach-o/rld.h> header file.  */
+#undef HAVE_MACH_O_RLD_H
 
 /* Define if you have the <malloc.h> header file.  */
 #undef HAVE_MALLOC_H

@@ -103,6 +103,14 @@ extern IOSTREAM	    S__iob[];
 #define Sgetchar()	Sgetc(Sinput)
 #define Sputchar(c)	Sputc((c), Soutput)
 
+#define S__updatefilepos(s, c) \
+	((s)->position ? S__fupdatefilepos((s)->position, (c)) \
+		       : (c))
+
+#define Snpgetc(s) ((s)->bufp < (s)->limitp ? *(s)->bufp++&0xff \
+					    : S__fillbuf(s))
+#define Sgetc(s) S__updatefilepos((s), Snpgetc(s))
+
 #if IOSTREAM_REPLACES_STDIO
 
 #undef FILE
@@ -162,8 +170,10 @@ extern IOSTREAM	    S__iob[];
 		 *	    PROTOTYPES		*
 		 *******************************/
 
+_export int	S__fupdatefilepos(IOPOS *p, int c);
+_export int	S__fillbuf(IOSTREAM *s);
 _export int	Sputc(int c, IOSTREAM *s);
-_export int	Sgetc(IOSTREAM *s);
+_export int	Sfgetc(IOSTREAM *s);
 _export int	Sungetc(int c, IOSTREAM *s);
 _export int	Sputw(int w, IOSTREAM *s);
 _export int	Sgetw(IOSTREAM *s);

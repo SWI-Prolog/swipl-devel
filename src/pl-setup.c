@@ -1182,7 +1182,7 @@ long local, global, trail, argument, lck;
   init_stack((Stack)&stacks.global,   "global",	 iglobal,  global,   100 K);
   init_stack((Stack)&stacks.local,    "local",	 ilocal,   local,    16 K);
   init_stack((Stack)&stacks.trail,    "trail",	 itrail,   trail,    8 K);
-  init_stack((Stack)&stacks.argument, "argumet", argument, argument, 0);
+  init_stack((Stack)&stacks.argument, "argument",argument, argument, 0);
   init_stack((Stack)&stacks.lock,     "lock",    lck,      lck,      0);
 
   statistics.heap = old_heap;

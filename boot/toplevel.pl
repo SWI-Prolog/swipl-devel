@@ -232,23 +232,30 @@ $execute_goal(trace, []) :-
 	fail.
 $execute_goal(Goal, Bindings) :-
 	$module(TypeIn, TypeIn), 
-	$user_call(TypeIn:Goal),
-	call_expand_answer(Bindings, NewBindings),
-	$ttyformat('~n'),
-	$write_bindings(NewBindings), !, 
-	notrace, 
-	fail.
-$execute_goal(_, _) :-
-	notrace, 
-	$ttyformat('~nNo~n'),
-	fail.
+	TypeIn:retractall($user_query(Bindings)),
+	TypeIn:asserta(($user_query(Bindings) :- Goal), Ref),
+	$set_user_goal_attributes(TypeIn),
+	(   TypeIn:$user_query(Bindings),
+	    call_expand_answer(Bindings, NewBindings),
+	    $ttyformat('~n'),
+	    (	$write_bindings(NewBindings)
+	    ->	!,
+	        notrace, 
+		erase(Ref),
+		fail
+	    )
+	;   notrace, 
+	    $ttyformat('~nNo~n'),
+	    erase(Ref),
+	    fail
+	).
 
 $user_call(Goal) :-
 	Goal.
 
-:- $hide($user_call, 1),
-   $show_childs($user_call, 1),
-   $set_predicate_attribute($user_call(_), system, 0).
+$set_user_goal_attributes(TypeIn) :-
+	TypeIn:(($hide($user_query, 1),
+		 $show_childs($user_query, 1))).
 
 $write_bindings([]) :- !, 
 	$ttyformat('Yes~n').

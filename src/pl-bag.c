@@ -25,8 +25,7 @@ Prolog.
 typedef struct assoc * Assoc;
 
 struct assoc
-{ Record	key;			/* key binding */
-  Record	value;			/* generator binding */
+{ Record	binding;
   Assoc		next;			/* next in chain */
 };
 
@@ -38,17 +37,21 @@ forwards void freeAssoc(Assoc, Assoc);
 $record_bag(Key, Value)
 
 Record a solution of bagof.  Key is a term  v(V0,  ...Vn),  holding  the
-variable biding for solution `Gen'.  Key is ATOM_mark for the mark.
+variable binding for solution `Gen'.  Key is ATOM_mark for the mark.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 word
-pl_record_bag(register Word key, register Word value)
-{ register Assoc a = (Assoc) allocHeap(sizeof(struct assoc));
+pl_record_bag(Word key, Word value)
+{ Assoc a = (Assoc) allocHeap(sizeof(struct assoc));
+  word t = globalFunctor(FUNCTOR_minus2);
+
+  pl_unify(argTermP(t, 0), key);
+  pl_unify(argTermP(t, 1), value);
 
   a->next  = bags;
   bags = a;
-  a->key   = copyTermToHeap(key);
-  a->value = copyTermToHeap(value);
+
+  a->binding = copyTermToHeap(&t);
 
   succeed;
 }
@@ -84,26 +87,29 @@ globalTerm(FunctorDef fdef, ...)
 
 word
 pl_collect_bag(Word bindings, Word bag)
-{ word var_term = 0;			/* v() term on global stack */
+{ Word var_term = NULL;			/* v() term on global stack */
   word list = (word) ATOM_nil;		/* result list */
+  word binding = 0;
   register Assoc a, next;
   Assoc prev = (Assoc) NULL;
   
   if ( (a = bags) == (Assoc) NULL )
     fail;
-  if ( !a || a->key->term == (word) ATOM_mark )
+  if ( !a || argTerm(a->binding->term, 0) == (word) ATOM_mark )
   { freeAssoc(prev, a);
     fail;				/* trapped the mark */
   }
 
   lockp(&bag);
   lockp(&bindings);
-  lockw(&var_term);
+  lockp(&var_term);
   lockw(&list);
-
-  var_term = copyTermToGlobal(a->key);	/* get variable term on global stack */
-  SECURE(checkData(&var_term, FALSE));
-  list = globalTerm(FUNCTOR_dot2, copyTermToGlobal(a->value), list);
+  lockw(&binding);
+					/* get variable term on global stack */
+  binding  = copyTermToGlobal(a->binding);
+  var_term = argTermP(binding, 0);
+  pl_unify(bindings, var_term);
+  list = globalTerm(FUNCTOR_dot2, argTerm(binding, 1), list);
 
   next = a->next;
   freeAssoc(prev, a);  
@@ -111,28 +117,30 @@ pl_collect_bag(Word bindings, Word bag)
   if ( next != NULL )
   { for( a = next, next = a->next; next; a = next, next = a->next )
     { word t;
+      Word key = argTermP(a->binding->term, 0);
 
-      if ( a->key->term == (word) ATOM_mark )
+      if ( *key == (word) ATOM_mark )
 	break;
-      if ( pl_structural_equal(&var_term, &a->key->term) == FALSE )
+      if ( !pl_structural_equal(var_term, key) )
       { prev = a;
 	continue;
       }
 
-      t = copyTermToGlobal(a->value);
-      list = globalTerm(FUNCTOR_dot2, t, list);
+      t = copyTermToGlobal(a->binding);
+      pl_unify(argTermP(t, 0), bindings); /* can this fail (no)? */
+      list = globalTerm(FUNCTOR_dot2, argTerm(t, 1), list);
       SECURE(checkData(&list, FALSE));
       freeAssoc(prev, a);
     }
   }
 
+  unlockw(&binding);
   unlockw(&list);
-  unlockw(&var_term);
+  unlockp(&var_term);
   unlockp(&bindings);
   unlockp(&bag);
 
-  SECURE(checkData(&var_term, FALSE));
-  TRY( pl_unify(bindings, &var_term) );
+  SECURE(checkData(var_term, FALSE));
 
   return pl_unify(bag, &list);
 }
@@ -145,7 +153,6 @@ freeAssoc(Assoc prev, Assoc a)
     bags = a->next;
   else
     prev->next = a->next;
-  freeRecord(a->key);
-  freeRecord(a->value);
+  freeRecord(a->binding);
   freeHeap(a, sizeof(struct assoc));
 }

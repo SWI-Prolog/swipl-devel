@@ -15,10 +15,10 @@
 #
 ################################################################
 
-PLVERSION=2.0.9
+PLVERSION=2.0.10
 
 PL=pl
-prefix=/staff/jan
+prefix=/usr/local
 exec_prefix=${prefix}
 bindir=$(exec_prefix)/bin
 PLBASE=$(prefix)/lib/pl-$(PLVERSION)
@@ -26,7 +26,7 @@ mansec=1
 mandir=$(prefix)/man/man$(mansec)
 
 CC=gcc
-LIBS= -lreadline -ltermcap -lm -ldl -ldl
+LIBS= -lreadline -ltermcap -lm -ldl
 STATICLIBS=/usr/lib/libc.a
 AWK=nawk
 SED=sed
@@ -37,7 +37,7 @@ INSTALL=/usr/gnu/bin/install -c
 INSTALL_PROGRAM=${INSTALL}
 INSTALL_DATA=${INSTALL} -m 644
 
-COFLAGS=-O2
+COFLAGS=-O2 -finline-functions
 CWFLAGS=
 CIFLAGS=
 CMFLAGS=-funsigned-char

@@ -1,16 +1,1 @@
-Remaining problems in SWI-Prolog (1.9.6)
-
-* decode: add offset to handle text at strange places.
-
-* Bagof/setof have a bug as reported by Paul Broome <broome@BRL.MIL>:
-
-  The symptons are that variable bindings in subgoals of bagof seem to
-  be lost.  An example that illustrates the problem is the following:
-
-  | ?- bagof(Z,(X=Z),L).
- 
-  L = [G206]
-  X = G148
-  Z = G149 ;
- 
-  The variables G206 and G148 are the same but this fact is lost.
+* call((a, !, b)) ignores the cut.

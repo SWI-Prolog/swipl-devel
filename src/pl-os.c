@@ -1690,6 +1690,10 @@ Sread_readline(void *handle, char *buf, int size)
       prompt_next = FALSE;
     }
 
+    if ( PL_dispatch_events )
+    { while((*PL_dispatch_events)() != PL_DISPATCH_INPUT)
+	;
+    }
     n = read((int)handle, buf, size);
     if ( n > 0 && buf[n-1] == '\n' )
       prompt_next = TRUE;
@@ -1794,7 +1798,7 @@ ResetTty(void)				/* used to initialise readline */
 
   rl_readline_name = "Prolog";
   rl_attempted_completion_function = prolog_completion;
-  rl_basic_word_break_characters = ":\t\n\"\\'`@$><= [](){}+*!";
+  rl_basic_word_break_characters = ":\t\n\"\\'`@$><= [](){}+*!,-|%&?";
   rl_add_defun("prolog-complete", (Function *) prolog_complete, '\t');
 #if HAVE_RL_INSERT_CLOSE
   rl_add_defun("insert-close", rl_insert_close, ')');
@@ -1808,6 +1812,7 @@ ResetTty(void)				/* used to initialise readline */
   Soutput->functions = &funcs;
   Serror->functions  = &funcs;
 }
+
 
 #else /*!HAVE_LIBREADLINE*/
 
@@ -1891,6 +1896,7 @@ ResetTty()
   prompt_next = TRUE;
 }
 
+
 #endif /*HAVE_LIBREADLINE*/
 
 #ifdef O_TERMIO				/* sys/termios.h or sys/termio.h */
@@ -1961,6 +1967,60 @@ PopTty(ttybuf *buf)
 
 #else /* O_TERMIO */
 
+#ifdef HAVE_SGTTYB
+
+bool
+PushTty(ttybuf *buf, int mode)
+{ struct sgttyb tio;
+
+  buf->mode = ttymode;
+  ttymode = mode;
+
+  if ( status.notty )
+    succeed;
+
+  if ( ioctl(0, TIOCGETP, &buf->tab) )  /* save the old one */
+    fail;
+  tio = buf->tab;
+
+  switch( mode )
+    { case TTY_RAW:
+	tio.sg_flags |= CBREAK;
+	tio.sg_flags &= ~ECHO;
+	break;
+      case TTY_OUTPUT:
+	tio.sg_flags |= (CRMOD);
+	break;
+      case TTY_SAVE:
+	succeed;
+      default:
+	sysError("Unknown PushTty() mode: %d", mode);
+	/*NOTREACHED*/
+      }
+  
+  
+  ioctl(0, TIOCSETP,  &tio);
+  ioctl(0, TIOCSTART, NULL);
+
+  succeed;
+}
+
+
+bool
+PopTty(ttybuf *buf)
+{ ttymode = buf->mode;
+
+  if ( status.notty )
+    succeed;
+
+  ioctl(0, TIOCSETP,  &buf->tab);
+  ioctl(0, TIOCSTART, NULL);
+
+  succeed;
+}
+
+#else /*HAVE_SGTTYB*/
+
 bool
 PushTty(buf, mode)
 ttybuf *buf;
@@ -1982,7 +2042,8 @@ ttybuf *buf;
   succeed;
 }
 
-#endif /* O_TERMIO */
+#endif /*HAVE_SGTTYB*/
+#endif /*O_TERMIO*/
 
 
 		/********************************
@@ -2194,9 +2255,25 @@ related I/O in the child process.
 
 #ifdef unix
 #define SPECIFIC_SYSTEM 1
-#ifdef HAVE_SYS_WAIT_H
+#if defined(HAVE_SYS_WAIT_H) || defined(UNION_WAIT)
 #include <sys/wait.h>
 #endif
+
+#ifdef UNION_WAIT
+
+#define wait_t union wait
+
+#ifndef WEXITSTATUS
+#define WEXITSTATUS(s) ((s).w_status)
+#endif
+#ifndef WTERMSIG
+#define WTERMSIG(s) ((s).w_status)
+#endif
+
+#else /*UNION_WAIT*/
+
+#define wait_t int
+
 #ifndef WEXITSTATUS
 # define WEXITSTATUS(stat_val) ((unsigned)(stat_val) >> 8)
 #endif
@@ -2204,11 +2281,7 @@ related I/O in the child process.
 # define WIFEXITED(stat_val) (((stat_val) & 255) == 0)
 #endif
 
-#ifdef UNION_WAIT
-#define wait_t union wait
-#else
-#define wait_t int
-#endif
+#endif /*UNION_WAIT*/
 
 int
 System(char *cmd)

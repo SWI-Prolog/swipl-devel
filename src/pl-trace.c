@@ -227,13 +227,14 @@ again:
     Putf(" ? ");
     pl_flush();
     if ( status.notty )
-    { readLine(buf, 0);
+    { buf[0] = EOS;
+      readLine(buf);
     } else
     { buf[0] = getSingleChar();
       buf[1] = EOS;
       if ( isDigit(buf[0]) || buf[0] == '/' )
       { Putf(buf);
-	readLine(&buf[1], 0);
+	readLine(buf);
       }
     }
     if ((action = traceAction(buf, port, frame, status.notty ? FALSE : TRUE))
@@ -438,20 +439,20 @@ traceAction(char *cmd, int port, LocalFrame frame, bool interactive)
 static void
 helpTrace(void)
 { Putf("Options:\n");
-  Putf("+:                 spy        -:                 no spy\n");
-  Putf("/ports goal:       find       .:                 repeat find\n");
-  Putf("a:                 abort      A:                 alternatives\n");
-  Putf("b:                 break      c (return, space): creep\n");
-  Putf("d:                 display    e:                 exit\n");
-  Putf("f:                 fail       [depth] g:         goals\n");
-  Putf("h (?):             help       i:                 ignore\n");
-  Putf("l:                 leap       L:                 listing\n");
-  Putf("n:                 no debug   p:                 print\n");
-  Putf("r:                 retry      s:                 skip\n");
-  Putf("u:                 up         w:                 write\n");
-  Putf("C:                 toggle show context\n");
+  Putf("+:                  spy        -:                 no spy\n");
+  Putf("/c|e|r|f|u|a} goal: find       .:                 repeat find\n");
+  Putf("a:                  abort      A:                 alternatives\n");
+  Putf("b:                  break      c (return, space): creep\n");
+  Putf("d:                  display    e:                 exit\n");
+  Putf("f:                  fail       [depth] g:         goals\n");
+  Putf("h (?):              help       i:                 ignore\n");
+  Putf("l:                  leap       L:                 listing\n");
+  Putf("n:                  no debug   p:                 print\n");
+  Putf("r:                  retry      s:                 skip\n");
+  Putf("u:                  up         w:                 write\n");
+  Putf("C:                  toggle show context\n");
 #if O_DEBUG
-  Putf("[level] D:	   set system debug level\n");
+  Putf("[level] D:	    set system debug level\n");
 #endif
 }
 

@@ -145,6 +145,7 @@ __pl_export functor_t __pl_constf PL_functor(const term_t);
 __pl_export atomic_t __pl_constf  PL_functor_name(const functor_t);
 __pl_export int __pl_constf	PL_functor_arity(const functor_t);
 __pl_export term_t __pl_constf	PL_arg(const term_t, int);
+__pl_export term_t * PL_univg(const term_t, atomic_t *, int *, term_t *);
 __pl_export term_t __pl_constf	PL_strip_module(const term_t, module_t*);
 
 

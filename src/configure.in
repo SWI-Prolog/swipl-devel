@@ -114,6 +114,7 @@ echo "	LIBS=$LIBS"
 AC_CHECK_HEADERS(unistd.h string.h memory.h sys/time.h sys/stat.h pwd.h)
 AC_CHECK_HEADERS(sys/select.h sys/param.h sys/file.h sys/resource.h malloc.h)
 AC_CHECK_HEADERS(sys/termios.h sys/termio.h)
+AC_CHECK_HEADERS(mach-o/rld.h)
 
 AC_CHECK_FUNCS(access chmod dossleep fstat readlink getcwd getdtablesize)
 AC_CHECK_FUNCS(getpagesize getpwnam getrlimit gettimeofday opendir)
@@ -140,6 +141,20 @@ AC_TRY_COMPILE(
 [;
 ], true, AC_DEFINE(NO_SYS_IOCTL_H_WITH_SYS_TERMIOS_H))
 if test "$GCC" = "yes"; then CFLAGS="$ac_oldcflags"; fi
+
+if test -z "$ac_cv_header_sys_termio_h" -a -z "$ac_cv_header_sys_termios_h"; then
+AC_MSG_CHECKING("struct sgttyb")
+AC_TRY_COMPILE(
+[
+#include <sys/types.h>
+#include <sys/ioctl.h>
+],
+[ struct sgttyb buf;
+  ;
+], AC_DEFINE(HAVE_SGTTYB)
+   AC_MSG_RESULT(yes),
+   AC_MSG_RESULT(no))
+fi
 
 
 AC_MSG_CHECKING("for type uchar")

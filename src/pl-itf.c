@@ -127,6 +127,48 @@ PL_arg(const term_t t, int n)
   return (term_t) a;
 }
 
+
+term_t *
+PL_univg(const term_t t, atomic_t *name, int *size, term_t *argv)
+{ if ( isTerm(*t) )
+  { FunctorDef f = functorTerm(*t);
+    int arity;
+
+    *name = (atomic_t) f->name;
+    arity = f->arity;
+
+    if ( arity <= *size )
+    { Word a0;
+      Word *av;
+
+    ok:
+      av = argv;
+      a0 = argTermP(*(Word)t, 0);
+      *size = arity;
+      for( ; --arity >= 0; a0++, av++)
+	deRef2(a0, *av);
+
+      return argv;
+    }
+    if ( argv == NULL )
+    { argv = malloc(sizeof(term_t) * arity);
+      goto ok;
+    }
+
+    *size = arity;
+    return NULL;
+  } else if ( isAtom(*t) )
+  { *name = *t;
+    *size = 0;
+
+    return argv;
+  }
+
+  *name = (atomic_t) NULL;
+  return NULL;
+}
+
+
 __pl_constf term_t
 PL_strip_module(const term_t t, Module *m)
 { return (term_t) stripModule(t, m);

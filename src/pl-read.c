@@ -1067,7 +1067,7 @@ complex_term(char *stop, Word term)
 
 	Modify(in_op.left_pri);
 	if ( rmo == 1 )
-	{ Reduce(in_op.left_pri > side_p->right_pri);
+	{ Reduce(in_op.op_pri > side_p->right_pri);
 	  PushOp();
 	  rmo--;
 
@@ -1079,7 +1079,7 @@ complex_term(char *stop, Word term)
 
 	Modify(in_op.left_pri);
 	if ( rmo == 1 )
-	{ Reduce(in_op.left_pri > side_p->right_pri);
+	{ Reduce(in_op.op_pri > side_p->right_pri);
 	  PushOp();	
 	
 	  continue;
@@ -1088,7 +1088,6 @@ complex_term(char *stop, Word term)
       if ( rmo == 0 && isOp((Atom) in, OP_PREFIX, &in_op) )
       { DEBUG(1, Sdprintf("Prefix op: %s\n", stringAtom((Atom) in)));
 	
-	Reduce(in_op.left_pri > side_p->right_pri);
 	PushOp();
 
 	continue;

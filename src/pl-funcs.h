@@ -127,7 +127,7 @@ Char		getSingleChar(void);
 bool		put_character(Char c);
 word		Putf(char *fm, ...);
 word		vPutf(char *fm, va_list args);
-bool		readLine(char *buffer, int stream);
+bool		readLine(char *buffer);
 int		currentInputLine(void);
 bool		told(void);
 bool		see(word f);

@@ -598,7 +598,7 @@ Word file;
 	  execvp("/etc/execerror", buf);
 	case -1:
 	  warning("Couldn't exec /etc/execerror: %s", OsError());
-	}
+      }
     }
     fail;
   }
@@ -636,7 +636,11 @@ by the C code; filenames should be  either full pathnames or 'library()'
 names that expand to a full pathname.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifdef HAVE_MACH_O_RLD_H
+#include <mach-o/rld.h>
+#else
 #include <rld.h>
+#endif
 #include <strings.h>
 #include <streams/streams.h>
 
@@ -645,7 +649,7 @@ extern char *mktemp(char *template);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 the rld_...  routines  spew  their  complaints   on  a  stream  of  type
-NXStream.  We do not want to print   these  to Serror or Soutput, because
+NXStream.  We do not want to print   these to Serror or Soutput, because
 the 'current stream' mechanism of prolog   is  circumvented in this way.
 We open a temp file instead, informing the user this file exists only if
 an error occurred and errno == 0.
@@ -708,7 +712,7 @@ Word file, entry, options, libraries, size;
    maxstrings = (strlen(sfile)/ 2) +1;
    if ((object_filenames = 
       (char **)calloc((size_t)maxstrings,sizeof(char *))) == (void *)NULL)
-   fatalError("%s", OsError());
+     fatalError("%s", OsError());
 
    stringno = 0;
    if (*sfile != '\0') 

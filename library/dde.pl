@@ -106,7 +106,7 @@ dde_current_connection(Service, Topic) :-
 %	connection is requested by another Prolog, 1 otherwise.
 
 '$dde_connect'(_Service, _Topic, Self) :-
-	dde_service(Service, Topic, _, _, _, ).
+	dde_service(Service, Topic, _, _, _, _).
 
 %	$dde_connect_confirm(+Service, +Topic, +Handle)
 %

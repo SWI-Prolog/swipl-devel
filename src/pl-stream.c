@@ -25,7 +25,7 @@
 #include <errno.h>
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
-#endif HAVE_MALLOC_H
+#endif
 #include <memory.h>
 #include <string.h>
 #include <fcntl.h>
@@ -123,7 +123,7 @@ S__flushbufc(int c, IOSTREAM *s)
 }
 
 
-static int
+int
 S__fillbuf(IOSTREAM *s)
 { if ( s->flags & (SIO_FEOF|SIO_FERR) )
     return -1;
@@ -173,30 +173,34 @@ S__fillbuf(IOSTREAM *s)
 		 *******************************/
 
 
-static void
-S__updatefilepos(IOPOS *p, int c)
-{ switch(c)
-  { case '\n':
-      p->lineno++;
-      p->linepos = 0;
-/*    p->flags &= ~SIO_NOLINEPOS; TBD*/
-      break;
-    case '\r':
-      p->linepos = 0;
-      break;
-    case '\b':
-      if ( p->linepos > 0 )
-	p->linepos--;
-      break;
-    case EOF:
-      return;
-    case '\t':
-      p->linepos |= 7;
-    default:
-      p->linepos++;
+inline int
+S__fupdatefilepos(IOPOS *p, int c)
+{ if ( p )
+  { switch(c)
+    { case '\n':
+	p->lineno++;
+        p->linepos = 0;
+/*      p->flags &= ~SIO_NOLINEPOS; TBD*/
+        break;
+      case '\r':
+	p->linepos = 0;
+	break;
+      case '\b':
+	if ( p->linepos > 0 )
+	  p->linepos--;
+	break;
+      case EOF:
+	return c;
+      case '\t':
+	p->linepos |= 7;
+      default:
+	p->linepos++;
+    }
+  
+    p->charno++;
   }
 
-  p->charno++;
+  return c;
 }
 
 
@@ -216,15 +220,12 @@ Sputc(int c, IOSTREAM *s)
       return -1;
   }
 
-  if ( s->position )
-    S__updatefilepos(s->position, c);
-
-  return c;
+  return S__updatefilepos(s, c);
 }
 
 
 int
-Sgetc(IOSTREAM *s)
+Sfgetc(IOSTREAM *s)
 { int c;
 
   if ( s->bufp < s->limitp )
@@ -232,10 +233,7 @@ Sgetc(IOSTREAM *s)
   else
     c = S__fillbuf(s);
 
-  if ( s->position )
-    S__updatefilepos(s->position, c);
-
-  return c;
+  return S__updatefilepos(s, c);
 }
 
 
@@ -614,6 +612,7 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	    *fe++ = va_arg(args, int);
 	    break;
 	  case 'd':
+	  case 'p':
 	  case 'i':
 	  case 'o':
 	  case 'u':
@@ -1135,6 +1134,9 @@ Sopen_file(char *path, char *how)
 
   if ( fd < 0 )
     return NULL;
+
+  if ( how[1] == 'b' )
+    flags &= ~SIO_RECORDPOS;
 
   return Snew((void *)fd, flags, &Sfilefunctions);
 }

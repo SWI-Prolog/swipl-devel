@@ -124,6 +124,7 @@ copyTermToHeap2(register Word term, Record result, Word copy)
     copyTermToHeap2(term, result, copy);
 }
 
+
 Record
 copyTermToHeap(Word term)
 { mark m;

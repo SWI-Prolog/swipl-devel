@@ -45,6 +45,7 @@ static bool	loadPart(IOSTREAM *fd, Module *module, int skip);
 static bool	loadInModule(IOSTREAM *fd, int skip);
 static int	qlfVersion(IOSTREAM *s);
 
+#define Qgetc(s) Snpgetc(s)		/* ignore position recording */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 SWI-Prolog can compile Prolog source files into intermediate code files, 
@@ -471,13 +472,13 @@ loadXRc(int c, IOSTREAM *fd)
 
 static word
 loadXR(IOSTREAM *fd)
-{ return loadXRc(Sgetc(fd), fd);
+{ return loadXRc(Qgetc(fd), fd);
 }
 
 
 static void
 do_load_qlf_term(IOSTREAM *fd, Word *vars, Word term)
-{ int c = Sgetc(fd);
+{ int c = Qgetc(fd);
 
   if ( c == 'v' )
   { int id = getNum(fd);
@@ -855,7 +856,7 @@ static bool
 qlfLoadSource(IOSTREAM *fd)
 { char *str = getString(fd);
   long time = getstdw(fd);
-  int issys = (Sgetc(fd) == 's') ? TRUE : FALSE;
+  int issys = (Qgetc(fd) == 's') ? TRUE : FALSE;
   Atom fname;
 
   if ( qlf_has_moved && strprefix(str, qlf_save_dir) )
@@ -888,11 +889,11 @@ loadPart(IOSTREAM *fd, Module *module, int skip)
   SourceFile of = currentSource;
   int stchk     = debugstatus.styleCheck;
 
-  switch(Sgetc(fd))
+  switch(Qgetc(fd))
   { case 'M':
     { word mname = loadXR(fd);
 
-      switch( Sgetc(fd) )
+      switch( Qgetc(fd) )
       { case '-':
 	{ modules.source = lookupModule((Atom) mname);
 					/* TBD: clear module? */
@@ -921,7 +922,7 @@ loadPart(IOSTREAM *fd, Module *module, int skip)
 	    *module = modules.source;
 
 	  for(;;)
-	  { switch(Sgetc(fd))
+	  { switch(Qgetc(fd))
 	    { case 'E':
 	      { FunctorDef f = (FunctorDef) loadXR(fd);
 
@@ -969,7 +970,7 @@ loadPart(IOSTREAM *fd, Module *module, int skip)
   }
 
   for(;;)
-  { int c = Sgetc(fd);
+  { int c = Qgetc(fd);
 
     switch(c)
     { case 'X':
@@ -997,7 +998,7 @@ loadInModule(IOSTREAM *fd, int skip)
   modules.source = lookupModule((Atom) mname);
   
   for(;;)
-  { int c = Sgetc(fd);
+  { int c = Qgetc(fd);
 
     switch(c)
     { case 'X':
@@ -1631,7 +1632,7 @@ qlfLoad(char *file, Module *module)
     qlf_save_dir = stringAtom(lookupAtom(DirName(abssavename)));
   }
 
-  if ( Sgetc(fd) != 'Q' )
+  if ( Qgetc(fd) != 'Q' )
     return qlfLoadError(fd, "qlfLoad()");
 
   pushXrIdTable();

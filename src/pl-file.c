@@ -352,6 +352,49 @@ getSingleChar(void)
 }
 
 
+#ifndef DEL
+#define DEL 127
+#endif
+
+bool
+readLine(char *buffer)
+{ int oldin = Input;
+  int oldout = Output;
+  int c;
+  char *buf = &buffer[strlen(buffer)];
+  ttybuf tbuf;
+
+  Input = 0;
+  Output = 1;
+  PushTty(&tbuf, TTY_RAW);		/* just donot prompt */
+
+  for(;;)
+  { flush();
+
+    switch( (c=Get0()) )
+    { case '\n':
+      case '\r':
+      case EOF:
+        *buf++ = EOS;
+        Input = oldin;
+	Output = oldout;
+	PopTty(&tbuf);
+
+	return c == EOF ? FALSE : TRUE;
+      case '\b':
+      case DEL:
+	if ( buf > buffer )
+	{ Putf("\b \b");
+	  buf--;
+	}
+      default:
+	Put(c);
+	*buf++ = c;
+    }
+  }
+}
+
+
 bool
 Put(int c)
 { IOSTREAM *s = fileTable[Output].stream;
@@ -398,42 +441,6 @@ Putf(char *fm, ...)
 word
 vPutf(char *fm, va_list args)
 { return Svfprintf(fileTable[Output].stream, fm, args) < 0 ? FALSE : TRUE;
-}
-
-
-bool
-readLine(char *buffer, int stream)
-{ int oldin = Input;
-  Char c;
-  ttybuf tbuf;
-  char *buf = buffer;
-
-  Input = stream;
-  PushTty(&tbuf, TTY_RAW);		/* donot prompt! */
-  for(;;)
-  { switch( (c=Get0()) )
-    { case '\n':
-      case '\r':
-      case EOF:
-	PopTty(&tbuf);
-
-        *buf++ = EOS;
-        Input = oldin;
-
-	return c == EOF ? FALSE : TRUE;
-      case '\b':
-	if ( buf > buffer )
-	{ buf--;
-	  Putf("\b \b");
-	}
-	break;
-      default:
-	buf[0] = c;
-	buf[1] = EOS;
-	Putf(buf);
-	buf++;
-    }
-  }
 }
 
 

@@ -149,6 +149,9 @@ pl_current_module(Word module, Word file, word h)
 { Symbol symb = firstHTable(moduleTable);
   mark mark;
 
+  if ( ForeignControl(h) == FRG_CUTTED )
+    succeed;
+
 					/* deterministic cases */
   if ( isAtom(*module) )
   { for(; symb; symb = nextHTable(moduleTable, symb) )
@@ -178,9 +181,8 @@ pl_current_module(Word module, Word file, word h)
     case FRG_REDO:
       symb = (Symbol) ForeignContextAddress(h);
       break;
-    case FRG_CUTTED:
     default:
-      succeed;
+      assert(0);
   }
 
   DoMark(mark);
