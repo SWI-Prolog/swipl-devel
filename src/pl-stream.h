@@ -121,6 +121,8 @@ typedef struct io_position
   int			linepos;	/* position in line */
 } IOPOS;
 
+					/* NOTE: check with encoding_names */
+					/* in pl-file.c */
 typedef enum
 { ENC_UNKNOWN = 0,			/* invalid/unknown */
   ENC_NONE,				/* raw 8 bit input */

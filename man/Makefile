@@ -32,8 +32,8 @@ PDF=		MANUAL.pdf
 ONLINE=		../library/MANUAL
 ONLINE_INDEX=	../library/helpidx.pl
 
-WWWMAN=		/export/home/www/docs/projects/SWI-Prolog/Manual
-FTPDIR=		/export/home/ftp/docs/SWI-Prolog
+WWWMAN=		~ftp/SWI-Prolog/Manual
+FTPDIR=		~ftp/SWI-Prolog
 
 LIBFILES=	lib/library.tex lib/readutil.tex lib/netscape.tex \
 		lib/registry.tex lib/check.tex lib/url.tex lib/debug.tex \

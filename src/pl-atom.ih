@@ -542,3 +542,4 @@
 #define ATOM_unicode_be   MK_ATOM(541)
 #define ATOM_unicode_le   MK_ATOM(542)
 #define ATOM_byte         MK_ATOM(543)
+#define ATOM_wchar_t      MK_ATOM(544)

@@ -1968,6 +1968,7 @@ static struct encname
   { ENC_UTF8,        ATOM_utf8 },
   { ENC_UNICODE_BE,  ATOM_unicode_be },
   { ENC_UNICODE_LE,  ATOM_unicode_le },
+  { ENC_WCHAR,	     ATOM_wchar_t },
   { ENC_NONE,        0 },
 };
 
