@@ -202,7 +202,7 @@ compareMatch(const void *m1, const void *m2)
 }
 
 
-bool
+static bool
 extend_alternatives(char *prefix, struct match *altv, int *altn)
 { Atom a = atomTable[0];
   char *as;
@@ -258,16 +258,6 @@ pl_atom_completions(Word prefix, Word alts)
 
 
 #ifdef HAVE_LIBREADLINE
-
-static char *
-xmalloc(int size)
-{ char *result = malloc(size);
-
-  if ( !result )
-    fatalError("Not enough core");
-
-  return result;
-}
 
 #define savestring(x) strcpy(xmalloc(1 + strlen(x)), (x))
 

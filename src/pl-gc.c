@@ -10,10 +10,9 @@
 /*#define O_DEBUG 1*/
 /*#define O_SECURE 1*/
 #include "pl-incl.h"
-#include <memory.h>
 
-#ifdef __sun__
-#define memmove(t, f, s) bcopy(t, f, s)
+#ifndef HAVE_MEMMOVE			/* Note order!!!! */
+#define memmove(dest, src, n) bcopy(src, dest, n)
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -100,11 +99,12 @@ Marking, testing marks and extracting values from GC masked words.
 #endif
 
 #define ldomark(p)	{ *(p) |= MARK_MASK; }
-#define domark(p)	{ if ( marked(p) ) sysError("marked twice: 0x%lx (*= 0x%lx), gTop = 0x%lx", p, *(p), gTop); \
+#define domark(p)	{ if ( marked(p) ) \
+			    sysError("marked twice: 0x%p (*= 0x%lx), gTop = 0x%p", p, *(p), gTop); \
 			  *(p) |= MARK_MASK; \
 			  total_marked++; \
 			  recordMark(p); \
-			  DEBUG(4, printf("marked(0x%lx)\n", p)); \
+			  DEBUG(4, printf("marked(0x%p)\n", p)); \
 			}
 #define unmark(p)	(*(p) &= ~MARK_MASK)
 #define marked(p)	(*(p) & MARK_MASK)
@@ -233,12 +233,13 @@ offset_cell(Word p)
 { word w = get_value(p);
 
   if ( (w & DATA_TAG_MASK) == REAL_MASK )
-  { DEBUG(3, printf("REAL at 0x%lx (w = 0x%lx)\n", p, w));
+  { DEBUG(3, printf("REAL at 0x%p (w = 0x%lx)\n", p, w));
     return 1;
   }
   if ( (w & DATA_TAG_MASK) == STRING_MASK )
   { long l = ((w) << DMASK_BITS) >> (DMASK_BITS+LMASK_BITS);
-    DEBUG(3, printf("STRING ``%s'' at 0x%lx (w = 0x%lx)\n", p, p+1, w));
+    DEBUG(3, printf("STRING ``%s'' at 0x%p (w = 0x%lx)\n",
+		    (char *) p, p+1, w));
     return allocSizeString(l) / sizeof(word) - 1;
   }
   
@@ -299,7 +300,7 @@ mark_variable(Word start)
   register word val;			/* old value of current cell */
   register Word next;			/* cell to be examined */
 
-  DEBUG(3, printf("marking 0x%lx\n", start));
+  DEBUG(3, printf("marking 0x%p\n", start));
 
   if ( marked(start) )
     sysError("Attempth to mark twice");
@@ -319,14 +320,14 @@ forward:				/* Go into the tree */
   if ( isRef(val) )
   { next = unRef(val);			/* address pointing to */
     if ( next < gBase )
-      sysError("REF pointer to 0x%lx\n", next);
+      sysError("REF pointer to 0x%p\n", next);
     needsRelocation(current);
     relocation_refs++;
     if ( is_first(next) )		/* ref to choice point. we will */
       BACKWARD;				/* get there some day anyway */
     val  = get_value(next);		/* invariant */
     set_value(next, makeRef(current));	/* create backwards pointer */
-    DEBUG(5, printf("Marking REF from 0x%lx to 0x%lx\n", current, next));
+    DEBUG(5, printf("Marking REF from 0x%p to 0x%p\n", current, next));
     current = next;			/* invariant */
     FORWARD;
   }
@@ -341,11 +342,11 @@ forward:				/* Go into the tree */
     needsRelocation(current);
     next = (Word) val;			/* address of term on global stack */
     if ( next < gBase || next >= gTop )
-      sysError("TERM pointer to 0x%lx\n", next);
+      sysError("TERM pointer to 0x%p\n", next);
     if ( marked(next) )
       BACKWARD;				/* term has already been marked */
     args = functorTerm(val)->arity - 1;	/* members to flag first */
-    DEBUG(5, printf("Marking TERM %s/%d at 0x%lx\n", stringAtom(functorTerm(val)->name), args+1, next));
+    DEBUG(5, printf("Marking TERM %s/%d at 0x%p\n", stringAtom(functorTerm(val)->name), args+1, next));
     domark(next);
     for( next += 2; args > 0; args--, next++ )
       mark_first(next);
@@ -359,7 +360,7 @@ forward:				/* Go into the tree */
   { next = (Word) unMask(val);
 
     if ( next < gBase )
-      sysError("INDIRECT pointer from 0x%lx to 0x%lx\n", current, next);
+      sysError("INDIRECT pointer from 0x%p to 0x%p\n", current, next);
     needsRelocation(current);
     relocation_indirect++;
     if ( marked(next) )			/* can be referenced from multiple */
@@ -417,7 +418,7 @@ mark_foreign(void)
 	{ Word sp = (Word) lockAddress(*l);
 
 	  if ( isGlobalRef(*sp) )
-	  { DEBUG(5, printf("Marking foreign value at 0x%lx\n"));
+	  { DEBUG(5, printf("Marking foreign value at 0x%p\n"));
 	    mark_variable(sp);
 	  }
 
@@ -427,7 +428,7 @@ mark_foreign(void)
 	{ Word *sp = (Word *) lockAddress(*l);
 
 	  if ( !marked(*sp) && isGlobalRef(**sp) )
-	  { DEBUG(5, printf("Marking foreign pointer at 0x%lx\n"));
+	  { DEBUG(5, printf("Marking foreign pointer at 0x%p\n"));
 	    mark_variable(*sp);
 	  }
 
@@ -526,7 +527,7 @@ mark_choicepoints(LocalFrame bfr)
         trailcells_deleted++;
       } else if ( !marked(te->address) )
       { setVar(*te->address);
-        DEBUG(3, printf("Early reset of 0x%lx\n", te->address));
+        DEBUG(3, printf("Early reset of 0x%p\n", te->address));
         te->address = (Word) NULL;
 	trailcells_deleted++;
       }
@@ -585,7 +586,7 @@ mark_phase(LocalFrame fr)
 #endif
 
   DEBUG(2, { long size = gTop - gBase;
-	     printf("%ld referenced cell; %ld garbage (gTop = 0x%lx)\n",
+	     printf("%ld referenced cell; %ld garbage (gTop = 0x%p)\n",
 		    total_marked, size - total_marked, gTop);
 	   });
 }
@@ -628,24 +629,24 @@ update_relocation_chain(Word current, Word dest)
   { Word head = current;
     word val = get_value(current);
 
-    DEBUG(3, printf("unwinding relocation chain at 0x%lx to 0x%lx\n", current, dest));
+    DEBUG(3, printf("unwinding relocation chain at 0x%p to 0x%p\n", current, dest));
 
     do
     { unmark_first(current);
       if ( isRef(val) )
       { current = unRef(val);
         val = get_value(current);
-	DEBUG(3, printf("Ref from 0x%lx\n", current));
+	DEBUG(3, printf("Ref from 0x%p\n", current));
         set_value(current, makeRef(dest));
       } else if ( isIndirect(val) )
       { current = (Word)unMask(val);
         val = get_value(current);
-        DEBUG(3, printf("Indirect link from 0x%lx\n", current));
+        DEBUG(3, printf("Indirect link from 0x%p\n", current));
         set_value(current, (word)dest | INDIRECT_MASK);
       } else
       { current = (Word) val;
         val = get_value(current);
-        DEBUG(3, printf("Pointer from 0x%lx\n", current));
+        DEBUG(3, printf("Pointer from 0x%p\n", current));
         set_value(current, (word)dest);
       }
       relocated_cells++;
@@ -677,7 +678,7 @@ into_relocation_chain(Word current)
     set_value(current, get_value(head));
     set_value(head, (word)current);
   }
-  DEBUG(2, printf("Into relocation chain: 0x%lx (head = 0x%lx)\n",
+  DEBUG(2, printf("Into relocation chain: 0x%p (head = 0x%p)\n",
 		  current, head));
 
   if ( is_first(head) )
@@ -722,7 +723,7 @@ compact_trail(void)
     else
     { Symbol s;
       if ( (s=lookupHTable(check_table, current)) != NULL && s->value == TRUE )
-        sysError("0x%lx was supposed to be relocated (*= 0x%lx)",
+        sysError("0x%p was supposed to be relocated (*= 0x%p)",
 		 current, current->address);
     }
 #endif
@@ -934,7 +935,7 @@ is_upward_ref(Word p)
 
   if ( (Word)val > p && (Word)val < gTop && !marked((Word)val) )
     sysError("Pointer to term should be marked (up) \n\
-	     p = 0x%lx, val = 0x%lx, *val = 0x%lx, gTop = 0x%lx",
+	     p = 0x%p, val = 0x%p, *val = 0x%p, gTop = 0x%p",
 	     p, val, *((Word)val), gTop);
 
   return (Word)val > p && (Word)val < gTop;
@@ -959,10 +960,10 @@ compact_global(void)
     {
 #if O_SECURE
       if ( current != *--v )
-        sysError("Marked cell at 0x%lx (*= 0x%lx); gTop = 0x%lx; should have been 0x%lx", current, *current, gTop, *v);
+        sysError("Marked cell at 0x%p (*= 0x%p); gTop = 0x%p; should have been 0x%p", current, *current, gTop, *v);
 #endif
       dest -= offset + 1;
-      DEBUG(3, printf("Marked cell at 0x%lx (size = %ld; dest = 0x%lx)\n",
+      DEBUG(3, printf("Marked cell at 0x%p (size = %ld; dest = 0x%p)\n",
 						current, offset+1, dest));
       update_relocation_chain(current, dest);
       if ( is_downward_ref(current) )
@@ -977,14 +978,14 @@ compact_global(void)
 #if O_SECURE
   if ( v != mark_base )
   { for( v--; v >= mark_base; v-- )
-    { printf("Expected marked cell at 0x%lx, (*= 0x%lx)\n", *v, **v);
+    { printf("Expected marked cell at 0x%p, (*= 0x%lx)\n", *v, **v);
     }
-    sysError("v = 0x%lx; mark_base = 0x%lx", v, mark_base);
+    sysError("v = 0x%p; mark_base = 0x%p", v, mark_base);
   }
 #endif
 
   if ( dest != gBase )
-    sysError("Mismatch in down phase: dest = 0x%lx, gBase = 0x%lx\n",
+    sysError("Mismatch in down phase: dest = 0x%p, gBase = 0x%p\n",
 							dest, gBase);
   if ( relocation_cells != relocated_cells )
     sysError("After down phase: relocation_cells = %ld; relocated_cells = %ld",
@@ -1025,7 +1026,7 @@ compact_global(void)
   }
 
   if ( dest != gBase + total_marked )
-    sysError("Mismatch in up phase: dest = 0x%lx, gBase + total_marked = 0x%lx\n", dest, gBase + total_marked );
+    sysError("Mismatch in up phase: dest = 0x%p, gBase + total_marked = 0x%p\n", dest, gBase + total_marked );
 
   gTop = dest;
 }
@@ -1100,11 +1101,11 @@ scan_global()
     if ( onGlobal(*current) && !isTerm(*current) )
       sysError("Pointer on global stack is not a term");
     if ( marked(current) || is_first(current) )
-    { warning("Illegal cell in global stack (up) at 0x%lx (*= 0x%lx)", current, *current);
+    { warning("Illegal cell in global stack (up) at 0x%p (*= 0x%p)", current, *current);
       if ( isAtom(*current) )
-	warning("0x%lx is atom %s", current, stringAtom(*current));
+	warning("0x%p is atom %s", current, stringAtom(*current));
       if ( isTerm(*current) )
-	warning("0x%lx is term %s/%d", current,
+	warning("0x%p is term %s/%d", current,
 				       stringAtom(functorTerm(*current)->name),
 				       functorTerm(*current)->arity);
       if ( ++errors > 10 )
@@ -1118,7 +1119,7 @@ scan_global()
   { cells --;
     current -= offset_cell(current);
     if ( marked(current) || is_first(current) )
-    { warning("Illegal cell in global stack (down) at 0x%lx (*= 0x%lx)", current, *current);
+    { warning("Illegal cell in global stack (down) at 0x%p (*= 0x%p)", current, *current);
       if ( ++errors > 10 )
       { printf("...\n");
         break;
@@ -1186,10 +1187,10 @@ garbageCollect(LocalFrame fr)
   collect_phase(fr);
 #if O_SECURE
   if ( !scan_global() )
-    sysError("Stack not ok after gc; gTop = 0x%lx", gTop);
+    sysError("Stack not ok after gc; gTop = 0x%p", gTop);
   free(mark_base);
 #endif
-  DEBUG(0, printf("(gained %ld+%ld; used: %ld+%ld; free: %ld+%ld bytes)\n",
+  DEBUG(0, printf("(gained %ld+%ld; used: %d+%d; free: %d+%d bytes)\n",
 		  ggar, tgar,
 		  usedStack(global), usedStack(trail),
 		  roomStack(global), roomStack(trail)));
@@ -1286,7 +1287,7 @@ void
 unlockp(Void ptr)
 { Lock l = --pTop;
 
-  DEBUG(5, printf("unlockp(&0x%x (0x%x)) at 0x%x\n",
+  DEBUG(5, printf("unlockp(&0x%lx (0x%lx)) at 0x%lx\n",
 		  (unsigned long) ptr,
 		  (unsigned long) lockAddress(*l),
 		  (unsigned long) l));
@@ -1371,7 +1372,7 @@ long ls, gs;
     else if ( onLocal(unRef(*sp)) )
       *sp = makeRef(addPointer(unRef(*sp), ls));
     else
-      DEBUG(0, printf("Reference 0x%x neither to local- nor global stack\n",
+      DEBUG(0, printf("Reference 0x%p neither to local- nor global stack\n",
 		      unRef(*sp)));
     return;
   }
@@ -1417,7 +1418,7 @@ LocalFrame fr;
     local_frames++;
     clear_uninitialised(fr, PC);
 
-    DEBUG(1, printf("Check [%d] %s:",
+    DEBUG(1, printf("Check [%ld] %s:",
 		    levelFrame(fr),
 		    procedureName(fr->procedure)));
 
@@ -1426,7 +1427,7 @@ LocalFrame fr;
     for( n=0; n < slots; n++ )
       key += checkData(&sp[n], FALSE);
     checked += slots;
-    DEBUG(1, printf(" 0x%x\n", key));
+    DEBUG(1, printf(" 0x%lx\n", key));
 
     PC = fr->programPointer;
     if ( fr->parent )
@@ -1503,7 +1504,7 @@ long ls, gs, ts;
     local_frames++;
     
     DEBUG(2,
-	  printf("Shifting frame 0x%x [%ld] %s ... ",
+	  printf("Shifting frame 0x%p [%ld] %s ... ",
 		 fr, levelFrame(fr), procedureName(fr->procedure));
 	  fflush(stdout));
 
@@ -1521,7 +1522,7 @@ long ls, gs, ts;
 
       slots = (PC == NULL ? fr->procedure->functor->arity : slotsFrame(fr));
       sp = argFrameP(fr, 0);
-      DEBUG(2, printf("\n\t%d slots in 0x%x ... 0x%x ... ",
+      DEBUG(2, printf("\n\t%d slots in 0x%p ... 0x%p ... ",
 		      slots, sp, sp+slots));
       for( ; slots > 0; slots--, sp++ )
 	update_variable(sp, ls, gs);
@@ -1551,7 +1552,7 @@ update_choicepoints(bfr, ls, gs, ts)
 LocalFrame bfr;
 long ls, gs, ts;
 { for( ; bfr; bfr = bfr->backtrackFrame )
-  { DEBUG(1, printf("Updating choicepoints from 0x%x [%ld] %s ... ",
+  { DEBUG(1, printf("Updating choicepoints from 0x%p [%ld] %s ... ",
 		    bfr, levelFrame(bfr), procedureName(bfr->procedure)));
     update_environments(bfr, NULL, ls, gs, ts);
   }
@@ -1676,7 +1677,7 @@ long ls, gs, ts;
 { Lock l = pBase;
   int w=0, p=0, m=0;
 
-  DEBUG(1, printf("Locked references ...", pTop - pBase); fflush(stdout));
+  DEBUG(1, printf("Locked references ..."); fflush(stdout));
 
   for(l = pBase; l < pTop; l++)
   { switch(lockTag(*l))
@@ -1744,7 +1745,7 @@ Void lb, gb, tb;			/* bases addresses */
     { fr2 = update_environments(fr, PC, ls, gs, ts);
 
       update_choicepoints(fr->backtrackFrame, ls, gs, ts);
-      DEBUG(0, if ( fr2 ) printf("Update frames of C-parent at 0x%x\n", fr2));
+      DEBUG(0, if ( fr2 ) printf("Update frames of C-parent at 0x%p\n", fr2));
     }
 
     DEBUG(2, printf("%d frames ...", local_frames); fflush(stdout));
@@ -1806,7 +1807,7 @@ int l, g, t;
     real time = CpuTime();
 
     DEBUG(0,
-	  printf("growStacks(0x%x, 0x%x, %c%c%c) l+g+t = %ld %ld %ld ...",
+	  printf("growStacks(0x%p, 0x%p, %c%c%c) l+g+t = %ld %ld %ld ...",
 		 fr, PC,
 		 l ? 'l' : '-',
 		 g ? 'g' : '-',
@@ -1821,7 +1822,7 @@ int l, g, t;
 
     if ( t )
     { tsize = nextStackSize((Stack) &stacks.trail);
-      tb = realloc(tb, tsize);
+      tb = xrealloc(tb, tsize);
       shift_status.trail_shifts++;
     }
 
@@ -1838,22 +1839,26 @@ int l, g, t;
 	shift_status.local_shifts++;
       }
 
-      gb = realloc(gb, lsize + gsize + GL_SEPARATION);
+      gb = xrealloc(gb, lsize + gsize + GL_SEPARATION);
       lb = addPointer(gb, gsize + GL_SEPARATION);
       if ( g )				/* global enlarged; move local */
-	memmove(addPointer(gb, loffset), lb, lsize);
+	memmove(lb,   addPointer(gb, loffset), lsize);
+	     /* dest, src,                     size */
     }
       
 #define PrintStackParms(stack, name, newbase, newsize) \
-	{ printf("%6s: 0x%07x ... 0x%07x --> 0x%07x ... 0x%07x\n", \
-		 name, stacks.stack.base, stacks.stack.max, \
-		 newbase, addPointer(newbase, newsize)); \
+	{ printf("%6s: 0x%08lx ... 0x%08lx --> 0x%08lx ... 0x%08lx\n", \
+		 name, \
+		 (unsigned long) stacks.stack.base, \
+		 (unsigned long) stacks.stack.max, \
+		 (unsigned long) newbase, \
+		 (unsigned long) addPointer(newbase, newsize)); \
 	}
 
 
     DEBUG(0, { putchar('\n');
-	       PrintStackParms(local, "local", lb, lsize);
 	       PrintStackParms(global, "global", gb, gsize);
+	       PrintStackParms(local, "local", lb, lsize);
 	       PrintStackParms(trail, "trail", tb, tsize);
 	     });
 		    

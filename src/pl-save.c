@@ -433,7 +433,7 @@ restore(char *file, int (*allocf) (SaveSection))
 			  fail; \
 			} while(0)
 
-int
+static int
 fill_c_data_sections(interpreter, nsects, sections)
 char *interpreter;
 int *nsects;
@@ -496,7 +496,7 @@ SaveSection sections;
 #define C_DATA_SECTIONS 1
 #endif
 
-int
+static int
 fill_c_data_sections(char *interpreter, int *nsects, SaveSection sections)
 { sections[0].start	= (caddr) DATA_START;
   sections[0].length	= (long) DATA_END - (long) sections[0].start;

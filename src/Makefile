@@ -16,7 +16,7 @@
 ################################################################
 
 PL=pl
-prefix=/usr/local
+prefix=/staff/jan
 exec_prefix=${prefix}
 bindir=$(exec_prefix)/bin
 PLBASE=$(prefix)/lib/$(PL)
@@ -31,7 +31,7 @@ SED=sed
 LD_R=ld -r
 ETAGS=etags
 ARCH=sparc-sunos4.1.3
-INSTALL=/usr/gnu/bin/install -c
+INSTALL=/usr/local/bin/gnu/install -c
 INSTALL_PROGRAM=${INSTALL}
 INSTALL_DATA=${INSTALL} -m 644
 
@@ -151,6 +151,9 @@ tags:		TAGS
 TAGS:		$(SRC)
 		$(ETAGS) $(SRC) $(HDR)
 		
+pl-funcs.h:	$(SRC)
+		mkproto -p $(SRC) > $@
+
 install:	idirs iboot ilib iinclude iruntime iman
 		$(INSTALL_DATA) $(STARTUPPATH) $(PLBASE)/startup/startup.$(ARCH)
 		$(INSTALL_PROGRAM) $(PL) $(bindir)
@@ -215,7 +218,10 @@ iman:
 #
 
 clean:
-		rm -f *.o a.out core *~ #*
+		rm -f *.o a.out core *~ #* parms.h
+
+distclean:	clean
+		rm -f config.log config.cache
 
 realclean:	clean
 		rm -f $(STARTUPPATH)

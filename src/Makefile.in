@@ -150,6 +150,9 @@ tags:		TAGS
 TAGS:		$(SRC)
 		$(ETAGS) $(SRC) $(HDR)
 		
+pl-funcs.h:	$(SRC)
+		mkproto -p $(SRC) > $@
+
 install:	idirs iboot ilib iinclude iruntime iman
 		$(INSTALL_DATA) $(STARTUPPATH) $(PLBASE)/startup/startup.$(ARCH)
 		$(INSTALL_PROGRAM) $(PL) $(bindir)

@@ -109,17 +109,11 @@
 /* Define if <sys/ioctl> should *not* be included after <sys/termios.h> */
 #define NO_SYS_IOCTL_H_WITH_SYS_TERMIOS_H 1
 
-/* Define if -lreadline is present */
-#define HAVE_LIBREADLINE 1
-
 /* Define if, in addition to <errno.h>, extern int errno; is needed */
 /* #undef NEED_DECL_ERRNO */
 
 /* Define to "file.h" to include additional system prototypes */
 /* #undef SYSLIB_H */
-
-/* Define if running SunOs 5.x (solaris 2.x) */
-/* #undef __solaris__ */
 
 /* Define if you have the access function.  */
 #define HAVE_ACCESS 1
@@ -156,6 +150,9 @@
 
 /* Define if you have the getw function.  */
 #define HAVE_GETW 1
+
+/* Define if you have the memmove function.  */
+/* #undef HAVE_MEMMOVE */
 
 /* Define if you have the opendir function.  */
 #define HAVE_OPENDIR 1
@@ -267,6 +264,9 @@
 
 /* Define if you have the m library (-lm).  */
 #define HAVE_LIBM 1
+
+/* Define if you have the readline library (-lreadline).  */
+#define HAVE_LIBREADLINE 1
 
 /* Define if you have the termcap library (-ltermcap).  */
 #define HAVE_LIBTERMCAP 1

@@ -182,7 +182,7 @@ pl_metacut(void)
 }
 
 
-#if O_SECURE
+#if O_SECURE || O_DEBUG
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 checkData(p) verifies p points to valid  Prolog  data  and  generates  a
@@ -199,8 +199,9 @@ heap).
 #define onLocal(p) onStack(local, p)
 #define onHeap(p) ((char *)p >= (char *)hBase && (char *)p <= (char *)hTop)
 
+int
 trap_gdb()
-{
+{ return 0;
 }
 
 static void
