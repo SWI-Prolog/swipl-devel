@@ -1,6 +1,11 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 3.2.9
+=============
+
+  * FIXED: config.{sub,guess} for openbsd.  Contributed by Kamo Hiroyasu.
+
   * FIXED: Documentation of mod/2 and rem/2 (arithmetic).  Spotted by
     Koos Dering.
 
