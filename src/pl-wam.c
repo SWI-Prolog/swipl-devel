@@ -802,37 +802,6 @@ frameFinished(LocalFrame fr, enum finished reason ARG_LD)
   PL_discard_foreign_frame(cid);
 }
 
-		 /*******************************
-		 *	     TRAILING		*
-		 *******************************/
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Trail  an  assignment.  Note  that  -when  using  dynamic  stacks-,  the
-assignment should be made *before* calling Trail()!
-
-p is a pointer into the local or   global stack. We trail any assignment
-made in the local stack. If the current   mark is from a choice-point we
-could improve here. Some marks however are created in foreign code, both
-using PL_open_foreign_frame() and directly by   calling Mark(). It would
-be a good idea to remove the latter.
-
-Mark() sets LD->mark_bar, indicating  that   any  assignment  above this
-value need not be trailed.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#define Trail(p) \
-  if ( p >= (Word)lBase || p < LD->mark_bar ) \
-  { requireStack(trail, sizeof(struct trail_entry)); \
-    (tTop++)->address = p; \
-  }
-
-void
-DoTrail(Word p)
-{ GET_LD
-  Trail(p);
-}
-
-
 #ifdef O_DESTRUCTIVE_ASSIGNMENT
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -1258,7 +1258,8 @@ pl_wait_for_input(term_t Streams, term_t Available,
 
 int
 PL_get_char(term_t c, int *p)
-{ int chr;
+{ GET_LD
+  int chr;
   char *s;
   unsigned len;
 

@@ -39,7 +39,7 @@ See manual for details.
 #define CODE_MODE 1
 
 #define CTX_CHAR 0			/* Class(Char) */
-#define CTX_INT  1			/* Class(Int) */
+#define CTX_CODE  1			/* Class(Int) */
 
 typedef struct
 { atom_t	name;			/* name of the class */
@@ -230,8 +230,8 @@ const static char_type char_types[] =
   { ATOM_to_lower,	ftoupper,	ftolower, 1, CTX_CHAR },
   { ATOM_to_upper,	ftolower,	ftoupper, 1, CTX_CHAR },
   { ATOM_paren,		fparen,		rparen,   1, CTX_CHAR },
-  { ATOM_digit,		fdigit,		rdigit,   1, CTX_INT  },
-  { ATOM_xdigit,	fxdigit,	rxdigit,  1, CTX_INT  },
+  { ATOM_digit,		fdigit,		rdigit,   1, CTX_CODE  },
+  { ATOM_xdigit,	fxdigit,	rxdigit,  1, CTX_CODE  },
   { NULL_ATOM,		NULL }
 };
 

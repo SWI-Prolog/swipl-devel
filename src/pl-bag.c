@@ -85,15 +85,15 @@ Record a solution of bagof.  Key is a term  v(V0,  ...Vn),  holding  the
 variable binding for solution `Gen'.  Key is ATOM_mark for the mark.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-word
-pl_record_bag(term_t t)
-{ GET_LD
+static
+PRED_IMPL("$record_bag", 1, record_bag, 0)
+{ PRED_LD
   Assoc a = allocHeap(sizeof(*a));
 
-  if ( PL_is_atom(t) )
+  if ( PL_is_atom(A1) )
   { a->record = 0;
   } else
-    a->record = compileTermToHeap(t, 0);
+    a->record = compileTermToHeap(A1, 0);
 
   DEBUG(1, { Sdprintf("Recorded %p: ", a->record);
 	     pl_write(t);
@@ -110,13 +110,17 @@ pl_record_bag(term_t t)
 This predicate will fail if no more records are left before the mark.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-word
-pl_collect_bag(term_t bindings, term_t bag)
-{ GET_LD
-  term_t var_term = PL_new_term_ref();	/* v() term on global stack */
-  term_t list     = PL_new_term_ref();	/* list to construct */
-  term_t binding  = PL_new_term_ref();	/* current binding */
-  term_t tmp      = PL_new_term_ref();
+static
+PRED_IMPL("$collect_bag", 2, collect_bag, 0)
+{ PRED_LD
+  
+  term_t bindings = A1;
+  term_t bag = A2;
+
+  term_t var_term = PL_new_term_refs(4);	/* v() term on global stack */
+  term_t list     = var_term+1;			/* list to construct */
+  term_t binding  = var_term+2;			/* binding */
+  term_t tmp      = var_term+3;
   Assoc a, next;
   Assoc prev = NULL;
   
@@ -192,3 +196,13 @@ pl_except_bag(term_t ex)
 
   return PL_raise_exception(ex);
 }
+
+
+		 /*******************************
+		 *      PUBLISH PREDICATES	*
+		 *******************************/
+
+BeginPredDefs(bag)
+  PRED_DEF("$record_bag", 1, record_bag, 0)
+  PRED_DEF("$collect_bag", 2, collect_bag, 0)
+EndPredDefs

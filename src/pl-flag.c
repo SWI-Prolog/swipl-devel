@@ -44,6 +44,9 @@ struct flag
 #define LOCK()   PL_LOCK(L_FLAG)
 #define UNLOCK() PL_UNLOCK(L_FLAG)
 
+#undef LD
+#define LD LOCAL_LD
+
 void
 initFlags(void)
 { flagTable = newHTable(FLAGHASHSIZE);
@@ -51,7 +54,7 @@ initFlags(void)
 
 
 static Flag
-lookupFlag(word key)
+lookupFlag(word key ARG_LD)
 { Symbol symb;
   Flag f;
 
@@ -77,20 +80,25 @@ freeFlagValue(Flag f)
 }
 
 
-word
-pl_flag(term_t name, term_t old, term_t new)
-{ Flag f;
+static
+PRED_IMPL("flag", 3, flag, 0)
+{ PRED_LD
+  Flag f;
   word key;
   atom_t a;
   number n;
   word rval;
+
+  term_t name = A1;
+  term_t old = A2;
+  term_t new = A3;
 
   if ( !getKeyEx(name, &key PASS_LD) )
     fail;
   rval = FALSE;
 
   LOCK();
-  f = lookupFlag(key);
+  f = lookupFlag(key PASS_LD);
   switch(f->type)
   { case FLG_ATOM:
       if ( !PL_unify_atom(old, f->value.a) )
@@ -152,7 +160,8 @@ out:
 
 word
 pl_current_flag(term_t k, control_t h)
-{ Symbol symb;
+{ GET_LD
+  Symbol symb;
   TableEnum e;
 
   switch( ForeignControl(h) )
@@ -192,3 +201,10 @@ pl_current_flag(term_t k, control_t h)
 }
 
 
+		 /*******************************
+		 *      PUBLISH PREDICATES	*
+		 *******************************/
+
+BeginPredDefs(flag)
+  PRED_DEF("flag", 3, flag, 0)
+EndPredDefs

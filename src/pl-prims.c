@@ -28,22 +28,26 @@
 #undef ulong
 #define ulong unsigned long
 
-forwards char 	*prependBase(int, char *);
+#undef LD
+#define LD LOCAL_LD
 
+forwards char 	*prependBase(int, char *);
 
 		/********************************
 		*         TYPE CHECKING         *
 		*********************************/
 
 
-word
-pl_nonvar(term_t k)
-{ return PL_is_variable(k) ? FALSE : TRUE;
+static
+PRED_IMPL("nonvar", 1, nonvar, 0)
+{ PRED_LD
+  return PL_is_variable(A1) ? FALSE : TRUE;
 }
 
-word
-pl_var(term_t k)
-{ return PL_is_variable(k);
+static
+PRED_IMPL("var", 1, var, 0)
+{ PRED_LD
+  return PL_is_variable(A1);
 }
 
 word
@@ -73,13 +77,14 @@ pl_atom(term_t k)
 { return PL_is_atom(k);
 }
 
-word
-pl_atomic(term_t k)
-{ return PL_is_atomic(k);
+static
+PRED_IMPL("atomic", 1, atomic, 0)
+{ PRED_LD
+  return PL_is_atomic(A1);
 }
 
 static int
-_pl_ground(Word p)
+_pl_ground(Word p ARG_LD)
 { int arity;
 
   deRef(p);
@@ -90,14 +95,16 @@ _pl_ground(Word p)
     succeed;
   arity = arityFunctor(functorTerm(*p));
   for(p = argTermP(*p, 0); arity > 0; arity--, p++)
-    TRY( _pl_ground(p) );
+    TRY( _pl_ground(p PASS_LD) );
 
   succeed;
 }
 
-word
-pl_ground(term_t k)
-{ return _pl_ground(valTermRef(k));
+
+static
+PRED_IMPL("ground", 1, ground, 0)
+{ PRED_LD
+  return _pl_ground(valTermRef(A1) PASS_LD);
 }
 
 
@@ -121,7 +128,8 @@ pl_callable(term_t k)
 
 word
 pl_deterministic(void)
-{ LocalFrame FR  = environment_frame;
+{ GET_LD
+  LocalFrame FR  = environment_frame;
   Choice     BFR = LD->choicepoints;
 
   if ( (void *)BFR < (void *)FR )
@@ -137,7 +145,7 @@ pl_deterministic(void)
 		 *******************************/
 
 static bool
-termHashValue(word term, long *hval)
+termHashValue(word term, long *hval ARG_LD)
 { for(;;)
   { switch(tag(term))
     { case TAG_VAR:
@@ -171,7 +179,7 @@ termHashValue(word term, long *hval)
 	{ long av;
 
 	  deRef2(a, a2);
-	  if ( termHashValue(*a2, &av) )
+	  if ( termHashValue(*a2, &av PASS_LD) )
 	    *hval += av << (arity % 8);
 	  else
 	    fail;
@@ -186,17 +194,20 @@ termHashValue(word term, long *hval)
 }
 
 
-word
-pl_hash_term(term_t term, term_t hval)
-{ Word p = valTermRef(term);
+/* hash_term(+Term, -HashKey */
+
+static
+PRED_IMPL("hash_term", 2, hash_term, 0)
+{ PRED_LD
+  Word p = valTermRef(A1);
   long hraw;
 
   deRef(p);
 
-  if ( termHashValue(*p, &hraw) )
+  if ( termHashValue(*p, &hraw PASS_LD) )
   { hraw = hraw & PLMAXTAGGEDINT;	/* ensure tagged */
 
-    return PL_unify_integer(hval, hraw);
+    return PL_unify_integer(A2, hraw);
   }
 
   succeed;
@@ -210,7 +221,7 @@ pl_hash_term(term_t term, term_t hval)
 		*********************************/
 
 static word
-_pl_equal(register Word t1, register Word t2)
+_pl_equal(register Word t1, register Word t2 ARG_LD)
 { int arity, n;
 
   deRef(t1);
@@ -239,27 +250,29 @@ _pl_equal(register Word t1, register Word t2)
   t1 = argTermP(*t1, 0);
   t2 = argTermP(*t2, 0);
   for(n=0; n<arity; n++, t1++, t2++)
-    TRY(_pl_equal(t1, t2) );
+    TRY(_pl_equal(t1, t2 PASS_LD));
 
   succeed;
 }
 
 
-word
-pl_equal(term_t t1, term_t t2) /* == */
-{ Word p1 = valTermRef(t1);
-  Word p2 = valTermRef(t2);
+static
+PRED_IMPL("==", 2, equal, 0)
+{ PRED_LD
+  Word p1 = valTermRef(A1);
+  Word p2 = p1+1;
 
-  return _pl_equal(p1, p2);
+  return _pl_equal(p1, p2 PASS_LD);
 }
 
 
-word
-pl_nonequal(term_t t1, term_t t2) /* \== */
-{ Word p1 = valTermRef(t1);
-  Word p2 = valTermRef(t2);
+static
+PRED_IMPL("\\==", 2, nonequal, 0)
+{ PRED_LD
+  Word p1 = valTermRef(A1);
+  Word p2 = p1+1;
 
-  return _pl_equal(p1, p2) ? FALSE : TRUE;
+  return _pl_equal(p1, p2 PASS_LD) ? FALSE : TRUE;
 }
 
 
@@ -282,7 +295,7 @@ compareAtoms(atom_t w1, atom_t w2)
 
 
 static int
-compareStrings(word w1, word w2)
+compareStrings(word w1, word w2 ARG_LD)
 { char *s1 = valString(w1);
   char *s2 = valString(w2);
   int l1 = sizeString(w1);
@@ -314,7 +327,7 @@ compareStrings(word w1, word w2)
 #define GREATER  1
 
 int
-compareStandard(Word p1, Word p2)
+compareStandard(Word p1, Word p2 ARG_LD)
 { word w1, w2;
   int t1, t2;
 
@@ -370,7 +383,7 @@ tail_recursion:
     case TAG_ATOM:
       return compareAtoms(w1, w2);
     case TAG_STRING:
-      return compareStrings(w1, w2);
+      return compareStrings(w1, w2 PASS_LD);
     case TAG_COMPOUND:
     { Functor f1 = (Functor)valPtr(w1);
       Functor f2 = (Functor)valPtr(w2);
@@ -390,7 +403,7 @@ tail_recursion:
 	p1 = f1->arguments;
 	p2 = f2->arguments;
 	for( ; --arity > 0; p1++, p2++ )
-	{ if ((rval = compareStandard(p1, p2)) != EQUAL)
+	{ if ((rval = compareStandard(p1, p2 PASS_LD)) != EQUAL)
 	    return rval;
 	}
         goto tail_recursion;
@@ -403,52 +416,59 @@ tail_recursion:
 }
 
 
-word
-pl_compare(term_t rel, term_t t1, term_t t2)
-{ Word p1 = valTermRef(t1);
-  Word p2 = valTermRef(t2);
+/* compare(-Diff, +T1, +T2) */
 
-  int val = compareStandard(p1, p2);
+static
+PRED_IMPL("compare", 3, compare, 0)
+{ PRED_LD
+  Word p1 = valTermRef(A2);
+  Word p2 = p1+1;
 
-  return PL_unify_atom(rel, val < 0 ? ATOM_smaller :
-		            val > 0 ? ATOM_larger :
-		                      ATOM_equals);
+  int val = compareStandard(p1, p2 PASS_LD);
+
+  return PL_unify_atom(A1, val < 0 ? ATOM_smaller :
+		           val > 0 ? ATOM_larger :
+		                     ATOM_equals);
 }
 
 
-word
-pl_lessStandard(term_t t1, term_t t2) /* @</2 */
-{ Word p1 = valTermRef(t1);
-  Word p2 = valTermRef(t2);
+static
+PRED_IMPL("@<", 2, std_lt, 0)
+{ PRED_LD
+  Word p1 = valTermRef(A1);
+  Word p2 = p1+1;
 
-  return compareStandard(p1, p2) < 0 ? TRUE : FALSE;
+  return compareStandard(p1, p2 PASS_LD) < 0 ? TRUE : FALSE;
 }
 
 
-word
-pl_lessEqualStandard(term_t t1, term_t t2) /* @=</2 */
-{ Word p1 = valTermRef(t1);
-  Word p2 = valTermRef(t2);
+static
+PRED_IMPL("@=<", 2, std_leq, 0)
+{ PRED_LD
+  Word p1 = valTermRef(A1);
+  Word p2 = p1+1;
 
-  return compareStandard(p1, p2) <= 0 ? TRUE : FALSE;
+  return compareStandard(p1, p2 PASS_LD) <= 0 ? TRUE : FALSE;
 }
 
 
-word
-pl_greaterStandard(term_t t1, term_t t2) /* @>/2 */
-{ Word p1 = valTermRef(t1);
-  Word p2 = valTermRef(t2);
+static
+PRED_IMPL("@>", 2, std_gt, 0)
+{ PRED_LD
+  Word p1 = valTermRef(A1);
+  Word p2 = p1+1;
 
-  return compareStandard(p1, p2) > 0 ? TRUE : FALSE;
+  return compareStandard(p1, p2 PASS_LD) > 0 ? TRUE : FALSE;
 }
 
 
-word
-pl_greaterEqualStandard(term_t t1, term_t t2)	/* @>=/2 */
-{ Word p1 = valTermRef(t1);
-  Word p2 = valTermRef(t2);
+static
+PRED_IMPL("@>=", 2, std_geq, 0)
+{ PRED_LD
+  Word p1 = valTermRef(A1);
+  Word p2 = p1+1;
 
-  return compareStandard(p1, p2) >= 0 ? TRUE : FALSE;
+  return compareStandard(p1, p2 PASS_LD) >= 0 ? TRUE : FALSE;
 }
 
 		/********************************
@@ -484,7 +504,7 @@ struct uchoice
 };
 
 static bool
-structeql(Word t1, Word t2, TmpBuffer buf)
+structeql(Word t1, Word t2, TmpBuffer buf ARG_LD)
 { int todo = 1;
   UChoice nextch = NULL, tailch = NULL;
 
@@ -572,13 +592,14 @@ structeql(Word t1, Word t2, TmpBuffer buf)
 }
 
 
-word
-pl_structural_equal(term_t t1, term_t t2)
-{ bool rval;
+static
+PRED_IMPL("=@=", 2, structural_eq, 0)
+{ GET_LD
+  bool rval;
   tmp_buffer buf;
   Reset r;
-  Word p1 = valTermRef(t1);
-  Word p2 = valTermRef(t2);
+  Word p1 = valTermRef(A1);
+  Word p2 = p1+1;
 
   deRef(p1);
   deRef(p2);
@@ -587,7 +608,7 @@ pl_structural_equal(term_t t1, term_t t2)
     succeed;
 
   initBuffer(&buf);			/* can be faster! */
-  rval = structeql(p1, p2, &buf);
+  rval = structeql(p1, p2, &buf PASS_LD);
   for(r = baseBuffer(&buf, reset); r < topBuffer(&buf, reset); r++)
   { setVar(*r->v1);
     setVar(*r->v2);
@@ -598,9 +619,9 @@ pl_structural_equal(term_t t1, term_t t2)
 }
 
 
-word
-pl_structural_nonequal(term_t t1, term_t t2)
-{ return pl_structural_equal(t1, t2) == FALSE ? TRUE : FALSE;
+static
+PRED_IMPL("\\=@=", 2, structural_neq, 0)
+{ return pl_structural_neq_va(PL__t0, PL__ac, PL__ctx) ? FALSE : TRUE;
 }
 
 
@@ -608,41 +629,40 @@ pl_structural_nonequal(term_t t1, term_t t2)
 		*         TERM HACKING          *
 		*********************************/
 
-#undef LD
-#define LD LOCAL_LD
+/* functor(+Term, -Name, -Arity) */
+/* functor(-Term, +Name, +Arity) */
 
-word
-pl_functor(term_t t, term_t f, term_t a)
-{ GET_LD
+PRED_IMPL("functor", 3, functor, 0)
+{ PRED_LD
   int arity;
   atom_t name;
   
-  if ( PL_get_name_arity(t, &name, &arity) )
-  { if ( !PL_unify_atom(f, name) ||
-	 !PL_unify_integer(a, arity) )
+  if ( PL_get_name_arity(A1, &name, &arity) )
+  { if ( !PL_unify_atom(A2, name) ||
+	 !PL_unify_integer(A3, arity) )
       fail;
 
     succeed;
   }
-  if ( PL_is_atomic(t) )
-  { if ( !PL_unify(f, t) ||
-	 !PL_unify_integer(a, 0) )
+  if ( PL_is_atomic(A1) )
+  { if ( !PL_unify(A2, A1) ||
+	 !PL_unify_integer(A3, 0) )
       fail;
 
     succeed;
   }
-  if ( !PL_is_atomic(f) )
-    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atomic, f);
+  if ( !PL_is_atomic(A2) )
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atomic, A2);
 
-  if ( !PL_get_integer_ex(a, &arity) )
+  if ( !PL_get_integer_ex(A3, &arity) )
     fail;
   if ( arity == 0 )
-    return PL_unify(t, f);
+    return PL_unify(A1, A2);
   if ( arity < 0 )
     return PL_error(NULL, 0, NULL, ERR_DOMAIN,
-		    ATOM_not_less_than_zero, a);
-  if ( PL_get_atom_ex(f, &name) )
-    return PL_unify_functor(t, PL_new_functor(name, arity));
+		    ATOM_not_less_than_zero, A3);
+  if ( PL_get_atom_ex(A2, &name) )
+    return PL_unify_functor(A1, PL_new_functor(name, arity));
 
   fail;
 }
@@ -867,9 +887,8 @@ pl_univ(term_t t, term_t list)
 
 
 static int
-do_number_vars(term_t t, functor_t functor, int n)
-{ GET_LD
-  atom_t name;
+do_number_vars(term_t t, functor_t functor, int n ARG_LD)
+{ atom_t name;
   int arity;
 
 start:
@@ -883,7 +902,7 @@ start:
     n++;
   } else if ( _PL_get_name_arity(t, &name, &arity) )
   { if ( arity == 1 )
-    { PL_get_arg(1, t, t);
+    { _PL_get_arg(1, t, t);
       goto start;
     } else
     { term_t a = PL_new_term_ref();
@@ -896,7 +915,7 @@ start:
 	  goto start;			/* right-recursion optimisation */
 	} else
 	{ _PL_get_arg(i, t, a);
-	  n = do_number_vars(a, functor, n);
+	  n = do_number_vars(a, functor, n PASS_LD);
 	}
       }
     }
@@ -907,10 +926,9 @@ start:
 
 
 int
-numberVars(term_t t, functor_t functor, int n)
-{ GET_LD
-  term_t h2 = PL_copy_term_ref(t);
-  int rval = do_number_vars(h2, functor, n);
+numberVars(term_t t, functor_t functor, int n ARG_LD)
+{ term_t h2 = PL_copy_term_ref(t);
+  int rval = do_number_vars(h2, functor, n PASS_LD);
 
   resetTermRefs(h2);
 
@@ -926,12 +944,12 @@ pl_numbervars(term_t t, term_t f,
   functor_t functor;
   atom_t name;
   
-  if ( !PL_get_integer(start, &n) ||
-       !PL_get_atom(f, &name) )
-    return warning("numbervars/4: instantiation fault");
+  if ( !PL_get_integer_ex(start, &n) ||
+       !PL_get_atom_ex(f, &name) )
+    fail;
 
   functor = PL_new_functor(name, 1);
-  n = numberVars(t, functor, n);
+  n = numberVars(t, functor, n PASS_LD);
 
   return PL_unify_integer(end, n);
 }
@@ -1009,7 +1027,7 @@ dobind_vars(Word t, atom_t constant ARG_LD)
 
   if ( isVar(*t) )
   { *t = constant;
-    DoTrail(t);
+    Trail(t);
     return;
   }
   if ( isTerm(*t) )
@@ -2780,5 +2798,22 @@ pl_style_check(term_t old, term_t new)
 		 *******************************/
 
 BeginPredDefs(prims)
+  PRED_DEF("nonvar", 1, nonvar, 0)
+  PRED_DEF("var", 1, var, 0)
   PRED_DEF("arg", 3, arg, PL_FA_NONDETERMINISTIC)
+  PRED_DEF("atomic", 1, atomic, 0)
+  PRED_DEF("ground", 1, ground, 0)
+  PRED_DEF("==", 2, equal, 0)
+  PRED_DEF("\\==", 2, nonequal, 0)
+  PRED_DEF("compare", 3, compare, 0)
+  PRED_DEF("@<", 2, std_lt, 0)
+  PRED_DEF("@=<", 2, std_leq, 0)
+  PRED_DEF("@>", 2, std_gt, 0)
+  PRED_DEF("@>=", 2, std_geq, 0)
+  PRED_DEF("=@=", 2, structural_eq, 0)
+  PRED_DEF("\\=@=", 2, structural_neq, 0)
+  PRED_DEF("functor", 3, functor, 0)
+#ifdef O_HASHTERM
+  PRED_DEF("hash_term", 2, hash_term, 0)
+#endif
 EndPredDefs

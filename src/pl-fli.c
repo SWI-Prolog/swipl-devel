@@ -389,7 +389,7 @@ PL_compare(term_t t1, term_t t2)
   Word p1 = valHandleP(t1);
   Word p2 = valHandleP(t2);
 
-  return compareStandard(p1, p2);	/* -1, 0, 1 */
+  return compareStandard(p1, p2 PASS_LD);	/* -1, 0, 1 */
 }
 
 
@@ -933,9 +933,8 @@ PL_quote(int chr, const char *s)
 
 
 int
-PL_get_integer(term_t t, int *i)
-{ GET_LD
-  word w = valHandle(t);
+PL_get_integer__LD(term_t t, int *i ARG_LD)
+{ word w = valHandle(t);
   
   if ( isTaggedInt(w) )
   { *i = valInt(w);
@@ -962,6 +961,15 @@ PL_get_integer(term_t t, int *i)
   }
   fail;
 } 
+
+
+#undef PL_get_integer
+int
+PL_get_integer(term_t t, int *i)
+{ GET_LD
+  return PL_get_integer__LD(t, i PASS_LD);
+}
+#define PL_get_integer(t, i) PL_get_integer__LD(t, i PASS_LD)
 
 
 int
@@ -1071,6 +1079,7 @@ PL_get_name_arity(term_t t, atom_t *name, int *arity)
 }
 
 
+					/* only on compound */
 int
 _PL_get_name_arity(term_t t, atom_t *name, int *arity)
 { GET_LD
@@ -1279,12 +1288,22 @@ _PL_get_xpce_reference(term_t t, xpceref_t *ref)
 		 *******************************/
 
 int
+PL_is_variable__LD(term_t t ARG_LD)
+{ word w = valHandle(t);
+
+  return isVar(w) ? TRUE : FALSE;
+}
+
+
+#undef PL_is_variable
+int
 PL_is_variable(term_t t)
 { GET_LD
   word w = valHandle(t);
 
   return isVar(w) ? TRUE : FALSE;
 }
+#define PL_is_variable(t) PL_is_variable__LD(t PASS_LD)
 
 
 int
@@ -1358,12 +1377,22 @@ PL_is_list(term_t t)
 
 
 int
+PL_is_atomic__LD(term_t t ARG_LD)
+{ word w = valHandle(t);
+
+  return isAtomic(w) ? TRUE : FALSE;
+}
+
+
+#undef PL_is_atomic
+int
 PL_is_atomic(term_t t)
 { GET_LD
   word w = valHandle(t);
 
   return isAtomic(w) ? TRUE : FALSE;
 }
+#define PL_is_atomic(t) PL_is_atomic__LD(t PASS_LD)
 
 
 int
@@ -1689,7 +1718,7 @@ PL_unify_functor(term_t t, functor_t f)
       }
     }
 
-    DoTrail(p);
+    Trail(p);
     succeed;
   } else
   { if ( arity == 0  )
@@ -1905,7 +1934,7 @@ PL_unify_list(term_t l, term_t h, term_t t)
     setVar(*++a);
     setHandle(t, makeRefG(a));
 
-    DoTrail(p);
+    Trail(p);
   } else if ( isList(*p) )
   { Word a = argTermP(*p, 0);
 

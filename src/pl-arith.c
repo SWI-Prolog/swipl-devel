@@ -262,9 +262,8 @@ ar_compare(Number n1, Number n2, int what)
 
 
 static word
-compareNumbers(term_t n1, term_t n2, int what)
-{ GET_LD
-  number left, right;
+compareNumbers(term_t n1, term_t n2, int what ARG_LD)
+{ number left, right;
 
   if ( valueExpression(n1, &left PASS_LD) &&
        valueExpression(n2, &right PASS_LD) )
@@ -273,35 +272,40 @@ compareNumbers(term_t n1, term_t n2, int what)
   fail;
 }
 
-
-word
-pl_lessNumbers(term_t n1, term_t n2)			/* </2 */
-{ return compareNumbers(n1, n2, LT);
+static
+PRED_IMPL("<", 2, lt, 0)
+{ PRED_LD
+  return compareNumbers(A1, A2, LT PASS_LD);
 }
 
-word
-pl_greaterNumbers(term_t n1, term_t n2)			/* >/2 */
-{ return compareNumbers(n1, n2, GT);
+static
+PRED_IMPL(">", 2, gt, 0)
+{ PRED_LD
+  return compareNumbers(A1, A2, GT PASS_LD);
 }
 
-word
-pl_lessEqualNumbers(term_t n1, term_t n2)		/* =</2 */
-{ return compareNumbers(n1, n2, LE);
+static
+PRED_IMPL("=<", 2, leq, 0)
+{ PRED_LD
+  return compareNumbers(A1, A2, LE PASS_LD);
 }
 
-word
-pl_greaterEqualNumbers(term_t n1, term_t n2)		/* >=/2 */
-{ return compareNumbers(n1, n2, GE);
+static
+PRED_IMPL(">=", 2, geq, 0)
+{ PRED_LD
+  return compareNumbers(A1, A2, GE PASS_LD);
 }
 
-word
-pl_nonEqualNumbers(term_t n1, term_t n2)		/* =\=/2 */
-{ return compareNumbers(n1, n2, NE);
+static
+PRED_IMPL("=\\=", 2, neq, 0)
+{ PRED_LD
+  return compareNumbers(A1, A2, NE PASS_LD);
 }
 
-word
-pl_equalNumbers(term_t n1, term_t n2)			/* =:=/2 */
-{ return compareNumbers(n1, n2, EQ);
+static
+PRED_IMPL("=:=", 2, eq, 0)
+{ PRED_LD
+  return compareNumbers(A1, A2, EQ PASS_LD);
 }
 
 		/********************************
@@ -1129,19 +1133,19 @@ ar_cputime(Number r)
 		*       PROLOG CONNECTION       *
 		*********************************/
 
-word
-pl_is(term_t v, term_t e)
-{ GET_LD
+static
+PRED_IMPL("is", 2, is, 0)		/* -Value is +Expr */
+{ PRED_LD
   number arg;
 
-  if ( valueExpression(e, &arg PASS_LD) )
-  { if ( !trueFeature(ISO_FEATURE) && arg.type == V_REAL )
+  if ( valueExpression(A2, &arg PASS_LD) )
+  { if ( arg.type == V_REAL && !trueFeature(ISO_FEATURE) )
       canoniseNumber(&arg);
 
     if ( intNumber(&arg) )
-      return PL_unify_integer(v, arg.value.i);
+      return PL_unify_integer(A1, arg.value.i);
     else
-      return PL_unify_float(v, arg.value.f);
+      return PL_unify_float(A1, arg.value.f);
   }
 
   fail;
@@ -1498,3 +1502,18 @@ ar_func_n(code n, int argc, Number *stack)
 }
 
 #endif /* O_COMPILE_ARITH */
+
+
+		 /*******************************
+		 *      PUBLISH PREDICATES	*
+		 *******************************/
+
+BeginPredDefs(arith)
+  PRED_DEF("is", 2, is, 0)
+  PRED_DEF("<", 2, lt, 0)
+  PRED_DEF(">", 2, gt, 0)
+  PRED_DEF("=<", 2, leq, 0)
+  PRED_DEF(">=", 2, geq, 0)
+  PRED_DEF("=\\=", 2, neq, 0)
+  PRED_DEF("=:=", 2, eq, 0)
+EndPredDefs

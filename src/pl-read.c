@@ -2306,7 +2306,8 @@ pl_read_term(term_t term, term_t options)
 
 word
 pl_atom_to_term(term_t atom, term_t term, term_t bindings)
-{ char *s;
+{ GET_LD
+  char *s;
 
   if ( PL_is_variable(atom) )
   { char buf[1024];

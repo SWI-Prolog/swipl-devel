@@ -3050,7 +3050,8 @@ wouldBindToDefinition(Definition from, Definition to)
 
 word
 pl_xr_member(term_t ref, term_t term, control_t h)
-{ Clause clause;
+{ GET_LD
+  Clause clause;
   Code PC;
   Code end;
 

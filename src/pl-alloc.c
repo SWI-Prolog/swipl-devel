@@ -747,9 +747,8 @@ doublecpy(void *to, void *from)
 
 
 double					/* take care of alignment! */
-valReal(word w)
-{ GET_LD
-  fword *v = (fword *)valIndirectP(w);
+valReal__LD(word w ARG_LD)
+{ fword *v = (fword *)valIndirectP(w);
   union
   { double d;
     fword  l;

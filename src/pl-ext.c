@@ -175,7 +175,6 @@ static const PL_extension foreigns[] = {
   FRG("current_char_conversion",2, pl_current_char_conversion, NDET),
 
   FRG("!",			0, pl_metacut,			0),
-  FRG("functor",		3, pl_functor,			0),
   FRG("setarg",			3, pl_setarg,			0),
   FRG("=..",			2, pl_univ,			0),
   FRG("name",			2, pl_name,			0),
@@ -247,7 +246,6 @@ static const PL_extension foreigns[] = {
   FRG("$check_procedure",	1, pl_check_procedure,	     META),
 #endif
 
-  FRG("flag",			3, pl_flag,			0),
   FRG("recorda",		3, pl_recorda,			0),
   FRG("recordz",		3, pl_recordz,			0),
   FRG("recorded",		3, pl_recorded,		     NDET),
@@ -276,28 +274,15 @@ static const PL_extension foreigns[] = {
   FRG("$default_predicate",	2, pl_default_predicate,     META),
   FRG("$clause_from_source",	3, pl_clause_from_source,	0),
 
-  FRG("var",			1, pl_var,			0),
-  FRG("nonvar",			1, pl_nonvar,			0),
   FRG("integer",		1, pl_integer,			0),
   FRG("float",			1, pl_float,			0),
   FRG("number",			1, pl_number,			0),
   FRG("atom",			1, pl_atom,			0),
-  FRG("atomic",			1, pl_atomic,			0),
-  FRG("ground",			1, pl_ground,			0),
   FRG("compound",		1, pl_compound,			0),
   FRG("callable",		1, pl_callable,			0),
 
-  FRG("==",			2, pl_equal,			0),
-  FRG("\\==",			2, pl_nonequal,			0),
   FRG("unify_with_occurs_check",2, pl_unify_with_occurs_check,  0),
   FRG("\\=",			2, pl_notunify,			0),
-  FRG("compare",		3, pl_compare,			0),
-  FRG("@<",			2, pl_lessStandard,		0),
-  FRG("@=<",			2, pl_lessEqualStandard,	0),
-  FRG("@>",			2, pl_greaterStandard,		0),
-  FRG("@>=",			2, pl_greaterEqualStandard,	0),
-  FRG("=@=",			2, pl_structural_equal,		0),
-  FRG("\\=@=",			2, pl_structural_nonequal,	0),
 
   FRG("repeat",			0, pl_repeat,		     NDET),
   FRG("fail",			0, pl_fail,			0),
@@ -310,13 +295,6 @@ static const PL_extension foreigns[] = {
   FRG("between",		3, pl_between,		     NDET),
   FRG("succ",			2, pl_succ,			0),
   FRG("plus",			3, pl_plus,			0),
-  FRG("<",			2, pl_lessNumbers,	     META),
-  FRG(">",			2, pl_greaterNumbers,	     META),
-  FRG("=<",			2, pl_lessEqualNumbers,	     META),
-  FRG(">=",			2, pl_greaterEqualNumbers,   META),
-  FRG("=\\=",			2, pl_nonEqualNumbers,	     META),
-  FRG("=:=",			2, pl_equalNumbers,	     META),
-  FRG("is",			2, pl_is,		     META),
 
   FRG("trace",			0, pl_trace,		  NOTRACE),
   FRG("notrace",		0, pl_notrace,		  NOTRACE),
@@ -368,9 +346,6 @@ static const PL_extension foreigns[] = {
   FRG("export_list",		2, pl_export_list,		0),
   FRG("index",			1, pl_index,		     META),
   FRG("hash",			1, pl_hash,		     META),
-#ifdef O_HASHTERM
-  FRG("hash_term",		2, pl_hash_term,		0),
-#endif
   FRG("$open_shared_object",	3, pl_open_shared_object,    META),
 #if defined(HAVE_DLOPEN) || defined(HAVE_SHL_LOAD) || defined(EMULATE_DLOPEN)
   FRG("close_shared_object",	1, pl_close_shared_object,   META),
@@ -397,15 +372,12 @@ static const PL_extension foreigns[] = {
   FRG("sub_string",		5, pl_sub_string,	     NDET),
 #endif /* O_STRING */
 
-  FRG("is_list",		1, pl_is_list,			0),
   FRG("$length",		2, pl_length,			0),
   FRG("memberchk",		2, pl_memberchk,		0),
   FRG("msort",			2, pl_msort,			0),
   FRG("sort",			2, pl_sort,			0),
   FRG("format",			2, pl_format,			0),
-  FRG("$collect_bag",		2, pl_collect_bag,		0),
   FRG("$except_bag",		1, pl_except_bag, 		0),
-  FRG("$record_bag",		1, pl_record_bag,		0),
 #ifdef O_DEBUG
   FRG("$check_definition",	1, pl_check_definition,      META),
 #endif
@@ -656,6 +628,10 @@ registerBuiltins(const PL_extension *f)
 
 DECL_PLIST(wam);
 DECL_PLIST(prims);
+DECL_PLIST(list);
+DECL_PLIST(arith);
+DECL_PLIST(flag);
+DECL_PLIST(bag);
 
 void
 initBuildIns(void)
@@ -665,6 +641,10 @@ initBuildIns(void)
   registerBuiltins(foreigns);
   REG_PLIST(wam);
   REG_PLIST(prims);
+  REG_PLIST(list);
+  REG_PLIST(arith);
+  REG_PLIST(flag);
+  REG_PLIST(bag);
 
   PROCEDURE_garbage_collect0 = lookupProcedure(FUNCTOR_dgarbage_collect1, m);
   PROCEDURE_block3	     = lookupProcedure(FUNCTOR_block3, 		  m);

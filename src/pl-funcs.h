@@ -39,7 +39,7 @@ Word		newTerm(void);
 void		doublecpy(void *to, void *from);
 word		globalReal(real f);
 word		globalLong(long i ARG_LD);
-double		valReal(word w);
+double		valReal__LD(word w ARG_LD);
 word		globalIndirect(word in);
 int		equalIndirect(word r1, word r2);
 word		globalIndirectFromCode(Code *PC);
@@ -60,7 +60,6 @@ word		pl_count(void);
 bool		unify_ptrs(Word t1, Word t2 ARG_LD);
 bool		can_unify(Word t1, Word t2);
 void		TrailAssignment(Word p);
-void		DoTrail(Word p);
 void		do_undo(mark *m);
 void		fix_term_ref_count(void);
 word		pl_unify_with_occurs_check(term_t t1, term_t t2);
@@ -95,13 +94,6 @@ word		pl_between(term_t l, term_t h, term_t n, control_t ctx);
 word		pl_succ(term_t n1, term_t n2);
 word		pl_plus(term_t a, term_t b, term_t c);
 int		ar_compare(Number n1, Number n2, int what);
-word		pl_lessNumbers(term_t n1, term_t n2);
-word		pl_greaterNumbers(term_t n1, term_t n2);
-word		pl_lessEqualNumbers(term_t n1, term_t n2);
-word		pl_greaterEqualNumbers(term_t n1, term_t n2);
-word		pl_nonEqualNumbers(term_t n1, term_t n2);
-word		pl_equalNumbers(term_t n1, term_t n2);
-word		pl_is(term_t v, term_t e);
 word		pl_arithmetic_function(term_t descr);
 word		pl_current_arithmetic_function(term_t f, control_t h);
 word		pl_prolog_arithmetic_function(term_t f, control_t h);
@@ -116,9 +108,7 @@ void		canoniseNumber(Number n);
 
 /* pl-bag.c */
 void		resetBags(void);
-word		pl_record_bag(term_t term);
 int 		checkBags(void);
-word		pl_collect_bag(term_t bindings, term_t bag);
 foreign_t	pl_except_bag(term_t ex);
 
 /* pl-comp.c */
@@ -338,7 +328,6 @@ void		popOutputContext(void);
 
 /* pl-flag.c */
 void		initFlags(void);
-word		pl_flag(term_t name, term_t old, term_t new);
 word		pl_current_flag(term_t k, control_t h);
 void		initFeatureTable(void);
 void		initFeatures(void);
@@ -364,8 +353,11 @@ int		PL_unify_integer__LD(term_t t1, long i ARG_LD);
 int		PL_get_atom__LD(term_t t1, atom_t *a ARG_LD);
 void		PL_put_atom__LD(term_t t1, atom_t a ARG_LD);
 void		PL_put_integer__LD(term_t t1, long i ARG_LD);
+int		PL_is_atomic__LD(term_t t ARG_LD);
 int		PL_is_functor__LD(term_t t, functor_t f ARG_LD);
+int		PL_is_variable__LD(term_t t ARG_LD);
 int		PL_strip_module__LD(term_t q, module_t *m, term_t t ARG_LD);
+int		PL_get_integer__LD(term_t t, int *i ARG_LD);
 int		PL_get_long__LD(term_t t, long *i ARG_LD);
 int		PL_get_pointer__LD(term_t t, void **ptr ARG_LD);
 void		PL_put_term__LD(term_t t1, term_t t2 ARG_LD);
@@ -415,7 +407,6 @@ word		pl_expand_file_name(term_t f, term_t l);
 void		resetForeign(void);
 
 /* pl-list.c */
-word		pl_is_list(term_t list);
 word		pl_length(term_t list, term_t l);
 word		pl_memberchk(term_t e, term_t list);
 word		pl_msort(term_t list, term_t sorted);
@@ -511,37 +502,20 @@ int		iswin32s(void);
 #endif /*__WIN32__*/
 
 /* pl-prims.c */
-word		pl_nonvar(term_t k);
-word		pl_var(term_t k);
 word		pl_integer(term_t k);
 word		pl_float(term_t k);
 word		pl_string(term_t k);
 word		pl_number(term_t k);
 word		pl_atom(term_t k);
-word		pl_atomic(term_t k);
-word		pl_ground(term_t term);
 word		pl_compound(term_t term);
 word		pl_callable(term_t term);
 word		pl_deterministic(void);
-#ifdef O_HASHTERM
-word		pl_hash_term(term_t term, term_t hval);
-#endif
 word		pl_notunify(term_t t1, term_t t2);
-word		pl_equal(term_t t1, term_t t2);
-word		pl_nonequal(term_t t1, term_t t2);
-int		compareStandard(Word t1, Word t2);
-word		pl_compare(term_t rel, term_t t1, term_t t2);
-word		pl_lessStandard(term_t t1, term_t t2);
-word		pl_lessEqualStandard(term_t t1, term_t t2);
-word		pl_greaterStandard(term_t t1, term_t t2);
-word		pl_greaterEqualStandard(term_t t1, term_t t2);
-word		pl_structural_equal(term_t t1, term_t t2);
-word		pl_structural_nonequal(term_t t1, term_t t2);
-word		pl_functor(term_t t, term_t f, term_t a);
+int		compareStandard(Word t1, Word t2 ARG_LD);
 word		pl_setarg(term_t n, term_t term, term_t arg);
 int		lengthList(term_t list, int errors);
 word		pl_univ(term_t t, term_t l);
-int		numberVars(term_t t, functor_t functor, int n);
+int		numberVars(term_t t, functor_t functor, int n ARG_LD);
 word		pl_numbervars(term_t t, term_t atom,
 			      term_t start, term_t end);
 word		pl_free_variables(term_t t, term_t l);

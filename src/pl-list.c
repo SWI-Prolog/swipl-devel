@@ -24,9 +24,12 @@
 
 #include "pl-incl.h"
 
-word
-pl_is_list(term_t list)
-{ if ( lengthList(list, FALSE) >= 0 )
+#undef LD
+#define LD LOCAL_LD
+
+static
+PRED_IMPL("is_list", 1, is_list, 0)
+{ if ( lengthList(A1, FALSE) >= 0 )
     succeed;
 
   fail;
@@ -35,7 +38,8 @@ pl_is_list(term_t list)
 
 word
 pl_length(term_t list, term_t l)
-{ int n;
+{ GET_LD
+  int n;
 
   if ( PL_get_integer(l, &n) )
   { if ( n >= 0 )
@@ -66,7 +70,8 @@ pl_length(term_t list, term_t l)
 
 word
 pl_memberchk(term_t e, term_t list)
-{ term_t h = PL_new_term_ref();
+{ GET_LD
+  term_t h = PL_new_term_ref();
   term_t l = PL_copy_term_ref(list);
 
   for(;;)
@@ -80,12 +85,13 @@ pl_memberchk(term_t e, term_t list)
 
 static int
 qsort_compare_standard(const void *p1, const void *p2)
-{ return compareStandard((Word) p1, (Word) p2);
+{ GET_LD
+  return compareStandard((Word) p1, (Word) p2 PASS_LD);
 }
 
 
 static term_t
-list_to_sorted_array(term_t List, int *size)
+list_to_sorted_array(term_t List, int *size ARG_LD)
 { int n = lengthList(List, TRUE);
   term_t rval;
   term_t list = PL_copy_term_ref(List);
@@ -115,12 +121,13 @@ list_to_sorted_array(term_t List, int *size)
 
 word
 pl_msort(term_t list, term_t sorted)
-{ term_t array;
+{ GET_LD
+  term_t array;
   term_t l = PL_copy_term_ref(sorted);
   term_t h = PL_new_term_ref();
   int n, i;
 
-  if ( !(array = list_to_sorted_array(list, &n)) )
+  if ( !(array = list_to_sorted_array(list, &n PASS_LD)) )
     fail;
   for(i=0; i < n; i++)
   { if ( !PL_unify_list(l, h, l) ||
@@ -134,15 +141,19 @@ pl_msort(term_t list, term_t sorted)
 
 word
 pl_sort(term_t list, term_t sorted)
-{ term_t array;
+{ GET_LD
+  term_t array;
   term_t l = PL_copy_term_ref(sorted);
   term_t h = PL_new_term_ref();
   int n, size;
+  Word p;
 
-  if ( !(array=list_to_sorted_array(list, &size)) )
+  if ( !(array=list_to_sorted_array(list, &size PASS_LD)) )
     fail;
+  p = valTermRef(array);
+
   for(n = 0; n < size; n++)
-  { if ( n == 0 || !pl_equal(array+n-1, array+n) )
+  { if ( n == 0 || compareStandard(p+n-1, p+n PASS_LD) != 0 )
     { if ( !PL_unify_list(l, h, l) ||
 	   !PL_unify(h, array+n) )
 	fail;
@@ -151,3 +162,11 @@ pl_sort(term_t list, term_t sorted)
 
   return PL_unify_nil(l);
 }
+
+		 /*******************************
+		 *      PUBLISH PREDICATES	*
+		 *******************************/
+
+BeginPredDefs(list)
+  PRED_DEF("is_list", 1, is_list, 0)
+EndPredDefs

@@ -1465,7 +1465,7 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
    deRef(p);
    if ( isVar(*p) )
    { *p = makeRef(argFrameP(fr, argn-1));
-     DoTrail(p);
+     Trail(p);
      succeed;
    }
 

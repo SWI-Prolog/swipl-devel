@@ -1437,7 +1437,7 @@ saveQlfTerm(term_t t, IOSTREAM *fd)
 	Sdprintf("Saving ");
 	PL_write_term(Serror, t, 1200, 0);
 	Sdprintf(" from %d ... ", Stell(fd)));
-  nvars = numberVars(t, FUNCTOR_var1, 0);
+  nvars = numberVars(t, FUNCTOR_var1, 0 PASS_LD);
   putNum(nvars, fd);
   do_save_qlf_term(valTermRef(t), fd);	/* TBD */
   DEBUG(3, Sdprintf("to %d\n", Stell(fd)));
