@@ -2630,17 +2630,27 @@ exit(Block, RVal).  First does !(Block).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     VMI(I_CUT_BLOCK) MARK(CUT_BLOCK);
       { LocalFrame cutfr;
-	Word name;
+        Choice ch;
+        Word name;
 
-	name = argFrameP(lTop, 0); deRef(name);
+        name = argFrameP(lTop, 0); deRef(name);
 
-	if ( !(cutfr = findBlock(FR, name)) )
+        if ( !(cutfr = findBlock(FR, name)) )
 	{ if ( exception_term )
-	    goto b_throw;
+            goto b_throw;
 	  BODY_FAILED;
 	}
-	
-	discardChoicesAfter(cutfr PASS_LD);
+
+	for(ch=BFR; (void *)ch > (void *)cutfr; ch = ch->parent)
+	{ LocalFrame fr2;
+
+          DEBUG(3, Sdprintf("Discarding %s\n", chp_chars(ch)));
+          for(fr2 = ch->frame;
+              fr2 && fr2->clause && fr2 > FR;
+	      fr2 = fr2->parent)
+	      discardFrame(fr2);
+	}
+        BFR = ch;
 
 	lTop = (LocalFrame) argFrameP(FR, CL->clause->variables);
 	ARGP = argFrameP(lTop, 0);

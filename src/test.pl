@@ -530,6 +530,17 @@ bb(a) :-
 	!(myblock).
 bb(b).
 
+b1 :- b2.
+b1.
+
+b2 :- exit(test, b).
+
+b3 :- b4.
+b3.
+
+b4 :-
+	!(test).
+
 c1 :-
 	\+ ( true, !, fail ).
 c2 :-
@@ -553,6 +564,13 @@ control(block-3) :-
 	\+ (   block(myblock, bb(X), _),
 	       X == b
 	   ).
+control(block-4) :-
+	block(test, b1, B),
+	B == b,
+	'$get_predicate_attribute'(b1, references, 0).
+control(block-5) :-
+	block(test, b3, _),
+	'$get_predicate_attribute'(b3, references, 0).
 control(cut-1) :-
 	c1.
 control(cut-1) :-
