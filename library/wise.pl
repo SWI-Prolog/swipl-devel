@@ -69,8 +69,7 @@ wise_register_icons :-
 	    ensure_group(Group),
 	    format('Created group ~w~n', [Group]),
 	    current_prolog_flag(executable, PlFileName),
-	    prolog_to_os_filename(PlFileName, CmdLine0),
-	    concat_atom(['"', CmdLine0, '"'], CmdLine),
+	    prolog_to_os_filename(PlFileName, CmdLine),
 	    format('Commandline = ~w~n', [CmdLine]),
 	    progman_make_item(Group, Item, CmdLine, Cwd)
 	;   true
