@@ -35,6 +35,7 @@
 	  list_autoload/0,		% list predicates that need autoloading
 	  list_redefined/0		% list redefinitions
 	]).
+:- use_module(library(lists)).
 
 :- style_check(+dollar).		% lock these predicates
 
@@ -65,33 +66,45 @@ list_undefined :-
 	call_cleanup(list_undefined_, $style_check(_, Old)).
 
 list_undefined_ :-
-	findall(Pred-Refs, undefined_predicate(Pred, Refs), Pairs),
-	(   Pairs == []
+	findall(Pred, undefined_predicate(Pred), Preds),
+	(   Preds == []
 	->  true
-	;   print_message(warning, check(undefined_predicates)),
-	    (	member((Module:Head)-Refs, Pairs),
-		print_message(warning, check(undefined(Module:Head, Refs))),
-		fail
-	    ;	true
+	;   print_message(informational, check(find_references(Preds))),
+	    find_references(Preds, Pairs),
+	    (	Pairs == []
+	    ->	true
+	    ;   print_message(warning, check(undefined_predicates)),
+		(   member((Module:Head)-Refs, Pairs),
+		    print_message(warning,
+				  check(undefined(Module:Head, Refs))),
+		    fail
+		;   true
+		)
 	    )
 	).
 
-undefined_predicate(Module:Head, Refs) :-
+undefined_predicate(Module:Head) :-
 	predicate_property(Module:Head, undefined), 
-	\+ predicate_property(Module:Head, imported_from(_)), 
-	findall(Ref, referenced(Module:Head, Ref), Refs),
-	Refs \== [],
+	\+ predicate_property(Module:Head, imported_from(_)),
 	functor(Head, Functor, Arity), 
 	\+ $in_library(Functor, Arity),
 	\+ system_undefined(Module:Functor/Arity).
 
 system_undefined(user:prolog_trace_interception/4).
 
-%	referenced(+Predicate, -ClauseRef)
+find_references([], []).
+find_references([H|T0], [H-Refs|T]) :-
+	findall(Ref, referenced(H, _, Ref), Refs),
+	Refs \== [], !,
+	find_references(T0, T).
+find_references([_|T0], T) :-
+	find_references(T0, T).
+
+%	referenced(+Predicate, ?Module, -ClauseRef)
 %
 %	True if Clause ClauseRef references Predicate.
 
-referenced(Term, Ref) :-
+referenced(Term, Module, Ref) :-
 	current_predicate(_, Module:Head),
 	\+ predicate_property(Module:Head, built_in),
 	\+ predicate_property(Module:Head, imported_from(_)),
@@ -122,11 +135,11 @@ list_autoload_ :-
 
 autoload_predicate(Module, Library, Name/Arity) :-
 	predicate_property(Module:Head, undefined), 
-	(   referenced(Module:Head, _),
-	    \+ predicate_property(Module:Head, imported_from(_)), 
+	(   \+ predicate_property(Module:Head, imported_from(_)), 
 	    functor(Head, Name, Arity), 
 	    $in_library(Name, Arity),
-	    $find_library(Module, Name, Arity, _LoadModule, Library)
+	    $find_library(Module, Name, Arity, _LoadModule, Library),
+	    referenced(Module:Head, Module, _)
 	->  true
 	).
 
@@ -167,6 +180,10 @@ list_redefined_.
 
 prolog:message(check(pass(N, Comment))) -->
 	[ 'PASS ~w: ~w ...~n'-[N, Comment] ].
+prolog:message(check(find_references(Preds))) -->
+	{ length(Preds, N)
+	},
+	[ 'Scanning references to undefined predicates'-[N] ].
 prolog:message(check(undefined_predicates)) -->
 	[ 'The predicates below are not defined. If these are defined', nl,
 	  'at runtime using assert/1, use :- dynamic Name/Arity.', nl, nl
