@@ -650,7 +650,6 @@
   BUILTIN_NAME("distance_x")
   BUILTIN_NAME("distance_y")
   BUILTIN_NAME("divide")
-  BUILTIN_NAME("dll")
   BUILTIN_NAME("dnd")
   BUILTIN_NAME("do_set")
   BUILTIN_NAME("does_include")
