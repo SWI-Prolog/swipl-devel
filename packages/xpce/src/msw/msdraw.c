@@ -1496,33 +1496,37 @@ cref_colour(Colour c)
 }
 
 
+Any
+r_elevation_shadow(Elevation e)
+{ if ( isDefault(e->shadow) )
+  { Any bg = context.background;
+
+    if ( instanceOfObject(bg, ClassColour) && context.depth != 1 )
+      return getReduceColour(bg);
+    else
+      return BLACK_COLOUR;
+  } else
+    return e->shadow;
+}
+
+static Any
+r_elevation_relief(Elevation e)
+{ if ( isDefault(e->relief) )
+  { Any bg = context.background;
+
+    if ( instanceOfObject(bg, ClassColour) && context.depth != 1 )
+      return getHiliteColour(bg);
+    else
+      return WHITE_COLOUR;
+  } else
+    return e->relief;
+}
+
 static void
 r_elevation(Elevation e)
 { if ( context.elevation != e )
-  { Any bg = context.background;
-    Any relief, shadow;
-
-    DEBUG(NAME_elevation,
-	  Cprintf("r_elevation(%s) (bg=%s, depth=%d) ... ",
-		  pp(e), pp(bg), context.depth));
-
-    if ( isDefault(e->relief) )
-    { if ( instanceOfObject(bg, ClassColour) && context.depth != 1 )
-	relief = getHiliteColour(bg);
-      else
-	relief = WHITE_COLOUR;
-    } else
-      relief = e->relief;
-
-    if ( isDefault(e->shadow) )
-    { if ( instanceOfObject(bg, ClassColour) && context.depth != 1 )
-	shadow = getReduceColour(bg);
-      else
-	shadow = BLACK_COLOUR;
-    } else
-      shadow = e->shadow;
-  
-    assert(instanceOfObject(shadow, ClassColour));
+  { Any relief = r_elevation_relief(e);
+    Any shadow = r_elevation_shadow(e);
 
     if ( context.relief_pen )
       ZDeleteObject(context.relief_pen);
