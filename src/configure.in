@@ -421,11 +421,11 @@ BOOTFILE=boot`expr ${ac_cv_sizeof_long} \* 8`.prc
 AC_DEFINE_UNQUOTED(BOOTFILE, "$BOOTFILE")
 AC_MSG_RESULT($BOOTFILE)
 
-if test "$GCC" = "yes"; then
+dnl if test "$GCC" = "yes"; then
 dnl See whether we need to force __register_frame_info to be included.
 dnl This is a glibc/egcs portability problem for binaries accross
 dnl installations.
-
+dnl 
 dnl This was once needed to deal with glibc compatibility issues 
 dnl when Linux was born.  Hopefully it doesn't matter anymore.
 dnl 
