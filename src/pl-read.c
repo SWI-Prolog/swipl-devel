@@ -1432,7 +1432,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
       goto lower;
     if ( isUpperW(c) )
       goto upper;
-    goto error;
+    goto case_solo;			/* dubious */
   }
 
   switch(_PL_char_types[c])
@@ -1493,6 +1493,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  } else
 		    syntaxError("illegal_number", _PL_rd);
 		}
+    case_solo:
     case SO:	{ char tmp[1];
 
 		  tmp[0] = c;
@@ -1625,7 +1626,6 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		}
 #endif
     default:	
-    error:
     		{ sysError("read/1: tokeniser internal error");
     		  break;		/* make lint happy */
 		}
