@@ -690,14 +690,10 @@ dv-install:	rt-install dv-home dv-lib dv-boot dv-help \
 
 rpm-install:	rt-home rt-misc rt-bitmaps rt-bins rpm-link \
 		dv-lib dv-boot dv-help dv-link dv-pl-files dv-manual dv-man \
-		dv-misc cxx-install rpm-bins dv-online
+		dv-misc cxx-install dv-bins dv-online
 
 manindex:	$(MANINDEX)
 
-rpm-bins::
-		rm -f $(bindir)/xpce
-		$(REL_LN) $(PLEXE) $(bindir)/xpce
-		$(INSTALL_PROGRAM) xpce-client $(bindir)
 rpm-link::
 		rm -f $(PLBASE)/xpce
 		(cd $(PLBASE) && ln -s xpce-$(PCEVERSION) xpce)
@@ -835,10 +831,9 @@ dv-qlf:
 		$(MAKE) PL=$(PLBINDIR)/xpce
 
 dv-bins:
-		(cd $(bindir); \
-		 rm -f xpce; $(REL_LN) $(PLBINDIR)/xpce $(bindir)/xpce)
-		(cd $(bindir); \
-		 rm -f xpce-client; $(REL_LN) $(RTBINDIR)/xpce-client $(bindir)/xpce-client)
+		rm -f $(bindir)/xpce
+		$(REL_LN) $(PLEXE) $(bindir)/xpce
+		$(INSTALL_PROGRAM) xpce-client $(bindir)
 
 pdf-install::
 html-install::
