@@ -21,9 +21,10 @@ TEXFILES=	doc.tex intro.tex overview.tex builtin.tex module.tex \
 help:		
 		@echo
 		@echo '"make all"       creates both HTML and DVI'
-		@echo '"make online"	creates the help/1 database'
-		@echo '"make html"      Create HTML verstion'
+		@echo '"make online"    creates the help/1 database'
+		@echo '"make html"      create HTML verstion'
 		@echo '"make manual"    makes the manual'
+		@echo '"make pdf"       makes $(PDF)'
 		@echo
 		@echo '"make clean"     removes all temporary files'
 		@echo '"make distclean" lets you start from scratch'

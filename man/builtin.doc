@@ -2843,6 +2843,12 @@ followed by linefeed (so a (Grr.) DOS machine is happy with the output).
 dos_newline(Arg) :-
         between(1, Ar, _), put(13), put(10), fail ; true.
 \end{code}
+\predicate{current_format_predicate}{2}{?Code, ?:Head}
+    Enumerates all user-defined format predicates. \arg{Code} is the
+    character code of the format character.  \arg{Head} is unified with
+    a term with the same name and arity as the predicate. If the
+    predicate does not reside in module \const{user}, \arg{Head} is
+    qualified with the definition module of the predicate.
 \end{description}
 
 \section{Terminal Control}

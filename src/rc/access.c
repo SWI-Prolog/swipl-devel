@@ -516,11 +516,17 @@ rc_open(RcArchive rca, const char *name, const char *rcclass, int flags)
   return NULL;
 }
 	
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This function returns an int (0), so it can be used from Sclose() without
+problems.  Pointed by Tamas Laufer.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-void
+int
 rc_close(RcObject o)
 { o->member = NULL;			/* crash on access attempt */
   free(o);
+
+  return 0;
 }
 
 

@@ -1131,6 +1131,46 @@ pl_current_arithmetic_function(term_t f, word h)
   fail;
 }
 
+word
+pl_prolog_arithmetic_function(term_t f, word h)
+{ ArithFunction a;
+  term_t tmp = PL_new_term_ref();
+
+  switch( ForeignControl(h) )
+  { case FRG_FIRST_CALL:
+      a = arithFunctionTable[0];
+      break;
+    case FRG_REDO:
+      a = ForeignContextPtr(h);
+      break;
+    case FRG_CUTTED:
+    default:
+      succeed;
+  }
+
+  for( ; a; a = a->next )
+  { mark m;
+
+    while( isTableRef(a) )
+    { a = unTableRef(ArithFunction, a);
+      if ( !a )
+        fail;
+    }
+
+    Mark(m);
+    PL_put_functor(tmp, a->functor);
+    if ( a->proc &&
+	 PL_unify_term(f,
+		       PL_FUNCTOR, FUNCTOR_module2,
+		         PL_ATOM, a->module->name,
+		         PL_TERM, tmp) )
+      return_next_table(ArithFunction, a, ;);
+    Undo(m);
+  }
+
+  fail;
+}
+
 #endif /* O_PROLOG_FUNCTIONS */
 
 typedef struct

@@ -21,6 +21,10 @@
 #define FALSE 0
 #endif
 
+					/* avoid OSF1 name conflict */
+#undef basename				/* reported by Steffen Moeller */
+#define basename _RC_basename
+
 char *program;
 
 static char *

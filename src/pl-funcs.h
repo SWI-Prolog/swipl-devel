@@ -70,6 +70,7 @@ word		pl_equalNumbers(term_t n1, term_t n2);
 word		pl_is(term_t v, term_t e);
 word		pl_arithmetic_function(term_t descr);
 word		pl_current_arithmetic_function(term_t f, word h);
+word		pl_prolog_arithmetic_function(term_t f, word h);
 void		initArith(void);
 int		indexArithFunction(functor_t fdef, Module m);
 functor_t	functorArithFunction(int n);
@@ -273,6 +274,8 @@ char *		buffer_string(const char *s, int flags);
 
 /* pl-fmt.c */
 word		pl_format_predicate(term_t chr, term_t descr);
+word		pl_current_format_predicate(term_t chr, term_t descr,
+					    control_t h);
 word		pl_format(term_t fmt, term_t args);
 word		pl_format3(term_t s, term_t fmt, term_t args);
 

@@ -438,6 +438,8 @@ static const struct foreign {
   FRG("tty_goto",		2, pl_tty_goto,			TRACE_ME),
   FRG("tty_put",		2, pl_tty_put,			TRACE_ME),
   FRG("format_predicate",	2, pl_format_predicate,	   META|TRACE_ME),
+  FRG("current_format_predicate", 2, pl_current_format_predicate,
+						      META|NDET|TRACE_ME),
   FRG("set_tty",		2, pl_set_tty,			TRACE_ME),
   FRG("wait_for_input",		3, pl_wait_for_input,		TRACE_ME),
   FRG("get_time",		1, pl_get_time,			TRACE_ME),
@@ -447,6 +449,8 @@ static const struct foreign {
 #if O_PROLOG_FUNCTIONS
   FRG("$arithmetic_function",   1, pl_arithmetic_function, META|TRACE_ME),
   FRG("current_arithmetic_function", 1, pl_current_arithmetic_function,
+						      NDET|META|TRACE_ME),
+  FRG("$prolog_arithmetic_function", 1, pl_prolog_arithmetic_function,
 						      NDET|META|TRACE_ME),
 #endif
 

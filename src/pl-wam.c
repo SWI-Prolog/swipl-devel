@@ -1921,7 +1921,9 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 	  assert(catchfr == FR);
 	  SetBfr(FR->backtrackFrame);
 	  environment_frame = FR;
-	  undo_while_saving_term(&FR->mark, p);
+	  undo_while_saving_term(&FR->mark, catcher);
+	  unify_ptrs(p, catcher);	/* undo_while_saving_term() also */
+					/* undoes unify of findCatcher() */
 	  lTop = (LocalFrame) argFrameP(FR, 3); /* above the catch/3 */
 	  if ( LD->trim_stack_requested )
 	    trimStacks();
@@ -3369,17 +3371,9 @@ bit more careful.
 	  assert(FR == &QF->frame);
 
 	  if ( !BFR )			/* No alternatives */
-	  { LocalFrame fr, fr2;
-
-	    set(QF, PL_Q_DETERMINISTIC);
+	  { set(QF, PL_Q_DETERMINISTIC);
 	    set(FR, FR_CUT);		/* execute I_CUT */
-	    for(fr = BFR; fr > FR; fr = fr->backtrackFrame)
-	    { for(fr2 = fr; fr2->clause && fr2 > FR; fr2 = fr2->parent)
-	      { DEBUG(3, Sdprintf("discard %d\n", (Word)fr2 - (Word)lBase) );
-		leaveFrame(fr2);
-		fr2->clause = NULL;
-	      }
-	    }
+	    lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
 
 #if O_DEBUGGER
 	    if ( true(FR, FR_WATCHED) )

@@ -91,6 +91,41 @@ pl_format_predicate(term_t chr, term_t descr)
 
 
 word
+pl_current_format_predicate(term_t chr, term_t descr, control_t h)
+{ Symbol s = NULL;
+  mark m;
+
+  switch( ForeignControl(h) )
+  { case FRG_FIRST_CALL:
+      if ( !format_predicates )
+	fail;
+      s = firstHTable(format_predicates);
+      break;
+    case FRG_CUTTED:
+      succeed;
+    case FRG_REDO:
+      s = ForeignContextPtr(h);
+      break;
+  }
+
+  while(s)
+  { Mark(m);
+
+    if ( PL_unify_integer(chr, (int)s->name) &&
+	 unify_definition(descr, ((Procedure)s->value)->definition, 0, 0) )
+    { if ( (s = nextHTable(format_predicates, s)) )
+	ForeignRedoPtr(s);
+      succeed;
+    }
+    Undo(m);
+    s = nextHTable(format_predicates, s);
+  }
+
+  fail;
+}
+
+
+word
 pl_format(term_t fmt, term_t Args)
 { term_t argv;
   int argc = 0;

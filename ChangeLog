@@ -1,6 +1,31 @@
 
 			SWI-Prolog ChangeLog
 			====================
+
+  * FIXED: catch(Goal, template(Vars), handle(Vars)), i.e. catching
+    exceptions based on patterns and using the variable-bindings in
+    the pattern.
+
+  * FIXED: Problem in SopenRC()/rc_close() communication, spotted by
+    Tamas Laufer.  Could result in  "ERROR: Failed to save system resources"
+    message, depending on compiler/and or hardware.
+
+  * FIXED: online help truncated output.
+
+  * FIXED: wrong value of lTop returned by PL_next_solution() on deterministic
+    predicates.  Can cause a crash.
+
+  * FIXED: Errorneous ``NOTE: system definition has been overruled ...''
+    from listing/[0,1].
+
+  * FIXED: saving operators using qsave_program/[1,2].  Spotted by
+    Robert van Engelen.
+
+  * FIXED: added format predicate and arithmetic function status to
+    saved-states.  Thanks to Tobias Thelen.
+
+  * ADDED: current_format_predicate/3
+
 VERSION 3.1.0
 =============
 
@@ -27,7 +52,7 @@ VERSION 3.1.0
   * PERFORMANCE: Added indexing for non-tagged numbers (> 16M)
 
   * FIXED: current_stream/3 for streams having an alias name.  Fix 
-    also affects other stream-related predicates returning an aliases
+    also affects other stream-related predicates returning an aliased
     stream.
 
   * FIXED: added space in write(a+ -1).

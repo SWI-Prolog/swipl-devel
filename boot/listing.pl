@@ -102,7 +102,7 @@ $list_module(Module, _) :-
 	format('~q:', [Module]).
 
 notify_changed(user, Head) :-
-	current_predicate(_, system:Head),
+	'$c_current_predicate'(_, system:Head),
 	\+ ( predicate_property(user:Head, imported_from(System)),
 	     (System == system ; $default_module(System, system, system))
 	   ),

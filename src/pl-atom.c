@@ -11,6 +11,91 @@
 #include "pl-incl.h"
 #include "pl-ctype.h"
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Implementation issues
+---------------------
+
+There are two parts in the atom   administration. One is a dynamic array
+(called buffer) atom_array, which is there to   find  the atoms back. An
+atom as it appears is a long   of the form (n<<LMASK_BITS)|TAG_ATOM. The
+atom  structure  is  located  by  getting  the  n-th  pointer  from  the
+atom_array dynamic array.  See atomValue() for translating the long into
+the address of the structure.
+
+Next, there is a hash-table, which is   otherwise  a quite normal `open'
+hash-table  mapping  char  *  to  the  atom  structure.  This  thing  is
+dynamically rehashed. This table is used   by lookupAtom() below. Please
+note that the end of a linked list   in the table points, using a tagged
+pointer, back to the start of the  next one. This allows for enumeration
+(current_atom) with only a single context argument.
+
+NOTE: Since the introduction of the  dynamic   array,  an  index in this
+array could be used, which would  simplify   the  code  and speed up the
+lookup a bit too.
+
+Atom garbage collection
+-----------------------
+
+There is no such thing, but below is an outline of what in entails.
+
+There are various categories of atoms:
+
+	# Built-in atoms
+	These are used directly in the C-source of the system and cannot
+	be removed. These are the atoms upto a certain number. This
+	number is sizeof(atoms)/sizeof(char *).
+
+	# Foreign referenced atoms
+	These are references hold in foreign code by means of
+	PL_new_atom() or other calls returning an atom. The system has
+	no way to determine the lifetime of them. Most probably the best
+	approach is to offer a locking/unlocking flag to deal this type
+	of atoms. The lock/unlock may be nested. The proposed functions
+	are:
+
+		PL_register_atom(atom_t atom)
+		PL_unregister_atom(atom_t atom)
+
+	# References from the Prolog stacks
+	Reference counting is unacceptable here, which implies a pass
+	similar to the normal garbage-collector is required to deal with
+	them. It might be worthwhile to include the atom
+	garbage-collection in the normal garbage collector.
+
+	# References from other structures
+	Various of the structures contain or may contain atom
+	references.  There are two options: lock/unlock them using
+	PL_register_atom() on creation/destruction of the structure
+	or enumerate them and flag the atoms.  The choice depends a
+	bit on the structure.  FunctorDef for example is not garbage
+	collected itself, so simply locking it makes sence.
+
+	# References from compiled code and records
+	Again both aproaches are feasible.  Reference counting is
+	easy, except that the destruction of clauses and records
+	will be more slowly as the code needs to be analysed for
+	atom-references.
+
+Reclaiming
+----------
+
+To reclaim an atom, it needs to be   deleted from the hash-table, a NULL
+pointer should be set in the dynamic array and the structure needs to be
+disposed using unalloc(). Basically, this is not a hard job.
+
+The dynamic array will get holes   and  registerAtom() should first spot
+for a hole (probably using a globally   defined index that points to the
+first location that might be a hole   to avoid repetive scanning for the
+array while there is no place anyway).   It cannot be shrunk, unless all
+atoms above a certain index are gone. There is simply no way to find all
+atom references (that why we need the PL_register_atom()).
+
+In an advanced form, the hash-table could be shrunk, but it is debatable
+whether this is worth the trouble. So, alltogether the system will waist
+an average 1.5 machine word per reclaimed  atom, which will be reused as
+the atom-space grows again.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static void	rehashAtoms();
 
 #define atom_buckets GD->atoms.buckets

@@ -145,7 +145,7 @@ copy_chars(N, From, To, C) :-
 	(   C1 == 8,			% backspace
 	    \+ feature(write_help_with_overstrike, true)
 	->  get0(From, C2),
-	    NN is N - 3,
+	    NN is N - 2,
 	    copy_chars(NN, From, To, C2)
 	;   put_printable(To, C),
 	    NN is N - 1,

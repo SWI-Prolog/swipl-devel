@@ -45,7 +45,9 @@ $dwim_correct_goal(Module:Goal, _, Module:Goal) :-
 $dwim_correct_goal(Goal, _, Goal) :-		% is defined
 	current_predicate(_, Goal), !.
 $dwim_correct_goal(Goal, Bindings, NewGoal) :-	% correct the goal
-	dwim_predicate_list(Goal, DWIMs), !,
+	dwim_predicate_list(Goal, DWIMs0), !,
+	context_module(C),
+	principal_predicates(C, DWIMs0, DWIMs),
 	correct_goal(Goal, Bindings, DWIMs, NewGoal).
 $dwim_correct_goal(Goal, _, _) :-		% can't be corrected
 	$break($warn_undefined(Goal, [])),
@@ -87,7 +89,7 @@ goal_name(_, _, String) :-
 	recorded($goal_name, String, Ref), !,
 	erase(Ref).
 
-goal_name_('_', '_') :- !.			% catch anonemous variable
+goal_name_('_', '_') :- !.			% catch anonymous variable
 goal_name_(Module:Name/Arity, String) :- !,
 	sformat(String, '~q:~q/~q', [Module, Name, Arity]).
 goal_name_(Name/Arity, String) :- !,
@@ -151,7 +153,7 @@ print_pack_name(_, Name,   Name).
 
 %	pack(+Heads, +Context, -Packs)
 %	Pack the list of heads into packets, consisting of the corrected
-%	specification and a list of heads meeting this specification.
+%	specification and a list of heads satisfying this specification.
 
 pack([], _, _, _, []) :- !.
 pack([M:T|Rest], Module, Arity, C, [Name-[H|R]|Packs]) :-

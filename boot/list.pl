@@ -120,7 +120,8 @@ $reverse([Head|List1], List2, List3) :-
 %	Is true when Lis2 is a non nested version of List1.
 
 flatten(List, FlatList) :-
-	$flatten(List, [], FlatList), !.
+	$flatten(List, [], FlatList0), !,
+	FlatList = FlatList0.
 
 $flatten(Var, Tl, [Var|Tl]) :-
 	var(Var), !.

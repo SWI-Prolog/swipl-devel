@@ -107,6 +107,7 @@ suggest predicates from a keyword.
 \predicatesummary{current_atom}{1}{Examine existing atoms}
 \predicatesummary{current_flag}{1}{Examine existing flags}
 \predicatesummary{current_foreign_library}{2}{\pllib{shlib} Examine loaded shared libraries (.so files)}
+\predicatesummary{current_format_predicate}{2}{Enumerate user-defined format codes}
 \predicatesummary{current_functor}{2}{Examine existing name/arity pairs}
 \predicatesummary{current_input}{1}{Get current input stream}
 \predicatesummary{current_key}{1}{Examine existing database keys}

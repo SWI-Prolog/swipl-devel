@@ -64,6 +64,8 @@ qsave_program(FileSpec, Options0) :-
 	save_imports,
 	save_features,
 	save_operators(SaveOps),
+	save_format_predicates,
+	save_functions,
 %	save_foreign_libraries,
 	system_mode(off),
 	$close_wic,
@@ -387,7 +389,7 @@ c_feature(windows).
 		 *	     OPERATORS		*
 		 *******************************/
 
-save_operators(true) :- !,
+save_operators(save) :- !,
 	feedback('~nOPERATORS~n', []),
 	findall(op(P, T, N), current_op(P, T, N), Ops),
 	$reset_operators,
@@ -426,6 +428,39 @@ op_type(yfx, infix).
 op_type(yfy, infix).
 op_type(xf,  postfix).
 op_type(yf,  postfix).
+
+		 /*******************************
+		 *       FORMAT PREDICATES	*
+		 *******************************/
+
+save_format_predicates :-
+	feedback('~nFORMAT PREDICATES~n', []),
+	current_format_predicate(Code, Head),
+	qualify_head(Head, QHead),
+	D = format_predicate(Code, QHead),
+	feedback('~n~t~8|~w ', [D]),
+	$add_directive_wic(D),
+	fail.
+save_format_predicates.
+
+qualify_head(T, T) :-
+	functor(T, :, 2), !.
+qualify_head(T, user:T).
+
+
+		 /*******************************
+		 *	     FUNCTIONS		*
+		 *******************************/
+
+save_functions :-
+	feedback('~nFUNCTIONS~n', []),
+	'$prolog_arithmetic_function'(Head),
+	D = arithmetic_function(Head),
+	feedback('~n~t~8|~w ', [D]),
+	$add_directive_wic(D),
+	fail.
+save_functions.
+
 
 		 /*******************************
 		 *       FOREIGN LIBRARIES	*
