@@ -1203,20 +1203,17 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   int arity;
   Word ap;
   ClauseRef clause;
-  DEBUG(4, { FunctorDef f = proc->definition->functor;
 
-	     if ( Scurout )
-	     { int n;
+  DEBUG(2, { FunctorDef f = proc->definition->functor;
+	     int n;
 
-	       Sdprintf("PL_open_query: %s(", stringAtom(f->name));
-	       for(n=0; n < f->arity; n++)
-	       { if ( n > 0 )
-		   Sdprintf(", ");
-		 PL_write_term(Serror, args+n, 999, 0);
-	       }
-	       Sdprintf(")\n");
-	     } else
-	       Sdprintf("PL_open_query in unitialized environment.\n");
+	     Sdprintf("PL_open_query: %s(", stringAtom(f->name));
+	     for(n=0; n < f->arity; n++)
+	     { if ( n > 0 )
+		 Sdprintf(", ");
+	       PL_write_term(Serror, args+n, 999, 0);
+	     }
+	     Sdprintf(")\n");
 	   });
 					/* should be struct alignment, */
 					/* but for now, I think this */
@@ -2194,6 +2191,10 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 	  catcher = argFrameP(lTop, 0);
 
 	SECURE(checkData(catcher));
+	DEBUG(1, { Sdprintf("Throwing ");
+		   PL_write_term(Serror, wordToTermRef(catcher), 1200, 0);
+		   Sdprintf("\n");
+		 });
 
 	deRef(catcher);
 	except = *catcher;
@@ -2306,7 +2307,7 @@ exit(Block, RVal).  First does !(Block).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     VMI(B_EXIT) MARK(B_EXIT);
       { Word name, rval;
-	LocalFrame blockfr, fr, fr2;
+	LocalFrame blockfr, fr;
 
 	name = argFrameP(lTop, 0); deRef(name);
 	rval = argFrameP(lTop, 1); deRef(rval);
@@ -2319,12 +2320,8 @@ exit(Block, RVal).  First does !(Block).
 	}
 	
 	set(blockfr, FR_CUT);
-	for(fr = BFR; fr > blockfr; fr = fr->backtrackFrame)
-	{ for(fr2 = fr; fr2->clause && fr2 > blockfr; fr2 = fr2->parent)
-	  { DEBUG(3, Sdprintf("discard %d\n", (Word)fr2 - (Word)lBase) );
-	    leaveFrame(fr2);
-	  }
-	}
+	discardChoicesAfter(blockfr);
+
 #ifdef O_DEBUGGER
         if ( debugstatus.debugging )
 	{ SetBfr(blockfr->mark.trailtop != INVALID_TRAILTOP ?
@@ -2367,7 +2364,7 @@ exit(Block, RVal).  First does !(Block).
 !(Block).  Cuts all alternatives created after entering the named block.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     VMI(I_CUT_BLOCK) MARK(CUT_BLOCK);
-      { LocalFrame cutfr, fr, fr2;
+      { LocalFrame cutfr, fr;
 	Word name;
 
 	name = argFrameP(lTop, 0); deRef(name);
@@ -2393,19 +2390,7 @@ exit(Block, RVal).  First does !(Block).
 	}
 	set(cutfr, FR_CUT);
 
-	for(fr = BFR; fr > cutfr; fr = fr->backtrackFrame)
-	{ for(fr2 = fr; fr2->clause && fr2 > cutfr; fr2 = fr2->parent)
-	  { if ( false(fr, FR_CUT) )
-	    { DEBUG(3, Sdprintf("discard [%ld] %s\n",
-				levelFrame(fr), predicateName(fr->predicate)));
-	      leaveFrame(fr2);
-	    }
-	  }
-	}
-
-	DEBUG(3, Sdprintf("BFR = [%ld] %s\n",
-			  levelFrame(BFR),
-			  predicateName(BFR->predicate)));
+	discardChoicesAfter(cutfr);
 
 	lTop = (LocalFrame) argFrameP(FR, CL->clause->variables);
 	ARGP = argFrameP(lTop, 0);
@@ -2431,9 +2416,7 @@ backtrack that makes it difficult to understand the tracer's output.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     i_cut:			/* from I_USERCALL0 */
     VMI(I_CUT)						MARK(CUT);
-      { LocalFrame fr;
-	LocalFrame fr2;
-
+      { 
 #ifdef O_DEBUGGER
 	if ( debugstatus.debugging )
 	{ switch(tracePort(FR, BFR, CUT_CALL_PORT, PC))
@@ -2449,14 +2432,7 @@ backtrack that makes it difficult to understand the tracer's output.
 	DEBUG(3, Sdprintf("Cutting [%ld] %s\n",
 			  levelFrame(FR),
 			  predicateName(FR->predicate)));
-	for(fr = BFR; fr > FR; fr = fr->backtrackFrame)
-	{ for(fr2 = fr; fr2->clause && fr2 > FR; fr2 = fr2->parent)
-	  { DEBUG(3, Sdprintf("    Discard [%ld] %s\n",
-			      levelFrame(fr2),
-			      predicateName(fr2->predicate)));
-	    leaveFrame(fr2);
-	  }
-	}
+	discardChoicesAfter(FR);
 #ifdef O_DEBUGGER
         if ( debugstatus.debugging )
 	{ SetBfr(FR->mark.trailtop != INVALID_TRAILTOP ?
