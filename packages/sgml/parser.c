@@ -3230,24 +3230,26 @@ process_doctype(dtd_parser *p, const ichar *decl, const ichar *decl0)
 { dtd *dtd = p->dtd;
   dtd_symbol *id;
   const ichar *s;
-  dtd_entity *et = sgml_calloc(1, sizeof(*et));
+  dtd_entity *et = NULL;
 
   if ( !(s=itake_name(dtd, decl, &id)) )
     return gripe(ERC_SYNTAX_ERROR, "Name expected", decl);
   decl = s;
-  et->name = id;
 
   if ( (s=isee_identifier(dtd, decl, "system")) )
+  { et = sgml_calloc(1, sizeof(*et));
     et->type = ET_SYSTEM;
-  else if ( (s=isee_identifier(dtd, decl, "public")) )
+  } else if ( (s=isee_identifier(dtd, decl, "public")) )
+  { et = sgml_calloc(1, sizeof(*et));
     et->type = ET_PUBLIC;
-  else
-    goto local;
-  decl = s;
+  }
 
-  if ( !(s=process_entity_value_declaration(p, decl, et)) )
-    return FALSE;
-  decl = s;
+  if ( et )
+  { et->name = id;
+    if ( !(s=process_entity_value_declaration(p, s, et)) )
+      return FALSE;
+    decl = s;
+  }
 
   if ( !dtd->doctype )			/* i.e. anonymous DTD */
   { const char *file;
@@ -3255,7 +3257,7 @@ process_doctype(dtd_parser *p, const ichar *decl, const ichar *decl0)
 
     dtd->doctype = istrdup(id->name);	/* Fill it */
     if ( !(file=find_in_catalog("DOCTYPE", dtd->doctype)) && 
-	 !(file=entity_file(dtd, et)) )
+	 !(et && (file=entity_file(dtd, et))) )
     { gripe(ERC_EXISTENCE, "DTD", dtd->doctype);
     } else
     { clone = clone_dtd_parser(p);
@@ -3265,9 +3267,9 @@ process_doctype(dtd_parser *p, const ichar *decl, const ichar *decl0)
     }
   }
 
-  free_entity_list(et);
+  if ( et )
+    free_entity_list(et);
 
-local:
   if ( (s=isee_func(dtd, decl, CF_DSO)) ) /* [...] */
   { int grouplevel = 1;
     data_mode oldmode  = p->dmode;
