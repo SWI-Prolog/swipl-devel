@@ -1,6 +1,12 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: Make Prolog safe for pthread_cancel(), canceling threads
+    holding a Prolog engine.
+
+  * ENHANCED: `exit' command from debugger in threads exit the thread
+    rather then the entire system.
+
   * MODIFIED: wait_for_input/3 now takes the value `infinite' as timeout to
     wait forever.  The integer 0 has the same function for backwards
     compatibility.

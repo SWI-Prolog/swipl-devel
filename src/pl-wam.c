@@ -232,7 +232,16 @@ is_signalled()
 
 #else
 
-#define is_signalled() (LD->pending_signals != 0)
+static inline int
+is_signalled(ARG1_LD)
+{
+#ifdef O_PLMT
+  if ( LD->cancel_counter++ % 64 == 0 )
+    pthread_testcancel();
+#endif
+
+  return (LD->pending_signals != 0);
+}
 
 #endif
 
@@ -3736,7 +3745,7 @@ increase lTop too to prepare for asynchronous interrupts.
 	    exception_term = 0;
 	    SAVE_REGISTERS(qid);
 	    fid = PL_open_foreign_frame();
-	    if ( is_signalled() )
+	    if ( is_signalled(PASS_LD1) )
 	    { PL_handle_signals();
 	      LOAD_REGISTERS(qid);
 	      if ( exception_term )
@@ -3985,7 +3994,7 @@ possible to be able to call-back to Prolog.
 
 	clear(FR, FR_SKIPPED|FR_WATCHED|FR_CATCHED);
 
-	if ( is_signalled() )
+	if ( is_signalled(PASS_LD1) )
 	{ SAVE_REGISTERS(qid);
 	  PL_handle_signals();
 	  LOAD_REGISTERS(qid);
@@ -4416,7 +4425,7 @@ frame_failed:
 
   DEBUG(3, Sdprintf("BACKTRACKING\n"));
 
-  if ( is_signalled() )
+  if ( is_signalled(PASS_LD1) )
   { SAVE_REGISTERS(qid);
     PL_handle_signals();
     LOAD_REGISTERS(qid);

@@ -264,6 +264,9 @@ typedef struct PL_local_data
   Word		mark_bar;		/* Mark globals > this one */
   pl_stacks_t   stacks;			/* Prolog runtime stacks */
   ulong		bases[STG_MASK+1];	/* area base addresses */
+#ifdef O_PLMT
+  int		cancel_counter;		/* check cancellation */
+#endif
   ulong		pending_signals;	/* PL_raise() pending signals */
   record_t	pending_exception;	/* Pending exception from signal */
   int		current_signal;		/* Currently handled signal */
