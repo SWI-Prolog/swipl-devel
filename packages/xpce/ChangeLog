@@ -1,3 +1,13 @@
+* ADDED: `image->save' to allow saving in a source_sink object, so image
+  data can be written to memory buffers.  Only works for jpeg en pnm formats.
+
+* ADDED: @pce->debugging_subject to allow using pcedebug/1 from user code.
+
+* FIXED: More graceful handling of term-expansion errors, especially 
+  useful for the on-the-fly cross-referencing PceEmacs.
+
+* ADDED: `date<-rfc_string' to return date in RFC compatible format
+
 * FIXED: Moved dialog-grid (<-above, etc.) unlinking from class dialog_item
   to class graphical: dialog windows get inconsistent if a non-dialog item
   is deleted.
@@ -7,8 +17,7 @@
 
 * ADDED: Book icon to manual tool main window.
 
-* ADDED: `image->save' support for saving JPEG files (Unix/X11 version
-  only sofar).
+* ADDED: `image->save' support for saving JPEG files (Both Unix and Win32).
 
 * ADDED: library(doc/html): handle <BASE> element and ignore the content
   of <SCRIPT> elements.
