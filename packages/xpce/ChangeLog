@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Balloon help in modal windows.  After demo program from Juergen Repp.
+
 * FIXED: Guitracer: goal-expansion loop.
 
 * ENHANCED: image->draw_in to avoid redrawing the whole graphical if only

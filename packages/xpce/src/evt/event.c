@@ -163,7 +163,7 @@ considerLocStillEvent()
 		    markAnswerStack(mark);
 		    e = newObject(ClassEvent,
 				  NAME_locStill, last_window,
-				  DEFAULT, DEFAULT, DEFAULT,
+				  last_x, last_y, last_buttons,
 				  toInt(last_time + now - host_last_time), EAV);
 		    addCodeReference(e);
 		    postEvent(e, (Graphical) last_window, DEFAULT);
