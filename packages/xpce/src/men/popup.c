@@ -324,21 +324,6 @@ executePopup(PopupObj p, Any context)
 }
 
 
-static int
-pullright_x_offset(PopupObj p)
-{ int ix = valInt(p->item_offset->x) +
-	   valInt(p->item_size->w) -
-	   valInt(p->border);
-
-  if ( notNil(p->popup_image) )
-    ix -= valInt(p->popup_image->size->w);
-  else
-    ix -= 8;
-
-  return ix;
-}
-
-
 static status
 showPullrightMenuPopup(PopupObj p, MenuItem mi, EventObj ev, Any context)
 { if ( isDefault(context) && validPceDatum(updateContext) )
@@ -348,12 +333,17 @@ showPullrightMenuPopup(PopupObj p, MenuItem mi, EventObj ev, Any context)
 
   if ( !emptyChain(mi->popup->members) )
   { Point pos;		/* Create PULLRIGHT */
-    int ih = valInt(p->item_size->h);
-    int ic = valInt(getCenterYMenuItemMenu((Menu)p, mi));
-    int ix = pullright_x_offset(p);
-	    
+    int ix, iy, ih, iw;
+    int rx;
+
+    area_menu_item((Menu)p, mi, &ix, &iy, &iw, &ih);
+    if ( notNil(p->popup_image) )
+      rx = ix+iw-valInt(p->popup_image->size->w);
+    else
+      rx = ix+iw-8;
+
     previewMenu((Menu) p, mi);
-    pos = tempObject(ClassPoint, toInt(ix), toInt(ic - ih/2), 0);
+    pos = tempObject(ClassPoint, toInt(rx), toInt(iy), 0);
 	    
     assign(p, pullright, mi->popup);
     send(p->pullright, NAME_open, p, pos, OFF, OFF, ON, 0);
@@ -381,10 +371,17 @@ dragPopup(PopupObj p, EventObj ev, Bool check_pullright)
 
       if ( notNil(mi->popup) && check_pullright != OFF )
       { Int ex, ey;
-	int ix = pullright_x_offset(p);
+	int ix, iy, ih, iw;
+	int rx;
+
+	area_menu_item((Menu)p, mi, &ix, &iy, &iw, &ih);
+	if ( notNil(p->popup_image) )
+	  rx = ix+iw-valInt(p->popup_image->size->w);
+	else
+	  rx = ix+iw-8;
 
 	get_xy_event(ev, p, ON, &ex, &ey);
-	if ( valInt(ex) > ix )
+	if ( valInt(ex) > rx )
 	  send(p, NAME_showPullrightMenu, mi, ev, 0);
       }
     } else
