@@ -1113,6 +1113,7 @@
   BUILTIN_NAME("item_offset")
   BUILTIN_NAME("item_sep")
   BUILTIN_NAME("item_size")
+  BUILTIN_NAME("item_width")
   BUILTIN_NAME("items")
   BUILTIN_NAME("iterate")
   BUILTIN_NAME("job")
@@ -2294,4 +2295,3 @@
   BUILTIN_NAME("yref")
   BUILTIN_NAME("yref_var")
   BUILTIN_NAME("zoom")
-  BUILTIN_NAME("item_width")

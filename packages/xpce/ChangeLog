@@ -1,3 +1,6 @@
+VERSION 5.0.8
+=============
+
 * FIXED: Click-stay up of popup menus that do not fit on the screen.
 
 * FIXED: Location of pullright menus on multicolumn popup menus.

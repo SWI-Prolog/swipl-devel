@@ -633,7 +633,7 @@ infoPce(Pce pce)
   writef("	Jan Wielemaker\n");
   writef("\n");
 
-  writef("Copyright (C) 1993-1999 University of Amsterdam.  All rights reserved.");
+  writef("Copyright (C) 1993-2000 University of Amsterdam.  All rights reserved.");
   writef("\n\n");
 
   succeed;
