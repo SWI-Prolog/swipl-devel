@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * INSTALL: export CIFLAGS=/path/to/local/include should now be
+    honoured correctly by configure (Lukas Faulstich)
+
   * FIXED: absolute_file_name/3 not to trust its cache.
 
   * ADDED: callable/1 for better compatibility.
