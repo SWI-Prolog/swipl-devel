@@ -37,7 +37,6 @@ if [ "$quick" = false ]; then
   echo "done"
 
 cat >> cvsfiles << _EOM_
-./pl.spec
 _EOM_
 fi
 
