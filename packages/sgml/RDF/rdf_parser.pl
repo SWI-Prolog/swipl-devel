@@ -80,7 +80,7 @@ nodeElementList([H|T], Base) ::=
 
 nodeElementOrError(H, Base) ::=
 	\nodeElement(H, Base), !.
-nodeElementOrError(_, unparsed(Data)) ::=
+nodeElementOrError(unparsed(Data), _Base) ::=
 	Data.
 
 nodeElement(container(Type, Id, Elements), Base) ::=
@@ -277,8 +277,8 @@ ws ::=
 	A,
 	{ atom(A),
 	  atom_chars(A, Chars),
-	  all_blank(Chars)
-	}, !.
+	  all_blank(Chars), !
+	}.
 ws ::=
 	pi(_).
 
