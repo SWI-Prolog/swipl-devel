@@ -64,7 +64,6 @@ handling times must be cleaned, but that not only holds for this module.
 #undef LD				/* fetch LD once per function */
 #define LD LOCAL_LD
 
-static IOENC	atom_to_encoding(atom_t a);
 static int	bad_encoding(atom_t name);
 
 const atom_t standardStreams[] =
@@ -1959,7 +1958,7 @@ static struct encname
 };
 
 
-static IOENC
+IOENC
 atom_to_encoding(atom_t a)
 { struct encname *en;
 
@@ -1972,7 +1971,7 @@ atom_to_encoding(atom_t a)
 }
 
 
-static atom_t
+atom_t
 encoding_to_atom(IOENC enc)
 { return encoding_names[enc].name;
 }
@@ -2021,7 +2020,7 @@ openStream(term_t file, term_t mode, term_t options)
   char  *h		= how;
   char *path;
   IOSTREAM *s;
-  IOENC enc = ENC_NONE;
+  IOENC enc = LD->encoding;
 
   if ( options )
   { if ( !scan_options(options, 0, ATOM_stream_option, open4_options,

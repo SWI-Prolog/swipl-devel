@@ -569,24 +569,33 @@ char _PL_char_types[] = {
 };
 
 
+IOENC
+initEncoding()
+{ if ( LD )
+  { if ( !LD->encoding )
+    { char *enc = getenv("LANG");
+
+      LD->encoding = ENC_ISO_LATIN_1;
+
+      if ( enc )
+      { int l = strlen(enc);
+	
+	if ( l >= 5 && strcmp(&enc[l-5], "UTF-8") == 0 )
+	  LD->encoding = ENC_UTF8;
+      }
+    }
+
+    return LD->encoding;
+  }
+
+  return ENC_ISO_LATIN_1;
+}
+
+
 void
 initCharTypes()
-{ 
-
-/*
-  int i;
-
-  for(i=128; i<256; i++)
-  { if ( islower(i) )
-      _PL_char_types[i] = LC;
-    else if ( isupper(i) )
-      _PL_char_types[i] = UC;
-    else if ( ispunct(i) )
-      _PL_char_types[i] = SY;
-  }
-*/
-
-  initLocale();
+{ initLocale();
+  initEncoding();
 }
 
 

@@ -134,6 +134,7 @@ extern int 			fatalError(const char *fm, ...);
 extern int 			PL_error(const char *pred, int arity,
 					 const char *msg, int id, ...);
 extern int			PL_handle_signals();
+extern IOENC			initEncoding(void);
 
 		 /*******************************
 		 *	      BUFFER		*
@@ -2123,10 +2124,12 @@ SinitStreams()
 
   if ( !done++ )
   { int i;
+    IOENC enc = initEncoding();
 
     for(i=0; i<=2; i++)
     { if ( !isatty(i) )
 	S__iob[i].flags &= ~SIO_ISATTY;
+      S__iob[i].encoding = enc;
 #ifdef O_PLMT
       S__iob[i].mutex = malloc(sizeof(recursiveMutex));
       recursiveMutexInit(S__iob[i].mutex);

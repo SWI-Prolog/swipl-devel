@@ -263,6 +263,23 @@ setWriteAttributes(atom_t a)
 }
 
 
+static int
+setEncoding(atom_t a)
+{ IOENC enc = atom_to_encoding(a);
+
+  if ( enc == ENC_UNKNOWN )
+  { term_t value = PL_new_term_ref();
+
+    PL_put_atom(value, a);
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_encoding, value);
+  }
+
+  LD->encoding = enc;
+
+  succeed;
+}
+
+
 word
 pl_set_feature(term_t key, term_t value)
 { atom_t k;
@@ -391,19 +408,26 @@ pl_set_feature(term_t key, term_t value)
 
       if ( !PL_get_atom(value, &a) )
 	return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, value);
+
+      if ( k == ATOM_double_quotes )
+      { rval = setDoubleQuotes(a, &m->flags);
+      } else if ( k == ATOM_unknown )
+      { rval = setUnknown(a, &m->flags);
+      } else if ( k == ATOM_write_attributes )
+      { rval = setWriteAttributes(a);
+      } else if ( k == ATOM_encoding )
+      { rval = setEncoding(a);
+      }
+      if ( !rval )
+	goto out;
+
       PL_unregister_atom(f->value.a);
       f->value.a = a;
       PL_register_atom(a);
       if ( k == ATOM_float_format )
       { PL_register_atom(a);		/* so it will never be lost! */
 	LD->float_format = PL_atom_chars(a);
-      } else if ( k == ATOM_double_quotes )
-      { rval = setDoubleQuotes(a, &m->flags);
-      } else if ( k == ATOM_unknown )
-      { rval = setUnknown(a, &m->flags);
-      } else if ( k == ATOM_write_attributes )
-      { rval = setWriteAttributes(a);
-      }
+      } 
       break;
     }
     case FT_INTEGER:
@@ -429,6 +453,7 @@ pl_set_feature(term_t key, term_t value)
     default:
       assert(0);
   }
+out:
   UNLOCK();
 
   return rval;
@@ -779,6 +804,8 @@ initFeatures()
 #ifdef __unix__
   defFeature("unix", FT_BOOL|FF_READONLY, TRUE, 0);
 #endif
+
+  defFeature("encoding", FT_ATOM, stringAtom(encoding_to_atom(LD->encoding)));
 
   defFeature("tty_control", FT_BOOL|FF_READONLY,
 	     trueFeature(TTY_CONTROL_FEATURE), TTY_CONTROL_FEATURE);

@@ -341,6 +341,8 @@ COMMON(int) 		PL_unify_char(term_t chr, int c, int mode);
 COMMON(int) 		PL_unify_stream_or_alias(term_t t, IOSTREAM *s);
 COMMON(void) 		pushOutputContext(void);
 COMMON(void) 		popOutputContext(void);
+COMMON(IOENC)		atom_to_encoding(atom_t a);
+COMMON(atom_t)		encoding_to_atom(IOENC enc);
 
 /* pl-flag.c */
 COMMON(void) 		initFlags(void);
@@ -906,6 +908,7 @@ COMMON(foreign_t) 	pl_char_type(term_t chr, term_t class, control_t h);
 COMMON(foreign_t) 	pl_code_type(term_t chr, term_t class, control_t h);
 COMMON(foreign_t) 	pl_downcase_atom(term_t in, term_t out);
 COMMON(foreign_t) 	pl_upcase_atom(term_t in, term_t out);
+COMMON(IOENC)		initEncoding(void);
 COMMON(void) 		initCharTypes(void);
 COMMON(bool) 		systemMode(bool accept);
 

@@ -307,6 +307,7 @@ typedef struct PL_local_data
   int		in_arithmetic;		/* doing arithmetic */
   int		autoload_nesting;	/* Nesting level in autoloader */
   void *	glob_info;		/* pl-glob.c */
+  IOENC		encoding;		/* default I/O encoding */
 
   struct
   { int		active;			/* doing pipe I/O */
