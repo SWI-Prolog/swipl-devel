@@ -622,7 +622,7 @@ char *addr;
 #else
   DEBUG(1, printf("Page fault at %ld (0x%x)\n", (long) addr, (unsigned) addr));
   for(i=0; i<N_STACKS; i++)
-    if ( expandStack(&stacka[n], addr) )
+    if ( expandStack(&stacka[i], addr) )
     {
 #if O_SIG_AUTO_RESET
       signal(sig, segv_handler);
@@ -660,7 +660,8 @@ long limit, minsize;
   s->base      = s->max = s->top = base;
   s->min       = s->base + minsize;	/* No need to get below this value */
   s->gced_size = 0L;			/* size after last gc */
-  s->gc	       = ((s == &stacks.global || s == &stacks.trail) ? TRUE : FALSE);
+  s->gc	       = ((s == (Stack) &stacks.global ||
+		   s == (Stack) &stacks.trail) ? TRUE : FALSE);
   s->small     = (s->gc ? 100 K : 0);
   limit_stack(s, limit);
 #if O_SHARED_MEMORY
