@@ -14,13 +14,13 @@ SunOS cc.
 
 #define M_CC			gcc
 #define M_OPTIMIZE	        -O2
-#define M_LDFLAGS		
+#define M_LDFLAGS		-static
 /*#define M_CFLAGS		-ansi -pedantic -Wall -funsigned-char*/
 #define M_CFLAGS		-Wall -funsigned-char
 
 /*#define M_OPTIMIZE		-g -DO_DEBUG*/
 
-#define M_LIBS			-lm -ltermcap -lreadline -ldl /usr/lib/libc.a
+#define M_LIBS			-lm -ltermcap -lreadline -Wl,-Bdynamic -ldl
 
 /* #define O_VMCODE_IS_ADDRESS	0	temporary */
 

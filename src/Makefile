@@ -76,7 +76,7 @@ CINCLUDE=../include/SWI-Prolog.h
 OBJ=	pl-wam.o pl-save.o \
 	pl-atom.o pl-arith.o pl-bag.o pl-comp.o pl-dump.o \
 	pl-dwim.o pl-ext.o pl-file.o pl-flag.o pl-fmt.o pl-funct.o \
-	pl-gc.o pl-glob.o pl-itf.o pl-list.o pl-load.o \
+	pl-gc.o pl-glob.o pl-itf.o pl-list.o pl-load.o pl-dde.o \
 	pl-modul.o pl-op.o pl-os.o pl-prims.o pl-pro.o pl-proc.o \
 	pl-prof.o pl-read.o pl-rec.o pl-setup.o pl-sys.o pl-table.o \
 	pl-trace.o pl-util.o pl-wic.o pl-write.o pl-term.o pl-buffer.o

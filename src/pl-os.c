@@ -1692,8 +1692,8 @@ extern rl_delete_text(int from, int to);
 #include <readline/readline.h>
 #undef savestring
 extern void add_history(char *);	/* should be in readline.h */
-extern void rl_begin_undo_group(void);	/* delete when conflict arrises! */
-extern void rl_end_undo_group(void);
+extern rl_begin_undo_group(void);	/* delete when conflict arrises! */
+extern rl_end_undo_group(void);
 
 
 static int
@@ -1709,7 +1709,8 @@ event_hook(void)
 }
 
 
-#if GLIBC44
+#define xmalloc PL_xmalloc		/* avoid conflicts */
+
 static char *
 xmalloc(int size)
 { char *result = malloc(size);
@@ -1719,7 +1720,6 @@ xmalloc(int size)
 
   return result;
 }
-#endif
 
 #define savestring(x) strcpy(xmalloc(1 + strlen(x)), (x))
 

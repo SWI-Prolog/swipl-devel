@@ -210,7 +210,5 @@ extern void ResetTty(void);
 #define Wait(stat)	wait(stat)
 
 extern int System(char *command);
-/*#ifndef __NT__
 extern void Sleep(real time);
-#endif*/
 extern char *Symbols(void);

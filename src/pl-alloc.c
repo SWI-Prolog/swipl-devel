@@ -466,9 +466,10 @@ void *
 xrealloc(void *mem, size_t size)
 { void *newmem;
 
-  if ( (newmem = realloc(mem, size)) )
+  newmem = mem ? realloc(mem, size) : malloc(size);
+  if ( newmem )
     return newmem;
-
-  fatalError("Not enough core");
+  if ( size )
+    fatalError("Not enough core");
   return NULL;				/* NOTREACHED */
 }
