@@ -87,21 +87,28 @@ run_test(Test) :-
 	rdf(Test, test:inputDocument, In),
 	local_file(In, InFile),
 	exists_file(InFile),
-	rdf(Test, test:outputDocument, Out),
-	local_file(Out, NTFile),
 	load_rdf(InFile, RDF,
 		 [ base_uri(In),
 		   expand_foreach(true)
 		 ]),
-	load_rdf_nt(NTFile, NT),
 	Data = [ source(InFile),
 		 result(RDF),
 		 norm(NT),
 		 substitutions(Substitions)
 	       ],
-	(   compare_triples(RDF, NT, Substitions)
+					% there may be alternative output
+					% documents
+	(   rdf(Test, test:outputDocument, Out),
+	    local_file(Out, NTFile),
+	    load_rdf_nt(NTFile, NT),
+	    format('Comparing to ~w~n', [NTFile]),
+	    compare_triples(RDF, NT, Substitions)
 	->  test_result(pass, Test, Data)
-	;   Substitions = [],
+					% if all fails, display the first
+	;   rdf(Test, test:outputDocument, Out),
+	    local_file(Out, NTFile),
+	    load_rdf_nt(NTFile, NT),
+	    Substitions = [],
 	    test_result(fail, Test, Data)
 	).
 

@@ -21,6 +21,18 @@ Program objects
 	Also manipulation methods on same lock:
 	    realising/method adding operations
 
+Graphics
+========
+
+Make state maintained by xdraw.c and msdraw.c thread-safe.  Options:
+
+	* Lock d_*() ... d_done() sequences
+
+	* Use thread-local-data graphical resources
+
+	* Make changedWindow() and display-manipulation thread-safe.
+
+
 User objects
 ============
 
@@ -42,4 +54,8 @@ User objects
 	- send(Obj, mutex, {write,all,none})
 	   - write: lock sends to this object
 	   - read:  lock all
+
+Work-threads
+============
+
 

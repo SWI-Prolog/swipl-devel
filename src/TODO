@@ -34,23 +34,22 @@ PROLOG FLAGS AND FOREIGN CODE
 
 	* Change PL_set_feature into PL_set_prolog_flag(), calling
 	  defFeature() if the system is not initialised and the lower
-	  level of a split pl_set_feature() if the system is porperly
+	  level of a split pl_set_feature() if the system is properly
 	  initialised.
 
 MULTITHREAD ISSUES
 ==================
 
-Getting rid of predicate-reference counts on static code:
+	* Thread-local vs. shared dynamic predicates?  By default
+	  local, but with declaration below we make them shared:
 
-	* Call garbage_collect_clauses/0 at end of consult
+	  :- thread_shared foo/1, bar/2.
 
-	* Have start_consult remove the clauses for non-referenced
-	  predicates.
+	  Issues:
 
-	* Provide a for calling foreign functions passing the engine;
-	  extend the context to be a pointer to an opaque structure.
+		* How to represent per-thread clause-lists for the
+		  same predicate?
 
-	* Provide for a thread-local allocation-pool.
 
 SCRIPT
 ======
