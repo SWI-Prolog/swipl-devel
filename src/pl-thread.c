@@ -1087,9 +1087,16 @@ pl_thread_join(term_t thread, term_t retcode)
 
   while( (rc=pthread_join(info->tid, &r)) == EINTR )
     ;
-  if ( rc != 0 )
-    return PL_error("thread_join", 2, ThError(rc),
-		    ERR_SYSCALL, "pthread_join");
+  switch(rc)
+  { case 0:
+      break;
+    case ESRCH:
+      return PL_error("thread_join", 2, NULL,
+		      ERR_EXISTENCE, ATOM_thread, thread);
+    default:
+      return PL_error("thread_join", 2, ThError(rc),
+		      ERR_SYSCALL, "pthread_join");
+  }
   
   rval = unify_thread_status(retcode, info);
    
