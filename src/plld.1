@@ -71,10 +71,15 @@ predicate.  If used with
 it sets the proper options to compile a C or C++ file ready for linking
 into a shared object.
 .TP
+.B \-embed-shared
+Embed SWI-Prolog into a DLL/Shared object rather than an executable.
+See the reference manual for details.
+.TP
 .B \-dll
 .I "Windows only"
-Embed SWI-Prolog into a DLL rather then an executable.  See the reference
-manual for details.
+Same as
+.B \-embed-shared
+Backward compatibility.
 .TP
 .BI \-F " base"
 By default,
