@@ -63,9 +63,6 @@ lookupProcedure(functor_t f, Module m)
   resetProcedure(proc);
   UNLOCK();
 
-  if ( streq(procedureName(proc), "select:select/3") )
-    trap_gdb();
-
   DEBUG(1, Sdprintf("Created %s\n", procedureName(proc)));
   return proc;
 }
@@ -1794,6 +1791,15 @@ registerSourceFile(SourceFile f)
   f->index = entriesBuffer(&GD->files.source_files, SourceFile) + 1;
     
   addBuffer(&GD->files.source_files, f, SourceFile);
+}
+
+
+void
+cleanupSourceFiles(void)
+{ if ( GD->files.source_files.base )
+  { discardBuffer(&GD->files.source_files);
+    GD->files.source_files.base = 0;
+  }
 }
 
 

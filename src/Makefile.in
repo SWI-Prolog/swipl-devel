@@ -146,7 +146,7 @@ banner:
 		@echo "****************"
 
 
-$(PL):		$(ALLOBJ)
+$(PL):		$(ALLOBJ) rc/librc.a
 		$(CC) $(LDFLAGS) -o $(PL) -Lrc $(ALLOBJ) -lrc $(LIBS)
 
 

@@ -17,6 +17,8 @@ growBuffer(Buffer b, long int minfree)
 { long osz = b->max - b->base, sz = osz;
   long top = b->top - b->base;
 
+  if ( sz < 512 )
+    sz = 512;				/* minimum reasonable size */
   while( top + minfree > sz )
     sz *= 2;
 

@@ -32,6 +32,8 @@
 
 #define ARCHIVE_TAG	"<archive>"
 
+static HtmlTagDef file_tag_def = NULL;
+
 static int attach_archive(RcArchive rca);
 
 RcArchive
@@ -59,6 +61,7 @@ rc_open_archive(const char *file, int flags)
 int
 rc_close_archive(RcArchive rca)
 { int rval = TRUE;
+  RcMember m, next;
 
   if ( rca->modified )
     rval = rc_save_archive(rca, NULL);
@@ -68,7 +71,21 @@ rc_close_archive(RcArchive rca)
     rca->fd = NULL;
   }
 
+  for(m=rca->members; m; m=next)
+  { next = m->next;
+    free(m);
+  }
+
   free((void *)rca->path);
+  free(rca);
+
+  if ( file_tag_def )			/* normally we won't need this */
+  { void *p = file_tag_def;		/* any longer and if we need it */
+					/* it will be recreated */
+    file_tag_def = NULL;
+    free(p);
+  }
+
 					/* TBD: deallocate structures */
   return rval;
 }
@@ -82,10 +99,8 @@ archive without finding anything useful.
 
 HtmlTagDef
 make_file_tag_def()
-{ static HtmlTagDef def = NULL;
-
-  if ( !def && (def = malloc(sizeof(htmltagdef)*6)) )
-  { HtmlTagDef d = def;
+{ if ( !file_tag_def && (file_tag_def = malloc(sizeof(htmltagdef)*6)) )
+  { HtmlTagDef d = file_tag_def;
 
     d->tag     = "name";
     d->convert = html_cvt_malloc_string;
@@ -110,7 +125,7 @@ make_file_tag_def()
     d->tag     = NULL;
   } 
 
-  return def;
+  return file_tag_def;
 }
 
 

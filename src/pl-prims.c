@@ -2185,7 +2185,7 @@ pl_halt(term_t code)
   if ( !PL_get_integer(code, &status) )
     status = 1;
 
-  Halt(status);
+  PL_halt(status);
   /*NOTREACHED*/
   fail;
 }

@@ -57,7 +57,15 @@ struct chunk
 { Chunk		next;		/* next of chain */
 };
 
-forwards Chunk	allocate(size_t size);
+typedef struct big_heap
+{ struct big_heap *next;
+  struct big_heap *prev;
+} *BigHeap;
+
+static Chunk allocate(size_t size);
+static void *allocBigHeap(size_t size);
+static void  freeBigHeap(void *p);
+static void  freeAllBigHeaps(void);
 
 static char   *spaceptr;	/* alloc: pointer to first free byte */
 static size_t spacefree;	/* number of free bytes left */
@@ -121,13 +129,16 @@ allocHeap(size_t n)
 #endif
     return f;
   }
-  UNLOCK();				/* we assume malloc() is MT-safe */
 
-  if ( !(f = malloc(n)) )
+  if ( !(f = allocBigHeap(n)) )
+  { UNLOCK();
     outOfCore();
+  }
 
   SetHBase(f);
   SetHTop((char *)f + n);
+
+  UNLOCK();
 
   DEBUG(9, Sdprintf("(b) %ld\n", (unsigned long)f));
 #if ALLOC_DEBUG
@@ -157,11 +168,11 @@ freeHeap(void *mem, size_t n)
   { n /= ALIGN_SIZE;
     p->next = freeChains[n];
     freeChains[n] = p;
-    UNLOCK();
   } else
-  { UNLOCK();
-    free(p);
+  { freeBigHeap(p);
   }
+
+  UNLOCK();
 }
 
 
@@ -225,6 +236,7 @@ allocate(size_t n)
   return (Chunk) p;
 }
 
+
 void
 initMemAlloc()
 { static int done = FALSE;
@@ -244,6 +256,64 @@ initMemAlloc()
     freeHeap(hbase, sizeof(word));
   }
   PL_UNLOCK(L_INIT_ALLOC);
+}
+
+
+void
+cleanupMemAlloc(void)
+{ UnallocAll();
+  freeAllBigHeaps();
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Deal with big allocHeap() calls. We have   comitted ourselves to be able
+to free all memory we have allocated, so   we  must know the pointers we
+have allocated. Normally big chunks are rather infrequent, but there can
+be a lot if the program uses lots of big clauses, records or atoms.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static BigHeap big_heaps;
+
+static void *
+allocBigHeap(size_t size)
+{ BigHeap h = malloc(size+sizeof(*h));
+
+  if ( !h )
+    return NULL;
+  
+  h->next = big_heaps;
+  h->prev = NULL;
+  if ( big_heaps )
+    big_heaps->prev = h;
+  big_heaps = h;
+
+  return (void *)(h+1);
+}
+
+
+static void
+freeBigHeap(void *p)
+{ BigHeap h = p;
+  
+  h--;					/* get the base */
+  if ( h->prev )
+    h->prev->next = h->next;
+  if ( h->next )
+    h->next->prev = h->prev;
+
+  free(h);
+}
+
+
+static void
+freeAllBigHeaps(void)
+{ BigHeap h, next;
+
+  for(h=big_heaps; h; h=next)
+  { next = h->next;
+    free(h);
+  }
 }
 
 #else /*O_MYALLOC*/
@@ -296,6 +366,12 @@ initMemAlloc()
     freeHeap(hbase, sizeof(word));
   }
   PL_UNLOCK(L_INIT_ALLOC);
+}
+
+
+void
+cleanupMemAlloc(void)
+{ 					/* TBD: Cleanup! */
 }
 
 #endif /*O_MYALLOC*/
@@ -734,6 +810,8 @@ with the GNU C-library lead to undefined symbols.  Therefore we define
 them in SWI-Prolog so that we can also give consistent warnings.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifndef xmalloc				/* for use with dmalloc */
+
 void *
 xmalloc(size_t size)
 { void *mem;
@@ -759,6 +837,8 @@ xrealloc(void *mem, size_t size)
 
   return NULL;
 }
+
+#endif /*xmalloc*/
 
 #undef LOCK
 #undef UNLOCK

@@ -1344,6 +1344,13 @@ initArith(void)
   registerBuiltinFunctions();
 }
 
+
+void
+cleanupArith(void)
+{ discardBuffer(function_array);
+}
+
+
 #if O_COMPILE_ARITH
 
 		/********************************

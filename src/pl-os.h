@@ -37,7 +37,6 @@ extern Void Allocate(long);
 
 extern char *OsError(void);
 extern bool initOs(void);
-extern volatile void Halt(int);
 
 		/********************************
 		*           ARITHMETIC          *

@@ -1,6 +1,12 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: PL_cleanup(): Run all cleanup hooks but do not terminate the
+    process.
+
+  * IMPROVED: GC policy to try a few garbage collections just before
+    running out of stack.
+
   * FIXED: abort to enable tail-recursion optimisation.
 
   * FIXED: Handling PL_throw() exceptions during inlined foreign calls.

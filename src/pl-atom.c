@@ -632,6 +632,12 @@ initAtoms(void)
 }
 
 
+void
+cleanupAtoms(void)
+{ discardBuffer(&atom_array);
+}
+
+
 word
 pl_current_atom2(term_t a, term_t refs, word h)
 { unsigned int i;

@@ -1238,6 +1238,14 @@ allocStacks(long local, long global, long trail, long argument)
 #endif
 }
 
+
+void
+freeStacks(PL_local_data_t *ld)
+{ VirtualFree(ld->stacks.global.base);
+  VirtualFree(ld->stacks.trail.base);
+  VirtualFree(ld->stacks.argument.base);
+}
+
 #endif /*HAVE_VIRTUAL_ALLOC*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1469,6 +1477,15 @@ allocStacks(long local, long global, long trail, long arg)
   GD->statistics.heap = old_heap;
 }
 
+
+void
+freeStacks(PL_local_data_t *ld)
+{ free(ld->stacks.global.base);
+  free(ld->stacks.trail.base);
+  free(ld->stacks.argument.base);
+}
+
+
 void
 resetStacks()
 { emptyStacks();
@@ -1518,4 +1535,30 @@ trimStacks()
   }
 
 #endif /*O_DYNAMIC_STACKS*/
+}
+
+		 /*******************************
+		 *	    LOCAL DATA		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+In the end, this should do nice cleanup  of all local data and be called
+both by PL_cleanup() and when destroying a  thread. There is still a lot
+of work to do.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+freeLocalData(PL_local_data_t *ld)
+{ int i;
+
+  discardBuffer(&ld->fli._discardable_buffer);
+
+  for(i=0; i<BUFFER_RING_SIZE; i++)
+    discardBuffer(&ld->fli._buffer_ring[i]);
+
+  if ( ld->comp._vardefs )
+  { free(ld->comp._vardefs);
+
+    memset(&ld->comp, 0, sizeof(ld->comp));
+  }
 }

@@ -1,3 +1,7 @@
+* CONFIG: Added -with-prolog=<Prolog> by Milan Zamazal for integration
+  as Debian (linux) package.
+
+
 VERSION 1.0.10
 ==============
 

@@ -2384,7 +2384,9 @@ PL_toplevel(void)
 
 void
 PL_halt(int status)
-{ Halt(status);
+{ PL_cleanup(status);
+
+  exit(status);
 }
 
 
@@ -2787,7 +2789,7 @@ PL_action(int action, ...)
     case PL_ACTION_HALT:
     { int a = va_arg(args, int);
 
-      Halt(a);
+      PL_halt(a);
       rval = FALSE;
       break;
     }

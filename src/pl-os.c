@@ -59,11 +59,11 @@
 static real initial_time;
 #endif /* OS2 */
 
-forwards void	initExpand(void);
-forwards void	initRandom(void);
-forwards void	initEnviron(void);
-forwards long	Time(void);
-static void	RemoveTemporaryFiles(void);
+static void	initExpand(void);
+static void	cleanupExpand(void);
+static void	initRandom(void);
+static void	initEnviron(void);
+static long	Time(void);
 static char *	Which(const char *program, char *fullname);
 
 #ifndef DEFAULT_PATH
@@ -137,76 +137,12 @@ initOs(void)
   succeed;
 }
 
-typedef void (*halt_function)(int, Void);
-
-struct on_halt
-{ halt_function	function;
-  Void		argument;
-  OnHalt	next;
-};
-
 
 void
-PL_on_halt(halt_function f, Void arg)
-{ if ( !GD->os.halting )
-  { OnHalt h = allocHeap(sizeof(struct on_halt));
-
-    h->function = f;
-    h->argument = arg;
-    startCritical;
-    h->next = GD->os.on_halt_list;
-    GD->os.on_halt_list = h;
-    endCritical;
-  }
+cleanupOs(void)
+{ cleanupExpand();
 }
 
-
-volatile void
-Halt(int rval)
-{ OnHalt h;
-
-  pl_notrace();				/* avoid recursive tracing */
-#ifdef O_PLMT
-  exitPrologThreads();
-#endif
-
-  Scurout = Soutput;			/* reset output stream to user */
-
-  if ( !GD->os.halting++ )
-  { for(h = GD->os.on_halt_list; h; h = h->next)
-      (*h->function)(rval, h->argument);
-
-    if ( GD->initialised )
-    { fid_t cid = PL_open_foreign_frame();
-      predicate_t proc = PL_predicate("$run_at_halt", 0, "system");
-      PL_call_predicate(MODULE_system, FALSE, proc, 0);
-      PL_discard_foreign_frame(cid);
-    }
-
-#if defined(__WINDOWS__) || defined(__WIN32__)
-    if ( rval != 0 && !hasConsole() )
-      PlMessage("Exit status is %d", rval);
-#endif
-
-    qlfCleanup();			/* remove errornous .qlf files */
-    dieIO();				/* streams may refer to foreign code */
-					/* Standard I/O is only flushed! */
-
-    if ( GD->initialised )
-    { fid_t cid = PL_open_foreign_frame();
-      predicate_t proc = PL_predicate("unload_all_foreign_libraries", 0,
-				      "shlib");
-      if ( isDefinedProcedure(proc) )
-	PL_call_predicate(MODULE_system, FALSE, proc, 0);
-      PL_discard_foreign_frame(cid);
-    }
-
-    RemoveTemporaryFiles();
-  }
-
-  exit(rval);
-  /*NOTREACHED*/
-}
 
 		/********************************
 		*            OS ERRORS          *
@@ -323,9 +259,7 @@ PL_clock_wait_ticks(long waited)
 		*********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    long *Allocate(n)
-	  long n;
-
+void *Allocate(long n)
     Allocate a memory area of `n' bytes from the operating system.   `n'
     is a long as we need to allocate one uniform array of longs for both
     the  local  stack  and  global  stack,  which  implies  it should be
@@ -337,13 +271,38 @@ PL_clock_wait_ticks(long waited)
     currently  available operating system (I'm aware of) will be able to
     handle it anyway.  THE RETURN VALUE SHOULD BE ROUNDED TO BE A  VALID
     POINTER FOR LONGS AND STRUCTURES AND AT LEAST A MULTIPLE OF 4.
+
+void UnallocAll()
+    Free all allocated chunks.  This is used by PL_cleanup() and should
+    be implemented if you want to be able to do PL_cleanup() such that
+    all memory allocated by Prolog is reclaimed.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-Void
-Allocate(long n)
-{ Void mem = malloc(n);
+typedef struct achunk
+{ struct achunk *next;
+} *AChunk;
 
-  return (Void) mem;
+static AChunk chunks;
+
+void *
+Allocate(long n)
+{ AChunk mem = malloc(n + sizeof(*mem));
+
+  mem->next = chunks;
+  chunks    = mem;
+
+  return (void *) (mem+1);
+}
+
+
+void
+UnallocAll(void)
+{ AChunk next, c;
+
+  for(c=chunks; c; c=next)
+  { next = c->next;
+    free(c);
+  }
 }
 
 
@@ -491,8 +450,8 @@ TemporaryFile(const char *id)
   return tf->name;
 }
 
-static void
-RemoveTemporaryFiles()
+void
+RemoveTemporaryFiles(void)
 { TempFile tf, tf2;  
 
   startCritical;
@@ -1033,6 +992,12 @@ initExpand(void)
 #ifdef O_CANONISE_DIRS
 
 static void
+cleanupExpand(void)
+{ canonical_dirlist = NULL;
+}
+
+
+static void
 registerParentDirs(const char *path)
 { const char *e = path + strlen(path);
 
@@ -1054,8 +1019,8 @@ registerParentDirs(const char *path)
     }
 	
     if ( statfunc(OsPath(dirname, tmp), &buf) == 0 )
-    { CanonicalDir dn = malloc(sizeof(struct canonical_dir));
-    
+    { CanonicalDir dn   = allocHeap(sizeof(*dn));
+
       dn->next		= canonical_dirlist;
       dn->name		= store_string(dirname);
       dn->inode		= buf.st_ino;
@@ -1094,7 +1059,7 @@ canoniseDir(char *path)
 					/* is sometimes bigger! */
 
   if ( statfunc(OsPath(path, tmp), &buf) == 0 )
-  { CanonicalDir dn = malloc(sizeof(struct canonical_dir));
+  { CanonicalDir dn = allocHeap(sizeof(*dn));
     char dirname[MAXPATHLEN];
     char *e = path + strlen(path);
 

@@ -176,11 +176,8 @@ free_prolog_thread(void *data)
   run_thread_exit_hooks();
   
   freeStacks(ld);
+  freeLocalData(ld);
 
-  discardBuffer(&ld->fli._discardable_buffer);
-  for(i=0; i<BUFFER_RING_SIZE; i++)
-    discardBuffer(&ld->fli._buffer_ring[i]);
-  
   if ( ld->feature.table )
     destroyHTable(ld->feature.table);
   /*PL_unregister_atom(ld->prompt.current);*/

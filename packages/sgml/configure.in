@@ -3,6 +3,9 @@ dnl Process this file with autoconf to produce a configure script.
 AC_INIT(install-sh)
 AC_CONFIG_HEADER(config.h)
 
+AC_ARG_WITH(prolog,
+   [ --with-prolog=PLBINARY   use given SWI Prolog binary])
+
 AC_SUBST(PL)
 AC_SUBST(PLLIBS)
 AC_SUBST(PLBASE)
@@ -26,7 +29,7 @@ AC_PROG_CC
 # Do not cache this, it changes too often in many configurations
 unset ac_cv_prog_PL
 
-plcandidates="pl swipl swi-prolog"
+plcandidates="$with_prolog pl swipl swi-prolog"
 AC_CHECK_PROGS(PL, $plcandidates, "none")
 if test $PL = "none"; then
    AC_ERROR("Cannot find SWI-Prolog. SWI-Prolog must be installed first")

@@ -215,20 +215,6 @@ notifyPredicate(functor_t f)
 #endif /* tos */
 
 		 /*******************************
-		 *	     CLEANUP		*
-		 *******************************/
-
-void
-qlfCleanup()
-{ if ( mkWicFile )
-  { warning("Removing incomplete Quick Load File %s", mkWicFile);
-    RemoveFile(mkWicFile);
-    mkWicFile = NULL;
-  }
-}
-
-
-		 /*******************************
 		 *     LOADED XR ID HANDLING	*
 		 *******************************/
 
@@ -324,34 +310,35 @@ qlfLoadError(IOSTREAM *fd, char *ctx)
 }
 
 
+static char *getstr_buffer;
+static char *getstr_buffer_end;
+static int   getstr_buffer_size = 512;
+
 static char *
 getString(IOSTREAM *fd)
-{ static char *tmp;
-  static char *tmpend;
-  static int  tmpsize = 512;
-  char *s;
+{ char *s;
   Char c;
 
-  if ( tmp == NULL )
-  { if ( !(tmp = malloc(tmpsize)) )
+  if ( getstr_buffer == NULL )
+  { if ( !(getstr_buffer = malloc(getstr_buffer_size)) )
       outOfCore();
-    tmpend = &tmp[tmpsize-1];
+    getstr_buffer_end = &getstr_buffer[getstr_buffer_size-1];
   }
 
-  for( s = tmp; (*s = c = Getc(fd)) != EOS; s++ )
-  { if ( s == tmpend )
-    { if ( !(tmp = realloc(tmp, tmpsize+512)) )
+  for( s = getstr_buffer; (*s = c = Getc(fd)) != EOS; s++ )
+  { if ( s == getstr_buffer_end )
+    { if ( !(getstr_buffer = realloc(getstr_buffer, getstr_buffer_size+512)) )
 	outOfCore();
-      s = &tmp[tmpsize-1];
-      tmpsize += 512;
-      tmpend = &tmp[tmpsize-1];
+      s = &getstr_buffer[getstr_buffer_size-1];
+      getstr_buffer_size += 512;
+      getstr_buffer_end = &getstr_buffer[getstr_buffer_size-1];
     }
     if ( c == EOF )
       fatalError("Unexpected EOF on intermediate code file at offset %d",
 		 Stell(fd));
   }
 
-  return tmp;
+  return getstr_buffer;
 }
 
 
@@ -2323,4 +2310,25 @@ compileFileList(IOSTREAM *fd, int argc, char **argv)
 
   return writeWicTrailer(fd);
 }
+
+		 /*******************************
+		 *	     CLEANUP		*
+		 *******************************/
+
+void
+qlfCleanup()
+{ if ( mkWicFile )
+  { warning("Removing incomplete Quick Load File %s", mkWicFile);
+    RemoveFile(mkWicFile);
+    mkWicFile = NULL;
+  }
+
+  if ( getstr_buffer )
+  { char *p = getstr_buffer;
+
+    getstr_buffer = NULL;
+    free(p);
+  }
+}
+
 

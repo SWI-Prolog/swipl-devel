@@ -187,6 +187,12 @@ initFunctors(void)
 }
 
 
+void
+cleanupFunctors(void)
+{ discardBuffer(&functor_array);
+}
+
+
 #if TEST
 checkFunctors()
 { register FunctorDef f;

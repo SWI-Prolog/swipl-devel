@@ -26,6 +26,10 @@
 #  endif
 #endif
 
+#ifdef HAVE_DMALLOC_H
+#include <dmalloc.h>			/* Use www.dmalloc.com debugger */
+#endif
+
 #include <stdio.h>
 #include <time.h>
 

@@ -494,6 +494,7 @@ __pl_export int		PL_initialise(int argc, char **argv);
 __pl_export int		PL_is_initialised(int *argc, char ***argv);
 install_t		PL_install_readline(void);
 __pl_export int		PL_toplevel(void);
+__pl_export int		PL_cleanup(int status);
 __pl_export void	PL_halt(int status);
 
 		 /*******************************

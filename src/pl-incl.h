@@ -43,6 +43,10 @@ for -DMD="md-mswin.h"
 #define _REENTRANT 1
 #endif
 
+#ifdef HAVE_DMALLOC_H
+#include <dmalloc.h>			/* Use www.dmalloc.com debugger */
+#endif
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 		      PROLOG SYSTEM OPTIONS
 

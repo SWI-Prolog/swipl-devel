@@ -335,14 +335,14 @@ again:
     { buf[0] = EOS;
       if ( !readLine(Sdin, Sdout, buf) )
       { Sfputs("EOF: exit\n", Sdout);
-	Halt(0);
+	PL_halt(0);
       }
     } else
     { int c = getSingleChar(Sdin);
 
       if ( c == EOF )
       { Sfputs("EOF: exit\n", Sdout);
-	Halt(0);
+	PL_halt(0);
       }
       buf[0] = c;
       buf[1] = EOS;
@@ -511,7 +511,7 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr, bool interactive)
     case '\04':
     case EOF:	FeedBack("EOF: ");
     case 'e':	FeedBack("exit\n");
-		Halt(0);
+		PL_halt(0);
     case 'f':	FeedBack("fail\n");
 		return ACTION_FAIL;
     case 'i':	if (port & (CALL_PORT|REDO_PORT|FAIL_PORT))
@@ -1100,7 +1100,7 @@ interruptHandler(int sig)
 
   if ( !GD->initialised )
   { Sfprintf(Serror, "Interrupt during startup. Cannot continue\n");
-    Halt(1);
+    PL_halt(1);
   }  
 
 again:
@@ -1123,7 +1123,7 @@ again:
     case 04:
     case EOF:	Sfputs("EOF: ", Sdout);
     case 'e':	Sfputs("exit\n", Sdout);
-		Halt(0);
+		PL_halt(0);
 		break;
 #ifdef O_DEBUGGER
     case 'g':	Sfputs("goals\n", Sdout);

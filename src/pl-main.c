@@ -640,7 +640,7 @@ properly on Linux. Don't bother with it.
 
     if ( !compileFileList(s, argc, argv) )
     { UNLOCK();
-      Halt(1);
+      PL_halt(1);
     }
     if ( Sclose(s) != 0 ||
 	 !rc_close_archive(GD->resourceDB) )
@@ -653,7 +653,7 @@ properly on Linux. Don't bother with it.
 	       rc_strerror(rc_errno));
 #endif
       UNLOCK();
-      Halt(1);
+      PL_halt(1);
     }
 #if defined(__WINDOWS__) || defined(__WIN32__)
     PlMessage("Boot compilation has created %s", rcpathcopy);
@@ -662,7 +662,7 @@ properly on Linux. Don't bother with it.
 	     "Boot compilation has created %s\n", rcpathcopy);
 #endif
     UNLOCK();
-    Halt(0);
+    PL_halt(0);
   } else
   { IOSTREAM *statefd = SopenRC(GD->resourceDB, "$state", "$prolog", RC_RDONLY);
 
@@ -694,7 +694,7 @@ properly on Linux. Don't bother with it.
   { int status = prologToplevel(PL_new_atom("$compile")) ? 0 : 1;
 
     UNLOCK();
-    Halt(status);
+    PL_halt(status);
     fail;				/* make compile happy */
   } else
   { int status = prologToplevel(PL_new_atom("$initialise"));
@@ -702,6 +702,7 @@ properly on Linux. Don't bother with it.
     return status;
   }
 }
+
 
 #ifdef __GNUC__
 typedef const char *cline;
@@ -804,6 +805,96 @@ giveVersionInfo(const char *a)
 }
 
 
+		 /*******************************
+		 *	     CLEANUP		*
+		 *******************************/
+
+typedef void (*halt_function)(int, Void);
+
+struct on_halt
+{ halt_function	function;
+  Void		argument;
+  OnHalt	next;
+};
+
+
+void
+PL_on_halt(halt_function f, Void arg)
+{ if ( !GD->os.halting )
+  { OnHalt h = allocHeap(sizeof(struct on_halt));
+
+    h->function = f;
+    h->argument = arg;
+    startCritical;
+    h->next = GD->os.on_halt_list;
+    GD->os.on_halt_list = h;
+    endCritical;
+  }
+}
+
+
+int
+PL_cleanup(int rval)
+{ OnHalt h;
+
+  pl_notrace();				/* avoid recursive tracing */
+#ifdef O_PLMT
+  exitPrologThreads();
+#endif
+
+  Scurout = Soutput;			/* reset output stream to user */
+
+  if ( !GD->os.halting++ )
+  { for(h = GD->os.on_halt_list; h; h = h->next)
+      (*h->function)(rval, h->argument);
+
+    if ( GD->initialised )
+    { fid_t cid = PL_open_foreign_frame();
+      predicate_t proc = PL_predicate("$run_at_halt", 0, "system");
+      PL_call_predicate(MODULE_system, FALSE, proc, 0);
+      PL_discard_foreign_frame(cid);
+    }
+
+#if defined(__WINDOWS__) || defined(__WIN32__)
+    if ( rval != 0 && !hasConsole() )
+      PlMessage("Exit status is %d", rval);
+#endif
+
+    qlfCleanup();			/* remove errornous .qlf files */
+    dieIO();				/* streams may refer to foreign code */
+					/* Standard I/O is only flushed! */
+
+    if ( GD->initialised )
+    { fid_t cid = PL_open_foreign_frame();
+      predicate_t proc = PL_predicate("unload_all_foreign_libraries", 0,
+				      "shlib");
+      if ( isDefinedProcedure(proc) )
+	PL_call_predicate(MODULE_system, FALSE, proc, 0);
+      PL_discard_foreign_frame(cid);
+    }
+
+    RemoveTemporaryFiles();
+  }
+
+  if ( GD->resourceDB )
+    rc_close_archive(GD->resourceDB);
+
+  freeStacks(LD);
+  freeLocalData(LD);
+  cleanupSourceFiles();
+  cleanupAtoms();
+  cleanupFunctors();
+  cleanupArith();
+  cleanupMemAlloc();
+  cleanupOs();
+
+  return TRUE;
+}
+
+		 /*******************************
+		 *	ERRORS AND WARNINGS	*
+		 *******************************/
+
 #include <stdarg.h>
 
 bool
@@ -847,7 +938,7 @@ vsysError(const char *fm, va_list args)
 { static int active = 0;
 
   if ( active++ )
-    Halt(3);
+    PL_halt(3);
 
 #ifdef O_PLMT
   Sfprintf(Serror, "[PROLOG SYSTEM ERROR:  Thread %d\n\t",
@@ -872,7 +963,7 @@ vsysError(const char *fm, va_list args)
 #endif /*O_DEBUGGER*/
 
   if ( GD->bootsession )
-    Halt(1);
+    PL_halt(1);
 
 action:
   Sfprintf(Serror, "\nAction? "); Sflush(Soutput);
@@ -884,7 +975,7 @@ action:
     case EOF:
       Sfprintf(Serror, "EOF: exit\n");
     case 'e':
-      Halt(3);
+      PL_halt(3);
       break;
     default:
       Sfprintf(Serror,
@@ -895,7 +986,7 @@ action:
   }
 
   pl_abort(ABORT_FATAL);
-  Halt(3);
+  PL_halt(3);
   PL_fail;
 }
 
@@ -916,7 +1007,7 @@ vfatalError(const char *fm, va_list args)
   Sfprintf(Serror, "]\n");
 #endif
 
-  Halt(2);
+  PL_halt(2);
   PL_fail;
 }
 
