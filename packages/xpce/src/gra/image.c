@@ -642,6 +642,8 @@ maskImage(Image image, Image mask)
   if ( notNil(image->bitmap) )
     updateSolidBitmap(image->bitmap);
 
+  ws_prepare_image_mask(image);
+
   return changedEntireImageImage(image);
 }
 

@@ -994,6 +994,12 @@ ws_monochrome_image(Image image)
 }
 
 
+void
+ws_prepare_image_mask(Image image)
+{ /* nothing to do here */
+}
+
+
 		 /*******************************
 		 *	     POSTSCRIPT		*
 		 *******************************/

@@ -1499,6 +1499,55 @@ ws_monochrome_image(Image image)
   answer(mono);
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Windows  transparent  images   are   drawn    by   first   clearing  the
+non-transparent pieces of the image to black  and that adding the values
+from the real image. This only works if   the real image is black at the
+places where it must be   transparent. ws_prepare_image_mask() is called
+after a new mask has been  assigned  to   an  image  and  its task is to
+blacken the transparent parts of the main image.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+ws_prepare_image_mask(Image image)
+{ int w = valInt(image->size->w);
+  int h = valInt(image->size->h);
+
+  if ( notNil(image->mask) && w && h )
+  { DisplayObj d = image->display;
+    HBITMAP obm, bm;
+    HBITMAP omsk, msk;
+
+    if ( isNil(d) )
+      d = CurrentDisplay(image);
+
+    bm  = (HBITMAP) getXrefObject(image, d);
+    msk = (HBITMAP) getXrefObject(image->mask, d);
+
+    if ( bm && msk )
+    { HDC  hdc = CreateCompatibleDC(NULL);
+      HDC mhdc = CreateCompatibleDC(hdc);
+      COLORREF oldbg, oldfg;
+
+      obm  = ZSelectObject(hdc, bm);
+      omsk = ZSelectObject(mhdc, msk);
+    
+      oldbg = SetBkColor(hdc, RGB(0,0,0));
+      oldfg = SetTextColor(hdc, RGB(255,255,255));
+      BitBlt(hdc, 0, 0, w, h, mhdc, 0, 0, SRCAND);
+      SetBkColor(hdc, oldbg);
+      SetTextColor(hdc, oldfg);
+
+      ZSelectObject(hdc, obm);
+      ZSelectObject(mhdc, omsk);
+
+      DeleteDC(mhdc);
+      DeleteDC(hdc);
+    }
+  }
+}
+
 		 /*******************************
 		 *	    POSTSCRIPT		*
 		 *******************************/

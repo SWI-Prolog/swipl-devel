@@ -494,7 +494,7 @@ write_gif_file(IOSTREAM *fd, Image image, HBITMAP bm, HBITMAP mask)
       return FALSE;
     }
 
-    if ( width*3 % sizeof(DWORD) )
+					/* adjust alignment and colours */
     { int outlensl = width*3;
       int inlensl  = ROUND(outlensl, sizeof(DWORD));
       int y;
@@ -503,7 +503,8 @@ write_gif_file(IOSTREAM *fd, Image image, HBITMAP bm, HBITMAP mask)
       { GSAMPLE *p = data+y*outlensl;
 	int x;
 
-	memcpy(p, data+y*inlensl, outlensl);
+	if ( inlensl != outlensl )
+	  memcpy(p, data+y*inlensl, outlensl);
 					/* swap blue/red */
 	for(x=0; x<width; x++, p+=3)
 	{ GSAMPLE tmp = p[0];
