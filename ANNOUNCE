@@ -1,41 +1,41 @@
-SWI-Prolog 5.0.4/XPCE 6.0.4 Summary of changes
+SWI-Prolog 5.0.5/XPCE 6.0.5 Summary of changes
 
 SWI-Prolog
 ==========
 
-	* Added options to load_files/2 to make it possible to load sources
-	  from non-file-objects, such as databases, HTTP servers, etc.
+    * ENGINE: fix to call_cleanup/[2,3]: avoid GC when running cleanup
+      handler.  PL_cons_functor_v() now does proper dereferencing, avoiding
+      some weird errors on specific use of the C/C++ interface.
 
-	* Fixed PLWIN.EXE console-position problems, causing the window to
-	  `walk' on some systems.  Fixed code to guarantee the console is
-	  never outside the desktop-area.
+    * COMPATIBILITY:   Added, depending on the flag backquoted_string,
+      support for LPA-Prolog string syntax (`hello world`).  Again allow
+      for `interleaved I/O' using Edinburgh tell/1 and see/1.  See manual.
 
-	* Various minor issues to streamline the Windows installation.
+    * PORTABILITY: BeOS and Compaq C-compiler, various minor improvements
+      to configure and build-suite.
 
-	* Fixed qsave_program/2 with foreign libraries involved.
+    * WINDOWS: support wheel-mouse in plwin.exe, make home/end keys work
+      properly.  Provide support for UNC filenames (\\host\share\...,
+      preferably written as //host/share/...).
 
-	* Modified library(socket) to deal with event-handling during a
-	  blocked read-operation for better cooperation with GUI environments.
+    * MULTI-THREADING: Various patches avoiding corruption and deadlocks.
+      Lots of work done by Sergey Tikhonov.  Thanks!
+
+    * DOCS: Various updates.
 
 
 Development Environment
 =======================
 
-	* Various patches to the GUI tracer, notably for handling DCG rules.
-
-	* Fixed `explain' in the presence of debugger break-points (crash).
-
-	* Avoid a crash in PceEmacs handling singleton variables.
-
+    * Modified interface for choice-points, paving the route for further
+      improvements and for now avoiding a crash on some specific code.
 
 XPCE
 ====
 
-	* Various issues handling setting and restoring frame-positions,
-	  notably affecting destruction of iconised frames on Windows.
-	  Some more safety to avoid 0-sized windows, windows outside
-	  the desktop, etc.
+    * Allow exchanging atoms and strings betweem XPCE and Prolog containing
+      0-bytes.
 
-	* Added send(@pce, show_console, full_screen) (PLWIN.EXE only).
+    * Windows: provide support for UNC filenames (see Prolog).
 
-	* Various minor issues.
+    * Various minor patches and enhancements
