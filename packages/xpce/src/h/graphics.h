@@ -344,6 +344,8 @@ NewClass(label)
   Elevation  elevation;			/* Elevation of the area */
 End;
 
+#define GTK_BUTTON_MARGIN 5		/* Lowered region of default button */
+
 NewClass(button)
   ABSTRACT_DIALOGITEM
   Int	     radius;			/* Rounding radius */

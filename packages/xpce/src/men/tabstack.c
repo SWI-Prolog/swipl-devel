@@ -42,11 +42,7 @@ RedrawAreaTabStack(TabStack t, Area a)
   { Cell cell;
 
     for_cell(cell, dev->graphicals)
-    { Graphical gr = cell->value;
-
-      if ( overlapArea(a, gr->area) )
-	RedrawArea(gr, a);
-    }
+      RedrawArea(cell->value, a);
 
     ExitRedrawAreaDevice(dev, a, &ctx);
   }

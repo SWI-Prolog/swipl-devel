@@ -412,9 +412,30 @@ getCommonDeviceGraphical(Graphical gr1, Graphical gr2)
   fail;
 }
 
+
 		/********************************
 		*            CHANGES		*
 		********************************/
+
+static int
+get_extension_margin_graphical(Graphical gr)
+{ if ( instanceOfObject(gr, ClassText) ||
+       instanceOfObject(gr, ClassDialogItem) )
+  { int m = 5;
+
+    if ( instanceOfObject(gr, ClassButton) )
+    { Button b = (Button)gr;
+
+      if ( b->look == NAME_motif || b->look == NAME_gtk )
+	m = GTK_BUTTON_MARGIN + 1;
+    }
+
+    return m;
+  }
+
+  return 0;
+}
+
 
 status
 changedAreaGraphical(Any obj, Int x, Int y, Int w, Int h)
@@ -443,6 +464,7 @@ changedAreaGraphical(Any obj, Int x, Int y, Int w, Int h)
 	    ow = valInt(w), oh = valInt(h);
 	int cx = valInt(a->x), cy = valInt(a->y),
             cw = valInt(a->w), ch = valInt(a->h);
+	int m;
 
 	if ( !createdWindow(sw) )
 	  break;
@@ -453,10 +475,11 @@ changedAreaGraphical(Any obj, Int x, Int y, Int w, Int h)
 	cx += offx; cy += offy;
 
 					/* HACKS ... */
-	if ( instanceOfObject(gr, ClassText) ||
-	     instanceOfObject(gr, ClassDialogItem) )
-	{ ox -= 5; oy -= 5; ow += 10; oh += 10;
-	  cx -= 5; cy -= 5; cw += 10; ch += 10;
+	if ( (m = get_extension_margin_graphical(gr)) )
+	{ int m2 = m*2;
+
+	  ox -= m; oy -= m; ow += m2; oh += m2;
+	  cx -= m; cy -= m; cw += m2; ch += m2;
 	}
 					/* end hacks! */
 
@@ -654,6 +677,35 @@ drawGraphical(Graphical gr, Point offset, Area area)
 }
 
 
+#define InitAreaA	int ax = valInt(a->x), ay = valInt(a->y), 	\
+			    aw = valInt(a->w), ah = valInt(a->h)
+
+#define InitAreaB	int bx = valInt(b->x), by = valInt(b->y), 	\
+			    bw = valInt(b->w), bh = valInt(b->h)
+
+
+static status
+overlapExtendedAreaGraphical(Graphical gr, Area b)
+{ int m;
+  Area a = gr->area;
+  InitAreaA;
+  InitAreaB;
+
+  NormaliseArea(ax, ay, aw, ah);	/* b is normalised */
+  if ( (m = get_extension_margin_graphical(gr)) )
+  { int m2 = 2*m;
+
+    ax -= m;  ay -= m;
+    aw += m2; ah += m2;
+
+  }
+  if (by > ay+ah || by+bh < ay || bx > ax+aw || bx+bw < ax)
+    fail;
+
+  succeed;
+}
+
+
 status
 RedrawArea(Any obj, Area area)
 { Graphical gr = obj;
@@ -664,6 +716,10 @@ RedrawArea(Any obj, Area area)
   status rval;
 
   ComputeGraphical(obj);		/* should not be necessary: */
+  
+  if ( gr->displayed == OFF ||
+       !overlapExtendedAreaGraphical(gr, area) )
+    succeed;
 
   if ( gr->active == OFF )
   { Any c2 = getClassVariableValueObject(gr, NAME_inactiveColour);

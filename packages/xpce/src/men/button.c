@@ -93,25 +93,37 @@ draw_generic_button_face(Button b,
   if ( z && notNil(z) )			/* 3-d style */
   { int up = (b->status == NAME_inactive || b->status == NAME_active);
      
-    if ( b->look == NAME_motif || b->look == NAME_win )
+    if ( b->look == NAME_motif ||
+	 b->look == NAME_gtk ||
+	 b->look == NAME_win )
     { int bx = x, by = y, bw = w, bh = h;
 
-      if ( b->look == NAME_motif )
-      { if ( focus ) /* was: (defb && !obhf) || (focus && kbf) ) */
+      if ( b->look == NAME_motif ||
+	   b->look == NAME_gtk )
+      { PceWindow sw = getWindowGraphical((Graphical)b);
+
+	if ( focus ||
+	     sw->keyboard_focus == (Graphical) b ||	/* inactive focus */
+	     (defb && !instanceOfObject(sw->keyboard_focus, ClassButton)) )
 	{ static Elevation e = NULL;
   
 	  if ( !e )
 	    e = newObject(ClassElevation, ONE, EAV);
   
-	  bx -= 4; by -= 4; bw += 8; bh += 8;
+	  bx -= GTK_BUTTON_MARGIN;
+	  by -= GTK_BUTTON_MARGIN;
+	  bw += GTK_BUTTON_MARGIN * 2;
+	  bh += GTK_BUTTON_MARGIN * 2;
 	  r_3d_box(bx, by, bw, bh, r, e, FALSE);
 	}
-	if ( focus )			/* was kbf && focus */
+
+	if ( focus )
 	{ int pen = valInt(b->pen);
-  
-	  bx -= pen; by -= pen; bw += 2*pen; bh += 2*pen;
-	  r_thickness(pen);
-	  r_box(bx, by, bw, bh, r, NIL);
+
+	  if ( pen > 0 )
+	  { r_thickness(pen);
+	    r_box(x-pen, y-pen, w+2*pen, h+2*pen, r, NIL);
+	  }
 	}
       } else
       { if ( defb )
@@ -178,7 +190,7 @@ draw_button_popup_indicator(Button b, int x, int y, int w, int h, int up)
   } else
   { Elevation z = getClassVariableValueObject(b, NAME_elevation);
 
-    if ( b->look == NAME_motif )
+    if ( b->look == NAME_motif || b->look == NAME_gtk )
     { int bw = 12;
       int bh = 8;
 
@@ -291,7 +303,7 @@ computeButton(Button b)
 	if ( notNil(b->popup) )
 	{ if ( notNil(b->popup->popup_image) )
 	    w += valInt(b->popup->popup_image->size->w) + 5;
-	  else if ( b->look == NAME_motif )
+	  else if ( b->look == NAME_motif || b->look == NAME_gtk )
 	    w += 12 + 5;
 	  else
 	    w += 9 + 5;
@@ -374,7 +386,10 @@ makeButtonGesture()
 
 static status
 WantsKeyboardFocusButton(Button b)
-{ if ( b->active == ON && (b->look == NAME_motif || b->look == NAME_win) )
+{ if ( b->active == ON &&
+       ( b->look == NAME_motif ||
+	 b->look == NAME_gtk ||
+	 b->look == NAME_win) )
     succeed;
 
   fail;
@@ -631,13 +646,15 @@ static getdecl get_button[] =
 /* Resources */
 
 static classvardecl rc_button[] =
-{ RC(NAME_alignment, "{column,left,center,right}", "center",
+{ RC(NAME_look, RC_REFINE, UXWIN("gtk", "win"),
+     NULL),
+  RC(NAME_alignment, "{column,left,center,right}", "center",
      "Alignment in the row"),
   RC(NAME_labelFont, "font", "normal",
      "Default font for labels"),
   RC(NAME_labelSuffix, "name", "",
      "Ensured suffix of label"),
-  RC(NAME_pen, "int", "2",
+  RC(NAME_pen, "int", "1",
      "Thickness of box"),
   RC(NAME_selectedForeground, "colour",
      UXWIN("white", "win_highlighttext"),
@@ -648,8 +665,7 @@ static classvardecl rc_button[] =
   RC(NAME_popupImage, "image*",
      "when(@colour_display, @nil, @ol_pulldown_image)",
      "Image to indicate presence of popup menu"),
-  RC(NAME_radius, "int",
-     UXWIN("when(@colour_display, 8, 12)", "0"),
+  RC(NAME_radius, "int", "0",
      "Rounding radius of box"),
   RC(NAME_shadow, "int", "when(@colour_display, 0, 1)",
      "Shadow shown around the box"),

@@ -11,7 +11,7 @@
 */
 
 #include <h/kernel.h>
-#include <h/graphics.h>
+#include <h/dialog.h>
 
 static status	uncreateWindow(PceWindow sw);
 static status   tileWindow(PceWindow sw, TileObj t);
@@ -674,7 +674,14 @@ destroyed:
 
 status
 typedWindow(PceWindow sw, EventId id, Bool delegate)
-{  if ( delegate == ON )
+{ Name key = characterName(id);
+  Graphical gr;
+
+  for_chain(sw->graphicals, gr,
+	    if ( send(gr, NAME_key, key, EAV) )
+	      succeed); 
+
+  if ( delegate == ON )
    { if ( notNil(sw->frame) )
        return send(sw->frame, NAME_typed, id, EAV);
      else if ( notNil(sw->device) &&
@@ -722,8 +729,16 @@ keyboardFocusWindow(PceWindow sw, Graphical gr)
   }
 
   if ( sw->keyboard_focus != gr )
-  { if ( notNil(sw->keyboard_focus) )
+  { Button defb;
+
+    if ( notNil(sw->keyboard_focus) )
       generateEventGraphical(sw->keyboard_focus, NAME_releaseKeyboardFocus);
+
+    if ( instanceOfObject(gr, ClassButton) !=
+	 instanceOfObject(sw->keyboard_focus, ClassButton) &&
+	 (defb = getDefaultButtonDevice((Device)sw)) &&
+	 (defb->look == NAME_motif || defb->look == NAME_gtk) )
+      changedDialogItem(defb);
 
     assign(sw, keyboard_focus, gr);
 
@@ -1117,11 +1132,7 @@ redrawAreaWindow(PceWindow sw, Area a)
       qadSendv(sw->layout_manager, NAME_RedrawArea, 1, (Any*)&a);
 
   for_cell(cell, sw->graphicals)
-  { Graphical gr = cell->value;
-
-    if ( gr->displayed == ON && overlapArea(a, gr->area) )
-      RedrawArea(gr, a);
-  }
+    RedrawArea(cell->value, a);
 
   succeed;
 }

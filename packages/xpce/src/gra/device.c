@@ -339,6 +339,22 @@ typedDevice(Device dev, EventId id, Bool delegate)
 }
 
 
+Button
+getDefaultButtonDevice(Device d)
+{ Cell cell;
+
+  for_cell(cell, d->graphicals)
+  { Button b = cell->value;
+
+    if ( instanceOfObject(b, ClassButton) &&
+	 b->default_button == ON )
+      answer(b);
+  }
+
+  fail;
+}
+
+
 status
 advanceDevice(Device dev, Graphical gr, Bool propagate)
 { Cell cell;
@@ -622,11 +638,7 @@ RedrawAreaDevice(Device dev, Area a)
       qadSendv(dev->layout_manager, NAME_RedrawArea, 1, (Any*)&a);
 
     for_cell(cell, dev->graphicals)
-    { Graphical gr = cell->value;
-
-      if ( gr->displayed == ON && overlapArea(a, gr->area) )
-	RedrawArea(gr, a);
-    }
+      RedrawArea(cell->value, a);
 
     ExitRedrawAreaDevice(dev, a, &ctx);
   }
@@ -2241,6 +2253,8 @@ static getdecl get_device[] =
   GM(NAME_pointedObjects, 2, "chain", T_pointedObjects,
      getPointedObjectsDevice,
      NAME_event, "New chain holding graphicals at point|event"),
+  GM(NAME_defaultButton, 0, "button", NULL, getDefaultButtonDevice,
+     NAME_accelerator, "Current Button connected to `RET'"),
   GM(NAME_catchAll, 1, "graphical", "name", getCatchAllDevice,
      NAME_organisation, "Find named graphicals"),
   GM(NAME_member, 1, "graphical", "graphical_name=name", getMemberDevice,

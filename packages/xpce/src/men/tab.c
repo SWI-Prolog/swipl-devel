@@ -236,11 +236,7 @@ RedrawAreaTab(Tab t, Area a)
 
       d_clip(x+eh, y+eh, w-2*eh, h-2*eh); /* check if needed! */
       for_cell(cell, t->graphicals)
-      { Graphical gr = cell->value;
-
-	if ( gr->displayed == ON && overlapArea(a, gr->area) )
-	  RedrawArea(gr, a);
-      }
+	RedrawArea(cell->value, a);
       d_clip_done();	     
 
       r_offset(-ox, -oy);

@@ -1434,7 +1434,7 @@ static classvardecl rc_pce[] =
      UXWIN(/*UNIX*/
 	   "and(_dialog_bg        @= when(@colour_display, grey80, white),\n"
 	   "    _button_elevation @= elevation(button, 1, @default,\n"
-	   "				       grey95, grey30,\n"
+	   "				       grey95, grey50,\n"
 	   "				      '3d', grey70),\n"
 	   "    _mark_elevation   @= elevation(mark, 0),\n"
 	   "    _win_pen	  @= when(@colour_display, 0, 1))",

@@ -1,6 +1,12 @@
 			   XPCE ChangeLog
 			   ==============
 
+* MODIFIED: Unix/X11 version look-and-feel aspects of the classes button,
+  menu_bar: including `gtk' look and feel.
+
+* FIXED: Minor redraw issues when uncovering windows involving dialog items
+  or text `with things sticking out'.
+
 * MODIFIED: `Frame<-geometry' excludes the size if <-can_resize yields @off
   (for improved geometry maintenance by class persistent_frame).
 

@@ -371,6 +371,7 @@ getReduceColour(Colour c)
     answer(c2);
   rfactor = getClassVariableValueObject(c, NAME_reduceFactor);
   rf = rfactor ? valReal(rfactor) : 0.5;
+  DEBUG(NAME_reduce, Cprintf("reduceFactor = %f\n", rf));
   if ( isDefault(c->green) )
     getXrefObject(c, CurrentDisplay(NIL));
   
@@ -477,7 +478,7 @@ static getdecl get_colour[] =
 static classvardecl rc_colour[] =
 { RC(NAME_hiliteFactor, "real", "0.9",
      "Factor for <-hilite'd colour"),
-  RC(NAME_reduceFactor, "real", "0.5",
+  RC(NAME_reduceFactor, "real", "0.6",
      "Factor for <-reduce'd colour")
 };
 

@@ -49,26 +49,6 @@ displayDialog(Dialog d, Graphical item, Point pos)
 }
 
 
-		/********************************
-		*            TYPING		*
-		********************************/
-
-static status
-typedDialog(Dialog d, EventId id, Bool delegate)
-{ Name key = characterName(id);
-  Graphical gr;
-
-  for_chain(d->graphicals, gr,
-	    if ( send(gr, NAME_key, key, EAV) )
-	      succeed);
-
-  if ( delegate == ON && notNil(d->frame) )
-    return send(d->frame, NAME_typed, id, EAV);
-
-  fail;
-}
-
-
 static status
 appendDialog(Dialog d, Graphical item, Name where)
 { return appendDialogItemDevice((Device) d, item, where);
@@ -251,22 +231,6 @@ defaultButtonDialog(Dialog d, Button b)
 }
 
 
-static Button
-getDefaultButtonDialog(Dialog d)
-{ Cell cell;
-
-  for_cell(cell, d->graphicals)
-  { Button b = cell->value;
-
-    if ( instanceOfObject(b, ClassButton) &&
-	 b->default_button == ON )
-      answer(b);
-  }
-
-  fail;
-}
-
-
 static status
 applyDialog(Dialog d, Bool always)
 { DialogItem di;
@@ -297,7 +261,7 @@ static status
 modifiedItemDialog(Dialog d, Graphical gr, Bool m)
 { Button b;
 
-  if ( (b = getDefaultButtonDialog(d)) )
+  if ( (b = qadGetv(d, NAME_defaultButton, 0, NULL)) )
   { send(b, NAME_active, ON, EAV);
     if ( send(b, NAME_isApply, EAV) )
       succeed;
@@ -305,6 +269,7 @@ modifiedItemDialog(Dialog d, Graphical gr, Bool m)
     
   fail;
 }
+
 
 		/********************************
 		*             REPORT		*
@@ -337,8 +302,6 @@ assignAcceletatorsDialog(Dialog d)
 
 /* Type declarations */
 
-static char *T_typed[] =
-        { "event|event_id", "[bool]" };
 static char *T_display[] =
         { "graphical", "at=[point]" };
 static char *T_modifiedItem[] =
@@ -366,8 +329,6 @@ static senddecl send_dialog[] =
      NAME_accelerator, "Button connected to `RET'"),
   SM(NAME_assignAccelerators, 0, NULL, assignAcceletatorsDialog,
      NAME_accelerator, "Assign accelerators for the dialog_item objects"),
-  SM(NAME_typed, 2, T_typed, typedDialog,
-     NAME_accelerator, "Handle accelerators"),
   SM(NAME_active, 1, "bool", activeDialog,
      NAME_active, "(DE)activate the entire window"),
   SM(NAME_apply, 1, "always=[bool]", applyDialog,
@@ -401,9 +362,7 @@ static senddecl send_dialog[] =
 /* Get Methods */
 
 static getdecl get_dialog[] =
-{ GM(NAME_defaultButton, 0, "button", NULL, getDefaultButtonDialog,
-     NAME_accelerator, "Current Button connected to `RET'"),
-  GM(NAME_active, 0, "bool", NULL, getActiveDialog,
+{ GM(NAME_active, 0, "bool", NULL, getActiveDialog,
      NAME_active, "Equivalent to Window <-sensitive"),
   GM(NAME_member, 1, "graphical", "name|graphical", getMemberDialog,
      NAME_organisation, "Find named dialog_item"),
@@ -416,7 +375,7 @@ static getdecl get_dialog[] =
 /* Resources */
 
 static classvardecl rc_dialog[] =
-{ RC(NAME_gap, "size", "size(15,8)",
+{ RC(NAME_gap, "size", "size(15,10)",
      "Distance between items in X and Y"),
   RC(NAME_background, RC_REFINE, "@_dialog_bg", NULL)
 };
