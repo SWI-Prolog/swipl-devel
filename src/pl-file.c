@@ -1220,6 +1220,7 @@ pl_wait_for_input(term_t Streams, term_t Available,
   term_t available = PL_copy_term_ref(Available);
   term_t ahead     = PL_new_term_ref();
   int from_buffer  = 0;
+  atom_t a;
 
   FD_ZERO(&fds);
   while( PL_get_list(streams, head, streams) )
@@ -1260,18 +1261,41 @@ pl_wait_for_input(term_t Streams, term_t Available,
   }
   if ( !PL_get_nil(streams) )
     return PL_error("wait_for_input", 3, NULL, ERR_TYPE, ATOM_list, Streams);
-  if ( !PL_get_float(timeout, &time) )
-    return PL_error("wait_for_input", 3, NULL, ERR_TYPE, ATOM_float, timeout);
-  
+
   if ( from_buffer > 0 )
     return PL_unify_nil(available);
 
-  if ( time > 0.0 )
-  { t.tv_sec  = (int)time;
-    t.tv_usec = ((int)(time * 1000000) % 1000000);
-    to = &t;
+  if ( PL_get_atom(timeout, &a) && a == ATOM_infinite )
+  { to = NULL;
+  } else if ( PL_is_integer(timeout) )
+  { long v;
+
+    PL_get_integer(timeout, &v);
+    if ( v > 0L )
+    { t.tv_sec = v;
+      t.tv_usec = 0;
+      to = &t;
+    } else if ( v == 0 )
+    { to = NULL;
+    } else
+    { t.tv_sec  = 0;
+      t.tv_usec = 0;
+      to = &t;
+    }
   } else
-    to = NULL;
+  { if ( !PL_get_float(timeout, &time) )
+      return PL_error("wait_for_input", 3, NULL,
+		      ERR_TYPE, ATOM_float, timeout);
+  
+    if ( time >= 0.0 )
+    { t.tv_sec  = (int)time;
+      t.tv_usec = ((int)(time * 1000000) % 1000000);
+    } else
+    { t.tv_sec  = 0;
+      t.tv_usec = 0;
+    }
+    to = &t;
+  }
 
   select(max+1, &fds, NULL, NULL, to);
 

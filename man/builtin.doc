@@ -2202,7 +2202,14 @@ Wait for input on one of the streams in \arg{ListOfStreams} and return a
 list of streams on which input is available in \arg{ReadyList}.
 wait_for_input/3 waits for at most \arg{TimeOut} seconds. \arg{Timeout}
 may be specified as a floating point number to specify fractions of a
-second. If \arg{Timeout} equals 0, wait_for_input/3 waits indefinitely.
+second. If \arg{Timeout} equals \const{infinite}, wait_for_input/3
+waits indefinitely.%
+	\footnote{For compatibility reasons, a \arg{Timeout} value of 0
+		  (integer) also waits indefinitely.  To call select()
+		  without giving up the CPU pass the float 0.0.  If
+		  compatibility with versions older than 5.1.3 is
+		  desired pass the float value 1e-7.}
+
 This predicate can be used to implement timeout while reading and to
 handle input from multiple sources. The following example will wait for
 input from the user and an explicitly opened second terminal. On return,

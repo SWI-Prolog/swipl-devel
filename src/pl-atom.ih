@@ -498,3 +498,4 @@
 #define ATOM_yfx          MK_ATOM(497)
 #define ATOM_yfy          MK_ATOM(498)
 #define ATOM_zero_divisor MK_ATOM(499)
+#define ATOM_infinite     MK_ATOM(500)

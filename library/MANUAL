@@ -13,7 +13,7 @@
                          SSWWII--PPrroolloogg 55..11
                         RReeffeerreennccee MMaannuuaall
 
-            _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _5_._1_._1_, _N_o_v_e_m_b_e_r _2_0_0_2
+            _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _5_._1_._2_, _N_o_v_e_m_b_e_r _2_0_0_2
 
                          _J_a_n _W_i_e_l_e_m_a_k_e_r
                        jan@swi.psy.uva.nl
@@ -39,7 +39,7 @@ primitives.
 This  document gives an overview of the features, system limits
 and built-in predicates.
 
-Copyright Oc 1990--2002, University of Amsterdam
+Copyright Oc 1990{2002,University of Amsterdam
 
 
 CChhaapptteerr 11..  IINNTTRROODDUUCCTTIIOONN
@@ -5088,8 +5088,10 @@ wwaaiitt__ffoorr__iinnppuutt((_+_L_i_s_t_O_f_S_t_r_e_
     Wait  for input on  one of the  streams in _L_i_s_t_O_f_S_t_r_e_a_m_s and  return
     a  list  of  streams  on  which input  is  available  in  _R_e_a_d_y_L_i_s_t.
     wait_for_input/3 waits  for at most  _T_i_m_e_O_u_t seconds.   _T_i_m_e_o_u_t  may
-    be  specified as a floating point  number to specify fractions of  a
-    second.   If _T_i_m_e_o_u_t equals  0, wait_for_input/3waits  indefinitely.
+    be  specified as  a floating  point number to  specify fractions  of
+    a  second.    If  _T_i_m_e_o_u_t  equals  infinite,  wait_for_input/3 waits
+    indefinitely.
+
     This  predicate can be used  to implement timeout while reading  and
     to  handle  input from  multiple  sources.   The  following  example
     will  wait for input from the  user and an explicitly opened  second
@@ -7456,10 +7458,10 @@ ffiillee__nnaammee__eexxtteennssiioonn((_?_B_a_s_e_, _
 eexxppaanndd__ffiillee__nnaammee((_+_W_i_l_d_C_a_r_d_, _-_L_i_s_t))
     Unify  _L_i_s_t with  a  sorted list  of files  or directories  matching
     _W_i_l_d_C_a_r_d.   The  normal Unix wildcard  constructs `?', `*',  `[...]'
-    and  `{...}'  are recognised.    The  interpretation  of `{...}'  is
+    and  `{...}'  are  recognised.    The interpretation  of  `{...}'  is
     interpreted  slightly different  from  the C  shell (csh(1)).    The
     comma  separated  argument  can  be  arbitrary  patterns,  including
-    `{...}'  patterns.  The empty pattern is legal as  well:  `\{.pl,\}'
+    `{...}'  patterns.  The empty pattern is  legal as well:  `\{.pl,\}'
     matches either `.pl' or the empty string.
 
     If  the pattern  does contains  wildcard  characters, only  existing

@@ -511,6 +511,7 @@ A yf			"yf"
 A yfx			"yfx"
 A yfy			"yfy"
 A zero_divisor		"zero_divisor"
+A infinite		"infinite"
 
 F abs			1
 F acos			1
