@@ -234,6 +234,7 @@ xref_meta((A, B), 		[A, B]).
 xref_meta((A; B), 		[A, B]).
 xref_meta((A| B), 		[A, B]).
 xref_meta((A -> B),		[A, B]).
+xref_meta((A *-> B),		[A, B]).
 xref_meta(findall(_V, G, _L),	[G]).
 xref_meta(setof(_V, G, _L),	[G]).
 xref_meta(bagof(_V, G, _L),	[G]).
