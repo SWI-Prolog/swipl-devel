@@ -86,6 +86,7 @@ typedef struct
   Colormap	colour_map;		/* Colourmap of the display */
 #ifdef O_XDND
   DndClass     *dnd;			/* The DND handler */
+  Atom		XdndTextUriList;	/* "text/uri-list" */
 #endif
 } display_ws_ref, *DisplayWsXref;
 

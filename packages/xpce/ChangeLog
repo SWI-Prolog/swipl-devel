@@ -1,6 +1,10 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: X11 Client-side DragAndDrop supporting `window->drop_files'
+  compatible to the MS-Windows version based on the XDND protocol.
+  Tested with xftree as server.
+
 * FIXED: get(@finder, file, @off, ...) not to return the obtainer.
   (Anjo Anjewierden).
 

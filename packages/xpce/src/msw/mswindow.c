@@ -131,8 +131,8 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 		      DragFinish(hdrop);		/* reclaims memory */
 	
 		      send(sw, NAME_dropFiles, files, pos, EAV);
-		      rewindAnswerStack(mark, NIL);
 		      RedrawDisplayManager(TheDisplayManager());
+		      rewindAnswerStack(mark, NIL);
 		    })
       }
 

@@ -290,17 +290,19 @@ ws_attach_wm_prototols_frame(FrameObj fr)
 		 *******************************/
 
 struct xdnd_get_drop_info
-{ FrameObj frame;
-  unsigned char *drop_data;
-  int drop_data_length;
-  int x, y;
-  int dropfile;
-  PceWindow window;
-  Atom dndAtomUriList;			/* text/uri */
-  Atom return_type;
-  Atom return_action;
-  Atom *typelist;
-  Atom *actionlist;
+{ FrameObj frame;			/* accepting frame */
+  Window frameWindow;			/* X window of the frame */
+  Window root;				/* XPCE root window */
+  PceWindow window;			/* client window */
+  unsigned char *drop_data;		/* raw drop-data */
+  int drop_data_length;			/* length of this */
+  int x, y;				/* position of the drop */
+  int dropfile;				/* dropping a file */
+  Atom XdndTextUriList;			/* text/uri */
+  Atom return_type;			/* selected type */
+  Atom return_action;			/* selected action */
+  Atom *typelist;			/* accepted types */
+  Atom *actionlist;			/* accepted actions */
 };
 
 
@@ -312,6 +314,8 @@ getDndDisplay(DisplayObj display)
   { wsref->dnd = alloc(sizeof(DndClass));
 
     xdnd_init(wsref->dnd, wsref->display_xref);
+    wsref->XdndTextUriList = XInternAtom(wsref->display_xref,
+					 "text/uri-list", False);
   }
 
   return wsref->dnd;
@@ -323,7 +327,7 @@ setDndAwareFrame(FrameObj fr)
 { Window w = XtWindow(widgetFrame(fr));
 
   if ( w )
-  { Cprintf("Registered %s for drag-and-drop\n", pp(fr));
+  { DEBUG(NAME_dnd, Cprintf("Registered %s for drag-and-drop\n", pp(fr)));
     xdnd_set_dnd_aware(getDndDisplay(fr->display), w, NULL);
   }
   
@@ -340,22 +344,22 @@ widget_insert_drop(DndClass * dnd, unsigned char *data,
   i = (struct xdnd_get_drop_info *) dnd->user_hook1;
 
   if (!i->drop_data)
-  { i->drop_data = malloc(length);
+  { i->drop_data = pceMalloc(length);
     if (!i->drop_data)
       return 1;
     memcpy(i->drop_data, data, length);
     i->drop_data_length = length;
   } else
   { unsigned char *t;
-    t = malloc (i->drop_data_length + length);
+    t = pceMalloc(i->drop_data_length + length);
     if (!t)
-    { free (i->drop_data);
+    { pceFree(i->drop_data);
       i->drop_data = 0;
       return 1;
     }
     memcpy(t, i->drop_data, i->drop_data_length);
     memcpy(t + i->drop_data_length, data, length);
-    free(i->drop_data);
+    pceFree(i->drop_data);
     i->drop_data = t;
     i->drop_data_length += length;
   }
@@ -393,21 +397,18 @@ widget_apply_position(DndClass *dnd, Window widgets_window, Window from,
 
   info = (struct xdnd_get_drop_info *) dnd->user_hook1;
 
-  { XWindowAttributes atts;
-    DisplayWsXref r = info->frame->display->ws_ref;
+  { DisplayWsXref r = info->frame->display->ws_ref;
     int dx, dy;
     Window child;
 
-    XGetWindowAttributes(r->display_xref, XtWindow(r->shell_xref), &atts);
     XTranslateCoordinates(r->display_xref,
-			  atts.root,
-			  XtWindow(widgetFrame(info->frame)),
+			  info->root, info->frameWindow,
 			  x, y,
 			  &dx, &dy, &child);
     if ( child != None &&
 	 (target = getMemberHashTable(WindowTable, (Any) child)))
     { if ( instanceOfObject(target, ClassWindowDecorator) )
-      { XTranslateCoordinates(r->display_xref, atts.root, child,
+      { XTranslateCoordinates(r->display_xref, info->root, child,
 			      x, y, &dx, &dy,
 			      &child);
 	if ( child != None )
@@ -421,13 +422,13 @@ widget_apply_position(DndClass *dnd, Window widgets_window, Window from,
   if ( !target || !hasSendMethodObject(target, NAME_dropFiles) )
     return 0;
   if ( typelist &&
-       !memberAtomList(info->dndAtomUriList, typelist) )
+       !memberAtomList(info->XdndTextUriList, typelist) )
     return 0;
   if ( action != dnd->XdndActionCopy )
     return 0;
 
   *want_position = 1;
-  *desired_type = info->dndAtomUriList;
+  *desired_type = info->XdndTextUriList;
   rectangle->x = rectangle->y = 0;
   rectangle->width = rectangle->height = 0;
 
@@ -447,11 +448,17 @@ dndEventFrame(FrameObj fr, XEvent *xevent)
   if ( xevent->type == ClientMessage &&
        xevent->xclient.message_type == dnd->XdndEnter)
   { struct xdnd_get_drop_info i;
+    DisplayWsXref r = (DisplayWsXref)fr->display->ws_ref;
+    XWindowAttributes atts;
+    
+    XGetWindowAttributes(r->display_xref, XtWindow(r->shell_xref), &atts);
 
     memset(&i, 0, sizeof(i));
-    dnd->user_hook1 = &i;
-    i.frame      = fr;
-    i.dndAtomUriList = XInternAtom(dnd->display, "text/uri-list", False);
+    dnd->user_hook1   =	&i;
+    i.frame	      = fr;
+    i.root	      =	atts.root;
+    i.frameWindow     =	XtWindow(widgetFrame(fr));
+    i.XdndTextUriList =	r->XdndTextUriList;
 
     dnd->widget_insert_drop    = widget_insert_drop;
     dnd->widget_apply_position = widget_apply_position;
@@ -464,9 +471,48 @@ dndEventFrame(FrameObj fr, XEvent *xevent)
     }
 
     if ( i.dropfile )
-    { Cprintf("%s: got drop-file at %d,%d: %s\n",
-	      pp(i.window), i.x, i.y,
-	      i.drop_data);
+    { DEBUG(NAME_dnd,
+	    Cprintf("%s: got drop-file at %d,%d: %s\n",
+		    pp(i.window), i.x, i.y,
+		    i.drop_data));
+
+      ServiceMode(is_service_window(i.window),
+		  { AnswerMark mark;
+		    Chain files;
+		    Point pos;
+		    unsigned char *s = i.drop_data;
+		    unsigned char *e = s + i.drop_data_length;
+
+		    markAnswerStack(mark);
+		    files = answerObject(ClassChain, EAV);
+		    pos   = answerObject(ClassPoint,
+					 toInt(i.x), toInt(i.y), EAV);
+		    
+		    for(; s<e; )
+		    { unsigned char *start;
+		      string str;
+
+		      start = s;
+		      while(s<e && !(*s == '\r' || *s == '\n'))
+			s++;
+		      str_inithdr(&str, ENC_ASCII);
+
+		      if ( e-start > 5 && strncmp(start, "file:", 5) == 0 )
+			start += 5;
+
+		      str.size = s-start;
+		      str.s_text = start;
+		      appendChain(files, StringToName(&str));
+		      while(s<e && (*s == '\r' || *s == '\n'))
+			s++;
+		    }
+
+		    pceFree(i.drop_data);
+
+		    send(i.window, NAME_dropFiles, files, pos, EAV);
+		    RedrawDisplayManager(TheDisplayManager());
+		    rewindAnswerStack(mark, NIL);
+		  });
     }
 
     succeed;
