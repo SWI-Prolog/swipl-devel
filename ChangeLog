@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: qsave_program/2: ensure the banner is a defined predicate.
+
   * FIXED: Bug #18: Initialisation problem for single-threaded version
     caused by the addition below.  Lourens van der Meij.
 

@@ -62,7 +62,9 @@ qsave_program(FileSpec, Options0) :-
 	option(Options5, initfile/DefInit, InitFile,  Options6),
 	default_init_file(SaveClass, DefInit),
 	(   GoalTerm == []
-	->  Options = Options6
+	->  Options = Options6,
+	    flag('$banner_goal', BannerGoal, BannerGoal),
+	    define_predicate(user:BannerGoal)
 	;   term_to_atom(Module:GoalTerm, GoalAtom),
 	    term_to_atom(GT, GoalAtom),
 	    define_predicate(user:GT),
