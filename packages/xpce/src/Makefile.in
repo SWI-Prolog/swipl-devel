@@ -65,7 +65,8 @@ RANLIB=@RANLIB@
 LDCONFIG=@LDCONFIG@
 YACC=@YACC@
 PL=@PL@
-PLNAME=$(shell basename $(PL))
+PLBUILD=@PLBUILD@
+PLNAME=@PLNAME@
 MKPROTO=mkproto -p
 CLPROTO=grep -vw NewClass
 LN=@LN_S@
@@ -124,6 +125,8 @@ PLBASE=@PLBASE@
 PLARCH=@PLARCH@
 PLINCL=@PLINCL@
 BOOTPL=@BOOTPL@
+PLBINDIR=$(PLBASE)/bin/$(PLARCH)
+PLEXE=$(PLBINDIR)/$(PLNAME)
 
 PLRUNTIME=$(PLBASE)/runtime/$(PLARCH)
 PLOBJ=pl$(RTSUFFIX).o
@@ -198,7 +201,7 @@ xpce-pl:	xpce pl-itf
 pl-itf:		pl
 		cd ../pl/src; \
 		CANONICAL_PATHS=$(PCEHOME); export CANONICAL_PATHS; \
-		$(MAKE) PL=../$(PL) $(PLTARGET)
+		$(MAKE) PL=$(PLBUILD) $(PLTARGET)
 
 pl-shared:	pl
 		cd ../pl/src; \
@@ -215,7 +218,7 @@ pl:
 		mkdir $@
 
 $(MANINDEX):	$(shell find ../man/reference -name '*.doc')
-		-$(PLNAME) \
+		-$(PLEXE) \
 		  -F none \
 		  -f ../pl/src/plrc \
 		  -g "[library('man/man_index')],pce_make_manual_index('$@')" \
@@ -664,7 +667,6 @@ wsobjs:		$(WSOBJECTS)
 
 RTINSTALLDIRS=	postscript
 RTHOME=		$(PLBASE)/xpce-$(PCEVERSION)
-PLBINDIR=	$(PLBASE)/bin/$(PLARCH)
 RTBINDIR=	$(RTHOME)/bin/$(PLARCH)
 DVHOME=		$(RTHOME)
 DVLIBDIRS=	lib lib/compatibility lib/dialog lib/draw lib/emacs lib/man \
@@ -692,7 +694,7 @@ manindex:	$(MANINDEX)
 
 rpm-bins::
 		rm -f $(bindir)/xpce
-		$(REL_LN) $(PLBINDIR)/pl $(bindir)/xpce
+		$(REL_LN) $(PLEXE) $(bindir)/xpce
 		$(INSTALL_PROGRAM) xpce-client $(bindir)
 rpm-link::
 		rm -f $(PLBASE)/xpce
@@ -759,7 +761,7 @@ dv-lib:
 		    fi; \
 		    echo done; \
 		done
-		$(PLNAME) -f none -F none -g true \
+		$(PLEXE) -f none -F none -g true \
 			-t "make_library_index('$(DVHOME)/prolog/lib')"
 		$(INSTALL_DATA) ../prolog/lib/Overview $(DVHOME)/prolog/lib
 		$(INSTALL_DATA) ../prolog/lib/trace/pltracer.hlp $(DVHOME)/prolog/lib/trace

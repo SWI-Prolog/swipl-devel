@@ -31,8 +31,8 @@ mansec=1
 mandir=$(prefix)/man/man$(mansec)
 
 MAKE=@MAKE@
-PL=@PL@
-PLNAME=$(shell basename $(PL))
+PLNAME=@PLNAME@
+PL=bin/@PLARCH@/$(PLNAME)
 XPCE=xpce
 CLIENT=xpce-client
 PLARCH=@PLARCH@
@@ -68,12 +68,12 @@ install:	all
 		for f in plrc plld; do \
 		    (cd $(bindir); rm -f $$f; ln -s $$PLBASE/bin/$(PLARCH)/$$f .); \
 		done ; \
-		(cd $(bindir); rm -f $(PLNAME); ln -s $$PLBASE/bin/$(PLARCH)/pl $(PLNAME)) ; \
+		(cd $(bindir); rm -f $(PLNAME); ln -s $$PLBASE/bin/$(PLARCH)/$(PLNAME) $(PLNAME)) ; \
 		if [ -d xpce ]; then \
 		  (cd $(bindir);rm -f $(XPCE);ln -s $$PLBASE/$(BPL) $(XPCE));\
 		  (cd $(bindir);rm -f $(CLIENT);ln -s $$PLBASE/xpce/bin/$(PLARCH)/xpce-client $(CLIENT)); \
 		fi
-		-for f in pl plld; do \
+		-for f in $(PLNAME) plld; do \
 		    cp man/$$f.1 $(mandir)/$$f.$(mansec); \
 		done
 		-if [ -d xpce ]; then \

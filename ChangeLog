@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * INSTALL: fixed various path-problems in the packages.  Michael Piefel.
+
   * ADDED: Added #define _THREAD_SAFE for FreeBSD (Clemens Fischer).  Also,
     make plld add -D_THREAD_SAFE on this platform if prolog support threading.
 

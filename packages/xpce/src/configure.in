@@ -5,7 +5,9 @@ AC_INIT(Pce.in)
 AC_CONFIG_HEADER(config.h)
 AC_SUBST(YACC)
 AC_SUBST(NETLIBS)
-AC_SUBST(PL)
+AC_SUBST(PL)		dnl specified Prolog
+AC_SUBST(PLBUILD)	dnl the one to use while building
+AC_SUBST(PLNAME)	dnl the plain filename
 AC_SUBST(PLLIBS)
 AC_SUBST(PLBASE)
 AC_SUBST(PLARCH)
@@ -164,11 +166,12 @@ if test "$swipl" != "no"; then
      if test -z "$PLINCL"; then
          AC_CHECKING("Running $PL -dump-runtime-variables")
          eval `$PL -dump-runtime-variables`
+	 PLBUILD="$PL"
      else
-	 dnl relative to pl/packages/xpce/pl/src
-         if [ ! -x $PL ]; then PL=../../../$BUILDDIR/$PL; fi
+         PLBUILD="`(cd ../../../$BUILDDIR && pwd)`/$PL"
      fi
   fi
+  PLNAME=`basename $PL`
   if test "$swipl" = yes; then
     if test -z "$MAKE_SHARED_OBJECT" && test "$PLSHARED" = "yes"; then
        MAKE_SHARED_OBJECT=yes
