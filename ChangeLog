@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Problem compiling \+/1 if \+ introduces new variables.  May
+    lead to crashes in the garbage collector.  Sergey Tikhonov.
+
   * FIXED: Hashing predicates defined with :- thread_local/1 (correct result,
     but wasting memory and poor performance).
 
