@@ -39,7 +39,7 @@ size and scrollbars depending on the size of the contents.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
-:- pce_begin_class(auto_sized_picture, picture,
+:- pce_begin_class(auto_sized_picture, window,
 		   "Window that automatically fits the contents").
 
 variable(border,   int := 10,	both, "Border around contents").
@@ -48,7 +48,7 @@ variable(max_size, size,	both, "Maximum size").
 class_variable(max_size, size,	size(700,500), "Maximum size").
 
 initialise(W, L:label=[name], D:display=[display]) :->
-	send(W, send_super, initialise, L, @default, D).
+	send_super(W, initialise, L, @default, D).
 
 '_compute_desired_size'(W) :->
 	get(W, bounding_box, BB),
@@ -60,13 +60,15 @@ initialise(W, L:label=[name], D:display=[display]) :->
 	WW is min(BW + 2*B, MW),
 	WH is min(BH + 2*B, MH),
 	(   WH < BH + 2*B		% force SB to compute!?
-	->  get(W, vertical_scrollbar, _)
-	;   true
-	),
-	(   WW < BW + 2*B		% force SB to compute!?
-	->  get(W, horizontal_scrollbar, _)
-	;   true
-	),
+	->  (   WW < BW + 2*B
+	    ->	send(W, scrollbars, both)
+	    ;	send(W, scrollbars, vertical)
+	    )
+	;   (   WW < BW + 2*B
+	    ->	send(W, scrollbars, horizontal)
+	    ;	true
+	    )
+	),   
 	send(W, size, size(WW, WH)).
 
 :- pce_end_class.
@@ -79,10 +81,10 @@ variable(max_size, size,	both, "Maximum size").
 class_variable(max_size, size,	size(700,500), "Maximum size").
 
 initialise(W, L:label=[name], D:display=[display]) :->
-	send(W, send_super, initialise, L, @default, D).
+	send_super(W, initialise, L, @default, D).
 
 '_compute_desired_size'(D) :->
-	send(D, send_super, '_compute_desired_size'),
+	send_super(D, '_compute_desired_size'),
 	get(D, ideal_width, BW),
 	get(D, ideal_height, BH),
 	get(D, max_size, size(MW, MH)),

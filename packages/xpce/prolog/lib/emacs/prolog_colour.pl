@@ -359,6 +359,8 @@ dcg_extend(Term, Goal) :-
 
 %	colourise_dcg_goal(+Goal, +Origin, +TB, +Pos).
 
+colourise_dcg_goal(!, Origin, TB, TermPos) :- !,
+	colourise_goal(!, Origin, TB, TermPos).
 colourise_dcg_goal(Goal, Origin, TB, TermPos) :-
 	dcg_extend(Goal, TheGoal), !,
 	colourise_goal(TheGoal, Origin, TB, TermPos).

@@ -37,15 +37,16 @@
 :- pce_begin_class(help_message_window, dialog,
 		   "Window to display <-help_message").
 
+class_variable(background, colour, burlywood1, "Ballon background").
+
 variable(handler,	handler,	get, "Handler for intercept").
 variable(message,	string*,	get, "Currently displayed message").
 
 initialise(W) :->
 	send(W, slot, handler,
-	     handler(mouse, message(W, hide, @receiver, @event))),
-	send(W, send_super, initialise),
+	     handler(mouse, message(W, try_hide, @event))),
+	send_super(W, initialise),
 	send(W, kind, popup),
-	send(W, background, burlywood1),
 	send(W?frame, border, 0),
 	send(W?frame?tile, border, 0),
 	send(W, gap, size(5, 2)),
@@ -54,16 +55,33 @@ initialise(W) :->
 	send(L, length, 0),
 	send(W?frame, create).
 
+owner(W, Owner:[any]*) :->
+	"Maintain hyperlink to the owner"::
+	(   Owner == @nil
+	->  send(W, delete_hypers, help_balloon)
+	;   Owner == @default
+	->  true			% no change
+	;   new(_, help_hyper(Owner, W, help_baloon, owner))
+	).
+owner(W, Owner:any) :<-
+	get(W, hypered, owner, Owner).
+		
 
-hide(W, Gr:any, Ev:event) :->
+try_hide(W, Ev:event) :->
+	get(W, owner, Owner),
 	(   (   send(Ev, is_a, loc_move)
 	    ;	send(Ev, is_a, loc_still)
 	    )
-	->  get(W, message, OldMsg),
-	    (   get(Gr, help_message, tag, Ev, Msg)
-	    ->	(   OldMsg \== @nil,
+	->  %send(@pce, format, '%O: Move/still event\n', Owner),
+	    get(W, message, OldMsg),
+	    (   get(Owner, help_message, tag, Ev, Msg)
+	    ->	%send(@pce, format, '%O: yielding %s\n', Owner, Msg),
+	        (   OldMsg \== @nil,
 		    send(Msg, equal, OldMsg)
-		->  true
+		->  (   send(Ev, is_a, loc_still)
+		    ->	send(W, adjust_position, Ev)
+		    ;	true
+		    )
 		;   send(W, feedback, Msg, Ev)
 		)
 	    ;	(   get(W, message, @nil)
@@ -71,15 +89,22 @@ hide(W, Gr:any, Ev:event) :->
 		;   send(W, feedback, @nil, Ev)
 		)
 	    )
-	;   send(W, show, @off),
-	    get(W, handler, H),
-	    send(W?display?inspect_handlers, delete, H),
+	;   send(W, owner, @nil),
+	    send(W, hide),
 	    fail			% normal event-processing
 	).
 
 
-feedback(W, S:string*, Ev:event) :->
+hide(W) :->
+	"Remove from the display"::
+	send(W, show, @off),
+	get(W, handler, H),
+	send(W?display?inspect_handlers, delete, H).
+
+
+feedback(W, S:string*, Ev:event, For:[any]*) :->
 	"Display window holding string and grab pointer"::
+	send(W, owner, For),
 	send(W, slot, message, S),
 	(   S == @nil
 	->  send(W, show, @off)
@@ -87,13 +112,17 @@ feedback(W, S:string*, Ev:event) :->
 	    send(L, selection, S),
 	    send(W, layout),
 	    send(W?frame, fit),
-	    get(Ev, position, W?display, P),
-	    get(P, plus, point(5,5), point(FX, FY)),
-	    send(W?frame, set, FX, FY),
-	    send(W?frame, open),
-	    send(W?frame, expose),
+	    send(W, adjust_position, Ev),
 	    send(W?display, inspect_handler, W?handler)
 	).
+
+
+adjust_position(W, Ev:event) :->
+	"Fix the position of the feedback window"::
+	get(Ev, position, W?display, P),
+	get(P, plus, point(5,5), point(FX, FY)),
+	send(W?frame, set, FX, FY),
+	send(W?frame, expose).
 
 :- pce_end_class.
 
@@ -120,15 +149,15 @@ help_message(V, What:{tag,summary}, _Ev:[event], Msg:string) :<-
 :- pce_extend_class(graphical).
 
 help(Gr, What:name, Ev:event) :->
-	find_help_message(Gr, What, Ev, Msg),
-	send(@help_message_window, feedback, Msg, Ev).
+	find_help_message(Gr, What, Ev, Owner, Msg),
+	send(@help_message_window, feedback, Msg, Ev, Owner).
 
 
-find_help_message(Gr, What, Ev, Msg) :-
+find_help_message(Gr, What, Ev, Gr, Msg) :-
 	get(Gr, help_message, What, Ev, Msg), !.
-find_help_message(Gr, What, Ev, Msg) :-
+find_help_message(Gr, What, Ev, Owner, Msg) :-
 	get(Gr, contained_in, Container),
-	find_help_message(Container, What, Ev, Msg).
+	find_help_message(Container, What, Ev, Owner, Msg).
 
 :- pce_end_class.
 
@@ -145,6 +174,20 @@ help_message(Gr, What:{tag,summary}, Ev:[event], Msg:string) :<-
 
 :- pce_end_class.
 
+
+:- pce_begin_class(help_hyper, hyper,
+		   "Hyper between help-balloon and ownder").
+
+unlink_from(H) :->
+	"->hide the <-to part"::
+	get(H, to, Part),
+	(   object(Part)
+	->  send(Part, hide)
+	;   free(Part)
+	),
+	free(H).
+
+:- pce_end_class.
 
 		 /*******************************
 		 *	     REGISTER		*

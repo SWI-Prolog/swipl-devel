@@ -157,9 +157,14 @@ get_this_tile_layout(_, *).
 
 has_specifier(layout(Size, _)) :-
 	Size \== *, !.
-has_specifier(layout(_, Subs)) :-
+has_specifier(layout(_, Subs)) :- !,
+	has_specifier(Subs).
+has_specifier(X) :-
+	integer(X), !.
+has_specifier(Subs) :-
 	member(Sub, Subs),
-	has_specifier(Sub).
+	has_specifier(Sub), !.
+
 
 %	apply_tile_layout(+Tile, +Layout)
 %	

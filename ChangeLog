@@ -11,11 +11,13 @@
 
   * ENHANCED: Replaced some more warnings with exceptions in pl-trace.c
 
-  * PORT: Port to MacOS X (darwin):
+  * PORT: Port to MacOS X (darwin), with help from Paulo Moura.
 	- Various BSD enhancement to configure
 	- Make plld aware of the -bundle -bundle_loader stuff
 	- Deal with foreign symbols starting with a _
 	- Resolve some macro conflicts
+	- Various missing :: in Makefiles (needed on case-insensitive
+	  filesystems like Mac HFS+)
 
   * MODIFIED: compiling/0 now also succeed during execution of all directives
     when compiling a state or qlf file.
