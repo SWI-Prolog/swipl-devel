@@ -50,6 +50,41 @@ word(Id, Word) :-
 
 
 		 /*******************************
+		 *	       TEST		*
+		 *******************************/
+
+word_by_query(Id, Word) :-
+	odbc_prepare(wordnet,
+		     'SELECT (lemma) FROM word WHERE wordno=?',
+		     [ integer
+		     ],
+		     Qid),
+	odbc_execute(Qid, [Id], row(Word)),
+	odbc_free_statement(Qid).
+
+word_direct(Id, Word) :-
+	odbc_query(wordnet,
+		   'SELECT (lemma) from word where wordno=~w'-[Id],
+		   row(Word)).
+
+prof_by_query(N) :-
+	(   between(0, N, _),
+	    Id is random(140000),
+	    word_by_query(Id, _),
+	    fail
+	;   true
+	).
+
+prof_direct(N) :-
+	(   between(0, N, _),
+	    Id is random(140000),
+	    word_direct(Id, _),
+	    fail
+	;   true
+	).
+
+
+		 /*******************************
 		 *	      PROFILE		*
 		 *******************************/
 

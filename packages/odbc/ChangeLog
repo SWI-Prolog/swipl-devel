@@ -1,3 +1,7 @@
+Jul 10, 2002
+
+* Provide access to source (table and column) of result-columns.
+
 Jul 9, 2002
 
 * Added writing NULL-data with prepared statements.

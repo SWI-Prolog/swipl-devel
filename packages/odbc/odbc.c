@@ -86,6 +86,7 @@ static atom_t	 ATOM_date;
 static atom_t	 ATOM_timestamp;
 static atom_t	 ATOM_all_types;
 static atom_t	 ATOM_null;		/* default null atom */
+static atom_t	 ATOM_;			/* "" */
 
 static functor_t FUNCTOR_timestamp7;	/* timestamp/7 */
 static functor_t FUNCTOR_time3;		/* time/7 */
@@ -110,6 +111,8 @@ static functor_t FUNCTOR_gt2;
 static functor_t FUNCTOR_context_error3;
 static functor_t FUNCTOR_data_source2;
 static functor_t FUNCTOR_null1;
+static functor_t FUNCTOR_source1;
+static functor_t FUNCTOR_column3;
 
 #define SQL_PL_DEFAULT  0		/* don't change! */
 #define SQL_PL_ATOM	1		/* return as atom */
@@ -131,6 +134,10 @@ typedef struct
   SQLPOINTER  *ptr_value;		/* ptr to value */
   SQLLEN       length_ind;		/* length/indicator of value */
   SQLLEN       len_value;		/* length of value (as parameter)  */
+  struct
+  { atom_t table;			/* Table name */
+    atom_t column;			/* column name */
+  } source;				/* origin of the data */
   char	       buf[PARAM_BUFSIZE];	/* Small buffer for simple cols */
 } parameter;
 
@@ -189,6 +196,7 @@ static struct
 #define	CTX_SQLMALLOCED 0x0004		/* sqltext is malloced */
 #define CTX_INUSE	0x0008		/* statement is running */
 #define CTX_OWNNULL	0x0010		/* null-definition is not shared */
+#define CTX_SOURCE	0x0020		/* include source of results */
 
 #define true(s, f)	((s)->flags & (f))
 #define false(s, f)	!true(s, f)
@@ -967,6 +975,10 @@ free_parameters(int n, parameter *params)
     for (i=0; i<n; i++, p++)
     { if ( p->ptr_value && p->ptr_value != (void *)p->buf )
 	free(p->ptr_value);
+      if ( p->source.table )
+	PL_unregister_atom(p->source.table);
+      if ( p->source.column )
+	PL_unregister_atom(p->source.column);
     }
 
     free(params);
@@ -1141,6 +1153,21 @@ prepare_result(context *ctxt)
 		   nameBuffer, NameBufferLength, &nameLength,
 		   &dataType, &columnSize, &decimalDigits,
 		   &nullable);
+
+    if ( true(ctxt, CTX_SOURCE) )
+    { DWORD ival;
+
+      ptr_result->source.column = PL_new_atom_nchars(nameLength, nameBuffer);
+      if ( SQLColAttributes(ctxt->hstmt, i,
+			    SQL_COLUMN_TABLE_NAME,
+			    nameBuffer, NameBufferLength, &nameLength,
+			    &ival) == SQL_SUCCESS )
+      { ptr_result->source.table = PL_new_atom_nchars(nameLength, nameBuffer);
+      } else
+      { ptr_result->source.table = ATOM_;
+	PL_register_atom(ATOM_);
+      }
+    }
 	
     ptr_result->cTypeID = CvtSqlToCType(dataType, ptr_result->plTypeID);
     if (ptr_result->cTypeID == CVNERR)
@@ -1267,6 +1294,14 @@ set_statement_options(context *ctxt, term_t options)
 	PL_get_arg(1, head, arg);
 	ctxt->null = nulldef_spec(arg);
 	set(ctxt, CTX_OWNNULL);
+      } else if ( PL_is_functor(head, FUNCTOR_source1) )
+      { int val;
+
+	if ( !get_bool_arg_ex(1, head, &val) )
+	  return FALSE;
+
+	if ( val )
+	  set(ctxt, CTX_SOURCE);
       } else
 	return domain_error(head, "odbc_option");
     }
@@ -2073,6 +2108,7 @@ install_odbc4pl()
    ATOM_timestamp     =	PL_new_atom("timestamp");
    ATOM_all_types     = PL_new_atom("all_types");
    ATOM_null          = PL_new_atom("$null$");
+   ATOM_	      = PL_new_atom("");
 
    FUNCTOR_timestamp7		 = MKFUNCTOR("timestamp", 7);
    FUNCTOR_time3		 = MKFUNCTOR("time", 3);
@@ -2098,6 +2134,8 @@ install_odbc4pl()
    FUNCTOR_statements2		 = MKFUNCTOR("statements", 2);
    FUNCTOR_data_source2		 = MKFUNCTOR("data_source", 2);
    FUNCTOR_null1		 = MKFUNCTOR("null", 1);
+   FUNCTOR_source1		 = MKFUNCTOR("source", 1);
+   FUNCTOR_column3		 = MKFUNCTOR("column", 3);
 
    DET("odbc_connect",		   3, pl_odbc_connect);
    DET("odbc_disconnect",	   1, pl_odbc_disconnect);
@@ -2218,12 +2256,26 @@ Store a row
 static int
 pl_put_row(term_t row, context *c)
 { term_t columns = PL_new_term_refs(c->NumCols);
+  term_t val;
+  term_t cell;
   parameter *p;
   SQLSMALLINT i;
    
+  if ( true(c, CTX_SOURCE) )
+  { cell = PL_new_term_refs(3);		/* table, column, value */
+  }
+
   for (i=0, p=c->result; i<c->NumCols; i++, p++)
-  { if ( p->length_ind == SQL_NULL_DATA )
-    { put_sql_null(columns+i, c->null);
+  { if ( true(c, CTX_SOURCE) )
+    { PL_put_atom(cell+0, p->source.table);
+      PL_put_atom(cell+1, p->source.column);
+      val = cell+2;
+    } else
+    { val = columns+i;
+    }
+
+    if ( p->length_ind == SQL_NULL_DATA )
+    { put_sql_null(val, c->null);
     } else
     { switch( p->cTypeID )
       { case SQL_C_CHAR:
@@ -2231,17 +2283,17 @@ pl_put_row(term_t row, context *c)
 	  switch( p->plTypeID )
 	  { case SQL_PL_DEFAULT:
 	    case SQL_PL_ATOM:
-	      PL_put_atom_nchars(columns+i,
+	      PL_put_atom_nchars(val,
 				 p->length_ind,
 				 (SQLCHAR *)p->ptr_value);
 	      break;
 	    case SQL_PL_STRING:
-	      PL_put_string_nchars(columns+i,
+	      PL_put_string_nchars(val,
 				   p->length_ind,
 				   (SQLCHAR *)p->ptr_value);
 	      break;
 	    case SQL_PL_CODES:
-	      PL_put_list_ncodes(columns,
+	      PL_put_list_ncodes(val,
 				 p->length_ind,
 				 (SQLCHAR *)p->ptr_value);
 	      break;
@@ -2250,10 +2302,10 @@ pl_put_row(term_t row, context *c)
 	  }
 	  break;
 	case SQL_C_SLONG:
-	  PL_put_integer(columns+i,*(SQLINTEGER *)p->ptr_value);
+	  PL_put_integer(val,*(SQLINTEGER *)p->ptr_value);
 	  break;
 	case SQL_C_DOUBLE:
-	  PL_put_float(columns+i,*(SQLDOUBLE *)p->ptr_value);
+	  PL_put_float(val,*(SQLDOUBLE *)p->ptr_value);
 	  break;
 	case SQL_C_TYPE_DATE:
 	{ DATE_STRUCT* ds = (DATE_STRUCT*)p->ptr_value;
@@ -2263,7 +2315,7 @@ pl_put_row(term_t row, context *c)
 	  PL_put_integer(av+1, ds->month);
 	  PL_put_integer(av+2, ds->day);
 	  
-	  PL_cons_functor_v(columns+i, FUNCTOR_date3, av);
+	  PL_cons_functor_v(val, FUNCTOR_date3, av);
 	  break;
 	}
 	case SQL_C_TYPE_TIME:
@@ -2274,7 +2326,7 @@ pl_put_row(term_t row, context *c)
 	  PL_put_integer(av+1, ts->minute);
 	  PL_put_integer(av+2, ts->second);
 	  
-	  PL_cons_functor_v(columns+i, FUNCTOR_time3, av);
+	  PL_cons_functor_v(val, FUNCTOR_time3, av);
 	  break;
 	}
 	case SQL_C_TIMESTAMP: 
@@ -2293,7 +2345,7 @@ pl_put_row(term_t row, context *c)
 	      PL_put_integer(av+5, ts->second);
 	      PL_put_integer(av+6, ts->fraction);
 	  
-	      PL_cons_functor_v(columns+i, FUNCTOR_timestamp7, av);
+	      PL_cons_functor_v(val, FUNCTOR_timestamp7, av);
 	      break;
 	    }
 	    case SQL_PL_INTEGER:
@@ -2314,9 +2366,9 @@ pl_put_row(term_t row, context *c)
 	      time = mktime(&tm);
 
 	      if ( p->plTypeID == SQL_PL_INTEGER )
-		PL_put_integer(columns+1, time);
+		PL_put_integer(val, time);
 	      else
-		PL_put_float(columns+1, (double)time); /* TBD: fraction */
+		PL_put_float(val, (double)time); /* TBD: fraction */
 	    }
 #else
 	      return PL_warning("System doesn't support mktime()");
@@ -2332,6 +2384,9 @@ pl_put_row(term_t row, context *c)
 			    p->cTypeID);
       }
     }
+
+    if ( true(c, CTX_SOURCE) )
+      PL_cons_functor_v(columns+i, FUNCTOR_column3, cell);
   }
 
   PL_cons_functor_v(row, c->db_row, columns);

@@ -205,6 +205,21 @@ X = row(1, entity)
 
     \termitem{null}{NullSpecifier}
 Specify SQL NULL representation.  See odbc_set_connection/2 for details.
+
+    \termitem{source}{Bool}
+If \const{true} (default \const{false}), include the source of the
+column with each result-value.  With this option, each result in
+the \funcref{row}{\arg{N}}-term is of the format below.  \arg{TableName}
+or \arg{ColumnName} may be the empty atom if the information is not
+available.%
+	\footnote{This is one possible interface to this information.
+		  In many cases it is more efficient and conveniant to
+		  provide this information seperately as it is the same
+		  for each result-row.}
+
+\begin{quote}
+\term{column}{TableName, ColumnName, Value}
+\end{quote}
 \end{description}
 
 See also \secref{sqltypes} for notes on type-conversion.

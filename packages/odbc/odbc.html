@@ -278,9 +278,19 @@ X = row(1, entity)
 </TABLE>
 
 <P>
-<DT><STRONG>Null</STRONG>(<VAR>NullSpecifier</VAR>)<DD>
+<DT><STRONG>null</STRONG>(<VAR>NullSpecifier</VAR>)<DD>
 Specify SQL NULL representation. See <A NAME="idx:odbcsetconnection2:6"></A><A HREF="#odbc_set_connection/2">odbc_set_connection/2</A> 
 for details.
+
+<P>
+<DT><STRONG>source</STRONG>(<VAR>Bool</VAR>)<DD>
+If <CODE>true</CODE> (default <CODE>false</CODE>), include the source of 
+the column with each result-value. With this option, each result in the <B>row(<VAR>N</VAR>)</B>-term 
+is of the format below. <VAR>TableName</VAR> or <VAR>ColumnName</VAR> 
+may be the empty atom if the information is not available.<A NAME=back-to-note-1 HREF="index.html#note-1"> (1)</A>
+<BLOCKQUOTE>
+<CODE>column(TableName, ColumnName, Value)</CODE>
+</BLOCKQUOTE>
 </DL>
 
 <P>See also <A HREF="#sec:sqltypes">section 2.6</A> for notes on 
@@ -375,14 +385,14 @@ This predicate may return type_error exceptions if the provided
 parameter values cannot be converted to the declared types.
 
 <P>ODBC doesn't appear to allow for multiple cursors on the same 
-result-set.<A NAME=back-to-note-1 HREF="index.html#note-1"> (1)</A> This 
+result-set.<A NAME=back-to-note-2 HREF="index.html#note-2"> (2)</A> This 
 would imply there can only be one active <A NAME="idx:odbcexecute3:14"></A><A HREF="#odbc_execute/3">odbc_execute/3</A> 
 (i.e. have a choice-point) on a prepared statement. Suppose we have a 
 table <CODE>age (name char(25), age integer)</CODE> bound to the 
 predicate <B>age/2</B> we cannot write the code below without special 
 precautions. The ODBC interface therefore creates a clone of a statement 
 if it discovers the statement is being executed, which is discarded 
-after the statement is finished.<A NAME=back-to-note-2 HREF="index.html#note-2"> (2)</A>
+after the statement is finished.<A NAME=back-to-note-3 HREF="index.html#note-3"> (3)</A>
 
 <P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
 <PRE>
@@ -817,8 +827,12 @@ null-representation.
 
 <P>
 <DT><A NAME=note-1 HREF="index.html#back-to-note-1">note-1</A><DD>
-Is this right?
+This is one possible interface to this information. In many cases it is 
+more efficient and conveniant to provide this information seperately as 
+it is the same for each result-row.
 <DT><A NAME=note-2 HREF="index.html#back-to-note-2">note-2</A><DD>
+Is this right?
+<DT><A NAME=note-3 HREF="index.html#back-to-note-3">note-3</A><DD>
 The code is prepared to maintain a cache of statements. Practice should 
 tell us whether it is worthwhile activating this.
 </DL>
