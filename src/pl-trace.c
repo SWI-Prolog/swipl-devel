@@ -1579,7 +1579,7 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
 #ifdef O_LIMIT_DEPTH
     QueryFrame qf = findQuery(environment_frame);
     
-    if ( qf && levelFrame(fr) > qf->saved_depth_limit )
+    if ( qf && (long)levelFrame(fr) > qf->saved_depth_limit )
       a = ATOM_true;
     else
 #endif

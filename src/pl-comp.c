@@ -3398,7 +3398,7 @@ pl_fetch_vm(term_t ref, term_t offset, term_t noffset, term_t instruction)
   if ( !get_clause_ptr_ex(ref, &clause) ||
        !PL_get_integer_ex(offset, &pcoffset) )
     fail;
-  if ( pcoffset < 0 || pcoffset >= clause->code_size )
+  if ( pcoffset < 0 || pcoffset >= (int)clause->code_size )
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_program_counter, offset);
 
   PC = clause->codes + pcoffset;
@@ -3496,7 +3496,7 @@ pl_clause_term_position(term_t ref, term_t pc, term_t locterm)
   if ( !get_clause_ptr_ex(ref, &clause) ||
        !PL_get_integer_ex(pc, &pcoffset) )
     fail;
-  if ( pcoffset < 0 || pcoffset > clause->code_size )
+  if ( pcoffset < 0 || pcoffset > (int)clause->code_size )
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_program_counter, pc);
 
   PC = clause->codes;
@@ -3845,7 +3845,7 @@ pl_break_at(term_t ref, term_t pc, term_t set)
   if ( !PL_get_bool_ex(set, &doit) ||
        !PL_get_integer_ex(pc, &offset) )
     fail;
-  if ( offset < 0 || offset >= clause->code_size )
+  if ( offset < 0 || offset >= (int)clause->code_size )
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_pc, pc);
 
   PL_LOCK(L_BREAK);

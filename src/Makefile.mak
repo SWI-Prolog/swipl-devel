@@ -286,7 +286,7 @@ install_packages:
 		   if exist "$(PKGDIR)\%p" \
 		      $(CMD) /c "chdir $(PKGDIR)\%p & $(MAKE) html-install"
 		if exist $(PKGDIR)\index.html \
-		    copy $(PKGDIR)\index.html $(PKGDOC)
+		    copy $(PKGDIR)\index.html "$(PKGDOC)"
 !ENDIF
 
 clean_packages:

@@ -27,7 +27,7 @@ install::
 !ENDIF
 
 html-install::
-		copy rdf2pl.html $(PKGDOC)
+		copy rdf2pl.html "$(PKGDOC)"
 
 uninstall::
 		del "$(PLBASE)\library\rdf.pl"
