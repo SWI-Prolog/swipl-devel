@@ -511,8 +511,11 @@ retry:
       { if ( result )			/* False alarm */
 	{ exception_term = 0;
 	  setVar(*valTermRef(exception_bin));
-	} else
+	}
+#ifdef O_DEBUGGER
+	else
 	  goto except;			/* force debugging */
+#endif
       }
 
 #ifdef O_DEBUGGER
@@ -594,8 +597,11 @@ retry:
       { if ( result )			/* False alarm */
 	{ exception_term = 0;
 	  setVar(*valTermRef(exception_bin));
-	} else
+	}
+#ifdef O_DEBUGGER
+	else
 	  goto except;			/* force debugging */
+#endif
       }
       
 #ifdef O_DEBUGGER
