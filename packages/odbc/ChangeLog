@@ -1,3 +1,13 @@
+Oct 24, 2002
+
+* FIXED: Work around SQL Server bug reporting the number of columns in
+  SQLColumns() as 19 rather than 12.  Steve Moyle.
+
+Oct 23, 2002
+
+* FIXED: Work around Postgress driver bug not support GetData properly.
+  Steve Moyle.
+
 Sep 30, 2002
 
 * FIXED: stripped the left 24 characters of LONGVAR* types.  Thomas Moraitis.

@@ -81,6 +81,12 @@ static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 #define UNLOCK()
 #endif
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Work around bug in MS SQL Server that reports NumCols of SQLColumns()
+as 19, while there are only 12.  Grrr!
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define SQL_SERVER_BUG	1
 
 static atom_t    ATOM_row;		/* "row" */
 static atom_t    ATOM_informational;	/* "informational" */
@@ -234,6 +240,7 @@ static struct
 #define CTX_SOURCE	0x0020		/* include source of results */
 #define CTX_SILENT	0x0040		/* don't produce messages */
 #define CTX_PREFETCHED	0x0080		/* we have a prefetched value */
+#define CTX_COLUMNS	0x0100		/* this is an SQLColumns() statement */
 
 #define FND_SIZE(n)	((int)&((findall*)NULL)->codes[n])
 
@@ -1675,6 +1682,11 @@ prepare_result(context *ctxt)
   parameter *ptr_result;
   SQLSMALLINT ncol;
 
+#ifdef SQL_SERVER_BUG
+  if ( true(ctxt, CTX_COLUMNS) )
+    ncol = 12;
+  else
+#endif
   SQLNumResultCols(ctxt->hstmt, &ncol);
   if ( ncol == 0 )
     return TRUE;			/* no results */
@@ -2036,6 +2048,7 @@ pl_odbc_column(term_t dsn, term_t db, term_t row, control_t handle)
 	return FALSE;
       ctxt = new_context(cn);
       ctxt->null = NULL;		/* use default $null$ */
+      set(ctxt, CTX_COLUMNS);
       TRY(ctxt, SQLColumns(ctxt->hstmt, NULL, 0, NULL, 0,
 			   (SQLCHAR*)s, (SWORD)len, NULL, 0));
       
@@ -2993,7 +3006,7 @@ pl_put_column(context *c, int nth, term_t col)
 	  report_status(c);
 	  return FALSE;
 	}
-	assert(len == len2 + sizeof(buf) - 1);
+	assert(len == len2 + (SDWORD)sizeof(buf) - 1);
       }
     } else if ( !report_status(c) )
       return FALSE;
