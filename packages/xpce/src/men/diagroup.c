@@ -128,8 +128,8 @@ computeDialogGroup(DialogGroup g)
 	    
 	    unionNormalisedArea(a, gr->area);
 	  }
-	  relativeMoveArea(a, g->offset);
 	}
+	relativeMoveArea(a, g->offset);
   
 	x = valInt(a->x) -     valInt(border->w);
 	y = valInt(a->y) -     valInt(border->h);
