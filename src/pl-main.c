@@ -14,6 +14,7 @@ option  parsing,  initialisation  and  handling  of errors and warnings.
 
 #include "pl-incl.h"
 #include "pl-itf.h"
+#include "pl-save.h"
 #if unix
 #include <sys/param.h>
 #endif
@@ -95,7 +96,7 @@ pl_pce_init()
 #endif
 
 int
-main(argc, argv, env)
+startProlog(argc, argv, env)
 int argc;
 char **argv;
 char **env;

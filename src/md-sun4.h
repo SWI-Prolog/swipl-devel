@@ -36,7 +36,8 @@ the terminal interface does not operate properly.
 #define O_NO_SEGV_ADDRESS	0
 #define MAX_VIRTUAL_ADDRESS	(512 * 1024 *1024)
 #define O_FOREIGN		1
-#define O_STORE_PROGRAM		1
+#define O_SAVE			1
+#define O_STORE_PROGRAM		0
 #define DEFAULT_PATH		":.:/usr/ucb:/bin:/usr/bin:";
 
 			/* terminal driver */

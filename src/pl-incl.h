@@ -7,11 +7,6 @@
     Purpose: SWI-Prolog general include file
 */
 
-/*
-** This file contains changes which are part of a port to HPUX 8.0
-** T. Kielmann, 01 Jun 92
-*/
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Include Machine Desciption (md-*) file.  If -DMD=md-sun.h  or  something
 similar  is  passed  as  cpp  flag,  this  machine  description is used.

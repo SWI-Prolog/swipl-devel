@@ -58,7 +58,7 @@ CINCLUDE=../include/SWI-Prolog.h
 # NOTE: pl-wam.o MUST be first to get it into low addresses when using the
 # O_ASM_SWITCH flag
 
-OBJ=	pl-wam.o \
+OBJ=	pl-wam.o pl-save.o \
 	pl-atom.o pl-alloc.o pl-arith.o pl-bag.o pl-comp.o pl-dump.o \
 	pl-dwim.o pl-ext.o pl-file.o pl-flag.o pl-fmt.o pl-funct.o \
 	pl-gc.o pl-glob.o pl-index.o pl-itf.o pl-list.o pl-load.o \

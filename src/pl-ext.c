@@ -244,6 +244,10 @@ static struct foreign {
   ADD("substring",		4, pl_substring,		TRACE_ME),
 #endif O_STRING
 
+#if O_SAVE
+  ADD("save",			2, pl_save,			TRACE_ME),
+  ADD("restore",		1, pl_restore,			TRACE_ME),
+#endif O_SAVE
   ADD("$save_program",		2, pl_save_program,		TRACE_ME),
   ADD("$version",		1, pl_version,			TRACE_ME),
 

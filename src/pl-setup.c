@@ -18,7 +18,6 @@ foreign language code or packages with which Prolog was linked together.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 forwards void initStacks P((long, long, long, long, long));
-forwards void initSignals P((void));
 
 void
 setupProlog()
@@ -89,7 +88,7 @@ setupProlog()
 
   environment_frame = (LocalFrame) NULL;
   statistics.inferences = 0;
-#if O_STORE_PROGRAM
+#if O_STORE_PROGRAM || O_SAVE
   cannot_save_program = NULL;
 #else
   cannot_save_program = "Not supported on this machine";
@@ -125,7 +124,7 @@ they  define  signal handlers to be int functions.  This should be fixed
 some day.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void
+void
 initSignals()
 { int n;
 
@@ -224,7 +223,7 @@ long x;
 #include <fcntl.h>
 
 extern int munmap();
-static int mapfd;		/* File descriptor used for mapping */
+static int mapfd = -1;			/* File descriptor used for mapping */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Return a file descriptor to a file, open  for  reading  and  holding  at
@@ -283,15 +282,14 @@ point to the same physical memory.
 static void
 map(s)
 Stack s;
-{ caddress rval;
-
-  if ( (rval = mmap(s->max, size_alignment,
-		    PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED,
-		    mapfd, 0L)) != s->max )
+{ if ( mmap(s->max, size_alignment,
+	    PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED,
+	    mapfd, 0L) != s->max )
     fatalError("Failed to map memory at 0x%x for %d bytes on fd=%d: %s\n",
 	       s->max, size_alignment, mapfd, OsError());
 
-  DEBUG(2, printf("mapped %d bytes from 0x%x\n", s->max, size_alignment));
+  DEBUG(2, printf("mapped %d bytes from 0x%x\n",
+		  size_alignment, (unsigned) s->max));
   s->max += size_alignment;
 }
 
@@ -311,6 +309,54 @@ Stack s;
     s->max = addr;
   }
 }
+
+
+static void
+deallocateStack(s)
+Stack s;
+{ long len = (ulong)s->max - (ulong)s->base;
+
+  if ( len > 0 && munmap(s->base, len) != 0 )
+    fatalError("Failed to unmap memory: %s", OsError());
+}
+
+
+void
+deallocateStacks()
+{ deallocateStack(&stacks.local);
+  deallocateStack(&stacks.global);
+  deallocateStack(&stacks.trail);
+  deallocateStack(&stacks.argument);
+  deallocateStack(&stacks.lock);
+}
+
+
+bool
+restoreStack(s)
+Stack s;
+{ caddress max;
+  long len;
+  struct stat statbuf;
+
+  if ( mapfd < 0 || fstat(mapfd, &statbuf) == -1 )
+  { mapfd = swap_fd();
+    base_alignment = size_alignment = getpagesize();
+  }
+
+  max = (caddress) align_size(s->top + 1);
+  len = max - (caddress) s->base;
+
+  if ( mmap(s->base, len,
+	    PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED,
+	    mapfd, 0L) != s->base )
+    fatalError("Failed to map memory at 0x%x for %d bytes on fd=%d: %s\n",
+	       s->base, len, mapfd, OsError());
+
+  s->max = max;
+  DEBUG(0, printf("mapped %d bytes from 0x%x\n", len, (unsigned) s->base));
+  succeed;
+}
+
 
 #endif O_CAN_MAP
 
@@ -526,7 +572,7 @@ segv_handler(sig, type, scp, addr)
 int sig, type;
 struct sigcontext *scp;
 char *addr;
-{ DEBUG(1, printf("Page fault at %ld (0x%x)\n", addr, addr));
+{ DEBUG(1, printf("Page fault at %ld (0x%x)\n", (long) addr, (unsigned) addr));
 
   if ( expandStack(&stacks.global, addr) ||
        expandStack(&stacks.local, addr) ||
@@ -640,7 +686,7 @@ long local, global, trail, argument, lock;
 
   base  = (long) align_base(sbrk(0));
   top   = (long) MAX_VIRTUAL_ADDRESS;
-  DEBUG(1, printf("top = 0x%x, stack at 0x%x\n", top, &top));
+  DEBUG(1, printf("top = 0x%x, stack at 0x%x\n", top, (unsigned) &top));
   space = top - base;
   space -= align_base(heap) +
            align_base(local + STACK_SEPARATION) +

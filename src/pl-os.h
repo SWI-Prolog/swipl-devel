@@ -7,11 +7,6 @@
     Purpose: Describe your OS here
 */
 
-/*
-** This file contains changes which are part of a port to HPUX 8.0
-** T. Kielmann, 01 Jun 92
-*/
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Declarations of OS functions (should be provided by header files of  the
 machines),  macros needed to get a common basis under OS's and types and
@@ -61,6 +56,7 @@ extern int	open P((char *, int, int));
 extern int	close P((int));
 extern int	read P((int, Void, int));
 extern int	write P((int, Void, int));
+extern long	tell P((int));
 extern int	isatty P((int));
 extern int	chmod P((char *, int));
 extern int	access P((char *, int));

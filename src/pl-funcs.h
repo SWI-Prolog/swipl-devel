@@ -84,7 +84,9 @@ word		pl_collect_bag P((Word, Word)),
 void		initBuildIns P((void));
 
 		/* pl-dump.c */
-word		pl_save_program P((Word, Word));
+word		pl_save_program P((Word, Word)),
+		pl_save P((Word, Word)),
+		pl_restore P((Word));
 
 		/* pl-dwim.c */
 word		pl_dwim_match P((Word, Word, Word)),
@@ -316,7 +318,7 @@ bool		sysError P((char *fm , ...)),
 		vsysError P((char *fm , va_list args )),
 		vfatalError P((char *fm , va_list args )),
 		vwarning P((char *fm , va_list args ));
-
+int		startProlog P((int, char **, char **));
 
 		/* pl-modul.c */
 Word		stripModule P((Word, Module *));
@@ -455,7 +457,10 @@ bool		freeRecord P((Record)),
 Record		copyTermToHeap P((Word));
 
 		/* pl-setup.c */
-void		setupProlog P((void));
+void		setupProlog P((void)),
+		deallocateStacks P((void)),
+		initSignals P((void));
+bool		restoreStack P((Stack));
 #if unix
 void		deliverSignal P((int, int, struct sigcontext *, char *));
 handler_t	pl_signal P((int, handler_t));
