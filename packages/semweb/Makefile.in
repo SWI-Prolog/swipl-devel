@@ -61,12 +61,12 @@ install:	$(TARGETS) $(LIBPL)
 		  $(INSTALL) -m 755 $$f $(PLBASE)/lib/$(PLARCH); \
 		done
 		for f in $(DATA); do \
-		  $(INSTALL) -m 644 $$f $(LIBDIR); \
+		  $(INSTALL_DATA) $$f $(LIBDIR); \
 		done
 		for f in $(LIBPL); do \
-		  $(INSTALL) -m 644 $$f $(LIBDIR); \
+		  $(INSTALL_DATA) $$f $(LIBDIR); \
 		done
-		$(INSTALL) -m 644 README $(LIBDIR)
+		$(INSTALL_DATA) README $(LIBDIR)
 		$(PL) -f none -g make -t halt
 
 rpm-install:	install
