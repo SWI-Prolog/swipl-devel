@@ -34,7 +34,7 @@ pdfimages=	$(epsimages:.eps=.pdf)
 
 pdfimg:	$(pdfimages)
 
-$(DVI):	$(XPCETEX) $(LOGO) figs/class
+$(DVI):	$(XPCETEX) $(LOGO)
 	@TEXINPUTS=.:$(PCETEX):$$TEXINPUTS; \
 	echo "**********************************************************"; \
 	echo "* Running latex $(DOC)"; \
@@ -48,7 +48,7 @@ $(DVI):	$(XPCETEX) $(LOGO) figs/class
 	  latex $(DOC) || exit 1; \
 	done
 
-$(PDF):	$(XPCETEX) $(LOGO) figs/class
+$(PDF):	$(XPCETEX) $(LOGO)
 	$(MAKE) pdfimg
 	@TEXINPUTS=.:$(PCETEX):$$TEXINPUTS; \
 	echo "**********************************************************"; \
@@ -96,7 +96,7 @@ dragdropdemo.tex:	examples/dragdrop.pl
 	$(PLTOTEX) examples/dragdrop.pl > $@
 wysiwyg.tex:		examples/wysiwyg.pl
 	$(PLTOTEX) examples/wysiwyg.pl > $@
-summary.tex:		summary.doc classes.pl
+summary.tex:		figs/class summary.doc classes.pl
 	xpce -f classes.pl -g "process('summary.doc','summary.tmp')" -t halt
 	$(DOCTOTEX) summary.tmp > summary.tex
 	rm -f summary.tmp
@@ -110,9 +110,11 @@ summary.tex:		summary.doc classes.pl
 .eps.pdf:
 	epstopdf $*.eps
 
-clean:
+clean::
 	rm -f $(XPCETEX) $(PWTEX) \
 		*.out *.dvi *.toc *.aux *.idx *.ind *.blg *.log *.ilg \
 		*~ figs/*~ \
 		$(LOGO) summary.tmp
 	rm -rf figs/class
+
+distclean:	clean

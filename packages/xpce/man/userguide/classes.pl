@@ -75,7 +75,7 @@ process_line(In, LineNo, Out) :-
 	need_diagram(Class, PS, LineNo, Cont),
 	class_to_tex(Class, TexClass),
 	substitute(Class, TexClass, Header, TexHeader),
-	sformat(S, '\classsummary~w{~w}{~w}{~w}~n',
+	sformat(S, '\\classsummary~w{~w}{~w}{~w}~n',
 		[Cont, TexClass, TexHeader, PS]),
 	string_to_list(S, Out).
 
@@ -125,7 +125,7 @@ class_to_tex(Name, TeXName) :-
 	atom_codes(Name, Chars),
 	member(C, Chars),
 	\+ alnum(C), !,
-	concat_atom(['{\tt\string', Name, '}'], TeXName).
+	concat_atom(['{\\tt\\string', Name, '}'], TeXName).
 class_to_tex(Name, Name).
 
 alnum(C) :-
@@ -158,7 +158,7 @@ init_args(ClassName, Descr) :-
 	get(@pce, convert, ClassName, class, Class),
 	get(Class, send_method, initialise, SM),
 	get(SM, man_summary, Summary),
-	new(R, regex(string('.*:\\s +\\(.*\\)\t.*'))),
+	new(R, regex('.*:\\s +\\(.*\\)\t.*')),
 	send(R, match, Summary), !,
 	get(R, register_value, Summary, 1, name, D0),
 	substitute('|', '$|$', D0, Descr).
