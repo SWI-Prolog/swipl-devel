@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: write_term/3: honour portray(true), numbervars(false) not to
+    number the variables.
+
   * PORT: documented Linux-threads vs. NPTL issues.  Notably affects
     per-thread or per-process statistics.
 

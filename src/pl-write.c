@@ -917,7 +917,7 @@ word
 pl_write_term3(term_t stream, term_t term, term_t opts)
 { bool quoted     = FALSE;
   bool ignore_ops = FALSE;
-  bool numbervars = FALSE;
+  bool numbervars = -1;			/* not set */
   bool portray    = FALSE;
   bool bqstring   = trueFeature(BACKQUOTED_STRING_FEATURE);
   bool charescape = -1;			/* not set */
@@ -952,11 +952,13 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   if ( charescape == TRUE ||
        (charescape == -1 && true(options.module, CHARESCAPE)) )
     options.flags |= PL_WRT_CHARESCAPES;
+  if ( numbervars == -1 )
+    numbervars = (portray ? TRUE : FALSE);
   
   if ( quoted )     options.flags |= PL_WRT_QUOTED;
   if ( ignore_ops ) options.flags |= PL_WRT_IGNOREOPS;
   if ( numbervars ) options.flags |= PL_WRT_NUMBERVARS;
-  if ( portray )    options.flags |= PL_WRT_PORTRAY|PL_WRT_NUMBERVARS;
+  if ( portray )    options.flags |= PL_WRT_PORTRAY;
   if ( bqstring )   options.flags |= PL_WRT_BACKQUOTED_STRING;
 
   options.out = s;
