@@ -834,31 +834,6 @@ ExistsDirectory(char *path)
   if ( stat(ospath, &buf) == 0 && (buf.st_mode & S_IFMT) == S_IFDIR )
     succeed;
 
-#ifdef __WATCOMC__
-  if ( streq(ospath, ".") || streq(ospath, "..") )
-    succeed;
-
-  if ( isLetter(ospath[0]) && ospath[1] == ':' && ospath[2] == '\0' )
-  { unsigned drv = makeLower(ospath[0]) - 'a' + 1;
-    unsigned cdrv, ndrv;
-    unsigned total;
-    int have_drv;
-
-    _dos_getdrive(&cdrv);
-    if ( cdrv == drv )
-    { have_drv = TRUE;
-    } else
-    { _dos_setdrive(drv, &total);
-      _dos_getdrive(&ndrv);
-      have_drv = (ndrv == drv);
-      _dos_setdrive(cdrv, &total);
-    }
-
-    if ( have_drv )
-  succeed;
-  }
-#endif
-
   fail;
 #endif
 
@@ -1165,17 +1140,19 @@ canonisePath(char *path)
   { if (*path == '/')
     {
     again:
-      while( path[1] == '/' )
-	path++;
-      while( path[1] == '.' && (path[2] == '/' || path[2] == EOS) )
-      { path += 2;
-	goto again;
-      }
-      while (path[1] == '.' && path[2] == '.' &&
-	     (path[3] == '/' || path[3] == EOS) )
-      { out = osave[--osavep];
-	path += 3;
-	goto again;
+      if ( *path )
+      { while( path[1] == '/' )
+	  path++;
+	while( path[1] == '.' && (path[2] == '/' || path[2] == EOS) )
+	{ path += 2;
+	  goto again;
+	}
+	while (path[1] == '.' && path[2] == '.' &&
+	       (path[3] == '/' || path[3] == EOS) )
+	{ out = osave[--osavep];
+	  path += 3;
+	  goto again;
+	}
       }
 
       osave[osavep++] = out;

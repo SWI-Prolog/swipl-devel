@@ -48,38 +48,40 @@ char *def;
 
   if ( (home = Symbols()) )
   { char buf[MAXPATHLEN];
-    home = DirName(DirName(AbsoluteFile(home)));
+    char parent[MAXPATHLEN];
+    FILE *fd;
 
-    sprintf(buf, "%s/swipl", home);
+    strcpy(parent, DirName(DirName(AbsoluteFile(home))));
+    sprintf(buf, "%s/swipl", parent);
 
-    if ( ExistsFile(buf) )
-    { FILE *fd = Fopen(buf, "r");
-
-      if ( fd && fgets(buf, sizeof(buf), fd) )
+    if ( (fd = Fopen(buf, "r")) )
+    { if ( fgets(buf, sizeof(buf), fd) )
       { int l = strlen(buf);
 
-	if ( l > 0 && l < sizeof(buf) && buf[l-1] == '\n' )
-	  buf[l-1] = EOS;
+	while(l > 0 && buf[l-1] < ' ')
+	  l--;
+	buf[l] = EOS;
 
 #if O_XOS
       { char buf2[MAXPATHLEN];
-	_xos_canonical_filename(ihome, buf2);
+	_xos_canonical_filename(buf, buf2);
 	strcpy(buf, buf2);
       }
 #endif
 
 	if ( buf[0] != '/' )
-	{ strcpy(&buf[3], &buf[0]);
-	  strncpy(buf, "../", 3);
-	}
+	{ char buf2[MAXPATHLEN];
 
+	  sprintf(buf2, "%s/%s", parent, buf);
+	  home = AbsoluteFile(buf2);
+	} else
 	home = AbsoluteFile(buf);
+
 	if ( ExistsDirectory(home) )
 	{ fclose(fd);
 	  return store_string(home);
 	}
       }
-      if ( fd )
 	fclose(fd);
     }
   }
