@@ -49,7 +49,7 @@ This is the  first  version  of   an  XPCE/Prolog  library  for managing
 hierarchies in a similar fashion as many Windows(tm) tools.
 
 The current version is not well   prepared for modifyable structures. It
-is desined for the contents browser of   the SWI-Prolog manual, but with
+is designed for the contents browser of  the SWI-Prolog manual, but with
 the intention to grow into a more widely usable library.
 
 The objective is that the   application programmer subclasses toc_window

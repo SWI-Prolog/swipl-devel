@@ -135,7 +135,7 @@ to_class_name(ClassObj, Name) :-
 	send(ClassObj, instance_of, class), !,
 	get(ClassObj, name, Name).
 
-%	implements(Class, SendOrGet(Method), [Method])
+%	implements(?Class, SendOrGet(?Method), [Method])
 %	
 %	True if Class implements the method.  If class is a variable,
 %	backtracking yields all classes
@@ -160,10 +160,30 @@ implements(Class, root(What), Method) :-
 	).
 implements(Class, send(Name), Method) :-
 	current_class(Class, ClassObject),
-	get(ClassObject, send_method, Name, Method).
+	(   atom(Name)
+	->  get(ClassObject, send_method, Name, Method)
+	;   isa_class(Class, Super),
+	    current_class(Super, SuperObject),
+	    (	get_chain(SuperObject, send_methods, Methods)
+	    ;	get_chain(SuperObject, instance_variables, Methods)
+	    ),
+	    member(Method, Methods),
+	    get(Method, name, Name),
+	    get(ClassObject, send_method, Name, Method) 	% not overruled
+	).
 implements(Class, get(Name), Method) :-
 	current_class(Class, ClassObject),
-	get(ClassObject, get_method, Name, Method).
+	(   atom(Name)
+	->  get(ClassObject, get_method, Name, Method)
+	;   isa_class(Class, Super),
+	    current_class(Super, SuperObject),
+	    (	get_chain(SuperObject, get_methods, Methods)
+	    ;	get_chain(SuperObject, instance_variables, Methods)
+	    ),
+	    member(Method, Methods),
+	    get(Method, name, Name),
+	    get(ClassObject, get_method, Name, Method)
+	).
 
 
 		 /*******************************
