@@ -121,7 +121,11 @@ requestComputeScrollbarsWindowDecorator(WindowDecorator dw)
 { if ( notNil(dw->horizontal_scrollbar) )
     requestComputeGraphical(dw->horizontal_scrollbar, DEFAULT);
   if ( notNil(dw->vertical_scrollbar) )
+  { DEBUG(NAME_window, Cprintf("Requesting compute for %s (now %s)\n",
+			       pp(dw->vertical_scrollbar),
+			       pp(dw->vertical_scrollbar->request_compute)));
     requestComputeGraphical(dw->vertical_scrollbar, DEFAULT);
+  }
 
   succeed;
 }
@@ -190,6 +194,38 @@ rearrangeWindowDecorator(WindowDecorator dw)
 
   succeed;
 }
+
+		 /*******************************
+		 *	      COMPUTE		*
+		 *******************************/
+
+static status
+computeWindowDecorator(WindowDecorator dw)
+{ if ( notNil(dw->request_compute) )
+  { int changed = TRUE;
+    int maxloop = 2;
+
+    while(changed && maxloop-- > 0)
+    { changed = FALSE;
+
+      if ( notNil(dw->vertical_scrollbar) &&
+	   notNil(dw->vertical_scrollbar->request_compute) )
+      { changed++;
+	ComputeGraphical(dw->vertical_scrollbar);
+      }
+      if ( notNil(dw->horizontal_scrollbar) &&
+	   notNil(dw->horizontal_scrollbar->request_compute) )
+      { changed++;
+	ComputeGraphical(dw->horizontal_scrollbar);
+      }
+      computeWindow((PceWindow)dw);
+      ComputeGraphical(dw->window);
+    }
+  }
+
+  succeed;
+}
+
 
 		 /*******************************
 		 *	     GEOMETRY		*
@@ -335,6 +371,8 @@ static senddecl send_windowDecorator[] =
      DEFAULT, "Create decoration for window"),
   SM(NAME_requestGeometry, 4, T_xADintD_yADintD_widthADintD_heightADintD, requestGeometryWindowDecorator,
      DEFAULT, "Handle window geometry request"),
+  SM(NAME_compute, 0, NULL, computeWindowDecorator,
+     NAME_update, "Recompute window"),
   SM(NAME_resize, 0, NULL, resizeWindowDecorator,
      DEFAULT, "Also `window ->resize' <-window"),
   SM(NAME_unlink, 0, NULL, unlinkWindowDecorator,

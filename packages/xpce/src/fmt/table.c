@@ -1181,18 +1181,24 @@ placeCellsTable(Table tab)
 static void
 r_hline(int x, int y, int w, int b)
 { if ( b == 1 )
+  { r_thickness(1);
     r_line(x, y, x+w-b, y);
-  else if ( b > 1 )
+  } else if ( b > 1 )
+  { r_thickness(0);
     r_box(x, y, w, b, 0, BLACK_IMAGE);
+  }
 }
 
 
 static void
 r_vline(int x, int y, int h, int b)
 { if ( b == 1 )
+  { r_thickness(1);
     r_line(x, y, x, y+h);
-  else if ( b > 1 )
+  } else if ( b > 1 )
+  { r_thickness(0);
     r_box(x, y, b, h, 0, BLACK_IMAGE);
+  }
 }
 
 
@@ -1374,10 +1380,9 @@ RedrawRulesTableCell(TableCell cell, Name style, int b)
     }
   }
 
-  r_thickness(b);
-
   switch(sides)
   { case BOX_SIDES:
+      r_thickness(b);
       r_box(d.x, d.y, d.w, d.h, 0, NIL);
       break;
     case HSIDES:

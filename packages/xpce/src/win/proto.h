@@ -89,6 +89,7 @@ status		typedWindow(PceWindow sw, EventId id, Bool delegate);
 status		inputFocusWindow(PceWindow sw, Bool val);
 status		keyboardFocusWindow(PceWindow sw, Graphical gr);
 status		focusWindow(PceWindow sw, Graphical gr, Recogniser recogniser, CursorObj cursor, Name button);
+status		computeWindow(PceWindow sw);
 void		changed_window(PceWindow sw, int x, int y, int w, int h, int clear);
 void		unlink_changes_data_window(PceWindow sw);
 status		redrawWindow(PceWindow sw, Area a);

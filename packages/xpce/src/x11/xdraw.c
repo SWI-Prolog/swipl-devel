@@ -960,7 +960,12 @@ r_translate(int x, int y, int *ox, int *oy)
 void
 r_box(int x, int y, int w, int h, int r, Any fill)
 { int mwh, pen = context.gcs->pen;
-  int drawpen = ((context.gcs->dash == NAME_none) && quick ? 1 : pen);
+  int drawpen;
+
+  if ( context.gcs->dash == NAME_none && quick && pen > 0 )
+    drawpen = 1;
+  else
+    drawpen = pen;
 
   Translate(x, y);
   r_thickness(drawpen);

@@ -575,7 +575,7 @@ bannerPce(Pce pce)
 	 pce->window_system_version,
 	 pce->window_system_revision);
 
-  writef("Copyright 1993-1999, University of Amsterdam.  All rights reserved.\n");
+  writef("Copyright 1993-2000, University of Amsterdam.  All rights reserved.\n");
 
   if ( host != NAME_unknown )
     writef("The host-language is %s\n", host);
@@ -1690,6 +1690,7 @@ pceInitialise(int handles, const char *home, int argc, char **argv)
   name_procent_s	= CtoName("%s");
   name_cxx		= CtoName("C++");
   name_nil		= CtoName("[]");
+  name_space		= CtoName(" ");
 
   DEBUG_BOOT(Cprintf("Building class definitions\n"));
   initClassDefs();

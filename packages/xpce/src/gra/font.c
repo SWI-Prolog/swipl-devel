@@ -221,7 +221,7 @@ getWidthFont(FontObj f, CharArray txt)
 }
 
 
-static Int
+Int
 getAdvanceFont(FontObj f, CharArray txt)
 { d_ensure_display();			/* TBD */
 

@@ -812,7 +812,7 @@ computeBoundingBoxWindow(PceWindow sw)
 }
 
 
-static status
+status
 computeWindow(PceWindow sw)
 { if ( notNil(sw->request_compute) )
   { computeGraphicalsDevice((Device) sw);

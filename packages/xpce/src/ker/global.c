@@ -75,6 +75,7 @@ struct global
   { NAME_defaultSyntaxTable,	NAME_syntaxTable },
   { NAME_objectParser,		NAME_classVariable },
   { NAME_notObtained,		NAME_classVariable },
+  { NAME_spaceRubber,		NAME_rubber },
 
   { NULL,	  		NULL}
 };

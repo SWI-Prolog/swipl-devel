@@ -552,8 +552,11 @@ requestComputeGraphical(Any obj, Any val)
   assign(gr, request_compute, val);
     
   if ( instanceOfObject(gr, ClassWindow) && gr->displayed == ON )
-    addChain(ChangedWindows, gr);
-  else if ( notNil(gr->device) )
+  { if ( !memberChain(ChangedWindows, gr) )
+    { DEBUG(NAME_window, Cprintf("Adding %s to ChangedWindows\n", pp(gr)));
+      prependChain(ChangedWindows, gr);
+    }
+  } else if ( notNil(gr->device) )
   { appendChain(gr->device->recompute, gr);
     requestComputeGraphical((Graphical) gr->device, DEFAULT);
   }

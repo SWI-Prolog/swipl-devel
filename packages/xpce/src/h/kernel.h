@@ -1585,6 +1585,7 @@ GLOBAL HashTable ObjectHyperTable;	/* object-level hypers */
 GLOBAL Name	name_procent_s;		/* "%s" */
 GLOBAL Name	name_cxx;		/* "C++" */
 GLOBAL Name	name_nil;		/* "[]" */
+GLOBAL Name	name_space;		/* " " */
 GLOBAL Code	qsortCompareCode;	/* used by qsortCompareObjects() */
 GLOBAL int	qsortReverse;		/* used by qsortCompareObjects() */
 

@@ -143,6 +143,20 @@ valignTableCell(TableCell c, Name align)
 }
 
 
+static status
+cellPaddingTableCell(TableCell c, Size padding)
+{ if ( !(c->cell_padding == padding ||
+	 (classOfObject(c->cell_padding) == classOfObject(padding) &&
+	  equalSize(c->cell_padding, padding))) )
+  { assign(c, cell_padding, padding);
+
+    requestComputeLayoutManager(c->layout_manager, DEFAULT);
+  }
+
+  succeed;
+}
+
+
 Name
 getHalignTableCell(TableCell cell)
 { Table tab;
@@ -450,7 +464,7 @@ static vardecl var_table_cell[] =
      NAME_layout, "Number of columns spanned"),
   SV(NAME_rowSpan, "1..", IV_GET|IV_STORE, rowSpanTableCell,
      NAME_layout, "Number of rows spanned"),
-  IV(NAME_cellPadding, "[size]", IV_GET,
+  SV(NAME_cellPadding, "[size]", IV_GET|IV_STORE, cellPaddingTableCell,
      NAME_layout, "Size around contents of the cell"),
   SV(NAME_selected, "bool", IV_GET|IV_STORE, selectedTableCell,
      NAME_selection, "Is cell selected?"),

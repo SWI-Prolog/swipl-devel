@@ -77,6 +77,7 @@ status		makeClassFigure(Class class);
 status		replaceFont(FontObj f, DisplayObj d);
 status		makeBuiltinFonts(void);
 Int		getWidthFont(FontObj f, CharArray txt);
+Int		getAdvanceFont(FontObj f, CharArray txt);
 Int		getExFont(FontObj f);
 Int		getHeightFont(FontObj f);
 Int		getAscentFont(FontObj f);
