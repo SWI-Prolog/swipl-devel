@@ -122,9 +122,9 @@ pceMTinit()
 static pthread_mutex_t mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
 
 #define LOCK() \
-	if ( XPCE_mt == TRUE ) pthread_mutex_lock(&mutex)
+	if ( XPCE_mt ) pthread_mutex_lock(&mutex)
 #define UNLOCK() \
-	if ( XPCE_mt == TRUE ) pthread_mutex_unlock(&mutex)
+	if ( XPCE_mt ) pthread_mutex_unlock(&mutex)
 
 int
 pceMTTryLock(int lock)
@@ -150,7 +150,7 @@ static recursive_mutex_t mutex = RECURSIVE_MUTEX_INIT;
 
 static inline void
 LOCK()
-{ if ( XPCE_mt == TRUE )
+{ if ( XPCE_mt )
   { if ( mutex.owner != pthread_self() )
     { pthread_mutex_lock(&(mutex.lock));
       mutex.owner = pthread_self();
@@ -163,7 +163,7 @@ LOCK()
 
 static inline void
 UNLOCK()
-{ if ( XPCE_mt == TRUE )
+{ if ( XPCE_mt )
   { if ( mutex.owner == pthread_self() )
     { if ( --mutex.count < 1 )
       { mutex.owner = 0;
@@ -177,7 +177,7 @@ UNLOCK()
 
 int
 pceMTTryLock(int lock)
-{ if ( XPCE_mt == TRUE )
+{ if ( XPCE_mt )
   { if ( mutex.owner != pthread_self() )
     { if ( pthread_mutex_trylock(&(mutex.lock)) != 0 )
 	return FALSE;
