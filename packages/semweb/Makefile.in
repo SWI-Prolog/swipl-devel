@@ -66,6 +66,7 @@ install:	$(TARGETS) $(LIBPL)
 		for f in $(LIBPL); do \
 		  $(INSTALL) -m 644 $$f $(LIBDIR); \
 		done
+		$(INSTALL) -m 644 README $(LIBDIR)
 		$(PL) -f none -g make -t halt
 
 rpm-install:	install
