@@ -575,7 +575,7 @@ pixelImage(Image image, Int X, Int Y, Any val)
 
   if ( inImage(image, X, Y) )
   { if ( (image->kind == NAME_bitmap && !instanceOfObject(val, ClassBool)) ||
-	 !instanceOfObject(val, ClassColour) )
+	 (image->kind == NAME_pixmap && !instanceOfObject(val, ClassColour)) )
       return errorPce(image, NAME_pixelMismatch, val);
     
     CHANGING_IMAGE(image,
