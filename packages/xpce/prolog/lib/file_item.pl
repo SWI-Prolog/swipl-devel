@@ -43,6 +43,8 @@
 :- pce_begin_class(file_item, text_item,
 		   "text_item with file-name completion").
 
+variable(exists,	bool := @off,	both, "File must exist").
+
 initialise(FI, Name:[name], Def:[any|function], Msg:[code]*) :->
 	clean_file_name(Def, Clean),
 	send(FI, send_super, initialise, Name, Clean, Msg),
@@ -149,7 +151,8 @@ browse(FI) :->
 	->  Dir = Sofar
 	;   file_directory_name(Sofar, Dir)
 	),
-	get(@finder, file, @on, directory := Dir, New),
+	get(FI, exists, Exists),
+	get(@finder, file, Exists, directory := Dir, New),
 	send(FI?value_text, string, New),
 	send(FI, apply).
 
