@@ -1117,7 +1117,7 @@ get_typed_object(PceGoal g, term_t t, PceType type, PceObject* rval)
   }
 
   if ( !obj )
-  { if ( pceIncludesType(type, TypePrologTerm) )
+  { if ( pceIncludesHostDataType(type, ClassProlog) )
     { *rval = makeTermHandle(t);
       return TRUE;
     }
@@ -1163,7 +1163,7 @@ get_answer_object(PceGoal g, Term t, PceType type, PceObject *rval)
   }
 
   if ( !obj )
-  { if ( pceIncludesType(type, TypePrologTerm) )
+  { if ( pceIncludesHostDataType(type, ClassProlog) )
     { *rval = makeRecordedTermHandle(t);
       return TRUE;
     }
@@ -1624,7 +1624,7 @@ put_prolog_argument(PceGoal g, Term t, PceType type, Term f)
 { PceObject obj;
   term_value_t val;
 					/* --> :prolog */
-  if ( pceIncludesType(type, TypeProlog) )
+  if ( pceIncludesHostDataType(type, ClassProlog) )
   { PutTerm(t, f);
     return TRUE;
   }
