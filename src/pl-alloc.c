@@ -306,24 +306,26 @@ allocHeap__LD(size_t n ARG_LD)
   if ( n <= ALLOCFAST )
   { size_t m = n / (int) ALIGN_SIZE;
 #ifdef O_PLMT
-    if ( !(mem = allocFromPool(&LD->alloc_pool, m)) )
-    { if ( GD->alloc_pool.free_chains[m] )
-      { LOCK();
-	LD->alloc_pool.free_chains[m] = GD->alloc_pool.free_chains[m];
-	GD->alloc_pool.free_chains[m] = NULL;
-	UNLOCK();
-
-	if ( !(mem = allocFromPool(&LD->alloc_pool, m)) )
+    if ( LD )			/* deal with alloc before PL_initialise() */
+    { if ( !(mem = allocFromPool(&LD->alloc_pool, m)) )
+      { if ( GD->alloc_pool.free_chains[m] )
+	{ LOCK();
+	  LD->alloc_pool.free_chains[m] = GD->alloc_pool.free_chains[m];
+	  GD->alloc_pool.free_chains[m] = NULL;
+	  UNLOCK();
+	  
+	  if ( !(mem = allocFromPool(&LD->alloc_pool, m)) )
+	    mem = allocate(&LD->alloc_pool, n);
+	} else
 	  mem = allocate(&LD->alloc_pool, n);
-      } else
-	mem = allocate(&LD->alloc_pool, n);
-    }
-#else /*O_PLMT*/
-    LOCK();
-    if ( !(mem = allocFromPool(&GD->alloc_pool, m)) )
-      mem = allocate(&GD->alloc_pool, n);
-    UNLOCK();
+      }
+    } else
 #endif /*O_PLMT*/
+    { LOCK();
+      if ( !(mem = allocFromPool(&GD->alloc_pool, m)) )
+	mem = allocate(&GD->alloc_pool, n);
+      UNLOCK();
+    }
   } else
   { LOCK();
     mem = allocBigHeap(n);

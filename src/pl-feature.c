@@ -113,6 +113,8 @@ defFeature(const char *name, int flags, ...)
   if ( (s = lookupHTable(GD->feature.table, (void *)an)) )
   { f = s->value;
     assert((f->flags & FT_MASK) == (flags & FT_MASK));
+    if ( flags & FF_KEEP )
+      return;
   } else
   { f = allocHeap(sizeof(*f));
     f->index = -1;
@@ -739,7 +741,7 @@ initFeatures()
   defFeature("double_quotes", FT_ATOM, "codes");
   defFeature("unknown", FT_ATOM, "error");
   defFeature("debug", FT_BOOL, FALSE, 0);
-  defFeature("verbose", FT_ATOM, GD->options.silent ? "silent" : "normal");
+  defFeature("verbose", FT_ATOM|FF_KEEP, GD->options.silent ? "silent" : "normal");
   defFeature("allow_variable_name_as_functor", FT_BOOL, FALSE,
 	     ALLOW_VARNAME_FUNCTOR);
   defFeature("toplevel_var_size", FT_INTEGER, 1000);

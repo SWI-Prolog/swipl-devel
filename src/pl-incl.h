@@ -1910,7 +1910,7 @@ typedef struct debuginfo
 #define FT_MASK		0x0f		/* mask to get type */
 
 #define FF_READONLY	0x10		/* feature is read-only */
-
+#define FF_KEEP		0x20		/* keep value it already set */
 
 #define CHARESCAPE_FEATURE	  0x00001 /* handle \ in atoms */
 #define GC_FEATURE		  0x00002 /* do GC */

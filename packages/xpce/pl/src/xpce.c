@@ -37,7 +37,7 @@ WinMain(HANDLE hInstance, HANDLE hPrevInstance,
 
   bind_terminal();
 /*attach_console();*/
-//PL_set_feature("verbose", PL_ATOM, "silent");
+  PL_set_feature("verbose", PL_ATOM, "silent"); /* operate silently */
   if ( !PL_initialise(argc, argv) )
     PL_halt(1);
   
@@ -60,10 +60,26 @@ ok(const char *msg)
 
 static IOFUNCTIONS console_functions;
 
-static int    use_console;		/* use the console */
+typedef enum 
+{ C_NONE,				/* normal operation */
+  C_READ,				/* attach on read */
+  C_NEVER,				/* do not attach */
+  C_ATTACHED				/* a console is attached */
+} console_mode;
+
+
+static console_mode use_console;	/* use the console */
 static HANDLE cin;			/* console input handle */
 static HANDLE cout;			/* console output handle */
 static HANDLE cerr;
+
+static struct recall
+{ int size;				/* # characters stored */
+  int allocated;			/* # characters allocated */
+  char *data;				/* buffered text; */
+} recall_buffer;
+
+
 
 typedef struct
 { HANDLE input;
@@ -141,8 +157,16 @@ attach_console(void)
 	if ( cin  != INVALID_HANDLE_VALUE &&
 	     cerr != INVALID_HANDLE_VALUE &&
 	     cout != INVALID_HANDLE_VALUE )
-	{ use_console = TRUE;
+	{ use_console = C_ATTACHED;
 	  done = 1;
+
+	  if ( recall_buffer.size )
+	  { write_console(Soutput, recall_buffer.data, recall_buffer.size);
+	    recall_buffer.size = 0;
+	    recall_buffer.allocated = 0;
+	    PL_free(recall_buffer.data);
+	    recall_buffer.data = NULL;
+	  }
 
 	  return TRUE;
 	}
@@ -163,17 +187,63 @@ attach_console(void)
 		 *******************************/
 
 static int
+ask_attach(int read)
+{ int rc;
+
+  if ( read )
+  { rc = MessageBox(NULL,
+		    "The application wants to read from its console.\n"
+		    "Normally this is caused by an unexpected error.\n"
+		    "\n"
+		    "Use [OK] to attach a console window\n"
+		    "or [CANCEL] to terminate the application",
+		    program,
+		    MB_OKCANCEL|MB_DEFBUTTON1|
+		    MB_TASKMODAL|MB_ICONEXCLAMATION);
+  } else
+  { rc = MessageBox(NULL,
+		    "The application wants to write error messages.\n"
+		    "Normally this is caused by an unexpected error.\n"
+		    "\n"
+		    "Use [YES] to attach a console window\n"
+		    "Use [NO] to ignore all messages\n"
+		    "or [CANCEL] to terminate the application",
+		    program,
+		    MB_YESNOCANCEL|MB_DEFBUTTON1|
+		    MB_TASKMODAL|MB_ICONEXCLAMATION);
+  }
+
+  switch(rc)
+  { case IDABORT:
+    case IDCANCEL:
+      PostQuitMessage(1);
+    case IDYES:
+    case IDOK:
+    case IDRETRY:
+      return TRUE;
+    case IDNO:
+      use_console = C_READ;
+      return FALSE;
+    case IDIGNORE:
+      return FALSE;
+  }
+}
+
+
+static int
 do_read(void *handle, char *buffer, int size)
-{ if ( use_console )
-    return read_console(handle, buffer, size);
-
-  MessageBox(NULL,
-	     "The application tries to read.\n"
-	     "A console will be attached to help diagnose the problem.",
-	     program, MB_OK|MB_TASKMODAL);
-
-  if ( attach_console() )
-    return read_console(handle, buffer, size);
+{ switch( use_console )
+  { case C_ATTACHED:
+      return read_console(handle, buffer, size);
+    case C_NONE:
+    case C_READ:
+      if ( ask_attach(TRUE) )
+      { if ( attach_console() )
+	  return read_console(handle, buffer, size);
+      }
+    case C_NEVER:
+      return -1;
+  }
 
   return -1;
 }
@@ -181,17 +251,42 @@ do_read(void *handle, char *buffer, int size)
 
 static int
 do_write(void *handle, char *buffer, int size)
-{ if ( use_console )
-    return write_console(handle, buffer, size);
+{ struct recall *rc = &recall_buffer;
 
-  if ( handle == Serror->handle )
-  { MessageBox(NULL,
-	       "The application produced an error message.\n"
-	       "A console will be attached to help diagnose the problem.",
-	       program, MB_OK|MB_TASKMODAL);
-
-    if ( attach_console() )
+  switch(use_console)
+  { case C_ATTACHED:
       return write_console(handle, buffer, size);
+    case C_NONE:
+      if ( handle == Serror->handle )
+      { if ( ask_attach(FALSE) )
+	{ if ( attach_console() )
+	    return write_console(handle, buffer, size);
+	}
+      }
+      break;
+    case C_READ:
+      break;
+    case C_NEVER:
+      return size;
+  }
+
+  if ( !rc->data )
+  { rc->allocated = 512;
+    rc->data = PL_malloc(rc->allocated);
+    rc->size = 0;
+  }
+  if ( size + rc->size <= rc->allocated )
+  { memcpy(&rc->data[rc->size], buffer, size);
+    rc->size += size;
+  } else if ( size >= rc->allocated )
+  { memcpy(rc->data, &buffer[size-rc->allocated], rc->allocated);
+    rc->size = rc->allocated;
+  } else
+  { int leave = rc->allocated - size;
+
+    memmove(rc->data, &rc->data[rc->size-leave], leave);
+    memcpy(&rc->data+leave, buffer, size);
+    rc->size = rc->allocated;
   }
 
   return size;
