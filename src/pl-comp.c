@@ -349,7 +349,7 @@ resetVarDefs(int n ARG_LD)		/* set addresses of first N to NULL */
     getVarDef(n-1 PASS_LD);
 
   vd = LD->comp.vardefs;
-  for( ; --n>0 ; vd++ )
+  for( ; --n>=0 ; vd++ )
   { VarDef v;
 
     if ( (v = *vd) )
