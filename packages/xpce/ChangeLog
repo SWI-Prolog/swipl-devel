@@ -1,3 +1,8 @@
+* FIXED: Allow .bm (old X11 bitmaps) the contain CRLF rather than plain
+  LF for correct loading on Windows/Unix corrupted files.
+
+* FIXED: Include dialog/bitmaps files in the Windows distribution.
+
 * MODIFIED: PceEmacs user-init file changes from ~/.pceemacsrc to
   user_profile('pceemacs.ini') on Windows.
 

@@ -114,6 +114,8 @@ NextInt(IOSTREAM *fstream)
     { int dvalue;
 
       ch = Sgetc(fstream) & 0xff;
+      if ( ch == '\r' )
+	continue;
       dvalue = hexTable[ch];
       if ( dvalue >= 0 )
       { value = (value << 4) + dvalue;

@@ -300,6 +300,7 @@ IDIRS=	appl-help \
 	prolog\lib \
 	prolog\lib\compatibility \
 	prolog\lib\dialog \
+	prolog\lib\dialog\bitmaps \
 	prolog\lib\doc \
 	prolog\lib\doc\icons \
 	prolog\lib\draw \
