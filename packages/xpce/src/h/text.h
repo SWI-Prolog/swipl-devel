@@ -239,6 +239,7 @@ NewClass(text_image)			/* TBD: subclass of bitmap? */
   Vector	tab_stops;		/* Vector of tab-stops (pixels) */
   Graphical	pointed;		/* Graphical under the pointer */
   Bool		eof_in_window;		/* EOF is in the window */
+  Elevation	elevation;		/* Box elevation */
 					/* start private data */
   int		w;			/* Used width in pixels */
   int		h;			/* Used height in pixels */

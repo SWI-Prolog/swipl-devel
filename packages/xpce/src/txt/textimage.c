@@ -244,8 +244,12 @@ reinitTextImage(TextImage ti)
   ti->map->allocated       = ti->map->length = ti->map->skip = 0;
   ti->map->lines           = NULL;
 
-  if ( (z = getClassVariableValueObject(ti, NAME_elevation)) && notNil(z) )
-    assign(ti, pen, absInt(z->height));
+  if ( restoreVersion < 17 )
+  { if ( (z = getClassVariableValueObject(ti, NAME_elevation)) && notNil(z) )
+    { assign(ti, elevation, z);
+      assign(ti, pen, absInt(z->height));
+    }
+  }
 
   return obtainClassVariablesObject(ti);
 }
@@ -1476,7 +1480,7 @@ RedrawAreaTextImage(TextImage ti, Area a)
   obg = r_background(ti->background);
   if ( sx < TXT_X_MARGIN || sx + w > ti->w - TXT_X_MARGIN ||
        sy < TXT_Y_MARGIN || sy + h > ti->h - TXT_Y_MARGIN )
-  { Elevation z = getClassVariableValueObject(ti, NAME_elevation);
+  { Elevation z = ti->elevation;
     
     if ( z && notNil(z) )
     { r_3d_box(bx, by, bw, bh, 0, z, FALSE);
@@ -2358,6 +2362,22 @@ ensureVisibleTextImage(TextImage ti, Int caret)
   fail;
 }
 
+
+static status
+elevationTextImage(TextImage ti, Elevation z)
+{ if ( ti->elevation != z )
+  { assign(ti, elevation, z);
+    if ( notNil(z) )
+      assign(ti, pen, absInt(z->height));
+  }
+
+  succeed;
+}
+
+
+
+
+
 		 /*******************************
 		 *	 CLASS DECLARATION	*
 		 *******************************/
@@ -2394,6 +2414,8 @@ static vardecl var_textImage[] =
      NAME_event, "Graphical under the pointer"),
   IV(NAME_eofInWindow, "bool", IV_GET,
      NAME_repaint, "Is end-of-file inside window?"),
+  SV(NAME_elevation, "elevation*", IV_GET|IV_STORE, elevationTextImage,
+     NAME_appearance, "Elevation of the area"),
   IV(NAME_width, "alien:int", IV_NONE,
      NAME_area, "Width of the image"),
   IV(NAME_height, "alien:int", IV_NONE,

@@ -1,6 +1,11 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: Make `text_image <->elevation' an instance-variable instead of a
+  class-variable.
+
+* ADDED: `screenline' argument to `editor->scroll_to'.
+
 * ADDED: Hooks in class key_binding, preparing for better programmable
   binding tables.
 

@@ -154,7 +154,7 @@ different types when passed to a vararg function.
 		********************************/
 
 #define SAVEMAGIC   		"PCE version 4"
-#define SAVEVERSION 		16
+#define SAVEVERSION 		17
 
 		/********************************
 		*             ASSERTS		*
