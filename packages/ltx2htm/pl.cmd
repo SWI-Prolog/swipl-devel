@@ -30,7 +30,7 @@
 \optionval{+}=item		1 0
 \argoption{-}{-}
 
-\traceoption{-}{-}{+}=item	1 0
+\traceoption{+}{-}{+}=item	1 0
 \pleaseoption{-}{-}{-}=item	1 0
 \featureoption{-}{-}=item	1 0
 \escapeitem{+}=item		1 0

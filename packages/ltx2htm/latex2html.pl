@@ -32,7 +32,7 @@
 	  ]).
 :- use_module(library(quintus)).
 
-version('0.13').			% for SWI-Prolog 3.3
+version('0.14').			% for SWI-Prolog 3.3
 page_header('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">\n\n').
 
 :- dynamic			
@@ -388,6 +388,9 @@ language_map(table,	'Table').
 		 *	      # MACROS		*
 		 *******************************/
 
+:- dynamic
+	in_anchor/0.			% avoid nesting anchors
+
 %	#(+Macro, -Expansion)
 %	Do HTML macro expansion on the fly.
 
@@ -441,9 +444,13 @@ language_map(table,	'Table').
 #(label(Lbl, Text),	label(ALabel, Expanded, -)) :-
 	string_to_atom(Lbl, ALabel),
 	expand_macros(Text, Expanded).
+#(lref(_Label, Text),	Text) :-
+	in_anchor, !.
 #(lref(Label, Text),	lref(ALabel, Expanded)) :-
 	canonise_label(Label, ALabel),
-	expand_macros(Text, Expanded).
+	asserta(in_anchor),
+	expand_macros(Text, Expanded),
+	retractall(in_anchor).
 #(iflref(Label, Text),	iflref(ALabel, Expanded)) :-
 	canonise_label(Label, ALabel),
 	expand_macros(Text, Expanded).
@@ -453,8 +460,13 @@ language_map(table,	'Table').
 #(lforw(Label, Text),	lforw(ALabel, Expanded)) :-
 	string_to_atom(Label, ALabel),
 	expand_macros(Text, Expanded).
-#(url(URL, Text),	[html(Anchor),	   Text, html('</A>')]) :-
-	sformat(Anchor, '<A HREF="~w">', URL).
+#(url(_URL, Text),	Text) :-
+	in_anchor, !.
+#(url(URL, Text),	[html(Anchor), Expanded, html('</A>')]) :-
+	sformat(Anchor, '<A HREF="~w">', URL),
+	asserta(in_anchor),
+	expand_macros(Text, Expanded),
+	retractall(in_anchor).
 #(cite(Key),		[ html('<CITE>'),
 			  Cites,
 			  html('</CITE>')
@@ -1513,9 +1525,14 @@ tableofcontents(Sections) :-
 
 tableofcontents(TagPrefix, [Sections, CloseUL]) :-
 	retractall(section_level(_)),
-	asserta(section_level(0)),
+	(   section(Level, Tag, _Title),
+	    sub_atom(Tag, 0, _, _, TagPrefix)
+	->  L0 is Level - 1
+	;   L0 = 0
+	),
+	asserta(section_level(L0)),
 	findall(S, section_html(TagPrefix, S), Sections),
-	fix_level(0, CloseUL).
+	fix_level(L0, CloseUL).
 
 section_html(TagPrefix,
 	     [ FixLevel,
@@ -2361,12 +2378,17 @@ implicit_par(html('<H4>')).
 implicit_par(html('<PRE>')).
 implicit_par(html('<XMP>')).
 implicit_par(html('<DL>')).
+implicit_par(html('<DT>')).
 implicit_par(html('<TABLE>')).
 %implicit_par(html('<CENTER>')).
 implicit_par(html('<BLOCKQUOTE>')).
 
+no_par_in('<DL>').			% delete pars here
+%no_par_in('<UL>').
+%no_par_in('<OL>').
 
-write_html([]) :- !.				% Unpack lists
+
+write_html([]) :- !.			% Unpack lists
 write_html([H|T]) :- !,
 	write_html(H),
 	write_html(T).
@@ -2379,6 +2401,15 @@ write_html(html('<P>')) :- !,
 	->  true
 	;   assert(pending_par)
 	).
+write_html(html(Cmd)) :-
+	no_par_in(Cmd), !,
+	(   pending_par
+	->  true
+	;   assert(pending_par)		% Say we have one, do others
+					% are suppressed
+	),
+	cmd_layout(Cmd, Pre, Post), !,
+	put_html_token(html(Cmd, Pre, Post)).
 write_html(Token) :-
 	retract(pending_par), !,
 	(   implicit_par(Token)
@@ -2397,8 +2428,13 @@ write_html(ref(Label)) :- !,			% References and labels
 	    format(user_error, 'No label for ref "~w"~n', [Label])
 	).
 write_html(label(Label, Text, _)) :- !,
-	sformat(Anchor, '<A NAME="~w">', [Label]),
-	write_html([html(Anchor), Text, html('</A>')]).
+	(   in_anchor
+	->  write_html(Text)
+	;   sformat(Anchor, '<A NAME="~w">', [Label]),
+	    asserta(in_anchor),
+	    write_html([html(Anchor), Text, html('</A>')]),
+	    retractall(in_anchor)
+	).
 write_html(body_link(Link)) :- !,
 	(   translate_ref(Link, Ref, Type)
 	->  sformat(Anchor, '<A HREF="~w">', [Ref]),
@@ -2437,11 +2473,17 @@ write_html(lref(fileof(Label), Text)) :-
 	).
 write_html(lref(Label, Text)) :-
 	label(Label, File, _), !,
-	(   onefile(false)
-	->  sformat(Anchor, '<A HREF="~w.html#~w">', [File, Label])
-	;   sformat(Anchor, '<A HREF="#~w">', [Label])
-	),
-	write_html([html(Anchor), Text, html('</A>')]).
+	(   in_anchor
+	->  macro_expand(Text, Expanded),
+	    write_html(Expanded)
+	;   asserta(in_anchor),
+	    (   onefile(false)
+	    ->  sformat(Anchor, '<A HREF="~w.html#~w">', [File, Label])
+	    ;   sformat(Anchor, '<A HREF="#~w">', [Label])
+	    ),
+	    write_html([html(Anchor), Text, html('</A>')]),
+	    retractall(in_anchor)
+	).
 write_html(lref(Label, Text)) :-
 	fix_predicate_reference(Label, FixedLabel), !,
 	write_html(lref(FixedLabel, Text)).

@@ -159,10 +159,11 @@ cmd(longoptionitem({Name}, {Arg}), #defitem(#strong([nospace(--), +Name,
 						     #var(+Arg)]))).
 cmd(optionarg({Option}, {Arg}),
     #defitem([#strong(Option), #var(Arg)])).
-cmd(traceoption({Char}, {Name}, {Description}),
+cmd(traceoption({CharSpec}, {Name}, {Description}),
     [ #defitem([#strong(Name), ' ', #embrace(#code(Char))]),
       +Description
-    ]).
+    ]) :-
+	clean_name(CharSpec, Char).
 cmd(pleaseoption({Name}, {Type}, {Default}),
     #defitem([ #strong(Name), ' ', #embrace(#var(Type)), ' ',
 	       'Default:', ' ', Default
