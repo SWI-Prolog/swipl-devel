@@ -26,6 +26,14 @@ PL=pl
 RT=""
 PLVERSION=`cat ../VERSION`
 
+dnl ****************************************************************
+dnl Some systems don't appear to have true.  Hope all like this ...
+dnl ****************************************************************
+
+true()
+{ test a = a
+}
+
 AC_PROG_CC
 AC_PROG_RANLIB
 AC_CANONICAL_HOST

@@ -37,10 +37,11 @@ srcdir=@srcdir@
 @VPATH@ @srcdir@
 bindir=$(exec_prefix)/bin
 PLBASE=$(prefix)/lib/@PL@-$(PLVERSION)
+man_prefix=$(prefix)/man
 mansec=1
-mandir=$(prefix)/man/man$(mansec)
 lmansec=3
-lmandir=$(prefix)/man/man$(lmansec)
+mandir=$(man_prefix)/man$(mansec)
+lmandir=$(man_prefix)/man$(lmansec)
 
 CC=@CC@
 LIBS=@LIBS@
@@ -285,6 +286,9 @@ iman:
 		$(INSTALL_DATA) $(srcdir)/chpl.1 $(PLBASE)/man/chpl.$(mansec)
 		$(INSTALL_DATA) $(srcdir)/plld.1 $(PLBASE)/man/plld.$(mansec)
 		$(INSTALL_DATA) $(srcdir)/readline.3 $(PLBASE)/man/readline.$(lmansec)
+		-if [ ! -d $(man_prefix) ]; then mkdir $(man_prefix); fi
+		-if [ ! -d $(mandir)  ];    then mkdir $(mandir);     fi
+		-if [ ! -d $(lmandir) ];    then mkdir $(lmandir);    fi
 		-$(INSTALL_DATA) $(PLBASE)/man/$(PL).$(mansec) $(mandir)
 		-$(INSTALL_DATA) $(PLBASE)/man/chpl.$(mansec) $(mandir)
 		-$(INSTALL_DATA) $(PLBASE)/man/plld.$(mansec) $(mandir)

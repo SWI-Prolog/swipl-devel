@@ -1,7 +1,7 @@
 .\" -*- nroff -*-
 .TH @PL@ 1L "May 10, 1997" "SWI-Prolog 2.8"
 .SH NAME
-@PL@ \- SWI-Prolog
+@PL@ \- SWI-Prolog @PLVERSION@
 .SH SYNOPSIS
 .B @PL@
 .RB [ \-help | \-v | \-arch | \-dump\-runtime\-variables ]
@@ -335,6 +335,15 @@ and
 .BR explain/1.
 .RE
 .SH FILES
+This installation of SWI-Prolog has been configured using the configure
+option
+.BI \-\-prefix= @prefix@.
+If the files listed below are not at the indicated place, the installation
+has probably been moved.  Use
+.TP
+?- feature(home, Home).
+.P
+to find the local installation directory of SWI-Prolog.
 .TP
 .I .plrc
 .TP
@@ -344,10 +353,10 @@ If both exist
 .I .plrc
 is used.
 .TP
-.I @prefix/lib/@PL@-@PLVERSION@/bin/@ARCH@/
+.I @prefix@/lib/@PL@-@PLVERSION@/bin/@ARCH@/
 Location for the executables.
 .TP
-.I @prefix/lib/@PL@-@PLVERSION@/include/
+.I @prefix@/lib/@PL@-@PLVERSION@/include/
 Location for the include files.  If writeable, SWI-Prolog.h is also
 copied to @prefix@/include/SWI-Prolog.h.
 .TP
@@ -356,30 +365,30 @@ Include file for creating extensions in the
 .B C
 language and/or embedding SWI-Prolog.
 .TP
-.I @prefix/lib/@PL@-@PLVERSION@/library/
+.I @prefix@/lib/@PL@-@PLVERSION@/library/
 SWI-Prolog user libraries.
 .TP
-.I @prefix/lib/@PL@-@PLVERSION@/boot/
+.I @prefix@/lib/@PL@-@PLVERSION@/boot/
 SWI-Prolog kernel parts written in Prolog.  The startup file
-@prefix/lib/@PL@-@PLVERSION@/startup/startup may be recreated using
-the command from the directory @prefix/lib/@PL@-@PLVERSION@:
+@prefix@/lib/@PL@-@PLVERSION@/startup/startup may be recreated using
+the command from the directory @prefix@/lib/@PL@-@PLVERSION@:
 .RS
 .TP
 bin/@ARCH@/@PL@ -O -o startup/startup -b boot/init.pl
 .RE
 .TP
-.I @prefix/lib/@PL@-@PLVERSION@/startup/startup
+.I @prefix@/lib/@PL@-@PLVERSION@/startup/startup
 Default startup file.  This is a `intermediate code' file containing
 precompiled code from the boot directory.  The
 .BI \-x bootfile
 option may be used to select a different file.
 .TP
-.I @prefix/lib/@PL@-@PLVERSION@/runtime/@ARCH@/libpl.a
+.I @prefix@/lib/@PL@-@PLVERSION@/runtime/@ARCH@/libpl.a
 SWI-Prolog library for embedding.  See also
 .I plld(1).
 .SH SEE ALSO
 Jan\ Wielemaker
-.IR "SWI-Prolog 2.7 Reference Manual" ,
+.IR "SWI-Prolog 2.8 Reference Manual" ,
 University of Amsterdam, Dept. of Social Science and Informatics (SWI).
 .PP
 William\ F.\ Clocksin & Christopher\ S.\ Mellish,
@@ -398,6 +407,6 @@ an action of contract, tort or otherwise, arising from, out of or in
 connection with the software or the use or other dealings in the
 software.
 .SH COPYRIGHT
-Copyright (c) 1993\-1996 University of Amsterdam, all rights reserved.
+Copyright (c) 1993\-1997 University of Amsterdam, all rights reserved.
 .SH AUTHOR
 Jan Wielemaker

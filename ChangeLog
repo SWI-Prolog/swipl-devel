@@ -1,6 +1,15 @@
 
 			SWI-Prolog ChangeLog
 			====================
+VERSION 2.8.6
+=============
+
+  * Included src/pl.1.in (new file, forgotten in the 2.8.5 release)
+ 
+  * INSTALL: slightly more careful installation of the manpages and
+    small problem in condifure fixed.
+
+
 VERSION 2.8.5
 =============
 
