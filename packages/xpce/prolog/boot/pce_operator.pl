@@ -42,19 +42,17 @@ hello_world World :-
 
 push_operators(New) :-
 	undo_operators(New, Undo),
-	call_list(New),
+	set_operators(New),
 	asserta(operator_stack(Undo)).
 
 pop_operators :-
 	retract(operator_stack(Undo)), !,
-	call_list(Undo).
+	set_operators(Undo).
 
-call_list([]) :- !.
-call_list([H|T]) :- !,
-	call_list(H),
-	call_list(T).
-call_list(G) :-
-	G.
+set_operators([]).
+set_operators([op(P,T,A)|R]) :-
+	op(P, T, A),
+	set_operators(R).
 
 undo_operators([], []).
 undo_operators([O0|T0], [U0|T]) :-

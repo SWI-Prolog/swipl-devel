@@ -559,10 +559,7 @@ push_class(ClassName) :-
 	pce_error(resursive_loading_class(ClassName)),
 	fail.
 push_class(ClassName) :-
-	(   compiling(_)
-	->  true
-	;   push_compile_operators
-	),
+	push_compile_operators,
 	asserta(compiling(ClassName)),
 	(   realised_class(ClassName)
 	->  get(@class, '_value', OldClassVal),
@@ -582,10 +579,7 @@ pop_class :-
 	;   true
 	),
 	retractall(attribute(ClassName, _, _)),
-	(   compiling(_)
-	->  true
-	;   pop_compile_operators
-	).
+	pop_compile_operators.
 pop_class :-
 	pce_error(no_class_to_end),
 	fail.
