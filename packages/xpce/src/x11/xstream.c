@@ -81,7 +81,7 @@ ws_close_output_stream(Stream s)
 #ifdef HAVE_SHUTDOWN
     if ( instanceOfObject(s, ClassSocket) )
       shutdown(s->wrfd, SHUT_WR);
-    else
+/*    else 		Seems we must do both to free the descriptor */
 #endif
       close(s->wrfd);
     s->wrfd = -1;

@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Properly shutdown *and* close a socket to really free the
+  file-descriptor (Unix).  Especially required for the httpd library.
 
 VERSION 5.1.5
 =============
