@@ -19,6 +19,8 @@
 
 :- multifile
 	user:file_search_path/2.
+:- dynamic
+	user:file_search_path/2.
 
 user:file_search_path(pce_help,	pce('appl-help')).
 

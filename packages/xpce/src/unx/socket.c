@@ -564,7 +564,9 @@ connectSocket(Socket s)
 
 static Any
 getPeerNameSocket(Socket s)
-{ if ( s->domain == NAME_unix )
+{ 
+#ifdef UNIX_DOMAIN_SOCKETS
+  if ( s->domain == NAME_unix )
   { struct sockaddr_un *address;
     char buf[MAX_UN_ADDRESS_LEN + sizeof(address->sun_family)];
     int len;
@@ -579,6 +581,7 @@ getPeerNameSocket(Socket s)
 
     answer(CtoName(address->sun_path));
   } else /* if ( s->domain = NAME_inet ) */
+#endif /*UNIX_DOMAIN_SOCKETS*/
   { struct sockaddr_in address;
     int len = sizeof(address);
     int port;

@@ -38,7 +38,10 @@ pce_image_directory(Dir) :-
 	(   atom(Dir),
 	    prolog_load_context(directory, Cwd)
 	->  concat_atom([Cwd, /, Dir], DirPath)
-	;   absolute_file_name(Dir, DirPath)
+	;   absolute_file_name(Dir,
+			       [ file_type(directory),
+				 access(read)
+			       ], DirPath)
 	),
 	get(class(image), resource, path, PathResource),
 	get(PathResource, value, Path),

@@ -26,6 +26,15 @@
 			prolog_load_context(module, Module),
 			!)).
 
+:- multifile user:file_search_path/2.
+:- dynamic   user:file_search_path/2.
+
+user:file_search_path(package,	quintus('prowindows3.0')).
+user:file_search_path(pce,	quintus('prowindows3.0')).
+user:file_search_path(contrib, 	pce(contrib)).
+%user:file_search_path(demo, 	pce(demo)).
+
+
 %  this initialization should be done before any :-(send) directives.
 %  thus this file should be the first loaded.
 
@@ -36,8 +45,6 @@
 	),
 	pce_init,
 	prowindows_version,
-        asserta(user:file_search_path(package, quintus('prowindows3.0'))),
-	asserta(user:file_search_path(contrib, package(contrib))),
         absolute_file_name(quintus('prowindows3.0'), Home),
 	pl_send(@host, name_reference, prolog, 1),
         pl_send(@pce, home, Home, 1),
@@ -66,6 +73,11 @@ pce_pre_init :-
 	  pce_appcontext(App, App)
 	; true
 	).
+
+%	Called from pce_principal.pl to install the foreign stuff.  Not
+%	needed for Quintus.
+
+'$load_pce'.
 
 % Setting up an input callback - we need to open the display
 % to get its connection file descriptor and then pass that

@@ -647,6 +647,8 @@ feedback(Term) :-
 
 :- multifile
 	user:term_expansion/2.
+:- dynamic
+	user:term_expansion/2.
 
 user:term_expansion(A, B) :-
 	pce_expansion:pce_term_expansion(A, B).

@@ -31,7 +31,9 @@
 :- use_module(library(pce)).
 :- require([ append/3
 	   , between/3
+	   , forall/2
 	   ]).
+
 :- op(100, xfx, <-).
 
 %   tracepce/0

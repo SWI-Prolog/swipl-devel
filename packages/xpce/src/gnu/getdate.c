@@ -1,4 +1,4 @@
-extern char *malloc(), *realloc();
+/*extern char *malloc(), *realloc();*/
 
 # line 2 "../src/gnu/getdate.y"
 /* 1.8

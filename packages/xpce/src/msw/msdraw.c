@@ -241,6 +241,13 @@ d_display(DisplayObj d)
 
 
 void
+d_ensure_display()
+{ if ( context.display == NULL )
+    d_display(CurrentDisplay(NIL));
+}
+
+
+void
 d_flush(void)
 {
 }
@@ -1321,7 +1328,7 @@ r_3d_line(int x1, int y1, int x2, int y2, Elevation e, int up)
 
 void
 r_3d_triangle(int x1, int y1, int x2, int y2, int x3, int y3,
-	      Elevation e, int up)
+	      Elevation e, int up, int map)
 { lsegment s[3];
   HPEN top_pen, bot_pen;
   int z = valInt(e->height);
@@ -1345,6 +1352,75 @@ r_3d_triangle(int x1, int y1, int x2, int y2, int x3, int y3,
 
   draw_segments(s,     2, top_pen);
   draw_segments(&s[2], 1, bot_pen);
+}
+
+
+void
+r_3d_diamond(int x, int y, int w, int h, Elevation e, int up)
+{ HPEN top_pen, bot_pen;
+  int z = valInt(e->height);
+  int nox, noy, wex, wey, sox, soy, eax, eay;
+
+  r_elevation(e);
+  r_thickness(1);
+
+  if ( !up )
+    z = -z;
+
+  if ( z > 0 )
+  { top_pen = context.relief_pen;
+    bot_pen = context.shadow_pen;
+  } else
+  { top_pen = context.shadow_pen;
+    bot_pen = context.relief_pen;
+    z = -z;
+  }
+
+  z = (z*3)/2;				/* actually sqrt(2) */
+
+  DEBUG(NAME_3dDiamond,
+	Cprintf("r_3d_diamond(%d, %d, %d, %d, %s, %d) -->\n\t",
+		x, y, w, h, pp(e), up));
+
+  nox = X(x) + w/2; noy = Y(y);
+  wex = X(x) + w;   wey = Y(y) + h/2;
+  sox = nox;        soy = Y(y) + h;
+  eax = X(x);       eay = wey;
+
+  DEBUG(NAME_3dDiamond,
+	Cprintf("(%d, %d) (%d, %d) (%d, %d) (%d, %d)\n",
+		nox, noy, wex, wey, sox, soy, eax, eay));
+
+  for(; z > 0; z--)
+  { lsegment s[4];
+
+    s[0].x1 = eax; s[0].y1 = eay; s[0].x2 = nox; s[0].y2 = noy;
+    s[1].x1 = nox; s[1].y1 = noy; s[1].x2 = wex; s[1].y2 = wey;
+    s[2].x1 = wex; s[2].y1 = wey; s[2].x2 = sox; s[2].y2 = soy;
+    s[3].x1 = sox; s[3].y1 = soy; s[3].x2 = eax; s[3].y2 = eay;
+
+    draw_segments(s,     2, top_pen);
+    draw_segments(&s[2], 2, bot_pen);
+
+    noy++;
+    soy--;
+    wex--;
+    eax++;
+  }
+      
+  if ( (up && notDefault(e->colour)) || (!up && notDefault(e->background)))
+  { POINT p[4];
+    HPEN oldpen = ZSelectObject(context.hdc, GetStockObject(NULL_PEN));
+
+    p[0].x = wex; p[0].y = wey;
+    p[1].x = nox; p[1].y = noy;
+    p[2].x = eax; p[2].y = eay;
+    p[3].x = sox; p[3].y = soy;
+
+    r_fillpattern(up ? e->colour : e->background);
+    Polygon(context.hdc, p, 4);
+    ZSelectObject(context.hdc, oldpen);
+  }
 }
 
 

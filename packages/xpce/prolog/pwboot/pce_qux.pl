@@ -219,19 +219,17 @@ exists_file(File):-
 
 % make
 %
-% sends 'make' command to UNIX
+% make/0 is supposed to reload all Prolog sourcefiles that have changed since
+% they were last loaded.  Don't know how to implement that in Quintus.
 
-make:-
-	unix(shell(make)).
+make :-
+	pce_error(no_pw3_predicate(make/0)),
+	fail.
 
 % source_warning(+Fmt, +Args)
 
-source_warning(Fmt, []):-
-	format(user_error, Fmt, []),
-	!.
 source_warning(Fmt, Args):-
-	format(user_error, 'source_warning: Can not deal with Args ~w', [Args]),
-	format(user_error, Fmt, []).
+	pce_warn(preformatted(Fmt, Args)).
 
 % sformat(-Chars, +Format, +Args)
 %

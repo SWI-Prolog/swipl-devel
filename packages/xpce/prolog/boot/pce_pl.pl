@@ -192,7 +192,7 @@ actions_to_format([Fmt0-Args0|Tail], Fmt, Args) :-
 	set_feature(xpce, true).
 '$load_pce' :-
 	feature(dll, true), !,
-	load_foreign_library(pce_principal:foreign(pl2xpce)),
+	pce_principal:load_foreign_library(pl2xpce),
 	set_feature(xpce, true).
 '$load_pce' :-
 	feature(open_shared_object, true), !,

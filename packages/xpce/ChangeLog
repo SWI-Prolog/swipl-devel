@@ -1,5 +1,11 @@
 [VERSION 4.8.13]
 
+* UPDATED: PW3 version:
+	- Fix to input-handling.  New windows where sometimes only filled
+	after moving the pointer in the window.
+	- Update of the Prolog dependencies and PW3 specific Makefiles.
+	- Fixed incorrect definition of make/0 and source_warning/2.
+
 * INSTALL: make dv-install to install the development system with SWI-Prolog.
 
 * FIXED: restarting the dialog editor, moving the help-files to appl-help

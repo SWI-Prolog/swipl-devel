@@ -34,6 +34,8 @@ PCE public predicates
 
 	  , pce_register_class/1
 	  , pce_extended_class/1
+	  , pce_prolog_class/1
+	  , pce_prolog_class/2
 	  , pce_bind_send_method/8
 	  , pce_bind_get_method/9
 	  , pce_send_method_message/2

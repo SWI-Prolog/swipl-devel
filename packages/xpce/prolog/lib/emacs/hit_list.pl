@@ -15,9 +15,12 @@
 
 :- pce_begin_class(emacs_hit_list, frame).
 
-variable(expose_on_append, bool, both, "->expose on ->append_hit").
-variable(clear_on_append,  bool, both, "Clear on ->append_hit after usage").
-variable(used, 		   bool, both, "->goto has been used").
+variable(expose_on_append, bool := @off, both,
+	 "->expose on ->append_hit").
+variable(clear_on_append,  bool := @off, both,
+	 "Clear on ->append_hit after usage").
+variable(used, 		   bool := @off, both,
+	 "->goto has been used").
 
 resource(confirm_done, 	bool, '@off').
 
@@ -25,7 +28,6 @@ initialise(L, Label:[string]) :->
 	"Create from label"::
 	default(Label, 'Compilation errors', FrameLabel),
 	send(L, send_super, initialise, FrameLabel),
-	send(L, clear_on_append, @off),
 	send(L, append, new(B, browser('', size(60, 6)))),
 	send(B, open_message, message(L, goto, @arg1?object)),
 	send(new(D, dialog), below, B),

@@ -15,6 +15,11 @@ if [ ! "o$1" = "o-q" ]; then
   echo "done"
 fi
 
+cat >> pw3files < EOF
+./pw3.pl
+./make_pw3
+EOF
+
 tar cvfT - pw3files | $compress > $out
 
 

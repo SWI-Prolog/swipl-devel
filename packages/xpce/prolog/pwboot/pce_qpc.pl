@@ -80,14 +80,6 @@ pce_pre_expansion_hook(In, Out) :-
 	emacs_expansion(In, Out).
 
 		 /*******************************
-		 *	   REDEFINITION		*
-		 *******************************/
-
-user:term_expansion(:-(pce_host:'$load_pce'), []) :- !.
-%user:term_expansion(:-(push_compile_operators), []) :- !.
-%user:term_expansion(:-(pop_compile_operators), []) :- !.
-
-		 /*******************************
 		 *      INITIALIZATION TAGS	*
 		 *******************************/
 

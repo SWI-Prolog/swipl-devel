@@ -61,6 +61,13 @@ loadXImage(Image image, FILE *fd)
 
 
 status
+loadPNMImage(Image image, FILE *fd)
+{ DEBUG(NAME_ppm, Cprintf("Failed to load image\n"));
+  fail;
+}
+
+
+status
 ws_load_old_image(Image image, FILE *fd)
 { fail;
 }
@@ -263,7 +270,7 @@ ws_load_image_file(Image image)
 
 
 status
-ws_save_image_file(Image image, FileObj file)
+ws_save_image_file(Image image, FileObj file, Name fmt)
 { fail;
 }
 
@@ -418,7 +425,7 @@ ws_resize_image(Image image, Int w, Int h)
 
 
 void
-ws_postscript_image(Image image)
+ws_postscript_image(Image image, Int depth)
 { int w = valInt(image->size->w);
   int h = valInt(image->size->h);
 

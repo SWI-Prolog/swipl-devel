@@ -20,6 +20,7 @@ CDEBUGFLAGS=
 
 PCEHOME=../../prowindows3.0
 #PCEHOME=/q/ptg3/RELEASE/prowindows3.0
+PCEHLP=$(PCEHOME)/appl-help
 PCELIB=$(PCEHOME)/library
 PCEDEMO=$(PCEHOME)/demo
 PCECONTRIB=$(PCEHOME)/contrib
@@ -103,7 +104,6 @@ LIBPLS=		pce.pl \
 		pce_helper.pl \
 		pce_help_file.pl \
 		show_help.pl \
-		help.hlp \
 		pce_image.pl \
 		pce_prompter.pl \
 		pce_template.pl \
@@ -166,8 +166,6 @@ EMACSPLS=	emacs/buffer.pl \
 		emacs/shell.pl \
 		emacs/text_mode.pl \
 		emacs/emacs.pl \
-		emacs/emacs.hlp \
-		emacs/customise.hlp \
 		emacs/window.pl \
 		emacs/outline_mode.pl \
 		emacs/annotate_mode.pl
@@ -187,8 +185,7 @@ DIALOGPLS=	dialog/attribute.pl \
 		dialog/proto.pl \
 		dialog/util.pl \
 		dialog/prompter.pl \
-		dialog/sub_dialog.pl \
-		dialog/dialog.hlp
+		dialog/sub_dialog.pl
 
 LANGPLS=	english/pce_messages.pl
 
@@ -219,6 +216,8 @@ PW2DEMOS=	pw2/README \
 		pw2/thermo.icon \
 		pw2/thermo.pl \
 		pw2/verb
+
+HLPFILES=	help.hlp dialog.hlp customise.hlp emacs.hlp pcedraw.hlp
 
 INFOFILES=	ChangeLog
 
@@ -261,12 +260,13 @@ $(BIN)/pl-crt0.o: pl-crt0.c
 	cc $(CDEBUGFLAGS) -O -K PIC -D$(SUNOS) -c pl-crt0.c -o $@
 
 release: directories release_lib release_demo release_contrib \
-	 release_bin release_makes release_misc info_files
+	 release_bin release_makes release_misc info_files help_files
 	cd $(PCELIB); make
 	cd $(PCEDEMO); make
 
 directories:
 	@[ -d $(PCEHOME) ] || mkdir $(PCEHOME)
+	@[ -d $(PCEHLP) ] || mkdir $(PCEHLP)
 	@[ -d $(PCELIB) ] || mkdir $(PCELIB)
 	@[ -d $(PCELIB)/$(BIN) ] || mkdir $(PCELIB)/$(BIN)
 	@[ -d $(PCELIB)/dialog ] || mkdir $(PCELIB)/dialog
@@ -301,13 +301,15 @@ release_contrib:	$(addprefix $(PCECONTRIB)/, $(CTBPLS)) \
 
 info_files:		$(addprefix $(PCEHOME)/, $(INFOFILES))
 
+help_files:		$(addprefix $(PCEHLP)/, $(HLPFILES))
+
 release_bin:	$(PCELIB)/$(BIN)/libpce.a $(PCELIB)/$(BIN)/libXt.so.4.0
 
 release_makes:	$(PCEHOME)/Makefile $(PCELIB)/Makefile $(PCEDEMO)/Makefile
 
 release_misc:	$(PCEHOME)/Pce $(PCEHOME)/bitmaps $(PCELIB)/dialog/bitmaps \
 		$(PCEHOME)/include $(PCEHOME)/man $(PCEHOME)/postscript \
-		$(PCELIB)/xref/quintus.def
+		$(PCELIB)/xref/quintus.pl
 
 pceshare:	
 		@for f in $(PCESHARE); do \
@@ -335,6 +337,9 @@ $(PCEDEMO)/pw2/%: ../../PWdemo/%
 	$(CP) $< $@
 
 $(PCEDEMO)/%: ../demo/%
+	$(CP) $< $@
+
+$(PCEHLP)/%: ../../appl-help/%
 	$(CP) $< $@
 
 # copy specific files
