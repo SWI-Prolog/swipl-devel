@@ -572,12 +572,12 @@ indirect_rlc_hwnd()
 static OnExitFunction		exitpce_hook;
 
 install_t
-install()
+install_pl2xpce()
 { PL_register_foreign("$pce_init", 1, pl_pce_init, PL_FA_TRANSPARENT);
 }
 
 install_t
-uninstall()
+uninstall_pl2xpce()
 { PL_dispatch_hook(old_dispatch_hook);
 #ifdef __WIN32__
   indirect_rlc_update_hook(old_update_hook);
@@ -807,14 +807,11 @@ PceObject referenceToObject(Term a)
 
 static Atom
 nameToAtom(PceName name)
-{ PceCValue value;
+{ char *s = pceCharArrayToC(name);
 
-  if ( pceToC(name, &value) == PCE_NAME )
-  { PceITFSymbol symbol = value.itf_symbol;
+  if ( s )
+    return PL_new_atom(s);
 
-    return AtomFromString(pceCharArrayToC(symbol->name));
-  }
-  
   return (Atom)0;
 }
 
@@ -1430,9 +1427,9 @@ unifyObject(Term t, PceObject obj, int top)
     case PCE_REAL:			/* float (real object) */
       return UnifyFloat(t, value.real);
     case PCE_NAME:			/* name */
-    { PceITFSymbol symbol = value.itf_symbol;
+    { char *s = pceCharArrayToC(obj);
 
-      return UnifyAtom(t, nameToAtom(symbol->name));
+      return PL_unify_atom_chars(t, s);
     }
     case PCE_HOSTDATA:
       return Unify(t, getTermHandle(obj)); /* TBD: avoid redoing this */

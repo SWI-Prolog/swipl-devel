@@ -12,9 +12,17 @@
 
 extern foreign_t pl_pce_init(term_t h);
 
+static PL_extension predicates[] =
+{ { "$pce_init", 1, pl_pce_init, PL_FA_TRANSPARENT },
+  { NULL, 0, NULL, 0 }
+};
+
+
 int
 main(int argc, char **argv)
-{ if ( !PL_initialise(argc, argv) )
+{ PL_register_extensions(predicates);
+
+  if ( !PL_initialise(argc, argv) )
     PL_halt(1);
 
   PL_install_readline();		/* delete if you don't want readline */
