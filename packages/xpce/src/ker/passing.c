@@ -16,15 +16,51 @@
 #ifdef _REENTRANT
 #include <pthread.h>
 
+#ifdef PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP
+
 static pthread_mutex_t mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+
 #define LOCK() \
 	if ( XPCE_mt == TRUE ) pthread_mutex_lock(&mutex)
 #define UNLOCK() \
 	if ( XPCE_mt == TRUE ) pthread_mutex_unlock(&mutex)
-#else
+
+#else /*PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP*/
+
+typedef struct _mutex_t
+{ pthread_t		owner;
+  int			count;
+  pthread_mutex_t	lock;
+} recursive_mutex_t;
+
+#define RECURSIVE_MUTEX_INIT { 0, 0, PTHREAD_MUTEX_INITIALIZER }
+
+static recursive_mutex_t mutex = RECURSIVE_MUTEX_INIT;
+
+#define LOCK() \
+	if ( XPCE_mt == TRUE ) \
+	{ if ( mutex.owner != pthread_self() ) \
+	  { pthread_mutex_lock(&(mutex.lock)); \
+	    mutex.owner = pthread_self(); \
+	    mutex.count = 1; \
+	  } else \
+	    mutex.count++; \
+	}
+#define UNLOCK() \
+	if ( XPCE_mt == TRUE ) \
+	{ if ( mutex.owner == pthread_self() ) \
+	  { if ( --mutex.count < 1 )  \
+	    { mutex.owner = 0; \
+	      pthread_mutex_unlock(&(mutex.lock)); \
+	    } \
+	  } else \
+	    assert(0);
+	}
+#endif
+#else /*_REENTRANT*/
 #define LOCK()
 #define UNLOCK()
-#endif
+#endif /*_REENTRANT*/
 
 void
 pceMTLock(int lock)
