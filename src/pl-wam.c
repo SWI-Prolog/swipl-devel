@@ -1882,8 +1882,10 @@ discard_query(QueryFrame qf)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Restore the environment.  If an exception was raised by the query, and no
-new exception has been thrown, consider it handled.
+Restore the environment. If an exception was raised by the query, and no
+new  exception  has  been  thrown,  consider    it  handled.  Note  that
+LD->choicepoints must be restored *before*   environment_frame to ensure
+async safeness for markAtomsInEnvironments().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
@@ -1892,8 +1894,8 @@ restore_after_query(QueryFrame qf)
   if ( qf->exception && !exception_term )
     *valTermRef(exception_printed) = 0;
 
-  environment_frame = qf->saved_environment;
   LD->choicepoints  = qf->saved_bfr;
+  environment_frame = qf->saved_environment;
   aTop		    = qf->aSave;
   lTop		    = (LocalFrame)qf;
   if ( true(qf, PL_Q_NODEBUG) )
@@ -1914,12 +1916,12 @@ PL_cut_query(qid_t qid)
   QueryFrame qf = QueryFromQid(qid);
 
   SECURE(assert(qf->magic == QID_MAGIC));
-  qf->magic = 0;			/* disqualify the frame */
 
   if ( false(qf, PL_Q_DETERMINISTIC) )
     discard_query(qf);
 
   restore_after_query(qf);
+  qf->magic = 0;			/* disqualify the frame */
 }
 
 

@@ -1245,7 +1245,7 @@ run_test_scripts(Directory) :-
 	atom_concat(Dir, '/*.pl', Pattern),
 	expand_file_name(Pattern, Files),
 	file_base_name(Dir, BaseDir),
-	format('Running scripts from ~w ', [BaseDir]), flush,
+	format('Running scripts from ~w ', [BaseDir]), flush_output,
 	run_scripts(Files),
 	format(' done~n').
 
@@ -1253,10 +1253,10 @@ run_scripts([]).
 run_scripts([H|T]) :-
 	(   catch(run_test_script(H), Except, true)
 	->  (   var(Except)
-	    ->  put(.), flush
+	    ->  put(.), flush_output
 	    ;   Except = blocked(Reason)
 	    ->  assert(blocked(H, Reason)),
-		put(!), flush
+		put(!), flush_output
 	    ;   script_failed(H, Except)
 	    )
 	;   script_failed(H, fail)
@@ -1351,16 +1351,16 @@ report_failed :-
 
 runtest(Name) :-
 	format('Running test set "~w" ', [Name]),
-	flush,
+	flush_output,
 	functor(Head, Name, 1),
 	nth_clause(Head, _N, R),
 	clause(Head, _, R),
 	(   catch(Head, Except, true)
 	->  (   var(Except)
-	    ->  put(.), flush
+	    ->  put(.), flush_output
 	    ;   Except = blocked(Reason)
 	    ->  assert(blocked(Head, Reason)),
-		put(!), flush
+		put(!), flush_output
 	    ;   test_failed(R, Except)
 	    )
 	;   test_failed(R, fail)
