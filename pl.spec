@@ -1,6 +1,6 @@
 Summary:	SWI-Prolog - Edinburgh compatible Prolog compiler
 Name:		pl
-Version: 	5.2.4
+Version: 	5.2.5
 Release:	1
 License:	LGPL
 Source:		ftp://swi.psy.uva.nl/pub/SWI-Prolog/pl-%{version}.tar.gz

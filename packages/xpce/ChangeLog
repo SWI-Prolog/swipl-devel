@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.2.5, distributed with SWI-Prolog 5.2.5
+================================================
+
 * FIXED: `process->close' to avoid messages
   Warning: Select failed; error code 9.
 
