@@ -27,9 +27,9 @@ initialise(R) :->
 
 report(R, Status:name, Fmt:[char_array], Args:any ...) :->
 	Msg =.. [report, Status, Fmt | Args], % new xpce-5
-	send_super(R, Msg),
 	colour(Status, Colour),
-	send(R, colour, Colour).
+	send(R, colour, Colour),
+	send_super(R, Msg).
 	
 colour(error, red) :- !.
 colour(_, @default).
