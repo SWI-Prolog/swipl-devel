@@ -627,9 +627,11 @@ PL_handle_signals()
   { ulong mask = 1L;
     int sig = 1;
 
-    for( ; ; mask <<= 1, sig++ )
+    for( ; mask ; mask <<= 1, sig++ )
     { if ( signalled & mask )
+      { signalled &= ~mask;		/* reset the signal */
 	pl_signal_handler(sig);
+      }
     }
   }
 }

@@ -816,7 +816,7 @@ trapUndefined(Definition def)
   DEBUG(5, Sdprintf("trapUndefined(%s)\n", predicateName(def)));
 
 					/* Trap via exception/3 */
-  if ( LD->autoload )
+  if ( LD->autoload && !GD->bootsession )
   { if ( undefined_nesting > 100 )
     { undefined_nesting = 1;
       sysError("trapUndefined(): undefined: %s", predicateName(def));
@@ -864,7 +864,10 @@ trapUndefined(Definition def)
     }
   }
 				/* No one wants to intercept */
-  warning("Undefined predicate: %s", predicateName(def) );
+  if ( GD->bootsession )
+    sysError("Undefined predicate: %s", predicateName(def));
+  else
+    warning("Undefined predicate: %s", predicateName(def));
 
   return def;
 }

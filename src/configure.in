@@ -129,7 +129,28 @@ else
     CWFLAGS=
     CMFLAGS=
 fi
+
+dnl ****************************************************************
+dnl On SCO Unix, there are ELF and COFF binaries.  We want elf to
+dnl provide for dlopen() and friends.  With help from Tamas Laufer!
+dnl ****************************************************************
+
+case "$ARCH" in
+    *sco*|*SCO*|*)
+	AC_MSG_CHECKING("SCO-Unix.  See if we need -belf")
+	CFLAGS="$CMFLAGS -belf"
+	AC_TRY_COMPILE(
+	[
+	],
+	[
+	],
+	CMFLAGS="$CFLAGS"
+	AC_MSG_RESULT(yes),
+	AC_MSG_RESULT(no))
+	;;
+esac
 CFLAGS="$CMFLAGS"
+
 AC_C_INLINE
 AC_FUNC_ALLOCA
 AC_C_BIGENDIAN
@@ -159,6 +180,7 @@ if test "$checkucb" = "yes"; then
     AC_CHECK_LIB(ucb, rindex)
 fi
 if test ! "$runtime" = "yes" -a "$configreadline" = "yes"; then
+  oldlibs="$LIBS"
   AC_CHECK_LIB(readline, main)
   if test ! "$ac_cv_lib_readline_main" = "yes"; then
     AC_CHECK_LIB(ncurses, main)
@@ -170,6 +192,18 @@ if test ! "$runtime" = "yes" -a "$configreadline" = "yes"; then
       unset ac_cv_lib_readline_main
       AC_CHECK_LIB(readline, main)
     fi
+  fi
+
+  AC_CHECK_HEADERS(readline/readline.h)
+  if test "$ac_cv_header_readline_readline_h" = no; then
+      unset ac_cv_header_readline_readline_h
+      CFLAGS="$CFLAGS -I/usr/local/include"
+      AC_CHECK_HEADERS(readline/readline.h)
+      if test "$ac_cv_header_readline_readline_h" = yes; then
+          CIFLAFS="$CIFLAGS -I/usr/local/include"
+      else
+	  LIBS="$oldlibs"
+      fi
   fi
 
   if test "$ac_cv_lib_readline_main" = "yes"; then
@@ -201,6 +235,24 @@ if test "$configshared" = "yes"; then
     AC_CHECK_LIB(dld, shl_load)
     AC_CHECK_FUNCS(shl_load)
   fi
+fi
+
+dnl On SCO, dlopen is in libc.so and requires dlfcn.h to compile.  Thanks
+dnl to Tamas Laufer.
+
+if test ! "$ac_cv_func_dlopen" = "yes"; then
+AC_MSG_CHECKING("dlopen in libc")
+AC_TRY_COMPILE(
+[
+#include <dlfcn.h>
+#ifndef RTLD_NOW
+#define RTLD_NOW 0
+#endif
+],
+[ dlopen("foobar", RTLD_NOW);
+], AC_DEFINE(HAVE_DLOPEN)
+   AC_MSG_RESULT(yes),
+   AC_MSG_RESULT(no))
 fi
 
 if test "$ac_cv_func_dlopen" = "yes" || \
@@ -268,6 +320,8 @@ else
   configloadforeign=yes
 fi
 
+echo "	CFLAGS=$CWFLAGS $COFLAGS $CIFLAGS $CMFLAGS"
+echo "	LDFLAGS=$LDFLAGS"
 echo "	LIBS=$LIBS"
 
 AC_CHECK_HEADERS(unistd.h string.h memory.h sys/time.h sys/stat.h pwd.h)

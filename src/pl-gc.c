@@ -1548,6 +1548,7 @@ garbageCollect(LocalFrame fr)
     return;
   gc_status.requested = FALSE;
 
+  blockSignals();
   gc_status.active = TRUE;
   finish_foreign_frame();
   if ( verbose )
@@ -1577,7 +1578,6 @@ garbageCollect(LocalFrame fr)
   relocated_cells   = 0;
   local_marked	    = 0;
 
-  blockSignals();
   requireStack(global, sizeof(word));
   requireStack(trail, sizeof(struct trail_entry));
   setVar(*gTop);
@@ -1611,6 +1611,7 @@ garbageCollect(LocalFrame fr)
   trimStacks();
   LD->stacks.global.gced_size = usedStack(global);
   LD->stacks.trail.gced_size  = usedStack(trail);
+  gc_status.active = FALSE;
   unblockSignals();
 
   SECURE(if ( checkStacks(fr) != key )
@@ -1625,8 +1626,6 @@ garbageCollect(LocalFrame fr)
 	 usedStack(global), usedStack(trail),
 	 roomStack(global), roomStack(trail));
   }
-
-  gc_status.active = FALSE;
 }
 
 word

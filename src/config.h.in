@@ -131,6 +131,9 @@
 /* Define to 1 not to use SIGSEGV for guarding stack-overflows */
 #undef NO_SEGV_HANDLING 
 
+/* Define to 1 if you have dlopen() somewhere */
+#undef HAVE_DLOPEN
+
 /* Define if you have the access function.  */
 #undef HAVE_ACCESS
 
@@ -295,6 +298,9 @@
 
 /* Define if you have the <pwd.h> header file.  */
 #undef HAVE_PWD_H
+
+/* Define if you have the <readline/readline.h> header file.  */
+#undef HAVE_READLINE_READLINE_H
 
 /* Define if you have the <string.h> header file.  */
 #undef HAVE_STRING_H
