@@ -828,7 +828,7 @@ automatic update if a predicate is later defined as meta-predicate.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   if ( body && *body != ATOM_true )
-  { int rv;
+  { int rv, bi;
 
     if ( head )
     { Output_0(&ci, I_ENTER);
@@ -839,6 +839,7 @@ automatic update if a predicate is later defined as meta-predicate.
       }
     }
 
+    bi = PC(&ci);
     if ( (rv=compileBody(body, I_DEPART, &ci PASS_LD)) != TRUE )
     { if ( rv == NOT_CALLABLE )
 	PL_error(NULL, 0, NULL, ERR_TYPE,
@@ -847,6 +848,9 @@ automatic update if a predicate is later defined as meta-predicate.
       goto exit_fail;
     }
     Output_0(&ci, I_EXIT);
+    if ( OpCode(&ci, bi) == encode(I_CUT) )
+    { set(&clause, COMMIT_CLAUSE);
+    }
   } else
   { set(&clause, UNIT_CLAUSE);		/* fact (for decompiler) */
     Output_0(&ci, I_EXITFACT);

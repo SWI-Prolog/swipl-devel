@@ -967,9 +967,11 @@ with one operation, it turns out to be faster as well.
 #define P_FOREIGN_CREF		(0x02000000L) /* predicate */
 
 #define ERASED			(0x0001) /* clause, record */
-#define UNIT_CLAUSE		(0x0002) /* clause */
-#define HAS_BREAKPOINTS		(0x0004) /* clause */
-#define GOAL_CLAUSE		(0x0008) /* clause */
+					 /* clause flags */
+#define UNIT_CLAUSE		(0x0002) /* Clause has no body */
+#define HAS_BREAKPOINTS		(0x0004) /* Clause has breakpoints */
+#define GOAL_CLAUSE		(0x0008) /* Dummy for meta-calling */
+#define COMMIT_CLAUSE		(0x0010) /* This clause will commit */
 
 #define CHARESCAPE		(0x0004) /* module */
 #define DBLQ_CHARS		(0x0008) /* "ab" --> ['a', 'b'] */
@@ -1216,6 +1218,7 @@ struct clause
 		/* UNIT_CLAUSE     Clause has no body */
 		/* HAS_BREAKPOINTS Break-instructions in the clause */
 		/* GOAL_CLAUSE	   Temporary 'islocal' clause (no head) */
+		/* COMMIT_CLAUSE   Clause will commit (execute !) */
   code		codes[1];		/* VM codes of clause */
 };
 
