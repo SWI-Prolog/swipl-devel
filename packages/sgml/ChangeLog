@@ -1,3 +1,7 @@
+Mar 01, 2005
+
+  * ADDED: encoding argument to xml_quote_* and xml_name/2 predicates.
+
 Feb 24, 2005
 
   * ADDED: handle encoding="US-ASCII" for XML documents.

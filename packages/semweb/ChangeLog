@@ -1,3 +1,8 @@
+Mar 01, 2005
+
+  * FIXED/ADDED: encoding issues.  Now allows writing RDF files using
+    US-ASCII, ISO latin-1 or UTF-8 (default) encoding.
+
 Feb 24, 2005
 
   * MODIFIED: rdf_edit.pl: broadcast missing journal instead of creating
