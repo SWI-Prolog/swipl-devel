@@ -1,3 +1,9 @@
+Dec 15, 2004
+
+  * TS: Use prolog:message/3 hook to automatically print
+	contents of CHR constraint stores with query bindings
+	on toplevel.
+
 Dec  3, 2004
 
   * TS: Bugfix in code generation. Reported by Lyosha Ilyukhin.

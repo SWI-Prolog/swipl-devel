@@ -216,6 +216,8 @@ prolog_event(exit(_)).
 prolog_event(fail(_)).
 
 
+
+
 		 /*******************************
 		 *	      MESSAGES		*
 		 *******************************/
@@ -226,6 +228,27 @@ prolog_event(fail(_)).
 prolog:message(chr(CHR)) -->
 	chr_message(CHR).
 
+		 /*******************************
+		 *	 TOPLEVEL PRINTING	*	
+		 *******************************/
+
+:- multifile chr:'$chr_module'/1.
+
+prolog:message(query(YesNo)) --> !,
+	['~@'-[chr:print_all_stores]],
+        '$messages':prolog_message(query(YesNo)).
+
+prolog:message(query(YesNo,Bindings)) --> !,
+	['~@'-[chr:print_all_stores]],
+        '$messages':prolog_message(query(YesNo,Bindings)).
+
+print_all_stores :-
+	( chr:'$chr_module'(Mod),
+	  chr_show_store(Mod),
+	  fail
+	;
+	  true
+	).
 
 		 /*******************************
 		 *	   MUST BE LAST!	*

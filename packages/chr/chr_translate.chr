@@ -323,9 +323,11 @@ chr_translate(Declarations,NewDeclarations) :-
 		validate_store_type_assumptions(Constraints),
 		store_management_preds(Constraints,StoreClauses),	% depends on actual code used
 	  	insert_declarations(OtherClauses, Clauses0),
+		chr_module_declaration(CHRModuleDeclaration),
 		append_lists([Clauses0,
 			      StoreClauses,
-			      ConstraintClauses
+			      ConstraintClauses,
+			      CHRModuleDeclaration
 			     ],
 			     NewDeclarations)
 	).
@@ -354,6 +356,12 @@ insert_declarations(Clauses0, Clauses) :-
 		  ],
 		  Clauses).
 
+chr_module_declaration(CHRModuleDeclaration) :-
+	get_target_module(Mod),
+	CHRModuleDeclaration = [
+		(:- multifile chr:'$chr_module'/1),
+		chr:'$chr_module'(Mod)	
+	].	
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
