@@ -99,9 +99,9 @@ pce_ifhostproperty(prolog(swi),
 :- declare_emacs_mode(text,	library('emacs/text_mode')).
 :- declare_emacs_mode(annotate,	library('emacs/annotate_mode')).
 :- declare_emacs_mode(gdb,	library('emacs/gdb')).
-:- declare_emacs_mode(sgml,	library(sgml_mode)).
-:- declare_emacs_mode(xml,	library(sgml_mode)).
-:- declare_emacs_mode(html,	library(sgml_mode)).
+:- declare_emacs_mode(sgml,	library('emacs/sgml_mode')).
+:- declare_emacs_mode(xml,	library('emacs/sgml_mode')).
+:- declare_emacs_mode(html,	library('emacs/sgml_mode')).
 
 
 		 /*******************************
