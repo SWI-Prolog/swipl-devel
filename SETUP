@@ -60,4 +60,38 @@ fi
 
 $ln  ../src/md-$arch.h md.h
 
-echo "Setup for $arch completed in directory $arch"
+cat << _EOM_
+Setup for $arch completed in directory $arch
+
+For further installation:
+
+	# Edit config.h.  Notably ensure M_SYSTEMHOME points to this
+	directory.
+	
+	# Install the GNU readline library.  If you don't want to use
+	this library, set O_READLINE in $arch/md.h to 0.
+
+	# In you have version 1.2 of the readline library, make sure
+	there is a '#define O_RL12 1' in $arch/md.h.  If you use
+	version 1.1 this switch should be 0.
+
+	Make sure to edit CFLAGS and LDFLAGS in $arch/md.h so that the
+	compiler can find the readline header files and the library
+	itself.
+
+	# Type:
+
+	% cd $arch
+	% make
+
+	# Test by running ./pl
+
+	# If ok, install using
+
+	% make install
+
+	# If you want static linking to C-code, for example for installing
+	XPCE, run
+
+	% make runtime
+_EOM_
