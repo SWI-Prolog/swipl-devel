@@ -46,6 +46,17 @@ pce_http_man(Port) :-
 :- pce_begin_class(manpce_httpd, httpd,
 		   "Demo HTTPD for XPCE manual").
 
+accepted(HTTPD) :->
+	"Log connections"::
+	send_super(HTTPD, accepted),
+	get(HTTPD, peer_name, Peer),
+	(   send(Peer, instance_of, tuple)
+	->  send(@pce, format, 'New connection from %s:%s\n', 
+		 Peer?first, Peer?second)
+	;   send(@pce, format, 'New connection from %s\n', Peer)
+	).
+
+
 request(HTTPD, Request:sheet) :->
 	get(Request, path, Path),
 	get(Request, form, Form),

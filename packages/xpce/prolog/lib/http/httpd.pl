@@ -7,7 +7,9 @@
     Copyright (C) 2000 University of Amsterdam. All rights reserved.
 */
 
-:- module(httpd, []).
+:- module(httpd,
+	  [ html_to_buffer/2		% +Term, -Buffer
+	  ]).
 :- use_module(library(pce)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -138,7 +140,7 @@ reply(S,
       Type:type=[name],
       Status:status=[name],
       Header:header=[sheet]) :->
-	"Send a reply back"::
+	"Send back a reply"::
 	(   send(Reply, instance_of, source_sink)
 	->  get(Reply, contents, Data)
 	;   send(Reply, instance_of, image)
