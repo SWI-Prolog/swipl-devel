@@ -14,11 +14,34 @@
 
 TARGET=lite
 configoptions=""
+mtoptions="--enable-mt"
+
+usage()
+{ cat << _EOM_
+Usage: configure option ... 
+
+Options:
+
+  --with-world:		Build all (default packages)
+  --disable-mt:		Do not build for multi-threading
+
+This toplevel configure  and  Makefile  ony   deal  with  very  standard
+installations. More complicated cases should check INSTALL.notes and use
+the configure and makefiles in the src and package directories.
+_EOM_
+}
+
 
 while [ "$1" != "" ]; do
   case "$1" in
     --with-world)	TARGET=world
 			shift
+			;;
+    --disable-mt)	mtoptions=""
+			shift
+			;;
+    --help)		usage
+    			exit 0
 			;;
     *)			configoptions="$configoptions $1"
 			shift
@@ -28,23 +51,17 @@ done
 
 if [ -z "$BUILDARCH" ]; then
   BUILDARCH=src;
-  MTBUILDARCH=mt
-else
-  MTBUILDARCH=${BUILDARCH}-mt
 fi
 
 if [ ! -d "$BUILDARCH" ]; then mkdir "$BUILDARCH"; fi
 
 sed -e "s/@BUILDARCH@/$BUILDARCH/" \
-    -e "s/@MTBUILDARCH@/$MTBUILDARCH/" \
     -e "s/@TARGET@/$TARGET/" \
 	Makefile.in > Makefile
 
-(cd $BUILDARCH && ../src/configure $configoptions)
+(cd $BUILDARCH && ../src/configure $configoptions $mtoptions)
 
 case $TARGET in
   world)
-        if [ ! -d "$MTBUILDARCH" ]; then mkdir "$MTBUILDARCH"; fi
-	cd $MTBUILDARCH && ../src/configure --enable-mt $configoptions
 	;;
 esac

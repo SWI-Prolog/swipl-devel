@@ -5,7 +5,6 @@
 ################################################################
 
 BUILDARCH=@BUILDARCH@
-MTBUILDARCH=@MTBUILDARCH@
 
 all:		@TARGET@
 
@@ -29,19 +28,13 @@ clean::
 	@if [ -f packages/Makefile ]; then \
 	   cd packages && make clean; \
 	fi
-	@if [ -f $(MTBUILDARCH)/Makefile ]; then \
-	   cd $(MTBUILDARCH) && make clean; \
-	fi
 
 distclean::
 	rm -f .pkg-config
-	@cd $(BUILDARCH) && $(MAKE) $@
 	@if [ -f packages/Makefile ]; then \
 	   cd packages && make distclean; \
 	fi
-	@if [ -f $(MTBUILDARCH)/Makefile ]; then \
-	   cd $(MTBUILDARCH) && make distclean; \
-	fi
+	@cd $(BUILDARCH) && $(MAKE) $@
 
 ################################################################
 # Build the whole default set of tools
@@ -56,10 +49,6 @@ world:	lite mt .pkg-config packages
 packages::
 	cd packages && make
 
-mt::
-	cd $(MTBUILDARCH) && make
-
 install-world::
 	cd $(BUILDARCH) && make install
-	cd $(MTBUILDARCH) && make install-mt
 	cd packages && make install
