@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: only open /dev/zero once in multi-threaded version where
+    MAP_ANON is not supported.
+
 VERSION 5.1.9 (Mar 06, 2003)
 ============================
 
