@@ -1,8 +1,11 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: PceEmacs: ->insert_character_by_code to interactively insert a
+  character by entering its numeric UNICODE value.
+
 * FIXED: wide character support for `editor->insert_self' and `editor->
-  transpose'.
+  transpose' and editor undo management.
 
 * ADDED: (very simple) make check
 

@@ -665,7 +665,7 @@ str_lineno(String s, int at)
 
 wint_t
 str_fetch(String s, int idx)
-{ return s->iswide ? str_fetchW(s, idx) & 0xffff
+{ return s->iswide ? str_fetchW(s, idx)
 		   : str_fetchA(s, idx) & 0xff;
 }
 

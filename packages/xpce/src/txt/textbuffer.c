@@ -1749,44 +1749,47 @@ store_textbuffer(TextBuffer tb, int where, wint_t c)
 
 
 status
-change_textbuffer(TextBuffer tb, int where, void *s, int len)
+change_textbuffer(TextBuffer tb, int where, String s)
 { int w, n;
 
-  if ( len < 0 || where < 0 || where+len > tb->size )
+  if ( s->size < 0 || where < 0 || where+s->size > tb->size )
     fail;
 
-  register_change_textbuffer(tb, where, len);
+  if ( istbA(tb) && str_iswide(s) )
+    promoteTextBuffer(tb);
+
+  register_change_textbuffer(tb, where, s->size);
   
   if ( istbA(tb) )
-  { charA *s2 = s;
-
-    for( w=where, n=0; n < len; n++, w++ )
+  { for( w=where, n=0; n < s->size; n++, w++ )
     { long i = Index(tb, w);
-      if ( tb->tb_bufferA[i] != s2[n] )
+      wint_t new = str_fetch(s, n);
+
+      if ( tb->tb_bufferA[i] != new )
       { if ( tisendsline(tb->syntax, tb->tb_bufferA[i]) )
 	  tb->lines--;
-	if ( tisendsline(tb->syntax, s2[n]) )
+	if ( tisendsline(tb->syntax, new) )
 	  tb->lines++;
-	tb->tb_bufferA[i] = s2[n];
+	tb->tb_bufferA[i] = new;
       }
     }
   } else
-  { charW *s2 = s;
-
-    for( w=where, n=0; n < len; n++, w++ )
+  { for( w=where, n=0; n < s->size; n++, w++ )
     { long i = Index(tb, w);
-      if ( tb->tb_bufferW[i] != s2[n] )
+      wint_t new = str_fetch(s, n);
+
+      if ( tb->tb_bufferW[i] != new )
       { if ( tisendsline(tb->syntax, tb->tb_bufferW[i]) )
 	  tb->lines--;
-	if ( tisendsline(tb->syntax, s2[n]) )
+	if ( tisendsline(tb->syntax, new) )
 	  tb->lines++;
-	tb->tb_bufferW[i] = s2[n];
+	tb->tb_bufferW[i] = new;
       }
     }
   }
 
   start_change(tb, where);
-  end_change(tb, where+len);
+  end_change(tb, where+s->size);
   CmodifiedTextBuffer(tb, ON);
 
   succeed;
