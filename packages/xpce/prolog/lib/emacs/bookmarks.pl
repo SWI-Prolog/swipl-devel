@@ -287,7 +287,7 @@ select_node(BW, Id:any) :->
 
 initialise(F, Path:name) :->
 	(   Path == /
-	->  (	get(@pce, operating_system, win32)
+	->  (	has_drives
 	    ->	RootName = 'My Computer'
 	    ;	RootName = '/'
 	    ),
@@ -341,7 +341,7 @@ compare(F, N:toc_node, Diff:{smaller,equal,larger}) :<-
 	).
 		
 sub_directory(@nil, File, SubPath) :- !,
-	(   get(@pce, operating_system, win32)
+	(   has_drives
 	->  new(Re, regex('[a-zA-Z]:'))
 	;   new(Re, regex('/[^/]*'))
 	),
@@ -517,3 +517,24 @@ unlink_to(H) :->
 	free(H).
 
 :- pce_end_class.
+
+		 /*******************************
+		 *	       MISC		*
+		 *******************************/
+
+:- dynamic
+	has_drives/1.
+
+%	See whether there is only one logical root in the filesystem or
+%	there are multiple.
+
+has_drives :-
+	has_drives(True), !,
+	True = true.
+has_drives :-
+	(   get(directory(.), roots, Roots),
+	    get(Roots, size, 1)
+	->  assert(has_drives(false)),
+	    fail
+	;   assert(has_drives(true))
+	).
