@@ -20,7 +20,8 @@
 	    				% -URL, +BaseURL, +Parts
 	    global_url/3,		% +Local, +Base, -Global
 	    http_location/2,		% ?Parts, ?Location
-	    www_form_encode/2		% Value <-> Encoded
+	    www_form_encode/2,		% Value <-> Encoded
+	    parse_url_search/2		% Form-data <-> Form fields
 	  ]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -691,3 +692,23 @@ www_decode([C|T]) -->
 www_decode([]) -->
 	[].
 
+		 /*******************************
+		 *	     FORM DATA		*
+		 *******************************/
+
+%	parse_url_search(?Spec, ?Fields)
+%
+%	Parse between a list of Name=Value and the MIME-type
+%	application/x-www-form-urlencoded as used to post HTTP requests
+
+parse_url_search(Spec, Fields) :-
+	atomic(Spec), !,
+	atom_codes(Spec, Codes),
+	phrase(search(Fields), Codes).
+parse_url_search(Codes, Fields) :-
+	proper_list(Codes), !,
+	phrase(search(Fields), Codes).
+parse_url_search(Out, Fields) :-
+	phrase(csearch(Fields), Codes),
+	atom_codes(Out, Codes).
+	
