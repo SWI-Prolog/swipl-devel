@@ -208,6 +208,9 @@ iprog::
 		$(INSTALL_PROGRAM) ..\bin\libpl.pdb "$(BINDIR)"
 		$(INSTALL_PROGRAM) ..\bin\plterm.pdb "$(BINDIR)"
 !ENDIF
+!IF "$(MT)" == "true"
+		$(INSTALL_PROGRAM) "$(WINDIR)\pthreadVC.dll" "$(BINDIR)"
+!ENDIF
 
 install-libs:	idirs iinclude iboot ilib
 		$(INSTALL_DATA) $(STARTUPPATH) "$(PLBASE)\$(BOOTFILE)"

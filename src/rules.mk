@@ -10,12 +10,14 @@
 # copy the result to wherever you want.
 
 # prefix=C:\Program Files
-prefix=E:\jan\src\mt\installed
+prefix=E:\jan\installed
 PLBASE=$(prefix)\pl
 BINDIR=$(PLBASE)\bin
 LIBDIR=$(PLBASE)\lib
 INCDIR=$(PLBASE)\include
 PLCUSTOM=$(PLBASE)\custom
+# We get pthreadVC.dll from here
+WINDIR="C:\wtsrv\system32"
 
 # Setup the environment.  Use this to additional libraries and include
 # files to the path.  In particular provide access to the jpeg and xpm
