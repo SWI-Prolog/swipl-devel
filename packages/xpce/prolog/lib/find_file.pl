@@ -90,7 +90,7 @@ register_file_dialog :-
 :- pce_begin_class(finder, object,
 		   "Find files on behalf of applications").
 
-variable(directory,	directory,	get, "Current directory").
+variable(directory,	directory,	both, "Current directory").
 
 initialise(F) :->
 	send_super(F, initialise),
