@@ -392,6 +392,49 @@ do_format(IOSTREAM *fd, const char *fmt, int argc, term_t argv)
 		  fmt++;
 		  break;
 		}
+	      case 'W':			/* write_term(Value, Options) */
+	       { char buf[BUFSIZE];
+		 char *str;
+
+		 if ( argc < 2 )
+		 { ERROR("not enough arguments");
+		 }
+		 if ( pending_rubber )
+		  { int bufsize = BUFSIZE;
+
+		    str = buf;
+		    tellString(&str, &bufsize);
+		    pl_write_term(argv, argv+1);
+		    toldString();
+		    OUTSTRING(str);
+		    if ( str != buf )
+		      free(str);
+		  } else
+		  { if ( fd->position && fd->position->linepos == column )
+		    { IOSTREAM *old = Scurout;
+
+		      Scurout = fd;
+		      pl_write_term(argv, argv+1);
+		      Scurout = old;
+
+		      column = fd->position->linepos;
+		    } else
+		    { int bufsize = BUFSIZE;
+
+		      str = buf;
+		      tellString(&str, &bufsize);
+		      pl_write_term(argv, argv+1);
+		      toldString();
+		      OUTSTRING(str);
+		      if ( str != buf )
+			free(str);
+		    }
+		  }
+		  SHIFT;
+		  SHIFT;
+		  fmt++;
+		  break;
+	       }
 	      case '~':			/* ~ */
 		{ OUTCHR('~');
 		  fmt++;

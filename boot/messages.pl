@@ -335,17 +335,17 @@ prolog:message(query(yes, Bindings)) -->
 bindings([]) -->
 	[].
 bindings([Name = Value|T]) -->
-	{ current_prolog_flag(answer_format, Fmt)
+	{ current_prolog_flag(toplevel_print_options, Options)
 	},
-	[ nl, '~w = '-[Name], Fmt-[Value] ],
+	[ nl, '~w = ~W'-[Name, Value, Options] ],
 	bindings(T).
 
 prolog:message(query(help)) -->
 	[ nl, 'Actions:', nl, nl,
 	  '; (n, r):     redo    t:                 trace & redo', nl,
 	  'b:            break   c (a, RET, space): continue', nl,
-	  'q:            quoted  p                  print', nl,
-	  'w:            write   h (?):             help', nl, nl
+	  'w:            write   p                  print', nl,
+	  'h (?):        help', nl, nl
 	].
 prolog:message(query(action)) -->
 	[ 'Action? ', flush ].

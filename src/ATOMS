@@ -425,6 +425,8 @@ A redefine		"redefine"
 A callable		"callable"
 A index			"index"
 A silent		"silent"
+A max_depth		"max_depth"
+A debugger_print_options "debugger_print_options"
 
 F abs			1
 F acos			1

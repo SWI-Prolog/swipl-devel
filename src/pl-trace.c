@@ -459,6 +459,19 @@ setupFind(char *buf)
 }
 
 
+static void
+setPrintOptions(word t)
+{ fid_t fid        = PL_open_foreign_frame();
+  term_t av        = PL_new_term_ref();
+  predicate_t pred = PL_predicate("$set_debugger_print_options", 1, "system");
+
+  _PL_put_atomic(av, t);
+  PL_call_predicate(NULL, PL_Q_NODEBUG, pred, av);
+
+  PL_discard_foreign_frame(fid);
+}
+
+
 static int
 traceAction(char *cmd, int port, LocalFrame frame, bool interactive)
 { int num_arg;				/* numeric argument */
@@ -539,14 +552,14 @@ traceAction(char *cmd, int port, LocalFrame frame, bool interactive)
     case 'u':	FeedBack("up\n");
 		debugstatus.skiplevel = levelFrame(frame) - 1;
 		return ACTION_CONTINUE;
-    case 'w':	FeedBack("write\n");
-		debugstatus.style = W_WRITEQ;
+    case 'd':   FeedBack("depth\n");
+                setPrintOptions(consInt(num_arg));
 		return ACTION_AGAIN;
-    case 'p':	FeedBack("print\n");
-		debugstatus.style = W_PRINT;
+    case 'w':   FeedBack("write\n");
+                setPrintOptions(ATOM_write);
 		return ACTION_AGAIN;
-    case 'd':	FeedBack("write canonical\n");
-		debugstatus.style = W_DISPLAY;
+    case 'p':   FeedBack("print\n");
+		setPrintOptions(ATOM_print);
 		return ACTION_AGAIN;
     case 'l':	FeedBack("leap\n");
 		debugstatus.tracing = FALSE;
@@ -601,7 +614,7 @@ helpTrace(void)
 	 "/c|e|r|f|u|a goal:  find       .:              repeat find\n"
 	 "a:                  abort      A:              alternatives\n"
 	 "b:                  break      c (ret, space): creep\n"
-	 "d:                  display    e:              exit\n"
+	 "[depth] d:          depth      e:              exit\n"
 	 "f:                  fail       [ndepth] g:     goals (backtrace)\n"
 	 "h (?):              help       i:              ignore\n"
 	 "l:                  leap       L:              listing\n"
@@ -674,7 +687,9 @@ static void
 writeFrameGoal(LocalFrame frame, int how)
 { int debugSave;
   fid_t cid = PL_open_foreign_frame();
-  term_t goal = PL_new_term_ref();
+  term_t goal    = PL_new_term_ref();
+  term_t options = PL_new_term_ref();
+  term_t tmp     = PL_new_term_ref();
   int flags;
 
   if ( debugstatus.showContext )
@@ -703,7 +718,12 @@ writeFrameGoal(LocalFrame frame, int how)
 
   debugSave = debugstatus.debugging;
   debugstatus.debugging = FALSE;
-  PL_write_term(Sdout, goal, 1200, flags);
+
+  PL_put_atom(tmp, ATOM_debugger_print_options);
+  if ( !pl_feature(tmp, options, 0) )
+    PL_put_nil(options);
+  PL_put_atom(tmp, ATOM_user_output);
+  pl_write_term3(tmp, goal, options);
   debugstatus.debugging = debugSave;
 
   PL_discard_foreign_frame(cid);
@@ -754,7 +774,7 @@ exceptionDetails()
 
   pl_flush();
   Sfputs("\n\n\tException term: ", Sdout);
-  PL_write_term(Sdout, except, 1200, 0);
+  PL_write_term(Sdout, except, 1200, PL_WRT_QUOTED);
   Sfprintf(Sdout, "\n\t       Message: %s\n", messageToString(except));
 
   PL_discard_foreign_frame(cid);

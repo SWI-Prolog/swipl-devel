@@ -284,6 +284,20 @@ $calleventhook(Term) :-
 
 :- $hide($calleventhook, 1).
 
+%	 handle debugger 'w', 'p' and <N> depth options.
+
+$set_debugger_print_options(write) :- !,
+	set_prolog_flag(debugger_print_options,
+			[quoted(true)]).
+$set_debugger_print_options(print) :- !,
+	set_prolog_flag(debugger_print_options,
+			[quoted(true), portray(true), max_depth(10)]).
+$set_debugger_print_options(Depth) :-
+	current_prolog_flag(debugger_print_options, Options0),
+	delete(Options0, max_depth(_), Options),
+	set_prolog_flag(debugger_print_options,
+			[max_depth(Depth)|Options]).
+
 
 		/********************************
 		*        SYSTEM MESSAGES        *

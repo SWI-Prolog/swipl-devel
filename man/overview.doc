@@ -902,6 +902,14 @@ determine how floating point numbers are printed.  The default is {\tt
 without further checking.  For example, if you want more digits printed,
 {\tt \%.12g} will print all floats using 12 digits instead of the
 default 6.  See also format/[1,2], write/1, print/1 and portray/1.
+    \prologflagitem{toplevel_print_options}{term}{rw}
+This argument is given as option-list to write_term/2 for printing results
+of queries.  Default is \exam{[quoted(true), portray(true), max_depth(10)]}.
+    \prologflagitem{debugger_print_options}{term}{rw}
+This argument is given as option-list to write_term/2 for printing goals
+by the debugger.  Modified by the `w', `p' and `<N> d' commands of the
+debugger.  Default is \exam{[quoted(true), portray(true),
+max_depth(10)]}.
     \prologflagitem{compiled_at}{atom}{r}
 Describes when the system has been compiled. Only available if the
 C-compiler used to compile SWI-Prolog provides the __DATE__ and __TIME__

@@ -3115,6 +3115,9 @@ Set a tabs top relative to the current position. Further the same as
 \fmtseq{~|}.
     \fmtchar{w}
 Give the next argument to write/1.
+    \fmtchar{W}
+Give the next two argument to write_term/2.  This option is SWI-Prolog
+specific.
 \end{itemize}
 
 Example:

@@ -1,9 +1,27 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: Prolog flags toplevel_print_options and debugger_print_options
+    to control printing of answers and goals by the debugger.
+
+  * ADDED: max_depth(D) option to write_term/[2,3] to limit the printing
+    depth.
+
+  * ADDED: `W' option to format/[2,3], providing access to write_term/2:
+    e.g. format('~W', [Term, [quoted(true)]]).
+
+  * FIXED: create include directory (Windows-build from the plain sources).
+    Uwe Lesta.
+
+VERSION 3.3.0 (release-2)
+=========================
+
   * ADDED: printing PLTHREADS from pl -dump-runtime-variables.  plld
     automatically pushes -D_REENTRANT to the C and C++ options of pl
     is multi-threaded.
+
+VERSION 3.3.0 (release-1)
+=========================
 
   * FIXED: errorneous `redefined' messages.
 

@@ -414,3 +414,5 @@
 #define ATOM_callable     MK_ATOM(413)
 #define ATOM_index        MK_ATOM(414)
 #define ATOM_silent       MK_ATOM(415)
+#define ATOM_max_depth    MK_ATOM(416)
+#define ATOM_debugger_print_options MK_ATOM(417)
