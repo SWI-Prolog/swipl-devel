@@ -299,7 +299,8 @@ insert_values(Table, SqlType, PlType, Values) :-
 		     [ PlType>SqlType ],
 		     Statement),
 	forall(member(V, Values),
-	       odbc_execute(Statement, [V])).
+	       odbc_execute(Statement, [V])),
+	odbc_free_statement(Statement).
 
 read_values(Table, PlType, Values) :-
 	open_db,
@@ -468,6 +469,7 @@ test(decimal) :-
 		     [ decimal(14,2) ],
 		     Statement),
 	odbc_execute(Statement, ['17.45'], affected(Affected)),
+	odbc_free_statement(Statement),
 	progress('Affected ~w rows', [Affected]),
 	odbc_query(test, 'select * from test', row('17.45')),
 	progress(' OK!~n', []).

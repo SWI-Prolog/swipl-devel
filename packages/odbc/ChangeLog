@@ -1,5 +1,8 @@
 Sep 27, 2003
 
+* FIXED: odbc_free_statement/1 for statements that use SQLPutData() to
+  provide long parameters.
+
 * ENHANCED: cleanup of context lifetime management (could lead do freeing
   a context twice on some errors).
 

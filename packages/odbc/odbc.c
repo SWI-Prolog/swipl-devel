@@ -1594,7 +1594,9 @@ free_parameters(int n, parameter *params)
     int i;
 
     for (i=0; i<n; i++, p++)
-    { if ( p->ptr_value && p->ptr_value != (void *)p->buf )
+    { if ( p->ptr_value &&
+	   p->ptr_value != (void *)p->buf &&
+	   p->len_value != SQL_LEN_DATA_AT_EXEC(0) ) /* Using SQLPutData() */
 	free(p->ptr_value);
       if ( p->source.table )
 	PL_unregister_atom(p->source.table);
