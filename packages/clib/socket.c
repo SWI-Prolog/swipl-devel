@@ -122,6 +122,29 @@ static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 #define UNLOCK()
 #endif
 
+static atom_t ATOM_reuseaddr;		/* "reuseaddr" */
+static atom_t ATOM_dispatch;		/* "dispatch" */
+
+#define SOCK_INSTREAM	0x01
+#define SOCK_OUTSTREAM	0x02
+#define SOCK_BIND	0x04		/* What have we done? */
+#define SOCK_LISTEN	0x08
+#define SOCK_CONNECT	0x10
+#define SOCK_ACCEPT	0x20		/* Set on accepted sockets */
+#define SOCK_NONBLOCK	0x40		/* Set to non-blocking mode */
+#define SOCK_DISPATCH   0x80		/* do not dispatch events */
+
+#define set(s, f)   ((s)->flags |= (f))
+#define clear(s, f) ((s)->flags &= ~(f))
+#define true(s, f)  ((s)->flags & (f))
+
+typedef struct _plsocket
+{ struct _plsocket *next;		/* next in list */
+  int		    socket;		/* The OS socket */
+  int		    flags;		/* Misc flags */
+} plsocket;
+
+
 		 /*******************************
 		 *	  COMPATIBILITY		*
 		 *******************************/
@@ -217,6 +240,22 @@ SocketHiddenWindow()
   return sock_hidden_window;
 }
 
+#else /*WIN32*/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+wait_socket() is the Unix way  to  wait   for  input  on  the socket. By
+default event-dispatching on behalf of XPCE is performed. If this is not
+desired, you can do tcp_setopt(Socket,   dispatch(false)), in which case
+this call returns immediately, assuming the   actual TCP call will block
+without dispatching if no input is available.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+wait_socket(plsocket *s, int fd)
+{ if ( true(s, SOCK_DISPATCH) )
+    PL_dispatch(fd, PL_DISPATCH_WAIT);
+}
+
 #endif /*WIN32*/
 
 
@@ -227,20 +266,6 @@ SocketHiddenWindow()
 static functor_t FUNCTOR_socket1;
 static functor_t FUNCTOR_module2;
 static functor_t FUNCTOR_ip4;
-
-#define SOCK_INSTREAM	0x01
-#define SOCK_OUTSTREAM	0x02
-#define SOCK_BIND	0x04		/* What have we done? */
-#define SOCK_LISTEN	0x08
-#define SOCK_CONNECT	0x10
-#define SOCK_ACCEPT	0x20		/* Set on accepted sockets */
-#define SOCK_NONBLOCK	0x40		/* Set to non-blocking mode */
-
-typedef struct _plsocket
-{ struct _plsocket *next;		/* next in list */
-  int		    socket;		/* The OS socket */
-  int		    flags;		/* Misc flags */
-} plsocket;
 
 static plsocket *sockets;
 static int initialised = FALSE;		/* Windows only */
@@ -264,7 +289,7 @@ lookupSocket(int socket)
   }
 
   p->socket = socket;
-  p->flags  = 0;
+  p->flags  = SOCK_DISPATCH;		/* by default, dispatch */
   p->next   = sockets;
   sockets   = p;
 
@@ -730,13 +755,14 @@ tcp_host_to_address(term_t Host, term_t Ip)
 foreign_t
 tcp_setopt(term_t Socket, term_t opt)
 { int socket;
-  char *s;
+  atom_t a;
+  int arity;
        
   if ( !tcp_get_socket(Socket, &socket) )
     return FALSE;
 
-  if ( PL_get_atom_chars(opt, &s) )
-  { if ( strcmp(s, "reuseaddr") == 0 )
+  if ( PL_get_name_arity(opt, &a, &arity) )
+  { if ( a == ATOM_reuseaddr && arity == 0 )
     { int val = 1;
 
       if( setsockopt(socket, SOL_SOCKET, SO_REUSEADDR,
@@ -745,6 +771,19 @@ tcp_setopt(term_t Socket, term_t opt)
       }
 
       return TRUE;
+    } else if ( a == ATOM_dispatch && arity == 1 )
+    { int val;
+      term_t a1 = PL_new_term_ref();
+      plsocket *s = lookupSocket(socket);
+
+      if ( PL_get_arg(1, opt, a1) && PL_get_bool(a1, &val) )
+      { if ( val )
+	  set(s, SOCK_DISPATCH);
+	else
+	  clear(s, SOCK_DISPATCH);
+
+	return TRUE;
+      }
     }
   }
        
@@ -754,10 +793,16 @@ tcp_setopt(term_t Socket, term_t opt)
 
 #ifdef WIN32
 static void
-waitMsg()
+waitMsg(plsocket *s)
 { MSG msg;
+  HWND hwnd;
 
-  if ( GetMessage(&msg, NULL, 0, 0) )
+  if ( true(s, SOCK_DISPATCH) )
+    hwnd = NULL;
+  else
+    hwnd = SocketHiddenWindow();
+
+  if ( GetMessage(&msg, hwnd, 0, 0) )
   { TranslateMessage(&msg);
     DispatchMessage(&msg);
   } else
@@ -790,10 +835,12 @@ foreign_t
 tcp_connect(term_t Socket, term_t Address)
 { struct sockaddr_in sockaddr;
   int socket;
+  plsocket *s;
        
   if ( !tcp_get_socket(Socket, &socket) ||
        !tcp_get_sockaddr(Address, &sockaddr) )
     return FALSE;
+  s = lookupSocket(socket);
 	
 #ifdef WIN32
 again:
@@ -808,7 +855,7 @@ again:
     { case WSAEWOULDBLOCK:
       case WSAEINVAL:
       case WSAEALREADY:
-	waitMsg();
+	waitMsg(s);
         goto again;
       case WSAEISCONN:
 	break;				/* ok, we're done */
@@ -820,7 +867,7 @@ again:
 #endif  
   }
 
-  lookupSocket(socket)->flags |= SOCK_CONNECT;
+  s->flags |= SOCK_CONNECT;
 
   return TRUE;
 }
@@ -831,21 +878,23 @@ tcp_accept(term_t Master, term_t Slave, term_t Peer)
 { int master, slave;
   struct sockaddr_in addr;
   int addrlen = sizeof(addr);
+  plsocket *m;
 	
   if ( !tcp_get_socket(Master, &master) )
     return FALSE;
+  m = lookupSocket(master);
 
 #ifdef WIN32
 again:
 #else
-  PL_dispatch(master, PL_DISPATCH_WAIT);
+  wait_socket(m, master);
 #endif
 
   if ( (slave = accept(master, (struct sockaddr*)&addr, &addrlen)) == -1 )
   {
 #ifdef WIN32
     if ( WSAGetLastError() == WSAEWOULDBLOCK )
-    { waitMsg();
+    { waitMsg(m);
 
       goto again;
     }
@@ -904,7 +953,7 @@ tcp_read(void *handle, char *buf, int bufSize)
 #ifdef WIN32
 again:
 #else
-  PL_dispatch(socket, PL_DISPATCH_WAIT);
+  wait_socket(s, socket);
 #endif
 
   n = recv(socket, buf, bufSize, 0);
@@ -915,7 +964,7 @@ again:
     { errno = EWOULDBLOCK;
       return n;
     }
-    waitMsg();
+    waitMsg(s);
 
     goto again;
   }
@@ -929,6 +978,9 @@ tcp_write(void *handle, char *buf, int bufSize)
 { int socket = fdFromHandle(handle);
   int len = bufSize;
   char *str = buf;
+#ifdef WIN32
+  plsocket *s = lookupSocket(socket);
+#endif
 
   while( len > 0 )
   { int n = send(socket, str, len, 0);
@@ -937,7 +989,7 @@ tcp_write(void *handle, char *buf, int bufSize)
     {
 #ifdef WIN32
       if ( WSAGetLastError() == WSAEWOULDBLOCK )
-      { waitMsg();			/* The process gets FD_WRITE */
+      { waitMsg(s);			/* The process gets FD_WRITE */
 	continue;
       }
 #endif
@@ -1084,7 +1136,10 @@ pl_gethostname(term_t name)
 
 install_t
 install_socket()
-{ FUNCTOR_socket1 = PL_new_functor(PL_new_atom("$socket"), 1);
+{ ATOM_reuseaddr  = PL_new_atom("reuseaddr");
+  ATOM_dispatch   = PL_new_atom("dispatch");
+
+  FUNCTOR_socket1 = PL_new_functor(PL_new_atom("$socket"), 1);
   FUNCTOR_module2 = PL_new_functor(PL_new_atom(":"), 2);
   FUNCTOR_ip4     = PL_new_functor(PL_new_atom("ip"), 4);
   

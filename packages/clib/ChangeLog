@@ -1,3 +1,7 @@
+Jul 24, 2002
+
+ * ADDED: tcp_setopt(Socket, dispatch(false))
+
 Jun 20, 2002
 
  * FIXED: Handle WSAEWOULDBLOCK in tcp_acept() to get a blocking accept
