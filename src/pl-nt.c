@@ -140,6 +140,22 @@ CpuTime()
 }
 
 
+char *
+Symbols()
+{ char buf[1024];
+  int n;
+
+  if ( (n = GetModuleFileName(NULL, buf, sizeof(buf))) > 0 )
+  { buf[n] = EOS;
+
+    return store_string(buf);
+  } else
+  { PrologPath(mainArgv[0], buf);
+
+    return Which(buf);
+  }
+}
+
 		 /*******************************
 		 *     SUPPORT FOR SHELL/2	*
 		 *******************************/

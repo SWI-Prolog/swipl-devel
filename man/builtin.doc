@@ -1642,6 +1642,10 @@ A = 'gnu, gnat'
 Succeeds if {\em Atom} is an atom of {\em Length} characters long. This
 predicate also works for integers and floats, expressing the number of
 characters output when given to write/1.
+.C atom_prefix 2 +Atom, +Prefix
+Succeeds if {\em Atom} starts with the characters from {\em Prefix}.
+Its behaviour is equivalent to {\tt ?- concat({\em Prefix}, _, {\em
+Atom})}, but avoids the construction of an atom for the `remainder'.
 .ED
 
 .S Representing Text in Strings

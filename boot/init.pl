@@ -243,13 +243,10 @@ $prefix_module(Module, _, Head, Module:Head).
 		*      TRACE AND EXCEPTIONS     *
 		*********************************/
 
-:- user:dynamic((prolog_trace_interception/3,
-		 exception/3,
+:- user:dynamic((exception/3,
 		 prolog_event_hook/1)).
-:- user:multifile((prolog_trace_interception/3,
-		   exception/3,
+:- user:multifile((exception/3,
 		   prolog_event_hook/1)).
-:- user:$hide(prolog_trace_interception, 3).	
 
 %	This function is called from C on undefined predicates.  First
 %	allows the user to take care of it using exception/3. Else try

@@ -523,8 +523,9 @@ codes.
 #endif /*O_SOFTCUT*/
 
 #define I_EXITFACT	((code)75)		/* exit from a fact */
+#define D_BREAK		((code)76)		/* Debugger break-point */
 
-#define I_HIGHEST	((code)75)		/* largest WAM code !!! */
+#define I_HIGHEST	((code)76)		/* largest WAM code !!! */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Arithmetic comparison
@@ -798,6 +799,8 @@ with one operation, it turns out to be faster as well.
 
 #define ERASED			(0x0001) /* clause */
 #define UNIT_CLAUSE		(0x0002) /* clause */
+#define HAS_BREAKPOINTS		(0x0004) /* clause */
+
 #define UNKNOWN			(0x0002) /* module */
 
 #define INLINE_F		(0x0001) /* functor */
@@ -1219,6 +1222,8 @@ typedef struct
 #define PLEV_DEBUGGING	1		/* changed debugging mode */
 #define PLEV_TRACING	2		/* changed tracing mode */
 #define PLEV_SPY	3		/* changed spypoint */
+#define PLEV_BREAK	4		/* a break-point was set */
+#define PLEV_NOBREAK	5		/* a break-point was cleared */
 
 
 		/********************************
@@ -1481,11 +1486,15 @@ Tracer communication declarations.
 #define ACTION_IGNORE	3
 #define ACTION_AGAIN	4
 
-#define CALL_PORT	0x1		/* port masks */
-#define EXIT_PORT	0x2
-#define FAIL_PORT	0x4
-#define REDO_PORT	0x8
+#define CALL_PORT	0x01		/* port masks */
+#define EXIT_PORT	0x02
+#define FAIL_PORT	0x04
+#define REDO_PORT	0x08
 #define UNIFY_PORT	0x10
+#define BREAK_PORT	0x20
+#define CUT_CALL_PORT   0x40
+#define CUT_EXIT_PORT   0x80
+#define CUT_PORT	(CUT_CALL_PORT|CUT_EXIT_PORT)
 #define VERY_DEEP	10000000L	/* deep skiplevel */
 
 #define LONGATOM_CHECK	    0x1		/* read/1: error on long atoms */

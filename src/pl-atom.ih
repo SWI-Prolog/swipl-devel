@@ -260,3 +260,5 @@
 #define ATOM_erased       MK_ATOM(259)
 #define ATOM_debugging    MK_ATOM(260)
 #define ATOM_tracing      MK_ATOM(261)
+#define ATOM_cut_call     MK_ATOM(262)
+#define ATOM_cut_exit     MK_ATOM(263)

@@ -103,8 +103,7 @@ findHome(char *symbols, char *def)
   }
 #endif
 
-  fatalError("Can't find Prolog Home Directory");
-  return (char *) NULL;
+  return NULL;
 }
 
 /*
@@ -142,10 +141,12 @@ proposeStartupFile(char *symbols)
     return store_string(state);
   }
 
-  Ssprintf(state, "%s/startup/startup.%s",
-	  systemDefaults.home, systemDefaults.arch);
-
-  return store_string(AbsoluteFile(state));
+  if ( systemDefaults.home )
+  { Ssprintf(state, "%s/startup/startup.%s",
+	     systemDefaults.home, systemDefaults.arch);
+    return store_string(AbsoluteFile(state));
+  } else
+    return store_string("pl.qlf");
 }
 
 
@@ -158,16 +159,18 @@ findState(char *symbols)
   if ( AccessFile(full, ACCESS_READ) )
     return full;
 
-  Ssprintf(state, "%s/startup/startup.%s",
-	  systemDefaults.home, systemDefaults.arch);
-  full = AbsoluteFile(state);
-  if ( AccessFile(full, ACCESS_READ) )
-    return store_string(full);
+  if ( systemDefaults.home )
+  { Ssprintf(state, "%s/startup/startup.%s",
+	     systemDefaults.home, systemDefaults.arch);
+    full = AbsoluteFile(state);
+    if ( AccessFile(full, ACCESS_READ) )
+      return store_string(full);
 
-  Ssprintf(state, "%s/startup/startup", systemDefaults.home);
-  full = AbsoluteFile(state);
-  if ( AccessFile(full, ACCESS_READ) )
-    return store_string(full);
+    Ssprintf(state, "%s/startup/startup", systemDefaults.home);
+    full = AbsoluteFile(state);
+    if ( AccessFile(full, ACCESS_READ) )
+      return store_string(full);
+  }
 
   return NULL;
 }
@@ -187,16 +190,23 @@ warnNoState()
   char *full;
 
   Sfprintf(Serror, "[FATAL ERROR: Failed to find startup file\n");
-  warnNoFile(proposeStartupFile(NULL));
-  Ssprintf(state, "%s/startup/startup.%s",
-	  systemDefaults.home, systemDefaults.arch);
-  full = AbsoluteFile(state);
-  warnNoFile(full);
-  Ssprintf(state, "%s/startup/startup", systemDefaults.home);
-  full = AbsoluteFile(state);
-  warnNoFile(full);
+  full = proposeStartupFile(NULL);
+  if ( full )
+    warnNoFile(full);
+  if ( systemDefaults.home )
+  { Ssprintf(state, "%s/startup/startup.%s",
+	     systemDefaults.home, systemDefaults.arch);
+    full = AbsoluteFile(state);
+    warnNoFile(full);
+
+    Ssprintf(state, "%s/startup/startup", systemDefaults.home);
+    full = AbsoluteFile(state);
+    warnNoFile(full);
+  } else
+    Sfprintf(Serror, "    No home directory!\n");
+
   Sfprintf(Serror,
-	  "\nUse\n\t`%s -o startup-file -b boot/init.pl -c boot/load.pl'\n",
+	  "\nUse\n\t`%s -O -o startup-file -b boot/init.pl'\n",
 	  mainArgv[0]);
   Sfprintf(Serror, "\nto create one]\n");
 
@@ -270,10 +280,11 @@ startProlog(int argc, char **argv, char **env)
     systemDefaults.home	       = findHome(symbols,
 					  store_string(PrologPath(PLHOME,plp)));
 #ifdef O_XOS
-  { char buf[MAXPATHLEN];
-    _xos_limited_os_filename(systemDefaults.home, buf);
-    systemDefaults.home = store_string(buf);
-  }
+    if ( systemDefaults.home )
+    { char buf[MAXPATHLEN];
+      _xos_limited_os_filename(systemDefaults.home, buf);
+      systemDefaults.home = store_string(buf);
+    }
 #endif
 
     systemDefaults.startup     = store_string(PrologPath(DEFSTARTUP, plp));
@@ -553,7 +564,7 @@ runtime_vars()
 	  "PLLDFLAGS=\"%s\";\n"
 	  "PLVERSION=\"%d\";\n",
 	  C_CC,
-	  systemDefaults.home,
+	  systemDefaults.home ? systemDefaults.home : "<no home>",
 	  ARCH,
 	  C_LIBS,
 	  C_LDFLAGS,

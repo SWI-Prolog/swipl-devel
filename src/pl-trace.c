@@ -45,7 +45,7 @@ forwards void		helpInterrupt(void);
 forwards bool		hasAlternativesFrame(LocalFrame);
 forwards void		alternatives(LocalFrame);
 forwards void		listProcedure(Definition);
-forwards int		traceInterception(LocalFrame, int, Code PC);
+forwards int		traceInterception(LocalFrame, LocalFrame, int, Code);
 forwards bool		canUnifyTermWithGoal(Word, LocalFrame);
 forwards void		writeFrameGoal(LocalFrame frame, int how);
 
@@ -109,7 +109,7 @@ returns to the WAM interpreter how to continue the execution:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-tracePort(LocalFrame frame, int port, Code PC)
+tracePort(LocalFrame frame, LocalFrame bfr, int port, Code PC)
 { int OldOut;
   extern int Output;
   int action = ACTION_CONTINUE;
@@ -124,7 +124,8 @@ tracePort(LocalFrame frame, int port, Code PC)
     Undo(frame->mark);
 
 					/* trace/[1,2] */
-  if ( true(def, TRACE_CALL|TRACE_REDO|TRACE_EXIT|TRACE_FAIL) )
+  if ( true(def, TRACE_CALL|TRACE_REDO|TRACE_EXIT|TRACE_FAIL) &&
+       !(port & (BREAK_PORT|CUT_PORT)) )
   { char *fmt = NULL;
 
     switch(port)
@@ -152,13 +153,17 @@ tracePort(LocalFrame frame, int port, Code PC)
     }
   }
 
-  if ( (!debugstatus.tracing && false(def, SPY_ME))	|| /* non-tracing */
-       debugstatus.skiplevel < levelFrame(frame)	|| /* skipped */
-       false(def, TRACE_ME)				|| /* non-tracing */
-       (!(debugstatus.visible & port))			|| /* wrong port */
-       (port == REDO_PORT && (debugstatus.skiplevel == levelFrame(frame) ||
-			      (true(def, SYSTEM) && !SYSTEM_MODE)
-			     )) )				   /* redos */
+  if ( port != BREAK_PORT &&
+       ((!debugstatus.tracing && false(def, SPY_ME))	|| /* non-tracing */
+	debugstatus.skiplevel < levelFrame(frame)	|| /* skipped */
+	((port & (BREAK_PORT|CUT_PORT)) &&
+	 ((debugstatus.skiplevel == levelFrame(frame)) ||
+	  true(def, HIDE_CHILDS)))			|| /* also skipped */
+	false(def, TRACE_ME)				|| /* non-tracing */
+	(!(debugstatus.visible & port))			|| /* wrong port */
+	(port == REDO_PORT && (debugstatus.skiplevel == levelFrame(frame) ||
+			       (true(def, SYSTEM) && !SYSTEM_MODE)
+			      ))) )				   /* redos */
     return ACTION_CONTINUE;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -170,7 +175,7 @@ Give a trace on the skipped goal for a redo.
     if ( port == REDO_PORT && debugstatus.skiplevel == VERY_DEEP &&
 	 (fr = redoFrame(frame, &pc2)) != NULL )
     { debugstatus.skiplevel--;				   /* avoid a loop */
-      switch( tracePort(fr, REDO_PORT, pc2) )
+      switch( tracePort(fr, bfr, REDO_PORT, pc2) )
       { case ACTION_CONTINUE:
 	  if ( debugstatus.skiplevel < levelFrame(frame) )
 	    return ACTION_CONTINUE;
@@ -202,7 +207,8 @@ We are in searching mode; should we actually give this port?
 Do the Prolog trace interception.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  if ((action = traceInterception(frame, port, PC)) >= 0)
+  action = traceInterception(frame, bfr, port, PC);
+  if ( action >= 0 )
     return action;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -223,6 +229,9 @@ again:
     case FAIL_PORT:	Putf(" Fail:  ");	break;
     case EXIT_PORT:	Putf(" Exit:  ");	break;
     case UNIFY_PORT:	Putf(" Unify: ");	break;
+    case BREAK_PORT:	Putf(" Break: ");	break;
+    case CUT_CALL_PORT:	Putf(" Cut call: ");	break;
+    case CUT_EXIT_PORT:	Putf(" Cut exit: ");	break;
   }
   Putf("(%3ld) ", levelFrame(frame));
   writeFrameGoal(frame, debugstatus.style);
@@ -634,7 +643,7 @@ backTrace(LocalFrame frame, int depth)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Trace interception mechanism.  Whenever the tracer wants to perform some
 action   it   will   first   call   the    users'    Prolog    predicate
-prolog_trace_interception/3, allowing the user to define his/her action.
+prolog_trace_interception/4, allowing the user to define his/her action.
 If  this procedure succeeds the tracer assumes the trace action has been
 done and returns, otherwise the  default  C-defined  trace  actions  are
 performed.
@@ -648,44 +657,62 @@ This predicate is supposed to return one of the following atoms:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-traceInterception(LocalFrame frame, int port, Code PC)
+traceInterception(LocalFrame frame, LocalFrame bfr, int port, Code PC)
 { int rval = -1;			/* Default C-action */
+  static predicate_t proc;
+
+  if ( !proc )
+    proc = PL_predicate("prolog_trace_interception", 4, "user");
+  if ( !proc->definition->definition.clauses )
+    return rval;
 
   if ( !status.boot && status.debugLevel == 0 )
   { fid_t cid = PL_open_foreign_frame();
     qid_t qid;
-    term_t argv = PL_new_term_refs(3);
-    atom_t portname;
-    static Procedure proc;
-    int pcn;
-
-    if ( !proc )
-      proc = lookupProcedure(FUNCTOR_traceinterc3, MODULE_user);
+    term_t argv = PL_new_term_refs(4);
+    term_t rarg = argv+3;
+    atom_t portname = NULL_ATOM;
+    functor_t portfunc;
 
     switch(port)
-    { case CALL_PORT:	portname = ATOM_call;	break;
-      case REDO_PORT:	portname = ATOM_redo;	break;
-      case EXIT_PORT:	portname = ATOM_exit;	break;
-      case FAIL_PORT:	portname = ATOM_fail;	break;
+    { case CALL_PORT:	  portname = ATOM_call;		break;
+      case REDO_PORT:	  portname = ATOM_redo;		break;
+      case EXIT_PORT:	  portname = ATOM_exit;		break;
+      case FAIL_PORT:	  portname = ATOM_fail;		break;
+      case UNIFY_PORT:	  portname = ATOM_unify;	break;
+      case BREAK_PORT:    portfunc = FUNCTOR_break1;	break;
+      case CUT_CALL_PORT: portfunc = FUNCTOR_cut_call1; break;
+      case CUT_EXIT_PORT: portfunc = FUNCTOR_cut_exit1; break;
       default:
-      case UNIFY_PORT:	portname = ATOM_unify;	break;
+	assert(0);
+        return rval;
     }
 
-    if ( PC && false(frame->predicate, FOREIGN) && frame->clause )
-      pcn = PC - frame->clause->clause->codes;
+    if ( portname )
+      PL_put_atom(argv, portname);
     else
-      pcn = 0;
+    { int pcn;
 
-    PL_put_atom(argv, portname);
+      if ( PC && false(frame->predicate, FOREIGN) && frame->clause )
+	pcn = PC - frame->clause->clause->codes;
+      else
+	pcn = 0;
+
+      PL_unify_term(argv,
+		    PL_FUNCTOR, portfunc,
+		    PL_INTEGER, pcn);
+    }
+
     PL_put_integer(argv+1, PrologRef(frame));
-    PL_put_variable(argv+2);
+    PL_put_integer(argv+2, PrologRef(bfr));
+    PL_put_variable(rarg);
 
     debugstatus.suspendTrace++;
     qid = PL_open_query(MODULE_user, FALSE, proc, argv);
     if ( PL_next_solution(qid) )
     { atom_t a;
 
-      if ( PL_get_atom(argv+2, &a) )
+      if ( PL_get_atom(rarg, &a) )
       { if ( a == ATOM_continue )
 	  rval = ACTION_CONTINUE;
 	else if ( a == ATOM_fail )
@@ -694,11 +721,11 @@ traceInterception(LocalFrame frame, int port, Code PC)
 	  rval = ACTION_RETRY;
 	else if ( a == ATOM_ignore )
 	  rval = ACTION_IGNORE;
-      } else if ( PL_is_functor(argv+2, FUNCTOR_retry1) )
+      } else if ( PL_is_functor(rarg, FUNCTOR_retry1) )
       { long w;
 	term_t arg = PL_new_term_ref();
 
-	if ( PL_get_arg(1, argv+2, arg) && PL_get_long(arg, &w) )
+	if ( PL_get_arg(1, rarg, arg) && PL_get_long(arg, &w) )
 	{ debugstatus.retryFrame = FrameRef(w);
 	  rval = ACTION_RETRY;
 	} else
@@ -857,7 +884,8 @@ initTracer(void)
 #endif
 
   debugstatus.visible      = 
-  debugstatus.leashing     = CALL_PORT|FAIL_PORT|REDO_PORT|EXIT_PORT;
+  debugstatus.leashing     = CALL_PORT|FAIL_PORT|REDO_PORT|EXIT_PORT|
+			     BREAK_PORT;
   debugstatus.tracing      =
   debugstatus.debugging    = FALSE;
   debugstatus.suspendTrace = FALSE;
@@ -1199,6 +1227,18 @@ callEventHook(int ev, ...)
 	
 	PL_unify_term(arg, PL_FUNCTOR, FUNCTOR_tracing1,
 			   PL_ATOM, trc ? ATOM_true : ATOM_false);
+	break;
+      }
+      case PLEV_BREAK:
+      case PLEV_NOBREAK:
+      { Clause clause = va_arg(args, Clause);
+	int offset = va_arg(args, int);
+
+	PL_unify_term(arg, PL_FUNCTOR, FUNCTOR_break3,
+		           PL_POINTER, clause,
+		           PL_INTEGER, offset,
+			   PL_ATOM, ev == PLEV_BREAK ? ATOM_true
+					             : ATOM_false);
 	break;
       }
       default:

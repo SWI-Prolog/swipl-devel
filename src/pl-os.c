@@ -59,7 +59,6 @@ forwards void	initRandom(void);
 forwards void	initEnviron(void);
 forwards long	Time(void);
 forwards char *	okToExec(char *);
-forwards char *	Which(char *);
 static void	RemoveTemporaryFiles(void);
 
 #ifndef DEFAULT_PATH
@@ -2330,6 +2329,8 @@ char *command;
     loader, who gives this path to ld, using ld -A <path>.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifndef __WIN32__			/* Win32 version in pl-nt.c */
+
 char *
 Symbols(void)
 { char *file;
@@ -2370,6 +2371,7 @@ Symbols(void)
 
   return file;
 }
+#endif __WIN32__
 
 
 #if unix
@@ -2423,7 +2425,7 @@ char *s;
 }
 #endif /*EXEC_EXTENSIONS*/
 
-static char *
+char *
 Which(char *program)
 { static char fullname[MAXPATHLEN];
   char *path, *dir;

@@ -5,6 +5,30 @@
 Version 2.7.15
 ==============
 
+  * FIXED: retractall(Module:Head(+Arg, ...)) (i.e. explicit module and
+    instantiated first argument).
+
+  * ADDED: atom_prefix(+Atom, +Prefix): test of Prefix is a prefix
+    of Atom.
+
+  * FIXED: Bug in Unify between non-tagged and tagged integer.
+
+  * FIXED: Bugs in configure, both improper test of double alignment
+    and improper testing for the cursus libraries.  Thanks to
+    Masafumi Nakane.
+
+  * IMPROVED: Moved source_file/2 to foreign language to exploit the
+    kernel-maintained database for enumerating the predicates loaded
+    from a sourcefile.
+
+  * MODIFIED: prolog_trace_interception/3 now has 4 arguments.
+
+  * ADDED: Support for tracing the cut in the source-level debugger.
+
+  * ADDED: Support for `break-points' to the debugger.
+
+  * FIXED: Protocol to include the prompt in the protocol.
+
   * ADDED: clause_property(ClauseRef, fact).  Used by source-level tracer.
 
   * ADDED: Various options to prolog_frame_attribute/3 for the source-level

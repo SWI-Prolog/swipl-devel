@@ -18,7 +18,7 @@ therefore its frame is destroyed immediately after succeeding.
 .C prolog_frame_attribute 3 +Frame, +Key, -Value
 Obtain information about the local stack frame {\em Frame}.  {\em Frame}
 is a frame reference as obtained through prolog_current_frame/1, 
-prolog_trace_interception/3 or this predicate.  The key values are
+prolog_trace_interception/4 or this predicate.  The key values are
 described in table~\ref{tab:framekeys}.
 
 \begin{table}
@@ -75,7 +75,7 @@ argument(N) & {\em Value} is unified with the {\em N}-th slot of the frame.
 .S Intercepting the Tracer
 
 .BD
-.C prolog_trace_interception 3 +Port, +Frame, -Action
+.C prolog_trace_interception 4 +Port, +Frame, +PC, -Action
 Dynamic predicate, normally not defined. This predicate is called from
 the SWI-Prolog debugger just before it would show a port. If this
 predicate succeeds the debugger assumes the trace action has been taken
@@ -84,10 +84,13 @@ the normal Prolog debugger actions are performed.
 
 {\em Port} is one of \tty{call}, \tty{redo}, \tty{exit}, \tty{fail} or
 \tty{unify}. {\em Frame} is an integer reference to the current local
-stack frame. {\em Action} should be unified with one of the atoms
-\tty{continue} (just continue execution), \tty{retry} (retry the
-current goal) or \tty{fail} (force the current goal to fail). Leaving
-it a variable is identical to \tty{continue}.
+stack frame. {\em PC} is the current value of the program-counter,
+relative to the start of the current clause, or 0 if it is invalid,
+for example because the current frame runs a foreign predicate, or
+no clause has been selected yet. {\em Action} should be unified with one
+of the atoms \tty{continue} (just continue execution), \tty{retry}
+(retry the current goal) or \tty{fail} (force the current goal to fail).
+Leaving it a variable is identical to \tty{continue}.
 
 Together with the predicates described in section~\ref{sec:debugger} and
 the other predicates of this chapter this predicate enables the Prolog
@@ -104,7 +107,7 @@ the following query should be given:
 \begin{quote}
 \begin{boxed}
 \begin{code}
-prolog_trace_interception(Port, Frame, continue) :-
+prolog_trace_interception(Port, Frame, _PC, continue) :-
         prolog_frame_attribute(Frame, goal, Goal), 
         prolog_frame_attribute(Frame, level, Level), 
         recordz(trace, trace(Port, Level, Goal)).

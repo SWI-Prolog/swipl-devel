@@ -68,6 +68,7 @@ struct
   int i_call;
   int i_exit;
   int i_exitfact;
+  int d_break;
 #if O_COMPILE_ARITH
   int a_indirect;
   int a_func0[256];
@@ -131,6 +132,7 @@ pl_count()
   countOne(  "I_CALL", 		counting.i_call);
   countOne(  "I_EXIT", 		counting.i_exit);
   countOne(  "I_EXITFACT",	counting.i_exitfact);
+  countOne(  "D_BREAK",		countOne.d_break);
   countOne(  "I_FAIL",		countOne.i_fail);
   countOne(  "I_TRUE",		countOne.i_true);
 
@@ -659,7 +661,8 @@ right_recursion:
   { case TAG_ATOM:
       fail;
     case TAG_INTEGER:
-      if ( storage(w1) == STG_INLINE )
+      if ( storage(w1) == STG_INLINE ||
+	   storage(w2) == STG_INLINE )
 	fail;
     case TAG_STRING:
     case TAG_FLOAT:
@@ -1151,6 +1154,7 @@ pl-comp.c
     &&C_SOFTCUT_LBL,
 #endif
     &&I_EXITFACT_LBL,
+    &&D_BREAK_LBL,
     NULL
   };
 
@@ -1162,6 +1166,8 @@ pl-comp.c
 #endif
 
 #else /* O_LABEL_ADDRESSES */
+
+code thiscode;
 
 #define VMI(Name, Count, Msg)	case Name: Count; DEBUG(8, Sdprintf Msg);
 #define NEXT_INSTRUCTION	goto next_instruction
@@ -1196,7 +1202,7 @@ depart_continue() to do the normal thing or to the backtrack point.
     { Undo(FR->mark);
 #if O_DEBUGGER
       if ( debugstatus.debugging )
-      { switch( tracePort(FR, REDO_PORT, NULL) )
+      { switch( tracePort(FR, BFR, REDO_PORT, NULL) )
 	{ case ACTION_FAIL:
 	    QF->deterministic = TRUE;
 	    fail;
@@ -1229,9 +1235,49 @@ initialised properly.
   NEXT_INSTRUCTION;
 #else
 next_instruction:
-  switch( *PC++ )
+  thiscode = *PC++;
+resumebreak:
+  switch( thiscode )
 #endif
-  { VMI(I_NOP, COUNT(i_nop), ("i_nop\n"))
+  {
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+D_BREAK implements break-points in the  code.   A  break-point is set by
+replacing  an  instruction  by  a   D_BREAK  instruction.  The  orininal
+instruction is saved in a table. replacedBreak() fetches it.
+
+We might be in a state where  we   are  writing  the arguments above the
+current lTop, and therefore with higher this  with the maximum number of
+arguments.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+    VMI(D_BREAK, COUNT(d_break), ("d_break\n"))
+#if O_DEBUGGER
+    if ( debugstatus.debugging )
+    { int action;
+      LocalFrame lSave = lTop;
+
+      lTop = (LocalFrame)argFrameP(lTop, MAXARITY);
+      clearUninitialisedVarsFrame(FR, PC-1);
+      action = tracePort(FR, BFR, BREAK_PORT, PC-1);
+      lTop = lSave;
+
+      switch(action)
+      { case ACTION_RETRY:
+	  goto retry;
+      }
+    }
+#endif /*O_DEBUGGER*/
+#ifdef O_LABEL_ADDRESSES
+    { void *c = (void *)replacedBreak(PC-1);
+      
+      goto *c;
+    }
+#else
+    thiscode = replacedBreak(PC-1);
+    goto resumebreak;
+#endif      
+
+    VMI(I_NOP, COUNT(i_nop), ("i_nop\n"))
 	NEXT_INSTRUCTION;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1689,7 +1735,7 @@ backtrack without showing the fail ports explicitely.
 #if O_DEBUGGER
 	if ( debugstatus.debugging )
 	{ clearUninitialisedVarsFrame(FR, PC);
-	  switch(tracePort(FR, UNIFY_PORT, PC))
+	  switch(tracePort(FR, BFR, UNIFY_PORT, PC))
 	  { case ACTION_RETRY:
 	      goto retry;
 	    case ACTION_FAIL:
@@ -1845,6 +1891,17 @@ backtrack that makes it difficult to understand the tracer's output.
       { LocalFrame fr;
 	register LocalFrame fr2;
 
+#ifdef O_DEBUGGER
+	if ( debugstatus.debugging )
+	{ switch(tracePort(FR, BFR, CUT_CALL_PORT, PC))
+	  { case ACTION_RETRY:
+	      goto retry;
+	    case ACTION_FAIL:
+	      FRAME_FAILED;
+	  }
+	}
+#endif
+
 	set(FR, FR_CUT);
 	for(fr = BFR; fr > FR; fr = fr->backtrackFrame)
 	{ for(fr2 = fr; fr2->clause && fr2 > FR; fr2 = fr2->parent)
@@ -1866,6 +1923,17 @@ backtrack that makes it difficult to understand the tracer's output.
 	DEBUG(3, Sdprintf("BFR = %d\n", (Word)BFR - (Word)lBase) );
 	lTop = (LocalFrame) argFrameP(FR, CL->clause->variables);
 	ARGP = argFrameP(lTop, 0);
+
+#ifdef O_DEBUGGER
+	if ( debugstatus.debugging )
+	{ switch(tracePort(FR, BFR, CUT_EXIT_PORT, PC))
+	  { case ACTION_RETRY:
+	      goto retry;
+	    case ACTION_FAIL:
+	      FRAME_FAILED;
+	  }
+	}
+#endif
 
 	NEXT_INSTRUCTION;
       }
@@ -2805,6 +2873,9 @@ Note: we are working above `lTop' here!
 	}
 #endif
 	incLevel(FR);
+#ifdef O_DEBUGGER
+      retry_continue:
+#endif
 	clear(FR, FR_CUT|FR_SKIPPED);
 
 	statistics.inferences++;
@@ -2888,7 +2959,7 @@ Testing is suffices to find out that the predicate is defined.
 	if ( debugstatus.debugging )
 	{ lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
 	  CL = DEF->definition.clauses;
-	  switch(tracePort(FR, CALL_PORT, NULL))
+	  switch(tracePort(FR, BFR, CALL_PORT, NULL))
 	  { case ACTION_FAIL:	goto frame_failed;
 	    case ACTION_IGNORE: goto exit_builtin;
 	    case ACTION_RETRY:  goto retry;
@@ -2997,7 +3068,7 @@ interception. Second, there should be some room for optimisation here.
     VMI(I_EXITFACT, COUNT(i_exitfact), ("exitfact ")) MARK(EXITFACT);
 #if O_DEBUGGER
 	if ( debugstatus.debugging )
-	{ switch(tracePort(FR, UNIFY_PORT, PC))
+	{ switch(tracePort(FR, BFR, UNIFY_PORT, PC))
 	  { case ACTION_RETRY:
 	      goto retry;
 	  }
@@ -3014,8 +3085,8 @@ interception. Second, there should be some room for optimisation here.
 	{ if ( BFR <= FR )			/* deterministic */
 	  { if ( BFR == FR )
 	      SetBfr(FR->backtrackFrame);
-	    lTop = FR;
 	    leaveDefinition(DEF);
+	    lTop = FR;
 	  }
 	  deterministic = TRUE;
 	}
@@ -3042,7 +3113,7 @@ bit more careful.
 	  if ( lTop < mintop )
 	    lTop = mintop;
 
-	  action = tracePort(FR, EXIT_PORT, PC);
+	  action = tracePort(FR, BFR, EXIT_PORT, PC);
 	  lTop = lSave;
 	  switch( action )
 	  { case ACTION_RETRY:	goto retry;
@@ -3129,7 +3200,7 @@ retry:					MARK(RETRY);
   clear(FR, FR_CUT);
   lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
 
-  goto depart_continue;
+  goto retry_continue;
 }
 #endif /*O_DEBUGGER*/
 
@@ -3142,7 +3213,7 @@ different ways we can get here:
     procedure  and  if we are out of clauses continue with the backtrack
     frame of this frame.
 
-  - A foreign goal failed				(frame_failed)
+<  - A foreign goal failed				(frame_failed)
     In this case we can continue at the backtrack frame of  the  current
     frame.
 
@@ -3230,7 +3301,7 @@ frame_failed:				MARK(FAIL);
 
 #if O_DEBUGGER
     if ( debugstatus.debugging )
-    { switch( tracePort(FR, FAIL_PORT, PC) )
+    { switch( tracePort(FR, BFR, FAIL_PORT, PC) )
       { case ACTION_RETRY:	goto retry;
 	case ACTION_IGNORE:	Putf("ignore not (yet) implemented here\n");
       }
@@ -3286,7 +3357,7 @@ resume_from_body:
     { Undo(FR->mark);			/* data backtracking to get nice */
 					/* tracer output */
 
-      switch( tracePort(FR, REDO_PORT, NULL) )
+      switch( tracePort(FR, BFR, REDO_PORT, NULL) )
       { case ACTION_FAIL:	continue;
 	case ACTION_IGNORE:	CL = NULL;
 				goto exit_builtin;

@@ -97,3 +97,7 @@
 #define FUNCTOR_debugging1   (&functors[96])
 #define FUNCTOR_tracing1     (&functors[97])
 #define FUNCTOR_spy1         (&functors[98])
+#define FUNCTOR_break3       (&functors[99])
+#define FUNCTOR_break1       (&functors[100])
+#define FUNCTOR_cut_call1    (&functors[101])
+#define FUNCTOR_cut_exit1    (&functors[102])

@@ -1448,12 +1448,27 @@ pl_atom_char(term_t atom, term_t chr)
 
 
 static bool
-isPrefix(register char *s, register char *q)
+isPrefix(char *s, char *q)		/* s is prefix of q */
 { while(*s && *s == *q)
     s++, q++;
 
   return *s == EOS;
 }
+
+
+word
+pl_atom_prefix(term_t atom, term_t prefix)
+{ char *a, *p;
+
+  PL_get_chars(atom,   &a, CVT_ATOMIC|BUF_RING);
+  PL_get_chars(prefix, &p, CVT_ATOMIC|BUF_RING);
+
+  if ( a && p )
+    return isPrefix(p, a) ? TRUE : FALSE;
+
+  return warning("atom_prefix/2: instantiation fault");
+}
+
 
 static word
 concat(term_t a1, term_t a2, term_t a3, int (*out)(term_t, const char *))

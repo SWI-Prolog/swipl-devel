@@ -114,9 +114,16 @@ word		pl_nth_clause(term_t p, term_t n, term_t ref, word h);
 word		pl_xr_member(term_t ref, term_t term, word h);
 void		wamListClause(Clause clause);
 word		pl_wam_list(term_t ref);
+word		pl_fetch_vm(term_t ref, term_t offset, term_t noffset,
+			    term_t instruction);
 int		unify_definition(term_t head, Definition def,
 				 term_t thehead);
 word		pl_clause_term_position(term_t ref, term_t pc, term_t locterm);
+word		pl_break_pc(term_t ref, term_t pc, term_t nextpc, control_t h);
+word		pl_break_at(term_t ref, term_t pc, term_t set);
+code		replacedBreak(Code PC);
+void		clearBreakPointsClause(Clause clause);
+word		pl_current_break(term_t ref, term_t pc, control_t h);
 
 /* pl-dump.c */
 word		saveProgram(term_t new);
@@ -433,6 +440,7 @@ word		pl_name(term_t atom, term_t string);
 word		pl_atom_chars(term_t atom, term_t string);
 word		pl_number_chars(term_t number, term_t string);
 word		pl_atom_char(term_t atom, term_t chr);
+word		pl_atom_prefix(term_t atom, term_t prefix);
 word		pl_concat(term_t a1, term_t a2, term_t a3);
 word		pl_concat_atom(term_t list, term_t atom);
 word		pl_concat_atom3(term_t list, term_t sep, term_t atom);
@@ -503,13 +511,14 @@ word		pl_index(term_t pred);
 SourceFile	lookupSourceFile(atom_t name);
 void		addProcedureSourceFile(SourceFile sf, Procedure proc);
 word		pl_make_system_source_files(void);
-word		pl_source_file(term_t descr, term_t file);
-word		pl_time_source_file(term_t file, term_t t, word h);
+word		pl_source_file(term_t descr, term_t file, control_t h);
+word		pl_time_source_file(term_t file, term_t t, control_t h);
 word		pl_start_consult(term_t file);
 word		pl_default_predicate(term_t d1, term_t d2);
 Definition	autoImport(FunctorDef f, Module m);
 word		pl_require(term_t pred);
 word		pl_check_definition(term_t spec);
+word		pl_clause_from_source(term_t file, term_t line, term_t clause);
 
 /* pl-prof.c */
 void		stopItimer(void);
@@ -586,13 +595,14 @@ Table		newHTable(int size);
 void		destroyHTable(Table ht);
 Symbol		lookupHTable(Table ht, Void name);
 bool		addHTable(Table ht, Void name, Void value);
+void		deleteSymbolHTable(Table ht, Symbol s);
 Symbol		nextHTable(Table ht, Symbol s);
 Symbol		firstHTable(Table ht);
 void		clearHTable(Table ht);
 void		initTables();
 
 /* pl-trace.c */
-int		tracePort(LocalFrame frame, int port, Code PC);
+int		tracePort(LocalFrame frame, LocalFrame bfr, int port, Code PC);
 void		backTrace(LocalFrame frame, int depth);
 word		pl_trace_continuation(term_t what);
 void		initTracer(void);

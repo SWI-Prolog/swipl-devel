@@ -236,3 +236,4 @@ extern void ResetTty(void);
 
 extern int System(char *command);
 extern char *Symbols(void);
+extern char *Which(char *cmd);

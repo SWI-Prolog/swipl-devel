@@ -452,7 +452,10 @@ retractClauseProcedure(Procedure proc, Clause clause)
 
 void
 freeClause(Clause c)
-{ statistics.codes -= c->code_size;
+{ if ( true(c, HAS_BREAKPOINTS) )
+    clearBreakPointsClause(c);
+
+  statistics.codes -= c->code_size;
   freeHeap(c->codes, sizeof(code) * c->code_size);
   freeHeap(c, sizeof(struct clause));
 }
@@ -865,8 +868,8 @@ pl_retractall(term_t head)
   { bool det;
     Word argv;
 
-    if ( PL_is_compound(head) )
-    { argv = valTermRef(head);
+    if ( PL_is_compound(thehead) )
+    { argv = valTermRef(thehead);
       deRef(argv);
       argv = argTermP(*argv, 0);
     } else
@@ -1277,24 +1280,70 @@ pl_make_system_source_files(void)
   succeed;
 }
 
+
 word
-pl_source_file(term_t descr, term_t file)
+pl_source_file(term_t descr, term_t file, control_t h)
 { Procedure proc;
   ClauseRef cref;
   SourceFile sf;
+  atom_t name;
+  ListCell cell;
+  
 
-  if ( !get_procedure(descr, &proc, 0, GP_FIND) ||
-       !proc->definition ||
-       true(proc->definition, FOREIGN) ||
-       !(cref = proc->definition->definition.clauses) ||
-       !(sf = indexToSourceFile(cref->clause->source_no)) )
+  if ( ForeignControl(h) == FRG_FIRST_CALL &&
+       !PL_is_variable(descr) )
+  { if ( !get_procedure(descr, &proc, 0, GP_FIND) ||
+	 !proc->definition ||
+	 true(proc->definition, FOREIGN) ||
+	 !(cref = proc->definition->definition.clauses) ||
+	 !(sf = indexToSourceFile(cref->clause->source_no)) )
+      fail;
+
+    return PL_unify_atom(file, sf->name);
+  }
+
+  if ( ForeignControl(h) == FRG_CUTTED )
+    succeed;
+
+  if ( !PL_get_atom(file, &name) ||
+       !(sf = lookupSourceFile(name)) )
     fail;
 
-  return PL_unify_atom(file, sf->name);
+  switch( ForeignControl(h) )
+  { case FRG_FIRST_CALL:
+      cell = sf->procedures;
+      break;
+    case FRG_REDO:
+      cell = ForeignContextPtr(h);
+      break;
+    default:
+      cell = NULL;
+      assert(0);
+  }
+  
+  for( ; cell; cell = cell->next )
+  { Procedure proc = cell->value;
+    Definition def = proc->definition;
+    fid_t cid = PL_open_foreign_frame();
+
+    if ( unify_definition(descr, def, 0) )
+    { PL_close_foreign_frame(cid);
+
+      if ( cell->next )
+	ForeignRedoPtr(cell->next);
+      else
+	succeed;
+    }
+
+    PL_discard_foreign_frame(cid);
+  }
+
+  fail;
 }
 
+
 word
-pl_time_source_file(term_t file, term_t time, word h)
+pl_time_source_file(term_t file, term_t time, control_t h)
 { SourceFile fr;
 
   switch( ForeignControl(h) )
@@ -1358,5 +1407,49 @@ pl_start_consult(term_t file)
     succeed;
   }
 
+  fail;
+}
+
+		 /*******************************
+		 *       DEBUGGER SUPPORT	*
+		 *******************************/
+
+word
+pl_clause_from_source(term_t file, term_t line, term_t clause)
+{ atom_t name;
+  SourceFile f;
+  int ln;
+  ListCell cell;
+  Clause c = NULL;
+
+  if ( !PL_get_atom(file, &name) ||
+       !(f = lookupSourceFile(name)) ||
+       !PL_get_integer(line, &ln) )
+    return warning("clause_from_source/3: instantiation fault");
+  
+
+  for(cell = f->procedures; cell; cell = cell->next)
+  { Procedure proc = cell->value;
+    Definition def = proc->definition;
+
+    if ( def && false(def, FOREIGN) )
+    { ClauseRef cref = def->definition.clauses;
+
+      for( ; cref; cref = cref->next )
+      { Clause cl = cref->clause;
+
+	if ( cl->source_no == f->index )
+	{ if ( ln >= cl->line_no )
+	  { if ( !c || c->line_no < cl->line_no )
+	      c = cl;
+	  }
+	}
+      }
+    }
+  }
+
+  if ( c )
+    return PL_unify_pointer(clause, c);
+  
   fail;
 }

@@ -31,7 +31,7 @@ pl_break()
   term_t goal = PL_new_term_ref();
   word rval;
 
-  PL_put_atom(goal, ATOM_break);
+  PL_put_atom_chars(goal, "$break");
   rval = pl_break1(goal);
   PL_discard_foreign_frame(cid);
 
@@ -244,7 +244,7 @@ trap_gdb()
 { return 0;
 }
 
-#if O_SECURE || O_DEBUG || defined(O_DEBUGLOCAL)
+#if O_SECURE || O_DEBUG || defined(O_MAINTENANCE)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 checkData(p) verifies p points to valid  Prolog  data  and  generates  a

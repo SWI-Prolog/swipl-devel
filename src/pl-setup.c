@@ -172,7 +172,8 @@ initFeatures()
     CSetFeature("win32s",	"true");
 #endif
   CSetIntFeature("version",	PLVERSION);
-  CSetFeature("home",		systemDefaults.home);
+  if ( systemDefaults.home )
+    CSetFeature("home",		systemDefaults.home);
   CSetFeature("c_libs",		C_LIBS);
   CSetFeature("c_staticlibs",	C_STATICLIBS);
   CSetFeature("c_cc",		C_CC);

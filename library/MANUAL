@@ -11,7 +11,7 @@
 
                    Reference Manual
 
-     Updated for version 2.7.14, September 1996
+      Updated for version 2.7.15, October 1996
 
                     Jan Wielemaker
 
@@ -3447,6 +3447,12 @@ atom_length(+Atom, -Length)
      Succeeds if Atom is an atom of Length characters long. This
      predicate also works for integers and floats, expressing the number
      of characters output when given to write/1.
+
+
+atom_prefix(+Atom, +Prefix)
+     Succeeds if Atom starts with the characters from Prefix. Its
+     behaviour is equivalent to ?- concat(Prefix, _, Atom), but
+     avoids the construction of an atom for the `remainder'.
 
 
 3.19  Representing Text in Strings
@@ -8011,7 +8017,7 @@ prolog_current_frame(-Frame)
 prolog_frame_attribute(+Frame, +Key, -Value)
      Obtain information about the local stack frame Frame. Frame is a
      frame reference as obtained through prolog_current_frame/1,
-     prolog_trace_interception/3 or this predicate. The key values
+     prolog_trace_interception/4 or this predicate. The key values
      are described in table 7.1.
 
   Key               Value
@@ -8058,7 +8064,7 @@ prolog_frame_attribute(+Frame, +Key, -Value)
 7.2  Intercepting the Tracer
 
 
-prolog_trace_interception(+Port, +Frame, -Action)
+prolog_trace_interception(+Port, +Frame, +PC, -Action)
      Dynamic predicate, normally not defined. This predicate is called
      from the SWI-Prolog debugger just before it would show a port. If
      this predicate succeeds the debugger assumes the trace action has
@@ -8067,10 +8073,14 @@ prolog_trace_interception(+Port, +Frame, -Action)
      performed.
 
      Port is one of call, redo, exit, fail or unify. Frame is an
-     integer reference to the current local stack frame. Action should
-     be unified with one of the atoms continue (just continue
-     execution), retry (retry the current goal) or fail (force the
-     current goal to fail). Leaving it a variable is identical to continue .
+     integer reference to the current local stack frame. PC is the current
+     value of the program-counter, relative to the start of the current
+     clause, or 0 if it is invalid, for example because the current frame
+     runs a foreign predicate, or no clause has been selected yet.
+     Action should be unified with one of the atoms continue (just
+     continue execution), retry (retry the current goal) or fail (force
+     the current goal to fail). Leaving it a variable is identical to
+     continue .
 
      Together with the predicates described in section 3.36 and the
      other predicates of this chapter this predicate enables the Prolog
@@ -8082,7 +8092,7 @@ prolog_trace_interception(+Port, +Frame, -Action)
 
          ?- trace, go, notrace.
 
-        prolog_trace_interception(Port, Frame, continue) :-
+        prolog_trace_interception(Port, Frame, _PC, continue) :-
                  prolog_frame_attribute(Frame, goal, Goal),
                  prolog_frame_attribute(Frame, level, Level),
                  recordz(trace, trace(Port, Level, Goal)).
@@ -8225,6 +8235,7 @@ atom/1                           Type check for an atom
 atom_char/2                     Convert between atom and ASCII value
 atom_chars/2                    Convert between atom and list of ASCII values
 atom_length/2                   Determine length of an atom
+atom_prefix/2                   Test for start of atom
 atom_to_term/3                  Convert between atom and term
 atomic/1                        Type check for primitive
 autoload/0                      Autoload all predicates now
@@ -8448,7 +8459,7 @@ prolog_frame_attribute/3       Obtain information on a goal environment
 prolog_load_context/2          Context information for directives
 prolog_skip_level/2            Indicate deepest recursion to trace
 prolog_to_os_filename/2        Convert between Prolog and OS filenames
-prolog_trace_interception/3    library(user): Intercept the Prolog tracer
+prolog_trace_interception/4    library(user): Intercept the Prolog tracer
 prompt1/1                       Change prompt for 1 line
 prompt/2                        Change the prompt used by read/1
 proper_list/1                   Type check for list

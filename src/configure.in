@@ -117,9 +117,9 @@ fi
 if test ! "$runtime" = "yes"; then
   AC_CHECK_LIB(readline, main)
   if test ! "$ac_cv_lib_readline" = "yes"; then
-    AC_CHECK_LIB(ncurses)
+    AC_CHECK_LIB(ncurses, main)
     if test ! "$ac_cv_lib_ncurses" = "yes"; then
-      AC_CHECK_LIB(curses)
+      AC_CHECK_LIB(curses, main)
     fi
     if test "$ac_cv_lib_ncurses" = "yes" || test "$ac_cv_lib_curses" = "yes"; then
       echo "Found curses library.  See if -lreadline works now"
@@ -209,7 +209,7 @@ AC_TRY_RUN(
 [ main()
   { long l[10];
     double *p;
-    unsigned long x = (unsigned long) p;
+    unsigned long x = (unsigned long) l;
 
     if ( x % sizeof(double) == 0 )
       x += sizeof(long);

@@ -676,7 +676,7 @@ loadWicFd(char *file, IOSTREAM *fd, int flags)
 
 					/* fix paths for changed home */
   savedhome = getString(fd);
-  if ( streq(savedhome, systemDefaults.home) )
+  if ( !systemDefaults.home || streq(savedhome, systemDefaults.home) )
   { qlf_has_moved = FALSE;
   } else
   { qlf_has_moved = TRUE;
@@ -1536,7 +1536,10 @@ openWic(const char *file, term_t args)
   putString(goal,          	  wicFd);
   putString(topLevel,      	  wicFd);
   putString(initFile, 	   	  wicFd);
-  putString(systemDefaults.home,  wicFd);
+  if ( systemDefaults.home )
+    putString(systemDefaults.home,  wicFd);
+  else
+    putString("<no home>",  wicFd);
 
   currentProc    = (Procedure) NULL;
   currentSource  = (SourceFile) NULL;

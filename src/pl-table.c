@@ -154,6 +154,28 @@ addHTable(Table ht, Void name, Void value)
 }  
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Note: s must be in the table!
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+deleteSymbolHTable(Table ht, Symbol s)
+{ int v = pointerHashValue(s->name, ht->buckets);
+  Symbol *h = &ht->entries[v];
+
+  for( ; *h != s; h = &(*h)->next )
+  { if ( *h == s )
+    { *h = (*h)->next;
+
+      freeHeap(s, sizeof(struct symbol));
+      ht->size--;
+
+      return;
+    }
+  }
+}
+
+
 Symbol
 nextHTable(Table ht, Symbol s)
 { s = s->next;

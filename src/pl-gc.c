@@ -179,7 +179,7 @@ static long relocation_cells;	/* # relocation cells */
 static long relocated_cells;	/* # relocated cells */
 static long needs_relocation;	/* # cells that need relocation */
 static long local_marked;	/* # cells marked local -> global ptrs */
-#if O_SHIFT_STACKS || O_SECURE
+#if O_SHIFT_STACKS || O_SECURE || defined(O_MAINTENANCE)
 static long local_frames;	/* frame count for debugging */
 #endif
 #if O_SECURE
@@ -476,10 +476,17 @@ void
 clearUninitialisedVarsFrame(LocalFrame fr, Code PC)
 { if ( PC != NULL )
   { Code branch_end = NULL;
+    code c;
 
-    for( ; ; PC += (codeTable[decode(*PC)].arguments + 1))
-    { switch(decode(*PC))
-      { case I_EXIT:
+    for( ; ; PC += (codeTable[c].arguments + 1))
+    { c = decode(*PC);
+
+    again:
+      switch( c )
+      { case D_BREAK:
+	  c = decode(replacedBreak(PC));
+	  goto again;
+	case I_EXIT:
 	case I_EXITFACT:
 	  return;
 	case C_JMP:
@@ -503,7 +510,7 @@ clearUninitialisedVarsFrame(LocalFrame fr, Code PC)
 	  }
 	  break;
       }
-      if ( decode(*PC) > I_HIGHEST )
+      if ( c > I_HIGHEST )
 	sysError("GC: Illegal WAM instruction: %d", decode(*PC));
     }
   }
@@ -1161,7 +1168,7 @@ considerGarbageCollect(Stack s)
 #endif /* O_DYNAMIC_STACKS */
 
 
-#if O_SECURE
+#if O_SECURE || O_DEBUG || defined(O_MAINTENANCE)
 static bool
 scan_global(int marked)
 { Word current;
@@ -1242,6 +1249,7 @@ LocalFrame fr;
     clearUninitialisedVarsFrame(fr, PC);
 
     check_mark(&fr->mark);
+    assert(onStack(local, fr));
 
     DEBUG(3, Sdprintf("Check [%ld] %s:",
 		      levelFrame(fr),

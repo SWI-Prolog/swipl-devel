@@ -95,6 +95,7 @@ struct code_info codeTable[] = {
   CODE(C_SOFTCUT,	"c_softcut",	1, 0),
 #endif
   CODE(I_EXITFACT,	"i_exitfact",	0, 0),
+  CODE(D_BREAK,		"d_break",	0, 0),
 /*List terminator */
   CODE(0,		NULL,		0, 0)
 };
@@ -1524,6 +1525,59 @@ pl_redefine_system_predicate(term_t pred)
 		*********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+decompileArg1()  is  a  simplified  version   of  decompileHead().   Its
+function is to extract the relevant   information  for (re)computing the
+index information for indexing on the   first argument (the 99.9% case).
+See reindexClause().
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+arg1Key(Clause clause, word *key)
+{ Code PC = clause->codes;
+
+  for(;;)
+  { code c = decode(*PC++);
+
+  again:
+    switch(c)
+    { case H_FUNCTOR:
+      case H_RFUNCTOR:
+	*key = ((FunctorDef)*PC)->functor;
+        succeed;
+      case H_CONST:
+	*key = *PC;
+	succeed;
+      case H_NIL:
+	*key = ATOM_nil;
+        succeed;
+      case H_LIST:
+      case H_RLIST:
+	*key = FUNCTOR_dot2->functor;
+        succeed;
+      case H_INTEGER:
+      case H_FLOAT:			/* tbd */
+      case H_INDIRECT:
+      case H_FIRSTVAR:
+      case H_VAR:
+      case H_VOID:
+      case I_EXITFACT:
+      case I_EXIT:			/* fact */
+      case I_ENTER:			/* fix H_VOID, H_VOID, I_ENTER */
+	fail;
+      case I_NOP:
+	continue;
+      case D_BREAK:
+        c = decode(replacedBreak(PC-1));
+	goto again;
+      default:
+	assert(0);
+        fail;
+    }
+  }
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The decompiler is rather straightforwards.  First it  will  construct  a
 term  with  variables  for  the  head  and an array of variables for all
 variables in  the  clause.   Next  the  head  arguments  are  filled  by
@@ -1550,53 +1604,6 @@ typedef struct
 forwards bool	decompile_head(Clause, term_t, decompileInfo *);
 forwards bool	decompileBody(decompileInfo *, code, Code);
 forwards void	build_term(FunctorDef, decompileInfo *);
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-decompileArg1()  is  a  simplified  version   of  decompileHead().   Its
-function is to extract the relevant   information  for (re)computing the
-index information for indexing on the   first argument (the 99.9% case).
-See reindexClause().
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-int
-arg1Key(Clause clause, word *key)
-{ Code APC = clause->codes;
-
-  for(;;)
-  { switch(decode(*APC++))
-    { case H_FUNCTOR:
-      case H_RFUNCTOR:
-	*key = ((FunctorDef)XR(*APC))->functor;
-        succeed;
-      case H_CONST:
-	*key = XR(*APC);
-	succeed;
-      case H_NIL:
-	*key = ATOM_nil;
-        succeed;
-      case H_LIST:
-      case H_RLIST:
-	*key = FUNCTOR_dot2->functor;
-        succeed;
-      case H_INTEGER:
-      case H_FLOAT:			/* tbd */
-      case H_INDIRECT:
-      case H_FIRSTVAR:
-      case H_VAR:
-      case H_VOID:
-      case I_EXITFACT:
-      case I_EXIT:			/* fact */
-      case I_ENTER:			/* fix H_VOID, H_VOID, I_ENTER */
-	fail;
-      case I_NOP:
-	continue;
-      default:
-	assert(0);
-        fail;
-    }
-  }
-}
-
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 decompileHead()  is  public  as  it  is   needed  to  update  the  index
@@ -1697,13 +1704,19 @@ decompile_head(Clause clause, term_t head, decompileInfo *di)
 #define NEXTARG { next_arg_ref(argp); if ( !pushed ) argn++; }
 
   for(;;)
-  { switch(decode(*PC++))
+  { code c = decode(*PC++);
+
+  again:
+    switch(c)
     { case I_NOP:
-	  continue;
+	continue;
+      case D_BREAK:
+	c = decode(replacedBreak(PC-1));
+        goto again;
       case H_NIL:
-	  TRY(PL_unify_nil(argp));
-          NEXTARG;
-	  continue;
+	TRY(PL_unify_nil(argp));
+        NEXTARG;
+        continue;
       case H_INDIRECT:
         { word copy = globalIndirectFromCode(&PC);
 	  TRY(_PL_unify_atomic(argp, copy));
@@ -1818,7 +1831,7 @@ decompile(Clause clause, term_t term, term_t bindings)
 #endif
 
   if ( true(clause, UNIT_CLAUSE) )	/* fact */
-  { return decompileHead(clause, term);
+  { return decompile_head(clause, term, di);
   } else
   { term_t a = PL_new_term_ref();
 
@@ -1888,11 +1901,22 @@ static bool
 decompileBody(register decompileInfo *di, code end, Code until)
 { int nested = 0;		/* nesting in FUNCTOR ... POP */
   int pushed = 0;		/* Subclauses pushed on the stack */
-  int op;
+  code op;
 
-  for(; decode(*PC) != end && PC != until; )
-  { switch((op=decode(*PC++)))
-    {   case A_ENTER:
+  while( PC != until )
+  { op = decode(*PC++);
+
+  again:
+    if ( op == end )
+    { PC--;
+      break;
+    }
+
+    switch( op )
+    {   case D_BREAK:	    op = decode(replacedBreak(PC-1));
+			    goto again;
+	  
+        case A_ENTER:
         case I_NOP:	    continue;
 	case B_CONST:
 			    *ARGP++ = XR(*PC++);
@@ -2460,6 +2484,9 @@ pl_xr_member(term_t ref, term_t term, word h)
     { bool rval = FALSE;
       code op = decode(*PC++);
       
+      if ( op == D_BREAK )
+	op = decode(replacedBreak(PC-1));
+
       switch(codeTable[op].argtype)
       { case CA1_PROC:
 	{ Procedure proc = (Procedure) *PC;
@@ -2559,11 +2586,21 @@ wamListClause(Clause clause)
   ep = bp + clause->code_size;
 
   while( bp < ep )
-  { code op = decode(*bp++);
-    CodeInfo ci = &codeTable[op];
+  { code op = decode(*bp);
+    CodeInfo ci;
     int n = 0;
+    int isbreak;
 
-    Putf("%4d %s", bp - 1 - clause->codes, ci->name);
+    if ( op == D_BREAK )
+    { op = decode(replacedBreak(bp));
+      isbreak = TRUE;
+    } else
+      isbreak = FALSE;
+
+    ci = &codeTable[op];
+
+    Putf("%4d %s", bp - clause->codes, ci->name);
+    bp++;
 
     switch(op)
     { case B_FIRSTVAR:
@@ -2651,6 +2688,9 @@ wamListClause(Clause clause)
 	  Putf("%s%d", n == 0 ? " " : ", ", *bp++);
     }
 
+    if ( isbreak )
+      Putf(" *break*");
+
     Putf("\n");
   }
 }
@@ -2669,6 +2709,47 @@ pl_wam_list(term_t ref)
   succeed;
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+$fetch_vm(+Clause, +Offset, -NextOffset, -Instruction)
+	fetches the virtual machine instruction at the indicated position
+	and return NextOffset with the offset of the next instruction, or
+	[] if there is no next instruction.  Instruction is unified with
+	a descriptive term of the instruction, but for now only with the
+	name of the instruction.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+word
+pl_fetch_vm(term_t ref, term_t offset, term_t noffset, term_t instruction)
+{ Clause clause;
+  int pcoffset;
+  Code PC;
+  code op;
+  CodeInfo ci;
+
+  if ( !PL_get_pointer(ref, (void **)&clause) ||
+       !inCore(clause) || !isClause(clause) ||
+       !PL_get_integer(offset, &pcoffset) ||
+       pcoffset < 0 || pcoffset >= clause->code_size )
+    return warning("$fetch_vm/4: instantiation fault");
+
+  PC = clause->codes + pcoffset;
+  op = decode(*PC);
+  if ( op == D_BREAK )
+    op = decode(replacedBreak(PC));
+  ci = &codeTable[op];
+  
+  pcoffset = pcoffset + 1 + ci->arguments;
+
+  if ( PL_unify_integer(noffset, pcoffset) &&
+       PL_unify_atom_chars(instruction, ci->name) )
+    succeed;
+
+  fail;
+}
+
+
+
 		 /*******************************
 		 *     SOURCE LEVEL DEBUGGER	*
 		 *******************************/
@@ -2677,6 +2758,9 @@ static Code
 find_code1(Code PC, code fop, code ctx)
 { for(;;)
   { code op = decode(*PC++);
+
+    if ( op == D_BREAK )
+      op = decode(replacedBreak(PC-1));
 
     if ( fop == op && ctx == *PC )
       return &PC[-1];
@@ -2692,6 +2776,8 @@ find_code0(Code PC, code fop)
 { for(;;)
   { code op = decode(*PC++);
 
+    if ( op == D_BREAK )
+      op = decode(replacedBreak(PC-1));
     if ( fop == op )
       return &PC[-1];
     assert(op != I_EXIT);
@@ -2748,7 +2834,7 @@ pl_clause_term_position(term_t ref, term_t pc, term_t locterm)
   if ( !PL_get_pointer(ref, (void **)&clause) ||
        !inCore(clause) || !isClause(clause) ||
        !PL_get_integer(pc, &pcoffset) ||
-       pcoffset < 0 || pcoffset >= clause->code_size )
+       pcoffset < 0 || pcoffset > clause->code_size )
     return warning("$clause_location/3: invalid argument");
 
   PC = clause->codes;
@@ -2757,13 +2843,28 @@ pl_clause_term_position(term_t ref, term_t pc, term_t locterm)
 
   while( PC < loc )
   { code op = decode(*PC++);
-    CodeInfo ci = &codeTable[op];
-    
+    CodeInfo ci;
+
+    if ( op == D_BREAK )
+      op = decode(replacedBreak(PC-1));
+    ci = &codeTable[op];
+
     switch(op)
     { case I_ENTER:
+	if ( loc == PC )
+	{ add_node(tail, 1);
+
+	  return PL_unify_nil(tail);
+	}
 	add_node(tail, 2);
 	continue;
-      { Code endloc;
+      case I_EXIT:
+      case I_EXITFACT:
+	if ( loc == PC )
+	{ return PL_unify_nil(tail);
+	}
+        continue;
+    { Code endloc;
       case C_OR:			/* C_OR <jmp1> <A> C_JMP <jmp2> <B> */
       { Code jmploc = PC + *PC++ + 1;
 
@@ -2904,3 +3005,214 @@ pl_clause_term_position(term_t ref, term_t pc, term_t locterm)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Generate (on backtracing), all  possible   break-points  of  the clause.
+Works in combination with pl_clause_term_position()   to  find the place
+for placing a break-point.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+word
+pl_break_pc(term_t ref, term_t pc, term_t nextpc, control_t h)
+{ Clause clause;
+  int offset;
+  Code PC, end;
+
+  switch( ForeignControl(h) )
+  { case FRG_CUTTED:
+      succeed;
+    case FRG_FIRST_CALL:
+      offset = 0;
+    case FRG_REDO:
+    default:
+      offset = ForeignContextInt(h);
+  }
+
+  
+  if ( !PL_get_pointer(ref, (void **)&clause) ||
+       !inCore(clause) || !isClause(clause) )
+    fail;
+  PC = clause->codes + offset;
+  end = clause->codes + clause->code_size;
+
+  while( PC < end )
+  { code op = decode(*PC);
+    Code next;
+
+    if ( op == D_BREAK )
+      op = decode(replacedBreak(PC));
+    next = PC + 1 + codeTable[op].arguments;
+
+    switch(op)
+    { case I_ENTER:
+      case I_EXIT:
+      case I_EXITFACT:
+      case I_CALL:
+      case I_DEPART:
+      case I_CUT:
+      case I_FAIL:
+      case I_TRUE:
+      case I_APPLY:
+      case I_USERCALL0:
+      case I_USERCALLN:
+      case I_CALL_FV0:
+      case I_CALL_FV1:
+      case I_CALL_FV2:
+	if ( PL_unify_integer(pc, PC-clause->codes) &&
+	     PL_unify_integer(nextpc, next-clause->codes) )
+	  ForeignRedoInt(next-clause->codes);
+    }
+
+    PC = next;
+  }
+
+  fail;
+}
+
+		 /*******************************
+		 *         BREAK-POINTS		*
+		 *******************************/
+
+static Table breakTable;
+
+typedef struct
+{ Clause	clause;			/* Associated clause */
+  int		offset;			/* Offset of the instruction */
+  code		saved_instruction;	/* The instruction saved */
+} break_point, *BreakPoint;
+
+
+static bool
+setBreak(Clause clause, int offset)
+{ Code PC = clause->codes + offset;
+
+  if ( !breakTable )
+    breakTable = newHTable(16);
+
+  if ( *PC != encode(D_BREAK) )
+  { BreakPoint bp = allocHeap(sizeof(break_point));
+
+    bp->clause = clause;
+    bp->offset = offset;
+    bp->saved_instruction = *PC;
+
+    addHTable(breakTable, PC, bp);
+    *PC = encode(D_BREAK);
+    set(clause, HAS_BREAKPOINTS);
+
+    callEventHook(PLEV_BREAK, clause, offset);
+    succeed;
+  }
+
+  fail;
+}
+
+
+static int
+clearBreak(Clause clause, int offset)
+{ Code PC = clause->codes + offset;
+  BreakPoint bp;
+  Symbol s;
+
+  if ( !breakTable || !(s=lookupHTable(breakTable, PC)) )
+    fail;
+
+  bp = (BreakPoint)s->value;
+  *PC = bp->saved_instruction;
+  freeHeap(bp, sizeof(*bp));
+  deleteSymbolHTable(breakTable, s);
+
+  callEventHook(PLEV_NOBREAK, clause, offset);
+  succeed;
+}
+
+
+void
+clearBreakPointsClause(Clause clause)
+{ if ( breakTable )
+  { Symbol s, n;
+
+    for( s = firstHTable(breakTable); s; s = n )
+    { BreakPoint bp = (BreakPoint)s->value;
+
+      n = nextHTable(breakTable, s);
+
+      if ( bp->clause == clause )
+	clearBreak(bp->clause, bp->offset);
+    }    
+  }
+
+  clear(clause, HAS_BREAKPOINTS);
+}
+
+
+code
+replacedBreak(Code PC)
+{ Symbol s;
+  BreakPoint bp;
+
+  if ( !breakTable || !(s=lookupHTable(breakTable, PC)) )
+    return (code) sysError("No saved instruction for break");
+  bp = (BreakPoint)s->value;
+
+  return bp->saved_instruction;
+}
+
+
+word
+pl_break_at(term_t ref, term_t pc, term_t set)
+{ Clause clause;
+  int offset;
+  atom_t a;
+
+  if ( !PL_get_pointer(ref, (void **)&clause) ||
+       !inCore(clause) || !isClause(clause) ||
+       !PL_get_atom(set, &a) ||
+       !PL_get_integer(pc, &offset) ||
+       offset < 0 || offset >= clause->code_size )
+    fail;
+
+  if ( a == ATOM_true )
+    return setBreak(clause, offset);
+  else
+    return clearBreak(clause, offset);
+}
+
+
+word
+pl_current_break(term_t ref, term_t pc, control_t h)
+{ Symbol symb;
+  
+  if ( !breakTable )
+    fail;
+
+  switch( ForeignControl(h) )
+  { case FRG_FIRST_CALL:
+      symb = firstHTable(breakTable);
+      break;
+    case FRG_REDO:
+      symb = ForeignContextPtr(h);
+      break;
+    case FRG_CUTTED:
+    default:
+      succeed;
+  }
+
+  for( ; symb; symb = nextHTable(moduleTable, symb) )
+  { BreakPoint bp = (BreakPoint) symb->value;
+
+    { fid_t cid = PL_open_foreign_frame();
+
+      if ( PL_unify_pointer(ref, bp->clause) &&
+	   PL_unify_integer(pc,  bp->offset) )
+      { if ( !(symb = nextHTable(moduleTable, symb)) )
+	  succeed;
+
+	ForeignRedoPtr(symb);
+      }
+
+      PL_discard_foreign_frame(cid);
+    }
+  }
+
+  fail;
+}

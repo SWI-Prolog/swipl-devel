@@ -228,7 +228,7 @@ DdeCallback(UINT type, UINT fmt, HCONV hconv, HSZ hsz1, HSZ hsz2,
        rval = PL_call_predicate(MODULE_dde, TRUE, pred, argv);
        PL_discard_foreign_frame(cid);
 
-       return rval;
+       return (void *)rval;
      }
      case XTYP_CONNECT_CONFIRM:
      { fid_t cid = PL_open_foreign_frame();
@@ -253,7 +253,7 @@ DdeCallback(UINT type, UINT fmt, HCONV hconv, HSZ hsz1, HSZ hsz2,
 	 rval = FALSE;
        }
 
-       return rval; 
+       return (void *)rval; 
      }
      case XTYP_DISCONNECT:
      { fid_t cid = PL_open_foreign_frame();
@@ -269,7 +269,7 @@ DdeCallback(UINT type, UINT fmt, HCONV hconv, HSZ hsz1, HSZ hsz2,
        rval = PL_call_predicate(MODULE_dde, TRUE, pred, argv);
        PL_discard_foreign_frame(cid);
 
-       return rval;
+       return (void *)rval;
      }
      case XTYP_EXECUTE:
      { int plhandle = findServerHandle(hconv);
@@ -282,7 +282,7 @@ DdeCallback(UINT type, UINT fmt, HCONV hconv, HSZ hsz1, HSZ hsz2,
        PL_put_atom(   argv+1, hszToAtom(hsz1));
        unify_hdata(   argv+2, hData);
        if ( PL_call_predicate(MODULE_dde, TRUE, pred, argv) )
-	 rval = DDE_FACK;
+	 rval = (void *) DDE_FACK;
        PL_discard_foreign_frame(cid);
        DdeFreeDataHandle(hData);
        return rval;

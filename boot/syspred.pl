@@ -24,7 +24,6 @@
 	, gensym/2
 	, dwim_match/2
 	, source_file/1
-	, source_file/2
 	, prolog_load_context/2
 	, current_predicate/2
 	, $defined_predicate/1
@@ -77,14 +76,18 @@ $map_bits(Pred, ?Name, Old, Old) :-		% ask a bit
 	call(Pred, Name, Bits),
 	Old /\ Bits > 0.
 
-$port_bit(  call, 2'00001).
-$port_bit(  exit, 2'00010).
-$port_bit(  fail, 2'00100).
-$port_bit(  redo, 2'01000).
-$port_bit( unify, 2'10000).
-$port_bit(   all, 2'11111).
-$port_bit(  full, 2'01111).
-$port_bit(  half, 2'01101).
+$port_bit(     call, 2'00000001).
+$port_bit(     exit, 2'00000010).
+$port_bit(     fail, 2'00000100).
+$port_bit(     redo, 2'00001000).
+$port_bit(    unify, 2'00010000).
+$port_bit(    break, 2'00100000).
+$port_bit( cut_call, 2'01000000).
+$port_bit( cut_exit, 2'10000000).
+$port_bit(      cut, 2'11000000).
+$port_bit(      all, 2'00111111).
+$port_bit(     full, 2'00101111).
+$port_bit(     half, 2'00101101).
 
 leash(Ports) :-
 	$leash(Old, Old),
@@ -286,13 +289,6 @@ dwim_match(A1, A2) :-
 		/********************************
 		*             SOURCE            *
 		*********************************/
-
-:- module_transparent
-	source_file/2.
-
-source_file(Pred, File) :-
-	current_predicate(_, Pred),
-	$source_file(Pred, File).
 
 source_file(File) :-
 	$time_source_file(File, _).

@@ -2,7 +2,8 @@
 % Author--: Jon Jagger,  J.R.Jagger@shu.ac.uk
 % Created-: 05/03/93
 % Version-: 1.0
-% Updates-: none yet
+% Updates-: Mon Oct 21 12:39:41 1996
+%	    Fix in oset_int/3 by Robert van Engelen.
 % Notes---: This file provides some basic set manipulation
 %           predicates. The representation of the sets is
 %           assumed to be ordered with no duplication. You
@@ -82,7 +83,7 @@ isect3(<, _H1, T1,  H2, T2, Int) :-
     isect2(T1, H2, T2, Int).
 isect3(=, H1, T1, _H2, T2, [H1|Int]) :-
     oset_int(T1, T2, Int).
-isect3(>, H1, T1,  H2, T2, [H2|Int]) :-
+isect3(>, H1, T1,  _H2, T2, Int) :-
     isect2(T2, H1, T1, Int).
 
 

@@ -1218,7 +1218,9 @@ PL_assign_term(term_t to, term_t from)
 
 #define priorityClash { syntaxError("Operator priority clash"); }
 
+#ifndef MAX_TERM_NESTING
 #define MAX_TERM_NESTING 200
+#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This part of the parser actually constructs  the  term.   It  calls  the

@@ -132,13 +132,18 @@ Sread_readline(void *handle, char *buf, int size)
     case PL_COOKEDTTY:
     default:
     { char *line;
+      char *prompt;
 
       if ( PL_dispatch(0, PL_DISPATCH_INSTALLED) )
 	rl_event_hook = event_hook;
       else
 	rl_event_hook = NULL;
 
-      if ( (line = readline(PL_prompt_string(fd))) )
+      prompt = PL_prompt_string(fd);
+      if ( prompt )
+	PL_add_to_protocol(prompt, strlen(prompt));
+
+      if ( (line = readline(prompt)) )
       { char *s;
 	int l = strlen(line);
 	  

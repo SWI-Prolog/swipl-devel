@@ -59,6 +59,7 @@ xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\=\kill
 \\ \verb"atom_char/2"			\> Convert between atom and ASCII value
 \\ \verb"atom_chars/2"			\> Convert between atom and list of ASCII values
 \\ \verb"atom_length/2"			\> Determine length of an atom
+\\ \verb"atom_prefix/2"			\> Test for start of atom
 \\ \verb"atom_to_term/3"		\> Convert between atom and term
 \\ \verb"atomic/1"			\> Type check for primitive
 \\ \verb"autoload/0"			\> Autoload all predicates now
@@ -282,7 +283,7 @@ xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\=\kill
 \\ \verb"prolog_load_context/2"		\> Context information for directives
 \\ \verb"prolog_skip_level/2"		\> Indicate deepest recursion to trace
 \\ \verb"prolog_to_os_filename/2"	\> Convert between Prolog and OS filenames
-\\ \verb"prolog_trace_interception/3"	\> \lib{user} Intercept the Prolog tracer
+\\ \verb"prolog_trace_interception/4"	\> \lib{user} Intercept the Prolog tracer
 \\ \verb"prompt1/1"			\> Change prompt for 1 line
 \\ \verb"prompt/2"			\> Change the prompt used by read/1
 \\ \verb"proper_list/1"			\> Type check for list

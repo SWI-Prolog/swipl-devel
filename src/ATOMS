@@ -36,7 +36,7 @@ A binary		"binary"
 A block			"block"
 A bool			"bool"
 A brace_term_position	"brace_term_position"
-A break			"$break"
+A break			"break"
 A call			"call"
 A ceil			"ceil"
 A ceiling		"ceiling"
@@ -271,6 +271,8 @@ A fact			"fact"
 A erased		"erased"
 A debugging		"debugging"
 A tracing		"tracing"
+A cut_call		"cut_call"
+A cut_exit		"cut_exit"
 
 F abs			1
 F acos			1
@@ -371,3 +373,7 @@ F erased		1
 F debugging		1
 F tracing		1
 F spy			1
+F break			3
+F break			1
+F cut_call		1
+F cut_exit		1
