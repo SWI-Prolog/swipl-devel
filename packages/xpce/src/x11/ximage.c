@@ -313,7 +313,7 @@ ws_save_image_file(Image image, FileObj file, Name fmt)
     if ( i )
     { IOSTREAM *fd;
 
-      if ( !(fd=Sopen_object(file, "rbr")) )
+      if ( !(fd=Sopen_object(file, "wbr")) )
 	fail;
       if ( write_pnm_file(fd, i, r->display_xref, 0, 0, 0,
 			  PNM_RAWBITS) < 0 )
