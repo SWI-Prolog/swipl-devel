@@ -1169,7 +1169,9 @@ getItemSelectionMenu(Menu m)
 
 static Any
 getSelectionMenu(Menu m)
-{ if ( m->multiple_selection == OFF )
+{ ComputeGraphical(m);
+
+  if ( m->multiple_selection == OFF )
   { MenuItem mi;
 
     TRY( mi = getItemSelectionMenu(m) );
