@@ -410,7 +410,9 @@ WRLOCK(rdf_db *db)
   }
 
   if ( db->read_by_thread[self] > 0 )
-  { pthread_mutex_unlock(&db->mutex);
+  { DEBUG(0, Sdprintf("SELF(%d) has %d readers\n",
+		      self, db->read_by_thread[self]));
+    pthread_mutex_unlock(&db->mutex);
     return permission_error("write", "rdf_db", "default",
 			    "Operation would block");
   }
@@ -483,6 +485,7 @@ UNLOCK_HASH(rdf_db *db)
 static int
 INIT_LOCK(rdf_db *db)
 { int bytes;
+  int maxthreads;
 
   if ( !pthread_mutex_init(&db->mutex, NULL) == 0 ||
        !pthread_mutex_init(&db->hash_mutex, NULL) == 0 ||
@@ -497,7 +500,9 @@ INIT_LOCK(rdf_db *db)
   db->waiting_readers = 0;
   db->waiting_writers = 0;
 
-  bytes = sizeof(int)*PL_query(PL_QUERY_MAX_THREADS);
+  maxthreads = PL_query(PL_QUERY_MAX_THREADS);
+  bytes = sizeof(int)*maxthreads;
+  DEBUG(1, Sdprintf("MAX_THREADS = %d\n", maxthreads));
   db->read_by_thread = PL_malloc(bytes);
   memset(db->read_by_thread, 0, bytes);
 
