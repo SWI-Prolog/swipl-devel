@@ -1,3 +1,8 @@
+VERSION 1.0.10
+==============
+
+* UPDATE: calls to select/3 for compatibility to SWI-Prolog 3.4
+
 * FIXED: Allow <!USEMAP before <!SHORTREF
 
 * FIXED: handling the #empty map (SGML SHORTREF).
