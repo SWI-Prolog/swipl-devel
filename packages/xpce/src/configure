@@ -2180,7 +2180,7 @@ fi
 
 if test "$MAKE_SHARED_OBJECT" = "yes"; then
   PLTARGET=soall			 # Link XPCE dynamically to prolog
-  BOOTPL=pl
+  BOOTPL="$PL"
 
   echo "$as_me:2185: checking \"Extension for shared objects\"" >&5
 echo $ECHO_N "checking \"Extension for shared objects\"... $ECHO_C" >&6

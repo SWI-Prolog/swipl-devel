@@ -231,7 +231,7 @@ fi
 
 if test "$MAKE_SHARED_OBJECT" = "yes"; then
   PLTARGET=soall			 # Link XPCE dynamically to prolog
-  BOOTPL=pl
+  BOOTPL="$PL"
   
   AC_MSG_CHECKING("Extension for shared objects")
   if test ! -z "$PLSOEXT"; then
