@@ -146,6 +146,7 @@ unclipped_event(W, Ev:event) :->
 	->  send(W, detach)
 	;   (   send(Ev, is_a, button)
 	    ;	send(Ev, is_a, keyboard)
+	    ;	send(Ev, is_a, wheel)
 	    )
 	->  send(W, detach),
 	    fail			% normal event-processing
