@@ -82,7 +82,8 @@
 		labeling/2,
 		all_different/1,
 		sum/3,
-		lex_chain/1
+		lex_chain/1,
+		indomain/1
 	]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -225,6 +226,14 @@ parse_expression(Expr,Result) :-
 	).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+indomain(Var) :-
+	( var(Var) ->
+		bounds(Var,L,U),
+		between(L,U,Var)
+	;
+		true
+	).
+
 label(Vs) :- labeling([],Vs).
 
 labeling(Options,Vars) :-
@@ -239,12 +248,7 @@ label([],Selection,Vars) :-
 label([],_) :- !.
 label(Vars,Selection) :-
 	select_var(Selection,Vars,Var,RVars),
-	( var(Var) ->
-		bounds(Var,L,U),
-		between(L,U,Var)
-	;
-		true
-	),
+	indomain(Var),
 	label(RVars,Selection).
 
 selection(ff).

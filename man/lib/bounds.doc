@@ -59,9 +59,14 @@ The following constraints are supported:
 		of variables and integers. The current implementation
 		was contributed by Markus Triska.
 	\predicate{all_different}{1}{+Vars}
+		Constrains all variabls in the list \arg{Vars} to be pairwise
+		not equal.
+	\predicate{indomain}{1}{+Var}
+		Assigns a value in its domain to variable \arg{Var}. Backtracks
+		over all possible values from lowest to greatest. Contributed by Markus Triska.
 	\predicate{label}{1}{+Vars}
 		All variables are assigned a variable that does not
-		violate the constraint on them.
+		violate the constraint on them. 
 \end{description}
 
 \noindent Here \arg{Expr} can be one of
