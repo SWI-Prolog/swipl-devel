@@ -1599,10 +1599,11 @@ GetChar()
       }
     }
 
-    if ( *line )
-    { c = *line++;
+    if ( *line_p )
+    { c = *line_p++;
     } else
-    { free(line);
+    { if ( line )
+	free(line);
       line = NULL;
       c = '\n';
     }

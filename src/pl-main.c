@@ -114,6 +114,10 @@ char **env;
   mainArgv			= argv;
   mainEnv			= env;
 
+#if O_MALLOC_DEBUG
+  malloc_debug(O_MALLOC_DEBUG);
+#endif
+
  /* status.debugLevel = 9; */
 
   if ( status.dumped == FALSE )
