@@ -301,11 +301,17 @@ element(tbody, Attr, Content) -->	% <TBODY>
 	[ \tbody(Attr)
 	| Content
 	].
+element(thead, Attr, Content) -->	% <THEAD>
+	[ \thead(Attr, Content)
+	].
 element(tr, _, Content) -->		% <TR>
 	[ \tr 
 	| Content
 	].
 element(td, Attr, Content) -->		% <TD>
+	[ \td(Attr, Content) 
+	].
+element(th, Attr, Content) -->		% <TH>
 	[ \td(Attr, Content) 
 	].
 element(col, Attr, _) -->		% <COL>

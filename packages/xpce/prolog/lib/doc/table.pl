@@ -21,6 +21,8 @@
 variable(line_width,	     int*, get,	"Table computed for this width").
 variable(adjusted_for_width, int*, get,	"Table is adjusted for this width").
 variable(natural_width,	     int*, get, "Width I would like to have").
+variable(def_alignment,      {left,center,right} := left, both,
+					"Default cell alignment").
 
 initialise(T, Options:prolog) :->
 	send_super(T, initialise),
@@ -51,7 +53,8 @@ make_cell(T, Options:prolog, PB:parbox) :<-
 	    ->	print_message(warning, doc(ignored_attribute(td, align=char)))
 	    ;   send(PB, alignment, Align)
 	    )
-	;   true
+	;   get(T, def_alignment, Align),
+	    send(PB, alignment, Align)
 	),
 	send(Table, append, Cell),
 	apply_options(Options1, cell_option, Cell).

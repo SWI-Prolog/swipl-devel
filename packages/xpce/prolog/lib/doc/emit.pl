@@ -266,6 +266,15 @@ action(col(Options), Table, _Mode) :-
 action(tbody(Options), Table, _Mode) :-
 	send(Table, instance_of, doc_table),
 	send(Table, row_group(Options)).
+action(thead(_Options, Content), Table, Mode) :-
+	send(Table, instance_of, doc_table),
+	get(Table, def_alignment, DefAlign),
+	send(Table, def_alignment, center),
+	get(Mode, clone, Clone),
+	send(Clone, set_font, weight, bold),
+	emit(Content, Table, Clone),
+	send(Table, def_alignment, DefAlign).
+	
 
 %	preformatted text
 
