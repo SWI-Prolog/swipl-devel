@@ -258,9 +258,20 @@ leftoverToChains(AllocPool pool)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+allocate() gets new memory from the free  space   of  a pool, or if this
+does not have the required memory, get a new block using allocBigHeap().
+It can be called both with a local  pool or the global pool as argument.
+In the latter case the call is   protected by the default LOCK/UNLOCK of
+this module. Calls with the local pools are  *not* locked, so we need to
+do locking to access the left_over_pool and allocBigHeap().
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static void *
 allocate(AllocPool pool, size_t n)
 { char *p;
+  int mustlock = (pool != &GD->alloc_pool);
+  int welocked = FALSE;
 
   if ( n <= pool->free )
   { p = pool->space;
@@ -275,11 +286,15 @@ allocate(AllocPool pool, size_t n)
   if ( GD->left_over_pool )
   { FreeChunk *fp, ch;
 
-    LOCK();
+    if ( mustlock )
+    { welocked = TRUE;
+      LOCK();
+    }
     for( fp = &GD->left_over_pool; (ch=*fp); fp = &ch->next )
     { if ( ch->size >= n )
       { *fp = ch->next;
-        UNLOCK();
+        if ( welocked )
+	  UNLOCK();
 	
 	p = (char *)ch;
 	pool->space = p + n;
@@ -289,22 +304,34 @@ allocate(AllocPool pool, size_t n)
 	return p;
       }
     }
-    UNLOCK();
   }
 #endif
+  
+  if ( mustlock && !welocked )
+  { LOCK();
+    welocked = TRUE;
+  }
+
   if ( !(p = allocBigHeap(ALLOCSIZE)) )
+  { if ( welocked )
+      UNLOCK();
     outOfCore();
+  }
 
   pool->space = p + n;
   pool->free  = ALLOCSIZE - n;
   pool->allocated += n;
+
+  if ( welocked )
+    UNLOCK();
 
   return p;
 }
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-allocFromPool() allocates m units of ALIGN_SIZE
+allocFromPool() allocates a block of size m*ALIGN_SIZE as available from
+the m-th chain.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void *
@@ -486,6 +513,8 @@ Deal with big allocHeap() calls. We have   comitted ourselves to be able
 to free all memory we have allocated, so   we  must know the pointers we
 have allocated. Normally big chunks are rather infrequent, but there can
 be a lot if the program uses lots of big clauses, records or atoms.
+
+MT: calls must be guarded by L_ALLOC
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static BigHeap big_heaps;

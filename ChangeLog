@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Memory management issues in the multi-threaded version.  Thanks to
+    Sergey Tikhonov for his analysis.
+
   * FIXED: Redesign of frames for foreign-term handling (FliFrame), fixing
     problems with the garbage collector in some situations.  The new design
     is easier to understand and debug.
