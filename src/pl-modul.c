@@ -476,7 +476,6 @@ word
 pl_check_export()
 { Module module = contextModule(environment_frame);
 
-  LOCK();
   for_table(module->public, s,
 	    { Procedure proc = (Procedure) s->value;
 	      Definition def = proc->definition;
@@ -488,7 +487,6 @@ pl_check_export()
 			def->functor->arity);
 	      }
 	    })
-  UNLOCK();
 
   succeed;
 }

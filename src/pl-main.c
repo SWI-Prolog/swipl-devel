@@ -871,7 +871,6 @@ vwarning(const char *fm, va_list args)
       term_t av   = PL_new_term_refs(2);
       term_t tail = PL_copy_term_ref(av+1);
       term_t head = PL_new_term_ref();
-      predicate_t pred = PL_predicate("print_message", 2, "user");
 
       Svsprintf(message, fm, args);
       
@@ -894,7 +893,7 @@ vwarning(const char *fm, va_list args)
       PL_cons_functor(av+1, FUNCTOR_message_lines1, av+1);
       PL_put_atom(av, ATOM_error);	/* error? */
 
-      PL_call_predicate(NULL, PL_Q_NODEBUG, pred, av);
+      PL_call_predicate(NULL, PL_Q_NODEBUG, PROCEDURE_print_message2, av);
       PL_discard_foreign_frame(cid);
     } else
     { Sfprintf(Suser_error, "ERROR: ");

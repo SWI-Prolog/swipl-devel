@@ -2871,7 +2871,7 @@ erasure as soon as the clause finishes executing.
 	  arity   = 0;
 	  args    = NULL;
 	} else if ( isTerm(goal) )
-	{ if ( isSimpleGoal(a PASS_LD) || 1 )
+	{ if ( isSimpleGoal(a PASS_LD) )
 	  { args    = argTermP(goal, 0);
 	    functor = functorTerm(goal);
 	    arity   = arityFunctor(functor);
@@ -3309,6 +3309,7 @@ be overwritten by the arguments for the actual call.
 	Word lp;
 	Module module = (Module) NULL;
 	Word gp;
+	word a1 = 0;
 
 	next = lTop;
 	next->flags = FR->flags;
@@ -3328,7 +3329,7 @@ the arguments of this term in the frame.
 
 	ARGP = argFrameP(next, 0);
 
-	if (isAtom(goal) )
+	if ( isAtom(goal) )
 	{ functor = goal;
 	  arity = 0;
 	} else if ( isTerm(goal) )
@@ -3339,7 +3340,11 @@ the arguments of this term in the frame.
 	  arity   = fd->arity;
 	  args    = f->arguments;
 	  for(n=0; n<arity; n++, ARGP++, args++)
-	    *ARGP = linkVal(args);
+	  { if ( n == 1 )
+	      a1 = linkVal(args);
+	    else
+	      *ARGP = linkVal(args);
+	  }
 	} else
 	{ PL_error("apply", 2, NULL, ERR_TYPE,
 		   ATOM_callable, wordToTermRef(a));
@@ -3348,22 +3353,30 @@ the arguments of this term in the frame.
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Scan the list and add the elements to the argument vector of the frame.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-	while(!isNil(*lp) )
-	{ if (!isList(*lp) )
-	  { PL_error("apply", 2, NULL, ERR_TYPE,
-		     ATOM_list, wordToTermRef(lp));
-	    goto b_throw;
-	  }
-	  args = argTermP(*lp, 0);	/* i.e. the head */
-	  *ARGP++ = linkVal(args);
-	  arity++;
-	  if (arity > MAXARITY)
+	while( isList(*lp) )
+	{ args = argTermP(*lp, 0);	/* i.e. the head */
+	  if ( arity++ == 1 )
+	    a1 = linkVal(args);
+	  else
+	    *ARGP++ = linkVal(args);
+	  if ( arity > MAXARITY )
 	  { PL_error("apply", 2, NULL, ERR_REPRESENTATION, ATOM_max_arity);
 	    goto b_throw;
 	  }
 	  lp = argTermP(*lp, 1);	/* i.e. the tail */
 	  deRef(lp);
 	}
+	if ( !isNil(*lp) )
+	{ PL_error("apply", 2, NULL, ERR_TYPE,
+		   ATOM_list, wordToTermRef(lp));
+	  goto b_throw;
+	}
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+Finally do the delayed assignment of a1 (delayed to avoid overwriting the
+argument list).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+	if ( a1 )
+	  argFrame(next, 1) = a1;
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Find the associated procedure (see I_CALL for module handling), save the
 program pointer and jump to the common part.

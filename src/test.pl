@@ -141,6 +141,25 @@ arithmetic_functions(func-3) :-
 	A is mean(0, 20), A =:= 10.
 
 		 /*******************************
+		 *	   META CALLING		*
+		 *******************************/
+
+meta(call-1) :-
+	call(ten(X)),
+	X == 10.
+meta(call-2) :-
+	\+ call(ten(20)).
+meta(call-3) :-
+	\+ call((between(0,3,X), !, X = 2)).
+meta(apply-1) :-
+	apply(=, [a,a]).
+meta(apply-2) :-
+	apply(=(a), [a]).
+meta(apply-3) :-
+	apply(a=a, []).
+
+
+		 /*******************************
 		 *	    TYPE TESTS		*
 		 *******************************/
 
@@ -587,6 +606,7 @@ testset(syntax).
 testset(arithmetic).
 testset(arithmetic_functions).
 testset(type).
+testset(meta).
 testset(term).
 testset(list).
 testset(sets).

@@ -1356,14 +1356,12 @@ pl_retractall(term_t head)
   while( cref )
   { term_t r0 = PL_new_term_ref();
     
-    if ( !next )
-      leaveDefinition(def);
-
     if ( decompileHead(cref->clause, thehead) )
       retractClauseProcedure(proc, cref->clause);
 
     if ( !next )
     { Undo(m);
+      leaveDefinition(def);
       succeed;
     }
 

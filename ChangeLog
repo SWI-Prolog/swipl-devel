@@ -1,6 +1,12 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Handling of ! in call/1 (was disabled for debugging purposes).
+
+  * FIXED: retractall/1: could crash.
+
+  * FIXED: apply/2 if the first argument is not an atom
+
   * FIXED: thread_get_message/1 (deleted all messages from queue if
     the first was extracted).
 
