@@ -804,7 +804,7 @@ on_begin(dtd_parser *p, dtd_element *e, int argc, sgml_attribute *argv)
 		    PL_TERM, content);
     if ( PL_unify_list(pd->tail, h, pd->tail) &&
 	 PL_unify(h, et) )
-    { env *env = sgml_calloc(1, sizeof(env));
+    { env *env = sgml_calloc(1, sizeof(*env));
 
       env->tail   = pd->tail;
       env->parent = pd->stack;
