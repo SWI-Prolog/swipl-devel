@@ -9,7 +9,11 @@ appbase=$HOME/lib/tex
 rerun='Rerun to get cross-references right'
 maxruns=4
 
-export TEXINPUTS=lib:$appbase/macros::
+if [ -z "$TEXINPUTS" ]; then
+    export TEXINPUTS=$appbase/macros::
+else
+    export TEXINPUTS=$TEXINPUTS:$appbase/macros::
+fi
 
 TEMP=`getopt -o n --long tex:,pdf,help,dvi,clean,maxruns: \
      -n $program -- "$@"`
@@ -104,6 +108,8 @@ while [ $cont = "yes" ]; do
 	   else
 	      echo "*** Index changed.  Rerunning $tex ***"
 	   fi
+	else
+	   cont=no
         fi
     fi
     rm -f $doc.idx.$$
