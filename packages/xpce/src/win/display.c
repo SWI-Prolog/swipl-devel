@@ -759,6 +759,10 @@ reportDisplay(DisplayObj d, Name kind, CharArray fmt, int argc, Any *argv)
 }
 
 
+		 /*******************************
+		 *		BUSY		*
+		 *******************************/
+
 status
 busyCursorDisplay(DisplayObj d, CursorObj c, Bool block_events)
 { if ( !instanceOfObject(d, ClassDisplay) )
@@ -1008,6 +1012,17 @@ static char *T_getSelection[] =
         { "which=[name]", "target=[name]", "type=[type]" };
 static char *T_selection[] =
         { "which=[name]", "value=char_array" };
+#ifdef __WINDOWS__
+extern Name getWinFileNameDisplay(DisplayObj obj,
+				  Name mode,
+				  Chain filters,
+				  CharArray title,
+				  Directory dir);
+static char *T_win_file_name[] =
+	{ "mode={open,save}", "filters=[chain]",
+	  title="[char_array]", directory="[directory]"
+	};
+#endif
 
 /* Instance Variables */
 
@@ -1146,6 +1161,10 @@ static getdecl get_display[] =
      NAME_selection, "Get the current selection timeout time (seconds)"),
   GM(NAME_paste, 0, "string", NULL, getPasteDisplay,
      NAME_selection, "Simple interface to get clipboard value"),
+#ifdef __WINDOWS__
+  GM(NAME_winFileName, 0, "name", T_win_file_name, getWidthDisplay,
+     NAME_prompt, "Ask for a filename using Windows standard dialog"),
+#endif
   GM(NAME_windowManager, 0, "[{twm,olwm,mwm,fvwm}|name]", NULL,
      getWindowManagerDisplay,
      NAME_windowManager, "Window manager running on this display")

@@ -245,3 +245,86 @@ int
 get_logical_drive_strings(int bufsize, char *buf)
 { return GetLogicalDriveStrings(bufsize, buf);
 }
+
+		 /*******************************
+		 *      COMMON DIALOG STUFF	*
+		 *******************************/
+
+
+Name
+getWinFileNameDisplay(DisplayObj obj,
+		      Name mode,	/* open, save */
+		      Chain filters,	/* tuple(Name, Pattern) */
+		      CharArray title,
+		      Directory dir)
+{ OPENFILENAME ofn;
+  HWND hwnd;
+  Cell cell;
+  StringObj fs = newObject(ClassString, 0);
+  Name rval = 0;
+  string nul;
+
+  memset(&ofn, 0, sizeof(OPENFILENAME));
+  ofn.lStructSize = sizeof(OPENFILENAME);
+
+  if ( instanceObjObject(EVENT, ClassEvent) &&
+       (hwnd = getHwndWindow(EVENT->window)) )
+    ofn.hwndOwner = hwnd;
+
+  str_inithdr(&nul, ENC_ASCII);
+  nul.size = 1;
+  nul.data.s_text8 = "\0";
+
+  for_cell(cell, filters)
+  { if ( instanceOfbject(cell->value, ClassTuple) )
+    { Tuple t = cell->value;
+      CharArray s1 = t->first, s2 = t->second;
+
+      if ( !instanceOfbject(s1, ClassCharArray) )
+      { errorPce(s1, NAME_unexpectedType, TypeCharArray);
+	goto error;
+      }
+      if ( !instanceOfbject(s2, ClassCharArray) )
+      { errorPce(s2, NAME_unexpectedType, TypeCharArray);
+	goto error;
+      }
+      appendString(sf, s1);
+      str_insert_string(&sf->data, DEFAULT, &nul);
+      appendString(sf, s2);
+      str_insert_string(&sf->data, DEFAULT, &nul);
+    } else if ( instanceOfbject(cell->value, ClassCharArray) )
+    { appendString(sf, cell->value);
+      str_insert_string(&sf->data, DEFAULT, &nul);
+      appendString(sf, cell->value);
+      str_insert_string(&sf->data, DEFAULT, &nul);
+    } else
+    { errorPce(cell->value, NAME_unexpectedType, CtoType("char_array|tuple"));
+      goto error;
+    }
+  }
+
+  ofn.lpstrFilter  = stringCharArray(fs);
+  ofn.nFilterIndex = 0;
+  ofn.lpstrFile    = buffer;
+  ofn.nMaxFile     = sizeof(buffer)-1;
+  if ( notDefault(dir) )
+    ofn.lpstrInitialDir = expandFileName(strName(dir->path), cwdbin);
+  if ( notDefault(title) )
+  ofn.lpstrTitle = strName(title);
+
+  ofn.Flags = OFN_HIDEREADONLY | OFN_NOVALIDATE;
+  if ( mode == NAME_open )
+    GetOpenFileName(&ofn);
+  else
+    GetSaveFileName(&ofn);
+
+  if ( buffer[0] )
+    rval = CtoName(buffer);
+
+  doneObject(fs);
+  return rval;
+
+error:
+  doneObject(fs);
+  fail;
+}
