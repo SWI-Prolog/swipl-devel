@@ -16,28 +16,28 @@ NOTES:
 The  interface for   loading foreign   (C)  code differs from  the one
 supported for SUN and documented in the manual.
 
-There  are porblems  with the   interaction  between load_foreign  and
-save_program.  See  pl-load.c and  pl-dump.c.   Save  is now  based on
-pl-save.c, but I guess the problems remain.  Use static linking.
+This version of this file is based on   gcc rather than cc.  Tested with
+gcc-2.4.5 on AIX 3.2.  GCC seems  to   like  -static  so we finally have
+proper saved states on the RS6000!
 
-Gcc  2.1 has a  bug.  Add a line #define  O_LABEL_ADDRESSES 0 to  this
-file.
+Thanks to Olle Ollson at SICS for giving me access to their hardware.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define M_CC			cc
+#define M_CC			gcc
 /*#define M_OPTIMIZE		-g -DO_DEBUG*/
-#define M_OPTIMIZE		-O
-#define M_LDFLAGS		-bE:$(EXPORTS)
+#define M_OPTIMIZE		-O2
+#define M_LDFLAGS		-static
 #define M_CFLAGS		
-#define M_LIBS			-lm -ltermcap -lbsd
-#define O_INSTALL_DONOT_STORE	1
+#define M_LIBS		        -lreadline -lm -ltermcap -lbsd
 
 			/* prolog part */
 
 #define FOREIGN_PL		aix_foreign.pl
 
 			/* compiler */
+#ifndef __GNUC__
 #pragma alloca
+#endif
 #define etext _etext
 #define unix			1
 #define _BSD			1	/* BSD compatibility mode */
@@ -54,17 +54,11 @@ file.
 
 			/* Operating system */
 #define O_DATA_AT_0X2		1 /* data space at 0x20000000 - 0x2fffffff */
+#define O_VMCODE_IS_ADDRESS	0
 #define O_PROFILE		1
 #define O_SIG_AUTO_RESET	0
-#define O_SHARED_MEMORY		0	/* Is available but not suitable */
-#define O_SHM_ALIGN_FAR_APART   1	/* redundant */
-#define O_CAN_MAP		0	/* Neither suitable */
-#define O_NO_SEGV_ADDRESS	1	/* redundant */
-#define MAX_VIRTUAL_ADDRESS	(512 * 1024 *1024) /* redundant */
-#define O_FOREIGN		0
 #define O_AIX_FOREIGN		1
 #define O_SAVE			1
-#define UNEXEC_SOURCE		"gnu/unexaix.c"
 #define TEXT_START		0x10000000
 #define DATA_START		0x20000000
 #define DEFAULT_PATH		":/usr/ucb:/bin:/usr/bin:/usr/local/bin:.:";
