@@ -109,7 +109,7 @@ $update_library_index :-
 	setof(Dir, indexed_directory(Dir), Dirs), !,
 	checklist(guarded_make_library_index, Dirs),
 	(   flag($modified_index, true, false)
-	->  clear_library_index
+	->  reload_library_index
 	;   true
 	).
 $update_library_index.
@@ -135,14 +135,6 @@ indexed_directory(Dir) :-
 	plfile_in_dir(Dir, 'INDEX', _, IndexFile),
 	access_file(IndexFile, write).
 
-
-%	clear_library_index/0
-%
-%	Remove all entries from the index.  First reference will reload
-%	the index.
-
-clear_library_index :-
-	retractall(library_index(_, _, _)).
 
 		/********************************
 		*           LOAD INDEX		*
