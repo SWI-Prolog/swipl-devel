@@ -81,14 +81,11 @@ buffers(_BM, Buffers:chain) :<-
 :- dynamic
 	help_file/1.
 
-:- absolute_file_name('emacs.hlp', File),
-   asserta(help_file(File)).
+:- pce_help_file(emacs, 'emacs.hlp').
 
 help(_BM) :->
 	"Display general help"::
-	help_file(HelpFile),
-	new(B, emacs_buffer(HelpFile, '*help*')),
-	send(B, open, @on).		% new window!
+	send(@helper, give_help, emacs, main).
 
 
 selection(BM, B:emacs_buffer*) :->
