@@ -46,7 +46,8 @@
 #define UTF8_FBV(c,n) ( n == 0 ? c : (c & ((0x01<<(6-n))-1)) )
 
 #define utf8_get_char(in, chr) \
-	(*(in) & 0x80 ? __utf8_get_char(in, chr) : *chr=*in, ++in)
+	__utf8_get_char(in, chr)
+//	(*(in) & 0x80 ? __utf8_get_char(in, chr) : *(chr)=*in, ++in)
 #define utf8_put_char(out, chr) \
 	(chr < 0x80 ? out[0]=chr, out+1 : __utf8_put_char(out, chr))
 

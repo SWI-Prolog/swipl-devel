@@ -1240,7 +1240,10 @@ toldString()
 { GET_LD
   IOSTREAM *s = getStream(Scurout);
 
-  if ( s && s->functions == &Smemfunctions )
+  if ( !s )
+    succeed;
+
+  if ( s->functions == &Smemfunctions )
   { closeStream(s);
     popOutputContext();
   } else

@@ -24,6 +24,7 @@
 
 #include "pl-incl.h"
 #include "pl-ctype.h"
+#include "pl-utf8.h"
 
 #undef LD
 #define LD LOCAL_LD
@@ -94,13 +95,15 @@ PL_get_text(term_t l, PL_chars_t *text, int flags)
       text->length   = a->length;
       text->encoding = ENC_ISO_LATIN_1;
     }
-    text->storage = PL_CHARS_HEAP;
+    text->storage   = PL_CHARS_HEAP;
+    text->canonical = TRUE;
   } else if ( (flags & CVT_INTEGER) && isInteger(w) )
   { Ssprintf(text->buf, "%ld", valInteger(w) );
-    text->text.t   = text->buf;
-    text->length   = strlen(text->text.t);
-    text->encoding = ENC_ISO_LATIN_1;
-    text->storage  = PL_CHARS_LOCAL;
+    text->text.t    = text->buf;
+    text->length    = strlen(text->text.t);
+    text->encoding  = ENC_ISO_LATIN_1;
+    text->storage   = PL_CHARS_LOCAL;
+    text->canonical = TRUE;
   } else if ( (flags & CVT_FLOAT) && isReal(w) )
   { char *q;
 
@@ -119,9 +122,10 @@ PL_get_text(term_t l, PL_chars_t *text, int flags)
       *q++ = '0';
       *q = EOS;
     }
-    text->length = strlen(text->text.t);
-    text->encoding = ENC_ISO_LATIN_1;
-    text->storage  = PL_CHARS_LOCAL;
+    text->length    = strlen(text->text.t);
+    text->encoding  = ENC_ISO_LATIN_1;
+    text->storage   = PL_CHARS_LOCAL;
+    text->canonical = TRUE;
   } else if ( (flags & CVT_STRING) && isString(w) )
   { if ( isBString(w) )
     { text->text.t   = getCharsString(w, &text->length);
@@ -130,7 +134,8 @@ PL_get_text(term_t l, PL_chars_t *text, int flags)
     { text->text.w   = getCharsWString(w, &text->length);
       text->encoding = ENC_WCHAR;
     }
-    text->storage  = PL_CHARS_STACK;
+    text->storage   = PL_CHARS_STACK;
+    text->canonical = TRUE;
   } else if ( (flags & CVT_LIST) &&
 	      (isList(w) || isNil(w)) )
   { Buffer b;
@@ -148,12 +153,14 @@ PL_get_text(term_t l, PL_chars_t *text, int flags)
     } else
       fail;
 
-    text->storage  = PL_CHARS_RING;
+    text->storage   = PL_CHARS_RING;
+    text->canonical = TRUE;
   } else if ( (flags & CVT_VARIABLE) && isVar(w) )
   { text->text.t   = varName(l, text->buf);
     text->length   = strlen(text->text.t);
     text->encoding = ENC_ISO_LATIN_1;
     text->storage  = PL_CHARS_LOCAL;
+    text->canonical = TRUE;
   } else if ( (flags & CVT_WRITE) )
   { IOENC encodings[] = { ENC_ISO_LATIN_1, ENC_WCHAR, ENC_NONE };
     IOENC *enc;
@@ -190,6 +197,7 @@ PL_get_text(term_t l, PL_chars_t *text, int flags)
 	text->storage = PL_CHARS_LOCAL;
 
       text->text.t = r;
+      text->canonical = TRUE;
     } else
     { return FALSE;
     }
@@ -426,16 +434,78 @@ can_demote(PL_chars_t *text)
 
 int
 PL_canonise_text(PL_chars_t *text)
-{ if ( text->encoding != ENC_ISO_LATIN_1 )
-  { const pl_wchar_t *w = (const pl_wchar_t*)text->text.w;
-    const pl_wchar_t *e = &w[text->length];
+{ if ( !text->canonical )
+  { switch(text->encoding )
+    { case ENC_ISO_LATIN_1:
+	break;				/* nothing to do */
+      case ENC_WCHAR:
+      { const pl_wchar_t *w = (const pl_wchar_t*)text->text.w;
+	const pl_wchar_t *e = &w[text->length];
+      
+	for(; w<e; w++)
+	{ if ( *w > 0xff )
+	    return FALSE;
+	}
 
-    for(; w<e; w++)
-    { if ( *w > 0xff )
-	return FALSE;
+	return PL_demote_text(text);
+      }
+      case ENC_UTF8:
+      { const char *s = text->text.t;
+	const char *e = &s[text->length];
+
+	while(s<e && !(*s & 0x80))
+	  s++;
+	if ( s == e )
+	{ text->encoding  = ENC_ISO_LATIN_1;
+	  text->canonical = TRUE;
+
+	  succeed;
+	} else
+	{ int chr;
+	  int wide = FALSE;
+	  int len = s - text->text.t;
+
+	  while(s<e)
+	  { s = utf8_get_char(s, &chr);
+	    if ( chr > 0xff )		/* requires wide characters */
+	      wide = TRUE;
+	    len++;
+	  }
+
+	  s = (const unsigned char *)text->text.t;
+	  if ( wide )
+	  { pl_wchar_t *to = PL_malloc(sizeof(pl_wchar_t)*(len+1));
+
+	    while(s<e)
+	    { s = utf8_get_char(s, &chr);
+	      *to++ = chr;
+	    }
+	    *to = EOS;
+
+	    text->text.w = to;
+	    text->encoding = ENC_WCHAR;
+	    text->storage  = PL_CHARS_MALLOC;
+	  } else
+	  { char *to = PL_malloc(len+1);
+
+	    while(s<e)
+	    { s = utf8_get_char(s, &chr);
+	      *to++ = chr;
+	    }
+	    *to = EOS;
+
+	    text->text.t = to;
+	    text->encoding = ENC_ISO_LATIN_1;
+	    text->storage  = PL_CHARS_MALLOC;
+	  }
+
+	  text->canonical = TRUE;
+	  succeed;
+	}
+      }
+      default:
+	assert(0);
     }
-
-    return PL_demote_text(text);
   }
 
   succeed;

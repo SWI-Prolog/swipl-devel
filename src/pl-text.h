@@ -43,9 +43,16 @@ typedef struct
 					/* private stuff */
   IOENC encoding;			/* how it is encoded */
   PL_chars_alloc_t storage;		/* how it is stored */
+  int canonical;			/* TRUE: ENC_ISO_LATIN_1 or ENC_WCHAR */
   char buf[100];			/* buffer for simple stuff */
 } PL_chars_t;
 
+#define PL_init_text(txt) \
+	{ txt->text.t    = NULL; \
+	  txt->encoding  = ENC_UNKNOWN; \
+	  txt->storage   = PL_CHARS_LOCAL; \
+	  txt->canonical = FALSE; \
+	}
 
 int	PL_get_text(term_t l, PL_chars_t *text, int flags);
 int	PL_unify_text(term_t term, PL_chars_t *text, int type);
