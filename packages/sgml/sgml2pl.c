@@ -10,6 +10,10 @@
     Copyright (C) 1990-2000 SWI, University of Amsterdam. All rights reserved.
 */
 
+#ifdef WIN32
+#include <windows.h>
+#endif
+
 #include "dtd.h"
 #include "catalog.h"
 #include <SWI-Stream.h>
