@@ -2962,7 +2962,6 @@ str_size(String s, FontObj font, int *width, int *height)
   strTextLine *line;
   int nlines, n;
   int w = 0;
-  string s2;
 
   s_font(font);
 

@@ -1498,7 +1498,7 @@ static status
 insert_editor(Editor e, Int times, Int chr, int fill)
 { wint_t c;
   TextBuffer tb = e->text_buffer;
-  LocalString(s, &tb->buffer, 1);
+  LocalString(s, tb->buffer.iswide, 1);
 
   MustBeEditable(e);
   if ( HasSelection(e) &&
@@ -3119,7 +3119,7 @@ justifyRegionEditor(Editor e)
 static status
 insertSelfFillEditor(Editor e, Int times, Int chr)
 { TextBuffer tb = e->text_buffer;
-  LocalString(s, &tb->buffer, 1);
+  LocalString(s, tb->buffer.iswide, 1);
   wint_t c;
   Int le;
 
@@ -3558,7 +3558,7 @@ fix_case_and_insert(TextBuffer tb, int where, String insert,
   { insert_textbuffer(tb, where, 1, insert);
   } else
   { int size = insert->size;
-    LocalString(copy, insert, insert->size);
+    LocalString(copy, insert->iswide, insert->size);
 
     str_cpy(copy, insert);
     if ( equalName(pattern, NAME_upper) )

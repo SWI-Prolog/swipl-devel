@@ -206,7 +206,7 @@ getCapitaliseCharArray(CharArray n)
   else
   { String d = &n->data;
     int size = d->size;
-    LocalString(buf, d, size);
+    LocalString(buf, d->iswide, size);
     int i=1, o=1;
 
     str_store(buf, 0, towupper(str_fetch(d, 0)));
@@ -236,7 +236,7 @@ getLabelNameCharArray(CharArray n)
   if ( size == 0 )
     return n;
 
-  { LocalString(buf, s, size);
+  { LocalString(buf, s->iswide, size);
     int o = 0;
     int c = str_fetch(s, 0);
 
@@ -258,6 +258,7 @@ getLabelNameCharArray(CharArray n)
       } else
 	str_store(buf, o, c);
     }
+    buf->size = o;
 
     answer(ModifiedCharArray(n, buf));
   }
@@ -268,7 +269,7 @@ CharArray
 getDowncaseCharArray(CharArray n)
 { String s = &n->data;
   int size = s->size;
-  LocalString(buf, s, size);
+  LocalString(buf, s->iswide, size);
   int i;
 
   for(i=0; i<size; i++)
@@ -283,7 +284,7 @@ static CharArray
 getUpcaseCharArray(CharArray n)
 { String s = &n->data;
   int size = s->size;
-  LocalString(buf, s, size);
+  LocalString(buf, s->iswide, size);
   int i;
 
   for(i=0; i<size; i++)
@@ -298,7 +299,7 @@ static CharArray
 getStripCharArray(CharArray n, Name how)
 { String s = &n->data;
   int size = s->size;
-  LocalString(buf, s, size);
+  LocalString(buf, s->iswide, size);
   int i=0, o=0, lnb=0;
 
   if ( isDefault(how) )
@@ -402,7 +403,7 @@ CharArray
 getAppendCharArray(CharArray n1, CharArray n2)
 { String s1 = &n1->data;
   String s2 = &n2->data;
-  LocalString(buf, s1, s1->size + s2->size);
+  LocalString(buf, s1->iswide, s1->size + s2->size);
   int n;
 
   buf->size = s1->size + s2->size;
@@ -421,7 +422,7 @@ getAppendCharArrayv(CharArray ca, int argc, CharArray *argv)
   for( i=0; i<argc; i++ )
     l += argv[i]->data.size;
        
-  { LocalString(buf, &ca->data, l);
+  { LocalString(buf, ca->data.iswide, l);
 
     if ( isstrA(&ca->data) )
     { charA *d = buf->s_textA;
@@ -551,7 +552,7 @@ getBase64EncodeCharArray(CharArray in)
 { String s = &in->data;
   int size = s->size;
   int triples = (size+2)/3;
-  LocalString(buf, s, triples*4);
+  LocalString(buf, FALSE, triples*4);
   int i, o=0;
   unsigned long v;
 
@@ -587,7 +588,7 @@ static CharArray
 getBase64DecodeCharArray(CharArray in)
 { String s = &in->data;
   int size = s->size;
-  LocalString(buf, s, (size/4)*3);
+  LocalString(buf, FALSE, (size/4)*3);
   int i, o = 0;
   unsigned long v = 0L;
     

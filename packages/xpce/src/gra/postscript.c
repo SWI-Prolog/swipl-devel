@@ -1687,7 +1687,7 @@ drawPostScriptText(TextObj t)
 	flags |= TXT_UNDERLINED;
 
       if ( t->wrap == NAME_wrap )
-      { LocalString(buf, s, s->size + MAX_WRAP_LINES);
+      { LocalString(buf, s->iswide, s->size + MAX_WRAP_LINES);
       
 	str_format(buf, s, valInt(t->margin), t->font);
 	ps_string(buf, t->font, x+b, y+b, w-2*b, t->format, flags);

@@ -680,7 +680,7 @@ normalise_index(ListBrowser lb, Int index)
 
 static StringObj
 getExtendPrefixDict(Dict dict, CharArray pref, Bool ign_case)
-{ LocalString(common, &pref->data, LINESIZE);
+{ LocalString(common, pref->data.iswide, LINESIZE);
   Cell cell;
   int hit = FALSE;
 
@@ -695,7 +695,8 @@ getExtendPrefixDict(Dict dict, CharArray pref, Bool ign_case)
       continue;
 
     name = &c->data;
-    if ( name->size > LINESIZE || name->encoding != common->encoding )
+    if ( name->size > LINESIZE ||
+	 name->iswide != common->iswide ) /* TBD */
       continue;
       
     if ( ign_case == OFF )
@@ -849,7 +850,7 @@ insertSelfListBrowser(ListBrowser lb, Int times, Int chr)
   } else
     c = valInt(chr);
     
-  { LocalString(s, str_nl(NULL), valInt(times)); /* TBD */
+  { LocalString(s, c <= 0xff ? FALSE : TRUE, valInt(times));
     int i;
 
     for(i=0; i<valInt(times); )

@@ -305,7 +305,7 @@ repaintText(TextObj t, int x, int y, int w, int h)
   }
 
   if ( Wrapped(t) )
-  { LocalString(buf, s, s->size+1);
+  { LocalString(buf, s->iswide, s->size+1);
 
     DEBUG(NAME_text,
 	  Cprintf("RedrawAreaText(%s): \"%s\"\n", pp(t), s->s_textA));
@@ -320,7 +320,7 @@ repaintText(TextObj t, int x, int y, int w, int h)
 		 t->format, NAME_top, flags);
   } else
   { if ( t->wrap == NAME_clip )
-    { LocalString(buf, s, s->size+1);
+    { LocalString(buf, s->iswide, s->size+1);
 
       str_one_line(buf, s);
       s = buf;
@@ -385,7 +385,7 @@ initAreaText(TextObj t)
     assign(t, caret, toInt(size));
 
   if ( Wrapped(t) )
-  { LocalString(buf, s, s->size + MAX_WRAP_LINES);
+  { LocalString(buf, s->iswide, s->size + MAX_WRAP_LINES);
 
     str_format(buf, s, valInt(t->margin), t->font);
     str_size(buf, t->font, &tw, &h);
@@ -393,7 +393,7 @@ initAreaText(TextObj t)
       tw = valInt(t->margin);
   } else
   { if ( t->wrap == NAME_clip )
-    { LocalString(buf, s, s->size + 1);
+    { LocalString(buf, s->iswide, s->size + 1);
       
       str_one_line(buf, s);
       s = buf;
@@ -436,7 +436,7 @@ initPositionText(TextObj t)
   int b = valInt(t->border);
 
   if ( Wrapped(t) )
-  { LocalString(buf, s, s->size + MAX_WRAP_LINES);
+  { LocalString(buf, s->iswide, s->size + MAX_WRAP_LINES);
 
     str_format(buf, s, valInt(t->margin), t->font);
     str_size(buf, t->font, &tw, &h);
@@ -444,7 +444,7 @@ initPositionText(TextObj t)
       tw = valInt(t->margin);
   } else
   { if ( t->wrap == NAME_clip )
-    { LocalString(buf, s, s->size + 1);
+    { LocalString(buf, s->iswide, s->size + 1);
 
       str_one_line(buf, s);
       s = buf;
@@ -569,12 +569,12 @@ get_char_pos_text(TextObj t, Int chr, int *X, int *Y)
   int b = valInt(t->border);
 
   if ( Wrapped(t) )
-  { LocalString(buf, s, Wrapped(t) ? s->size + MAX_WRAP_LINES : 0);
+  { LocalString(buf, s->iswide, Wrapped(t) ? s->size + MAX_WRAP_LINES : 0);
 
     str_format(buf, s, valInt(t->margin), t->font);
     s = buf;
   } else if ( t->wrap == NAME_clip )
-  { LocalString(buf, s, s->size + 1);
+  { LocalString(buf, s->iswide, s->size + 1);
 
     str_one_line(buf, s);
     s = buf;
@@ -1323,7 +1323,7 @@ insertSelfText(TextObj t, Int times, Int chr)
     
   prepareInsertText(t);
 
-  { LocalString(buf, &t->string->data, tms);
+  { LocalString(buf, t->string->data.iswide, tms);
     int i;
 
     for(i=0; i<tms; i++)
@@ -1350,7 +1350,7 @@ openLineText(TextObj t, Int arg)
 
   if ( tms > 0 )
   { String nl = str_nl(&t->string->data);
-    LocalString(buf, &t->string->data, nl->size * tms);
+    LocalString(buf, t->string->data.iswide, nl->size * tms);
     int i;
 
     for(i=0; i<tms; i++)

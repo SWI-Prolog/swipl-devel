@@ -96,6 +96,26 @@ prepareWriteString(StringObj s)
 }
 
 
+static void
+promoteString(StringObj s)
+{ if ( !s->data.iswide )
+  { string ws;
+    const charA *f = s->data.s_textA;
+    const charA *e = &f[s->data.size];
+    charW *t;
+
+    str_inithdr(&ws, TRUE);
+    ws.size = s->data.size;
+    str_alloc(&ws);
+    
+    for(t=ws.s_textW; f<e;)
+      *t++ = *f++;
+    
+    s->data = ws;
+  }
+}
+
+
 status
 initialiseStringv(StringObj str, CharArray fmt, int argc, Any *argv)
 { if ( isDefault(fmt) )
@@ -250,7 +270,7 @@ newlineString(StringObj s, Int times)
   tms = valInt(times);
 
   { String nl = str_nl(&s->data);
-    LocalString(buf, &s->data, nl->size * tms);
+    LocalString(buf, s->data.iswide, nl->size * tms);
     int i;
 
     for(i=0; i<tms; i++)
@@ -266,7 +286,7 @@ status
 insertCharacterString(StringObj str, Int chr, Int where, Int times)
 { int tms = isDefault(times) ? 1 : valInt(times);
 
-  { LocalString(buf, &str->data, tms);
+  { LocalString(buf, str->data.iswide, tms);
     int i;
 
     for(i=0; i<tms; i++)
@@ -334,7 +354,7 @@ untabifyString(StringObj str, Any tabs)
 
     { int size = str->data.size;
       String s = &str->data;
-      LocalString(buf, s, size + maxtab);
+      LocalString(buf, s->iswide, size + maxtab);
       int i=0, o=0, col=0;
 
       for( ; i < size; i++ )
@@ -371,7 +391,7 @@ untabifyString(StringObj str, Any tabs)
     int d = valInt(n);
     String s = &str->data;
     int tabs = str_count_chr(s, 0, size, '\t');
-    LocalString(buf, s, size + d * tabs);
+    LocalString(buf, s->iswide, size + d * tabs);
     int i=0, o=0, col=0;
 
     for( ; i < size; i++ )
@@ -447,7 +467,7 @@ translateString(StringObj str, Int c1, Int c2)
     if ( changed )
       setString(str, &str->data);	/* forward changes */
   } else				/* delete c1's */
-  { LocalString(buf, s, size);
+  { LocalString(buf, s->iswide, size);
     int o = 0;
 
     for(;;)
@@ -483,7 +503,10 @@ characterString(StringObj str, Int index, Int chr)
     fail;
 
   if ( str_fetch(&str->data, i) != c )
-  { prepareWriteString(str);
+  { if ( c > 0xff && !str->data.iswide )
+      promoteString(str);
+    else
+      prepareWriteString(str);
     str_store(&str->data, i, c);
     setString(str, &str->data);
   }
@@ -507,7 +530,7 @@ deleteString(StringObj str, Int start, Int length)
     e = size - 1;
   d = e - f + 1;
 
-  { LocalString(buf, s, size-d);
+  { LocalString(buf, s->iswide, size-d);
 
     str_ncpy(buf, 0, s, 0, f);
     str_ncpy(buf, f, s, e+1, size - (e+1));
@@ -565,7 +588,6 @@ CsetStringL(StringObj str, const char *txt, int l)
     return errorPce(str, NAME_stringTooLong, toInt(l));
 
   s.size = l;
-  s.encoding = ENC_ISOL1;
   s.iswide = 0;
   s.pad = 0;
   s.s_textA = (charA*) txt;
@@ -583,7 +605,8 @@ CsetString(StringObj str, const char *txt)
 status
 str_insert_string(StringObj str, Int where, String s)
 { int sz = str->data.size;
-  LocalString(buf, &str->data, sz + s->size);
+  int iswide = (str->data.iswide || s->iswide);
+  LocalString(buf, iswide, sz + s->size);
   int p = (isDefault(where) ? sz : valInt(where));
 
   if ( p < 0  ) p = 0;

@@ -33,6 +33,7 @@
 	  [ fontviewer/0
 	  ]).
 :- use_module(library(pce)).
+:- use_module(library('unicode/blocks')).
 :- require([ between/3
 	   ]).
 
@@ -44,11 +45,18 @@ fontviewer :-
 	send(P, right, B),
 	send(D, below, B),
 
-	send(D, append,
-	     new(Open, button(open, message(@prolog, show_font,
-					    P, B?selection?object)))),
+	send(D, append, new(Open, button(open))),
 	send(D, append,
 	     button(quit, message(FontViewer, destroy))),
+	send(D, append, new(ChartMenu, menu(unicode_chart, cycle)), right),
+	fill_chart_menu(ChartMenu),
+	
+	new(OpenMsg, message(@prolog, show_font,
+			     P,
+			     B?selection?object,
+			     ChartMenu?selection)),
+	send_list([Open, ChartMenu], message, OpenMsg),
+
 	send(D, append, label(reporter), right),
 	send(D, default_button, open),
 
@@ -82,21 +90,26 @@ append_font_browser(B, Font) :-
 				  string('%s\t%s\t%d', Fam, Style, Points),
 				  Font)).
 
+fill_chart_menu(Menu) :-
+	forall(unicode_block(Name, _, _),
+	       send(Menu, append, Name)).
 
-show_font(P, Font) :-
+show_font(P, Font, Chart) :-
+	unicode_block(Chart, From, To),
 	send(P, clear),
 	new(F, format(horizontal, 2, @on)),
 	send(F, row_sep, 0),
 	send(P, format, F),
 	new(A, string(x)),
-	(   between(0, 15, Y),
-	    I is Y*16,
+	MaxRow is ((To-From)//15)-1,
+	(   between(0, MaxRow, Y),
+	    I is Y*16+From,
 	    send(P, display,
 		 text(string('%03o/0x%02x/%03d:', I, I, I), left, fixed)),
 	    new(S, string),
 	    (   between(0, 15, X),
-		C is 16*Y + X,
-		C \== 0, C \== 10, C \== 13,
+		C is 16*Y + X + From,
+		C \== 0, C \== 9, C \== 10, C \== 13,
 		send(A, character, 0, C),
 		send(S, append, A),
 		fail

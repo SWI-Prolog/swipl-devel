@@ -585,9 +585,7 @@ put_void_str(void *ctx, wint_t c)
 
   s->size++;
   if ( c > 0xff )
-  { s->iswide = TRUE;
-    s->encoding	= ENC_WCHAR;
-  }
+    s->iswide = TRUE;
 
   return TRUE;
 }

@@ -113,12 +113,22 @@ wstring(fmt-1) :-
 	watom(A),
 	get(string('hello %s', A), value, A2),
 	atom_concat('hello ', A, A2).
+wstring(append-1) :-
+	new(S, string([97,98])),
+	send(S, append, string([1060,1061])),
+	get(S, value, V),
+	atom_codes(V, [97,98,1060,1061]).
+wstring(char-1) :-
+	new(S, string(x)),
+	send(S, character, 0, 1000),
+	get(S, size, 1),
+	get(S, character, 0, X),
+	X == 1000.
 
 
 		 /*******************************
 		 *	      SCRIPTS		*
 		 *******************************/
-
 
 :- dynamic
 	script_dir/1.

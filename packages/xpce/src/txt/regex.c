@@ -554,7 +554,7 @@ registerValueRegex(Regex re, Any obj, CharArray value, Int which)
 static status
 replaceRegex(Regex re, Any obj, CharArray value)
 { String s = &value->data;
-  LocalString(buf, s, FORMATSIZE);
+  LocalString(buf, s->iswide, FORMATSIZE);
   int o, i, size = s->size;
   CharArray repl;
   status rval;
@@ -631,7 +631,7 @@ static StringObj
 getQuoteRegex(Regex re, CharArray ca)
 { String s = &ca->data;
   int size = s->size;
-  LocalString(buf, s, LINESIZE);
+  LocalString(buf, s->iswide, LINESIZE);
   int i, o=0;
 
   if ( str_fetch(s, 0) == '^' )

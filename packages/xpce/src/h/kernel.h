@@ -472,11 +472,11 @@ void	clearDFlagProgramObject(Any, unsigned long);
 #include "str.h"			/* string type and friends */
 #include "../txt/proto.h"		/* prototypes */
 
-#define LocalString(name, proto, size) \
+#define LocalString(name, iswide, size) \
   string _s_ ## name ## _hdr; \
-  void  *_s_ ## name ## _buf = (void *)alloca((proto)->iswide ? (size) * sizeof(charW) \
+  void  *_s_ ## name ## _buf = (void *)alloca(iswide ? (size) * sizeof(charW) \
 						   : (size) * sizeof(charA)); \
-  String name = str_init(&_s_ ## name ## _hdr, (proto), _s_ ## name ## _buf)
+  String name = fstr_inithdr(&_s_ ## name ## _hdr, iswide, _s_ ## name ## _buf)
 
 #ifndef NO_BUILT_IN_DECL
 extern struct name builtin_names[];	/* object-array of built-in's */

@@ -34,12 +34,11 @@
 typedef unsigned char charA;		/* 8-bit character */
 typedef wchar_t       charW;		/* wide character */
 
-#define STR_SIZE_BITS 27
+#define STR_SIZE_BITS 29
 #define STR_MAX_SIZE ((1L<<STR_SIZE_BITS)-1)
 
 typedef struct _string
 { unsigned	size : STR_SIZE_BITS;	/* size indication (128 MB) */
-  unsigned	encoding : 2;		/* character encoding used */
   unsigned	iswide : 1;		/* char- or wide characters */
   unsigned	readonly : 1;		/* storage is externally managed */
   unsigned	pad : 1;		/* padding to word-boundary */
@@ -70,9 +69,8 @@ typedef struct _string
 
 #define str_cphdr(t, f) do { *(unsigned long *)(t) = *(unsigned long *)(f); \
 			   } while(0)
-#define str_inithdr(s, e) do { *(unsigned long *)(s) = 0L; \
-			       (s)->encoding = (e); \
-			       (s)->iswide = ((e) == ENC_WCHAR ? 1 : 0); \
+#define str_inithdr(s, w) do { *(unsigned long *)(s) = 0L; \
+			       (s)->iswide = w; \
 			     } while(0)
 
 #define str_datasize(s) (isstrA(s) ? (s)->size : (s)->size * sizeof(charW))

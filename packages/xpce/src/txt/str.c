@@ -29,7 +29,7 @@
 #define min(a, b) ((a) < (b) ? (a) : (b))
 
 #define sameEncoding(s1, s2) \
-	if ( s1->encoding != s2->encoding ) \
+	if ( s1->iswide != s2->iswide ) \
 	  return FALSE;
 
 
@@ -79,6 +79,15 @@ str_unalloc(String s)
 String
 str_init(String s, String proto, charA *data)
 { str_cphdr(s, proto);
+  s->s_text = data;
+
+  return s;
+}
+
+
+String
+fstr_inithdr(String s, int iswide, void *data)
+{ str_inithdr(s, iswide);
   s->s_text = data;
 
   return s;
@@ -145,10 +154,26 @@ str_set_static(String str, const char *text)
 
 void
 str_ncpy(String dest, int at, String src, int from, int len)
-{ if ( isstrA(dest) )
-    memcpy(&dest->s_textA[at], &src->s_textA[from], len * sizeof(charA));
-  else
-    cpdata(&dest->s_textW[at], &src->s_textW[from], charW, len);
+{ if ( dest->iswide == src->iswide )	/* same size */
+  { if ( isstrA(dest) )
+      memcpy(&dest->s_textA[at], &src->s_textA[from], len * sizeof(charA));
+    else
+      cpdata(&dest->s_textW[at], &src->s_textW[from], charW, len);
+  } else if ( dest->iswide )		/* 8bit --> wide */
+  { const charA *s = &src->s_textA[from];
+    const charA *e = &s[len];
+    charW *d = &dest->s_textW[at];
+
+    while(s<e)
+      *d++ = *s++;
+  } else				/* wide --> 8bit (may truncate) */
+  { const charW *s = &src->s_textW[from];
+    const charW *e = &s[len];
+    charA *d = &dest->s_textA[at];
+
+    while(s<e)
+      *d++ = *s++;
+  }
 }
 
 
@@ -277,7 +302,7 @@ str_icase_cmp(String s1, String s2)
 int
 str_eq(String s1, String s2)
 { if ( s1->size == s2->size )
-    return str_cmp(s1, s2) == 0 && s1->encoding == s2->encoding;
+    return str_cmp(s1, s2) == 0;
 		     
   return FALSE;
 }
@@ -727,7 +752,7 @@ str_common_length(String s1, String s2)
 { int i = 0;
   int size = min(s1->size, s2->size);
 
-  if ( s1->encoding == s2->encoding )
+  if ( s1->iswide == s2->iswide )
   { if ( isstrA(s1) )
     { charA *t1 = s1->s_textA;
       charA *t2 = s2->s_textA;
@@ -752,7 +777,7 @@ str_icase_common_length(String s1, String s2)
 { int i = 0;
   int size = min(s1->size, s2->size);
 
-  if ( s1->encoding == s2->encoding )
+  if ( s1->iswide == s2->iswide )
   { if ( isstrA(s1) )
     { charA *t1 = s1->s_textA;
       charA *t2 = s2->s_textA;

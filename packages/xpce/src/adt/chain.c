@@ -1071,7 +1071,7 @@ Tuple
 getCompleteNameChain(Chain ch, CharArray prefix, Function map,
 		     Bool ignore_case)
 { Chain matches = NIL;
-  LocalString(common, &prefix->data, LINESIZE);
+  LocalString(common, prefix->data.iswide, LINESIZE);
   Cell cell;
 
   for_cell(cell, ch)
