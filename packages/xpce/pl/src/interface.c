@@ -176,6 +176,7 @@ static Atom ATOM_error;			/* "error" */
 static Atom ATOM_existence_error;	/* "existence_error" */
 static Atom ATOM_get;			/* "get" */
 static Atom ATOM_initialisation;	/* "initialisation" */
+static Atom ATOM_instantiation_error;	/* "instantiation_error" */
 static Atom ATOM_io_mode;		/* "io_mode" */
 static Atom ATOM_module;		/* ":" */
 static Atom ATOM_named_argument;	/* "named_argument" */
@@ -225,6 +226,7 @@ initPrologConstants()
   ATOM_existence_error		= AtomFromString("existence_error");
   ATOM_get			= AtomFromString("get");
   ATOM_initialisation		= AtomFromString("initialisation");
+  ATOM_instantiation_error	= AtomFromString("instantiation_error");
   ATOM_io_mode			= AtomFromString("io_mode");
   ATOM_module   		= AtomFromString(":");
   ATOM_named_argument		= AtomFromString("named_argument");
@@ -646,9 +648,10 @@ Defined context terms
 #define EX_BAD_ATOM_OBJECT_REF		3 /* <atom> */
 #define EX_BAD_OBJECT_REF		4 /* <term> */
 #define EX_TYPE				5 /* <type-name>, <term> */
-#define EX_DOMAIN			6 /* <domain-name>, <term> */
-#define EX_PERMISSION			7 /* op, type, obj, msg */
-#define EX_TOO_MANY_ARGUMENTS		8
+#define EX_INSTANTIATION		6 /* <nothing> */
+#define EX_DOMAIN			7 /* <domain-name>, <term> */
+#define EX_PERMISSION			8 /* op, type, obj, msg */
+#define EX_TOO_MANY_ARGUMENTS		9
 
 static void
 put_goal_context(Term ctx, PceGoal g, va_list args)
@@ -768,10 +771,19 @@ ThrowException(int id, ...)
       Atom tn = va_arg(args, Atom);
       Term v  = va_arg(args, Term);
 
+      if ( PL_is_variable(v) )
+	goto ex_instantiation;
+
       PutAtom(a1, tn);
       ConsFunctor(a1, FUNCTOR_pce1, a1);
       
       ConsFunctor(err, FUNCTOR_type_error2, a1, v);
+      break;
+    }
+    case EX_INSTANTIATION:			/* No arguments */
+    ex_instantiation:
+    { PL_put_atom(err, ATOM_instantiation_error);
+
       break;
     }
     case EX_DOMAIN:				/* domain-name, arg */

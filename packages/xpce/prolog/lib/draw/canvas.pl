@@ -870,9 +870,14 @@ approach is fast and allow us to remember status (such as the selected
 directory) from the last time the finder was used.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+prompt_pd_file(_Canvas, Mode:{open,save}, FileName:name) :<-
+	"Prompt for a load or save file"::
+	get(@finder, file, Mode, tuple('PceDraw files', pd), FileName).
+
+
 save_as(Canvas) :->
 	"Save in user-specified file"::
-	get(@finder, file, @off, '.pd', FileName),
+	get(Canvas, prompt_pd_file, save, FileName),
 	new(File, file(FileName)),
 	send(Canvas, save, File),
 	get(File, absolute_path, Path),
@@ -890,7 +895,7 @@ save(Canvas, File:[file]) :->
 	->  (   get(Canvas, file, SaveFile),
 	        SaveFile \== @nil
 	    ->	true
-	    ;	get(@finder, file, @off, '.pd', SaveFileName),
+	    ;	get(Canvas, prompt_pd_file, save, SaveFileName),
 		send(Canvas, file, new(SaveFile, file(SaveFileName)))
 	    )
 	;   send(Canvas, file, File),
@@ -956,13 +961,13 @@ save_if_modified(Canvas, AllowQuit:[bool]) :->
 
 load_from(Canvas) :->
 	"Load from user-specified file"::
-	get(@finder, file, @on, '.pd', File),
+	get(Canvas, prompt_pd_file, open, File),
 	send(Canvas, load, File, @on).
 
 
 import(Canvas) :->
 	"Add contents of user-requested file"::
-	get(@finder, file, @on, '.pd', File),
+	get(Canvas, prompt_pd_file, open, File),
 	send(Canvas, load, File, @off).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1094,7 +1099,7 @@ postscript_as(Canvas) :->
 	"Write PostScript to file"::
 	get(Canvas, default_file, eps, DefFile),
 	get_config(draw_config:file/postscript_file_extension, Ext),
-	get(@finder, file, @off, Ext, @default, DefFile, FileName),
+	get(@finder, file, save, Ext, @default, DefFile, FileName),
 	send(Canvas, generate_postscript, FileName).
 
 
@@ -1144,7 +1149,9 @@ windows_metafile(Canvas, File:[file], Format:[{emf,wmf,aldus}]) :->
 	wmf_extension(Fmt, Ext),
 	(   File == @default
 	->  get(Canvas, default_file, Ext, DefFile),
-	    get(@finder, file, @off, Ext, @default, DefFile, TheFile)
+	    get(@finder, file, save,
+		tuple('Windows metafiles', Ext),
+		@default, DefFile, TheFile)
 	;   TheFile = File
 	),
 	send(Canvas, generate_metafile, TheFile, Fmt).

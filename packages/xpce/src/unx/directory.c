@@ -388,38 +388,39 @@ getTimeDirectory(Directory d, Name which)
 }
 
 
-static FileObj
-getFileDirectory(Directory d, Name name)
+static Name
+getFileNameDirectory(Directory d, Name name)
 { char *fn = strName(name);
 
   if ( isAbsolutePath(fn) )
-    answer(answerObject(ClassFile, name, EAV));
+    answer(name);
   else
-  { char buf[MAXPATHLEN];
+  { int maxl =  (valInt(getSizeCharArray(d->path)) +
+		 valInt(getSizeCharArray(name)) +
+		 2);
+    LocalArray(char, buf, maxl);
+    char *q;
 
-    sprintf(buf, "%s/%s", strName(d->path), fn);
+    strcpy(buf, strName(d->path));
+    q = buf+strlen(buf);
+    if ( q > 0 && q[-1] != '/' )
+      *q++ = '/';
+    strcpy(q, fn);
 
-    answer(answerObject(ClassFile, CtoName(buf), EAV));
+    answer(CtoName(buf));
   }
+}
+
+
+static FileObj
+getFileDirectory(Directory d, Name name)
+{ return answerObject(ClassFile, getFileNameDirectory(d, name), EAV);
 }
 
 
 static Directory
 getDirectoryDirectory(Directory d, Name name)
-{ char *dn = strName(name);
-
-  if ( isAbsolutePath(dn) )
-    answer(answerObject(ClassDirectory, name, EAV));
-
-  if ( streq(dn, "..") )
-    return getParentDirectory(d);
-  else
-  { char buf[MAXPATHLEN];
-
-    sprintf(buf, "%s/%s", strName(d->path), dn);
-
-    answer(answerObject(ClassDirectory, CtoName(buf), EAV));
-  }
+{ return answerObject(ClassDirectory, getFileNameDirectory(d, name), EAV);
 }
 
 
@@ -529,6 +530,8 @@ static getdecl get_directory[] =
      NAME_contents, "New chain with names of member directories"),
   GM(NAME_directory, 1, "directory", "name", getDirectoryDirectory,
      NAME_contents, "New directory object with name in directory"),
+  GM(NAME_fileName, 1, "name", "name", getFileNameDirectory,
+     NAME_contents, "Create path relative to directory"),
   GM(NAME_file, 1, "file", "name", getFileDirectory,
      NAME_contents, "New file object with name in directory"),
   GM(NAME_files, 2, "names=chain", T_patternADregexD_hidden_tooADboolD, getFilesDirectory,

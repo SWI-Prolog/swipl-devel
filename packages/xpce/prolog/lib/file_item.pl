@@ -87,7 +87,7 @@ selected_completion(FI, Component:char_array, _Apply:[bool]) :->
 local_path(FI, In:char_array, Out:name) :<-
 	(   get(FI, directory, Dir),
 	    Dir \== @nil
-	->  get(string('%s/%s', Dir?path, In), value, Out)
+	->  get(Dir, file_name, In, Out)
 	;   Out = In
 	).
 
@@ -183,15 +183,15 @@ clean_file_name(Def, Def).
 
 browse(FI) :->
 	"Run finder to fill with value"::
-	get(FI?value_text?string, value, Sofar),
-	(   sub_atom(Sofar, _, _, 0, /)
+	get(FI?value, value, Sofar),
+	(   exists_directory(Sofar)
 	->  Dir = Sofar
 	;   file_directory_name(Sofar, Dir)
 	),
 	get(FI, exists, Exists),
 	get(@finder, file, Exists, directory := Dir, New),
 	send(FI, value, New),
-	send(FI, apply).
+	send(FI, apply, @on).
 
 :- pce_end_class(file_item).
 

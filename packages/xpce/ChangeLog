@@ -4,6 +4,11 @@
 VERSION 6.0.6, distributed with SWI-Prolog 5.0.6
 ================================================
 
+* ENHANCED: library(find_file).  New and more flexible file-browser.
+
+* FIXED: interface to generate error(instantiation_error,_) exception on
+  uninstantiated data rather than a type-error.
+
 * ENHANCED: XPCE Inspector to show textual value of a string rather then
   the address of the text and numerical indication of flags.
 
