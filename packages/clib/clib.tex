@@ -280,10 +280,12 @@ and one with output to the socket.  If \index{tcp_bind/2}\predref{tcp_bind}{2} h
 socket. \arg{OutSream} is useless and will not be created. After closing
 both \arg{InStream} and \arg{OutSream}, the socket itself is discarded.
 
-    \predicate{tcp_bind}{2}{+Socket, +Port}
+    \predicate{tcp_bind}{2}{+Socket, ?Port}
 Bind the socket to \arg{Port} on the current machine.  This operation,
 together with \index{tcp_listen/2}\predref{tcp_listen}{2} and \index{tcp_accept/3}\predref{tcp_accept}{3} implement the {\em server}-side of
-the socket interface.
+the socket interface.  If \arg{Port} is unbound, the system picks an
+arbitrary free port and unifies \arg{Port} with the selected port
+number.
 
     \predicate{tcp_listen}{2}{+Socket, +Backlog}
 Tells, after \index{tcp_bind/2}\predref{tcp_bind}{2}, the socket to listen for incoming requests for

@@ -276,10 +276,12 @@ and one with output to the socket.  If tcp_bind/2 has been called on the
 socket. \arg{OutSream} is useless and will not be created. After closing
 both \arg{InStream} and \arg{OutSream}, the socket itself is discarded.
 
-    \predicate{tcp_bind}{2}{+Socket, +Port}
+    \predicate{tcp_bind}{2}{+Socket, ?Port}
 Bind the socket to \arg{Port} on the current machine.  This operation,
 together with tcp_listen/2 and tcp_accept/3 implement the {\em server}-side of
-the socket interface.
+the socket interface.  If \arg{Port} is unbound, the system picks an
+arbitrary free port and unifies \arg{Port} with the selected port
+number.
 
     \predicate{tcp_listen}{2}{+Socket, +Backlog}
 Tells, after tcp_bind/2, the socket to listen for incoming requests for

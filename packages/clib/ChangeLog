@@ -1,3 +1,7 @@
+Dec 2, 2002
+
+ * ADDED: tcp_bind(+Socket, -Port) to bind with an arbitrary free port.
+
 Nov 29, 2002
 
  * FIXED: MS-Windows tcp_read() not to wait for messages after we have

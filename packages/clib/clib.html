@@ -338,11 +338,13 @@ not be created. After closing both <VAR>InStream</VAR> and <VAR>OutSream</VAR>,
 the socket itself is discarded.
 
 <P>
-<DT><A NAME="tcp_bind/2"><STRONG>tcp_bind</STRONG>(<VAR>+Socket, +Port</VAR>)</A><DD>
+<DT><A NAME="tcp_bind/2"><STRONG>tcp_bind</STRONG>(<VAR>+Socket, ?Port</VAR>)</A><DD>
 Bind the socket to <VAR>Port</VAR> on the current machine. This 
 operation, together with <A NAME="idx:tcplisten2:19"></A><A HREF="#tcp_listen/2">tcp_listen/2</A> 
 and <A NAME="idx:tcpaccept3:20"></A><A HREF="#tcp_accept/3">tcp_accept/3</A> 
-implement the <EM>server</EM>-side of the socket interface.
+implement the <EM>server</EM>-side of the socket interface. If <VAR>Port</VAR> 
+is unbound, the system picks an arbitrary free port and unifies <VAR>Port</VAR> 
+with the selected port number.
 
 <P>
 <DT><A NAME="tcp_listen/2"><STRONG>tcp_listen</STRONG>(<VAR>+Socket, 

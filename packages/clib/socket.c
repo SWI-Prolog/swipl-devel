@@ -797,6 +797,8 @@ tcp_get_sockaddr(term_t Address, struct sockaddr_in *addr)
     PL_get_arg(2, Address, arg);
     if ( !tcp_get_port(arg, &port) )
       return FALSE;
+  } else if ( PL_is_variable(Address) )
+  { port = 0;
   } else if ( !tcp_get_port(Address, &port) )
     return FALSE;
 
@@ -968,6 +970,15 @@ tcp_bind(term_t Socket, term_t Address)
   if ( bind(socket,
 	    (struct sockaddr*)&sockaddr, sizeof(sockaddr)))
     return tcp_error(errno, NULL);
+
+  if ( PL_is_variable(Address) )
+  { struct sockaddr_in addr;
+    int len = sizeof(addr);
+
+    if ( getsockname(socket, (struct sockaddr *) &addr, &len) )
+      return tcp_error(errno, NULL);
+    PL_unify_integer(Address, ntohs(addr.sin_port));
+  }
 
   lookupSocket(socket)->flags |= SOCK_BIND;
 
