@@ -197,7 +197,7 @@ size_memory_file(term_t handle, term_t size)
     { if ( m->size < 0 )
       { switch( m->encoding )
 	{ case ENC_ISO_LATIN_1:
-	  case ENC_NONE:
+	  case ENC_OCTET:
 	    m->size = m->data_size;
 	    break;
 	  case ENC_WCHAR:
@@ -242,7 +242,7 @@ atom_to_memory_file(term_t atom, term_t handle)
       m->data_size = m->size * sizeof(wchar_t);
     } else if ( PL_blob_data(a, &m->size, NULL) )
     { m->data = PL_blob_data(a, &m->data_size, NULL);
-      m->encoding = ENC_NONE;
+      m->encoding = ENC_OCTET;
       m->size = m->data_size;
     }
 
@@ -264,7 +264,7 @@ memory_file_to_atom(term_t handle, term_t atom)
     if ( m->data )
     { switch(m->encoding)
       { case ENC_ISO_LATIN_1:
-        case ENC_NONE:
+        case ENC_OCTET:
 	  return PL_unify_atom_nchars(atom, m->data_size, m->data);
 	case ENC_WCHAR:
 	  return PL_unify_wchars(atom, PL_ATOM, m->data_size/sizeof(wchar_t), (pl_wchar_t*)m->data);
@@ -291,7 +291,7 @@ memory_file_to_codes(term_t handle, term_t codes)
     if ( m->data )
     { switch(m->encoding)
       { case ENC_ISO_LATIN_1:
-	case ENC_NONE:
+	case ENC_OCTET:
 	  return PL_unify_list_ncodes(codes, m->data_size, m->data);
 	case ENC_WCHAR:
 	  return PL_unify_wchars(codes, PL_CODE_LIST, m->data_size/sizeof(wchar_t), (pl_wchar_t*)m->data);

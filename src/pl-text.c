@@ -154,11 +154,11 @@ PL_get_text(term_t l, PL_chars_t *text, int flags)
     text->storage  = PL_CHARS_LOCAL;
     text->canonical = TRUE;
   } else if ( (flags & CVT_WRITE) )
-  { IOENC encodings[] = { ENC_ISO_LATIN_1, ENC_WCHAR, ENC_NONE };
+  { IOENC encodings[] = { ENC_ISO_LATIN_1, ENC_WCHAR, ENC_UNKNOWN };
     IOENC *enc;
     char *r;
 
-    for(enc = encodings; *enc != ENC_NONE; enc++)
+    for(enc = encodings; *enc != ENC_UNKNOWN; enc++)
     { int size;
       IOSTREAM *fd;
     
@@ -180,7 +180,7 @@ PL_get_text(term_t l, PL_chars_t *text, int flags)
       }
     }
 
-    if ( *enc != ENC_NONE )
+    if ( *enc != ENC_UNKNOWN )
     { text->encoding = *enc;
       
       if ( r != text->buf )

@@ -559,7 +559,7 @@ Sputcode(int c, IOSTREAM *s)
     Sputcode(c, s->tee);
 
   switch(s->encoding)
-  { case ENC_NONE:
+  { case ENC_OCTET:
     case ENC_ISO_LATIN_1:
       if ( c >= 256 )
 	goto err;
@@ -637,7 +637,7 @@ Sgetcode(IOSTREAM *s)
 { int c;
 
   switch(s->encoding)
-  { case ENC_NONE:
+  { case ENC_OCTET:
     case ENC_ISO_LATIN_1:
       c = Snpgetc(s);
       break;
@@ -733,7 +733,7 @@ out:
 int
 Sungetcode(int c, IOSTREAM *s)
 { switch(s->encoding)
-  { case ENC_NONE:
+  { case ENC_OCTET:
     case ENC_ISO_LATIN_1:
       if ( c >= 256 )
 	return -1;			/* illegal */

@@ -1980,14 +1980,14 @@ static struct encname
   atom_t name;
 } encoding_names[] = 
 { { ENC_UNKNOWN,     ATOM_unknown },
-  { ENC_NONE,        ATOM_none },
+  { ENC_OCTET,       ATOM_octet },
   { ENC_ASCII,       ATOM_ascii },
   { ENC_ISO_LATIN_1, ATOM_iso_latin_1 },
   { ENC_UTF8,        ATOM_utf8 },
   { ENC_UNICODE_BE,  ATOM_unicode_be },
   { ENC_UNICODE_LE,  ATOM_unicode_le },
   { ENC_WCHAR,	     ATOM_wchar_t },
-  { ENC_NONE,        0 },
+  { ENC_UNKNOWN,     0 },
 };
 
 
@@ -2047,13 +2047,13 @@ openStream(term_t file, term_t mode, term_t options)
   atom_t eof_action     = ATOM_eof_code;
   atom_t buffer         = ATOM_full;
   atom_t lock		= ATOM_none;
-  atom_t encoding	= ATOM_none;
+  atom_t encoding	= NULL_ATOM;
   bool   close_on_abort = TRUE;
   char   how[10];
   char  *h		= how;
   char *path;
   IOSTREAM *s;
-  IOENC enc = LD->encoding;
+  IOENC enc;
 
   if ( options )
   { if ( !scan_options(options, 0, ATOM_stream_option, open4_options,
@@ -2062,13 +2062,17 @@ openStream(term_t file, term_t mode, term_t options)
       fail;
   }
 
-  if ( encoding != ATOM_none )
+  if ( encoding != NULL_ATOM )
   { enc = atom_to_encoding(encoding);
     if ( enc == ENC_UNKNOWN )
     { bad_encoding(encoding);
 
       return NULL;
     }
+  } else if ( type == ATOM_binary )
+  { enc = ENC_OCTET;
+  } else
+  { enc = LD->encoding;
   }
 
   if ( PL_get_atom(mode, &mname) )

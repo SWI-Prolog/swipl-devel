@@ -1063,8 +1063,9 @@ If true, SWI-Prolog is running as an \jargon{inferior process} of
 variable \env{EMACS} is \const{t} and \env{INFERIOR} is \const{yes}.
 
     \prologflagitem{encoding}{atom}{rw}
-Default encoding used for opening files.  The initial value is deduced
-from the environment.  See \secref{encoding} for details.
+Default encoding used for opening files in \const{text} mode. The
+initial value is deduced from the environment. See \secref{encoding} for
+details.
 
     \prologflagitem{executable}{atom}{r}
 Path-name of the running executable. Used by qsave_program/2 as
@@ -1699,6 +1700,10 @@ UTF-8 and ISO Latin-1 inside the file.
 SWI-Prolog currently defines and supports the following encodings:
 
 \begin{description}
+    \termitem{octed}{}
+Default encoding for \const{binary} streams.  This causes
+the stream to be read and written fully untranslated.
+
     \termitem{ascii}{}
 7-bit encoding in 8-bit bytes.  Equivalent to \const{iso_latin_1},
 but generates errors and warnings on encountering values above

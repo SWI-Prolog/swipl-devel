@@ -556,6 +556,7 @@ A unicode_be		"unicode_be"
 A unicode_le		"unicode_le"
 A byte			"byte"
 A wchar_t		"wchar_t"
+A octet		        "octet"
 
 F abs			1
 F access		1
