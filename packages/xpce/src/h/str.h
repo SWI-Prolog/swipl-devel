@@ -34,14 +34,13 @@
 typedef unsigned char charA;		/* 8-bit character */
 typedef wchar_t       charW;		/* wide character */
 
-#define STR_SIZE_BITS 29
+#define STR_SIZE_BITS 30
 #define STR_MAX_SIZE ((1L<<STR_SIZE_BITS)-1)
 
 typedef struct _string
-{ unsigned	size : STR_SIZE_BITS;	/* size indication (128 MB) */
+{ unsigned	size : STR_SIZE_BITS;	/* size indication (512 MB) */
   unsigned	iswide : 1;		/* char- or wide characters */
   unsigned	readonly : 1;		/* storage is externally managed */
-  unsigned	pad : 1;		/* padding to word-boundary */
   union
   { charA *	textA;
     charW *	textW;

@@ -142,34 +142,6 @@ initialiseStringv(StringObj str, CharArray fmt, int argc, Any *argv)
 }
 
 
-static status
-bitsPerCharacterString(StringObj str, Int bits)
-{ String s = &str->data;
-
-  if ( valInt(bits) == 8 )
-  { if ( !isstrA(s) )
-    { string s2 = *s;
-
-      s2.iswide = FALSE;
-      s2.size *= 2;
-      setString(str, &s2);
-    }
-    succeed;
-  } else if ( valInt(bits) == 16 )
-  { if ( !isstrW(s) )
-    { string s2 = *s;
-
-      s2.iswide = TRUE;
-      s2.size /= 2;
-      setString(str, &s2);
-    }
-
-    succeed;
-  } else
-    return errorPce(bits, NAME_unexpectedType, CtoString("8 or 16"));
-}
-
-
 static StringObj
 getCopyString(StringObj s)
 { answer(answerObject(classOfObject(s), name_procent_s, s, EAV));
@@ -221,6 +193,7 @@ formatString(StringObj s, CharArray fmt, int argc, Any *argv)
 
   str_unalloc(&s->data);
   str_writefv(&s->data, fmt, argc, argv);
+
   return setString(s, &s->data);
 }
 
@@ -589,7 +562,6 @@ CsetStringL(StringObj str, const char *txt, int l)
 
   s.size = l;
   s.iswide = 0;
-  s.pad = 0;
   s.s_textA = (charA*) txt;
 
   return setString(str, &s);
@@ -709,8 +681,6 @@ static senddecl send_string[] =
      NAME_content, "Truncate string to argument characters"),
   SM(NAME_value, 1, "text=char_array", valueString,
      NAME_copy, "Set the contents of the string"),
-  SM(NAME_bitsPerCharacter, 1, "int", bitsPerCharacterString,
-     NAME_encoding, "8- or 16-bits per character"),
   SM(NAME_format, 2, T_format, formatString,
      NAME_format, "Format (like printf) in string"),
   SM(NAME_untabify, 1, "tabs=[int|vector]", untabifyString,
