@@ -32,6 +32,8 @@ finding source files, etc.
 
 #define LOCK()   PL_LOCK(L_PREDICATE)
 #define UNLOCK() PL_UNLOCK(L_PREDICATE)
+#undef LD
+#define LD LOCAL_LD
 
 static void	resetReferencesModule(Module);
 static void	resetProcedure(Procedure proc, bool isnew);
@@ -47,36 +49,37 @@ lookupProcedure(functor_t f, Module m)
   
   LOCK();
   if ( (s = lookupHTable(m->procedures, (void *)f)) )
-  { UNLOCK();
-    DEBUG(1, Sdprintf("lookupProcedure() --> %s\n", procedureName(s->value)));
-    return (Procedure) s->value;
+  { DEBUG(1, Sdprintf("lookupProcedure() --> %s\n", procedureName(s->value)));
+    proc = s->value;
+  } else
+  { GET_LD
+
+    proc = (Procedure)  allocHeap(sizeof(struct procedure));
+    def  = (Definition) allocHeap(sizeof(struct definition));
+    proc->type = PROCEDURE_TYPE;
+    proc->definition = def;
+    def->functor = valueFunctor(f);
+    def->module  = m;
+    addHTable(m->procedures, (void *)f, proc);
+    GD->statistics.predicates++;
+  
+    def->definition.clauses = NULL;
+    def->lastClause = NULL;
+    def->hash_info = NULL;
+  #ifdef O_PROFILE
+    def->profile_ticks = 0;
+    def->profile_calls = 0;
+    def->profile_redos = 0;
+    def->profile_fails = 0;
+  #endif /* O_PROFILE */
+    clearFlags(def);
+    def->references = 0;
+    def->erased_clauses = 0;
+    resetProcedure(proc, TRUE);
+    DEBUG(1, Sdprintf("Created %s\n", procedureName(proc)));
   }
-
-  proc = (Procedure)  allocHeap(sizeof(struct procedure));
-  def  = (Definition) allocHeap(sizeof(struct definition));
-  proc->type = PROCEDURE_TYPE;
-  proc->definition = def;
-  def->functor = valueFunctor(f);
-  def->module  = m;
-  addHTable(m->procedures, (void *)f, proc);
-  GD->statistics.predicates++;
-
-  def->definition.clauses = NULL;
-  def->lastClause = NULL;
-  def->hash_info = NULL;
-#ifdef O_PROFILE
-  def->profile_ticks = 0;
-  def->profile_calls = 0;
-  def->profile_redos = 0;
-  def->profile_fails = 0;
-#endif /* O_PROFILE */
-  clearFlags(def);
-  def->references = 0;
-  def->erased_clauses = 0;
-  resetProcedure(proc, TRUE);
   UNLOCK();
-
-  DEBUG(1, Sdprintf("Created %s\n", procedureName(proc)));
+  
   return proc;
 }
 
@@ -133,7 +136,8 @@ hasClausesDefinition(Definition def)
   { if ( def->erased_clauses == 0 )
       return def->definition.clauses;
     else
-    { ClauseRef c;
+    { GET_LD
+      ClauseRef c;
 #ifdef O_LOGICAL_UPDATE
       unsigned long generation;
       LocalFrame fr = environment_frame;
@@ -176,7 +180,8 @@ to be defined is a system predicate.
 
 Procedure
 isStaticSystemProcedure(functor_t fd)
-{ Procedure proc;
+{ GET_LD
+  Procedure proc;
 
   if ( !SYSTEM_MODE &&
        MODULE_system &&
@@ -252,7 +257,8 @@ get_arity(term_t t, int maxarity, int *arity)
 
 static int
 get_functor(term_t descr, functor_t *fdef, Module *m, term_t h, int how)
-{ term_t head = PL_new_term_ref();
+{ GET_LD
+  term_t head = PL_new_term_ref();
 
   PL_strip_module(descr, m, head);
 
@@ -288,7 +294,7 @@ get_functor(term_t descr, functor_t *fdef, Module *m, term_t h, int how)
 
       
 int
-get_head_functor(term_t head, functor_t *fdef, int how)
+get_head_functor(term_t head, functor_t *fdef, int how ARG_LD)
 { int arity;
 
   if ( !PL_get_functor(head, fdef) )
@@ -331,14 +337,15 @@ get_procedure(term_t descr, Procedure *proc, term_t h, int how)
   { if ( !get_functor(descr, &fdef, &m, h, GF_PROCEDURE|(how&GP_QUIET)) )
       fail;
   } else
-  { term_t head = PL_new_term_ref();
+  { GET_LD
+    term_t head = PL_new_term_ref();
 
     PL_strip_module(descr, &m, head);
 
     if ( h )
       PL_put_term(h, head);
 
-    if ( !get_head_functor(head, &fdef, how) )
+    if ( !get_head_functor(head, &fdef, how PASS_LD) )
       fail;
   }
   
@@ -395,7 +402,8 @@ to C.
 
 word
 pl_current_predicate(term_t name, term_t spec, word h)
-{ TableEnum e;
+{ GET_LD
+  TableEnum e;
   atom_t n;
   functor_t f;
   Module m = (Module) NULL;
@@ -489,7 +497,8 @@ visibleProcedure(functor_t f, Module m)
 
 foreign_t
 pl_current_predicate1(term_t spec, word ctx)
-{ cur_enum e0;
+{ GET_LD
+  cur_enum e0;
   cur_enum *e;
   Symbol sp, sm;
   int rval = FALSE;
@@ -681,7 +690,7 @@ typeerror:
 
 
 ClauseRef
-newClauseRef(Clause clause)
+newClauseRef(Clause clause ARG_LD)
 { ClauseRef cref = allocHeap(sizeof(struct clause_ref));
   
   cref->clause = clause;
@@ -692,7 +701,7 @@ newClauseRef(Clause clause)
 
 
 void
-freeClauseRef(ClauseRef cref)
+freeClauseRef(ClauseRef cref ARG_LD)
 { freeHeap(cref, sizeof(struct clause_ref));
 }
 
@@ -703,9 +712,9 @@ freeClauseRef(ClauseRef cref)
  ** Fri Apr 29 12:44:08 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
 ClauseRef
-assertProcedure(Procedure proc, Clause clause, int where)
+assertProcedure(Procedure proc, Clause clause, int where ARG_LD)
 { Definition def = proc->definition;
-  ClauseRef cref = newClauseRef(clause);
+  ClauseRef cref = newClauseRef(clause PASS_LD);
 
   if ( def->references && (debugstatus.styleCheck & DYNAMIC_STYLE) )
     printMessage(ATOM_informational,
@@ -740,7 +749,7 @@ assertProcedure(Procedure proc, Clause clause, int where)
 	    Sdprintf("Adding non-indexed clause to %s\n", predicateName(def));
 	 );
 
-    addClauseToIndex(def, clause, where);
+    addClauseToIndex(def, clause, where PASS_LD);
   } else
   { if ( def->number_of_clauses == 25 &&
 	 true(def, AUTOINDEX) &&
@@ -767,7 +776,8 @@ abolishProcedure(Procedure proc, Module module)
 
   LOCK();
   if ( def->module != module )		/* imported predicate; remove link */
-  { Definition ndef	     = allocHeap(sizeof(struct definition));
+  { GET_LD
+    Definition ndef	     = allocHeap(sizeof(struct definition));
 
     proc->definition         = ndef;
     ndef->functor            = def->functor; /* should be merged with */
@@ -839,7 +849,8 @@ reference.
 
 static bool
 retractClauseDefinitionMT(Definition def, Clause clause)
-{ ClauseRef prev = NULL;
+{ GET_LD
+  ClauseRef prev = NULL;
   ClauseRef c;
   bool rval = FALSE;
   startCritical;
@@ -860,7 +871,7 @@ retractClauseDefinitionMT(Definition def, Clause clause)
       }
 
 
-      freeClauseRef(c);
+      freeClauseRef(c PASS_LD);
 #if O_DEBUGGER
       if ( PROCEDURE_event_hook1 &&
 	   def != PROCEDURE_event_hook1->definition )
@@ -919,7 +930,7 @@ retractClauseProcedure(Procedure proc, Clause clause)
 
 void
 freeClause(Clause c)
-{
+{ GET_LD
 #if O_DEBUGGER
   if ( true(c, HAS_BREAKPOINTS) )
     clearBreakPointsClause(c);
@@ -942,7 +953,8 @@ gcClausesDefinition()
 
 void
 gcClausesDefinition(Definition def)
-{ ClauseRef cref, prev = NULL;
+{ GET_LD
+  ClauseRef cref, prev = NULL;
   int rehash = 0;
 #if O_DEBUG
   int left = 0, removed = 0;
@@ -954,7 +966,7 @@ gcClausesDefinition(Definition def)
 
   if ( def->hash_info )
   { if ( false(def, NEEDSREHASH) )
-      gcClauseIndex(def->hash_info);
+      gcClauseIndex(def->hash_info PASS_LD);
     else
     { rehash = def->hash_info->size * 2;
       unallocClauseIndexTable(def->hash_info);
@@ -987,7 +999,7 @@ gcClausesDefinition(Definition def)
 #endif
       def->erased_clauses--;
       freeClause(c->clause);
-      freeClauseRef(c);
+      freeClauseRef(c PASS_LD);
     } else
     { prev = cref;
       cref = cref->next;
@@ -1054,7 +1066,8 @@ MT: locked by caller
 
 static void
 registerDirtyDefinition(Definition def)
-{ DefinitionChain cell = allocHeap(sizeof(*cell));
+{ GET_LD
+  DefinitionChain cell = allocHeap(sizeof(*cell));
 
   cell->definition = def;
   cell->next = GD->procedures.dirty;
@@ -1064,7 +1077,9 @@ registerDirtyDefinition(Definition def)
 
 foreign_t
 pl_garbage_collect_clauses(void)
-{ if ( GD->procedures.dirty && !gc_status.blocked )
+{ GET_LD
+
+  if ( GD->procedures.dirty && !gc_status.blocked )
   { DefinitionChain c, *cell;
     sigset_t set;
 
@@ -1204,7 +1219,8 @@ decided its not save, but can't recall why ...)
 
 Definition
 autoImport(functor_t f, Module m)
-{ Procedure proc;
+{ GET_LD
+  Procedure proc;
   Definition def;
 					/* Defined: no problem */
   if ( (proc = isCurrentProcedure(f, m)) && isDefinedProcedure(proc) )
@@ -1228,7 +1244,8 @@ autoImport(functor_t f, Module m)
 
 static atom_t
 autoLoader(atom_t name, int arity, atom_t mname)
-{ fid_t  cid  = PL_open_foreign_frame();
+{ GET_LD
+  fid_t  cid  = PL_open_foreign_frame();
   term_t argv = PL_new_term_refs(4);
   static predicate_t MTOK_pred;
   qid_t qid;
@@ -1264,7 +1281,8 @@ discontiguous should not cause an undefined predicate warning.
 
 Definition
 trapUndefined(Definition def)
-{ int retry_times = 0;
+{ GET_LD
+  int retry_times = 0;
   Definition newdef;
   Module module = def->module;
   FunctorDef functor = def->functor;
@@ -1351,9 +1369,6 @@ pl_require(term_t pred)
 		/********************************
 		*            RETRACT            *
 		*********************************/
-
-#undef LD
-#define LD LOCAL_LD
 
 word
 pl_retract(term_t term, word h)
@@ -1529,16 +1544,14 @@ pl_retractall(term_t head)
   succeed;
 }
 
-#undef LD
-#define LD GLOBAL_LD
-
 		/********************************
 		*       PROLOG PREDICATES       *
 		*********************************/
 
 static word
 do_abolish(Module m, term_t atom, term_t arity)
-{ functor_t f;
+{ GET_LD
+  functor_t f;
   Procedure proc;
   atom_t name;
   int a;
@@ -1563,7 +1576,8 @@ do_abolish(Module m, term_t atom, term_t arity)
 
 word
 pl_abolish(term_t name, term_t arity)	/* Name, Arity */
-{ Module m = NULL;
+{ GET_LD
+  Module m = NULL;
 
   PL_strip_module(name, &m, name);
   
@@ -1573,7 +1587,8 @@ pl_abolish(term_t name, term_t arity)	/* Name, Arity */
 
 word
 pl_abolish1(term_t spec)		/* Name/Arity */
-{ term_t name  = PL_new_term_ref();
+{ GET_LD
+  term_t name  = PL_new_term_ref();
   term_t arity = PL_new_term_ref();
   Module m = NULL;
 
@@ -1617,7 +1632,8 @@ attribute_mask(atom_t key)
 word
 pl_get_predicate_attribute(term_t pred,
 			   term_t what, term_t value)
-{ Procedure proc;
+{ GET_LD
+  Procedure proc;
   Definition def;
   functor_t fd;
   atom_t key;
@@ -1703,7 +1719,8 @@ set_dynamic_procedure(Procedure proc, bool isdyn)
   }
 
   if ( isdyn )				/* static --> dynamic */
-  { if ( def->definition.clauses )
+  { GET_LD
+    if ( def->definition.clauses )
     { UNLOCK();
       return PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PROC, proc);
     }
@@ -1727,7 +1744,8 @@ set_dynamic_procedure(Procedure proc, bool isdyn)
 word
 pl_set_predicate_attribute(term_t pred,
 			   term_t what, term_t value)
-{ Procedure proc;
+{ GET_LD
+  Procedure proc;
   Definition def;
   atom_t key;
   int val;
@@ -1862,7 +1880,8 @@ reindexDefinition(Definition def)
 
 word
 pl_index(term_t pred)
-{ Procedure proc;
+{ GET_LD
+  Procedure proc;
   term_t head = PL_new_term_ref();
 
   if ( get_procedure(pred, &proc, head, GP_CREATE) )
@@ -1906,7 +1925,8 @@ pl_index(term_t pred)
 
 word
 pl_get_clause_attribute(term_t ref, term_t att, term_t value)
-{ Clause clause;
+{ GET_LD
+  Clause clause;
   atom_t a;
 
   if ( !get_clause_ptr_ex(ref, &clause) )
@@ -1978,23 +1998,24 @@ lookupSourceFile(atom_t name)
     sourceTable = newHTable(32);
 
   if ( (s=lookupHTable(sourceTable, (void*)name)) )
-  { UNLOCK();
-    return (SourceFile) s->value;
+  { file = s->value;
+  } else
+  { GET_LD
+
+    file = (SourceFile) allocHeap(sizeof(struct sourceFile));
+    file->name = name;
+    file->count = 0;
+    file->time = 0L;
+    file->index = ++source_index;
+    file->system = GD->bootsession;
+    file->procedures = NULL;
+
+    PL_register_atom(file->name);
+
+    registerSourceFile(file);
+
+    addHTable(sourceTable, (void*)name, file);
   }
-
-  file = (SourceFile) allocHeap(sizeof(struct sourceFile));
-  file->name = name;
-  file->count = 0;
-  file->time = 0L;
-  file->index = ++source_index;
-  file->system = GD->bootsession;
-  file->procedures = NULL;
-
-  PL_register_atom(file->name);
-
-  registerSourceFile(file);
-
-  addHTable(sourceTable, (void*)name, file);
   UNLOCK();
 
   return file;
@@ -2027,18 +2048,23 @@ addProcedureSourceFile(SourceFile sf, Procedure proc)
     }
   }
 
-  cell = allocHeap(sizeof(struct list_cell));
-  cell->value = proc;
-  cell->next = sf->procedures;
-  sf->procedures = cell;
-  set(proc->definition, FILE_ASSIGNED);
+  { GET_LD
+
+    cell = allocHeap(sizeof(struct list_cell));
+    cell->value = proc;
+    cell->next = sf->procedures;
+    sf->procedures = cell;
+    set(proc->definition, FILE_ASSIGNED);
+  }
+
   UNLOCK();
 }
 
 
 void
 redefineProcedure(Procedure proc, SourceFile sf)
-{ Definition def = proc->definition;
+{ GET_LD
+  Definition def = proc->definition;
 
   if ( true(def, FOREIGN) )
   { abolishProcedure(proc, def->module);
@@ -2093,7 +2119,8 @@ pl_make_system_source_files(void)
 
 word
 pl_source_file(term_t descr, term_t file, control_t h)
-{ Procedure proc;
+{ GET_LD
+  Procedure proc;
   ClauseRef cref;
   SourceFile sf;
   atom_t name;
@@ -2157,7 +2184,8 @@ pl_source_file(term_t descr, term_t file, control_t h)
 
 word
 pl_time_source_file(term_t file, term_t time, control_t h)
-{ int index;
+{ GET_LD
+  int index;
   int mx = entriesBuffer(&GD->files.source_files, SourceFile);
 
   switch( ForeignControl(h) )
@@ -2192,7 +2220,9 @@ the clauses of unreferences procedures immediately.
 
 void
 startConsult(SourceFile f)
-{ if ( f->count++ > 0 )
+{ GET_LD
+
+  if ( f->count++ > 0 )
   { ListCell cell, next;
 
     for(cell = f->procedures; cell; cell = next)
@@ -2216,7 +2246,8 @@ startConsult(SourceFile f)
 
 word
 pl_start_consult(term_t file)
-{ atom_t name;
+{ GET_LD
+  atom_t name;
 
   if ( PL_get_atom(file, &name) )
   { SourceFile f = lookupSourceFile(name);
@@ -2235,7 +2266,8 @@ pl_start_consult(term_t file)
 
 word
 pl_clause_from_source(term_t file, term_t line, term_t clause)
-{ atom_t name;
+{ GET_LD
+  atom_t name;
   SourceFile f;
   int ln;
   ListCell cell;

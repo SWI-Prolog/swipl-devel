@@ -1747,7 +1747,7 @@ assert_term(term_t term, int where, SourceLoc loc ARG_LD)
   PL_strip_module(term, &module, tmp);
   mhead = module;
   get_head_and_body_clause(tmp, head, body, &mhead PASS_LD);
-  if ( !get_head_functor(head, &fdef, 0) )
+  if ( !get_head_functor(head, &fdef, 0 PASS_LD) )
     return NULL;			/* not callable, arity too high */
   if ( !(proc = lookupProcedureToDefine(fdef, mhead)) )
     return NULL;			/* redefine a system predicate */
@@ -1827,7 +1827,7 @@ care of reconsult, redefinition, etc.
     }
 
     if ( proc == sf->current_procedure )
-      return assertProcedure(proc, clause, where) ? clause : NULL;
+      return assertProcedure(proc, clause, where PASS_LD) ? clause : NULL;
 
     if ( def->definition.clauses )	/* i.e. is (might be) defined */
       redefineProcedure(proc, sf);
@@ -1844,7 +1844,7 @@ mode, the predicate is still undefined and is not dynamic or multifile.
 
     addProcedureSourceFile(sf, proc);
     sf->current_procedure = proc;
-    return assertProcedure(proc, clause, where) ? clause : NULL;
+    return assertProcedure(proc, clause, where PASS_LD) ? clause : NULL;
   }
 
   /* assert[az]/1 */
@@ -1856,7 +1856,7 @@ mode, the predicate is still undefined and is not dynamic or multifile.
   }
   set(def, DYNAMIC);			/* Make dynamic on first assert */
 
-  return assertProcedure(proc, clause, where) ? clause : (Clause)NULL;
+  return assertProcedure(proc, clause, where PASS_LD) ? clause : (Clause)NULL;
 }
 
 word

@@ -956,7 +956,7 @@ loadPredicate(IOSTREAM *fd, int skip)
 	{ if ( def->hash_info )
 	  { reindexClause(clause);
 	  }
-	  assertProcedure(proc, clause, CL_END);
+	  assertProcedure(proc, clause, CL_END PASS_LD);
 	}
       }
     }

@@ -518,8 +518,8 @@ unallocClauseIndexTable(ClauseIndex ci)
 
 
 static void
-appendClauseChain(ClauseChain ch, Clause cl, int where)
-{ ClauseRef cr = newClauseRef(cl);
+appendClauseChain(ClauseChain ch, Clause cl, int where ARG_LD)
+{ ClauseRef cr = newClauseRef(cl PASS_LD);
 
   if ( !ch->tail )
     ch->head = ch->tail = cr;
@@ -557,7 +557,7 @@ deleteClauseChain(ClauseChain ch, Clause clause)
 
 
 static int
-gcClauseChain(ClauseChain ch, int dirty)
+gcClauseChain(ClauseChain ch, int dirty ARG_LD)
 { ClauseRef cref = ch->head, prev = NULL;
   int deleted = 0;
 
@@ -582,7 +582,7 @@ gcClauseChain(ClauseChain ch, int dirty)
 	  ch->tail = prev;
       }
 
-      freeClauseRef(c);
+      freeClauseRef(c PASS_LD);
     } else
     { prev = cref;
       cref = cref->next;
@@ -598,17 +598,17 @@ gcClauseChain(ClauseChain ch, int dirty)
 #define INFINT (~(1<<(INTBITSIZE-1)))
 
 void
-gcClauseIndex(ClauseIndex ci)
+gcClauseIndex(ClauseIndex ci ARG_LD)
 { ClauseChain ch = ci->entries;
   int n = ci->buckets;
     
   if ( ci->alldirty )
   { for(; n; n--, ch++)
-      ci->size -= gcClauseChain(ch, -1); /* do them all */
+      ci->size -= gcClauseChain(ch, -1 PASS_LD); /* do them all */
   } else
   { for(; n; n--, ch++)
     { if ( ch->dirty )
-	ci->size -= gcClauseChain(ch, ch->dirty);
+	ci->size -= gcClauseChain(ch, ch->dirty PASS_LD);
     }
   }
 }
@@ -626,7 +626,7 @@ markDirtyClauseIndex(ClauseIndex ci, Clause cl)
 
 
 void
-addClauseToIndex(Definition def, Clause cl, int where)
+addClauseToIndex(Definition def, Clause cl, int where ARG_LD)
 { ClauseIndex ci = def->hash_info;
   ClauseChain ch = ci->entries;
 
@@ -643,12 +643,12 @@ addClauseToIndex(Definition def, Clause cl, int where)
 		     predicateName(def)));
 
     for(; n; n--, ch++)
-      appendClauseChain(ch, cl, where);
+      appendClauseChain(ch, cl, where PASS_LD);
   } else
   { int hi = hashIndex(cl->index.key, ci->buckets);
     
     DEBUG(4, Sdprintf("Storing in bucket %d\n", hi));
-    appendClauseChain(&ch[hi], cl, where);
+    appendClauseChain(&ch[hi], cl, where PASS_LD);
 
     if ( ++ci->size / 2 > ci->buckets )
     { enterDefinitionNOLOCK(def);
@@ -682,7 +682,8 @@ delClauseFromIndex(ClauseIndex ci, Clause cl)
 
 bool
 hashDefinition(Definition def, int buckets)
-{ ClauseRef cref;
+{ GET_LD
+  ClauseRef cref;
 
   if ( true(def, FOREIGN) )
     fail;
@@ -695,7 +696,7 @@ hashDefinition(Definition def, int buckets)
 
   for(cref = def->definition.clauses; cref; cref = cref->next)
   { if ( false(cref->clause, ERASED) )
-      addClauseToIndex(def, cref->clause, CL_END);
+      addClauseToIndex(def, cref->clause, CL_END PASS_LD);
   }
 
   succeed;

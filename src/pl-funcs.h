@@ -182,9 +182,9 @@ bool		reindexClause(Clause clause);
 bool		unify_index_pattern(Procedure proc, term_t value);
 bool		hashDefinition(Definition def, int buckets);
 word		pl_hash(term_t pred);
-void		addClauseToIndex(Definition def, Clause cl, int where);
+void		addClauseToIndex(Definition def, Clause cl, int where ARG_LD);
 void		delClauseFromIndex(ClauseIndex ci, Clause cl);
-void		gcClauseIndex(ClauseIndex ci);
+void		gcClauseIndex(ClauseIndex ci ARG_LD);
 void		unallocClauseIndexTable(ClauseIndex ci);
 void		markDirtyClauseIndex(ClauseIndex ci, Clause cl);
 
@@ -619,16 +619,18 @@ Procedure	isCurrentProcedure(functor_t f, Module m);
 Procedure	lookupProcedureToDefine(functor_t def, Module m);
 ClauseRef	hasClausesDefinition(Definition def);
 bool		isDefinedProcedure(Procedure proc);
-int		get_head_functor(term_t head, functor_t *fdef, int flags);
+int		get_head_functor(term_t head, functor_t *fdef,
+				 int flags ARG_LD);
 int		get_procedure(term_t descr, Procedure *proc, term_t he, int f);
 word		pl_current_predicate(term_t name, term_t functor, word h);
 foreign_t	pl_current_predicate1(term_t spec, word ctx);
-ClauseRef	assertProcedure(Procedure proc, Clause clause, int where);
+ClauseRef	assertProcedure(Procedure proc, Clause clause,
+				int where ARG_LD);
 bool		abolishProcedure(Procedure proc, Module module);
 bool		retractClauseProcedure(Procedure proc, Clause clause);
 void		freeClause(Clause c);
-void		freeClauseRef(ClauseRef c);
-ClauseRef	newClauseRef(Clause cl);
+void		freeClauseRef(ClauseRef c ARG_LD);
+ClauseRef	newClauseRef(Clause cl ARG_LD);
 void		gcClausesDefinition(Definition def);
 void		resetReferences(void);
 Procedure	resolveProcedure(functor_t f, Module module);
