@@ -736,7 +736,9 @@ unify_finished(term_t catcher, enum finished reason)
   };
 
   if ( reason == FINISH_EXCEPT )
-  { return PL_unify_term(catcher,
+  { SECURE(checkData(valTermRef(exception_bin)));
+
+    return PL_unify_term(catcher,
 			 PL_FUNCTOR, FUNCTOR_exception1,
 			   PL_TERM, exception_bin);
   } else
@@ -749,7 +751,7 @@ static void
 frameFinished(LocalFrame fr, enum finished reason)
 { GET_LD
   fid_t cid = PL_open_foreign_frame();
-
+    
   if ( fr->predicate == PROCEDURE_call_cleanup3->definition )
   { term_t catcher = argFrameP(fr, 1) - (Word)lBase;
 
@@ -762,6 +764,7 @@ frameFinished(LocalFrame fr, enum finished reason)
       if ( !rval && ex )
 	PL_throw(ex);
     }
+
   }
 
 #ifdef O_DEBUGGER
@@ -1566,6 +1569,8 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   def   = proc->definition;
   arity	= def->functor->arity;
 
+  requireStack(local, sizeof(struct queryFrame)+arity*sizeof(word));
+
   SECURE(checkStacks(environment_frame, NULL));
   assert((ulong)fli_context > (ulong)environment_frame);
   assert((ulong)lTop >= (ulong)(fli_context+1));
@@ -1584,9 +1589,6 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   qf->solutions         = 0;
   qf->exception		= 0;
 
-  lTop = (LocalFrame) argFrameP(fr, arity);
-  verifyStack(local);
-
   fr->parent = NULL;
 					/* fill frame arguments */
   ap = argFrameP(fr, 0);
@@ -1596,6 +1598,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
     for( n = arity; n-- > 0; p++ )
       *ap++ = linkVal(p);
   }
+  lTop = (LocalFrame)ap;
 
 					/* find definition and clause */
   if ( !(clause = def->definition.clauses) && false(def, PROC_DEFINED) )
@@ -2569,7 +2572,7 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
         catcher = valTermRef(exception_term);
 
 	SECURE(checkData(catcher));
-	DEBUG(1, { Sdprintf("Throwing ");
+	DEBUG(0, { Sdprintf("Throwing ");
 		   PL_write_term(Serror, wordToTermRef(catcher), 1200, 0);
 		   Sdprintf("\n");
 		 });
@@ -2641,7 +2644,8 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 	} else
 #endif /*O_DEBUGGER*/
 	{ for( ; FR && FR > catchfr; FR = FR->parent )
-	  { discardChoicesAfter(FR PASS_LD);
+	  { SECURE(checkData(catcher));
+	    discardChoicesAfter(FR PASS_LD);
 	    discardFrame(FR, FINISH_EXCEPT);
 	  }
 	}
@@ -3780,21 +3784,23 @@ execution can continue at `next_instruction'
 #endif
 	   )
 	{ Definition ndef = ((Procedure) *PC++)->definition;
-	  LocalFrame lSave = lTop;
-
 	  arity = ndef->functor->arity;
-	  lTop = (LocalFrame)argFrameP(lTop, arity);
+
 	  if ( true(FR, FR_WATCHED) )
+	  { LocalFrame lSave = lTop;
+	    lTop = (LocalFrame)argFrameP(lTop, arity);
 	    frameFinished(FR, FINISH_EXIT);
+	    lTop = lSave;
+	  }
+
 	  if ( DEF )
 	  { if ( true(DEF, HIDE_CHILDS) )
 	      set(FR, FR_NODEBUG);
 	    leaveDefinition(DEF);
 	  }
-	  FR->predicate = DEF = ndef;
 
-	  copyFrameArguments(lSave, FR, arity PASS_LD);
-	  lTop = lSave;
+	  copyFrameArguments(lTop, FR, arity PASS_LD);
+	  FR->predicate = DEF = ndef;
 
 	  goto depart_continue;
 	}
@@ -4130,6 +4136,8 @@ bit more careful.
 
 	leave = (true(FR, FR_WATCHED) && FR == lTop) ? FR : NULL;
 #endif
+
+        SECURE(assert(onStackArea(local, FR->parent)));
 
 	PC = FR->programPointer;
 	environment_frame = FR = FR->parent;

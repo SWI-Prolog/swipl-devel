@@ -142,14 +142,16 @@ wordToTermRef(Word p)
 term_t
 PL_new_term_refs(int n)
 { GET_LD
-  Word t = (Word)lTop;
-  term_t r = consTermRef(t);
+  Word t;
+  term_t r;
 
-  lTop = (LocalFrame)(t+n);
-  verifyStack(local);
+  requireStack(local, sizeof(word)*n);
+  t = (Word)lTop;
+  r = consTermRef(t);
 
   while( --n >= 0 )
     setVar(*t++);
+  lTop = (LocalFrame)t;
   
   return r;
 }
@@ -158,13 +160,16 @@ PL_new_term_refs(int n)
 term_t
 PL_new_term_ref()
 { GET_LD
-  Word t = (Word)lTop;
-  term_t r = consTermRef(t);
+  Word t;
+  term_t r;
 
-  lTop = (LocalFrame)(t+1);
-  verifyStack(local);
+  requireStack(local, sizeof(word));
+  t = (Word)lTop;
+  r = consTermRef(t);
   SECURE(assert(*t != QID_MAGIC));
   setVar(*t);
+
+  lTop = (LocalFrame)(t+1);
   
   return r;
 }
@@ -181,13 +186,17 @@ PL_reset_term_refs(term_t r)
 term_t
 PL_copy_term_ref(term_t from)
 { GET_LD
-  Word t   = (Word)lTop;
-  term_t r = consTermRef(t);
-  Word p2  = valHandleP(from);
+  Word t, p2;
+  term_t r;
 
-  lTop = (LocalFrame)(t+1);
-  verifyStack(local);
+  requireStack(local, sizeof(word));
+
+  t  = (Word)lTop;
+  r  = consTermRef(t);
+  p2 = valHandleP(from);
+
   *t = linkVal(p2);
+  lTop = (LocalFrame)(t+1);
   
   return r;
 }

@@ -2387,7 +2387,7 @@ decompileBody(decompileInfo *di, code end, Code until)
       common_bfunctor:
 	*ARGP = globalFunctor(fdef);
         *aTop++ = ARGP + 1;
-        verifyStack(argument);
+        requireStack(argument, sizeof(Word));
 	ARGP = argTermP(*ARGP, 0);
 	nested++;
 	continue;

@@ -1478,6 +1478,7 @@ typedef struct
 } sig_handler, *SigHandler;
 #endif /* HAVE_SIGNAL */
 
+#define SIG_EXCEPTION	   9		/* cannot be catched anyway */
 #define SIG_ATOM_GC	  30		/* `safe' and reserved signals */
 #define SIG_THREAD_SIGNAL 31
 
@@ -1610,17 +1611,14 @@ typedef enum
 	{ if ( roomStack(s) < (int)(n) ) \
  	    ensureRoomStack((Stack)&LD->stacks.s, n); \
 	}
-#define verifyStack(s) requireStack(s, 64)
 #else /*NO_SEGV_HANDLING*/
 #define requireStack(s, n)
-#define verifyStack(s)
 #endif /*NO_SEGV_HANDLING*/
 #else
 #define requireStack(s, n) \
 	{ if ( roomStack(s) < (n) ) \
  	    outOfStack((Stack)&LD->stacks.s, STACK_OVERFLOW_FATAL); \
 	}
-#define verifyStack(s) requireStack(s, 64)
 #endif
 
 
@@ -1860,13 +1858,18 @@ decrease).
 
 static inline term_t
 _PL_new_term_refs(int n)
-{ Word t = (Word)lTop;
-  term_t r = consTermRef(t);
+{ GET_LD
+  Word t;
+  term_t r;
 
-  while(n-- > 0)
+  requireStack(local, sizeof(word)*n);
+  t = (Word)lTop;
+  r = consTermRef(t);
+
+  while( --n >= 0 )
     setVar(*t++);
-  lTop = (LocalFrame)t;
-  verifyStack(local);
+
+  lTop = (LocalFrame)t
   
   return r;
 }
@@ -1874,12 +1877,17 @@ _PL_new_term_refs(int n)
 
 static inline term_t
 _PL_new_term_ref()
-{ Word t = (Word)lTop;
-  term_t r = consTermRef(t);
+{ GET_LD
+  Word t;
+  term_t r;
+
+  requireStack(local, sizeof(word));
+  t = (Word)lTop;
+  r = consTermRef(t);
+  SECURE(assert(*t != QID_MAGIC));
+  setVar(*t);
 
   lTop = (LocalFrame)(t+1);
-  verifyStack(local);
-  setVar(*t);
   
   return r;
 }

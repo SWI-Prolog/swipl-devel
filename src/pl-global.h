@@ -244,6 +244,7 @@ typedef struct
   pl_stacks_t   stacks;			/* Prolog runtime stacks */
   ulong		bases[STG_MASK+1];	/* area base addresses */
   ulong		pending_signals;	/* PL_raise() pending signals */
+  record_t	pending_exception;	/* Pending exception from signal */
   int		current_signal;		/* Currently handled signal */
   int		aborted;		/* thread asked for abort */
   Stack		outofstack;		/* thread is out of stack */

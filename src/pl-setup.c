@@ -394,12 +394,9 @@ pl_signal_handler(int sig)
   { (*sh->handler)(sig);
 
     if ( exception_term )		/* handler: PL_raise_exception() */
-    { unblockGC();
-      if ( gc_status.blocked )
-	Sdprintf("GC: blocked %d\n", gc_status.blocked);
-      PL_close_foreign_frame(fid);
-      PL_throw(exception_term);		/* throw longjmp's */
-      return;				/* make sure! */
+    { LD->pending_exception = PL_record(exception_term);
+      PL_raise(SIG_EXCEPTION);
+      exception_term = 0;
     }
   }
 
@@ -691,7 +688,19 @@ PL_handle_signals()
 	  pl_garbage_collect_atoms();
 	else
 #endif
-	pl_signal_handler(sig);
+        if ( sig == SIG_EXCEPTION && LD->pending_exception )
+	{ record_t ex = LD->pending_exception;
+	  
+	  LD->pending_exception = 0;
+
+	  PL_put_variable(exception_bin);
+	  PL_recorded(ex, exception_bin);
+	  PL_erase(ex);
+	  exception_term = exception_bin;
+
+	  SECURE(checkData(valTermRef(exception_term)));
+	} else
+	  pl_signal_handler(sig);
       }
     }
   }

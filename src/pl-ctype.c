@@ -499,12 +499,17 @@ initCharTypes()
 }
 
 
-void
+bool
 systemMode(bool accept)
-{ _PL_char_types[(int)'$'] = (accept ? LC : SY);
+{ bool old = SYSTEM_MODE ? TRUE : FALSE;
+
+  _PL_char_types[(int)'$'] = (accept ? LC : SY);
+
   if ( accept )
     debugstatus.styleCheck |= DOLLAR_STYLE;
   else
     debugstatus.styleCheck &= ~DOLLAR_STYLE;
+
+  return old;
 }
 
