@@ -159,6 +159,14 @@ d_offset(int x, int y)
 }
 
 
+void
+r_offset(int x, int y)
+{ context.offset_x += x;
+  context.offset_y += y;
+}
+
+
+
 DisplayObj
 d_display(DisplayObj d)
 { DisplayObj old = context.pceDisplay;

@@ -46,6 +46,7 @@ StringObj	ws_get_resource_value(DisplayObj d, Name cc, Name cn, Name rc, Name rn
 /* xdraw.c */
 void		resetDraw(void);
 void		d_offset(int x, int y);
+void		r_offset(int x, int y);
 DisplayObj	d_display(DisplayObj d);
 void		d_flush(void);
 void		d_window(PceWindow sw, int x, int y, int w, int h, int clear, int limit);
