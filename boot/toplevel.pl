@@ -67,9 +67,9 @@ $init_return :-
 	$check_novice, 
 	$clean_history,
 	$load_gnu_emacs_interface,
-	$option(init_file, File), 
+	$option(init_file, File, File), 
 	$load_init_file(File), 
-	$option(goal, GoalAtom), 
+	$option(goal, GoalAtom, GoalAtom), 
 	term_to_atom(Goal, GoalAtom), 
 	ignore(user:Goal).
 
@@ -91,7 +91,7 @@ $break :-
 	flag($break_level, _, Old), !.
 
 $toplevel :-
-	$option(top_level, TopLevelAtom), 
+	$option(top_level, TopLevelAtom, TopLevelAtom), 
 	term_to_atom(TopLevel, TopLevelAtom), 
 	user:TopLevel.
 
@@ -117,8 +117,10 @@ prolog :-
 		read_history(h, '!h', 
 			      [trace, end_of_file], 
 			      Prompt, Goal, Bindings), 
-		prompt(_, Old)
-	    ->  $execute(Goal, Bindings)
+		prompt(_, Old),
+		call_expand_query(Goal, ExpandedGoal,
+				  Bindings, ExpandedBindings)
+	    ->  $execute(ExpandedGoal, ExpandedBindings)
 	    ), !.
 
 		/********************************
@@ -193,8 +195,9 @@ $execute_goal(trace, []) :-
 $execute_goal(Goal, Bindings) :-
 	$module(TypeIn, TypeIn), 
 	$user_call(TypeIn:Goal),
+	call_expand_answer(Bindings, NewBindings),
 	$ttyformat('~n'),
-	$write_bindings(Bindings), !, 
+	$write_bindings(NewBindings), !, 
 	notrace, 
 	fail.
 $execute_goal(_, _) :-
@@ -316,3 +319,24 @@ time(Goal) :-
 $time_call(Goal, yes) :-
 	Goal, !.
 $time_call(_Goal, no).
+
+
+		 /*******************************
+		 *	    EXPANSION		*
+		 *******************************/
+
+:- user:dynamic(expand_query/4).
+:- user:multifile(expand_query/4).
+
+call_expand_query(Goal, Expanded, Bindings, ExpandedBindings) :-
+	user:expand_query(Goal, Expanded, Bindings, ExpandedBindings), !.
+call_expand_query(Goal, Goal, Bindings, Bindings).
+
+
+:- user:dynamic(expand_answer/2).
+:- user:multifile(expand_answer/2).
+
+call_expand_answer(Goal, Expanded) :-
+	user:expand_answer(Goal, Expanded), !.
+call_expand_answer(Goal, Goal).
+

@@ -11,6 +11,7 @@
 	, $in_library/2
 	, $update_library_index/0
 	, make_library_index/1
+	, make_library_index/2
 	]).
 
 :- dynamic
@@ -44,31 +45,37 @@ $in_library(Name, Arity) :-
 		********************************/
 
 $update_library_index :-
-	absolute_file_name('', CWD),
 	user:library_directory(Dir),
-	    update_library_index(CWD, 'INDEX.pl', Dir),
+	    update_library_index(Dir),
 	fail.
 $update_library_index.
 
-update_library_index(CWD, Index, Dir) :-
-	exists_directory(Dir),
-	concat_atom([Dir, /, Index], IndexFile),
-	access_file(IndexFile, write),
+update_library_index(Dir) :-
+	concat_atom([Dir, '/Make.pl'], MakeFile),
+	access_file(MakeFile, read), !,
+	forall(current_predicate(_, $make:Head),
+	       (   functor(Head, Name, Arity),
+		   abolish($make:Name, Arity)
+	       )),
+	absolute_file_name('', CWD),
 	chdir(Dir),
-	time_file(Index, IndexTime),
-	expand_file_name('*.pl', Files),
-	(   member(X, ['.'|Files]),
-	    X \== Index,
-	    time_file(X, TX),
-	    TX @> IndexTime
-	->  chdir(CWD),
-	    format(user, 'Rebuilding index for library ~w ... ', Dir),
-	    ttyflush,
-	    library_index(Dir, Index),
-	    format(user, 'ok.~n', []),
-	    clear_library_index
-	;   chdir(CWD)
-	).
+	seeing(Old), see('Make.pl'),
+	repeat,
+		read(Term),
+		(   Term == end_of_file
+		->  !
+		;   Term = (:- Directive),
+		    $make:Directive,
+		    fail
+		;   $make:assert(Term),
+		    fail
+		),
+	seen, see(Old),
+	chdir(CWD).
+update_library_index(Dir) :-
+	concat_atom([Dir, '/INDEX.pl'], IndexFile),
+	access_file(IndexFile, write),
+	make_library_index(Dir).
 
 clear_library_index :-
 	retractall(library_index(_, _, _)).
@@ -111,21 +118,48 @@ assert_index(Term, Dir) :-
 		********************************/
 
 make_library_index(Dir) :-
+	make_library_index(Dir, ['*.pl']).
+	
+make_library_index(Dir, Patterns) :-
 	access_file(Dir, write), !,
-	library_index(Dir, 'INDEX.pl').
-make_library_index(Dir) :-
-	$warning('make_library_index/1: Cannot write ~w', [Dir]).
-
-library_index(Dir, Index) :-
 	absolute_file_name('', OldDir),
 	chdir(Dir),
-	expand_file_name('*.pl', Files),
-	delete(Files, Index, PrologFiles),
+	Index = 'INDEX.pl',
+	expand_index_file_patterns(Patterns, Files),
+	(   library_index_out_of_date(Index, Files)
+	->  format('Making library index for ~w ... ', Dir), flush,
+	    do_make_library_index(Index, Files),
+	    format('ok~n')
+	;   true
+	),
+	chdir(OldDir).
+make_library_index(Dir, _) :-
+	$warning('make_library_index/1: Cannot write ~w', [Dir]).
+
+
+expand_index_file_patterns(Patterns, Files) :-
+	maplist(expand_file_name, Patterns, NestedFiles),
+	flatten(NestedFiles, F0),
+	subtract(F0, ['INDEX.pl', 'index.pl', 'Make.pl', 'make.pl'], Files).
+
+
+library_index_out_of_date(Index, _Files) :-
+	\+ exists_file(Index), !.
+library_index_out_of_date(Index, Files) :-
+	time_file(Index, IndexTime),
+	(   time_file('.', DotTime),
+	    DotTime @> IndexTime
+	;   member(File, Files),
+	    time_file(File, FileTime),
+	    FileTime @> IndexTime
+	), !.
+
+
+do_make_library_index(Index, Files) :-
 	open(Index, write, Fd),
 	index_header(Fd),
-	checklist(index_file(Fd), PrologFiles),
-	close(Fd),
-	chdir(OldDir).
+	checklist(index_file(Fd), Files),
+	close(Fd).
 
 index_file(Fd, File) :-
 	open(File, read, In),
