@@ -134,6 +134,7 @@ typedef struct
 
 #define PL_TYPE_EXT_ATOM	(8)	/* External (inlined) atom */
 #define PL_TYPE_EXT_COMPOUND	(9)	/* External (inlined) functor */
+#define PL_TYPE_EXT_FLOAT	(10)	/* float in standard-byte order */
 
 static void
 addOpCode(CompileInfo info, int code)
@@ -175,9 +176,70 @@ addSizeInt(CompileInfo info, uint val)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Add a signed long value. First byte   is  number of bytes, remaining are
+value-bytes, starting at most-significant.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+addLong(CompileInfo info, long v)
+{ int i = sizeof(v);
+
+  for(i = sizeof(v); i>1; i--)
+  { int b = (v>>((i-1)*8)) & 0xff;
+
+    if ( !(b == 0x00 || b == 0xff) )
+      break;
+  }
+
+  addBuffer(&info->code, i, uchar);
+  
+  for( ; i>0; i-- )
+  { int b = (v>>((i-1)*8)) & 0xff;
+    
+    addBuffer(&info->code, b, uchar);
+  }
+}
+
+
+#ifdef WORDS_BIGENDIAN
+static const int double_byte_order[] = { 7,6,5,4,3,2,1,0 };
+#else
+static const int double_byte_order[] = { 0,1,2,3,4,5,6,7 };
+#endif
+
+
+static inline void
+addFloat(CompileInfo info, void *val)
+{ if ( info->external )
+  { unsigned char *cl = val;
+    int i;
+
+    addOpCode(info, PL_TYPE_FLOAT);
+    for(i=0; i<sizeof(double); i++)
+      addBuffer(&info->code, cl[double_byte_order[i]], uchar);
+  } else
+  { addOpCode(info, PL_TYPE_EXT_FLOAT);
+
+#ifdef NON_ALIGNED_ACCESS
+    { double f = *(double *)val;
+      addBuffer(&info->code, f, double);
+    }
+#else
+    addMultipleBuffer(&info->code, val, sizeof(double), char);
+#endif
+  }
+}
+
+
 static void
 addWord(CompileInfo info, word w)
-{ addMultipleBuffer(&info->code, (char *)&w, sizeof(w), char);
+{
+#ifdef NON_ALIGNED_ACCESS
+  addBuffer(&info->code, w, word);
+#else
+  addMultipleBuffer(&info->code, (char *)&w, sizeof(w), char);
+#endif
 }
 
 
@@ -186,14 +248,6 @@ addChars(CompileInfo info, int len, const char *data)
 { addSizeInt(info, len);
 
   addMultipleBuffer(&info->code, data, len, char);
-}
-
-
-static inline void
-addFloat(CompileInfo info, double val)
-{ const char *data = (const char *)&val;
-
-  addMultipleBuffer(&info->code, data, sizeof(val), char);
 }
 
 
@@ -278,7 +332,7 @@ right_recursion:
 	addOpCode(info, PL_TYPE_INTEGER);
       }
       
-      addBuffer(&info->code, val, long);
+      addLong(info, val);
       return;
     }
     case TAG_STRING:
@@ -295,8 +349,7 @@ right_recursion:
     }
     case TAG_FLOAT:
     { info->size += WORDS_PER_DOUBLE + 2;
-      addOpCode(info, PL_TYPE_FLOAT);
-      addFloat(info, valReal(w));
+      addFloat(info, valIndirectP(w));
 
       return;
     }
@@ -422,9 +475,16 @@ fetchSizeInt(CopyInfo b)
 
 static long
 fetchLong(CopyInfo b)
-{ long val;
+{ long val = 0;
+  uint bytes = *b->data++;
+  uint shift = (sizeof(long)-bytes)*8;
 
-  fetchBuf(b, &val, long);
+  while(bytes-- > 0)
+    val = (val << 8) | (*b->data++ & 0xff);
+
+  val <<= shift;
+  val >>= shift;
+
   return val;
 }
 
@@ -433,14 +493,38 @@ static word
 fetchWord(CopyInfo b)
 { word val;
 
+#ifdef NON_ALIGNED_ACCESS
   fetchBuf(b, &val, word);
+#else
+  fetchMultipleBuf(b, &val, sizeof(word), char)
+#endif
+
   return val;
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Fetch a float.  Note that the destination might not be double-aligned!
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static void
 fetchFloat(CopyInfo b, void *f)
-{ fetchMultipleBuf(b, f, WORDS_PER_DOUBLE, word);
+{
+#ifdef NON_ALIGNED_ACCESS
+  fetchMultipleBuf(b, f, WORDS_PER_DOUBLE, word);
+#else
+  fetchMultipleBuf(b, f, sizeof(double), char);
+#endif
+}
+
+
+static void
+fetchExtFloat(CopyInfo b, void *f)
+{ unsigned char *dst = f;
+  int i;
+
+  for(i=0; i<sizeof(double); i++)
+    dst[double_byte_order[i]] = *b->data++;
 }
 
 
@@ -510,9 +594,13 @@ right_recursion:
       return;
     }
     case PL_TYPE_FLOAT:
+    case PL_TYPE_EXT_FLOAT:
     { *p = consPtr(b->gstore, TAG_FLOAT|STG_GLOBAL);
       *b->gstore++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
-      fetchFloat(b, b->gstore);
+      if ( tag == PL_TYPE_FLOAT )
+	fetchFloat(b, b->gstore);
+      else
+	fetchExtFloat(b, b->gstore);
       b->gstore += WORDS_PER_DOUBLE;
       *b->gstore++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
 
@@ -615,6 +703,12 @@ skipSizeInt(CopyInfo b)
 
 
 static void
+skipLong(CopyInfo b)
+{ b->data += b->data[0] + 1;
+}
+
+
+static void
 unregisterAtomsRecord(CopyInfo b)
 { int tag;
 
@@ -637,10 +731,11 @@ right_recursion:
     }
     case PL_TYPE_TAGGED_INTEGER:
     case PL_TYPE_INTEGER:
-    { skipBuf(b, long);
+    { skipLong(b);
       return;
     }
     case PL_TYPE_FLOAT:
+    case PL_TYPE_EXT_FLOAT:
     { skipBuf(b, double);
       return;
     }
@@ -771,6 +866,13 @@ unref_cont:
 	{ info->data += sizeof(double);
 	  succeed;
 	}
+      } else if ( stag == PL_TYPE_EXT_FLOAT )
+      { Word v = valIndirectP(w);
+	double d;
+
+	fetchExtFloat(info, &d);
+	if ( memcmp(v, &d, sizeof(double)) == 0 )
+	  succeed;
       }
 
       fail;

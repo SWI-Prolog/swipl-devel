@@ -399,10 +399,13 @@ mkterm(T) :-
 	string_to_list(S, "hello"),
 	current_prolog_flag(max_tagged_integer, X),
 	BigNum is X * 3,
+	NegBigNum is -X*5,
 	T = term(atom,			% an atom
 		 S,			% a string
 		 1,			% an integer
 		 BigNum,		% large integer
+		 -42,			% small negative integer
+		 NegBigNum,		% large negative integer
 		 3.4,			% a float
 		 _,			% a singleton
 		 A, A,			% a shared variable

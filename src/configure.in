@@ -451,6 +451,26 @@ AC_DEFINE(DOUBLE_ALIGNMENT, sizeof(double)),
 AC_MSG_RESULT(assuming sizeof(double))
 AC_DEFINE(DOUBLE_ALIGNMENT, sizeof(double)))
 
+AC_MSG_CHECKING("unaligned access")
+AC_TRY_RUN(
+[ main()
+  { char l[sizeof(long)*2];
+    long *p;
+    int i;
+
+    for(i=0; i<sizeof(long); i++)
+    { p = (long *)l+i;
+      *p = 42;
+    }
+
+    exit(0);
+  }
+],
+AC_MSG_RESULT(allowed)
+AC_DEFINE(NON_ALIGNED_ACCESS),
+AC_MSG_RESULT(not allowed),
+AC_MSG_RESULT(assuming not allowed))
+
 if test "$ac_cv_func_getrlimit" = "yes"; then
 AC_MSG_CHECKING("type rlim_t")
 AC_TRY_COMPILE(

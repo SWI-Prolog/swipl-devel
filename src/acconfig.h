@@ -114,3 +114,6 @@
 
 /* Define to the extension of shared objects (.so normally) */
 #undef SO_EXT
+
+/* Define if it is allowed to access long integers with non-aligned pointers */
+#undef NON_ALIGNED_ACCESS
