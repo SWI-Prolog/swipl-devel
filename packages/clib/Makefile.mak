@@ -39,6 +39,7 @@ idll::
 		copy socket.dll $(BINDIR)
 		copy cgi.dll $(BINDIR)
 		copy memfile.dll $(BINDIR)
+		copy mime.dll $(BINDIR)
 ilib::
 		copy socket.pl $(PLBASE)\library
 		copy cgi.pl $(PLBASE)\library
