@@ -3,50 +3,42 @@ SWI-Prolog 5.1.9/XPCE 6.1.9 Summary of changes
 Status
 ======
   
-  * 10th beta-release.  Considering feedback, the 5.1.x series probably becomes
+  * 11th beta-release.  Considering feedback, the 5.1.x series probably becomes
     mainstream not too far from here.
 
-    Remaining issues are exploiting the multi-threaded version in a
-    multi-threaded foreign environment, which is currently incompatible
-    to using the single threaded version.
+    This version provides the missing link to use the same Prolog engine
+    from multiple foreign threads (M threads can use N engines).  See
+    PL_set_engine() and friends in the reference manual.  Threading in
+    JPL (Java interface) should use this.  Currently only the Java 
+    thread that created SWI-Prolog can use it.
 
 SWI-Prolog
 ==========
 
-  * FIXED: Fixed a couple of threading errors.  Most serious one is a race
-    condition is messages queues waited for by multiple threads.
+  * Get Richard O'Keefs fast `natural-merge' sort to replace sort,
+    msort and keysort.  Saves space on the first 2 and a huge performance
+    gain on keysort.
 
-  * MODIFIED: succ/2 now only handles natural numbers (>= 0)
+  * PORT: Better detection of required mmap() infrastructure and deal with
+    IRIX style MAP_AUTOGROW maps.  Provides mmap-based stacks for more
+    platforms.
 
-  * MODIFIED: make/0 has been moved to the library.  After completion,
-    make/0 performs a quick checks for undefined predicates.  Let me know
-    whether you like this.
+  * Quite a few minor patches.
 
 Packages
 ========
 
-  * XPCE: Some cleanup to the `document rendering' library.  Enchanced
-    the `xml_browser' and added to the demo programs.  Show windows in
-    tables.  Some fixes to the Prolog library.
-    
-  * ODBC: Added odbc_fetch/3, providing forward-chaining and random
-    access to the result-set.
-
-  * RDF: Allow prefixing anonymous resources (with the base-URL).
-
 Development environment
 =======================
 
-  * Avoid re-colouring errors while showing a popup.
+  * Handle aborts more gracefully (still not perfect).
 
-  * Comment XPCE comments.
+  * Print human-readable exceptions in the GUI-Tracer.
 
 Short-term Plans
 ================
 
   * RDF storage and RDFS and OWL query support.
-
-  * Provide support for N Prolog engines in M threads (N>=1, M>=1).
 
   * Resolve Java interface issues (Linking issues and related to the above).
 
