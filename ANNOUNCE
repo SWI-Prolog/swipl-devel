@@ -52,22 +52,24 @@ Planned features in 5.5.x relative to 5.4.x and their status
 	- Possible alignment problems on some platforms
 	- Option to disable it on platforms that cannot support it.
 
-Patches in 5.5.9 relative to 5.5.8
-==================================
+Patches in 5.5.10 relative to 5.5.9
+===================================
 
-  * Optionally write escape sequences when writing characters to streams
-    that cannot represent them (default for `user' streams).
+  * Provide file-I/O using text-files in the current locale (encoding
+    `text').
 
-  * Minor patches
+  * Add PL_get_chars() to get text of atoms in various representations.
+
+  * Allow accessing filenames in other languages (at least on Unix,
+    untested on Windows).
+
+  * Fixed conversion of term to string (using by C++ interface).
 
 
 Packages
 ========
 
-  * SGML: Generalise xml_quote_* predicates to deal with encoding issues.
-
-  * Semweb: Fixed for wide-characters in subject and predicate.  Added
-    encoding option to rdf_save/2, defaulting to UTF-8 (was ISO-8859-1).
+  * xml_write/3 and semweb library: provide full support for XMLLiterals
 
 
 Incompatible changes

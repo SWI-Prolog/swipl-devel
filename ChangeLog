@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+VERSION 5.5.10 (March 09, 2005)
+===============================
+
   * FIXED: Support locales in communicating filenames.
 
   * ADDED: Pl_unify_chars().
