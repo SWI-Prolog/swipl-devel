@@ -81,10 +81,17 @@ xref_source(Source) :-
 	canonical_source(Source, Src),
 	xref_clean(Src),
 	assert(source(Src)),
+	(   current_prolog_flag(xref, Xref)
+	->  true
+	;   Xref = false
+	),
+	set_prolog_flag(xref, true),
 	asserta(user:message_hook(_,_,_), Ref),
 	(   collect(Src)
-	->  erase(Ref)
+	->  erase(Ref),
+	    set_prolog_flag(xref, Xref)
 	;   erase(Ref),
+	    set_prolog_flag(xref, Xref),
 	    fail
 	).
 

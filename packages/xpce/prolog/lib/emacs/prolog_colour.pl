@@ -553,6 +553,16 @@ term_colours((resource(_,_,_) :- _),
 				     ],
 			  classify
 			]).
+term_colours(term_expansion(_,_),
+	     expanded - [ classify,
+			  classify
+			]).
+term_colours((term_expansion(_,_) :- _),
+	     expanded - [ expanded - [ classify,
+				       classify
+				     ],
+			  classify
+			]).
 
 %	XPCE rules
 
@@ -566,6 +576,17 @@ term_colours(variable(_, _, _),
 	     expanded - [ identifier,
 			  classify,
 			  atom
+			]).
+term_colours(handle(_, _, _),
+	     expanded - [ classify,
+			  classify,
+			  classify
+			]).
+term_colours(handle(_, _, _, _),
+	     expanded - [ classify,
+			  classify,
+			  classify,
+			  classify
 			]).
 term_colours(class_variable(_,_,_,_),
 	     expanded - [ identifier,

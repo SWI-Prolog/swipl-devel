@@ -182,9 +182,8 @@ indent_if_then_else(E) :->
 	get(E, beginning_of_if_then_else, OpenPos),
 	get(E, caret, Caret),
 	get(E, text_buffer, TB),
-	get(E, scan, Caret, term, -1, end, EndOfPreviousTerm),
-	get(E, skip_comment, EndOfPreviousTerm, Glue),
-	(   send(regex('\,'), match, TB, Glue)
+	get(E, skip_comment, Caret-1, OpenPos, EndOfPreviousTerm),
+	(   send(regex('\,'), match, TB, EndOfPreviousTerm)
 	->  get(TB, scan, Caret, line, -1, start, StartOfPrevLine),
 	    get(regex('\s *\(->\|;\)\s *'), match, TB, StartOfPrevLine, L),
 	    get(E, column, L+StartOfPrevLine, PrevExprCol),
@@ -198,13 +197,12 @@ indent_clause_line(E) :->
 	"Indent current line according to clause"::
 	get(E, caret, Caret),
 	get(E, text_buffer, TB),
-	get(E, scan, Caret, term, -1, end, EndOfPreviousTerm),
-	get(E, skip_comment, EndOfPreviousTerm, Glue),
+	get(E, skip_comment, Caret-1, 0, Glue),
 	(   send(regex('\.'), match, TB, Glue)		% new clause
 	->  send(E, align_line, 0)
 	;   send(regex('\,'), match, TB, Glue)	  	% Next subclause
 	->  send(E, align_with_previous_line)
-	;   send(@prolog_neck_regex, match, TB, Glue) 	% First subclause
+	;   send(@prolog_neck_regex, match, TB, Glue-1)	% First subclause
 	->  send(E, align_line, 8)
 	;   send(E, align_with_previous_line)
 	).
