@@ -1,6 +1,10 @@
+* FIXED: dtd2pl: printing of NAMEOF and NMTOKEN attributes
+  (Joseph Wayne Norton).
+
 * FIXED: load_structure/3 to pass doctype(_) to the correct place.
 
 * ADDED: space(sgml) option.  Was documented but omitted.
+
 
 SWI-Prolog VERSION 4.0.11
 =========================
