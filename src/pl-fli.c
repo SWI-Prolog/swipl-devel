@@ -994,272 +994,22 @@ PL_get_list_chars(term_t l, char **s, unsigned flags)
 }
 
 
-int
-PL_get_nchars(term_t l, unsigned int *length, char **s, unsigned flags)
-{ GET_LD
-  word w = valHandle(l);
-  char tmp[100];
-  char *r;
-  int type;
-  unsigned int len = ~(unsigned int)0;
-  int malloced = FALSE;
+		 /*******************************
+		 *	UNIFIED TEXT STUFF	*
+		 *******************************/
 
-  DEBUG(7, pl_write(l); pl_nl());
+static inline int
+bufsize_text(PL_chars_t *text)
+{ int unit;
 
-  if ( (flags & CVT_ATOM) && isAtom(w) )
-  { Atom a = atomValue(w);
-    if ( false(a->type, PL_BLOB_TEXT) )
-      fail;				/* non-textual atom */
-    if ( a->type == &ucs_atom )
-      fail;
-    type = PL_ATOM;
-    r = a->name;
-    len = a->length;
-  } else if ( (flags & CVT_INTEGER) && isInteger(w) )
-  { type = PL_INTEGER;
-    Ssprintf(tmp, "%ld", valInteger(w) );
-    r = tmp;
-  } else if ( (flags & CVT_FLOAT) && isReal(w) )
-  { char *q;
-    type = PL_FLOAT;
-    Ssprintf(tmp, LD->float_format, valReal(w) );
-    r = tmp;
+  if ( true(text, PL_CHARS_LATIN) )
+    unit = sizeof(char);
+  else if ( true(text, PL_CHARS_UCS) )
+    unit = sizeof(pl_wchar_t);
+  else
+    assert(0);
 
-    q = tmp;				/* See also writePrimitive() */
-    if ( *q == '-' )
-      q++;
-    for(; *q; q++)
-    { if ( !isDigit(*q) )
-	break;
-    }
-    if ( !*q )
-    { *q++ = '.';
-      *q++ = '0';
-      *q = EOS;
-    }
-#ifdef O_STRING
-  } else if ( (flags & CVT_STRING) && isBString(w) )
-  { type = PL_STRING;
-    flags |= BUF_RING;			/* always buffer strings */
-    r = getCharsString(w, &len);
-#endif
-  } else if ( (flags & CVT_LIST) &&
-	      (isList(w) || isNil(w)) &&
-	      PL_get_list_nchars(l, length, s, flags) )
-  { DEBUG(7, Sdprintf("--> %s\n", *s));
-    succeed;
-  } else if ( (flags & CVT_VARIABLE) && isVar(w) )
-  { type = PL_VARIABLE;
-    r = varName(l, tmp);
-  } else if ( (flags & CVT_WRITE) )
-  { int size;
-    IOSTREAM *fd;
-    
-    type = PL_STRING;			/* hack to get things below ok */
-    flags |= BUF_RING;
-
-    r = tmp;
-    size = sizeof(tmp);
-    fd = Sopenmem(&r, &size, "w");
-    PL_write_term(fd, l, 1200, 0);
-    Sputc(EOS, fd);
-    Sflush(fd);
-    len = size-1;			/* need to flush first */
-    Sclose(fd);
-    if ( r != tmp )
-      malloced = TRUE;
-  } else
-  { DEBUG(7, Sdprintf("--> fail\n"));
-    fail;
-  }
-    
-  DEBUG(7, Sdprintf("--> %s\n", r));
-  if ( len == ~(unsigned int)0 )
-    len = strlen(r);
-  if ( length )
-    *length = len;
-
-  if ( flags & BUF_MALLOC )
-  { *s = xmalloc(len+1);
-    memcpy(*s, r, len+1);
-  } else if ( ((flags & BUF_RING) && type != PL_ATOM) || /* never atoms */
-	      r == tmp )		/* always buffer tmp */
-  { Buffer b = findBuffer(flags);
-
-    addMultipleBuffer(b, r, len+1, char);
-    *s = baseBuffer(b, char);
-  } else
-    *s = r;
-
-  if ( malloced )
-    free(r);
-
-  succeed;
-}
-
-
-int
-PL_get_chars(term_t t, char **s, unsigned flags)
-{ return PL_get_nchars(t, NULL, s, flags);
-}
-
-
-int
-PL_get_wchars(term_t l, unsigned int *length, pl_wchar_t **s, unsigned flags)
-{ GET_LD
-  word w = valHandle(l);
-  char tmp[100];
-  pl_wchar_t wtmp[100];
-  char *r = NULL;
-  pl_wchar_t *wr = NULL;
-  int type;
-  unsigned int len = ~(unsigned int)0;
-  int malloced = FALSE;
-
-  if ( (flags & CVT_ATOM) && isAtom(w) )
-  { Atom a = atomValue(w);
-    if ( false(a->type, PL_BLOB_TEXT) )
-      fail;				/* non-textual atom */
-    type = PL_ATOM;
-    if ( a->type == &ucs_atom )
-    { wr = (pl_wchar_t *) a->name;
-      len = a->length / sizeof(pl_wchar_t);
-      flags &= ~BUF_RING;
-    } else
-    { r = a->name;
-      len = a->length;
-      flags |= BUF_RING;
-    }
-  } else if ( (flags & CVT_INTEGER) && isInteger(w) )
-  { type = PL_INTEGER;
-    Ssprintf(tmp, "%ld", valInteger(w) );
-    r = tmp;
-    flags |= BUF_RING;
-  } else if ( (flags & CVT_FLOAT) && isReal(w) )
-  { char *q;
-    type = PL_FLOAT;
-    Ssprintf(tmp, "%g", valReal(w) );	/* TBD: use float format feature */
-    r = tmp;
-
-    q = tmp;				/* See also writePrimitive() */
-    if ( *q == L'-' )
-      q++;
-    for(; *q; q++)
-    { if ( !isDigit(*q) )
-	break;
-    }
-    if ( !*q )
-    { *q++ = '.';
-      *q++ = '0';
-      *q = EOS;
-    }
-    flags |= BUF_RING;
-#ifdef O_STRING
-  } else if ( (flags & CVT_STRING) && isString(w) )
-  { type = PL_STRING;
-    flags |= BUF_RING;			/* always buffer strings */
-    r = getCharsString(w, &len);
-#endif
-  } else if ( (flags & CVT_LIST) &&
-	      (isList(w) || isNil(w)) )
-  { Buffer b;
-
-    if ( (b = get_code_list(l, flags, TRUE)) )
-    { len = entriesBuffer(b, pl_wchar_t);
-      if ( length )
-	*length = len;
-      addBuffer(b, EOS, pl_wchar_t);
-
-      if ( flags & BUF_MALLOC )
-      { int bsize = (len+1)*sizeof(pl_wchar_t);
-
-	*s = xmalloc(bsize);
-        memcpy(*s, r, bsize);
-	unfindBuffer(flags);
-      } else
-	*s = baseBuffer(b, pl_wchar_t);
-
-      succeed;
-    }
-
-    fail;
-  } else if ( (flags & CVT_VARIABLE) && isVar(w) )
-  { type = PL_VARIABLE;
-    r = varName(l, tmp);
-    flags |= BUF_RING;
-  } else if ( (flags & CVT_WRITE) )
-  { int size;
-    IOSTREAM *fd;
-    
-    type = PL_STRING;			/* hack to get things below ok */
-    flags |= BUF_RING;
-
-    wr = wtmp;
-    size = sizeof(wtmp);
-    fd = Sopenmem(&r, &size, "w");
-    fd->encoding = ENC_WCHAR;
-    PL_write_term(fd, l, 1200, 0);
-    Sputcode(EOS, fd);
-    Sflush(fd);
-    len = (size/sizeof(pl_wchar_t))-1;	/* need to flush first */
-    Sclose(fd);
-    if ( wr != wtmp )
-      malloced = TRUE;
-  } else
-  { DEBUG(7, Sdprintf("--> fail\n"));
-    fail;
-  }
-    
-  DEBUG(7, Sdprintf("--> %s\n", r));
-  if ( len == ~(unsigned int)0 )
-  { assert(r);
-    len = strlen(r);
-  }
-  if ( length )
-    *length = len;
-
-  if ( flags & BUF_MALLOC )
-  { int bsize = (len+1)*sizeof(pl_wchar_t);
-
-    *s = xmalloc(bsize);
-      
-    if ( wr )
-    { memcpy(*s, wr, bsize);
-    } else
-    { pl_wchar_t *o = *s;
-      unsigned char *i = (unsigned char *)r;
-      unsigned char *e = &i[len];
-
-      while(i<e)
-	*o++ = *i++;
-      *i = EOS;
-    }
-  } else if ( (flags & BUF_RING) )		/* always buffer tmp */
-  { Buffer b = findBuffer(flags);
-
-    if ( wr )
-    { addMultipleBuffer(b, wr, len+1, pl_wchar_t);
-    } else
-    { unsigned char *i = (unsigned char *)r;
-      unsigned char *e = &i[len];
-
-      for(; i<e; i++)
-	addBuffer(b, *i, pl_wchar_t);
-      addBuffer(b, EOS, pl_wchar_t);
-    }
-
-    *s = baseBuffer(b, pl_wchar_t);
-  } else
-  { assert(wr && !r);
-    *s = wr;
-  }
-
-  if ( malloced )
-  { assert(wr);
-    free(wr);
-  }
-
-  succeed;
+  return (text->length+1)*unit;
 }
 
 
@@ -1267,7 +1017,6 @@ int
 PL_get_text(term_t l, PL_chars_t *text, int flags)
 { GET_LD
   word w = valHandle(l);
-  int type;
 
   if ( (flags & CVT_ATOM) && isAtom(w) )
   { Atom a = atomValue(w);
@@ -1291,6 +1040,7 @@ PL_get_text(term_t l, PL_chars_t *text, int flags)
   { char *q;
 
     Ssprintf(text->buf, LD->float_format, valReal(w) );
+    text->text.t = text->buf;
 
     q = text->buf;			/* See also writePrimitive() */
     if ( *q == L'-' )
@@ -1335,26 +1085,42 @@ PL_get_text(term_t l, PL_chars_t *text, int flags)
     text->length = strlen(text->text.t);
     text->flags = PL_CHARS_LATIN|PL_CHARS_LOCAL;
   } else if ( (flags & CVT_WRITE) )
-  { int size;
-    char *r = text->buf;
-    IOSTREAM *fd;
-    
-    type = PL_STRING;			/* hack to get things below ok */
-    flags |= BUF_RING;
+  { IOENC encodings[] = { ENC_ISO_LATIN_1, ENC_WCHAR, ENC_NONE };
+    IOENC *enc;
+    char *r;
 
-    size = sizeof(text->buf);
-    fd = Sopenmem(&r, &size, "w");
-    fd->encoding = ENC_WCHAR;
-    PL_write_term(fd, l, 1200, 0);
-    Sputcode(EOS, fd);
-    Sflush(fd);
-    text->length = (size/sizeof(pl_wchar_t))-1;	/* need to flush first */
-    text->text.w = (pl_wchar_t *)r;
-    Sclose(fd);
-    if ( r != text->buf )
-      text->flags = PL_CHARS_UCS|PL_CHARS_MALLOC;
-    else
-      text->flags = PL_CHARS_UCS|PL_CHARS_LOCAL;
+    for(enc = encodings; *enc != ENC_NONE; enc++)
+    { int size;
+      IOSTREAM *fd;
+    
+      r = text->buf;
+      size = sizeof(text->buf);
+      fd = Sopenmem(&r, &size, "w");
+      fd->encoding = *enc;
+      if ( PL_write_term(fd, l, 1200, 0) &&
+	   Sputcode(EOS, fd) >= 0 &&
+	   Sflush(fd) >= 0 )
+      { text->length = (size/sizeof(pl_wchar_t))-1;
+	text->text.w = (pl_wchar_t *)r;
+	Sclose(fd);
+	break;
+      } else
+      { Sclose(fd);
+	if ( r != text->buf )
+	  Sfree(r);
+      }
+    }
+
+    if ( *enc != ENC_NONE )
+    { if ( r != text->buf )
+	text->flags = *enc|PL_CHARS_MALLOC;
+      else
+	text->flags = *enc|PL_CHARS_LOCAL;
+
+      text->text.t = r;
+    } else
+    { return FALSE;
+    }
   } else
   { fail;
   }
@@ -1364,14 +1130,207 @@ PL_get_text(term_t l, PL_chars_t *text, int flags)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Text operations:
+int PL_promote_text(PL_chars_t *text)
 
-	unify()
-	canonise()			/* 32 --> 8 bit if possible */
-	promote()			/* 8 --> 32 */
-	demote()			/* 32 --> 8 (or fail) */
-
+Promote a text to USC if it is currently 8-bit text.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+PL_promote_text(PL_chars_t *text)
+{ if ( false(text, PL_CHARS_UCS) )
+  { if ( true(text, PL_CHARS_MALLOC) )
+    { pl_wchar_t *new = PL_malloc(sizeof(pl_wchar_t)*(text->length+1));
+      pl_wchar_t *t = new;
+      const unsigned char *s = (const unsigned char *)text->text.t;
+      const unsigned char *e = &s[text->length];
+
+      while(s<e)
+      { *t++ = *s++;
+      }
+      *t = EOS;
+
+      PL_free(text->text.t);
+      text->text.w = new;
+      
+      text->flags = (PL_CHARS_UCS|PL_CHARS_MALLOC);
+    } else if ( true(text, PL_CHARS_LOCAL) &&
+	        (text->length+1)*sizeof(pl_wchar_t) < sizeof(text->buf) )
+    { unsigned char buf[sizeof(text->buf)];
+      unsigned char *f = buf;
+      unsigned char *e = &buf[text->length];
+      pl_wchar_t *t = (pl_wchar_t*)text->buf;
+
+      memcpy(buf, text->buf, text->length*sizeof(char));
+      while(f<e)
+      { *t++ = *f++;
+      }
+      *t = EOS;
+      text->flags = (PL_CHARS_UCS|PL_CHARS_LOCAL);
+    } else if ( true(text, PL_CHARS_RING|PL_CHARS_HEAP|PL_CHARS_STACK) )
+    { Buffer b = findBuffer(BUF_RING);
+      const unsigned char *s = (const unsigned char *)text->text.t;
+      const unsigned char *e = &s[text->length];
+
+      for( ; s<e; s++)
+	addBuffer(b, *s, pl_wchar_t);
+      addBuffer(b, EOS, pl_wchar_t);
+
+      text->text.w = baseBuffer(b, pl_wchar_t);
+      text->flags = (PL_CHARS_UCS|PL_CHARS_RING);
+    } else
+    { assert(0);
+    }
+  }
+
+  succeed;
+}
+
+
+int
+PL_demote_text(PL_chars_t *text)
+{ if ( false(text, PL_CHARS_LATIN) )
+  { if ( true(text, PL_CHARS_MALLOC) )
+    { char *new = PL_malloc(sizeof(char)*(text->length+1));
+      char *t = new;
+      const pl_wchar_t *s = (const pl_wchar_t *)text->text.t;
+      const pl_wchar_t *e = &s[text->length];
+
+      while(s<e)
+      { if ( *s > 0xff )
+	{ PL_free(new);
+	  return FALSE;
+	}
+	*t++ = *s++;
+      }
+      *t = EOS;
+
+      PL_free(text->text.t);
+      text->text.t = new;
+      
+      text->flags = (PL_CHARS_LATIN|PL_CHARS_MALLOC);
+    } else if ( true(text, PL_CHARS_LOCAL) )
+    { pl_wchar_t buf[sizeof(text->buf)/sizeof(pl_wchar_t)];
+      pl_wchar_t *f = buf;
+      pl_wchar_t *e = &buf[text->length];
+      char *t = text->buf;
+
+      memcpy(buf, text->buf, text->length*sizeof(pl_wchar_t));
+      while(f<e)
+      { if ( *f > 0xff )
+	  return FALSE;
+	*t++ = *f++;
+      }
+      *t = EOS;
+      text->flags = (PL_CHARS_LATIN|PL_CHARS_LOCAL);
+    } else if ( true(text, PL_CHARS_RING|PL_CHARS_HEAP|PL_CHARS_STACK) )
+    { Buffer b = findBuffer(BUF_RING);
+      const pl_wchar_t *s = (const pl_wchar_t*)text->text.w;
+      const pl_wchar_t *e = &s[text->length];
+
+      for( ; s<e; s++)
+      { if ( *s > 0xff )
+	{ unfindBuffer(BUF_RING);
+	  return FALSE;
+	}
+	addBuffer(b, *s, char);
+      }
+      addBuffer(b, EOS, char);
+
+      text->text.t = baseBuffer(b, char);
+      text->flags = (PL_CHARS_LATIN|PL_CHARS_RING);
+    } else
+    { assert(0);
+    }
+  }
+
+  succeed;
+}
+
+
+int
+PL_canonise_text(PL_chars_t *text)
+{ if ( false(text, PL_CHARS_LATIN) )
+  { const pl_wchar_t *w = (const pl_wchar_t*)text->text.w;
+    const pl_wchar_t *e = &w[text->length];
+
+    for(; w<e; w++)
+    { if ( *w > 0xff )
+	return FALSE;
+    }
+
+    return PL_demote_text(text);
+  }
+
+  succeed;
+}
+
+
+static void
+PL_save_text(PL_chars_t *text, int flags)
+{ if ( false(text, BUF_MALLOC) && false(text, PL_CHARS_MALLOC) )
+  { int bl = bufsize_text(text);
+    void *new = PL_malloc(bl);
+
+    memcpy(new, text->text.t, bl);
+    text->text.w = new;
+    text->flags &= ~PL_CHARS_ALLOC_MASK;
+    text->flags |= PL_CHARS_MALLOC;
+  }  
+}
+
+
+void
+PL_free_text(PL_chars_t *text)
+{ if ( true(text, PL_CHARS_MALLOC) )
+    PL_free(text->text.t);
+}
+
+
+int
+PL_get_wchars(term_t l, unsigned int *length, pl_wchar_t **s, unsigned flags)
+{ PL_chars_t text;
+
+  if ( !PL_get_text(l, &text, flags) )
+    return FALSE;
+
+  PL_promote_text(&text);
+  PL_save_text(&text, flags);
+
+  if ( length )
+    *length = text.length;
+  *s = text.text.w;
+
+  return TRUE;
+}
+
+
+int
+PL_get_nchars(term_t l, unsigned int *length, char **s, unsigned flags)
+{ PL_chars_t text;
+
+  if ( !PL_get_text(l, &text, flags) )
+    return FALSE;
+
+  if ( PL_demote_text(&text) )
+  { PL_save_text(&text, flags);
+
+    if ( length )
+      *length = text.length;
+    *s = text.text.t;
+    
+    return TRUE;
+  } else
+  { PL_free_text(&text);
+
+    return FALSE;
+  }
+}
+
+
+int
+PL_get_chars(term_t t, char **s, unsigned flags)
+{ return PL_get_nchars(t, NULL, s, flags);
+}
 
 
 char *

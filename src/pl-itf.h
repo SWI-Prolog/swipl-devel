@@ -151,6 +151,7 @@ typedef union
 
 #define PL_CHARS_LATIN	0x0001		/* 8-bit ISO-Latin-1 text */
 #define PL_CHARS_UCS	0x0002		/* 32-bit USC text */
+#define PL_CHARS_ALLOC_MASK 0xff00	/* allocation mask */
 #define PL_CHARS_MALLOC 0x0100		/* text is malloced */
 #define PL_CHARS_RING   0x0200		/* text is in buffer-ring */
 #define PL_CHARS_HEAP   0x0400		/* text is in heap (atom) */
