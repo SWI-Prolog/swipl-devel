@@ -534,7 +534,9 @@ replace_find_and_mark(M) :-
 	    get(Regex, register_end, End),
 	    send(M, selection, Start, End),
 	    send(M?text_cursor, displayed, @off),
-	    send(M, caret, End)
+	    send(M, caret, End),
+	    send(M, report, status,
+		 'Commands: "y" = replace-and-next; "." = replace; "n" = next; "!" = non-interactive; "ESC" = stop')
 	;   send(M, report, status, 'Done.'),
 	    send(M, focus_function, @nil),
 	    send(M, selection, 0, 0),
@@ -563,7 +565,7 @@ replace_end(M) :-
 
 '_query_replace_regex'(M, Id:event_id) :->
 	"Focus function for query_replace_regex"::
-	(   Id == 0'y				% replace-and-comtinue
+	(   Id == 0'y				% replace-and-continue
  	->  replace_match(M),
 	    ignore(replace_find_and_mark(M))
 	;   Id == 0'.				% replace and done
