@@ -656,7 +656,7 @@ searchform(For, Max) -->
 option(Value, Value) --> !,
 	html(option(selected, Value)).
 option(Value, _) -->
-	html(option(Value)).
+	html(option([], Value)).
 
 reply('/search', Form, HTTPD) :-
 	get(Form, value, for, For),
