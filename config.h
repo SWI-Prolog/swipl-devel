@@ -21,6 +21,14 @@
 #define M_DEFSTARTUP ".plrc"
 
 /*
+  M_MANDIR	    man(1) Manual directory
+  M_MANSEC	    man(1) Manual section
+*/
+
+#define M_MANDIR /usr/local/man
+#define M_MANSEC 1
+
+/*
   M_PROLOG          The name for SWI-Prolog. This name is used for naming
                     saved states.
                     The default is "pl".
