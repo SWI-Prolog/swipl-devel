@@ -4527,10 +4527,16 @@ Terminate Prolog execution.  Open files are closed and if the command
 line option \cmdlineoption{-tty} is not active the terminal status (see Unix
 stty(1)) is restored.  Hooks may be registered both in Prolog and in
 foreign code.  Prolog hooks are registered using at_halt/1.  halt/0
-is equivalent to \exam{halt(0)}.
+is equivalent to \exam{halt(0)}.%
+	\bug{In the multi-threaded version, halt/0 does not work when
+	     not called from the \emph{main} thread.  In the current
+	     system a \const{permission_error} exception is raised.
+	     Future versions may enable halt/0 from any thread.}
+
     \predicate{halt}{1}{+Status}
 Terminate Prolog execution with given status.  Status is an integer.
 See also halt/0.
+
     \predicate{prolog}{0}{}
 This goal starts the default interactive top level. Queries are read
 from the stream \const{user_input}. See also the \const{history}

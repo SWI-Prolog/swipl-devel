@@ -520,6 +520,7 @@ A yf			"yf"
 A yfx			"yfx"
 A yfy			"yfy"
 A zero_divisor		"zero_divisor"
+A halt			"halt"
 
 F abs			1
 F access		1

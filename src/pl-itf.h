@@ -569,7 +569,7 @@ PL_EXPORT(int)		PL_is_initialised(int *argc, char ***argv);
 install_t		PL_install_readline(void);
 PL_EXPORT(int)		PL_toplevel(void);
 PL_EXPORT(int)		PL_cleanup(int status);
-PL_EXPORT(void)		PL_halt(int status);
+PL_EXPORT(int)		PL_halt(int status);
 
 		 /*******************************
 		 *      INPUT/PROMPT/ETC	*

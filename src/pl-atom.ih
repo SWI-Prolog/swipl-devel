@@ -508,3 +508,4 @@
 #define ATOM_yfx          MK_ATOM(507)
 #define ATOM_yfy          MK_ATOM(508)
 #define ATOM_zero_divisor MK_ATOM(509)
+#define ATOM_halt         MK_ATOM(510)

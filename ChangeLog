@@ -7,6 +7,10 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#30: calling halt/0 and friends from `sub-threads' now causes
+    a permission error.  This isn't perfect, but better than an uncontrolled
+    crash.  Joachim Katzer.
+
   * PORT: Fixed various problems on SGI (IRIX 6.5), including realisation
     of dynamic stacks based on MAP_AUTOGROW|MAP_AUTORESRV.
 

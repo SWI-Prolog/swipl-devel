@@ -2450,9 +2450,13 @@ same process. Use it with care, as PL_initialise() is a costly function.
 Unix users should consider using exec() (available as part of the
 clib package\index{clib,package},\index{package,clib}).
 
-    \cfunction{void}{PL_halt}{int status}
+    \cfunction{int}{PL_halt}{int status}
 Cleanup the Prolog environment using PL_cleanup() and calls exit() with
-the status argument.
+the status argument.  As PL_cleanup() can only be called from the main
+thread, this function returns \const{FALSE} when called from another
+thread as the main one.%
+	\bug{Eventually it may become possible to call
+	     PL_halt() from any thread.}
 \end{description}
 
 

@@ -2662,9 +2662,10 @@ PL_toplevel(void)
 }
 
 
-void
+int
 PL_halt(int status)
-{ PL_cleanup(status);
+{ if ( !PL_cleanup(status) )
+    fail;
 
   exit(status);
 }

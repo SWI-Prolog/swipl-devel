@@ -1025,6 +1025,12 @@ PL_cleanup(int rval)
   { UNLOCK();
     return FALSE;
   }
+#ifdef O_PLMT
+  if ( PL_thread_self() != 1 )
+  { UNLOCK();
+    return FALSE;
+  }
+#endif
 
   GD->cleaning = CLN_ACTIVE;
 
