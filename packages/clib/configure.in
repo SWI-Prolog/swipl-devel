@@ -111,8 +111,6 @@ else
   echo "WARNING: could not find -lrfc822 and/or -lrfc2045; dropping mime.pl from targets"
 fi
 
-PLTARGETS=`echo $TARGETS | sed "s/\.$SO/.pl/g"`
-
 AC_MSG_CHECKING(h_errno)
 AC_TRY_COMPILE(
 [
@@ -144,6 +142,8 @@ if test "$with_time" = yes; then
     echo "WARNING: no setitimer(); dropping time.pl from targets"
   fi
 fi
+
+PLTARGETS=`echo $TARGETS | sed "s/\.$SO/.pl/g"`
 
 AC_OUTPUT(Makefile)
 
