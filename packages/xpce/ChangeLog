@@ -1,3 +1,10 @@
+* INSTALL: Added NMAKE makefiles fro building and installing in Windows.
+
+* ADDED: SWI-Prolog GUI tracer to standard installation for SWI-Prolog.
+
+VERSION 5.0.11
+==============
+
 * FIXED: PceEmacs: Prolog colourising could get into a loop.
 
 * ADDED: Support for writing .GIF files
