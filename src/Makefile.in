@@ -14,6 +14,7 @@
 # 
 #	* make			Simply makes all programs in the current tree
 #	* make install		Installs the libraries and public executables
+#	* make install-version  Installs pl as pl-x,y.z in public directory
 #	* make install-bins	Link executables from $(exec_prefix)/bin
 #	* make install-arch	Install machine dependent files
 #	* make install-libs	Install machine independent files
@@ -22,10 +23,11 @@
 # 
 # Copyright policy:
 #	
-#	* Free for personal, academic and internal prototyping purposes
+#	* GPL-2 (see file COPYING or http://www.gnu.org/)
 #
-#	* A licence is required for distributing commercial applications
-#	  based on SWI-Prolog.  Contact prolog-request@swi.psy.uva.nl.
+#	* Licenses for use with proprietary software are available.
+#	  See http://www.swi.pay.uva.nl/pub/SWI-Prolog/
+#
 ################################################################
 
 PLVERSION=@PLVERSION@
@@ -202,8 +204,6 @@ $(srcdir)/pl-atom.ih:	$(srcdir)/ATOMS
 
 frame.o:
 		ar x `$(CC) -print-libgcc-file-name` $@
-frame.c:	
-		touch $@
 
 plld:		$(srcdir)/plld.c
 		$(CC) -I. -I$(srcdir) $(CFLAGS) -o $@ $(srcdir)/plld.c
