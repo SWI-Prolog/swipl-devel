@@ -1,5 +1,7 @@
 Nov 26, 2002
 
+ * ADDED: Make library(time) suitable for multi-threaded operation.
+
  * ADDED: library(rlimit) for accessing POSIX process limits
 
 Jul 24, 2002

@@ -168,6 +168,7 @@ typedef struct event
   struct timeval at;			/* Time to deliver */
 #ifdef WIN32
   UINT		 mmid;			/* MultiMedia timer id */
+  DWORD		 tid;			/* thread-id of Prolog thread */
 #endif
 } event, *Event;
 
@@ -389,7 +390,7 @@ callTimer(UINT id, UINT msg, DWORD dwuser, DWORD dw1, DWORD dw2)
 { Event ev = (Event)dwuser;
 
   ev->flags |= EV_FIRED;
-  PL_raise(SIGALRM);
+  PL_w32thread_raise(ev->tid, SIGALRM);
 }
 
 
@@ -404,7 +405,8 @@ installEvent(Event ev, double t)
 		      TIME_ONESHOT);
 
   if ( rval )
-  { ev->mmid = rval;
+  { ev->tid = GetCurrentThreadId();
+    ev->mmid = rval;
   } else
     PL_warning("Failed to install alarm");
 }
