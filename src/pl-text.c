@@ -263,7 +263,7 @@ PL_unify_text(term_t term, PL_chars_t *text, int type)
 	    const unsigned char *e = &s[text->length];
 
 	    p0 = p = allocGlobal(text->length*3);
-	    for( ; s < e; p++)
+	    for( ; s < e; s++)
 	    { *p++ = FUNCTOR_dot2;
 	      if ( type == PL_CODE_LIST )
 		*p++ = consInt(*s);
@@ -276,10 +276,10 @@ PL_unify_text(term_t term, PL_chars_t *text, int type)
 	  }
 	  case ENC_WCHAR:
 	  { const pl_wchar_t *s = (const pl_wchar_t *)text->text.t;
-	    const pl_wchar_t *e = &p[text->length];
+	    const pl_wchar_t *e = &s[text->length];
   
 	    p0 = p = allocGlobal(text->length*3);
-	    for( ; s < e; p++)
+	    for( ; s < e; s++)
 	    { *p++ = FUNCTOR_dot2;
 	      if ( type == PL_CODE_LIST )
 		*p++ = consInt(*s);

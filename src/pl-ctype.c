@@ -69,13 +69,13 @@ iswhite(int chr)
 
 static int
 fiscsym(int chr)
-{ return isalnum(chr) || chr == '_';
+{ return iswalnum(chr) || chr == '_';
 }
 
 
 static int
 fiscsymf(int chr)
-{ return isalpha(chr) || chr == '_';
+{ return iswalpha(chr) || chr == '_';
 }
 
 static int
@@ -105,22 +105,22 @@ isquote(int chr)
 
 static int
 fupper(int chr)
-{ return islower(chr) ? toupper(chr) : -1;
+{ return iswlower(chr) ? towupper(chr) : -1;
 }
 
 static int
 flower(int chr)
-{ return isupper(chr) ? tolower(chr) : -1;
+{ return iswupper(chr) ? towlower(chr) : -1;
 }
 
 static int
 ftoupper(int chr)
-{ return toupper(chr);
+{ return towupper(chr);
 }
 
 static int
 ftolower(int chr)
-{ return tolower(chr);
+{ return towlower(chr);
 }
 
 static int
@@ -155,7 +155,7 @@ rparen(int chr)
 
 static int
 fdigit(int chr)
-{ if ( isdigit(chr) )
+{ if ( chr <= 0xff && isdigit(chr) )
     return chr - '0';
   return -1;
 }
@@ -171,7 +171,9 @@ rdigit(int d)
 
 static int
 fxdigit(int chr)
-{ if ( isdigit(chr) )
+{ if ( chr > 0xff )
+    return -1;
+  if ( isdigit(chr) )
     return chr - '0';
   if ( chr >= 'a' && chr <= 'f' )
     return chr - 'a' + 10;
@@ -195,31 +197,31 @@ rxdigit(int d)
 #define mkfunction(name) \
 	static int f ## name(int chr) { return name(chr); }
 
-mkfunction(isalnum)
-mkfunction(isalpha)
+mkfunction(iswalnum)
+mkfunction(iswalpha)
 mkfunction(isascii)
-mkfunction(iscntrl)
-mkfunction(isdigit)
-mkfunction(isgraph)
-mkfunction(islower)
-mkfunction(isupper)
-mkfunction(ispunct)
-mkfunction(isspace)
+mkfunction(iswcntrl)
+mkfunction(iswdigit)
+mkfunction(iswgraph)
+mkfunction(iswlower)
+mkfunction(iswupper)
+mkfunction(iswpunct)
+mkfunction(iswspace)
 
 const static char_type char_types[] =
-{ { ATOM_alnum,		fisalnum },
-  { ATOM_alpha,		fisalpha },
+{ { ATOM_alnum,		fiswalnum },
+  { ATOM_alpha,		fiswalpha },
   { ATOM_csym,		fiscsym },
   { ATOM_csymf,		fiscsymf },
   { ATOM_ascii,		fisascii },
   { ATOM_white,		iswhite },
-  { ATOM_cntrl,		fiscntrl },
-  { ATOM_digit,		fisdigit },
-  { ATOM_graph,		fisgraph },
-  { ATOM_lower,		fislower },
-  { ATOM_upper,		fisupper },
-  { ATOM_punct,		fispunct },
-  { ATOM_space,		fisspace },
+  { ATOM_cntrl,		fiswcntrl },
+  { ATOM_digit,		fiswdigit },
+  { ATOM_graph,		fiswgraph },
+  { ATOM_lower,		fiswlower },
+  { ATOM_upper,		fiswupper },
+  { ATOM_punct,		fiswpunct },
+  { ATOM_space,		fiswspace },
   { ATOM_end_of_file,	iseof },
   { ATOM_end_of_line,	iseol },
   { ATOM_newline,	isnl },

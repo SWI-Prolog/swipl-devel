@@ -177,6 +177,7 @@ typedef union
 #define PL_LONG		 (21)		/* long */
 #define PL_DOUBLE	 (22)		/* double */
 #define PL_NCHARS	 (23)		/* unsigned, const char * */
+#define PL_UTF8_CHARS	 (24)		/* const char * */
 
 
 		/********************************

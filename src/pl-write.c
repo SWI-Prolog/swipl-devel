@@ -444,11 +444,8 @@ writeUSCAtom(IOSTREAM *fd, atom_t atom, int flags)
   }
 
 unquoted:
-  if ( s < e )
-  { if ( !PutOpenToken(s[0], fd) )
-      return FALSE;
-    s++;
-  }
+  if ( s < e && !PutOpenToken(s[0], fd) )
+    return FALSE;
   for( ; s<e; s++)
   { if ( !Putc(*s, fd) )
       return FALSE;

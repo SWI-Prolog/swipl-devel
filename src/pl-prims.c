@@ -1809,22 +1809,21 @@ PRED_IMPL("duplicate_term", 2, duplicate_term, 0)
 
 word
 pl_atom_length(term_t w, term_t n)
-{ char *s;
-  unsigned int len;
-  int flags;
+{ int flags;
+  PL_chars_t txt;
 
   if ( trueFeature(ISO_FEATURE) )
     flags = CVT_ATOM|CVT_STRING;	/* strings are not known to ISO */
   else
     flags = CVT_ALL;
 
-  if ( PL_get_nchars_ex(w, &len, &s, flags) )
+  if ( PL_get_text(w, &txt, flags) )
   { int nval;
 
     if ( PL_is_variable(n) )
-      return PL_unify_integer(n, len);
+      return PL_unify_integer(n, txt.length);
     else if ( PL_get_integer(n, &nval) )
-      return nval == (int)len ? TRUE	: FALSE;
+      return nval == (int)txt.length ? TRUE	: FALSE;
     else
       return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, n);
   }

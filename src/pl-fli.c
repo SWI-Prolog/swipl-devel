@@ -2203,6 +2203,18 @@ cont:
       rval = PL_unify_atom_nchars(t, len, s);
       break;
     }
+    case PL_UTF8_CHARS:
+    { PL_chars_t txt;
+
+      txt.text.t    = va_arg(args, char *);
+      txt.length    = strlen(txt.text.t);
+      txt.storage   = PL_CHARS_HEAP;
+      txt.encoding  = ENC_UTF8;
+      txt.canonical = FALSE;
+
+      rval = PL_unify_text(t, &txt, PL_ATOM);
+      break;
+    }
   { functor_t ft;
     int arity;
 

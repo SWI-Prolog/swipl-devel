@@ -130,6 +130,7 @@ typedef struct token * Token;
 
 typedef struct
 { char *	name;		/* Name of the variable */
+  unsigned	namelen;	/* length of the name */
   term_t	variable;	/* Term-reference to the variable */
   int		times;		/* Number of occurences */
   word		signature;	/* Pseudo atom */
@@ -839,12 +840,12 @@ structures are relocated.
 	}
 
 static char *
-save_var_name(const char *name, ReadData _PL_rd)
-{ int l = strlen(name);
-  char *nb, *ob = baseBuffer(&var_name_buffer, char);
+save_var_name(const char *name, int len, ReadData _PL_rd)
+{ char *nb, *ob = baseBuffer(&var_name_buffer, char);
   int e = entriesBuffer(&var_name_buffer, char);
 
-  addMultipleBuffer(&var_name_buffer, name, l+1, char);
+  addMultipleBuffer(&var_name_buffer, name, len, char);
+  addBuffer(&var_name_buffer, EOS, char);
   if ( (nb = baseBuffer(&var_name_buffer, char)) != ob )
   { ptrdiff_t shift = nb - ob;
 
@@ -866,21 +867,22 @@ isVarAtom(word w, ReadData _PL_rd)
 
 
 static Variable
-lookupVariable(const char *name, ReadData _PL_rd)
+lookupVariable(const char *name, int len, ReadData _PL_rd)
 { variable next;
   Variable var;
   int nv;
 
   if ( name[0] != '_' || name[1] != EOS ) /* anonymous: always add */
   { for_vars(v,
-	     if ( streq(name, v->name) )
+	     if ( len == v->namelen && strncmp(name, v->name, len) == 0 )
 	     { v->times++;
 	       return v;
 	     })
   }
        
   nv = entriesBuffer(&var_buffer, variable);
-  next.name      = save_var_name(name, _PL_rd);
+  next.name      = save_var_name(name, len, _PL_rd);
+  next.namelen   = len;
   next.times     = 1;
   next.variable  = 0;
   next.signature = (nv<<7)|TAG_ATOM|STG_GLOBAL;
@@ -901,9 +903,9 @@ check_singletons(ReadData _PL_rd ARG_LD)
 	     if ( var->times == 1 && var->name[0] != '_' )
 	     {	if ( !PL_unify_list(list, head, list) ||
 		     !PL_unify_term(head,
-				    PL_FUNCTOR, FUNCTOR_equals2,
-				    PL_CHARS,	var->name,
-				    PL_TERM,    var->variable) )
+				    PL_FUNCTOR,    FUNCTOR_equals2,
+				    PL_UTF8_CHARS, var->name,
+				    PL_TERM,       var->variable) )
 		  fail;
 	     });
 
@@ -934,10 +936,18 @@ bind_variable_names(ReadData _PL_rd ARG_LD)
 
   for_vars(var,
 	   /*if ( var->name[0] != '_' ) Just _ isn't in this table */
-	   { if ( !PL_unify_list(list, head, list) ||
+	   { PL_chars_t txt;
+
+	     txt.text.t    = var->name;
+	     txt.length    = strlen(var->name);
+	     txt.storage   = PL_CHARS_HEAP;
+	     txt.encoding  = ENC_UTF8;
+	     txt.canonical = FALSE;
+
+	     if ( !PL_unify_list(list, head, list) ||
 		  !PL_unify_functor(head, FUNCTOR_equals2) ||
 		  !PL_get_arg(1, head, a) ||
-		  !PL_unify_atom_chars(a, var->name) ||
+		  !PL_unify_text(a, &txt, PL_ATOM) ||
 		  !PL_get_arg(2, head, a) ||
 		  !PL_unify(a, var->variable) )
 	       fail;
@@ -966,7 +976,38 @@ bind_variables(ReadData _PL_rd ARG_LD)
 		*           TOKENISER           *
 		*********************************/
 
-#define skipSpaces	{ while(isBlank(*rdhere) ) rdhere++; c = *rdhere++; }
+static inline char *
+skipSpaces(char *in)
+{ int chr;
+  char *s;
+
+  for( ; *in; in=s)
+  { s = utf8_get_char(in, &chr);
+
+    if ( !isBlankW(chr) )
+      return in;
+  }  
+
+  return in;
+}
+
+
+static inline char *
+skipAlpha(char *in)
+{ int chr;
+  char *s;
+
+  for( ; *in; in=s)
+  { s = utf8_get_char(in, &chr);
+
+    if ( !isAlphaW(chr) )
+      return in;
+  }  
+
+  return in;
+}
+
+
 #define unget_token()	{ unget = TRUE; }
 
 typedef const unsigned char * cucharp;
@@ -1377,38 +1418,49 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
     return &cur_token;
   }
 
-  skipSpaces;
-  last_token_start = rdhere - 1;
+  rdhere = skipSpaces(rdhere);
+  start = last_token_start = rdhere;
   cur_token.start = source_char_no + last_token_start - rdbase;
+
+  rdhere = utf8_get_char(rdhere, &c);
+  if ( c > 0xff )
+  { if ( isLowerW(c) )
+      goto lower;
+    if ( isUpperW(c) )
+      goto upper;
+    goto error;
+  }
+
   switch(_PL_char_types[c])
-  { case LC:	{ start = rdhere-1;
-		  while(isAlpha(*rdhere) )
-		    rdhere++;
-		  c = *rdhere;
+  { case LC:	
+    lower:
+		{ PL_chars_t txt;
+
+		  rdhere = skipAlpha(rdhere);
 		  if ( _PL_rd->styleCheck & CHARSET_CHECK )
 		    checkASCII(start, rdhere-start, "atom");
-		  cur_token.value.atom = lookupAtom((char *)start,
-						    rdhere-start);
-		  cur_token.type = (c == '(' ? T_FUNCTOR : T_NAME);
+		  
+		functor:
+		  txt.text.t    = start;
+		  txt.length    = rdhere-start;
+		  txt.storage   = PL_CHARS_HEAP;
+		  txt.encoding  = ENC_UTF8;
+		  txt.canonical = FALSE;
+		  cur_token.value.atom = textToAtom(&txt);
+
+		  cur_token.type = (*rdhere == '(' ? T_FUNCTOR : T_NAME);
 		  DEBUG(9, Sdprintf("%s: %s\n", c == '(' ? "FUNC" : "NAME",
 				    stringAtom(cur_token.value.atom)));
 
 		  break;
 		}
-    case UC:	{ start = rdhere-1;
-		  while(isAlpha(*rdhere) )
-		    rdhere++;
-		  c = *rdhere;
-		  *rdhere = EOS;
+    case UC:
+    upper:
+		{ rdhere = skipAlpha(rdhere);
 		  if ( _PL_rd->styleCheck & CHARSET_CHECK )
 		    checkASCII(start, rdhere-start, "variable");
-		  if ( c == '(' && trueFeature(ALLOW_VARNAME_FUNCTOR) )
-		  { cur_token.value.atom = lookupAtom((char *)start,
-						      rdhere-start);
-		    cur_token.type = T_FUNCTOR;
-		    *rdhere = c;
-		    break;
-		  }
+		  if ( *rdhere == '(' && trueFeature(ALLOW_VARNAME_FUNCTOR) )
+		    goto functor;
 		  if ( start[0] == '_' &&
 		       rdhere == start + 1 &&
 		       !_PL_rd->variables ) /* report them */
@@ -1416,12 +1468,12 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		    cur_token.type = T_VOID;
 		  } else
 		  { cur_token.value.variable = lookupVariable((char *)start,
+							      rdhere-start,
 							      _PL_rd);
 		    DEBUG(9, Sdprintf("VAR: %s\n",
 				      cur_token.value.variable->name));
 		    cur_token.type = T_VARIABLE;
 		  }
-		  *rdhere = c;
 
 		  break;
 		}
@@ -1568,7 +1620,9 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  break;
 		}
 #endif
-    default:	{ sysError("read/1: tokeniser internal error");
+    default:	
+    error:
+    		{ sysError("read/1: tokeniser internal error");
     		  break;		/* make lint happy */
 		}
   }
