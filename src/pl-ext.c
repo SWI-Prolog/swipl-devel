@@ -400,7 +400,6 @@ static const struct foreign {
 #endif /* O_STRING */
 
   FRG("is_list",		1, pl_is_list,			TRACE_ME),
-  FRG("proper_list",		1, pl_proper_list,		TRACE_ME),
   FRG("$length",		2, pl_length,			TRACE_ME),
   FRG("memberchk",		2, pl_memberchk,		TRACE_ME),
   FRG("msort",			2, pl_msort,			TRACE_ME),

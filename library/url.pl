@@ -721,7 +721,7 @@ parse_url_search(Spec, Fields) :-
 	atom_codes(Spec, Codes),
 	phrase(search(Fields), Codes).
 parse_url_search(Codes, Fields) :-
-	proper_list(Codes), !,
+	is_list(Codes), !,
 	phrase(search(Fields), Codes).
 parse_url_search(Out, Fields) :-
 	phrase(csearch(Fields), Codes),

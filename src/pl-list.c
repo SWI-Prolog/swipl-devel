@@ -26,19 +26,6 @@
 
 word
 pl_is_list(term_t list)
-{ Word p = valTermRef(list);
-
-  deRef(p);
-
-  if ( isList(*p) || isNil(*p) )
-    succeed;
-
-  fail;
-}
-
-
-word
-pl_proper_list(term_t list)
 { if ( lengthList(list, FALSE) >= 0 )
     succeed;
 

@@ -387,7 +387,6 @@ void		resetForeign(void);
 
 /* pl-list.c */
 word		pl_is_list(term_t list);
-word		pl_proper_list(term_t list);
 word		pl_length(term_t list, term_t l);
 word		pl_memberchk(term_t e, term_t list);
 word		pl_msort(term_t list, term_t sorted);

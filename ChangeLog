@@ -1,6 +1,12 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * MODIFIED: is_list/1 now checks for a poper list.  proper_list/1 has
+    been moved to library(backcomp).  Thanks to Richard O'Keefe for pointing
+    out this non-standard behaviour.
+
+  * FIXED: name-clash in plld.c on AIX (Victor Bancroft).
+
 VERSION 5.0.0
 =============
 

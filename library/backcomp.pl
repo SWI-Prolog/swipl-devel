@@ -43,7 +43,8 @@
 	    set_feature/2,
 	    substring/4,
 	    flush/0,
-	    write_ln/1
+	    write_ln/1,
+	    proper_list/1
 	  ]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -111,3 +112,12 @@ flush :-
 
 write_ln(X) :-
 	write(X), nl.
+
+%	proper_list(+List)
+%
+%	Old SWI-Prolog predicate to check for a list that really ends
+%	in a [].  There is not much use for the quick is_list, as in
+%	most cases you want to process the list element-by-element anyway.
+
+proper_list(List) :-
+	is_list(List).

@@ -338,7 +338,6 @@ suggest predicates from a keyword.
 \predicatesummary{prolog_trace_interception}{4}{\pllib{user} Intercept the Prolog tracer}
 \predicatesummary{prompt1}{1}{Change prompt for 1 line}
 \predicatesummary{prompt}{2}{Change the prompt used by read/1}
-\predicatesummary{proper_list}{1}{Type check for list}
 \predicatesummary{protocol}{1}{Make a log of the user interaction}
 \predicatesummary{protocola}{1}{Append log of the user interaction to file}
 \predicatesummary{protocolling}{1}{On what file is user interaction logged}

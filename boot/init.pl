@@ -1310,7 +1310,7 @@ resulting code is simply the same), I've removed that.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 $translate_rule((LP-->List), H) :-
-	proper_list(List), !,
+	is_list(List), !,
 	(   List = []
 	->  $t_head(LP, S, S, H)
 	;   List = [X]
@@ -1337,7 +1337,7 @@ $t_head(LP, S, SR, H) :-
 $t_body(Var, S, SR, phrase(Var, S, SR)) :-
 	var(Var), !.
 $t_body(List, S, SR, C) :-
-	proper_list(List), !,
+	is_list(List), !,
 	(   List = []
 	->  C = (S=SR)
 	;   List = [X]

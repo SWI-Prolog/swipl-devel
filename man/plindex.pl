@@ -16,7 +16,7 @@
 :- set_feature(character_escapes, true).
 
 user:portray(X) :-
-	proper_list(X),
+	is_list(X),
 	ascii_list(X),
 	format('"~s"', [X]).
 	

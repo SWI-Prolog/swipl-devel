@@ -79,7 +79,7 @@ explain(A, Explanation) :-
 	atom(A), !,
 	explain_atom(A, Explanation).
 explain([H|T], Explanation) :-
-	proper_list(T), !,
+	is_list(T), !,
 	List = [H|T],
 	length(List, L),
 	(   utter(Explanation, '"~p" is a proper list with ~d elements',
