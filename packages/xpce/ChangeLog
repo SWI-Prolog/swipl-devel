@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: library(pce_grapher) to support creating and managing simple Prolog
+  graphs.  Especially useful for educational purposes.
+
 * ADDED: library(pce_tagged_connection): allow ->tag: @nil to remove the
   associated tag.
 
