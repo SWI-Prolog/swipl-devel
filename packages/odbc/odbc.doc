@@ -164,6 +164,16 @@ The specified default holds for all statements executed on this
 connection. Changing the connection default does not affect already
 prepared or running statements.  The null-value can also be specified
 at the statement level.  See the option list of odbc_query/4.
+
+    \termitem{wide_column_threshold}{+Length}
+If the width of a column exceeds \arg{Length}, use the API SQLGetData()
+to get the value incrementally rather than using a (large) buffer
+allocated with the statement.  The default is to use this alternate
+interface for columns larger than 1024 bytes.  There are two cases
+for using this option.  In time critical applications with wide columns
+it may provide better performance at the cost of a higher memory usage
+and to work around bugs in SQLGetData().  The latter applies to Microsoft
+SQL Server fetching the definition of a view.
 \end{description}
 
     \predicate{odbc_get_connection}{2}{+Connection, ?Property}
@@ -345,6 +355,10 @@ be avoided using a proper SELECT statement. Potentially useful however
 would be the translation of compound terms, especially to translate
 date/time/timestamp structures to a format for use by the application. 
 \end{quote}
+
+    \termitem{wide_column_threshold}{+Length}
+Specify threshold column width for using SQLGetData().
+See odbc_set_connection/2 for details.
 \end{description}
 
     \predicate{odbc_query}{2}{+Connection, +SQL}
@@ -665,6 +679,10 @@ the query is terminated due to deterministic success, failure, cut
 or exception.  Statements created with odbc_prepare/[4-5] are freed
 by odbc_free_statement/1 or due to a fatal error with the statement.
 \end{description}
+
+    \predicate{odbc_debug}{1}{+Level}
+Set the verbosity-level to \arg{Level}.  Default is 0.  Higher levels
+make the system print debugging messages.
 \end{description}
 
 

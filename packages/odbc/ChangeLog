@@ -1,3 +1,9 @@
+Jun 6, 2003
+
+* ADDED: option wide_column_threashold, predicate odbc_debug/1 and some
+  additional tests around SQLGetData().  Used to work around an SQL Server
+  bug.
+
 May 28, 2003
 
 * FIXED: Pass long parameters using SQLPutData().  Fabien Toscado.
