@@ -92,6 +92,5 @@ make_message([Fmt-Args|T]) --> !,
 make_message([Fmt|T]) -->
 	make_message([Fmt-[]|T]).
 
-.(H, T, L, R) :- append([H|T], R, L).
 
 
