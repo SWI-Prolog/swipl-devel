@@ -569,6 +569,8 @@ expand_entities(dtd_parser *p, const ichar *in, ochar *out, int len)
     { int chr;
 
       in = __utf8_get_char(in, &chr);
+      if ( chr >= OUTPUT_CHARSET_SIZE )
+	gripe(ERC_REPRESENTATION, "character");
       *out++ = chr;
     }
 #endif
@@ -4866,15 +4868,26 @@ reprocess:
     }
 #ifdef UTF8
     case S_UTF8:
-    { if ( (chr & 0xc0) != 0x80 )	/* TBD: recover */
+      if ( (chr & 0xc0) != 0x80 )	/* TBD: recover */
 	gripe(ERC_SYNTAX_ERROR, "Bad UTF-8 sequence", "");
       p->utf8_char <<= 6;
       p->utf8_char |= (chr & ~0xc0);
       if ( --p->utf8_left == 0 )
-      { add_cdata(p, p->utf8_char);	/* verbatim? */
+      { if ( p->utf8_char >= OUTPUT_CHARSET_SIZE &&
+	     p->mark_state == MS_INCLUDE )
+	{ if ( p->on_entity )
+	  { process_cdata(p, FALSE);
+	    (*p->on_entity)(p, NULL, p->utf8_char);
+	    goto utf8_done;
+	  } else
+	    gripe(ERC_REPRESENTATION, "character");
+	}
+	add_cdata(p, p->utf8_char);	/* verbatim? */
+      utf8_done:
 	p->state = p->utf8_saved_state;
       }
-    }
+
+      break;
 #endif
   }
 }
