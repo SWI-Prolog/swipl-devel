@@ -397,9 +397,22 @@ update_position(BBG) :->
 :- pce_begin_class(bar_label, device,
 		   "Label attached to a bar").
 
+variable(text, text, get, "Represented text object").
+
 initialise(BL, Bar:'bar|bar_stack') :->
 	send_super(BL, initialise),
+	new(_, partof_hyper(Bar, BL, label, bar)),
 	new(T, text(Bar?name?label_name)),
+	send(BL, slot, text, T),
+	send(BL, update_label),
+	get(Bar, center_base, Pos),
+	send(BL, position, Pos),
+	send(Bar?device, display, BL).
+
+update_label(BL) :->
+	send(BL, clear),
+	get(BL, text, T),
+	get(BL, bar, Bar),
 	(   get(Bar, orientation, horizontal),
 	    send(T, alignment, right),
 	    send(T, center_y, 0),
@@ -416,11 +429,13 @@ initialise(BL, Bar:'bar|bar_stack') :->
 	    new(BM, bitmap(I2)),
 	    send(BM, transparent, @on),
 	    send(BL, display, BM, point(-HX, -HY))
-	),
-	new(_, partof_hyper(Bar, BL, label, bar)),
-	get(Bar, center_base, Pos),
-	send(BL, position, Pos),
-	send(Bar?device, display, BL).
+	).
+
+font(BL, Font:font) :->
+	"Change font of the label"::
+	get(BL, text, T),
+	send(T, font, Font),
+	send(BL, update_label).
 
 bar(BL, Bar:'bar|bar_stack') :<-
 	"Get bar I'm related too"::

@@ -935,10 +935,16 @@ PRED_IMPL("$prof_statistics", 4, prof_statistics, 0)
 #endif /* O_PROFILE */
 
 #ifdef O_PROF_PENTIUM
-#include "prof.c"
+#include "pentium.c"
 
 PRED_IMPL("show_pentium_profile", 0, show_pentium_profile, 0)
 { prof_report();
+
+  succeed;
+}
+
+PRED_IMPL("reset_pentium_profile", 0, reset_pentium_profile, 0)
+{ prof_reset();
 
   succeed;
 }
@@ -958,5 +964,6 @@ BeginPredDefs(profile)
   PRED_DEF("$prof_statistics", 4, prof_statistics, 0)
 #ifdef O_PROF_PENTIUM
   PRED_DEF("show_pentium_profile", 0, show_pentium_profile, 0)
+  PRED_DEF("reset_pentium_profile", 0, reset_pentium_profile, 0)
 #endif
 EndPredDefs

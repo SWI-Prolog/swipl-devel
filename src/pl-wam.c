@@ -1978,9 +1978,12 @@ pl-comp.c
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifdef O_PROF_PENTIUM
-#include "prof.h"
+#include "pentium.h"
+
+#define PROF_FOREIGN (I_HIGHEST+1)
+
 #else
-#define START_PROF(Name)
+#define START_PROF(id, name)
 #define END_PROF()
 #endif
 
@@ -2091,9 +2094,10 @@ pl-comp.c
     NULL
   };
 
+
 #define VMI(Name)		Name ## _LBL: \
 				  count(Name, PC); \
-				  START_PROF(Name);
+				  START_PROF(Name, #Name);
 #if VMCODE_IS_ADDRESS
 #define NEXT_INSTRUCTION	{ DbgPrintInstruction(FR, PC); \
 				  END_PROF(); \
@@ -2112,7 +2116,7 @@ code thiscode;
 
 #define VMI(Name)		case Name: \
 				  count(Name, PC); \
-				  START_PROF(Name);
+				  START_PROF(Name, #Name);
 #define NEXT_INSTRUCTION	{ DbgPrintInstruction(FR, PC); \
 				  END_PROF(); \
                                   goto next_instruction; \
@@ -4228,6 +4232,8 @@ be able to access these!
 
 	  SAVE_REGISTERS(qid);
 	  FR->clause = NULL;
+	  END_PROF();
+	  START_PROF(PROF_FOREIGN, "PROF_FOREIGN");
 	  rval = callForeign(FR, FRG_FIRST_CALL PASS_LD);
 	  LOAD_REGISTERS(qid);
 
