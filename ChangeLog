@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: op(1150, fx, meta_predicate) to avoid syntax errors if library
+    quintus is not loaded explcitely.
+
 VERSION 5.1.8 (Feb 24, 2003)
 ============================
 

@@ -618,6 +618,7 @@ suggest predicates from a keyword.
 \opsummary{1150}{fx}{discontiguous}{Predicate}
 \opsummary{1150}{fx}{dynamic}{Predicate}
 \opsummary{1150}{fx}{module_transparent}{Predicate}
+\opsummary{1150}{fx}{meta_predicate}{Head}
 \opsummary{1150}{fx}{multifile}{Predicate}
 \opsummary{1150}{fx}{thread_local}{Predicate}
 \opsummary{1150}{fx}{volatile}{Predicate}

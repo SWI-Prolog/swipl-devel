@@ -560,6 +560,7 @@ static const opdef operators[] = {
   OP(ATOM_rem,		OP_YFX,		400),	/* rem */
   OP(ATOM_module_transparent,OP_FX,    1150),	/* module_transparent */
   OP(ATOM_multifile,	OP_FX,	       1150),	/* multifile */
+  OP(ATOM_meta_predicate, OP_FX,       1150),	/* meta_predicate */
   OP(ATOM_xor,		OP_YFX,		400),	/* xor */
 
   OP(NULL_ATOM,		0,		0)
