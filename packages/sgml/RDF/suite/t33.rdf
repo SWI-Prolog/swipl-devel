@@ -10,17 +10,8 @@
     rdf:about="http://mycorp.com/papers/NobelPaper1">
   
     <dc:Title rdf:parseType="Literal">
-      Ramifications of
-	 <apply>
-	<power/>
-	<apply>
-	  <plus/>
-	  <ci>a</ci>
-	  <ci>b</ci>
-	</apply>
-	<cn>2</cn>
-      </apply>
-      to World Peace
+Ramifications of <apply><power/><apply><plus/><ci>a</ci><ci>b</ci></apply>
+<cn>2</cn></apply> to World Peace
     </dc:Title>
     <dc:Creator>David Hume</dc:Creator>
   </rdf:Description>

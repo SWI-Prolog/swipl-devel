@@ -25,6 +25,7 @@
 
 initialise(D, Label:[name]) :->
 	send_super(D, initialise, Label),
+	send(D, scrollbars, both),
 	send(D, fill_popup).
 
 fill_popup(D) :->
@@ -51,6 +52,31 @@ append(D, Triple:prolog) :->
 	    send(Subject, connect, PredName, Object)
 	).
 	
+resource(D, Resource:name, Create:[bool], Subject:rdf_resource) :<-
+	"Get reference for a subject or create one"::
+	(   get(D, member, Resource, Subject)
+	->  true
+	;   Create \== @off,
+	    send(D, display, new(Subject, rdf_resource(Resource)),
+		 D?visible?center)
+	).
+
+literal(D, Value:prolog, Gr:rdf_literal) :<-
+	"Display a literal.  Don't try to re-use"::
+	send(D, display, new(Gr, rdf_literal(Value)),
+	     D?visible?center).
+
+
+triples(D, Triples:prolog) :->
+	"Show disgram from Prolog triples"::
+	send(D, clear),
+	forall(member(T, Triples),
+	       send(D, append, T)),
+	send(D, layout).
+
+
+:- pce_group(layout).
+
 layout(D) :->
 	"Produce automatic layout"::
 	(   get(D?graphicals, head, First)
@@ -58,17 +84,33 @@ layout(D) :->
 	;   true
 	).
 
-resource(D, Resource:name, Create:[bool], Subject:rdf_resource) :<-
-	"Get reference for a subject or create one"::
-	(   get(D, member, Resource, Subject)
-	->  true
-	;   Create \== @off,
-	    send(D, display, new(Subject, rdf_resource(Resource)))
-	).
+copy_layout(D, From:rdf_diagram, Subst:prolog) :->
+	"Copy the layout from another windows"::
+	send(D?graphicals, for_some,
+	     message(D, copy_location, @arg1, From, prolog(Subst))).
 
-literal(D, Value:prolog, Gr:rdf_literal) :<-
-	"Display a literal.  Don't try to re-use"::
-	send(D, display, new(Gr, rdf_literal(Value))).
+copy_location(_D, Obj:graphical, From:rdf_diagram, Subst:prolog) :->
+	"Copy location of a single RDF object"::
+	(   send(Obj, instance_of, rdf_any)
+	->  (   get(Obj, name, Name),
+	        find(From, Name, Subst, FromObj)
+	    ->  format('Copied location of ~p from ~p~n', [Obj, FromObj]),
+		get(FromObj, center, Center),
+		send(Obj, center, Center)
+	    )
+	;   true
+	).
+	
+find(D, Name, _Subst, Obj) :-
+	get(D, member, Name, Obj).
+find(D, Name, Subst, Obj) :-
+	member(Name=AltName, Subst),
+	atom_concat('_:', AltName, FullAltName),
+	get(D, member, FullAltName, Obj).
+find(D, Name, Subst, _) :-
+	format('Cannot find ~w in ~p, Subst =~n', [Name, D]),
+	pp(Subst),
+	fail.
 
 
 :- pce_end_class(rdf_diagram).
@@ -78,7 +120,7 @@ literal(D, Value:prolog, Gr:rdf_literal) :<-
 		 *	       SHAPES		*
 		 *******************************/
 
-:- pce_begin_class(rdf_any, figure,
+:- pce_begin_class(rdf_any(name), figure,
 		   "Represent an RDF resource or literal").
 
 :- pce_global(@rdf_link, new(link(link, link,
@@ -176,24 +218,24 @@ identify(F) :->
 
 initialise(F, Value:prolog) :->
 	"Create visualisation"::
-	gensym('__rdf_literal__', Id),
+	literal_label(Value, Label),
+	atom_concat('__lit:', Label, Id),
 	send_super(F, initialise, Id),
 	send(F, display, new(B, box)),
 	send(B, fill_pattern, colour(grey80)),
 	send(B, pen, 0),
-	(   Value = literal(Text)
-	->  true
-	;   Value = xml(Text)
-	->  true
-	;   Text = Value
-	),
-	(   atom(Text)
-	->  Label = Text
-	;   term_to_atom(Text, Label)
-	),
 	send(F, display, new(T, text(Label, center))),
 	send(T, center, point(0,0)),
 	send(F, fit).
+
+literal_label(literal(Value0), Value) :- !,
+	literal_label(Value0, Value).
+literal_label(xml(Value0), Value) :- !,
+	literal_label(Value0, Value).
+literal_label(Value, Value) :-
+	atomic(Value), !.
+literal_label(Value, Label) :-
+	term_to_atom(Value, Label).
 
 fit(F) :->
 	"Make box fit contents"::

@@ -75,8 +75,8 @@ rdf_object_or_error(H, Base) ::=
 rdf_object_or_error(_, unparsed(Data)) ::=
 	Data.
 
-%rdf_object(container(Type, Id, Elements), Base) ::=
-%	\container(Type, Id, Elements, Base), !.
+rdf_object(container(Type, Id, Elements), Base) ::=
+	\container(Type, Id, Elements, Base), !. % compatibility
 rdf_object(description(Type, About, BagID, Properties), Base) ::=
 	\description(Type, About, BagID, Properties, Base).
 
@@ -178,13 +178,13 @@ propertyElt(_, Name, description(description, Id, _, Properties), Base) ::=
 		       ]),
 		\propertyElts(Properties, Base)),
 	!.
-propertyElt(Id, Name, literal(Value), Base) ::=
+propertyElt(_, Name, literal(Value), _Base) ::=
 	element(Name,
-		\attrs([ \parseLiteral,
-			 \?idAttr(Id, Base)
+		\attrs([ \parseLiteral
 		       ]),
-		Content), !,
-	{ literal_value(Content, Value)
+		Content),
+	{ !,
+	  literal_value(Content, Value)
 	}.
 propertyElt(Id, Name, literal(Value), Base) ::=
 	element(Name,
@@ -325,6 +325,11 @@ Note that containers are no longer part   of  the definition. We'll keep
 the code and call it conditionally if we must.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+container(_, _, _, _) ::=
+	_,
+	{ \+ current_prolog_flag(rdf_container, true),
+	  !, fail
+	}.
 container(Type, Id, Elements, Base0) ::=
 	E0,
 	{ set_base_uri(E0, Base0, E, Base), !,

@@ -6,7 +6,7 @@
          xmlns:s="http://description.org/schema/">
   <rdf:Description about="http://www.swi.psy.uva.nl/projects/SWI-Prolog/">
     <s:Creator rdf:ID="pl-creator">
-      <rdf:Description ID="JW">
+      <rdf:Description rdf:about="JW">
         <name>Jan Wielemaker</name>
 	<works_at>SWI</works_at>
       </rdf:Description>

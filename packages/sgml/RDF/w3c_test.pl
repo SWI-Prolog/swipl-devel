@@ -24,6 +24,7 @@
 :- use_module(library(toolbar)).
 :- use_module(library(pce_report)).
 :- use_module(rdf_diagram).
+:- use_module(library('emacs/emacs')).
 
 :- dynamic
 	rdf/3.
@@ -59,6 +60,7 @@ canonise(X, X).
 	
 
 run_tests :-
+	process_manifest,
 	start_tests,
 	(   rdf(About, rdf:type, test:Type),
 	    test_type(Type),
@@ -83,9 +85,15 @@ run_test(Test) :-
 		   expand_foreach(true)
 		 ]),
 	load_rdf_nt(NTFile, NT),
-	(   compare_triples(RDF, NT)
-	->  test_result(pass, Test, RDF, NT)
-	;   test_result(fail, Test, RDF, NT)
+	Data = [ source(InFile),
+		 result(RDF),
+		 norm(NT),
+		 substitutions(Substitions)
+	       ],
+	(   compare_triples(RDF, NT, Substitions)
+	->  test_result(pass, Test, Data)
+	;   Substitions = [],
+	    test_result(fail, Test, Data)
 	).
 
 
@@ -103,11 +111,25 @@ local_file(URL, File) :-
 
 initialise(F) :->
 	send_super(F, initialise, 'W3C RDF test suite results'),
-	send(F, append, new(D, tool_dialog(F))),
-	send(new(B, browser), below, D),
+	send(F, append, new(B, browser)),
+	send(B, hor_stretch, 100),
+	send(B, hor_shrink, 100),
+	new(V, emacs_view(height := 3)),
+	new(R, rdf_diagram),
+	new(N, rdf_diagram),
+	send(R, label, 'Result'),
+	send(N, label, 'Norm'),
+	send(R, above, N),
+	send(V, above, R),
+	send(V, right, B),
+	send(V, name, text),
+	send(R, name, result),
+	send(N, name, norm),
+	send(new(D, tool_dialog(F)), above, B),
+	send(new(report_dialog), below, B),
 	send(F, fill_menu, D),
-	send(F, fill_browser, B),
-	send(new(report_dialog), below, B).
+	send(F, fill_browser, B).
+
 
 fill_menu(F, D:tool_dialog) :->
 	send_list(D,
@@ -124,11 +146,12 @@ fill_browser(_F, B:browser) :->
 				 ?(B, dict_item, @event)),
 			 new(or)))),
 	send(B, popup, new(P, popup)),
+	send(B, select_message, message(@arg1, run)),
 	send_list(P, append,
-		  [ menu_item(edit,
-			      message(@arg1, edit_test)),
-		    menu_item(run,
+		  [ menu_item(run,
 			      message(@arg1, run)),
+		    menu_item(edit,
+			      message(@arg1, edit_test)),
 		    gap,
 		    menu_item(show_result,
 			      message(@arg1, show_triples, result)),
@@ -149,11 +172,8 @@ fill_browser(_F, B:browser) :->
 		  ]).
 
 
-test_result(F, Result:{pass,fail}, Test:name, Our:prolog, Norm:prolog) :->
+test_result(F, Result:{pass,fail}, Test:name, Data:prolog) :->
 	"Test failed"::
-	Data = [ result(Our),
-		 norm(Norm)
-	       ],
 	get(F, member, browser, B),
 	(   get(B, member, Test, Item)
 	->  send(Item, object, prolog(Data)),
@@ -184,9 +204,8 @@ summarise(F) :->
 
 edit_test(Item) :->
 	"Edit input document of test"::
-	get(Item, key, Test),
-	rdf(Test, test:inputDocument, In),
-	local_file(In, InFile),
+	get(Item, object, List),
+	member(source(InFile), List),
 	edit(file(InFile)).
 
 show_triples(Item, Set:{result,norm}) :->
@@ -202,10 +221,7 @@ show_diagram(_Item, Triples:prolog, Label:name) :->
 	"Show diagram for triples"::
 	new(D, rdf_diagram(Label)),
 	send(new(report_dialog), below, D),
-	forall(member(T, Triples),
-	       send(D, append, T)),
-	send(D, layout),
-	send(D, open).
+	send(D, triples, Triples).
 
 open_url(Item, Which:name) :->
 	"Open associated URL in browser"::
@@ -221,13 +237,36 @@ has_url(Item, Which:name) :->
 run(Item) :->
 	"Re-run the test"::
 	get(Item, key, Test),
-	run_test(Test).
+	run_test(Test),
+	send(Item, show).
 
 copy_test_uri(Item) :->
 	"Copy URI of test to clipboard"::
 	get(Item, key, Test),
 	send(@display, copy, Test).
 
+show(Item) :->
+	"Show source, result and norm diagrams"::
+	get(Item?image, frame, Frame),
+	get(Frame, member, text, View),
+	get(Frame, member, result, Result),
+	get(Frame, member, norm, Norm),
+	get(Item, object, List),
+	member(result(RTriples), List),
+	member(norm(NTriples), List),
+	member(source(File), List),
+	member(substitutions(Substitutions), List),
+	send(Result, triples, RTriples),
+	send(Norm, triples, NTriples),
+	send(Result, copy_layout, Norm, Substitutions),
+	send(View, text_buffer, new(TB, emacs_buffer(File))),
+					% scroll to RDF text
+	(   get(TB, find, 0, ':RDF', Start),
+	    get(TB, scan, Start, line, 0, start, BOL)
+	->  send(View, scroll_to, BOL, 1)
+	;   true
+	).
+	
 :- pce_end_class(rdf_test_item).
 
 
@@ -242,12 +281,14 @@ make_rdf_test_gui(Ref) :-
 
 verbose.
 
-test_result(Result, Test, Our, Norm) :-
-	send(@rdf_test_gui, test_result, Result, Test, Our, Norm),
+test_result(Result, Test, Data) :-
+	send(@rdf_test_gui, test_result, Result, Test, Data),
 	(   Result == fail, verbose
-	->  length(Our, OurLength),
+	->  member(result(Our), Data),
+	    length(Our, OurLength),
 	    format('~N** Our Triples (~w)~n', OurLength),
 	    pp(Our),
+	    member(norm(Norm), Data),
 	    length(Norm, NormLength),
 	    format('~N** Normative Triples (~w)~n', NormLength),
 	    pp(Norm)
@@ -295,13 +336,20 @@ show(File) :-
 		 *	     COMPARING		*
 		 *******************************/
 
-compare_triples(A, B) :-
-	compare_list(A, B, [], _).
+%	compare_triples(+PlRDF, +NTRDF, -Substitions)
+%
+%	Compare two models and if they are equal, return a list of
+%	PlID = NTID, mapping NodeID elements.
+
+
+compare_triples(A, B, Substitutions) :-
+	compare_list(A, B, [], Substitutions),
+	pp(Substitutions).
 
 compare_list([], [], S, S).
 compare_list([H1|T1], In2, S0, S) :-
 	select(H2, In2, T2),
-	compare_triple(H1, H2, S0, S1), !, % put(.), flush_output,
+	compare_triple(H1, H2, S0, S1), % put(.), flush_output,
 	compare_list(T1, T2, S1, S).
 
 compare_triple(rdf(Subj1,P1,O1), rdf(Subj2, P2, O2), S0, S) :-
@@ -322,7 +370,7 @@ compare_field(X, node(Id), S, [X=Id|S]) :-
 	\+ memberchk(X=_, S),
 	atom(X),
 	generated_prefix(Prefix),
-	sub_atom(X, 0, _, _, Prefix),
+	sub_atom(X, 0, _, _, Prefix), !,
 	format('Assume ~w = ~w~n', [X, node(Id)]).
 
 generated_prefix('Bag__').

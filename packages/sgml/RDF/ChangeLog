@@ -1,3 +1,13 @@
+################################################################
+# Sumary of incompatibilities:
+#
+#	Many problems in nested bag handling, changing output of
+#	suite/t5.rdf
+#
+#	Content of Alt-container was incorrectly rendered as rdf:li
+#	instead of rdf:_1, rdf:_2, etc (suite/t27.rdf).
+################################################################
+	
   * ADDED: Translate rdf:li predicates into _1, _2, etc.
 
   * FIXED: parseType=Literal to avoid extraneous [..] around the value
