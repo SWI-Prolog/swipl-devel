@@ -1,6 +1,10 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * PORT: Fixed some compiler warnings for SunSoft C-compiler.  Still
+    quite some left, but at least is now compiles. Thanks to
+    Richard O'Keefe.
+
   * FIXED: memory stream-size if no output was written.  Fixes sformat
     and swrite calls not producing output.  Thanks to Daniel Cote.
 
