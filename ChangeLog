@@ -1,6 +1,11 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: qsave_program/2: Saving the unknown flag.  Thanks to
+    Robert van Engelen.
+
+  * FIXED: Translation of negation in DCG rules (Stefan Berghofer)
+
   * ADDED: Glossary of terms to the manual.
 
   * ISO: Use exceptions for errors on length/2 and sort/2.
