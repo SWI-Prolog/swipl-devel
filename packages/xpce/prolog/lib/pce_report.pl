@@ -1,10 +1,12 @@
 /*  $Id$
 
-    Part of BOOT
-    Designed and implemented by Anja van der Hulst and Jan Wielemaker
+    Part of XPCE
+    Designed and implemented by Anjo Anjewierden and Jan Wielemaker
+    E-mail: jan@swi.psy.uva.nl
 
-    Copyright (C) 1998 TNO-FEL. All rights reserved.
+    Copyright (C) 2000 University of Amsterdam. All rights reserved.
 */
+
 
 :- module(pce_reporter, []).
 
