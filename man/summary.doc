@@ -299,7 +299,8 @@ suggest predicates from a keyword.
 \predicatesummary{number}{1}{Type check for integer or float}
 \predicatesummary{number_chars}{2}{Convert between number and one-char atoms}
 \predicatesummary{number_codes}{2}{Convert between number and ASCII values}
-\predicatesummary{numbervars}{4}{Enumerate unbound variables of a term using a given base}
+\predicatesummary{numbervars}{3}{Number unbound variables of a term}
+\predicatesummary{numbervars}{4}{Number unbound variables of a term}
 \predicatesummary{on_signal}{3}{Handle a software signal}
 \predicatesummary{once}{1}{Call a goal deterministically}
 \predicatesummary{op}{3}{Declare an operator}

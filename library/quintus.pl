@@ -58,7 +58,6 @@
 	  (meta_predicate)/1,
 	  no_style_check/1,
 	  otherwise/0,
-	  numbervars/3,
 	  subsumes_chk/2,		% ?General, ?Specific
 	  simple/1,
 %	  statistics/2,			% Please access as quintus:statistics/2
@@ -243,10 +242,6 @@ public(_).
 		 /*******************************
 		 *	TERM MANIPULATION	*
 		 *******************************/
-
-numbervars(Term, From, To) :-
-	numbervars(Term, '$VAR', From, To).
-
 
 %	temporary hack for subsumes_chk/2 in ordinary Prolog world.
 %	This comes from the SWI-Prolog port of ALE.

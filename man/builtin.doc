@@ -2761,20 +2761,27 @@ List = [foo, hello, X]
 
 Term = baz(foo(1))
 \end{code}
-    \predicate{numbervars}{4}{+Term, +Functor, +Start, -End}
-Unify the free variables of \arg{Term} with a term constructed from the
-atom \arg{Functor} with one argument.  The argument is the number of the
-variable.  Counting starts at \arg{Start}.  \arg{End} is unified with
-the number that should be given to the next variable. Example:
-\begin{code}
-?- numbervars(foo(A, B, A), this_is_a_variable, 0, End).
 
-A = this_is_a_variable(0)
-B = this_is_a_variable(1)
+    \predicate{numbervars}{3}{+Term, +Start, -End}
+Unify the free variables of \arg{Term} with a term \term{\$VAR}{N},
+where \arg{N} is the number of the variable. Counting starts at
+\arg{Start}. \arg{End} is unified with the number that should be given
+to the next variable. Example:
+
+\begin{code}
+?- numbervars(foo(A, B, A), 0, End).
+
+A = '$VAR'(0)
+B = '$VAR'(1)
 End = 2
 \end{code}
-In Edinburgh Prolog the second argument is missing.  It is fixed to be
-\const{\$VAR}.
+
+See also the \const{numbervars} option to write_term/3 and numbervars/4.
+
+    \predicate{numbervars}{4}{+Term, +FunctionSymbol, +Start, -End}
+As numbervars/3, but instead of using the fixed \const{\$VAR} the 
+function symbol is determined by extra \arg{FunctionSymbol} argument.
+
     \predicate{free_variables}{2}{+Term, -List}
 Unify \arg{List} with a list of variables, each sharing with a unique variable
 of \arg{Term}. For example:

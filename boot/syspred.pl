@@ -74,6 +74,7 @@
 	, require/1
 	, call_with_depth_limit/3
 	, length/2
+	, numbervars/3
 	]).	
 
 		/********************************
@@ -759,3 +760,19 @@ length2([], 0).
 length2([_|List], N) :-
 	length2(List, M), 
 	succ(M, N).
+
+
+		 /*******************************
+		 *	       TERM		*
+		 *******************************/
+
+%	numbervars(+Term, +StartIndex, -EndIndex)
+%	
+%	Number all unbound variables in Term   using  $VAR(N), where the
+%	first N is StartIndex and EndIndex is  unified to the index that
+%	will be given to the next variable.
+
+numbervars(Term, From, To) :-
+	numbervars(Term, '$VAR', From, To).
+
+
