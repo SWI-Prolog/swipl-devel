@@ -1,6 +1,10 @@
+* ADDED: Hook into prolog_edit:select_location to use GUI when running from
+  the GUI.
+
 * ADDED: PceEmacs: prolog mode: handle :- multifile directives.
 
-* ADDED: (Finally) indication of default-button in default X11 openLook style.
+* ADDED: (Finally ...) indication of default-button in default X11
+  openLook style.
 
 * FIXED: PceEmacs: Enable timed auto-colouring after ->paste
 
