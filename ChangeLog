@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Demo .plrc (pl.ini) to use the flag `gui' rather than `xpce' to
+    see whether to load the gui-tracer (Jakub Jiricek).
+
   * FIXED: GUI tracer: check whether file is modified outside the built-in
     editor.  (Jakub Jiricek).
 

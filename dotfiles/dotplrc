@@ -51,7 +51,7 @@ hooks, file_search_path/2, set_prolog_flag/2 and portray/1.
 		 *	      EDITOR		*
 		 *******************************/
 
-%	Define the editor to use.  Note that more advanced maniluation
+%	Define the editor to use.  Note that more advanced manipulation
 %	of this is defined in the SWI-Prolog reference manual, section
 %	"Listing and Editor Interface"
 %	
@@ -77,7 +77,7 @@ hooks, file_search_path/2, set_prolog_flag/2 and portray/1.
 
 %	If you prefer graphical tracing, add the line below.
 
-% :- (current_prolog_flag(xpce, true) -> guitracer ; true).
+% :- (current_prolog_flag(gui, true) -> guitracer ; true).
 
 %	Determine how terms are printed by the debugger and toplevel.  The
 %	values here are defaults. max_depth(10) replaces all subterms at
