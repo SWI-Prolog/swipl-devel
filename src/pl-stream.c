@@ -1808,7 +1808,7 @@ Sopenmem(char **buffer, int *size, const char* mode)
 IOSTREAM *
 Sopenmem(char **buffer, int *sizep, const char *mode)
 { memfile *mf = malloc(sizeof(memfile));
-  int flags = SIO_FBUF;
+  int flags = SIO_FBUF|SIO_RECORDPOS;
   int size;
 
   if ( !mf )
