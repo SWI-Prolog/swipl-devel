@@ -979,16 +979,64 @@ itake_nmtoken_chars(dtd *dtd, const ichar *in, ichar *out, int len)
 }
 
 
-static const ichar *
-itake_nonblank_chars(dtd *dtd, const ichar *in, ichar *out, int len)
-{ in = iskip_layout(dtd, in);
+/*  There used to be a function
 
-  while( *in && !HasClass(dtd, *in, CH_BLANK) )
-  { if ( --len <= 0 )
+    itake_nonblank_chars(dtd, in, out, len) -> new end
+
+    which
+    - skipped layout,
+    - copied characters from in[] to out[] until layout or \0 was found,
+    - added a terminating \0 to out[],
+    - skipped any following layout, and
+    - returned the new position.
+
+    That function was only called by get_attribute_value(), which used
+    it to parse an unquoted attribute value.  According to SGML, that's
+    not right:  unquoted attribute values must look like NMTOKENs (but
+    have a different length bound).  In particular, elements like
+	<foo a=bar>zoo</foo>
+	<foo a=ugh/zip/
+    are perfectly legal, so scanning an unquoted attribute value MUST
+    stop at a '/' or '>'.  According to HTML practice, pretty much any
+    old junk will be accepted, and some HTML parsers will allow bare
+    slashes in such an attribute.
+
+    Typical HTML is *so* bad that it doesn't agree with *any* part of
+    the HTML specifications (e.g., <FONT> is commonly wrapped around
+    block-level elements, which has never been legal).  It's not clear
+    that there is much point in trying to accomodate bad HTML; if you
+    really need to do that, use the free program HTML Tidy (from the
+    http://www.w3c.org/ site) to clean up, and parse its output instead.
+
+    However, in order to break as little as possible, the new (sgml-1.0.14)
+    function accepts anything except > / \0 and blanks.
+*/
+
+static ichar const *
+itake_unquoted(dtd *dtd, ichar const *in, ichar *out, int len)
+{ ichar const end1 = dtd->charfunc->func[CF_STAGC];	/* > */
+  ichar const end2 = dtd->charfunc->func[CF_ETAGO2];	/* / */
+  ichar c;
+
+  /* skip leading layout.  Do NOT skip comments! --x-- is a value! */
+  while (c = *in, HasClass(dtd, c, CH_BLANK))
+    in++;
+
+  /* copy the attribute to out[] */
+  while ( !HasClass(dtd, c, CH_BLANK) &&
+	  c != '\0' && c != end1 && c != end2
+	)
+  { if ( --len > 0 )
+      *out++ = c;
+    else if ( len == 0 )
       gripe(ERC_REPRESENTATION, "Attribute too long");
-    *out++ = *in++;
+    c = *++in;
   }
-  *out++ = '\0';
+  *out = '\0';
+
+  /* skip trailing layout.  While it is kind to skip comments here,
+     it is technically wrong to do so.  Tags may not contain comments.
+   */
 
   return iskip_layout(dtd, in);
 }
@@ -2703,143 +2751,197 @@ attributes. Basically, if the attribute is quoted, we need:
 
 This almost, but not completely matches the XML definition. This however
 is so complex we will ignore it for now.
+
+[Rewritten by Richard O'Keefe with these addional comments]
+Reads a value, the  attribute  name   and  value  indicator  having been
+processed already. It calls itake_string() to   read  quoted values, and
+itake_unquoted() to read unquoted values.
+
+itake_string(dtd, in, buf, size)
+	- skips layout INCLUDING comments,
+	- returns NULL if the next character is not ' or ",
+	- copies characters from in to buf until a matching ' or " is found,
+	- adds a terminating \0,
+	- skips more layout INCLUDING comments, and
+	- returns the new input position.
+It is quite wrong to skip leading comments here.  In the tag
+
+    <foo bar = --ugh-- zoo>
+
+the characters "--ugh--" *are the value*.  They are not a comment.
+Comments are not in fact allowed inside tags, unfortunately.
+This tag is equivalent to
+
+    <foo bar="--ugh--" something="zoo">
+
+where something is an attribute that has zoo as one of its enumerals.
+
+Because itake_string() is called in many other places, this bug has
+not yet been fixed.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static const ichar *
-get_attribute_value(dtd_parser *p, const ichar *decl, sgml_attribute *att)
+static ichar const *
+get_attribute_value(dtd_parser *p, ichar const *decl, sgml_attribute *att)
 { ichar tmp[MAXSTRINGLEN];
   ichar *buf = tmp;
   ochar cdata[MAXSTRINGLEN];
+  ichar const *s;
+  ichar *d;
+  ichar c;
   dtd *dtd = p->dtd;
-  const ichar *end;
+  ichar const *end;
 
-  if ( (end=itake_string(dtd, decl, tmp, sizeof(tmp))) )
-  { if ( att->definition->type == AT_CDATA )
-    { ichar *s;
-      int hasent = FALSE;
-      int ero = dtd->charfunc->func[CF_ERO]; /* & */
+  enum
+  { DIG_FIRST = 8,		/* any token start with digit? */
+    NAM_FIRST = 4,		/* any token start with non-digit name char? */
+    NAM_LATER = 2,		/* any token have non-digit name char later? */
+    ANY_OTHER = 1,		/* any token have illegal character? */
+    YET_EMPTY = 0
+  }
+  token = YET_EMPTY;
 
-      for(s=tmp; *s; s++)		/* map all blank to spaces */
-      { if ( HasClass(dtd, *s, CH_BLANK) )
-	  *s = ' ';
-	else if ( *s == ero )
-	  hasent = TRUE;
+  end = itake_string(dtd, decl, tmp, sizeof tmp);
+  if (end != NULL)
+  { if (att->definition->type == AT_CDATA)
+    { int hasent = FALSE;
+      ichar const ero = dtd->charfunc->func[CF_ERO];	/* & */
+
+      for (d = tmp; *d; d++)
+      { if (HasClass(dtd, *d, CH_BLANK))
+	{ *d = ' ';		/* map all blanks to spaces */
+	} else if (*d == ero)
+	{ hasent = TRUE;	/* notice char/entity references */
+	}
       }
-
-      if ( hasent )
+      if (hasent)
       { expand_entities(p, tmp, cdata, MAXSTRINGLEN);
-	buf = (ichar *)cdata;
+	buf = (ichar *) cdata;
       }
     } else
-    { ichar *s, *d;
-      
-      expand_entities(p, tmp, cdata, MAXSTRINGLEN);
-      buf = (ichar *)cdata;
+    { ichar *d;
 
-					/* canonise blanks */
-      for(s=buf; *s && HasClass(dtd, *s, CH_BLANK); s++)
-	;
-      for(d=buf; *s; s++)
-      { if ( dtd->case_sensitive )
-	{ while(*s && !HasClass(dtd, *s, CH_BLANK))
-	    *d++ = *s++;
-	} else
-	{ while(*s && !HasClass(dtd, *s, CH_BLANK))
-	    *d++ = tolower(*s++);
-	}
-	while(*s && HasClass(dtd, *s, CH_BLANK))
-	  s++;
-	if ( *s )
+      expand_entities(p, tmp, cdata, MAXSTRINGLEN);
+      buf = (ichar *) cdata;
+
+      /* canonicalise blanks */
+      s = buf;
+      while ((c = *s++) != '\0' && HasClass(dtd, c, CH_BLANK))
+      { }
+      d = buf;
+      while (c != '\0')
+      { token |= HasClass(dtd, c, CH_DIGIT) ? DIG_FIRST
+	  : HasClass(dtd, c, CH_NAME) ? NAM_FIRST : /* oops! */ ANY_OTHER;
+	if (d != buf)
 	  *d++ = ' ';
-	else
-	  break;
+	if (dtd->case_sensitive)
+	{ *d++ = c;
+	  while ((c = *s++) != '\0' && !HasClass(dtd, c, CH_BLANK))
+	  { token |= HasClass(dtd, c, CH_DIGIT) ? 0
+	      : HasClass(dtd, c, CH_NAME) ? NAM_LATER : /* oops! */ ANY_OTHER;
+	    *d++ = c;
+	  }
+	} else
+	{ *d++ = tolower(c);
+	  while ((c = *s++) != '\0' && !HasClass(dtd, c, CH_BLANK))
+	  { token |= HasClass(dtd, c, CH_DIGIT) ? 0
+	      : HasClass(dtd, c, CH_NAME) ? NAM_LATER : /* oops! */ ANY_OTHER;
+	    *d++ = tolower(c);
+	  }
+	}
+	while (c != '\0' && HasClass(dtd, c, CH_BLANK))
+	  c = *s++;
       }
-      *d = 0;
+      *d = '\0';
     }
   } else
-  { const ichar *s;
-
-    if ( !(end=itake_nonblank_chars(dtd, decl, tmp, sizeof(tmp))) )
+  { end = itake_unquoted(dtd, decl, tmp, sizeof tmp);
+    if (end == NULL)
       return NULL;
 
-    for(s=buf; *s; s++)
-    { if ( !HasClass(dtd, *s, CH_NAME) )
-      { gripe(ERC_SYNTAX_WARNING, "Attribute value requires quotes", buf);
-	break;
+    s = buf;
+    c = *s++;
+    if (c != '\0')
+    { token |= HasClass(dtd, c, CH_DIGIT) ? DIG_FIRST
+	: HasClass(dtd, c, CH_NAME) ? NAM_FIRST : /* oops! */ ANY_OTHER;
+      while ((c = *s++) != 0)
+      { token |= HasClass(dtd, c, CH_DIGIT) ? 0
+	  : HasClass(dtd, c, CH_NAME) ? NAM_LATER : /* oops! */ ANY_OTHER;
       }
     }
+    if (dtd->dialect != DL_SGML
+	|| token == YET_EMPTY || (token & ANY_OTHER) != 0)
+      gripe(ERC_SYNTAX_WARNING, "Attribute value requires quotes", buf);
 
-    if ( !dtd->case_sensitive && att->definition->type != AT_CDATA )
+    if (!dtd->case_sensitive && att->definition->type != AT_CDATA)
       istrlower(buf);
   }
 
-  att->value.cdata  = NULL;
-  att->value.text   = NULL;
+  att->value.cdata = NULL;
+  att->value.text = NULL;
   att->value.number = 0;
-  att->flags        = 0;
+  att->flags = 0;
 
-  switch(att->definition->type)
-  { case AT_NUMBER:			/* number */
-    { if ( buf[0] )
-      { switch(dtd->number_mode)
-	{ case NU_TOKEN:
-	  { const ichar *s = buf;
-
-	    while( *s && HasClass(dtd, *s, CH_DIGIT) )
-	      s++;
-
-	    if ( *s )
-	      gripe(ERC_SYNTAX_WARNING, "NUMBER expected", decl);
-
-	    att->value.text = istrdup(buf);
-	    return end;
-	  }
-	  case NU_INTEGER:
-	  { if ( istrtol(buf, &att->value.number) )
-	      return end;
-	  }
-	}
+  switch (att->definition->type)
+  { case AT_NUMBER:		/* number */
+      if (token != DIG_FIRST)
+      { gripe(ERC_SYNTAX_WARNING, "NUMBER expected", decl);
+      } else if (dtd->number_mode == NU_INTEGER)
+      { (void) istrtol(buf, &att->value.number);
+      } else
+      { att->value.text = istrdup(buf);
       }
-      gripe(ERC_SYNTAX_WARNING, "NUMBER expected", decl);
-      att->value.text = istrdup(buf);
       return end;
-    }
-    case AT_CDATA:			/* CDATA attribute */
-      att->value.cdata = ostrdup((ochar *)buf);
+    case AT_CDATA:		/* CDATA attribute */
+      att->value.cdata = ostrdup((ochar *) buf);
       return end;
-    case AT_ID:				/* identifier */
-    case AT_IDREF:			/* identifier reference */
-    case AT_NAME:			/* name token */
-    case AT_NAMEOF:			/* one of these names */
-    case AT_NMTOKEN:			/* name-token */
-    case AT_NOTATION:			/* notation-name */
-      att->value.text = istrdup(buf);	/* TBD: more validation */
-      return end;
-    case AT_NUTOKEN:			/* number token */
-      if ( !HasClass(dtd, buf[0], CH_DIGIT) )
-	gripe(ERC_SYNTAX_WARNING, "NUTOKEN must start with digit", decl);
-      if ( strlen(buf) > 8 )
-	gripe(ERC_LIMIT, "NUTOKEN length");
-
-      att->value.text = istrdup(buf);
-      return end;
-    case AT_ENTITY:			/* entity-name */
-      att->value.text = istrdup(buf);	/* TBD: more validation */
-      return end;
-    case AT_NAMES:			/* list of names */
-    case AT_NMTOKENS:			/* name-token list */
-    case AT_NUMBERS:			/* number list */
+    case AT_ID:		/* identifier */
+    case AT_IDREF:		/* identifier reference */
+    case AT_NAME:		/* name token */
+    case AT_NOTATION:		/* notation-name */
+      if (token == YET_EMPTY || (token & (DIG_FIRST | ANY_OTHER)) != 0)
+	gripe(ERC_SYNTAX_WARNING, "NAME expected", decl);
+      break;
+    case AT_NAMEOF:		/* one of these names */
+    case AT_NMTOKEN:		/* name-token */
+      if (token == YET_EMPTY || (token & ANY_OTHER) != 0)
+	gripe(ERC_SYNTAX_WARNING, "NMTOKEN expected", decl);
+      break;
+    case AT_NUTOKEN:		/* number token */
+      if ((token & (NAM_FIRST | ANY_OTHER)) != 0)
+	gripe(ERC_SYNTAX_WARNING, "NUTOKEN expected", decl);
+      break;
+    case AT_ENTITY:		/* entity-name */
+      if (token == YET_EMPTY || (token & (DIG_FIRST | ANY_OTHER)) != 0)
+	gripe(ERC_SYNTAX_WARNING, "entity NAME expected", decl);
+      break;
+    case AT_NAMES:		/* list of names */
+    case AT_IDREFS:		/* list of identifier references */
+      if (token == YET_EMPTY || (token & (DIG_FIRST | ANY_OTHER)) != 0)
+	gripe(ERC_SYNTAX_WARNING, "NAMES expected", decl);
+      break;
+    case AT_ENTITIES:		/* entity-name list */
+      if (token == YET_EMPTY || (token & (DIG_FIRST | ANY_OTHER)) != 0)
+	gripe(ERC_SYNTAX_WARNING, "entity NAMES expected", decl);
+      break;
+    case AT_NMTOKENS:		/* name-token list */
+      if (token == YET_EMPTY || (token & ANY_OTHER) != 0)
+	gripe(ERC_SYNTAX_WARNING, "NMTOKENS expected", decl);
+      break;
+    case AT_NUMBERS:		/* number list */
+      if (token != DIG_FIRST)
+	gripe(ERC_SYNTAX_WARNING, "NUMBERS expected", decl);
+      break;
     case AT_NUTOKENS:
-    case AT_IDREFS:			/* list of identifier references */
-      att->value.text = istrdup(buf);	/* TBD: break-up */
-      return end;
-    case AT_ENTITIES:			/* entity-name list */
-      att->value.text = istrdup(buf);	/* TBD: break-up */
-      return end;
+      if ((token & (NAM_FIRST | ANY_OTHER)) != 0)
+	gripe(ERC_SYNTAX_WARNING, "NUTOKENS expected", decl);
+      break;
+    default:
+      assert(0);
+      return NULL;
   }
 
-  assert(0);
-  return NULL;
+  att->value.text = istrdup(buf);	/* TBD: more validation */
+  return end;
 }
 
 
@@ -4754,7 +4856,7 @@ gripe(dtd_error_id e, ...)
     { const char *elem = va_arg(args, char *); /* element */
       const char *attr = va_arg(args, char *); /* attribute */
 
-      sprintf(buf, "Element \"%s\" does has no attribute \"%s\"", elem, attr);
+      sprintf(buf, "Element \"%s\" has no attribute \"%s\"", elem, attr);
       error.argv[0] = buf;
       error.severity = ERS_WARNING;
 
