@@ -7,11 +7,6 @@
     Purpose: load foreign files
 */
 
-/*
-** This file contains changes which are part of a port to HPUX 8.0
-** T. Kielmann, 01 Jun 92
-*/
-
 /*  Modified (M) 1993 Dave Sherratt  */
 /*  Implementing foreign functions for HP-PA RISC architecture  */
 
@@ -86,12 +81,6 @@ This module is a bit of a mess due to all the #ifdef.  We should  define
 a better common basis to get rid of most of these things.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if sun | vax
-#define NOENTRY 1
-#else
-#define NOENTRY 0
-#endif
-
 #if hpux
 #  ifdef TEXT_OFFSET  /* a.out_300 */
 #    define N_DATOFF(x)       DATA_OFFSET(x)
@@ -105,10 +94,8 @@ a better common basis to get rid of most of these things.
 #    define tsize exec_tsize
 #    define dsize exec_dsize
 #    define bsize exec_bsize
-#    define FORMAT_LOADER_COMMAND(cmd, ldr, sbs, base, entry, out, opts, fls, lbs) \
-	sprintf(cmd, \
-		"%s -N -a archive -A %s -R %x -e %s -o %s %s %s %s -lc /lib/dyncall.o", \
-		cmd, ldr, sbs, base, entry, out, opts, fls, lbs);
+#    define LD_OPT_OPTIONS	 "-N -a archive"
+#    define LD_OPT_LIBS    	 "-lc /lib/dyncall.o"
 #  endif
 #  ifdef EXEC_PAGESIZE
 #    define PAGSIZ    EXEC_PAGESIZE
@@ -134,9 +121,7 @@ a better common basis to get rid of most of these things.
 #define ADDRESS_ALIGN(cp) \
   ((char *)(PAGE_ROUND_UP(cp)))
 
-#define LOADER	"ld"			/* Unix loader command name */
-
-#if NOENTRY
+#if O_NOENTRY
 #define MAXSYMBOL 256			/* maximum length of a function name */
 
 typedef struct
@@ -145,7 +130,7 @@ typedef struct
 } textSymbol;
 
 char *symbolString();			/* forwards */
-#endif /* NOENTRY */
+#endif /* O_NOENTRY */
 
 #if ! aout_800
 static struct exec header;            /* a.out header */
@@ -264,18 +249,27 @@ Word file, entry, options, libraries, size;
 Create an a.out file from a .o file.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifndef FORMAT_LOADER_COMMAND
-#if NOENTRY
-#define FORMAT_LOADER_COMMAND(cmd, ldr, symbols, base, out, opts, files, libs) \
-	sprintf(cmd, "%s -N -A %s -R %x -o %s %s %s %s -lc", \
-		cmd, ldr, symbols, base, entry, out, opts, files, libs);
-#else
-#define FORMAT_LOADER_COMMAND(cmd, ldr, symbols, base, entry, out, opts, files, libs) \
-	sprintf(cmd, "%s -N -A %s -R %x -e _%s -o %s %s %s %s -lc", \
-		cmd, ldr, symbols, base, entry, out, opts, files, libs);
+#ifndef LD
+#define LD		"ld"		/* Unix loader command name */
 #endif
+#ifndef LD_OPT_OPTIONS
+#define LD_OPT_OPTIONS	"-N"		/* General options */
 #endif
-
+#ifndef LD_OPT_SFILE
+#define LD_OPT_SFILE	"-A %s"		/* symbol file of process */
+#endif
+#ifndef LD_OPT_ADDR
+#define LD_OPT_ADDR	"-R %x"		/* Base address */
+#endif
+#ifndef LD_OPT_ENTRY
+#define LD_OPT_ENTRY	"-e _%s"	/* Entry-point */
+#endif
+#ifndef LD_OPT_OUT
+#define LD_OPT_OUT	"-o %s"		/* output file */
+#endif
+#ifndef LD_OPT_LIBS
+#define LD_OPT_LIBS	"-lc"		/* standard libraries */
+#endif
 
 static
 bool
@@ -287,28 +281,25 @@ char *libraries;
 long base;
 char *outfile;
 { char command[10240];
+  char *s = command;
 
-#if NOENTRY
-  FORMAT_LOADER_COMMAND(command,
-			LOADER,
-			stringAtom(loaderstatus.symbolfile),
-			base,
-			outfile,
-			options,
-			files,
-			libraries);
-#else
-  FORMAT_LOADER_COMMAND(command,
-			LOADER,
-			stringAtom(loaderstatus.symbolfile),
-			base,
-			entry,
-			outfile,
-			options,
-			files,
-			libraries);
+#define next(str) { (str) += strlen(str); *(str)++ = ' '; };
+
+  sprintf(s, "%s ", LD);					 next(s);
+  sprintf(s, "%s ", LD_OPT_OPTIONS);				 next(s);
+  sprintf(s, LD_OPT_SFILE, stringAtom(loaderstatus.symbolfile)); next(s);
+  sprintf(s, LD_OPT_ADDR, base);				 next(s);
+#if !O_NOENTRY
+  sprintf(s, LD_OPT_ENTRY, entry);				 next(s);
 #endif
+  sprintf(s, LD_OPT_OUT, outfile);				 next(s);
+  sprintf(s, "%s", options);					 next(s);
+  sprintf(s, "%s", files);					 next(s);
+  sprintf(s, "%s", libraries);					 next(s);
+  sprintf(s, LD_OPT_LIBS);
 
+#undef next
+  
   DEBUG(1, printf("Calling loader: %s\n", command) );
   if (system(command) == 0)
     succeed;
@@ -426,7 +417,7 @@ ulong base;
     return NULL;
   }
 
-#if NOENTRY
+#if O_NOENTRY
   { textSymbol ts[1];
     ts[0].string = sentry;
     ts[0].function = (Func) NULL;
@@ -459,7 +450,7 @@ ulong base;
   return entry;
 }
 
-#if NOENTRY
+#if O_NOENTRY
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Scan the symbol table and try to resolve all textSymbols given  in  `tv'
@@ -547,7 +538,7 @@ long n;
   return temp;
 }
 
-#endif /* NOENTRY */
+#endif /* O_NOENTRY */
 
 #else
 #if O_AIX_FOREIGN

@@ -22,12 +22,15 @@ Updated version  1.6.14 by  Jan Wielemaker  (got  my own  now).  Fixed
 save_program/1 and included dynamic stacks.  Versions:
 
 	gcc 2.3.3, libc 4.3, Linux 0.99pl7:
+
+Fixed load_foreign/[1,2] and dropped -static from the LDFLAGS and this
+appears not to be necessary with linux.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define M_CC			gcc
 #define M_OPTIMIZE	        -O6
 /*#define M_OPTIMIZE		-g*/
-#define M_LDFLAGS		-static
+#define M_LDFLAGS		
 #define M_CFLAGS		-funsigned-char
 #define M_LIBS			-lm -ltermcap
 
@@ -50,6 +53,7 @@ save_program/1 and included dynamic stacks.  Versions:
 #define O_NO_SEGV_ADDRESS	1
 #define MAX_VIRTUAL_ADDRESS     (220*1024*1024) /* not sure, but it will do */
 #define O_FOREIGN		1
+#define LD_OPT_ADDR		"-T 0x%x"
 #define O_SAVE			1
 #define FIRST_DATA_SYMBOL	etext
 #define DEFAULT_PATH		":.:/bin:/usr/bin:/usr/local/bin:";

@@ -35,6 +35,7 @@ of 1.5 is a bit different this md-file is not guarantied to work.
 #define O_NO_SEGV_ADDRESS	1
 #define MAX_VIRTUAL_ADDRESS	(8 * 1024 * 1024) /* actual limit is 21Mb */
 #define O_FOREIGN		1
+#define O_NOENTRY		1	/* ld -e doesn't work */
 #define O_STORE_PROGRAM		1
 #define O_NO_LEFT_CAST		0
 #define O_NO_VOID_POINTER	0

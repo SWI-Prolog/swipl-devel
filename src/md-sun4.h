@@ -52,6 +52,7 @@ and libraries.  If you are not sure, run `which cc' which should yield
 #define O_NO_SEGV_ADDRESS	0
 #define MAX_VIRTUAL_ADDRESS	(512 * 1024 *1024)
 #define O_FOREIGN		1
+#define O_NOENTRY		1	/* ld -e doesn't work */
 #define O_SAVE			1
 #define DEFAULT_PATH		":.:/usr/ucb:/bin:/usr/bin:";
 #define SRANDOM(t)		srandom((long)t)
