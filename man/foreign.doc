@@ -2361,10 +2361,10 @@ main(int argc, char **argv)
 
 \begin{description}
 \cfunction{int}{PL_initialise}{int argc, char **argv}
-Initialises the SWI-Prolog heap and stacks, restores the boot QLF file,
-loads the system and personal initialisation files, runs the
-at_initialization/1 hooks and finally runs the \argoption{-g}{goal}
-hook.
+Initialises the SWI-Prolog heap and stacks, restores the Prolog
+state, loads the system and personal initialisation files,
+runs the at_initialization/1 hooks and finally runs the
+\argoption{-g}{goal} hook.
 
 Special consideration is required for \verb$argv[0]$. On {\bf Unix},
 this argument passes the part of the commandline that is used
@@ -2417,7 +2417,9 @@ is used.
 
 A good setup in Windows is to add SWI-Prolog's \file{bin} directory
 to your \env{PATH} and either pass a module holding a saved-state, or
-\verb$"libpl.dll"$ as \verb$argv[0]$.
+\verb$"libpl.dll"$ as \verb$argv[0]$.  If the Prolog state is attached
+to a DLL (see the \cmdlineoption{-dll} option of \program{plld}, pass
+the name of this DLL.
 
     \cfunction{int}{PL_is_initialised}{int *argc, char ***argv}
 Test whether the Prolog engine is already initialised. Returns
@@ -2553,6 +2555,7 @@ Compiler for C++ sources (extensions \fileext{cpp}, \fileext{cxx},
 \fileext{cc} or \fileext{C}) files found on the commandline.  Default is
 \program{c++} or \program{g++} if the C-compiler is \program{gcc})
 (Win32: cl.exe).
+
     \cmdlineoptionitem{-nostate}{}
 Just relink the kernel, do not add any Prolog code to the new kernel.
 This is used to create a new kernel holding additional foreign predicates
@@ -2561,6 +2564,27 @@ building the state cannot be handled by the default procedure used by
 \program{plld}.  In the latter case the state is created seperately and
 appended to the kernel using \exam{cat <kernel> <state> > <out>}
 (Win32: \exam{copy /b <kernel>+<state> <out>})
+
+    \cmdlineoptionitem{-shared}{}
+Link C, C++ or object files into a shared object (DLL) that can be
+loaded by the load_foreign_library/1 predicate. If used with
+\cmdlineoption{-c}{} it sets the proper options to compile a C or C++
+file ready for linking into a shared object
+
+    \cmdlineoptionitem{-dll}{}
+\epmh{Windows only}. Embed SWI-Prolog into a DLL rather than an
+executable.
+
+    \cmdlineoptionitem{-c}{}
+Compile C or C++ source-files into object files. This turns
+\program{plld} into a replacement for the C or C++ compiler where proper
+options such as the location of the include directory are passed
+automatically to the compiler.
+
+    \cmdlineoptionitem{-E}{}
+Invoke the C preprocessor. Used to make \program{plld} a replacement for
+the C or C++ compiler.
+
     \cmdlineoptionitem{-pl-options}{,\ldots}
 Additional options passed to Prolog when creating the saved state.  The
 first character immediately following \const{pl-options} is used as

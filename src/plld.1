@@ -50,6 +50,32 @@ are ignored, and so are the options
 This is the preferred way to attach external modules to Prolog if
 dynamic loading is not supported on your system.
 .TP
+.B \-c
+Compile C or C++ source-files into object files.  This turns
+.B plld
+into a replacement for the C or C++ compiler where proper options such
+as the location of the include directory are passed automatically to the
+compiler.
+.TP
+.B \-E
+Invoke the C preprocessor.  Used to make
+.B plld
+a replacement for the C or C++ compiler.
+.TP
+.B \-shared
+Link C, C++ or object files into a shared object (DLL) that can be loaded
+by the
+.I load_foreign_library/1
+predicate.  If used with
+.B \-c
+it sets the proper options to compile a C or C++ file ready for linking
+into a shared object.
+.TP
+.B \-dll
+.I "Windows only"
+Embed SWI-Prolog into a DLL rather then an executable.  See the reference
+manual for details.
+.TP
 .BI \-F " base"
 By default,
 .I none
