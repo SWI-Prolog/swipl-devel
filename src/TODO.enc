@@ -1,7 +1,10 @@
 Character encoding issues
 -------------------------
 
-* See http://www.websina.com/bugzero/kb/unicode-bom.html
+* For background, see
+
+	http://www.websina.com/bugzero/kb/unicode-bom.html
+	http://www.jorendorff.com/articles/unicode/index.html
 
 Done:
 

@@ -79,8 +79,7 @@ oneTypo(char *s1, char *s2)
   fail;
 }
 
-static
-bool
+static bool
 twoTransposed(register char *s1, register char *s2)
 { if (s1[1] != EOS && s1[0] == s2[1] && s1[1] == s2[0] &&
        (s1[2] == EOS || streq(&s1[2], &s2[2])))

@@ -46,13 +46,13 @@
 #define UTF8_FBV(c,n) ( n == 0 ? c : (c & ((0x01<<(6-n))-1)) )
 
 #define utf8_get_char(in, chr) \
-	__utf8_get_char(in, chr)
-//	(*(in) & 0x80 ? __utf8_get_char(in, chr) : *(chr)=*in, ++in)
+	(*(in) & 0x80 ? _PL__utf8_get_char(in, chr) \
+		      : (*(chr) = *(in), (char *)(in)+1))
 #define utf8_put_char(out, chr) \
-	(chr < 0x80 ? out[0]=chr, out+1 : __utf8_put_char(out, chr))
+	(chr < 0x80 ? out[0]=chr, out+1 : _PL__utf8_put_char(out, chr))
 
-extern char *__utf8_get_char(const char *in, int *chr);
-extern char *__utf8_put_char(char *out, int chr);
+extern char *_PL__utf8_get_char(const char *in, int *chr);
+extern char *_PL__utf8_put_char(char *out, int chr);
 
 extern unsigned int utf8_strlen(const char *s, unsigned int len);
 
