@@ -215,10 +215,12 @@ assert_index(Term, Dir) :-
 		*       CREATE INDEX.pl		*
 		********************************/
 
-make_library_index(Dir) :-
+make_library_index(Dir0) :-
+	absolute_file_name(Dir0, Dir),
 	make_library_index2(Dir).
 
-make_library_index(Dir, Patterns) :-
+make_library_index(Dir0, Patterns) :-
+	absolute_file_name(Dir0, Dir),
 	make_library_index2(Dir, Patterns).
 
 make_library_index2(Dir) :-
