@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: Package semweb: semantic web operations
+
   * PORT: Some MSVC6 issues (Radoslaw Scislo).
 
   * FIXED: Reading 'xxx\<NL> y'.

@@ -15,6 +15,7 @@ PKG=	clib \
 	table \
 	sgml \
 	sgml/RDF \
+	semweb \
 	http \
 	xpce
 
