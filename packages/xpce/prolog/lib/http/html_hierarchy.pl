@@ -91,40 +91,67 @@ script -->				% tagged window.location.pathname
     return window.pageYOffset;
 }
 
-function collapse(name)
-{ var x = document.cookie.split("#");
-  var a = x[0].split("&");
-  var r = new String("&");
-  var y = pageY();
-
-  for(var i=0; i < a.length; i++)
-  { if ( a[i] != name && a[i] != "" )
-    { r += a[i] + "&";
+function getCookie(name)
+{ var cookie = " " + document.cookie;
+  var search = " " + name + "=";
+  var setStr = null;
+  var offset = 0;
+  var end = 0;
+  if (cookie.length > 0)
+  { offset = cookie.indexOf(search);
+    if (offset != -1)
+    { offset += search.length;
+      end = cookie.indexOf(";", offset)
+      if (end == -1)
+      { end = cookie.length;
+      }
+      setStr = cookie.substring(offset, end);
     }
   }
+  return(setStr);
+}
 
-  r += "#" + y + " ;path=" + window.location.pathname;
-  document.cookie = r;
-  window.location.reload();
+function setCookie(name, value)
+{ document.cookie = name + "=" + value;
 }
 
 function expand(name)
-{ var x = document.cookie.split("#");
-  var y = pageY();
+{ var e = getCookie("expand");
 
-  if ( x[0] == "" )
-  { x[0] = "&" + name + "&";
+  if ( e )
+  { e += name + "&";
   } else
-  { x[0] += name + "&";
+  { e = "&" + name + "&";
   }
-  document.cookie = x[0] + "#" + y + " ;path=" + window.location.pathname;
 
+  setCookie("expand", e);
+  setCookie("y", pageY());
   window.location.reload();
-//window.onLoad = "scrollTo(0," + y + ")";
+}
+
+function collapse(name)
+{ var e = getCookie("expand");
+
+  if ( e )
+  { var a = e.split("&");
+    var r = new String("&");
+    
+    for(var i=0; i < a.length; i++)
+    { if ( a[i] != name && a[i] != "" )
+      { r += a[i] + "&";
+      }
+    }
+
+    setCookie("expand", r);
+  }
+
+  setCookie("y", pageY());
+  window.location.reload();
 }
 
 function expandall()
-{ document.cookie = "all;path=" + windows.location.pathname;
+{ setCookie("expand", "all");
+  setCookie("y", pageY());
   window.location.reload();
 }
 ')).
@@ -136,24 +163,35 @@ function expandall()
 %	be used in the onLoad handler of the page-body.
 
 pageYOffset(Cookie, Y) :-
-	new(Re, regex('#\\([0-9]+\\)')),
+	new(Re, regex('y=\\([0-9]+\\)')),
 	send(Re, search, Cookie),
 	get(Re, register_value, Cookie, 1, int, Y).
 pageYOffset(_, 0).
 
 
-expanded(_, all) :- !.
+:- dynamic
+	ccode/2.
+
+class_code(Class, Code) :-
+	ccode(Class, Code), !.
+class_code(Class, Code) :-
+	flag(ccode, Code, Code+1),
+	assert(ccode(Class, Code)).
+
+
+expanded(_, Cookie) :-
+	send(regex('expand=all'), search, Cookie), !.
 expanded(Class, Cookie) :-
-	www_form_encode(Class, Encoded),
-	concat_atom([&, Encoded, &], Pattern),
+	class_code(Class, Code),
+	concat_atom([&, Code, &], Pattern),
 	sub_atom(Cookie, _, _, _, Pattern), !.
 
 java_expand(Class, Code) :-
-	www_form_encode(Class, Encoded),
-	sformat(Code, 'javascript:expand(\'~w\')', Encoded).
+	class_code(Class, CCode),
+	sformat(Code, 'javascript:expand(\'~w\')', CCode).
 java_collapse(Class, Code) :-
-	www_form_encode(Class, Encoded),
-	sformat(Code, 'javascript:collapse(\'~w\')', Encoded).
+	class_code(Class, CCode),
+	sformat(Code, 'javascript:collapse(\'~w\')', CCode).
 
 
 subclasses([], _, _, _, _, _) -->
