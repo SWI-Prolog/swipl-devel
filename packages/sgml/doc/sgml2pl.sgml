@@ -903,7 +903,8 @@ Defines how syntax errors are handled.
     <termitem>call(+Event, :PredicateName)
 Issue call-backs on the specified events. <aref/PredicateName/ is the 
 name of the predicate to call on this event, possibly prefixed with a 
-module identifier. The defined events are:
+module identifier.  If the handler throws an exception, parsing is stopped
+and <pref>sgml_parse/2</pref> re-throws the exception. The defined events are:
 <argdef>
     <termitem>begin
 An open-tag has been parsed. The named handler is called with three 

@@ -1234,7 +1234,8 @@ Print dubious input such as attempts for redefinitions in the DTD
 <b>call(<var>+Event, :PredicateName</var>)</b><dd>
 Issue call-backs on the specified events. <var>PredicateName</var> is the 
 name of the predicate to call on this event, possibly prefixed with a 
-module identifier. The defined events are:
+module identifier.  If the handler throws an exception, parsing is stopped
+and <a href="#sgml_parse/2"><b>sgml_parse/2</b></a> re-throws the exception. The defined events are:
 
 <dl>
 <dt>&nbsp;<br>
