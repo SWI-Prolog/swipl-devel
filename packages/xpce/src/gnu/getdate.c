@@ -626,11 +626,11 @@ get_date(p, now)
     yyInput = p;
     if (now == NULL) {
 	now = &ftz;
-#if	defined(FTIME_MISSING)
+#ifndef HAVE_FTIME
 	(void)time(&ftz.time);
 	/* Set the timezone global. */
 	tzset();
-#if	defined(HAVE_TIMEZONE)
+#ifdef HAVE_TM_GMTOFF
 	tm = localtime(&ftz.time);
 	ftz.timezone = tm->tm_gmtoff / 60;
 #else
@@ -642,7 +642,7 @@ get_date(p, now)
 #endif	/* defined(HAVE_TIMEZONE) */
 #else
 	(void)ftime(&ftz);
-#endif	/* defined(FTIME_MISSING) */
+#endif	/*HAVE_FTIME*/
     }
 
     tm = localtime(&now->time);
