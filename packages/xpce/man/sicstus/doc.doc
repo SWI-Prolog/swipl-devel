@@ -1,0 +1,119 @@
+\documentclass{book}		% Quintus documentation style (A5)
+\usepackage{times}
+\usepackage{pl}
+\usepackage{xpce}
+\usepackage{html}
+\usepackage{qp}
+\usepackage{a4}
+\renewcommand{\cleardoublepage}{\clearpage}
+
+% Some HTML stuff
+%\onefile
+\htmlfiledepth{1}
+\htmloutput{SICStus}			% Output directory
+\htmlmainfile{index}			% Main document file
+\bodycolor{white}
+\linkimage{home}{home.gif}		% Images for links
+\linkimage{index}{yellow_pages.gif}
+\linkimage{contents}{index.gif}
+\linkimage{up}{up.gif}
+\linkimage{previous}{prev.gif}
+\linkimage{next}{next.gif}
+\linkimage{summary}{info.gif}
+
+
+% Titles and versions
+\renewcommand{\runningtitle}{\product{} \productversion}
+\lfoot[\bf \runningtitle]{\bf Release Notes}
+\rfoot[\bf Release Notes]{\bf \runningtitle}
+
+\newcommand{\product}{XPCE/SICStus}
+\newcommand{\productpl}{XPCE/Prolog}
+\newcommand{\productversion}{0.5}
+\newcommand{\xpceversion}{5.0.5}
+\newcommand{\sicsversion}{3.7.1}
+\newcommand{\productdate}{July 1999}
+
+\def\booktitle{\product-\productversion{} Release Notes}
+\title{\product-\productversion{} \\ Release Notes}
+\author{Jan Wielemaker \\
+	SWI \\
+	University of Amsterdam \\
+	Roetersstraat 15 \\
+	1018 WB~~Amsterdam\\
+	E-mail: \email{xpce-info@swi.psy.uva.nl}}
+
+\newenvironment{xpceonly}{}{}
+\excludecomment{pwonly}
+
+\sloppy
+\makeindex
+
+\begin{document}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%		HTML TitlePage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{htmlonly}
+
+\maketitle
+
+\begin{abstract}
+\input{abstract}
+\end{abstract}
+
+%\input{pwinfo}
+
+\end{htmlonly}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%		Paper TitlePage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\pagestyle{empty}
+
+\begin{titlepage}
+\mbox{}
+\vfil
+\begin{center}
+{\Huge \booktitle}\\[1cm]
+{\large {\it Jan Wielemaker} \\[5pt]
+	SWI \\
+	University of Amsterdam \\
+	Roetersstraat 15 \\
+	1018 WB~~Amsterdam \\[5pt]
+	E-mail: \email{xpce-info@swi.psy.uva.nl}} \\[1cm]
+{\it \productdate}
+\end{center}
+\vfil
+\begin{quote}
+\input{abstract}
+\end{quote}
+\vfil
+\vfil
+\mbox{}
+\newpage
+
+%\input{pwinfo}
+\input{xpceinfo}
+\end{titlepage}
+
+\pagestyle{fancyplain}
+\setupfancyplain
+
+{\parskip 0pt
+ \setcounter{page}{0}
+ \pagenumbering{roman}
+ \tableofcontents
+ \cleardoublepage
+}
+
+\setcounter{page}{0}
+\pagenumbering{arabic}
+
+\input{body}
+%\printindex
+
+\end{document}
+
