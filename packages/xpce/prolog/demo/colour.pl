@@ -43,8 +43,10 @@ make_colour_browser(CB) :-
 	absolute_file_name(x11(rgb),
 			   [ extensions([txt]),
 			     access(read)
-			   ], DataBase),
+			   ], DataBase), !,
 	make_colour_browser(CB, DataBase).
+make_colour_browser(CB) :-
+	make_colour_browser(CB, @colour_names).
 
 make_colour_browser(CB, DataBase) :-
 	new(D, dialog),
@@ -85,33 +87,38 @@ make_colour_browser(CB, DataBase) :-
 					% set tab-stops for nice alignment
 	send(CB?image, tab_stops, vector(110, 140, 170)),
 					% scan de database
-	new(F, file(DataBase)),
-	(   send(F, open, read)
-	->  repeat,
-	    (	get(F, read_line, String)
-	    ->  get(String, scan, '%d%d%d%*[ 	]%[a-zA-Z0-9_ ]',
-		    vector(R, G, B, Name)),
-		send(Name, translate, ' ', '_'),
-		send(Name, downcase),
-		get(Name, value, Atom),
-		(   get(CB, member, Atom, _)
-		->  true
-		;   send(CB, append,
-			 dict_item(Name,
-				   string('%s\t%d\t%d\t%d',
-					  Name, R, G, B)))
-		),
-		fail
-	    ;	!,
-	        send(F, close)
+	(   send(DataBase, instance_of, hash_table)
+	->  send(DataBase, for_all,
+		 message(@prolog, append_colour, CB, @arg1, @arg2)),
+	    send(CB, sort)
+	;   new(F, file(DataBase)),
+	    (   send(F, open, read)
+	    ->  repeat,
+		(   get(F, read_line, String)
+		->  get(String, scan, '%d%d%d%*[ 	]%[a-zA-Z0-9_ ]',
+			vector(R, G, B, Name)),
+		    send(Name, translate, ' ', '_'),
+		    send(Name, downcase),
+		    get(Name, value, Atom),
+		    (   get(CB, member, Atom, _)
+		    ->  true
+		    ;   send(CB, append,
+			     dict_item(Name,
+				       string('%s\t%d\t%d\t%d',
+					      Name, R, G, B)))
+		    ),
+		    fail
+		;   !,
+		    send(F, close)
+		)
 	    )
-	;   send(CB, open),
-	    send(CB, wait),
-	    send(CB, report, error,
-		 'Cannot read colour database %s', DataBase),
-	    fail
 	).
-	
+
+append_colour(CB, Name, RGB) :-
+	B is RGB >> 16,
+	G is (RGB >> 8) /\ 255,
+	R is (RGB /\ 255),
+	send(CB, append, string('%s\t%d\t%d\t%d', Name, R, G, B)).
 	
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 A colour was selected.  Change the colour attribute of the picture window.

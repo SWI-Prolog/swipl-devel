@@ -512,8 +512,8 @@ str_lineno(String s, int at)
 
 int
 str_fetch(String s, int idx)
-{ return s->b16 ? str_fetch16(s, idx)
-		: str_fetch8(s, idx);
+{ return s->b16 ? str_fetch16(s, idx) & 0xffff
+		: str_fetch8(s, idx) & 0xff;
 }
 
 

@@ -278,5 +278,41 @@ beginning_of_text_on_line(E) :->
 	get(E, skip_comment, SOL, EOL, P0),
 	send(E, caret, P0).
 
+
+		 /*******************************
+		 *	      HELP		*
+		 *******************************/
+
+pce_ifhostproperty(prolog(swi),
+[ (make_prolog_help_topic :-
+	object(@prolog_help_topic_type), !),
+  (make_prolog_help_topic :-
+	new(Topics, quote_function(@prolog?help_topics)),
+	new(@prolog_help_topic_type,
+	    type(prolog_help_topic, value_set, Topics))),
+
+  (:- initialization make_prolog_help_topic),
+
+  (help_topics(@prolog_help_topics) :-
+	object(@prolog_help_topics), !),
+  (help_topics(@prolog_help_topics) :-
+	setof(Name, prolog_help_topic(Name), Names),
+	chain_list(Chain, [''|Names]),
+	send(Chain, name_reference, prolog_help_topics)),
+
+  (do_help(M, What) :-
+	(   What == ''
+	->  help
+	;   help(What)
+	))
+],
+[ (do_help(M, What) :-
+	send(M, report, warning, 'No manual interface for this Prolog'))
+]).
+
+prolog_manual(M, What:prolog_help_topic) :->
+	"Display section from the Prolog manual"::
+	do_help(M, What).
+
 :- emacs_end_mode.
 

@@ -1054,7 +1054,7 @@ initialise(MM, Name:name, Super:[emacs_mode_menu]) :->
 	).
 
 
-lookup(_, Name:name, _Super:emacs_mode_menu, MM) :<-
+lookup(_, Name:name, _Super:[emacs_mode_menu], MM) :<-
 	"Reuse existing mode menu"::
 	get(@emacs_mode_menus, member, Name, MM).
 

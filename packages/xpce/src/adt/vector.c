@@ -16,8 +16,6 @@
 #define indexVector(v, e)	( valInt(e) - valInt(v->offset) - 1 )
 #define validIndex(v, i)	{ if ( i < 0 || i >= valInt(v->size) ) fail; }
 
-static status clearVector(Vector v);
-
 status
 initialiseVectorv(Vector v, int argc, Any *argv)
 { int n;
@@ -197,7 +195,7 @@ rangeVector(Vector v, Int low, Int high)
 }
 
 
-static status
+status
 clearVector(Vector v)
 { if ( v->elements )
   { fillVector(v, NIL, DEFAULT, DEFAULT);

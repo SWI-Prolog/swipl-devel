@@ -306,13 +306,13 @@ PceEventInWindow(HWND win)
   { if ( current_window )
     { DEBUG(NAME_areaEnter,
 	    Cprintf("Posting exit to %s\n",
-		    pp(GetWindowLong(current_window, GWL_DATA))));
+		    getObjectFromHWND(current_window)));
       SendMessage(current_window, WM_WINEXIT, 0, 0L);
     }
     if ( win )
     { DEBUG(NAME_areaEnter,
 	    Cprintf("Posting enter to %s\n",
-		    pp(GetWindowLong(win, GWL_DATA))));
+		    getObjectFromHWND(win)));
       SendMessage(win, WM_WINENTER, 0, 0L);
     }
 

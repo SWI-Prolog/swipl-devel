@@ -784,27 +784,29 @@ focusWindow(PceWindow sw, Graphical gr, Recogniser recogniser,
 		*           COMPUTE		*
 		********************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Hacky: the bounding box of  a  device   is  <-area,  while a window uses
+<-bounding_box (the area is the  area  in   its  role  as  a graphical).
+Switches the two temporary to  allow  for   using  the  same  methods of
+computation!?  Note  that   just   passing    an   extra   argument   to
+updateBoundingBoxDevice() doesn't help as the   interface  to the public
+method `layout_manager->compute_bounding_box' would have to change too.
+
+Better one dirty hack than a lot of only slightly better ones ...
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static status
 computeBoundingBoxWindow(PceWindow sw)
 { if ( sw->badBoundingBox == ON )
-  { Cell cell;
-    Area a = sw->bounding_box;
-    Int ax, ay, aw, ah;
+  { Int od[4];				/* ax, ay, aw, ah */
+    status changed;
+    Area a = sw->area;
 
-    ax = a->x; ay = a->y; aw = a->w; ah = a->h;
-    clearArea(a);
-
-    for_cell(cell, sw->graphicals)
-    { Graphical gr = cell->value;
-
-      if ( gr->displayed == ON )
-	unionNormalisedArea(a, gr->area);
-    }
-
-    relativeMoveArea(a, sw->offset);
-
-    if ( ax != a->x || ay != a->y || aw != a->w || ah != a->h )
-      send(sw, NAME_changedUnion, ax, ay, aw, ah, 0);
+    sw->area = sw->bounding_box;
+    changed = updateBoundingBoxDevice((Device)sw, od);
+    sw->area = a;
+    if ( changed )
+      qadSendv(sw, NAME_changedUnion, 4, od);
 
     assign(sw, badBoundingBox, OFF);
   }
@@ -2054,6 +2056,11 @@ static vardecl var_window[] =
 
 /* Send Methods */
 
+#ifdef __WINDOWS__
+extern status winHandleWindow(PceWindow sw, Int handle);
+extern Int    getWinHandleWindow(PceWindow sw);
+#endif
+
 static senddecl send_window[] =
 { SM(NAME_destroy, 0, NULL, destroyWindow,
      DEFAULT, "->destroy associated frame"),
@@ -2147,6 +2154,10 @@ static senddecl send_window[] =
      NAME_stacking, "Expose (raise) related frame"),
   SM(NAME_hide, 0, NULL, hideWindow,
      NAME_stacking, "Hide (lower) related frame"),
+#ifdef __WINDOWS__
+  SM(NAME_winHandle, 1, "hwnd=int", winHandleWindow,
+     NAME_windows, "Associate this XPCE window with the given MS-Window"),
+#endif
   SM(NAME_compute, 0, NULL, computeWindow,
      NAME_update, "Recompute window")
 };
@@ -2172,6 +2183,10 @@ static getdecl get_window[] =
      NAME_cursor, "Currently displayed cursor"),
   GM(NAME_confirm, 3, "any", T_confirm, getConfirmWindow,
      NAME_modal, "Run sub event-loop until ->return"),
+#ifdef __WINDOWS__
+  GM(NAME_winHandle, 0, "int", NULL, getWinHandleWindow,
+     NAME_windows, "Fetch the MS-Windows HWND of the window (if any)"),
+#endif
   GM(NAME_confirmCentered, 2, "any", T_confirmCentered, getConfirmCenteredWindow,
      NAME_modal, "->confirm with frame centered around point")
 };

@@ -32,7 +32,7 @@ WinFrameClass()
     wndClass.style		= 0;
     wndClass.lpfnWndProc	= (LPVOID) frame_wnd_proc;
     wndClass.cbClsExtra		= 0;
-    wndClass.cbWndExtra		= sizeof(long);
+    wndClass.cbWndExtra		= 0;
     wndClass.hInstance		= PceHInstance;
     wndClass.hIcon		= NULL; /*LoadIcon(NULL, IDI_APPLICATION);*/
     wndClass.hCursor		= NULL;
@@ -87,25 +87,6 @@ frame_palette(FrameObj fr)
     return NULL;
   else
     return getPaletteColourMap(cm);
-}
-
-
-static int
-IsDownKey(code)
-{ int mask = GetKeyState(code);
-
-  DEBUG(NAME_key, Cprintf("IsDownKey(%d): mask = 0x%x\n", code, mask));
-
-  return mask & ~0xff;
-}
-
-
-static int
-IsDownMeta(LONG lParam)
-{ DEBUG(NAME_key, Cprintf("IsDownMeta(0x%lx)\n", lParam));
-
-  return lParam & (1L << (30-1));	/* bit-29 is 1 if ALT is depressed */
-					/* test tells me it is bit 30 ??? */
 }
 
 
@@ -231,12 +212,12 @@ do_frame_wnd_proc(FrameObj fr,
     }
 
     case WM_SETFOCUS:
-      send(fr, NAME_inputFocus, ON, 0);
-      goto repaint;
-
     case WM_KILLFOCUS:
-      send(fr, NAME_inputFocus, OFF, 0);
+    { Bool val = (message == WM_SETFOCUS ? ON : OFF);
+
+      send(fr, NAME_inputFocus, val, 0);
       goto repaint;
+    }
 
     case WM_QUERYNEWPALETTE:
     case_query:
@@ -292,77 +273,14 @@ do_frame_wnd_proc(FrameObj fr,
       } else
         goto repaint;
       
-    case WM_KEYDOWN:
-    { Any id = NIL;
+    case WM_KEYDOWN:			/* Named keys */
+    case WM_SYSCHAR:			/* ALT-commands */
+    case WM_CHAR:			/* Printable keys */
+    { Any id = messageToKeyId(message, wParam, lParam);
 
-      switch((int) wParam)
-      { case VK_DELETE:		id = toInt(127);	break;
-        case VK_LEFT:		id = NAME_cursorLeft;	break;
-        case VK_RIGHT:		id = NAME_cursorRight;	break;
-        case VK_UP:		id = NAME_cursorUp;	break;
-        case VK_DOWN:		id = NAME_cursorDown;	break;
-        case VK_HOME:		id = NAME_cursorHome;	break;
-	case VK_PRIOR:		id = NAME_pageUp;	break;
-	case VK_NEXT:		id = NAME_pageDown;	break;
-	case VK_END:		id = NAME_end;		break;
-	
-	case VK_SELECT:		id = NAME_select;	break;
-	case VK_PRINT:		id = NAME_print;	break;
-	case VK_EXECUTE:	id = NAME_execute;	break;
-	case VK_INSERT:		id = NAME_insert;	break;
-	case VK_HELP:		id = NAME_help;		break;
-	case VK_MENU:		id = NAME_menu;		break;
-
-        case VK_F1:		id = NAME_keyTop_1;	break;
-        case VK_F2:		id = NAME_keyTop_2;	break;
-        case VK_F3:		id = NAME_keyTop_3;	break;
-        case VK_F4:		id = NAME_keyTop_4;	break;
-        case VK_F5:		id = NAME_keyTop_5;	break;
-        case VK_F6:		id = NAME_keyTop_6;	break;
-        case VK_F7:		id = NAME_keyTop_7;	break;
-        case VK_F8:		id = NAME_keyTop_8;	break;
-        case VK_F9:		id = NAME_keyTop_9;	break;
-        case VK_F10:		id = NAME_keyTop_10;	break;
-        case '2':			/* ^@ */
-	  if ( IsDownKey(VK_CONTROL) )
-	    id = ZERO;
-	  break;
-	case 0xbd:			/* OEM specific Control('_') ??? */
-	  if ( IsDownKey(VK_CONTROL) && !IsDownKey(VK_SHIFT) )
-	    id = toInt(Control('_'));
-	  break;
-	case 0x56:			/* OEM specific 'V' ??? */
-	  if ( IsDownKey(VK_CONTROL) && IsDownMeta(lParam) )
-	    id = toInt(Control('V') + META_OFFSET);
-	  break;
-	case 0x49:			/* OEM specific 'I' ??? */
-	  if ( IsDownKey(VK_CONTROL) && IsDownMeta(lParam) )
-	    id = toInt(Control('I') + META_OFFSET);
-	  break;
-      }
-      
-      if ( notNil(id) && keyboard_event_frame(fr, id) )
+      if ( id && keyboard_event_frame(fr, id) )
 	return 0;
 
-      DEBUG(NAME_key, Cprintf("WM_KEYUP with key=0x%x\n", (int)wParam));
-
-      break;
-    }
-    case WM_SYSCHAR:			/* handle ALT keys myself */
-      if ( keyboard_event_frame(fr, toInt(wParam + META_OFFSET)) )
-	return 0;
-      break;
-
-    case WM_CHAR:
-    { Any id = toInt(wParam);
-
-      if ( wParam == ' ' && IsDownKey(VK_CONTROL) )
-        id = ZERO;			/* ^-space --> ^@ */
-      else if ( wParam == 8 && !IsDownKey(VK_CONTROL) )
-	id = NAME_backspace;
-
-      if ( keyboard_event_frame(fr, id) )
-	return 0;
       break;
     }
     case WM_SYSCOMMAND:			/* prevent loosing the mouse on ALT */
@@ -394,6 +312,7 @@ do_frame_wnd_proc(FrameObj fr,
       if ( hwnd )
       { DragAcceptFiles(hwnd, FALSE);
 	setHwndFrame(fr, 0);
+	assocObjectToHWND(hwnd, NIL);
 	freeObject(fr);
       }
 
@@ -473,11 +392,14 @@ service_frame(FrameObj fr)
 
 static int WINAPI
 frame_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
-{ FrameObj fr = (FrameObj) GetWindowLong(hwnd, GWL_DATA);
+{ FrameObj fr = getObjectFromHWND(hwnd);
   int rval;
 
   if ( !fr )
-    fr = current_frame;
+  { fr = current_frame;
+    if ( !fr )
+      return DefWindowProc(hwnd, message, wParam, lParam);
+  }
   assert(isProperObject(fr));
 
   ServiceMode(service_frame(fr),
@@ -523,7 +445,7 @@ get_window_holding_point(FrameObj fr, POINT *pt)
   PceWindow sw;
 
   if ( (win = ChildWindowFromPoint(getHwndFrame(fr), *pt)) &&
-       (sw  = (PceWindow) GetWindowLong(win, GWL_DATA)) &&
+       (sw  = getObjectFromHWND(win)) &&
        instanceOfObject(sw, ClassWindow) )
     return sw;
 
@@ -600,6 +522,7 @@ ws_uncreate_frame(FrameObj fr)
   { Cell cell;
 
     setHwndFrame(fr, 0);
+    assocObjectToHWND(hwnd, NIL);
     PceWhDeleteWindow(hwnd);
 
     for_cell(cell, fr->members)
@@ -676,7 +599,8 @@ ws_create_frame(FrameObj fr)
     return errorPce(fr, NAME_xOpen, fr->display);
 
   setHwndFrame(fr, ref);
-  SetWindowLong(ref, GWL_DATA, (LONG) fr);
+  assocObjectToHWND(ref, fr);
+  current_frame = NULL;
 
   succeed;
 }
@@ -883,12 +807,7 @@ ws_busy_cursor_frame(FrameObj fr, CursorObj c)
 
       GetCursorPos(&pt);
       if ( (hwnd = WindowFromPoint(pt)) &&
-#ifdef __WIN32__
-	   (HANDLE) GetWindowLong(hwnd, GWL_HINSTANCE) == PceHInstance &&
-#else
-	   GetWindowWord(hwnd, GWW_HINSTANCE) == PceHInstance &&
-#endif
-	   (win = (PceWindow)GetWindowLong(hwnd, GWL_DATA)) &&
+	   (win = getObjectFromHWND(hwnd)) &&
 	   isProperObject(win) &&
 	   instanceOfObject(win, ClassWindow) &&
 	   (ref = win->ws_ref) &&

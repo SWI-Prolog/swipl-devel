@@ -832,7 +832,7 @@ getReadFile(FileObj f, Int n)
 
 static Int
 getCharacterFile(FileObj f)
-{ char chr;
+{ int chr;
 
   TRY( check_file(f, NAME_read) );
   if ( feof(f->fd) )

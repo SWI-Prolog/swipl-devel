@@ -91,6 +91,15 @@ for_cells_table(Table, CellVar, CellCode, EndRowCode)
 	}
 
 
+static inline Table
+table_of_cell(TableCell cell)
+{ Table tab = (Table)cell->layout_manager;
+
+  if ( isNil(tab) )
+    fail;
+  
+  answer(tab);
+}
 
 		 /*******************************
 		 *	       PARTS		*
@@ -162,26 +171,50 @@ col_range(Table tab, int *xmin, int *xmax)
 { Vector rows = tab->rows;
   int low=0, high=0;
   int y, ymin, ymax;
+  int first = TRUE;
 
-  ymin = valInt(getLowIndexVector(rows));
-  ymax = valInt(getHighIndexVector(rows));
+  row_range(tab, &ymin, &ymax);
 
   for(y=ymin; y<=ymax; y++)
   { TableRow row = getElementVector(rows, toInt(y));
-    int l = valInt(getLowIndexVector((Vector)row));
-    int h = valInt(getHighIndexVector((Vector)row));
 
-    if ( y == ymin )
-    { low  = l;
-      high = h;
-    } else
-    { low  = min(low, l);
-      high = max(high, h);
+    if ( row && notNil(row) )
+    { int l = valInt(getLowIndexVector((Vector)row));
+      int h = valInt(getHighIndexVector((Vector)row));
+
+      if ( first )
+      { low   = l;
+	high  = h;
+	first = FALSE;
+      } else
+      { low   = min(low, l);
+	high  = max(high, h);
+      }
     }
   }
 
   *xmin = low;
   *xmax = high;
+}
+
+
+static Tuple
+getColumnRangeTable(Table tab)
+{ int cmin, cmax;
+
+  col_range(tab, &cmin, &cmax);
+  
+  answer(answerObject(ClassTuple, toInt(cmin), toInt(cmax), 0));
+}
+
+
+static Tuple
+getRowRangeTable(Table tab)
+{ int rmin, rmax;
+
+  row_range(tab, &rmin, &rmax);
+  
+  answer(answerObject(ClassTuple, toInt(rmin), toInt(rmax), 0));
 }
 
 
@@ -401,6 +434,35 @@ deleteTable(Table tab, Any obj)
     return deleteColumnTable(tab, obj);
 
   fail;
+}
+
+
+static status
+deleteRowsTable(Table tab)
+{ int y, rmin, rmax;
+
+  row_range(tab, &rmin, &rmax);
+  for(y=rmin; y<=rmax; y++)
+  { TableRow r = getRowTable(tab, toInt(y), OFF);
+
+    if ( r )
+    { for_vector_i(r, TableCell cell, i,
+	       { if ( i == valInt(cell->column) &&
+		      cell->row == r->index &&
+		      notNil(cell->image) )
+		 { DeviceGraphical(cell->image, NIL);
+		 }
+	       });
+      assign(r, table, NIL);
+      freeObject(r);
+    }
+  }  
+
+  clearVector(tab->rows);
+  setPoint(tab->current, ONE, ONE);
+
+  changedTable(tab);
+  return requestComputeLayoutManager((LayoutManager)tab, DEFAULT);
 }
 
 
@@ -740,7 +802,10 @@ getSpannedCellsTable(Table tab, Name which)
 static void
 slice_stretchability(TableSlice slice, stretch *s)
 { s->ideal   = valInt(slice->width);
-  s->stretch = 100;			/* for now */
+  if ( slice->fixed == ON )
+    s->stretch = 0;
+  else
+    s->stretch = 100;			/* for now */
 }
 
 
@@ -830,7 +895,8 @@ computeRowsTable(Table tab)
   for(y=ymin; y<=ymax; y++)
   { TableRow row = getRowTable(tab, toInt(y), OFF);
 
-    send(row, NAME_compute, 0);
+    if ( row && row->fixed != ON )
+      send(row, NAME_compute, 0);
   }
 
   if ( (spanned = getSpannedCellsTable(tab, NAME_rowSpan)) )
@@ -880,7 +946,8 @@ computeColsTable(Table tab)
   for(x=xmin; x<=xmax; x++)
   { TableColumn col = getColumnTable(tab, toInt(x), ON);
 
-    send(col, NAME_compute, 0);
+    if ( col && col->fixed != ON )
+      send(col, NAME_compute, 0);
   }
 
   if ( (spanned = getSpannedCellsTable(tab, NAME_colSpan)) )
@@ -1060,11 +1127,34 @@ RedrawFrameTable(Table tab, Area a)
 }
 
 
+static Any
+getBackgroundTableCell(TableCell cell)
+{ Table tab;
+
+  if ( notDefault(cell->background) )
+    answer(cell->background);
+
+  if ( (tab=table_of_cell(cell) ) )
+  { TableRow row;
+    TableColumn col;
+
+    if ( (row = getRowTable(tab, cell->row, OFF)) &&
+	 notDefault(row->background) )
+      answer(row->background);
+    if ( (col = getColumnTable(tab, cell->column, OFF)) &&
+	 notDefault(col->background) )
+      answer(row->background);
+  }
+
+  fail;
+}
+
+
 #define NOSIDES	  0
 #define BOX_SIDES 0xf			/* top, right, bottom, left */
 #define VSIDES    0x5
 #define HSIDES    0xa
-#define RSIDES    0x8
+#define RSIDES    0x4
 #define BSIDES    0x2
 #define RBSIDES   0x6
 
@@ -1073,8 +1163,11 @@ RedrawRulesTableCell(TableCell cell, Name style, int b)
 { Table tab = (Table)cell->layout_manager;
   table_cell_dimensions d;
   int sides = NOSIDES;
+  Any bg;
 
   dims_table_cell(cell, &d);
+  if ( (bg=getBackgroundTableCell(cell)) )
+    r_fill(d.x, d.y, d.w, d.h, bg);
 
   if ( cell->selected == ON )
   { r_thickness(b+1);
@@ -1090,8 +1183,8 @@ RedrawRulesTableCell(TableCell cell, Name style, int b)
     { sides = BSIDES;
     } else if ( style == NAME_groups )
     { Table tab	= (Table)cell->layout_manager;
-      int rown		= valInt(cell->row) + valInt(cell->row_span) - 1;
-      int coln          = valInt(cell->column) + valInt(cell->col_span) - 1;
+      int rown	      = valInt(cell->row) + valInt(cell->row_span) - 1;
+      int coln        = valInt(cell->column) + valInt(cell->col_span) - 1;
       TableRow row    = getRowTable(tab, toInt(rown), ON);
       TableColumn col = getColumnTable(tab, toInt(coln), ON);
 
@@ -1112,14 +1205,14 @@ RedrawRulesTableCell(TableCell cell, Name style, int b)
     { int rmin, rmax;
 
       row_range(tab, &rmin, &rmax);
-      if ( valInt(cell->row) >= rmax )
+      if ( valInt(cell->row) + valInt(cell->row_span) > rmax )
 	sides &= ~BSIDES;
     }
     if ( sides & RSIDES )
     { int cmin, cmax;
 
       col_range(tab, &cmin, &cmax);
-      if ( valInt(cell->column) >= cmax )
+      if ( valInt(cell->column) + valInt(cell->col_span) > cmax )
 	sides &= ~RSIDES;
     }
   }
@@ -1143,7 +1236,7 @@ RedrawRulesTableCell(TableCell cell, Name style, int b)
       int colspacing = valInt(tab->cell_spacing->w);
 
       r_vline(d.x+d.w+(colspacing-b)/2,
-	      d.y-rowspacing/2,
+	      d.y-(rowspacing+1)/2,
 	      d.h+rowspacing,
 	      b);
       break;
@@ -1163,7 +1256,7 @@ RedrawRulesTableCell(TableCell cell, Name style, int b)
       int colspacing = valInt(tab->cell_spacing->w);
 
       r_vline(d.x+d.w+(colspacing-b)/2,
-	      d.y-rowspacing/2,
+	      d.y-(rowspacing+1)/2,
 	      d.h+rowspacing,
 	      b);
       r_hline(d.x-colspacing/2,
@@ -1322,6 +1415,8 @@ static senddecl send_table[] =
      NAME_cell, "Insert new column at the specified index"),
   SM(NAME_delete, 1, "table_cell|table_row|table_column", deleteTable,
      NAME_cell, "Delete a cell, row or column"),
+  SM(NAME_deleteRows, 0, NULL, deleteRowsTable,
+     NAME_cell, "Delete a all rows"),
 					/* attributes */
   SM(NAME_cellPadding, 1, "int|size", cellPaddingTable,
      DEFAULT, NULL),
@@ -1358,7 +1453,12 @@ static getdecl get_table[] =
      NAME_find, "Translate coordinate to cell or point"),
   GM(NAME_cellsInRegion, 1, "chain", "area",
      getCellsInRegionTable,
-     NAME_find, "Find all cells in a row/column region")
+     NAME_find, "Find all cells in a row/column region"),
+
+  GM(NAME_columnRange, 0, "tuple", NULL, getColumnRangeTable,
+     NAME_dimension, "Lowest/Highest defined column index"),
+  GM(NAME_rowRange, 0, "tuple", NULL, getRowRangeTable,
+     NAME_dimension, "Lowest/Highest defined row index")
 };
 
 /* Resources */

@@ -67,15 +67,18 @@ NewClass(table_cell)
     Int		col_span;		/* number of columns spanned */
     Int		row_span;		/* number of rows spanned */
     Size	cell_padding;		/* Padding for this cell (default) */
-    Bool	selected;		/* Cell is selected */
+    Bool	selected;		/* Cell is selected */ \
+    Any		background;		/* Background colour in */
 End;
 
 #define ABSTRACT_TABLE_SLICE \
     ABSTRACT_VECTOR			/* vector attributes */ \
-    Table	table;		/* Table I belong to */ \
+    Table	table;			/* Table I belong to */ \
+    Any		background;		/* Background colour in */ \
     Name	alignment;		/* halign,valign */ \
     Bool	end_group;		/* Slice ends a (row/column) group */ \
     Int		index;			/* nth row/column */ \
+    Bool	fixed;			/* Width/reference is fixed */ \
     Int		width;			/* width/height of the row/column */ \
     Int		reference;		/* position of reference-aligned */ \
     Int		position;		/* Offset of row/column */

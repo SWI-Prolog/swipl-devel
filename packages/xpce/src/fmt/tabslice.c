@@ -14,12 +14,14 @@ status
 initialiseTableSlice(TableSlice c)
 { initialiseVectorv((Vector)c, 0, NULL);
 
-  assign(c, end_group, OFF);
-  assign(c, index,     ZERO);
-  assign(c, width,     ZERO);
-  assign(c, reference, ZERO);
-  assign(c, position,  ZERO);
-/*assign(c, table,   NIL);
+  assign(c, background, DEFAULT);
+  assign(c, end_group,  OFF);
+  assign(c, index,      ZERO);
+  assign(c, width,      ZERO);
+  assign(c, reference,  ZERO);
+  assign(c, position,   ZERO);
+  assign(c, fixed,      OFF);
+/*assign(c, table,      NIL);
 */
 
   succeed;
@@ -38,6 +40,22 @@ endGroupTableSlice(TableSlice slice, Bool end)
 }
 
 
+static status
+widthTableSlice(TableSlice slice, Int width)
+{ if ( notDefault(width) )
+  { assign(slice, width, width);
+    assign(slice, fixed, ON);
+  } else
+  { assign(slice, fixed, OFF);
+  }
+
+  if ( notNil(slice->table) )
+    return requestComputeLayoutManager((LayoutManager)slice->table, DEFAULT);
+
+  succeed;
+}
+
+
 		 /*******************************
 		 *	 CLASS DECLARATION	*
 		 *******************************/
@@ -49,6 +67,8 @@ endGroupTableSlice(TableSlice slice, Bool end)
 static vardecl var_table_slice[] =
 { IV(NAME_table, "table*", IV_GET,
      NAME_organisation, "Table I belong to"),
+  IV(NAME_background, "[colour|pixmap]", IV_GET,
+     NAME_colour, "Default background of the cells"),
   IV(NAME_alignment, "{top,bottom,left,right,center,reference,stretch}",
      IV_GET,
      NAME_layout, "Default alignment of cells"),
@@ -56,19 +76,23 @@ static vardecl var_table_slice[] =
      NAME_appearance, "Row/column ends a group (rules)"),
   IV(NAME_index, "int", IV_GET,
      NAME_position, "X/Y position for column/row"),
+  IV(NAME_fixed, "bool", IV_BOTH,
+     NAME_layout, "<-width and <-reference are fixed"),
   IV(NAME_width, "0..", IV_GET,
-     NAME_layout, "Total width of the row/column"),
+     NAME_layout, "Total width/height of the column/row"),
   IV(NAME_reference, "int", IV_GET,
      NAME_layout, "Location of the reference"),
   IV(NAME_position, "int", IV_GET,
-     NAME_layout, "X/Y-offset of the column/row"),
+     NAME_layout, "X/Y-offset of the column/row")
 };
   
 /* Send Methods */
 
 static senddecl send_table_slice[] =
 { SM(NAME_initialise, 0, NULL, initialiseTableSlice,
-     DEFAULT, "Initialise abstract instance")
+     DEFAULT, "Initialise abstract instance"),
+  SM(NAME_width, 1, "[int]", widthTableSlice,
+     NAME_layout, "Set (fixed) width of the table slice")
 };
 
 /* Get Methods */
@@ -145,6 +169,16 @@ unlinkTableColumn(TableColumn col)
 }
 
 
+static void
+changedImageTableColumn(TableColumn col)
+{ Table tab;
+  Device dev;
+
+  if ( notNil(tab = col->table) && notNil(dev=tab->device) )
+    changedImageGraphical(dev, col->position, 0, col->width, tab->area->h);
+}
+
+
 static status
 halignTableColumn(TableColumn col, Name halign)
 { assign(col, alignment, halign);
@@ -156,6 +190,17 @@ halignTableColumn(TableColumn col, Name halign)
 static Name
 getHalignTableColumn(TableColumn col)
 { answer(col->alignment);
+}
+
+
+static status
+backgroundTableColumn(TableColumn col, Any bg)
+{ if ( col->background != bg )
+  { assign(col, background, bg);
+    changedImageTableColumn(col);
+  }
+
+  succeed;
 }
 
 
@@ -234,6 +279,8 @@ static senddecl send_table_column[] =
      DEFAULT, "Initialise table column"),
   SM(NAME_unlink, 0, NULL, unlinkTableColumn,
      DEFAULT, "Remove from <-table"),
+  SM(NAME_background, 1, "[colour|pixmap]", backgroundTableColumn,
+     NAME_colour, NULL),
   SM(NAME_halign, 1, T_halign, halignTableColumn,
      NAME_alignment, "Default horizontal alignment"),
   SM(NAME_compute, 0, NULL, computeTableColumn,
@@ -313,6 +360,27 @@ valignTableRow(TableRow col, Name valign)
 static Name
 getHalignTableRow(TableRow col)
 { answer(col->alignment);
+}
+
+
+static void
+changedImageTableRow(TableRow row)
+{ Table tab;
+  Device dev;
+
+  if ( notNil(tab = row->table) && notNil(dev=tab->device) )
+    changedImageGraphical(dev, 0, row->position, tab->area->w, row->width);
+}
+
+
+static status
+backgroundTableRow(TableRow row, Any bg)
+{ if ( row->background != bg )
+  { assign(row, background, bg);
+    changedImageTableRow(row);
+  }
+
+  succeed;
 }
 
 
@@ -415,10 +483,14 @@ static senddecl send_table_row[] =
      DEFAULT, "Initialise table column"),
   SM(NAME_unlink, 0, NULL, unlinkTableRow,
      DEFAULT, "Remove from <-table"),
+  SM(NAME_background, 1, "[colour|pixmap]", backgroundTableRow,
+     NAME_colour, NULL),
   SM(NAME_valign, 1, T_valign, valignTableRow,
      NAME_alignment, "Default vertical alignment"),
   SM(NAME_compute, 0, NULL, computeTableRow,
-     NAME_layout, "Compute dimensions of the row")
+     NAME_layout, "Compute dimensions of the row"),
+  SM(NAME_height, 1, "[int]", widthTableSlice,
+     NAME_layout, "Set (fixed) height of the table row")
 };
 
 /* Get Methods */

@@ -7,14 +7,52 @@
     Copyright (C) 1994 University of Amsterdam. All rights reserved.
 */
 
+#define USE_CONVERTED_COLOURS 1;
+
 #include "include.h"
+#ifdef USE_CONVERTED_COLOURS
+#include "xcolours.c"
+#else
 #include <h/unix.h>
+#endif
 
 static HashTable ColourNames;		/* name --> rgb (packed in Int) */
 static HashTable X11ColourNames;	/* rgb --> X11-name */
 
 static status	ws_alloc_colour(ColourMap cm, Colour c);
 static void	ws_unalloc_colour(ColourMap cm, Colour c);
+
+#ifdef USE_CONVERTED_COLOURS
+
+static HashTable
+LoadColourNames()
+{ if ( !ColourNames )
+  { xcolourdef *cd;
+
+    ColourNames = globalObject(NAME_colourNames, ClassHashTable, 0);
+    
+    for(cd = x11_colours; cd->name; cd++)
+    { COLORREF rgb = RGB(cd->red, cd->green, cd->blue);
+      char buf[100];
+      const char *s = cd->name;
+      char *q = buf;
+
+      for( ; *s; s++ )
+      { if ( *s == ' ' )
+	  *q++ = '_';
+	else
+	  *q++ = tolower(*s);
+      }
+      *q = '\0';
+      appendHashTable(ColourNames, CtoKeyword(buf), toInt(rgb));
+    }
+  }
+
+  return ColourNames;
+}
+
+
+#else /*USE_CONVERTED_COLOURS*/
 
 static HashTable
 LoadColourNames()
@@ -63,7 +101,31 @@ LoadColourNames()
   return ColourNames;
 }
 
+#endif /*USE_CONVERTED_COLOURS*/
+
 #if O_XPM
+#ifdef USE_CONVERTED_COLOURS
+
+static HashTable
+LoadX11ColourNames()
+{ if ( !X11ColourNames )
+  { xcolourdef *cd;
+
+    X11ColourNames = globalObject(CtoName("_x11_colour_names"),
+				  ClassHashTable, 0);
+
+    for(cd = x11_colours; cd->name; cd++)
+    { COLORREF rgb = RGB(cd->red, cd->green, cd->blue);
+
+      appendHashTable(X11ColourNames, toInt(rgb), CtoName(cd->name));
+    }
+  }
+
+  return X11ColourNames;
+}
+
+#else /*USE_CONVERTED_COLOURS*/
+
 static HashTable
 LoadX11ColourNames()
 { if ( !X11ColourNames )
@@ -101,6 +163,8 @@ LoadX11ColourNames()
 
   return X11ColourNames;
 }
+
+#endif /*USE_CONVERTED_COLOURS*/
 
 int
 xpmGetRGBfromName(char *inname, int *r, int *g, int *b)

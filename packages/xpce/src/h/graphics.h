@@ -794,7 +794,7 @@ End;
 NewClass(dialog)
   ABSTRACT_WINDOW
   Size		gap;			/* X-Y gap between items */
-  Bool		size_given;		/* Size given by user: no recompute */
+  Name		size_given;		/* Size given by user: no recompute */
 End;
 
 NewClass(view)

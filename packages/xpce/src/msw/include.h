@@ -31,8 +31,6 @@
 
 #define PceHInstance ThePceHInstance
 
-#define GWL_DATA	(0)		/* client-handle offset */
-
 #define Ellipse PceEllipse
 #define Arc PceArc
 #include <h/kernel.h>
@@ -69,6 +67,7 @@ typedef struct
 typedef struct
 { HWND		hwnd;
   HCURSOR	hcursor;		/* current cursor handle */
+  WNDPROC	saved_window_procedure;	/* For refinement */
   unsigned capture    : 1;		/* has capture */
   unsigned open	      : 1;		/* window is opened */
 } ws_window, *WsWindow;
@@ -93,10 +92,13 @@ HBITMAP		read_ppm_file(FILE *fd, Name *kind);
 int		write_pnm_file(FILE *fd, HBITMAP bm,
 			       int scale, int fmt, int encode);
 unsigned char *	read_bitmap_data(FILE *fd, int *w, int *h);
+void		assocObjectToHWND(HWND hwnd, Any obj);
+Any		getObjectFromHWND(HWND hwnd);
 HWND		getHwndFrame(FrameObj fr);
 void		setHwndFrame(FrameObj fr, HWND ref);
 HWND		getHwndWindow(PceWindow sw);
 void		setHwndWindow(PceWindow sw, HWND ref);
+Any		messageToKeyId(UINT message, UINT wParam, LONG lParam);
 EventObj	messageToEvent(HWND hwnd, UINT msg, UINT wParam, LONG lParam);
 status		d_mswindow(PceWindow sw, IArea a, int clear);
 void		d_hdc(HDC hdc, Colour fg, Colour bg);

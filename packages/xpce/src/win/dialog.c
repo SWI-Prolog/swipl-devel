@@ -19,7 +19,7 @@ initialiseDialog(Dialog d, Name name, Size size, DisplayObj display)
 
   assign(d, gap, newObject(ClassSize, 0));
   copySize(d->gap, getResourceValueObject(d, NAME_gap));
-  assign(d, size_given, OFF);
+  assign(d, size_given, NAME_none);
 
   t = getTileWindow((PceWindow) d);
   assign(t, horShrink,  ZERO);
@@ -80,37 +80,91 @@ layoutDialog(Dialog d, Size size)
 
 static status
 computeDesiredSizeDialog(Dialog d)
-{ TRY(send(d, NAME_layout, 0));
+{ Name given;
+
+  TRY(send(d, NAME_layout, 0));
 
   if ( isNil(d->keyboard_focus) )
     send(d, NAME_advance, NIL, 0);	/* select first text item */
 
   ComputeGraphical(d);
 
-  if ( d->size_given != ON )
-  { if ( emptyChain(d->graphicals) )
+  if ( (given=d->size_given) != NAME_both )
+  { Int w, h;
+    int empty;
+
+    if ( (empty=emptyChain(d->graphicals)) )
     { Size sz = getResourceValueObject(d, NAME_size);
 
-      send(d, NAME_size, sz, 0);
+      w = sz->w;
+      h = sz->h;
     } else
     { Area a = d->bounding_box;
-      int w = valInt(a->x) + valInt(a->w) + valInt(d->gap->w);
-      int h = valInt(a->y) + valInt(a->h) + valInt(d->gap->h);
 
-      send(d, NAME_set, DEFAULT, DEFAULT, toInt(w), toInt(h), 0);
+      w = toInt(valInt(a->x) + valInt(a->w) + valInt(d->gap->w));
+      h = toInt(valInt(a->y) + valInt(a->h) + valInt(d->gap->h));
     }
+
+    if ( given == NAME_width )
+      w = DEFAULT;
+    else if ( given == NAME_height )
+      h = DEFAULT;
+
+    send(d, NAME_set, DEFAULT, DEFAULT, w, h, 0);
   }
 
   succeed;
 }
 
 
+#define WIDTH_GIVEN  1
+#define HEIGTH_GIVEN 2
+
+static status
+setDialog(Dialog d, Int x, Int y, Int w, Int h)
+{ static Name given_names[] = { NAME_none,
+  				NAME_width,
+				NAME_height,
+				NAME_both
+			      };
+  int given;
+  
+  for(given = 0; given < 4; given++)
+  { if ( given_names[given] == d->size_given )
+      break;
+  }
+  if ( given == 4 )			/* just in case */
+    given = 0;
+
+  if ( notDefault(w) )
+    given |= WIDTH_GIVEN;
+  if ( notDefault(h) )
+    given |= HEIGTH_GIVEN;
+
+  assign(d, size_given, given_names[given]);
+
+  return setGraphical((Graphical) d, x, y, w, h);
+}
+
+
+static status
+widthDialog(Dialog d, Int w)
+{ return setDialog(d, DEFAULT, DEFAULT, w, DEFAULT);
+}
+
+
+static status
+heightDialog(Dialog d, Int h)
+{ return setDialog(d, DEFAULT, DEFAULT, DEFAULT, h);
+}
+
+
 static status
 sizeDialog(Dialog d, Size size)
-{ assign(d, size_given, ON);
-
-  return setGraphical(d, DEFAULT, DEFAULT, size->w, size->h);
+{ return setDialog(d, DEFAULT, DEFAULT, size->w, size->h);
 }
+
+
 
 		/********************************
 		*         MISCELLANEAUS		*
@@ -284,8 +338,8 @@ static char *T_initialise[] =
 static vardecl var_dialog[] =
 { IV(NAME_gap, "size", IV_BOTH,
      NAME_layout, "Distance in X and Y direction between items"),
-  IV(NAME_sizeGiven, "bool", IV_NONE,
-     NAME_layout, "User specified explicit size")
+  IV(NAME_sizeGiven, "{none,width,height,both}", IV_NONE,
+     NAME_layout, "User specified explicit width/height")
 };
 
 /* Send Methods */
@@ -308,7 +362,11 @@ static senddecl send_dialog[] =
   SM(NAME_restore, 0, NULL, restoreDialog,
      NAME_apply, "->restore all items to their <-default"),
   SM(NAME_size, 1, "size", sizeDialog,
-     NAME_area, "Give the dialog window an explicit size"),
+     NAME_area, "Give dialog an explicit size"),
+  SM(NAME_width, 1, "0..", widthDialog,
+     NAME_area, "Give dialog an explicit width"),
+  SM(NAME_height, 1, "0..", heightDialog,
+     NAME_area, "Give dialog an explicit height"),
   SM(NAME_caret, 1, "member:graphical", caretDialog,
      NAME_focus, "Assign the caret to an input object"),
   SM(NAME_ComputeDesiredSize, 0, NULL, computeDesiredSizeDialog,

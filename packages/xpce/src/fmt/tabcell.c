@@ -38,6 +38,7 @@ initialiseTableCell(TableCell c, Graphical image)
   assign(c, row_span,     ONE);
   assign(c, cell_padding, DEFAULT);
   assign(c, selected,     OFF);
+  assign(c, background,	  DEFAULT);
 
   succeed;
 }
@@ -88,6 +89,17 @@ static status
 selectedTableCell(TableCell c, Bool selected)
 { if ( c->selected != selected )
   { assign(c, selected, selected);
+    modifiedImageTableCell(c);
+  }
+
+  succeed;
+}
+
+
+static status
+backgroundTableCell(TableCell c, Any bg)
+{ if ( c->background != bg )
+  { assign(c, background, bg);
     modifiedImageTableCell(c);
   }
 
@@ -192,6 +204,8 @@ colSpanTableCell(TableCell cell, Int span)
       assign(cell, col_span, span);
       changedTable(tab);		/* changed line-pattern */
       requestComputeLayoutManager((LayoutManager)tab, DEFAULT);
+    } else
+    { assign(cell, col_span, span);
     }
   }
 
@@ -228,6 +242,8 @@ rowSpanTableCell(TableCell cell, Int span)
       assign(cell, row_span, span);
       changedTable(tab);		/* changed line-pattern */
       requestComputeLayoutManager((LayoutManager)tab, DEFAULT);
+    } else
+    { assign(cell, row_span, span);
     }
   }
 
@@ -407,7 +423,9 @@ static vardecl var_table_cell[] =
   IV(NAME_cellPadding, "[size]", IV_GET,
      NAME_layout, "Size around contents of the cell"),
   SV(NAME_selected, "bool", IV_GET|IV_STORE, selectedTableCell,
-     NAME_selection, "Is cell selected?")
+     NAME_selection, "Is cell selected?"),
+  SV(NAME_background, "[colour|pixmap]", IV_GET|IV_STORE, backgroundTableCell,
+     NAME_colour, "Backround colour for the cell")
 };
   
 /* Send Methods */

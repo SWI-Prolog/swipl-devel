@@ -828,6 +828,7 @@ getPostscriptDepthImage(Image image)
 #include "bitmaps/mark_handle_bm"
 #include "bitmaps/ms_mark.bm"
 #include "bitmaps/ms_nomark.bm"
+#include "bitmaps/ms_left_arrow.bm"
 #include "bitmaps/ol_pulldown.bm"
 #include "bitmaps/ol_pullright.bm"
 #include "bitmaps/ol_cycle.bm"
@@ -893,6 +894,8 @@ standardImages(void)
 	   (char *)ms_mark_bits, ms_mark_width, ms_mark_height);
   stdImage(NAME_msNomarkImage, &MS_NOMARK_IMAGE,
 	   (char *)ms_nomark_bits, ms_nomark_width, ms_nomark_height);
+  stdImage(NAME_msLeftArrowImage, NULL,
+	   (char *)ms_left_arrow_bits, ms_left_arrow_width, ms_left_arrow_height);
   stdImage(NAME_pullRightImage, &PULLRIGHT_IMAGE,
 	   pullright_bm_bits, pullright_bm_width, pullright_bm_height);
   stdImage(NAME_markHandleImage, &MARK_HANDLE_IMAGE,

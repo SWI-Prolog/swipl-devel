@@ -21,7 +21,6 @@ static int drawnest;			/* Draw nesting */
 #define MAXPATHLEN 512			/* drag-and-drop */
 #endif
 
-
 static char *
 WinWindowClass()
 { static Name winclassname = NULL;
@@ -36,7 +35,7 @@ WinWindowClass()
     wndClass.style		= 0/*CS_HREDRAW|CS_VREDRAW*/;
     wndClass.lpfnWndProc	= (LPVOID) window_wnd_proc;
     wndClass.cbClsExtra		= 0;
-    wndClass.cbWndExtra		= sizeof(long);
+    wndClass.cbWndExtra		= 0;
     wndClass.hInstance		= PceHInstance;
     wndClass.hIcon		= NULL; /*LoadIcon(NULL, IDI_APPLICATION); */
     wndClass.hCursor		= NULL;
@@ -77,13 +76,16 @@ getExistingFrameWindow(PceWindow sw)
 
 static int WINAPI
 window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
-{ PceWindow sw = (PceWindow) GetWindowLong(hwnd, GWL_DATA);
+{ PceWindow sw = getObjectFromHWND(hwnd);
   FrameObj fr;
   WsFrame wfr;
+  WsWindow wsw;
 
-  if ( !sw )
-    sw = current_window;
-  assert(isProperObject(sw));
+  if ( !sw ) 
+  { if ( !(sw = current_window) )
+      return DefWindowProc(hwnd, message, wParam, lParam);
+  }
+  wsw = sw->ws_ref;
 
   DEBUG(NAME_event,
 	Cprintf("%s(0x%04x): MS-Windows event 0x%04x with 0x%04x/0x%08lx\n",
@@ -94,7 +96,7 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       ServiceMode(is_service_window(sw),
 		  if ( hasSendMethodObject(sw, NAME_dropFiles) )
 		    DragAcceptFiles(hwnd, TRUE));
-      break;
+      goto cascade;
 
     case WM_DROPFILES:
     { HDROP hdrop = (HDROP) wParam;
@@ -181,23 +183,24 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 	}
       }
 
-      break;
+      goto cascade;
     }
 
     case WM_SETFOCUS:
-      ServiceMode(is_service_window(sw),
-		  DEBUG(NAME_focus,
-			Cprintf("Received FocusIn on %s\n", pp(sw)));
-		  assign(sw, input_focus, ON));
-
-      return 0;
-
     case WM_KILLFOCUS:
+    { Bool val = (message == WM_SETFOCUS ? ON : OFF);
+
       ServiceMode(is_service_window(sw),
 		  DEBUG(NAME_focus,
-			Cprintf("Received FocusOut on %s\n", pp(sw)));
-		  assign(sw, input_focus, OFF));
-      return 0;
+			Cprintf("Received Focus %s on %s\n", pp(val), pp(sw)));
+		  send(sw, NAME_inputFocus, val, 0);
+		  RedrawDisplayManager(TheDisplayManager()));
+		  /*assign(sw, input_focus, val)*/
+
+      DEBUG(NAME_focus, Cprintf("\tFocus Request Handled!\n"));
+
+      goto cascade;
+    }
 
     case WM_ERASEBKGND:
     { HDC hdc = (HDC) wParam;
@@ -255,7 +258,7 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 
       ServiceMode(is_service_window(sw),
 		  DEBUG(NAME_redraw,
-			Cprintf("%s (%ld) received WM_PAINT (%s clear)\n",
+			Cprintf("%s (0x%04x) received WM_PAINT (%s clear)\n",
 				pp(sw), (long)hwnd,
 				clearing_update ? "" : "no"));
 
@@ -279,17 +282,28 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
     { HWND hwnd = getHwndWindow(sw);
 
       if ( hwnd )
-      { ServiceMode(is_service_window(sw),
+      { WNDPROC oproc = wsw->saved_window_procedure;
+
+	ServiceMode(is_service_window(sw),
 		    DEBUG(NAME_window,
 			  Cprintf("WM_DESTROY on %s, hwnd 0x%x\n",
 				  pp(sw), hwnd)); 
 		    if ( hasSendMethodObject(sw, NAME_dropFiles) )
 		      DragAcceptFiles(hwnd, FALSE);
 		    PceWhDeleteWindow(hwnd);
-		    setHwndWindow(sw, 0));
+		    setHwndWindow(sw, 0);
+		    assocObjectToHWND(hwnd, NIL));
+	
+	if ( oproc )			/* refining alien window */
+					/* see winHandleWindow() below */
+	{ SetWindowLong(hwnd, GWL_WNDPROC, (LONG) oproc);
+	  return CallWindowProc(oproc, hwnd, message, wParam, lParam);
+	}
+
+	return 0;
       }
 
-      return 0;
+      return DefWindowProc(hwnd, message, wParam, lParam);
     }
 
  
@@ -348,7 +362,12 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       return 0;
   }
 
-  return DefWindowProc(hwnd, message, wParam, lParam);
+cascade:
+  if ( wsw && wsw->saved_window_procedure )
+    return CallWindowProc(wsw->saved_window_procedure,
+			  hwnd, message, wParam, lParam);
+  else
+    return DefWindowProc(hwnd, message, wParam, lParam);
 }
 
 
@@ -369,6 +388,7 @@ ws_uncreate_window(PceWindow sw)
   { DEBUG(NAME_window,
 	  Cprintf("ws_uncreate_window(%s) (=0x%04x)\n", pp(sw), hwnd));
     setHwndWindow(sw, 0);
+    assocObjectToHWND(hwnd, NIL);
     PceWhDeleteWindow(hwnd);
     DestroyWindow(hwnd);
     DEBUG(NAME_window,
@@ -410,7 +430,8 @@ ws_create_window(PceWindow sw, PceWindow parent)
   DEBUG(NAME_window, Cprintf("Windows ref = %ld\n", (long) ref));
 
   setHwndWindow(sw, ref);
-  SetWindowLong(ref, GWL_DATA, (LONG) sw);
+  assocObjectToHWND(ref, sw);
+  current_window = NULL;
 
   if ( notDefault(parent) )		/* make a sub-window */
     send(sw, NAME_displayed, ON, 0);
@@ -437,7 +458,8 @@ ws_reassociate_ws_window(PceWindow from, PceWindow to)
 
   setHwndWindow(to, win);
   if ( win )
-    SetWindowLong(win, GWL_DATA, (LONG) to);
+    assocObjectToHWND(win, to);
+
   setHwndWindow(from, NULL);
 }
 
@@ -638,4 +660,62 @@ ws_raise_window(PceWindow sw)
 void
 ws_lower_window(PceWindow sw)
 { ShowWindow(getHwndWindow(sw), SW_HIDE);
+}
+
+
+		 /*******************************
+		 *     EMBEDDING WINDOWS	*
+		 *******************************/
+
+Int
+getWinHandleWindow(PceWindow sw)
+{ HWND hwnd;
+
+  if ( (hwnd = getHwndWindow(sw)) )
+    answer(toInt(hwnd));
+
+  fail;
+}
+
+
+status
+winHandleWindow(PceWindow sw, Int handle)
+{ HWND hwnd = (HWND)valInt(handle);
+  WsWindow w;
+  RECT rect;
+  
+  while( notNil(sw->decoration) )
+    sw = sw->decoration;
+
+  setHwndWindow(sw, hwnd);
+  assocObjectToHWND(hwnd, sw);
+  w = sw->ws_ref;
+  w->saved_window_procedure = (WNDPROC)GetWindowLong(hwnd, GWL_WNDPROC);
+  SetWindowLong(hwnd, GWL_WNDPROC, (LONG) window_wnd_proc);
+  GetWindowRect(hwnd, &rect);
+  ServiceMode(is_service_window(sw),
+	      { Area a = sw->area;
+		int p = 1;		/* TBD */
+		int w = rect.right - rect.left;
+		int h = rect.bottom - rect.top;
+		int x = rect.left;
+		int y = rect.top;
+		Int ow = a->w;
+		Int oh = a->h;
+
+		x += p;
+		y += p;
+		w -= 2*p;
+		h -= 2*p;
+		assign(a, x, toInt(x));
+		assign(a, y, toInt(y));
+		assign(a, w, toInt(w));
+		assign(a, h, toInt(h));
+		qadSendv(sw, NAME_resize, 0, NULL);
+		changedUnionWindow(sw, a->x, a->y, ow, oh);
+	      });
+
+  send(sw, NAME_displayed, ON, 0);
+
+  succeed;
 }

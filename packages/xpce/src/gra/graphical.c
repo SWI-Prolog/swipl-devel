@@ -1884,7 +1884,7 @@ invertedGraphical(Graphical gr, Bool val)
 }
 
 
-static status
+status
 activeGraphical(Graphical gr, Bool val)
 { if ( gr->active != val )
   { CHANGING_GRAPHICAL(gr,

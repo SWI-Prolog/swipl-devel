@@ -344,7 +344,7 @@ eventMenuBar(MenuBar mb, EventObj ev)
     succeed;
   } else
   { if ( isDownEvent(ev) )
-    { if ( (p = getPopupFromEventMenuBar(mb, ev)) )
+    { if ( (p = getPopupFromEventMenuBar(mb, ev)) && p->active == ON )
       { showPopupMenuBar(mb, p);
 	postEvent(ev, (Graphical) mb->current, DEFAULT);
 	focusCursorGraphical((Graphical)mb,
@@ -436,7 +436,8 @@ appendMenuBar(MenuBar mb, PopupObj p, Name alignment)
 
     labelDialogItem((DialogItem)b, p->label);
     appendChain(mb->members, p);
-      
+    assign(p, context, mb);
+
     if ( alignment == NAME_right )
     { appendChain(mb->buttons, b);
       assign(b, alignment, NAME_right);

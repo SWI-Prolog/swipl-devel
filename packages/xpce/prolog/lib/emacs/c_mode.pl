@@ -28,7 +28,8 @@
 		      gdb_step		= button(gdb) + key('\C-c\C-s'),
 		      gdb_next		= button(gdb) + key('\C-c\C-n') +
 		      			  key('\C-z'),
-		      gdb_print		= button(gdb) + key('\C-c\C-p')
+		      gdb_print		= button(gdb) + key('\C-c\C-p'),
+		      prolog_manual     = button(prolog)
 		    ],
 		    [ '"'  = string_quote(\),
 		      '''' = string_quote(\),

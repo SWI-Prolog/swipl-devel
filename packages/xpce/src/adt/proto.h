@@ -167,6 +167,7 @@ status		unlinkVector(Vector v);
 Int		getLowIndexVector(Vector v);
 Int		getHighIndexVector(Vector v);
 status		rangeVector(Vector v, Int low, Int high);
+status		clearVector(Vector v);
 Any		getTailVector(Vector v);
 Any		getHeadVector(Vector v);
 Vector		getCopyVector(Vector v);

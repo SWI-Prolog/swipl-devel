@@ -69,7 +69,7 @@ feedback(W, S:string*, Ev:event) :->
 	    get(P, plus, point(5,5), point(FX, FY)),
 	    send(W?frame, set, FX, FY),
 	    send(W?frame, open),
-%	    send(W?frame, expose),
+	    send(W?frame, expose),
 	    send(W?display, inspect_handler, W?handler)
 	).
 

@@ -473,39 +473,46 @@ computeDevice(Any obj)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Updates the bounding box and succeeds if if changed.  Fails if there are
+no modifications.  The old bounding box is returned in `od', a vector of
+4 integers.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+status
+updateBoundingBoxDevice(Device dev, Int *od)
+{ Cell cell;
+  Area a = dev->area;
+
+  od[0] = a->x; od[1] = a->y; od[2] = a->w; od[3] = a->h;
+
+  if ( isNil(dev->layout_manager) ||
+       !qadSendv(dev->layout_manager, NAME_computeBoundingBox, 0, NULL) )
+  { clearArea(a);
+
+    for_cell(cell, dev->graphicals)
+    { Graphical gr = cell->value;
+
+      if ( gr->displayed == ON )
+	unionNormalisedArea(a, gr->area);
+    }
+  }
+  relativeMoveArea(a, dev->offset);
+
+  if ( od[0] != a->x || od[1] != a->y || od[3] != a->w || od[4] != a->h )
+    succeed;
+
+  fail;
+}
+
+
 status
 computeBoundingBoxDevice(Device dev)
 { if ( dev->badBoundingBox == ON )
-  { Cell cell;
-    Area a = dev->area;
-    Int od[4];				/* ax, ay, aw, ah */
-    od[0] = a->x; od[1] = a->y; od[2] = a->w; od[3] = a->h;
+  { Int od[4];				/* ax, ay, aw, ah */
 
-    DEBUG(NAME_compute,
-	  Cprintf("computeBoundingBoxDevice(%s) %ld %ld %ld %ld\n",
-		  pp(dev),
-		  valInt(od[0]), valInt(od[1]), valInt(od[2]), valInt(od[3])));
-
-
-    if ( isNil(dev->layout_manager) ||
-	 !qadSendv(dev->layout_manager, NAME_computeBoundingBox, 0, NULL) )
-    { clearArea(a);
-
-      for_cell(cell, dev->graphicals)
-      { Graphical gr = cell->value;
-
-	if ( gr->displayed == ON )
-	  unionNormalisedArea(a, gr->area);
-      }
-    }
-    relativeMoveArea(a, dev->offset);
-
-    if ( od[0] != a->x || od[1] != a->y || od[3] != a->w || od[4] != a->h )
-    { DEBUG(NAME_compute,
-	    Cprintf("                          --> %ld %ld %ld %ld\n",
-		    valInt(a->x), valInt(a->y), valInt(a->w), valInt(a->h)));
-
-      if ( notNil(dev->device) )
+    if ( updateBoundingBoxDevice(dev, od) )
+    { if ( notNil(dev->device) )
       { requestComputeDevice(dev->device, DEFAULT);
       	updateConnectionsGraphical((Graphical) dev, sub(dev->level, ONE));
       }
@@ -514,7 +521,9 @@ computeBoundingBoxDevice(Device dev)
     }
 
     if ( notNil(dev->clip_area) )
-    { relativeMoveBackArea(a, dev->offset);
+    { Area a = dev->area;
+
+      relativeMoveBackArea(a, dev->offset);
       if ( intersectionArea(dev->area, dev->clip_area) == FAIL )
       { assign(dev->area, w, ZERO);
         assign(dev->area, h, ZERO);

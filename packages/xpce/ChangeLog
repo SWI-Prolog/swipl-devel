@@ -1,4 +1,49 @@
+* FIXED: Using XPCE objects in Prolog streams: report IO-error if the object
+  was freed.
+
+* ADDED: (WIN32) Window <->win_handle to get the window handle from an XPCE
+  window or use an XPCE window for `subclassing' an existing MS-Window.
+
+* FIXED: (WIN32) opendir() emulation if the accessed directory doesn't exists.
+  Could cause a crash, notably occurring in `directory->scan'.
+
+* ADDED: `popup->active' now works for popup-menus in a menu_bar (old version
+  required `menu_bar ->active_member').
+
+* FIXED: Honouring the active flag in popups by class menu_bar.  Thanks to
+  Jelmer Jellema.
+
+* FIXED: `emacs_mode_menu <-lookup' to avoid loosing part of the mode menu
+  if there are user extensions.
+
+* WIN32: xpce\lib\x11.crs data moved into src/msw/xcursors.c: faster startup,
+  preparation to remove dependencies on runtime files.
+
+* WIN32: xpce\lib\rgb.txt data moved into src/msw/xcolours.c: faster startup,
+  preparation to remove dependencies on runtime files.  Also modified the
+  colour demo to use @colour_names if it can't find the X11 colour database.
+
+* Preload ms_left_arrow.bm as @ms_left_arrow_image to remove dependency on
+  this file in the Windows version.
+
 [VERSION 4.10.0]
+
+* ADDED/MODIFIED: `dialog ->width' and `dialog ->height' to work like
+  `dialog ->size'.  `dialog -size_given' is now one of none, width, height
+  or both instead of a boolean.  Also changed: if the size is determined
+  on the basis of the Pce.Dialog.size resource, -size_given will not be
+  changed.  This implies that filling an empty dialog after opening, followed
+  by a ->fit will actually layout and fit the dialog window.
+
+* ADDED: PceEmacs: moved M-x prolog_manual from Prolog to language-mode, so
+  the manual can be accessed easily while writing C/C++ code
+
+* FIXED: `file <-character' to return a character 0<=char<=255.  Reported
+  by Bob Wielinga.  Same for `char_array <-character'.
+
+* FIXED: Win32: redraw on Windows 95 after iconify/deiconify.  Problem
+  reproduces poorly, but notably when dealing with hierarchies.  Probably
+  timing related.  Thanks to Jelmer Jellema.
 
 * ADDED: Classes layout_manager, layout_interface, table, table_slice,
   table_column, table_row, table_cell: Generic interface for associating

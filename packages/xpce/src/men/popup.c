@@ -91,7 +91,7 @@ resetPopup(PopupObj p)
 
 
 static MenuItem
-getDefaultMenuItemPopop(PopupObj p)
+getDefaultMenuItemPopup(PopupObj p)
 { Cell cell;
 
   if ( isNil(p->default_item) ||
@@ -168,7 +168,7 @@ openPopup(PopupObj p, Graphical gr, Point pos,
   dy = valInt(p->area->y);
   dx = valInt(p->area->x);
 
-  if ( (mi = getDefaultMenuItemPopop(p)) != FAIL )
+  if ( (mi = getDefaultMenuItemPopup(p)) != FAIL )
   { int ix, iy, iw, ih;
     area_menu_item((Menu) p, mi, &ix, &iy, &iw, &ih);
     dy += iy +ih/2;
@@ -580,6 +580,15 @@ showCurrentPopup(PopupObj p, Bool show)
 }
 
 
+static status
+activePopup(PopupObj p, Bool active)
+{ if ( instanceOfObject(p->context, ClassMenuBar) )
+    send(p->context, NAME_activeMember, p, active, 0);
+
+  return activeGraphical((Graphical)p, active);
+}
+
+
 		 /*******************************
 		 *	 CLASS DECLARATION	*
 		 *******************************/
@@ -625,6 +634,8 @@ static senddecl send_popup[] =
      NAME_accelerator, "Set <-selected_item according to accelerator"),
   SM(NAME_update, 1, "context=any", updatePopup,
      NAME_active, "Update entries using context object)"),
+  SM(NAME_active, 1, "bool", activePopup,
+     NAME_event, "If @off, greyed out and insensitive"),
   SM(NAME_endGroup, 1, "bool", endGroupPopup,
      NAME_appearance, "Pullright: separation line below item in super"),
   SM(NAME_drag, 2, T_drag, dragPopup,

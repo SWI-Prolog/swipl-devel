@@ -565,6 +565,7 @@ CtoScratchCharArray(const char *s)
       return name;
     }
 
+  initCharArrays();			/* handle the crash better */
   NOTREACHED;
   fail;
 }
@@ -582,6 +583,7 @@ StringToScratchCharArray(const String s)
       return name;
     }
 
+  initCharArrays();			/* handle the crash better */
   NOTREACHED;
   fail;
 }

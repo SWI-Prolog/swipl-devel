@@ -7,7 +7,7 @@
     Copyright (C) 1994 University of Amsterdam. All rights reserved.
 */
 
-#include "xcursor.h"
+#include "../src/msw/xcursor.h"
 #include <stdio.h>
 #include <malloc.h>
 
@@ -82,9 +82,50 @@ convert(FILE *in, FILE *out)
       }
       header.dsize = (dp-data) * sizeof(unsigned short);
 
+#ifdef FORMAT_C
+    { int i;
+
+      fprintf(out, "/*  X11 cursors for XPCE\n");
+      fprintf(out, "    Generated file\n");
+      fprintf(out, "*/\n\n");
+					/* File header */
+      fprintf(out, "static cursor_glyph_file_header x11_glyph_header =\n");
+      fprintf(out, "{ %d,\n", header.magic);
+      fprintf(out, "  %d,\n", header.entries);
+      fprintf(out, "  %d,\n", header.offset);
+      fprintf(out, "  %ld\n", header.dsize);
+      fprintf(out, "};\n\n");
+					/* Cursor glyphs */
+      fprintf(out, "static cursor_glyph x11_glyps[] =\n{ ");
+      for(i=0; i<glyph; )
+      { CursorGlyph gl = &glyphs[i];
+
+	fprintf(out, "{ %2d, %2d, %2d, %2d, %4ld }",
+		gl->width, gl->height, gl->hot_x, gl->hot_y, gl->offset);
+	if ( ++i < glyph )
+	  fprintf(out, ",\n  ");
+	else
+	  fprintf(out, "\n");
+      }
+      fprintf(out, "};\n\n");
+					/* Data */
+      fprintf(out, "static unsigned short x11_glyph_data[] =\n{ ");
+      for(i=0; i<dp-data; i++)
+      { fprintf(out, "0x%04x", data[i]);
+	if ( i+1 < dp-data )
+	{ if ( i > 0 && (i+1) % 8 == 0 )
+	    fprintf(out, ",\n  ");
+	  else
+	    fprintf(out, ", ");
+	}
+      }
+      fprintf(out, "\n};\n\n");
+    }
+#else
       fwrite(&header, sizeof(header), 1, out);
       fwrite(glyphs,  sizeof(cursor_glyph), glyph, out);
       fwrite(data,    sizeof(unsigned short), dp-data, out);
+#endif
       fflush(out);
       return;
     }      

@@ -64,17 +64,10 @@ ws_event_in_subwindow(EventObj ev, Any root)
 
   if ( instanceOfObject(root, ClassDisplay) )
   { HWND win = WindowFromPoint(pt);
+    Any obj;
 
-#ifdef __WIN32__
-    if ( win && (HANDLE)GetWindowLong(win, GWL_HINSTANCE) == PceHInstance )
-#else
-    if ( win && GetWindowWord(win, GWW_HINSTANCE) == PceHInstance )
-#endif
-    { Any obj = (Any)GetWindowLong(win, GWL_DATA);
-
-      if ( isProperObject(obj) )	/* may return a subwindow */
-	return get(obj, NAME_frame, 0);
-    }
+    if ( (obj=getObjectFromHWND(win)) )
+      return get(obj, NAME_frame, 0);
   } else if ( instanceOfObject(root, ClassFrame) )
   { PceWindow sw = get_window_holding_point(root, &pt);
 
@@ -87,7 +80,7 @@ ws_event_in_subwindow(EventObj ev, Any root)
     PceWindow sw;
 
     if ( (win = ChildWindowFromPoint(getHwndWindow(root), pt)) &&
-	 (sw  = (PceWindow) GetWindowLong(win, GWL_DATA)) &&
+	 (sw  = getObjectFromHWND(win)) &&
 	 instanceOfObject(sw, ClassWindow) )
       return sw;
   }

@@ -39,6 +39,51 @@ ws_discard_input(const char *msg)
 }
 
 		 /*******************************
+		 *	FIND XPCE WINDOW	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+These functions are used to associate an  XPCE object with an MS-windows
+window. In older versions,  we  used   data  associated  with the window
+itself. As of 4.10.1, XPCE objects can  be bound to existing MS-Windows,
+and we want to make as  few   as  possible assumptions on these windows.
+Hence, we use out own hashtable.
+
+Note that HWND is wrapped in  an   XPCE  integer. A little dubious, bnut
+guarded by an assert(), so we will know if and when this fails.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static HashTable wintable;
+
+void
+assocObjectToHWND(HWND hwnd, Any obj)
+{ if ( !wintable )
+  { wintable = globalObject(CtoName("win_windows"), ClassHashTable, 0);
+    assert(wintable);
+    assign(wintable, refer, NAME_none);
+  }
+
+  assert((HWND)valInt(toInt(hwnd)) == hwnd);
+
+  if ( isNil(obj) )
+    deleteHashTable(wintable, toInt(hwnd));
+  else
+    appendHashTable(wintable, toInt(hwnd), obj);
+
+  DEBUG(NAME_window, Cprintf("Binding 0x%04x --> %s\n", hwnd, pp(obj)));
+}
+
+
+Any
+getObjectFromHWND(HWND hwnd)
+{ if ( wintable )
+    return getMemberHashTable(wintable, toInt(hwnd));
+  
+  fail;
+}
+
+
+		 /*******************************
 		 *	       FRAME		*
 		 *******************************/
 
@@ -103,10 +148,11 @@ setHwndWindow(PceWindow sw, HWND ref)
       w = sw->ws_ref;
     }
 
-    w->hwnd       = ref;
-    w->hcursor    = 0;
-    w->capture    = 0;
-    w->open	  = 0;
+    w->hwnd		      = ref;
+    w->saved_window_procedure = NULL;
+    w->hcursor		      = 0;
+    w->capture		      = 0;
+    w->open		      = 0;
   } else
   { if ( sw->ws_ref )
     { unalloc(sizeof(ws_window), sw->ws_ref);
@@ -134,12 +180,105 @@ ws_emulate_three_buttons(int time)
 }
 
 
+static int
+IsDownKey(code)
+{ int mask = GetKeyState(code);
+
+  DEBUG(NAME_key, Cprintf("IsDownKey(%d): mask = 0x%x\n", code, mask));
+
+  return mask & ~0xff;
+}
+
+
+static int
+IsDownMeta(LONG lParam)
+{ DEBUG(NAME_key, Cprintf("IsDownMeta(0x%lx)\n", lParam));
+
+  return lParam & (1L << (30-1));	/* bit-29 is 1 if ALT is depressed */
+					/* test tells me it is bit 30 ??? */
+}
+
+
+Any
+messageToKeyId(UINT message, UINT wParam, LONG lParam)
+{ Any id = FAIL;
+  
+  switch(message)
+  { case WM_KEYDOWN:
+    { switch((int) wParam)
+      { case VK_DELETE:		id = toInt(127);	break;
+        case VK_LEFT:		id = NAME_cursorLeft;	break;
+        case VK_RIGHT:		id = NAME_cursorRight;	break;
+        case VK_UP:		id = NAME_cursorUp;	break;
+        case VK_DOWN:		id = NAME_cursorDown;	break;
+        case VK_HOME:		id = NAME_cursorHome;	break;
+	case VK_PRIOR:		id = NAME_pageUp;	break;
+	case VK_NEXT:		id = NAME_pageDown;	break;
+	case VK_END:		id = NAME_end;		break;
+	
+	case VK_SELECT:		id = NAME_select;	break;
+	case VK_PRINT:		id = NAME_print;	break;
+	case VK_EXECUTE:	id = NAME_execute;	break;
+	case VK_INSERT:		id = NAME_insert;	break;
+	case VK_HELP:		id = NAME_help;		break;
+	case VK_MENU:		id = NAME_menu;		break;
+
+        case VK_F1:		id = NAME_keyTop_1;	break;
+        case VK_F2:		id = NAME_keyTop_2;	break;
+        case VK_F3:		id = NAME_keyTop_3;	break;
+        case VK_F4:		id = NAME_keyTop_4;	break;
+        case VK_F5:		id = NAME_keyTop_5;	break;
+        case VK_F6:		id = NAME_keyTop_6;	break;
+        case VK_F7:		id = NAME_keyTop_7;	break;
+        case VK_F8:		id = NAME_keyTop_8;	break;
+        case VK_F9:		id = NAME_keyTop_9;	break;
+        case VK_F10:		id = NAME_keyTop_10;	break;
+        case '2':			/* ^@ */
+	  if ( IsDownKey(VK_CONTROL) )
+	    id = ZERO;
+	  break;
+	case 0xbd:			/* OEM specific Control('_') ??? */
+	  if ( IsDownKey(VK_CONTROL) && !IsDownKey(VK_SHIFT) )
+	    id = toInt(Control('_'));
+	  break;
+	case 0x56:			/* OEM specific 'V' ??? */
+	  if ( IsDownKey(VK_CONTROL) && IsDownMeta(lParam) )
+	    id = toInt(Control('V') + META_OFFSET);
+	  break;
+	case 0x49:			/* OEM specific 'I' ??? */
+	  if ( IsDownKey(VK_CONTROL) && IsDownMeta(lParam) )
+	    id = toInt(Control('I') + META_OFFSET);
+	  break;
+      }
+      
+      break;
+    }
+    case WM_SYSCHAR:			/* handle ALT keys myself */
+      id = toInt(wParam + META_OFFSET);
+      break;
+
+    case WM_CHAR:
+    { id = toInt(wParam);
+
+      if ( wParam == ' ' && IsDownKey(VK_CONTROL) )
+        id = ZERO;			/* ^-space --> ^@ */
+      else if ( wParam == 8 && !IsDownKey(VK_CONTROL) )
+	id = NAME_backspace;
+
+      break;
+    }
+  }
+
+  return id;
+}
+
+
 EventObj
 messageToEvent(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 { Any id = NIL;
   Int x = DEFAULT, y = DEFAULT;
   Int buttons = DEFAULT;
-  Any window = (Any)GetWindowLong(hwnd, GWL_DATA);
+  Any window = getObjectFromHWND(hwnd);
   int mouse_ev = FALSE;
 
   DEBUG(NAME_event,
@@ -147,8 +286,12 @@ messageToEvent(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 		pp(window), hwnd, message, wParam, lParam));
 
   switch(message)
-  { case WM_CHAR:
-      id = toInt((unsigned char)wParam);
+  { case WM_KEYDOWN:			/* Named keys */
+    case WM_SYSCHAR:			/* ALT-commands */
+    case WM_CHAR:			/* Printable keys */
+      id = messageToKeyId(message, wParam, lParam);
+      if ( !id )
+	id = NIL;
       break;
 					/* BEGIN MOUSE STUFF */
     case WM_LBUTTONUP:
@@ -276,6 +419,9 @@ messageToEvent(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 
   if ( notNil(id) )
   { setLastEventTime((ulong) GetTickCount());
+
+    DEBUG(NAME_event, Cprintf("\t--> %s at %s,%s on %s\n",
+			      pp(id), pp(x), pp(y), pp(window)));
 
     return answerObject(ClassEvent,
 			id, 

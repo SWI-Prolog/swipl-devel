@@ -7,9 +7,15 @@
     Copyright (C) 1994 University of Amsterdam. All rights reserved.
 */
 
+#define USE_C_CONVERTED_CURSORS 1
+
 #include "include.h"
 #include "xcursor.h"
+#ifdef USE_C_CONVERTED_CURSORS
+#include "xcursors.c"
+#else
 #include <h/unix.h>
+#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 MS-Windows cursors is a difficult one.   MS-Windows predefines only very
@@ -434,28 +440,67 @@ get_cursor_bits(CursorGlyphSet set, int cursor, int *hx, int *hy)
 }
 
 
+#ifdef USE_C_CONVERTED_CURSORS
+
 static CursorGlyphSet
 X11Glyhps()
-{ static CursorGlyphSet glyhps = NULL;
+{ static CursorGlyphSet glyphs = NULL;
 
-  if ( !glyhps )
+  if ( !glyphs )
+  { int entries;
+    int cachesize;
+
+    if ( !(glyphs=pceMalloc(sizeof(cursor_glyph_set))) )
+      goto nomem;
+
+    memcpy(&glyphs->header, &x11_glyph_header, sizeof(x11_glyph_header));
+    glyphs->glyphs = x11_glyps;
+    glyphs->data   = x11_glyph_data;
+
+    entries   = glyphs->header.entries;
+    cachesize = (entries/2) * sizeof(cursor_bits);
+
+    if ( !(glyphs->cache  = pceMalloc(cachesize)) )
+    {
+    nomem:
+      Cprintf("Not enough memory\n");
+      return NULL;
+    }
+
+    memset(glyphs->cache, 0, cachesize);
+    glyphs->cwidth  = cursor_width;
+    glyphs->cheight = cursor_height;
+  }
+
+  return glyphs;
+}
+
+#else /*USE_C_CONVERTED_CURSORS*/
+
+static CursorGlyphSet
+X11Glyhps()
+{ static CursorGlyphSet glyphs = NULL;
+
+  if ( !glyphs )
   { FileObj f = answerObject(ClassFile,
 			     CtoName("$PCEHOME/lib/X11.crs"),
 			     NAME_binary, 0);
     
     if ( send(f, NAME_open, NAME_read, 0) )
-    { glyhps = read_cursor_glyphs(f->fd);
+    { glyphs = read_cursor_glyphs(f->fd);
       send(f, NAME_close, 0);
     }
 
-    if ( !glyhps )
+    if ( !glyphs )
       sysPce("Failed to read cursor file %s", pp(f->name));
   }
 
-  return glyhps;
+  return glyphs;
 }
 
+#endif /*USE_C_CONVERTED_CURSORS*/
 
+#if 0
 		 /*******************************
 		 *	     TEST/DEBUG		*
 		 *******************************/
@@ -499,6 +544,8 @@ print_bits(CursorGlyphSet set, CursorBits bits, int hx, int hy, char show)
     Cputchar('\n');
   }
 }
+
+#endif
 
 		 /*******************************
 		 *	  CREATE/DESTROY	*

@@ -25,7 +25,7 @@ initialise(TB, Name:name, Value:[bool], Message:[code]*) :->
 	default(Value, @off, Def),
 	send(TB, send_super, initialise, Name, marked, Message),
 	send(TB, multiple_selection, @on),
-	send(TB, show_label, @off),
+	send(TB, send_super, show_label, @off),
 	get(TB, resource_value, label_font, Font),
 	send(TB, value_font, Font),
 	send(TB, append, menu_item(Name,
@@ -46,6 +46,14 @@ label(TB, Label:'name|image') :->
 	;   send(TB, send_super, label, Label) % during initialise
 	).
 
+show_label(TB, Show:bool) :->
+	"Show the label"::
+	get(TB?members, head, Item),
+	(   Show == @on
+	->  send(Item, label, Item?value?label_name)
+	;   send(Item, label, '')
+	).
+
 :- pce_group(selection).
 
 selection(TB, Val:bool) :->
@@ -60,10 +68,13 @@ selection(TB, Val:bool) :<-
 forward(TB) :->
 	"Execute the message"::
 	get(TB, message, Msg),
-	(   Msg \== @nil
-	->  get(TB, selection, Val),
-	    send(Msg, forward, Val)
-	;   true
+	get(TB, selection, Val),
+	(   Msg == @default
+	->  get(TB, name, Selector),
+	    send(TB?device, Selector, Val)
+	;   Msg == @nil
+	->  true
+	;   send(Msg, forward, Val)
 	).
 	
 :- pce_end_class.
