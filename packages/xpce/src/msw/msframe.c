@@ -846,6 +846,11 @@ ws_x_geometry_frame(FrameObj fr, Name spec)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The  ->geometry  specifies  the  X,Y  of   the  outer  frame  (including
+decorations) and the size of the inner-frame (<-area, the client area).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 void
 ws_geometry_frame(FrameObj fr, Int px, Int py, Int pw, Int ph)
 { WsFrame f = fr->ws_ref;
@@ -855,10 +860,9 @@ ws_geometry_frame(FrameObj fr, Int px, Int py, Int pw, Int ph)
     UINT flags = SWP_NOACTIVATE|SWP_NOZORDER;
     Area a = fr->area;
 
+    outer_frame_area(fr, &x, &y, &w, &h, FALSE);
     x = valInt(a->x);
     y = valInt(a->y);
-    w = valInt(a->w);
-    h = valInt(a->h);
 
     if ( isDefault(pw) && isDefault(ph) )
       flags |= SWP_NOSIZE;
