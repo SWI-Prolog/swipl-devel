@@ -91,12 +91,24 @@ pce_to_method(Method, Method) :-
 %	isa_class(+Sub, +Super)
 %
 %	Succeeds if Sub is Super or below Super.  Can be used with any
-%	instantiation, but generates solutions in an arbitrary order.
+%	instantiation.  If class is instantiated the super-chain is
+%	followed.
 
+isa_class(Class, Super) :-
+	ground(Class), !,
+	gen_super(Class, Super).
 isa_class(Class, Super) :-
 	current_class(Class, ClassObject),
 	current_class(Super, SuperObject),
 	send(ClassObject, is_a, SuperObject).
+
+gen_super(Class, Class).
+gen_super(Class, Super) :-
+	current_class(Class, ClassObject),
+	get(ClassObject, super_class, SuperObject),
+	current_class(Super0, SuperObject),
+	gen_super(Super0, Super).
+
 
 %	current_class(?Name, ?Class)
 %
@@ -104,21 +116,29 @@ isa_class(Class, Super) :-
 %	enumerates the classes.
 
 :- dynamic
-	current_class/2.
+	current_class_cache/2.
 
 
 make_current_class :-
-	retractall(current_class(_,_)),
+	retractall(current_class_cache(_,_)),
 	send(@classes, for_all,
 	     message(@prolog, assert_class, @arg1, @arg2)),
 	send(class(class), created_message,
 	     message(@prolog, assert_class, @arg2?name, @arg2)).
 
 assert_class(Name, Object) :-
-	assert(current_class(Name, Object)).
+	assert(current_class_cache(Name, Object)).
 
 :- initialization
 	make_current_class.
+
+current_class(Class, ClassObject) :-
+	current_class_cache(Class, ClassObject).
+current_class(Class, ClassObject) :-
+	pce_prolog_class(Class),
+	\+ current_class_cache(Class, _),
+	get(@pce, convert, Class, class, ClassObject).
+
 
 %	to_class_name(+AtomOrClass, -ClassName)
 %

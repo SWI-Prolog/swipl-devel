@@ -2,7 +2,7 @@
 			   ==============
 
 * ADDED: implements/3 from library(pce_meta): allow for variable method
-  name.
+  name.  This library now handles not-yet-realised classes fully dynamic.
 
 * ADDED: `editor->auto_fill', doing the fill-part of ->insert_self_fill,
   so filling can easily be specialised in subclasses.
