@@ -3105,7 +3105,7 @@ do_reset(void)
 #ifdef WIN32
 static void
 do_redraw(void)
-{ pceRedraw(FALSE);
+{ pceRedraw(FALSE);			/* FALSE: do not sync Xserver */
 }
 #endif
 

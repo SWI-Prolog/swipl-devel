@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.2.8, distributed with SWI-Prolog 5.2.8
+================================================
+
 * ADDED: Support for new event-types.  See event_node->initialise.
 
 * ADDED: Class tabular (library(tabular)): ->append now accepts

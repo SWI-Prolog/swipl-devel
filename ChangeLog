@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+VERSION 5.2.8 (Sep 12, 2003)
+============================
+
   * FIXED: current_predicate(Name/Arity) with unbound Arity.  Dmitry.
 
   * FIXED: More robust extistence check in get_message_queue().
