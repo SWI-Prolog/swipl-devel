@@ -53,7 +53,9 @@ contributions.
 
 #ifdef HAVE_DLOPEN			/* sysvr4, elf binaries */
 
+#ifdef HAVE_DLFCN_H
 #include <dlfcn.h>
+#endif
 
 #endif /*HAVE_DLOPEN*/
 
