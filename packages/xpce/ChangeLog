@@ -1,3 +1,6 @@
+* ENHANCED: PceEmacs Prolog mode \C-l only to re-colour the buffer if
+  it was modified.
+
 * ADDED: Mode help for Prolog mode in PceEmacs
 
 * FIXED: Some problems in `text_buffer<-skip_comment', operating backwards.
@@ -21,6 +24,7 @@ VERSION 5.1.1
   between palette usage and direct RGB, fixing colour distortion on
   high- and true-colour displays and added proper colormap support to
   the windows port of XPM 3.4k.
+
 
 VERSION 5.1.0
 =============

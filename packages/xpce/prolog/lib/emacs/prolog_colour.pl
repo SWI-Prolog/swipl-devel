@@ -102,7 +102,7 @@ colourise_comments(M, From:[int], To:[int]) :->
 
 colourise_and_recenter(M) :->
 	"Colour according to syntax and recenter"::
-	send(M, colourise_buffer),
+	send(M, auto_colourise_buffer),	% only if modified
 	send(M, recenter).
 
 		 /*******************************
