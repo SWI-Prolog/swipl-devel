@@ -1096,7 +1096,7 @@ pl_hostname(term_t name)
   { term_t tmp = PL_new_term_ref();
 
     PL_put_atom_chars(tmp, buf);
-    return PL_unify(name, buf);
+    return PL_unify(name, tmp);
   }
 
   PL_fail;
