@@ -9,3 +9,6 @@ config.status
 *.log
 *.out
 *.tex
+*.dll
+*.exp
+*.lib
