@@ -18,11 +18,14 @@ is modified a bit to improve the interaction with SWI-Prolog.
 Hack hack hack hack ...
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if O_STORE_PROGRAM
+#if O_STORE_PROGRAM || O_SAVE
 
 #include <sys/param.h>
-
+#if O_STORE_PROGRAM
 int	unexec P((char *, char *, char *, unsigned, unsigned, unsigned));
+#else
+#include "pl-save.h"
+#endif
 
 word
 saveProgram(new)
@@ -51,6 +54,9 @@ Word new;
   systemDefaults.state = (char *) NULL;		/* does not need this any */
   closeFiles();
 
+#if O_SAVE
+  save(dest, old_name, RET_MAIN, 0, NULL);
+#else
   Putf("Running program: %s\n", old_name);
   if ( sym_name != NULL )
     Putf("Taking symbol table from %s\n", sym_name);
@@ -66,7 +72,8 @@ Word new;
     DeleteFile(tmp);
     fail;
   }
-  Putf("ok.\n");
+#endif
+  Putf("Program saved in %s\n", dest);
 
   succeed;
 }
@@ -161,6 +168,106 @@ Word new, args;
   return saveProgram(new);
 }
 
+#if O_SAVE
+
+word
+pl_save(file, restore)
+Word file, restore;
+{ char *state, *interpreter;
+#if O_DYNAMIC_STACKS
+  struct save_section sections[5];
+#endif
+
+  if ( (state = primitiveToString(*file, FALSE)) == (char *)NULL )
+    return warning("save/2: instantiation fault");
+  if ( (state = ExpandOneFile(state)) == (char *)NULL )
+    fail;
+
+  TRY( getSymbols() );
+  interpreter = stringAtom(loaderstatus.orgsymbolfile);
+  
+#if O_DYNAMIC_STACKS
+#define fill_section(sec, stack) \
+  { (sec)->start  = (caddr) (stack)->base; \
+    (sec)->length = (ulong) (stack)->top - (ulong) (stack)->base; \
+    (sec)->type   = S_PLSTACK; \
+    (sec)->flags  = 0; \
+  }
+  fill_section(&sections[0], &stacks.local);
+  fill_section(&sections[1], &stacks.global);
+  fill_section(&sections[2], &stacks.trail);
+  fill_section(&sections[3], &stacks.argument);
+  fill_section(&sections[4], &stacks.lock);
+#undef fill_section
+
+  switch( save(state, interpreter, RET_RETURN, 5, sections) )
+#else
+  switch( save(state, interpreter, RET_RETURN, 0, NULL) )
+#endif
+  { case SAVE_SAVE:
+      return unifyAtomic(restore, consNum(0));
+    case SAVE_RESTORE:
+#if unix
+      initSignals();
+#endif
+      return unifyAtomic(restore, consNum(1));
+    case SAVE_FAILURE:
+    default:
+      fail;
+  }
+}
+
+#if O_DYNAMIC_STACKS
+bool
+allocateSection(s)
+SaveSection s;
+{ if ( s->type == S_PLSTACK )
+  { if ((stacks.local.base    == s->start &&
+	 restoreStack((Stack) &stacks.local)) ||
+	(stacks.global.base   == s->start &&
+	 restoreStack((Stack) &stacks.global)) ||
+	(stacks.trail.base    == s->start &&
+	 restoreStack((Stack) &stacks.trail)) ||
+	(stacks.argument.base == s->start &&
+	 restoreStack((Stack) &stacks.argument)) ||
+	(stacks.lock.base     == s->start &&
+	 restoreStack((Stack) &stacks.lock)) )
+      succeed;
+
+    fatalError("Cannot locate stack to restore");
+    fail;
+  }
+
+  succeed;
+}
+#endif
+
+word
+pl_restore(file)
+Word file;
+{ char *state;
+
+  if ( (state = primitiveToString(*file, FALSE)) == (char *)NULL )
+    return warning("restore/1: instantiation fault");
+  if ( (state = ExpandOneFile(state)) == (char *)NULL )
+    fail;
+  if ( ExistsFile(state) == FALSE )
+    return warning("restore/1: no such file: %s", state);
+
+#if O_DYNAMIC_STACKS
+  deallocateStacks();
+  restore(state, allocateSection);
+#else
+  restore(state, NULL);
+#endif
+  fatalError("restore/1: restore failed");
+  fail;
+}
+
+#endif O_SAVE
+
+#if O_STORE_PROGRAM
+
 #define NO_REMAP 1			/* Do not change data start */
 
 #ifdef UNEXEC_SOURCE
@@ -203,13 +310,15 @@ start_of_data ()
 {
 #ifdef DATA_START
   return ((char *) DATA_START);
-#elif hpux
-{ extern etext;
-  return (char *) &etext + EXEC_PAGESIZE; /* Rounded down by unexec() */
-}
 #else
-  extern char **environ;
-  return ((char *)&environ);
+#  if hpux
+{     extern etext;
+      return (char *) &etext + EXEC_PAGESIZE; /* Rounded down by unexec() */
+}
+#  else
+      extern char **environ;
+      return ((char *)&environ);
+#  endif
 #endif
 }
 
@@ -240,8 +349,9 @@ struct exec *hdr;
 
 #include "gnu/unexec.c"
 #endif UNEXEC_SOURCE
+#endif O_STORE_PROGRAM
 
-#else ~O_STORE_PROGRAM
+#else O_STORE_PROGRAM || O_SAVE
 
 word
 saveProgram(new)
@@ -255,4 +365,4 @@ Word old, new;
 { return warning("store_program/2: not ported to this machine");
 }
 
-#endif O_STORE_PROGRAM
+#endif O_STORE_PROGRAM || O_SAVE

@@ -61,6 +61,8 @@ save_program.  See pl-load.c and pl-dump.c
 #define DATA_START		0x20000000
 #define DEFAULT_PATH		":/usr/ucb:/bin:/usr/bin:/usr/local/bin:.:";
 
+#define vfork			fork
+
 			/* terminal driver */
 #define O_TERMIOS 		1
 #define O_EXTEND_ATOMS 		1

@@ -13,7 +13,7 @@ Depending  on  the  PROTO  cpp  flag  ANSI  declarations  or  old  style
 declarations are used.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if __GNUC__
+#if defined(__GNUC__) && __GNUC__ == 1
 #define FI(type) int	/* type that promotes to int */
 #else
 #define FI(type) type
@@ -84,7 +84,9 @@ word		pl_collect_bag P((Word, Word)),
 void		initBuildIns P((void));
 
 		/* pl-dump.c */
-word		pl_save_program P((Word, Word));
+word		pl_save_program P((Word, Word)),
+		pl_save P((Word, Word)),
+		pl_restore P((Word));
 
 		/* pl-dwim.c */
 word		pl_dwim_match P((Word, Word, Word)),
@@ -143,6 +145,7 @@ word		vPutf P((char *, va_list)),
 		pl_exists_directory P((Word)),
 		pl_delete_file P((Word)),
 		pl_rename_file P((Word, Word)),
+		pl_same_file P((Word, Word)),
 		pl_fileerrors P((Word, Word)),
 		pl_absolute_file_name P((Word, Word)),
 		pl_chdir P((Word)),
@@ -221,7 +224,7 @@ int		cardinalityPattern P((ulong));
 bool		reindexClause P((Clause)),
 		indexPatternToTerm P((Procedure, Word));
 struct index	getIndex P((Word, ulong, int));
-Clause		findClause P((Clause, Word, const Definition, const bool *));
+Clause		findClause P((Clause, Word, const Definition, bool *));
 
 		/* pl-itf.h */
 void		resetForeign P((void));
@@ -305,6 +308,16 @@ bool		getSymbols P((void));
 void		resetLoader P((void));
 word		pl_load_foreign P((Word, Word, Word, Word, Word));
 word		pl_load_foreign1 P((Word));
+
+		/* pl-main.c */
+
+bool		sysError P((char *fm , ...)),
+		fatalError P((char *fm , ...)),
+		warning P((char *fm , ...)),
+		vsysError P((char *fm , va_list args )),
+		vfatalError P((char *fm , va_list args )),
+		vwarning P((char *fm , va_list args ));
+int		startProlog P((int, char **, char **));
 
 		/* pl-modul.c */
 Word		stripModule P((Word, Module *));
@@ -443,7 +456,10 @@ bool		freeRecord P((Record)),
 Record		copyTermToHeap P((Word));
 
 		/* pl-setup.c */
-void		setupProlog P((void));
+void		setupProlog P((void)),
+		deallocateStacks P((void)),
+		initSignals P((void));
+bool		restoreStack P((Stack));
 #if unix
 void		deliverSignal P((int, int, struct sigcontext *, char *));
 handler_t	pl_signal P((int, handler_t));
@@ -469,7 +485,7 @@ word		pl_shell P((Word, Word)),
 		/* pl-trace.c */
 int		tracePort P((LocalFrame, int));
 void		writeFrameGoal P((LocalFrame, int)),
-		backTrace P((LocalFrame)),
+		backTrace P((LocalFrame, int)),
 		initTracer P((void));
 word		pl_trace P((void)),
 		pl_notrace P((void)),

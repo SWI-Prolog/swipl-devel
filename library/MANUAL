@@ -282,7 +282,7 @@ The full set of command line options is given below:
         Mbytes.  See -L for more details.
     -c file ...
         Compile files into an `intermediate code file'.  See
-        section 2.5.
+        section 2.6.
     -o output
         Used in combination with -c or -b to determine output file
         for compilation.
@@ -330,7 +330,18 @@ reference only.
         Set debug level to level.  System maintenance only.
 
 
-2.2 Online Help
+2.2 GNU Emacs Interface
+
+A provisional interface to GNU-Emacs is delivered with version 1.6 of
+SWI-Prolog.  The interface is based on the freely distributed interface
+delivered with Quintus Prolog.  When running Prolog as an inferior process
+under GNU-Emacs, there is support for finding predicate definitions,
+completing atoms, finding the locations of compilation-warnings and many
+more.  For details, see the files pl/lisp/README and
+pl/lisp/swi-prolog.el.
+
+
+2.3 Online Help
 
 Online help provides a fast lookup and browsing facility to this manual.
 The online manual can show predicate definitions as well as entire
@@ -372,7 +383,7 @@ apropos(+Pattern)
                          summary description.
 
 
-2.3 Query Substitutions
+2.4 Query Substitutions
 
 SWI-Prolog offers a query substitution mechanism similar to that of Unix
 csh (csh(1)), called `history'.  It allows the user to compose new queries
@@ -443,7 +454,7 @@ some examples.
            Figure 2.1:  Some examples of the history facility
 
 
-2.3.1 Limitations of the History System
+2.4.1 Limitations of the History System
 
 When in top level SWI-Prolog reads the user's queries using history_read/6
 rather than read/1.  This predicate first reads the current input stream
@@ -466,7 +477,7 @@ From the above it follows that it is hard or impossible to correct
 quotation with single or double quotes, comment delimiters and spacing.
 
 
-2.4 Overview of the Debugger
+2.5 Overview of the Debugger
 
 SWI-Prolog has a standard 4-port tracer  with an optional fifth port.
 This fifth port, called unify allows the user to inspect the result after
@@ -609,7 +620,7 @@ destroyed when removed by the cut.  In debug mode tail recursion
 optimisation is switched off.
 
 
-2.5 Compilation
+2.6 Compilation
 
 Collections of SWI-Prolog source files can be compiled into an
 intermediate code file.  An intermediate code file is a data file from
@@ -648,7 +659,7 @@ Directives are executed both when compiling the program and when loading
 the intermediate code file.
 
 
-2.6 Environment Control
+2.7 Environment Control
 
 
 please(+Key, -Old, +New)
@@ -674,7 +685,7 @@ please(+Key, -Old, +New)
 
     autoload on/off (default:  on)
         If on autoloading of library functions is enabled.  If off
-        autoloading is disabled.  See section 2.8.
+        autoloading is disabled.  See section 2.9.
 
     verbose_autoload on/off (default:  off)
         If on the normal consult message will be printed if a library is
@@ -683,7 +694,7 @@ please(+Key, -Old, +New)
         come from?).
 
 
-2.7 Stand Alone Executables (Saved States)
+2.8 Stand Alone Executables (Saved States)
 
 The introduction of a foreign language interface raised the problem of
 incorporating the compiled foreign code into SWI-Prolog to create a new
@@ -756,7 +767,7 @@ save_program(+NewProgram)
     Equivalent to `save_program(NewProgram, [])'.
 
 
-2.8 Automatic loading of libraries
+2.9 Automatic loading of libraries
 
 If ---at runtime--- an undefined predicate is trapped the system will
 first try to import the predicate from the module's default module.  If
@@ -803,7 +814,7 @@ the following search schema is followed:
     alphabetically.
 
 
-2.8.1 Notes on Automatic Loading
+2.9.1 Notes on Automatic Loading
 
 The autoloader is a new feature to SWI-Prolog.  Its aim is to simplify
 program development and program management.  Common lisp has a similar
@@ -819,7 +830,7 @@ trace(default).  A more appropriate interaction with this flag will be
 considered.
 
 
-2.9 Garbage Collection
+2.10 Garbage Collection
 
 SWI-Prolog version 1.4 was the first release to support garbage
 collection.  Together with tail-recursion optimisation this guaranties
@@ -838,7 +849,7 @@ collection when handling call-backs from ---for example--- the PCE
 package.
 
 
-2.10 Syntax Notes
+2.11 Syntax Notes
 
 SWI-Prolog uses standard `Edinburgh' syntax.  A description of this syntax
 can be found in the Prolog books referenced in the introduction.  Below
@@ -857,10 +868,10 @@ SWI-Prolog:
     out.
 
 
-2.11 System Limits
+2.12 System Limits
 
 
-2.11.1 Limits on Memory Areas
+2.12.1 Limits on Memory Areas
 
 SWI-Prolog has a number of memory areas which are not enlarged at run
 time, unless you have a version with dynamic stack allocation.  The
@@ -920,7 +931,7 @@ SWI-Prolog.
                       Table 2.3:  Memory areas
 
 
-2.11.2 Other Limits
+2.12.2 Other Limits
 
 ClausesCurrently the following limitations apply to clauses.  The arity
     may not be more than 128, the number of links to the `outside world'
@@ -943,7 +954,7 @@ FloatsFloating point numbers are C-doubles with a 12 bit reduction of the
     implies the range is about 10308and the accurracy about 10 digits.
 
 
-2.11.3 Reserved Names
+2.12.3 Reserved Names
 
 The boot compiler (see -b option) does not support the module system
 (yet).  As large parts of the system are written in Prolog itself we need
@@ -961,7 +972,7 @@ Chapter  3
 
 Built-In  Predicates
 
-                                32
+                                33
 
 
 3.1 Notation of Predicate Descriptions
@@ -2117,7 +2128,7 @@ read_history(+Show, +Help, +Special, +Prompt, -Term, -Bindings)
     is a list of commands that are not saved in the history.  Prompt is
     the first prompt given.  Continuation prompts for more lines are
     determined by prompt/2.  A %w in the prompt is substituted by the
-    event number.  See section 2.3 for available substitutions.
+    event number.  See section 2.4 for available substitutions.
 
     SWI-Prolog calls history_read/6 as follows:
 
@@ -3252,6 +3263,13 @@ exists_file(+File)
     and/or write permission for the file.
 
 
+same_file(+File1, +File2)
+    Succeeds if both filenames refer to the same physical file.  That is,
+    if File1 and File2 are the same string or both names exist and point
+    to the same file (due to hard or symbolic links and/or relative vs.
+    absolute paths).
+
+
 exists_directory(+Directory)
     Succeeds if Directory exists.  This does not imply the user has read,
     search and or write permission for the directory.
@@ -3712,7 +3730,7 @@ Chapter  4
 
 Using  Modules
 
-                                382
+                                384
 
 
 4.1 Why Using Modules?
@@ -4218,7 +4236,7 @@ trade-off the user is responsible for type checking and should be careful
 not to violate consistency rules as Prolog provides access to its internal
 data structures.
 
-                                404
+                                406
 
 
 5.1 Portability of the Foreign Interface
@@ -5077,7 +5095,7 @@ debugging tools for Prolog.  The predicates described here should be
 handled with some care as it is easy to corrupt the consistency of the
 Prolog system by misusing them.
 
-                                475
+                                477
 
 
 6.1 Examining the Environment Stack
@@ -5201,6 +5219,20 @@ exception(+Exception, +Context, -Action)
         to tell Prolog to retry the predicate.  This only makes sense if
         the exception handler has defined the predicate.  Otherwise it
         will lead to a loop.
+
+    warning
+        If prolog wants to give a warning while reading a file, it will
+        first raise the exception warning.  The context argument is a
+        term of the form warning(Path, LineNo, Message), where Path is
+        the absolute filename of the file prolog is reading; LineNo is an
+        extimate of the line number where the error occurred and Message
+        is a Prolog string indicating the message.  The Action argument
+        is ignored.  The error is supposed to be presented to the user if
+        the exception handler succeeds.  Otherwise the standard Prolog
+        warning message is printed.
+
+        This exception is used by the library emacs_interface, that
+        integrates error handling with GNU-Emacs.
 
 
 Chapter  7
@@ -5383,10 +5415,12 @@ log/1                       Arithmetic:  natural logarithm
 log10/1                     Arithmetic:  10 base logarithm
 make/0                      Reconsult all changed source files
 maplist/3                   Transform all elements of a list
+max/2                       Arithmetic:  Maximum of two numbers
 member/2                    Element is member of a list
 memberchk/2                 Deterministic member/2
 merge/3                     Merge two sorted lists
 merge_set/3                 Merge two sorted sets
+min/2                       Arithmetic:  Minimum of two numbers
 mod/2                       Arithmetic:  remainder of division
 module/2                    Declare a module
 module_transparent/1         Indicate module based meta predicate
@@ -5454,6 +5488,7 @@ reset_profiler/0             Clear statistics obtained by the profiler
 retract/1                   Remove clause from the database
 retractall/1                Remove unifying clauses from the database
 reverse/2                   Inverse the order of the elements in a list
+same_file/2                 Succeeds if arguments refer to same file
 save_program/1               Save the current program on a file
 save_program/2               Save the current program on a file
 see/1                       Change the current input stream
@@ -5532,4 +5567,4 @@ writeq/2                    Write term, insert quotes on stream
 xor/2                       Arithmetic:  exclusive or
 |/2                         Disjunction of goals
 
-                                484
+                                486

@@ -676,14 +676,16 @@ integers to pointers.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #if O_DATA_AT_0X2
-#define pointerToNum(p)		consNum(((long)(p)-0x20000000)/sizeof(int))
-#define numToPointer(n)		((Word)(valNum(n)*sizeof(int)+0x20000000))
-#elif O_DATA_AT_OX1
-#define pointerToNum(p)		consNum(((long)(p)-0x10000000)/sizeof(int))
-#define numToPointer(n)		((Word)(valNum(n)*sizeof(int)+0x10000000))
+#  define pointerToNum(p)	consNum(((long)(p)-0x20000000)/sizeof(int))
+#  define numToPointer(n)	((Word)(valNum(n)*sizeof(int)+0x20000000))
 #else
-#define pointerToNum(p)		consNum((long)(p)/sizeof(int))
-#define numToPointer(n)		((Word)(valNum(n)*sizeof(int)))
+#  if O_DATA_AT_OX1
+#    define pointerToNum(p)	consNum(((long)(p)-0x10000000)/sizeof(int))
+#    define numToPointer(n)	((Word)(valNum(n)*sizeof(int)+0x10000000))
+#  else
+#    define pointerToNum(p)	consNum((long)(p)/sizeof(int))
+#    define numToPointer(n)	((Word)(valNum(n)*sizeof(int)))
+#  endif
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1076,6 +1078,8 @@ GLOBAL bool	  novice;		/* novice user */
 GLOBAL Atom	  source_file_name;	/* Current source file_name */
 GLOBAL int	  source_line_no;	/* Current source line_no */
 
+#define ReadingSource (source_line_no > 0 && source_file_name != NULL)
+
 		/********************************
 		*        FAST DISPATCHING	*
 		********************************/
@@ -1111,36 +1115,6 @@ GLOBAL struct
 { Atom		symbolfile;		/* current symbol file */
   Atom		orgsymbolfile;		/* symbol file we started with */
 } loaderstatus;
-
-#if O_PCE
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-PCE runs with the SunView notifier package.  This  causes  trouble  with
-abort(),  which  performs  a  long jump.  The flags below have to ensure
-everything goes well.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#define	mayNotify()   { if (notify_status.dispatching) \
-			  notify_status.active++; \
-		      }
-#define hasNotified() { if (aborted) \
-			{ notify_status.active = 0; \
-			  aborted = FALSE; \
-			  pl_abort(); \
-			} \
-			notify_status.active--; \
-		      }
-
-GLOBAL struct
-{ int		active;			/* are we in notify code? */
-  bool		dispatching;		/* is notify_do_dispatch() on? */
-  jmp_buf	context;		/* save context of in Get0() */
-  bool		called;			/* are we called from Pce? */
-  bool		abort_is_save;		/* can abort when handling events */
-} notify_status;
-#else
-#define mayNotify()
-#define hasNotified()
-#endif O_PCE
 
 #define NO_PROFILING		0
 #define CUMULATIVE_PROFILING	1

@@ -182,3 +182,4 @@
 { (Atom)NULL, ATOM_TYPE, "singleton" },
 { (Atom)NULL, ATOM_TYPE, "unique" },
 { (Atom)NULL, ATOM_TYPE, "not_unique" },
+{ (Atom)NULL, ATOM_TYPE, "warning" },

@@ -11,7 +11,7 @@
 #define PL_INCLUDED
 
 #ifndef PLVERSION
-#define PLVERSION "1.6.0, May 1992"
+#define PLVERSION "1.6.1, June 1992"
 #endif
 
 #ifndef P
@@ -28,7 +28,6 @@ typedef unsigned long	functor;	/* name/arity pair as Prolog */
 typedef unsigned long	module;		/* Prolog module */
 typedef unsigned long *	term;		/* general term */
 typedef unsigned long	foreign_t;	/* return type of foreign functions */
-typedef	int		bool;		/* boolean */
 #define O_STRING 1
 #else
 typedef word		atomic;
@@ -49,23 +48,6 @@ typedef struct
 { unsigned long context[2];
 } bktrk_buf;				/* data-backtrack buffer */
 
-		/********************************
-		*     NOTIFIER TRICKS (PCE)     *
-		*********************************/
-
-extern bool aborted;			/* system aborted in critical code */
-
-#ifndef PL_KERNEL
-#include <setjmp.h>
-
-extern struct
-{ int		active;			/* are we in notify code? */
-  bool		dispatching;		/* is notify_do_dispatch() on? */
-  jmp_buf	context;		/* save context of Get0() */
-  bool		called;			/* are we called from Pce? */
-  bool		abort_is_save;		/* an abort is ok */
-} notify_status;
-#endif
 
 		/********************************
 		*            SYMBOLS            *
@@ -127,9 +109,9 @@ atomic	PL_new_float P((double));	/* create a new float */
 atomic	PL_new_string P((char *));	/* create a new string */
 #endif O_STRING
 functor	PL_new_functor P((atomic, int)); /* create a new functor */
-bool	PL_unify P((term, term));	/* unify two terms */
-bool	PL_unify_atomic P((term, atomic));  /* unify term with atomic value */
-bool	PL_unify_functor P((term, functor));/* unify term with functor */
+int	PL_unify P((term, term));	/* unify two terms */
+int	PL_unify_atomic P((term, atomic));  /* unify term with atomic value */
+int	PL_unify_functor P((term, functor));/* unify term with functor */
 
 		/********************************
 		*    DETERMINISTIC CALL/RETURN  *
@@ -173,7 +155,7 @@ bool	PL_unify_functor P((term, functor));/* unify term with functor */
 #define PL_FA_TRANSPARENT	(2)	/* foreign is module transparent */
 #define PL_FA_NONDETERMINISTIC	(4)	/* foreign is non-deterministic */
 
-bool	PL_register_foreign P((char *, int, function, ...));
+int	PL_register_foreign P((char *, int, function, ...));
 
 		/********************************
 		*        CALLING PROLOG         *
@@ -182,7 +164,7 @@ bool	PL_register_foreign P((char *, int, function, ...));
 void	PL_mark P((bktrk_buf *));	/* mark global and trail stack */
 void	PL_bktrk P((bktrk_buf *));	/* backtrack global stack to mark */
 
-bool	PL_call P((term, module));	/* invoke term as Prolog goal */
+int	PL_call P((term, module));	/* invoke term as Prolog goal */
 
 		/********************************
 		*            MODULES            *
@@ -228,7 +210,7 @@ void PL_abort_handle P((void (*func)())); /* func called by pl_abort() */
 		*           WARNINGS            *
 		*********************************/
 
-bool	PL_warning P((char *, ...));	/* Print standard Prolog warning */
+int	PL_warning P((char *, ...));	/* Print standard Prolog warning */
 void	PL_fatal_error P((char *, ...));	/* Print warning and die */
 
 		/********************************
@@ -245,7 +227,7 @@ void	PL_fatal_error P((char *, ...));	/* Print warning and die */
 #define PL_ACTION_WRITE		8	/* write via Prolog i/o buffer */
 #define PL_ACTION_FLUSH		9	/* Flush Prolog i/o buffer */
 
-bool	PL_action P((int, void *));	/* perform some action */
+int	PL_action P((int, void *));	/* perform some action */
 
 		/********************************
 		*         QUERY PROLOG          *
@@ -258,6 +240,19 @@ bool	PL_action P((int, void *));	/* perform some action */
 #define PL_QUERY_GETC		5	/* Read character from terminal */
 
 long	PL_query P((int));		/* get information from Prolog */
+
+		/********************************
+		*        STATIC LINKING		*
+		********************************/
+
+typedef struct _PL_extension
+{ char 		*predicate_name;	/* Name of the predicate */
+  short		arity;			/* Arity of the predicate */
+  function	function;		/* Implementing functions */
+  short		flags;			/* Or of PL_FA_... */
+} PL_extension;
+
+extern PL_extension PL_extensions[];	/* see pl-extend.c */
 
 #endif PL_INCLUDED
 /* DO NOT WRITE BELOW THIS ENDIF */

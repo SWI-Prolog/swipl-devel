@@ -8,6 +8,7 @@
 */
 
 #include "pl-incl.h"
+#include "pl-itf.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Link all foreign language predicates.  The arguments to ADD are:
@@ -43,6 +44,7 @@ static struct foreign {
   ADD("exists_file",		1, pl_exists_file,		TRACE_ME),
   ADD("exists_directory",	1, pl_exists_directory,		TRACE_ME),
   ADD("rename_file",		2, pl_rename_file,		TRACE_ME),
+  ADD("same_file",		2, pl_same_file,		TRACE_ME),
   ADD("time_file",		2, pl_time_file,		TRACE_ME),
   ADD("told",			0, pl_told,			TRACE_ME),
   ADD("see",			1, pl_see,			TRACE_ME),
@@ -243,6 +245,10 @@ static struct foreign {
   ADD("substring",		4, pl_substring,		TRACE_ME),
 #endif O_STRING
 
+#if O_SAVE
+  ADD("save",			2, pl_save,			TRACE_ME),
+  ADD("restore",		1, pl_restore,			TRACE_ME),
+#endif O_SAVE
   ADD("$save_program",		2, pl_save_program,		TRACE_ME),
   ADD("$version",		1, pl_version,			TRACE_ME),
 
@@ -324,6 +330,7 @@ void
 initBuildIns()
 { struct foreign *f;
   register Definition def;
+  PL_extension *e;
 
   for(f = &foreigns[0]; f->name; f++)
   { def = lookupProcedure(lookupFunctorDef(lookupAtom(f->name), f->arity), 
@@ -339,4 +346,21 @@ initBuildIns()
   PROCEDURE_alt1 = lookupProcedure(FUNCTOR_alt1, MODULE_system);
   PROCEDURE_garbage_collect0 = lookupProcedure(FUNCTOR_garbage_collect0,
 					       MODULE_system);
+
+  for(e = &PL_extensions[0]; e->predicate_name; e++)
+  { short flags = TRACE_ME;
+
+    if ( e->flags & PL_FA_NOTRACE )	     flags &= TRACE_ME;
+    if ( e->flags & PL_FA_TRANSPARENT )	     flags |= TRANSPARENT;
+    if ( e->flags & PL_FA_NONDETERMINISTIC ) flags |= NONDETERMINISTIC;
+
+    def = lookupProcedure(lookupFunctorDef(lookupAtom(e->predicate_name),
+					   e->arity), 
+			  MODULE_user)->definition;
+    set(def, FOREIGN);
+    set(def, flags);
+    def->definition.function = e->function;
+    def->indexPattern = 0;
+    def->indexCardinality = 0;
+  }    
 }

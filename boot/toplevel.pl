@@ -51,7 +51,7 @@ $load_gnu_emacs_interface :-
 	getenv('EMACS', t),
 	$argv(Args),
 	memberchk('+C', Args), !,
-	user:ensure_loaded(library(qp_interface)).
+	user:ensure_loaded(library(emacs_interface)).
 $load_gnu_emacs_interface.
 
 

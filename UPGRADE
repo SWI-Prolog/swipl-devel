@@ -15,3 +15,7 @@ Time Stamp:      $stamp
 Current Version: $version
 Request Version: latest
 _EOM_
+
+cat << _EOM_
+Upgrade request for "pl" mailed to "upgrade@swi.psy.uva.nl"
+_EOM_

@@ -150,7 +150,7 @@ initWamTable()
   int maxcoded = 0;
 
   if ( interpreter_jmp_table == NULL )
-    prolog(ATOM_fail);
+    prolog((word) ATOM_fail);
 
   for(n = 0; n <= I_HIGHEST; n++)
   { wam_table[n] = (code) ((int)interpreter_jmp_table[n]);
@@ -637,12 +637,12 @@ Finish up the clause.
 
   if ( ci.tx > 0 )
   { clause->externals = (Word) allocHeap(sizeof(word) * ci.tx);
-    bcopy(ci.XR, clause->externals, sizeof(word) * ci.tx);
+    memcpy(clause->externals, ci.XR, sizeof(word) * ci.tx);
   } else
     clause->externals = NULL;
   clause->XR_size = ci.tx;
   clause->codes = (Code) allocHeap(sizeof(code) * ci.tc);
-  bcopy(ci.codes, clause->codes, sizeof(code) * ci.tc);
+  memcpy(clause->codes, ci.codes, sizeof(code) * ci.tc);
   clause->code_size = ci.tc;
   statistics.externals += clause->XR_size;
   statistics.codes += clause->code_size;

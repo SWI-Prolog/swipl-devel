@@ -46,6 +46,7 @@ sources, but not tested afterwards.
 #define DESCRIPTOR_TABLE_SIZE   32
 #define O_STRUCT_DIRECT		0
 #define DIR_INCLUDE		<sys/dir.h>
+#define DIR_INCLUDE2		<dirent.h>
 #define TERMIO_INCLUDE		<termio.h>
 			/* terminal driver */
 #define O_TERMIOS 		1
@@ -63,5 +64,5 @@ sources, but not tested afterwards.
 		*      COMPATIBILITY MACROS	*
 		********************************/
 
-#define bcopy(f, t, l)	memcpy(t, f, l)
 #define bzero(t, l)	memset(t, 0, l)
+#define vfork()		fork()

@@ -193,6 +193,7 @@ A syntax_error		"syntax_error"
 A singleton		"singleton"
 A unique		"unique"
 A not_unique		"not_unique"
+A warning		"warning"
 
 F apply			2
 F call			1
@@ -265,3 +266,4 @@ F atan			2
 F exception		3
 F syntax_error		3
 F singleton		3
+F warning		3

@@ -69,3 +69,4 @@
 #define FUNCTOR_exception3   (&functors[68])
 #define FUNCTOR_syntax_error3 (&functors[69])
 #define FUNCTOR_singleton3   (&functors[70])
+#define FUNCTOR_warning3     (&functors[71])

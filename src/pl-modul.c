@@ -347,35 +347,37 @@ Word pred;
     return warning("import/1: illegal predicate specification");
 
   if ((old = isCurrentProcedure(proc->functor, destination)) != (Procedure) NULL)
-  { if (!isDefinedProcedure(old) )
+  { if ( old->definition == proc->definition )
+      succeed;			/* already done this! */
+
+    if ( !isDefinedProcedure(old) )
     { old->definition = proc->definition;
 
       succeed;
     }
-    if (old->definition->module == destination)
-    { warning("Cannot import %s into module %s: name clash", 
-				procedureName(proc), 
-				stringAtom(destination->name) );
-      fail;
-    } else if (old->definition->module != source)
+
+    if ( old->definition->module == destination )
+      return warning("Cannot import %s into module %s: name clash", 
+		     procedureName(proc), 
+		     stringAtom(destination->name) );
+
+    if (old->definition->module != source)
     { warning("Cannot import %s into module %s: already imported from %s", 
-				procedureName(proc), 
-				stringAtom(destination->name), 
-				stringAtom(old->definition->module->name) );
-      fail;
-    } else if ( old->definition == proc->definition )
-    { succeed;			/* already done this! */
-    } else
-    { sysError("Unknown problem importing %s into module %s",
-				procedureName(proc),
-				stringAtom(destination->name));
+	      procedureName(proc), 
+	      stringAtom(destination->name), 
+	      stringAtom(old->definition->module->name) );
       fail;
     }
+
+    sysError("Unknown problem importing %s into module %s",
+	     procedureName(proc),
+	     stringAtom(destination->name));
+    fail;
   }
 
   if (isPublicModule(source, proc) == FALSE)
   { warning("import/1: %s is not declared public (still imported)", 
-				procedureName(proc));
+	    procedureName(proc));
   }
   
   { Procedure nproc = (Procedure)  allocHeap(sizeof(struct procedure));
