@@ -87,12 +87,11 @@ eventTabStack(TabStack t, EventObj ev)
       x = valInt(X), y = valInt(Y);
 
       if ( y < 0 )			/* tab-bar */
-      { if ( isDownEvent(ev) &&
-	     y > -valInt(tab->label_size->h) &&
+      { if ( y > -valInt(tab->label_size->h) &&
 	     x > valInt(tab->label_offset) &&
 	     x < valInt(tab->label_offset) + valInt(tab->label_size->w) )
-	{ send(t, NAME_onTop, tab, EAV);	/* TBD: use gesture? */
-	  succeed;
+	{ if ( postNamedEvent(ev, (Graphical)tab, DEFAULT, NAME_labelEvent) )
+	    succeed;
 	}
       }
     }
@@ -122,6 +121,34 @@ appendTabStack(TabStack ts, Tab t)
 }
 
 
+static status
+eraseTabStack(TabStack ts, Graphical gr)
+{ if ( instanceOfObject(gr, ClassTab) )
+  { Tab t = (Tab) gr;
+    Tab newtop = NULL;
+
+    if ( t->status == NAME_onTop )
+    { newtop = getNextChain(ts->graphicals, t);
+
+      if ( !newtop )
+      { newtop = getHeadChain(ts->graphicals);
+	if ( newtop == t )
+	  newtop = NULL;
+      }
+    } else
+      changedLabelImageTab(t);
+
+    eraseDevice((Device)ts, gr);
+    send(ts, NAME_layoutLabels, EAV);
+    if ( newtop )
+      send(ts, NAME_onTop, newtop, EAV);
+  } else
+    eraseDevice((Device)ts, gr);
+
+  succeed;
+}
+
+
 		 /*******************************
 		 *	      LAYOUT		*
 		 *******************************/
@@ -135,7 +162,11 @@ layoutLabelsTabStack(TabStack ts)
   { Tab t = cell->value;
 
     if ( instanceOfObject(t, ClassTab) )
-    { send(t, NAME_labelOffset, toInt(offset), EAV);
+    { if ( t->label_offset != toInt(offset) )
+      { changedLabelImageTab(t);	/* clear old and new location */
+	send(t, NAME_labelOffset, toInt(offset), EAV);
+	changedLabelImageTab(t);
+      }
       offset += valInt(t->label_size->w);
     }
   }
@@ -243,6 +274,8 @@ static senddecl send_tab_stack[] =
      NAME_event, "Process an event"),
   SM(NAME_append, 1, "tab", appendTabStack,
      NAME_organisation, "Append a tab object"),
+  SM(NAME_erase, 1, "graphical", eraseTabStack,
+     NAME_organisation, "Erase a tab (or graphical)"),
   SM(NAME_layoutLabels, 0, NULL, layoutLabelsTabStack,
      NAME_layout, "Assign positions for the labels"),
   SM(NAME_layoutDialog, 1, "[size]", layoutDialogTabStack,

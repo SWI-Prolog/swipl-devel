@@ -139,18 +139,29 @@ geometryTab(Tab t, Int x, Int y, Int w, Int h)
 		 *	     NAME/LABEL		*
 		 *******************************/
 
-static status
-ChangedLabelTab(Tab t)
+status
+changedLabelImageTab(Tab t)
 { Elevation e = getClassVariableValueObject(t, NAME_elevation);
   Int eh = e->height;
+  Bool old = t->displayed;
 
-  assign(t, request_compute, ON);
+  t->displayed = ON;
+  changedImageGraphical(t,
+			t->label_offset, ZERO,
+			t->label_size->w,
+			add(t->label_size->h, eh));
+  t->displayed = old;
+  
+  succeed;
+}
+
+
+static status
+ChangedLabelTab(Tab t)
+{ assign(t, request_compute, ON);
   computeTab(t);
 
-  return changedImageGraphical(t,
-			       t->label_offset, ZERO,
-			       t->label_size->w,
-			       add(t->label_size->h, eh));
+  return changedLabelImageTab(t);
 }
 
 
@@ -324,12 +335,11 @@ eventTab(Tab t, EventObj ev)
   x = valInt(X), y = valInt(Y);
 
   if ( y < 0 )				/* tab-bar */
-  { if ( isDownEvent(ev) &&
-	 y > -valInt(t->label_size->h) &&
+  { if ( y > -valInt(t->label_size->h) &&
 	 x > valInt(t->label_offset) &&
 	 x < valInt(t->label_offset) + valInt(t->label_size->w) )
-    { send(t->device, NAME_onTop, t, EAV); /* TBD: use gesture? */
-      succeed;
+    { if ( postNamedEvent(ev, (Graphical)t, DEFAULT, NAME_labelEvent) )
+	succeed;
     }
 
     fail;				/* pass to next one */
@@ -343,23 +353,28 @@ eventTab(Tab t, EventObj ev)
 
 
 static status
+labelEventTab(Tab t, EventObj ev)
+{ if ( isAEvent(ev, NAME_msLeftDown) )
+  { send(t->device, NAME_onTop, t, EAV);
+    succeed;
+  }
+
+  fail;
+}
+
+
+static status
 flashTab(Tab t, Area a, Int time)
 { if ( notDefault(a) )
     return flashDevice((Device)t, a, DEFAULT);
 
-  if ( t->status == NAME_onTop )
-  { a = answerObject(ClassArea,
-		     ZERO, ZERO,
-		     t->area->w,
-		     sub(t->area->h, t->label_size->h), EAV);
-  } else
-  { a = answerObject(ClassArea,
-		     t->label_offset, neg(t->label_size->h),
-		     t->label_size->w, t->label_size->h, EAV);
-  }
+  a = answerObject(ClassArea,
+		   t->label_offset, neg(t->label_size->h),
+		   t->label_size->w, t->label_size->h, EAV);
 
   flashDevice((Device)t, a, DEFAULT);
   doneObject(a);
+
   succeed;
 }
 
@@ -412,8 +427,10 @@ static senddecl send_tab[] =
      DEFAULT, "Move/resize tab"),
   SM(NAME_event, 1, "event", eventTab,
      NAME_event, "Process event"),
+  SM(NAME_labelEvent, 1, "event", labelEventTab,
+     NAME_event, "Process event event on label"),
   SM(NAME_flash, 2, T_flash, flashTab,
-     NAME_report, "Flash tab or area"),
+     NAME_report, "Flash label of the tab"),
   SM(NAME_position, 1, "point", positionGraphical,
      NAME_area, "Top-left corner of tab"),
   SM(NAME_x, 1, "int", xGraphical,

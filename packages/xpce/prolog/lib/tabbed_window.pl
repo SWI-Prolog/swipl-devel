@@ -31,6 +31,7 @@
 
 :- module(tabbed_window, []).
 :- use_module(library(pce)).
+:- use_module(library(hyper)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This class creates a tabbed window:  a   window  displaying  a number of
@@ -50,6 +51,8 @@ test :-
 
 :- pce_begin_class(tabbed_window, dialog,
 		   "Resizeable window holding set of tabs").
+
+variable(label_popup,	popup*, both, "Popup shown on labels").
 
 initialise(W, Label:label=[name], Size:size=[size],
 	   Display:display=[display]) :->
@@ -96,7 +99,7 @@ member(W, Name:name, Window:window) :<-
 
 clear(W) :->
 	"Remove all member tabs"::
-	get(W, member, tab_stack, TS),
+	get_super(W, member, tab_stack, TS),
 	send(TS, clear).
 
 tab(W, Tab:tab) :->
@@ -137,7 +140,8 @@ initialise(T, Window:window=[window], Name:name=[name]) :->
 	send_super(T, initialise, TheName),
 	send(T, border, size(0,0)),
 	send_super(T, display, P),
-	send(T, slot, window, P).
+	send(T, slot, window, P),
+	new(_, mutual_dependency_hyper(T, P)).
 
 :- pce_group(resize).
 
@@ -174,5 +178,22 @@ append(T, Item:graphical, RelPos:[{below,right,next_row}]) :->
 	"Delegate to window"::
 	get(T, window, Window),
 	send(Window, append, Item, RelPos).
+
+:- pce_group(event).
+
+label_popup(Tab, Popup:popup) :<-
+	"Get popup for label"::
+	get_super(Tab, window, TabbedWindow),
+	get(TabbedWindow, label_popup, Popup).
+
+:- pce_global(@window_tab_label_recogniser,
+	      new(popup_gesture(@receiver?label_popup))).
+
+label_event(G, Ev:event) :->
+	"Show popup on label of tab"::
+	(   send_super(G, label_event, Ev)
+	->  true
+	;   send(@window_tab_label_recogniser, event, Ev)
+	).
 
 :- pce_end_class(window_tab).

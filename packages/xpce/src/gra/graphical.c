@@ -156,7 +156,7 @@ deviceGraphical(Any obj, Device dev)
     return errorPce(PCE, NAME_freedObject, obj);
 
   if ( notNil(gr->device) )
-    eraseDevice(gr->device, gr);
+    qadSendv(gr->device, NAME_erase, 1, (Any *) &gr);
 
   if ( notNil(dev) )
     appendDevice(dev, gr);

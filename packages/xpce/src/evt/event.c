@@ -725,7 +725,7 @@ getKeyEvent(EventObj ev)
 #define WindowOfEvent(ev) ((PceWindow)(ev)->window)
 
 status
-postEvent(EventObj ev, Graphical obj, Recogniser rec)
+postNamedEvent(EventObj ev, Graphical obj, Recogniser rec, Name method)
 { Graphical old = ev->receiver;
   status rval;
 
@@ -740,7 +740,7 @@ postEvent(EventObj ev, Graphical obj, Recogniser rec)
 		  assign(ev, receiver, obj);
 
 		  rval = qadSendv(notDefault(rec) ? (Any)rec : (Any)obj,
-				  NAME_event, 1, (Any *)&ev);
+				  method, 1, (Any *)&ev);
 
 		  if ( !isFreedObj(ev) && isObject(old) && !isFreedObj(old) )
 		  { if ( rval &&
@@ -765,6 +765,12 @@ postEvent(EventObj ev, Graphical obj, Recogniser rec)
 		  pp(ev->id), pp(obj), rval ? "succeeded" : "failed"));
 
   return rval;
+}
+
+
+status
+postEvent(EventObj ev, Graphical obj, Recogniser rec)
+{ return postNamedEvent(ev, obj, rec, NAME_event);
 }
 
 

@@ -1,12 +1,13 @@
 
-/* men/button.c */
+/* /swi40/jan/src/pl/packages/xpce/src/men/button.c */
 int		accelerator_code(Name a);
 status		RedrawAreaButton(Button b, Area a);
 Point		getReferenceButton(Button b);
 status		makeButtonGesture(void);
+status		isApplyButton(Button b);
 status		makeClassButton(Class class);
 
-/* men/dialogitem.c */
+/* /swi40/jan/src/pl/packages/xpce/src/men/dialogitem.c */
 status		createDialogItem(Any obj, Name name);
 status		unlinkDialogItem(DialogItem di);
 status		RedrawLabelDialogItem(Any obj, int acc, int x, int y, int w, int h, Name hadjust, Name vadjust, int flags);
@@ -20,10 +21,10 @@ status		modifiedDialogItem(Any di, Bool modified);
 status		assignAccelerators(Chain objects, Name prefix, Name label_method);
 status		makeClassDialogItem(Class class);
 
-/* men/label.c */
+/* /swi40/jan/src/pl/packages/xpce/src/men/label.c */
 status		makeClassLabel(Class class);
 
-/* men/menu.c */
+/* /swi40/jan/src/pl/packages/xpce/src/men/menu.c */
 status		initialiseMenu(Menu m, Name name, Name kind, Code msg);
 void		area_menu_item(Menu m, MenuItem mi, int *x, int *y, int *w, int *h);
 Int		getCenterYMenuItemMenu(Menu m, Any obj);
@@ -38,22 +39,22 @@ status		deleteMenu(Menu m, Any obj);
 status		updateMenu(Menu m, Any context);
 status		makeClassMenu(Class class);
 
-/* men/menubar.c */
+/* /swi40/jan/src/pl/packages/xpce/src/men/menubar.c */
 status		makeClassMenuBar(Class class);
 
-/* men/menuitem.c */
+/* /swi40/jan/src/pl/packages/xpce/src/men/menuitem.c */
 status		selectedMenuItem(MenuItem mi, Bool val);
 status		hasValueMenuItem(MenuItem mi, Any value);
 status		makeClassMenuItem(Class class);
 
-/* men/popup.c */
+/* /swi40/jan/src/pl/packages/xpce/src/men/popup.c */
 status		defaultPopupImages(PopupObj p);
 status		makeClassPopup(Class class);
 
-/* men/slider.c */
+/* /swi40/jan/src/pl/packages/xpce/src/men/slider.c */
 status		makeClassSlider(Class class);
 
-/* men/textitem.c */
+/* /swi40/jan/src/pl/packages/xpce/src/men/textitem.c */
 status		initialiseTextItem(TextItem ti, Name name, Any val, Code msg);
 Browser		CompletionBrowser(void);
 status		completerShownDialogItem(Any di);
@@ -68,10 +69,11 @@ status		displayedValueTextItem(TextItem ti, CharArray txt);
 status		valueWidthTextItem(TextItem ti, Int val);
 status		makeClassTextItem(Class class);
 
-/* men/tab.c */
+/* /swi40/jan/src/pl/packages/xpce/src/men/tab.c */
+status		changedLabelImageTab(Tab t);
 status		makeClassTab(Class class);
 
-/* men/diagroup.c */
+/* /swi40/jan/src/pl/packages/xpce/src/men/diagroup.c */
 status		initialiseDialogGroup(DialogGroup g, Name name, Name kind);
 void		compute_label_size_dialog_group(DialogGroup g, int *w, int *h);
 status		labelFormatDialogGroup(DialogGroup g, Name fmt);
@@ -79,11 +81,11 @@ status		RedrawLabelDialogGroup(DialogGroup g, int acc, int x, int y, int w, int 
 status		eventDialogGroup(DialogGroup g, EventObj ev);
 status		makeClassDialogGroup(Class class);
 
-/* men/tabstack.c */
+/* /swi40/jan/src/pl/packages/xpce/src/men/tabstack.c */
 status		makeClassTabStack(Class class);
 
-/* men/labelbox.c */
+/* /swi40/jan/src/pl/packages/xpce/src/men/labelbox.c */
 status		makeClassLabelBox(Class class);
 
-/* men/intitem.c */
+/* /swi40/jan/src/pl/packages/xpce/src/men/intitem.c */
 status		makeClassIntItem(Class class);

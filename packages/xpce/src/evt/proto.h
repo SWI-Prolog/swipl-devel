@@ -32,6 +32,7 @@ status		insideEvent(EventObj ev, Graphical gr);
 Int		getDistanceEvent(EventObj ev1, EventObj ev2);
 Any		getIdEvent(EventObj ev);
 Any		getReceiverEvent(EventObj ev);
+status		postNamedEvent(EventObj ev, Graphical obj, Recogniser rec, Name method);
 status		postEvent(EventObj ev, Graphical obj, Recogniser rec);
 Any		getMasterEvent(EventObj ev);
 DisplayObj	getDisplayEvent(EventObj ev);
