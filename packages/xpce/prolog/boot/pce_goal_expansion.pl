@@ -65,32 +65,38 @@ expand(OldGet, Get) :-
 expand(send(R, Msg), send_class(R, Super, SuperMsg)) :-
 	compound(Msg),
 	Msg =.. [send_super, Selector | Args], !,
-	atom(Selector),
+	selector(Selector),
 	current_super_class(send_super, Super),
 	SuperMsg =.. [Selector|Args].
 expand(get(R, Msg, Answer), get_class(R, Super, SuperMsg, Answer)) :-
 	compound(Msg),
 	Msg =.. [get_super, Selector | Args], !,
-	atom(Selector),
+	selector(Selector),
 	current_super_class(get_super, Super),
 	SuperMsg =.. [Selector|Args].
-expand(send_super(R, Msg), send_class(R, Super, Msg)) :-
+expand(send_super(R, Msg), send_class(R, Super, Msg)) :- !,
 	current_super_class(send_super, Super).
-expand(get_super(R, Msg, V), get_class(R, Super, Msg, V)) :-
+expand(get_super(R, Msg, V), get_class(R, Super, Msg, V)) :- !,
 	current_super_class(get_super, Super).
 expand(SendSuperN, send_class(R, Super, Msg)) :-
 	compound(SendSuperN),
 	SendSuperN =.. [send_super, R, Sel | Args],
-	atom(Sel),
+	selector(Sel),
 	Msg =.. [Sel|Args],
 	current_super_class(send_super, Super).
 expand(GetSuperN, get_class(R, Super, Msg, Answer)) :-
 	compound(GetSuperN),
 	GetSuperN =.. [get_super, R, Sel | AllArgs],
-	atom(Sel),
+	selector(Sel),
 	append(Args, [Answer], AllArgs),
 	Msg =.. [Sel|Args],
 	current_super_class(get_super, Super).
+
+selector(Sel) :-
+	atom(Sel), !.
+selector(Sel) :-
+	pce_error(error(type_error(selector, Sel), _)),
+	fail.
 
 %	current_super_class(-Super)
 %

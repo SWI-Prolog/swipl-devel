@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ENHANCED: improved error message if selector is not an atom.
+
 * FIXED: seek issues on streams created from XPCE objects.
 
 * FIXED: integer return values of prolog defined methods incorrectly mapped

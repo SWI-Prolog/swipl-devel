@@ -226,7 +226,7 @@ swi_context(_) -->
 
 caller(Module:Name/Arity) --> !,
 	(   { \+ hidden_module(Module) }
-	->  [ 'q:~q/~w: '-[Module, Name, Arity] ]
+	->  [ '~q:~q/~w: '-[Module, Name, Arity] ]
 	;   [ '~q/~w: '-[Name, Arity] ]
 	).
 caller(Name/Arity) -->

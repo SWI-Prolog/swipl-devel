@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: typo in message context.
+
   * FIXED: Seek issues for wchar and unicode streams.
 
   * MODIFIED: changed encoding 'none' to 'octet'.  Streams opened as
