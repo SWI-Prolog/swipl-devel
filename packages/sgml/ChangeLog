@@ -1,3 +1,18 @@
+* FIXED: Do not expand SHORTREF inside CDATA marked sections and elements.
+
+* ADDED: Properly deal with NUTOKEN: handling DTD default and validate type.
+
+* FIXED: Expand parameter entities in SHORTREF declaraction (Richard O'Keefe).
+
+* FIXED: Handling of < as last character of a CDATA element
+
+* FIXED: proper handling of &#RE; in SHORTREF
+
+* FIXED: Open CDATA element when encountering a CDATA entity.
+
+* FIXED: SHORTTAG with attributes: <foo a=b/value/
+
+
 VERSION 1.0.4
 =============
 
@@ -8,6 +23,7 @@ VERSION 1.0.4
 
 * FIXED: Allow for quoted nmtoken, etc. in ATTLIST declaration.
   (Andrew Dadakov)
+
 
 VERSION 1.0.3
 =============

@@ -214,7 +214,15 @@ entity_file(dtd *dtd, dtd_entity *e)
   { case ET_SYSTEM:
       return (char *)isee_text(dtd, e->exturl, "file:");
     case ET_PUBLIC:
-      return find_in_catalog("PUBLIC", e->extid);
+    { char *f;
+
+      if ( (f=find_in_catalog("PUBLIC", e->extid)) )
+	return f;
+      if ( e->exturl )
+      { fprintf(stderr, "TBD: Trying '%s'\n", e->exturl);
+	exit(1);
+      }
+    }
     default:
       return NULL;
   }
@@ -246,17 +254,16 @@ expand_pentities(dtd *dtd, const ichar *in, ichar *out, int len)
 { const ichar *s;
 
   while(*in)
-  { if ( (s = isee_func(dtd, in, CF_PERO)) )
+  { if ( (s = isee_func(dtd, in, CF_PERO)) ) 	/* % */
     { dtd_symbol *id;
 
-      in = s;
-      if ( (in = itake_entity_name(dtd, in, &id)) )
+      if ( (s = itake_entity_name(dtd, s, &id)) )
       { dtd_entity *e = find_pentity(dtd, id);
 	const ichar *eval;
 	int l;
 
-	in = iskip_layout(dtd, in);
-	if ( (s=isee_func(dtd, in, CF_ERC)) ) /* ; is not obligatory? */
+	in = s;
+	if ( (s=isee_func(dtd, s, CF_ERC)) ) /* ; is not obligatory? */
 	  in = s;
 
 	if ( !e )
@@ -272,9 +279,11 @@ expand_pentities(dtd *dtd, const ichar *in, ichar *out, int len)
 	len -= l;
 
 	continue;
-      } else
+      } /*				No warning: '%', etc are allowed!?
+        else
 	return gripe(ERC_SYNTAX_ERROR,
 		     "Illegal parameter entity reference", s);
+        */
     }
 
     if ( --len <= 0 )
@@ -688,7 +697,32 @@ itake_nmtoken(dtd *dtd, const ichar *in, dtd_symbol **id)
   { while( HasClass(dtd, *in, CH_NAME) )
       *o++ = tolower(*in++);
   }
-  *o++ = '\0';
+  *o = '\0';
+
+  *id = dtd_add_symbol(dtd, buf);
+
+  return iskip_layout(dtd, in);
+}
+
+
+static const ichar *
+itake_nutoken(dtd *dtd, const ichar *in, dtd_symbol **id)
+{ ichar buf[MAXNMLEN];
+  ichar *o = buf;
+
+  in = iskip_layout(dtd, in);
+  if ( !HasClass(dtd, *in, CH_DIGIT) )
+    return NULL;
+  if ( dtd->case_sensitive )
+  { while( HasClass(dtd, *in, CH_NAME) )
+      *o++ = *in++;
+  } else
+  { while( HasClass(dtd, *in, CH_NAME) )
+      *o++ = tolower(*in++);
+  }
+  *o = '\0';
+  if ( o - buf > 8 )
+    gripe(ERC_LIMIT, "nutoken length");
 
   *id = dtd_add_symbol(dtd, buf);
 
@@ -740,6 +774,41 @@ itake_dubbed_string(dtd *dtd, const ichar *in, ichar **out)
 
   if ( (end=itake_string(dtd, in, buf, sizeof(buf))) )
     *out = istrdup(buf);
+
+  return end;
+}
+
+
+static const ichar *
+itake_url(dtd *dtd, const ichar *in, ichar **out)
+{ ichar buf[MAXSTRINGLEN];
+  ichar *s;
+  const ichar *end;
+  int len;
+
+  strcpy(buf, "file:");
+  s = buf+strlen(buf);
+  len = MAXSTRINGLEN - strlen(buf);
+
+  if ( (end=itake_string(dtd, in, s, len)) )
+  { ichar *t = s;
+
+#ifdef WIN32				/* drive: --> interpret as file */
+    if ( HasClass(dtd, *t, CH_LETTER) && t[1] == ':' )
+    { *out = istrdup(buf);
+      return end;
+    }
+#endif
+
+    while(*t && HasClass(dtd, *t, CH_LETTER))
+      t++;
+    if ( *t == ':' )			/* name: --> interpret as type */
+    { *out = istrdup(s);
+      return end;
+    }
+
+    *out = istrdup(buf);		/* interpret as file */
+  }
 
   return end;
 }
@@ -867,15 +936,10 @@ process_entity_value_declaration(dtd *dtd, const ichar *decl, dtd_entity *e)
 
   switch ( e->type )
   { case ET_SYSTEM:
-    { ichar buf[MAXSTRINGLEN];
-      ichar *o;
+    { if ( (s=itake_url(dtd, decl, &e->exturl)) )
+	return s;
 
-      strcpy(buf, "file:");
-      o = buf + 5;
-      if ( !(s = itake_string(dtd, decl, o, sizeof(buf)-5)) )
-	goto string_expected;
-      e->exturl = istrdup(buf);
-      return s;
+      goto string_expected;
     }
     case ET_PUBLIC:
     { if ( !(s = itake_dubbed_string(dtd, decl, &e->extid)) )
@@ -883,11 +947,8 @@ process_entity_value_declaration(dtd *dtd, const ichar *decl, dtd_entity *e)
       decl = s;
       if ( isee_func(dtd, decl, CF_LIT) ||
 	   isee_func(dtd, decl, CF_LITA) )
-      { if ( !(s = itake_dubbed_string(dtd, decl, &e->exturl)) )
-	{ gripe(ERC_SYNTAX_ERROR, "String expected", decl);
-	  return NULL;
-	}
-	decl = s;
+      { if ( (s=itake_url(dtd, decl, &e->exturl)) )
+	  decl = s;
       }
       return decl;
     }
@@ -1142,9 +1203,14 @@ shortref_add_map(dtd *dtd, const ichar *decl, dtd_shortref *sr)
 
 static int
 process_shortref_declaration(dtd *dtd, const ichar *decl)
-{ dtd_shortref *sr = calloc(1, sizeof(*sr));
+{ ichar buf[MAXDECL];
+  dtd_shortref *sr = calloc(1, sizeof(*sr));
   dtd_shortref **p;
   const ichar *s;
+
+  if ( !expand_pentities(dtd, decl, buf, sizeof(buf)) )
+    return FALSE;
+  decl = buf;
 
   if ( !(s=itake_name(dtd, decl, &sr->name)) )
     return gripe(ERC_SYNTAX_ERROR, "Name expected", decl);
@@ -1891,6 +1957,11 @@ process_attlist_declaraction(dtd *dtd, const ichar *decl)
 	    return gripe(ERC_DOMAIN, "nmtoken", decl);
 	  break;
 	}
+	case AT_NUTOKEN:
+	{ if ( !(s=itake_nutoken(dtd, buf, &at->att_def.name)) || *s )
+	    return gripe(ERC_DOMAIN, "nutoken", decl);
+	  break;
+	}
 	case AT_NUMBER:
 	{ if ( !(s=itake_number(dtd, buf, &at->att_def.number)) || *s )
 	     return gripe(ERC_DOMAIN, "number", decl);
@@ -2242,10 +2313,20 @@ get_attribute_value(dtd_parser *p, const ichar *decl, sgml_attribute *att)
     case AT_NAMEOF:			/* one of these names */
     case AT_NMTOKEN:			/* name-token */
     case AT_NOTATION:			/* notation-name */
-    case AT_NUTOKEN:			/* number token */
       if ( !dtd->case_sensitive )
 	istrlower(buf);
       att->value.text = istrdup(buf);	/* TBD: more validation */
+      return end;
+    case AT_NUTOKEN:			/* number token */
+      if ( HasClass(dtd, buf[0], CH_DIGIT) )
+	gripe(ERC_SYNTAX_WARNING, "NUTOKEN must start with digit");
+      if ( strlen(buf) > 8 )
+	gripe(ERC_LIMIT, "NUTOKEN length");
+
+      if ( !dtd->case_sensitive )
+	istrlower(buf);
+    
+      att->value.text = istrdup(buf);
       return end;
     case AT_ENTITY:			/* entity-name */
       att->value.text = istrdup(buf);	/* TBD: more validation */
@@ -3080,7 +3161,12 @@ process_entity(dtd_parser *p, const ichar *name)
       { case EC_SGML:
 	case EC_CDATA:
 	  if ( (s=isee_character_entity(dtd, text, &chr)) && *s == '\0' )
-	  { if ( chr > 0 && chr < OUTPUT_CHARSET_SIZE )
+	  { if ( p->blank_cdata == TRUE && !HasClass(dtd, chr, CH_BLANK) )
+	    { open_element(p, CDATA_ELEMENT);
+	      p->blank_cdata = FALSE;
+	    }
+	      
+	    if ( chr > 0 && chr < OUTPUT_CHARSET_SIZE )
 	    { add_ocharbuf(p->cdata, chr);
 	      return TRUE;
 	    } else
@@ -3239,15 +3325,22 @@ a single \n for Windows newline conventions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-add_cdata(dtd_parser *p, int chr)
+add_cdata(dtd_parser *p, int chr, int verbatim)
 { ocharbuf *buf = p->cdata;
 
-  if ( chr == '\n' && buf->size > 0 && buf->data[buf->size-1] == '\r' )
-    buf->size--;
+  if ( chr == '\n' && buf->size > 0 )
+  { if ( p->map && buf->data[buf->size-1] != '\r' )
+    { add_ocharbuf(buf, '\r');
+      match_shortref(p);
+    }
+
+    if ( buf->data[buf->size-1] == '\r' )
+      buf->size--;
+  }
 
   add_ocharbuf(buf, chr);
 
-  if ( p->map )
+  if ( p->map && !verbatim )
     match_shortref(p);
 }
 
@@ -3261,9 +3354,9 @@ recover_parser(dtd_parser *p)
   dtd *dtd = p->dtd;
 
   terminate_icharbuf(p->buffer);
-  add_cdata(p, dtd->charmap->map[p->saved]);
+  add_cdata(p, dtd->charmap->map[p->saved], FALSE);
   for(s=p->buffer->data; *s; s++)
-    add_cdata(p, dtd->charmap->map[*s]);
+    add_cdata(p, dtd->charmap->map[*s], FALSE);
   p->state = S_PCDATA;
 }
 
@@ -3337,7 +3430,7 @@ putchar_dtd_parser(dtd_parser *p, int chr)
 	    return;
 	  }
 #endif
-	  add_cdata(p, dtd->charmap->map[chr]);
+	  add_cdata(p, dtd->charmap->map[chr], FALSE);
 	  return;
       }
     }
@@ -3358,7 +3451,7 @@ putchar_dtd_parser(dtd_parser *p, int chr)
 	p->blank_cdata = TRUE;
 	p->state = S_PCDATA;
       } else
-      { add_cdata(p, dtd->charmap->map[chr]);
+      { add_cdata(p, dtd->charmap->map[chr], TRUE);
 	if ( p->etaglen < p->buffer->size || !HasClass(dtd, chr, CH_NAME))
 	{ empty_icharbuf(p->buffer);	/* mismatch */
 	  p->state = S_CDATA;
@@ -3368,28 +3461,28 @@ putchar_dtd_parser(dtd_parser *p, int chr)
       return;
     }
     case S_ECDATA1:			/* seen < in CDATA */
-    { add_cdata(p, dtd->charmap->map[chr]);
+    { add_cdata(p, dtd->charmap->map[chr], TRUE);
       if ( f[CF_ETAGO2] == chr )	/* / */
       { empty_icharbuf(p->buffer);
 	p->state = S_ECDATA2;
-      } else
+      } else if ( f[CF_ETAGO1] != chr )	/* <: do not change state */
 	p->state = S_CDATA;
       return;
     }
     case S_CDATA:
-    { add_cdata(p, dtd->charmap->map[chr]);
+    { add_cdata(p, dtd->charmap->map[chr], TRUE);
       if ( f[CF_MDO1] == chr )		/* < */
 	p->state = S_ECDATA1;
       return;
     }
     case S_MSCDATA:
-    { add_cdata(p, dtd->charmap->map[chr]);
+    { add_cdata(p, dtd->charmap->map[chr], TRUE);
       if ( f[CF_DSC] == chr )		/* ] */
         p->state = S_EMSCDATA1;
       return;
     }
     case S_EMSCDATA1:
-    { add_cdata(p, dtd->charmap->map[chr]);
+    { add_cdata(p, dtd->charmap->map[chr], TRUE);
       if ( f[CF_DSC] == chr )		/* ]] */
         p->state = S_EMSCDATA2;
       else
@@ -3397,7 +3490,7 @@ putchar_dtd_parser(dtd_parser *p, int chr)
       return;
     }
     case S_EMSCDATA2:
-    { add_cdata(p, dtd->charmap->map[chr]);
+    { add_cdata(p, dtd->charmap->map[chr], TRUE);
       if ( f[CF_MDC] == chr )		/* ]]> */
       { p->cdata->size -= 3;		/* Delete chars for ]] */
 	pop_marked_section(p);
@@ -3513,7 +3606,7 @@ putchar_dtd_parser(dtd_parser *p, int chr)
 	p->state = S_PCDATA;
 	close_current_element(p);
       } else
-	add_cdata(p, dtd->charmap->map[chr]);
+	add_cdata(p, dtd->charmap->map[chr], FALSE);
 
       return;
     }
@@ -3570,7 +3663,7 @@ putchar_dtd_parser(dtd_parser *p, int chr)
       p->utf8_char <<= 6;
       p->utf8_char |= (chr & 0xc0);
       if ( --p->utf8_left == 0 )
-      { add_cdata(p, p->utf8_char);
+      { add_cdata(p, p->utf8_char, FALSE); /* ? */
 	p->state = p->saved_state;
       }
     }
@@ -3694,6 +3787,9 @@ format_message(dtd_error *e)
     case ERC_RESOURCE:
       sprintf(s, "Insufficient %s resources", e->argv[0]);
       break;
+    case ERC_LIMIT:
+      sprintf(s, "%s limit exceeded", e->argv[0]);
+      break;
     case ERC_VALIDATE:
       sprintf(s, "%s", e->argv[0]);
       break;
@@ -3740,6 +3836,10 @@ gripe(dtd_error_id e, ...)
   { case ERC_REPRESENTATION:
     case ERC_RESOURCE:
       error.severity = ERS_ERROR;
+      error.argv[0]  = va_arg(args, char *);
+      break;
+    case ERC_LIMIT:
+      error.severity = ERS_WARNING;
       error.argv[0]  = va_arg(args, char *);
       break;
     case ERC_SYNTAX_ERROR:

@@ -23,6 +23,7 @@
 #define CH_RE		0x0040
 #define CH_RS		0x0080
 
+#define CH_LETTER	(CH_LCLETTER|CH_UCLETTER)
 #define CH_NMSTART	(CH_LCLETTER|CH_UCLETTER|CH_LCNMSTRT|CH_UCNMSTRT)
 #define CH_NAME		(CH_NMSTART|CH_DIGIT)
 #define CH_BLANK	(CH_WHITE|CH_RE|CH_RS)
@@ -169,6 +170,8 @@ typedef enum
 { ERC_REPRESENTATION,			/* Internal limit */
 	/* id */
   ERC_RESOURCE,				/* external limit */
+	/* id */
+  ERC_LIMIT,				/* Exceeded SGML limit */
 	/* id */
   ERC_VALIDATE,				/* DTD Validation */
 	/* Message */
