@@ -1,38 +1,46 @@
-#!/bin/csh -f
+#!/bin/sh
 #
 # $Id$
 #
 # find names in files and produce appropriate .c and .h files
 #
-# find all names in the  argument files and  build appripriate include
+# find all names in the  argument files and  build appropriate include
 # files for h/names.ic and h/names.ih. Without an argument new names
 # are added to  the end of the  include files to  prevent the need for
 # recompilation of pce. With the -a flag a complete new (ordered) list
 # of names is build.
 # 
 # Jan Wielemaker, 27 Sept 1986
-# 
+#
+# Modified: March 30 2001	Now use /bin/sh and set sorting locale
 
-if ( "$1" == -a ) then
-    set all
-    shift
-endif
+all=false
+
+# Make sort behave predicatable
+LC_COLLATE=POSIX
+LC_ALL=C
+export LC_COLLATE LC_ALL
+
+if [ "x$1" = "x-a" ]; then
+  all=true
+  shift
+fi
 
 fgrep NAME_ $* | ./Names.X | sort -u > names/found
 
-if ( $?all ) then
+if [ "$all" == true ]; then
   cp names/found names/all
   cp names/found names/sorted
 else
   comm -23 names/found names/sorted > names/new
-  if ( ! -z names/new ) then
+  if [ ! -z names/new ]; then
     cat names/new >> names/all
     sort -u names/sorted names/new > names/tmp
     cp names/tmp names/sorted
     rm names/tmp
-  endif
-endif
+  fi
+fi
 
-if ( $?all || ! -z names/new ) then
+if [ "$all" = true -o ! -z names/new ]; then
   ./Names.Gen h/names.ic h/names.ih < names/all
-endif
+fi
