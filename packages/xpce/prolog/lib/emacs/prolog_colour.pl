@@ -25,8 +25,7 @@ User extension hooks.
 	goal_classification/2.
 
 :- emacs_extend_mode(prolog,
-		     [ colourise_or_recenter = key('\\C-l'),
-		       colourise_buffer = button(prolog)
+		     [ colourise_or_recenter = key('\\C-l')
 		     ]).
 
 class_variable(auto_colourise_size_limit, int, 50000,

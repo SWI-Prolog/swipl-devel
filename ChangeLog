@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Bug in recorded database, reported by Michael Heerdegen.
+
   * FIXED: Removed trace of rl_add_history()
 
   * FIXED: Handling of :- dynamic Module:Name/Arity in PceEmacs

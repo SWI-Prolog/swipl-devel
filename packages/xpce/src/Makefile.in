@@ -298,7 +298,7 @@ $(MODULES) bin lib x11:
 h:		
 		ln -s $(srcdir)/h .
 
-names:		
+names::	
 		@if [ ! -d $(srcdir)/names ]; then \
 		    mkdir $(srcdir)/names; \
 		    if [ ! -d names ]; then ln -s $(srcdir)/names .; fi; \

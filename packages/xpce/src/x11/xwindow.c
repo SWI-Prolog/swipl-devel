@@ -327,15 +327,19 @@ ws_grab_pointer_window(PceWindow sw, Bool val)
 
 void
 ws_grab_keyboard_window(PceWindow sw, Bool val)
-{ if ( widgetWindow(sw) != NULL )
-  { DisplayObj d = getDisplayGraphical((Graphical)sw);
+{ DisplayObj d;
+  Display display;
 
-    if ( val == ON )
-    { XSetInputFocus(d, XtWindow(widgetWindow(sw)),
+  if ( widgetWindow(sw) &&
+       (d = getDisplayGraphical((Graphical)sw)) &&
+       d->ws_ref &&
+       (display = d->wsref->diaplay_xref) )
+  { if ( val == ON )
+    { XSetInputFocus(display, XtWindow(widgetWindow(sw)),
 		     RevertToPointerRoot,
 		     current_event_time());
     } else
-    { XSetInputFocus(d, PointerRoot,
+    { XSetInputFocus(display, PointerRoot,
 		     0,
 		     current_event_time());
     }

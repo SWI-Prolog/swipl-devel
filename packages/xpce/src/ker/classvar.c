@@ -260,8 +260,10 @@ getValueClassVariable(ClassVariable cv)
 
 
 static status
-valueClassVariable(ClassVariable cv, Any val)
-{ if ( (val = checkType(val, cv->type, cv->context)) )
+valueClassVariable(ClassVariable cv, Any value)
+{ Any val;
+
+  if ( (val = checkType(value, cv->type, cv->context)) )
   { assign(cv, value, val);
 
     succeed;
@@ -270,7 +272,7 @@ valueClassVariable(ClassVariable cv, Any val)
   return errorTypeMismatch(cv,
 			   getMethodFromFunction((Any)valueClassVariable), 1,
 			   cv->type,
-			   val);
+			   value);
 }
 
 

@@ -13,6 +13,10 @@
 :- module(pce_file_item, []).
 :- use_module(library(pce)).
 
+:- pce_autoload(finder, library(find_file)).
+:- pce_global(@finder, new(finder)).
+
+
 		 /*******************************
 		 *       FILE COMPLETION	*
 		 *******************************/
@@ -119,7 +123,18 @@ clean_file_name(Def, Clean) :-
 clean_file_name(Def, Def).
 	
 
-:- pce_end_class.
+browse(FI) :->
+	"Run finder to fill with value"::
+	get(FI?value_text?string, value, Sofar),
+	(   sub_atom(Sofar, _, _, 0, /)
+	->  Dir = Sofar
+	;   file_directory_name(Sofar, Dir)
+	),
+	get(@finder, file, @on, directory := Dir, New),
+	send(FI?value_text, string, New),
+	send(FI, apply).
+
+:- pce_end_class(file_item).
 
 
 		 /*******************************

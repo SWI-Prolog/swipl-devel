@@ -19,53 +19,55 @@
 	   , default/3
 	   , ignore/1
 	   ]).
-:- set_prolog_flag(character_escapes, false).
 
 :- emacs_begin_mode(fundamental, [],	% []: root of the mode hierarchy
 		    "Generic PceEmacs editing mode",
-	[ prefix		   = key('\C-h'),
-	  show_key_bindings	   = key('\C-hb'),
-	  insert_file		   = key('\C-xi'),
-	  write_file		   = key('\C-x\C-w'),
-	  split_window		   = key('\C-x2'),
-	  only_window              = key('\C-x1'),
-	  save_and_kill            = key('\C-x#'),
-	  what_cursor_position     = key('\C-x='),
-	  count_lines_region       = key('\e='),
-	  query_replace_regex      = key('\e%'),
-	  grab_region              = key('\ew'),
-	  justify_paragraph        = key('\eQ'),
-	  bookmark_line            = key('\e@'),
-	  execute_extended_command = key('\ex'),
-	  sticky_window		   = key('\es'),
-	  write_region		   = key('\e\C-w'),
-	  compile		   = key('\C-xRET'),
+	[ prefix		   = key('\\C-h'),
+	  show_key_bindings	   = key('\\C-hb'),
+	  insert_file		   = key('\\C-xi'),
+	  write_file		   = key('\\C-x\\C-w'),
+	  split_window		   = key('\\C-x2'),
+	  only_window              = key('\\C-x1'),
+	  save_and_kill            = key('\\C-x#'),
+	  what_cursor_position     = key('\\C-x='),
+	  count_lines_region       = key('\\e='),
+	  query_replace_regex      = key('\\e%'),
+	  grab_region              = key('\\ew'),
+	  justify_paragraph        = key('\\eQ'),
+	  bookmark_line            = key('\\e@'),
+	  execute_extended_command = key('\\ex'),
+	  sticky_window		   = key('\\es'),
+	  write_region		   = key('\\e\\C-w'),
+	  compile		   = key('\\C-xRET'),
 	  
 					% FILE menu
-	  show_buffer_menu	   = key('\C-x\C-b') + button(file),
-	  switch_to_buffer	   = key('\C-xb') +
+	  show_buffer_menu	   = key('\\C-x\\C-b') + button(file),
+	  switch_to_buffer	   = key('\\C-xb') +
 				     button(file, @emacs_mode?buffers),
-	  find_file		   = key('\C-x\C-f') + button(file),
-	  save_buffer		   = key('\C-x\C-s') + button(file),
+	  find_file		   = key('\\C-x\\C-f') + button(file),
+	  save_buffer		   = key('\\C-x\\C-s') + button(file),
 	  save_as		   = button(file),
 	  revert		   = button(file),
-	  kill_buffer		   = key('\C-xk')    + button(file),
+	  kill_buffer		   = key('\\C-xk')    + button(file),
 	  ispell		   = button(file),
 	  shell			   = button(file),
-	  (mode)		   = key('\em') +
+	  (mode)		   = key('\\em') +
 	  			     button(file, @emacs_mode?modes),
 	  identify		   = button(file),
-	  quit			   = key('\C-x\C-c') + button(file),
+	  quit			   = key('\\C-x\\C-c') + button(file),
 
 					% EDIT menu
 	  undo			   = button(edit),
 	  copy			   = button(edit),
 	  cut			   = button(edit),
 	  paste			   = button(edit),
+	  -			   = button(edit),
+	  replace		   = button(edit),
 
 					% BROWSER menu
 	  bookmark_line		   = button(browse),
 	  show_bookmarks	   = button(browse),
+	  -			   = button(browse),
 	  grep			   = button(browse),
 
 					% COMPILE menu
@@ -75,7 +77,9 @@
 	  help			   = button(help),
 	  help_on_mode		   = button(help),
 	  customise		   = button(help),
+	  -			   = button(help),
 	  show_key_bindings	   = button(help),
+	  -			   = button(help),
 	  manpce		   = button(help),
 	  manual_entry		   = button(help)
 	],
@@ -366,7 +370,7 @@ save_some_buffers(_M, Arg:[int]) :->
 
 
 find_file(_M, File:file) :->
-	"Find file (other window)"::
+	"Find existing file or create new one"::
 	get(File, name, Name),
 	(   send(Name, suffix, '.pd')
 	->  auto_call(pcedraw(Name))
@@ -424,6 +428,12 @@ print(M) :->
 		 /*******************************
 		 *	      REPLACE		*
 		 *******************************/
+
+replace(M, From:'replace=regex',
+		    To:'into=string') :->
+	"Query replace regular expression"::
+	send(M, query_replace_regex, From, To).
+
 
 query_replace_regex(M,
 		    From:'replace=regex',

@@ -79,6 +79,7 @@ ws_uncreate_frame(FrameObj fr)
   if ( (w = widgetFrame(fr)) )
   { DEBUG(NAME_frame, Cprintf("ws_uncreate_frame(%s)\n", pp(fr)));
 
+    XtPopdown(w);
     assign(fr, status, NAME_unmapped);
     setWidgetFrame(fr, NULL);
 
@@ -371,6 +372,25 @@ x_event_frame(Widget w, FrameObj fr, XEvent *event)
 	send(fr, NAME_hidden, 0);
       return;
     case FocusIn:
+#if 0
+    { FrameObj fr2;
+
+      if ( (fr2=blockedByModalFrame(fr)) )
+      { PceWindow iw;
+	DisplayWsXref r;
+
+	if ( (iw = getKeyboardFocusFrame(fr2)) )
+	{ ws_grab_keyboard_window(iw, ON);
+	} else if ( (r=fr2->display->ws_ref) )
+	{ XSetInputFocus(r->display_xref, XtWindow(w),
+			 RevertToPointerRoot,
+			 CurrentTime);
+	}
+	return;
+      }
+    }
+#endif
+
       send(fr, NAME_inputFocus, ON, 0);
       return;
     case FocusOut:
@@ -805,9 +825,29 @@ ws_get_icon_position_frame(FrameObj fr, int *x, int *y)
 }
 
 
+static void
+ws_enable_frame(FrameObj fr, Bool val)
+{ Widget w;
+
+  if ( (w = widgetFrame(fr)) )
+  { Arg args[1];
+
+    XtSetArg(args[0], XtNinput, val == ON ? True : False);
+    XtSetValues(w, args, 1);
+  }
+}
+
+
 void
 ws_enable_modal(FrameObj fr, Bool val)
-{ /* left to the window manager */
+{ if ( fr->modal == NAME_transient && notNil(fr->transient_for) )
+  { ws_enable_frame(fr->transient_for, val);
+  } else if ( fr->modal == NAME_application && notNil(fr->application) )
+  { Cell cell;
+
+    for_cell(cell, fr->application->members)
+      ws_enable_frame(cell->value, val);
+  }
 }
 
 
@@ -818,15 +858,19 @@ ws_status_frame(FrameObj fr, Name status)
   if ( status == NAME_window || status == NAME_fullScreen )
   { if ( w )
       XtPopup(w, XtGrabNone);
-  } else if ( status == NAME_iconic )
-  { if ( w )
-    { Arg args[1];
-      XtSetArg(args[0], XtNiconic, True);
-      XtSetValues(w, args, 1);
+    ws_enable_modal(fr, OFF);
+  } else
+  { if ( status == NAME_iconic )
+    { if ( w )
+      { Arg args[1];
+	XtSetArg(args[0], XtNiconic, True);
+	XtSetValues(w, args, 1);
+      }
+    } else if ( status == NAME_hidden )
+    { if ( w )
+	XtPopdown(w);
     }
-  } else if ( status == NAME_hidden )
-  { if ( w )
-      XtPopdown(w);
+    ws_enable_modal(fr, ON);
   }
 }
 

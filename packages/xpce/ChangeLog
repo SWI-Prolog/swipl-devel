@@ -1,3 +1,12 @@
+* ADDED: library(file_item) the method file_item ->browse to start browsing
+  using @finder.
+
+* ENHANCED: Displaying sequenced of modal windows and input-focus handling
+  (X11 version).
+
+* FIXED: Error message on `class_variable->value' when passing an illegal
+  value.
+
 * MODIFIED: Organisational issues in PceEmacs: renamed class emacs_window
   into emacs_frame.
 

@@ -39,6 +39,7 @@ various others.
 
 class_variable(confirm_done, bool, false,       "Donot confirm emacs-windows").
 class_variable(size,         size, size(80,32), "Size of text-field").
+class_variable(prompt_style, {mini_window,dialog}, dialog, "How to prompt").
 
 variable(sticky_window, bool,   get,  "When @on, window won't be killed").
 variable(pool,		[name], both, "Window pool I belong too").
@@ -483,22 +484,23 @@ fix_rval(Type, RawRval, RVal) :-
 fix_rval(_, Rval, Rval).
 
 
-:- pce_global(@emacs_prompt,
+:- pce_global(@emacs_prompt_for,
 	      new(constant(prompt, 'Prompt for value'))).
 
 interactive_arguments(V, Impl:any, Times:[int], Argv:vector) :<-
 	"Prompt for arguments for the given implementation"::
 	get(V, mode, Mode),
 	make_arg_vector(Impl, Times, Argv),
-	(   get(Argv, index, @emacs_prompt, _)
+	(   get(Argv, index, @emacs_prompt_for, _)
 	->  (   get(V, frame, Frame),
-	        get(Frame, has_get_method, prompt_style),
+	        send(Frame, has_get_method, prompt_style),
 		get(Frame, prompt_style, mini_window)
 	    ->  fill_arg_vector(Mode, Impl, Argv)
 	    ;	new(D, emacs_prompt_dialog(Mode, Impl, Argv)),
 		send(D, prompt, V, Argv),
 		send(D, destroy)
 	    )
+	;   true
 	).
 
 fill_arg_vector(Mode, Impl, Argv) :-
@@ -506,21 +508,21 @@ fill_arg_vector(Mode, Impl, Argv) :-
 
 fill_arg_vector(ArgN, Mode, Impl, Argv) :-
 	get(Impl, argument_type, ArgN, ArgType),
-	get(Argv, element, ArgN, @emacs_prompt), !,
+	get(Argv, element, ArgN, @emacs_prompt_for), !,
 	get(Mode, interactive_argument, Impl, ArgN, Arg),
 	get(ArgType, check, Arg, CheckedArg),
 	send(Argv, element, ArgN, CheckedArg),
 	Next is ArgN + 1,
 	fill_arg_vector(Next, Mode, Impl, Argv).
 fill_arg_vector(ArgN, Mode, Impl, Argv) :-
-	get(Impl, argument_type, ArgN, ArgType), !,
+	get(Impl, argument_type, ArgN, _), !,
 	Next is ArgN + 1,
 	fill_arg_vector(Next, Mode, Impl, Argv).
 fill_arg_vector(_, _, _, _).
 	
 
 make_arg_vector(Impl, Times, Argv) :-
-	new(Argv, argv),
+	new(Argv, code_vector),
 	make_arg_vector(1, Impl, Times, Argv).
 
 make_arg_vector(ArgN, Impl, Times, Argv) :-
@@ -532,7 +534,7 @@ make_arg_vector(ArgN, Impl, Times, Argv) :-
 	;   NextTimes = Times,
 	    (   send(ArgType, includes, default)
 	    ->  send(Argv, element, ArgN, @default)
-	    ;   send(Argv, element, ArgN, @emacs_prompt)
+	    ;   send(Argv, element, ArgN, @emacs_prompt_for)
 	    )
 	),
 	Next is ArgN + 1,
@@ -610,8 +612,14 @@ caret(E, Caret:[int]) :->
 
 event(E, Ev:event) :->
 	(   send(Ev, is_a, area_enter)
-	->  send(E?frame, keyboard_focus, E?window)
-	;   send(E, send_super, event, Ev)
+	->  get(E, frame, Frame),
+	    (	get(Frame, transients, Transients),
+		Transients \== @nil,
+		get(Transients, find, @arg1?modal == transient, _)
+	    ->	format('We have a transient~n')
+	    ;	send(Frame, keyboard_focus, E?window)
+	    )
+	;   send_super(E, event, Ev)
 	).
 
 
@@ -912,29 +920,34 @@ fill_menu_bar(M, MB:menu_bar) :->
 
 fill_menu(M, P:popup, Entries:chain) :->
 	"Add specified entries to the given popup"::
-	send(Entries, for_all,
-	     message(P, append,
-		     when(message(@arg1, instance_of, name),
-			  ?(M, menu_item, @arg1),
-			  @arg1?clone))).
+	send(Entries, for_some,
+	     message(M, append_popup_item, P, @arg1)).
 
 
-menu_item(M, Selector:name, MI:menu_item) :<-
-	"Generate a menu-item for selector"::
-	new(MI, menu_item(Selector)),
-	(   get(M, bindings, KeyBindings),
-	    get(KeyBindings, binding, Selector, Key)
-	->  send(MI, accelerator, Key)
-	;   true
-	),
-	(   get(M, send_method, Selector, tuple(_, Impl))
-	->  (	forall((between(1, 10, ArgN),
-	                get(Impl, argument_type, ArgN, ArgType)),
-		       send(ArgType, includes, default))
-	    ->	true
-	    ;	send(MI, label, string('%s ...', Selector?label_name))
+append_popup_item(M, P:popup, Item:any) :->
+	"Append single menu item"::
+	(   Item == -
+	->  (   get(P?members, tail, Last)
+	    ->	send(Last, end_group, @on)
+	    ;	true
 	    )
-	;   send(MI, active, @off)
+	;   atom(Item)
+	->  send(P, append, new(MI, menu_item(Item))),
+	    (   get(M, bindings, KeyBindings),
+		get(KeyBindings, binding, Item, Key)
+	    ->  send(MI, accelerator, Key)
+	    ;   true
+	    ),
+	    (   get(M, send_method, Item, tuple(_, Impl))
+	    ->  (   forall((between(1, 10, ArgN),
+		    get(Impl, argument_type, ArgN, ArgType)),
+		    send(ArgType, includes, default))
+		->  true
+		;   send(MI, label, string('%s ...', Item?label_name))
+		)
+	    ;   send(MI, active, @off)
+	    )
+	;   send(P, append, Item?clone)
 	).
 
 
@@ -1270,7 +1283,9 @@ append(MM, Name:name, Action:'name|menu_item', Before:[name]) :->
 	->  true
 	;   send(MM, value, Name, new(Chain, chain))
 	),
-        (   locate_action(Chain, Action, Old)
+	(   Action == -
+	->  send(Chain, append, Action)
+	;   locate_action(Chain, Action, Old)
 	->  send(Chain, replace, Old, Action)
 	;   send(Chain, append, Action),
 	    (   Before \== @default,
@@ -1318,19 +1333,64 @@ lookup(_, Name:name, _Super:[key_binding], KB:emacs_key_binding) :<-
 	key_binding_name(Name, IName),
 	get(@key_bindings, member, IName, KB).
 
-fill_arguments_and_execute(KB, Id:event_id, Receiver:emacs_mode,
+:- pce_group(execute).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+These methods define  argument-filling  and   execution  from  arbitrary
+methods from a keyboard command.  As  we   want  to  do  fairly advanced
+prompting we need to do redefine some things from class key_binding.
+
+First we check whether there is  need   for  prompting.  If so, we check
+whether we use the miniwindow or  not.   The  miniwindow prompts for one
+argument  at  a  time.  The  system  ->fill_arguments_and_execute  calls
+<-interactive_argument on Receiver for each missing argument.
+
+If we are in prompt mode we simply   use  ->noarg_call on the mode, just
+like commands comming from the menus.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+fill_arguments_and_execute(KB, EvId:event_id, Receiver:emacs_mode,
 			   Selector:name, Argv:any ...) :->
 	"Open/close the argument processing"::
-	send(@current_emacs_mode, assign, Receiver),
-	(   get(Receiver, send_method, Selector, tuple(_, Impl)),
-	    get(Impl, attribute, emacs_history, _)
-	->  send(Receiver, open_history, Impl, @on)
-	;   send(Receiver, close_history)
-	),
-	Message =.. [ fill_arguments_and_execute,
-		      Id, Receiver, Selector | Argv],
-	send_super(KB, Message).
+	 Message =.. [ fill_arguments_and_execute,
+		       EvId, Receiver, Selector | Argv],
 
+	(   get(Receiver, send_method, Selector, tuple(_, Impl))
+	->  (   length(Argv, Before),
+	        First is Before + 1,
+		args_available(First, Impl, KB, EvId)
+	    ->  send_super(KB, Message)			% no need to prompt
+	    ;   get(Receiver, frame, Frame),
+		send(Frame, has_get_method, prompt_style),
+		get(Frame, prompt_style, mini_window)
+	    ->  send(@current_emacs_mode, assign, Receiver),
+		send(Receiver, open_history, Impl, @on),
+		send_super(KB, Message)			% miniwindow
+	    ;   send(Receiver, noarg_call, Selector)	% prompting
+	    )
+	;   send_super(KB, Message)			% generate error
+	).
+
+%	args_available(+I, +Implementation, +KeyBinding, +EventId)
+%
+%	See whether all arguments are around that allow us to execute
+%	the command without prompting.  See the implementation of
+%	`key_binding->fill_arguments_and_execute' for reference.
+
+args_available(N, Impl, KB, EvId) :-
+	get(Impl, argument_type, N, ArgType), !,
+	(   send(ArgType, includes, event_id)
+	;   send(ArgType, includes, char),
+	    integer(EvId)
+	;   send(ArgType, includes, int),
+	    get(KB, argument, Arg),
+	    integer(Arg)
+	;   send(ArgType, includes, default)
+	), !,
+	NN is N + 1,
+	args_available(NN, Impl, KB, EvId).
+args_available(_, _, _, _).
+	
 execute(KB, Receiver:emacs_mode, Selector:name, Argv:any ...) :->
 	"Push history if available"::
 	(   get(Receiver, m_x_history, @nil)

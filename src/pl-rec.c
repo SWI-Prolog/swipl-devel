@@ -77,14 +77,17 @@ isCurrentRecordList(word key)
 static void
 cleanRecordList(RecordList rl)
 { RecordRef *p;
-  RecordRef r;
+  RecordRef r, prev=NULL;
 
   for(p = &rl->firstRecord; (r=*p); )
   { if ( true(r->record, ERASED) )
     { *p = r->next;
+      if ( r == rl->lastRecord )
+	rl->lastRecord = prev;
       freeRecordRef(r);
     } else
-    { p = &r->next;
+    { prev = r;
+      p = &r->next;
     }
   }
 }
@@ -1319,6 +1322,7 @@ record(term_t key, term_t term, term_t ref, int az)
     l->lastRecord->next = r;
     l->lastRecord = r;
   }
+
   UNLOCK();
 
   succeed;
@@ -1373,7 +1377,7 @@ pl_recorded(term_t key, term_t term, term_t ref, word h)
     { record = ForeignContextPtr(h);
       rl = record->list;
 
-      DEBUG(0, assert(rl->references > 0));
+      assert(rl->references > 0);
 
       LOCK();
       break;
@@ -1472,7 +1476,9 @@ pl_erase(term_t ref)
       for(; r; prev = r, r = r->next)
       { if (r == record)
 	{ if ( !r->next )
+	  { assert(r == l->lastRecord);
 	    l->lastRecord = prev;
+	  }
 	  prev->next = r->next;
 	  freeRecordRef(r);
 	  goto ok;
