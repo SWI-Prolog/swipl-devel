@@ -13,9 +13,13 @@
 #ifndef SGMLDEFS_H_INCLUDED
 #define SGMLDEFS_H_INCLUDED
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#else
 #ifdef WIN32
 #define HAVE_MALLOC_H 1
 #define HAVE_IO_H 1
+#endif
 #endif
 
 #ifdef HAVE_DMALLOC_H
