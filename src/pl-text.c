@@ -85,20 +85,11 @@ PL_get_text(term_t l, PL_chars_t *text, int flags)
   word w = valHandle(l);
 
   if ( (flags & CVT_ATOM) && isAtom(w) )
-  { Atom a = atomValue(w);
-    if ( false(a->type, PL_BLOB_TEXT) )
-      fail;				/* non-textual atom */
-    if ( isUCSAtom(a) )
-    { text->text.w   = (pl_wchar_t *) a->name;
-      text->length   = a->length / sizeof(pl_wchar_t);
-      text->encoding = ENC_WCHAR;
-    } else
-    { text->text.t   = a->name;
-      text->length   = a->length;
-      text->encoding = ENC_ISO_LATIN_1;
-    }
-    text->storage   = PL_CHARS_HEAP;
-    text->canonical = TRUE;
+  { if ( !get_atom_text(w, text) )
+      fail;
+  } else if ( (flags & CVT_STRING) && isString(w) )
+  { if ( !get_string_text(w, text PASS_LD) )
+      fail;
   } else if ( (flags & CVT_INTEGER) && isInteger(w) )
   { Ssprintf(text->buf, "%ld", valInteger(w) );
     text->text.t    = text->buf;
@@ -127,16 +118,6 @@ PL_get_text(term_t l, PL_chars_t *text, int flags)
     text->length    = strlen(text->text.t);
     text->encoding  = ENC_ISO_LATIN_1;
     text->storage   = PL_CHARS_LOCAL;
-    text->canonical = TRUE;
-  } else if ( (flags & CVT_STRING) && isString(w) )
-  { if ( isBString(w) )
-    { text->text.t   = getCharsString(w, &text->length);
-      text->encoding = ENC_ISO_LATIN_1;
-    } else
-    { text->text.w   = getCharsWString(w, &text->length);
-      text->encoding = ENC_WCHAR;
-    }
-    text->storage   = PL_CHARS_STACK;
     text->canonical = TRUE;
   } else if ( (flags & CVT_LIST) &&
 	      (isList(w) || isNil(w)) )

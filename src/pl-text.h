@@ -77,4 +77,8 @@ COMMON(int)		PL_get_text_ex(term_t t, PL_chars_t *txt,
 COMMON(IOSTREAM *)	Sopen_text(PL_chars_t *text, const char *mode);
 COMMON(void)		PL_text_recode(PL_chars_t *text, IOENC encoding);
 
+					/* pl-fli.c */
+COMMON(int)		get_atom_text(atom_t atom, PL_chars_t *text);
+COMMON(int)		get_string_text(atom_t atom, PL_chars_t *text ARG_LD);
+
 #endif /*PL_TEXT_H_INCLUDED*/

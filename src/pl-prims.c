@@ -434,17 +434,14 @@ compareAtoms(atom_t w1, atom_t w2)
 
 static int
 compareStrings(word w1, word w2 ARG_LD)
-{ char *s1, *s2;
-  int l1, l2, l, v;
+{ PL_chars_t t1, t2;
+  unsigned len;
 
-  s1 = getCharsString(w1, &l1);
-  s2 = getCharsString(w2, &l2);
-  l = (l1 < l2 ? l1 : l2);
+  get_string_text(w1, &t1 PASS_LD);
+  get_string_text(w2, &t2 PASS_LD);
+  len = (t1.length > t2.length ? t1.length : t2.length);
 
-  if ( (v=memcmp(s1, s2, l)) != 0 )
-    return v;
-
-  return l1-l2;
+  return PL_cmp_text(&t1, 0, &t2, 0, len);
 }
 
 
