@@ -836,7 +836,7 @@ signatures of these functions.  For full documentation consult the
 \begin{description}
     \cfunction{int}{PL_get_atom_nchars}{term_t t, unsigned int len, char **s}
     \cfunction{int}{PL_get_list_nchars}{term_t t, unsigned int len, char **s}
-    \cfunction{int}{PL_get_nchars}{term_t t, unsigned int len, char **s,
+    \cfunction{int}{PL_get_nchars}{term_t t, unsigned int *len, char **s,
 				   unsigned int flags}
     \cfunction{int}{PL_put_atom_nchars}{term_t t, unsigned int len, const char *s}
     \cfunction{int}{PL_put_string_nchars}{term_t t, unsigned int len, const char *s}

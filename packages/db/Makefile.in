@@ -17,6 +17,7 @@ CWFLAGS=@CWFLAGS@
 CMFLAGS=@CMFLAGS@
 CIFLAGS=-I. -I$(PLBASE)/include @CIFLAGS@
 CFLAGS=$(COFLAGS) $(CWFLAGS) $(CMFLAGS) $(CIFLAGS) @DEFS@
+LD_RUN_PATH=@LD_RUN_PATH@
 LIBS=@LIBS@
 NETLIBS=@NETLIBS@
 
@@ -46,7 +47,7 @@ DBOBJ=		db4pl.o atom.o error.o
 all:		$(TARGETS)
 
 db4pl.so:	$(DBOBJ)
-		$(LD) $(LDFLAGS) -o $@ $(DBOBJ) $(LIBS)
+		env LD_RUN_PATH=$(LD_RUN_PATH) $(LD) $(LDFLAGS) -o $@ $(DBOBJ) $(LIBS)
 
 install:	$(LIBPL)
 		mkdir -p $(PLBASE)/lib/$(PLARCH)

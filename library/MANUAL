@@ -254,7 +254,7 @@ community.    If adequate  standards  emerge we  are happy  to  actively
 support other Prolog implementations.
 
 IInnffoo.. further    information   is    available   from    http://www.swi-
-prolog.org/projects/xpce/ or by E-mail to info@www.swi-prolog.org.
+prolog.org/packages/xpce/ or by E-mail to info@www.swi-prolog.org.
 
 
 11..66 RReelleeaassee NNootteess
@@ -570,7 +570,7 @@ navigation tools progress steadily towards a mature set of tools.
 Many portability issues have been improved, including a  port to MacOS X
 (Darwin).
 
-For details, please visit the new website at www.swi-prolog.org
+For details, please visit the new website at http://www.swi-prolog.org
 
 
 11..77 AAcckknnoowwlleeddggeemmeennttss
@@ -1574,6 +1574,11 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
          double  quotes  are the  same  as  single-quotes  and  finally,
          string reads the text into a Prolog string  (see section 4.23).
          See also atom_chars/2 and atom_codes/2.
+
+    bbaacckkqquuootteedd__ssttrriinngg _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
+         If  true   (default  false),   read  translates  text   between
+         backquotes into a string object (see section 4.23).   This flag
+         is mainly for compatibility to LPA Prolog.
 
     aallllooww__vvaarriiaabbllee__nnaammee__aass__ffuunnccttoorr _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
          If true  (default  is false),  Functor(arg) is  read  as if  it
@@ -5938,8 +5943,8 @@ storing arbitrary byte-sequences.
 Starting with version  3.3, SWI-Prolog offers garbage collection  on the
 atom-space as well as  representing 0-bytes in atoms.   Although strings
 and  atoms still  have  different  features,  new code  should  consider
-using  atoms to  avoid too  many  representations for  text as  well  as
-for  compatibility to  other Prolog  systems.   Below  are  some of  the
+using atoms to  avoid too many representations  for text as well as  for
+compatibility to other  Prolog implementations.   Below are some of  the
 differences:
 
   o _c_r_e_a_t_i_o_n
@@ -5955,7 +5960,14 @@ differences:
     use  of strings will cause many  garbage collections.  Atom  garbage
     collection is generally faster.
 
-See also the prolog-flag double_quotes.
+String objects by  default have no syntax  and thus can only be  created
+using the  predicates below or through  the foreign language  interface.
+There  are  two  ways to  make  read/1  read  text  into  strings,  both
+controlled through  Prolog flags.   One is by setting  the double_quotes
+flag to  string and the other  is by setting the  backquoted_string  flag
+to  true.   In  latter case,  `Hello world` is  read into  a string  and
+write_term/2 prints strings between backquotes if quoted is true.   This
+flag provides compatibility to LPA Prolog string handling.
 
 
 ssttrriinngg__ttoo__aattoomm((_?_S_t_r_i_n_g_, _?_A_t_o_m))
@@ -14314,8 +14326,8 @@ current_stream/3, 21, 253              quintus _l_i_b_r_a_r_y, 21, 647, 6
 current_thread/2, 540
 current_atom/1, 233                    random/1, 402
 current_char_conversion/2, 375         read/1, 54,  68, 247,  290,  323,
-current_input/1, 112, 262                    328,  330, 332,  335,  594,
-current_output/1, 263                        936
+current_input/1, 112, 262                    328,  330, 332,  335,  365,
+current_output/1, 263                        594, 936
 current_predicate/1, 238               read/2, 329
 current_predicate/2, 238, 604          read_clause/1, 330
 current_prolog_flag/2, 21, 34, 53,     read_clause/2, 331
@@ -14569,7 +14581,7 @@ main/0, 52                             write_term/3, 318
 make/0, 7, 57, 80, 87, 95, 105         write_canonical/[1
 make_directory/1, 533                     2], 17
 make_library_index/1, 58               write_term/2, 45,  54, 152,  317--
-make_library_index/2, 59                     319, 478, 483
+make_library_index/2, 59                     319, 365, 478, 483
 make_library_index/1, 57               write_term/3, 56
 make_library_index/2, 57               write_term/[2
 manpce/0, 66                              3], 17

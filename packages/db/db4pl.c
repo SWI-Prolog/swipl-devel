@@ -22,6 +22,10 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <SWI-Stream.h>
 #include "db4pl.h"
 #include <sys/types.h>
@@ -34,12 +38,6 @@
 #include <string.h>
 #include <assert.h>
 #include <signal.h>
-
-					/* <  4.0: set_server */
-					/* >= 4.0: set_rpc_server */
-#ifndef HAVE_SET_RPC_SERVER
-#define set_rpc_server set_server
-#endif
 
 #define DEBUG(g) (void)0
 
@@ -1143,8 +1141,13 @@ pl_db_init(term_t option_list)
   if ( get_server(option_list, &si) )
   { if ( (rval=db_env_create(&db_env, DB_CLIENT)) )
       return db_status(rval);
-    rval = db_env->set_rpc_server(db_env, si.host,
+#ifdef HAVE_SET_RPC_SERVER		/* >= 4.0 */
+    rval = db_env->set_rpc_server(db_env, 0, si.host,
 				  si.cl_timeout, si.sv_timeout, si.flags);
+#else
+    rval = db_env->set_server(db_env, si.host,
+			      si.cl_timeout, si.sv_timeout, si.flags);
+#endif
     if ( rval )
       return db_status(rval);
   } else
