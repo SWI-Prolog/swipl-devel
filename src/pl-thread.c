@@ -171,7 +171,6 @@ static int threads_ready = FALSE;	/* Prolog threads available */
 static Table queueTable;		/* name --> queue */
 static int queue_id;			/* next generated id */
 
-
 TLD_KEY PL_ldata;			/* key for thread PL_local_data */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1665,8 +1664,19 @@ dispatch_cond_wait(message_queue *queue)
     timeout.tv_sec  = now.tv_sec;
     timeout.tv_nsec = (now.tv_usec+250000) * 1000;
 
-    switch( (rc=pthread_cond_timedwait(&queue->cond_var, &queue->mutex,
-				       &timeout)) )
+    rc = pthread_cond_timedwait(&queue->cond_var, &queue->mutex, &timeout);
+#ifdef O_DEBUG
+    switch( LD->thread.info->ldata_status )
+    { case LDATA_IDLE:
+      case LDATA_ANSWERED:
+	break;
+      default:
+	Sdprintf("%d: ldata_status = %d\n",
+		 PL_thread_self(), LD->thread.info->ldata_status);
+    }
+#endif
+
+    switch( rc )
     { case ETIMEDOUT:
       { if ( LD->pending_signals )
 	  return EINTR;
@@ -3033,39 +3043,88 @@ resumeThreads(void)
 }
 
 
+#if 0					/* don't need it right now */
+#ifdef HAVE_EXECINFO_H
+#define BACKTRACE 1
+
+#if BACKTRACE
+#include <execinfo.h>
+#include <string.h>
+
+static void
+print_trace (void)
+{ void *array[5];
+  size_t size;
+  char **strings;
+  size_t i;
+     
+  size = backtrace(array, sizeof(array)/sizeof(void *));
+  strings = backtrace_symbols(array, size);
+     
+  Sdprintf("C-stack:\n");
+  
+  for(i = 0; i < size; i++)
+  { Sdprintf("\t[%d] %s\n", i, strings[i]);
+  }
+       
+  free(strings);
+}
+#endif /*BACKTRACE*/
+#endif /*HAVE_EXECINFO_H*/
+#endif /*O_DEBUG*/
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+doThreadLocalData()
+
+Does the signal  handling  to  deal   with  asynchronous  inspection  if
+thread-local  data.  It  currently    assumes  pthread_getspecific()  is
+async-signal-safe, which is  not  guaranteed.  It   is  adviced  to  use
+__thread classified data to deal  with   thread  identity for this case.
+Must be studied.  See also
+
+https://listman.redhat.com/archives/phil-list/2003-December/msg00042.html
+
+Note that the use of info->ldata_status   is actually not necessary, but
+it largely simplifies debugging if not all doThreadLocalData() do answer
+for whathever reason.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static void
 doThreadLocalData(int sig)
-{ PL_local_data_t *ld = LD;	/* assumes pthread_getspecific() works */
-				/* in a signal handler */
+{ PL_local_data_t *ld;
+  PL_thread_info_t *info;
+
+  ld = LD;
+  info = ld->thread.info;
+
+  info->ldata_status = LDATA_ANSWERING;
 
   (*ldata_function)(ld);
 
   if ( ld->thread.forall_flags & PL_THREAD_SUSPEND_AFTER_WORK )
-  { PL_thread_info_t *info = ld->thread.info;
-    info->status = PL_THREAD_SUSPENDED;
-
-    DEBUG(1, Sdprintf("\n\tDone work on %d; suspending ...",
-		      PL_thread_self()));
+  { DEBUG(1, Sdprintf("\n\tDone work on %d; suspending ...",
+		      info->pl_tid));
     
     sem_post(sem_mark_ptr);
     wait_resume(info);
   } else
-  { DEBUG(1, Sdprintf("\n\tDone work on %d", PL_thread_self()));
+  { DEBUG(1, Sdprintf("\n\tDone work on %d", info->pl_tid));
     sem_post(sem_mark_ptr);
   }
+
+  info->ldata_status = LDATA_ANSWERED;
 }
-
-
-
 
 
 void
 forThreadLocalData(void (*func)(PL_local_data_t *), unsigned flags)
-{ int i;
-  struct sigaction old;
+{ struct sigaction old;
   struct sigaction new;
   int me = PL_thread_self();
   int signalled = 0;
+  PL_thread_info_t *th;
+  sigset_t sigmask;
 
   DEBUG(1, Sdprintf("Calling forThreadLocalData() from %d\n", me));
 
@@ -3077,19 +3136,22 @@ forThreadLocalData(void (*func)(PL_local_data_t *), unsigned flags)
     exit(1);
   }
 
+  allSignalMask(&sigmask);
   memset(&new, 0, sizeof(new));
   new.sa_handler = doThreadLocalData;
   new.sa_flags   = SA_RESTART;
+  new.sa_mask    = sigmask;
   sigaction(SIG_FORALL, &new, &old);
 
-  for(i=1; i<MAX_THREADS; i++)
-  { if ( threads[i].thread_data && i != me &&
-	 threads[i].status == PL_THREAD_RUNNING )
+  for(th = &threads[1]; th < &threads[MAX_THREADS]; th++)
+  { if ( th->thread_data && th->pl_tid != me &&
+	 th->status == PL_THREAD_RUNNING )
     { int rc;
 
-      DEBUG(1, Sdprintf("Signalling %d\n", i));
-      threads[i].thread_data->thread.forall_flags = flags;
-      if ( (rc=pthread_kill(threads[i].tid, SIG_FORALL)) == 0 )
+      DEBUG(1, Sdprintf("Signalling %d\n", th->pl_tid));
+      th->thread_data->thread.forall_flags = flags;
+      th->ldata_status = LDATA_SIGNALLED;
+      if ( (rc=pthread_kill(th->tid, SIG_FORALL)) == 0 )
       { signalled++;
       } else if ( rc != ESRCH )
 	Sdprintf("forThreadLocalData(): Failed to signal: %s\n", ThError(rc));
@@ -3109,6 +3171,8 @@ forThreadLocalData(void (*func)(PL_local_data_t *), unsigned flags)
   }
 
   sem_destroy(&sem_mark);
+  for(th = &threads[1]; th < &threads[MAX_THREADS]; th++)
+    th->ldata_status = LDATA_IDLE;
 
   DEBUG(1, Sdprintf(" All done!\n"));
 

@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Hanging atom garbage collector in multi-threaded execution
+    on Unix platforms.  With lots of help from Sergey Tikhonov.
+
   * FIXED: make convert_time/7 thread-safe using localtime_r() if
     provided.
 

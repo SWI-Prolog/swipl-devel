@@ -365,7 +365,9 @@ prolog_message(gc(done(G, T, Time, UG, UT, RG, RT))) -->
 	  [G, T, Time, UG, UT, RG, RT]
 	].
 prolog_message(agc(start)) -->
-	[ 'AGC: ', flush ].
+	{ thread_self(Me)
+	},
+	[ 'AGC: [~w] '-[Me], flush ].
 prolog_message(agc(done(Collected, Remaining, Time))) -->
 	[ at_same_line,
 	  'reclaimed ~D atoms in ~2f sec. (remaining: ~D)'-

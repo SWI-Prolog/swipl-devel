@@ -34,6 +34,14 @@
 
 #define MAX_THREADS 100			/* for now */
 
+typedef enum
+{ LDATA_IDLE = 0,
+  LDATA_SIGNALLED,
+  LDATA_ANSWERING,
+  LDATA_ANSWERED
+} ldata_status_t;
+
+
 typedef struct _PL_thread_info_t
 { int		    pl_tid;		/* Prolog thread id */
   unsigned long	    local_size;		/* Stack sizes */
@@ -56,6 +64,7 @@ typedef struct _PL_thread_info_t
   record_t	    goal;		/* Goal to start thread */
   record_t	    return_value;	/* Value (term) returned */
   atom_t	    name;		/* Name of the thread */
+  ldata_status_t    ldata_status;	/* status of forThreadLocalData() */
 } PL_thread_info_t;
 
 typedef struct message_queue

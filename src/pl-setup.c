@@ -586,7 +586,7 @@ resetSignals()
 
 #ifdef HAVE_SIGPROCMASK
 
-static void
+void
 allSignalMask(sigset_t *set)
 { sigfillset(set);
 #ifdef O_PROFILE
