@@ -267,7 +267,7 @@ initialise(TD, Client:[object]) :->
 	send_super(TD, initialise),
 	send(TD, slot, client, Client),
 	send(TD, pen, 0),
-	send(TD, gap, size(0, 5)).
+	send(TD, border, size(0, 2)).
 
 
 menu_bar(TD, Create:[bool], MB:menu_bar) :<-
@@ -304,24 +304,39 @@ popup(TD, Name:name, Create:[bool], Popup:popup) :<-
 	(   get(MB, member, Name, Popup)
 	->  true
 	;   Create == @on
-	->  send(MB, append, new(Popup, popup(Name)))
+	->  send(MB, append, new(Popup, popup(Name))),
+	    send(Popup, message, message(TD, action, @arg1))
 	).
 
 
-append(TD, B:'popup|tool_button|graphical|{gap}', Where:[name]) :->
+append(TD,
+       B:'popup|menu_item|tool_button|graphical|{gap}',
+       Where:where=[name], Before:before=[any]) :->
 	"Append buttons or popup for manu-bar"::
 	(   send(B, instance_of, popup)
 	->  get(TD, menu_bar, @on, MB),
-	    send(MB, append, B)
+	    send(MB, append, B),
+	    (	get(B, message, @default)
+	    ->	send(B, message, message(TD, action, @arg1))
+	    ;	true
+	    )
 	;   send(B, instance_of, menu_item)
 	->  get(TD, popup, Where, @on, Popup),
-	    send(Popup, append, B)
+	    send(Popup, insert_before, B, Before)
 	;   (   send(B, instance_of, tool_button)
 	    ;	B == gap
 	    )
 	->  get(TD, tool_bar, @on, TB),
 	    send(TB, append, B)
 	;   send_super(TD, append, B, Where)
+	).
+
+action(TD, Action:name) :->
+	"Forward popup-action to <-client"::
+	(   get(TD, client, Client),
+	    Client \== @default
+	->  send(Client, Action)
+	;   send(TD, report, error, 'No client for posting action')
 	).
 
 :- pce_end_class(tool_dialog).
