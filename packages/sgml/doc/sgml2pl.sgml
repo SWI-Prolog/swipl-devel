@@ -1160,7 +1160,7 @@ supported.
 The `SGML declaration' is fixed, though most of the parameters are 
 handled through indirections in the implementation. 
     <tag>The DATATAG feature
-It is regarded as superseded by SHORTREF, which is supported.
+It is regarded as superseeded by SHORTREF, which is supported.
 (SP does not support it either.)
     <tag>The RANK feature
 It is regarded as obsolete.

@@ -1,3 +1,10 @@
+* FIXED: Added handling of #CONREF attribute default (Richard O'Keefe).
+
+* FIXED: sgml utility not to print "C" at the end when there where errors
+  (Richard O'Keefe)
+
+* FIXED: handle value-shorthand for nmtoken (Richard O'Keefe)
+
 * FIXED: &RE; SHORTREF handling if the newline appears as the first
   character of a (new) #PCDATA block.
 
