@@ -184,6 +184,7 @@ typedef struct _PL_extension
 
 extern			PL_extension PL_extensions[]; /* not Win32! */
 __pl_export void	PL_register_extensions(const PL_extension *e);
+__pl_export void	PL_load_extensions(const PL_extension *e);
 __pl_export int		PL_register_foreign(const char *name, int arity,
 					    pl_function_t func, int flags);
 
