@@ -22,7 +22,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#define O_DEBUG 1
+/*#define O_DEBUG 1*/
 #include "pl-incl.h"
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
@@ -50,6 +50,9 @@ static bool	loadPart(IOSTREAM *fd, Module *module, int skip ARG_LD);
 static bool	loadInModule(IOSTREAM *fd, int skip ARG_LD);
 static int	qlfVersion(IOSTREAM *s);
 static atom_t	qlfFixSourcePath(const char *raw);
+static int	pushPathTranslation(IOSTREAM *fd, const char *loadname,
+				    int flags);
+static void	popPathTranslation(void);
 
 #define Qgetc(s) Snpgetc(s)		/* ignore position recording */
 
@@ -276,10 +279,17 @@ storeXrId(long id, word value)
 		 *	 PRIMITIVE LOADING	*
 		 *******************************/
 
-static int	qlf_has_moved;		/* file has moved: be careful */
-static char *   qlf_save_dir;		/* dir of saved .qlf file */
-static char *	qlf_load_dir;		/* dir of .qlf file now */
-static int	qlf_saved_version;	/* version used for save */
+typedef struct qlf_state
+{ int	has_moved;			/* Paths must be translated */
+  char *save_dir;			/* Directory saved */
+  char *load_dir;			/* Directory loading */
+  int   saved_version;			/* Version saved */
+  struct qlf_state *previous;		/* previous saved state (reentrance) */
+} qlf_state;
+
+static qlf_state *load_state;		/* current load-state */
+
+#define PATH_ISDIR	0x1		/* pushPathTranslation() flags */
 
 static bool
 qlfLoadError(IOSTREAM *fd, char *ctx)
@@ -655,14 +665,14 @@ loadWicFd(IOSTREAM *fd)
   char *s;
   Char c;
   char mbuf[100];
-  char *savedhome;
   int saved_wsize;
+  int saved_version;
 
   s = getMagicString(fd, mbuf, sizeof(mbuf));
   if ( !s || !streq(s, saveMagic) )
     return fatalError("Not a SWI-Prolog saved state");
 
-  if ( (qlf_saved_version=getNum(fd)) < LOADVERSION )
+  if ( (saved_version=getNum(fd)) < LOADVERSION )
   { fatalError("Saved state has incompatible save version");
     fail;
   }
@@ -672,20 +682,9 @@ loadWicFd(IOSTREAM *fd)
   { fatalError("Saved state has incompatible (%d) word-length", saved_wsize);
     fail;
   }
-
 					/* fix paths for changed home */
-  savedhome = getString(fd);
-  if ( !systemDefaults.home || streq(savedhome, systemDefaults.home) )
-  { qlf_has_moved = FALSE;
-  } else
-  { qlf_has_moved = TRUE;
-    qlf_save_dir = store_string(savedhome);
-    qlf_load_dir = systemDefaults.home;
-
-    DEBUG(1, Sdprintf("QLF file has moved; replacing %s --> %s\n",
-		      qlf_save_dir, qlf_load_dir));
-
-  }
+  pushPathTranslation(fd, systemDefaults.home, PATH_ISDIR);
+  load_state->saved_version = saved_version;
 
   for(;;)
   { c = Getc(fd);
@@ -693,6 +692,7 @@ loadWicFd(IOSTREAM *fd)
     switch( c )
     { case EOF:
       case 'T':				/* trailer */
+	popPathTranslation();
 	succeed;
       case 'W':
 	{ char *name = store_string(getString(fd) );
@@ -741,7 +741,7 @@ loadStatement(int c, IOSTREAM *fd, int skip ARG_LD)
       source_line_no   = getNum(fd);
       
       loadQlfTerm(goal, fd PASS_LD);
-      DEBUG(1, Sdprintf("%s:%d: Directive: ",
+      DEBUG(2, Sdprintf("%s:%d: Directive: ",
 			PL_atom_chars(source_file_name), source_line_no);
 	       pl_write(goal);
 	       Sdprintf("\n"));
@@ -778,7 +778,7 @@ loadStatement(int c, IOSTREAM *fd, int skip ARG_LD)
 
 static void
 loadPredicateFlags(Definition def, IOSTREAM *fd, int skip ARG_LD)
-{ if ( qlf_saved_version <= 31 )
+{ if ( load_state->saved_version <= 31 )
   { if ( !skip && SYSTEM_MODE )
       set(def, SYSTEM|HIDE_CHILDS|LOCKED);
   } else
@@ -840,7 +840,7 @@ loadPredicate(IOSTREAM *fd, int skip ARG_LD)
 	clause = (Clause) allocHeap(sizeofClause(ncodes));
 	clause->code_size = (unsigned short) ncodes;
 	clause->line_no = (unsigned short) getNum(fd);
-	if ( qlf_saved_version < 32 )
+	if ( load_state->saved_version < 32 )
 	  clause->source_no = (currentSource ? currentSource->index : 0);
 	else
 	{ SourceFile sf = (void *) loadXR(fd);
@@ -970,15 +970,15 @@ static atom_t
 qlfFixSourcePath(const char *raw)
 { char buf[MAXPATHLEN];
     
-  if ( qlf_has_moved && strprefix(raw, qlf_save_dir) )
+  if ( load_state->has_moved && strprefix(raw, load_state->save_dir) )
   { char *s;
-    int lensave = strlen(qlf_save_dir);
+    int lensave = strlen(load_state->save_dir);
     const char *tail = &raw[lensave];
 
-    if ( strlen(qlf_load_dir)+1+strlen(tail)+1 > MAXPATHLEN )
+    if ( strlen(load_state->load_dir)+1+strlen(tail)+1 > MAXPATHLEN )
       fatalError("Path name too long: %s", raw);
 
-    strcpy(buf, qlf_load_dir);
+    strcpy(buf, load_state->load_dir);
     s = &buf[strlen(buf)];
     *s++ = '/';
     strcpy(s, tail);
@@ -1728,13 +1728,13 @@ qlfSourceInfo(IOSTREAM *s, long offset, term_t list ARG_LD)
     return warning("QLF format error");
   
   return PL_unify_list(list, head, list) &&
-         PL_unify_atom_chars(head, str);
+         PL_unify_atom(head, qlfFixSourcePath(str));
 }
 
 
 static word
 qlfInfo(const char *file,
-	term_t cversion, term_t version,
+	term_t cversion, term_t version, term_t wsize,
 	term_t files0 ARG_LD)
 { IOSTREAM *s = NULL;
   int lversion;
@@ -1742,6 +1742,7 @@ qlfInfo(const char *file,
   long *qlfstart = NULL;
   word rval = TRUE;
   term_t files = PL_copy_term_ref(files0);
+  int saved_wsize;
 
   TRY(PL_unify_integer(cversion, VERSION));
 
@@ -1759,13 +1760,17 @@ qlfInfo(const char *file,
   { Sclose(s);
     fail;
   }
-    
   TRY(PL_unify_integer(version, lversion));
 
+  saved_wsize = getNum(s);		/* word-size of file */
+  TRY(PL_unify_integer(wsize, saved_wsize));
+
+  pushPathTranslation(s, file, 0);
+
   if ( Sseek(s, -4, SIO_SEEK_END) < 0 )	/* 4 bytes of putLong() */
-    return warning("qlf_info/3: seek failed: %s", OsError());
+    return warning("qlf_info/4: seek failed: %s", OsError());
   nqlf = getLong(s);
-  DEBUG(1, Sdprintf("Found %d sources at %d starting at", nqlf, rval));
+  DEBUG(1, Sdprintf("Found %d sources at", nqlf));
   qlfstart = (long *)allocHeap(sizeof(long) * nqlf);
   Sseek(s, -4 * (nqlf+1), SIO_SEEK_END);
   for(i=0; i<nqlf; i++)
@@ -1782,6 +1787,7 @@ qlfInfo(const char *file,
   }
 
   rval = PL_unify_nil(files);
+  popPathTranslation();
 
 out:
   if ( qlfstart )
@@ -1793,18 +1799,15 @@ out:
 }
 
 
-
-word
-pl_qlf_info(term_t file,
-	    term_t cversion, term_t version,
-	    term_t files)
-{ GET_LD
+static
+PRED_IMPL("$qlf_info", 5, qlf_info, 0)
+{ PRED_LD
   char *name;
 
-  if ( !PL_get_file_name(file, &name, 0) )
+  if ( !PL_get_file_name(A1, &name, PL_FILE_ABSOLUTE) )
     fail;
 
-   return qlfInfo(name, cversion, version, files PASS_LD);
+  return qlfInfo(name, A2, A3, A4, A5 PASS_LD);
 }
 
 
@@ -1875,6 +1878,66 @@ qlfVersion(IOSTREAM *s)
 }
 
 
+static int
+pushPathTranslation(IOSTREAM *fd, const char *absloadname, int flags)
+{ GET_LD
+  char *abssavename;
+  qlf_state *new = allocHeap(sizeof(*new));
+
+  memset(new, 0, sizeof(*new));
+  new->previous = load_state;
+  load_state = new;
+  
+  abssavename = getString(fd);
+  if ( !streq(absloadname, abssavename) )
+  { char load[MAXPATHLEN];
+    char save[MAXPATHLEN];
+    char *l, *s, *le, *se; 
+
+    new->has_moved = TRUE;
+
+    if ( (flags & PATH_ISDIR) )
+    { l = strcpy(load, absloadname);
+      s = strcpy(save, abssavename);
+    } else
+    { l = DirName(absloadname, load);
+      s = DirName(abssavename, save);
+    }
+    le = l+strlen(l);
+    se = s+strlen(s);
+    for( ;le>l && se>s && le[-1] == se[-1]; le--, se--)
+    { if ( le[-1] == '/' )
+      { *le = EOS;
+        *se = EOS;
+      }
+    }
+
+    new->load_dir = store_string(l);
+    new->save_dir = store_string(s);
+    DEBUG(1, Sdprintf("QLF file has moved; replacing %s --> %s\n",
+		      load_state->save_dir, load_state->load_dir));
+  }
+
+  succeed;
+}
+
+
+static void
+popPathTranslation()
+{ GET_LD
+
+  if ( load_state )
+  { qlf_state *old = load_state;
+
+    load_state = load_state->previous;
+
+    if ( old->has_moved )
+    { remove_string(old->load_dir);
+      remove_string(old->save_dir);
+      freeHeap(old, sizeof(*old));
+    }
+  }
+}
 
 static bool
 qlfLoad(char *file, Module *module ARG_LD)
@@ -1882,7 +1945,6 @@ qlfLoad(char *file, Module *module ARG_LD)
   bool rval;
   int lversion;
   char *absloadname;
-  char *abssavename;
   char tmp[MAXPATHLEN];
   int saved_wsize;
 
@@ -1911,47 +1973,15 @@ qlfLoad(char *file, Module *module ARG_LD)
     fail;
   }
 
-  qlf_saved_version = lversion;
-  abssavename = getString(fd);
-  if ( streq(absloadname, abssavename) )
-  { qlf_has_moved = FALSE;
-    qlf_load_dir = qlf_save_dir = NULL;
-  } else
-  { char load[MAXPATHLEN];
-    char save[MAXPATHLEN];
-    char *l, *s, *le, *se; 
-    qlf_has_moved = TRUE;
-
-    l = DirName(absloadname, load);
-    s = DirName(abssavename, save);
-    le = l+strlen(l);
-    se = s+strlen(s);
-    for( ;le>l && se>s && le[-1] == se[-1]; le--, se--)
-    { if ( le[-1] == '/' )
-      { *le = EOS;
-        *se = EOS;
-      }
-    }
-
-    qlf_load_dir = store_string(l);
-    qlf_save_dir = store_string(s);
-    DEBUG(1, Sdprintf("QLF file has moved; replacing %s --> %s\n",
-		      qlf_save_dir, qlf_load_dir));
-
-  }
-
+  pushPathTranslation(fd, absloadname, 0);
+  load_state->saved_version = lversion;
   if ( Qgetc(fd) != 'Q' )
     return qlfLoadError(fd, "qlfLoad()");
 
   pushXrIdTable(PASS_LD1);
   rval = loadPart(fd, module, FALSE PASS_LD);
   popXrIdTable(PASS_LD1);
-  if ( qlf_has_moved )
-  { remove_string(qlf_load_dir);
-    remove_string(qlf_save_dir);
-    qlf_has_moved = FALSE;
-    qlf_load_dir = qlf_save_dir = NULL;
-  }
+  popPathTranslation();
 
   Sclose(fd);
 
@@ -2386,4 +2416,10 @@ qlfCleanup()
   }
 }
 
+		 /*******************************
+		 *      PUBLISH PREDICATES	*
+		 *******************************/
 
+BeginPredDefs(wic)
+  PRED_DEF("$qlf_info", 5, qlf_info, 0)
+EndPredDefs

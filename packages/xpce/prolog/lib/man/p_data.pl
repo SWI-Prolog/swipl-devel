@@ -598,12 +598,39 @@ source(Class, Loc:source_location) :<-
 	"Find souce location of class definition"::
 	get(Class, slot, source, Loc), Loc \== @nil,
 	get(Loc, line_no, LineNo), LineNo \== @nil,
-	fix_source_path(Loc).
+	fix_source_path(Loc, Class).
 
-fix_source_path(Loc) :-
+
+%	fix_source_path(+SourceLocation, +Context)
+%	
+%	Fixes  the  location  of  a  registered   source  due  to  moved
+%	installation. The 2nd and 3th clause exploit the Prolog database
+%	to re-locate the source. It is used to find the correct location
+%	if a class is  loaded  from  a   .QLF  file  and  the  installed
+%	hierarchy is moved.
+
+fix_source_path(Loc, _Ctx) :-
 	get(Loc, file_name, Name),
 	send(file(Name), exists, @on), !.
-fix_source_path(Loc) :-
+fix_source_path(Loc, Class) :-		% find from Prolog source-database
+	send(Class, instance_of, class),
+	get(Class, name, ClassName),
+	clause(pce_principal:pce_class(ClassName, _, _, _, _, _), true, Ref),
+	clause_property(Ref, file(File)), !,
+	send(Loc, file_name, File).
+fix_source_path(Loc, SM) :-		% find from Prolog source-database
+	(   send(SM, instance_of, send_method)
+	->  Head = pce_lazy_send_method(Name, ClassName, _)
+	;   send(SM, instance_of, get_method)
+	->  Head = pce_lazy_get_method(Name, ClassName, _)
+	),
+	get(SM, context, Class),
+	get(Class, name, ClassName),
+	get(SM, name, Name),
+	clause(pce_principal:Head, true, Ref),
+	clause_property(Ref, file(File)), !,
+	send(Loc, file_name, File).
+fix_source_path(Loc, _Ctx) :-
 	(   pce_host:property(system_source_prefix(Prefix)),
 	    atom_codes(Prefix, PrefixChars),
 	    get(Loc, file_name, Name),
@@ -746,7 +773,7 @@ source(M, Loc) :<-
 	"Find source definition"::
 	get(M, slot, source, Loc), Loc \== @nil,
 	get(Loc, line_no, LineNo), LineNo \== @nil,
-	fix_source_path(Loc).
+	fix_source_path(Loc, M).
 
 
 man_documented(M) :->

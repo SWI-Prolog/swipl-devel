@@ -11,7 +11,10 @@
     Alan Baljeu.
 
   * FIXED: Handling QLF file if their location has changed.  Various
-    posters to the mailing list.
+    posters to the mailing list.  Also fixed re-entrance problem in
+    the QLF-loader (affecting various XPCE tools) and location sources
+    of XPCE objects.  The installation should now be truly position
+    independent.
 
   * FIXED: autoloader bug in multi-threaded code.
 

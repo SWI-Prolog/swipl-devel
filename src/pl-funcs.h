@@ -793,7 +793,6 @@ word		pl_qlf_open(term_t file);
 word		pl_qlf_close(void);
 word		pl_qlf_load(term_t file, term_t module);
 word		pl_qlf_assert_clause(term_t ref, term_t saveclass);
-word		pl_qlf_info(term_t file, term_t cvers, term_t fvers, term_t i);
 
 /* pl-write.c */
 char *		varName(term_t var, char *buf);

@@ -218,7 +218,6 @@ static const PL_extension foreigns[] = {
   FRG("$qlf_close",		0, pl_qlf_close,		0),
   FRG("$qlf_load",		2, pl_qlf_load,		     META),
   FRG("$qlf_assert_clause",	2, pl_qlf_assert_clause,	0),
-  FRG("$qlf_info",		4, pl_qlf_info,			0),
 
   FRG("abolish",    		1, pl_abolish1,		     META),
   FRG("abolish",    		2, pl_abolish,		     META),
@@ -608,6 +607,7 @@ DECL_PLIST(read);
 DECL_PLIST(wam);
 DECL_PLIST(thread);
 DECL_PLIST(profile);
+DECL_PLIST(wic);
 
 void
 initBuildIns(void)
@@ -626,6 +626,7 @@ initBuildIns(void)
   REG_PLIST(wam);
   REG_PLIST(thread);
   REG_PLIST(profile);
+  REG_PLIST(wic);
 
   PROCEDURE_garbage_collect0 = lookupProcedure(FUNCTOR_dgarbage_collect1, m);
   PROCEDURE_block3	     = lookupProcedure(FUNCTOR_block3, 		  m);
