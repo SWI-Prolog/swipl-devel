@@ -284,17 +284,17 @@ searchRegex(Regex re, Any obj, Int start, Int end)
 
     if ( tb->buffer.iswide )
       return search_regex(re,
-			  (char *)&tb->tb_buffer16[0],
+			  (char *)&tb->tb_bufferW[0],
 			  tb->gap_start*2,
-			  (char *)&tb->tb_buffer16[tb->gap_end+1],
+			  (char *)&tb->tb_bufferW[tb->gap_end+1],
 			  (tb->size - tb->gap_start)*2,
 			  from*2,
 			  (isDefault(end) ? tb->size : valInt(end))*2);
     else
       return search_regex(re,
-			  (char *)&tb->tb_buffer8[0],
+			  (char *)&tb->tb_bufferA[0],
 			  tb->gap_start,
-			  (char *)&tb->tb_buffer8[tb->gap_end+1],
+			  (char *)&tb->tb_bufferA[tb->gap_end+1],
 			  tb->size - tb->gap_start,
 			  from,
 			  isDefault(end) ? tb->size : valInt(end));
@@ -305,16 +305,16 @@ searchRegex(Regex re, Any obj, Int start, Int end)
 
     if ( tb->buffer.iswide )
       rval = search_regex(re,
-			  (char *)tb->tb_buffer16, tb->gap_start*2,
-			  (char *)&tb->tb_buffer16[tb->gap_end+1],
+			  (char *)tb->tb_bufferW, tb->gap_start*2,
+			  (char *)&tb->tb_bufferW[tb->gap_end+1],
 			  (tb->size - tb->gap_start)*2,
 			  (from+frag->start)*2,
 			  (isDefault(end) ? frag->start + frag->length
 			  		  : valInt(end)+frag->start)*2);
     else
       rval = search_regex(re,
-			  (char *)tb->tb_buffer8, tb->gap_start,
-			  (char *)&tb->tb_buffer8[tb->gap_end+1],
+			  (char *)tb->tb_bufferA, tb->gap_start,
+			  (char *)&tb->tb_bufferA[tb->gap_end+1],
 			  tb->size - tb->gap_start,
 			  from+frag->start,
 			  isDefault(end) ? frag->start + frag->length
@@ -405,15 +405,15 @@ getMatchRegex(Regex re, Any obj, Int start, Int end)
 
     if ( tb->buffer.iswide )
       return match_regex(re,
-			 (char *)tb->tb_buffer16, tb->gap_start*2,
-			 (char *)&tb->tb_buffer16[tb->gap_end+1],
+			 (char *)tb->tb_bufferW, tb->gap_start*2,
+			 (char *)&tb->tb_bufferW[tb->gap_end+1],
 			 (tb->size - tb->gap_start)*2,
 			 from*2,
 			 (isDefault(end) ? tb->size : valInt(end))*2);
     else
       return match_regex(re,
-			 (char *)tb->tb_buffer8, tb->gap_start,
-			 (char *)&tb->tb_buffer8[tb->gap_end+1],
+			 (char *)tb->tb_bufferA, tb->gap_start,
+			 (char *)&tb->tb_bufferA[tb->gap_end+1],
 			 tb->size - tb->gap_start,
 			 from, isDefault(end) ? tb->size : valInt(end));
   } else if ( instanceOfObject(obj, ClassFragment) )
@@ -423,16 +423,16 @@ getMatchRegex(Regex re, Any obj, Int start, Int end)
 
     if ( tb->buffer.iswide )
       rval = match_regex(re,
-			 (char *)tb->tb_buffer16, tb->gap_start*2,
-			 (char *)&tb->tb_buffer16[tb->gap_end+1],
+			 (char *)tb->tb_bufferW, tb->gap_start*2,
+			 (char *)&tb->tb_bufferW[tb->gap_end+1],
 			 (tb->size - tb->gap_start)*2,
 			 (from+frag->start)*2,
 			 (isDefault(end) ? frag->start + frag->length
 			 		 : valInt(end)+frag->start)*2);
     else
       rval = match_regex(re,
-			 (char *)tb->tb_buffer8, tb->gap_start,
-			 (char *)&tb->tb_buffer8[tb->gap_end+1],
+			 (char *)tb->tb_bufferA, tb->gap_start,
+			 (char *)&tb->tb_bufferA[tb->gap_end+1],
 			 tb->size - tb->gap_start,
 			 from+frag->start,
 			 isDefault(end) ? frag->start + frag->length

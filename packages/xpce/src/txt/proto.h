@@ -151,7 +151,7 @@ COMMON(long)	fill_line_textbuffer(TextBuffer tb, long int here, long int to, int
 COMMON(status)	sortTextBuffer(TextBuffer tb, Int from, Int to);
 COMMON(int)	count_lines_textbuffer(TextBuffer tb, int f, int t);
 COMMON(int)	start_of_line_n_textbuffer(TextBuffer tb, int lineno);
-COMMON(int)	fetch_textbuffer(TextBuffer tb, int where);
+COMMON(wint_t)	fetch_textbuffer(TextBuffer tb, int where);
 COMMON(status)	change_textbuffer(TextBuffer tb, int where, void *s, int len);
 COMMON(status)	str_sub_text_buffer(TextBuffer tb, String s, int start, int len);
 COMMON(status)	insert_textbuffer(TextBuffer tb, int where, int times, String s);

@@ -100,6 +100,7 @@ checkErrorSourceSink(SourceSink ss, IOSTREAM *fd)
   succeed;
 }
 
+
 		/********************************
 		*     OBJECT LOADING SAVING	*
 		********************************/

@@ -112,7 +112,7 @@ struct undo_buffer
   UndoCell	buffer;		/* buffer storage */
 };
 
-#define istb8(tb)		((tb)->buffer.iswide == 0)
+#define istbA(tb)		((tb)->buffer.iswide == 0)
 #define Round(n, r)		(((n)+(r)-1) & (~((r)-1)))
 #define AllocRound(s)		Round(s, sizeof(UndoCell))
 #define Distance(p1, p2)	((char *)(p1) - (char *)(p2))
@@ -474,7 +474,7 @@ register_insert_textbuffer(TextBuffer tb, long int where, long int len)
 
 static void
 copy_undo(TextBuffer tb, long int from, long int len, void *buf)
-{ if ( istb8(tb) )
+{ if ( istbA(tb) )
   { charA *to = buf;
 
     for( ; len > 0; len--, from++ )

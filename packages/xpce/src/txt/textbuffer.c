@@ -50,9 +50,9 @@ forwards status insert_textbuffer_shift(TextBuffer, int, int, String, int);
 #define Swap(a, b)		{ int _tmp = (a); (a) = (b); (b) = _tmp; }
 #define Before(i1, i2)		{ if ( i1 > i2 ) Swap(i1, i2); }
 #define fetch(i)		fetch_textbuffer(tb, i)
-#define istb8(tb)		isstrA(&(tb)->buffer)
-#define Address(tb, i)		(istb8(tb) ? &(tb)->tb_buffer8[(i)] \
-					   : (charA *)&(tb)->tb_buffer16[(i)])
+#define istbA(tb)		isstrA(&(tb)->buffer)
+#define Address(tb, i)		(istbA(tb) ? &(tb)->tb_bufferA[(i)] \
+					   : (charA *)&(tb)->tb_bufferW[(i)])
 #define Index(tb, p) ((tb)->gap_start <= (p) ? \
 		(tb)->gap_end + ((p) - (tb)->gap_start) + 1 : (p) )
 
@@ -68,7 +68,7 @@ initialiseTextBuffer(TextBuffer tb, CharArray ca)
   obtainClassVariablesObject(tb);	/* dubious: subclassing? */
 
   tb->undo_buffer = NULL;
-  tb->tb_buffer8  = NULL;
+  tb->tb_bufferA  = NULL;
   if ( notDefault(ca) )
     str_cphdr(&tb->buffer, &ca->data);
   else
@@ -95,9 +95,9 @@ unlinkTextBuffer(TextBuffer tb)
   while( notNil(tb->first_fragment) )	/* destroy fragments */
     freeObject(tb->first_fragment);
 
-  if ( tb->tb_buffer8 != NULL )		/* deallocate the buffer */
-  { pceFree(tb->tb_buffer8);
-    tb->tb_buffer8 = NULL;
+  if ( tb->tb_bufferA != NULL )		/* deallocate the buffer */
+  { pceFree(tb->tb_bufferA);
+    tb->tb_bufferA = NULL;
   }
 
   if ( tb->undo_buffer != NULL )
@@ -117,7 +117,7 @@ getConvertTextBuffer(Any ctx, Editor e)
 
 static status
 storeTextBuffer(TextBuffer tb, FileObj file)
-{ int unitsize = (istb8(tb) ? sizeof(charA) : sizeof(charW));
+{ int unitsize = (istbA(tb) ? sizeof(charA) : sizeof(charW));
 
   TRY(storeSlotsObject(tb, file));
   storeIntFile(file, toInt(tb->size));
@@ -146,7 +146,7 @@ loadTextBuffer(TextBuffer tb, IOSTREAM *fd, ClassDef def)
   tb->size = loadWord(fd);
   tb->allocated = ROUND(tb->size, ALLOC);
   str_cphdr(&tb->buffer, str_nl(NULL));	/* ASCII */
-  tb->tb_buffer8 = pceMalloc(tb->allocated);
+  tb->tb_bufferA = pceMalloc(tb->allocated);
   Sfread(Address(tb, 0), sizeof(char), tb->size, fd); /* TBD */
   tb->gap_start = tb->size;
   tb->gap_end = tb->allocated - 1;
@@ -170,8 +170,8 @@ cloneTextBuffer(TextBuffer tb, TextBuffer clone)
 { clonePceSlots(tb, clone);
 
   clone->undo_buffer = NULL;
-  clone->tb_buffer8 = pceMalloc(clone->allocated);
-  memcpy(clone->tb_buffer8, tb->tb_buffer8, clone->allocated);
+  clone->tb_bufferA = pceMalloc(clone->allocated);
+  memcpy(clone->tb_bufferA, tb->tb_bufferA, clone->allocated);
   clone->changed_start = clone->size;
   clone->changed_end = 0;
 
@@ -1613,8 +1613,8 @@ count_lines_textbuffer(TextBuffer tb, int f, int t)
   if ( f == 0 && t == tb->size && tb->lines >= 0 )
     return tb->lines;			/* use the total count */
 
-  if ( istb8(tb) )
-  { charA *b = tb->tb_buffer8;
+  if ( istbA(tb) )
+  { charA *b = tb->tb_bufferA;
     int end1 = min(tb->gap_start, t);
 
     for( ; f<end1; f++)
@@ -1629,7 +1629,7 @@ count_lines_textbuffer(TextBuffer tb, int f, int t)
       }
     }
   } else
-  { charW *b = tb->tb_buffer16;
+  { charW *b = tb->tb_bufferW;
     int end1 = min(tb->gap_start, t);
 
     for( ; f<end1; f++)
@@ -1655,8 +1655,8 @@ start_of_line_n_textbuffer(TextBuffer tb, int lineno)
   if ( --lineno <= 0 )
     return 0;
 
-  if ( istb8(tb) )
-  { charA *b = tb->tb_buffer8;
+  if ( istbA(tb) )
+  { charA *b = tb->tb_bufferA;
 
     for(i=0 ; i<tb->gap_start; i++)
     { if ( tisendsline(syntax, b[i]) )
@@ -1672,7 +1672,7 @@ start_of_line_n_textbuffer(TextBuffer tb, int lineno)
       }
     }
   } else
-  { charW *b = tb->tb_buffer16;
+  { charW *b = tb->tb_bufferW;
 
     for(i=0 ; i<tb->gap_start; i++)
     { if ( tisendsline(syntax, b[i]) )
@@ -1696,7 +1696,7 @@ start_of_line_n_textbuffer(TextBuffer tb, int lineno)
 		*     PRIMITIVE OPERATIONS      *
 		*********************************/
 
-int
+wint_t
 fetch_textbuffer(TextBuffer tb, int where)
 { int idx;
 
@@ -1704,7 +1704,7 @@ fetch_textbuffer(TextBuffer tb, int where)
     return EOB;
   idx = Index(tb, where);
 
-  return istb8(tb) ? (wint_t)tb->tb_buffer8[idx] : (wint_t)tb->tb_buffer16[idx];
+  return istbA(tb) ? (wint_t)tb->tb_bufferA[idx] : (wint_t)tb->tb_bufferW[idx];
 }
   
 
@@ -1717,10 +1717,10 @@ store_textbuffer(TextBuffer tb, int where, wint_t c)
     fail;
   idx = Index(tb, where);
 
-  if ( istb8(tb) )
-    old = tb->tb_buffer8[idx];
+  if ( istbA(tb) )
+    old = tb->tb_bufferA[idx];
   else
-    old = tb->tb_buffer16[idx];
+    old = tb->tb_bufferW[idx];
     
   if ( old == c )
     succeed;
@@ -1732,10 +1732,10 @@ store_textbuffer(TextBuffer tb, int where, wint_t c)
   start_change(tb, where);
   register_change_textbuffer(tb, where, 1);
 
-  if ( istb8(tb) )
-    tb->tb_buffer8[idx] = c;
+  if ( istbA(tb) )
+    tb->tb_bufferA[idx] = c;
   else
-    tb->tb_buffer16[idx] = c;
+    tb->tb_bufferW[idx] = c;
 
   end_change(tb, where+1);
   CmodifiedTextBuffer(tb, ON);
@@ -1753,17 +1753,17 @@ change_textbuffer(TextBuffer tb, int where, void *s, int len)
 
   register_change_textbuffer(tb, where, len);
   
-  if ( istb8(tb) )
+  if ( istbA(tb) )
   { charA *s2 = s;
 
     for( w=where, n=0; n < len; n++, w++ )
     { long i = Index(tb, w);
-      if ( tb->tb_buffer8[i] != s2[n] )
-      { if ( tisendsline(tb->syntax, tb->tb_buffer8[i]) )
+      if ( tb->tb_bufferA[i] != s2[n] )
+      { if ( tisendsline(tb->syntax, tb->tb_bufferA[i]) )
 	  tb->lines--;
 	if ( tisendsline(tb->syntax, s2[n]) )
 	  tb->lines++;
-	tb->tb_buffer8[i] = s2[n];
+	tb->tb_bufferA[i] = s2[n];
       }
     }
   } else
@@ -1771,12 +1771,12 @@ change_textbuffer(TextBuffer tb, int where, void *s, int len)
 
     for( w=where, n=0; n < len; n++, w++ )
     { long i = Index(tb, w);
-      if ( tb->tb_buffer16[i] != s2[n] )
-      { if ( tisendsline(tb->syntax, tb->tb_buffer16[i]) )
+      if ( tb->tb_bufferW[i] != s2[n] )
+      { if ( tisendsline(tb->syntax, tb->tb_bufferW[i]) )
 	  tb->lines--;
 	if ( tisendsline(tb->syntax, s2[n]) )
 	  tb->lines++;
-	tb->tb_buffer16[i] = s2[n];
+	tb->tb_bufferW[i] = s2[n];
       }
     }
   }
@@ -1791,12 +1791,12 @@ change_textbuffer(TextBuffer tb, int where, void *s, int len)
 
 static void
 mirror_textbuffer(TextBuffer tb, int f, int t)
-{ if ( istb8(tb) )
+{ if ( istbA(tb) )
   { for( ; f < t; f++, t-- )
-      Swap(tb->tb_buffer8[f], tb->tb_buffer8[t])
+      Swap(tb->tb_bufferA[f], tb->tb_bufferA[t])
   } else
   { for( ; f < t; f++, t-- )
-      Swap(tb->tb_buffer16[f], tb->tb_buffer16[t])
+      Swap(tb->tb_bufferW[f], tb->tb_bufferW[t])
   }
 }
 
@@ -1840,8 +1840,8 @@ downcase_textbuffer(TextBuffer tb, int from, int len)
 { for( ; from < tb->size && len > 0; len--, from++ )
   { wint_t c;
 
-    if ( tisupper(tb->syntax, (c=fetch(from))) )
-      store_textbuffer(tb, from, tolower(c));
+    if ( iswupper((c=fetch(from))) )
+      store_textbuffer(tb, from, towlower(c));
   }
       
   succeed;
@@ -1885,7 +1885,7 @@ capitalise_textbuffer(TextBuffer tb, int from, int len)
 
 static status
 save_textbuffer(TextBuffer tb, int from, int len, SourceSink file)
-{ int unitsize = (istb8(tb) ? sizeof(charA) : sizeof(charW));
+{ int unitsize = (istbA(tb) ? sizeof(charA) : sizeof(charW));
   IOSTREAM *fd;
   status rval;
 
@@ -1933,9 +1933,9 @@ str_sub_text_buffer(TextBuffer tb, String s, int start, int len)
     idx = tb->gap_end + (start - tb->gap_start) + 1;
 
   if ( isstrA(s) )
-    s->s_textA = &tb->tb_buffer8[idx];
+    s->s_textA = &tb->tb_bufferA[idx];
   else
-    s->s_textW = &tb->tb_buffer16[idx];
+    s->s_textW = &tb->tb_bufferW[idx];
 
   succeed;
 }
@@ -1951,7 +1951,7 @@ static int
 insert_file_textbuffer(TextBuffer tb, int where, int times, SourceSink file)
 { int size;
   charA *addr;
-  int unitsize = (istb8(tb) ? sizeof(charA) : sizeof(charW));
+  int unitsize = (istbA(tb) ? sizeof(charA) : sizeof(charW));
   int grow, here;
   IOSTREAM *fd;
   status rval;
@@ -1962,7 +1962,7 @@ insert_file_textbuffer(TextBuffer tb, int where, int times, SourceSink file)
   if ( !(fd = Sopen_object(file, "rr")) )
     fail;
   size = Ssize(fd);
-  if ( !istb8(tb) )
+  if ( !istbA(tb) )
   { if ( size % 2 )
       errorPce(tb, NAME_oddDataSize);
     size /= 2;
@@ -1984,7 +1984,7 @@ insert_file_textbuffer(TextBuffer tb, int where, int times, SourceSink file)
   tb->size += size;
   times--;
   while(times-- > 0)
-  { memmove(Address(tb, tb->gap_start), addr, istb8(tb) ? size : size*2);
+  { memmove(Address(tb, tb->gap_start), addr, istbA(tb) ? size : size*2);
     tb->gap_start += size;
     tb->size += size;
   }
@@ -2011,7 +2011,7 @@ insert_textbuffer_shift(TextBuffer tb, int where, int times,
   int size;
   int here;
 
-  if ( istb8(tb) )
+  if ( istbA(tb) )
   { unitsize = sizeof(charA);
     size = (isstrA(s) ? s->size : s->size * 2);
   } else
@@ -2026,7 +2026,7 @@ insert_textbuffer_shift(TextBuffer tb, int where, int times,
   register_insert_textbuffer(tb, where, grow);
   start_change(tb, tb->gap_start);
   while(times-- > 0)
-  { memmove(Address(tb, tb->gap_start), s->s_text, istb8(tb) ? size : size*2);
+  { memmove(Address(tb, tb->gap_start), s->s_text, istbA(tb) ? size : size*2);
     tb->gap_start += size;
     tb->size += size;
   }
@@ -2056,8 +2056,8 @@ static status
 clear_textbuffer(TextBuffer tb)
 { register_delete_textbuffer(tb, 0, tb->size);
 
-  if ( tb->tb_buffer8 != NULL )
-    pceFree(tb->tb_buffer8);
+  if ( tb->tb_bufferA != NULL )
+    pceFree(tb->tb_bufferA);
   
   start_change(tb, 0);
   end_change(tb, tb->size);
@@ -2065,7 +2065,7 @@ clear_textbuffer(TextBuffer tb)
   tb->size = 0;
   tb->lines = 0;
   tb->allocated = ALLOC;
-  tb->tb_buffer8 = pceMalloc(istb8(tb) ? ALLOC : ALLOC*2);
+  tb->tb_bufferA = pceMalloc(istbA(tb) ? ALLOC : ALLOC*2);
 
   tb->gap_start = 0;
   tb->gap_end = tb->allocated - 1;
@@ -2219,12 +2219,12 @@ room(TextBuffer tb, int where, int grow)
     int ag = tb->allocated - tb->gap_end - 1;
 
     shift = s - tb->allocated;
-    tb->tb_buffer8 = pceRealloc(tb->tb_buffer8, istb8(tb) ? s : s*2);
+    tb->tb_bufferA = pceRealloc(tb->tb_bufferA, istbA(tb) ? s : s*2);
     tb->allocated = s;
     
     memmove(Address(tb, tb->gap_end + 1 + shift),
 	    Address(tb, tb->gap_end + 1),
-	    istb8(tb) ? ag : ag*2);
+	    istbA(tb) ? ag : ag*2);
     tb->gap_end += shift;
   }
 
@@ -2232,11 +2232,11 @@ room(TextBuffer tb, int where, int grow)
   if ( shift < 0 )				/* move gap towards start */
   { memmove(Address(tb, tb->gap_end + shift + 1),
 	    Address(tb, where),
-	    istb8(tb) ? -shift : 2 * -shift);
+	    istbA(tb) ? -shift : 2 * -shift);
   } else if ( shift > 0 )			/* move gap towards end */
   { memmove(Address(tb, tb->gap_start),
 	    Address(tb, tb->gap_end + 1),
-	    istb8(tb) ? shift : 2 * shift);
+	    istbA(tb) ? shift : 2 * shift);
   }    
   tb->gap_start += shift;			/* move the gap pointers */
   tb->gap_end += shift;
