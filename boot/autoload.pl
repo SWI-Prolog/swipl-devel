@@ -143,10 +143,10 @@ clear_library_index :-
 load_library_index :-
 	library_index(_, _, _), !.		% loaded
 load_library_index :-
-	findall(Index, index_file_name(Index, [access(read)]), Indices),
-	forall(member(Index, Indices),
+	forall(index_file_name(Index, [access(read)]),
 	       read_index(Index)).
-	
+
+
 index_file_name(IndexFile, Options) :-
 	absolute_file_name(library('INDEX'),
 			   [ file_type(prolog),
@@ -221,8 +221,16 @@ plfile_in_dir(Dir, Base, PlBase, File) :-
 	concat_atom([Dir, '/', PlBase], File).
 
 expand_index_file_patterns(Patterns, Files) :-
-	maplist(expand_file_name, Patterns, NestedFiles),
-	flatten(NestedFiles, Files).
+	phrase(files_from_patterns(Patterns), Files).
+
+files_from_patterns([]) -->
+	[].
+files_from_patterns([P0|PT]) -->
+	{ expand_file_name(P0, Files) 
+	},
+	Files,
+	files_from_patterns(PT).
+
 
 library_index_out_of_date(Index, _Files) :-
 	\+ exists_file(Index), !.
@@ -230,7 +238,7 @@ library_index_out_of_date(Index, Files) :-
 	time_file(Index, IndexTime),
 	(   time_file('.', DotTime),
 	    DotTime @> IndexTime
-	;   member(File, Files),
+	;   $member(File, Files),
 	    time_file(File, FileTime),
 	    FileTime @> IndexTime
 	), !.
@@ -251,7 +259,7 @@ index_file(Fd, File) :-
 	close(In),
 	Term = (:- module(Module, Public)), !,
 	file_name_extension(Base, _, File),
-	forall( member(Name/Arity, Public),
+	forall( $member(Name/Arity, Public),
 		format(Fd, 'index((~k), ~k, ~k, ~k).~n',
 		       [Name, Arity, Module, Base])).
 index_file(_, _).

@@ -1,6 +1,10 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * MODIFIED: moved list-processing primitives to library(lists), where
+    most Prolog systems have these.  Using the autoloader this should
+    have no consequences for most applications.
+
   * PORT: Adapt Windows makefile suite for use with Windows 2000 and
     spaces in the destination path
 

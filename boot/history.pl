@@ -196,7 +196,7 @@ expand_history3([!, C|Rest], [!|Expanded], Changed) :-
 	expand_history3([C|Rest], Expanded, Changed).
 expand_history3([!|Rest], Expanded, true) :- !, 
 	match_event(Rest, Event, NewRest), 
-	append(Event, RestExpanded, Expanded), !, 
+	$append(Event, RestExpanded, Expanded), !, 
 	expand_history3(NewRest, RestExpanded, _).
 expand_history3([H|T], [H|R], Changed) :- !, 
 	expand_history3(T, R, Changed).
@@ -231,10 +231,10 @@ get_last_event(_) :-
 %   substitute first occurence of Old in String by New
 
 substitute(Old, New, String, Substituted) :-
-	append(Head, OldAndTail, String), 
-	append(Old, Tail, OldAndTail), !, 
-	append(Head, New, HeadAndNew), 
-	append(HeadAndNew, Tail, Substituted), !.
+	$append(Head, OldAndTail, String), 
+	$append(Old, Tail, OldAndTail), !, 
+	$append(Head, New, HeadAndNew), 
+	$append(HeadAndNew, Tail, Substituted), !.
 
 substitute_warn(Old, New, String, Substituted) :-
 	substitute(Old, New, String, Substituted), !.
@@ -296,9 +296,9 @@ take_number([], [], []).
 matching_event(prefix, String, Event) :-
 	recorded($history_list, _/AtomEvent), 
 	atom_chars(AtomEvent, Event), 
-	append(String, _, Event), !.
+	$append(String, _, Event), !.
 matching_event(substring, String, Event) :-
 	recorded($history_list, _/AtomEvent), 
 	atom_chars(AtomEvent, Event), 
-	append(_, MatchAndTail, Event), 
-	append(String, _, MatchAndTail), !.	
+	$append(_, MatchAndTail, Event), 
+	$append(String, _, MatchAndTail), !.	

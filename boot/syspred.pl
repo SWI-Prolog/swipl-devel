@@ -73,6 +73,7 @@
 	, absolute_file_name/2
 	, require/1
 	, call_with_depth_limit/3
+	, length/2
 	]).	
 
 		/********************************
@@ -165,7 +166,7 @@ trace(Pred, Ports) :-
 	set_prolog_flag(debug, true),
 	$find_predicate(Pred, Preds),
 	Preds \== [],
-	(   member(Head, Preds),
+	(   $member(Head, Preds),
 	        (   Head = _:_
 		->  QHead0 = Head
 		;   QHead0 = user:Head
@@ -224,7 +225,7 @@ spy(Spec) :-
 	prolog:debug_control_hook(spy(Spec)), !.
 spy(Spec) :-
 	$find_predicate(Spec, Preds),
-	member(Head, Preds),
+	$member(Head, Preds),
 	    $define_predicate(Head),
 	    $spy(Head),
 	fail.
@@ -238,7 +239,7 @@ nospy(Spec) :-
 	prolog:debug_control_hook(nospy(Spec)), !.
 nospy(Spec) :-
 	$find_predicate(Spec, Preds),
-	member(Head, Preds),
+	$member(Head, Preds),
 	    $nospy(Head),
 	fail.
 nospy(_).
@@ -737,3 +738,22 @@ default_module(Me, Super) :-
 	$default_module(Me, S, S),
 	S \== [],
 	default_module(S, Super).
+
+
+		 /*******************************
+		 *	 LIST MANIPULATION	*
+		 *******************************/
+
+%	length(?List, ?N)
+%	Is true when N is the length of List.
+
+length(List, Length) :-
+	$length(List, Length), !.		% written in C
+length(List, Length) :-
+	var(Length),
+	length2(List, Length).
+
+length2([], 0).
+length2([_|List], N) :-
+	length2(List, M), 
+	succ(M, N).

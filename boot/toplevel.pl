@@ -145,12 +145,12 @@ initialization(Goal) :-
 
 $set_file_search_paths :-
 	current_prolog_flag(argv, Argv),
-	append(H, ['-p', Path|_], Argv),
+	$append(H, ['-p', Path|_], Argv),
 	\+ memberchk(--, H),
 	(   atom_chars(Path, Chars),
 	    (	phrase($search_path(Name, Aliases), Chars)
-	    ->	reverse(Aliases, Aliases1),
-	        forall(member(Alias, Aliases1),
+	    ->	$reverse(Aliases, Aliases1),
+	        forall($member(Alias, Aliases1),
 		       asserta(user:file_search_path(Name, Alias)))
 	    ;   print_message(error, commandline_arg_type(p, Path))
 	    )
@@ -210,7 +210,7 @@ set_associated_file :-
 	$set_prolog_file_extension,
 	current_prolog_flag(associate, Ext),
 	current_prolog_flag(argv, Argv),
-	append(Pre, [OsFile], Argv),
+	$append(Pre, [OsFile], Argv),
 	\+ memberchk(--, Pre),
 	prolog_to_os_filename(File, OsFile),
 	file_name_extension(_, Ext, File),
@@ -454,10 +454,10 @@ $system_prompt(Module, BrekLev, Prompt) :-
 $substitute(From, T, Old, New) :-
 	convert_to(T, T0),
 	flatten(T0, To),
-	append(Pre, S0, Old),
-	append(From, Post, S0) ->
-	append(Pre, To, S1),
-	append(S1, Post, New), !.
+	$append(Pre, S0, Old),
+	$append(From, Post, S0) ->
+	$append(Pre, To, S1),
+	$append(S1, Post, New), !.
 $substitute(_, _, Old, Old).
 	
 convert_to([], []).

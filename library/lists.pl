@@ -29,35 +29,48 @@
     the GNU General Public License.
 */
 
-:- module($list,
-	[ length/2
-	, delete/3
-	, nth0/3
-	, nth1/3
-	, last/2
-	, reverse/2
-	, flatten/2
-	, is_set/1
-	, list_to_set/2
-	, intersection/3
-	, union/3
-	, subset/2
-	, subtract/3
+:- module(lists,
+	[ member/2,
+	  append/3,
+	  select/3,
+	  delete/3,
+	  nth0/3,
+	  nth1/3,
+	  last/2,
+	  reverse/2,
+	  flatten/2,
+	  is_set/1,
+	  list_to_set/2,
+	  intersection/3,
+	  union/3,
+	  subset/2,
+	  subtract/3
 	]).
+%:- system_module.			% hide details
 
-%	length(?List, ?N)
-%	Is true when N is the length of List.
+%	member(?Elem, ?List)
+%	
+%	True if Elem is a member of List
 
-length(List, Length) :-
-	$length(List, Length), !.		% written in C
-length(List, Length) :-
-	var(Length),
-	length2(List, Length).
+member(X, [X|_]).
+member(X, [_|T]) :-
+	member(X, T).
 
-length2([], 0).
-length2([_|List], N) :-
-	length2(List, M), 
-	succ(M, N).
+%	append(?List1, ?List2, ?List1AndList2)
+%	
+%	List1AndList2 is the concatination of List1 and List2
+
+append([], L, L).
+append([H|T], L, [H|R]) :-
+	append(T, L, R).
+
+%	select(?Elem, ?List1, ?List2)
+%	Is true when List1, with Elem removed results in List2.
+
+select(X, [X|Tail], Tail).
+select(Elem, [Head|Tail], [Head|Rest]) :-
+	select(Elem, Tail, Rest).
+
 
 %	delete(?List1, ?Elem, ?List2)
 %	Is true when Lis1, with all occurences of Elem deleted results in
@@ -130,26 +143,26 @@ last([H|T], _, X) :-
 %	List1.
 
 reverse(L1, L2) :-
-	$reverse(L1, [], L2).
+	reverse(L1, [], L2).
 
-$reverse([], List, List).
-$reverse([Head|List1], List2, List3) :-
-	$reverse(List1, [Head|List2], List3).
+reverse([], List, List).
+reverse([Head|List1], List2, List3) :-
+	reverse(List1, [Head|List2], List3).
 
 %	flatten(+List1, ?List2)
 %	Is true when Lis2 is a non nested version of List1.
 
 flatten(List, FlatList) :-
-	$flatten(List, [], FlatList0), !,
+	flatten(List, [], FlatList0), !,
 	FlatList = FlatList0.
 
-$flatten(Var, Tl, [Var|Tl]) :-
+flatten(Var, Tl, [Var|Tl]) :-
 	var(Var), !.
-$flatten([], Tl, Tl) :- !.
-$flatten([Hd|Tl], Tail, List) :-
-	$flatten(Hd, FlatHeadTail, List), 
-	$flatten(Tl, Tail, FlatHeadTail).
-$flatten(Atom, Tl, [Atom|Tl]).
+flatten([], Tl, Tl) :- !.
+flatten([Hd|Tl], Tail, List) :-
+	flatten(Hd, FlatHeadTail, List), 
+	flatten(Tl, Tail, FlatHeadTail).
+flatten(Atom, Tl, [Atom|Tl]).
 
 
 		/********************************

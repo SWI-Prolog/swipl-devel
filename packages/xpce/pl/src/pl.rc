@@ -1,4 +1,84 @@
-#include "windows.h"
+/*  -*-Prolog-*-
+    $Id$
 
-SWI_Icon  ICON pl.ico
-XPCE_Icon ICON xpce.ico
+    Part of SWI-Prolog
+    Designed and implemented by Jan Wielemaker
+    E-mail: jan@swi.psy.uva.nl
+
+    Copyright (C) 1995 University of Amsterdam. All rights reserved.
+*/
+
+
+:- module(link_xpce, []).
+:- use_module(library(lists), [member/2]).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This file is loaded  on  startup.  Use   it  for  local  (not  personal)
+configuration purposes.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+:- initialization op(100, fx,  user:(@)).
+:- initialization op(150, yfx, user:(?)).
+:- initialization op(990, xfx, user:(:=)).
+
+:- multifile
+	file_search_path/2.
+
+:- dynamic
+	pcehomestore_/1.
+:- volatile
+	pcehomestore_/1.
+
+pcehome_(Home) :-
+	pcehomestore_(Home), !.
+pcehome_(Home) :-
+	(   getenv('XPCEHOME', RawHome)
+	;   current_prolog_flag(home, PlHome),
+	    (   current_prolog_flag(xpce_version, Version),
+		atom_concat('/xpce-', Version, Suffix)
+	    ;   Suffix = '/xpce'
+	    ),
+	    atom_concat(PlHome, Suffix, RawHome)
+	),
+	exists_directory(RawHome), !,
+	absolute_file_name(RawHome, Home),
+	asserta(pcehomestore_(Home)).
+
+user:file_search_path(pce, PceHome) :-
+	pcehome_(PceHome).
+user:file_search_path(library, pce('/prolog/lib')).
+user:file_search_path(foreign, pce(ArchLib)) :-
+	current_prolog_flag(arch, Arch),
+	atom_concat('lib/', Arch, ArchLib).
+user:file_search_path(foreign, pce(lib)).
+
+gui_setup_ :-
+	current_prolog_flag(gui, true), !.
+gui_setup_ :-
+	getenv('DISPLAY', _), !,
+	set_prolog_flag(gui, true),
+	use_module(user:library(swi_hooks)).	% help, etc.
+gui_setup_ :-
+	current_prolog_flag(windows, true),
+	set_prolog_flag(gui, true),
+	use_module(user:library(win_menu)),
+	use_module(user:library(swi_hooks)).	% help, etc.
+
+pce_setup_ :-
+	current_prolog_flag(xpce, true), !.
+pce_setup_ :-
+	current_prolog_flag(argv, [Argv0|Args]),
+	\+ member('-nopce', Args),	% explicitely no XPCE
+	pcehome_(PceHome),
+	exists_directory(PceHome),
+	gui_setup_,
+	(   member('-pce', Args)
+	;   prolog_to_os_filename(Path, Argv0),
+	    file_base_name(Path, Base),
+	    '$apropos_match'(pce, Base)
+	), !,
+	load_files(user:library(pce), [silent(true)]),
+	flag('$banner_goal', _, pce_welcome).
+pce_setup_.
+
+:- initialization pce_setup_. 

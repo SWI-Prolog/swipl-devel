@@ -330,7 +330,10 @@ $set_debugger_print_options(print) :- !,
 			[quoted(true), portray(true), max_depth(10)]).
 $set_debugger_print_options(Depth) :-
 	current_prolog_flag(debugger_print_options, Options0),
-	delete(Options0, max_depth(_), Options),
+	(   $select(max_depth(_), Options0, Options)
+	->  true
+	;   Options = Options0
+	),
 	set_prolog_flag(debugger_print_options,
 			[max_depth(Depth)|Options]).
 
@@ -444,27 +447,27 @@ absolute_file_name(Spec, Args, Path) :-
 	->  true
 	;   throw(error(type_error(list, Args), _))
 	),
-	(   select(extensions(Exts), Args, Conditions)
+	(   $select(extensions(Exts), Args, Conditions)
 	->  true
-	;   select(file_type(Type), Args, Conditions)
+	;   $select(file_type(Type), Args, Conditions)
 	->  $file_type_extensions(Type, Exts)
 	;   Conditions = Args,
 	    Exts = ['']
 	),
-	(   select(solutions(Sols), Conditions, C1)
+	(   $select(solutions(Sols), Conditions, C1)
 	->  true
 	;   Sols = first,
 	    C1 = Conditions
 	),
-	(   select(file_errors(FileErrors), C1, C2)
+	(   $select(file_errors(FileErrors), C1, C2)
 	->  true
 	;   FileErrors = error,
 	    C2 = C1
 	),
 	(   atomic(Spec),
-	    select(expand(true), C2, C3)
+	    $select(expand(true), C2, C3)
 	->  expand_file_name(Spec, List),
-	    member(Spec1, List)
+	    $member(Spec1, List)
 	;   Spec1 = Spec,
 	    C3 = C2
 	),
@@ -484,7 +487,7 @@ $file_type_extensions(source, Exts) :- !, 	% SICStus 3.9 compatibility
 $file_type_extensions(Type, Exts) :-
 	'$current_module'('$bags', _File), !,
 	findall(Ext, user:prolog_file_type(Ext, Type), Exts0),
-	append(Exts0, [''], Exts).
+	$append(Exts0, [''], Exts).
 $file_type_extensions(prolog, [pl, '']). % findall is not yet defined ...
 
 %	user:prolog_file_type/2
@@ -521,7 +524,7 @@ $dochk_file(Term, Ext, Cond, FullName) :-	% allow a/b, a-b, etc.
 	\+ atomic(Term), !,
 	term_to_atom(Term, Raw),
 	atom_chars(Raw, S0),
-	delete(S0, ' ', S1),
+	$delete(S0, ' ', S1),
 	atom_chars(Atom, S1),
 	$dochk_file(Atom, Ext, Cond, FullName).
 $dochk_file(File, Exts, Cond, FullName) :-
@@ -548,7 +551,7 @@ $dochk_file(File, Exts, Cond, FullName) :-
 %	source-file.
 
 $relative_to(Conditions, Default, Dir) :-
-	(   member(relative_to(FileOrDir), Conditions)
+	(   $member(relative_to(FileOrDir), Conditions)
 	*-> (   exists_file(FileOrDir)
 	    ->  file_directory_name(FileOrDir, Dir)
 	    ;   Dir = FileOrDir
@@ -615,7 +618,7 @@ $file_condition(relative_to(_), _File).		% This isn't a condition
 $extend_file(File, Exts, FileEx) :-
 	$ensure_extensions(Exts, File, Fs),
 	$list_to_set(Fs, FsSet),
-	member(FileEx, FsSet).
+	$member(FileEx, FsSet).
 	
 $ensure_extensions([], _, []).
 $ensure_extensions([E|E0], F, [FE|E1]) :-
@@ -1428,7 +1431,7 @@ $translate_rule((LP-->List), H) :-
 	->  $t_head(LP, S, S, H)
         ;   List = [X]
         ->  $t_head(LP, [X|S], S, H)
-        ;   append(List, SR, S),
+        ;   $append(List, SR, S),
             $extend([S, SR], LP, H)
         ).
 $translate_rule((LP-->RP), (H:-B)):-
@@ -1437,7 +1440,7 @@ $translate_rule((LP-->RP), (H:-B)):-
 
 
 $t_head((LP, List), S, SR, H) :-
-	append(List, SR, List2), !,
+	$append(List, SR, List2), !,
 	$extend([S, List2], LP, H).
 $t_head(LP, S, SR, H) :-
 	$extend([S, SR], LP, H).
@@ -1506,7 +1509,7 @@ $t_body(List, S, SR, C) :-
 	List = [X|T], !,
 	(   T == []
 	->  C = 'C'(S, X, SR)
-	;   C = append(List, SR, S)
+	;   C = $append(List, SR, S)
 	).
 $t_body(!, S, S, !) :- !.
 $t_body({T}, S, SR, (T, SR = S)) :- !.		% (*)
@@ -1550,7 +1553,7 @@ $extend(More, M:OldT, M:NewT) :- !,
 	$extend(More, OldT, NewT).
 $extend(More, OldT, NewT) :-
 	OldT =.. OldL,
-	append(OldL, More, NewL),
+	$append(OldL, More, NewL),
 	NewT =.. NewL.
 
 'C'([X|S], X, S).
@@ -1567,7 +1570,7 @@ phrase(RuleSet, Input, Rest) :-
 	->  Rest = Input
 	;   nonvar(Head),
 	    Head = [_|_]
-	->  append(Head, Rest, Input)
+	->  $append(Head, Rest, Input)
 	;   call(RuleSet, Input, Rest)
 	).
 
@@ -1607,7 +1610,7 @@ $translate_options([_|T0], T) :-
 	$translate_options(T0, T).
 
 $split(List, Split, [], Tail) :-
-	append(Split, Tail, List), !.
+	$append(Split, Tail, List), !.
 $split([H|T0], Split, [H|T], Tail) :-
 	$split(T0, Split, T, Tail).
 
@@ -1616,20 +1619,30 @@ $split([H|T0], Split, [H|T], Tail) :-
 		*       LIST PROCESSING         *
 		*********************************/
 
-member(X, [X|_]).
-member(X, [_|T]) :-
-	member(X, T).
+$member(X, [X|_]).
+$member(X, [_|T]) :-
+	$member(X, T).
 
-append([], L, L).
-append([H|T], L, [H|R]) :-
-	append(T, L, R).
+$append([], L, L).
+$append([H|T], L, [H|R]) :-
+	$append(T, L, R).
 
-%	select(?Elem, ?List1, ?List2)
-%	Is true when List1, with Elem removed results in List2.
+$select(X, [X|Tail], Tail).
+$select(Elem, [Head|Tail], [Head|Rest]) :-
+	$select(Elem, Tail, Rest).
 
-select(X, [X|Tail], Tail).
-select(Elem, [Head|Tail], [Head|Rest]) :-
-	select(Elem, Tail, Rest).
+$reverse(L1, L2) :-
+	$reverse(L1, [], L2).
+
+$reverse([], List, List).
+$reverse([Head|List1], List2, List3) :-
+	$reverse(List1, [Head|List2], List3).
+
+$delete([], _, []) :- !.
+$delete([Elem|Tail], Elem, Result) :- !, 
+	$delete(Tail, Elem, Result).
+$delete([Head|Tail], Elem, [Head|Rest]) :-
+	$delete(Tail, Elem, Rest).
 
 
 		 /*******************************

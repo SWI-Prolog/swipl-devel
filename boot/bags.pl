@@ -70,7 +70,7 @@ bagof(Gen, Goal, Bag) :-
 	$e_free_variables(Gen^Goal, Vars),
 	assert_bag(Vars-Gen, Goal), 
 	collect_bags([], Bags), 
-	member(Vars-Bag, Bags),
+	$member(Vars-Bag, Bags),
 	Bag \== [].
 
 assert_bag(Templ, G) :-

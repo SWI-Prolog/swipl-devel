@@ -37,7 +37,6 @@
 	     sort,
 	     bags,
 	     apply,
-	     list,
 	     writef,
 	     history,
 	     dwim,

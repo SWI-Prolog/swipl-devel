@@ -189,7 +189,7 @@ find_predicate(Module, C, Name, Arity, VList) :-
 find_predicate(Module, C, Name, Arity, Pack) :-
 	findall(Head, find_sim_pred(Module, Name, Arity, Head), List),
 	pack(List, Module, Arity, C, Packs),
-	member(Dwim-Pack, Packs),
+	$member(Dwim-Pack, Packs),
 	print_pack_name(C, Dwim, PredName),
 	$confirm(dwim_correct(PredName)), !.
 
@@ -212,7 +212,7 @@ pack([M:T|Rest], Module, Arity, C, [Name-[H|R]|Packs]) :-
 	pack(NewRest, Module, Arity, C, Packs).
 
 pack_(Module, Arity, Name, C, List, [H|R], Rest) :-
-	select(M:T, List, R0),
+	$select(M:T, List, R0),
 	pack_name(M:T, Module, Arity, Name), !,
 	$prefix_module(M, C, T, H),
 	pack_(Module, Arity, Name, C, R0, R, Rest).
@@ -282,7 +282,7 @@ principal_predicates(C, Heads, Principals) :-
 	    delete_defaults(P1, P1, P2)
 	;   P2 = P0
 	),	
-	list_to_set(P2, Principals).
+	sort(P2, Principals).		% remove duplicates
 	
 delete_defaults([], _, []) :- !.
 delete_defaults([system:Head|T], L, R) :-
@@ -315,7 +315,7 @@ find_definition(_, Head, Head).
 
 dwim_predicate(Head, DWIM) :-
 	dwim_predicate_list(Head, DWIMs),
-	member(DWIM, DWIMs).
+	$member(DWIM, DWIMs).
 
 dwim_predicate_list(Head, [Head]) :-
 	current_predicate(_, Head), !.

@@ -761,7 +761,7 @@ actions_to_format([nl|T], Fmt, Args) :- !,
 actions_to_format([Fmt0-Args0|Tail], Fmt, Args) :- !,
         actions_to_format(Tail, Fmt1, Args1),
         atom_concat(Fmt0, Fmt1, Fmt),
-        append(Args0, Args1, Args).
+        $append(Args0, Args1, Args).
 actions_to_format([Term|Tail], Fmt, Args) :-
 	atomic(Term), !,
         actions_to_format(Tail, Fmt1, Args),
@@ -769,6 +769,6 @@ actions_to_format([Term|Tail], Fmt, Args) :-
 actions_to_format([Term|Tail], Fmt, Args) :-
         actions_to_format(Tail, Fmt1, Args1),
         atom_concat('~w', Fmt1, Fmt),
-        append([Term], Args1, Args).
+        $append([Term], Args1, Args).
 
 	
