@@ -32,14 +32,15 @@ timer_proc(HWND hwnd, UINT msg, UINT id, DWORD now)
   { Timer tm;
 
     if ( (tm = getMemberHashTable(TimerTable, toInt(id))) )
-    { executeTimer(tm);
-      RedrawDisplayManager(TheDisplayManager());
-
-      if ( tm->status != NAME_repeat )
+    { if ( tm->status != NAME_repeat )
       { KillTimer(NULL, id);
 	deleteHashTable(TimerTable, toInt(id));
 	assign(tm, status, NAME_idle);
       }
+
+      executeTimer(tm);
+
+      RedrawDisplayManager(TheDisplayManager());
 
       return;
     }
