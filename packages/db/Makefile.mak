@@ -13,8 +13,9 @@ PLHOME=..\..
 PKGDLL=db4pl
 
 DBDIR=		e:\jan\src\db-4.0.14
-DBLIB=		$(DBDIR)\build_win32\Release\libdb40.lib
-DBDLL=		$(DBDIR)\build_win32\Release\libdb40.dll
+LIBDB=		libdb40
+DBLIB=		$(DBDIR)\build_win32\Release\$(LIBDB).lib
+DBDLL=		$(DBDIR)\build_win32\Release\$(LIBDB).dll
 DBDEFS=		-DHAVE_SET_RPC_SERVER
 
 INCLUDE=$(INCLUDE);$(DBDIR)\build_win32
@@ -47,6 +48,7 @@ ilib::
 
 uninstall::
 		del $(PLBASE)\bin\$(PKGDLL).dll
+		del $(PLBASE)\bin\$(LIBDB).dll
 		del $(PLBASE)\library\db.pl
 		$(MAKEINDEX)
 
