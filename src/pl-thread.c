@@ -224,26 +224,34 @@ DllMain(HINSTANCE hinstDll, DWORD fdwReason, LPVOID lpvReserved)
 #endif /*USE_CRITICAL_SECTIONS*/
 
 static
-PRED_IMPL("$mutex_statistics", 0, mutex_statistics, 0)
+PRED_IMPL("mutex_statistics", 0, mutex_statistics, 0)
 { counting_mutex *cm;
 
-  Sdprintf("Name                               locked contention\n"
+  Sdprintf("Name                               locked collisions\n"
 	   "----------------------------------------------------\n");
   PL_LOCK(L_THREAD);
   for(cm = GD->thread.mutexes; cm; cm = cm->next)
   { Sdprintf("%-32s %8d", cm->name, cm->count);
 #ifdef O_CONTENTION_STATISTICS
-    Sdprintf(" %8d", cm->contention);
+    Sdprintf(" %8d", cm->collisions);
 #endif
-    if ( cm->unlocked != cm->count )
-      Sdprintf(" LOCKS: %d\n", cm->count - cm->unlocked);
-    else
-      Sdprintf("\n");
+    if ( cm == &_PL_mutexes[L_THREAD] )
+    { if ( cm->count - cm->unlocked != 1 )
+	Sdprintf(" LOCKS: %d\n", cm->count - cm->unlocked - 1);
+      else
+	Sdprintf("\n");
+    } else
+    { if ( cm->unlocked != cm->count )
+	Sdprintf(" LOCKS: %d\n", cm->count - cm->unlocked);
+      else
+	Sdprintf("\n");
+    }
   }
   PL_UNLOCK(L_THREAD);
 
   succeed;
 }
+
 
 		 /*******************************
 		 *	  LOCAL PROTOTYPES	*
@@ -262,51 +270,6 @@ static int	get_message_queue(term_t t, message_queue **queue,
 static void	cleanupLocalDefinitions(PL_local_data_t *ld);
 static int	unify_thread(term_t id, PL_thread_info_t *info);
 static pl_mutex *mutexCreate(atom_t name);
-
-
-		 /*******************************
-		 *	LOW-LEVEL UTILIIES	*
-		 *******************************/
-
-#ifdef HAVE_ASM_ATOMIC_H
-#include <asm/atomic.h>
-#endif
-
-void
-PL_atomic_inc(int *addr)
-{
-#ifdef HAVE_ATOMIC_INC		/* only if sizeof(int) == sizeof(atomic_t) */
-  atomic_inc((atomic_t *)addr);
-#else
-#ifdef WIN32
-  assert(sizeof(int) == sizeof(long));
-  InterlockedIncrement((long *)addr);
-#else
-  PL_LOCK(L_MISC);
-  (*addr)++;
-  PL_UNLOCK(L_MISC);
-#endif
-#endif
-}
-
-
-void
-PL_atomic_dec(int *addr)
-{
-#ifdef HAVE_ATOMIC_INC
-  atomic_dec((atomic_t *)addr);
-#else
-#ifdef WIN32
-  InterlockedDecrement((long *)addr);
-#else
-  PL_LOCK(L_MISC);
-  (*addr)--;
-  PL_UNLOCK(L_MISC);
-#endif
-#endif
-}
-
-#undef LOCK				/* clash with Linux asm/atomic.h */
 
 
 		 /*******************************
@@ -2001,7 +1964,7 @@ allocSimpleMutex(const char *name)
   simpleMutexInit(&m->mutex);
   m->count = 0L;
   m->unlocked = 0L;
-  m->contention = 0L;
+  m->collisions = 0L;
   m->name = store_string(name);
   LOCK();
   m->next = GD->thread.mutexes;
@@ -3154,6 +3117,6 @@ BeginPredDefs(thread)
   PRED_DEF("thread_peek_message", 2, thread_peek_message, 0)
   PRED_DEF("message_queue_destroy", 1, message_queue_destroy, 0)
   PRED_DEF("thread_setconcurrency", 2, thread_setconcurrency, 0)
-  PRED_DEF("$mutex_statistics", 0, mutex_statistics, 0)
+  PRED_DEF("mutex_statistics", 0, mutex_statistics, 0)
 #endif
 EndPredDefs

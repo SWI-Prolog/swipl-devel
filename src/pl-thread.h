@@ -125,7 +125,7 @@ compile-time
 #define countingMutexLock(cm) \
 	do \
 	{ if ( pthread_mutex_trylock(&(cm)->mutex) == EBUSY ) \
-	  { (cm)->contention++; \
+	  { (cm)->collisions++; \
 	    pthread_mutex_lock(&(cm)->mutex); \
 	  } \
 	  (cm)->count++; \
@@ -313,13 +313,6 @@ void		forThreadLocalData(void (*func)(struct PL_local_data *),
 void		resumeThreads(void);
 
 #define PL_THREAD_SUSPEND_AFTER_WORK	0x1 /* forThreadLocalData() */
-
-		 /*******************************
-		 *	   ATOMIC COUNTERS	*
-		 *******************************/
-
-void			PL_atomic_inc(int *addr);
-void			PL_atomic_dec(int *addr);
 
 #else /*O_PLMT, end of threading-stuff */
 

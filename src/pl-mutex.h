@@ -130,7 +130,7 @@ typedef struct counting_mutex
   unsigned long count;			/* # times locked */
   unsigned long unlocked;		/* # times unlocked */
 #ifdef O_CONTENTION_STATISTICS
-  unsigned long contention;		/* # contentions */
+  unsigned long collisions;		/* # contentions */
 #endif
   struct counting_mutex *next;		/* next of allocated chain */
 } counting_mutex;
