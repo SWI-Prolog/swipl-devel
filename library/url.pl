@@ -170,7 +170,7 @@ parse_url(URL, BaseURL, Attributes) :-
 	).
 	
 globalise_path(LocalPath, _, LocalPath) :-
-	sub_atom(LocalPath, 0, _, _, /), !.
+	is_absolute_file_name(LocalPath), !. % make file:drive:path work on MS
 globalise_path(LocalPath, BasePath, Path) :-
 	(   sub_atom(BasePath, _, _, 0, /)
 	->  BaseDir = BasePath
@@ -197,6 +197,14 @@ url(file, [path(Path)]) -->
 	(   "/"
 	->  path(Path0),
 	    { atom_concat(/, Path0, Path)
+	    }
+	;   { current_prolog_flag(windows, true)
+	    },
+	    alpha(DriveCode),
+	    ":",
+	    path(Path0),
+	    { char_code(Drive, DriveCode),
+	      concat_atom([Drive, :, Path0], Path)
 	    }
 	;   path(Path0),
 	    { absolute_file_name(Path0, Path)
