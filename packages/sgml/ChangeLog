@@ -1,3 +1,8 @@
+Feb 22, 2005
+
+  * MODIFIED: Use Sgetcode() rather than Sgetc() to get data from a Prolog
+    stream.  Extended parser to accept characters outside 0..255 range.
+
 Feb 7, 2005
 
   * ADDED: when converting attributes to integers on 32-bit machines,

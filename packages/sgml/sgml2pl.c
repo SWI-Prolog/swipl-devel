@@ -1635,10 +1635,10 @@ pl_sgml_parse(term_t parser, term_t options)
       { if ( content_length <= 0 )
 	  c = EOF;
 	else
-	  c = Sgetc(in);
+	  c = Sgetcode(in);
 	ateof = (--content_length <= 0);
       } else
-      { c = Sgetc(in);
+      { c = Sgetcode(in);
 	ateof = Sfeof(in);
       }
 

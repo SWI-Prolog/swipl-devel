@@ -4685,7 +4685,10 @@ reprocess:
 #endif
       if ( p->cdata->size == 0 )
         setlocation(&p->startcdata, &p->location, line, lpos);
-      add_cdata(p, dtd->charmap->map[chr]);
+      if ( chr <= 0xff )
+        chr = dtd->charmap->map[chr];
+
+      add_cdata(p, chr);
       return;
     }
     case S_ECDATA2:			/* Seen </ in CDATA/RCDATA */
