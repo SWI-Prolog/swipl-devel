@@ -1164,6 +1164,16 @@ If true, \exam{open(pipe(command), mode, Stream)}, etc.\ are supported.
 Can be changed to disable the use of pipes in applications testing this
 feature.  Not recommended.
 
+    \prologflagitem{large_files}{bool}{r}
+If true, SWI-Prolog has been compiled with \jargon{large file support}
+(LFS) and is capable to access files larger than 2GB on 32-bit hardware.
+Large file-support is default on installations built using
+\program{configure} that support it and may be switched off using
+the configure option \const{--disable-largefile}.%
+    \bug{As SWI-Prolog integers are 32-bits, SWI-Prolog cannot represent
+	 offsets in large files.  Therefore, calls involving file sizes
+	 or offsets do not work properly.}
+
     \prologflagitem{readline}{bool}{r}
 If true, SWI-Prolog is linked with the readline library.  This is done
 by default if you have this library installed on your system.  It is
