@@ -137,7 +137,8 @@ remove_history(_, _).
 %    Define the depth to which to keep the history.
 
 history_depth_(N) :-
-	feature(history, N), !.
+	feature(history, N),
+	integer(N), !.
 history_depth_(15).
 
 %    expand_history(+Raw, -Expanded)
