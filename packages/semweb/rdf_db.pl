@@ -54,6 +54,7 @@
 	    rdf_reset_db/0,
 
 	    rdf_node/1,			% -Id
+	    rdf_bnode/1,		% -Id
 
 	    rdf_load/1,			% +File
 	    rdf_load/2,			% +File, +Options
@@ -292,6 +293,18 @@ rdf_member_property(P, N) :-
 rdf_node(Value) :-
 	repeat,
 	gensym('_:', Value),
+	\+ rdf_subject(Value),
+	\+ rdf(_, _, Value),
+	\+ rdf(_, Value, _).
+
+
+%	rdf_bnode(-Id)
+%
+%	Generate a unique anonymous identifier for a subject.
+
+rdf_bnode(Value) :-
+	repeat,
+	gensym('__bnode', Value),
 	\+ rdf_subject(Value),
 	\+ rdf(_, _, Value),
 	\+ rdf(_, Value, _).
@@ -949,7 +962,8 @@ rdf_att_id(Id, _, Id).
 rdf_value(V, Text) :-
 	ns(NS, Full),
 	atom_concat(Full, Local, V), !,
-	concat_atom(['&', NS, (';'), Local], Text).
+	xml_quote_attribute(Local, QLocal),
+	concat_atom(['&', NS, (';'), QLocal], Text).
 rdf_value(V, V).
 
 

@@ -1,3 +1,8 @@
+Nov 17, 2003
+
+  * FIXED: rdf_save/[1,2] to handle XML escapes `value'
+    in rdf:resource="value".
+
 Nov 7, 2003
 
   * ADDED: Allows rdf_load/[1,2] to process a stream.  Maarten Menken.

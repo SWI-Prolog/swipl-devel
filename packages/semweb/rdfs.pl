@@ -40,6 +40,7 @@
 
 	    rdfs_member/2,		% ?Object, +Set
 	    rdfs_list_to_prolog_list/2,	% +Set, -List
+	    rdfs_assert_list/2,		% +List, -Resource
 
 	    rdfs_find/5			% +String, +Dom, +Props, +Method, -Subj
 	  ]).
@@ -253,6 +254,20 @@ rdfs_list_to_prolog_list(Set, [H|T]) :-
 	rdf_has(Set, rdf:first, H),
 	rdf_has(Set, rdf:rest, Tail), !,
 	rdfs_list_to_prolog_list(Tail, T).
+
+
+%	rdfs_assert_list(+Resources, -List)
+%	
+%	Create an RDF list from the given Resources.
+
+rdfs_assert_list([], Nil) :-
+	rdf_equal(rdf:nil, Nil).
+rdfs_assert_list([H|T], List) :-
+	rdfs_assert_list(T, Tail),
+	rdf_bnode(List),
+	rdf_assert(List, rdf:rest, Tail),
+	rdf_assert(List, rdf:first, H),
+	rdf_assert(List, rdf:type, rdf:'List').
 
 
 		 /*******************************
