@@ -1000,15 +1000,22 @@ pl_thread_join(term_t thread, term_t retcode)
 { PL_thread_info_t *info;
   void *r;
   word rval;
+  int rc;
 
   if ( !get_thread(thread, &info, TRUE) )
     fail;
-  if ( info == LD->thread.info )	/* joining myself */
-    return PL_error("thread_join", 2, "Cannot join self",
+  if ( info == LD->thread.info || info->detached )
+  { return PL_error("thread_join", 2,
+		    info->detached ? "Cannot join detached thread"
+				   : "Cannot join self",
 		    ERR_PERMISSION, ATOM_join, ATOM_thread, thread);
+  }
 
-  if ( pthread_join(info->tid, &r) )
-    return PL_error("thread_join", 2, MSG_ERRNO, ERR_SYSCALL, "pthread_join");
+  while( (rc=pthread_join(info->tid, &r)) == EINTR )
+    ;
+  if ( rc != 0 )
+    return PL_error("thread_join", 2, ThError(rc),
+		    ERR_SYSCALL, "pthread_join");
   
   rval = unify_thread_status(retcode, info);
    
@@ -1473,7 +1480,7 @@ This code deals with telling other threads something.  The interface:
 	thread_get_message(-Message)
 	thread_send_message(+Id, +Message)
 
-Messages are send asynchronously.
+Messages are sent asynchronously.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 typedef struct _thread_msg
@@ -1504,19 +1511,19 @@ queue_message(message_queue *queue, term_t msg)
 
 static int
 get_message(message_queue *queue, term_t msg)
-{ thread_message *msgp;
-  thread_message *prev = NULL;
-  term_t tmp = PL_new_term_ref();
+{ term_t tmp = PL_new_term_ref();
   mark m;
 
   Mark(m);
 
   pthread_cleanup_push((void *)pthread_mutex_unlock, (void *)&queue->mutex);
   pthread_mutex_lock(&queue->mutex);
-  msgp = queue->head;
 
   for(;;)
-  { for( ; msgp; prev = msgp, msgp = msgp->next )
+  { thread_message *msgp = queue->head;
+    thread_message *prev = NULL;
+
+    for( ; msgp; prev = msgp, msgp = msgp->next )
     { PL_recorded(msgp->message, tmp);
 
       if ( PL_unify(msg, tmp) )
@@ -1531,14 +1538,13 @@ get_message(message_queue *queue, term_t msg)
 	freeHeap(msgp, sizeof(*msgp));
 	goto out;
       }
+
       Undo(m);			/* reclaim term */
     }
 				/* linux docs say it may return EINTR */
 				/* does it re-lock in that case? */
     while( pthread_cond_wait(&queue->cond_var, &queue->mutex) == EINTR )
       ;
-
-    msgp = (prev ? prev->next : queue->head);
   }
 out:
 

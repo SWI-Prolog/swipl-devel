@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#28: race condition on message queues.  Mike Elston.
+
   * PORT: Added #define _GNU_SOURCE 1 into pl-thread.c to compile without
     warnings on glibc based systems.
 
