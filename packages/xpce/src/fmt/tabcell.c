@@ -104,6 +104,30 @@ modifiedImageTableCell(TableCell c)
 		 *******************************/
 
 static status
+imageTableCell(TableCell c, Graphical gr)
+{ if ( c->image != gr )
+  { Graphical old = c->image;
+    Table tab = table_of_cell(c);
+
+    if ( notNil(old) && !onFlag(old, F_FREEING|F_FREED) )
+    { Any nil = NIL;
+
+      qadSendv(old, NAME_layoutInterface, 1, &nil);
+      send(old, NAME_destroy, EAV);
+    }
+    assign(c, image, gr);
+    qadSendv(gr, NAME_layoutInterface, 1, (Any *)&c);
+    if ( tab && notNil(tab->device) )
+      send(tab->device, NAME_display, gr, EAV);
+
+    requestComputeLayoutManager(c->layout_manager, DEFAULT);
+  }
+
+  succeed;
+}
+
+
+static status
 selectedTableCell(TableCell c, Bool selected)
 { if ( c->selected != selected )
   { assign(c, selected, selected);
@@ -530,7 +554,9 @@ static senddecl send_table_cell[] =
 { SM(NAME_initialise, 1, "graphical", initialiseTableCell,
      DEFAULT, "Initialise abstract instance"),
   SM(NAME_unlink, 0, NULL, unlinkTableCell,
-     DEFAULT, "Remove <-image from device")
+     DEFAULT, "Remove <-image from device"),
+  SM(NAME_image, 1, "graphical", imageTableCell,
+     NAME_content, "Replace the graphical in the cell")
 };
 
 /* Get Methods */

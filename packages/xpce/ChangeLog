@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: `table_cell->image' to replace the image in a cell while keeping
+  the same cell.
+
 * FIXED: Class text_item modified propagation for ->paste.  Also provide
   real modified status for normal edit.
 
