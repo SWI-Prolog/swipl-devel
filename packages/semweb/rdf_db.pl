@@ -79,7 +79,6 @@ ns(owl,  'http://www.w3.org/2002/07/owl#').
 ns(xsd,  'http://www.w3.org/2000/10/XMLSchema#').
 ns(dc,   'http://purl.org/dc/elements/1.1/').
 ns(eor,  'http://dublincore.org/2000/03/13/eor#').
-ns(tool, 'http://www.swi.psy.uva.nl/mia/tool#').
 
 %	rdf_register_ns(+Alias, +URI)
 %

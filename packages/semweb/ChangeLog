@@ -1,5 +1,7 @@
 Sep 21, 2003
 
+  * ADDED: rdf_edit.pl: rdfe_register_ns/2 encapsulation of rdf_register_ns/2.
+
   * ADDED: rdfe_update/4 encapsulation of the new source action for
     rdf_update/4.
 

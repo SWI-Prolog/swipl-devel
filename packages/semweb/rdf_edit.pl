@@ -12,6 +12,9 @@
 	    rdfe_load/1,		% +File
 	    rdfe_delete/1,		% +Resource
 
+	    rdfe_register_ns/2,		% +Id, +URI
+	    rdfe_unregister_ns/2,	% +Id, +URI
+
 	    rdfe_transaction/1,		% :Goal
 	    rdfe_transaction/2,		% :Goal, +Name
 	    rdfe_transaction_member/2,	% +Transactions, -Action
@@ -207,6 +210,26 @@ rdfe_load(File) :-
 			   triples(Loaded)
 			 ])).
 
+%	rdfe_register_ns(Id, URI)
+%	
+%	Encapsulation of rdf_register_ns(Id, URI)
+
+rdfe_register_ns(Id, URI) :-
+	rdf_db:ns(Id, URI), !.
+rdfe_register_ns(Id, URI) :-
+	rdfe_current_transaction(TID),
+	rdf_register_ns(Id, URI),
+	broadcast(rdf_ns(register(Id, URI))),
+	assert_action(TID, ns(register(Id, URI)), -, -, -),
+	journal(ns(TID, register(Id, URI))).
+
+rdfe_unregister_ns(Id, URI) :-
+	rdfe_current_transaction(TID),
+	retractall(rdf_db:ns(Id, URI)),
+	broadcast(rdf_ns(unregister(Id, URI))),
+	assert_action(TID, ns(unregister(Id, URI)), -, -, -),
+	journal(ns(TID, unregister(Id, URI))).
+
 
 		 /*******************************
 		 *	   TRANSACTIONS		*
@@ -323,6 +346,12 @@ undo(retract(PayLoad), Subject, Predicate, Object) :- !,
 	rdfe_assert(Subject, Predicate, Object, PayLoad).
 undo(source(Old, New), Subject, Predicate, Object) :- !,
 	rdfe_update(Subject, Predicate, Object, source(New), Old).
+undo(ns(Action), -, -, -) :- !,
+	(   Action = register(Id, URI)
+	->  rdfe_unregister_ns(Id, URI)
+	;   Action = unregister(Id, URI)
+	->  rdfe_register_ns(Id, URI)
+	).
 undo(Action, Subject, Predicate, Object) :-
 	action(Action), !,
 	rdfe_update(Subject, Predicate, Object, Action).
@@ -639,6 +668,10 @@ replay_action(update(_, Subject, Predicate, Object, Action)) :-
 replay_action(rdf_load(_, File, Options)) :-
 	find_file(File, Options, Path),
 	rdf_load(Path).
+replay_action(ns(_, register(ID, URI))) :- !,
+	rdf_register_ns(ID, URI).
+replay_action(ns(_, unregister(ID, URI))) :-
+	retractall(rdf_db:ns(ID, URI)).
 
 find_file(File, _, File) :-
 	exists_file(File), !.
