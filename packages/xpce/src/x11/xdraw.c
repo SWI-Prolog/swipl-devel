@@ -2554,13 +2554,13 @@ s_advance(String s, int from, int to)
 
   if ( isstrA(s) )
   { XftTextExtents8(context.display, context.gcs->xft_font, 
-		    s->s_textA, s->size, &info);
+		    s->s_textA+from, len, &info);
   } else if ( sizeof(charW) == 2 )
   { XftTextExtents16(context.display, context.gcs->xft_font, 
-		     (FcChar16*)s->s_textW, s->size, &info);
+		     (FcChar16*)s->s_textW+from, len, &info);
   } else if ( sizeof(charW) == 4 )
   { XftTextExtents32(context.display, context.gcs->xft_font, 
-		     (FcChar32*)s->s_textW, s->size, &info);
+		     (FcChar32*)s->s_textW+from, len, &info);
   }
 
   return info.xOff;			/* Xoff? */
@@ -2992,7 +2992,7 @@ str_width(String s, int from, int to, FontObj f)
     to = s->size;
 
   if ( to > from )
-  { int w = lbearing(str_fetch(s,0));
+  { int w = lbearing(str_fetch(s, from));
 
     w += s_advance(s, from, to);
     return w;

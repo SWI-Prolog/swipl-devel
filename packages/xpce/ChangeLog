@@ -5,6 +5,9 @@
 VERSION 6.5.4, distributed with SWI-Prolog 5.5.4
 ================================================
 
+* FIXED: X11 error in text-metric computation, notably showing up when
+  positioning the caret in text-items.
+
 * ENHANCED: some cleanup and more robustness in library(Xserver) to create
   a head-less server for XPCE.
 
