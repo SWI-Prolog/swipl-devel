@@ -256,6 +256,7 @@ $break :-
 
 $toplevel :-
 	$runtoplevel,
+	print_message(query, query(eof)),
 	print_message(informational, halt).
 
 $runtoplevel :-

@@ -362,6 +362,8 @@ prolog_message(query(yes)) -->
 prolog_message(query(yes, Bindings)) -->
 	bindings(Bindings),
 	[ ' ', flush ].
+prolog_message(query(eof)) -->
+	[ nl ].
 
 bindings([]) -->
 	[].
