@@ -29,7 +29,7 @@
 #	  based on SWI-Prolog.  Contact prolog-request@swi.psy.uva.nl.
 ################################################################
 
-PLVERSION=2.9.5
+PLVERSION=2.9.7
 
 PL=pl
 prefix=/usr/local

@@ -44,7 +44,7 @@
 
 #ifdef HAVE_RL_INSERT_CLOSE
 #define PAREN_MATCHING 1
-extern rl_delete_text(int from, int to);
+extern int rl_delete_text(int from, int to);
 #endif
 
 #undef ESC				/* will be redefined ... */
@@ -52,8 +52,8 @@ extern rl_delete_text(int from, int to);
 #define savestring(x)			/* avoid definition there */
 #include <readline/readline.h>
 extern void add_history(char *);	/* should be in readline.h */
-extern rl_begin_undo_group(void);	/* delete when conflict arrises! */
-extern rl_end_undo_group(void);
+extern int rl_begin_undo_group(void);	/* delete when conflict arrises! */
+extern int rl_end_undo_group(void);
 extern Function *rl_event_hook;
 extern char *filename_completion_function(char *, int);
 

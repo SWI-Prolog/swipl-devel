@@ -762,7 +762,7 @@ unifyStreamName(term_t f, int n)
 #ifdef HAVE_POPEN
   if ( fileTable[n].type == ST_PIPE )
   { return PL_unify_term(f,
-			 FUNCTOR_pipe1,
+			 PL_FUNCTOR, FUNCTOR_pipe1,
 			   PL_ATOM, fileTable[n].name);
   }
 #endif /*HAVE_POPEN*/
@@ -1770,14 +1770,17 @@ word
 pl_peek_byte2(term_t stream, term_t chr)
 { int n;
   IOSTREAM *s;
+  IOPOS pos;
   int c;
 
   if ( (n = streamNo(stream, F_READ)) < 0 ||
        !(s = fileTable[n].stream) )
     fail;
 
+  pos = s->posbuf;
   c = Sgetc(s);
   Sungetc(c, s);
+  s->posbuf = pos;
 
   return PL_unify_integer(chr, c);
 }
@@ -1786,13 +1789,16 @@ pl_peek_byte2(term_t stream, term_t chr)
 word
 pl_peek_byte1(term_t chr)
 { IOSTREAM *s;
+  IOPOS pos;
   int c;
 
   if ( !(s = fileTable[Input].stream) )
     fail;
 
+  pos = s->posbuf;
   c = Sgetc(s);
   Sungetc(c, s);
+  s->posbuf = pos;
 
   return PL_unify_integer(chr, c);
 }

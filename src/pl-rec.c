@@ -548,9 +548,17 @@ freeRecord(Record record)
 		*       PROLOG CONNECTION       *
 		*********************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The key is stored as an atom, integer  or functor header as found on the
+global-stack. A functor is a type with  the   same  mask as an atom, but
+using the STG_GLOBAL storage indicator.  So,   the  first line denotes a
+real atom.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 bool
 unifyKey(term_t key, word val)
-{ if ( isAtom(val) || isTaggedInt(val) ) /* TBD? */
+{ if ( (isAtom(val) && storage(val) != STG_GLOBAL) ||
+       isTaggedInt(val) )
     return _PL_unify_atomic(key, val);
 
   return PL_unify_functor(key, (functor_t) val);

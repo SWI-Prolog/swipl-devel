@@ -1414,6 +1414,9 @@ care of reconsult, redefinition, etc.
       if ( false(def, MULTIFILE) )
       { ClauseRef first = def->definition.clauses;
 
+	while ( first && true(first->clause, ERASED) )
+	  first = first->next;
+
 	if ( first && first->clause->source_no == sf->index )
 	{ if ( (debugstatus.styleCheck & DISCONTIGUOUS_STYLE) &&
 	       false(def, DISCONTIGUOUS) )

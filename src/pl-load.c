@@ -349,8 +349,7 @@ openExec(char *execFile)
 }
 
 
-static
-int
+static int
 sizeExec(void)
 { return
 #ifndef aout_800
@@ -814,6 +813,9 @@ pl_load_foreign(term_t file, term_t entry, term_t options,
 #endif
 #ifndef RTLD_NOW			/* implicit on some versions */
 #define RTLD_NOW 0
+#endif
+#ifndef RTLD_LAZY			/* freeBSD doesn't have this? */
+#define RTLD_LAZY 0
 #endif
 
 #endif /*HAVE_DLOPEN*/

@@ -1,6 +1,38 @@
 
 			SWI-Prolog ChangeLog
 			====================
+VERSION 2.9.7
+=============
+
+  * FIXED: avoid some warnings to get clean compilation on GCC 2.8.0.
+
+  * FIXED: detection of discontiguous predicates (avoids false alarm).
+
+  * ADDED: Predicate definition for (*->)/2, mainly to allow for testing
+    for its existence and avoid redefinition.
+
+  * ADDED: Options to qsave_program/2 may be specified as Name(Value)
+    or Name = Value.
+
+  * FIXED: `map' option of qsave_program/2.
+
+  * FIXED: handling of dynamic predicates import/export by
+    qsave_program/[1,2].  found by Lourens van der Meij.
+
+  * PORT: fixed pl-load.c for systems supporting the ELF dynamic load
+    functions, but not RTLD_LAZY (FreeBSD?)  Lost the name of the guy
+    pointing me to this problem.  Thanks anyway!
+
+  * FIXED: handling of a functor as key for recorded and frieds, found by
+    Lourens van der Meij.
+
+  * FIXED: current_stream/3 if a current stream refers to a pipe.  Found
+    by Robert van Engelen.
+
+  * FIXED: dereferencing symbolic link of argv[0] to find the `real'
+    symbol file.  Reported by Milan Zamazal, where this problem caused
+    a crash when running SWI-Prolog using M-x run-prolog under Emacs.
+
 VERSION 2.9.6
 =============
 

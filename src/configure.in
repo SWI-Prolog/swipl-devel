@@ -124,7 +124,10 @@ if test "$ac_cv_lib_termcap_main" = "yes"; then
 	      AC_MSG_RESULT(maybe ...)
 	      checkucb=yes)
 else
-AC_CHECK_LIB(ncurses, main)
+  AC_CHECK_LIB(ncurses, main)
+  if test ! "$ac_cv_lib_ncurses_main" = "yes"; then
+    AC_CHECK_LIB(curses, main)
+  fi
 fi
 if test "$checkucb" = "yes"; then
     AC_CHECK_LIB(ucb, rindex)
