@@ -962,10 +962,21 @@ threadLocalHeapUsed(void)
 		 *	     CLEANUP		*
 		 *******************************/
 
+typedef enum { EXIT_PROLOG, EXIT_C } exit_type;
+
 typedef struct _at_exit_goal
 { struct _at_exit_goal *next;		/* Next in queue */
-  Module   module;			/* Module for running goal */
-  record_t goal;			/* Goal to run */
+  exit_type type;			/* Prolog or C */
+  union
+  { struct
+    { Module   module;			/* Module for running goal */
+      record_t goal;			/* Goal to run */
+    } prolog;
+    struct
+    { void (*function)(void *);		/* called function */
+      void *closure;			/* client data */
+    } c;
+  };
 } at_exit_goal;
 
 
@@ -976,11 +987,40 @@ pl_thread_at_exit(term_t goal)
 
   PL_strip_module(goal, &m, goal);
   eg->next = NULL;
-  eg->module = m;
-  eg->goal = PL_record(goal);
+  eg->type = EXIT_PROLOG;
+  eg->prolog.module = m;
+  eg->prolog.goal   = PL_record(goal);
 
   eg->next = LD->thread.exit_goals;
   LD->thread.exit_goals = eg;
+
+  succeed;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Request a function to run when the Prolog thread is about to detach, but
+still capable of running Prolog queries.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+PL_thread_at_exit(void (*function)(void *), void *closure, int global)
+{ at_exit_goal *eg = allocHeap(sizeof(*eg));
+
+  eg->next = NULL;
+  eg->type = EXIT_C;
+  eg->c.function = function;
+  eg->c.closure  = closure;
+
+  if ( global )
+  { LOCK();
+    eg->next = GD->thread.exit_goals;
+    GD->thread.exit_goals = eg;
+    UNLOCK();
+  } else
+  { eg->next = LD->thread.exit_goals;
+    LD->thread.exit_goals = eg;
+  }
 
   succeed;
 }
@@ -995,29 +1035,50 @@ Q: Should we limit the passes?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-run_thread_exit_hooks()
-{ term_t goal = PL_new_term_ref();
+run_exit_hooks(at_exit_goal *eg, int free)
+{ at_exit_goal *next;
+  term_t goal = PL_new_term_ref();
   fid_t fid = PL_open_foreign_frame();
-  at_exit_goal *eg;
 
-  while( (eg = LD->thread.exit_goals) )
-  { at_exit_goal *next;
-
-    LD->thread.exit_goals = NULL;	/* empty these */
-
-    for( ; eg; eg = next)
-    { next = eg->next;
+  for( ; eg; eg = next)
+  { next = eg->next;
   
-      PL_recorded(eg->goal, goal);
-      PL_erase(eg->goal);
-      callProlog(eg->module, goal, PL_Q_NODEBUG, NULL);
-      PL_rewind_foreign_frame(fid);
-      freeHeap(eg, sizeof(*eg));
+    switch(eg->type)
+    { case EXIT_PROLOG:
+	PL_recorded(eg->prolog.goal, goal);
+        if ( free )
+	  PL_erase(eg->prolog.goal);
+	callProlog(eg->prolog.module, goal, PL_Q_NODEBUG, NULL);
+	PL_rewind_foreign_frame(fid);
+	break;
+      case EXIT_C:
+	(*eg->c.function)(eg->c.closure);
+        break;
+      default:
+	assert(0);
     }
+      
+    if ( free )
+      freeHeap(eg, sizeof(*eg));
   }
 
   PL_discard_foreign_frame(fid);
   resetTermRefs(goal);
+}
+
+
+
+static void
+run_thread_exit_hooks()
+{ at_exit_goal *eg;
+
+  while( (eg = LD->thread.exit_goals) )
+  { LD->thread.exit_goals = NULL;	/* empty these */
+
+    run_exit_hooks(eg, TRUE);
+  }
+
+  run_exit_hooks(GD->thread.exit_goals, FALSE);
 }
 
 
@@ -2023,6 +2084,11 @@ __assert_fail(const char *assertion,
 int
 PL_thread_self()
 { return -2;
+}
+
+int
+PL_thread_at_exit(void (*function)(void *), void *closure, int global)
+{ return FALSE;
 }
 
 int

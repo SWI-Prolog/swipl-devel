@@ -2382,7 +2382,8 @@ pl_clause_from_source(term_t file, term_t line, term_t clause)
   
 static void
 listGenerations(Definition def)
-{ ulong gen = environment_frame->generation;
+{ GET_LD
+  ulong gen = environment_frame->generation;
   ClauseRef cl;
 
   Sdprintf("%s has %d clauses at generation %ld (%s)\n",
@@ -2432,9 +2433,8 @@ listGenerations(Definition def)
 
 void
 checkDefinition(Definition def)
-{ int nc;
+{ unsigned int nc, indexed = 0;
   ClauseRef cl;
-  int indexed = 0;
     
   for(nc=0, cl = def->definition.clauses; cl; cl=cl->next)
   { Clause clause = cl->clause;

@@ -26,6 +26,7 @@ XLIBS=$(UXLIB) $(PLLIB) libjpeg.lib xpm.lib comdlg32.lib
 
 XPCEDLL=xpce.dll
 PL2XPCE=pl2xpce
+LDFLAGS=$(LDFLAGS) /BASE:0x1010000
 
 all:	$(PL2XPCE).dll
 

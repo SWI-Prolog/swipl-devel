@@ -89,6 +89,7 @@ typedef struct
   WNDPROC	saved_window_procedure;	/* For refinement */
   unsigned capture    : 1;		/* has capture */
   unsigned open	      : 1;		/* window is opened */
+  unsigned drop	      : 1;		/* Have done DropAcceptFiles() */
 } ws_window, *WsWindow;
 
 
@@ -190,6 +191,7 @@ Name		getWinFileNameDisplay(DisplayObj d,
 				      CharArray file,
 				      Directory dir,
 				      Any owner);
+void		destroyThreadWindows(Class class);
 
 #include "msproto.h"
 

@@ -776,7 +776,7 @@ protocol(const char *str, int n)
 { GET_LD
   IOSTREAM *s;
 
-  if ( (s = getStream(Sprotocol)) )
+  if ( LD && (s = getStream(Sprotocol)) )
   { while( --n >= 0 )
       Sputc(*str++, s);
     releaseStream(s);			/* we don not check errors */

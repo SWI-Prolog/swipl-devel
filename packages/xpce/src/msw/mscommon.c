@@ -64,10 +64,7 @@ These functions are used to associate an  XPCE object with an MS-windows
 window. In older versions,  we  used   data  associated  with the window
 itself. As of 4.10.1, XPCE objects can  be bound to existing MS-Windows,
 and we want to make as  few   as  possible assumptions on these windows.
-Hence, we use out own hashtable.
-
-Note that HWND is wrapped in  an   XPCE  integer.  A little dubious, but
-guarded by an assert(), so we will know if and when this fails.
+Hence, we use our own hashtable.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define WINASSOC_TABLESIZE 256
@@ -129,6 +126,46 @@ getObjectFromHWND(HWND hwnd)
   }
   
   fail;
+}
+
+		 /*******************************
+		 *	   THREAD STUFF		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+destroyThreadWindows(Class class)
+    Destroy all objects that are in the HWND table and have a window
+    that belongs to the current thread.  Note that here we decide to
+    *destroy* such objects.  We could also have choosen for `uncreate',
+    leaving the object around but destroying the Windows.
+
+    This routine is called from DllMain() in mswin.c
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+destroyThreadWindows(Class class)
+{ Chain ch = newObject(ClassChain, EAV);
+  int i;
+  DWORD tid = GetCurrentThreadId();
+  Any obj;
+
+  for(i=0; i<WINASSOC_TABLESIZE; i++)
+  { WinAssoc a;
+    
+    for(a = wintable[i]; a; a = a->next)
+    { if ( instanceOfObject(a->object, class) &&
+	   tid == GetWindowThreadProcessId(a->hwnd, NULL) )
+	appendChain(ch, a->object);
+    }
+  }
+
+  for_chain(ch, obj,
+	    { DEBUG(NAME_thread, Cprintf("Destroying %s owned by 0x%x\n",
+					 pp(obj), tid));
+	      sendv(obj, NAME_destroy, 0, NULL);
+	    });
+
+  freeObject(ch);
 }
 
 

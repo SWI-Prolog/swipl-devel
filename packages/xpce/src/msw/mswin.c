@@ -27,65 +27,36 @@
 #include <h/interface.h>
 
 		 /*******************************
-		 *	  HINSTANCE STUFF	*
+		 *	    DLL STUFF		*
 		 *******************************/
 
 HINSTANCE ThePceHInstance;		/* Global handle */
 
-#ifdef USE_DLL_ENTRY
-#define initHinstance(argc, argv)
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This is a mistery. Earlier versions of  this used the SWI-Prolog console
-functions to find the HInstance parameter to   pass to the various Win32
-API functions requesting one. As we  want to disconnect from plterm.dll,
-I changed this to make a DLL entry-point.  First of all, this yields the
-symbold _main() as undefined. See below.
-
-I then tested without this function, and   guess what: it doesn't appear
-to matter what you use for PceHInstance. I tried 0 and 42 and the system
-has no noticable problems????
-
-More fun: using a DLL entry point   makes  malloc() crash. Now trying to
-exploit the initialisation. Hoping that a  HINSTANCE   is  the same as a
-HMODULE ...
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
 BOOL WINAPI
-pceDLLEntry(HINSTANCE instance, DWORD reason, LPVOID reserved)
+DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved)
 { switch(reason)
   { case DLL_PROCESS_ATTACH:
-      pceinst = instance;
+      ThePceHInstance = instance;
+      break;
+    case DLL_THREAD_ATTACH:
+      break;
+    case DLL_THREAD_DETACH:
+      break;
   }
 
   return TRUE;
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-If I don't define this, an  undefined   reference  is generated.  Who is
-calling this?  Is this is MSVC++ bug?
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
 int
-main()
-{ /*Cprintf("%s:%d: xpce.dll: main() called???\n", __FILE__, __LINE__);*/
+pceMTdetach()
+{ DEBUG(NAME_thread,
+	Cprintf("Detached thread 0x%x\n", GetCurrentThreadId()));
+  destroyThreadWindows(ClassFrame);
+  destroyThreadWindows(ClassWindow);
 
-  return 0;
+  return TRUE;
 }
-
-#else /*USE_DLL_ENTRY*/
-
-void
-initHinstance(int argc, char **argv)
-{ if ( argc > 0 && (ThePceHInstance = GetModuleHandle(argv[0])) )
-    return;
-    
-  ThePceHInstance = GetModuleHandle("xpce");
-}
-
-
-#endif /*USE_DLL_ENTRY*/
 
 
 		 /*******************************
@@ -276,9 +247,7 @@ remove_ilerrout(int status)
 
 void
 ws_initialise(int argc, char **argv)
-{ initHinstance(argc, argv);
-
-  if ( ws_mousebuttons() == 2 )
+{ if ( ws_mousebuttons() == 2 )
     ws_emulate_three_buttons(100);
 }
 

@@ -242,6 +242,10 @@ typedef struct
   struct alloc_pool alloc_pool;		/* Main allocation pool */
 #ifdef O_PLMT
   FreeChunk	    left_over_pool;	/* Left-over from threads */
+
+  struct
+  { struct _at_exit_goal *exit_goals;	/* Global thread_at_exit/1 goals */
+  } thread;
 #endif
 } PL_global_data_t;
 

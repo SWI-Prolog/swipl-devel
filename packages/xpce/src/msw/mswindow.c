@@ -24,8 +24,6 @@
 
 #include "include.h"
 
-static PceWindow current_window; /* hack to avoid Windows timing problem */
-
 static int WINAPI window_wnd_proc(HWND win, UINT msg, UINT wP, LONG lP);
 
 static int clearing_update;		/* from ws_redraw_window() */
@@ -100,19 +98,11 @@ do_window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 		pp(sw), hwnd, message, wParam, lParam));
 
   if ( !sw ) 
-  { if ( !(sw = current_window) )
-      return DefWindowProc(hwnd, message, wParam, lParam);
-  }
+    return DefWindowProc(hwnd, message, wParam, lParam);
   wsw = sw->ws_ref;
 
   switch(message)
-  { case WM_CREATE:
-      ServiceMode(is_service_window(sw),
-		  if ( hasSendMethodObject(sw, NAME_dropFiles) )
-		    DragAcceptFiles(hwnd, TRUE));
-      goto cascade;
-
-    case WM_PCE_REDRAW:
+  { case WM_PCE_REDRAW:
       RedrawWindow(sw);
       return 0;
 
@@ -224,41 +214,10 @@ do_window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
     { HDC hdc = (HDC) wParam;
       RECT rect;
 
-#if 1
       d_hdc(hdc, NIL, sw->background);
       GetClipBox(hdc, &rect);
       r_clear(rect.left, rect.top, rect.right-rect.left, rect.bottom-rect.top);
       d_done();
-#else
-      HBRUSH hbrush;
-      HPALETTE hpal = window_palette(sw), ohpal = NULL;
-      COLORREF rgb = (COLORREF) getXrefObject(sw->background,
-					      getDisplayWindow(sw));
-
-      if ( hpal )
-      { int n;
-
-	ohpal = SelectPalette(hdc, hpal, FALSE);
-	RealizePalette(hdc);
-	n = GetNearestPaletteIndex(hpal, rgb);
-	rgb = PALETTEINDEX(n);
-      } else
-	rgb = GetNearestColor(hdc, rgb);
-
-      hbrush = ZCreateSolidBrush(rgb);
-      GetClipBox(hdc, &rect);
-      FillRect(hdc, &rect, hbrush);
-      ZDeleteObject(hbrush);
-
-      if ( ohpal )
-	SelectPalette(hdc, ohpal, FALSE);
-
-      DEBUG(NAME_redraw, Cprintf("Cleared background %d %d %d %d of %s\n",
-				 rect.left, rect.top,
-				 rect.right - rect.left,
-				 rect.bottom - rect.top,
-				 pp(sw)));
-#endif /*1*/
 
       return 1;				/* non-zero: I've erased it */
     }
@@ -310,15 +269,15 @@ do_window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       if ( hwnd )
       { WNDPROC oproc = wsw->saved_window_procedure;
 
-	ServiceMode(is_service_window(sw),
-		    DEBUG(NAME_window,
-			  Cprintf("WM_DESTROY on %s, hwnd 0x%x\n",
-				  pp(sw), hwnd)); 
-		    if ( hasSendMethodObject(sw, NAME_dropFiles) )
-		      DragAcceptFiles(hwnd, FALSE);
-		    PceWhDeleteWindow(hwnd);
-		    setHwndWindow(sw, 0);
-		    assocObjectToHWND(hwnd, NIL));
+	DEBUG(NAME_window,
+	      Cprintf("WM_DESTROY on %s, hwnd 0x%x\n",
+		      pp(sw), hwnd)); 
+
+	if ( wsw->drop )
+	  DragAcceptFiles(hwnd, FALSE);
+	PceWhDeleteWindow(hwnd);
+	setHwndWindow(sw, 0);
+	assocObjectToHWND(hwnd, NIL);
 	
 	if ( oproc )			/* refining alien window */
 					/* see winHandleWindow() below */
@@ -431,9 +390,22 @@ static int WINAPI
 window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 { int rval;
 
-  pceMTLock(LOCK_PCE);
-  rval = do_window_wnd_proc(hwnd, message, wParam, lParam);
-  pceMTUnlock(LOCK_PCE);
+  if ( InSendMessage() )
+  { if ( pceMTTryLock(LOCK_PCE) )
+    { rval = do_window_wnd_proc(hwnd, message, wParam, lParam);
+      pceMTUnlock(LOCK_PCE);
+    } else
+    { PceWindow sw = getObjectFromHWND(hwnd);
+      DEBUG(NAME_thread,
+	    Cprintf("[Thread 0x%x] %s: message 0x%04x: could not lock\n",
+		    GetCurrentThreadId(), pp(sw), message));
+      return DefWindowProc(hwnd, message, wParam, lParam);
+    }
+  } else
+  { pceMTLock(LOCK_PCE);
+    rval = do_window_wnd_proc(hwnd, message, wParam, lParam);
+    pceMTUnlock(LOCK_PCE);
+  }
 
   return rval;
 }
@@ -468,7 +440,7 @@ ws_uncreate_window(PceWindow sw)
 
 status
 ws_create_window(PceWindow sw, PceWindow parent)
-{ HWND ref;
+{ HWND hwnd;
   HWND parent_handle;
   DWORD style = WS_CHILD|WS_CLIPCHILDREN|WS_CLIPSIBLINGS|WS_VISIBLE;
 
@@ -483,24 +455,27 @@ ws_create_window(PceWindow sw, PceWindow parent)
   if ( sw->pen != ZERO )
     style |= WS_BORDER;
 
-  current_window = sw;		/* hack to avoid timing problem! */
-
-  ref = CreateWindow(WinWindowClass(),
-		     strName(sw->name),
-		     style,
-		     valInt(sw->area->x), valInt(sw->area->y),
-		     valInt(sw->area->w), valInt(sw->area->h),
-		     parent_handle, NULL, PceHInstance, NULL);
-		     
-  if ( !ref )
+  hwnd = CreateWindow(WinWindowClass(),
+		      strName(sw->name),
+		      style,
+		      valInt(sw->area->x), valInt(sw->area->y),
+		      valInt(sw->area->w), valInt(sw->area->h),
+		      parent_handle, NULL, PceHInstance, NULL);
+  if ( !hwnd )
     return errorPce(sw, NAME_createFailed);
 
-  DEBUG(NAME_window, Cprintf("Windows ref = %ld\n", (long) ref));
+  DEBUG(NAME_window, Cprintf("Windows hwnd = %ld\n", (long) hwnd));
 
-  setHwndWindow(sw, ref);
-  assocObjectToHWND(ref, sw);
-  current_window = NULL;
+  setHwndWindow(sw, hwnd);
+  assocObjectToHWND(hwnd, sw);
 
+  if ( hasSendMethodObject(sw, NAME_dropFiles) )
+  { WsWindow wsw = sw->ws_ref;
+
+    wsw->drop = TRUE;
+    DragAcceptFiles(hwnd, TRUE);
+  };
+		     
   if ( notDefault(parent) )		/* make a sub-window */
     send(sw, NAME_displayed, ON, EAV);
 

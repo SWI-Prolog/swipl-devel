@@ -447,10 +447,23 @@ frame_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
   }
   assert(isProperObject(fr));
 
-  pceMTLock(LOCK_PCE);
-  ServiceMode(service_frame(fr),
-	      rval = do_frame_wnd_proc(fr, hwnd, message, wParam, lParam));
-  pceMTUnlock(LOCK_PCE);
+  if ( InSendMessage() )
+  { if ( pceMTTryLock(LOCK_PCE) )
+    { goto has_lock;
+    } else
+    { FrameObj fr = getObjectFromHWND(hwnd);
+      DEBUG(NAME_thread,
+	    Cprintf("[Thread 0x%x] %s: message 0x%04x: could not lock\n",
+		    GetCurrentThreadId(), pp(fr), message));
+      return DefWindowProc(hwnd, message, wParam, lParam);
+    }
+  } else
+  { pceMTLock(LOCK_PCE);
+  has_lock:
+    ServiceMode(service_frame(fr),
+		rval = do_frame_wnd_proc(fr, hwnd, message, wParam, lParam));
+    pceMTUnlock(LOCK_PCE);
+  }
 
   return rval;
 }
@@ -1262,5 +1275,18 @@ ws_grab_frame_pointer(FrameObj fr, Bool grab, CursorObj cursor)
   }
 }
 
+
+Int
+ws_frame_thread(FrameObj fr)
+{ HWND hwnd;
+
+  if ( (hwnd = getHwndFrame(fr)) )
+  { DWORD owner = GetWindowThreadProcessId(hwnd, NULL);
+
+    return toInt(owner);
+  }
+
+  fail;
+}
 
 

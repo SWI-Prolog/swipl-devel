@@ -174,6 +174,7 @@ void		ws_set_label_frame(FrameObj fr);
 Image		ws_image_of_frame(FrameObj fr);
 void		ws_transient_frame(FrameObj fr, FrameObj fr2);
 status		ws_postscript_frame(FrameObj fr);
+Int		ws_frame_thread(FrameObj fr);
 
 /* ../src/x11/ximage.c */
 void		ws_init_image(Image image);

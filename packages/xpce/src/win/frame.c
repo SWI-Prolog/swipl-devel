@@ -838,7 +838,7 @@ forwardColourMapChange(Device d)
 
 status
 forwardColourMapChangeFrame(FrameObj fr)
-{ if ( !isFreedObj(fr) || isFreeingObj(fr) )
+{ if ( !(isFreedObj(fr) || isFreeingObj(fr)) )
   { Cell cell;
 
     for_cell(cell, fr->members)
@@ -1550,6 +1550,16 @@ getContainsFrame(FrameObj fr)
 { answer(fr->members);
 }
 
+		 /*******************************
+		 *	     THREADS		*
+		 *******************************/
+
+static Int
+getThreadFrame(FrameObj fr)
+{ return ws_frame_thread(fr);
+}
+
+
 
 		 /*******************************
 		 *	 CLASS DECLARATION	*
@@ -1807,7 +1817,9 @@ static getdecl get_frame[] =
   GM(NAME_postscript, 2, "postscript=string", T_postscript, getPostscriptObject,
      NAME_postscript, "Get PostScript representation of frame"),
   GM(NAME_show, 0, "bool", NULL, getShowFrame,
-     NAME_visibility, "@on iff <-status = open; @off otherwise")
+     NAME_visibility, "@on iff <-status = open; @off otherwise"),
+  GM(NAME_thread, 0, "int", NULL, getThreadFrame,
+     NAME_thread, "Return system thread-id that owns the frame")
 };
 
 /* Resources */

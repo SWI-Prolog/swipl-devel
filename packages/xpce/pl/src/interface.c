@@ -2730,27 +2730,35 @@ PrologQuery(int what, PceCValue *value)
 		 *	    CONSOLE I/O		*
 		 *******************************/
 
+#if 0
+#define XPCE_OUTPUT Suser_output	/* log in current console */
+#define XPCE_INPUT Suser_input
+#else
+#define XPCE_OUTPUT Soutput		/* always log in user console */
+#define XPCE_INPUT Sinput
+#endif
+
 void
 pl_Cvprintf(const char *fmt, va_list args)
-{ Svfprintf(Suser_output, fmt, args);
+{ Svfprintf(XPCE_OUTPUT, fmt, args);
 }
 
 
 static int
 pl_Cputchar(int c)
-{ return Sputc(c, Suser_output);
+{ return Sputc(c, XPCE_OUTPUT);
 }
 
 
 static void
 pl_Cflush(void)
-{ Sflush(Suser_output);
+{ Sflush(XPCE_OUTPUT);
 }
 
 
 static char *
 pl_Cgetline(char *buf, int size)
-{ return Sfgets(buf, size, Suser_input);
+{ return Sfgets(buf, size, XPCE_INPUT);
 }
 
 
@@ -2981,6 +2989,18 @@ hasThreadsProlog()
   return PL_call_predicate(NULL, PL_Q_NORMAL, pred, av);
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Call this function as Prolog is about to detach this thread, so XPCE can
+delete all windows operating in this thread.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+detach_thread(void *closure)
+{ pceMTdetach();
+}
+
+
 foreign_t
 pl_pce_init(Term a)
 { char **argv;
@@ -3001,9 +3021,12 @@ pl_pce_init(Term a)
   { PceObject plname;
 
     if ( hasThreadsProlog() )
-    { if ( !pceMTinit() )
-	Sdprintf("Warning: this version of XPCE is not compiled to support\n"
+    { if ( pceMTinit() )
+      { PL_thread_at_exit(detach_thread, NULL, TRUE);
+      } else
+      { Sdprintf("Warning: this version of XPCE is not compiled to support\n"
 		 "Warning: multiple threads.\n");
+      }
     }
 
     PROLOG_INSTALL_REINIT_FUNCTION(pl_pce_init);

@@ -293,6 +293,8 @@ __pce_export int	pceEnumElements(PceObject collection,
 __pce_export int	pceMTinit(void);
 __pce_export void	pceMTLock(int lock);
 __pce_export void	pceMTUnlock(int lock);
+__pce_export int	pceMTTryLock(int lock);
+__pce_export int	pceMTdetach(void);
 
 		/********************************
 		*          PCE CALLING C	*

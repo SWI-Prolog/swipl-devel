@@ -148,10 +148,14 @@ void
 considerLocStillEvent()
 { if ( !loc_still_posted )
   { unsigned long now = mclock();
+    extern int lock_owner;
 
-    pceMTLock(LOCK_PCE);
-    if ( now - host_last_time > 700 &&
-	 instanceOfObject(last_window, ClassWindow) &&
+    if ( now - host_last_time < 700 )
+      return;
+
+    if ( !pceMTTryLock(LOCK_PCE) )
+      return;
+    if ( instanceOfObject(last_window, ClassWindow) &&
 	 !onFlag(last_window, F_FREED|F_FREEING) )
     { ServiceMode(is_service_window(last_window),
 		  { AnswerMark mark;

@@ -686,6 +686,9 @@ typedef struct
 __pl_export int	PL_thread_self(void);	/* Prolog thread id (-1 if none) */
 __pl_export int PL_thread_attach_engine(PL_thread_attr_t *attr);
 __pl_export int PL_thread_destroy_engine(void);
+__pl_export int PL_thread_at_exit(void (*function)(void *),
+				  void *closure,
+				  int global);
 #if defined(_WINDOWS_)			/* <windows.h> is included */
 __pl_export int PL_w32thread_raise(DWORD dwTid, int sig);
 #endif

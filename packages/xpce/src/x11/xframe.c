@@ -1463,3 +1463,9 @@ ws_postscript_frame(FrameObj fr)
   
   return errorPce(fr, NAME_mustBeOpenBeforePostscript);
 }
+
+
+Int
+ws_frame_thread(FrameObj fr)
+{ fail;
+}

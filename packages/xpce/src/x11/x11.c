@@ -74,3 +74,9 @@ Int
 ws_default_scrollbar_width()
 { return toInt(16);
 }
+
+
+int
+pceMTdetach()
+{ return TRUE;
+}
