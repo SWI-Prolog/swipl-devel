@@ -344,6 +344,7 @@ xref_meta(phrase(G, _A),	[G+2]).
 xref_meta(phrase(G, _A, _R),	[G+2]).
 xref_meta(catch(A, _, B),	[A, B]).
 xref_meta(thread_create(A,_,_), [A]).
+xref_meta(thread_at_exit(A),	[A]).
 xref_meta(predsort(A,_,_),	[A+3]).
 xref_meta(call_cleanup(A, B),	[A, B]).
 xref_meta(call_cleanup(A, _, B),[A, B]).
