@@ -1470,6 +1470,10 @@ For clarity and possible future compatibility issues however it is not
 advised to rely on this.
 
 \begin{description}
+    \cfunction{int}{PL_is_blob}{term_t t, PL_blob_t **type}
+Succeeds if \arg{t} refers to a blob, in which case \arg{type} is
+filled with the type of the blob.
+
     \cfunction{int}{PL_unify_blob}{term_t t, void *blob, unsigned int len,
 				   PL_blob_t *type}
 Unify \arg{t} to a new blob constructed from the given data and
@@ -1494,7 +1498,7 @@ ignored.
 
     \cfunction{int}{PL_blob_data}{atom_t a,
 				  unsigned int *len,
-				  struct PL_blob_t **type}
+				  PL_blob_t **type}
 Get the data and type associated to a blob.  This function is mainly
 used from the callback functions described in \secref{blobtype}.
 \end{description}
