@@ -358,6 +358,31 @@ Load triples from \arg{File}.
 \end{description}
 
 
+\subsubsection{MD5 digests}
+
+The \file{rdf_db} library provides for \jargon{MD5 digests}. An MD5
+digest is a 128 bit long hash key computed from the triples based on the
+RFC-1321 standard.  MD5 keys are computed for each individual triple
+and added together to compute the final key, resulting in a key that
+describes the triple-set but is independant from the order in which
+the triples appear.  It is claimed that it is practically impossible
+for two different datasets to generate the same MD5 key.  The
+Triple20 editor uses the MD5 key for detecting whether the triples
+associated to a file have changed as well as to maintain a directory
+with snapshots of versioned ontology files.
+
+\begin{description}
+    \predicate{rdf_md5}{2}{+Source, -MD5}
+Return the MD5 digest for all triples in the database associated to
+\arg{Source}. The \arg{MD5} digest itself is represented as an atom
+holding a 32-character hexadecimal string.  The library maintains the
+digest incrementally on rdf_load/[1,2], rdf_load_db/1, rdf_assert/[3,4]
+and rdf_retractall/[3,4].  Checking whether the digest has changed since
+the last rdf_load/[1,2] call provides a practical means for checking
+whether the file needs to be saved.
+\end{description}
+
+
 \subsection{Namespace Handling}			\label{sec:rdfns}
 
 Prolog code often contains references to constant resources in a known
