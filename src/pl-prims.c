@@ -2490,24 +2490,24 @@ pl_statistics(term_t k, term_t value)
   else if (key == ATOM_globallimit)
     result = makeNum(limitStack(global));
   else if (key == ATOM_atoms && !PL_is_list(value))	/* atoms */
-    result = consInt(GD->statistics.atoms);
+    result = makeNum(GD->statistics.atoms);
   else if (key == ATOM_functors)			/* functors */
-    result = consInt(GD->statistics.functors);
+    result = makeNum(GD->statistics.functors);
   else if (key == ATOM_predicates)			/* predicates */
-    result = consInt(GD->statistics.predicates);
+    result = makeNum(GD->statistics.predicates);
   else if (key == ATOM_modules)				/* modules */
-    result = consInt(GD->statistics.modules);
+    result = makeNum(GD->statistics.modules);
   else if (key == ATOM_codes)				/* codes */
-    result = consInt(GD->statistics.codes);
+    result = makeNum(GD->statistics.codes);
   else if (key == ATOM_gctime)
     result = globalReal(gc_status.time);
   else if (key == ATOM_collections)
-    result = consInt(gc_status.collections);
+    result = makeNum(gc_status.collections);
   else if (key == ATOM_collected)
     result = makeNum(gc_status.trail_gained + gc_status.global_gained);
 #ifdef O_ATOMGC
   else if (key == ATOM_agc)
-    result = consInt(GD->atoms.gc);
+    result = makeNum(GD->atoms.gc);
   else if (key == ATOM_agc_gained)
     result = makeNum(GD->atoms.collected);
   else if (key == ATOM_agc_time)
@@ -2515,11 +2515,11 @@ pl_statistics(term_t k, term_t value)
 #endif
 #if O_SHIFT_STACKS
   else if (key == ATOM_global_shifts)
-    result = consInt(shift_status.global_shifts);
+    result = makeNum(shift_status.global_shifts);
   else if (key == ATOM_local_shifts)
-    result = consInt(shift_status.local_shifts);
+    result = makeNum(shift_status.local_shifts);
   else if (key == ATOM_trail_shifts)
-    result = consInt(shift_status.trail_shifts);
+    result = makeNum(shift_status.trail_shifts);
 #else
   else if ( key == ATOM_global_shifts ||
 	    key == ATOM_local_shifts ||
