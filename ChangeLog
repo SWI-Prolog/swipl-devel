@@ -1,7 +1,17 @@
 			SWI-Prolog ChangeLog
 			====================
+
 VERSION 3.2.7
 =============
+
+  * MODIFIED: term_to_atom/2, atom_to_term/3 now yield an exception on
+    instantiation errors.
+
+  * IMPROVED: rewrote pl-read.c (read_term/2 and friends) to be fully
+    reentrant by removing all global variables from this module.  Also
+    many reentrant problems solved from pl-file.c (basic file handling).
+    This is part of a very slow process to prepare SWI-Prolog for
+    multi-threading.
 
   * ADDED/FIXED: type-checking on options list of qsave_program/2.
 

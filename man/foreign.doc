@@ -1603,32 +1603,45 @@ for \manref{printf}{2}. Always returns \const{FALSE}.
 \subsection{Environment Control from Foreign Code}
 
 \begin{description}
-\cfunction{int}{PL_action}{int, C_type}
+\cfunction{int}{PL_action}{int, ...}
 Perform some action on the Prolog system. \arg{int} describes the
-action, \arg{C_type} provides the argument if necessary. The actions
+action, Remaining arguments depend on the requested action. The actions
 are listed in \tabref{action}.
 
 \begin{table}
 \begin{quote}\begin{tabular}{|p{\tableft}|p{3.5in}|}
 \hline
-\const{PL_ACTION_TRACE}     & Start Prolog tracer \\
-\const{PL_ACTION_DEBUG}     & Switch on Prolog debug mode \\
+\const{PL_ACTION_TRACE}     & Start Prolog tracer (trace/0).
+			      Requires no arguments. \\
+\const{PL_ACTION_DEBUG}     & Switch on Prolog debug mode (debug/0).
+			      Requires no arguments. \\
 \const{PL_ACTION_BACKTRACE} & Print backtrace on current output stream.
                               The argument (an int) is the number of frames
 			      printed. \\
 \const{PL_ACTION_HALT}      & Halt Prolog execution. This action should be
                               called rather than Unix exit() to give Prolog
                               the opportunity to clean up. This call does
-                              not return. \\
-\const{PL_ACTION_ABORT}     & Generate a Prolog abort. This call does not
-                              return. \\
-\const{PL_ACTION_BREAK}     & Create a standard Prolog break environment.
-			      Returns after the user types control-D. \\
-\const{PL_ACTION_SYMBOLFILE}& The argument (a char *) is considered to be
-			      hold the symbolfile for further incremental
-                              loading. Should be called by user applications
-                              that perform incremental loading as well and
-                              want to inform Prolog of the new symbol table. \\
+                              not return. The argument (an int) is the 
+			      exit code. See halt/1. \\
+\const{PL_ACTION_ABORT}     & Generate a Prolog abort (abort/0).
+			      This call does not return.
+			      Requires no arguments. \\
+\const{PL_ACTION_BREAK}     & Create a standard Prolog break environment
+			      (break/0). Returns after the user types
+			      the end-of-file character.
+			      Requires no arguments. \\
+\const{PL_ACTION_GUIAPP}    & Win32: Used to indicate the kernel that the
+			      application is a GUI application if the
+			      argument is not 0 and a console
+			      application if the argument is 0.
+			      If a fatal error occurs, the system uses a
+			      windows messagebox to report this on a GUI
+			      application and simply prints the error
+			      and exits otherwise. \\
+\const{PL_ACTION_WRITE}	    & Write the argument, a \ctype{char *} to the
+			      current output stream. \\
+\const{PL_ACTION_FLUSH}	    & Flush the current output stream.
+			      Requires no arguments. \\
 \hline
 \end{tabular}\end{quote}
 
@@ -1655,15 +1668,9 @@ information is wanted. The  options are given in \tabref{query}.
                               given to Prolog from Unix. \\
 \const{PL_QUERY_SYMBOLFILE} & Return a char * holding the current symbol
                               file of the running process. \\
-\const{PL_QUERY_ORGSYMBOLFILE}& Return the initial symbol file (before
-                              loading) of Prolog. By setting the symbol file
-                              to this value no name clashes can occur with
-                              previously loaded foreign files (but no symbols
-                              can be shared with earlier loaded modules
-			      as well).\\
 \const{PL_MAX_INTEGER}      & Return a long, representing the maximal integer
-                              value represented by Prolog's tagged integers. \\
-\const{PL_MIN_INTEGER}      & Return a long, represented the minimal integer
+                              value represented by a Prolog integer. \\
+\const{PL_MIN_INTEGER}      & Return a long, representing the minimal integer
                               value. \\
 \const{PL_QUERY_VERSION}    & Return a long, representing the version as
                               $10,000 \times M + 100 \times m + p$, where
