@@ -26,7 +26,8 @@ Thanks to Olle Ollson at SICS for giving me access to their hardware.
 #define M_CC			gcc
 /*#define M_OPTIMIZE		-g -DO_DEBUG*/
 #define M_OPTIMIZE		-O2
-#define M_LDFLAGS		-static -L/home/anat/janw/lib
+/*#define M_LDFLAGS		-static -L/home/anat/janw/lib*/
+#define M_LDFLAGS		-L/home/anat/janw/lib /usr/lib/libc.a
 #define M_CFLAGS		-I/home/anat/janw/include
 #define M_LIBS		        -lreadline -lm -ltermcap
 
@@ -40,7 +41,7 @@ Thanks to Olle Ollson at SICS for giving me access to their hardware.
 #endif
 #define etext _etext
 #define unix			1
-#define SGU			1
+#define USG			1
 #define O_NO_LEFT_CAST		1
 #define O_NO_VOID_POINTER	0
 #define O_SHORT_SYMBOLS		0
@@ -68,6 +69,7 @@ Thanks to Olle Ollson at SICS for giving me access to their hardware.
 
 			/* terminal driver */
 #define O_READLINE		1
+#define O_RL12			1
 #define O_TERMIOS 		1
 #define O_FOLD 			0
 

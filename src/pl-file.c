@@ -25,6 +25,11 @@ handling times must be cleaned, but that not only holds for this module.
 #include <unistd.h>
 #endif
 
+#if sun && !solaris
+#include <sys/time.h>
+extern int select(int, fd_set *, fd_set *, fd_set *, struct timeval *);
+#endif
+
 #define MAXSTRINGNEST	20		/* tellString --- Told nesting */
 
 typedef struct plfile *	PlFile;
@@ -742,11 +747,6 @@ pl_wait_for_input(Word streams, Word available, Word timeout)
   struct timeval t, *to;
   real time;
   int n, max = 0;
-#if hpux
-  extern int select(size_t, int *, int *, int *, const struct timeval *);
-#else
-  extern int select(int, fd_set *, fd_set *, fd_set *, struct timeval *);
-#endif
 
   FD_ZERO(&fds);
   while( isList(*streams) )

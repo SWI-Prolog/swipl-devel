@@ -332,7 +332,6 @@ usage()
   Halt(1);
 }
 
-#if ANSI
 #include <stdarg.h>
 
 bool
@@ -346,6 +345,7 @@ sysError(char *fm, ...)
   PL_fail;
 }
 
+
 bool
 fatalError(char *fm, ...)
 { va_list args;
@@ -357,6 +357,7 @@ fatalError(char *fm, ...)
   PL_fail;
 }
 
+
 bool
 warning(char *fm, ...)
 { va_list args;
@@ -367,55 +368,7 @@ warning(char *fm, ...)
 
   PL_fail;
 }
-#else
-#if mips
-#include "/usr/include/varargs.h"
-#else
-#include <varargs.h>
-#endif
 
-bool
-sysError(va_alist)
-va_dcl
-{ va_list args;
-  char *fm;
-
-  va_start(args);
-  fm = va_arg(args, char *);
-  vsysError(fm, args);
-  va_end(args);
-
-  PL_fail;
-}
-
-bool
-fatalError(va_alist)
-va_dcl
-{ va_list args;
-  char *fm;
-
-  va_start(args);
-  fm = va_arg(args, char *);
-  vfatalError(fm, args);
-  va_end(args);
-
-  PL_fail;
-}
-
-bool
-warning(va_alist)
-va_dcl
-{ va_list args;
-  char *fm;
-
-  va_start(args);
-  fm = va_arg(args, char *);
-  vwarning(fm, args);
-  va_end(args);
-
-  PL_fail;
-}
-#endif /* ANSI */
 
 bool
 vsysError(fm, args)

@@ -272,7 +272,7 @@ getpagesize()
 }
 #endif
 
-#if hpux || tos
+#if tos
 void
 bzero(p, n)
 Void p;
@@ -521,7 +521,7 @@ GetDTableSize(void)
 #ifdef DESCRIPTOR_TABLE_SIZE
   return DESCRIPTOR_TABLE_SIZE;
 #else
-#  if _POSIX_SOURCE
+#  if USG
    return sysconf(_SC_OPEN_MAX);
 #  else
 #    if hpux || USG
@@ -1264,7 +1264,7 @@ ExpandOneFile(char *spec)
 
 
 #if unix
-#if O_GETCWD || USG && !_AIX
+#if O_GETCWD || USG
 char	*getcwd(char *, size_t);
 
 char *

@@ -272,7 +272,7 @@ registerForeign(char *name, int arity, Func f, va_list args)
   succeed;
 }  
 
-#if ANSI && !AIX
+
 bool
 PL_register_foreign(char *name, int arity, Func f, ...)
 { va_list args;
@@ -285,27 +285,6 @@ PL_register_foreign(char *name, int arity, Func f, ...)
   return rval;
 }
 
-#else
-
-bool
-PL_register_foreign(va_alist)
-va_dcl
-{ va_list args;
-  char *name;
-  int arity;
-  Func f;
-  bool rval;
-
-  va_start(args);
-  name  = va_arg(args, char *);
-  arity = va_arg(args, int);
-  f     = va_arg(args, Func);
-  rval  = registerForeign(name, arity, f, args);
-  va_end(args);
-
-  return rval;
-}
-#endif
 
 		/********************************
 		*        CALLING PROLOG         *
@@ -432,7 +411,6 @@ resetForeign(void)
 		*           WARNINGS            *
 		*********************************/
 
-#if ANSI && !AIX
 bool
 PL_warning(char *fm, ...)
 { va_list args;
@@ -453,34 +431,6 @@ PL_fatal_error(char *fm, ...)
   va_end(args);
 }
 
-#else
-
-bool
-PL_warning(va_alist)
-va_dcl
-{ char *fm;
-  va_list args;
-
-  va_start(args);
-  fm = va_arg(args, char *);
-  vwarning(fm, args);
-  va_end(args);
-
-  fail;
-}
-
-void
-PL_fatal_error(va_alist)
-va_dcl
-{ char *fm;
-  va_list args;
-
-  va_start(args);
-  fm = va_arg(args, char *);
-  vfatalError(fm, args);
-  va_end(args);
-}
-#endif /* ANSI */
 
 		/********************************
 		*            ACTIONS            *

@@ -46,6 +46,8 @@ NOTE:	I've been informedby Irek Karkowski (irek@donau.et.tudelft.nl)
 
 Version 1.8.10 includes some patches by  Dave   Sherratt  for  the HP cc
 compiler.
+
+Version 1.8.11 was compiled using gcc-2.4.3 and HP-UX 9.01 and readline 1.2
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define MACHINE			"hp"
@@ -65,11 +67,11 @@ compiler.
 #else					/* Use HP-UX cc */
 #define M_CC			cc
 #define M_OPTIMIZE		+O1 +Obb700 /* In HP-UX 8.07, can use +O3 */
-#define M_LDFLAGS		-O -Wl,-a archive
+#define M_LDFLAGS		-O -Wl,-a archive -L/usr/local/lib
 #define M_CFLAGS		-Aa -D_HPUX_SOURCE -Dunix -Dhpux -I/usr/local/include -I/usr/local/include/readline
 #endif
 
-#define M_LIBS			-lm -ltermcap -L/usr/local/lib -lreadline -lPW
+#define M_LIBS			-lm -ltermcap -lreadline -lPW
 
 /*#define M_OPTIMIZE	        -g -DO_DEBUG*/
 
@@ -101,6 +103,7 @@ compiler.
 
 			/* terminal driver */
 #define O_READLINE		1
+#define O_RL12			1
 #define O_TERMIOS 		1
 #define O_FOLD 			0
 
