@@ -1,7 +1,14 @@
+VERSION 5.1.0
+=============
+
+* LICENCE: GPL-2
+
+* Integrated with SWI-Prolog 4.0.0 package building schema.
+
 * FIXED: Avoid crash in Postscript generation from text-objects containing
   non-ISO characters.  Thanks to Matthias Trautner Kromann.
 
-* INSTALL: Added NMAKE makefiles fro building and installing in Windows.
+* INSTALL: Added NMAKE makefiles for building and installing in Windows.
 
 * ADDED: SWI-Prolog GUI tracer to standard installation for SWI-Prolog.
 
