@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: Default binding of Control-Z to undo in editor.
+
 * FIXED: Memory leak in class code_vector.
 
 * PORT: Included some portability issues in unx/process.c, socket handling

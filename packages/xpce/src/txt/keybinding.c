@@ -724,6 +724,7 @@ static kbDef editor[] =
   { "\\C-w",		NAME_killOrGrabRegion },
   { "\\C-y",		NAME_yank },
   { "\\C-_", 		NAME_undo },
+  { "\\C-z", 		NAME_undo },		/* Windows compatibility */
 
   { "\\e\\C-b",		NAME_backwardTerm },
   { "\\e\\C-f",		NAME_forwardTerm },
