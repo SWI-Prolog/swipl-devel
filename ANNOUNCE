@@ -1,25 +1,33 @@
 SWI-Prolog 5.5.0/XPCE 6.4.0 development release
 
-New features in 5.5.x relative to 5.4.x and their status
-========================================================
+Planned features in 5.5.x relative to 5.4.x and their status
+============================================================
 
   * Wide character support
 
+      Realised
+      --------
+
+	- Realised kernel representation of wide atoms and strings
+	- Changed built-in predicates to deal with this transparently
+	- Added encoding property on streams, allowing for
+
+		- ISO Latin-1
+		- UTF-8
+		- UNICODE (LE/BE)
+	- Updated the MS-Windows console (plwin.exe/plterm.dll) to run
+	  in MS UNICODE mode
+
+      Lacking
+      -------
+
+	- Support in packages.  Notable sgml/xml parser
+	- Clear vision on foreign interface
+	- Clear vision on handling non-iso-latin-1 8-bit codepages
+
   * More constraint libraries
 
-
-Patches in 5.5.0 relative to 5.4.3
-==================================
-
-  * Provide support for wide-character atoms and string objects.
-
-  * Provide encoding/decoding for UTF-8 and UNICODE (LE/BE) for
-    streams
-
-  * Provide a UNICODE enabled version of plterm.dll, doing the
-    window for plwin.exe
-
-
+	- Received clp(r).  Not yet integrated.
 
 Packages
 ========
