@@ -24,7 +24,7 @@ gra/image.c implementing class image.
 #endif
 
 #ifdef HAVE_LIBJPEG
-#define boolean jpeg_boolean
+/*#define boolean jpeg_boolean*/
 #undef GLOBAL				/* conflict */
 #include <jpeglib.h>
 #include <jerror.h>

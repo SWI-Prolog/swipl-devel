@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* PORT: Win32: Upgraded jpeg-support libraries to version 6b, providing
+  full compatibility with the current Unix/X11 versions.
+
 * ADDED: PceEmacs: add file-pattern to Prolog mode for user-choosen
   extension (.pro on Windows).
 

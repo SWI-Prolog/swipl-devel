@@ -1061,7 +1061,6 @@ PL_cleanup(int rval)
   cleanupInitialiseHooks();
   cleanupExtensions();
   cleanupOs();
-  cleanupTerm();
   Scleanup();
 
   memset(GD, 0, sizeof(*GD));

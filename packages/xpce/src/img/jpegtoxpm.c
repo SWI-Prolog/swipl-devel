@@ -16,7 +16,7 @@
 #define  FOR_MSW 1
 #include <msw/xpm.h>
 #endif
-#define boolean jpeg_boolean
+/*#define boolean jpeg_boolean*/
 #else /*WIN32*/
 #include <h/kernel.h>
 #ifdef HAVE_LIBXPM

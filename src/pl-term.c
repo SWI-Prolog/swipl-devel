@@ -75,18 +75,6 @@ resetTerm()
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Actually nothing to do as all   memory  is allocated through allocHeap()
-and the global pointers are now (4.0.12)  part of the GD structure which
-is cleared by PL_cleanup() anyway.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-void
-cleanupTerm()
-{ 
-}
-
-
 /* MT: Locked by calling lookupEntry()
 */
 

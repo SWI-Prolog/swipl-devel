@@ -113,7 +113,7 @@ allocHeap(size_t n)
       { int i;
 	char *s = (char *) f;
 
-	for(i=sizeof(struct chunk); i<n; i++)
+	for(i=sizeof(struct chunk); i<(int)n; i++)
 	  assert(s[i] == ALLOC_FREE_MAGIC);
 
 	memset(f, ALLOC_MAGIC, n);
@@ -203,7 +203,7 @@ allocate(size_t n)
     { int i;
       char *s = p;
 
-      for(i=0; i<n; i++)
+      for(i=0; i<(int)n; i++)
 	assert(s[i] == ALLOC_VIRGIN_MAGIC);
 
       memset(p, ALLOC_MAGIC, n);

@@ -76,7 +76,7 @@ attach_ws_image(Image image)
 void
 ws_destroy_image(Image image)
 { WsImage r;
-  Xref xref;
+/*Xref xref;*/
 
   if ( (r=image->ws_ref) )
   { if ( r->data )

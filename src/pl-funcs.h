@@ -809,7 +809,6 @@ word		pl_print2(term_t stream, term_t term);
 
 /* pl-term.c */
 void		resetTerm(void);
-void		cleanupTerm(void);
 word		pl_tty_get_capability(term_t name, term_t type, term_t value);
 word		pl_tty_goto(term_t x, term_t y);
 word		pl_tty_put(term_t a, term_t affcnt);

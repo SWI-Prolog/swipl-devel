@@ -22,7 +22,7 @@ PLHOME=..\..\..
 !include $(PLHOME)\src\rules.mk
 
 INCLUDE=$(INCLUDE);..\include
-XLIBS=$(UXLIB) $(PLLIB) jpeglib2.lib xpm.lib comdlg32.lib
+XLIBS=$(UXLIB) $(PLLIB) libjpeg.lib xpm.lib comdlg32.lib
 
 XPCEDLL=xpce.dll
 PL2XPCE=pl2xpce
