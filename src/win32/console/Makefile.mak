@@ -10,6 +10,7 @@ PLHOME=		..\..\..
 OUTDLL=		$(PLHOME)\bin\plterm.dll
 OUTLIB=		$(PLHOME)\lib\plterm.lib
 OUTINC=		$(PLHOME)\include\console.h
+OUTDBG=		$(PLHOME)\bin\plterm.pdb
 
 XLIBS=		gdi32.lib comdlg32.lib $(DBGLIBS)
 
@@ -27,6 +28,9 @@ install:	all
 		copy $(OUTDLL) $(BINDIR)
 		copy $(OUTLIB) $(LIBDIR)
 		copy $(OUTINC) $(INCDIR)
+!IF "$(DBG)" == "true"
+		copy $(OUTDBG) $(BINDIR)
+!ENDIF
 
 clean:
 		del *~ *.obj

@@ -1,6 +1,10 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Win32: Various issues in the TCP/IP package (library(socket))
+    and XPCE socket handling: Better error checking and messages and proper
+    handling of WSAEWOULDBLOCK messages.
+
   * PORT: No longer print a message if the locale cannot be initialised.
     A bit dubious, but some installations appear to have a broken locale
     subsystem.

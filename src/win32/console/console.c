@@ -340,7 +340,7 @@ rlc_check_assertions(RlcData b)
 
 #else
 
-#define DEBUG(Code)
+#define DEBUG(Code) ((void)0)
 #define rlc_check_assertions(b)
 #endif
 
@@ -1284,7 +1284,8 @@ rlc_dispatch(RlcQueue q)
     _rlc_queue = q;
 
   if ( GetMessage(&msg, NULL, 0, 0) && msg.message != WM_RLC_CLOSEWIN )
-  { TranslateMessage(&msg);
+  { DEBUG(Dprintf("Got message 0x%04x", msg.message));
+    TranslateMessage(&msg);
     DispatchMessage(&msg);
     rlc_flush_output(_rlc_stdio);
     _rlc_queue = oldq;

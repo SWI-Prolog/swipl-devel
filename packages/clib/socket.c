@@ -38,9 +38,6 @@ wait_for_input/3.
 #include <config.h>
 #endif
 
-/* You can use it in normal executable, but not in dll???
-*/
-
 #ifdef __CYGWIN__
 #undef HAVE_H_ERRNO
 #endif
@@ -97,6 +94,7 @@ static functor_t FUNCTOR_socket1;
 static functor_t FUNCTOR_module2;
 static functor_t FUNCTOR_ip4;
 
+
 		 /*******************************
 		 *	 ADMINISTRATION		*
 		 *******************************/
@@ -115,6 +113,7 @@ typedef struct _plsocket
 } plsocket;
 
 static plsocket *sockets;
+static int initialised = FALSE;		/* Windows only */
 
 static plsocket *
 lookupSocket(int socket)
@@ -128,7 +127,12 @@ lookupSocket(int socket)
     }
   }
 
-  p = malloc(sizeof(plsocket));
+  if ( !(p = malloc(sizeof(plsocket))) )
+  { pl_error(NULL, 0, NULL, ERR_ERRNO);
+    UNLOCK();
+    return NULL;
+  }
+
   p->socket = socket;
   p->flags  = 0;
   p->next   = sockets;
@@ -376,37 +380,39 @@ tcp_error(int code, error_codes *map)
 
 static int
 tcp_init()
-{ static int done = FALSE;
-
-  LOCK();
-  if ( done )
+{ LOCK();
+  if ( initialised )
   { UNLOCK();
     return TRUE;
   }
-  done = TRUE;
+  initialised = TRUE;
 
 #ifdef WIN32
 { WSADATA WSAData;
   int optionValue = SO_SYNCHRONOUS_NONALERT;
-  int err;
 
   if ( WSAStartup(MAKEWORD(1,1), &WSAData) )
   { UNLOCK();
     return PL_warning("tcp_init() - WSAStartup failed.");
   }
 
-  err = setsockopt(INVALID_SOCKET, 
-		   SOL_SOCKET, 
-		   SO_OPENTYPE, 
-		   (char *)&optionValue, 
-		   sizeof(optionValue));
+#if 0
+  {  int err;
+     err = setsockopt(INVALID_SOCKET, 
+		      SOL_SOCKET, 
+		      SO_OPENTYPE, 
+		      (char *)&optionValue, 
+		      sizeof(optionValue));
 
-  if ( err != NO_ERROR )
-  { UNLOCK();
-    return PL_warning("tcp_winsock_init - setsockopt failed.");
+     if ( err != NO_ERROR )
+     { UNLOCK();
+       return PL_warning("tcp_winsock_init - setsockopt failed.");
+     
+     }
   }
-}
 #endif
+}
+#endif /*WIN32*/
 
   UNLOCK();
   return TRUE;
@@ -429,7 +435,10 @@ tcp_socket(term_t Socket)
   if ( (sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     return tcp_error(errno, NULL);
 
-  lookupSocket(sock);			/* register it */
+  if ( !lookupSocket(sock) )		/* register it */
+  { closesocket(sock);
+    return FALSE;
+  }
 
   return tcp_unify_socket(Socket, sock);
 }
@@ -691,14 +700,71 @@ tcp_listen(term_t Sock, term_t BackLog)
 #define fdFromHandle(p) ((int)((long)(p)))
 
 static int
-tcp_read(void *sock, char *buf, int bufSize)
-{ return recv(fdFromHandle(sock), buf, bufSize, 0);
+tcp_read(void *handle, char *buf, int bufSize)
+{ int socket = fdFromHandle(handle);
+  int n;
+
+#ifdef WIN32
+again:
+#endif
+
+  n = recv(socket, buf, bufSize, 0);
+
+#ifdef WIN32
+  if ( n < 0 && WSAGetLastError() == WSAEWOULDBLOCK )
+  { fd_set readfds;
+
+    FD_ZERO(&readfds);
+    FD_SET(socket, &readfds);
+
+    select(socket+1, &readfds, NULL, NULL, NULL);
+
+    goto again;
+  }
+#endif  
+
+  return n;
 }
 
+#ifdef WIN32
+static void
+waitMsg()
+{ MSG msg;
+
+  if ( GetMessage(&msg, NULL, 0, 0) )
+  { TranslateMessage(&msg);
+    DispatchMessage(&msg);
+  } else
+  { ExitProcess(0);			/* WM_QUIT received */
+  }
+}
+#endif
 
 static int
-tcp_write(void *sock, char * buf, int bufSize)
-{ return send(fdFromHandle(sock), buf, bufSize, 0);
+tcp_write(void *handle, char *buf, int bufSize)
+{ int socket = fdFromHandle(handle);
+  int len = bufSize;
+  char *str = buf;
+
+  while( len > 0 )
+  { int n = send(socket, str, len, 0);
+
+    if ( n < 0 )
+    {
+#ifdef WIN32
+      if ( WSAGetLastError() == WSAEWOULDBLOCK )
+      { waitMsg();			/* The process gets FD_WRITE */
+	continue;
+      }
+#endif
+      return -1;
+    }
+
+    len -= n;
+    str += n;
+  }
+
+  return bufSize;
 }
 
 
@@ -854,6 +920,7 @@ pl_gethostname(term_t name)
   return tcp_error(h_errno, h_errno_codes);
 }
 
+
 install_t
 install_socket()
 { FUNCTOR_socket1 = PL_new_functor(PL_new_atom("$socket"), 1);
@@ -874,5 +941,15 @@ install_socket()
   PL_register_foreign("gethostname",          1, pl_gethostname,      0);
 }
 
+
+install_t
+uninstall_socket()
+{ if ( initialised )
+  {
+#ifdef WIN32
+    WSACleanup();
+#endif
+  }
+}
 
 

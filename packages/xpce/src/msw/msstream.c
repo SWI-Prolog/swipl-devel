@@ -341,8 +341,16 @@ ws_write_stream_data(Stream s, void *data, int len)
 #undef send
     while( len > 0 )
     { int n = send((SOCKET)s->ws_ref, str, len, 0);
+
       if ( n < 0 )
+      { if ( WSAGetLastError() == WSAEWOULDBLOCK )
+	{ ws_dispatch(DEFAULT, DEFAULT);
+	  continue;
+	}
+
 	return errorPce(s, NAME_ioError, SockError());
+      }
+
       len -= n;
       str += n;
     }
@@ -358,6 +366,12 @@ ws_write_stream_data(Stream s, void *data, int len)
   succeed;
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+On error, the return-value is -1,   unless  the error is WSAEWOULDBLOCK,
+which can happen on Windows 9x due  to   a  bug  in select. Therefore we
+return -2 and let the caller handle the problem.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
 ws_read_stream_data(Stream s, void *data, int len, Real timeout)
@@ -380,7 +394,11 @@ ws_read_stream_data(Stream s, void *data, int len, Real timeout)
     }
 
     if ( (rval = recv(sock, data, len, 0)) == SOCKET_ERROR )
+    { if ( WSAGetLastError() == WSAEWOULDBLOCK )
+	return -2;
+
       return -1;
+    }
 
     return rval;
   } else if ( instanceOfObject(s, ClassProcess) )

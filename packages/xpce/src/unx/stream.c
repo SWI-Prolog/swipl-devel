@@ -329,7 +329,7 @@ handleInputStream(Stream s)
 
       dispatch_input_stream(s);
     }
-  } else
+  } else if ( n != -2 )			/* Win 9x errornous WSAEWOULDBLOCK */
   { 
     DEBUG(NAME_stream,
 	  if ( n < 0 )
