@@ -2,6 +2,17 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 2.9.11
+==============
+
+  * UPDATED: dlldemo directory for Win32 version (Changed to > 2.5.0
+    foreign interface, updated makefiles and readme's).
+
+  * FIXED: Handling Control-C in Win32 plwin.exe (bug introduced in
+    2.9.10).
+
+  * FIXED: help/1 avoids printing the whole manual under some circumstances.
+
 VERSION 2.9.10
 ==============
 

@@ -2476,10 +2476,10 @@ Symbols(char *buffer)
   { int n, fd;
     char buf[MAXPATHLEN];
 
+					/* Fails if mode is x-only, but */
+					/* then it can't be a script! */
     if ( (fd = open(file, O_RDONLY)) < 0 )
-    { warning("Cannot open %s: %s", file, OsError());
-      return file;
-    }
+      return strcpy(buffer, file);
 
     if ( (n=read(fd, buf, sizeof(buf)-1)) > 0 )
     { close(fd);
@@ -2493,9 +2493,7 @@ Symbols(char *buffer)
 	  ;
 	*q = EOS;
 
-	strcpy(buffer, s);
-
-	return buffer;
+	return strcpy(buffer, s);
       }
     }
 
@@ -2503,12 +2501,7 @@ Symbols(char *buffer)
   }
 #endif /*__unix__*/
 
-  if ( file )
-    strcpy(buffer, file);
-  else
-    strcpy(buffer, buf);
-
-  return buffer;
+  return strcpy(buffer, file ? file : buf);
 }
 #endif /*__WIN32__*/
 

@@ -407,6 +407,16 @@ typedef struct
 { word w[WORDS_PER_DOUBLE];
 } fword;
 
+
+void
+doublecpy(void *to, void *from)
+{ fword *t = to;
+  fword *f = from;
+
+  *t = *f;
+}
+
+
 double					/* take care of alignment! */
 valReal(word w)
 { fword *v = (fword *)valIndirectP(w);

@@ -73,7 +73,7 @@ pl_flag(term_t name, term_t old, term_t new)
     {
 #ifdef DOUBLE_ALIGNMENT
       double v;
-      memcpy(&v, &f->value.f, sizeof(double));
+      doublecpy(&v, &f->value.f);
       TRY(PL_unify_float(old, v));
 #else
       TRY(PL_unify_float(old, f->value.f));
@@ -99,7 +99,7 @@ pl_flag(term_t name, term_t old, term_t new)
     { 
       f->type = FLG_REAL;
 #ifdef DOUBLE_ALIGNMENT
-      memcpy(&f->value.f, &n.value.f, sizeof(double));
+      doublecpy(&f->value.f, &n.value.f);
 #else
       f->value.f = n.value.f;
 #endif

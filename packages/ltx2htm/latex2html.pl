@@ -385,6 +385,7 @@ language_map(table,	'Table').
 #(em(Text),		[html('<EM>'),     Text, html('</EM>')]).
 #(b(Text),		[html('<B>'),      Text, html('</B>')]).
 #(i(Text),		[html('<I>'),      Text, html('</I>')]).
+#(tt(Text),		[html('<TT>'),	   Text, html('</TT>')]).
 #(center(Text),		[html('<CENTER>'), Text, html('</CENTER>')]).
 #(right(Text),		[html('<RIGHT>'),  Text, html('</RIGHT>')]).
 #(quote(Text),		[html('<BLOCKQUOTE>'), Text, html('</BLOCKQUOTE>')]).

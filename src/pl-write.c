@@ -115,14 +115,56 @@ writeAtom(atom_t a, bool quote)
       case AT_QUOTE:
       case AT_FULLSTOP:
       default:
-      { char c;
+      { int c;
 
 	TRY(Put('\''));
 	while( (c = *s++) != EOS )
-	{ if (c == '\'')
-	  { TRY(Put(c)&&Put(c));
+	{ if ( trueFeature(CHARESCAPE_FEATURE) )
+	  { if ( c >= ' ' && c != 127 )
+	    { TRY(Put(c));
+	    } else
+	    { char esc[4];
+
+	      esc[1] = EOS;
+
+	      switch(c)
+	      { case 7:
+		  esc[0] = 'a';
+		  break;
+		case '\b':
+		  esc[0] = 'b';
+		  break;
+		case '\t':
+		  esc[0] = 't';
+		  break;
+		case '\n':
+		  esc[0] = 'n';
+		  break;
+		case 11:
+		  esc[0] = 'v';
+		  break;
+		case '\r':
+		  esc[0] = 'r';
+		  break;
+		case '\f':
+		  esc[0] = 'f';
+		  break;
+		case '\\':
+		  esc[0] = '\\';
+		  break;
+		default:
+		  Ssprintf(esc, "%03o", c);
+	      }
+	      if ( !Put('\\') ||
+		   !Puts(esc) )
+		fail;
+	    }
 	  } else
-	  { TRY(Put(c));
+	  { if ( c == '\'' )
+	    { TRY(Put(c)&&Put(c));
+	    } else
+	    { TRY(Put(c));
+	    }
 	  }
 	}
 	return Put('\'');

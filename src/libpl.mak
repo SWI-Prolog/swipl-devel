@@ -34,8 +34,8 @@ NULL=nul
 # Begin Project
 # PROP Target_Last_Scanned "libpl - Win32 Release"
 CPP=cl.exe
-MTL=mktyplib.exe
 RSC=rc.exe
+MTL=mktyplib.exe
 
 !IF  "$(CFG)" == "libpl - Win32 Release"
 
@@ -521,6 +521,9 @@ LINK32_OBJS= \
 # Begin Source File
 
 SOURCE=".\pl-dwim.c"
+
+!IF  "$(CFG)" == "libpl - Win32 Release"
+
 DEP_CPP_PL_DW=\
 	".\pl-atom.ih"\
 	".\pl-buffer.h"\
@@ -540,20 +543,53 @@ DEP_CPP_PL_DW=\
 	{$(INCLUDE)}"\sys\TYPES.H"\
 	
 
-!IF  "$(CFG)" == "libpl - Win32 Release"
-
-
 "$(INTDIR)\pl-dwim.obj" : $(SOURCE) $(DEP_CPP_PL_DW) "$(INTDIR)"
 
 
 !ELSEIF  "$(CFG)" == "libpl - Win32 Debug"
 
+DEP_CPP_PL_DW=\
+	".\pl-atom.ih"\
+	".\pl-buffer.h"\
+	".\pl-ctype.h"\
+	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
+	".\pl-incl.h"\
+	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
+	".\pl-stream.h"\
+	"d:\development\pl\include\uxnt.h"\
+	{$(INCLUDE)}"\sys\STAT.H"\
+	{$(INCLUDE)}"\sys\TYPES.H"\
+	
 
 "$(INTDIR)\pl-dwim.obj" : $(SOURCE) $(DEP_CPP_PL_DW) "$(INTDIR)"
 
 
 !ELSEIF  "$(CFG)" == "libpl - Win32 Runtime"
 
+DEP_CPP_PL_DW=\
+	".\pl-atom.ih"\
+	".\pl-buffer.h"\
+	".\pl-ctype.h"\
+	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
+	".\pl-incl.h"\
+	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
+	".\pl-stream.h"\
+	"d:\development\pl\include\uxnt.h"\
+	{$(INCLUDE)}"\sys\STAT.H"\
+	{$(INCLUDE)}"\sys\TYPES.H"\
+	
 
 "$(INTDIR)\pl-dwim.obj" : $(SOURCE) $(DEP_CPP_PL_DW) "$(INTDIR)"
 
@@ -565,6 +601,9 @@ DEP_CPP_PL_DW=\
 # Begin Source File
 
 SOURCE=".\pl-util.c"
+
+!IF  "$(CFG)" == "libpl - Win32 Release"
+
 DEP_CPP_PL_UT=\
 	".\pl-atom.ih"\
 	".\pl-buffer.h"\
@@ -584,20 +623,53 @@ DEP_CPP_PL_UT=\
 	{$(INCLUDE)}"\sys\TYPES.H"\
 	
 
-!IF  "$(CFG)" == "libpl - Win32 Release"
-
-
 "$(INTDIR)\pl-util.obj" : $(SOURCE) $(DEP_CPP_PL_UT) "$(INTDIR)"
 
 
 !ELSEIF  "$(CFG)" == "libpl - Win32 Debug"
 
+DEP_CPP_PL_UT=\
+	".\pl-atom.ih"\
+	".\pl-buffer.h"\
+	".\pl-ctype.h"\
+	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
+	".\pl-incl.h"\
+	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
+	".\pl-stream.h"\
+	"d:\development\pl\include\uxnt.h"\
+	{$(INCLUDE)}"\sys\STAT.H"\
+	{$(INCLUDE)}"\sys\TYPES.H"\
+	
 
 "$(INTDIR)\pl-util.obj" : $(SOURCE) $(DEP_CPP_PL_UT) "$(INTDIR)"
 
 
 !ELSEIF  "$(CFG)" == "libpl - Win32 Runtime"
 
+DEP_CPP_PL_UT=\
+	".\pl-atom.ih"\
+	".\pl-buffer.h"\
+	".\pl-ctype.h"\
+	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
+	".\pl-incl.h"\
+	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
+	".\pl-stream.h"\
+	"d:\development\pl\include\uxnt.h"\
+	{$(INCLUDE)}"\sys\STAT.H"\
+	{$(INCLUDE)}"\sys\TYPES.H"\
+	
 
 "$(INTDIR)\pl-util.obj" : $(SOURCE) $(DEP_CPP_PL_UT) "$(INTDIR)"
 
@@ -609,6 +681,9 @@ DEP_CPP_PL_UT=\
 # Begin Source File
 
 SOURCE=".\pl-rec.c"
+
+!IF  "$(CFG)" == "libpl - Win32 Release"
+
 DEP_CPP_PL_RE=\
 	".\pl-atom.ih"\
 	".\pl-buffer.h"\
@@ -627,20 +702,51 @@ DEP_CPP_PL_RE=\
 	{$(INCLUDE)}"\sys\TYPES.H"\
 	
 
-!IF  "$(CFG)" == "libpl - Win32 Release"
-
-
 "$(INTDIR)\pl-rec.obj" : $(SOURCE) $(DEP_CPP_PL_RE) "$(INTDIR)"
 
 
 !ELSEIF  "$(CFG)" == "libpl - Win32 Debug"
 
+DEP_CPP_PL_RE=\
+	".\pl-atom.ih"\
+	".\pl-buffer.h"\
+	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
+	".\pl-incl.h"\
+	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
+	".\pl-stream.h"\
+	"d:\development\pl\include\uxnt.h"\
+	{$(INCLUDE)}"\sys\STAT.H"\
+	{$(INCLUDE)}"\sys\TYPES.H"\
+	
 
 "$(INTDIR)\pl-rec.obj" : $(SOURCE) $(DEP_CPP_PL_RE) "$(INTDIR)"
 
 
 !ELSEIF  "$(CFG)" == "libpl - Win32 Runtime"
 
+DEP_CPP_PL_RE=\
+	".\pl-atom.ih"\
+	".\pl-buffer.h"\
+	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
+	".\pl-incl.h"\
+	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
+	".\pl-stream.h"\
+	"d:\development\pl\include\uxnt.h"\
+	{$(INCLUDE)}"\sys\STAT.H"\
+	{$(INCLUDE)}"\sys\TYPES.H"\
+	
 
 "$(INTDIR)\pl-rec.obj" : $(SOURCE) $(DEP_CPP_PL_RE) "$(INTDIR)"
 
@@ -652,6 +758,9 @@ DEP_CPP_PL_RE=\
 # Begin Source File
 
 SOURCE=".\pl-comp.c"
+
+!IF  "$(CFG)" == "libpl - Win32 Release"
+
 DEP_CPP_PL_CO=\
 	".\pl-atom.ih"\
 	".\pl-buffer.h"\
@@ -670,20 +779,51 @@ DEP_CPP_PL_CO=\
 	{$(INCLUDE)}"\sys\TYPES.H"\
 	
 
-!IF  "$(CFG)" == "libpl - Win32 Release"
-
-
 "$(INTDIR)\pl-comp.obj" : $(SOURCE) $(DEP_CPP_PL_CO) "$(INTDIR)"
 
 
 !ELSEIF  "$(CFG)" == "libpl - Win32 Debug"
 
+DEP_CPP_PL_CO=\
+	".\pl-atom.ih"\
+	".\pl-buffer.h"\
+	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
+	".\pl-incl.h"\
+	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
+	".\pl-stream.h"\
+	"d:\development\pl\include\uxnt.h"\
+	{$(INCLUDE)}"\sys\STAT.H"\
+	{$(INCLUDE)}"\sys\TYPES.H"\
+	
 
 "$(INTDIR)\pl-comp.obj" : $(SOURCE) $(DEP_CPP_PL_CO) "$(INTDIR)"
 
 
 !ELSEIF  "$(CFG)" == "libpl - Win32 Runtime"
 
+DEP_CPP_PL_CO=\
+	".\pl-atom.ih"\
+	".\pl-buffer.h"\
+	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
+	".\pl-incl.h"\
+	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
+	".\pl-stream.h"\
+	"d:\development\pl\include\uxnt.h"\
+	{$(INCLUDE)}"\sys\STAT.H"\
+	{$(INCLUDE)}"\sys\TYPES.H"\
+	
 
 "$(INTDIR)\pl-comp.obj" : $(SOURCE) $(DEP_CPP_PL_CO) "$(INTDIR)"
 
@@ -695,6 +835,9 @@ DEP_CPP_PL_CO=\
 # Begin Source File
 
 SOURCE=".\pl-write.c"
+
+!IF  "$(CFG)" == "libpl - Win32 Release"
+
 DEP_CPP_PL_WR=\
 	".\pl-atom.ih"\
 	".\pl-buffer.h"\
@@ -714,20 +857,53 @@ DEP_CPP_PL_WR=\
 	{$(INCLUDE)}"\sys\TYPES.H"\
 	
 
-!IF  "$(CFG)" == "libpl - Win32 Release"
-
-
 "$(INTDIR)\pl-write.obj" : $(SOURCE) $(DEP_CPP_PL_WR) "$(INTDIR)"
 
 
 !ELSEIF  "$(CFG)" == "libpl - Win32 Debug"
 
+DEP_CPP_PL_WR=\
+	".\pl-atom.ih"\
+	".\pl-buffer.h"\
+	".\pl-ctype.h"\
+	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
+	".\pl-incl.h"\
+	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
+	".\pl-stream.h"\
+	"d:\development\pl\include\uxnt.h"\
+	{$(INCLUDE)}"\sys\STAT.H"\
+	{$(INCLUDE)}"\sys\TYPES.H"\
+	
 
 "$(INTDIR)\pl-write.obj" : $(SOURCE) $(DEP_CPP_PL_WR) "$(INTDIR)"
 
 
 !ELSEIF  "$(CFG)" == "libpl - Win32 Runtime"
 
+DEP_CPP_PL_WR=\
+	".\pl-atom.ih"\
+	".\pl-buffer.h"\
+	".\pl-ctype.h"\
+	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
+	".\pl-incl.h"\
+	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
+	".\pl-stream.h"\
+	"d:\development\pl\include\uxnt.h"\
+	{$(INCLUDE)}"\sys\STAT.H"\
+	{$(INCLUDE)}"\sys\TYPES.H"\
+	
 
 "$(INTDIR)\pl-write.obj" : $(SOURCE) $(DEP_CPP_PL_WR) "$(INTDIR)"
 
@@ -739,6 +915,9 @@ DEP_CPP_PL_WR=\
 # Begin Source File
 
 SOURCE=".\pl-table.c"
+
+!IF  "$(CFG)" == "libpl - Win32 Release"
+
 DEP_CPP_PL_TA=\
 	".\pl-atom.ih"\
 	".\pl-buffer.h"\
@@ -757,20 +936,51 @@ DEP_CPP_PL_TA=\
 	{$(INCLUDE)}"\sys\TYPES.H"\
 	
 
-!IF  "$(CFG)" == "libpl - Win32 Release"
-
-
 "$(INTDIR)\pl-table.obj" : $(SOURCE) $(DEP_CPP_PL_TA) "$(INTDIR)"
 
 
 !ELSEIF  "$(CFG)" == "libpl - Win32 Debug"
 
+DEP_CPP_PL_TA=\
+	".\pl-atom.ih"\
+	".\pl-buffer.h"\
+	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
+	".\pl-incl.h"\
+	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
+	".\pl-stream.h"\
+	"d:\development\pl\include\uxnt.h"\
+	{$(INCLUDE)}"\sys\STAT.H"\
+	{$(INCLUDE)}"\sys\TYPES.H"\
+	
 
 "$(INTDIR)\pl-table.obj" : $(SOURCE) $(DEP_CPP_PL_TA) "$(INTDIR)"
 
 
 !ELSEIF  "$(CFG)" == "libpl - Win32 Runtime"
 
+DEP_CPP_PL_TA=\
+	".\pl-atom.ih"\
+	".\pl-buffer.h"\
+	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
+	".\pl-incl.h"\
+	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
+	".\pl-stream.h"\
+	"d:\development\pl\include\uxnt.h"\
+	{$(INCLUDE)}"\sys\STAT.H"\
+	{$(INCLUDE)}"\sys\TYPES.H"\
+	
 
 "$(INTDIR)\pl-table.obj" : $(SOURCE) $(DEP_CPP_PL_TA) "$(INTDIR)"
 
@@ -782,6 +992,9 @@ DEP_CPP_PL_TA=\
 # Begin Source File
 
 SOURCE=".\pl-pro.c"
+
+!IF  "$(CFG)" == "libpl - Win32 Release"
+
 DEP_CPP_PL_PR=\
 	".\pl-atom.ih"\
 	".\pl-buffer.h"\
@@ -800,20 +1013,51 @@ DEP_CPP_PL_PR=\
 	{$(INCLUDE)}"\sys\TYPES.H"\
 	
 
-!IF  "$(CFG)" == "libpl - Win32 Release"
-
-
 "$(INTDIR)\pl-pro.obj" : $(SOURCE) $(DEP_CPP_PL_PR) "$(INTDIR)"
 
 
 !ELSEIF  "$(CFG)" == "libpl - Win32 Debug"
 
+DEP_CPP_PL_PR=\
+	".\pl-atom.ih"\
+	".\pl-buffer.h"\
+	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
+	".\pl-incl.h"\
+	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
+	".\pl-stream.h"\
+	"d:\development\pl\include\uxnt.h"\
+	{$(INCLUDE)}"\sys\STAT.H"\
+	{$(INCLUDE)}"\sys\TYPES.H"\
+	
 
 "$(INTDIR)\pl-pro.obj" : $(SOURCE) $(DEP_CPP_PL_PR) "$(INTDIR)"
 
 
 !ELSEIF  "$(CFG)" == "libpl - Win32 Runtime"
 
+DEP_CPP_PL_PR=\
+	".\pl-atom.ih"\
+	".\pl-buffer.h"\
+	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
+	".\pl-incl.h"\
+	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
+	".\pl-stream.h"\
+	"d:\development\pl\include\uxnt.h"\
+	{$(INCLUDE)}"\sys\STAT.H"\
+	{$(INCLUDE)}"\sys\TYPES.H"\
+	
 
 "$(INTDIR)\pl-pro.obj" : $(SOURCE) $(DEP_CPP_PL_PR) "$(INTDIR)"
 
@@ -825,6 +1069,9 @@ DEP_CPP_PL_PR=\
 # Begin Source File
 
 SOURCE=".\pl-itf.c"
+
+!IF  "$(CFG)" == "libpl - Win32 Release"
+
 DEP_CPP_PL_IT=\
 	".\pl-atom.ih"\
 	".\pl-buffer.h"\
@@ -843,20 +1090,51 @@ DEP_CPP_PL_IT=\
 	{$(INCLUDE)}"\sys\TYPES.H"\
 	
 
-!IF  "$(CFG)" == "libpl - Win32 Release"
-
-
 "$(INTDIR)\pl-itf.obj" : $(SOURCE) $(DEP_CPP_PL_IT) "$(INTDIR)"
 
 
 !ELSEIF  "$(CFG)" == "libpl - Win32 Debug"
 
+DEP_CPP_PL_IT=\
+	".\pl-atom.ih"\
+	".\pl-buffer.h"\
+	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
+	".\pl-incl.h"\
+	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
+	".\pl-stream.h"\
+	"d:\development\pl\include\uxnt.h"\
+	{$(INCLUDE)}"\sys\STAT.H"\
+	{$(INCLUDE)}"\sys\TYPES.H"\
+	
 
 "$(INTDIR)\pl-itf.obj" : $(SOURCE) $(DEP_CPP_PL_IT) "$(INTDIR)"
 
 
 !ELSEIF  "$(CFG)" == "libpl - Win32 Runtime"
 
+DEP_CPP_PL_IT=\
+	".\pl-atom.ih"\
+	".\pl-buffer.h"\
+	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
+	".\pl-incl.h"\
+	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
+	".\pl-stream.h"\
+	"d:\development\pl\include\uxnt.h"\
+	{$(INCLUDE)}"\sys\STAT.H"\
+	{$(INCLUDE)}"\sys\TYPES.H"\
+	
 
 "$(INTDIR)\pl-itf.obj" : $(SOURCE) $(DEP_CPP_PL_IT) "$(INTDIR)"
 
@@ -868,6 +1146,9 @@ DEP_CPP_PL_IT=\
 # Begin Source File
 
 SOURCE=".\pl-term.c"
+
+!IF  "$(CFG)" == "libpl - Win32 Release"
+
 DEP_CPP_PL_TE=\
 	".\pl-atom.ih"\
 	".\pl-buffer.h"\
@@ -886,20 +1167,51 @@ DEP_CPP_PL_TE=\
 	{$(INCLUDE)}"\sys\TYPES.H"\
 	
 
-!IF  "$(CFG)" == "libpl - Win32 Release"
-
-
 "$(INTDIR)\pl-term.obj" : $(SOURCE) $(DEP_CPP_PL_TE) "$(INTDIR)"
 
 
 !ELSEIF  "$(CFG)" == "libpl - Win32 Debug"
 
+DEP_CPP_PL_TE=\
+	".\pl-atom.ih"\
+	".\pl-buffer.h"\
+	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
+	".\pl-incl.h"\
+	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
+	".\pl-stream.h"\
+	"d:\development\pl\include\uxnt.h"\
+	{$(INCLUDE)}"\sys\STAT.H"\
+	{$(INCLUDE)}"\sys\TYPES.H"\
+	
 
 "$(INTDIR)\pl-term.obj" : $(SOURCE) $(DEP_CPP_PL_TE) "$(INTDIR)"
 
 
 !ELSEIF  "$(CFG)" == "libpl - Win32 Runtime"
 
+DEP_CPP_PL_TE=\
+	".\pl-atom.ih"\
+	".\pl-buffer.h"\
+	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
+	".\pl-incl.h"\
+	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
+	".\pl-stream.h"\
+	"d:\development\pl\include\uxnt.h"\
+	{$(INCLUDE)}"\sys\STAT.H"\
+	{$(INCLUDE)}"\sys\TYPES.H"\
+	
 
 "$(INTDIR)\pl-term.obj" : $(SOURCE) $(DEP_CPP_PL_TE) "$(INTDIR)"
 
@@ -911,6 +1223,9 @@ DEP_CPP_PL_TE=\
 # Begin Source File
 
 SOURCE=".\pl-file.c"
+
+!IF  "$(CFG)" == "libpl - Win32 Release"
+
 DEP_CPP_PL_FI=\
 	".\pl-atom.ih"\
 	".\pl-buffer.h"\
@@ -931,20 +1246,55 @@ DEP_CPP_PL_FI=\
 	{$(INCLUDE)}"\sys\TYPES.H"\
 	
 
-!IF  "$(CFG)" == "libpl - Win32 Release"
-
-
 "$(INTDIR)\pl-file.obj" : $(SOURCE) $(DEP_CPP_PL_FI) "$(INTDIR)"
 
 
 !ELSEIF  "$(CFG)" == "libpl - Win32 Debug"
 
+DEP_CPP_PL_FI=\
+	".\pl-atom.ih"\
+	".\pl-buffer.h"\
+	".\pl-ctype.h"\
+	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
+	".\pl-incl.h"\
+	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
+	".\pl-stream.h"\
+	"d:\development\pl\include\console.h"\
+	"d:\development\pl\include\uxnt.h"\
+	{$(INCLUDE)}"\sys\STAT.H"\
+	{$(INCLUDE)}"\sys\TYPES.H"\
+	
 
 "$(INTDIR)\pl-file.obj" : $(SOURCE) $(DEP_CPP_PL_FI) "$(INTDIR)"
 
 
 !ELSEIF  "$(CFG)" == "libpl - Win32 Runtime"
 
+DEP_CPP_PL_FI=\
+	".\pl-atom.ih"\
+	".\pl-buffer.h"\
+	".\pl-ctype.h"\
+	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
+	".\pl-incl.h"\
+	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
+	".\pl-stream.h"\
+	"d:\development\pl\include\console.h"\
+	"d:\development\pl\include\uxnt.h"\
+	{$(INCLUDE)}"\sys\STAT.H"\
+	{$(INCLUDE)}"\sys\TYPES.H"\
+	
 
 "$(INTDIR)\pl-file.obj" : $(SOURCE) $(DEP_CPP_PL_FI) "$(INTDIR)"
 

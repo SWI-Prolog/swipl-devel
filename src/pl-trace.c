@@ -835,7 +835,7 @@ resetTracer(void)
 #ifndef BSD_SIGNALS
 #define REINSTATE_INTERRUPT_HANDLER
 #endif
-  signal(SIGINT, interruptHandler);
+  pl_signal(SIGINT, interruptHandler);
 #endif
 #endif
 #endif
@@ -899,7 +899,7 @@ again:
 #ifdef SIG_ACK
   signal(SIGINT, SIG_ACK);
 #else
-  signal(SIGINT, interruptHandler);	/* reinsert handler */
+  pl_signal(SIGINT, interruptHandler);	/* reinsert handler */
 #endif
 #endif
 

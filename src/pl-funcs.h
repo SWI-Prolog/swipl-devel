@@ -21,6 +21,7 @@ int		sizeString(word w);
 word		globalString(const char *s);
 word		globalNString(long len, const char *s);
 Word		newTerm(void);
+void		doublecpy(void *to, void *from);
 word		globalReal(real f);
 word		globalLong(long i);
 double		valReal(word w);
