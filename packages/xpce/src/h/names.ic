@@ -522,6 +522,7 @@
   BUILTIN_NAME("cpu_time")
   BUILTIN_NAME("crash")
   BUILTIN_NAME("create")
+  BUILTIN_NAME("create_context")
   BUILTIN_NAME("create_editor")
   BUILTIN_NAME("create_failed")
   BUILTIN_NAME("created_message")

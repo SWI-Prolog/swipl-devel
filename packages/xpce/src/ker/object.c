@@ -1121,6 +1121,54 @@ hasGetMethodObject(Any obj, Name selector)
 }
 
 
+static int
+isSendInitialise(PceGoal g, Any obj)
+{ if ( g->receiver == obj &&
+       instanceOfObject(g->implementation, ClassSendMethod) )
+  { SendMethod sm = g->implementation;
+    if ( sm->name == NAME_initialise )
+      succeed;
+  }
+
+  fail;
+}
+
+
+
+Any
+getCreateContextObject(Any obj, Code cond)
+{ if ( onFlag(obj, F_CREATING) )
+  { PceGoal g = CurrentGoal;
+
+    for( ; g; g=g->parent )
+    { if ( isSendInitialise(g, obj) )
+      {					/* skip send_super() */
+	for( g=g->parent; g && isSendInitialise(g, obj); g = g->parent)
+	  ;
+					/* goal created by new/2 */
+	if ( g && isNil(g->implementation) )
+	  g = g->parent;
+
+	if ( notDefault(cond) )
+	{ while( g &&
+		 !forwardReceiverCode(cond, obj,
+				      g->receiver, g->implementation, EAV) )
+	    g = g->parent;
+	}
+
+	if ( g && instanceOfObject(g->implementation, ClassMethod) )
+	{ answer(g->receiver);
+	}
+
+	fail;
+      }
+    }
+  }
+
+  fail;
+}
+
+
 		 /*******************************
 		 *	  COLLECT METHODS	*
 		 *******************************/
@@ -2780,6 +2828,9 @@ static getdecl get_object[] =
      NAME_meta, "Tuple containing receiver and implementing object"),
   GM(NAME_sendMethod, 1, "tuple", "name", getSendMethodObject,
      NAME_meta, "Tuple containing receiver and implementing object"),
+  GM(NAME_createContext, 1, "object", "condition=[code]",
+     getCreateContextObject,
+     NAME_meta, "Find object creating me"),
   GM(NAME_convert, 1, "object", "int|char_array", getConvertObject,
      NAME_oms, "Convert '@reference' into object"),
   GM(NAME_unlock, 0, "unchecked", NULL, getUnlockObject,
