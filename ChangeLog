@@ -9,6 +9,10 @@ Version 2.0.1
     report.
   * FIX & performance: current_functor/2 with the first argument is
     instantiated.
+  * Installation: the libraries are now installed as
+    $(prefix)/lib/$(PL)-$(PLVERSION).  A possibly existing executable is moved
+    from $(prefix)/bin/$(PL) to $(prefix)/bin/$(PL).old
+
 
 Version 2.0.0
 =============
