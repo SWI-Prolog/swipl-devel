@@ -88,6 +88,9 @@ static functor_t FUNCTOR_substring1;
 static functor_t FUNCTOR_word1;
 static functor_t FUNCTOR_prefix1;
 
+static functor_t FUNCTOR_symetric1;
+static functor_t FUNCTOR_transitive1;
+
 static functor_t FUNCTOR_searched_nodes1;
 
 static atom_t   ATOM_user;
@@ -101,6 +104,7 @@ static atom_t	ATOM_subPropertyOf;
 #define MATCH_EXACT 		0x1	/* exact triple match */
 #define MATCH_SUBPROPERTY	0x2	/* Use subPropertyOf relations */
 #define MATCH_SRC		0x4	/* Match source location */
+#define MATCH_SYMETRIC		0x8	/* use symetric match too */
 
 static int match(int how, atom_t search, atom_t label);
 static int update_duplicates_add(triple *t);
@@ -201,6 +205,21 @@ get_atom_or_var_ex(term_t t, atom_t *a)
 
   return type_error(t, "atom");
 }
+
+
+static int
+get_bool_arg_ex(int a, term_t t, int *val)
+{ term_t arg = PL_new_term_ref();
+
+  if ( !PL_get_arg(a, t, arg) )
+    return type_error(t, "compound");
+  if ( !PL_get_bool(arg, val) )
+    return type_error(arg, "bool");
+
+  return TRUE;
+}
+
+
 
 		 /*******************************
 		 *	   DEBUG SUPPORT	*
@@ -2402,6 +2421,93 @@ rdf_subject(term_t subject, control_t h)
   }
 }
 
+
+static foreign_t
+rdf_set_predicate(term_t pred, term_t option)
+{ predicate *p;
+
+  if ( !get_predicate(pred, &p) )
+    return FALSE;
+
+  if ( PL_is_functor(option, FUNCTOR_symetric1) )
+  { int val;
+
+    if ( !get_bool_arg_ex(1, option, &val) )
+      return FALSE;
+
+    p->symetric = val;
+
+    return TRUE;
+  } else if ( PL_is_functor(option, FUNCTOR_transitive1) )
+  { int val;
+
+    if ( !get_bool_arg_ex(1, option, &val) )
+      return FALSE;
+
+    p->transitive = val;
+
+    return TRUE;
+  } else
+    return type_error(option, "predicate_option");
+}
+
+
+static functor_t predicate_key[3];
+
+static int
+unify_predicate_property(predicate *p, term_t option, functor_t f)
+{ if ( f == FUNCTOR_symetric1 )
+    return PL_unify_term(option, PL_FUNCTOR, f, PL_BOOL, p->symetric);
+  else if ( f == FUNCTOR_transitive1 )
+    return PL_unify_term(option, PL_FUNCTOR, f, PL_BOOL, p->transitive);
+  else
+    assert(0);
+    return FALSE;
+}
+
+
+static foreign_t
+rdf_predicate_property(term_t pred, term_t option, control_t h)
+{ int n;
+  predicate *p;
+
+  switch(PL_foreign_control(h))
+  { case PL_FIRST_CALL:
+    { functor_t f;
+
+      if ( PL_is_variable(option) )
+      { n = 0;
+	goto redo;
+      } else if ( PL_get_functor(option, &f) )
+      { for(n=0; predicate_key[n]; n++)
+	{ if ( predicate_key[n] == f ) 
+	  { if ( !get_predicate(pred, &p) )
+	      return FALSE;
+	    return unify_predicate_property(p, option, f);
+	  }
+	}
+	return domain_error(option, "rdf_predicate_property");
+      } else
+	return type_error(option, "rdf_predicate_property");
+    }
+    case PL_REDO:
+      if ( !get_predicate(pred, &p) )
+	return FALSE;
+      n = PL_foreign_context(h);
+    redo:
+      unify_predicate_property(p, option, predicate_key[n]);
+      n++;
+      if ( predicate_key[n] )
+	PL_retry(n);
+    case PL_CUTTED:
+      return TRUE;
+    default:
+      assert(0);
+      return TRUE;
+  }
+}
+
+
 		 /*******************************
 		 *     TRANSITIVE RELATIONS	*
 		 *******************************/
@@ -3138,6 +3244,8 @@ install_rdf_db()
   MKFUNCTOR(literal, 2);
   MKFUNCTOR(searched_nodes, 1);
   MKFUNCTOR(duplicates, 1);
+  MKFUNCTOR(symetric, 1);
+  MKFUNCTOR(transitive, 1);
 
   FUNCTOR_colon2 = PL_new_functor(PL_new_atom(":"), 2);
 
@@ -3179,6 +3287,8 @@ install_rdf_db()
   PL_register_foreign("rdf_load_db_",   1, rdf_load_db,     0);
   PL_register_foreign("rdf_reachable",  3, rdf_reachable,   NDET);
   PL_register_foreign("rdf_reset_db_",  0, rdf_reset_db,    0);
+  PL_register_foreign("rdf_set_predicate", 2, rdf_set_predicate, 0);
+  PL_register_foreign("rdf_predicate_property", 2, rdf_predicate_property, NDET);
 #ifdef O_DEBUG
   PL_register_foreign("rdf_debug",      1, rdf_debug,       0);
 #endif

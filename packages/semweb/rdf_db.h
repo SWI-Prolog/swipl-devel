@@ -59,6 +59,8 @@ typedef struct predicate
   struct predicate *next;		/* next in hash-table */
   struct predicate *oldroot;		/* from previous run */
   int		    visited;		/* loop detection */
+  unsigned 	    symetric : 1;	/* P(a,b) --> P(b,a) */
+  unsigned 	    transitive : 1;	/* P(a,b)&P(b,c) --> P(a,c) */
 } predicate;
 
 

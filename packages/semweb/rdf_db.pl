@@ -45,6 +45,8 @@
 	    rdf_retractall/4,		% ?Subject, ?Predicate, ?Object, +DB
 	    rdf_update/4,		% +Subject, +Predicate, +Object, +Act
 	    rdf_update/5,		% +Subject, +Predicate, +Object, +Src, +Act
+	    rdf_set_predicate/2,	% +Predicate, +Property
+	    rdf_predicate_property/2,	% +Predicate, ?Property
 
 	    rdf_save_db/1,		% +File
 	    rdf_save_db/2,		% +File, +DB
@@ -232,7 +234,12 @@ user:goal_expansion(rdf_source_location(Subj0, Source),
 user:goal_expansion(rdf_subject(Subj0),
 		    rdf_subject(Subj)) :-
 	rdf_global_id(Subj0, Subj).
-
+user:goal_expansion(rdf_set_predicate(P0, Prop),
+		    rdf_set_predicate(P, Prop)) :-
+	rdf_global_id(P0, P).
+user:goal_expansion(rdf_predicate_property(P0, Prop),
+		    rdf_predicate_property(P, Prop)) :-
+	rdf_global_id(P0, P).
 
 %	rdf_equal(?Resource1, ?Resource2)
 %	
