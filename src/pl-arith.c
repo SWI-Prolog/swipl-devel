@@ -300,11 +300,11 @@ register Module m;
   return r;
 }
 
-#if unix
+#if unix || EMX
 static void
 realExceptionHandler(sig, type, scp, addr)
 int sig, type;
-struct sigcontext *scp;
+SIGNAL_CONTEXT_TYPE scp;
 char *addr;
 { if ( status.arithmetic > 0 )
   { warning("Floating point exception");
@@ -1056,7 +1056,7 @@ static struct arithFunction ar_functions[MAXARITHFUNCTIONS] = {
 void
 initArith()
 {
-#if unix
+#if unix || EMX
   pl_signal(SIGFPE, realExceptionHandler);
 #endif
 #if __TURBOC__

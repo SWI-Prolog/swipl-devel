@@ -229,6 +229,12 @@ Word head, calls, prom;
 }
 
 word
+pl_profile_box(head, calls, redos, exits, fails)
+Word head, calls, redos, exits, fails;
+{ return notImplemented("profile_box", 3);
+}
+
+word
 pl_reset_profiler()
 { return notImplemented("reset_profile", 0);
 }

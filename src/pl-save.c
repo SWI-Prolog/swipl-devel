@@ -68,6 +68,26 @@ PORTABILITY/OPTIONS
     the stack's base address.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#if OS2 && EMX
+/*                      Notes on the OS/2 port.
+			atoenne@mpi-sb.mpg.de
+
+    The save/2 primitive had a rather unusual problem in OS/2. The save
+    function tries to write the memory between start of data and the
+    end of the heap as one huge chunk to disk. OS/2 however does not
+    allocate the junk area between the end of data and the start of
+    the heap. Consequently we get a protection violation with the original
+    save function. We have to write two sections, one for data and
+    one for the heap. These areas are determined as follows:
+
+    data ranges from &_data to &_end
+    heap ranges from _heap_base to sbrk(0)
+
+    The routines for determing the stack frame are fine.
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+#endif OS2
+
 #if TEST
 #undef DEBUG
 #define DEBUG(l, g) {g;}
@@ -81,10 +101,14 @@ PORTABILITY/OPTIONS
 #include <fcntl.h>
 #include "pl-save.h"
 
-#ifdef sun
+#if sun
 int	brk P((caddr_t));
 caddr_t sbrk P((int));
 #endif
+#if OS2 & EMX
+extern caddr _heap_base;
+extern long _heap_end;
+#endif OS2
 
 extern char **environ;
 
@@ -92,10 +116,22 @@ extern char **environ;
 #ifndef FIRST_DATA_SYMBOL
 #define FIRST_DATA_SYMBOL environ;
 #endif
+#define DATA_START &FIRST_DATA_SYMBOL
+#endif
+
+#ifndef DATA_END
+#ifdef LAST_DATA_SYMBOL
+#define DATA_END ((caddr) &LAST_DATA_SYMBOL)
+#else
+#define DATA_END ((caddr) sbrk(0))
+#endif
 #endif
 
 #ifdef  FIRST_DATA_SYMBOL
 extern  char **FIRST_DATA_SYMBOL;
+#endif
+#ifdef LAST_DATA_SYMBOL            /* --- atoenne@mpi-sb.mpg.de --- */
+extern  char **LAST_DATA_SYMBOL;
 #endif
 
 #ifndef STACK_BASE_ALIGN
@@ -271,6 +307,10 @@ long length;
 		*            RESTORE		*
 		********************************/
 
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif
+
 int
 restore(file, allocf)
 char *file;
@@ -281,8 +321,8 @@ int (*allocf) P((SaveSection));
   long header_offset = 0;
   struct save_header header;
   char *s;
-  
-  if ( (fd = open(file, O_RDONLY)) < 0 )
+
+  if ((fd = open(file, O_RDONLY|O_BINARY)) < 0)
     return warning("restore/1: cannot open %s: %s", file, OsError());
   tryRead(fd, buf, MAXLINE1);
 
@@ -342,6 +382,12 @@ int (*allocf) P((SaveSection));
 		*            SAVE		*
 		********************************/
 
+#ifdef HEAP_START
+#define C_DATA_SECTIONS 2		/* heap separate from data  */
+#else
+#define C_DATA_SECTIONS 1
+#endif
+
 int
 save(file, interpreter, kind, nsections, sections)
 char *file;
@@ -350,25 +396,28 @@ int kind;			/* RET_RETURN; RET_MAIN */
 int nsections;			/* additional sections */
 SaveSection sections;
 { int fd;
+  struct save_section sects[MAX_SAVE_SECTIONS];
   char buf[MAXLINE1];
   long header_offset;
   volatile long section_offset;		/* volatile to keep gcc happy */
   struct save_header header;
-  int nsects = nsections + (kind == RET_RETURN ? 2 : 1);
-  int sects_size = sizeof(struct save_section) * nsects;
-#if O_NO_ALLOCA				/* cannot malloc() here */
-  struct save_section sects[MAX_SAVE_SECTIONS];
-#else
-  SaveSection sects = alloca(sects_size);
-#endif
+  int nsects = nsections + C_DATA_SECTIONS;
+  int sects_size;
   int n;
   SaveSection sect;
 
-  if ( (fd = open(file, O_WRONLY|O_CREAT|O_TRUNC, 0777)) < 0 )
+  if ( kind == RET_RETURN )
+    nsects++;				/* C-stack section  */
+  sects_size = sizeof(struct save_section) * nsects;
+
+  if ( (fd = open(file, O_WRONLY|O_CREAT|O_TRUNC|O_BINARY, 0777)) < 0 )
     return warning("save/1: cannot write %s: %s\n", file, OsError());
   
-/*sprintf(buf, "#!%s -r\n", interpreter);*/
-  sprintf(buf, "#!/bin/sh\nexec %s -r $0 $*\n", interpreter);
+#if OS2
+  sprintf(buf, "/* Self-starting SWI-Prolog state */\r\n'@ECHO OFF'\r\nparse source . . name\r\n\"%s -r \" name arg(1)\r\nexit\r\n", OsPath(interpreter));
+#else
+  sprintf(buf, "#!/bin/sh\nexec %s -r $0 $*\n", OsPath(interpreter));
+#endif
   header_offset = strlen(buf) + 1; /* +1 to write the EOS too */
   DEBUG(1, printf("header_offset = %d\n", header_offset));
   tryWrite(fd, buf, header_offset);
@@ -380,19 +429,22 @@ SaveSection sections;
     
   section_offset = sizeof(header) + sects_size;
 
-#ifdef DATA_START
   sects[0].start	= (caddr) DATA_START;
-#else
-  sects[0].start	= &FIRST_DATA_SYMBOL;
-#endif
-  sects[0].length	= (long) sbrk(0) - (long) sects[0].start;
+  sects[0].length	= (long) DATA_END - (long) sects[0].start;
   sects[0].type		= S_DATA;
   sects[0].flags	= 0;
+#ifdef HEAP_START
+  sects[1].start        = HEAP_START
+  sects[1].length       = (long) sbrk(0) - (long) sects[1].start;
+  sects[1].type         = S_DATA;
+  sects[1].flags        = 0;
+#endif HEAP_START
 
-  memcpy(&sects[1], sections, nsections * sizeof(struct save_section));
+  memcpy(&sects[C_DATA_SECTIONS], sections,
+	 nsections * sizeof(struct save_section));
 
   if ( kind == RET_RETURN )
-  { SaveSection stack_sect = &sects[nsections+1];
+  { SaveSection stack_sect = &sects[nsections+C_DATA_SECTIONS];
 
     if ( setjmp(ret_return_ctx) )
     { DEBUG(1, printf("Yipie, returning from state\n"));

@@ -15,7 +15,7 @@ option  parsing,  initialisation  and  handling  of errors and warnings.
 #include "pl-incl.h"
 #include "pl-itf.h"
 #include "pl-save.h"
-#if unix
+#if unix || EMX
 #include <sys/param.h>
 #endif
 
@@ -38,7 +38,7 @@ char *def;
   if ( ExistsDirectory(def) )
     return def;
 
-  if ( (h=getenv("SWI_HOME_DIR")) != NULL && ExistsDirectory(h) )
+  if ( (h=PrologPath(getenv("SWI_HOME_DIR"))) != NULL && ExistsDirectory(h) )
     return store_string(h);
 
 #if tos
@@ -58,10 +58,16 @@ char *def;
   return (char *) NULL;
 }
 
+/*
+  -- atoenne -- convert state to an absolute path. This allows relative
+  SWI_HOME_DIR and cleans up non-canonical paths.
+*/
+
 static char *
 findState(base)
 char *base;
 { char state[MAXPATHLEN];
+  char *full;
 
   sprintf(state, "%s.%s", base, systemDefaults.machine);
   if ( ExistsFile(state) )
@@ -72,12 +78,14 @@ char *base;
 
   sprintf(state, "%s/startup/%s.%s",
 	  systemDefaults.home, base, systemDefaults.machine);
-  if ( ExistsFile(state) )
-    return store_string(state);
+  full = AbsoluteFile(state);
+  if ( ExistsFile(full) )
+    return store_string(full);
 
   sprintf(state, "%s/startup/%s", systemDefaults.home, base);
-  if ( ExistsFile(state) )
-    return store_string(state);
+  full = AbsoluteFile(state);
+  if ( ExistsFile(full) )
+    return store_string(full);
 
   return base;
 }
@@ -110,9 +118,9 @@ char **env;
 
   if ( status.dumped == FALSE )
   { systemDefaults.machine	    = MACHINE;
-    systemDefaults.home		    = findHome(SYSTEMHOME);
+    systemDefaults.home		    = findHome(store_string(PrologPath(SYSTEMHOME)));
     systemDefaults.state	    = findState("startup");
-    systemDefaults.startup	    = DEFSTARTUP;
+    systemDefaults.startup	    = store_string(PrologPath(DEFSTARTUP));
     systemDefaults.version	    = store_string(PLVERSION);
     systemDefaults.local	    = DEFLOCAL;
     systemDefaults.global	    = DEFGLOBAL;
@@ -161,7 +169,7 @@ char **env;
   DEBUG(1, {if (status.boot) printf("Boot session\n");});
 
   if ( argc >= 2 && streq(argv[0], "-r") )
-  { loaderstatus.restored_state = lookupAtom(AbsoluteFile(argv[1]));
+  { loaderstatus.restored_state = lookupAtom(AbsoluteFile(PrologPath(argv[1])));
     argc -= 2, argv += 2;		/* recover; we've done this! */
   }
 

@@ -30,7 +30,7 @@ getSymbols()
     symbols = mainArgv[0];
   }
   DEBUG(2, printf("Symbol file = %s\n", symbols));
-  if ( (abs_symbols = AbsoluteFile(symbols)) == NULL )
+  if ( (abs_symbols = AbsoluteFile(PrologPath(symbols))) == NULL )
     fail;
 
   loaderstatus.symbolfile = loaderstatus.orgsymbolfile = lookupAtom(abs_symbols);
@@ -272,6 +272,9 @@ char *outfile;
 		 command);
 }
 
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif
 
 static
 int
@@ -279,7 +282,8 @@ openExec(execFile)
 char *execFile;
 { int fd;
 
-  if ((fd=open(execFile, O_RDONLY)) < 0)
+					/* O_BINARY needed on OS2 && EMX  */
+  if ((fd=open(execFile, O_RDONLY|O_BINARY)) < 0)
   { warning("load_foreign/5: Cannot open %s", execFile);
     return -1;
   }

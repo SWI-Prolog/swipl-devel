@@ -463,8 +463,8 @@ void		setupProlog P((void)),
 		deallocateStacks P((void)),
 		initSignals P((void));
 bool		restoreStack P((Stack));
-#if unix
-void		deliverSignal P((int, int, struct sigcontext *, char *));
+#if unix || EMX
+void		deliverSignal P((int, int, SIGNAL_CONTEXT_TYPE, char *));
 handler_t	pl_signal P((int, handler_t));
 #endif
 word		pl_limit_stack P((Word, Word)),

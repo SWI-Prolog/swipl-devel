@@ -1073,7 +1073,7 @@ Word argv;
 
 #define priorityClash { syntaxError("Operator priority clash"); }
 
-#define MAX_TERM_NESTING 100
+#define MAX_TERM_NESTING 200
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This part of the parser actually constructs  the  term.   It  calls  the

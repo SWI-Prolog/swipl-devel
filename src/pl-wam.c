@@ -474,7 +474,14 @@ Add #define O_VMCODE_IS_ADDRESS 0 to your md.h file.
 	   });
 #endif O_VMCODE_IS_ADDRESS
 
-  DEBUG(1, Putf("Interpret: "); pl_write(&Goal); Putf("\n") );
+  DEBUG(1, { extern int Output;		/* --atoenne-- */
+	     if ( Output )
+	     { Putf("Interpret: ");
+	       pl_write(&Goal);
+	       Putf("\n");
+	     } else
+	       printf("Interpret goal in unitialized environment.\n");
+	   });
 
   /* Allocate a local stack frame */
 

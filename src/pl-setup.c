@@ -28,7 +28,7 @@ setupProlog()
   aborted = FALSE;
 
   startCritical;
-#if unix
+#if unix || EMX
   DEBUG(1, printf("Prolog Signal Handling ...\n"));
   initSignals();
 #endif
@@ -99,7 +99,6 @@ setupProlog()
   DEBUG(1, printf("Heap Initialised\n"));
 }
 
-#if unix
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 			   SIGNAL HANDLING
@@ -121,10 +120,12 @@ they  define  signal handlers to be int functions.  This should be fixed
 some day.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#if unix || EMX
+
 static void
 fatal_signal_handler(sig, type, scp, addr)
 int sig, type;
-struct sigcontext *scp;
+SIGNAL_CONTEXT_TYPE scp;
 char *addr;
 { DEBUG(1, printf("Fatal signal %d\n", sig));
 
@@ -141,7 +142,7 @@ initSignals()
     { signalHandlers[n].os = signalHandlers[n].user = SIG_DFL;
       signalHandlers[n].catched = FALSE;
     }
-    
+
     pl_signal(SIGTTOU, SIG_IGN);
     pl_signal(SIGSEGV, fatal_signal_handler);
     pl_signal(SIGILL,  fatal_signal_handler);
@@ -170,7 +171,7 @@ handler_t func;
 void
 deliverSignal(sig, type, scp, addr)
 int sig, type;
-struct sigcontext *scp;
+SIGNAL_CONTEXT_TYPE scp;
 char *addr;
 { if ( signalHandlers[sig].user != SIG_DFL )
   { (*signalHandlers[sig].user)(sig, type, scp, addr);
@@ -583,7 +584,7 @@ O_NO_SEGV_ADDRESS flag.
 static void
 segv_handler(sig, type, scp, addr)
 int sig, type;
-struct sigcontext *scp;
+SIGNAL_CONTEXT_TYPE scp;
 char *addr;
 { DEBUG(1, printf("Page fault at %ld (0x%x)\n", (long) addr, (unsigned) addr));
 

@@ -11,16 +11,20 @@
 #include <tos.h>		/* before pl-os.h due to Fopen, ... */
 static long	wait_ticks;	/* clock ticks not CPU time */
 #endif
+#if OS2 && EMX
+#include <os2.h>                /* this has to appear before pl-incl.h */
+#endif
 #include "pl-incl.h"
 #include "pl-ctype.h"
 #include "pl-itf.h"
 
-#if unix
+#if unix || EMX
 #include <sys/param.h>
 #include <sys/stat.h>
 #include <pwd.h>
 #include <sys/file.h>
 #include <unistd.h>
+#endif
 
 #if sun
 extern int fstat(/*int, struct stat **/);
@@ -30,8 +34,13 @@ extern int link(/*char **/);
 extern int select(/*int *, int*, int*, struct timeval **/);
 extern int ioctl(/*int, int, Void*/);
 extern int execl(/*char *, ... */);
+extern int srandom P((long));
+extern int random P((void));
 #endif
-#endif unix
+
+#if OS2 && EMX
+static real initial_time;
+#endif OS2
 
 forwards void	initExpand P((void));
 forwards void	initRandom P((void));
@@ -74,6 +83,16 @@ initOs()
 #if tos
   wait_ticks = clock();
 #endif
+#if OS2
+  {
+    DATETIME i;
+    DosGetDateTime((PDATETIME)&i);
+    initial_time = (i.hours * 3600.0) 
+                   + (i.minutes * 60.0) 
+		   + i.seconds
+		   + (i.hundredths / 100.0);
+  }
+#endif OS2
   DEBUG(1, printf("OS:done\n"));
 
   succeed;
@@ -131,14 +150,18 @@ int status;
 char *
 OsError()
 { static char errmsg[64];
+
 #if unix
   extern int sys_nerr;
+#if !EMX
   extern char *sys_errlist[];
+#endif
   extern int errno;
 
   if ( errno < sys_nerr )
     return sys_errlist[errno];
 #endif
+
 #if tos
   if ( errno < sys_nerr )
     return strerror(errno);
@@ -172,6 +195,7 @@ OsError()
 #include <sys/times.h>
 #endif
 
+
 real
 CpuTime()
 {
@@ -182,6 +206,17 @@ CpuTime()
 
   return t.tms_utime / ( real )( Hz ) ;
 #endif
+
+#if OS2 && EMX
+  DATETIME i;
+
+  DosGetDateTime((PDATETIME)&i);
+  return (((i.hours * 3600) 
+                 + (i.minutes * 60) 
+		 + i.seconds
+	         + (i.hundredths / 100.0)) - initial_time);
+#endif
+
 #if tos
   return (real) (clock() - wait_ticks) / 200.0;
 #endif
@@ -307,28 +342,21 @@ unsigned char *s1, *s2;
 static void
 initRandom()
 {
-#if hpux || minix || tos || LINUX
-#if sun
-  extern int srand();
-#endif
-  srand((unsigned)Time());
+#ifdef SRANDOM
+  SRANDOM(Time());
 #else
-  extern int srandom();
-  long seed = Time();
-  srandom(seed);
+  srand((unsigned)Time());
 #endif
 }
 
 long
 Random()
 { 
-#if hpux || minix || tos || LINUX
-  extern int rand();
-  return rand();
+#ifdef RANDOM
+  return RANDOM();
 #else
-  extern int random();
-  return random();
-#endif hpux
+  return rand();
+#endif
 }
 
 		/********************************
@@ -376,9 +404,22 @@ char *id;
   static int temp_counter = 0;
   sprintf(temp, "/tmp/pl_%s_%d_%d", id, getpid(), temp_counter++);
 #endif
+
+#if EMX
+  static int temp_counter = 0;
+  char *foo;
+
+  if ( (foo = tempnam(".", (const char *)id)) )
+  { strcpy(temp, foo);
+    free(foo);
+  } else
+    sprintf(temp, "pl_%s_%d_%d", id, getpid(), temp_counter++);
+#endif
+
 #if tos
   tmpnam(temp);
 #endif
+
   tf->name = lookupAtom(temp);
   tf->next = (TempFile) NULL;
   
@@ -488,6 +529,14 @@ GetDTableSize()
 #endif
 }
 
+/* ********************************************************************
+   Design Note -- atoenne@mpi-sb.mpg.de --
+
+   Beware! OsPath() and PrologPath() are insecure functions.
+   Make sure that you copy the result of these functions to a proper location
+   before you call the functions again. Otherwise you will write over the
+   former result.
+   ******************************************************************** */
 
 #if tos
 char *
@@ -502,7 +551,6 @@ PrologPath(char *tospath)
   return path;
 }
 
-#define isDirSep(c) ( (c) == '/' || (c) == '\\' )
 
 char *
 OsPath(char *unixpath)
@@ -517,7 +565,7 @@ OsPath(char *unixpath)
   while(*s)
   { int i, dotseen;
 
-    for(i=0, dotseen=0; *s && !isDirSep(*s); s++)
+    for(i=0, dotseen=0; *s && !IS_DIR_SEPARATOR(*s); s++)
     { if ( dotseen > 0 )		/* copy after dot */
       { if ( dotseen++ <= 3 )
           p[i++] = *s;
@@ -536,7 +584,7 @@ OsPath(char *unixpath)
     }
 
     p += i;
-    if ( isDirSep(*s) )
+    if ( IS_DIR_SEPARATOR(*s) )
     { s++;
       *p++ = '\\';
     }
@@ -547,6 +595,58 @@ OsPath(char *unixpath)
   return path;
 } 
 #endif
+
+#if OS2 && EMX
+
+/* 
+   Conversion rules Prolog <-> OS/2 (using HPFS)
+   / <-> \
+   /x:/ <-> x:\  (embedded drive letter)
+   No length restrictions up to MAXPATHLEN, no case conversions.
+*/
+
+char *
+PrologPath(char *ospath)
+{ static char path[MAXPATHLEN];
+  register char *s = ospath, *p = path;
+  register int limit = MAXPATHLEN-1;
+
+  if (isLetter(s[0]) && s[1] == ':')
+  { *p++ = '/';
+    *p++ = *s++;
+    *p++ = *s++;
+    limit -= 3;
+  }
+  for(; *s && limit; s++, p++, limit--)
+    *p = (*s == '\\' ? '/' : *s);
+  *p = EOS;
+
+  return path;
+}
+
+
+char *
+OsPath(char *unixpath)
+{ static char path[MAXPATHLEN];
+  register char *s = unixpath, *p = path;
+  register int limit = MAXPATHLEN-1;
+
+  if ( s[0] == '/' && isLetter(s[1]) && s[2] == ':') /* embedded drive letter*/
+  { s++;
+    *p++ = *s++;
+    *p++ = *s++;
+    if ( *s != '/' )
+      *p++ = '\\';
+    limit -= 2;
+  }
+
+  for(; *s && limit; s++, p++, limit--)
+    *p = (*s == '/' ? '\\' : *s);
+  *p = EOS;
+
+  return path;
+} 
+#endif OS2
 
 #if unix
 char *PrologPath(p)
@@ -565,14 +665,15 @@ long
 LastModifiedFile(f)
 char *f;
 {
-#if unix
+#if unix || EMX
   struct stat buf;
 
-  if ( stat(f, &buf) < 0 )
+  if ( stat(OsPath(f), &buf) < 0 )
     return -1;
 
   return (long)buf.st_mtime;
 #endif
+
 #if tos
 #define DAY	(24*60*60L)
   static int msize[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
@@ -610,13 +711,14 @@ bool
 ExistsFile(path)
 char *path;
 {
-#if unix
+#if unix || EMX
   struct stat buf;
 
-  if ( stat(path, &buf) == -1 || (buf.st_mode & S_IFMT) != S_IFREG )
+  if ( stat(OsPath(path), &buf) == -1 || (buf.st_mode & S_IFMT) != S_IFREG )
     fail;
   succeed;
 #endif
+
 #if tos
   struct ffblk buf;
 
@@ -634,15 +736,16 @@ AccessFile(path, mode)
 char *path;
 int mode;
 {
-#if unix
+#if unix || EMX
   int m = 0;
 
   if ( mode & ACCESS_READ    ) m |= R_OK;
   if ( mode & ACCESS_WRITE   ) m |= W_OK;
   if ( mode & ACCESS_EXECUTE ) m |= X_OK;
 
-  return access(path, m) == 0 ? TRUE : FALSE;
+  return access(OsPath(path), m) == 0 ? TRUE : FALSE;
 #endif
+
 #if tos
   struct ffblk buf;
 
@@ -659,13 +762,14 @@ bool
 ExistsDirectory(path)
 char *path;
 {
-#if unix
+#if unix || EMX
   struct stat buf;
 
-  if ( stat(path, &buf) == -1 || (buf.st_mode & S_IFMT) != S_IFDIR )
+  if ( stat(OsPath(path), &buf) == -1 || (buf.st_mode & S_IFMT) != S_IFDIR )
     fail;
   succeed;
 #endif
+
 #if tos
   struct ffblk buf;
 
@@ -683,7 +787,7 @@ long
 SizeFile(path)
 char *path;
 { struct stat buf;
-  if ( stat(path, &buf) == -1 )
+  if ( stat(OsPath(path), &buf) == -1 )
     return -1;
 
   return buf.st_size;
@@ -694,9 +798,10 @@ bool
 DeleteFile(path)
 char *path;
 {
-#if unix
-  return unlink(path) == 0 ? TRUE : FALSE;
+#if unix || EMX
+  return unlink(OsPath(path)) == 0 ? TRUE : FALSE;
 #endif
+
 #if tos
   return remove(OsPath(path)) == 0 ? TRUE : FALSE;
 #endif
@@ -707,11 +812,17 @@ bool
 RenameFile(old, new)
 char *old, *new;
 {
+  char os_old[MAXPATHLEN];
+  char os_new[MAXPATHLEN];
 #if unix
   int rval;
 
+  strcpy(os_old, OsPath(old));
+  strcpy(os_new, OsPath(new));
+
   unlink(new);
-  if ((rval = link(old, new)) == 0 && (rval = unlink(old)) != 0)
+  if ((rval = link(os_old, os_new)) == 0 
+              && (rval = unlink(os_old)) != 0)
     unlink(new);
 
   if (rval == 0)
@@ -719,8 +830,9 @@ char *old, *new;
 
   fail;
 #endif
-#if tos
-  return rename(OsPath(old), OsPath(new)) == 0 ? TRUE : FALSE;
+
+#if tos || EMX
+  return rename(os_old, os_new) == 0 ? TRUE : FALSE;
 #endif
 }
 
@@ -734,11 +846,15 @@ char *f1, *f2;
     struct stat buf1;
     struct stat buf2;
 
-    if ( stat(f1, &buf1) != 0 || stat(f2, &buf2) != 0 )
+    if ( stat(OsPath(f1), &buf1) != 0 || stat(OsPath(f2), &buf2) != 0 )
       fail;
     if ( buf1.st_ino == buf2.st_ino && buf1.st_dev == buf2.st_dev )
       succeed;
 #endif
+#if OS2 && EMX
+    /* Amazing! There is no simple way to check two files for identity. */
+    /* stat() and fstat() both return dummy values for inode and device. */
+#endif OS2
 
     fail;
   }
@@ -751,11 +867,12 @@ bool
 OpenStream(fd)
 int fd;
 {
-#if unix
+#if unix || EMX
   struct stat buf;
 
   return fstat(fd, &buf) == 0 ? TRUE : FALSE;
 #endif
+
 #if tos
   return fd < 3 ? TRUE : FALSE;	/* stdin, stdout and stderr are open */
 #endif
@@ -784,7 +901,8 @@ char *name;
 
   succeed;
 #endif
-#if tos
+
+#if tos || OS2
   succeed;		/* determined by extension */
 #endif
 }
@@ -822,7 +940,7 @@ static struct canonical_dir
   dev_t		device;			/* device number */
   ino_t		inode;			/* inode number */
   CanonicalDir  next;			/* next in chain */
-} *canonical_dirlist;
+} *canonical_dirlist = NULL;            /* initialization -- atoenne -- */
 
 forwards char	*canonisePath P((char *)); /* canonise a path-name */
 forwards char   *canoniseDir P((char *));
@@ -833,8 +951,11 @@ static  char    CWDdir[MAXPATHLEN];	   /* current directory */
 
 static void
 initExpand()
-{ char *dir;
+{ 
+#if unix
+  char *dir;
   char *cpaths;
+#endif
 
   CWDdir[0] = EOS;
 
@@ -884,7 +1005,7 @@ char *path;
     }
   }
 
-  if ( stat(path, &buf) == 0 )
+  if ( stat(OsPath(path), &buf) == 0 )
   { CanonicalDir dn = allocHeap(sizeof(struct canonical_dir));
     char dirname[MAXPATHLEN];
     char *e = path + strlen(path);
@@ -897,7 +1018,7 @@ char *path;
     do
     { strncpy(dirname, path, e-path);
       dirname[e-path] = EOS;
-      if ( stat(dirname, &buf) < 0 )
+      if ( stat(OsPath(dirname), &buf) < 0 )
 	break;
 
       for(d = canonical_dirlist; d; d = d->next)
@@ -1043,9 +1164,11 @@ char *pattern, *expanded;
       value = fredLogin;
     }	  
 #endif
-#if tos
+#if tos || OS2
     if ( user[0] != EOS || (value = getenv("HOME")) == (char *) NULL )
     { value = "/";	/* top directory of current drive */
+    } else
+    { value = PrologPath(value)
     }
 #endif
     size += (l = (int) strlen(value));
@@ -1130,7 +1253,7 @@ char *spec;
 }
 
 
-#if unix
+#if unix            /* convert the names to PrologPath before use !! */
 #if hpux || LINUX
 char	*getwd P((char *));
 
@@ -1145,6 +1268,17 @@ char *buf;
 extern char *getwd P((char *));
 #endif hpux
 #endif
+
+#if OS2 && EMX
+char *getwd P((char *));
+
+char *getwd(buf)       /* the current directory INCLUDING the current drive */
+char *buf;
+{ strcpy(buf, PrologPath(_getcwd2(buf, MAXPATHLEN)));
+  return buf;
+}
+#endif OS2
+
 
 #if tos
 char	*getwd P((char *));
@@ -1172,6 +1306,20 @@ char *buf;
 #define isAbsolutePath(p) ( isLetter(p[0]) && p[1] == ':' )
 #define isRelativePath(p) ( p[0] == '.' || p[0] == '/' || p[0] == '\\' )
 #endif
+#if OS2
+#define isAbsolutePath(p) (p[0] == '/' && isLetter(p[1]) && \
+			   p[2] == ':' && p[3] == '/' )
+#define isDriveRelativePath(p) (p[0] == '/' && p[2] != ':')
+#define isRootlessPath(p) (p[0] == '/' && isLetter(p[1]) && \
+			   p[2] == ':' && p[3] != '/')
+#define isRelativePath(p) (p[0] == '.')
+#endif OS2
+
+/*
+  Design Note -- atoenne --
+  AbsoluteFile may only be called with a proper PrologPath. Otherwise the
+  canonisePath will not work.
+*/
 
 char *
 AbsoluteFile(spec)
@@ -1187,10 +1335,40 @@ char *spec;
 
     return canonisePath(path);
   }
-
+#if OS2 && EMX
+  if (isDriveRelativePath(file))
+  {
+    if ((strlen(file) + 4) > MAXPATHLEN)
+    {
+      warning("path name too long");
+      return (char *) NULL;
+    }
+    path[0] = '/';
+    path[1] = (char) _getdrive();
+    path[2] = ':';
+    strcpy(&path[3], file);
+    return canonisePath(path);
+  }
+#endif OS2
   if ( CWDdir[0] == EOS )
+  {
     getwd(CWDdir);
+  }
 
+#if OS2 && EMX
+  if (isRootlessPath(file))
+  {
+    if ((strlen(CWDdir) + strlen(file) - 2) >= MAXPATHLEN)
+    {
+      warning("path name too long");
+      return (char *) NULL;
+    }
+    strcpy(path, CWDdir);
+    strcat(path, "/");
+    strcat(path, &file[3]);
+    return canonisePath(path);
+  }
+#endif OS2
   if ( (strlen(CWDdir) + strlen(file) + 2) >= MAXPATHLEN )
   { warning("path name too long");
     return (char *) NULL;
@@ -1250,7 +1428,7 @@ char *path;
        streq(ospath, ".") )		/* Same directory */
     succeed;
 
-  if ( chdir(OsPath(path)) == 0 )
+  if ( chdir(ospath) == 0 )
   { CWDdir[0] = EOS;
     succeed;
   }
@@ -1327,9 +1505,12 @@ long *t;
 
 long
 Time()
-{ extern long time();
+{
+#if !EMX
+extern long time();
+#endif
 
-  return time((time_t *) NULL);
+  return (long)time((time_t *) NULL);
 }
 
 #if tos
@@ -1419,7 +1600,7 @@ struct tty_driver stdin_driver =
 };
 #endif O_LINE_EDIT
 
-#if unix && O_TERMIOS				/* System V termio system */
+#if O_TERMIOS				/* System V termio system */
 
 bool
 PushTty(buf, mode)
@@ -1430,7 +1611,7 @@ int mode;
   if ( status.notty )
     succeed;
 
-  if ( ioctl(0, TCGETA, &buf->tab) )		/* save the old one */
+  if ( ioctl(0, TCGETA, &buf->tab) )	/* save the old one */
     fail;
   tio = buf->tab;
   buf->mode = ttymode;
@@ -1509,7 +1690,8 @@ ttybuf *buf;
 }
 
 #endif
-#if unix && !O_TERMIOS			/* Unix with (old) sgtty() driver */
+
+#if !O_TERMIOS && unix			/* Unix with (old) sgtty() driver */
 
 bool
 PushTty(buf, mode)
@@ -1661,12 +1843,18 @@ ResetTty()
   stdin->_ptr = stdin->_base;
   stdin->_cnt = 0;
 #endif
+#if EMX
+  stdin->ptr = stdin->buffer;
+  stdin->rcount = 0;
+  stdin->wcount = 0;
+#endif
   clearerr(stdin);
 #endif
+
 #if O_LINE_EDIT
   stdin_driver.in = stdin_driver.out = 0;
   stdin_driver.emitting = 0;
-#if unix
+#if unix || EMX
   stdin_driver.isatty = isatty(fileno(stdin));
 #endif
 #if tos
@@ -1714,9 +1902,15 @@ static void
 tty_putc(c)
 Char c;
 {
-#if unix
+#if OS2 && EMX
+  if (c == '\n')
+    putchar('\r');
+#endif
+
+#if unix || EMX
   putchar(c);
 #endif
+
 #if tos
   if ( c == '\n' )
     putch('\r');
@@ -1869,7 +2063,7 @@ Char c;
 			      	/* dump on hpux */
 }
 
-#if unix
+#if unix || EMX
 #define GETC()	do_get_char()
 #endif
 #if tos
@@ -2340,6 +2534,18 @@ char *command;
 }
 #endif
 
+/* OS/2 does not have the same problems as Unix(tm). We simply fire up a
+   shell that does the job.
+*/
+
+#if OS2 && EMX
+int
+System(command)
+char *command;
+{
+  return system(command);
+}
+#endif OS2
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     char *Symbols()
@@ -2349,10 +2555,10 @@ char *command;
     loader, who gives this path to ld, using ld -A <path>.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if unix
+#if unix || EMX
 char *
 Symbols()
-{ return Which(mainArgv[0]);
+{ return Which(PrologPath(mainArgv[0]));
 }
 #endif
 
@@ -2403,12 +2609,50 @@ char *s;
   DEBUG(2, printf("Checking %s\n", path));
   if ( ExistsFile(path) == TRUE )
     return path;
-
   return (char *) NULL;
 }
 
 #define PATHSEP ','
 #endif tos
+
+#if OS2 && EMX
+static char *
+okToExec(s)
+char *s;
+{ static char path[MAXPATHLEN];
+
+  DEBUG(2, printf("Checking %s\n", s));
+  if (strpostfix(s, ".exe") ||
+      strpostfix(s, ".com") ||
+      strpostfix(s, ".bat") ||
+      strpostfix(s, ".cmd"))
+    return ExistsFile(s) ? s : (char *) NULL;
+
+  strcpy(path, s);
+  strcat(path, ".exe");
+  DEBUG(2, printf("Checking %s\n", path));
+  if ( ExistsFile(path) == TRUE )
+    return path;
+  strcpy(path, s);
+  strcat(path, ".com");
+  DEBUG(2, printf("Checking %s\n", path));
+  if ( ExistsFile(path) == TRUE )
+    return path;
+  strcpy(path, s);
+  strcat(path, ".cmd");
+  DEBUG(2, printf("Checking %s\n", path));
+  if ( ExistsFile(path) == TRUE )
+    return path;
+  strcpy(path, s);
+  strcat(path, ".bat");
+  DEBUG(2, printf("Checking %s\n", path));
+  if ( ExistsFile(path) == TRUE )
+    return path;
+  return (char *) NULL;
+}
+
+#define PATHSEP ';'
+#endif OS2
 
 static char *
 Which(program)
@@ -2418,6 +2662,9 @@ char *program;
   char *e;
 
   if ( isAbsolutePath(program) ||
+#if OS2 && EMX
+       isDriveRelativePath(program) ||
+#endif OS2
        isRelativePath(program) ||
        index(program, '/') )
   { if ( (e = okToExec(program)) != NULL )
@@ -2429,6 +2676,15 @@ char *program;
     return NULL;
   }
 
+#if OS2 && EMX
+  if ((e = okToExec(program)) != NULL)
+  {
+    getwd(fullname);
+    strcat(fullname, "/");
+    strcat(fullname, e);
+    return fullname;
+  }
+#endif OS2
   if  ((path = getenv("PATH") ) == 0)
     path = DEFAULT_PATH;
 
@@ -2450,7 +2706,7 @@ char *program;
       *dir++ = '/';
       *dir = EOS;
       strcpy(dir, program);
-      if ( (e = okToExec(fullname)) != NULL )
+      if ( (e = okToExec(OsPath(fullname))) != NULL )
 	return e;
     }
   }
@@ -2496,6 +2752,18 @@ real time;
 }
 #endif /* has select() */
 #endif unix
+
+#if OS2 && EMX                  /* the OS/2 API call for DosSleep allows */
+void                            /* a millisecond granualrity. */
+Sleep(time)                     /* the EMX function sleep uses a seconds */
+real time;                      /* granularity only. */
+{                               /* the select() trick does not work at all. */
+  if ( time <= 0.0 )
+    return;
+
+  DosSleep((ULONG)(time * 1000));
+}
+#endif OS2
 
 #if tos
 void

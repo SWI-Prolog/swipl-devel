@@ -68,6 +68,8 @@ file.
 #define TEXT_START		0x10000000
 #define DATA_START		0x20000000
 #define DEFAULT_PATH		":/usr/ucb:/bin:/usr/bin:/usr/local/bin:.:";
+#define SRANDOM(t)		srandom((long)t)
+#define RANDOM()		random()
 
 #define vfork			fork
 

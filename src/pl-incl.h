@@ -67,6 +67,12 @@ handy for it someone wants to add a data type to the system.
 #define O_AUTOINDEX		0
 #define O_PROLOG_FUNCTIONS	1
 
+/*
+   OS/2 : The excellent EMX port of GCC puts the text segment at address
+   0x10000. Since this breaks the 16 bit encoding of VM code addresses, we
+   have to explicitly disable O_VMCODE_IS_ADDRESS
+*/
+
 #ifndef O_LABEL_ADDRESSES
 #if __GNUC__ == 2
 #define O_LABEL_ADDRESSES	1
@@ -93,10 +99,11 @@ This has worked on TURBO_C not very long ago.
 #endif
 
 #include <stdio.h>
-#if unix
+#if unix || EMX
 #include <sys/types.h>
 #include <signal.h>
 #endif
+
 #include <setjmp.h>
 #include <assert.h>
 
@@ -117,6 +124,12 @@ This has worked on TURBO_C not very long ago.
 #include <varargs.h>
 #endif
 #endif
+
+#if OS2 && EMX
+#include <process.h>
+#include <io.h>
+#include <strings.h>
+#endif OS2
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 A common basis for C keywords.
@@ -156,13 +169,16 @@ typedef char *			Void;
 typedef void *			Void;
 #endif
 
-#if unix
+#if unix || EMX
 #ifdef SIGNAL_HANDLER_TYPE
 typedef SIGNAL_HANDLER_TYPE (*handler_t)();
 #else
 typedef void (*handler_t)();
 #endif
+#ifndef SIGNAL_CONTEXT_TYPE
+#define SIGNAL_CONTEXT_TYPE struct sigcontext *
 #endif
+#endif unix
 
 #ifndef TRUE
 #define TRUE			1
@@ -172,7 +188,6 @@ typedef void (*handler_t)();
 #define fail			return FALSE
 #define TRY(goal)		{ if ((goal) == FALSE) fail; }
 
-/*typedef unsigned short	ushort;*/
 #if !O_ULONG_PREDEFINED
 typedef unsigned long		ulong;
 #endif
@@ -1251,7 +1266,7 @@ struct state
 
 GLOBAL State stateList;			/* list of loaded states */
 
-#if unix
+#if unix || EMX
 GLOBAL struct
 { handler_t os;				/* Os signal handler */
   handler_t user;			/* User signal handler */

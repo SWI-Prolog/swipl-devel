@@ -1,3 +1,21 @@
+
+# /* SWI-Prolog 1.6        Toplevel Makefile                            */
+
+# /* This is the toplevel makefile for SWI Prolog.                      */
+# /* This makefile is almost independent of your operating system!      */
+# /* During a first pass we collect all necessary information like      */
+# /* paths and compiler directives from your configuration and create   */
+# /* a tailor-made version 'xmakefile' of this makefile.                */
+
+# /* Setup your configuration in the following files                    */
+# /* ../config.h     system information like paths (global!)            */
+# /* md.h            machine dependent information                      */
+
+# Change cc to gcc in the line below if necessary
+CPP=cc -E
+
+# DO NOT CHANGE BELOW THIS LINE
+
 #include "make.h"
 CC=M_CC
 OPTIMIZE=M_OPTIMIZE
@@ -16,19 +34,32 @@ FOREIGN=FOREIGN_PL
 FOREIGN=foreign.pl
 #endif
 
+#if OS2MAKE
+DUMP=cmd /C .\dump.cmd
+#else
+DUMP=./dump
+#endif
+
 SYSTEMHOME=M_SYSTEMHOME
+SYSTEMDIR=M_SYSTEMDIR
 DEFSTARTUP=M_DEFSTARTUP
 PROLOG=M_PROLOG
 BINDIR=M_BINDIR
+SEP=M_SEP
+SYS=M_SYS
 
-SYS=pl
-STARTUPDIR=../startup
-STARTUPPATH=$(STARTUPDIR)/startup.MACHINE
-RUNTIMEDIR=../runtime/MACHINE
-RUNTIME=$(RUNTIMEDIR)/pl.o
+STARTUPDIR=$(SYSTEMHOME)/startup
+OS-STARTUPDIR=$(SYSTEMDIR)$(SEP)startup
+STARTUPPATH=$(STARTUPDIR)$/startup.MACHINE
+OS-STARTUPPATH=$(OS-STARTUPDIR)$(SEP)startup.MACHINE
+RUNTIMEDIR=$(SYSTEMHOME)/runtime/MACHINE
+OS-RUNTIMEDIR=$(SYSTEMDIR)$(SEP)runtime$(SEP)MACHINE
+RUNTIME=$(RUNTIMEDIR)$(SEP)pl.o
+LIBRARYDIR=$(SYSTEMHOME)/library
+OS-LIBRARYDIR=$(SYSTEMDIR)$(SEP)library
+
 PB=../boot
 BINLIB=libPL.a
-CPP=cc -E
 EXPORTS=../include/SWI-Exports
 CINCLUDE=../include/SWI-Prolog.h
 
@@ -44,24 +75,37 @@ DEPOBJ=	pl-main.o
 EXT=	pl-extend.o
 
 PLINIT=	$(PB)/init.pl
-PLBOOT=	$(PB)/syspred.pl $(PB)/toplevel.pl $(PB)/listing.pl \
+#if OS2MAKE
+PLBOOT1=$(PB)/syspred.pl $(PB)/toplevel.pl $(PB)/listing.pl
+PLBOOT2=$(PB)/edit.pl $(PB)/sort.pl $(PB)/bags.pl $(PB)/apply.pl
+PLBOOT3=$(PB)/list.pl $(PB)/writef.pl $(PB)/history.pl $(PB)/portray.pl
+PLBOOT4=$(PB)/profile.pl $(PB)/dwim.pl $(PB)/$(FOREIGN) $(PB)/parms.pl
+PLBOOT5=$(PB)/autoload.pl
+#else
+PLBOOT= $(PB)/syspred.pl $(PB)/toplevel.pl $(PB)/listing.pl \
 	$(PB)/edit.pl $(PB)/sort.pl $(PB)/bags.pl $(PB)/apply.pl \
 	$(PB)/list.pl $(PB)/writef.pl $(PB)/history.pl $(PB)/portray.pl \
 	$(PB)/profile.pl $(PB)/dwim.pl $(PB)/$(FOREIGN) $(PB)/parms.pl \
 	$(PB)/autoload.pl
+#endif
 
 SRC=	$(OBJ:.o=.c) $(DEPOBJ:.o=.c) $(EXT:.o=.c)
 
+#if OS2MAKE
+PARMS=	-DSYSTEMHOME="$(SYSTEMHOME)" \
+	-DDEFSTARTUP="$(DEFSTARTUP)"
+#else
 PARMS=	-DSYSTEMHOME=\"$(SYSTEMHOME)\" \
 	-DDEFSTARTUP=\"$(DEFSTARTUP)\"
+#endif
 
-TARGETS=	$(EXPORTS) $(CINCLUDE) $(SYS) startup pl-bite
+TARGETS=	$(EXPORTS) $(CINCLUDE) system startup pl-bite
 
 all:		xmakefile
 		make -f xmakefile ${TARGETS}
 
-startup:	$(STARTUPDIR) $(STARTUPPATH)
-
+startup:	$(SYSTEMDIR) $(OS-STARTUPDIR) $(OS-STARTUPPATH)
+system:		$(SYS)
 
 runtime:	all
 		make -f xmakefile xruntime
@@ -70,33 +114,46 @@ xruntime:	$(RUNTIME)
 
 xmakefile:	Makefile md.h ../config.h
 		@-rm -f junk.c make.h
-		@sed 's/[ 	][ 	]*/ /g' md.h ../config.h > make.h
+		@sed -f simpl.sed md.h ../config.h > make.h
 		@sed -f make.sed Makefile > junk.c
 		@$(CPP) junk.c | \
-		sed -e 's/[ 	]*$$//' \
-		    -e 's/^ /	/' \
-		    -e 's/\([^\\]\)"/\1/g' | \
-		sed -n -e '/^..*$$/p' > xmakefile
+		sed -f strip.sed | \
+		sed -n -f extract.sed > xmakefile
 		@rm -f junk.c make.h
 
 $(SYS):		$(OBJ) $(DEPOBJ) $(EXT)
 		$(CC) $(LDFLAGS) -o $(SYS) $(OBJ) $(DEPOBJ) $(EXT) $(LIBS)
 
-$(STARTUPDIR):	
-		-mkdir $@
+$(SYSTEMDIR):
+		-mkdir $(SYSTEMDIR)
+$(OS-STARTUPDIR):	
+		-mkdir $(OS-STARTUPDIR)
 
-$(STARTUPPATH):	$(PLBOOT) $(PLINIT) pl-wam.o
-		./$(SYS) -O -o $(STARTUPPATH) -b $(PLINIT) -c $(PLBOOT)
+$(OS-STARTUPPATH):	$(PLBOOT) $(PLINIT) pl-wam.o
+#if OS2MAKE
+		echo .\\$(SYS) -O -o $(OS-STARTUPPATH) -b $(PLINIT) -c > xxfoo
+		echo $(PLBOOT1) >> xxfoo
+		echo $(PLBOOT2) >> xxfoo
+		echo $(PLBOOT3) >> xxfoo
+		echo $(PLBOOT4) >> xxfoo
+		echo $(PLBOOT5) >> xxfoo
+		cat xxfoo | sed -e s/$$/\\/ > xxfoo.c
+		$(CPP) -P xxfoo.c > boot.cmd
+		rm xxfoo.c xxfoo
+		cmd /C boot
+#else
+		./$(SYS) -O -o $(OS-STARTUPPATH) -b $(PLINIT) -c $(PLBOOT)
+#endif OS2MAKE
 
 $(RUNTIMEDIR):
-		@-mkdir ../runtime
+		@-mkdir $(SYSTEMDIR)$(SEP)runtime
 		@-mkdir $@
 
 $(RUNTIME):	$(OBJ) $(DEPOBJ) $(RUNTIMEDIR)
 		$(LD) -r -o $@ $(OBJ) $(DEPOBJ)
 
 $(EXPORTS):	xmakefile pl-export
-		echo \#\!$(BINDIR)/$(PROLOG) > $(EXPORTS)
+		echo \#\!$(BINDIR)$(SEP)$(PROLOG) > $(EXPORTS)
 		cat pl-export >> $(EXPORTS)
 
 $(CINCLUDE):	pl-itf.h
@@ -112,10 +169,10 @@ pl-dump.o:	gnu/getpagesize.h $(UNEXEC)
 pl-main.o:	Makefile pl-itf.h
 
 pl-funct.ih:	ATOMS
-		./defatom ATOMS
+		$(AWK) -f defatom.awk < ATOMS
 
 pl-atom.ih:	ATOMS
-		./defatom ATOMS
+		$(AWK) -f defatom.awk < ATOMS
 
 pl-bite:	pl-bite.c
 		$(CC) -o pl-bite pl-bite.c
@@ -123,21 +180,31 @@ pl-bite:	pl-bite.c
 install:	xmakefile
 		make -f xmakefile xinstall
 
+xinstall:	$(RUNTIMEDIR) $(LIBRARYDIR)
+		@-mkdir $(BINDIR)
 #if O_SAVE
-xinstall:	$(RUNTIMEDIR)
 		$(INSTALL) $(SYS) $(RUNTIMEDIR)
-		./dump $(RUNTIMEDIR)/$(SYS) $(BINDIR)/$(PROLOG)
+		$(DUMP) $(OS-RUNTIMEDIR)$(SEP)$(SYS) $(BINDIR)$(SEP)$(PROLOG)
 #else
-		rm -f $(BINDIR)/$(PROLOG)
+		rm -f $(BINDIR)$(SEP)$(PROLOG)
 		
 #if O_STORE_PROGRAM && !O_INSTALL_DONOT_STORE
-		./dump ./$(SYS) $(BINDIR)/$(PROLOG)
+		$(DUMP) $(OS-RUNTIMEDIR)$(SEP)$(SYS) $(BINDIR)$(SEP)$(PROLOG)
 #else
-		$(INSTALL) $(SYS) $(BINDIR)/$(PROLOG)
+		$(INSTALL) $(SYS) $(BINDIR)$(SEP)$(PROLOG)
 #endif
 #endif
-		$(INSTALL) pl-bite $(BINDIR)/pl-bite
-		chmod 755 $(BINDIR)/$(PROLOG) $(BINDIR)/pl-bite
+#if OS2MAKE
+		$(INSTALL) pl-bite $(BINDIR)$(SEP)pl-bite.exe
+#else
+		$(INSTALL) pl-bite $(BINDIR)$(SEP)pl-bite
+#endif
+#if !OS2MAKE
+		chmod 755 $(BINDIR)$(SEP)$(PROLOG) $(BINDIR)$(SEP)pl-bite
+#endif
+$(LIBRARYDIR):
+		mkdir $(OS-LIBRARYDIR)
+		$(INSTALL) -r ..$(SEP)library$(SEP)* $(OS-LIBRARYDIR)
 
 tags:		TAGS
 

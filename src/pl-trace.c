@@ -701,15 +701,16 @@ interruptHandler()
   lTop = (LocalFrame)addPointer(lTop, sizeof(struct localFrame) +
 				      MAXARITY * sizeof(word));
 
-  ResetTty();				/* remove pending tty input */
-					/* (bug fix from Andreas Toenne */
-
 again:
   Putf("\nAction (h for help) ? ");
   pl_flush();
+  ResetTty();                           /* clear pending input -- atoenne -- */
   c = getSingleChar();
 
-#if unix && O_SIG_AUTO_RESET
+#if O_SIG_AUTO_RESET
+#if OS2 && EMX
+  signal(SIGINT, SIG_ACK);
+#endif
   signal(SIGINT, interruptHandler);	/* reinsert handler */
 #endif
 
@@ -746,7 +747,7 @@ again:
 void
 initTracer()
 { 
-#if unix
+#if unix || EMX
   pl_signal(SIGINT, interruptHandler);
 #endif
 

@@ -39,6 +39,7 @@ NOTE:  This port is not yet complete.  Known problems:
 #define O_FOREIGN		0
 #define O_STORE_PROGRAM		0
 #define DEFAULT_PATH		""
+#define IS_DIR_SEPARATOR	((c) == '\\' || (c) == '/')
 #define DESCRIPTOR_TABLE_SIZE	OPEN_MAX
 
 			/* terminal driver */

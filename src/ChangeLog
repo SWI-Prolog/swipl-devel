@@ -1,3 +1,11 @@
+Thu Feb 18 16:12:10 1993  Jan Wielemaker  (jan at swisun11)
+
+* VERSION 1.6.12
+
+Integrated port to OS2 (using EMX and gcc-2) made by Andreas Toenne
+(atoenne@mpi-sb.mpg.de).  See README.os2
+
+
 Wed Feb  3 10:42:23 1993  Jan Wielemaker  (jan at swisun11)
 
 * VERSION 1.6.10

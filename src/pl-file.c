@@ -20,7 +20,7 @@ handling times must be cleaned, but that not only holds for this module.
 
 #include "pl-incl.h"
 #include "pl-ctype.h"
-#if unix
+#if unix || EMX
 #include <sys/time.h>
 #include <sys/file.h>
 #endif
@@ -73,7 +73,13 @@ static int   fold = O_FOLD;		/* default line folding */
 static int   fold = -1;			/* line folding */
 #endif
 
+#ifdef SIGSTOP
+#define JOBCONTROL 1
+#endif
+
+#if JOBCONTROL
 forwards void	stopHandler P((void));
+#endif
 forwards void	pipeHandler P((void));
 forwards void	protocol P((Char c, int mode));
 forwards bool	openStream P((word file, int mode, int fresh));
@@ -87,9 +93,6 @@ forwards bool	unifyStreamNo P((Word, int));
 forwards bool	setUnifyStreamNo P((Word, int));
 forwards bool	unifyStreamMode P((Word, int));
 
-#ifdef SIGSTOP
-#define JOBCONTROL 1
-#endif
 
 #if JOBCONTROL
 /*  Signal handler for SIGTSTP (user typing  ^Z).  Restores the  terminal
@@ -820,7 +823,7 @@ currentStreamName()
 		*       WAITING FOR INPUT	*
 		********************************/
 
-#if unix
+#if unix || EMX
 
 word
 pl_wait_for_input(streams, available, timeout)
@@ -828,20 +831,21 @@ Word streams, available, timeout;
 { fd_set fds;
   struct timeval t, *to;
   real time;
-  int n;
+  int n, max = 0;
   extern int select();
 
   FD_ZERO(&fds);
   while( isList(*streams) )
-  { Word h = HeadList(streams);
+  { Word head = HeadList(streams);
     int fd;
 
-    deRef(h);				/* bug found by Andreas Toenne */
-    fd = streamNo(h, F_READ);
+    deRef(head);
+    fd = streamNo(head, F_READ);
 
     if ( fd < 0 )
       fail;
     FD_SET(fd, &fds);
+    if (fd > max) max = fd;
     streams = TailList(streams);
     deRef(streams);
   }
@@ -855,9 +859,9 @@ Word streams, available, timeout;
   } else
     to = NULL;
 
-  select(maxfiles, &fds, NULL, NULL, to);
+  select(max, &fds, NULL, NULL, to);
 
-  for(n=0; n<maxfiles; n++)
+  for(n=0; n <= max; n++)
   { if ( FD_ISSET(n, &fds) )
     { TRY(unifyFunctor(available, FUNCTOR_dot2) );
       TRY(unifyStreamName(HeadList(available), n));

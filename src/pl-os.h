@@ -20,6 +20,8 @@ struct timeval
 };
 #endif
 
+
+
 		/********************************
 		*             OS-TYPES		*
 		********************************/
@@ -119,10 +121,16 @@ extern long Random P((void));
 #define Popen(path, m)	popen(OsPath(path), m)
 #define Pclose(fd)	pclose(fd)
 #endif
+#if OS2 && EMX
+#define PIPE 1
+#define Popen(path, m)	popen(OsPath(path), m)
+#define Pclose(fd)	pclose(fd)
+#endif
 
 #if tos
 #define MAXPATHLEN	PATH_MAX
 #endif
+
 
 #define Fflush(fd)		fflush(fd)
 #define Fopen(path, m)		fopen(OsPath(path), m)
@@ -217,8 +225,29 @@ typedef struct
 } ttybuf;
 #endif O_TERMIOS
 
-#else  unix
+#elif OS2 && EMX
+#if O_TERMIOS
+#include <sys/termio.h>
+#include <sys/kbdscan.h>
 
+
+typedef struct
+{ struct termio tab;		/* saved tty status */
+  int		mode;		/* Prolog;'s view on mode */
+} ttybuf;
+
+#else ! O_TERMIOS
+
+#include <sgtty.h>
+
+typedef struct
+{ struct sgttyb tab;		/* saved tty flags */
+  struct tchars chars;		/* tty characters */
+  int		mode;		/* Prolog's view on mode */
+} ttybuf;
+#endif O_TERMIOS
+
+#else OS2
 typedef struct
 { int		mode;		/* Prolog's view on mode */
 } ttybuf;

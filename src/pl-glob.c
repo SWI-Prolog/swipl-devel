@@ -9,14 +9,13 @@
 
 #if __TOS__
 #include <tos.h>
-#define IsDirSep(c)	((c) == '\\' || (c) == '/')
 #define HIDDEN	0x02
 #define SUBDIR 0x10
 #endif
 
 #include "pl-incl.h"
 
-#if unix
+#if unix || EMX
 #include <sys/param.h>
 #include <sys/stat.h>
 #ifdef DIR_INCLUDE
@@ -27,8 +26,11 @@
 #ifdef DIR_INCLUDE2
 #include DIR_INCLUDE2
 #endif
-#define IsDirSep(c)	((c) == '/')
+#ifndef IS_DIR_SEPARATOR
+#define IS_DIR_SEPARATOR(c)	((c) == '/')
 #endif
+#endif
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Unix Wildcard Matching.  Recognised:
@@ -341,9 +343,10 @@ int *argc;
   b.out = 0;			/* put the first entry in the bag */
   b.in = b.size = 1;
   b.bag[0] = store_string(f);
-#if tos				/* case insensitive: do everything lower case */
+#if tos				/* case insensitive: do all lower case */
   strlwr(b.bag[0]);
 #endif
+/* Note for OS2: HPFS is case insensitive but case preserving. */
 
   do				/* expand till nothing to expand */
   { b.changed = FALSE;  
@@ -362,19 +365,20 @@ int *argc;
   }
 }
 
-#if unix
+#if unix || EMX
 static bool
 Exists(path)
 char *path;
 { struct stat buf;
   extern int stat();
 
-  if ( stat(path, &buf) == -1 )
+  if ( stat(OsPath(path), &buf) == -1 )
     fail;
 
   succeed;
 }
 #endif
+
 #if tos
 static bool
 Exists(path)
@@ -418,7 +422,7 @@ struct bag *b;
 	  { b->size--;
 	  }
 	  goto next_bag;
-#if tos
+#if tos || OS2
 	case '\\':
 #endif
 	case '/':				/* no specials sofar */
@@ -437,7 +441,7 @@ struct bag *b;
 
     b->expanded = b->changed = TRUE;
     b->size--;
-    for( tail=s; *tail && !IsDirSep(*tail); tail++ )
+    for( tail=s; *tail && !IS_DIR_SEPARATOR(*tail); tail++ )
       ;
 
 /*  By now, head points to the start of the path holding meta characters,
@@ -467,7 +471,7 @@ struct bag *b;
         fail;
       dot = (expanded[0] == '.');			/* do dots as well */
 
-#if unix
+#if unix || EMX
       { DIR *d;
 #if O_STRUCT_DIRECT
 	struct direct *e;
@@ -478,7 +482,7 @@ struct bag *b;
 #endif
 	extern DIR *opendir();
 
-	if ( (d = opendir(path)) != (DIR *)NULL )
+	if ( (d = opendir(OsPath(path))) != (DIR *)NULL )
 	{ for(e=readdir(d); e; e = readdir(d))
 	  { if ( (dot || e->d_name[0] != '.') && matchPattern(e->d_name) )
 	    { strcpy(expanded, prefix);
@@ -496,6 +500,7 @@ struct bag *b;
 	}
       }
 #endif
+
 #if tos
       { char dpat[MAXPATHLEN];
 	struct ffblk buf;

@@ -30,8 +30,10 @@ int	unexec P((char *, char *, char *, unsigned, unsigned, unsigned));
 word
 saveProgram(new)
 Word new;
-{ char *dest, *old_name, *new_name, *sym_name;
+{ char *new_name, *sym_name;
   char tmp[MAXPATHLEN];
+  char dest[MAXPATHLEN];
+  char old_name[MAXPATHLEN];
   
   if ( !isAtom(*new) )
     return warning("save_program/1: instantiation fault");
@@ -41,13 +43,13 @@ Word new;
 
   TRY( getSymbols() );
   
-  old_name = stringAtom(loaderstatus.orgsymbolfile);
+  strcpy(old_name,OsPath(stringAtom(loaderstatus.orgsymbolfile)));
   if ( loaderstatus.symbolfile != loaderstatus.orgsymbolfile )
     sym_name = stringAtom(loaderstatus.symbolfile);
   else
     sym_name = NULL;
   
-  dest = stringAtom(*new);
+  strcpy(dest,OsPath(stringAtom(*new)));
   sprintf(tmp, "%s#%d", dest, getpid());
   new_name = tmp;
 
@@ -207,7 +209,7 @@ Word file, restore;
   { case SAVE_SAVE:
       return unifyAtomic(restore, consNum(0));
     case SAVE_RESTORE:
-#if unix
+#if unix || EMX
       initSignals();
 #endif
       return unifyAtomic(restore, consNum(1));

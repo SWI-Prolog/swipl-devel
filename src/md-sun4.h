@@ -53,6 +53,8 @@ and libraries.  If you are not sure, run `which cc' which should yield
 #define O_FOREIGN		1
 #define O_SAVE			1
 #define DEFAULT_PATH		":.:/usr/ucb:/bin:/usr/bin:";
+#define SRANDOM(t)		srandom((long)t)
+#define RANDOM()		random()
 
 			/* terminal driver */
 #define O_TERMIOS 		1

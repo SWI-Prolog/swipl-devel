@@ -150,7 +150,8 @@ int arity;
   printf("%c\b", cur[n++ & 0x3]);
 }
 #endif
-#if unix
+
+#if unix || EMX
 #define notifyLoad(file)
 #define notifyLoaded()
 #define notifyPredicate(name, arity)
@@ -272,7 +273,11 @@ bool toplevel, load_options;
   Char c;
   int n;
 
+#if OS2
+  for(n=0; n<5; n++)                    /* skip first five lines */
+#else
   for(n=0; n<2; n++)			/* skip first two lines */
+#endif
   { while( (c=(Char)Getc(fd)) != '\n' && c != EOF ) ;
     if ( c == EOF )
       return fatalError("%s is not a SWI-Prolog intermediate code file", file);
@@ -728,11 +733,15 @@ char *file;
     exec = stringAtom(loaderstatus.orgsymbolfile);
   }
   DEBUG(1, printf("Executable = %s\n", exec));
-  if ( !(exec = AbsoluteFile(exec)) )
+  if ( !(exec = OsPath(AbsoluteFile(PrologPath(exec)))) )
     fail;
   DEBUG(1, printf("Expanded executable = %s\n", exec));
 /*fprintf(wicFd, "#!%s -x\n", exec);*/
+#if OS2
+  fprintf(wicFd, "/* Compiled SWI-Prolog Program */\r\n'@ECHO OFF'\r\nparse source . . name\r\n\"%s -x \" name arg(1)\r\nexit\r\n", exec);
+#else
   fprintf(wicFd, "#!/bin/sh\nexec %s -x $0 $*\n", exec);
+#endif OS2
   DEBUG(2, printf("Magic  ...\n"));
   putString( saveMagic,            wicFd);
   DEBUG(2, printf("Numeric options ...\n"));

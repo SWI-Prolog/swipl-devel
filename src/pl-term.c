@@ -8,7 +8,6 @@
 */
 
 #include "pl-incl.h"
-#if unix
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module defines some hacks to get to the unix  termcap  library.   I
@@ -19,6 +18,8 @@ write a decent interface to handle the terminal.  Maybe this will be too
 late;  character  terminals  disappear quickly now.  Use PCE if you want
 windowing!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#if unix || EMX
 
 extern int  tgetent();
 extern int  tgetnum();

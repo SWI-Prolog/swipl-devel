@@ -407,11 +407,11 @@ register atomic name;
 { return (module) lookupModule((Atom) name);
 }
 
-#if unix
 		/********************************
 		*            SIGNALS            *
 		*********************************/
 
+#if unix || EMX
 void
 (*PL_signal(sig, func))()
 int sig;

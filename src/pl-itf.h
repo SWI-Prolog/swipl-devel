@@ -11,7 +11,7 @@
 #define PL_INCLUDED
 
 #ifndef PLVERSION
-#define PLVERSION "1.6.11, February 1993"
+#define PLVERSION "1.6.12, February 1993"
 #endif
 
 #ifndef P
