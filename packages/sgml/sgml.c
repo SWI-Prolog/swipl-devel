@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #define streq(s1, s2) (strcmp(s1, s2) == 0)
 
@@ -70,8 +71,20 @@ print_open(dtd_parser *p, dtd_element *e, int argc, sgml_attribute *argv)
 
 
 static int
-print_cdata(dtd_parser *p, int len, const ochar *data)
-{ putchar('-');
+print_data(dtd_parser *p, data_type type, int len, const ochar *data)
+{ switch(type)
+  { case EC_CDATA:
+      putchar('-');
+      break;
+    case EC_NDATA:
+      putchar('N');
+      break;
+    case EC_SDATA:
+      putchar('S');
+      break;
+    default:
+      assert(0);
+  }
 
   for( ; *data; data++ )
   { if ( *data == '\n' )
@@ -109,7 +122,7 @@ static void
 set_functions(dtd_parser *p)
 { p->on_end_element = print_close;
   p->on_begin_element = print_open;
-  p->on_cdata = print_cdata;
+  p->on_data = print_data;
   p->on_entity = on_entity;
   p->on_pi = on_pi;
 }

@@ -132,7 +132,7 @@ typedef enum
   EC_SDATA,				/* SDATA entity */
   EC_NDATA,				/* non-sgml data */
   EC_PI					/* Programming instruction */
-} entity_content;
+} data_type;
 
 
 typedef enum
@@ -228,7 +228,8 @@ typedef struct _dtd_symbol_table
 typedef struct _dtd_entity
 { dtd_symbol *name;			/* its name */
   entity_type type;			/* ET_* */
-  entity_content content;		/* EC_* */
+  data_type content;			/* EC_* */
+  int length;				/* size of literal value */
   ichar *value;				/* literal value */
   ichar *extid;				/* external identifier */
   ichar *exturl;			/* url to fetch from */

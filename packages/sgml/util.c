@@ -363,7 +363,7 @@ str2ring(const char *in)
 		 *******************************/
 
 char *
-load_file_to_charp(const char *file)
+load_file_to_charp(const char *file, int *length)
 { int fd;
 
   if ( (fd = open(file, O_RDONLY)) >= 0 )
@@ -376,6 +376,9 @@ load_file_to_charp(const char *file)
       if ( r )
       { char *s = r;
 	
+	if ( length )
+	  *length = len;
+
 	while(len>0)
 	{ int n;
 

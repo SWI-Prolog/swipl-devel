@@ -112,6 +112,8 @@ static functor_t FUNCTOR_charpos1;
 static functor_t FUNCTOR_ns2;		/* :/2 */
 static functor_t FUNCTOR_space1;
 static functor_t FUNCTOR_pi1;
+static functor_t FUNCTOR_sdata1;
+static functor_t FUNCTOR_ndata1;
 
 static atom_t ATOM_sgml;
 static atom_t ATOM_dtd;
@@ -157,6 +159,8 @@ initConstants()
   FUNCTOR_ns2	       = mkfunctor(":", 2);
   FUNCTOR_space1       = mkfunctor("space", 1);
   FUNCTOR_pi1	       = mkfunctor("pi", 1);
+  FUNCTOR_sdata1       = mkfunctor("sdata", 1);
+  FUNCTOR_ndata1       = mkfunctor("ndata", 1);
 
   ATOM_dtd  = PL_new_atom("dtd");
   ATOM_sgml = PL_new_atom("sgml");
@@ -719,7 +723,7 @@ on_entity(dtd_parser *p, dtd_entity *e, int chr)
 
 
 static int
-on_cdata(dtd_parser *p, int len, const ochar *data)
+on_cdata(dtd_parser *p, data_type type, int len, const ochar *data)
 { parser_data *pd = p->closure;
 
   if ( pd->on_cdata )
@@ -736,10 +740,36 @@ on_cdata(dtd_parser *p, int len, const ochar *data)
   if ( pd->tail && !pd->stopped )
   { term_t h = PL_new_term_ref();
 
-    if ( PL_unify_list(pd->tail, h, pd->tail) &&
-	 PL_unify_atom_nchars(h, len, data) )
-    { PL_reset_term_refs(h);
-      return TRUE;
+    if ( PL_unify_list(pd->tail, h, pd->tail) )
+    { int rval;
+
+      switch(type)
+      { case EC_CDATA:
+	  rval = PL_unify_atom_nchars(h, len, data);
+	  break;
+	case EC_SDATA:
+	{ term_t d = PL_new_term_ref();
+
+	  PL_put_atom_nchars(d, len, data);
+	  rval = PL_unify_term(h, PL_FUNCTOR, FUNCTOR_sdata1, PL_TERM, d);
+	  break;
+	}
+	case EC_NDATA:
+	{ term_t d = PL_new_term_ref();
+
+	  PL_put_atom_nchars(d, len, data);
+	  rval = PL_unify_term(h, PL_FUNCTOR, FUNCTOR_ndata1, PL_TERM, d);
+	  break;
+	}
+	default:
+	  rval = FALSE;
+	  assert(0);
+      }
+			       
+      if ( rval )
+      { PL_reset_term_refs(h);
+	return TRUE;
+      }
     }
   }
 
@@ -1019,7 +1049,7 @@ pl_sgml_parse(term_t parser, term_t options)
     p->on_end_element   = on_end;
     p->on_entity	= on_entity;
     p->on_pi		= on_pi;
-    p->on_cdata         = on_cdata;
+    p->on_data          = on_cdata;
     p->on_error	        = on_error;
     p->on_xmlns		= on_xmlns;
     p->dmode	        = DM_SGML;

@@ -35,8 +35,8 @@ typedef int (*sgml_begin_element_f)(dtd_parser_p parser,
 				    sgml_attribute *argv);
 typedef int (*sgml_end_element_f)(dtd_parser_p parser,
 				  dtd_element *e);
-typedef int (*sgml_cdata_f)(dtd_parser_p parser,
-			    int len, const ochar *text);
+typedef int (*sgml_data_f)(dtd_parser_p parser,
+			   data_type type, int len, const ochar *text);
 typedef int (*sgml_entity_f)(dtd_parser_p parser,
 			     dtd_entity *entity,
 			     int chr);
@@ -149,7 +149,7 @@ typedef struct _dtd_parser
   void *closure;			/* client handle */
   sgml_begin_element_f	on_begin_element; /* start an element */
   sgml_end_element_f	on_end_element;	/* end an element */
-  sgml_cdata_f		on_cdata;	/* process cdata */
+  sgml_data_f		on_data;	/* process cdata */
   sgml_entity_f		on_entity;	/* unprocessed entity */
   sgml_pi_f		on_pi;		/* processing instruction */
   sgml_error_f		on_error;	/* handle error */

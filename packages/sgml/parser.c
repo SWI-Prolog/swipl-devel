@@ -212,14 +212,20 @@ entity_file(dtd *dtd, dtd_entity *e)
 
 
 static const ichar *
-entity_value(dtd *dtd, dtd_entity *e)
+entity_value(dtd *dtd, dtd_entity *e, int *len)
 { const char *file;
 
   if ( e->value )
+  { if ( len )
+      *len = e->length;  
     return e->value;
+  }
   
   if ( (file=entity_file(dtd, e)) )
-    e->value = load_file_to_charp(file);
+    e->value = load_file_to_charp(file, &e->length);
+
+  if ( len )
+    *len = e->length;
 
   return e->value;
 }
@@ -246,7 +252,7 @@ expand_pentities(dtd *dtd, const ichar *in, ichar *out, int len)
 	if ( !e )
 	  return gripe(ERC_EXISTENCE, "parameter entity", id->name);
 
-	if ( !(eval = entity_value(dtd, e)) )
+	if ( !(eval = entity_value(dtd, e, NULL)) )
 	  return FALSE;
 
 	if ( !expand_pentities(dtd, eval, out, len) )
@@ -332,7 +338,7 @@ expand_entities(dtd_parser *p, const ichar *in, ochar *out, int len)
 	  goto recover;
 	}
   
-	if ( !(eval = entity_value(dtd, e)) )
+	if ( !(eval = entity_value(dtd, e, NULL)) )
 	{ gripe(ERC_NO_VALUE, e->name->name);
 	  in = estart;
 	  goto recover;
@@ -841,6 +847,7 @@ process_entity_value_declaration(dtd *dtd, const ichar *decl, dtd_entity *e)
     case ET_LITERAL:
     { if ( !(s = itake_dubbed_string(dtd, decl, &e->value)) )
 	goto string_expected;
+      e->length = strlen(e->value);
       decl=s;
       return decl;
     }
@@ -2322,7 +2329,7 @@ process_include(dtd_parser *p, const ichar *entity_name)
 
   if ( (id=dtd_find_entity_symbol(dtd, entity_name)) &&
        (pe=find_pentity(p->dtd, id)) )
-  { const ichar *text = entity_value(dtd, pe);
+  { const ichar *text = entity_value(dtd, pe, NULL);
 
     if ( !text )
       return gripe(ERC_NO_VALUE, pe->name->name);
@@ -2550,16 +2557,16 @@ emit_cdata(dtd_parser *p, int last)
     return TRUE;
 
   if ( !p->blank_cdata )
-  { if ( p->on_cdata )
-      (*p->on_cdata)(p, p->cdata->size, data);
+  { if ( p->on_data )
+      (*p->on_data)(p, EC_CDATA, p->cdata->size, data);
   } else if ( p->environments )
   { sgml_environment *env = p->environments;
     dtd_state *new;
     
     if ( (new=make_dtd_transition(env->state, CDATA_ELEMENT)) )
     { env->state = new;
-      if ( p->on_cdata )
-	(*p->on_cdata)(p, p->cdata->size, data);
+      if ( p->on_data )
+	(*p->on_data)(p, EC_CDATA, p->cdata->size, data);
     }
   }
   
@@ -2639,32 +2646,58 @@ process_entity(dtd_parser *p, const ichar *name)
 
     if ( (id=dtd_find_entity_symbol(dtd, name)) &&
 	 (e=id->entity) )
-    { const ichar *text = entity_value(dtd, e);
+    { int len;
+      const ichar *text = entity_value(dtd, e, &len);
       const ichar *s;
       int   chr;
 
       if ( !text )
 	return gripe(ERC_NO_VALUE, e->name->name);
 
-      if ( (s=isee_character_entity(dtd, text, &chr)) && *s == '\0' )
-      { if ( chr > 0 && chr < OUTPUT_CHARSET_SIZE )
-	{ add_ocharbuf(p->cdata, chr);
-	  return TRUE;
-	} else
-	{ if ( p->on_entity )
-	  { process_cdata(p, FALSE);
-	    (*p->on_entity)(p, e, chr);
-	  } else
-	    return gripe(ERC_REPRESENTATION, "character");
-	}
-      } else
-      { dtd_srcloc oldloc = p->location;
+      switch ( e->content )
+      { case EC_SGML:
+	case EC_CDATA:
+	  if ( (s=isee_character_entity(dtd, text, &chr)) && *s == '\0' )
+	  { if ( chr > 0 && chr < OUTPUT_CHARSET_SIZE )
+	    { add_ocharbuf(p->cdata, chr);
+	      return TRUE;
+	    } else
+	    { if ( p->on_entity )
+	      { process_cdata(p, FALSE);
+		(*p->on_entity)(p, e, chr);
+	      } else
+		return gripe(ERC_REPRESENTATION, "character");
+	    }
+	    break;
+	  }
+	  if ( e->content == EC_SGML )
+	  { dtd_srcloc oldloc = p->location;
 
-	set_file_dtd_parser(p, (char *)name);
-	empty_icharbuf(p->buffer);		/* dubious */
-	for(s=text; *s; s++)
-	  putchar_dtd_parser(p, *s);
-	p->location = oldloc;
+	    set_file_dtd_parser(p, (char *)name);
+	    empty_icharbuf(p->buffer);		/* dubious */
+	    for(s=text; *s; s++)
+	      putchar_dtd_parser(p, *s);
+	    p->location = oldloc;
+	    break;
+	  } else
+	  { ochar cdata[MAXSTRINGLEN];
+	    const ochar *o;
+
+	    expand_entities(p, text, cdata, MAXSTRINGLEN);
+	    for(o=cdata; *o; o++)
+	      add_ocharbuf(p->cdata, *o);
+	    break;
+	  }
+	case EC_SDATA:
+	case EC_NDATA:
+	  process_cdata(p, FALSE);
+	  if ( p->on_data )
+	    (*p->on_data)(p, e->content, len, text);
+	  break;
+	case EC_PI:
+	  process_cdata(p, FALSE);
+	  if ( p->on_pi )
+	    (*p->on_pi)(p, text);
       }
 
       return TRUE;
