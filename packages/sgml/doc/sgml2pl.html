@@ -200,11 +200,11 @@ a structured term. They are all expressed in <a href="#load_structure/3"><b>load
 <dl>
 <dt>&nbsp;<br>
 <b><a name="load_sgml_file/2">load_sgml_file(<var>+File, -ListOfContent</var>)</a></b><dd>
-Same as <code>load_structure(File, ListOfContent, [dialect(sgml))</code>.
+Same as <code>load_structure(File, ListOfContent, [dialect(sgml)])</code>.
     
 <dt>&nbsp;<br>
 <b><a name="load_xml_file/2">load_xml_file(<var>+File, -ListOfContent</var>)</a></b><dd>
-Same as <code>load_structure(File, ListOfContent, [dialect(xml))</code>.
+Same as <code>load_structure(File, ListOfContent, [dialect(xml)])</code>.
     
 <dt>&nbsp;<br>
 <b><a name="load_html_file/2">load_html_file(<var>+File, -Content</var>)</a></b><dd>
@@ -238,8 +238,10 @@ load_html_file(File, Term) :-
 <h2><a name="sec-3.1">Loading Structured Documents</a></h2>
 
 <p>
-SGML or XML files are loaded through the common predicate <a href="#load_structure/3"><b>load_structure/3</b></a>. This is a predicate with many options. For 
-simplicity a number of commonly used shorthands are provided: <a href="#load_sgml_file/2"><b>load_sgml_file/2</b></a>, <a href="#load_xml_file/2"><b>load_xml_file/2</b></a>, and <a href="#load_html_file/2"><b>load_html_file/2</b></a>.
+SGML or XML files are loaded through the common predicate
+<a href="#load_structure/3"><b>load_structure/3</b></a>. This is a predicate with many options. For 
+simplicity a number of commonly used shorthands are provided: <a href="#load_sgml_file/2"><b>load_sgml_file/2</b></a>, <a href="#load_xml_file/2"><b>load_xml_file/2</b></a>, and
+<a href="#load_html_file/2"><b>load_html_file/2</b></a>.
 
 <dl>
 <dt>&nbsp;<br>
@@ -1039,6 +1041,22 @@ writes to the stream will yield an I/O error exception. Printing of
 errors is suppressed after reaching this value. The default is 100. 
     
 <dt>&nbsp;<br>
+<b>syntax_errors(<var>+ErrorMode</var>)</b><dd>
+Defines how syntax errors are handled.
+    
+<dl>
+<dt>&nbsp;<br>
+<b>print</b><dd>
+Default.  Pass messages to <b>print_message/2</b>.
+        
+<dt>&nbsp;<br>
+<b>quiet</b><dd>
+Suppress all messages.
+    
+</dl>
+
+    
+<dt>&nbsp;<br>
 <b>call(<var>+Event, :PredicateName</var>)</b><dd>
 Issue call-backs on the specified events. <var>PredicateName</var> is the 
 name of the predicate to call on this event, possibly prefixed with a 
@@ -1171,8 +1189,8 @@ document into memory is then undesirable.
 
 <p>
 Using the <code>parse(element)</code> option, we open a file, seek 
-(using <a href="#seek/4"><b>seek/4</b></a>) to the position of the element and read the 
-desired element.
+(using <b>seek/4</b>) to the position of the element and
+read the desired element.
 
 
 <p>
@@ -1265,8 +1283,14 @@ all files in this path.
 <p>
 Two types of lines are used by this package.
 
-<code><a name="const:DOCTYPE%2"><b><tt>DOCTYPE</tt></b></a> <var>doctype</var> <var>file</var>
-<a name="const:PUBLIC"><b><tt>PUBLIC</tt></b></a> <code>"</code><var>Id</var><code>"</code> <var>file</var> </code>
+
+
+<p>
+<pre>
+<a name="const:DOCTYPE%2"><b><tt>DOCTYPE</tt></b></a> <var>doctype</var> <var>file</var>
+<a name="const:PUBLIC"><b><tt>PUBLIC</tt></b></a> <code>"</code><var>Id</var><code>"</code> <var>file</var> 
+</pre>
+
 
 
 <p>

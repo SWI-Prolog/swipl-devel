@@ -159,11 +159,11 @@ load_html_file(File, Term) :-
 <s2>Loading Structured Documents</title>
 
 <p>
-SGML or XML files are loaded through the common predicate <pref>
-load_structure/3</pref>. This is a predicate with many options. For 
+SGML or XML files are loaded through the common predicate
+<pref>load_structure/3</pref>. This is a predicate with many options. For 
 simplicity a number of commonly used shorthands are provided: <pref>
-load_sgml_file/2</pref>, <pref>load_xml_file/2</pref>, and <pref>
-load_html_file/2</pref>.
+load_sgml_file/2</pref>, <pref>load_xml_file/2</pref>, and
+<pref>load_html_file/2</pref>.
 
 <definitions>
     <pred>load_structure(+File, -ListOfContent, +Options)
@@ -718,6 +718,14 @@ individual elements after validating their headers.
 Set the maximum number of errors. If this number is exceeded further 
 writes to the stream will yield an I/O error exception. Printing of 
 errors is suppressed after reaching this value. The default is 100. 
+    <termitem>syntax_errors(+ErrorMode)
+Defines how syntax errors are handled.
+    <argdef>
+	<termitem>print
+	Default.  Pass messages to <pref builtin>print_message/2</pref>.
+        <termitem>quiet
+	Suppress all messages.
+    </argdef>
     <termitem>call(+Event, :PredicateName)
 Issue call-backs on the specified events. <aref/PredicateName/ is the 
 name of the predicate to call on this event, possibly prefixed with a 
@@ -823,8 +831,8 @@ document into memory is then undesirable.
 
 <p>
 Using the <term>parse(element)</term> option, we open a file, seek 
-(using <pref>seek/4</pref>) to the position of the element and read the 
-desired element.
+(using <pref builtin>seek/4</pref>) to the position of the element and
+read the desired element.
 
 <p>
 The index can be built using the call-back interface of

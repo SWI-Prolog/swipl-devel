@@ -126,6 +126,9 @@
 	'/'	beg-arity>
 <!USEMAP in.pref pref> 
 
+<!ATTLIST pref
+	type (local|builtin) local>
+
 <!-- DEFINITIONS -->
 
 <!ELEMENT definitions  - - (definition+)>

@@ -434,6 +434,10 @@ html(term, _, Content) -->
 	\code(Content).
 html(sh, _, Content) -->
 	\code(Content).
+html(pref, A, [element(_,_,[Name]), element(_,_,[Arity])]) -->
+	{ member(type=builtin, A)
+	},
+	\b([Name, /, Arity]).
 html(pref, _, [element(_,_,[Name]), element(_,_,[Arity])]) -->
 	{ concat_atom([#, Name, /, Arity], Ref)
 	},
@@ -445,11 +449,10 @@ html(aref, _, Content) -->
 html(var, _, Content) -->
 	\var(Content).
 html(xmp, A, Content) -->
-	{ member(type=block, A)
-	},
+	{ member(placement=block, A)
+	}, !,
 	\p,
 	\pre(Content).
-
 html(xmp, _, Content) -->
 	\code(Content).
 html(code, _, Content) -->
