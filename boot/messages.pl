@@ -206,6 +206,9 @@ prolog_message(commandline_arg_type(Flag, Arg)) -->
 	[ 'Bad argument to commandline option -~w: ~w'-[Flag, Arg] ].
 prolog_message(missing_feature(Name)) -->
 	[ 'This version of SWI-Prolog does not support ~w'-[Name] ].
+prolog_message(singletons(List)) -->
+	[ 'Singleton variables: ~w'-[List] ].
+
 
 		 /*******************************
 		 *	   LOADING FILES	*
