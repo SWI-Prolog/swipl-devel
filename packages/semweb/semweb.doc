@@ -484,6 +484,12 @@ RDF parser.  The \arg{Converter} is called with the same arguments
 as in the RDF parser, but now with the last argument instantiated
 and the first two unbound.   A proper convertor that can be used for
 both loading and saving must be a logical predicate.
+
+	\termitem{encoding}{+Encoding}
+Define the XML encoding used for the file.  Defined values are
+\const{utf8} (default), \const{iso_latin_1} and \const{ascii}.
+Using \const{iso_latin_1} or \const{ascii}, characters not covered by
+the encoding are emitted as XML character entities (\verb$&#...;$).
     \end{description}
 
     \predicate{rdf_source}{1}{?File}
@@ -502,7 +508,9 @@ are added at the end of the database, possibly changing the order of
 
 Sometimes it is necessary to make more arbitrary selections of material
 to be saved or exchange RDF descriptions over an open network link. The
-predicates in this section provide for this.
+predicates in this section provide for this.  Character encoding issues
+are derived from the encoding of the \arg{Stream}, providing support for
+\const{utf8}, \const{iso_latin_1} and \const{ascii}.
 
 \begin{description}
     \predicate{rdf_save_header}{2}{+Stream, +Options}

@@ -621,6 +621,13 @@ the RDF parser. The <VAR>Converter</VAR> is called with the same
 arguments as in the RDF parser, but now with the last argument 
 instantiated and the first two unbound. A proper convertor that can be 
 used for both loading and saving must be a logical predicate.
+
+<P>
+<DT><STRONG>encoding</STRONG>(<VAR>+Encoding</VAR>)<DD>
+Define the XML encoding used for the file. Defined values are
+<CODE>utf8</CODE> (default), <CODE>iso_latin_1</CODE> and <CODE>ascii</CODE>. 
+Using <CODE>iso_latin_1</CODE> or <CODE>ascii</CODE>, characters not 
+covered by the encoding are emitted as XML character entities (<CODE>&amp;#...;</CODE>).
 </DL>
 
 <P>
@@ -643,7 +650,10 @@ changing the order of (conflicting) triples.
 
 <P>Sometimes it is necessary to make more arbitrary selections of 
 material to be saved or exchange RDF descriptions over an open network 
-link. The predicates in this section provide for this.
+link. The predicates in this section provide for this. Character 
+encoding issues are derived from the encoding of the <VAR>Stream</VAR>, 
+providing support for
+<CODE>utf8</CODE>, <CODE>iso_latin_1</CODE> and <CODE>ascii</CODE>.
 
 <DL>
 
