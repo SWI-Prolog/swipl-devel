@@ -118,7 +118,7 @@ eventTileAdjuster(TileAdjuster adj, EventObj ev)
 vardecl var_tile_adjuster[] =
 {  IV(NAME_client,      "tile",
       IV_GET, NAME_tile, "Tile I adjust"),
-   IV(NAME_orientation, "horizontal,vertical",
+   IV(NAME_orientation, "{horizontal,vertical}",
       IV_GET, NAME_tile, "Horizontal or vertical resize"),
    IV(NAME_downOffset,  "int*",
       IV_GET, NAME_event, "Initial offset")
