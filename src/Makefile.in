@@ -313,10 +313,8 @@ install-libs:	idirs iboot ilib iruntime iinclude iman idot
 		$(INSTALL_DATA) $(STARTUPPATH) $(PLBASE)/$(BOOTFILE)
 		echo . > $(PLBASE)/swipl
 		echo .. > $(PLBASE)/bin/swipl
-		cd $(PLBASE)/library; \
-		   ../bin/$(ARCH)/$(PL) \
-			-f none \
-			-g make_library_index\('.'\) \
+		$(DEVPL) -f none -F none \
+			-g make_library_index\(\'$(PLBASE)/library\'\) \
 			-t halt
 
 installdirs=	bin bin/$(ARCH) lib lib/$(ARCH) man boot library \
@@ -442,7 +440,7 @@ distclean:	clean
 		rm -rf $(INCLUDEDIR) ../lib
 		rm -f ../library/INDEX.pl
 		rm -f Makefile config.h config.status parms.h
-		rm -f swipl swiplbin pl.prc
+		rm -f swipl swiplbin $(STARTUPPATH)
 		rm -f $(PL) plld pl.1 $(PL).exe plld.exe libplimp.a $(DEF)
 		rm -f config.log config.cache
 
