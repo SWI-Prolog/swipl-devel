@@ -7,8 +7,9 @@
     Copyright (C) 1992 University of Amsterdam. All rights reserved.
 */
 
+#ifdef __linux__
 #define _XOPEN_SOURCE			/* GNU glibc grantpt() prototypes */
-
+#endif
 #include <h/kernel.h>
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
