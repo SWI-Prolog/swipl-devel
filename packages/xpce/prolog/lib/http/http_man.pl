@@ -44,7 +44,7 @@ url(pceusg,  URL) :-
 pce_http_man(Port) :-			% start on anonymous port
 	var(Port), !,
 	new(HTTPD, manpce_httpd),
-	get(HTTPD, port, Port).
+	get(HTTPD, address, Port).
 pce_http_man(Port) :-
 	new(_, manpce_httpd(Port)).
 
