@@ -1117,8 +1117,8 @@ again:
   }
 
   s = lookupSocket(slave);
-#ifdef WIN32
   s->flags |= SOCK_ACCEPT;
+#ifdef WIN32
   s->hwnd = m->hwnd;			/* is this inherited? */
 #endif
   
