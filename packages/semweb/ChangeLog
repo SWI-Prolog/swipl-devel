@@ -1,5 +1,8 @@
 Sep 20, 2003
 
+  * ADDED: rdf_update/5.  Allow changing the source data associated with
+    a triple.
+
   * FIXED: Memory management problem in virtual property-hierarchy roots.
 
 Sep 19, 2003
