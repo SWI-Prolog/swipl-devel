@@ -4,6 +4,9 @@
   * ADDED: plwin.exe: win_window_pos/1 to control the geometry and zorder
     of the console.
 
+  * FIXED: thread_peek_message/1 unification problem if the head message
+    didn't unify (Sergey Tikhonov).
+
   * FIXED: Demo .plrc (pl.ini) to use the flag `gui' rather than `xpce' to
     see whether to load the gui-tracer (Jakub Jiricek).
 
