@@ -29,7 +29,7 @@
     the GNU General Public License.
 */
 
-:- module(http_client, []).
+:- module(pce_http_client, []).
 :- use_module(library(pce)).
 :- use_module(library(url)).
 

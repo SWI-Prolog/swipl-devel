@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* MODIFIED: renamed module of library(http_client) to pce_http_client
+
 * FIXED: Windows: text repaint to use int rather than short for very large
   scrolled objects.  Petter Egesund.
 
