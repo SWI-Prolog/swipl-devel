@@ -1,6 +1,33 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * CHANGED: retractall/1 implementation is now compatible to Quintus,
+    avoiding the hacky redefinition in library(quintus.pl).  The difference
+    is that now the argument will only be matched against the clause-head.
+    on a match the clause will be removed, regardless of its body.  Makes
+    no difference for retractall on facts, but does make a difference on
+    clauses with a non-just-true body.  retractall/1 is now a deterministic
+    foreign predicate that no longer decompiles the clause body, making
+    it faster too.
+
+  * FIXED: made .qlf files independent of the directory they where compiled.
+
+  * FIXED: Path canonisation problem
+
+  * FIXED: loading .qlf files holding already-defined modules
+
+  * ADDED: file_search_path file-location system
+
+  * ADDED: access_file(File, exists) to check for bare existence.
+
+  * FIXED: Another clear_uninitialised() problem related to if-then-else
+    causing garbage collector and possibly stack-shift errors.  As the
+    implementation is now changed radically, this problem should be gone
+    forever ...
+
+  * FIXED: copy_term/2.  Now creates more efficient terms (less references)
+    and no longer creates bad references.
+
 Version 2.0.5
 =============
 
