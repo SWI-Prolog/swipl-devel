@@ -171,7 +171,7 @@ if test "$swipl" != "no"; then
 	 PLLD=plld
      else
          PLBUILD="`(cd ../../../$BUILDDIR && pwd)`/$PL"
-         PLLD="`(cd ../../../$BUILDDIR && pwd)`/plld"
+         PLLD="`(cd ../.. && pwd)`/plld.sh"
      fi
   fi
   PLNAME=`basename $PL`
