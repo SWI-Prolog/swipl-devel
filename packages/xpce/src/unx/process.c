@@ -419,19 +419,34 @@ initEnvironment(Process p)
 { if ( notNil(p->environment) )
   { int i = 0;
     Cell cell;
-    Name fmt = CtoName("%s=%s");
+    char **env;
 
-    environ = pceMalloc(sizeof(char *) *
-			(valInt(p->environment->attributes->size) + 1));
+    env = malloc(sizeof(char *) *
+		 (valInt(p->environment->attributes->size) + 1));
 
     for_cell(cell, p->environment->attributes)
     { Attribute a = cell->value;
-      StringObj str = answerObject(ClassString, fmt, a->name, a->value, EAV);
+      String ns = &((CharArray)a->name)->data;
+      String vs = &((CharArray)a->value)->data;
 
-      environ[i++] = save_string(strName(str));
-      doneObject(str);
+      if ( isstrA(ns) && isstrA(vs) )
+      { int len = ns->size + 1 + vs->size + 1;
+	char *e;
+
+	e = malloc(len);
+	memcpy(e, ns->s_textA, ns->size);
+	e[ns->size] = '=';
+	memcpy(e+ns->size+1, vs->s_textA, vs->size);
+	e[len-1] = EOS;
+
+	env[i++] = e;
+      } else
+      { Cprintf("Ignored wide string in environment\n");
+      }
     }
-    environ[i] = NULL;
+    env[i] = NULL;
+
+    environ = env;
   }
 }
 
@@ -443,17 +458,18 @@ getEnvironmentProcess(Process p)
 
     assign(p, environment, newObject(ClassSheet, EAV));
     for(; *env; env++)
-    { char buf[LINESIZE];
+    { char *e = *env;
       char *q;
-      int l;
 
       DEBUG(NAME_environment, Cprintf("env = %s\n", *env));
-      if ( (q=strchr(*env, '=')) )
-      { strncpy(buf, *env, (l = q - *env));
-	buf[l] = EOS;
-	valueSheet(p->environment, CtoName(buf), CtoName(&q[1]));
+      if ( (q=strchr(e, '=')) )
+      { string ns, vs;
+
+	str_set_n_ascii(&ns, q-e, e);
+	str_set_n_ascii(&vs, strlen(q+1), q+1);
+	valueSheet(p->environment, StringToName(&ns), StringToName(&vs));
       } else
-	valueSheet(p->environment, CtoName(*env), CtoName(""));
+	valueSheet(p->environment, CtoName(*env), NAME_);
     }
   }
 
@@ -512,15 +528,20 @@ openProcess(Process p, CharArray cmd, int argc, CharArray *argv)
 	fail;
       }
 
+      DEBUG(NAME_process, fprintf(stderr, "Ready to fork\n"));
+
       if ( (pid = fork()) == 0 )	/* child process */
       { int i, argc;
 	char **argv;
 	int maxfd = getdtablesize();
 
+	DEBUG(NAME_process, fprintf(stderr, "Child: maxfd = %d\n", maxfd));
+
 	if ( notDefault(p->directory) )
 	  cdDirectory(p->directory);
+	DEBUG(NAME_process, fprintf(stderr, "CD ok\n"));
 	initEnvironment(p);
-	DEBUG(NAME_process, Cprintf("Environment initialised\n"));
+	DEBUG(NAME_process, fprintf(stderr, "Environment initialised\n"));
 #ifdef HAVE_SETSID
 	if ( setsid() < 0 )
 	  Cprintf("[PCE: setsid() failed: %s]\n", strName(OsError()));

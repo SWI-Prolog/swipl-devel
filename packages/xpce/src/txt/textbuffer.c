@@ -1866,15 +1866,16 @@ capitalise_textbuffer(TextBuffer tb, int from, int len)
 { wint_t b = ' ';
 
   for( ; from < tb->size && len > 0; len--, from++ )
-  { char c = fetch(from);
+  { wint_t c = fetch(from);
+    wint_t c2;
 
-    if ( iswalnum(b) )
-    { if ( iswlower(c) )
-	store_textbuffer(tb, from, towupper(c));
-    } else
-    { if ( iswupper(c) )
-	store_textbuffer(tb, from, towlower(c));
-    }
+    if ( !iswalnum(b) )
+      c2 = towupper(c);
+    else
+      c2 = towlower(c);
+
+    if ( c2 != c )
+      store_textbuffer(tb, from, c2);
 
     b = c;
   }

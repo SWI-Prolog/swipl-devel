@@ -2,6 +2,8 @@
 			   ==============
 
 
+* FIXED: Environment handling for class process (Unix).
+
 * ADDED: Ongoing work on wide-character support.  Currently dealing with
   the XPCE <-> Prolog interface, elementary string handling, displaying
   wide strings.
