@@ -110,7 +110,7 @@ initialization(Goal) :-
 $set_file_search_paths :-
 	current_prolog_flag(argv, Argv),
 	append(H, ['-p', Path|_], Argv),
-	\+ member(H, '--'),
+	\+ memberchk(--, H),
 	(   atom_chars(Path, Chars),
 	    (	phrase($search_path(Name, Aliases), Chars)
 	    ->	reverse(Aliases, Aliases1),
@@ -161,7 +161,7 @@ $load_associated_file :-
 	current_prolog_flag(associate, Ext),
 	current_prolog_flag(argv, Argv),
 	append(Pre, [OsFile], Argv),
-	\+ memberchk(Pre, --),
+	\+ memberchk(--, Pre),
 	prolog_to_os_filename(File, OsFile),
 	file_name_extension(_, Ext, File),
 	access_file(File, read),
