@@ -3,6 +3,7 @@
 \usepackage{pl}
 \usepackage{xpce}
 \usepackage{html}
+\newcommand{\product}{\sc xpce}
 \renewcommand{\runningtitle}{XPCE \pceversion}
 \def\booktitle{Programming in XPCE/Prolog}
 \author{\email[Jan Wielemaker]{jan@swi.psy.uva.nl} \\
