@@ -225,6 +225,12 @@ substitute(String, From, To) :-
 		 *          INDENTATION		*
 		 *******************************/
 
+newline_and_indent(E, Arg:[int]) :->
+	"Insert newline and indent as TAB"::
+	send(E, newline, Arg),
+	send(E, indent_line).
+
+
 indent_line(E) :->
 	"Indent current line"::
 	send(E, beginning_of_text_on_line),

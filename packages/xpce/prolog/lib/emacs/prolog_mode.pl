@@ -57,8 +57,7 @@ resource(breakpoint,   image, image('16x16/stop.xpm')).
 :- emacs_begin_mode(prolog, language,
 		    "Mode for editing XPCE/Prolog sources",
 					% BINDINGS
-	[ indent_line		       = key('TAB'),
-	  indent_clause		       = key('\\eq'),
+	[ indent_clause		       = key('\\eq'),
 	  insert_if_then_else	       = key('(') + key(';') + key('>'),
 
 	  prolog_manual		       = button(help),

@@ -90,7 +90,7 @@ make_item(_Mode, Label, Default, Type, _History, Item) :-
 make_item(_Mode, Label, Default, Type, _History, Item) :-
 	send(Type, includes, emacs_buffer), !,
 	default(Default, '', Selection),
-	new(Item, text_item(Label, Selection)),
+	new(Item, emacs_complete_item(Label, Selection)),
 	send(Item, type, Type),
 	get(@emacs, buffers, Buffers),
 	send(Item, value_set, Buffers).
@@ -103,7 +103,7 @@ make_item(_Mode, Label, Default, Type, _History, Item) :-
 make_item(_Mode, Label, Default, Type, _History, Item) :-
 	send(Type, includes, class), !,
 	default(Default, '', Selection),
-	new(Item, text_item(Label, Selection)),
+	new(Item, emacs_complete_item(Label, Selection)),
 	send(Item, type, Type),
 	new(Classes, chain),
 	send(@classes, for_all, message(Classes, append, @arg1)),
@@ -127,13 +127,15 @@ make_item(Mode, Label, _Default, Type, History, Item) :-
 					% Anything else
 make_item(_Mode, Label, Default, Type, History, Item) :-
 	default(Default, '', Selection),
-	new(Item, text_item(Label, Selection)),
-	send(Item, type, Type),
-	(   History \== @default,
-	    \+ get(Type, value_set, _)
-	->  send(Item, value_set, History)
-	;   true
-	).
+	(   get(Type, value_set, _)
+	->  new(Item, emacs_complete_item(Label, Selection))
+	;   new(Item, text_item(Label, Selection)),
+	    (   History \== @default
+	    ->  send(Item, value_set, History)
+	    ;   true
+	    )
+	),
+	send(Item, type, Type).
 
 
 :- pce_begin_class(emacs_file_or_directory_item, file_item,
@@ -150,7 +152,66 @@ selection(I, Sel:'file|directory') :<-
 	    new(Sel, file(Name))
 	).
 
-:- pce_end_class.
+:- pce_end_class(emacs_file_or_directory_item).
+
+
+:- pce_begin_class(emacs_complete_item, text_item,
+		   "More Emacs-compatible completer").
+
+selection(TI, Value:any) :<-
+	"Return unique value if possible"::
+	get(TI, value_text, Text),
+	get(Text, string, String),
+	get(TI, type, Type),
+	(   get(@pce, convert, String, Type, _)
+	->  get_super(TI, selection, Value)
+	;   get(TI, completions, String, Completions),
+	    (	object(Completions, chain(Value))
+	    ->	true
+	    ;	get(Completions, size, 0)
+	    ->	send(TI, report, warning, 'No match'),
+		fail
+	    ;	send(TI, report, warning, 'Ambiguous'),
+		fail
+	    )
+	).
+	    
+completions(TI, From:char_array, Unique:chain) :<-
+	get(TI, value_set, Set),
+	(   Set == @nil
+	->  fail
+	;   Set == @default
+	->  get(TI, type, Type),
+	    get(Type, value_set, TheSet)
+	;   get(@pce, convert, Set, chain, TheSet)
+	->  true
+	),
+	get(TheSet, find_all, message(@arg1?print_name, prefix, From), Unique),
+	send(Unique, sort, unique := @on).
+
+:- pce_end_class(emacs_complete_item).
+
+
+:- pce_begin_class(emacs_command_item, emacs_complete_item,
+		   "Prompt for a M-x command").
+
+canonise(TI) :->
+	get(TI, value_text, Text),
+	get(Text, string, String),
+	new(Displayed, string('%s', String)),	% make sure it is a string
+	send(Displayed, translate, -, '_'),
+	send(TI, displayed_value, Displayed).
+
+complete(TI, Ev:[event_id]) :->
+	send(TI, canonise),
+	send_super(TI, complete, Ev).
+
+selection(TI, Name:name) :<-
+	"Return unique value if possible"::
+	send(TI, canonise),
+	get_super(TI, selection, Name).
+
+:- pce_end_class(emacs_command_item).
 
 
 		 /*******************************

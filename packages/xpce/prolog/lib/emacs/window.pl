@@ -356,27 +356,6 @@ human_accelerator(Key, Text) :-
 :- pce_end_class(emacs_popup).
 
 
-:- pce_begin_class(emacs_command_item, text_item,
-		   "Prompt for a M-x command").
-
-canonise(TI) :->
-	get(TI, value_text, Text),
-	get(Text, string, String),
-	new(Str2, string('%s', String)),	% make sure it is a string
-	send(Str2, translate, -, '_'),
-	send(TI, displayed_value, Str2).
-
-complete(TI, Ev:[event_id]) :->
-	send(TI, canonise),
-	send(TI, send_super, complete, Ev).
-
-selection(TI, Name:name) :<-
-	send(TI, canonise),
-	get(TI, get_super, selection, Name).
-
-:- pce_end_class(emacs_command_item).
-
-
 :- pce_begin_class(emacs_mini_window, dialog, "Prompt and feedback window").
 
 variable(prompter, 	 dialog_item*,  get,	"Current prompter").
