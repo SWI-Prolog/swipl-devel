@@ -607,7 +607,7 @@ loadWicFd(char *file, IOSTREAM *fd, bool toplevel, bool load_options)
   for(n=0; n<100; n++)			/* max first 10 lines is script */
   { char line[256];
 
-    if ( Sfgets(line, sizeof(line), fd) < 0 )
+    if ( Sfgets(line, sizeof(line), fd) == 0 )
       return fatalError("%s is not a SWI-Prolog intermediate code file", file);
     if ( streq(line, "# End Header\n") )
       break;

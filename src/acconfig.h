@@ -99,3 +99,6 @@
 
 /* Define if your tty library defines struct sgttyb */
 #undef HAVE_SGTTYB
+
+/* Define if assert.h cannot be used without loading stdio.h */
+#undef ASSERT_H_REQUIRES_STDIO_H

@@ -106,6 +106,27 @@ char 		*AbsoluteFile(char *),
 		*ReadLink(char *),
 		*DeRefLink(char *);
 
+		 /*******************************
+		 *      PAGE AND TABLE-SIZE	*
+		 *******************************/
+
+#ifdef HAVE_SYSCONF
+#ifdef _SC_OPEN_MAX			/* getdtablesize() */
+#undef getdtablesize
+#define getdtablesize() sysconf(_SC_OPEN_MAX)
+#ifndef HAVE_GETDTABLESIZE
+#define HAVE_GETDTABLESIZE 1
+#endif
+#endif
+#ifdef _SC_PAGESIZE			/* getpagesize */
+#undef getpagesize
+#define getpagesize() sysconf(_SC_PAGESIZE)
+#ifndef HAVE_GETPAGESIZE
+#define HAVE_GETPAGESIZE 1
+#endif
+#endif
+#endif /*HAVE_SYSCONF*/
+
 #ifndef HAVE_GETDTABLESIZE
 extern int	getdtablesize(void);
 #endif
@@ -113,10 +134,23 @@ extern int	getdtablesize(void);
 extern int	getpagesize(void);
 #endif
 
+		 /*******************************
+		 *	    FILE ACCESS		*
+		 *******************************/
+
 #define ACCESS_EXIST	0
 #define ACCESS_EXECUTE	1
 #define ACCESS_READ	2
 #define ACCESS_WRITE	4
+
+		 /*******************************
+		 *               TYPES		*
+		 *******************************/
+
+#if defined(__sun__) && defined(__svr4__)
+extern long random(void);
+extern int srandom(unsigned seed);
+#endif
 
 		/********************************
 		*        TIME CONVERSION        *

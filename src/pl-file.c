@@ -39,9 +39,7 @@ handling times must be cleaned, but that not only holds for this module.
 #include <sys/file.h>
 #endif
 #ifdef HAVE_UNISTD_H
-#define lock lock_function		/* WATCOM defines function lock() */
 #include <unistd.h>
-#undef lock
 #endif
 
 #define ST_TERMINAL 0			/* terminal based stream */

@@ -832,6 +832,7 @@ dlsym(shl_t handle, const char *name)
 }
 
 #define RTLD_LAZY	BIND_DEFERRED
+#define RTLD_NOW	BIND_IMMEDIATE
 #define RTLD_GLOBAL	0
 
 #endif

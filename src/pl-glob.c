@@ -17,9 +17,7 @@
 #include "pl-ctype.h"
 
 #ifdef HAVE_UNISTD_H
-#define lock lock_function		/* WATCOM defines lock() */
 #include <unistd.h>
-#undef lock
 #endif
 
 #ifdef __WATCOMC__

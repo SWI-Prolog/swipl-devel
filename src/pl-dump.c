@@ -126,7 +126,7 @@ pl_save(term_t file, term_t restore)
 { char *state, *interpreter;
   char buf[MAXPATHLEN];
 #if O_DYNAMIC_STACKS
-  struct save_section sections[5];
+  struct save_section sections[4];
 #endif
 
   if ( !(state = get_filename(file, buf, sizeof(buf))) )
@@ -147,10 +147,9 @@ pl_save(term_t file, term_t restore)
   fill_section(&sections[1], &stacks.global);
   fill_section(&sections[2], &stacks.trail);
   fill_section(&sections[3], &stacks.argument);
-  fill_section(&sections[4], &stacks.lock);
 #undef fill_section
 
-  switch( save(state, interpreter, RET_RETURN, 5, sections) )
+  switch( save(state, interpreter, RET_RETURN, 4, sections) )
 #else
   switch( save(state, interpreter, RET_RETURN, 0, NULL) )
 #endif
@@ -178,9 +177,7 @@ allocateSection(SaveSection s)
 	(stacks.trail.base    == s->start &&
 	 restoreStack((Stack) &stacks.trail)) ||
 	(stacks.argument.base == s->start &&
-	 restoreStack((Stack) &stacks.argument)) ||
-	(stacks.lock.base     == s->start &&
-	 restoreStack((Stack) &stacks.lock)) )
+<	 restoreStack((Stack) &stacks.argument)) )
       succeed;
 
     fatalError("Cannot locate stack to restore");

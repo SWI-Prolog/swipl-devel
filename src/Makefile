@@ -15,7 +15,7 @@
 #
 ################################################################
 
-PLVERSION=2.1.7
+PLVERSION=2.5.6
 
 PL=pl
 prefix=/usr/local
@@ -36,7 +36,7 @@ AWK=nawk
 SED=sed
 LD_R=ld -r
 ETAGS=etags
-ARCH=sparc-sunos4.1.3
+ARCH=sparc-solaris2.5
 INSTALL=/usr/gnu/bin/install -c
 INSTALL_PROGRAM=${INSTALL}
 INSTALL_DATA=${INSTALL} -m 644

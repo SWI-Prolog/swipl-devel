@@ -813,12 +813,20 @@ ar_integer(term_t n1, Number r)
 { number arg;
 
   switch( valueExpression(n1, &arg) )
-  { case V_INTEGER:	r->i = arg.i;
-			return V_INTEGER;
-    case V_REAL:	r->i = (arg.f > 0 ? (long)(arg.f + 0.5)
-					  : (long)(arg.f - 0.5));
-			return V_INTEGER;
-    default:		fail;
+  { case V_INTEGER:
+      r->i = arg.i;
+      return V_INTEGER;
+    case V_REAL:
+#ifdef HAVE_RINT
+      r->f = rint(arg.f);
+      return V_REAL;
+#else
+      r->i = (arg.f > 0 ? (long)(arg.f + 0.5)
+			: (long)(arg.f - 0.5));
+      return V_INTEGER;
+#endif
+    default:
+      fail;
   }
 }
 
@@ -870,13 +878,21 @@ ar_floor(term_t n1, Number r)
 { number arg;
 
   switch( valueExpression(n1, &arg) )
-  { case V_INTEGER:	r->i = arg.i;
-			return V_INTEGER;
-    case V_REAL:	r->i = (long)arg.f;
-    			if ( arg.f < 0 && (real)r->i != arg.f )
-			  r->i--;
-			return V_INTEGER;
-    default:		fail;
+  { case V_INTEGER:
+      r->i = arg.i;
+      return V_INTEGER;
+    case V_REAL:
+#ifdef HAVE_FLOOR
+      r->f = floor(arg.f);
+      return V_REAL;
+#else
+      r->i = (long)arg.f;
+      if ( arg.f < 0 && (real)r->i != arg.f )
+	r->i--;
+      return V_INTEGER;
+#endif
+    default:
+      fail;
   }
 }
 
@@ -886,11 +902,19 @@ ar_truncate(term_t n1, Number r)
 { number arg;
 
   switch( valueExpression(n1, &arg) )
-  { case V_INTEGER:	r->i = arg.i;
-			return V_INTEGER;
-    case V_REAL:	r->i = (long)arg.f;
-			return V_INTEGER;
-    default:		fail;
+  { case V_INTEGER:
+      r->i = arg.i;
+      return V_INTEGER;
+    case V_REAL:
+#ifdef HAVE_AINT
+      r->f = aint(arg.f);
+      return V_REAL;
+#else
+      r->i = (long)arg.f;
+      return V_INTEGER;
+#endif
+    default:
+      fail;
   }
 }
 
@@ -900,13 +924,21 @@ ar_ceil(term_t n1, Number r)
 { number arg;
 
   switch( valueExpression(n1, &arg) )
-  { case V_INTEGER:	r->i = arg.i;
-			return V_INTEGER;
-    case V_REAL:	r->i = (long)arg.f;
-			if ( (real)r->i < arg.f )
-			  (r->i)++;
-			return V_INTEGER;
-    default:		fail;
+  { case V_INTEGER:
+      r->i = arg.i;
+      return V_INTEGER;
+    case V_REAL:
+#ifdef HAVE_CEIL
+      r->f = ceil(arg.f);
+      return V_REAL;
+#else
+      r->i = (long)arg.f;
+      if ( (real)r->i < arg.f )
+	(r->i)++;
+      return V_INTEGER;
+#endif
+    default:
+      fail;
   }
 }
 

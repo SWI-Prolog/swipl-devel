@@ -193,7 +193,7 @@ initFeatures()
   CSetFeature("bounded",	"true");
   if ( (-3 / 2) == -2 )
     CSetFeature("integer_rounding_function", "down");
-  else if ( (-3 / 2) == -1 )
+  else
     CSetFeature("integer_rounding_function", "toward_zero");
   CSetFeature("max_arity", "unbounded");
   CSetFeature("character_escapes", "true");
@@ -509,6 +509,8 @@ deallocateStacks(void)
 }
 
 
+#ifdef O_SAVE
+
 bool
 restoreStack(Stack s)
 { caddress max;
@@ -533,7 +535,7 @@ restoreStack(Stack s)
   DEBUG(0, Sdprintf("mapped %d bytes from 0x%x\n", len, (unsigned) s->base));
   succeed;
 }
-
+#endif O_SAVE
 
 #endif /* MMAP_STACK */
 

@@ -130,8 +130,17 @@
 /* Define if your tty library defines struct sgttyb */
 #undef HAVE_SGTTYB
 
+/* Define if assert.h cannot be used without loading stdio.h */
+#undef ASSERT_H_REQUIRES_STDIO_H
+
 /* Define if you have the access function.  */
 #undef HAVE_ACCESS
+
+/* Define if you have the aint function.  */
+#undef HAVE_AINT
+
+/* Define if you have the ceil function.  */
+#undef HAVE_CEIL
 
 /* Define if you have the chmod function.  */
 #undef HAVE_CHMOD
@@ -141,6 +150,9 @@
 
 /* Define if you have the dossleep function.  */
 #undef HAVE_DOSSLEEP
+
+/* Define if you have the floor function.  */
+#undef HAVE_FLOOR
 
 /* Define if you have the fstat function.  */
 #undef HAVE_FSTAT
@@ -190,6 +202,9 @@
 /* Define if you have the rename function.  */
 #undef HAVE_RENAME
 
+/* Define if you have the rint function.  */
+#undef HAVE_RINT
+
 /* Define if you have the rl_insert_close function.  */
 #undef HAVE_RL_INSERT_CLOSE
 
@@ -234,6 +249,9 @@
 
 /* Define if you have the strlwr function.  */
 #undef HAVE_STRLWR
+
+/* Define if you have the sysconf function.  */
+#undef HAVE_SYSCONF
 
 /* Define if you have the tgetent function.  */
 #undef HAVE_TGETENT

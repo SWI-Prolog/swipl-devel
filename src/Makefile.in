@@ -83,7 +83,7 @@ HDR=	config.h parms.h pl-buffer.h pl-ctype.h pl-incl.h pl-itf.h pl-main.h \
 all:	banner headers system startup index runtime pl-bite chpl
 
 .c.o:
-	$(CC) -c -I. -I$(srcdir) $(CFLAGS) $< -o $@
+	$(CC) -c -I. -I$(srcdir) $(CFLAGS) $< @COUTOPT@
 
 system:		$(PL)
 startup:	$(STARTUPPATH)

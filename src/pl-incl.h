@@ -147,6 +147,9 @@ This has worked on TURBO_C not very long ago.
 
 #include <sys/types.h>
 #include <setjmp.h>
+#ifdef ASSERT_H_REQUIRES_STDIO_H
+#include <stdio.h>
+#endif /*ASSERT_H_REQUIRES_STDIO_H*/
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
@@ -187,6 +190,10 @@ A common basis for C keywords.
 
 #if !defined(HAVE_INLINE) && !defined(inline)
 #define inline
+#endif
+
+#if defined(__GNUC__) && !defined(register)
+#define register
 #endif
 
 #ifndef HAVE_VOLATILE

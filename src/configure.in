@@ -19,6 +19,7 @@ AC_SUBST(PL)
 AC_SUBST(RT)
 AC_SUBST(PLVERSION)
 AC_SUBST(VPATH)
+AC_SUBST(COUTOPT)
 
 PL=pl
 RT=""
@@ -134,6 +135,21 @@ if test "$ac_cv_func_dlopen" = "yes" || \
    test "$ac_cv_func_shl_load" = "yes"; then
   configloadforeign=no
 
+AC_MSG_CHECKING(for $(CC) -c -o)
+  cat > conftest.c << _EOP_
+main()
+{ exit(0);
+}
+_EOP_
+  if ${CC-cc} $CFLAGS -c conftest.c -o conftest.o 1>&5 2>&5 && test -r conftest.o; then
+    COUTOPT='-o $@'
+    AC_MSG_RESULT(yes)
+  else
+    COUTOPT=
+    AC_MSG_RESULT(no)
+  fi
+  rm -rf conftest.*
+
 dnl Some versions of (g)cc need to export the symbols from the main program
 dnl using -rdynamic.  See whether this gcc understands this flag.
 
@@ -166,14 +182,25 @@ AC_CHECK_HEADERS(sys/termios.h sys/termio.h)
 AC_CHECK_HEADERS(mach-o/rld.h)
 
 AC_CHECK_FUNCS(access chmod dossleep fstat readlink getwd getcwd getdtablesize)
-AC_CHECK_FUNCS(getpagesize getpwnam getrlimit gettimeofday opendir)
+AC_CHECK_FUNCS(getpagesize getpwnam getrlimit gettimeofday opendir sysconf)
 AC_CHECK_FUNCS(popen putenv random remove rename rl_insert_close select)
 AC_CHECK_FUNCS(signal sleep srand srandom stat strerror tgetent times)
 AC_CHECK_FUNCS(memmove stricmp strlwr sigaction sigsetmask siggetmask sigblock)
+AC_CHECK_FUNCS(rint aint floor ceil)
 AC_HEADER_TIME
 AC_HEADER_DIRENT
 AC_HEADER_SYS_WAIT
 AC_FUNC_VFORK
+
+AC_MSG_CHECKING("whether assert.h needs stdio.h")
+AC_TRY_COMPILE(
+[
+#include <assert.h>
+],
+[ assert(1);
+], AC_MSG_RESULT(no),
+   AC_MSG_RESULT(yes);
+   AC_DEFINE(ASSERT_H_REQUIRES_STDIO_H))
 
 AC_CHECKING("for including sys/ioctl.h after sys/termios.h")
 if test "$GCC" = "yes"; then

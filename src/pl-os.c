@@ -31,9 +31,7 @@
 #include <vfork.h>
 #endif
 #ifdef HAVE_UNISTD_H
-#define lock lock_function		/* WATCOM problem */
 #include <unistd.h>
-#undef lock
 #endif
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
@@ -52,9 +50,7 @@
 #endif
 
 #if defined(__WATCOMC__)
-#define lock lock_function
 #include <io.h>
-#undef lock
 #include <dos.h>
 #endif
 

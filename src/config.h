@@ -42,7 +42,7 @@
 #define WORDS_BIGENDIAN 1
 
 /* Define if BSD compatible signals (i.e. no reset when fired) */
-#define BSD_SIGNALS 1
+/* #undef BSD_SIGNALS */
 
 /* Define if malloc()'ed data is in 0x10000000L .. 0x20000000L */
 /* #undef DATA_AT_0X1 */
@@ -78,7 +78,7 @@
 #define O_PROFILE 1
 
 /* Define if signal handler is of the form f(sig, type, context, addr) */
-#define SIGNAL_HANDLER_PROVIDES_ADDRESS 1
+/* #undef SIGNAL_HANDLER_PROVIDES_ADDRESS */
 
 /* Define if (type)var = value is allowed */
 #define TAGGED_LVALUE 1
@@ -114,7 +114,7 @@
 /* #undef UNION_WAIT */
 
 /* Define if <sys/ioctl> should *not* be included after <sys/termios.h> */
-#define NO_SYS_IOCTL_H_WITH_SYS_TERMIOS_H 1
+/* #undef NO_SYS_IOCTL_H_WITH_SYS_TERMIOS_H */
 
 /* Define if, in addition to <errno.h>, extern int errno; is needed */
 /* #undef NEED_DECL_ERRNO */
@@ -131,8 +131,17 @@
 /* Define if your tty library defines struct sgttyb */
 /* #undef HAVE_SGTTYB */
 
+/* Define if assert.h cannot be used without loading stdio.h */
+/* #undef ASSERT_H_REQUIRES_STDIO_H */
+
 /* Define if you have the access function.  */
 #define HAVE_ACCESS 1
+
+/* Define if you have the aint function.  */
+/* #undef HAVE_AINT */
+
+/* Define if you have the ceil function.  */
+#define HAVE_CEIL 1
 
 /* Define if you have the chmod function.  */
 #define HAVE_CHMOD 1
@@ -142,6 +151,9 @@
 
 /* Define if you have the dossleep function.  */
 /* #undef HAVE_DOSSLEEP */
+
+/* Define if you have the floor function.  */
+#define HAVE_FLOOR 1
 
 /* Define if you have the fstat function.  */
 #define HAVE_FSTAT 1
@@ -191,6 +203,9 @@
 /* Define if you have the rename function.  */
 #define HAVE_RENAME 1
 
+/* Define if you have the rint function.  */
+#define HAVE_RINT 1
+
 /* Define if you have the rl_insert_close function.  */
 #define HAVE_RL_INSERT_CLOSE 1
 
@@ -235,6 +250,9 @@
 
 /* Define if you have the strlwr function.  */
 /* #undef HAVE_STRLWR */
+
+/* Define if you have the sysconf function.  */
+#define HAVE_SYSCONF 1
 
 /* Define if you have the tgetent function.  */
 #define HAVE_TGETENT 1

@@ -1,6 +1,29 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.5.6
+=============
+  
+  * FIXED: ceil/1, floor/1 and integer/1 to handle large floating point
+    numbers correctly.
+
+  * MODIFIED: write and friends to print floating point numbers using
+    the `%g' format by default, printing large floats as -for example-
+    3e20.  Use format with the ~f option to format floats as you please.
+
+  * FIXED: on some machines <assert.h> requires <stdio.h> to be included.
+    configure now checks for this.
+
+  * FIXED: .qlf file-magic verification.
+
+  * FIXED: Some minor portability problems: test for CC supporting -c -o
+    combination, solaris prototypes for random and srandom added, changed
+    system parameter detection for file-table-size and page-size to use
+    sysconf() when available.  Compilation is now silent on solaris 2.5,
+    except for a number of `might not be initialised' warnings in pl-wam.c
+    that aren't correct (also, these are not reported by other versions
+    of gcc).
+
 Version 2.5.5
 =============
 
