@@ -10246,7 +10246,7 @@ typedef struct                  /* define a context structure */
 } context;
 
 foreign_t
-my_function(term_t a0, term_t a1, foreign_t handle)
+my_function(term_t a0, term_t a1, control_t handle)
 { struct context * ctxt;
 
   switch( PL_foreign_control(handle) )
@@ -10260,8 +10260,11 @@ my_function(term_t a0, term_t a1, foreign_t handle)
         ...
         PL_retry_address(ctxt);
     case PL_CUTTED:
+        ctxt = PL_foreign_context_address(handle);
+        ...
         free(ctxt);
         PL_succeed;
+
   }
 }
 

@@ -84,6 +84,8 @@
 	    rdf_debug/1			% Set verbosity
 	  ]).
 :- use_module(library(rdf)).
+:- use_module(library(lists)).
+:- use_module(library(shlib)).
 
 :- initialization
    load_foreign_library(foreign(rdf_db)).
