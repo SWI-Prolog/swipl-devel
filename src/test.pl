@@ -855,6 +855,12 @@ compiler(assert-5) :-
 	mkterm(T0),
 	assert(compiler_test(T0)),
 	retract(compiler_test(T0)).
+compiler(assert-6) :-
+	numlist(0, 100, L),
+	append(L, [_], A),
+	T =.. [x|A],
+	assert(T),
+	T.
 
 unify(X, X).
 

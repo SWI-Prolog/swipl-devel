@@ -322,13 +322,14 @@ getVarDef(int i ARG_LD)
   { VarDef *vdp;
     int onvd = nvd, n;
 
-    if ( nvd > 0 )
-    { nvd *= 2;
+    while ( i >= nvd )
+      nvd = nvd > 0 ? (nvd*2) : 32;
+
+    if ( onvd > 0 )
       vardefs = realloc(vardefs, sizeof(VarDef) * nvd);
-    } else
-    { nvd = 32;
+    else
       vardefs = malloc(sizeof(VarDef) * nvd);
-    }
+
     if ( !vardefs )
       outOfCore();
 

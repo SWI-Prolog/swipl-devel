@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: compiler error causing crashes on some weird variable patterns.
+    With fix from Sergey Tikhonov.  Thanks!
+
   * ADDED: allow defining behaviour of streams when writing characters
     that cannot be represented.  Suggested by Anjo Anjewierden.
 
