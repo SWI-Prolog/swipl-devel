@@ -89,6 +89,7 @@ locate(Spec, Spec, Location) :-
 %	Locate object from the specified location.
 
 locate(file(File, line(Line)), [file(File), line(Line)]).
+locate(file(File), [file(File)]).
 locate(Module:Name/Arity, [file(File), line(Line)]) :-
 	(   nonvar(Arity)
 	->  functor(Head, Name, Arity)
