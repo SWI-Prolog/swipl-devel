@@ -79,6 +79,7 @@
 		(#\)/1,
 		(in)/2,
 		label/1,
+		labeling/2,
 		all_different/1
 	]).
 
@@ -222,17 +223,100 @@ parse_expression(Expr,Result) :-
 	).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-label([]).
-label([V|Vs]) :-
-	( get(V,L,U,_) -> 
-		between(L,U,W),
-		%format('\tlabelling ~w with ~w\n',[V,W]),
-		V = W
+label(Vs) :- labeling([],Vs).
+
+labeling(Options,Vars) :-
+	label(Options,leftmost,Vars).
+
+label([Option|Options],_Selection,Vars) :-
+	selection(Option),
+	label(Options,Option,Vars).
+label([],Selection,Vars) :-
+	label(Vars,Selection).
+
+label([],_) :- !.
+label(Vars,Selection) :-
+	select_var(Selection,Vars,Var,RVars),
+	( var(Var) ->
+		bounds(Var,L,U),
+		between(L,U,Var)
 	;
 		true
 	),
-	label(Vs).
-	
+	label(RVars,Selection).
+
+selection(ff).
+selection(min).
+selection(max).
+selection(leftmost).
+
+
+select_var(leftmost,[Var|Vars],Var,Vars).
+select_var(min,[V|Vs],Var,RVars) :-
+		find_min(Vs,V,Var),
+		delete_eq([V|Vs],Var,RVars).
+select_var(max,[V|Vs],Var,RVars) :-
+		find_max(Vs,V,Var),
+		delete_eq([V|Vs],Var,RVars).
+select_var(ff,[V|Vs],Var,RVars) :-
+		find_ff(Vs,V,Var),
+		delete_eq([V|Vs],Var,RVars).
+
+find_min([],Var,Var).
+find_min([V|Vs],CM,Min) :-
+	( min_lt(V,CM) ->
+		find_min(Vs,V,Min)
+	;
+		find_min(Vs,CM,Min)
+	).
+
+find_max([],Var,Var).
+find_max([V|Vs],CM,Max) :-
+	( max_gt(V,CM) ->
+		find_min(Vs,V,Max)
+	;
+		find_min(Vs,CM,Max)
+	).
+
+find_ff([],Var,Var).
+find_ff([V|Vs],CM,FF) :-
+	( ff_lt(V,CM) ->
+		find_min(Vs,V,FF)
+	;
+		find_min(Vs,CM,FF)
+	).
+
+ff_lt(X,Y) :-
+	bounds(X,LX,UX),
+	bounds(Y,LY,UY),
+	UX - LX < UY - LY.	
+
+min_lt(X,Y) :-
+	bounds(X,LX,_),
+	bounds(Y,LY,_),
+	LX < LY.	
+
+max_gt(X,Y) :-
+	bounds(X,_,UX),
+	bounds(Y,_,UY),
+	UX > UY.	
+
+bounds(X,L,U) :-
+	( var(X) ->
+		get(X,L,U,_)
+	;
+		X = L,
+		X = U
+	).	
+
+delete_eq([],_,[]).
+delete_eq([X|Xs],Y,List) :-
+	( X == Y ->
+		List = Xs
+	;
+		List = [X|Tail],
+		delete_eq(Xs,Y,Tail)
+	).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 all_different([]).
 all_different([X|Xs]) :-
