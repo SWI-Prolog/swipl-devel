@@ -1,0 +1,14 @@
+Using and masaging RDF triples
+
+	* Namespaces
+
+		+ Allow for beautifying namespaces
+
+More about namespaces
+
+	xmlns(rdf).
+	xmlns(rdf, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#').
+	xmlns(rdf, 'http://www.w3.org/TR/REC-rdf-syntax').
+	xmlns(rdf, 'http://www.w3.org/TR/1999/REC-rdf-syntax-19990222').
+
+xml_namespace(Id, Namespace)
