@@ -122,6 +122,11 @@ Enumerate the existing ODBC connections.
 Set options on an existing connection.  Defined options are:
 
 \begin{description}
+    \termitem{access_mode}{Mode}
+If \const{read}, tell the driver we only access the database in read
+mode.  If \const{update} (default), tell the driver we may execute
+update commands.
+
     \termitem{auto_commit}{bool}
 If \const{true} (default), each update statement is committed
 immediately.  If \const{false}, an update statement starts a transaction
@@ -139,6 +144,29 @@ The specified default holds for all statements executed on this
 connection. Changing the connection default does not affect already
 prepared or running statements.  The null-value can also be specified
 at the statement level.
+\end{description}
+
+    \predicate{odbc_get_connection}{2}{+Connection, ?Property}
+Query for properties of the connection.  \arg{Property} is a term
+of the format \term{\arg{Name}}{\arg{Value}}.  If \arg{Property}
+is unbound all defined properties are enumerated on backtracking.
+Currently the following properties are defined.
+
+\begin{description}
+    \termitem{database_name}{Name}
+Name of the database associated to the connection.
+    \termitem{dbms_name}{Name}
+Name of the database engine.  This constant can be used to identify
+the engine.
+    \termitem{dbms_version}{Name}
+Version identifier from the database engine.
+    \termitem{driver_name}{Name}
+ODBC Dynamic Link Library providing the interface between ODBC and
+the database.
+    \termitem{driver_odbc_version}
+ODBC version supported by the driver.
+    \termitem{driver_version}
+The drivers version identifier.
 \end{description}
 \end{description}
 

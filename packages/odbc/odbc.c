@@ -754,7 +754,8 @@ pl_odbc_connect(term_t tdsource, term_t cid, term_t options)
 	      open == ATOM_multiple) )
 	 return domain_error(head, "open_mode");
      } else if ( PL_is_functor(head, FUNCTOR_auto_commit1) ||
-		 PL_is_functor(head, FUNCTOR_null1) )
+		 PL_is_functor(head, FUNCTOR_null1) ||
+		 PL_is_functor(head, FUNCTOR_access_mode1) )
      { if ( nafter < MAX_AFTER_OPTIONS )
 	 PL_put_term(after_open+nafter++, head);
        else
