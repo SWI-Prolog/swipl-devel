@@ -926,7 +926,7 @@ getSingleChar(IOSTREAM *stream)
   PushTty(stream, &buf, TTY_RAW);	/* just donot prompt */
   
   if ( !trueFeature(TTY_CONTROL_FEATURE) )
-  { Char c2;
+  { int c2;
 
     c2 = Sgetcode(stream);
     while( c2 == ' ' || c2 == '\t' )	/* skip blanks */

@@ -158,7 +158,7 @@ getContentsSourceSink(SourceSink ss, Int from, Int len)
 	fail;
       }
     } else
-    { wint_t c;
+    { int c;
       long n = 0;
 
       str_inithdr(&s, ENC_ISOL1);

@@ -2013,7 +2013,7 @@ insert_file_textbuffer(TextBuffer tb, int where, int times, SourceSink file)
   
   if ( istbA(tb) )
   { for(;;)
-    { wint_t c = Sgetcode(fd);
+    { int c = Sgetcode(fd);
 
       if ( c == EOF )
 	goto done;
@@ -2028,7 +2028,7 @@ insert_file_textbuffer(TextBuffer tb, int where, int times, SourceSink file)
 					/* promoted or already the case */
   if ( !istbA(tb) && !Sfeof(fd) )
   { for(;;)
-    { wint_t c = Sgetcode(fd);
+    { int c = Sgetcode(fd);
 
       if ( c == EOF )
 	goto done;

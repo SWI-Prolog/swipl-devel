@@ -936,7 +936,7 @@ getReadLineFile(FileObj f)
   str_tmp_init(&tmp);
 
   for(;;)
-  { wint_t c = Sgetcode(f->fd);
+  { int c = Sgetcode(f->fd);
 
     if ( c == EOF )
     { if ( tmp.s.size == 0 )
@@ -995,7 +995,7 @@ getReadFile(FileObj f, Int n)
     }
   } else
   { tmp_string tmp;
-    wint_t c;
+    int c;
 
     str_tmp_init(&tmp);
     while(tmp.s.size < size && (c = Sgetcode(f->fd)) != EOF )
@@ -1015,7 +1015,7 @@ getReadFile(FileObj f, Int n)
 
 static Int
 getCharacterFile(FileObj f)
-{ wint_t chr;
+{ int chr;
 
   TRY( check_file(f, NAME_read) );
   if ( Sfeof(f->fd) )
