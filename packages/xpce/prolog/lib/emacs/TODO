@@ -2,10 +2,6 @@
 
 * Check M-x comment_column
 
-* Show line numbers/provide easy way to get to a line
-
-* Show key-bindings in menu
-
 * Distinguish interactive and system commands
 
 * Fix bookmark handling

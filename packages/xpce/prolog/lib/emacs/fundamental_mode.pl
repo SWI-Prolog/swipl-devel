@@ -31,7 +31,7 @@
 	  save_and_kill            = key('\\C-x#'),
 	  what_cursor_position     = key('\\C-x='),
 	  count_lines_region       = key('\\e='),
-	  query_replace_regex      = key('\\e%'),
+	  replace	           = key('\\e%'),
 	  grab_region              = key('\\ew'),
 	  justify_paragraph        = key('\\eQ'),
 	  bookmark_line            = key('\\e@'),
@@ -58,6 +58,7 @@
 
 					% EDIT menu
 	  undo			   = button(edit),
+	  -			   = button(edit),
 	  copy			   = button(edit),
 	  cut			   = button(edit),
 	  paste			   = button(edit),
@@ -440,8 +441,7 @@ print(M) :->
 		 *	      REPLACE		*
 		 *******************************/
 
-replace(M, From:'replace=regex',
-		    To:'into=string') :->
+replace(M, From:'replace=regex', To:'into=string') :->
 	"Query replace regular expression"::
 	send(M, query_replace_regex, From, To).
 

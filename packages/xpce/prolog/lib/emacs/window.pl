@@ -48,11 +48,7 @@ initialise(F, B:emacs_buffer) :->
 	"Create window for buffer"::
 	send(F, send_super, initialise, B?name, application := @emacs),
 	send(F, slot, sticky_window, @off),
-	send(F, append, new(MBD, dialog)),
-	send(MBD, resize_message, message(@receiver, layout, @arg2)),
-	send(MBD, gap, size(0,3)),
-	send(MBD, pen, 0),
-	send(MBD, display, new(menu_bar)),
+	send(F, append, new(MBD, emacs_mode_dialog)),
 
 	get(F, class_variable_value, size, Size),
 	send(new(V, emacs_view(B, Size?width, Size?height)), below, MBD),
@@ -101,10 +97,10 @@ editor(F, Editor:emacs_editor) :<-
 	get(V, editor, Editor).
 
 
-menu_bar(F, MB:menu_bar) :<-
+menu_bar(F, MB:emacs_menu_bar) :<-
 	"The menu_bar object at the top"::
-	get(F, member, dialog, D),
-	get(D, member, menu_bar, MB).
+	get(F, member, emacs_mode_dialog, D),
+	get(D, member, emacs_menu_bar, MB).
 
 
 mode(F, Mode:emacs_mode) :<-
@@ -215,8 +211,7 @@ reset(F) :->
 	send(F, send_super, reset),
 	get(F, member, mini_window, W),
 	send(W, prompter, @nil),
-	get(F, member, dialog, Dialog),
-	get(Dialog, member, menu_bar, MB),
+	get(F, menu_bar, MB),
 	send(MB, active, @on).
 
 show_line_number(F, Line:'int|{too_expensive}*') :->
@@ -225,6 +220,112 @@ show_line_number(F, Line:'int|{too_expensive}*') :->
 	send(W, show_line_number, Line).
 
 :- pce_end_class(emacs_frame).
+
+
+:- pce_begin_class(emacs_mode_dialog, dialog,
+		   "Show menu-bar for mode options").
+
+initialise(D) :->
+	send_super(D, initialise),
+	send(D, gap, size(0,3)),
+	send(D, pen, 0),
+	send(D, append, new(emacs_menu_bar)).
+
+resize(D) :->
+	send(D, layout, D?area?size).
+
+assign_accelerators(_) :->
+	"Accelerators are defined by the window"::
+	true.
+
+:- pce_end_class(emacs_mode_dialog).
+
+
+:- pce_begin_class(emacs_menu_bar, menu_bar,
+		   "Top menu bar of the editor").
+
+assign_accelerators(_) :->
+	"Accelerators are defined by the window"::
+	true.
+
+mode(MB, Mode:emacs_mode) :->
+	"Prepare for given mode"::
+	get(Mode, mode_menu, ModeMenu),
+	send(MB, clear),
+	send(ModeMenu, for_all,
+	     message(MB, append_items, Mode, @arg1?name, @arg1?value)).
+
+append_items(MB, Mode:emacs_mode, Name:name, Entries:chain) :->
+	(   get(MB, member, Name, Popup)
+	->  true
+	;   new(Popup, emacs_popup(Name,
+				   message(@emacs_mode, noarg_call, @arg1))),
+	    (   Name == help
+	    ->	send(MB, append, Popup, right)
+	    ;   send(MB, append, Popup)
+	    )
+	),
+	send(Entries, for_some, message(Popup, append_item, Mode, @arg1)).
+
+:- pce_end_class(emacs_menu_bar).
+
+
+:- pce_begin_class(emacs_popup, popup,
+		   "Popup for the mode-menu").
+
+class_variable(accelerator_font, font, small).
+
+assign_accelerators(_) :->
+	"Accelerators are defined by the window"::
+	true.
+
+append_item(P, Mode:emacs_mode, Item:any) :->
+	"Append single menu item"::
+	(   Item == -
+	->  send(P, append, gap)
+	;   atom(Item)
+	->  send(P, append, new(MI, menu_item(Item))),
+	    (   get(Mode, bindings, KeyBindings),
+		get(KeyBindings, binding, Item, Key)
+	    ->  human_accelerator(Key, Human),
+		send(MI, accelerator, Human)
+	    ;   true
+	    ),
+	    (   get(Mode, send_method, Item, tuple(_, Impl))
+	    ->  (   forall((between(1, 10, ArgN),
+		    get(Impl, argument_type, ArgN, ArgType)),
+		    send(ArgType, includes, default))
+		->  true
+		;   send(MI, label, string('%s ...', Item?label_name))
+		)
+	    ;   send(MI, active, @off)
+	    )
+	;   send(P, append, Item?clone)
+	).
+
+%	human_accelerator(+Key, -Human)
+%
+%	Translate XPCE key-sequences in conventional notation.  Should be
+%	part of the XPCE kernel someday.
+
+:- dynamic
+	accel_cache/2.
+
+human_accelerator(Key, Text) :-
+	accel_cache(Key, Text), !.
+human_accelerator(Key, Text) :-
+	new(S, string('%s', Key)),
+	send(regex('\\C-\(.\)'), for_all, S,
+	     message(@arg1, replace, @arg2, 'Control-\1 ')),
+	send(regex('RET'), for_all, S,
+	     message(@arg1, replace, @arg2, 'Control-m ')),
+	send(regex('\\e'), for_all, S,
+	     message(@arg1, replace, @arg2, 'Alt-')),
+	get(S, value, Text),
+	assert(accel_cache(Key, Text)).
+
+:- pce_end_class(emacs_popup).
+
 
 :- pce_begin_class(emacs_command_item, text_item,
 		   "Prompt for a M-x command").
@@ -948,53 +1049,12 @@ mode_menu_name(ClassName, Name) :-
 
 fill_menu_bar(M, MB:menu_bar) :->
 	"Fill the menu_bar"::
-	get(M, mode_menu, ModeMenu),
-	send(MB, clear),		% ???
-	send(ModeMenu, for_all,
-	     and(if(?(MB, member, @arg1?name),
-		    message(M, fill_menu,
-			    ?(MB, member, @arg1?name), @arg1?value),
-		    and(assign(new(P, var),
-			       create(popup, @arg1?name,
-				      message(@emacs_mode,
-					      noarg_call, @arg1))),
-			message(MB, append, P,
-				when(@arg1?name == help, right, @default)),
-			message(M, fill_menu, P, @arg1?value))))).
+	send(MB, mode, M).
 
 
-fill_menu(M, P:popup, Entries:chain) :->
-	"Add specified entries to the given popup"::
-	send(Entries, for_some,
-	     message(M, append_popup_item, P, @arg1)).
-
-
-append_popup_item(M, P:popup, Item:any) :->
-	"Append single menu item"::
-	(   Item == -
-	->  (   get(P?members, tail, Last)
-	    ->	send(Last, end_group, @on)
-	    ;	true
-	    )
-	;   atom(Item)
-	->  send(P, append, new(MI, menu_item(Item))),
-	    (   get(M, bindings, KeyBindings),
-		get(KeyBindings, binding, Item, Key)
-	    ->  send(MI, accelerator, Key)
-	    ;   true
-	    ),
-	    (   get(M, send_method, Item, tuple(_, Impl))
-	    ->  (   forall((between(1, 10, ArgN),
-		    get(Impl, argument_type, ArgN, ArgType)),
-		    send(ArgType, includes, default))
-		->  true
-		;   send(MI, label, string('%s ...', Item?label_name))
-		)
-	    ;   send(MI, active, @off)
-	    )
-	;   send(P, append, Item?clone)
-	).
-
+		 /*******************************
+		 *	      HISTORY		*
+		 *******************************/
 
 %:- pce_global(@c_method, new(var)).	% debugging
 
