@@ -44,7 +44,7 @@ completions(FI, From:'tuple|name', Matches:chain) :<-
 	(   send(From, instance_of, char_array)
 	->  complete_module_or_predicate(From, Matches)
 	;   get(From?first, value, ModulePlusColon),
-	    concat(Module, :, ModulePlusColon),
+	    atom_concat(Module, :, ModulePlusColon),
 	    (	current_module(Module)
 	    ->	new(Matches, chain),
 		get(From?second, value, Pred),

@@ -88,6 +88,6 @@ setup_runtime :-
 	->  true
 	;   send(@pce, trap_errors, @off)
 	),
-	set_feature(debug_on_error, false).	
+	set_prolog_flag(debug_on_error, false).	
 
 

@@ -229,9 +229,9 @@ cancel(F) :->
 
 ensure_dot('', '') :- !.
 ensure_dot(Ext, Ext) :-
-	concat('.', _, Ext), !.
+	atom_concat('.', _, Ext), !.
 ensure_dot(Ext0, Ext) :-
-	concat('.', Ext0, Ext).
+	atom_concat('.', Ext0, Ext).
 
 directory(F, Dir:[directory], Ext0:[name]) :->
 	"Set current directory and fill browser"::

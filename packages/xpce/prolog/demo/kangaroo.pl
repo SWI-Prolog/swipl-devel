@@ -68,7 +68,7 @@ set_speed(T, N) :-
 
 image(R, N, File) :-
 	between(1, 11, N),
-	concat(kangaroo_, N, R),
+	atom_concat(kangaroo_, N, R),
 	concat_atom([kangro, N, '.bm'], File).
 
 resource(R, image, image(File)) :-

@@ -149,8 +149,8 @@ emacs_mode_class(ModeName, ClassName) :-
 	;   concat_atom([emacs_, ModeName, '_mode'], ClassName)
 	).
 emacs_mode_class(ModeName, ClassName) :-
-	concat(emacs_, M0, ClassName),
-	concat(ModeName, '_mode', M0), !.
+	atom_concat(emacs_, M0, ClassName),
+	atom_concat(ModeName, '_mode', M0), !.
 emacs_mode_class(@default, emacs_mode).
 
 

@@ -397,8 +397,8 @@ mark_word(F, S:string) :->
 	get(F, view, View),
 	get(View, text_buffer, TB),
 	get(@ispell_mark_re, quote, S, Q),
-	send(Q, prepend, '\b'),
-	send(Q, append, '\b'),
+	send(Q, prepend, '\\b'),
+	send(Q, append, '\\b'),
 	send(@ispell_mark_re, pattern, Q),
 	mark_all(TB, 0, @ispell_mark_re, Word, Errors, error),
 	send(F, report, done).
@@ -530,8 +530,8 @@ the object searched.  Register 0 of a regular expression refers to the
 entire match.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-:- pce_global(@re_word_ispell_3, new(regex('[:,] \([^,]*\)'))).
-:- pce_global(@re_word_ispell_4, new(regex('\s +\(\S +\)'))).
+:- pce_global(@re_word_ispell_3, new(regex('[:,] \\([^,]*\\)'))).
+:- pce_global(@re_word_ispell_4, new(regex('\\s +\\(\\S +\\)'))).
 
 ispell_utterance(F, Line:string) :->
 	"Handle line of output from ispell"::
@@ -583,7 +583,7 @@ action(F, R:[name], AddToDict:[bool]) :->
 	;   ToDict = Word
 	),
 	(   AddToDict == @on
-	->  send(F?ispell, format, '*%s\n', ToDict),
+	->  send(F?ispell, format, '*%s\\n', ToDict),
 	    send(F, report, status, 'Added "%s" to dictionary', ToDict)
 	;   true
 	),

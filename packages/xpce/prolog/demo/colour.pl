@@ -27,7 +27,7 @@ user:file_search_path(x11, '/usr/lib/X11').
 user:file_search_path(x11, PceLib) :-
 	get(@pce, window_system, windows),
 	get(@pce, home, PceHome),
-	concat(PceHome, '/lib', PceLib).
+	atom_concat(PceHome, '/lib', PceLib).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This demo implements a  browser  for   the  X11  predefined colours. The

@@ -111,7 +111,7 @@ generate_unique_variable_names([Part|Parts], Done, [NewPart|NewParts]) :-
 	(   occurs(Done, Ref, DoneTimes),
 	    DoneTimes > 0
 	->  Id is DoneTimes + 1,
-	    concat(Ref, Id, NewRef),
+	    atom_concat(Ref, Id, NewRef),
 	    set_varname(Part, NewRef, NewPart),
 	    generate_unique_variable_names(Parts, [Part|Done], NewParts)
 	;   occurs(Parts, Ref, Times),
@@ -120,7 +120,7 @@ generate_unique_variable_names([Part|Parts], Done, [NewPart|NewParts]) :-
 		generate_unique_variable_names(Parts, [Part|Done], NewParts)
 	    ;   occurs(Done, Ref, DoneTimes),
 		Id is DoneTimes + 1,
-		concat(Ref, Id, NewRef),
+		atom_concat(Ref, Id, NewRef),
 		set_varname(Part, NewRef, NewPart),
 		generate_unique_variable_names(Parts, [Part|Done], NewParts)
 	    )
@@ -438,7 +438,7 @@ simplify_forward(Obtainer, Simple) :-
 
 
 argleft(@Ref) :-
-	concat(arg, N, Ref),
+	atom_concat(arg, N, Ref),
 	get(@pce, convert, N, int, _), !.
 argleft(Atomic) :-
 	atomic(Atomic), !,
@@ -453,7 +453,7 @@ make_mapping(Args, Mapping) :-
 
 make_mapping([], _, []).
 make_mapping([H|T], N, [@ArgN = H|R]) :-
-	concat(arg, N, ArgN),
+	atom_concat(arg, N, ArgN),
 	NN is N + 1,
 	make_mapping(T, NN, R).
 

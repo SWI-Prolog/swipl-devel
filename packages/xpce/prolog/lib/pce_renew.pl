@@ -48,13 +48,13 @@ confirm(Ref) :-				% rename
 	renew_mode(rename), !,
 	Object = @Ref,
 	between(1, 100000, X),
-	concat(Ref, X, NewName),
+	atom_concat(Ref, X, NewName),
 	\+ object(@NewName), !,
 	send(Object, name_reference, NewName).
 confirm(Ref) :-				% ask
 	Object = @Ref,
 	between(1, 100000, X),
-	concat(Ref, X, NewName),
+	atom_concat(Ref, X, NewName),
 	\+ object(@NewName), !,
 
 	new(D, dialog),

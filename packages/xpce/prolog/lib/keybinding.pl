@@ -45,8 +45,7 @@ method(TextImage, Method) :-
 	get(View, hypered, target, Target),
 	get(TextImage, index, View?focus_event, Here),
 	get(View, scan, Here, line, 0, start, StartOfLine),
-	get(View?text_buffer, find, StartOfLine,
-	    string('\t'), StartOfSelector),
+	get(View?text_buffer, find, StartOfLine, '\t', StartOfSelector),
 	get(View, word, StartOfSelector, Selector),
 	get(Target, send_method, Selector, tuple(_, Method)).
 

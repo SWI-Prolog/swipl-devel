@@ -36,8 +36,13 @@ reset :-
 		 *******************************/
 
 iso_check_directory(Dir) :-
+	absolute_file_name(Dir,
+			   [ file_type(directory),
+			     access(read)
+			   ],
+			   TheDir),
 	destroy_editors,
-	atom_concat(Dir, '/*.pl', Pattern),
+	atom_concat(TheDir, '/*.pl', Pattern),
 	expand_file_name(Pattern, Files),
 	forall(member(File, Files),
 	       iso_check_file(File)).
@@ -283,7 +288,10 @@ directive(pce_end_class, _Pos) :-
 directive(set_feature(character_escapes, Value), Pos) :- !,
 	directive(set_prolog_flag(character_escapes, Value), Pos).
 directive(set_prolog_flag(character_escapes, Value), Pos) :- !,
-	change(Pos, '', character_escapes),
+	arg(1, Pos, From),
+	arg(2, Pos, To),
+	TermTo is To + 2,
+	change(From-TermTo, '', character_escapes),
 	set(character_escapes, Value).
 directive(Code, Pos) :-
 	body(Code, Pos).
@@ -304,19 +312,22 @@ read_source_term(Fd, Term, Pos) :-
 			  module(Module),
 			  character_escapes(false)
 			]),
-	      _E1, true),
+	      E1, true),
 	seek(Fd, Here, bof, _),
 	catch(read_term(Fd, Term2,
 			[ subterm_positions(Pos2),
 			  module(Module),
 			  character_escapes(true)
 			]),
-	      _E2, true),
+	      E2, true),
 	(   Term1 =@= Term2
 	->  Term = Term1,
 	    Pos = Pos1
-	;   report_difference(Term1, Pos1, Term2, Pos2),
+	;   var(E1), var(E2)
+	->  report_difference(Term1, Pos1, Term2, Pos2),
 	    Term = Term1		% for further processing
+	;   var(E2)			% fixed for ISO
+	->  Term = Term2
 	).
 
 report_difference(T1, _P1, T2, _P2) :-
@@ -481,13 +492,15 @@ make_fragment(Pos, Fragment) :-
 
 resource(save,	  image, image('16x16/save.xpm')).
 resource(replace, image, image('16x16/redo.xpm')).
+resource(undo,    image, image('16x16/undo.xpm')).
 
 :- pce_begin_class(change_fragment, fragment,
 		   "Indicate suggested change").
 
-variable(to,	  string, both,	"Proposed new text").
-variable(comment, string, both,	"Comment for change").
-variable(undo,	  string, both, "Text for undo").
+variable(to,	      string*, both, "Proposed new text").
+variable(comment,     string,  both, "Comment for change").
+variable(undo_string, string*, both, "Text for undo").
+variable(undo_style,  name*,   both, "Original style").
 
 identify(F) :->
 	get(F, comment, Comment),
@@ -497,12 +510,23 @@ identify(F) :->
 
 replace(F) :->
 	"Replace with <-to"::
+	get(F, style, Style),
+	Style \== done,
+	send(F, undo_style, Style),
 	get(F, to, To),
 	To \== @nil,
 	get(F, string, Undo),
-	send(F, undo, Undo),
+	send(F, undo_string, Undo),
 	send(F, string, To),
 	send(F, style, done).
+
+undo(F) :->
+	"Replace with <-undo"::
+	get(F, style, done),
+	get(F, undo_string, Undo),
+	get(F, undo_style, Style),
+	send(F, string, Undo),
+	send(F, style, Style).
 
 :- pce_end_class.
 
@@ -515,8 +539,12 @@ initialise(V) :->
 	       send(V, style, Id, Term)).
 
 :- pce_global(@change_editor_recogniser,
-	      new(click_gesture(left, '', single,
-				message(@receiver, clicked, @arg1)))).
+	      make_change_editor_recogniser).
+
+make_change_editor_recogniser(G) :-
+	new(G, click_gesture(left, '', single,
+			     message(@receiver, clicked, @arg1))),
+	send(G, condition, message(@event?receiver, on_fragment, @arg1)).
 
 fragment(V, Ev:event, Fragment:change_fragment) :<-
 	"Find fragment from event"::
@@ -527,34 +555,22 @@ fragment(V, Ev:event, Fragment:change_fragment) :<-
 
 event(V, Ev:event) :->
 	(   get(V, image, Image),
-	    send(Ev, inside, Image)
-	->  (   send(@change_editor_recogniser, event, Ev)
-	    ->  true
-	    ;   (   get(V, fragment, Ev, Fragment)
-		->  send(Fragment, identify)
-		;   true
-		),
-		send_super(V, event, Ev)
-	    )
+	    send(Ev, inside, Image),
+	    send(@change_editor_recogniser, event, Ev)
+	->  true
 	;   send_super(V, event, Ev)
 	).
 		
+on_fragment(V, Ev:event) :->
+	"Test if we are on a fragment"::
+	get(V, fragment, Ev, _Fragment).
+
 clicked(V, Ev:event) :->
 	"Replace text with proposed alternative"::
-	send(V, selection, 0, 0),
-	(   get(V, fragment, Ev, Fragment),
-	    get(Fragment, to, To),
-	    To \== @nil
-	->  send(Fragment, replace),
-	    (	get(Fragment, next, Next),
-		Next \== @nil
-	    ->	send(V?frame, select_fragment, Next)
-	    ;	true
-	    )
-	;   get(V?image, index, Ev, Index),
-	    send(V, caret, Index)
-	).
-
+	get(V, fragment, Ev, Fragment),
+	send(V?frame, select_fragment, Fragment),
+	get(V?image, index, Ev, Index),
+	send(V, caret, Index).
 
 :- pce_end_class.
 
@@ -598,7 +614,10 @@ fill_dialog(F) :->
 		    gap,		% skip a little
 		    tool_button(replace,
 				resource(replace),
-				replace)
+				replace),
+		    tool_button(undo,
+				resource(undo),
+				undo)
 		  ]).
 			    
 :- pce_group(fragment).
@@ -613,6 +632,7 @@ select_fragment(F, Fragment:fragment) :->
 	"Select fragment in browser and view"::
 	get(Fragment, hypered, dict_item, DI),
 	send(F?browser, selection, DI),
+	send(F?browser, normalise, DI),
 	get(F, editor, View),
 	send(View, normalise, Fragment?start, Fragment?end),
 	send(View, selection, Fragment?start, Fragment?end),
@@ -640,6 +660,13 @@ replace(F) :->
 	->  send(F, select_fragment, Next)
 	;   true
 	).
+
+undo(F) :->
+	"Undo change of this fragment"::
+	get(F, browser, Browser),
+	get(Browser, selection, DI),
+	get(DI, object, Fragment),
+	send(Fragment, undo).
 
 :- pce_group(file).
 

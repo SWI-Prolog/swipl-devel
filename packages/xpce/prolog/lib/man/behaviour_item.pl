@@ -12,7 +12,6 @@
 :- use_module(util).
 :- require([ forall/2
 	   ]).
-:- set_prolog_flag(character_escapes, false).
 
 :- pce_begin_class(behaviour_item, text_item,
 		   "Text item for entering XPCE behaviour or class").
@@ -29,7 +28,7 @@ completions(_MI, Spec:'char_array|tuple', Matches:chain) :<-
 		    message(Matches, append, @arg1)))
 	;   get(Spec, first, ClassPart),
 	    get(Spec, second, SelPart),
-	    new(Re, regex('\s *\(\w+\)\s *\(->\|<-\|-\)')),
+	    new(Re, regex('\\s *\\(\\w+\\)\\s *\\(->\\|<-\\|-\\)')),
 	    send(Re, match, ClassPart),
 	    get(Re, register_value, ClassPart, 1, name, ClassName),
 	    get(Re, register_value, ClassPart, 2, name, Arrow),
@@ -53,7 +52,7 @@ completions(_MI, Spec:'char_array|tuple', Matches:chain) :<-
 	send(Matches, sort).
 
 split_completion(_MI, Value:char_array, RVal:'char_array|tuple') :<-
-	new(Re, regex('\s *\(\w+\s *\(->\|<-\|-\)\)\(\w*\)')),
+	new(Re, regex('\\s *\\(\\w+\\s *\\(->\\|<-\\|-\\)\\)\\(\\w*\\)')),
 	(   send(Re, match, Value)
 	->  get(Re, register_value, Value, 1, Class),
 	    get(Re, register_value, Value, 3, Selector),
@@ -78,7 +77,7 @@ selection(MI, S:'behaviour|class*') :<-
 	->  S = Text
 	;   get(Text, size, 0)
 	->  S = @nil
-	;   new(Re, regex('\s *\(\w+\)\s *\(->\|<-\|-\)\s *\(\w+\)')),
+	;   new(Re, regex('\\s *\\(\\w+\\)\\s *\\(->\\|<-\\|-\\)\\s *\\(\\w+\\)')),
 	    (   (   send(Re, match, Text)
 		->  get(Re, register_value, Text, 1, class, Class),
 		    get(Re, register_value, Text, 2, name, Access),

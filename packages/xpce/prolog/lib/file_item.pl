@@ -60,7 +60,7 @@ split_completion(_FI, Value, Tuple:tuple) :<-
 	new(S, string('%s', Value)),
 						% delete ...// or ...~
 	get(S, size, L),
-	(   get(regex('//\|~\|\w:[/\]'), search, S, L, 0, Start)
+	(   get(regex('//\\|~\\|\\w:[/\\]'), search, S, L, 0, Start)
 	->  send(S, delete, 0, Start),
 	    (   send(S, prefix, '//')
 	    ->  send(S, delete, 0, 1)
@@ -95,7 +95,7 @@ selection(FI, FileName:name) :<-
 	"Get the current selection"::
 	get(FI, get_super, selection, RawName),
 	get(RawName, size, L),
-	(   get(regex('//\|~'), search, RawName, L, 0, Start)
+	(   get(regex('//\\|~'), search, RawName, L, 0, Start)
 	->  new(S, string('%s', RawName)),
 	    send(S, delete, 0, Start),
 	    (	send(S, prefix, '//')

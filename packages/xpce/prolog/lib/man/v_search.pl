@@ -15,7 +15,6 @@
 	   , ignore/1
 	   , concat_atom/2
 	   ]).
-:- set_prolog_flag(character_escapes, false).
 
 
 		 /*******************************
@@ -284,15 +283,15 @@ search_patterns(Term, Patterns) :-
 
 extract_search_patterns(word(W), Ch) :-
 	(   atom_codes(W, [0'@|_])
-	->  new(Re, regex(string('%s\\b', W)))
-	;   new(Re, regex(string('\\b%s\\b', W)))
+	->  new(Re, regex(string('%s\\\\b', W)))
+	;   new(Re, regex(string('\\\\b%s\\\\b', W)))
 	),
 	send(Ch, append, Re),
 	send(Re, ignore_case, @on).
 extract_search_patterns(prefix(W), Ch) :-
 	(   atom_codes(W, [0'@|_])
 	->  new(Re, regex(string('%s', W)))
-	;   new(Re, regex(string('\\b%s', W)))
+	;   new(Re, regex(string('\\\\b%s', W)))
 	),
 	send(Ch, append, Re),
 	send(Re, ignore_case, @on).

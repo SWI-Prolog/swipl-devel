@@ -160,7 +160,7 @@ initialise(C, E:error) :->
 object(C, Error:error) :<-
 	"Get associated error"::
 	get(C, identifier, ManId),
-	concat('!.', ErrId, ManId),
+	atom_concat('!.', ErrId, ManId),
 	get(@pce, convert, ErrId, error, Error).
 
 :- pce_end_class.
@@ -221,12 +221,12 @@ man_id(_Card, Id) :<-
 object(C, O:man_global) :<-
 	"Get associated global object"::
 	get(C, identifier, Name),
-	concat('O.', Reference, Name),
+	atom_concat('O.', Reference, Name),
 	new(O, man_global(Reference)).
 
 delete_unreferenced(C) :->
 	get(C, identifier, Name),
-	(   concat('O.', Reference, Name),
+	(   atom_concat('O.', Reference, Name),
 	    object(@Reference)
 	->  true
 	;   format(user_error, 'Deleting card ~w~n', [Name]),
@@ -264,7 +264,7 @@ man_id(_Card, Id) :<-
 
 predicate_name(Card, PredName:name) :<-
 	get(Card, name, Name),
-	new(R, regex('\(\w+\)')),
+	new(R, regex('\\(\\w+\\)')),
 	send(R, search, Name),
 	get(R, register_value, Name, 1, name, PredName).
 
@@ -555,7 +555,7 @@ man_module_name(Class, Module) :<-
 	(   mapped_class_name(Name, Mapped)
 	;   Mapped = Name
 	), !,
-	concat('class/', Mapped, Module).
+	atom_concat('class/', Mapped, Module).
 
 
 man_card_class(_Class, Class:class) :<-
@@ -760,8 +760,9 @@ name(E, Name:name) :<-
 
 man_summary(E, Summary:string) :<-
 	"Summary string"::
+	get(E, slot, format, Format),
 	new(Summary, string('!\t%s\t%s\t%s',
-			    E?id, E?kind, E?format)),
+			    E?id, E?kind, Format)),
 	send(Summary, translate, '\n', ' '),
 	(   send(E, man_documented)
 	->  send(Summary, append, ' (+)')

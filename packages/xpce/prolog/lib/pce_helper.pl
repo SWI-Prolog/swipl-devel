@@ -153,8 +153,8 @@ emptied(F) :->
 
 :- pce_begin_class(hlp_header, hlp_fragment, "Header in help-file").
 
-:- pce_global(@clean_header_regex, new(regex('\(\sd+\.\)+\s *'))).
-:- pce_global(@empty_header_regex, new(regex('\s *$'))).
+:- pce_global(@clean_header_regex, new(regex('\\(\\sd+\\.\\)+\\s *'))).
+:- pce_global(@empty_header_regex, new(regex('\\s *$'))).
 
 level(section,		1, '%d.  ').
 level(subsection,	2, '%d.%d.  ').
@@ -227,27 +227,27 @@ open(TB) :->
 
 :- initialization
    new(KB, key_binding(hlp_editor, editor)),
-   send(KB, function, '\C-h',     prefix),
-   send(KB, function, '\C-hb',    show_key_bindings),
-   send(KB, function, '\C-c1',    make_section),
-   send(KB, function, '\C-c2',    make_subsection),
-   send(KB, function, '\C-c3',    make_subsubsection),
-   send(KB, function, '\C-c4',    make_subsubsubsection),
-   send(KB, function, '\C-ce',    make_example),
-   send(KB, function, '\C-ci',    make_emphasized),
-   send(KB, function, '\C-cb',    make_bold),
-   send(KB, function, '\C-ct',    make_title),
-   send(KB, function, '\C-c\C-e', toggle_edit_mode),
-   send(KB, function, '\C-c\C-l', assign_label),
-   send(KB, function, '\C-c\C-b', make_button),
-   send(KB, function, '\C-c\C-f', follow),
-   send(KB, function, '\C-c\C-d', delete_fragment),
-   send(KB, function, '\C-cC',	  make_table_of_contents),
-   send(KB, function, '\C-cc',	  make_local_table_of_contents),
-   send(KB, function, '\C-x\C-s', save),
-   send(KB, function, '\C-x2',    split_view),
-   send(KB, function, '\C-x1',    delete_other_views),
-   send(KB, function, '\C-xi',	  insert_file).
+   send(KB, function, '\\C-h',     prefix),
+   send(KB, function, '\\C-hb',    show_key_bindings),
+   send(KB, function, '\\C-c1',    make_section),
+   send(KB, function, '\\C-c2',    make_subsection),
+   send(KB, function, '\\C-c3',    make_subsubsection),
+   send(KB, function, '\\C-c4',    make_subsubsubsection),
+   send(KB, function, '\\C-ce',    make_example),
+   send(KB, function, '\\C-ci',    make_emphasized),
+   send(KB, function, '\\C-cb',    make_bold),
+   send(KB, function, '\\C-ct',    make_title),
+   send(KB, function, '\\C-c\\C-e', toggle_edit_mode),
+   send(KB, function, '\\C-c\\C-l', assign_label),
+   send(KB, function, '\\C-c\\C-b', make_button),
+   send(KB, function, '\\C-c\\C-f', follow),
+   send(KB, function, '\\C-c\\C-d', delete_fragment),
+   send(KB, function, '\\C-cC',	  make_table_of_contents),
+   send(KB, function, '\\C-cc',	  make_local_table_of_contents),
+   send(KB, function, '\\C-x\\C-s', save),
+   send(KB, function, '\\C-x2',    split_view),
+   send(KB, function, '\\C-x1',    delete_other_views),
+   send(KB, function, '\\C-xi',	  insert_file).
 
 
 :- pce_begin_class(hlp_editor, editor, "Simple hyper-text editor").
@@ -520,7 +520,7 @@ indentation(subsubsubsection, 14).
 
 link_contents_entry(E, F) :-
 	get(E, scan, E?caret, line, 0, start, SOL),
-	new(R, regex('\s *\(.*\)')),
+	new(R, regex('\\s *\\(.*\\)')),
 	send(R, match, E, SOL),
 	get(R, register_start, 1, CLS),
 	get(R, register_end, 1, CLE),
@@ -648,12 +648,12 @@ make_label(label, Label, Label) :- !,
 	).
 make_label(prolog, Goal, Label) :-
 	(   term_to_atom(_Term, Goal)
-	->  concat('prolog://', Goal, Label)
+	->  atom_concat('prolog://', Goal, Label)
 	;   send(@nil, report, error, 'Syntax error in Prolog goal'),
 	    fail
 	).
 make_label(manpce, Where, Label) :-
-	concat('manpce://', Where, Label).
+	atom_concat('manpce://', Where, Label).
 
 
 		 /*******************************
@@ -714,9 +714,9 @@ ispell(E) :->
 		 *******************************/
 
 
-:- pce_global(@hlp_external_regex, new(regex('^\(.+\):\(\w+$\)'))).
-:- pce_global(@hlp_prolog_regex, new(regex('^prolog://\(.*\)$'))).
-:- pce_global(@hlp_manpce_regex, new(regex('^manpce://\(.*\)$'))).
+:- pce_global(@hlp_external_regex, new(regex('^\\(.+\\):\\(\\w+$\\)'))).
+:- pce_global(@hlp_prolog_regex, new(regex('^prolog://\\(.*\\)$'))).
+:- pce_global(@hlp_manpce_regex, new(regex('^manpce://\\(.*\\)$'))).
 
 button(E, Button:hlp_fragment) :<-
 	"Find button at caret"::

@@ -550,7 +550,7 @@ chess_coordinate(Where, C) :-
 	xy_where(X, Y, Where),
 	CY is Y + 1,
 	chess_x(X, CX),
-	concat(CX, CY, C).
+	atom_concat(CX, CY, C).
 
 chess_x(0, qr).
 chess_x(1, qn).
@@ -608,20 +608,20 @@ The main difference  to standard Unix  (egrep)  regular expressions is
 clause catches anything unrecognised.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-utterance('[0-9]+\. \w/\(\w+\)\([1-8]\)-\(\w+\)\([1-8]\)',
+utterance('[0-9]+\\. \\w/\\(\\w+\\)\\([1-8]\\)-\\(\\w+\\)\\([1-8]\\)',
 	  player_move(_FX, _FY, _TX, _TY)).
-utterance('[0-9]+\. \w/\(\w+\)\([1-8]\)x\w/\(\w+\)\([1-8]\)',
+utterance('[0-9]+\\. \\w/\\(\\w+\\)\\([1-8]\\)x\\w/\\(\\w+\\)\\([1-8]\\)',
 	  player_move(_FX, _FY, _TX, _TY)).
-utterance('[0-9]+\. \(o-o\(-o\)?\)',
+utterance('[0-9]+\\. \\(o-o\\(-o\\)?\\)',
 	  player_oo(_OO)).
-utterance('[0-9]+\. \.\.\. \w/\(\w+\)\([1-8]\)x\w/\(\w+\)\([1-8]\)',
+utterance('[0-9]+\\. \\.\\.\\. \\w/\\(\\w+\\)\\([1-8]\\)x\\w/\\(\\w+\\)\\([1-8]\\)',
 	  opponent_move(_FX, _FY, _TX, _TY)).
-utterance('[0-9]+\. \.\.\. \(o-o\(-o\)?\)',
+utterance('[0-9]+\\. \\.\\.\\. \\(o-o\\(-o\\)?\\)',
 	  opponent_oo(_OO)).
-utterance('[0-9]+\. \.\.\. \w/\(\w+\)\([1-8]\)-\(\w+\)\([1-8]\)',
+utterance('[0-9]+\\. \\.\\.\\. \\w/\\(\\w+\\)\\([1-8]\\)-\\(\\w+\\)\\([1-8]\\)',
 	  opponent_move(_FX, _FY, _TX, _TY)).
 utterance('Chess',	banner).
-utterance('\(.*\)',	warn(_Message)).
+utterance('\\(.*\\)',	warn(_Message)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Below are the various  predicates called by  chess_utterance/2 through

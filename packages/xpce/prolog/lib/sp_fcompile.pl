@@ -82,7 +82,7 @@ pce_frecompile(Dir, File) :-
 
 pce_fcompile_directory(Dir) :-
 	dirpath(Dir, DirPath),
-	get(directory(DirPath), files, '^.*\.pl$', Chain),
+	get(directory(DirPath), files, '^.*\\.pl$', Chain),
 	send(Chain, delete_all, 'INDEX.pl'),
 	chain_list(Chain, Files),
 	forall(member(File, Files),
@@ -91,7 +91,7 @@ pce_fcompile_directory(Dir) :-
 
 pce_frecompile_directory(Dir) :-
 	dirpath(Dir, DirPath),
-	get(directory(DirPath), files, '^.*\.pl$', Chain),
+	get(directory(DirPath), files, '^.*\\.pl$', Chain),
 	send(Chain, delete_all, 'INDEX.pl'),
 	chain_list(Chain, Files),
 	forall(member(File, Files),

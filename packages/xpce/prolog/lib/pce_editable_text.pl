@@ -37,7 +37,7 @@ make_edit_text_recogniser(R) :-
 make_key_binding(KB) :-
 	new(KB, key_binding(editable_text, text)),
 	send(KB, function, 'TAB', advance),
-	send(KB, function, '\e',  enter),
+	send(KB, function, '\\e',  enter),
 	send(KB, function, 'RET', enter).
 
 

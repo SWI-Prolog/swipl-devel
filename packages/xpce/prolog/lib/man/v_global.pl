@@ -96,7 +96,7 @@ append_object(Chain, Pattern, Ref) :-
 
 append_card(Chain, Pattern, Card) :-
 	get(Card, identifier, Id),
-	concat('O.', Name, Id),
+	atom_concat('O.', Name, Id),
 	get(Card, summary, S0),
 	(   S0 == @nil
 	->  S1 = @default

@@ -69,7 +69,7 @@ do(_, _, _).
 
 make_dialog(Dialog, Term) :-
 	Term =.. [Class|Args],
-	concat(dia_target_, Class, ProtoClass),
+	atom_concat(dia_target_, Class, ProtoClass),
 	NewTerm =.. [ProtoClass|Args],
 	new(Dialog, NewTerm).
 
@@ -80,7 +80,7 @@ make_dialog(Dialog, Term) :-
 
 proto_class(dialog, dia_target_dialog) :- !.
 proto_class(Class, ProtoClass) :-
-	concat('dia_proto_', Class, ProtoClass).
+	atom_concat('dia_proto_', Class, ProtoClass).
 
 proto_name(label(reporter, _),	reporter) :- !.
 proto_name(label(_, image(_)),	image) :- !.
@@ -190,7 +190,7 @@ object_name(Item, Name) :-
 	send(Item, has_get_method, name), !,
 	get(Item, name, Name).
 object_name(@Ref, Name) :-
-	concat(@, Ref, Name).
+	atom_concat(@, Ref, Name).
 
 
 add_model_item(Model, Item, EventPorts) :-

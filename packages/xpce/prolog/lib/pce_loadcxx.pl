@@ -24,7 +24,7 @@ pce_load_cxx(+Spec)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 pce_load_cxx(File) :-
-	feature(open_shared_object, true), !,
+	current_prolog_flag(open_shared_object, true), !,
 	absolute_file_name(File,
 			   [ extensions([so]),
 			     access(read)
@@ -32,12 +32,3 @@ pce_load_cxx(File) :-
 			   Path),
 	send(@pce, succeed),		% ensure XPCE is loaded
 	open_shared_object(Path, _Handle).
-pce_load_cxx(File) :-
-	feature(dll, true), !,
-	absolute_file_name(File,
-			   [ extensions([dll]),
-			     access(read)
-			   ],
-			   Path),
-	send(@pce, succeed),		% ensure XPCE is loaded
-	open_dll(Path, _Handle).

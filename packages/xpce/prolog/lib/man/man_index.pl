@@ -16,7 +16,6 @@
 :- use_module(library(pce_manual)).
 :- require([ concat_atom/2
 	   ]).
-:- set_prolog_flag(character_escapes, false).
 
 :- dynamic
 	use_gui/0.
@@ -126,7 +125,7 @@ make_card_index(Card) :-
 :- pce_global(@man_tmp_index_regex, make_index_regex).
 
 make_index_regex(R) :-
-	new(R, regex('@?[a-zA-Z]\w+')),
+	new(R, regex('@?[a-zA-Z]\\w+')),
 	send(R, compile, @on).
 
 make_man_tmp_view(V) :-

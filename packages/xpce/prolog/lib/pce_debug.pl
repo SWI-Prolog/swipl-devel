@@ -29,7 +29,7 @@
 	   , forall/2
 	   ]).
 
-:- op(100, xfx, <-).
+:- op(100, xfx, user:(<-)).
 
 %   debugpce/0
 %   nodebugpce/0

@@ -17,7 +17,6 @@
 	   , send_list/2
 	   , send_list/3
 	   ]).
-:- set_prolog_flag(character_escapes, false).
 
 :- pce_help_file(event_monitor, pce_help('event_monitor.hlp')).
 
@@ -274,14 +273,14 @@ description(NamedFunction, Description) :-
 	    value,
 	    Description).
 description(ButtonDrag, Description) :-
-	new(Re, regex('ms_\([a-z]+\)_drag')),
+	new(Re, regex('ms_\\([a-z]+\\)_drag')),
 	send(Re, match, ButtonDrag), !,
 	get(Re, register_value, ButtonDrag, 1, name, LR),
 	get(string('Move with %s mouse-button depressed', LR),
 	    value,
 	    Description).
 description(ButtonDown, Description) :-
-	new(Re, regex('ms_\([a-z]+\)_\([a-z]+\)')),
+	new(Re, regex('ms_\\([a-z]+\\)_\\([a-z]+\\)')),
 	send(Re, match, ButtonDown), !,
 	get(Re, register_value, ButtonDown, 1, name, LR),
 	get(Re, register_value, ButtonDown, 2, name, UD),
@@ -289,7 +288,7 @@ description(ButtonDown, Description) :-
 	    value,
 	    Description).
 description(FunctionKey, Description) :-
-	new(Re, regex('key_\([a-z]+\)_\([0-9]+\)')),
+	new(Re, regex('key_\\([a-z]+\\)_\\([0-9]+\\)')),
 	send(Re, match, FunctionKey), !,
 	get(Re, register_value, FunctionKey, 1, name, Set),
 	get(Re, register_value, FunctionKey, 2, int, N),

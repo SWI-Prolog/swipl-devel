@@ -19,7 +19,6 @@
 	   , send_list/3
 	   , show_key_bindings/1
 	   ]).
-:- set_prolog_flag(character_escapes, false).
 
 		 /*******************************
 		 *	  BUTTON (JUMP)		*
@@ -103,11 +102,11 @@ initialise(E) :->
 	send(E, style, mark, style(underline := @on)),
 	send(E, style, search_hit, SearchStyle),
 
-	send(E, key_binding, '\C-x\C-s', save_if_modified),
-	send(E, key_binding, '\C-c\C-f', jump_on_caret),
-	send(E, key_binding, '\eM', toggle_fill_mode),
-	send(E, key_binding, '\ep', jump_previous),
-	send(E, key_binding, '\er', relate_from_caret),
+	send(E, key_binding, '\\C-x\\C-s', save_if_modified),
+	send(E, key_binding, '\\C-c\\C-f', jump_on_caret),
+	send(E, key_binding, '\\eM', toggle_fill_mode),
+	send(E, key_binding, '\\ep', jump_previous),
+	send(E, key_binding, '\\er', relate_from_caret),
 	send(E?image, recogniser, @man_editor_recogniser),
 
 	send(E, fill_mode, @on).
@@ -348,7 +347,7 @@ display_object_description(E, Obj:object) :->
 	"Display the description of Obj"::
 	get(Obj, man_description, Descr),
 	new(S, string('%s', Descr)),
-	send(S, append, string('\n\n')),
+	send(S, append, '\n\n'),
 	send(E, append_fragment, Obj, description, S).
 
 
@@ -419,26 +418,26 @@ mark_search_hit(E, Pattern:regex) :->
 		*            JUMPING		*
 		********************************/
 
-jump_pattern('\W\(<?->?\w+\)').
+jump_pattern('\\W\\(<?->?\\w+\\)').
 
 :- pce_global(@man_object_regex,
-	      new(regex('@\(\w+\)'))).
+	      new(regex('@\\(\\w+\\)'))).
 :- pce_global(@man_global_method_regex,
-	      new(regex('`@?\(\(\w+\)\s *\(<?->?\)\(\w+\)\):?[^'']*'''))).
+	      new(regex('`@?\\(\\(\\w+\\)\\s *\\(<?->?\\)\\(\\w+\\)\\):?[^\']*\''))).
 :- pce_global(@man_local_method_regex,
-	      new(regex('\W\(\(<?->?\)\(\w+\)\)'))).
+	      new(regex('\\W\\(\\(<?->?\\)\\(\\w+\\)\\)'))).
 :- pce_global(@man_classclass_regex,
-	      new(regex('\b[Cc]lass\s +\(\w+\|[-+*/?\=]\)'))).
+	      new(regex('\\b[Cc]lass\\s +\\(\\w+\\|[-+*/?\\=]\\)'))).
 :- pce_global(@man_objectclass_regex,
-	      new(regex('\(\w+\|[-+*/?\=]\)[ \t\n]object'))).
+	      new(regex('\\(\\w+\\|[-+*/?\\=]\\)[ \\t\\n]object'))).
 :- pce_global(@man_classvar_regex,
-	      new(regex('\(\w+\)\.\(\w+\)'))).
+	      new(regex('\\(\\w+\\)\\.\\(\\w+\\)'))).
 :- pce_global(@man_example_code_regex,
-	      new(regex(string('\n\\s *\\(\\(\n\t\t+[^\t#*0-9].*\\|\n\\s *\\)+\\)\n')))).
+	      new(regex('\n\\s *\\(\\(\n\t\t+[^\t#*0-9].*\\|\n\\s *\\)+\\)\n'))).
 :- pce_global(@man_example_regex,
-	      new(regex(string('[Ee]xample\\s +`\\([^'']+\\)''')))).
+	      new(regex('[Ee]xample\\s +`\\([^'']+\\)'''))).
 :- pce_global(@man_predicate_regex,
-	      new(regex(string('\\(\\w+\\)/\\(\\sd+\\|\\[[0-9,-]+\\]\\)')))).
+	      new(regex('\\(\\w+\\)/\\(\\sd+\\|\\[[0-9,-]+\\]\\)'))).
 
 mark_jumpable(E) :->
 	"Mark possible active fragments"::
@@ -640,9 +639,9 @@ save_fragments(E, Changes) :-
 
 
 :- pce_global(@man_blank_line_regex,
-	      new(regex(string('\\(\\s *\n\\)*')))).
+	      new(regex('\\(\\s *\n\\)*'))).
 :- pce_global(@man_empty_regex,
-	      new(regex('\s *\((not documented\)?\s *'))).
+	      new(regex('\\s *\\((not documented\\)?\\s *'))).
 :- pce_global(@man_undent_regex,
 	      new(regex(@man_indent))).
 
@@ -677,7 +676,7 @@ save_fragments(F, S0, S) :-
 	),
 	\+ equal(NewValue, OldValue), !,
 	(   NewValue \== @nil
-	->  send(NewValue, prepend, string('\n')), % undent the lines (HACK)
+	->  send(NewValue, prepend, '\n'), % undent the lines (HACK)
 	    send(@man_undent_regex, for_all, NewValue,
 		 message(@arg1, replace, @arg2, @man_nl)),
 	    send(NewValue, delete, 0, 1)

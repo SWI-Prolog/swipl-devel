@@ -77,7 +77,7 @@ kind(LI, Kind:{text,image}) :->
 			    create(directory,
 				   ?(@arg1, register_value, @arg2, 0))),
 		     if(message(Dir, exists),
-			message(Dir, scan, ValueSet, ValueSet, '.*\.bm$')))),
+			message(Dir, scan, ValueSet, ValueSet, '.*\\.bm$')))),
 	    send(ValueSet, sort),
 	    send(ValueSet, unique),
 	    send(TextItem, value_set, ValueSet)

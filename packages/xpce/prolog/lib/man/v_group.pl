@@ -14,7 +14,6 @@
 :- require([ append/3
 	   , default/3
 	   ]).
-:- set_prolog_flag(character_escapes, false).
 
 
 :- pce_begin_class(man_group_browser, man_frame).
@@ -34,9 +33,9 @@ initialise(MB, Manual:man_manual, ModuleName:[name], Label:[name]) :->
 	send(Image, tab_stops, vector(100)),
 	send(Image, wrap, none),
 	send(V, key_binding,
-	     '\C-x\C-s',	message(MB, save_if_modified)),
+	     '\\C-x\\C-s',	message(MB, save_if_modified)),
 	send(V, key_binding,
-	     '\C-cRET',		message(MB, load_manual_groups)),
+	     '\\C-cRET',		message(MB, load_manual_groups)),
 	send(V, exact_case, @off),
 
 	send(V?editor, send_method,
@@ -197,7 +196,7 @@ save_if_modified(MB) :->
 	).
 
 :- pce_global(@man_group_line_regex,
-	      new(regex(string('\\([^\t]*\\)\t\\(.*\\)\n')))).
+	      new(regex('\\([^\t]*\\)\t\\(.*\\)\n'))).
 
 save(MB) :->
 	"Save all summary cards"::
@@ -206,7 +205,7 @@ save(MB) :->
 	get(TB, size, Size),		% ensure a newline (HACK)
 	(   get(TB, character, Size-1, 10)
 	->  true
-	;   send(TB, append, string('\n'))
+	;   send(TB, append, '\n')
 	),
 	get(MB, module, Module),
 	new(NotDone, chain),
@@ -269,7 +268,7 @@ load_manual_groups(MB) :->
 %	Move to library!
 
 to_regex(Pattern, Regex) :-
-	get(@pce, convert, string(Pattern), regex, Regex).
+	get(@pce, convert, Pattern, regex, Regex).
 
 
 substitute(_, []) :- !.

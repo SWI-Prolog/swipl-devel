@@ -711,7 +711,7 @@ initialise(F, Manual:man_manual) :->
 	send(TI, length, 25),
 
 	send(@display, inspect_handler,
-	     new(H, handler('M-\C-i', message(F, inspect, @arg1)))),
+	     new(H, handler('M-\\C-i', message(F, inspect, @arg1)))),
 	send(F, slot, inspect_handler, H).
 
 

@@ -32,7 +32,7 @@ initialise(I, Name:[name], Default:[any|function], Msg:[code]*) :->
 			create(directory,
 			       ?(@arg1, register_value, @arg2, 0))),
 		 if(message(Dir, exists),
-		    message(Dir, scan, ValueSet, ValueSet, '.*\.bm$')))),
+		    message(Dir, scan, ValueSet, ValueSet, '.*\\.bm$')))),
 	Object = ?(@pce, object_from_reference, @arg1),
 	send(@pce, for_name_reference,
 	     if(message(Object, '_instance_of', image),

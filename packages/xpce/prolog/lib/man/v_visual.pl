@@ -17,7 +17,6 @@
 	   , shell/1
 	   , term_to_atom/2
 	   ]).
-:- set_prolog_flag(character_escapes, false).
 
 :- pce_autoload(tile_hierarchy, library('man/v_tile')).
 :- pce_autoload(toc_window,	library(pce_toc)).
@@ -241,7 +240,7 @@ initialise(F, Manual:man_manual) :->
 	D->>append(text_item(add, '', message(F, visualise_from_atom, @arg1)),
 		   right),
 	F->>keyboard_focus(D),
-	F->>display->>inspect_handler(new(H, handler('M-\C-v',
+	F->>display->>inspect_handler(new(H, handler('M-\\C-v',
 						     message(V, visualise,
 							     @arg1)))),
 	F=>>handler(H).

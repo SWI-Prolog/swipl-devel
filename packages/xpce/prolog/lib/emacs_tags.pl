@@ -13,7 +13,6 @@
         , emacs_init_tags/1
 	, emacs_complete_tag/2
 	]).
-:- set_prolog_flag(character_escapes, false).
 
 :- meta_predicate emacs_complete_tag(+, :).
 
@@ -42,17 +41,17 @@ emacs_tag(+Symbol, -File, -LineNo)
 
 
 :- pce_global(@emacs_tag_file_regex,
-	      new(regex(string('\f\n\\([^,]+\\),\\sd+$')))).
+	      new(regex('\f\n\\([^,]+\\),\\sd+$'))).
 :- pce_global(@emacs_tag_line_regex,
-	      new(regex(string('.*\\Sd\\(\\sd+\\),\\sd+$')))).
+	      new(regex('.*\\Sd\\(\\sd+\\),\\sd+$'))).
 
 emacs_tag(Name, File, LineNo) :-
 	tag_string(String), !,
 	new(Re, regex('')),
 	get(Re, quote, Name, QName),
-	(   send(Re, pattern, string('\\b%s\\b', QName))
-	;   send(Re, pattern, string('\\b%s', QName))
-	;   send(Re, pattern, string('\\b%s%c', QName, 1))
+	(   send(Re, pattern, string('\\\\b%s\\\\b', QName))
+	;   send(Re, pattern, string('\\\\b%s', QName))
+	;   send(Re, pattern, string('\\\\b%s%c', QName, 1))
 	),
 	get(Re, search, String, Start), !,
 	send(@emacs_tag_file_regex, search, String, Start, 0),
@@ -71,7 +70,7 @@ emacs_complete_tag(Name, Goal) :-
 	tag_string(String), !,
 	new(Re, regex('')),
 	get(Re, quote, Name, QName),
-	send(Re, pattern, string('\\b%s\\w*', QName)),
+	send(Re, pattern, string('\\\\b%s\\\\w*', QName)),
 	new(Here, number(0)),
 	repeat,
 	    (	send(Re, search, String, Here)
@@ -103,7 +102,7 @@ emacs_init_tags(TagFile) :-
 	).
 emacs_init_tags(Dir) :-
 	send(directory(Dir), exists), !,
-	concat(Dir, '/TAGS', TagFile),
+	atom_concat(Dir, '/TAGS', TagFile),
 	emacs_init_tags(TagFile).
 	
 

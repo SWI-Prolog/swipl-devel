@@ -47,12 +47,12 @@ link_attributes(argument,   [arrows := second, texture := dotted]).
 link_attributes(expansion,  [arrows := second, texture := dashed]).
 link_attributes(condition,  [pen := 2]).
 
-port_type(get,		'\C-v').
-port_type(event,	'\C-e').
-port_type(send,		'\C-c').
+port_type(get,		'\\C-v').
+port_type(event,	'\\C-e').
+port_type(send,		'\\C-c').
 port_type(constant,	@nil).
 port_type(parameter,	@nil).
-port_type(init,		'\C-i').
+port_type(init,		'\\C-i').
 
 port_class(get,		msg_get_port).
 port_class(event,	msg_event_port).
@@ -925,7 +925,7 @@ prolog_source(P, Source:string) :<-
 	new(Source, string('%s', Selector)),
 	get(P, propose_prolog_formal_parameter_list, Parms),
 	append_parameter_list(Source, Parms),
-	send(Source, append, string(' :-\n\t')).
+	send(Source, append, ' :-\n\t').
 
 
 edit(P) :->

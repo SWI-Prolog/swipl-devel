@@ -124,7 +124,7 @@ unique_name(Name, D, Name) :-
 	\+ memberchk(Name, D), !.
 unique_name(Name, D, Unique) :-
 	between(2, 100, N),
-	concat(Name, N, Unique),
+	atom_concat(Name, N, Unique),
 	\+ memberchk(Unique, D).
 
 constructor_iarg(ArgNames, Arg) :-

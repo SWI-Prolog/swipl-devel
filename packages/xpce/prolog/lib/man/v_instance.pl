@@ -91,7 +91,7 @@ created(IB, Obj:object) :->
 	"Add object to the browser"::
 	send(Obj, '_inspect', @on),
 	Obj = @Ref,
-	concat(@, Ref, Key),
+	atom_concat(@, Ref, Key),
 	send(IB?browser, append, dict_item(Key, @default, Ref)),
 	send(IB?browser, normalise, Key),
 	send(IB, flush).
@@ -100,7 +100,7 @@ created(IB, Obj:object) :->
 freed(IB, Obj:object) :->
 	"Delete object from browser"::
 	Obj = @Ref,
-	concat(@, Ref, Key),
+	atom_concat(@, Ref, Key),
 	send(IB?browser, delete, Key),
 	send(IB, flush).
 

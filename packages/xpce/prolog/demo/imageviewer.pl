@@ -29,7 +29,7 @@ image_viewer :-
 	send(new(D, dialog), below, P),
 	send(P?frame, label, 'Image Viewer'),
 	get(@pce, home, Home),
-	concat(Home, '/bitmaps', DefDir),
+	atom_concat(Home, '/bitmaps', DefDir),
 	send(D, append, new(Dir, directory_item(directory, DefDir))),
 	send(D, append, new(File, text_item(file_pattern, '*.bm'))),
 	new(ValueSet, chain('*.bm', '*.xpm', '*.gif', '*.jpg', '*.jpeg')),
@@ -178,10 +178,10 @@ show(P, [_|R], Dir) :-
 		 *******************************/
 
 file_pattern_to_regex(Pattern, Regex) :-
-	atom_chars(Pattern, Chars),
+	atom_codes(Pattern, Chars),
 	phrase(file_regex(RegexChars0), Chars),
 	flatten(["^", RegexChars0, "$"], RegexChars),
-	atom_chars(Regex, RegexChars).
+	atom_codes(Regex, RegexChars).
 
 file_regex([]) --> [].
 file_regex([".*"|T]) -->

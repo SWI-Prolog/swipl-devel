@@ -68,8 +68,8 @@ module(S, ModuleName:name, Load:[bool], Module) :<-
 
 module_file(S, Module:name, File:file) :<-
 	"Find file for storing module"::
-	concat(Module, '.doc', FileName),
-	(   concat('class/', ClassName, Module),
+	atom_concat(Module, '.doc', FileName),
+	(   atom_concat('class/', ClassName, Module),
 	    get(@pce, convert, ClassName, class, Class),
 	    get(Class, creator, host),
 	    get(Class, source, source_location(Path, _)),
@@ -114,9 +114,9 @@ ensure_loaded(S, Module:name) :->
 
 load_all_modules(S) :->
 	"Load all modules from the directory"::
-	get(S?directory, files, '.*\.doc$', F1),
+	get(S?directory, files, '.*\\.doc$', F1),
 	get(S?directory, directory, class, ClassDir),
-	get(ClassDir, files, '.*\.doc$', F2),
+	get(ClassDir, files, '.*\\.doc$', F2),
 	send(F1, for_all, message(S, load_file, @arg1)),
 	send(F2, for_all, message(S, load_file,
 				  create(string, 'class/%s', @arg1))).
