@@ -3096,6 +3096,7 @@ erasure as soon as the clause finishes executing.
 	    lTop = (LocalFrame)(ARGP + cl->variables);
 	    requireStack(local, (int)argFrameP((LocalFrame)NULL, MAXARITY));
  	    set(cl, ERASED);
+	    DEF->number_of_clauses--;
 	    DEF->erased_clauses++;
 	    set(DEF, NEEDSCLAUSEGC);	/* only `now and then'? */
 
@@ -3868,7 +3869,6 @@ interception. Second, there should be some room for optimisation here.
 #endif /*O_DEBUGGER*/
         /* FALLTHROUGH*/
     VMI(I_EXIT) MARK(EXIT);
-    exit_builtin:
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 First, call the tracer. Basically,  the   current  frame is garbage, but
@@ -3889,6 +3889,7 @@ bit more careful.
 	}
 #endif /*O_DEBUGGER*/
 
+    exit_builtin:			/* tracer already by callForeign() */
 	if ( (void *)BFR <= (void *)FR ) /* deterministic */
 	{ if ( false(DEF, FOREIGN) )
 	    leaveDefinition(DEF);
