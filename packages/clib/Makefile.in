@@ -26,6 +26,7 @@ DOC=clib
 TEX=$(DOC).tex
 DVI=$(DOC).dvi
 PDF=$(DOC).pdf
+RUNTEX=../../man/runtex
 
 LD=@LD@
 LDFLAGS=@LDSOFLAGS@
@@ -94,10 +95,10 @@ uninstall::
 pdf:		$(PDF)
 
 $(DVI):		$(TEX)
-		runtex $(DOC)
+		$(RUNTEX) $(DOC)
 
 $(PDF):		$(TEX)
-		runtex --pdf $(DOC)
+		$(RUNTEX) --pdf $(DOC)
 
 html:		$(TEX)
 		latex2html $(DOC)

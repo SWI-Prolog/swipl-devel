@@ -28,6 +28,7 @@ TEX=$(DOC).tex
 DVI=$(DOC).dvi
 PDF=$(DOC).pdf
 HTML=$(DOC).html
+RUNTEX=../../man/runtex
 
 LD=@LD@
 LDFLAGS=@LDSOFLAGS@
@@ -67,7 +68,7 @@ $(HTML):	$(TEX)
 		mv html/index.html $@
 
 $(PDF):		$(TEX)
-		runtex --pdf $(DOC)
+		$(RUNTEX) --pdf $(DOC)
 
 $(TEX):		$(DOCTOTEX)
 
@@ -86,4 +87,4 @@ clean:
 distclean:	clean
 		rm -f $(TARGETS) config.cache config.status Makefile
 		rm -f $(TEX)
-		runtex --clean $(DOC)
+		$(RUNTEX) --clean $(DOC)
