@@ -47,19 +47,33 @@ char *def;
     return store_string(home);
 
   if ( (home = Symbols()) )
-  { char magic[MAXPATHLEN];
+  { char buf[MAXPATHLEN];
     home = DirName(DirName(AbsoluteFile(home)));
 
-    sprintf(magic, "%s/swipl", home);
-    if ( ExistsFile(magic) )
-    { FILE *fd = Fopen(magic, "r");
+    sprintf(buf, "%s/swipl", home);
 
-      if ( fd && fgets(magic, sizeof(magic), fd) )
-      { int l = strlen(magic);
-	if ( l > 0 && l < sizeof(magic) && magic[l-1] == '\n' )
-	  magic[l-1] = EOS;
+    if ( ExistsFile(buf) )
+    { FILE *fd = Fopen(buf, "r");
 
-	home = AbsoluteFile(magic);
+      if ( fd && fgets(buf, sizeof(buf), fd) )
+      { int l = strlen(buf);
+
+	if ( l > 0 && l < sizeof(buf) && buf[l-1] == '\n' )
+	  buf[l-1] = EOS;
+
+#if O_XOS
+      { char buf2[MAXPATHLEN];
+	_xos_canonical_filename(ihome, buf2);
+	strcpy(buf, buf2);
+      }
+#endif
+
+	if ( buf[0] != '/' )
+	{ strcpy(&buf[3], &buf[0]);
+	  strncpy(buf, "../", 3);
+	}
+
+	home = AbsoluteFile(buf);
 	if ( ExistsDirectory(home) )
 	{ fclose(fd);
 	  return store_string(home);
