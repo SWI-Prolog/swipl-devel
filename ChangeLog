@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: don't give a warning on pl -L128m.  John Li.
+
   * ADDED: plld --version to run <cc> --version and test for GCC version.
     Michael Piefel.
 
