@@ -742,7 +742,7 @@ PL_get_nchars(term_t l, unsigned int *length, char **s, unsigned flags)
   char *r;
   int type;
   IOSTREAM *fd = NULL;
-  unsigned int len = ~0;
+  unsigned int len = ~(unsigned int)0;
 
   DEBUG(7, pl_write(l); pl_nl());
 

@@ -165,8 +165,10 @@ hard to write and maintain code that runs on both old and new compilers.
 This has worked on TURBO_C not very long ago.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if (defined(_AIX) || defined(__APPLE__)) && !defined(__unix__)
+#ifndef __unix__
+#if defined(_AIX) || defined(__APPLE__) || defined(__unix)
 #define __unix__ 1
+#endif
 #endif
 
 /* AIX requires this to be the first thing in the file.  */
@@ -959,18 +961,24 @@ LIST processing macros.
 #define TailList(p)	(argTermP(*(p), 1) )
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Doubles.  Assume the compiler with optise this properly.
+Doubles. To and from are Word pointers pointing to the data of a double,
+but generally not satisfying the double alignment requirements.
+
+We assume the compiler will optise this properly.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define cpDoubleData(to, from) \
-	switch(WORDS_PER_DOUBLE) \
-	{ case 2: \
-	    *(to)++ = *(from)++; \
-	  case 1: \
-	    *(to)++ = *(from)++; \
-	    break; \
-	  default: \
-	    assert(0); \
+	{ Word _f = (Word)(from); \
+	  switch(WORDS_PER_DOUBLE) \
+	  { case 2: \
+	      *(to)++ = *_f++; \
+	    case 1: \
+	      *(to)++ = *_f++; \
+	      (from) = _f; \
+	      break; \
+	    default: \
+	      assert(0); \
+	  } \
 	}
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -991,7 +999,7 @@ struct atom
 };
 
 #ifdef O_ATOMGC
-#define ATOM_MARKED_REFERENCE (0x1<<(INTBITSIZE-1))
+#define ATOM_MARKED_REFERENCE ((unsigned int)1 << (INTBITSIZE-1))
 #ifdef O_DEBUG_ATOMGC
 #define PL_register_atom(a) \
 	_PL_debug_register_atom(a, __FILE__, __LINE__, __PRETTY_FUNCTION__)

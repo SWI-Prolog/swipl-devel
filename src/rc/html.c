@@ -69,9 +69,12 @@ html_find_tag(const char *data, const char *end, const char *tag)
     if ( data == end )
       return NULL;
 
-    if ( strncasecmp(data+1, tag, len) == 0 &&
-	 (isspace((int)data[len+1]) || data[len+1] == '>') )
-      return (char *)data+len+1;
+    if ( strncasecmp(data+1, tag, len) == 0 )
+    { int c = data[len+1];
+
+      if ( isspace(c) || c == '>' )
+	return (char *)data+len+1;
+    }
 
     data++;
   }
