@@ -233,11 +233,11 @@ freeStream(IOSTREAM *s)
 }
 
 
+/* MT: locked by caller (openStream()) */
+
 static void
 setFileNameStream(IOSTREAM *s, atom_t name)
-{ LOCK();
-  getStreamContext(s)->filename = name;
-  UNLOCK();
+{ getStreamContext(s)->filename = name;
 }
 
 
@@ -772,7 +772,7 @@ popOutputContext()
     output_context_stack = c->previous;
     freeHeap(c, sizeof(struct output_context));
   } else
-    Scurout              = Soutput;
+    Scurout = Soutput;
 }
 
 
@@ -1589,22 +1589,25 @@ do_tell(term_t f, atom_t m)
   LOCK();
   if ( get_stream_handle(f, &s, SH_ALIAS|SH_UNLOCKED) )
   { Scurout = s;
-    UNLOCK();
-    succeed;
+    goto ok;
   }
   if ( PL_get_atom(f, &a) && a == ATOM_user )
   { Scurout = Suser_output;
-    succeed;
+    goto ok;
   }
 
   mode = PL_new_term_ref();
   PL_put_atom(mode, m);
   if ( !(s = openStream(f, mode, 0)) )
+  { UNLOCK();
     fail;
+  }
 
   pushOutputContext();
   Scurout = s;
 
+ok:
+  UNLOCK();
   succeed;
 }
 

@@ -168,7 +168,6 @@ static void
 free_prolog_thread(void *data)
 { PL_local_data_t *ld = data;
   PL_thread_info_t *info = ld->thread.info;
-  int i;
 
   DEBUG(1, Sdprintf("Freeing prolog thread %u\n", pthread_self()));
 

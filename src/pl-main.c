@@ -845,7 +845,9 @@ PL_cleanup(int rval)
   cleaning = TRUE;
 
   pl_notrace();				/* avoid recursive tracing */
+#ifdef O_PROFILE
   stopProfiler();			/* don't do profiling anymore */
+#endif
 #ifdef O_PLMT
   exitPrologThreads();
 #endif
