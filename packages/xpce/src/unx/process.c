@@ -528,20 +528,28 @@ openProcess(Process p, CharArray cmd, int argc, CharArray *argv)
 	fail;
       }
 
+#ifdef stderr
       DEBUG(NAME_process, fprintf(stderr, "Ready to fork\n"));
+#endif
 
       if ( (pid = fork()) == 0 )	/* child process */
       { int i, argc;
 	char **argv;
 	int maxfd = getdtablesize();
 
+#ifdef stderr
 	DEBUG(NAME_process, fprintf(stderr, "Child: maxfd = %d\n", maxfd));
+#endif
 
 	if ( notDefault(p->directory) )
 	  cdDirectory(p->directory);
+#ifdef stderr
 	DEBUG(NAME_process, fprintf(stderr, "CD ok\n"));
+#endif
 	initEnvironment(p);
+#ifdef stderr
 	DEBUG(NAME_process, fprintf(stderr, "Environment initialised\n"));
+#endif
 #ifdef HAVE_SETSID
 	if ( setsid() < 0 )
 	  Cprintf("[PCE: setsid() failed: %s]\n", strName(OsError()));

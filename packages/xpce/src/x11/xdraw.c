@@ -2567,14 +2567,6 @@ s_advance(String s, int from, int to)
 }
 
 
-int
-str_advance(String s, int from, int to, FontObj font)
-{ s_font(font);
-
-  return s_advance(s, from, to);
-}
-
-
 static int
 lbearing(wint_t c)
 { XGlyphInfo info;
@@ -3007,6 +2999,14 @@ str_width(String s, int from, int to, FontObj f)
   }
 
   return 0;
+}
+
+
+int
+str_advance(String s, int from, int to, FontObj font)
+{ s_font(font);
+
+  return s_advance(s, from, to);
 }
 
 

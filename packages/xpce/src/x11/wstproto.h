@@ -119,7 +119,7 @@ int		s_default_char(FontObj font);
 int		s_ascent(FontObj f);
 int		s_descent(FontObj f);
 int		s_height(FontObj f);
-int		c_width(unsigned int c, FontObj font);
+int		c_width(wint_t c, FontObj font);
 int		str_width(String s, int from, int to, FontObj f);
 int		str_advance(String s, int from, int to, FontObj f);
 void		s_printA(charA *s, int l, int x, int y, FontObj f);
