@@ -58,8 +58,16 @@ manpce(Spec) :-
 	).
 
 method(Spec, Method) :-
+	object(Spec),
+	send(Spec, '_instance_of', var), !,
+	Spec = @Ref,
+	new(Method, man_global(Ref)).
+method(Spec, Method) :-
 	pce_to_method(Spec, Method), !.
 method(Atom, Method) :-
 	atom(Atom),
 	catch(term_to_atom(Spec, Atom), _, fail),
 	pce_to_method(Spec, Method).
+
+
+
