@@ -53,18 +53,22 @@ xml_to_plrdf(Objects, BaseURI, RDF) :-
 	erase(Ref).
 
 rdf_objects([]) ::=
-	[], !.
+	[].
 rdf_objects([H|T]) ::=
-	[ \rdf_object(H)
+	[ \rdf_object_or_error(H)
 	| \rdf_objects(T)
 	].
+
+rdf_object_or_error(H) ::=
+	\rdf_object(H), !.
+rdf_object_or_error(unparsed(Data)) ::=
+	Data.
 
 rdf_object(container(Type, Id, Elements)) ::=
 	\container(Type, Id, Elements), !.
 rdf_object(description(Type, About, BagID, Properties)) ::=
-	\description(Type, About, BagID, Properties), !.
-rdf_object(unparsed(Data)) ::=
-	Data.
+	\description(Type, About, BagID, Properties).
+
 
 		 /*******************************
 		 *	    DESCRIPTION		*
