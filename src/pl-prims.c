@@ -1854,35 +1854,31 @@ sub_text(term_t atom,
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
-    { if ( !PL_get_chars(atom, &aa, CVT_ATOMIC) )
+    { if ( !PL_get_nchars(atom, &la, &aa, CVT_ATOMIC) )
 	return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, atom);
-
-      la = strlen(aa);
 
       if ( !get_positive_integer_or_unbound(before, &b) ||
 	   !get_positive_integer_or_unbound(len, &l) ||
 	   !get_positive_integer_or_unbound(after, &a) )
 	fail;
 
-      if ( !PL_get_chars(sub, &s, CVT_ATOMIC) )
+      if ( !PL_get_nchars(sub, &ls, &s, CVT_ATOMIC) )
       { if ( !PL_is_variable(sub) )
 	  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, sub);
       }
 
       if ( s )				/* `sub' given */
-      { ls = strlen(s);
-
-	if ( l >= 0 && ls != l )	/* len conflict */
+      { if ( l >= 0 && ls != l )	/* len conflict */
 	  fail;
 	if ( b >= 0 )			/* before given: test */
-	{ if ( strncmp(aa+b, s, ls) == 0 )
+	{ if ( memcmp(aa+b, s, ls) == 0 )
 	  { return (PL_unify_integer(len, ls) &&
 		    PL_unify_integer(after, la-ls-b)) ? TRUE : FALSE;
 	  }
 	  fail;
 	}
 	if ( a >= 0 )			/* after given: test */
-	{ if ( strncmp(aa+la-a-ls, s, ls) == 0 )
+	{ if ( memcmp(aa+la-a-ls, s, ls) == 0 )
 	  { return (PL_unify_integer(len, ls) &&
 		    PL_unify_integer(before, la-ls-a)) ? TRUE : FALSE;
 	  }
@@ -1981,7 +1977,7 @@ sub_text(term_t atom,
       ls = state->n3;
 
       for( ; state->n1+ls <= la; state->n1++ )
-      { if ( strncmp(aa+state->n1, s, ls) == 0 )
+      { if ( memcmp(aa+state->n1, s, ls) == 0 )
 	{ PL_unify_integer(before, state->n1);
 	  PL_unify_integer(len,    ls);
 	  PL_unify_integer(after,  la-ls-state->n1);
