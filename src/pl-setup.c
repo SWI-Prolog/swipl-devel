@@ -10,7 +10,7 @@
     Copyright (C) 1990-2000 SWI, University of Amsterdam. All rights reserved.
 */
 
-/*#define O_DEBUG 1*/
+#define O_DEBUG 1
 
 #define GLOBAL				/* allocate global variables here */
 #include "pl-incl.h"
@@ -416,6 +416,36 @@ set_sighandler(int sig, handler_t func)
 #endif
 } 
 
+#ifdef HAVE_SIGINFO_H
+#include <siginfo.h>
+#endif
+
+
+static handler_t
+set_stack_guard_handler(int sig, void *func)
+{
+#ifdef HAVE_SIGACTION
+  struct sigaction old;
+  struct sigaction new;
+
+  memset(&new, 0, sizeof(new));	/* deal with other fields */
+#ifdef USE_SIGINFO
+  new.sa_sigaction = func;
+  new.sa_flags     = SA_RESTART|SA_SIGINFO;
+#else
+  new.sa_handler   = func;
+  new.sa_flags     = SA_RESTART;
+#endif
+
+  if ( sigaction(sig, &new, &old) == 0 )
+    return old.sa_handler;
+  else
+    return SIG_DFL;
+#else
+  return signal(sig, func);
+#endif
+}
+
 
 static SigHandler
 prepareSignal(int sig)
@@ -738,9 +768,8 @@ static void init_stack(Stack s, char *name,
 static void gcPolicy(Stack s, int policy);
 
 #ifndef NO_SEGV_HANDLING
-#ifdef SIGNAL_HANDLER_PROVIDES_ADDRESS
-RETSIGTYPE _PL_segv_handler(int sig, int type,
-			       SignalContext scp, char *addr);
+#ifdef USE_SIGINFO
+RETSIGTYPE _PL_segv_handler(int sig, siginfo_t *info, void *);
 #else
 RETSIGTYPE _PL_segv_handler(int sig);
 #endif
@@ -995,7 +1024,7 @@ allocStacks(long local, long global, long trail, long argument)
   INIT_STACK(argument, "argument", abase, argument, 1 K);
 
 #ifndef NO_SEGV_HANDLING
-  set_sighandler(SIGSEGV, (handler_t) _PL_segv_handler);
+  set_stack_guard_handler(SIGSEGV, _PL_segv_handler);
 #endif
 }
 
@@ -1154,23 +1183,24 @@ allocStacks(long local, long global, long trail, long argument)
   INIT_STACK(argument, "argument", abase, argument, 1 K);
 
 #ifndef NO_SEGV_HANDLING
-  set_sighandler(SIGSEGV, (handler_t) _PL_segv_handler);
+  set_stack_guard_handler(SIGSEGV, _PL_segv_handler);
 #endif
 }
 
 #endif /*HAVE_VIRTUAL_ALLOC*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This the the signal handler for segmentation faults if we are using  MMU
-controlled  stacks.   The  only  argument  we  are  interested in is the
-address of the segmentation fault.  SUN provides this via  an  argument.
-If   your   system   does   not   provide   this  information,  set  the
-SIGNAL_HANDLER_PROVIDES_ADDRESS flag.
+This the the signal handler for segmentation  faults if we are using MMU
+controlled stacks. It can operate in two modes. If the signal handler is
+not passed an address we will increase all stack areas that are close to
+exhaution. If an address is passed, we  will locate the proper stack and
+extend that. Currently we check for   the  POSIX.1b SA_SIGINFO handling,
+supported at least by recent Linux and Solaris.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifdef SIGNAL_HANDLER_PROVIDES_ADDRESS
+#ifdef USE_SIGINFO
 static bool
-expandStack(Stack s, caddress addr)
+expandStack(Stack s, void *addr)
 { if ( addr < s->max || addr >= addPointer(s->limit, STACK_SEPARATION) )
     fail;				/* outside this area */
 
@@ -1182,20 +1212,35 @@ expandStack(Stack s, caddress addr)
 
   fail;
 }
-#endif /*SIGNAL_HANDLER_PROVIDES_ADDRESS*/
+#endif /*USE_SIGINFO*/
 
 #ifndef NO_SEGV_HANDLING
 RETSIGTYPE
-#ifdef SIGNAL_HANDLER_PROVIDES_ADDRESS
-_PL_segv_handler(int sig, int type, SignalContext scp, char *addr)
+#ifdef USE_SIGINFO
+_PL_segv_handler(int sig, siginfo_t *info, void *extra)
 #else
 _PL_segv_handler(int sig)
 #endif
 { Stack stacka = (Stack) &LD->stacks;
+  int mapped = 0;
   int i;
 
-#ifndef SIGNAL_HANDLER_PROVIDES_ADDRESS
-  int mapped = 0;
+#ifdef USE_SIGINFO
+  void *addr;
+
+  if ( info && info->si_addr )
+  { addr = info->si_addr;
+
+    DEBUG(0, Sdprintf("Page fault at %p\n", addr));
+    for(i=0; i<N_STACKS; i++)
+    { if ( expandStack(&stacka[i], addr) )
+	return;
+    }
+
+    pl_signal_handler(sig);
+    return;
+  }
+#endif
 
   DEBUG(1, Sdprintf("Page fault.  Free room (g+l+t) = %ld+%ld+%ld\n",
 		    roomStack(global), roomStack(local), roomStack(trail)));
@@ -1212,15 +1257,6 @@ _PL_segv_handler(int sig)
 
   if ( mapped )
     return;
-
-#else /*SIGNAL_HANDLER_PROVIDES_ADDRESS*/
-
-  DEBUG(1, Sdprintf("Page fault at %ld (%p)\n", (long) addr, addr));
-  for(i=0; i<N_STACKS; i++)
-  { if ( expandStack(&stacka[i], addr) )
-      return;
-  }
-#endif /*SIGNAL_HANDLER_PROVIDES_ADDRESS*/
 
   pl_signal_handler(sig);
 }
@@ -1389,13 +1425,43 @@ resetStacks()
 
 #endif /* O_DYNAMIC_STACKS */
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+trimStacks() reclaims all unused space on the stack. Note that the trail
+can have references to unused stack. We set the references to point to a
+dummy variable, so no harm  will  be   done.  Setting  it  to NULL would
+require a test in Undo(), which   is time-critical. trim_stacks normally
+isn't. This precaution is explicitly requires  for the trimStacks() that
+result from a stack-overflow.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 void
 trimStacks()
 {
 #ifdef O_DYNAMIC_STACKS
+  TrailEntry te;
+  Word dummy = NULL;
+
   unmap((Stack) &LD->stacks.local);
   unmap((Stack) &LD->stacks.global);
   unmap((Stack) &LD->stacks.trail);
   unmap((Stack) &LD->stacks.argument);
+
+  for(te = tTop; --te >= tBase; )
+  { Word p = te->address;
+    
+    if ( isTrailVal(p) )
+      continue;
+
+    if ( !onStack(local, p) && !onStack(global, p) )
+    { if ( !dummy )
+      { dummy = allocGlobal(1);
+	setVar(*dummy);
+      }
+
+      te->address = dummy;
+    }
+  }
+
 #endif /*O_DYNAMIC_STACKS*/
 }

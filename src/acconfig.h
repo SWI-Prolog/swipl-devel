@@ -28,8 +28,11 @@
 /* Define if SIGPROF and setitimer() are available */
 #undef O_PROFILE
 
-/* Define if signal handler is of the form f(sig, type, context, addr) */
-#undef SIGNAL_HANDLER_PROVIDES_ADDRESS
+/* Define if signal handler is compliant to POSIX.1b */
+#undef HAVE_SIGINFO
+
+/* Define if signal handler works compliant to POSIX.1b */
+#undef USE_SIGINFO
 
 /* Define if (type)var = value is allowed */
 #undef TAGGED_LVALUE

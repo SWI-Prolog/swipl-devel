@@ -411,8 +411,8 @@ checkData(Word p)
          storage(f->definition) != STG_GLOBAL )
       printk("Illegal term: 0x%x", *p);
     arity = arityFunctor(f->definition);
-    if (arity <= 0 || arity > 100)
-      printk("Illegal arity");
+    if (arity <= 0 || arity > 128)
+      printk("Dubious arity (%d)", arity);
     for(n=0; n<arity; n++)
       key += checkData(&f->arguments[n]);
 

@@ -4639,36 +4639,123 @@ rm -fr conftest*
 
 if test "$ac_cv_func_mmap" = "yes" -a "$configmmappedstacks" = "yes"; then
 
+for ac_hdr in siginfo.h
+do
+ac_safe=`echo "$ac_hdr" | sed 'y%./+-%__p_%'`
+echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6
+echo "configure:4647: checking for $ac_hdr" >&5
+if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  cat > conftest.$ac_ext <<EOF
+#line 4652 "configure"
+#include "confdefs.h"
+#include <$ac_hdr>
+EOF
+ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
+{ (eval echo configure:4657: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
+if test -z "$ac_err"; then
+  rm -rf conftest*
+  eval "ac_cv_header_$ac_safe=yes"
+else
+  echo "$ac_err" >&5
+  echo "configure: failed program was:" >&5
+  cat conftest.$ac_ext >&5
+  rm -rf conftest*
+  eval "ac_cv_header_$ac_safe=no"
+fi
+rm -f conftest*
+fi
+if eval "test \"`echo '$ac_cv_header_'$ac_safe`\" = yes"; then
+  echo "$ac_t""yes" 1>&6
+    ac_tr_hdr=HAVE_`echo $ac_hdr | sed 'y%abcdefghijklmnopqrstuvwxyz./-%ABCDEFGHIJKLMNOPQRSTUVWXYZ___%'`
+  cat >> confdefs.h <<EOF
+#define $ac_tr_hdr 1
+EOF
+ 
+else
+  echo "$ac_t""no" 1>&6
+fi
+done
+
+
+echo $ac_n "checking "for SA_SIGINFO"""... $ac_c" 1>&6
+echo "configure:4685: checking "for SA_SIGINFO"" >&5;
+cat > conftest.$ac_ext <<EOF
+#line 4687 "configure"
+#include "confdefs.h"
+ #include <signal.h> 
+  #ifdef HAVE_SIGINFO_H
+  #include <siginfo.h>
+  #endif
+  extern void handler(int sig, siginfo_t *info, void *);
+
+int main() {
+ struct sigaction act;
+
+  act.sa_sigaction = handler;
+  act.sa_flags = SA_SIGINFO;
+  
+  sigaction(SIGSEGV, (void *)0, &act);
+
+; return 0; }
+EOF
+if { (eval echo configure:4705: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+  rm -rf conftest*
+  cat >> confdefs.h <<\EOF
+#define HAVE_SIGINFO 1
+EOF
+
+   echo "$ac_t""yes" 1>&6
+else
+  echo "configure: failed program was:" >&5
+  cat conftest.$ac_ext >&5
+  rm -rf conftest*
+  echo "$ac_t""no" 1>&6
+fi
+rm -f conftest*
+
+
 mmap_tried=segv;
 while test ! "$MMAP_STACK" = "1" -a ! $mmap_tried = "stop"; do
 echo $ac_n "checking "if we can use mmap for stack allocation"""... $ac_c" 1>&6
-echo "configure:4646: checking "if we can use mmap for stack allocation"" >&5
+echo "configure:4724: checking "if we can use mmap for stack allocation"" >&5
 echo '#include "confdefs.h"' > conftest.c
 cat $srcdir/test/mmap.c >> conftest.c
 (eval $ac_link) 2>&5
-if test -s conftest && eval `./conftest`; then
-    if test "$MMAP_STACK" = "1"; then
-        if test "$HAVE_MAP_ANON" = "1"; then
-	    cat >> confdefs.h <<\EOF
+if test -s conftest; then
+    if eval `./conftest`; then
+	if test "$MMAP_STACK" = "1"; then
+	    if test "$HAVE_MAP_ANON" = "1"; then
+		cat >> confdefs.h <<\EOF
 #define HAVE_MAP_ANON 1
 EOF
 
-	    echo "$ac_t"""Using MAP_ANON"" 1>&6
-	else
-	    echo "$ac_t"""Using MAP_PRIVATE"" 1>&6
-	fi
-        cat >> confdefs.h <<\EOF
+		echo "$ac_t"""Using MAP_ANON"" 1>&6
+	    else
+		echo "$ac_t"""Using MAP_PRIVATE"" 1>&6
+	    fi
+	    cat >> confdefs.h <<\EOF
 #define MMAP_STACK 1
 EOF
 
-    else
-	echo "$ac_t"""mmap is not good enough"" 1>&6
-    fi
-    if test "$SIGNAL_HANDLER_PROVIDES_ADDRESS" = "1"; then
-	cat >> confdefs.h <<\EOF
-#define SIGNAL_HANDLER_PROVIDES_ADDRESS 1
+	    echo $ac_n "checking "if SA_SIGINFO is usable"""... $ac_c" 1>&6
+echo "configure:4745: checking "if SA_SIGINFO is usable"" >&5
+	    if test "$SIGNAL_HANDLER_PROVIDES_ADDRESS" = "1"; then
+	      echo "$ac_t""yes" 1>&6
+	      cat >> confdefs.h <<\EOF
+#define USE_SIGINFO 1
 EOF
 
+	    else
+	      echo "$ac_t""no" 1>&6
+	    fi
+	else
+	    echo "$ac_t"""mmap is not good enough"" 1>&6
+	fi
+    else
+        echo "$ac_t"""could not run mmap test"" 1>&6;
     fi
 else
     echo "$ac_t"""could not compile mmap test"" 1>&6;
@@ -4681,7 +4768,7 @@ if test ! "$MMAP_STACK" = "1" -a "$mmap_tried" = "segv"; then
 EOF
 
     echo $ac_n "checking "Retrying without handling SEGV"""... $ac_c" 1>&6
-echo "configure:4685: checking "Retrying without handling SEGV"" >&5
+echo "configure:4772: checking "Retrying without handling SEGV"" >&5
 else
     mmap_tried=stop
 fi
@@ -5071,4 +5158,5 @@ EOF
 chmod +x $CONFIG_STATUS
 rm -fr confdefs* $ac_clean_files
 test "$no_create" = yes || ${CONFIG_SHELL-/bin/sh} $CONFIG_STATUS || exit 1
+
 

@@ -71,8 +71,11 @@
 /* Define if SIGPROF and setitimer() are available */
 #undef O_PROFILE
 
-/* Define if signal handler is of the form f(sig, type, context, addr) */
-#undef SIGNAL_HANDLER_PROVIDES_ADDRESS
+/* Define if signal handler is compliant to POSIX.1b */
+#undef HAVE_SIGINFO
+
+/* Define if signal handler works compliant to POSIX.1b */
+#undef USE_SIGINFO
 
 /* Define if (type)var = value is allowed */
 #undef TAGGED_LVALUE
@@ -316,6 +319,9 @@
 
 /* Define if you have the <readline/readline.h> header file.  */
 #undef HAVE_READLINE_READLINE_H
+
+/* Define if you have the <siginfo.h> header file.  */
+#undef HAVE_SIGINFO_H
 
 /* Define if you have the <string.h> header file.  */
 #undef HAVE_STRING_H

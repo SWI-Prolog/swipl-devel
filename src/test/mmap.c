@@ -15,10 +15,17 @@
 #endif
 
 #include <stdio.h>
-#include <signal.h>
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
+#include <stdlib.h>
+#ifdef HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif HAVE_SYS_TYPES_H
+#ifdef HAVE_SYS_STAT_H
+#include <sys/stat.h>
+#endif HAVE_SYS_STAT_H
+#include <signal.h>
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -101,25 +108,86 @@ get_map_fd()
     
     perror(map);
     exit(1);
+    return -1;				/* make compiler happy */
   }
+
+  return fd;
 }
 #endif /*MAP_ANON*/
 
 
+		 /*******************************
+		 *	REGISTER HANDLER	*
+		 *******************************/
+
+#ifdef HAVE_SIGINFO_H
+#include <siginfo.h>
+#endif
+
+
+static handler_t
+set_stack_guard_handler(int sig, void *func)
+{
+#ifdef HAVE_SIGACTION
+  struct sigaction old;
+  struct sigaction new;
+
+  memset(&new, 0, sizeof(new));	/* deal with other fields */
+#ifdef HAVE_SIGINFO
+  new.sa_sigaction = func;
+  new.sa_flags     = SA_RESTART|SA_SIGINFO;
+#else
+  new.sa_handler   = func;
+  new.sa_flags     = SA_RESTART;
+#endif
+
+  if ( sigaction(sig, &new, &old) == 0 )
+    return old.sa_handler;
+  else
+    return SIG_DFL;
+#else
+  return signal(sig, func);
+#endif
+}
+
+		 /*******************************
+		 *	      HANDLER		*
+		 *******************************/
+
+
 #ifdef SEGV_HANDLING
 SIGRETTYPE
-segv_handler(int s, int type, void *scp, char *sigaddr)
+#ifdef HAVE_SIGINFO
+segv_handler(int s, siginfo_t *info, void *extra)
+#else
+segv_handler(int s)
+#endif
 { ulong addr = RoundDown((ulong)wraddr, pagsiz);
 
-  if ( sigaddr != wraddr )
-    provides_address = 0;
+#ifdef HAVE_SIGINFO
+  if ( !info || info->si_addr != wraddr )
+  { if ( provides_address  )
+    { provides_address = 0;
+#ifdef VERBOSE
+      if ( info )
+	printf("\rExpected %p, got addr=%p\n", wraddr, info->si_addr);
+      else
+	printf("\nGot no siginfo\n");
+#endif
+    }
+  }
+#endif
 
   if ( mprotect((void *) addr, pagsiz, PROT_READ|PROT_WRITE) < 0 )
-  { perror("mprotect");
+  { fprintf(stderr,
+	    "Failed to change protection from %p for %d bytes\n",
+	    (void *)addr, pagsiz);
+    perror("mprotect");
     exit(1);
   }
+
 #ifdef VERBOSE
-  printf("\rSegv expanded to %p", addr); fflush(stdout);
+  printf("\rSegv added page from %p", (void *)addr); fflush(stdout);
 #endif
 
 #ifndef BSD_SIGNALS
@@ -127,7 +195,10 @@ segv_handler(int s, int type, void *scp, char *sigaddr)
 #endif
 }
 
-#define expand_to(addr) wraddr = addr
+void
+expand_to(void *addr)
+{ wraddr = addr;
+}
 
 #else /*SEGV_HANDLING*/
 
@@ -146,7 +217,7 @@ expand_to(void *addr)
     top += incr;
 
 #ifdef VERBOSE
-    printf("\rExpanded to %p", addr); fflush(stdout);
+    printf("\rAdded page from %p", addr); fflush(stdout);
 #endif
   }
 }
@@ -216,7 +287,7 @@ static void
 ok()
 { printf("MMAP_STACK=1;\n");
 
-#ifdef SEGV_HANDLING
+#if defined(SEGV_HANDLING) && defined(HAVE_SIGINFO)
   if ( provides_address )
     printf("SIGNAL_HANDLER_PROVIDES_ADDRESS=1;\n");
 #endif
@@ -247,7 +318,7 @@ main(int argc, char **argv)
     perror("mmap");
     
 #ifdef SEGV_HANDLING
-  signal(SIGSEGV, (handler_t) segv_handler);
+  set_stack_guard_handler(SIGSEGV, segv_handler);
 #endif
 
   if ( !test_map(base, size) )
@@ -267,7 +338,7 @@ main(int argc, char **argv)
     exit(1);
   }
 #ifdef VERBOSE
-  printf("Testing again ...\n", truncto);
+  printf("Testing again ...\n");
 #endif
 #endif /*MAP_FIXED*/
 

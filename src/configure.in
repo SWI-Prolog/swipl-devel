@@ -686,10 +686,32 @@ rm -fr conftest*
 
 if test "$ac_cv_func_mmap" = "yes" -a "$configmmappedstacks" = "yes"; then
 dnl ****************************************************************
+dnl First lets see whether our signal handler is POSIX.1b
+dnl ****************************************************************
+
+AC_CHECK_HEADERS(siginfo.h)
+
+AC_MSG_CHECKING("for SA_SIGINFO");
+AC_TRY_COMPILE(
+[ #include <signal.h> 
+  #ifdef HAVE_SIGINFO_H
+  #include <siginfo.h>
+  #endif
+  extern void handler(int sig, siginfo_t *info, void *);
+],
+[ struct sigaction act;
+
+  act.sa_sigaction = handler;
+  act.sa_flags = SA_SIGINFO;
+  
+  sigaction(SIGSEGV, (void *)0, &act);
+], AC_DEFINE(HAVE_SIGINFO)
+   AC_MSG_RESULT(yes),
+   AC_MSG_RESULT(no))
+
+dnl ****************************************************************
 dnl More tricky stuff.  Try to find out whether or not we can use mmap()
-dnl to implement dynamic stacks.  This requires mmap(), support for
-dnl `fixed' and `private' maps and support to map in the same area as
-dnl malloc() does.  The program map/mmap.c tests all these things.
+dnl to implement dynamic stacks.  The program test/mmap.c tests for this.
 dnl ****************************************************************
 
 mmap_tried=segv;
@@ -698,20 +720,28 @@ AC_MSG_CHECKING("if we can use mmap for stack allocation")
 echo '#include "confdefs.h"' > conftest.c
 cat $srcdir/test/mmap.c >> conftest.c
 (eval $ac_link) 2>&5
-if test -s conftest && eval `./conftest`; then
-    if test "$MMAP_STACK" = "1"; then
-        if test "$HAVE_MAP_ANON" = "1"; then
-	    AC_DEFINE(HAVE_MAP_ANON)
-	    AC_MSG_RESULT("Using MAP_ANON")
+if test -s conftest; then
+    if eval `./conftest`; then
+	if test "$MMAP_STACK" = "1"; then
+	    if test "$HAVE_MAP_ANON" = "1"; then
+		AC_DEFINE(HAVE_MAP_ANON)
+		AC_MSG_RESULT("Using MAP_ANON")
+	    else
+		AC_MSG_RESULT("Using MAP_PRIVATE")
+	    fi
+	    AC_DEFINE(MMAP_STACK)
+	    AC_MSG_CHECKING("if SA_SIGINFO is usable")
+	    if test "$SIGNAL_HANDLER_PROVIDES_ADDRESS" = "1"; then
+	      AC_MSG_RESULT(yes)
+	      AC_DEFINE(USE_SIGINFO)
+	    else
+	      AC_MSG_RESULT(no)
+	    fi
 	else
-	    AC_MSG_RESULT("Using MAP_PRIVATE")
+	    AC_MSG_RESULT("mmap is not good enough")
 	fi
-        AC_DEFINE(MMAP_STACK)
     else
-	AC_MSG_RESULT("mmap is not good enough")
-    fi
-    if test "$SIGNAL_HANDLER_PROVIDES_ADDRESS" = "1"; then
-	AC_DEFINE(SIGNAL_HANDLER_PROVIDES_ADDRESS)
+        AC_MSG_RESULT("could not run mmap test");
     fi
 else
     AC_MSG_RESULT("could not compile mmap test");
@@ -728,3 +758,4 @@ done
 fi # mmap
 
 AC_OUTPUT(Makefile rc/Makefile README.bin pl.1)
+
