@@ -578,7 +578,12 @@ install_pl2xpce()
 
 install_t
 uninstall_pl2xpce()
-{ PL_dispatch_hook(old_dispatch_hook);
+{ static int doing = FALSE;		/* avoid recursion */
+
+  if ( doing )
+    return;
+  doing = TRUE;
+  PL_dispatch_hook(old_dispatch_hook);
 #ifdef __WIN32__
   indirect_rlc_update_hook(old_update_hook);
 #endif
