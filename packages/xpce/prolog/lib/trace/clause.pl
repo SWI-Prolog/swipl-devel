@@ -62,7 +62,7 @@ user:prolog_event_hook(erased(Ref)) :-
 clear_clause_info_cache :-
 	retractall(clause_info_cache(_, _, _, _)).
 
-%	clause_info(+ClaseRef, -File, -TermPos, -VarNames)
+%	clause_info(+ClauseRef, -File, -TermPos, -VarNames)
 %
 %	Fetches source information for the given clause.
 
