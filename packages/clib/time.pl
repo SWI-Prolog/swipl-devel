@@ -86,5 +86,5 @@ call_with_time_limit(Time, Goal) :-
 		     
 schedule_timeout(Time, Goal, Id) :-
 	alarm(Time, throw(time_limit_exceeded), Id),
-	Goal.
+	Goal, !.
 		     

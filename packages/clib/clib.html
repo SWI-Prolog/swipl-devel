@@ -30,10 +30,9 @@ E-mail: <A HREF="mailto:jan@swi.psy.uva.nl">jan@swi.psy.uva.nl</A></I>
 <CENTER><H3>Abstract</H3></Center>
 <TABLE WIDTH="90%" ALIGN=center BORDER=2 BGCOLOR="#f0f0f0"><TR><TD>
 This document describes commonly used foreign language extensions to
-<A HREF="http://www.swi.psy.uva.nl/projects/SWI-Prolog">SWI-Prolog</A> 
-distributed as a package known under the name <EM>clib</EM>. The package 
-defines a number of Prolog libraries with accompagnying foreign 
-libraries.
+<A HREF="http://www.swi-prolog.org">SWI-Prolog</A> distributed as a 
+package known under the name <EM>clib</EM>. The package defines a number 
+of Prolog libraries with accompagnying foreign libraries.
 
 <DL>
 
@@ -50,13 +49,15 @@ This library provides access to Unix password encryption.
 This library decodes MIME messages.
 <DT><B><CODE>library(socket)</CODE></B><DD>
 This library provides access to TCP/IP communication.
+<DT><B><CODE>library(time)</CODE></B><DD>
+This library provides timing (alarm) functions.
 </DL>
 
-<P>Currently only <CODE>library(socket)</CODE> and <CODE>library(cgi)</CODE> 
-are available on the default MS-Windows distribution. The <CODE>library(unix)</CODE> 
-and
-<CODE>library(crypt)</CODE> libraries can be used if the whole 
-SWI-Prolog suite is compiled using <A HREF="http://www.cygwin.com">Cywin</A>.
+<P>On Windows systems, the <CODE>library(unix)</CODE> and <CODE>library(crypt)</CODE> 
+libraries can only be used if the whole SWI-Prolog suite is compiled 
+using
+<A HREF="http://www.cygwin.com">Cywin</A>. The other libraries have been 
+ported to native Windows.
 </TABLE>
 
 <H1><A NAME="document-contents">Table of Contents</A></H1>
@@ -76,9 +77,10 @@ SWI-Prolog suite is compiled using <A HREF="http://www.cygwin.com">Cywin</A>.
 <LI><A HREF="#sec:5"><B>5 MIME decoding library</B></A>
 <LI><A HREF="#sec:6"><B>6 Unix password encryption library</B></A>
 <LI><A HREF="#sec:7"><B>7 Memory files</B></A>
-<LI><A HREF="#sec:8"><B>8 Installation</B></A>
+<LI><A HREF="#sec:8"><B>8 Time and alarm library</B></A>
+<LI><A HREF="#sec:9"><B>9 Installation</B></A>
 <UL>
-<LI><A HREF="#sec:8.1">8.1 Unix systems</A>
+<LI><A HREF="#sec:9.1">9.1 Unix systems</A>
 </UL>
 </UL>
 
@@ -235,8 +237,8 @@ controlling terminal.
 sockets from SWI-Prolog, both client and server-side communication. The 
 interface of this library is very close to the Unix socket interface, 
 also supported by the MS-Windows <EM>winsock</EM> API. Since SWI-Prolog 
-4.0, XPCE is part of SWI-Prolog and offers . XPCE provides an 
-event-driven interface to sockets, handling multiple open sockets in 
+4.0, XPCE is part of SWI-Prolog and offers <B>socket</B>. XPCE provides 
+an event-driven interface to sockets, handling multiple open sockets in 
 paralel.
 
 <P>In the future we hope to provide a more high-level socket interface 
@@ -665,9 +667,67 @@ eturn the content of the memory-file in <VAR>Atom</VAR>.
 eturn the content of the memory-file as a list of character-codes in <VAR>Codes</VAR>.
 </DL>
 
-<H2><A NAME="sec:8">8 Installation</A></H2>
+<H2><A NAME="sec:8">8 Time and alarm library</A></H2>
 
-<H3><A NAME="sec:8.1">8.1 Unix systems</A></H3>
+<P>The <CODE>library(time)</CODE> provides timing and alarm functions.
+
+<DL>
+
+<P>
+<DT><A NAME="alarm/4"><STRONG>alarm</STRONG>(<VAR>+Time, :Callable, -Id, 
++Option</VAR>)</A><DD>
+Schedule <VAR>Callable</VAR> to be called <VAR>Time</VAR> seconds from 
+now.
+<VAR>Time</VAR> is a number (integer or float). <VAR>Callable</VAR> is 
+called on the next pass through a call- or redo-port of the Prolog 
+engine, or a call to the PL_handle_signals() routine from SWI-Prolog. <VAR>Id</VAR> 
+is unified with a reference to the timer.
+
+<P>The resolution of the alarm depends on the underlying implementation. 
+On Unix systems it is based on setitimer(), on Windows on timeSetEvent() 
+using a resolution specified at 50 milliseconds. Long-running foreign 
+predicates that do not call PL_handle_signals() may further delay the 
+alarm.
+
+<P><VAR>Options</VAR> is a list of <CODE><VAR>Name</VAR>(Value)</CODE> 
+terms. Defined options are:
+
+<DL>
+
+<P>
+<DT><STRONG>remove</STRONG>(<VAR>Bool</VAR>)<DD>
+If <CODE>true</CODE> (default <CODE>false</CODE>), the timer is removed 
+automatically. Otherwise it must be delated explicitly using
+<A NAME="idx:removealarm1:40"></A><A HREF="#remove_alarm/1">remove_alarm/1</A>.
+</DL>
+
+<P>
+<DT><A NAME="alarm/3"><STRONG>alarm</STRONG>(<VAR>+Time, :Callable, -Id</VAR>)</A><DD>
+Same as <CODE>alarm(Time, Callable, Id,)</CODE>.
+
+<P>
+<DT><A NAME="remove_alarm/1"><STRONG>remove_alarm</STRONG>(<VAR>+Id</VAR>)</A><DD>
+Remove an alarm. If it is not yet fired, it will not be fired any more.
+
+<P>
+<DT><A NAME="current_alarm/4"><STRONG>current_alarm</STRONG>(<VAR>?At, 
+?:Callable, ?Id, ?Status</VAR>)</A><DD>
+Enumerate the not-yet-removed alarms. <VAR>Status</VAR> is one of
+<CODE>done</CODE> if the alarm has been called, <CODE>next</CODE> if it 
+is the next to be fired and <VAR>scheduled</VAR> otherwise.
+
+<P>
+<DT><A NAME="call_with_time_limit/2"><STRONG>call_with_time_limit</STRONG>(<VAR>+Time, 
+:Goal</VAR>)</A><DD>
+Call <VAR>Goal</VAR> as <A NAME="idx:once1:41"></A><B>once/1</B>. If <VAR>Goal</VAR> 
+doesn't complete within
+<VAR>Time</VAR> seconds, exit using the exception
+<CODE>time_limit_exceeded</CODE>. See <A NAME="idx:catch3:42"></A><B>catch/3</B>.
+</DL>
+
+<H2><A NAME="sec:9">9 Installation</A></H2>
+
+<H3><A NAME="sec:9.1">9.1 Unix systems</A></H3>
 
 <P>Installation on Unix system uses the commonly found <EM>configure</EM>,
 <EM>make</EM> and <EM>make install</EM> sequence. SWI-Prolog should be 
@@ -695,7 +755,7 @@ and the Prolog library files in <CODE>$PLBASE/library</CODE>, where
 
 <P>
 <DT><A NAME=note-1 HREF="index.html#back-to-note-1">note-1</A><DD>
-<A NAME="idx:kill2:40"></A><A HREF="#kill/2">kill/2</A> should support 
+<A NAME="idx:kill2:43"></A><A HREF="#kill/2">kill/2</A> should support 
 interrupt-names as well
 <DT><A NAME=note-2 HREF="index.html#back-to-note-2">note-2</A><DD>
 More subtle handling of I/O, especially for debugging is required: 

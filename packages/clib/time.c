@@ -329,13 +329,13 @@ callTimer(UINT id, UINT msg, DWORD dwuser, DWORD dw1, DWORD dw2)
 
 
 static void
-installEvent(Event ev, double t)
+installEvent(Event ev, doubl5e t)
 { MMRESULT rval;
 
   installHandler();
 
   rval = timeSetEvent((int)(t*1000),
-		      20,			/* resolution (milliseconds) */
+		      50,			/* resolution (milliseconds) */
 		      callTimer,
 		      (DWORD)ev,
 		      TIME_ONESHOT);

@@ -22,8 +22,8 @@
 
 \begin{abstract}
 This document describes commonly used foreign language extensions to
-\url[SWI-Prolog]{http://www.swi.psy.uva.nl/projects/SWI-Prolog}
-distributed as a package known under the name {\em clib}.  The package
+\url[SWI-Prolog]{http://www.swi-prolog.org}
+distributed as a package known under the name {\em clib}. The package
 defines a number of Prolog libraries with accompagnying foreign
 libraries.
 
@@ -40,12 +40,14 @@ This library provides access to Unix password encryption.
 This library decodes MIME messages.
     \item[\pllib{socket}]
 This library provides access to TCP/IP communication.
+    \item[\pllib{time}]
+This library provides timing (alarm) functions.
 \end{description}
 
-Currently only \pllib{socket} and \pllib{cgi} are available on
-the default MS-Windows distribution.  The \pllib{unix} and
-\pllib{crypt} libraries can be used if the whole SWI-Prolog suite
-is compiled using \url[Cywin]{http://www.cygwin.com}.
+On Windows systems, the \pllib{unix} and \pllib{crypt} libraries can
+only be used if the whole SWI-Prolog suite is compiled using
+\url[Cywin]{http://www.cygwin.com}.  The other libraries have been
+ported to native Windows.
 \end{abstract}
 
 \vfill
@@ -543,6 +545,53 @@ Return the content of the memory-file in \arg{Atom}.
     \predicate{memory_file_to_codes}{+Handle, -Codes}
 Return the content of the memory-file as a list of character-codes
 in \arg{Codes}.
+\end{description}
+
+
+\section{Time and alarm library}
+
+The \pllib{time} provides timing and alarm functions.  
+
+\begin{description}
+    \predicate{alarm}{4}{+Time, :Callable, -Id, +Option}
+Schedule \arg{Callable} to be called \arg{Time} seconds from now.
+\arg{Time} is a number (integer or float).  \arg{Callable} is called
+on the next pass through a call- or redo-port of the Prolog engine,
+or a call to the PL_handle_signals() routine from SWI-Prolog.  \arg{Id}
+is unified with a reference to the timer.
+
+The resolution of the alarm depends on the underlying implementation.
+On Unix systems it is based on setitimer(), on Windows on timeSetEvent()
+using a resolution specified at 50 milliseconds.  Long-running foreign
+predicates that do not call PL_handle_signals() may further delay the
+alarm.
+
+\arg{Options} is a list of \term{\arg{Name}}{Value} terms.  Defined 
+options are:
+
+\begin{description}
+    \termitem{remove}{Bool}
+If \const{true} (default \const{false}), the timer is removed
+automatically.  Otherwise it must be delated explicitly using
+remove_alarm/1.
+\end{description}
+
+    \predicate{alarm}{3}{+Time, :Callable, -Id}
+Same as \term{alarm}{Time, Callable, Id, []}.
+
+    \predicate{remove_alarm}{1}{+Id}
+Remove an alarm.  If it is not yet fired, it will not be fired
+any more.
+
+    \predicate{current_alarm}{4}{?At, ?:Callable, ?Id, ?Status}
+Enumerate the not-yet-removed alarms.  \arg{Status} is one of
+\const{done} if the alarm has been called, \const{next} if it
+is the next to be fired and \arg{scheduled} otherwise.
+
+    \predicate{call_with_time_limit}{2}{+Time, :Goal}
+Call \arg{Goal} as once/1.  If \arg{Goal} doesn't complete within
+\arg{Time} seconds, exit using the exception
+\const{time_limit_exceeded}.  See catch/3.
 \end{description}
 
 
