@@ -508,7 +508,7 @@ COMMON(bool) 		RenameFile(const char *old, const char *new);
 COMMON(bool) 		SameFile(const char *f1, const char *f2);
 COMMON(bool) 		OpenStream(int fd);
 COMMON(bool) 		MarkExecutable(const char *name);
-COMMON(bool) 		expandVars(const char *pattern, char *expanded);
+COMMON(bool) 		expandVars(const char *pattern, char *expanded, int len);
 COMMON(char *) 		ExpandOneFile(const char *spec, char *file);
 COMMON(char *) 		getwd(char *buf);
 COMMON(char *) 		AbsoluteFile(const char *spec, char *path);

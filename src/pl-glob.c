@@ -575,7 +575,7 @@ pl_expand_file_name(term_t f, term_t list)
     return PL_error(NULL, 0, "File name too long",
 		    ERR_DOMAIN, ATOM_pattern, f);
 
-  if ( !expandVars(s, spec) )
+  if ( !expandVars(s, spec, sizeof(spec)) )
     fail;
   if ( !expand(spec, &info) )
     goto failout;

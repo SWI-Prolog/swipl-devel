@@ -134,6 +134,7 @@ extern counting_mutex _PL_mutexes[];	/* Prolog mutexes */
 #define L_TERM	       15
 #define L_GC	       16
 #define L_FOREIGN      17
+#define L_OS	       18
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The IFMT(id, g) macro  is  used  to   bypass  mutexes  if  threading  is

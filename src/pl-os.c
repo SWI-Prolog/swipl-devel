@@ -78,6 +78,9 @@
 static real initial_time;
 #endif /* OS2 */
 
+#define LOCK()   PL_LOCK(L_OS)
+#define UNLOCK() PL_UNLOCK(L_OS)
+
 static void	initExpand(void);
 static void	cleanupExpand(void);
 static void	initEnviron(void);
@@ -1333,7 +1336,7 @@ takeWord(const char **string, char *wrd)
 
 
 bool
-expandVars(const char *pattern, char *expanded)
+expandVars(const char *pattern, char *expanded, int maxlen)
 { int size = 0;
   char word[MAXPATHLEN];
 
@@ -1344,6 +1347,8 @@ expandVars(const char *pattern, char *expanded)
 
     pattern++;
     user = takeWord(&pattern, word);
+    LOCK();
+
     if ( user[0] == EOS )		/* ~/bla */
     {
 #ifdef O_XOS
@@ -1373,6 +1378,7 @@ expandVars(const char *pattern, char *expanded)
 	    PL_put_atom_chars(name, user);
 	    PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_user, name);
 	  }
+	  UNLOCK();
 	  fail;
 	}
 	if ( GD->os.fred )
@@ -1388,14 +1394,16 @@ expandVars(const char *pattern, char *expanded)
     { if ( fileerrors )
 	PL_error(NULL, 0, NULL, ERR_NOT_IMPLEMENTED_FEATURE, "user_info");
 
+      UNLOCK();
       fail;
     }
 #endif
     size += (l = (int) strlen(value));
-    if ( size >= MAXPATHLEN )
+    if ( size+1 >= maxlen )
       return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_max_path_length);
     strcpy(expanded, value);
     expanded += l;
+    UNLOCK();
 
 					/* ~/ should not become // */
     if ( expanded[-1] == '/' && pattern[0] == '/' )
@@ -1416,6 +1424,7 @@ expandVars(const char *pattern, char *expanded)
 
 	  if ( var[0] == EOS )
 	    goto def;
+	  LOCK();
 	  value = getenv3(var, envbuf, sizeof(envbuf));
 	  if ( value == (char *) NULL )
 	  { if ( fileerrors )
@@ -1425,20 +1434,26 @@ expandVars(const char *pattern, char *expanded)
 	      PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_variable, name);
 	    }
 
+	    UNLOCK();
 	    fail;
 	  }
 	  size += (l = (int)strlen(value));
-	  if ( size >= MAXPATHLEN )
+	  if ( size+1 >= maxlen )
+	  { UNLOCK();
 	    return PL_error(NULL, 0, NULL, ERR_REPRESENTATION,
 			    ATOM_max_path_length);
+	  }
 	  strcpy(expanded, value);
+	  UNLOCK();
+
 	  expanded += l;
 
 	  continue;
 	}
       default:
       def:
-	if ( ++size >= MAXPATHLEN )
+	size++;
+	if ( size+1 >= maxlen )
 	  return PL_error(NULL, 0, NULL, ERR_REPRESENTATION,
 			  ATOM_max_path_length);
 	*expanded++ = c;
@@ -1448,7 +1463,7 @@ expandVars(const char *pattern, char *expanded)
     break;
   }
 
-  if ( ++size >= MAXPATHLEN )
+  if ( ++size >= maxlen )
     return PL_error(NULL, 0, NULL, ERR_REPRESENTATION,
 		    ATOM_max_path_length);
   *expanded = EOS;
@@ -1462,7 +1477,7 @@ ExpandFile(const char *pattern, char **vector)
 { char expanded[MAXPATHLEN];
   int matches = 0;
 
-  if ( !expandVars(pattern, expanded) )
+  if ( !expandVars(pattern, expanded, sizeof(expanded)) )
     return -1;
   
   vector[matches++] = store_string(expanded);
