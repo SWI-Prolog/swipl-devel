@@ -458,6 +458,7 @@ $chk_alias_file(Spec, Exts, FullFile) :-
 	member(Ext, Exts),
 	ensure_extension(Expanded, Ext, LibFile),
 	exists_file(LibFile),
+	\+ exists_directory(LibFile),
 	$absolute_file_name(LibFile, FullFile),
 	asserta($search_path_file_cache(Spec, FullFile, Ext)).
 	
