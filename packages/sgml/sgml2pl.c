@@ -1405,7 +1405,8 @@ pl_sgml_parse(term_t parser, term_t options)
 
     oldpd = p->closure;
     if ( oldpd->magic != PD_MAGIC || oldpd->parser != p )
-      return sgml2pl_error(ERR_MISC, "sgml", "Parser associated with illegal data");
+      return sgml2pl_error(ERR_MISC, "sgml",
+			   "Parser associated with illegal data");
     
     pd = sgml_calloc(1, sizeof(*pd));
     *pd = *oldpd;
