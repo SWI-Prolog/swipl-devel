@@ -1696,7 +1696,7 @@ start_of_line_n_textbuffer(TextBuffer tb, int lineno)
 		*     PRIMITIVE OPERATIONS      *
 		*********************************/
 
-wint_t
+int
 fetch_textbuffer(TextBuffer tb, int where)
 { int idx;
 
