@@ -33,6 +33,36 @@
 #define URL_subPropertyOf \
 	"http://www.w3.org/2000/01/rdf-schema#subPropertyOf"
 
+		 /*******************************
+		 *               C		*
+		 *******************************/
+
+#ifdef _REENTRANT
+#ifdef WITH_PL_MUTEX
+#define O_PLMT 1
+#include "../../src/pl-mutex.h"
+#else /*WITH_PL_MUTEX*/
+#include <pthread.h>
+typedef pthread_mutex_t simpleMutex;
+
+#define simpleMutexInit(p)	pthread_mutex_init(p, NULL)
+#define simpleMutexDelete(p)	pthread_mutex_destroy(p)
+#define simpleMutexLock(p)	pthread_mutex_lock(p)
+#define simpleMutexUnlock(p)	pthread_mutex_unlock(p)
+
+#endif /*WITH_PL_MUTEX*/
+#define LOCK(db) simpleMutexLock(&db->mutex)
+#define UNLOCK(db) simpleMutexUnlock(&db->mutex)
+#else /*_REENTRANT*/
+#define LOCK(db)
+#define UNLOCK(db)
+#endif /*_REENTRANT*/
+
+
+		 /*******************************
+		 *               C		*
+		 *******************************/
+
 #define OBJ_UNTYPED	0x0		/* partial: don't know */
 #define	OBJ_RESOURCE	0x1
 #define OBJ_STRING	0x2
@@ -167,6 +197,9 @@ typedef struct rdf_db
   source      **source_table;		/* Hash table of sources */
   int      	source_table_size;	/* Entries in table */
   source	*last_source;		/* last accessed source */
+#ifdef _REENTRANT
+  simpleMutex	mutex;			/* Thread synchronisation */
+#endif
 } rdf_db;
 
 #endif /*RDFDB_H_INCLUDED*/

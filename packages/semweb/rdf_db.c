@@ -23,6 +23,7 @@
 */
 
 #define WITH_MD5 1
+#define WITH_PL_MUTEX 1
 
 #include <SWI-Stream.h>
 #include <SWI-Prolog.h>
@@ -37,17 +38,6 @@
 static void md5_triple(triple *t, md5_byte_t *digest);
 static void sum_digest(md5_byte_t *digest, md5_byte_t *add);
 static void dec_digest(md5_byte_t *digest, md5_byte_t *add);
-#endif
-
-#ifdef _REENTRANT
-#include <pthread.h>
-
-static pthread_mutex_t rdf_db_mutex = PTHREAD_MUTEX_INITIALIZER;
-#define LOCK() pthread_mutex_lock(&rdf_db_mutex)
-#define UNLOCK() pthread_mutex_unlock(&rdf_db_mutex)
-#else
-#define LOCK()
-#define UNLOCK()
 #endif
 
 #define O_DEBUG 1
@@ -974,19 +964,19 @@ rdf_sources(term_t list)
   term_t head = PL_new_term_ref();
   rdf_db *db = DB;
 
-  LOCK();
+  LOCK(db);
   for(i=0; i<db->source_table_size; i++)
   { source *src;
 
     for(src=db->source_table[i]; src; src = src->next)
     { if ( !PL_unify_list(tail, head, tail) ||
 	   !PL_unify_atom(head, src->name) )
-      { UNLOCK();
+      { UNLOCK(db);
 	return FALSE;
       }
     }
   }
-  UNLOCK();
+  UNLOCK(db);
 
   return PL_unify_nil(tail);
 }
@@ -1028,6 +1018,7 @@ new_db()
 { rdf_db *db = PL_malloc(sizeof(*db));
 
   memset(db, 0, sizeof(*db));
+  simpleMutexInit(&db->mutex);
   init_tables(db);
 
   return db;
@@ -1341,10 +1332,10 @@ update_hash(rdf_db *db)
     DEBUG(1, Sdprintf("rdf_db: want GC\n"));
 
   if ( db->need_update || want_gc )
-  { LOCK();
+  { LOCK(db);
 
     if ( db->active_queries )
-    { UNLOCK();
+    { UNLOCK(db);
 
       if ( db->need_update )
 	return permission_error("rdf_db", "update", "db", "Active queries");
@@ -1367,7 +1358,7 @@ update_hash(rdf_db *db)
       DEBUG(1, Sdprintf("ok\n"));
     }
 
-    UNLOCK();
+    UNLOCK(db);
   }
 
   return TRUE;
@@ -1732,7 +1723,7 @@ save_db(rdf_db *db, IOSTREAM *out, atom_t src)
 { triple *t;
   save_context ctx;
 
-  LOCK();
+  LOCK(db);
   init_saved(db, &ctx);
 
   Sfprintf(out, "%s", SAVE_MAGIC);
@@ -1758,7 +1749,7 @@ save_db(rdf_db *db, IOSTREAM *out, atom_t src)
     return FALSE;
 
   destroy_saved(&ctx);
-  UNLOCK();
+  UNLOCK(db);
 
   return TRUE;
 }
@@ -1977,7 +1968,7 @@ load_db(rdf_db *db, IOSTREAM *in)
   
   memset(&ctx, 0, sizeof(ctx));
 
-  LOCK();
+  LOCK(db);
   while((c=Sgetc(in)) != EOF)
   { switch(c)
     { case 'T':
@@ -2010,14 +2001,14 @@ load_db(rdf_db *db, IOSTREAM *in)
 	}
 
 	db->generation += (db->created-created0);
-	UNLOCK();
+	UNLOCK(db);
 	return TRUE;
       default:
 	break;
     }
   }
   
-  UNLOCK();
+  UNLOCK(db);
   return PL_warning("Illegal RDF triple file");
 }
 
@@ -2141,7 +2132,7 @@ rdf_md5(term_t file, term_t md5)
   if ( src )
   { source *s;
 
-    LOCK();
+    LOCK(db);
     if ( (s = lookup_source(db, src, FALSE)) )
     { rc = md5_unify_digest(md5, s->digest);
     } else
@@ -2150,7 +2141,7 @@ rdf_md5(term_t file, term_t md5)
       memset(digest, 0, sizeof(digest));
       rc = md5_unify_digest(md5, digest);
     }
-    UNLOCK();
+    UNLOCK(db);
   } else
   { md5_byte_t digest[16];
     source **ht;
@@ -2158,7 +2149,7 @@ rdf_md5(term_t file, term_t md5)
     
     memset(&digest, 0, sizeof(digest));
 
-    LOCK();
+    LOCK(db);
 
     for(i=0,ht = db->source_table; i<db->source_table_size; i++, ht++)
     { source *s;
@@ -2168,7 +2159,7 @@ rdf_md5(term_t file, term_t md5)
     }
 
     rc = md5_unify_digest(md5, digest);
-    UNLOCK();
+    UNLOCK(db);
   }
 
   return rc;
@@ -2748,10 +2739,10 @@ rdf_assert4(term_t subject, term_t predicate, term_t object, term_t src)
   }
 
   lock_atoms(t);
-  LOCK();
+  LOCK(db);
   link_triple(db, t);
   db->generation++;
-  UNLOCK();
+  UNLOCK(db);
 
   return TRUE;
 }
@@ -2999,14 +2990,14 @@ update_triple(rdf_db *db, term_t action, triple *t)
       return FALSE;
     if ( t2.source == t->source && t2.line == t->line )
       return TRUE;
-    LOCK();
+    LOCK(db);
     if ( t->source )
       unregister_source(db, t);
     t->source = t2.source;
     t->line = t2.line;
     if ( t2.source )
       register_source(db, t);
-    UNLOCK();
+    UNLOCK(db);
 
     return TRUE;			/* considered no change */
   } else
@@ -3015,7 +3006,7 @@ update_triple(rdf_db *db, term_t action, triple *t)
   for(i=0; i<INDEX_TABLES; i++)
     tmp.next[i] = NULL;
 
-  LOCK();
+  LOCK(db);
   erase_triple(db, t);
   new = PL_malloc(sizeof(*new));
   memset(new, 0, sizeof(*new));
@@ -3031,7 +3022,7 @@ update_triple(rdf_db *db, term_t action, triple *t)
   lock_atoms(new);
   link_triple(db, new);
   db->generation++;
-  UNLOCK();
+  UNLOCK(db);
 
   return TRUE;
 }
@@ -3087,10 +3078,10 @@ rdf_retractall4(term_t subject, term_t predicate, term_t object, term_t src)
   p = db->table[t.indexed][triple_hash(db, &t, t.indexed)];
   for( ; p; p = p->next[t.indexed])
   { if ( match_triples(p, &t, MATCH_EXACT|MATCH_SRC) )
-    { LOCK();
+    { LOCK(db);
       erase_triple(db, p);
       erased++;
-      UNLOCK();
+      UNLOCK(db);
     }
   }
 
@@ -3817,9 +3808,9 @@ static foreign_t
 rdf_reset_db()
 { rdf_db *db = DB;
 
-  LOCK();
+  LOCK(db);
   if ( db->active_queries )
-  { UNLOCK();
+  { UNLOCK(db);
 
     return permission_error("rdf_db", "update", "db", "Active queries");
   }
@@ -3830,7 +3821,7 @@ rdf_reset_db()
   db->need_update = FALSE;
   db->agenda_created = 0;
 
-  UNLOCK();
+  UNLOCK(db);
 
   return TRUE;
 }
