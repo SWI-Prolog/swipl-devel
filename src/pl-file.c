@@ -38,27 +38,343 @@ handling times must be cleaned, but that not only holds for this module.
 #include <bstring.h>
 #endif
 
-#define ST_TERMINAL 0			/* terminal based stream */
-#define ST_FILE	    1			/* File bound stream */
-#define ST_PIPE	    2			/* Pipe bound stream */
-#define ST_STRING   3			/* String bound stream */
+#define LOCK() PL_LOCK(L_FILE)		/* MT locking */
+#define UNLOCK() PL_UNLOCK(L_FILE)
 
-					/* openStream() flags */
-#define OPEN_OPEN   0x1			/* Open for open/[3,4] */
-#define OPEN_TEXT   0x2			/* Open in text-mode */
+		 /*******************************
+		 *	   BOOKKEEPING		*
+		 *******************************/
 
-typedef struct plfile *	PlFile;
+static void aliasStream(IOSTREAM *s, atom_t alias);
 
-static struct plfile
-{ atom_t	name;			/* name of file */
-  atom_t	stream_name;		/* stream identifier name */
-  IOSTREAM *	stream;			/* IOSTREAM package descriptor */
-  char		status;			/* F_CLOSED, F_READ, F_WRITE */
-  char		type;			/* ST_FILE, ST_PIPE, ST_STRING */
-} *fileTable = (PlFile) NULL;		/* Our file table */
+static Table streamAliases;		/* alias --> stream */
+static Table streamContext;		/* stream --> extra data */
 
-#define Input  (LD->IO.input)
-#define Output (LD->IO.output)
+typedef struct _alias
+{ struct _alias *next;
+  atom_t name;
+} alias;
+
+
+typedef struct
+{ alias *alias_head;
+  alias *alias_tail;
+  atom_t filename;			/* associated filename */
+} stream_context;
+
+
+static stream_context *
+getStreamContext(IOSTREAM *s)
+{ Symbol symb;
+
+  if ( !(symb = lookupHTable(streamContext, s)) )
+  { stream_context *ctx = allocHeap(sizeof(*ctx));
+
+    ctx->alias_head = ctx->alias_tail = NULL;
+    ctx->filename = NULL_ATOM;
+    addHTable(streamContext, s, ctx);
+
+    return ctx;
+  }
+
+  return symb->value;
+}
+
+
+void
+aliasStream(IOSTREAM *s, atom_t name)
+{ stream_context *ctx = getStreamContext(s);
+  alias *a;
+
+  addHTable(streamAliases, (void *)name, s);
+  
+  a = allocHeap(sizeof(*a));
+  a->next = NULL;
+  a->name = name;
+
+  if ( ctx->alias_tail )
+  { ctx->alias_tail->next = a;
+    ctx->alias_tail = a;
+  } else
+  { ctx->alias_head = ctx->alias_tail = a;
+  }
+}
+
+
+static void
+unaliasStream(IOSTREAM *s, atom_t name)
+{ Symbol symb;
+
+  if ( name )
+  { if ( (symb = lookupHTable(streamAliases, (void *)name)) )
+    { deleteSymbolHTable(streamAliases, symb);
+
+      if ( (symb=lookupHTable(streamContext, s)) )
+      { stream_context *ctx = symb->value;
+	alias **a;
+      
+	for(a = &ctx->alias_head; *a; a = &(*a)->next)
+	{ if ( (*a)->name == name )
+	  { alias *tmp = *a;
+
+	    *a = tmp->next;
+	    freeHeap(tmp, sizeof(*tmp));
+	    if ( tmp == ctx->alias_tail )
+	      ctx->alias_tail = NULL;
+
+	    return;
+	  }
+	}
+      }
+    }
+  } else				/* delete them all */
+  { if ( (symb=lookupHTable(streamContext, s)) )
+    { stream_context *ctx = symb->value;
+      alias *a, *n;
+
+      for(a = ctx->alias_head; a; a=n)
+      { Symbol s2;
+
+	n = a->next;
+
+	if ( (s2 = lookupHTable(streamAliases, (void *)a->name)) )
+	  deleteSymbolHTable(streamAliases, s2);
+
+	freeHeap(a, sizeof(*a));
+      }
+
+      ctx->alias_head = ctx->alias_tail = NULL;
+    }
+  }
+}
+
+
+static void
+freeStream(IOSTREAM *s)
+{ Symbol symb;
+
+  unaliasStream(s, NULL_ATOM);
+  if ( (symb=lookupHTable(streamContext, s)) )
+  { stream_context *ctx = symb->value;
+
+    freeHeap(ctx, sizeof(*ctx));
+    deleteSymbolHTable(streamContext, symb);
+  }
+
+  if ( s == Slog )			/* avoid dangling handles */
+    Slog = NULL;
+  else if ( s == Sdin )
+    Sdin = Sinput;
+  else if ( s == Sdout )
+    Sdout = Serror;
+  else if ( s == Sterm )
+    Sterm = Soutput;
+}
+
+
+static void
+setFileNameStream(IOSTREAM *s, atom_t name)
+{ stream_context *ctx = getStreamContext(s);
+
+  ctx->filename = name;
+}
+
+
+static inline atom_t
+fileNameStream(IOSTREAM *s)
+{ stream_context *ctx = getStreamContext(s);
+
+  return ctx->filename;
+}
+
+
+void
+initIO()
+{ streamAliases = newHTable(16);
+  streamContext = newHTable(16);
+
+  fileerrors = TRUE;
+#ifdef __unix__
+{ int fd;
+
+  if ( (fd=Sfileno(Sinput)) < 0 || !isatty(fd) )
+    GD->cmdline.notty = TRUE;
+  if ( (fd=Sfileno(Soutput)) < 0 || !isatty(fd) )
+    GD->cmdline.notty = TRUE;
+}
+#endif
+  ResetTty();
+
+  Sclosehook(freeStream);
+
+  aliasStream(Sinput,  ATOM_user_input);
+  aliasStream(Soutput, ATOM_user_output);
+  aliasStream(Serror,  ATOM_user_error);
+
+  Sinput->position  = &Sinput->posbuf;	/* position logging */
+  Soutput->position = &Sinput->posbuf;
+  Serror->position  = &Sinput->posbuf;
+
+  ttymode = TTY_COOKED;
+  PushTty(&ttytab, TTY_SAVE);
+  LD->prompt.current = ATOM_prompt;
+
+  Scurin  = Sinput;			/* see/tell */
+  Scurout = Soutput;
+  Sdin    = Sinput;			/* debugger I/O */
+  Sdout   = Serror;
+  Slog	  = NULL;			/* protocolling */
+  Sterm   = Soutput;			/* see pl-term.c */
+
+  GD->io_initialised = TRUE;
+}
+
+
+int
+PL_get_stream_handle(term_t t, IOSTREAM **s)
+{ atom_t alias;
+
+  if ( PL_is_functor(t, FUNCTOR_dstream1) )
+  { void *p;
+    term_t a = PL_new_term_ref();
+
+    PL_get_arg(1, t, a);
+    if ( PL_get_pointer(a, &p) )
+    { if ( ((IOSTREAM *)p)->magic == SIO_MAGIC )
+      { *s = p;
+        return TRUE;
+      } else
+	return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_stream, t);
+    }
+  } else if ( PL_get_atom(t, &alias) )
+  { Symbol symb;
+
+    if ( (symb=lookupHTable(streamAliases, (void *)alias)) )
+    { *s = symb->value;
+      assert((*s)->magic == SIO_MAGIC);
+      return TRUE;
+    }
+
+    return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_stream, t);
+  }
+      
+  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_stream, t);
+}
+
+
+int
+PL_unify_stream(term_t t, IOSTREAM *s)
+{ int rval;
+  stream_context *ctx = getStreamContext(s);
+
+  LOCK();
+  if ( ctx->alias_head )
+  { rval = PL_unify_atom(t, ctx->alias_head->name);
+  } else
+  { term_t a = PL_new_term_ref();
+    
+    PL_put_pointer(a, s);
+    PL_cons_functor(a, FUNCTOR_dstream1, a);
+
+    rval = PL_unify(t, a);
+  }
+  UNLOCK();
+
+  return rval;
+}
+
+
+bool					/* old FLI name */
+PL_open_stream(term_t handle, IOSTREAM *s)
+{ return PL_unify_stream(handle, s);
+}
+
+
+		 /*******************************
+		 *	  PROLOG INTERFACE	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Multi-threading support (not well thought of yet)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static IOSTREAM *
+getStream(IOSTREAM *s)
+{ return s;
+}
+
+
+static void
+releaseStream(IOSTREAM *s)
+{
+}
+
+
+bool
+getOutputStream(term_t t, IOSTREAM **s)
+{ atom_t a;
+
+  if ( t == 0 )
+  { *s = getStream(Scurout);
+    return TRUE;
+  } else if ( PL_get_atom(t, &a) && a == ATOM_user )
+  { *s = getStream(Soutput);
+    return TRUE;
+  }
+
+  return PL_get_stream_handle(t, s);
+}
+
+
+bool
+getInputStream(term_t t, IOSTREAM **s)
+{ atom_t a;
+
+  if ( t == 0 )
+  { *s = getStream(Scurin);
+    return TRUE;
+  } else if ( PL_get_atom(t, &a) && a == ATOM_user )
+  { *s = getStream(Sinput);
+    return TRUE;
+  }
+
+  return PL_get_stream_handle(t, s);
+}
+
+
+bool
+streamStatus(IOSTREAM *s)
+{ int rval;
+
+  if ( Sferror(s) )
+  { atom_t op;
+    term_t stream = PL_new_term_ref();
+
+    PL_unify_stream(stream, s);
+
+    if ( s->flags & SIO_INPUT )
+    { if ( Sfpasteof(s) )
+      { PL_error(NULL, 0, NULL, ERR_PERMISSION,
+		 ATOM_input, ATOM_past_end_of_stream, stream);
+      }
+      op = ATOM_read;
+    } else
+      op = ATOM_write;
+
+    rval = PL_error(NULL, 0, NULL, ERR_FILE_OPERATION,
+		    op, ATOM_stream, stream);
+  } else
+    rval = TRUE;
+
+  releaseStream(s);
+
+  return rval;
+}
+
+
+		 /*******************************
+		 *	     TTY MODES		*
+		 *******************************/
 
 ttybuf	ttytab;				/* saved terminal status on entry */
 int	ttymode;			/* Current tty mode */
@@ -66,145 +382,23 @@ int	ttymode;			/* Current tty mode */
 typedef struct input_context * InputContext;
 typedef struct output_context * OutputContext;
 
-static struct input_context
-{ int		stream;			/* pushed input */
-  atom_t	term_file;		/* old term_position file */
-  int		term_line;		/* old term_position line */
-  InputContext	previous;		/* previous context */
-} *input_context_stack = NULL;
-
-static struct output_context
-{ int		stream;			/* pushed input */
-  OutputContext previous;		/* previous context */
-} *output_context_stack = NULL;
-
-forwards bool	openStream(term_t file, int mode, int flags);
-forwards bool	closeStream(int);
-forwards bool	unifyStreamName(term_t, int);
-forwards bool	unifyStreamNo(term_t, int);
-forwards bool	setUnifyStreamNo(term_t, int);
-forwards bool	unifyStreamMode(term_t, int);
-forwards int	Get0();
-
-#ifdef SIGPIPE
-static void
-pipeHandler(int sig)
-{ if ( LD->pipe.active )
-  { longjmp(LD->pipe.context, 1);
-  }
-
-  warning("Broken pipe\n");		/* Unexpected broken pipe */
-  pl_abort();
-
-  signal(SIGPIPE, SIG_DFL);		/* should abort fail. */
-  kill(getpid(), SIGPIPE);		/* Unix has both pipes and kill() */
-}
-#endif /* SIGPIPE */
-
-static void
-brokenPipe(int n, atom_t rw)
-{ term_t stream = PL_new_term_ref();
-  IOSTREAM *s;
-
-  if ( (s = fileTable[n].stream) )
-    s->bufp = s->buffer;		/* avoid flush on close! */
-
-  unifyStreamNo(stream, n);
-
-  if ( rw == ATOM_write && n == Output )
-    Output = 1;
-
-  PL_error(NULL, 0, "Broken pipe", ERR_STREAM_OP, rw, stream);
-}
-
-#define TRYPIPE(no, rw, code, err) \
-	if ( fileTable[(no)].type == ST_PIPE ) \
-	{ if ( setjmp(LD->pipe.context) != 0 ) \
-	  { LD->pipe.active--; \
-	    brokenPipe(no, rw); \
-	    err; \
-	  } else \
-	  { LD->pipe.active++; \
-	    code; \
-	    LD->pipe.active--; \
-	  } \
-	} else \
-	{ code; \
-	}
+struct input_context
+{ IOSTREAM *    stream;                 /* pushed input */
+  atom_t        term_file;              /* old term_position file */
+  int           term_line;              /* old term_position line */
+  InputContext  previous;               /* previous context */
+};
 
 
-void
-initIO(void)
-{ int n;
+struct output_context
+{ IOSTREAM *    stream;                 /* pushed output */
+  OutputContext previous;               /* previous context */
+};
 
-  fileerrors = TRUE;
-  GD->IO.protocol_stream = -1;
+#define input_context_stack  (LD->IO.input_stack)
+#define output_context_stack (LD->IO.output_stack)
 
-  if ( GD->IO.file_max != getdtablesize() )
-  { if ( fileTable != (PlFile) NULL )
-      freeHeap(fileTable, sizeof(struct plfile) * GD->IO.file_max);
-    GD->IO.file_max = getdtablesize();
-    fileTable = allocHeap(sizeof(struct plfile) * GD->IO.file_max);
-  }
-
-#ifdef __unix__
-  if ( !isatty(0) || !isatty(1) )	/* Sinput is not a tty */
-    GD->cmdline.notty = TRUE;
-#endif
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Initilise user input, output and error  stream.   How  to do this neatly
-without the Unix assumptions?
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-  for(n=0; n<GD->IO.file_max; n++)
-  { PlFile f = &fileTable[n];
-
-    switch(n)
-    { case 0:
-	f->name	          = ATOM_user;
-	f->stream_name    = ATOM_user_input;
-	f->stream         = Sinput;
-	f->status         = F_READ;
-	f->type	          = ST_TERMINAL;
-	break;
-      case 1:
-	f->name           = ATOM_user;
-	f->stream_name    = ATOM_user_output;
-	f->stream         = Soutput;
-	f->status         = F_WRITE;
-	f->type	          = ST_TERMINAL;
-	break;
-      case 2:
-	f->name           = ATOM_stderr;
-	f->stream_name    = ATOM_user_error;
-	f->stream         = Serror;
-	f->status         = F_WRITE;
-	f->type	          = ST_TERMINAL;
-	break;
-      default:
-	f->name           = NULL_ATOM;
-        f->stream         = NULL_ATOM;
-	f->type           = ST_FILE;
-	f->status         = F_CLOSED;
-    }
-  }
-
-  ResetTty();
-  Sinput->position  = &Sinput->posbuf;	/* position logging */
-  Soutput->position = &Sinput->posbuf;
-  Serror->position  = &Sinput->posbuf;
-
-  ttymode = TTY_COOKED;
-  PushTty(&ttytab, TTY_SAVE);
-
-  Input = 0;
-  Output = 1;
-
-  if ( LD->prompt.current == NULL_ATOM )
-    LD->prompt.current = ATOM_prompt;
-}
-
+static IOSTREAM *openStream(term_t file, term_t mode, term_t options);
 
 void
 dieIO()
@@ -216,29 +410,25 @@ dieIO()
 }
 
 
-static bool
-closeStream(int n)
-{ PlFile f = &fileTable[n];
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+closeStream() performs Prolog-level closing. Most important right now is
+to to avoid closing the user-streams. If a stream cannot be flushed (due
+to a write-error), an exception is  generated   and  the  stream is left
+open. This behaviour ensures proper error-handling. How to collect these
+resources??
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  if ( f->stream )
-  { switch(n)
-    { case 0:
-	Sclearerr(f->stream);
-        break;
-      case 1:
-      case 2:
-	Sflush(f->stream);
-        break;
-      default:
-	if ( f->status == F_WRITE )
-	{ TRYPIPE(n, ATOM_write, Sclose(f->stream), (void)0);
-	} else
-	  Sclose(f->stream);
-        f->stream = NULL_ATOM;
-	f->name   = NULL_ATOM;
-	f->status = F_CLOSED;
-	break;
-    }
+static bool
+closeStream(IOSTREAM *s)
+{ if ( s == Sinput )
+  { Sclearerr(s);
+  } else if ( s == Soutput || s == Serror )
+  { if ( Sflush(s) < 0 )
+      return streamStatus(s);
+  } else
+  { if ( Sflush(s) < 0 )
+      return streamStatus(s);
+    Sclose(s);
   }
 
   succeed;
@@ -247,55 +437,39 @@ closeStream(int n)
 
 void
 closeFiles(int all)
-{ volatile int n;
+{ TableEnum e;
+  Symbol symb;
 
-  for(n=0; n<GD->IO.file_max; n++)
-  { IOSTREAM *s;
+  LOCK();
+  e = newTableEnum(streamContext);
+  while( (symb=advanceTableEnum(e)) )
+  { IOSTREAM *s = symb->name;
 
-    if ( (s=fileTable[n].stream) )
-    { if ( all || !(s->flags & SIO_NOCLOSE) )
-	closeStream(n);
-      else if ( fileTable[n].status == F_WRITE )
-      {	TRYPIPE(n, ATOM_write, Sflush(s), (void)0);
-      }
-    }
+    if ( all || !(s->flags & SIO_NOCLOSE) )
+      closeStream(s);
   }
-
-  Input = 0;
-  Output = 1;
+  freeTableEnum(e);
+  UNLOCK();
 }
 
 
 void
 protocol(const char *str, int n)
-{ int ps;
+{ IOSTREAM *s;
 
-  if ( (ps=GD->IO.protocol_stream) >= 0 )
-  { IOSTREAM *s = fileTable[ps].stream;
-
-    if ( s )
-    { while( --n >= 0 )
-	Sputc(*str++, s);
-    }
+  if ( (s = getStream(Slog)) )
+  { while( --n >= 0 )
+      Sputc(*str++, s);
+    releaseStream(s);
   }
 }
 
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-push/popInputContext() maintain the source_location   info  over see(X),
-..., seen(X). This is very  hairy.   Note  the common seeing(O), see(N),
-..., seen, see(O) construct. To fix this   one, see/1 will only push the
-context if it concerns a new stream and seen() will only pop if it is an
-open stream.
-
-Should be fixed decently if we redesign all of I/O stream management.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
 pushInputContext()
 { InputContext c = allocHeap(sizeof(struct input_context));
 
-  c->stream           = Input;
+  c->stream           = Scurin;
   c->term_file        = source_file_name;
   c->term_line        = source_line_no;
   c->previous         = input_context_stack;
@@ -308,20 +482,21 @@ popInputContext()
 { InputContext c = input_context_stack;
 
   if ( c )
-  { Input               = c->stream;
+  { Scurin              = c->stream;
     source_file_name    = c->term_file;
     source_line_no      = c->term_line;
     input_context_stack = c->previous;
     freeHeap(c, sizeof(struct input_context));
   } else
-    Input = 0;
+    Scurin		= Sinput;
 }
+
 
 static void
 pushOutputContext()
 { OutputContext c = allocHeap(sizeof(struct output_context));
 
-  c->stream            = Output;
+  c->stream            = Scurout;
   c->previous          = output_context_stack;
   output_context_stack = c;
 }
@@ -332,579 +507,193 @@ popOutputContext()
 { OutputContext c = output_context_stack;
 
   if ( c )
-  { Output               = c->stream;
+  { if ( c->stream->magic == SIO_MAGIC )
+      Scurout = c->stream;
+    else
+    { Sdprintf("Oops, current stream closed?");
+      Scurout = Soutput;
+    }
     output_context_stack = c->previous;
     freeHeap(c, sizeof(struct output_context));
   } else
-    Output = 0;
+    Scurout              = Soutput;
 }
 
 
 int
-currentLinePosition()
-{ IOSTREAM *stream = fileTable[Output].stream;
+currentLinePosition()			/* should be deleted */
+{ IOSTREAM *s;
+  int rval = 0;
 
-  if ( stream && stream->position )
-    return stream->position->linepos;
+  if ( (s = getStream(Soutput)) )
+  { if ( s->position )
+      rval = s->position->linepos;
+    releaseStream(s);
+  }
 
-  return 0;
+  return rval;
 }
 
 
-IOSTREAM *
-prologStream(int n)
-{ if ( n >= 0 && n < GD->IO.file_max )
-    return fileTable[n].stream;
+void
+PL_write_prompt(int dowrite)
+{ IOSTREAM *s = getStream(Soutput);
 
-  return NULL;
+  if ( s )
+  { if ( dowrite )
+      Sfputs(PrologPrompt(), s);
+
+    Sflush(s);
+    releaseStream(s);
+  }
+
+  GD->os.prompt_next = FALSE;
 }
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Get a single character from the terminal   without waiting for a return.
-The character should not be echoed.   If  GD->cmdline.notty is true this
+Get a single character from Sinput  without   waiting  for a return. The
+character should not be  echoed.  If   GD->cmdline.notty  is  true  this
 function will read the first character and  then skip all character upto
 and including the newline.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-getSingleChar(void)
+getSingleChar(IOSTREAM *stream)
 { int c;
-  int OldIn = Input;
   ttybuf buf;
-  IOSTREAM *stream;
     
-  Input = 0;
-  stream = fileTable[Input].stream;
   debugstatus.suspendTrace++;
-  pl_ttyflush();
-  PushTty(&buf, TTY_RAW);		/* just donot prompt */
+  Sflush(stream);
+  if ( stream == Sinput )
+    PushTty(&buf, TTY_RAW);		/* just donot prompt */
   
   if ( GD->cmdline.notty )
   { Char c2;
 
-    c2 = Get0();
+    c2 = Sgetc(stream);
     while( c2 == ' ' || c2 == '\t' )	/* skip blanks */
-      c2 = Get0();
+      c2 = Sgetc(stream);
     c = c2;
     while( c2 != EOF && c2 != '\n' )	/* read upto newline */
-      c2 = Get0();
+      c2 = Sgetc(stream);
   } else
   { if ( stream->position )
     { IOPOS oldpos = *stream->position;
-      c = Get0();
+      c = Sgetc(stream);
       *stream->position = oldpos;
     } else
-      c = Get0();
+      c = Sgetc(stream);
   }
 
   if ( c == 4 || c == 26 )		/* should ask the terminal! */
     c = -1;
 
-  PopTty(&buf);
+  if ( stream == Sinput )
+    PopTty(&buf);
   debugstatus.suspendTrace--;
-  Input = OldIn;
 
   return c;
 }
 
 
-word
-pl_rawtty(term_t goal)
-{ bool rval;
-  int OldIn = Input;
-  ttybuf buf;
-    
-  Input = 0;
-  debugstatus.suspendTrace++;
-  pl_ttyflush();
-  PushTty(&buf, TTY_RAW);
-
-  rval = callProlog(NULL, goal, PL_Q_NODEBUG, NULL);
-
-  PopTty(&buf);
-  debugstatus.suspendTrace--;
-
-  Input = OldIn;
-
-  return rval;
-}
-
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+readLine() reads a line from the terminal.  It is used only by the tracer.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifndef DEL
 #define DEL 127
 #endif
 
 bool
-readLine(char *buffer)
-{ int oldin = Input;
-  int oldout = Output;
-  int c;
+readLine(IOSTREAM *in, IOSTREAM *out, char *buffer)
+{ int c;
   char *buf = &buffer[strlen(buffer)];
   ttybuf tbuf;
+  int ttyset = FALSE;
 
-  Input = 0;
-  Output = 1;
-  if ( !GD->cmdline.notty )
-    PushTty(&tbuf, TTY_RAW);		/* just donot prompt */
+  if ( !GD->cmdline.notty && in == Sinput )
+  { PushTty(&tbuf, TTY_RAW);		/* just donot prompt */
+    ttyset = TRUE;
+  }
 
   for(;;)
-  { pl_flush();
+  { Sflush(out);
 
-    switch( (c=Get0()) )
+    switch( (c=Sgetc(in)) )
     { case '\n':
       case '\r':
       case EOF:
         *buf++ = EOS;
-        Input = oldin;
-	Output = oldout;
-	if ( !GD->cmdline.notty )
+	if ( ttyset )
 	  PopTty(&tbuf);
 
 	return c == EOF ? FALSE : TRUE;
       case '\b':
       case DEL:
 	if ( !GD->cmdline.notty && buf > buffer )
-	{ Putf("\b \b");
+	{ Sfputs("\b \b", out);
 	  buf--;
 	}
       default:
 	if ( !GD->cmdline.notty )
-	  Put(c);
+	  Sputc(c, out);
 	*buf++ = c;
     }
   }
 }
 
 
-bool
-LockStream()
-{ IOSTREAM *s = fileTable[Output].stream;
-
-  return (s && Slock(s) < 0) ? FALSE : TRUE;
-}
-
-
-bool
-UnlockStream()
-{ IOSTREAM *s = fileTable[Output].stream;
-
-  return (s && Sunlock(s) < 0) ? FALSE : TRUE;
-}
-
-
-bool
-Put(int c)
-{ IOSTREAM *s = fileTable[Output].stream;
-  int rval;
-
-  if ( !s )
-    fail;
-
-  TRYPIPE(Output, ATOM_write, rval = Sputc(c, s), rval = -1);
-
-  return rval < 0 ? FALSE : TRUE;
-}
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-PutOpenToken() inserts a space in the output stream if the last-written
-and given character require a space to ensure a token-break.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-bool
-PutOpenToken(int c)
-{ IOSTREAM *s = fileTable[Output].stream;
-  
-  if ( c == EOF )
-  { s->lastc = EOF;
-    succeed;
-  }
-
-  if ( s->lastc != EOF &&
-       ((isAlpha(s->lastc) && isAlpha(c)) ||
-	(isSymbol(s->lastc) && isSymbol(c)) ||
-	c == '(') )
-    return Put(' ');
-
-  succeed;
-}
-
-
-bool
-Puts(const char *str)
-{ IOSTREAM *s = fileTable[Output].stream;
-  int rval;
-
-  if ( !s )
-    fail;
-
-  TRYPIPE(Output, ATOM_write, rval = Sfputs(str, s), rval = -1);
-
-  return rval < 0 ? FALSE : TRUE;
-}
-
-
-word
-Putf(char *fm, ...)
-{ IOSTREAM *s = fileTable[Output].stream;
-  va_list args;
-  int rval;
-
-  if ( !s )
-    fail;
-
-  va_start(args, fm);
-  TRYPIPE(Output, ATOM_write, rval = Svfprintf(s, fm, args), rval = -1);
-  va_end(args);
-
-  return rval < 0 ? FALSE : TRUE;
-}
-
-
-static int
-Get0()
-{ IOSTREAM *s = fileTable[Input].stream;
-  int c;
-  
-  if ( s )
-  { TRYPIPE(Input, ATOM_read, c=Sgetc(s), c=EOF);
-    
-    if ( c == EOF && Sfpasteof(s) )
-    { term_t stream = PL_new_term_ref();
-
-      unifyStreamNo(stream, Input);
-      PL_error(NULL, 0, NULL, ERR_PERMISSION,
-	       ATOM_input, ATOM_past_end_of_stream, stream);
-    }
-  } else
-    c = EOF;
-
-  return c;
-}
-
-
 IOSTREAM *
 PL_current_input()
-{ return fileTable[Input].stream;
+{ return getStream(Scurin);
 }
 
 
 IOSTREAM *
 PL_current_output()
-{ return fileTable[Output].stream;
+{ return getStream(Scurout);
 }
 
 
 word
 pl_dup_stream(term_t from, term_t to)
-{ int fn, tn;
-  PlFile f, t;
+{ IOSTREAM *f, *t;
 
-  if ( (fn = streamNo(from, F_ANY)) < 0 ||
-       (tn = streamNo(to, F_ANY)) < 0 )
-    fail;
-
-  f = &fileTable[fn];
-  t = &fileTable[tn];
-
-  t->stream = f->stream;
-  t->status = f->status;
-  t->type   = f->type;
-
-  succeed;
-}
-
-
-bool
-PL_open_stream(term_t handle, IOSTREAM *s)
-{ int n;
-  PlFile f;
-
-  for(n=3, f=&fileTable[n]; n<GD->IO.file_max; n++, f++)
-  { if ( !f->stream )
-    { f->stream = s;
-      f->name   = NULL_ATOM;
-      f->type   = ST_FILE;
-      if ( s->flags & SIO_INPUT )
-	f->status = F_READ;
-      else
-	f->status = F_WRITE;
-
-      return setUnifyStreamNo(handle, n);
-    }
-  }
-
-  return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_max_files);
-}
-
-
-static bool
-openStream(term_t file, int mode, int flags)
-{ int n;
-  IOSTREAM *stream;
-  char cmode[3];
-  atom_t name;
-  functor_t f;
-  int type;
-
-  DEBUG(2, Sdprintf("openStream file=0x%lx, mode=%d\n", file, mode));
-
-  if ( PL_get_atom(file, &name) )
-  { type = ST_FILE;
-  } else if ( PL_get_functor(file, &f) && f == FUNCTOR_pipe1)
-  {
-#ifdef SIGPIPE
-    term_t an = PL_new_term_ref();
-    type = ST_PIPE;
-    
-    if ( !PL_get_arg(1, file, an) ||
-	 !PL_get_atom(an, &name) )
-      return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_source_sink, file);
-
-    signal(SIGPIPE, pipeHandler);
-#else
-    return PL_error(NULL, 0, NULL, ERR_NOTIMPLEMENTED, ATOM_pipe);
-#endif /*SIGPIPE*/
-  } else
-    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_source_sink, file);
-
-  DEBUG(3, Sdprintf("File/command name = %s\n", stringAtom(name)));
-  if ( type == ST_FILE )
-  { if ( mode == F_READ )
-    { if ( name == ATOM_user || name == ATOM_user_input )
-      { Input = 0;
-	succeed;
-      }
-    } else
-    { if ( name == ATOM_user || name == ATOM_user_output )
-      { Output = 1;
-        succeed;
-      }
-      if ( name == ATOM_user_error || name == ATOM_stderr )
-      { Output = 2;
-	succeed;
-      }
-    }
-  } else if ( type == ST_PIPE && (mode == F_APPEND || mode == F_WRNOTRUNC) )
-  { term_t tmp = PL_new_term_ref();
-    
-    PL_put_atom(tmp, (mode == F_APPEND ? ATOM_append : ATOM_update));
-    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_io_mode, tmp);
-  }
-    
-  if ( !(flags & OPEN_OPEN) )		/* see/1, tell/1, append/1 */
-  { for( n=0; n<GD->IO.file_max; n++ )
-    { if ( fileTable[n].name == name && fileTable[n].type == type )
-      { if ( fileTable[n].status == mode )
-	{ switch(mode)
-	  { case F_READ:	Input = n; break;
-	    case F_WRITE:
-	    case F_WRNOTRUNC:
-	    case F_APPEND:	Output = n; break;
-	  }
-	  DEBUG(3, Sdprintf("Switched back to already open stream %d\n", n));
-	  succeed;
-	} else
-	{ closeStream(n);
-	}
-	break;
-      }
-    }
-
-    if ( mode == F_READ )
-      pushInputContext();		/* see/1 to a new file */
-  }
-
-  DEBUG(2, Sdprintf("Starting Unix open\n"));
-  cmode[0] = FOPENMODE[mode];
-  if ( flags & OPEN_TEXT )
-    cmode[1] = EOS;
-  else
-  { cmode[1] = 'b';
-    cmode[2] = EOS;
-  }
-
-#ifdef HAVE_POPEN
-  if ( type == ST_PIPE )
-  { if ( !(stream=Sopen_pipe(stringAtom(name), cmode)) )
-      goto err;
-  } else
-#endif /*HAVE_POPEN*/
-  { char *fn = stringAtom(name);
-    char tmp[MAXPATHLEN];
-
-    if ( trueFeature(FILEVARS_FEATURE) )
-    { if ( !(fn = ExpandOneFile(fn, tmp)) )
-	fail;
-    }
-
-    if ( !(stream=Sopen_file(fn, cmode)) )
-    {
-#ifdef HAVE_POPEN
-      err:
-#endif
-      if ( fileerrors )
-      { PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
-		 ATOM_open, ATOM_source_sink, file);
-      }
-      fail;
-    }
-  }
-
-  for(n=3; n<GD->IO.file_max; n++)
-  { if ( !fileTable[n].stream )
-      break;
-  }
-  if ( n >= GD->IO.file_max )			/* non-ISO */
-    return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_max_files);
-
-  fileTable[n].name        = name;
-  fileTable[n].stream_name = NULL_ATOM;
-  fileTable[n].type        = type;
-  fileTable[n].stream      = stream;
-
-  switch(mode)
-  { case F_READ:
-      Input = n; break;
-    case F_WRITE:
-    case F_WRNOTRUNC:
-    case F_APPEND:
-      mode = F_WRITE;
-      Output = n; break;
-  }
-  fileTable[n].status = mode;
-
-  DEBUG(2, Sdprintf("Prolog fileTable[] updated\n"));
-
-  succeed;
-}
-
-
-static bool
-unifyStreamName(term_t f, int n)
-{ if ( fileTable[n].status == F_CLOSED )
-    fail;
-
-  if ( !(PL_is_variable(f) || PL_is_atom(f)) )
-    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_variable, f);
-
-#ifdef HAVE_POPEN
-  if ( fileTable[n].type == ST_PIPE )
-  { return PL_unify_term(f,
-			 PL_FUNCTOR, FUNCTOR_pipe1,
-			   PL_ATOM, fileTable[n].name);
-  }
-#endif /*HAVE_POPEN*/
-
-  return PL_unify_atom(f, fileTable[n].name);
-}
-
-
-static bool
-unifyStreamMode(term_t m, int n)
-{ if ( fileTable[n].status == F_CLOSED )
-    fail;
-
-  return PL_unify_atom(m, fileTable[n].status == F_READ ? ATOM_read
-							: ATOM_write);
-}
-
-
-static bool
-unifyStreamNo(term_t stream, int n)
-{ atom_t name;
-
-  switch( n )
-  { case 0:
-      name = ATOM_user_input;
-      break;
-    case 1:
-      name = ATOM_user_output;
-      break;
-    case 2:
-      name = ATOM_user_error;
-      break;
-    default:
-      if ( fileTable[n].stream_name )
-	name = fileTable[n].stream_name;
-      else
-	return PL_unify_integer(stream, n);
-  }
-
-  return PL_unify_atom(stream, name);
-}
-
-
-word
-pl_told()
-{ if ( fileTable[Output].status != F_WRITE )
+  if ( PL_get_stream_handle(from, &f) &&
+       PL_get_stream_handle(to,   &t) )
+  { notImplemented("dup_stream", 2);
     succeed;
-
-  closeStream(Output);
-
-  Output = 1;
-  succeed;
-}  
-
-
-word
-pl_flush()
-{ IOSTREAM *s;
-
-  if ( fileTable[Output].status == F_WRITE &&
-       (s=fileTable[Output].stream) )
-  { TRYPIPE(Output, ATOM_write, Sflush(s), fail);
   }
-
-  succeed;
-}
-
-
-word
-pl_see(term_t f)
-{ return openStream(f, F_READ, OPEN_TEXT);
-}
-
-
-word
-pl_seen()
-{ if ( fileTable[Input].status != F_READ )
-    succeed;
-
-  closeStream(Input);
-  popInputContext();
-
-  succeed;
+  
+  fail;
 }
 
 
 static word
 openProtocol(term_t f, bool appnd)
-{ int out = Output;
+{ IOSTREAM *s;
+  term_t mode = PL_new_term_ref();
 
   pl_noprotocol();
 
-  if ( openStream(f, appnd ? F_APPEND : F_WRITE, OPEN_TEXT|OPEN_OPEN) )
-  { IOSTREAM *s = fileTable[Output].stream;
-
-    s->flags |= SIO_NOCLOSE;
-    GD->IO.protocol_stream = Output;
-    Output = out;
-
-    succeed;
+  PL_put_atom(mode, appnd ? ATOM_append : ATOM_write);
+  if ( (s = openStream(f, mode, 0)) )
+  { Slog = s;
+    return TRUE;
   }
-  Output = out;
 
-  fail;
+  return FALSE;
 }
 
 
 word
 pl_noprotocol()
-{ if ( GD->IO.protocol_stream >= 0 )
-  { closeStream(GD->IO.protocol_stream);
-    GD->IO.protocol_stream = -1;
+{ IOSTREAM *s;
+
+  if ( (s = getStream(Slog)) )
+  { closeStream(s);
+    Slog = NULL;
   }
 
   succeed;
@@ -915,85 +704,27 @@ pl_noprotocol()
 		*          STRING I/O           *
 		*********************************/
 
-
-bool
-seeString(const char *s)
-{ IOSTREAM *stream = Sopen_string(NULL, (char *)s, -1, "r");
-  PlFile f;
-  int n;
-  
-  for(n=3, f=&fileTable[n]; n<GD->IO.file_max; n++, f++)
-  { if ( !f->stream )
-    { f->stream = stream;
-      f->name   = NULL_ATOM;
-      f->status = F_READ;
-      f->type   = ST_STRING;
-
-      pushInputContext();
-      Input = n;
-      succeed;
-    }
-  }
-
-  return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_max_files);
-}
-
-
-bool
-seeingString()
-{ return fileTable[Input].type == ST_STRING;
-}
-
-
-bool
-seenString()
-{ PlFile f = &fileTable[Input];
-
-  if ( f->type == ST_STRING && f->stream )
-  { Sclose(f->stream);
-    f->stream = NULL;
-    f->status = F_CLOSED;
-    popInputContext();
-  }
-
-  succeed;
-}
-
+extern IOFUNCTIONS Smemfunctions;
 
 bool
 tellString(char **s, int *size)
 { IOSTREAM *stream;
-  PlFile f;
-  int n;
   
   stream = Sopenmem(s, size, "w");
- 
-  for(n=3, f=&fileTable[n]; n<GD->IO.file_max; n++, f++)
-  { if ( !f->stream )
-    { f->stream = stream;
-      f->name   = NULL_ATOM;
-      f->status = F_WRITE;
-      f->type   = ST_STRING;
+  pushOutputContext();
+  Scurout = stream;
 
-      pushOutputContext();
-      Output = n;
-      succeed;
-    }
-  }
-
-  return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_max_files);
+  return TRUE;
 }
 
 
 bool
 toldString()
-{ PlFile f = &fileTable[Output];
+{ IOSTREAM *s = getStream(Scurout);
 
-  if ( f->type == ST_STRING && f->stream )
-  { Sputc(EOS, f->stream);
-    Sclose(f->stream);
-    f->stream = NULL;
-    f->status = F_CLOSED;
+  if ( s && s->functions == &Smemfunctions )
+  { Sputc(EOS, s);
+    Sclose(s);
     popOutputContext();
   }
 
@@ -1005,33 +736,22 @@ toldString()
 		*        INPUT IOSTREAM NAME    *
 		*********************************/
 
-atom_t
-currentStreamName()			/* only if a file! */
-{ PlFile f = &fileTable[Input];
-
-  if ( f->type == ST_FILE || f->type == ST_PIPE )
-    return f->name;
-
-  return NULL_ATOM;
-}
-
 void
-setCurrentSourceLocation()
-{ PlFile f = &fileTable[Input];
+setCurrentSourceLocation(IOSTREAM *s)
+{ atom_t a;
 
-  if ( f->type == ST_FILE || f->type == ST_PIPE )
-  { IOSTREAM *stream = f->stream;
-
-    source_file_name = f->name;
-    if ( stream && stream->position )
-    { source_line_no = stream->position->lineno;
-      source_char_no = stream->position->charno - 1; /* char just read! */
-    }
+  if ( s->position )
+  { source_line_no = s->position->lineno;
+    source_char_no = s->position->charno - 1; /* char just read! */
   } else
-  { source_file_name = NULL_ATOM;
-    source_line_no = -1;
+  { source_line_no = -1;
     source_char_no = 0;
   }
+
+  if ( (a = fileNameStream(s)) )
+    source_file_name = a;
+  else
+    source_file_name = NULL_ATOM;
 }
 
 		/********************************
@@ -1055,7 +775,7 @@ pl_wait_for_input(term_t Streams, term_t Available,
   struct timeval t, *to;
   double time;
   int n, max = 0;
-  char fdmap[256];
+  term_t streammap[256];
   term_t head      = PL_new_term_ref();
   term_t streams   = PL_copy_term_ref(Streams);
   term_t available = PL_copy_term_ref(Available);
@@ -1063,14 +783,14 @@ pl_wait_for_input(term_t Streams, term_t Available,
   FD_ZERO(&fds);
   while( PL_get_list(streams, head, streams) )
   { IOSTREAM *s;
-    int n, fd;
+    int fd;
 
-    if ( (n = streamNo(head, F_READ)) < 0 )
+    if ( !PL_get_stream_handle(head, &s) < 0 )
       fail;
-    if ( !(s = fileTable[n].stream) || (fd=Sfileno(s)) < 0 )
-      return PL_error("wait_for_input", 3, NULL, ERR_TYPE,
+    if ( (fd=Sfileno(s)) < 0 )
+      return PL_error("wait_for_input", 3, NULL, ERR_DOMAIN,
 		      PL_new_atom("file_stream"), head);
-    fdmap[fd] = n;
+    streammap[fd] = PL_copy_term_ref(head);
 
     FD_SET(fd, &fds);
     if ( fd > max )
@@ -1097,7 +817,7 @@ pl_wait_for_input(term_t Streams, term_t Available,
   for(n=0; n <= max; n++)
   { if ( FD_ISSET(n, &fds) )
     { if ( !PL_unify_list(available, head, available) ||
-	   !unifyStreamNo(head, fdmap[n]) )
+	   !PL_unify(head, streammap[n]) )
 	fail;
     }
   }
@@ -1112,64 +832,103 @@ pl_wait_for_input(term_t Streams, term_t Available,
 		*      PROLOG CONNECTION        *
 		*********************************/
 
-word
-pl_put(term_t c)
+int
+PL_get_char(term_t c, int *p)
 { int chr;
   char *s;
 
   if ( PL_get_integer(c, &chr) )
   { if ( chr >= 0 && chr <= 255 )
-      return Put(chr);
-  } else if ( PL_get_chars(c, &s, CVT_ATOM|CVT_LIST|CVT_STRING) )
-    return Puts(s);
+    { *p = chr;
+      return TRUE;
+    }
+  } else if ( PL_get_atom_chars(c, &s) && s[0] && s[1] == EOS )
+  { *p = s[0]&0xff;
+    return TRUE;
+  }
 
-  return PL_error("put", 1, NULL, ERR_TYPE, ATOM_character, c);
+  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_character, c);
 }
+
 
 word
 pl_put2(term_t stream, term_t chr)
-{ word rval;
-  streamOutput(stream, rval = pl_put(chr));
-  return rval;
+{ IOSTREAM *s;
+  int c;
+
+  if ( !PL_get_char(chr, &c) )
+    fail;
+  if ( !getOutputStream(stream, &s) )
+    fail;
+
+  Sputc(c, s);
+  releaseStream(s);
+  
+  return streamStatus(s);
 }
+
+
+word
+pl_put(term_t chr)
+{ return pl_put2(0, chr);
+}
+
+
+word
+pl_get2(term_t in, term_t chr)
+{ IOSTREAM *s;
+
+  if ( getInputStream(in, &s) )
+  { int c;
+
+    for(;;)
+    { c = Sgetc(s);
+
+      if ( c == EOF )
+      { TRY(PL_unify_integer(chr, -1));
+	return streamStatus(s);
+      }
+
+      if ( !isBlank(c) )
+      { releaseStream(s);
+	return PL_unify_integer(chr, c);
+      }
+    }
+  }
+
+  fail;
+}
+
 
 word
 pl_get(term_t chr)
+{ return pl_get2(0, chr);
+}
+
+
+word
+pl_skip2(term_t in, term_t chr)
 { int c;
+  int r;
+  IOSTREAM *s;
 
-  do
-  { c = Get0();
-  } while( c != EOF && isBlank(c) );
+  if ( !PL_get_char(chr, &c) )
+    fail;
+  if ( !getInputStream(in, &s) )
+    fail;
+  
+  while((r=Sgetc(s)) != c && r != EOF )
+    ;
 
-  return PL_unify_integer(chr, c);
+  return streamStatus(s);
 }
 
 
 word
 pl_skip(term_t chr)
-{ int c;
-  int r;
-
-  if ( !PL_get_integer(chr, &c) || c < 0 || c > 255 )
-    return PL_error("skip", 1, NULL, ERR_TYPE, ATOM_character, chr);
-
-  while((r=Get0()) != c && r != EOF )
-    ;
-
-  succeed;
+{ return pl_skip2(0, chr);
 }
 
-
-word
-pl_skip2(term_t stream, term_t chr)
-{ streamInput(stream, pl_skip(chr));
-}
-
-
-word
-pl_get2(term_t stream, term_t chr)
-{ streamInput(stream, pl_get(chr));
-}
 
 word
 pl_tty()				/* $tty/0 */
@@ -1180,50 +939,47 @@ pl_tty()				/* $tty/0 */
 
 word
 pl_get_single_char(term_t c)
-{ return PL_unify_integer(c, getSingleChar());
+{ IOSTREAM *s = getStream(Scurin);
+  int rval;
+
+  rval = PL_unify_integer(c, getSingleChar(s));
+  releaseStream(s);
+
+  return rval;
 }
+
+word
+pl_get02(term_t in, term_t chr)
+{ IOSTREAM *s;
+
+  if ( getInputStream(in, &s) )
+  { int c = Sgetc(s);
+
+    if ( c == EOF )
+    { TRY(PL_unify_integer(chr, -1));
+      return streamStatus(s);
+    }
+
+    releaseStream(s);
+    return PL_unify_integer(chr, c);
+  }
+
+  fail;
+}
+
 
 word
 pl_get0(term_t c)
-{ return PL_unify_integer(c, Get0());
+{ return pl_get02(0, c);
 }
-
-word
-pl_get02(term_t stream, term_t c)
-{ streamInput(stream, pl_get0(c))
-}
-
-word
-pl_seeing(term_t f)
-{ return unifyStreamName(f, Input);
-}
-
-word
-pl_telling(term_t f)
-{ return unifyStreamName(f, Output);
-}
-
-word
-pl_tell(term_t f)
-{ return openStream(f, F_WRITE, OPEN_TEXT);
-}
-
-word
-pl_append(term_t f)
-{ return openStream(f, F_APPEND, OPEN_TEXT);
-}
-
 
 word
 pl_ttyflush()
-{ int OldOut = Output;
-  bool rval;
+{ IOSTREAM *s = getStream(Soutput);
 
-  Output = 1;
-  rval = pl_flush();
-  Output = OldOut;
+  Sflush(s);
 
-  return rval;
+  return streamStatus(Soutput);
 }
 
 
@@ -1241,8 +997,16 @@ pl_protocola(term_t file)
 
 word
 pl_protocolling(term_t file)
-{ if ( GD->IO.protocol_stream >= 0 )
-    return unifyStreamName(GD->IO.protocol_stream, file);
+{ IOSTREAM *s;
+
+  if ( (s = Slog) )
+  { atom_t a;
+
+    if ( (a = fileNameStream(s)) )
+      return PL_unify_atom(file, a);
+    else
+      return PL_unify_stream(file, s);
+  }
 
   fail;
 }
@@ -1284,24 +1048,6 @@ pl_prompt1(term_t prompt)
 }
 
 
-word
-pl_tab(term_t spaces)
-{ number n;
-
-  if ( valueExpression(spaces, &n) &&
-       toIntegerNumber(&n) )
-  { int m = n.value.i;
-
-    while(m-- > 0)
-      Put(' ');
-
-    succeed;
-  }
-
-  return PL_error("tab", 1, NULL, ERR_TYPE, ATOM_integer, spaces);
-}
-
-
 char *
 PrologPrompt()
 { if ( !LD->prompt.first_used && LD->prompt.first )
@@ -1318,41 +1064,37 @@ PrologPrompt()
 
 
 word
-pl_tab2(term_t stream, term_t n)
-{ word rval;
-  streamOutput(stream, rval=pl_tab(n)); /* TBD */
-  return rval;
+pl_tab2(term_t out, term_t spaces)
+{ number n;
+
+  if ( valueExpression(spaces, &n) &&
+       toIntegerNumber(&n) )
+  { int m = n.value.i;
+    IOSTREAM *s;
+
+    if ( !getOutputStream(out, &s) )
+      fail;
+
+    while(m-- > 0)
+    { if ( Sputc(' ', s) < 0 )
+	break;
+    }
+
+    return streamStatus(s);
+  }
+
+  return PL_error("tab", 1, NULL, ERR_TYPE, ATOM_integer, spaces);
+}
+
+
+word
+pl_tab(term_t n)
+{ return pl_tab2(0, n);
 }
 
 		/********************************
 		*       STREAM BASED I/O        *
 		*********************************/
-
-static bool
-setUnifyStreamNo(term_t stream, int n)
-{ atom_t a;
-
-  if ( PL_get_atom(stream, &a) )
-  { register int i;
-
-    for(i = 0; i < GD->IO.file_max; i++ )
-    { if ( fileTable[i].status != F_CLOSED &&
-	   fileTable[i].stream_name == a )
-      { term_t obj = PL_new_term_ref();
-
-	PL_unify_term(obj, PL_FUNCTOR, FUNCTOR_alias1, PL_ATOM, a);
-
-	return PL_error(NULL, 0, NULL,
-			ERR_PERMISSION, ATOM_open, ATOM_source_sink, obj);
-      }
-    }
-    fileTable[n].stream_name = a;
-    succeed;
-  }
-
-  return unifyStreamNo(stream, n);
-}
-      
 
 static const opt_spec open4_options[] = 
 { { ATOM_type,		 OPT_ATOM },
@@ -1365,109 +1107,198 @@ static const opt_spec open4_options[] =
 };
 
 
-word
-pl_open4(term_t file, term_t mode,
-	 term_t stream, term_t options)
-{ int m = -1;
-  atom_t mname;
+IOSTREAM *
+openStream(term_t file, term_t mode, term_t options)
+{ atom_t mname;
   atom_t type           = ATOM_text;
   bool   reposition     = FALSE;
   atom_t alias	        = NULL_ATOM;
   atom_t eof_action     = ATOM_eof_code;
   atom_t buffer         = ATOM_full;
   bool   close_on_abort = TRUE;
-  int	 flags          = OPEN_OPEN;
+  char   how[10];
+  char  *h		= how;
+  char *path;
+  IOSTREAM *s;
 
-  if ( !scan_options(options, 0, ATOM_stream_option, open4_options,
-		     &type, &reposition, &alias, &eof_action,
-		     &close_on_abort, &buffer) )
-    fail;
+  if ( options )
+  { if ( !scan_options(options, 0, ATOM_stream_option, open4_options,
+		       &type, &reposition, &alias, &eof_action,
+		       &close_on_abort, &buffer) )
+      fail;
+  }
 
-  if ( alias )
-    TRY(PL_unify_atom(stream, alias));
-  if ( type == ATOM_text )
-    flags |= OPEN_TEXT;
-  
   if ( PL_get_atom(mode, &mname) )
   {      if ( mname == ATOM_write )
-      m = F_WRITE;
+      *h++ = 'w';
     else if ( mname == ATOM_append )
-      m = F_APPEND;
+      *h++ = 'a';
     else if ( mname == ATOM_update )
-      m = F_WRNOTRUNC;
+      *h++ = 'u';
     else if ( mname == ATOM_read )
-      m = F_READ;
-
-    if ( m < 0 )
-      return PL_error("open", 4, NULL, ERR_DOMAIN, ATOM_io_mode, mode);
+      *h++ = 'r';
+    else
+    { PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_io_mode, mode);
+      return NULL;
+    }
   } else
-  { return PL_error("open", 4, NULL, ERR_TYPE, ATOM_atom, mode);
+  { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, mode);
+    return NULL;
   }
 
-  if ( m == F_READ )
-  { int in = Input;
-
-    if ( openStream(file, m, flags) )
-    { if ( setUnifyStreamNo(stream, Input) )
-      { IOSTREAM *s = fileTable[Input].stream;
-	  
-	if ( eof_action != ATOM_eof_code )
-	{ if ( eof_action == ATOM_reset )
-	    s->flags |= SIO_NOFEOF;
-	  else if ( eof_action == ATOM_error )
-	    s->flags |= SIO_FEOF2ERR;
-	}
-	if ( !close_on_abort )
-	  s->flags |= SIO_NOCLOSE;
-	Input = in;
-	pushInputContext();
-        succeed;
-      }
-      closeStream(Input);
-      Input = in;
-
-      fail;
+  if ( type == ATOM_binary )
+    *h++ = 'b';
+  
+  *h = EOS;
+  if ( PL_get_chars(file, &path, CVT_ATOM|CVT_STRING|CVT_INTEGER) )
+  { if ( !(s = Sopen_file(path, how)) )
+    { PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
+	       ATOM_open, ATOM_file, file);
+      return NULL;
     }
-    Input = in;
-    fail;
-  } else
-  { int out = Output;
-    if ( openStream(file, m, flags) )
-    { if ( setUnifyStreamNo(stream, Output) )
-      { IOSTREAM *s = fileTable[Output].stream;
+    setFileNameStream(s, PL_new_atom(path));
+  } 
+#ifdef HAVE_POPEN
+  else if ( PL_is_functor(file, FUNCTOR_pipe1) )
+  { term_t a = PL_new_term_ref();
+    char *cmd;
 
-	if ( !close_on_abort )
-	  s->flags |= SIO_NOCLOSE;
-	if ( buffer != ATOM_full )
-	{ s->flags &= ~SIO_FBUF;
-	  if ( buffer == ATOM_line )
-	    s->flags |= SIO_LBUF;
-	  if ( buffer == ATOM_false )
-	    s->flags |= SIO_NBUF;
-	}
-
-	Output = out;
-        succeed;
-      }
-      closeStream(Output);
-      Output = out;
-      
-      fail;
+    PL_get_arg(1, file, a);
+    if ( !PL_get_chars(a, &cmd, CVT_ATOM|CVT_STRING) )
+    { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, a);
+      return NULL;
     }
-    Output = out;
-    fail;
+
+    if ( !(s = Sopen_pipe(cmd, how)) )
+    { PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
+	       ATOM_open, ATOM_file, file);
+      return NULL;
+    }
   }
+#endif /*HAVE_POPEN*/
+  else
+  { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, file);
+    return NULL;
+  }
+
+  if ( !close_on_abort )
+    s->flags |= SIO_NOCLOSE;
+
+  if ( how[0] == 'r' )
+  { if ( eof_action != ATOM_eof_code )
+    { if ( eof_action == ATOM_reset )
+	s->flags |= SIO_NOFEOF;
+      else if ( eof_action == ATOM_error )
+	s->flags |= SIO_FEOF2ERR;
+    }
+  } else
+  { if ( buffer != ATOM_full )
+    { s->flags &= ~SIO_FBUF;
+      if ( buffer == ATOM_line )
+	s->flags |= SIO_LBUF;
+      if ( buffer == ATOM_false )
+	s->flags |= SIO_NBUF;
+    }
+  }
+
+  if ( alias != NULL_ATOM )
+    aliasStream(s, alias);
+
+  return s;
+}
+
+
+word
+pl_open4(term_t file, term_t mode, term_t stream, term_t options)
+{ IOSTREAM *s = openStream(file, mode, options);
+
+  if ( s )
+    return PL_unify_stream(stream, s);
+
+  fail;
 }
 
 
 word
 pl_open(term_t file, term_t mode, term_t stream)
-{ term_t n = PL_new_term_ref();
-  PL_put_nil(n);
-
-  return pl_open4(file, mode, stream, n);
+{ return pl_open4(file, mode, stream, 0);
 }
 
+		 /*******************************
+		 *	  EDINBURGH I/O		*
+		 *******************************/
+
+word
+pl_see(term_t f)
+{ if ( !pl_set_input(f) )
+  { IOSTREAM *s;
+    term_t mode = PL_new_term_ref();
+
+    PL_put_atom(mode, ATOM_read);
+    if ( !(s = openStream(f, mode, 0)) )
+      fail;
+
+    pushInputContext();
+    Scurin = s;
+  }
+
+  succeed;
+}
+
+word
+pl_seeing(term_t f)
+{ return pl_current_input(f);
+}
+
+word
+pl_seen()
+{ IOSTREAM *s = Scurin;
+
+  popInputContext();
+
+  return closeStream(s);
+}
+
+static word
+do_tell(term_t f, atom_t m)
+{ if ( !pl_set_output(f) )
+  { IOSTREAM *s;
+    term_t mode = PL_new_term_ref();
+
+    PL_put_atom(mode, m);
+    if ( !(s = openStream(f, mode, 0)) )
+      fail;
+
+    pushOutputContext();
+    Scurout = s;
+  }
+
+  succeed;
+}
+
+word
+pl_tell(term_t f)
+{ return do_tell(f, ATOM_write);
+}
+
+word
+pl_append(term_t f)
+{ return do_tell(f, ATOM_append);
+}
+
+word
+pl_telling(term_t f)
+{ return pl_current_output(f);
+}
+
+word
+pl_told()
+{ IOSTREAM *s = Scurout;
+
+  popOutputContext();
+
+  return closeStream(s);
+}
 
 		 /*******************************
 		 *	   NULL-STREAM		*
@@ -1517,163 +1348,127 @@ pl_open_null_stream(term_t stream)
 { int sflags = SIO_NBUF|SIO_RECORDPOS;
   IOSTREAM *s = Snew((void *)NULL, sflags, (IOFUNCTIONS *)&nullFunctions);
 
-  return PL_open_stream(stream, s);
+  return PL_unify_stream(stream, s);
 }
 
-
-int
-streamNo(term_t spec, int mode)
-{ int n = -1;
-  
-  if ( !PL_get_integer(spec, &n) )
-  { atom_t name;
-
-    if ( PL_get_atom(spec, &name) )
-    {      if ( name == ATOM_user )
-	n = (mode == F_READ ? 0 : 1);
-      else if ( name == ATOM_user_input )
-	n = 0;
-      else if ( name == ATOM_user_output )
-        n = 1;
-      else if ( name == ATOM_user_error )
-        n = 2;
-      else
-      { int i;
-
-	for(i = 3; i < GD->IO.file_max; i++)
-	{ if ( fileTable[i].stream_name == name )
-	  { n = i;
-	    break;
-	  }
-	}
-      }
-    }
-  }
-
-  if ( n < 0 || n >= GD->IO.file_max )
-  { PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_stream_or_alias, spec);
-    return -1;
-  }
-  if ( fileTable[n].status == F_CLOSED )
-  { PL_error(NULL, 0, "closed", ERR_EXISTENCE, ATOM_stream, spec);
-    return -1;
-  }
-
-  switch(mode)
-  { case F_ANY:
-      return n;
-    case F_READ:
-      if ( fileTable[n].status != F_READ )
-      { PL_error(NULL, 0, NULL, ERR_PERMISSION,
-		 ATOM_input, ATOM_stream, spec);
-	return -1;
-      }
-      break;
-    case F_APPEND:
-    case F_WRNOTRUNC:
-    case F_WRITE:	
-      if ( fileTable[n].status != F_WRITE )
-      { PL_error(NULL, 0, NULL, ERR_PERMISSION,
-		 ATOM_output, ATOM_stream, spec);
-        return -1;
-      }
-  }
-
-  return n;
-}
-  
 
 word
 pl_close(term_t stream)
-{ int n;
-  int isread;
-  int rval;
+{ IOSTREAM *s;
 
-  if ( (n = streamNo(stream, F_ANY)) < 0 )
-    fail;
-  isread = (fileTable[n].status == F_READ);
+  if ( PL_get_stream_handle(stream, &s) )
+    return closeStream(s);
 
-  if ( isread )
-  { rval = closeStream(n);
-    popInputContext();
-  } else
-  { TRYPIPE(n, ATOM_write, rval = closeStream(n), rval = FALSE);
-  }
-  
-  if ( n == Output )
-    Output = 1;
-  if ( n == Input )
-    Input = 0;
-
-  return rval;
+  fail;
 }
+
+
+static bool
+unifyStreamName(term_t t, IOSTREAM *s)
+{ atom_t name;
+  int fd;
+
+  if ( (name = fileNameStream(s)) )
+    return PL_unify_atom(t, name);
+  if ( (fd = Sfileno(s)) >= 0 )
+    return PL_unify_integer(t, fd);
+  else
+    return PL_unify_nil(t);
+}
+
+
+static bool
+unifyStreamMode(term_t t, IOSTREAM *s)
+{ if ( s->flags & SIO_INPUT )
+    return PL_unify_atom(t, ATOM_read);
+  else
+    return PL_unify_atom(t, ATOM_write);
+}
+
 
 word
 pl_current_stream(term_t file, term_t mode,
 		  term_t stream, word h)
-{ int n;
+{ TableEnum e;
+  Symbol symb;
+  mark m;
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
-      n = 3;
+      if ( !PL_is_variable(stream) )
+      { IOSTREAM *s;
+
+	if ( PL_get_stream_handle(stream, &s) )
+	{ TRY( unifyStreamName(file, s) &&
+	       unifyStreamMode(mode, s) );
+	  succeed;
+	}
+
+	fail;
+      }
+      e = newTableEnum(streamContext);
       break;
     case FRG_REDO:
-      n = ForeignContextInt(h);
+      e = ForeignContextPtr(h);
       break;
     case FRG_CUTTED:
+      e = ForeignContextPtr(h);
+      freeTableEnum(e);
     default:
       succeed;
   }
-  
-  for( ; n < GD->IO.file_max; n++)
-  { fid_t fid = PL_open_foreign_frame();
 
-    if ( unifyStreamName(file, n) == FALSE ||
-	 unifyStreamMode(mode, n) == FALSE ||
-	 unifyStreamNo(stream, n) == FALSE )
-    { PL_discard_foreign_frame(fid);
-      continue;
-    }
+  Mark(m);
+  while( (symb=advanceTableEnum(e)) )
+  { IOSTREAM *s = symb->name;
 
-    PL_close_foreign_frame(fid);
+    if ( unifyStreamName(file, s) &&
+	 unifyStreamMode(mode, s) &&
+	 PL_unify_stream(stream, s) )
+      ForeignRedoPtr(e);
 
-    if ( ++n < GD->IO.file_max )
-      ForeignRedoInt(n);
-
-    succeed;
+    Undo(m);
   }
-  
+
   fail;
 }      
 
 
 word
-pl_flush_output(term_t stream)
-{ int n;
+pl_flush_output(term_t out)
+{ IOSTREAM *s;
 
-  if ( (n = streamNo(stream, F_WRITE)) < 0 )
-    fail;
-  TRYPIPE(n, ATOM_write, Sflush(fileTable[n].stream), fail);
+  if ( getOutputStream(out, &s) )
+  { Sflush(s);
+    return streamStatus(s);
+  }
 
   succeed;
 }
 
 
-static IOSTREAM *
-ioStreamWithPosition(term_t stream)
-{ int n;
-  IOSTREAM *s;
+word
+pl_flush()
+{ return pl_flush_output(0);
+}
 
-  if ( (n = streamNo(stream, F_ANY)) < 0 )
-    fail;
-  s = fileTable[n].stream;
-  if ( !s->position )
-  { PL_error(NULL, 0, NULL, ERR_PERMISSION, /* non-ISO */
-	     ATOM_property, ATOM_position, stream);
-    return NULL;
+
+static int
+getStreamWithPosition(term_t stream, IOSTREAM **sp)
+{ IOSTREAM *s;
+
+  if ( PL_get_stream_handle(stream, &s) )
+  { if ( !s->position )
+    { PL_error(NULL, 0, NULL, ERR_PERMISSION, /* non-ISO */
+	       ATOM_property, ATOM_position, stream);
+      return FALSE;
+    }
+
+    *sp = s;
+    return TRUE;
   }
-  
-  return s;
+
+  return FALSE;
 }
 
 
@@ -1684,7 +1479,7 @@ pl_stream_position(term_t stream, term_t old, term_t new)
   term_t a = PL_new_term_ref();
   functor_t f;
 
-  if ( !(s = ioStreamWithPosition(stream)) )
+  if ( !(getStreamWithPosition(stream, &s)) )
     fail;
 
   charno  = s->position->charno;
@@ -1692,13 +1487,11 @@ pl_stream_position(term_t stream, term_t old, term_t new)
   linepos = s->position->linepos;
   oldcharno = charno;
 
-  if ( !PL_unify_functor(old, FUNCTOR_stream_position3) ||
-       !PL_get_arg(1, old, a) ||
-       !PL_unify_integer(a, charno) ||
-       !PL_get_arg(2, old, a) ||
-       !PL_unify_integer(a, lineno) ||
-       !PL_get_arg(3, old, a) ||
-       !PL_unify_integer(a, linepos) )
+  if ( !PL_unify_term(old,
+		      PL_FUNCTOR, FUNCTOR_stream_position3,
+		        PL_INTEGER, charno,
+		        PL_INTEGER, lineno,
+		        PL_INTEGER, linepos) )
     fail;
 
   if ( !(PL_get_functor(new, &f) && f == FUNCTOR_stream_position3) ||
@@ -1725,12 +1518,12 @@ pl_stream_position(term_t stream, term_t old, term_t new)
 
 word
 pl_seek(term_t stream, term_t offset, term_t method, term_t newloc)
-{ int n;
-  atom_t m;
+{ atom_t m;
   int whence = -1;
   long off, new;
+  IOSTREAM *s;
 
-  if ( (n = streamNo(stream, F_ANY)) < 0 )
+  if ( !PL_get_stream_handle(stream, &s) )
     fail;
   if ( !(PL_get_atom(method, &m)) )
     goto badmethod;
@@ -1749,7 +1542,7 @@ pl_seek(term_t stream, term_t offset, term_t method, term_t newloc)
   if ( !PL_get_long(offset, &off) )
     return PL_error("seek", 4, NULL, ERR_DOMAIN, ATOM_integer, offset);
 
-  new = Sseek(fileTable[n].stream, off, whence);
+  new = Sseek(s, off, whence);
   if ( new == -1 )
     return PL_error("seek", 4, OsError(), ERR_PERMISSION,
 		    ATOM_reposition, ATOM_stream, stream);
@@ -1760,44 +1553,46 @@ pl_seek(term_t stream, term_t offset, term_t method, term_t newloc)
 
 word
 pl_set_input(term_t stream)
-{ int n;
+{ IOSTREAM *s;
 
-  if ( (n = streamNo(stream, F_READ)) < 0 )
-    fail;
+  if ( getInputStream(stream, &s) )
+  { Scurin = s;
+    return TRUE;
+  }
 
-  Input = n;
-  succeed;
+  return FALSE;
 }
 
 
 word
 pl_set_output(term_t stream)
-{ int n;
+{ IOSTREAM *s;
 
-  if ( (n = streamNo(stream, F_WRITE)) < 0 )
-    fail;
+  if ( getOutputStream(stream, &s) )
+  { Scurout = s;
+    return TRUE;
+  }
 
-  Output = n;
-  succeed;
+  return FALSE;
 }
 
 
 word
 pl_current_input(term_t stream)
-{ return unifyStreamNo(stream, Input);
+{ return PL_unify_stream(stream, Scurin);
 }
 
 
 word
 pl_current_output(term_t stream)
-{ return unifyStreamNo(stream, Output);
+{ return PL_unify_stream(stream, Scurout);
 }
 
 word
 pl_character_count(term_t stream, term_t count)
-{ IOSTREAM *s = ioStreamWithPosition(stream);
+{ IOSTREAM *s;
 
-  if ( s )
+  if ( getStreamWithPosition(stream, &s) )
     return PL_unify_integer(count, s->position->charno);
 
   fail;
@@ -1805,9 +1600,9 @@ pl_character_count(term_t stream, term_t count)
 
 word
 pl_line_count(term_t stream, term_t count)
-{ IOSTREAM *s = ioStreamWithPosition(stream);
+{ IOSTREAM *s;
 
-  if ( s )
+  if ( getStreamWithPosition(stream, &s) )
     return PL_unify_integer(count, s->position->lineno);
 
   fail;
@@ -1815,9 +1610,9 @@ pl_line_count(term_t stream, term_t count)
 
 word
 pl_line_position(term_t stream, term_t count)
-{ IOSTREAM *s = ioStreamWithPosition(stream);
+{ IOSTREAM *s;
 
-  if ( s )
+  if ( getStreamWithPosition(stream, &s) )
     return PL_unify_integer(count, s->position->linepos);
 
   fail;
@@ -1841,40 +1636,35 @@ pl_source_location(term_t file, term_t line)
 
 word
 pl_at_end_of_stream1(term_t stream)
-{ int n;
+{ IOSTREAM *s;
 
-  if ( (n = streamNo(stream, F_READ)) < 0 )
-    fail;
+  if ( getInputStream(stream, &s) )
+    return Sfeof(s) ? TRUE : FALSE;
 
-  return Sfeof(fileTable[n].stream) ? TRUE : FALSE;
+  return FALSE;				/* exception */
 }
 
 
 word
 pl_at_end_of_stream0()
-{ IOSTREAM *s = fileTable[Input].stream;
-  
-  if ( !s || Sfeof(s) )
-    succeed;
-
-  fail;
+{ return pl_at_end_of_stream1(0);
 }
 
 
 word
 pl_peek_byte2(term_t stream, term_t chr)
-{ int n;
-  IOSTREAM *s;
+{ IOSTREAM *s;
   IOPOS pos;
   int c;
 
-  if ( (n = streamNo(stream, F_READ)) < 0 ||
-       !(s = fileTable[n].stream) )
+  if ( !getInputStream(stream, &s) )
     fail;
 
   pos = s->posbuf;
   c = Sgetc(s);
   Sungetc(c, s);
+  if ( Sferror(s) )
+    return streamStatus(s);
   s->posbuf = pos;
 
   return PL_unify_integer(chr, c);
@@ -1883,19 +1673,7 @@ pl_peek_byte2(term_t stream, term_t chr)
 
 word
 pl_peek_byte1(term_t chr)
-{ IOSTREAM *s;
-  IOPOS pos;
-  int c;
-
-  if ( !(s = fileTable[Input].stream) )
-    fail;
-
-  pos = s->posbuf;
-  c = Sgetc(s);
-  Sungetc(c, s);
-  s->posbuf = pos;
-
-  return PL_unify_integer(chr, c);
+{ return pl_peek_byte2(0, chr);
 }
 
 
@@ -1937,36 +1715,6 @@ PL_get_filename(term_t n, char *buf, unsigned int size)
 }
 
 
-int
-PL_get_stream_handle(term_t spec, IOSTREAM **stream)
-{ int n = streamNo(spec, F_ANY);
-
-  if ( n >= 0 )
-  { *stream = fileTable[n].stream;
-    succeed;
-  }
-
-  fail;
-}
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This should not exists (actually, the  integer stream handles should not
-exists). Used in PL_open_resource() to  get   rid  of the Prolog stream,
-while maintaining the IOSTREAM handle.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-void
-release_stream_handle(term_t spec)
-{ int n = streamNo(spec, F_ANY);
-  PlFile f = &fileTable[n];
-
-  f->stream = NULL_ATOM;
-  f->name   = NULL_ATOM;
-  f->status = F_CLOSED;
-}
-
-
 word
 pl_time_file(term_t name, term_t t)
 { char *fn;
@@ -2004,12 +1752,12 @@ pl_size_file(term_t name, term_t len)
 
 word
 pl_size_stream(term_t stream, term_t len)
-{ int n;
+{ IOSTREAM *s;
 
-  if ( (n = streamNo(stream, F_ANY)) < 0 )
+  if ( !PL_get_stream_handle(stream, &s) )
     fail;
 
-  return PL_unify_integer(len, Ssize(fileTable[n].stream));
+  return PL_unify_integer(len, Ssize(s));
 }
 
 
@@ -2371,3 +2119,46 @@ pl_make_fat_filemap(term_t dir)
   fail;
 }
 #endif
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+copy_stream_data(+StreamIn, +StreamOut, [Len])
+	Copy all data from StreamIn to StreamOut.  Should be somewhere else,
+	and maybe we need something else to copy resources.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+
+foreign_t
+pl_copy_stream_data3(term_t in, term_t out, term_t len)
+{ IOSTREAM *i, *o;
+  int c;
+
+  if ( !PL_get_stream_handle(in, &i) ||
+       !PL_get_stream_handle(out, &o) )
+    return FALSE;
+
+  if ( !len )
+  { while ( (c = Sgetc(i)) != EOF )
+    { if ( Sputc(c, o) < 0 )
+	return streamStatus(o);
+    }
+  } else
+  { long n;
+
+    if ( !PL_get_long(len, &n) )
+      return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, len);
+    
+    while ( n-- > 0 && (c = Sgetc(i)) != EOF )
+    { if ( Sputc(c, o) < 0 )
+	return streamStatus(o);
+    }
+  }
+
+  return streamStatus(i);
+}
+
+foreign_t
+pl_copy_stream_data2(term_t in, term_t out)
+{ return pl_copy_stream_data3(in, out, 0);
+}
+

@@ -153,7 +153,7 @@ $string(X) --> {X=[_|_]}, X.
 $eos([], []).
 
 $make_alias(Chars, Alias) :-
-	term_to_atom(Alias, Chars),
+	catch(term_to_atom(Alias, Chars), _, fail),
 	(   atom(Alias)
 	;   functor(Alias, F, 1),
 	    F \== /
@@ -281,11 +281,16 @@ read_query(Prompt, Goal, Bindings) :-
 	repeat,				% over syntax errors
 	prompt1(Prompt1),
 	(   feature(readline, true)
-	->  $raw_read(user_input, Line),
+	->  catch($raw_read(user_input, Line), E,
+		  (print_message(error, E),
+		   (   E = error(syntax_error(_), _)
+		   ->  fail
+		   ;   throw(E)
+		   ))),
 	    atom_codes(Line, LineChars),
 	    append(LineChars, ".", CompleteLine),
 	    catch(user:rl_add_history(CompleteLine), _, true),
-	    catch(atom_to_term(Goal, Line, Bindings), E,
+	    catch(atom_to_term(Line, Goal, Bindings), E,
 		  (   print_message(error, E),
 		      fail
 		  ))

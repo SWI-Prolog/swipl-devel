@@ -925,7 +925,7 @@ cmd(htmlmainfile({File}), []) :-
 	retractall(html_file_base(_)),
 	assert(html_file_base(File)).
 cmd(htmlfiledepth({Depth}), []) :-
-	atom_chars(Depth, Chars),
+	atom_codes(Depth, Chars),
 	number_chars(D, Chars),
 	retractall(html_split_level(_)),
 	assert(html_split_level(D)).
@@ -1275,7 +1275,7 @@ translate_reference(Name, Tag, Label,
 %	the input.
 
 clean_tt(Raw, Clean) :-
-	atom_chars(Raw, S0),
+	atom_codes(Raw, S0),
 	(   append("{", S1, S0),
 	    append(S2, "}", S1)
 	->  true
@@ -1288,7 +1288,7 @@ clean_tt(Raw, Clean) :-
         clean_specials(S3, S4),
 	delete_all(S4, "\string", S5),
 	delete_all(S5, " ", S6),
-	atom_chars(Clean, S6).
+	atom_codes(Clean, S6).
 
 clean_specials([], []).
 clean_specials([0'\, Special|T0], [Special|T]) :-
@@ -1319,19 +1319,19 @@ upcase_html([H|T0], [H|T]) :-
 	upcase_html(T0, T).
 
 upcase_atom(Low, Up) :-
-	atom_chars(Low, S0),
+	atom_codes(Low, S0),
 	maplist(upcase, S0, S1),
-	atom_chars(Up, S1).
+	atom_codes(Up, S1).
 
 downcase_atom(Up, Low) :-
-	atom_chars(Up, S0),
+	atom_codes(Up, S0),
 	maplist(downcase, S0, S1),
-	atom_chars(Low, S1).
+	atom_codes(Low, S1).
 
 capitalise_atom(In, Out) :-
-	atom_chars(In, S0),
+	atom_codes(In, S0),
 	capitalise(S0, S1, up),
-	atom_chars(Out, S1).
+	atom_codes(Out, S1).
 
 upcase(L, U) :-
 	between(0'a, 0'z, L), !,
@@ -1506,14 +1506,14 @@ section_tag(Tag) :-
 section_tag('').
 
 parent_tag(Section, Parent) :-
-	atom_chars(Section, Chars),
+	atom_codes(Section, Chars),
 	phrase(parent_section(Parent), Chars), !.
 
 parent_section(Parent) -->
 	string(ParentString),
 	".",
 	integer(_),
-	{atom_chars(Parent, ParentString)}.
+	{atom_codes(Parent, ParentString)}.
 
 :- dynamic
 	section_level/1.
@@ -1586,9 +1586,9 @@ translate_index(Term, RefName) :-
 	add_to_index(Term, Tag:RefName).
 
 clean_index(Raw, Cleaned) :-
-	atom_chars(Raw, RawChars),
+	atom_codes(Raw, RawChars),
 	clean_index_2(RawChars, Chars),
-	atom_chars(Cleaned, Chars).
+	atom_codes(Cleaned, Chars).
 
 clean_index_2([], []).
 clean_index_2([H|T0], [H|T]) :-
@@ -1609,10 +1609,10 @@ add_to_index(Term) :-
 	add_to_index(Term, Tag).
 
 add_to_index(Term, Tag) :-
-	atom_chars(Term, Chars),
-	atom_chars(Atom, Chars),	% So, sure we have an atom now
+	atom_codes(Term, Chars),
+	atom_codes(Atom, Chars),	% So, sure we have an atom now
 	sort_chars(Chars, Sort),
-	atom_chars(SortKey, Sort),
+	atom_codes(SortKey, Sort),
 	assert(index(SortKey, Atom, Tag)).
 
 sort_chars(Chars, Sort) :-
@@ -1676,12 +1676,12 @@ index_href(Tag, [' ', #lref(RefName, Tag)]) :-
 	sformat(RefName, 'sec:~w', Tag).
 	
 add_separator(Term, CL, CL, []) :-
-	atom_chars(Term, [CL|_]), !.
+	atom_codes(Term, [CL|_]), !.
 add_separator(Term, _, CL, [ html('<DT>'), 
 			     #strong(Char),
 			     html('<DD>')
 			   ]) :-
-	atom_chars(Term, [CL|_]),
+	atom_codes(Term, [CL|_]),
 	upcase(CL, UC),
 	atom_char(Char, UC).
 
@@ -1807,7 +1807,7 @@ width.  Thats not what we want.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 translate_table(Format, Body, HTML) :-
-	atom_chars(Format, Fmt),
+	atom_codes(Format, Fmt),
 	table_frame(Fmt, Body, FrameAttributes, Fmt2, Body2),
 	expand_table_commands(Body2, Body3),
 	(   table_columns(Fmt2, Ncols, ColAtts)
@@ -1949,7 +1949,7 @@ align_char(Chr) -->		% D{inputsep}{outputsep}{decimal places}
 	"}{",
 	number(_),
 	"}",
-	{ atom_chars(Chr, W)
+	{ atom_codes(Chr, W)
 	}.
 
 string_without(L, [C|T]) -->
@@ -2060,11 +2060,11 @@ sgml_attribute(Name=Value, Att) :-
 	concat_atom([Name, =, Value], Att).
 
 to_integer(Atom, Integer) :-
-	atom_chars(Atom, Chars),
+	atom_codes(Atom, Chars),
 	number_chars(Integer, Chars).
 
 column_alignment(X, Alignment) :-
-	atom_chars(X, Chars),
+	atom_codes(X, Chars),
 	phrase(column_alignment(Alignment), Chars).
 
 column_alignment(A) -->
@@ -2121,7 +2121,7 @@ clean_body(Body, Body1) :-
 %	terms for easy further processing.
 
 psfig_options(Text, Options) :-
-	atom_chars(Text, Chars),
+	atom_codes(Text, Chars),
 	phrase(psfigoptions(Options), Chars).
 
 psfigoptions([H|T]) -->
@@ -2136,8 +2136,8 @@ psfigoption(Term) -->
 	(   ","
 	;   ""
 	), !,
-	{ atom_chars(Name, NS),
-	  atom_chars(Val, VS),
+	{ atom_codes(Name, NS),
+	  atom_codes(Val, VS),
 	  Term =.. [Name, Val]
 	}.
 
@@ -2148,7 +2148,7 @@ psfigoption(Term) -->
 
 
 fix_predicate_reference(Ref0, Ref) :-
-	 atom_chars(Ref0, Chars),
+	 atom_codes(Ref0, Chars),
 	 phrase(predref(Name, Arities), Chars),
 	 member(Arity, Arities),
 	 concat_atom([Name, /, Arity], Ref),
@@ -2159,7 +2159,7 @@ predref(Name, Arities) -->
 	 "/[",
 	 arityspec(Arities),
 	 "]", !,
-	 {atom_chars(Name, Str0)}.
+	 {atom_codes(Name, Str0)}.
 
 arityspec(As) -->
 	 integer(Low),
@@ -2194,7 +2194,7 @@ declare_command(Name, ArgCAtom, Expanded) :-
 	concat(\, CmdName, Name),
 	(   tex_command_property(CmdName, _, _) % test for existence
 	->  true
-	;   atom_chars(ArgCAtom, ArgCChars),
+	;   atom_codes(ArgCAtom, ArgCChars),
 	    number_chars(Args, ArgCChars),
 	    make_cmd_spec(Name, Args, CmdSpec),	% \Name{+}...
 	    tex_declare(CmdSpec),
@@ -2221,7 +2221,7 @@ cmd_parms(N, A, Head, [A0|AT]) :-
 	cmd_parms(I, A, Head, AT).
 
 expand_macro(Args, Macro, Mode0, Mode, HTML) :-
-	atom_chars(Macro, Chars),
+	atom_codes(Macro, Chars),
 	replace_args(Chars, Args, Expanded),
 	tex_atom_to_tokens(Expanded, Tokens),
 	translate(Tokens, Mode0, Mode, HTML).
@@ -2230,7 +2230,7 @@ replace_args([], _, []).
 replace_args([0'#,N|T], Args, Result) :- !,
 	ArgN is N - 0'0,
 	arg(ArgN, Args, Val),
-	atom_chars(Val, Chars),
+	atom_codes(Val, Chars),
 	append(Chars, RT, Result),
 	replace_args(T, Args, RT).
 replace_args([C|T0], Args, [C|T]) :-
@@ -2244,17 +2244,17 @@ replace_args([C|T0], Args, [C|T]) :-
 %	split(+Atom, +SepString, -ListOfAtoms)
 
 split(Atom, Sep, List) :-
-	atom_chars(Atom, Chars),
+	atom_codes(Atom, Chars),
 	do_split(Chars, Sep, List).
 
 do_split([], _, []).
 do_split(L, Sep, [H|T]) :-
 	append(Head, Rest, L),
 	append(HL, Sep, Head), !,
-	atom_chars(H, HL),
+	atom_codes(H, HL),
 	do_split(Rest, Sep, T).
 do_split(L, _, [A]) :-
-	atom_chars(A, L).
+	atom_codes(A, L).
 
 
 		 /*******************************

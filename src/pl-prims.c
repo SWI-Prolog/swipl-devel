@@ -1760,12 +1760,9 @@ pl_substring(term_t str, term_t offset,
 }
 #endif /* O_STRING */
 
-#define WR_ATOM 0
-#define WR_STRING 1
-#define WR_LIST 2
 
-static word
-write_on(term_t goal, int how, term_t target)
+word
+pl_write_on_string(term_t goal, term_t target)
 { char buf[1024];
   int bufsize = sizeof(buf);
   char *string = buf;
@@ -1774,45 +1771,19 @@ write_on(term_t goal, int how, term_t target)
   tellString(&string, &bufsize);
   rval = callProlog(MODULE_user, goal, PL_Q_NODEBUG, NULL);
   toldString();
-  TRY(rval);
 
-  switch(how)
-  { case WR_ATOM:
-      rval = PL_unify_atom_chars(target, string);
-      break;
-    case WR_STRING:
-      rval = PL_unify_string_chars(target, string);
-      break;
-    case WR_LIST:
-      default:
-      rval = PL_unify_list_codes(target, string);
-  }
+  if ( rval )
+#if O_STRING
+    rval = PL_unify_string_chars(target, string);
+#else
+    rval = PL_unify_list_codes(target, string);
+#endif
 
   if ( string != buf )
     free(string);
 
   return rval;
 }
-
-
-word
-pl_write_on_atom(term_t goal, term_t atom)
-{ return write_on(goal, WR_ATOM, atom);
-} 
-
-
-#if O_STRING
-word
-pl_write_on_string(term_t goal, term_t string)
-{ return write_on(goal, WR_STRING, string);
-} 
-#endif /* O_STRING */
-
-
-word
-pl_write_on_list(term_t goal, term_t list)
-{ return write_on(goal, WR_LIST, list);
-} 
 
 
 		/********************************

@@ -111,13 +111,13 @@ env(tabularlp(_, Tokens), HTML) :-
 	      
 canonise_glossitem(In, Out) :-
 	downcase_atom(In, In1),
-	atom_chars(In1, Chars0),
+	atom_codes(In1, Chars0),
 	(   append(Chars1, "s", Chars0)
 	->  true
 	;   Chars1 = Chars0
 	),
 	maplist(canonical_char, Chars1, Chars2),
-	atom_chars(Out, Chars2).
+	atom_codes(Out, Chars2).
 
 canonical_char(0' , 0'-) :- !.
 canonical_char(0'_, 0'-) :- !.

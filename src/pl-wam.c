@@ -144,13 +144,13 @@ static void
 countHeader()
 { int m;
 
-  Putf("%13s: ", "Instruction");
+  Sdprintf("%13s: ", "Instruction");
   for(m=0; m < 20; m++)
-    Putf("%8d", m);
-  Putf("\n");
+    Sdprintf("%8d", m);
+  Sdprintf("\n");
   for(m=0; m<(15+20*8); m++)
-    Putf("=");
-  Putf("\n");
+    Sdprintf("=");
+  Sdprintf("\n");
 }  
 
 static void
@@ -158,15 +158,15 @@ countArray(char *s, int *array)
 { int n, m;
 
   for(n=255; array[n] == 0; n--) ;
-  Putf("%13s: ", s);
+  Sdprintf("%13s: ", s);
   for(m=0; m <= n; m++)
-    Putf("%8d", array[m]);
-  Putf("\n");
+    Sdprintf("%8d", array[m]);
+  Sdprintf("\n");
 }
 
 static void
 countOne(char *s, int i)
-{ Putf("%13s: %8d\n", s, i);
+{ Sdprintf("%13s: %8d\n", s, i);
 }
 
 #define COUNT_N(name)  { counting.name[*PC]++; }
@@ -456,6 +456,14 @@ callForeign(const Definition def, LocalFrame frame)
   cid  = PL_open_foreign_frame();
   exception_term = 0;
 
+  SECURE({ int n;
+	   Word p0 = argFrameP(frame, 0);
+	   
+	   for(n=0; n<argc; n++)
+	     checkData(p0+n);
+	 });
+  SECURE(checkStacks(frame));
+
 #define F (*function)    
   if ( true(def, P_VARARG) )
   { result = F(h0, argc, (word) frame->clause);
@@ -474,11 +482,21 @@ callForeign(const Definition def, LocalFrame frame)
   PL_close_foreign_frame(cid);		/* invalidates exception_term! */
   RestoreLocalPtr(s1, frame);
 
+  SECURE({ int n;
+	   Word p0 = argFrameP(frame, 0);
+
+	   for(n=0; n<argc; n++)
+	     checkData(p0+n);
+	 });
+  SECURE(checkStacks(frame));
+
   if ( result <= 1 )			/* FALSE || TRUE */
   { frame->clause = NULL;
 
     if ( exception_term && result == 1 ) /* False alarm */
-      exception_term = 0;
+    { exception_term = 0;
+      setVar(*valTermRef(exception_bin));
+    }
 
     return (bool) result;
   } else
@@ -963,13 +981,13 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 	     if ( LD->IO.output )
 	     { int n;
 
-	       Putf("PL_open_query: %s(", stringAtom(f->name));
+	       Sdprintf("PL_open_query: %s(", stringAtom(f->name));
 	       for(n=0; n < f->arity; n++)
 	       { if ( n > 0 )
-		   Putf(", ");
-		 pl_write(args+n);
+		   Sdprintf(", ");
+		 PL_write_term(Serror, args+n, 999, 0);
 	       }
-	       Putf(")\n");
+	       Sdprintf(")\n");
 	     } else
 	       Sdprintf("PL_open_query in unitialized environment.\n");
 	   });
@@ -2319,7 +2337,7 @@ discarded.
 	  }
 	}
 
-	/*DEBUG(3, Putf("BFR at "); writeFrameGoal(BFR, 2); pl_nl() );*/
+	/*DEBUG(3, Sdprintf("BFR at "); writeFrameGoal(BFR, 2); pl_nl() );*/
 	{ int nvar = (true(cbfr->predicate, FOREIGN)
 				? cbfr->predicate->functor->arity
 				: cbfr->clause->clause->variables);
@@ -3012,13 +3030,17 @@ increase lTop too to prepare for asynchronous interrupts.
 	    environment_frame = FR;
 	    lTop = oldtop;
 
-	    if ( rval )
-	    { exception_term = 0;
-	      NEXT_INSTRUCTION;
+	    if ( exception_term )
+	    { if ( rval )
+	      { exception_term = 0;
+		setVar(*valTermRef(exception_bin));
+	      } else
+		goto b_throw;
 	    }
 
-	    if ( exception_term )
-	      goto b_throw;
+	    if ( rval )
+	    { NEXT_INSTRUCTION;
+	    }
 
 	    Undo(next->mark);
 	    LD->statistics.inferences++;	/* is a redo! */
@@ -3678,8 +3700,10 @@ frame_failed:				MARK(FAIL);
 #if O_DEBUGGER
     if ( debugstatus.debugging )
     { switch( tracePort(FR, FR->backtrackFrame, FAIL_PORT, PC) )
-      { case ACTION_RETRY:	goto retry;
-	case ACTION_IGNORE:	Putf("ignore not (yet) implemented here\n");
+      { case ACTION_RETRY:
+	  goto retry;
+	case ACTION_IGNORE:
+	  Sfputs("ignore not (yet) implemented here\n", Sdout);
       }
     }
 #endif /*O_DEBUGGER*/

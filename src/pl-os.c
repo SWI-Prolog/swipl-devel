@@ -61,6 +61,7 @@ forwards void	initRandom(void);
 forwards void	initEnviron(void);
 forwards long	Time(void);
 static void	RemoveTemporaryFiles(void);
+static char *	Which(const char *program, char *fullname);
 
 #ifndef DEFAULT_PATH
 #define DEFAULT_PATH "/bin:/usr/bin"
@@ -162,7 +163,7 @@ Halt(int rval)
 { OnHalt h;
 
   pl_notrace();				/* avoid recursive tracing */
-  LD->IO.output = 1;			/* reset output stream to user */
+  Scurout = Soutput;			/* reset output stream to user */
 
   if ( !GD->os.halting++ )
   { for(h = GD->os.on_halt_list; h; h = h->next)
@@ -1692,16 +1693,6 @@ ChDir(const char *path)
   fail;
 }
 
-		 /*******************************
-		 *	      CONSOLE		*
-		 *******************************/
-
-#if unix				/* windows definition is in pl-nt.c */
-int
-hasConsole(void)
-{ succeed;
-}
-#endif
 
 		/********************************
 		*        TIME CONVERSION        *
@@ -1788,13 +1779,12 @@ Swrite_protocol(void *handle, char *buf, int size)
 
 int
 Sread_terminal(void *handle, char *buf, int size)
-{ long h     = (long)handle;
-  atom_t sfn = source_file_name;		/* save over call-back */
-  int    sln = source_line_no;
-  int     fd = (int)h;
+{ long h = (long)handle;
+  int fd = (int)h;
+  source_location oldsrc = LD->read_source;
 
   if ( GD->os.prompt_next && ttymode != TTY_RAW )
-  { Putf("%s", PrologPrompt());
+  { Sfputs(PrologPrompt(), Soutput);
     
     GD->os.prompt_next = FALSE;
   }
@@ -1811,8 +1801,7 @@ Sread_terminal(void *handle, char *buf, int size)
   } else if ( size > 0 && buf[size-1] == '\n' )
     GD->os.prompt_next = TRUE;
 
-  source_line_no   = sln;
-  source_file_name = sfn;
+  LD->read_source = oldsrc;
 
 #ifdef WIN32
   if ( size > 0 )			/* Why needed only here? */
@@ -2586,7 +2575,7 @@ okToExec(const char *s)
 }
 #endif /*EXEC_EXTENSIONS*/
 
-char *
+static char *
 Which(const char *program, char *fullname)
 { char *path, *dir;
   char *e;

@@ -160,20 +160,17 @@ void		dieIO(void);
 void		closeFiles(int all);
 void		protocol(const char *s, int n);
 int		currentLinePosition(void);
-IOSTREAM *	prologStream(int n);
-void		setCurrentSourceLocation(void);
-int		getSingleChar(void);
-word		pl_rawtty(term_t goal);
-bool		readLine(char *buffer);
+bool		getInputStream(term_t t, IOSTREAM **s);
+bool		getOutputStream(term_t t, IOSTREAM **s);
+bool		streamStatus(IOSTREAM *s);
+void		setCurrentSourceLocation(IOSTREAM *s);
+int		getSingleChar(IOSTREAM *s);
+bool		readLine(IOSTREAM *in, IOSTREAM *out, char *buffer);
 bool		LockStream(void);
 bool		UnlockStream(void);
-bool		Put(int c);
-bool		PutOpenToken(int c);
 word		pl_dup_stream(term_t from, term_t to);
 IOSTREAM *	PL_current_input(void);
 IOSTREAM *	PL_current_output(void);
-word		Putf(char *fm, ...);
-bool		Puts(const char *str);
 word		pl_told(void);
 word		pl_flush(void);
 word		pl_see(term_t f);
@@ -184,7 +181,6 @@ bool		seeingString(void);
 bool		seenString(void);
 bool		tellString(char **s, int *size);
 bool		toldString(void);
-atom_t		currentStreamName(void);
 word		pl_wait_for_input(term_t streams, term_t avail, term_t tmo);
 word		pl_put(term_t c);
 word		pl_put2(term_t stream, term_t chr);
@@ -257,6 +253,8 @@ foreign_t	pl_mark_executable(term_t path);
 #ifdef __WIN32__
 word		pl_make_fat_filemap(term_t dir);
 #endif
+word		pl_copy_stream_data3(term_t in, term_t out, term_t len);
+word		pl_copy_stream_data2(term_t in, term_t out);
 
 /* pl-flag.c */
 void		initFlags(void);
@@ -292,7 +290,6 @@ word		pl_current_functor(term_t name, term_t arity, word h);
 void		considerGarbageCollect(Stack s);
 void		garbageCollect(LocalFrame fr);
 word		pl_garbage_collect(term_t d);
-void		resetGC(void);
 void		blockGC(void);
 void		unblockGC(void);
 Word		findGRef(int n);
@@ -463,9 +460,7 @@ word		pl_string_to_atom(term_t str, term_t a);
 word		pl_string_to_list(term_t str, term_t list);
 word		pl_substring(term_t str, term_t offset,
 			     term_t length, term_t sub);
-word		pl_write_on_atom(term_t goal, term_t atom);
 word		pl_write_on_string(term_t goal, term_t string);
-word		pl_write_on_list(term_t goal, term_t string);
 word		pl_repeat(word h);
 word		pl_fail(void);
 word		pl_true(void);
@@ -773,4 +768,3 @@ foreign_t       pl_rc_append_file(term_t rc_h,
 				  term_t name, term_t class, term_t encoding,
 				  term_t file);
 foreign_t	pl_rc_members(term_t rc_h, term_t members);
-foreign_t	pl_copy_stream(term_t in, term_t out);

@@ -56,6 +56,8 @@ STEPS
       current thread.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#include <errno.h>
+
 static PL_thread_info_t *alloc_thread(void);
 
 pthread_key_t PL_ldata;			/* key for thread PL_local_data */
@@ -70,7 +72,9 @@ pthread_mutex_t _PL_mutexes[] =
   PTHREAD_MUTEX_INITIALIZER,		/* L_PREDICATE */
   PTHREAD_MUTEX_INITIALIZER,		/* L_MODULE */
   PTHREAD_MUTEX_INITIALIZER,		/* L_TABLE */
-  PTHREAD_MUTEX_INITIALIZER		/* L_BREAK */
+  PTHREAD_MUTEX_INITIALIZER,		/* L_BREAK */
+  PTHREAD_MUTEX_INITIALIZER,		/* L_INIT_ALLOC */
+  PTHREAD_MUTEX_INITIALIZER		/* L_FILE */
 };
 
 #define LOCK()   PL_LOCK(L_THREAD)

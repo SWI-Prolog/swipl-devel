@@ -14,7 +14,6 @@ source should also use format() to produce error messages, etc.
 
 #include "pl-incl.h"
 #include "pl-ctype.h"
-extern int Output;
 
 #define BUFSIZE 	10240
 #define DEFAULT 	(-1)
@@ -35,7 +34,7 @@ extern int Output;
 #define OUTCHR(c)	{ if ( pending_rubber ) \
 			    buffer[index++] = (c); \
 			  else \
-			    Put((Char)(c)); \
+			    Sputc((Char)(c), fd); \
 			  column = update_column(column, c); \
 			}
 
@@ -49,10 +48,10 @@ struct rubber
 
 #define format_predicates (GD->format.predicates)
 
-forwards int	update_column(int, Char);
-forwards bool	do_format(const char *fmt, int argc, term_t argv);
-forwards void	distribute_rubber(struct rubber *, int, int);
-forwards void	emit_rubber(char *buf, int, struct rubber *, int);
+static int	update_column(int, Char);
+static bool	do_format(IOSTREAM *fd, const char *fmt, int ac, term_t av);
+static void	distribute_rubber(struct rubber *, int, int);
+static void	emit_rubber(IOSTREAM *fd, char *, int, struct rubber *, int);
 
 		/********************************
 		*       PROLOG CONNECTION	*
@@ -128,15 +127,18 @@ pl_current_format_predicate(term_t chr, term_t descr, control_t h)
 
 
 word
-pl_format(term_t fmt, term_t Args)
+pl_format3(term_t stream, term_t fmt, term_t Args)
 { term_t argv;
   int argc = 0;
   char *f;
-  int rval;
   term_t args = PL_copy_term_ref(Args);
-  
+  IOSTREAM *out;
+
+  if ( !getOutputStream(stream, &out) )
+    fail;
+
   if ( !PL_get_chars(fmt, &f, CVT_ALL|BUF_RING) )
-    return warning("format/2: format is not an atom or string");
+    return PL_error("format", 3, NULL, ERR_TYPE, ATOM_text, fmt);
 
   if ( (argc = lengthList(args)) >= 0 )
   { term_t head = PL_new_term_ref();
@@ -152,46 +154,14 @@ pl_format(term_t fmt, term_t Args)
     PL_put_term(argv, args);
   }
   
-  rval = do_format(f, argc, argv);
-
-  return rval;
+  return do_format(out, f, argc, argv);
 }
 
 
 word
-pl_format3(term_t stream, term_t fmt, term_t args)
-{ word rval;
-  streamOutput(stream, rval = pl_format(fmt, args));
-  return rval;
+pl_format(term_t fmt, term_t args)
+{ return pl_format3(0, fmt, args);
 }
-
-#if O_C_FORMAT
-
-		/********************************
-		*          C-CONNECTION		*
-		********************************/
-
-static bool
-vformat(fm, args)
-char *fm;
-va_list args;
-{ 
-}
-
-
-bool
-format(char *fm, ...)
-{ va_list args;
-  bool rval;
-
-  va_start(args, fm);
-  rval = vformat(fm, args);
-  va_end(args);
-
-  return rval;
-}
-
-#endif /* O_C_FORMAT */
 
 		/********************************
 		*       ACTUAL FORMATTING	*
@@ -209,7 +179,7 @@ update_column(int col, int c)
 
 
 static bool
-do_format(const char *fmt, int argc, term_t argv)
+do_format(IOSTREAM *fd, const char *fmt, int argc, term_t argv)
 { char buffer[BUFSIZE];			/* to store chars with tabs */
   int index = 0;			/* index in buffer */
   int column = currentLinePosition();	/* current output column */
@@ -218,7 +188,7 @@ do_format(const char *fmt, int argc, term_t argv)
   struct rubber rub[MAXRUBBER];
   Symbol s;
 
-  LockStream();
+  Slock(fd);				/* buffer locally */
 
   while(*fmt)
   { switch(*fmt)
@@ -389,10 +359,14 @@ do_format(const char *fmt, int argc, term_t argv)
 		    if ( str != buf )
 		      free(str);
 		  } else
-		  { IOSTREAM *s = PL_current_output();
-		    if ( s->position && s->position->linepos == column )
-		    { (*f)(argv);
-		      column = s->position->linepos;
+		  { if ( fd->position && fd->position->linepos == column )
+		    { IOSTREAM *old = Scurout;
+
+		      Scurout = fd;
+		      (*f)(argv);
+		      Scurout = old;
+
+		      column = fd->position->linepos;
 		    } else
 		    { int bufsize = BUFSIZE;
 
@@ -449,7 +423,7 @@ do_format(const char *fmt, int argc, term_t argv)
 		    pending_rubber++;
 		  }
 		  distribute_rubber(rub, pending_rubber, stop - column);
-		  emit_rubber(buffer, index, rub, pending_rubber);
+		  emit_rubber(fd, buffer, index, rub, pending_rubber);
 		  index = 0;
 		  pending_rubber = 0;
 
@@ -472,12 +446,13 @@ do_format(const char *fmt, int argc, term_t argv)
   }
 
   if ( pending_rubber )			/* not closed ~t: flush out */
-    emit_rubber(buffer, index, rub, 0);
+    emit_rubber(fd, buffer, index, rub, 0);
 
-  UnlockStream();
+  Sunlock(fd);
 
-  succeed;
+  return streamStatus(fd);
 }
+
 
 static void
 distribute_rubber(struct rubber *r, int rn, int space)
@@ -500,19 +475,20 @@ distribute_rubber(struct rubber *r, int rn, int space)
   }
 }
 
+
 static void
-emit_rubber(char *buf, int i, struct rubber *r, int rn)
+emit_rubber(IOSTREAM *fd, char *buf, int i, struct rubber *r, int rn)
 { int j;
 
   for(j = 0; j <= i; j++)
   { if ( r->where == j && rn )
     { int n;
       for(n=0; n<r->size; n++)
-        Put(r->pad);
+        Sputc(r->pad, fd);
       r++;
       rn--;
     }
     if ( j < i )
-      Put(buf[j]);
+      Sputc(buf[j], fd);
   }
 }

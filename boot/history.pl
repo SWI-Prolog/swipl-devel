@@ -28,7 +28,12 @@
 read_history(History, Help, DontStore, Prompt, Term, Bindings) :-
 	repeat, 
 	    prompt_history(Prompt), 
-	    $raw_read(Raw), 
+	    catch($raw_read(user_input, Raw), E,
+		  (print_message(error, E),
+		   (   E = error(syntax_error(_), _)
+		   ->  fail
+		   ;   throw(E)
+		   ))),
 	    read_history_(History, Help, DontStore, Raw, Term, Bindings), !.
 
 read_history_(History, _, _, History, _, _) :-
@@ -50,8 +55,7 @@ read_history_(History, Help, DontStore, Raw, Term, Bindings) :-
 	    Bindings = Bindings0
 	;   Term0 = $silent(Goal)
 	->  user:ignore(Goal),
-	    $raw_read(NewRaw),
-	    read_history_(History, Help, DontStore, NewRaw, Term, Bindings)
+	    read_history(History, Help, DontStore, '', Term, Bindings)
 	;   save_event(DontStore, Expanded), 
 	    write_event(Expanded, Changed), 
 	    Term = Term0,

@@ -131,7 +131,7 @@ Sread_readline(void *handle, char *buf, int size)
   long oldclock = clock();
 #endif
 
-  PL_write_prompt(fd, ttymode == PL_NOTTY);
+  PL_write_prompt(ttymode == PL_NOTTY);
   
   switch( ttymode )
   { case PL_RAWTTY:			/* get_single_char/1 */
@@ -161,7 +161,7 @@ Sread_readline(void *handle, char *buf, int size)
 
       if ( in_readline )
       { Sprintf("[readline disabled] ");
-	PL_write_prompt(fd, TRUE);
+	PL_write_prompt(TRUE);
 	goto notty;			/* avoid reentrance */
       }
 

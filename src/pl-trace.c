@@ -20,8 +20,6 @@
 #define TRACE_FIND_NAME	2
 #define TRACE_FIND_TERM	3
 
-#define Output (LD->IO.output)		/* Current output stream */
-
 typedef struct find_data_tag
 { int	 port;				/* Port to find */
   bool	 searching;			/* Currently searching? */
@@ -173,6 +171,23 @@ canUnifyTermWithGoal(LocalFrame fr)
 }
 
 
+static const char *
+portPrompt(int port)
+{ switch(port)
+  { case CALL_PORT:	 return " Call:  ";
+    case REDO_PORT:	 return " Redo:  ";
+    case FAIL_PORT:	 return " Fail:  ";
+    case EXIT_PORT:	 return " Exit:  ";
+    case UNIFY_PORT:	 return " Unify: ";
+    case BREAK_PORT:	 return " Break: ";
+    case EXCEPTION_PORT: return " Exception: ";
+    case CUT_CALL_PORT:	 return " Cut call: ";
+    case CUT_EXIT_PORT:	 return " Cut exit: ";
+    default:		 return " What port???: ";
+  }
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Toplevel  of  the  tracer.   This  function  is  called  from  the   WAM
 interpreter.   It  can  take  care of most of the tracer actions itself,
@@ -187,8 +202,7 @@ returns to the WAM interpreter how to continue the execution:
 
 int
 tracePort(LocalFrame frame, LocalFrame bfr, int port, Code PC)
-{ int OldOut;
-  int action = ACTION_CONTINUE;
+{ int action = ACTION_CONTINUE;
   Definition def = frame->predicate;
   LocalFrame fr;
 
@@ -223,9 +237,9 @@ tracePort(LocalFrame frame, LocalFrame bfr, int port, Code PC)
         break;
     }
     if ( fmt )
-    { Putf(fmt, levelFrame(frame));
+    { Sfprintf(Sdout, fmt, levelFrame(frame));
       writeFrameGoal(frame, debugstatus.style);
-      Put('\n');
+      Sputc('\n', Sdout);
     }
   }
 
@@ -261,7 +275,7 @@ Give a trace on the skipped goal for a redo.
 	case ACTION_RETRY:
 	case ACTION_IGNORE:
 	case ACTION_FAIL:
-	  Putf("Action not yet implemented here\n");
+	  Sfputs("Action not yet implemented here\n", Sdout);
 	  break;
       }
     }
@@ -294,25 +308,12 @@ All failed.  Things now are upto the normal Prolog tracer.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   action = ACTION_CONTINUE;
-  OldOut = Output;
-  Output = 1;
 
 again:
-  Put( true(def, SPY_ME) ? '*' : ' ' );
-  Put( true(def, METAPRED) ? '^' : ' ');
-
-  switch(port)
-  { case CALL_PORT:	 Putf(" Call:  ");	break;
-    case REDO_PORT:	 Putf(" Redo:  ");	break;
-    case FAIL_PORT:	 Putf(" Fail:  ");	break;
-    case EXIT_PORT:	 Putf(" Exit:  ");	break;
-    case UNIFY_PORT:	 Putf(" Unify: ");	break;
-    case BREAK_PORT:	 Putf(" Break: ");	break;
-    case EXCEPTION_PORT: Putf(" Exception: ");	break;
-    case CUT_CALL_PORT:	 Putf(" Cut call: ");	break;
-    case CUT_EXIT_PORT:	 Putf(" Cut exit: ");	break;
-  }
-  Putf("(%3ld) ", levelFrame(frame));
+  Sputc(true(def, SPY_ME)   ? '*' : ' ', Sdout);
+  Sputc(true(def, METAPRED) ? '^' : ' ', Sdout);
+  Sfputs(portPrompt(port), Sdout);
+  Sfprintf(Sdout, "(%3ld) ", levelFrame(frame));
   writeFrameGoal(frame, debugstatus.style);
 
   if (debugstatus.leashing & port)
@@ -321,34 +322,33 @@ again:
     debugstatus.skiplevel = VERY_DEEP;
     debugstatus.tracing   = TRUE;
 
-    Putf(" ? ");
-    pl_flush();
+    Sfputs(" ? ", Sdout);
+    Sflush(Sdout);
     if ( GD->cmdline.notty )
     { buf[0] = EOS;
-      if ( !readLine(buf) )
-      { Puts("EOF: exit\n");
+      if ( !readLine(Sdin, Sdout, buf) )
+      { Sfputs("EOF: exit\n", Sdout);
 	Halt(0);
       }
     } else
-    { int c = getSingleChar();
+    { int c = getSingleChar(Sdin);
 
       if ( c == EOF )
-      { Puts("EOF: exit\n");
+      { Sfputs("EOF: exit\n", Sdout);
 	Halt(0);
       }
       buf[0] = c;
       buf[1] = EOS;
       if ( isDigit(buf[0]) || buf[0] == '/' )
-      { Putf(buf);
-	readLine(buf);
+      { Sfputs(buf, Sdout);
+	readLine(Sdin, Sdout, buf);
       }
     }
     action = traceAction(buf, port, frame, GD->cmdline.notty ? FALSE : TRUE);
     if ( action == ACTION_AGAIN )
       goto again;
   } else
-    Put('\n');
-  Output = OldOut;
+    Sputc('\n', Sdout);
 
   return action;
 }
@@ -356,15 +356,14 @@ again:
 
 static int
 setupFind(char *buf)
-{ long rval;
-  char *s;
+{ char *s;
   int port = 0;
 
   for(s = buf; *s && isBlank(*s); s++)	/* Skip blanks */
     ;
   if ( *s == EOS )			/* No specification: repeat */
   { if ( !LD->trace.find || !LD->trace.find->port )
-    { Putf("[No previous search]\n");
+    { Sfputs("[No previous search]\n", Sdout);
       fail;
     }
     LD->trace.find->searching = TRUE;
@@ -379,7 +378,7 @@ setupFind(char *buf)
       case 'u':	port |= UNIFY_PORT; continue;
       case 'a':	port |= CALL_PORT|REDO_PORT|FAIL_PORT|EXIT_PORT|UNIFY_PORT;
 				    continue;
-      default:  Putf("[Illegal port specification]\n");
+      default:  Sfputs("[Illegal port specification]\n", Sdout);
 		fail;
     }
   }
@@ -399,11 +398,7 @@ setupFind(char *buf)
     if ( !(find = LD->trace.find) )
       find = LD->trace.find = allocHeap(sizeof(find_data));
 
-    seeString(s);
-    rval = pl_read(t);
-    seenString();
-
-    if ( rval == FALSE )
+    if ( !PL_chars_to_term(s, t) )
     { PL_discard_foreign_frame(cid);
       fail;
     }
@@ -419,15 +414,16 @@ setupFind(char *buf)
     { find->type = TRACE_FIND_TERM;
       find->goal.term.term    = compileTermToHeap(t);
     } else
-    { Putf("[Illegal goal specification]\n");
+    { Sfputs("[Illegal goal specification]\n", Sdout);
       fail;
     }
 
     find->port      = port;
     find->searching = TRUE;
 
-    DEBUG(2, Sdprintf("setup ok, port = 0x%x, goal = ", port);
-	  pl_write(t);
+    DEBUG(2,
+	  Sdprintf("setup ok, port = 0x%x, goal = ", port);
+	  PL_write_term(Serror, t, 1200, 0);
 	  Sdprintf("\n") );
 
     PL_discard_foreign_frame(cid);
@@ -443,10 +439,14 @@ traceAction(char *cmd, int port, LocalFrame frame, bool interactive)
   char *s;
 
 #define FeedBack(msg)	{ if (interactive) { if (cmd[1] != EOS) \
-					       Putf("\n"); \
+					       Sputc('\n', Sdout); \
 					     else \
-					       Putf(msg); } }
-#define Warn(msg)	{ if (interactive) Putf(msg); else warning(msg); }
+					       Sfputs(msg, Sdout); } }
+#define Warn(msg)	{ if (interactive) \
+			    Sfputs(msg, Sdout); \
+			  else \
+			    warning(msg); \
+			}
 #define Default		(-1)
 
   for(s=cmd; *s && isBlank(*s); s++)
@@ -570,23 +570,24 @@ traceAction(char *cmd, int port, LocalFrame frame, bool interactive)
 
 static void
 helpTrace(void)
-{ Putf("Options:\n");
-  Putf("+:                  spy        -:                 no spy\n");
-  Putf("/c|e|r|f|u|a goal:  find       .:                 repeat find\n");
-  Putf("a:                  abort      A:                 alternatives\n");
-  Putf("b:                  break      c (return, space): creep\n");
-  Putf("d:                  display    e:                 exit\n");
-  Putf("f:                  fail       [depth] g:         goals (backtrace)\n");
-  Putf("h (?):              help       i:                 ignore\n");
-  Putf("l:                  leap       L:                 listing\n");
-  Putf("n:                  no debug   p:                 print\n");
-  Putf("r:                  retry      s:                 skip\n");
-  Putf("u:                  up         w:                 write\n");
-  Putf("m:		    exception details\n");
-  Putf("C:                  toggle show context\n");
+{ Sfputs("Options:\n"
+	 "+:                  spy        -:              no spy\n"
+	 "/c|e|r|f|u|a goal:  find       .:              repeat find\n"
+	 "a:                  abort      A:              alternatives\n"
+	 "b:                  break      c (ret, space): creep\n"
+	 "d:                  display    e:              exit\n"
+	 "f:                  fail       [ndepth] g:     goals (backtrace)\n"
+	 "h (?):              help       i:              ignore\n"
+	 "l:                  leap       L:              listing\n"
+	 "n:                  no debug   p:              print\n"
+	 "r:                  retry      s:              skip\n"
+	 "u:                  up         w:              write\n"
+	 "m:		      exception details\n"
+	 "C:                  toggle show context\n"
 #if O_DEBUG
-  Putf("[level] D:	    set system debug level\n");
+	 "[level] D:	      set system debug level\n"
 #endif
+	 "", Sdout);
 }
 
 
@@ -637,7 +638,7 @@ pointer  the other way around.  Normally references should never go from
 the global to the local stack as the local stack frame  might  cease  to
 exists  before  the  global frame.  In this case this does not matter as
 the local stack frame definitely survives the tracer (measuring does not
-always mean influencing in computer science).
+always mean influencing in computer science :-).
 
 For the above reason, the code  below uses low-level manipulation rather
 than normal unification, etc.
@@ -645,33 +646,39 @@ than normal unification, etc.
 
 static void
 writeFrameGoal(LocalFrame frame, int how)
-{ int debugSave = debugstatus.debugging;
+{ int debugSave;
   fid_t cid = PL_open_foreign_frame();
   term_t goal = PL_new_term_ref();
+  int flags;
 
   if ( debugstatus.showContext )
-    Putf("[%s] ", stringAtom(contextModule(frame)->name));
+    Sfprintf(Sdout, "[%s] ", stringAtom(contextModule(frame)->name));
   put_frame_goal(goal, frame);
   
-  switch(how)
-  { case W_PRINT:
-	debugstatus.debugging = FALSE;
-	if ( GD->bootsession )
-	  pl_write(goal);
-	else
-	  pl_print(goal);
-	debugstatus.debugging = debugSave;
+  if ( GD->bootsession )
+    flags = PL_WRT_QUOTED;
+  else
+  { switch(how)
+    { case W_PRINT:
+	flags = PL_WRT_QUOTED|PL_WRT_PORTRAY;
 	break;
-    case W_WRITE:
-	pl_write(goal);
+      case W_WRITEQ:
+	flags = PL_WRT_QUOTED;
 	break;
-    case W_WRITEQ:
-	pl_writeq(goal);
+      case W_DISPLAY:
+        flags = PL_WRT_QUOTED|PL_WRT_IGNOREOPS;
 	break;
-    case W_DISPLAY:
-	pl_write_canonical(goal);
+      case W_WRITE:
+      default:
+	flags = 0;
 	break;
+    }
   }
+
+  debugSave = debugstatus.debugging;
+  debugstatus.debugging = FALSE;
+  PL_write_term(Sdout, goal, 1200, flags);
+  debugstatus.debugging = debugSave;
 
   PL_discard_foreign_frame(cid);
 }
@@ -685,32 +692,44 @@ alternatives(LocalFrame frame)
 { for(; frame; frame = frame->backtrackFrame)
   { if (hasAlternativesFrame(frame) &&
 	 (false(frame, FR_NODEBUG) || SYSTEM_MODE) )
-    { Putf("    [%3ld] ", levelFrame(frame));
+    { Sfprintf(Sdout, "    [%3ld] ", levelFrame(frame));
       writeFrameGoal(frame, debugstatus.style);
-      Put('\n');
+      Sputc('\n', Sdout);
     }
   }
 }    
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+messageToString() is a  wrapper   around  $messages:message_to_string/2,
+translating a message-term as used for exceptions into a C-string.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static char *
+messageToString(term_t msg)
+{ fid_t fid = PL_open_foreign_frame();
+  term_t av = PL_new_term_refs(2);
+  predicate_t pred = PL_predicate("message_to_string", 2, "$messages");
+  char *s;
+
+  PL_put_term(av+0, msg);
+  PL_call_predicate(MODULE_system, PL_Q_NODEBUG, pred, av);
+  PL_get_chars(av+1, &s, CVT_ALL|BUF_RING);
+  PL_discard_foreign_frame(fid);
+
+  return s;
+}
 
 
 static void
 exceptionDetails()
 { term_t except = LD->exception.pending;
   fid_t cid = PL_open_foreign_frame();
-  term_t av = PL_new_term_refs(2);
-  predicate_t pred = PL_predicate("print_message", 2, "system");
-  int OldOut = Output;
 
   pl_flush();
-  Output = 2;
-  Putf("\n\n\tException term: ");
-  pl_write(except);
-  Putf("\n\t       Message: ");
-  PL_put_atom(av+0, ATOM_error);
-  PL_put_term(av+1, except);
-  PL_call_predicate(MODULE_system, PL_Q_NODEBUG, pred, av);
-  Output = OldOut;
-  Putf("\n");
+  Sfputs("\n\n\tException term: ", Sdout);
+  PL_write_term(Sdout, except, 1200, 0);
+  Sfprintf(Sdout, "\n\t       Message: %s\n", messageToString(except));
 
   PL_discard_foreign_frame(cid);
 }
@@ -721,12 +740,12 @@ listGoal(LocalFrame frame)
 { fid_t cid = PL_open_foreign_frame();
   term_t goal = PL_new_term_ref();
   predicate_t pred = PL_predicate("$prolog_list_goal", 1, "system");
-  int OldOut = Output;
+  IOSTREAM *old = Scurout;
 
-  Output = 1;
+  Scurout = Sdout;
   put_frame_goal(goal, frame);
   PL_call_predicate(MODULE_system, PL_Q_NODEBUG, pred, goal);
-  Output = OldOut;
+  Scurout = old;
 
   PL_discard_foreign_frame(cid);
 }
@@ -734,8 +753,7 @@ listGoal(LocalFrame frame)
 
 void
 backTrace(LocalFrame frame, int depth)
-{ int OldOut = Output;
-  LocalFrame same_proc_frame = NULL;
+{ LocalFrame same_proc_frame = NULL;
   Definition def = NULL;
   int same_proc = 0;
   int alien = FALSE;
@@ -743,26 +761,25 @@ backTrace(LocalFrame frame, int depth)
   if ( frame == NULL )
      frame = environment_frame;
 
-  Output = 1;
   for(; depth > 0 && frame;
         alien = (frame->parent == NULL), frame = parentFrame(frame))
   { if ( alien )
-      Putf("    <Alien goal>\n");
+      Sfputs("    <Alien goal>\n", Sdout);
 
     if ( frame->predicate == def )
     { if ( ++same_proc >= 10 )
       { if ( same_proc == 10 )
-	  Putf("    ...\n    ...\n");
+	  Sfputs("    ...\n    ...\n", Sdout);
 	same_proc_frame = frame;  
 	continue;
       }
     } else
     { if ( same_proc_frame != NULL )
       { if ( false(same_proc_frame, FR_NODEBUG) || SYSTEM_MODE )
-        { Putf("    [%3ld] ", levelFrame(same_proc_frame));
+        { Sfprintf(Sdout, "    [%3ld] ", levelFrame(same_proc_frame));
 	  writeFrameGoal(same_proc_frame, debugstatus.style);
 	  depth--;
-	  Put('\n');
+	  Sputc('\n', Sdout);
 	}
 	same_proc_frame = NULL;
 	same_proc = 0;
@@ -771,13 +788,12 @@ backTrace(LocalFrame frame, int depth)
     }
 
     if (false(frame, FR_NODEBUG) || SYSTEM_MODE)
-    { Putf("    [%3ld] ", levelFrame(frame));
+    { Sfprintf(Sdout, "    [%3ld] ", levelFrame(frame));
       writeFrameGoal(frame, debugstatus.style);
       depth--;
-      Put('\n');
+      Sputc('\n', Sdout);
     }
   }
-  Output = OldOut;
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -932,52 +948,48 @@ increment the top pointer to point above the furthest argument.
 
 static void
 helpInterrupt(void)
-{ Putf("Options:\n");
-  Putf("a:                 abort      b:                 break\n");
-  Putf("c:                 continue   e:                 exit\n");
+{ Sfputs("Options:\n"
+        "a:                 abort      b:                 break\n"
+        "c:                 continue   e:                 exit\n"
 #ifdef O_DEBUGGER
-  Putf("g:                 goals      t:                 trace\n");
+        "g:                 goals      t:                 trace\n"
 #endif
-  Putf("h (?):             help\n");
-
+        "h (?):             help\n", Sdout);
 }
 
 static void
 interruptHandler(int sig)
-{ int OldOut = Output;
-  Char c; 
+{ int c; 
 
   if ( !GD->initialised )
   { Sfprintf(Serror, "Interrupt during startup. Cannot continue\n");
     Halt(1);
   }  
 
-  Output = 1;
-
 again:
-  Putf("\nAction (h for help) ? ");
-  pl_flush();
+  Sfputs("\nAction (h for help) ? ", Sdout);
+  Sflush(Sdout);
   ResetTty();                           /* clear pending input -- atoenne -- */
-  c = getSingleChar();
+  c = getSingleChar(Sdin);
 
   switch(c)
-  { case 'a':	Putf("abort\n");
+  { case 'a':	Sfputs("abort\n", Sdout);
 		unblockSignal(sig);
     		pl_abort();
 		break;
-    case 'b':	Putf("break\n");
+    case 'b':	Sfputs("break\n", Sdout);
 		unblockSignal(sig);	/* into pl_break() itself */
 		pl_break();
 		goto again;		
-    case 'c':	Putf("continue\n");
+    case 'c':	Sfputs("continue\n", Sdout);
 		break;
     case 04:
-    case EOF:	Putf("EOF: ");
-    case 'e':	Putf("exit\n");
+    case EOF:	Sfputs("EOF: ", Sdout);
+    case 'e':	Sfputs("exit\n", Sdout);
 		Halt(0);
 		break;
 #ifdef O_DEBUGGER
-    case 'g':	Putf("goals\n");
+    case 'g':	Sfputs("goals\n", Sdout);
 		backTrace(environment_frame, 5);
 		goto again;
 #endif /*O_DEBUGGER*/
@@ -985,14 +997,13 @@ again:
     case '?':	helpInterrupt();
 		goto again;
 #ifdef O_DEBUGGER
-    case 't':	Putf("trace\n");
+    case 't':	Sfputs("trace\n", Sdout);
 		pl_trace();
 		break;
 #endif /*O_DEBUGGER*/
-    default:	Putf("Unknown option (h for help)\n");
+    default:	Sfputs("Unknown option (h for help)\n", Sdout);
 		goto again;
   }
-  Output = OldOut;
 }
 
 #endif /*O_INTERRUPT*/

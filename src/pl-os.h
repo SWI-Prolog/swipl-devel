@@ -78,7 +78,6 @@ extern long Random(void);
 #define Read(fd, buf, size)	read(fd, buf, size)
 #define Write(fd, buf, size)	write(fd, buf, size)
 #define Getc(fd)		Sgetc(fd)
-#define Putc(c, fd)		Sputc((char)(c), fd)
 #define Putw(w, fd)		Sputw((long)(w), fd)
 #define Getw(fd)		Sgetw(fd)
 
@@ -218,4 +217,3 @@ extern void ResetTty(void);
 #define Wait(stat)	wait(stat)
 
 extern int System(char *command);
-extern char *Which(const char *cmd, char *buf);

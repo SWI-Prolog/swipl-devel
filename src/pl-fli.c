@@ -349,7 +349,7 @@ PL_compare(term_t t1, term_t t2)
 		 *	      INTEGERS		*
 		 *******************************/
 
-inline word
+static inline word
 __makeNum(long i)
 { word w = consInt(i);
 
@@ -2180,10 +2180,8 @@ PL_open_resource(Module m,
     PL_put_atom_chars(t0+1, rc_class);
   PL_put_atom_chars(t0+2, mode[0] == 'r' ? "read" : "write");
   
-  if ( PL_call_predicate(m, PL_Q_CATCH_EXCEPTION, MTOK_pred, t0) &&
-       PL_get_stream_handle(t0+3, &s) )
-    release_stream_handle(t0+3);	/* see pl-file.c */
-  else
+  if ( !PL_call_predicate(m, PL_Q_CATCH_EXCEPTION, MTOK_pred, t0) ||
+       !PL_get_stream_handle(t0+3, &s) )
     errno = ENOENT;
 
   PL_discard_foreign_frame(fid);
@@ -2322,23 +2320,6 @@ PL_ttymode(int fd)
     return PL_COOKEDTTY;		/* cooked (readline) input */
   } else
     return PL_NOTTY;
-}
-
-
-void
-PL_write_prompt(int fd, int dowrite)
-{ if ( fd == 0 )
-  { IOSTREAM *s = prologStream(1);
-
-    if ( s )
-    { if ( dowrite )
-	Sfputs(PrologPrompt(), s);
-
-      Sflush(s);
-    }
-
-    GD->os.prompt_next = FALSE;
-  }
 }
 
 
@@ -2538,12 +2519,11 @@ PL_action(int action, ...)
     }
     case PL_ACTION_WRITE:
     { char *s = va_arg(args, char *);
-      Putf("%s", (char *)s);
-      rval = TRUE;
+      rval = Sfputs(s, Scurout) < 0 ? FALSE : TRUE;
       break;
     }
     case PL_ACTION_FLUSH:
-      rval = pl_flush();
+      rval = Sflush(Scurout);
       break;
     default:
       sysError("PL_action(): Illegal action: %d", action);

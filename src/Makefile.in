@@ -108,7 +108,7 @@ PLSRC=	../boot/syspred.pl ../boot/toplevel.pl ../boot/listing.pl \
 
 all:	banner \
 	headers rc-lib system startup index runtime \
-	pl-bite plld \
+	plld \
 	swipl swiplbin
 
 .c.o:
@@ -200,9 +200,6 @@ $(srcdir)/pl-atom.ih:	$(srcdir)/ATOMS
 frame.o:
 		ar x `$(CC) -print-libgcc-file-name` $@
 
-pl-bite:	$(srcdir)/pl-bite.c
-		$(CC) -I. -I$(srcdir) $(CFLAGS) -o $@ $(srcdir)/pl-bite.c
-
 plld:		$(srcdir)/plld.c
 		$(CC) -I. -I$(srcdir) $(CFLAGS) -o $@ $(srcdir)/plld.c
 
@@ -225,13 +222,13 @@ dv-install:	install-arch install-libs install-bins
 
 install-bins:	install-arch
 		-if [ ! -d $(bindir)  ]; then $(MKDIR) $(bindir); fi
-		for f in $(PL) pl-bite plld plrc; do \
+		for f in $(PL) plld plrc; do \
 		    ( cd $(bindir); rm -f $$f; ln -s $(PLBASE)/bin/$(ARCH)/$$f . ); \
 		done
 
 
 install-arch:	idirs iruntime
-		for f in $(PL) pl-bite plld rc/plrc; do \
+		for f in $(PL) plld rc/plrc; do \
 		    $(INSTALL_PROGRAM) $$f $(PLBASE)/bin/$(ARCH); \
 		done
 
@@ -344,11 +341,11 @@ distclean:	clean
 		rm -f ../library/INDEX.pl
 		rm -f Makefile README.bin config.h config.status parms.h
 		rm -f swipl swiplbin pl.prc
-		rm -f pl plld pl-bite pl.1
+		rm -f pl plld pl.1
 		rm -f config.log config.cache
 
 realclean:	clean
 		rm -f $(STARTUPPATH)
 		rm -f config.log config.cache
-		rm -rf $(PL) pl-bite ../startup ../include ../runtime
+		rm -rf $(PL) ../startup ../include ../runtime
 

@@ -1,6 +1,27 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * The manual-helper program pl-bite, use to pick bits of the online
+    manual and present them to the pager, thus protecting prolog from
+    receiving a broken-pipe signal has been deleted.  The current version
+    of Prolog can deal with these errors itself.
+
+  * MODIFIED: Total rewrite of the internal I/O architecture, which
+    is now based on streams rather than current input/output.  The
+    new model is required for better handling of multi-threadings
+    or asynchronous events.  Compatibility consequences:
+
+	+ Edinburgh current stream predicates
+	seeing/1 is now the same as current_input/1 and returns a
+	stream-handle for the current input stream.  Same for
+	telling.  The predicates see/1 and tell/1 are equivalent
+	to set_input/1 and set_output/1 if the argument is a stream,
+	open/3 followed by setting the current stream otherwise.
+
+    Two new streams have been added to deal with debugging:
+    debug_output and debug_input.  Initialy these are the same as
+    user_output and user_input.
+
   * ADDED: Allow PL_new_atom() to be called before PL_initialise()
 
   * DELETED: read_variables/[2,3].  With ISO read_term, this predicate is

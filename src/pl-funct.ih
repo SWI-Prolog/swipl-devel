@@ -129,3 +129,4 @@
 #define FUNCTOR_file2        MK_FUNCTOR(128, 2)
 #define FUNCTOR_stream3      MK_FUNCTOR(129, 3)
 #define FUNCTOR_string2      MK_FUNCTOR(130, 2)
+#define FUNCTOR_dstream1     MK_FUNCTOR(131, 1)

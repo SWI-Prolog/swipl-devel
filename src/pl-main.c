@@ -209,10 +209,13 @@ initPaths()
        !(symbols = DeRefLink(symbols, plp)) )
     symbols = GD->cmdline.argv[0];
 
+  DEBUG(2, Sdprintf("rc-module: %s\n", symbols));
+
   systemDefaults.home	     = findHome(symbols);
 
 #ifdef __WIN32__			/* we want no module but the .EXE */
   symbols = findExecutable(NULL, plp);
+  DEBUG(2, Sdprintf("Executable: %s\n", symbols));
 #endif
   GD->paths.executable	     = store_string(symbols);
   systemDefaults.startup     = store_string(PrologPath(DEFSTARTUP, plp));
@@ -408,7 +411,7 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
 }
 
 
-void
+static void
 replace_extension(char *path, const char *ext)
 { char *s = path + strlen(path);
 
@@ -782,19 +785,20 @@ vsysError(const char *fm, va_list args)
     Halt(1);
 
 action:
-  Sprintf("\nAction? "); Sflush(Soutput);
+  Sfprintf(Serror, "\nAction? "); Sflush(Soutput);
   ResetTty();
-  switch(getSingleChar())
+  switch(getSingleChar(Sinput))
   { case 'a':
       pl_abort();
       break;
     case EOF:
-      Sprintf("EOF: exit\n");
+      Sfprintf(Serror, "EOF: exit\n");
     case 'e':
       Halt(3);
       break;
     default:
-      Sprintf("Unknown action.  Valid actions are:\n"
+      Sfprintf(Serror,
+	       "Unknown action.  Valid actions are:\n"
 	      "\ta\tabort to toplevel\n"
 	      "\te\texit Prolog\n");
       goto action;

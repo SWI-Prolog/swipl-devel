@@ -418,7 +418,8 @@ __pl_export void	_PL_get_arg(int index, term_t t, term_t a);
 		 *******************************/
 
 					/* Make IOSTREAM known to Prolog */
-__pl_export int PL_open_stream(term_t t, IOSTREAM *s);
+__pl_export int PL_open_stream(term_t t, IOSTREAM *s); /* compatibility */
+__pl_export int PL_unify_stream(term_t t, IOSTREAM *s);
 __pl_export int PL_get_stream_handle(term_t t, IOSTREAM **s);
 __pl_export IOSTREAM *PL_open_resource(module_t m,
 				       const char *name,
@@ -474,7 +475,7 @@ __pl_export int		PL_dispatch(int fd, int wait);
 __pl_export int		PL_ttymode(int fd);
 __pl_export void	PL_add_to_protocol(const char *buf, int count);
 __pl_export char *	PL_prompt_string(int fd);
-__pl_export void	PL_write_prompt(int fd, int dowrite);
+__pl_export void	PL_write_prompt(int dowrite);
 __pl_export void	PL_prompt_next(int fd);
 __pl_export char *	PL_atom_generator(char *prefix, int state);
 __pl_export void	PL_clock_wait_ticks(long waited);

@@ -71,6 +71,8 @@ extern pthread_mutex_t _PL_mutexes[];	/* Prolog mutexes */
 #define L_MODULE	8
 #define L_TABLE		9
 #define L_BREAK	       10
+#define L_INIT_ALLOC   11
+#define L_FILE	       12
 
 #define PL_LOCK(id)   pthread_mutex_lock(&_PL_mutexes[id])
 #define PL_UNLOCK(id) pthread_mutex_unlock(&_PL_mutexes[id])

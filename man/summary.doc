@@ -104,6 +104,8 @@ suggest predicates from a keyword.
 \predicatesummary{context_module}{1}{Get context module of current goal}
 \predicatesummary{convert_time}{8}{Break time stamp into fields}
 \predicatesummary{convert_time}{2}{Convert time stamp to string}
+\predicatesummary{copy_stream_data}{2}{Copy all data from stream to stream}
+\predicatesummary{copy_stream_data}{3}{Copy n bytes from stream to stream}
 \predicatesummary{copy_term}{2}{Make a copy of a term}
 \predicatesummary{current_arithmetic_function}{1}{Examine evaluable functions}
 \predicatesummary{current_atom}{1}{Examine existing atoms}

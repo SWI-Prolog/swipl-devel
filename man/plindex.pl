@@ -15,12 +15,17 @@
 
 :- set_feature(character_escapes, true).
 
-:- asserta((user:portray(X) :-
-	   	nonvar(X),
-	        is_list(X),
-	        checklist(is_ascii, X), !,
-	        format('"~s"', [X]))).
+user:portray(X) :-
+	proper_list(X),
+	ascii_list(X),
+	format('"~s"', [X]).
 	
+ascii_list([]).
+ascii_list([H|T]) :-
+	integer(H),
+	between(0, 127, H),
+	ascii_list(T).
+
 :- dynamic
 	last_chapter/1.
 
@@ -58,10 +63,10 @@ online_index :-
 
 online_index(In, Out) :-
 	parse_summaries('summary.doc'),
-	open(In, read, in),
+	open(In, read, _, [alias(in)]),
 	read_index,
 	close(in),
-	open(Out, write, out),
+	open(Out, write, _, [alias(out)]),
 	write_manual,
 	close(out).
 
@@ -532,7 +537,7 @@ next_index(L, N) :-
 %	summary descriptions.  Normally this file is called summary.doc
 
 parse_summaries(File) :-
-	open(File, read, in),
+	open(File, read, _, [alias(in)]),
 	parse_summaries,
 	close(in).
 
@@ -595,7 +600,11 @@ parse_summary(0, _, _) -->
 	;   "\\opsummary"
 	), !,
 	string(_).
-
+parse_summary(0, _, _) -->
+	(   "The predicate"
+	;   "suggest predicates"
+	), !,
+	string(_).
 parse_summary(0, _, _) -->
 	[].
 
@@ -637,7 +646,7 @@ tex_string(S) -->
 	tex_arg_string(S0),
 	"}",
 	{ untex(S0, S1),
-	  atom_chars(S, S1)
+	  atom_codes(S, S1)
 	}.
 
 
@@ -670,7 +679,7 @@ untex([]) -->
 
 tex_command(Cmd) -->
 	tex_command_chars(Chars),
-	{ atom_chars(Cmd, Chars) }.
+	{ atom_codes(Cmd, Chars) }.
 
 tex_command_chars([C|T]) -->
 	letter(C), !,

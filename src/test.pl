@@ -357,6 +357,57 @@ term_atom(term_to_atom-2) :-
 
 
 		 /*******************************
+		 *	       POPEN		*
+		 *******************************/
+
+popen(pwd-1) :-
+	open(pipe(pwd), read, Fd),
+	collect_line(Fd, String),
+	close(Fd),
+	atom_codes(Pwd, String),
+	same_file(Pwd, '.').
+popen(cat-1) :-
+	open(pipe('cat > .pltest'), write, Fd),
+	format(Fd, 'Hello World', []),
+	close(Fd),
+	open('.pltest', read, Fd2),
+	collect_data(Fd2, String),
+	close(Fd2),
+	delete_file('.pltest'),
+	atom_codes(A, String),
+	A == 'Hello World'.
+popen(cat-2) :-
+	absolute_file_name(swi('library/MANUAL'), Manual),
+	open(Manual, read, Fd),
+	open(pipe(true), write, Pipe),
+	catch(copy_stream_data(Fd, Pipe),
+	      E,
+	      true),
+	close(Fd),
+	catch(close(Pipe), _, true),	% ???
+	E = error(signal(pipe, _), context(copy_stream_data/2, _)).
+
+collect_line(Fd, String) :-
+	get0(Fd, C0),
+	collect_line(C0, Fd, String).
+
+collect_line(-1, _, []) :- !.
+collect_line(10, _, []) :- !.
+collect_line(13, _, []) :- !.
+collect_line(C, Fd, [C|T]) :-
+	get0(Fd, C2),
+	collect_line(C2, Fd, T).
+
+collect_data(Fd, String) :-
+	get0(Fd, C0),
+	collect_data(C0, Fd, String).
+
+collect_data(-1, _, []) :- !.
+collect_data(C, Fd, [C|T]) :-
+	get0(Fd, C2),
+	collect_data(C2, Fd, T).
+
+		 /*******************************
 		 *        TEST MAIN-LOOP	*
 		 *******************************/
 
@@ -373,6 +424,8 @@ testset(gc).
 testset(floatconv).
 testset(control).
 testset(term_atom).
+testset(popen) :-
+	feature(pipe, true).
 
 test :-
 	forall(testset(Set), runtest(Set)).

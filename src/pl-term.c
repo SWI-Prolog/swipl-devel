@@ -42,7 +42,6 @@ short	ospeed;
 static int	term_initialised;	/* Extracted term info? */
 static char     *string_area_pointer;	/* Current location */
 static Table	capabilities;		/* Terminal capabilities */
-static atom_t	tty_stream;		/* stream on which to do tty */
 
 typedef struct
 { atom_t type;				/* type of the entry */
@@ -63,8 +62,6 @@ resetTerm()
 	      freeHeap(s->value, sizeof(entry)));
     clearHTable(capabilities);
   }
-
-  tty_stream = ATOM_user_output;
 }
 
 static bool
@@ -153,12 +150,18 @@ pl_tty_get_capability(term_t name, term_t type, term_t value)
   fail;
 }
   
+
+static int
+tputc(int chr)
+{ return Sputc(chr, Sterm); 
+}
+
+
 word
 pl_tty_goto(term_t x, term_t y)
 { Entry e;
   char *s;
   int ix, iy;
-  term_t ttys = PL_new_term_ref();
 
   if ( !PL_get_integer(x, &ix) ||
        !PL_get_integer(y, &iy) )
@@ -172,8 +175,7 @@ pl_tty_goto(term_t x, term_t y)
   if ( streq(s, "OOPS") )
     fail;
 
-  PL_put_atom(ttys, tty_stream);
-  streamOutput(ttys, tputs(s, 1, Put));
+  tputs(s, 1, tputc);
   succeed;
 }
 
@@ -184,10 +186,7 @@ pl_tty_put(term_t a, term_t affcnt)
 
   if ( PL_get_chars(a, &s, CVT_ALL) &&
        PL_get_integer(affcnt, &n) )
-  { term_t ttys = PL_new_term_ref();
-    PL_put_atom(ttys, tty_stream);
-
-    streamOutput(ttys, tputs(s, n, Put));
+  { tputs(s, n, tputc);
     succeed;
   }
 
@@ -196,13 +195,13 @@ pl_tty_put(term_t a, term_t affcnt)
 
 word
 pl_set_tty(term_t old, term_t new)
-{ atom_t a;
+{ if ( PL_unify_stream(old, Sterm) )
+  { IOSTREAM *s;
 
-  if ( PL_unify_atom(old, tty_stream) &&
-       PL_get_atom(new, &a) &&
-       streamNo(new, F_WRITE) >= 0 )
-  { tty_stream = a;
-    succeed;
+    if ( getOutputStream(new, &s) )
+    { Sterm = s;
+      succeed;
+    }
   }
 
   fail;

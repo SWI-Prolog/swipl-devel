@@ -61,7 +61,7 @@ struct read_buffer
   int	left;			/* left space in read buffer */
   unsigned char *base;		/* base of read buffer */
   unsigned char *here;		/* current position in read buffer */
-  int   stream;			/* stream we are reading from */
+  IOSTREAM *stream;		/* stream we are reading from */
 };
 
 
@@ -82,8 +82,6 @@ struct var_table
 #define E_SILENT	0	/* Silently fail */
 #define E_EXCEPTION	1	/* Generate an exception */
 #define E_PRINT		2	/* Print to Serror */
-
-#define Input (LD->IO.input)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Bundle all data required by the  various   passes  of read into a single
@@ -118,12 +116,13 @@ typedef struct
 #define var_buffer	  (_PL_rd->vt._var_buffer)
 
 static void
-init_read_data(ReadData _PL_rd)
+init_read_data(ReadData _PL_rd, IOSTREAM *in)
 { memset(_PL_rd, 0, sizeof(*_PL_rd));	/* optimise! */
 
   initBuffer(&var_name_buffer);
   initBuffer(&var_buffer);
   _PL_rd->exception = PL_new_term_ref();
+  rb.stream = in;
 }
 
 static void
@@ -139,11 +138,6 @@ free_read_data(ReadData _PL_rd)
 
 #define RBSIZE	512		/* initial size of read buffer */
 
-static void
-startRead(ReadData _PL_rd)
-{ rb.stream = Input;
-  source_file_name = currentStreamName();
-}
 
 		/********************************
 		*         ERROR HANDLING        *
@@ -175,6 +169,14 @@ Error term:
 
 #define syntaxError(what, rd) { errorWarning(what, rd); fail; }
 
+extern IOFUNCTIONS Sstringfunctions;
+
+static bool
+isStringStream(IOSTREAM *s)
+{ return s->functions == &Sstringfunctions;
+}
+
+
 static void
 errorWarning(const char *id_str, ReadData _PL_rd)
 { term_t ex = PL_new_term_ref();
@@ -193,7 +195,7 @@ errorWarning(const char *id_str, ReadData _PL_rd)
 		  PL_FUNCTOR, FUNCTOR_file2,
 		    PL_ATOM, source_file_name,
 		    PL_INTEGER, source_line_no);
-  } else if ( seeingString() )
+  } else if ( isStringStream(rb.stream) )
   { PL_unify_term(loc,
 		  PL_FUNCTOR, FUNCTOR_string2,
 		    PL_STRING, rdbase,
@@ -201,8 +203,7 @@ errorWarning(const char *id_str, ReadData _PL_rd)
   } else				/* any stream */
   { term_t stream = PL_new_term_ref();
 
-    pl_seeing(stream);
-
+    PL_unify_stream(stream, rb.stream);
     PL_unify_term(loc,
 		  PL_FUNCTOR, FUNCTOR_stream3,
 		    PL_TERM, stream,
@@ -298,14 +299,14 @@ addToBuffer(int c, ReadData _PL_rd)
 }
 
 
-#define getchr() Sgetc(ioi)
+#define getchr() Sgetc(rb.stream)
 
 #define ensure_space(c) { if ( something_read && \
 			       (c == '\n'|| !isBlank(rb.here[-1])) ) \
 			   addToBuffer(c, _PL_rd); \
 		        }
 #define set_start_line { if ( !something_read ) \
-			 { setCurrentSourceLocation(); \
+			 { setCurrentSourceLocation(rb.stream); \
 			   something_read++; \
 			 } \
 		       }
@@ -321,12 +322,6 @@ raw_read2(ReadData _PL_rd)
   bool something_read = FALSE;
   int newlines;
   bool dotseen = FALSE;
-  IOSTREAM *ioi = PL_current_input();
-
-  if ( !ioi )
-  { c = EOF;
-    goto handle_c;
-  }
   
   clearBuffer(_PL_rd);				/* clear input buffer */
   source_line_no = -1;
@@ -337,7 +332,7 @@ raw_read2(ReadData _PL_rd)
   handle_c:
     switch(c)
     { case EOF:
-		if (seeingString())		/* do not require '. ' when */
+		if ( isStringStream(rb.stream) ) /* do not require '. ' when */
 		{ addToBuffer(' ', _PL_rd);     /* reading from a string */
 		  addToBuffer('.', _PL_rd);
 		  addToBuffer(' ', _PL_rd);
@@ -354,7 +349,7 @@ raw_read2(ReadData _PL_rd)
 		  }
 		  rawSyntaxError("end_of_file");
 		}
-		if ( Sfpasteof(ioi) )
+		if ( Sfpasteof(rb.stream) )
 		{ warning("Attempt to read past end-of-file");
 		  return NULL;
 		}
@@ -486,7 +481,7 @@ raw_read2(ReadData _PL_rd)
 		{ case SP:
 		    if ( dotseen )
 		    { if ( rb.here - rb.base == 1 )
-			rawSyntaxError("end_of_file");
+			rawSyntaxError("end_of_clause");
 		      ensure_space(c);
 		      addToBuffer(EOS, _PL_rd);
 		      return rb.base;
@@ -525,12 +520,12 @@ raw_read2(ReadData _PL_rd)
   }
 }
 
+
 static char *
 raw_read(ReadData _PL_rd)
 { char *s;
 
-  startRead(_PL_rd);
-  if ( Input == 0 )
+  if ( rb.stream == Sinput )		/* TBD: test for TTY, save locally! */
   { ttybuf tab;
 
     PushTty(&tab, TTY_SAVE);		/* make sure tty is sane */
@@ -1841,12 +1836,16 @@ failed:
 		*********************************/
 
 word
-pl_raw_read(term_t term)
+pl_raw_read2(term_t from, term_t term)
 { char *s, *top;
   read_data rd;
   word rval;
+  IOSTREAM *in;
 
-  init_read_data(&rd);
+  if ( !getInputStream(from, &in) )
+    fail;
+
+  init_read_data(&rd, in);
   if ( !(s = raw_read(&rd)) )
   { rval = PL_raise_exception(rd.exception);
     goto out;
@@ -1873,17 +1872,21 @@ out:
 
 
 word
-pl_raw_read2(term_t stream, term_t term)
-{ streamInput(stream, pl_raw_read(term));
+pl_raw_read(term_t term)
+{ return pl_raw_read2(0, term);
 }
 
 
 word
-pl_read(term_t term)
+pl_read2(term_t from, term_t term)
 { read_data rd;
   int rval;
+  IOSTREAM *s;
 
-  init_read_data(&rd);
+  if ( !getInputStream(from, &s) )
+    fail;
+
+  init_read_data(&rd, s);
   if ( !(rval = read_term(term, &rd)) )
     rval = PL_raise_exception(rd.exception);
   free_read_data(&rd);
@@ -1893,17 +1896,21 @@ pl_read(term_t term)
 
 
 word
-pl_read2(term_t stream, term_t term)
-{ streamInput(stream, pl_read(term));
+pl_read(term_t term)
+{ return pl_read2(0, term);
 }
 
 
 word
-pl_read_clause(term_t term)
+pl_read_clause2(term_t from, term_t term)
 { read_data rd;
   int rval;
+  IOSTREAM *s;
 
-  init_read_data(&rd);
+  if ( !getInputStream(from, &s) )
+    fail;
+
+  init_read_data(&rd, s);
   rd.singles = debugstatus.styleCheck & SINGLETON_CHECK ? TRUE : FALSE;
   if ( !(rval = read_term(term, &rd)) )
     rval = PL_raise_exception(rd.exception);
@@ -1913,8 +1920,8 @@ pl_read_clause(term_t term)
 }
 
 word
-pl_read_clause2(term_t stream, term_t term)
-{ streamInput(stream, pl_read_clause(term));
+pl_read_clause(term_t term)
+{ return pl_read_clause2(0, term);
 }
 
 static const opt_spec read_term_options[] = 
@@ -1926,13 +1933,16 @@ static const opt_spec read_term_options[] =
 };
 
 word
-pl_read_term(term_t term, term_t options)
-{ term_t tpos	       = 0;
+pl_read_term3(term_t from, term_t term, term_t options)
+{ term_t tpos = 0;
   int rval;
   atom_t w;
   read_data rd;
+  IOSTREAM *s;
 
-  init_read_data(&rd);
+  if ( !getInputStream(from, &s) )
+    fail;
+  init_read_data(&rd, s);
 
   if ( !scan_options(options, 0, ATOM_read_option, read_term_options,
 		     &rd.varnames,
@@ -1962,8 +1972,8 @@ pl_read_term(term_t term, term_t options)
 }
 
 word
-pl_read_term3(term_t stream, term_t term, term_t options)
-{ streamInput(stream, pl_read_term(term, options));
+pl_read_term(term_t term, term_t options)
+{ return pl_read_term3(0, term, options);
 }
 
 		 /*******************************
@@ -1994,16 +2004,18 @@ pl_atom_to_term(term_t atom, term_t term, term_t bindings)
   if ( PL_get_chars(atom, &s, CVT_ALL) )
   { read_data rd;
     word rval;
+    IOSTREAM *stream = Sopen_string(NULL, (char *)s, -1, "r");
+    source_location oldsrc = LD->read_source;
 
-    init_read_data(&rd);
+    init_read_data(&rd, stream);
     if ( PL_is_variable(bindings) || PL_is_list(bindings) )
       rd.varnames = bindings;
 
-    seeString(s);
     if ( !(rval = read_term(term, &rd)) )
       rval = PL_raise_exception(rd.exception);
     free_read_data(&rd);
-    seenString();
+    Sclose(stream);
+    LD->read_source = oldsrc;
 
     return rval;
   }
@@ -2016,16 +2028,16 @@ int
 PL_chars_to_term(const char *s, term_t t)
 { read_data rd;
   int rval;
-
-  init_read_data(&rd);
-
-  seeString(s);
+  IOSTREAM *stream = Sopen_string(NULL, (char *)s, -1, "r");
+  source_location oldsrc = LD->read_source;
+    
+  init_read_data(&rd, stream);
   PL_put_variable(t);
   if ( !(rval = read_term(t, &rd)) )
     PL_put_term(t, rd.exception);
   free_read_data(&rd);
-  seenString();
+  Sclose(stream);
+  LD->read_source = oldsrc;
 
   return rval;
 }
-

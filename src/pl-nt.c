@@ -167,12 +167,10 @@ findExecutable(const char *module, char *exe)
   HMODULE hmod;
 
   if ( module )
-    hmod = GetModuleHandle(module);
-  else
+  { if ( !(hmod = GetModuleHandle(module)) )
+      hmod = GetModuleHandle("libpl.dll");
+  } else
     hmod = NULL;
-  
-  if ( !hmod )
-    hmod = GetModuleHandle("libpl.dll");
 
   if ( (n = GetModuleFileName(hmod, buf, sizeof(buf))) > 0 )
   { char buf2[MAXPATHLEN];
@@ -181,11 +179,12 @@ findExecutable(const char *module, char *exe)
     _xos_long_file_name(buf, buf2);
 
     strcpy(exe, buf2);
-  } else
+  } else if ( module )
   { PrologPath(module, buf);
 
     strcpy(exe, buf);
-  }
+  } else
+    *exe = EOS;
 
   return exe;
 }

@@ -200,7 +200,7 @@ void
 initMemAlloc()
 { static int done = FALSE;
 
-  LOCK();
+  PL_LOCK(L_INIT_ALLOC);		/* avoid recursive lock */
   if ( !done )
   { void *hbase;
 
@@ -213,7 +213,7 @@ initMemAlloc()
     heap_base = (ulong)hbase & ~0x007fffffL; /* 8MB */
     freeHeap(hbase, sizeof(word));
   }
-  UNLOCK();
+  PL_UNLOCK(L_INIT_ALLOC);
 }
 
 		/********************************
@@ -287,7 +287,7 @@ consPtr(void *p, int ts)
 #define makeRefL(p) consPtr(p, TAG_REFERENCE|STG_LOCAL)
 #define makeRefG(p) consPtr(p, TAG_REFERENCE|STG_GLOBAL)
 
-inline word
+static inline word
 __makeRef(Word p)
 { if ( p >= (Word) lBase )
     return makeRefL(p);
@@ -333,7 +333,7 @@ allocGlobal(int n)
 
 #else
 
-inline Word
+static inline Word
 __allocGlobal(int n)
 { Word result = gTop;
 

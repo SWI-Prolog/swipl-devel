@@ -2635,6 +2635,7 @@ pl_xr_member(term_t ref, term_t term, word h)
 void
 wamListClause(Clause clause)
 { Code bp, ep;
+  IOSTREAM *out = Scurout;
 
   bp = clause->codes;
   ep = bp + clause->code_size;
@@ -2653,7 +2654,7 @@ wamListClause(Clause clause)
 
     ci = &codeTable[op];
 
-    Putf("%4d %s", bp - clause->codes, ci->name);
+    Sfprintf(out, "%4d %s", bp - clause->codes, ci->name);
     bp++;
 
     switch(op)
@@ -2668,7 +2669,7 @@ wamListClause(Clause clause)
       case C_SOFTCUT:
       case C_CUT:			/* var */
 	assert(ci->arguments == 1);
-	Putf(" var(%d)", VARNUM(*bp++));
+	Sfprintf(out, " var(%d)", VARNUM(*bp++));
 	break;
       case C_SOFTIF:
       case C_IFTHENELSE:		/* var, jump */
@@ -2676,7 +2677,7 @@ wamListClause(Clause clause)
       { int var = VARNUM(*bp++);
 	int jmp = *bp++;
 	assert(ci->arguments == 2);
-        Putf(" var(%d), jmp(%d)", var, jmp);
+        Sfprintf(out, " var(%d), jmp(%d)", var, jmp);
         break;
       }
       case I_CALL_FV1:
@@ -2684,9 +2685,9 @@ wamListClause(Clause clause)
       { int vars = op - I_CALL_FV0;
 	Procedure proc = (Procedure) *bp++;
 
-	Putf(" %s", procedureName(proc));
+	Sfprintf(out, " %s", procedureName(proc));
 	for( ; vars > 0; vars-- )
-	  Putf(", var(%d)", VARNUM(*bp++));
+	  Sfprintf(out, ", var(%d)", VARNUM(*bp++));
         break;
       }
       default:
@@ -2694,20 +2695,20 @@ wamListClause(Clause clause)
 	{ case CA1_PROC:
 	  { Procedure proc = (Procedure) *bp++;
 	    n++;
-	    Putf(" %s", procedureName(proc));
+	    Sfprintf(out, " %s", procedureName(proc));
 	    break;
 	  }
 	  case CA1_MODULE:
 	  { Module m = (Module)*bp++;
 	    n++;
-	    Putf(" %s", stringAtom(m->name));
+	    Sfprintf(out, " %s", stringAtom(m->name));
 	    break;
 	  }
 	  case CA1_FUNC:
 	  { functor_t f = (functor_t) *bp++;
 	    FunctorDef fd = valueFunctor(f);
 	    n++;
-	    Putf(" %s/%d", stringAtom(fd->name), fd->arity);
+	    Sfprintf(out, " %s/%d", stringAtom(fd->name), fd->arity);
 	    break;
 	  }
 	  case CA1_DATA:
@@ -2715,13 +2716,13 @@ wamListClause(Clause clause)
 	    n++;
 	    switch(tag(xr))
 	    { case TAG_ATOM:
-		Putf(" %s", stringAtom(xr));
+		Sfprintf(out, " %s", stringAtom(xr));
 	        break;
 	      case TAG_INTEGER:
-		Putf(" %ld", valInteger(xr));
+		Sfprintf(out, " %ld", valInteger(xr));
 	        break;
 	      case TAG_STRING:
-		Putf(" \"%s\"", valString(xr));
+		Sfprintf(out, " \"%s\"", valString(xr));
 	        break;
 	      default:
 		assert(0);
@@ -2731,7 +2732,7 @@ wamListClause(Clause clause)
 	  case CA1_INTEGER:
 	  { long l = (long) *bp++;
 	    n++;
-	    Putf(" %ld", l);
+	    Sfprintf(out, " %ld", l);
 	    break;
 	  }
 	  case CA1_FLOAT:
@@ -2741,25 +2742,25 @@ wamListClause(Clause clause)
 	    n += 2;
 	    v.w[0] = *bp++;
 	    v.w[1] = *bp++;
-	    Putf(" %g", v.f);
+	    Sfprintf(out, " %g", v.f);
 	    break;
 	  }
 	  case CA1_STRING:
 	  { word m = *bp++;
 	    int  n = wsizeofInd(m);
-	    Putf(" \"%s\"", (char *)bp);
+	    Sfprintf(out, " \"%s\"", (char *)bp);
 	    bp += n;
 	    break;
 	  }
 	}
         for(; n < codeTable[op].arguments; n++ )
-	  Putf("%s%d", n == 0 ? " " : ", ", *bp++);
+	  Sfprintf(out, "%s%d", n == 0 ? " " : ", ", *bp++);
     }
 
     if ( isbreak )
-      Putf(" *break*");
+      Sfprintf(out, " *break*");
 
-    Putf("\n");
+    Sfprintf(out, "\n");
   }
 }
 

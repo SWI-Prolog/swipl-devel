@@ -12,6 +12,18 @@
 #define MD "config/win32.h"
 #endif
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This modules defines the  SWI-Prolog  I/O   streams.  These  streams are
+provided to gain common access to  any   type  of character data: files,
+stdio streams, but also resources, strings, XPCE objects, etc.
+
+MT:
+
+Multithreading is supported through  Slock()   and  Sunlock(). These are
+recursive locks. If a stream handle  might   be  known to another thread
+locking is required. 
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 #ifdef MD
 #include MD
 #else
@@ -55,8 +67,19 @@
 int Slinesize = SIO_LINESIZE;		/* Sgets() buffer size */
 
 static int	S__flushbuf(IOSTREAM *s);
+static void	run_close_hooks(IOSTREAM *s);
 
 #define S__fupdatefilepos(s, c) S___fupdatefilepos(s, c)
+
+#ifdef O_PLMT
+#define LOCK(s)   if ( s->mutex ) pthread_mutex_lock(s->mutex)
+#define UNLOCK(s) if ( s->mutex ) pthread_mutex_unlock(s->mutex)
+#else
+#define LOCK(s)
+#define UNLOCK(s)
+#endif
+
+
 
 		 /*******************************
 		 *	      BUFFER		*
@@ -87,7 +110,7 @@ S__setbuf(IOSTREAM *s, char *buffer, int size)
   s->limitp   = &s->buffer[s->bufsize];
   s->bufp     = s->buffer;
 
-  return s->bufsize;
+  return size;
 }
 
 
@@ -110,9 +133,12 @@ S__removebuf(IOSTREAM *s)
 
 int
 Slock(IOSTREAM *s)
-{ if ( s->locks )
+{
+  LOCK(s);
+
+  if ( s->locks )
     s->locks++;
-  else if ( s->flags & SIO_NBUF )
+  else if ( (s->flags & (SIO_NBUF|SIO_OUTPUT)) == (SIO_NBUF|SIO_OUTPUT) )
   { s->locks = 1;
     return S__setbuf(s, NULL, TMPBUFSIZE);
   }
@@ -123,9 +149,13 @@ Slock(IOSTREAM *s)
 
 int
 Sunlock(IOSTREAM *s)
-{ if ( s->locks )
+{ UNLOCK(s);
+
+  if ( s->locks )
   { if ( --s->locks == 0 )
-      return S__removebuf(s);
+    { if ( (s->flags & (SIO_NBUF|SIO_OUTPUT)) == (SIO_NBUF|SIO_OUTPUT) )
+	return S__removebuf(s);
+    }
   }
 
   return 0;
@@ -137,12 +167,13 @@ Sunlock(IOSTREAM *s)
 
 static int
 S__flushbuf(IOSTREAM *s)
-{ int size = s->bufp - s->buffer;
+{ int size;
 
-  if ( size > 0 )
+  if ( (size = s->bufp - s->buffer) > 0 )
   { if ( (*s->functions->write)(s->handle, s->buffer, size) != size )
-      return -1;
-    s->bufp = s->buffer;
+      size = -1;
+    else
+      s->bufp = s->buffer;
   }
 
   return size;
@@ -153,19 +184,20 @@ static int
 S__flushbufc(int c, IOSTREAM *s)
 { if ( s->buffer )
   { if ( S__flushbuf(s) < 0 )
-      return -1;
-
-    *s->bufp++ = (c & 0xff);
+      c = -1;
+    else
+      *s->bufp++ = (c & 0xff);
   } else
   { if ( s->flags & SIO_NBUF )
     { char chr = (char)c;
     
       if ( (*s->functions->write)(s->handle, &chr, 1) != 1 )
-	return -1;
+	c = -1;
     } else
     { if ( S__setbuf(s, NULL, 0) < 0 )
-	return -1;
-      *s->bufp++ = (char)c;
+	c = -1;
+      else
+	*s->bufp++ = (char)c;
     }
   }
 
@@ -177,9 +209,11 @@ S__flushbufc(int c, IOSTREAM *s)
 
 int
 S__fillbuf(IOSTREAM *s)
-{ if ( s->flags & (SIO_FEOF|SIO_FERR) )
+{ int c;
+
+  if ( s->flags & (SIO_FEOF|SIO_FERR) )
   { s->flags |= SIO_FEOF2;		/* reading past eof */
-    return -1;
+    goto error;
   }
 
   if ( s->flags & SIO_NBUF )
@@ -187,45 +221,52 @@ S__fillbuf(IOSTREAM *s)
     int n;
 
     if ( (n=(*ReadF(s))(s->handle, &chr, 1)) == 1 )
-    { return char_to_int(chr);
+    { c = char_to_int(chr);
+      goto ok;
     } else if ( n == 0 )
     { if ( !(s->flags & SIO_NOFEOF) )
 	s->flags |= SIO_FEOF;
-      return EOF;
+      goto error;
     } else
     { s->flags |= SIO_FERR;
-      return -1;			/* error */
+      goto error;			/* error */
     }
   } else
   { int n;
 
     if ( !s->buffer )
     { if ( S__setbuf(s, NULL, 0) < 0 )
-	return -1;
+	goto error;
       s->limitp = s->buffer;
     }
 
     if ( (n=(*ReadF(s))(s->handle, s->buffer, s->bufsize)) > 0 )
     { s->bufp = s->buffer;
       s->limitp = &s->buffer[n];
-      return char_to_int(*s->bufp++);
+      c = char_to_int(*s->bufp++);
+      goto ok;
     } else
     { if ( n == 0 )
       { if ( !(s->flags & SIO_NOFEOF) )
 	  s->flags |= SIO_FEOF;
-	return EOF;
+	goto error;
 #ifdef EWOULDBLOCK
       } else if ( errno == EWOULDBLOCK )
       { s->bufp = s->buffer;
 	s->limitp = s->buffer;
-	return -1;
+	goto error;
 #endif
       } else
       { s->flags |= SIO_FERR;
-	return -1;
+	goto error;
       }
     }
   }
+
+error:
+  c = -1;
+ok:
+  return c;
 }
 
 		 /*******************************
@@ -241,7 +282,10 @@ S___fupdatefilepos(IOSTREAM *s, int c)
   extern int fatalError(const char *fm, ...);
 
   if ( s->magic != SIO_MAGIC )
+  { if ( s->magic == SIO_CMAGIC )
+      sysError("Attempt to access a closed stream");
     fatalError("Did you load a pre-3.1.2 foreign package?"); 
+  }
 #endif
 
   if ( (p = s->position) )
@@ -564,6 +608,8 @@ Sclose(IOSTREAM *s)
     return -1;
   }
 
+  run_close_hooks(s);
+
   if ( s->buffer )
   { if ( (s->flags & SIO_OUTPUT) && S__flushbuf(s) < 0 )
       rval = -1;
@@ -577,7 +623,12 @@ Sclose(IOSTREAM *s)
   if ( s->functions->close && (*s->functions->close)(s->handle) < 0 )
     rval = -1;
 
-  s->magic = 0;
+#ifdef O_PLMT
+  if ( s->mutex )
+    free(s->mutex);
+#endif
+
+  s->magic = SIO_CMAGIC;
   if ( !(s->flags & SIO_STATIC) )
     free(s);
 
@@ -598,20 +649,20 @@ Sfgets(char *buf, int n, IOSTREAM *s)
 
     if ( c == EOF )
     { *q = '\0';
-      if ( q > buf )
-	return buf;
-      else
-	return NULL;
+      if ( q == buf )
+	buf = NULL;
+      goto out;
     } else
     { *q++ = c;
       if ( c == '\n' )
       { if ( n > 0 )
 	  *q = '\0';
-	return buf;
+	goto out;
       }
     }
   }
 
+out:
   return buf;
 }
 
@@ -633,7 +684,8 @@ Sgets(char *buf)
 
 int
 Sfputs(const char *q, IOSTREAM *s)
-{ for( ; *q; q++)
+{ 
+  for( ; *q; q++)
   { if ( Sputc(*q, s) < 0 )
       return EOF;
   }
@@ -685,7 +737,7 @@ Svprintf(const char *fm, va_list args)
 
 
 #define OUT(s, c)	do { printed++; \
-			     if ( Sputc((c), (s)) < 0 ) return -1; \
+			     if ( Sputc((c), (s)) < 0 ) goto error; \
 			   } while(0)
 #define valdigit(c)	((c) - '0')
 #define A_LEFT	0			/* left-aligned field */
@@ -696,6 +748,8 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 { long printed = 0;
   char buf[TMPBUFSIZE];
   int tmpbuf;
+
+  LOCK(s);
 
   if ( !s->buffer && (s->flags & SIO_NBUF) )
   { S__setbuf(s, buf, sizeof(buf));
@@ -869,10 +923,15 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 
   if ( tmpbuf )
   { if ( S__removebuf(s) < 0 )
-      return -1;
+      goto error;
   }
 
+  UNLOCK(s);
   return printed;
+
+error:
+  UNLOCK(s);
+  return -1;
 }
 
 
@@ -913,8 +972,10 @@ int
 Svdprintf(const char *fm, va_list args)
 { int rval;
 
+  LOCK(Soutput);
   rval = Svfprintf(Soutput, fm, args);
   Sflush(Soutput);
+  UNLOCK(Soutput);
 
   return rval;
 }
@@ -1289,6 +1350,13 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
   { s->position = &s->posbuf;
     s->posbuf.lineno = 1;
   }
+#ifdef O_PLMT
+  if ( !(s->mutex = malloc(sizeof(IOLOCK))) )
+  { errno = ENOMEM;
+    return NULL;
+  }
+  s->mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+#endif
 
   return s;
 }
@@ -1368,29 +1436,48 @@ Sfdopen(int fd, const char *type)
   return Snew((void *)lfd, flags, &Sfilefunctions);
 }
 
+/* MT: as long as s is valid, this should be ok
+*/
 
 int
 Sfileno(IOSTREAM *s)
-{ if ( s->flags & SIO_FILE )
-  { long h = (long)s->handle;
-    return (int)h;
-  }
-  if ( s->flags & SIO_PIPE )
-    return fileno((FILE *)s->handle);
+{ int n;
 
-  errno = EINVAL;
-  return -1;				/* no file stream */
+  if ( s->flags & SIO_FILE )
+  { long h = (long)s->handle;
+    n = (int)h;
+  } else if ( s->flags & SIO_PIPE )
+  { n = fileno((FILE *)s->handle);
+  } else
+  { errno = EINVAL;
+    n = -1;				/* no file stream */
+  }
+
+  return n;
 }
 
 
+#ifdef O_PLMT
+static IOLOCK S__locks[] =
+{ PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP,
+  PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP,
+  PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP
+};
+#define MUTEX(n) &S__locks[n]
+#else
+#define MUTEX(n) NULL
+#endif
+
 #define STDIO(n, f) { NULL, NULL, NULL, NULL, \
 		      EOF, SIO_MAGIC, 0, f, {0, 0, 0}, NULL, \
-		      ((void *)(n)), &Sfilefunctions \
+		      ((void *)(n)), &Sfilefunctions, \
+		      0, MUTEX(n) \
 		    }
 
 IOSTREAM S__iob[] =
 { 
 #define SIO_STDIO (SIO_FILE|SIO_STATIC|SIO_NOCLOSE)
+
   STDIO(0, SIO_STDIO|SIO_LBUF|SIO_INPUT|SIO_NOFEOF),	/* Sinput */
   STDIO(1, SIO_STDIO|SIO_LBUF|SIO_OUTPUT), 		/* Soutput */
   STDIO(2, SIO_STDIO|SIO_NBUF|SIO_OUTPUT)		/* Serror */
@@ -1469,6 +1556,8 @@ Sopen_pipe(const char *command, const char *type)
 Memory streams form a replacement for   sprintf(), sscanf() and friends.
 They allow regarding a piece of  (for output) malloc() maintained memory
 to serve as a temporary buffer.
+
+MT: we assume these handles are not passed between threads
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 typedef struct
@@ -1654,6 +1743,9 @@ Sopenmem(char **buffer, int *sizep, const char *mode)
 		 *	      STRINGS		*
 		 *******************************/
 
+/* MT: we assume these handles are not passed between threads
+*/
+
 static int
 Sread_string(void *handle, char *buf, int size)
 { return 0;				/* signal EOF */
@@ -1724,6 +1816,7 @@ Sopen_string(IOSTREAM *s, char *buf, int size, const char *mode)
 
   s->flags  = flags;
   s->limitp = &buf[size];
+  s->magic  = SIO_MAGIC;
 
   return s;
 }
@@ -1733,4 +1826,41 @@ Sopen_string(IOSTREAM *s, char *buf, int size, const char *mode)
 int
 S__fupdatefilepos(IOSTREAM *s, int c)
 { return S___fupdatefilepos(s, c);
+}
+
+		 /*******************************
+		 *	       HOOKS		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This allows external packages (Prolog itself) to monitor the destruction
+of streams.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+typedef struct _close_hook
+{ struct _close_hook *next;
+  void (*hook)(IOSTREAM *s);
+} close_hook;
+
+static close_hook *close_hooks;
+
+static void
+run_close_hooks(IOSTREAM *s)
+{ close_hook *p;
+
+  for(p=close_hooks; p; p = p->next)
+    (*p->hook)(s);
+}
+
+int
+Sclosehook(void (*hook)(IOSTREAM *s))
+{ close_hook *h = malloc(sizeof(*h));
+
+  if ( !h )
+    return -1;
+  h->next = close_hooks;
+  h->hook = hook;
+  close_hooks = h;
+
+  return 0;
 }

@@ -56,9 +56,6 @@
 #define	pl_writeq		Swrtq
 #define	pl_write2		Swrt2
 #define	pl_writeq2		Swrtq2
-#define	pl_write_on_string	Swrtos
-#define	pl_write_on_atom	Swrtoa
-#define	pl_write_on_list	Swrtol
 #define pl_string		Sstr
 #define pl_string_length	Sstrl
 #define pl_string_to_atom	Sstrta

@@ -19,10 +19,6 @@ This module  defines the  online  help  facility of   SWI-Prolog.   It
 assumes  (Prolog) index file  at library(help_index)   and  the actual
 manual  at library(online_manual).   Output  is piped through  a  user
 defined pager, which defaults to `more'.
-
-BUGS:
-If the pager  is quit prematurely Prolog will  abort  on  noticing the
-broken pipe.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 %	help/0
@@ -100,27 +96,15 @@ show_help(_, Ranges) :-
 	write_ranges_to_file(Ranges, Outfile),
 	call_emacs('(view-file-other-window "~w")', [Outfile]).
 show_help(_, Ranges) :-
-	\+ feature(pipe, true), !,
-	online_manual_stream(Manual),
-	show_ranges(Ranges, Manual, user_output).
-show_help(_, [Start-End]) :-
-	End - Start > 4000, !,
-	find_manual(Manual),
-	find_pager(Pager),
-	plbite_flags(Flags),
-	sformat(Cmd, 'pl-bite ~w ~d:~d ~a | ~a',
-		[Flags, Start, End, Manual, Pager]),
-	shell(Cmd).	
-show_help(_, Ranges) :-
+	feature(pipe, true), !,
 	online_manual_stream(Manual),
 	pager_stream(Pager),
-	show_ranges(Ranges, Manual, Pager),
+	catch(show_ranges(Ranges, Manual, Pager), _, true),
 	close(Manual),
-	close(Pager).
-
-plbite_flags('-e') :-
-	feature(write_help_with_overstrike, true), !.
-plbite_flags('').
+	catch(close(Pager), _, true).
+show_help(_, Ranges) :-
+	online_manual_stream(Manual),
+	show_ranges(Ranges, Manual, user_output).
 
 show_ranges([], _, _) :- !.
 show_ranges([From-To|Rest], Manual, Pager) :-

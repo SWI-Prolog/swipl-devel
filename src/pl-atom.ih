@@ -363,3 +363,5 @@
 #define ATOM_erase        MK_ATOM(362)
 #define ATOM_flag_value   MK_ATOM(363)
 #define ATOM_atomic       MK_ATOM(364)
+#define ATOM_dstream      MK_ATOM(365)
+#define ATOM_close        MK_ATOM(366)

@@ -59,12 +59,20 @@ extern "C" {
 #define SIO_BUFSIZE	(4096)		/* buffering buffer-size */
 #define SIO_LINESIZE	(1024)		/* Sgets() default buffer size */
 #define SIO_MAGIC	(7212676)	/* magic number */
+#define SIO_CMAGIC	(42)		/* we are close (and thus illegal!) */
 
 typedef int   (*Sread_function)(void *handle, char *buf, int bufsize);
 typedef int   (*Swrite_function)(void *handle, char*buf, int bufsize);
 typedef long  (*Sseek_function)(void *handle, long pos, int whence);
 typedef int   (*Sclose_function)(void *handle);
 typedef int   (*Scontrol_function)(void *handle, int action, void *arg);
+
+#ifdef O_PLMT
+#include <pthread.h>
+typedef pthread_mutex_t IOLOCK;
+#else
+typedef void		IOLOCK;
+#endif
 
 typedef struct io_functions
 { Sread_function	read;		/* fill the buffer */
@@ -94,6 +102,7 @@ typedef struct io_stream
   void		       *handle;		/* function's handle */
   IOFUNCTIONS	       *functions;	/* open/close/read/write/seek */
   int		        locks;		/* lock/unlock count */
+  IOLOCK *		mutex;		/* stream mutex */
 } IOSTREAM;
 
 #define SmakeFlag(n)	(1<<(n-1))
@@ -243,6 +252,7 @@ __pl_export int	   	Sfileno(IOSTREAM *s);
 __pl_export IOSTREAM *	Sopen_pipe(const char *command, const char *type);
 __pl_export IOSTREAM *	Sopenmem(char **buffer, int *sizep, const char *mode);
 __pl_export IOSTREAM *	Sopen_string(IOSTREAM *s, char *buf, int sz, const char *m);
+__pl_export int		Sclosehook(void (*hook)(IOSTREAM *s));
 
 #ifdef __cplusplus
 }

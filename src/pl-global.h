@@ -41,6 +41,11 @@ typedef struct
 #endif
 } PL_code_data_t;
 
+typedef struct
+{ atom_t	file;			/* current source file */
+  int	  	line;			/* current line */
+  long		character;		/* current character location */
+} source_location;
 
 		 /*******************************
 		 *	    GLOBAL DATA		*
@@ -175,11 +180,6 @@ typedef struct
   struct
   { buffer	source_files;
   } files;
-
-  struct
-  { int		protocol_stream;	/* stream used for protocolling */
-    int		file_max;		/* max index of a file */
-  } IO;
 } PL_global_data_t;
 
 
@@ -213,12 +213,7 @@ typedef struct
     int		first_used;		/* did we do the first line? */
   } prompt;
 
-  struct
-  { atom_t	  file;			/* current source file */
-    int	  	  line;			/* current line */
-    long	  character;		/* current character location */
-  } read_source;
-
+  source_location read_source;		/* file, line, char of last term */
   int	 _fileerrors;			/* current file-error status */
   atom_t _float_format;			/* floating point format */
 
@@ -278,8 +273,14 @@ typedef struct
   } fli;
 
   struct				/* Local IO stuff */
-  { int input;				/* current input */
-    int output;				/* current output */
+  { IOSTREAM *	curin;			/* current input stream */
+    IOSTREAM *	curout;			/* current output stream */
+    IOSTREAM *	din;			/* debugger input */
+    IOSTREAM *	dout;			/* debuffer output */
+    IOSTREAM *	log;			/* stream used for protocolling */
+    IOSTREAM *	term;			/* terminal stream */
+    struct input_context *input_stack;	/* maintain input stream info */
+    struct output_context *output_stack; /* maintain output stream info */
   } IO;
 
 #ifdef O_LIMIT_DEPTH
@@ -358,6 +359,12 @@ GLOBAL PL_local_data_t  PL_local_data;
 #define depth_limit		(LD->depth_info.limit)
 #define depth_reached		(LD->depth_info.reached)
 #define base_addresses		(LD->bases)
+#define Scurin			(LD->IO.curin)
+#define Scurout			(LD->IO.curout)
+#define Sdin			(LD->IO.din)
+#define Sdout			(LD->IO.dout)
+#define Slog			(LD->IO.log)
+#define Sterm			(LD->IO.term)
 
 #ifdef VMCODE_IS_ADDRESS
 #define dewam_table		(CD->_dewam_table)

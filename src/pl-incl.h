@@ -606,28 +606,6 @@ Files and streams.  Don't change the numbers, or change FOPENMODE below.
 
 #define FOPENMODE "-rwau"		/* Sopen_file() mode argument */
 
-#define streamOutput(stream, goal) \
-	{ int SOn = streamNo(stream, F_WRITE); \
-	  int SOout = LD->IO.output; \
-	  if ( SOn < 0 ) fail; \
-	  LD->IO.output = SOn; \
-	  LockStream(); \
-	  goal; \
-	  UnlockStream(); \
-	  LD->IO.output = SOout; \
-	}
-
-#define streamInput(stream, goal) \
-	{ int SOn = streamNo(stream, F_READ); \
-	  int SOin = LD->IO.input; \
-	  word SOrval; \
-	  if ( SOn < 0 ) fail; \
-	  LD->IO.input = SOn; \
-	  SOrval = goal; \
-	  LD->IO.input = SOin; \
-	  return SOrval; \
-	}
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Type fields.  These codes are  included  in  a  number  of  the  runtime
 structures  at  a  fixed  point, so the runtime environment can tell the

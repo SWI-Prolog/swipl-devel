@@ -61,7 +61,6 @@ static const struct foreign {
   FRG("skip",			1, pl_skip,			TRACE_ME),
   FRG("skip",			2, pl_skip2,			TRACE_ME),
   FRG("get_single_char",	1, pl_get_single_char,		TRACE_ME),
-  FRG("$rawtty",		1, pl_rawtty,			META),
   FRG("seeing",			1, pl_seeing,			TRACE_ME),
   FRG("telling",		1, pl_telling,			TRACE_ME),
   FRG("seen",			0, pl_seen,			TRACE_ME),
@@ -180,7 +179,8 @@ static const struct foreign {
   FRG("$rc_close_archive",	1, pl_rc_close_archive,		TRACE_ME),
   FRG("$rc_save_archive",	2, pl_rc_save_archive,		TRACE_ME),
   FRG("$rc_append_file",	5, pl_rc_append_file,		TRACE_ME),
-  FRG("$copy_stream",		2, pl_copy_stream,		TRACE_ME),
+  FRG("copy_stream_data",	2, pl_copy_stream_data2,	TRACE_ME),
+  FRG("copy_stream_data",	3, pl_copy_stream_data3,	TRACE_ME),
 
   FRG("$qlf_start_module",	1, pl_qlf_start_module,		TRACE_ME),
   FRG("$qlf_start_sub_module",	1, pl_qlf_start_sub_module,	TRACE_ME),
@@ -305,11 +305,7 @@ static const struct foreign {
   FRG("prolog_frame_attribute",	3, pl_prolog_frame_attribute,	TRACE_ME),
   FRG("prolog_skip_level",	2, pl_skip_level,		0),
 
-  FRG("$write_on_atom",		2, pl_write_on_atom,		TRACE_ME),
-#if O_STRING
   FRG("$write_on_string",	2, pl_write_on_string,		TRACE_ME),
-#endif
-  FRG("$write_on_list",		2, pl_write_on_list, 		TRACE_ME),
   FRG("dwim_match",		3, pl_dwim_match,		TRACE_ME),
   FRG("$dwim_predicate",	2, pl_dwim_predicate,	   NDET|TRACE_ME),
 

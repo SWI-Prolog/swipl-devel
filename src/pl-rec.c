@@ -76,7 +76,6 @@ cleanRecordList(RecordList rl)
   { if ( r->erased )
     { *p = r->next;
       freeRecord(r);
-      DEBUG(2, Sdprintf("Deleted record, %d dirty left\n", dirtyrecords));
     } else
     { p = &r->next;
     }
@@ -787,7 +786,6 @@ pl_erase(term_t ref)
     if ( l->references )		/* a recorded has choicepoints */
     { record->erased = TRUE;
       set(l, R_DIRTY);
-      DEBUG(2, Sdprintf("%d Delayed record destruction\n", dirtyrecords));
     } else if ( record == l->firstRecord )
     { if ( !record->next )
 	l->lastRecord = NULL;

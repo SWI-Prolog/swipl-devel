@@ -43,17 +43,17 @@ word
 pl_break1(term_t goal)
 { bool rval;
 
-  int  inSave    = LD->IO.input;
-  int  outSave   = LD->IO.output;
-  long skipSave  = debugstatus.skiplevel;
-  int  suspSave  = debugstatus.suspendTrace;
+  IOSTREAM *inSave  = Scurin;
+  IOSTREAM *outSave = Scurout;
+  long skipSave     = debugstatus.skiplevel;
+  int  suspSave     = debugstatus.suspendTrace;
   int  traceSave, debugSave;
 
   tracemode(FALSE, &traceSave);
   debugmode(FALSE, &debugSave);
 
-  LD->IO.input = 0;
-  LD->IO.output = 1;
+  Scurin  = Sinput;
+  Scurout = Soutput;
 
   resetTracer();
 
@@ -69,8 +69,8 @@ pl_break1(term_t goal)
   tracemode(traceSave, NULL);
   debugmode(debugSave, NULL);
 
-  LD->IO.output = outSave;
-  LD->IO.input  = inSave;
+  Scurout = outSave;
+  Scurin  = inSave;
 
   return rval;
 }

@@ -256,28 +256,3 @@ pl_rc_members(term_t rc_h, term_t members)
 
   return PL_unify_nil(tail);
 }
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-$copy_stream(+StreamIn, +StreamOut)
-	Copy all data from StreamIn to StreamOut.  Should be somewhere else,
-	and maybe we need something else to copy resources.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-
-foreign_t
-pl_copy_stream(term_t in, term_t out)
-{ IOSTREAM *i, *o;
-  int c;
-
-  if ( !PL_get_stream_handle(in, &i) ||
-       !PL_get_stream_handle(out, &o) )
-    return FALSE;
-
-  while ( (c = Sgetc(i)) != EOF )
-  { if ( Sputc(c, o) < 0 )
-      return FALSE;
-  }
-
-  return TRUE;
-}

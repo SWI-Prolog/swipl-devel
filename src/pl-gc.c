@@ -1550,9 +1550,7 @@ garbageCollect(LocalFrame fr)
   gc_status.active = TRUE;
   finish_foreign_frame();
   if ( verbose )
-  { Putf("%% GC ... ");
-    pl_flush();
-  }
+    Sdprintf("%% GC ... ");
 #ifdef O_PROFILE
   PROCEDURE_garbage_collect0->definition->profile_calls++;
 #endif
@@ -1616,10 +1614,10 @@ garbageCollect(LocalFrame fr)
 	 { Sdprintf("Stack checksum failure\n");
 	   trap_gdb();
 	 } else
-	   Putf("(OK) "));
+	   Sdprintf("(OK) "));
 
   if ( verbose )
-  { Putf("(gained %ld+%ld in %.2f sec; used: %d+%d; free: %d+%d)\n",
+  { Sdprintf("(gained %ld+%ld in %.2f sec; used: %d+%d; free: %d+%d)\n",
 	 ggar, tgar, t,
 	 usedStack(global), usedStack(trail),
 	 roomStack(global), roomStack(trail));
@@ -1644,22 +1642,6 @@ pl_garbage_collect(term_t d)
   GD->debug_level = ol;
 #endif
   succeed;
-}
-
-void
-resetGC(void)
-{ gc_status.requested = FALSE;
-  gc_status.blocked = 0;
-  gc_status.collections = gc_status.global_gained = gc_status.trail_gained = 0;
-  gc_status.time = 0.0;
-
-#if O_SHIFT_STACKS
-  shift_status.local_shifts = 0;
-  shift_status.global_shifts = 0;
-  shift_status.trail_shifts = 0;
-  shift_status.blocked = 0;
-  shift_status.time = 0.0;
-#endif
 }
 
 
@@ -1999,11 +1981,11 @@ growStacks(LocalFrame fr, Code PC, int l, int g, int t)
     if ( verbose )
     { int i = 0;
 
-      Putf("Expanding ");
-      if ( l ) Putf("%s%s", i++ ? "and " : "", "local ");
-      if ( g ) Putf("%s%s", i++ ? "and " : "", "global ");
-      if ( t ) Putf("%s%s", i++ ? "and " : "", "trail ");
-      Putf("stacks ");
+      Sdprintf("Expanding ");
+      if ( l ) Sdprintf("%s%s", i++ ? "and " : "", "local ");
+      if ( g ) Sdprintf("%s%s", i++ ? "and " : "", "global ");
+      if ( t ) Sdprintf("%s%s", i++ ? "and " : "", "trail ");
+      Sdprintf("stacks ");
     }
 
     finish_foreign_frame();
@@ -2040,11 +2022,10 @@ growStacks(LocalFrame fr, Code PC, int l, int g, int t)
     }
       
     if ( verbose )
-    { Putf("to (l+g+t) = %d+%d+%d Kbytes ... ",
+    { Sdprintf("to (l+g+t) = %d+%d+%d Kbytes ... ",
 	   lsize / 1024,
 	   gsize / 1024,
 	   tsize / 1024);
-      pl_flush();
     }
 
 #define PrintStackParms(stack, name, newbase, newsize) \
@@ -2080,7 +2061,7 @@ growStacks(LocalFrame fr, Code PC, int l, int g, int t)
 	     trap_gdb();
 	   });
     if ( verbose )
-    { Putf("%.2f sec.\n", time);
+    { Sdprintf("%.2f sec.\n", time);
     }
 
     succeed;

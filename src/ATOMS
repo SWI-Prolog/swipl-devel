@@ -374,6 +374,8 @@ A db_reference		"db_reference"
 A erase			"erase"
 A flag_value		"flag_value"
 A atomic		"atomic"
+A dstream		"$stream"
+A close			"close"
 
 F abs			1
 F acos			1
@@ -506,3 +508,4 @@ F syntax_error		1
 F file			2
 F stream		3
 F string		2
+F dstream		1
