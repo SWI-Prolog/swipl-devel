@@ -15,9 +15,9 @@
 		 *******************************/
 
 get_http_data(Host, URL) :-
-	socket(Socket),
-	connect(Socket, Host:80),
-	open_socket(Socket, Read, Write),
+	tcp_socket(Socket),
+	tcp_connect(Socket, Host:80),
+	tcp_open_socket(Socket, Read, Write),
 	format(Write, 'GET ~w~n~n', URL),
 	flush_output(Write),
 	copy_stream(Read, user_output),
@@ -44,10 +44,12 @@ copy_stream(C, In, Out) :-
 	client/2.
 
 mkserver :-
-	socket(Socket),
-	bind(Socket, 3000),
-	listen(Socket, 5),
-	open_socket(Socket, Read, _),
+	mkserver(3000).
+mkserver(Port) :-
+	tcp_socket(Socket),
+	tcp_bind(Socket, Port),
+	tcp_listen(Socket, 5),
+	tcp_open_socket(Socket, Read, _),
 	asserta(server(Read)).
 
 dispatch :-
@@ -69,10 +71,10 @@ dispatch([H|T]) :-
 
 dispatch_fd(Server) :-
 	server(Server), !,
-	accept(Server, ClientSocket, Peer),
+	tcp_accept(Server, ClientSocket, Peer),
 	format('Connected from ~w~n', [Peer]),
-	fcntl(ClientSocket, setfl, nonblock),
-	open_socket(ClientSocket, Read, Write),
+	tcp_fcntl(ClientSocket, setfl, nonblock),
+	tcp_open_socket(ClientSocket, Read, Write),
 	format(Write, 'Please to meet you!~n', []),
 	flush_output(Write),
 	assert(client(Read, Write)).
@@ -93,9 +95,11 @@ dispatch_fd(Client) :-
 		 *******************************/
 	
 client :-
-	socket(Socket),
-	connect(Socket, localhost:3000),
-	open_socket(Socket, In, Out),
+	client(3000).
+client(Port) :-
+	tcp_socket(Socket),
+	tcp_connect(Socket, localhost:Port),
+	tcp_open_socket(Socket, In, Out),
 	format(Out, 'Hello World~n', []),
 	flush_output(Out),
 	copy_line(In, user_output),
