@@ -56,6 +56,7 @@ AC_MSG_RESULT("		PLSHARED=$PLSHARED")
 if test "$PLTHREADS" = yes; then MT=yes; fi
 else
 PLLD=../plld.sh
+PL=../pl.sh
 fi
 
 if test "$MT" = yes; then

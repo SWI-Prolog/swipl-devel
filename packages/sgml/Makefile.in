@@ -12,6 +12,7 @@ PLARCH=@PLARCH@
 PKGDOC=$(PLBASE)/doc/packages
 PLLIB=$(PLBASE)/library
 PLFOREIGN=$(PLBASE)/lib/$(PLARCH)
+DESTDIR=
 SO=@SO@
 
 CC=@CC@
@@ -55,9 +56,9 @@ sgml2pl.@SO@:	$(PLOBJ)
 		$(PLLD) -shared -o $@ $(PLOBJ)
 
 install:	$(TARGETS) $(LIBPL) install-dtd
-		mkdir -p $(PLBASE)/lib/$(PLARCH)
-		$(INSTALL) -m 755 $(TARGETS) $(PLFOREIGN)
-		$(INSTALL) -m 644 $(LIBPL) $(PLLIB)
+		mkdir -p $(DESTDIR)/$(PLBASE)/lib/$(PLARCH)
+		$(INSTALL) -m 755 $(DESTDIR)/$(TARGETS) $(PLFOREIGN)
+		$(INSTALL) -m 644 $(DESTDIR)/$(LIBPL) $(PLLIB)
 		$(PL) -f none -g make -t halt
 
 rpm-install:	install
@@ -70,11 +71,11 @@ install-dtd::
 
 pdf-install::
 		mkdir -p $(PKGDOC)
-		$(INSTALL_DATA) doc/sgml2pl.pdf $(PKGDOC)
+		$(INSTALL_DATA) doc/sgml2pl.pdf $(DESTDIR)/$(PKGDOC)
 
 html-install::
 		mkdir -p $(PKGDOC)
-		$(INSTALL_DATA) doc/sgml2pl.html $(PKGDOC)
+		$(INSTALL_DATA) doc/sgml2pl.html $(DESTDIR)/$(PKGDOC)
 
 check::
 		(cd Test && $(PL) -f test.pl -g test,halt)
