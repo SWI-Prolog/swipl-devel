@@ -696,7 +696,7 @@ apropos_match(A, B) :-
 		 *******************************/
 
 do_explain_text(V, Text) :-
-	term_to_atom(Term, Text), !,
+	catch(term_to_atom(Term, Text), _, fail), !,
 	do_explain(V, Term).
 do_explain_text(V, Text) :-
 	send(V, clear),

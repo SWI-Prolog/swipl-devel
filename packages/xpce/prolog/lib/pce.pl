@@ -39,7 +39,8 @@ reexports the content of these files.
 	    pce_autoload_all/0,
 
 	    pce_term_expansion/2,
-	    pce_compiling/1,
+	    pce_compiling/1,		% -Class
+	    pce_compiling/2,		% -Class, -Path
 	    pce_begin_recording/1,
 	    pce_end_recording/0,
 

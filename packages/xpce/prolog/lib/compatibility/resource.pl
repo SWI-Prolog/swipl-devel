@@ -57,11 +57,13 @@ resource(C, Name:name, Resource) :<-
 
 user:pce_pre_expansion_hook(resource(Name, Type, Value),
 			    class_variable(Name, Type, NewVal)) :-
-	pce_compiling(_Class),
+	pce_compiling(_Class, Path),
+	source_location(Path, _),
 	pce_resource_compatibility:rc_convert_value(Value, Type, NewVal).
 user:pce_pre_expansion_hook(resource(Name, Type, Value, Summary),
 			    class_variable(Name, Type, NewVal, Summary)) :-
-	pce_compiling(_Class),
+	pce_compiling(_Class, Path),
+	source_location(Path, _),
 	pce_resource_compatibility:rc_convert_value(Value, Type, NewVal).
 
 rc_convert_value(Value, Type, NewVal) :-

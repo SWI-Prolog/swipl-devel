@@ -170,7 +170,7 @@ checkpce :-
 
 
 check_classes :-
-	(   pce_expansion:compiling(_)
+	(   pce_expansion:compiling(_, _)
 	->  forall(pce_expansion:compiling(Class),
 		   send(@pce, format,
 			'[PCE: WARNING: definition of class %s not closed]\n',

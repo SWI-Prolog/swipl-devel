@@ -296,7 +296,7 @@ data_record(S, Record:string) :->
 	    get(S, received, Rec0),
 	    Rec is Rec0 + Bytes,
 	    send(S, slot, received, Rec),
-	    send(S, progress, Rec, received)
+	    send(S, progress, Rec, bytes)
 	).
 	    
 end_of_file(S) :->
