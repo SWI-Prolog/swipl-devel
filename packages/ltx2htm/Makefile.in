@@ -80,4 +80,5 @@ clean:
 	rm -f *% *~ $(OBJ) tex.@SO@
 
 distclean: clean
-	rm -f Makefile config.log config.status config.h latex2html
+	rm -f Makefile latex2html
+	rm -f config.cache config.log config.status config.h 
