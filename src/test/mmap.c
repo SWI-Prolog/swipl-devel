@@ -10,14 +10,18 @@
 #include <config.h>
 #endif
 
+#ifndef NO_SEGV_HANDLING
+#define SEGV_HANDLING 1
+#endif
+
 #include <stdio.h>
 #include <signal.h>
-#include <sys/mman.h>
-#include <fcntl.h>
-#include <errno.h>
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
+#include <sys/mman.h>
+#include <fcntl.h>
+#include <errno.h>
 
 #ifndef FALSE
 #define FALSE 0
@@ -26,6 +30,12 @@
 
 #if !defined(MAP_ANON) && defined(MAP_ANONYMOUS)
 #define MAP_ANON MAP_ANONYMOUS
+#endif
+#ifndef MAP_NORESERVE
+#define MAP_NORESERVE 0
+#endif
+#ifndef MAP_FAILED
+#define MAP_FAILED ((void *)-1)
 #endif
 
 #ifndef SIGRETTYPE
@@ -40,24 +50,22 @@ int	mapfd;				/* map this one */
 int	pagsiz;				/* pagesize */
 void *  wraddr;				/* current address */
 int	provides_address = 1;		/* assume */
+char *  top;				/* currently assigned top */
 
 #define ulong unsigned long		/* avoid redefinition */
 
 #define KB * 1024
 #define MB KB KB
 
-#define RoundUp(x, y)	((x)%(y) == 0 ? (x) : ((x)|((y)-1))+1)
 #define RoundDown(p, n)	((p) & ~((n)-1))
-#define min(x, y)	((x) < (y) ? (x) : (y))
-#define max(x, y)	((x) > (y) ? (x) : (y))
 
 typedef SIGRETTYPE (*handler_t)(int signal);
 
 #ifdef MAP_ANON
 #define get_map_fd() (-1)
-#define STACK_MAP_TYPE MAP_ANON|MAP_PRIVATE|MAP_FIXED
+#define MAP_FLAGS MAP_ANON|MAP_PRIVATE|MAP_NORESERVE
 #else
-#define STACK_MAP_TYPE MAP_PRIVATE|MAP_FIXED
+#define MAP_FLAGS MAP_PRIVATE|MAP_NORESERVE
 
 static int
 get_map_fd()
@@ -98,6 +106,7 @@ get_map_fd()
 #endif /*MAP_ANON*/
 
 
+#ifdef SEGV_HANDLING
 SIGRETTYPE
 segv_handler(int s, int type, void *scp, char *sigaddr)
 { ulong addr = RoundDown((ulong)wraddr, pagsiz);
@@ -105,15 +114,12 @@ segv_handler(int s, int type, void *scp, char *sigaddr)
   if ( sigaddr != wraddr )
     provides_address = 0;
 
-  if ( mmap((void *) addr, pagsiz,
-	    PROT_READ|PROT_WRITE,
-	    STACK_MAP_TYPE|MAP_FIXED,
-	    mapfd, 0L) != (void *)addr )
-  { perror("mmap");
+  if ( mprotect((void *) addr, pagsiz, PROT_READ|PROT_WRITE) < 0 )
+  { perror("mprotect");
     exit(1);
   }
 #ifdef VERBOSE
-  printf("+"); fflush(stdout);
+  printf("\rSegv expanded to %p", addr); fflush(stdout);
 #endif
 
 #ifndef BSD_SIGNALS
@@ -121,25 +127,53 @@ segv_handler(int s, int type, void *scp, char *sigaddr)
 #endif
 }
 
+#define expand_to(addr) wraddr = addr
 
-static int
-test_map(int *low)
-{ int size = 40 KB;
-  int n;
+#else /*SEGV_HANDLING*/
+
+static void
+expand_to(void *addr)
+{ if ( (char *)addr >= top )
+  { int incr;
+
+    addr = (void *)RoundDown((ulong)addr, pagsiz);
+    incr = (char *)addr-top + pagsiz;
+
+    if ( mprotect((void *) top, incr, PROT_READ|PROT_WRITE) < 0 )
+    { perror("mprotect");
+      exit(1);
+    }
+    top += incr;
 
 #ifdef VERBOSE
-  printf("\nwrite-test from %p\n", low);
+    printf("\rExpanded to %p", addr); fflush(stdout);
 #endif
-  for(n=0; n<size; n++)
-  { wraddr = &low[n];
-    low[n] = n;
+  }
+}
+
+#endif /*SEGV_HANDLING*/
+
+static int
+test_map(void *base, ulong size)
+{ int times = size / sizeof(int);
+  int *p = base;
+  int n;
+
+  top = base;
+
+#ifdef VERBOSE
+  printf("write-test from %p\n", p);
+#endif
+  for(n=0; n<times; n++)
+  { expand_to(&p[n]);
+    p[n] = n;
   }
 #ifdef VERBOSE
   printf("\nread-test ... "); fflush(stdout);
 #endif
-  for(n=0; n<size; n++)
-  { if ( low[n] != n )
-    { fprintf(stderr, "Read bad value at %d: %d\n", n, low[n]);
+  for(n=0; n<times; n++)
+  { if ( p[n] != n )
+    { fprintf(stderr, "Read bad value at %d: %d\n", n, p[n]);
       return FALSE;
     }
   }
@@ -175,261 +209,70 @@ getpagesize()
 
 
 		 /*******************************
-		 *	  TOP OF THE HEAP	*
-		 *******************************/
-
-#ifdef HAVE_GETRLIMIT
-#ifdef HAVE_SYS_TIME_H
-#include <sys/time.h>
-#endif
-#ifdef HAVE_SYS_RESOURCE_H
-#include <sys/resource.h>
-#endif
-
-					/* __linux__ TASK_SIZE stuff */
-					/* contributed by Roman Hodek */
-#ifdef __linux__
-#include <asm/page.h>
-#include <asm/system.h>
-#include <asm/ptrace.h>
-#include <asm/segment.h>
-#include <asm/processor.h>
-#endif
-
-#ifdef RLIMIT_DATA
-ulong
-topOfHeap(ulong heap_base)
-{ struct rlimit limit;
-
-  if ( getrlimit(RLIMIT_DATA, &limit) == 0 )
-  { ulong top = limit.rlim_cur + heap_base;
-
-#ifdef TASK_SIZE
-    if ( top < heap_base || top > TASK_SIZE )
-      return TASK_SIZE;
-#else
-    if ( top < heap_base )
-      return 0L;
-#endif
-
-#ifdef VERBOSE
-    printf("Heap: %p ... %p\n", (void *)heap_base, (void *)top);
-#endif
-    return top;
-  }
-
-  return 0L;
-}
-#else
-#define topOfHeap() (0L)
-#endif /*RLIMIT_DATA*/
-#else
-#define topOfHeap() (0L)
-#endif /*HAVE_GETRLIMIT*/
-
-
-		 /*******************************
 		 *	       MAIN		*
 		 *******************************/
-
-static int
-testarea(ulong base, ulong top)
-{ ulong step = 8 * pagsiz;
-  ulong addr;
-
-#ifdef VERBOSE
-  printf("Testing area %p ... %p\n", base, top);
-#endif
-
-  for(addr=base; addr<top; addr += step)
-  {
-#if VERBOSE >= 2
-    printf("%p ... ", addr); fflush(stdout);
-#else
-#ifdef VERBOSE
-    if ( ((addr-base)/step) % 64 == 0 )
-    { printf("\n%p ", addr);
-      fflush(stdout);
-    }
-#endif
-#endif
-
-    if ( (ulong) mmap((void *) addr, pagsiz,
-		      PROT_READ|PROT_WRITE, STACK_MAP_TYPE,
-		      mapfd, 0L) == addr )
-    {
-#if VERBOSE >= 2
-      printf("ok\n");
-#else
-#ifdef VERBOSE
-      printf("."); fflush(stdout);
-#endif
-#endif
-      if ( munmap((void *) addr, pagsiz) != 0 )
-      { perror("munmap");
-	return FALSE;
-      }
-    } else
-    {
-#ifdef VERBOSE
-      char msg[1024];
-      sprintf(msg, "Failed to map at %p", addr);
-      perror(msg);
-#endif
-      return FALSE;
-    }
-  }
-
-  signal(SIGSEGV, (handler_t) segv_handler);
-
-  return test_map((int *)base);
-}
-
 
 static void
 ok()
 { printf("MMAP_STACK=1;\n");
 
+#ifdef SEGV_HANDLING
   if ( provides_address )
     printf("SIGNAL_HANDLER_PROVIDES_ADDRESS=1;\n");
+#endif
   if ( mapfd == -1 )
     printf("HAVE_MAP_ANON=1;\n");
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-run_testarea() runs testarea as a child, 
-
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#if defined(HAVE_SYS_RESOURCE_H)
-#include <sys/resource.h>
-#endif
-#if defined(HAVE_SYS_WAIT_H) || defined(UNION_WAIT)
-#include <sys/wait.h>
-#endif
-
-#ifdef UNION_WAIT
-
-#define wait_t union wait
-
-#ifndef WEXITSTATUS
-#define WEXITSTATUS(s) ((s).w_status)
-#endif
-#ifndef WTERMSIG
-#define WTERMSIG(s) ((s).w_status)
-#endif
-
-#else /*UNION_WAIT*/
-
-#define wait_t int
-
-#ifndef WEXITSTATUS
-# define WEXITSTATUS(stat_val) ((unsigned)(stat_val) >> 8)
-#endif
-#ifndef WIFEXITED
-# define WIFEXITED(stat_val) (((stat_val) & 255) == 0)
-#endif
-
-#endif /*UNION_WAIT*/
-
-
-static int
-run_testarea(ulong base, ulong top)
-{ pid_t pid;
-
-  if ( (pid = fork()) == 0 )
-  { if ( testarea(base, top) )		/* the child */
-    { ok();
-      exit(0);
-    }
-  } else if ( pid < 0 )
-  { perror("fork");
-    exit(1);
-  } else				/* wait for it */
-  { wait_t status;
-    int n;
-
-    while((n = wait(&status)) != -1 && n != pid);
-    if ( n == -1 )
-    { perror("wait");
-      exit(1);
-    }
-    if ( WIFEXITED(status) )
-      return WEXITSTATUS(status) == 0 ? TRUE : FALSE;
-
-    return FALSE;			/* signalled */
-  }
-}
-
-#define DEFSTACKSIZE (64 MB * 3 + 8 MB)
 
 int
 main(int argc, char **argv)
-{ ulong top, htop;
-  ulong base;
-  ulong hbase;
-  ulong stack;
-  ulong defsize = DEFSTACKSIZE;		/* Thats what we want */
-  ulong size;			
-  int tried = 0;
+{ char *base;
+  ulong size;
+  ulong truncto;
+
+  if ( argc == 2 )
+    size = atol(argv[1]) MB;
+  else
+    size = 4 MB;
+
+  truncto = size/2;
 
   pagsiz = getpagesize();
   mapfd  = get_map_fd();
-  hbase  = RoundDown((ulong)sbrk(0) + 8 MB, pagsiz);
-  htop   = topOfHeap(hbase);
 
-  if ( htop )
-    defsize = size = min(htop-(hbase+1 MB), DEFSTACKSIZE);
-  else
-    defsize = size = DEFSTACKSIZE;
-
-again:
-  if ( htop )				/* try from the top ... */
-  { top  = RoundDown(htop, pagsiz);
-    base = top - size;
-
-    base = max(base, hbase);
-    if ( run_testarea(base, top) )
-    { if ( size != DEFSTACKSIZE )
-	printf("MMAP_STACKSIZE=%d;\n", size/(1 MB));
-      exit(0);				/* done */
-    }
-  }
-
-  base = hbase;				/* failed, lets try from the bottom */
-  top = base + size;
-  if ( htop )
-    top = min(top, htop);
-  stack = (ulong)&top;			/* do not overwrite the stack */
-  if ( stack > base )
-  { ulong stack_base;
-
-    if ( STACK_DIRECTION < 0 )
-      stack_base = RoundDown(stack - 8 MB, pagsiz);
-    else
-      stack_base = RoundDown(stack, 64 KB);
-
-    top = min(top, stack_base);
-  }
-  size = top-base;
-
-  if ( run_testarea(base, top) )
-  { if ( size != defsize )
-      printf("MMAP_STACKSIZE=%d;\n", size/(1 MB));
-    if ( htop )
-      printf("TOPOFHEAP=0;\n");
-    exit(0);
-  }
-
-  if ( !tried++ )
-  {
-#if defined(__NetBSD__) && _MACHINE == amiga
-    size = 120 MB;
-    goto again;
+  base = mmap(NULL, size, PROT_NONE, MAP_FLAGS, mapfd, 0L);
+  if ( base == MAP_FAILED )
+    perror("mmap");
+    
+#ifdef SEGV_HANDLING
+  signal(SIGSEGV, (handler_t) segv_handler);
 #endif
-  }
 
+  if ( !test_map(base, size) )
+    exit(1);
+
+#ifdef MAP_FIXED
+#ifdef VERBOSE
+  printf("Truncating area to %ld ...\n", truncto);
+#endif
+  if ( munmap(base+truncto, size-truncto) < 0 )
+  { perror("munmap()");
+    exit(1);
+  }
+  if ( mmap(base+truncto, size-truncto,
+	    PROT_NONE, MAP_FLAGS|MAP_FIXED, mapfd, 0L) != base+truncto )
+  { perror("remap()");
+    exit(1);
+  }
+#ifdef VERBOSE
+  printf("Testing again ...\n", truncto);
+#endif
+#endif /*MAP_FIXED*/
+
+  if ( test_map(base, size) )
+    ok();
 
   exit(1);
 }
