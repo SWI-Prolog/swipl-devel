@@ -603,7 +603,7 @@ WinSockError(unsigned long error)
   }
 
   sprintf(tmp, "Unknown error %ld", error);
-  return strdup(tmp);
+  return strdup(tmp);			/* leaks memory */
 }
 
 #endif /*BILLY_GETS_BETTER*/
@@ -1093,15 +1093,21 @@ tcp_read(void *handle, char *buf, int bufSize)
   }
 
 #ifdef WIN32
-  if ( false(s, SOCK_NONBLOCK) )
-    waitMsg(s, FD_READ|FD_CLOSE);
+					/* non-blocking socket */
+  if ( true(s, SOCK_NONBLOCK) )
+  { n = recv(socket, buf, bufSize, 0);
 
-  n = recv(socket, buf, bufSize, 0);
+    if ( n < 0 && WSAGetLastError() == WSAEWOULDBLOCK )
+      errno = EWOULDBLOCK;
+  } else				/* normal (blocking) socket */
+  { again:
+    if ( false(s, SOCK_CLOSE_SEEN) )
+      waitMsg(s, FD_READ|FD_CLOSE);
 
-  if ( n < 0 && WSAGetLastError() == WSAEWOULDBLOCK )
-  { if ( s->flags & SOCK_NONBLOCK )
-    { errno = EWOULDBLOCK;
-    }
+    n = recv(socket, buf, bufSize, 0);
+
+    if ( n < 0 && WSAGetLastError() == WSAEWOULDBLOCK )
+      goto again;
   } 
 
 #else /*WIN32*/

@@ -1,7 +1,10 @@
 Nov 29, 2002
 
+ * FIXED: MS-Windows tcp_read() not to wait for messages after we have
+   seen FD_CLOSE. Holger Kanwischer.
+
  * ADDED: Make library(socket) suitable for multi-threaded operation in
-   MS-Windows.
+   MS-Windows. Mike Elston.
 
 Nov 26, 2002
 
