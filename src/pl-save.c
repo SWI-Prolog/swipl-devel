@@ -97,7 +97,7 @@ PORTABILITY/OPTIONS
 #undef DEBUG
 #define DEBUG(l, g) {g;}
 #define O_SAVE 1
-#define OsPath(x) x
+#define OsPath(x, y) x
 #define ResetTty()
 #define Sdprintf printf
 #define Ssprintf sprintf
@@ -514,6 +514,7 @@ save(char *file, char *interpreter, int kind,
   int csects, nsects, sects_size;
   int n;
   SaveSection sect;
+  int tmp[MAXPATHLEN];
 
   fill_c_data_sections(interpreter, &csects, sects);
   nsects = csects + nsections;
@@ -525,9 +526,11 @@ save(char *file, char *interpreter, int kind,
     return warning("save/1: cannot write %s: %s\n", file, OsError());
   
 #if OS2
-  Ssprintf(buf, "/* Self-starting SWI-Prolog state */\r\n'@ECHO OFF'\r\nparse source . . name\r\n\"%s -r \" name arg(1)\r\nexit\r\n\032", OsPath(interpreter));
+  Ssprintf(buf, "/* Self-starting SWI-Prolog state */\r\n'@ECHO OFF'\r\nparse source . . name\r\n\"%s -r \" name arg(1)\r\nexit\r\n\032",
+	   OsPath(interpreter, tmp));
 #else
-  Ssprintf(buf, "#!/bin/sh\nexec %s -r $0 \"$@\"\n", OsPath(interpreter));
+  Ssprintf(buf, "#!/bin/sh\nexec %s -r $0 \"$@\"\n",
+	   OsPath(interpreter, tmp));
 #endif
   header_offset = strlen(buf) + 1; /* +1 to write the EOS too */
   DEBUG(1, Sdprintf("header_offset = %d\n", header_offset));
@@ -615,7 +618,7 @@ PL_initialise(int argc, char **argv)
 #ifndef TEST
     for(av=argv; *av; av++)
       if ( streq(*av, "-d") && av[1] )
-	status.debugLevel = atoi(av[1]);
+	GD->debug_level = atoi(av[1]);
 #endif
 
     if ( argc >= 3 && streq(argv[1], "-r") )

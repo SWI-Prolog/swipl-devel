@@ -44,14 +44,11 @@ day.
 #include <excpt.h>
 #endif
 
-#define MAXARITHFUNCTIONS (100)
-
-typedef struct arithFunction * 	ArithFunction;
 typedef int (*ArithF)();
 
 struct arithFunction
 { ArithFunction next;		/* Next of chain */
-  FunctorDef	functor;	/* Functor defined */
+  functor_t	functor;	/* Functor defined */
   ArithF	function;	/* Implementing function */
   Module	module;		/* Module visibility module */
 #if O_PROLOG_FUNCTIONS
@@ -62,12 +59,13 @@ struct arithFunction
 #endif
 };
 
-forwards ArithFunction	isCurrentArithFunction(FunctorDef, Module);
-static void		promoteToRealNumber(Number n);
+#define arithFunctionTable	(GD->arith.table)
+#define function_array		(&GD->arith.functions)
+#define FunctionFromIndex(n)	fetchBuffer(function_array, n, ArithFunction)
 
-static ArithFunction arithFunctionTable[ARITHHASHSIZE];
-static code next_index;
-static ArithFunction functions;
+static ArithFunction	isCurrentArithFunction(functor_t, Module);
+static void		registerFunction(ArithFunction f);
+static void		promoteToRealNumber(Number n);
 
 
 		/********************************
@@ -261,16 +259,16 @@ pl_equalNumbers(term_t n1, term_t n2)			/* =:=/2 */
 		*********************************/
 
 static ArithFunction
-isCurrentArithFunction(register FunctorDef f, register Module m)
-{ register ArithFunction a;
+isCurrentArithFunction(functor_t f, Module m)
+{ ArithFunction a;
   ArithFunction r = NULL;
   int level = 30000;
 
-  for(a = arithFunctionTable[pointerHashValue(f, ARITHHASHSIZE)];
+  for(a = arithFunctionTable[functorHashValue(f, ARITHHASHSIZE)];
       a && !isTableRef(a); a = a->next)
   { if ( a->functor == f )
-    { register Module m2;
-      register int l;
+    { Module m2;
+      int l;
 
       for( m2 = m, l = 0; m2; m2 = m2->super, l++ )
       { if ( m2 == a->module && l < level )
@@ -293,7 +291,7 @@ realExceptionHandler(int sig, int type, SignalContext scp, char *addr)
 #ifndef BSD_SIGNALS
   signal(sig, (OsSigHandler)realExceptionHandler);
 #endif
-  if ( status.arithmetic > 0 )
+  if ( LD->in_arithmetic > 0 )
   { warning("Floating point exception");
 #ifndef O_RUNTIME
     Sfprintf(Serror, "[PROLOG STACK:\n");
@@ -370,7 +368,7 @@ prologFunction(ArithFunction f, term_t av, Number r)
 int
 valueExpression(term_t t, Number r)
 { ArithFunction f;
-  FunctorDef fDef;
+  functor_t functor;
   Word p = valTermRef(t);
   word w;
 
@@ -389,17 +387,18 @@ valueExpression(term_t t, Number r)
     case TAG_VAR:
       return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
     case TAG_ATOM:
-      fDef = lookupFunctorDef(w, 0);
+      functor = lookupFunctorDef(w, 0);
       break;
     case TAG_COMPOUND:
-      fDef = functorTerm(w);
+      functor = functorTerm(w);
       break;
     default:
       return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_number, t);
   }
 
-  if ( !(f = isCurrentArithFunction(fDef, contextModule(environment_frame))))
-  { if ( fDef == FUNCTOR_dot2 )		/* handle "a" (make function) */
+  if ( !(f = isCurrentArithFunction(functor,
+				    contextModule(environment_frame))))
+  { if ( functor == FUNCTOR_dot2 )	/* handle "a" (make function) */
     { Word a, b, p = valTermRef(t);
 
       deRef(p);
@@ -423,12 +422,12 @@ valueExpression(term_t t, Number r)
 	return PL_error(".", 2, NULL, ERR_TYPE, ATOM_integer, a1);
       }
     } else
-      return PL_error(NULL, 0, NULL, ERR_NOT_EVALUABLE, fDef);
+      return PL_error(NULL, 0, NULL, ERR_NOT_EVALUABLE, functor);
   }
 
 #if O_PROLOG_FUNCTIONS
   if ( f->proc )
-  { int rval, n, arity = fDef->arity;
+  { int rval, n, arity = arityFunctor(functor);
     term_t h0 = PL_new_term_refs(arity+1); /* one extra for the result */
 
     for(n=0; n<arity; n++)
@@ -453,9 +452,9 @@ valueExpression(term_t t, Number r)
     __try
     {
 #else
-    status.arithmetic++;
+    LD->in_arithmetic++;
 #endif
-    switch(fDef->arity)
+    switch(arityFunctor(functor))
     { case 0:
 	rval = (*f->function)(r);
         break;
@@ -504,7 +503,7 @@ valueExpression(term_t t, Number r)
       pl_abort();
     }
 #else
-    status.arithmetic--;
+    LD->in_arithmetic--;
 #endif
 
     if ( r->type == V_REAL )
@@ -1077,8 +1076,9 @@ word
 pl_arithmetic_function(term_t descr)
 { Procedure proc;
   Definition def;
-  FunctorDef fd;
-  register ArithFunction f;
+  functor_t fd;
+  FunctorDef fdef;
+  ArithFunction f;
   Module m = NULL;
   term_t head = PL_new_term_ref();
   int v;
@@ -1086,28 +1086,28 @@ pl_arithmetic_function(term_t descr)
   PL_strip_module(descr, &m, head);
   if ( !PL_get_functor(head, &fd) )
     return warning("arithmetic_function/1: Illegal head");
-  if ( fd->arity < 1 )
+  fdef = valueFunctor(fd);
+  if ( fdef->arity < 1 )
     return warning("arithmetic_function/1: Illegal arity");
 
   proc = lookupProcedure(fd, m);
   def = proc->definition;
-  fd = lookupFunctorDef(fd->name, fd->arity - 1);
+  fd = lookupFunctorDef(fdef->name, fdef->arity - 1);
   if ( (f = isCurrentArithFunction(fd, m)) && f->module == m )
     succeed;				/* already registered */
 
-  if ( next_index >= MAXARITHFUNCTIONS )
-    return warning("Cannot handle more than %d arithmetic functions",
-		   MAXARITHFUNCTIONS);
-
-  v = pointerHashValue(fd, ARITHHASHSIZE);
-  f = &functions[next_index];
+  v = functorHashValue(fd, ARITHHASHSIZE);
+  f = allocHeap(sizeof(struct arithFunction));
   f->functor  = fd;
   f->function = NULL;
   f->module   = m;
   f->proc     = proc;
-  f->index    = next_index++;
+
+  startCritical;
   f->next     = arithFunctionTable[v];
   arithFunctionTable[v] = f;  
+  registerFunction(f);
+  endCritical;
 
   succeed;
 }
@@ -1120,7 +1120,7 @@ pl_current_arithmetic_function(term_t f, word h)
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
-    { FunctorDef fd;
+    { functor_t fd;
 
       PL_strip_module(f, &m, head);
 
@@ -1164,9 +1164,14 @@ pl_current_arithmetic_function(term_t f, word h)
 
 #endif /* O_PROLOG_FUNCTIONS */
 
-#define ADD(functor, func) { (ArithFunction)NULL, functor, func }
+typedef struct
+{ functor_t	functor;
+  ArithF	function;
+} ar_funcdef;
 
-static struct arithFunction ar_functions[MAXARITHFUNCTIONS] = {
+#define ADD(functor, func) { functor, func }
+
+static const ar_funcdef ar_funcdefs[] = {
   ADD(FUNCTOR_plus2,		ar_add),
   ADD(FUNCTOR_minus2,		ar_minus),
   ADD(FUNCTOR_star2,		ar_times),
@@ -1217,16 +1222,48 @@ static struct arithFunction ar_functions[MAXARITHFUNCTIONS] = {
   ADD(FUNCTOR_e0,		ar_e),
 
   ADD(FUNCTOR_cputime0,		ar_cputime),
-
-  ADD((FunctorDef)NULL,		(ArithF)NULL)
 };
 
 #undef ADD
 
+static void
+registerFunction(ArithFunction f)
+{ f->index = entriesBuffer(function_array, ArithFunction);
+  addBuffer(function_array, f, ArithFunction);
+}
+
+
+static void
+registerBuiltinFunctions()
+{ int n, size = sizeof(ar_funcdefs)/sizeof(ar_funcdef);
+  ArithFunction f = allocHeap(size * sizeof(struct arithFunction));
+  const ar_funcdef *d;
+
+					/* grow to desired size immediately */
+  growBuffer(function_array, size * sizeof(ArithFunction));
+  memset(f, 0, size * sizeof(struct arithFunction));
+
+  for(d = ar_funcdefs, n=0; n<size; n++, f++, d++)
+  { int v = functorHashValue(d->functor, ARITHHASHSIZE);
+
+    f->functor  = d->functor;
+    f->function = d->function;
+    f->module   = MODULE_system;
+    f->next     = arithFunctionTable[v];
+    arithFunctionTable[v] = f;
+    registerFunction(f);
+    DEBUG(1, Sdprintf("Registered %s/%d at %d, index=%d\n",
+		      stringAtom(nameFunctor(f->functor)),
+		      arityFunctor(f->functor),
+		      v,
+		      f->index));
+  }			       
+}
+
 
 void
 initArith(void)
-{
+{ 
 #ifdef SIGFPE
   pl_signal(SIGFPE, (handler_t) realExceptionHandler);
 #endif
@@ -1234,30 +1271,16 @@ initArith(void)
   setmatherr(realExceptionHandler);
 #endif
 
+  initBuffer(function_array);
 					/* link the table to enumerate */
-  { register ArithFunction *f;
-    register int n;
+  { ArithFunction *f;
+    int n;
 
     for(n=0, f = arithFunctionTable; n < (ARITHHASHSIZE-1); n++, f++)
       *f = makeTableRef(f+1);
   }
 
-					/* initialise it */
-  { ArithFunction f;
-    int v;
-
-    functions = ar_functions;
-
-    for( f = functions, next_index = 0; f->functor; f++, next_index++ )
-    { v = pointerHashValue(f->functor, ARITHHASHSIZE);
-      f->module = MODULE_system;
-#if O_COMPILE_ARITH
-      f->index = next_index;
-#endif
-      f->next = arithFunctionTable[v];
-      arithFunctionTable[v] = f;
-    }
-  }
+  registerBuiltinFunctions();
 }
 
 #if O_COMPILE_ARITH
@@ -1267,19 +1290,19 @@ initArith(void)
 		*********************************/
 
 int
-indexArithFunction(register FunctorDef fdef, register Module m)
-{ register ArithFunction f;
+indexArithFunction(functor_t fdef, register Module m)
+{ ArithFunction f;
 
-  if ( (f = isCurrentArithFunction(fdef, m)) == (ArithFunction) NULL )
+  if ( !(f = isCurrentArithFunction(fdef, m)) )
     return -1;
 
   return (int)f->index;
 }
 
 
-FunctorDef
+functor_t
 functorArithFunction(int n)
-{ return functions[n].functor;
+{ return FunctionFromIndex(n)->functor;
 }
 
 
@@ -1287,7 +1310,7 @@ bool
 ar_func_n(code n, int argc, Number *stack)
 { number result;
   int rval;
-  ArithFunction f = &functions[(int)n];
+  ArithFunction f = FunctionFromIndex((int)n);
   Number sp = *stack;
 
   sp -= argc;

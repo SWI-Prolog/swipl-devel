@@ -22,20 +22,19 @@ The (toplevel) remainder of the all-solutions predicates is  written  in
 Prolog.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-typedef struct assoc * Assoc;
-
 struct assoc
 { Record	binding;
   Assoc		next;			/* next in chain */
 };
 
-static Assoc bags = (Assoc) NULL;	/* chain of value pairs */
+#define alist LD->bags.bags		/* Each thread has its own */
+					/* storage for this */
 
 static
 void
 freeAssoc(Assoc prev, Assoc a)
 { if ( prev == NULL )
-    bags = a->next;
+    alist = a->next;
   else
     prev->next = a->next;
   if ( a->binding )
@@ -58,8 +57,8 @@ pl_record_bag(term_t t)
     a->binding = NULL;
   else
     a->binding = compileTermToHeap(t);
-  a->next    = bags;
-  bags       = a;
+  a->next    = alist;
+  alist       = a;
 
   succeed;
 }
@@ -77,7 +76,7 @@ pl_collect_bag(term_t bindings, term_t bag)
   Assoc a, next;
   Assoc prev = (Assoc) NULL;
   
-  if ( !(a = bags) )
+  if ( !(a = alist) )
     fail;
   if ( !a->binding )
   { freeAssoc(prev, a);

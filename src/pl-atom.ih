@@ -331,3 +331,4 @@
 #define ATOM_undefined    MK_ATOM(330)
 #define ATOM_float_overflow MK_ATOM(331)
 #define ATOM_float_underflow MK_ATOM(332)
+#define ATOM_case_sensitive_file_names MK_ATOM(333)

@@ -231,10 +231,9 @@ prolog_completion(char *text, int start, int end)
 
 install_t
 PL_install_readline()
-{ static IOFUNCTIONS funcs;
-
+{ 
 #ifndef __WIN32__
-  if ( status.notty || !isatty(0) )
+  if ( GD->cmdline.notty || !isatty(0) )
     return;
 #endif
 
@@ -250,12 +249,12 @@ PL_install_readline()
   rl_add_defun("insert-close", rl_insert_close, ')');
 #endif
 
-  funcs = *Sinput->functions;		/* structure copy */
-  funcs.read = Sread_readline;		/* read through readline */
+  GD->os.rl_functions = *Sinput->functions;	/* structure copy */
+  GD->os.rl_functions.read = Sread_readline;	/* read through readline */
 
-  Sinput->functions  = &funcs;
-  Soutput->functions = &funcs;
-  Serror->functions  = &funcs;
+  Sinput->functions  = &GD->os.rl_functions;
+  Soutput->functions = &GD->os.rl_functions;
+  Serror->functions  = &GD->os.rl_functions;
 
   PL_register_foreign("rl_read_init_file", 1, pl_rl_read_init_file, 0);
   PL_register_foreign("rl_add_history",    1, pl_rl_add_history,

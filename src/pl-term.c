@@ -188,7 +188,6 @@ pl_tty_put(term_t a, term_t affcnt)
     PL_put_atom(ttys, tty_stream);
 
     streamOutput(ttys, (tputs(s, n, Put), TRUE));
-    succeed;
   }
 
   return warning("tty_put: instantiation fault");

@@ -62,7 +62,6 @@ forwards void	initExpand(void);
 forwards void	initRandom(void);
 forwards void	initEnviron(void);
 forwards long	Time(void);
-forwards char *	okToExec(char *);
 static void	RemoveTemporaryFiles(void);
 
 #ifndef DEFAULT_PATH
@@ -108,15 +107,13 @@ initOs(void)
   initEnviron();
 
 #ifdef __WIN32__
-{ int w32s = iswin32s();
-  status.case_sensitive_files = FALSE;
-  status.case_preserving_files = (w32s ? FALSE : TRUE);
-  status.dos_files = (w32s ? TRUE : FALSE);
-}
+  if ( iswin32s() )
+    set(&featured, DOS_FILE_NAMES_FEATURE);
+  else
+    set(&featured, FILE_CASE_PRESERVING_FEATURE);
 #else
-  status.case_sensitive_files = TRUE;
-  status.case_preserving_files = TRUE;
-  status.dos_files = FALSE;
+  set(&features, FILE_CASE_FEATURE);
+  set(&features, FILE_CASE_PRESERVING_FEATURE);
 #endif
 
 #ifdef HAVE_CLOCK
@@ -138,9 +135,7 @@ initOs(void)
   succeed;
 }
 
-
 typedef void (*halt_function)(int, Void);
-typedef struct on_halt *OnHalt;
 
 struct on_halt
 { halt_function	function;
@@ -148,18 +143,18 @@ struct on_halt
   OnHalt	next;
 };
 
-static OnHalt on_halt_list;
-static int halting;
 
 void
 PL_on_halt(halt_function f, Void arg)
-{ if ( !halting )
+{ if ( !GD->os.halting )
   { OnHalt h = allocHeap(sizeof(struct on_halt));
 
     h->function = f;
     h->argument = arg;
-    h->next = on_halt_list;
-    on_halt_list = h;
+    startCritical;
+    h->next = GD->os.on_halt_list;
+    GD->os.on_halt_list = h;
+    endCritical;
   }
 }
 
@@ -172,13 +167,13 @@ Halt(int rval)
   pl_notrace();				/* avoid recursive tracing */
   Output = 1;				/* reset output stream to user */
 
-  if ( !halting )
-  { halting++;				/* avoid recursion */
+  if ( !GD->os.halting )
+  { GD->os.halting++;			/* avoid recursion */
 
-    for(h = on_halt_list; h; h = h->next)
+    for(h = GD->os.on_halt_list; h; h = h->next)
       (*h->function)(rval, h->argument);
 
-    if ( status.initialised )
+    if ( GD->initialised )
     { fid_t cid = PL_open_foreign_frame();
       predicate_t proc = PL_predicate("$run_at_halt", 0, "system");
       PL_call_predicate(MODULE_system, FALSE, proc, 0);
@@ -193,7 +188,7 @@ Halt(int rval)
     qlfCleanup();			/* remove errornous .qlf files */
     dieIO();
 
-    if ( status.initialised )
+    if ( GD->initialised )
     { fid_t cid = PL_open_foreign_frame();
       predicate_t proc = PL_predicate("unload_all_foreign_libraries", 0,
 				      "shlib");
@@ -283,16 +278,16 @@ CpuTime(void)
 {
 #ifdef HAVE_TIMES
   struct tms t;
-  static int got_hz = FALSE;
-  static real _hz;
+  static int MTOK_got_hz = FALSE;
+  static real MTOK_hz;
 
-  if ( !got_hz )
-  { _hz = (real) Hz;
-    got_hz++;
+  if ( !MTOK_got_hz )
+  { MTOK_hz = (real) Hz;
+    MTOK_got_hz++;
   }
   times(&t);
 
-  return (real) t.tms_utime / _hz;
+  return (real) t.tms_utime / MTOK_hz;
 #endif
 
 #if OS2 && EMX
@@ -418,8 +413,7 @@ available to the Prolog user based on these functions.  These  functions
 are  in  this  module as non-UNIX OS probably don't have getpid() or put
 temporaries on /tmp.
 
-    atom_t TemporaryFile(id)
-	   char *id;
+    atom_t TemporaryFile(const char *id)
 
     The return value of this call is an atom,  whose  string  represents
     the  path  name of a unique file that can be used as temporary file.
@@ -433,12 +427,13 @@ temporaries on /tmp.
     not be created at all, or might already have been deleted.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-typedef struct tempfile * TempFile;
-
-static struct tempfile
+struct tempfile
 { atom_t	name;
   TempFile	next;
-} *tempfiles, *temptail;		/* chain of temporary files */
+};					/* chain of temporary files */
+
+#define tmpfile_head (GD->os._tmpfile_head)
+#define tmpfile_tail (GD->os._tmpfile_tail)
 
 #ifndef DEFTMPDIR
 #ifdef __WIN32__
@@ -449,18 +444,19 @@ static struct tempfile
 #endif
 
 atom_t
-TemporaryFile(char *id)
-{ static char temp[MAXPATHLEN];
-  TempFile tf = (TempFile) allocHeap(sizeof(struct tempfile));
+TemporaryFile(const char *id)
+{ char temp[MAXPATHLEN];
+  TempFile tf = allocHeap(sizeof(struct tempfile));
   char *tmpdir;
 
   if ( !((tmpdir = getenv("TEMP")) || (tmpdir = getenv("TMP"))) )
     tmpdir = DEFTMPDIR;
 
 #if unix
-{
-  static int temp_counter = 0;
-  Ssprintf(temp, "%s/pl_%s_%d_%d", tmpdir, id, (int) getpid(), temp_counter++);
+{ static int MTOK_temp_counter = 0;
+
+  Ssprintf(temp, "%s/pl_%s_%d_%d",
+	   tmpdir, id, (int) getpid(), MTOK_temp_counter++);
 }
 #endif
 
@@ -491,29 +487,33 @@ TemporaryFile(char *id)
 #endif
 
   tf->name = lookupAtom(temp);
-  tf->next = (TempFile) NULL;
+  tf->next = NULL;
   
-  if ( temptail == (TempFile) NULL )
-  { tempfiles = temptail = tf;
+  startCritical;
+  if ( !tmpfile_tail )
+  { tmpfile_head = tmpfile_tail = tf;
   } else
-  { temptail->next = tf;
-    temptail = tf;
+  { tmpfile_tail->next = tf;
+    tmpfile_tail = tf;
   }
+  endCritical;
 
   return tf->name;
 }
 
 static void
-RemoveTemporaryFiles(void)
+RemoveTemporaryFiles()
 { TempFile tf, tf2;  
 
-  for(tf = tempfiles; tf; tf = tf2)
+  startCritical;
+  for(tf = tmpfile_head; tf; tf = tf2)
   { RemoveFile(stringAtom(tf->name));
     tf2 = tf->next;
     freeHeap(tf, sizeof(struct tempfile));
   }
 
-  tempfiles = temptail = (TempFile) NULL;
+  tmpfile_head = tmpfile_tail = NULL;
+  endCritical;
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -634,22 +634,12 @@ getpagesize()
 #endif /*_SC_PAGESIZE*/
 #endif /*HAVE_GETPAGESIZE*/
 
-/* ********************************************************************
-   Design Note -- atoenne@mpi-sb.mpg.de --
-
-   Beware! OsPath() and PrologPath() are insecure functions.
-   Make sure that you copy the result of these functions to a proper location
-   before you call the functions again. Otherwise you will write over the
-   former result.
-   ******************************************************************** */
-
 #if O_HPFS
 
-/* 
-   Conversion rules Prolog <-> OS/2 (using HPFS)
-   / <-> \
-   /x:/ <-> x:\  (embedded drive letter)
-   No length restrictions up to MAXPATHLEN, no case conversions.
+/*  Conversion rules Prolog <-> OS/2 (using HPFS)
+    / <-> \
+    /x:/ <-> x:\  (embedded drive letter)
+    No length restrictions up to MAXPATHLEN, no case conversions.
 */
 
 char *
@@ -672,10 +662,9 @@ PrologPath(char *ospath, char *path)
 
 
 char *
-OsPath(const char *unixpath)
-{ static char path[MAXPATHLEN];
-  register char *s = unixpath, *p = path;
-  register int limit = MAXPATHLEN-1;
+OsPath(const char *plpath, char *path)
+{ const char *s = plpath, *p = path;
+  int limit = MAXPATHLEN-1;
 
   if ( s[0] == '/' && isLetter(s[1]) && s[2] == ':') /* embedded drive letter*/
   { s++;
@@ -698,41 +687,46 @@ OsPath(const char *unixpath)
 
 #if unix
 char *
-PrologPath(char *p, char *buf)
+PrologPath(const char *p, char *buf)
 { strcpy(buf, p);
 
   return buf;
 }
 
 char *
-OsPath(const char *p)
-{ return (char *) p;
+OsPath(const char *p, char *buf)
+{ strcpy(buf, p);
+
+  return buf;
 }
 #endif /*unix*/
 
 #if O_XOS
 char *
-PrologPath(char *p, char *buf)
+PrologPath(const char *p, char *buf)
 { _xos_canonical_filename(p, buf);
-  if ( !status.case_sensitive_files )
+  if ( !trueFeature(FILE_CASE_FEATURE) )
     strlwr(buf);
 
   return buf;
 }
 
 char *
-OsPath(const char *p)
-{ return (char *) p;
+OsPath(const char *p, char *buf)
+{ strcpy(buf, p);
+
+  return buf;
 }
 #endif /* O_XOS */
 
 long
 LastModifiedFile(char *f)
-{
+{ char tmp[MAXPATHLEN];
+
 #if defined(HAVE_STAT) || defined(__unix__)
   struct stat buf;
 
-  if ( statfunc(OsPath(f), &buf) < 0 )
+  if ( statfunc(OsPath(f, tmp), &buf) < 0 )
     return -1;
 
   return (long)buf.st_mtime;
@@ -753,7 +747,7 @@ LastModifiedFile(char *f)
     unsigned int day  : 5;	/* day (1-31) */
   } *dz;
 
-  if ( findfirst(OsPath(f), &buf, FA_HIDDEN) != 0 )
+  if ( findfirst(OsPath(f, tmp), &buf, FA_HIDDEN) != 0 )
     return -1;
   dz = (struct dz *) &buf.ff_ftime;
   DEBUG(2, Sdprintf("%d/%d/%d %d:%d:%d\n",
@@ -776,17 +770,18 @@ LastModifiedFile(char *f)
 #endif
 
 bool
-ExistsFile(char *path)
-{
+ExistsFile(const char *path)
+{ char tmp[MAXPATHLEN];
+
 #ifdef HAVE_ACCESS
-  if ( access(OsPath(path), F_OK) == 0 )
+  if ( access(OsPath(path, tmp), F_OK) == 0 )
     succeed;
   fail;
 #else
 #if defined(HAVE_STAT) || defined(__unix__)
   struct stat buf;
 
-  if ( statfunc(OsPath(path), &buf) == -1 ||
+  if ( statfunc(OsPath(path, tmp), &buf) == -1 ||
        (buf.st_mode & S_IFMT) != S_IFREG )
     fail;
   succeed;
@@ -795,7 +790,7 @@ ExistsFile(char *path)
 #if tos
   struct ffblk buf;
 
-  if ( findfirst(OsPath(path), &buf, FA_HIDDEN) == 0 )
+  if ( findfirst(OsPath(path, tmp), &buf, FA_HIDDEN) == 0 )
   { DEBUG(2, Sdprintf("%s (%s) exists\n", path, OsPath(path)));
     succeed;
   }
@@ -806,8 +801,8 @@ ExistsFile(char *path)
 }
 
 bool
-AccessFile(char *path, int mode)
-{
+AccessFile(const char *path, int mode)
+{ char tmp[MAXPATHLEN];
 #ifdef HAVE_ACCESS
   int m = 0;
 
@@ -821,13 +816,13 @@ AccessFile(char *path, int mode)
 #endif
   }
 
-  return access(OsPath(path), m) == 0 ? TRUE : FALSE;
+  return access(OsPath(path, tmp), m) == 0 ? TRUE : FALSE;
 #endif
 
 #ifdef tos
   struct ffblk buf;
 
-  if ( findfirst(OsPath(path), &buf, FA_DIREC|FA_HIDDEN) != 0 )
+  if ( findfirst(OsPath(path, tmp), &buf, FA_DIREC|FA_HIDDEN) != 0 )
     fail;			/* does not exists */
   if ( (mode & ACCESS_WRITE) && (buf.ff_attrib & FA_RDONLY) )
     fail;			/* readonly file */
@@ -837,8 +832,10 @@ AccessFile(char *path, int mode)
 }
 
 bool
-ExistsDirectory(char *path)
-{ char *ospath = OsPath(path);
+ExistsDirectory(const char *path)
+{ char tmp[MAXPATHLEN];
+  char *ospath = OsPath(path, tmp);
+
 #if defined(HAVE_STAT) || defined(__unix__)
   struct stat buf;
 
@@ -865,10 +862,12 @@ ExistsDirectory(char *path)
 
 
 long
-SizeFile(char *path)
-{ struct stat buf;
+SizeFile(const char *path)
+{ char tmp[MAXPATHLEN];
+  struct stat buf;
+
 #if defined(HAVE_STAT) || defined(__unix__)
-  if ( statfunc(OsPath(path), &buf) == -1 )
+  if ( statfunc(OsPath(path, tmp), &buf) == -1 )
     return -1;
 #endif
 
@@ -878,43 +877,46 @@ SizeFile(char *path)
 
 int
 RemoveFile(const char *path)
-{
+{ char tmp[MAXPATHLEN];
+
 #ifdef HAVE_REMOVE
-  return remove(OsPath(path)) == 0 ? TRUE : FALSE;
+  return remove(OsPath(path, tmp)) == 0 ? TRUE : FALSE;
 #else
-  return unlink(OsPath(path)) == 0 ? TRUE : FALSE;
+  return unlink(OsPath(path, tmp)) == 0 ? TRUE : FALSE;
 #endif
 }
 
 
 bool
-RenameFile(char *old, char *new)
-{
+RenameFile(const char *old, const char *new)
+{ char oldbuf[MAXPATHLEN];
+  char newbuf[MAXPATHLEN];
+  char *osold, *osnew;
+
+  osold = OsPath(old, oldbuf);
+  osnew = OsPath(new, newbuf);
+
 #ifdef HAVE_RENAME
-  return rename(old, new) == 0 ? TRUE : FALSE;
+  return rename(osold, osnew) == 0 ? TRUE : FALSE;
 #else
-  char os_old[MAXPATHLEN];
-  char os_new[MAXPATHLEN];
-  int rval;
+{ int rval;
 
-  strcpy(os_old, OsPath(old));
-  strcpy(os_new, OsPath(new));
+  unlink(osnew);
+  if ( (rval = link(osold, osnew)) == 0 
+       && (rval = unlink(osold)) != 0)
+    unlink(osnew);
 
-  unlink(new);
-  if ((rval = link(os_old, os_new)) == 0 
-              && (rval = unlink(os_old)) != 0)
-    unlink(new);
-
-  if (rval == 0)
+  if ( rval == 0 )
     succeed;
 
   fail;
+}
 #endif /*HAVE_RENAME*/
 }
 
 bool
-SameFile(char *f1, char *f2)
-{ if ( status.case_sensitive_files )
+SameFile(const char *f1, const char *f2)
+{ if ( trueFeature(FILE_CASE_FEATURE) )
   { if ( streq(f1, f2) )
       succeed;
   } else
@@ -925,9 +927,10 @@ SameFile(char *f1, char *f2)
 #ifdef unix				/* doesn't work on most not Unix's */
   { struct stat buf1;
     struct stat buf2;
+    char tmp[MAXPATHLEN];
 
-    if ( statfunc(OsPath(f1), &buf1) != 0 ||
-	 statfunc(OsPath(f2), &buf2) != 0 )
+    if ( statfunc(OsPath(f1, tmp), &buf1) != 0 ||
+	 statfunc(OsPath(f2, tmp), &buf2) != 0 )
       fail;
     if ( buf1.st_ino == buf2.st_ino && buf1.st_dev == buf2.st_dev )
       succeed;
@@ -939,7 +942,7 @@ SameFile(char *f1, char *f2)
 
     _xos_limited_os_filename(f1, p1);
     _xos_limited_os_filename(f2, p2);
-    if ( status.case_sensitive_files )
+    if ( trueFeature(FILE_CASE_FEATURE) )
     { if ( streq(p1, p2) )
 	succeed;
     } else
@@ -957,7 +960,7 @@ SameFile(char *f1, char *f2)
 
 
 bool
-MarkExecutable(char *name)
+MarkExecutable(const char *name)
 {
 #if (defined(HAVE_STAT) && defined(HAVE_CHMOD)) || defined(__unix__)
   struct stat buf;
@@ -990,8 +993,7 @@ MarkExecutable(char *name)
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    char *AbsoluteFile(file)
-  	 char *file;
+    char *AbsoluteFile(const char *file, char *path)
 
     Expand a file specification to a system-wide unique  description  of
     the  file  that can be passed to the file functions that take a path
@@ -1007,8 +1009,7 @@ MarkExecutable(char *name)
 
     Return the basic file name for a file having path `path'.
 
-    char *DirName(path)
-	 char *path;
+    char *DirName(const char *path, char *dir)
     
     Return the directory name for a file having path `path'.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -1016,21 +1017,21 @@ MarkExecutable(char *name)
 #if defined(HAVE_SYMLINKS) && (defined(HAVE_STAT) || defined(__unix__))
 #define O_CANONISE_DIRS
 
-typedef struct canonical_dir *CanonicalDir;
-
-static struct canonical_dir
+struct canonical_dir
 { char *	name;			/* name of directory */
   char *	canonical;		/* canonical name of directory */
   dev_t		device;			/* device number */
   ino_t		inode;			/* inode number */
   CanonicalDir  next;			/* next in chain */
-} *canonical_dirlist = NULL;            /* initialization -- atoenne -- */
+};
+
+#define canonical_dirlist (GD->os._canonical_dirlist)
 
 forwards char   *canoniseDir(char *);
 #endif /*O_CANONISE_DIRS*/
 
-static  char    CWDdir[MAXPATHLEN];	/* current directory */
-static  int     CWDlen;			/* Length of CWDdir */
+#define CWDdir	(LD->os._CWDdir)	/* current directory */
+#define CWDlen	(LD->os._CWDlen)	/* strlen(CWDdir) */
 
 static void
 initExpand(void)
@@ -1040,7 +1041,7 @@ initExpand(void)
   char *cpaths;
 #endif
 
-  CWDdir[0] = EOS;
+  CWDdir = NULL;
   CWDlen = 0;
 
 #ifdef O_CANONISE_DIRS
@@ -1066,6 +1067,7 @@ initExpand(void)
 
   if ( (dir = getenv("HOME")) ) canoniseDir(dir);
   if ( (dir = getenv("PWD"))  ) canoniseDir(dir);
+  if ( (dir = getenv("CWD"))  ) canoniseDir(dir);
 #endif
 }
 
@@ -1075,6 +1077,7 @@ static char *
 canoniseDir(char *path)
 { CanonicalDir d;
   struct stat buf;
+  char tmp[MAXPATHLEN];
 
   DEBUG(1, Sdprintf("canoniseDir(%s) --> ", path));
 
@@ -1088,7 +1091,7 @@ canoniseDir(char *path)
     }
   }
 
-  if ( statfunc(OsPath(path), &buf) == 0 )
+  if ( statfunc(OsPath(path, tmp), &buf) == 0 )
   { CanonicalDir dn = allocHeap(sizeof(struct canonical_dir));
     char dirname[MAXPATHLEN];
     char *e = path + strlen(path);
@@ -1101,7 +1104,7 @@ canoniseDir(char *path)
     do
     { strncpy(dirname, path, e-path);
       dirname[e-path] = EOS;
-      if ( statfunc(OsPath(dirname), &buf) < 0 )
+      if ( statfunc(OsPath(dirname, tmp), &buf) < 0 )
 	break;
 
       DEBUG(2, Sdprintf("Checking %s (dev=%d,ino=%d)\n",
@@ -1192,7 +1195,7 @@ canoniseFileName(char *path)
 
 char *
 canonisePath(char *path)
-{ if ( !status.case_sensitive_files )
+{ if ( !trueFeature(FILE_CASE_FEATURE) )
     strlwr(path);
 
   canoniseFileName(path);
@@ -1216,23 +1219,17 @@ canonisePath(char *path)
 }
 
 
-#include <ctype.h>
-
-forwards char	*takeWord(char **);
-forwards int	ExpandFile(char *, char **);
-
 static char *
-takeWord(char **string)
-{ static char wrd[MAXPATHLEN];
-  register char *s = *string;
-  register char *q = wrd;
-  register int left = MAXPATHLEN-1;
+takeWord(const char **string, char *wrd)
+{ const char *s = *string;
+  char *q = wrd;
+  int left = MAXPATHLEN-1;
 
-  while( isalnum(*s) || *s == '_' )
+  while( isAlpha(*s) || *s == '_' )
   { if ( --left < 0 )
     { PL_error(NULL, 0, NULL, ERR_REPRESENTATION,
 	       ATOM_max_variable_length);
-      return (char *) NULL;
+      return NULL;
     }
     *q++ = *s++;
   }
@@ -1244,47 +1241,39 @@ takeWord(char **string)
 
 
 bool
-expandVars(char *pattern, char *expanded)
+expandVars(const char *pattern, char *expanded)
 { int size = 0;
   char c;
+  char word[MAXPATHLEN];
 
   if ( *pattern == '~' )
-  { 
-#ifdef HAVE_GETPWNAM
-    static char fred[20];
-    static char fredLogin[MAXPATHLEN];
-#endif
-    char *user;
+  { char *user;
     char *value;
     int l;
 
     pattern++;
-    user = takeWord(&pattern);
+    user = takeWord(&pattern, word);
     if ( user[0] == EOS )		/* ~/bla */
     {
 #ifdef O_XOS
       value = _xos_home();
 #else /*O_XOS*/
-      static char myhome[MAXPATHLEN];
-
-      if ( myhome[0] == EOS )
-      { char plp[MAXPATHLEN];
-
-	if ( (value = getenv("HOME")) )
-	{ strcpy(myhome, PrologPath(value, plp));
+      if ( !(value = GD->os.myhome) )
+      { if ( (value = getenv("HOME")) )
+	{ value = GD->os.myhome = store_string(PrologPath(value, word));
+	} else
+	{ value = GD->os.myhome = "/";
 	}
-	if ( myhome[0] == EOS )
-	  strcpy(myhome, "/");
       }
-	
-      value = myhome;
 #endif /*O_XOS*/
     } else				/* ~fred */
 #ifdef HAVE_GETPWNAM
     { struct passwd *pwent;
 
-      if ( !streq(fred, user) )
-      { if ( (pwent = getpwnam(user)) == (struct passwd *) NULL )
+      if ( GD->os.fred && !streq(GD->os.fred, user) )
+      { value = GD->os.fredshome;
+      } else
+      { if ( !(pwent = getpwnam(user)) )
 	{ if ( fileerrors )
 	  { term_t name = PL_new_term_ref();
 
@@ -1293,10 +1282,14 @@ expandVars(char *pattern, char *expanded)
 	  }
 	  fail;
 	}
-	strcpy(fred, user);
-	strcpy(fredLogin, pwent->pw_dir);
+	if ( GD->os.fred )
+	  remove_string(GD->os.fred);
+	if ( GD->os.fredshome )
+	  remove_string(GD->os.fredshome);
+	
+	GD->os.fred = store_string(user);
+	value = GD->os.fredshome = store_string(pwent->pw_dir);
       }
-      value = fredLogin;
     }	  
 #else
     { if ( fileerrors )
@@ -1317,7 +1310,7 @@ expandVars(char *pattern, char *expanded)
     { case EOS:
 	break;
       case '$':
-	{ char *var = takeWord(&pattern);
+	{ char *var = takeWord(&pattern, word);
 	  char *value = getenv(var);
 	  int l;
 
@@ -1361,44 +1354,50 @@ expandVars(char *pattern, char *expanded)
 
 
 static int
-ExpandFile(char *pattern, char **vector)
-{ static char expanded[MAXPATHLEN];
+ExpandFile(const char *pattern, char **vector)
+{ char expanded[MAXPATHLEN];
   int matches = 0;
 
   if ( !expandVars(pattern, expanded) )
     return -1;
   
-  vector[matches++] = expanded;
+  vector[matches++] = store_string(expanded);
 
   return matches;
 }
 
 
 char *
-ExpandOneFile(char *spec)
-{ static char file[MAXPATHLEN];
-  char *vector[256];
-  
-  switch( ExpandFile(spec, vector) )
+ExpandOneFile(const char *spec, char *file)
+{ char *vector[256];
+  int size;
+
+  switch( (size=ExpandFile(spec, vector)) )
   { case -1:
-	return (char *) NULL;
+      return NULL;
     case 0:
     { term_t tmp = PL_new_term_ref();
       
       PL_put_atom_chars(tmp, spec);
       PL_error(NULL, 0, "no match", ERR_EXISTENCE, ATOM_file, tmp);
+
+      return NULL;
     }
-      return (char *) NULL;
     case 1:
       strcpy(file, vector[0]);
+      remove_string(vector[0]);
       return file;
     default:
     { term_t tmp = PL_new_term_ref();
+      int n;
       
+      for(n=0; n<size; n++)
+	remove_string(vector[n]);
       PL_put_atom_chars(tmp, spec);
       PL_error(NULL, 0, "ambiguous", ERR_EXISTENCE, ATOM_file, tmp);
+
+      return NULL;
     }
-      return (char *) NULL;
   }
 }
 
@@ -1459,13 +1458,13 @@ IsAbsolutePath(const char *p)
 
 
 char *
-AbsoluteFile(char *spec)
-{ static char path[MAXPATHLEN];
+AbsoluteFile(const char *spec, char *path)
+{ char tmp[MAXPATHLEN];
   char buf[MAXPATHLEN];
   char *file;  
 
   PrologPath(spec, buf);
-  if ( (file = ExpandOneFile(buf)) == (char *) NULL )
+  if ( !(file = ExpandOneFile(buf, tmp)) )
     return (char *) NULL;
 
   if ( IsAbsolutePath(file) )
@@ -1509,10 +1508,15 @@ to be implemented directly.  What about other Unixes?
       PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
 	       ATOM_getcwd, ATOM_directory, tmp);
     }
-    strcpy(CWDdir, canonisePath(buf));
-    CWDlen = strlen(CWDdir);
-    CWDdir[CWDlen++] = '/';
-    CWDdir[CWDlen] = EOS;
+
+    canonisePath(buf);
+    CWDlen = strlen(buf);
+    buf[CWDlen++] = '/';
+    buf[CWDlen] = EOS;
+    
+    if ( CWDdir )
+      remove_string(CWDdir);
+    CWDdir = store_string(buf);
   }
 
   if ( (CWDlen + strlen(file) + 1) >= MAXPATHLEN )
@@ -1535,34 +1539,36 @@ BaseName(register char *f)
 { register char *base;
 
   for(base = f; *f; f++)
-    if (*f == '/')
+  { if (*f == '/')
       base = f+1;
+  }
 
   return base;
 }
 
+
 char *
-DirName(char *f)
-{ static char dir[MAXPATHLEN];
-  char *base, *p;
+DirName(const char *f, char *dir)
+{ const char *base, *p;
 
   for(base = p = f; *p; p++)
-    if (*p == '/' && p[1] != EOS )
+  { if (*p == '/' && p[1] != EOS )
       base = p+1;
+  }
   strncpy(dir, f, base-f);
   dir[base-f] = EOS;
   
   return dir;
 }
 
+
 char *
-ReadLink(char *f)
+ReadLink(const char *f, char *buf)
 {
 #ifdef HAVE_READLINK
-  static char buf[MAXPATHLEN];
   int n;
 
-  if ( (n=readlink(f, buf, sizeof(buf)-1)) > 0 )
+  if ( (n=readlink(f, buf, MAXPATHLEN-1)) > 0 )
   { buf[n] = EOS;
     return buf;
   }
@@ -1573,25 +1579,26 @@ ReadLink(char *f)
 
 
 static char *
-DeRefLink1(char *f)
-{ char *l;
+DeRefLink1(const char *f, char *lbuf)
+{ char buf[MAXPATHLEN];
+  char *l;
 
-  if ( (l=ReadLink(f)) )
-  { if ( l[0] == '/' )
-    { return l;				/* absolute path */
+  if ( (l=ReadLink(f, buf)) )
+  { if ( l[0] == '/' )			/* absolute path */
+    { strcpy(lbuf, buf);
+      return lbuf;
     } else
-    { static char buf[MAXPATHLEN];
-      char *q;
+    { char *q;
 
-      strcpy(buf, f);
-      q = &buf[strlen(buf)];
-      while(q>buf && q[-1] != '/')
+      strcpy(lbuf, f);
+      q = &lbuf[strlen(buf)];
+      while(q>lbuf && q[-1] != '/')
 	q--;
       strcpy(q, l);
 
-      canoniseFileName(buf);
+      canoniseFileName(lbuf);
 
-      return buf;
+      return lbuf;
     }
   }
 
@@ -1600,14 +1607,19 @@ DeRefLink1(char *f)
 
 
 char *
-DeRefLink(char *link)
-{ char *f;
+DeRefLink(const	char *link, char *buf)
+{ char tmp[MAXPATHLEN];
+  char *f;
   int n = 20;				/* avoid loop! */
 
-  while((f=DeRefLink1(link)) && n-- > 0)
+  while((f=DeRefLink1(link, tmp)) && n-- > 0)
     link = f;
 
-  return n > 0 ? link : NULL;
+  if ( n > 0 )
+  { strcpy(buf, link);
+    return buf;
+  } else
+    return NULL;
 }
 
 
@@ -1621,24 +1633,30 @@ DeRefLink(char *link)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-ChDir(char *path)
-{ char *ospath = OsPath(path);
-  char *npath;
+ChDir(const char *path)
+{ char ospath[MAXPATHLEN];
 
-  if ( path[0] == EOS ||
-       streq(path, CWDdir) ||
-       streq(path, ".") )		/* Same directory */
+  OsPath(path, ospath);
+
+  if ( path[0] == EOS || streq(path, ".") ||
+       (CWDdir && streq(path, CWDdir)) )
     succeed;
 
-  npath = AbsoluteFile(path);
-
   if ( chdir(ospath) == 0 )
-  { strcpy(CWDdir, npath);
-    CWDlen = strlen(CWDdir);
-    if ( CWDlen == 0 || CWDdir[CWDlen-1] != '/' )
-    { CWDdir[CWDlen++] = '/';
-      CWDdir[CWDlen] = EOS;
+  { char tmp[MAXPATHLEN];
+    int len;
+
+    AbsoluteFile(path, tmp);
+    len = strlen(tmp);
+    if ( len == 0 || tmp[len-1] != '/' )
+    { tmp[len++] = '/';
+      tmp[len] = EOS;
     }
+    CWDlen = len;
+    if ( CWDdir )
+      remove_string(CWDdir);
+    CWDdir = store_string(tmp);
+
     succeed;
   }
 
@@ -1705,14 +1723,11 @@ PopTty()
     Restore the tty state.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int prompt_next = TRUE;			/* prompt on next GetChar() */
-static IOFUNCTIONS org_terminal;	/* original stdio functions */
-
 static void
 ResetStdin()
 { Sinput->limitp = Sinput->bufp = Sinput->buffer;
-  if ( !org_terminal.read )
-    org_terminal = *Sinput->functions;
+  if ( !GD->os.org_terminal.read )
+    GD->os.org_terminal = *Sinput->functions;
 }
 
 static int
@@ -1724,7 +1739,7 @@ Swrite_protocol(void *handle, char *buf, int size)
 
   protocol(buf, size);
 
-  rval = (*org_terminal.write)(handle, buf, size);
+  rval = (*GD->os.org_terminal.write)(handle, buf, size);
 
 #ifdef HAVE_CLOCK
   clock_wait_ticks += clock() - oldclock;
@@ -1740,23 +1755,23 @@ Sread_terminal(void *handle, char *buf, int size)
   int    sln = source_line_no;
   int     fd = (int)h;
 
-  if ( prompt_next && ttymode != TTY_RAW )
+  if ( GD->os.prompt_next && ttymode != TTY_RAW )
   { Putf("%s", PrologPrompt());
     
-    prompt_next = FALSE;
+    GD->os.prompt_next = FALSE;
   }
 
   pl_ttyflush();
   PL_dispatch(fd, PL_DISPATCH_WAIT);
-  size = (*org_terminal.read)(handle, buf, size);
+  size = (*GD->os.org_terminal.read)(handle, buf, size);
 
   if ( size == 0 )			/* end-of-file */
   { if ( fd == 0 )
     { Sclearerr(Sinput);
-      prompt_next = TRUE;
+      GD->os.prompt_next = TRUE;
     }
   } else if ( size > 0 && buf[size-1] == '\n' )
-    prompt_next = TRUE;
+    GD->os.prompt_next = TRUE;
 
   source_line_no   = sln;
   source_file_name = sfn;
@@ -1766,24 +1781,20 @@ Sread_terminal(void *handle, char *buf, int size)
 
 void
 ResetTty()
-{ static IOFUNCTIONS funcs;
-  static int done = 0;
-
+{ startCritical;
   ResetStdin();
 
-  if ( !done )
-  { done++;
+  if ( !GD->os.iofunctions.read )
+  { GD->os.iofunctions       = *Sinput->functions;
+    GD->os.iofunctions.read  = Sread_terminal;
+    GD->os.iofunctions.write = Swrite_protocol;
 
-    funcs = *Sinput->functions;		/* maybe in a new initTty()? */
-    funcs.read = Sread_terminal;
-    funcs.write = Swrite_protocol;
-
-    Sinput->functions  = &funcs;
-    Soutput->functions = &funcs;
-    Serror->functions  = &funcs;
+    Sinput->functions  = 
+    Soutput->functions = 
+    Serror->functions  = &GD->os.iofunctions;
   }
-
-  prompt_next = TRUE;
+  GD->os.prompt_next = TRUE;
+  endCritical;
 }
 
 #ifdef O_HAVE_TERMIO			/* sys/termios.h or sys/termio.h */
@@ -1804,7 +1815,7 @@ PushTty(ttybuf *buf, int mode)
   buf->mode = ttymode;
   ttymode = mode;
 
-  if ( status.notty )
+  if ( GD->cmdline.notty )
     succeed;
 
 #ifdef HAVE_TCSETATTR 
@@ -1840,9 +1851,9 @@ PushTty(ttybuf *buf, int mode)
 
 #ifdef HAVE_TCSETATTR
   if ( tcsetattr(0, TCSANOW, &tio) != 0 )
-  { static int warned;
+  { static int MTOK_warned;			/* MT-OK */
 
-    if ( !warned++ )
+    if ( !MTOK_warned++ )
       warning("Failed to set terminal: %s", OsError());
   }
 #else
@@ -1862,7 +1873,7 @@ bool
 PopTty(ttybuf *buf)
 { ttymode = buf->mode;
 
-  if ( status.notty )
+  if ( GD->cmdline.notty )
     succeed;
 
 #ifdef HAVE_TCSETATTR
@@ -1890,7 +1901,7 @@ PushTty(ttybuf *buf, int mode)
   buf->mode = ttymode;
   ttymode = mode;
 
-  if ( status.notty )
+  if ( GD->cmdline.notty )
     succeed;
 
   if ( ioctl(0, TIOCGETP, &buf->tab) )  /* save the old one */
@@ -1924,7 +1935,7 @@ bool
 PopTty(ttybuf *buf)
 { ttymode = buf->mode;
 
-  if ( status.notty )
+  if ( GD->cmdline.notty )
     succeed;
 
   ioctl(0, TIOCSETP,  &buf->tab);
@@ -1951,7 +1962,7 @@ PopTty(buf)
 ttybuf *buf;
 { ttymode = buf->mode;
   if ( ttymode != TTY_RAW )
-    prompt_next = TRUE;
+    GD->os.prompt_next = TRUE;
 
   succeed;
 }
@@ -2148,13 +2159,6 @@ Unsetenv(char *name)
 		*********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Invokation of system commands.  We could have used Unix system() library
-call.  The reason I implemented  it  using  lower  level  primitives  is
-twofold.   First I want to set the environment PROLOGCHILD, which allows
-us to block novice users from invoking ?-  shell.   %  pl,  ....  (which
-happens  often  with new students).  Second I want to close non-terminal
-related I/O in the child process.
-
     int System(command)
 	char *command;
 
@@ -2297,7 +2301,8 @@ system_via_shell(const char *cmd)
 int
 System(command)
 char *command;
-{ char	   path[MAXPATHLEN];
+{ char     tmp[MANIPULATION];
+  char	   path[MAXPATHLEN];
   char	   *cmd_path;
   COMMAND  commandline;
   char	   *s, *q;
@@ -2314,7 +2319,7 @@ char *command;
   for(s=path; *cmd != EOS && !isBlank(*cmd); *s++ = *cmd++)
     ;
   *s = EOS;
-  if ( (cmd_path = Which(path)) == NULL )
+  if ( !(cmd_path = Which(path, tmp)) )
   { warning("%s: command not found", path);
     return 1;
   }
@@ -2421,9 +2426,10 @@ char *
 Symbols(void)
 { char *file;
   char buf[MAXPATHLEN];
+  char tmp[MAXPATHLEN];
 
-  PrologPath(mainArgv[0], buf);
-  file = Which(buf);
+  PrologPath(GD->cmdline.argv[0], buf);
+  file = Which(buf, tmp);
 
 #if __unix__				/* argv[0] can be an #! script! */
   if ( file )
@@ -2462,13 +2468,13 @@ Symbols(void)
 
 #if unix
 static char *
-okToExec(char *s)
+okToExec(const char *s)
 { struct stat stbuff;
 
   if (statfunc(s, &stbuff) == 0 &&			/* stat it */
      (stbuff.st_mode & S_IFMT) == S_IFREG &&	/* check for file */
      access(s, X_OK) == 0)			/* can be executed? */
-    return s;
+    return (char *)s;
   else
     return (char *) NULL;
 }
@@ -2488,8 +2494,7 @@ okToExec(char *s)
 #ifdef EXEC_EXTENSIONS
 
 static char *
-okToExec(s)
-char *s;
+okToExec(const char *s)
 { static char *extensions[] = EXEC_EXTENSIONS;
   static char **ext;
 
@@ -2512,9 +2517,8 @@ char *s;
 #endif /*EXEC_EXTENSIONS*/
 
 char *
-Which(char *program)
-{ static char fullname[MAXPATHLEN];
-  char *path, *dir;
+Which(const char *program, char *fullname)
+{ char *path, *dir;
   char *e;
 
   if ( IsAbsolutePath(program) ||
@@ -2553,7 +2557,9 @@ Which(char *program)
       } else
         path++;				/* fix by Ron Hess (hess@sco.com) */
     } else
-    { for(dir = fullname; *path && *path != PATHSEP; *dir++ = *path++)
+    { char tmp[MAXPATHLEN];
+
+      for(dir = fullname; *path && *path != PATHSEP; *dir++ = *path++)
 	;
       if (*path)
 	path++;				/* skip : */
@@ -2562,7 +2568,7 @@ Which(char *program)
       *dir++ = '/';
       *dir = EOS;
       strcpy(dir, program);
-      if ( (e = okToExec(OsPath(fullname))) != NULL )
+      if ( (e = okToExec(OsPath(fullname, tmp))) != NULL )
 	return e;
     }
   }

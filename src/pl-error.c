@@ -21,13 +21,15 @@ throw(error(<Formal>, <SWI-Prolog>))
 
 static void
 put_name_arity(term_t t, functor_t f)
-{ if ( f->arity == 0 )
-    PL_put_atom(t, f->name);
+{ FunctorDef fdef = valueFunctor(f);
+
+  if ( fdef->arity == 0 )
+    PL_put_atom(t, fdef->name);
   else
   { term_t a = PL_new_term_refs(2);
 
-    PL_put_atom(a+0, f->name);
-    PL_put_integer(a+1, f->arity);
+    PL_put_atom(a+0, fdef->name);
+    PL_put_integer(a+1, fdef->arity);
     PL_cons_functor(t, FUNCTOR_divide2, a+0, a+1);
   }
 }
@@ -336,9 +338,8 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
 
 
 char *
-tostr(const char *fmt, ...)
-{ static char buf[LINESIZ];
-  va_list args;
+tostr(char *buf, const char *fmt, ...)
+{ va_list args;
 
   va_start(args, fmt);
   Svsprintf(buf, fmt, args);

@@ -55,6 +55,8 @@ int Slinesize = SIO_LINESIZE;		/* Sgets() buffer size */
 
 static int	S__flushbuf(IOSTREAM *s);
 
+#define S__fupdatefilepos(s, c) S___fupdatefilepos(s, c)
+
 		 /*******************************
 		 *	      BUFFER		*
 		 *******************************/
@@ -227,7 +229,7 @@ S__fillbuf(IOSTREAM *s)
 
 
 __inline int
-S__fupdatefilepos(IOPOS *p, int c)
+S___fupdatefilepos(IOPOS *p, int c)
 { if ( p )
   { switch(c)
     { case '\n':
@@ -255,7 +257,6 @@ S__fupdatefilepos(IOPOS *p, int c)
 
   return c;
 }
-
 
 int
 Sputc(int c, IOSTREAM *s)
@@ -1615,4 +1616,11 @@ Sopen_string(IOSTREAM *s, char *buf, int size, char *mode)
   s->limitp = &buf[size];
 
   return s;
+}
+
+#undef S__fupdatefilepos
+
+int
+S__fupdatefilepos(IOPOS *p, int c)
+{ return S___fupdatefilepos(p, c);
 }

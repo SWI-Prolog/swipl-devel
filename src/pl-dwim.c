@@ -177,7 +177,7 @@ predicate head.
 
 word
 pl_dwim_predicate(term_t pred, term_t dwim, word h)
-{ FunctorDef fdef;
+{ functor_t fdef;
   Module module = (Module) NULL;
   Procedure proc;
   Symbol symb;
@@ -198,15 +198,16 @@ pl_dwim_predicate(term_t pred, term_t dwim, word h)
 
   for(; symb; symb = nextHTable(module->procedures, symb))
   { Definition def;
+    char *name;
 
     proc = (Procedure) symb->value;
     def  = proc->definition;
+    name = stringAtom(def->functor->name);
 
-    if ( dwimMatch(stringAtom(fdef->name),
-		   stringAtom(def->functor->name)) &&
+    if ( dwimMatch(stringAtom(nameFunctor(fdef)), name) &&
          isDefinedProcedure(proc) &&
-         (stringAtom(def->functor->name)[0] != '$' || SYSTEM_MODE) )
-    { if ( !PL_unify_functor(dwim, def->functor) )
+         (name[0] != '$' || SYSTEM_MODE) )
+    { if ( !PL_unify_functor(dwim, def->functor->functor) )
 	continue;
       if ( (symb = nextHTable(module->procedures, symb)) )
 	ForeignRedoPtr(symb);

@@ -14,41 +14,41 @@
 Functor (name/arity) handling.  A functor is a unique object (like atoms).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int	  functor_buckets = FUNCTORHASHSIZE;
-static int	  functor_locked;
-static FunctorDef *functorDefTable;
+#define functor_buckets (GD->functors.buckets)
+#define functor_locked  (GD->functors.locked)
+#define functorDefTable (GD->functors.table)
+
 static void	  allocFunctorTable();
 static void	  rehashFunctors();
 
 #define lockFunctors() { functor_locked++; }
 #define unlockFunctors() if ( --functor_locked == 0 && \
-			      functor_buckets * 2 < statistics.functors ) \
+			      functor_buckets * 2 < GD->statistics.functors ) \
 			   rehashFunctors()
 
-
-#define arityMask(n) (((n) < F_ARITY_MASK ? (n) : F_ARITY_MASK) << LMASK_BITS)
 
 static void
 registerFunctor(FunctorDef fd)
 { int n = entriesBuffer(&functor_array, FunctorDef);
+  int amask = (fd->arity < F_ARITY_MASK ? fd->arity : F_ARITY_MASK);
     
-  fd->functor = ((n<<(LMASK_BITS+F_ARITY_BITS)) |
-		 arityMask(fd->arity) |
-		 TAG_ATOM|STG_GLOBAL);
+  fd->functor = MK_FUNCTOR(n, amask);
   addBuffer(&functor_array, fd, FunctorDef);
+
+  DEBUG(0, assert(fd->arity == arityFunctor(fd->functor)));
 }
 
 
-FunctorDef
+functor_t
 lookupFunctorDef(atom_t atom, int arity)
 { int v = pointerHashValue(atom, functor_buckets);
-  register FunctorDef f;
+  FunctorDef f;
 
   DEBUG(9, Sdprintf("Lookup functor %s/%d = ", stringAtom(atom), arity));
   for(f = functorDefTable[v]; f && !isTableRef(f); f = f->next)
   { if (atom == f->name && f->arity == arity)
     { DEBUG(9, Sdprintf("%ld (old)\n", f));
-      return f;
+      return f->functor;
     }
   }
   f = (FunctorDef) allocHeap(sizeof(struct functorDef));
@@ -58,15 +58,15 @@ lookupFunctorDef(atom_t atom, int arity)
   f->arity   = arity;
   f->flags   = 0;
   functorDefTable[v] = f;
-  statistics.functors++;
+  GD->statistics.functors++;
 
   DEBUG(9, Sdprintf("%ld (new)\n", f));
 
-  if ( functor_buckets * 2 < statistics.functors && !functor_locked )
+  if ( functor_buckets * 2 < GD->statistics.functors && !functor_locked )
     rehashFunctors();
 
   registerFunctor(f);
-  return f;
+  return f->functor;
 }
 
 
@@ -100,29 +100,33 @@ rehashFunctors()
   }
 
 out:
-  assert(done == statistics.functors);
+  assert(done == GD->statistics.functors);
   freeHeap(oldtab, oldbucks * sizeof(FunctorDef));
   endCritical;
 }
 
 
 
-FunctorDef
+functor_t
 isCurrentFunctor(atom_t atom, int arity)
 { int v = pointerHashValue(atom, functor_buckets);
   FunctorDef f;
 
   for(f = functorDefTable[v]; f && !isTableRef(f); f = f->next)
   { if (atom == f->name && f->arity == arity)
-      return f;
+      return f->functor;
   }
 
-  return (FunctorDef) NULL;
+  return 0;
 }
 
+typedef struct
+{ atom_t name;
+  char   arity;
+} builtin_functor;
 
-#define FUNCTOR(n, a) { NULL, 0L, n, a }
-struct functorDef functors[] = {
+#define FUNCTOR(n, a) { n, a }
+static const builtin_functor functors[] = {
 #include "pl-funct.ic"
 FUNCTOR(NULL_ATOM, 0)
 };
@@ -142,23 +146,34 @@ allocFunctorTable()
 }
 
 
-void
-initFunctors(void)
-{ initBuffer(&functor_array);
-  allocFunctorTable();
+static void
+registerBuiltinFunctors()
+{ int size = sizeof(functors)/sizeof(builtin_functor) - 1;
+  FunctorDef f = allocHeap(size * sizeof(struct functorDef));
+  const builtin_functor *d;
 
-  { register FunctorDef f;
-    register int v;
+  GD->statistics.functors = size;
 
-    for( f = &functors[0]; f->name; f++ )
-    { v = pointerHashValue(f->name, functor_buckets);
-      f->next = functorDefTable[v];
-      functorDefTable[v] = f;
-      registerFunctor(f);
-      statistics.functors++;
-    }
+  for(d = functors; d->name; d++, f++)
+  { int v = pointerHashValue(d->name, functor_buckets);
+
+    f->name             = d->name;
+    f->arity            = d->arity;
+    f->next             = functorDefTable[v];
+    functorDefTable[v]  = f;
+    registerFunctor(f);
   }
 }
+
+
+void
+initFunctors(void)
+{ functor_buckets = FUNCTORHASHSIZE;
+  initBuffer(&functor_array);
+  allocFunctorTable();
+  registerBuiltinFunctors();
+}
+
 
 #if TEST
 checkFunctors()

@@ -384,7 +384,7 @@ unify_index_pattern(Procedure proc, term_t value)
   if ( pattern == 0 )
     fail;
 
-  if ( PL_unify_functor(value, def->functor) )
+  if ( PL_unify_functor(value, def->functor->functor) )
   { term_t a = PL_new_term_ref();
 
     for(n=0; n<arity; n++, pattern >>= 1)

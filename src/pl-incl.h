@@ -247,10 +247,6 @@ A common basis for C keywords.
 
 #define forwards static		/* forwards function declarations */
 
-#ifndef GLOBAL			/* global variables */
-#define GLOBAL extern
-#endif
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Booleans,  addresses,  strings  and other   goodies.   Note that  ANSI
 compilers have  `Void'.   This should  be  made part  of  the  general
@@ -275,11 +271,11 @@ typedef void *			Void;
 typedef RETSIGTYPE (*handler_t)(int);
 typedef void *SignalContext;		/* struct sigcontext on sun */
 
-GLOBAL struct
+typedef struct
 { handler_t os;				/* Os signal handler */
   handler_t user;			/* User signal handler */
   bool catched;				/* Prolog catches this one */
-} signalHandlers[MAXSIGNAL];
+} sig_handler;
 #endif /* HAVE_SIGNAL */
 
 #ifndef TRUE
@@ -332,6 +328,7 @@ them.  Descriptions:
 	version (just costs virtual memory).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define BUFFER_RING_SIZE 	4	/* foreign buffer ring (pl-fli.c) */
 #define LINESIZ			1024	/* size of a data line */
 #define MAXARITY		1024	/* arity of predicate */
 #define MAXVARIABLES		65536	/* number of variables/clause */
@@ -381,7 +378,9 @@ sizes  of  the  hash  tables are defined.  Note that these should all be
 #define ARITHHASHSIZE		16	/* arithmetic function table */
 
 #define stringHashValue(s, n) (unboundStringHashValue(s) & ((n)-1))
-#define pointerHashValue(p, size) ((((long)(p) >> LMASK_BITS)^(long)(p)) & \
+#define pointerHashValue(p, size) ((((long)(p) >> LMASK_BITS) ^ \
+				    ((long)(p) >> (LMASK_BITS+5)) ^ \
+				    ((long)(p))) & \
 				   ((size)-1))
 
 #define TABLE_REF_MASK		0x1L
@@ -726,8 +725,7 @@ typedef struct definition *	Definition;	/* predicate definition */
 typedef struct clause *		Clause;		/* compiled clause */
 typedef struct clause_ref *	ClauseRef;      /* reference to a clause */
 typedef struct clause_index *	ClauseIndex;    /* Clause indexing table */
-typedef struct clause_chain *	ClauseChain;    /* Chian of clauses in table */
-typedef struct code_info *	CodeInfo;	/* WAM op-code info */
+typedef struct clause_chain *	ClauseChain;    /* Chain of clauses in table */
 typedef struct operator *	Operator;	/* see pl-op.c, pl-read.c */
 typedef struct record *		Record;		/* recorda/3, etc. */
 typedef struct recordList *	RecordList;	/* list of these */
@@ -743,6 +741,17 @@ typedef struct trail_entry *	TrailEntry;	/* Entry of train stack */
 typedef struct data_mark	mark;		/* backtrack mark */
 typedef struct index *		Index;		/* clause indexing */
 typedef struct stack *		Stack;		/* machine stack */
+typedef struct arithFunction * 	ArithFunction;  /* arithmetic function */
+typedef struct assoc *		Assoc;		/* pl-bags.c */
+typedef struct _varDef *	VarDef;		/* pl-comp.c */
+typedef struct extension_cell *	ExtensionCell;  /* pl-ext.c */
+typedef struct abort_handle *	AbortHandle;	/* PL_abort_hook() */
+typedef struct initialise_handle * InitialiseHandle;
+typedef struct tempfile *	TempFile; 	/* pl-os.c */
+typedef struct canonical_dir *	CanonicalDir;	/* pl-os.c */
+typedef struct on_halt *	OnHalt;		/* pl-os.c */
+typedef struct find_data_tag *	FindData; 	/* pl-trace.c */
+typedef struct feature *	Feature; 	/* pl-prims.c */
 
 
 		 /*******************************
@@ -870,8 +879,6 @@ Handling environment (or local stack) frames.
 					     predicateName(def)); \
 				    def->references = 0; \
 				  } \
-				  if ( true(fr, FR_WATCHED) ) \
-				    frameFinished(fr); \
 				}
 #else /*O_DEBUG*/
 #define enterDefinition(def)	{ def->references++; }
@@ -921,8 +928,9 @@ programmer  should  call  startCritical  to start such a code region and
 endCritical to end it.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define startCritical { critical++; }
-#define endCritical   { if (--critical == 0 && aborted == TRUE) pl_abort(); }
+#define startCritical (void)(GD->critical++)
+#define endCritical   if ( --(GD->critical) == 0 && LD->aborted ) \
+			pl_abort()
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 LIST processing macros.
@@ -988,12 +996,12 @@ struct clause_ref
 #define CA1_FLOAT	5	/* next 2 are double */
 #define CA1_STRING	6	/* inlined string */
 
-struct code_info
+typedef struct
 { char		*name;		/* name of the code */
   code		code;		/* number of the code */
   char		arguments;	/* # arguments code takes */
   char		argtype;	/* # `external' arguments code takes */
-};
+} code_info;
 
 struct data_mark
 { word		trailtop;	/* top of the trail stack */
@@ -1256,14 +1264,6 @@ typedef unsigned long PL_fid_t;		/* external foreign context-id */
 typedef struct
 { word		name;			/* Name of option */
   int		type;			/* Type of option */
-  union
-  { bool *b;				/* boolean value */
-    long *i;				/* integer value */
-    char **s;				/* string value */
-    word *a;				/* atom value */
-    term_t *t;				/* term-reference */
-    void *ptr;				/* anonymous pointer */
-  } value;
 } opt_spec, *OptSpec;
 
 		 /*******************************
@@ -1333,61 +1333,60 @@ struct stack STACK(caddress);		/* Anonymous stack */
 
 #define N_STACKS (4)
 
-GLOBAL struct
+typedef struct
 { struct STACK(LocalFrame) local;	/* local (environment) stack */
   struct STACK(Word)	   global;	/* local (environment) stack */
   struct STACK(TrailEntry) trail;	/* trail stack */
   struct STACK(Word *)	   argument;	/* argument stack */
-} stacks;
+} pl_stacks_t;
 
-#define tBase	(stacks.trail.base)
-#define tTop	(stacks.trail.top)
-#define tMax	(stacks.trail.max)
+#define tBase	(LD->stacks.trail.base)
+#define tTop	(LD->stacks.trail.top)
+#define tMax	(LD->stacks.trail.max)
 
-#define lBase	(stacks.local.base)
-#define lTop	(stacks.local.top)
-#define lMax	(stacks.local.max)
-#define lLimit	(stacks.local.limit)
+#define lBase	(LD->stacks.local.base)
+#define lTop	(LD->stacks.local.top)
+#define lMax	(LD->stacks.local.max)
+#define lLimit	(LD->stacks.local.limit)
 
-#define gBase	(stacks.global.base)
-#define gTop	(stacks.global.top)
-#define gMax	(stacks.global.max)
-#define gLimit	(stacks.global.limit)
+#define gBase	(LD->stacks.global.base)
+#define gTop	(LD->stacks.global.top)
+#define gMax	(LD->stacks.global.max)
+#define gLimit	(LD->stacks.global.limit)
 
-#define aBase	(stacks.argument.base)
-#define aTop	(stacks.argument.top)
-#define aMax	(stacks.argument.max)
-#define aLimit	(stacks.argument.limit)
-
-GLOBAL char *	hTop;			/* highest allocated heap address */
-GLOBAL char *	hBase;			/* lowest allocated heap address */
-GLOBAL unsigned long heap_base;		/* Rounded base of the heap */
+#define aBase	(LD->stacks.argument.base)
+#define aTop	(LD->stacks.argument.top)
+#define aMax	(LD->stacks.argument.max)
+#define aLimit	(LD->stacks.argument.limit)
 
 #define SetHTop(val)	{ if ( (char *)(val) > hTop  ) hTop  = (char *)(val); }
 #define SetHBase(val)	{ if ( (char *)(val) < hBase ) hBase = (char *)(val); }
 
 #define onStack(name, addr) \
-	((char *)(addr) >= (char *)stacks.name.base && \
-	 (char *)(addr) <  (char *)stacks.name.top)
+	((char *)(addr) >= (char *)LD->stacks.name.base && \
+	 (char *)(addr) <  (char *)LD->stacks.name.top)
 #ifdef O_SHIFT_STACKS
 #define onStackArea(name, addr) \
-	((char *)(addr) >= (char *)stacks.name.base && \
-	 (char *)(addr) <  (char *)stacks.name.max)
+	((char *)(addr) >= (char *)LD->stacks.name.base && \
+	 (char *)(addr) <  (char *)LD->stacks.name.max)
 #else
 #define onStackArea(name, addr) \
-	((char *)(addr) >= (char *)stacks.name.base && \
-	 (char *)(addr) <  (char *)stacks.name.limit)
+	((char *)(addr) >= (char *)LD->stacks.name.base && \
+	 (char *)(addr) <  (char *)LD->stacks.name.limit)
 #endif
-#define usedStack(name) ((char *)stacks.name.top - (char *)stacks.name.base)
-#define sizeStack(name) ((char *)stacks.name.max - (char *)stacks.name.base)
-#define roomStack(name) ((char *)stacks.name.max - (char *)stacks.name.top)
-#define narrowStack(name) (roomStack(name) < stacks.name.minfree)
+#define usedStack(name) ((char *)LD->stacks.name.top - \
+			 (char *)LD->stacks.name.base)
+#define sizeStack(name) ((char *)LD->stacks.name.max - \
+			 (char *)LD->stacks.name.base)
+#define roomStack(name) ((char *)LD->stacks.name.max - \
+			 (char *)LD->stacks.name.top)
+#define narrowStack(name) (roomStack(name) < LD->stacks.name.minfree)
 
 #if O_DYNAMIC_STACKS
 #ifdef NO_SEGV_HANDLING
 #define requireStack(s, n) \
 	{ if ( roomStack(s) < (int)(n) ) \
- 	    ensureRoomStack((Stack)&stacks.s, n); \
+ 	    ensureRoomStack((Stack)&LD->stacks.s, n); \
 	}
 #define verifyStack(s) requireStack(s, 64)
 #else /*NO_SEGV_HANDLING*/
@@ -1397,50 +1396,25 @@ GLOBAL unsigned long heap_base;		/* Rounded base of the heap */
 #else
 #define requireStack(s, n) \
 	{ if ( roomStack(s) < (n) ) \
- 	    outOf((Stack)&stacks.s); \
+ 	    outOf((Stack)&LD->stacks.s); \
 	}
 #define verifyStack(s) requireStack(s, 64)
 #endif
 
 
 		/********************************
-		*       GLOBAL VARIABLES        *
+		*       READ WARNINGS           *
 		*********************************/
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-General global variables  to  indicate  status  or  communicate  between
-modules.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-GLOBAL int 	  critical;		/* in critical code for abort? */
-GLOBAL bool	  aborted;		/* have we been aborted */
-GLOBAL char 	 *cannot_save_program;	/* Program cannot be saved */
-GLOBAL LocalFrame environment_frame;	/* current context frame */
-GLOBAL FliFrame   fli_context;		/* current FLI frame */
-GLOBAL bool	  novice;		/* novice user */
-GLOBAL atom_t	  source_file_name;	/* Current source file_name */
-GLOBAL int	  source_line_no;	/* Current source line_no */
-GLOBAL long	  source_char_no;	/* Current source charno */
-GLOBAL bool	  fileerrors;		/* Report file errors? */
-GLOBAL atom_t	  float_format;		/* Default floating point format */
-GLOBAL term_t	  exception_term;	/* Current (latest) exception */
-GLOBAL term_t	  exception_bin;	/* Temp storage for exception term */
-GLOBAL term_t	  exception_printed;	/* We already printed this one! */
-GLOBAL unsigned long signalled;		/* PL_kill() signals */
 
 #define ReadingSource (source_line_no > 0 && \
 		       source_file_name != NULL_ATOM)
+
 
 		/********************************
 		*        FAST DISPATCHING	*
 		********************************/
 
 #if VMCODE_IS_ADDRESS
-GLOBAL char  *dewam_table;			/* decoding table */
-GLOBAL long  dewam_table_offset;		/* offset of 1st */
-GLOBAL code  wam_table[I_HIGHEST+1];		/* code --> address */
-GLOBAL void **interpreter_jmp_table;		/* interpreters table */
-
 #define encode(wam) (wam_table[wam])		/* WAM --> internal */
 						/* internal --> WAM */
 #define decode(c)   ((code) (dewam_table[(unsigned long)(c) - \
@@ -1454,7 +1428,7 @@ GLOBAL void **interpreter_jmp_table;		/* interpreters table */
 		*            STATUS             *
 		*********************************/
 
-GLOBAL struct
+typedef struct
 { bool		requested;		/* GC is requested by stack expander */
   int		blocked;		/* GC is blocked now */
   bool		active;			/* Currently running? */
@@ -1462,77 +1436,50 @@ GLOBAL struct
   long		global_gained;		/* global stack bytes collected */
   long		trail_gained;		/* trail stack bytes collected */
   real		time;			/* time spent in collections */
-} gc_status;
+} pl_gc_status_t;
 
-#ifdef O_SHIFT_STACKS
-GLOBAL struct
+
+typedef struct
 { int		blocked;		/* No shifts allowed */
   real		time;			/* time spent in stack shifts */
   int		local_shifts;		/* Shifts of the local stack */
   int		global_shifts;		/* Shifts of the global stack */
   int		trail_shifts;		/* Shifts of the trail stack */
-} shift_status;
-#endif
+} pl_shift_status_t;
 
-GLOBAL struct
+
+typedef struct
 { atom_t	symbolfile;		/* current symbol file */
   atom_t	orgsymbolfile;		/* symbol file we started with */
   atom_t	restored_state;		/* -r/restore state restored */
-} loaderstatus;
+} pl_loaderstatus_t;
 
 #define NO_PROFILING		0
 #define CUMULATIVE_PROFILING	1
 #define PLAIN_PROFILING		2
 
-/*  statistics information */
-
-GLOBAL struct
-{ long		inferences;		/* logical inferences made */
-  long		heap;			/* heap in use */
-  int		atoms;			/* No. of atoms defined */
-  int		functors;		/* No. of functors defined */
-  int		predicates;		/* No. of predicates defined */
-  int		modules;		/* No. of modules in the system */
-  long		codes;			/* No. of byte codes generated */
-  long		collections;		/* No. of garbage collections */
-  long		global_gained;		/* No. of cells global stack gained */
-  long		trail_gained;		/* No. of cells trail stack gained */
-#ifdef O_PROFILE
-  int		profiling;		/* profiler is on? */
-  long		profile_ticks;		/* profile ticks total */
-#endif /* O_PROFILE */
-} statistics;
 
 		/********************************
 		*            MODULES            *
 		*********************************/
 
-#define MODULE_user	(modules.user)
-#define MODULE_system	(modules.system)
-
-GLOBAL struct
-{ Module	typein;			/* module for type in goals */
-  Module	source;			/* module we are reading clauses in */
-  Module	user;			/* user module */
-  Module	system;			/* system predicate module */
-} modules;
-
-GLOBAL Table	moduleTable;		/* hash table of available modules */
+#define MODULE_user	(GD->modules.user)
+#define MODULE_system	(GD->modules.system)
 
 		/********************************
 		*         PREDICATES            *
 		*********************************/
 
-GLOBAL Procedure	PROCEDURE_alt1;	/* $alt/1, see C_OR */
-GLOBAL Procedure	PROCEDURE_garbage_collect0;
-GLOBAL Procedure	PROCEDURE_block3;
-GLOBAL Procedure	PROCEDURE_catch3;
-GLOBAL Procedure	PROCEDURE_true0;
-GLOBAL Procedure	PROCEDURE_fail0;
-GLOBAL Procedure	PROCEDURE_event_hook1;
-GLOBAL Procedure	PROCEDURE_print_message2;
+#define PROCEDURE_alt1			(GD->procedures.alt1)
+#define PROCEDURE_garbage_collect0	(GD->procedures.garbage_collect0)
+#define PROCEDURE_block3		(GD->procedures.block3)
+#define PROCEDURE_catch3		(GD->procedures.catch3)
+#define PROCEDURE_true0			(GD->procedures.true0)
+#define PROCEDURE_fail0			(GD->procedures.fail0)
+#define PROCEDURE_event_hook1		(GD->procedures.event_hook1)
+#define PROCEDURE_print_message2	(GD->procedures.print_message2)
 
-extern struct code_info	codeTable[];
+extern const code_info codeTable[]; /* Instruction info (read-only) */
 
 		/********************************
 		*            DEBUGGER           *
@@ -1571,7 +1518,7 @@ Tracer communication declarations.
 #define MAXNEWLINES	    5		/* maximum number of newlines in atom */
 #define SYSTEM_MODE	    (debugstatus.styleCheck & DOLLAR_STYLE)
 
-GLOBAL struct debuginfo
+typedef struct debuginfo
 { unsigned long	skiplevel;		/* current skip level */
   bool		tracing;		/* are we tracing? */
   bool		debugging;		/* are we debugging? */
@@ -1582,29 +1529,30 @@ GLOBAL struct debuginfo
   int		styleCheck;		/* source style checking */
   int		suspendTrace;		/* tracing is suspended now */
   LocalFrame	retryFrame;		/* Frame to retry */
-} debugstatus;
+} pl_debugstatus_t;
 
 #define FT_ATOM		0		/* atom feature */
 #define FT_INTEGER	1		/* integer feature */
 
-#define CHARESCAPE_FEATURE	0x01	/* handle \ in atoms */
-#define GC_FEATURE		0x02	/* do GC */
-#define TRACE_GC_FEATURE	0x04	/* verbose gc */
-#define TTY_CONTROL_FEATURE	0x08	/* allow for tty control */
-#define READLINE_FEATURE	0x10	/* readline is loaded */
-#define DEBUG_ON_ERROR_FEATURE	0x20	/* start tracer on error */
-#define REPORT_ERROR_FEATURE	0x40	/* print error message */
+#define CHARESCAPE_FEATURE	0x0001	/* handle \ in atoms */
+#define GC_FEATURE		0x0002	/* do GC */
+#define TRACE_GC_FEATURE	0x0004	/* verbose gc */
+#define TTY_CONTROL_FEATURE	0x0008	/* allow for tty control */
+#define READLINE_FEATURE	0x0010	/* readline is loaded */
+#define DEBUG_ON_ERROR_FEATURE	0x0020	/* start tracer on error */
+#define REPORT_ERROR_FEATURE	0x0040	/* print error message */
+#define FILE_CASE_FEATURE	0x0080	/* file names are case sensitive */
+#define FILE_CASE_PRESERVING_FEATURE 0x0100 /* case preserving file names */
+#define DOS_FILE_NAMES_FEATURE  0x0200	/* dos (8+3) file names */
 
-GLOBAL struct _feature
+typedef struct
 { unsigned long flags;			/* the feature flags */
-} features;
+} pl_features_t;
 
 #define trueFeature(mask)	true(&features, mask)
 
 #ifdef O_LIMIT_DEPTH
 #define DEPTH_NO_LIMIT	(~0x0L)		/* Highest value */
-GLOBAL unsigned long depth_limit;	/* recursion depth limit */
-GLOBAL unsigned long depth_reached;	/* Deapest point reached */
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1618,8 +1566,6 @@ struct state
 { char *	name;			/* name of state */
   State		next;			/* next state loaded */
 };
-
-GLOBAL State stateList;			/* list of loaded states */
 
 #define QLF_TOPLEVEL 0x1		/* toplevel wic file */
 #define QLF_OPTIONS  0x2		/* only load options */
@@ -1644,7 +1590,7 @@ decrease).
 #define REL(a)		((Word)(a) - (Word)(lBase))
 
 #if O_DEBUG
-#define DEBUG(n, g) { if (status.debugLevel >= n) { g; } }
+#define DEBUG(n, g) { if (GD->debug_level >= (n)) { g; } }
 #else
 #define DEBUG(a, b) 
 #endif
@@ -1664,12 +1610,10 @@ decrease).
 #include "pl-funcs.h"			/* global functions */
 #include "pl-main.h"			/* Declarations needed by pl-main.c */
 #include "pl-error.h"			/* Exception generation */
-
-extern struct atom atoms[];
-extern struct functorDef functors[];
+#include "pl-global.h"			/* global data */
 
 #define NULL_ATOM ((atom_t)0)
-#define MK_ATOM(n) ((n)<<7|TAG_ATOM|STG_STATIC)
+#define MK_ATOM(n)    		((n)<<7|TAG_ATOM|STG_STATIC)
 #include "pl-atom.ih"
 #include "pl-funct.ih"
 

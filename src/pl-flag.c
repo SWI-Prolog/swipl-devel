@@ -16,8 +16,7 @@ typedef struct flag *	Flag;
 #define FLG_REAL	2
 
 struct flag
-{ Flag  next;
-  word	key;				/* key to the flag */
+{ word	key;				/* key to the flag */
   int	type;				/* type (atom, int, real */
   union
   { atom_t a;				/* atom */
@@ -26,34 +25,28 @@ struct flag
   } value;				/* value of the flag */
 };
 
-static Flag flagTable[FLAGHASHSIZE];
+#define flagTable (GD->flags.table)
 
 forwards Flag lookupFlag(word);
 
 void
 initFlags(void)
-{ register Flag *f;
-  register int n;
-
-  for(n=0, f=flagTable; n < (FLAGHASHSIZE-1); n++, f++)
-    *f = makeTableRef(f+1);
+{ flagTable = newHTable(FLAGHASHSIZE);
 }
 
 static Flag
 lookupFlag(word key)
-{ int v = pointerHashValue(key, FLAGHASHSIZE);
+{ Symbol symb;
   Flag f;
 
-  for(f=flagTable[v]; f && !isTableRef(f); f=f->next)
-  { if (f->key == key)
-      return f;
-  }
+  if ( (symb = lookupHTable(flagTable, (void *)key)) )
+    return (Flag)symb->value;
+
   f = (Flag) allocHeap(sizeof(struct flag) );
-  f->next = flagTable[v];
-  flagTable[v] = f;
   f->key = key;
   f->type = FLG_INTEGER;
   f->value.i = 0;
+  addHTable(flagTable, (void *)key, f);
 
   return f;
 }
@@ -107,30 +100,41 @@ pl_flag(term_t name, term_t old, term_t new)
 
 word
 pl_current_flag(term_t k, term_t h)
-{ Flag f;
+{ Symbol symb;
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
-      f = flagTable[0];
-      break;
+    { word key;
+
+      if ( (key = getKey(k)) )
+      { if ( lookupHTable(flagTable, (void *)key) )
+	  succeed;
+	fail;
+      }
+      if ( PL_is_variable(k) )
+      {	symb = firstHTable(flagTable);
+	break;
+      }
+      return warning("current_flag/2: illegal key");
+    }
     case FRG_REDO:
-      f = ForeignContextPtr(h);
+      symb = ForeignContextPtr(h);
       break;
     case FRG_CUTTED:
     default:
       succeed;
   }
 
-  for(; f; f = f->next)
-  { while(isTableRef(f) )
-    { f = unTableRef(Flag, f);
-      if ( !f )
-	fail;
-    }
+  for( ; symb; symb = nextHTable(flagTable, symb) )
+  { Flag f = (Flag)symb->value;
+
     if ( !unifyKey(k, f->key) )
       continue;
 
-    return_next_table(Flag, f, ;);
+    if ( !(symb = nextHTable(flagTable, symb)) )
+      succeed;
+
+    ForeignRedoPtr(symb);
   }
 
   fail;

@@ -331,10 +331,12 @@ copyRecordToGlobal(term_t copy, Record r)
   int n;
 
   b.data = r->buffer;
-  if ( !(b.vars = alloca(sizeof(Word) * r->nvars)) )
-    fatalError("alloca() failed");
-  for(p = b.vars, n=r->nvars; --n >= 0;)
-    *p++ = 0;
+  if ( r->nvars > 0 )
+  { if ( !(b.vars = alloca(sizeof(Word) * r->nvars)) )
+      fatalError("alloca() failed");
+    for(p = b.vars, n=r->nvars; --n >= 0;)
+      *p++ = 0;
+  }
   b.gstore = allocGlobal(r->gsize);
   
   copy_record(valTermRef(copy), &b);
@@ -509,7 +511,7 @@ unifyKey(term_t key, word val)
 { if ( isAtom(val) || isTaggedInt(val) ) /* TBD? */
     return _PL_unify_atomic(key, val);
 
-  return PL_unify_functor(key, (FunctorDef) val);
+  return PL_unify_functor(key, (functor_t) val);
 }
 
 

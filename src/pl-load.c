@@ -11,6 +11,9 @@
 /*  Implementing foreign functions for HP-PA RISC architecture  */
 
 #include "pl-incl.h"
+#ifndef MAXPATHLEN
+#define MAXPATHLEN 1024
+#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Make sure the symbolfile and  orgsymbolfile  attributes  of  the  global
@@ -20,16 +23,17 @@ structure status are filled properly.
 bool
 getSymbols(void)
 { char *symbols, *abs_symbols;
+  char tmp[MAXPATHLEN];
 
   if ( loaderstatus.symbolfile != NULL_ATOM )
     succeed;
   
   if ( (symbols = Symbols()) == (char *)NULL )
-  { Putf("[WARNING: Failed to find symbol table. Trying %s]\n", mainArgv[0]);
-    symbols = mainArgv[0];
+  { symbols = GD->cmdline.argv[0];
+    Putf("[WARNING: Failed to find symbol table. Trying %s]\n", symbols);
   }
   DEBUG(2, Sdprintf("Symbol file = %s\n", symbols));
-  if ( (abs_symbols = AbsoluteFile(symbols)) == NULL )
+  if ( !(abs_symbols = AbsoluteFile(symbols, tmp)) )
     fail;
 
   loaderstatus.symbolfile = loaderstatus.orgsymbolfile
@@ -177,7 +181,7 @@ allocText(long int size)
   if ( !(base = (long) valloc(size)) )
     fatalError("%s", OsError());
 
-  statistics.heap += size;
+  GD->statistics.heap += size;
 
   return base;
 }
@@ -600,7 +604,7 @@ pl_load_foreign1(term_t file)
   DEBUG(1, Sdprintf("ok\n"));
 
   if ( entry < (Func) &_data )
-    cannot_save_program = "Foreign code loaded outside data area";
+    GD->cannot_save_program = "Foreign code loaded outside data area";
 
   DEBUG(1, Sdprintf("Loadbind() ... "));
   if ( loadbind(0, main_entry, entry) != 0 )
@@ -678,7 +682,6 @@ pl_load_foreign(term_t file, term_t entry, term_t options,
   
   char underscore = '_';
 
-  status.debugLevel = 1;
   rld_err_stream = NXOpenMemory(NULL,0,NX_WRITEONLY);
 
   if ( !PL_get_atom_chars(file, &sfile) ||

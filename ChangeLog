@@ -4,6 +4,44 @@
 VERSION 2.9.2
 =============
 
+  * CLEANUP: Removed various unreachable statements reported by the
+    SGI native compiler.
+
+  * FIXED: Unresolved message for S__fupdatefilepos() using native
+    SGI compiler, which does not emit code for inline functions.
+
+  * FIXED: diagnosis of `discontiguous' and `redefined' predicates
+    while the predicate is reconsulted while it is running.
+	
+  * FIXED: Posibility of calling alloca(0) in pl-rec.c, spotted by
+    Tamas Laufer.  Should fix SCO Unix version.
+
+  * FIXED: absolute_file_name/3, generation of multiple solutions:
+    avoid regenerating the same solution.  Caused make/0 to slow down
+    more and more.
+
+  * IMPLEMENTATION: Partial preparation for multi-threading.  Removed
+    lots of unnecessary global variables and moved most of the remaining
+    ones into three structures defined in the new file pl-global.h.
+    Read-only global data is now declared `const', putting it into
+    shared memory on good machines/compilers.  As a result, SWI-Prolog
+    is a little smaller and faster.
+
+    Still need to get rid of the remaining global variables and need
+    to embrace all heap-operations to prepare them for the use with
+    mutexes.
+
+  * FIXED: trace-interception calling on fail-port, causing the GUI
+    tracer to crash on some ocasions.
+
+  * DELETED: Source file pl-dump.c, implementing save/1, restore/1
+    and save_program/1.  These predicates only worked on a few
+    platforms anyway.  qsave_program is now the only (and portable)
+    saved-state mechanism.
+
+  * IMPROVED: Removed limit on number of user-defined arithmetic
+    functions.
+
   * IMPROVED: Format ~s accepts both a list of ASCII chars or a
     string (see string/1) object.  Thanks to Peter Ludeman.
 

@@ -55,7 +55,8 @@ destroyHTable(Table ht)
 }
 
 
-#if O_DEBUG
+#if O_DEBUG || O_HASHSTAT
+#define HASHSTAT(c) c
 static int lookups;
 static int cmps;
 
@@ -64,13 +65,14 @@ exitTables(int status, void *arg)
 { Sdprintf("hashstat: Anonymous tables: %d lookups using %d compares\n",
 	   lookups, cmps);
 }
+#else
+#define HASHSTAT(c)
 #endif /*O_DEBUG*/
 
 
 void
 initTables()
-{
-  DEBUG(0, PL_on_halt(exitTables, NULL));
+{ HASHSTAT(PL_on_halt(exitTables, NULL));
 }
 
 
@@ -78,9 +80,9 @@ Symbol
 lookupHTable(Table ht, Void name)
 { Symbol s = ht->entries[pointerHashValue(name, ht->buckets)];
 
-  DEBUG(0, lookups++);
+  HASHSTAT(lookups++);
   for(;s && !isTableRef(s); s = s->next)
-  { DEBUG(0, cmps++);
+  { HASHSTAT(cmps++);
     if (s->name == (word)name)
     { DEBUG(9, Sdprintf("lookupHTable(0x%x, 0x%x --> 0x%x\n",
 			ht, name, s->value));

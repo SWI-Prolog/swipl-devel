@@ -65,11 +65,9 @@ _declspec(dllexport) is used by MSVC++ 2.0 to declare exports from DLL's.
 #endif /*_PL_EXPORT_DONE*/
 
 #ifdef _PL_INCLUDE_H
-typedef FunctorDef	functor_t;	/* Name/arity pair */
 typedef Module		module_t;	/* a module */
 typedef Procedure	predicate_t;	/* a predicate handle */
 #else
-typedef void *		functor_t;	/* name/arity pair as Prolog */
 typedef	unsigned long	atom_t;		/* Prolog atom */
 typedef void *		module_t;	/* Prolog module */
 typedef void *		predicate_t;	/* Prolog procedure */
@@ -77,6 +75,7 @@ typedef unsigned long	term_t;		/* opaque term handle */
 typedef unsigned long	qid_t;		/* opaque query handle */
 typedef unsigned long	PL_fid_t;	/* opaque foreign context handle */
 #endif
+typedef unsigned long	functor_t;	/* Name/arity pair */
 typedef unsigned long	atomic_t;	/* same a word */
 typedef unsigned long	control_t;	/* non-deterministic control arg */
 typedef unsigned long	foreign_t;	/* return type of foreign functions */

@@ -65,7 +65,7 @@ alloc_heap(register size_t n)
   
   DEBUG(9, Sdprintf("allocated %ld bytes at ", (unsigned long)n));
   n = ALLOCROUND(n);
-  statistics.heap += n;
+  GD->statistics.heap += n;
 
   if (n <= ALLOCFAST)
   { m = n / (int) sizeof(align_type);
@@ -119,7 +119,7 @@ free_heap(register void * mem, register size_t n)
 #if ALLOC_DEBUG
   memset((char *) mem, ALLOC_FREE_MAGIC, n);
 #endif
-  statistics.heap -= n;
+  GD->statistics.heap -= n;
   DEBUG(9, Sdprintf("freed %ld bytes at %ld\n",
 		    (unsigned long)n, (unsigned long)p));
 
@@ -173,7 +173,7 @@ allocate(register size_t n)
 
 volatile void
 outOf(Stack s)
-{ status.outofstack = TRUE;		/* will be reset by abort() */
+{ LD->outofstack = TRUE;		/* will be reset by abort() */
 
   warning("Out of %s stack", s->name);
 
@@ -282,16 +282,16 @@ alloc_global(int n)
 #endif
 
 word
-globalFunctor(register FunctorDef def)
-{ register int arity = def->arity;
-  register Functor f = allocGlobal(1 + arity);
-  register Word a;
+globalFunctor(functor_t f)
+{ int arity = arityFunctor(f);
+  Functor t = allocGlobal(1 + arity);
+  Word a;
 
-  f->definition = def->functor;
-  for(a = &f->arguments[0]; arity > 0; a++, arity--)
+  t->definition = f;
+  for(a = &t->arguments[0]; arity > 0; a++, arity--)
     setVar(*a);
 
-  return consPtr(f, TAG_COMPOUND|STG_GLOBAL);
+  return consPtr(t, TAG_COMPOUND|STG_GLOBAL);
 }
 
 

@@ -82,25 +82,6 @@ extern long Random(void);
 #define Putw(w, fd)		Sputw((long)(w), fd)
 #define Getw(fd)		Sgetw(fd)
 
-Char		GetChar(void);
-long		LastModifiedFile(char *name),
-		SizeFile(char *name);
-atom_t		TemporaryFile(char *id);
-bool		AccessFile(char *name, int how),
-		ExistsFile(char *name),
-		ExistsDirectory(char *name),
-		RenameFile(char *old, char *new),
-		SameFile(char *file1, char *file2),
-		MarkExecutable(char *name),
-		expandVars(char *pattern, char *expanded),
-		ChDir(char *dir);
-char 		*AbsoluteFile(char *),
-		*ExpandOneFile(char *),
-		*BaseName(char *),
-		*DirName(char *),
-		*ReadLink(char *),
-		*DeRefLink(char *);
-
 		 /*******************************
 		 *      PAGE AND TABLE-SIZE	*
 		 *******************************/
@@ -238,4 +219,4 @@ extern void ResetTty(void);
 
 extern int System(char *command);
 extern char *Symbols(void);
-extern char *Which(char *cmd);
+extern char *Which(const char *cmd, char *buf);

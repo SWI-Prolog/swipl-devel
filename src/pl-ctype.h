@@ -7,7 +7,7 @@
     Purpose: Character types
 */
 
-extern char char_type[];	/* array of character types */
+extern char _PL_char_types[];	/* array of character types */
 
 #define SP  0			/* space */
 #define SO  1			/* solo character */
@@ -19,14 +19,14 @@ extern char char_type[];	/* array of character types */
 #define LC  7			/* Lowercase character */
 #define DI  8			/* Digit */
 
-#define isBlank(c)	(char_type[(unsigned)(c) & 0xff] == SP)
-#define isDigit(c)	(char_type[(unsigned)(c) & 0xff] == DI)
-#define isLower(c)	(char_type[(unsigned)(c) & 0xff] == LC)
-#define isUpper(c)	(char_type[(unsigned)(c) & 0xff] == UC)
-#define isSymbol(c)	(char_type[(unsigned)(c) & 0xff] == SY)
-#define isPunct(c)	(char_type[(unsigned)(c) & 0xff] == PU)
-#define isSolo(c)	(char_type[(unsigned)(c) & 0xff] == SO)
-#define isAlpha(c)	(char_type[(unsigned)(c) & 0xff] >= UC)
+#define isBlank(c)	(_PL_char_types[(unsigned)(c) & 0xff] == SP)
+#define isDigit(c)	(_PL_char_types[(unsigned)(c) & 0xff] == DI)
+#define isLower(c)	(_PL_char_types[(unsigned)(c) & 0xff] == LC)
+#define isUpper(c)	(_PL_char_types[(unsigned)(c) & 0xff] == UC)
+#define isSymbol(c)	(_PL_char_types[(unsigned)(c) & 0xff] == SY)
+#define isPunct(c)	(_PL_char_types[(unsigned)(c) & 0xff] == PU)
+#define isSolo(c)	(_PL_char_types[(unsigned)(c) & 0xff] == SO)
+#define isAlpha(c)	(_PL_char_types[(unsigned)(c) & 0xff] >= UC)
 #define isLetter(c)	(isLower(c) || isUpper(c))
 
 #define toLower(c)	((c) + 'a' - 'A')

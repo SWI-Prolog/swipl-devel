@@ -47,7 +47,7 @@ struct rubber
   Char pad;				/* padding character */
 };
 
-static Table format_predicates;		/* Prolog defined fromatting */
+#define format_predicates (GD->format.predicates)
 
 forwards int	update_column(int, Char);
 forwards bool	do_format(const char *fmt, int argc, term_t argv);
@@ -78,7 +78,7 @@ pl_format_predicate(term_t chr, term_t descr)
   if ( proc->definition->functor->arity == 0 )
     return warning("format_predicate/2: predicate must have at least 1 argument");
 
-  if ( format_predicates == NULL )
+  if ( !format_predicates )
     format_predicates = newHTable(8);
   
   if ( (s = lookupHTable(format_predicates, (void *)c)) )
@@ -287,7 +287,7 @@ do_format(const char *fmt, int argc, term_t argv)
 	      case 'r':			/* radix number */
 	      case 'R':			/* Radix number */
 		{ int i;
-		  char *s;
+		  char tmp[50];
 
 		  NEED_ARG;
 		  if ( !PL_get_integer(argv, &i) )
@@ -295,11 +295,11 @@ do_format(const char *fmt, int argc, term_t argv)
 		  SHIFT;
 		  if ( arg == DEFAULT )
 		    arg = 0;
-		  s = ( (*fmt == 'd' || *fmt == 'D')
-			? formatInteger(*fmt == 'D', arg, 10, TRUE, i)
-			: formatInteger(FALSE, 0, arg, *fmt == 'r', i)
-		      );
-		  OUTSTRING(s);			
+		  if ( *fmt == 'd' || *fmt == 'D' )
+		    formatInteger(*fmt == 'D', arg, 10, TRUE, i, tmp);
+		  else
+		    formatInteger(FALSE, 0, arg, *fmt == 'r', i, tmp);
+		  OUTSTRING(tmp);			
 		  fmt++;
 		  break;
 		}

@@ -13,32 +13,28 @@
 
 static void	rehashAtoms();
 
-static int  atom_buckets = ATOMHASHSIZE;
-static int  atom_locked;
-static Atom *atomTable;
+#define atom_buckets GD->atoms.buckets
+#define atom_locked  GD->atoms.locked
+#define atomTable    GD->atoms.table
 
 #define lockAtoms() { atom_locked++; }
 #define unlockAtoms() if ( --atom_locked == 0 && \
-			   atom_buckets * 2 < statistics.atoms ) \
+			   atom_buckets * 2 < GD->statistics.atoms ) \
 			rehashAtoms()
 
 #if O_DEBUG
-static int	lookups;
-static int	cmps;
-static void	exitAtoms(int status, void *arg);
+#define lookups GD->atoms.lookups
+#define	cmps	GD->atoms.cmps
 #endif
 
 		 /*******************************
 		 *      BUILT-IN ATOM TABLE	*
 		 *******************************/
 
-#ifdef O_HASHTERM
-#define ATOM(s) { (Atom)NULL, 0L, 0L, s }
-#else
-#define ATOM(s) { (Atom)NULL, 0L, s }
-#endif
+#define ATOM(s) s
 
-struct atom atoms[] = {
+typedef const char * ccharp;
+static const ccharp atoms[] = {
 #include "pl-atom.ic"
   ATOM((char *)NULL)
 };
@@ -79,9 +75,9 @@ lookupAtom(const char *s)
   a->name       = store_string(s);
   atomTable[v]  = a;
   registerAtom(a);
-  statistics.atoms++;
+  GD->statistics.atoms++;
 
-  if ( atom_buckets * 2 < statistics.atoms && !atom_locked )
+  if ( atom_buckets * 2 < GD->statistics.atoms && !atom_locked )
     rehashAtoms();
 
   return a->atom;
@@ -151,36 +147,31 @@ pl_atom_hashstat(term_t idx, term_t n)
 
 /* Note that the char * of the atoms is copied to the data segment.  This
    is done because some functions temporary change the char string associated
-   with an atom (pl_concat_atom()) and GCC Sputs char constants in the text
-   segment.
+   with an atom (pl_concat_atom()) and GCC puts char constants in the text
+   segment.  Is this still true?
 */
 
 
-void
-initAtoms(void)
-{ atomTable = allocHeap(atom_buckets * sizeof(Atom));
-  makeAtomRefPointers();
+static void
+registerBuiltinAtoms()
+{ int size = sizeof(atoms)/sizeof(char *) - 1;
+  Atom a = allocHeap(size * sizeof(struct atom));
+  const ccharp *s;
 
-  initBuffer(&atom_array);
+  GD->statistics.atoms = size;
 
-  { Atom a;
+  for(s = atoms; *s; s++, a++)
+  { int v0 = unboundStringHashValue(*s);
+    int v = v0 & (atom_buckets-1);
 
-    for( a = &atoms[0]; a->name; a++)
-    { int v0 = unboundStringHashValue(a->name);
-      int v = v0 & (atom_buckets-1);
-
-      a->name = store_string(a->name);
-      a->next       = atomTable[v];
+    a->name       = (char *)*s;
 #ifdef O_HASHTERM
-      a->hash_value = v0;
+    a->hash_value = v0;
 #endif
-      atomTable[v]  = a;
-      registerAtom(a);
-      statistics.atoms++;
-    }
-  }    
-
-  DEBUG(0, PL_on_halt(exitAtoms, NULL));
+    a->next       = atomTable[v];
+    atomTable[v]  = a;
+    registerAtom(a);
+  }
 }
 
 
@@ -191,6 +182,19 @@ exitAtoms(int status, void *arg)
 	   lookups, cmps);
 }
 #endif
+
+
+void
+initAtoms(void)
+{ atom_buckets = ATOMHASHSIZE;
+  atomTable = allocHeap(atom_buckets * sizeof(Atom));
+  makeAtomRefPointers();
+
+  initBuffer(&atom_array);
+  registerBuiltinAtoms();
+
+  DEBUG(0, PL_on_halt(exitAtoms, NULL));
+}
 
 
 word
@@ -238,8 +242,6 @@ out:
 #define ALT_MAX 256		/* maximum number of alternatives */
 #define stringMatch(m)	((m)->name->name)
 
-forwards bool 	allAlpha(char *);
-
 typedef struct match
 { Atom	name;
   int	length;
@@ -256,11 +258,10 @@ allAlpha(register char *s)
 }
 
 
-static char *
-extendAtom(char *prefix, bool *unique)
+static int
+extendAtom(char *prefix, bool *unique, char *common)
 { Atom a = atomTable[0];
   bool first = TRUE;
-  static char common[LINESIZ];
   int lp = (int) strlen(prefix);
 
   *unique = TRUE;
@@ -289,22 +290,23 @@ extendAtom(char *prefix, bool *unique)
   }
 
 out:
-  return first == TRUE ? (char *)NULL : common;
+  return !first;
 }
 
 
 word
 pl_complete_atom(term_t prefix, term_t common, term_t unique)
-{ char *p, *s;
+{ char *p;
   bool u;
   char buf[LINESIZ];
+  char cmm[LINESIZ];
     
   if ( !PL_get_chars(prefix, &p, CVT_ALL) )
     return warning("$complete_atom/3: instanstiation fault");
   strcpy(buf, p);
 
-  if ( (s = extendAtom(p, &u)) )
-  { strcat(buf, s);
+  if ( extendAtom(p, &u, cmm) )
+  { strcat(buf, cmm);
     if ( PL_unify_list_chars(common, buf) &&
 	 PL_unify_atom(unique, u ? ATOM_unique : ATOM_not_unique) )
       succeed;
@@ -377,12 +379,21 @@ pl_atom_completions(term_t prefix, term_t alternatives)
 } 
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Completeness generation for the GNU readline library. This function uses
+a state variable to indicate  the   generator  should maintain/reset its
+state. Horrible! We use the thread-local   structure to store the state,
+so multiple Prolog threads can use this routine.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 char *
 PL_atom_generator(char *prefix, int state)
-{ static Atom a;
+{ Atom a;
 
   if ( !state )
     a = atomTable[0];
+  else
+    a = LD->atoms.generator;
 
   for(; a; a=a->next)
   { char *as;
@@ -398,7 +409,7 @@ PL_atom_generator(char *prefix, int state)
     if ( strprefix(as, prefix) &&
 	 allAlpha(as) &&
 	 (l = strlen(as)) < ALT_SIZ )
-    { a = a->next;
+    { LD->atoms.generator = a->next;
       return as;
     }
   }

@@ -52,11 +52,13 @@ digitValue(int b, int c)
   return -1;
 }
 
-/*  return the name of a procedure as a string.  The result is stored in
-    static  area and should be copied away before the next call if it is
-    to be preserved.
 
- ** Sun Aug 28 13:21:07 1988  jan@swivax.UUCP (Jan Wielemaker)  */
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+These  functions  return  a  user-printable  name   of  a  predicate  as
+name/arity or module:name/arity. The result  is   stored  in the foreign
+buffer ring, so we are thread-safe, but   the  result needs to be copied
+before the ring is exhausted. See buffer_string() for details.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 char *
 procedureName(Procedure proc)
@@ -66,7 +68,7 @@ procedureName(Procedure proc)
 
 char *
 predicateName(Definition def)
-{ static char tmp[256];
+{ char tmp[256];
 
   if ( def->module == MODULE_user || isUserSystemPredicate(def) )
     Ssprintf(tmp, "%s/%d",
@@ -78,7 +80,7 @@ predicateName(Definition def)
 	     stringAtom(def->functor->name), 
 	     def->functor->arity);
 
-  return tmp;
+  return buffer_string(tmp, BUF_RING);
 }
 
 /*  succeeds if proc is a system predicate exported to the public module.
@@ -88,7 +90,7 @@ predicateName(Definition def)
 static bool
 isUserSystemPredicate(Definition def)
 { if ( true(def, SYSTEM) &&
-       isCurrentProcedure(def->functor, MODULE_user) )
+       isCurrentProcedure(def->functor->functor, MODULE_user) )
     succeed;
 
   fail;
@@ -153,18 +155,32 @@ Variable argument list:
 	pointer	value
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define MAXOPTIONS 32
+
+typedef union
+{ bool *b;				/* boolean value */
+  long *i;				/* integer value */
+  char **s;				/* string value */
+  word *a;				/* atom value */
+  term_t *t;				/* term-reference */
+  void *ptr;				/* anonymous pointer */
+} optvalue;
+
 bool
-scan_options(term_t options, int flags, atom_t optype, OptSpec specs, ...)
+scan_options(term_t options, int flags, atom_t optype,
+	     const opt_spec *specs, ...)
 { va_list args;
-  OptSpec s;
+  const opt_spec *s;
+  optvalue values[MAXOPTIONS];
   term_t list = PL_copy_term_ref(options);
   term_t head = PL_new_term_ref();
   term_t tmp  = PL_new_term_ref();
   term_t val  = PL_new_term_ref();
+  int n;
 
   va_start(args, specs);
-  for( s = specs; s->name; s++ )
-    s->value.ptr = va_arg(args, void *);
+  for( n=0, s = specs; s->name; s++, n++ )
+    values[n].ptr = va_arg(args, void *);
   va_end(args);
 
   while ( PL_get_list(list, head, list) )
@@ -189,7 +205,7 @@ scan_options(term_t options, int flags, atom_t optype, OptSpec specs, ...)
       return PL_error(NULL, 0, NULL, ERR_DOMAIN, optype, head);
     }
 
-    for( s = specs; s->name; s++ )
+    for( n=0, s = specs; s->name; n++, s++ )
     { if ( s->name == name )
       { switch(s->type)
 	{ case OPT_BOOL:
@@ -198,15 +214,15 @@ scan_options(term_t options, int flags, atom_t optype, OptSpec specs, ...)
 	    if ( !PL_get_atom(val, &aval) )
 	      fail;
 	    if ( aval == ATOM_true || aval == ATOM_on )
-	      *s->value.b = TRUE;
+	      *values[n].b = TRUE;
 	    else if ( aval == ATOM_false || aval == ATOM_off )
-	      *s->value.b = FALSE;
+	      *values[n].b = FALSE;
 	    else
 	      goto itemerror;
 	    break;
 	  }
 	  case OPT_INT:
-	  { if ( !PL_get_long(val, s->value.i) )
+	  { if ( !PL_get_long(val, values[n].i) )
 	      goto itemerror;
 
 	    break;
@@ -216,7 +232,7 @@ scan_options(term_t options, int flags, atom_t optype, OptSpec specs, ...)
 
 	    if ( !PL_get_chars(val, &str, CVT_ALL) ) /* copy? */
 	      goto itemerror;
-	    *s->value.s = str;
+	    *values[n].s = str;
 	    break;
 	  }
 	  case OPT_ATOM:
@@ -224,11 +240,11 @@ scan_options(term_t options, int flags, atom_t optype, OptSpec specs, ...)
 
 	    if ( !PL_get_atom(val, &a) )
 	      goto itemerror;
-	    *s->value.a = a;
+	    *values[n].a = a;
 	    break;
 	  }
 	  case OPT_TERM:
-	  { *s->value.t = val;
+	  { *values[n].t = val;
 	    val = PL_new_term_ref();	/* can't reuse anymore */
 	    break;
 	  }
@@ -316,7 +332,7 @@ stripostfix(char *s, char *e)
 		*        CHARACTER TYPES        *
 		*********************************/
 
-char char_type[] = {
+char _PL_char_types[] = {
 /* ^@  ^A  ^B  ^C  ^D  ^E  ^F  ^G  ^H  ^I  ^J  ^K  ^L  ^M  ^N  ^O    0-15 */
    SP, SP, SP, SP, SP, SP, SP, SP, SP, SP, SP, SP, SP, SP, SP, SP, 
 /* ^P  ^Q  ^R  ^S  ^T  ^U  ^V  ^W  ^X  ^Y  ^Z  ^[  ^\  ^]  ^^  ^_   16-31 */
@@ -345,7 +361,7 @@ char char_type[] = {
 
 void
 systemMode(bool accept)
-{ char_type[(int)'$'] = (accept ? LC : SY);
+{ _PL_char_types[(int)'$'] = (accept ? LC : SY);
   if ( accept )
     debugstatus.styleCheck |= DOLLAR_STYLE;
   else

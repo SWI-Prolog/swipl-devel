@@ -73,7 +73,7 @@ _pl_ground(Word p)
     fail;
   if (!isTerm(*p) )
     succeed;
-  arity = functorTerm(*p)->arity;
+  arity = arityFunctor(functorTerm(*p));
   for(p = argTermP(*p, 0); arity > 0; arity--, p++)
     TRY( _pl_ground(p) );
 
@@ -122,11 +122,11 @@ termHashValue(word term, long *hval)
 	succeed;
       }
       case TAG_COMPOUND:
-      { FunctorDef fd = functorTerm(term);
-	int arity = fd->arity;
+      { functor_t fd = functorTerm(term);
+	int arity = arityFunctor(fd);
 	Word a, a2;
 
-	*hval = atomValue(fd->name)->hash_value + arity;
+	*hval = atomValue(nameFunctor(fd))->hash_value + arity;
 	for(a = argTermP(term, 0); arity; arity--, a++)
 	{ long av;
 
@@ -219,7 +219,7 @@ _pl_equal(register Word t1, register Word t2)
        functorTerm(*t1) != functorTerm(*t2) )
     fail;
 
-  arity = functorTerm(*t1)->arity;
+  arity = arityFunctor(functorTerm(*t1));
   t1 = argTermP(*t1, 0);
   t2 = argTermP(*t2, 0);
   for(n=0; n<arity; n++, t1++, t2++)
@@ -349,8 +349,6 @@ tail_recursion:
 	}
         goto tail_recursion;
       }
-
-      return EQUAL;
     }
     default:
       assert(0);
@@ -494,13 +492,13 @@ structeql(Word t1, Word t2, TmpBuffer buf)
 	  continue;
         fail;
       case TAG_COMPOUND:
-      { FunctorDef fd = functorTerm(w1);
+      { functor_t fd = functorTerm(w1);
 	int arity;
 
 	if ( !hasFunctor(w2, fd) )
 	  fail;
 
-	arity = fd->arity;
+	arity = arityFunctor(fd);
 	p1 = argTermP(w1, 0);
 	p2 = argTermP(w2, 0);
 	if ( todo == 0 )		/* right-most argument recursion */
@@ -791,7 +789,7 @@ pl_univ(term_t t, term_t list)
 
 
 static int
-do_number_vars(term_t t, FunctorDef functor, int n)
+do_number_vars(term_t t, functor_t functor, int n)
 { atom_t name;
   int arity;
 
@@ -830,7 +828,7 @@ start:
 
 
 int
-numberVars(term_t t, FunctorDef functor, int n)
+numberVars(term_t t, functor_t functor, int n)
 { term_t h2 = PL_copy_term_ref(t);
   int rval = do_number_vars(h2, functor, n);
 
@@ -844,7 +842,7 @@ word
 pl_numbervars(term_t t, term_t f,
 	      term_t start, term_t end)
 { int n;
-  FunctorDef functor;
+  functor_t functor;
   atom_t name;
   
   if ( !PL_get_integer(start, &n) ||
@@ -876,7 +874,7 @@ free_variables(Word t, term_t l, int n)
     return n+1;
   }
   if ( isTerm(*t) )
-  { int arity = functorTerm(*t)->arity;
+  { int arity = arityFunctor(functorTerm(*t));
 
     for(t = argTermP(*t, 0); arity > 0; arity--, t++)
       n = free_variables(t, l, n);
@@ -926,7 +924,7 @@ dobind_vars(Word t, atom_t constant)
     return;
   }
   if ( isTerm(*t) )
-  { int arity = functorTerm(*t)->arity;
+  { int arity = arityFunctor(functorTerm(*t));
 
     for(t = argTermP(*t, 0); arity > 0; arity--, t++)
       dobind_vars(t, constant);
@@ -943,7 +941,7 @@ bind_existential_vars(Word t)
     int arity;
     Word a;
 
-    if ( f->definition == FUNCTOR_hat2->functor )
+    if ( f->definition == FUNCTOR_hat2 )
     { dobind_vars(&f->arguments[0], ATOM_nil);
       return bind_existential_vars(&f->arguments[1]);
     }
@@ -1032,7 +1030,7 @@ pre_copy_analysis(Word t, int *index)
   }
 
   if ( isTerm(*t) )
-  { int arity = functorTerm(*t)->arity;
+  { int arity = arityFunctor(functorTerm(*t));
     int subvars = 0;
     int thisindex = (*index)++;
     term_t thisterm = PL_new_term_refs(0);
@@ -1139,8 +1137,8 @@ do_copy(term_t from, term_t to, CopyInfo info)
     { info->index++;
       PL_unify(to, from);
     } else
-    { FunctorDef fd = functorTerm(*p);
-      int n, arity = fd->arity;
+    { functor_t fd = functorTerm(*p);
+      int n, arity = arityFunctor(fd);
       term_t af = PL_new_term_ref();
       term_t at = PL_new_term_ref();
 
@@ -1288,9 +1286,10 @@ pl_int_to_atom(term_t number, term_t base, term_t atom)
  ** Fri Aug 19 22:26:41 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
 char *
-formatInteger(bool split, int div, int radix, bool small, long int n)
-{ static char tmp[100];
-  char *s = tmp + 99;
+formatInteger(bool split, int div, int radix, bool small, long int n,
+	      char *out)
+{ char tmp[100];
+  char *s = &tmp[sizeof(tmp)-1];	/* i.e. start at the end */
   int before = (div == 0);
   int digits = 0;
   bool negative = FALSE;
@@ -1301,8 +1300,9 @@ formatInteger(bool split, int div, int radix, bool small, long int n)
     negative = TRUE;
   }
   if ( n == 0 && div == 0 )
-  { *--s = '0';
-    return s;
+  { out[0] = '0';
+    out[1] = EOS;
+    return out;
   }
   while( n > 0 || div >= 0 )
   { if ( div-- == 0 && !before )
@@ -1317,7 +1317,7 @@ formatInteger(bool split, int div, int radix, bool small, long int n)
   if ( negative )
     *--s = '-';  
 
-  return s;
+  return strcpy(out, s);
 }	  
 
 
@@ -1340,14 +1340,14 @@ pl_format_number(term_t format, term_t number, term_t string)
     case 'r':
     case 'R':
       { long i;
-	char *result;
+	char result[50];
 
 	if ( !PL_get_long(number, &i) )
 	  return warning("format_number/3: 2nd argument is not an integer");
 	if (conv == 'd' || conv == 'D')
-	  result = formatInteger(conv == 'D', arg, 10, TRUE, i);
+	  formatInteger(conv == 'D', arg, 10, TRUE, i, result);
 	else
-	  result = formatInteger(FALSE, 0, arg, conv == 'r', i);
+	  formatInteger(FALSE, 0, arg, conv == 'r', i, result);
 
 	return PL_unify_list_chars(string, result);
       }
@@ -1984,7 +1984,7 @@ pl_depth_limit_false(term_t limit, term_t olimit, term_t oreached, term_t res)
  ** Sun Apr 17 15:38:46 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
 #define makeNum(n)	((n) < PLMAXTAGGEDINT ? consInt(n) : globalLong(n))
-#define limitStack(n)	diffPointers(stacks.n.limit, stacks.n.base)
+#define limitStack(n)	diffPointers(LD->stacks.n.limit, LD->stacks.n.base)
 
 word
 pl_statistics(term_t k, term_t value)
@@ -1997,7 +1997,7 @@ pl_statistics(term_t k, term_t value)
   if      (key == ATOM_cputime)				/* time */
     result = globalReal(CpuTime());
   else if (key == ATOM_inferences)			/* inferences */
-    result = makeNum(statistics.inferences);
+    result = makeNum(LD->statistics.inferences);
   else if (key == ATOM_local)				/* local stack */
     result = makeNum((long)lMax - (long)lBase);
   else if (key == ATOM_localused)
@@ -2021,7 +2021,7 @@ pl_statistics(term_t k, term_t value)
     fail;
 #endif
   else if (key == ATOM_heapused)			/* heap usage */
-    result = makeNum(statistics.heap);
+    result = makeNum(GD->statistics.heap);
   else if (key == ATOM_trail)				/* trail */
     result = makeNum((long)tMax - (long)tBase);
   else if (key == ATOM_trailused)
@@ -2035,15 +2035,15 @@ pl_statistics(term_t k, term_t value)
   else if (key == ATOM_globallimit)
     result = makeNum(limitStack(global));
   else if (key == ATOM_atoms)				/* atoms */
-    result = consInt(statistics.atoms);
+    result = consInt(GD->statistics.atoms);
   else if (key == ATOM_functors)			/* functors */
-    result = consInt(statistics.functors);
+    result = consInt(GD->statistics.functors);
   else if (key == ATOM_predicates)			/* predicates */
-    result = consInt(statistics.predicates);
+    result = consInt(GD->statistics.predicates);
   else if (key == ATOM_modules)				/* modules */
-    result = consInt(statistics.modules);
+    result = consInt(GD->statistics.modules);
   else if (key == ATOM_codes)				/* codes */
-    result = consInt(statistics.codes);
+    result = consInt(GD->statistics.codes);
   else if (key == ATOM_gctime)
     result = globalReal(gc_status.time);
   else if (key == ATOM_collections)
@@ -2079,7 +2079,6 @@ pl_statistics(term_t k, term_t value)
 		 *	 FEATURE HANDLING	*
 		 *******************************/
 
-typedef struct feature *Feature;
 struct feature
 { atom_t	name;
   int	 	type;
@@ -2091,7 +2090,7 @@ struct feature
   Feature next;
 };
 
-static Feature feature_list = NULL;
+#define feature_list (GD->_feature_list)
 
 typedef struct
 { atom_t	name;
@@ -2103,27 +2102,28 @@ typedef struct
   atom_t       *address;
 } builtin_named_feature;
 
-builtin_boolean_feature builtin_boolean_features[] = 
-{ { ATOM_character_escapes,	CHARESCAPE_FEATURE },
-  { ATOM_gc,			GC_FEATURE },
-  { ATOM_trace_gc,		TRACE_GC_FEATURE },
-  { ATOM_tty_control,		TTY_CONTROL_FEATURE },
-  { ATOM_readline,		READLINE_FEATURE },
-  { ATOM_debug_on_error,	DEBUG_ON_ERROR_FEATURE },
-  { ATOM_report_error,		REPORT_ERROR_FEATURE },
-  { NULL_ATOM,			0L }
+static const builtin_boolean_feature builtin_boolean_features[] = 
+{ { ATOM_character_escapes,	    CHARESCAPE_FEATURE },
+  { ATOM_gc,			    GC_FEATURE },
+  { ATOM_trace_gc,		    TRACE_GC_FEATURE },
+  { ATOM_tty_control,		    TTY_CONTROL_FEATURE },
+  { ATOM_readline,		    READLINE_FEATURE },
+  { ATOM_debug_on_error,	    DEBUG_ON_ERROR_FEATURE },
+  { ATOM_report_error,		    REPORT_ERROR_FEATURE },
+  { ATOM_case_sensitive_file_names, FILE_CASE_FEATURE },
+  { NULL_ATOM,			    0L }
 };
 
-builtin_named_feature builtin_named_features[] =
-{ { ATOM_float_format,		&float_format },
-  { NULL_ATOM,			NULL }
+static const builtin_named_feature builtin_named_features[] =
+{ { ATOM_float_format,		    &float_format },
+  { NULL_ATOM,			    NULL }
 };
 
 int
 setFeature(atom_t name, int type, ...)
 { Feature f;
-  builtin_boolean_feature *bf;
-  builtin_named_feature   *nf;
+  const builtin_boolean_feature *bf;
+  const builtin_named_feature   *nf;
   atom_t a = 0;
   long i = 0;
   va_list args;
@@ -2165,8 +2165,8 @@ setFeature(atom_t name, int type, ...)
 	warning("set_feature/2: %s feature is boolean", stringAtom(name));
 	fail;
       }
-      if ( name == ATOM_tty_control )	/* status.notty should be feature */
-	status.notty = (trueFeature(TTY_CONTROL_FEATURE) ? FALSE : TRUE);
+      if ( name == ATOM_tty_control )	/* GD->cmdline.notty should be feature */
+	GD->cmdline.notty = (trueFeature(TTY_CONTROL_FEATURE) ? FALSE : TRUE);
       goto doset;
     }
   }
@@ -2298,20 +2298,20 @@ pl_option(term_t key, term_t old, term_t new)
   if ( !PL_get_atom(key, &k) )
     fail;
 
-  if (     k == ATOM_goal)	       result = options.goal;
-  else if (k == ATOM_top_level)	       result = options.topLevel;
-  else if (k == ATOM_init_file)        result = options.initFile;
-  else if (k == ATOM_system_init_file) result = options.systemInitFile;
+  if (     k == ATOM_goal)	       result = GD->options.goal;
+  else if (k == ATOM_top_level)	       result = GD->options.topLevel;
+  else if (k == ATOM_init_file)        result = GD->options.initFile;
+  else if (k == ATOM_system_init_file) result = GD->options.systemInitFile;
   else fail;
 
   if ( !PL_unify_atom_chars(old, result) ||
        !PL_get_atom_chars(new, &n) )
     fail;
 
-  if (     k == ATOM_goal)		   options.goal     = n;
-  else if (k == ATOM_top_level)		   options.topLevel = n;
-  else if (k == ATOM_init_file) 	   options.initFile = n;
-  else /*if (k == ATOM_system_init_file)*/ options.systemInitFile = n;
+  if (     k == ATOM_goal)		   GD->options.goal     = n;
+  else if (k == ATOM_top_level)		   GD->options.topLevel = n;
+  else if (k == ATOM_init_file) 	   GD->options.initFile = n;
+  else /*if (k == ATOM_system_init_file)*/ GD->options.systemInitFile = n;
 
   succeed;
 }
@@ -2325,7 +2325,7 @@ pl_please(term_t key, term_t old, term_t new)
     fail;
 
   if   ( k == ATOM_optimise )
-    return setBoolean(&status.optimise, "please", old, new);
+    return setBoolean(&GD->cmdline.optimise, "please", old, new);
   else
     return warning("please/3: unknown key: %s", stringAtom(k));
 }
@@ -2347,13 +2347,4 @@ pl_style_check(term_t old, term_t new)
   }
 
   fail;
-}
-
-		/********************************
-		*        USER MODELLING?        *
-		*********************************/
-
-word
-pl_novice(term_t old, term_t new)
-{ return setBoolean(&novice, "$novice", old, new);
 }

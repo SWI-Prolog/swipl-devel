@@ -65,15 +65,6 @@ $load_system_init_file :-
 	).
 $load_system_init_file.
 
-$check_novice :-
-	$novice(on, on), 
-	getenv('PROLOGCHILD', _), !, 
-	format('Cannot start Prolog from a child process running under Prolog~n'), 
-	format('Please type Control-D or `exit'' to return to Prolog~n'), 
-	halt.
-$check_novice.
-
-
 $load_gnu_emacs_interface :-
 	getenv('EMACS', t),
 	$argv(Args),
@@ -215,7 +206,6 @@ $load_associated_file.
 :- flag($qid, _, 1).
 
 $initialise :-
-	$check_novice, 
 	$clean_history,
 	$set_file_search_paths,
 	$run_at_initialization,

@@ -65,7 +65,7 @@ functor_t
 _PL_functor(term_t t)
 { word w = valHandle(t);
 
-  return isTerm(w) ? functorTerm(w) : (FunctorDef)NULL;
+  return isTerm(w) ? functorTerm(w) : (functor_t)0;
 }
 
 

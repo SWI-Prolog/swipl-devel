@@ -59,7 +59,7 @@ startProfiler(int how)
   
   if (setitimer(ITIMER_PROF, &value, &ovalue) != 0)
     return warning("Failed to start interval timer: %s", OsError());
-  statistics.profiling = how;
+  LD->statistics.profiling = how;
 
   succeed;
 }
@@ -71,7 +71,7 @@ stopItimer(void)
   value.it_value.tv_sec  = 0;
   value.it_value.tv_usec = 0;
   
-  if ( statistics.profiling == NO_PROFILING )
+  if ( LD->statistics.profiling == NO_PROFILING )
     return;
   if (setitimer(ITIMER_PROF, &value, &ovalue) != 0)
   { warning("Failed to stop interval timer: %s", OsError());
@@ -81,11 +81,11 @@ stopItimer(void)
 
 static bool
 stopProfiler()
-{ if ( statistics.profiling == NO_PROFILING )
+{ if ( LD->statistics.profiling == NO_PROFILING )
     succeed;
 
   stopItimer();
-  statistics.profiling = NO_PROFILING;
+  LD->statistics.profiling = NO_PROFILING;
 #ifdef HAVE_SIGACTION
   sigaction(SIGPROF, &osigaction, NULL);
 #else
@@ -101,18 +101,18 @@ stopProfiler()
 
 word
 pl_profile(term_t old, term_t new)
-{ int prof = statistics.profiling;
+{ int prof = LD->statistics.profiling;
 
   TRY(setInteger(&prof, "profile", old, new));
-  if ( prof == statistics.profiling )
+  if ( prof == LD->statistics.profiling )
     succeed;
-  statistics.profiling = prof;
+  LD->statistics.profiling = prof;
   switch(prof)
   { case NO_PROFILING:
 	return stopProfiler();
     case CUMULATIVE_PROFILING:
     case PLAIN_PROFILING:
-	if (statistics.profiling != NO_PROFILING)
+	if (LD->statistics.profiling != NO_PROFILING)
 	{ stopProfiler();
 	  pl_reset_profiler();
 	}
@@ -133,9 +133,10 @@ pl_profile_count(term_t head, term_t calls, term_t prom)
     return warning("profile_count/3: No such predicate");
 
   def = proc->definition;
-  pm  = (statistics.profile_ticks == 0 ? 0 : (1000 * def->profile_ticks) /
-						statistics.profile_ticks);
-
+  pm  = (LD->statistics.profile_ticks == 0 ? 0 :
+					     ((1000 * def->profile_ticks) /
+					      LD->statistics.profile_ticks));
+  
   if ( PL_unify_integer(calls, def->profile_calls+def->profile_redos) &&
        PL_unify_integer(prom, pm) )
     succeed;
@@ -173,10 +174,10 @@ pl_reset_profiler(void)
   Procedure proc;
   Symbol sm, sp;
 
-  if (statistics.profiling != NO_PROFILING)
+  if (LD->statistics.profiling != NO_PROFILING)
     stopProfiler();
 
-  for_table(sm, moduleTable)
+  for_table(sm, GD->tables.modules)
   { module = (Module) sm->value;
     for_table(sp, module->procedures)
     { proc = (Procedure) sp->value;
@@ -188,7 +189,7 @@ pl_reset_profiler(void)
       clear(proc->definition, PROFILE_TICKED);
     }
   }
-  statistics.profile_ticks = 0;
+  LD->statistics.profile_ticks = 0;
 
   succeed;
 }
@@ -211,7 +212,7 @@ profile(int sig)
 { register LocalFrame fr = environment_frame;
 
 #if _AIX
-  if ( statistics.profiling == NO_PROFILING )
+  if ( LD->statistics.profiling == NO_PROFILING )
     return;
 #endif
 
@@ -219,7 +220,7 @@ profile(int sig)
   signal(SIGPROF, profile);
 #endif
 
-  statistics.profile_ticks++;
+  LD->statistics.profile_ticks++;
 
   if ( gc_status.active )
   { PROCEDURE_garbage_collect0->definition->profile_ticks++;
@@ -229,7 +230,7 @@ profile(int sig)
   if (fr == (LocalFrame) NULL)
     return;
 
-  if (statistics.profiling == PLAIN_PROFILING)
+  if (LD->statistics.profiling == PLAIN_PROFILING)
   { fr->predicate->profile_ticks++;
     return;
   }

@@ -142,20 +142,21 @@ CpuTime()
 
 char *
 Symbols()
-{ char buf[1024];
+{ char buf[MAXPATHLEN];
   int n;
 
   if ( (n = GetModuleFileName(NULL, buf, sizeof(buf))) > 0 )
-  { char buf2[1024];
+  { char buf2[MAXPATHLEN];
 
     buf[n] = EOS;
     _xos_long_file_name(buf, buf2);
 
     return store_string(buf2);
   } else
-  { PrologPath(mainArgv[0], buf);
+  { char tmp[MAXPATHLEN];
+    PrologPath(GD->cmdline.argv[0], buf);
 
-    return Which(buf);
+    return store_string(Which(buf, tmp));
   }
 }
 

@@ -7,14 +7,11 @@
     Purpose: System dependent parameters
 */
 
-GLOBAL int	mainArgc;		/* arguments to main() */
-GLOBAL char  ** mainArgv;
-
 		/********************************
 		*           STRUCTURES		*
 		********************************/
 
-GLOBAL struct
+typedef struct
 { char *state;				/* system's boot file */
   char *startup;			/* default user startup file */
   int  local;				/* default local stack size (K) */
@@ -27,9 +24,9 @@ GLOBAL struct
   bool notty;				/* use tty? */
   char *arch;				/* machine/OS we are using */
   char *home;				/* systems home directory */
-} systemDefaults; 
+} pl_defaults_t; 
 
-GLOBAL struct options
+typedef struct
 { long		localSize;		/* size of local stack */
   long		globalSize;		/* size of global stack */
   long		trailSize;		/* size of trail stack */
@@ -40,26 +37,7 @@ GLOBAL struct options
   char *	initFile;		/* -f initialisation file */
   char *	systemInitFile;		/* -F initialisation file */
   char *	compileOut;		/* file to store compiler output */
-} options;
-
-GLOBAL struct
-{ bool		boot;			/* boot cycle */
-  bool		extendMode;		/* extend using ^[ and ^D */
-  bool		doExtend;		/* currently using extend mode ? */
-  bool		beep;			/* beep if extend fails */
-  int		debugLevel;		/* internal debuglevel (0-9) */
-  bool		dumped;			/* created from a dump? */
-  bool		notty;			/* do not use ioctl() calls */
-  bool		optimise;		/* use optimised compiler */
-  int		arithmetic;		/* inside arithmetic code ? */
-  bool		io_initialised;		/* I/O initoalisation has finished */
-  bool		initialised;		/* Initialisation completed */
-  bool		outofstack;		/* System is out of a stack */
-  bool		autoload;		/* autoloading traps enabled */
-  bool		case_sensitive_files;   /* FileNames are case sensitive? */
-  bool		case_preserving_files;  /* FileNames case is preserved */
-  bool		dos_files;		/* FileNames have 8+3 convention */
-} status;
+} pl_options_t;
 
 
 		/********************************

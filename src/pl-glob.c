@@ -76,7 +76,7 @@ intermediate representation:
 #define MAXEXPAND	1024
 #define NextIndex(i)	((i) < MAXEXPAND-1 ? (i)+1 : 0)
 
-#define MAXCODE 512
+#define MAXCODE 1024
 
 #define ANY	128
 #define STAR	129
@@ -99,12 +99,12 @@ struct bag
   char	*bag[MAXEXPAND];	/* bag of paths */
 };
 
-static struct out
+typedef struct
 { int		size;
   matchcode	code[MAXCODE];
-} cbuf;
+} compiled_pattern;
 
-forwards char	*compile_pattern(struct out *, char *, int);
+forwards char	*compile_pattern(compiled_pattern *, char *, int);
 forwards bool	match_pattern(matchcode *, char *);
 forwards int	stringCompare(const void *, const void *);
 forwards bool	expand(char *, char **, int *);
@@ -123,7 +123,7 @@ forwards bool	expandBag(struct bag *);
 
 static inline void
 setMap(matchcode *map, int c)
-{ if ( !status.case_sensitive_files )
+{ if ( !trueFeature(FILE_CASE_FEATURE) )
     c = makeLower(c);
 
   map[(c)/8] |= 1 << ((c) % 8);
@@ -131,9 +131,9 @@ setMap(matchcode *map, int c)
 
 
 static bool
-compilePattern(char *p)
-{ cbuf.size = 0;
-  if ( compile_pattern(&cbuf, p, NOCURL) == (char *) NULL )
+compilePattern(char *p, compiled_pattern *cbuf)
+{ cbuf->size = 0;
+  if ( compile_pattern(cbuf, p, NOCURL) == (char *) NULL )
     fail;
 
   succeed;
@@ -141,7 +141,7 @@ compilePattern(char *p)
 
 
 static char *
-compile_pattern(struct out *Out, char *p, int curl)
+compile_pattern(compiled_pattern *Out, char *p, int curl)
 { char c;
 
   for(;;)
@@ -249,8 +249,8 @@ compile_pattern(struct out *Out, char *p, int curl)
 
 
 static inline bool
-matchPattern(char *s)
-{ return match_pattern(cbuf.code, s);
+matchPattern(char *s, compiled_pattern *cbuf)
+{ return match_pattern(cbuf->code, s);
 }
 
 
@@ -271,7 +271,7 @@ match_pattern(matchcode *p, char *str)
       case ANYOF:					/* [...] */
         { matchcode c2 = *s;
 
-	  if ( !status.case_sensitive_files )
+	  if ( !trueFeature(FILE_CASE_FEATURE) )
 	    c2 = makeLower(c2);
 
 	  if ( p[c2 / 8] & (1 << (c2 % 8)) )
@@ -297,7 +297,7 @@ match_pattern(matchcode *p, char *str)
 	  continue;	  
       default:						/* character */
 	  if ( c == *s ||
-	       (!status.case_sensitive_files && c == makeLower(*s)) )
+	       (!trueFeature(FILE_CASE_FEATURE) && c == makeLower(*s)) )
 	  { s++;
 	    continue;
 	  }
@@ -310,13 +310,14 @@ match_pattern(matchcode *p, char *str)
 word
 pl_wildcard_match(term_t pattern, term_t string)
 { char *p;
+  compiled_pattern buf;
 
   if ( PL_get_chars(pattern, &p, CVT_ALL) &&
-       compilePattern(p) )
+       compilePattern(p, &buf) )
   { char *s;
 
     if ( PL_get_chars(string, &s, CVT_ALL) )
-      return matchPattern(s);
+      return matchPattern(s, &buf);
   }
     
   return warning("wildcard_match/2: instantiation fault");
@@ -356,7 +357,7 @@ pl_expand_file_name(term_t f, term_t list)
 
 static int
 stringCompare(const void *a1, const void *a2)
-{ if ( status.case_sensitive_files )
+{ if ( trueFeature(FILE_CASE_FEATURE) )
     return strcmp(*((char **)a1), *((char **)a2));
   else
     return stricmp(*((char **)a1), *((char **)a2));
@@ -396,10 +397,11 @@ expand(char *f, char **argv, int *argc)
 #ifdef O_EXPANDS_TESTS_EXISTS
 #if defined(HAVE_STAT) || defined(__unix__)
 static bool
-Exists(char *path)
-{ struct stat buf;
+Exists(const char *path)
+{ char tmp[MAXPATHLEN];
+  struct stat buf;
 
-  if ( stat(OsPath(path), &buf) == -1 )
+  if ( stat(OsPath(path, tmp), &buf) == -1 )
     fail;
 
   succeed;
@@ -408,12 +410,13 @@ Exists(char *path)
 
 #if tos
 static bool
-Exists(path)
+Exists(const path)
 char *path;
 { struct ffblk buf;
+  char tmp[MAXPATHLEN];
 
   DEBUG(2, Sdprintf("Checking existence of %s ... ", path));
-  if ( findfirst(OsPath(path), &buf, SUBDIR|HIDDEN) == 0 )
+  if ( findfirst(OsPath(path, tmp), &buf, SUBDIR|HIDDEN) == 0 )
   { DEBUG(2, Sdprintf("yes\n"));
     succeed;
   }
@@ -436,7 +439,8 @@ expandBag(struct bag *b)
   for( ; b->out != high; b->out = NextIndex(b->out) )
   { char *head = b->bag[b->out];
     char *tail;
-    register char *s = head;
+    char *s = head;
+    compiled_pattern cbuf;
     
     for(;;)
     { int c;
@@ -496,16 +500,16 @@ expandBag(struct bag *b)
         *q++ = *s++;
       *q = EOS;
 
-      if ( compilePattern(expanded) == FALSE )		/* syntax error */
+      if ( !compilePattern(expanded, &cbuf) )		/* syntax error */
         fail;
       dot = (expanded[0] == '.');			/* do dots as well */
 
 #ifdef HAVE_OPENDIR
       { DIR *d;
-	char *ospath = OsPath(path);
+	char tmp[MAXPATHLEN];
 	struct dirent *e;
 
-	d = opendir(ospath);
+	d = opendir(OsPath(path, tmp));
 
 	if ( d != NULL )
 	{ for(e=readdir(d); e; e = readdir(d))
@@ -513,7 +517,8 @@ expandBag(struct bag *b)
 #ifdef __MSDOS__
 	    strlwr(e->d_name);
 #endif
-	    if ( (dot || e->d_name[0] != '.') && matchPattern(e->d_name) )
+	    if ( (dot || e->d_name[0] != '.') &&
+		 matchPattern(e->d_name, &cbuf) )
 	    { strcpy(expanded, prefix);
 	      strcat(expanded, e->d_name);
 	      strcat(expanded, tail);
@@ -534,17 +539,20 @@ expandBag(struct bag *b)
       { char dpat[MAXPATHLEN];
 	struct ffblk buf;
 	int r;
+	char tmp[MAXPATHLEN];
 
 	strcpy(dpat, path);
 	strcat(dpat, "\\*.*");
 
 	DEBUG(2, Sdprintf("match path = %s\n", dpat));
-	for(r=findfirst(OsPath(dpat), &buf, SUBDIR|HIDDEN); r == 0; r=findnext(&buf))
+	for( r=findfirst(OsPath(dpat, tmp), &buf, SUBDIR|HIDDEN);
+	     r == 0;
+	     r=findnext(&buf) )
 	{ char *name = buf.ff_name;
 	  strlwr(name);		/* match at lower case */
 
 	  DEBUG(2, Sdprintf("found %s\n", name));
-	  if ( (dot || name[0] != '.') && matchPattern(name) )
+	  if ( (dot || name[0] != '.') && matchPattern(name, &cbuf) )
 	  { strcpy(expanded, prefix);
 	    strcat(expanded, name);
 	    strcat(expanded, tail);

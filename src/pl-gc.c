@@ -1206,7 +1206,7 @@ scan_global(int marked)
       if ( isTerm(*current) )
 	warning("0x%p is term %s/%d",
 		current,
-		stringAtom(functorTerm(*current)->name),
+		stringAtom(nameFunctor(functorTerm(*current))),
 		arityTerm(*current));
       if ( ++errors > 10 )
       { Sdprintf("...\n");
@@ -1470,17 +1470,17 @@ pl_garbage_collect(term_t d)
 { LocalFrame fr = environment_frame;
 
 #if O_DEBUG
-  int ol = status.debugLevel;
+  int ol = GD->debug_level;
   int nl;
 
   if ( !PL_get_integer(d, &nl) )
     return warning("garbage_collect/1: instantiation fault");
-  status.debugLevel = nl;
+  GD->debug_level = nl;
 #endif
   finish_foreign_frame();
   garbageCollect(fr);
 #if O_DEBUG
-  status.debugLevel = ol;
+  GD->debug_level = ol;
 #endif
   succeed;
 }

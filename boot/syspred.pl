@@ -50,9 +50,6 @@
 	, garbage_collect/0
 	, arithmetic_function/1
         , default_module/2
-	, save_program/1
-	, save_program/2
-	, save/1
 	, absolute_file_name/2
 	, absolute_file_name/3
 	, require/1
@@ -712,22 +709,6 @@ absolute_file_name(Term, Abs) :-
 
 garbage_collect :-
 	$garbage_collect(0).
-
-%	save_program(+Name[, +Options])
-%	Save the currently running image in file
-
-save_program(Name) :-
-	save_program(Name, []).
-
-save_program(Name, Options) :-
-	$autoload:clear_library_index,
-	$save_program(Name, Options).
-
-%	save(+File)
-%	Create saved-state in file
-
-save(File) :-
-	save(File, _).
 
 %	arithmetic_function(Spec)
 %	Register a predicate as an arithmetic function.  Takes Name/Arity

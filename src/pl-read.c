@@ -415,8 +415,8 @@ raw_read2()
 		  }
 		} else
 		{ addToBuffer('/');
-		  if ( char_type[c] == SY )
-		  { while( c != EOF && char_type[c] == SY )
+		  if ( isSymbol(c) )
+		  { while( c != EOF && isSymbol(c) )
 		    { addToBuffer(c);
 		      c = getchr();
 		    }
@@ -492,15 +492,15 @@ raw_read2()
 		set_start_line;
 		dotseen++;
 		c = getchr();
-		if ( char_type[c] == SY )
-		{ while( c != EOF && char_type[c] == SY )
+		if ( isSymbol(c) )
+		{ while( c != EOF && isSymbol(c) )
 		  { addToBuffer(c);
 		    c = getchr();
 		  }
 		  dotseen = FALSE;
 		}
 		goto handle_c;
-      default:	switch(char_type[c])
+      default:	switch(_PL_char_types[c])
 		{ case SP:
 		    if ( dotseen )
 		    { if ( rb.here - rb.base == 1 )
@@ -515,14 +515,14 @@ raw_read2()
 		      else
 			ensure_space(c);
 		      c = getchr();
-		    } while( c != EOF && char_type[c] == SP );
+		    } while( c != EOF && isBlank(c) );
 		    goto handle_c;
 		  case SY:
 		    set_start_line;
 		    do
 		    { addToBuffer(c);
 		      c = getchr();
-		    } while( c != EOF && char_type[c] == SY );
+		    } while( c != EOF && isSymbol(c) == SY );
 		    dotseen = FALSE;
 		    goto handle_c;
 		  case LC:
@@ -531,8 +531,7 @@ raw_read2()
 		    do
 		    { addToBuffer(c);
 		      c = getchr();
-		    } while( c != EOF &&
-			     (char_type[c] == LC || char_type[c] == UC) );
+		    } while( c != EOF && isAlpha(c) );
 		    dotseen = FALSE;
 		    goto handle_c;
 		  default:
@@ -1041,7 +1040,7 @@ get_token(bool must_be_op)
   skipSpaces;
   token_start = here - 1;
   token.start = source_char_no + token_start - base;
-  switch(char_type[c])
+  switch(_PL_char_types[c])
   { case LC:	{ start = here-1;
 		  while(isAlpha(*here) )
 		    here++;
@@ -1195,7 +1194,7 @@ readValHandle(term_t term, Word argp)
   Variable var;
 
   if ( (var = isVarAtom(w)) )
-  { DEBUG(2, Sdprintf("readValHandle(): var at 0x%x\n", var));
+  { DEBUG(9, Sdprintf("readValHandle(): var at 0x%x\n", var));
 
     if ( !var->variable )		/* new variable */
     { var->variable = PL_new_term_ref();
@@ -1211,12 +1210,12 @@ readValHandle(term_t term, Word argp)
 
 static void
 build_term(term_t term, atom_t atom, int arity, term_t *argv)
-{ FunctorDef functor = lookupFunctorDef(atom, arity);
+{ functor_t functor = lookupFunctorDef(atom, arity);
   Word argp = allocGlobal(arity+1);
 
   DEBUG(9, Sdprintf("Building term %s/%d ... ", stringAtom(atom), arity));
   setHandle(term, consPtr(argp, TAG_COMPOUND|STG_GLOBAL));
-  *argp++ = functor->functor;
+  *argp++ = functor;
 
   for( ; arity-- > 0; argv++, argp++)
     readValHandle(*argv, argp);
@@ -1325,7 +1324,7 @@ the values.
 	if ( side_p >= 0 && cpri > side[side_p].right_pri ) \
 	{ term_t tmp; \
 	  if ( side[side_p].kind == OP_PREFIX && rmo == 0 ) \
-	  { DEBUG(1, Sdprintf("Prefix %s to atom\n", \
+	  { DEBUG(9, Sdprintf("Prefix %s to atom\n", \
 			      stringAtom(side[side_p].op))); \
 	    rmo++; \
 	    tmp = PL_new_term_ref(); \
@@ -1339,7 +1338,7 @@ the values.
 	    side_p = (side_n == 0 ? -1 : side_p-1); \
 	  } else if ( side[side_p].kind == OP_INFIX && out_n > 0 && rmo == 0 && \
 		      isOp(side[side_p].op, OP_POSTFIX, &side[side_p]) ) \
-	  { DEBUG(1, Sdprintf("Infix %s to postfix\n", \
+	  { DEBUG(9, Sdprintf("Infix %s to postfix\n", \
 			      stringAtom(side[side_p].op))); \
 	    rmo++; \
 	    tmp = PL_new_term_ref(); \
@@ -1467,8 +1466,6 @@ bad_operator(out_entry *out, op_entry *op)
   }
 
   syntaxError(buf);
-
-  fail;
 }
 
 #define Reduce(cpri) \
@@ -1481,7 +1478,7 @@ bad_operator(out_entry *out, op_entry *op)
               return bad_operator(&out[out_n-arity], &side[side_p]); \
 	    break; \
 	  } \
-	  DEBUG(1, Sdprintf("Reducing %s/%d\n", \
+	  DEBUG(9, Sdprintf("Reducing %s/%d\n", \
 			    stringAtom(side[side_p].op), arity));\
 	  tmp = PL_new_term_ref(); \
 	  out_n -= arity; \
@@ -1542,10 +1539,10 @@ complex_term(const char *stop, term_t term, term_t positions)
       in_op.tpos = pin;
       in_op.token_start = token_start;
 
-      DEBUG(1, Sdprintf("name %s, rmo = %d\n", stringAtom(name), rmo));
+      DEBUG(9, Sdprintf("name %s, rmo = %d\n", stringAtom(name), rmo));
 
       if ( isOp(name, OP_INFIX, &in_op) )
-      { DEBUG(1, Sdprintf("Infix op: %s\n", stringAtom(name)));
+      { DEBUG(9, Sdprintf("Infix op: %s\n", stringAtom(name)));
 
 	Modify(in_op.left_pri);
 	if ( rmo == 1 )
@@ -1557,7 +1554,7 @@ complex_term(const char *stop, term_t term, term_t positions)
 	}
       }
       if ( isOp(name, OP_POSTFIX, &in_op) )
-      { DEBUG(1, Sdprintf("Postfix op: %s\n", stringAtom(name)));
+      { DEBUG(9, Sdprintf("Postfix op: %s\n", stringAtom(name)));
 
 	Modify(in_op.left_pri);
 	if ( rmo == 1 )
@@ -1568,7 +1565,7 @@ complex_term(const char *stop, term_t term, term_t positions)
 	}
       }
       if ( rmo == 0 && isOp(name, OP_PREFIX, &in_op) )
-      { DEBUG(1, Sdprintf("Prefix op: %s\n", stringAtom(name)));
+      { DEBUG(9, Sdprintf("Prefix op: %s\n", stringAtom(name)));
 	
 	PushOp();
 
@@ -1624,7 +1621,7 @@ simple_term(bool must_be_op, term_t term, bool *name, term_t positions)
       goto atomic_out;
     case T_VARIABLE:
       setHandle(term, token->value.variable->signature);
-      DEBUG(2, Sdprintf("Pushed var at 0x%x\n", token->value.variable));
+      DEBUG(9, Sdprintf("Pushed var at 0x%x\n", token->value.variable));
       goto atomic_out;
     case T_NAME:
       *name = TRUE;
@@ -1784,7 +1781,7 @@ term is to be written.
 		argp = allocGlobal(3);
 		*unRef(*valTermRef(tail)) = consPtr(argp,
 						    TAG_COMPOUND|STG_GLOBAL);
-		*argp++ = FUNCTOR_dot2->functor;
+		*argp++ = FUNCTOR_dot2;
 		readValHandle(tmp, argp++);
 		setVar(*argp);
 		setHandle(tail, makeRef(argp));
@@ -1938,7 +1935,7 @@ pl_read_clause2(term_t stream, term_t term)
 { streamInput(stream, pl_read_clause(term));
 }
 
-static opt_spec read_term_options[] = 
+static const opt_spec read_term_options[] = 
 { { ATOM_syntax_errors,	    OPT_TERM },	/* quiet, fail, X */
   { ATOM_variable_names,    OPT_TERM },
   { ATOM_singletons,        OPT_TERM },

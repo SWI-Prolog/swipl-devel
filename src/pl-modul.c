@@ -27,7 +27,7 @@ lookupModule(atom_t name)
 { Symbol s;
   Module m;
 
-  if ((s = lookupHTable(moduleTable, (void*)name)) != (Symbol) NULL)
+  if ((s = lookupHTable(GD->tables.modules, (void*)name)) != (Symbol) NULL)
     return (Module) s->value;
 
   m = allocHeap(sizeof(struct module));
@@ -53,8 +53,8 @@ lookupModule(atom_t name)
   if ( name == ATOM_system || stringAtom(name)[0] == '$' )
     set(m, SYSTEM);
 
-  addHTable(moduleTable, (void *)name, m);
-  statistics.modules++;
+  addHTable(GD->tables.modules, (void *)name, m);
+  GD->statistics.modules++;
   
   return m;
 }
@@ -64,7 +64,7 @@ static Module
 isCurrentModule(atom_t name)
 { Symbol s;
   
-  if ( (s = lookupHTable(moduleTable, (void*)name)) )
+  if ( (s = lookupHTable(GD->tables.modules, (void*)name)) )
     return (Module) s->value;
 
   return NULL;
@@ -73,11 +73,11 @@ isCurrentModule(atom_t name)
 
 void
 initModules(void)
-{ moduleTable    = newHTable(MODULEHASHSIZE);
-  modules.system = lookupModule(ATOM_system);
-  modules.user   = lookupModule(ATOM_user);
-  modules.typein = modules.user;
-  modules.source = modules.user;
+{ GD->tables.modules        = newHTable(MODULEHASHSIZE);
+  GD->modules.system = lookupModule(ATOM_system);
+  GD->modules.user   = lookupModule(ATOM_user);
+  LD->modules.typein = MODULE_user;
+  LD->modules.source = MODULE_user;
 }
 
 int
@@ -121,8 +121,11 @@ stripModule(Word term, Module *module)
 
 bool
 isPublicModule(Module module, Procedure proc)
-{ return lookupHTable(module->public, proc->definition->functor) ? TRUE
-								 : FALSE;
+{ if ( lookupHTable(module->public,
+		    (void *)proc->definition->functor->functor) )
+    succeed;
+
+  fail;
 }
 
 
@@ -157,7 +160,7 @@ pl_default_module(term_t me, term_t old, term_t new)
 
 word
 pl_current_module(term_t module, term_t file, word h)
-{ Symbol symb = firstHTable(moduleTable);
+{ Symbol symb = firstHTable(GD->tables.modules);
   atom_t name;
 
   if ( ForeignControl(h) == FRG_CUTTED )
@@ -165,7 +168,7 @@ pl_current_module(term_t module, term_t file, word h)
 
 					/* deterministic cases */
   if ( PL_get_atom(module, &name) )
-  { for(; symb; symb = nextHTable(moduleTable, symb) )
+  { for(; symb; symb = nextHTable(GD->tables.modules, symb) )
     { Module m = (Module) symb->value;
 
       if ( name == m->name )
@@ -176,7 +179,7 @@ pl_current_module(term_t module, term_t file, word h)
 
     fail;
   } else if ( PL_get_atom(file, &name) )
-  { for( ; symb; symb = nextHTable(moduleTable, symb) )
+  { for( ; symb; symb = nextHTable(GD->tables.modules, symb) )
     { Module m = (Module) symb->value;
 
       if ( m->file && m->file->name == name )
@@ -196,7 +199,7 @@ pl_current_module(term_t module, term_t file, word h)
       assert(0);
   }
 
-  for( ; symb; symb = nextHTable(moduleTable, symb) )
+  for( ; symb; symb = nextHTable(GD->tables.modules, symb) )
   { Module m = (Module) symb->value;
 
     if ( stringAtom(m->name)[0] == '$' &&
@@ -208,7 +211,7 @@ pl_current_module(term_t module, term_t file, word h)
 
       if ( PL_unify_atom(module, m->name) &&
 	   PL_unify_atom(file, f) )
-      { if ( !(symb = nextHTable(moduleTable, symb)) )
+      { if ( !(symb = nextHTable(GD->tables.modules, symb)) )
 	  succeed;
 
 	ForeignRedoPtr(symb);
@@ -238,13 +241,13 @@ pl_strip_module(term_t spec, term_t module, term_t term)
 
 word
 pl_module(term_t old, term_t new)
-{ if ( PL_unify_atom(old, modules.typein->name) )
+{ if ( PL_unify_atom(old, LD->modules.typein->name) )
   { atom_t name;
 
     if ( !PL_get_atom(new, &name) )
       return warning("module/2: argument should be an atom");
 
-    modules.typein = lookupModule(name);
+    LD->modules.typein = lookupModule(name);
     succeed;
   }
 
@@ -254,13 +257,13 @@ pl_module(term_t old, term_t new)
 
 word
 pl_set_source_module(term_t old, term_t new)
-{ if ( PL_unify_atom(old, modules.source->name) )
+{ if ( PL_unify_atom(old, LD->modules.source->name) )
   { atom_t name;
 
     if ( !PL_get_atom(new, &name) )
       return warning("$source_module/2: argument should be an atom");
 
-    modules.source = lookupModule(name);
+    LD->modules.source = lookupModule(name);
     succeed;
   }
 
@@ -277,15 +280,15 @@ that has no clauses. The predicate would fail anyhow.
 
 word
 pl_term_expansion_module(term_t name, word h)
-{ Module m = modules.source;
+{ Module m = LD->modules.source;
   Procedure proc;
 
   switch(ForeignControl(h))
   { case FRG_FIRST_CALL:
-      m = modules.source;
+      m = LD->modules.source;
       break;
     case FRG_REDO:
-      m = modules.user;
+      m = MODULE_user;
       break;
     default:
       succeed;
@@ -294,15 +297,15 @@ pl_term_expansion_module(term_t name, word h)
   while(1)
   { if ( (proc = isCurrentProcedure(FUNCTOR_term_expansion2, m)) &&
 	 proc->definition->definition.clauses &&
-	 PL_unify_atom(name, modules.source->name) )
-    { if ( m == modules.user )
+	 PL_unify_atom(name, LD->modules.source->name) )
+    { if ( m == MODULE_user )
 	PL_succeed;
       else
 	ForeignRedoInt(1);
     } else
-    { if ( m == modules.user )
+    { if ( m == MODULE_user )
 	PL_fail;
-      m = modules.user;
+      m = MODULE_user;
     }
   }
 }
@@ -327,7 +330,7 @@ declareModule(atom_t name, SourceFile sf)
   }
 	    
   module->file = sf;
-  modules.source = module;
+  LD->modules.source = module;
 
   for_table(s, module->procedures)
   { Procedure proc = (Procedure) s->value;
@@ -377,7 +380,7 @@ pl_export_list(term_t modulename, term_t public)
 
     for_table(s, module->public)
     { if ( !PL_unify_list(list, head, list) ||
-	   !PL_unify_functor(head, (FunctorDef)s->name) )
+	   !PL_unify_functor(head, (functor_t)s->name) )
 	fail;
     }
 
@@ -396,13 +399,15 @@ word
 pl_export(term_t pred)
 { Module module = NULL;
   term_t head = PL_new_term_ref();
-  FunctorDef fd;
+  functor_t fd;
 
   PL_strip_module(pred, &module, head);
   if ( PL_get_functor(head, &fd) )
   { Procedure proc = lookupProcedure(fd, module);
 
-    addHTable(module->public, proc->definition->functor, proc);
+    addHTable(module->public,
+	      (void *)proc->definition->functor->functor,
+	      proc);
     succeed;
   }
 
@@ -447,7 +452,7 @@ pl_import(term_t pred)
 { Module source = NULL;
   Module destination = contextModule(environment_frame);
   term_t head = PL_new_term_ref();
-  FunctorDef fd;
+  functor_t fd;
   Procedure proc, old;
 
   PL_strip_module(pred, &source, head);
@@ -456,9 +461,10 @@ pl_import(term_t pred)
   proc = lookupProcedure(fd, source);
 
   if ( !isDefinedProcedure(proc) )
-    autoImport(proc->definition->functor, proc->definition->module);
+    autoImport(proc->definition->functor->functor, proc->definition->module);
 
-  if ( (old = isCurrentProcedure(proc->definition->functor, destination)) )
+  if ( (old = isCurrentProcedure(proc->definition->functor->functor,
+				 destination)) )
   { if ( old->definition == proc->definition )
       succeed;			/* already done this! */
 
@@ -497,7 +503,8 @@ pl_import(term_t pred)
     nproc->type = PROCEDURE_TYPE;
     nproc->definition = proc->definition;
   
-    addHTable(destination->procedures, proc->definition->functor, nproc);
+    addHTable(destination->procedures,
+	      (void *)proc->definition->functor->functor, nproc);
   }
 
   succeed;

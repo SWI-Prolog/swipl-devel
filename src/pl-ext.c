@@ -45,8 +45,8 @@ Flags almost always is TRACE_ME.  Additional common flags:
 
 #define FRG(n, a, f, flags) { n, f, flags, a }
 
-static struct foreign {
-  char		*name;
+static const struct foreign {
+  const char *  name;
   Func		function;
   unsigned long flags;
   int		arity;
@@ -302,7 +302,6 @@ static struct foreign {
   FRG("dwim_match",		3, pl_dwim_match,		TRACE_ME),
   FRG("$dwim_predicate",	2, pl_dwim_predicate,	   NDET|TRACE_ME),
 
-  FRG("$novice",		2, pl_novice,			TRACE_ME),
   FRG("protocol",		1, pl_protocol,			TRACE_ME),
   FRG("protocola",		1, pl_protocola,		TRACE_ME),
   FRG("noprotocol",		0, pl_noprotocol,		TRACE_ME),
@@ -360,10 +359,6 @@ static struct foreign {
   FRG("string_to_list",		2, pl_string_to_list,		TRACE_ME),
   FRG("substring",		4, pl_substring,		TRACE_ME),
 #endif /* O_STRING */
-
-  FRG("save",			2, pl_save,			TRACE_ME),
-  FRG("restore",		1, pl_restore,			TRACE_ME),
-  FRG("$save_program",		2, pl_save_program,		TRACE_ME),
 
   FRG("is_list",		1, pl_is_list,			TRACE_ME),
   FRG("proper_list",		1, pl_proper_list,		TRACE_ME),
@@ -445,16 +440,25 @@ static struct foreign {
 };
 
 
-typedef struct extension_cell *ExtensionCell;
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The extensions chain is used   to allow calling PL_register_extensions()
+*before* PL_initialise() to get foreign   extensions in embedded systems
+defined before the state is loaded, so executing directives in the state
+can use foreign extensions.
+
+If an extension is registered before the  system extension is loaded, it
+will be added to the chain. Right  after the system registers the system
+predicates, the extensions will be registered.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 struct extension_cell
 { PL_extension *extensions;
   ExtensionCell next;
 };
 
-static ExtensionCell extensions = NULL;
-static ExtensionCell ext_tail = NULL;
-static extensions_loaded = FALSE;
+#define ext_head		(GD->foreign._ext_head)
+#define ext_tail		(GD->foreign._ext_tail)
+#define extensions_loaded	(GD->foreign._loaded)
 
 static void
 bindExtensions(PL_extension *e)
@@ -491,7 +495,7 @@ PL_register_extensions(PL_extension *e)
     { ext_tail->next = cell;
       ext_tail = cell;
     } else
-    { extensions = ext_tail = cell;
+    { ext_head = ext_tail = cell;
     }
   }
 }
@@ -499,11 +503,11 @@ PL_register_extensions(PL_extension *e)
 
 void
 initBuildIns(void)
-{ struct foreign *f;
+{ const struct foreign *f;
   Definition def;
 
   for(f = &foreigns[0]; f->name; f++)
-  { FunctorDef fdef = lookupFunctorDef(lookupAtom(f->name), f->arity);
+  { functor_t fdef = lookupFunctorDef(lookupAtom(f->name), f->arity);
 
     def = lookupProcedure(fdef, MODULE_system)->definition;
     set(def, FOREIGN|SYSTEM|LOCKED);
@@ -514,7 +518,7 @@ initBuildIns(void)
     def->indexCardinality = 0;
     if ( false(def, NONDETERMINISTIC) && 
 	 f->arity <= 2 )
-      set(fdef, INLINE_F);
+      set(valueFunctor(fdef), INLINE_F);
   }
 
   PROCEDURE_alt1	     = lookupProcedure(FUNCTOR_alt1, MODULE_system);

@@ -486,6 +486,7 @@ $chk_alias_file(Spec, Exts, Cond, FullFile) :-
 	$extend_file(Expanded, Exts, LibFile),
 	$file_condition(Cond, LibFile),
 	$absolute_file_name(LibFile, FullFile),
+	\+ $search_path_file_cache(Spec, Cond, FullFile, Exts),
 	asserta($search_path_file_cache(Spec, Cond, FullFile, Exts)).
 	
 $file_condition([], _) :- !.

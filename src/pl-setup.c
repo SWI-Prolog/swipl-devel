@@ -50,8 +50,8 @@ void
 setupProlog(void)
 { DEBUG(1, Sdprintf("Starting Heap Initialisation\n"));
 
-  critical = 0;
-  aborted = FALSE;
+  GD->critical = 0;
+  LD->aborted = FALSE;
   signalled = 0;
 
   startCritical;
@@ -59,7 +59,7 @@ setupProlog(void)
   DEBUG(1, Sdprintf("Prolog Signal Handling ...\n"));
   initSignals();
 #endif
-  if ( status.dumped == FALSE )
+  if ( !GD->dumped )
   { hBase = (char *)(~0L);
     hTop  = (char *)NULL;
   }
@@ -69,10 +69,10 @@ setupProlog(void)
     freeHeap(hbase, sizeof(word));
   }
   DEBUG(1, Sdprintf("Stacks ...\n"));
-  initStacks(options.localSize, 
-	     options.globalSize, 
-	     options.trailSize, 
-	     options.argumentSize);
+  initStacks(GD->options.localSize, 
+	     GD->options.globalSize, 
+	     GD->options.trailSize, 
+	     GD->options.argumentSize);
 
   lTop = lBase;
   tTop = tBase;
@@ -96,7 +96,7 @@ setupProlog(void)
 
   emptyStacks();
 
-  if ( status.dumped == FALSE )
+  if ( !GD->dumped )
   { DEBUG(1, Sdprintf("Atoms ...\n"));
     initAtoms();
     DEBUG(1, Sdprintf("Features ...\n"));
@@ -123,8 +123,8 @@ setupProlog(void)
     initWamTable();
   } else
   { resetReferences();
-    resetGC();			/* reset garbage collector */
-    stateList = (State) NULL;	/* all states are already in core */
+    resetGC();				/* reset garbage collector */
+    GD->stateList = (State) NULL;	/* all states are already in core */
   }
   DEBUG(1, Sdprintf("IO ...\n"));
   initIO();
@@ -134,16 +134,16 @@ setupProlog(void)
   getSymbols();
   DEBUG(1, Sdprintf("Term ...\n"));
   resetTerm();
-  status.io_initialised = TRUE;
+  GD->io_initialised = TRUE;
 
   endCritical;
 
   environment_frame = (LocalFrame) NULL;
-  statistics.inferences = 0;
+  LD->statistics.inferences = 0;
 #if O_STORE_PROGRAM || O_SAVE
-  cannot_save_program = NULL;
+  GD->cannot_save_program = NULL;
 #else
-  cannot_save_program = "Not supported on this machine";
+  GD->cannot_save_program = "Not supported on this machine";
 #endif
 
 #if O_XWINDOWS
@@ -234,7 +234,7 @@ initFeatures()
   CSetFeature("max_arity", "unbounded");
   CSetFeature("float_format", "%g");
   CSetFeature("character_escapes", "true");
-  CSetFeature("tty_control", status.notty ? "false" : "true");
+  CSetFeature("tty_control", GD->cmdline.notty ? "false" : "true");
 #if defined(__unix__) || defined(unix)
   CSetFeature("unix", "true");
 #endif
@@ -294,10 +294,10 @@ static void
 initSignals(void)
 { int n;
 
-  if ( status.dumped == FALSE )
+  if ( !GD->dumped )
   { for( n = 0; n < MAXSIGNAL; n++ )
-    { signalHandlers[n].os = signalHandlers[n].user = SIG_DFL;
-      signalHandlers[n].catched = FALSE;
+    { LD_sig_handler(n).os = LD_sig_handler(n).user = SIG_DFL;
+      LD_sig_handler(n).catched = FALSE;
     }
 
 #ifdef SIGTTOU
@@ -312,8 +312,8 @@ initSignals(void)
 #endif
   } else
   { for( n = 0; n < MAXSIGNAL; n++ )
-      if ( signalHandlers[n].os != SIG_DFL )
-        signal(n, signalHandlers[n].os);
+      if ( LD_sig_handler(n).os != SIG_DFL )
+        signal(n, LD_sig_handler(n).os);
   }
 
 #ifdef HAVE_SIGGETMASK
@@ -350,8 +350,8 @@ pl_signal(int sig, handler_t func)
 	      sig, (unsigned long)func, OsError());
 #endif
 
-    signalHandlers[sig].os = func;
-    signalHandlers[sig].catched = (func == SIG_DFL ? FALSE : TRUE);
+    LD_sig_handler(sig).os = func;
+    LD_sig_handler(sig).catched = (func == SIG_DFL ? FALSE : TRUE);
 
     return old;
   } else
@@ -364,11 +364,11 @@ deliverSignal(int sig, int type, SignalContext scp, char *addr)
 { typedef RETSIGTYPE (*uhandler_t)(int, int, void *, char *);
     
 #ifndef BSD_SIGNALS
-  signal(sig, signalHandlers[sig].os);	/* ??? */
+  signal(sig, LD_sig_handler(sig).os);	/* ??? */
 #endif
 
-  if ( signalHandlers[sig].user != SIG_DFL )
-  { uhandler_t uh = (uhandler_t)signalHandlers[sig].user;
+  if ( LD_sig_handler(sig).user != SIG_DFL )
+  { uhandler_t uh = (uhandler_t)LD_sig_handler(sig).user;
 
     (*uh)(sig, type, scp, addr);
     return;
@@ -390,10 +390,10 @@ PL_handle_signals()
     { if ( signalled & mask )
       { signalled &= ~mask;
 
-	if ( signalHandlers[sig].os == SIG_DFL )
+	if ( LD_sig_handler(sig).os == SIG_DFL )
 	{ fatalError("Unhandled signal: %d\n", sig);
-	} else if ( signalHandlers[sig].os != SIG_IGN )
-	{ uhandler_t uh = (uhandler_t)signalHandlers[sig].os;
+	} else if ( LD_sig_handler(sig).os != SIG_IGN )
+	{ uhandler_t uh = (uhandler_t)LD_sig_handler(sig).os;
 
 	  (*uh)(sig);
 	}				/* SIG_IGN: ignored */
@@ -687,10 +687,10 @@ deallocateStack(Stack s)
 
 void
 deallocateStacks(void)
-{ deallocateStack((Stack) &stacks.local);
-  deallocateStack((Stack) &stacks.global);
-  deallocateStack((Stack) &stacks.trail);
-  deallocateStack((Stack) &stacks.argument);
+{ deallocateStack((Stack) &LD->stacks.local);
+  deallocateStack((Stack) &LD->stacks.global);
+  deallocateStack((Stack) &LD->stacks.trail);
+  deallocateStack((Stack) &LD->stacks.argument);
 }
 
 
@@ -1022,7 +1022,7 @@ initStacks(long local, long global, long trail, long argument)
 
 #define INIT_STACK(name, print, limit, minsize) \
   DEBUG(1, Sdprintf("%s stack at 0x%x; size = %ld\n", print, base, limit)); \
-  init_stack((Stack) &stacks.name, print, (caddress) base, limit, minsize); \
+  init_stack((Stack) &LD->stacks.name, print, (caddress) base, limit, minsize); \
   base += limit + STACK_SEPARATION; \
   base = align_base(base);
 #define K * 1024
@@ -1068,7 +1068,7 @@ segv_handler(int sig, int type, SignalContext scp, char *addr)
 #else
 segv_handler(int sig)
 #endif
-{ Stack stacka = (Stack) &stacks;
+{ Stack stacka = (Stack) &LD->stacks;
   int i;
 
 #ifndef SIGNAL_HANDLER_PROVIDES_ADDRESS
@@ -1202,7 +1202,7 @@ initStacks(long local, long global, long trail, long argument)
   if ( trail    == 0 ) large++;
   if ( argument == 0 ) large++;
 
-  if ( (top = topOfHeap()) > 0L && !options.heapSize )
+  if ( (top = topOfHeap()) > 0L && !GD->options.heapSize )
   { if ( large > 0 )			/* we have dynamic stacks */
     { base = heap_base;
       space = top - base;
@@ -1232,13 +1232,13 @@ initStacks(long local, long global, long trail, long argument)
     base = align_base_down(base);
   } else				/* we don't know the top */
   {
-    if ( !options.heapSize )
-      options.heapSize = 64 MB;
+    if ( !GD->options.heapSize )
+      GD->options.heapSize = 64 MB;
 
 #ifdef MMAP_MIN_ADDRESS
     base = MMAP_MIN_ADDRESS;
 #else
-    base = (ulong) align_base((ulong)sbrk(0) + options.heapSize);
+    base = (ulong) align_base((ulong)sbrk(0) + GD->options.heapSize);
 #endif
 
     if ( large > 0 )
@@ -1254,7 +1254,7 @@ initStacks(long local, long global, long trail, long argument)
 
 #define INIT_STACK(name, print, limit, minsize) \
   DEBUG(1, Sdprintf("%s stack at 0x%x; size = %ld\n", print, base, limit)); \
-  init_stack((Stack) &stacks.name, print, (caddress) base, limit, minsize); \
+  init_stack((Stack) &LD->stacks.name, print, (caddress) base, limit, minsize); \
   base += limit + STACK_SEPARATION; \
   base = align_base(base);
 #define K * 1024
@@ -1290,8 +1290,8 @@ resetStacks()
 
 static void
 gcPolicy(Stack s, int policy)
-{ s->gc = ((s == (Stack) &stacks.global ||
-	    s == (Stack) &stacks.trail) ? TRUE : FALSE);
+{ s->gc = ((s == (Stack) &LD->stacks.global ||
+	    s == (Stack) &LD->stacks.trail) ? TRUE : FALSE);
   if ( s->gc )
   { s->small  = SMALLSTACK;
     s->factor = 3;
@@ -1308,8 +1308,8 @@ word
 pl_trim_stacks()
 { trimStacks();
 
-  gcPolicy((Stack) &stacks.global, GC_FAST_POLICY);
-  gcPolicy((Stack) &stacks.trail,  GC_FAST_POLICY);
+  gcPolicy((Stack) &LD->stacks.global, GC_FAST_POLICY);
+  gcPolicy((Stack) &LD->stacks.trail,  GC_FAST_POLICY);
 
   succeed;
 }
@@ -1347,13 +1347,13 @@ pl_stack_parameter(term_t name, term_t key, term_t old, term_t new)
 
   if ( PL_get_atom(name, &a) )
   { if ( a == ATOM_local )
-      stack = (Stack) &stacks.local;
+      stack = (Stack) &LD->stacks.local;
     else if ( a == ATOM_global )
-      stack = (Stack) &stacks.global;
+      stack = (Stack) &LD->stacks.global;
     else if ( a == ATOM_trail )
-      stack = (Stack) &stacks.trail;
+      stack = (Stack) &LD->stacks.trail;
     else if ( a == ATOM_argument )
-      stack = (Stack) &stacks.argument;
+      stack = (Stack) &LD->stacks.argument;
   }
   if ( !stack )
     return warning("stack_parameter/4: unknown stack");
@@ -1382,8 +1382,8 @@ init_stack(Stack s, char *name, long size, long limit, long minfree)
   s->minfree	= minfree;
   s->max	= (char *)s->base + size;
   s->gced_size = 0L;			/* size after last gc */
-  s->gc	       = ((s == (Stack) &stacks.global ||
-		   s == (Stack) &stacks.trail) ? TRUE : FALSE);
+  s->gc	       = ((s == (Stack) &LD->stacks.global ||
+		   s == (Stack) &LD->stacks.trail) ? TRUE : FALSE);
   s->small     = (s->gc ? SMALLSTACK : 0);
 }
 
@@ -1396,12 +1396,12 @@ not exist.
 #if tos
 #define MALLOC(p, n)    Allocate(n)
 #else
-#define MALLOC(p, n)	(status.dumped == FALSE ? malloc(n) : realloc(p, n))
+#define MALLOC(p, n)	(!GD->dumped ? malloc(n) : realloc(p, n))
 #endif
 
 static void
-initStacks(long local, long global, long trail, long argument)
-{ long old_heap = statistics.heap;
+initStacks(long local, long global, long trail, long arg)
+{ long old_heap = GD->statistics.heap;
 #if O_SHIFT_STACKS
   long itrail  = 32 K;
   long iglobal = 200 K;
@@ -1417,14 +1417,14 @@ initStacks(long local, long global, long trail, long argument)
 			       MAXARITY * sizeof(word));
   lBase = (LocalFrame)	addPointer(gBase, iglobal+sizeof(word));
   tBase = (TrailEntry)	MALLOC(tBase, itrail);
-  aBase = (Word *)	MALLOC(aBase, argument);
+  aBase = (Word *)	MALLOC(aBase, arg);
 
-  init_stack((Stack)&stacks.global,   "global",	 iglobal,  global,   100 K);
-  init_stack((Stack)&stacks.local,    "local",	 ilocal,   local,    16 K);
-  init_stack((Stack)&stacks.trail,    "trail",	 itrail,   trail,    8 K);
-  init_stack((Stack)&stacks.argument, "argument",argument, argument, 0);
+  init_stack((Stack)&LD->stacks.global,	"global", iglobal, global, 100 K);
+  init_stack((Stack)&LD->stacks.local,  "local",  ilocal,   local,  16 K);
+  init_stack((Stack)&LD->stacks.trail,  "trail",  itrail,   trail,   8 K);
+  init_stack((Stack)&LD->stacks.arg,    "argument",  arg,     arg,   0 K);
 
-  statistics.heap = old_heap;
+  GD->statistics.heap = old_heap;
 }
 
 void
@@ -1438,12 +1438,12 @@ void
 trimStacks()
 {
 #ifdef O_DYNAMIC_STACKS
-  unmap((Stack) &stacks.local);
-  unmap((Stack) &stacks.global);
-  unmap((Stack) &stacks.trail);
-  unmap((Stack) &stacks.argument);
+  unmap((Stack) &LD->stacks.local);
+  unmap((Stack) &LD->stacks.global);
+  unmap((Stack) &LD->stacks.trail);
+  unmap((Stack) &LD->stacks.argument);
 #endif /*O_DYNAMIC_STACKS*/
 
-  stacks.global.gced_size = usedStack(global);
-  stacks.trail.gced_size  = usedStack(trail);
+  LD->stacks.global.gced_size = usedStack(global);
+  LD->stacks.trail.gced_size  = usedStack(trail);
 }

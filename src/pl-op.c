@@ -12,7 +12,7 @@
 forwards int	atomToOperatorType(atom_t);
 forwards atom_t	operatorTypeToAtom(int);
 
-static Operator operatorTable[OPERATORHASHSIZE];
+#define operatorTable (GD->op.table)
 
 /*  Find an operator in the table. Type is one of OP_PREFIX, OP_INFIX or
     op_POSTFIX.
@@ -217,7 +217,7 @@ operator(atom_t name, int type, int priority)
 			break;
   }
 
-  if (op == (Operator) NULL)
+  if ( !op )
   { int v;
 
     v = pointerHashValue(name, OPERATORHASHSIZE);
@@ -258,9 +258,15 @@ newOp(char *name, int type, int pri)
 { return operator(lookupAtom(name), type, pri);
 }
 
-#define OP(a, t, p) { (Operator)NULL, a, t, p }
+typedef struct
+{ atom_t name;
+  char   type;
+  short  priority;
+} opdef;
 
-static struct operator operators[] = {
+#define OP(a, t, p) { a, t, p }
+
+static const opdef operators[] = {
   OP(ATOM_star,		OP_YFX,		400),		/* * */
   OP(ATOM_plus,		OP_FX,		500),		/* + */
   OP(ATOM_plus,		OP_YFX,		500),
@@ -323,8 +329,8 @@ static struct operator operators[] = {
 
 void
 initOperators(void)
-{ { register Operator *op;
-    register int n;
+{ { Operator *op;
+    int n;
 
     for(n=0, op=operatorTable; n < (OPERATORHASHSIZE-1); n++, op++)
       *op = makeTableRef(op+1);
@@ -332,7 +338,7 @@ initOperators(void)
     *op = NULL;
   }
 
-  { register Operator op;
+  { const opdef *op;
 
     for( op = operators; op->name; op++ )
       operator(op->name, op->type, op->priority);

@@ -15,7 +15,7 @@ volatile void	outOf(Stack s);
 volatile void	outOfCore(void);
 Void		alloc_global(int n);
 Void		alloc_heap(size_t n);
-word		globalFunctor(FunctorDef def);
+word		globalFunctor(functor_t def);
 int		sizeString(word w);
 word		globalString(const char *s);
 word		globalNString(long len, const char *s);
@@ -72,8 +72,8 @@ word		pl_is(term_t v, term_t e);
 word		pl_arithmetic_function(term_t descr);
 word		pl_current_arithmetic_function(term_t f, word h);
 void		initArith(void);
-int		indexArithFunction(FunctorDef fdef, Module m);
-FunctorDef	functorArithFunction(int n);
+int		indexArithFunction(functor_t fdef, Module m);
+functor_t	functorArithFunction(int n);
 bool		ar_func_n(code n, int argc, Number *stack);
 int		valueExpression(term_t p, Number n);
 int		toIntegerNumber(Number n);
@@ -152,7 +152,7 @@ void		initBuildIns(void);
 
 int		PL_error(const char *pred, int arity, const char *msg,
 			 int id, ...);
-char *		tostr(const char *fmt, ...);
+char *		tostr(char *buf, const char *fmt, ...);
 
 /* pl-file.c */
 void		initIO(void);
@@ -260,6 +260,10 @@ word		makeNum(long i);
 void		finish_foreign_frame();
 void		_PL_put_number(term_t t, Number n);
 int		_PL_unify_number(term_t t, Number n);
+predicate_t	_PL_predicate(const char *name, int arity, const char *module,
+			      predicate_t *bin);
+void		initialiseForeign(int argc, char **argv);
+char *		buffer_string(const char *s, int flags);
 
 /* pl-fmt.c */
 word		pl_format_predicate(term_t chr, term_t descr);
@@ -267,8 +271,8 @@ word		pl_format(term_t fmt, term_t args);
 word		pl_format3(term_t s, term_t fmt, term_t args);
 
 /* pl-funct.c */
-FunctorDef	lookupFunctorDef(atom_t atom, int arity);
-FunctorDef	isCurrentFunctor(atom_t atom, int arity);
+functor_t	lookupFunctorDef(atom_t atom, int arity);
+functor_t	isCurrentFunctor(atom_t atom, int arity);
 void		initFunctors(void);
 int 		checkFunctors(void);
 word		pl_current_functor(term_t name, term_t arity, word h);
@@ -288,7 +292,6 @@ word		pl_expand_file_name(term_t f, term_t l);
 
 /* pl-itf.c */
 void		resetForeign(void);
-void		initialiseForeign(int argc, char **argv);
 
 /* pl-list.c */
 word		pl_is_list(term_t list);
@@ -349,28 +352,29 @@ real		CpuTime(void);
 Void		Allocate(long int n);
 long		Random(void);
 char *		canonisePath(char *path);
-char *		OsPath(const char *unixpath);
-char *		PrologPath(char *ospath, char *plpath);
+char *		OsPath(const char *plpath, char *ospath);
+char *		PrologPath(const char *ospath, char *plpath);
 long		LastModifiedFile(char *f);
-bool		ExistsFile(char *path);
-bool		AccessFile(char *path, int mode);
-bool		ExistsDirectory(char *path);
-long		SizeFile(char *path);
+bool		ExistsFile(const char *path);
+bool		AccessFile(const char *path, int mode);
+bool		ExistsDirectory(const char *path);
+long		SizeFile(const char *path);
 int		RemoveFile(const char *path);
-bool		RenameFile(char *old, char *new);
-bool		SameFile(char *f1, char *f2);
+bool		RenameFile(const char *old, const char *new);
+bool		SameFile(const char *f1, const char *f2);
 bool		OpenStream(int fd);
-bool		MarkExecutable(char *name);
-bool		expandVars(char *pattern, char *expanded);
-char *		ExpandOneFile(char *spec);
+bool		MarkExecutable(const char *name);
+bool		expandVars(const char *pattern, char *expanded);
+char *		ExpandOneFile(const char *spec, char *file);
 char *		getwd(char *buf);
-char *		AbsoluteFile(char *spec);
+char *		AbsoluteFile(const char *spec, char *path);
 int		IsAbsolutePath(const char *spec);
 char *		BaseName(char *f);
-char *		DirName(char *f);
-char *		ReadLink(char *f);
-char *		DeRefLink(char *link);
-bool		ChDir(char *path);
+char *		DirName(const char *f, char *buf);
+char *		ReadLink(const char *f, char *buf);
+char *		DeRefLink(const char *link, char *buf);
+bool		ChDir(const char *path);
+atom_t		TemporaryFile(const char *id);
 struct tm *	LocalTime(long int *t);
 Char		GetChar(void);
 void		ResetTty(void);
@@ -416,7 +420,7 @@ word		pl_arg(term_t n, term_t t, term_t a, word b);
 word		pl_setarg(term_t n, term_t term, term_t arg);
 int		lengthList(term_t list);
 word		pl_univ(term_t t, term_t l);
-int		numberVars(term_t t, FunctorDef functor, int n);
+int		numberVars(term_t t, functor_t functor, int n);
 word		pl_numbervars(term_t t, term_t atom,
 			      term_t start, term_t end);
 word		pl_free_variables(term_t t, term_t l);
@@ -427,7 +431,7 @@ word		pl_atom_length(term_t w, term_t n);
 word		pl_int_to_atom(term_t number, term_t base,
 			       term_t atom);
 char *		formatInteger(bool split, int div, int radix,
-			      bool small, long int n);
+			      bool small, long n, char *out);
 word		pl_format_number(term_t format, term_t number,
 				 term_t string);
 word		pl_name(term_t atom, term_t string);
@@ -485,9 +489,9 @@ int 		trap_gdb(void);
 word		checkData(Word p);
 
 /* pl-proc.c */
-Procedure	lookupProcedure(FunctorDef f, Module m);
-Procedure	isCurrentProcedure(FunctorDef f, Module m);
-Procedure	lookupProcedureToDefine(FunctorDef def, Module m);
+Procedure	lookupProcedure(functor_t f, Module m);
+Procedure	isCurrentProcedure(functor_t f, Module m);
+Procedure	lookupProcedureToDefine(functor_t def, Module m);
 bool		isDefinedProcedure(Procedure proc);
 int		get_procedure(term_t descr, Procedure *proc, term_t he, int f);
 word		pl_current_predicate(term_t name, term_t functor, word h);
@@ -499,7 +503,7 @@ void		freeClauseRef(ClauseRef c);
 ClauseRef	newClauseRef(Clause cl);
 void		gcClausesDefinition(Definition def);
 void		resetReferences(void);
-Procedure	resolveProcedure(FunctorDef f, Module module);
+Procedure	resolveProcedure(functor_t f, Module module);
 Definition	trapUndefined(Definition def);
 word		pl_retract(term_t term, word h);
 word		pl_retractall(term_t head);
@@ -518,7 +522,7 @@ word		pl_source_file(term_t descr, term_t file, control_t h);
 word		pl_time_source_file(term_t file, term_t t, control_t h);
 word		pl_start_consult(term_t file);
 word		pl_default_predicate(term_t d1, term_t d2);
-Definition	autoImport(FunctorDef f, Module m);
+Definition	autoImport(functor_t f, Module m);
 word		pl_require(term_t pred);
 word		pl_check_definition(term_t spec);
 word		pl_clause_from_source(term_t file, term_t line, term_t clause);
@@ -644,8 +648,8 @@ bool		strprefix(char *string, char *prefix);
 bool		strpostfix(char *string, char *postfix);
 bool		stripostfix(char *string, char *postfix);
 void		systemMode(bool accept);
-bool		scan_options(term_t list, int flags,
-			     atom_t name, OptSpec specs, ...);
+bool		scan_options(term_t list, int flags, atom_t name,
+			     const opt_spec *specs, ...);
 #ifndef HAVE_STRICMP
 int		stricmp(const char *s1, const char *s2);
 #endif
@@ -674,7 +678,7 @@ word		pl_qlf_assert_clause(term_t ref);
 word		pl_qlf_info(term_t file, term_t cvers, term_t fvers, term_t i);
 
 /* pl-write.c */
-char *		varName(term_t var);
+char *		varName(term_t var, char *buf);
 word		pl_nl(void);
 word		pl_nl1(term_t stream);
 word		pl_write_canonical(term_t term);

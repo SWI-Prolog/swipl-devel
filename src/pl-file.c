@@ -158,7 +158,7 @@ initIO(void)
 
 #ifdef __unix__
   if ( !isatty(0) || !isatty(1) )	/* Sinput is not a tty */
-    status.notty = TRUE;
+    GD->cmdline.notty = TRUE;
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -217,7 +217,7 @@ without the Unix assumptions?
 
 void
 dieIO()
-{ if ( status.io_initialised == TRUE )
+{ if ( GD->io_initialised )
   { pl_noprotocol();
     closeFiles();
     PopTty(&ttytab);
@@ -358,7 +358,7 @@ currentLinePosition()
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Get a single character from the terminal without waiting for  a  return.
-The  character  should  not  be  echoed.   If  status.notty is true this
+The  character  should  not  be  echoed.   If  GD->cmdline.notty is true this
 function will read the first character and then skip all character  upto
 and including the newline.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -376,7 +376,7 @@ getSingleChar(void)
   pl_ttyflush();
   PushTty(&buf, TTY_RAW);		/* just donot prompt */
   
-  if ( status.notty )
+  if ( GD->cmdline.notty )
   { Char c2;
 
     c2 = Get0();
@@ -438,7 +438,7 @@ readLine(char *buffer)
 
   Input = 0;
   Output = 1;
-  if ( !status.notty )
+  if ( !GD->cmdline.notty )
     PushTty(&tbuf, TTY_RAW);		/* just donot prompt */
 
   for(;;)
@@ -451,18 +451,18 @@ readLine(char *buffer)
         *buf++ = EOS;
         Input = oldin;
 	Output = oldout;
-	if ( !status.notty )
+	if ( !GD->cmdline.notty )
 	  PopTty(&tbuf);
 
 	return c == EOF ? FALSE : TRUE;
       case '\b':
       case DEL:
-	if ( !status.notty && buf > buffer )
+	if ( !GD->cmdline.notty && buf > buffer )
 	{ Putf("\b \b");
 	  buf--;
 	}
       default:
-	if ( !status.notty )
+	if ( !GD->cmdline.notty )
 	  Put(c);
 	*buf++ = c;
     }
@@ -618,7 +618,7 @@ openStream(term_t file, int mode, int flags)
   } else
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_source_sink, file);
 
-  DEBUG(3, Sdprintf("File/command name = %s\n", name));
+  DEBUG(3, Sdprintf("File/command name = %s\n", stringAtom(name)));
   if ( type == ST_FILE )
   { if ( mode == F_READ )
     { if ( name == ATOM_user || name == ATOM_user_input )
@@ -681,8 +681,9 @@ openStream(term_t file, int mode, int flags)
   } else
 #endif /*HAVE_POPEN*/
   { char *fn;
+    char tmp[MAXPATHLEN];
 
-    if ( !(fn = ExpandOneFile(stringAtom(name))) )
+    if ( !(fn = ExpandOneFile(stringAtom(name), tmp)) )
       fail;
 
     if ( !(stream=Sopen_file(fn, cmode)) )
@@ -765,10 +766,10 @@ unifyStreamNo(term_t stream, int n)
   { case 0:
       name = ATOM_user_input;
       break;
-    case 1:	return PL_unify_atom(stream, ATOM_user_output);
+    case 1:
       name = ATOM_user_output;
       break;
-    case 2:	return PL_unify_atom(stream, ATOM_user_error);
+    case 2:
       name = ATOM_user_error;
       break;
     default:
@@ -1115,7 +1116,7 @@ pl_get2(term_t stream, term_t chr)
 
 word
 pl_tty()				/* $tty/0 */
-{ if ( status.notty )
+{ if ( GD->cmdline.notty )
     fail;
   succeed;
 }
@@ -1294,7 +1295,7 @@ setUnifyStreamNo(term_t stream, int n)
 }
       
 
-static opt_spec open4_options[] = 
+static const opt_spec open4_options[] = 
 { { ATOM_type,       OPT_ATOM },
   { ATOM_reposition, OPT_BOOL },
   { ATOM_alias,	     OPT_ATOM },
@@ -1708,9 +1709,10 @@ pl_line_position(term_t stream, term_t count)
 word
 pl_source_location(term_t file, term_t line)
 { char *s;
+  char tmp[MAXPATHLEN];
 
   if ( ReadingSource &&
-       (s = AbsoluteFile(stringAtom(source_file_name))) &&
+       (s = AbsoluteFile(stringAtom(source_file_name), tmp)) &&
 	PL_unify_atom_chars(file, s) &&
 	PL_unify_integer(line, source_line_no) )
     succeed;
@@ -1786,12 +1788,13 @@ unifyTime(term_t t, long time)
 char *
 PL_get_filename(term_t n, char *buf, unsigned int size)
 { char *name;
+  char tmp[MAXPATHLEN];
 
   if ( !PL_get_chars(n, &name, CVT_ALL) )
   { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, n);
     return NULL;
   }
-  if ( !(name = ExpandOneFile(name)) )
+  if ( !(name = ExpandOneFile(name, tmp)) )
     return NULL;
 
   if ( buf )
@@ -1804,7 +1807,7 @@ PL_get_filename(term_t n, char *buf, unsigned int size)
 	     ATOM_max_path_length);
     return NULL;
   } else
-    return name;
+    return buffer_string(name, 0);
 }
 
 
@@ -1872,7 +1875,8 @@ pl_access_file(term_t name, term_t mode)
     succeed;
 
   if ( md == ACCESS_WRITE && !AccessFile(n, ACCESS_EXIST) )
-  { char *dir = DirName(n);
+  { char tmp[MAXPATHLEN];
+    char *dir = DirName(n, tmp);
 
     if ( AccessFile(*dir == EOS ? "." : dir, md) )
       succeed;
@@ -1885,13 +1889,14 @@ pl_access_file(term_t name, term_t mode)
 word
 pl_read_link(term_t file, term_t link, term_t to)
 { char *n, *l, *t;
+  char buf[MAXPATHLEN];
 
   if ( !(n = PL_get_filename(file, NULL, 0)) )
     fail;
 
-  if ( (l = ReadLink(n)) &&
+  if ( (l = ReadLink(n, buf)) &&
        PL_unify_atom_chars(link, l) &&
-       (t = DeRefLink(n)) &&
+       (t = DeRefLink(n, buf)) &&
        PL_unify_atom_chars(to, t) )
     succeed;
 
@@ -1985,9 +1990,10 @@ pl_fileerrors(term_t old, term_t new)
 word
 pl_absolute_file_name(term_t name, term_t expanded)
 { char *n;
+  char tmp[MAXPATHLEN];
 
   if ( (n = PL_get_filename(name, NULL, 0)) &&
-       (n = AbsoluteFile(n)) )
+       (n = AbsoluteFile(n, tmp)) )
     return PL_unify_atom_chars(expanded, n);
 
   fail;
@@ -2038,11 +2044,12 @@ pl_file_base_name(term_t f, term_t b)
 word
 pl_file_dir_name(term_t f, term_t b)
 { char *n;
+  char tmp[MAXPATHLEN];
 
   if ( !PL_get_chars(f, &n, CVT_ALL) )
     return PL_error("file_dir_name", 2, NULL, ERR_TYPE, ATOM_atom, f);
 
-  return PL_unify_atom_chars(b, DirName(n));
+  return PL_unify_atom_chars(b, DirName(n, tmp));
 }
 
 
@@ -2058,7 +2065,7 @@ has_extension(const char *name, const char *ext)
   if ( *s == '.' && s > name && s[-1] != '/' )
   { if ( ext[0] == '.' )
       ext++;
-    if ( status.case_sensitive_files )
+    if ( trueFeature(FILE_CASE_FEATURE) )
       return strcmp(&s[1], ext) == 0;
     else
       return stricmp(&s[1], ext) == 0;
@@ -2082,7 +2089,7 @@ pl_file_name_extension(term_t base, term_t ext, term_t full)
     { if ( PL_get_chars(ext, &e, CVT_ALL) )
       { if ( e[0] == '.' )
 	  e++;
-	if ( status.case_sensitive_files )
+	if ( trueFeature(FILE_CASE_FEATURE) )
 	{ TRY(strcmp(&s[1], e) == 0);
 	} else
 	{ TRY(stricmp(&s[1], e) == 0);

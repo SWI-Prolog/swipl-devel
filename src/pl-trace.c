@@ -22,7 +22,7 @@ int trace_continuation;			/* how to continue? */
 #define TRACE_FIND_NAME	2
 #define TRACE_FIND_TERM	3
 
-static struct
+typedef struct find_data_tag
 { int	 port;				/* Port to find */
   bool	 searching;			/* Currently searching? */
   int	 type;				/* TRACE_FIND_* */
@@ -33,7 +33,7 @@ static struct
       Record	term;			/* Goal to find */
     } term;
   } goal;
-} find;
+} find_data;
 
 #define PrologRef(fr)	 ((Word)fr - (Word)lBase)
 #define FrameRef(w)	 ((LocalFrame)((Word)lBase + w))
@@ -85,20 +85,22 @@ as the record is not in the proper format.
 
 static bool
 canUnifyTermWithGoal(LocalFrame fr)
-{ switch(find.type)
+{ find_data *find = LD->trace.find;
+
+  switch(find->type)
   { case TRACE_FIND_ANY:
       succeed;
     case TRACE_FIND_NAME:
-      return find.goal.name == fr->predicate->functor->name;
+      return find->goal.name == fr->predicate->functor->name;
     case TRACE_FIND_TERM:
-    { if ( find.goal.term.functor == fr->predicate->functor )
+    { if ( find->goal.term.functor == fr->predicate->functor->functor )
       { fid_t cid = PL_open_foreign_frame();
 	term_t t = PL_new_term_ref();
 	Word a, b;
-	int arity = find.goal.term.functor->arity;
+	int arity = fr->predicate->functor->arity;
 	int rval = TRUE;
 
-	copyRecordToGlobal(t, find.goal.term.term);
+	copyRecordToGlobal(t, find->goal.term.term);
 	a = valTermRef(t);
 	deRef(a);
 	a = argTermP(*a, 0);
@@ -222,11 +224,11 @@ Give a trace on the skipped goal for a redo.
 We are in searching mode; should we actually give this port?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  if ( find.searching )
+  if ( LD->trace.find &&  LD->trace.find->searching )
   { DEBUG(2, Sdprintf("Searching\n"));
 
-    if ( (port & find.port) && canUnifyTermWithGoal(frame) )
-    { find.searching = FALSE;		/* Got you */
+    if ( (port & LD->trace.find->port) && canUnifyTermWithGoal(frame) )
+    { LD->trace.find->searching = FALSE; /* Got you */
     } else
     { return ACTION_CONTINUE;		/* Continue the search */
     }
@@ -274,7 +276,7 @@ again:
 
     Putf(" ? ");
     pl_flush();
-    if ( status.notty )
+    if ( GD->cmdline.notty )
     { buf[0] = EOS;
       readLine(buf);
     } else
@@ -285,7 +287,7 @@ again:
 	readLine(buf);
       }
     }
-    if ((action = traceAction(buf, port, frame, status.notty ? FALSE : TRUE))
+    if ((action = traceAction(buf, port, frame, GD->cmdline.notty ? FALSE : TRUE))
 							== ACTION_AGAIN)
       goto again;
   } else
@@ -305,11 +307,11 @@ setupFind(char *buf)
   for(s = buf; *s && isBlank(*s); s++)	/* Skip blanks */
     ;
   if ( *s == EOS )			/* No specification: repeat */
-  { if ( find.port == 0 )
+  { if ( !LD->trace.find || !LD->trace.find->port )
     { Putf("[No previous search]\n");
       fail;
     }
-    find.searching = TRUE;
+    LD->trace.find->searching = TRUE;
     succeed;
   }
   for( ; *s && !isBlank(*s); s++ )	/* Parse the port specification */
@@ -330,11 +332,16 @@ setupFind(char *buf)
 
   if ( *s == EOS )			/* Nothing is a variable */
   { s = buf;
-    strcpy(buf, "_");
+    buf[0] = '_',
+    buf[1] = EOS;
   }
 
   { fid_t cid = PL_open_foreign_frame();
     term_t t = PL_new_term_ref();
+    FindData find;
+
+    if ( !(find = LD->trace.find) )
+      find = LD->trace.find = allocHeap(sizeof(find_data));
 
     seeString(s);
     rval = pl_read(t);
@@ -345,23 +352,23 @@ setupFind(char *buf)
       fail;
     }
 
-    if ( find.type == TRACE_FIND_TERM && find.goal.term.term )
-      freeRecord(find.goal.term.term);
+    if ( find->type == TRACE_FIND_TERM && find->goal.term.term )
+      freeRecord(find->goal.term.term);
 
     if ( PL_is_variable(t) )
-    { find.type = TRACE_FIND_ANY;
-    } else if ( PL_get_atom(t, &find.goal.name) )
-    { find.type = TRACE_FIND_NAME;
-    } else if ( PL_get_functor(t, &find.goal.term.functor) )
-    { find.type = TRACE_FIND_TERM;
-      find.goal.term.term    = compileTermToHeap(t);
+    { find->type = TRACE_FIND_ANY;
+    } else if ( PL_get_atom(t, &find->goal.name) )
+    { find->type = TRACE_FIND_NAME;
+    } else if ( PL_get_functor(t, &find->goal.term.functor) )
+    { find->type = TRACE_FIND_TERM;
+      find->goal.term.term    = compileTermToHeap(t);
     } else
     { Putf("[Illegal goal specification]\n");
       fail;
     }
 
-    find.port      = port;
-    find.searching = TRUE;
+    find->port      = port;
+    find->searching = TRUE;
 
     DEBUG(2, Sdprintf("setup ok, port = 0x%x, goal = ", port);
 	  pl_write(t);
@@ -409,9 +416,10 @@ traceAction(char *cmd, int port, LocalFrame frame, bool interactive)
 		  return ACTION_CONTINUE;
 		}
 		return ACTION_AGAIN;    		
-    case '.':   if ( find.type != TRACE_FIND_NONE )
+    case '.':   if ( LD->trace.find &&
+		     LD->trace.find->type != TRACE_FIND_NONE )
       	        { FeedBack("repeat search\n");
-		  find.searching = TRUE;
+		  LD->trace.find->searching = TRUE;
 		  clear(frame, FR_SKIPPED);
 		  return ACTION_CONTINUE;
 		} else
@@ -490,7 +498,7 @@ traceAction(char *cmd, int port, LocalFrame frame, bool interactive)
     case '?': 
     case 'h':	helpTrace();
 		return ACTION_AGAIN;
-    case 'D':   status.debugLevel = num_arg;
+    case 'D':   GD->debug_level = num_arg;
 		FeedBack("Debug level\n");
 		return ACTION_AGAIN;
     default:	Warn("Unknown option (h for help)\n");
@@ -555,7 +563,7 @@ writeFrameGoal(LocalFrame frame, int how)
        (false(def->module, SYSTEM) || SYSTEM_MODE))
     Putf("%s:", stringAtom(def->module->name));
 
-  PL_unify_functor(goal, def->functor);
+  PL_unify_functor(goal, def->functor->functor);
   if ( argc > 0 )
   { Word argp = valTermRef(goal);
     int i;
@@ -574,7 +582,7 @@ writeFrameGoal(LocalFrame frame, int how)
   switch(how)
   { case W_PRINT:
 	debugstatus.debugging = FALSE;
-	if ( status.boot )
+	if ( GD->bootsession )
 	  pl_write(goal);
 	else
 	  pl_print(goal);
@@ -698,20 +706,20 @@ This predicate is supposed to return one of the following atoms:
 static int
 traceInterception(LocalFrame frame, LocalFrame bfr, int port, Code PC)
 { int rval = -1;			/* Default C-action */
-  static predicate_t proc;
+  predicate_t proc;
 
-  if ( !proc )
-    proc = PL_predicate("prolog_trace_interception", 4, "user");
+  proc = _PL_predicate("prolog_trace_interception", 4, "user",
+		       &GD->procedures.prolog_trace_interception4);
   if ( !proc->definition->definition.clauses )
     return rval;
 
-  if ( !status.boot && status.debugLevel == 0 )
+  if ( !GD->bootsession && GD->debug_level == 0 )
   { fid_t cid = PL_open_foreign_frame();
     qid_t qid;
     term_t argv = PL_new_term_refs(4);
     term_t rarg = argv+3;
     atom_t portname = NULL_ATOM;
-    functor_t portfunc = NULL;
+    functor_t portfunc = 0;
     int nodebug = FALSE;
 
     switch(port)
@@ -835,7 +843,7 @@ interruptHandler(int sig)
   LocalFrame oldltop = lTop;
   Char c; 
 
-  if ( status.initialised == FALSE )
+  if ( !GD->initialised )
   { Sfprintf(Serror, "Interrupt during startup. Cannot continue\n");
     Halt(1);
   }  
@@ -935,7 +943,7 @@ initTracer(void)
   debugstatus.debugging    = FALSE;
   debugstatus.suspendTrace = FALSE;
   debugstatus.skiplevel    = 0;
-  debugstatus.style        = status.boot ? W_WRITE : W_PRINT; 
+  debugstatus.style        = GD->bootsession ? W_WRITE : W_PRINT; 
   debugstatus.showContext  = FALSE;
   debugstatus.retryFrame   = NULL;
 }
@@ -958,7 +966,8 @@ tracemode(int doit, int *old)
   { if ( doit )
     { debugstatus.debugging = TRUE;
       debugstatus.skiplevel = VERY_DEEP;
-      find.searching = FALSE;
+      if ( LD->trace.find )
+	LD->trace.find->searching = FALSE;
     }
     debugstatus.tracing = doit;
     callEventHook(PLEV_TRACING, doit);
@@ -1093,7 +1102,7 @@ pl_visible(term_t old, term_t new)
 
 word
 pl_debuglevel(term_t old, term_t new)
-{ return setInteger(&status.debugLevel, "$visible", old, new);
+{ return setInteger(&GD->debug_level, "$debuglevel", old, new);
 }
 
 
@@ -1227,7 +1236,7 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
     } else
     { term_t a = PL_new_term_ref();
 
-      PL_unify_functor(arg, fr->predicate->functor);
+      PL_unify_functor(arg, fr->predicate->functor->functor);
       for(n=0; n < arity; n++)
       { PL_get_arg(n+1, arg, a);
 	unify_ptrs(valTermRef(a), argFrameP(fr, n));

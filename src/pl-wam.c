@@ -254,7 +254,7 @@ finish_foreign_frame()
 
     if ( (unsigned long)environment_frame < (unsigned long) fr )
     { fr->size = (Word) lTop - (Word)addPointer(fr, sizeof(struct fliFrame));
-      DEBUG(1, Sdprintf("Pushed fli context with %d term-refs\n", fr->size));
+      DEBUG(9, Sdprintf("Pushed fli context with %d term-refs\n", fr->size));
     }
   }
 }
@@ -1294,7 +1294,7 @@ depart_continue() to do the normal thing or to the backtrack point.
       }
 #endif /*O_DEBUGGER*/
 #ifdef O_PROFILE
-      if ( statistics.profiling )
+      if ( LD->statistics.profiling )
 	DEF->profile_redos++;
 #endif /* O_PROFILE */
       goto call_builtin;
@@ -1691,15 +1691,15 @@ the global stack (should we check?  Saves trail! How often?).
 
     VMI(H_FUNCTOR, COUNT_N(h_functor_n), ("h_functor %d\n", *PC))
       MARK(HFUNC);
-      { FunctorDef fdef;
+      { functor_t f;
 
 	requireStack(argument, sizeof(Word));
 	*aTop++ = ARGP + 1;
     VMI(H_RFUNCTOR, COUNT_N(h_rfunctor_n), ("h_rfunctor %d\n", *PC))
-	fdef = (FunctorDef) *PC++;
+	f = (functor_t) *PC++;
         deRef(ARGP);
 	if ( isVar(*ARGP) )
-	{ int arity = fdef->arity;
+	{ int arity = arityFunctor(f);
 	  Word ap;
 
 #ifdef O_SHIFT_STACKS
@@ -1712,7 +1712,7 @@ the global stack (should we check?  Saves trail! How often?).
 	  ap = gTop;
 	  *ARGP = consPtr(ap, TAG_COMPOUND|STG_GLOBAL);
 	  TrailLG(ARGP, FR);
-	  *ap++ = fdef->functor;
+	  *ap++ = f;
 	  ARGP = ap;
 	  while(arity-- > 0)
 	  { setVar(*ap++);
@@ -1720,7 +1720,7 @@ the global stack (should we check?  Saves trail! How often?).
 	  gTop = ap;
 	  NEXT_INSTRUCTION;
 	}
-	if ( hasFunctor(*ARGP, fdef) )
+	if ( hasFunctor(*ARGP, f) )
 	{ ARGP = argTermP(*ARGP, 0);
 	  NEXT_INSTRUCTION;
 	}
@@ -1741,7 +1741,7 @@ the global stack (should we check?  Saves trail! How often?).
 #endif
 	  *ARGP = consPtr(gTop, TAG_COMPOUND|STG_GLOBAL);
 	  TrailLG(ARGP, FR);
-	  *gTop++ = FUNCTOR_dot2->functor;
+	  *gTop++ = FUNCTOR_dot2;
 	  ARGP = gTop;
 	  setVar(*gTop++);
 	  setVar(*gTop++);
@@ -1761,17 +1761,19 @@ initialise the arguments to variables.  Allocation is done in  place  to
 avoid a function call.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     VMI(B_FUNCTOR, COUNT(b_functor), ("b_functor %d\n", *PC)) MARK(BFUNC);
-      { FunctorDef fdef;
+      { functor_t f;
+	int arity;
 
 	requireStack(argument, sizeof(Word));
 	*aTop++ = ARGP+1;
     VMI(B_RFUNCTOR, COUNT(b_rfunctor), ("b_rfunctor %d\n", *PC)) MARK(BRFUNC);
-	fdef = (FunctorDef) *PC++;
-	requireStack(global, sizeof(word) * (1+fdef->arity));
+	f = (functor_t) *PC++;
+	arity = arityFunctor(f);
+	requireStack(global, sizeof(word) * (1+arity));
 	*ARGP = consPtr(gTop, TAG_COMPOUND|STG_GLOBAL);
-	*gTop++ = fdef->functor;
+	*gTop++ = f;
 	ARGP = gTop;
-	gTop += fdef->arity;
+	gTop += arity;
 
 	NEXT_INSTRUCTION;
       }
@@ -1782,7 +1784,7 @@ avoid a function call.
     VMI(B_RLIST, COUNT(b_rlist), ("b_rlist %d\n", *PC)) MARK(BRLIST);
 	requireStack(global, sizeof(word) * 3);
 	*ARGP = consPtr(gTop, TAG_COMPOUND|STG_GLOBAL);
-	*gTop++ = FUNCTOR_dot2->functor;
+	*gTop++ = FUNCTOR_dot2;
 	ARGP = gTop;
 	gTop += 2;
 
@@ -2496,7 +2498,7 @@ BUG: have to find out how to proceed in case of failure (I am afraid the
 	int n;
 	register LocalFrame next;
 	Module module;
-	FunctorDef functor;
+	functor_t functor;
 	int callargs;
 
 	next = lTop;
@@ -2521,7 +2523,7 @@ arity and a pointer to the argument vector of the goal.
 	} else if ( isTerm(goal) )
 	{ args    = argTermP(goal, 0);
 	  functor = functorTerm(goal);
-	  arity   = functor->arity;
+	  arity   = arityFunctor(functor);
 	} else
 	{ warning("call/1 or variable as subclause: Illegal goal");
 	  FRAME_FAILED;
@@ -2542,9 +2544,10 @@ arity and a pointer to the argument vector of the goal.
 	  functor = lookupFunctorDef(goal, callargs);
 	  args    = NULL;
 	} else if ( isTerm(goal) )
-	{ functor = functorTerm(goal);
-	  arity   = functor->arity;
-	  functor = lookupFunctorDef(functor->name, arity + callargs);
+	{ FunctorDef fdef = valueFunctor(functorTerm(goal));
+
+	  arity   = fdef->arity;
+	  functor = lookupFunctorDef(fdef->name, arity + callargs);
 	  args    = argTermP(goal, 0);
 	} else
 	{ warning("call/%d: Illegal goal", callargs+1);
@@ -2740,7 +2743,7 @@ the first call of $alt/1 simply succeeds.
 	next->parent = FR;
 	incLevel(next);
 	clear(next, FR_CUT|FR_SKIPPED);
-	statistics.inferences++;
+	LD->statistics.inferences++;
 	Mark(next->mark);
 	a = argFrameP(next, 0);		/* see callForeign() */
 	lTop = (LocalFrame)argFrameP(a, 1);
@@ -2832,7 +2835,7 @@ foreign call fails *AND*  make  sure   Trail()  functions  properly.  We
 increase lTop too to prepare for asynchronous interrupts.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-	    statistics.inferences++;
+	    LD->statistics.inferences++;
 	    next = lTop;
 	    h0 = argFrameP(next, 0) - (Word)lBase;
 	    lTop = (LocalFrame) argFrameP(next, nvars);
@@ -2847,7 +2850,7 @@ increase lTop too to prepare for asynchronous interrupts.
 	    incLevel(next);
 	    next->backtrackFrame = BFR;
 #ifdef O_PROFILE
-	    if ( statistics.profiling )
+	    if ( LD->statistics.profiling )
 	      def->profile_calls++;
 #endif /* O_PROFILE */
 	    environment_frame = next;
@@ -2884,7 +2887,7 @@ increase lTop too to prepare for asynchronous interrupts.
 	      goto b_throw;
 
 	    Undo(next->mark);
-	    statistics.inferences++;	/* is a redo! */
+	    LD->statistics.inferences++;	/* is a redo! */
 	    BODY_FAILED;
 	  }
 	}
@@ -2967,7 +2970,7 @@ Scan the list and add the elements to the argument vector of the frame.
 Find the associated procedure (see I_CALL for module handling), save the
 program pointer and jump to the common part.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-	{ FunctorDef fdef;
+	{ functor_t fdef;
 
 	  fdef = lookupFunctorDef(functor, arity);
 	  DEF = resolveProcedure(fdef, module)->definition;
@@ -3072,7 +3075,7 @@ Note: we are working above `lTop' here!
 #endif
 	clear(FR, FR_CUT|FR_SKIPPED|FR_WATCHED);
 
-	statistics.inferences++;
+	LD->statistics.inferences++;
 	Mark(FR->mark);
 
 	if ( signalled )
@@ -3080,13 +3083,13 @@ Note: we are working above `lTop' here!
 
 #if O_ASYNC_HOOK			/* Asynchronous hooks */
 	{ if ( async.hook &&
-	       !((++statistics.inferences & async.mask)) )
+	       !((++LD->statistics.inferences & async.mask)) )
 	    (*async.hook)();		/* check the hook */
 	}
 #endif
 
 #ifdef O_PROFILE
-	if (statistics.profiling)
+	if (LD->statistics.profiling)
 	  DEF->profile_calls++;
 #endif /* O_PROFILE */
 
@@ -3533,13 +3536,13 @@ frame_failed:				MARK(FAIL);
   { DEF = FR->predicate;
 
 #ifdef O_PROFILE
-    if (statistics.profiling)
+    if (LD->statistics.profiling)
       DEF->profile_fails++;
 #endif
 
 #if O_DEBUGGER
     if ( debugstatus.debugging )
-    { switch( tracePort(FR, BFR, FAIL_PORT, PC) )
+    { switch( tracePort(FR, FR->backtrackFrame, FAIL_PORT, PC) )
       { case ACTION_RETRY:	goto retry;
 	case ACTION_IGNORE:	Putf("ignore not (yet) implemented here\n");
       }
@@ -3608,9 +3611,9 @@ resume_from_body:
     }
 #endif /*O_DEBUGGER*/
     
-    statistics.inferences++;
+    LD->statistics.inferences++;
 #ifdef O_PROFILE
-    if ( statistics.profiling )
+    if ( LD->statistics.profiling )
     { DEF->profile_fails++;		/* fake a failure! */
       DEF->profile_redos++;
     }

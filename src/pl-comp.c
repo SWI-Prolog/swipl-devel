@@ -11,7 +11,7 @@
 
 #define CODE(c, n, a, e)	{ n, c, a, e }
 
-struct code_info codeTable[] = {
+const code_info codeTable[] = {
 /*     ID		name	     #args #xr */
   CODE(I_NOP,		"i_nop",	0, 0),
   CODE(I_ENTER,		"i_enter",	0, 0),
@@ -107,7 +107,7 @@ forwards void	checkCodeTable(void);
 
 static void
 checkCodeTable(void)
-{ CodeInfo ci;
+{ const code_info *ci;
   unsigned int n;
 
   for(ci = codeTable, n = 0; ci->name != NULL; ci++, n++ )
@@ -253,16 +253,16 @@ forwards int	analyseVariables2(Word, int, int, int);
 #define A_ERROR		2
 #endif /* O_COMPILE_ARITH */
 
-typedef struct
+typedef struct _varDef
 { word		functor;		/* mimic a functor (FUNCTOR_var1) */
   Word		address;		/* address of the variable */
   int		times;			/* occurences */
   int		offset;			/* offset in environment frame */
-} vardef, *VarDef;
+} vardef;
 
-static VarDef  *vardefs;		/* variables defined */
-static int      nvardefs;		/* # vardefs in array above */
-static int	filledVars;		/* vardef structures filled */
+#define vardefs		(LD->comp._vardefs)
+#define nvardefs	(LD->comp._nvardefs)
+#define filledVars	(LD->comp._filledVars)
 
 static VarDef
 getVarDef(int i)
@@ -290,7 +290,7 @@ getVarDef(int i)
   if ( !(vd = vardefs[i]) )
   { vd = vardefs[i] = allocHeap(sizeof(vardef));
     memset(vd, 0, sizeof(*vd));
-    vd->functor = FUNCTOR_var1->functor;
+    vd->functor = FUNCTOR_var1;
   }
 
   return vd;
@@ -370,7 +370,7 @@ analyse_variables(Word head, Word body, int arity, int *nv)
   for(n=0; n<arity+nvars; n++)
   { VarDef vd = vardefs[n];
 
-    assert(vd->functor == FUNCTOR_var1->functor);
+    assert(vd->functor == FUNCTOR_var1);
     if (vd->address == (Word) NULL)
       continue;
     if (vd->times == 1)				/* ISVOID */
@@ -721,7 +721,7 @@ Finish up the clause.
 
     discardBuffer(&ci.codes);
 
-    statistics.codes += clause->code_size;
+    GD->statistics.codes += clause->code_size;
   }
 
   return clause;
@@ -772,7 +772,7 @@ compileBody(register Word body, code call, register compileInfo *ci)
 { deRef(body);
 
   if ( isTerm(*body) )
-  { FunctorDef fd = functorTerm(*body);
+  { functor_t fd = functorTerm(*body);
 
     if ( fd == FUNCTOR_comma2 )			/* A , B */
     { TRY( compileBody(argTermP(*body, 0), I_CALL, ci) );
@@ -987,7 +987,7 @@ isvar:
     
   { int ar;
     int lastnonvoid;
-    FunctorDef fdef;
+    functor_t fdef;
     int isright = (where & A_RIGHT);
 
     fdef = functorTerm(*arg);
@@ -1011,7 +1011,7 @@ isvar:
       Output_1(ci, c, (word)fdef);
     }
     lastnonvoid = PC(ci);
-    ar = fdef->arity;
+    ar = arityFunctor(fdef);
     where &= ~A_RIGHT;
     for(arg = argTermP(*arg, 0); ar > 0; ar--, arg++)
     { where |= A_ARG;
@@ -1089,7 +1089,7 @@ will use the meta-call mechanism for all these types of calls.
 /*  cont: */
 
 #if O_COMPILE_ARITH
-    if ( status.optimise )
+    if ( GD->cmdline.optimise )
     { switch( compileArith(arg, ci) )
       { case A_OK:	succeed;
 	case A_ERROR:	fail;
@@ -1102,8 +1102,9 @@ Term, not a variable and not a module call.  Compile the  arguments  and
 generate  the  call  instruction.   Note  this  codes traps the $apply/2
 operator.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    { FunctorDef fdef = functorTerm(*arg);
-      Procedure proc = lookupProcedure(fdef, tm);
+    { functor_t functor = functorTerm(*arg);
+      FunctorDef fdef = valueFunctor(functor);
+      Procedure proc = lookupProcedure(functor, tm);
       int ar = fdef->arity;
 
 #ifdef O_INLINE_FOREIGNS
@@ -1143,19 +1144,19 @@ operator.
       if ( fdef->name == ATOM_call )
       { Output_1(ci, I_USERCALLN, (code)(fdef->arity - 1));
 	succeed;
-      } else if ( fdef == FUNCTOR_apply2 )
+      } else if ( functor == FUNCTOR_apply2 )
       { Output_0(ci, I_APPLY);
 	succeed;
 #if O_BLOCK
-      } else if ( fdef == FUNCTOR_dcut1 )
+      } else if ( functor == FUNCTOR_dcut1 )
       { Output_0(ci, I_CUT_BLOCK);
 	succeed;
-      } else if ( fdef == FUNCTOR_dexit2 )
+      } else if ( functor == FUNCTOR_dexit2 )
       { Output_0(ci, B_EXIT);
 	succeed;
 #endif
 #if O_CATCHTHROW
-      } else if ( fdef == FUNCTOR_dthrow1 )
+      } else if ( functor == FUNCTOR_dthrow1 )
       { Output_0(ci, B_THROW);
 	succeed;
 #endif
@@ -1174,11 +1175,11 @@ operator.
     } else if ( *arg == ATOM_fail )
     { Output_0(ci, I_FAIL);
     } else
-    { FunctorDef fdef = lookupFunctorDef(*arg, 0);
+    { functor_t fdef = lookupFunctorDef(*arg, 0);
       code cproc = (code) lookupProcedure(fdef, tm);
 
 #ifdef O_INLINE_FOREIGNS
-      if ( true(fdef, INLINE_F) )
+      if ( true(valueFunctor(fdef), INLINE_F) )
       { Output_1(ci, I_CALL_FV0, cproc);
       } else
 #endif /*O_INLINE_FOREIGNS*/
@@ -1222,7 +1223,7 @@ OUT-OF-DATE: now pushes *numbers* rather then tagged Prolog data structures.
 static int
 compileArith(Word arg, compileInfo *ci)
 { code a_func;
-  FunctorDef fdef = functorTerm(*arg);
+  functor_t fdef = functorTerm(*arg);
 
   if      ( fdef == FUNCTOR_ar_equals2 )	a_func = A_EQ;	/* =:= */
   else if ( fdef == FUNCTOR_ar_not_equal2 )	a_func = A_NE;	/* =\= */
@@ -1297,8 +1298,8 @@ compileArithArgument(Word arg, compileInfo *ci)
   if ( isVar(*arg) )			/* void variable */
     return warning("Compiler: void variable in arithmetic expression");
 
-  { FunctorDef fdef;
-    int ar;
+  { functor_t fdef;
+    int n, ar;
     Word a;
 
     if ( isAtom(*arg) )
@@ -1307,23 +1308,23 @@ compileArithArgument(Word arg, compileInfo *ci)
       a = NULL;
     } else if ( isTerm(*arg) )
     { fdef = functorTerm(*arg);
-      ar = fdef->arity;
+      ar = arityFunctor(fdef);
       a = argTermP(*arg, 0);      
     } else
       return warning("Illegal argument to arithmic function");
 
     if ( (index = indexArithFunction(fdef, ci->module)) < 0 )
       return warning("%s/%d: unknown arithmetic operator",
-		     stringAtom(fdef->name), fdef->arity);
+		     stringAtom(nameFunctor(fdef)), ar);
 
-    for(; ar > 0; a++, ar--)
+    for(n=0; n<ar; a++, n++)
       TRY( compileArithArgument(a, ci) );
 
-    switch(fdef->arity)
+    switch(ar)
     { case 0:	Output_1(ci, A_FUNC0, index); break;
       case 1:	Output_1(ci, A_FUNC1, index); break;
       case 2:	Output_1(ci, A_FUNC2, index); break;
-      default:  Output_2(ci, A_FUNC,  index, (code) fdef->arity); break;
+      default:  Output_2(ci, A_FUNC,  index, (code) ar); break;
     }
 
     succeed;
@@ -1350,7 +1351,7 @@ assert_term(term_t term, int where, SourceLoc loc)
 { Clause clause;
   Procedure proc;
   Definition def;
-  Module source_module = (loc ? modules.source : (Module) NULL);
+  Module source_module = (loc ? LD->modules.source : (Module) NULL);
   Module module = source_module;
   term_t tmp  = PL_new_term_ref();
   term_t head = PL_new_term_ref();
@@ -1519,7 +1520,7 @@ word
 pl_redefine_system_predicate(term_t pred)
 { Procedure proc;
   Module m = NULL;
-  FunctorDef fd;
+  functor_t fd;
   term_t head = PL_new_term_ref();
 
   if ( !PL_strip_module(pred, &m, head) ||
@@ -1557,7 +1558,7 @@ arg1Key(Clause clause, word *key)
     switch(c)
     { case H_FUNCTOR:
       case H_RFUNCTOR:
-	*key = ((FunctorDef)*PC)->functor;
+	*key = ((functor_t)*PC);
         succeed;
       case H_CONST:
 	*key = *PC;
@@ -1567,7 +1568,7 @@ arg1Key(Clause clause, word *key)
         succeed;
       case H_LIST:
       case H_RLIST:
-	*key = FUNCTOR_dot2->functor;
+	*key = FUNCTOR_dot2;
         succeed;
       case H_INTEGER:
       case H_FLOAT:			/* tbd */
@@ -1620,7 +1621,7 @@ typedef struct
 
 forwards bool	decompile_head(Clause, term_t, decompileInfo *);
 forwards bool	decompileBody(decompileInfo *, code, Code);
-forwards void	build_term(FunctorDef, decompileInfo *);
+forwards void	build_term(functor_t, decompileInfo *);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 decompileHead()  is  public  as  it  is   needed  to  update  the  index
@@ -1713,7 +1714,7 @@ decompile_head(Clause clause, term_t head, decompileInfo *di)
 
   DEBUG(5, Sdprintf("Decompiling head of %s\n", predicateName(def)));
   arity = def->functor->arity;
-  TRY( PL_unify_functor(head, def->functor) );
+  TRY( PL_unify_functor(head, def->functor->functor) );
   if ( arity > 0 )
     get_arg_ref(head, argp);
   PC = clause->codes;
@@ -1779,7 +1780,7 @@ decompile_head(Clause clause, term_t head, decompileInfo *di)
 	  continue;
 	}
       case H_FUNCTOR:
-	{ FunctorDef fdef = (FunctorDef) XR(*PC++);
+	{ functor_t fdef = (functor_t) XR(*PC++);
 	  term_t t2;
 
       common_functor:
@@ -1795,7 +1796,7 @@ decompile_head(Clause clause, term_t head, decompileInfo *di)
           goto common_functor;
 	}
       case H_RFUNCTOR:
-	{ FunctorDef fdef = (FunctorDef) XR(*PC++);
+	{ functor_t fdef = (functor_t) XR(*PC++);
 
       common_rfunctor:
 	  TRY(PL_unify_functor(argp, fdef));
@@ -1990,7 +1991,7 @@ decompileBody(register decompileInfo *di, code end, Code until)
 			    setVar(*ARGP++);
 			    continue;
       case B_FUNCTOR:
-      { FunctorDef fdef = (FunctorDef)XR(*PC++);
+      { functor_t fdef = (functor_t)XR(*PC++);
 
       common_bfunctor:
 	*ARGP = globalFunctor(fdef);
@@ -2004,7 +2005,7 @@ decompileBody(register decompileInfo *di, code end, Code until)
         goto common_bfunctor;
       }
       case B_RFUNCTOR:
-      { FunctorDef fdef = (FunctorDef)XR(*PC++);
+      { functor_t fdef = (functor_t)XR(*PC++);
 
       common_brfunctor:
 	*ARGP = globalFunctor(fdef);
@@ -2029,7 +2030,7 @@ decompileBody(register decompileInfo *di, code end, Code until)
       			    PC++;
 			    continue;
 #endif /* O_COMPILE_ARITH */
-      { FunctorDef f;
+      { functor_t f;
 #if O_COMPILE_ARITH
 	case A_LT:	    f = FUNCTOR_smaller2;	goto f_common;
 	case A_LE:	    f = FUNCTOR_smaller_equal2;	goto f_common;
@@ -2064,7 +2065,7 @@ decompileBody(register decompileInfo *di, code end, Code until)
 			    continue;
       case I_DEPART:
       case I_CALL:        { Procedure proc = (Procedure)XR(*PC++);
-			    build_term(proc->definition->functor, di);
+			    build_term(proc->definition->functor->functor, di);
 			    pushed++;
 			    continue;
 			  }
@@ -2083,7 +2084,7 @@ decompileBody(register decompileInfo *di, code end, Code until)
 	  
 	  *ARGP++ = makeVarRef(index);
 	}
-	build_term(((Procedure)XR(*PC))->definition->functor, di);
+	build_term(((Procedure)XR(*PC))->definition->functor->functor, di);
 	pushed++;
 	PC += vars+1;
 	continue;
@@ -2171,18 +2172,17 @@ stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-build_term(register FunctorDef f, register decompileInfo *di)
+build_term(functor_t f, decompileInfo *di)
 { word term;
-  int arity;
-  register Word a;
+  int arity = arityFunctor(f);
+  Word a;
 
-  if ( f->arity == 0 )
-  { *ARGP++ = f->name;
+  if ( arity == 0 )
+  { *ARGP++ = nameFunctor(f);
     return;
   }    
 
   term = globalFunctor(f);
-  arity = f->arity;
   a = argTermP(term, arity-1);
 
   ARGP--;
@@ -2213,12 +2213,14 @@ unify_definition(?Head, +Def, -TheHead, flags)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-unify_functor(term_t t, FunctorDef fd, int how)
+unify_functor(term_t t, functor_t fd, int how)
 { if ( how&GP_NAMEARITY )
-  { return PL_unify_term(t,
+  { FunctorDef fdef = valueFunctor(fd);
+
+    return PL_unify_term(t,
 			 PL_FUNCTOR, FUNCTOR_divide2,
-			   PL_ATOM, fd->name,
-			   PL_INTEGER, fd->arity);
+			   PL_ATOM, fdef->name,
+			   PL_INTEGER, fdef->arity);
   } else
   { return PL_unify_functor(t, fd);
   }
@@ -2229,7 +2231,7 @@ int
 unify_definition(term_t head, Definition def, term_t thehead, int how)
 { if ( PL_is_variable(head) )
   { if ( def->module == MODULE_user )
-    { unify_functor(head, def->functor, how);
+    { unify_functor(head, def->functor->functor, how);
       if ( thehead )
 	PL_put_term(thehead, head);
     } else
@@ -2239,7 +2241,7 @@ unify_definition(term_t head, Definition def, term_t thehead, int how)
       PL_get_arg(1, head, tmp);
       PL_unify_atom(tmp, def->module->name);
       PL_get_arg(2, head, tmp);
-      unify_functor(tmp, def->functor, how);
+      unify_functor(tmp, def->functor->functor, how);
       if ( thehead )
 	PL_put_term(thehead, tmp);
     }
@@ -2253,7 +2255,7 @@ unify_definition(term_t head, Definition def, term_t thehead, int how)
 	 !isSuperModule(def->module, m) )
       fail;
 
-    if ( unify_functor(h, def->functor, how) )
+    if ( unify_functor(h, def->functor->functor, how) )
     { if ( thehead )
 	PL_put_term(thehead, h);
       succeed;
@@ -2280,7 +2282,7 @@ pl_clause4(term_t p, term_t term, term_t ref, term_t bindings, word h)
     term_t tmp  = PL_new_term_ref();
     term_t head = PL_new_term_ref();
     term_t body = PL_new_term_ref();
-    FunctorDef f;
+    functor_t f;
 
     if ( !inCore(clause) || !isClause(clause) )
       return warning("clause/3: Invalid reference");
@@ -2493,7 +2495,7 @@ wouldBindToDefinition(Definition from, Definition to)
     }
 
     if ( (m = m->super) )
-    { proc = isCurrentProcedure(from->functor, m);
+    { proc = isCurrentProcedure(from->functor->functor, m);
       def = proc ? proc->definition : (Definition)NULL;
     } else
       break;
@@ -2542,7 +2544,7 @@ pl_xr_member(term_t ref, term_t term, word h)
 	  break;
 	}
 	case CA1_FUNC:
-	{ FunctorDef fd = (FunctorDef) *PC;
+	{ functor_t fd = (functor_t) *PC;
 	  rval = PL_unify_functor(term, fd);
 	  break;
 	}
@@ -2573,7 +2575,7 @@ pl_xr_member(term_t ref, term_t term, word h)
     fail;
   } else				/* instantiated */
   { Procedure proc;
-    FunctorDef fd;
+    functor_t fd;
 
     if ( PL_is_atomic(term) )
     { while( PC < end )
@@ -2606,7 +2608,7 @@ pl_xr_member(term_t ref, term_t term, word h)
       { code op = decode(*PC);
 
 	if ( codeTable[op].argtype == CA1_FUNC )
-	{ FunctorDef fa = (FunctorDef)PC[1];
+	{ functor_t fa = (functor_t)PC[1];
 
 	  if ( fa == fd )
 	    succeed;
@@ -2635,7 +2637,7 @@ wamListClause(Clause clause)
 
   while( bp < ep )
   { code op = decode(*bp);
-    CodeInfo ci;
+    const code_info *ci;
     int n = 0;
     int isbreak;
 
@@ -2692,9 +2694,10 @@ wamListClause(Clause clause)
 	    break;
 	  }
 	  case CA1_FUNC:
-	  { FunctorDef f = (FunctorDef) *bp++;
+	  { functor_t f = (functor_t) *bp++;
+	    FunctorDef fd = valueFunctor(f);
 	    n++;
-	    Putf(" %s/%d", stringAtom(f->name), f->arity);
+	    Putf(" %s/%d", stringAtom(fd->name), fd->arity);
 	    break;
 	  }
 	  case CA1_DATA:
@@ -2780,7 +2783,7 @@ pl_fetch_vm(term_t ref, term_t offset, term_t noffset, term_t instruction)
   int pcoffset;
   Code PC;
   code op;
-  CodeInfo ci;
+  const code_info *ci;
 
   if ( !PL_get_pointer(ref, (void **)&clause) ||
        !inCore(clause) || !isClause(clause) ||
@@ -2898,7 +2901,7 @@ pl_clause_term_position(term_t ref, term_t pc, term_t locterm)
 
   while( PC < loc )
   { code op = decode(*PC++);
-    CodeInfo ci;
+    const code_info *ci;
 
     if ( op == D_BREAK )
       op = decode(replacedBreak(PC-1));
@@ -3127,7 +3130,7 @@ pl_break_pc(term_t ref, term_t pc, term_t nextpc, control_t h)
 		 *         BREAK-POINTS		*
 		 *******************************/
 
-static Table breakTable;
+#define breakTable (GD->comp.breakpoints)
 
 typedef struct
 { Clause	clause;			/* Associated clause */
@@ -3252,14 +3255,14 @@ pl_current_break(term_t ref, term_t pc, control_t h)
       succeed;
   }
 
-  for( ; symb; symb = nextHTable(moduleTable, symb) )
+  for( ; symb; symb = nextHTable(breakTable, symb) )
   { BreakPoint bp = (BreakPoint) symb->value;
 
     { fid_t cid = PL_open_foreign_frame();
 
       if ( PL_unify_pointer(ref, bp->clause) &&
 	   PL_unify_integer(pc,  bp->offset) )
-      { if ( !(symb = nextHTable(moduleTable, symb)) )
+      { if ( !(symb = nextHTable(breakTable, symb)) )
 	  succeed;
 
 	ForeignRedoPtr(symb);

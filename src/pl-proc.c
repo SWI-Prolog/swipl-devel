@@ -24,22 +24,22 @@ SourceFile 	tailSourceFileTable = (SourceFile) NULL;
 static void	removeClausesProcedure(Procedure proc, int sfindex);
 
 Procedure
-lookupProcedure(FunctorDef f, Module m)
+lookupProcedure(functor_t f, Module m)
 { Procedure proc;
   register Definition def;
   Symbol s;
   
-  if ((s = lookupHTable(m->procedures, f)) != (Symbol) NULL)
+  if ( (s = lookupHTable(m->procedures, (void *)f)) )
     return (Procedure) s->value;
 
   proc = (Procedure)  allocHeap(sizeof(struct procedure));
   def  = (Definition) allocHeap(sizeof(struct definition));
   proc->type = PROCEDURE_TYPE;
   proc->definition = def;
-  def->functor = f;
+  def->functor = valueFunctor(f);
   def->module  = m;
-  addHTable(m->procedures, f, proc);
-  statistics.predicates++;
+  addHTable(m->procedures, (void *)f, proc);
+  GD->statistics.predicates++;
 
   def->definition.clauses = NULL;
   def->lastClause = NULL;
@@ -87,13 +87,13 @@ resetProcedure(Procedure proc)
 }
 
 Procedure
-isCurrentProcedure(FunctorDef f, Module m)
+isCurrentProcedure(functor_t f, Module m)
 { Symbol s;
 
-  if ((s = lookupHTable(m->procedures, f)) != (Symbol) NULL)
+  if ( (s = lookupHTable(m->procedures, (void *)f)) )
     return (Procedure) s->value;
 
-  return (Procedure) NULL;
+  return NULL;
 }
 
 bool
@@ -127,7 +127,7 @@ to be defined is a system predicate.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Procedure
-lookupProcedureToDefine(FunctorDef def, Module m)
+lookupProcedureToDefine(functor_t def, Module m)
 { Procedure proc;
 
   if ( (proc = isCurrentProcedure(def, m)) && false(proc->definition, SYSTEM) )
@@ -162,7 +162,7 @@ is defined, and 0 if an error was raised.
 #define GF_PROCEDURE	2		/* check for max arity */
 
 static int
-get_functor(term_t descr, FunctorDef *fdef, Module *m, term_t h, int how)
+get_functor(term_t descr, functor_t *fdef, Module *m, term_t h, int how)
 { term_t head = PL_new_term_ref();
 
   if ( !PL_strip_module(descr, m, head) )
@@ -181,8 +181,10 @@ get_functor(term_t descr, FunctorDef *fdef, Module *m, term_t h, int how)
 	{ return PL_error(NULL, 0, NULL, ERR_DOMAIN,
 			  ATOM_not_less_than_zero, a);
 	} else if ( (how&GF_PROCEDURE) && arity > MAXARITY )
-	{ return PL_error(NULL, 0,
-			  tostr("limit is %d, request = %d",
+	{ char buf[100];
+
+	  return PL_error(NULL, 0,
+			  tostr(buf, "limit is %d, request = %d",
 				MAXARITY, arity),
 			  ERR_REPRESENTATION, ATOM_max_arity);
 	} else
@@ -218,8 +220,6 @@ get_functor(term_t descr, FunctorDef *fdef, Module *m, term_t h, int how)
       return PL_error(NULL, 0, NULL, ERR_TYPE,
 		      ATOM_predicate_indicator, head);
   }
-
-  fail;
 }
 
       
@@ -233,7 +233,7 @@ module-inheritance chain to find the existing procedure.
 int
 get_procedure(term_t descr, Procedure *proc, term_t h, int how)
 { Module m = (Module) NULL;
-  FunctorDef fdef;
+  functor_t fdef;
   Procedure p;
 
   if ( (how&GP_NAMEARITY) )
@@ -241,7 +241,8 @@ get_procedure(term_t descr, Procedure *proc, term_t h, int how)
       fail;
   } else
   { term_t head = PL_new_term_ref();
-  
+    int arity;
+
     if ( !PL_strip_module(descr, &m, head) )
       fail;
 
@@ -250,11 +251,13 @@ get_procedure(term_t descr, Procedure *proc, term_t h, int how)
 
     if ( !PL_get_functor(head, &fdef) )
       return warning("Illegal predicate specification");
-    if ( fdef->arity > MAXARITY )
+    if ( (arity=arityFunctor(fdef)) > MAXARITY )
+    { char buf[100];
       return PL_error(NULL, 0,
-			  tostr("limit is %d, request = %d",
-				MAXARITY, fdef->arity),
+			  tostr(buf, "limit is %d, request = %d",
+				MAXARITY, arity),
 			  ERR_REPRESENTATION, ATOM_max_arity);
+    }
   }
   
   switch( how & GP_HOW_MASK )
@@ -311,7 +314,7 @@ to C.
 word
 pl_current_predicate(term_t name, term_t spec, word h)
 { atom_t n;
-  FunctorDef f;
+  functor_t f;
   Module m = (Module) NULL;
   Procedure proc;
   Symbol symb;
@@ -331,7 +334,7 @@ pl_current_predicate(term_t name, term_t spec, word h)
   }
   if ( !PL_get_functor(functor, &f) )
   { if ( PL_is_variable(functor) )
-      f = NULL;
+      f = 0;
     else
       fail;
   }
@@ -339,7 +342,7 @@ pl_current_predicate(term_t name, term_t spec, word h)
   if ( ForeignControl(h) == FRG_FIRST_CALL)
   { if ( f ) 
     { if ( (proc = isCurrentProcedure(f, m)) )
-	return PL_unify_atom(name, f->name);
+	return PL_unify_atom(name, nameFunctor(f));
       fail;
     }
     symb = firstHTable(m->procedures);
@@ -354,7 +357,7 @@ pl_current_predicate(term_t name, term_t spec, word h)
 
     if ( ( n && n != fdef->name) ||
 	 !PL_unify_atom(name, fdef->name) ||
-	 !PL_unify_functor(functor, fdef) )
+	 !PL_unify_functor(functor, fdef->functor) )
       continue;
 
     if ( (symb = nextHTable(m->procedures, symb)) )
@@ -570,7 +573,7 @@ freeClause(Clause c)
     clearBreakPointsClause(c);
 #endif
 
-  statistics.codes -= c->code_size;
+  GD->statistics.codes -= c->code_size;
   freeHeap(c->codes, sizeof(code) * c->code_size);
   freeHeap(c, sizeof(struct clause));
 }
@@ -662,7 +665,7 @@ void
 resetReferences(void)
 { Symbol s;
 
-  for_table(s, moduleTable)
+  for_table(s, GD->tables.modules)
     resetReferencesModule((Module) s->value);
 }
 
@@ -727,7 +730,7 @@ error message (or link the procedure from the library via autoload).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Procedure
-resolveProcedure(FunctorDef f, Module module)
+resolveProcedure(functor_t f, Module module)
 { Procedure proc;
   Module m;
 
@@ -754,15 +757,14 @@ decided its not save, but can't recall why ...)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Definition
-autoImport(FunctorDef f, Module m)
+autoImport(functor_t f, Module m)
 { Procedure proc;
   Definition def;
 					/* Defined: no problem */
-  if ( (proc = isCurrentProcedure(f, m)) != NULL &&
-       isDefinedProcedure(proc) )
+  if ( (proc = isCurrentProcedure(f, m)) && isDefinedProcedure(proc) )
     return proc->definition;
   
-  if ( m->super == (Module) NULL )	/* No super: can't import */
+  if ( !m->super )			/* No super: can't import */
     return NULL;
 
   if ( !(def = autoImport(f, m->super)) )
@@ -793,7 +795,7 @@ trapUndefined(Definition def)
 
   retry:
 					/* Auto import */
-  if ( (newdef = autoImport(functor, module)) )
+  if ( (newdef = autoImport(functor->functor, module)) )
     return newdef;
 					/* Pred/Module does not want to trap */
   if ( true(def, DYNAMIC|MULTIFILE|DISCONTIGUOUS) || false(module, UNKNOWN) )
@@ -802,7 +804,7 @@ trapUndefined(Definition def)
   DEBUG(5, Sdprintf("trapUndefined(%s)\n", predicateName(def)));
 
 					/* Trap via exception/3 */
-  if ( status.autoload )
+  if ( LD->autoload )
   { if ( undefined_nesting > 100 )
     { undefined_nesting = 1;
       sysError("trapUndefined(): undefined: %s", predicateName(def));
@@ -835,7 +837,7 @@ trapUndefined(Definition def)
       source_line_no   = sln;
       PL_discard_foreign_frame(cid);
 
-      def = lookupProcedure(functor, module)->definition;
+      def = lookupProcedure(functor->functor, module)->definition;
 
       if ( answer == ATOM_fail )
 	return def;
@@ -897,7 +899,7 @@ pl_retract(term_t term, word h)
       return warning("retract/1: illegal clause");
 
     if ( ForeignControl(h) == FRG_FIRST_CALL )
-    { FunctorDef fd;
+    { functor_t fd;
 
       if ( !PL_get_functor(head, &fd) )
 	return warning("retract/1: illegal head");
@@ -1022,7 +1024,7 @@ pl_retractall(term_t head)
 
 word
 pl_abolish(term_t atom, term_t arity)
-{ FunctorDef f;
+{ functor_t f;
   Procedure proc;
   Module m = (Module) NULL;
   term_t tmp = PL_new_term_ref();
@@ -1052,7 +1054,7 @@ abolish(Name/Arity)
 word
 pl_abolish1(term_t spec)
 { Procedure proc;
-  FunctorDef f;
+  functor_t f;
   Module m = NULL;
 
   switch( get_functor(spec, &f, &m, 0, GF_PROCEDURE|GF_EXISTING) )
@@ -1102,7 +1104,7 @@ pl_get_predicate_attribute(term_t pred,
 			   term_t what, term_t value)
 { Procedure proc;
   Definition def;
-  FunctorDef fd;
+  functor_t fd;
   atom_t key;
   Module module = (Module) NULL;
   unsigned long att;
@@ -1372,7 +1374,7 @@ lookupSourceFile(atom_t name)
   file->count = 0;
   file->time = 0L;
   file->index = ++source_index;
-  file->system = status.boot;
+  file->system = GD->bootsession;
   file->procedures = NULL;
   file->next = NULL;
 

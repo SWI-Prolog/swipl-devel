@@ -342,6 +342,7 @@ A signal		"signal"
 A undefined		"undefined"
 A float_overflow	"float_overflow"
 A float_underflow	"float_underflow"
+A case_sensitive_file_names "case_sensitive_file_names"
 
 F abs			1
 F acos			1

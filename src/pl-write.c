@@ -17,9 +17,8 @@ forwards int	priorityOperator(atom_t);
 forwards bool	writeTerm(term_t term, int pri, int flags);
 
 char *
-varName(term_t t)
+varName(term_t t, char *name)
 { Word adr = valTermRef(t);
-  static char name[10];
 
   deRef(adr);
 
@@ -114,9 +113,10 @@ writePrimitive(term_t t, bool quote)
   char *s;
   atom_t a;
   int n;
+  char buf[16];
 
   if ( PL_is_variable(t) )
-    return Putf("%s", varName(t));
+    return Putf("%s", varName(t, buf));
 
   if ( PL_get_atom(t, &a) )
     return writeAtom(a, quote);
@@ -198,10 +198,9 @@ priorityOperator(atom_t atom)
   return result;
 }
 
-/*  write a term. The 'enviroment' precedence is prec. 'style' askes
-    for plain writing (write/1), quoting (writeq/1) or portray (print/1)
-
- ** Sun Apr 17 12:48:09 1988  jan@swivax.UUCP (Jan Wielemaker)  */
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Write_term flags.  
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define WRT_QUOTED	1		/* quote atoms */
 #define WRT_IGNOREOPS	2		/* ignore list/operators */
@@ -214,10 +213,9 @@ Call user:portray/1 if defined.
 
 static bool
 callPortray(term_t arg)
-{ static predicate_t portray;
+{ predicate_t portray;
 
-  if ( !portray )
-    portray = PL_predicate("portray", 1, "user");
+  portray = _PL_predicate("portray", 1, "user", &GD->procedures.portray);
 
   if ( portray->definition->definition.clauses )
   { fid_t fid   = PL_open_foreign_frame();
@@ -423,11 +421,9 @@ writeTerm(term_t t, int prec, bool style)
       return Put(')');
     }
   }
-
-  succeed;
 }
 
-static opt_spec write_term_options[] = 
+static const opt_spec write_term_options[] = 
 { { ATOM_quoted,	    OPT_BOOL },
   { ATOM_ignore_ops,	    OPT_BOOL },
   { ATOM_numbervars,        OPT_BOOL },

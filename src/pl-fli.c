@@ -146,13 +146,13 @@ PL_new_functor(atom_t f,  int a)
 
 atom_t
 PL_functor_name(functor_t f)
-{ return (atom_t) f->name;
+{ return nameFunctor(f);
 }
 
 
 int
 PL_functor_arity(functor_t f)
-{ return f->arity;
+{ return arityFunctor(f);
 }
 
 
@@ -259,17 +259,17 @@ makeNum(long i)
 
 void
 PL_cons_functor(term_t h, functor_t fd, ...)
-{ int arity = fd->arity;
+{ int arity = arityFunctor(fd);
 
   if ( arity == 0 )
-  { setHandle(h, fd->name);
+  { setHandle(h, nameFunctor(fd));
   } else
   { Word a = allocGlobal(1 + arity);
     va_list args;
 
     va_start(args, fd);
     setHandle(h, consPtr(a, TAG_COMPOUND|STG_GLOBAL));
-    *a++ = fd->functor;
+    *a++ = fd;
     while(arity-- > 0)
     { term_t r = va_arg(args, term_t);
       Word p = valHandleP(r);
@@ -287,7 +287,7 @@ PL_cons_list(term_t l, term_t head, term_t tail)
 { Word a = allocGlobal(3);
   Word p;
   
-  a[0] = FUNCTOR_dot2->functor;
+  a[0] = FUNCTOR_dot2;
   p = valHandleP(head);
   deRef(p);
   a[1] = (isVar(*p) ? makeRef(p) : *p);
@@ -376,11 +376,9 @@ PL_get_string(term_t t, char **s, int *len)
 }
 #endif
 
-#define BUFFER_RING_SIZE 4
-
-static buffer	discardable_buffer;
-static buffer	buffer_ring[BUFFER_RING_SIZE];
-static int	current_buffer_id;
+#define discardable_buffer 	(LD->fli._discardable_buffer)
+#define buffer_ring		(LD->fli._buffer_ring)
+#define current_buffer_id	(LD->fli._current_buffer_id)
 
 static Buffer
 findBuffer(int flags)
@@ -401,6 +399,17 @@ findBuffer(int flags)
 }
 
 
+char *
+buffer_string(const char *s, int flags)
+{ Buffer b = findBuffer(flags);
+  int l = strlen(s) + 1;
+
+  addMultipleBuffer(b, s, l, char);
+
+  return baseBuffer(b, char);
+}
+
+
 static int
 unfindBuffer(int flags)
 { if ( flags & BUF_RING )
@@ -413,7 +422,7 @@ unfindBuffer(int flags)
 
 
 static char *
-malloc_string(char *s)
+malloc_string(const char *s)
 { char *c;
   int len = strlen(s)+1;
 
@@ -465,7 +474,7 @@ PL_get_list_chars(term_t l, char **s, unsigned flags)
 int
 PL_get_chars(term_t l, char **s, unsigned flags)
 { word w = valHandle(l);
-  static char tmp[24];
+  char tmp[24];
   char *r;
   int type;
 
@@ -489,14 +498,15 @@ PL_get_chars(term_t l, char **s, unsigned flags)
   { return PL_get_list_chars(l, s, flags);
   } else if ( (flags & CVT_VARIABLE) )
   { type = PL_VARIABLE;
-    r = varName(l);
+    r = varName(l, tmp);
   } else
     fail;
     
   if ( flags & BUF_MALLOC )
   { *s = malloc_string(r);
-  } else if ( (flags & BUF_RING && type != PL_ATOM) ||
-	      (type == PL_STRING) )
+  } else if ( ((flags & BUF_RING) && type != PL_ATOM) || /* never atoms */
+	      (type == PL_STRING) ||	/* always buffer strings */
+	      r == tmp )		/* always buffer tmp */
   { Buffer b = findBuffer(flags);
     int l = strlen(r) + 1;
 
@@ -611,7 +621,7 @@ PL_get_name_arity(term_t t, atom_t *name, int *arity)
 { word w = valHandle(t);
 
   if ( isTerm(w) )
-  { FunctorDef fd = functorTerm(w);
+  { FunctorDef fd = valueFunctor(functorTerm(w));
 
     *name =  fd->name;
     *arity = fd->arity;
@@ -632,7 +642,7 @@ _PL_get_name_arity(term_t t, atom_t *name, int *arity)
 { word w = valHandle(t);
 
   if ( isTerm(w) )
-  { FunctorDef fd = functorTerm(w);
+  { FunctorDef fd = valueFunctor(functorTerm(w));
 
     *name =  fd->name;
     *arity = fd->arity;
@@ -962,7 +972,7 @@ PL_put_list_chars(term_t t, const char *chars)
     setHandle(t, consPtr(p, TAG_COMPOUND|STG_GLOBAL));
 
     for( ; *chars ; chars++)
-    { *p++ = FUNCTOR_dot2->functor;
+    { *p++ = FUNCTOR_dot2;
       *p++ = consInt((long)*chars & 0xff);
       *p = consPtr(p+1, TAG_COMPOUND|STG_GLOBAL);
       p++;
@@ -1000,15 +1010,15 @@ PL_put_float(term_t t, double f)
 
 void
 PL_put_functor(term_t t, functor_t f)
-{ int arity = f->arity;
+{ int arity = arityFunctor(f);
 
   if ( arity == 0 )
-  { setHandle(t, f->name);
+  { setHandle(t, nameFunctor(f));
   } else
   { Word a = allocGlobal(1 + arity);
 
     setHandle(t, consPtr(a, TAG_COMPOUND|STG_GLOBAL));
-    *a++ = f->functor;
+    *a++ = f;
     while(arity-- > 0)
       setVar(*a++);
   }
@@ -1020,7 +1030,7 @@ PL_put_list(term_t l)
 { Word a = allocGlobal(3);
 
   setHandle(l, consPtr(a, TAG_COMPOUND|STG_GLOBAL));
-  *a++ = FUNCTOR_dot2->functor;
+  *a++ = FUNCTOR_dot2;
   setVar(*a++);
   setVar(*a);
 }
@@ -1046,7 +1056,7 @@ _PL_put_xpce_reference_i(term_t t, unsigned long r)
 { Word a = allocGlobal(2);
 
   setHandle(t, consPtr(a, TAG_COMPOUND|STG_GLOBAL));
-  *a++ = FUNCTOR_xpceref1->functor;
+  *a++ = FUNCTOR_xpceref1;
   *a++ = makeNum(r);
 }
 
@@ -1056,7 +1066,7 @@ _PL_put_xpce_reference_a(term_t t, atom_t name)
 { Word a = allocGlobal(2);
 
   setHandle(t, consPtr(a, TAG_COMPOUND|STG_GLOBAL));
-  *a++ = FUNCTOR_xpceref1->functor;
+  *a++ = FUNCTOR_xpceref1;
   *a++ = name;
 }
 
@@ -1076,14 +1086,14 @@ PL_unify_atom(term_t t, atom_t a)
 int
 PL_unify_functor(term_t t, functor_t f)
 { Word p = valHandleP(t);
+  int arity = arityFunctor(f);
 
   deRef(p);
   if ( isVar(*p) )
-  { if ( f->arity == 0 )
-    { *p = f->name;
+  { if ( arity == 0 )
+    { *p = nameFunctor(f);
     } else
-    { int arity = f->arity;
-
+    { 
 #ifdef O_SHIFT_STACKS
       if ( !roomStack(global) > (1+arity) * sizeof(word) )
       { growStacks(environment_frame, NULL, FALSE, TRUE, FALSE);
@@ -1098,7 +1108,7 @@ PL_unify_functor(term_t t, functor_t f)
 	gTop += 1+arity;
 
 	*p = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
-	*a++ = f->functor;
+	*a++ = f;
 	for( ; arity > 0; a++, arity-- )
 	  setVar(*a);
       }
@@ -1107,8 +1117,8 @@ PL_unify_functor(term_t t, functor_t f)
     DoTrail(p);
     succeed;
   } else
-  { if ( f->arity == 0  )
-    { if ( *p == f->name )
+  { if ( arity == 0  )
+    { if ( *p == nameFunctor(f) )
 	succeed;
     } else
     { if ( hasFunctor(*p, f) )
@@ -1183,7 +1193,7 @@ int
 PL_unify_arg(int index, term_t t, term_t a)
 { word w = valHandle(t);
 
-  if ( isTerm(w) && index > 0 && index <= functorTerm(w)->arity )
+  if ( isTerm(w) && index > 0 && index <= arityFunctor(functorTerm(w)) )
   { Word p = argTermP(w, index-1);
     Word p2 = valHandleP(a);
 
@@ -1256,13 +1266,14 @@ unify_termVP(term_t t, va_list_rec *argsRecP)
       break;
     case PL_FUNCTOR:
     { functor_t ft = va_arg(args, functor_t);
+      int arity = arityFunctor(ft);
       term_t tmp = PL_new_term_ref();
       int n;
 
       if ( !PL_unify_functor(t, ft) )
 	goto failout;
 
-      for(n=1; n<=ft->arity; n++)
+      for(n=1; n<=arity; n++)
       {	_PL_get_arg(n, t, tmp);
 	
 	rval = unify_termVP(tmp, &argsRec);
@@ -1331,7 +1342,7 @@ _PL_unify_xpce_reference(term_t t, xpceref_t *ref)
   
       *p = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
       DoTrail(p);
-      *a++ = FUNCTOR_xpceref1->functor;
+      *a++ = FUNCTOR_xpceref1;
       if ( ref->type == PL_INTEGER )
 	*a++ = makeNum(ref->value.i);
       else
@@ -1484,9 +1495,19 @@ PL_pred(functor_t functor, module_t module)
 predicate_t
 PL_predicate(const char *name, int arity, const char *module)
 { Module m = module ? lookupModule(lookupAtom(module)) : PL_context();
-  FunctorDef f = lookupFunctorDef(lookupAtom(name), arity);
+  functor_t f = lookupFunctorDef(lookupAtom(name), arity);
 
   return PL_pred(f, m);
+}
+
+
+predicate_t
+_PL_predicate(const char *name, int arity, const char *module,
+	      predicate_t *bin)
+{ if ( !*bin )
+    *bin = PL_predicate(name, arity, module);
+
+  return *bin;
 }
 
 
@@ -1576,14 +1597,12 @@ PL_throw(term_t exception)
 		*********************************/
 
 static void
-notify_registered_foreign(FunctorDef fd, Module m)
-{ if ( status.initialised )
+notify_registered_foreign(functor_t fd, Module m)
+{ if ( GD->initialised )
   { fid_t cid = PL_open_foreign_frame();
     term_t argv = PL_new_term_refs(2);
-    static predicate_t pred;
-
-    if ( !pred )
-      pred = PL_predicate("$foreign_registered", 2, "system");
+    predicate_t pred = _PL_predicate("$foreign_registered", 2, "system",
+				     &GD->procedures.foreign_registered2);
 
     PL_put_atom(argv+0, m->name);
     PL_put_functor(argv+1, fd);
@@ -1598,7 +1617,7 @@ PL_register_foreign(const char *name, int arity, Func f, int flags)
 { Procedure proc;
   Definition def;
   Module m;
-  FunctorDef fdef = lookupFunctorDef(lookupAtom(name), arity);
+  functor_t fdef = lookupFunctorDef(lookupAtom(name), arity);
 
   m = (environment_frame ? contextModule(environment_frame)
 			 : MODULE_system);
@@ -1670,7 +1689,7 @@ PL_load_extensions(PL_extension *ext)
     def->indexPattern = 0;
     def->indexCardinality = 0;
 
-    notify_registered_foreign(def->functor, m);
+    notify_registered_foreign(def->functor->functor, m);
   }    
 
   succeed;
@@ -1706,15 +1725,15 @@ void
     return NULL;
   }
 
-  if ( signalHandlers[sig].catched == FALSE )
+  if ( LD_sig_handler(sig).catched == FALSE )
   { old = signal(sig, func);
-    signalHandlers[sig].os = func;
+    LD_sig_handler(sig).os = func;
     
     return old;
   }
 
-  old = signalHandlers[sig].user;
-  signalHandlers[sig].user = func;
+  old = LD_sig_handler(sig).user;
+  LD_sig_handler(sig).user = func;
 
   return old;
 }
@@ -1731,14 +1750,13 @@ PL_raise(int sig)
 		*         RESET (ABORTS)	*
 		********************************/
 
-typedef struct abort_handle * AbortHandle;
-
-static struct abort_handle
+struct abort_handle
 { AbortHandle	  next;			/* Next handle */
   PL_abort_hook_t function;		/* The handle itself */
-} * abort_head = NULL,
-  * abort_tail = NULL;
+};
 
+#define abort_head (LD->fli._abort_head)
+#define abort_tail (LD->fli._abort_tail)
 
 void
 PL_abort_hook(PL_abort_hook_t func)
@@ -1781,17 +1799,16 @@ resetForeign(void)
 
 
 		/********************************
-		*      REINITIALISE (SAVE)	*
+		*        FOREIGN INITIALISE	*
 		********************************/
 
-typedef struct initialise_handle * InitialiseHandle;
-
-static struct initialise_handle
+struct initialise_handle
 { InitialiseHandle	  next;			/* Next handle */
   PL_initialise_hook_t function;		/* The handle itself */
-} * initialise_head = NULL,
-  * initialise_tail = NULL;
+};
 
+#define initialise_head (LD->fli._initialise_head)
+#define initialise_tail (LD->fli._initialise_tail)
 
 void
 PL_initialise_hook(PL_initialise_hook_t func)
@@ -1829,8 +1846,6 @@ initialiseForeign(int argc, char **argv)
 		 *	      PROMPT		*
 		 *******************************/
 
-extern int prompt_next;
-
 void
 PL_prompt1(const char *s)
 { prompt1((char *) s);
@@ -1840,7 +1855,7 @@ PL_prompt1(const char *s)
 int
 PL_ttymode(int fd)
 { if ( fd == 0 )
-  { if ( status.notty )			/* -tty in effect */
+  { if ( GD->cmdline.notty )		/* -tty in effect */
       return PL_NOTTY;
     if ( ttymode == TTY_RAW )		/* get_single_char/1 and friends */
       return PL_RAWTTY;
@@ -1863,7 +1878,7 @@ PL_write_prompt(int fd, int dowrite)
     }
 
     pl_ttyflush();
-    prompt_next = FALSE;
+    GD->os.prompt_next = FALSE;
   }
 }
 
@@ -1871,7 +1886,7 @@ PL_write_prompt(int fd, int dowrite)
 void
 PL_prompt_next(int fd)
 { if ( fd == 0 )
-    prompt_next = TRUE;
+    GD->os.prompt_next = TRUE;
 }
 
 
@@ -1894,7 +1909,7 @@ PL_add_to_protocol(const char *buf, int n)
 		 *	   DISPATCHING		*
 		 *******************************/
 
-static PL_dispatch_hook_t dispatch_events = NULL;
+#define dispatch_events (LD->fli._dispatch_events)
 
 PL_dispatch_hook_t
 PL_dispatch_hook(PL_dispatch_hook_t hook)
@@ -2005,7 +2020,7 @@ PL_action(int action, ...)
 		 gc_status.collections);
 	fail;
       }
-      if ( status.boot || !status.initialised )
+      if ( GD->bootsession || !GD->initialised )
       { Sfprintf(Serror,
 		 "\n[Cannot print stack while initialising]\n");
 	fail;
@@ -2061,21 +2076,23 @@ PL_action(int action, ...)
 		*         QUERY PROLOG          *
 		*********************************/
 
-static int c_argc = -1;
-static char **c_argv;
+#define c_argc (GD->cmdline._c_argc)
+#define c_argv (GD->cmdline._c_argv)
 
 static void
 init_c_args()
 { if ( c_argc == -1 )
   { int i;
+    int argc    = GD->cmdline.argc;
+    char **argv = GD->cmdline.argv;
 
-    c_argv = alloc_heap(mainArgc * sizeof(char *));
-    c_argv[0] = mainArgv[0];
+    c_argv = allocHeap(argc * sizeof(char *));
+    c_argv[0] = argv[0];
     c_argc = 1;
 
-    for(i=1; i<mainArgc; i++)
-    { if ( mainArgv[i][0] == '-' )
-      { switch(mainArgv[i][1])
+    for(i=1; i<argc; i++)
+    { if ( argv[i][0] == '-' )
+      { switch(argv[i][1])
 	{ case 'x':
 	  case 'g':
 	  case 'd':
@@ -2092,7 +2109,7 @@ init_c_args()
 	    continue;
 	}
       }
-      c_argv[c_argc++] = mainArgv[i];
+      c_argv[c_argc++] = argv[i];
     }
   }
 }

@@ -116,10 +116,6 @@ Indirect data
 #define MARK_MASK	(0x1<<5)	/* GC mark */
 #define FIRST_MASK	(0x2<<5)	/* GC first mark */
 
-GLOBAL unsigned long	base_addresses[STG_MASK+1];
-GLOBAL buffer		functor_array;
-GLOBAL buffer		atom_array;
-
 #define tag(w)		((w) & TAG_MASK)
 #define storage(w)	((w) & STG_MASK)
 #define valPtr2(w, s)	((Word)(((w) >> 5) + base_addresses[s]))
@@ -163,10 +159,10 @@ extern const unsigned int tagtypeex[];
 		 *	COMPOUNDS AND LISTS	*
 		 *******************************/
 
-#define functorTerm(w)	valueFunctor(valueTerm(w)->definition)
+#define functorTerm(w)	valueTerm(w)->definition
 #define arityTerm(w)	arityFunctor(valueTerm(w)->definition)
 #define valueTerm(w)	((Functor)valPtr(w))
-#define hasFunctor(w,f) (isTerm(w) && valueTerm(w)->definition == (f)->functor)
+#define hasFunctor(w,f) (isTerm(w) && valueTerm(w)->definition == (f))
 #define argTerm(w, n)	(((Functor)valPtr(w))->arguments[n])
 #define argTermP(w, n)	(&argTerm(w, n))
 
@@ -208,11 +204,15 @@ extern const unsigned int tagtypeex[];
 
 #define F_ARITY_BITS	5		/* upto 32 inlined arity */
 #define F_ARITY_MASK	((1<<F_ARITY_BITS)-1)
+#define MK_FUNCTOR(n, a) (((((n)<<F_ARITY_BITS)|(a))<<LMASK_BITS) | \
+			  TAG_ATOM|STG_GLOBAL)
+#define functorHashValue(f, n)	((f)>>(LMASK_BITS) & ((n)-1))
 #define indexFunctor(w)	((w)>>(LMASK_BITS+F_ARITY_BITS))
 #define valueFunctor(w) fetchBuffer(&functor_array,indexFunctor(w),FunctorDef)
-#define _arityFunc_(w)	((w) >> LMASK_BITS & F_ARITY_MASK)
+#define _arityFunc_(w)	(((w) >> LMASK_BITS) & F_ARITY_MASK)
 #define arityFunctor(w) (_arityFunc_(w)!=F_ARITY_MASK ? _arityFunc_(w) \
 						      : valueFunctor(w)->arity)
+#define isAtomFunctor(w) (arityFunctor(w) == 0)
 #define nameFunctor(w)	(valueFunctor(w)->name)
 
 		 /*******************************

@@ -70,14 +70,16 @@ pl_unsetenv(term_t var)
 
 
 word
-pl_argv(term_t argv)
+pl_argv(term_t av)
 { int n;
   term_t head = PL_new_term_ref();
-  term_t list = PL_copy_term_ref(argv);
+  term_t list = PL_copy_term_ref(av);
+  int argc    = GD->cmdline.argc;
+  char **argv = GD->cmdline.argv;
 
-  for(n=0; n<mainArgc; n++)
+  for(n=0; n<argc; n++)
   { if ( !PL_unify_list(list, head, list) ||
-	 !PL_unify_atom_chars(head, mainArgv[n]) )
+	 !PL_unify_atom_chars(head, argv[n]) )
       fail;
   }
 

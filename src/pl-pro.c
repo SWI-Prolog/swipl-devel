@@ -103,7 +103,7 @@ like for the Prolog predicate call/1.
 int
 callProlog(Module module, term_t goal, int debug)
 { term_t g = PL_new_term_ref();
-  FunctorDef fd;
+  functor_t fd;
   Procedure proc;
   int flags = (debug ? PL_Q_NORMAL : PL_Q_NODEBUG);
 
@@ -113,7 +113,7 @@ callProlog(Module module, term_t goal, int debug)
   
   proc = lookupProcedure(fd, module);
   
-  { int arity = fd->arity;
+  { int arity = arityFunctor(fd);
     term_t args = PL_new_term_refs(arity);
     qid_t qid;
     int n, rval;
@@ -146,14 +146,14 @@ pl_abort()
     Halt(1);
   }
 
-  if ( critical > 0 )			/* abort in critical region: delay */
-  { aborted = TRUE;
+  if ( GD->critical > 0 )		/* abort in critical region: delay */
+  { LD->aborted = TRUE;
     succeed;
   }
 
   if ( !trueFeature(READLINE_FEATURE) )
     PopTty(&ttytab);
-  status.outofstack = FALSE;
+  LD->outofstack = FALSE;
   resetRead();
   closeFiles();
   resetReferences();
@@ -198,7 +198,7 @@ prolog(volatile atom_t goal)
 #if O_SHIFT_STACKS
   shift_status.blocked = 0;
 #endif
-  status.arithmetic    = 0;
+  LD->in_arithmetic    = 0;
 
   tracemode(FALSE, NULL);
   debugmode(FALSE, NULL);
