@@ -1033,9 +1033,9 @@ This predicate should be defined dynamic and multifile to allow other
 modules defining clauses for it too.
 
     \predicate{message_to_string}{2}{+Term, -String}
-Translates a message-term into a string object (see \secref{sec:string}.
+Translates a message-term into a string object (see \secref{string}.
 Primarily intended to write messages to Windows in XPCE (see
-\secref{sec:xpce}) or other GUI environments.
+\secref{xpce}) or other GUI environments.
 \end{description}
 
 
@@ -2222,7 +2222,7 @@ once in the \arg{Term} read. Variables starting with an underscore
     \termitem{syntex_errors}{Atom}
 If \const{error} (default), throw and exception on a syntax error. Other
 values are \const{fail}, which causes a message to be printed using
-pring_message/2, after which the predicate fails, \const{quiet} which
+print_message/2, after which the predicate fails, \const{quiet} which
 causes the predicate to fail silently and \const{dec10} which causes
 syntax errors to be printed, after which read_term/[2,3] continues
 reading the next term. Using \const{dec10}, read_term/[2,3] never fails.
