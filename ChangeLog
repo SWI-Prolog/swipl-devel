@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Properly compile A *-> B (without else-branche) to a normal
+    conjunction.  (Jakub Jiricek).
+
   * FIXED: GCC 3.2/SPARC problems and Solaris 9 portability issues.
     Thanks to Pieter Donche for providing access to their machine.
 

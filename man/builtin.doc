@@ -834,6 +834,12 @@ semantics is the same as (\arg{Condition}, \arg{Action}). If
 \arg{Condition} succeeds at least once, simply behave as the conjunction
 of \arg{Condition} and \arg{Action}, otherwise execute \arg{Else}.
 
+The construct \arg{A} \verb$*->$ \arg{B}, i.e.\ without an
+\arg{Else} branche, is translated as the normal conjunction \arg{A},
+\arg{B}.%
+	\bug{The decompiler implemented by clause/2 returns this
+	     construct as a normal conjunction too.}
+
 \prefixop{\+}{+Goal}
 Succeeds if `Goal' cannot be proven (mnemonic: \chr{+} refers to {\em
 provable} and the backslash (\chr{\}) is normally used to

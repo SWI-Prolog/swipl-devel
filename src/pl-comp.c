@@ -1028,6 +1028,12 @@ compileBody(Word body, code call, compileInfo *ci)
 	Output_0(ci, C_END);
       
 	succeed;
+      } else if ( fd == FUNCTOR_softcut2 ) 		/* A *-> B */
+      { int rv;						/* compile as A,B */
+
+	if ( (rv=compileBody(argTermP(*body, 0), I_CALL, ci)) != TRUE )
+	  return rv;
+	return compileBody(argTermP(*body, 1), call, ci);
       } else if ( fd == FUNCTOR_not_provable1 )		/* \+/1 */
       { int var = VAROFFSET(ci->clause->variables++);
 	int tc_or;
@@ -1057,6 +1063,7 @@ compileBody(Word body, code call, compileInfo *ci)
 	succeed;
 #endif /* O_COMPILE_OR */
       }
+      assert(0);
     }
   }
 
