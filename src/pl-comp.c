@@ -2117,7 +2117,7 @@ pl_wam_list(Word ref)
     CodeInfo ci = &codeTable[op];
     int n = 0;
 
-    Putf("\t%s", ci->name);
+    Putf("\t%4d %s", bp - clause->codes, ci->name);
 
     switch(op)
     { case B_FIRSTVAR:

@@ -113,6 +113,8 @@ checkFunctors()
 word
 pl_current_functor(Word name, Word arity, word h)
 { FunctorDef fdef;
+  int name_is_atom;
+  mark m;
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
@@ -126,27 +128,40 @@ pl_current_functor(Word name, Word arity, word h)
 	else
 	  fail;
 
-      fdef = functorDefTable[0];
+      if ( (name_is_atom = isAtom(*name)) )
+      { int v = pointerHashValue((Atom)*name, FUNCTORHASHSIZE);
+	
+	fdef = functorDefTable[v];
+      } else
+	fdef = functorDefTable[0];
       break;
     case FRG_REDO:
       fdef = (FunctorDef) ForeignContextAddress(h);
+      name_is_atom = isAtom(*name);
       break;
     case FRG_CUTTED:
     default:
       succeed;
   }
 
+  DoMark(m);
   DEBUG(9, printf("current_functor(): fdef = %ld\n", fdef));
   for(; fdef; fdef = fdef->next)
-  { while( isRef((word)fdef) )
-    { fdef = *((FunctorDef *)unRef(fdef));
-      if (fdef == (FunctorDef) NULL)
+  { if ( isRef((word)fdef) )
+    { if ( name_is_atom )
 	fail;
+
+      do
+      { fdef = *((FunctorDef *)unRef(fdef));
+	if (fdef == (FunctorDef) NULL)
+	  fail;
+      } while( isRef((word)fdef) );
     }
-    if (arity == 0)
+    if ( arity == 0 )
       continue;
-    if ( unifyAtomic(name, fdef->name) == FALSE ||
-	 unifyAtomic(arity, consNum(fdef->arity)) == FALSE)
+    DoUndo(m);
+    if ( !unifyAtomic(name, fdef->name) ||
+	 !unifyAtomic(arity, consNum(fdef->arity)))
       continue;
     DEBUG(9, printf("Returning backtrack point %ld\n", fdef->next));
 

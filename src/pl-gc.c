@@ -448,7 +448,26 @@ mark_foreign(void)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Marking the environments.
+clear_uninitialised(LocalFrame fr, Code PC);
+
+Assuming the clause associated will resume   execution  at PC, determine
+the variables that are not yet initialised and set them to be variables.
+This  avoids  the  garbage  collector    considering  the  uninitialised
+variables.
+
+There are 5 instructions  that  assume   their  argument  variable to be
+uninstantiated.  The instruction C_JMP is used   by if-then-else as well
+as \+/1 (converted to (cond -> fail  ;   true))  to jump over the `else'
+branch.  If we hit a C_JMP, we   will  have initialised all variables in
+the `cond -> if' part and  the variable balancing instructions guarantee
+the same variables will be initialised in the `else' brance.
+
+The variables used to store the skip   amount for C_NOT and C_IFTHENELSE
+donot join in the balancing, so each variable needs to be reset.
+
+[Q] wouldn't it be better to track  the variables that *are* initialised
+and consider the others to be not?  Might   take more time, but might be
+more reliable and simpler.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
@@ -474,8 +493,7 @@ clear_uninitialised(LocalFrame fr, Code PC)
 	  break;
 	case C_NOT:			/* stores c_cut context here! */
 	case C_IFTHENELSE:
-	  if ( PC >= branch_end )
-	    setVar(varFrame(fr, PC[1]));
+	  setVar(varFrame(fr, PC[1]));
 	  break;
       }
       if ( decode(*PC) > I_HIGHEST )
@@ -483,6 +501,11 @@ clear_uninitialised(LocalFrame fr, Code PC)
     }
   }
 }
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Marking the environments.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
 static LocalFrame
