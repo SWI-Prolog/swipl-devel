@@ -92,3 +92,8 @@
 #define FUNCTOR_warning3     (&functors[91])
 #define FUNCTOR_xor2         (&functors[92])
 #define FUNCTOR_xpceref1     (&functors[93])
+#define FUNCTOR_retry1       (&functors[94])
+#define FUNCTOR_erased1      (&functors[95])
+#define FUNCTOR_debugging1   (&functors[96])
+#define FUNCTOR_tracing1     (&functors[97])
+#define FUNCTOR_spy1         (&functors[98])

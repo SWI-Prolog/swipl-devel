@@ -266,6 +266,11 @@ A yfx			"yfx"
 A yfy			"yfy"
 A pc			"pc"
 A hidden		"hidden"
+A number_of_clauses	"number_of_clauses"
+A fact			"fact"
+A erased		"erased"
+A debugging		"debugging"
+A tracing		"tracing"
 
 F abs			1
 F acos			1
@@ -361,3 +366,8 @@ F var			1
 F warning		3
 F xor			2
 F xpceref		1
+F retry			1
+F erased		1
+F debugging		1
+F tracing		1
+F spy			1

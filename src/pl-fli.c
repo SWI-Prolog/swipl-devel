@@ -1229,6 +1229,9 @@ unify_termVP(term_t t, va_list_rec *argsRecP)
     case PL_INTEGER:
       rval = PL_unify_integer(t, va_arg(args, long));
       break;
+    case PL_POINTER:
+      rval = PL_unify_pointer(t, va_arg(args, void *));
+      break;
     case PL_FLOAT:
       rval = PL_unify_float(t, va_arg(args, double));
       break;

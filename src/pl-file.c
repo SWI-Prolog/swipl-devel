@@ -355,6 +355,28 @@ getSingleChar(void)
 }
 
 
+word
+pl_rawtty(term_t goal)
+{ bool rval;
+  int OldIn = Input;
+  ttybuf buf;
+    
+  Input = 0;
+  debugstatus.suspendTrace++;
+  pl_ttyflush();
+  PushTty(&buf, TTY_RAW);
+
+  rval = callProlog(NULL, goal, FALSE);
+
+  PopTty(&buf);
+  debugstatus.suspendTrace--;
+
+  Input = OldIn;
+
+  return rval;
+}
+
+
 #ifndef DEL
 #define DEL 127
 #endif

@@ -95,7 +95,7 @@ has all libraries loaded, the resulting file may be started anywhere.
 .C qsave_program 1 +File
 Equivalent to {\tt qsave_program(File, [])}.
 .C autoload 0
-Check the current Prolog program for predicates that are refered to, 
+Check the current Prolog program for predicates that are referred to, 
 are undefined and have a definition in the Prolog library.  Load the
 appropriate libraries.
 
@@ -121,7 +121,7 @@ logtable(From, To) :-
 However, the following implementation refers to log/2 through the
 meta-predicate maplist/2.  Autoload will not be able to find the
 reference.  This problem may be fixed either by loading the
-module libtary(quintus) explicitely or use require/1 to tell the
+module libtary(quintus) explicitly or use require/1 to tell the
 system that the predicate log/2 is required by this module.
 
 \begin{code}
@@ -173,13 +173,13 @@ Some applications may need to use the foreign language interface.
 Object code is by definition machine-dependent and thus cannot be
 part of the saved program file.
 
-To complicate the matter even furtherm there are various ways of
+To complicate the matter even further there are various ways of
 loading foreign code:
 
 \begin{itemize}
     \tick{Using the library(shlib) predicates}
 This is the preferred way of dealing with foreign code. It loads quickly
-and ensures an acceptable level of indepedence between the versions of
+and ensures an acceptable level of independence between the versions of
 the emulator and the foreign code loaded.  It works on Unix machines
 supporting shared libraries and library functions to load them.  Most
 modern Unixes satisfy this constraint.%
@@ -329,7 +329,7 @@ editing such files.%
     require-final-newline} is set to {\tt nil}}
 Instead of editing the file directly, the program {\tt chpl} may be
 used to extract and replace the header of {\tt gnat}.  The following
-editing sequence will work with any editor capable of editing ascii
+editing sequence will work with any editor capable of editing {\sc ascii}
 files.
 
 \begin{code}

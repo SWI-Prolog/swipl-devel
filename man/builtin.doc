@@ -7,7 +7,7 @@ First the predicate name is printed in bold face, followed by the
 arguments in italics.  Arguments are preceded by a `+', `--' or `?' sign.
 `+' indicates the argument is input to the predicate, `--' denotes output
 and `?' denotes `either input or output'.%
-    \footnote{These marks do NOT suggest instanstiation (e.g. var(+Var)).}
+    \footnote{These marks do NOT suggest instantiation (e.g. var(+Var)).}
 Constructs like `op/3' refer to the predicate `op' with arity `3'.
 
 .S Consulting Prolog Source files
@@ -125,7 +125,7 @@ autoload/0.
 Consult all source files that have been changed since they were
 consulted.  It checks {\em all} loaded source files: files loaded into a
 compiled state using {\tt pl -c \dots} and files loaded using consult or
-one of its derivates.  make/0 is normally invoked by the edit/[0,1] and
+one of its derivatives.  make/0 is normally invoked by the edit/[0,1] and
 ed/[0,1] predicates.  make/0 can be combined with the compiler to speed
 up the development of large packages.  In this case compile the package
 using
@@ -194,7 +194,7 @@ Determine loading context.  The following keys are defined:
 \tt file	& File loaded \\
 \tt stream	& Stream identifier (see current_stream/1) \\
 \tt directory	& Directory in which {\em File} lives. \\
-\tt term_position & Postion of last term read.  Term
+\tt term_position & Position of last term read.  Term
 		  of the form '\$stream_position'(0,Line,0,0,0) \\
 \hline
 \end{tabular}
@@ -232,11 +232,11 @@ a grammar-rule translation.  If this fails it returns the first argument.
 .C at_initialization 1 +Goal
 Register {\em Goal} to be ran when the system initialises.
 Initialisation takes place after reloading a .qlf (formerly .wic) file
-as well as after reloading a saved-state.  The hooks are ran in the
+as well as after reloading a saved-state.  The hooks are run in the
 order they were registered.  A warning message is issued if {\em Goal}
 fails, but execution continues.  See also at_halt/1
 .C at_halt 1 +Goal
-Register {\em Goal} to be ran when the system halts. The hooks are ran
+Register {\em Goal} to be ran when the system halts. The hooks are run
 in the order they were registered.  Success or failure executing a hook
 is ignored.  These hooks may not call halt/[0,1].
 .C initialization 1 +Goal
@@ -281,7 +281,7 @@ stored as virtual machine instructions.  Changes to the compiler will
 generally make old compiled files unusable.
 
 Quick Load Files are created using qcompile/1.  They may be loaded
-explicitely using qload/1 or implicitely using consult/1 or one
+explicitly using qload/1 or implicitly using consult/1 or one
 of the other file-loading predicates described in
 section~\ref{sec:consulting}.  If consult is given the explicit
 {\tt .pl} file, it will load the Prolog source.  When given the
@@ -535,10 +535,10 @@ defined as follows: If {\em Condition} succeeds at least once, the
 semantics is the same as ({\em Condition}, {\em Action}). If {\em
 Condition} does not succeed, the semantics is that of ({\em
 Condition}, {\em Else}).  In other words, If {\em Condition} succeeds
-at least once, simply behave as the conjuction of {\em Condition}
+at least once, simply behave as the conjunction of {\em Condition}
 and {\em Action}, otherwise execute {\em Else}.
 .PT \+ +Goal
-Succeeds if `Goal' cannot be proven (mnemnonic: + refers to {\em provable}
+Succeeds if `Goal' cannot be proven (mnemonic: + refers to {\em provable}
 and the backslash is normally used to indicate negation).
 .ED
 
@@ -604,7 +604,7 @@ ignore(_).
 The predicates of this section form a tightly related set for
 realising premature successfull or failing exits from a {\em block}.
 These predicates are first of all useful for error-recovery.  They
-were primarily implemented for compatibily reasons.
+were primarily implemented for compatibility reasons.
 
 .BD
 .C block 3 +Label, +Goal, -ExitValue
@@ -674,7 +674,7 @@ parsed correctly.
 SWI-Prolog offers three different database mechanisms. The first one is
 the common assert/retract mechanism for manipulating the clause
 database. As facts and clauses asserted using assert/1 or one of its
-derivates become part of the program these predicates compile the term
+derivatives become part of the program these predicates compile the term
 given to them. Retract/1 and retractall/1 have to unify a term and
 therefore have to decompile the program. For these reasons the
 assert/retract mechanism is expensive. On the other hand, once compiled, 
@@ -712,13 +712,13 @@ definition for all sub-modules.  Otherwise the redefinition is local
 to the module.  The system definition remains in the module {\tt
 system}.
 
-Redefining system predicate facilates the definition of compatibility
+Redefining system predicate facilitates the definition of compatibility
 packages.  Use in other context is discouraged.
 .C retract 1 +Term
 When {\em Term} is an atom or a term it is unified with the first unifying fact
 or clause in the database. The fact or clause is removed from the database.
 .C retractall 1 +Head
-Allfacts or clauses in the database for which the {\em head}
+All facts or clauses in the database for which the {\em head}
 unifies with {\em Head} are removed.%
     \footnote{Note that the definition has changed since version 2.0.6.
 	      See release notes.}
@@ -802,7 +802,7 @@ This predicate may be used to build hash-tables as well as to exploit
 argument-indexing to find complex terms more quickly.
 
 The hash-key does not rely on temporary information like addresses of
-atoms and may be assumed constant over different invokations of
+atoms and may be assumed constant over different invocations of
 SWI-Prolog.
 .ED
 
@@ -862,7 +862,7 @@ the first 4 will be accepted. Arguments above 32 are ignored for indexing.
 By default all predicates with ${\rm arity} \ge 1$ are indexed on their
 first argument.  It is possible to redefine indexing on predicates that
 already have clauses attached to them.  This will initiate a scan
-through the predicate's clause list to update the index summary
+through the predicates clause list to update the index summary
 information stored with each clause.
 
 If---for example---one wants to represents sub-types using a fact list
@@ -884,7 +884,7 @@ sub_type(horse, animal).
 .BD
 .C current_atom 1 -Atom
 Successively unifies {\em Atom} with all atoms known to the system.
-Note that current_atom/1 always succeeds if {\em Atom} is intantiated to
+Note that current_atom/1 always succeeds if {\em Atom} is instantiated to
 an atom.
 .C current_functor 1 ?Name, ?Arity
 Successively unifies {\em Name} with the name and {\em Arity} with the
@@ -958,7 +958,7 @@ also source_file/2.
 which name and arity are used as a predicate specification.  {\em Dwim}
 is instantiated with the most general term built from {\em Name} and the
 arity of a defined predicate that matches the predicate specified by
-{\em Term} in the `Do What I Mean' sence.  See dwim_match/2 for `Do
+{\em Term} in the `Do What I Mean' sense.  See dwim_match/2 for `Do
 What I Mean' string matching.  Internal system predicates are
 not generated, unless \tty{style_check(+dollar)} is active.  Backtracking
 provides all alternative matches.
@@ -1010,8 +1010,8 @@ the clause is not associated to a file.
 SWI-Prolog provides two different packages for input and output.  One
 confirms to the Edinburgh standard.  This package has a notion of
 `current-input' and `current-output'.  The reading and writing
-predicates implicitely refer to these streams.  In the second package,
-streams are opened explicitely and the resulting handle is used as
+predicates implicitly refer to these streams.  In the second package,
+streams are opened explicitly and the resulting handle is used as
 an argument to the reading and writing predicate to specify the source
 or destination.  Both packages are fully integrated; the user may
 switch freely between them.
@@ -1023,7 +1023,7 @@ compatible to DEC-10 and C-Prolog.  The reading and writing predicates
 refer to resp.  the current input- and output stream.  Initially these
 streams are connected to the terminal.  The current output stream is
 changed using tell/1 or append/1.  The current input stream is changed
-using see/1.  The stream's current value can be obtained using telling/1
+using see/1.  The streams current value can be obtained using telling/1
 for output- and seeing/1 for input streams.  The table below shows the
 valid stream specifications.  The reserved names \tty{user_input},
 \tty{user_output} and \tty{user_error} are for neat integration with
@@ -1055,7 +1055,7 @@ Below are some examples of source/destination specifications.
 
 Another example of using the pipe/1 construct is shown on in
 figure~\ref{fig:getwd}.  Note that the pipe/1 construct is not part of
-Prolog's standard I/O reportoire.
+Prolog's standard I/O repertoire.
 
 \begin{figure}
 \begin{boxed}\begin{code}
@@ -1104,7 +1104,7 @@ Close the current output stream. The new output stream becomes
 .SS Explicit Input and Output Streams
 
 The predicates below are part of the Quintus compatible stream-based
-I/O package.  In this package streams are explicitely created using the
+I/O package.  In this package streams are explicitly created using the
 predicate open/3.  The resulting stream identifier is then passed as a
 parameter to the reading and writing predicates to specify the source
 or destination of the data.
@@ -1120,7 +1120,7 @@ Mode \tty{update} opens the file for writing, positioning the
 file-pointer at the beginning of the file without truncating the file.
 See also stream_position/3. {\em Stream} is either a variable, in which
 case it is bound to an integer identifying the stream, or an atom, in
-which case this atom will be the stream indentifier. The {\em Options}
+which case this atom will be the stream identifier. The {\em Options}
 list can contain the following options:
 
 \begin{itemize}
@@ -1200,10 +1200,10 @@ a list of streams on which input is available in {\em ReadyList}.
 wait_for_input/3 waits for at most {\em TimeOut} seconds.  {\em
 Timeout} may be specified as a floating point number to specify
 fractions of a second. If {\em Timeout} equals 0, wait_for_input/3
-waits indefinetely.  This predicate can be used to implement
+waits indefinitely.  This predicate can be used to implement
 timeout while reading and to handle input from multiple sources. The
 following example will wait for input from the user and an
-explicitely opened second terminal.  On return, {\em Inputs} may hold
+explicitly opened second terminal.  On return, {\em Inputs} may hold
 \tty{user} or {\em P4} or both.
 
 \begin{code}
@@ -1255,7 +1255,7 @@ section~\ref{sec:arith}).
 Writes {\em Amount} spaces to {\em Stream}.
 .C flush 0
 Flush pending output on current output stream.  flush/0 is automatically
-generated by read/1 and derivates if the current input stream is {\em
+generated by read/1 and derivatives if the current input stream is {\em
 user} and the cursor is not at the left margin.
 .C flush_output 1 +Stream
 Flush output on the specified stream.  The stream must be open for
@@ -1273,10 +1273,10 @@ with {\em Char}. {\em Char} is unified with -1 on end of file.
 .C get 2 +Stream, -Char
 Read the next non-blank character from {\em Stream}.
 .C peek_byte 1 -Char
-Reads the next imput character like get0/1, but does not remove it from
+Reads the next input character like get0/1, but does not remove it from
 the input stream.  This predicate is ISO compliant.
 .C peek_byte 2 +Stream, -Char
-Reads the next imput character like get0/2, but does not remove it from
+Reads the next input character like get0/2, but does not remove it from
 the stream.  This predicate is ISO compliant.
 .C skip 1 +Char
 Read the input until {\em Char} or the end of the file is encountered.
@@ -1298,7 +1298,7 @@ Succeeds after the last character of the current input stream has
 been read.  Also succeeds if there is no valid current input stream.
 .C at_end_of_stream 1 +Stream
 Succeeds after the last character of the named stream is read, or
-{\em Stream} is not a valid imput stream.
+{\em Stream} is not a valid input stream.
 .ED
 
 .S Term Reading and Writing
@@ -1384,7 +1384,7 @@ read_variables/2.
 .C read_term 2 -Term, +Options
 Read a term from the current input stream and unify the term with {\em
 Term}. The reading is controlled by options from the list of {\em
-Options}.   If this list is empty, the bahaviour is the same as for
+Options}.   If this list is empty, the behaviour is the same as for
 read/1.	 The options are upward compatible to Quintus Prolog.  The
 argument order is according to the ISO standard.  Options:
 
@@ -1475,7 +1475,7 @@ Dynamic predicate, normally not defined. The user can define this
 predicate to set the history depth. It should unify the argument with a
 positive integer. When not defined 15 is used as the default.
 .C prompt 2 -Old, +New
-Set prompt associated with read/1 and its derivates.  {\em Old}
+Set prompt associated with read/1 and its derivatives.  {\em Old}
 is first unified with the current prompt.  On success the prompt will be
 set to {\em New} if this is an atom.  Otherwise an error message is
 displayed.  A prompt is printed if one of the read predicates is
@@ -1502,9 +1502,9 @@ If {\em Term} is an atom or number, {\em Functor} will be unified with
 between 1 and the arity of {\em Term}. {\em Value} is unified with the
 {\em Arg}-th argument of {\em Term}.  {\em Arg} may also be unbound.
 In this {\em Value} will be unified with the successive arguments of
-the term.  On successfull unification, {\em Arg} is unified with the
+the term.  On successful unification, {\em Arg} is unified with the
 argument number.  Backtracking yields alternative solutions.%
-    \footnote{The instantion pattern (-, +, ?) is an extension to
+    \footnote{The instantiation pattern (-, +, ?) is an extension to
 	      `standard' Prolog.}
 .C setarg 3 +Arg, +Term, +Value
 Extra-logical predicate.  Assigns the {\em Arg}-th argument of the
@@ -1596,7 +1596,7 @@ ASCII value list describing an integer and {\em Atom} is a variable {\em Atom}
 will be unified with the integer value described by {\em String} (e.g.
 `\verb|name(N, "300"), 400 is N + 100|' succeeds).
 .C int_to_atom 3 +Int, +Base, -Atom
-Convert {\em Int} to an ascii representation using base {\em Base} and unify
+Convert {\em Int} to an {\sc ascii} representation using base {\em Base} and unify
 the result with {\em Atom}. If ${\em Base} \not= 10$ the base will be
 prepended to {\em Atom}.  ${\em Base} = 0$ will try to interpret
 {\em Int} as an ASCII value and return \verb+0'c+.  Otherwise
@@ -1623,7 +1623,7 @@ is a list of ${\it Name} = {\it Var}$ couples, thus providing access to
 the actual variable names.  See also read_variables/2.
 .C concat 3 ?Atom1, ?Atom2, ?Atom3
 {\em Atom3} forms the concatenation of {\em Atom1} and {\em Atom2}.  At
-least two of the arguments must be instantiated to atoms, intergers or
+least two of the arguments must be instantiated to atoms, integers or
 floating point numbers.
 .C concat_atom 2 +List, -Atom
 {\em List} is a list of atoms, integers or floating point numbers. Succeeds
@@ -1661,8 +1661,8 @@ live on the global stack and their storage is thus reclaimed on
 backtracking.  Garbage collection can easily deal with strings.
 
 The ISO standard proposes \verb$"..."$ is transformed into a string
-object by read/1 and derivates.  This poses problems as in the old
-convention \verb$"..."$ is transformed into a list of ascii characters.
+object by read/1 and derivatives.  This poses problems as in the old
+convention \verb$"..."$ is transformed into a list of {\sc ascii} characters.
 For this reason the style check option `\tty{string}' is available
 (see style_check/2).
 
@@ -1680,7 +1680,7 @@ Logical conversion between a string and a list of ASCII characters. At
 least one of the two arguments must be instantiated.
 .C string_length 2 +String, -Length
 Unify {\em Length} with the number of characters in {\em String}. This
-predicate is functonally equivalent to atom_length/2 and also accepts
+predicate is functionally equivalent to atom_length/2 and also accepts
 atoms, integers and floats as its first argument.
 .C string_concat 3 ?String1, ?String2, ?String3
 Similar to concat/3, but the unbound argument will be unified with a
@@ -1688,7 +1688,7 @@ string object rather than an atom.  Also, if both {\em String1} and
 {\em String2} are unbound and {\em String3} is bound to text, it
 breaks {\em String3}, unifying the start with {\em String1} and the
 end with {\em String2} as append does with lists.  Note that this
-is not particulary fast on long strings as for each redo the system
+is not particularly fast on long strings as for each redo the system
 has to create two entirely new strings, while the list equivalent
 only creates a single new list-cell and moves some pointers around.
 .C substring 4 +String, +Start, +Length, -Sub
@@ -1767,7 +1767,7 @@ arithmetic as appropriate.  The integer predicates are as ``logical'' as
 possible.  Their usage is recommended whenever applicable, resulting in
 faster and more ``logical'' programs.
 
-The general arithmic predicates are optionaly compiled now (see
+The general arithmetic predicates are optionally compiled now (see
 please/3 and the \tty{-O} command line option).  Compiled arithmetic
 reduces global stack requirements and improves performance.
 Unfortunately compiled arithmetic cannot be traced, which is why it is
@@ -1809,7 +1809,7 @@ Expr2}.
 .I -Number is +Expr
 Succeeds when {\em Number} has successfully been unified with the number
 {\em Expr} evaluates to.  If {\em Expr} evaluates to a float that can be
-represetented using an integer (i.e.\ the value is integer and within the
+represented using an integer (i.e.\ the value is integer and within the
 range that can be described by Prolog's integer representation), {\em
 Expr} is unified with the integer value. 
 
@@ -1852,7 +1852,7 @@ an integer overflow the operands are automatically converted to
 floating point numbers.  The floating point functions (sin/1, exp/1,
 etc.)  form a direct interface to the corresponding C library
 functions used to compile SWI-Prolog.  Please refer to the C library
-documentation for details on percision, error handling, etc.
+documentation for details on precision, error handling, etc.
 
 .BD
 .PT - +Expr
@@ -1884,7 +1884,7 @@ Evaluates to the smallest of both {\em Expr1} and {\em Expr2}.
 A list of one element evaluates to the element.  This implies \verb|"a"|
 evaluates to the ASCII value of the letter \tty{a} (97). This option is
 available for compatibility only.  It will not work if
-`\tty{style_check(+string)}' is active as \verb|"a"| will then be tranformed
+`\tty{style_check(+string)}' is active as \verb|"a"| will then be transformed
 into a string object. The recommended way to specify the ASCII value of
 the letter `a' is \tty{0'a}.
 .C random 1 +Int
@@ -1932,20 +1932,20 @@ Bitwise negation.
 .C sqrt 1 +Expr
 ${\em Result} = \sqrt{{\em Expr}}$
 .C sin 1 +Expr
-${\em Result} = \sin{{\em Expr}}$. {\em Expr} is the angle in radials.
+${\em Result} = \sin{{\em Expr}}$. {\em Expr} is the angle in radians.
 .C cos 1 +Expr
-${\em Result} = \cos{{\em Expr}}$. {\em Expr} is the angle in radials.
+${\em Result} = \cos{{\em Expr}}$. {\em Expr} is the angle in radians.
 .C tan 1 +Expr
-${\em Result} = \tan{{\em Expr}}$. {\em Expr} is the angle in radials.
+${\em Result} = \tan{{\em Expr}}$. {\em Expr} is the angle in radians.
 .C asin 1 +Expr
-${\em Result} = \arcsin{{\em Expr}}$. {\em Result} is the angle in radials.
+${\em Result} = \arcsin{{\em Expr}}$. {\em Result} is the angle in radians.
 .C acos 1 +Expr
-${\em Result} = \arccos{{\em Expr}}$. {\em Result} is the angle in radials.
+${\em Result} = \arccos{{\em Expr}}$. {\em Result} is the angle in radians.
 .C atan 1 +Expr
-${\em Result} = \arctan{{\em Expr}}$. {\em Result} is the angle in radials.
+${\em Result} = \arctan{{\em Expr}}$. {\em Result} is the angle in radians.
 .C atan 2 +YExpr, +XExpr
 ${\em Result} = \arctan{\frac{\em YExpr}{\em XExpr}}$. {\em Result} is the
-angle in radials.  The return value is in the range $[-\pi\dots\pi]$.
+angle in radians.  The return value is in the range $[-\pi\dots\pi]$.
 Used to convert between rectangular and polar coordinate system.
 .C log 1 +Expr
 ${\em Result} = \ln{{\em Expr}}$
@@ -1962,7 +1962,7 @@ Evaluates to the mathematical constant $\pi$ (3.141593).
 .C e 0
 Evaluates to the mathematical constant $e$ (2.718282).
 .C cputime 0
-Evaluates to a floating point number expressing the cpu time (in seconds)
+Evaluates to a floating point number expressing the {\sc cpu} time (in seconds)
 used by Prolog up till now. See also statistics/2 and time/1.
 .ED
 
@@ -1973,7 +1973,7 @@ last argument is used to return the result, the arguments before the
 last are the inputs.  Arithmetic functions are added using the
 predicate arithmetic_function/1, which takes the head as its argument.
 Arithmetic functions are module sensitive, that is they are only
-visible from the module in which the function is defined and delared.
+visible from the module in which the function is defined and declared.
 Global arithmetic functions should be defined and registered from
 module {\tt user}.  Global definitions can be overruled locally in
 modules.  The builtin functions described above can be redefined as
@@ -2004,7 +2004,7 @@ Yes
 A = 4.500000
 \end{code}\end{boxed}
 .C current_arithmetic_function 1 ?Head
-Succesively unifies all arithmetic functions that are visible from
+Successively unifies all arithmetic functions that are visible from
 the context module with {\em Head}.
 .ED
 
@@ -2209,7 +2209,7 @@ Unify {\em List2} with a list of all elements of {\em List1} to which
 .BD
 .C forall 2 +Cond, +Action
 For all alternative bindings of {\em Cond} {\em Action} can be proven.
-The example verifies that all arithmic statements in the list {\em L}
+The example verifies that all arithmetic statements in the list {\em L}
 are correct. It does not say which is wrong if one proves wrong.
 \begin{boxed}\begin{code}
 ?- forall(member(Result = Formula, [2 = 1 + 1, 4 = 2 * 2]),
@@ -2340,15 +2340,15 @@ integers, such as handling amounts of money).
 Same as {\bf d}, but makes large values easier to read by inserting a
 comma every three digits left to the dot or right.
     \item[\bf e]
-Output next argument as a floating point number in exponentional
-notation.  The numeric argument specifies the precission.  Default is 6
+Output next argument as a floating point number in exponential
+notation.  The numeric argument specifies the precision.  Default is 6
 digits.  Exact representation depends on the C library function
 printf(). This function is invoked with the format
-\verb$%.<percission>e$.
+\verb$%.<precision>e$.
     \item[\bf E]
 Equivalent to {\bf e}, but outputs a capital E to indicate the exponent.
     \item[\bf f]
-Floating point in non-exponentional notation. See C library function
+Floating point in non-exponential notation. See C library function
 printf().
     \item[\bf g]
 Floating point in {\bf e} or {\bf f} notation, whichever is shorter.
@@ -2376,19 +2376,19 @@ Same as {\bf r}, but uses upper case letters for digits above 9.
     \item[\bf s]
 Output a string of ASCII characters from the next argument.
     \item[\bf t]
-All remaining space between 2 tabstops is distributed equaly over
-\verb$~t$ statements between the tabstops.  This space is padded with
+All remaining space between 2 tabs tops is distributed equally over
+\verb$~t$ statements between the tabs tops.  This space is padded with
 spaces by default.  If an argument is supplied this is taken to be the
 ASCII value of the character used for padding.  This can be used to do
 left or right alignment, centering, distributing, etc.  See also
-\verb$~|$ and \verb$~+$ to set tab stops.  A tabstop is assumed at the
+\verb$~|$ and \verb$~+$ to set tab stops.  A tabs top is assumed at the
 start of each line.
     \item[\rule{1pt}{2ex}]
-Set a tabstop on the current position. If an argument is supplied set a
-tabstop on the position of that argument. This will cause all \verb$~t$'s
-to be distributed between the previous and this tabstop.
+Set a tabs top on the current position. If an argument is supplied set a
+tabs top on the position of that argument. This will cause all \verb$~t$'s
+to be distributed between the previous and this tabs top.
     \item[\bf +]
-Set a tabstop relative to the current position. Further the same as
+Set a tabs top relative to the current position. Further the same as
 \verb$~|$.
     \item[\bf w]
 Give the next argument to write/1.
@@ -2429,10 +2429,10 @@ Equivalent to `\verb+sformat(String, Format, []).+'
 .BD
 .C format_predicate 2 +Char, +Head
 If a sequence \verb|~c| (tilde, followed by some character) is
-found, the format derivates will first check whether the user has
+found, the format derivatives will first check whether the user has
 defined a predicate to handle the format. If not, the built in
 formatting rules described above are used. {\em Char} is either an
-ascii value, or a one character atom, specifying the letter to be
+{\sc ascii} value, or a one character atom, specifying the letter to be
 (re)defined.  {\em Head} is a term, whose name and arity are used
 to determine the predicate to call for the redefined formatting
 character.  The first argument to the predicate is the numeric
@@ -2464,7 +2464,7 @@ the expected result, and is one of \tty {string}, \tty{number} or
 \tty{bool}.  String results are returned as an atom, number result as
 an integer and bool results as the atom \tty{on} or \tty{off}.  If
 an option cannot be found this predicate fails silently.  The
-results are only computed once. Succesive queries on the same
+results are only computed once. Successive queries on the same
 capability are fast. 
 .C tty_goto 2 +X, +Y
 Goto position {\em(X, Y)} on the screen.  Note that the predicates
@@ -2486,7 +2486,7 @@ specific stream. Default is user_output.
 .BD
 .C shell 2 +Command, -Status
 Execute {\em Command} on the operating system. {\em Command} is given to the
-bourne shell (/bin/sh). {\em Status} is unified with the exit status of
+Bourne shell (/bin/sh). {\em Status} is unified with the exit status of
 the command.
 
 On {\em Win32} systems, shell/[1,2] executes the command using
@@ -2518,7 +2518,7 @@ Remove Unix environment variable from the environment.
 .C get_time 1 -Time
 Return the number of seconds that elapsed since the epoch of Unix,
 1 January 1970, 0 hours.  {\em Time} is a floating point number. Its
-granularity is system dependant.  On SUN, this is 1/60 of a second.
+granularity is system dependent.  On {\sc sun}, this is 1/60 of a second.
 .C convert_time 8 +Time, -Year, -Month, -Day, -Hour, -Minute, -Second, -MilliSeconds
 Convert a time stamp, provided by get_time/1, time_file/2, etc.  {\em
 Year} is unified with the year, {\em Month} with the month number
@@ -2526,7 +2526,7 @@ Year} is unified with the year, {\em Month} with the month number
 {\em Hour} with the hour of the day (0--23), {\em Minute} with the
 minute (0--59). {\em Second} with the second (0--59) and {\em
 MilliSecond} with the milliseconds (0--999).  Note that the latter
-might not be acurate or might always be 0, depending on the timing
+might not be accurate or might always be 0, depending on the timing
 capabilities of the system.
 .ED
 
@@ -2614,14 +2614,14 @@ more solutions.
 \end{quote}
 .C is_absolute_file_name 1 +File
 True if {\em File} specifies and absolute path-name.  On Unix systems,
-this implies the path starts with a `/'.  For MicroSoft based systems
+this implies the path starts with a `/'.  For Microsoft based systems
 this implies the path starts with $<$letter$>$:. This predicate is
 intended to provide platform-independent checking for absolute paths.
 See also absolute_file_name/2 and prolog_to_os_filename/2.
 .C file_name_extension 3 ?Base, ?Extension, ?Name
 This predicate is used to add, remove or test filename extensions. The
 main reason for its introduction is to deal with different filename
-properties in a portable manner.  If the filesystem is case-insensitive,
+properties in a portable manner.  If the file system is case-insensitive,
 testing for an extension will be done case-insensitive too. {\em
 Extension} may be specified with or without a leading dot ({\tt .}).
 If an {\em Extension} is generated, it will not have a leading dot.
@@ -2645,7 +2645,7 @@ If {\em File} points to a symbolic link, unify {\em Link} with the
 value of the link and {\em Target} to the file the link is pointing to.
 {\em Target} points to a file, directory or non-existing entry in the
 file system, but never to a link.  Fails if {\em File} is not a link.
-Fails always on systems that donot support symbolic links.
+Fails always on systems that do not support symbolic links.
 .C tmp_file 2 +Base, -TmpName
 Create a name for a temporary file.  {\em Base} is an identifier for
 the category of file.  The {\em TmpName} is guaranteed to be unique.
@@ -2732,8 +2732,8 @@ Equivalent to {\tt trace({\it Pred}, +all)}.
 Put a trace-point on all predicates meeting the predicate specification
 {\em Pred}.  {\em Ports} is a list of portnames ({\tt call, redo, exit,
 fail}).  The atom {\tt all} refers to all ports.  If the port is
-predeced by a `-' sign the trace-point is cleared for the port.  If it
-is predeced by a `+' the trace-point is set.
+preceded by a `-' sign the trace-point is cleared for the port.  If it
+is preceded by a `+' the trace-point is set.
 
 The predicate trace/2 activates debug mode (see debug/0).  Each time
 a port (of the 4-port model) is passed that has a trace-point set the
@@ -2786,7 +2786,7 @@ the port specification. Default is \tty{full}.
 Unify {\em Old} with the current value of the unknown system flag.  On
 success {\em New} will be used to specify the new value. {\em New} should be
 instantiated to either \tty{fail} or \tty{trace} and determines the
-interpreter's action when an undefined predicate which is not declared
+interpreters action when an undefined predicate which is not declared
 dynamic is encountered (see dynamic/1). \tty{fail} implies the predicate
 just fails silently. \tty{trace} implies the tracer is started. Default is
 \tty{trace}.  The unknown flag is local to each module and unknown/2
@@ -2802,7 +2802,7 @@ Set style checking options.  {\em Spec} is either \verb|+<option>|,
 \verb|-<option>|, \verb|?<option>| or a list of such options.
 \verb|+<option>| sets a style checking option, \verb|-<option>| clears
 it and \verb|?<option>| succeeds or fails according to the current
-setting. consult/1 and derivates resets the style checking options to
+setting. consult/1 and derivatives resets the style checking options to
 their value before loading the file. If---for example---a file containing
 long atoms should be loaded the user can start the file with:
 \begin{code}
@@ -2819,7 +2819,7 @@ Name & Default & Description \\
 \tty{singleton}  & on & read_clause/1 (used by consult/1) warns
 		        on variables only appearing once in a term (clause)
 		        which have a name not starting with an underscore. \\
-\tty{atom}	 & on & read/1 and derivates will produce an
+\tty{atom}	 & on & read/1 and derivatives will produce an
 		        error message on quoted atoms or strings longer
 		        than 5 lines. \\
 \tty{dollar}	 & off & Accept dollar as a lower case character, thus
@@ -2827,7 +2827,7 @@ Name & Default & Description \\
 		        System maintenance use only. \\		
 \tty{discontiguous} & on & Warn if the clauses for a predicate are not
 		        together in the same source file. \\
-\tty{string}	 & off & Read and derivates transform \verb$"..."$ into
+\tty{string}	 & off & Read and derivatives transform \verb$"..."$ into
 			a prolog string instead of a list of ASCII
 			characters. \\
 \hline
@@ -2847,7 +2847,7 @@ possible keys are given in the table~\ref{tab:statistics}.
 \begin{center}
 \begin{tabular}{|l|p{4in}|}
 \hline
-cputime		& (User) cpu time since Prolog was started in seconds \\
+cputime		& (User) {\sc cpu} time since Prolog was started in seconds \\
 inferences	& Total number of passes via the call and redo ports
 		  since Prolog was started. \\
 heapused	& Bytes heap in use. \\
@@ -2899,7 +2899,7 @@ stack is a measure of the time spent in this procedure.  It is
 implemented by calling a procedure each time slice Prolog is active.
 This procedure scans the local stack and either just counts the
 procedure on top of this stack (\tty{plain} profiling) or all procedures
-on the stack (\tty{cummulative} profiling).  To get accurate results
+on the stack (\tty{cumulative} profiling).  To get accurate results
 each procedure one is interested in should have a reasonable number of
 counts.  Typically a minute runtime will suffice to get a rough overview
 of the most expensive procedures.
@@ -2916,21 +2916,21 @@ are low-level predicates that can be used for special cases.
 .C show_profile 1 +Number
 Show the collected results of the profiler. Stops the profiler first to
 avoid interference from show_profile/1. It shows the top {\em Number}
-predicates according the percentage cpu-time used.%
+predicates according the percentage {\sc cpu}-time used.%
     \footnote{show_profile/1 is defined in Prolog and takes a
 	      considerable amount of memory.}
 .C profiler 2 -Old, +New
 Query or change the status of the profiler. The status is one of
-\tty{off}, \tty{plain} or \tty{cummulative}. \tty{plain} implies the
+\tty{off}, \tty{plain} or \tty{cumulative}. \tty{plain} implies the
 time used by children of a predicate is not added to the time of the
-predicate. For status \tty{cummulative} the time of childs is added
-(except for recursive calls). Cummulative profiling implies the stack
-is scanned upto the top on each time slice to find all active
+predicate. For status \tty{cumulative} the time of children is added
+(except for recursive calls). Cumulative profiling implies the stack
+is scanned up to the top on each time slice to find all active
 predicates.  This implies the overhead grows with the number of active
-frames on the stack.  Cummulative profiling starts debugging mode
+frames on the stack.  Cumulative profiling starts debugging mode
 to disable tail recursion optimisation, which would otherwise
 remove the necessary parent environments.  Switching status from
-\tty{plain} to \tty{cummulative} resets the profiler.  Switching to and
+\tty{plain} to \tty{cumulative} resets the profiler.  Switching to and
 from status \tty{off} does not reset the collected statistics, thus
 allowing to suspend profiling for certain parts of the program.
 .C reset_profiler 0
@@ -2942,7 +2942,7 @@ same name and arity as the predicate required (see
 current_predicate/2). {\em Calls} is unified with the number of `calls'
 and `redos' while the profiler was active. {\em Promilage} is unified
 with the relative number of counts the predicate was active
-(\tty{cummulative}) or on top of the stack (\tty{plain}). {\em Promilage}
+(\tty{cumulative}) or on top of the stack (\tty{plain}). {\em Promilage}
 is an integer between 0 and 1000.
 .ED
 
@@ -2956,7 +2956,7 @@ simply succeed to improve portability.
 .C garbage_collect 0
 Invoke the global- and trail stack garbage collector.  Normally the
 garbage collector is invoked automatically if necessary.  Explicit
-invokation might be useful to reduce the need for garbage collections in
+invocation might be useful to reduce the need for garbage collections in
 time critical segments of the code.  After the garbage collection
 trim_stacks/0 is invoked to release the collected memory resources.
 .C limit_stack 2 +Key, +Kbytes
@@ -2974,14 +2974,14 @@ Release stack memory resources that are not in use at this moment,
 returning them to the operating system.  Trim stack is a relatively
 cheap call.  It can be used to release memory resources in a
 backtracking loop, where the iterations require typically seconds of
-execution time and very different, potentionally large, amounts of
+execution time and very different, potentially large, amounts of
 stack space.  Such a loop should be written as follows:
 
 \begin{boxed}\begin{code}
 loop :-
 	generator,
 	    trim_stacks,
-	    potentionally_expensive_operation,
+	    potentially_expensive_operation,
 	stop_condition, !.
 \end{code}\end{boxed}
 
@@ -3071,7 +3071,7 @@ If unsuccessful, {\em Value} will be unified with a term of form
 {\tt error({\em Reason})}, identifying the problem.  This call uses
 SWI-Prolog string objects to return the value rather then atoms to
 reduce the load on the atom-space.  See section~\ref{sec:strings} for
-a discussion on this datatype.
+a discussion on this data type.
 .C dde_execute 2 +Handle, +Command
 Request the DDE server to execute the given command-string.  Succeeds
 if the command could be executed and fails with error message otherwise.
@@ -3133,7 +3133,7 @@ succeed or fail.  If {\em Goal} fails, a `not processed' is passed back
 to the caller of the DDE request.
 .C dde_unregister_service 1 +Service
 Stop responding to {\em Service}. If Prolog is halted, it will
-automatially call this on all open services.
+automatically call this on all open services.
 .C dde_current_service 2 -Service, -Topic
 Find currently registered services and the topics served on them.
 .C dde_current_connection 2 -Service, -Topic
@@ -3145,13 +3145,13 @@ Find currently open conversations.
 
 .BD
 .C dwim_match 2 +Atom1, +Atom2
-Succeeds if {\em Atom1} matches {\em Atom2} in `Do What I Mean' sence.
+Succeeds if {\em Atom1} matches {\em Atom2} in `Do What I Mean' sense.
 Both {\em Atom1} and {\em Atom2} may also be integers or floats.
 The two atoms match if:
 \begin{shortlist}
     \item They are identical
     \item They differ by one character (spy $\equiv$ spu)
-    \item One character is insterted/deleted (debug $\equiv$ deug)
+    \item One character is inserted/deleted (debug $\equiv$ deug)
     \item Two characters are transposed (trace $\equiv$ tarce)
     \item `Sub-words' are glued differently (existsfile $\equiv$ existsFile $\equiv$ exists_file)
     \item Two adjacent sub words are transposed (existsFile $\equiv$ fileExists)

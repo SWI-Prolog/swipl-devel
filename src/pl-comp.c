@@ -94,6 +94,7 @@ struct code_info codeTable[] = {
   CODE(C_SOFTIF,	"c_softif",	2, 0),
   CODE(C_SOFTCUT,	"c_softcut",	1, 0),
 #endif
+  CODE(I_EXITFACT,	"i_exitfact",	0, 0),
 /*List terminator */
   CODE(0,		NULL,		0, 0)
 };
@@ -682,10 +683,11 @@ Now compile the body.
   if ( body && *body != ATOM_true )
   { Output_0(&ci, I_ENTER);
     compileBody(body, I_DEPART, &ci);
+    Output_0(&ci, I_EXIT);
   } else
   { set(clause, UNIT_CLAUSE);		/* fact (for decompiler) */
+    Output_0(&ci, I_EXITFACT);
   }
-  Output_0(&ci, I_EXIT);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Reset all variables we initialised to the variable analysis  functor  to
@@ -1582,6 +1584,7 @@ arg1Key(Clause clause, word *key)
       case H_FIRSTVAR:
       case H_VAR:
       case H_VOID:
+      case I_EXITFACT:
       case I_EXIT:			/* fact */
       case I_ENTER:			/* fix H_VOID, H_VOID, I_ENTER */
 	fail;
@@ -1775,6 +1778,7 @@ decompile_head(Clause clause, term_t head, decompileInfo *di)
 	  if ( !pushed )
 	    argn++;
 	  continue;
+      case I_EXITFACT:
       case I_EXIT:			/* fact */
       case I_ENTER:			/* fix H_VOID, H_VOID, I_ENTER */
 	{ assert(argn <= arity);
@@ -2704,6 +2708,35 @@ $clause_term_position(+ClauseRef, +PCoffset, -TermPos)
 	the clause-term to find the subterm that sets up the goal.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+/*
+#undef DEBUG
+#define DEBUG(l, g) g
+*/
+
+static int
+add_node(term_t tail, int n)
+{ term_t h = PL_new_term_ref();
+  int rval;
+
+  rval = PL_unify_list(tail, h, tail) && PL_unify_integer(h, n);
+  PL_reset_term_refs(h);
+
+  DEBUG(1, Sdprintf("Added %d\n", n));
+
+  return rval;
+}
+
+
+static void
+add_1_if_not_at_end(Code PC, Code end, term_t tail)
+{ while(PC < end && decode(*PC) == C_VAR )
+    PC += 2;
+
+  if ( PC != end )
+    add_node(tail, 1);
+}
+
+
 
 word
 pl_clause_term_position(term_t ref, term_t pc, term_t locterm)
@@ -2711,7 +2744,6 @@ pl_clause_term_position(term_t ref, term_t pc, term_t locterm)
   int pcoffset;
   Code PC, loc, end;
   term_t tail = PL_copy_term_ref(locterm);
-  term_t head = PL_new_term_ref();
 
   if ( !PL_get_pointer(ref, (void **)&clause) ||
        !inCore(clause) || !isClause(clause) ||
@@ -2729,8 +2761,7 @@ pl_clause_term_position(term_t ref, term_t pc, term_t locterm)
     
     switch(op)
     { case I_ENTER:
-	PL_unify_list(tail, head, tail);
-        PL_unify_integer(head, 2);
+	add_node(tail, 2);
 	continue;
       { Code endloc;
       case C_OR:			/* C_OR <jmp1> <A> C_JMP <jmp2> <B> */
@@ -2738,48 +2769,41 @@ pl_clause_term_position(term_t ref, term_t pc, term_t locterm)
 
 	endloc = jmploc + jmploc[-1];
 
-	Sdprintf("jmp = %d, end = %d\n",
-		 jmploc - clause->codes, endloc - clause->codes);
+	DEBUG(1, Sdprintf("jmp = %d, end = %d\n",
+			  jmploc - clause->codes, endloc - clause->codes));
 
 	if ( loc <= endloc )		/* loc is in the disjunction */
-	{ if ( endloc != end )		/* disjunction is not the last */
-	  { PL_unify_list(tail, head, tail);
-	    PL_unify_integer(head, 1);
-	  }
+	{ add_1_if_not_at_end(endloc, end, tail);
 
 	  if ( loc <= jmploc )		/* loc is in first branch */
-	  { PL_unify_list(tail, head, tail);
-	    PL_unify_integer(head, 1);
+	  { add_node(tail, 1);
 	    end = jmploc-2;
 	    continue;
 	  }
 					/* loc is in second branch */
-	  PL_unify_list(tail, head, tail);
-	  PL_unify_integer(head, 2);
+	  add_node(tail, 2);
 	  PC = jmploc;
 	  end = endloc;
 	  continue;
 	}
 
       after_construct:
-	PL_unify_list(tail, head, tail); /* loc is after disjunction */
-        PL_unify_integer(head, 2);
+	add_node(tail, 2);		/* loc is after disjunction */
 	PC = endloc;
 	continue;
       }
-      case C_NOT:		/* C_NOT <var> <jmp> <A> C_CUT, C_FAIL */
+      case C_NOT:		/* C_NOT <var> <jmp> <A> C_CUT <var>, C_FAIL */
       { endloc = PC + PC[1] + 2;
 
-	if ( loc <= endloc )		/* in the \+ argument */
-	{ if ( endloc != end )		/* \+ is not the last */
-	  { PL_unify_list(tail, head, tail);
-	    PL_unify_integer(head, 1);
-	  }
+	DEBUG(1, Sdprintf("not: PC= %d, endloc = %d\n",
+			  PC - clause->codes, endloc - clause->codes));
 
-	  PL_unify_list(tail, head, tail);
-	  PL_unify_integer(head, 1);
+	if ( loc <= endloc )		/* in the \+ argument */
+	{ add_1_if_not_at_end(endloc, end, tail);
+
+	  add_node(tail, 1);
 	  PC += 2;
-	  end = endloc-2;		/* C_CUT, C_FAIL */
+	  end = endloc-3;		/* C_CUT <var>, C_FAIL */
 	  continue;
 	}
 
@@ -2793,37 +2817,32 @@ pl_clause_term_position(term_t ref, term_t pc, term_t locterm)
 
 	endloc = elseloc + elseloc[-1];
 
-	Sdprintf("else = %d, end = %d\n",
-		 elseloc - clause->codes, endloc - clause->codes);
+	DEBUG(1, Sdprintf("else = %d, end = %d\n",
+			  elseloc - clause->codes, endloc - clause->codes));
 
 	if ( loc <= endloc )
-	{ if ( endloc != end )		/* a->b;c is not the last */
-	  { PL_unify_list(tail, head, tail);
-	    PL_unify_integer(head, 1);
-	  }
+	{ add_1_if_not_at_end(endloc, end, tail);
 
 	  if ( loc <= elseloc )		/* a->b */
 	  { Code cutloc = find_code1(&PC[2], cut, PC[0]);
 
-	    PL_unify_list(tail, head, tail);
-	    PL_unify_integer(head, 1);
+	    DEBUG(1, Sdprintf("cut at %d\n", cutloc - clause->codes));
+	    add_node(tail, 1);
 	    
 	    if ( loc <= cutloc )	/* a */
-	    { PL_unify_list(tail, head, tail);
-	      PL_unify_integer(head, 1);
+	    { add_node(tail, 1);
 	      end = cutloc;
 	      PC = &PC[2];
 	    } else			/* b */
-	    { PL_unify_list(tail, head, tail);
-	      PL_unify_integer(head, 2);
+	    { add_node(tail, 2);
 	      PC = cutloc + 2;
 	      end = elseloc-2;
 	    }    
+	    DEBUG(1, Sdprintf("end = %d\n", end - clause->codes));
 	    continue;
 	  }
 					/* c */
-	  PL_unify_list(tail, head, tail);
-	  PL_unify_integer(head, 2);
+	  add_node(tail, 2);
 	  PC = elseloc;
 	  end = endloc;
 	  continue;
@@ -2838,20 +2857,15 @@ pl_clause_term_position(term_t ref, term_t pc, term_t locterm)
 	endloc = find_code0(cutloc+2, C_END);
 
 	if ( loc <= endloc )
-	{ if ( endloc != end )		/* a->b is not the last */
-	  { PL_unify_list(tail, head, tail);
-	    PL_unify_integer(head, 1);
-	  }
+	{ add_1_if_not_at_end(endloc, end, tail);
 
 	  if ( loc <= cutloc )		/* a */
-	  { PL_unify_list(tail, head, tail);
-	    PL_unify_integer(head, 1);
+	  { add_node(tail, 1);
 
 	    PC += 1;
 	    end = cutloc;
 	  } else			/* b */
-	  { PL_unify_list(tail, head, tail);
-	    PL_unify_integer(head, 2);
+	  { add_node(tail, 2);
 	    PC = cutloc+2;
 	    end = endloc;
 	  }
@@ -2875,14 +2889,11 @@ pl_clause_term_position(term_t ref, term_t pc, term_t locterm)
       case I_CALL_FV2:
 	PC += ci->arguments;
         if ( loc == PC )
-	{ if ( PC != end )
-	  { PL_unify_list(tail, head, tail);
-	    PL_unify_integer(head, 1);
-	  }
+	{ add_1_if_not_at_end(PC, end, tail);
+
 	  return PL_unify_nil(tail);
 	}
-	PL_unify_list(tail, head, tail);
-        PL_unify_integer(head, 2);
+	add_node(tail, 2);
 	continue;
       default:
 	PC += ci->arguments;

@@ -480,6 +480,7 @@ clearUninitialisedVarsFrame(LocalFrame fr, Code PC)
     for( ; ; PC += (codeTable[decode(*PC)].arguments + 1))
     { switch(decode(*PC))
       { case I_EXIT:
+	case I_EXITFACT:
 	  return;
 	case C_JMP:
 	  if ( PC >= branch_end )

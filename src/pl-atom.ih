@@ -255,3 +255,8 @@
 #define ATOM_yfy          MK_ATOM(254)
 #define ATOM_pc           MK_ATOM(255)
 #define ATOM_hidden       MK_ATOM(256)
+#define ATOM_number_of_clauses MK_ATOM(257)
+#define ATOM_fact         MK_ATOM(258)
+#define ATOM_erased       MK_ATOM(259)
+#define ATOM_debugging    MK_ATOM(260)
+#define ATOM_tracing      MK_ATOM(261)

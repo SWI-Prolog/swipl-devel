@@ -444,12 +444,14 @@ valueExpression(term_t t, Number r)
 	sysError("Illegal arity for arithmic function");
         rval = FALSE;
     }
-#ifdef WIN32
+#if defined(WIN32)
     } __except(EXCEPTION_EXECUTE_HANDLER)
     { warning("Floating point exception");
+#ifndef O_RUNTIME
       Sfprintf(Serror, "[PROLOG STACK:\n");
       backTrace(NULL, 10);
       Sfprintf(Serror, "]\n");
+#endif
       pl_abort();
     }
 #else

@@ -435,6 +435,8 @@ clause_property(Clause, line_count(LineNumber)) :-
 	$get_clause_attribute(Clause, line_count, LineNumber).
 clause_property(Clause, file(File)) :-
 	$get_clause_attribute(Clause, file, File).
+clause_property(Clause, fact) :-
+	$get_clause_attribute(Clause, fact, true).
 
 
 :- module_transparent

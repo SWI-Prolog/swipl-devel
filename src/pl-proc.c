@@ -89,7 +89,7 @@ isCurrentProcedure(FunctorDef f, Module m)
 }
 
 bool
-isDefinedProcedure(register Procedure proc)
+isDefinedProcedure(Procedure proc)
 { if ( /* true(proc->definition, FOREIGN) || not needed; union */
        proc->definition->definition.clauses ||
        true(proc->definition, DYNAMIC) )
@@ -430,7 +430,11 @@ retractClauseProcedure(Procedure proc, Clause clause)
 	    def->lastClause = prev;
 	}
 
-	freeClauseRef(c);
+
+  	freeClauseRef(c);
+	if ( PROCEDURE_event_hook1 &&
+	     def != PROCEDURE_event_hook1->definition )
+	  callEventHook(PLEV_ERASED, clause);
 	freeClause(clause);
 	def->number_of_clauses--;
 
@@ -492,6 +496,8 @@ gcClausesDefinition(Definition def)
       }
 
       DEBUG(0, removed++);
+      if ( PROCEDURE_event_hook1 && def != PROCEDURE_event_hook1->definition )
+	callEventHook(PLEV_ERASED, c->clause);
       freeClause(c->clause);
       freeClauseRef(c);
     } else
@@ -1000,6 +1006,8 @@ pl_get_predicate_attribute(term_t pred,
   { return PL_unify_integer(value, def->hash_info?def->hash_info->buckets:0);
   } else if ( key == ATOM_references )
   { return PL_unify_integer(value, def->references);
+  } else if ( key == ATOM_number_of_clauses )
+  { return PL_unify_integer(value, def->number_of_clauses);
   } else if ( (att = attribute_mask(key)) )
   { return PL_unify_integer(value, (def->flags & att) ? 1 : 0);
   } else
@@ -1176,6 +1184,10 @@ pl_get_clause_attribute(term_t ref, term_t att, term_t value)
     
     if ( sf )
       return PL_unify_atom(value, sf->name);
+  } else if ( a == ATOM_fact )
+  { return PL_unify_atom(value,
+			 true(clause, UNIT_CLAUSE) ? ATOM_true
+			 			   : ATOM_false);
   }
 
   fail;

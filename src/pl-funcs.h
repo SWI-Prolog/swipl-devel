@@ -159,6 +159,7 @@ void		protocol(char *s, int n);
 int		currentLinePosition(void);
 void		setCurrentSourceLocation(void);
 int		getSingleChar(void);
+word		pl_rawtty(term_t goal);
 bool		readLine(char *buffer);
 bool		LockStream(void);
 bool		UnlockStream(void);
@@ -596,6 +597,8 @@ void		backTrace(LocalFrame frame, int depth);
 word		pl_trace_continuation(term_t what);
 void		initTracer(void);
 void		resetTracer(void);
+int		tracemode(int new, int *old);
+int		debugmode(int new, int *old);
 word		pl_trace(void);
 word		pl_notrace(void);
 word		pl_tracing(void);
@@ -611,6 +614,7 @@ word		pl_debuglevel(term_t old, term_t new);
 word		pl_unknown(term_t old, term_t new);
 word		pl_prolog_current_frame(term_t fr);
 word		pl_prolog_frame_attribute(term_t fr, term_t key, term_t val);
+void		callEventHook(int ev, ...);
 
 /* pl-util.c */
 char		digitName(int n, bool small);

@@ -44,18 +44,18 @@ pl_break1(term_t goal)
 { extern int Input, Output;
   bool rval;
 
-  int	     inSave    = Input;
-  int	     outSave   = Output;
-  long	     skipSave  = debugstatus.skiplevel;
-  bool	     traceSave = debugstatus.tracing;
-  bool	     debugSave = debugstatus.debugging;
-  int	     suspSave  = debugstatus.suspendTrace;
+  int  inSave    = Input;
+  int  outSave   = Output;
+  long skipSave  = debugstatus.skiplevel;
+  int  suspSave  = debugstatus.suspendTrace;
+  int  traceSave, debugSave;
+
+  tracemode(FALSE, &traceSave);
+  debugmode(FALSE, &debugSave);
 
   Input = 0;
   Output = 1;
 
-  debugstatus.tracing = FALSE;
-  debugstatus.debugging = FALSE;
   debugstatus.skiplevel = 0;
   debugstatus.suspendTrace = 0;
 
@@ -68,8 +68,8 @@ pl_break1(term_t goal)
 
   debugstatus.suspendTrace = suspSave;
   debugstatus.skiplevel    = skipSave;
-  debugstatus.debugging    = debugSave;
-  debugstatus.tracing      = traceSave;
+  tracemode(traceSave, NULL);
+  debugmode(debugSave, NULL);
 
   Output = outSave;
   Input = inSave;
@@ -209,7 +209,8 @@ prolog(volatile atom_t goal)
 #endif
   status.arithmetic    = 0;
 
-  debugstatus.tracing      = FALSE;
+  tracemode(FALSE, NULL);
+  debugmode(FALSE, NULL);
   debugstatus.suspendTrace = 0;
 
   can_abort = TRUE;
@@ -243,7 +244,7 @@ trap_gdb()
 { return 0;
 }
 
-#if O_SECURE || O_DEBUG
+#if O_SECURE || O_DEBUG || defined(O_DEBUGLOCAL)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 checkData(p) verifies p points to valid  Prolog  data  and  generates  a

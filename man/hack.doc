@@ -31,11 +31,11 @@ alternative & {\em Value} is unified with an integer reference to the
 	      local stack frame in which execution is resumed if the
 	      goal associated with {\em Frame} fails. Fails if the
 	      frame has no alternative frame. \\
-has_alternatives     & {\em Value} is unified with `1' if {\em Frame}
-	      still is a candidate for backtracking. `0' otherwise. \\
+has_alternatives     & {\em Value} is unified with {\tt true} if {\em Frame}
+	      still is a candidate for backtracking. {\tt false} otherwise. \\
 goal	    & {\em Value} is unified with the goal associated with
 	      {\em Frame}. If the definition module of the active
-	      predicate is not {\em user} the goal is represented as
+	      predicate is not {\tt user} the goal is represented as
 	      {\em module:goal}. Do not instantiate variables in this goal
 	      unless you {\em know} what you are doing! \\
 clause	    & {\em Value} is unified with a reference to the currently
@@ -49,9 +49,20 @@ parent	    & {\em Value} is unified with an integer reference to the
 	      is the top frame. \\
 context_module & {\em Value} is unified with the name of the context
 	      module of the environment. \\
-top	    & {\em Value} is unified with `1' if {\em Frame} is the top
+top	    & {\em Value} is unified with {\tt true} if {\em Frame} is the top
 	      Prolog goal from a recursive call back from the foreign
-	      language. `0' otherwise. \\
+	      language. {\tt false} otherwise. \\
+hidden	    & {\em Value} is unified with {\tt true} if the frame is hidden
+	      from the user, either because a parent has the hide-childs
+	      attribute (all system predicates), or the system has no
+	      trace-me attribute. \\
+pc	    & {\em Value} is unified with the program-pointer saved on
+	      behalve of the parent-goal if the parent-goal is not owned
+	      by a foreign predicate. \\
+argument(N) & {\em Value} is unified with the {\em N}-th slot of the frame.
+	      Argument {\tt 1} is the first argument of the goal.  Arguments
+	      above the arity refer to local variables. Fails silently
+	      if {\em N} is out of range. \\
 \hline
 \end{tabular}
 \end{center}
@@ -148,7 +159,7 @@ If prolog wants to give a warning while reading a file, it will first
 raise the exception {\em warning}.  The context argument is a term of
 the form {\em warning(Path, LineNo, Message)}, where {\em Path} is the
 absolute filename of the file prolog is reading; {\em LineNo} is an
-extimate of the line number where the error occurred and {\em Message}
+estimate of the line number where the error occurred and {\em Message}
 is a Prolog string indicating the message.  The {\em Action} argument is
 ignored.  The error is supposed to be presented to the user if the
 exception handler succeeds.  Otherwise the standard Prolog warning message

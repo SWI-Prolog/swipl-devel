@@ -694,6 +694,15 @@ traceInterception(LocalFrame frame, int port, Code PC)
 	  rval = ACTION_RETRY;
 	else if ( a == ATOM_ignore )
 	  rval = ACTION_IGNORE;
+      } else if ( PL_is_functor(argv+2, FUNCTOR_retry1) )
+      { long w;
+	term_t arg = PL_new_term_ref();
+
+	if ( PL_get_arg(1, argv+2, arg) && PL_get_long(arg, &w) )
+	{ debugstatus.retryFrame = FrameRef(w);
+	  rval = ACTION_RETRY;
+	} else
+	  warning("prolog_trace_interception/3: bad argument to retry/1");
       }
     }
     PL_close_query(qid);
@@ -847,33 +856,70 @@ initTracer(void)
   pl_signal(SIGINT, interruptHandler);
 #endif
 
-  debugstatus.visible  = CALL_PORT|FAIL_PORT|REDO_PORT|EXIT_PORT;
-  debugstatus.leashing = CALL_PORT|FAIL_PORT|REDO_PORT|EXIT_PORT;
-  debugstatus.tracing = debugstatus.debugging = FALSE;
+  debugstatus.visible      = 
+  debugstatus.leashing     = CALL_PORT|FAIL_PORT|REDO_PORT|EXIT_PORT;
+  debugstatus.tracing      =
+  debugstatus.debugging    = FALSE;
   debugstatus.suspendTrace = FALSE;
-  debugstatus.skiplevel = 0;
-  debugstatus.style = status.boot ? W_WRITE : W_PRINT; 
-  debugstatus.showContext = FALSE;
+  debugstatus.skiplevel    = 0;
+  debugstatus.style        = status.boot ? W_WRITE : W_PRINT; 
+  debugstatus.showContext  = FALSE;
+  debugstatus.retryFrame   = NULL;
 }
 
 		/********************************
 		*       PROLOG PREDICATES       *
 		*********************************/
 
-word
-pl_trace()
-{ debugstatus.debugging = debugstatus.tracing = TRUE;
-  debugstatus.skiplevel = VERY_DEEP;
-  find.searching = FALSE;
+int
+tracemode(int doit, int *old)
+{ if ( doit )
+    doit = TRUE;
+
+  if ( old )
+    *old = debugstatus.tracing;
+
+  if ( debugstatus.tracing != doit )
+  { if ( doit )
+    { debugstatus.debugging = TRUE;
+      debugstatus.skiplevel = VERY_DEEP;
+      find.searching = FALSE;
+    }
+    debugstatus.tracing = doit;
+    callEventHook(PLEV_TRACING, doit);
+  }
 
   succeed;
 }
 
-word
-pl_notrace()
-{ debugstatus.tracing = FALSE;
+
+int
+debugmode(int doit, int *old)
+{ if ( doit )
+    doit = TRUE;
+
+  if ( old )
+    *old = debugstatus.debugging;
+
+  if ( debugstatus.debugging != doit )
+  { if ( doit )
+      debugstatus.skiplevel = VERY_DEEP;
+    debugstatus.debugging = doit;
+    callEventHook(PLEV_DEBUGGING, doit);
+  }
 
   succeed;
+}
+
+
+word
+pl_trace()
+{ return tracemode(TRUE, NULL);
+}
+
+word
+pl_notrace()
+{ return tracemode(FALSE, NULL);
 }
 
 word
@@ -883,25 +929,17 @@ pl_tracing()
 
 word
 pl_debug()
-{ debugstatus.debugging = TRUE;
-  debugstatus.skiplevel = VERY_DEEP;
-
-  succeed;
+{ return debugmode(TRUE, NULL);
 }
 
 word
 pl_nodebug()
-{ debugstatus.debugging = FALSE;
-
-  succeed;
+{ return debugmode(FALSE, NULL);
 }
 
 word
 pl_debugging()
-{ if ( debugstatus.debugging )
-    succeed;
-
-  fail;
+{ return debugstatus.debugging;
 }
 
 word
@@ -1018,6 +1056,7 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
   if ( key == ATOM_argument && arity == 1 )
   { term_t arg = PL_new_term_ref();
     int argn;
+    Word p = valTermRef(value);
 
     if ( !PL_get_arg(1, what, arg) || !PL_get_integer(arg, &argn) || argn < 1 )
       goto ierr;
@@ -1030,7 +1069,19 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
 	fail;
     }
 
-    return unify_ptrs(valTermRef(value), argFrameP(fr, argn-1));
+#ifdef O_DEBUGLOCAL			/* see pl-wam.c */
+    assert( *argFrameP(fr, argn-1) != (word)(((char*)ATOM_nil) + 1) );
+    checkData(argFrameP(fr, argn-1), FALSE);
+#endif
+
+   deRef(p);
+   if ( isVar(*p) )
+   { *p = makeRef(argFrameP(fr, argn-1));
+     DoTrail(p);
+     succeed;
+   }
+
+   fail;
   }
   if ( arity != 0 )
     goto ierr;
@@ -1038,7 +1089,7 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
   if (        key == ATOM_level)
   { PL_put_integer(result, levelFrame(fr));
   } else if (key == ATOM_has_alternatives)
-  { PL_put_integer(result, hasAlternativesFrame(fr));
+  { PL_put_atom(result, hasAlternativesFrame(fr) ? ATOM_true : ATOM_false);
   } else if (key == ATOM_alternative)
   { if (fr->backtrackFrame == (LocalFrame) NULL)
       fail;
@@ -1054,7 +1105,7 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
     else
       fail;
   } else if (key == ATOM_top)
-  { PL_put_integer(result, fr->parent ? 1 : 0);
+  { PL_put_atom(result, fr->parent ? ATOM_false : ATOM_true);
   } else if (key == ATOM_context_module)
   { PL_put_atom(result, contextModule(fr)->name);
   } else if (key == ATOM_clause)
@@ -1096,14 +1147,68 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
   } else if ( key == ATOM_hidden )
   { atom_t a;
 
-    if ( true(fr, FR_NODEBUG) && !SYSTEM_MODE )
-      a = ATOM_true;
-    else
-      a = ATOM_false;
+    if ( SYSTEM_MODE )
+    { a = ATOM_true;
+    } else
+    { if ( true(fr, FR_NODEBUG) || false(fr->predicate, TRACE_ME) )
+	a = ATOM_true;
+      else
+	a = ATOM_false;
+    }
 
     PL_put_atom(result, a);
   } else
     return warning("prolog_frame_attribute/3: unknown key");
 
   return PL_unify(value, result);
+}
+
+
+		 /*******************************
+		 *	  PROLOG EVENET HOOK	*
+		 *******************************/
+
+void
+callEventHook(int ev, ...)
+{ if ( !PROCEDURE_event_hook1 )
+    PROCEDURE_event_hook1 = PL_predicate("prolog_event_hook", 1, "user");
+  
+  if ( PROCEDURE_event_hook1->definition->definition.clauses )
+  { va_list args;
+    fid_t fid = PL_open_foreign_frame();
+    term_t arg = PL_new_term_ref();
+
+    va_start(args, ev);
+    switch(ev)
+    { case PLEV_ERASED:
+      {	void *ptr = va_arg(args, void *); 	/* object erased */
+
+	PL_unify_term(arg, PL_FUNCTOR, FUNCTOR_erased1,
+		           PL_POINTER, ptr);
+	break;
+      }
+      case PLEV_DEBUGGING:
+      { int dbg = va_arg(args, int);
+	
+	PL_unify_term(arg, PL_FUNCTOR, FUNCTOR_debugging1,
+			   PL_ATOM, dbg ? ATOM_true : ATOM_false);
+	break;
+      }
+      case PLEV_TRACING:
+      { int trc = va_arg(args, int);
+	
+	PL_unify_term(arg, PL_FUNCTOR, FUNCTOR_tracing1,
+			   PL_ATOM, trc ? ATOM_true : ATOM_false);
+	break;
+      }
+      default:
+	warning("callEventHook(): unknown event: %d", ev);
+        goto out;
+    }
+    
+    PL_call_predicate(MODULE_user, FALSE, PROCEDURE_event_hook1, arg);
+  out:
+    PL_discard_foreign_frame(fid);
+    va_end(args);
+  }
 }

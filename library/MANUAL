@@ -93,7 +93,7 @@ learning systems, natural language processing and two large
 workbenches for knowledge engineering. Although we experienced
 rather obvious and critical bugs can remain unnoticed for a remarkable
 long period, we can assume the basic Prolog system is fairly stable.
-Bugs can be expected in unfrequently used builtin predicates.
+Bugs can be expected in infrequently used builtin predicates.
 
 Some bugs are known to the author. They are described as footnotes in
 this manual.
@@ -168,7 +168,7 @@ XPCE/SWI-Prolog provides an interactive graphical development
 platform that is portable over many Unix/X11 implementations as well
 as MS-Windows (3.1) and Windows NT (3.5).
 
-XPCE is a licenced product. A fully functional free demo version for
+XPCE is a licensed product. A fully functional free demo version for
 PC/Linux is available from ftp://swi.psy.uva.nl/pub/xpce/linux   ,
 for more information see URL
 
@@ -214,7 +214,7 @@ control system.
 
 1.7  Version 1.7 Release Notes
 
-Version 1.7 intergrates the GNU-readline library, offering powerful
+Version 1.7 integrates the GNU-readline library, offering powerful
 history and command-line editing both using Emacs and vi
 key-bindings.
 
@@ -241,7 +241,7 @@ version. Changes to the Prolog system include:
      goals and allows for reuse of these bindings by prefixing the
      variables with the $ sign. See section 2.5.
 
-     Better sourcecode administration
+     Better source code administration
      Allows for proper updating of multifile predicates and finding the
      sources of individual clauses.
 
@@ -269,7 +269,7 @@ New features offered:
      All SWI-Prolog's I/O is now handled by the stream-package
      defined in the foreign include file <SWI-Stream.h>. Physical I/O
      of Prolog streams may be redefined through the foreign language
-     interface, facilating much simpler integration in window
+     interface, facilitating much simpler integration in window
      environments.
 
 Version 2.0.6 offers a few incompatibilities:
@@ -318,7 +318,7 @@ Version 2.0.6 offers a few incompatibilities:
 
 1.11  Version 2.1 Release Notes
 
-In addition to several bugfixes, the 2.1 versions provide some new
+In addition to several bug fixes, the 2.1 versions provide some new
 features:
 
      setarg/3
@@ -362,7 +362,7 @@ According to the current plan, ISO compliant exception handling and
 hooks for source-code debugging will be added before the system will be
 called 3.0.
 
-Apart from various bugfixes listed in the Changelog file, these are the
+Apart from various bug fixes listed in the Changelog file, these are the
 main changes since 2.1.0:
 
      ISO compatibility
@@ -385,14 +385,14 @@ main changes since 2.1.0:
 
 1.13  Version 2.6 Release Notes
 
-Version 2.6 provides a stable implemetation of the features added in the
-2.5.x releases, but at the same time implements a number of new
+Version 2.6 provides a stable implementation of the features added in
+the 2.5.x releases, but at the same time implements a number of new
 features that may have impact on the system stability.
 
      32-bit integer and double float arithmetic
      The biggest change is the support for full 32-bit signed integers
-     and raw machine-format double precission floats. The internal
-     data representation as well as the arithmetic instruction set and
+     and raw machine-format double precision floats. The internal data
+     representation as well as the arithmetic instruction set and
      interface to the arithmetic functions has been changed for this.
 
      Embedding for Win32 applications
@@ -409,9 +409,9 @@ features that may have impact on the system stability.
 
 1.14  Version 2.7 Release Notes
 
-Version 2.7 reorganises the entire data-represention of the Prolog data
+Version 2.7 reorganises the entire data-representation of the Prolog data
 itself. The aim is to remove most of the assumption on the machine's
-memory layout to improve portabilily in general and enable embedding
+memory layout to improve portability in general and enable embedding
 on systems where the memory layout may depend on invocation or on
 how the executable is linked. The latter is notably a problem on the
 Win32 platforms. Porting to 64-bit architectures should be feasible now.
@@ -440,6 +440,9 @@ Rengel.
 
 Martin Jansche (jansche@novell1.gs.uni-heidelberg.de) has been so kind
 to reorganise the sources for version 2.1.3 of this manual.
+
+Horst von Brand has been so kind to fix many typos in the 2.7.14
+manual. Thanks!
 
 
 Chapter  2
@@ -520,8 +523,8 @@ The full set of command line options is given below:
          taking the leading alphanumerical characters (letters,
          digits and underscore) from the program-name. -F
          none stops looking for a script. Intended for simple
-         management of slighly different versions. One could for
-         example write a script iso.rc and then select ISO
+         management of slightly different versions. One could
+         for example write a script iso.rc and then select ISO
          compatibility mode using pl -F iso or make a link
          from iso-pl to pl.
      -g goal
@@ -561,7 +564,7 @@ The full set of command line options is given below:
          values for the alias. A value is either a term of the form
          alias(value)or pathname. The computed aliases are
          added to file_search_path/2 using asserta/1, so
-         they preceed predefined values for the alias. See
+         they precede predefined values for the alias. See
          file_search_path/2 for details on using this
          file-location mechanism.
      --
@@ -638,7 +641,7 @@ explain(+ToExplain)
 
 explain(+ToExplain, -Explanation)
      Unify Explanation with an explanation for ToExplain.
-     Backtracing yields further explanations.
+     Backtracking yields further explanations.
 
 
 2.4  Query Substitutions
@@ -736,7 +739,7 @@ quotation with single or double quotes, comment delimiters and spacing.
 
 2.5  Reuse of toplevel bindings
 
-Bindings resulting from the successfull execution of a toplevel goal are
+Bindings resulting from the successful execution of a toplevel goal are
 asserted in a database. These values may be reused in further toplevel
 queries as $Var. Only the latest binding is available. Example:
 
@@ -965,7 +968,7 @@ please(+Key, -Old, +New)
 
      optimise on/off (default:  off)
          Switch optimise mode for the compiler on or off (see also the
-         command line option -O). Currently optimised compilation
+         command line option -O). Currently optimise compilation
          only implies compilation of arithmetic, making it fast, but
          invisible to the tracer. Later versions might imply various
          other optimisations such as incorporating a number of basic
@@ -1135,7 +1138,7 @@ feature(?Key, -Value)
          min_integer and min_integer.
 
      tty_control (bool)
-         Tertermines whether the terminal is switched to raw mode for
+         Determines whether the terminal is switched to raw mode for
          get_single_char/1, which also reads the user-actions for the
          trace. May be set. See also the +/-tty command-line option.
 
@@ -1177,7 +1180,7 @@ depends entirely on exactly the Unix program-file used to create it.
 
 
 save_program(+NewProgram, +ListOfOptions)
-     Create a new executable wich will be named NewProgram.
+     Create a new executable which will be named NewProgram.
      ListOfOptions is a list of Key = Value  pairs that specify the
      default command line options that will be saved into the new
      program. If a default is not specified the default compiled into the
@@ -1299,7 +1302,7 @@ format:
      index(Name, Arity, Module, File).
 
 The predicate make/0 scans the autoload libraries and updates the index
-if it exists, is writable and out-of-date. It is adviced to create an empty
+if it exists, is writable and out-of-date. It is advised to create an empty
 file called INDEX.pl in a library directory meant for auto loading before
 doing anything else. This index file can then be updated by running the
 prolog make_library_index/1 (`%' is the Unix prompt):
@@ -1401,7 +1404,7 @@ to improve compatibility.
      Prolog. Nor supported by ISO. Example:
 
          format('This is a long line that would look better if it was \c
-                           split accross multiple physical lines in the input')
+                           split across multiple physical lines in the input')
 
  \<RETURN>
      No output. Skips input till the next non-layout character or to the
@@ -1423,7 +1426,7 @@ to improve compatibility.
      Vertical tab-character (ASCII 11).
 
  \x23
-     Hexdecimal specification of a character. 23 is just an example.
+     Hexadecimal specification of a character. 23 is just an example.
      The `x' may be followed by a maximum of 2 hexadecimal digits.
      The closing \ is optional. The code \xa\3 emits the character 10
      (hexadecimal `a') followed by `3'. The code \x201 emits 32
@@ -1438,11 +1441,11 @@ to improve compatibility.
      the maximum allowed number of octal digits is 3.
 
  \<character>
-     Any character immediately predeced by a \ is copied verbatim.
+     Any character immediately preceded by a \ is copied verbatim.
      Thus, '\\' is an atom consisting of a single \ and '\'' and ''''
      both describe an atom with a single '.
 
-Character escaping is only available if the feature(character_espaces,
+Character escaping is only available if the feature(character_escapes,
 true) is active (default). See feature/2. Character escapes conflict
 with writef/2 in two ways: \40 is interpreted as decimal 40 by
 writef/2, but character escapes handling by read has already
@@ -1531,7 +1534,7 @@ Clauses  Currently the following limitations apply to clauses. The arity
      less than 65536.
 
 Atoms and Strings   SWI-Prolog has no limits on the sizes of atoms
-     and strings. read/1 and its derivates however normally limit the
+     and strings. read/1 and its derivatives however normally limit the
      number of newlines in an atom or string to 5 to improve error
      detection and recovery. This can be switched off with
      style_check/1.
@@ -1688,7 +1691,7 @@ make
      Consult all source files that have been changed since they were
      consulted. It checks all loaded source files: files loaded into a
      compiled state using pl -c ... and files loaded using consult or
-     one of its derivates. make/0 is normally invoked by the
+     one of its derivatives. make/0 is normally invoked by the
      edit/[0,1] and ed/[0,1] predicates. make/0 can be combined
      with the compiler to speed up the development of large packages.
      In this case compile the package using
@@ -1758,7 +1761,7 @@ prolog_load_context(?Key, ?Value)
        file              File loaded
        stream            Stream identifier (see current_stream/1)
        directory         Directory in which File lives.
-       term_position     Postion   of   last   term   read.      Term   of   the   form
+       term_position     Position  of  last  term  read.      Term  of  the  form
                          '$stream_position'(0,Line,0,0,0)
 
      Quintus compatibility predicate. See also source_location/2.
@@ -1804,13 +1807,13 @@ expand_term(+Term1, -Term2)
 at_initialization(+Goal)
      Register Goal to be ran when the system initialises. Initialisation
      takes place after reloading a .qlf (formerly .wic) file as well as
-     after reloading a saved-state. The hooks are ran in the order they
+     after reloading a saved-state. The hooks are run in the order they
      were registered. A warning message is issued if Goal fails, but
      execution continues. See also at_halt/1
 
 
 at_halt(+Goal)
-     Register Goal to be ran when the system halts. The hooks are ran
+     Register Goal to be ran when the system halts. The hooks are run
      in the order they were registered. Success or failure executing a
      hook is ignored. These hooks may not call halt/[0,1].
 
@@ -1859,7 +1862,7 @@ stored as virtual machine instructions. Changes to the compiler will
 generally make old compiled files unusable.
 
 Quick Load Files are created using qcompile/1. They may be loaded
-explicitely using qload/1 or implicitely using consult/1 or one of the
+explicitly using qload/1 or implicitly using consult/1 or one of the
 other file-loading predicates described in section 3.2. If consult is given
 the explicit .pl file, it will load the Prolog source. When given the .qlf
 file, it will call qload/1 to load the file. When no extension is specified,
@@ -2155,11 +2158,11 @@ repeat
      semantics is the same as (Condition, Action). If Condition does
      not succeed, the semantics is that of (Condition, Else). In other
      words, If Condition succeeds at least once, simply behave as the
-     conjuction of Condition and Action, otherwise execute Else.
+     conjunction of Condition and Action, otherwise execute Else.
 
 
 \+ +Goal
-     Succeeds if `Goal' cannot be proven (mnemnonic: + refers to
+     Succeeds if `Goal' cannot be proven (mnemonic: + refers to
      provable and the backslash is normally used to indicate negation).
 
 
@@ -2228,7 +2231,7 @@ ignore(+Goal)
 The predicates of this section form a tightly related set for realising
 premature successfull or failing exits from a block. These predicates
 are first of all useful for error-recovery. They were primarily
-implemented for compatibily reasons.
+implemented for compatibility reasons.
 
 
 block(+Label, +Goal, -ExitValue)
@@ -2300,10 +2303,10 @@ phrase(+RuleSet, +InputList, -Rest)
 SWI-Prolog offers three different database mechanisms. The first one is
 the common assert/retract mechanism for manipulating the clause
 database. As facts and clauses asserted using assert/1 or one of its
-derivates become part of the program these predicates compile the term
-given to them. Retract/1 and retractall/1 have to unify a term and
-therefore have to decompile the program. For these reasons the
-assert/retract mechanism is expensive. On the other hand, once
+derivatives become part of the program these predicates compile the
+term given to them. Retract/1 and retractall/1 have to unify a
+term and therefore have to decompile the program. For these reasons
+the assert/retract mechanism is expensive. On the other hand, once
 compiled, queries to the database are faster than querying the recorded
 database discussed below. See also dynamic/1.
 
@@ -2339,7 +2342,7 @@ redefine_system_predicate(+Head)
      definition for all sub-modules. Otherwise the redefinition is local to
      the module. The system definition remains in the module system.
 
-     Redefining system predicate facilates the definition of
+     Redefining system predicate facilitates the definition of
      compatibility packages. Use in other context is discouraged.
 
 
@@ -2350,7 +2353,7 @@ retract(+Term)
 
 
 retractall(+Head)
-     Allfacts or clauses in the database for which the head unifies with
+     All facts or clauses in the database for which the head unifies with
      Head are removed.
 
 
@@ -2458,7 +2461,7 @@ hash_term(+Term, -HashKey)
 
      The hash-key does not rely on temporary information like
      addresses of atoms and may be assumed constant over different
-     invokations of SWI-Prolog.
+     invocations of SWI-Prolog.
 
 
 3.11  Declaring Properties of Predicates
@@ -2521,7 +2524,7 @@ index(+Head)
      By default all predicates with arity  1 are indexed on their first
      argument. It is possible to redefine indexing on predicates that
      already have clauses attached to them. This will initiate a scan
-     through the predicate's clause list to update the index summary
+     through the predicates clause list to update the index summary
      information stored with each clause.
 
      If|for example|one wants to represents sub-types using a fact
@@ -2540,7 +2543,7 @@ index(+Head)
 
 current_atom(-Atom)
      Successively unifies Atom with all atoms known to the system.
-     Note that current_atom/1 always succeeds if Atom is intantiated
+     Note that current_atom/1 always succeeds if Atom is instantiated
      to an atom.
 
 
@@ -2637,7 +2640,7 @@ dwim_predicate(+Term, -Dwim)
      which name and arity are used as a predicate specification. Dwim
      is instantiated with the most general term built from Name and the
      arity of a defined predicate that matches the predicate specified by
-     Term in the `Do What I Mean' sence. See dwim_match/2 for `Do
+     Term in the `Do What I Mean' sense. See dwim_match/2 for `Do
      What I Mean' string matching. Internal system predicates are not
      generated, unless style_check(+dollar)  is active. Backtracking
      provides all alternative matches.
@@ -2696,8 +2699,8 @@ clause_property(+ClauseRef, -Property)
 SWI-Prolog provides two different packages for input and output. One
 confirms to the Edinburgh standard. This package has a notion of
 `current-input' and `current-output'. The reading and writing predicates
-implicitely refer to these streams. In the second package, streams are
-opened explicitely and the resulting handle is used as an argument to the
+implicitly refer to these streams. In the second package, streams are
+opened explicitly and the resulting handle is used as an argument to the
 reading and writing predicate to specify the source or destination. Both
 packages are fully integrated; the user may switch freely between them.
 
@@ -2710,7 +2713,7 @@ compatible to DEC-10 and C-Prolog. The reading and writing
 predicates refer to resp. the current input- and output stream. Initially
 these streams are connected to the terminal. The current output stream
 is changed using tell/1 or append/1. The current input stream is
-changed using see/1. The stream's current value can be obtained using
+changed using see/1. The streams current value can be obtained using
 telling/1 for output- and seeing/1 for input streams. The table
 below shows the valid stream specifications. The reserved names
 user_input , user_output  and user_error  are for neat integration
@@ -2734,7 +2737,7 @@ examples of source/destination specifications.
 
 Another example of using the pipe/1 construct is shown on in
 figure 3.1. Note that the pipe/1 construct is not part of Prolog's
-standard I/O reportoire.
+standard I/O repertoire.
 
      getwd(Wd) :-
               seeing(Old), see(pipe(pwd)),
@@ -2791,7 +2794,7 @@ told
 3.13.2  Explicit Input and Output Streams
 
 The predicates below are part of the Quintus compatible stream-based
-I/O package. In this package streams are explicitely created using the
+I/O package. In this package streams are explicitly created using the
 predicate open/3. The resulting stream identifier is then passed as a
 parameter to the reading and writing predicates to specify the source or
 destination of the data.
@@ -2807,7 +2810,7 @@ open(+SrcDest, +Mode, -Stream, +Options)
      truncating the file. See also stream_position/3. Stream is either
      a variable, in which case it is bound to an integer identifying the
      stream, or an atom, in which case this atom will be the stream
-     indentifier. The Options list can contain the following options:
+     identifier. The Options list can contain the following options:
 
          type(Type)
          . Using type text (default), Prolog will write a text-file in an
@@ -2904,10 +2907,10 @@ wait_for_input(+ListOfStreams, -ReadyList, +TimeOut)
      wait_for_input/3 waits for at most TimeOut seconds. Timeout
      may be specified as a floating point number to specify fractions of
      a second. If Timeout equals 0, wait_for_input/3 waits
-     indefinetely. This predicate can be used to implement timeout
+     indefinitely. This predicate can be used to implement timeout
      while reading and to handle input from multiple sources. The
      following example will wait for input from the user and an
-     explicitely opened second terminal. On return, Inputs may hold
+     explicitly opened second terminal. On return, Inputs may hold
      user or P4 or both.
 
          ?- open('/dev/ttyp4', read, P4),
@@ -2973,7 +2976,7 @@ tab(+Stream, +Amount)
 
 flush
      Flush pending output on current output stream. flush/0 is
-     automatically generated by read/1 and derivates if the current
+     automatically generated by read/1 and derivatives if the current
      input stream is user and the cursor is not at the left margin.
 
 
@@ -3005,12 +3008,12 @@ get(+Stream, -Char)
 
 
 peek_byte(-Char)
-     Reads the next imput character like get0/1, but does not remove
+     Reads the next input character like get0/1, but does not remove
      it from the input stream. This predicate is ISO compliant.
 
 
 peek_byte(+Stream, -Char)
-     Reads the next imput character like get0/2, but does not remove
+     Reads the next input character like get0/2, but does not remove
      it from the stream. This predicate is ISO compliant.
 
 
@@ -3041,7 +3044,7 @@ at_end_of_stream
 
 at_end_of_stream(+Stream)
      Succeeds after the last character of the named stream is read, or
-     Stream is not a valid imput stream.
+     Stream is not a valid input stream.
 
 
 3.16  Term Reading and Writing
@@ -3164,7 +3167,7 @@ read_variables(+Stream, -Term, -Bindings)
 read_term(-Term, +Options)
      Read a term from the current input stream and unify the term
      with Term. The reading is controlled by options from the list of
-     Options. If this list is empty, the bahaviour is the same as for
+     Options. If this list is empty, the behaviour is the same as for
      read/1. The options are upward compatible to Quintus Prolog.
      The argument order is according to the ISO standard. Options:
 
@@ -3259,7 +3262,7 @@ history_depth(-Int)
 
 
 prompt(-Old, +New)
-     Set prompt associated with read/1 and its derivates. Old is first
+     Set prompt associated with read/1 and its derivatives. Old is first
      unified with the current prompt. On success the prompt will be
      set to New if this is an atom. Otherwise an error message is
      displayed. A prompt is printed if one of the read predicates is
@@ -3283,7 +3286,7 @@ arg(?Arg, ?Term, ?Value)
      Term should be instantiated to a term, Arg to an integer between 1
      and the arity of Term. Value is unified with the Arg-th argument
      of Term. Arg may also be unbound. In this Value will be unified
-     with the successive arguments of the term. On successfull
+     with the successive arguments of the term. On successful
      unification, Arg is unified with the argument number.
      Backtracking yields alternative solutions.
 
@@ -3420,7 +3423,7 @@ atom_to_term(+Atom, -Term, -Bindings)
 
 concat(?Atom1, ?Atom2, ?Atom3)
      Atom3 forms the concatenation of Atom1 and Atom2. At least two
-     of the arguments must be instantiated to atoms, intergers or
+     of the arguments must be instantiated to atoms, integers or
      floating point numbers.
 
 
@@ -3462,7 +3465,7 @@ on the global stack and their storage is thus reclaimed on backtracking.
 Garbage collection can easily deal with strings.
 
 The ISO standard proposes "..." is transformed into a string object by
-read/1 and derivates. This poses problems as in the old convention
+read/1 and derivatives. This poses problems as in the old convention
 "..." is transformed into a list of ascii characters. For this reason the
 style check option `string ' is available (see style_check/2).
 
@@ -3484,7 +3487,7 @@ string_to_list(?String, ?List)
 
 string_length(+String, -Length)
      Unify Length with the number of characters in String. This
-     predicate is functonally equivalent to atom_length/2 and also
+     predicate is functionally equivalent to atom_length/2 and also
      accepts atoms, integers and floats as its first argument.
 
 
@@ -3494,7 +3497,7 @@ string_concat(?String1, ?String2, ?String3)
      and String2 are unbound and String3 is bound to text, it breaks
      String3, unifying the start with String1 and the end with
      String2 as append does with lists. Note that this is not
-     particulary fast on long strings as for each redo the system has to
+     particularly fast on long strings as for each redo the system has to
      create two entirely new strings, while the list equivalent only
      creates a single new list-cell and moves some pointers around.
 
@@ -3560,7 +3563,7 @@ arithmetic as appropriate. The integer predicates are as \logical" as
 possible. Their usage is recommended whenever applicable, resulting in
 faster and more \logical" programs.
 
-The general arithmic predicates are optionaly compiled now (see
+The general arithmetic predicates are optionally compiled now (see
 please/3 and the -O command line option). Compiled arithmetic
 reduces global stack requirements and improves performance.
 Unfortunately compiled arithmetic cannot be traced, which is why it is
@@ -3620,7 +3623,7 @@ plus(?Int1, ?Int2, ?Int3)
 -Number is +Expr
      Succeeds when Number has successfully been unified with the
      number Expr evaluates to. If Expr evaluates to a float that can be
-     represetented using an integer (i.e. the value is integer and within
+     represented using an integer (i.e. the value is integer and within
      the range that can be described by Prolog's integer
      representation), Expr is unified with the integer value.
 
@@ -3656,7 +3659,7 @@ integer overflow the operands are automatically converted to floating
 point numbers. The floating point functions (sin/1, exp/1, etc.) form a
 direct interface to the corresponding C library functions used to compile
 SWI-Prolog. Please refer to the C library documentation for details on
-percision, error handling, etc.
+precision, error handling, etc.
 
 
 - +Expr
@@ -3711,7 +3714,7 @@ min(+Expr1, +Expr2)
      A list of one element evaluates to the element. This implies "a"
      evaluates to the ASCII value of the letter a (97). This option is
      available for compatibility only. It will not work if
-     `style_check(+string)  ' is active as "a" will then be tranformed
+     `style_check(+string)  ' is active as "a" will then be transformed
      into a string object. The recommended way to specify the ASCII
      value of the letter `a' is 0'a.
 
@@ -3795,32 +3798,32 @@ sqrt(+Expr)
 
 
 sin(+Expr)
-     Result = sine of Expr. Expr is the angle in radials.
+     Result = sine of Expr. Expr is the angle in radians.
 
 
 cos(+Expr)
-     Result = cosine of Expr. Expr is the angle in radials.
+     Result = cosine of Expr. Expr is the angle in radians.
 
 
 tan(+Expr)
-     Result = tangus of Expr. Expr is the angle in radials.
+     Result = tangus of Expr. Expr is the angle in radians.
 
 
 asin(+Expr)
-     Result = inverse sine of Expr. Result is the angle in radials.
+     Result = inverse sine of Expr. Result is the angle in radians.
 
 
 acos(+Expr)
-     Result = inverse cosine of Expr. Result is the angle in radials.
+     Result = inverse cosine of Expr. Result is the angle in radians.
 
 
 atan(+Expr)
-     Result = inverse tangus of Expr. Result is the angle in radials.
+     Result = inverse tangus of Expr. Result is the angle in radians.
 
 
 atan(+YExpr, +XExpr)
      Result = inverse tangus of YExpr / XExpr. Result is the angle
-     in radials. The return value is in the range [pi:::pi]. Used to
+     in radians. The return value is in the range [pi:::pi]. Used to
      convert between rectangular and polar coordinate system.
 
 
@@ -3865,7 +3868,7 @@ argument is used to return the result, the arguments before the last are
 the inputs. Arithmetic functions are added using the predicate
 arithmetic_function/1, which takes the head as its argument.
 Arithmetic functions are module sensitive, that is they are only visible
-from the module in which the function is defined and delared. Global
+from the module in which the function is defined and declared. Global
 arithmetic functions should be defined and registered from module
 user. Global definitions can be overruled locally in modules. The
 builtin functions described above can be redefined as well.
@@ -3896,7 +3899,7 @@ arithmetic_function(+Head)
 
 
 current_arithmetic_function(?Head)
-     Succesively unifies all arithmetic functions that are visible from
+     Successively unifies all arithmetic functions that are visible from
      the context module with Head.
 
 
@@ -4142,7 +4145,7 @@ sublist(+Pred, +List1, ?List2)
 
 forall(+Cond, +Action)
      For all alternative bindings of Cond Action can be proven. The
-     example verifies that all arithmic statements in the list L are
+     example verifies that all arithmetic statements in the list L are
      correct. It does not say which is wrong if one proves wrong.
 
          ?- forall(member(Result = Formula, [2 = 1 + 1, 4 = 2 * 2]),
@@ -4269,15 +4272,15 @@ format(+Format, +Arguments)
          a comma every three digits left to the dot or right.
 
        e Output next argument as a floating point number in
-         exponentional notation. The numeric argument specifies the
-         precission. Default is 6 digits. Exact representation depends
+         exponential notation. The numeric argument specifies the
+         precision. Default is 6 digits. Exact representation depends
          on the C library function printf(). This function is invoked
-         with the format %.<percission>e.
+         with the format %.<precision>e.
 
        E Equivalent to e, but outputs a capital E to indicate the
          exponent.
 
-       f Floating point in non-exponentional notation. See C library
+       f Floating point in non-exponential notation. See C library
          function printf().
 
        g Floating point in e or f notation, whichever is shorter.
@@ -4307,20 +4310,20 @@ format(+Format, +Arguments)
 
        s Output a string of ASCII characters from the next argument.
 
-       t All remaining space between 2 tabstops is distributed equaly
-         over ~t statements between the tabstops. This space is
-         padded with spaces by default. If an argument is supplied
+       t All remaining space between 2 tabs tops is distributed
+         equally over ~t statements between the tabs tops. This space
+         is padded with spaces by default. If an argument is supplied
          this is taken to be the ASCII value of the character used for
          padding. This can be used to do left or right alignment,
          centering, distributing, etc. See also ~| and ~+ to set tab
-         stops. A tabstop is assumed at the start of each line.
+         stops. A tabs top is assumed at the start of each line.
 
-        |Set a tabstop on the current position. If an argument is
-         supplied set a tabstop on the position of that argument. This
-         will cause all ~t's to be distributed between the previous and
-         this tabstop.
+        |Set a tabs top on the current position. If an argument is
+         supplied set a tabs top on the position of that argument.
+         This will cause all ~t's to be distributed between the
+         previous and this tabs top.
 
-       + Set a tabstop relative to the current position. Further the
+       + Set a tabs top relative to the current position. Further the
          same as ~|.
 
        w Give the next argument to write/1.
@@ -4359,7 +4362,7 @@ sformat(-String, +Format)
 
 format_predicate(+Char, +Head)
      If a sequence ~c (tilde, followed by some character) is found, the
-     format derivates will first check whether the user has defined a
+     format derivatives will first check whether the user has defined a
      predicate to handle the format. If not, the built in formatting rules
      described above are used. Char is either an ascii value, or a one
      character atom, specifying the letter to be (re)defined. Head is a
@@ -4391,7 +4394,7 @@ tty_get_capability(+Name, +Type, -Result)
      results are returned as an atom, number result as an integer and
      bool results as the atom on or off. If an option cannot be found
      this predicate fails silently. The results are only computed once.
-     Succesive queries on the same capability are fast.
+     Successive queries on the same capability are fast.
 
 
 tty_goto(+X, +Y)
@@ -4418,7 +4421,7 @@ set_tty(-OldStream, +NewStream)
 
 shell(+Command, -Status)
      Execute Command on the operating system. Command is given to the
-     bourne shell (/bin/sh). Status is unified with the exit status of
+     Bourne shell (/bin/sh). Status is unified with the exit status of
      the command.
 
      On Win32 systems, shell/[1,2] executes the command using the
@@ -4465,7 +4468,7 @@ unsetenv(+Name)
 get_time(-Time)
      Return the number of seconds that elapsed since the epoch of
      Unix, 1 January 1970, 0 hours. Time is a floating point number.
-     Its granularity is system dependant. On SUN, this is 1/60 of a
+     Its granularity is system dependent. On sun, this is 1/60 of a
      second.
 
 
@@ -4476,7 +4479,7 @@ convert_time(+Time, -Year, -Month, -Day, -Hour, -Minute, -Second, -MilliSeconds)
      (January is 1), Day with the day of the month (starting with 1),
      Hour with the hour of the day (0{23), Minute with the minute
      (0{59). Second with the second (0{59) and MilliSecond with the
-     milliseconds (0{999). Note that the latter might not be acurate or
+     milliseconds (0{999). Note that the latter might not be accurate or
      might always be 0, depending on the timing capabilities of the
      system.
 
@@ -4584,7 +4587,7 @@ absolute_file_name(+Spec, +Options, -Absolute)
 
 is_absolute_file_name(+File)
      True if File specifies and absolute path-name. On Unix systems,
-     this implies the path starts with a `/'. For MicroSoft based
+     this implies the path starts with a `/'. For Microsoft based
      systems this implies the path starts with <letter>:. This predicate
      is intended to provide platform-independent checking for absolute
      paths. See also absolute_file_name/2 and
@@ -4594,7 +4597,7 @@ is_absolute_file_name(+File)
 file_name_extension(?Base, ?Extension, ?Name)
      This predicate is used to add, remove or test filename extensions.
      The main reason for its introduction is to deal with different
-     filename properties in a portable manner. If the filesystem is
+     filename properties in a portable manner. If the file system is
      case-insensitive, testing for an extension will be done
      case-insensitive too. Extension may be specified with or without
      a leading dot (.). If an Extension is generated, it will not have a
@@ -4625,7 +4628,7 @@ read_link(+File, -Link, -Target)
      link and Target to the file the link is pointing to. Target points
      to a file, directory or non-existing entry in the file system, but
      never to a link. Fails if File is not a link. Fails always on systems
-     that donot support symbolic links.
+     that do not support symbolic links.
 
 
 tmp_file(+Base, -TmpName)
@@ -4733,8 +4736,8 @@ trace(+Pred, +Ports)
      Put a trace-point on all predicates meeting the predicate
      specification Pred. Ports is a list of portnames (call, redo,
      exit, fail). The atom all refers to all ports. If the port is
-     predeced by a `-' sign the trace-point is cleared for the port. If it
-     is predeced by a `+' the trace-point is set.
+     preceded by a `-' sign the trace-point is cleared for the port. If it
+     is preceded by a `+' the trace-point is set.
 
      The predicate trace/2 activates debug mode (see debug/0). Each
      time a port (of the 4-port model) is passed that has a trace-point
@@ -4803,7 +4806,7 @@ unknown(-Old, +New)
      Unify Old with the current value of the unknown system flag. On
      success New will be used to specify the new value. New should be
      instantiated to either fail or trace and determines the
-     interpreter's action when an undefined predicate which is not
+     interpreters action when an undefined predicate which is not
      declared dynamic is encountered (see dynamic/1). fail implies
      the predicate just fails silently. trace implies the tracer is started.
      Default is trace. The unknown flag is local to each module and
@@ -4821,7 +4824,7 @@ style_check(+Spec)
      Set style checking options. Spec is either +<option>, -<option>,
      ?<option> or a list of such options. +<option> sets a style
      checking option, -<option> clears it and ?<option> succeeds or
-     fails according to the current setting. consult/1 and derivates
+     fails according to the current setting. consult/1 and derivatives
      resets the style checking options to their value before loading the
      file. If|for example|a file containing long atoms should be
      loaded the user can start the file with:
@@ -4834,14 +4837,14 @@ style_check(+Spec)
        singleton            on      read_clause/1 (used by consult/1) warns on vari-
                                     ables only appearing once in a term (clause) which
                                     have a name not starting with an underscore.
-       atom                 on      read/1 and derivates will produce an error message
+       atom                 on      read/1 and derivatives will produce an error message
                                     on quoted atoms or strings longer than 5 lines.
        dollar               off     Accept dollar as a lower case character, thus avoiding
                                     the need for quoting atoms with dollar signs. System
                                     maintenance use only.
        discontiguous        on      Warn if the clauses for a predicate are not together in
                                     the same source file.
-       string               off     Read and derivates transform "..." into a prolog
+       string               off     Read and derivatives transform "..." into a prolog
                                     string instead of a list of ASCII characters.
 
 
@@ -4901,7 +4904,7 @@ execution the number of times we find a procedure on the environment
 stack is a measure of the time spent in this procedure. It is implemented
 by calling a procedure each time slice Prolog is active. This procedure
 scans the local stack and either just counts the procedure on top of this
-stack (plain profiling) or all procedures on the stack (cummulative
+stack (plain profiling) or all procedures on the stack (cumulative
 profiling). To get accurate results each procedure one is interested in
 should have a reasonable number of counts. Typically a minute runtime
 will suffice to get a rough overview of the most expensive procedures.
@@ -4925,17 +4928,17 @@ show_profile(+Number)
 
 
 profiler(-Old, +New)
-     Query or change the status of the profiler. The status is one of off,
-     plain or cummulative . plain implies the time used by children
-     of a predicate is not added to the time of the predicate. For status
-     cummulative  the time of childs is added (except for recursive
-     calls). Cummulative profiling implies the stack is scanned upto the
-     top on each time slice to find all active predicates. This implies
-     the overhead grows with the number of active frames on the stack.
-     Cummulative profiling starts debugging mode to disable tail
-     recursion optimisation, which would otherwise remove the
+     Query or change the status of the profiler. The status is one of
+     off, plain or cumulative . plain implies the time used by
+     children of a predicate is not added to the time of the predicate.
+     For status cumulative  the time of children is added (except for
+     recursive calls). Cumulative profiling implies the stack is scanned
+     up to the top on each time slice to find all active predicates. This
+     implies the overhead grows with the number of active frames on
+     the stack. Cumulative profiling starts debugging mode to disable
+     tail recursion optimisation, which would otherwise remove the
      necessary parent environments. Switching status from plain to
-     cummulative  resets the profiler. Switching to and from status off
+     cumulative  resets the profiler. Switching to and from status off
      does not reset the collected statistics, thus allowing to suspend
      profiling for certain parts of the program.
 
@@ -4950,7 +4953,7 @@ profile_count(+Head, -Calls, -Promilage)
      and arity as the predicate required (see current_predicate/2).
      Calls is unified with the number of `calls' and `redos' while the
      profiler was active. Promilage is unified with the relative number
-     of counts the predicate was active (cummulative ) or on top of the
+     of counts the predicate was active (cumulative ) or on top of the
      stack (plain ). Promilage is an integer between 0 and 1000.
 
 
@@ -4964,7 +4967,7 @@ predicates simply succeed to improve portability.
 garbage_collect
      Invoke the global- and trail stack garbage collector. Normally the
      garbage collector is invoked automatically if necessary. Explicit
-     invokation might be useful to reduce the need for garbage
+     invocation might be useful to reduce the need for garbage
      collections in time critical segments of the code. After the garbage
      collection trim_stacks/0 is invoked to release the collected
      memory resources.
@@ -4987,13 +4990,13 @@ trim_stacks
      moment, returning them to the operating system. Trim stack is a
      relatively cheap call. It can be used to release memory resources
      in a backtracking loop, where the iterations require typically
-     seconds of execution time and very different, potentionally large,
+     seconds of execution time and very different, potentially large,
      amounts of stack space. Such a loop should be written as follows:
 
          loop :-
                   generator,
                        trim_stacks,
-                       potentionally_expensive_operation,
+                       potentially_expensive_operation,
                   stop_condition, !.
 
      The prolog top level loop is written this way, reclaiming memory
@@ -5073,7 +5076,7 @@ dde_request(+Handle, +Item, -Value)
      error(Reason), identifying the problem. This call uses
      SWI-Prolog string objects to return the value rather then atoms to
      reduce the load on the atom-space. See section 3.19 for a
-     discussion on this datatype.
+     discussion on this data type.
 
 
 dde_execute(+Handle, +Command)
@@ -5134,7 +5137,7 @@ dde_register_service(+Template, +Goal)
 
 dde_unregister_service(+Service)
      Stop responding to Service. If Prolog is halted, it will
-     automatially call this on all open services.
+     automatically call this on all open services.
 
 
 dde_current_service(-Service, -Topic)
@@ -5149,7 +5152,7 @@ dde_current_connection(-Service, -Topic)
 
 
 dwim_match(+Atom1, +Atom2)
-     Succeeds if Atom1 matches Atom2 in `Do What I Mean' sence.
+     Succeeds if Atom1 matches Atom2 in `Do What I Mean' sense.
      Both Atom1 and Atom2 may also be integers or floats. The two
      atoms match if:
 
@@ -5157,7 +5160,7 @@ dwim_match(+Atom1, +Atom2)
 
          They differ by one character (spy == spu)
 
-         One character is insterted/deleted (debug == deug)
+         One character is inserted/deleted (debug == deug)
 
          Two characters are transposed (trace == tarce)
 
@@ -5221,7 +5224,7 @@ In traditional Prolog systems the predicate space was flat. This
 approach is not very suitable for the development of large applications,
 certainly not if these applications are developed by more than one
 programmer. In many cases, the definition of a Prolog predicate
-requires sub-predicates that are intented only to complete the definition
+requires sub-predicates that are intended only to complete the definition
 of the main predicate. With a flat and global predicate space these
 support predicates will be visible from the entire program.
 
@@ -5238,7 +5241,7 @@ indicate possible problems much better.
 
 4.2  Name-based versus Predicate-based Modules
 
-Two approaches to realise a module system are commonly used in
+Two approaches to realize a module system are commonly used in
 Prolog and other languages. The first one is the name based module
 system. In these systems, each atom read is tagged (normally prefixed)
 with the module name, with the exception of those atoms that are
@@ -5317,7 +5320,7 @@ a module initially is completely empty. Predicates can be added to a
 module by loading a module file as demonstrated in the previous
 section, using assert or by importing them from another module.
 
-Two mechanisms for importing predicates explicitely from another
+Two mechanisms for importing predicates explicitly from another
 module exist. The use_module/[1,2] predicates load a module file and
 import (part of the) public predicates of the file. The import/1
 predicate imports any predicate from any module.
@@ -5350,10 +5353,10 @@ import(+Head)
      handling imports into dynamically created modules.
 
 
-It would be rather inconvient to have to import each predicate refered
-to by the module, including the system predicates. For this reason each
-module is assigned a default module. All predicates in the default
-module are available without extra declarations. Their definition
+It would be rather inconvenient to have to import each predicate
+referred to by the module, including the system predicates. For this
+reason each module is assigned a default module. All predicates in the
+default module are available without extra declarations. Their definition
 however can be overruled in the local module. This schedule is
 implemented by the exception handling mechanism of SWI-Prolog: if an
 undefined predicate exception is raised for a predicate in some module,
@@ -5373,7 +5376,7 @@ definitions available as defaults. Built-in predicates thus can be
 overruled by defining them in module user before they are used.
 
 All other modules default to module user. This implies they can use all
-predicates imported into user without explicitely importing them.
+predicates imported into user without explicitly importing them.
 
 
 4.5  Using the Module System
@@ -5384,7 +5387,7 @@ programs define a basic library layer on top of which the actual program
 itself is defined. The module user, acting as the default module for all
 other modules of the program can be used to distribute these definitions
 over all program module without introducing the need to import this
-common layer each time explicitely. It can also be used to redefine
+common layer each time explicitly. It can also be used to redefine
 built-in predicates if this is required to maintain compatibility to some
 other Prolog implementation. Typically, the loadfile of a large
 application looks like this:
@@ -5459,7 +5462,7 @@ passing can easily be implemented:
               Goal =.. [P|ConvArgs],
               Class:Goal.
 
-The construct `Module:Goal' explicitely calls Goal in module Module.
+The construct `Module:Goal' explicitly calls Goal in module Module.
 It is discussed in more detail in section 3.7.
 
 
@@ -5475,10 +5478,10 @@ Various approaches are possible to solve this problem. One is to add an
 extra argument to all predicates (e.g. `assert(Module, Term)'). Another
 is to tag the term somehow to indicate which module is desired (e.g.
 `assert(Module:Term)'). Both approaches are not very attractive as they
-make the user responsible for chosing the correct module, inviting
+make the user responsible for choosing the correct module, inviting
 unclear programming by asserting in other modules. The predicate
 assert/1 is supposed to assert in the module it is called from and
-should do so without being told explicitely. For this reason, the notion
+should do so without being told explicitly. For this reason, the notion
 context module has been introduced.
 
 
@@ -5507,7 +5510,7 @@ declared module_transparent. Below is the code defining maplist.
      :- module_transparent maplist/3.
 
      %        maplist(+Goal, +List1, ?List2)
-     %        True if Goal can succesfully be applied to all succesive pairs
+     %        True if Goal can successfully be applied to all successive pairs
      %        of elements of List1 and List2.
 
      maplist(_, [], []).
@@ -5520,7 +5523,7 @@ declared module_transparent. Below is the code defining maplist.
 
 The mechanism above is sufficient to create an acceptable module
 system. There are however cases in which we would like to be able to
-overrule this schema and explicitely call a predicate in some module or
+overrule this schema and explicitly call a predicate in some module or
 assert explicitly in some module. The first is useful to invoke goals in
 some module from the user's toplevel or to implement a object-oriented
 system (see above). The latter is useful to create and modify dynamic
@@ -5543,7 +5546,7 @@ called from Module instead of the context module. Examples:
 
 4.7  Dynamic Modules
 
-Sofar, we discussed modules that were created by loading a module-file.
+So far, we discussed modules that were created by loading a module-file.
 These modules have been introduced on facilitate the development of
 large applications. The modules are fully defined at load-time of the
 application and normally will not change during execution. Having the
@@ -5716,8 +5719,8 @@ SWI-Prolog offers a powerful interface to C . The main design
 objectives of the foreign language interface are flexibility and
 performance. A foreign predicate is a C-function that has the same
 number of arguments as the predicate represented. C-functions are
-provided to anylyse the passed terms, convert them to basic C-types as
-well as to instantiate arguments using unification. Non-deterministics
+provided to analyse the passed terms, convert them to basic C-types as
+well as to instantiate arguments using unification. Non-deterministic
 foreign predicates are supported, providing the foreign function with a
 handle to control backtracking.
 
@@ -5793,9 +5796,9 @@ may vary from system to system.
 
 Loading shared objects or DLL files provides sharing and protection
 and is generally the best choice. The old (and also badly portable)
-save/[1,2] and save_program/[1,2] donot cooperate with this
+save/[1,2] and save_program/[1,2] do not cooperate with this
 mechanism, but the more recent qsave_program/[1,2] can be used to
-created programs that load the apropriate library at startup.
+created programs that load the appropriate library at startup.
 
 Note that the definition of the foreign predicates is the same, regardless
 of the linking type used.
@@ -5874,7 +5877,7 @@ unload_foreign_library(+Lib)
      If the foreign library defines the function uninstall , this function
      will be called without arguments and its return value is ignored.
      Next, abolish/2 is used to remove all known foreign predicates
-     defined in the library. Finally the library itself is detatched from
+     defined in the library. Finally the library itself is detached from
      the process.
 
 
@@ -5962,7 +5965,7 @@ chapter:
        PL_halt(PL_toplevel() ? 0 : 1);
      }
 
-Now, a new executable may be created by compilign this file and linking
+Now, a new executable may be created by compiling this file and linking
 it to libpl.a from the runtime directory and the libraries required by
 both the extensions and the SWI-Prolog kernel. This may be done by
 hand, or using the plld utility described in section 5.7.
@@ -6020,7 +6023,7 @@ term references for the predicate-arguments, one for each argument. If
 references for intermediate results are needed, such references may be
 created using PL_new_term_ref() or PL_new_term_refs(). These references
 normally live till the foreign function returns control back to Prolog.
-Their scope can be explicitely limited using PL_open_foreign_frame() and
+Their scope can be explicitly limited using PL_open_foreign_frame() and
 PL_close_foreign_frame()/PL_discard_foreign_frame().
 
 A term_t always refers to a valid Prolog term (variable, atom, integer,
@@ -6059,8 +6062,8 @@ Term references are obtained in any of the following ways.
      Creates a new term-reference to the same term as the argument.
      The term may be written to. See figure 5.3.
 
-Term-references can savely be copied to other C-variables of type
-term_t, but all copies will always refer to the same term.
+Term-references can safely be copied to other C-variables of type term_t,
+but all copies will always refer to the same term.
 
 
 term_t  PL_new_term_ref()
@@ -6087,9 +6090,9 @@ term_t  PL_new_term_refs(int n)
 
 
 term_t  PL_copy_term_ref(term_t from)
-        Create a new term reference and make it point initialy to the same
-        term as from. This function is commonly used to copy a predicate
-        argument to a term reference that may be written.
+        Create a new term reference and make it point initially to the
+        same term as from. This function is commonly used to copy a
+        predicate argument to a term reference that may be written.
 
 
 5.5.1.1  Interaction with the garbage collector and
@@ -6225,7 +6228,7 @@ void PL_retry(long)
      used for status indication).
 
 
-void PL_retry_adress(void *)
+void PL_retry_address(void *)
      As PL_retry(), but ensures an address as returned by malloc() is
      correctly recovered by PL_foreign_context_address().
 
@@ -6245,7 +6248,7 @@ long PL_foreign_context(control_t)
 
 
 void *  PL_foreign_context_address(control_t)
-        Extracts an address as passed in by PL_retry_adress().
+        Extracts an address as passed in by PL_retry_address().
 
 
 Note: If a non-deterministic foreign function returns using PL_succeed
@@ -6267,11 +6270,11 @@ predicate definition.
        { case PL_FIRST_CALL:
               ctxt = malloc(sizeof(struct context));
               ...
-              PL_retry_adress(ctxt);
+              PL_retry_address(ctxt);
          case PL_REDO:
               ctxt = PL_foreign_context_address(handle);
               ...
-              PL_retry_adress(ctxt);
+              PL_retry_address(ctxt);
          case PL_CUTTED:
               free(ctxt);
               PL_succeed;
@@ -6314,11 +6317,11 @@ Each argument of a foreign function (except for the control argument) is
 of type term_t, an opaque handle to a Prolog term. Three groups of
 functions are available for the analysis of terms. The first just validates
 the type, like the Prolog predicates var/1, atom/1, etc and are called
-PL_is_*() . The second group attemps to translate the argument into a
+PL_is_*() . The second group attempts to translate the argument into a
 C primitive type. These predicates take a term_t and a pointer to the
-apropriate C-type and return TRUE or FALSE depending on successful or
-unsuccessful translation. If the translation fails, the pointed-to data is
-never modified.
+appropriate C-type and return TRUE or FALSE depending on successful
+or unsuccessful translation. If the translation fails, the pointed-to data
+is never modified.
 
 
 5.6.3.1  Testing the type of a term
@@ -6358,9 +6361,9 @@ int PL_term_type(term_t)
 
 The functions PL_is_<type> are an alternative to PL_term_type(). The
 test \PL_is_var(term)" is equivalent to \PL_term_type(term) ==
-PL_VARIABLE", but the first is considerably faster. On the other
-hande, using a switch over PL_term_type() is faster and more readable
-then using an if-then-else using the functions below. All these functions
+PL_VARIABLE", but the first is considerably faster. On the other hand,
+using a switch over PL_term_type() is faster and more readable then
+using an if-then-else using the functions below. All these functions
 return either TRUE or FALSE.
 
 
@@ -6423,15 +6426,15 @@ int PL_get_atom(term_t +t, atom_t *a)
 
 int PL_get_atom_chars(term_t +t, char **s)
     If t is an atom, store a pointer to a 0-terminated C-string in s. It
-    is explicitely not allows to modifify the contents of this string.
-    Some built-in atoms may have the string allocated in read-only
-    memory, so `temporary manipulation' can cause an error.
+    is explicitly not allows to modify the contents of this string. Some
+    built-in atoms may have the string allocated in read-only memory,
+    so `temporary manipulation' can cause an error.
 
 
 int PL_get_string(term_t +t, char **s, int *len)
     If t is a string object, store a pointer to a 0-terminated C-string in
     s and the length of the string in len. Note that this pointer is
-    invalidated by backtracting, garbage-collection and stack-shifts, so
+    invalidated by backtracking, garbage-collection and stack-shifts, so
     generally the only save operations are to pass it immediately to a
     C-function that doesn't involve Prolog.
 
@@ -6443,7 +6446,7 @@ int PL_get_chars(term_t +t, char **s, unsigned flags)
     the argument is stored. Below is a specification of these constants.
     BUF_RING implies, if the data is not static (as from an atom), the
     data is copied to the next buffer from a ring of four (4) buffers.
-    This is a convienent way of converting multiple arguments passed
+    This is a convenient way of converting multiple arguments passed
     to a foreign predicate to C-strings. If BUF_MALLOC is used, the
     data must be freed using free() when not needed any longer.
 
@@ -6480,7 +6483,7 @@ int PL_get_long(term_t +t, long *i)
 
 int PL_get_pointer(term_t +t, void **ptr)
     In the current system, pointers are represented by Prolog integers,
-    but need some manipulation to make sure they donot get
+    but need some manipulation to make sure they do not get
     truncated due to the limited Prolog integer range.
     PL_put_pointer()/PL_get_pointer() guarantees pointers in the
     range of malloc() are handled without truncating.
@@ -6712,9 +6715,9 @@ The functions of this sections unify terms with other terms or
 translated C-data structures. Except for PL_unify(), the functions of
 this section are specific to SWI-Prolog. They have been introduced to
 make translation of old code easier, but also because they provide for a
-faster mechanism for returning data to Prolog tht requires less
+faster mechanism for returning data to Prolog that requires less
 term-references. Consider the case where we want a foreign function to
-return the hostname of the machine Prolog is running on. Using the
+return the host name of the machine Prolog is running on. Using the
 PL_get_*() and PL_put_*()  functions, the code becomes:
 
      foreign_t
@@ -6815,7 +6818,7 @@ int PL_unify_list(term_t ?l, term_t -h, term_t -t)
 
 
 int PL_unify_nil(term_t ?l)
-    Unifys l with the atom [].
+    Unify l with the atom [].
 
 
 int PL_unify_arg(int index, term_t ?t, term_t ?a)
@@ -6834,7 +6837,7 @@ int PL_unify_term(term_t ?t, ...)
     that some bad C-compilers have fairly low limits on the number of
     arguments that may be passed to a function.
 
-    The type indentifiers are:
+    The type identifiers are:
 
     PL_VARIABLE none
         No op. Used in arguments of PL_FUNCTOR.
@@ -6851,7 +6854,7 @@ int PL_unify_term(term_t ?t, ...)
         conventions, a float must be casted to a double explicitly.
 
     PL_STRING const char *
-        Unify the argumet with a string object, as in
+        Unify the argument with a string object, as in
         PL_unify_string_chars().
 
     PL_TERM term_t
@@ -6941,8 +6944,8 @@ void PL_predicate_info(predicate_t p, atom_t *n, int *a,
 
 This section discusses the functions for creating and manipulating
 queries from C. Note that a foreign context can have at most one active
-query. This implies it is allowed to make stricktly nested calls between
-C and Prolog (Prolog calls C, calls Prolog, calls C, etc., but it is not
+query. This implies it is allowed to make strictly nested calls between C
+and Prolog (Prolog calls C, calls Prolog, calls C, etc., but it is not
 allowed to open multiple queries and start generating solutions for each
 of them by calling PL_next_solution(). Be sure to call PL_cut_query() or
 PL_close_query() on any query you opened before opening the next or
@@ -6959,7 +6962,7 @@ qid_t  PL_open_query(module_t ctx, int debug, predicate_t p,
        that the context module only matters for module_transparent
        predicates. See context_module/1 and module_transparent/1.
        The debug argument is normally TRUE. If FALSE is specified, the
-       goal is ran in `nodebug' mode, irregardless of the current debug
+       goal is run in `nodebug' mode, regardless of the current debug
        mode. The p argument specifies the predicate, and should be the
        result of a call to PL_pred() or PL_predicate(). Note that it is
        allowed to store this handle as global data and reuse it for future
@@ -7030,7 +7033,7 @@ fid_t  PL_open_foreign_frame()
        Created a foreign frame, holding a mark that allows the system to
        undo bindings and destroy data created after it as well as
        providing the environment for creating term-references. This
-       function is called by the kernel before calling a foreing predicate.
+       function is called by the kernel before calling a foreign predicate.
 
 
 void PL_close_foreign_frame(fid_t id)
@@ -7104,7 +7107,7 @@ module_t  PL_new_module(atom_t)
           the atom atomic.
 
 
-5.6.9  Misceleneous
+5.6.9  Miscellaneous
 
 
 int PL_compare(term_t t1, term_t t2)
@@ -7290,9 +7293,8 @@ PL_initialise() interprets all the command-line arguments, except for the
 
 int PL_initialise(int argc, char **argv, char **environ)
     Initialises the SWI-Prolog heap and stacks, restores the boot QLF
-    file, loads the system and personal initialisation initialisation files,
-    runs the at_initialisation/1 hooks and finally runs the -g
-    goal hook.
+    file, loads the system and personal initialisation files, runs the
+    at_initialisation/1 hooks and finally runs the -g goal hook.
 
     PL_initialise() returns 1 if all initialisation succeeded and 0
     otherwise. Various fatal errors may cause PL_initialise to call
@@ -7301,7 +7303,7 @@ int PL_initialise(int argc, char **argv, char **environ)
 
 void PL_install_readline()
      Installs the GNU-readline line-editor. Embedded applications that
-     donot use the Prolog toplevel should normally delete this line,
+     do not use the Prolog toplevel should normally delete this line,
      shrinking the Prolog kernel significantly.
 
 
@@ -7534,7 +7536,7 @@ file, figure 5.7 illustrates compiling and loading of foreign code.
 5.9.1  Memory Allocation
 
 SWI-Prolog's memory allocation is based on the malloc() library
-routines. Foreign applications can savely use malloc(), realloc() and
+routines. Foreign applications can safely use malloc(), realloc() and
 free(). Memory allocation using brk() or sbrk() is not allowed as these
 calls conflict with malloc().
 
@@ -7585,7 +7587,7 @@ The term-reference mechanism was first used by Quintus Prolog version
 3. SICStus Prolog version 3 is strongly based on the Quintus interface.
 The described SWI-Prolog interface is similar to using the Quintus or
 SICStus interfaces, defining all foreign-predicate arguments of type
-+term. SWI-Prolog explicitely uses type functor_t, while Quintus and
++term. SWI-Prolog explicitly uses type functor_t, while Quintus and
 SICStus uses name + arity. As the names of the functions differ from
 Prolog to Prolog, a simple macro layer dealing with the names can also
 deal with this detail. For example:
@@ -7701,7 +7703,7 @@ qsave_program(+File)
 
 
 autoload
-     Check the current Prolog program for predicates that are refered
+     Check the current Prolog program for predicates that are referred
      to, are undefined and have a definition in the Prolog library. Load
      the appropriate libraries.
 
@@ -7725,7 +7727,7 @@ autoload
      However, the following implementation refers to log/2 through the
      meta-predicate maplist/2. Autoload will not be able to find the
      reference. This problem may be fixed either by loading the
-     module libtary(quintus) explicitely or use require/1 to tell the
+     module libtary(quintus) explicitly or use require/1 to tell the
      system that the predicate log/2 is required by this module.
 
          logtable(From, To) :-
@@ -7771,12 +7773,12 @@ Some applications may need to use the foreign language interface.
 Object code is by definition machine-dependent and thus cannot be part
 of the saved program file.
 
-To complicate the matter even furtherm there are various ways of
-loading foreign code:
+To complicate the matter even further there are various ways of loading
+foreign code:
 
      Using the library(shlib) predicates
      This is the preferred way of dealing with foreign code. It loads
-     quickly and ensures an acceptable level of indepedence between
+     quickly and ensures an acceptable level of independence between
      the versions of the emulator and the foreign code loaded. It works
      on Unix machines supporting shared libraries and library
      functions to load them. Most modern Unixes satisfy this
@@ -8017,8 +8019,8 @@ prolog_frame_attribute(+Frame, +Key, -Value)
                     stack frame in which execution is resumed if the goal
                     associated with Frame fails. Fails if the frame has no
                     alternative frame.
-  has_alternatives  Value is unified with `1' if Frame still is a candidate
-                    for backtracking. `0' otherwise.
+  has_alternatives  Value is unified with true if Frame still is a candidate
+                    for backtracking. false otherwise.
   goal              Value is unified with the goal associated with Frame.
                     If the definition module of the active predicate is not
                     user the goal is represented as module:goal. Do not
@@ -8035,9 +8037,20 @@ prolog_frame_attribute(+Frame, +Key, -Value)
                     frame.
   context_module    Value is unified with the name of the context module
                     of the environment.
-  top               Value is unified with `1' if Frame is the top Prolog goal
-                    from a recursive call back from the foreign language.
-                    `0' otherwise.
+  top               Value is unified with true if Frame is the top Pro-
+                    log goal from a recursive call back from the foreign
+                    language. false otherwise.
+  hidden            Value is unified with true if the frame is hidden from
+                    the user, either because a parent has the hide-childs
+                    attribute (all system predicates), or the system has no
+                    trace-me attribute.
+  pc                Value is unified with the program-pointer saved on be-
+                    halve of the parent-goal if the parent-goal is not owned
+                    by a foreign predicate.
+  argument(N)       Value is unified with the N-th slot of the frame.  Ar-
+                    gument 1 is the first argument of the goal. Arguments
+                    above the arity refer to local variables. Fails silently if
+                    N is out of range.
 
          Table 7.1: Key values of prolog_current_frame/1
 
@@ -8123,7 +8136,7 @@ exception(+Exception, +Context, -Action)
          first raise the exception warning. The context argument is a
          term of the form warning(Path, LineNo, Message), where
          Path is the absolute filename of the file prolog is reading;
-         LineNo is an extimate of the line number where the error
+         LineNo is an estimate of the line number where the error
          occurred and Message is a Prolog string indicating the
          message. The Action argument is ignored. The error is
          supposed to be presented to the user if the exception handler
@@ -8161,7 +8174,7 @@ Summary
 
 ! /0                             Cut (discard choicepoints)
 ! /1                             Cut block. See block/3
-,     /2{xfy 1000}               Conjuction of goals
+,     /2{xfy 1000}               Conjunction of goals
 ->    /2{xfy 1050}               If-then-else
 *->  /2{xfy 1050}               Soft-cut
 . /2                             Consult. Also list constructor
@@ -8222,7 +8235,7 @@ block/3                          Start a block (`catch'/`throw')
 break/0                          Start interactive toplevel
 
 call/1                           Call a goal
-call/[2..]                      Call with aditional arguments
+call/[2..]                      Call with additional arguments
 call_dll_function/2            Win32: Call function in dynamic link library (.dll file)
 call_shared_object_function/2  UNIX: Call C-function in shared (.so) file
 character_count/2               Get character index on a stream
@@ -8254,7 +8267,7 @@ current_input/1                 Get current input stream
 current_key/1                   Examine existing database keys
 current_module/1                Examine existing modules
 current_module/2                Examine existing modules
-current_op/3                    Examine current operator declaractions
+current_op/3                    Examine current operator declarations
 current_output/1                Get the current output stream
 current_predicate/2            Examine existing predicates
 current_stream/3                Examine open streams
@@ -8296,7 +8309,7 @@ expand_file_name/2              Wildcard expansion of file names
 expand_file_search_path/2      Wildcard expansion of file paths
 expand_term/2                   Compiler: expand read term into clause(s)
 explain/1                       library(explain): Explain argument
-explain/2                       library(explain): 2nd argument is expalanation of first
+explain/2                       library(explain): 2nd argument is explanation of first
 export/1                        Export a predicate from a module
 export_list/2                   List of public predicates of a module
 
@@ -8404,7 +8417,7 @@ number/1                        Type check for integer or float
 number_chars/2                  Convert between number and atom
 numbervars/4                    Enumerate unbound variables of a term using a given base
 
-once/1                           Call a goal deterministicaly
+once/1                           Call a goal deterministically
 op/3                             Declare an operator
 open/3                           Open a file (creating a stream)
 open/4                           Open a file (creating a stream)
@@ -8467,7 +8480,7 @@ recordz/2                       Record term in the database (last)
 recordz/3                       Record term in the database (last)
 redefine_system_predicate/1    Abolish system definition
 rename_file/2                   Change name of file
-repeat/0                        Succeed, leaving infinite backtrackpoints
+repeat/0                        Succeed, leaving infinite backtrack points
 require/1                       This file requires these predicates
 reset_profiler/0                Clear statistics obtained by the profiler
 restore/1                       Restore saved-state (save/1, save_program/1)
@@ -8570,7 +8583,7 @@ writeq/1                        Write term, insert quotes
 writeq/2                        Write term, insert quotes on stream
 
 
-8.2  Artihmetic Functions
+8.2  Arithmetic Functions
 
 *  /2{yfx 400}                  Multiplication
 ** /2{xfx 200}                  Power function
@@ -8597,7 +8610,7 @@ cos/1                            Cosine
 cputime/0                       Get CPU time
 e/0                              Mathematical constant
 exp/1                            Exponent (base e)
-float/1                          Explicitely convert to float
+float/1                          Explicitly convert to float
 float_fractional_part/1        Fractional part of a float
 float_integer_part/1           Integer part of a float
 floor/1                          Largest integer below argument

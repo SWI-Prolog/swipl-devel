@@ -6,7 +6,7 @@ In traditional Prolog systems the predicate space was flat.  This
 approach is not very suitable for the development of large
 applications, certainly not if these applications are developed by
 more than one programmer.  In many cases, the definition of a Prolog
-predicate requires sub-predicates that are intented only to complete
+predicate requires sub-predicates that are intended only to complete
 the definition of the main predicate.  With a flat and global
 predicate space these support predicates will be visible from the
 entire program.
@@ -24,7 +24,7 @@ reference programs can indicate possible problems much better.
 
 \section{Name-based versus Predicate-based Modules}
 
-Two approaches to realise a module system are commonly used in Prolog
+Two approaches to realize a module system are commonly used in Prolog
 and other languages.  The first one is the {\em name based} module
 system.  In these systems, each atom read is tagged (normally
 prefixed) with the module name, with the exception of those atoms that
@@ -111,7 +111,7 @@ a module initially is completely empty.  Predicates can be added
 to a module by loading a module file as demonstrated in the previous
 section, using assert or by {\em importing} them from another module.
 
-Two mechanisms for importing predicates explicitely from another module
+Two mechanisms for importing predicates explicitly from another module
 exist.  The use_module/[1,2] predicates load a module file and import
 (part of the) public predicates of the file.  The import/1 predicate
 imports any predicate from any module.
@@ -141,8 +141,8 @@ into dynamically created modules.
 .ED
 
 
-It would be rather inconvient to have to import each predicate
-refered to by the module, including the system predicates.  For this
+It would be rather inconvenient to have to import each predicate
+referred to by the module, including the system predicates.  For this
 reason each module is assigned a {\em default} module.  All predicates
 in the default module are available without extra declarations.  Their
 definition however can be overruled in the local module.  This schedule
@@ -165,7 +165,7 @@ predicates thus can be overruled by defining them in module {\tt user}
 before they are used.
 
 All other modules default to module {\tt user}.  This implies they can
-use all predicates imported into {\tt user} without explicitely
+use all predicates imported into {\tt user} without explicitly
 importing them.
 
 
@@ -178,7 +178,7 @@ program itself is defined.  The module {\em user}, acting as the
 default module for all other modules of the program can be used to
 distribute these definitions over all program module without
 introducing the need to import this common layer each time
-explicitely.  It can also be used to redefine built-in predicates
+explicitly.  It can also be used to redefine built-in predicates
 if this is required to maintain compatibility to some other Prolog
 implementation.  Typically, the loadfile of a large application
 looks like this:
@@ -262,7 +262,7 @@ invoke(I, S, Args) :-
 \end{code}\end{boxed}
 
 
-The construct {\em `Module:Goal'} explicitely calls {\em Goal} in
+The construct {\em `Module:Goal'} explicitly calls {\em Goal} in
 module {\em Module}.  It is discussed in more detail in
 section~\ref{sec:metacall}.
 
@@ -279,10 +279,10 @@ Various approaches are possible to solve this problem.  One is to add
 an extra argument to all predicates (e.g.\ `assert(Module, Term)').
 Another is to tag the term somehow to indicate which module is desired
 (e.g.\ `assert(Module:Term)').  Both approaches are not very
-attractive as they make the user responsible for chosing the correct
+attractive as they make the user responsible for choosing the correct
 module, inviting unclear programming by asserting in other modules.
 The predicate assert/1 is supposed to assert in the module it is
-called from and should do so without being told explicitely.  For
+called from and should do so without being told explicitly.  For
 this reason, the notion {\em context module} has been introduced.
 
 
@@ -312,7 +312,7 @@ declared module_transparent.  Below is the code defining maplist.
 :- module_transparent maplist/3.
 
 %	maplist(+Goal, +List1, ?List2)
-%	True if Goal can succesfully be applied to all succesive pairs
+%	True if Goal can successfully be applied to all successive pairs
 %	of elements of List1 and List2.
 
 maplist(_, [], []).
@@ -325,7 +325,7 @@ maplist(Goal, [Elem1|Tail1], [Elem2|Tail2]) :-
 
 The mechanism above is sufficient to create an acceptable module
 system.  There are however cases in which we would like to be able to
-overrule this schema and explicitely call a predicate in some module
+overrule this schema and explicitly call a predicate in some module
 or assert explicitly in some module.  The first is useful to invoke
 goals in some module from the user's toplevel or to implement a
 object-oriented system (see above).  The latter is useful to create
@@ -352,7 +352,7 @@ Examples:
 
 \section{Dynamic Modules}		\label{sec:dynamic-modules}
 
-Sofar, we discussed modules that were created by loading a
+So far, we discussed modules that were created by loading a
 module-file.  These modules have been introduced on facilitate the
 development of large applications.  The modules are fully defined at
 load-time of the application and normally will not change during 

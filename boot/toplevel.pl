@@ -210,6 +210,7 @@ $load_associated_file.
 		*********************************/
 
 :- flag($banner_goal, _, $welcome).
+:- flag($qid, _, 1).
 
 $initialise :-
 	$check_novice, 
@@ -234,6 +235,7 @@ $abort :-
 	tell(user), 
 	flag($break_level, _, 0), 
 	flag($compilation_level, _, 0),
+	$calleventhook(abort),
 	$ttyformat('~nExecution Aborted~n~n'),
 	$toplevel.
 
@@ -241,21 +243,35 @@ $break :-
 	flag($break_level, Old, Old), 
 	succ(Old, New), 
 	flag($break_level, _, New), 
-	$ttyformat('Break Level [~w]~n', [New]),
-	$toplevel,
+	$ttyformat('Break Level [~d]~n', [New]),
+	$runtoplevel,
+	$calleventhook(exit_break(New)),
+	$ttyformat('[exit break level ~d]~n', [New]),
 	flag($break_level, _, Old), !.
 
 $toplevel :-
+	$runtoplevel,
+	$ttyformat('[halt]~n', []).		
+
+$runtoplevel :-
 	$option(top_level, TopLevelAtom, TopLevelAtom), 
 	term_to_atom(TopLevel, TopLevelAtom), 
 	user:TopLevel.
 
 %	$compile
-%	Tolpevel called when invoked with -c option.
+%	Toplevel called when invoked with -c option.
 
 $compile :-
 	$compile_wic.
 
+
+$calleventhook(Term) :-
+	(   notrace(user:prolog_event_hook(Term))
+	->  true
+	;   true
+	).
+
+:- $hide($calleventhook, 1).
 
 		/********************************
 		*    USER INTERACTIVE LOOP      *
@@ -276,11 +292,7 @@ prolog :-
 		call_expand_query(Goal, ExpandedGoal,
 				  Bindings, ExpandedBindings)
 	    ->  $execute(ExpandedGoal, ExpandedBindings)
-	    ), !,
-	(   BreakLev == 0
-	->  $ttyformat('[halt]~n', [])
-	;   $ttyformat('[exit break level ~d]~n', [BreakLev])
-	).
+	    ), !.
 
 
 		/********************************
@@ -363,12 +375,14 @@ $execute_goal(Goal, Bindings) :-
 	    $ttyformat('~n'),
 	    (	$write_bindings(NewBindings)
 	    ->	!,
-	        notrace, 
+	        notrace,
+		$calleventhook(finished_query(Qid)),
 		erase(Ref),
 		fail
 	    )
 	;   notrace, 
 	    $ttyformat('~nNo~n'),
+	    $calleventhook(finished_query(Qid)),
 	    erase(Ref),
 	    fail
 	).

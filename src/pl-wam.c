@@ -67,6 +67,7 @@ struct
   int i_depart;
   int i_call;
   int i_exit;
+  int i_exitfact;
 #if O_COMPILE_ARITH
   int a_indirect;
   int a_func0[256];
@@ -129,6 +130,7 @@ pl_count()
   countOne(  "I_DEPART", 	counting.i_depart);
   countOne(  "I_CALL", 		counting.i_call);
   countOne(  "I_EXIT", 		counting.i_exit);
+  countOne(  "I_EXITFACT",	counting.i_exitfact);
   countOne(  "I_FAIL",		countOne.i_fail);
   countOne(  "I_TRUE",		countOne.i_true);
 
@@ -1148,12 +1150,13 @@ pl-comp.c
     &&C_SOFTIF_LBL,
     &&C_SOFTCUT_LBL,
 #endif
+    &&I_EXITFACT_LBL,
     NULL
   };
 
 #define VMI(Name, Count, Msg)	Name ## _LBL: Count; DEBUG(8, Sdprintf Msg);
 #if VMCODE_IS_ADDRESS
-#define NEXT_INSTRUCTION	goto *(void *)((int)(*PC++))
+#define NEXT_INSTRUCTION	goto *(void *)((long)(*PC++))
 #else
 #define NEXT_INSTRUCTION	goto *jmp_table[*PC++]
 #endif
@@ -1682,12 +1685,16 @@ makes debugging much more  difficult  as  the  system  will  do  a  deep
 backtrack without showing the fail ports explicitely.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     VMI(I_ENTER, COUNT(i_enter), ("enter\n")) MARK(ENTER);
-      { ARGP = argFrameP(lTop, 0);
-
+      { 
 #if O_DEBUGGER
 	if ( debugstatus.debugging )
 	{ clearUninitialisedVarsFrame(FR, PC);
-	  tracePort(FR, UNIFY_PORT, PC);
+	  switch(tracePort(FR, UNIFY_PORT, PC))
+	  { case ACTION_RETRY:
+	      goto retry;
+	    case ACTION_FAIL:
+	      FRAME_FAILED;
+	  }
 	  if ( FR->mark.trailtop == INVALID_TRAILTOP )
 	  { SetBfr(FR->backtrackFrame);
 	  } else
@@ -1702,7 +1709,8 @@ backtrack without showing the fail ports explicitely.
 	  }
 	}
 
-	NEXT_INSTRUCTION;
+	ARGP = argFrameP(lTop, 0);
+        NEXT_INSTRUCTION;
       }
 
 #if O_BLOCK
@@ -2883,6 +2891,7 @@ Testing is suffices to find out that the predicate is defined.
 	  switch(tracePort(FR, CALL_PORT, NULL))
 	  { case ACTION_FAIL:	goto frame_failed;
 	    case ACTION_IGNORE: goto exit_builtin;
+	    case ACTION_RETRY:  goto retry;
 	  }
 	}
 #endif /*O_DEBUGGER*/
@@ -2979,6 +2988,23 @@ Leave the clause:
 	}
 	goto normal_exit;
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+i_exitfact is generated to close a fact. The reason for not generating a
+plain I_EXIT is first of all that the actual sequence should be I_ENTER,
+I_EXIT,  and  just  optimising   to    I_EXIT   looses   the  unify-port
+interception. Second, there should be some room for optimisation here.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+    VMI(I_EXITFACT, COUNT(i_exitfact), ("exitfact ")) MARK(EXITFACT);
+#if O_DEBUGGER
+	if ( debugstatus.debugging )
+	{ switch(tracePort(FR, UNIFY_PORT, PC))
+	  { case ACTION_RETRY:
+	      goto retry;
+	  }
+	}
+#endif /*O_DEBUGGER*/
+	/*FALLTHROUGH*/
+
     VMI(I_EXIT, COUNT(i_exit), ("exit ")) MARK(EXIT);
 	if ( false(FR, FR_CUT) )
 	{ if ( FR > BFR )			/* alternatives */
@@ -2994,24 +3020,35 @@ Leave the clause:
 	  deterministic = TRUE;
 	}
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+First, call the tracer. Basically,  the   current  frame is garbage, but
+given that the tracer might need to print the variables, we have to be a
+bit more careful.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     normal_exit:
 #if O_DEBUGGER
 	if ( debugstatus.debugging )
-	{ int action;
+        { LocalFrame mintop;
+	  int action;
+
 	  LocalFrame lSave = lTop;
 	  environment_frame = FR;
 
-	  if ( lTop < (LocalFrame)argFrameP(FR, DEF->functor->arity) )
-	    lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
-	  action = tracePort(FR, EXIT_PORT, PC);
+	  if ( false(DEF, FOREIGN) && CL )
+	    mintop = (LocalFrame) argFrameP(FR, CL->clause->variables);
+	  else
+	    mintop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
 
-	  switch(action)
+	  if ( lTop < mintop )
+	    lTop = mintop;
+
+	  action = tracePort(FR, EXIT_PORT, PC);
+	  lTop = lSave;
+	  switch( action )
 	  { case ACTION_RETRY:	goto retry;
 	    case ACTION_FAIL:	set(FR, FR_CUT);
 				FRAME_FAILED;
 	  }
-
-	  lTop = lSave;
 	}
 #endif /*O_DEBUGGER*/
 
@@ -3052,41 +3089,49 @@ Leave the clause:
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 			TRACER RETRY ACTION
 
-To retry we should first undo all actions done since the start  of  this
-frame  by  resetting  the  global  stack and calling Undo(). The current
-frame becomes the backtrack frame for the new childs.
+By default, retries the  current  frame.  If   another  frame  is  to be
+retried, place the frame-reference, which  should   be  a  parent of the
+current frame, in debugstatus.retryFrame and jump to this label. This is
+implemented by returning retry(Frame) of the prolog_trace_interception/3
+hook.
 
-Foreign functions can now just be restarted.  For Prolog  ones  we  will
-create  a  dummy  clause before the first one and proceed as with normal
-backtracking.
-
-BUG: Clause reference counts should be  updated  properly.   Needs  some
-detailed study!
+First, the system will leave any parent  frames. Next, it will undo back
+to the call-port and finally, restart the clause.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#if O_DEBUGGER
 retry:					MARK(RETRY);
+{ LocalFrame rframe = debugstatus.retryFrame;
+  LocalFrame fr;
+
+  if ( !rframe )
+    rframe = FR;
+  debugstatus.retryFrame = NULL;
+
+  Sdprintf("[Retrying frame %d running %s]\n",
+	   (Word)rframe - (Word)lBase,
+	   predicateName(rframe->predicate));
+
+  for(fr = BFR; fr > rframe; fr = fr->backtrackFrame)
+  { LocalFrame fr2;
+
+    for(fr2 = fr; fr2->clause && fr2 > rframe; fr2 = fr2->parent)
+    { DEBUG(3, Sdprintf("discard %d\n", (Word)fr2 - (Word)lBase) );
+      leaveFrame(fr2);
+      fr2->clause = NULL;
+    }
+  }
+
+  environment_frame = FR = rframe;
+  DEF = FR->predicate;
   Undo(FR->mark);
   SetBfr(FR);
   clear(FR, FR_CUT);
   lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
-#if O_DEBUGGER
-  if ( debugstatus.debugging )
-  { tracePort(FR, CALL_PORT, NULL);
-  }
+
+  goto depart_continue;
+}
 #endif /*O_DEBUGGER*/
-  if ( false(DEF, FOREIGN) )
-  { struct clause_ref zero;		/* fake a clause */
-    struct clause zclause;
-
-    clear(&zclause, ERASED);		/* avoid destruction */
-    zero.next   = DEF->definition.clauses;
-    zero.clause = &zclause;
-    CL = &zero;
-
-    CLAUSE_FAILED;
-  }
-  FR->clause = FIRST_CALL;
-  goto call_builtin;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The rest of this giant procedure handles backtracking.  There are  three

@@ -8,7 +8,7 @@
 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\=\kill
    \verb"! /0"				\> Cut (discard choicepoints)
 \\ \verb"! /1"				\> Cut block. See \verb"block/3"
-\\ \verb",    /2{xfy 1000}"		\> Conjuction of goals
+\\ \verb",    /2{xfy 1000}"		\> Conjunction of goals
 \\ \verb"->   /2{xfy 1050}"		\> If-then-else
 \\ \verb"*->  /2{xfy 1050}"		\> Soft-cut
 \\ \verb". /2"				\> Consult. Also list constructor
@@ -69,7 +69,7 @@ xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\=\kill
 \\ \verb"break/0"			\> Start interactive toplevel
 \\
 \\ \verb"call/1"			\> Call a goal
-\\ \verb"call/[2..]"			\> Call with aditional arguments
+\\ \verb"call/[2..]"			\> Call with additional arguments
 \\ \verb"call_dll_function/2"		\> Win32: Call function in dynamic link library (.dll file)
 \\ \verb"call_shared_object_function/2"	\> UNIX:  Call C-function in shared (.so) file
 \\ \verb"character_count/2"		\> Get character index on a stream
@@ -101,7 +101,7 @@ xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\=\kill
 \\ \verb"current_key/1"			\> Examine existing database keys
 \\ \verb"current_module/1"		\> Examine existing modules
 \\ \verb"current_module/2"		\> Examine existing modules
-\\ \verb"current_op/3"			\> Examine current operator declaractions
+\\ \verb"current_op/3"			\> Examine current operator declarations
 \\ \verb"current_output/1"		\> Get the current output stream
 \\ \verb"current_predicate/2"		\> Examine existing predicates
 \\ \verb"current_stream/3"		\> Examine open streams
@@ -143,7 +143,7 @@ xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\=\kill
 \\ \verb"expand_file_search_path/2"	\> Wildcard expansion of file paths
 \\ \verb"expand_term/2"			\> Compiler: expand read term into clause(s)
 \\ \verb"explain/1"			\> \lib{explain} Explain argument
-\\ \verb"explain/2"			\> \lib{explain} 2nd argument is expalanation of first
+\\ \verb"explain/2"			\> \lib{explain} 2nd argument is explanation of first
 \\ \verb"export/1"			\> Export a predicate from a module
 \\ \verb"export_list/2"			\> List of public predicates of a module
 \\
@@ -251,7 +251,7 @@ xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\=\kill
 \\ \verb"number_chars/2"		\> Convert between number and atom
 \\ \verb"numbervars/4"			\> Enumerate unbound variables of a term using a given base
 \\
-\\ \verb"once/1"			\> Call a goal deterministicaly
+\\ \verb"once/1"			\> Call a goal deterministically
 \\ \verb"op/3"				\> Declare an operator
 \\ \verb"open/3"			\> Open a file (creating a stream)
 \\ \verb"open/4"			\> Open a file (creating a stream)
@@ -314,7 +314,7 @@ xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\=\kill
 \\ \verb"recordz/3"			\> Record term in the database (last)
 \\ \verb"redefine_system_predicate/1"	\> Abolish system definition
 \\ \verb"rename_file/2"			\> Change name of file
-\\ \verb"repeat/0"			\> Succeed, leaving infinite backtrackpoints
+\\ \verb"repeat/0"			\> Succeed, leaving infinite backtrack points
 \\ \verb"require/1"			\> This file requires these predicates
 \\ \verb"reset_profiler/0"		\> Clear statistics obtained by the profiler
 \\ \verb"restore/1"			\> Restore saved-state (\verb"save/1", \verb"save_program/1")
@@ -417,7 +417,7 @@ xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\=\kill
 \\ \verb"writeq/2"			\> Write term, insert quotes on stream
 \end{tabbing}
 
-\section{Artihmetic Functions}
+\section{Arithmetic Functions}
 \begin{tabbing}
 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\=\kill
    \verb"*  /2{yfx 400}"		\> Multiplication
@@ -445,7 +445,7 @@ xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\=\kill
 \\ \verb"cputime/0"			\> Get CPU time
 \\ \verb"e/0"				\> Mathematical constant
 \\ \verb"exp/1"				\> Exponent (base $e$)
-\\ \verb"float/1"			\> Explicitely convert to float
+\\ \verb"float/1"			\> Explicitly convert to float
 \\ \verb"float_fractional_part/1"	\> Fractional part of a float
 \\ \verb"float_integer_part/1"		\> Integer part of a float
 \\ \verb"floor/1"			\> Largest integer below argument

@@ -1467,7 +1467,8 @@ concat(term_t a1, term_t a2, term_t a3, int (*out)(term_t, const char *))
 
   if (s1 && s2)
   { l1 = strlen(s1);
-    tmp = alloca(l1 + strlen(s2));
+    l2 = strlen(s2);
+    tmp = alloca(l1 + l2 + 1);
     strcpy(tmp, s1);
     strcpy(tmp+l1, s2);
     return (*out)(a3, tmp);

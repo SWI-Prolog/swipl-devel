@@ -28,7 +28,7 @@ before loading this file.  See end of this file.
 /* PLVERSION: 10000 * <Major> + 100 * <Minor> + <Patch> */
 
 #ifndef PLVERSION
-#define PLVERSION 20714
+#define PLVERSION 20715
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -104,6 +104,7 @@ typedef foreign_t	(*pl_function_t)(); /* foreign language functions */
 #define PL_FUNCTOR	(10)		/* functor_t, arg ... */
 #define PL_LIST		(11)		/* length, arg ... */
 #define PL_CHARS	(12)		/* const char * */
+#define PL_POINTER	(13)		/* void * */
 
 
 		/********************************

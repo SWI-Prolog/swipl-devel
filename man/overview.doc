@@ -74,7 +74,7 @@ script-file is named {\em script}{\tt .rc}.  The default {\em script}
 name is deduced from the executable, taking the leading alphanumerical
 characters (letters, digits and underscore) from the program-name.
 {\tt -F none} stops looking for a script. Intended for simple management
-of slighly different versions.  One could for example write a script
+of slightly different versions.  One could for example write a script
 {\tt iso.rc} and then select ISO compatibility mode using {\tt pl -F
 iso} or make a link from {\tt iso-pl} to {\tt pl}.
     \option{-g goal}
@@ -110,7 +110,7 @@ Define a path alias for file_search_path. {\em alias} is the name of
 the alias, {\em path1 ...} is a {\tt :} separated list of values for
 the alias.  A value is either a term of the form \mbox{alias(value)}
 or pathname.  The computed aliases are added to file_search_path/2
-using asserta/1, so they preceed predefined values for the alias.  See
+using asserta/1, so they precede predefined values for the alias.  See
 file_search_path/2 for details on using this file-location mechanism.
     \option{--}
 Stops scanning for more arguments, so you can pass arguments for your
@@ -191,7 +191,7 @@ Module:Name/Arity}, explain will try to explain the predicate
 as well as possible references to it.
 .C explain 2 +ToExplain, -Explanation
 Unify {\em Explanation} with an explanation for {\em ToExplain}.
-Backtracing yields further explanations.
+Backtracking yields further explanations.
 .ED
 
 
@@ -312,7 +312,7 @@ spacing.
 
 \section{Reuse of toplevel bindings}	\label{sec:topvars}
 
-Bindings resulting from the successfull execution of a toplevel goal
+Bindings resulting from the successful execution of a toplevel goal
 are asserted in a database.  These values may be reused in further
 toplevel queries as \$Var.  Only the latest binding is available.
 Example:
@@ -558,7 +558,7 @@ for backwards compatibility. The currently available options are:
 \newcommand{\option}[3]{\item[#1 \it#2 \rm(default: \it #3)]\mbox{}\\}
     \option{optimise}{on/off}{off}
 Switch optimise mode for the compiler \tty{on} or \tty{off} (see also
-the command line option \tty{-O}). Currently optimised compilation only
+the command line option \tty{-O}). Currently optimise compilation only
 implies compilation of arithmetic, making it fast, but invisible to the
 tracer.  Later versions might imply various other optimisations such as
 incorporating a number of basic predicates in the virtual machine
@@ -681,7 +681,7 @@ functions. Value depends on the C-compiler used.
 ISO feature describing integer representation is bound by
 {\tt min_integer} and {\tt min_integer}.
     \option{tty_control}{bool}
-Tertermines whether the terminal is switched to raw mode for
+Determines whether the terminal is switched to raw mode for
 get_single_char/1, which also reads the user-actions for the trace.  May
 be set.  See also the \tty{+/-tty} command-line option.
     \option{debug_on_error}{bool}
@@ -726,7 +726,7 @@ exactly} the Unix program-file used to create it.
 
 .BD
 .C save_program 2 +NewProgram, +ListOfOptions
-Create a new executable wich will be named {\em NewProgram}.  {\em
+Create a new executable which will be named {\em NewProgram}.  {\em
 ListOfOptions} is a list of \mbox{\em Key = Value} pairs that specify
 the default command line options that will be saved into the new
 program.  If a default is not specified the default compiled into the
@@ -862,7 +862,7 @@ index(Name, Arity, Module, File).
 \end{code}
 
 The predicate make/0 scans the autoload libraries and updates the
-index if it exists, is writable and out-of-date.  It is adviced to
+index if it exists, is writable and out-of-date.  It is advised to
 create an empty file called \tty{INDEX.pl} in a library directory
 meant for auto loading before doing anything else.  This index file
 can then be updated by running the prolog make_library_index/1 (`\%' is
@@ -974,7 +974,7 @@ of pretty-looking long lines.  For compatibility with Quintus Prolog.
 Nor supported by ISO.  Example:
 \begin{code}
 	format('This is a long line that would look better if it was \c
-	        split accross multiple physical lines in the input')
+	        split across multiple physical lines in the input')
 \end{code}
     \escape{$<${\sc RETURN}$>$}
 No output.  Skips input till the next non-layout character or to the
@@ -990,7 +990,7 @@ Horizontal tab-character.
     \escape{v}
 Vertical tab-character (ASCII 11).
     \escape{x23}
-Hexdecimal specification of a character. \verb$23$ is just an example.
+Hexadecimal specification of a character. \verb$23$ is just an example.
 The `x' may be followed by a maximum of 2 hexadecimal digits.  The
 closing \verb$\$ is optional.  The code \verb$\xa\3$ emits the character
 10 (hexadecimal `a') followed by `3'.  The code \verb$\x201$ emits
@@ -1003,13 +1003,13 @@ Octal character specification.  The rules and remarks for hexadecimal
 specifications apply to octal specifications too, but the maximum
 allowed number of octal digits is 3.
     \escape{$<$character$>$}
-Any character immediately predeced by a \verb$\$ is copied verbatim.
+Any character immediately preceded by a \verb$\$ is copied verbatim.
 Thus, \verb$'\\'$ is an atom consisting of a single \verb$\$ and
 \verb$'\''$ and \verb$''''$ both describe an atom with a single
 \verb$'$.
 \end{description}
 
-Character escaping is only available if the feature(character_espaces,
+Character escaping is only available if the feature(character_escapes,
 true) is active (default). See feature/2. Character escapes conflict
 with writef/2 in two ways: \verb$\40$ is interpreted as decimal 40 by
 writef/2, but character escapes handling by read has already interpreted
@@ -1097,7 +1097,7 @@ not be more than 1024 and the number of variables should be less than
 65536.
     \item[Atoms and Strings]
 SWI-Prolog has no limits on the sizes of atoms and strings.  read/1 and
-its derivates however normally limit the number of newlines in an atom
+its derivatives however normally limit the number of newlines in an atom
 or string to 5 to improve error detection and recovery.  This can be
 switched off with style_check/1.
     \item[Address space]

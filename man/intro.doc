@@ -59,7 +59,7 @@ systems, natural language processing and two large workbenches for
 knowledge engineering. Although we experienced rather obvious and
 critical bugs can remain unnoticed for a remarkable long period, we can
 assume the basic Prolog system is fairly stable. Bugs can be expected
-in unfrequently used builtin predicates.
+in infrequently used builtin predicates.
 
 Some bugs are known to the author. They are described as footnotes in
 this manual.
@@ -128,7 +128,7 @@ XPCE/SWI-Prolog provides an interactive graphical development platform
 that is portable over many Unix/X11 implementations as well as
 MS-Windows (3.1) and Windows~NT (3.5).
 
-XPCE is a licenced product.  A fully functional free demo version for
+XPCE is a licensed product.  A fully functional free demo version for
 PC/Linux is available from \tty{ftp://swi.psy.uva.nl/pub/xpce/linux},
 for more information see URL
 \begin{code}
@@ -174,7 +174,7 @@ control system.
 
 .S Version 1.7 Release Notes
 
-Version 1.7 intergrates the GNU-readline library, offering powerful
+Version 1.7 integrates the GNU-readline library, offering powerful
 history and command-line editing both using Emacs and vi key-bindings.
 
 
@@ -199,7 +199,7 @@ Version 1.9 only allows it if the new definition is headed by a
 The toplevel maintains a table of bindings returned by toplevel goals and
 allows for reuse of these bindings by prefixing the variables with the \$
 sign.  See section~\ref{sec:topvars}.
-    \tick{Better sourcecode administration}
+    \tick{Better source code administration}
 Allows for proper updating of multifile predicates and finding the
 sources of individual clauses.
 \end{itemize}
@@ -227,7 +227,7 @@ test predicates such as var/1, etc.
 All SWI-Prolog's I/O is now handled by the stream-package defined in
 the foreign include file $<$SWI-Stream.h$>$.  Physical I/O of Prolog
 streams may be redefined through the foreign language interface,
-facilating much simpler integration in window environments.
+facilitating much simpler integration in window environments.
 \end{itemize}
 
 Version 2.0.6 offers a few incompatibilities:
@@ -273,7 +273,7 @@ for the Windows~NT .DLL interface.
 
 .S Version 2.1 Release Notes
 
-In addition to several bugfixes, the 2.1 versions provide some new features:
+In addition to several bug fixes, the 2.1 versions provide some new features:
 \begin{itemize}
     \tick{setarg/3}
 A new predicate setarg/3 for extra-logical (destructive) assignment to
@@ -310,7 +310,7 @@ According to the current plan, ISO compliant exception handling and
 hooks for source-code debugging will be added before the system will
 be called 3.0.
 
-Apart from various bugfixes listed in the Changelog file, these
+Apart from various bug fixes listed in the Changelog file, these
 are the main changes since 2.1.0:
 
 \begin{itemize}
@@ -331,14 +331,14 @@ independent saved-states that load very quickly.
 
 .S Version 2.6 Release Notes
 
-Version 2.6 provides a stable implemetation of the features added in
+Version 2.6 provides a stable implementation of the features added in
 the 2.5.x releases, but at the same time implements a number of new
 features that may have impact on the system stability.
 
 \begin{itemize}
     \tick{32-bit integer and double float arithmetic}
 The biggest change is the support for full 32-bit signed integers and
-raw machine-format double precission floats. The internal data
+raw machine-format double precision floats. The internal data
 representation as well as the arithmetic instruction set and interface
 to the arithmetic functions has been changed for this.
     \tick{Embedding for Win32 applications}
@@ -353,9 +353,9 @@ saved-state to the emulator.  See qsave_program/2.
 
 .S Version 2.7 Release Notes
 
-Version 2.7 reorganises the entire data-represention of the Prolog data
+Version 2.7 reorganises the entire data-representation of the Prolog data
 itself.  The aim is to remove most of the assumption on the machine's
-memory layout to improve portabilily in general and enable embedding on
+memory layout to improve portability in general and enable embedding on
 systems where the memory layout may depend on invocation or on how the
 executable is linked.  The latter is notably a problem on the Win32
 platforms.  Porting to 64-bit architectures should be feasible now.
@@ -383,3 +383,6 @@ Luc Peerdeman, Eric Nombden, Frank van Harmelen, Bert Rengel.
 
 Martin Jansche (jansche@novell1.gs.uni-heidelberg.de) has been so kind
 to reorganise the sources for version 2.1.3 of this manual.
+
+Horst von Brand has been so kind to fix many typos in the 2.7.14 manual.
+Thanks!

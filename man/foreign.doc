@@ -7,8 +7,8 @@ SWI-Prolog offers a powerful interface to C \cite{Kernighan:78}. The
 main design objectives of the foreign language interface are flexibility
 and performance. A foreign predicate is a C-function that has the same
 number of arguments as the predicate represented. C-functions are
-provided to anylyse the passed terms, convert them to basic C-types as
-well as to instantiate arguments using unification. Non-deterministics
+provided to analyse the passed terms, convert them to basic C-types as
+well as to instantiate arguments using unification. Non-deterministic
 foreign predicates are supported, providing the foreign function with a
 handle to control backtracking.
 
@@ -56,7 +56,7 @@ Prolog process.%
 	      Unix platforms supporting this gets quickly smaller and
 	      this interface is difficult to port and slow, it is no
 	      longer described in this manual.  The best alternatively
-	      would be to use the dld package on machines donot have
+	      would be to use the dld package on machines do not have
 	      shared libraries}.
 
 \subsection{What linking is provided?}
@@ -91,9 +91,9 @@ may vary from system to system.
 
 Loading shared objects or DLL files provides sharing and protection and
 is generally the best choice. The old (and also badly portable)
-save/[1,2] and save_program/[1,2] donot cooperate with this mechanism,
+save/[1,2] and save_program/[1,2] do not cooperate with this mechanism,
 but the more recent qsave_program/[1,2] can be used to created programs
-that load the apropriate library at startup.
+that load the appropriate library at startup.
 
 Note that the definition of the foreign predicates is the same, regardless
 of the linking type used.
@@ -166,7 +166,7 @@ declare functions in the library as foreign predicates.
 If the foreign library defines the function \tty{uninstall}, this
 function will be called without arguments and its return value is
 ignored.  Next, abolish/2 is used to remove all known foreign predicates
-defined in the library. Finally the library itself is detatched from the
+defined in the library. Finally the library itself is detached from the
 process.
 .C current_foreign_library 2 -Lib, -Predicates
 Query the currently loaded foreign libraries and their predicates.  {\em
@@ -265,7 +265,7 @@ main(int argc, char **argv, char **env)
 }
 \end{code}\end{boxed}
 
-Now, a new executable may be created by compilign this file and linking
+Now, a new executable may be created by compiling this file and linking
 it to libpl.a from the runtime directory and the libraries required by
 both the extensions and the SWI-Prolog kernel. This may be done by hand,
 or using the {\tt plld} utility described in section~\ref{sec:plld}.
@@ -317,7 +317,7 @@ term references for the predicate-arguments, one for each argument.  If
 references for intermediate results are needed, such references may be
 created using PL_new_term_ref() or PL_new_term_refs().  These references
 normally live till the foreign function returns control back to Prolog.
-Their scope can be explicitely limited using PL_open_foreign_frame()
+Their scope can be explicitly limited using PL_open_foreign_frame()
 and PL_close_foreign_frame()/PL_discard_foreign_frame().
 
 A term_t always refers to a valid Prolog term (variable, atom, integer,
@@ -359,7 +359,7 @@ Term references are obtained in any of the following ways.
     term may be written to.  See figure~\ref{fig:pl-display}.
 \end{itemize}
 
-Term-references can savely be copied to other C-variables of type
+Term-references can safely be copied to other C-variables of type
 term_t, but all copies will always refer to the same term.
 
 .BF
@@ -384,7 +384,7 @@ pl_mypredicate(term_t a0, term_t a1)
 }
 \end{code}
 .F term_t PL_copy_term_ref 1 term_t from
-Create a new term reference and make it point initialy to the same
+Create a new term reference and make it point initially to the same
 term as {\em from}.  This function is commonly used to copy a predicate
 argument to a term reference that may be written.
 .EF
@@ -519,7 +519,7 @@ but the control argument now indicates it is a `Redo' call and the
 macro PL_foreign_context() will return the handle passed via
 PL_retry(). This handle is a 30 bits signed value (two bits are used
 for status indication).
-.M void PL_retry_adress 1 void *
+.M void PL_retry_address 1 void *
 As PL_retry(), but ensures an address as returned by malloc() is
 correctly recovered by PL_foreign_context_address().
 .M int PL_foreign_control 1 control_t
@@ -533,7 +533,7 @@ Extracts the context from the context argument.  In the call type is
 returned by the last PL_retry() associated with this goal (both if the
 call type is {\tt PL_REDO} as {\tt PL_CUTTED}).
 .M void * PL_foreign_context_address 1 control_t
-Extracts an address as passed in by PL_retry_adress().
+Extracts an address as passed in by PL_retry_address().
 .EF
 
 Note: If a non-deterministic foreign function returns using PL_succeed
@@ -557,11 +557,11 @@ my_function(term_t a0, term_t a1, foreign_t handle)
   { case PL_FIRST_CALL:
         ctxt = malloc(sizeof(struct context));
 	...
-	PL_retry_adress(ctxt);
+	PL_retry_address(ctxt);
     case PL_REDO:
 	ctxt = PL_foreign_context_address(handle);
 	...
-	PL_retry_adress(ctxt);
+	PL_retry_address(ctxt);
     case PL_CUTTED:
 	free(ctxt);
 	PL_succeed;
@@ -603,9 +603,9 @@ Each argument of a foreign function (except for the control argument) is
 of type {\em term_t}, an opaque handle to a Prolog term. Three groups of
 functions are available for the analysis of terms. The first just
 validates the type, like the Prolog predicates var/1, atom/1, etc and
-are called \tty{PL_is_*()}. The second group attemps to translate the
+are called \tty{PL_is_*()}. The second group attempts to translate the
 argument into a C primitive type. These predicates take a \tty{term_t}
-and a pointer to the apropriate C-type and return \tty{TRUE} or
+and a pointer to the appropriate C-type and return \tty{TRUE} or
 \tty{FALSE} depending on successful or unsuccessful translation. If the
 translation fails, the pointed-to data is never modified.
 
@@ -651,7 +651,7 @@ or
 
 The functions PL_is_$<$type$>$ are an alternative to PL_term_type(). The
 test ``PL_is_var(term)'' is equivalent to ``PL_term_type(term) ==
-PL_VARIABLE'', but the first is considerably faster. On the other hande,
+PL_VARIABLE'', but the first is considerably faster. On the other hand,
 using a switch over PL_term_type() is faster and more readable then
 using an if-then-else using the functions below.  All these functions
 return either \tty{TRUE} or \tty{FALSE}.
@@ -697,13 +697,13 @@ no need to access the data (characters) of an atom, it is advised to
 manipulate atoms using their handle.
 .F int PL_get_atom_chars 2 term_t +t, char **s
 If {\em t} is an atom, store a pointer to a 0-terminated C-string in
-{\em s}.  It is explicitely {\bf not} allows to modifify the contents
+{\em s}.  It is explicitly {\bf not} allows to modify the contents
 of this string.  Some built-in atoms may have the string allocated in
 read-only memory, so `temporary manipulation' can cause an error.
 .F int PL_get_string 2 term_t +t, char **s, int *len
 If {\em t} is a string object, store a pointer to a 0-terminated
 C-string in {\em s} and the length of the string in {\em len}.  Note
-that this pointer is invalidated by backtracting, garbage-collection
+that this pointer is invalidated by backtracking, garbage-collection
 and stack-shifts, so generally the only save operations are to pass
 it immediately to a C-function that doesn't involve Prolog.
 .F int PL_get_chars 3 term_t +t, char **s, unsigned flags
@@ -713,7 +713,7 @@ first specifies which term-types should converted and the second
 how the argument is stored.  Below is a specification of these
 constants.  \tty{BUF_RING} implies, if the data is not static
 (as from an atom), the data is copied to the next buffer from a
-ring of four (4) buffers.  This is a convienent way of converting
+ring of four (4) buffers.  This is a convenient way of converting
 multiple arguments passed to a foreign predicate to C-strings.  If
 BUF_MALLOC is used, the data must be freed using free() when not
 needed any longer.
@@ -750,7 +750,7 @@ point number that can be represented as a long, this function succeeds
 as well.
 .F int PL_get_pointer 2 term_t +t, void **ptr
 In the current system, pointers are represented by Prolog integers,
-but need some manipulation to make sure they donot get truncated due
+but need some manipulation to make sure they do not get truncated due
 to the limited Prolog integer range.  PL_put_pointer()/PL_get_pointer()
 guarantees pointers in the range of malloc() are handled without
 truncating.
@@ -959,9 +959,9 @@ The functions of this sections {\em unify} terms with other terms or
 translated C-data structures. Except for PL_unify(), the functions of
 this section are specific to SWI-Prolog. They have been introduced to
 make translation of old code easier, but also because they provide for
-a faster mechanism for returning data to Prolog tht requires less
+a faster mechanism for returning data to Prolog that requires less
 term-references.  Consider the case where we want a foreign function
-to return the hostname of the machine Prolog is running on.  Using
+to return the host name of the machine Prolog is running on.  Using
 the \tty{PL_get_*()} and \tty{PL_put_*()} functions, the code becomes:
 
 \begin{boxed}\begin{code}
@@ -1050,7 +1050,7 @@ pl_get_environ(term_t env)
 }
 \end{code}\end{boxed}
 .F int PL_unify_nil 1 term_t ?l
-Unifys {\em l} with the atom {\tt []}.
+Unify {\em l} with the atom {\tt []}.
 .F int PL_unify_arg 3 int index, term_t ?t, term_t ?a
 Unifies the {\em index-th} argument (1-based) of {\em t} with
 {\em a}.
@@ -1065,7 +1065,7 @@ required type-switching this interface is slightly slower than using
 the primitives.  Please note that some bad C-compilers have fairly
 low limits on the number of arguments that may be passed to a function.
 
-The type indentifiers are:
+The type identifiers are:
 
 \begin{description}
 \newcommand{\atype}[2]{\item[\tt #1 \em #2]\mbox{}\\}
@@ -1080,7 +1080,7 @@ Unify the argument with a float, as in PL_unify_float().  Note that,
 as the argument is passed using the C vararg conventions, a float must
 be casted to a double explicitly.
    \atype{PL_STRING}{const char *}
-Unify the argumet with a string object, as in PL_unify_string_chars().
+Unify the argument with a string object, as in PL_unify_string_chars().
    \atype{PL_TERM}{term_t}
 Unify a subterm.  Note this may the return value of a PL_new_term_ref()
 call to get access to a variable.
@@ -1167,7 +1167,7 @@ module where the predicate was defined.
 
 This section discusses the functions for creating and manipulating
 queries from C.  Note that a foreign context can have at most one
-active query.  This implies it is allowed to make stricktly nested
+active query.  This implies it is allowed to make strictly nested
 calls between C and Prolog (Prolog calls C, calls Prolog, calls C,
 etc., but it is {\em not} allowed to open multiple queries and start
 generating solutions for each of them by calling PL_next_solution().
@@ -1185,7 +1185,7 @@ if there is no calling context (as may happen in embedded systems).
 Note that the context module only matters for {\em module_transparent}
 predicates.  See context_module/1 and module_transparent/1.
 The {\em debug} argument is normally {\tt TRUE}.  If {\em FALSE}
-is specified, the goal is ran in `nodebug' mode, irregardless of
+is specified, the goal is run in `nodebug' mode, regardless of
 the current debug mode.  The {\em p} argument specifies the predicate,
 and should be the result of a call to PL_pred() or PL_predicate().  Note
 that it is allowed to store this handle as global data and reuse it
@@ -1247,7 +1247,7 @@ term-references and data. See figure~\ref{fig:calling} for an example.
 Created a foreign frame, holding a mark that allows the system to
 undo bindings and destroy data created after it as well as providing
 the environment for creating term-references.  This function is called
-by the kernel before calling a foreing predicate.
+by the kernel before calling a foreign predicate.
 .F void PL_close_foreign_frame 1 fid_t id
 Discard all term-references created after the frame was opened.  All
 other Prolog data is retained.  This function is called by the kernel
@@ -1327,7 +1327,7 @@ Find an existing or create a new module with name specified by the atom
 .EF
 
 
-\subsection{Misceleneous}
+\subsection{Miscellaneous}
 
 .BF
 .F int PL_compare 2 term_t t1, term_t t2
@@ -1535,14 +1535,14 @@ the {\tt -t}{\it toplevel} flag that is interpreted by PL_toplevel().
 .BF
 .F int PL_initialise 3 int argc, char **argv, char **environ
 Initialises the SWI-Prolog heap and stacks, restores the boot QLF file,
-loads the system and personal initialisation initialisation files, runs
+loads the system and personal initialisation files, runs
 the at_initialisation/1 hooks and finally runs the {\tt -g goal} hook.
 
 PL_initialise() returns 1 if all initialisation succeeded and 0
 otherwise.  Various fatal errors may cause PL_initialise to call
 PL_halt(1), preventing it from returning at all.
 .F void PL_install_readline 0
-Installs the GNU-readline line-editor.  Embedded applications that donot
+Installs the GNU-readline line-editor.  Embedded applications that do not
 use the Prolog toplevel should normally delete this line, shrinking the
 Prolog kernel significantly.
 .F int PL_toplevel 0
@@ -1793,7 +1793,7 @@ Yes
 \subsection{Memory Allocation}
 
 SWI-Prolog's memory allocation is based on the malloc() library
-routines.  Foreign applications can savely use malloc(), realloc() and
+routines.  Foreign applications can safely use malloc(), realloc() and
 free(). Memory allocation using brk() or sbrk() is not allowed as these
 calls conflict with malloc().
 
@@ -1845,7 +1845,7 @@ The term-reference mechanism was first used by Quintus Prolog version 3.
 SICStus Prolog version 3 is strongly based on the Quintus interface. The
 described SWI-Prolog interface is similar to using the Quintus or
 SICStus interfaces, defining all foreign-predicate arguments of type
-{\tt +term}.  SWI-Prolog explicitely uses type {\tt functor_t}, while
+{\tt +term}.  SWI-Prolog explicitly uses type {\tt functor_t}, while
 Quintus and SICStus uses name + arity.  As the names of the functions
 differ from Prolog to Prolog, a simple macro layer dealing with the
 names can also deal with this detail.  For example:

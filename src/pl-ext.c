@@ -61,6 +61,7 @@ static struct foreign {
   FRG("skip",			1, pl_skip,			TRACE_ME),
   FRG("skip",			2, pl_skip2,			TRACE_ME),
   FRG("get_single_char",	1, pl_get_single_char,		TRACE_ME),
+  FRG("$rawtty",		1, pl_rawtty,			META),
   FRG("seeing",			1, pl_seeing,			TRACE_ME),
   FRG("telling",		1, pl_telling,			TRACE_ME),
   FRG("seen",			0, pl_seen,			TRACE_ME),

@@ -5,6 +5,13 @@
 Version 2.7.15
 ==============
 
+  * ADDED: clause_property(ClauseRef, fact).  Used by source-level tracer.
+
+  * ADDED: Various options to prolog_frame_attribute/3 for the source-level
+    tracer.
+
+  * FIXED: allow for tracing the unify-port of a fact.
+
   * ADDED: prolog_frame_attribute(Frame, argument(N), Arg) to read
     bindings from a stack-frame.
 

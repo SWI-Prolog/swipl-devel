@@ -522,7 +522,9 @@ codes.
 #define C_SOFTCUT	((code)74)		/* `Cut' of A *-> B ; C */
 #endif /*O_SOFTCUT*/
 
-#define I_HIGHEST	((code)74)		/* largest WAM code !!! */
+#define I_EXITFACT	((code)75)		/* exit from a fact */
+
+#define I_HIGHEST	((code)75)		/* largest WAM code !!! */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Arithmetic comparison
@@ -1209,6 +1211,16 @@ typedef struct
   } value;
 } opt_spec, *OptSpec;
 
+		 /*******************************
+		 *	      EVENTS		*
+		 *******************************/
+
+#define PLEV_ERASED	0		/* clause or record was erased */
+#define PLEV_DEBUGGING	1		/* changed debugging mode */
+#define PLEV_TRACING	2		/* changed tracing mode */
+#define PLEV_SPY	3		/* changed spypoint */
+
+
 		/********************************
 		*             STACKS            *
 		*********************************/
@@ -1451,6 +1463,7 @@ GLOBAL Procedure	PROCEDURE_garbage_collect0;
 GLOBAL Procedure	PROCEDURE_block3;
 GLOBAL Procedure	PROCEDURE_true0;
 GLOBAL Procedure	PROCEDURE_fail0;
+GLOBAL Procedure	PROCEDURE_event_hook1;
 
 extern struct code_info	codeTable[];
 
@@ -1496,6 +1509,7 @@ GLOBAL struct debuginfo
   bool		showContext;		/* tracer shows context module */
   int		styleCheck;		/* source style checking */
   int		suspendTrace;		/* tracing is suspended now */
+  LocalFrame	retryFrame;		/* Frame to retry */
 } debugstatus;
 
 #define CHARESCAPE_FEATURE	0x01	/* handle \ in atoms */
