@@ -29,7 +29,6 @@ Planned features in 5.5.x relative to 5.4.x and their status
 	- Incomplete support in packages
 		- ODBC
 		- Filenames, window titles, etc. in XPCE
-	- Clear vision on foreign interface
 	- Clear vision on handling non-iso-latin-1 8-bit codepages
 
   * More constraint libraries
@@ -53,31 +52,22 @@ Planned features in 5.5.x relative to 5.4.x and their status
 	- Possible alignment problems on some platforms
 	- Option to disable it on platforms that cannot support it.
 
-Patches in 5.5.6 relative to 5.5.5
+Patches in 5.5.9 relative to 5.5.8
 ==================================
 
-  * Binary files be default use the new encoding 'octet'.
+  * Optionally write escape sequences when writing characters to streams
+    that cannot represent them (default for `user' streams).
 
-  * Additions to library ordsets for better compatibility.
-
-  * Various minor patches
+  * Minor patches
 
 
 Packages
 ========
 
-  * CLP(R): module issues, extended library ordsets to fully support it.
+  * SGML: Generalise xml_quote_* predicates to deal with encoding issues.
 
-  * XPCE: Fixed various issues in handling objects as streams, making
-    the PceEmacs Prolog mode fully functional again.  Also fixes colour
-    handling in sgml/xml modes.  Fixed PceEmacs issues to allow putting
-    it into a saved state.  Improved xpce-stub.exe debugging.
-
-  * SGML: Cleanup stream encoding issues.  Documented with the package
-    documentation.  
-
-  * Semweb: fixed quoting of attributes.  Remove XPCE dependency of 
-    rdf_edit.pl.
+  * Semweb: Fixed for wide-characters in subject and predicate.  Added
+    encoding option to rdf_save/2, defaulting to UTF-8 (was ISO-8859-1).
 
 
 Incompatible changes
