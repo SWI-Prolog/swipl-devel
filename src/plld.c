@@ -437,7 +437,9 @@ static extdef extdefs[] =
   { "cpp",	&cppfiles },
   { "cxx",	&cppfiles },
   { "cc",	&cppfiles },
+#ifndef WIN32
   { "C",	&cppfiles },
+#endif
   { "pl",	&plfiles },
   { "qlf",	&qlfiles },
   { NULL,	NULL }

@@ -45,16 +45,16 @@ pl_get_ps_parameters(term_t file, term_t iseps, term_t bb)
     }
     
     do
-    { int a1, a2, a3, a4;
+    { double a1, a2, a3, a4;
 
-      if ( sscanf(buf, "%%%%BoundingBox: %d %d %d %d", &a1, &a2, &a3, &a4) == 4 )
+      if ( sscanf(buf, "%%%%BoundingBox: %lf %lf %lf %lf", &a1, &a2, &a3, &a4) == 4 )
       { fclose(fd);
 	return PL_unify_term(bb,
 			     PL_FUNCTOR, PL_new_functor(PL_new_atom("bb"), 4),
-			     PL_INTEGER, a1,
-			     PL_INTEGER, a2,
-			     PL_INTEGER, a3,
-			     PL_INTEGER, a4);
+			     PL_FLOAT, a1,
+			     PL_FLOAT, a2,
+			     PL_FLOAT, a3,
+			     PL_FLOAT, a4);
       }
     } while( (s=fgets(buf, sizeof(buf), fd)) );
 

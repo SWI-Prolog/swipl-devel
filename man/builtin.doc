@@ -1231,7 +1231,7 @@ the explicit streams.
 \const{user_output}  & Output to the terminal \\
 \const{user_error}   & Unix error stream (output only) \\
 <Atom>               & Name of a Unix file \\
-\const{pipe(<Atom>}  & Name of a Unix command \\
+\const{pipe(<Atom>)} & Name of a Unix command \\
 \hline
 \end{tabular}
 \end{center}
@@ -1709,11 +1709,16 @@ If \arg{Term} is an atom or number, \arg{Functor} will be unified with
 \arg{Term} should be instantiated to a term, \arg{Arg} to an integer
 between 1 and the arity of \arg{Term}. \arg{Value} is unified with the
 \arg{Arg}-th argument of \arg{Term}.  \arg{Arg} may also be unbound.
-In this \arg{Value} will be unified with the successive arguments of
-the term.  On successful unification, \arg{Arg} is unified with the
-argument number.  Backtracking yields alternative solutions.%
+In this case \arg{Value} will be unified with the successive arguments
+of the term. On successful unification, \arg{Arg} is unified with the
+argument number. Backtracking yields alternative solutions.%
     \footnote{The instantiation pattern (-, +, ?) is an extension to
               `standard' Prolog.}
+The predicate arg/3 fails silently if $\arg{Arg} = 0$ or
+$\arg{Arg} > \mbox{\em arity}$ and raises the exception
+\errorterm{domain_error}{not_less_then_zero, \arg{Arg}} if $\arg{Arg} <
+0$.
+
 \predicate{setarg}{3}{+Arg, +Term, +Value}
 Extra-logical predicate.  Assigns the \arg{Arg}-th argument of the
 compound term \arg{Term} with the given \arg{Value}.  The assignment
@@ -2856,7 +2861,11 @@ If the system halts, it will automatically remove all created temporary
 files.
 
     \predicate{chdir}{1}{+Path}
-Change working directory to \arg{Path}.
+Change working directory to \arg{Path}.%
+	\bug{Some of the file-I/O predicates use local filenames.  
+	     Using chdir/1 while file-bound streams are open causes
+	     wrong results on telling/1, seeing/1 and current_stream/3}
+
 \end{description}
 
 \section{User Toplevel Manipulation}

@@ -52,14 +52,27 @@ ps2gif(In, Out, Options) :-
 	telling(Old), tell(pipe(Cmd)),
 	format('~w ~w translate ', [BBX, BBY]),
 	format('(~w) run ', InFile),
-	(   EPS = eps
+	(   EPS == eps
 	->  format('showpage ')
 	;   true
 	),
 	format('quit~n'),
 	told, tell(Old),
-	ppm2gif(Tmp, Out, Options),
-	delete_file(Tmp).
+	(   exists_file(Tmp)
+	->  ppm2gif(Tmp, Out, Options),
+	    delete_file(Tmp)
+	;   EPS == ps,
+	    format(user_error,
+		   'No output from ~w, Trying again with showpage~n',
+		   [InFile]),
+	    telling(Old), tell(pipe(Cmd)),
+	    format('~w ~w translate ', [BBX, BBY]),
+	    format('(~w) run ', InFile),
+	    format('showpage '),
+	    format('quit~n'),
+	    told, tell(Old),
+	    ppm2gif(Tmp, Out, Options)
+	).
 
 ppm2gif(Tmp, Out, Options) :-
 	(   get_option(Options, margin(B))

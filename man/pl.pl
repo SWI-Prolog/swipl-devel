@@ -65,6 +65,7 @@ cmd(functor({RawName}, {Arity}), Text) :-
 	sformat(Text, '~w/~w', [Name, Arity]).
 cmd(compound({Name}, {Args}), #code([+Name, #embrace(+Args)])).
 cmd(term({Name}, {Args}), #code([+Name, #embrace(+Args)])).
+cmd(errorterm({Name}, {Args}), #code([+Name, #embrace(+Args)])).
 cmd(manref({RawName}, {Section}),
     [#strong(Name), #embrace(Section)]) :-
 	clean_tt(RawName, Name).

@@ -35,9 +35,9 @@
 /* If using the C implementation of alloca, define if you know the
    direction of stack growth for your system; otherwise it will be
    automatically deduced at run-time.
- STACK_DIRECTION > 0 => grows toward higher addresses
- STACK_DIRECTION < 0 => grows toward lower addresses
- STACK_DIRECTION = 0 => direction of growth unknown
+	STACK_DIRECTION > 0 => grows toward higher addresses
+	STACK_DIRECTION < 0 => grows toward lower addresses
+	STACK_DIRECTION = 0 => direction of growth unknown
  */
 #define STACK_DIRECTION -1
 
@@ -137,6 +137,9 @@
 
 /* Define max size of mmapp()ed stacks.  See test/mmap.c */
 /* #undef MMAP_STACKSIZE */
+
+/* Define if getrlimit() exists and the type rlim_t is defined */
+/* #undef HAVE_RLIM_T */
 
 /* Define if you have the access function.  */
 #define HAVE_ACCESS 1

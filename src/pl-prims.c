@@ -611,7 +611,7 @@ pl_arg(term_t n, term_t term, term_t arg, word b)
       }
   
       if ( PL_get_integer(n, &idx) )
-      { if ( idx >= 0 && idx <= arity )
+      { if ( idx > 0 && idx <= arity )
 	{ term_t a = PL_new_term_ref();
 	
 	  PL_get_arg(idx, term, a);
@@ -1437,11 +1437,13 @@ pl_number_chars(term_t atom, term_t string)
 
 word
 pl_atom_char(term_t atom, term_t chr)
-{ atom_t a;
+{ char *s;
   int n;
 
-  if ( PL_get_atom(atom, &a) )
-  { return PL_unify_integer(chr, stringAtom(a)[0]);
+  if ( PL_get_atom_chars(atom, &s) && strlen(s) == 1 )
+  { int i = s[0] & 0xff;
+
+    return PL_unify_integer(chr, i);
   } else if ( PL_get_integer(chr, &n) )
   { char buf[2];
 
@@ -1543,7 +1545,7 @@ pl_concat_atom3(term_t list, term_t sep, term_t atom)
   tmp_buffer b;
   
   if ( sep )
-  { if ( !PL_get_chars(sep, &sp, CVT_ATOMIC) )
+  { if ( !PL_get_chars(sep, &sp, CVT_ATOMIC|BUF_RING) )
       return warning("concat_atom/3: illegal separator");
     splen = strlen(sp);
   } else

@@ -799,6 +799,9 @@ cmd(footheight(_), []).
 cmd(vfill, [html('<P>')]).
 cmd(vfil, [html('<P>')]).
 cmd(hfill, []).
+cmd(/, []).
+cmd(and, [html('<BR>')]).
+cmd(leavevmode, []).
 cmd(parskip(_), []).
 cmd(parindent(_), []).
 cmd(raggedright, []).			% Always in HTML
@@ -1009,7 +1012,11 @@ cmd(psfig({Spec}), html(Img)) :-
 	(   keep_figures(true),
 	    exists_file(OutFile)
 	->  true
-	;   ps2gif(tex(Base), OutFile)
+	;   (   is_absolute_file_name(Base)
+	    ->	FileSpec = Base
+	    ;	FileSpec = tex(Base)
+	    ),
+	    ps2gif(FileSpec, OutFile)
 	).
 cmd(postscript({_Width}, {File}, Title),
     [ LabelHTML,

@@ -583,13 +583,23 @@ system will allocate a default heap of 64 MB and the stacks above that.
 #endif
 
 #ifdef RLIMIT_DATA
+#ifndef HAVE_RLIM_T
+typedef unsigned long rlim_t;
+#endif
 static ulong
 dataLimit()
 { struct rlimit limit;
-
+ 
   if ( getrlimit(RLIMIT_DATA, &limit) == 0 )
-    return limit.rlim_cur;
-
+  { rlim_t datasize = limit.rlim_cur;
+    rlim_t maxlong  = (rlim_t)(1L << (LONGBITSIZE-1)) - 1;
+ 
+    if ( datasize > maxlong )
+      datasize = (ulong)maxlong;
+ 
+    return datasize;
+  }
+ 
   return 0L;
 }
 #else

@@ -112,7 +112,11 @@
 \renewcommand{\term}[2]{%
 	\ifthenelse{\equal{}{#2}}{%
 	    #1}{%
-	    #1({\it #1})}}
+	    #1({\it #2})}}
+\newcommand{\errorterm}[2]{\mbox{\tt%
+	\ifthenelse{\equal{}{#2}}{%
+	    #1}{%
+	    #1(#2)}}}
 \newcommand{\cfunction}[3]{%
 	\defentry{{\it #1} #2({\it #3})}%
 	\index{#2()}\ignorespaces}

@@ -1319,7 +1319,7 @@ count_atoms()
   
   PL_put_atom_chars(a1, "atoms");
   PL_cons_functor(goal, s2, a1, a2);
-  PL_call(t, NULL);         /* call it in current module */
+  PL_call(goal, NULL);         /* call it in current module */
   
   PL_get_integer(a2, &atoms);
   PL_discard_foreign_frame(fid);
@@ -1746,18 +1746,18 @@ argument.
 \section{Linking embedded applications using plld}
 \label{sec:plld}
 
-The utility program \program{plld} may be used to link a combination of
-C-files and Prolog files into a stand-alone executable.  It is a simple
-Bourne-shell script that automates most of the steps outlined in the
-previous sections.
+The utility program \program{plld} (Win32: plld.exe) may be used to link
+a combination of C-files and Prolog files into a stand-alone executable.
+\program{plld} automates most of what is described in the previous
+sections.
 
 In the normal usage, a copy is made of the default embedding template
-\file{\ldots/pl/include/stub.c}. Additional foreign predicates are
-defined and added to the extension table \const{PL_extensions}. The main()
-routine is modified to suit your application. PL_initialise()
-\strong{must} be passed the program-name (\arg{argv[0]}). The other
-elements of the command-line may be modified. Next, \program{plld} is
-typically invoked as:
+\file{\ldots/pl/include/stub.c}. The main() routine is modified to suit
+your application. PL_initialise() \strong{must} be passed the
+program-name (\arg{argv[0]}) (Win32: the executing program can be
+obtained using \funcref{GetModuleFileName}{}). The other elements of the
+command-line may be modified. Next, \program{plld} is typically invoked
+as:
 
 \begin{code}
 plld -o output stubfile.c [other-c-or-o-files] [plfiles]
@@ -1781,16 +1781,46 @@ Print brief synopsis.
 Select the prolog to use.  This prolog is used for two purposes: get the
 home-directory as well as the compiler/linker options and create a saved
 state of the Prolog code.
+    \cmdlineoptionitem{-ld}{linker}
+Linker used to link the raw executable.  Default is to use the C-compiler
+(Win32: link.exe).
+    \cmdlineoptionitem{-cc}{C-compiler}
+Compiler for \fileext{c} files found on the commandline.  Default is the
+compiler used to build SWI-Prolog (see feature/2) (Win32: cl.exe).
+    \cmdlineoptionitem{-c++}{C++-compiler}
+Compiler for C++ sources (extensions \fileext{cpp}, \fileext{cxx},
+\fileext{cc} or \fileext{C}) files found on the commandline.  Default is
+\program{c++} or \program{g++} if the C-compiler is \program{gcc})
+(Win32: cl.exe).
+    \cmdlineoptionitem{-nostate}{}
+Just relink the kernel, do not add any Prolog code to the new kernel.
+This is used to create a new kernel holding additional foreign predicates
+on machines that do not support the shared-library (DLL) interface, or if
+building the state cannot be handled by the default procedure used by
+\program{plld}.  In the latter case the state is created seperately and
+appended to the kernel using \exam{cat <kernel> <state> > <out>}
+(Win32: \exam{copy /b <kernel>+<state> <out>})
+    \cmdlineoptionitem{-pl-options}{,\ldots}
+Additional options passed to Prolog when creating the saved state.  The
+first character immediately following \const{pl-options} is used as
+separator and translated to spaces when the argument is built.
+Example: \exam{-pl-options,-F,xpce} passed \exam{-F xpce} as additional
+flags to Prolog.
+    \cmdlineoptionitem{-ld-options}{,\ldots}
+Passes options to the linker, similar to \cmdlineoption{-pl-options}.
+    \cmdlineoptionitem{-cc-options}{,\ldots}
+Passes options to the C/C++ compiler, similar to \cmdlineoption{-pl-options}.
     \cmdlineoptionitem{-v}{}
 Select verbose operation, showing the various programs and their options.
     \cmdlineoptionitem{-o}{outfile}
 Reserved to specify the final output file.
     \cmdlineoptionitem*{-l}{library}
-Specifies a library for the C-compiler.  By default, \clib{-lpl} and the
-libraries needed by the Prolog kernel are given.
+Specifies a library for the C-compiler.  By default, \clib{-lpl}
+(Win32: libpl.lib) and the libraries needed by the Prolog kernel are given.
     \cmdlineoptionitem*{-L}{library-directory}
 Specifies a library directory for the C-compiler.  By default the
-directory containing \clib{-lpl} for the current architecture is passed.
+directory containing the Prolog C-library for the current architecture
+is passed.
     \cmdlineoptionitem{\cmdlineoption{-g} \bnfor{}
 		       \cmdlineoption{-I\arg{include-directory}} \bnfor{}
 		       \cmdlineoption{-D\arg{definition}}}{}

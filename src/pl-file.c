@@ -818,8 +818,12 @@ pl_told()
 
 word
 pl_flush()
-{ if ( fileTable[Output].stream )
-    Sflush(fileTable[Output].stream);
+{ IOSTREAM *s;
+
+  if ( fileTable[Output].status == F_WRITE &&
+       (s=fileTable[Output].stream) )
+  { TRYPIPE(Output, ATOM_write, Sflush(s), fail);
+  }
 
   succeed;
 }
@@ -1592,7 +1596,7 @@ pl_flush_output(term_t stream)
 
   if ( (n = streamNo(stream, F_WRITE)) < 0 )
     fail;
-  Sflush(fileTable[n].stream);
+  TRYPIPE(n, ATOM_write, Sflush(fileTable[n].stream), fail);
 
   succeed;
 }

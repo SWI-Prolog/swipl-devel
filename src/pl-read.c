@@ -915,7 +915,7 @@ get_number(const unsigned char *cin, unsigned char **end, Number value)
     { case '\'':			/* 0'<char> */
       { if ( isAlpha(in[3]) )
 	  fail;				/* illegal number */
-	value->value.i = (long)in[2];
+	value->value.i = (long)in[2] & 0xff;
 	if ( negative )			/* -0'a is a bit dubious! */
 	  value->value.i = -value->value.i;
 	*end = in+3;
@@ -938,6 +938,8 @@ get_number(const unsigned char *cin, unsigned char **end, Number value)
       in += 2;
       rval = scan_number(&in, base, value);
       *end = in;
+      if ( negative )
+	 value->value.i = -value->value.i;
       return rval;
     }
   }

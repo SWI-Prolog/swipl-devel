@@ -84,14 +84,14 @@ extern long Random(void);
 		 *******************************/
 
 #ifdef HAVE_SYSCONF
-#ifdef _SC_OPEN_MAX			/* getdtablesize() */
+#if defined(_SC_OPEN_MAX) && !defined(HAVE_GETPAGESIZE)
 #undef getdtablesize
 #define getdtablesize() sysconf(_SC_OPEN_MAX)
 #ifndef HAVE_GETDTABLESIZE
 #define HAVE_GETDTABLESIZE 1
 #endif
 #endif
-#ifdef _SC_PAGESIZE			/* getpagesize */
+#if defined(_SC_PAGESIZE) && !defined(HAVE_GETPAGESIZE)
 #undef getpagesize
 #define getpagesize() sysconf(_SC_PAGESIZE)
 #ifndef HAVE_GETPAGESIZE
@@ -120,7 +120,7 @@ extern int	getpagesize(void);
 		 *               TYPES		*
 		 *******************************/
 
-#if defined(__sun__) && defined(__svr4__)
+#if 0 && defined(__sun__) && defined(__svr4__)
 extern long random(void);
 extern int srandom(unsigned seed);
 #endif

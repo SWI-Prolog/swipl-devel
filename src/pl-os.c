@@ -2254,8 +2254,9 @@ System(char *cmd)
   { return PL_error("shell", 2, OsError(), ERR_SYSCALL, ATOM_fork);
   } else if ( pid == 0 )		/* The child */
   { int i;
+    int fdmax = getdtablesize();
 
-    for(i = 3; i < getdtablesize(); i++)
+    for(i = 3; i < fdmax; i++)
       close(i);
     stopItimer();
 
@@ -2502,7 +2503,10 @@ Symbols(char *buffer)
   }
 #endif /*__unix__*/
 
-  strcpy(buffer, file);
+  if ( file )
+    strcpy(buffer, file);
+  else
+    strcpy(buffer, buf);
 
   return buffer;
 }

@@ -23,6 +23,7 @@
 \cmdlineoption{+}
 \termitem{+}{+}=item		1 0
 \term{+}{+}
+\errorterm{+}{+}
 \optionval{+}=item		1 0
 \argoption{-}{-}
 

@@ -267,6 +267,19 @@ AC_DEFINE(DOUBLE_ALIGNMENT, sizeof(double)),
 AC_MSG_RESULT(assuming sizeof(double))
 AC_DEFINE(DOUBLE_ALIGNMENT, sizeof(double)))
 
+if test "$ac_cv_func_getrlimit" = "yes"; then
+AC_MSG_CHECKING("type rlim_t")
+AC_TRY_COMPILE(
+[
+#include <sys/types.h>
+#include <sys/resource.h>
+],
+[ rlim_t datasize;
+], AC_DEFINE(HAVE_RLIM_T)
+   AC_MSG_RESULT(yes),
+   AC_MSG_RESULT(no))
+fi
+
 AC_MSG_CHECKING("whether assert.h needs stdio.h")
 AC_TRY_COMPILE(
 [

@@ -157,6 +157,9 @@
 \vbox{-}
 \noindent
 \sloppy
+\and
+\leavevmode
+\/
 
 % Special characters
 

@@ -2,6 +2,33 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 2.9.9
+=============
+
+  * FIXED: Portability problems for Solaris 2.6.
+
+  * FIXED: throwing Prolog exceptions on `Broken Pipe' in flush/0 and
+    flush_output/1.
+
+  * FIXED: detection of limit on datasize on SGI platform.  Thanks to
+    Marcello Balduccini.
+
+  * FIXED: Possibility of a crash in Symbols(), notably affecting embedded
+    systems (at startup).  Thanks to Anton Eliens.
+
+The 4 bugs below were reported by Luc Van Oostenryck.  Thanks.
+
+  * FIXED: concat_atom/3 if the separator is not an atom.
+
+  * FIXED: arg(0, Term, Arg) to fail
+
+  * FIXED: atom_char(abc, X) to raise an instantiation fault if the length
+    of the atom is not 1.  Also, return integers in the range [1..255] instead
+    of [-128..127].
+
+  * FIXED: -0xff is now read as -255.  Not sure if -(255) would not be a
+    better idea!?
+
 VERSION 2.9.8
 =============
 
