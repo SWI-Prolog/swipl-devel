@@ -84,29 +84,23 @@ you may configure using:
 
 	./configure --disable-shared
 
-# Saved states (save/[1,2], save_program/[1,2])
-
-save/[1,2] and save_program/[1,2] are getting  out   of  fashion  as the
-schema proves difficult to port to modern machines using shared libaries
-which make it very hard to gather the process state.
-
-New releases (as of  2.1.4)   provide  qsave_program/[1,2]  which create
-portable saved states  that  may  be   loaded  on  emulators  running on
-different hardware.
-
-The default save mechanism is qsave_program/[1,2],  which is portable to
-all platforms. The old-fashioned core-dump based mechanism might work on
-some bsd `a.out' format based Unix  machines   and  a few others. If you
-want  the  system  to  configure    save/[1,2]  and  save_program/[1,2],
-configure using
-
-	./configure --enable-save
-
-# Memory mapped stacks
+# Memory mapped stacks.  Segmentation faults during the installation.
 
 Configure will see if mmap() may be used to allocate the stacks.  If you
 think this should be possible, but Configure   says `no', please work on
 test/mmap.c
+
+At the end  of  the  compilation,  the   Prolog  files  from  the  boot/
+subdirectory are compiled using ./pl. On  some systems this installation
+aborts with a segmentation fault (signal 11   on  most machines). If you
+are knowledgeable with low-level  memory   management  using mmap(), you
+might want to look as test/mmap.c  and pl-setup.c, where exception-based
+handling of the stacks is defined. Otherwise,  remove all .o files, redo
+the configuration using --disable-segv-handling and   recompile. If that
+still doesn't solve the problem,   use  --disable-mapped-stacks. If that
+doesn't fix the problem  you  found   something  new.  Please  report to
+prolog-bugs@swi.psy.uva.nl.
+
 
 # Assembler warnings
 
