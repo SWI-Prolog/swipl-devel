@@ -279,9 +279,10 @@ errorWarning(const char *id_str, ReadData _PL_rd)
 
   if ( ReadingSource )			/* reading a file */
   { PL_unify_term(loc,
-		  PL_FUNCTOR, FUNCTOR_file2,
+		  PL_FUNCTOR, FUNCTOR_file3,
 		    PL_ATOM, source_file_name,
-		    PL_INTEGER, source_line_no);
+		    PL_INTEGER, source_line_no,
+		    PL_INTEGER, source_char_no);
   } else if ( isStringStream(rb.stream) )
   { PL_unify_term(loc,
 		  PL_FUNCTOR, FUNCTOR_string2,
