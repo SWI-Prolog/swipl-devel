@@ -14,8 +14,9 @@
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
 
-forwards RecordList lookupRecordList(word);
-forwards RecordList isCurrentRecordList(word);
+static RecordList lookupRecordList(word);
+static RecordList isCurrentRecordList(word);
+static void freeRecordRef(RecordRef r);
 
 #define RECORDA 0
 #define RECORDZ 1
@@ -75,13 +76,13 @@ isCurrentRecordList(word key)
 
 static void
 cleanRecordList(RecordList rl)
-{ Record *p;
-  Record r;
+{ RecordRef *p;
+  RecordRef r;
 
   for(p = &rl->firstRecord; (r=*p); )
-  { if ( true(r, ERASED) )
+  { if ( true(r->record, ERASED) )
     { *p = r->next;
-      freeRecord(r);
+      freeRecordRef(r);
     } else
     { p = &r->next;
     }
@@ -104,8 +105,7 @@ cleanRecordList(RecordList rl)
 #endif
 
 #define SIZERECORD(flags) \
-	((flags & R_LIST)      ? offsetof(struct record, buffer[0]) : \
-	 (flags & R_DUPLICATE) ? offsetof(struct record, list) : \
+	((flags & R_DUPLICATE) ? offsetof(struct record, buffer[0]) : \
 	                         offsetof(struct record, references)) \
 
 #define dataRecord(r) ((char *)addPointer(r, SIZERECORD(r->flags)))
@@ -425,10 +425,6 @@ compileTermToHeap(term_t t, int flags)
   record->nvars = info.nvars;
   record->size  = size;
   record->flags = flags;
-  if ( flags & R_LIST )
-  { record->list  = NULL;		/* ensure initialised memory */
-    record->next  = NULL;		/* idem */
-  }
   if ( flags & R_DUPLICATE )
   { record->references = 1;
   }
@@ -1128,6 +1124,14 @@ freeRecord(Record record)
   succeed;
 }
 
+
+static void
+freeRecordRef(RecordRef r)
+{ freeRecord(r->record);
+  freeHeap(r, sizeof(*r));
+}
+
+
 		 /*******************************
 		 *	 EXTERNAL RECORDS	*
 		 *******************************/
@@ -1286,6 +1290,7 @@ pl_current_key(term_t k, word h)
 static bool
 record(term_t key, term_t term, term_t ref, int az)
 { RecordList l;
+  RecordRef r;
   Record copy;
   word k;
 
@@ -1294,23 +1299,25 @@ record(term_t key, term_t term, term_t ref, int az)
   if ( !PL_is_variable(ref) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_variable, ref);
 
-  copy = compileTermToHeap(term, R_LIST);
-  PL_unify_pointer(ref, copy);
+  copy = compileTermToHeap(term, 0);
+  r = allocHeap(sizeof(*r));
+  r->record = copy;
+  PL_unify_pointer(ref, r);
 
   LOCK();
   l = lookupRecordList(k);
-  copy->list = l;
+  r->list = l;
 
   if ( !l->firstRecord )
-  { copy->next = (Record) NULL;
-    l->firstRecord = l->lastRecord = copy;
+  { r->next = NULL;
+    l->firstRecord = l->lastRecord = r;
   } else if ( az == RECORDA )
-  { copy->next = l->firstRecord;
-    l->firstRecord = copy;
+  { r->next = l->firstRecord;
+    l->firstRecord = r;
   } else
-  { copy->next = (Record) NULL;
-    l->lastRecord->next = copy;
-    l->lastRecord = copy;
+  { r->next = NULL;
+    l->lastRecord->next = r;
+    l->lastRecord = r;
   }
   UNLOCK();
 
@@ -1333,7 +1340,7 @@ pl_recordz(term_t key, term_t term, term_t ref)
 word
 pl_recorded(term_t key, term_t term, term_t ref, word h)
 { RecordList rl;
-  Record record;
+  RecordRef record;
   word k;
   term_t copy;
   word rval;
@@ -1342,11 +1349,11 @@ pl_recorded(term_t key, term_t term, term_t ref, word h)
   { case FRG_FIRST_CALL:
       if ( PL_get_pointer(ref, (void **)&record) )
       { LOCK();
-	if ( isRecord(record) )
+	if ( isRecordRef(record) )
 	{ if ( unifyKey(key, record->list->key) )
 	  { GET_LD
 	    copy = PL_new_term_ref();
-	    copyRecordToGlobal(copy, record PASS_LD);
+	    copyRecordToGlobal(copy, record->record PASS_LD);
 	    rval = PL_unify(term, copy);
 	  } else
 	    rval = FALSE;
@@ -1393,11 +1400,11 @@ pl_recorded(term_t key, term_t term, term_t ref, word h)
   for( ; record; record = record->next )
   { mark m;
 
-    if ( true(record, ERASED) )
+    if ( true(record->record, ERASED) )
       continue;
 
     Mark(m);
-    copyRecordToGlobal(copy, record PASS_LD);
+    copyRecordToGlobal(copy, record->record PASS_LD);
     if ( PL_unify(term, copy) && PL_unify_pointer(ref, record) )
     { if ( !record->next )
       { if ( --rl->references == 0 && true(rl, R_DIRTY) )
@@ -1423,8 +1430,8 @@ pl_recorded(term_t key, term_t term, term_t ref, word h)
 
 word
 pl_erase(term_t ref)
-{ Record record;
-  Record prev, r;
+{ RecordRef record;
+  RecordRef prev, r;
   RecordList l;
   word rval;
 
@@ -1444,7 +1451,7 @@ pl_erase(term_t ref)
   }
   
   LOCK();
-  if ( isRecord(record) )
+  if ( isRecordRef(record) )
   {
 #if O_DEBUGGER
     callEventHook(PLEV_ERASED, record);
@@ -1452,22 +1459,22 @@ pl_erase(term_t ref)
 
     l = record->list;
     if ( l->references )		/* a recorded has choicepoints */
-    { set(record, ERASED);
+    { set(record->record, ERASED);
       set(l, R_DIRTY);
     } else if ( record == l->firstRecord )
     { if ( !record->next )
 	l->lastRecord = NULL;
       l->firstRecord = record->next;
-      freeRecord(record);
+      freeRecordRef(record);
     } else
     { prev = l->firstRecord;
       r = prev->next;
       for(; r; prev = r, r = r->next)
       { if (r == record)
-	{ if ( r->next == (Record) NULL )
+	{ if ( !r->next )
 	    l->lastRecord = prev;
 	  prev->next = r->next;
-	  freeRecord(r);
+	  freeRecordRef(r);
 	  goto ok;
 	}
       }

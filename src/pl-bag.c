@@ -31,18 +31,24 @@ Prolog.
 #define alist LD->bags.bags		/* Each thread has its own */
 					/* storage for this */
 
+typedef struct assoc
+{ Record record;
+  struct assoc *next;
+} *Assoc;
+
+
 static void
-freeAssoc(Record prev, Record a)
+freeAssoc(Assoc prev, Assoc a)
 { if ( prev == NULL )
   { GET_LD
     alist = a->next;
   } else
     prev->next = a->next;
 
-  if ( a->size )
-    freeRecord(a);
-  else
-    freeHeap(a, sizeof(*a));
+  if ( a->record )
+    freeRecord(a->record);
+
+  freeHeap(a, sizeof(*a));
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -55,13 +61,12 @@ variable binding for solution `Gen'.  Key is ATOM_mark for the mark.
 word
 pl_record_bag(term_t t)
 { GET_LD
-  Record a;
+  Assoc a = allocHeap(sizeof(*a));
 
   if ( PL_is_atom(t) )
-  { a = allocHeap(sizeof(*a));
-    a->size = 0;
+  { a->record = 0;
   } else
-    a = compileTermToHeap(t, R_LIST);	/* include ->next */
+    a->record = compileTermToHeap(t, 0);
 
   a->next    = alist;
   alist      = a;
@@ -80,19 +85,19 @@ pl_collect_bag(term_t bindings, term_t bag)
   term_t list     = PL_new_term_ref();	/* list to construct */
   term_t binding  = PL_new_term_ref();	/* current binding */
   term_t tmp      = PL_new_term_ref();
-  Record a, next;
-  Record prev = NULL;
+  Assoc a, next;
+  Assoc prev = NULL;
   
   if ( !(a = alist) )
     fail;
-  if ( a->size == 0 )
+  if ( !a->record )
   { freeAssoc(prev, a);
     fail;				/* trapped the mark */
   }
 
   PL_put_nil(list);
 					/* get variable term on global stack */
-  copyRecordToGlobal(binding, a PASS_LD);
+  copyRecordToGlobal(binding, a->record PASS_LD);
   PL_get_arg(1, binding, var_term);
   PL_unify(bindings, var_term);
   PL_get_arg(2, binding, tmp);
@@ -103,15 +108,15 @@ pl_collect_bag(term_t bindings, term_t bag)
 
   if ( next != NULL )
   { for( a = next, next = a->next; next; a = next, next = a->next )
-    { if ( a->size == 0 )
+    { if ( !a->record )
 	break;
 
-      if ( !structuralEqualArg1OfRecord(var_term, a PASS_LD) )
+      if ( !structuralEqualArg1OfRecord(var_term, a->record PASS_LD) )
       { prev = a;
 	continue;
       }
 
-      copyRecordToGlobal(binding, a PASS_LD);
+      copyRecordToGlobal(binding, a->record PASS_LD);
       PL_get_arg(1, binding, tmp);
       PL_unify(tmp, bindings);
       PL_get_arg(2, binding, tmp);

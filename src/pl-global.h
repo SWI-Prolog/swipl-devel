@@ -267,7 +267,7 @@ typedef struct
   } atoms;
 
   struct
-  { Record	bags;			/* findall/setof bags storage */
+  { struct assoc* bags;			/* findall/setof bags storage */
   } bags;
 
   struct

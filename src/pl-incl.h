@@ -730,6 +730,7 @@ typedef struct clause_index *	ClauseIndex;    /* Clause indexing table */
 typedef struct clause_chain *	ClauseChain;    /* Chain of clauses in table */
 typedef struct operator *	Operator;	/* see pl-op.c, pl-read.c */
 typedef struct record *		Record;		/* recorda/3, etc. */
+typedef struct recordRef *	RecordRef;      /* reference to a record */
 typedef struct recordList *	RecordList;	/* list of these */
 typedef struct module *		Module;		/* predicate modules */
 typedef struct sourceFile *	SourceFile;	/* file adminitration */
@@ -853,8 +854,7 @@ with one operation, it turns out to be faster as well.
 
 #define R_DIRTY			(0x0001) /* recordlist */
 #define R_EXTERNAL		(0x0002) /* record: inline atoms */
-#define R_LIST			(0x0004) /* record: include list pointer */
-#define R_DUPLICATE		(0x0008) /* record: include references */
+#define R_DUPLICATE		(0x0004) /* record: include references */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Handling environment (or local stack) frames.
@@ -929,8 +929,8 @@ erase and assert/2, clause/3, etc.  really points to a clause or record.
 #define isRecordList(w)	(((RecordList)(w))->type == RECORD_TYPE)
 #define isClause(c)	(inCore(((Clause)(c))->procedure) && \
 			  isProcedure(((Clause)(c))->procedure))
-#define isRecord(r)	(inCore(((Record)(r))->list) && \
-			  isRecordList(((Record)(r))->list))
+#define isRecordRef(r)	(inCore(((RecordRef)(r))->list) && \
+			  isRecordList(((RecordRef)(r))->list))
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 At times an abort is not allowed because the heap  is  inconsistent  the
@@ -1228,8 +1228,6 @@ struct record
 					/* R_DUPLICATE */
 					/* R_LIST */
   int		references;		/* PL_duplicate_record() support */
-  RecordList	list;			/* list I belong to */
-  Record	next;			/* next of chain */
   char 		buffer[1];		/* array holding codes */
 };
 
@@ -1237,9 +1235,15 @@ struct recordList
 { int		type;		/* RECORD_TYPE */
   int		references;	/* choicepoints reference count */
   word		key;		/* key of record */
-  Record	firstRecord;	/* first record associated with key */
-  Record	lastRecord;	/* last record associated with key */
+  RecordRef	firstRecord;	/* first record associated with key */
+  RecordRef	lastRecord;	/* last record associated with key */
   unsigned int  flags;		/* R_DIRTY */
+};
+
+struct recordRef
+{ RecordList	list;			/* list I belong to */
+  RecordRef	next;			/* next in list */
+  Record	record;			/* the record itself */
 };
 
 struct sourceFile

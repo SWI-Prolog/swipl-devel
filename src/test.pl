@@ -439,7 +439,7 @@ record(recorda-4) :-
 	erase_all(r4),
 	recorda(r4, aap),
 	recorda(r4, noot),
-	recordz(r4,  mies),
+	recordz(r4, mies),
 	findall(X, recorded(r4, X), Xs),
 	Xs = [noot, aap, mies].
 record(recorda-5) :-
@@ -447,6 +447,20 @@ record(recorda-5) :-
 	\+ recorded(bla, sign(_,(B,B),_)),
 	\+ (recorded(bla,S),
 	    S=sign(_,(B,B),_)).
+record(erase-1) :-
+	erase_all(r5),
+	recorda(r5, aap, R),
+	recorda(r5, noot),
+	erase(R),
+	findall(X, recorded(r5, X), Xs),
+	Xs = [noot].
+record(erase-2) :-
+	retractall(a(_)),
+	assert(a(1), Ref),
+	erase(Ref),
+	findall(X, a(X), Xs),
+	Xs = [].
+
 
 
 		 /*******************************
