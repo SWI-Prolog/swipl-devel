@@ -82,11 +82,10 @@ lookupMenuLabel(const TCHAR *label)
 
   llen = _tcslen(label);
   menuids[nmenus] = rlc_malloc((llen+1)*sizeof(TCHAR));
-  memcpy(menuids[nmenus], label, llen+1);
+  _tcsncpy(menuids[nmenus], label, llen+1);
   
   return nmenus++ + IDM_USER;
 }
-
 
 const TCHAR *
 lookupMenuId(UINT id)
