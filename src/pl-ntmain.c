@@ -553,6 +553,7 @@ PL_extension extensions[] =
   { "system:window_title",          2, pl_window_title,         0 },
   { "system:$win_insert_menu_item", 3, pl_win_insert_menu_item, 0 },
   { "system:win_insert_menu",       2, pl_win_insert_menu,      0 },
+  { "system:win_window_pos",        1, pl_window_pos,           0 },
   { NULL,		            0, NULL,		        0 }
 };
 
@@ -573,7 +574,6 @@ install_readline(int argc, char **argv)
 
   PL_register_foreign("system:rl_add_history",    1, pl_rl_add_history,    0);
   PL_register_foreign("system:rl_read_init_file", 1, pl_rl_read_init_file, 0);
-  PL_register_foreign("system:win_window_pos",    1, pl_window_pos,        0);
 
   PL_set_feature("tty_control", PL_BOOL, TRUE);
   PL_set_feature("readline",    PL_BOOL, TRUE);

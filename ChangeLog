@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 5.0.10 (Sep 25, 2002)
+============================
+
   * ADDED: plwin.exe: win_window_pos/1 to control the geometry and zorder
     of the console.
 

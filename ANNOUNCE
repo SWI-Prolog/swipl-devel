@@ -36,8 +36,13 @@ Packages
 
     *FIXES*: There are some fixes to the SGML parser, notably handling
     <em/shorttag/ elements and parsing DTD from the <!DOCTYPE xx [...]>
-    in-document definition.
+    in-document definition.  In addition, there is a fix in XML mode
+    handling documents that have <!ATTLIST declarations, but no <!ELEMENT
+    declarations.
 
+  * XPCE: Improvements for handling out-of-memory conditions, especially
+    for strings.  Increased maximum string length from 16MB to 128 MB.
+    Fixed a rare but very dangerous memory management problem.
 
 Environment
 ===========

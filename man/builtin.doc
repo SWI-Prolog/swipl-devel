@@ -4017,8 +4017,7 @@ Remove environment variable from the environment.
 This predicate comes from the Quintus compatibility library and provides
 a partial implementation thereof.  It provides access to some operating
 system features and unlike the name suggests, is not operating system
-specific. Currently it is the only way to fetch the Prolog command-line
-arguments. Defined \arg{Command}'s are below.
+specific.  Defined \arg{Command}'s are below.
 
 \begin{description}
     \termitem{system}{+Command}
@@ -4044,7 +4043,8 @@ this Prolog run. Please note that Prolog system-arguments and
 application arguments are separated by \const{--}.  Integer arguments
 are passed as Prolog integers, float arguments and Prolog floating
 point numbers and all other arguments as Prolog atoms.  New applications
-should use the prolog-flag \const{argv}.
+should use the prolog-flag \const{argv}.  See also prolog prolog-flag
+\const{argv}.
 
 A stand-alone program could use the following skeleton to handle
 command-line arguments. See also \secref{cmdlinecomp}.
@@ -4090,15 +4090,43 @@ See also convert_time/8.
 \end{description}
 
 
-\subsection{Handling the menu in program{PLWIN.EXE}}
+\subsection{Controlling the program{PLWIN.EXE} console window}
 
-The Windows executable \program{PLWIN.EXE} has a menu-bar displayed at
-the top that can be programmed from Prolog.  Being totally non-portable,
-we do not advice using it for your own application, but use XPCE or
-another portable GUI platform instead.  We give the predicates for
-reference here.
+The Windows executable \program{PLWIN.EXE} console has a number of
+predicates to control the appearance of the console. Being totally
+non-portable, we do not advice using it for your own application, but
+use XPCE or another portable GUI platform instead. We give the
+predicates for reference here.
 
 \begin{description}
+    \predicate{window_title}{2}{-Old, +New}
+Unify \arg{Old} with the title displayed in the console and change the
+title to \arg{New}.%
+	\bug{This predicate should have been called
+	\const{win_window_title} for consistent naming.}
+
+    \predicate{win_window_pos}{1}{+ListOfOptions}
+Interface to the MS-Windows SetWindowPos() function, controlling
+size, position and stacking order of the window.  \arg{ListOfOptions}
+is a list that may hold any number of the terms below.
+
+\begin{description}
+    \termitem{size}{W, H}
+Change the size of the window.  \arg{W} and \arg{H} are expressed
+in character-units.
+    \termitem{position}{X, Y}
+Change the top-left corner of the window.  The values are expressed
+in pixel units.
+    \termitem{zorder}{ZOrder}
+Change the location in the window stacking order.  Values are
+\const{bottom}, \const{top}, \const{topmost} and \const{notopmost}.
+\emph{Topmost} windows are displayed above all other windows.
+    \termitem{show}{Bool}
+If \const{true}, show the window, if \const{false} hide the window.
+    \termitem{activate}{}
+If present, activate the window.
+\end{description}
+
     \predicate{win_insert_menu}{2}{+Label, +Before}
 Insert a new entry (pulldown) in the menu.  If the menu already contains
 this entry, nothing is done.  The \arg{Label} is the label and using the

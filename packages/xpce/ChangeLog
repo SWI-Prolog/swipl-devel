@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.0.10, distributed with SWI-Prolog 5.0.10
+==================================================
+
 * FIXED: memory-management problem in `code-referenced' objects.  This
   can be the cause of some hard-to-reproduce crashes.
 
