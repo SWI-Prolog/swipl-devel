@@ -52,7 +52,6 @@
 	, arithmetic_function/1
         , default_module/2
 	, absolute_file_name/2
-	, absolute_file_name/3
 	, require/1
 	, call_with_depth_limit/3
 	]).	
@@ -660,45 +659,6 @@ sformat(String, Format) :-
 		 /*******************************
 		 *	      FILES		*
 		 *******************************/
-
-%	absolute_file_name(+Term, +Args, -AbsoluteFile)
-
-absolute_file_name(Spec, Args, Path) :-
-	(   select(Args, extensions(Exts), Conditions)
-	->  true
-	;   select(Args, file_type(Type), Rest)
-	->  file_type_conditions(Type, Exts, C0),
-	    append(C0, Rest, Conditions)
-	;   Conditions = Args,
-	    Exts = ['']
-	),
-	(   select(Conditions, solutions(Sols), C1)
-	->  true
-	;   Sols = first,
-	    C1 = Conditions
-	),
-	(   select(C1, file_errors(FileErrors), C2)
-	->  true
-	;   FileErrors = fail,
-	    C2 = C1
-	),
-	(   $chk_file(Spec, Exts, C2, Path)
-	->  (   Sols == first
-	    ->  !
-	    ;   true
-	    )
-	;   (   FileErrors == fail
-	    ->  fail
-	    ;   $warning('~w: No such file or directory', Spec),
-		fail
-	    )
-	).
-
-file_type_conditions(txt,        [''],		[]).
-file_type_conditions(prolog,     ['.pl', ''],	[]).
-file_type_conditions(executable, ['.so', ''],	[]).
-file_type_conditions(qlf, 	 ['.qlf', ''],	[]).
-file_type_conditions(directory,  [''],		[]).
 
 %	absolute_file_name(+Term, -AbsoluteFile)
 

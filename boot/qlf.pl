@@ -20,9 +20,7 @@
 :- module_transparent
 	qcompile/1,
 	qload/1,
-	qload/2,
-	yesno/2.
-
+	qload/2.
 
 qcompile([]) :- !.
 qcompile([H|T]) :- !,
@@ -31,34 +29,24 @@ qcompile([H|T]) :- !,
 qcompile(File) :-
 	$strip_module(File, Module, FileName),
 	absolute_file_name(FileName,
-			   [ extensions(['.pl', '']),
+			   [ file_type(prolog),
 			     access(read)
-			   ], Absolute), !,
-	remove_suffix(Absolute, '.pl', ABase),
-	ensure_suffix(ABase, '.qlf', Qlf),
+			   ], Absolute),
+	file_name_extension(ABase, PlExt, Absolute),
+	user:prolog_file_type(PlExt, prolog),
+	user:prolog_file_type(QlfExt, qlf),
+	file_name_extension(ABase, QlfExt, Qlf),
 	$qlf_open(Qlf),
 	flag($compiling, Old, qlf),
 	$set_source_module(OldModule, Module), % avoid this in the module!
-	yesno(consult(Module:Absolute), Yes),
+	(   consult(Module:Absolute)
+	->  Ok = true
+	;   Ok = fail
+	),
 	$set_source_module(_, OldModule),
-	Yes,
 	flag($compiling, _, Old),
-	$qlf_close.
-
-remove_suffix(F, S, B) :-
-	concat(B, S, F), !.
-remove_suffix(F, _, F).
-
-ensure_suffix(X, S, X) :-
-	concat(_, S, X), !.
-ensure_suffix(X, S, XS) :-
-	concat(X, S, XS).
-
-yesno(G, Yes) :-
-	(   G
-	->  Yes = true
-	;   Yes = fail
-	).
+	$qlf_close,
+	Ok == true.
 
 	
 		 /*******************************
@@ -78,7 +66,7 @@ qload(File, Options) :-
 
 	$strip_module(File, Module, FileName),
 	absolute_file_name(FileName,
-			   [ extensions(['.qlf', '']),
+			   [ file_type(qlf),
 			     access(read)
 			   ], Absolute), !,
 	$qlf_load(Module:Absolute, LoadedModule),

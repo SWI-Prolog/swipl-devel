@@ -8,7 +8,6 @@
 
 :- module($list,
 	[ length/2
-	, select/3
 	, delete/3
 	, nth0/3
 	, nth1/3
@@ -36,13 +35,6 @@ length2([], 0).
 length2([_|List], N) :-
 	length2(List, M), 
 	succ(M, N).
-
-%	select(?List1, ?Elem, ?List2)
-%	Is true when List1, with Elem removed results in List2.
-
-select([X|Tail], X, Tail).
-select([Head|Tail], Elem, [Head|Rest]) :-
-	select(Tail, Elem, Rest).
 
 %	delete(?List1, ?Elem, ?List2)
 %	Is true when Lis1, with all occurences of Elem deleted results in

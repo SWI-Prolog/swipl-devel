@@ -73,14 +73,21 @@ $define_predicate(Term) :-
 		********************************/
 
 $update_library_index :-
-	$check_file(library('INDEX.pl'), IndexFile),
+	absolute_file_name(library('INDEX'),
+			   [ file_errors(fail),
+			     solutions(all),
+			     access(write),
+			     access(read),
+			     file_type(prolog)
+			   ], IndexFile),
 	file_directory_name(IndexFile, Dir),
 	update_library_index(Dir),
 	fail.
 $update_library_index.
 
 update_library_index(Dir) :-
-	concat_atom([Dir, '/INDEX.pl'], IndexFile),
+	user:prolog_file_type(Ext, prolog),
+	concat_atom([Dir, '/INDEX.', Ext], IndexFile),
 	access_file(IndexFile, write),
 	make_library_index(Dir).
 
@@ -94,7 +101,12 @@ clear_library_index :-
 load_library_index :-
 	library_index(_, _, _), !.		% loaded
 load_library_index :-
-	$check_file(library('INDEX'), Index),
+	absolute_file_name(library('INDEX'),
+			   [ file_type(prolog),
+			     access(read),
+			     solutions(all),
+			     file_errors(fail)
+			   ], Index),
 	    file_directory_name(Index, Dir),
 	    read_index(Index, Dir),
 	fail.
@@ -116,7 +128,8 @@ assert_index(index(Name, Arity, Module, File), Dir) :- !,
 	concat_atom([Dir, '/', File], Path),
 	assertz(library_index(Head, Module, Path)).
 assert_index(Term, Dir) :-
-	$warning('Illegal term in INDEX.pl of directory ~w: ~w', [Dir, Term]).
+	$warning('Illegal term in INDEX file of directory ~w: ~w',
+		 [Dir, Term]).
 	
 
 		/********************************
@@ -124,10 +137,12 @@ assert_index(Term, Dir) :-
 		********************************/
 
 make_library_index(Dir) :-
-	make_library_index(Dir, ['*.pl']).
+	findall(Pattern, source_file_pattern(Pattern), PatternList),
+	make_library_index(Dir, PatternList).
 	
 make_library_index(Dir, Patterns) :-
-	Index = 'INDEX.pl',
+	once(user:prolog_file_type(PlExt, prolog)),
+	file_name_extension('INDEX', PlExt, Index),
 	concat_atom([Dir, '/', Index], AbsIndex),
 	access_file(AbsIndex, write), !,
 	absolute_file_name('', OldDir),
@@ -143,12 +158,13 @@ make_library_index(Dir, Patterns) :-
 make_library_index(Dir, _) :-
 	$warning('make_library_index/1: Cannot write ~w', [Dir]).
 
+source_file_pattern(Pattern) :-
+	user:prolog_file_type(PlExt, prolog),
+	concat('*.', PlExt, Pattern).
 
 expand_index_file_patterns(Patterns, Files) :-
 	maplist(expand_file_name, Patterns, NestedFiles),
-	flatten(NestedFiles, F0),
-	subtract(F0, ['INDEX.pl', 'index.pl', 'Make.pl', 'make.pl'], Files).
-
+	flatten(NestedFiles, Files).
 
 library_index_out_of_date(Index, _Files) :-
 	\+ exists_file(Index), !.
@@ -173,18 +189,15 @@ index_file(Fd, File) :-
 	read(In, Term),
 	close(In),
 	Term = (:- module(Module, Public)), !,
-	delete_suffix(File, '.pl', Base),
+	file_name_extension(Base, _, File),
 	forall( member(Name/Arity, Public),
 		format(Fd, 'index((~k), ~k, ~k, ~k).~n',
 		       [Name, Arity, Module, Base])).
 index_file(_, _).
 
-delete_suffix(File, Suffix, Base) :-
-	concat(Base, Suffix, File), !.
-delete_suffix(File, _, File).
-
 index_header(Fd):-
-	format(Fd, '/*  $Id$~n~n', []),
+	format(Fd, '/*  $Id', []),
+	format(Fd, '$~n~n', []),
 	format(Fd, '    Creator: make/0~n~n', []),
 	format(Fd, '    Purpose: Provide index for autoload~n', []),
 	format(Fd, '*/~n~n', []).
@@ -193,7 +206,7 @@ index_header(Fd):-
 		 *	   DO AUTOLOAD		*
 		 *******************************/
 
-%	autoload([options ...])
+%	autoload([options ...]) 
 %
 %	Force all necessary autoloading to be done now.
 

@@ -433,16 +433,64 @@ $make_path(Dir, File, Path) :-
 		*         FILE CHECKING         *
 		*********************************/
 
+%	absolute_file_name(+Term, +Args, -AbsoluteFile)
+
+absolute_file_name(Spec, Args, Path) :-
+	(   select(Args, extensions(Exts), Conditions)
+	->  true
+	;   select(Args, file_type(Type), Conditions)
+	->  $file_type_extensions(Type, Exts)
+	;   Conditions = Args,
+	    Exts = ['']
+	),
+	(   select(Conditions, solutions(Sols), C1)
+	->  true
+	;   Sols = first,
+	    C1 = Conditions
+	),
+	(   select(C1, file_errors(FileErrors), C2)
+	->  true
+	;   FileErrors = error,
+	    C2 = C1
+	),
+	(   $chk_file(Spec, Exts, C2, Path)
+	*-> (   Sols == first
+	    ->  !
+	    ;   true
+	    )
+	;   (   FileErrors == fail
+	    ->  fail
+	    ;   throw(error(existence_error(source_sink, Spec), _))
+	    )
+	).
+
+$file_type_extensions(Type, Exts) :-
+	'$current_module'('$bags', _File), !,
+	findall(Ext, user:prolog_file_type(Ext, Type), Exts0),
+	append(Exts0, [''], Exts).
+$file_type_extensions(prolog, [pl, '']). % findall is not yet defined ...
+
+%	user:prolog_file_type/2
+%
+%	Define type of file based on the extension.  This is used by
+%	absolute_file_name/3 and may be used to extend the list of
+%	extensions used for some type.
+
+:- multifile(user:prolog_file_type/2),
+   dynamic(user:prolog_file_type/2).
+
+user:prolog_file_type(pl,	prolog).
+user:prolog_file_type(Ext,	prolog) :-
+	feature(associate, Ext),
+	Ext \== pl.
+user:prolog_file_type(qlf,	qlf).
+user:prolog_file_type(so,	executable) :-
+	feature(open_shared_object, true).
+user:prolog_file_type(dll,	executable) :-
+	feature(dll, true).
+
 %	File is a specification of a Prolog source file. Return the full
 %	path of the file.
-
-$check_file(0, _) :- !, fail.			% deal with variables
-$check_file(user, user) :- !.
-$check_file(File, Absolute) :-
-	flag($compiling, database, database), !,
-	$chk_file(File, ['.qlf', '.pl', ''], exists, Absolute).
-$check_file(File, Absolute) :-
-	$chk_file(File, ['.pl', ''], exists, Absolute).
 
 $chk_file(Spec, Extensions, Cond, FullName) :-
 	$canonise_extensions(Extensions, Exts),
@@ -676,15 +724,16 @@ use_module(Files, Import) :-
 consult(List) :-
 	load_files(List).
 
-%	Compilation extensions
-
-$compiler_extension('.qlf', $qload_file).
-$compiler_extension('',  $consult_file).
+%	$consult_goal(+Path, -Goal)
+%
+%	Determine how to load the indicated file
 
 $consult_goal(Path, Goal) :-
-	$compiler_extension(Ext, Goal),
-	concat(_, Ext, Path), !.
-
+	(   file_name_extension(_, Ext, Path),
+	    user:prolog_file_type(Ext, qlf)
+	->  Goal = $qload_file
+	;   Goal = $consult_file
+	).
 
 %	$consult_file(+File, +Options)
 %	
@@ -727,12 +776,37 @@ $noload(changed, FullFile) :-
         time_file(FullFile, Modified),
         Modified @=< LoadTime, !.
 
+%	$qlf_file(+PlFile, -LoadFile)
+%
+%	Return the QLF file if it exists.  Might check for modification
+%	time, version, etc.
+
+$qlf_file(user, user) :- !.
+$qlf_file(FullFile, QlfFile) :-
+	flag($compiling, database, database),
+	file_name_extension(Base, PlExt, FullFile),
+	user:prolog_file_type(PlExt, prolog),
+	user:prolog_file_type(QlfExt, qlf),
+	file_name_extension(Base, QlfExt, QlfFile),
+	access_file(QlfFile, read).
+$qlf_file(FullFile, FullFile).
+
 :- flag($load_silent, _, false).
 
 $load_file(Spec, Options) :-
 	statistics(heapused, OldHeap),
 	statistics(cputime, OldTime),
  
+        $strip_module(Spec, Module, File),
+	(   File == user
+	->  true
+	;   absolute_file_name(File,
+			       [ file_type(prolog),
+				 access(read)
+			       ],
+			       FullFile)
+	),
+	    
 	$get_option(imports(Import), Options, all),
 	$get_option(must_be_module(IsModule), Options, false),
 	flag($load_silent, DefSilent, DefSilent),
@@ -740,10 +814,7 @@ $load_file(Spec, Options) :-
 	flag($load_silent, _, Silent),
 	$get_option(if(If), Options, true),
 
-        $strip_module(Spec, Module, File),
-	    
-	(   once($chk_file(File, ['.pl', ''], exists, FullFile)),
-	    $noload(If, FullFile)
+	(   $noload(If, FullFile)
 	->  (   $current_module(LoadModule, FullFile)
 	    ->  $import_list(Module, LoadModule, Import)
 	    ;   (   Module == user
@@ -751,15 +822,10 @@ $load_file(Spec, Options) :-
 		;   $load_file(Spec, [if(true)|Options])
 		)
 	    )
-	;   (   $check_file(File, Absolute)
-	    *-> true
-	    ;   throw(error(existence_error(source_sink, File),
-			    context(_, 'No such file or directory')))
-	    ),
-
+	;   $qlf_file(FullFile, Absolute),
 	    $calleventhook(load_file(Absolute, start)),
 	    (   $consult_goal(Absolute, Goal),
-	        $apply(Goal, [Absolute, Module, Import, IsModule, Action, LM])
+		call(Goal, Absolute, Module, Import, IsModule, Action, LM)
 	    ->  true
 	    ;   $warning('Failed to load file: ~w', Spec),
 		$calleventhook(load_file(Absolute, false)),
@@ -1303,6 +1369,13 @@ member(X, [_|T]) :-
 append([], L, L).
 append([H|T], L, [H|R]) :-
 	append(T, L, R).
+
+%	select(?List1, ?Elem, ?List2)
+%	Is true when List1, with Elem removed results in List2.
+
+select([X|Tail], X, Tail).
+select([Head|Tail], Elem, [Head|Rest]) :-
+	select(Tail, Elem, Rest).
 
 
 		 /*******************************
