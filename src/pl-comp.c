@@ -1342,7 +1342,8 @@ care of reconsult, redefinition, etc.
 
       return assertProcedure(proc, clause, where) == FALSE ? (Clause) NULL
 							   : clause;
-    }
+    } else
+      def->line_no = source_line_no;
 
     current = proc;
 
@@ -1383,6 +1384,7 @@ mode, the predicate is still undefined and is not dynamic or multifile.
     } else
     { if (def->source_count < sf->count)	/* reconsult */
       { removeClausesProcedure(proc);
+	def->line_no = source_line_no;
         def->source = sf;
       	def->source_count = sf->count;
       }

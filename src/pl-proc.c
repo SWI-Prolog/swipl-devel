@@ -64,6 +64,7 @@ Procedure proc;
   def->flags ^= def->flags & ~SPY_ME;	/* Preserve the spy flag */
   def->source = (SourceFile) NULL;
   def->source_count = 0;
+  def->line_no = -1;
 #if O_AUTOINDEX
   set(def, TRACE_ME|AUTOINDEX);
   def->indexPattern = 0x0;
@@ -849,7 +850,12 @@ Word pred, what, value;
   if (key == ATOM_defined)
     return unifyAtomic(value, consNum(true(def, FOREIGN) ||
 				      def->definition.clauses ? 1 : 0) );
-  else
+  if (key == ATOM_line_count)
+  { if ( def->line_no > 0 )
+      return unifyAtomic(value, consNum(def->line_no));
+    else
+      fail;
+  } else
     return warning("$predicate_attribute/4: unknown key");
 }
 

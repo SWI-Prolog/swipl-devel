@@ -201,6 +201,7 @@ A warning		"warning"
 A local_shifts		"local_shifts"
 A global_shifts		"global_shifts"
 A trail_shifts		"trail_shifts"
+A line_count		"line_count"
 
 F apply			2
 F call			1

@@ -74,7 +74,7 @@ Below is an informal description of the format of a `wic' file:
 <magic code>	::=	<string>			% normally #!<path>
 <version number>::=	<word>
 <statement>	::=	'W' <string>			% include wic file
-		      | 'P' <num> <string>
+		      | 'P' <line_no> <num> <string>
 			    {<clause>} <pattern>	% predicate
 		      | 'D' <string>			% directive
 		      | 'F' <string> <system> <time>	% source file
@@ -111,7 +111,7 @@ between  16  and  32  bits  machines (arities on 16 bits machines are 16
 bits) as well as machines with different byte order.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define VERSION 10			/* save version number */
+#define VERSION 11			/* save version number */
 
 static char saveMagic[] = "SWI-Prolog (c) 1990 Jan Wielemaker\n";
 static char *wicFile;			/* name of output file */
@@ -388,8 +388,7 @@ bool toplevel, load_options;
 static bool
 loadPredicate(fd)
 FILE *fd;
-{ int arity;
-  int n;
+{ int line, arity, n;
   char *name;
   Procedure proc;
   Definition def;
@@ -397,6 +396,7 @@ FILE *fd;
   Word xp;
   Code bp;
 
+  line  = (int) getNum(fd);
   arity = (int) getNum(fd);
   if ((name = getString(fd)) == (char *) NULL)
     sysError("bad string in wic file");
@@ -405,6 +405,7 @@ FILE *fd;
 			  modules.source);
   def = proc->definition;
   def->source = currentSource;
+  def->line_no = line;
   if ( SYSTEM_MODE &&
        false(def, DYNAMIC) &&
        false(def, MULTIFILE) )
@@ -791,6 +792,7 @@ Atom file;
       checkSource(file);
       currentProc = clause->procedure;
       Putc('P', wicFd);
+      putNum(currentProc->definition->line_no, wicFd);
       putNum(currentProc->functor->arity, wicFd);
       putAtom(currentProc->functor->name, wicFd);
     }

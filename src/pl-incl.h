@@ -930,6 +930,7 @@ struct definition
 #endif /* O_PROFILE */
   ulong		indexPattern;		/* indexed argument pattern */
   char		indexCardinality;	/* cardinality of index pattern */
+  short		line_no;		/* Line number for the predicate */
 #if O_AUTOINDEX
   int		indexMerit;		/* how badly do we want it? */
 #endif

@@ -190,3 +190,4 @@
 #define ATOM_local_shifts (&atoms[189])
 #define ATOM_global_shifts (&atoms[190])
 #define ATOM_trail_shifts (&atoms[191])
+#define ATOM_line_count   (&atoms[192])

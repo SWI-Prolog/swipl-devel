@@ -190,3 +190,4 @@
 { (Atom)NULL, ATOM_TYPE, "local_shifts" },
 { (Atom)NULL, ATOM_TYPE, "global_shifts" },
 { (Atom)NULL, ATOM_TYPE, "trail_shifts" },
+{ (Atom)NULL, ATOM_TYPE, "line_count" },
