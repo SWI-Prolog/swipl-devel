@@ -648,7 +648,7 @@ infoPce(Pce pce)
   writef("	Jan Wielemaker\n");
   writef("\n");
 
-  writef("Copyright (C) 1993-2000 University of Amsterdam.\n");
+  writef("Copyright (C) 1993-2001 University of Amsterdam.\n");
   writef("Copying: GPL-2 (see file COPYING or www.gnu.org)\n");
   writef("\n\n");
 
