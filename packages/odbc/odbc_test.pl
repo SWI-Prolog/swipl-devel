@@ -35,11 +35,18 @@
 :- use_module(odbc).
 
 :- dynamic
-	parms/2.
+	parms/2,
+	passwd/1.
 
 parms(test, [ user(jan),
-	      password(geheim)
-	    ]).
+	      password(Pass)
+	    ]) :-
+	(   passwd(Pass)
+	->  true
+	;   getpass(Pass),			% my private library
+	    assert(passwd(Pass))
+	).
+	
 
 set_db(DSN, Options) :-
 	retractall(parms(_,_)),
@@ -162,6 +169,16 @@ type(blob,			% mySql blob
      [ odbc_type(longvarbinary),
        dbms_name('MySQL')		% MySQL specific test
      ]).
+type(longblob,			% mySql blob
+     atom = [ BIG
+	    ],
+     [
+     ],
+     [ odbc_type(longvarbinary),
+       dbms_name('MySQL')		% MySQL specific test
+     ]) :-
+	read_file_to_codes('odbc.pdf', Codes, []),
+	atom_codes(BIG, Codes).
 type(date - 'Type date',
      date = [ date(1960,3,19) ],
      [
@@ -511,4 +528,14 @@ progress(Fmt, Args) :-
 	flush_output.
 
 
+		 /*******************************
+		 *	       PORTRAY		*
+		 *******************************/
 
+user:portray(Long) :-
+	atom(Long),
+	atom_length(Long, Len),
+	Len > 70,
+	sub_atom(Long, 0, 20, _, Start),
+	sub_atom(Long, _, 10, 0, End),
+	format('\'~w...~w\'', [Start, End]).

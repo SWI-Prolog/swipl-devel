@@ -44,6 +44,12 @@ Stefano  De  Giorgi  (s.degiorgi@tin.it).
 #endif
 #endif
 
+#ifdef O_DEBUG
+#define DEBUG(g) g
+#else
+#define DEBUG(g) ((void)0)
+#endif
+
 #include <sql.h>
 #include <sqlext.h>
 #include <time.h>
@@ -179,6 +185,7 @@ typedef struct
   SQLPOINTER  *ptr_value;		/* ptr to value */
   SQLLEN       length_ind;		/* length/indicator of value */
   SQLLEN       len_value;		/* length of value (as parameter)  */
+  term_t       put_data;		/* data to put there */
   struct
   { atom_t table;			/* Table name */
     atom_t column;			/* column name */
@@ -477,6 +484,8 @@ odbc_malloc(size_t bytes)
 
 #define get_name_arg_ex(i, t, n)  \
 	PL_get_typed_arg_ex(i, t, PL_get_atom_chars, "atom", n)
+#define get_text_arg_ex(i, t, n)  \
+	PL_get_typed_arg_ex(i, t, get_text, "text", n)
 #define get_atom_arg_ex(i, t, n)  \
 	PL_get_typed_arg_ex(i, t, PL_get_atom, "atom", n)
 #define get_int_arg_ex(i, t, n)   \
@@ -487,6 +496,11 @@ odbc_malloc(size_t bytes)
 	PL_get_typed_arg_ex(i, t, PL_get_bool, "boolean", n)
 #define get_float_arg_ex(i, t, n) \
 	PL_get_typed_arg_ex(i, t, PL_get_float, "float", n)
+
+static int
+get_text(term_t t, char **s)
+{ return PL_get_chars(t, s, CVT_ATOM|CVT_STRING|CVT_LIST|BUF_RING);
+}
 
 static int
 PL_get_typed_arg_ex(int i, term_t t, int (*func)(), const char *ex, void *ap)
@@ -1154,7 +1168,7 @@ pl_odbc_connect(term_t tdsource, term_t cid, term_t options)
      { if ( !get_name_arg_ex(1, head, &uid) )
 	 return FALSE;
      } else if ( PL_is_functor(head, FUNCTOR_password1) )
-     { if ( !get_name_arg_ex(1, head, &pwd) )
+     { if ( !get_text_arg_ex(1, head, &pwd) )
 	 return FALSE;
      } else if ( PL_is_functor(head, FUNCTOR_alias1) )
      { if ( !get_atom_arg_ex(1, head, &alias) )
@@ -2472,10 +2486,10 @@ declare_parameters(context *ctxt, term_t parms)
 	      return FALSE;
 	  }
 	  params->length_ind = cbColDef;
-	} else
-	{ if ( !(params->ptr_value = odbc_malloc(256)) )
-	    return FALSE;
-	  params->length_ind = 255;
+	} else				/* unknown, use SQLPutData() */
+	{ params->ptr_value = (PTR)pn;
+	  params->len_value = SQL_LEN_DATA_AT_EXEC(0);
+	  DEBUG(Sdprintf("Using SQLPutData() for column %d\n", pn));
 	}
         vlenptr = &params->len_value;
 	break;
@@ -2688,13 +2702,54 @@ try_null(context *ctxt, parameter *prm, term_t val, const char *expected)
 
 
 static int
+get_parameter_text(term_t t, parameter *prm, unsigned int *len, char **s)
+{ unsigned int flags = CVT_ATOM|CVT_STRING;
+  const char *expected = "text";
+
+  switch(prm->plTypeID)
+  { case SQL_PL_DEFAULT:
+      flags = CVT_ATOM|CVT_STRING;
+      expected = "text";
+      break;
+    case SQL_PL_ATOM:
+      flags = CVT_ATOM;
+      expected = "atom";
+      break;
+    case SQL_PL_STRING:
+      flags = CVT_STRING;
+      expected = "string";
+      break;
+    case SQL_PL_CODES:
+      flags = CVT_LIST;
+      expected = "code_list";
+      break;
+    default:
+      assert(0);
+  }
+
+  if ( !PL_get_nchars(t, len, s, flags) )
+    return type_error(t, expected);
+
+  return TRUE;
+}
+
+
+
+static int
 bind_parameters(context *ctxt, term_t parms)
 { term_t tail = PL_copy_term_ref(parms);
   term_t head = PL_new_term_ref();
   parameter *prm;
 
   for(prm = ctxt->params; PL_get_list(tail, head, tail); prm++)
-  { switch(prm->cTypeID)
+  { if ( prm->len_value == SQL_LEN_DATA_AT_EXEC(0) )
+    { DEBUG(Sdprintf("bind_parameters(): Delaying column %d\n",
+		     prm-ctxt->params+1));
+      prm->put_data = PL_copy_term_ref(head);
+      continue;
+    }
+
+    switch(prm->cTypeID)
     { case SQL_C_SLONG:
 	if ( PL_get_long(head, (long *)prm->ptr_value) )
 	  prm->len_value = sizeof(long);
@@ -2711,8 +2766,6 @@ bind_parameters(context *ctxt, term_t parms)
       case SQL_C_BINARY:
       { SQLLEN len;
 	unsigned int l;
-	unsigned int flags = CVT_ATOM|CVT_STRING;
-	const char *expected = "text";
 	char *s;
 
 					/* check for NULL */
@@ -2721,33 +2774,14 @@ bind_parameters(context *ctxt, term_t parms)
 	  break;
 	}
 
-	switch(prm->plTypeID)
-	{ case SQL_PL_DEFAULT:
-	    flags = CVT_ATOM|CVT_STRING;
-	    expected = "text";
-	    break;
-	  case SQL_PL_ATOM:
-	    flags = CVT_ATOM;
-	    expected = "atom";
-	    break;
-	  case SQL_PL_STRING:
-	    flags = CVT_STRING;
-	    expected = "string";
-	    break;
-	  case SQL_PL_CODES:
-	    flags = CVT_LIST;
-	    expected = "code_list";
-	    break;
-	  default:
-	    assert(0);
-	}
-
-	if ( !PL_get_nchars(head, &l, &s, flags) )
-	  return type_error(head, expected);
+	if ( !get_parameter_text(head, prm, &l, &s) )
+	  return FALSE;
 	len = l;
 
 	if ( len > prm->length_ind )
+	{ DEBUG(Sdprintf("Column-width = %d\n", prm->length_ind));
 	  return representation_error(head, "column_width");
+	}
 	memcpy(prm->ptr_value, s, len+1);
 	prm->len_value = len;
 	break;
@@ -2805,7 +2839,28 @@ odbc_execute(term_t qid, term_t args, term_t row, control_t handle)
 
       set(ctxt, CTX_INUSE);
       clear(ctxt, CTX_PREFETCHED);
-      TRY(ctxt, SQLExecute(ctxt->hstmt));
+
+      ctxt->rc = SQLExecute(ctxt->hstmt);
+      while( ctxt->rc == SQL_NEED_DATA )
+      { PTR token;
+
+	if ( (ctxt->rc = SQLParamData(ctxt->hstmt, &token)) == SQL_NEED_DATA )
+	{ parameter *p = &ctxt->params[(int)token - 1];
+	  unsigned int len;
+	  char *s;
+
+	  if ( is_sql_null(p->put_data, ctxt->null) )
+	  { s = NULL;
+	    len = SQL_NULL_DATA;
+	  } else
+	  { if ( !get_parameter_text(p->put_data, p, &len, &s) )
+	      return FALSE;
+	  }
+	  SQLPutData(ctxt->hstmt, s, len);
+	}
+      }
+      if ( !report_status(ctxt) )
+	return FALSE;
 
       if ( true(ctxt, CTX_NOAUTO) )
 	return TRUE;
@@ -3245,18 +3300,19 @@ pl_put_column(context *c, int nth, term_t col)
 	return PL_warning("No support for SQL_NO_TOTAL.\n"
 			  "Please report to bugs@swi-prolog.org");
       } else if ( len >= (SDWORD)sizeof(buf) )
-      { SDWORD len2;
+      { int pad = p->cTypeID == SQL_C_CHAR ? 1 : 0;
+	SDWORD len2;
 
-	data = odbc_malloc(len+1);
+	data = odbc_malloc(len+pad);
 	memcpy(data, buf, sizeof(buf));	/* you don't get the data twice! */
 	c->rc = SQLGetData(c->hstmt, (UWORD)(nth+1), p->cTypeID,
-			   data+sizeof(buf)-1, len-sizeof(buf)+2, &len2);
+			   data+sizeof(buf)-pad, len-sizeof(buf)+2*pad, &len2);
 	if ( c->rc != SQL_SUCCESS )
 	{ free(data);
 	  report_status(c);
 	  return FALSE;
 	}
-	assert(len == len2 + (SDWORD)sizeof(buf) - 1);
+	assert(len == len2 + (SDWORD)sizeof(buf) - pad);
       }
     } else if ( !report_status(c) )
       return FALSE;
