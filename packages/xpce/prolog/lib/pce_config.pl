@@ -25,13 +25,13 @@
 	    config_term_to_object/3,	% +Type, ?Term, ?Object
 					% +Editor interface
 	    config_attributes/2,	% ?Key, -Attributes
-	    current_config_type/2	% +Type, -Attributes
+	    current_config_type/3	% +Type, -DefModule, -Attributes
 	  ]).
 
 :- meta_predicate
 	register_config(:),
 	register_config_type(:, +),
-	current_config_type(:, +),
+	current_config_type(:, -, -),
 	get_config_type(:, -),
 	get_config_term(:, -, -),
 	get_config(:, -),
@@ -424,19 +424,22 @@ make_config_editor(M, Editor) :-
 		 *	       TYPES		*
 		 *******************************/
 
+resource(font,		image,	image('16x16/font.xpm')).
+resource(cpalette2,	image,	image('16x16/cpalette2.xpm')).
+
 builtin_config_type(bool,		[ editor(config_bool_item),
 					  term(map([@off=false, @on=true]))
 					]).
 builtin_config_type(font,		[ editor(font_item),
 					  term([family, style, points]),
-					  icon('16x16/font.xpm')
+					  icon(font)
 					]).
 builtin_config_type(colour,		[ editor(colour_item),
 					  term(if(@arg1?kind == named, name)),
 					  term([@default, red, green, blue])
 					]).
 builtin_config_type(setof(colour),	[ editor(colour_palette_item),
-					  icon('16x16/cpalette2.xpm')
+					  icon(cpalette2)
 					]).
 builtin_config_type(image,		[ editor(image_item),
 					  term(if(@arg1?name \== @nil, name)),
@@ -458,20 +461,20 @@ register_config_type(TypeSpec, Attributes) :-
 	;   lasserta(config_type(Type, Module, Attributes))
 	).
 
-current_config_type(TypeSpec, Attributes) :-
+current_config_type(TypeSpec, DefModule, Attributes) :-
 	strip_module(TypeSpec, Module, Type),
 	(   config_type(Type, Module, Attributes)
-	->  true
-	;   config_type(Type, _, Attributes)
+	->  DefModule = Module
+	;   config_type(Type, DefModule, Attributes)
 	).
-current_config_type(TypeSpec, Attributes) :-
+current_config_type(TypeSpec, pce_config, Attributes) :-
 	strip_module(TypeSpec, _Module, Type),
 	builtin_config_type(Type, Attributes).
 
 pce_object_type(setof(Type)) :- !,
 	pce_object_type(Type).
 pce_object_type(Type) :-
-	current_config_type(Type, Attributes),
+	current_config_type(Type, _, Attributes),
 	memberchk(term(_), Attributes).
 
 
@@ -544,11 +547,11 @@ config_attributes_to_term(Attribute, Obj, Term) :-
 
 					% unconditional term descriptions
 term_description(Type, TermDescription) :-
-	current_config_type(Type, Attributes),
+	current_config_type(Type, _, Attributes),
 	member(term(TermDescription), Attributes),
 	\+ TermDescription = if(_,_).
 term_description(Type, TermDescription, Condition) :-
-	current_config_type(Type, Attributes),
+	current_config_type(Type, _, Attributes),
 	member(term(if(Condition, TermDescription)), Attributes).
 
 prolog_value_argument(Obj, Arg, ArgTerm) :-

@@ -58,6 +58,8 @@ extern int errno;
 static status	closeSocket(Socket);
 
 #ifdef HAVE_WINSOCK
+#define NO_WINERR 1			/* there really isn't a way !!!! */
+#ifdef NO_WINERR
 
 typedef struct
 { int	 id;
@@ -119,13 +121,15 @@ static wsock_err wsock_err_list[] = {
 { WSANO_ADDRESS,	"WSANO_ADDRESS" },
 { 0, NULL }
 };
+#endif /*NO_WINERR*/
 
 
 Name
 SockError()
-{ int err = WSAGetLastError();
+{
+#ifdef NO_WINERR
+  int err = WSAGetLastError();
   wsock_err *e = wsock_err_list;
-  char buf[50];
 
   if ( !err )
     return (Name) NIL;
@@ -135,8 +139,10 @@ SockError()
       return CtoName(e->description);
   }
 
-  sprintf(buf, "Unknown error: %d", err);
-  return CtoName(buf);
+  return WinStrError(err);
+#else
+  return WinStrError(WSAGetLastError());
+#endif
 }
 
 #define SocketHandle(s) ((SOCKET)((s)->ws_ref))
@@ -175,9 +181,7 @@ setupSockets(void)
 #ifdef HAVE_WINSOCK
     WSADATA data;
     WORD wversion = MAKEWORD(1, 1);
-/*
-    int optionValue = SO_SYNCHRONOUS_ALERT;
-*/
+
     if ( WSAStartup(wversion, &data) != 0 )
       errorPce(NIL, NAME_socket, NAME_initialise, SockError());
 
@@ -188,18 +192,14 @@ setupSockets(void)
 	  Cprintf("Description: %s\n", data.szDescription);
 	  Cprintf("Status:      %s\n", data.szSystemStatus);
 	 );
-
-/*
-    if ( setsockopt(INVALID_SOCKET, SOL_SOCKET, SO_OPENTYPE,
-		    (char *)&optionValue, sizeof(optionValue)) != NO_ERROR )
-      errorPce(NIL, NAME_socket, CtoName("setsockopt"), SockError());
-*/
 #endif
 
     at_pce_exit(closeAllSockets, ATEXIT_FIFO);
+
 #ifdef SIGPIPE
     hostAction(HOST_SIGNAL, SIGPIPE, sigPipeSocket);
 #endif
+
     initialised++;
   }
 }
@@ -231,11 +231,33 @@ initialiseSocket(Socket s, Any address, Name domain)
 }
 
 
+static void
+registerSocket(Socket s)		/* do not influence GC */
+{ ulong flags = s->flags;
+  ulong refs  = s->references;
+  
+  appendChain(SocketChain, s);
+  s->flags      = flags;
+  s->references = refs;
+}
+
+
+static void
+unregisterSocket(Socket s)
+{ ulong flags = s->flags;
+  ulong refs  = s->references;
+  
+  addCodeReference(s);			/* avoid drop-out */
+  deleteChain(SocketChain, s);
+
+  s->flags      = flags;
+  s->references = refs;
+}
+
+
 static status
 unlinkSocket(Socket s)
-{ closeSocket(s);			/* close output */
-
-  succeed;
+{ return closeSocket(s);
 }
 
 
@@ -497,7 +519,7 @@ listenSocket(Socket s, Code accept_message, Int backlog)
   if ( notDefault(accept_message) )
     assign(s, accept_message, accept_message);
   assign(s, clients, newObject(ClassChain, 0));
-  appendChain(SocketChain, s);
+  registerSocket(s);
 
 #ifndef RANDOM
 #define RANDOM() rand()
@@ -555,11 +577,11 @@ connectSocket(Socket s)
     return errorPce(s, NAME_socket, NAME_connect, SockError());
 
 #ifdef HAVE_WINSOCK
-  s->wrfd = 0;				/* signal open status */
+  s->rdfd = s->wrfd = 0;		/* signal open status */
 #endif
 
   assign(s, status, NAME_connected);
-  appendChain(SocketChain, s);
+  registerSocket(s);
 
   openDisplay(CurrentDisplay(NIL));
   inputStream((Stream)s, DEFAULT);
@@ -633,9 +655,7 @@ brokenPipeSocket(Socket s)
 
 static status
 closeSocket(Socket s)
-{ deleteChain(SocketChain, s);
-
-  closeInputStream((Stream) s);
+{ closeStream((Stream) s);
 
   if ( notNil(s->clients) )		/* destroy clients */
   { Socket client;
@@ -657,7 +677,8 @@ closeSocket(Socket s)
     removeFile(s->address);
 
   assign(s, status, NAME_idle);
-
+  unregisterSocket(s);
+  
   succeed;
 }
 
@@ -724,7 +745,7 @@ static getdecl get_socket[] =
 
 #define rc_socket NULL
 /*
-static resourcedecl rc_socket[] =
+static classvardecl rc_socket[] =
 { 
 };
 */

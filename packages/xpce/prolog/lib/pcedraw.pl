@@ -47,8 +47,7 @@ pce_ifhostproperty(prolog(swi),
 	pce_autoload_all,
 	qsave_program(Exe,
 		      [ goal=pce_main_loop(pcedraw),
-			stand_alone=true,
-			map=map
+			stand_alone=true
 		      ])),
 (   save_pcedraw(File) :-
 	format(user_error, 'SWI-Prolog only~n', []))).

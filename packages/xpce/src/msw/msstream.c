@@ -56,8 +56,33 @@ findSocketObject(SOCKET sock)
     }
   }
 
-  Cprintf("No socket??\n");
+  DEBUG(NAME_stream, ("No socket??\n"));
   return NIL;
+}
+
+static status
+handleInputSocket(Socket s)
+{ u_long avail;
+
+/*
+  do
+  { if ( !handleInputStream((Stream)s) )
+      fail;
+
+  } while( (SOCKET)s->ws_ref != INVALID_SOCKET &&
+	   ioctlsocket((SOCKET)s->ws_ref, FIONREAD, &avail) == 0 &&
+	   avail > 0 );
+*/
+  while( (SOCKET)s->ws_ref != INVALID_SOCKET &&
+	 ioctlsocket((SOCKET)s->ws_ref, FIONREAD, &avail) == 0 &&
+	 avail > 0 )
+  { DEBUG(NAME_stream, Cprintf("%s: %d bytes available\n", pp(s), avail));
+
+    if ( !handleInputStream((Stream)s) )
+      fail;
+  }
+  
+  succeed;
 }
 
 
@@ -74,7 +99,7 @@ socket_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       { switch(evt)
 	{ case FD_READ:
 	    DEBUG(NAME_stream, Cprintf("Input available on %s\n", pp(s)));
-	    handleInputStream((Stream) s);
+	    handleInputSocket(s);
 	    pceRedraw(FALSE);
 	    break;
 	  case FD_ACCEPT:
@@ -93,6 +118,18 @@ socket_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 
 	if ( notNil(name) )
 	  errorPce(s, NAME_ioError, name);
+	else
+	{ DEBUG(NAME_stream,
+		{ char *op;
+		  switch(evt)
+		  { case FD_READ:	op = "fd_read";   break;
+	    	    case FD_ACCEPT:	op = "fd_accept"; break;
+	    	    case FD_CLOSE:	op = "fd_close";  break;
+	    	    default:		op = "???";	  break;
+		  }
+		  Cprintf("(Socket event = %s)\n", op);
+		});
+	} 
       }
       return 0;
     }
@@ -199,14 +236,14 @@ ws_close_input_stream(Stream obj)
     if ( s != INVALID_SOCKET )
     { WSAAsyncSelect(s, PceHiddenWindow(), 0, 0);
       shutdown(s, 0);
-      obj->ws_ref = (WsRef) INVALID_SOCKET;
     }
   } else				/* process */
   { HANDLE fd = (HANDLE) obj->rdfd;
 
     CloseHandle(fd);
-    obj->rdfd = -1;
   }
+
+  obj->rdfd = -1;
 }
 
 
@@ -222,8 +259,9 @@ ws_close_output_stream(Stream obj)
   { HANDLE fd = (HANDLE) obj->wrfd;
 
     CloseHandle(fd);
-    obj->wrfd = -1;
   }
+
+  obj->wrfd = -1;
 }
 
 
@@ -233,7 +271,8 @@ ws_close_stream(Stream obj)
   { SOCKET s = (SOCKET) obj->ws_ref;
 
     if ( s != INVALID_SOCKET )
-    { closesocket(s);
+    { DEBUG(NAME_stream, Cprintf("MS: closesocket(%s)\n", pp(obj)));
+      closesocket(s);
       obj->ws_ref = (WsRef) INVALID_SOCKET;
     }
   } /* else { }*/

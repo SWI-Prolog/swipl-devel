@@ -25,6 +25,9 @@
 	    ceiling/2
 	   ]).
 
+resource(cpalette,	image,	image('16x16/cpalette1.xpm')).
+resource(trash,		image,	image('16x16/trashcan.xpm')).
+
 default_palette_colour(red).
 default_palette_colour(darkorange).
 default_palette_colour(blue).
@@ -64,7 +67,7 @@ initialise(CI,
 	send(RG, gap, size(5,5)),
 	send(RG, append, box(50,50)),
 	send(RG, append, new(Action, button(palette_button))),
-	send(Action, label, image('16x16/cpalette1.xpm')),
+	send(Action, label, image(resource(cpalette))),
 	send(CI, palette, Palette1),
 	send(CI, append, new(R, slider(red,   0, 255, 128))),
 	send(CI, append, new(G, slider(green, 0, 255, 128))),
@@ -118,11 +121,11 @@ colour_selection(CI, Colour:colour) :->
 	->  send(Palette, selection, Item),
 	    send(AB, message,
 		 message(CI, delete_palette_colour, Box?fill_pattern)),
-	    send(AB, label, image('16x16/trashcan.xpm'))
+	    send(AB, label, image(resource(trash)))
 	;   send(Palette, clear_selection),
 	    send(AB, message,
 		 message(CI, add_palette_colour, Box?fill_pattern)),
-	    send(AB, label, image('16x16/cpalette1.xpm'))
+	    send(AB, label, image(resource(cpalette)))
 	),
 	send(CI, modified, @off).
 
@@ -281,8 +284,7 @@ palette_dimensions(Entries, Width, Height) :- % perfect divisors
 	OK < 0.4,
 	Width is Entries / Height.
 palette_dimensions(Entries, Width, Height) :-
-        sqrt(Entries, E2),
-	Width is integer(E2*1.1),
+	Width is integer(sqrt(Entries)*1.1),
 	Height is (Entries+Width-1)//Width.
 
 best_divisor([H|T], Entries, Ok0/I0, R) :-
