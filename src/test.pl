@@ -774,8 +774,13 @@ control(cut-1) :-
 	c1.
 control(cut-1) :-
 	\+ c2.
-control(not-1) :-
+control(not-1) :-			% 2-nd call must generate FIRSTVAR
 	( fail ; \+ \+ p(f(X,Y)) ), p(f(X,Y)).
+control(ifthen-1) :-			% Must be the same
+	( fail
+	; ((p(f(X,Y))->fail;true)->fail;true)
+	),
+	p(f(X,Y)).
 
 
 		 /*******************************
@@ -828,7 +833,9 @@ resource(stack-1) :-
 	catch(local_overflow, E, true),
 	E = error(resource_error(stack), local).
 resource(stack-2) :-
+	set_prolog_flag(gc, false),
 	catch(global_overflow(0), E, true),
+	set_prolog_flag(gc, true),
 	E = error(resource_error(stack), global).
 
 
