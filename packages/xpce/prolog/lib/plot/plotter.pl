@@ -101,11 +101,13 @@ clear(P) :->				% TBD: how to decide what to remove?
 		   message(@arg1, instance_of, plot_mark)),
 		message(@arg1, free))).
 
-modified_plot_axis(P, _A:plot_axis) :->
+modified_plot_axis(P, _A:[plot_axis]) :->
 	"Trap changed axis parameters"::
 	send(P?graphicals, for_all,
 	     if(message(@arg1, instance_of, plot_graph),
-		message(@arg1, request_compute))).
+		message(@arg1, request_compute),
+		if(message(@arg1, instance_of, plot_mark),
+		   message(@arg1, modified)))).
 
 :- pce_end_class.
 

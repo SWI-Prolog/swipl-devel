@@ -73,12 +73,12 @@ variable(support,	chain,		none, "Supporting graphicals").
 initialise(A, 
 	   Type:'type={x,y}',
 	   Low:'low=int|real', High:'high=int|real', Step:step=[int|real],
-	   Lenght:length=[int],
+	   Length:length=[int],
 	   O:'origin=[point]') :->
 	"Create from low, high, step, length and type"::
-	default(Lenght, 200, Len),
+	default(Length, 200, Len),
 	(   Step == @default
-	->  determine_steps(Low, High, Lenght, Type, TheStep, SmallStep)
+	->  determine_steps(Low, High, Length, Type, TheStep, SmallStep)
 	;   TheStep = Step,
 	    SmallStep = @nil
 	),
@@ -110,7 +110,7 @@ determine_steps(Low, High, Len, XY, Step, SmallStep) :-
 	    SmallStep = Step0
 	).
 
-okdist(x, Dist) :- Dist > 60.
+okdist(x, Dist) :- Dist > 50.
 okdist(y, Dist) :- Dist > 25.
 
 unlink(A) :->
@@ -165,43 +165,44 @@ origin(A, P:point) :->
 
 
 label(A, L:graphical*) :->
-	send(A, slot, label, L),
-	send(A, changed).
-
+	set(A, label, L).
 
 low(A, L:'int|real') :->
-	send(A, slot, low, L),
-	send(A, changed).
-
+	set(A, low, L).
 
 high(A, L:'int|real') :->
-	send(A, slot, high, L),
-	send(A, changed).
-
+	set(A, high, L).
 
 step(A, L:'int|real') :->
-	send(A, slot, step, L),
-	send(A, changed).
+	set(A, step, L).
 
-
-small_step(A, L:'int|real') :->
-	send(A, slot, small_step, L),
-	send(A, changed).
-
+small_step(A, L:'int|real*') :->
+	set(A, small_step, L).
 
 length(A, Length:int) :->
-	send(A, slot, length, Length),
-	send(A, changed).
-
+	set(A, length, Length).
 
 type(A, T:{x,y}) :->
-	send(A, slot, type, T),
-	send(A, changed).
-
+	set(A, type, T).
 
 format(A, Fmt:[name]) :->
-	send(A, slot, value_format, Fmt),
+	set(A, format, Fmt).
+
+set(A, Slot, Value) :-
+	get(A, Slot, Value), !.
+set(A, Slot, Value) :-
+	send(A, slot, Slot, Value),
 	send(A, changed).
+
+default_steps(A) :->
+	"Determine default steps from other fields"::
+	get(A, low, Low),
+	get(A, high, High),
+	get(A, length, Length),
+	get(A, type, Type),
+	determine_steps(Low, High, Length, Type, Step, SmallStep),
+	send(A, step, Step),
+	send(A, small_step, SmallStep).
 
 
 geometry(A, X:[int], Y:[int], W:[int], H:[int]) :->

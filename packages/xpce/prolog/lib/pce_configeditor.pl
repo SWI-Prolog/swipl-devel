@@ -255,9 +255,9 @@ initialise(T, Module:name) :->
 	send(T, send_super, initialise),
 	(   get_config(Module:config/application, AppName)
 	->  true
-	;   AppName = 'Application'
+	;   AppName = application
 	),
-	send(T, root, toc_folder(AppName, new(chain))).
+	send(T, root, toc_folder(AppName?label_name, new(chain))).
 
 expand_node(T, Id:chain) :->
 	chain_to_path(Id, Path),
@@ -386,8 +386,8 @@ config_editor_class(Type, Class) :-
 
 initialise(I, Name:name, Default:[bool]) :->
 	send(I, send_super, initialise, Name, choice),
-	send(I, append, menu_item(@on, @default, true)),
-	send(I, append, menu_item(@off, @default, false)),
+	send(I, append, menu_item(@on, @default, true?label_name)),
+	send(I, append, menu_item(@off, @default, false?label_name)),
 	send(I, layout, horizontal),
 	(   Default \== @default
 	->  send(I, selection, Default)

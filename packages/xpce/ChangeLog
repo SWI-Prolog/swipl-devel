@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ENHANCED: Various issues around the diagramming class plot_axis.  Fully
+  compatible.
+
 VERSION 6.0.10, distributed with SWI-Prolog 5.0.10
 ==================================================
 
