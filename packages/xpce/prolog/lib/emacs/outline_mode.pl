@@ -31,14 +31,13 @@
 
 :- module(emacs_outline_mode, []).
 :- use_module(library(pce)).
-:- set_prolog_flag(character_escapes, false).
 
 :- emacs_begin_mode(outline, language,
 		    "Mode for viewing outlines",
 					% BINDINGS
-	[ toggle_outline	       = key('\C-co') + button(outline),
-	  update_outline	       = key('\C-c\C-l') + button(outline),
-	  toggle_open_outline	       = key('\e\e') + button(outline),
+	[ toggle_outline	       = key('\\C-co') + button(outline),
+	  update_outline	       = key('\\C-c\\C-l') + button(outline),
+	  toggle_open_outline	       = key('\\e\\e') + button(outline),
 	  open_all_outlines	       = button(outline),
 	  close_all_outlines	       = button(outline)
 	],

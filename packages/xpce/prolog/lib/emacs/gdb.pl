@@ -32,7 +32,6 @@
 :- module(emacs_gdb_mode, []).
 
 :- use_module(library(pce)).
-:- set_prolog_flag(character_escapes, false).
 
 :- pce_begin_class(emacs_gdb_buffer, emacs_process_buffer).
 
@@ -48,10 +47,10 @@ initialise(B, Target:file, Pid:[int]) :->
 	send(B, pool, gdb),
 	send(B, prompt_regex, '(gdb) ').
 
-:- pce_global(@gdb_fullname_regex,	% 26 == Ctrl-Z!
-	      new(regex(string('%c%c\\([^:]+\\):\\(\\sd+\\):.*', 26, 26)))).
+:- pce_global(@gdb_fullname_regex,	% 032 ==26 == Ctrl-Z!
+	      new(regex('\32\\32\\\([^:]+\\):\\(\\sd+\\):.*'))).
 :- pce_global(@gdb_at_regex,
-	      new(regex('at \([^:]\):\(\sd+\)'))).
+	      new(regex('at \\([^:]\\):\\(\\sd+\\)'))).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ->insert_process_input is a little complicated.  As both the application

@@ -34,7 +34,6 @@
 :- require([ forall/2
 	   , ignore/1
 	   ]).
-:- set_prolog_flag(character_escapes, false).
 
 :- emacs_begin_mode(cpp, c,
 		    "Mode for (XPCE) C++ programs",
@@ -64,10 +63,10 @@ canonise(Headers) :-
 
 pce_insert_include_files(M) :->
 	"Collect the used Pce classes and insert includes"::
-	get(M, collect, regex('#\s *include\s +<pce/\([A-Za-z]+\).h>'), 1, CE),
+	get(M, collect, regex('#\\s *include\\s +<pce/\\([A-Za-z]+\\).h>'), 1, CE),
 	canonise(CE),
 
-	get(M, collect, regex('\bPce\([A-Z][a-zA-Z]*\)'), 1, Ch),
+	get(M, collect, regex('\\bPce\\([A-Z][a-zA-Z]*\\)'), 1, Ch),
 	canonise(Ch),
 	
 	(   send(CE, equal, Ch)
@@ -80,8 +79,8 @@ pce_insert_include_files(M) :->
 
 pce_collect_selectors(M) :->
 	"Collect selectors and generate PcN... lines"::
-	get(M, collect, regex('\b\(send\|get\)("\(\w+\)"'), 2, Used),
-	get(M, collect, regex('^PceArg\s +\bPcN\(\w+\)\b'), 1, Defined),
+	get(M, collect, regex('\\b\\(send\\|get\\)("\\(\\w+\\)"'), 2, Used),
+	get(M, collect, regex('^PceArg\\s +\\bPcN\\(\\w+\\)\\b'), 1, Defined),
 	(   send(Used, equal, Defined)
 	->  send(M, report, status, 'No changes necessary')
 	;   send(Used, for_all,
@@ -94,7 +93,7 @@ pce_collect_selectors(M) :->
 pce_replace_selectors(M) :->
 	"Replace all ""bla"" by PcN..."::
 	get(M, collect,
-	    regex('^\(static\s +\)?PceArg\s +\bPcN\(\w+\)\b'), 2, Defined),
+	    regex('^\\(static\\s +\\)?PceArg\\s +\\bPcN\\(\\w+\\)\\b'), 2, Defined),
 	send(Defined, for_all, message(M, pce_replace_selector, @arg1)).
 
 pce_replace_selector(M, Name:char_array) :->
@@ -107,8 +106,8 @@ pce_replace_selector(M, Name:char_array) :->
 pce_unreplace_selectors(M) :->
 	"Replace all PcNbla by ""bla"""::
 	get(M, text_buffer, TB),
-	send(regex('PcN\(\w+\)'), for_all, TB,
-	     message(@arg1, replace, @arg2, '"\1"'),
+	send(regex('PcN\\(\\w+\\)'), for_all, TB,
+	     message(@arg1, replace, @arg2, '"\\1"'),
 	     M?caret).
 
 

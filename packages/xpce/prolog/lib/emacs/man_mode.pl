@@ -33,18 +33,17 @@
 :- use_module(library(pce)).
 :- require([ member/2
 	   ]).
-:- set_prolog_flag(character_escapes, false).
 
 :- pce_begin_class(emacs_man_mode, emacs_fundamental_mode).
 
 :- initialization
 	new(KB, emacs_key_binding(man, fundamental)),
-	send(KB, function, '\C-c\C-f',	goto_man_page).
+	send(KB, function, '\\C-c\\C-f',	goto_man_page).
 
 :- initialization
 	new(X, syntax_table(man)),
-	send(X, syntax, '"',  string_quote, '\'),
-	send(X, syntax, '''', string_quote, '\'),
+	send(X, syntax, '"',  string_quote, '\\'),
+	send(X, syntax, '''', string_quote, '\\'),
 
 	send(X, syntax,     '#',  comment_start),
 	send(X, add_syntax, '\n', comment_end).
@@ -131,17 +130,17 @@ man(M, Spec:name) :->
 
 
 :- pce_global(@emacs_man_underline_fragment_regex,
-	      new(regex(string('\\(_\b.\\)+\\|\\(.\b_\\)+')))).
+	      new(regex('\\(_\b.\\)+\\|\\(.\b_\\)+'))).
 :- pce_global(@emacs_man_bold_fragment_regex,
-	      new(regex(string('\\(.\b.\\)+')))).
+	      new(regex('\\(.\b.\\)+'))).
 :- pce_global(@emacs_man_underline_regex,
-	      new(regex(string('_\b\\|\b_')))).
+	      new(regex('_\b\\|\b_'))).
 :- pce_global(@emacs_man_bold_regex,
-	      new(regex(string('\b.')))).
+	      new(regex('\b.'))).
 :- pce_global(@emacs_man_title_regex,
-	      new(regex(string('\n+Sun Release.*\n*\\(\\su+\\).*\\1.*\n+')))).
+	      new(regex('\n+Sun Release.*\n*\\(\\su+\\).*\\1.*\n+'))).
 :- pce_global(@emacs_man_newline_regex,
-	      new(regex(string('\n\n+')))).
+	      new(regex('\n\n+'))).
 
 clean(M) :->
 	"Remove ^H_ from the entry"::
@@ -162,9 +161,9 @@ clean(M) :->
 	send(@emacs_man_bold_regex, for_all, TB,
 	     message(@arg1, replace, @arg2, '')),
 	send(@emacs_man_title_regex, for_all, TB,
-	     message(@arg1, replace, @arg2, string('\n\n'))),
+	     message(@arg1, replace, @arg2, '\n\n')),
 	send(@emacs_man_newline_regex, for_all, TB,
-	     message(@arg1, replace, @arg2, string('\n\n'))),
+	     message(@arg1, replace, @arg2, '\n\n')),
 	get(M, skip_comment, 0, Start),
 	send(TB, delete, 0, Start),
 	send(M?text_buffer, modified, @off),
@@ -176,7 +175,7 @@ goto_man_page(M) :->
 	get(M, word, Page),
 	get(M, text_buffer, TB),
 	get(M, caret, Caret),
-	new(Re, regex('\w+(\(\sd\w?\))')),
+	new(Re, regex('\\w+(\\(\\sd\\w?\\))')),
 	(   send(Re, match, TB, Caret)
 	->  get(Re, register_value, TB, 1, Section),
 	    send(Section, downcase),

@@ -37,7 +37,6 @@
 	   , forall/2
 	   , ignore/1
 	   ]).
-:- set_prolog_flag(character_escapes, false).
 
 
 :- pce_begin_class(emacs_process_buffer, emacs_buffer).
@@ -325,23 +324,23 @@ open(B, New:[bool]) :->
 :- initialization
 	new(KB, emacs_key_binding(shell, fundamental)),
 	send(KB, function, 'RET', send_input),
-	send(KB, function, '\C-c\C-c', interrupt_subjob),
-	send(KB, function, '\C-c\C-d', end_of_file),
-	send(KB, function, '\C-c\C-h', show_history),
-	send(KB, function, '\ep',      backward_history),
-	send(KB, function, '\en',      forward_history),
-	send(KB, function, '\C-cRET',  mark_errors),
-	send(KB, function, '\C-c\C-f', visit_file),
-	send(KB, function, '\C-c\C-e', goto_error),
-	send(KB, function, '\C-c\C-\', quit_subjob),
-	send(KB, function, '\C-c\C-k', kill_subjob).
+	send(KB, function, '\\C-c\\C-c', interrupt_subjob),
+	send(KB, function, '\\C-c\\C-d', end_of_file),
+	send(KB, function, '\\C-c\\C-h', show_history),
+	send(KB, function, '\\ep',      backward_history),
+	send(KB, function, '\\en',      forward_history),
+	send(KB, function, '\\C-cRET',  mark_errors),
+	send(KB, function, '\\C-c\\C-f', visit_file),
+	send(KB, function, '\\C-c\\C-e', goto_error),
+	send(KB, function, '\\C-c\\C-\\', quit_subjob),
+	send(KB, function, '\\C-c\\C-k', kill_subjob).
 
 :- initialization
 	new(T, syntax_table(shell)),
 	send(T, syntax, '.', symbol),
 	send(T, syntax, '-', symbol),
-	send(T, syntax, '"', string_quote, '\'),
-	send(T, syntax, '''', string_quote, '\').
+	send(T, syntax, '"', string_quote, '\\'),
+	send(T, syntax, '''', string_quote, '\\').
 
 :- initialization
 	new(MM, emacs_mode_menu(shell, fundamental)),
@@ -492,18 +491,18 @@ end_of_file(E) :->
 		 *******************************/
 
 :- pce_global(@emacs_error_regexs,
-	      new(chain(regex('\(\S +\):\s *\(\sd+\):'),        % gcc, grep
-			regex('"\(\S +\)", line \(\sd+\):')))). % SUN cc
+	      new(chain(regex('\\(\\S +\\):\\s *\\(\\sd+\\):'),        % gcc, grep
+			regex('"\\(\\S +\\)", line \\(\\sd+\\):')))). % SUN cc
 :- pce_global(@emacs_cd_regexs,
-	      new(chain(regex('\bcd\s +\(\(\w\|[_/+-.:]\)+\)'),
-			regex('Entering directory `\([^'']+\)''')))).
+	      new(chain(regex('\\bcd\\s +\\(\\(\\w\\|[_/+-.:]\\)+\\)'),
+			regex('Entering directory `\\([^'']+\\)''')))).
 :- pce_global(@emacs_canonise_dir_regex,
-	      new(regex('[^/]+/\.\./'))).
+	      new(regex('[^/]+/\\.\\./'))).
 
 canonise_path(Path) :-
-	send(regex('[^/]+/\.\./'), for_all, Path,
+	send(regex('[^/]+/\\.\\./'), for_all, Path,
 	     message(@arg1, replace, Path, '')),
-	send(regex('/\./\|//'), for_all, Path,
+	send(regex('/\\./\\|//'), for_all, Path,
 	     message(@arg1, replace, Path, '/')).
 
 directory_name(M, Pos:[int]*, DirName:string) :<-
