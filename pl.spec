@@ -10,6 +10,7 @@ Packager:	Tony Nugent <Tony.Nugent@usq.edu.au>
 Group:		Development/Languages
 Prefix:		/usr
 BuildRoot:	/var/tmp/pl
+Provides:	pl-%{version}
 
 %description
 ISO/Edinburgh-style Prolog compiler including modules, autoload, libraries,

@@ -1,6 +1,10 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED/MODIFIED: DDE Server (Windows) returns data as atom instead of
+    list of character codes.  It treads the data as a 0-terminated string.
+
+
 VERSION 3.4.5
 =============
 
