@@ -1444,6 +1444,17 @@ styleListBrowser(ListBrowser lb, Name name, Style style)
 
 
 static status
+selectionStyleListBrowser(ListBrowser lb, Style style)
+{ if ( lb->selection_style != style )
+  { assign(lb, selection_style, style);
+    ChangedListBrowser(lb);
+  }
+
+  succeed;
+}
+
+
+static status
 multipleSelectionListBrowser(ListBrowser lb, Bool val)
 { if ( lb->multiple_selection != val )
   { if ( val == ON )
@@ -1637,7 +1648,8 @@ static vardecl var_listBrowser[] =
   SV(NAME_selection, "chain|member:dict_item*", IV_NONE|IV_STORE,
      selectionListBrowser,
      NAME_selection, "Selected items"),
-  IV(NAME_selectionStyle, "[style]", IV_GET,
+  SV(NAME_selectionStyle, "[style]", IV_GET|IV_STORE,
+     selectionStyleListBrowser,
      NAME_appearance, "Style for selection feedback"),
   SV(NAME_multipleSelection, "bool", IV_GET|IV_STORE, multipleSelectionListBrowser,
      NAME_selection, "If @on, multiple items may be selected"),

@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: `list_browser->selection_style' as a method.
+
 * FIXED: Help-balloons on loc-still
 
 * FIXED: make rpm-install: install the manual search index.

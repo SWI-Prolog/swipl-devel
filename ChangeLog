@@ -1,6 +1,11 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * PORT: Add -fno-strict-aliasing when using GCC.  SWI-Prolog doesn't
+    satisfy the requirements for this optimization and some gcc versions
+    seem to use it using -O2.
+
+
 VERSION 5.0.2
 =============
 
