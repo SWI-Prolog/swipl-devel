@@ -463,12 +463,12 @@ rollback(TID) :-
 	).
 	
 rollback(assert(PayLoad), Subject, Predicate, Object) :- !,
-	rdfe_retractall(Subject, Predicate, Object, PayLoad).
+	rdf_retractall(Subject, Predicate, Object, PayLoad).
 rollback(retract(PayLoad), Subject, Predicate, Object) :- !,
-	rdfe_assert(Subject, Predicate, Object, PayLoad).
+	rdf_assert(Subject, Predicate, Object, PayLoad).
 rollback(Action, Subject, Predicate, Object) :-
 	action(Action), !,
-	rdfe_update(Subject, Predicate, Object, Action).
+	rdf_update(Subject, Predicate, Object, Action).
 
 
 assert_action(TID, Action, Subject, Predicate, Object) :-
@@ -497,7 +497,7 @@ undo(assert(PayLoad), Subject, Predicate, Object) :- !,
 undo(retract(PayLoad), Subject, Predicate, Object) :- !,
 	rdfe_assert(Subject, Predicate, Object, PayLoad).
 undo(source(Old, New), Subject, Predicate, Object) :- !,
-	rdfe_update(Subject, Predicate, Object, source(New), Old).
+	rdfe_update(Subject, Predicate, Object, Old, source(New)).
 undo(ns(Action), -, -, -) :- !,
 	(   Action = register(Id, URI)
 	->  rdfe_unregister_ns(Id, URI)

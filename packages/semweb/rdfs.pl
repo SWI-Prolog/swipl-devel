@@ -269,7 +269,7 @@ owl_satisfies(Domain, _) :-
 	rdf_equal(rdfs:'Resource', Domain), !.
 					% Descriptions
 owl_satisfies(class(Domain), Resource) :- !,
-	(   rdf_equal(Resource, rdfs:'Resource')
+	(   rdf_equal(Domain, rdfs:'Resource')
 	->  true
 	;   rdfs_subclass_of(Resource, Domain)
 	).
