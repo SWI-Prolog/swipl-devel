@@ -1,2 +1,2 @@
-[element(name, [], ['Dürst']), element(name, [name='Dürst'], [])].
+[element(utf8, [], ['\n', element(name, [], ['Dürst']), '\n', element(name, [name='Dürst'], []), '\n'])].
 [].

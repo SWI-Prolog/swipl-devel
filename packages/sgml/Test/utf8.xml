@@ -3,6 +3,8 @@
 <!-- The ü below is a single character #xFC in NFC
      (encoded as two UTF-8 octets #xC3 #xBC)  -->
 
+<utf8>
 <name>Dürst</name>
 <name name="Dürst"/>
+</utf8>
 
