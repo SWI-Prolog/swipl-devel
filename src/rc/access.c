@@ -427,9 +427,6 @@ scan_archive(RcArchive rca)
 #ifndef MAP_FAILED
 #define MAP_FAILED ((void *)-1)
 #endif
-#ifndef MAP_NORESERVE
-#define MAP_NORESERVE 0
-#endif
 
 static int
 attach_archive(RcArchive rca)
@@ -448,7 +445,7 @@ attach_archive(RcArchive rca)
       if ( (rca->map_start = mmap(NULL,
 				  rca->size,
 				  PROT_READ,
-				  MAP_SHARED|MAP_NORESERVE,
+				  MAP_SHARED,
 				  fd,
 				  0)) != MAP_FAILED )
       { close(fd);
