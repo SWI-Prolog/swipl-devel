@@ -631,7 +631,7 @@ Continue execution, stop at next spy point.}
 Continue execution in `no debug' mode.} 
     \traceoption{p}{Print}{
 Set the prolog-flag \const{debugger_print_options} to
-\exam{[quoted(true), portray(true), max_depth(10)]}. This is the
+\texttt{[quoted(true), portray(true), max_depth(10)]}. This is the
 default.}
     \traceoption{r}{Retry}{
 Undo all actions (except for database and i/o actions) back to the call
@@ -711,9 +711,9 @@ specify additional parameters for running a Prolog file on Windows.
 
 If the first letter of a Prolog file is \verb$#$, the first line is
 threated as comment.%
-	\footnote{The \verb$#$-sign can be the legal start of a normal
-		  Prolog clause.  In the unlikely case this is required,
-		  leave the first line blank or add a header-comment.}
+	\footnote{The \texttt{\#}-sign can be the legal start of a
+	normal Prolog clause. In the unlikely case this is required,
+	leave the first line blank or add a header-comment.}
 To create a Prolog script, make the first line start like this:
 
 \begin{quote}
