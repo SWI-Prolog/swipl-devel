@@ -47,6 +47,7 @@ idll::
 		copy time.dll "$(BINDIR)"
 ilib::
 		copy socket.pl "$(PLBASE)\library"
+		copy streampool.pl "$(PLBASE)\library"
 		copy cgi.pl "$(PLBASE)\library"
 		copy memfile.pl "$(PLBASE)\library"
 		copy mime.pl "$(PLBASE)\library"
@@ -55,6 +56,7 @@ ilib::
 
 uninstall::
 		del "$(BINDIR)\socket.dll"
+		del "$(BINDIR)\streampool.dll"
 		del "$(BINDIR)\cgi.dll"
 		del "$(BINDIR)\memfile.dll"
 		del "$(BINDIR)\mime.dll"

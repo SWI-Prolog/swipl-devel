@@ -51,6 +51,8 @@ This library provides access to Unix password encryption.
 This library decodes MIME messages.
 <DT><B><CODE>library(socket)</CODE></B><DD>
 This library provides access to TCP/IP communication.
+<DT><B><CODE>library(streampool)</CODE></B><DD>
+Dispatch input from a pool of (socket) streams.
 <DT><B><CODE>library(time)</CODE></B><DD>
 This library provides timing (alarm) functions.
 <DT><B><CODE>library(rlimit)</CODE></B><DD>
@@ -74,6 +76,7 @@ ported to native Windows.
 <UL>
 <LI><A HREF="#sec:4.1">4.1 Server applications</A>
 <LI><A HREF="#sec:4.2">4.2 Client applications</A>
+<LI><A HREF="#sec:4.3">4.3 The stream_pool library</A>
 </UL>
 <LI><A HREF="#sec:5"><B>5 CGI Support library</B></A>
 <UL>
@@ -494,6 +497,82 @@ create_client(Host, Port) :-
 and/or non-blocking streams (see <A NAME="idx:tcpfcntl3:32"></A><A HREF="#tcp_fcntl/3">tcp_fcntl/3</A>) 
 can be used.
 
+<H3><A NAME="sec:4.3">4.3 The stream_pool library</A></H3>
+
+<P>The <CODE>library(streampool)</CODE> library dispatches input from 
+multiple streams based on <A NAME="idx:waitforinput3:33"></A><B>wait_for_input/3</B>. 
+It is part of the clib package as it is used most of the time together 
+with the <CODE>library(socket)</CODE> library. On non-Unix systems it 
+often can only be used with socket streams.
+
+<DL>
+
+<P>
+<DT><A NAME="add_stream_to_pool/2"><STRONG>add_stream_to_pool</STRONG>(<VAR>+Stream, 
+:Goal</VAR>)</A><DD>
+Add <VAR>Stream</VAR>, which must be an input stream and ---on non-unix 
+systems--- connected to a socket to the pool. If input is available on <VAR>Stream</VAR>, <VAR>Goal</VAR> 
+is called.
+
+<P>
+<DT><A NAME="delete_stream_from_pool/1"><STRONG>delete_stream_from_pool</STRONG>(<VAR>+Stream</VAR>)</A><DD>
+Delete the given stream from the pool. Succeeds, even if <VAR>Stream</VAR> 
+is no member of the pool. If <VAR>Stream</VAR> is unbound the entire 
+pool is emtied but unlike <A NAME="idx:closestreampool0:34"></A><A HREF="#close_stream_pool/0">close_stream_pool/0</A> 
+the streams are not closed.
+
+<P>
+<DT><A NAME="close_stream_pool/0"><STRONG>close_stream_pool</STRONG></A><DD>
+Empty the pool, closing all streams that are part of it.
+
+<P>
+<DT><A NAME="dispatch_stream_pool/1"><STRONG>dispatch_stream_pool</STRONG>(<VAR>+TimeOut</VAR>)</A><DD>
+Wait for maximum of <VAR>TimeOut</VAR> for input on any of the streams 
+in the pool. If there is input, call the <VAR>Goal</VAR> associated with
+<A NAME="idx:addstreamtopool2:35"></A><A HREF="#add_stream_to_pool/2">add_stream_to_pool/2</A>. 
+If <VAR>Goal</VAR> fails or raises an exception a message is printed. <VAR>TimeOut</VAR> 
+is described with <A NAME="idx:waitforinput3:36"></A><B>wait_for_input/3</B>.
+
+<P>If <VAR>Goal</VAR> is called, there is <EM>some</EM> input on the 
+associated stream. <VAR>Goal</VAR> must be careful not to block as this 
+will block the entire pool.<A NAME=back-to-note-3 HREF="index.html#note-3"> (3)</A>
+
+<P>
+<DT><A NAME="stream_pool_main_loop/0"><STRONG>stream_pool_main_loop</STRONG></A><DD>
+Calls <A NAME="idx:dispatchstreampool1:37"></A><A HREF="#dispatch_stream_pool/1">dispatch_stream_pool/1</A> 
+in a loop until the pool is empty.
+</DL>
+
+<P>Below is a very simple example that reads the first line of input and 
+echos it back.
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+:- use_module(library(streampool)).
+
+server(Port) :-
+        tcp_socket(Socket),
+        tcp_bind(Socket, Port),
+        tcp_listen(Socket, 5),
+        tcp_open_socket(Socket, In, _Out),
+        add_stream_to_pool(In, accept(Socket)),
+        stream_pool_main_loop.
+
+accept(Socket) :-
+        tcp_accept(Socket, Slave, Peer),
+        tcp_open_socket(Slave, In, Out),
+        add_stream_to_pool(In, client(In, Out, Peer)).
+
+client(In, Out, _Peer) :-
+        read_line_to_codes(In, Command),
+        close(In),
+        format(Out, 'Please to meet you: ~s~n', [Command]),
+        close(Out),
+        delete_stream_from_pool(In).
+</PRE>
+</TABLE>
+
 <H2><A NAME="sec:5">5 CGI Support library</A></H2>
 
 <P>This is currently a very simple library, providing support for 
@@ -548,7 +627,7 @@ print_args([A0|T]) :-
 
 <H3><A NAME="sec:5.1">5.1 Some considerations</A></H3>
 
-<P>Printing an HTML document using <A NAME="idx:format2:33"></A><B>format/2</B> 
+<P>Printing an HTML document using <A NAME="idx:format2:38"></A><B>format/2</B> 
 is not really a neat way of producing HTML. A high-level alternative is 
 provided by
 <CODE>library(http/html_write)</CODE> from the XPCE package.
@@ -595,7 +674,7 @@ of data.
 
 <P><VAR>Parsed</VAR> is a tree structure of <CODE>mime(Attributes, Data, 
 PartList)</CODE> terms. Currently either <VAR>Data</VAR> is the empty 
-atom or <VAR>PartList</VAR> is an empty list.<A NAME=back-to-note-3 HREF="index.html#note-3"> (3)</A>
+atom or <VAR>PartList</VAR> is an empty list.<A NAME=back-to-note-4 HREF="index.html#note-4"> (4)</A>
 <VAR>Data</VAR> is an atom holding the message data. The library 
 automatically decodes <EM>base64</EM> and <EM>quoted-printable</EM> 
 messages. See also the <CODE>transfer_encoding</CODE> attribute below.
@@ -653,7 +732,7 @@ libraries are installed on your system.
 
 <H2><A NAME="sec:7">7 Unix password encryption library</A></H2>
 
-<P>The <CODE>library(crypt)</CODE> library defines <A NAME="idx:crypt2:34"></A><A HREF="#crypt/2">crypt/2</A> 
+<P>The <CODE>library(crypt)</CODE> library defines <A NAME="idx:crypt2:39"></A><A HREF="#crypt/2">crypt/2</A> 
 for encrypting and testing Unix passwords:
 
 <DL>
@@ -689,8 +768,8 @@ them. However, memory-streams cannot have multiple streams at the same
 time (i.e. cannot be opened for reading and writing at the same time).
 
 <P>These predicates are first of all intended for building higher-level 
-primitives. See also <A NAME="idx:sformat3:35"></A><B>sformat/3</B>, <A NAME="idx:atomtoterm3:36"></A><B>atom_to_term/3</B>, <A NAME="idx:termtoatom2:37"></A><B>term_to_atom/2</B> 
-and the XPCE primitive <A NAME="idx:pceopen3:38"></A><B>pce_open/3</B>.
+primitives. See also <A NAME="idx:sformat3:40"></A><B>sformat/3</B>, <A NAME="idx:atomtoterm3:41"></A><B>atom_to_term/3</B>, <A NAME="idx:termtoatom2:42"></A><B>term_to_atom/2</B> 
+and the XPCE primitive <A NAME="idx:pceopen3:43"></A><B>pce_open/3</B>.
 
 <DL>
 
@@ -707,7 +786,7 @@ first closed.
 <DT><A NAME="open_memory_file/3"><STRONG>open_memory_file</STRONG>(<VAR>+Handle, 
 +Mode, -Stream</VAR>)</A><DD>
 Open the memory-file. <VAR>Mode</VAR> is currently one of <CODE>read</CODE> 
-or <CODE>write</CODE>. The resulting handling is closed using <A NAME="idx:close1:39"></A><B>close/1</B>.
+or <CODE>write</CODE>. The resulting handling is closed using <A NAME="idx:close1:44"></A><B>close/1</B>.
 
 <P>
 <DT><A NAME="size_memory_file/2"><STRONG>size_memory_file</STRONG>(<VAR>+Handle, 
@@ -764,7 +843,7 @@ terms. Defined options are:
 <DT><STRONG>remove</STRONG>(<VAR>Bool</VAR>)<DD>
 If <CODE>true</CODE> (default <CODE>false</CODE>), the timer is removed 
 automatically. Otherwise it must be delated explicitly using
-<A NAME="idx:removealarm1:40"></A><A HREF="#remove_alarm/1">remove_alarm/1</A>.
+<A NAME="idx:removealarm1:45"></A><A HREF="#remove_alarm/1">remove_alarm/1</A>.
 </DL>
 
 <P>
@@ -785,10 +864,10 @@ is the next to be fired and <VAR>scheduled</VAR> otherwise.
 <P>
 <DT><A NAME="call_with_time_limit/2"><STRONG>call_with_time_limit</STRONG>(<VAR>+Time, 
 :Goal</VAR>)</A><DD>
-Call <VAR>Goal</VAR> as <A NAME="idx:once1:41"></A><B>once/1</B>. If <VAR>Goal</VAR> 
+Call <VAR>Goal</VAR> as <A NAME="idx:once1:46"></A><B>once/1</B>. If <VAR>Goal</VAR> 
 doesn't complete within
 <VAR>Time</VAR> seconds, exit using the exception
-<CODE>time_limit_exceeded</CODE>. See <A NAME="idx:catch3:42"></A><B>catch/3</B>.
+<CODE>time_limit_exceeded</CODE>. See <A NAME="idx:catch3:47"></A><B>catch/3</B>.
 </DL>
 
 <H2><A NAME="sec:10">10 Limiting process resources</A></H2>
@@ -808,7 +887,7 @@ Query and/or set the limit for <VAR>Resource</VAR>. Time-values are in
 seconds and size-values are counted in bytes. The following values are 
 supported by this library. Please note that not all resources may be 
 available and accessible on all platforms. This predicate can throw a 
-variety of exceptions. In portable code this should be guarded with <A NAME="idx:catch3:43"></A><B>catch/3</B>. 
+variety of exceptions. In portable code this should be guarded with <A NAME="idx:catch3:48"></A><B>catch/3</B>. 
 The defined resources are:
 <BLOCKQUOTE>
 <TABLE BORDER=0 FRAME=void RULES=groups>
@@ -828,7 +907,7 @@ address </TD></TR>
 
 <P>When the process hits a limit POSIX systems normally send the process 
 a signal that terminates it. These signals may be catched using 
-SWI-Prolog's <A NAME="idx:onsignal3:44"></A><B>on_signal/3</B> 
+SWI-Prolog's <A NAME="idx:onsignal3:49"></A><B>on_signal/3</B> 
 primitive. The code below illustrates this behaviour. Please note that 
 asynchronous signal handling is dangerous, especially when using 
 threads. 100% fail-safe operation cannot be guaranteed, but this 
@@ -881,13 +960,16 @@ and the Prolog library files in <CODE>$PLBASE/library</CODE>, where
 
 <P>
 <DT><A NAME=note-1 HREF="index.html#back-to-note-1">note-1</A><DD>
-<A NAME="idx:kill2:45"></A><A HREF="#kill/2">kill/2</A> should support 
+<A NAME="idx:kill2:50"></A><A HREF="#kill/2">kill/2</A> should support 
 interrupt-names as well
 <DT><A NAME=note-2 HREF="index.html#back-to-note-2">note-2</A><DD>
 More subtle handling of I/O, especially for debugging is required: 
 communicate with the syslog deamon and optionally start a debugging 
 dialog on a newly created (X-)terminal should be considered.
 <DT><A NAME=note-3 HREF="index.html#back-to-note-3">note-3</A><DD>
+This is hard to achieve at the moment as none of the Prolog 
+read-commands provide for a timeout.
+<DT><A NAME=note-4 HREF="index.html#back-to-note-4">note-4</A><DD>
 It is unclear to me whether a MIME note can contain a mixture of content 
 and parts, but I believe the answer is `no'.
 </DL>

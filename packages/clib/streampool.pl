@@ -41,6 +41,8 @@
 :- meta_predicate
 	add_stream_to_pool(+, :).
 
+:- volatile
+	pool/2.				% sockets don't survive a saved-state
 :- dynamic
 	pool/2.				% Stream, Action
 
@@ -97,7 +99,8 @@ action(Stream) :-
 	    ->	true
 	    ;	print_message(error, E)
 	    )
-	;   print_message(warning, format('Action failed: ~p', [Action]))
+	;   print_message(warning,
+			  goal_failed(Action, stream_pool))
 	).
 	
 %	stream_pool_main_loop
@@ -107,26 +110,10 @@ action(Stream) :-
 
 stream_pool_main_loop :-
 	pool(_, _), !,
-	dispatch_stream_pool(0),
+	(   current_prolog_flag(windows, true)
+	->  dispatch_stream_pool(1)	% so we can break out easily
+	;   dispatch_stream_pool(0)
+	),
 	stream_pool_main_loop.
 stream_pool_main_loop.
-
-		 /*******************************
-		 *	       MESSAGES		*
-		 *******************************/
-
-:- multifile
-	prolog:message/3.
-
-prolog:message(connect(IP)) -->
-	[ 'New connection from ' ],
-	ip(IP).
-prolog:message(close(IP)) -->
-	[ 'Disconnect from ' ],
-	ip(IP).
-
-ip(ip(A,B,C,D)) -->
-	[ '~w.~w.~w.~w'-[A,B,C,D] ].
-
-
 

@@ -43,6 +43,8 @@ This library provides access to Unix password encryption.
 This library decodes MIME messages.
     \item[\pllib{socket}]
 This library provides access to TCP/IP communication.
+    \item[\pllib{streampool}]
+Dispatch input from a pool of (socket) streams.
     \item[\pllib{time}]
 This library provides timing (alarm) functions.
     \item[\pllib{rlimit}]
@@ -399,6 +401,72 @@ create_client(Host, Port) :-
 
 To deal with timeouts and multiple connections, wait_for_input/3 and/or
 non-blocking streams (see tcp_fcntl/3) can be used.
+
+
+\subsection{The stream_pool library}
+
+The \pllib{streampool} library dispatches input from multiple streams
+based on wait_for_input/3.  It is part of the clib package as it is used
+most of the time together with the \pllib{socket} library.  On non-Unix
+systems it often can only be used with socket streams.
+
+\begin{description}
+    \predicate{add_stream_to_pool}{2}{+Stream, :Goal}
+Add \arg{Stream}, which must be an input stream and ---on non-unix
+systems--- connected to a socket to the pool.  If input is available
+on \arg{Stream}, \arg{Goal} is called.
+
+    \predicate{delete_stream_from_pool}{1}{+Stream}
+Delete the given stream from the pool.  Succeeds, even if \arg{Stream}
+is no member of the pool.  If \arg{Stream} is unbound the entire pool
+is emtied but unlike close_stream_pool/0 the streams are not closed.
+
+    \predicate{close_stream_pool}{0}{}
+Empty the pool, closing all streams that are part of it.
+
+    \predicate{dispatch_stream_pool}{1}{+TimeOut}
+Wait for maximum of \arg{TimeOut} for input on any of the streams in
+the pool.  If there is input, call the \arg{Goal} associated with
+add_stream_to_pool/2.  If \arg{Goal} fails or raises an exception a
+message is printed.  \arg{TimeOut} is described with wait_for_input/3.
+
+If \arg{Goal} is called, there is \emph{some} input on the associated
+stream.  \arg{Goal} must be careful not to block as this will block
+the entire pool.%
+    \footnote{This is hard to achieve at the moment as none of the
+	      Prolog read-commands provide for a timeout.}
+
+    \predicate{stream_pool_main_loop}{0}{}
+Calls dispatch_stream_pool/1 in a loop until the pool is empty.
+\end{description}
+
+Below is a very simple example that reads the first line of input and
+echos it back.
+
+\begin{code}
+:- use_module(library(streampool)).
+
+server(Port) :-
+	tcp_socket(Socket),
+	tcp_bind(Socket, Port),
+	tcp_listen(Socket, 5),
+	tcp_open_socket(Socket, In, _Out),
+	add_stream_to_pool(In, accept(Socket)),
+	stream_pool_main_loop.
+
+accept(Socket) :-
+	tcp_accept(Socket, Slave, Peer),
+	tcp_open_socket(Slave, In, Out),
+	add_stream_to_pool(In, client(In, Out, Peer)).
+
+client(In, Out, _Peer) :-
+	read_line_to_codes(In, Command),
+	close(In),
+	format(Out, 'Please to meet you: ~s~n', [Command]),
+	close(Out),
+	delete_stream_from_pool(In).
+\end{code}
+
 
 \section{CGI Support library}
 
