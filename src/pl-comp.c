@@ -883,7 +883,7 @@ Finish up the clause.
     ClauseRef cref;
 
     DEBUG(1, Sdprintf("%d argvars; %d prolog vars; %d vars",
-		      ci.argvars, clause.prolog_vars, clause->variables));
+		      ci.argvars, clause.prolog_vars, clause.variables));
     assert(ci.argvars == ci.argvar);
     requireStack(local,
 		 clause.variables*sizeof(word) +
