@@ -7,22 +7,23 @@
     Copyright (C) 1993 University of Amsterdam. All rights reserved.
 */
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+There she is again: The famous Hello World program!
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 #include <pce/Pce.h>
-
-void
-hello()
-{ PceObject d("dialog");	// Create an instance of dialog
-
-  d.send("append", PceObject("label", "message", "Hello World"));
-  d.send("open");
-}
-
+#include <pce/Label.h>
+#include <pce/Button.h>
+#include <pce/Message.h>
+#include <pce/String.h>
 
 PceStatus
-pceInitApplication(int argc, char *argv[])
-{ int i;
+pceInitApplication(int argc, char **argv)
+{ PceObject d("dialog");	// Create an instance of dialog
 
-  hello();
+  d.send("append", PceLabel("message", PceString("Hello World")));
+  d.send("append", PceButton("quit", PceMessage(d, "destroy")));
+  d.send("open");
 
-  return SUCCEED;
+  return TRUE;
 }

@@ -14,6 +14,33 @@
 #include <pce/Message.h>
 #include <pce/Obtain.h>
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+A message dispatching system.  Usage:
+
+	:- pce_global(@dispatcher, new(dispatcher)).
+
+	% `Listener'
+
+	register(Myself) :->
+		send(@dispatcher, subscribe, Myself, selected,
+		     message(Myself, selected, @arg1)).
+
+	selected(Myself, Object:object) :->
+		...
+
+
+	% `Event generator'
+
+	select(Obj) :->
+		...,
+		send(@dispatcher, dispatch, selected, Obj).
+
+See also dispatch.pl
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+// Used selectors are assigned to global objects using PceEmacs C++
+// command `Pce Collect Selectors'.
+
 static PceArg PcNappend("append");
 static PceArg PcNdelete("delete");
 static PceArg PcNfor_all("for_all");
@@ -97,6 +124,8 @@ makeClassDispatcher(PceClass cl)
 
   return TRUE;
 }
+
+// register the class.
 
 PceClass ClassDispatcher("dispatcher", "sheet", "Dispatch messages",
 			 makeClassDispatcher);

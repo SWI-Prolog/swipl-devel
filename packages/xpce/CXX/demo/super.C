@@ -9,6 +9,21 @@
 
 #include <pce/Pce.h>
 #include <pce/Class.h>
+#include <pce/Vector.h>
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Illustrates the definition of a simple subclass of class point, making a
+3D point.  To test it:
+
+	% make super.so
+	?- xpce
+	?- load_foreign_library(super).
+	3 4 5
+	?- new(ZP, z_point(1,2,3)).
+	ZP = @377866
+	?- object(@377866, O)
+	O = z_point(1, 2, 3)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 PceVariable *z_point_z;
 
@@ -30,6 +45,7 @@ makeClassZPoint(PceClass cl)
   
   cl.defsendmethod("initialise", "oms", "Create from X, Y, and Z",
 		   initialiseZPoint, "[int]", "[int]", "[int]");
+  cl.send("term_names", PceVector("x", "y", "z"));
 
   return SUCCEED;
 }

@@ -12,6 +12,20 @@
 #include <pce/Call.h>
 #include <pce/View.h>
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This is a very simple example.  Typing   ./view  file ... will create as
+many `view' objects as you entered files   on  the commandline. The done
+message construct shows how a C++ function   is called from an XPCE code
+object.  If all views are gone, the application, exists.  To use it:
+
+	% make view
+	% export LD_LIBRARY_PATH=../../<arch>
+	% export PCEHOME=../..
+	% ./view *.C
+
+Type Control-C to stop the application if you   do not want to close all
+views created.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 PceStatus
 done(PceArg v)

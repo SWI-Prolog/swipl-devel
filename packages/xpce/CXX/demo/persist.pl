@@ -7,7 +7,7 @@
     Copyright (C) 1993 University of Amsterdam. All rights reserved.
 */
 
-:- pceload(persist).
+:- load_foreign_library(persist).
 
 db :-
 	new(@db, db(database, db)),

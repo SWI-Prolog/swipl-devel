@@ -8,7 +8,17 @@
 */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-East-project demo.
+This demo is a bit more  complete   application.  It heavily uses global
+object and a simple user-defined graphical class.
+
+It allows you to define the order   in  which various types of questions
+are asked by  making  links  from   the  answer  possibilities  to other
+questions. The user-interface is very primitive.
+
+It was written while Anjo Anjewierden, with   whom  I was developing the
+XPCE/C++ interface, had an assignment to write such an application for a
+PC. XPCE/C++ was a *lot* shorter  then   the  Turbo-C version on Windows
+(3.1).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #include <pce/Pce.h>
@@ -82,7 +92,8 @@ initialiseVForm(PceReceiver f, PceArg type, PceArg name)
   f.sendSuper("initialise");
 
   f.send("display", bm=PceBitmap(type.get("append", ".bm")));
-  f.send("display", t =PceText(name));
+  f.send("display", t =PceText(name, "center"));
+  t.send("border", 3);
   iconSpatial.send("forwards", bm, t);
 
   f.send("handle", inHandle);
@@ -111,7 +122,14 @@ initialiseVForm(PceReceiver f, PceArg type, PceArg name)
 
 PceStatus
 eventVForm(PceReceiver f, PceArg ev)
-{ return vformRecogniser.send("event", ev);
+{ if ( !vformRecogniser.send("event", ev) )
+  { if ( ev.send("is_a", "keyboard") )
+      return f.get("member", "text").send("typed", ev);
+
+    return FALSE;
+  }
+
+  return TRUE;
 }
 
 

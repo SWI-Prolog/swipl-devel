@@ -7,7 +7,7 @@
     Copyright (C) 1993 University of Amsterdam. All rights reserved.
 */
 
-:- pceload(dispatch).
+:- load_foreign_library(dispatch).
 
 dispatch :-
 	new(@d, dispatcher),
@@ -15,7 +15,7 @@ dispatch :-
 	send(@d, subscribe, 2, succeed, message(@pce, succeed)).
 
 perform :-
-	send(@pce, bench, message(@d, dispatch, succeed), 1000, send).
+	send(@pce, bench, message(@d, dispatch, succeed), 10000, send).
 
 perform2 :-
-	send(@pce, bench, message(@pce, succeed), 1000, forward).
+	send(@pce, bench, message(@pce, succeed), 10000, forward).

@@ -16,7 +16,9 @@
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Simple application to show the number of   instances created for an XPCE
-class.
+class. The association of  a  function   as  value-set  to the text-item
+illustrates C++ functions returning an XPCE object, much like ?(@prolog,
+predicate, Args).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
@@ -36,9 +38,10 @@ showInstances(PceArg cl)
 
 PceArg
 collectClasses()
-{ PceChain ch();
+{ PceObject ch("chain");
 
-  PceGlobal("classes").send("for_all", PceMessage(ch, "append", TheArg1));
+  PceGlobal("classes").send("for_all",
+			    PceMessage(ch, "append", TheArg1));
 
   return ch;
 }

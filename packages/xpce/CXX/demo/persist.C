@@ -7,6 +7,12 @@
     Copyright (C) 1993 University of Amsterdam. All rights reserved.
 */
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Partial C++ implementation of  the  underlying   database  model  of the
+CommonKads Workbench written Prolog. The   implementation  is incomplete
+and untested.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 #include <stdio.h>
 #include <pce/Pce.h>
 #include <pce/Create.h>

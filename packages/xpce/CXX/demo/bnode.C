@@ -10,6 +10,21 @@
 #include <pce/Pce.h>
 #include <pce/Class.h>
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This is an example  of  a   `high-performance  user-defined  class'.  It
+defines a binary tree of key-value   pairs. The method `b_node ->insert:
+key, value' finds a location in the binary  tree and adds a node to that
+location. `b_node<-node: key -->node' finds a node in the tree.
+
+To use it, run
+
+	% make bnode.so
+	% xpce
+	?- load_foreign_library(bnode).
+	?- manpce(b_node).		% to inspect the new class.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+
 // References to XPCE instance variables of the class.
 
 static PceVariable *bnode_left;

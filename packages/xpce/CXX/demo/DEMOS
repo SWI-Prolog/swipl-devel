@@ -1,0 +1,81 @@
+			Overview of the XPCE/C++ Demos
+			------------------------------
+
+				Jan Wielemaker
+
+Last updated:	March 27, 1997
+Puposes:	Tested on Linux/Solaris, removed some useless demos
+		and fixed some others.
+
+Below is an overview of the various demos.   In the A/L field, `A' means
+application, which implies you can  do   `make  <basename>'  and run the
+result, as a stand-alone XPCE/C++ application.  `L' means library, which
+implies you say `make <basename.so>',  start   XPCE/Prolog  and load the
+demo using ?- load_foreign_libarry(basename).
+
+Most of the demos have a brief   introductionary node explaining what it
+does and what technique it illustrates.
+
+
+Demo		A/L	Purpose/technique illustrated
+================================================================
+hello.C		A	Hello World!
+			Shows creating objects and sending messages
+----------------------------------------------------------------
+home.C		A	Shows XPCE's notion of its home directory
+			in a window
+----------------------------------------------------------------
+dir.C		A	List directory
+			Illustrates handling chain objects
+----------------------------------------------------------------
+view.C		A	View files
+			call-back of C++ from XPCE code object
+----------------------------------------------------------------
+bnode.C 	L	Binary tree node
+			fast user-defined class in C++
+----------------------------------------------------------------
+dispatch.C	L	Event broadcast system (class dispatcher)
+			user-defined class in C++, collect selectors
+			for faster message passing.
+			dispatch.pl contains a test.
+----------------------------------------------------------------
+drawBoxes.C	A	Draw window with boxes.
+			Illustrates arithmetic on PceArg objects.
+----------------------------------------------------------------
+east.C		A	Presents a window, to which you can add
+			icons for questions for a questionaire.
+			Questions can be labeled, and the flow
+			control can be defined by linking answer
+			possibilities to other questions.
+
+			Illustrates global objects, user-defined
+			classes, event handling, etc.
+----------------------------------------------------------------
+getenv.C	L	Illustrates how an XPCE-function object
+			can use a C++ function to do the work.
+			Very hairy!
+----------------------------------------------------------------
+onexit.C	A	Shows quitting XPCE/C++ using exit() and
+			hooks in the exit system.
+----------------------------------------------------------------
+global.C	L/A	Illustrates the usage of a global C++
+			PceArg object for referencing an XPCE
+			object.
+----------------------------------------------------------------
+person.C	A	Shows a C++ class for data-storage, opening
+			an XPCE dialog box for editing the C++ slots.
+			If the user presses `Quit', the application
+			prints the new values and exits.
+----------------------------------------------------------------
+showinst.C	A	Shows a text-item.  You may enter a class-name
+			(using completion on the SPACE), and type
+			RETURN.  The application will tell how many
+			instances this class has.  Illustrates functions
+			on C++ returning XPCE objects, like ?(@prolog, ...)
+----------------------------------------------------------------
+super.C		L	Simple 3-D point class definition, illustrating
+			the usage of sendSuper from C++ in user-defined
+			classes.
+----------------------------------------------------------------
+test.C		A	Some asorted test routines.
+			

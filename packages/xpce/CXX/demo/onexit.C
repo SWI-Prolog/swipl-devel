@@ -1,11 +1,17 @@
 #include <pce/Pce.h>
 #include <pce/Call.h>
-#include <stdio.h>
+#include <iostream.h>
 #include <stdlib.h>
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Shows handling of exit and exit-hooks.   On some platforms, the argument
+will always be 0, as the system exit   hooks does not provide the status
+handed to exit()
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 PceStatus
 help(PceArg status)
-{ printf("Help, dying code %d\n", (int) status);
+{ cout << "Help, dying code " << (int) status << endl;
 
   return SUCCEED;
 }

@@ -8,12 +8,34 @@
 */
 
 #include <pce/Pce.h>
-#include <pce/Call.h>
-#include <pce/String.h>
-#include <pce/Dialog.h>
-#include <pce/TextItem.h>
+#include <pce/And.h>
 #include <pce/Button.h>
+#include <pce/Call.h>
+#include <pce/Dialog.h>
 #include <pce/Message.h>
+#include <pce/TextItem.h>
+#include <iostream.h>
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This appliction show how a real C++  object   can  use XPCE and have its
+native  C++  methods  called  directly  from   XPCE  objects  using  the
+PceMethodCall mechanism.
+
+A C++ method can only be called  if   it  returns  a PceStatus and takes
+PceArg arguments. The pointer to the implementation is passed as a (void
+*), because full typing is impossible as we   donot know the type of the
+receiver. This only works because
+
+	PceStatus (Class::*)(PceArg, ...)
+
+is supposed to be the same as
+
+	PceStatus (*)(void *this, PceArg, ...)
+
+E.i. the receiver is simply pushes  as   first  argument to an otherwise
+normal C-function. This is  true  for  GCC,   but  not  part  of the C++
+standard definition. 
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 class person
 { char *name;
@@ -27,17 +49,23 @@ public:
 
   PceStatus setName(PceArg a) { name = a; return SUCCEED; }
   PceStatus setAge(PceArg a)  { age  = a; return SUCCEED; }
+  PceStatus print() { cout << "Person " << name << ", age " << age << endl; }
+
 
   edit()
   { PceDialog d(PceObject("string", "Edit person"));
 
     d.send("append",
 	   PceTextItem("name", name,
-		       PceMethodCall(this, &setName, TheArg1)));
+		       PceMethodCall(this, (void *)&setName, TheArg1)));
     d.send("append",
 	   PceTextItem("age", age,
-		       PceMethodCall(this, &setAge, TheArg1)));
-    d.send("append", PceButton("quit", PceMessage(d, "destroy")));
+		       PceMethodCall(this, (void *)&setAge, TheArg1)));
+    d.send("append",
+	   PceButton("quit",
+		     PceAnd(PceMessage(d, "apply"),
+			    PceMethodCall(this, (void *)&print),
+			    PceMessage(d, "destroy"))));
 
     d.send("open");
   }
