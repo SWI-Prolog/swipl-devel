@@ -553,7 +553,8 @@ structeql(Word t1, Word t2, TmpBuffer buf ARG_LD)
       case TAG_ATOM:
 	fail;
       case TAG_INTEGER:
-	if ( storage(w1) == STG_INLINE )
+	if ( storage(w1) == STG_INLINE ||
+	     storage(w2) == STG_INLINE )
 	  fail;
       case TAG_STRING:
       case TAG_FLOAT:
