@@ -415,8 +415,9 @@ typedef struct
 \end{code}
 
 The structure may be destroyed after PL_thread_attach_engine() has
-returned. If an error occurs, -1 is returned. If this Prolog is not
-compiled for multi-threading, -2 is returned. 
+returned.  On success it returns the Prolog identifier for the thread
+(as returned by PL_thread_self()). If an error occurs, -1 is returned.
+If this Prolog is not compiled for multi-threading, -2 is returned.
 
     \cfunction{int}{PL_thread_destroy_engine}{}
 Destroy the Prolog engine in the calling thread. Only takes effect if
