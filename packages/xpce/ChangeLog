@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.5.7, distributed with SWI-Prolog 5.5.7
+================================================
+
 * ADDED: PceEmacs: ->insert_character_by_code to interactively insert a
   character by entering its numeric UNICODE value.
 

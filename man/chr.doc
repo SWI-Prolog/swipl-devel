@@ -248,10 +248,13 @@ type declarations. The value is a term of the form
 \textsf{name} is a term and \textsf{list} is a list of alternatives.
 Variables can be used to define generic types. Recursive definitions
 are allowed. Examples are 
-\texttt{type(bool,[true,false])},
-\texttt{type(complex_number,[float + float * i])},
-\texttt{type(binary_tree(T),[ leaf(T) | node(binary_tree(T),binary_tree(T)) ])}.
-and \texttt{type(list(T),[ [] | [T | list(T)])}.
+
+\begin{code}
+type(bool,[true,false]).
+type(complex_number,[float + float * i]).
+type(binary_tree(T),[ leaf(T) | node(binary_tree(T),binary_tree(T)) ]).
+type(list(T),[ [] | [T | list(T)]).
+\end{code}
 
 
 \end{description}

@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+VERSION 5.5.7 (Februari 21, 2005)
+=================================
+
   * ADDED: wide-character support for '$apropos_match'/2.
 
   * FIXED: Serious error in saved states dealing with multifile predicates
@@ -1978,7 +1981,7 @@ VERSION 5.0.5 (April 16, 2002)
   * PORT: Added (non-tested) support for loading shared objects in BeOS
     (with help by Axel Drfler)
 
-  * PORT: Detect <SupportDefs.h> in recent BeOS and use it (Axel D�rfler).
+  * PORT: Detect <SupportDefs.h> in recent BeOS and use it (Axel Drfler).
 
   * PORT: Fixed detection of ru_idrss in struct rusage (not around in BeOS,
     reported by Axel D�rfler).
