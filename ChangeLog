@@ -1,6 +1,10 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: MT-Version: allow calling utility threads/0 from an exit
+    hook.  Improve error message when joining `myself'.  Reported by
+    Andrew V. Diatchkov.
+	
 VERSION 3.4.5
 =============
 

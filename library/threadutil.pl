@@ -30,6 +30,8 @@ threads :-
 
 rip_thread(running, _) :- !.
 rip_thread(_Status, Id) :-
+	thread_self(Id), !.
+rip_thread(_Status, Id) :-
 	thread_join(Id, _).
 	
 %	interactor

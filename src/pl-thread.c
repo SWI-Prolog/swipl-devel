@@ -591,6 +591,10 @@ pl_thread_join(term_t thread, term_t retcode)
 
   if ( !get_thread(thread, &info) )
     fail;
+  if ( info == LD->thread.info )	/* joining myself */
+    return PL_error("thread_join", 2, "Cannot join self",
+		    ERR_PERMISSION, PL_new_atom("join"), ATOM_thread, thread);
+
   if ( pthread_join(info->tid, &r) )
     return PL_error("thread_join", 2, MSG_ERRNO, ERR_SYSCALL, ATOM_nil);
   
