@@ -1134,6 +1134,8 @@ on_error(dtd_parser *p, dtd_error *error)
 
   switch(error->severity)
   { case ERS_STYLE:
+      if ( pd->error_mode != EM_STYLE )
+	return TRUE;
       severity = "informational";
       break;
     case ERS_WARNING:
@@ -1328,6 +1330,22 @@ static IOFUNCTIONS sgml_stream_functions =
 };
 
 
+static parser_data *
+new_parser_data(dtd_parser *p)
+{ parser_data *pd;
+
+  pd = sgml_calloc(1, sizeof(*pd));
+  pd->magic = PD_MAGIC;
+  pd->parser = p;
+  pd->max_errors = MAX_ERRORS;
+  pd->max_warnings = MAX_WARNINGS;
+  pd->error_mode = EM_PRINT;
+  p->closure = pd;
+  
+  return pd;
+}
+
+
 static foreign_t
 pl_open_dtd(term_t ref, term_t options, term_t stream)
 { dtd *dtd;
@@ -1338,14 +1356,9 @@ pl_open_dtd(term_t ref, term_t options, term_t stream)
   if ( !get_dtd(ref, &dtd) )
     return FALSE;
   p = new_dtd_parser(dtd);
-  
-  pd = sgml_calloc(1, sizeof(*pd));
-  pd->parser = p;
-  pd->free_on_close = TRUE;
-  pd->max_errors = MAX_ERRORS;
-  pd->max_warnings = MAX_WARNINGS;
-  p->closure = pd;
   p->dmode = DM_DTD;
+  pd = new_parser_data(p);
+  pd->free_on_close = TRUE;
 
   s = Snew(pd, SIO_OUTPUT, &sgml_stream_functions);
 
@@ -1451,12 +1464,7 @@ pl_sgml_parse(term_t parser, term_t options)
     p->on_xmlns		= on_xmlns;
     p->on_decl		= on_decl;
   
-    pd = sgml_calloc(1, sizeof(*pd));
-    pd->magic = PD_MAGIC;
-    pd->parser = p;
-    pd->max_errors = MAX_ERRORS;
-    pd->max_warnings = MAX_WARNINGS;
-    p->closure = pd;
+    pd = new_parser_data(p);
   }
 
   while ( PL_get_list(tail, head, tail) )

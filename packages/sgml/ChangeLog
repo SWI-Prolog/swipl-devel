@@ -1,3 +1,6 @@
+* FIXED: properly handle elements that have only an <!ATTLIST declaration
+  but no <!ELEMENT declaration.  (C. M. Sperberg-McQueen).
+
 * FIXED: handle CDATA inside elements with content-type ANY
   (C. M. Sperberg-McQueen).
 

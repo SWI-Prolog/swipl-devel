@@ -605,6 +605,7 @@ find_element(dtd *dtd, dtd_symbol *id)
 
   e = sgml_calloc(1, sizeof(*e));
   e->space_mode = SP_INHERIT;
+  e->undefined = TRUE;
   e->name = id;
   id->element = e;
   
@@ -622,6 +623,7 @@ def_element(dtd *dtd, dtd_symbol *id)
   if ( !e->structure )
   { e->structure = sgml_calloc(1, sizeof(*e->structure));
     e->structure->references = 1;
+    e->structure->type = C_EMPTY;
   }
 
   return e;
@@ -1422,13 +1424,25 @@ find_notation(dtd *dtd, dtd_symbol *name)
 }
 
 
+static void
+add_notation(dtd *dtd, dtd_notation *not)
+{ dtd_notation *n;
+
+  for(n=dtd->notations; n; n = n->next)
+  { if ( !n->next )
+    { n->next = not;
+      break;
+    }
+  }
+}
+
+
 static int
 process_notation_declaration(dtd_parser *p, const ichar *decl)
 { dtd *dtd = p->dtd;
   dtd_symbol *nname;
   const ichar *s;
   ichar *system = NULL, *public = NULL;
-  dtd_notation **n;
   dtd_notation *not;
 
   if ( !(s=itake_name(dtd, decl, &nname)) )
@@ -1461,7 +1475,7 @@ process_notation_declaration(dtd_parser *p, const ichar *decl)
   not->system = system;
   not->public = public;
   not->next = NULL;
-  *n = not;
+  add_notation(dtd, not);
 
   return TRUE;
 }
@@ -2163,9 +2177,9 @@ process_element_declaraction(dtd_parser *p, const ichar *decl)
   for(i=0; i<en; i++)
   { find_element(dtd, eid[i]);
     eid[i]->element->structure = def;
+    eid[i]->element->undefined = FALSE;
   }
   def->references = en;			/* for GC */
-
 
 					/* omitted tag declarations (opt) */
   if ( (s = isee_identifier(dtd, decl, "-")) )
@@ -5154,7 +5168,7 @@ gripe(dtd_error_id e, ...)
     { dtd_symbol *name;
       error.argv[0] = va_arg(args, char *); /* type */
       name = va_arg(args, dtd_symbol *); /* name */
-      error.argv[1] = name->name;
+      error.argv[1] = (char *)name->name;
       error.severity = ERS_STYLE;
       break;
     }
