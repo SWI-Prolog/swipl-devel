@@ -30,8 +30,12 @@ initialiseResizeOutlineGesture(ResizeOutlineGesture g, Name button,
 
 static status
 initiateResizeOutlineGesture(ResizeOutlineGesture g, EventObj ev)
-{ send(g->outline, NAME_area, ev->receiver->area, 0);
-  send(ev->receiver->device, NAME_display, g->outline, 0);
+{ Graphical gr = ev->receiver;
+
+  if ( !instanceOfObject(gr, ClassGraphical) )
+    fail;
+  send(g->outline, NAME_area, gr->area, 0);
+  send(gr->device, NAME_display, g->outline, 0);
   postEvent(ev, (Graphical) g->outline, (Recogniser) g->outline_gesture);
 
   succeed;

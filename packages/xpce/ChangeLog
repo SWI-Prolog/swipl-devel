@@ -1,6 +1,62 @@
 [VERSION 4.8.17]
 
+* ADDED: Class tab for `tabbed dialog windows support' as commonly found
+  in Windows '95 application.  Also class tab_stack for creating a stack
+  of tabbed dialogs.
+
+* ADDED: event-type loc-still to detect the pointer hasn't moved for a while.
+  This can be used to display feedback messages, etc.
+
+* ADDED: Class dialog_group, for defining a boxed group of dialog
+  objects with a label.
+
+* MODIFIED: General cleanup of arithmetic, improving on its range, precision
+  and error handling:
+  
+	* Tagged integers with range +/- 512 M (not changed)
+	* Object integers (class number) with full 32-bit range
+	* Floats (class real) using double-precision representation
+	* Expression and equation now handle floating point numbers.
+	* All arithmetic is caried out in 32-bit integer arithmetic
+	  as long as the arguments premit such and converted to double
+	  precision floats otherwise.
+
+* FIXED: PceEmacs starting of the server if the socket is still present
+  from a previously crashed session (which happens mostly to myself after
+  I overwrite the running executable :-().
+
+* FIXED: Process termination handling for Solaris (PceEmacs kill-buffer
+  crashed if the buffer was connected to a live process).
+
+* FIXED: Path problems in pl/src/Makefile.bin
+
+* FIXED: `arc->points' arithmetic.  Also fixed a bug in the virtual window
+  system interface code for arcs in the Win32 implementation.
+
+* FIXED: `@display ->draw_in' (didn't do anything).
+
+* ADDED: `frame->event', `frame->cursor' and `frame->grab_pointer'.  `Frame
+  ->event' handles resizing the subwindows now.
+
+* MODIFIED: behaviour details on `tile->set' if `tile <-enforced' is @on,
+  to support resizing subwindows better.  Added `tile <-sub_tile_for_resize'
+  to support computation of subwindow resizing in frames.
+
+* MODIFIFIED: Various details to the colour resources, r_3d_box() and some
+  details to class menu to achieve prettier looking menus and buttons, using
+  a slightly darker colour when depressed.
+
+* ADDED: optional `size' argument to `device ->layout_dialog'
+  and `dialog->layout' to force the dialog-layout algorithm to distribute
+  the items properly over dialog windows that are too big for their
+  contents.
+
 [VERSION 4.8.16]
+
+* ADDED: configuration for ldconfig
+
+* FIXED: Reload-from-id in the Dialog Editor to restore the can_resize
+  property.
 
 * ADDED: support for displaying images to the left of lines in a browser.
   The image is specified using the icon option of the associated style.
@@ -16,7 +72,7 @@
 * FIXED: Exit immediately if loading pl2xpce.so fails, instead of reporting
   lots and lots of error messages caused by this.
 
-* FIXED: Solaris to use sysinfo() rather then gethostname() for better
+* PORT: Solaris to use sysinfo() rather then gethostname() for better
   System-V compatibility.
 
 * ADDED: @pce <->trap_errors.  When set to @off, all runtime errors will

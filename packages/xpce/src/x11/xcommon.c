@@ -543,6 +543,13 @@ keycode_to_name(XEvent *event)
 
 /* Cursor motion */
 
+#ifndef XK_Page_Up
+#define XK_Page_Up XK_Prior
+#endif
+#ifndef XK_Page_Down
+#define XK_Page_Down XK_Next
+#endif
+
     case XK_Home:	return NAME_cursorHome;
     case XK_Left:	return NAME_cursorLeft;
     case XK_Up:		return NAME_cursorUp;
@@ -616,7 +623,7 @@ button_to_name(int press, unsigned int button)
 
 
 EventObj
-CtoEvent(PceWindow window, XEvent *event)
+CtoEvent(Any window, XEvent *event)	/* window or frame */
 { Time time;
   int state = 0;
   int x;

@@ -85,11 +85,11 @@ makeClassBinaryCondition(Class class)
 	with getVarInBinaryExpression().
  */
 
-Int
-getVarEquation(Equation e, Var var)
-{ register int inleft, inright;
+status
+evaluateEquation(Equation e, Var var, NumericValue result)
+{ int inleft, inright;
   Expression left, right;
-  PseudoFloat rval, v; 
+  numeric_value v;
 
   inleft = valInt(getVarInBinaryExpression((BinaryExpression) LEFTHAND(e),
 					   var));
@@ -97,10 +97,12 @@ getVarEquation(Equation e, Var var)
 					    var));
   if (inleft + inright == 0)
   { errorPce(e, NAME_noVar, var);
+    result->type = V_ERROR;
     fail;
   }
   if (inleft + inright > 1)
   { errorPce(e, NAME_multipleVar, var);
+    result->type = V_ERROR;
     fail;
   }
   if (inleft == 0)
@@ -111,62 +113,75 @@ getVarEquation(Equation e, Var var)
     right = RIGHTHAND(e);
   }
 
-  arithError = FALSE;
-  rval	= getPseudoFloatExpression(right);
+  if ( !evaluateExpression(right, &v) )
+  { result->type = V_ERROR;
+    fail;
+  }
 
   while((Var) left != var)
   { Class left_class;
+    numeric_value vt, v2;
 
     inleft = valInt(getVarInBinaryExpression((BinaryExpression) LEFTHAND(left),
 					     var));
     if ( isObject(left) )
       left_class = classOfObject(left);
     else
-      left_class = NIL;
+    { errorPce(left, NAME_unexpectedType, TypeEquation);
+      result->type = V_ERROR;
+      fail;
+    }
 
-    if	(inleft == 1)
-    { v = getPseudoFloatExpression(RIGHTHAND(left));
+    if	( inleft )
+    { if ( !evaluateExpression(RIGHTHAND(left), &v2) )
+      { result->type = V_ERROR;
+	fail;
+      }
 
       if ( left_class == ClassPlus )
-	rval = PSF_sub(rval, v);
+	ar_minus(&v, &v2, &vt);
       else if ( left_class == ClassMinus )
-	rval = PSF_add(rval, v);
+	ar_add(&v, &v2, &vt);
       else if ( left_class == ClassTimes )
-      	rval = PSF_div(rval, v);
+	ar_divide(&v, &v2, &vt);
       else if ( left_class == ClassDivide )
-	rval = PSF_mul(rval, v);
+	ar_times(&v, &v2, &vt);
       else
       { errorPce(left, NAME_unexpectedType, TypeEquation);
+	result->type = V_ERROR;
 	fail;
       }
     } else
-    { v = getPseudoFloatExpression(LEFTHAND(left));
+    { if ( !evaluateExpression(LEFTHAND(left), &v2) )
+      { result->type = V_ERROR;
+	fail;
+      }
 
       if ( left_class == ClassPlus )
-	rval = PSF_sub(rval, v);
+	ar_minus(&v, &v2, &vt);
       else if ( left_class == ClassMinus )
-	rval = PSF_add(rval, v);
+	ar_add(&v, &v2, &vt);
       else if ( left_class == ClassTimes )
-	rval = PSF_div(rval, v);
+	ar_divide(&v, &v2, &vt);
       else if ( left_class == ClassDivide )
-	rval = PSF_div(v, rval);
+	ar_times(&v, &v2, &vt);
       else
       { errorPce(left, NAME_unexpectedType, TypeEquation);
+	result->type = V_ERROR;
 	fail;
       }
     }
+    v = vt;
 
-    left = (inleft == 1 ? LEFTHAND(left) : RIGHTHAND(left));
+    left = (inleft ? LEFTHAND(left) : RIGHTHAND(left));
   }
 
-  if (arithError == TRUE)
-    fail;
-
-  answer(toInt(PSF_Int(rval)));
+  *result = v;
+  succeed;
 }
 
 
-static Int
+static Any
 getVarEquationv(Equation e, Var var, int argc, Equation *argv)
 { Int rval;
   int n;
@@ -189,7 +204,11 @@ getVarEquationv(Equation e, Var var, int argc, Equation *argv)
 		  if ( error )
 		    rval = FAIL;
 		  else
-		    rval = getVarEquation(e, var);
+		  { numeric_value v;
+
+		    evaluateEquation(e, var, &v);
+		    rval = ar_result(&v);
+		  }
 		});
 
   answer(rval);
@@ -198,18 +217,20 @@ getVarEquationv(Equation e, Var var, int argc, Equation *argv)
 
 static status
 ExecuteEquation(Equation e)
-{ PseudoFloat lv, rv;
-
-  arithError = FALSE;
-
-  lv =	getPseudoFloatExpression(LEFTHAND(e));
-  rv =	getPseudoFloatExpression(RIGHTHAND(e));
-
-  if ( arithError == TRUE )
-    fail;
-
-  if ( lv == rv )
-    succeed;
+{ numeric_value vl, vr;
+  
+  if ( evaluateExpression(LEFTHAND(e), &vl) &&
+       evaluateExpression(LEFTHAND(e), &vr) )
+  { if ( vl.type == V_INTEGER && vr.type == V_INTEGER )
+    { if ( vl.value.i == vr.value.i )
+	succeed;
+    } else
+    { promoteToRealNumericValue(&vl);
+      promoteToRealNumericValue(&vr);
+      if ( vl.value.i == vr.value.i )
+	succeed;
+    }
+  }
 
   fail;
 }
@@ -243,7 +264,7 @@ static senddecl send_equation[] =
 /* Get Methods */
 
 static getdecl get_equation[] =
-{ GM(NAME_var, 2, "value=int", T_var, getVarEquationv,
+{ GM(NAME_var, 2, "value=int|number|real", T_var, getVarEquationv,
      NAME_calculate, "Get value of a variable")
 };
 
@@ -275,72 +296,80 @@ makeClassEquation(Class class)
 
 static status
 ExecuteLess(Equation e)
-{ PseudoFloat lv, rv;
-
-  arithError = FALSE;
-
-  lv = getPseudoFloatExpression(LEFTHAND(e));
-  rv = getPseudoFloatExpression(RIGHTHAND(e));
-
-  if ( arithError == TRUE )
-    fail;
-
-  if ( lv < rv )
-    succeed;
+{ numeric_value vl, vr;
+  
+  if ( evaluateExpression(LEFTHAND(e), &vl) &&
+       evaluateExpression(RIGHTHAND(e), &vr) )
+  { if ( vl.type == V_INTEGER && vr.type == V_INTEGER )
+    { if ( vl.value.i < vr.value.i )
+	succeed;
+    } else
+    { promoteToRealNumericValue(&vl);
+      promoteToRealNumericValue(&vr);
+      if ( vl.value.f < vr.value.f )
+	succeed;
+    }
+  }
 
   fail;
 }
 
 static status
 ExecuteLessEqual(Equation e)
-{ PseudoFloat lv, rv;
-
-  arithError = FALSE;
-
-  lv = getPseudoFloatExpression(LEFTHAND(e));
-  rv = getPseudoFloatExpression(RIGHTHAND(e));
-
-  if ( arithError == TRUE )
-    fail;
-
-  if ( lv <= rv )
-    succeed;
+{ numeric_value vl, vr;
+  
+  if ( evaluateExpression(LEFTHAND(e), &vl) &&
+       evaluateExpression(RIGHTHAND(e), &vr) )
+  { if ( vl.type == V_INTEGER && vr.type == V_INTEGER )
+    { if ( vl.value.i <= vr.value.i )
+	succeed;
+    } else
+    { promoteToRealNumericValue(&vl);
+      promoteToRealNumericValue(&vr);
+      if ( vl.value.f <= vr.value.f )
+	succeed;
+    }
+  }
 
   fail;
 }
 
 static status
 ExecuteGreater(Equation e)
-{ PseudoFloat lv, rv;
-
-  arithError = FALSE;
-
-  lv = getPseudoFloatExpression(LEFTHAND(e));
-  rv = getPseudoFloatExpression(RIGHTHAND(e));
-
-  if ( arithError == TRUE )
-    fail;
-
-  if ( lv > rv )
-    succeed;
+{ numeric_value vl, vr;
+  
+  if ( evaluateExpression(LEFTHAND(e), &vl) &&
+       evaluateExpression(RIGHTHAND(e), &vr) )
+  { if ( vl.type == V_INTEGER && vr.type == V_INTEGER )
+    { if ( vl.value.i > vr.value.i )
+	succeed;
+    } else
+    { promoteToRealNumericValue(&vl);
+      promoteToRealNumericValue(&vr);
+      if ( vl.value.f > vr.value.f )
+	succeed;
+    }
+  }
 
   fail;
 }
 
 static status
 ExecuteGreaterEqual(Equation e)
-{ PseudoFloat lv, rv;
-
-  arithError = FALSE;
-
-  lv = getPseudoFloatExpression(LEFTHAND(e));
-  rv = getPseudoFloatExpression(RIGHTHAND(e));
-
-  if ( arithError == TRUE )
-    fail;
-
-  if ( lv >= rv )
-    succeed;
+{ numeric_value vl, vr;
+  
+  if ( evaluateExpression(LEFTHAND(e), &vl) &&
+       evaluateExpression(RIGHTHAND(e), &vr) )
+  { if ( vl.type == V_INTEGER && vr.type == V_INTEGER )
+    { if ( vl.value.i >= vr.value.i )
+	succeed;
+    } else
+    { promoteToRealNumericValue(&vl);
+      promoteToRealNumericValue(&vr);
+      if ( vl.value.f >= vr.value.f )
+	succeed;
+    }
+  }
 
   fail;
 }

@@ -35,7 +35,7 @@ WinFrameClass()
     wndClass.cbWndExtra		= sizeof(long);
     wndClass.hInstance		= PceHInstance;
     wndClass.hIcon		= NULL; /*LoadIcon(NULL, IDI_APPLICATION);*/
-    wndClass.hCursor		= LoadCursor(NULL, IDC_ARROW);
+    wndClass.hCursor		= NULL;
     wndClass.hbrBackground	= GetStockObject(WHITE_BRUSH);
     wndClass.lpszMenuName	= NULL;
     wndClass.lpszClassName	= strName(winclassname);
@@ -314,6 +314,23 @@ frame_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       return 0;
     }
 
+    case WM_SETCURSOR:
+    { if ( LOWORD(lParam) == HTCLIENT )
+      { WsFrame f = fr->ws_ref;
+
+	if ( f )
+	{ if ( !f->hcursor )
+	    f->hcursor = LoadCursor(NULL, IDC_ARROW);
+
+	  ZSetCursor(f->hcursor);
+	}
+
+	return 1;
+      }
+
+      break;
+    }
+
 #if 0
     case WM_PARENTNOTIFY:
     { int  fwEvent = LOWORD(wParam);
@@ -328,6 +345,26 @@ frame_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       break;
     }
 #endif
+  }
+
+  { EventObj ev;
+    AnswerMark mark;
+    status rval = FALSE;
+    markAnswerStack(mark);
+  
+    if ( (ev = messageToEvent(hwnd, message, wParam, lParam)) )
+    { if ( message != WM_WINENTER && message != WM_WINEXIT )
+	PceEventInWindow(hwnd);
+
+      addCodeReference(ev);
+      rval = send(fr, NAME_event, ev, 0);
+      delCodeReference(ev);
+      freeableObj(ev);
+    }
+    rewindAnswerStack(mark, NIL);
+
+    if ( rval )
+      return 0;
   }
 
   return DefWindowProc(hwnd, message, wParam, lParam);
@@ -881,5 +918,35 @@ ws_postscript_frame(FrameObj fr)
   } else
     return errorPce(fr, NAME_mustBeOpenBeforePostscript);
 }
+
+
+void
+ws_frame_cursor(FrameObj fr, CursorObj cursor)
+{ WsFrame f = fr->ws_ref;
+
+  if ( f )
+  { if ( isDefault(cursor) )
+      f->hcursor = LoadCursor(NULL, IDC_ARROW);
+    else
+      f->hcursor = (HCURSOR)getXrefObject(cursor, fr->display);
+
+    ZSetCursor(f->hcursor);
+  }
+}
+
+
+void
+ws_grab_frame_pointer(FrameObj fr, Bool grab, CursorObj cursor)
+{ HWND win;
+
+  if ( (win = getHwndFrame(fr)) )
+  { if ( grab == ON )
+    { ws_frame_cursor(fr, cursor);
+      SetCapture(win);
+    } else
+      ReleaseCapture();
+  }
+}
+
 
 

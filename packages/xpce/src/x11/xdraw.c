@@ -82,7 +82,7 @@ static void	r_andpattern(Image i);
 static int quick;			/* display quick_and_dirty */
 
 static struct environment
-{ struct iarea	area;			/* clip rectangle */
+{ iarea		area;			/* clip rectangle */
   int		level;			/* nesting level */
 } environments[MAX_CLIP_NESTING];
 
@@ -521,7 +521,7 @@ intersection_iarea(IArea a, IArea b)
 
 static void
 clip_area(int *x, int *y, int *w, int *h)
-{ struct iarea a;
+{ iarea a;
 
   a.x = *x; a.y = *y; a.w = *w; a.h = *h;
   intersection_iarea(&a, &env->area);
@@ -661,6 +661,8 @@ r_fillpattern(Any fill)		/* image or colour */
 
   if ( isDefault(fill) )
     fill = context.gcs->colour;
+  else if ( fill == NAME_current )
+    return;
 
   if ( fill != context.gcs->fill )
   { XGCValues values;
@@ -1095,6 +1097,67 @@ r_elevation(Elevation e)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+r_elevation_fillpattern(Elevation e, int up)
+    Sets the fill-pattern for the interior of elevated areas and returns
+    TRUE if the interior needs to be filled.  Returns FALSE otherwise.
+    The special colours `reduced' and `hilited' are interpreted as relative
+    colours to the background.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+r_elevation_fillpattern(Elevation e, int up)
+{ Any fill = NIL;
+
+  if ( up && notDefault(e->colour) )
+  { fill = e->colour;
+  } else if ( !up && notDefault(e->background) )
+  { fill = e->background;
+  }
+
+  if ( isNil(fill) )
+    fail;
+
+  if ( fill == NAME_reduced || fill == NAME_hilited )
+  { Any bg = context.gcs->background;
+
+    if ( instanceOfObject(bg, ClassColour) && context.gcs->depth != 1 )
+    { if ( fill == NAME_reduced )
+	fill = getReduceColour(bg);
+      else
+	fill = getHiliteColour(bg);
+    } else
+      fail;
+  }
+
+  r_fillpattern(fill);
+
+  succeed;
+}
+
+
+void
+r_3d_segments(int n, ISegment s, Elevation e, int light)
+{ XSegment *xs = alloca(sizeof(XSegment) * n);
+  XSegment *xp = xs;
+  ISegment p   = s;
+  int i;
+
+  r_elevation(e);
+  
+  for(i=0; i<n; i++, p++, xp++)
+  { xp->x1 = X(p->x1);
+    xp->y1 = Y(p->y1);
+    xp->x2 = X(p->x2);
+    xp->y2 = Y(p->y2);
+  }
+    
+  XDrawSegments(context.display, context.drawable,
+		light ? context.gcs->reliefGC : context.gcs->shadowGC,
+		xs, n);
+}
+
+
 void
 r_3d_box(int x, int y, int w, int h, int radius, Elevation e, int up)
 { int i;
@@ -1103,6 +1166,7 @@ r_3d_box(int x, int y, int w, int h, int radius, Elevation e, int up)
   GC TopLeftGC, BottomRightGC;
   int xt, yt;
   int shadow = valInt(e->height);
+  int fill;				/* fill interior */
 
   if ( e->kind == NAME_shadow )
   { XSegment s[2 * MAX_SHADOW];
@@ -1177,7 +1241,9 @@ r_3d_box(int x, int y, int w, int h, int radius, Elevation e, int up)
   
   if ( !up  )
     shadow = -shadow;
+  fill = r_elevation_fillpattern(e, up);
 
+					/* 3D box */
   if ( shadow )
   { r_elevation(e);
 
@@ -1196,7 +1262,7 @@ r_3d_box(int x, int y, int w, int h, int radius, Elevation e, int up)
     xt = x, yt = y;
     Translate(xt, yt);
   
-    if ( radius > 0 )
+    if ( radius > 0 )			/* with rounded corners */
     { XSegment sr[MAX_SHADOW * 2];	/* top, left */
       XArc     ar[MAX_SHADOW * 3];	/* idem */
       XSegment ss[MAX_SHADOW * 2];	/* bottom, right */
@@ -1205,6 +1271,33 @@ r_3d_box(int x, int y, int w, int h, int radius, Elevation e, int up)
       int      os;
   
       w--, h--;
+
+      r_arcmode(NAME_pieSlice);
+      if ( fill )
+      { GC FillGC = context.gcs->fillGC;
+	int r2 = 2 * radius;
+	int r = radius;
+	XRectangle rs[3];
+
+	ar[0].angle1 = 90*64; ar[0].angle2 = 90*64; /* top-left */
+	ar[0].x = xt; ar[0].y = yt; ar[0].width = r2; ar[0].height = r2;
+ 
+	ar[1].angle1 = 0*64; ar[1].angle2 = 90*64; /* top-right */
+	ar[1].x = xt+w-r2; ar[1].y = yt; ar[1].width = r2; ar[1].height = r2;
+ 
+	ar[2].angle1 = 180*64; ar[2].angle2 = 90*64; /* bottom-left */
+	ar[2].x = xt; ar[2].y = yt+h-r2; ar[2].width = r2; ar[2].height = r2;
+ 
+	ar[3].angle1 = 270*64; ar[3].angle2 = 90*64; /* bottom-left */
+	ar[3].x = xt+w-r2; ar[3].y = yt+h-r2; ar[3].width=r2; ar[3].height=r2;
+ 
+/*top*/	rs[0].x = xt+r; rs[0].y = yt;     rs[0].width = w-r2; rs[0].height = r;
+/*bot*/	rs[1].x = xt+r; rs[1].y = yt+h-r; rs[1].width = w-r2; rs[1].height = r;
+/*body*/rs[2].x = xt;   rs[2].y = yt+r;   rs[2].width = w; rs[2].height = h-r2;
+
+        XFillArcs(context.display, context.drawable, FillGC, ar, 4);
+	XFillRectangles(context.display, context.drawable, FillGC, rs, 3);
+      }
 
       for(os=0; os<shadow; os++)
       { int r     = radius-os;
@@ -1251,11 +1344,12 @@ r_3d_box(int x, int y, int w, int h, int radius, Elevation e, int up)
 	ns++;
       }
 
-      r_arcmode(NAME_pieSlice);
       XDrawSegments(context.display, context.drawable, TopLeftGC,     sr, ir);
       XDrawSegments(context.display, context.drawable, BottomRightGC, ss, is);
       XDrawArcs(    context.display, context.drawable, TopLeftGC,     ar, nr);
       XDrawArcs(    context.display, context.drawable, BottomRightGC, as, ns);
+
+      return;				/* did the filling already */
     } else				/* no radius */
     { XSegment s[2 * MAX_SHADOW];
 
@@ -1281,13 +1375,8 @@ r_3d_box(int x, int y, int w, int h, int radius, Elevation e, int up)
     }
   }  
 
-  if ( up )
-  { if ( notDefault(e->colour) )
-      r_fill(x+shadow, y+shadow, w-2*shadow, h-2*shadow, e->colour);
-  } else
-  { if ( notDefault(e->background) )
-      r_fill(x+shadow, y+shadow, w-2*shadow, h-2*shadow, e->background);
-  }
+  if ( fill )
+    r_fill(x+shadow, y+shadow, w-2*shadow, h-2*shadow, NAME_current);
 }
 
 
@@ -1406,17 +1495,8 @@ r_3d_triangle(int x1, int y1, int x2, int y2, int x3, int y3,
     step_to(&x3, &y3, cx, cy);
   }
 
-  if ( up )
-  { if ( notDefault(e->colour) )
-    { r_fillpattern(e->colour);
-      r_fill_triangle(x1, y1, x2, y2, x3, y3);
-    }
-  } else
-  { if ( notDefault(e->background) )
-    { r_fillpattern(e->background);
-      r_fill_triangle(x1, y1, x2, y2, x3, y3);
-    }
-  }
+  if ( r_elevation_fillpattern(e, up) )
+    r_fill_triangle(x1, y1, x2, y2, x3, y3);
 }
 
 
@@ -1456,7 +1536,7 @@ r_3d_diamond(int x, int y, int w, int h, Elevation e, int up)
 	Cprintf("(%d, %d) (%d, %d) (%d, %d) (%d, %d)\n",
 		nox, noy, wex, wey, sox, soy, eax, eay));
 
-  for(; z > 0; z--)
+  while( z > 0 )
   { XSegment s[4];
 
     s[0].x1 = eax; s[0].y1 = eay; s[0].x2 = nox; s[0].y2 = noy;
@@ -1467,13 +1547,17 @@ r_3d_diamond(int x, int y, int w, int h, Elevation e, int up)
     XDrawSegments(context.display, context.drawable, topGC, s,     2);
     XDrawSegments(context.display, context.drawable, botGC, &s[2], 2);
 
-    noy++;
-    soy--;
-    wex--;
-    eax++;
+    if ( --z > 0 )
+    { noy++;
+      soy--;
+      wex--;
+      eax++;
+    } else
+    { eax++;				/* ??? */
+    }
   }
       
-  if ( (up && notDefault(e->colour)) || (!up && notDefault(e->background)))
+  if ( r_elevation_fillpattern(e, up) )
   { XPoint p[4];
 
     p[0].x = wex; p[0].y = wey;
@@ -1481,7 +1565,6 @@ r_3d_diamond(int x, int y, int w, int h, Elevation e, int up)
     p[2].x = eax; p[2].y = eay;
     p[3].x = sox; p[3].y = soy;
 
-    r_fillpattern(up ? e->colour : e->background);
     XFillPolygon(context.display, context.drawable, context.gcs->fillGC,
 		 p, 4, Convex, CoordModeOrigin);
   }
@@ -1590,13 +1673,9 @@ r_3d_ellipse(int x, int y, int w, int h, Elevation z, int up)
     XDrawArcs(context.display, context.drawable, BottomRightGC, a, an);
   }
 
-  if ( up && notDefault(z->colour) )
+  if ( r_elevation_fillpattern(z, up) )
   { r_thickness(0);
-    r_arc(x+shadow, y+shadow, w-2*shadow, h-2*shadow, 0, 360*64, z->colour);
-  }
-  if ( !up && notDefault(z->background) )
-  { r_thickness(0);
-    r_arc(x+shadow, y+shadow, w-2*shadow, h-2*shadow, 0, 360*64,z->background);
+    r_arc(x+shadow, y+shadow, w-2*shadow, h-2*shadow, 0, 360*64, NAME_current);
   }
 }
 
@@ -1892,7 +1971,7 @@ void
 r_caret(int cx, int cy, FontObj font)
 { int ch, cb, ah, cw2;
   int cw = valInt(getExFont(font));
-  struct ipoint pts[3];
+  ipoint pts[3];
 
   if ( cw < 4 )
     cw = 4;

@@ -16,7 +16,7 @@
 		********************************/
 
 #ifndef PCE_VERSION
-#define PCE_VERSION "4.8.15, Dec 1995"
+#define PCE_VERSION "4.8.17, April 1996"
 #endif
 
 #ifndef OS_VERSION
@@ -134,7 +134,7 @@ __pce_export PceITFSymbol getITFSymbolName __P((PceName));
 typedef union
 { char		character;		/* Value is a C char */
   long		integer;		/* Value of PCE int or reference */
-  float 	real;			/* Value of PCE real */
+  double 	real;			/* Value of PCE real */
   char *	string;			/* Value is a C char * */
   void *	pointer;		/* Anonymous pointer */
   PceITFSymbol	itf_symbol;		/* Interface symbol */

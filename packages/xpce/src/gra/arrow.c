@@ -143,7 +143,7 @@ RedrawAreaArrow(Arrow a, Area area)
 static status
 drawArrow(int x1, int y1, int x2, int y2, int x3, int y3,
 	  Image fill, int pen, Name texture, Name style)
-{ struct ipoint pts[3];
+{ ipoint pts[3];
 
   if ( notNil(fill) )
   { pts[0].x = x1;

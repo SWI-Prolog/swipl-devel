@@ -40,7 +40,7 @@ processInput(FILE *fd, FILE *ic, FILE *ih)
     }
     *q = EOS;
 
-    if ( name[0] != EOS && prolog[0] != EOS )
+/*  if ( name[0] != EOS && prolog[0] != EOS ) */
     { fprintf(ic, "  BUILTIN_NAME(\"%s\")\n", prolog);
       fprintf(ih, "#define NAME_%s (&builtin_names[%d])\n", name, cn++);
     }

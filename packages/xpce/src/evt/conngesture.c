@@ -34,10 +34,15 @@ initialiseConnectGesture(ConnectGesture g,
 
 static status
 verifyConnectGesture(ConnectGesture g, EventObj ev)
-{ if ( isNil(ev->receiver->device) || isNil(g->link) )
+{ Graphical gr = ev->receiver;
+
+  if ( !instanceOfObject(gr, ClassGraphical) ||
+       isNil(gr->device) ||
+       isNil(g->link) )
     fail;
 
-  assign(g, device, ev->receiver->device);
+  if ( isNil(g->device) )
+    assign(g, device, gr->device);
 
   succeed;
 }
@@ -48,12 +53,7 @@ initiateConnectGesture(ConnectGesture g, EventObj ev)
 { Device dev;
   Point pos;
 
-					/* safety for redefinition */
-  if ( isNil(ev->receiver->device) || isNil(g->link) )
-    fail;
-    
-  if ( isNil(g->device) )
-    assign(g, device, ev->receiver->device);
+  verifyConnectGesture(g, ev);		/* safety for redefinition */
   dev = g->device;
   pos = getPositionEvent(ev, dev);
 

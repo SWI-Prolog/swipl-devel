@@ -222,7 +222,8 @@ server_start(BM, Force:[bool]) :->
 		->  free(@emacs_server),
 		    send(BM, report, status, 'Server on other PceEmacs'),
 		    fail
-		;   send(BM, report, status, 'Restarted server'),
+		;   free(@emacs_server), % will recreate!
+		    send(BM, report, status, 'Restarted server'),
 		    send(@emacs_server_address, remove)
 		)
 	    ;	true

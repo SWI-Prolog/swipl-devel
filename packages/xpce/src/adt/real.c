@@ -14,15 +14,41 @@
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 New reals  can be created  using newObject(ClassReal, value,  0).  The
 argument should be a proper PCE data type, which is converted into a C
-float by initialiseReal.  When a Real should be created from a C float
+double by initialiseReal.  When a Real should be created from a C double
 use the function CtoReal().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+void
+setReal(Real r, double f)
+{ union
+  { double f;
+    unsigned long l[2];
+  } v;
+
+  v.f = f;
+  r->value1 = v.l[0];
+  r->value2 = v.l[1];
+}
+
+
+double
+valReal(Real r)
+{ union
+  { double f;
+    unsigned long l[2];
+  } v;
+
+  v.l[0] = r->value1;
+  v.l[1] = r->value2;
+
+  return v.f;
+}
+
+
 Real
-CtoReal(float f)
+CtoReal(double f)
 { Real r = answerObject(ClassReal, ZERO, 0);
-  r->value = f;
-  DEBUG(NAME_real, Cprintf("CtoReal(%f)\n", f));
+  setReal(r, f);
 
   return r;
 }
@@ -30,16 +56,22 @@ CtoReal(float f)
 
 static status
 initialiseReal(Real r, Any arg)
-{ if ( isInteger(arg) )
-  { r->value = (float)valInt(arg);
+{ double v;
+
+  setFlag(r, F_ISREAL);
+
+  if ( isInteger(arg) )
+  { v = (double)valInt(arg);
   } else if ( instanceOfObject(arg, ClassNumber) )
-  { r->value = (float)valInt(((Number)arg)->value);
+  { v = (double)((Number)arg)->value;
   } else if ( instanceOfObject(arg, ClassReal) )
-  { r->value = ((Real)arg)->value;
+  { Real a = arg;
+    
+    return valueReal(r, a);
   } else
     return errorPce(ClassReal, NAME_cannotConvert, arg);
 
-  setFlag(r, F_ISREAL);
+  setReal(r, v);
 
   succeed;
 }
@@ -57,7 +89,7 @@ getConvertReal(Class class, Any obj)
 
     f = StrTod(s, &end);
     if (end == s + strlen(s))
-      return CtoReal((float)f);
+      return CtoReal(f);
   }
 
   fail;
@@ -68,7 +100,7 @@ static StringObj
 getPrintNameReal(Real r)
 { char buf[100];
 
-  sprintf(buf, "%f", r->value);
+  sprintf(buf, "%g", valReal(r));
 
   answer(CtoString(buf));
 }
@@ -77,33 +109,53 @@ getPrintNameReal(Real r)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Store/load reals to/from file. Format:
 
-<real>		::= <word>		(word holding float)
+<real>		::= <word>		(first part of double)
+		    <word>		(second part of double)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static status
 storeReal(Real r, FileObj file)
-{ union { long l; float f; } u;
+{ TRY(storeSlotsObject(r, file));
 
-  TRY(storeSlotsObject(r, file));
-  u.f = r->value;
-  return storeWordFile(file, (Any) u.l);
-}
-
-static status
-loadReal(Real r, FILE *fd, ClassDef def)
-{ union { long l; float f; } u;
-
-  TRY(loadSlotsObject(r, fd, def));
-  u.l = loadWord(fd);
-  r->value = u.f;
+#ifndef WORDS_BIGENDIAN
+  storeWordFile(file, (Any) r->value2);
+  storeWordFile(file, (Any) r->value1);
+#else
+  storeWordFile(file, (Any) r->value1);
+  storeWordFile(file, (Any) r->value2);
+#endif
 
   succeed;
 }
 
 
 static status
+loadReal(Real r, FILE *fd, ClassDef def)
+{ TRY(loadSlotsObject(r, fd, def));
+
+  if ( restoreVersion < 16 )		/* saved as single */
+  { union { long l; float f; } u;
+
+    u.l = loadWord(fd);
+    setReal(r, (double)u.f);
+  } else
+  { 
+#ifndef WORDS_BIGENDIAN
+    r->value2 = loadWord(fd);
+    r->value1 = loadWord(fd);
+#else
+    r->value1 = loadWord(fd);
+    r->value2 = loadWord(fd);
+#endif
+  }
+  succeed;
+}
+
+
+static status
 equalReal(Real r, Real r2)
-{ if (r->value == r2->value)
+{ if ( r->value1 == r2->value1 &&
+       r->value2 == r2->value2 )
     succeed;
   fail;
 }
@@ -111,15 +163,16 @@ equalReal(Real r, Real r2)
 
 static status
 notEqualReal(Real r, Real r2)
-{ if (r->value != r2->value)
-    succeed;
-  fail;
+{ if ( r->value1 == r2->value1 &&
+       r->value2 == r2->value2 )
+    fail;
+  succeed;
 }
 
 
 static status
 smallerReal(Real r, Real r2)
-{ if (r->value < r2->value)
+{ if (valReal(r) < valReal(r2))
     succeed;
   fail;
 }
@@ -127,7 +180,7 @@ smallerReal(Real r, Real r2)
 
 static status
 largerReal(Real r, Real r2)
-{ if (r->value > r2->value)
+{ if (valReal(r) > valReal(r2))
     succeed;
   fail;
 }
@@ -135,7 +188,7 @@ largerReal(Real r, Real r2)
 
 static status
 lessEqualReal(Real r, Real r2)
-{ if (r->value <= r2->value)
+{ if (valReal(r) <= valReal(r2))
     succeed;
   fail;
 }
@@ -143,7 +196,7 @@ lessEqualReal(Real r, Real r2)
 
 static status
 largerEqualReal(Real r, Real r2)
-{ if (r->value >= r2->value)
+{ if (valReal(r) >= valReal(r2))
     succeed;
   fail;
 }
@@ -151,37 +204,37 @@ largerEqualReal(Real r, Real r2)
 
 static status
 plusReal(Real r, Real r2)
-{ r->value = r->value + r2->value;
+{ setReal(r, valReal(r) + valReal(r2));
   succeed;
 }
 
 
 static status
 minusReal(Real r, Real r2)
-{ r->value = r->value - r2->value;
+{ setReal(r, valReal(r) - valReal(r2));
   succeed;
 }
 
 
 static status
 timesReal(Real r, Real r2)
-{ r->value = r->value * r2->value;
+{ setReal(r, valReal(r) * valReal(r2));
   succeed;
 }
 
 
 static status
 divideReal(Real r, Real r2)
-{ r->value = r->value / r2->value;
+{ setReal(r, valReal(r) / valReal(r2));
   succeed;
 }
 
 
 static Name
 getCompareReal(Real r1, Real r2)
-{ if ( r1->value > r2->value )
+{ if ( valReal(r1) > valReal(r2) )
     answer(NAME_larger);
-  if ( r1->value < r2->value )
+  if ( valReal(r1) < valReal(r2) )
     answer(NAME_smaller);
   answer(NAME_equal);
 }
@@ -199,7 +252,8 @@ getCatchAllReal(Real r, Name selector, int argc, Any *argv)
 
 status
 valueReal(Real r, Real v)
-{ r->value = v->value;
+{ r->value1 = v->value1;
+  r->value2 = v->value2;
 
   succeed;
 }
@@ -223,8 +277,10 @@ static char *T_catchAll[] =
 /* Instance Variables */
 
 static vardecl var_real[] =
-{ IV(NAME_value, "alien:float", IV_NONE,
-     NAME_storage, "C float value")
+{ IV(NAME_value1, "alien:double1", IV_NONE,
+     NAME_storage, "1-st part of double-value"),
+  IV(NAME_value2, "alien:double2", IV_NONE,
+     NAME_storage, "2-nd part of double-value")
 };
 
 /* Send Methods */
@@ -266,7 +322,7 @@ static getdecl get_real[] =
   GM(NAME_catchAll, 2, "copy=real", T_catchAll, getCatchAllReal,
      NAME_copy, "Create copy and run method on it"),
   GM(NAME_printName, 0, "string", NULL, getPrintNameReal,
-     NAME_textual, "Formatted version (%f) of value"),
+     NAME_textual, "Formatted version (%g) of value"),
   GM(NAME_value, 0, "real", NULL, getValueReal,
      NAME_value, "Returns itself")
 };

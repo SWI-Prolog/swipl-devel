@@ -4,13 +4,17 @@
 
 ! See README.customise before changing this file.
 
-! This resource should define a PCE executable object.  It is ran when
+! This resource should define an XPCE executable object.  It is ran when
 ! the display is first opened.  We use it to define various global objects
 ! used in the resources below.
 
 Pce.Display.initialise: \
-	and(_dialog_bg @= when(@colour_display, grey80, white), \
-	    _win_pen   @= when(@colour_display, 0, 1))
+	and(_dialog_bg        @= when(@colour_display, grey80, white), \
+	    _button_elevation @= elevation(button, 1, @default, \
+					   grey95, grey30, \
+					   '3d', grey70), \
+	    _mark_elevation   @= elevation(mark, 0), \
+	    _win_pen	      @= when(@colour_display, 0, 1))
 
 ! Path for finding standard bitmaps
 
@@ -43,7 +47,7 @@ Pce.DialogItem.background:	@_dialog_bg
 Pce.*.inactive_colour: 		when(@colour_display, \
 				     colour(grey60), \
 				     @grey50_image)
-Pce.*.label_format:		right
+Pce.DialogItem.label_format:	right
 
 Pce.MenuBar.label_font:		normal
 Pce.MenuBar.format:		left
@@ -53,7 +57,7 @@ Pce.Button.radius:		when(@colour_display, 8, 12)
 Pce.Button.size:		size(50,20)
 Pce.Button.label_font:		normal
 Pce.Button.alignment:		center
-Pce.Button.elevation:		when(@colour_display, 1, @nil)
+Pce.Button.elevation:		when(@colour_display, button, @nil)
 Pce.Button.shadow:		when(@colour_display, 0, 1)
 Pce.Button.popup_image:		when(@colour_display, @nil, 'ol_pulldown.bm')
 
@@ -62,7 +66,8 @@ Pce.Slider.look:		when(@colour_display, motif, open_look)
 Pce.Menu.value_font:		normal
 Pce.Menu.pen:			when(@colour_display, 0, 1)
 Pce.Menu.elevation:		when(@colour_display, 0, @nil)
-Pce.Menu.item_elevation:	when(@colour_display, 1, @nil)
+Pce.Menu.item_elevation:	when(@colour_display, button, @nil)
+Pce.Menu.mark_elevation:	when(@colour_display, mark, @nil)
 Pce.Menu.cycle_indicator:	when(@colour_display, \
 				     elevation(1), 'ol_cycle.bm')
 
@@ -76,7 +81,9 @@ Pce.Popup.item_elevation:	when(@colour_display, 0, @nil)
 Pce.Popup.preview_elevation:	1
 Pce.Popup.border:		2
 Pce.Popup.preview_feedback:	rounded_box
-Pce.Popup.popup_image:		'ol_pullright.bm'
+Pce.Popup.popup_image:		when(@colour_display, @nil, 'ol_pullright.bm')
+
+Pce.DialogGroup.radius:		when(@colour_display, 8, 12)
 
 Pce.ScrollBar.look:		open_look
 Pce.ScrollBar.distance:		0
@@ -104,6 +111,7 @@ Pce.Label.border:			1
 
 Pce.Dialog.background:			@_dialog_bg
 Pce.Browser.background:			@_dialog_bg
+Pce.Browser.pen:			0
 Pce.View.background:			white
 Pce.Window.pen:				@_win_pen
 Pce.Window.background:			white
@@ -124,7 +132,7 @@ Pce.Editor.selection_style:		when(@colour_display, \
 					     style(background := yellow), \
 					     style(highlight := @on))
 Pce.ListBrowser.font:			normal
-Pce.ListBrowser.pen:			1
+Pce.ListBrowser.pen:                    when(@colour_display, 0, 1)
 Pce.ListBrowser.selection_style:	when(@colour_display, \
 					     style(background := black, \
 						   colour := white), \

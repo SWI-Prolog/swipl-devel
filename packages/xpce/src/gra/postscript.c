@@ -881,7 +881,7 @@ drawPostScriptArc(Arc a)
 	    a->close == NAME_none ? 0 : a->close == NAME_chord ? 1 : 2,
 	    a->position->x, a->position->y,
 	    a->size->w, a->size->h,
-	    a->start_angle->value, a->size_angle->value);
+	    valReal(a->start_angle), valReal(a->size_angle));
 
   fill(a, NAME_fillPattern);
   ps_output("draw grestore\n");
@@ -894,7 +894,7 @@ drawPostScriptArc(Arc a)
     cy = valInt(a->position->y);
 
     if ( notNil(a->first_arrow) )
-    { if ( a->size_angle->value >= 0.0 )
+    { if ( valReal(a->size_angle) >= 0.0 )
 	paintPostscriptArrow(a->first_arrow, a, toInt(sx), toInt(sy),
 			     toInt(sx+(sy-cy)), toInt(sy-(sx-cx)));
       else
@@ -902,7 +902,7 @@ drawPostScriptArc(Arc a)
 			     toInt(sx-(sy-cy)), toInt(sy+(sx-cx)));
     }
     if ( notNil(a->second_arrow) )
-    { if ( a->size_angle->value >= 0.0 )
+    { if ( valReal(a->size_angle) >= 0.0 )
 	paintPostscriptArrow(a->second_arrow, a, toInt(ex), toInt(ey),
 			     toInt(ex-(ey-cy)), toInt(ey+(ex-cx)));
       else

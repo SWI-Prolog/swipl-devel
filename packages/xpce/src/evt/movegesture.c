@@ -25,7 +25,9 @@ initialiseMoveGesture(MoveGesture g, Name button, Modifier modifier)
 
 static status
 verifyMoveGesture(MoveGesture g, EventObj ev)
-{ if ( isNil(ev->receiver->device) )
+{ Graphical gr = ev->receiver;
+
+  if ( !instanceOfObject(gr, ClassGraphical) || isNil(gr->device) )
     fail;
 
   succeed;

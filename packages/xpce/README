@@ -55,7 +55,7 @@ for installing from the sources.
 
 Bugs
 
-Bugs may be reported to   pce-bugs@swi.psy.uva.nl.   Please indicate the
+Bugs may be reported to  xpce-bugs@swi.psy.uva.nl.   Please indicate the
 PCE version, Prolog/Lisp system used.  If the  error can be isolated, it
 will generally be fixed, so it is in  your interrest to report the error
 in such a way that we can reproduce it.

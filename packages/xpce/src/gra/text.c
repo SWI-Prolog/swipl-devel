@@ -192,7 +192,7 @@ draw_caret(int x, int y, int w, int h, int active)
     r_fillpattern(BLACK_IMAGE);
     r_fill_triangle(cx, y, x, y+h, x+w, y+h);
   } else
-  { struct ipoint pts[4];
+  { ipoint pts[4];
     int cx = x + w/2;
 
     int cy = y + h/2;

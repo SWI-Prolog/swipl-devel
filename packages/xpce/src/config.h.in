@@ -144,6 +144,9 @@
 /* Define if you have the setsid function.  */
 #undef HAVE_SETSID
 
+/* Define if you have the sigaction function.  */
+#undef HAVE_SIGACTION
+
 /* Define if you have the socket function.  */
 #undef HAVE_SOCKET
 
@@ -179,6 +182,9 @@
 
 /* Define if you have the <pwd.h> header file.  */
 #undef HAVE_PWD_H
+
+/* Define if you have the <siginfo.h> header file.  */
+#undef HAVE_SIGINFO_H
 
 /* Define if you have the <string.h> header file.  */
 #undef HAVE_STRING_H

@@ -24,7 +24,7 @@ toString(Any obj, String s)
   { sprintf(tmp, "%ld", valInt(obj));
     rval = SUCCEED;
   } else if ( instanceOfObject(obj, ClassReal) )
-  { sprintf(tmp, "%f", ((Real)obj)->value);
+  { sprintf(tmp, "%g", valReal(obj));
     rval = SUCCEED;
   } else if ( instanceOfObject(obj, ClassNumber) )
   { sprintf(tmp, "%ld", valInt(((Number)obj)->value));
@@ -55,10 +55,9 @@ toInteger(Any obj)
 { if ( isInteger(obj) )					/* int */
   { return (Int) obj;
   } else if ( instanceOfObject(obj, ClassNumber) )	/* number */
-  { return ((Number)obj)->value;
+  { return toInt(((Number)obj)->value);
   } else if ( instanceOfObject(obj, ClassReal) )	/* real */
-  { Real r = (Real)obj;
-    return toInt(rfloat(r->value));
+  { return toInt(rfloat(valReal(obj)));
   } else if ( instanceOfObject(obj, ClassCharArray) )	/* char_array */
   { CharArray ca = obj;
     String s = &ca->data;

@@ -283,7 +283,7 @@ make_create_proto_recogniser(R) :-
 				 if(message(Clone, has_send_method,
 					    start_text),
 				    message(Clone, start_text)),
-				 message(Canvas, auto_align, Clone, create),
+				 message(Canvas, auto_align, Clone, move),
 				 message(Canvas, modified)), % thanks Lourens
 			     Canvas?(mode) == draw_proto)).
 

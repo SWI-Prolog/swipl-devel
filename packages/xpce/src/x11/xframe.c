@@ -369,9 +369,70 @@ xEventFrame(Widget w, FrameObj fr, XEvent *event)
       }
     }
     default:
+    { EventObj ev;
+      AnswerMark mark;
+      markAnswerStack(mark);
+  
+      if ( (ev = CtoEvent(fr, event)) )
+      { addCodeReference(ev);
+	send(fr, NAME_event, ev, 0);
+	delCodeReference(ev);
+	freeableObj(ev);
+      }
+
+      rewindAnswerStack(mark, NIL);
+      
       return;
+    }
   }
 }
+
+		 /*******************************
+		 *	      CURSOR		*
+		 *******************************/
+
+void
+ws_frame_cursor(FrameObj fr, CursorObj cursor)
+{ Widget w = widgetFrame(fr);
+
+  if ( w )
+  { DisplayWsXref r = fr->display->ws_ref;
+    Display *d = r->display_xref;
+
+    XDefineCursor(d,
+		  XtWindow(w),
+		  !instanceOfObject(cursor, ClassCursor)
+		      ? None
+		      : (Cursor) getXrefObject(cursor, fr->display));
+  }
+}
+
+
+void
+ws_grab_frame_pointer(FrameObj fr, Bool grab, CursorObj cursor)
+{ Widget w = widgetFrame(fr);
+
+  if ( w )
+  { if ( grab == ON )
+    { Cursor c = (!instanceOfObject(cursor, ClassCursor)
+		      ? None
+		      : (Cursor) getXrefObject(cursor, fr->display));
+
+      XtGrabPointer(w,
+		    False,
+		    ButtonPressMask|ButtonReleaseMask|
+		    EnterWindowMask|LeaveWindowMask|
+		    PointerMotionMask|ButtonMotionMask,
+		    GrabModeAsync, GrabModeAsync,
+		    None,
+		    c,
+		    CurrentTime);
+    } else
+    { XtUngrabPointer(w, CurrentTime);
+    }
+  }
+}
+
 
 		 /*******************************
 		 *     GEOMETRY MANAGEMENT	*

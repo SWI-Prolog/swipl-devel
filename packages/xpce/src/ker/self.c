@@ -88,7 +88,7 @@ writePcev(Pce pce, int argc, Any *argv)
     else if ( isInteger(argv[i]) )
       Cprintf("%ld", valInt(argv[i]));
     else if ( instanceOfObject(argv[i], ClassReal) )
-      Cprintf("%f", ((Real)argv[i])->value);
+      Cprintf("%g", valReal(argv[i]));
     else
     { char *s = pp(argv[i]);
       Cprintf("%s", s);

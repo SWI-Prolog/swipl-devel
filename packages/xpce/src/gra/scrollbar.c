@@ -606,7 +606,7 @@ repeatScrollBar(ScrollBar s)
     synchroniseGraphical((Graphical) s, ON);
     if ( Repeating(s) )		/* synchroniseGraphical() can handle up */
     { Real t = getResourceValueObject(s, NAME_repeatInterval);
-      int ct = (int)(t->value * 1000.0) - (float)(mclock() - clk);
+      int ct = (int)(valReal(t) * 1000.0) - (float)(mclock() - clk);
 
       assign(s, status, NAME_repeat);
 
@@ -707,7 +707,7 @@ OpenLookRedrawAreaScrollBar(ScrollBar s, Area a)
   int am = 3;				/* arrow-margin */
   struct bubble_info bar_bi;
   struct bubble_info button_bi;
-  struct iarea redraw;
+  iarea redraw;
   Elevation z = getResourceValueObject(s, NAME_elevation);
   int boxh = BOXHEIGHT;
   int boxm = BOX_MARGIN;

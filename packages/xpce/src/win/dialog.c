@@ -33,9 +33,7 @@ initialiseDialog(Dialog d, Name name, Size size, DisplayObj display)
 status
 displayDialog(Dialog d, Graphical item, Point pos)
 { if ( displayDevice(d, item, pos) )
-  { if ( notDefault(pos) )
-      send(item, NAME_autoAlign, OFF, 0);
-    if ( instanceOfObject(item, ClassDialogItem) )
+  { if ( instanceOfObject(item, ClassDialogItem) )
       d->graphicals->current = d->graphicals->tail;
     if ( isNil(d->keyboard_focus) && send(item, NAME_WantsKeyboardFocus, 0) )
       keyboardFocusWindow((PceWindow) d, item);
@@ -74,8 +72,8 @@ appendDialog(Dialog d, Graphical item, Name where)
 
 
 static status
-layoutDialog(Dialog d)
-{ return layoutDialogDevice((Device) d, d->gap);
+layoutDialog(Dialog d, Size size)
+{ return layoutDialogDevice((Device) d, d->gap, size);
 }
 
 
@@ -171,8 +169,8 @@ getActiveDialog(Dialog d)
 		*         COMMUNICATION		*
 		********************************/
 
-static Name
-defaultAccelerator(void)
+Name
+defaultAccelerator()
 { static Name acc = NULL;
 
   if ( !acc )
@@ -256,7 +254,7 @@ modifiedItemDialog(Dialog d, Graphical gr, Bool m)
 }
 
 		/********************************
-		*           REPORT		*
+		*             REPORT		*
 		********************************/
 
 static Any
@@ -319,7 +317,7 @@ static senddecl send_dialog[] =
      NAME_focus, "Assign the caret to an input object"),
   SM(NAME_ComputeDesiredSize, 0, NULL, computeDesiredSizeDialog,
      NAME_layout, "Compute the desired size"),
-  SM(NAME_layout, 0, NULL, layoutDialog,
+  SM(NAME_layout, 1, "size=[size]", layoutDialog,
      NAME_layout, "(Re)compute layout of dialog_items"),
   SM(NAME_append, 2, T_append, appendDialog,
      NAME_organisation, "Append dialog_item {below,right,next_row} last"),

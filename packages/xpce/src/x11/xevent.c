@@ -93,6 +93,8 @@ ws_dispatch(Int FD, Int timeout)
     dispatch_status_address = old_dispatch_status_address;
   }
 
+  considerLocStillEvent();
+    
   if ( dispatch_status == DISPATCH_TIMEOUT )
   { fail;
   } else

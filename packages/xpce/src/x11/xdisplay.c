@@ -371,7 +371,7 @@ ws_draw_in_display(DisplayObj d, Graphical gr, Bool invert, Bool subtoo)
 { d_screen(d);
   if ( invert == ON ) r_invert_mode(ON);
   if ( subtoo == ON ) r_subwindow_mode(ON);
-  RedrawAreaGraphical(gr, gr->area);
+  RedrawArea(gr, gr->area);
   r_invert_mode(OFF);
   r_subwindow_mode(OFF);
   d_done();

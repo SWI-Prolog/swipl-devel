@@ -237,7 +237,7 @@ getHiliteColour(Colour c)
   if ( (c2 = getAttributeObject(c, NAME_hilite)) )
     answer(c2);
   h  = getResourceValueObject(c, NAME_hiliteFactor);
-  hf = h ? h->value : 0.5;
+  hf = h ? valReal(h) : 0.5;
   if ( isDefault(c->green) )
     getXrefObject(c, CurrentDisplay(NIL));
   
@@ -268,7 +268,7 @@ getReduceColour(Colour c)
   if ( (c2 = getAttributeObject(c, NAME_reduce)) )
     answer(c2);
   rfactor = getResourceValueObject(c, NAME_reduceFactor);
-  rf = rfactor ? rfactor->value : 0.5;
+  rf = rfactor ? valReal(rfactor) : 0.5;
   if ( isDefault(c->green) )
     getXrefObject(c, CurrentDisplay(NIL));
   

@@ -81,6 +81,11 @@ static char translations[] =
   <Configure>:	event() \n\
   <Circ>:	event() \n\
   <Key>:	event() \n\
+  <BtnDown>:	event()	\n\
+  <BtnUp>:	event()	\n\
+  <Motion>:	event()	\n\
+  <Enter>:	event() \n\
+  <Leave>:	event() \n\
   <FocusIn>:	event() \n\
   <FocusOut>:	event() \n\
 ";
@@ -91,6 +96,11 @@ static char translations[] =
   <Configure>:	event() \n\
   <Circ>:	event() \n\
   <Key>:	event() \n\
+  <BtnDown>:	event()	\n\
+  <BtnUp>:	event()	\n\
+  <Motion>:	event()	\n\
+  <Enter>:	event() \n\
+  <Leave>:	event() \n\
   <FocusIn>:	event() \n\
   <FocusOut>:	event() \n\
 ";

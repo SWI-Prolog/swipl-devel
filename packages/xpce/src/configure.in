@@ -9,10 +9,10 @@ AC_SUBST(PL)
 AC_SUBST(PLLIBS)
 AC_SUBST(PLBASE)
 AC_SUBST(PLARCH)
+AC_SUBST(BOOTPL)
 AC_SUBST(XLIB)
 AC_SUBST(XINCLUDES)
 AC_SUBST(XLIBS)
-AC_SUBST(STATICLIBS)
 AC_SUBST(PCEHOME)
 AC_SUBST(COFLAGS)
 AC_SUBST(CWFLAGS)
@@ -36,6 +36,7 @@ AC_SUBST(builddir)
 AC_SUBST(VMAJOR)
 AC_SUBST(VMINOR)
 AC_SUBST(VPATCH)
+AC_SUBST(LDCONFIG)
 
 RTSUFFIX=""
 
@@ -137,13 +138,11 @@ changequote(,)dnl
      feature(arch, Arch),
      feature(home, Home),
      feature(c_libs, PLLIBS),
-     feature(c_staticlibs, PLSTATICLIBS),
      feature(c_ldflags, PLLDFLAGS),
      tell('/tmp/__plparms$$'),
      format('PLBASE="~w"~n', Home),
      format('PLARCH="~w"~n', Arch),
      format('PLLIBS="~w"~n', PLLIBS),
-     format('PLSTATICLIBS="~w"~n', PLSTATICLIBS),
      format('PLLDFLAGS="~w"~n', PLLDFLAGS),
      (   feature(open_shared_object, true)
      ->	 format('MAKE_SHARED_OBJECT=yes~n', [])
@@ -159,15 +158,13 @@ changequote([,])dnl
   AC_MSG_RESULT("		PLBASE=$PLBASE")
   AC_MSG_RESULT("		PLARCH=$PLARCH")
   AC_MSG_RESULT("		PLLIBS=$PLLIBS")
-  AC_MSG_RESULT("		PLSTATICLIBS=$PLSTATICLIBS")
   AC_MSG_RESULT("		PLLDFLAGS=$PLLDFLAGS")
   if test ! -z "$MAKE_SHARED_OBJECT"; then
     AC_MSG_RESULT("		MAKE_SHARED_OBJECT=yes")
   fi
   
   case "$PLARCH" in
-      *)			STATICLIBS="$PLSTATICLIBS"
-				LDFLAGS="$PLLDFLAGS" ;;
+      *)			LDFLAGS="$PLLDFLAGS" ;;
   esac
   ALLTARGET=xpce-pl
   PLTARGET=nosoall
@@ -211,6 +208,8 @@ EOF
   CMFLAGS="$CMFLAGS -fPIC"
   fi
 
+  BOOTPL=${PL-pl}
+
   SO="so"				 # Default shared object extension
   LD="gcc"				 # Default linking through gcc
   LDSOFLAGS="-shared"			 # Create a shared object
@@ -243,6 +242,7 @@ EOF
   esac
 else
   SHLIB=""
+  BOOTPL=xpce
 fi
 
 
@@ -297,6 +297,7 @@ else
 fi
 CFLAGS="$CMFLAGS"
 AC_PROG_RANLIB
+AC_CHECK_PROGS(LDCONFIG, ldconfig, "true")
 AC_PROG_INSTALL
 AC_C_INLINE
 AC_FUNC_ALLOCA
@@ -313,11 +314,11 @@ AC_CHECK_LIB(nsl, t_bind,
 
 AC_CHECK_HEADERS(unistd.h string.h memory.h sys/time.h sys/file.h pwd.h)
 AC_CHECK_HEADERS(sys/select.h sys/param.h malloc.h sys/resource.h stropts.h)
-AC_CHECK_HEADERS(frame.h sys/timeb.h sys/times.h)
+AC_CHECK_HEADERS(frame.h sys/timeb.h sys/times.h siginfo.h)
 AC_CHECK_FUNCS(vsscanf on_exit memmove select popen strerror timelocal)
 AC_CHECK_FUNCS(getdtablesize socket fork ftime getpid select getlogin)
 AC_CHECK_FUNCS(getcwd setsid grantpt gethostname fstat gettimeofday)
-AC_CHECK_FUNCS(atexit on_exit tmpnam sysinfo)
+AC_CHECK_FUNCS(atexit on_exit tmpnam sysinfo sigaction)
 AC_HEADER_TIME
 AC_HEADER_DIRENT
 AC_C_CHAR_UNSIGNED
@@ -489,7 +490,7 @@ else
 fi
 rm -rf conftest*
 
-AC_OUTPUT(Makefile ../CXX/demo/Makefile)
+AC_OUTPUT(Makefile ../CXX/demo/Makefile ../pl/src/Makefile.bin)
 
 
 

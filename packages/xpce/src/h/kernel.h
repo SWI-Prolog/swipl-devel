@@ -110,7 +110,7 @@ typedef void			(*atexit_function)(void);
 		********************************/
 
 #define SAVEMAGIC   		"PCE version 4"
-#define SAVEVERSION 		15
+#define SAVEVERSION 		16
 
 		/********************************
 		*             ASSERTS		*
@@ -201,6 +201,7 @@ typedef void			(*atexit_function)(void);
 #define get             getPCE          	/* avoid common name-conflict */
 #define send            sendPCE         	/* same */
 #define toString	toStringPCE		/* SWI-Prolog name-conflict */
+#define valReal		valPceReal		/* and another */
 
 		 /*******************************
 		 *	    BASIC TYPES		*
@@ -459,9 +460,9 @@ extern struct name builtin_names[];	/* object-array of built-in's */
 					OBJ_MAGIC)
 
 #define initHeaderObj(obj, cl) \
-  { obj->class	      = cl; \
-    obj->flags        = F_CREATING|OBJ_MAGIC; \
-    obj->references   = 0L; \
+  { (obj)->class	= (cl); \
+    (obj)->flags        = F_CREATING|OBJ_MAGIC; \
+    (obj)->references   = 0L; \
   }
 
 #define classOfObject(obj)	(((Instance)(obj))->class)
@@ -823,6 +824,7 @@ typedef struct _classdecl
 #define IV_SUPER	0x04		/* delegation variable */
 #define IV_STORE	0x08		/* has store method */
 #define IV_FETCH	0x10		/* has fetch method */
+#define IV_REDEFINE	0x20		/* redefine existing variable */
 
 #define RC_REFINE	(char *)(-1)	/* type for refinement of resource */
 
@@ -1041,7 +1043,7 @@ NewClass(string)
 End;
 
 NewClass(number)
-  Int		value;			/* value of the number */
+  long		value;			/* value of the number */
 End;
 
 NewClass(pce)
@@ -1087,7 +1089,8 @@ NewClass(host)
 End;
 
 NewClass(real)
-  float	 	value;			/* value of real */
+  unsigned long value1;			/* 1-st part of double */
+  unsigned long value2;			/* 2nd-part of double */
 End;
 
 NewClass(recogniser)
@@ -1623,6 +1626,7 @@ GLOBAL int	qsortReverse;		/* used by qsortCompareObjects() */
 #else /*O_RUNTIME*/
 #define DEBUG(subject, goal)
 #define DEBUG_BOOT(goal)
+#define tracePce(pce, how)
 #endif
 
 #ifndef O_RUNTIME

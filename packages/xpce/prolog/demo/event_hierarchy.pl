@@ -24,7 +24,7 @@ event_hierarchy :-
 	send(D, below, P),
 	send(D, append, button(quit, message(P, destroy))),
 	get(@event_tree, root, Root),
-	new(T, tree(new(RootNode, node(text(Root?value))))),
+	new(T, tree(new(RootNode, node(text(Root?value, left, normal))))),
 	fill_event_hierarchy(Root, RootNode),
 	send(P, display, T),
 	send(P, open).
@@ -35,6 +35,6 @@ fill_event_hierarchy(Node, TreeNode) :-
 	Sons \== @nil, !,
 	chain_list(Sons, List),
 	forall(member(S, List),
-	       (send(TreeNode, son, new(N, node(text(S?value)))),
+	       (send(TreeNode, son, new(N, node(text(S?value, left, normal)))),
 	        fill_event_hierarchy(S, N))).
 fill_event_hierarchy(_, _).

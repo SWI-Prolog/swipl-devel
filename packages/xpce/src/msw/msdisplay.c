@@ -366,7 +366,13 @@ ws_background_display(DisplayObj d, Colour c)
 
 void
 ws_draw_in_display(DisplayObj d, Graphical gr, Bool invert, Bool subtoo)
-{
+{ d_screen(d);
+  if ( invert == ON ) r_invert_mode(ON);
+  if ( subtoo == ON ) r_subwindow_mode(ON);
+  RedrawArea(gr, gr->area);
+  r_invert_mode(OFF);
+  r_subwindow_mode(OFF);
+  d_done();
 }
 
 
@@ -624,9 +630,8 @@ status
 ws_postscript_display(DisplayObj d)
 { int w = valInt(getWidthDisplay(d));
   int h = valInt(getHeightDisplay(d));
-  HDC hdc = GetDC(NULL);
 
-  d_hdc(hdc, DEFAULT, DEFAULT);
+  d_screen(d);
   postscriptDrawable(0, 0, w, h);
   d_done();
   

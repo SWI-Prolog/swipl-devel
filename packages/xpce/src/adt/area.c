@@ -203,7 +203,7 @@ getMeasureArea(Area a)
 }
 
 
-static status
+status
 pointInArea(Area a, Point p)
 { return inArea(a, p->x, p->y);
 }

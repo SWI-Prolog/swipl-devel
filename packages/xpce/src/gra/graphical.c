@@ -215,7 +215,7 @@ status
 initialiseRedrawAreaGraphical(Any obj, Area a,
 			      int *x, int *y, int *w, int *h,
 			      IArea redraw)
-{ struct iarea a2;
+{ iarea a2;
   Graphical gr = obj;
 
   initialiseDeviceGraphical(obj, x, y, w, h);
@@ -1004,8 +1004,8 @@ rotateGraphical(Graphical gr, Int degrees)
 status
 init_resize_graphical(Any obj, Real xfactor, Real yfactor, Point origin,
 		      float *xf, float *yf, int *ox, int *oy)
-{ *xf = xfactor->value;
-  *yf = (isDefault(yfactor) ? *xf : yfactor->value);
+{ *xf = valReal(xfactor);
+  *yf = (isDefault(yfactor) ? *xf : valReal(yfactor));
 
   if ( notDefault(origin) )
   { *ox = valInt(origin->x);
@@ -1074,13 +1074,13 @@ getAreaGraphical(Graphical gr)
 }
 
 
-static Int
+Int
 getXGraphical(Graphical gr)
 { answer(getAreaGraphical(gr)->x);
 }
 
 
-static Int
+Int
 getYGraphical(Graphical gr)
 { answer(getAreaGraphical(gr)->y);
 }
@@ -1100,13 +1100,13 @@ getCornerYGraphical(Graphical gr)
 }
 
 
-static Int
+Int
 getWidthGraphical(Graphical gr)
 { answer(getAreaGraphical(gr)->w);
 }
 
 
-static Int
+Int
 getHeightGraphical(Graphical gr)
 { answer(getAreaGraphical(gr)->h);
 }
@@ -1204,7 +1204,7 @@ topSideGraphical(Graphical gr, Int top)
 }
 
 
-static Point
+Point
 getPositionGraphical(Graphical gr)
 { answer(answerObject(ClassPoint,getAreaGraphical(gr)->x,
 		      getAreaGraphical(gr)->y,0));
@@ -1561,6 +1561,14 @@ getAutoValueAlignGraphical(Graphical gr)
     answer(rval);
 
   answer(OFF);
+}
+
+
+static status
+layoutDialogGraphical(Graphical gr)
+{ ComputeGraphical(gr);
+
+  succeed;
 }
 
 
@@ -2091,9 +2099,9 @@ layoutGraphical(Graphical gr, Real argC1, Real argC2, Real argC3, Int argC4, Int
   int dx, dy, d;
   int n, l, i, j;
   Cell cell;
-  float C1 = (isDefault(argC1) ?  2.0 : argC1->value);
-  float C2 = (isDefault(argC2) ? 30.0 : argC2->value);
-  float C3 = (isDefault(argC3) ?  2.0 : argC3->value);
+  float C1 = (isDefault(argC1) ?  2.0 : valReal(argC1));
+  float C2 = (isDefault(argC2) ? 30.0 : valReal(argC2));
+  float C3 = (isDefault(argC3) ?  2.0 : valReal(argC3));
   int C4   = (isDefault(argC4) ?   15 : valInt(argC4));
   int C5   = (isDefault(argC5) ?  100 : valInt(argC5));
   int moved;
@@ -2679,7 +2687,7 @@ drawPolyGraphical(Graphical gr, Any points, Bool closed, Any fill)
   { Chain ch = points;
     Cell cell;
 
-    pts = alloca(sizeof(struct ipoint) * valInt(ch->size));
+    pts = alloca(sizeof(ipoint) * valInt(ch->size));
     for_cell(cell, ch)
     { Point pt = cell->value;
 
@@ -2695,7 +2703,7 @@ drawPolyGraphical(Graphical gr, Any points, Bool closed, Any fill)
   { Vector vector = points;
     Point pt;
     
-    pts = alloca(sizeof(struct ipoint) * valInt(vector->size));
+    pts = alloca(sizeof(ipoint) * valInt(vector->size));
 
     for_vector(vector, pt,
 	       { if ( instanceOfObject(pt, ClassPoint) )
@@ -2723,8 +2731,8 @@ static status
 drawArcGraphical(Graphical gr,		/* has to handle mode */
 		 Int x, Int y, Int w, Int h,
 		 Real start, Real end, Any fill)
-{ int s = (isDefault(start) ? 0      : rfloat(start->value * 64.0));
-  int e = (isDefault(end)   ? 360*64 : rfloat(end->value * 64.0));
+{ int s = (isDefault(start) ? 0      : rfloat(valReal(start) * 64.0));
+  int e = (isDefault(end)   ? 360*64 : rfloat(valReal(end) * 64.0));
   
   if ( isDefault(fill) )
     fill = NIL;
@@ -3031,6 +3039,8 @@ static senddecl send_graphical[] =
      NAME_layout, "Dialog item integration"),
   SM(NAME_right, 1, "graphical*", leftGraphical,
      NAME_layout, "Put me right of argument"),
+  SM(NAME_layoutDialog, 0, NULL, layoutDialogGraphical,
+     NAME_layout, "Compute layout as a dialog object"),
   SM(NAME_popup, 1, "popup", popupGraphical,
      NAME_menu, "Associate a popup menu with the graphical"),
   SM(NAME_displayOn, 1, "device*", displayOnGraphical,
@@ -3159,6 +3169,10 @@ static getdecl get_graphical[] =
      NAME_layout, "Dialog_item integration; fails"),
   GM(NAME_reference, 0, "point", NULL, getFailObject,
      NAME_layout, "Dialog_item integration; fails"),
+  GM(NAME_horStretch, 0, "0..100", NULL, getFailObject,
+     NAME_layout, "Horizontal stretchability of dialog item (fail)"),
+  GM(NAME_verStretch, 0, "0..100", NULL, getFailObject,
+     NAME_layout, "Vertical stretchability of dialog item (fail)"),
   GM(NAME_right, 0, "graphical", NULL, getFailObject,
      NAME_layout, "Dialog_item integration; fails"),
   GM(NAME_popup, 0, "popup", NULL, getPopupGraphical,

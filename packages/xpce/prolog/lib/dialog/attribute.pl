@@ -83,15 +83,18 @@ update_dependancies(DE, Changed:name) :->
 	       ;   true
 	       )).
 
-layout(DE) :->
+layout(DE, Size:[size]) :->
 	"Recompute layout and update size"::
-	send(DE, send_super, layout),
-	get(DE, bounding_box, area(_, _, W, H)),
-	get(DE, size, size(DW, DH)),
-	get(DE, gap, size(GW, GH)),
-	NW is max(DW, W+2*GW),
-	NH is max(DH, H+2*GH),
-	send(DE, size, size(NW, NH)).
+	send(DE, send_super, layout, Size),
+	(   Size == @default
+	->  get(DE, bounding_box, area(_, _, W, H)),
+	    get(DE, size, size(DW, DH)),
+	    get(DE, gap, size(GW, GH)),
+	    NW is max(DW, W+2*GW),
+	    NH is max(DH, H+2*GH),
+	    send(DE, size, size(NW, NH))
+	;   true
+	).
 
 
 append_attribute(DE, A:'name|tuple') :->

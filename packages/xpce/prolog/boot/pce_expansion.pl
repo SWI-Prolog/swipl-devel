@@ -204,7 +204,8 @@ do_expand((:- pce_extend_class(ClassName)), []) :-
 	push_class(ClassName),
 	set_attribute(ClassName, extending, true),
 	prolog_load_context(file, SourceFile),
-	set_attribute(ClassName, method_tag, SourceFile).
+	file_base_name(SourceFile, SourceTag),
+	set_attribute(ClassName, method_tag, SourceTag).
 do_expand((:- pce_end_class), Result) :-
 	pce_compiling(ClassName),
 	findall(M, retract(attribute(ClassName, send_method, M)), SMS),
@@ -269,6 +270,10 @@ do_expand(delegate_to(Var), []) :-
 	pce_compiling(ClassName),
 	add_attribute(ClassName, directive,
 		      send(@class, delegate, Var)).
+do_expand((:- pce_class_directive(Goal)), [(:- Goal)]) :-
+	pce_compiling(ClassName),
+	get(@classes, member, ClassName, C),
+	get(C, realised, @on), !.
 do_expand((:- pce_class_directive(Goal)), []) :-
 	pce_compiling(ClassName),
 	add_attribute(ClassName, directive, Goal).
@@ -628,6 +633,16 @@ create_type_vector([],      @default) :- !.
 create_type_vector(List,    VectorTerm) :-
 	VectorTerm =.. [vector|List].
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Predicates implementing methods are  normally called {send,get}_<class>,
+which is fine for :-   pce_begin_class/:- pce_end_class defined classes.
+Class  extension  however,  could  force   multiple  occurences  of  the
+predicate. To avoid this, the predicate is tagged with the *basename* of
+the sourcefile. Older versions used  the   full  pathname,  but symbolic
+links can cause trouble reloading in this  case. The current schema only
+fails if a class is defined  in   multiple  files with the same basename
+that are not module files.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 predicate_name(SendGet, _Selector, Name) :-
 	pce_compiling(ClassName),

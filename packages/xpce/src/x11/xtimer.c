@@ -33,7 +33,7 @@ trapTimer(XtPointer xtm, XtIntervalId *id)
     executeTimer(tm);
 
     if ( tm->status == NAME_repeat )
-    { long msec = (long) (tm->interval->value * 1000.0);
+    { long msec = (long) (valReal(tm->interval) * 1000.0);
       XtIntervalId id;
 
       id = XtAppAddTimeOut(pceXtAppContext(NULL),
@@ -59,7 +59,7 @@ ws_status_timer(Timer tm, Name status)
   }
 
   if ( status != NAME_idle )
-  { long msec = (long) (tm->interval->value * 1000.0);
+  { long msec = (long) (valReal(tm->interval) * 1000.0);
     XtIntervalId nid;
 
     nid = XtAppAddTimeOut(pceXtAppContext(NULL),

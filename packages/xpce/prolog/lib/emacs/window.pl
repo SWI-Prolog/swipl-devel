@@ -1027,6 +1027,11 @@ convert(_, IName:name, KB:emacs_key_binding) :<-
 	key_binding_name(Name, IName),
 	get(type(key_binding), convert, Name, KB).
 
+lookup(_, Name:name, _Super:[key_binding], KB:emacs_key_binding) :<-
+	"Find existing mappings"::
+	key_binding_name(Name, IName),
+	get(@key_bindings, member, IName, KB).
+
 fill_arguments_and_execute(KB, Id:event_id, Receiver:emacs_mode,
 			   Selector:name, Argv:any ...) :->
 	"Open/close the argument processing"::

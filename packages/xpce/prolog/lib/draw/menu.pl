@@ -84,9 +84,7 @@ modified(M, Value:[bool]) :->
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Attach   a new prototype.   Note  that we  do  not have  to  specify a
-position as  the attached format object  will  ensure  the new icon is
-displayed at the bottom.
+Attach   a new prototype. 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 proto(M, Proto:'graphical|link*', Mode:name, Cursor:cursor) :->
@@ -298,7 +296,7 @@ paint_proto(MI, Proto:'link|graphical*') :->
 	(   Proto == @nil
 	->  true
 	;   send(Proto, instance_of, link)
-	->  new(Dev, device),
+	->  new(Dev, device),			% links (connection)
 	    send(Dev, display, new(B1, box(0,0)), point(11, 10)),
 	    send(Dev, display, new(B2, box(0,0)), point(27, 20)),
 	    send(B1, handle, handle(0, 0, Proto?from)),
@@ -315,7 +313,7 @@ paint_proto(MI, Proto:'link|graphical*') :->
 	    ),
 	    send(I, draw_in, Dev),
 	    send(Dev, destroy)
-	;   send(Proto, instance_of, path),
+	;   send(Proto, instance_of, path), 	% Path case
 	    send(Proto?points, empty)
 	->  get(Proto, clone, Clone),
 	    send(Clone, clear),
@@ -324,12 +322,21 @@ paint_proto(MI, Proto:'link|graphical*') :->
 	    send(Clone, append, point(30,15)),
 	    send(Clone, append, point(15,21)),
 	    send(I, draw_in, Clone)
-	;   get(Proto, clone, Clone),
+	;   get(Proto, clone, Clone),		% general case
 	    (   send(Clone, has_send_method, menu_text)
 	    ->  send(Clone, menu_text)
 	    ;   true
 	    ),
-	    send(Clone, size, size(30, 14)),
+	    (	get(MI, mode, draw_proto)
+	    ->	get(Clone, size, size(PW, PH)),
+		(   (PW/30) > (PH/20)
+		->  DW = 30, DH is integer(30 * PH/PW)
+		;   DH = 20, DW is integer(20 * PW/PH)
+		)
+	    ;	DW = 30,
+		DH = 14
+	    ),
+	    send(Clone, size, size(DW, DH)),
 	    send(Clone, center, point(22, 14)),
 	    send(I, draw_in, Clone)
 	).

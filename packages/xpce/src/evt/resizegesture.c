@@ -34,14 +34,15 @@ verifyResizeGesture(ResizeGesture g, EventObj ev)
   int mx   = valInt(getResourceValueObject(g, NAME_marginWidth));
   Int X, Y;
   int x, y, w, h;
+  Graphical gr = ev->receiver;
 
-  if ( isNil(ev->receiver->device) )
+  if ( !instanceOfObject(gr, ClassGraphical) || isNil(gr->device) )
     fail;
 
   get_xy_event(ev, ev->receiver, ON, &X, &Y);
   x = valInt(X), y = valInt(Y);
-  w = valInt(ev->receiver->area->w);
-  h = valInt(ev->receiver->area->h);
+  w = valInt(gr->area->w);
+  h = valInt(gr->area->h);
   
   if ( x < w/frac && x < mx )		/* determine horizontal-mode */
     assign(g, h_mode, NAME_left);

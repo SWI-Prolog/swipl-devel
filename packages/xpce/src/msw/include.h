@@ -69,6 +69,7 @@ typedef struct
 { HWND		hwnd;			/* Windows handle */
   int		placed;			/* Explicit placement? */
   HCURSOR	hbusy_cursor;		/* handle for busy cursor */
+  HCURSOR	hcursor;		/* cursor displayed */
 } ws_frame, *WsFrame;
 
 

@@ -128,7 +128,7 @@ toTile(Any obj)
 
 static status
 computeTile(TileObj t)
-{ if ( equalName(t->orientation, NAME_horizontal) )
+{ if ( t->orientation == NAME_horizontal )
   { Cell cell;
     Int w   = ZERO;
     Int h   = ZERO;
@@ -150,12 +150,12 @@ computeTile(TileObj t)
     }
     
     assign(t, idealWidth,  w);
-    assign(t, idealHeight, h);
     assign(t, horShrink,   hsh);
     assign(t, horStretch,  hst);
+    assign(t, idealHeight, h);
     assign(t, verShrink,   vsh);
     assign(t, verStretch,  vst);
-  } else if ( equalName(t->orientation, NAME_vertical) )
+  } else if ( t->orientation == NAME_vertical )
   { Cell cell;
     Int w   = ZERO;
     Int h   = ZERO;
@@ -177,9 +177,9 @@ computeTile(TileObj t)
     }
     
     assign(t, idealWidth,  w);
-    assign(t, idealHeight, h);
     assign(t, horShrink,   hsh);
     assign(t, horStretch,  hst);
+    assign(t, idealHeight, h);
     assign(t, verShrink,   vsh);
     assign(t, verStretch,  vst);
   }
@@ -420,26 +420,48 @@ status
 setTile(TileObj t, Int x, Int y, Int w, Int h)
 { TileObj super;
 
-  if ( notDefault(w) && valInt(w) < 0 ) w = ZERO;
-  if ( notDefault(h) && valInt(h) < 0 ) h = ZERO;
+  if ( notDefault(w) && valInt(w) < valInt(t->border)) w = t->border;
+  if ( notDefault(h) && valInt(h) < valInt(t->border)) h = t->border;
 
   if ( notDefault(w) )
-  { if ( t->enforced == ON )
-    { assign(t, horStretch, ZERO);
-      assign(t, horShrink,  ZERO);
+  { assign(t, idealWidth, w);
+
+    if ( t->enforced == ON && notNil(t->super) )
+    { Cell cell;
+      Int stretch = ZERO;
+
+      for_cell(cell, t->super->members)
+      { TileObj t2 = cell->value;
+
+	assign(t2, horStretch, stretch);
+	assign(t2, horShrink,  stretch);
+	if ( t2 == t )
+	  stretch = ONE;
+      }
     }
-    assign(t, idealWidth, w);
   }
   if ( notDefault(h) )
-  { if ( t->enforced == ON )
-    { assign(t, verStretch, ZERO);
-      assign(t, verShrink,  ZERO);
+  { assign(t, idealHeight, h);
+
+    if ( t->enforced == ON && notNil(t->super) )
+    { Cell cell;
+      Int stretch = ZERO;
+
+      for_cell(cell, t->super->members)
+      { TileObj t2 = cell->value;
+
+	assign(t2, verStretch, stretch);
+	assign(t2, verShrink,  stretch);
+	if ( t2 == t )
+	  stretch = ONE;
+      }
     }
-    assign(t, idealHeight, h);
   }
 
-  for(super = t->super; notNil(super); super = super->super)
-    computeTile(super);
+  if ( t->enforced != ON )
+  { for(super = t->super; notNil(super); super = super->super)
+      computeTile(super);
+  }
 
   if ( t->enforced == ON )
   { if ( notNil(t->super) )
@@ -623,6 +645,47 @@ forAllTile(TileObj t, Code msg)
   succeed;
 }
 
+		 /*******************************
+		 *	  RESIZE SUPPORT	*
+		 *******************************/
+
+TileObj
+getSubTileToResizeTile(TileObj t, Point pos)
+{ if ( pointInArea(t->area, pos) && notNil(t->members) )
+  { Cell cell;
+    
+					/* in the area of a sub-tile */
+    for_cell(cell, t->members)
+    { TileObj t2 = cell->value;
+      
+      if ( pointInArea(t2->area, pos) )
+	return getSubTileToResizeTile(t2, pos);
+    }
+
+    for_cell(cell, t->members)
+    { TileObj t2 = cell->value;
+      TileObj t3;
+
+      if ( notNil(cell->next) )
+	t3 = cell->next->value;
+      else
+	break;
+
+					/* +/- 1: be a bit relaxed */
+      if ( t->orientation == NAME_horizontal )
+      { if ( valInt(pos->x) >= valInt(t2->area->x) + valInt(t2->area->w) - 1 &&
+	     valInt(pos->x) <= valInt(t3->area->x) + 1 )
+	  answer(t2);
+      } else
+      { if ( valInt(pos->y) >= valInt(t2->area->y) + valInt(t2->area->h) - 1 &&
+	     valInt(pos->y) <= valInt(t3->area->y) + 1 )
+	  answer(t2);
+      }
+    }
+  }
+
+  fail;
+}
 
 		 /*******************************
 		 *	 CLASS DECLARATION	*
@@ -713,7 +776,9 @@ static senddecl send_tile[] =
 
 static getdecl get_tile[] =
 { GM(NAME_root, 0, "tile", NULL, getRootTile,
-     NAME_organisation, "Root of the tile-hierarchy")
+     NAME_organisation, "Root of the tile-hierarchy"),
+  GM(NAME_subTileToResize, 1, "tile", "point", getSubTileToResizeTile,
+     NAME_event, "Tile above or left-of gap at point") 
 };
 
 /* Resources */

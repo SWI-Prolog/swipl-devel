@@ -1406,7 +1406,8 @@ split_selector(PceObject sel, Atom *predname, Module *module)
 
 static Predicate
 find_predicate(PceObject sel, int argc)
-{ Atom name, module;
+{ Atom name;
+  Module module;
   
   split_selector(sel, &name, &module);
   return FindPredicate(name, argc, module);
@@ -1579,7 +1580,8 @@ pl_pce_predicate_reference(Term pred, Term ref)
       return Unify(pred, t);
     }
   } else
-  { Module m = 0, name;
+  { Module m = 0;
+    Atom name;
     int arity;
     Predicate predicate;
     Term p = NewTerm();
@@ -1937,11 +1939,7 @@ the possibility of reentrance at moments this is not allowed in PCE ...
 #endif
 
 #ifndef TIMEOUT
-#if linux
 #define TIMEOUT 250
-#else
-#define TIMEOUT 0
-#endif
 #endif
 
 static int

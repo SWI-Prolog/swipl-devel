@@ -412,6 +412,20 @@ eventPopup(PopupObj p, EventObj ev)
 	  return send(p, NAME_drag, ev, 0);
 	}
       }
+    } else if ( isAEvent(ev, NAME_locStill) )
+    { if ( isNil(p->pullright->preview) )
+      { MenuItem mi;
+
+	if ( (mi = getItemFromEventMenu((Menu) p, ev)) &&
+	     mi->popup != p->pullright )
+	{ send(p->pullright, NAME_close, 0);
+	  assign(p, pullright, NIL);
+	  if ( mi->active == ON && notNil(mi->popup) )
+	    goto still;
+	  else
+	    return send(p, NAME_drag, ev, 0);
+	}
+      }
     } else if ( isUpEvent(ev) &&
 		getButtonEvent(ev) == p->pullright->button &&
 		isNil(p->pullright->pullright) )
@@ -450,6 +464,18 @@ eventPopup(PopupObj p, EventObj ev)
   { MenuItem mi = getItemFromEventMenu((Menu) p, ev);
 
     previewMenu((Menu) p, mi && mi->active == ON ? mi : NIL);
+  } else if ( isAEvent(ev, NAME_locStill) )
+  { MenuItem mi;
+
+  still:
+    mi = getItemFromEventMenu((Menu) p, ev);
+
+    if ( mi && mi->active == ON && notNil(mi->popup) )
+    { previewMenu((Menu) p, mi);
+      send(p, NAME_showPullrightMenu, mi, 0);
+
+      succeed;
+    }
   }
 
   fail;

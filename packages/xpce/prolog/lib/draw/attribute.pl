@@ -274,7 +274,7 @@ make_coordinate_menu(Menu, Selector) :-
 	new(Menu, text_item(Label, 0,
 			    message(@receiver?frame, client_attribute,
 				    Selector, @arg1))),
-	send(Menu, width, 5).
+	send(Menu, length, 5).
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

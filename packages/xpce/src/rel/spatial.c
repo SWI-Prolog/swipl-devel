@@ -32,7 +32,7 @@ _getVar(Equation e, Var var, va_list args) /* Var, Int, Var, Int, ... */
   Var vars[FWD_PCE_MAX_ARGS];
   Any vals[FWD_PCE_MAX_ARGS];
   Any savd[FWD_PCE_MAX_ARGS];
-  Int rval;
+  numeric_value v;
 
   for(argc = 0; (vars[argc] = va_arg(args, Var)) != NULL; argc++)
   { assert(argc <= FWD_PCE_MAX_ARGS);
@@ -47,12 +47,12 @@ _getVar(Equation e, Var var, va_list args) /* Var, Int, Var, Int, ... */
     setVar(vars[i], vals[i]);
   }
 
-  rval = getVarEquation(e, var);
+  evaluateEquation(e, var, &v);
 
   for(i=0; i<argc; i++)
     setVar(vars[i], savd[i]);
 
-  return rval;
+  return ar_int_result(e, &v);
 }
 
 

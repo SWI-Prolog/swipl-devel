@@ -6,6 +6,7 @@ status		makeClassClickGesture(Class class);
 status		makeClassConnectGesture(Class class);
 
 /* evt/event.c */
+void		considerLocStillEvent(void);
 PceWindow	WindowOfLastEvent(void);
 ulong		LastEventTime(void);
 void		setLastEventTime(ulong time);

@@ -599,7 +599,16 @@ displayDevice(Any Dev, Any Gr, Point pos)
   Graphical gr = Gr;
   
   if ( notDefault(pos) )
+  { Variable var;
+
+    if ( (var = getInstanceVariableClass(classOfObject(gr), NAME_autoAlign)) )
+    { Any off = OFF;
+
+      sendVariable(var, gr, 1, &off);
+    }
+
     setGraphical(gr, pos->x, pos->y, DEFAULT, DEFAULT);
+  }
 
   DeviceGraphical(gr, dev);
   DisplayedGraphical(gr, ON);
@@ -965,10 +974,12 @@ typedef struct _unit			/* can't use cell! */
   short	depth;				/* Depth below reference */
   short right;				/* Right of reference point */
   short left;				/* Left of reference point */
+  short	hstretch;			/* Strechable horizontal */
+  short vstretch;			/* Strechable vertical */
   Name  alignment;			/* alignment of the item */
 } unit, *Unit;
 
-static unit empty_unit = {(Graphical) NIL, 0, 0, 0, 0, NAME_column};
+static unit empty_unit = {(Graphical) NIL, 0, 0, 0, 0, 0, 0, NAME_column};
 
 typedef struct _matrix
 { unit *units[MAXCOLLUMNS];
@@ -1111,7 +1122,7 @@ layoutDialogDevice(Device d, Size gap, Size bb)
   { Cell cell;
 
     for_cell(cell, d->graphicals)
-      ComputeGraphical(cell->value);
+      send(cell->value, NAME_layoutDialog, 0, NULL);
   }
 
   if ( !PlacedTable )
@@ -1181,21 +1192,30 @@ layoutDialogDevice(Device d, Size gap, Size bb)
 
     for(x=0; x<max_x; x++)		/* Get sizes */
     { for(y=0; y<max_y; y++)
-      { if ( notNil(gr = m.units[x][y].item) )
+      { Unit u = &m.units[x][y];
+
+	if ( notNil(gr = u->item) )
 	{ if ( gr->displayed == ON )
 	  { Point reference = get(gr, NAME_reference, 0);
 	    int rx = (reference ? valInt(reference->x) : 0);
 	    int ry = (reference ? valInt(reference->y) : 0);
+	    Int hs = get(gr, NAME_horStretch, 0);
+	    Int vs = get(gr, NAME_verStretch, 0);
 	  
-	    m.units[x][y].left   = rx;
-	    m.units[x][y].height = ry;
-	    m.units[x][y].depth  = valInt(gr->area->h) - ry;
-	    m.units[x][y].right  = valInt(gr->area->w) - rx;
+	    if ( !hs ) hs = ZERO;
+	    if ( !vs ) vs = ZERO;
+
+	    u->left     = rx;
+	    u->height   = ry;
+	    u->depth    = valInt(gr->area->h) - ry;
+	    u->right    = valInt(gr->area->w) - rx;
+	    u->hstretch = valInt(hs);
+	    u->vstretch = valInt(vs);
 	  } else
-	  { m.units[x][y].left   = 0;
-	    m.units[x][y].height = 0;
-	    m.units[x][y].depth  = 0;
-	    m.units[x][y].right  = 0;
+	  { u->left     = 0;
+	    u->height   = 0;
+	    u->depth    = 0;
+	    u->right    = 0;
 	  }
 	}
       }
@@ -1276,8 +1296,30 @@ layoutDialogDevice(Device d, Size gap, Size bb)
 	  int iy = py + m.units[x][y].height;
 	  int ix = (m.units[x][y].alignment == NAME_column ? px : lx) +
 		    					m.units[x][y].left;
+	  Int iw = DEFAULT;
+	  
+					/* hor_stretch handling */
+	  if ( m.units[x][y].hstretch )
+	  { int nx=0;			/* make compiler happy */
 
-	  setGraphical(gr, toInt(ix - rx), toInt(iy - ry), DEFAULT, DEFAULT);
+	    if ( x+1 < max_x && notNil(m.units[x+1][y].item) )
+	    { nx = m.units[x][y].left + m.units[x][y].right + gapw;
+
+	      if ( m.units[x+1][y].alignment == NAME_column )
+		nx += px;
+	      else
+		nx += ix - rx;
+	    } else if ( notDefault(bb) )
+	    { nx = valInt(bb->w);
+	    } else
+	    { iw = toInt(m.units[x][y].left + m.units[x][y].right);
+	    }
+
+	    if ( isDefault(iw) )
+	      iw = toInt(nx - gapw - (ix - rx));
+	  }
+
+	  setGraphical(gr, toInt(ix - rx), toInt(iy - ry), iw, DEFAULT);
 	  lx = valInt(gr->area->x) + valInt(gr->area->w) + gapw;
 	}
 	px += m.units[x][y].left + m.units[x][y].right + gapw;

@@ -183,10 +183,11 @@ nameDialogGroup(DialogGroup g, Name name)
 }
 
 
-static void
-changedLabelDialogGroup(DialogGroup g)
+static status 
+ChangedLabelDialogGroup(DialogGroup g)
 { assign(g, request_compute, ON);
-  changedEntireImageGraphical(g);
+
+  return changedEntireImageGraphical(g);
 }
 
 
@@ -194,7 +195,7 @@ static status
 labelDialogGroup(DialogGroup g, Name label)
 { if ( g->label != label )
   { assign(g, label, label);
-    changedLabelDialogGroup(g);
+    qadSendv(g, NAME_ChangedLabel, 0, NULL);
   }
 
   succeed;
@@ -205,18 +206,18 @@ static status
 labelFontDialogGroup(DialogGroup g, FontObj font)
 { if ( g->label_font != font )
   { assign(g, label_font, font);
-    changedLabelDialogGroup(g);
+    qadSendv(g, NAME_ChangedLabel, 0, NULL);
   }
 
   succeed;
 }
 
 
-static status
+status
 labelFormatDialogGroup(DialogGroup g, Name fmt)
 { if ( g->label_format != fmt )
   { assign(g, label_format, fmt);
-    changedLabelDialogGroup(g);
+    qadSendv(g, NAME_ChangedLabel, 0, NULL);
   }
 
   succeed;
@@ -225,7 +226,7 @@ labelFormatDialogGroup(DialogGroup g, Name fmt)
 
 static CharArray
 getLabelNameDialogGroup(DialogGroup g, Name name)
-{ Any label = getLabelNameName(name);
+{ Any label = get(name, NAME_labelName, 0);
 
   answer(label);
 }
@@ -253,8 +254,18 @@ RedrawAreaDialogGroup(DialogGroup g, Area a)
   compute_label(g, &lx, &ly, &lw, &lh);
 
   if ( e && instanceOfObject(e, ClassElevation) )
-  { /*r_3d_outline(x, y-ly, w, h+ly, 0, e, TRUE);*/
+  { int bx = x;
+    int by = y-ly;
+    int bw = w;
+    int bh = h+ly;
+    
     eh = valInt(e->height);
+    r_3d_box(bx, by, bw, bh, valInt(g->radius), e, FALSE);
+    bx += eh;
+    by += eh;
+    bw -= 2*eh;
+    bh -= 2*eh;
+    r_3d_box(bx, by, bw, bh, valInt(g->radius), e, TRUE);
   } else
   { eh = valInt(g->pen);
 
@@ -311,7 +322,7 @@ WantsKeyboardFocusTextItem(DialogGroup g)
 }
 
 
-static status
+status
 eventDialogGroup(DialogGroup g, EventObj ev)
 { if ( isAEvent(ev, NAME_obtainKeyboardFocus) )
     return send(g, NAME_advance, 0);
@@ -404,9 +415,9 @@ static char *T_modifiedItem[] =
 
 /* Instance Variables */
 
-static vardecl var_tab[] =
+static vardecl var_diagroup[] =
 { IV(NAME_label, "name", IV_GET,
-     NAME_label, "Text displayed in the tab-label"),
+     NAME_label, "Text displayed for the label"),
   SV(NAME_labelFont, "font", IV_GET|IV_STORE, labelFontDialogGroup,
      NAME_appearance, "Font used to display the label"),
   SV(NAME_labelFormat, "{top,center,bottom}", IV_GET|IV_STORE,
@@ -426,7 +437,7 @@ static vardecl var_tab[] =
 
 /* Send Methods */
 
-static senddecl send_tab[] =
+static senddecl send_diagroup[] =
 { SM(NAME_initialise, 1, "name=[name]", initialiseDialogGroup,
      DEFAULT, "Create a new group of dialog items"),
   SM(NAME_geometry, 4, T_geometry, geometryDialogGroup,
@@ -449,6 +460,8 @@ static senddecl send_tab[] =
      NAME_organisation, "Append dialog_item {below,right,next_row} last"),
   SM(NAME_compute, 0, NULL, computeDialogGroup,
      NAME_update, "Recompute area"),
+  SM(NAME_ChangedLabel, 0, NULL, ChangedLabelDialogGroup,
+     NAME_update, "Add label-area to the update"),
   SM(NAME_event, 1, "event", eventDialogGroup,
      NAME_event, "Process an event"),
   SM(NAME_WantsKeyboardFocus, 0, NULL, WantsKeyboardFocusTextItem,
@@ -463,7 +476,7 @@ static senddecl send_tab[] =
 
 /* Get Methods */
 
-static getdecl get_tab[] =
+static getdecl get_diagroup[] =
 { GM(NAME_position, 0, "point", NULL, getPositionGraphical,
      NAME_geometry, "Top-left corner of tab"),
   GM(NAME_x, 0, "int", NULL, getXGraphical,
@@ -478,11 +491,11 @@ static getdecl get_tab[] =
 
 /* Resources */
 
-static resourcedecl rc_tab[] =
+static resourcedecl rc_diagroup[] =
 { RC(NAME_alignment, "{column,left,center,right}", "column",
      "Alignment in the row"),
   RC(NAME_elevation, "elevation*",
-     "when(@colour_display, 1, @nil)",
+   "when(@colour_display, 1, @nil)",
      "Elevation above environment"),
   RC(NAME_radius, "0..", "0",
      "Radius for the corners"),
@@ -496,15 +509,15 @@ static resourcedecl rc_tab[] =
 
 /* Class Declaration */
 
-ClassDecl(tab_decls,
-          var_tab, send_tab, get_tab, rc_tab,
+ClassDecl(diagroup_decls,
+          var_diagroup, send_diagroup, get_diagroup, rc_diagroup,
           ARGC_INHERIT, NULL,
           "$Rev$");
 
 
 status
 makeClassDialogGroup(Class class)
-{ declareClass(class, &tab_decls);
+{ declareClass(class, &diagroup_decls);
   setRedrawFunctionClass(class, RedrawAreaDialogGroup);
 
   succeed;

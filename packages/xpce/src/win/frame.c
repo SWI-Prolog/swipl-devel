@@ -22,6 +22,8 @@ static status	flushFrame(FrameObj fr);
 static status	kindFrame(FrameObj fr, Name kind);
 static status	informTransientsFramev(FrameObj fr, Name selector,
 				       int argc, Any *argv);
+static status	grabPointerFrame(FrameObj fr, Bool grab, CursorObj cursor);
+static status	cursorFrame(FrameObj fr, CursorObj cursor);
 
 static status
 initialiseFrame(FrameObj fr, Name label, Name kind, DisplayObj display)
@@ -977,6 +979,10 @@ getPointerWindowFrame(FrameObj fr)
 }
 
 
+		 /*******************************
+		 *	   EVENT HANDLING	*
+		 *******************************/
+
 static status
 keyboardFocusFrame(FrameObj fr, PceWindow sw)
 { if ( getHyperedObject(fr, NAME_keyboardFocus, DEFAULT) != sw )
@@ -1057,6 +1063,135 @@ inputFocusFrame(FrameObj fr, Bool val)
 }
 
 
+static void
+drawFeedbackLines(FrameObj fr)
+{ Graphical gr = getAttributeObject(fr, NAME_ResizingFeedback);
+  
+  if ( gr && instanceOfObject(gr, ClassGraphical) )
+    drawInDisplay(fr->display, gr, DEFAULT, ON, ON);
+}
+
+
+static status
+cancelResizeTileFrame(FrameObj fr)
+{ deleteAttributeObject(fr, NAME_ResizingFeedback);
+  deleteAttributeObject(fr, NAME_ResizingTile);
+  grabPointerFrame(fr, OFF, DEFAULT);
+  grabServerDisplay(fr->display, OFF);
+
+  succeed;
+}
+
+
+static status
+resizeTileEventFrame(FrameObj fr, EventObj ev)
+{ TileObj t;
+
+  if ( (t=getAttributeObject(fr, NAME_ResizingTile)) &&
+       instanceOfObject(t, ClassTile) )
+  { if ( isDragEvent(ev) )
+    { Device dev = getAttributeObject(fr, NAME_ResizingFeedback);
+      Graphical l1 = getHeadChain(dev->graphicals);
+      Graphical l2 = getTailChain(dev->graphicals);
+
+      drawFeedbackLines(fr);		/* erase them */
+      
+      if ( t->super->orientation == NAME_vertical )
+      { int y = valInt(getYEvent(ev, fr->display));
+
+	if ( y < valInt(fr->area->y) ||
+	     y > valInt(fr->area->y) + valInt(fr->area->h) )
+	  return cancelResizeTileFrame(fr);
+
+	yGraphical(l1, toInt(y-1));
+	yGraphical(l2, toInt(y+1));
+      } else
+      { int x = valInt(getXEvent(ev, fr->display));
+	
+	if ( x < valInt(fr->area->x) ||
+	     x > valInt(fr->area->x) + valInt(fr->area->w) )
+	  return cancelResizeTileFrame(fr);
+
+	xGraphical(l1, toInt(x-1));
+	xGraphical(l2, toInt(x+1));
+      }
+      drawFeedbackLines(fr);
+      succeed;
+    } else if ( isUpEvent(ev) )
+    { drawFeedbackLines(fr);
+      cancelResizeTileFrame(fr);
+
+      if ( t->super->orientation == NAME_vertical )
+	send(t, NAME_height,
+	     toInt(valInt(getYEvent(ev, fr)) - valInt(t->area->y) - 1), 0);
+      else
+	send(t, NAME_width,
+	     toInt(valInt(getXEvent(ev, fr)) - valInt(t->area->x) - 1), 0);
+
+      succeed;
+    } else
+      fail;
+  } else
+  { TileObj rzt;			/* resize-tile */
+
+    t = getTileFrame(fr);
+    if ( (rzt = getSubTileToResizeTile(t, getPositionEvent(ev, fr))) )
+    { Name rcname = (rzt->super->orientation == NAME_horizontal
+				? NAME_horizontalResizeCursor
+				: NAME_verticalResizeCursor);
+      CursorObj c = getResourceValueObject(fr, rcname);
+
+      if ( !c )
+	fail;
+
+      cursorFrame(fr, c);
+      if ( isDownEvent(ev) )
+      { int x1, y1, x2, y2;
+	int dx, dy;
+	Device dev;
+
+	attributeObject(fr, NAME_ResizingTile, rzt);
+
+	if ( rzt->super->orientation == NAME_vertical )
+	{ int xo = valInt(fr->area->x);
+
+	  x1 = xo + valInt(rzt->area->x);
+	  x2 = x1 + valInt(rzt->area->w);
+	  y1 = y2 = valInt(getYEvent(ev, fr->display));
+	  dx = 0; dy = 1;
+	} else
+	{ int yo = valInt(fr->area->y);
+
+	  y1 = yo + valInt(rzt->area->y);
+	  y2 = y1 + valInt(rzt->area->h);
+	  x1 = x2 = valInt(getXEvent(ev, fr->display));
+	  dx = 1; dy = 0;
+	}
+	attributeObject(fr, NAME_ResizingFeedback,
+			dev = newObject(ClassDevice, 0));
+	displayDevice(dev, newObject(ClassLine,
+				     toInt(x1-dx), toInt(y1-dy),
+				     toInt(x2-dx), toInt(y2-dy), 0),
+		      DEFAULT);
+	displayDevice(dev, newObject(ClassLine,
+				     toInt(x1+dx), toInt(y1+dy),
+				     toInt(x2+dx), toInt(y2+dy), 0),
+		      DEFAULT);
+	drawFeedbackLines(fr);
+	grabPointerFrame(fr, ON, c);
+	grabServerDisplay(fr->display, ON);
+      }      
+
+      succeed;
+    } else
+    { cursorFrame(fr, DEFAULT);
+
+      fail;
+    }
+  }
+}
+
+
 status
 eventFrame(FrameObj fr, EventObj ev)
 { if ( isAEvent(ev, NAME_keyboard ) )
@@ -1066,7 +1201,23 @@ eventFrame(FrameObj fr, EventObj ev)
       return postEvent(ev, (Graphical) sw, DEFAULT);
   }
 
-  fail;
+  return resizeTileEventFrame(fr, ev);
+}
+
+
+static status
+cursorFrame(FrameObj fr, CursorObj cursor)
+{ ws_frame_cursor(fr, cursor);
+
+  succeed;
+}
+
+
+static status
+grabPointerFrame(FrameObj fr, Bool grab, CursorObj cursor)
+{ ws_grab_frame_pointer(fr, grab, cursor);
+
+  succeed;
 }
 
 
@@ -1222,6 +1373,8 @@ static char *T_convertOldSlot[] =
         { "slot=name", "value=any" };
 static char *T_set[] =
         { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
+static char *T_grab_pointer[] =
+	{ "grab=bool", "cursor=[cursor]" };
 
 /* Instance Variables */
 
@@ -1372,7 +1525,13 @@ static senddecl send_frame[] =
   SM(NAME_wmDelete, 0, NULL, wmDeleteFrame,
      NAME_windowManager, "Default handling for WM_DELETE_WINDOW"),
   SM(NAME_wmProtocol, 2, T_wmProtocol, wmProtocolFrame,
-     NAME_windowManager, "Register window manager protocol")
+     NAME_windowManager, "Register window manager protocol"),
+  SM(NAME_event, 1, "event", eventFrame,
+     NAME_event, "Handle event on frame-background"),
+  SM(NAME_cursor, 1, "[cursor]", cursorFrame,
+     NAME_event, "Define the cursor for the frame-background"),
+  SM(NAME_grabPointer, 2, T_grab_pointer, grabPointerFrame,
+     NAME_event, "Grap all pointer-events")
 };
 
 /* Get Methods */
@@ -1436,7 +1595,11 @@ static resourcedecl rc_frame[] =
   RC(NAME_iconImage, "image*", "\"pce.bm\"",
      "Image displayed for an icon"),
   RC(NAME_iconLabel, "name*", "@nil",
-     "Label displayed in the icon")
+     "Label displayed in the icon"),
+  RC(NAME_horizontalResizeCursor, "cursor", "sb_h_double_arrow",
+     "Cursor for horizontally resizing tile"),
+  RC(NAME_verticalResizeCursor, "cursor", "sb_v_double_arrow",
+     "Cursor for vertically resizing tile")
 };
 
 /* Class Declaration */

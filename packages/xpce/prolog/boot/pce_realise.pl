@@ -277,7 +277,8 @@ resolve_method_message(X) :-
 	    send(CPtr, name_reference, pce_resolve_method_message)
 	).
 
-doretract :- fail.
+doretract :-
+	get(@pce, is_runtime_system, @on).
 
 find_data(Goal) :-
 	doretract, !,

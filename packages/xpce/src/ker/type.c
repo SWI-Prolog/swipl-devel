@@ -527,7 +527,7 @@ realRangeType(Type t, Any val, Any ctx)
   { Tuple tp = t->context;
     Real low = tp->first, high = tp->second, r = val;
 
-    if ( r->value >= low->value && r->value <= high->value )
+    if ( valReal(r) >= valReal(low) && valReal(r) <= valReal(high) )
       succeed;
   }
   

@@ -40,7 +40,7 @@ unlinkTimer(Timer tm)
 
 status
 intervalTimer(Timer tm, Real interval)
-{ if ( interval->value == tm->interval->value )
+{ if ( valReal(interval) == valReal(tm->interval) )
     succeed;
 
   assign(tm, interval, interval);

@@ -42,8 +42,8 @@ void
 points_arc(Arc a, int *sx, int *sy, int *ex, int *ey)
 { int cx = valInt(a->position->x);
   int cy = valInt(a->position->y);
-  float start = a->start_angle->value;
-  float size = a->size_angle->value;
+  float start = valReal(a->start_angle);
+  float size = valReal(a->size_angle);
   
 
   if ( sx )
@@ -82,7 +82,7 @@ RedrawAreaArc(Arc a, Area area)
   r_arcmode(a->close == NAME_none ? NAME_pieSlice : a->close);
   r_arc(valInt(a->position->x) + ox - aw, valInt(a->position->y) + oy - ah,
 	2*aw, 2*ah,
-	rfloat(a->start_angle->value*64), rfloat(a->size_angle->value*64),
+	rfloat(valReal(a->start_angle)*64.0), rfloat(valReal(a->size_angle)*64.0),
 	a->fill_pattern);
 
   if ( a->close != NAME_none && a->pen != ZERO )
@@ -94,16 +94,26 @@ RedrawAreaArc(Arc a, Area area)
     }
   }
 
-#else
+#else /*__WIN32__*/
+
+{ int ax, ay, bx, by;
+
+  if ( valReal(a->size_angle) >= 0.0 )
+  { ax = sx, ay = sy, bx = ex, by = ey;
+  } else
+  { ax = ex, ay = ey, bx = sx, by = sy;
+  }
 
   r_msarc(valInt(a->position->x) + ox - aw, valInt(a->position->y) + oy - ah,
 	  2*aw, 2*ah,
-	  sx, sy, ex, ey,
+	  ax, ay, bx, by,
 	  a->close, a->fill_pattern);
-#endif
+}
+
+#endif /* __WIN32__ */
 
   if (notNil(a->first_arrow))
-  { if ( a->size_angle->value >= 0.0 )
+  { if ( valReal(a->size_angle) >= 0.0 )
       paintArrow(a->first_arrow, toInt(sx), toInt(sy),
 		 toInt(sx+(sy-cy)), toInt(sy-(sx-cx)));
     else
@@ -111,7 +121,7 @@ RedrawAreaArc(Arc a, Area area)
 		 toInt(sx-(sy-cy)), toInt(sy+(sx-cx)));
   }
   if (notNil(a->second_arrow))
-  { if ( a->size_angle->value >= 0.0 )
+  { if ( valReal(a->size_angle) >= 0.0 )
       paintArrow(a->second_arrow, toInt(ex), toInt(ey),
 	       toInt(ex-(ey-cy)), toInt(ey+(ex-cx)));
     else
@@ -125,8 +135,8 @@ RedrawAreaArc(Arc a, Area area)
 
 static status
 angleInArc(Arc a, int angle)
-{ int start = rfloat(a->start_angle->value);
-  int size  = rfloat(a->size_angle->value);
+{ int start = rfloat(valReal(a->start_angle));
+  int size  = rfloat(valReal(a->size_angle));
 
   if ( size < 0 )
   { start += size;
@@ -218,9 +228,9 @@ setArc(Arc a, Int x, Int y, Int radius, float start, float size)
     changed++;
   }
 
-  if ( a->start_angle->value != start || a->size_angle->value != size )
-  { a->start_angle->value = start;
-    a->size_angle->value = size;
+  if ( valReal(a->start_angle) != start || valReal(a->size_angle) != size )
+  { setReal(a->start_angle, start);
+    setReal(a->size_angle, size);
     changed++;
   }
   
@@ -313,7 +323,7 @@ sizeArc(Arc a, Size sz)
 
 static status
 startAngleArc(Arc a, Real s)
-{ if ( a->start_angle->value != s->value )
+{ if ( valReal(a->start_angle) != valReal(s) )
   { valueReal(a->start_angle, s);
     requestComputeGraphical(a, DEFAULT);
   }
@@ -324,7 +334,7 @@ startAngleArc(Arc a, Real s)
 
 static status
 sizeAngleArc(Arc a, Real e)
-{ if ( a->size_angle->value != e->value )
+{ if ( valReal(a->size_angle) != valReal(e) )
   { valueReal(a->size_angle, e);
     requestComputeGraphical(a, DEFAULT);
   }
@@ -335,12 +345,12 @@ sizeAngleArc(Arc a, Real e)
 
 static status
 endAngleArc(Arc a, Real e)
-{ float size = e->value - a->start_angle->value;
+{ float size = valReal(e) - valReal(a->start_angle);
   if ( size < 0.0 )
     size += 360.0;
 
-  if ( a->size_angle->value != size )
-  { a->size_angle->value = size;
+  if ( valReal(a->size_angle) != size )
+  { setReal(a->size_angle, size);
     requestComputeGraphical(a, DEFAULT);
   }
 
@@ -385,27 +395,30 @@ pointsArc(Arc a, Int Sx, Int Sy, Int Ex, Int Ey, Int D)
 { int sx, sy, ex, ey, d;
   int cx, cy;
   int dx, dy;
-  int l;
+  int l, dl;
   int radius;
   float start, end, size;
 
   sx = valInt(Sx), sy = valInt(Sy), ex = valInt(Ex), ey = valInt(Ey);
   d = valInt(D);
+  DEBUG(NAME_arc, Cprintf("Arc %d,%d --> %d,%d (%d)\n", sx, sy, ex, ey, d));
 
-  cx = (sx + ex + 1)/2;
+  cx = (sx + ex + 1)/2;			/* center of segment line */
   cy = (sy + ey + 1)/2;
 
   dx = ex - sx;
   dy = ey - sy;
   l = isqrt(dx*dx + dy*dy);
-  dx *= d/l;
-  dy *= d/l;
+  dl = (l*l)/(8*d) - d/2;
+  dx = (dx * dl)/l;
+  dy = (dy * dl)/l;
 
   cx -= dy;				/* center of circle */
   cy += dx;
   radius = isqrt((cx-sx)*(cx-sx) + (cy-sy)*(cy-sy));
+  DEBUG(NAME_arc, Cprintf("\tcircle from %d,%d, radius %d\n", cx, cy, radius));
 
-  if ( ex != cx )
+  if ( ex != cx || ey != cy )
   { start = atan2((float)(cy-ey), (float)(ex-cx));
     if ( start < 0.0 )
       start = 2.0 * M_PI + start;
@@ -418,6 +431,9 @@ pointsArc(Arc a, Int Sx, Int Sy, Int Ex, Int Ey, Int D)
   } else
   { start = end = 0.0;
   }
+  DEBUG(NAME_arc, Cprintf("\t%d --> %d degrees\n",
+			  (int) ((start * 360.0)/(2.0 * M_PI)),
+			  (int) ((end * 360.0)/(2.0 * M_PI))));
 
   if ( d < 0 )
   { float x = end;

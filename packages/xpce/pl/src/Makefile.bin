@@ -1,3 +1,4 @@
+# Generated automatically from Makefile.bin.in by configure.
 ################################################################
 # Makefile for preparing/moving/installing the binary distribution of
 # SWI-Prolog and/or XPCE
@@ -32,8 +33,10 @@ mandir=$(prefix)/man/man$(mansec)
 
 PL=pl
 XPCE=xpce
+PLARCH=sparc-solaris2.5
+BOOTPL=pl
 
-BPL=		@BPL@
+BPL=		bin/$(PLARCH)/$(BOOTPL)
 PWD=`pwd`
 
 STARTUP=	startup/startup
@@ -60,8 +63,8 @@ install:	all
 		PLBASE=$(PWD); \
 		for f in chpl pl-bite; do \
 		    (cd $(bindir); rm -f $$f; ln -s $$PLBASE/bin/$$f .); \
-		done; \
-		(cd $(bindir); rm -f $(PL); ln -s $$PLBASE/pl $(PL))
+		done ; \
+		(cd $(bindir); rm -f $(PL); ln -s $$PLBASE/bin/pl $(PL)) ; \
 		if [ -d xpce ]; then \
 		  (cd $(bindir);rm -f $(XPCE);ln -s $$PLBASE/$(BPL) $(XPCE));\
 		fi

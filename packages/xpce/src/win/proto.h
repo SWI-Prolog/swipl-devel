@@ -9,11 +9,14 @@ status		makeClassWindowDecorator(Class class);
 
 /* win/dialog.c */
 status		displayDialog(Dialog d, Graphical item, Point pos);
+Name		defaultAccelerator(void);
 status		makeClassDialog(Class class);
 
 /* win/display.c */
 status		openDisplay(DisplayObj d);
 Bool		getOpenDisplay(Any d);
+status		drawInDisplay(DisplayObj d, Graphical gr, Point pos, Bool invert, Bool subtoo);
+status		grabServerDisplay(DisplayObj d, Bool val);
 status		dispatchDisplay(DisplayObj d);
 status		flushDisplay(DisplayObj d);
 status		synchroniseDisplay(DisplayObj d);
@@ -81,6 +84,7 @@ status		belowTile(TileObj t, Any obj);
 TileObj		getRootTile(TileObj t);
 status		setTile(TileObj t, Int x, Int y, Int w, Int h);
 status		enforceTile(TileObj t);
+TileObj		getSubTileToResizeTile(TileObj t, Point pos);
 status		makeClassTile(Class class);
 
 /* win/view.c */
@@ -97,8 +101,8 @@ status		updatePositionWindow(PceWindow sw);
 status		resizeWindow(PceWindow sw);
 void		offset_window(PceWindow sw, int *x, int *y);
 void		compute_window(PceWindow sw, int *x, int *y, int *w, int *h);
-status		frame_offset_window(PceWindow w, FrameObj *fr, int *X, int *Y);
-void		offset_windows(PceWindow w1, PceWindow w2, int *X, int *Y);
+status		frame_offset_window(Any obj, FrameObj *fr, int *X, int *Y);
+void		offset_windows(PceWindow w1, Any w2, int *X, int *Y);
 status		typedWindow(PceWindow sw, EventId id, Bool delegate);
 status		inputFocusWindow(PceWindow sw, Bool val);
 status		keyboardFocusWindow(PceWindow sw, Graphical gr);

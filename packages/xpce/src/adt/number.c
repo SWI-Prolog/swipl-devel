@@ -8,12 +8,70 @@
 */
 
 #include <h/kernel.h>
+#include <h/unix.h>
+
+Number
+CtoNumber(long i)
+{ Number n = answerObject(ClassNumber, ZERO);
+  
+  n->value = i;
+  answer(n);
+}
+
+
+static long
+valArg(Any i)
+{ if ( isInteger(i) )
+    return valInt(i);
+  else
+  { Number n = i;
+    return n->value;
+  }
+}
+  
 
 static status
-initialiseNumber(Number n, Int i)
-{ assign(n, value, i);
+initialiseNumber(Number n, Any i)
+{ n->value = valArg(i);
 
   succeed;
+}
+
+
+static Number
+getCopyNumber(Number n)
+{ Number n2 = answerObject(ClassNumber, ZERO, 0);
+
+  n2->value = n->value;
+  answer(n2);
+}
+
+
+static status
+storeNumber(Number n, FileObj file)
+{ TRY(storeSlotsObject(n, file));
+
+  return storeWordFile(file, (Any)n->value);
+}
+
+
+static status
+loadNumber(Number n, FILE *fd, ClassDef def)
+{ TRY(loadSlotsObject(n, fd, def));
+  if ( restoreVersion >= 16 )
+    n->value = loadWord(fd);
+  succeed;
+}
+
+
+static status
+convertOldSlotNumber(Number n, Name name, Any value)
+{ if ( name == NAME_value && isInteger(value) )
+  { n->value = valInt(value);
+    succeed;
+  }
+
+  fail;
 }
 
 
@@ -30,111 +88,118 @@ static StringObj
 getPrintNameNumber(Number n)
 { char buf[100];
 
-  sprintf(buf, "%ld", valInt(n->value));
+  sprintf(buf, "%ld", n->value);
 
   answer(CtoString(buf));
 }
 
 
 static status
-equalNumber(Number n, Int i)
-{ if (n->value == i)
+equalNumber(Number n, Any i)
+{ if ( n->value == valArg(i) )
     succeed;
+
   fail;
 }
 
 
 static status
-notEqualNumber(Number n, Int i)
-{ if (n->value != i)
+notEqualNumber(Number n, Any i)
+{ if ( n->value != valArg(i) )
     succeed;
+
   fail;
 }
 
 
 static status
 smallerNumber(Number n, Int i)
-{ if (valInt(n->value) < valInt(i))
+{ if ( n->value < valArg(i) )
     succeed;
   fail;
 }
 
 
 static status
-largerNumber(Number n, Int i)
-{ if (valInt(n->value) > valInt(i))
+largerNumber(Number n, Any i)
+{ if ( n->value > valArg(i) )
     succeed;
   fail;
 }
 
 
 static status
-lessEqualNumber(Number n, Int i)
-{ if (valInt(n->value) <= valInt(i))
+lessEqualNumber(Number n, Any i)
+{ if ( n->value <= valArg(i) )
     succeed;
   fail;
 }
 
 
 static status
-largerEqualNumber(Number n, Int i)
-{ if (valInt(n->value) >= valInt(i))
+largerEqualNumber(Number n, Any i)
+{ if ( n->value >= valArg(i) )
     succeed;
   fail;
 }
 
 
 static status
-plusNumber(Number n, Int i)
-{ assign(n, value, add(n->value,i));
-  succeed;
-}
-
-
-static status
-minusNumber(Number n, Int i)
-{ assign(n, value, sub(n->value,i));
-  succeed;
-}
-
-
-static status
-timesNumber(Number n, Int i)
-{ assign(n, value, mul(n->value,i));
-  succeed;
-}
-
-
-static status
-divideNumber(Number n, Int i)
-{ assign(n, value, div(n->value,i));
-  succeed;
-}
-
-
-static status
-maximumNumber(Number n, Int i)
-{ if ( valInt(n->value) < valInt(i) )
-    assign(n, value, i);
+plusNumber(Number n, Any i)
+{ n->value += valArg(i);
 
   succeed;
 }
 
 
 static status
-minimumNumber(Number n, Int i)
-{ if ( valInt(n->value) > valInt(i) )
-    assign(n, value, i);
+minusNumber(Number n, Any i)
+{ n->value -= valArg(i);
+  succeed;
+}
+
+
+static status
+timesNumber(Number n, Any i)
+{ n->value *= valArg(i);
+  succeed;
+}
+
+
+static status
+divideNumber(Number n, Any i)
+{ n->value /= valArg(i);
+  succeed;
+}
+
+
+static status
+maximumNumber(Number n, Any i)
+{ long m = valArg(i);
+
+  if ( n->value < m )
+    n->value = m;
+
+  succeed;
+}
+
+
+static status
+minimumNumber(Number n, Any i)
+{ long m = valArg(i);
+
+  if ( n->value > m )
+    n->value = m;
 
   succeed;
 }
 
 
 static Name
-getCompareNumber(Number n, Int i)
-{ if ( valInt(n->value) > valInt(i) )
+getCompareNumber(Number n, Any i)
+{ if ( n->value > valArg(i) )
     answer(NAME_larger);
-  if ( valInt(n->value) < valInt(i) )
+  if ( n->value < valArg(i) )
     answer(NAME_smaller);
   answer(NAME_equal);
 }
@@ -142,18 +207,38 @@ getCompareNumber(Number n, Int i)
 
 static Number
 getCatchAllNumber(Number n, Name selector, int argc, Any *argv)
-{ Number result = answerObject(classOfObject(n), n->value, 0);
+{ Number result;
 
-  TRY(sendv(result, selector, argc, argv));
+  if ( n->class == ClassNumber )
+    result = getCopyNumber(n);
+  else
+    result = getCloneObject(n);
 
-  answer(result);
+  if ( sendv(result, selector, argc, argv) )
+    answer(result);
+  else
+  { freeObject(result);
+    fail;
+  }
 }
 
 
-static Int
+static Any
 getValueNumber(Number n)
-{ answer(n->value);
+{ if ( n->value >= PCE_MIN_INT && n->value < PCE_MAX_INT )
+    answer(toInt(n->value));
+
+  answer(n);
 }
+
+
+static status
+valueNumber(Number n, Any i)
+{ n->value = valArg(i);
+
+  succeed;
+}
+
 
 		 /*******************************
 		 *	 CLASS DECLARATION	*
@@ -163,42 +248,50 @@ getValueNumber(Number n)
 
 static char *T_catchAll[] =
         { "selector=name", "argument=unchecked ..." };
+static char *T_convertOldSlot[] =
+	{ "slot=name", "value=unchecked" };
+
+static char T_arg[] = "int|number";
 
 /* Instance Variables */
 
 static vardecl var_number[] =
-{ IV(NAME_value, "int", IV_SEND,
+{ IV(NAME_value, "alien:long", IV_NONE,
      NAME_storage, "Value of number object")
 };
 
 /* Send Methods */
 
 static senddecl send_number[] =
-{ SM(NAME_initialise, 1, "value=int", initialiseNumber,
+{ SM(NAME_initialise, 1, "value=int|number", initialiseNumber,
      DEFAULT, "Create from integer"),
-  SM(NAME_divide, 1, "int", divideNumber,
+  SM(NAME_convertOldSlot, 2, T_convertOldSlot, convertOldSlotNumber,
+     NAME_file, "Convert old value slot to new representation"),
+  SM(NAME_value, 1, T_arg, valueNumber,
+     NAME_assign, "Assign a value to the number"),
+  SM(NAME_divide, 1, T_arg, divideNumber,
      NAME_calculate, "Divide value by argument"),
-  SM(NAME_maximum, 1, "int", maximumNumber,
+  SM(NAME_maximum, 1, T_arg, maximumNumber,
      NAME_calculate, "Set value to largest of current and argument"),
-  SM(NAME_minimum, 1, "int", minimumNumber,
+  SM(NAME_minimum, 1, T_arg, minimumNumber,
      NAME_calculate, "Set value to largest of current and argument"),
-  SM(NAME_minus, 1, "int", minusNumber,
+  SM(NAME_minus, 1, T_arg, minusNumber,
      NAME_calculate, "Subtract argument from value"),
-  SM(NAME_plus, 1, "int", plusNumber,
+  SM(NAME_plus, 1, T_arg, plusNumber,
      NAME_calculate, "Add argument to value"),
-  SM(NAME_times, 1, "int", timesNumber,
+  SM(NAME_times, 1, T_arg, timesNumber,
      NAME_calculate, "Multiply value by argument"),
-  SM(NAME_equal, 1, "int", equalNumber,
+  SM(NAME_equal, 1, T_arg, equalNumber,
      NAME_compare, "Test if equal to argument"),
-  SM(NAME_larger, 1, "int", largerNumber,
+  SM(NAME_larger, 1, T_arg, largerNumber,
      NAME_compare, "Test if larger than argument"),
-  SM(NAME_largerEqual, 1, "int", largerEqualNumber,
+  SM(NAME_largerEqual, 1, T_arg, largerEqualNumber,
      NAME_compare, "Test if larger-or-equal than argument"),
-  SM(NAME_lessEqual, 1, "int", lessEqualNumber,
+  SM(NAME_lessEqual, 1, T_arg, lessEqualNumber,
      NAME_compare, "Test if less-or-equal than argument"),
-  SM(NAME_notEqual, 1, "int", notEqualNumber,
+  SM(NAME_notEqual, 1, T_arg, notEqualNumber,
      NAME_compare, "Test if not-equal to argument"),
-  SM(NAME_smaller, 1, "int", smallerNumber,
+  SM(NAME_smaller, 1, T_arg, smallerNumber,
      NAME_compare, "Test if less than argument")
 };
 
@@ -213,7 +306,7 @@ static getdecl get_number[] =
      NAME_copy, "Create copy and run method on it"),
   GM(NAME_printName, 0, "string", NULL, getPrintNameNumber,
      NAME_textual, "Formatted version (%d) of value"),
-  GM(NAME_value, 0, "int", NULL, getValueNumber,
+  GM(NAME_value, 0, T_arg, NULL, getValueNumber,
      NAME_value, "Integer representing value")
 };
 
@@ -237,5 +330,9 @@ ClassDecl(number_decls,
 
 status
 makeClassNumber(Class class)
-{ return declareClass(class, &number_decls);
+{ declareClass(class, &number_decls);
+
+  setLoadStoreFunctionClass(class, loadNumber, storeNumber);
+
+  succeed;
 }

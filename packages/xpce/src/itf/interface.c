@@ -35,7 +35,7 @@ cToPceInteger(long int i)
 
 Any
 cToPceReal(double f)
-{ return CtoReal((float) f);
+{ return CtoReal(f);
 }
 
 
@@ -216,7 +216,7 @@ pceToC(Any obj, PceCValue *rval)
     { rval->itf_symbol = getITFSymbolName(obj);
       return PCE_NAME;
     }
-    { rval->real = ((Real)obj)->value;
+    { rval->real = valReal(obj);
       return PCE_REAL;
     }    
   } else

@@ -8,7 +8,7 @@
 */
 
 #include <h/kernel.h>
-#include <ari/proto.h>
+#include <h/arith.h>
 
 #define InitAreaA	int ax = valInt(a->x), ay = valInt(a->y), \
 			    aw = valInt(a->w), ah = valInt(a->h)

@@ -18,12 +18,24 @@ initialiseVmi(Vmi vmi, Name name)
   succeed;
 }
 
+
+static status
+parentGoalVmi(Vmi vmi, Any receiver, Name selector)
+{ if ( vmi == VmiSend )
+    return parentGoal(VmiSend, receiver, selector);
+
+  fail;					/* error */
+}
+
+
 		 /*******************************
 		 *	 CLASS DECLARATION	*
 		 *******************************/
 
 /* Type declaractions */
 
+static char *T_parent[] =
+	{ "receiver=unchecked", "selector=name" };
 
 /* Instance Variables */
 
@@ -36,7 +48,9 @@ static vardecl var_vmi[] =
 
 static senddecl send_vmi[] =
 { SM(NAME_initialise, 1, "name=name", initialiseVmi,
-     DEFAULT, "Create named vmi")
+     DEFAULT, "Create named vmi"),
+  SM(NAME_parentGoal, 2, T_parent, parentGoalVmi,
+     NAME_stack, "Test if operation is on goal-stack")
 };
 
 /* Get Methods */

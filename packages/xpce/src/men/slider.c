@@ -51,9 +51,9 @@ initialiseSlider(Slider s, Name name, Any low, Any high, Any def, Message msg)
 }
 
 
-static float
+static double
 convert_value(Any val)
-{ return isInteger(val) ? (float)valInt(val) : ((Real)(val))->value;
+{ return isInteger(val) ? (double)valInt(val) : valReal(val);
 }
 
 
@@ -64,7 +64,7 @@ format_value(Slider s, char *buf, Any val)
   if ( isInteger(val) )
     sprintf(buf, deffmt ? "%ld" : strName(s->format), valInt(val));
   else
-    sprintf(buf, deffmt ? "%f"  : strName(s->format), ((Real)val)->value);
+    sprintf(buf, deffmt ? "%g"  : strName(s->format), valReal(val));
 }
 
 
@@ -152,7 +152,10 @@ RedrawAreaSlider(Slider s, Area a)
 static void
 compute_label_slider(Slider s, int *lw, int *lh)
 { if ( s->show_label == ON )
-  { str_size(&s->label->data, s->label_font, lw, lh);
+  { if ( isDefault(s->label_font) )
+      obtainResourcesObject(s);
+
+    str_size(&s->label->data, s->label_font, lw, lh);
     *lw += valInt(getExFont(s->label_font));
     if ( notDefault(s->label_width) )
       *lw = max(valInt(s->label_width), *lw);

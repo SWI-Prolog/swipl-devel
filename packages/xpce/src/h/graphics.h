@@ -12,11 +12,7 @@
 
 #define MAX_WRAP_LINES	100		/* line-wraps in text-objects */
 
-typedef struct ipoint *IPoint;		/* integer-point */
-typedef struct iarea  *IArea;		/* integer-area */
 typedef struct update_area *UpdateArea;	/* Window changes data  */
-
-#include "wst.h"
 
 #define ABSTRACT_GRAPHICAL \
   ABSTRACT_VISUAL \
@@ -97,12 +93,35 @@ NewClass(device)
   ABSTRACT_DEVICE
 End;
 
-
-
 NewClass(figure)
   ABSTRACT_FIGURE
 End;
 
+#define ABSTRACT_DIALOG_GROUP \
+  ABSTRACT_DEVICE \
+  Name		label;			/* Displayed textual-label */ \
+  FontObj	label_font;		/* Font used for label */ \
+  Name		label_format;		/* Alignment of the label */ \
+  Int		radius;			/* corners rounding radius */ \
+  Size		size;			/* Size of the drawing area */ \
+  Size		gap;			/* Layout gap for items (dialog) */ \
+  Bool		auto_align;		/* Align in dialog window? */ \
+  Name		alignment;		/* Row alignment */
+
+NewClass(dialog_group)
+  ABSTRACT_DIALOG_GROUP
+End;  
+
+NewClass(tab)
+  ABSTRACT_DIALOG_GROUP
+  Size		label_size;		/* Size of the label-box */
+  Int		label_offset;		/* X-Offset of the label-box */
+  Name		status;			/* {on_top, hidden} */
+End;
+
+NewClass(tab_stack)
+  ABSTRACT_DEVICE
+End;
 
 		/********************************
 		*           RELATIONS		*
@@ -292,6 +311,7 @@ NewClass(textitem)
   TextObj    value_text;		/* Displayed text value */
   Bool	     editable;			/* TextItem is editable */
   Int	     value_width;		/* Width of value-field in pixels */
+  Int	     hor_stretch;		/* Horizontal stretchability */
 End;
 
 NewClass(slider)
@@ -681,8 +701,8 @@ End;
 
 
 NewClass(eventobj)
-  PceWindow	window;			/* Original window */
-  Graphical	receiver;		/* Receiver of the event */
+  Any		window;			/* Original window */
+  Any		receiver;		/* Receiver of the event */
   Any		id;			/* Event identifier */
   Int		buttons;		/* Bit mask of button positions */
   Int		x;			/* X coordinate relative to window */
@@ -821,23 +841,31 @@ or erase behaviour of graphicals will take care of the move operation.
 		*            DRAWING		*
 		********************************/
 
-struct ipoint
-{ int x, y;
-};
+#define DRAW_3D_DOWN	0x1		/* r_3d_rectangular_polygon() flags */
+#define DRAW_3D_CLOSED	0x2
+#define DRAW_3D_FILLED	0x4
 
-struct iarea
+typedef struct
+{ int x, y;
+} ipoint, *IPoint;
+
+
+typedef struct
 { int x, y, w, h;
-};
+} iarea, *IArea;
+
+
+typedef struct
+{ int x1, y1, x2, y2;
+} isegment, *ISegment;
+
 
 struct update_area
-{ struct iarea	area;			/* Concerned area */
+{ iarea		area;			/* Concerned area */
   int		clear;			/* needs to be cleared */
   int		deleted;		/* area is deleted */
   UpdateArea    next;			/* next in chain */
 };
-
-
-
 
 
 		/********************************
@@ -896,6 +924,7 @@ GLOBAL  Class ClassImage;		/* @image_class */
 		*          PROTOTYPES		*
 		********************************/
 
+#include	"wst.h"
 #include	"../gra/proto.h"
 #include	"../win/proto.h"
 #include	"../evt/proto.h"

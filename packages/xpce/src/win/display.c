@@ -147,7 +147,7 @@ backgroundDisplay(DisplayObj d, Colour c)
 }
 
 
-static status
+status
 drawInDisplay(DisplayObj d, Graphical gr, Point pos, Bool invert, Bool subtoo)
 { Int oldx, oldy;
   Device dev;
@@ -182,7 +182,7 @@ drawInDisplay(DisplayObj d, Graphical gr, Point pos, Bool invert, Bool subtoo)
 }
 
 
-static status
+status
 grabServerDisplay(DisplayObj d, Bool val)
 { if ( ws_opened_display(d) )
   { if ( val == ON )
@@ -361,7 +361,7 @@ getSelectionTimeoutDisplay(DisplayObj d)
 
 static status
 selectionTimeoutDisplay(DisplayObj d, Real time)
-{ ws_set_selection_timeout((ulong)(time->value * 1000.0));
+{ ws_set_selection_timeout((ulong)(valReal(time) * 1000.0));
 
   succeed;
 }

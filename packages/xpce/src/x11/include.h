@@ -142,7 +142,7 @@ Atom		FrameAtom(FrameObj fr, Name name);
 char *		FrameAtomToString(FrameObj fr, Atom a);
 Atom		WmProtocols(FrameObj fr);
 XtAppContext	pceXtAppContext(XtAppContext ctx);
-EventObj	CtoEvent(PceWindow window, XEvent *event);
+EventObj	CtoEvent(Any window, XEvent *event);
 ulong		getPixelColour(Colour c, DisplayObj d);
 Window		getWMFrameFrame(FrameObj fr);
 void		setXImageImage(Image image, XImage *i);

@@ -7,9 +7,12 @@
     Copyright (C) 1992 University of Amsterdam. All rights reserved.
 */
 
-#include <ari/proto.h>
+#ifndef ARITH_H_INCLUDED
+#define ARITH_H_INCLUDED
 
-/*
+#ifdef O_NOFLOAT
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Perform  operations involving  floating point numbers  (on a Sun 4/110
 the ratio  int:float is about  1:3000). As  floats  are used to  avoid
 rounding errors in   expressions  and equations  we have written  some
@@ -52,4 +55,21 @@ macro's for addition and subtraction.
 
 GLOBAL int	arithError;		/* error occurred */
 
+#else /*O_NOFLOAT*/
 
+#define V_ERROR	      (-1)
+#define V_INTEGER      (0)
+#define V_DOUBLE       (1)
+
+typedef struct
+{ int type;				/* V_INTEGER or V_FLOAT */
+  union
+  { long	i;			/* integer value */
+    double	f;			/* float value */
+  } value;
+} numeric_value, *NumericValue;
+
+#endif /*O_NOFLOAT*/
+
+#include <ari/proto.h>
+#endif /*ARITH_H_INCLUDED*/

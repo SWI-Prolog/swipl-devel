@@ -755,6 +755,27 @@ instanceVariableClass(Class class, Variable var)
 }
 
 
+static status
+refineVariableClass(Class class, Variable var)
+{ Variable old;
+
+  if ( !(old = getInstanceVariableClass(class, var->name)) )
+    return instanceVariableClass(class, var); /* no redefinition (error?) */
+
+  if ( class->proto )
+    unallocInstanceProtoClass(class);
+
+  assign(var, offset, old->offset);
+  assign(var, context, class);
+  fixSubClassVariableClass(class, old, var);
+
+  if ( ClassDelegateVariable && instanceOfObject(var, ClassDelegateVariable) )
+    delegateClass(class, var->name);
+
+  succeed;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Method manipulation
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -1300,6 +1321,27 @@ localClass(Class class, Name name, Name group,
 }
 
 
+static void
+redefineLocalClass(Class class, Name name, Name group,
+		   char *type, Name access, char *doc)
+{ Variable v;
+  Type t;
+
+  if ( !(t = CtoType(type)) )
+    sysPce("Bad type in variable: %s.%s: %s",
+	   pp(class->name), pp(name), type);
+
+  v = createVariable(name, t, access);
+
+  if ( strlen(doc) > 0 )
+    assign(v, summary, staticCtoString(doc));
+  if ( notDefault(group) )
+    assign(v, group, group);
+
+  refineVariableClass(class, v);
+}
+
+
 static Name iv_access_names[] = { NAME_none, NAME_get, NAME_send, NAME_both };
 
 status
@@ -1330,7 +1372,12 @@ declareClass(Class class, const classdecl *decls)
 
       superClass(class, iv->name, iv->group, iv->type, acs, wrap, iv->summary);
     } else
-    { localClass(class, iv->name, iv->group, iv->type, acs, iv->summary);
+    { if ( iv->flags & IV_REDEFINE )
+	redefineLocalClass(class, iv->name, iv->group,
+			   iv->type, acs, iv->summary);
+      else
+	localClass(class, iv->name, iv->group,
+		   iv->type, acs, iv->summary);
 
       if ( iv->flags & IV_STORE )
 	storeMethod(class, iv->name, (SendFunc) iv->context);
@@ -1361,7 +1408,8 @@ declareClass(Class class, const classdecl *decls)
 
 
 void
-superClass(Class class, Name name, Name group, char *type, Name access, Name wrapper, char *doc)
+superClass(Class class, Name name, Name group,
+	   char *type, Name access, Name wrapper, char *doc)
 { Variable v;
   Type t;
   StringObj summary;

@@ -68,6 +68,7 @@ setHwndFrame(FrameObj fr, HWND ref)
 
     f->hwnd         = ref;
     f->hbusy_cursor = NULL;
+    f->hcursor	    = NULL;
     f->placed       = FALSE;
   } else
   { if ( fr->ws_ref )

@@ -341,6 +341,9 @@ static struct error_def errors[] =
     "%N: Failed to convert %s.  Trying default" },
   { NAME_cannotConvertResourceDefault,	ET_FATAL,
     "%N: Failed to default %s" },
+  { NAME_winMetafile, 		ET_WARNING,
+    "%O: API operation %s failed: %s" },
+
 					/* Save/Load */
   { NAME_newSaveVersion,	ET_IGNORED,
     "%N: Saved as version %d, current version is %d" },
@@ -479,6 +482,10 @@ static struct error_def errors[] =
     "%N: Last statement of progn is not a function" },
   { NAME_evalFailed,		ET_WARNING,
     "%N: Failed to evaluate" },
+  { NAME_unknownFunction,	ET_WARNING,
+    "%O: Unknown arithmetic function" },
+  { NAME_outOfIntRange,		ET_WARNING,
+    "%N: computed value is out of integer range" },
   { NAME_initVariableFailed,	ET_WARNING,
     "%N: Init failed for %O" },
   { NAME_redeclaredVar,		0,

@@ -108,10 +108,12 @@ eventQueuedDisplayManager(DisplayManager dm)
 
 status
 RedrawDisplayManager(DisplayManager dm)
-{ if ( ChangedWindows && !emptyChain(ChangedWindows) )
-  { PceWindow sw = WindowOfLastEvent();
+{ PceWindow sw;
 
-    TestBreakDraw();
+  if ( ChangedWindows &&
+       !emptyChain(ChangedWindows) &&
+       (sw = WindowOfLastEvent()) )
+  { TestBreakDraw();
     if ( memberChain(ChangedWindows, sw) )
       RedrawWindow(sw);
 

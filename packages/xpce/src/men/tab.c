@@ -8,36 +8,22 @@
 */
 
 #include <h/kernel.h>
-#include <h/graphics.h>
-
-static status nameTab(Tab t, Name name);
-static status labelTab(Tab t, Name name);
-static status layoutTab(Tab t);
+#include <h/dialog.h>
 
 
 		/********************************
 		*            CREATE		*
 		********************************/
 
-status
+static status
 initialiseTab(Tab t, Name name)
-{ initialiseDevice((Device) t);
-
-  if ( isDefault(name) )
-    name = getClassNameObject(t);
-
-  assign(t, label_font,   DEFAULT);	/* Resource */
+{
   assign(t, label_size,   DEFAULT);	/* Resource */
-  assign(t, label_format, DEFAULT);	/* Resource */
   assign(t, label_offset, ZERO);
-  assign(t, elevation,	  DEFAULT);	/* Resource */
   assign(t, status,	  NAME_onTop);
   assign(t, size,	  DEFAULT);
-  assign(t, gap,	  DEFAULT);	/* Resource */
-  assign(t, auto_align,	  ON);
 
-
-  nameTab(t, name);
+  initialiseDialogGroup((DialogGroup) t, name);
 
   succeed;
 }
@@ -53,7 +39,7 @@ computeTab(Tab t)
     Area a = t->area;
 
     obtainResourcesObject(t);
-/*  layoutTab(t);	 */		/* place the items */
+    computeGraphicalsDevice((Device) t);
     
     if ( isDefault(t->size) )		/* implicit size */
     { Cell cell;
@@ -96,12 +82,15 @@ computeTab(Tab t)
 static status
 geometryTab(Tab t, Int x, Int y, Int w, Int h)
 { if ( notDefault(w) || notDefault(h) )
-  { if ( isDefault(w) )
+  { Any size;
+
+    if ( isDefault(w) )
       w = getWidthGraphical((Graphical) t);
     if ( isDefault(h) )
       h = getHeightGraphical((Graphical) t);
 
-    assign(t, size, newObject(ClassSize, w, h, 0));
+    size = newObject(ClassSize, w, h, 0);
+    qadSendv(t, NAME_size, 1, &size);
   }
 
   geometryDevice((Device) t, x, y, w, h);
@@ -110,85 +99,22 @@ geometryTab(Tab t, Int x, Int y, Int w, Int h)
   succeed;
 }
 
-
-static status
-sizeTab(Tab t, Size s)
-{ assign(t, size, s);
-
-  return requestComputeGraphical(t, DEFAULT);
-}
-
-
-		 /*******************************
-		 *	       LAYOUT		*
-		 *******************************/
-
-static status
-layoutTab(Tab t)
-{ obtainResourcesObject(t);
-
-  return layoutDialogDevice((Device)t, t->gap, t->size);
-}
-
-
 		 /*******************************
 		 *	     NAME/LABEL		*
 		 *******************************/
 
 static status
-nameTab(Tab t, Name name)
-{ Any label = get(t, NAME_labelName, name, 0);
-
-  assign(t, name, name);
-  return labelTab(t, label ? label : name);
-}
-
-
-static void
-changedLabelTab(Tab t)
-{ Int eh;
+ChangedLabelTab(Tab t)
+{ Elevation e = getResourceValueObject(t, NAME_elevation);
+  Int eh = e->height;
 
   assign(t, request_compute, ON);
   computeTab(t);
-  eh = t->elevation->height;
 
-  changedImageGraphical(t,
-			t->label_offset, ZERO,
-			t->label_size->w,
-			add(t->label_size->h, eh));
-}
-
-
-static status
-labelTab(Tab t, Name label)
-{ if ( t->label != label )
-  { assign(t, label, label);
-    changedLabelTab(t);
-  }
-
-  succeed;
-}
-
-
-static status
-labelFontTab(Tab t, FontObj font)
-{ if ( t->label_font != font )
-  { assign(t, label_font, font);
-    changedLabelTab(t);
-  }
-
-  succeed;
-}
-
-
-static status
-labelFormatTab(Tab t, Name fmt)
-{ if ( t->label_format != fmt )
-  { assign(t, label_format, fmt);
-    changedLabelTab(t);
-  }
-
-  succeed;
+  return changedImageGraphical(t,
+			       t->label_offset, ZERO,
+			       t->label_size->w,
+			       add(t->label_size->h, eh));
 }
 
 
@@ -215,20 +141,6 @@ labelOffsetTab(Tab t, Int offset)
 }
 
 
-static CharArray
-getLabelNameTab(Tab t, Name name)
-{ Any label = getLabelNameName(name);
-
-  answer(label);
-}
-
-
-static status
-elevationTab(Tab t, Elevation e)
-{ return assignGraphical(t, NAME_elevation, e);
-}
-
-
 static status
 statusTab(Tab t, Name stat)
 { return assignGraphical(t, NAME_status, stat);
@@ -240,25 +152,39 @@ statusTab(Tab t, Name stat)
 		*             REDRAW		*
 		********************************/
 
+#define GOTO(p, a, b)	 p->x = (a), p->y = (b), p++
+#define RMOVE(p, dx, dy) p->x = p[-1].x + (dx), p->y = p[-1].y + (dy), p++
+
 static status
 RedrawAreaTab(Tab t, Area a)
 { int x, y, w, h;
-  int lh   = valInt(t->label_size->h);
-  int lw   = valInt(t->label_size->w);
-  int loff = valInt(t->label_offset);
-  int eh = valInt(t->elevation->height);
-  int ex = valInt(getExFont(t->label_font));
+  Elevation e = getResourceValueObject(t, NAME_elevation);
+  int lh      = valInt(t->label_size->h);
+  int lw      = valInt(t->label_size->w);
+  int loff    = valInt(t->label_offset);
+  int eh      = valInt(e->height);
+  int ex      = valInt(getExFont(t->label_font));
 
   initialiseDeviceGraphical(t, &x, &y, &w, &h);
 
   if ( t->status == NAME_onTop )
-  { r_3d_box(x, y+lh, w, h-lh, 0, t->elevation, TRUE); /* main box */
-    r_3d_box(x+loff, y, lw, lh+eh, 0, t->elevation, TRUE); /* label box */
-    if ( notDefault(t->elevation->colour) )
-    { r_fill(x+loff+eh, y+lh, lw-2*eh, eh, t->elevation->colour);
+  { ipoint pts[8];
+    IPoint p = pts;
+    
+    if ( loff == 0 )
+    { GOTO(p, x, y);
     } else
-    { r_clear(x+loff+eh, y+lh, lw-2*eh, eh);
+    { GOTO(p, x, y+lh);
+      RMOVE(p, loff, 0);
+      RMOVE(p, 0, -lh);
     }
+    RMOVE(p, lw, 0);
+    RMOVE(p, 0, lh);
+    GOTO(p, x+w, y+lh);
+    RMOVE(p, 0, h-lh);
+    RMOVE(p, -w, 0);
+
+    r_3d_rectangular_polygon(p-pts, pts, e, DRAW_3D_FILLED|DRAW_3D_CLOSED);
 
     str_string(&t->label->data, t->label_font,
 	       x+loff+ex, y, lw-2*ex, lh, t->label_format, NAME_center);
@@ -287,27 +213,21 @@ RedrawAreaTab(Tab t, Area a)
       assign(a, y, ay);
     }
   } else /* if ( t->status == NAME_hidden ) */
-  { r_3d_box(x+loff, y, lw, lh, 0, t->elevation, TRUE); /* integrate! */
-    if ( notDefault(t->elevation->colour) )
-    { r_fill(x+loff+eh, y+lh-eh, lw-2*eh, eh, t->elevation->colour);
-    } else
-    { r_clear(x+loff+eh, y+lh-eh, lw-2*eh, eh);
-    }
+  { ipoint pts[4];
+    IPoint p = pts;
+
+    GOTO(p, x+loff, y+lh);
+    RMOVE(p, 0, -lh);
+    RMOVE(p, lw, 0);
+    RMOVE(p, 0, lh);
+
+    r_3d_rectangular_polygon(p-pts, pts, e, DRAW_3D_FILLED);
 
     str_string(&t->label->data, t->label_font,
 	       x+loff+ex, y, lw-2*ex, lh, t->label_format, NAME_center);
   }
 
   return RedrawAreaGraphical(t, a);
-}
-
-		 /*******************************
-		 *	       DIALOG		*
-		 *******************************/
-
-static status
-appendTab(Tab t, Graphical item, Name where)
-{ return appendDialogItemDevice((Device) t, item, where);
 }
 
 
@@ -336,7 +256,7 @@ eventTab(Tab t, EventObj ev)
   }
 
   if ( t->status == NAME_onTop )
-  { eventDevice(t, ev);
+  { eventDialogGroup((DialogGroup) t, ev);
     succeed;				/* don't continue */
   }
 
@@ -351,32 +271,19 @@ eventTab(Tab t, EventObj ev)
 
 static char *T_geometry[] =
         { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
-static char *T_append[] =
-        { "item=graphical", "relative_to_last=[{below,right,next_row}]" };
 
 /* Instance Variables */
 
 static vardecl var_tab[] =
-{ IV(NAME_label, "name", IV_GET,
-     NAME_label, "Text displayed in the tab-label"),
-  SV(NAME_labelFont, "font", IV_GET|IV_STORE, labelFontTab,
-     NAME_appearance, "Font used to display the label"),
-  IV(NAME_labelSize, "size", IV_GET,
+{ IV(NAME_labelSize, "size", IV_GET,
      NAME_layout, "Size of the label-box"),
   SV(NAME_labelOffset, "int", IV_GET|IV_STORE, labelOffsetTab,
      NAME_layout, "X-Offset of label-box"),
-  SV(NAME_labelFormat, "{left,center,right}", IV_GET|IV_STORE, labelFormatTab,
-     NAME_appearance, "Alignment of label in box"),
-  SV(NAME_elevation, "elevation*", IV_GET|IV_STORE, elevationTab,
-     NAME_appearance, "Elevation from background"),
   SV(NAME_status, "{on_top,hidden}", IV_GET|IV_STORE, statusTab,
      NAME_appearance, "Currently displayed status"),
-  IV(NAME_size, "[size]", IV_GET,
-     NAME_geometry, "Size of the contents"),
-  IV(NAME_autoAlign, "bool", IV_BOTH,
-     NAME_layout, "Automatically align in dialog (@on)"),
-  IV(NAME_gap, "size", IV_GET,
-     NAME_appearance, "Distance between the items")
+  SV(NAME_labelFormat, "{left,center,right}", IV_GET|IV_STORE|IV_REDEFINE,
+     labelFormatDialogGroup,
+     NAME_appearance, "Alignment of label in box")
 };
 
 /* Send Methods */
@@ -394,18 +301,10 @@ static senddecl send_tab[] =
      NAME_geometry, "Left-side of tab"),
   SM(NAME_y, 1, "int", yGraphical,
      NAME_geometry, "Top-side of tab"),
-  SM(NAME_size, 1, "[size]", sizeTab,
-     NAME_geometry, "Size, @default implies minimal size"),
-  SM(NAME_layout, 0, NULL, layoutTab,
-     NAME_layout, "(Re)compute layout of dialog_items"),
-  SM(NAME_label, 1, "name", labelTab,
-     NAME_name, "Change visual label"),
-  SM(NAME_name, 1, "name", nameTab,
-     NAME_name, "Change <-name, update <-label"),
-  SM(NAME_append, 2, T_append, appendTab,
-     NAME_organisation, "Append dialog_item {below,right,next_row} last"),
   SM(NAME_compute, 0, NULL, computeTab,
-     NAME_update, "Recompute area")
+     NAME_update, "Recompute area"),
+  SM(NAME_ChangedLabel, 0, NULL, ChangedLabelTab,
+     NAME_update, "Add label-area to the update")
 };
 
 /* Get Methods */
@@ -416,9 +315,7 @@ static getdecl get_tab[] =
   GM(NAME_x, 0, "int", NULL, getXGraphical,
      NAME_geometry, "Left-side of tab"),
   GM(NAME_y, 0, "int", NULL, getYGraphical,
-     NAME_geometry, "Top-side of tab"),
-  GM(NAME_labelName, 1, "name", "name", getLabelNameTab,
-     NAME_label, "Determine default-label from the name")
+     NAME_geometry, "Top-side of tab")
 };
 
 /* Resources */

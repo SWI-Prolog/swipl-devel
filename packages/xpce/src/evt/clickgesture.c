@@ -59,7 +59,10 @@ initiateClickGesture(ClickGesture g, EventObj ev)
 static status
 dragClickGesture(ClickGesture g, EventObj ev)
 { if ( notNil(g->max_drag_distance) )
-  { if ( valInt(getDistanceEvent(ev->window->focus_event, ev)) >
+  { PceWindow sw;
+
+    if ( instanceOfObject((sw=ev->window), ClassWindow) &&
+	 valInt(getDistanceEvent(sw->focus_event, ev)) >
 	 valInt(g->max_drag_distance) )
       send(g, NAME_cancel, ev, 0);
   }

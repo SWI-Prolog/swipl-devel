@@ -140,6 +140,9 @@ static struct class_definition classdefs[] =
   { NAME_dialogItem, NAME_graphical, makeClassDialogItem,
     &ClassDialogItem, "Item (menu) in a dialog window" },
 
+  { NAME_dialogGroup, NAME_device, makeClassDialogGroup,
+    &ClassDialogGroup, "Group of dialog items" },
+
   { NAME_dict, NAME_visual, makeClassDict,
     &ClassDict, "Dictionary of objects (also for browser)" },
 
@@ -397,8 +400,14 @@ static struct class_definition classdefs[] =
   { NAME_syntaxTable, NAME_object, makeClassSyntaxTable,
     &ClassSyntaxTable, "Table of character types" },
 
+  { NAME_tab, NAME_dialogGroup, makeClassTab,
+    &ClassTab, "Tab-sheet for tabbed dialog window" },
+
   { NAME_table, NAME_object, makeClassAtable,
     &ClassTable, "Table of association vectors" },
+
+  { NAME_tabStack, NAME_device, makeClassTabStack,
+    &ClassTabStack, "Stack of tabbed control-windows" },
 
   { NAME_text, NAME_graphical, makeClassText,
     &ClassText, "Draw text on graphical devices" },

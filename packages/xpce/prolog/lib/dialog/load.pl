@@ -93,15 +93,22 @@ proto_name(Term, Proto) :-
 	functor(Term, Class, Arity),
 	length(Args, Arity).
 
+resizable(Proto) :-
+	proto(Proto, _, Atts, _),
+	member(can_resize := @on, Atts), !.
 
 make_dialog_item(Var := NewTerm) :-
 	NewTerm =.. [Class|Args],
 	proto_class(Class, ProtoClass),
 	ProtoTerm =.. [ProtoClass|Args],
 	new(Var, ProtoTerm),
+	proto_name(NewTerm, ProtoName),
 	(   send(Var, has_send_method, proto)
-	->  proto_name(NewTerm, ProtoName),
-	    send(Var, proto, ProtoName)
+	->  send(Var, proto, ProtoName)
+	;   true
+	),
+	(   resizable(ProtoName)
+	->  send(Var, can_resize, @on)
 	;   true
 	).
 

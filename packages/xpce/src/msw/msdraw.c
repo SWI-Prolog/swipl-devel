@@ -46,6 +46,7 @@ typedef struct
   int		r_offset_y;		/* r_offset() */
 
   int		open;			/* is context opened? */
+  int		invert;			/* paint inverted */
 
   Image		fill_pattern;		/* PCE fill-pattern image */
   Colour	colour;			/* Current colour */
@@ -123,6 +124,7 @@ reset_context()
   context.hbitmap            = 0;
   context.modified_pen       = FALSE;
   context.open	             = 0;
+  context.invert	     = FALSE;
   context.hdc	             = default_hdc;
   context.display            = TheDisplay;
   context.cache	             = 0;
@@ -422,12 +424,6 @@ d_image(Image i, int x, int y, int w, int h)
 
 
 void
-d_screen(DisplayObj d)
-{
-}
-
-
-void
 d_hdc(HDC hdc, Colour fg, Colour bg)
 { push_context();
 
@@ -443,6 +439,14 @@ d_hdc(HDC hdc, Colour fg, Colour bg)
 
   r_default_background(bg);
   r_default_colour(fg);
+}
+
+
+void
+d_screen(DisplayObj d)
+{ HDC hdc = GetDC(NULL);
+
+  d_hdc(hdc, DEFAULT, DEFAULT);
 }
 
 
@@ -1019,7 +1023,7 @@ r_subwindow_mode(Bool val)
 
 void
 r_invert_mode(Bool val)
-{
+{ context.invert = (val == ON);
 }
 
 
@@ -1649,7 +1653,19 @@ r_ellipse(int x, int y, int w, int h, Any fill)
 
 void
 r_line(int x1, int y1, int x2, int y2)
-{ r_update_pen();
+{ if ( context.invert )
+  { int l = context.thickness / 2;
+
+    if ( x1 == x2 )
+    { r_complement(x1-l, y1, context.thickness, y2-y1);
+      return;
+    } else if ( y1 == y2 )
+    { r_complement(x1, y1-l, x2-x1, context.thickness);
+      return;
+    }
+  }
+
+  r_update_pen();
   MoveTo(context.hdc, x1, y1);
   LineTo(context.hdc, x2, y2);
 }

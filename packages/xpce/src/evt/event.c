@@ -27,7 +27,7 @@ extern EventNodeObj getNodeEventTree(EventTreeObj t, Any value);
 #define TOINT(x) x
 
 static Int 	 last_buttons     = TOINT(ZERO); /* defaults for next event */
-static PceWindow last_window      = NIL;
+static Any	 last_window      = NIL;
 static Int	 last_x		  = TOINT(ZERO);
 static Int	 last_y		  = TOINT(ZERO);
 static ulong	 last_time	  = 0L;
@@ -39,9 +39,11 @@ static int	         last_down_time   = 0;
 static unsigned int	 multi_click_time = 400;
 static int	         multi_click_diff = 4;
 static int	         last_click_type  = CLICK_TYPE_triple;
+static int		 loc_still_posted = TRUE;
+static ulong		 host_last_time   = 0;
 
 static status
-initialiseEvent(EventObj e, Name id, PceWindow window,
+initialiseEvent(EventObj e, Name id, Any window,
 		Int x, Int y, Int bts, Int time)
 { ulong t = valInt(time);
 
@@ -63,10 +65,11 @@ initialiseEvent(EventObj e, Name id, PceWindow window,
     if ( isDefault(time) )   t      = last_time;
   }
 
-  last_time    = t;
-  last_buttons = bts;			/* save these values */
-  last_x       = x;
-  last_y       = y;
+  host_last_time = mclock();
+  last_time      = t;
+  last_buttons   = bts;			/* save these values */
+  last_x         = x;
+  last_y         = y;
 
   assign(e, window,	window);
   assign(e, receiver,	window);
@@ -110,9 +113,43 @@ initialiseEvent(EventObj e, Name id, PceWindow window,
   }
 
   last_window = window;
+  if ( e->id != NAME_locMove )
+    loc_still_posted = TRUE;
+  else
+    loc_still_posted = FALSE;
 
   succeed;
 }
+
+		 /*******************************
+		 *	    LOC-STILL		*
+		 *******************************/
+
+void
+considerLocStillEvent()
+{ if ( !loc_still_posted	)
+  { unsigned long now = mclock();
+
+    if ( now - host_last_time > 700 &&
+	 instanceOfObject(last_window, ClassWindow) &&
+	 !onFlag(last_window, F_FREED|F_FREEING) )
+    { AnswerMark mark;
+      EventObj e;
+
+      markAnswerStack(mark);
+      e = newObject(ClassEvent,
+		    NAME_locStill, last_window,
+		    DEFAULT, DEFAULT, DEFAULT,
+		    toInt(last_time + now - host_last_time), 0);
+      addCodeReference(e);
+      postEvent(e, (Graphical) last_window, DEFAULT);
+      delCodeReference(e);
+      freeableObj(e);
+      rewindAnswerStack(mark, NIL);		   
+    }
+  }
+}
+
 
 		 /*******************************
 		 *	     WINDOW		*
@@ -120,7 +157,10 @@ initialiseEvent(EventObj e, Name id, PceWindow window,
 
 PceWindow
 WindowOfLastEvent()
-{ return last_window;
+{ if ( instanceOfObject(last_window, ClassWindow) )
+    return last_window;
+
+  fail;
 }
 
 
@@ -400,7 +440,9 @@ get_xy_event_device(EventObj ev, Device dev, int *rx, int *ry)
   PceWindow sw = getWindowGraphical((Graphical) dev);
 
   if ( !sw )
-    sw = ev->window;			/* error? */
+  { *rx = 0; *ry = 0;
+    return;				/* generate an error? */
+  }
 
   get_xy_event_window(ev, sw, OFF, rx, ry);
   offsetDeviceGraphical(dev, &ox, &oy);
@@ -604,6 +646,8 @@ getKeyEvent(EventObj ev)
 		*         POSTING EVENTS	*
 		********************************/
 
+#define WindowOfEvent(ev) ((PceWindow)(ev)->window)
+
 status
 postEvent(EventObj ev, Graphical obj, Recogniser rec)
 { Graphical old = ev->receiver;
@@ -624,10 +668,11 @@ postEvent(EventObj ev, Graphical obj, Recogniser rec)
 
 		  if ( !isFreedObj(ev) && isObject(old) && !isFreedObj(old) )
 		  { if ( rval &&
-			notNil(ev->window) && isNil(ev->window->focus) &&
-			isDownEvent(ev) && !allButtonsUpLastEvent() &&
-			instanceOfObject(obj, ClassGraphical) &&
-			getWindowGraphical(obj) == ev->window )
+			 instanceOfObject(ev->window, ClassWindow) &&
+			 isNil(WindowOfEvent(ev)->focus) &&
+			 isDownEvent(ev) && !allButtonsUpLastEvent() &&
+			 instanceOfObject(obj, ClassGraphical) &&
+			 getWindowGraphical(obj) == WindowOfEvent(ev) )
 		      focusWindow(ev->window, obj, NIL, DEFAULT,
 				  getButtonEvent(ev));
 		    assign(ev, receiver, old);
@@ -663,7 +708,10 @@ getMasterEvent(EventObj ev)
 
 DisplayObj
 getDisplayEvent(EventObj ev)
-{ answer(getDisplayGraphical((Graphical) ev->window));
+{ if ( instanceOfObject(ev->window, ClassWindow) )
+    answer(getDisplayGraphical((Graphical) ev->window));
+  else
+    answer(((FrameObj)ev->window)->display);
 }
 
 		 /*******************************
@@ -673,17 +721,17 @@ getDisplayEvent(EventObj ev)
 /* Type declarations */
 
 static char *T_initialise[] =
-        { "id=event_id", "origin=[window]", "x=[int]", "y=[int]", "button_mask=[int]", "time=[int]" };
+        { "id=event_id", "origin=[window|frame]", "x=[int]", "y=[int]", "button_mask=[int]", "time=[int]" };
 static char *T_post[] =
         { "to=graphical", "recogniser=[recogniser]" };
 
 /* Instance Variables */
 
 static vardecl var_event[] =
-{ IV(NAME_window, "window", IV_GET,
+{ IV(NAME_window, "window|frame", IV_GET,
      NAME_context, "Window that generated event"),
-  IV(NAME_receiver, "graphical", IV_GET,
-     NAME_context, "(Graphical) object receiving event"),
+  IV(NAME_receiver, "graphical|frame", IV_GET,
+     NAME_context, "Object receiving event"),
   IV(NAME_id, "event_id", IV_GET,
      NAME_name, "Id of the event (type of event)"),
   IV(NAME_buttons, "mask=int", IV_GET,
@@ -881,6 +929,7 @@ static struct namepair
 
   { NAME_position,	NAME_mouse },
   { NAME_locMove,	NAME_position },
+  { NAME_locStill,	NAME_position },
 
   { NAME_focus,				NAME_any },
   { NAME_deactivateKeyboardFocus,	NAME_focus },

@@ -343,7 +343,7 @@ XPCE_float_of(XPCE_Object real)
 { Real r;
 
   if ( (r = toReal(getConvertReal(ClassReal, real))) )
-    return r->value;
+    return valReal(r);
 
   errorPce(CtoType("real"), NAME_cannotConvert, real);
   return 0.0;	/*NaN;*/

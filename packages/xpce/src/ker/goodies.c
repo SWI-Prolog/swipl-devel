@@ -395,14 +395,14 @@ swritefv(char *buf, CharArray format, int argc, Any *argv)
 	    case 'E':
 	    case 'g':
 	    case 'G':
-	    { float a;
+	    { double a;
 	      Real f;
 
 	      if ( argc <= 0 )
 	      	a = 0.0;
 	      else
 	      { if ( (f = toReal(argv[0])) != FAIL )
-		  a = f->value;
+		  a = valReal(f);
 	        else
 		{ DoPP();
 		  continue;

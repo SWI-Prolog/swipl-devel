@@ -12,6 +12,8 @@
 
 static int	get_var_in_binary_expression(Any e, Var var, int n);
 
+#ifdef O_NOFLOAT			/* old fixed-point arithmetic */
+
 PseudoFloat
 getPseudoFloatExpression(Any e)
 { Int ival;
@@ -50,9 +52,9 @@ getPseudoFloatExpression(Any e)
     return Int_PSF(valInt(e));
 
   if ( instanceOfObject(e, ClassNumber) ) /* number */
-    return Int_PSF(valInt(((Number)e)->value));
+    return Int_PSF(((Number)e)->value);
   if ( instanceOfObject(e, ClassReal) )	/* real */
-    return Float_PSF(((Real)e)->value);
+    return Float_PSF(valReal(e));
   
   if ( (ival = (Int) checkType(e, TypeInt, NIL)) )
     return Int_PSF(valInt(ival));
@@ -62,6 +64,231 @@ getPseudoFloatExpression(Any e)
   return Int_PSF(1);
 }
 
+#else /* O_NOFLOAT*/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The arithmetic code below is from SWI-Prolog  2.6.0. As the copyright to
+this software is in the same hands, this should be ok.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define intNumericValue(n) ((n)->type == V_INTEGER)
+
+void
+promoteToRealNumericValue(NumericValue n)
+{ if ( intNumericValue(n) )
+  { n->value.f = (double)n->value.i;
+    n->type = V_DOUBLE;
+  }
+}
+
+
+status
+ar_add(NumericValue n1, NumericValue n2, NumericValue r)
+{ if ( intNumericValue(n1) && intNumericValue(n2) ) 
+  { r->value.i = n1->value.i + n2->value.i; 
+    
+    if ( n1->value.i > 0 && n2->value.i > 0 && r->value.i <= 0 )
+      goto overflow;
+    if ( n1->value.i < 0 && n2->value.i < 0 && r->value.i >= 0 )
+      goto overflow;
+
+    r->type = V_INTEGER;
+    succeed;
+  } 
+
+overflow:
+  promoteToRealNumericValue(n1);
+  promoteToRealNumericValue(n2);
+  r->value.f = n1->value.f + n2->value.f; 
+  r->type = V_DOUBLE;
+
+  succeed;
+}
+
+
+int
+ar_minus(NumericValue n1, NumericValue n2, NumericValue r)
+{ if ( intNumericValue(n1) && intNumericValue(n2) ) 
+  { r->value.i = n1->value.i - n2->value.i; 
+    
+    if ( n1->value.i > 0 && n2->value.i < 0 && r->value.i <= 0 )
+      goto overflow;
+    if ( n1->value.i < 0 && n2->value.i > 0 && r->value.i >= 0 )
+      goto overflow;
+
+    r->type = V_INTEGER;
+    succeed;
+  } 
+
+overflow:
+  promoteToRealNumericValue(n1);
+  promoteToRealNumericValue(n2);
+  r->value.f = n1->value.f - n2->value.f; 
+  r->type = V_DOUBLE;
+
+  succeed;
+}
+
+int
+ar_divide(NumericValue n1, NumericValue n2, NumericValue r)
+{ if ( intNumericValue(n1) && intNumericValue(n2) )
+  { if ( n1->value.i % n2->value.i == 0)
+    { r->value.i = n1->value.i / n2->value.i;
+      r->type = V_INTEGER;
+      succeed;
+    }
+  }
+
+  promoteToRealNumericValue(n1);
+  promoteToRealNumericValue(n2);
+
+  r->value.f = n1->value.f / n2->value.f;
+  r->type = V_DOUBLE;
+  succeed;
+}
+
+
+int
+ar_times(NumericValue n1, NumericValue n2, NumericValue r)
+{ if ( intNumericValue(n1) && intNumericValue(n2) )
+  { if ( abs(n1->value.i) >= (1 << 15) || abs(n2->value.i) >= (1 << 15) )
+    { r->value.f = (double)n1->value.i * (double)n2->value.i;
+      r->type = V_DOUBLE;
+      succeed;
+    }
+    r->value.i = n1->value.i * n2->value.i;
+    r->type = V_INTEGER;
+    succeed;
+  }
+  
+  promoteToRealNumericValue(n1);
+  promoteToRealNumericValue(n2);
+
+  r->value.f = n1->value.f * n2->value.f;
+  r->type = V_DOUBLE;
+  succeed;
+}
+
+
+status
+evaluateExpression(Any e, NumericValue v)
+{ Real fval;
+
+  if ( isFunction(e) )
+  { Any e2;
+
+    if ( instanceOfObject(e, ClassBinaryExpression) )
+    { Class class = classOfObject(e);
+      numeric_value vl, vr;
+
+      if ( !evaluateExpression(LEFTHAND(e), &vl) ||
+	   !evaluateExpression(RIGHTHAND(e), &vr) )
+	fail;
+
+      if ( class == ClassPlus )		/* + */
+	return ar_add(&vl, &vr, v);
+      if ( class == ClassMinus )	/* - */
+	return ar_minus(&vl, &vr, v);
+      if ( class == ClassTimes )	/* * */
+	return ar_times(&vl, &vr, v);
+      if ( class == ClassDivide )	/* / */
+	return ar_divide(&vl, &vr, v);
+      
+      errorPce(e, NAME_unknownFunction);
+      v->type = V_ERROR;
+      fail;
+    }
+
+    if ( !(e2 = expandFunction(e)) )
+    { errorPce(e, NAME_evalFailed);
+      v->type = V_ERROR;
+      fail;
+    } else
+      e = e2;
+  }
+
+  if ( isInteger(e) )			/* int */
+  { v->value.i = valInt(e);
+    v->type    = V_INTEGER;
+    succeed;
+  }
+  if ( instanceOfObject(e, ClassNumber) ) /* number */
+  { Number n = e;
+
+    v->value.i = n->value;
+    v->type    = V_INTEGER;
+    succeed;
+  }
+  if ( instanceOfObject(e, ClassReal) )	/* real */
+  { Real r = e;
+
+    v->value.f = valReal(r);
+    v->type    = V_DOUBLE;
+    succeed;
+  }
+  if ( (fval = checkType(e, TypeReal, NIL)) )
+  { v->value.f = valReal(fval);
+    v->type    = V_DOUBLE;
+    succeed;
+  }
+
+  errorPce(e, NAME_unexpectedType, TypeExpression);
+
+  v->type = V_ERROR;
+  fail;
+}
+
+Any
+ar_result(NumericValue n)
+{ switch(n->type)
+  { case V_INTEGER:
+    case_int:
+      if ( n->value.i > PCE_MIN_INT && n->value.i < PCE_MAX_INT )
+	return toInt(n->value.i);
+      else
+	return CtoNumber(n->value.i);
+    case V_DOUBLE:
+    { long l = (long)n->value.f;
+
+      if ( (double)l == n->value.f )
+      { n->value.i = l;
+        goto case_int;
+      }
+
+      return CtoReal(n->value.f);
+    }
+    default:
+      fail;
+  }
+}
+
+
+Int
+ar_int_result(Any e, NumericValue n)
+{ switch(n->type)
+  { case V_INTEGER:
+      if ( n->value.i > PCE_MIN_INT && n->value.i < PCE_MAX_INT )
+	return toInt(n->value.i);
+      else
+      { errorPce(e, NAME_outOfIntRange);
+	fail;
+      }
+    case V_DOUBLE:
+    { if ( n->value.f > (double)PCE_MIN_INT &&
+	   n->value.f < (double)PCE_MAX_INT )
+	return toInt(rfloat(n->value.f));
+      else
+      { errorPce(e, NAME_outOfIntRange);
+	fail;
+      }
+    }
+    default:
+      fail;
+  }
+}
+
+
+#endif /*O_NOFLOAT*/
 
 		/********************************
 		*       BINARY EXPRESSIONS	*
@@ -77,9 +304,11 @@ initialiseBinaryExpression(BinaryExpression e,
 }
 
 
-static Int
+static Any
 getExecuteExpression(BinaryExpression e)
-{ PseudoFloat f;
+{
+#ifdef O_NOFLOAT
+  PseudoFloat f;
 
   arithError = FALSE;
   f = getPseudoFloatExpression(e);
@@ -87,10 +316,18 @@ getExecuteExpression(BinaryExpression e)
     fail;
 
   answer(toInt(PSF_Int(f)));
+#else
+  numeric_value v;
+
+  if ( evaluateExpression(e, &v) )
+    return ar_result(&v);
+
+  fail;
+#endif
 }
 
 
-static Int
+static Any
 getValueExpressionv(Any e, int argc, Equation *argv)
 { Int rval;
   int n;
@@ -157,9 +394,9 @@ static senddecl send_binaryExpression[] =
 /* Get Methods */
 
 static getdecl get_binaryExpression[] =
-{ GM(NAME_Execute, 0, "int", NULL, getExecuteExpression,
+{ GM(NAME_Execute, 0, "value=int|number|real", NULL, getExecuteExpression,
      DEFAULT, "Evaluate, given variable bindings"),
-  GM(NAME_value, 1, "value=int", "binding== ...", getValueExpressionv,
+  GM(NAME_value, 1, "value=int|number|real", "binding== ...", getValueExpressionv,
      NAME_calculate, "Evaluate, given variable bindings"),
   GM(NAME_varIn, 1, "number=int", "variable=var", getVarInBinaryExpression,
      NAME_meta, "Count occurrences of (named) variable")
@@ -279,23 +516,24 @@ makeClassMinus(Class class)
 }
 
 
-/* (JW) Internal function which returns the value of an expression given a 
-	list of variable values. The argumentlist consists of tuples which 
-	form the left and right hand side of the argument equations.  It
-	should be closed with a '0'.
- */
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The function below is used by   regions, handles, graphical constraints,
+etc. it is supposed to return an integer value.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static inline Int
-_getValueExpression(Expression e, va_list args)
+Int
+getValueExpression(Expression e, ...)
 { if ( isInteger(e) )			/* happens often! */
     answer(e);
   else
-  { int argc, i;
+  { va_list args;
+    int argc, i;
     Var vars[FWD_PCE_MAX_ARGS];
     Any vals[FWD_PCE_MAX_ARGS];
     Any savd[FWD_PCE_MAX_ARGS];
-    Int rval;
+    numeric_value v;
 
+    va_start(args, e);
     for(argc = 0; (vars[argc] = va_arg(args, Var)) != NULL; argc++)
     { assert(argc <= FWD_PCE_MAX_ARGS);
       assert(instanceOfObject(vars[argc], ClassVar));
@@ -303,31 +541,18 @@ _getValueExpression(Expression e, va_list args)
       vals[argc] = va_arg(args, Expression);
       assert(vals[argc] != NULL);
     }
+    va_end(args);
 
     for(i=0; i<argc; i++)
     { savd[i] = vars[i]->value;
       setVar(vars[i], vals[i]);
     }
 
-    rval = getExecuteExpression((BinaryExpression) e);
+    evaluateExpression(e, &v);
 
     for(i=0; i<argc; i++)
       setVar(vars[i], savd[i]);
 
-    return rval;
+    return ar_int_result(e, &v);
   }
 }
-
-
-Int
-getValueExpression(Expression e, ...)
-{ va_list args;
-  Int rval;
-
-  va_start(args, e);
-  rval = _getValueExpression(e, args);
-  va_end(args);
-
-  return rval;
-}
-

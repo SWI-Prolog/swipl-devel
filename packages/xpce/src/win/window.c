@@ -435,42 +435,60 @@ compute_window(PceWindow sw, int *x, int *y, int *w, int *h)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+frame_offset_window(window|frame, frame *, int *x, int *y)
+    Determine the frame of the object and the relative position in this
+    frame.  Used for computing event-offsets.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 status
-frame_offset_window(PceWindow w, FrameObj *fr, int *X, int *Y)
-{ int x = 0, y = 0;
+frame_offset_window(Any obj, FrameObj *fr, int *X, int *Y)
+{ if ( instanceOfObject(obj, ClassFrame) )
+  { *fr = obj;
+    *X = 0; *Y = 0;
+    succeed;
+  } else
+  { int x = 0, y = 0;
+    PceWindow w = obj;
 
-  while(isNil(w->frame))
-  { if ( notNil(w->device) )
-    { PceWindow w2 = DEFAULT;
-      Int ox, oy;
-
-      get_absolute_xy_graphical((Graphical)w, (Device *)&w2, &ox, &oy);
-      if ( instanceOfObject(w2, ClassWindow) )
-      { int ox2, oy2;
-
-	offset_window(w2, &ox2, &oy2);
-	x += valInt(ox) + ox2;
-	y += valInt(oy) + oy2;
-
-	w = w2;
-	continue;
+    while(isNil(w->frame))
+    { if ( notNil(w->device) )
+      { PceWindow w2 = DEFAULT;
+	Int ox, oy;
+  
+	get_absolute_xy_graphical((Graphical)w, (Device *)&w2, &ox, &oy);
+	if ( instanceOfObject(w2, ClassWindow) )
+	{ int ox2, oy2;
+  
+	  offset_window(w2, &ox2, &oy2);
+	  x += valInt(ox) + ox2;
+	  y += valInt(oy) + oy2;
+  
+	  w = w2;
+	  continue;
+	}
       }
+  
+      fail;
     }
-
-    fail;
+  
+    x += valInt(w->area->x);
+    y += valInt(w->area->y);
+  
+    *fr = w->frame, *X = x, *Y = y;
+  
+    succeed;
   }
-
-  x += valInt(w->area->x);
-  y += valInt(w->area->y);
-
-  *fr = w->frame, *X = x, *Y = y;
-
-  succeed;
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Determine the offset between a window and an arbitrary other window or
+frame.  Used for event-position computations.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 void
-offset_windows(PceWindow w1, PceWindow w2, int *X, int *Y)
+offset_windows(PceWindow w1, Any w2, int *X, int *Y)
 { FrameObj fr1, fr2;
   int ox1, oy1, ox2, oy2;
 

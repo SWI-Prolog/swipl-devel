@@ -125,8 +125,47 @@ static Name signames[] =
 
 #if defined(SIGCHLD) && defined(HAVE_WAIT)
 
+#ifdef HAVE_SIGINFO_H
+#include <siginfo.h>
+#endif
+
+#ifndef SA_NOMASK
+#define SA_NOMASK 0
+#endif
+#ifndef SA_RESTART
+#define SA_RESTART 0
+#endif
+#ifndef SA_NOCLDWAIT
+#define SA_NOCLDWAIT 0
+#endif
+#ifndef SA_NOCLDSTOP
+#define SA_NOCLDSTOP 0
+#endif
+#ifndef SA_SIGINFO
+#define SA_SIGINFO 0
+#endif
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Catching childs that have changed status. There   appear to be many ways
+for doing this. Posix doesn't  provide   signal  context, so by default,
+waitpid() is used to find out  what   child  changed status. On Solaris,
+this appears to lead to a loop. Therefore we use the context information
+passed to the handler. I've tried to  configure all this without testing
+for Solaris itself to exploit these features automatically in compatible
+operating system. Be careful.
+
+Note this function is called asynchronously, and is therefore dangerous.
+It would be better to merge  it   into  the event-queue, but X11 doesn't
+provide an interface for this, as far as  I know. Maybe posting an event
+to myself?
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static void
+#if SA_SIGINFO
+child_changed(int sig, siginfo_t *info, void *uctx)
+#else
 child_changed(int sig)
+#endif
 { Process p;
 
 #ifdef UNION_WAIT
@@ -135,6 +174,30 @@ child_changed(int sig)
 #define wait_t int
 #endif
 
+
+#if SA_SIGINFO
+  DEBUG(NAME_process, Cprintf("child %d changed called\n", info->si_pid));
+
+  for_chain(ProcessChain, p,
+	    { int pid = valInt(p->pid);
+	      
+	      if ( pid == info->si_pid )
+	      { switch( info->si_code )
+		{ case CLD_EXITED:
+		    send(p, NAME_exited, toInt(info->si_status), 0);
+		    break;
+		  case CLD_KILLED:
+		  case CLD_STOPPED:
+		    send(p, NAME_killed, signames[info->si_status], 0);
+		    break;
+		  case CLD_DUMPED:
+		    send(p, NAME_exited, toInt(-1), 0);
+		    break;
+		  case CLD_CONTINUED:
+		}
+	      }
+	    });
+#else /*SA_SIGINFO*/
   DEBUG(NAME_process, Cprintf("child_changed() called\n"));
 
   for_chain(ProcessChain, p,
@@ -150,7 +213,9 @@ child_changed(int sig)
 		  send(p, NAME_exited, toInt(WEXITSTATUS(status)), 0);
 	      }
 	    });
-#ifndef BSD_SIGNALS
+#endif /*SA_SIGINFO*/
+
+#if !defined(BSD_SIGNALS) && !defined(HAVE_SIGACTION)
   signal(sig, child_changed);
 #endif
 }
@@ -176,7 +241,21 @@ setupProcesses()
 { if ( !initialised )
   {
 #if defined(SIGCHLD) && defined(HAVE_WAIT)
+#ifdef HAVE_SIGACTION
+    struct sigaction action, oaction;
+
+    memset((char *) &action, 0, sizeof(action));
+#if SA_SIGINFO
+    action.sa_sigaction = child_changed;
+#else
+    action.sa_handler   = child_changed;
+#endif
+    action.sa_flags     = SA_SIGINFO|SA_NOMASK|SA_RESTART;
+
+    sigaction(SIGCHLD, &action, &oaction);
+#else
     hostAction(HOST_SIGNAL, SIGCHLD, child_changed);
+#endif
 #endif
     at_pce_exit(killAllProcesses, ATEXIT_FIFO);
     initialised++;

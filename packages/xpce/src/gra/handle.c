@@ -37,11 +37,17 @@ getXYHandle(Handle h, Graphical gr, Device dev, Int *X, Int *Y)
   TRY( get_absolute_xy_graphical(gr, &dev, &gx, &gy) );
 
   if ( X )
-  { TRY(x = getValueExpression(h->xPosition, VarW, gr->area->w, 0));
+  { TRY(x = getValueExpression(h->xPosition,
+			       VarW, gr->area->w,
+			       VarH, gr->area->h,
+			       0));
     *X = add(x, gx);
   }
   if ( Y )
-  { TRY(y = getValueExpression(h->yPosition, VarH, gr->area->h, 0));
+  { TRY(y = getValueExpression(h->yPosition,
+			       VarW, gr->area->w,
+			       VarH, gr->area->h,
+			       0));
     *Y = add(y, gy);
   }
   DEBUG(NAME_handle,

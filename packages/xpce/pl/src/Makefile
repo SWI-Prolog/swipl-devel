@@ -35,7 +35,7 @@ CPLIFLAGS=	-I$(PLINCLUDE) -I../../$(builddir) -I../../src
 PL=     	pl
 ITFOBJ= 	$(addprefix $(OBJDIR)/, interface.o link.o)
 SOITF=		$(OBJDIR)/so-interface.o
-OBJ=		$(PLRUNTIME)/$(PLOBJ) $(ITFOBJ)
+OBJ=		$(ITFOBJ) -L$(PLRUNTIME) -lpl
 XPCE=		$(BINDIR)/xpce
 QLF=    	$(BINDIR)/xpce.qlf
 #XLIBS=		-lXt -lX11
@@ -73,7 +73,7 @@ $(OBJDIR)/link.o:	link.c
 # Creating statically linked xpce and its xpce.qlf bootfile
 ################################################################
 
-$(XPCE):	$(OBJ) $(libXPCE)
+$(XPCE):	$(ITFOBJ) $(libXPCE)
 		$(CC) $(LDFLAGS) -o $@ $(OBJ) -L$(LIBDIR) -lXPCE $(LIBS)
 
 $(QLF):		$(XPCE)
@@ -131,13 +131,8 @@ $(PLBASE)/xpce:
 $(PLBASE)/xpce/lib/$(PLARCH):
 	(cd ../../lib; rm -f $(PLARCH); ln -s ../$(builddir) $(PLARCH))
 
-$(PLBASE)/Makefile:	Makefile.bin
-	if [ -r $(XPCESO) ]; then \
-	    sed 's.@BPL@.bin/pl.' Makefile.bin > $@; \
-	else \
-	    sed 's.@BPL@.bin/xpce.' Makefile.bin > $@; \
-	fi
-
+$(PLBASE)/Makefile: Makefile.bin
+	cp Makefile.bin $@
 
 ################################################################
 # C++ Name mangling.  Not used right now

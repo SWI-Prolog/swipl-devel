@@ -458,7 +458,8 @@ preview_drop(D, DI:graphical*, Pos:[point]) :->
 	->  send(OL, position, Pos)
 	;   (   send(DI, instance_of, msg_object)
 	    ->	get(DI, ui_object, UI)
-	    ;	UI = DI
+	    ;	\+ send(DI, instance_of, msg_port),
+		UI = DI
 	    ),
 	    get(UI?area, size, size(W, H)), % move or import
 	    send(D, attribute, preview_outline, new(OL, box(W, H))),

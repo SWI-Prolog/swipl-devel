@@ -58,7 +58,7 @@ status		exposeDevice(Device dev, Graphical gr, Graphical gr2);
 status		hideDevice(Device dev, Graphical gr, Graphical gr2);
 status		swapGraphicalsDevice(Device dev, Graphical gr, Graphical gr2);
 status		computeFormatDevice(Device dev);
-status		layoutDialogDevice(Device d, Size gap);
+status		layoutDialogDevice(Device d, Size gap, Size bb);
 status		appendDialogItemDevice(Device d, Graphical item, Name where);
 Graphical	getMemberDevice(Device dev, Name name);
 status		geometryDevice(Device dev, Int x, Int y, Int w, Int h);
@@ -130,8 +130,13 @@ status		centerGraphical(Graphical gr, Point pos);
 status		relativeMoveGraphical(Graphical gr, Point pos);
 status		init_resize_graphical(Any obj, Real xfactor, Real yfactor, Point origin, float *xf, float *yf, int *ox, int *oy);
 Area		getAreaGraphical(Graphical gr);
+Int		getXGraphical(Graphical gr);
+Int		getYGraphical(Graphical gr);
+Int		getWidthGraphical(Graphical gr);
+Int		getHeightGraphical(Graphical gr);
 Int		getLeftSideGraphical(Graphical gr);
 Int		getRightSideGraphical(Graphical gr);
+Point		getPositionGraphical(Graphical gr);
 status		get_absolute_xy_graphical(Graphical gr, Device *dev, Int *X, Int *Y);
 Int		getAbsoluteXGraphical(Any gr, Device dev);
 Int		getAbsoluteYGraphical(Any gr, Device dev);
@@ -306,3 +311,6 @@ status		makeClassElevation(Class class);
 
 /* gra/pen.c */
 status		makeClassPen(Class class);
+
+/* gra/draw.c */
+void		r_3d_rectangular_polygon(int n, IPoint pts, Elevation e, int flags);

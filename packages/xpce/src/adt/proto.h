@@ -4,6 +4,7 @@ status		intersectionArea(Area a, Area b);
 status		unionNormalisedArea(Area a, Area b);
 status		sizeArea(Area a, Size s);
 Size		getSizeArea(Area a);
+status		pointInArea(Area a, Point p);
 status		overlapArea(Area a, Area b);
 status		relativeMoveArea(Area a, Point p);
 status		relativeMoveBackArea(Area a, Point p);
@@ -108,6 +109,7 @@ status		clearHashTable(HashTable ht);
 status		makeClassHashTable(Class class);
 
 /* adt/number.c */
+Number		CtoNumber(long i);
 status		makeClassNumber(Class class);
 
 /* adt/point.c */
@@ -125,7 +127,9 @@ Point		getMirrorPoint(Point p1, Point p2);
 status		makeClassPoint(Class class);
 
 /* adt/real.c */
-Real		CtoReal(float f);
+void		setReal(Real r, double f);
+double		valReal(Real r);
+Real		CtoReal(double f);
 Real		getConvertReal(Class class, Any obj);
 status		valueReal(Real r, Real v);
 status		makeClassReal(Class class);

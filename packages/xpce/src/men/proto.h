@@ -55,9 +55,13 @@ status		makeClassSlider(Class class);
 status		makeClassTextItem(Class class);
 
 /* men/tab.c */
-status		initialiseTab(Tab t, Name name);
 status		makeClassTab(Class class);
 
 /* men/diagroup.c */
 status		initialiseDialogGroup(DialogGroup g, Name name);
+status		labelFormatDialogGroup(DialogGroup g, Name fmt);
+status		eventDialogGroup(DialogGroup g, EventObj ev);
 status		makeClassDialogGroup(Class class);
+
+/* men/tabstack.c */
+status		makeClassTabStack(Class class);
