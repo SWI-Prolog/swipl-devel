@@ -1,6 +1,10 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * MODIFIED: Home/End keys in PLWIN.EXE to go to the start/end of the line.
+
+  * ADDED: Wheelmouse support to PLWIN.EXE
+
   * ADDED: Windows: support for UNC-filenames (\\host\share\...).
 
   * FIXED: call_cleanup/3 crashed if the cleanup handler invoked GC.  GC

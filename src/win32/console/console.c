@@ -82,6 +82,10 @@ static void initHeapDebug(void);
 #endif
 
 #include <windows.h>
+#ifndef WM_MOUSEWHEEL			/* sometimes not defined */
+#define WM_MOUSEWHEEL 0x020A
+#endif
+
 #include <stdlib.h>
 #include <io.h>
 #include <string.h>
@@ -1036,31 +1040,24 @@ rlc_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 	case VK_RIGHT:	chr = Control('F');	break;
 	case VK_UP:	chr = Control('P');	break;
 	case VK_DOWN:	chr = Control('N');	break;
-	case VK_HOME:			/* keyboard-based scrolling */
-	{ b->window_start = b->first;
-	scrolledbykey:
-	  rlc_update_scrollbar(b);
-	  InvalidateRect(hwnd, NULL, FALSE);
+	case VK_HOME:	chr = Control('A');	break;
+	case VK_END:	chr = Control('E');	break;
 
-	  return 0;
-	}
-        case VK_PRIOR:
+        case VK_PRIOR:			/* page up */
 	{ int maxdo = rlc_count_lines(b, b->first, b->window_start);
 	  int pagdo = b->window_size - 1;
 	  b->window_start = rlc_add_lines(b, b->window_start,
 					  -min(maxdo, pagdo));
-	  goto scrolledbykey;
+
+	scrolledbykey:
+	  rlc_update_scrollbar(b);
+	  InvalidateRect(hwnd, NULL, FALSE);
 	}
-	case VK_NEXT:
+	case VK_NEXT:			/* page down */
 	{ int maxup = rlc_count_lines(b, b->window_start, b->last);
 	  int pagup = b->window_size - 1;
 	  b->window_start = rlc_add_lines(b, b->window_start,
 					  min(maxup, pagup));
-	  goto scrolledbykey;
-	}
-	case VK_END:
-	{ int pagdo = b->window_size - 2;
-	  b->window_start = rlc_add_lines(b, b->last, -pagdo);
 	  goto scrolledbykey;
 	}
 	default:
@@ -1172,6 +1169,22 @@ rlc_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       break;
     }
 
+    case WM_MOUSEWHEEL:
+    { short angle = (short)HIWORD(wParam);
+
+      if ( angle < 0 )
+      { if ( b->window_start != b->last )
+	  b->window_start = NextLine(b, b->window_start);
+      } else
+      { if ( b->window_start != b->first )
+	  b->window_start = PrevLine(b, b->window_start);
+      }
+
+      rlc_update_scrollbar(b);
+      InvalidateRect(hwnd, NULL, FALSE);
+
+      return 0;
+    }
 					/* scrolling */
     case WM_VSCROLL:
     { switch( LOWORD(wParam) )
