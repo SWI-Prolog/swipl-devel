@@ -240,6 +240,23 @@ read_stream_to_terms(H, In, [H|T]) :-
 
 
 		 /*******************************
+		 *	     SELECTION		*
+		 *******************************/
+
+selection(cutpaste-1) :-
+	Atom = 'hello world',
+	send(@display, selection, primary, string(Atom)),
+	get(@display, selection, primary, utf8_string, string(X)),
+	X == Atom.
+selection(cutpaste-2) :-
+	watom(Atom),
+	send(@display, selection, primary, string(Atom)),
+	get(@display, selection, primary, utf8_string, string(X)),
+	X == Atom.
+
+
+
+		 /*******************************
 		 *	      SCRIPTS		*
 		 *******************************/
 
@@ -318,6 +335,7 @@ testset(fmt).				% Formatting actions
 testset(srcsink).			% Source/Sink operations
 testset(textbuffer).
 testset(asfile).			% test pce_open and friends
+testset(selection).			% X11 selection
 
 %	testdir(Dir)
 %	

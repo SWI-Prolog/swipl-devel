@@ -682,12 +682,14 @@ convert_selection_display(Widget w,
 	  Cprintf("\ttarget = %s\n", pp(tname)));
 
     if ( tname == NAME_targets )
-    { Atom *buf = (Atom *)XtMalloc(2*sizeof(Atom));
+    { Atom *buf = (Atom *)XtMalloc(3*sizeof(Atom));
+      int n = 0;
 
-      buf[0] = XInternAtom(r->display_xref, "TARGETS", False);
-      buf[1] = XA_STRING;
+      buf[n++] = XInternAtom(r->display_xref, "TARGETS", False);
+      buf[n++] = XA_STRING;
+      buf[n++] = DisplayAtom(d, CtoName("UTF8_STRING"));
       *value = buf;
-      *len = 2;
+      *len = n;
       *format = 32;
       *type_return = XA_ATOM;
 
@@ -697,19 +699,54 @@ convert_selection_display(Widget w,
     if ( (ca = getForwardReceiverFunction(msg, h->to, which, tname, EAV)) &&
 	 (ca = checkType(ca, TypeCharArray, NIL)) )
     { String s = &ca->data;
-      int data = str_datasize(s);
-      char *buf = XtMalloc(data);
-      int fmt = (isstrA(s) ? sizeof(charA) : sizeof(charW)) * 8;
 
-      DEBUG(NAME_selection,
-	    Cprintf("returning XA_STRING, %d characters format = %d\n",
-		    data, fmt));
+      if ( tname == NAME_utf8_string )
+      { char *buf;
+	int length;
+	char *out;
 
-      memcpy(buf, s->s_text, data);
-      *value = buf;
-      *len = data;
-      *format = fmt;
-      *type_return = XA_STRING;
+	if ( isstrA(s) )
+	  length = pce_utf8_enclenA(s->s_textA, s->size);
+	else
+	  length = pce_utf8_enclenW(s->s_textW, s->size);
+
+	out = buf = XtMalloc(length+1);
+	if ( isstrA(s) )
+	{ const charA *f = s->s_textA;
+	  const charA *e = &f[s->size];
+
+	  for(; f<e; f++)
+	    out = utf8_put_char(out, *f);
+	  *out = EOS;
+	} else
+	{ const charW *f = s->s_textW;
+	  const charW *e = &f[s->size];
+
+	  for(; f<e; f++)
+	    out = utf8_put_char(out, *f);
+	  *out = EOS;
+	}
+	assert(out == buf+length);
+
+	*value = buf;
+	*len = length;
+	*format = 8;
+	*type_return = DisplayAtom(d, CtoName("UTF8_STRING"));
+      } else
+      { int data = str_datasize(s);
+	char *buf = XtMalloc(data);
+	int fmt = (isstrA(s) ? sizeof(charA) : sizeof(charW)) * 8;
+	
+	DEBUG(NAME_selection,
+	      Cprintf("returning XA_STRING, %d characters format = %d\n",
+		      data, fmt));
+	
+	memcpy(buf, s->s_text, data);
+	*value = buf;
+	*len = data;
+	*format = fmt;
+	*type_return = XA_STRING;
+      }
 
       return True;
     }
