@@ -26,6 +26,8 @@
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
 
+#define WORDS_PER_PLINT (sizeof(int64_t)/sizeof(word))
+
 static RecordList lookupRecordList(word);
 static RecordList isCurrentRecordList(word);
 static void freeRecordRef(RecordRef r);
@@ -856,16 +858,18 @@ right_recursion:
       return;
     }
     case PL_TYPE_INTEGER:
-    { int64_t val = fetchInt64(b);
-      word *vp = (word*)&val;
-      int i;
+    { int i;
+      union
+      { int64_t i64;
+	word    w[WORDS_PER_PLINT];
+      } val;
 
-#define WORDS_PER_PLINT (sizeof(int64_t)/sizeof(word))
+      val.i64 = fetchInt64(b);
 
       *p = consPtr(b->gstore, TAG_INTEGER|STG_GLOBAL);
       *b->gstore++ = mkIndHdr(WORDS_PER_PLINT, TAG_INTEGER);
       for(i=0; i<WORDS_PER_PLINT; i++)
-	*b->gstore++ = *vp++;
+	*b->gstore++ = val.w[i];
       *b->gstore++ = mkIndHdr(WORDS_PER_PLINT, TAG_INTEGER);
 
       return;
