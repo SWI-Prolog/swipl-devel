@@ -67,6 +67,17 @@ extern int h_errno;
 #include <assert.h>
 #include <string.h>
 
+#ifdef _REENTRANT
+#include <pthread.h>
+
+static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+#define LOCK() pthread_mutex_lock(&mutex)
+#define UNLOCK() pthread_mutex_unlock(&mutex)
+#else
+#define LOCK()
+#define UNLOCK()
+#endif
+
 static functor_t FUNCTOR_socket1;
 static functor_t FUNCTOR_module2;
 static functor_t FUNCTOR_ip4;
@@ -94,9 +105,12 @@ static plsocket *
 lookupSocket(int socket)
 { plsocket *p;
 
+  LOCK();
   for(p=sockets; p; p = p->next)
   { if ( p->socket == socket )
+    { UNLOCK();
       return p;
+    }
   }
 
   p = malloc(sizeof(plsocket));
@@ -105,13 +119,17 @@ lookupSocket(int socket)
   p->next   = sockets;
   sockets   = p;
 
+  UNLOCK();
   return p;
 }
 
 
 static int
 freeSocket(int socket)
-{ plsocket **p = &sockets;
+{ plsocket **p;
+
+  LOCK();
+  p = &sockets;
 
   for( ; *p; p = &(*p)->next)
   { if ( (*p)->socket == socket )
@@ -122,6 +140,7 @@ freeSocket(int socket)
       break;
     }
   }
+  UNLOCK();
 
   return closesocket(socket);
 }
@@ -234,8 +253,11 @@ static int
 tcp_init()
 { static int done = FALSE;
 
+  LOCK();
   if ( done )
+  { UNLOCK();
     return TRUE;
+  }
   done = TRUE;
 
 #ifdef WIN32
@@ -244,20 +266,24 @@ tcp_init()
   int err;
 
   if ( WSAStartup(MAKEWORD(1,1), &WSAData) )
-  { return PL_warning("tcp_winsock_init - WSAStartup failed.");
+  { UNLOCK();
+    return PL_warning("tcp_init() - WSAStartup failed.");
+  }
 
-    err = setsockopt(INVALID_SOCKET, 
-		     SOL_SOCKET, 
-		     SO_OPENTYPE, 
-		     (char *)&optionValue, 
-		     sizeof(optionValue));
+  err = setsockopt(INVALID_SOCKET, 
+		   SOL_SOCKET, 
+		   SO_OPENTYPE, 
+		   (char *)&optionValue, 
+		   sizeof(optionValue));
 
-    if ( err != NO_ERROR )
-      return PL_warning("tcp_winsock_init - setsockopt failed.");
+  if ( err != NO_ERROR )
+  { UNLOCK();
+    return PL_warning("tcp_winsock_init - setsockopt failed.");
   }
 }
 #endif
 
+  UNLOCK();
   return TRUE;
 }
 	
