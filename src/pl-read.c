@@ -1955,7 +1955,9 @@ read_term(?term, ReadData rd)
 
     Should one ever think of it, the garbage collector cannot be
     activated during read for this reason, unless it is programmed
-    to deal with this intermediate type!
+    to deal with this intermediate type! We actually block GC, as
+    errors and interrupts may cause Prolog to become active with
+    these terms around.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static bool
@@ -1970,6 +1972,7 @@ read_term(term_t term, ReadData rd)
   rd->here = rd->base;
 
   result = PL_new_term_ref();
+  blockGC();
   if ( !complex_term(NULL, result, rd->subtpos, rd) )
     goto failed;
   p = valTermRef(result);
@@ -1993,10 +1996,12 @@ read_term(term_t term, ReadData rd)
     goto failed;
 
   PL_reset_term_refs(result);
+  unblockGC();
   succeed;
 
 failed:
   PL_reset_term_refs(result);
+  unblockGC();
   fail;
 }
 
