@@ -241,7 +241,8 @@ $(XPCEDLL):	$(OBJECTS)
 PLOBJ=		$(OBJECTS) ..\pl\src\interface.obj
 
 $(PL2XPCE):	$(PLOBJ)
-		$(LD) $(LDFLAGS) /out:$@ /dll $(PLOBJ) $(LIBS) $(XLIBS)
+		@echo Linking $@ ...
+		@$(LD) $(LDFLAGS) /out:$@ /dll $(PLOBJ) $(LIBS) $(XLIBS)
 
 ################################################################
 # Installation program
@@ -289,9 +290,15 @@ IDIRS=	appl-help \
 	prolog\lib\trace \
 	prolog\lib\trace\icons
 
+README=	ChangeLog \
+	Defaults \
+	INFO \
+	README \
+	VERSION
+
 INSTALL=xpce-install.exe -n
 
-install:	xpce-install.exe idirs idll ilib iindex
+install:	xpce-install.exe idirs idll ilib irc iindex ireadme
 		
 idirs::
 		@for %d in ($(IDIRS)) do \
@@ -312,4 +319,28 @@ iindex::
 			-g make_library_index('.') \
 			-t halt
 
+irc::
+		$(INSTALL) ..\pl\src\plrc $(PLBASE)\plwin.rc
 
+ireadme::
+		$(INSTALL) -C .. $(README) $(IBASE)
+		
+################################################################
+# Uninstalling
+################################################################
+
+uninstall::
+		del $(PLBASE)\bin\pl2xpce.dll
+		del $(PLBASE)\plwin.rc
+		rmdir /s /d $(PLBASE)\xpce
+
+################################################################
+# Cleanup
+################################################################
+
+clean::
+		del *~ $(PLOBJ) *.obj xpce-install.exe
+
+distclean:	clean
+		del pl2xpce.dll pl2xpce.lib pl2xpce.exp
+		

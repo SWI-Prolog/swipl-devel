@@ -1,5 +1,8 @@
 ################################################################
 # SWI-Prolog make include file for building SWI-Prolog on Windows
+#
+# This is the place to customise the build.  Notably define
+# destination path, compiler, library search-path, etc.
 ################################################################
 
 # Installation target directory
@@ -18,7 +21,7 @@ LIB=$(LIB);E:\jan\lib
 # Define the packages to be installed automatically.  Note that the
 # Makefile also checks whether the package directory exists.
 
-PKGS=	table cpp clib sgml sgml\RDF
+PKGS=	table cpp clib sgml sgml\RDF xpce
 PKGDIR=..\packages
 
 # Define programs.  The setup here is for standard Microsoft MSVC tools
