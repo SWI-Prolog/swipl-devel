@@ -33,6 +33,7 @@
 {code}=verbatim
 {titlepage}
 {minipage}{-}
+{comment}
 
 % Placing control
 

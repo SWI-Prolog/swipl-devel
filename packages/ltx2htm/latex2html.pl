@@ -678,6 +678,7 @@ env(summarylist(_, Summary),
       +Summary,
       html('</TABLE>')
     ]).
+env(comment(_, _), []).
 env(htmlonly(_, Tokens), HTML) :-
 	translate(Tokens, normal, HTML).
 env(document(_, Contents), HTML) :- !,
