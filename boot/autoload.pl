@@ -7,15 +7,15 @@
 */
 
 :- module($autoload,
-	[ $find_library/5
-	, $in_library/2
-	, $define_predicate/1
-	, $update_library_index/0
-	, make_library_index/1
-	, make_library_index/2
-	, autoload/0
-	, autoload/1
-	]).
+	  [ $find_library/5,
+	    $in_library/2,
+	    $define_predicate/1,
+	    $update_library_index/0,
+	    make_library_index/1,
+	    make_library_index/2,
+	    autoload/0,
+	    autoload/1
+	  ]).
 
 :- dynamic
 	library_index/3.			% Head x Module x Path
@@ -73,9 +73,9 @@ $define_predicate(Term) :-
 		********************************/
 
 $update_library_index :-
-	findall(Dir, indexed_directory(Dir), Dirs),
-	update_indices(Dirs, false, Modified),
-	(   Modified == true
+	setof(Dir, indexed_directory(Dir), Dirs),
+	checklist(make_library_index, Dirs),
+	(   flag($modified_index, true, false)
 	->  clear_library_index
 	;   true
 	).
@@ -83,16 +83,14 @@ $update_library_index :-
 indexed_directory(Dir) :-
 	index_file_name(IndexFile, [access(read), access(write)]),
 	file_directory_name(IndexFile, Dir).
+indexed_directory(Dir) :-
+	absolute_file_name(library('MKINDEX'),
+			   [ file_type(prolog),
+			     solutions(all),
+			     file_errors(fail)
+			   ], MkIndexFile),
+	file_directory_name(MkIndexFile, Dir).
 
-update_indices([], M, M).
-update_indices([Dir|T], M0, M) :-
-	make_library_index2(Dir, M1),
-	add_modified(M0, M1, M2),
-	update_indices(T, M2, M).
-
-add_modified(true, _, true) :- !.
-add_modified(_, true, true) :- !.
-add_modified(_,	_,    false).
 
 %	clear_library_index/0
 %
@@ -146,40 +144,52 @@ assert_index(Term, Dir) :-
 		********************************/
 
 make_library_index(Dir) :-
-	make_library_index2(Dir, _).
+	make_library_index2(Dir).
 
-make_library_index(Dir, Pattern) :-
-	make_library_index2(Dir, Pattern, _).
+make_library_index(Dir, Patterns) :-
+	make_library_index2(Dir, Patterns).
 
-make_library_index2(Dir, Modified) :-
+make_library_index2(Dir) :-
+	plfile_in_dir(Dir, 'MKINDEX', MkIndex, AbsMkIndex),
+	access_file(AbsMkIndex, read), !,
+	absolute_file_name('', OldDir),
+	chdir(Dir),
+	catch(load_files(user:MkIndex, [silent(true)]),
+	      E,
+	      (chdir(OldDir), throw(E))).
+make_library_index2(Dir) :-
 	findall(Pattern, source_file_pattern(Pattern), PatternList),
-	make_library_index2(Dir, PatternList, Modified).
+	make_library_index2(Dir, PatternList).
 	
-make_library_index2(Dir, Patterns, Modified) :-
-	once(user:prolog_file_type(PlExt, prolog)),
-	file_name_extension('INDEX', PlExt, Index),
-	concat_atom([Dir, '/', Index], AbsIndex),
+make_library_index2(Dir, Patterns) :-
+	plfile_in_dir(Dir, 'INDEX', Index, AbsIndex),
 	access_file(AbsIndex, write), !,
 	absolute_file_name('', OldDir),
 	chdir(Dir),
+	absolute_file_name('', NewDir),
 	expand_index_file_patterns(Patterns, Files),
 	(   library_index_out_of_date(Index, Files)
-	->  print_message(informational, make(library_index(Dir))),
+	->  print_message(informational, make(library_index(NewDir))),
 	    catch(do_make_library_index(Index, Files),
 		  E,
 		  (   chdir(OldDir),
 		      throw(E)
 		  )),
-	    Modified = true
-	;   Modified = false
+	    flag($modified_index, _, true)
+	;   true
 	),
 	chdir(OldDir).
-make_library_index(Dir, _, _) :-
+make_library_index2(Dir, _) :-
 	throw(error(permission_error(write, index_file, Dir), _)).
 
 source_file_pattern(Pattern) :-
 	user:prolog_file_type(PlExt, prolog),
 	atom_concat('*.', PlExt, Pattern).
+
+plfile_in_dir(Dir, Base, PlBase, File) :-
+	once(user:prolog_file_type(PlExt, prolog)),
+	file_name_extension(Base, PlExt, PlBase),
+	concat_atom([Dir, '/', PlBase], File).
 
 expand_index_file_patterns(Patterns, Files) :-
 	maplist(expand_file_name, Patterns, NestedFiles),
