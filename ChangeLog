@@ -1,6 +1,14 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.1.7
+=============
+
+  * FIXED: predicate-reference count problem
+  
+  * ADDED: style_check(+dynamic) to report on manipulation of predicates
+    that are active in the interpreter.
+
 Version 2.1.6
 =============
 
