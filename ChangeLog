@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ENHANCED: Ongoing work to support 64 bit integer arithmetic on 32
+    bit machines.
+
 VERSION 5.5.5 (Februari 01, 2005)
 =================================
 
@@ -805,7 +808,7 @@ VERSION 5.2.8 (Sep 13, 2003)
   * FIXED: Made O_SECURE tests in pl-gc.c thread-safe (maintenance only).
 
   * FIXED: P_VARARG handling through PL_load_extensions().  With patch from
-    Salvador Fandi�o.
+    Salvador Fandio.
 
   * FIXED: bug in debugger crashing on an exception.
 

@@ -567,7 +567,7 @@ PL_same_compound(term_t t1, term_t t2)
 		 *******************************/
 
 static inline word
-__makeNum(long i ARG_LD)
+__makeNum(int64_t i ARG_LD)
 { word w = consInt(i);
 
   if ( valInt(w) == i )
@@ -577,7 +577,7 @@ __makeNum(long i ARG_LD)
 }
 
 word
-makeNum__LD(long i ARG_LD)
+makeNum__LD(int64_t i ARG_LD)
 { return __makeNum(i PASS_LD);
 }
 
@@ -1172,6 +1172,45 @@ PL_get_long(term_t t, long *i)
   return PL_get_long__LD(t, i PASS_LD);
 }
 #define PL_get_long(t, i) PL_get_long__LD(t, i PASS_LD)
+
+
+#include <limits.h>
+#if !defined(LLONG_MAX)
+#define LLONG_MAX 9223372036854775807LL
+#define LLONG_MIN (-LLONG_MAX - 1LL)
+#endif
+
+int
+PL_get_int64(term_t t, int64_t *i)
+{ GET_LD
+  word w = valHandle(t);
+  
+  if ( isTaggedInt(w) )
+  { *i = valInt(w);
+    succeed;
+  }
+  if ( isBignum(w) )
+  { *i = valBignum(w);
+    succeed;
+  }
+  if ( isReal(w) )
+  { real f = valReal(w);
+    int64_t l;
+    
+#ifdef DOUBLE_TO_LONG_CAST_RAISES_SIGFPE
+    if ( !((f >= LLONG_MAX) && (f <= LLONG_MIN)) )
+      fail;
+#endif
+
+    l = (int64_t) f;
+    if ( (real)l == f )
+    { *i = l;
+      succeed;
+    }
+  }
+
+  fail;
+}
 
 
 int
@@ -1790,9 +1829,16 @@ PL_put_integer(term_t t, long i)
 
 
 void
+PL_put_int64(term_t t, int64_t i)
+{ GET_LD
+  setHandle(t, makeNum(i));
+}
+
+
+void
 _PL_put_number__LD(term_t t, Number n ARG_LD)
 { if ( intNumber(n) )
-    PL_put_integer(t, n->value.i);
+    PL_put_int64(t, n->value.i);
   else
     PL_put_float(t, n->value.f);
 }
@@ -2116,6 +2162,14 @@ PL_unify_integer(term_t t, long i)
 
 
 int
+PL_unify_int64(term_t t, int64_t i)
+{ GET_LD
+
+  return unifyAtomic(t, makeNum(i) PASS_LD);
+}
+
+
+int
 PL_unify_pointer__LD(term_t t, void *ptr ARG_LD)
 { word w = makeNum(pointerToLong(ptr));
 
@@ -2285,6 +2339,9 @@ cont:
     case PL_INTEGER:
     case PL_LONG:
       rval = PL_unify_integer(t, va_arg(args, long));
+      break;
+    case PL_INT64:
+      rval = PL_unify_int64(t, va_arg(args, int64_t));
       break;
     case PL_POINTER:
       rval = PL_unify_pointer(t, va_arg(args, void *));
@@ -3548,9 +3605,8 @@ PL_query(int query)
       init_c_args();
       return (long) c_argv;
     case PL_QUERY_MAX_INTEGER:
-      return PLMAXINT;
     case PL_QUERY_MIN_INTEGER:
-      return PLMININT;
+      fail;				/* cannot represent (anymore) */
     case PL_QUERY_MAX_TAGGED_INT:
       return PLMAXTAGGEDINT;
     case PL_QUERY_MIN_TAGGED_INT:

@@ -944,7 +944,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
     fail;
   }
 
-#define MK_KBYTES(v) if ( v < (PLMAXINT/1024) ) v *= 1024
+#define MK_KBYTES(v) if ( v < (LONG_MAX/1024) ) v *= 1024
 
   MK_KBYTES(info->local_size);
   MK_KBYTES(info->global_size);

@@ -3050,24 +3050,24 @@ heapUsed(void)
 
 static int
 #ifdef O_PLMT
-qp_statistics__LD(atom_t key, long v[], PL_local_data_t *LD)
+qp_statistics__LD(atom_t key, int64_t v[], PL_local_data_t *LD)
 #else
-qp_statistics__LD(atom_t key, long v[], PL_local_data_t *ld)
+qp_statistics__LD(atom_t key, int64_t v[], PL_local_data_t *ld)
 #endif
 { int vn;
 
   if ( key == ATOM_runtime )
-  { v[0] = (long)(LD->statistics.user_cputime * 1000.0);
+  { v[0] = (int64_t)(LD->statistics.user_cputime * 1000.0);
     v[1] = v[0] - LD->statistics.last_cputime;
     LD->statistics.last_cputime = v[0];
     vn = 2;
   } else if ( key == ATOM_system_time )
-  { v[0] = (long)(LD->statistics.system_cputime * 1000.0);
+  { v[0] = (int64_t)(LD->statistics.system_cputime * 1000.0);
     v[1] = v[0] - LD->statistics.last_systime;
     LD->statistics.last_systime = v[0];
     vn = 2;
   } else if ( key == ATOM_real_time )
-  { v[0] = (long)WallTime();
+  { v[0] = (int64_t)WallTime();
     v[1] = v[0] - LD->statistics.last_walltime;
     LD->statistics.last_walltime = v[0];
     vn = 2;
@@ -3098,14 +3098,14 @@ qp_statistics__LD(atom_t key, long v[], PL_local_data_t *ld)
   } else if ( key == ATOM_garbage_collection )
   { v[0] = gc_status.collections;
     v[1] = gc_status.trail_gained + gc_status.global_gained;
-    v[2] = (long)(gc_status.time * 1000.0);
+    v[2] = (int64_t)(gc_status.time * 1000.0);
     vn = 3;
   } else if ( key == ATOM_stack_shifts )
   {
 #ifdef O_SHIFT_STACKS
     v[0] = shift_status.global_shifts;
     v[1] = shift_status.local_shifts;
-    v[2] = (long)(shift_status.time * 1000.0);
+    v[2] = (int64_t)(shift_status.time * 1000.0);
     vn = 3;
 #else
     fail;
@@ -3120,7 +3120,7 @@ qp_statistics__LD(atom_t key, long v[], PL_local_data_t *ld)
 #ifdef O_ATOMGC
     v[0] = GD->atoms.gc;
     v[1] = GD->statistics.atomspacefreed;
-    v[2] = (long)(GD->atoms.gc_time * 1000.0);
+    v[2] = (int64_t)(GD->atoms.gc_time * 1000.0);
     vn = 3;
 #else
     vn = 0;				/* no values */
@@ -3234,7 +3234,7 @@ pl_statistics_ld(term_t k, term_t value, PL_local_data_t *ld ARG_LD)
   atom_t key;
   int rc;
 #ifdef QP_STATISTICS
-  long v[3];
+  int64_t v[3];
 #endif
 
   if ( !PL_get_atom_ex(k, &key) )
@@ -3256,13 +3256,13 @@ pl_statistics_ld(term_t k, term_t value, PL_local_data_t *ld ARG_LD)
 
 #ifdef QP_STATISTICS
   if ( (rc=qp_statistics__LD(key, v, ld)) >= 0 )
-  { long *p;
+  { int64_t *p;
     term_t tail = PL_copy_term_ref(value);
     term_t head = PL_new_term_ref();
 
     for(p = v; rc-- > 0; p++)
     { if ( !PL_unify_list(tail, head, tail) ||
-	   !PL_unify_integer(head, *p) )
+	   !PL_unify_int64(head, *p) )
 	fail;
     }
 

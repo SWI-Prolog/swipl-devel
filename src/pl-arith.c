@@ -120,21 +120,23 @@ static int		getCharExpression(term_t t, Number r ARG_LD);
 
 word
 pl_between(term_t low, term_t high, term_t n, control_t ctx)
-{ switch( ForeignControl(ctx) )
-  { case FRG_FIRST_CALL:
-      { GET_LD
-	long l, h, i;
+{ GET_LD
+  int64_t *state;
 
-	if ( !PL_get_long(low, &l) )
+  switch( ForeignControl(ctx) )
+  { case FRG_FIRST_CALL:
+      { int64_t l, h, i;
+
+	if ( !PL_get_int64(low, &l) )
 	  return PL_error("between", 3, NULL, ERR_TYPE, ATOM_integer, low);
-	if ( !PL_get_long(high, &h) )
+	if ( !PL_get_int64(high, &h) )
 	{ if ( PL_is_inf(high) )
 	    h = PLMAXINT;
 	  else
 	    return PL_error("between", 3, NULL, ERR_TYPE, ATOM_integer, high);
 	}
 
-	if ( PL_get_long(n, &i) )
+	if ( PL_get_int64(n, &i) )
 	{ if ( i >= l && i <= h )
 	    succeed;
 	  fail;
@@ -147,18 +149,28 @@ pl_between(term_t low, term_t high, term_t n, control_t ctx)
 	PL_unify_integer(n, l);
 	if ( l == h )
 	  succeed;
-	ForeignRedoInt(l);
+	
+	state = allocHeap(sizeof(*state));
+	*state = l;
+	ForeignRedoPtr(state);
       }
     case FRG_REDO:
-      { GET_LD
-	long next = ForeignContextInt(ctx) + 1;
-	long h;
+      { int64_t h;
 
-	PL_unify_integer(n, next);
-	PL_get_long(high, &h);
-	if ( next == h )
+	state = ForeignContextPtr(ctx);
+	(*state)++;
+
+	PL_unify_integer(n, *state);
+	PL_get_int64(high, &h);
+	if ( *state == h )
+	{ freeHeap(state, sizeof(*state));
 	  succeed;
-	ForeignRedoInt(next);
+	}
+	ForeignRedoPtr(state);
+      }
+    case FRG_CUTTED:
+      { state = ForeignContextPtr(ctx);
+	freeHeap(state, sizeof(*state));
       }
     default:;
       succeed;
@@ -168,20 +180,20 @@ pl_between(term_t low, term_t high, term_t n, control_t ctx)
 word
 pl_succ(term_t n1, term_t n2)
 { GET_LD
-  long i1, i2;
+  int64_t i1, i2;
 
-  if ( PL_get_long(n1, &i1) )
+  if ( PL_get_int64(n1, &i1) )
   { if ( i1 < 0L )
       return PL_error("succ", 2, NULL, ERR_DOMAIN,
 		      ATOM_not_less_than_zero, n1);
-    if ( PL_get_long(n2, &i2) )
+    if ( PL_get_int64(n2, &i2) )
       return i1+1 == i2 ? TRUE : FALSE;
     else if ( PL_unify_integer(n2, i1+1) )
       succeed;
 
     return PL_error("succ", 2, NULL, ERR_TYPE, ATOM_integer, n2);
   }
-  if ( PL_get_long(n2, &i2) )
+  if ( PL_get_int64(n2, &i2) )
   { if ( i2 < 0L )
       return PL_error("succ", 2, NULL, ERR_DOMAIN,
 		      ATOM_not_less_than_zero, n2);
@@ -196,8 +208,8 @@ pl_succ(term_t n1, term_t n2)
 
 
 static int
-var_or_long(term_t t, long *l, int which, int *mask ARG_LD)
-{ if ( PL_get_long(t, l) )
+var_or_long(term_t t, int64_t *l, int which, int *mask ARG_LD)
+{ if ( PL_get_int64(t, l) )
   { *mask |= which;
     succeed;
   } 
@@ -211,7 +223,7 @@ var_or_long(term_t t, long *l, int which, int *mask ARG_LD)
 word
 pl_plus(term_t a, term_t b, term_t c)
 { GET_LD
-  long m, n, o;
+  int64_t m, n, o;
   int mask = 0;
 
   if ( !var_or_long(a, &m, 0x1, &mask PASS_LD) ||
@@ -631,14 +643,14 @@ promoteToRealNumber(Number n)
 int
 toIntegerNumber(Number n)
 { if ( floatNumber(n) )
-  { long l;
+  { int64_t l;
 
 #ifdef DOUBLE_TO_LONG_CAST_RAISES_SIGFPE
     if ( !((n->value.f >= PLMININT) && (n->value.f <= PLMAXINT)) )
       fail;
 #endif
 
-    l = (long)n->value.f;
+    l = (int64_t)n->value.f;
     if ( n->value.f == (real) l )
     { n->value.i = l;
       n->type = V_INTEGER;
@@ -654,14 +666,14 @@ toIntegerNumber(Number n)
 
 void
 canoniseNumber(Number n)
-{ long l;
+{ int64_t l;
 
 #ifdef DOUBLE_TO_LONG_CAST_RAISES_SIGFPE
   if ( !((n->value.f >= PLMININT) && (n->value.f <= PLMAXINT)) )
     return;
 #endif
 
-  l = (long)n->value.f;
+  l = (int64_t)n->value.f;
   if ( n->value.f == (real) l )
   { n->value.i = l;
     n->type = V_INTEGER;
@@ -891,7 +903,7 @@ ar_rem(Number n1, Number n2, Number r)
     return PL_error("rem", 2, NULL, ERR_AR_TYPE, ATOM_integer, n2);
 
   f = (real)n1->value.i / (real)n2->value.i;
-  r->value.f = f - (real)((long) f);
+  r->value.f = f - (real)((int64_t) f);
   r->type = V_REAL;
   succeed;
 }
@@ -998,7 +1010,7 @@ ar_negation(Number n1, Number r)
 
 static int
 ar_msb(Number n1, Number r)
-{ long i;
+{ int64_t i;
   int j = 0;
 
   if ( !toIntegerNumber(n1) )
@@ -1062,8 +1074,8 @@ ar_integer(Number n1, Number r)
     succeed;
   } else
   { if ( n1->value.f < PLMAXINT && n1->value.f > PLMININT )
-    { r->value.i = (n1->value.f > 0 ? (long)(n1->value.f + 0.5)
-			            : (long)(n1->value.f - 0.5));
+    { r->value.i = (n1->value.f > 0 ? (int64_t)(n1->value.f + 0.5)
+			            : (int64_t)(n1->value.f - 0.5));
       r->type = V_INTEGER;
       succeed;
     }
@@ -1100,7 +1112,7 @@ ar_floor(Number n1, Number r)
     if ( !toIntegerNumber(r) )
       return PL_error("floor", 1, NULL, ERR_EVALUATION, ATOM_int_overflow);
 #else
-    r->value.i = (long)n1->value.f;
+    r->value.i = (int64_t)n1->value.f;
     if ( n1->value.f < 0 && (real)r->value.i != n1->value.f )
       r->value.i--;
     r->type = V_INTEGER;
@@ -1122,7 +1134,7 @@ ar_ceil(Number n1, Number r)
     if ( !toIntegerNumber(r) )
       return PL_error("ceil", 1, NULL, ERR_EVALUATION, ATOM_int_overflow);
 #else
-    r->value.i = (long)n1->value.f;
+    r->value.i = (int64_t)n1->value.f;
     if ( (real)r->value.i < n1->value.f )
        r->value.i++;
     r->type = V_INTEGER;
@@ -1234,7 +1246,7 @@ PRED_IMPL("is", 2, is, PL_FA_TRANSPARENT)	/* -Value is +Expr */
       canoniseNumber(&arg);
 
     if ( intNumber(&arg) )
-      return PL_unify_integer(A1, arg.value.i);
+      return PL_unify_int64(A1, arg.value.i);
     else
       return PL_unify_float(A1, arg.value.f);
   }

@@ -438,6 +438,7 @@ them.  Descriptions:
 #define WORDBITSIZE		(8 * sizeof(word))
 #define LONGBITSIZE		(8 * sizeof(long))
 #define INTBITSIZE		(8 * sizeof(int))
+#define INT64BITSIZE		(8 * sizeof(int64_t))
 #define WORDS_PER_DOUBLE        ((sizeof(double)+sizeof(word)-1)/sizeof(word))
 
 				/* Prolog's integer range */
@@ -445,7 +446,7 @@ them.  Descriptions:
 #define PLMAXTAGGEDINT		(-PLMINTAGGEDINT - 1)
 #define inTaggedNumRange(n)	(((n)&~PLMAXTAGGEDINT) == 0 || \
 				 ((n)&~PLMAXTAGGEDINT) == ~PLMAXTAGGEDINT)
-#define PLMININT		((long)(-1L<<(WORDBITSIZE-1)))
+#define PLMININT		((-1LL<<(INT64BITSIZE-1)))
 #define PLMAXINT		(-(PLMININT+1))
 
 #if vax
@@ -874,12 +875,12 @@ typedef struct feature *	Feature; 	/* pl-prims.c */
 typedef struct
 { int	type;				/* type of number */
   union { real  f;			/* value as real */
-	  long  i;			/* value as integer */
+	  int64_t  i;			/* value as integer */
 	  word  w[WORDS_PER_DOUBLE];	/* for packing/unpacking the double */
 	} value;
 } number, *Number;
 
-#define V_INTEGER	0		/* integer (long) value */
+#define V_INTEGER	0		/* integer (64-bit) value */
 #define V_REAL		1		/* just a real */
 #define V_EXPLICIT_REAL 3		/* explicely specified real */
 
@@ -1895,8 +1896,8 @@ typedef struct
   int		blocked;		/* GC is blocked now */
   bool		active;			/* Currently running? */
   long		collections;		/* # garbage collections */
-  long		global_gained;		/* global stack bytes collected */
-  long		trail_gained;		/* trail stack bytes collected */
+  int64_t	global_gained;		/* global stack bytes collected */
+  int64_t	trail_gained;		/* trail stack bytes collected */
   real		time;			/* time spent in collections */
 } pl_gc_status_t;
 
@@ -1991,6 +1992,7 @@ typedef struct debuginfo
 #define FT_BOOL		1		/* boolean feature (true, false) */
 #define FT_INTEGER	2		/* integer feature */
 #define FT_TERM		3		/* term feature */
+#define FT_INT64	4		/* passed as int64_t */
 #define FT_MASK		0x0f		/* mask to get type */
 
 #define FF_READONLY	0x10		/* feature is read-only */

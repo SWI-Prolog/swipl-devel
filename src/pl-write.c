@@ -532,7 +532,7 @@ static bool
 writePrimitive(term_t t, write_options *options)
 { double f;
   atom_t a;
-  char buf[16];
+  char buf[32];
   IOSTREAM *out = options->out;
 
 #if O_ATTVAR
@@ -547,11 +547,10 @@ writePrimitive(term_t t, write_options *options)
     return writeAtom(a, options);
 
   if ( PL_is_integer(t) )		/* beware of automatic conversion */
-  { long i;
-    char buf[32];
+  { int64_t i;
 
-    PL_get_long(t, &i);
-    sprintf(buf, "%ld", i);
+    PL_get_int64(t, &i);
+    sprintf(buf, "%lld", i);		/* TBD: configure!? */
     return PutToken(buf, out);
   }
 

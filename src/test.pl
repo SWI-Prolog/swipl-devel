@@ -87,10 +87,15 @@ syntax(string-1) :-
 syntax(string-2) :-
 	'x\c y' = xy.
 syntax(number-1) :-			% check integer overflow translation
-	Chars = "41234567891",
+	(   current_prolog_flag(max_integer, 2147483647)
+	->  Chars = "41234567891",
+	    Float = 41234567891.0
+	;   Chars = "9223372036854775900",
+	    Float = 9223372036854775900.0
+	),
 	name(X, Chars),
-	sformat(S, '~0f', [X]),
-	string_to_list(S, Chars).
+	float(X),
+	X =:= Float.
 syntax(number-2) :-
 	catch(atom_to_term('2\'', _, _), E, true),
 	E = error(syntax_error(illegal_number), _).

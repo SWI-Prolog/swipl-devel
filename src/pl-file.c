@@ -2519,7 +2519,7 @@ stream_position_prop(IOSTREAM *s, term_t prop ARG_LD)
 { if ( s->position )
   { return PL_unify_term(prop,
 			 PL_FUNCTOR, FUNCTOR_stream_position3,
-			   PL_LONG, s->position->charno,
+			   PL_INT64, s->position->charno,
 			   PL_INT, s->position->lineno,
 			   PL_INT, s->position->linepos);
   }
@@ -3428,17 +3428,16 @@ pl_time_file(term_t name, term_t t)
 
 word
 pl_size_file(term_t name, term_t len)
-{ GET_LD
-  char *n;
+{ char *n;
 
   if ( PL_get_file_name(name, &n, 0) )
-  { long size;
+  { int64_t size;
 
     if ( (size = SizeFile(n)) < 0 )
       return PL_error("size_file", 2, OsError(), ERR_FILE_OPERATION,
 		      ATOM_size, ATOM_file, name);
 
-    return PL_unify_integer(len, size);
+    return PL_unify_int64(len, size);
   }
 
   fail;

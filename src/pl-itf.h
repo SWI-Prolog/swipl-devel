@@ -27,6 +27,7 @@
 
 #include <stdarg.h>
 #include <stdlib.h>			/* get size_t */
+#include <stdint.h>			/* specific-width integers */
 
 #ifdef __cplusplus
 extern "C" {
@@ -149,7 +150,6 @@ typedef union
 #define FALSE	(0)
 #endif
 
-
 		 /*******************************
 		 *      TERM-TYPE CONSTANTS	*
 		 *******************************/
@@ -179,6 +179,7 @@ typedef union
 #define PL_NCHARS	 (23)		/* unsigned, const char * */
 #define PL_UTF8_CHARS	 (24)		/* const char * */
 #define PL_UTF8_STRING	 (25)		/* const char * */
+#define PL_INT64	 (26)		/* int64_t */
 
 
 		/********************************
@@ -439,6 +440,16 @@ PL_EXPORT(int)		PL_unify_wchars(term_t t, int type,
 PL_EXPORT(int)		PL_get_wchars(term_t l,
 				      unsigned int *length, pl_wchar_t **s,
 				      unsigned flags);
+
+
+		 /*******************************
+		 *	   WIDE INTEGERS	*
+		 *******************************/
+
+
+PL_EXPORT(int)		PL_get_int64(term_t t, int64_t *i);
+PL_EXPORT(int)		PL_unify_int64(term_t t, int64_t value);
+PL_EXPORT(void)		PL_put_int64(term_t t, int64_t i);
 
 
 		 /*******************************

@@ -863,7 +863,7 @@ ExistsDirectory(const char *path)
 }
 
 
-long
+int64_t
 SizeFile(const char *path)
 { char tmp[MAXPATHLEN];
   struct stat buf;

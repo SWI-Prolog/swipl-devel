@@ -348,7 +348,7 @@ typedef struct PL_local_data
 #endif
 
   struct
-  { ulong	inferences;		/* inferences in this thread */
+  { int64_t	inferences;		/* inferences in this thread */
     ulong	last_cputime;		/* milliseconds last CPU time */
     ulong	last_systime;		/* milliseconds last SYSTEM time */
     ulong	last_walltime;		/* milliseconds last Wall time */

@@ -265,7 +265,7 @@ scan_options(term_t options, int flags, atom_t optype,
 	  case OPT_LONG:
 	  { if ( !PL_get_long(val, values[n].l) )
 	    { if ( (s->type & OPT_INF) && PL_is_inf(val) )
-		*values[n].l = PLMAXINT;
+		*values[n].l = LONG_MAX;
 	      else
 		goto itemerror;
 	    }

@@ -52,7 +52,7 @@ COMMON(pl_wchar_t *)	getCharsWString__LD(word w, unsigned *len ARG_LD);
 COMMON(Word) 		newTerm(void);
 COMMON(void) 		doublecpy(void *to, void *from);
 COMMON(word) 		globalReal(real f);
-COMMON(word) 		globalLong(long i ARG_LD);
+COMMON(word) 		globalLong(int64_t i ARG_LD);
 COMMON(double) 		valReal__LD(word w ARG_LD);
 COMMON(word) 		globalIndirect(word in);
 COMMON(int) 		equalIndirect(word r1, word r2);
@@ -356,7 +356,7 @@ COMMON(void) 		initFeatures(void);
 
 /* pl-fli.c */
 COMMON(word) 		linkVal__LD(Word p ARG_LD);
-COMMON(word) 		makeNum__LD(long i ARG_LD);
+COMMON(word) 		makeNum__LD(int64_t i ARG_LD);
 COMMON(void) 		_PL_put_number__LD(term_t t, Number n ARG_LD);
 COMMON(predicate_t) 	_PL_predicate(const char *name, int arity,
 				      const char *module, predicate_t *bin);
@@ -501,7 +501,7 @@ COMMON(long) 		LastModifiedFile(char *f);
 COMMON(bool) 		ExistsFile(const char *path);
 COMMON(bool) 		AccessFile(const char *path, int mode);
 COMMON(bool) 		ExistsDirectory(const char *path);
-COMMON(long) 		SizeFile(const char *path);
+COMMON(int64_t)		SizeFile(const char *path);
 COMMON(int) 		RemoveFile(const char *path);
 COMMON(void) 		RemoveTemporaryFiles(void);
 COMMON(bool) 		RenameFile(const char *old, const char *new);

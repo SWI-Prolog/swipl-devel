@@ -1019,8 +1019,8 @@ typedef       unsigned char * ucharp;
 
 static int
 scan_decimal(cucharp *sp, Number n)
-{ unsigned long maxi = PLMAXINT/10;	/* cache? */
-  unsigned long t = 0;
+{ uint64_t maxi = PLMAXINT/10;		/* cache? */
+  uint64_t t = 0;
   cucharp s = *sp;
   int c;
 
@@ -1059,8 +1059,8 @@ scan_decimal(cucharp *sp, Number n)
 static int
 scan_number(cucharp *s, int b, Number n)
 { int d;
-  unsigned long maxi = PLMAXINT/b;	/* cache? */
-  unsigned long t;
+  uint64_t maxi = PLMAXINT/b;		/* cache? */
+  uint64_t t;
   cucharp q = *s;
 
   if ( (d = digitValue(b, *q)) < 0 )
@@ -1282,7 +1282,7 @@ get_number(cucharp in, ucharp *end, Number value, int escape)
 
 	if ( isAlpha(**end) )
 	  fail;				/* illegal number */
-	value->value.i = (long)chr;
+	value->value.i = (int64_t)chr;
 	if ( negative )			/* -0'a is a bit dubious! */
 	  value->value.i = -value->value.i;
 	value->type = V_INTEGER;

@@ -69,7 +69,7 @@ typedef struct _feature
   short		index;			/* index in _FEATURE mask */
   union
   { atom_t	a;			/* value as atom */
-    long	i;			/* value as integer */
+    int64_t	i;			/* value as integer */
     record_t	t;			/* value as term */
   } value;
 } feature;
@@ -110,6 +110,9 @@ defFeature(const char *name, int flags, ...)
 
   initFeatureTable();
 
+  if ( type == FT_INT64 )
+    flags = (flags & ~FT_MASK)|FT_INTEGER;
+
   if ( (s = lookupHTable(GD->feature.table, (void *)an)) )
   { f = s->value;
     assert((f->flags & FT_MASK) == (flags & FT_MASK));
@@ -149,6 +152,11 @@ defFeature(const char *name, int flags, ...)
     }
     case FT_INTEGER:
     { long val = va_arg(args, long);
+      f->value.i = val;
+      break;
+    }
+    case FT_INT64:
+    { int64_t val = va_arg(args, int64_t);
       f->value.i = val;
       break;
     }
@@ -511,7 +519,7 @@ unify_feature_value(Module m, atom_t key, feature *f, term_t val)
     case FT_ATOM:
       return PL_unify_atom(val, f->value.a);
     case FT_INTEGER:
-      return PL_unify_integer(val, f->value.i);
+      return PL_unify_int64(val, f->value.i);
     case FT_TERM:
     { term_t tmp = PL_new_term_ref();
 
@@ -776,8 +784,8 @@ initFeatures()
   defFeature("editor",		   FT_ATOM, "$EDITOR");
   defFeature("debugger_show_context", FT_BOOL, FALSE, 0);
   defFeature("autoload",  FT_BOOL, TRUE,  AUTOLOAD_FEATURE);
-  defFeature("max_integer",	   FT_INTEGER|FF_READONLY, PLMAXINT);
-  defFeature("min_integer",	   FT_INTEGER|FF_READONLY, PLMININT);
+  defFeature("max_integer",	   FT_INT64|FF_READONLY, PLMAXINT);
+  defFeature("min_integer",	   FT_INT64|FF_READONLY, PLMININT);
   defFeature("max_tagged_integer", FT_INTEGER|FF_READONLY, PLMAXTAGGEDINT);
   defFeature("min_tagged_integer", FT_INTEGER|FF_READONLY, PLMINTAGGEDINT);
   defFeature("bounded",		   FT_BOOL|FF_READONLY,	   TRUE, 0);

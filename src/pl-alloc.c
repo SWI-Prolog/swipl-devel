@@ -803,14 +803,38 @@ newTerm(void)
 		 *******************************/
 
 word
-globalLong(long l ARG_LD)
-{ Word p = allocGlobal(3);
-  word r = consPtr(p, TAG_INTEGER|STG_GLOBAL);
-  word m = mkIndHdr(1, TAG_INTEGER);
+globalLong(int64_t l ARG_LD)
+{ Word p;
+  word r, m;
+
+#if SIZEOF_LONG == 8
+  p = allocGlobal(3);
+  r = consPtr(p, TAG_INTEGER|STG_GLOBAL);
+  m = mkIndHdr(1, TAG_INTEGER);
 
   *p++ = m;
   *p++ = l;
   *p   = m;
+#else
+#if SIZEOF_LONG == 4
+  p = allocGlobal(4);
+  r = consPtr(p, TAG_INTEGER|STG_GLOBAL);
+  m = mkIndHdr(2, TAG_INTEGER);
+
+  *p++ = m;
+#ifdef WORDS_BIGENDIAN
+  *p++ = (word)(l>>32);
+  *p++ = (word)l;
+#else
+  *p++ = (word)l;
+  *p++ = (word)(l>>32);
+#endif
+  *p   = m;
+#else
+#error "FIXME: Unsupported sizeof long."
+#endif
+#endif
+
   
   return r;
 }

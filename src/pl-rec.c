@@ -215,15 +215,13 @@ Add a signed long value. First byte   is  number of bytes, remaining are
 value-bytes, starting at most-significant.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define PLMINLONG   ((long)(-1L<<(LONGBITSIZE-1)))
-
 static void
-addLong(CompileInfo info, long v)
+addInt64(CompileInfo info, int64_t v)
 { int i = sizeof(v);
 
-  if ( v != PLMINLONG )
-  { long absn = (v >= 0 ? v : -v);
-    long mask = -1L << (LONGBITSIZE-9);
+  if ( v != PLMININT )
+  { int64_t absn = (v >= 0 ? v : -v);
+    int64_t mask = -1LL << (INT64BITSIZE-9);
 
     for(; i>1; i--, mask >>= 8)
     { if ( absn & mask )
@@ -386,18 +384,18 @@ right_recursion:
       return;
     }
     case TAG_INTEGER:
-    { long val;
+    { int64_t val;
 
       if ( isTaggedInt(w) )
       { val = valInt(w);
 	addOpCode(info, PL_TYPE_TAGGED_INTEGER);
       } else
-      { info->size += sizeof(long)/sizeof(word) + 2;
+      { info->size += sizeof(int64_t)/sizeof(word) + 2;
 	val = valBignum(w);
 	addOpCode(info, PL_TYPE_INTEGER);
       }
       
-      addLong(info, val);
+      addInt64(info, val);
       return;
     }
     case TAG_STRING:
@@ -587,7 +585,7 @@ PL_record_external(term_t t, unsigned int *len)
   initBuffer(&info.code);
 
   if ( isInteger(*p) )			/* integer-only record */
-  { long v;
+  { int64_t v;
 
     if ( isTaggedInt(*p) )
       v = valInt(*p);
@@ -596,7 +594,7 @@ PL_record_external(term_t t, unsigned int *len)
     
     first |= (REC_INT|REC_GROUND);
     addOpCode(&info, first);
-    addLong(&info, v);
+    addInt64(&info, v);
 
   ret_primitive:
     scode = sizeOfBuffer(&info.code);
@@ -738,11 +736,11 @@ fetchSizeInt(CopyInfo b)
 }
 
 
-static long
-fetchLong(CopyInfo b)
-{ long val = 0;
+static int64_t
+fetchInt64(CopyInfo b)
+{ int64_t val = 0;
   uint bytes = *b->data++;
-  uint shift = (sizeof(long)-bytes)*8;
+  uint shift = (sizeof(int64_t)-bytes)*8;
 
   while(bytes-- > 0)
     val = (val << 8) | (*b->data++ & 0xff);
@@ -851,17 +849,24 @@ right_recursion:
       return;
     }
     case PL_TYPE_TAGGED_INTEGER:
-    { long val = fetchLong(b);
+    { int64_t val = fetchInt64(b);
 
       *p = consInt(val);
 
       return;
     }
     case PL_TYPE_INTEGER:
-    { *p = consPtr(b->gstore, TAG_INTEGER|STG_GLOBAL);
-      *b->gstore++ = mkIndHdr(1, TAG_INTEGER);
-      *b->gstore++ = fetchLong(b);
-      *b->gstore++ = mkIndHdr(1, TAG_INTEGER);
+    { int64_t val = fetchInt64(b);
+      word *vp = (word*)&val;
+      int i;
+
+#define WORDS_PER_PLINT (sizeof(int64_t)/sizeof(word))
+
+      *p = consPtr(b->gstore, TAG_INTEGER|STG_GLOBAL);
+      *b->gstore++ = mkIndHdr(WORDS_PER_PLINT, TAG_INTEGER);
+      for(i=0; i<WORDS_PER_PLINT; i++)
+	*b->gstore++ = *vp++;
+      *b->gstore++ = mkIndHdr(WORDS_PER_PLINT, TAG_INTEGER);
 
       return;
     }
@@ -1143,16 +1148,16 @@ unref_cont:
     case TAG_INTEGER:
       if ( isTaggedInt(w) )
       { if ( stag == PL_TYPE_TAGGED_INTEGER )
-	{ long val = valInt(w);
-	  long v2 = fetchLong(info);
+	{ int64_t val = valInt(w);
+	  int64_t v2 = fetchInt64(info);
 
 	  if ( v2 == val )
 	    succeed;
 	}
       } else
       { if ( stag == PL_TYPE_INTEGER )
-	{ long val = valBignum(w);
-	  long v2 = fetchLong(info);
+	{ int64_t val = valBignum(w);
+	  int64_t v2 = fetchInt64(info);
 
 	  if ( v2 == val )
 	    succeed;
@@ -1351,9 +1356,9 @@ PL_recorded_external(const char *rec, term_t t)
 
   if ( m & (REC_INT|REC_ATOM) )		/* primitive cases */
   { if ( m & REC_INT )
-    { long v = fetchLong(&b);
+    { int64_t v = fetchInt64(&b);
       
-      return PL_unify_integer(t, v);
+      return PL_unify_int64(t, v);
     } else
     { atom_t a;
 
