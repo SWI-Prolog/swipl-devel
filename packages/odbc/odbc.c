@@ -1800,7 +1800,7 @@ odbc_statistics(term_t what)
 #define DET(name, arity, func) PL_register_foreign(name, arity, func, 0)
 
 install_t
-install_odbc()
+install_odbc4pl()
 {  ATOM_row	      =	PL_new_atom("row");
    ATOM_informational =	PL_new_atom("informational");
    ATOM_default	      =	PL_new_atom("default");

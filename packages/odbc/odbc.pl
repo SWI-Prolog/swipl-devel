@@ -60,7 +60,7 @@
 	  ]).
 
 :- initialization
-   load_foreign_library(odbc).
+   load_foreign_library(odbc4pl).
 
 %	odbc_query(+Connection, +SQL, -Row)
 %	

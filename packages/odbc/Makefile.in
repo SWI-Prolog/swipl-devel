@@ -49,7 +49,7 @@ ODBCOBJ=	odbc.o
 
 all:		$(TARGETS)
 
-odbc.@SO@:	$(ODBCOBJ)
+odbc4pl.@SO@:	$(ODBCOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(ODBCOBJ) $(LIBS)
 
 install:	$(TARGETS) $(LIBPL)

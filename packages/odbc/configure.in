@@ -60,8 +60,6 @@ CMFLAGS=-fpic
 
 SO="$PLSOEXT"
 
-TARGETS="odbc.$SO"
-
 AC_CHECK_PROGS(MAKE, gmake make, "make")
 AC_CHECK_PROGS(ETAGS, etags ctags, ":")
 AC_PROG_INSTALL
@@ -85,14 +83,14 @@ AC_CHECK_FUNCS(localtime mktime)
 
 if test "$ac_cv_lib_odbc_SQLAllocEnv" = yes &&
    test "$ac_cv_header_sql_h" = yes; then
-  TARGETS="odbc.$SO"
+  TARGETS="odbc4pl.$SO"
 else
   echo "ERROR:   Cannot find odbc library or the header sql.h"
   echo "WARNING: ODBC interface will not be build"
   TARGETS=""
 fi
 
-PLTARGETS=`echo $TARGETS | sed "s/\.$SO/.pl/g"`
+PLTARGETS=`echo $TARGETS | sed "s/4pl\.$SO/.pl/g"`
 
 AC_OUTPUT(Makefile)
 
