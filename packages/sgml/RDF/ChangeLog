@@ -1,3 +1,7 @@
+Dec 4, 2002
+
+  * FIXED: process_rdf/3, Peter Marks.
+
 Nov 14, 2002
 
   * ADDED: parseType="Collection", satisfying the W3C Working Draft

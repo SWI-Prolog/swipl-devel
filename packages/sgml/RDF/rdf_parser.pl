@@ -12,6 +12,7 @@
 
 :- module(rdf_parser,
 	  [ xml_to_plrdf/3,		% +XMLTerm, +BaseURI, -RDFTerm
+	    element_to_plrdf/3,		% +ContentList, +BaseURI, -RDFTerm
 	    rdf_name_space/1
 	  ]).
 :- use_module(rewrite).
@@ -41,6 +42,9 @@ xml_to_plrdf(Element, Base, RDF) :-
 	rewrite(\xml_content_objects(RDF, Base), Element).
 xml_to_plrdf(Element, Base, RDF) :-
 	rewrite(\xml_objects(RDF, Base), Element).
+
+element_to_plrdf(Element, Base, RDF) :-
+	rewrite(\nodeElementList(RDF, Base), [Element]).
 
 xml_objects(Objects, Base0) ::=
 	E0,

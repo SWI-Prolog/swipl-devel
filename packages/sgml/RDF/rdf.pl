@@ -97,7 +97,7 @@ member_attribute(A) :-
 		 *******************************/
 
 :- dynamic
-	in_rdf/0,
+	in_rdf/1,			% BaseURI
 	object_handler/2.
 
 process_rdf(File, BaseURI, OnObject) :-
@@ -121,18 +121,24 @@ on_end(NS:'RDF', _) :-
 	rdf_name_space(NS),
 	retractall(in_rdf).
 
-on_begin(NS:'RDF', _, _) :-
+on_begin(NS:'RDF', Attr, _) :-
 	rdf_name_space(NS),
-	assert(in_rdf).
+	object_handler(Base0, _),
+	(   memberchk(xml:base = Base, Attr)
+	->  rdf_parser:canonical_uri(Base, Base0, TheBase),
+	    assert(in_rdf(TheBase))
+	;   assert(in_rdf(Base0))
+	).		   
 on_begin(Tag, Attr, Parser) :-
-	in_rdf, !,
+	in_rdf(BaseURI), !,
 	sgml_parse(Parser,
 		   [ document(Content),
 		     parse(content)
 		   ]),
-	object_handler(BaseURI, OnTriples),
-	xml_to_rdf(element(Tag, Attr, Content), BaseURI, Tripples),
-	call(OnTriples, Tripples).
+	object_handler(_, OnTriples),
+	element_to_plrdf(element(Tag, Attr, Content), BaseURI, Objects),
+	rdf_triples(Objects, Triples),
+	call(OnTriples, Triples).
 
 
 		 /*******************************
