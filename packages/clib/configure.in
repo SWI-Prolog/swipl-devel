@@ -21,7 +21,8 @@ AC_SUBST(PLTARGETS)
 
 AC_ARG_ENABLE(mt, [  --enable-mt		  Enable Multi-threading],
 	      [case "$enableval" in
-		   yes) AC_DEFINE(_REENTRANT)
+		   yes) AC_DEFINE(_REENTRANT, 1,
+				  [Define for multi-thread support])
 			;;
 		   *)  ;;
 	       esac])
@@ -83,12 +84,17 @@ else
     CWFLAGS=
 fi
 
-AC_CHECK_LIB(socket, socket,
-	     [NETLIBS="$NETLIBS -lsocket"; LIBS="$LIBS -lsocket"]
-	     AC_DEFINE(HAVE_LIBSOCKET))
-AC_CHECK_LIB(nsl, t_bind,
-	     [NETLIBS="$NETLIBS -lnsl"]
-	     AC_DEFINE(HAVE_LIBNSL))
+AC_CHECK_FUNC(socket, [], [
+             AC_CHECK_LIB(socket, socket,
+                      [NETLIBS="$NETLIBS -lsocket"; LIBS="$LIBS -lsocket"]
+                      AC_DEFINE(HAVE_LIBSOCKET, 1,
+                      "Define if you have the socket library (-lsocket)."))])
+AC_CHECK_FUNC(gethostent, [], [
+             AC_CHECK_LIB(nsl, gethostent,
+                      [NETLIBS="$NETLIBS -lnsl"]
+                      AC_DEFINE(HAVE_LIBNSL, 1,
+                      "Define if you have the nsl library (-lnsl)."))])
+
 AC_CHECK_LIB(crypt, crypt)
 AC_CHECK_FUNCS(crypt)
 AC_CHECK_LIB(rfc822, rfc822t_alloc)
@@ -128,7 +134,8 @@ AC_TRY_COMPILE(
 #include <netinet/in.h>
 ],
 [ int x = h_errno;
-], AC_DEFINE(HAVE_H_ERRNO)
+], AC_DEFINE(HAVE_H_ERRNO, 1,
+	     [Define of h_errno is provided])
    AC_MSG_RESULT(yes),
    AC_MSG_RESULT(no))
 
@@ -144,7 +151,8 @@ AC_TRY_COMPILE(
 #include <unistd.h>
 ],
 [ 
-], AC_DEFINE(DEFINE_XOPEN_SOURCE)
+], AC_DEFINE(DEFINE_XOPEN_SOURCE, 1,
+	     "Define if _XOPEN_SOURCE is needed")
    AC_MSG_RESULT(yes),
    AC_MSG_RESULT(no))
 

@@ -1,3 +1,7 @@
+Oct 2, 2003
+
+  * PORT: Configure socket library for IRIX 6.5 (Rob Myers).
+
 Aug 28, 2003
 
   * FIXED: Complete rewrite of library(socket) for MS-Windows.
