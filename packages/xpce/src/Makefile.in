@@ -776,8 +776,8 @@ dv-lib:
 		$(INSTALL_DATA) ../prolog/lib/Makefile $(DESTDIR)/$(DVHOME)/prolog/lib
 
 dv-classindex::
-		./xpce.sh -g true \
-			-t "pce_make_library_index('$(DESTDIR)/$(DVHOME)/prolog/lib')"
+		./xpce.sh -t "halt(1)" \
+			-g "[library(pce_class_index)],pce_make_library_index('$(DESTDIR)/$(DVHOME)/prolog/lib'),halt"
 
 dv-boot:	
 		@for d in $(DVBOOTDIRS); do \
