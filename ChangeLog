@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * PORT: documented Linux-threads vs. NPTL issues.  Notably affects
+    per-thread or per-process statistics.
+
   * FIXED: Bug#13: typo prevents building.  Jack Woehr.
 
   * PORT: Add LDFLAGS for building shared object (Paulo Moura,
@@ -1470,7 +1473,7 @@ VERSION 5.1.3 (Dec 8, 2002)
 ===========================
 
   * MODIFIED: ISO Compliance: retract((head :- _)) also retracts facts.
-    G�rard Milmeister and Roberto Bagnara.
+    Grard Milmeister and Roberto Bagnara.
 
   * FIXED: make destruction of the Windows console somewhat more careful.
     (Bob Wielinga).

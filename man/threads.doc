@@ -223,7 +223,7 @@ stacks and CPU time yield different values for each thread.%
 		  not supported on all platforms.  For Microsoft,
 		  it does not work in 95/98/ME.  For POSIX systems
 		  it requires times() to return values specific for
-		  the calling thread.}
+		  the calling thread. See also \secref{nptl}.}
 
     \predicate{mutex_statistics}{0}{}
 Print usage statistics on internal mutexes and mutexes associated
@@ -235,6 +235,35 @@ Windows as this would break portability to Windows-95/98/ME or
 significantly harm performance.  Generally collision count is
 close to zero on single-CPU hardware.
 \end{description}
+
+
+\subsection{Linux: linuxthreads vs.\ NPTL}		\label{sec:nptl}
+
+Linux has introduces POSIX threads (pthread) using an implementation
+called \jargon{linuxthreads}, where each thread was `almost' a process.
+This approach has various disadvantages, such as poor performance and
+non-compliance with several aspects of POSIX. However, there is one
+advantage. Where pthread does not provide a way to get statistics per
+thread, we could get this info from the process-oriented times()
+function.  Since the 2.6.x kernels, Linux by default now uses the
+\jargon{NPTL} implementation which is POSIX compliant.  Unfortunately
+it does not (yet) provide extensions to get per-thread CPU usage
+statistics.
+
+This affects the predicates statistics/2 and thread_statistics/3. On
+linuxthreads both report per-thread values, while on NPTL both report
+overall process values.  On Linux systems, the prolog flag 
+\const{gnu_libpthread_version} indicates the thread model used.
+
+SWI-Prolog is setup to run with the default thread model.  Unfortunately
+there is no way to modify this at runtime, but there is a way to select
+the old thread model on modern machines at \jargon{link time}.  This is
+achieved using the environment variable \env{LD_ASSUME_KERNEL} which must
+be set to a pre-nptl kernel version for linking the main executable.  
+The value \const{2.4.21} is appropriate.  When building from source,
+this flag can be set during the build process.  When using a binary
+distribution one could create a minimal C program and relink the system
+using the plld utility.
 
 
 \section{Thread communication}			\label{sec:threadcom}

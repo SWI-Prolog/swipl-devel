@@ -1107,6 +1107,10 @@ details from a normal trace.%
 		  hidden from the debugger. The name anticipates on
 		  anticipated changes to the compiler.}
 
+    \prologflagitem{gnu_libpthread_version}{atom}{r}
+Linux systems only.  Reports the version of the Linux thread library
+used.  See \secref{nptl} for how it may affect you.
+
     \prologflagitem{gui}{bool}{r}
 Set to \const{true} if XPCE is around and can be used for graphics.
 

@@ -57,6 +57,9 @@
 /* Define to 1 if you have the `chmod' function. */
 #undef HAVE_CHMOD
 
+/* Define to 1 if you have the `confstr' function. */
+#undef HAVE_CONFSTR
+
 /* Define to 1 if you have the <dirent.h> header file, and it defines `DIR'.
    */
 #undef HAVE_DIRENT_H
