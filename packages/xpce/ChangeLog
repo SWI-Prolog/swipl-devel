@@ -1,3 +1,6 @@
+* FIXED: Update problem with (dis)appearing scrollbars of the content of a
+  window depends on its size.
+
 * ADDED: `table_column->for_all' to iterate over the cells in a table-column
 
 * FIXED: Locking atoms against the Prolog atom garbage collector (SWI-Prolog
