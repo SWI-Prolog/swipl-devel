@@ -38,7 +38,7 @@ dotest(File) :-
 dotest(_).
 
 test(File) :-
-	format('Test ~w ... ', [File]),
+	format('~NTest ~w ... ', [File]),
 	flush_output,
 	load_file(File, Term),
 	ground(Term),			% make sure

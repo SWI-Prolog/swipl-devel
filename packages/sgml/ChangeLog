@@ -1,3 +1,6 @@
+* FIXED: Properly handle unquoted attributes at the end of an empty element
+  in XML mode <foo bar=10/>
+
 * FIXED: #CONREF attribute handling in elements with declared content
   (CDATA/RCDATA).  Richard O'Keefe.
 

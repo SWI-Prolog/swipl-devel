@@ -1048,14 +1048,13 @@ itake_nmtoken_chars(dtd *dtd, const ichar *in, ichar *out, int len)
     function accepts anything except > / \0 and blanks.
 
 JW: I decided to accept / as part of an unquoted in SGML-mode if
-    shorttag is disabled as well as in XML mode if it is not followed
-    by a >
+    shorttag is disabled as well as in XML mode if it is not the
+    end of the begin-element
 */
 
 static ichar const *
 itake_unquoted(dtd *dtd, ichar const *in, ichar *out, int len)
-{ ichar const end1 = dtd->charfunc->func[CF_STAGC];	/* > */
-  ichar const end2 = dtd->charfunc->func[CF_ETAGO2];	/* / */
+{ ichar const end2 = dtd->charfunc->func[CF_ETAGO2];	/* / */
   ichar c;
 
   /* skip leading layout.  Do NOT skip comments! --x-- is a value! */
@@ -1064,10 +1063,9 @@ itake_unquoted(dtd *dtd, ichar const *in, ichar *out, int len)
 
   /* copy the attribute to out[] */
   while ( !HasClass(dtd, c, CH_BLANK) &&
-	  c != '\0' &&
-	  c != end1 )
+	  c != '\0' )
   { if ( c == end2 && (dtd->shorttag ||
-		       (in[1] == end1 && dtd->dialect != DL_SGML)) )
+		       (in[1] == '\0' && dtd->dialect != DL_SGML)) )
       break;
 
     if ( --len > 0 )
@@ -3015,8 +3013,7 @@ get_attribute_value(dtd_parser *p, ichar const *decl, sgml_attribute *att)
 	  : HasClass(dtd, c, CH_NAME) ? NAM_LATER : /* oops! */ ANY_OTHER;
       }
     }
-    if (dtd->dialect != DL_SGML
-	|| token == YET_EMPTY || (token & ANY_OTHER) != 0)
+    if ( token == YET_EMPTY || (token & ANY_OTHER) != 0)
       gripe(ERC_SYNTAX_WARNING, "Attribute value requires quotes", buf);
 
     if (!dtd->case_sensitive && att->definition->type != AT_CDATA)
