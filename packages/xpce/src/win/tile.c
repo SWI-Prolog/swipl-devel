@@ -420,6 +420,7 @@ distribute_stretches(stretch *s, int n, int w)
   { int total_ideal = 0, total_stretch = 0, total_shrink = 0;
     int grow, growed;
     int is_pos;
+    Stretch sp;
     
     for(i = 0; i < n; i++)
     { total_ideal   += s[i].ideal;
@@ -504,11 +505,18 @@ distribute_stretches(stretch *s, int n, int w)
     }
   
     ok = TRUE;
-    for(i = 0; i < n; i++)		/* Do not make sizes negative */
-    { if ( s[i].size < 0 )
-      { s[i].ideal = 0;
-        s[i].shrink = 0;
-	DEBUG(NAME_tile, Cprintf("%d is negative; setting to 0\n", i));
+    for(sp=s, i = 0; i < n; i++, sp++)	/* Accept min and max */
+    { if ( sp->size < sp->minimum )
+      { sp->ideal = sp->minimum;
+        sp->shrink = 0;
+	DEBUG(NAME_tile, Cprintf("%d is too small; setting to %d\n",
+				 i, sp->minimum));
+	ok = FALSE;
+      } else if ( sp->size > sp->maximum )
+      { sp->ideal = sp->maximum;
+	sp->stretch = 0;
+	DEBUG(NAME_tile, Cprintf("%d is too large; setting to %d\n",
+				 i, sp->maximum));
 	ok = FALSE;
       }
     }
@@ -647,51 +655,57 @@ layoutTile(TileObj t, Int ax, Int ay, Int aw, Int ah)
 			   pp(t), pp(t->orientation)));
   if ( t->orientation == NAME_horizontal )
   { stretch s[MAX_TILE_MEMBERS];
-    int n = 0;
+    Stretch sp;
     Cell cell;
     
+    sp = s;
     for_cell(cell, t->members)
     { TileObj t2 = cell->value;
       
-      s[n].ideal   = valInt(t2->idealWidth);
-      s[n].stretch = valInt(t2->horStretch);
-      s[n].shrink  = valInt(t2->horShrink);
-      n++;
+      sp->minimum = 0;
+      sp->maximum = INT_MAX;
+      sp->ideal   = valInt(t2->idealWidth);
+      sp->stretch = valInt(t2->horStretch);
+      sp->shrink  = valInt(t2->horShrink);
+      sp++;
     }
     
-    distribute_stretches(s, n, w - border*borders);
+    distribute_stretches(s, sp-s, w - border*borders);
     
-    n = 0;
+    sp = s;
     for_cell(cell, t->members)
     { TileObj t2 = cell->value;
       
-      layoutTile(t2, toInt(x), toInt(y), toInt(s[n].size), toInt(h));
-      x += s[n].size + border;
-      n++;
+      layoutTile(t2, toInt(x), toInt(y), toInt(sp->size), toInt(h));
+      x += sp->size + border;
+      sp++;
     }
   } else /*if ( t->orientation == NAME_vertical )*/
   { stretch s[MAX_TILE_MEMBERS];
-    int n = 0;
+    Stretch sp;
     Cell cell;
     
+    sp = s;
     for_cell(cell, t->members)
     { TileObj t2 = cell->value;
       
-      s[n].ideal   = valInt(t2->idealHeight);
-      s[n].stretch = valInt(t2->verStretch);
-      s[n].shrink  = valInt(t2->verShrink);
-      n++;
+      sp->minimum = 0;
+      sp->maximum = INT_MAX;
+      sp->ideal   = valInt(t2->idealHeight);
+      sp->stretch = valInt(t2->verStretch);
+      sp->shrink  = valInt(t2->verShrink);
+      sp++;
     }
     
-    distribute_stretches(s, n, h - border*borders);
+    distribute_stretches(s, sp-s, h - border*borders);
     
-    n = 0;
+    sp = s;
     for_cell(cell, t->members)
     { TileObj t2 = cell->value;
       
-      layoutTile(t2, toInt(x), toInt(y), toInt(w), toInt(s[n].size));
-      y += s[n].size + border;
-      n++;
+      layoutTile(t2, toInt(x), toInt(y), toInt(w), toInt(sp->size));
+      y += sp->size + border;
+      sp++;
     }
   }
     

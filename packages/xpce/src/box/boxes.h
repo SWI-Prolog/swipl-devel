@@ -10,16 +10,16 @@
 #ifndef BOXES_H_INCLUDED
 #define BOXES_H_INCLUDED
 
-#include <h/kernel.h>
-#include <h/graphics.h>
-#include <h/text.h>
-
 typedef struct hbox	*HBox;
 typedef struct tbox	*TBox;
 typedef struct grbox	*GrBox;
 typedef struct parbox	*ParBox;
 typedef struct rubber	*Rubber;
 typedef struct lbox     *LBox;
+
+#include <h/kernel.h>
+#include <h/graphics.h>
+#include <h/text.h>
 
 #include "proto.h"
 

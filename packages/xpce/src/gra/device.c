@@ -1208,13 +1208,17 @@ stretchColumns(Matrix m, Size gap, Size bb, Size border)
 { if ( notDefault(bb) )
   { int twidth = valInt(bb->w) - 2 * valInt(border->w); /* total width */
     Stretch s = alloca(sizeof(stretch) * m->cols);
+    Stretch sp;
     int x, y;
 
     twidth -= (m->cols-1) * valInt(gap->w);
 
-    for(x=0; x<m->cols; x++)
+    for(sp=s, x=0; x<m->cols; x++, sp++)
     { int stretch = 0, noshrink=FALSE;
-      s[x].ideal   = m->units[x][0].left + m->units[x][0].right;
+
+      sp->ideal   = m->units[x][0].left + m->units[x][0].right;
+      sp->minimum = 0;
+      sp->maximum = INT_MAX;
 
       for(y=0; y<m->rows; y++)
       { if ( m->units[x][y].alignment == NAME_column )
@@ -1224,19 +1228,19 @@ stretchColumns(Matrix m, Size gap, Size bb, Size border)
 	}
       }
 
-      s[x].stretch = stretch;
+      sp->stretch = stretch;
       if ( stretch > 0 && !noshrink )
-	s[x].shrink = stretch;
+	sp->shrink = stretch;
       else
-	s[x].shrink = 0;
+	sp->shrink = 0;
     }
 
     distribute_stretches(s, m->cols, twidth);
     
-    for(x=0; x<m->cols; x++)
+    for(sp=s, x=0; x<m->cols; x++, sp++)
     { for(y=0; y<m->rows; y++)
       { if ( m->units[x][y].alignment == NAME_column )
-	  m->units[x][0].right = s[x].size - m->units[x][0].left;
+	  m->units[x][0].right = sp->size - m->units[x][0].left;
       } 
     }
   }
@@ -1279,13 +1283,16 @@ the objects. itemssh is the amount currently used.
 static void
 stretchRows(Matrix m, int bbh)
 { int x, y;
-
   Stretch s = alloca(sizeof(stretch) * m->rows);
+  Stretch sp;
   int ndist = m->rows;
 
-  for(y=0; y<m->rows; y++)
+  for(sp = s, y=0; y<m->rows; y++, sp++)
   { int stretch = 0, noshrink=FALSE;
-    s[y].ideal  = m->units[0][y].height + m->units[0][y].depth;
+
+    sp->ideal  = m->units[0][y].height + m->units[0][y].depth;
+    sp->minimum = 0;
+    sp->maximum = INT_MAX;
 
     for(x=0; x<m->cols; x++)
     { stretch = max(stretch, m->units[x][y].vstretch);
@@ -1293,23 +1300,23 @@ stretchRows(Matrix m, int bbh)
 	noshrink = TRUE;
     }
 
-    s[y].stretch = stretch;
+    sp->stretch = stretch;
     if ( stretch > 0 && !noshrink )
-      s[y].shrink = stretch;
+      sp->shrink = stretch;
     else
-      s[y].shrink = 0;
+      sp->shrink = 0;
 
     if ( stretch == 0 && y < m->rows - 1 )
-      s[y].stretch = 1;
+      sp->stretch = 1;
   }
 
   distribute_stretches(s, ndist, bbh);
 
-  for(x=0; x<m->cols; x++)
+  for(sp=s, x=0; x<m->cols; x++, sp++)
   { for(y=0; y<ndist; y++)
-    { if ( !(s[y].shrink == 0 &&
-	     s[y].size < m->units[x][y].depth + m->units[x][y].height) )
-	m->units[x][y].depth = s[y].size - m->units[x][y].height;
+    { if ( !(sp->shrink == 0 &&
+	     sp->size < m->units[x][y].depth + m->units[x][y].height) )
+	m->units[x][y].depth = sp->size - m->units[x][y].height;
     } 
   }
 }

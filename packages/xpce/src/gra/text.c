@@ -381,10 +381,10 @@ initAreaText(TextObj t)
   else
     w = tw;
 
-  if ( equalName(t->format, NAME_right) )
+  if ( t->format == NAME_right )
   { x = valInt(pos->x) - w;
     y = valInt(pos->y);
-  } else if ( equalName(t->format, NAME_center) )
+  } else if ( t->format == NAME_center )
   { x = valInt(pos->x) - w/2;
     y = valInt(pos->y) - h/2;
   } else

@@ -827,6 +827,8 @@ End;
 
 typedef struct
 { int	ideal;				/* ideal size */
+  int   minimum;			/* minimum size */
+  int	maximum;			/* maximum size */
   int	stretch;			/* stretch handicap */
   int	shrink;				/* shrink handicap */
   int	size;				/* resulting size */

@@ -24,6 +24,7 @@ initialiseTableSlice(TableSlice c)
   assign(c, position,   ZERO);
   assign(c, fixed,      OFF);
 /*assign(c, table,      NIL);
+  assign(c, rubber,     NIL);
 */
 
   succeed;
@@ -71,6 +72,18 @@ widthTableSlice(TableSlice slice, Int width)
   succeed;
 }
 
+		 /*******************************
+		 *	      RUBBER		*
+		 *******************************/
+
+status
+distributeSlices(Vector slices, Int from, Int to, Int width)
+{ 
+
+
+}
+
+
 
 		 /*******************************
 		 *	 CLASS DECLARATION	*
@@ -103,7 +116,9 @@ static vardecl var_table_slice[] =
   IV(NAME_reference, "int", IV_GET,
      NAME_layout, "Location of the reference"),
   IV(NAME_position, "int", IV_GET,
-     NAME_layout, "X/Y-offset of the column/row")
+     NAME_layout, "X/Y-offset of the column/row"),
+  IV(NAME_rubber, "rubber*", IV_GET,
+     NAME_layout, "How to handle forced width/height")
 };
   
 /* Send Methods */

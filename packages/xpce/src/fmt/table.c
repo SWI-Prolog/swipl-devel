@@ -927,6 +927,8 @@ getSpannedCellsTable(Table tab, Name which)
 static void
 slice_stretchability(TableSlice slice, stretch *s)
 { s->ideal   = valInt(slice->width);
+  s->minimum = 0;
+  s->maximum = INT_MAX;
   if ( slice->fixed == ON )
     s->stretch = 0;
   else

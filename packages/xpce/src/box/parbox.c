@@ -666,6 +666,8 @@ justify_line(parline *line, Name alignment)
       { sp->ideal   = c->w; /*valInt(hb->width);*/
 	sp->stretch = valInt(hb->rubber->stretch);
 	sp->shrink  = valInt(hb->rubber->shrink);
+	sp->minimum = 0;
+	sp->maximum = INT_MAX;
 
 	dw += sp->ideal;
 	sp++;

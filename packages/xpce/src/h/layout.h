@@ -26,6 +26,9 @@ typedef struct table_slice	*TableSlice;
 typedef struct table_row	*TableRow;
 typedef struct table_column	*TableColumn;
 typedef struct table_cell	*TableCell;
+#ifndef BOXES_H_INCLUDED
+typedef struct rubber		*Rubber;
+#endif
 
 #define ABSTRACT_LAYOUT_MANAGER \
     Device	device;			/* Device managed */ \
@@ -84,7 +87,8 @@ End;
     Bool	fixed;			/* Width/reference is fixed */ \
     Int		width;			/* width/height of the row/column */ \
     Int		reference;		/* position of reference-aligned */ \
-    Int		position;		/* Offset of row/column */
+    Int		position;		/* Offset of row/column */ \
+    Rubber	rubber;			/* Stretch/Shrinkability */
 
 NewClass(table_slice)
     ABSTRACT_TABLE_SLICE
