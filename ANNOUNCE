@@ -1,4 +1,4 @@
-SWI-Prolog 5.5.3/XPCE 6.5.1 development release
+SWI-Prolog 5.5.4/XPCE 6.5.4 development release
 
 Planned features in 5.5.x relative to 5.4.x and their status
 ============================================================
@@ -15,14 +15,21 @@ Planned features in 5.5.x relative to 5.4.x and their status
 		- ISO Latin-1
 		- UTF-8
 		- UNICODE (LE/BE)
+
 	- Updated the MS-Windows console (plwin.exe/plterm.dll) to run
 	  in MS UNICODE mode
+
 	- Support wide characters in SGML/XML parser.
+	- Support wide characters in most of XPCE.
 
       Lacking
       -------
 
-	- Support in packages.  Notable XPCE
+	- No support for input methods (XIM, ...)
+	- Incomplete support in packages
+		- ODBC
+		- Text matching in SemWeb library
+		- Filenames, window titles, etc. in XPCE
 	- Clear vision on foreign interface
 	- Clear vision on handling non-iso-latin-1 8-bit codepages
 
@@ -36,11 +43,11 @@ Planned features in 5.5.x relative to 5.4.x and their status
 	  considered beta code.
 
 
-Patches in 5.5.2 relative to 5.5.1
+Patches in 5.5.4 relative to 5.5.3
 ==================================
 
-  * Provide wide-character support for the SGML/XML parser.  Also
-    added writing module (sgml_write.pl).
+  * Provide shared library configuration and building as default for
+    MacOS X.
 
   * Various small issues.
 
@@ -48,7 +55,13 @@ Patches in 5.5.2 relative to 5.5.1
 Packages
 ========
 
-  (none)
+  * Provide wide-character support for the XPCE.  Provide support for
+    core X11 8/16 bit font handling, Xwc* wide-character versions and
+    XFT scalable anti-aliased fonts.
+
+  * Provide JPL for MacOS X.  There is an issue when loading Java in
+    Prolog and using AWT (graphics) that is unresolved.
+
 
 Incompatible changes
 ====================
