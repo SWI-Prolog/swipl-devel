@@ -1464,8 +1464,9 @@ catchSignals()
 
 int
 main(int argc, char **argv)
-{ plld = argv[0];
-  int special; 
+{ int special; 
+
+  plld = argv[0];
   
   argc--;
   argv++;
