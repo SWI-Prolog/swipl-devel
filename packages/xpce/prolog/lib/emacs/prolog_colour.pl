@@ -602,12 +602,32 @@ colour_item(Class, TB, Pos) :-
 	arg(1, Pos, F),
 	arg(2, Pos, T),
 	L is T - F,
-	new(Fragment, emacs_colour_fragment(TB, F, L, Name)),
-	message(Class, Fragment).
+	make_fragment(Class, TB, F, L, Name).
 colour_item(_, _, _).
 	
 colour_item(Class, TB, F, T) :-
 	colour_item(Class, TB, F-T).
+
+%	make_fragment(+Class, +TB, +From, +Len, +StyleName)
+%	
+%	Actually create the fragment.
+
+make_fragment(goal(Class, Goal), TB, F, L, Style) :-
+	callable(Goal),
+	new(Fragment, emacs_goal_fragment(TB, F, L, Style)),
+	functor(Goal, Name, Arity),
+	send(Fragment, name, Name),
+	send(Fragment, arity, Arity),
+	(   Class = extern(Module),
+	    atom(Module)
+	->  send(Fragment, module, Module)
+	;   true
+	),
+	functor(Class, ClassName, _),
+	send(Fragment, classification, ClassName).
+make_fragment(Class, TB, F, L, Style) :-
+	new(Fragment, emacs_colour_fragment(TB, F, L, Style)),
+	message(Class, Fragment).
 
 
 		 /*******************************
@@ -618,8 +638,6 @@ colour_item(Class, TB, F, T) :-
 	      make_prolog_mode_file_popup).
 :- pce_global(@prolog_mode_class_popup,
 	      make_prolog_mode_class_popup).
-:- pce_global(@prolog_mode_goal_popup,
-	      make_prolog_mode_goal_popup).
 
 make_prolog_mode_file_popup(G) :-
 	new(G, popup(file_actions)),
@@ -665,56 +683,6 @@ edit_class(Mode, ClassName:name, NewWindow:[bool]) :->
 	;   send(Mode, report, error, 'Class %s doesn''t exist', ClassName)
 	).
 
-%	make_prolog_mode_goal_popup(-Popup)
-%	
-%	Create the popup and define actions for handling the right-menu
-%	on goals.
-
-make_prolog_mode_goal_popup(G) :-
-	new(G, popup(goal_actions)),
-	new(Goal, @arg1?context),
-	M = @emacs_mode,
-	new(HasSource, message(M, goal_has_source, Goal)),
-	send_list(G, append,
-		  [ menu_item(edit,
-			      message(M, edit_goal, Goal),
-			      condition := HasSource),
-		    menu_item(edit_other_window,
-			      message(M, edit_goal, Goal, @on),
-			      condition := HasSource),
-		    gap,
-		    menu_item(documentation,
-			      message(M, goal_documentation, Goal))
-		  ]).
-
-
-goal_has_source(M, Goal:emacs_prolog_mode_goal) :->
-	"Test if there is source available"::
-	get(M, text_buffer, TB),
-	get(Goal, name, Name),
-	get(Goal, arity, Arity),
-	functor(Head, Name, Arity),
-	(   xref_defined(TB, Head, local(_Line))
-	->  true
-	;   get(prolog_predicate(Name/Arity), source, _)
-	).
-
-edit_goal(M, Goal:emacs_prolog_mode_goal, NewWindow:[bool]) :->
-	"Open Prolog predicate [in new window]"::
-	get(Goal, name, Name),
-	get(Goal, arity, Arity),
-	get(Goal, module, Module),
-	(   Module == @nil
-	->  Spec = Name/Arity
-	;   Spec = Module:Name/Arity
-	),
-	send(M, find_definition, prolog_predicate(Spec), NewWindow).
-
-goal_documentation(_, Goal:emacs_prolog_mode_goal) :->
-	get(Goal, name, Name),
-	get(Goal, arity, Arity),
-	help(Name/Arity).
-
 
 %	message(+Class, +Fragment)
 %	
@@ -729,19 +697,6 @@ message(class(Type, Class), F) :-
 	send(F, message, string('%s XPCE class "%s"', Type?capitalise, Class)),
 	send(F, context, Class),
 	send(F, popup, @prolog_mode_class_popup).
-message(goal(Class, Goal), F) :-
-	callable(Goal), !,
-	functor(Goal, Name, Arity),
-	functor(Class, ClassName, _),
-	send(F, context,
-	     new(G, emacs_prolog_mode_goal(ClassName, Name, Arity))),
-	(   Class = extern(Module),
-	    atom(Module)
-	->  send(G, module, Module)
-	;   true			% (Still) unbound module
-	),
-	send(F, popup, @prolog_mode_goal_popup),
-	send(F, message, ClassName).
 message(type_error(Type), F) :- !,
 	send(F, message, string('Type error: argument must be a %s', Type)).
 message(module(M), F) :-
@@ -1146,19 +1101,137 @@ specified_argspec([P0|PT], Spec, N, T, TB) :-
 :- emacs_end_mode.
 
 
-:- pce_begin_class(emacs_prolog_mode_goal(classification, name, arity),
-		   object, "Keep info on goals").
+		 /*******************************
+		 *	   GOAL FRAGMENT	*
+		 *******************************/
 
-variable(classification,	name,	get, "Xref classification").
-variable(name,			name,	get, "Name of the predicate").
-variable(arity,			int,	get, "Arity of the predicate").
-variable(module,		name*,	both, "Declared external pred").
+:- pce_begin_class(emacs_goal_fragment, emacs_colour_fragment,
+		   "Fragment for a goal in PceEmacs Prolog mode").
 
-initialise(G, Class:name, Name:name, Arity:int) :->
-	"Create from class, name and arity"::
-	send_super(G, initialise),
-	send(G, slot, classification, Class),
-	send(G, slot, name, Name),
-	send(G, slot, arity, Arity).
+variable(name,	 name,	both, "Name of the predicate").
+variable(arity,		 int,	both, "Arity of the predicate").
+variable(module,	 name*,	both, "Module if Module:Head").
+variable(classification, name,	both, "XREF classification").
 
-:- pce_end_class(emacs_prolog_mode_goal).
+:- pce_group(popup).
+
+popup(_GF, Popup:popup) :<-
+	"Return popup menu"::
+	Popup = @prolog_mode_goal_popup.
+
+:- pce_global(@prolog_mode_goal_popup,
+	      make_prolog_mode_goal_popup).
+
+%	make_prolog_mode_goal_popup(-Popup)
+%	
+%	Create the popup and define actions for handling the right-menu
+%	on goals.
+
+make_prolog_mode_goal_popup(G) :-
+	new(G, popup(goal_actions)),
+	Fragment = @arg1,
+	new(HasSource, message(Fragment, has_source)),
+	send_list(G, append,
+		  [ menu_item(edit,
+			      message(Fragment, edit),
+			      condition := HasSource),
+		    menu_item(edit_other_window,
+			      message(Fragment, edit, @on),
+			      condition := HasSource),
+		    gap,
+		    menu_item(documentation,
+			      message(Fragment, documentation))
+		  ]).
+
+
+predicate(F, Pred:prolog_predicate) :<-
+	"Get referenced predicate"::
+	get(F, name, Name),
+	get(F, arity, Arity),
+	get(F, module, Module),
+	(   Module == @nil
+	->  Spec = Name/Arity
+	;   Spec = Module:Name/Arity
+	),
+	new(Pred, prolog_predicate(Spec)).
+
+head(F, Head:prolog) :<-
+	"Return goal-head"::
+	get(F, name, Name),
+	get(F, arity, Arity),
+	functor(Head0, Name, Arity),
+	(   get(F, module, M),
+	    M \== @nil
+	->  Head = M:Head0
+	;   Head = Head0
+	).
+
+has_source(F) :->
+	"Test if there is source available"::
+	get(F, text_buffer, TB),
+	get(F, head, Head),
+	(   xref_defined(TB, Head, local(_Line))
+	->  true
+	;   get(prolog_predicate(Head), source, _)
+	).
+
+
+edit(F, NewWindow:[bool]) :->
+	"Open Prolog predicate [in new window]"::
+	get(F, predicate, Pred),
+	send(@emacs_mode, find_definition, Pred, NewWindow).
+
+
+documentation(F) :->
+	"Invoke Prolog help-system"::
+	send(F?predicate, help).
+
+
+identify(F) :->
+	"Tell the user about the predicate"::
+	get(F, text_buffer, TB),
+	get(F, classification, Class),
+	identify_pred(Class, F, Report),
+	send(TB, report, status, Report).
+
+%	identify_pred(+XrefClass, +Fragment, -Summary)
+%	
+%	Generate an identifying description for the predicate.
+
+identify_pred(built_in, F, Summary) :-	% SWI-Prolog documented built-in
+	get(F, predicate, Pred),
+	get(Pred, summary, Summary0), !,
+	new(Summary, string('%N: %s', Pred, Summary0)).
+identify_pred(autoload, F, Summary) :-	% Autoloaded predicates
+	get(F, name, Name),
+	get(F, arity, Arity),
+	'$find_library'(_Module, Name, Arity, _LoadModule, Library), !,
+	absolute_file_name(Library,
+			   [ file_type(prolog),
+			     access(read),
+			     file_errors(fail)
+			   ],
+			   Source),
+	new(Summary, string('%s/%d: autoload from %s',
+			    Name, Arity, Source)).
+identify_pred(local, F, Summary) :-	% Local predicates
+	get(F, text_buffer, TB),
+	get(F, head, Head),
+	xref_defined(TB, Head, local(Line)), !,
+	new(Summary, string('%N: locally defined at line %d',
+			    prolog_predicate(Head),
+			    Line)).
+identify_pred(recursion, _, 'Recursive reference') :- !.
+identify_pred(Class, _, Class).
+
+:- pce_end_class(emacs_goal_fragment).
+
+
+		 /*******************************
+		 *	  CLASS FRAGMENT	*
+		 *******************************/
+
+:- pce_begin_class(emacs_class_fragment, emacs_colour_fragment,
+		   "Represent an XPCE class in PceEmacs Prolog mode").
+
+:- pce_end_class(emacs_class_fragment).
