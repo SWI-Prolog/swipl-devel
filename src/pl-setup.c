@@ -56,10 +56,10 @@ forwards void initSignals(void);
 
 const unsigned int tagtypeex[] = 
 {
-	    /* var     int    float   atom   string   list    term     ref */
+	    /* var     attvar  int    float   atom   string    term     ref */
 /* static */	0,	0,	0,	0,	0,	0,	0,	0,
-/* heap */	0,	I,	I,	0,	I,	0,	0,	0,
-/* global */	0,	I,	I,	0,	I,	0,	0,	0,
+/* heap */	0,	0,      I,	I,	0,	I,	0,	0,
+/* global */	0,	0,      I,	I,	0,	I,	0,	0,
 /* local */	0,	0,	0,	0,	0,	0,	0,	0
 };
 

@@ -107,6 +107,11 @@ Indirect data
 	
 	* String uses the low-order 2 bits for specifying the amount of
 	  padding bytes (0-3, 0 means 4).
+
+NOTE: the tag-numbers are  mapped  to   public  constants  (PL_*) in the
+type_map array in pl-fli.c.  Make  sure   this  is  consistent  with the
+definitions below. Also the tagtypeex[] array defined in pl-setup.c must
+be kept consistent.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #include "pl-buffer.h"
@@ -115,11 +120,11 @@ Indirect data
 
 #define TAG_MASK	0x00000007L	/* mask for tag */
 #define TAG_VAR		0x00000000L	/* tag for variable (= 0L) */
-#define TAG_FLOAT	0x00000001L	/* Floating point number */
-#define TAG_INTEGER	0x00000002L	/* Tagged or indirect integer */
-#define TAG_ATOM	0x00000003L	/* an atom */
-#define TAG_STRING	0x00000004L	/* String */
-#define TAG_LIST	0x00000005L	/* List */
+#define TAG_ATTVAR	0x00000001L	/* tag for attributed variable */
+#define TAG_FLOAT	0x00000002L	/* Floating point number */
+#define TAG_INTEGER	0x00000003L	/* Tagged or indirect integer */
+#define TAG_ATOM	0x00000004L	/* an atom */
+#define TAG_STRING	0x00000005L	/* String */
 #define TAG_COMPOUND	0x00000006L	/* Compound term */
 #define TAG_REFERENCE	0x00000007L	/* Reference pointer */
 
