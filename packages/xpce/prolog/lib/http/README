@@ -8,7 +8,7 @@ This package is designed with the following goals in mind:
 
 	* Document export
 	Applications that need to export documents may choose to do so
- 	in HTML format.  This allows you to use your browser to preview,
+ 	in HTML format.  This allows you to use her browser to preview,
 	print and export the document to other applications.
 
 	* Sharing documents over the web
@@ -17,15 +17,22 @@ This package is designed with the following goals in mind:
 
 	* Web-server application prototyping.
 
+Note that the SWI-Prolog http package   (new  in 5.1.5) provides similar
+functionality. New code should consider using that library as it is more
+flexible, providing one framework  for   inetd,  XPCE and multi-threaded
+servers.
+
 Files:
 ------
 
 	# httpd.pl
 	Generic HTTPD class.  To be subclassed to achieve a real server
 
-	# html_write.pl
+	# html_write.pl (+)
 	Emit HTML pages from a structured description based on
-	grammarrules
+	grammarrules.  THIS FILE HAS BEEN MOVED TO THE SWI-Prolog
+	HTTP PACKAGE.  The reference library('http/html_write') is
+	valid for both.
 
 	# html_hierarchy.pl
 	Display a hierarchy as an explorer-like tree in HTML.
@@ -33,6 +40,9 @@ Files:
 	# http_man.pl
 	Small demo exporting XPCE classes.
 
+	# http_image.pl
+	Provide exporting images on behalf of the SWI-Prolog http
+	package.
 
 Status:
 -------

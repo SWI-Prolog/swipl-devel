@@ -35,7 +35,7 @@
 	    pageYOffset/2		% +Cookie, -Y
 	  ]).
 :- use_module(library(pce)).
-:- use_module(html_write).
+:- use_module(library('http/html_write')).
 
 :- style_check(-atom).
 

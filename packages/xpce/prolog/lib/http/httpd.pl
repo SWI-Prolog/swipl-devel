@@ -33,7 +33,7 @@
 	  [ html_to_buffer/2		% +Term, -Buffer
 	  ]).
 :- use_module(library(pce)).
-:- use_module(html_write).
+:- use_module(library('http/html_write')).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module implements a very  simple   HTTP  deamon skeleton, mainly to

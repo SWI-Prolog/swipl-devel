@@ -32,9 +32,9 @@
 :- module(pce_http_man,
 	  [ pce_http_man/1		% ?Port
 	  ]).
-
+:- use_module(library(pce)).
+:- use_module(library('http/html_write')).
 :- use_module(httpd).
-:- use_module(html_write).
 :- use_module(html_hierarchy).
 :- use_module(html_refman).
 
