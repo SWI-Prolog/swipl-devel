@@ -1,0 +1,25 @@
+<?xml version='1.0' encoding='ISO-8859-1'?>
+<!-- Version Wed Apr 12 12:09:19 CEST 2000 -->
+<rdf:RDF
+ xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+ xmlns:rdfs="http://www.w3.org/TR/1999/PR-rdf-schema-19990303#"
+ xmlns:rdfutil="http://www.w3.org/rdfutil#"
+ xmlns:protege="http://smi-web.stanford.edu/projects/protege/protege-rdf/protege-19992012#">
+
+ <rdf:Description rdf:ID="#OntologyObjectMetaClass">
+  <rdf:type rdf:resource="http://www.w3.org/TR/1999/PR-rdf-schema-19990303#Class"/>
+  <rdfs:subClassOf rdf:resource="http://www.w3.org/TR/1999/PR-rdf-schema-19990303#Class"/>
+  <protege:abstractProperty>concrete</protege:abstractProperty>
+ </rdf:Description>
+
+ <rdf:Description rdf:ID="identifier">
+  <rdf:type rdf:resource="http://www.w3.org/TR/1999/PR-rdf-schema-19990303#Property"/>
+   <rdfutil:facets>
+    <rdfutil:facetResource>
+     <rdfutil:domain rdf:resource="#OntologyObjectMetaClass"/>
+     <rdfutil:range rdf:resource="http://www.w3.org/TR/xmlschema-2/#string"/>
+     <rdfutil:cardinality>1</rdfutil:cardinality>
+    </rdfutil:facetResource>
+   </rdfutil:facets>
+ </rdf:Description>
+</rdf:RDF>

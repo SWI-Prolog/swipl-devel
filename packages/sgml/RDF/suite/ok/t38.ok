@@ -1,0 +1,128 @@
+rdf('Resource', rdf:type, 'http://www.w3.org/2000/01/rdf-schema#Class').
+rdf('Resource', 'http://www.w3.org/2000/01/rdf-schema#':label, literal('Resource')).
+rdf('Resource', 'http://www.w3.org/2000/01/rdf-schema#':label, literal('Ressource')).
+rdf('Resource', 'http://www.w3.org/2000/01/rdf-schema#':comment, literal('The most general class')).
+rdf('http://www.w3.org/1999/02/22-rdf-syntax-ns#type', rdf:type, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Property').
+rdf('http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://www.w3.org/2000/01/rdf-schema#':label, literal(type)).
+rdf('http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://www.w3.org/2000/01/rdf-schema#':label, literal(type)).
+rdf('http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://www.w3.org/2000/01/rdf-schema#':comment, literal('Indicates membership of a class')).
+rdf('http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://www.w3.org/2000/01/rdf-schema#':range, 'Class').
+rdf(comment, rdf:type, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Property').
+rdf(comment, 'http://www.w3.org/2000/01/rdf-schema#':label, literal(comment)).
+rdf(comment, 'http://www.w3.org/2000/01/rdf-schema#':label, literal(commentaire)).
+rdf(comment, 'http://www.w3.org/2000/01/rdf-schema#':domain, 'Resource').
+rdf(comment, 'http://www.w3.org/2000/01/rdf-schema#':comment, literal('Use this for descriptions')).
+rdf(comment, 'http://www.w3.org/2000/01/rdf-schema#':range, 'Literal').
+rdf(label, rdf:type, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Property').
+rdf(label, rdf:type, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Property').
+rdf(label, 'http://www.w3.org/2000/01/rdf-schema#':label, literal(label)).
+rdf(label, 'http://www.w3.org/2000/01/rdf-schema#':label, literal(label)).
+rdf(label, 'http://www.w3.org/2000/01/rdf-schema#':domain, 'Resource').
+rdf(label, 'http://www.w3.org/2000/01/rdf-schema#':comment, literal('Provides a human-readable version of a resource name.')).
+rdf(label, 'http://www.w3.org/2000/01/rdf-schema#':range, 'Literal').
+rdf('Class', rdf:type, 'http://www.w3.org/2000/01/rdf-schema#Class').
+rdf('Class', 'http://www.w3.org/2000/01/rdf-schema#':label, literal('Class')).
+rdf('Class', 'http://www.w3.org/2000/01/rdf-schema#':label, literal('Classe')).
+rdf('Class', 'http://www.w3.org/2000/01/rdf-schema#':comment, literal('The concept of Class')).
+rdf('Class', 'http://www.w3.org/2000/01/rdf-schema#':subClassOf, 'Resource').
+rdf(subClassOf, rdf:type, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Property').
+rdf(subClassOf, 'http://www.w3.org/2000/01/rdf-schema#':label, literal(subClassOf)).
+rdf(subClassOf, 'http://www.w3.org/2000/01/rdf-schema#':label, literal(sousClasseDe)).
+rdf(subClassOf, 'http://www.w3.org/2000/01/rdf-schema#':comment, literal('Indicates membership of a class')).
+rdf(subClassOf, 'http://www.w3.org/2000/01/rdf-schema#':range, 'Class').
+rdf(subClassOf, 'http://www.w3.org/2000/01/rdf-schema#':domain, 'Class').
+rdf(subPropertyOf, rdf:type, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Property').
+rdf(subPropertyOf, 'http://www.w3.org/2000/01/rdf-schema#':label, literal(subPropertyOf)).
+rdf(subPropertyOf, 'http://www.w3.org/2000/01/rdf-schema#':label, literal(sousPropriétéDe)).
+rdf(subPropertyOf, 'http://www.w3.org/2000/01/rdf-schema#':comment, literal('Indicates specialization of properties')).
+rdf(subPropertyOf, 'http://www.w3.org/2000/01/rdf-schema#':range, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Property').
+rdf(subPropertyOf, 'http://www.w3.org/2000/01/rdf-schema#':domain, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Property').
+rdf(seeAlso, rdf:type, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Property').
+rdf(seeAlso, 'http://www.w3.org/2000/01/rdf-schema#':label, literal(seeAlso)).
+rdf(seeAlso, 'http://www.w3.org/2000/01/rdf-schema#':label, literal(voirAussi)).
+rdf(seeAlso, 'http://www.w3.org/2000/01/rdf-schema#':comment, literal('Indicates a resource that provides information about the subject resource.')).
+rdf(seeAlso, 'http://www.w3.org/2000/01/rdf-schema#':range, 'http://www.w3.org/2000/01/rdf-schema#Resource').
+rdf(seeAlso, 'http://www.w3.org/2000/01/rdf-schema#':domain, 'http://www.w3.org/2000/01/rdf-schema#Resource').
+rdf(isDefinedBy, rdf:type, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Property').
+rdf(isDefinedBy, rdf:type, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Property').
+rdf(isDefinedBy, 'http://www.w3.org/2000/01/rdf-schema#':subPropertyOf, seeAlso).
+rdf(isDefinedBy, 'http://www.w3.org/2000/01/rdf-schema#':label, literal(isDefinedBy)).
+rdf(isDefinedBy, 'http://www.w3.org/2000/01/rdf-schema#':label, literal(esDéfiniPar)).
+rdf(isDefinedBy, 'http://www.w3.org/2000/01/rdf-schema#':comment, literal('Indicates a resource containing and defining the subject resource.')).
+rdf(isDefinedBy, 'http://www.w3.org/2000/01/rdf-schema#':range, 'http://www.w3.org/2000/01/rdf-schema#Resource').
+rdf(isDefinedBy, 'http://www.w3.org/2000/01/rdf-schema#':domain, 'http://www.w3.org/2000/01/rdf-schema#Resource').
+rdf('ConstraintResource', rdf:type, 'http://www.w3.org/2000/01/rdf-schema#Class').
+rdf('ConstraintResource', 'http://www.w3.org/2000/01/rdf-schema#':label, literal('ConstraintResource')).
+rdf('ConstraintResource', 'http://www.w3.org/2000/01/rdf-schema#':label, literal('RessourceContrainte')).
+rdf('ConstraintResource', rdf:type, 'Class').
+rdf('ConstraintResource', 'http://www.w3.org/2000/01/rdf-schema#':subClassOf, 'Resource').
+rdf('ConstraintResource', 'http://www.w3.org/2000/01/rdf-schema#':comment, literal('Resources used to express RDF Schema constraints.')).
+rdf('ConstraintProperty', rdf:type, 'http://www.w3.org/2000/01/rdf-schema#Class').
+rdf('ConstraintProperty', 'http://www.w3.org/2000/01/rdf-schema#':label, literal('ConstraintProperty')).
+rdf('ConstraintProperty', 'http://www.w3.org/2000/01/rdf-schema#':label, literal('PropriétéContrainte')).
+rdf('ConstraintProperty', 'http://www.w3.org/2000/01/rdf-schema#':subClassOf, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Property').
+rdf('ConstraintProperty', 'http://www.w3.org/2000/01/rdf-schema#':subClassOf, 'ConstraintResource').
+rdf('ConstraintProperty', 'http://www.w3.org/2000/01/rdf-schema#':comment, literal('Properties used to express RDF Schema constraints.')).
+rdf(domain, rdf:type, 'http://www.w3.org/2000/01/rdf-schema#ConstraintProperty').
+rdf(domain, 'http://www.w3.org/2000/01/rdf-schema#':label, literal(domain)).
+rdf(domain, 'http://www.w3.org/2000/01/rdf-schema#':label, literal(domaine)).
+rdf(domain, 'http://www.w3.org/2000/01/rdf-schema#':comment, literal('This is how we associate a class with\n  properties that its instances can have')).
+rdf(range, rdf:type, 'http://www.w3.org/2000/01/rdf-schema#ConstraintProperty').
+rdf(range, 'http://www.w3.org/2000/01/rdf-schema#':label, literal(range)).
+rdf(range, 'http://www.w3.org/2000/01/rdf-schema#':label, literal(étendue)).
+rdf(range, 'http://www.w3.org/2000/01/rdf-schema#':comment, literal('Properties that can be used in a\n  schema to provide constraints')).
+rdf(range, 'http://www.w3.org/2000/01/rdf-schema#':range, 'Class').
+rdf(range, 'http://www.w3.org/2000/01/rdf-schema#':domain, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Property').
+rdf('http://www.w3.org/1999/02/22-rdf-syntax-ns#Property', rdf:type, 'http://www.w3.org/2000/01/rdf-schema#Class').
+rdf('http://www.w3.org/1999/02/22-rdf-syntax-ns#Property', 'http://www.w3.org/2000/01/rdf-schema#':label, literal('Property')).
+rdf('http://www.w3.org/1999/02/22-rdf-syntax-ns#Property', 'http://www.w3.org/2000/01/rdf-schema#':label, literal('Propriété')).
+rdf('http://www.w3.org/1999/02/22-rdf-syntax-ns#Property', 'http://www.w3.org/2000/01/rdf-schema#':comment, literal('The concept of a property.')).
+rdf('http://www.w3.org/1999/02/22-rdf-syntax-ns#Property', 'http://www.w3.org/2000/01/rdf-schema#':subClassOf, 'Resource').
+rdf('Literal', rdf:type, 'http://www.w3.org/2000/01/rdf-schema#Class').
+rdf('Literal', 'http://www.w3.org/2000/01/rdf-schema#':label, literal('Literal')).
+rdf('Literal', 'http://www.w3.org/2000/01/rdf-schema#':label, literal('Littéral')).
+rdf('Literal', rdf:type, 'Class').
+rdf('Literal', 'http://www.w3.org/2000/01/rdf-schema#':comment, literal('This represents the set of atomic values, eg. textual strings.')).
+rdf('http://www.w3.org/1999/02/22-rdf-syntax-ns#Statement', rdf:type, 'http://www.w3.org/2000/01/rdf-schema#Class').
+rdf('http://www.w3.org/1999/02/22-rdf-syntax-ns#Statement', 'http://www.w3.org/2000/01/rdf-schema#':label, literal('Statement')).
+rdf('http://www.w3.org/1999/02/22-rdf-syntax-ns#Statement', 'http://www.w3.org/2000/01/rdf-schema#':label, literal('Déclaration')).
+rdf('http://www.w3.org/1999/02/22-rdf-syntax-ns#Statement', 'http://www.w3.org/2000/01/rdf-schema#':subClassOf, 'Resource').
+rdf('http://www.w3.org/1999/02/22-rdf-syntax-ns#Statement', 'http://www.w3.org/2000/01/rdf-schema#':comment, literal('This represents the set of reified statements.')).
+rdf('http://www.w3.org/1999/02/22-rdf-syntax-ns#subject', rdf:type, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Property').
+rdf('http://www.w3.org/1999/02/22-rdf-syntax-ns#subject', 'http://www.w3.org/2000/01/rdf-schema#':label, literal(subject)).
+rdf('http://www.w3.org/1999/02/22-rdf-syntax-ns#subject', 'http://www.w3.org/2000/01/rdf-schema#':label, literal(sujet)).
+rdf('http://www.w3.org/1999/02/22-rdf-syntax-ns#subject', 'http://www.w3.org/2000/01/rdf-schema#':domain, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Statement').
+rdf('http://www.w3.org/1999/02/22-rdf-syntax-ns#subject', 'http://www.w3.org/2000/01/rdf-schema#':range, 'Resource').
+rdf('http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate', rdf:type, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Property').
+rdf('http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate', 'http://www.w3.org/2000/01/rdf-schema#':label, literal(predicate)).
+rdf('http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate', 'http://www.w3.org/2000/01/rdf-schema#':label, literal(prédicat)).
+rdf('http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate', rdf:type, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Property').
+rdf('http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate', 'http://www.w3.org/2000/01/rdf-schema#':domain, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Statement').
+rdf('http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate', 'http://www.w3.org/2000/01/rdf-schema#':range, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Property').
+rdf('http://www.w3.org/1999/02/22-rdf-syntax-ns#object', rdf:type, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Property').
+rdf('http://www.w3.org/1999/02/22-rdf-syntax-ns#object', 'http://www.w3.org/2000/01/rdf-schema#':label, literal(object)).
+rdf('http://www.w3.org/1999/02/22-rdf-syntax-ns#object', 'http://www.w3.org/2000/01/rdf-schema#':label, literal(objet)).
+rdf('http://www.w3.org/1999/02/22-rdf-syntax-ns#object', 'http://www.w3.org/2000/01/rdf-schema#':domain, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Statement').
+rdf('Container', rdf:type, 'http://www.w3.org/2000/01/rdf-schema#Class').
+rdf('Container', 'http://www.w3.org/2000/01/rdf-schema#':label, literal('Container')).
+rdf('Container', 'http://www.w3.org/2000/01/rdf-schema#':label, literal('Enveloppe')).
+rdf('Container', 'http://www.w3.org/2000/01/rdf-schema#':subClassOf, 'Resource').
+rdf('Container', 'http://www.w3.org/2000/01/rdf-schema#':comment, literal('This represents the set Containers.')).
+rdf('http://www.w3.org/1999/02/22-rdf-syntax-ns#Bag', rdf:type, 'http://www.w3.org/2000/01/rdf-schema#Class').
+rdf('http://www.w3.org/1999/02/22-rdf-syntax-ns#Bag', 'http://www.w3.org/2000/01/rdf-schema#':label, literal('Bag')).
+rdf('http://www.w3.org/1999/02/22-rdf-syntax-ns#Bag', 'http://www.w3.org/2000/01/rdf-schema#':label, literal('Ensemble')).
+rdf('http://www.w3.org/1999/02/22-rdf-syntax-ns#Bag', 'http://www.w3.org/2000/01/rdf-schema#':subClassOf, 'Container').
+rdf('http://www.w3.org/1999/02/22-rdf-syntax-ns#Seq', rdf:type, 'http://www.w3.org/2000/01/rdf-schema#Class').
+rdf('http://www.w3.org/1999/02/22-rdf-syntax-ns#Seq', 'http://www.w3.org/2000/01/rdf-schema#':label, literal('Sequence')).
+rdf('http://www.w3.org/1999/02/22-rdf-syntax-ns#Seq', 'http://www.w3.org/2000/01/rdf-schema#':label, literal('Séquence')).
+rdf('http://www.w3.org/1999/02/22-rdf-syntax-ns#Seq', 'http://www.w3.org/2000/01/rdf-schema#':subClassOf, 'Container').
+rdf('http://www.w3.org/1999/02/22-rdf-syntax-ns#Alt', rdf:type, 'http://www.w3.org/2000/01/rdf-schema#Class').
+rdf('http://www.w3.org/1999/02/22-rdf-syntax-ns#Alt', 'http://www.w3.org/2000/01/rdf-schema#':label, literal('Alt')).
+rdf('http://www.w3.org/1999/02/22-rdf-syntax-ns#Alt', 'http://www.w3.org/2000/01/rdf-schema#':label, literal('Choix')).
+rdf('http://www.w3.org/1999/02/22-rdf-syntax-ns#Alt', 'http://www.w3.org/2000/01/rdf-schema#':subClassOf, 'Container').
+rdf('ContainerMembershipProperty', rdf:type, 'http://www.w3.org/2000/01/rdf-schema#Class').
+rdf('ContainerMembershipProperty', 'http://www.w3.org/2000/01/rdf-schema#':label, literal('ContainerMembershipProperty')).
+rdf('ContainerMembershipProperty', 'http://www.w3.org/2000/01/rdf-schema#':subClassOf, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Property').
+rdf('http://www.w3.org/1999/02/22-rdf-syntax-ns#value', rdf:type, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Property').
+rdf('http://www.w3.org/1999/02/22-rdf-syntax-ns#value', 'http://www.w3.org/2000/01/rdf-schema#':label, literal(object)).
+rdf('http://www.w3.org/1999/02/22-rdf-syntax-ns#value', 'http://www.w3.org/2000/01/rdf-schema#':label, literal(value)).

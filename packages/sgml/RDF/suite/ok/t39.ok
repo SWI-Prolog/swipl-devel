@@ -1,0 +1,9 @@
+rdf('#OntologyObjectMetaClass', rdf:type, 'http://www.w3.org/TR/1999/PR-rdf-schema-19990303#Class').
+rdf('#OntologyObjectMetaClass', 'http://www.w3.org/TR/1999/PR-rdf-schema-19990303#':subClassOf, 'http://www.w3.org/TR/1999/PR-rdf-schema-19990303#Class').
+rdf('#OntologyObjectMetaClass', 'http://smi-web.stanford.edu/projects/protege/protege-rdf/protege-19992012#':abstractProperty, literal(concrete)).
+rdf(identifier, rdf:type, 'http://www.w3.org/TR/1999/PR-rdf-schema-19990303#Property').
+rdf('Description__1', rdf:type, 'http://www.w3.org/rdfutil#facetResource').
+rdf('Description__1', 'http://www.w3.org/rdfutil#':domain, 'OntologyObjectMetaClass').
+rdf('Description__1', 'http://www.w3.org/rdfutil#':range, 'http://www.w3.org/TR/xmlschema-2/#string').
+rdf('Description__1', 'http://www.w3.org/rdfutil#':cardinality, literal('1')).
+rdf(identifier, 'http://www.w3.org/rdfutil#':facets, 'Description__1').

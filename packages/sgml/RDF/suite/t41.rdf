@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+
+<!-- Example from REC-rdf-syntax, demonstrating abbrevation -->
+
+<RDF
+  xmlns="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+  xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+  xmlns:n="http://www.nist.gov/units/">
+  <Description about="John_Smith">
+    <n:weight rdf:ID="JohnWeight" rdf:parseType="Resource">
+      <rdf:value>200</rdf:value>
+      <n:units rdf:resource="http://www.nist.gov/units/Pounds"/>
+    </n:weight>
+  </Description>
+</RDF>

@@ -1,0 +1,4 @@
+rdf('Description__1', rdf:type, 'http://www.mytypes.org/schema/Bicycle').
+rdf('Description__1', 'http://www.mytypes.org/schema/':wheels, literal('2')).
+rdf('Description__2', rdf:type, 'http://www.mytypes.org/schema/Bicycle').
+rdf('Description__2', 'http://www.mytypes.org/schema/':wheels, literal('2')).
