@@ -25,17 +25,48 @@
 :- prolog_load_context(directory, Dir),
    working_directory(_, Dir).
 
+%	daily
+%	
+%	True if this is a daily build
+
+daily :-
+	getenv('DAILY', true).
+
+name :-
+	daily, !,
+	version(Major, Minor, Patch),
+	get_time(X), convert_time(X, Y, M, D, H, Min, _, _),
+	format('Name "SWI-Prolog ~0+~48t~d~4+-~0+~48t~d~2+-~0+~48t~d~2+ ~0+~48t~d~2+:~0+~48t~d~2+ (~w.~w.~w++)"~n',
+	       [ Y, M, D, H, Min,
+		 Major, Minor, Patch
+	       ]).
 name :-
 	version(Major, Minor, Patch),
 	get_time(X), convert_time(X, Date),
 	format('Name "SWI-Prolog ~w.~w.~w (~s)"~n',
 	       [Major, Minor, Patch, Date]).
 
-outfile :-
+outfile(File) :-
+	daily, !,
+	get_time(X), convert_time(X, Y, M, D, _, _, _, _),
+	sformat(File, 'w32pl-~0+~48t~d~4+-~0+~48t~d~2+-~0+~48t~d~2+.exe',
+		[Y, M, D]).
+outfile(File) :-
 	version(Major, Minor, Patch),
-	format('OutFile "w32pl~w~w~w.exe"~n',
-	       [Major, Minor, Patch]).
+	sformat(File, 'w32pl~w~w~w.exe',
+		[Major, Minor, Patch]).
 
+outfile :-
+	outfile(File),
+	format('OutFile "~s"~n', [File]).
+
+copy_script :-
+	daily, !,
+	tell('copypl.bat'),
+	outfile(File),
+	format('rsync "~s" gollem:MS-Windows/DailyBuilds~n', [File]),
+	told.
+copy_script.
 
 version(Major, Minor, Patch) :-
 	current_prolog_flag(version, V),
@@ -47,7 +78,8 @@ run :-
 	tell('version.nsi'),
 	name,
 	outfile,
-	told.
+	told,
+	copy_script.
 
 		 /*******************************
 		 *	       CHECK		*
