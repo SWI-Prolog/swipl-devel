@@ -1,3 +1,8 @@
+Sep 24, 2003
+
+  * ADDED: internal administration of triples associated with each source.
+    Prolog based counting at the end if either very slow or not thread-safe.
+
 Sep 23, 2003
 
   * FIXED: rdf_has(-, +, -).  Didn't use proper hash-key, missing

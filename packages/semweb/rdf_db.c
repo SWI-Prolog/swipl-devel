@@ -63,6 +63,7 @@ static functor_t FUNCTOR_domain_error2;
 static functor_t FUNCTOR_colon2;
 
 static functor_t FUNCTOR_triples1;
+static functor_t FUNCTOR_triples2;
 static functor_t FUNCTOR_subjects1;
 static functor_t FUNCTOR_predicates1;
 static functor_t FUNCTOR_duplicates1;
@@ -238,6 +239,9 @@ static int	need_update;		/* We need to update */
 static long	agenda_created;		/* #visited nodes in agenda */
 static long	duplicates;		/* #duplicate triples */
 static long	generation;		/* generation-id of the database */
+static source **source_table;		/* Hash table of sources */
+static int      source_table_size;	/* Entries in table */
+static source  *last_source;		/* last accessed source */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 SWI-Prolog note: Atoms are integers shifted by LMASK_BITS (7)
@@ -660,6 +664,84 @@ isSubPropertyOf(predicate *sub, predicate *p)
 
 
 		 /*******************************
+		 *	     SOURCE FILES	*
+		 *******************************/
+
+/* MT: all calls must be locked
+*/
+
+static void
+init_source_table()
+{ int bytes = sizeof(predicate*)*INITIAL_SOURCE_TABLE_SIZE;
+
+  source_table = PL_malloc(bytes);
+  memset(source_table, 0, bytes);
+  source_table_size = INITIAL_SOURCE_TABLE_SIZE;
+}
+
+
+static source *
+lookup_source(atom_t name, int create)
+{ int hash = atom_hash(name) % source_table_size;
+  source *src;
+
+  for(src=source_table[hash]; src; src = src->next)
+  { if ( src->name == name )
+      return src;
+  }
+
+  if ( !create )
+    return NULL;
+
+  src = PL_malloc(sizeof(*src));
+  memset(src, 0, sizeof(*src));
+  src->name = name;
+  PL_register_atom(name);
+  src->next = source_table[hash];
+  source_table[hash] = src;
+
+  return src;
+}
+
+
+static void
+erase_sources()
+{ source **ht;
+  int i;
+
+  for(i=0,ht = source_table; i<source_table_size; i++, ht++)
+  { source *src, *n;
+
+    for( src = *ht; src; src = n )
+    { n = src->next;
+
+      PL_unregister_atom(src->name);
+      PL_free(src);
+    }
+
+    *ht = NULL;
+  }
+
+  last_source = NULL;
+}
+
+
+static void
+inc_source_count(atom_t name, int add)
+{ source *src;
+
+  if ( last_source && last_source->name == name )
+  { last_source->triple_count++;
+    return;
+  }
+
+  src = lookup_source(name, TRUE);
+  src->triple_count += add;
+  last_source = src;
+}
+
+
+		 /*******************************
 		 *	      TRIPLES		*
 		 *******************************/
 
@@ -683,6 +765,7 @@ init_tables()
   }
 
   init_pred_table();
+  init_source_table();
 }
 
 
@@ -852,6 +935,8 @@ link_triple(triple *t)
 
 ok:
   created++;
+  if ( t->source )
+    inc_source_count(t->source, 1);
 }
 
 
@@ -942,6 +1027,8 @@ erase_triple(triple *t)
 	subjects--;
     }
     erased++;
+    if ( t->source )
+      inc_source_count(t->source, -1);
   }
 }
 
@@ -1947,6 +2034,12 @@ update_triple(term_t action, triple *t)
       return FALSE;
     if ( t2.source == t->source && t2.line == t->line )
       return TRUE;
+    LOCK();
+    if ( t->source )
+      inc_source_count(t->source, -1);
+    if ( t2.source )
+      inc_source_count(t2.source, 1);
+    UNLOCK();
     t->source = t2.source;
     t->line = t2.line;
 
@@ -2472,6 +2565,20 @@ unify_statistics(term_t key, functor_t f)
   { v = agenda_created;
   } else if ( f == FUNCTOR_duplicates1 )
   { v = duplicates;
+  } else if ( f == FUNCTOR_triples2 && PL_is_functor(key, f) )
+  { source *src;
+    term_t a = PL_new_term_ref();
+    atom_t name;
+
+    PL_get_arg(1, key, a);
+    if ( !PL_get_atom(a, &name) )
+      return type_error(a, "atom");
+    if ( (src = lookup_source(name, FALSE)) )
+    { PL_get_arg(2, key, a);
+      return PL_unify_integer(a, src->triple_count);
+    }
+
+    return FALSE;
   } else
     assert(0);
 
@@ -2590,6 +2697,7 @@ rdf_reset_db()
 
   erase_triples();
   erase_predicates();
+  erase_sources();
   need_update = FALSE;
   agenda_created = 0;
 
@@ -2793,6 +2901,7 @@ install_rdf_db()
   MKFUNCTOR(type_error, 2);
   MKFUNCTOR(domain_error, 2);
   MKFUNCTOR(triples, 1);
+  MKFUNCTOR(triples, 2);
   MKFUNCTOR(subjects, 1);
   MKFUNCTOR(predicates, 1);
   MKFUNCTOR(subject, 1);
@@ -2824,6 +2933,7 @@ install_rdf_db()
   keys[i++] = FUNCTOR_predicates1;
   keys[i++] = FUNCTOR_searched_nodes1;
   keys[i++] = FUNCTOR_duplicates1;
+  keys[i++] = FUNCTOR_triples2;
   keys[i++] = 0;
 
 					/* setup database */

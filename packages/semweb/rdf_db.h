@@ -23,9 +23,10 @@
 #define BY_OP	(BY_P|BY_O)		/* 6 */
 #define BY_SPO	(BY_S|BY_P|BY_O)	/* 7 */
 
-#define INDEX_TABLES 		     7
-#define INITIAL_TABLE_SIZE   1024*1024
-#define INITIAL_PREDICATE_TABLE_SIZE 1024
+#define INDEX_TABLES 		        7
+#define INITIAL_TABLE_SIZE   		1024*1024
+#define INITIAL_PREDICATE_TABLE_SIZE	1024
+#define INITIAL_SOURCE_TABLE_SIZE	64
 
 #define NO_LINE	((unsigned long)-1L)
 
@@ -56,6 +57,13 @@ typedef struct predicate
   struct predicate *oldroot;		/* from previous run */
   int		    visited;		/* loop detection */
 } predicate;
+
+
+typedef struct source
+{ struct source    *next;		/* next in table */
+  atom_t	    name;		/* name of the source */
+  int		    triple_count;	/* # triples associated to it */
+} source;  
 
 
 #define t_match next[0]

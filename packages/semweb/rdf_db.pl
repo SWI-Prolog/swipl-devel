@@ -321,7 +321,7 @@ rdf_statistics(searched_nodes(Count)) :-
 	rdf_statistics_(searched_nodes(Count)).
 rdf_statistics(triples_by_file(File, Count)) :-
 	rdf_source(File),
-	count_solutions(rdf(_,_,_,File:_), Count).
+	rdf_statistics_(triples(File, Count)).
 rdf_statistics(duplicates(Count)) :-
 	rdf_statistics_(duplicates(Count)).
 
