@@ -156,7 +156,7 @@ ls__(Files) :-
 	list_atoms(Tagged, 72).
 
 tag_file(File, Dir) :-
-	exists_directory(File),	
+	exists_directory(File),	!,
 	atom_concat(File, /, Dir).
 tag_file(File, File).
 
