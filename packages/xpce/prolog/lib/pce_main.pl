@@ -19,11 +19,13 @@
 	pce_loop(:, +),
 	pce_main_loop(:).
 
-:- use_module(library(pce)).	    
+:- use_module(library(pce)).
+:- use_module(library(pce_util)).	    
 :- require([ append/3
 	   , call/2
 	   , ignore/1
 	   , unix/1
+	   , chain_list/2
 	   ]).
 
 %	pce_main_loop(+Goal)
