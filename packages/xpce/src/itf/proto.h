@@ -52,6 +52,7 @@ Any		cToPceInteger(long int i);
 Any		cToPceReal(double f);
 Any		cToPceString(char *assoc, char *s);
 Any		cToPceName(char *s);
+Any		CtoPcePointer(void *ptr);
 Any		cToPceAssoc(char *s);
 Any		cToPceReference(ulong val);
 int		pceExistsReference(long int ref);
@@ -80,6 +81,23 @@ void		pceTrace(int on);
 void		pceTraceBack(int depth);
 void		pceWriteCurrentGoal(void);
 void		pceWriteErrorGoal(void);
+
+/* cpointer.c */
+CPointer	CtoCPointer(void *ptr);
+status		makeClassCPointer(Class class);
+
+/* asfile.c */
+int		pceOpen(Any obj, int flags);
+int		pceClose(int handle);
+int		pceWrite(int handle, const char *buf, int size);
+long		pceSeek(int handle, long offset, int whence);
+int		pceRead(int handle, char *buf, int size);
+const char *	pceOsError(void);
+
+/* console.c */
+void		Cprintf(const char *fmt, ...);
+int		Cputchar(int chr);
+char *		Cgetline(char *line, int size);
 
 /* cpp.cxx */
 PceStatus	callCPlusPlusProc(Any f, int ac, const Any av []);

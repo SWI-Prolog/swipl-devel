@@ -28,13 +28,13 @@ x_error_handler(Display *display, XErrorEvent *error)
   sprintf(buf, "%d", error->request_code);
   XGetErrorDatabaseText(display, "XRequest", buf,
 			"Unknown request", request, 100);
-  fprintf(stderr, "X error of failed request: %s\n", msg);
-  fprintf(stderr, "Major opcode of failed request: %d (%s)\n",
+  Cprintf("X error of failed request: %s\n", msg);
+  Cprintf("Major opcode of failed request: %d (%s)\n",
 	  error->request_code, request);
-  fprintf(stderr, "Minor opcode of failed request: %d\n", error->minor_code);
-  fprintf(stderr, "Resource id in failed request:  0x%x\n",
+  Cprintf("Minor opcode of failed request: %d\n", error->minor_code);
+  Cprintf("Resource id in failed request:  0x%x\n",
 	  (unsigned int) error->resourceid);
-  fprintf(stderr, "Serial number of failed request: %ld\n", error->serial);
+  Cprintf("Serial number of failed request: %ld\n", error->serial);
   
   errorPce(NIL, NAME_xError);
 
@@ -153,8 +153,8 @@ getWMFrameFrame(FrameObj fr)
 			 &children, &nchildren) )
 	  return w;
 	XFree((char *) children);	/* declared char * ???? */
-	DEBUG(NAME_frame, printf("w = %ld; root = %ld; parent = %ld\n",
-				 w, root, parent));
+	DEBUG(NAME_frame, Cprintf("w = %ld; root = %ld; parent = %ld\n",
+				  w, root, parent));
 	if ( parent == root )
 	  return w;
 
@@ -301,7 +301,7 @@ keycode_to_name(XEvent *event)
     case XK_Down:	return NAME_cursorDown;
   }
 
-  DEBUG(NAME_keysym, printf("sym = 0x%X\n", (unsigned int)sym));
+  DEBUG(NAME_keysym, Cprintf("sym = 0x%X\n", (unsigned int)sym));
 
   fail;
 }

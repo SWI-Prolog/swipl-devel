@@ -248,7 +248,7 @@ reduce(Parser p, Stack out, Stack side, int pri)
 { Operator o2;
 
   while( (o2=popStack(side)) && valInt(o2->priority) <= pri )
-  { DEBUG(NAME_term, printf("Reduce %s\n", pp(o2->name)));
+  { DEBUG(NAME_term, Cprintf("Reduce %s\n", pp(o2->name)));
     if ( o2->left_priority != ZERO && o2->right_priority != ZERO ) /* infix */
     { Any t, av[3];
 
@@ -283,7 +283,7 @@ modify(Parser p, int rmo, Stack out, Stack side, int pri)
     { rmo++;
       pushStack(out, s->name);
       popStack(side);
-      DEBUG(NAME_term, printf("Modify prefix %s --> name\n", pp(s->name)));
+      DEBUG(NAME_term, Cprintf("Modify prefix %s --> name\n", pp(s->name)));
     } else if ( s->left_priority != ZERO && s->right_priority != ZERO &&
 		rmo == 0 &&
 		out->size > 0 &&
@@ -298,7 +298,7 @@ modify(Parser p, int rmo, Stack out, Stack side, int pri)
       rmo++;
       pushStack(out, t);
       popStack(side);
-      DEBUG(NAME_term, printf("Modify infix %s --> postfix\n", pp(s->name)));
+      DEBUG(NAME_term, Cprintf("Modify infix %s --> postfix\n", pp(s->name)));
     }
   }
 
@@ -359,7 +359,7 @@ getTermParser(Parser p, Chain end)
     { Operator op;
 
       if ( (op = infix_op(ops)) )
-      { DEBUG(NAME_term, printf("Infix op %s\n", pp(token)));
+      { DEBUG(NAME_term, Cprintf("Infix op %s\n", pp(token)));
 
 	rmo = modify(p, rmo, out, side, valInt(op->left_priority));
 	if ( rmo == 1 )
@@ -370,7 +370,7 @@ getTermParser(Parser p, Chain end)
 	}
       }
       if ( (op = postfix_op(ops)) )
-      { DEBUG(NAME_term, printf("Postfix op %s\n", pp(token)));
+      { DEBUG(NAME_term, Cprintf("Postfix op %s\n", pp(token)));
 
 	rmo = modify(p, rmo, out, side, valInt(op->left_priority));
 	if ( rmo == 1 )
@@ -381,7 +381,7 @@ getTermParser(Parser p, Chain end)
       }
 
       if ( rmo == 0 && (op = prefix_op(ops)) )
-      { DEBUG(NAME_term, printf("Prefix op %s\n", pp(token)));
+      { DEBUG(NAME_term, Cprintf("Prefix op %s\n", pp(token)));
 
 	TRY(reduce(p, out, side, valInt(op->left_priority)));
 	pushStack(side, op);
@@ -391,7 +391,7 @@ getTermParser(Parser p, Chain end)
 
     if ( rmo == 0 )
     { rmo++;
-      DEBUG(NAME_term, printf("Pushing %s\n", pp(token)));
+      DEBUG(NAME_term, Cprintf("Pushing %s\n", pp(token)));
       pushStack(out, token);
     } else
     { send(p, NAME_syntaxError, CtoName("Operator expected"), 0);
@@ -403,8 +403,8 @@ exit:
   rmo = modify(p, rmo, out, side, 100000);
   TRY(reduce(p, out, side, 100000));
   
-  DEBUG(NAME_term, printf("out->size = %d; side->size = %d\n",
-			  out->size == 1, side->size));
+  DEBUG(NAME_term, Cprintf("out->size = %d; side->size = %d\n",
+			   out->size == 1, side->size));
 
   if ( out->size == 1 && side->size == 0 )
     rval = popStack(out);

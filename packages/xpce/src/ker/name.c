@@ -123,7 +123,7 @@ rehashNames(void)
   int n;
 
   buckets = nextBucketSize(buckets);
-  DEBUG((Name)NAME_name, printf("Rehashing names ... "); fflush(stdout));
+  DEBUG((Name)NAME_name, Cprintf("Rehashing names ... "));
   name_table = malloc(buckets * sizeof(Name));
   for(n=buckets, nm = name_table; n-- > 0; nm++)
     *nm = NULL;
@@ -133,7 +133,7 @@ rehashNames(void)
     if ( *nm ) 
       insertName(*nm);
 
-  DEBUG((Name)NAME_name, printf("done\n"));
+  DEBUG((Name)NAME_name, Cprintf("done\n"));
 
   free(old_table);
 }
@@ -267,8 +267,8 @@ checkNames(int prt)
   }
 
   if ( prt )
-    printf("%d names in %d buckets. %d shifts\n",
-	   names, buckets, shifts);
+    Cprintf("%d names in %d buckets. %d shifts\n",
+	    names, buckets, shifts);
 
   assert(cnt == names);
 }
@@ -373,7 +373,7 @@ static status
 ValueName(Name n, CharArray val)
 { Name existing;
 
-  DEBUG((Name)NAME_name, printf("Converting %s --> ", strName(n)); fflush(stdout));
+  DEBUG((Name)NAME_name, Cprintf("Converting %s --> ", strName(n)));
 
   if ( (existing = getLookupName(classOfObject(n), val)) )
   { if ( existing != n )
@@ -389,7 +389,7 @@ ValueName(Name n, CharArray val)
   str_ncpy(&n->data, 0, &val->data, 0, val->data.size);
   insertName(n);
 
-  DEBUG((Name)NAME_name, printf("%s\n", strName(n)));
+  DEBUG((Name)NAME_name, Cprintf("%s\n", strName(n)));
 
   succeed;
 }

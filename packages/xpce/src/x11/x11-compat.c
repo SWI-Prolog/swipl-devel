@@ -26,7 +26,7 @@ to do????
 
 void *
 dlopen(char *path, int mode)
-{ printf("dlopen(%s, %d)\n", path, mode);
+{ Cprintf("dlopen(%s, %d)\n", path, mode);
 
   return NULL;
 }
@@ -34,7 +34,7 @@ dlopen(char *path, int mode)
 
 void *
 dlsym(void *handle, char *symbol)
-{ printf("dlsym(0x%lx, %s)\n", (ulong) handle, symbol);
+{ Cprintf("dlsym(0x%lx, %s)\n", (ulong) handle, symbol);
 
   return NULL;
 }
@@ -42,7 +42,7 @@ dlsym(void *handle, char *symbol)
 
 void *
 dlclose(void *handle)
-{ printf("dlclose (0x%lx)\n", (ulong) handle);
+{ Cprintf("dlclose (0x%lx)\n", (ulong) handle);
 
   return NULL;
 }
@@ -60,7 +60,7 @@ More of this nonsens.  RS6000 this time ...
 #if _AIX
 void *
 __iconv_open()
-{ printf("_iconv_open() called\n");
+{ Cprintf("_iconv_open() called\n");
 
   return NULL;
 }

@@ -1321,7 +1321,7 @@ pceInitialise(int handles, int argc, char **argv)
   PCEdebugging = FALSE;
   if ( getenv("PCEDEBUGBOOT") != NULL )
   { PCEdebugBoot = TRUE;
-    DEBUG_BOOT(printf("Debugging boot cycle\n"));
+    DEBUG_BOOT(Cprintf("Debugging boot cycle\n"));
   } else
     PCEdebugBoot = FALSE;
 #endif
@@ -1336,17 +1336,17 @@ pceInitialise(int handles, int argc, char **argv)
   setProtectedObj(ON);
   setProtectedObj(OFF);
 
-  DEBUG_BOOT(printf("Alloc ...\n"));
+  DEBUG_BOOT(Cprintf("Alloc ...\n"));
   initAlloc();
   allocRange(&ConstantNil, sizeof(struct constant));
   allocRange(&BoolOff,     sizeof(struct bool));
   initNamesPass1();
-  DEBUG_BOOT(printf("Types ...\n"));
+  DEBUG_BOOT(Cprintf("Types ...\n"));
   initTypes();
-  DEBUG_BOOT(printf("Names ...\n"));
+  DEBUG_BOOT(Cprintf("Names ...\n"));
   initCharArrays();
   initNamesPass2();
-  DEBUG_BOOT(printf("Name Assocs ...\n"));
+  DEBUG_BOOT(Cprintf("Name Assocs ...\n"));
   initAssoc(handles);
 
 { Type t;
@@ -1354,7 +1354,7 @@ pceInitialise(int handles, int argc, char **argv)
   vectorType(t, ON);
 }
 
-  DEBUG_BOOT(printf("Boot classes ...\n"));
+  DEBUG_BOOT(Cprintf("Boot classes ...\n"));
 
   ClassObject =
     bootClass(NAME_object,		/* Name */
@@ -1488,7 +1488,7 @@ pceInitialise(int handles, int argc, char **argv)
 	      initialiseVmi,
 	      1, "name");
 
-  DEBUG_BOOT(printf("Initialised boot classes\n"));
+  DEBUG_BOOT(Cprintf("Initialised boot classes\n"));
   
   initGlobals();
   classTable		= globalObject(NAME_classes,       ClassHashTable, 0);
@@ -1528,9 +1528,9 @@ pceInitialise(int handles, int argc, char **argv)
 
   name_procent_s	= CtoName("%s");
 
-  DEBUG_BOOT(printf("Building class definitions"));
+  DEBUG_BOOT(Cprintf("Building class definitions"));
   initClassDefs();
-  DEBUG_BOOT(printf("Realising Boot classes ...\n"));
+  DEBUG_BOOT(Cprintf("Realising Boot classes ...\n"));
   realiseBootClass(ClassObject);
   realiseBootClass(ClassChain);
   realiseBootClass(ClassProgramObject);
@@ -1547,7 +1547,7 @@ pceInitialise(int handles, int argc, char **argv)
   realiseBootClass(ClassString);
   realiseBootClass(ClassTuple);
   realiseBootClass(ClassVmi);
-  DEBUG_BOOT(printf("Boot classes realised.\n"));
+  DEBUG_BOOT(Cprintf("Boot classes realised.\n"));
   initTypeAliases();
 
   { for_hash_table(classTable, s,
@@ -1563,7 +1563,7 @@ pceInitialise(int handles, int argc, char **argv)
   realiseClass(ClassConstant);		/* @default, @nil */
   realiseClass(ClassBool);		/* @on, @off */
 
-  DEBUG_BOOT(printf("Defining features\n"));
+  DEBUG_BOOT(Cprintf("Defining features\n"));
 
 #ifdef HAVE_FORK
   featurePce(PCE, NAME_process);
@@ -1572,7 +1572,7 @@ pceInitialise(int handles, int argc, char **argv)
   featurePce(PCE, NAME_socket);
 #endif
 
-  DEBUG_BOOT(printf("C++ global objects\n"));
+  DEBUG_BOOT(Cprintf("C++ global objects\n"));
 #if O_CPLUSPLUS
   initCPlusPlusGlobals();
 #endif
@@ -1584,6 +1584,6 @@ pceInitialise(int handles, int argc, char **argv)
   rlc_word_char('@', TRUE);
 #endif
 
-  DEBUG_BOOT(printf("Pce initialisation complete.\n"));
+  DEBUG_BOOT(Cprintf("Pce initialisation complete.\n"));
   succeed;
 }

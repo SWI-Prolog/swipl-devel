@@ -576,9 +576,9 @@ indexFragmentCache(FragmentCache fc, Editor e, long int i)
   for(C = &fc->active; (c = *C); )
   { if ( i >= c->fragment->start + c->fragment->length )
     { *C = c->next;
-      DEBUG(NAME_fragment, printf("Passed %s fragment (%ld, %ld)\n",
-				  pp(c->fragment->style),
-				  c->fragment->start, c->fragment->length));
+      DEBUG(NAME_fragment, Cprintf("Passed %s fragment (%ld, %ld)\n",
+				   pp(c->fragment->style),
+				   c->fragment->start, c->fragment->length));
       unalloc(sizeof(struct fragment_cell), c);
       changed++;
     } else
@@ -593,10 +593,10 @@ indexFragmentCache(FragmentCache fc, Editor e, long int i)
     { FragmentCell c = alloc(sizeof(struct fragment_cell));
 
       DEBUG(NAME_fragment,
-	    printf("Enter %s fragment (%ld, %ld) (style = %s)\n",
-		   pp(fr->style),
-		   fr->start, fr->length,
-		   pp(s)));
+	    Cprintf("Enter %s fragment (%ld, %ld) (style = %s)\n",
+		    pp(fr->style),
+		    fr->start, fr->length,
+		    pp(s)));
       c->fragment = fr;
       c->style    = s;
       c->next     = fc->active;
@@ -661,8 +661,8 @@ indexFragmentCache(FragmentCache fc, Editor e, long int i)
     fc->right_margin = rm;
     fc->left_margin  = lm;
 
-    DEBUG(NAME_fragment, printf("---> Font: %s; attributes: 0x%lx\n",
-				pp(f), attributes));
+    DEBUG(NAME_fragment, Cprintf("---> Font: %s; attributes: 0x%lx\n",
+				 pp(f), attributes));
   }
 
   fc->index = i;
@@ -674,14 +674,17 @@ indexFragmentCache(FragmentCache fc, Editor e, long int i)
 				  (l > h && i >= h && i < l) )
 
 static void
-seek_editor(Editor e, long int index)
-{ indexFragmentCache(e->fragment_cache, e, index);
+seek_editor(Any obj, long int index)
+{ Editor e = obj;
+
+  indexFragmentCache(e->fragment_cache, e, index);
 }
 
 
 static long
-scan_editor(Editor e, long int index, int dir, int how, int category, int *eof)
-{ TextBuffer tb = e->text_buffer;
+scan_editor(Any obj, long int index, int dir, int how, int category, int *eof)
+{ Editor e = obj;
+  TextBuffer tb = e->text_buffer;
   SyntaxTable s = tb->syntax;
   int size = tb->size;
 
@@ -732,8 +735,9 @@ out:
 #define GRAPHICS_START 01		/* ^A */
 
 static long
-fetch_editor(Editor e, TextChar tc)
-{ FragmentCache fc = e->fragment_cache;
+fetch_editor(Any obj, TextChar tc)
+{ Editor e = obj;
+  FragmentCache fc = e->fragment_cache;
   long index = fc->index;
 
   tc->value.c      = Fetch(e, index);
@@ -799,35 +803,36 @@ fetch_editor(Editor e, TextChar tc)
 
 
 static void
-margin_editor(Editor e, int *left, int *right)
-{ FragmentCache fc = e->fragment_cache;
+margin_editor(Any obj, int *left, int *right)
+{ Editor e = obj;
+  FragmentCache fc = e->fragment_cache;
 
   *left  = fc->left_margin;
   *right = fc->right_margin;
 }
 
 
-static Int
+static SeekFunction
 getSeekFunctionEditor(Editor e)
-{ answer(TextPointerToInt(seek_editor));
+{ answer(seek_editor);
 }
 
 
-static Int
+static ScanFunction
 getScanFunctionEditor(Editor e)
-{ answer(TextPointerToInt(scan_editor));
+{ answer(scan_editor);
 }
 
 
-static Int
+static FetchFunction
 getFetchFunctionEditor(Editor e)
-{ answer(TextPointerToInt(fetch_editor));
+{ answer(fetch_editor);
 }
 
 
-static Int
+static MarginFunction
 getMarginFunctionEditor(Editor e)
-{ answer(TextPointerToInt(margin_editor));
+{ answer(margin_editor);
 }
 
 
@@ -899,7 +904,7 @@ ensureVisibleEditor(Editor e, Int from, Int to)
   Before(from, to);
 
   if ( where_editor(e, to) == NAME_below )
-  { DEBUG(NAME_scroll, printf("Caret below window\n"));
+  { DEBUG(NAME_scroll, Cprintf("Caret below window\n"));
     startTextImage(e->image, getScanTextBuffer(e->text_buffer,
 					       getStartTextImage(e->image,ONE),
 					       NAME_line, ONE,
@@ -907,7 +912,7 @@ ensureVisibleEditor(Editor e, Int from, Int to)
 		   ZERO);
 
     if ( where_editor(e, to) == NAME_below )
-    { DEBUG(NAME_scroll, printf("More than one line: centering\n"));
+    { DEBUG(NAME_scroll, Cprintf("More than one line: centering\n"));
       centerWindowEditor(e, to);
       ComputeGraphical(e->image);
     }
@@ -1100,7 +1105,12 @@ event_editor(Editor e, EventObj ev)
 
 					/* delete mode on button down */
   if ( isDownEvent(ev) )
-  { endIsearchEditor(e);
+  { PceWindow sw = getWindowGraphical((Graphical)e);
+
+    if ( sw && notNil(sw) && sw->keyboard_focus != (Graphical)e )
+      send(e, NAME_keyboardFocus, ON, 0);
+
+    endIsearchEditor(e);
     assign(e, focus_function, NIL);
   }
 					/* @editor_recogniser is a hook */
@@ -2159,8 +2169,8 @@ alignEditor(Editor e, Int column, Int where)
     ;
   txt++;
   txtcol = valInt(getColumnEditor(e, toInt(txt)));
-  DEBUG(NAME_align, printf("col = %d; txt = %ld; txtcol = %d\n",
-			   col, txt, txtcol));
+  DEBUG(NAME_align, Cprintf("col = %d; txt = %ld; txtcol = %d\n",
+			    col, txt, txtcol));
 
   if ( col <= txtcol )
   { tabs = 0;
@@ -2172,7 +2182,7 @@ alignEditor(Editor e, Int column, Int where)
   { tabs   = col / tabd - txtcol / tabd;
     spaces = (tabs == 0 ? col - txtcol : col % tabd);
   }
-  DEBUG(NAME_align, printf("tabs = %d; spaces = %d\n", tabs, spaces));
+  DEBUG(NAME_align, Cprintf("tabs = %d; spaces = %d\n", tabs, spaces));
 
 					/* delete old indent */
   delete_textbuffer(tb, txt, here-txt);
@@ -2376,7 +2386,7 @@ fillEditor(Editor e, Int from, Int to, Int left_margin, Int right_margin, Bool j
       	col++;
       pos++;
     }
-    DEBUG(NAME_fill, printf("Filling first paragraph line from %d\n", pos));
+    DEBUG(NAME_fill, Cprintf("Filling first paragraph line from %d\n", pos));
     pos = fill_line_textbuffer(tb, pos, e->internal_mark,
 			       col, rm, justify == ON);
 
@@ -2384,12 +2394,13 @@ fillEditor(Editor e, Int from, Int to, Int left_margin, Int right_margin, Bool j
     while( pos < e->internal_mark && !parsep_line_textbuffer(tb, pos) )
     { alignOneLineEditor(e, toInt(pos), toInt(lm));
       pos = valInt(getSkipBlanksTextBuffer(tb, toInt(pos), NAME_forward, OFF));
-      DEBUG(NAME_fill, printf("Next paragraph line from %d\n", pos));
+      DEBUG(NAME_fill, Cprintf("Next paragraph line from %d\n", pos));
       pos = fill_line_textbuffer(tb, pos, e->internal_mark,
 				 lm, rm, justify == ON);
     }
     DEBUG(NAME_fill,
-	  printf("%s end\n", pos < e->internal_mark ? "Paragraph" : "Region"));
+	  Cprintf("%s end\n",
+		  pos < e->internal_mark ? "Paragraph" : "Region"));
 
 					/* correct end for inserts/deletes */
     end += e->internal_mark - ep;
@@ -2781,7 +2792,7 @@ dabbrevExpandEditor(Editor e)
 
   TRY( target = get_dabbrev_target(e) );
   assign(e, dabbrev_target, target);
-  DEBUG(NAME_editor, printf("dabbrev target = %s\n", pp(target)));
+  DEBUG(NAME_editor, Cprintf("dabbrev target = %s\n", pp(target)));
 
   if ( notNil(e->dabbrev_reject) )
     clearChain(e->dabbrev_reject);
@@ -2792,7 +2803,7 @@ dabbrevExpandEditor(Editor e)
   assign(e, dabbrev_pos, sub(e->caret, toInt(target->data.size+1)));
   assign(e, focus_function, NAME_DabbrevExpand);
 
-  DEBUG(NAME_editor, printf("starting DabbrevExpand\n"));
+  DEBUG(NAME_editor, Cprintf("starting DabbrevExpand\n"));
 
   return DabbrevExpandEditor(e, DEFAULT);
 }
@@ -2888,7 +2899,7 @@ DabbrevExpandEditor(Editor e, EventId id)
   for(;;)
   { Cell cell;
 
-    DEBUG(NAME_editor, printf("Starting search\n"));
+    DEBUG(NAME_editor, Cprintf("Starting search\n"));
     hit_pos = find_textbuffer(tb, pos, target, dir, 'a', ec, FALSE);
 
     if ( hit_pos < 0 )
@@ -2909,10 +2920,10 @@ DabbrevExpandEditor(Editor e, EventId id)
       continue;
     }
 
-    DEBUG(NAME_editor, printf("hit at %d\n", hit_pos));
+    DEBUG(NAME_editor, Cprintf("hit at %d\n", hit_pos));
 
     hit = get_dabbrev_hit_editor(e, hit_pos);
-    DEBUG(NAME_editor, printf("hit = %s\n", pp(hit)));
+    DEBUG(NAME_editor, Cprintf("hit = %s\n", pp(hit)));
     pos = (dir < 0 ? hit_pos - 1 : hit_pos + target->size);
 
     for_cell(cell, e->dabbrev_reject)
@@ -2929,15 +2940,15 @@ DabbrevExpandEditor(Editor e, EventId id)
     appendChain(e->dabbrev_reject, hit);
     assign(e, dabbrev_pos, toInt(pos));
 
-    DEBUG(NAME_editor, printf("deleting\n"));
+    DEBUG(NAME_editor, Cprintf("deleting\n"));
     deleteTextBuffer(tb, e->dabbrev_origin, sub(e->caret, e->dabbrev_origin));
-    DEBUG(NAME_editor, printf("inserting\n"));
+    DEBUG(NAME_editor, Cprintf("inserting\n"));
     fix_case_and_insert(tb,
 			valInt(e->dabbrev_origin),
 			&hit->data,
 			get_case_pattern(tb->syntax, target),
 			str_prefix(&hit->data, target) ? TRUE : ec);
-    DEBUG(NAME_editor, printf("ok\n"));
+    DEBUG(NAME_editor, Cprintf("ok\n"));
     succeed;
 
     next:;
@@ -4209,16 +4220,16 @@ makeClassEditor(Class class)
   getMethod(class, NAME_convert, DEFAULT, "editor", 1, "view",
 	    "The `view <-editor'",
 	    getConvertEditor);
-  getMethod(class, NAME_SeekFunction, NAME_internal, "int", 0,
+  getMethod(class, NAME_SeekFunction, NAME_internal, "alien:SeekFunction", 0,
 	    "Pointer to C-function to seek to position",
 	    getSeekFunctionEditor);
-  getMethod(class, NAME_ScanFunction, NAME_internal, "int", 0,
+  getMethod(class, NAME_ScanFunction, NAME_internal, "alien:ScanFunction", 0,
 	    "Pointer to C-function to scan for char-type",
 	    getScanFunctionEditor);
-  getMethod(class, NAME_FetchFunction, NAME_internal, "int", 0,
+  getMethod(class, NAME_FetchFunction, NAME_internal, "alien:FetchFunction", 0,
 	    "Pointer to C-function to fetch char",
 	    getFetchFunctionEditor);
-  getMethod(class, NAME_MarginFunction, NAME_internal, "int", 0,
+  getMethod(class, NAME_MarginFunction, NAME_internal, "alien:MarginFunction",0,
 	    "Pointer to C-function to fetch margins",
 	    getMarginFunctionEditor);
   getMethod(class, NAME_size, NAME_area, "characters=size", 0,

@@ -80,7 +80,7 @@ static int
 IsDownKey(code)
 { int mask = GetKeyState(code);
 
-  DEBUG(NAME_key, printf("IsDownKey(%d): mask = 0x%x\n", code, mask));
+  DEBUG(NAME_key, Cprintf("IsDownKey(%d): mask = 0x%x\n", code, mask));
 
   return mask & ~0xff;
 }
@@ -88,7 +88,7 @@ IsDownKey(code)
 
 static int
 IsDownMeta(LONG lParam)
-{ DEBUG(NAME_key, printf("IsDownMeta(0x%lx)\n", lParam));
+{ DEBUG(NAME_key, Cprintf("IsDownMeta(0x%lx)\n", lParam));
 
   return lParam & (1L << (30-1));	/* bit-29 is 1 if ALT is depressed */
 					/* test tells me it is bit 30 ??? */
@@ -106,8 +106,8 @@ frame_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
   assert(isProperObject(fr));
 
   DEBUG(NAME_event,
-	printf("%s(0x%04x): MS-Windows event 0x%04x with 0x%04x/0x%08lx\n",
-	       pp(fr), hwnd, message, wParam, lParam));
+	Cprintf("%s(0x%04x): MS-Windows event 0x%04x with 0x%04x/0x%08lx\n",
+		pp(fr), hwnd, message, wParam, lParam));
 
   switch(message)
   { case WM_CREATE:
@@ -117,7 +117,7 @@ frame_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
     { int w = LOWORD(lParam);
       int h = HIWORD(lParam);
 
-      DEBUG(NAME_frame, printf("Resized %s to %d x %d\n", pp(fr), w, h));
+      DEBUG(NAME_frame, Cprintf("Resized %s to %d x %d\n", pp(fr), w, h));
       assign(fr->area, w, toInt(w));
       assign(fr->area, h, toInt(h));
 
@@ -151,7 +151,7 @@ frame_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
     case WM_MOVE:			/* frame moved */
     { POINT pt = MAKEPOINT(lParam);
 
-      DEBUG(NAME_frame, printf("Moved %s to %d, %d\n", pp(fr), pt.x, pt.y));
+      DEBUG(NAME_frame, Cprintf("Moved %s to %d, %d\n", pp(fr), pt.x, pt.y));
       assign(fr->area, x, toInt(pt.x));
       assign(fr->area, y, toInt(pt.y));
 
@@ -197,10 +197,11 @@ frame_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       FillRect(hdc, &rect, hbrush);
       ZDeleteObject(hbrush);
 
-      DEBUG(NAME_redraw, printf("Cleared background %d %d %d %d of %s\n",
-				rect.left, rect.top,
-				rect.right - rect.left, rect.bottom - rect.top,
-				pp(fr)));
+      DEBUG(NAME_redraw, Cprintf("Cleared background %d %d %d %d of %s\n",
+				 rect.left, rect.top,
+				 rect.right - rect.left,
+				 rect.bottom - rect.top,
+				 pp(fr)));
 
       return 1;				/* non-zero: I've erased it */
     }
@@ -253,7 +254,7 @@ frame_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       if ( notNil(id) && keyboard_event_frame(fr, id) )
 	return 0;
 
-      DEBUG(NAME_key, printf("WM_KEYUP with key=0x%x\n", (int)wParam));
+      DEBUG(NAME_key, Cprintf("WM_KEYUP with key=0x%x\n", (int)wParam));
 
       break;
     }
@@ -280,11 +281,11 @@ frame_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       if ( (msg = checkType(getValueSheet(fr->wm_protocols,
 					  CtoName("WM_DELETE_WINDOW")),
 			    TypeCode, fr)) )
-      { DEBUG(NAME_close, printf("Running WM_DELETE_WINDOW message %s\n",
-				 pp(msg)));
+      { DEBUG(NAME_close, Cprintf("Running WM_DELETE_WINDOW message %s\n",
+				  pp(msg)));
 	forwardReceiverCode(msg, fr, MainWindow(fr), 0);
-	DEBUG(NAME_close, printf("Finished WM_DELETE_WINDOW. fr=%s, msg=%s\n",
-				 pp(fr), pp(msg)));
+	DEBUG(NAME_close, Cprintf("Finished WM_DELETE_WINDOW. fr=%s, msg=%s\n",
+				  pp(fr), pp(msg)));
       }
 
       return 0;
@@ -676,7 +677,7 @@ ws_geometry_frame(FrameObj fr, Int px, Int py, Int pw, Int ph)
 
 void
 ws_frame_background(FrameObj fr, Any c)
-{ printf("ws_frame_background(%s, %s)\n", pp(fr), pp(c));
+{ Cprintf("ws_frame_background(%s, %s)\n", pp(fr), pp(c));
 }
 
 
@@ -797,7 +798,7 @@ ws_image_of_frame(FrameObj fr)
     w = rect.right - rect.left;
     h = rect.bottom - rect.top;
 
-    DEBUG(NAME_image, printf("hdc = %d, size = %dx%d\n", (int) hdc, w, h));
+    DEBUG(NAME_image, Cprintf("hdc = %d, size = %dx%d\n", (int) hdc, w, h));
     image = answerObject(ClassImage, NIL,
 			 toInt(w), toInt(h), NAME_pixmap, 0);
     assign(image, display, fr->display);

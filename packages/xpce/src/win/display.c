@@ -100,7 +100,7 @@ openDisplay(DisplayObj d)
   if ( ws_opened_display(d) )
     succeed;
 
-  DEBUG(NAME_display, printf("Opening display %s\n", pp(d)));
+  DEBUG(NAME_display, Cprintf("Opening display %s\n", pp(d)));
 
   ws_open_display(d);			/* generate exception on failure */
   if ( isDefault(d->foreground) )

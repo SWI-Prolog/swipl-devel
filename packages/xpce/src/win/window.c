@@ -315,9 +315,9 @@ updatePositionWindow(PceWindow sw)
     int pen = valInt(sw->pen);
 
     offsetDeviceGraphical(sw, &x, &y);
-    DEBUG(NAME_offset, printf("x = %d, y = %d\n", x, y));
+    DEBUG(NAME_offset, Cprintf("x = %d, y = %d\n", x, y));
     offset_window(parent, &ox, &oy);
-    DEBUG(NAME_offset, printf("ox = %d, oy = %d\n", ox, oy));
+    DEBUG(NAME_offset, Cprintf("ox = %d, oy = %d\n", ox, oy));
     x += valInt(sw->area->x) + ox;
     y += valInt(sw->area->y) + oy;
     w  = valInt(sw->area->w);
@@ -487,7 +487,7 @@ offset_windows(PceWindow w1, PceWindow w2, int *X, int *Y)
       *Y = (oy1 + valInt(a1->y)) - (oy2 + valInt(a2->y));
     }
   } else				/* subwindows */
-  { printf("offset_windows(%s, %s) ???\n", pp(w1), pp(w2));
+  { Cprintf("offset_windows(%s, %s) ???\n", pp(w1), pp(w2));
     *X = *Y = 0;
   }
 }
@@ -867,7 +867,7 @@ redrawWindow(PceWindow sw, Area a)
     ia.h = valInt(a->h);
   }
 
-  DEBUG(NAME_redraw, printf("redrawWindow: w=%d, h=%d\n", w, h));
+  DEBUG(NAME_redraw, Cprintf("redrawWindow: w=%d, h=%d\n", w, h));
 
   ox += valInt(sw->scroll_offset->x);
   oy += valInt(sw->scroll_offset->y);
@@ -887,7 +887,7 @@ redrawWindow(PceWindow sw, Area a)
 
 status
 RedrawWindow(PceWindow sw)
-{ DEBUG(NAME_redraw, printf("Redrawing %s\n", pp(sw)));
+{ DEBUG(NAME_redraw, Cprintf("Redrawing %s\n", pp(sw)));
 
   if ( sw->displayed == ON )
   { UpdateArea a, b;
@@ -900,14 +900,14 @@ RedrawWindow(PceWindow sw)
  					/* (only some bytes lost) */
 
 
-    DEBUG(NAME_changesData, printf("%s:\n", pp(sw)));
+    DEBUG(NAME_changesData, Cprintf("%s:\n", pp(sw)));
     for(; a; a = b)
     { b = a->next;
       if ( !a->deleted )
       { DEBUG(NAME_changesData,
-	      printf("\tUpdate %d %d %d %d (%s)\n",
-		     a->area.x, a->area.y, a->area.w, a->area.h,
-		     a->clear ? "clear" : "no clear"));
+	      Cprintf("\tUpdate %d %d %d %d (%s)\n",
+		      a->area.x, a->area.y, a->area.w, a->area.h,
+		      a->clear ? "clear" : "no clear"));
 #ifdef __WINDOWS__
         ws_redraw_window(sw, &a->area, a->clear);
 #else
@@ -1027,31 +1027,31 @@ normalise_window(PceWindow sw, Area a)
   int shift;
 
   NormaliseArea(ax, ay, aw, ah);
-  DEBUG(NAME_normalise, printf("Normalise to: %d, %d %d x %d\n",
-			       ax, ay, aw, ah));
+  DEBUG(NAME_normalise, Cprintf("Normalise to: %d, %d %d x %d\n",
+				ax, ay, aw, ah));
 
   compute_window(sw, &x, &y, &w, &h);
   x -= valInt(sw->scroll_offset->x) + p;
   y -= valInt(sw->scroll_offset->y) + p;
-  DEBUG(NAME_normalise, printf("Visible: %d, %d %d x %d\n", x, y, w, h));
+  DEBUG(NAME_normalise, Cprintf("Visible: %d, %d %d x %d\n", x, y, w, h));
 
   if ( ax + aw > x + w )
   { shift = (ax + aw) - (x + w);
     nsx += shift; x += shift;
-    DEBUG(NAME_normalise, printf("left by %d\n", shift));
+    DEBUG(NAME_normalise, Cprintf("left by %d\n", shift));
   }
   if ( ay + ah > y + h )
   { shift = (ay + ah) - (y + h);
     nsy += shift; y += shift;
-    DEBUG(NAME_normalise, printf("up by %d\n", shift));
+    DEBUG(NAME_normalise, Cprintf("up by %d\n", shift));
   }
   if ( ax < x )
   { nsx -= x - ax;
-    DEBUG(NAME_normalise, printf("right by %d\n", x - ax));
+    DEBUG(NAME_normalise, Cprintf("right by %d\n", x - ax));
   }
   if ( ay < y )
   { nsy -= y - ay;
-    DEBUG(NAME_normalise, printf("down by %d\n", y - ay));
+    DEBUG(NAME_normalise, Cprintf("down by %d\n", y - ay));
   }
 
   if ( nsx != sx || nsy != sy )
@@ -1410,7 +1410,7 @@ frame_window(PceWindow sw, FrameObj frame)
     sw = sw->decoration;
 
   if ( sw->frame != frame )
-  { DEBUG(NAME_frame, printf("Making %s part of %s\n", pp(sw), pp(frame)));
+  { DEBUG(NAME_frame, Cprintf("Making %s part of %s\n", pp(sw), pp(frame)));
 
     addCodeReference(sw);
     if ( notNil(sw->frame) )

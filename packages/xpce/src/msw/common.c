@@ -15,8 +15,8 @@ getHwndFrame(FrameObj fr)
 { WsFrame f;
 
   if ( (f = fr->ws_ref) )
-  { DEBUG(NAME_window, printf("HWND of %s --> 0x%04x\n",
-			      pp(fr), f->hwnd));
+  { DEBUG(NAME_window, Cprintf("HWND of %s --> 0x%04x\n",
+			       pp(fr), f->hwnd));
     return f->hwnd;
   }
 
@@ -51,7 +51,7 @@ getHwndWindow(PceWindow sw)
 { WsWindow w;
 
   if ( (w = sw->ws_ref) )
-  { DEBUG(NAME_window, printf("HWND of %s --> 0x%04x\n",
+  { DEBUG(NAME_window, Cprintf("HWND of %s --> 0x%04x\n",
 			      pp(sw), w->hwnd));
     return w->hwnd;
   }

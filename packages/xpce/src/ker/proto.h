@@ -297,6 +297,7 @@ status		tracePce(Pce pce, Name val);
 status		exceptionPcev(Pce pce, Name name, int argc, Any *argv);
 status		exceptionPce(Pce pce, Name kind, ...);
 int		getdtablesize(void);
+int		getdtablesize(void);
 status		featurePce(Pce pce, Any feature);
 status		hasFeaturePce(Pce pce, Any feature);
 Name		getHostnamePce(Pce pce);
@@ -309,6 +310,7 @@ status		pceInitialise(int handles, int argc, char **argv);
 
 /* sendmethod.c */
 SendMethod	createSendMethod(Name name, Vector types, StringObj doc, SendFunc action);
+status		sendSendMethod(SendMethod m, Any receiver, int argc, const Any argv []);
 status		sendSendMethod(SendMethod m, Any receiver, int argc, const Any argv []);
 status		makeClassSendMethod(Class class);
 

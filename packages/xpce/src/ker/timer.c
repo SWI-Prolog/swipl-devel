@@ -75,12 +75,7 @@ delayTimer(Timer tm)
   synchroniseDisplay(d);
   while( tm->status == NAME_once )
   { if ( dispatchDisplay(d) )
-    { char buf[LINESIZE];
-
-      printf("Timer running; discarding input ... "); fflush(stdout);
-      read(fileno(stdin), buf, LINESIZE);
-      printf("ok\n");
-    }
+      ws_discard_input("Timer running");
   }
 
   succeed;

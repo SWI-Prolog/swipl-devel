@@ -92,8 +92,8 @@ read_bitmap_info(FileObj f)
     return NULL;
   }
   rgbquads = color_quads_in_bitmap_info(&bmih);
-  DEBUG(NAME_image, printf("%dx%d; %d rgbquads\n",
-			   bmih.biWidth, bmih.biHeight, rgbquads));
+  DEBUG(NAME_image, Cprintf("%dx%d; %d rgbquads\n",
+			    bmih.biWidth, bmih.biHeight, rgbquads));
   bmi = malloc(sizeof(bmih) + sizeof(RGBQUAD)*rgbquads);
   memcpy(&bmi->bmiHeader, &bmih, sizeof(bmih));
   if ( fread(&bmi->bmiColors, sizeof(RGBQUAD), rgbquads, fd) != rgbquads )
@@ -141,8 +141,8 @@ ws_load_windows_bmp_file(Image image, FileObj f)
   databytes = bmfh.bfSize - bmfh.bfOffBits;
   bmih = &bmi->bmiHeader;
   DEBUG(NAME_image,
-	printf("%dx%dx%d image; %d data bytes\n",
-	       bmih->biWidth, bmih->biHeight, bmih->biBitCount, databytes));
+	Cprintf("%dx%dx%d image; %d data bytes\n",
+		bmih->biWidth, bmih->biHeight, bmih->biBitCount, databytes));
   aBitmapBits = malloc(databytes);
   if ( fread(aBitmapBits, sizeof(BYTE), databytes, fd) != databytes )
   { free(bmi);
@@ -191,8 +191,8 @@ ws_load_windows_ico_file(Image image)
   { fseek(fd, pos, SEEK_SET);
     fail;				/* not a MS-Windows .bmp file */
   }
-  DEBUG(NAME_image, printf("idType = %d, idCount = %d\n",
-			   ico_hdr.idType, ico_hdr.idCount));
+  DEBUG(NAME_image, Cprintf("idType = %d, idCount = %d\n",
+			    ico_hdr.idType, ico_hdr.idCount));
   if ( ico_hdr.idCount > 1 )
     errorPce(image->file, NAME_moreThanOneIcon);
 
@@ -209,11 +209,11 @@ ws_load_windows_ico_file(Image image)
 #undef BadColorCount
 
   DEBUG(NAME_image,
-	printf("%dx%d icon with %d colors\n",
-	       ico_entry.bWidth, ico_entry.bHeight, ico_entry.bColorCount));
+	Cprintf("%dx%d icon with %d colors\n",
+		ico_entry.bWidth, ico_entry.bHeight, ico_entry.bColorCount));
   DEBUG(NAME_image,
-	printf("dwBytesInRes = %d, dwImageOffset = %d\n",
-	       ico_entry.dwBytesInRes, ico_entry.dwImageOffset));
+	Cprintf("dwBytesInRes = %d, dwImageOffset = %d\n",
+		ico_entry.dwBytesInRes, ico_entry.dwImageOffset));
 
   if ( fseek(fd, ico_entry.dwImageOffset, SEEK_SET) ||
        !(bmi=read_bitmap_info(image->file)) )
@@ -242,8 +242,8 @@ ws_load_image_file(Image image)
   { int w, h;
     unsigned char *data;
     
-    DEBUG(NAME_image, printf("Trying to read bitmap from %s\n",
-			     pp(image->file->path)));
+    DEBUG(NAME_image, Cprintf("Trying to read bitmap from %s\n",
+			      pp(image->file->path)));
     if ( (data = read_bitmap_data(image->file->fd, &w, &h)) )
     { ws_create_image_from_x11_data(image, data, w, h);
       free(data);
@@ -439,9 +439,9 @@ print_bits(unsigned long *addr)
 { unsigned long bits = *addr;
   int i;
 
-  printf("Bits at %p: ", addr);
+  Cprintf("Bits at %p: ", addr);
   for(i=0; i<32; i++)
-  { putchar(bits & 0x80000000 ? '1' : '0');
+  { Cputchar(bits & 0x80000000 ? '1' : '0');
     bits <<= 1;
   }
 }
@@ -527,14 +527,14 @@ ws_image_bits_for_cursor(Image image, Name kind, int w, int h)
     dbits = alloc(bytes);
     alloced = bytes;
    
-    DEBUG(NAME_cursor, printf("Alloced %d bytes at 0x%lx\n",
+    DEBUG(NAME_cursor, Cprintf("Alloced %d bytes at 0x%lx\n",
 			       alloced, (long) dbits));
 
     if ( bytes != GetBitmapBits(bm, bytes, dbits) )
-      printf("GetBitmapBits() failed\n");
+      Cprintf("GetBitmapBits() failed\n");
 
-    DEBUG(NAME_cursor, printf("Got %d bytes image from %s\n",
-			      bytes, pp(image)));
+    DEBUG(NAME_cursor, Cprintf("Got %d bytes image from %s\n",
+			       bytes, pp(image)));
   }
 		   
   for(y=0; y<h; y++)
@@ -542,7 +542,7 @@ ws_image_bits_for_cursor(Image image, Name kind, int w, int h)
     d = dbits + y*((dw+15)/16);
     x = 0;
 
-    DEBUG(NAME_cursor, printf("Copy line %d from %p to %p\n", y, d, c));
+    DEBUG(NAME_cursor, Cprintf("Copy line %d from %p to %p\n", y, d, c));
 
     if ( y < dh )
     { for(; x < w && x < dw; x += 16)
@@ -553,7 +553,7 @@ ws_image_bits_for_cursor(Image image, Name kind, int w, int h)
 
 	DEBUG(NAME_cursor,
 	      if ( saidpad++ == 0 )
-	        printf("mask = 0x%04x; ms = 0x%04x\n", mask, m2));
+	        Cprintf("mask = 0x%04x; ms = 0x%04x\n", mask, m2));
 
 	c[-1] &= m2;
       }
@@ -565,7 +565,7 @@ ws_image_bits_for_cursor(Image image, Name kind, int w, int h)
   if ( alloced )
     unalloc(alloced, dbits);
 
-  DEBUG(NAME_cursor, printf("Returning %dx%d bits\n", w, h));
+  DEBUG(NAME_cursor, Cprintf("Returning %dx%d bits\n", w, h));
   return cbits;
 }
 

@@ -194,7 +194,7 @@ read_cursor_glyphs(FILE *in)
 
   fread(&set->header, sizeof(cursor_glyph_file_header), 1, in);
   if ( set->header.magic != XPCE_CURSOR_FILE_MAGIC )
-  { fprintf(stderr, "Bad magic number\n");
+  { Cprintf("Bad magic number\n");
     free(set);
     return NULL;
   }
@@ -205,13 +205,13 @@ read_cursor_glyphs(FILE *in)
   if ( !(set->glyphs = malloc(sizeof(cursor_glyph) * entries)) ||
        !(set->data   = malloc(set->header.dsize)) ||
        !(set->cache  = calloc(entries/2, sizeof(cursor_bits))) )
-  { fprintf(stderr, "Not enough memory\n");
+  { Cprintf("Not enough memory\n");
     return NULL;
   }
 
   if ( fread(set->glyphs, sizeof(cursor_glyph), entries, in) != entries ||
        fread(set->data, sizeof(unsigned short), dshorts, in) != dshorts )
-  { fprintf(stderr, "Read failed\n");
+  { Cprintf("Read failed\n");
     return NULL;
   }
     
@@ -274,7 +274,7 @@ copy_image_pattern(unsigned short *dbits, int dw, int dh,
   copy_pattern(dbits, dw, dh, cbits, w, h);
 
   if ( sx<0 || sx > 16 || sy < 0 || sy > 16 )
-  { printf("sx = %d, sy = %d\n", sx, sy);
+  { Cprintf("sx = %d, sy = %d\n", sx, sy);
     return;
   }
 
@@ -355,7 +355,7 @@ get_cursor_bits(CursorGlyphSet set, int cursor, int *hx, int *hy)
   CursorGlyph mglyph = &set->glyphs[cursor+1];
     
   if ( cursor < 0 || cursor > set->header.entries-1 )
-  { fprintf(stderr, "Cursor %d out of range\n", cursor);
+  { Cprintf("Cursor %d out of range\n", cursor);
     return NULL;
   }
 
@@ -367,10 +367,10 @@ get_cursor_bits(CursorGlyphSet set, int cursor, int *hx, int *hy)
     result->image = malloc(ws_sizeof_bits(set->cwidth, set->cheight));
     result->mask  = malloc(ws_sizeof_bits(set->cwidth, set->cheight));
     
-    DEBUG(NAME_cursor, printf("Mask hotspot = %d, %d\n",
-			      SEC(mglyph->hot_x), SEC(mglyph->hot_y)));
-    DEBUG(NAME_cursor, printf("Image hotspot = %d, %d\n",
-			      SEC(iglyph->hot_x), SEC(iglyph->hot_y)));
+    DEBUG(NAME_cursor, Cprintf("Mask hotspot = %d, %d\n",
+			       SEC(mglyph->hot_x), SEC(mglyph->hot_y)));
+    DEBUG(NAME_cursor, Cprintf("Image hotspot = %d, %d\n",
+			       SEC(iglyph->hot_x), SEC(iglyph->hot_y)));
 
     copy_mask_pattern(&set->data[mglyph->offset/sizeof(unsigned short)], 
 		      mglyph->width, mglyph->height,
@@ -431,7 +431,7 @@ print_bits(CursorGlyphSet set, CursorBits bits, int hx, int hy, char show)
   int h = set->cheight;
   int spl = (w+15)/16;			/* shorts-per-line */
 
-  printf("Image is %dx%d, HotSpot at %d, %d\n\n", w, h, hx, hy);
+  Cprintf("Image is %dx%d, HotSpot at %d, %d\n\n", w, h, hx, hy);
 
   for(y=0; y<h; y++)
   { unsigned short *i = bits->image + y * spl;
@@ -443,16 +443,16 @@ print_bits(CursorGlyphSet set, CursorBits bits, int hx, int hy, char show)
       int bi = *i & (1<<bit);
 
       if ( x == hx && y == hy )
-	putchar('X');
+	Cputchar('X');
       else
       { if ( show == 'm' )
-	  putchar(bm ? '#' : '.');
+	  Cputchar(bm ? '#' : '.');
         else if ( show == 'i' )
-	  putchar(bi ? '#' : '.');
+	  Cputchar(bi ? '#' : '.');
 	else
-	  putchar(bm  && !bi ? '.' :
-		  bm  && bi  ? '-' :
-		  !bm && bi  ? '#' : '$');
+	  Cputchar(bm  && !bi ? '.' :
+		   bm  && bi  ? '-' :
+		   !bm && bi  ? '#' : '$');
       }
 
       if ( bit-- == 0 )
@@ -460,7 +460,7 @@ print_bits(CursorGlyphSet set, CursorBits bits, int hx, int hy, char show)
 	bit = 15;
       }
     }
-    putchar('\n');
+    Cputchar('\n');
   }
 }
 
@@ -511,7 +511,7 @@ ws_create_cursor(CursorObj c, DisplayObj d)
   }
 
   if ( !msc )
-  { printf("Failed to create cursor for %s\n", pp(c));
+  { Cprintf("Failed to create cursor for %s\n", pp(c));
     msc = LoadCursor(NULL, IDC_ARROW);
   }
 /*    return errorPce(c, NAME_xOpen, d); */
@@ -610,7 +610,7 @@ paint_big_cursor()
     HDC bmhdc = CreateCompatibleDC(hdc);
     HBITMAP obm;
 
-    DEBUG(NAME_image, printf("Painting BIG cursor at %d, %d\n",
+    DEBUG(NAME_image, Cprintf("Painting BIG cursor at %d, %d\n",
 			      saved_x, saved_y));
 
     obm = ZSelectObject(bmhdc, mask);
@@ -668,7 +668,7 @@ start_big_cursor(CursorObj c)
   HBITMAP img;
 
   if ( isNil(c->mask) || isNil(c->image) || isNil(c->hot_spot) )
-  { printf("Cannot create BIG cursor from non-image cursor");
+  { Cprintf("Cannot create BIG cursor from non-image cursor");
     fail;
   }
 
@@ -681,7 +681,7 @@ start_big_cursor(CursorObj c)
   
   image = mask_image(img, mask, big_cursor_width, big_cursor_height);
 
-  DEBUG(NAME_image, printf("Started BIG cursor of %dx%d\n",
+  DEBUG(NAME_image, Cprintf("Started BIG cursor of %dx%d\n",
 			    big_cursor_width, big_cursor_height));
 
 /*hcursorsave = SetCursor(LoadCursor(NULL, IDC_ICON));  empty cursor */
@@ -707,7 +707,7 @@ move_big_cursor()
 status
 exit_big_cursor()
 { if ( saved_bits )
-  { DEBUG(NAME_image, printf("exit_big_cursor()\n"));
+  { DEBUG(NAME_image, Cprintf("exit_big_cursor()\n"));
     restore_big_cursor_background();
     ZDeleteObject(saved_bits);
     saved_bits = NULL;

@@ -771,8 +771,8 @@ int
 qsortCompareObjects(const void *o1, const void *o2)
 { int rval = forwardCompareCode(qsortCompareCode, *((Any *) o1), *((Any *)o2));
 
-  DEBUG(NAME_sort, printf("compare %s %s --> %d\n",
-			  pp(*((Any *)o1)), pp(*((Any *)o2)), rval));
+  DEBUG(NAME_sort, Cprintf("compare %s %s --> %d\n",
+			   pp(*((Any *)o1)), pp(*((Any *)o2)), rval));
 
   return qsortReverse ? -rval : rval;
 }

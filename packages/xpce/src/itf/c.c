@@ -17,14 +17,6 @@ NewClass(c_obj)
 End;
 
 
-typedef Int			TextPointer;
-typedef Int			DataPointer;
-#define valTextPointer(i)	IntToTextPointer(i)
-#define CtoTextPointer(p)	TextPointerToInt(p)
-#define valDataPointer(i)	IntToPointer(i)
-#define CtoDataPointer(p)	PointerToInt(p)
-
-
 static status
 initialiseC(CObj h)
 { initialiseHost((Host)h, CtoName("C"));
@@ -35,9 +27,9 @@ initialiseC(CObj h)
 
 
 static status
-callCv(CObj host, TextPointer function, int argc, Any *argv)
+callCv(CObj host, CPointer function, int argc, Any *argv)
 { status rval;
-  SendFunc f = (SendFunc) valTextPointer(function);
+  SendFunc f = (SendFunc) function->pointer;
   int n;
 
   for(n=0; n<argc; n++)
@@ -72,9 +64,9 @@ callCv(CObj host, TextPointer function, int argc, Any *argv)
 
 
 static Any
-getCallCv(CObj host, TextPointer function, int argc, Any *argv)
+getCallCv(CObj host, CPointer function, int argc, Any *argv)
 { Any rval;
-  GetFunc f = (GetFunc) valTextPointer(function);
+  GetFunc f = function->pointer;
   int n;
 
   for(n=0; n<argc; n++)
@@ -116,11 +108,11 @@ status callCPlusPlusProc(void *, int ac, const Any av[]);
 Any    callCPlusPlusFunc(void *, int ac, const Any av[]);
 
 static status
-callCPlusPlusMethodv(CObj host, TextPointer function,
-		     DataPointer cppobject, int argc, Any *argv)
+callCPlusPlusMethodv(CObj host, CPointer function,
+		     CPointer cppobject, int argc, Any *argv)
 { status rval;
-  void *f    = (void *) valTextPointer(function);
-  void *obj  = (void *) valDataPointer(cppobject);
+  void *f    = function->pointer;
+  void *obj  = cppobject->pointer;
   int n;
 
   for(n=0; n<argc; n++)
@@ -138,11 +130,11 @@ callCPlusPlusMethodv(CObj host, TextPointer function,
 
 
 static Any
-getCallCPlusPlusMethodv(CObj host, TextPointer function,
-			DataPointer cppobject, int argc, Any *argv)
+getCallCPlusPlusMethodv(CObj host, CPointer function,
+			CPointer cppobject, int argc, Any *argv)
 { Any rval;
-  void *f   = (void *) valTextPointer(function);
-  void *obj = (void *) valDataPointer(cppobject);
+  void *f   = function->pointer;
+  void *obj = cppobject->pointer;
   int n;
 
   for(n=0; n<argc; n++)
@@ -159,9 +151,9 @@ getCallCPlusPlusMethodv(CObj host, TextPointer function,
 }
 
 static status
-callCPlusPlusCv(CObj host, TextPointer function, int argc, Any *argv)
+callCPlusPlusCv(CObj host, CPointer function, int argc, Any *argv)
 { status rval;
-  void *f = (void *) valTextPointer(function);
+  void *f = function->pointer;
   int n;
 
   for(n=0; n<argc; n++)
@@ -179,9 +171,9 @@ callCPlusPlusCv(CObj host, TextPointer function, int argc, Any *argv)
 
 
 static Any
-getCallCPlusPlusCv(CObj host, TextPointer function, int argc, Any *argv)
+getCallCPlusPlusCv(CObj host, CPointer function, int argc, Any *argv)
 { Any rval;
-  void *f = (void *) valTextPointer(function);
+  void *f = function->pointer;
   int n;
 
   for(n=0; n<argc; n++)
@@ -201,41 +193,37 @@ getCallCPlusPlusCv(CObj host, TextPointer function, int argc, Any *argv)
 
 status
 makeClassC(Class class)
-{ defineType("text_pointer", "int");	/* TBD */
-  defineType("data_pointer", "int");	/* TBD */
-
-  sourceClass(class, makeClassC, __FILE__, "$Revision$");
+{ sourceClass(class, makeClassC, __FILE__, "$Revision$");
 
   sendMethod(class, NAME_initialise, DEFAULT, 0,
 	     "Create C interface",
 	     initialiseC);
   sendMethod(class, NAME_call, NAME_callback, 2,
-	     "text_pointer", "unchecked ...",
+	     "c_pointer", "unchecked ...",
 	     "Invoke a C-function send_method",
 	     callCv);
 
   getMethod(class, NAME_call, NAME_callback, "unchecked", 2,
-	    "text_pointer", "unchecked ...",
+	    "c_pointer", "unchecked ...",
 	    "Invoke a C-function get_method",
 	    getCallCv);
 
 #if O_CPLUSPLUS
-
   sendMethod(class, NAME_callCPlusPlusMethod, NAME_callback, 3,
-	     "text_pointer", "data_pointer", "unchecked ...",
+	     "c_pointer", "c_pointer", "unchecked ...",
 	     "Invoke C++ method on C++ object",
 	     callCPlusPlusMethodv);
   sendMethod(class, NAME_callCPlusPlus, NAME_callback, 2,
-	     "text_pointer", "unchecked ...",
+	     "c_pointer", "unchecked ...",
 	     "Invoke a C++-function",
 	     callCPlusPlusCv);
 
   getMethod(class, NAME_callCPlusPlusMethod, NAME_callback, "unchecked", 3,
-	    "text_pointer", "data_pointer", "unchecked ...",
+	    "c_pointer", "c_pointer", "unchecked ...",
 	    "Invoke C++ method on C++ object",
 	    getCallCPlusPlusMethodv);
   getMethod(class, NAME_callCPlusPlus, NAME_callback, "unchecked" , 2,
-	    "text_pointer", "unchecked ...",
+	    "c_pointer", "unchecked ...",
 	    "Invoke a C++-function",
 	    getCallCPlusPlusCv);
 
@@ -526,7 +514,7 @@ XPCE_callv(XPCE_Procedure function, int argc, const XPCE_Object argv[])
 
   av[0] = XPCE_CHost();
   av[1] = NAME_call;
-  av[2] = CtoTextPointer(function);
+  av[2] = CtoCPointer(function);
   for(i=0; i<argc; i++)
     av[i+3] = argv[i];
 
@@ -541,7 +529,7 @@ XPCE_funcallv(XPCE_Function function, int argc, const XPCE_Object argv[])
 
   av[0] = XPCE_CHost();
   av[1] = NAME_call;
-  av[2] = CtoTextPointer(function);
+  av[2] = CtoCPointer(function);
   for(i=0; i<argc; i++)
     av[i+3] = argv[i];
 
@@ -777,8 +765,8 @@ XPCE_callCPlusPlusMethodv(XPCE_Procedure function, void *obj,
 
   av[0] = XPCE_CHost();
   av[1] = NAME_callCPlusPlusMethod;
-  av[2] = CtoTextPointer(function);
-  av[3] = CtoDataPointer(obj);
+  av[2] = CtoCPointer(function);
+  av[3] = CtoCPointer(obj);
   for(i=0; i<argc; i++)
     av[i+4] = argv[i];
 
@@ -794,8 +782,8 @@ XPCE_funcallCPlusPlusMethodv(XPCE_Function function, void *obj,
 
   av[0] = XPCE_CHost();
   av[1] = NAME_callCPlusPlusMethod;
-  av[2] = CtoTextPointer(function);
-  av[3] = CtoDataPointer(obj);
+  av[2] = CtoCPointer(function);
+  av[3] = CtoCPointer(obj);
   for(i=0; i<argc; i++)
     av[i+4] = argv[i];
 
@@ -810,7 +798,7 @@ XPCE_callCPlusPlusv(XPCE_Procedure f, int argc, const XPCE_Object argv[])
 
   av[0] = XPCE_CHost();
   av[1] = NAME_callCPlusPlus;
-  av[2] = CtoTextPointer(f);
+  av[2] = CtoCPointer(f);
   for(i=0; i<argc; i++)
     av[i+3] = argv[i];
 
@@ -825,7 +813,7 @@ XPCE_funcallCPlusPlusv(XPCE_Function f, int argc, const XPCE_Object argv[])
 
   av[0] = XPCE_CHost();
   av[1] = NAME_callCPlusPlus;
-  av[2] = CtoTextPointer(f);
+  av[2] = CtoCPointer(f);
   for(i=0; i<argc; i++)
     av[i+3] = argv[i];
 

@@ -517,10 +517,10 @@ extract_number_and_incr (destination, source)
 static int debug = 0;
 
 #define DEBUG_STATEMENT(e) e
-#define DEBUG_PRINT1(x) if (debug) printf (x)
-#define DEBUG_PRINT2(x1, x2) if (debug) printf (x1, x2)
-#define DEBUG_PRINT3(x1, x2, x3) if (debug) printf (x1, x2, x3)
-#define DEBUG_PRINT4(x1, x2, x3, x4) if (debug) printf (x1, x2, x3, x4)
+#define DEBUG_PRINT1(x) if (debug) Cprintf (x)
+#define DEBUG_PRINT2(x1, x2) if (debug) Cprintf (x1, x2)
+#define DEBUG_PRINT3(x1, x2, x3) if (debug) Cprintf (x1, x2, x3)
+#define DEBUG_PRINT4(x1, x2, x3, x4) if (debug) Cprintf (x1, x2, x3, x4)
 #define DEBUG_PRINT_COMPILED_PATTERN(p, s, e) 				\
   if (debug) print_partial_compiled_pattern (s, e)
 #define DEBUG_PRINT_DOUBLE_STRING(w, s1, sz1, s2, sz2)			\
@@ -551,7 +551,7 @@ print_fastmap (fastmap)
             }
 	  if (was_a_range)
             {
-              printf ("-");
+              Cprintf ("-");
               printchar (i - 1);
             }
         }
@@ -574,24 +574,24 @@ print_partial_compiled_pattern (start, end)
 
   if (start == NULL)
     {
-      printf ("(null)\n");
+      Cprintf ("(null)\n");
       return;
     }
     
   /* Loop over pattern commands.  */
   while (p < pend)
     {
-      printf ("%d:\t", p - start);
+      Cprintf ("%d:\t", p - start);
 
       switch ((re_opcode_t) *p++)
 	{
         case no_op:
-          printf ("/no_op");
+          Cprintf ("/no_op");
           break;
 
 	case exactn:
 	  mcnt = *p++;
-          printf ("/exactn/%d", mcnt);
+          Cprintf ("/exactn/%d", mcnt);
           do
 	    {
               putchar ('/');
@@ -602,20 +602,20 @@ print_partial_compiled_pattern (start, end)
 
 	case start_memory:
           mcnt = *p++;
-          printf ("/start_memory/%d/%d", mcnt, *p++);
+          Cprintf ("/start_memory/%d/%d", mcnt, *p++);
           break;
 
 	case stop_memory:
           mcnt = *p++;
-	  printf ("/stop_memory/%d/%d", mcnt, *p++);
+	  Cprintf ("/stop_memory/%d/%d", mcnt, *p++);
           break;
 
 	case duplicate:
-	  printf ("/duplicate/%d", *p++);
+	  Cprintf ("/duplicate/%d", *p++);
 	  break;
 
 	case anychar:
-	  printf ("/anychar");
+	  Cprintf ("/anychar");
 	  break;
 
 	case charset:
@@ -624,7 +624,7 @@ print_partial_compiled_pattern (start, end)
             register int c, last = -100;
 	    register int in_range = 0;
 
-	    printf ("/charset [%s",
+	    Cprintf ("/charset [%s",
 	            (re_opcode_t) *(p - 1) == charset_not ? "^" : "");
             
             assert (p + *p < pend);
@@ -662,143 +662,143 @@ print_partial_compiled_pattern (start, end)
 	  break;
 
 	case begline:
-	  printf ("/begline");
+	  Cprintf ("/begline");
           break;
 
 	case endline:
-          printf ("/endline");
+          Cprintf ("/endline");
           break;
 
 	case on_failure_jump:
           extract_number_and_incr (&mcnt, &p);
-  	  printf ("/on_failure_jump to %d", p + mcnt - start);
+  	  Cprintf ("/on_failure_jump to %d", p + mcnt - start);
           break;
 
 	case on_failure_keep_string_jump:
           extract_number_and_incr (&mcnt, &p);
-  	  printf ("/on_failure_keep_string_jump to %d", p + mcnt - start);
+  	  Cprintf ("/on_failure_keep_string_jump to %d", p + mcnt - start);
           break;
 
 	case dummy_failure_jump:
           extract_number_and_incr (&mcnt, &p);
-  	  printf ("/dummy_failure_jump to %d", p + mcnt - start);
+  	  Cprintf ("/dummy_failure_jump to %d", p + mcnt - start);
           break;
 
 	case push_dummy_failure:
-          printf ("/push_dummy_failure");
+          Cprintf ("/push_dummy_failure");
           break;
           
         case maybe_pop_jump:
           extract_number_and_incr (&mcnt, &p);
-  	  printf ("/maybe_pop_jump to %d", p + mcnt - start);
+  	  Cprintf ("/maybe_pop_jump to %d", p + mcnt - start);
 	  break;
 
         case pop_failure_jump:
 	  extract_number_and_incr (&mcnt, &p);
-  	  printf ("/pop_failure_jump to %d", p + mcnt - start);
+  	  Cprintf ("/pop_failure_jump to %d", p + mcnt - start);
 	  break;          
           
         case jump_past_alt:
 	  extract_number_and_incr (&mcnt, &p);
-  	  printf ("/jump_past_alt to %d", p + mcnt - start);
+  	  Cprintf ("/jump_past_alt to %d", p + mcnt - start);
 	  break;          
           
         case jump:
 	  extract_number_and_incr (&mcnt, &p);
-  	  printf ("/jump to %d", p + mcnt - start);
+  	  Cprintf ("/jump to %d", p + mcnt - start);
 	  break;
 
         case succeed_n: 
           extract_number_and_incr (&mcnt, &p);
           extract_number_and_incr (&mcnt2, &p);
-	  printf ("/succeed_n to %d, %d times", p + mcnt - start, mcnt2);
+	  Cprintf ("/succeed_n to %d, %d times", p + mcnt - start, mcnt2);
           break;
         
         case jump_n: 
           extract_number_and_incr (&mcnt, &p);
           extract_number_and_incr (&mcnt2, &p);
-	  printf ("/jump_n to %d, %d times", p + mcnt - start, mcnt2);
+	  Cprintf ("/jump_n to %d, %d times", p + mcnt - start, mcnt2);
           break;
         
         case set_number_at: 
           extract_number_and_incr (&mcnt, &p);
           extract_number_and_incr (&mcnt2, &p);
-	  printf ("/set_number_at location %d to %d", p + mcnt - start, mcnt2);
+	  Cprintf ("/set_number_at location %d to %d", p + mcnt - start, mcnt2);
           break;
         
         case wordbound:
-	  printf ("/wordbound");
+	  Cprintf ("/wordbound");
 	  break;
 
 	case notwordbound:
-	  printf ("/notwordbound");
+	  Cprintf ("/notwordbound");
           break;
 
 	case wordbeg:
-	  printf ("/wordbeg");
+	  Cprintf ("/wordbeg");
 	  break;
           
 	case wordend:
-	  printf ("/wordend");
+	  Cprintf ("/wordend");
           
 #ifdef emacs
 	case before_dot:
-	  printf ("/before_dot");
+	  Cprintf ("/before_dot");
           break;
 
 	case at_dot:
-	  printf ("/at_dot");
+	  Cprintf ("/at_dot");
           break;
 
 	case after_dot:
-	  printf ("/after_dot");
+	  Cprintf ("/after_dot");
           break;
 #endif /*emacs*/
 
 #if defined(emacs) || defined(pce_source)
 	case syntaxspec:
-          printf ("/syntaxspec");
+          Cprintf ("/syntaxspec");
 	  mcnt = *p++;
 #ifdef pce_source
 	  mcnt |= (*p++ << 8);
 #endif /* pce_source */
-	  printf ("/%d", mcnt);
+	  Cprintf ("/%d", mcnt);
           break;
 	  
 	case notsyntaxspec:
-          printf ("/notsyntaxspec");
+          Cprintf ("/notsyntaxspec");
 	  mcnt = *p++;
 #ifdef pce_source
 	  mcnt |= (*p++ << 8);
 #endif /* pce_source */
-	  printf ("/%d", mcnt);
+	  Cprintf ("/%d", mcnt);
 	  break;
 #endif /* emacs || pce_source */
 
 	case wordchar:
-	  printf ("/wordchar");
+	  Cprintf ("/wordchar");
           break;
 	  
 	case notwordchar:
-	  printf ("/notwordchar");
+	  Cprintf ("/notwordchar");
           break;
 
 	case begbuf:
-	  printf ("/begbuf");
+	  Cprintf ("/begbuf");
           break;
 
 	case endbuf:
-	  printf ("/endbuf");
+	  Cprintf ("/endbuf");
           break;
 
         default:
-          printf ("?%d", *(p-1));
+          Cprintf ("?%d", *(p-1));
 	}
 
       putchar ('\n');
     }
 
-  printf ("%d:\tend of pattern.\n", p - start);
+  Cprintf ("%d:\tend of pattern.\n", p - start);
 }
 
 
@@ -809,22 +809,22 @@ print_compiled_pattern (bufp)
   unsigned char *buffer = bufp->buffer;
 
   print_partial_compiled_pattern (buffer, buffer + bufp->used);
-  printf ("%d bytes used/%d bytes allocated.\n", bufp->used, bufp->allocated);
+  Cprintf ("%d bytes used/%d bytes allocated.\n", bufp->used, bufp->allocated);
 
   if (bufp->fastmap_accurate && bufp->fastmap)
     {
-      printf ("fastmap: ");
+      Cprintf ("fastmap: ");
       print_fastmap (bufp->fastmap);
     }
 
-  printf ("re_nsub: %d\t", bufp->re_nsub);
-  printf ("regs_alloc: %d\t", bufp->regs_allocated);
-  printf ("can_be_null: %d\t", bufp->can_be_null);
-  printf ("newline_anchor: %d\n", bufp->newline_anchor);
-  printf ("no_sub: %d\t", bufp->no_sub);
-  printf ("not_bol: %d\t", bufp->not_bol);
-  printf ("not_eol: %d\t", bufp->not_eol);
-  printf ("syntax: %d\n", bufp->syntax);
+  Cprintf ("re_nsub: %d\t", bufp->re_nsub);
+  Cprintf ("regs_alloc: %d\t", bufp->regs_allocated);
+  Cprintf ("can_be_null: %d\t", bufp->can_be_null);
+  Cprintf ("newline_anchor: %d\n", bufp->newline_anchor);
+  Cprintf ("no_sub: %d\t", bufp->no_sub);
+  Cprintf ("not_bol: %d\t", bufp->not_bol);
+  Cprintf ("not_eol: %d\t", bufp->not_eol);
+  Cprintf ("syntax: %d\n", bufp->syntax);
   /* Perhaps we should print the translate table?  */
 }
 
@@ -840,7 +840,7 @@ print_double_string (where, string1, size1, string2, size2)
   unsigned this_char;
   
   if (where == NULL)
-    printf ("(null)");
+    Cprintf ("(null)");
   else
     {
       if (FIRST_STRING_P (where))

@@ -80,7 +80,7 @@ getFindCursorDevice(Device dev)
       rval = c2;
     else if ( notNil(gr->cursor) )
     { rval = gr->cursor;
-      DEBUG(NAME_cursor, printf("get cursor %s from %s\n", pp(rval), pp(gr)));
+      DEBUG(NAME_cursor, Cprintf("get cursor %s from %s\n", pp(rval), pp(gr)));
     }
 
     if ( notNil(rval) )
@@ -89,8 +89,8 @@ getFindCursorDevice(Device dev)
 
   if ( isNil(rval) && notNil(dev->cursor) )
   { rval = dev->cursor;
-    DEBUG(NAME_cursor, printf("get cursor %s from device %s\n",
-			      pp(rval), pp(dev)));
+    DEBUG(NAME_cursor, Cprintf("get cursor %s from device %s\n",
+			       pp(rval), pp(dev)));
   }
 
   answer(rval);
@@ -190,7 +190,7 @@ updatePointedDevice(Device dev, EventObj ev)
   { register Graphical gr = cell->value;
 
     if ( gr->displayed == OFF || !inEventAreaGraphical(gr, x, y) )
-    { DEBUG(NAME_event, printf("Leaving %s\n", pp(gr)));
+    { DEBUG(NAME_event, Cprintf("Leaving %s\n", pp(gr)));
       deleteChain(dev->pointed, gr);
       generateEventGraphical(gr, exit);
     }
@@ -204,7 +204,7 @@ updatePointedDevice(Device dev, EventObj ev)
     { active[an++] = gr;
 
       if ( memberChain(dev->pointed, gr) != SUCCEED )
-      { DEBUG(NAME_event, printf("Entering %s\n", pp(gr)));
+      { DEBUG(NAME_event, Cprintf("Entering %s\n", pp(gr)));
         generateEventGraphical(gr, enter);
       }
 
@@ -424,7 +424,7 @@ Graphicals indicate changes through the following call:
 
 status
 requestComputeDevice(Device dev, Any val)
-{ DEBUG(NAME_compute, printf("requestComputeDevice(%s)\n", pp(dev)));
+{ DEBUG(NAME_compute, Cprintf("requestComputeDevice(%s)\n", pp(dev)));
   assign(dev, badBoundingBox, ON);
   assign(dev, badFormat, ON);
 
@@ -486,9 +486,9 @@ computeBoundingBoxDevice(Device dev)
     clearArea(a);
 
     DEBUG(NAME_compute,
-	  printf("computeBoundingBoxDevice(%s) %ld %ld %ld %ld\n",
-		 pp(dev),
-		 valInt(ax), valInt(ay), valInt(aw), valInt(ah)));
+	  Cprintf("computeBoundingBoxDevice(%s) %ld %ld %ld %ld\n",
+		  pp(dev),
+		  valInt(ax), valInt(ay), valInt(aw), valInt(ah)));
 
 
     for_cell(cell, dev->graphicals)
@@ -502,8 +502,8 @@ computeBoundingBoxDevice(Device dev)
 
     if ( ax != a->x || ay != a->y || aw != a->w || ah != a->h )
     { DEBUG(NAME_compute,
-	    printf("                          --> %ld %ld %ld %ld\n",
-		   valInt(a->x), valInt(a->y), valInt(a->w), valInt(a->h)));
+	    Cprintf("                          --> %ld %ld %ld %ld\n",
+		    valInt(a->x), valInt(a->y), valInt(a->w), valInt(a->h)));
 
       if ( notNil(dev->device) )
       { requestComputeDevice(dev->device, DEFAULT);
@@ -558,10 +558,10 @@ RedrawAreaDevice(Device dev, Area a)
   if ( aw == ZERO || ah == ZERO )
     succeed;
 
-  DEBUG(NAME_redraw, printf("RedrawAreaDevice(%s, %ld %ld %ld %ld)\n",
-			    pp(dev), 
-			    valInt(a->x), valInt(a->y),
-			    valInt(a->w), valInt(a->h)));
+  DEBUG(NAME_redraw, Cprintf("RedrawAreaDevice(%s, %ld %ld %ld %ld)\n",
+			     pp(dev), 
+			     valInt(a->x), valInt(a->y),
+			     valInt(a->w), valInt(a->h)));
 
   assign(a, x, toInt(valInt(a->x) - ox));
   assign(a, y, toInt(valInt(a->y) - oy));
@@ -1068,7 +1068,7 @@ placeDialogItem(Device d, Matrix m, Graphical i,
     succeed;
   SetPlaced(i);
 
-  DEBUG(NAME_layout, printf("placing %s\n", pp(i)));
+  DEBUG(NAME_layout, Cprintf("placing %s\n", pp(i)));
 
   while( x < 0 ) { shift_x_matrix(m, max_x, max_y); x++; }
   while( y < 0 ) { shift_y_matrix(m, max_x, max_y); y++; }
@@ -1278,8 +1278,8 @@ layoutDialogDevice(Device d, Size gap)
 	    Graphical gr2 = NULL, grl = gr;
 	    int tw, dx;
 
-	    DEBUG(NAME_layout, printf("%s is aligned %s\n",
-				      pp(gr), pp(algnmt)));
+	    DEBUG(NAME_layout, Cprintf("%s is aligned %s\n",
+				       pp(gr), pp(algnmt)));
 
 	    for(x2 = x-1; x2 >= 0; x2--)
 	    { if ( notNil(gr2 = m.units[x2][y].item) &&
@@ -1287,8 +1287,8 @@ layoutDialogDevice(Device d, Size gap)
 	      { if ( m.units[x2][y].alignment != algnmt )
 		  break;
 		else
-		{ DEBUG(NAME_layout, printf("\tadding %s\n",
-					    pp(m.units[x2][y].item)));
+		{ DEBUG(NAME_layout, Cprintf("\tadding %s\n",
+					     pp(m.units[x2][y].item)));
 		  grl = gr2;
 		}
 	      }
@@ -1300,21 +1300,21 @@ layoutDialogDevice(Device d, Size gap)
 	      dx = px - tw - valInt(gap->w);
 	    else
 	    { int sx = (x2 < 0 ? 0 : valInt(getRightSideGraphical(gr2)));
-	      DEBUG(NAME_layout, printf("sx = %d; ", sx));
+	      DEBUG(NAME_layout, Cprintf("sx = %d; ", sx));
 	      dx = (px - sx - tw)/2 + sx;
 	    }
 	    dx -= valInt(getLeftSideGraphical(grl));
 
 	    DEBUG(NAME_layout,
-		  printf("R = %d; Total width = %d, shift = %d\n",
-			 px, tw, dx));
+		  Cprintf("R = %d; Total width = %d, shift = %d\n",
+			  px, tw, dx));
 
 	    for(; ; x--)
 	    { if ( notNil(gr = m.units[x][y].item) &&
 		   gr->displayed == ON )
 	      { setGraphical(gr, toInt(valInt(gr->area->x) + dx),
 			     DEFAULT, DEFAULT, DEFAULT);
-		DEBUG(NAME_layout, printf("\t moved %s\n", pp(gr)));
+		DEBUG(NAME_layout, Cprintf("\t moved %s\n", pp(gr)));
 		if ( gr == grl )
 		  break;
 	      }

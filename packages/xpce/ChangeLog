@@ -1,4 +1,18 @@
-[VERSION 4.8.7]
+[VERSION 4.8.8]
+
+* CONFIG: All references to stdin/stdout/stderr in the library have been
+  wrapped into a small layer defined in itf/console.c to allow for window
+  based I/O.
+
+* FIXED: Class editor will pick the window's keyboard focus when clicked
+  on.
+
+* C-interface: added class c_pointer to pack arbitrary C void * in an XPCE
+  object.  Added interface function cToPcePointer(void *ptr) to convert
+  C-pointers into XPCE objects.  Currently used by the C/C++ interface.
+
+* CONFIG: use alien types for passing text-access functions to class text_image.
+  avoids the need to smash a C-function pointer into a XPCE integer.
 
 * CONFIG: added WORDS_BIG_ENDIAN configure option to replace __i386__
   dependency.
@@ -35,6 +49,8 @@
   two fragments start at the same position, the larger one is first in
   the list to improve the notion of `nested' fragments (order used to
   be undefined).
+
+[VERSION 4.8.7]
 
 * FIXES: Integrated Quintus' modifications to 4.8.0.  Mostly portability
   issues.  `frame ->expose' now guarantees the window is mapped before it

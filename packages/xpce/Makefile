@@ -29,7 +29,7 @@ SHELL=/bin/sh
 
 prefix=/usr/local
 exec_prefix=${prefix}
-PCEHOME=/staff/jan/src/xpce
+PCEHOME=/swi03/jan/src/xpce
 XINCLUDES=/usr/include
 XLIB=/usr/lib
 
@@ -49,7 +49,7 @@ LDFLAGS=-static
 
 LIBS=	$(XLIBS) $(PLLIBS) $(NETLIBS) $(STATICLIBS)
 COFLAGS=-O2
-CWFLAGS=
+CWFLAGS=-Wall
 CIFLAGS=-I..
 CMFLAGS=-funsigned-char -DHAVE_CONFIG_H
 
@@ -57,7 +57,7 @@ CMFLAGS=-funsigned-char -DHAVE_CONFIG_H
 # Paths for host-languages
 ################################################################
 
-PLBASE=/staff/jan/lib/pl-2.0.5
+PLBASE=/staff/jan/lib/pl-2.0.6
 PLARCH=sparc-sunos4.1.3
 
 SICSHOME=/staff/jan/src/sicstus2.1

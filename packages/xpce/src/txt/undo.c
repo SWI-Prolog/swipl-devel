@@ -154,8 +154,8 @@ getUndoTextBuffer(TextBuffer tb)
       fail;
       
     while(cell != NULL)
-    { DEBUG(NAME_undo, printf("Undo using cell %d: ",
-			      Distance(cell, ub->buffer)));
+    { DEBUG(NAME_undo, Cprintf("Undo using cell %d: ",
+			       Distance(cell, ub->buffer)));
       switch( cell->type )
       { case UNDO_DELETE:
 	{ UndoDelete d = (UndoDelete) cell;
@@ -164,24 +164,24 @@ getUndoTextBuffer(TextBuffer tb)
 	  s.s_text = d->chars;
 	  s.b16 = ub->b16;
 	  s.encoding = ENC_ASCII;
-	  DEBUG(NAME_undo, printf("Undo delete at %ld, len=%ld\n",
-				  d->where, d->len));
+	  DEBUG(NAME_undo, Cprintf("Undo delete at %ld, len=%ld\n",
+				   d->where, d->len));
 	  insert_textbuffer(tb, d->where, 1, &s);
 	  caret = max(caret, d->where + d->len);
 	  break;
 	}
 	case UNDO_INSERT:
 	{ UndoInsert i = (UndoInsert) cell;
-	  DEBUG(NAME_undo, printf("Undo insert at %ld, len=%ld\n",
-				  i->where, i->len));
+	  DEBUG(NAME_undo, Cprintf("Undo insert at %ld, len=%ld\n",
+				   i->where, i->len));
 	  delete_textbuffer(tb, i->where, i->len);
 	  caret = max(caret, i->where);
 	  break;
 	}
 	case UNDO_CHANGE:
 	{ UndoChange c = (UndoChange) cell;
-	  DEBUG(NAME_undo, printf("Undo change at %ld, len=%ld\n",
-				  c->where, c->len));
+	  DEBUG(NAME_undo, Cprintf("Undo change at %ld, len=%ld\n",
+				   c->where, c->len));
 	  change_textbuffer(tb, c->where, c->chars, c->len);
 	  caret = max(caret, c->where + c->len);
 	  break;
@@ -193,7 +193,7 @@ getUndoTextBuffer(TextBuffer tb)
       {	ub->current = cell;
 
 	if ( cell == ub->checkpoint )	/* reached non-modified checkpoint */
-	{ DEBUG(NAME_undo, printf("Reset modified to @off\n"));
+	{ DEBUG(NAME_undo, Cprintf("Reset modified to @off\n"));
 	  CmodifiedTextBuffer(tb, OFF);
 	}
 
@@ -346,9 +346,8 @@ new_undo_cell(UndoBuffer ub, unsigned int size)
   ub->head = new;
   ub->free = (UndoCell) ((char *)new + size);
 
-  DEBUG(NAME_undo, printf("Cell at %d size=%d: ",
-			  Distance(new, ub->buffer), new->size);
-	fflush(stdout));
+  DEBUG(NAME_undo, Cprintf("Cell at %d size=%d: ",
+			   Distance(new, ub->buffer), new->size));
 
   return new;
 }
@@ -368,8 +367,8 @@ resize_undo_cell(UndoBuffer ub, UndoCell cell, unsigned int size)
   { cell->size = size;
     ub->free = (UndoCell) ((char *) cell + size);
 
-    DEBUG(NAME_undo, printf("Resized cell at %d size=%d: ",
-			    cell - ub->buffer, cell->size));
+    DEBUG(NAME_undo, Cprintf("Resized cell at %d size=%d: ",
+			     cell - ub->buffer, cell->size));
     return TRUE;
   }
   
@@ -387,8 +386,8 @@ register_insert_textbuffer(TextBuffer tb, long int where, long int len)
     if ( i != NULL && i->type == UNDO_INSERT && i->marked == FALSE )
     { if ( i->where + i->len == where || where + len == i->where )
       { i->len += len;
-	DEBUG(NAME_undo, printf("Insert at %ld grown %ld bytes\n",
-				i->where, i->len));
+	DEBUG(NAME_undo, Cprintf("Insert at %ld grown %ld bytes\n",
+				 i->where, i->len));
         return;
       }
     }
@@ -399,8 +398,8 @@ register_insert_textbuffer(TextBuffer tb, long int where, long int len)
     i->type =  UNDO_INSERT;
     i->where = where;
     i->len  = len;
-    DEBUG(NAME_undo, printf("New Insert at %ld, %ld bytes\n",
-			    i->where, i->len));
+    DEBUG(NAME_undo, Cprintf("New Insert at %ld, %ld bytes\n",
+			     i->where, i->len));
   }
 }
 
@@ -433,8 +432,8 @@ register_delete_textbuffer(TextBuffer tb, long int where, long int len)
 	   resize_undo_cell(ub, (UndoCell)i, UndoDeleteSize(ub, len+i->len)) )
       { copy_undo(tb, where, len, Address(ub, i, len));
 	i->len += len;
-	DEBUG(NAME_undo, printf("Delete at %ld grown forward %ld bytes\n",
-				i->where, i->len));
+	DEBUG(NAME_undo, Cprintf("Delete at %ld grown forward %ld bytes\n",
+				 i->where, i->len));
         return;
       }
 
@@ -444,8 +443,8 @@ register_delete_textbuffer(TextBuffer tb, long int where, long int len)
         copy_undo(tb, where, len, Address(ub, i, 0));
 	i->len += len;
 	i->where -= len;
-	DEBUG(NAME_undo, printf("Delete at %ld grown backward %ld bytes\n",
-				i->where, i->len));
+	DEBUG(NAME_undo, Cprintf("Delete at %ld grown backward %ld bytes\n",
+				 i->where, i->len));
 	return;
       }
     }
@@ -456,8 +455,8 @@ register_delete_textbuffer(TextBuffer tb, long int where, long int len)
     i->where = where;
     i->len  = len;
     copy_undo(tb, where, len, Address(ub, i, 0));
-    DEBUG(NAME_undo, printf("New delete at %ld, %ld bytes\n",
-			    i->where, i->len));
+    DEBUG(NAME_undo, Cprintf("New delete at %ld, %ld bytes\n",
+			     i->where, i->len));
   }
 }
 
@@ -474,8 +473,8 @@ register_change_textbuffer(TextBuffer tb, long int where, long int len)
 	   resize_undo_cell(ub, (UndoCell)i, UndoChangeSize(ub, len+i->len)) )
       { copy_undo(tb, where, len, Address(ub, i, len));
 	i->len += len;
-	DEBUG(NAME_undo, printf("Change at %ld grown forward to %ld bytes\n",
-				i->where, i->len));
+	DEBUG(NAME_undo, Cprintf("Change at %ld grown forward to %ld bytes\n",
+				 i->where, i->len));
         return;
       }
 
@@ -485,8 +484,8 @@ register_change_textbuffer(TextBuffer tb, long int where, long int len)
         copy_undo(tb, where, len, Address(ub, i, 0));
 	i->len += len;
 	i->where -= len;
-	DEBUG(NAME_undo, printf("Change at %ld grown backward to %ld bytes\n",
-				i->where, i->len));
+	DEBUG(NAME_undo, Cprintf("Change at %ld grown backward to %ld bytes\n",
+				 i->where, i->len));
 	return;
       }
     }
@@ -497,7 +496,7 @@ register_change_textbuffer(TextBuffer tb, long int where, long int len)
     i->where = where;
     i->len   = len;
     copy_undo(tb, where, len, Address(ub, i, 0));
-    DEBUG(NAME_undo, printf("New change at %ld, %ld bytes\n",
-			    i->where, i->len));
+    DEBUG(NAME_undo, Cprintf("New change at %ld, %ld bytes\n",
+			     i->where, i->len));
   }
 }

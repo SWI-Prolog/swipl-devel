@@ -153,12 +153,7 @@ getConfirmFrame(FrameObj fr, Point pos, Bool grab, Bool normalise)
   synchroniseDisplay(fr->display);
   while( fr->return_value == ConstantNotReturned )
   { if ( dispatchDisplay(fr->display) )
-    { char buf[LINESIZE];
-
-      printf("Confirmer running; discarding input ... "); fflush(stdout);
-      read(fileno(stdin), buf, LINESIZE);
-      printf("ok\n");
-    }
+      ws_discard_input("Confirmer running");
   }
 
   rval = fr->return_value;
@@ -441,13 +436,7 @@ waitFrame(FrameObj fr)
 
   while( fr->status == NAME_hidden )
   { if ( dispatchDisplay(fr->display) )
-    { char buf[LINESIZE];
-
-      printf("Waiting for %s to open; discarding input ... ", pp(fr));
-      fflush(stdout);
-      read(fileno(stdin), buf, LINESIZE);
-      printf("ok\n");
-    }
+      ws_discard_input("Waiting for frame to open");
   }
 
   if ( fr->status == NAME_open )

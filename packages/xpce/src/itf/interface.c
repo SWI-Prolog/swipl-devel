@@ -56,6 +56,12 @@ cToPceName(char *s)
 
 
 Any
+CtoPcePointer(void *ptr)
+{ return (Any) answerObjectv(ClassCPointer, 1, &ptr);
+}
+
+
+Any
 cToPceAssoc(char *s)
 { return getObjectFromReferencePce(PCE, CtoName(s));
 }

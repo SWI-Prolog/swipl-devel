@@ -184,6 +184,7 @@ PceObject	cToPceReal __P((double));
 PceObject	cToPceString __P((char *, char *));
 PceObject	cToPceAssoc __P((char *));
 PceObject	cToPceReference __P((unsigned long));
+PceObject	CtoPcePointer __P((void *ptr));
 int		pceLock __P((PceObject));
 
 PceObject	cToPceTmpCharArray __P((char *text));

@@ -241,8 +241,8 @@ parms_line(Line ln, int *a, float *b)			/* y = a + bx */
     *a = y1 - rfloat(*b * (float)x1);
   }
 
-  DEBUG(NAME_intersection, printf("%d,%d --> %d,%d: y = %d + %2fx\n",
-				  x1, y1, x2, y2, *a, *b));
+  DEBUG(NAME_intersection, Cprintf("%d,%d --> %d,%d: y = %d + %2fx\n",
+				   x1, y1, x2, y2, *a, *b));
 }
 
 

@@ -51,7 +51,7 @@ void
 ws_uncreate_window(PceWindow sw)
 { Widget w;
 
-  DEBUG(NAME_window, printf("uncreateWindow(%s)\n", pp(sw)));
+  DEBUG(NAME_window, Cprintf("uncreateWindow(%s)\n", pp(sw)));
 
   if ( notNil(grabbedWindows) )
     deleteChain(grabbedWindows, sw);
@@ -100,13 +100,13 @@ ws_realise_frame() sends ->geometry to all windows.
       XtSetArg(args[n], XtNbackgroundPixmap, pm); n++;
     }
 
-    DEBUG(NAME_create, printf("Calling XtCreateWidget ..."); fflush(stdout));
+    DEBUG(NAME_create, Cprintf("Calling XtCreateWidget ..."));
     w = XtCreateWidget(strName(sw->name),
 		       canvasWidgetClass,
 		       isDefault(parent) ? widgetFrame(sw->frame)
 		       			 : widgetWindow(parent),
 		       args, n);
-    DEBUG(NAME_create, printf("Widget = %ld\n", (ulong) w));
+    DEBUG(NAME_create, Cprintf("Widget = %ld\n", (ulong) w));
   }
 
   if ( !w )
@@ -206,11 +206,11 @@ event_window(Widget w, XtPointer xsw, XtPointer xevent)
   {
 /*
     case FocusIn:
-      DEBUG(NAME_focus, printf("Received FocusIn on %s\n", pp(sw)));
+      DEBUG(NAME_focus, Cprintf("Received FocusIn on %s\n", pp(sw)));
       assign(sw, input_focus, ON);
       return;
     case FocusOut:
-      DEBUG(NAME_focus, printf("Received FocusOut on %s\n", pp(sw)));
+      DEBUG(NAME_focus, Cprintf("Received FocusOut on %s\n", pp(sw)));
       assign(sw, input_focus, OFF);
       return;
 */
@@ -239,7 +239,7 @@ expose_window(Widget w, XtPointer xsw, XtPointer xregion)
   Region region = xregion;
   Window win;
 
-  DEBUG(NAME_window, printf("Window %ld ---> %s\n", XtWindow(w), pp(sw)));
+  DEBUG(NAME_window, Cprintf("Window %ld ---> %s\n", XtWindow(w), pp(sw)));
   if ( !getMemberHashTable(WindowTable, (Any) (win=XtWindow(w))) )
     appendHashTable(WindowTable, (Any) win, sw);
 
@@ -264,7 +264,7 @@ static void
 destroy_window(Widget w, XtPointer xsw, XtPointer data)
 { PceWindow sw = (PceWindow) xsw;
 
-  DEBUG(NAME_window, printf("destroy_window(%s)\n", pp(sw)));
+  DEBUG(NAME_window, Cprintf("destroy_window(%s)\n", pp(sw)));
   deleteHashTable(WindowTable, (Any) XtWindow(w));
   setWidgetWindow(sw, NULL);
 }

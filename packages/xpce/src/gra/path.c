@@ -319,7 +319,7 @@ curve_fit(float *x, float *y, int ii, float *u, float *v, int jj, int intervals)
   for (j=1;j<=l0;j++)
   { k -= m0;            i--;
     u[k] = x[i];        v[k] = y[i];
-    DEBUG(NAME_path, printf("(%f %f) at %d (from %d)\n", u[k], v[k], k, i));
+    DEBUG(NAME_path, Cprintf("(%f %f) at %d (from %d)\n", u[k], v[k], k, i));
   }
   rm = 1.0/(float)m0;   k5 = m0+1;
 
@@ -372,9 +372,9 @@ curve_fit(float *x, float *y, int ii, float *u, float *v, int jj, int intervals)
 
     if (i-1 > 0)
     { r = sqrt(a2*a2+b2*b2);
-      DEBUG(NAME_path, printf("a2 = %f; b2 = %f --> r = %f\n", a2, b2, r));
-      DEBUG(NAME_path, printf("cos2 = %f, cos3 = %f, sin2 = %f, sin3 = %f\n",
-			      cos2, cos3, sin2, sin3));
+      DEBUG(NAME_path, Cprintf("a2 = %f; b2 = %f --> r = %f\n", a2, b2, r));
+      DEBUG(NAME_path, Cprintf("cos2 = %f, cos3 = %f, sin2 = %f, sin3 = %f\n",
+			       cos2, cos3, sin2, sin3));
       p1 = r*cos2;
       a1 = 3.0*a2-r*(cos2+cos2+cos3);
       b1 = a2-p1-a1;
@@ -382,15 +382,15 @@ curve_fit(float *x, float *y, int ii, float *u, float *v, int jj, int intervals)
       q2 = 3.0*b2-r*(sin2+sin2+sin3);
       q3 = b2-q1-q2;
       r = 0.0;
-      DEBUG(NAME_path, printf("p1=%f, a1=%f, b1=%f, q1=%f, q2=%f, q3=%f\n",
-			      p1, a1, b1, q1, q2, q3));
+      DEBUG(NAME_path, Cprintf("p1=%f, a1=%f, b1=%f, q1=%f, q2=%f, q3=%f\n",
+			       p1, a1, b1, q1, q2, q3));
       for (j=1;j<=mm1;j++)
       { k++;
         r +=rm;
         u[k] = x2+r*(p1+r*(a1+r*b1));
         v[k] = y2+r*(q1+r*(q2+r*q3));
-	DEBUG(NAME_path, printf("k = %d, r=%f, u[k] = %f, v[k] = %f\n",
-				k, r, u[k], v[k]));
+	DEBUG(NAME_path, Cprintf("k = %d, r=%f, u[k] = %f, v[k] = %f\n",
+				 k, r, u[k], v[k]));
       }
       k++;
     }

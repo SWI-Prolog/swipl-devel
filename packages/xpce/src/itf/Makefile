@@ -2,7 +2,7 @@
 
 .SUFFIXES: .cxx
 
-ITF1OBJS=	c.o host.o interface.o asfile.o
+ITF1OBJS=	c.o host.o interface.o cpointer.o asfile.o console.o
 ITF2OBJS=	cpp.o
 ITF3OBJS=	action.o query.o send.o get.o main.o xmalloc.o
 ITFOBJS=	$(ITF1OBJS) $(ITF2OBJS) $(ITF3OBJS)

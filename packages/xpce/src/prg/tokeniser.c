@@ -322,7 +322,7 @@ getTokenTokeniser(Tokeniser t)
   }
 
 
-  DEBUG(NAME_tokeniser, printf("Found char = %c at %d\n", c, t->caret));
+  DEBUG(NAME_tokeniser, Cprintf("Found char = %c at %d\n", c, t->caret));
 
   if ( IsEof(c) )
     return EndOfFile;
@@ -434,8 +434,8 @@ getTokenTokeniser(Tokeniser t)
       long f = strtol(buf, &e, 10);
       if ( e != q )
       { DEBUG(NAME_tokeniser, 
-	      printf("Num = '%s' (%ld), e = %d, q = %d\n",
-		     buf, f, e-buf, q-buf));
+	      Cprintf("Num = '%s' (%ld), e = %d, q = %d\n",
+		      buf, f, e-buf, q-buf));
 	send(t, NAME_syntaxError, CtoName("Illegal number"));
 	fail;
       }
@@ -445,8 +445,8 @@ getTokenTokeniser(Tokeniser t)
       double f = StrTod(buf, &e);
       if ( e != q )
       { DEBUG(NAME_tokeniser,
-	      printf("Num = '%s' (%f), e = %d, q = %d\n",
-		     buf, f, e-buf, q-buf));
+	      Cprintf("Num = '%s' (%f), e = %d, q = %d\n",
+		      buf, f, e-buf, q-buf));
 	send(t, NAME_syntaxError, CtoName("Illegal number"));
 	fail;
       }
@@ -487,7 +487,7 @@ nonum:
       if ( !tischtype(t->syntax, c, PU) )
 	break;
       symb = CtoName(buf);
-      DEBUG(NAME_token, printf("trying symbol %s\n", pp(symb)));
+      DEBUG(NAME_token, Cprintf("trying symbol %s\n", pp(symb)));
     } while( getMemberHashTable(t->symbols, symb) );
 
     UNGETC(t, c);

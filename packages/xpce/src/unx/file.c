@@ -117,9 +117,7 @@ closeFile(FileObj f)
       pclose(f->fd);
     else
 #endif
-    { if ( f->fd != stdin && f->fd != stdout && f->fd != stderr ) 
-	fclose(f->fd);
-    }
+      fclose(f->fd);
     f->fd = NULL;
     assign(f, status, NAME_closed);
 
@@ -291,7 +289,7 @@ backup_name(char *old, char *ext, char *bak)
   else
     strcpy(bak, base);
 
-  DEBUG(NAME_backup, printf("Backup %s in %s\n", old, bak));
+  DEBUG(NAME_backup, Cprintf("Backup %s in %s\n", old, bak));
 
   succeed;
 }
@@ -448,22 +446,12 @@ openFile(FileObj f, Name mode, Name filter, CharArray extension)
   fdmode[2] = '\0';
 
   if ( isNil(filter) )
-  { if ( mode == NAME_read && f->name == NAME_userInput )
-      f->fd = stdin;
-    else if ( (mode == NAME_write || mode == NAME_append) &&
-	       f->name == NAME_userOutput )
-      f->fd = stdout;
-    else if ( (mode == NAME_write || mode == NAME_append) &&
-	       f->name == NAME_userError )
-      f->fd = stderr;
-    else
-    { DEBUG(NAME_file, printf("Opening %s (%s) using mode %s\n",
-			      pp(f->name), pp(f), fdmode));
-      f->fd = fopen(strName(path), fdmode);
-    }
+  { DEBUG(NAME_file, Cprintf("Opening %s (%s) using mode %s\n",
+			     pp(f->name), pp(f), fdmode));
+    f->fd = fopen(strName(path), fdmode);
   } else
 #ifndef HAVE_POPEN
-  { return errorPce(f, CtoName("no_popen"));
+  { return errorPce(f, NAME_noPopen));
   }
 #else
   { char cmd[LINESIZE];
@@ -919,15 +907,15 @@ checkObjectFile(FileObj f)
 
     fread(tmp, sizeof(char), sizeof(SAVEMAGIC)-1, fd);
     tmp[ls] = EOS;
-    DEBUG(NAME_save, printf("magic = ``%s''; SaveMagic = ``%s''\n",
-			    tmp, SaveMagic) );
+    DEBUG(NAME_save, Cprintf("magic = ``%s''; SaveMagic = ``%s''\n",
+			     tmp, SaveMagic) );
     if ( strncmp(tmp, SaveMagic, ls - 1) == 0 )
       rval = SUCCEED;
     else
       rval = FAIL;
   } else
   { rval = FAIL;
-    DEBUG(NAME_save, printf("First word = %ld, should be %d\n", l, ls) );
+    DEBUG(NAME_save, Cprintf("First word = %ld, should be %d\n", l, ls) );
   }
 
   if ( close )

@@ -30,7 +30,6 @@ status		storeIntFile(FileObj f, Int i);
 status		findFile(FileObj f, CharArray path, Name mode);
 status		checkObjectFile(FileObj f);
 status		makeClassFile(Class class);
-int		getdtablesize(void);
 
 /* process.c */
 void		killAllProcesses(void);

@@ -148,9 +148,9 @@ ensure_lines_screen(TextScreen s, int lines)
 
     lines = Round(lines, 8);
     new = alloc(lines * sizeof(struct text_line));
-    DEBUG(NAME_allocated, printf("Lines at %ld, %ld bytes\n",
-				 (ulong) new,
-				 (ulong) lines * sizeof(struct text_line)));
+    DEBUG(NAME_allocated, Cprintf("Lines at %ld, %ld bytes\n",
+				  (ulong) new,
+				  (ulong) lines * sizeof(struct text_line)));
 
     for(n = 0; n < s->allocated; n++)	/* copy old lines */
       new[n] = s->lines[n];
@@ -211,13 +211,14 @@ reinitTextImage(TextImage ti)
   ti->change_end   = INFINITE;
   ti->inserted     = 0;
 
-  ti->seek   = (SeekFunction) IntToTextPointer(get(obj, NAME_SeekFunction, 0));
-  ti->scan   = (ScanFunction) IntToTextPointer(get(obj, NAME_ScanFunction, 0));
-  ti->fetch  = (FetchFunction)IntToTextPointer(get(obj, NAME_FetchFunction,0));
-  ti->margin = (MarginFunction)IntToTextPointer(get(obj,NAME_MarginFunction,0));
+  ti->seek   = (SeekFunction)   get(obj, NAME_SeekFunction, 0);
+  ti->scan   = (ScanFunction)   get(obj, NAME_ScanFunction, 0);
+  ti->fetch  = (FetchFunction)  get(obj, NAME_FetchFunction, 0);
+  ti->margin = (MarginFunction) get(obj, NAME_MarginFunction, 0);
+
   if ( !ti->seek || !ti->scan || !ti->fetch )
     return errorPce(ti, NAME_noFetchFunction, obj);
-  DEBUG(NAME_SeekFunction, printf("ti->seek = 0x%lx\n", (ulong) ti->seek));
+  DEBUG(NAME_SeekFunction, Cprintf("ti->seek = 0x%lx\n", (ulong) ti->seek));
 
   ti->map                  = alloc(sizeof(struct text_screen));
   ti->map->allocated       = ti->map->length = ti->map->skip = 0;
@@ -585,17 +586,16 @@ updateMapTextImage(TextImage ti)
     short y = TXT_Y_MARGIN;
     long index = valInt(ti->start);
   
-    DEBUG(NAME_text, printf("Updating map from %d to %d ",
-			    ti->change_start, ti->change_end);
-	  fflush(stdout); );
+    DEBUG(NAME_text, Cprintf("Updating map from %d to %d ",
+			     ti->change_start, ti->change_end));
 
     for(line = 0; ; line++)
     { long next_index;
 
       next_index = fill_line(ti, line, index, y);
       DEBUG(NAME_text,
-	    printf("Line %d %4ld..%4ld (changed = %d, y=%d)\n",
-		   line, index, next_index, ti->map->lines[line].changed, y));
+	    Cprintf("Line %d %4ld..%4ld (changed = %d, y=%d)\n",
+		    line, index, next_index, ti->map->lines[line].changed, y));
       if ( line >= ti->map->skip )
 	y += ti->map->lines[line].h;
 
@@ -605,8 +605,8 @@ updateMapTextImage(TextImage ti)
 	assign(ti, eof_in_window, eof_in_window);
 	ti->change_start = INFINITE;
 	ti->change_end = 0;
-	DEBUG(NAME_text, printf("ok; eof_in_window = %s\n",
-				pp(eof_in_window)); );
+	DEBUG(NAME_text, Cprintf("ok; eof_in_window = %s\n",
+				 pp(eof_in_window)); );
 
 	succeed;
       }
@@ -629,8 +629,8 @@ static void
 dump_map(TextScreen map)
 { int i;
 
-  printf("skip = %d; length = %d, allocated = %d lines\n",
-	 map->skip, map->length, map->allocated);
+  Cprintf("skip = %d; length = %d, allocated = %d lines\n",
+	  map->skip, map->length, map->allocated);
 
   for(i=0; i<map->skip + map->length; i++)
   { TextLine l = &map->lines[i];
@@ -638,37 +638,37 @@ dump_map(TextScreen map)
     int c;
 
     if ( i < map->skip )
-      printf("--:");
+      Cprintf("--:");
     else
-      printf("%2d:", i - map->skip);
-    printf("%4ld-%4ld at y=%3d changed = %d ",
-	   l->start, l->start + l->length, l->y, l->changed);
-    putchar((l->ends_because & END_EOF)  ? 'F' : '-');
-    putchar((l->ends_because & END_WRAP) ? 'W' : '-');
-    putchar((l->ends_because & END_CUT)  ? 'C' : '-');
-    putchar((l->ends_because & END_NL)   ? 'L' : '-');
-    printf(": \"");
+      Cprintf("%2d:", i - map->skip);
+    Cprintf("%4ld-%4ld at y=%3d changed = %d ",
+	    l->start, l->start + l->length, l->y, l->changed);
+    Cputchar((l->ends_because & END_EOF)  ? 'F' : '-');
+    Cputchar((l->ends_because & END_WRAP) ? 'W' : '-');
+    Cputchar((l->ends_because & END_CUT)  ? 'C' : '-');
+    Cputchar((l->ends_because & END_NL)   ? 'L' : '-');
+    Cprintf(": \"");
     for(n=0; n < 5 && n < l->length; n++)
     { if ( (c = l->chars[n].value.c) == '\n' )
-	printf("\\n");
+	Cprintf("\\n");
       else if ( c == EOB )
-	printf("\\$");
+	Cprintf("\\$");
       else
-	putchar(c);
+	Cputchar(c);
     }
     if ( l->length - 5 > n )
-    { printf(" ... ");
+    { Cprintf(" ... ");
       n = l->length - 5;
     }
     for( ; n < l->length; n++ )
     { if ( (c = l->chars[n].value.c) == '\n' )
-	printf("\\n");
+	Cprintf("\\n");
       else if ( c == EOB )
-	printf("\\$");
+	Cprintf("\\$");
       else
-	putchar(c);
+	Cputchar(c);
     }
-    printf("\"\n");
+    Cprintf("\"\n");
   }
 }
 
@@ -827,8 +827,8 @@ paint_line(TextImage ti, Area a, TextLine l, int from, int to)
   int cx, cw;
   int pen = valInt(ti->pen);
 
-  DEBUG(NAME_text, printf("painting line 0x%lx from %d to %d\n",
-			  (ulong)l, from, to));
+  DEBUG(NAME_text, Cprintf("painting line 0x%lx from %d to %d\n",
+			   (ulong)l, from, to));
 
   cx = (from == 0 ? pen : l->chars[from].x);
   cw = (to >= l->length ? ti->w - pen : l->chars[to].x) - cx;
@@ -1193,7 +1193,7 @@ eventTextImage(TextImage ti, EventObj ev)
       Int ow = a->w, oh = a->h;
 
       if ( instanceOfObject(gr, ClassDevice) )
-      { printf("Should move %s\n", pp(gr));
+      { Cprintf("Should move %s\n", pp(gr));
       } else
       { setGraphical(gr,
 		     toInt(valInt(ti->area->x) + tc->x),
@@ -1211,13 +1211,7 @@ eventTextImage(TextImage ti, EventObj ev)
 
 	while( !onFlag(sw, F_FREED|F_FREEING) && sw->focus == gr )
 	{ if ( dispatchDisplay(d) )
-	  { char buf[LINESIZE];
-
-	    printf("Focus on graphical in editor; discarding input ... ");
-	    fflush(stdout);
-	    read(fileno(stdin), buf, LINESIZE);
-	    printf("ok\n");
-	  }
+	    ws_discard_input("Focus on graphical in editor");
 	}
       }
       if ( !onFlag(gr, F_FREED|F_FREEING) &&
@@ -1228,7 +1222,7 @@ eventTextImage(TextImage ti, EventObj ev)
 	if ( ow != a->w || oh != a->h )
 	{ int where = tl->start + tc->index;
 
-	  DEBUG(NAME_diagram, printf("%s: Changed %d\n", pp(ti), where));
+	  DEBUG(NAME_diagram, Cprintf("%s: Changed %d\n", pp(ti), where));
 	  ChangedRegionTextImage(ti, toInt(where), toInt(where+1));
 	}
       }
@@ -1330,8 +1324,8 @@ computeTextImage(TextImage ti)
       }
     }
 
-    DEBUG(NAME_text, printf("changedImageGraphical(%s, %d, %d, %d, %d)\n",
-			    pp(ti), fx, fy, tx-fx, ty-fy));
+    DEBUG(NAME_text, Cprintf("changedImageGraphical(%s, %d, %d, %d, %d)\n",
+			     pp(ti), fx, fy, tx-fx, ty-fy));
     if ( ty > fy )
       changedImageGraphical(ti,
 			    toInt(fx), toInt(fy), toInt(tx-fx), toInt(ty-fy));
@@ -1471,15 +1465,15 @@ center_from_screen(TextImage ti, long int pos, int line)
     { startline--;
       skip++;
     }
-    DEBUG(NAME_center, printf("Start at %ld; skip = %d\n",
-			      map->lines[startline].start, skip));
+    DEBUG(NAME_center, Cprintf("Start at %ld; skip = %d\n",
+			       map->lines[startline].start, skip));
 
     startTextImage(ti, toInt(map->lines[startline].start), toInt(skip));
 
     succeed;
   }
 
-  DEBUG(NAME_center, printf("Out of screen: l = %d\n", l));
+  DEBUG(NAME_center, Cprintf("Out of screen: l = %d\n", l));
   fail;
 }
 
@@ -1512,11 +1506,11 @@ centerTextImage(TextImage ti, Int position, Int screen_line)
     { long idx = start;
       int ln = 0;
 
-      DEBUG(NAME_center, printf("ParStart = %ld\n", start));
+      DEBUG(NAME_center, Cprintf("ParStart = %ld\n", start));
       do
       { shift_lines_down(map, ln, 1);
 	idx = fill_line(ti, ln, idx, 0);
-	DEBUG(NAME_center, printf("Filled line %d to %ld\n", ln-1, idx));
+	DEBUG(NAME_center, Cprintf("Filled line %d to %ld\n", ln-1, idx));
       } while ( idx <= here &&
 	        !(ti->map->lines[ln++].ends_because & END_EOF) );
 
@@ -1544,7 +1538,7 @@ getStartTextImage(TextImage ti, Int line)
   { ln += map->length;
   }
 
-  DEBUG(NAME_start, printf("Looking for start of line %d\n", ln));
+  DEBUG(NAME_start, Cprintf("Looking for start of line %d\n", ln));
 
   if ( ln < 0 )
   { if ( -ln <= map->skip )
@@ -1556,10 +1550,10 @@ getStartTextImage(TextImage ti, Int line)
       ln = -ln - map->skip;		/* lines before idx */
       do
       { long idx = start = paragraph_start(ti, here-1);
-	DEBUG(NAME_start, printf("start = %ld; here = %ld\n", start, here));
+	DEBUG(NAME_start, Cprintf("start = %ld; here = %ld\n", start, here));
 	do
 	{ idx = do_fill_line(ti, &tl, idx);
-	  DEBUG(NAME_start, printf("line to %ld; ln = %d\n", idx, ln));
+	  DEBUG(NAME_start, Cprintf("line to %ld; ln = %d\n", idx, ln));
 	  if ( --ln == 0 )
 	    answer(toInt(idx));
 	} while( idx < here );
@@ -1572,7 +1566,7 @@ getStartTextImage(TextImage ti, Int line)
   { long idx = map->lines[map->skip + map->length - 1].start;
 
     for( ln -= map->length - 1; ln > 0; ln-- )
-    { DEBUG(NAME_start, printf("ln = %d; idx = %ld\n", ln, idx));
+    { DEBUG(NAME_start, Cprintf("ln = %d; idx = %ld\n", ln, idx));
 
       idx = do_fill_line(ti, &tl, idx);
       if ( tl.ends_because & END_EOF )

@@ -19,7 +19,7 @@ ws_dispatch(Int FD, Int timeout)
   rlc_dispatch(discard_queue);
   if ( !rlc_is_empty_queue(discard_queue) )
   { rlc_empty_queue(discard_queue);
-    printf("Confirmer running (dicarding input)\n");
+    Cprintf("Confirmer running (dicarding input)\n");
   }
 
   fail;					/* signal no input */
@@ -38,7 +38,7 @@ ws_event_in_subwindow(EventObj ev, Any root)
   get_xy_event(ev, root, ON, &ex, &ey);
   pt.x = valInt(ex);
   pt.y = valInt(ey);
-  DEBUG(NAME_drag, printf("Point at %d,%d to %s\n", pt.x, pt.y, pp(root)));
+  DEBUG(NAME_drag, Cprintf("Point at %d,%d to %s\n", pt.x, pt.y, pp(root)));
 
   if ( instanceOfObject(root, ClassDisplay) )
   { HWND win = WindowFromPoint(pt);

@@ -647,12 +647,12 @@ _errorPce(Any obj, Name id, va_list args)
     { if ( CurrentGoal )
 	setGFlag(CurrentGoal, G_EXCEPTION);
 
-      printf("[PCE BOOT ERROR: ");
+      Cprintf("[PCE BOOT ERROR: ");
       writef(strName(e->format), argc-1, argv+1)	;
-      printf("\n\tin: ");
+      Cprintf("\n\tin: ");
       pceWriteErrorGoal();
-      printf("]\n");
-      printf("Dumping C-stack ...\n");
+      Cprintf("]\n");
+      Cprintf("Dumping C-stack ...\n");
       pcePrintStack(20);
       hostAction(HOST_RECOVER_FROM_FATAL_ERROR);
       hostAction(HOST_HALT);

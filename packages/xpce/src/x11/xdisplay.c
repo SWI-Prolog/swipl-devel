@@ -223,7 +223,7 @@ ws_open_display(DisplayObj d)
 
 void
 ws_quit_display(DisplayObj d)
-{ fprintf(stderr, "Cannot close display yet\n");
+{ Cprintf("Cannot close display yet\n");
 }
 
 
@@ -598,8 +598,8 @@ loose_selection_widget(Widget w, Atom *selection)
 { DisplayObj d = widgetToDisplay(w);
 
   DEBUG(NAME_selection,
-	printf("%s: Loosing %s selection",
-	       pp(d), pp(atomToSelectionName(d, *selection))));
+	Cprintf("%s: Loosing %s selection",
+		pp(d), pp(atomToSelectionName(d, *selection))));
     
   if ( d )
     looseSelectionDisplay(d, atomToSelectionName(d, *selection));

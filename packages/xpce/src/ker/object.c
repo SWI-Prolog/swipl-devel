@@ -232,9 +232,9 @@ static Any
 globalObjectv(Name assoc, Class class, int argc, const Any argv[])
 { Any rval;
 
-  DEBUG_BOOT(printf("globalObject @%s ... ", pp(assoc)); fflush(stdout););
+  DEBUG_BOOT(Cprintf("globalObject @%s ... ", pp(assoc)));
   rval = createObjectv(assoc, class, argc, argv);
-  DEBUG_BOOT(printf("ok\n"););
+  DEBUG_BOOT(Cprintf("ok\n"););
 
   return rval;
 }
@@ -402,8 +402,8 @@ freeObject(Any obj)
     unallocObject(inst);
   else
   { deferredUnalloced++;
-    DEBUG(NAME_free, printf("%s has %ld refs.  Deferring unalloc\n",
-			    pp(inst), refsObject(inst)));
+    DEBUG(NAME_free, Cprintf("%s has %ld refs.  Deferring unalloc\n",
+			     pp(inst), refsObject(inst)));
   }
 
 out:
@@ -1178,7 +1178,8 @@ getClone2Object(Any obj)
     answer(obj);			/* untyped data-structures */
 
   if ( (clone = getMemberHashTable(CloneTable, obj)) )
-  { DEBUG(NAME_clone, printf("%s already cloned into %s\n",pp(obj),pp(clone)));
+  { DEBUG(NAME_clone, Cprintf("%s already cloned into %s\n",
+			      pp(obj), pp(clone)));
     answer(clone);
   }
 
@@ -1191,7 +1192,7 @@ getClone2Object(Any obj)
     answer(NIL);
 
   clone = (Instance) allocObject(class, FALSE);
-  DEBUG(NAME_clone, printf("%s cloned into %s\n", pp(me), pp(clone)));
+  DEBUG(NAME_clone, Cprintf("%s cloned into %s\n", pp(me), pp(clone)));
   appendHashTable(CloneTable, me, clone);
 
   cloneExtenstions(me, clone);
@@ -1683,7 +1684,7 @@ delRefObject(Any from, Any to)
   
   if ( isFreedObj(to) )
   { if ( refsObject(to) == 0 )
-    { DEBUG(NAME_free, printf("Doing deferred unalloc on %s\n", pp(to)));
+    { DEBUG(NAME_free, Cprintf("Doing deferred unalloc on %s\n", pp(to)));
       unallocObject(to);
       deferredUnalloced--;
     }

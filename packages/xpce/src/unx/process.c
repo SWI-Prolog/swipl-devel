@@ -99,7 +99,7 @@ child_changed(int sig)
 #define wait_t int
 #endif
 
-  DEBUG(NAME_process, printf("child_changed() called\n"));
+  DEBUG(NAME_process, Cprintf("child_changed() called\n"));
 
   for_chain(ProcessChain, p,
 	    { int pid = valInt(p->pid);
@@ -230,7 +230,7 @@ getEnvironmentProcess(Process p)
       char *q;
       int l;
 
-      DEBUG(NAME_environment, printf("env = %s\n", *env));
+      DEBUG(NAME_environment, Cprintf("env = %s\n", *env));
       if ( (q=strchr(*env, '=')) )
       { strncpy(buf, *env, (l = q - *env));
 	buf[l] = EOS;
@@ -284,7 +284,7 @@ openProcess(Process p, CharArray cmd, int argc, CharArray *argv)
 #else
       if ( (master = getMaster(p, line)) < 0 )
 #endif
-      { fprintf(stderr, "[PCE: Failed to get pseudo tty: %s]\n",
+      { Cprintf("[PCE: Failed to get pseudo tty: %s]\n",
 		strName(OsError()));
 	fail;
       }
@@ -298,11 +298,10 @@ openProcess(Process p, CharArray cmd, int argc, CharArray *argv)
 	if ( notDefault(p->directory) )
 	  cdDirectory(p->directory);
 	initEnvironment(p);
-	DEBUG(NAME_process, fprintf(stderr, "Environment initialised\n"));
+	DEBUG(NAME_process, Cprintf("Environment initialised\n"));
 #ifdef HAVE_SETSID
 	if ( setsid() < 0 )
-	  fprintf(stderr, "[PCE: setsid() failed: %s]\n",
-		  strName(OsError()));
+	  Cprintf("[PCE: setsid() failed: %s]\n", strName(OsError()));
 #else
       { int fd;
 
@@ -321,25 +320,22 @@ openProcess(Process p, CharArray cmd, int argc, CharArray *argv)
 	     ioctl(slave, I_PUSH, "ptem") < 0 ||
 	     ioctl(slave, I_PUSH, "ldterm") < 0 ||
 	     ioctl(slave, I_PUSH, "ttcompat") < 0 )
-	{ fprintf(stderr, "[PCE: failed to get slave pty: %s]\n",
-		  strName(OsError()));
+	{ Cprintf("[PCE: failed to get slave pty: %s]\n", strName(OsError()));
 	  exit(1);
 	}
 #else
 	if ( (slave = getSlave(p, line)) < 0 )
-	{ fprintf(stderr, "[PCE: failed to open %s: %s]\n",
-		  line, strName(OsError()));
+	{ Cprintf("[PCE: failed to open %s: %s]\n", line, strName(OsError()));
 	  exit(1);
 	}
 #endif
 
-	DEBUG(NAME_process, fprintf(stderr, "Slave %s at %d\n", line, slave));
+	DEBUG(NAME_process, Cprintf("Slave %s at %d\n", line, slave));
 	if ( !copyTty(p, line, slave) )
-	{ fprintf(stderr, "[PCE: failed to reset %s: %s]\n",
-		  line, strName(OsError()));
+	{ Cprintf("[PCE: failed to reset %s: %s]\n", line, strName(OsError()));
 	  exit(1);
 	}
-	DEBUG(NAME_process, fprintf(stderr, "%s initialised\n", line));
+	DEBUG(NAME_process, Cprintf("%s initialised\n", line));
 
 	for(i=0; i<=2; i++)		/* dup slave to stdin/stdout/stderr */
 	  if ( slave != i )
@@ -462,8 +458,8 @@ killProcess(Process p, Any sig)
 
 static status
 stoppedProcess(Process p, Name sig)
-{ DEBUG(NAME_process, printf("Process %s: stopped on %s\n",
-			     pp(p->name), pp(sig)));
+{ DEBUG(NAME_process, Cprintf("Process %s: stopped on %s\n",
+			      pp(p->name), pp(sig)));
   assign(p, status, NAME_stopped);
   assign(p, code, sig);
 
@@ -473,8 +469,8 @@ stoppedProcess(Process p, Name sig)
 
 static status
 killedProcess(Process p, Name sig)
-{ DEBUG(NAME_process, printf("Process %s: killed on %s\n",
-			     pp(p->name), pp(sig)));
+{ DEBUG(NAME_process, Cprintf("Process %s: killed on %s\n",
+			      pp(p->name), pp(sig)));
   assign(p, status, NAME_killed);
   assign(p, code, sig);
   addCodeReference(p);
@@ -490,8 +486,8 @@ killedProcess(Process p, Name sig)
 
 static status
 exitedProcess(Process p, Int stat)
-{ DEBUG(NAME_process, printf("Process %s: exited with status %s\n",
-			     pp(p->name), pp(stat)));
+{ DEBUG(NAME_process, Cprintf("Process %s: exited with status %s\n",
+			      pp(p->name), pp(stat)));
   assign(p, status, NAME_exited);
   assign(p, code, stat);
   addCodeReference(p);
@@ -667,7 +663,7 @@ getSlave(Process p, char *line)
     return -1;
   /*chown(line, pwd->pw_uid, pwd->pw_gid);*/
   chmod(line, 0622);
-  DEBUG(NAME_process, printf("Opening slave %s\n", line));
+  DEBUG(NAME_process, Cprintf("Opening slave %s\n", line));
   return open(line, 2);
 }
 

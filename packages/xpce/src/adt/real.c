@@ -22,7 +22,7 @@ Real
 CtoReal(float f)
 { Real r = answerObject(ClassReal, ZERO, 0);
   r->value = f;
-  DEBUG(NAME_real, printf("CtoReal(%f)\n", f));
+  DEBUG(NAME_real, Cprintf("CtoReal(%f)\n", f));
 
   return r;
 }

@@ -96,7 +96,7 @@ initCSymbolsPce(Pce pce)
       fail;
     
     sprintf(line, "nm -n %s", strName(symbolfile));
-    DEBUG(NAME_cSymbols, printf("Loading C-symbols\n\t(running %s)\n", line));
+    DEBUG(NAME_cSymbols, Cprintf("Loading C-symbols\n\t(running %s)\n", line));
     if ( (fd = popen(line, "r")) )
     { while ( fgets(line, LINESIZE, fd) )
       { unsigned long value;
@@ -113,12 +113,12 @@ initCSymbolsPce(Pce pce)
 	  if ( streq(&name[1], "initCSymbolsPce") )
 	  { offset = (long) initCSymbolsPce - value;
 	    if ( offset )
-	      DEBUG(NAME_cSymbols, printf("\toffset = %ld\n", offset));
+	      DEBUG(NAME_cSymbols, Cprintf("\toffset = %ld\n", offset));
 	  }
 	}
       }
       pclose(fd);
-      DEBUG(NAME_cSymbols, printf("found %ld text symbols", nsymbols));
+      DEBUG(NAME_cSymbols, Cprintf("found %ld text symbols", nsymbols));
     } else
       errorPce(pce, NAME_cannotLoadCSymbols, getOsErrorPce(pce));
 #endif /*HAVE_POPEN*/
@@ -141,8 +141,8 @@ c_function_name_from_address(long int addr, int *perc)
   { long here = (low + high) / 2;
 
     DEBUG(NAME_cFunctionName,
-	  printf("low = %ld; here = %ld; high = %ld (%ld)\n",
-		 low, here, high, symbols[here].value));
+	  Cprintf("low = %ld; here = %ld; high = %ld (%ld)\n",
+		  low, here, high, symbols[here].value));
     if ( symbols[here].value <= addr &&
 	 (here > nsymbols - 2 || symbols[here+1].value > addr) )
     { if ( perc && here <= nsymbols - 2 )
@@ -155,7 +155,7 @@ c_function_name_from_address(long int addr, int *perc)
   
     if ( here == low )
     { if ( low == high )
-      { fprintf(stderr, "Can't find symbol from 0x%lx, l=0x%lx, h=0x%lx\n",
+      { Cprintf("Can't find symbol from 0x%lx, l=0x%lx, h=0x%lx\n",
 		addr, symbols[low].value, symbols[high].value);
 	fail;
       } else

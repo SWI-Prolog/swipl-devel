@@ -160,7 +160,7 @@ d_pop_context()
 
 void
 d_offset(int x, int y)
-{ DEBUG(NAME_redraw, printf("d_offset(%d, %d)\n", x, y));
+{ DEBUG(NAME_redraw, Cprintf("d_offset(%d, %d)\n", x, y));
 
   context.offset_x = x;
   context.offset_y = y;
@@ -215,7 +215,7 @@ d_window(PceWindow sw, int x, int y, int w, int h, int clear, int limit)
 { DisplayObj d = getDisplayGraphical((Graphical)sw);
 
   DEBUG(NAME_redraw,
-	printf("d_window(%s, %d, %d, %d, %d)\n", pp(sw), x, y, w, h));
+	Cprintf("d_window(%s, %d, %d, %d, %d)\n", pp(sw), x, y, w, h));
 
   if ( env->level != 0 )
     resetDraw();			/* security measure */
@@ -245,9 +245,9 @@ d_window(PceWindow sw, int x, int y, int w, int h, int clear, int limit)
   }
 
   DEBUG(NAME_redraw,
-	printf("area = (%d, %d, %d, %d) %s\n",
-	       env->area.x, env->area.y, env->area.w, env->area.h,
-	       clear ? "clear" : "no clear"));
+	Cprintf("area = (%d, %d, %d, %d) %s\n",
+		env->area.x, env->area.y, env->area.w, env->area.h,
+		clear ? "clear" : "no clear"));
 
   if ( limit && notNil(d->cache) && clear )
   { NormaliseArea(x, y, w, h);
@@ -406,12 +406,12 @@ void
 d_clip(int x, int y, int w, int h)
 { XRectangle rect;
 
-  DEBUG(NAME_redraw, printf("d_clip(%d, %d, %d, %d) -> ", x, y, w, h));
+  DEBUG(NAME_redraw, Cprintf("d_clip(%d, %d, %d, %d) -> ", x, y, w, h));
   NormaliseArea(x, y, w, h);
   Translate(x, y);
-  DEBUG(NAME_redraw, printf("(%d %d %d %d) -> ", x, y, w, h));
+  DEBUG(NAME_redraw, Cprintf("(%d %d %d %d) -> ", x, y, w, h));
   Clip(x, y, w, h);
-  DEBUG(NAME_redraw, printf("(%d %d %d %d)\n", x, y, w, h));
+  DEBUG(NAME_redraw, Cprintf("(%d %d %d %d)\n", x, y, w, h));
 
   env++;
   env->area.x = x;
@@ -424,7 +424,7 @@ d_clip(int x, int y, int w, int h)
   rect.width  = w;
   rect.height = h;
 
-  DEBUG(NAME_redraw, printf("clip to %d %d %d %d\n", x, y, w, h));
+  DEBUG(NAME_redraw, Cprintf("clip to %d %d %d %d\n", x, y, w, h));
 
 # define CLIP(x) XSetClipRectangles(context.display, x, 0, 0, &rect, \
 				    1, Unsorted)
@@ -438,9 +438,9 @@ d_clip(int x, int y, int w, int h)
 void
 d_done()
 { if ( context.cache != NULL )
-  { DEBUG(NAME_redraw, printf("writing cache to (%d %d %d %d)\n",
-			      context.cache_x, context.cache_y,
-			      context.cache_w, context.cache_h));
+  { DEBUG(NAME_redraw, Cprintf("writing cache to (%d %d %d %d)\n",
+			       context.cache_x, context.cache_y,
+			       context.cache_w, context.cache_h));
     XCopyArea(context.display, context.drawable, context.window,
 	      context.gcs->copyGC, 0, 0,
 	      context.cache_w, context.cache_h,
@@ -460,7 +460,7 @@ d_done()
       r_background(c);
   }
   d_pop_context();
-  DEBUG(NAME_redraw, printf("After d_done(): env->level = %d\n", env->level));
+  DEBUG(NAME_redraw, Cprintf("After d_done(): env->level = %d\n", env->level));
 }
 
 
@@ -468,7 +468,7 @@ void
 d_clip_done(void)
 { env--;
 
-  DEBUG(NAME_redraw, printf("d_done()\n"));
+  DEBUG(NAME_redraw, Cprintf("d_done()\n"));
 
   assert(env >= environments);		/* stack underflow */
 
@@ -540,8 +540,8 @@ r_clear(int x, int y, int w, int h)
   Clip(x, y, w, h);
 
   if ( w > 0 && h > 0 )
-  { DEBUG(NAME_background, printf("r_clear(%d, %d, %d, %d) in %s context\n",
-				  x, y, w, h, pp(context.gcs->kind)));
+  { DEBUG(NAME_background, Cprintf("r_clear(%d, %d, %d, %d) in %s context\n",
+				   x, y, w, h, pp(context.gcs->kind)));
 
 /*  if ( context.kind == NAME_window )
       XClearArea(context.display, context.drawable, x, y, w, h, False);
@@ -638,7 +638,7 @@ r_dash(Name name)
 
 void
 r_fillpattern(Any fill)		/* image or colour */
-{ DEBUG(NAME_fillPattern, printf("r_fillpattern(%s) ", pp(fill)));
+{ DEBUG(NAME_fillPattern, Cprintf("r_fillpattern(%s) ", pp(fill)));
 
   if ( fill != context.gcs->fill )
   { XGCValues values;
@@ -647,7 +647,7 @@ r_fillpattern(Any fill)		/* image or colour */
     if ( isDefault(fill) )
       fill = context.gcs->background;
 
-    DEBUG(NAME_fillPattern, printf("Changing\n"));
+    DEBUG(NAME_fillPattern, Cprintf("Changing\n"));
 
     if ( instanceOfObject(fill, ClassImage) )
     { Image i = fill;
@@ -658,9 +658,9 @@ r_fillpattern(Any fill)		/* image or colour */
 	values.fill_style = FillOpaqueStippled;
 	values.foreground = context.gcs->foreground_pixel;
 	values.background = context.gcs->background_pixel;
-	DEBUG(NAME_fillPattern, printf("fg = %ld, bg = %ld\n",
-				       context.gcs->foreground_pixel,
-				       context.gcs->background_pixel));
+	DEBUG(NAME_fillPattern, Cprintf("fg = %ld, bg = %ld\n",
+					context.gcs->foreground_pixel,
+					context.gcs->background_pixel));
 	mask 		  = (GCStipple|GCFillStyle|GCForeground|GCBackground);
       } else
       { values.tile       = pm;
@@ -676,7 +676,7 @@ r_fillpattern(Any fill)		/* image or colour */
     XChangeGC(context.display, context.gcs->fillGC, mask, &values);
     context.gcs->fill = fill;
   } else
-  { DEBUG(NAME_fillPattern, printf("Not changed\n"));
+  { DEBUG(NAME_fillPattern, Cprintf("Not changed\n"));
   }
 }
 
@@ -783,8 +783,8 @@ r_background(Any c)
     { XGCValues values;
       ulong mask;
 
-      DEBUG(NAME_background, printf("Setting clearGC of %s context to %s\n",
-				    pp(context.gcs->kind), pp(c)));
+      DEBUG(NAME_background, Cprintf("Setting clearGC of %s context to %s\n",
+				     pp(context.gcs->kind), pp(c)));
 
       if ( instanceOfObject(c, ClassColour) )
       { ulong pixel = getPixelColour(c, context.pceDisplay);
@@ -1550,7 +1550,7 @@ r_path(Chain points, int ox, int oy, int radius, int closed, Image fill)
       pt++;
     }
 #endif
-    printf("Not yet implemented (r_path())\n");
+    Cprintf("Not yet implemented (r_path())\n");
   }
 }
 
@@ -1600,8 +1600,8 @@ r_image(Image image,
 { if ( image->size->w == ZERO || image->size->h == ZERO )
     return;
 
-  DEBUG(NAME_image, printf("image <-kind %s on drawable kind %s\n",
-			   pp(image->kind), pp(context.kind)));
+  DEBUG(NAME_image, Cprintf("image <-kind %s on drawable kind %s\n",
+			    pp(image->kind), pp(context.kind)));
 
   if ( (image->kind == NAME_bitmap && context.kind != NAME_bitmap) ||
        (image->kind != NAME_bitmap && context.kind == NAME_bitmap) )
@@ -1675,8 +1675,8 @@ r_image(Image image,
 	    if ( (fpixel & plane) != (bpixel & plane) )
 	      break;
 
-        DEBUG(NAME_image, printf("fpixel = %ld, bpixel = %ld, plane = %ld\n",
-				 fpixel, bpixel, plane));
+        DEBUG(NAME_image, Cprintf("fpixel = %ld, bpixel = %ld, plane = %ld\n",
+				  fpixel, bpixel, plane));
 
         if ( (fpixel & plane) == 0 )
 	{ values.foreground = 0;

@@ -32,6 +32,24 @@
 #define GLOBAL extern			/* global variables */
 #endif
 
+		 /********************************
+		 * AVOID ACCIDENTAL USE OF STDIO *
+		 ********************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The XPCE library should not use STDIO   to allow for embedding in window
+environments. We undefine these  symbols  here   to  make  the  compiler
+generate warnings on accidental use of them.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#undef stdin
+#undef stdout
+#undef stderr
+#undef printf
+#undef putchar
+#undef getchar
+
+
 		 /*******************************
 		 *	SOME SYSTEM STUFF	*
 		 *******************************/
@@ -200,22 +218,9 @@ typedef struct dCell 	      **DelegateList;   /* See msg-passing.c */
 #define POINTER_OFFSET (0L)
 #endif
 
-#ifndef TEXT_OFFSET
-#define TEXT_OFFSET (0L)
-#endif
-
-#ifndef TEXT_PTR_ALIGNMENT
-#define TEXT_PTR_ALIGNMENT sizeof(int)
-#endif
-
 #define PointerToInt(p)	toInt(((ulong)(p) - POINTER_OFFSET)/sizeof(int))
 #define longToPointer(i) ((Any) (i * sizeof(int) + POINTER_OFFSET))
 #define IntToPointer(i) longToPointer(valInt(i))
-
-#define TextPointerToInt(p) toInt(((ulong)(p) - TEXT_OFFSET) / \
-				  TEXT_PTR_ALIGNMENT)
-#define IntToTextPointer(i) ((Func) (valInt(i) * TEXT_PTR_ALIGNMENT \
-				  + TEXT_OFFSET))
 
 
 		/********************************
@@ -578,6 +583,10 @@ End;
 NewClass(vmi)
   ABSTRACT_PROGRAM_OBJECT
   Name		name;			/* Name of vmi */
+End;
+
+NewClass(c_pointer)
+  void *	pointer;		/* the pointer value */
 End;
 
 NewClass(area)
@@ -1275,7 +1284,15 @@ typedef long	AnswerMark;
 #include "../msg/proto.h"
 #include "../adt/proto.h"
 
+					/* console IO */
+void		Cprintf(const char *fmt, ...);
+int		Cputchar(int chr);
+char *		Cgetline(char *line, int size);
+
+					/* interface prototypes */
 status		makeClassC(Class class);
+status		makeClassCPointer(Class class);
+CPointer	CtoCPointer(void *);
 status		initialiseHost(Host h, Name which);
 status		makeClassHost(Class class);
 Host		HostObject(void);

@@ -589,8 +589,8 @@ parsep_line_textbuffer(TextBuffer tb, int here)
 { int rval = matchRegex(tb->syntax->paragraph_end, tb, toInt(here), DEFAULT);
 
   DEBUG(NAME_paragraph,
-	printf("parsep_line_textbuffer(%s, %d) --> %s\n",
-	       pp(tb), here, rval ? "yes" : "no"));
+	Cprintf("parsep_line_textbuffer(%s, %d) --> %s\n",
+		pp(tb), here, rval ? "yes" : "no"));
 
   return rval;
 }
@@ -829,9 +829,9 @@ inStringTextBuffer(TextBuffer tb, Int pos, Int from)
   { if ( tisquote(tb->syntax, fetch(here)) )
     { Int match;
 
-      DEBUG(NAME_inString, printf("here = %ld (idx = %ld)\n", here, idx));
+      DEBUG(NAME_inString, Cprintf("here = %ld (idx = %ld)\n", here, idx));
       if ( (match = getMatchingQuoteTextBuffer(tb, toInt(here), NAME_forward)))
-      { DEBUG(NAME_inString, printf("Matching: %ld\n", valInt(match)));
+      { DEBUG(NAME_inString, Cprintf("Matching: %ld\n", valInt(match)));
 
 	if ( (here = valInt(match)) >= idx )
 	  succeed;
@@ -1140,7 +1140,7 @@ distribute_spaces(TextBuffer tb, int spaces, int nbreaks, long int *breaks)
   int *extra = alloca(nbreaks * sizeof(int));
   String space = str_spc(&tb->buffer);
 
-  DEBUG(NAME_justify, printf("%d spaces (each %d)\n", spaces, s));
+  DEBUG(NAME_justify, Cprintf("%d spaces (each %d)\n", spaces, s));
 
   for(n=0; n < nbreaks-1; n++)		/* give them equal size */
     extra[n] = s;
@@ -1153,7 +1153,7 @@ distribute_spaces(TextBuffer tb, int spaces, int nbreaks, long int *breaks)
     if ( i >= nbreaks-1 ) i = nbreaks - 2;
     if ( i < 0 ) i = 0;
     extra[i]++;
-    DEBUG(NAME_justify, printf("\tadding one at break %d\n", i));
+    DEBUG(NAME_justify, Cprintf("\tadding one at break %d\n", i));
   }
 
   for(n=0, m=0; n<nbreaks; n++)
@@ -1177,8 +1177,8 @@ fill_line_textbuffer(TextBuffer tb, long int here, long int to,
   String nl = str_nl(&tb->buffer);
   String space = str_spc(&tb->buffer);
 
-  DEBUG(NAME_fill, printf("fill_line(tb, %ld, %ld, %d, %d)\n",
-			  here, to, sc, rm));
+  DEBUG(NAME_fill, Cprintf("fill_line(tb, %ld, %ld, %d, %d)\n",
+			   here, to, sc, rm));
 
 					/* delete leading white space */
   for( i = here; i < to && tislayout(tb->syntax, fetch(i)); i++ )
@@ -1186,7 +1186,7 @@ fill_line_textbuffer(TextBuffer tb, long int here, long int to,
   if ( i-here > 0 )
   { delete_textbuffer(tb, here, i-here);
     to -= i-here;
-    DEBUG(NAME_fill, printf("deleted %ld leading blanks\n", i-here));
+    DEBUG(NAME_fill, Cprintf("deleted %ld leading blanks\n", i-here));
   }
 
 
@@ -1195,8 +1195,8 @@ fill_line_textbuffer(TextBuffer tb, long int here, long int to,
     for( ; here < to && !tislayout(tb->syntax, fetch(here)); here++ )
       col++;
     DEBUG(NAME_fill,
-	  printf("Word to %ld; col = %d; here-1 = %c, here = %d, to=%ld\n",
-		 here, col, fetch(here-1), fetch(here), to));
+	  Cprintf("Word to %ld; col = %d; here-1 = %c, here = %d, to=%ld\n",
+		  here, col, fetch(here-1), fetch(here), to));
 
     if ( col > rm )			/* trapped margin */
     { if ( nbreaks > 0 )
@@ -1224,7 +1224,7 @@ fill_line_textbuffer(TextBuffer tb, long int here, long int to,
       store_textbuffer(tb, here, ' ');
     here++, col++;
     if ( ends_sentence(tb, here-2) )	/* sentence: one more space */
-    { DEBUG(NAME_fill, printf("End-sentence at %ld\n", here-2));
+    { DEBUG(NAME_fill, Cprintf("End-sentence at %ld\n", here-2));
       if ( fetch(here) != ' ' )
       { insert_textbuffer(tb, here, 1, space);
 	to++;
@@ -1237,7 +1237,7 @@ fill_line_textbuffer(TextBuffer tb, long int here, long int to,
     if ( i-here > 0 )
     { delete_textbuffer(tb, here, i-here);
       to -= i-here;
-      DEBUG(NAME_fill, printf("deleted %ld blanks\n", i-here));
+      DEBUG(NAME_fill, Cprintf("deleted %ld blanks\n", i-here));
     }
 
     if ( here >= to )
@@ -1721,8 +1721,8 @@ shift_fragments(TextBuffer tb, long int from, long int shift)
 { Fragment f;
   Cell cell;
 
-  DEBUG(NAME_shift, printf("Start shift: from = %ld, shift = %ld\n",
-			   from, shift));
+  DEBUG(NAME_shift, Cprintf("Start shift: from = %ld, shift = %ld\n",
+			    from, shift));
 
   if ( shift > 0 )			/* insert */
   { for(f=tb->first_fragment; notNil(f); f = f->next)
@@ -1742,8 +1742,8 @@ shift_fragments(TextBuffer tb, long int from, long int shift)
     { int oldlen = f->length;
 
       next = f->next;
-      DEBUG(NAME_shift, printf("%s: start = %ld, length = %ld --> ",
-			       pp(f), f->start, f->length));
+      DEBUG(NAME_shift, Cprintf("%s: start = %ld, length = %ld --> ",
+				pp(f), f->start, f->length));
       if ( to < f->start )			/* 1 */
 	f->start += shift;
       else
@@ -1770,8 +1770,8 @@ shift_fragments(TextBuffer tb, long int from, long int shift)
       if ( f->length == 0 && oldlen != 0 )
 	send(f, NAME_emptied, 0);
 
-      DEBUG(NAME_shift, printf("start = %ld, length = %ld\n",
-			       f->start, f->length));
+      DEBUG(NAME_shift, Cprintf("start = %ld, length = %ld\n",
+				f->start, f->length));
     }
   }
 

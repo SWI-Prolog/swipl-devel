@@ -114,6 +114,7 @@ void		str_label(char8 *s, char8 acc, FontObj font, int x, int y, int w, int h, N
 
 /* xevent.c */
 status		ws_dispatch(Int FD, Int timeout);
+void		ws_discard_input(const char *msg);
 Any		ws_event_in_subwindow(EventObj ev, Any root);
 
 /* xfont.c */

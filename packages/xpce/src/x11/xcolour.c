@@ -64,7 +64,7 @@ ws_create_colour(Colour c, DisplayObj d)
 
 void
 ws_uncreate_colour(Colour c, DisplayObj d)
-{ fprintf(stderr, "ws_uncreate_colour() not yet implemented\n");
+{ Cprintf("ws_uncreate_colour() not yet implemented\n");
 }
 
 

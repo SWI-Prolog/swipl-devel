@@ -535,7 +535,7 @@ getPixelImage(Image image, Int x, Int y)
     pixel = r_get_pixel(valInt(x), valInt(y));
     d_done();
 
-    DEBUG(NAME_image, printf("pixel = %ld\n", pixel));
+    DEBUG(NAME_image, Cprintf("pixel = %ld\n", pixel));
     if ( pixel == NoPixel )
       fail;
     if ( image->kind == NAME_bitmap )

@@ -1132,8 +1132,7 @@ get_absolute_xy_graphical(Graphical gr, Device *dev, Int *X, Int *Y)
 { int x, y;
 
   DEBUG(NAME_absolutePosition,
-	printf("get_absolutePosition(%s, %s) ... ", pp(gr), pp(*dev));
-	fflush(stdout));
+	Cprintf("get_absolutePosition(%s, %s) ... ", pp(gr), pp(*dev)));
 
   ComputeGraphical(gr);
   x = valInt(gr->area->x);
@@ -1149,8 +1148,7 @@ get_absolute_xy_graphical(Graphical gr, Device *dev, Int *X, Int *Y)
   }
 
   if ( notDefault(*dev) && gr->device != *dev )
-  { DEBUG(NAME_absolutePosition,
-	  printf("failed\n"));
+  { DEBUG(NAME_absolutePosition, Cprintf("failed\n"));
     fail;
   }
 
@@ -1158,8 +1156,7 @@ get_absolute_xy_graphical(Graphical gr, Device *dev, Int *X, Int *Y)
   *X = toInt(x);
   *Y = toInt(y);
 
-  DEBUG(NAME_absolutePosition,
-	printf("X=%s; Y=%s\n", pp(*X), pp(*Y)));
+  DEBUG(NAME_absolutePosition, Cprintf("X=%s; Y=%s\n", pp(*X), pp(*Y)));
 
   succeed;
 }
@@ -2341,19 +2338,19 @@ static status
 flashGraphical(Graphical gr)
 { Bool oldinv = gr->inverted;
 
-  DEBUG(NAME_flash, printf("Flash ... "); fflush(stdout));
+  DEBUG(NAME_flash, Cprintf("Flash ... "));
   CHANGING_GRAPHICAL(gr,
 		     assign(gr, inverted, oldinv == ON ? OFF : ON);
 		     changedEntireImageGraphical(gr));
   flushGraphical(gr);
-  DEBUG(NAME_flash, printf("sleeping ... "); fflush(stdout));
+  DEBUG(NAME_flash, Cprintf("sleeping ... "));
   msleep(valInt((Int)getResourceValueObject(gr, NAME_visualBellDuration)));
-  DEBUG(NAME_flash, printf("waking up ... "); fflush(stdout));
+  DEBUG(NAME_flash, Cprintf("waking up ... "));
   CHANGING_GRAPHICAL(gr,
 		     assign(gr, inverted, oldinv);
 		     changedEntireImageGraphical(gr));
   flushGraphical(gr);
-  DEBUG(NAME_flash, printf("done.\n"));
+  DEBUG(NAME_flash, Cprintf("done.\n"));
 
   succeed;
 }

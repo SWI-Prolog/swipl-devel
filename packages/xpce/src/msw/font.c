@@ -37,7 +37,7 @@ ws_create_font(FontObj f, DisplayObj d)
   if ( !(wsf->hfont = CreateFontIndirect(&lfont)) )
   { int stock;
 
-    printf("Failed to create logical font; replacing with stock font\n");
+    Cprintf("Failed to create logical font; replacing with stock font\n");
 
     if ( f->family == NAME_screen )
     { if ( f->style == NAME_bold )

@@ -23,7 +23,7 @@ initialiseHandler(Handler h, Any id, Message msg, RegionObj reg)
 
 static status
 eventHandler(Handler h, EventObj ev)
-{ DEBUG(NAME_post, printf("eventHandler(%s, %s)\n", pp(h), pp(ev)));
+{ DEBUG(NAME_post, Cprintf("eventHandler(%s, %s)\n", pp(h), pp(ev)));
 
   if ( isAEvent(ev, h->event) )
   { if (isDefault(h->region))

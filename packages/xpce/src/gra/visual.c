@@ -96,7 +96,7 @@ destroyVisual(VisualObj v)
 
     collectSubsVisual(v, subs, TRUE);
     for_chain(subs, sub,
-	      { DEBUG(NAME_destroy, printf("%s ->free\n", pp(sub)));
+	      { DEBUG(NAME_destroy, Cprintf("%s ->free\n", pp(sub)));
 		sendv(sub, NAME_free, 0, NULL);
 	      });
     freeObject(subs);

@@ -106,7 +106,7 @@ ws_open_display(DisplayObj d)
 
 void
 check_redraw()
-{ DEBUG(NAME_typed, printf("check_redraw() called\n"));
+{ DEBUG(NAME_typed, Cprintf("check_redraw() called\n"));
 
   RedrawDisplayManager(TheDisplayManager());
 }
@@ -210,19 +210,19 @@ init_area_enter_exit_handling(DisplayObj d)
   if ( isName(dllname = getResourceValueObject(d, NAME_whMouseDll)) )
   { HINSTANCE hlib;
 
-    DEBUG(NAME_dll, printf("loading DLL %s\n", strName(dllname)));
+    DEBUG(NAME_dll, Cprintf("loading DLL %s\n", strName(dllname)));
 
     if ( (hlib = LoadLibrary(strName(dllname))) >= HINSTANCE_ERROR )
     { pcewhdll = hlib;
-      DEBUG(NAME_dll, printf("loaded; lookup of \"Win386LibEntry\"\n"));
+      DEBUG(NAME_dll, Cprintf("loaded; lookup of \"Win386LibEntry\"\n"));
       PceWhEntry = GetProcAddress(hlib, "Win386LibEntry");
-      DEBUG(NAME_dll, printf("yields 0x%lx\n", PceWhEntry));
+      DEBUG(NAME_dll, Cprintf("yields 0x%lx\n", PceWhEntry));
       PceWhIH    = GetIndirectFunctionHandle(PceWhEntry,
 					     INDIR_WORD, INDIR_WORD,
 					     INDIR_ENDLIST);
-      DEBUG(NAME_dll, printf("indirect fhandle = 0x%x\n", PceWhIH));
+      DEBUG(NAME_dll, Cprintf("indirect fhandle = 0x%x\n", PceWhIH));
       PceWhAddTask(GetCurrentTask());
-      DEBUG(NAME_dll, printf("DLL loaded and initialised\n"));
+      DEBUG(NAME_dll, Cprintf("DLL loaded and initialised\n"));
       atexit(unload_pcewhdll);
       return;
     } else
@@ -308,7 +308,7 @@ ws_string_to_global_mem(String s)
   int i;
 
   if ( !mem )
-  { printf("Cannot allocate\n");
+  { Cprintf("Cannot allocate\n");
     return 0;
   }
   data = MK_FP32(GlobalLock(mem));
@@ -336,7 +336,7 @@ ws_set_cutbuffer(DisplayObj d, int n, String s)
     succeed;
   }
 
-  printf("Cannot access cut-buffers other than 0\n");
+  Cprintf("Cannot access cut-buffers other than 0\n");
   fail;
 }
 
@@ -368,7 +368,7 @@ ws_get_cutbuffer(DisplayObj d, int n)
     return rval; 
   }
 
-  printf("Cannot access cut-buffers other than 0\n");
+  Cprintf("Cannot access cut-buffers other than 0\n");
   fail;
 }
 
@@ -549,13 +549,13 @@ load_resource_file(char *file)
 	  str_set_n_ascii(&str, e-s, s);
 	  fields[nfields++] = StringToName(&str);
 	  s = e;
-	  DEBUG(NAME_resource, printf("found %s\n", pp(fields[nfields-1])));
+	  DEBUG(NAME_resource, Cprintf("found %s\n", pp(fields[nfields-1])));
 	  continue;
 	}
 
 	if ( *s == '*' )
 	{ fields[nfields++] = name_star;
-	  DEBUG(NAME_resource, printf("found %s\n", pp(fields[nfields-1])));
+	  DEBUG(NAME_resource, Cprintf("found %s\n", pp(fields[nfields-1])));
 	  s++;
 	  continue;
 	}
@@ -614,7 +614,7 @@ load_resource_file(char *file)
 	  
 	  str_set_n_ascii(&str, size, buf);
 	  value = StringToString(&str);
-	  DEBUG(NAME_resource, printf("Value = %s\n", pp(value)));
+	  DEBUG(NAME_resource, Cprintf("Value = %s\n", pp(value)));
 	  add_resource(nfields, fields, value);
 	  goto next;
 	} else
@@ -686,8 +686,8 @@ ws_get_resource_value(DisplayObj d, Name cc, Name cn, Name rc, Name rn)
 	{ ok = 50;
 	}
 
-	DEBUG(NAME_resource, printf("%s using %s: ok = %d (e0=%s)\n",
-				    pp(rn), pp(v), ok, pp(elements[0])));
+	DEBUG(NAME_resource, Cprintf("%s using %s: ok = %d (e0=%s)\n",
+				     pp(rn), pp(v), ok, pp(elements[0])));
 
 	if ( elements[0] == d->resource_class )
 	{ ;

@@ -19,14 +19,14 @@ getIdTimer(Timer tm)
 
 static void
 setIdTimer(Timer tm, UINT id)
-{ DEBUG(NAME_timer, printf("setIdTimer(%s, %d)\n", pp(tm), id));
+{ DEBUG(NAME_timer, Cprintf("setIdTimer(%s, %d)\n", pp(tm), id));
   tm->ws_ref = (WsRef) id;
 }
 
 
 static void
 timer_proc(int id)
-{ DEBUG(NAME_timer, printf("Fireing timer %d\n", id));
+{ DEBUG(NAME_timer, Cprintf("Fireing timer %d\n", id));
 
   if ( TimerTable )
   { Timer tm;
@@ -79,9 +79,9 @@ ws_status_timer(Timer tm, Name status)
       }
       appendHashTable(TimerTable, toInt(id), tm);
       setIdTimer(tm, id);
-      DEBUG(NAME_timer, printf("Created timer of %d milliseconds (id = %d)\n",
-			       msec, id));
+      DEBUG(NAME_timer, Cprintf("Created timer of %d milliseconds (id = %d)\n",
+				msec, id));
     } else
-      printf("Failed SetTimer()\n");
+      Cprintf("Failed SetTimer()\n");
   }
 }

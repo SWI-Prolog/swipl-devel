@@ -228,7 +228,7 @@ static VarBinding
 appendVarEnvironment(VarEnvironment ev, Var v)
 { VarBinding b;
 
-  DEBUG(NAME_var, printf("Appending %s to env 0x%lx\n", pp(v), (ulong) ev));
+  DEBUG(NAME_var, Cprintf("Appending %s to env 0x%lx\n", pp(v), (ulong) ev));
 
   if ( ev->size < BINDINGBLOCKSIZE )
     b = &ev->bindings[ev->size++];
@@ -258,8 +258,8 @@ popVarEnvironment(void)
       delCodeReference(b->variable->value);
     b->variable->value = b->value;
 
-    DEBUG(NAME_var, printf("Restoring %s to %s\n",
-			   pp(b->variable), pp(b->value)));
+    DEBUG(NAME_var, Cprintf("Restoring %s to %s\n",
+			    pp(b->variable), pp(b->value)));
 
     if ( ++i == BINDINGBLOCKSIZE && ev->extension )
       b = ev->extension->bindings;
@@ -308,8 +308,8 @@ assignVar(Var v, Any value, Name scope)
     assign(v, global_value, value);
   }
 
-  DEBUG(NAME_var, printf("assignVar(%s) %s --> %s\n",
-			 pp(v), pp(v->value), pp(value)));
+  DEBUG(NAME_var, Cprintf("assignVar(%s) %s --> %s\n",
+			  pp(v), pp(v->value), pp(value)));
   v->value = value;
   if ( isObject(value) )
     addCodeReference(value);

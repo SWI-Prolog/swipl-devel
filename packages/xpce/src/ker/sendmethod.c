@@ -9,6 +9,7 @@
 
 #define INLINE_UTILITIES 1
 #include <h/kernel.h>
+#include <itf/c.h>
 
 
 SendMethod
@@ -77,7 +78,7 @@ sendSendMethod(SendMethod m, Any receiver, int argc, const Any argv[])
 	{ void *cppf = valCppFunctionPointer(f);
 
 	  withReceiver(receiver, m->context,
-		       rval = callCPlusPlusPceMethodProc(rec, cppf, 0, NULL));
+		       rval = callCPlusPlusPceMethodProc(receiver,cppf,0,NULL));
 	} else
 #endif O_CPLUSPLUS
         { rval = (*f)(receiver);
@@ -126,7 +127,7 @@ sendSendMethod(SendMethod m, Any receiver, int argc, const Any argv[])
       { void *cppf = valCppFunctionPointer(f);
 
 	withReceiver(receiver, m->context,
-		     rval = callCPlusPlusPceMethodProc(rec, cppf, 1, &arg));
+		     rval = callCPlusPlusPceMethodProc(receiver,cppf,1,&arg));
       } else
 #endif O_CPLUSPLUS
       { rval = (*f)(receiver, arg);

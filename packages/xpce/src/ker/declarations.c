@@ -70,6 +70,9 @@ static struct class_definition classdefs[] =
   { NAME_c, NAME_host, makeClassC,
     &ClassC, "C language (for communication)" },
 
+  { NAME_cPointer, NAME_object, makeClassCPointer,
+    &ClassCPointer, "C void * encapsulation" },
+
   { NAME_chain, NAME_object, makeClassChain,
     &ClassChain, "Single linked list of objects" },
 

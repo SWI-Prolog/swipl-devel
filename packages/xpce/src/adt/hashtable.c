@@ -424,10 +424,10 @@ getFindValueHashTable(HashTable ht, Code code)
 
 static status
 printStatisticsHashTable(HashTable ht)
-{ printf("Total hash_table statistics:\n");
-  printf("\t# resizes:    %d\n", hash_resizes);
-  printf("\t# lookups:    %d\n", hash_lookups);
-  printf("\t# mismatches: %d\n", hash_cmp_failed);
+{ Cprintf("Total hash_table statistics:\n");
+  Cprintf("\t# resizes:    %d\n", hash_resizes);
+  Cprintf("\t# lookups:    %d\n", hash_lookups);
+  Cprintf("\t# mismatches: %d\n", hash_cmp_failed);
 
   succeed;
 }

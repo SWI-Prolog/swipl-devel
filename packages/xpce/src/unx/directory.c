@@ -408,7 +408,7 @@ makeClassDirectory(Class class)
 	    getPrintNameDirectory);
 
   DirectoryStack = globalObject(NAME_directoryStack, ClassChain, 0);
-  DEBUG(NAME_directory, printf("DirectoryStack = %s\n", pp(DirectoryStack)));
+  DEBUG(NAME_directory, Cprintf("DirectoryStack = %s\n", pp(DirectoryStack)));
 
   succeed;
 }
@@ -682,7 +682,7 @@ expandFileName(char *pattern)
   }
   *expanded++ = EOS;
 
-  DEBUG(NAME_path, printf("Expanded %s to %s at %p\n", pattern,bin,bin));
+  DEBUG(NAME_path, Cprintf("Expanded %s to %s at %p\n", pattern, bin, bin));
 
   return bin;
 }

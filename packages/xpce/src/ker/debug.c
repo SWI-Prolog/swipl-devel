@@ -173,30 +173,30 @@ printFrame(long pc, int an, long *av, long sigpc)
   switch(an)
   { int i;
 
-    case 0:	printf("%s()", f);
+    case 0:	Cprintf("%s()", f);
 		break;
-    case 1:	printf("%s(", f);
+    case 1:	Cprintf("%s(", f);
     		printArgument(av[0]);
-    		printf(")");
+    		Cprintf(")");
 		break;
-    default:	printf("%s(", f);
+    default:	Cprintf("%s(", f);
     		printArgument(av[0]);
 		for(i=1; i<an; i++)
 		{ if (i > 10)
-		  { printf(", ...");
+		  { Cprintf(", ...");
 		    break;
 		  }
-		  printf(", ");
+		  Cprintf(", ");
 		  printArgument(av[i]);
 		}
-		printf(")");
+		Cprintf(")");
 		break;
   }
 
   if ( percent > 0 )
-    printf( " %d%%\n",percent );
+    Cprintf( " %d%%\n",percent );
   else
-    printf("\n");
+    Cprintf("\n");
 
   return rval;
 }
@@ -204,8 +204,7 @@ printFrame(long pc, int an, long *av, long sigpc)
 
 static void
 printArgument(int arg)
-{ printf("%d: ", arg); fflush(stdout);
-  printf("%s", pp(arg));
+{ Cprintf("%d: %s", arg, pp(arg));
 }
 
 
@@ -214,7 +213,7 @@ printArgument(int arg)
 static void
 _pcePrintStack(depth, sigpc)
 int depth, sigpc;
-{ printf("Cannot print stack on this machine\n");
+{ Cprintf("Cannot print stack on this machine\n");
 }
 
 #endif /*sun*/
@@ -224,7 +223,7 @@ int depth, sigpc;
 static void
 _pcePrintStack(depth, sigpc)
 int depth, sigpc;
-{ printf("Runtime system does not support traceback\n");
+{ Cprintf("Runtime system does not support traceback\n");
 }
 
 #endif
@@ -241,9 +240,8 @@ status
 confirmTerminal(char *question, char *def)
 { char line[256];
 
-  printf("%s [%s] ? ", question, *def == 'n' ? "ny" : "yn");
-  fflush(stdout);
-  if (gets(line) == NULL)
+  Cprintf("%s [%s] ? ", question, *def == 'n' ? "ny" : "yn");
+  if ( Cgetline(line, sizeof(line)) == NULL )
     return *def == 'y';
   switch(line[0])
   { case 'n':
@@ -251,7 +249,7 @@ confirmTerminal(char *question, char *def)
     case 'y':
     case 'Y':	return TRUE;
     case '\0':	return *def == 'y' ? TRUE : FALSE;
-    default:	printf("Please answer 'yes' or 'no'\n");
+    default:	Cprintf("Please answer 'yes' or 'no'\n");
 		return confirmTerminal(question, def);
   }
 }

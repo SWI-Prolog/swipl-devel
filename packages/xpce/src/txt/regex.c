@@ -220,7 +220,7 @@ search_regex(Regex re, char *str1, int size1, char *str2, int size2,
 	  return errorPce(re, NAME_internalError);
 	default:
 	  if ( re->registers->end[0] > start )
-	  { DEBUG(NAME_regex, printf("Match to %d\n", re->registers->end[0]));
+	  { DEBUG(NAME_regex, Cprintf("Match to %d\n", re->registers->end[0]));
 
 	    if ( --start < 0 )
 	      fail;
@@ -345,7 +345,7 @@ match_regex(Regex re, char *str1, int size1, char *str2, int size2, int start, i
     int n;
 
     for(s = start; s >= end; s--)
-    { DEBUG(NAME_regex, printf("Match in %d .. %d\n", s, start));
+    { DEBUG(NAME_regex, Cprintf("Match in %d .. %d\n", s, start));
       switch( (n = re_match_2(re->compiled,
 			      (unsigned char *)str1, size1,
 			      (unsigned char *)str2, size2,

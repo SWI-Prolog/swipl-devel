@@ -96,7 +96,7 @@ rows_and_cols(Menu m, int *rows, int *cols)
   *cols = min(*cols, size);
   *rows = (*cols == 0 ? 0 : (size + *cols - 1) / *cols);
 
-  DEBUG(NAME_columns, printf("%d rows; %d cols\n", *rows, *cols));
+  DEBUG(NAME_columns, Cprintf("%d rows; %d cols\n", *rows, *cols));
 }
 
 
@@ -406,8 +406,8 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h, Elevation z)
   Image fill = NIL;
   Any colour = mi->colour;
 
-  DEBUG(NAME_menu, printf("Redraw %s at %d %d %d %d\n",
-			  pp(mi->value), x, y, w, h));
+  DEBUG(NAME_menu, Cprintf("Redraw %s at %d %d %d %d\n",
+			   pp(mi->value), x, y, w, h));
 
   if ( mi->active == OFF )
   { Any c2 = getResourceValueObject(m, NAME_inactiveColour);
@@ -466,8 +466,9 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h, Elevation z)
 	radius = 10;
       }
 	
-      DEBUG(NAME_menu, printf("Feedback = %s, p = %d; r = %d, fill = %s\n",
-			      pp(m->preview_feedback), pen, radius, pp(fill)));
+      DEBUG(NAME_menu, Cprintf("Feedback = %s, p = %d; r = %d, fill = %s\n",
+			       pp(m->preview_feedback),
+			       pen, radius, pp(fill)));
     }
 
     if ( mi->end_group == ON )
@@ -742,11 +743,11 @@ getItemFromEventMenu(Menu m, EventObj ev)
   y = valInt(Y) - valInt(m->item_offset->y);
   if ( x < 0 || y < 0 )
     fail;
-  DEBUG(NAME_event, printf("event at %d,%d\n", x, y));
+  DEBUG(NAME_event, Cprintf("event at %d,%d\n", x, y));
 
   x /= valInt(m->item_size->w) + x_gap(m);
   y /= valInt(m->item_size->h) + y_gap(m);
-  DEBUG(NAME_event, printf("item at %d,%d; rows = %d\n", x, y, rows));
+  DEBUG(NAME_event, Cprintf("item at %d,%d; rows = %d\n", x, y, rows));
   
   if ( m->layout == NAME_horizontal )
     index = x + y * rows + 1;
@@ -961,7 +962,7 @@ selectionMenu(Menu m, Any selection)
   char is_set[MAX_ITEMS];
   int n;
 
-  DEBUG(NAME_popup, printf("selectionMenu(%s, %s)\n", pp(m), pp(selection)));
+  DEBUG(NAME_popup, Cprintf("selectionMenu(%s, %s)\n", pp(m), pp(selection)));
 
   is_set[0] = 0;
   n = 1;

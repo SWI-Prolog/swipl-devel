@@ -213,9 +213,9 @@ status
 realiseBootClass(Class class)
 { assign(class, realised, OFF);
 
-  DEBUG_BOOT(printf("Realising boot class %s ...", strName(class->name)));
+  DEBUG_BOOT(Cprintf("Realising boot class %s ...", strName(class->name)));
   realiseClass(class);
-  DEBUG_BOOT(printf("ok.\n"));
+  DEBUG_BOOT(Cprintf("ok.\n"));
   succeed;
 }
 
@@ -337,7 +337,7 @@ _bootClass(Name name, Name super_name, int size, int slots, SendFunc initF, int 
   } else
     super = NIL;
 
-  DEBUG_BOOT(printf("Boot Class %s ... ", pp(name)); fflush(stdout));
+  DEBUG_BOOT(Cprintf("Boot Class %s ... ", pp(name)));
 
   cl->boot = slots;
   if ( notNil(super) )
@@ -369,7 +369,7 @@ _bootClass(Name name, Name super_name, int size, int slots, SendFunc initF, int 
     assign(cl, has_init_functions, OFF); /* not support for boot stuff */
   }
 
-  DEBUG_BOOT(printf("ok\n"));
+  DEBUG_BOOT(Cprintf("ok\n"));
 
   return cl;
 }
@@ -500,15 +500,15 @@ initClass(Class class)
 
 #if 0
   if ( InstanceSize(class) != valInt(class->instance_size) ) /* TBD */
-    printf("Class %s has %d alien slots\n",
-	   pp(class->name),
-	   (valInt(class->instance_size) - InstanceSize(class)) /
-	   sizeof(Any));
+    Cprintf("Class %s has %d alien slots\n",
+	    pp(class->name),
+	    (valInt(class->instance_size) - InstanceSize(class)) /
+	    sizeof(Any));
 #endif
 
   installClass(class);
 
-  DEBUG_BOOT(printf("ok\n"));
+  DEBUG_BOOT(Cprintf("ok\n"));
 
   succeed;
 }
@@ -1583,7 +1583,7 @@ int
 numberTreeClass(Class class, int n)
 { Cell cell;
 
-  DEBUG(NAME_class, printf("numberTreeClass(%s, %d)\n", pp(class->name), n));
+  DEBUG(NAME_class, Cprintf("numberTreeClass(%s, %d)\n", pp(class->name), n));
   class->tree_index = n++;
   if ( notNil(class->sub_classes) )
   { for_cell(cell, class->sub_classes	)

@@ -122,7 +122,7 @@ getConnectionPointsConnection(Connection c, Graphical from, Graphical to,
   cyfrom = valInt(getAbsoluteYGraphical(from,dev)) + valInt(from->area->h)/2;
 
   DEBUG(NAME_absolutePosition,
-	printf("getConnectionPointsConnection(): dev=%s\n", pp(dev)));
+	Cprintf("getConnectionPointsConnection(): dev=%s\n", pp(dev)));
 
   TRY(bestConnectionPoint(dev, c->link->to, cxfrom, cyfrom, to, &ht, x2, y2));
   TRY(bestConnectionPoint(dev, c->link->from, *x2, *y2, from, &hf, x1, y1));
@@ -149,9 +149,8 @@ bestConnectionPoint(Device dev, Name kind, int x, int y,
   Cell cell;
 
   DEBUG(NAME_handle,
-	printf("bestConnectionPoint(%s, %s, %d, %d, %s) --> ",
-	       pp(dev), pp(kind), x, y, pp(gr));
-	fflush(stdout));
+	Cprintf("bestConnectionPoint(%s, %s, %d, %d, %s) --> ",
+		pp(dev), pp(kind), x, y, pp(gr)));
 
 #define FindAHandle \
   { Handle h = cell->value; \
@@ -181,7 +180,7 @@ bestConnectionPoint(Device dev, Name kind, int x, int y,
     *xp = valInt(hx);
     *yp = valInt(hy);
 
-    DEBUG(NAME_handle, printf("%s, %d, %d\n", pp((*hp)->name), *xp, *yp));
+    DEBUG(NAME_handle, Cprintf("%s, %d, %d\n", pp((*hp)->name), *xp, *yp));
     succeed;
   }
 
@@ -219,11 +218,11 @@ findbest:
   }
 
   if ( found == FAIL )
-  { DEBUG(NAME_handle, printf("FAIL\n"));
+  { DEBUG(NAME_handle, Cprintf("FAIL\n"));
     fail;
   }
 
-  DEBUG(NAME_handle, printf("%s, %d, %d\n", pp((*hp)->name), bestx, besty));
+  DEBUG(NAME_handle, Cprintf("%s, %d, %d\n", pp((*hp)->name), bestx, besty));
 
   *xp = bestx;
   *yp = besty;

@@ -56,7 +56,7 @@ alloc(register int n)
 { n = roundAlloc(n);
   allocbytes += n;
 
-  DEBUG(NAME_allocate, printf("alloc(%d)\n", n));
+  DEBUG(NAME_allocate, Cprintf("alloc(%d)\n", n));
 
   if ( n <= ALLOCFAST )
   { register Zone z;
@@ -127,7 +127,7 @@ unalloc(register int n, Any p)
   n = roundAlloc(n);
   allocbytes -= n;
   
-  DEBUG(NAME_allocate, printf("unalloc(%d)\n", n));
+  DEBUG(NAME_allocate, Cprintf("unalloc(%d)\n", n));
 
   if ( n <= ALLOCFAST )
   { assert((long)z >= allocBase && (long)z <= allocTop);
@@ -150,7 +150,7 @@ unalloc(register int n, Any p)
       tailFreeChains[n] = z;
 
     DEBUG(NAME_allocate,
-	  printf("unalloc for %s, m = %d\n", pp(z), n));
+	  Cprintf("unalloc for %s, m = %d\n", pp(z), n));
     
     return;
   }
@@ -184,7 +184,7 @@ allocate(int size)
 
   if ( spacefree >= sizeof(struct zone) )
   {
-    DEBUG(NAME_allocate, printf("Unalloc remainder of %d bytes\n", spacefree));
+    DEBUG(NAME_allocate, Cprintf("Unalloc remainder of %d bytes\n", spacefree));
 #if ALLOC_DEBUG
     z = (Zone) spaceptr;
     z->in_use = TRUE;
@@ -200,8 +200,7 @@ allocate(int size)
   }
 
   if ( !(p = malloc(ALLOCSIZE)) )
-  { fprintf(stderr,
-	    "[PCE FATAL ERROR: Malloc(%d) failed.  Swap space full?]\n",
+  { Cprintf("[PCE FATAL ERROR: malloc(%d) failed.  Swap space full?]\n",
 	    ALLOCSIZE);
     exit(1);
   }
@@ -263,19 +262,19 @@ listWastedCorePce(Pce pce, Bool ppcells)
 { int n;
   Zone z;
 
-  printf("Wasted core:\n");
+  Cprintf("Wasted core:\n");
   for(n=0; n <= ALLOCFAST/sizeof(Zone); n++)
   { if ( freeChains[n] != NULL )
     { if ( ppcells == ON )
-      { printf("    Size = %ld:\n", (ulong) n*sizeof(Zone));
+      { Cprintf("    Size = %ld:\n", (ulong) n*sizeof(Zone));
 	for(z = freeChains[n]; z; z = z->next)
-	  printf("\t%s\n", pp(z));
+	  Cprintf("\t%s\n", pp(z));
       } else
       { int m;
 
 	for(z = freeChains[n], m = 0; z; z = z->next, m++)
 	  ;
-	printf("\tSize = %3ld\t%4d cells:\n", (ulong) n*sizeof(Zone), m);
+	Cprintf("\tSize = %3ld\t%4d cells:\n", (ulong) n*sizeof(Zone), m);
       }
     }
   }

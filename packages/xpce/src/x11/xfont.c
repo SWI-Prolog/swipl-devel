@@ -77,8 +77,8 @@ make_font_char_widths(XFontStruct *info)
       for(x=0; x < MAX_CHAR; x++)
 	*cw++ = defchar->width;
 
-    DEBUG(NAME_font, printf("16-bit font rows %d to %d, %d characters\n",
-			    info->min_byte1, info->max_byte1, chrs));
+    DEBUG(NAME_font, Cprintf("16-bit font rows %d to %d, %d characters\n",
+			     info->min_byte1, info->max_byte1, chrs));
 
     return widths;
   }

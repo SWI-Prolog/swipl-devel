@@ -92,8 +92,6 @@ ps_put_char(int c)
     PostScript = realloc(PostScript, outputSize);
   }
 
-  DEBUG(NAME_postscript, putchar(c); fflush(stdout));
-
   PostScript[outputPointer++] = c;
 }
 
@@ -353,8 +351,7 @@ postscriptDrawable(int ox, int oy, int w, int h)
   int c;
 
   DEBUG(NAME_postscript,
-	printf("postscriptDrawable(%d %d %d %d) ...", ox, oy, w, h);
-	fflush(stdout));
+	Cprintf("postscriptDrawable(%d %d %d %d) ...", ox, oy, w, h));
 
   for(bytes = y = c = 0, bits = 8; y < h; y++)
   { for(x=0; x < w; x++)
@@ -366,7 +363,7 @@ postscriptDrawable(int ox, int oy, int w, int h)
       putByte(c);
   }
 
-  DEBUG(NAME_postscript, printf("ok\n"));
+  DEBUG(NAME_postscript, Cprintf("ok\n"));
 
   succeed;
 }

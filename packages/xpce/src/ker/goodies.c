@@ -651,7 +651,7 @@ Int scanstr(char *str, char *fmt, Any *r)
     }
   }
 
-  DEBUG(NAME_scan, printf("argn = %d\n", argn));
+  DEBUG(NAME_scan, Cprintf("argn = %d\n", argn));
 #ifndef HAVE_VSSCANF
   switch(argn)
   { case 0:	ar = sscanf(str, fmt); break;
@@ -753,7 +753,7 @@ Int scanstr(char *str, char *fmt, Any *r)
   ar = vsscanf(str, fmt, (va_list) ptrs);
 #endif  
 
-  DEBUG(NAME_scan, printf("ar = %d\n", argn));
+  DEBUG(NAME_scan, Cprintf("ar = %d\n", argn));
 
 #define arg(n, tp) (*((tp *)(ptrs[n])))
 
@@ -817,25 +817,25 @@ sysPce(char *fm, ...)
   va_start(args, fm);
   catchErrorSignalsPce(PCE, OFF);
 
-  printf("[PCE system error: ");
+  Cprintf("[PCE system error: ");
   vprintf(fm, args);
 
 #ifndef O_RUNTIME
-  printf("\n\tStack:\n");
+  Cprintf("\n\tStack:\n");
   pceTraceBack(20);
-  printf("]\n");
+  Cprintf("]\n");
 
   if ( PCE->print_c_stack == ON )
-  { printf("Dumping C stack ...\n");
+  { Cprintf("Dumping C stack ...\n");
     pcePrintStack(50);
   }
 
   catchErrorSignalsPce(PCE, ON);
-  printf("Requesting host to dump stack ...\n");
+  Cprintf("Requesting host to dump stack ...\n");
   hostAction(HOST_BACKTRACE, 10);
   hostAction(HOST_RECOVER_FROM_FATAL_ERROR);
 
-  printf("[pid = %d]\n", (int) getpid());
+  Cprintf("[pid = %d]\n", (int) getpid());
   if (confirmTerminal("Continue", "n"))
     return PCE_FAIL;
   if (confirmTerminal("Save core image", "n"))
@@ -880,7 +880,7 @@ msleep(int time)
   timeout.tv_usec = (time%1000)*1000;
 
   DEBUG(NAME_flash,
-	printf("waiting %d milliseconds ...", time); fflush(stdout));
+	Cprintf("waiting %d milliseconds ...", time));
 
 #ifdef SELLIST
   { SELLIST(1,1) readbits = {0, 0};
@@ -893,7 +893,7 @@ msleep(int time)
   select(32, NULL, NULL, NULL, &timeout);
 #endif
 
-  DEBUG(NAME_flash, printf("ok\n"));
+  DEBUG(NAME_flash, Cprintf("ok\n"));
 }
 
 #endif /*__WATCOMC__*/

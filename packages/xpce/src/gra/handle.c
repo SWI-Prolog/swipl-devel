@@ -45,8 +45,8 @@ getXYHandle(Handle h, Graphical gr, Device dev, Int *X, Int *Y)
     *Y = add(y, gy);
   }
   DEBUG(NAME_handle,
-	printf("handle %s on gr=%s,dev=%s at x=%s,y=%s\n",
-	       pp(h->name), pp(gr), pp(dev), X?"":pp(*X), Y?"":pp(*Y)));
+	Cprintf("handle %s on gr=%s,dev=%s at x=%s,y=%s\n",
+		pp(h->name), pp(gr), pp(dev), X?"":pp(*X), Y?"":pp(*Y)));
 
   succeed;
 }

@@ -31,8 +31,8 @@ getXrefObject(Any obj, DisplayObj d)
 
   for( r = XrefTable[v]; r != NULL; r = r->next)
     if ( r->object == obj && r->display == d )
-    { DEBUG(NAME_getXref, printf("getXrefObject(%s, %s) --> 0x%lx\n",
-				 pp(obj), pp(d), (ulong) r->xref));
+    { DEBUG(NAME_getXref, Cprintf("getXrefObject(%s, %s) --> 0x%lx\n",
+				  pp(obj), pp(d), (ulong) r->xref));
       return r->xref;
     }
 
@@ -40,8 +40,8 @@ getXrefObject(Any obj, DisplayObj d)
   { if ( send(obj, NAME_Xopen, d, 0) == SUCCEED )
     { for( r = XrefTable[v]; r != NULL; r = r->next)
 	if ( r->object == obj && r->display == d )
-	{ DEBUG(NAME_getXref, printf("getXrefObject(%s, %s) --> 0x%lx\n",
-				     pp(obj), pp(d), (ulong) r->xref));
+	{ DEBUG(NAME_getXref, Cprintf("getXrefObject(%s, %s) --> 0x%lx\n",
+				      pp(obj), pp(d), (ulong) r->xref));
 	  return r->xref;
 	}
     }
@@ -76,8 +76,8 @@ registerXrefObject(Any obj, DisplayObj d, WsRef xref)
 { Xref *R = &XrefTable[HashValue(obj)];
   Xref r, new;
 
-  DEBUG(NAME_xref, printf("registerXrefObject(%s, %s, 0x%lx)\n",
-			  pp(obj), pp(d), (ulong) xref));
+  DEBUG(NAME_xref, Cprintf("registerXrefObject(%s, %s, 0x%lx)\n",
+			   pp(obj), pp(d), (ulong) xref));
 
   for( r = *R; r != NULL; r = r->next)
     if ( r->object == obj && r->display == d )
@@ -106,8 +106,8 @@ unregisterXrefObject(Any obj, DisplayObj d)
     if ( r->object == obj && (r->display == d || isDefault(d)) )
     { *R = r->next;
 
-      DEBUG(NAME_xref, printf("unregisterXrefObject(%s, %s)\n",
-			      pp(obj), pp(r->display)));
+      DEBUG(NAME_xref, Cprintf("unregisterXrefObject(%s, %s)\n",
+			       pp(obj), pp(r->display)));
       old = *r;
       unalloc(sizeof(struct xref), r);
       return &old;
@@ -146,8 +146,8 @@ unregisterAllXrefsObject(Any obj)
     { *R = r->next;
       R = &r->next;
 
-      DEBUG(NAME_xref, printf("unregisterXrefObject(%s, %s)\n",
-			      pp(obj), pp(r->display)));
+      DEBUG(NAME_xref, Cprintf("unregisterXrefObject(%s, %s)\n",
+			       pp(obj), pp(r->display)));
       old = r->xref;
       unalloc(sizeof(struct xref), r);
 

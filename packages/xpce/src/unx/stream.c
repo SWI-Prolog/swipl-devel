@@ -69,7 +69,7 @@ closeStream(Stream s)
 
 status
 closeInputStream(Stream s)
-{ DEBUG(NAME_stream, printf("%s: Closing input\n", pp(s)));
+{ DEBUG(NAME_stream, Cprintf("%s: Closing input\n", pp(s)));
 
   if ( s->rdstream )
   { fclose(s->rdstream);
@@ -94,7 +94,7 @@ closeInputStream(Stream s)
 
 status
 closeOutputStream(Stream s)
-{ DEBUG(NAME_stream, printf("Closing output\n"));
+{ DEBUG(NAME_stream, Cprintf("Closing output\n"));
 
   if ( s->wrfd >= 0 )
   { close(s->wrfd);
@@ -172,7 +172,7 @@ handleInputStream(Stream s)
 
       DEBUG(NAME_stream,
 	    { s->input_buffer[s->input_p] = EOS;
-	      printf("Read (%d chars): `%s'\n", n, q);
+	      Cprintf("Read (%d chars): `%s'\n", n, q);
 	    });
 
       while ( search_regex(s->record_separator,
@@ -193,7 +193,7 @@ handleInputStream(Stream s)
 	strncpy(s->input_buffer, &s->input_buffer[size], s->input_p - size);
 	s->input_p -= size;
 
-	DEBUG(NAME_stream, printf("Sending: `%s'\n", strName(str)));
+	DEBUG(NAME_stream, Cprintf("Sending: `%s'\n", strName(str)));
 	addCodeReference(s);
 	forwardReceiverCodev(s->input_message, s, 1, &str);
 	delCodeReference(s);
@@ -203,13 +203,13 @@ handleInputStream(Stream s)
       DEBUG(NAME_stream,
 	    if ( s->input_p )
 	    { s->input_buffer[s->input_p] = EOS;
-	      printf("Left in buffer: `%s'\n", s->input_buffer);
+	      Cprintf("Left in buffer: `%s'\n", s->input_buffer);
 	    });
     }
   } else
   { DEBUG(NAME_stream,
 	  if ( n < 0 )
-	    printf("Read failed: %s\n", strName(OsError())));
+	    Cprintf("Read failed: %s\n", strName(OsError())));
     closeInputStream(s);
     send(s, NAME_endOfFile, 0);
   }
@@ -322,7 +322,7 @@ getReadLineStream(Stream s, Int timeout)
 
 static status
 endOfFileStream(Stream s)
-{ DEBUG(NAME_stream, printf("Stream %s: end of output\n", pp(s)));
+{ DEBUG(NAME_stream, Cprintf("Stream %s: end of output\n", pp(s)));
 
   succeed;
 }

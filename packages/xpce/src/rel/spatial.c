@@ -88,7 +88,7 @@ forwardsSpatial(Spatial s, Any from, Any to)
   CALC(tY, s->yTo,getVar(s->yTo, VarY, VarYref, yref, VarH, tH, 0), t->y);
 
   DEBUG(NAME_spatial,
-	printf("%s ->f: (%s,%s) -- %ld,%ld,%ld,%ld ==> (%ld, %ld, %ld, %ld)\n",
+	Cprintf("%s->f: (%s,%s) -- %ld,%ld,%ld,%ld ==> (%ld, %ld, %ld, %ld)\n",
 		pp(s), pp(from), pp(to),
 		valInt(f->x), valInt(f->y), valInt(f->w), valInt(f->h),
 		valInt(tX), valInt(tY), valInt(tW), valInt(tH)));
@@ -118,7 +118,7 @@ backwardsSpatial(Spatial s, Any from, Any to)
   CALC(fY, s->yTo, getVar(s->yFrom,VarY,VarYref,yref,VarH,f->h,0), f->y);
 
   DEBUG(NAME_spatial,
-	printf("%s ->b: (%s,%s) -- %ld,%ld,%ld,%ld ==> (%ld, %ld, %ld, %ld)\n",
+	Cprintf("%s->b: (%s,%s) -- %ld,%ld,%ld,%ld ==> (%ld, %ld, %ld, %ld)\n",
 		pp(s), pp(from), pp(to),
 		valInt(t->x), valInt(t->y), valInt(t->w), valInt(t->h),
 		valInt(fX), valInt(fY), valInt(fW), valInt(fH)));

@@ -433,8 +433,9 @@ find_cell_dict(Dict dict, Int item)
 
 
 static void
-seek_list_browser(ListBrowser lb, long int index)
-{ int item = index / BROWSER_LINE_WIDTH;
+seek_list_browser(Any obj, long int index)
+{ ListBrowser lb = obj;
+  int item = index / BROWSER_LINE_WIDTH;
   Dict d = lb->dict;
 
   if ( isNil(d) )
@@ -461,9 +462,10 @@ seek_list_browser(ListBrowser lb, long int index)
 
 
 static long
-scan_list_browser(ListBrowser lb, long int from, int dir,
+scan_list_browser(Any obj, long int from, int dir,
 		  int how, int category, int *eof)
-{ int item = from / BROWSER_LINE_WIDTH;
+{ ListBrowser lb = obj;
+  int item = from / BROWSER_LINE_WIDTH;
 
   assert(dir > 0 && how == TEXT_SCAN_FOR && category == EL);
   
@@ -475,8 +477,9 @@ scan_list_browser(ListBrowser lb, long int from, int dir,
 
 
 static long
-fetch_list_browser(ListBrowser lb, TextChar tc)
-{ int index = current_index;
+fetch_list_browser(Any obj, TextChar tc)
+{ ListBrowser lb = obj;
+  int index = current_index;
   int pos   = current_index++ % BROWSER_LINE_WIDTH;
 
   if ( current_name )
@@ -514,29 +517,29 @@ fetch_list_browser(ListBrowser lb, TextChar tc)
 }
 
 
-static Int
+static SeekFunction
 getSeekFunctionListBrowser(ListBrowser lb)
-{ DEBUG(NAME_SeekFunction, printf("seek_list_browser = 0x%lx\n",
-				  (ulong) seek_list_browser));
-  answer(TextPointerToInt(seek_list_browser));
+{ DEBUG(NAME_SeekFunction, Cprintf("seek_list_browser = 0x%lx\n",
+				   (ulong) seek_list_browser));
+  answer(seek_list_browser);
 }
 
 
-static Int
+static ScanFunction
 getScanFunctionListBrowser(ListBrowser lb)
-{ answer(TextPointerToInt(scan_list_browser));
+{ answer(scan_list_browser);
 }
 
 
-static Int
+static FetchFunction
 getFetchFunctionListBrowser(ListBrowser lb)
-{ answer(TextPointerToInt(fetch_list_browser));
+{ answer(fetch_list_browser);
 }
 
 
-static Int
+static MarginFunction
 getMarginFunctionListBrowser(ListBrowser lb)
-{ answer(TextPointerToInt(NULL));
+{ answer((MarginFunction) NULL);
 }
 
 
@@ -903,12 +906,7 @@ forwardListBrowser(ListBrowser lb, DictItem di, Name button)
   }
 
   if ( notNil(msg) )
-  { /*DisplayObj d = getDisplayGraphical((Graphical)lb);
-
-    busyCursorDisplay(d, DEFAULT, DEFAULT); */
     forwardReceiverCode(msg, lbReceiver(lb), di, 0);
- /* busyCursorDisplay(d, NIL, DEFAULT); */
-  }
 
   succeed;
 }
@@ -1502,16 +1500,16 @@ makeClassListBrowser(Class class)
   getMethod(class, NAME_height, NAME_area, "characters=int", 0,
 	    "Height in character units",
 	    getHeightListBrowser);
-  getMethod(class, NAME_SeekFunction, NAME_internal, "int", 0,
+  getMethod(class, NAME_SeekFunction, NAME_internal, "alien:SeekFunction", 0,
 	    "Pointer to C-function to seek to position",
 	    getSeekFunctionListBrowser);
-  getMethod(class, NAME_ScanFunction, NAME_internal, "int", 0,
+  getMethod(class, NAME_ScanFunction, NAME_internal, "alien:ScanFunction", 0,
 	    "Pointer to C-function to scan for char-type",
 	    getScanFunctionListBrowser);
-  getMethod(class, NAME_FetchFunction, NAME_internal, "int", 0,
+  getMethod(class, NAME_FetchFunction, NAME_internal, "alien:FetchFunction", 0,
 	    "Pointer to C-function to fetch char",
 	    getFetchFunctionListBrowser);
-  getMethod(class, NAME_MarginFunction, NAME_internal, "int", 0,
+  getMethod(class, NAME_MarginFunction, NAME_internal, "alien:MarginFunction",0,
 	    "Pointer to C-function to fetch margins",
 	    getMarginFunctionListBrowser);
   getMethod(class, NAME_contains, DEFAULT, "chain", 0,

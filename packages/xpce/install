@@ -8,7 +8,7 @@
 #		  + Updated for SWI-Prolog 2.0.4
 ################################################################
 
-PLBASE=/staff/jan/lib/pl-2.0.5
+PLBASE=/staff/jan/lib/pl-2.0.6
 LN_S="ln -s"
 RTSUFFIX=""
 emulator=bin/xpce$RTSUFFIX.base
@@ -39,7 +39,7 @@ if [ -r $PWD/Pce ]; then
 	    done
 	fi
     done
-    if test "$PCEHOME" = ""; then
+    if [ "$PCEHOME" = "" ]; then
 	PCEHOME="$PWD"
     else
 	if [ ! -r $PCEHOME/Pce ]; then PCEHOME="$PWD"; fi

@@ -92,9 +92,9 @@ ComputeScrollBar(ScrollBar sb)
     compute_bubble(sb, &bi, 0, MIN_BUBBLE, FALSE);
     if ( valInt(sb->bubble_start) != bi.start ||
 	 valInt(sb->bubble_length) != bi.length )
-    { DEBUG(NAME_scroll, printf("%s: start %ld --> %d; length %ld --> %d\n",
-				pp(sb), valInt(sb->bubble_start), bi.start,
-				valInt(sb->bubble_length), bi.length));
+    { DEBUG(NAME_scroll, Cprintf("%s: start %ld --> %d; length %ld --> %d\n",
+				 pp(sb), valInt(sb->bubble_start), bi.start,
+				 valInt(sb->bubble_length), bi.length));
       assign(sb, bubble_start, toInt(bi.start));
       assign(sb, bubble_length, toInt(bi.length));
 

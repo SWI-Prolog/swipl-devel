@@ -359,11 +359,11 @@ get_xy_event_frame(EventObj ev, FrameObj fr, int *rx, int *ry)
   int frx, fry;
   
   get_xy_event_window(ev, ev->window, ON, rx, ry);
-  DEBUG(NAME_drag, printf("At %d, %d to %s\n", *rx, *ry, pp(ev->window)));
+  DEBUG(NAME_drag, Cprintf("At %d, %d to %s\n", *rx, *ry, pp(ev->window)));
   frame_offset_window(ev->window, &fr2, &frx, &fry);
   *rx += frx;
   *ry += fry;
-  DEBUG(NAME_drag, printf("At %d, %d to %s\n", *rx, *ry, pp(fr2)));
+  DEBUG(NAME_drag, Cprintf("At %d, %d to %s\n", *rx, *ry, pp(fr2)));
 
   if ( fr != fr2 )
   { Area a1 = fr->area;			/* target frame area */
@@ -590,7 +590,7 @@ postEvent(EventObj ev, Graphical obj, Recogniser rec)
   DEBUG(NAME_post,
 	if ( ev->id != NAME_locMove &&
 	     !isDragEvent(ev) )
-	  printf("Posting %s to %s\n", pp(ev->id), pp(obj)));
+	  Cprintf("Posting %s to %s\n", pp(ev->id), pp(obj)));
 
   withLocalVars({ assignVar(EVENT, ev, NAME_local);
 		  assign(ev, receiver, obj);

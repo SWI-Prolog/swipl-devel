@@ -163,8 +163,8 @@ saveNilRefs(FileObj f)
 
 		     if ( (ref = isSavedObject(to)) )
 		     { DEBUG(NAME_save,
-			     printf("storing nil-ref %s-%s->%s\n",
-				    pp(inst), pp(var->name), pp(to)));
+			     Cprintf("storing nil-ref %s-%s->%s\n",
+				     pp(inst), pp(var->name), pp(to)));
 		       storeCharFile(f, 'n');
 		       storeIntFile(f, storeClass(classOfObject(inst), f));
 		       storeIdObject(inst, isSavedObject(inst), f);
@@ -205,8 +205,8 @@ saveInFileObject(Any obj, FileObj file)
   closeFile(file);
   if ( !result )
     removeFile(file);
-  DEBUG(NAME_statistics, printf("Saved %d objects of %d classes\n",
-				objects_saved, classes_saved));
+  DEBUG(NAME_statistics, Cprintf("Saved %d objects of %d classes\n",
+				 objects_saved, classes_saved));
   freeHashTable(saveTable);
   freeHashTable(saveClassTable);
     
@@ -217,7 +217,7 @@ saveInFileObject(Any obj, FileObj file)
 
 status
 storeObject(Any obj, FileObj file)
-{ /*DEBUG(NAME_save, printf("Storing %s from %ld\n",
+{ /*DEBUG(NAME_save, Cprintf("Storing %s from %ld\n",
 	  pp(obj), ftell(file->fd)));*/
 
   if ( isInteger(obj) )
@@ -264,8 +264,8 @@ storeObject(Any obj, FileObj file)
       }
     }
 
-    DEBUG(NAME_save, printf(" [%3d] Storing %s from %ld\n",
-			    save_nesting, pp(obj), ftell(file->fd)));
+    DEBUG(NAME_save, Cprintf(" [%3d] Storing %s from %ld\n",
+			     save_nesting, pp(obj), ftell(file->fd)));
 
     if ( class->saveStyle == NAME_nil )
     { return storeCharFile(file, 'n');
@@ -279,7 +279,7 @@ storeObject(Any obj, FileObj file)
       status rval;
 
       if ( (ref = isSavedObject(obj)) )
-      { DEBUG(NAME_save, printf("Storing reference\n"));
+      { DEBUG(NAME_save, Cprintf("Storing reference\n"));
 	storeCharFile(file, 'R');
 	return storeIdObject(obj, ref, file);
       }
@@ -291,7 +291,7 @@ storeObject(Any obj, FileObj file)
       storeExtensionsObject(obj, file);
       save_nesting++;
       if ( class->saveFunction )
-      { DEBUG(NAME_save, printf("Using private function\n"));
+      { DEBUG(NAME_save, Cprintf("Using private function\n"));
 	rval = (*class->saveFunction)(obj, file);
       } else
       { if ( allPceSlotsClass(class) )
@@ -472,7 +472,7 @@ loadWord(FILE *fd)
          (cvrt.c[1] << 16) |
 	 (cvrt.c[2] << 8) |
 	  cvrt.c[3];
-  DEBUG(NAME_byteOrder, printf("loadWord(0x%lx) --> %ld\n", cvrt.l, rval));
+  DEBUG(NAME_byteOrder, Cprintf("loadWord(0x%lx) --> %ld\n", cvrt.l, rval));
   return rval;
 #else /*WORDS_BIGENDIAN*/
   return getw(fd);
@@ -530,8 +530,8 @@ loadNilRef(FILE * fd)
     return errorPce(LoadFile, NAME_referencedObjectNotLoaded, r2);
     
   if ( def->offset[offset] >= 0 )
-  { DEBUG(NAME_save, printf("Restoring (nil)ref %s-%s --> %s\n",
-			    pp(f), pp(def->name[offset]), pp(t)));
+  { DEBUG(NAME_save, Cprintf("Restoring (nil)ref %s-%s --> %s\n",
+			     pp(f), pp(def->name[offset]), pp(t)));
     assignField(f, &(f->slots[def->offset[offset]]), t);
   }
   /* else slot is gone; no problem I think */
@@ -744,8 +744,8 @@ loadObject(FILE *fd)
 		    newAssoc(name, obj);
 		  addCodeReference(obj);
 
-		  DEBUG(NAME_save, printf("Loading %s from %ld\n",
-					  pp(obj), start));
+		  DEBUG(NAME_save, Cprintf("Loading %s from %ld\n",
+					   pp(obj), start));
 
 		  appendHashTable(restoreTable, name, obj);
 		  loadExtensionsObject(obj, fd);
@@ -772,8 +772,8 @@ loadObject(FILE *fd)
 					   ClassSheet, 0, NULL);
 
 		  valueSheet(sh, NAME_className, def->class_name);
-		  DEBUG(NAME_save, printf("Loading %s from %ld\n",
-					  pp(sh), start));
+		  DEBUG(NAME_save, Cprintf("Loading %s from %ld\n",
+					   pp(sh), start));
 		  appendHashTable(restoreTable, name, sh);
 		  loadExtensionsObject((Any) sh, fd);
 
@@ -858,7 +858,6 @@ restoreClass(FILE *fd)
     { def->offset[i] = offsetVariable(def->class, name);
       if ( def->offset[i] < 0 )
       { errorPce(LoadFile, NAME_loadOldSlot, def->class, name);
-	fflush(stdout);
       }
     }
   }
@@ -939,7 +938,7 @@ checkConvertedObject(Any obj, ClassDef def)
       Any value = inst->slots[i];
 
       if ( !var )
-      { printf("Can't find variable %d of %s\n", i, pp(class));
+      { Cprintf("Can't find variable %d of %s\n", i, pp(class));
 	continue;
       }
 

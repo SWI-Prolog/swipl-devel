@@ -165,7 +165,7 @@ scan_fragment_icons(TextMargin m, SendFunc func, Name how, Any ctx)
   for( h=0; notNil(fragment) && line < lines; line++ )
   { TextLine tl = &ti->map->lines[line + skip];
 
-    DEBUG(NAME_fragment, printf("Scanning line from %ld\n", tl->start));
+    DEBUG(NAME_fragment, Cprintf("Scanning line from %ld\n", tl->start));
     while( notNil(fragment) && fragment->start < tl->start )
       fragment = fragment->next;
 
@@ -174,7 +174,7 @@ scan_fragment_icons(TextMargin m, SendFunc func, Name how, Any ctx)
       x = X_MARGIN;
       h = 0;
     }
-    DEBUG(NAME_fragment, printf("tl->y = %d\n", tl->y));
+    DEBUG(NAME_fragment, Cprintf("tl->y = %d\n", tl->y));
 
     for( ; notNil(fragment) && fragment->start < tl->end
 	 ; fragment = fragment->next )

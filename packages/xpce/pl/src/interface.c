@@ -79,15 +79,15 @@ static module   MODULE_user;		/* Global module */
 	}
 #define INSTALL_HIDDEN_PREDICATE(n, a, f) \
 	{ extern foreign_t f(); \
-	  PL_register_foreign(n, a, f, PL_FA_NOTRACE, 0); \
+	  PL_register_foreign(n, a, f, PL_FA_NOTRACE); \
 	}
 #define INSTALL_META_PREDICATE(n, a, f) \
 	{ extern foreign_t f(); \
-	  PL_register_foreign(n, a, f, PL_FA_TRANSPARENT, 0); \
+	  PL_register_foreign(n, a, f, PL_FA_TRANSPARENT); \
 	}
 #define INSTALL_HIDDEN_META_PREDICATE(n, a, f) \
 	{ extern foreign_t f(); \
-	  PL_register_foreign(n, a, f, PL_FA_NOTRACE, PL_FA_TRANSPARENT, 0); \
+	  PL_register_foreign(n, a, f, PL_FA_NOTRACE|PL_FA_TRANSPARENT); \
 	}
 
 

@@ -57,8 +57,8 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
   assert(isProperObject(sw));
 
   DEBUG(NAME_event,
-	printf("%s(0x%04x): MS-Windows event 0x%04x with 0x%04x/0x%08lx\n",
-	       pp(sw), hwnd, message, wParam, lParam));
+	Cprintf("%s(0x%04x): MS-Windows event 0x%04x with 0x%04x/0x%08lx\n",
+		pp(sw), hwnd, message, wParam, lParam));
 
   switch(message)
   { case WM_CREATE:
@@ -102,12 +102,12 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
     }
 
     case WM_SETFOCUS:
-      DEBUG(NAME_focus, printf("Received FocusIn on %s\n", pp(sw)));
+      DEBUG(NAME_focus, Cprintf("Received FocusIn on %s\n", pp(sw)));
       assign(sw, input_focus, ON);
       return 0;
 
     case WM_KILLFOCUS:
-      DEBUG(NAME_focus, printf("Received FocusOut on %s\n", pp(sw)));
+      DEBUG(NAME_focus, Cprintf("Received FocusOut on %s\n", pp(sw)));
       assign(sw, input_focus, OFF);
       return 0;
 
@@ -124,10 +124,11 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       FillRect(hdc, &rect, hbrush);
       ZDeleteObject(hbrush);
 
-      DEBUG(NAME_redraw, printf("Cleared background %d %d %d %d of %s\n",
-				rect.left, rect.top,
-				rect.right - rect.left, rect.bottom - rect.top,
-				pp(sw)));
+      DEBUG(NAME_redraw, Cprintf("Cleared background %d %d %d %d of %s\n",
+				 rect.left, rect.top,
+				 rect.right - rect.left,
+				 rect.bottom - rect.top,
+				 pp(sw)));
 
       return 1;				/* non-zero: I've erased it */
     }
@@ -137,8 +138,8 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       struct iarea a;
       int clear;
 
-      DEBUG(NAME_redraw, printf("%s (%ld) received WM_PAINT\n",
-				pp(sw), (long)hwnd));
+      DEBUG(NAME_redraw, Cprintf("%s (%ld) received WM_PAINT\n",
+				 pp(sw), (long)hwnd));
 
       if ( sw->displayed == OFF )
 	send(sw, NAME_displayed, ON, 0);
@@ -233,7 +234,7 @@ ws_uncreate_window(PceWindow sw)
 
   if ( (hwnd = getHwndWindow(sw)) )
   { DEBUG(NAME_window,
-	  printf("ws_uncreate_window(%s) (=0x%04x)\n", pp(sw), hwnd));
+	  Cprintf("ws_uncreate_window(%s) (=0x%04x)\n", pp(sw), hwnd));
     setHwndWindow(sw, 0);
     PceWhDeleteWindow(hwnd);
     DestroyWindow(hwnd);
@@ -247,7 +248,7 @@ ws_create_window(PceWindow sw, PceWindow parent)
   HWND parent_handle;
   DWORD style = WS_CHILD|WS_CLIPCHILDREN|WS_CLIPSIBLINGS|WS_VISIBLE;
 
-  DEBUG(NAME_window, printf("ws_create_window(%s %s)\n", pp(sw), pp(parent)));
+  DEBUG(NAME_window, Cprintf("ws_create_window(%s %s)\n", pp(sw), pp(parent)));
 
   if ( isDefault(parent) )		/* window in frame */
   { parent_handle = getHwndFrame(sw->frame);
@@ -270,7 +271,7 @@ ws_create_window(PceWindow sw, PceWindow parent)
   if ( !ref )
     return errorPce(sw, NAME_createFailed);
 
-  DEBUG(NAME_window, printf("Windows ref = %ld\n", (long) ref));
+  DEBUG(NAME_window, Cprintf("Windows ref = %ld\n", (long) ref));
 
   setHwndWindow(sw, ref);
   SetWindowLong(ref, GWL_DATA, (LONG) sw);
@@ -439,7 +440,7 @@ ws_window_background(PceWindow sw, Colour c)
 { HWND hwnd;
 
   if ( (hwnd = getHwndWindow(sw)) && sw->displayed == ON )
-  { DEBUG(NAME_background, printf("Invalidating %s for clear\n", pp(sw)));
+  { DEBUG(NAME_background, Cprintf("Invalidating %s for clear\n", pp(sw)));
     InvalidateRect(hwnd, NULL, TRUE);
   }
 }

@@ -255,7 +255,7 @@ expandFunction(Any obj)
     Any rval = getExecuteFunction(f);
     
     if ( rval == FAIL )
-    { DEBUG(NAME_obtain, printf("Function: %s\n", pp(f)));
+    { DEBUG(NAME_obtain, Cprintf("Function: %s\n", pp(f)));
       fail;
     }
 

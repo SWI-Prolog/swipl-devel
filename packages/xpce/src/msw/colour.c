@@ -45,8 +45,8 @@ LoadColourNames()
 	    cname = CtoKeyword(s);
 	    rgb = RGB(r, g, b);
 	    appendHashTable(ColourNames, cname, toInt(rgb));
-	    DEBUG(NAME_colour, printf("%s --> 0x%lx\n",
-				      pp(cname), (long) rgb)); 
+	    DEBUG(NAME_colour, Cprintf("%s --> 0x%lx\n",
+				       pp(cname), (long) rgb)); 
 	    break;
 	  }
 	}

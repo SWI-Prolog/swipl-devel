@@ -170,7 +170,7 @@ exitDraw()
 
 void
 d_offset(int x, int y)
-{ DEBUG(NAME_cache, printf("d_offset(%d, %d)\n", x, y));
+{ DEBUG(NAME_cache, Cprintf("d_offset(%d, %d)\n", x, y));
 
   context.offset_x = x;
   context.offset_y = y;
@@ -199,17 +199,17 @@ r_offset(int x, int y)
     context.r_offset_x += x;
     context.r_offset_y += y;
 
-    DEBUG(NAME_offset, printf("r_offset(%d, %d): vp-offset %d, %d\n",
-			      x, y,
-			      context.r_offset_x - context.cache_x,
-			      context.r_offset_y - context.cache_y));
+    DEBUG(NAME_offset, Cprintf("r_offset(%d, %d): vp-offset %d, %d\n",
+			       x, y,
+			       context.r_offset_x - context.cache_x,
+			       context.r_offset_y - context.cache_y));
 
     rval = SetViewportOrgEx(context.hdc,
 			    context.r_offset_x - context.cache_x,
 			    context.r_offset_y - context.cache_y,
 			    &old);
     assert(rval);
-    DEBUG(NAME_offset, printf("\told = %d, %d\n", old.x, old.y));
+    DEBUG(NAME_offset, Cprintf("\told = %d, %d\n", old.x, old.y));
   }
 }
 
@@ -283,9 +283,9 @@ d_mswindow(PceWindow sw, IArea a, int clear)
 
       SetViewportOrg(context.hdc, -context.cache_x, -context.cache_y);
 
-      DEBUG(NAME_cache, printf("Created cache for %d %d %d %d\n",
-			       context.cache_x, context.cache_y,
-			       context.cache_w, context.cache_h));
+      DEBUG(NAME_cache, Cprintf("Created cache for %d %d %d %d\n",
+				context.cache_x, context.cache_y,
+				context.cache_w, context.cache_h));
     }
 
     r_default_background(sw->background);
@@ -332,8 +332,8 @@ d_image(Image i, int x, int y, int w, int h)
 
   push_context();
 
-  DEBUG(NAME_redraw, printf("d_image(%s, %d, %d, %d, %d)\n",
-			    pp(i), x, y, w, h));
+  DEBUG(NAME_redraw, Cprintf("d_image(%s, %d, %d, %d, %d)\n",
+			     pp(i), x, y, w, h));
 
   context.open++;
   d_display(notNil(i->display) ? i->display : DEFAULT);
@@ -425,12 +425,11 @@ d_clip(int x, int y, int w, int h)
 
     GetClipBox(context.hdc, rect);
 
-    DEBUG(NAME_clip, { printf("d_clip(%d %d %d %d): ", x, y, w, h);
-		       printf("ClipBox = %d %d %d %d --> ",
-			      rect->left, rect->top,
-			      rect->right - rect->left,
-			      rect->bottom - rect->top);
-		       fflush(stdout);
+    DEBUG(NAME_clip, { Cprintf("d_clip(%d %d %d %d): ", x, y, w, h);
+		       Cprintf("ClipBox = %d %d %d %d --> ",
+			       rect->left, rect->top,
+			       rect->right - rect->left,
+			       rect->bottom - rect->top);
 		     });
     
     if ( context.cache )
@@ -450,10 +449,10 @@ d_clip(int x, int y, int w, int h)
 
     DEBUG(NAME_clip, { RECT nrect;
 		       GetClipBox(context.hdc, &nrect);
-		       printf("%d %d %d %d\n",
-			      nrect.left, nrect.top,
-			      nrect.right - nrect.left,
-			      nrect.bottom - nrect.top);
+		       Cprintf("%d %d %d %d\n",
+			       nrect.left, nrect.top,
+			       nrect.right - nrect.left,
+			       nrect.bottom - nrect.top);
 		     });
 
     context.clip_depth++;
@@ -465,10 +464,10 @@ d_clip(int x, int y, int w, int h)
 void
 d_done(void)
 { if ( --context.open == 0 )
-  { DEBUG(NAME_redraw, printf("d_done(%s)\n",
-			      context.hwnd ?
-			        pp(GetWindowLong(context.hwnd, GWL_DATA)) :
-			        "(image)"));
+  { DEBUG(NAME_redraw, Cprintf("d_done(%s)\n",
+			       context.hwnd ?
+			       pp(GetWindowLong(context.hwnd, GWL_DATA)) :
+			       "(image)"));
 
     if ( context.hbrush )
     { ZSelectObject(context.hdc, GetStockObject(WHITE_BRUSH));
@@ -491,7 +490,7 @@ d_done(void)
 
     if ( instanceOfObject(context.device, ClassWindow) )
     { if ( context.cache )
-      { DEBUG(NAME_cache, printf("Writing cache to window\n"));
+      { DEBUG(NAME_cache, Cprintf("Writing cache to window\n"));
 	SetViewportOrg(context.hdc, 0, 0);
 	BitBlt(context.cached_hdc,
 	       context.cache_x, context.cache_y,
@@ -527,10 +526,10 @@ d_clip_done(void)
     sysPce("Clip stack underfow!");
 
   rect = &context.clip_stack[context.clip_depth].orect;
-  DEBUG(NAME_clip,  printf("d_clip_done(%d %d %d %d) --> ",
-			   rect->left, rect->top,
-			   rect->right - rect->left,
-			   rect->bottom - rect->top));
+  DEBUG(NAME_clip,  Cprintf("d_clip_done(%d %d %d %d) --> ",
+			    rect->left, rect->top,
+			    rect->right - rect->left,
+			    rect->bottom - rect->top));
 
   if ( context.cache )
   { ox = context.r_offset_x - context.cache_x;
@@ -553,9 +552,9 @@ d_clip_done(void)
 
   DEBUG(NAME_clip, { RECT nrect;
 		     GetClipBox(context.hdc, &nrect);
-		     printf("%d %d %d %d\n",
-			    nrect.left, nrect.top,
-			    nrect.right, nrect.bottom);
+		     Cprintf("%d %d %d %d\n",
+			     nrect.left, nrect.top,
+			     nrect.right, nrect.bottom);
 		   });
 }
 
@@ -673,7 +672,7 @@ Any
 r_colour(Any colour)
 { Any old = context.colour;
 
-  DEBUG(NAME_colour, printf("r_colour(%s)\n", pp(colour)));
+  DEBUG(NAME_colour, Cprintf("r_colour(%s)\n", pp(colour)));
 
   if ( isDefault(colour) )
   { assert(notDefault(context.default_colour));
@@ -715,8 +714,8 @@ r_fillbrush(Any fill, int *stock)
   if ( stock )
     *stock = s;
 
-  DEBUG(NAME_fill, printf("r_fillbrush(%s, *%d) --> 0x%04x\n",
-			  pp(fill), *stock, hbrush));
+  DEBUG(NAME_fill, Cprintf("r_fillbrush(%s, *%d) --> 0x%04x\n",
+			   pp(fill), *stock, hbrush));
 
   return hbrush;
 }
@@ -728,7 +727,7 @@ r_fillpattern(Any fill)			/* colour or image */
   { HBRUSH new, old = context.hbrush;
     int stock;    
     
-    DEBUG(NAME_fill, printf("Selecting fill-pattern %s\n", pp(fill)));
+    DEBUG(NAME_fill, Cprintf("Selecting fill-pattern %s\n", pp(fill)));
     new = r_fillbrush(fill, &stock);
     ZSelectObject(context.hdc, new);
     context.hbrush = (stock ? 0 : new);
@@ -751,7 +750,7 @@ Any
 r_default_colour(Any c)
 { Any old = context.default_colour;
   
-  DEBUG(NAME_colour, printf("r_default_colour(%s)\n", pp(c)));
+  DEBUG(NAME_colour, Cprintf("r_default_colour(%s)\n", pp(c)));
   if ( notDefault(c) )
   { if ( !instanceOfObject(c, ClassColour) )
       c = getReplacementColourPixmap(c);
@@ -772,7 +771,7 @@ r_background(Any c)
 
   if ( isDefault(c) )
   { c = context.default_background;
-    DEBUG(NAME_background, printf("Using default background %s\n", pp(c)));
+    DEBUG(NAME_background, Cprintf("Using default background %s\n", pp(c)));
   } else if ( !instanceOfObject(c, ClassColour) )
     c = getReplacementColourPixmap(c);
 
@@ -793,7 +792,7 @@ r_default_background(Any bg)
 { r_background(bg);
   context.default_background = context.background;
 
-  DEBUG(NAME_background, printf("r_default_background(%s)\n", pp(bg)));
+  DEBUG(NAME_background, Cprintf("r_default_background(%s)\n", pp(bg)));
 }
 
 
@@ -829,10 +828,10 @@ r_box(int x, int y, int w, int h, int r, Image fill)
 { int da = context.thickness / 2;
   int db = max(0, (context.thickness - 1) / 2);
   
-  DEBUG(NAME_redraw, printf("r_box(%d, %d, %d, %d, %d, %s)\n",
-			    x, y, w, h, r, pp(fill)));
+  DEBUG(NAME_redraw, Cprintf("r_box(%d, %d, %d, %d, %d, %s)\n",
+			     x, y, w, h, r, pp(fill)));
 
-  DEBUG(NAME_pen, printf("context.thickness = %d\n", context.thickness));
+  DEBUG(NAME_pen, Cprintf("context.thickness = %d\n", context.thickness));
   x += da;    y += da;
   w -= da+db; h -= da+db;
 
@@ -883,8 +882,8 @@ r_elevation(Elevation e)
     Any relief, shadow;
 
     DEBUG(NAME_elevation,
-	  printf("r_elevation(%s) (bg=%s, depth=%d) ... ",
-		 pp(e), pp(bg), context.depth); fflush(stdout));
+	  Cprintf("r_elevation(%s) (bg=%s, depth=%d) ... ",
+		  pp(e), pp(bg), context.depth));
 
     if ( isDefault(e->relief) )
     { if ( instanceOfObject(bg, ClassColour) && context.depth != 1 )
@@ -912,7 +911,7 @@ r_elevation(Elevation e)
     context.relief_pen = CreatePen(PS_SOLID, 1, cref_colour(relief));
     context.shadow_pen = CreatePen(PS_SOLID, 1, cref_colour(shadow));
 
-    DEBUG(NAME_elevation, printf("ok\n"));
+    DEBUG(NAME_elevation, Cprintf("ok\n"));
 
     context.elevation = e;
   }
@@ -964,10 +963,10 @@ cos64(int angle, int radius)
   
   if ( !costable[angle] && angle != 90 )
   { costable[angle] = rfloat(1024.0 * cos(((float)angle * M_PI)/M_PI));
-    DEBUG(NAME_arc, printf("Adding cos(%d) = %d (%f)\n",
-			   angle,
-			   costable[angle],
-			   (float) costable[angle] * 1024.0));
+    DEBUG(NAME_arc, Cprintf("Adding cos(%d) = %d (%f)\n",
+			    angle,
+			    costable[angle],
+			    (float) costable[angle] * 1024.0));
   }
     
   return (radius * costable[angle] * f) / 1024;
@@ -998,11 +997,11 @@ draw_arcs(larc *a, int n, HPEN pen)
     x2 = cx + cos64(a->angle1 + a->angle2, a->width)/2;
     y2 = cy - sin64(a->angle1 + a->angle2, a->height)/2;
 
-    DEBUG(NAME_arc, printf("%d %d %d %d (%d --> %d): "
-			   "%d,%d --> %d, %d\n",
-			   a->x, a->y, a->width, a->height,
-			   a->angle1/64, a->angle2/64,
-			   x1, y1, x2, y2));
+    DEBUG(NAME_arc, Cprintf("%d %d %d %d (%d --> %d): "
+			    "%d,%d --> %d, %d\n",
+			    a->x, a->y, a->width, a->height,
+			    a->angle1/64, a->angle2/64,
+			    x1, y1, x2, y2));
 
     Arc(context.hdc,
 	a->x, a->y, a->x + a->width, a->y + a->height,
@@ -1351,8 +1350,8 @@ r_ellipse(int x, int y, int w, int h, Image fill)
 { r_fillpattern(fill);
   r_update_pen();
 
-  DEBUG(NAME_redraw, printf("r_ellipse(%d, %d, %d, %d, %s)\n",
-			    x, y, w, h, pp(fill)));
+  DEBUG(NAME_redraw, Cprintf("r_ellipse(%d, %d, %d, %d, %s)\n",
+			     x, y, w, h, pp(fill)));
   Ellipse(context.hdc, x, y, x+w, y+h);
 }
 
@@ -1397,7 +1396,7 @@ r_path(Chain points, int ox, int oy, int radius, int closed, Image fill)
     } else
       Polyline(context.hdc, pts, i);
   } else
-  { printf("radius > 0 not yet implemented (r_path())\n");
+  { Cprintf("radius > 0 not yet implemented (r_path())\n");
   }
 }
 
@@ -1419,9 +1418,9 @@ r_op_image(Image image, int sx, int sy, int x, int y, int w, int h, Name op)
     rop = SRCINVERT;    
 
   DEBUG(NAME_redraw,
-	printf("r_op_image(%s, %d, %d, %d, %d, %d, %d, %s) "
-	       "(bm=0x%x, mhdc=0x%x)\n",
-	       pp(image), sx, sy, x, y, w, h, pp(op), (long)bm, (long)mhdc));
+	Cprintf("r_op_image(%s, %d, %d, %d, %d, %d, %d, %s) "
+		"(bm=0x%x, mhdc=0x%x)\n",
+		pp(image), sx, sy, x, y, w, h, pp(op), (long)bm, (long)mhdc));
   obm = ZSelectObject(mhdc, bm);
   BitBlt(context.hdc, x, y, w, h, mhdc, sx, sy, rop);
   if ( op == NAME_xor )
@@ -1441,8 +1440,8 @@ r_image(Image image,
   HBITMAP obm = ZSelectObject(mhdc, bm);
 
   DEBUG(NAME_redraw,
-	printf("r_image(%s, %d, %d, %d, %d, %d, %d) (bm=0x%x, mhdc=0x%x)\n",
-	       pp(image), sx, sy, x, y, w, h, (long)bm, (long)mhdc));
+	Cprintf("r_image(%s, %d, %d, %d, %d, %d, %d) (bm=0x%x, mhdc=0x%x)\n",
+		pp(image), sx, sy, x, y, w, h, (long)bm, (long)mhdc));
     
   if ( transparent == ON )
   { HBRUSH hbrush = CreateSolidBrush(context.rgb);
@@ -1637,8 +1636,8 @@ s_font(FontObj font)
       make_default_context();
     wsf = getXrefObject(font, context.display);
   
-    DEBUG(NAME_font, printf("s_font(%s) (hfont = 0x%x)\n",
-			    pp(font), (int)wsf->hfont));
+    DEBUG(NAME_font, Cprintf("s_font(%s) (hfont = 0x%x)\n",
+			     pp(font), (int)wsf->hfont));
     context.wsf = wsf;
     ZSelectObject(context.hdc, wsf->hfont);
     context.font = font;
@@ -1797,7 +1796,7 @@ s_print8(char8 *s, int l, int x, int y, FontObj f)
 
 void
 s_print16(char16 *s, int l, int x, int y, FontObj f)
-{ printf("16-bits characters are not (yet) supported on XPCE for Windows\n");
+{ Cprintf("16-bits characters are not (yet) supported on XPCE for Windows\n");
 }
 
 
@@ -1857,9 +1856,9 @@ str_string(String s, FontObj font,
   rect.bottom = rect.top + h;
 
   s_font(font);
-  DEBUG(NAME_redraw, printf("str_text(%s, %s, %d, %d, %d, %d, %s, %s)\n",
-			    s->s_text8, pp(font), x, y, w, h,
-			    pp(hadjust), pp(vadjust)));
+  DEBUG(NAME_redraw, Cprintf("str_text(%s, %s, %d, %d, %d, %d, %s, %s)\n",
+			     s->s_text8, pp(font), x, y, w, h,
+			     pp(hadjust), pp(vadjust)));
   DrawText(context.hdc, s->s_text8, s->size, &rect, flags);
 }
 

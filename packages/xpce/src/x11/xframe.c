@@ -263,7 +263,7 @@ ws_attach_wm_prototols_frame(FrameObj fr)
       pr[n++] = FrameAtom(fr, name);
   }
 
-  DEBUG(NAME_frame, printf("Attaching WM_PROTOCOLS\n"));
+  DEBUG(NAME_frame, Cprintf("Attaching WM_PROTOCOLS\n"));
 
   XSetWMProtocols(r->display_xref, XtWindow(widgetFrame(fr)), pr, n);
 
@@ -292,15 +292,15 @@ static void
 xEventFrame(Widget w, FrameObj fr, XEvent *event)
 { switch( event->xany.type )
   { case ClientMessage:
-    { DEBUG(NAME_frame, printf("Received client message\n"));
+    { DEBUG(NAME_frame, Cprintf("Received client message\n"));
 					/* Window Manager Request */
       if ( event->xclient.message_type == WmProtocols(fr) )
       { Name name;
 	Code msg;
 
 	DEBUG(NAME_frame,
-	      printf("Protocol message %s\n",
-		     FrameAtomToString(fr, event->xclient.data.l[0])));
+	      Cprintf("Protocol message %s\n",
+		      FrameAtomToString(fr, event->xclient.data.l[0])));
 
 	name = CtoName(FrameAtomToString(fr, event->xclient.data.l[0]));
 	if ( (msg = checkType(getValueSheet(fr->wm_protocols, name),
@@ -463,8 +463,8 @@ ws_x_geometry_frame(FrameObj fr, Name spec)
       XGetGeometry(d, me, &root, &mex, &mey, &mew, &meh, &mebw, &depth);
       XGetGeometry(d, wm, &root, &wmx, &wmy, &wmw, &wmh, &wmbw, &depth);
 
-      DEBUG(NAME_frame, printf("wmbw %d; wmw %d; wmh %d; mex %d; mey %d\n",
-			       wmbw, wmw, wmh, mex, mey));
+      DEBUG(NAME_frame, Cprintf("wmbw %d; wmw %d; wmh %d; mex %d; mey %d\n",
+				wmbw, wmw, wmh, mex, mey));
 
       if ( mask & XValue )
       { if ( mask & XNegative )
@@ -820,7 +820,7 @@ ws_postscript_frame(FrameObj fr)
     if ( x + iw > atts.width )  iw = atts.width - x;
     if ( y + ih > atts.height ) ih = atts.height - y;
 
-    DEBUG(NAME_postscript, printf("frame at %d %d %d %d\n", x, y, iw, ih));
+    DEBUG(NAME_postscript, Cprintf("frame at %d %d %d %d\n", x, y, iw, ih));
 
     im = XGetImage(d, root, x, y, iw, ih, AllPlanes, XYPixmap);
     

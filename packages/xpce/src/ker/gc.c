@@ -17,7 +17,7 @@ pushAnswerObject(Any obj)
 { if ( isVirginObj(obj) )
   { ToCell c = alloc(sizeof(struct to_cell));
 
-    DEBUG(NAME_gc, printf("pushAnswerObject(%s)\n", pp(obj)));
+    DEBUG(NAME_gc, Cprintf("pushAnswerObject(%s)\n", pp(obj)));
     setAnswerObj(obj);
     c->value = obj;
     c->index = AnswerStack->index + 1;
@@ -32,7 +32,7 @@ deleteAnswerObject(Any obj)
 { if ( isAnswerObj(obj) )
   { ToCell c;
 
-    DEBUG(NAME_gc, printf("deleteAnswerObject(%s)\n", pp(obj)));
+    DEBUG(NAME_gc, Cprintf("deleteAnswerObject(%s)\n", pp(obj)));
 
     c = AnswerStack;
 
@@ -70,14 +70,14 @@ _rewindAnswerStack(AnswerMark *mark, Any obj)
 
   for( c = AnswerStack; c->index > index; c = n )
   { n = c->next;
-    DEBUG(NAME_gc, printf("Cell at 0x%lx\n", (unsigned long)c));
+    DEBUG(NAME_gc, Cprintf("Cell at 0x%lx\n", (unsigned long)c));
     if ( c->value )
     { if ( c->value != obj )
       { Any o = c->value;
 
 	if ( noRefsObj(o) && !onFlag(o, F_LOCKED|F_PROTECTED) )
 	{ DEBUG(NAME_gc, 
-		printf("Removing %s from AnswerStack\n", pp(o)));
+		Cprintf("Removing %s from AnswerStack\n", pp(o)));
 	  clearAnswerObj(c->value);
 	  freeObject(o);
 	}
