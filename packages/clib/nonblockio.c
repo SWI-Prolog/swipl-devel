@@ -251,10 +251,10 @@ nbio_debug(int level)
 		 *******************************/
 
 #ifdef WIN32
-#define WM_SOCKET	(WM_USER+20)
-#define WM_REQUEST	(WM_USER+21)
-#define WM_READY	(WM_USER+22)
-#define WM_DONE		(WM_USER+23)
+static UINT WM_SOCKET	= WM_APP+20;
+static UINT WM_REQUEST  = WM_APP+21;
+static UINT WM_READY	= WM_APP+22;
+static UINT WM_DONE	= WM_APP+23;
 
 #define F_SETFL		0
 #define O_NONBLOCK	0
@@ -350,7 +350,7 @@ nbio_wait(int socket, nbio_request request)
   s->thread  = GetCurrentThreadId();
   s->request = request;
 
-  PostMessage(State()->hwnd, WM_REQUEST, 1, (LPARAM)&s);
+  SendMessage(State()->hwnd, WM_REQUEST, 1, (LPARAM)&s);
 
   DEBUG(2, Sdprintf("[%d] (%ld): Waiting ...",
 		    PL_thread_self(), s->thread));
@@ -422,7 +422,7 @@ nbio_select(int n,
   }
 
   FD_ZERO(readfds);
-  PostMessage(State()->hwnd, WM_REQUEST, n, (LPARAM)sockets);
+  SendMessage(State()->hwnd, WM_REQUEST, n, (LPARAM)sockets);
 
   for(;;)
   { MSG msg;
@@ -486,7 +486,7 @@ placeRequest(plsocket *s, nbio_request request)
   s->request = request;
   clear(s, SOCK_WAITING);
 
-  PostMessage(State()->hwnd, WM_REQUEST, 1, (LPARAM)&s);
+  SendMessage(State()->hwnd, WM_REQUEST, 1, (LPARAM)&s);
   DEBUG(2, Sdprintf("%d (%ld): Placed request %d\n",
 		    PL_thread_self(), s->thread, request));
 
@@ -624,50 +624,59 @@ doRequest(plsocket *s)
 
 static int WINAPI
 socket_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
-{ switch( message )
-  { case WM_REQUEST:
-    { plsocket **s = (plsocket **)lParam;
-      int i, n = (int)wParam;
+{ if ( message == WM_REQUEST )
+  { plsocket **s = (plsocket **)lParam;
+    int i, n = (int)wParam;
 
-      for(i=0; i<n; i++)
-      { if ( s[i] )
-	  doRequest(s[i]);
-      }
-
-      return 0;
-    }
-
-    case WM_SOCKET:
-    { SOCKET sock = (SOCKET) wParam;
-      int err     = WSAGETSELECTERROR(lParam);
-      int evt     = WSAGETSELECTEVENT(lParam);
-      plsocket *s = lookupExistingSocket(sock);
-
-      if ( s )
-      { s->w32_flags |= evt;
-	if ( err )
-	{ s->error = err;
-	  
-	  switch(s->request)
-	  { case REQ_CONNECT:
-	      break;
-	    case REQ_ACCEPT:
-	      s->rdata.accept.slave = SOCKET_ERROR;
-	      break;
-	    case REQ_READ:
-	      s->rdata.read.bytes = -1;
-	      break;
-	    case REQ_WRITE:
-	      s->rdata.write.bytes = -1;
-	      break;
+    for(i=0; i<n; i++)
+    { if ( s[i] )
+      { __try
+	{ if ( s[i]->magic != SOCK_MAGIC )
+	  { goto nosocket;
 	  }
-	  doneRequest(s);
-	} else
-	{ doRequest(s);
+	} __except(EXCEPTION_EXECUTE_HANDLER)
+	{ goto nosocket;
 	}
-      } else
-	DEBUG(2, Sdprintf("Socket %d is gone\n", sock));
+
+	doRequest(s[i]);
+      }
     }
+
+    return 0;
+
+  nosocket:
+    Sdprintf("%p@%d is not a socket!?\n", s[i], i);
+    return 0;
+  } else if ( message == WM_SOCKET )
+  { SOCKET sock = (SOCKET) wParam;
+    int err     = WSAGETSELECTERROR(lParam);
+    int evt     = WSAGETSELECTEVENT(lParam);
+    plsocket *s = lookupExistingSocket(sock);
+
+    if ( s )
+    { s->w32_flags |= evt;
+      if ( err )
+      { s->error = err;
+	
+	switch(s->request)
+	{ case REQ_CONNECT:
+	    break;
+	  case REQ_ACCEPT:
+	    s->rdata.accept.slave = SOCKET_ERROR;
+	    break;
+	  case REQ_READ:
+	    s->rdata.read.bytes = -1;
+	    break;
+	  case REQ_WRITE:
+	    s->rdata.write.bytes = -1;
+	    break;
+	}
+	doneRequest(s);
+      } else
+      { doRequest(s);
+      }
+    } else
+      DEBUG(2, Sdprintf("Socket %d is gone\n", sock));
   }
 
   return DefWindowProc(hwnd, message, wParam, lParam);
@@ -1135,6 +1144,13 @@ nbio_init(void)
 
 #ifdef WIN32
 { WSADATA WSAData;
+
+#if 0
+  WM_SOCKET  = RegisterWindowMessage("SWI-Prolog:nonblockio:WM_SOCKET");
+  WM_REQUEST = RegisterWindowMessage("SWI-Prolog:nonblockio:WM_REQUEST");
+  WM_READY   = RegisterWindowMessage("SWI-Prolog:nonblockio:WM_READY");
+  WM_DONE    = RegisterWindowMessage("SWI-Prolog:nonblockio:WM_DONE");
+#endif
 
   if ( WSAStartup(MAKEWORD(2,0), &WSAData) )
   { UNLOCK();

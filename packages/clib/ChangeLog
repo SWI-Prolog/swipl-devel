@@ -1,3 +1,10 @@
+October 04, 2004
+
+  * FIXED: library(socket) and library(ssl): potential crash and starvation
+    issue.  Appears to happen only on Windows NT, but the problem can -at
+    least in theory- also appear in other Windows versions.  With thanks
+    to Mike Elston for providing the test program.
+
 Sep 21, 2004
 
   * FIXED: cgi_get_form/1 for www-form-encoded strings with lowercase
