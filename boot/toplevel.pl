@@ -251,6 +251,8 @@ $break :-
 	$ttyformat('[exit break level ~d]~n', [New]),
 	flag($break_level, _, Old), !.
 
+:- $hide($toplevel, 0).			% avoid in the GUI stacktrace
+
 $toplevel :-
 	$runtoplevel,
 	$ttyformat('[halt]~n', []).		

@@ -118,7 +118,7 @@ pl_count()
   countOne(  "H_FUNCTOR", 	counting.h_functor_n);  
   countOne(  "H_LIST", 		counting.h_list);  
   countOne(  "B_FUNCTOR", 	counting.b_functor_n);  
-  countOne(  "I_POP", 		counting.i_pop);
+  countOne(  "I_POPF", 		counting.i_pop);
   countOne(  "I_ENTER", 	counting.i_enter);
 #if O_BLOCK
   countOne(  "I_CUT_BLOCK",	counting.i_cut_block);
@@ -468,6 +468,16 @@ leaveForeignFrame(LocalFrame fr)
 #undef F
 }
 
+#if O_DEBUGGER
+static void
+frameFinished(LocalFrame fr)
+{ fid_t cid = PL_open_foreign_frame();
+
+  callEventHook(PLEV_FRAMEFINISHED, fr);
+
+  PL_discard_foreign_frame(cid);
+}
+#endif
 
 		 /*******************************
 		 *	     TRAILING		*
@@ -560,32 +570,38 @@ TrailAssignment(Word p)
   (tTop++)->address = consPtr(old, TAG_TRAILVAL|STG_GLOBAL);
 }
 
-
-void
-do_undo(mark *m)
-{ TrailEntry tt = tTop;
-  TrailEntry mt = (TrailEntry)valPtr2(m->trailtop, STG_TRAIL);
-
-  SECURE(assert(m->trailtop  != INVALID_TRAILTOP);
-	 assert(m->globaltop != INVALID_GLOBALTOP));
-
-  while(tt > mt)
-  { Word p;
-
-    tt--;
-    p = valPtr(tt->address);
-    if ( tag(tt->address) == TAG_TRAILADDR )
-    { setVar(*p);
-    } else /* if ( tag(tt->address) == TAG_TRAILVAL ) */
-    { word val = *p;
-
-      tt--;
-      *valPtr(tt->address) = val;
-    }
-  }
-  tTop = tt;
-  gTop = valPtr2(m->globaltop, STG_GLOBAL);
+#define UNDO_FUNC(name) \
+name(mark *m) \
+{ TrailEntry tt = tTop; \
+  TrailEntry mt = (TrailEntry)valPtr2(m->trailtop, STG_TRAIL); \
+ \
+  SECURE(assert(m->trailtop  != INVALID_TRAILTOP); \
+	 assert(m->globaltop != INVALID_GLOBALTOP)); \
+ \
+  while(tt > mt) \
+  { Word p; \
+ \
+    tt--; \
+    p = valPtr(tt->address); \
+    if ( tag(tt->address) == TAG_TRAILADDR ) \
+    { setVar(*p); \
+    } else /* if ( tag(tt->address) == TAG_TRAILVAL ) */ \
+    { word val = *p; \
+ \
+      tt--; \
+      *valPtr(tt->address) = val; \
+    } \
+  } \
+  tTop = tt; \
+  gTop = valPtr2(m->globaltop, STG_GLOBAL); \
 }
+
+void UNDO_FUNC(do_undo)
+#ifdef HAVE_INLINE
+static __inline void UNDO_FUNC(__pl_do_undo)
+#undef Undo
+#define Undo(m) __pl_do_undo(&m)
+#endif
 
 #endif /*O_DESTRUCTIVE_ASSIGNMENT*/
 
@@ -924,7 +940,7 @@ PL_open_query(Module ctx, bool debug, Procedure proc, term_t args)
 	       for(n=0; n < f->arity; n++)
 	       { if ( n > 0 )
 		   Putf(", ");
-		 pl_write(valTermRef(args+n));
+		 pl_write(args+n);
 	       }
 	       Putf(")\n");
 	     } else
@@ -1072,6 +1088,7 @@ PL_next_solution(qid_t qid)
   LocalFrame BFR;			/* last backtrack frame */
   Definition DEF;			/* definition of current procedure */
   bool	     deterministic;		/* clause found deterministically */
+  Word *     aFloor = aTop;		/* don't overwrite old arguments */
 #define	     CL (FR->clause)		/* clause of current frame */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1094,7 +1111,7 @@ pl-comp.c
     &&B_RFUNCTOR_LBL,
     &&H_FUNCTOR_LBL,
     &&H_RFUNCTOR_LBL,
-    &&I_POP_LBL,
+    &&I_POPF_LBL,
     &&B_VAR_LBL,
     &&H_VAR_LBL,
     &&B_CONST_LBL,
@@ -1260,7 +1277,9 @@ initialised properly.
 #else
 next_instruction:
   thiscode = *PC++;
+#ifdef O_DEBUGGER
 resumebreak:
+#endif
   switch( thiscode )
 #endif
   {
@@ -1290,7 +1309,6 @@ arguments.
 	  goto retry;
       }
     }
-#endif /*O_DEBUGGER*/
 #ifdef O_LABEL_ADDRESSES
     { void *c = (void *)replacedBreak(PC-1);
       
@@ -1300,6 +1318,7 @@ arguments.
     thiscode = replacedBreak(PC-1);
     goto resumebreak;
 #endif      
+#endif /*O_DEBUGGER*/
 
     VMI(I_NOP, COUNT(i_nop), ("i_nop\n"))
 	NEXT_INSTRUCTION;
@@ -1736,7 +1755,7 @@ avoid a function call.
 Pop the saved argument pointer (see H_FUNCTOR and B_FUNCTOR).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-    VMI(I_POP, COUNT(i_pop), ("pop\n")) MARK(POP);
+    VMI(I_POPF, COUNT(i_pop), ("pop\n")) MARK(POP);
       { ARGP = *--aTop;
 	NEXT_INSTRUCTION;
       }
@@ -2029,13 +2048,13 @@ discarded.
 	for(fr = BFR; fr > cbfr; fr = fr->backtrackFrame)
 	{ for(fr2 = fr; fr2->clause && fr2 > cbfr; fr2 = fr2->parent)
 	  { DEBUG(3, Sdprintf("discard %d: ", (Word)fr2 - (Word)lBase) );
-	    DEBUG(3, writeFrameGoal(fr2, 2); pl_nl() );
+	    /*DEBUG(3, writeFrameGoal(fr2, 2); pl_nl() );*/
 	    leaveFrame(fr2);
 	    fr2->clause = NULL;
 	  }
 	}
 
-	DEBUG(3, Putf("BFR at "); writeFrameGoal(BFR, 2); pl_nl() );
+	/*DEBUG(3, Putf("BFR at "); writeFrameGoal(BFR, 2); pl_nl() );*/
 	{ int nvar = (true(cbfr->predicate, FOREIGN)
 				? cbfr->predicate->functor->arity
 				: cbfr->clause->clause->variables);
@@ -2822,12 +2841,22 @@ execution can continue at `next_instruction'
       VMI(I_DEPART, COUNT(i_depart), ("depart %d\n", *PC)) MARK(DEPART);
 #if TAILRECURSION
 	if ( true(FR, FR_CUT) && BFR <= FR
-#ifdef O_DEBUGGER
+#if O_DEBUGGER
 	     && !debugstatus.debugging
 #endif
 	   )
-	{ leaveDefinition(DEF);
+	{ 
+#if O_DEBUGGER
+	  if ( true(FR, FR_WATCHED) )
+	  { LocalFrame lSave = lTop;
+	    arity = ((Procedure) *PC)->definition->functor->arity;
 
+	    lTop = (LocalFrame)argFrameP(lTop, arity);
+	    frameFinished(FR);
+	    lTop = lSave;
+	  }
+#endif
+  	  leaveDefinition(DEF);
 	  if ( true(DEF, HIDE_CHILDS) )
 	    set(FR, FR_NODEBUG);
 	  
@@ -2836,7 +2865,8 @@ execution can continue at `next_instruction'
 
 	  goto depart_continue;
 	}
-#endif
+#endif /*TAILRECURSION*/
+       /*FALLTHROUGH*/
       VMI(I_CALL,
 	  COUNT(i_call),
 	  ("call %s\n", procedureName((Procedure)*PC)))
@@ -2900,7 +2930,7 @@ Note: we are working above `lTop' here!
 #ifdef O_DEBUGGER
       retry_continue:
 #endif
-	clear(FR, FR_CUT|FR_SKIPPED);
+	clear(FR, FR_CUT|FR_SKIPPED|FR_WATCHED);
 
 	statistics.inferences++;
 	Mark(FR->mark);
@@ -3012,7 +3042,7 @@ values found in the clause,  give  a   reference  to  the clause and set
 `lTop' to point to the first location after the current frame.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 	ARGP = argFrameP(FR, 0);
-	DEF->references++;
+	enterDefinition(DEF);
 
 #ifdef O_LIMIT_DEPTH
       { unsigned long depth = levelFrame(FR);
@@ -3082,14 +3112,11 @@ Leave the clause:
         if ( FR->clause )
 	{ if ( FR > BFR )
 	    SetBfr(FR);
-	  deterministic = FALSE;
 	} else
-	{ if ( BFR <= FR )
-	  { if ( BFR == FR )
-	      SetBfr(FR->backtrackFrame);
-	    lTop = FR;
-	  }
-	  deterministic = TRUE;
+	{ assert(BFR <= FR);
+	  if ( BFR == FR )
+	    SetBfr(FR->backtrackFrame);
+	  lTop = FR;
 	}
 	goto normal_exit;
 
@@ -3114,7 +3141,6 @@ interception. Second, there should be some room for optimisation here.
 	if ( false(FR, FR_CUT) )
 	{ if ( FR > BFR )			/* alternatives */
 	    SetBfr(FR);
-	  deterministic = FALSE;
 	} else
 	{ if ( BFR <= FR )			/* deterministic */
 	  { if ( BFR == FR )
@@ -3122,7 +3148,6 @@ interception. Second, there should be some room for optimisation here.
 	    leaveDefinition(DEF);
 	    lTop = FR;
 	  }
-	  deterministic = TRUE;
 	}
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3176,17 +3201,33 @@ bit more careful.
 		fr2->clause = NULL;
 	      }
 	    }
-	    leaveFrame(FR);
+
+#if O_DEBUGGER
+	    if ( true(FR, FR_WATCHED) )
+	      frameFinished(FR);
+#endif
 	  }
 
 	  succeed;
 	}
+
+      {
+#if O_DEBUGGER
+	LocalFrame leave;
+
+	leave = (true(FR, FR_WATCHED) && FR == lTop) ? FR : NULL;
+#endif
 
 	PC = FR->programPointer;
 	environment_frame = FR = FR->parent;
 	DEF = FR->predicate;
 	ARGP = argFrameP(lTop, 0);
 
+#if O_DEBUGGER
+	if ( leave )
+	  frameFinished(leave);
+#endif
+      }
 	NEXT_INSTRUCTION;
       }	  
   }
@@ -3294,7 +3335,7 @@ the entire frame has failed, so we can continue at `frame_failed'.
 
 resume_frame:
   ARGP = argFrameP(FR, 0);
-  Undo(FR->mark);		/* backtrack before clause indexing */
+  Undo(FR->mark);			/* backtrack before clause indexing */
 
   if ( !(CL = findClause(CL, ARGP, DEF, &deterministic)) )
     goto frame_failed;
@@ -3303,7 +3344,7 @@ resume_frame:
     set(FR, FR_CUT);
 
   SetBfr(FR->backtrackFrame);
-  aTop = aBase;
+  aTop = aFloor;			/* reset to start, for interrupts */
 
   { Clause clause = CL->clause;
 
@@ -3351,6 +3392,10 @@ visited for dereferencing.
 
     if ( false(DEF, FOREIGN) )
       leaveDefinition(DEF);
+#if O_DEBUGGER
+    if ( true(FR, FR_WATCHED) )
+      frameFinished(FR);
+#endif
 
     if ( !FR->backtrackFrame )			/* top goal failed */
     { register LocalFrame fr = FR->parent;

@@ -126,7 +126,7 @@ termHashValue(word term, long *hval)
 
 	*hval = atomValue(fd->name)->hash_value + arity;
 	for(a = argTermP(term, 0); arity; arity--, a++)
-	{ word av;
+	{ long av;
 
 	  deRef2(a, a2);
 	  if ( termHashValue(*a2, &av) )

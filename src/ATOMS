@@ -274,6 +274,8 @@ A tracing		"tracing"
 A cut_call		"cut_call"
 A cut_exit		"cut_exit"
 A depth_limit_exceeded	"depth_limit_exceeded"
+A frame_finished	"frame_finished"
+A nodebug		"nodebug"
 
 F abs			1
 F acos			1
@@ -378,3 +380,4 @@ F break			3
 F break			1
 F cut_call		1
 F cut_exit		1
+F frame_finished	1

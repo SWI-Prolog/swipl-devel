@@ -337,13 +337,15 @@ them.  Descriptions:
 #define OP_MAXPRIORITY		1200	/* maximum operator priority */
 #define SMALLSTACK		200 * 1024 /* GC policy */
 
+#define WORDBITSIZE		(8 * sizeof(word))
+
 				/* Prolog's integer range */
-#define PLMINTAGGEDINT		(-(1L<<(32 - LMASK_BITS - 1)))
+#define PLMINTAGGEDINT		(-(long)(1L<<(WORDBITSIZE - LMASK_BITS - 1)))
 #define PLMAXTAGGEDINT		(-PLMINTAGGEDINT - 1)
 #define inTaggedNumRange(n)	(((n)&~PLMAXTAGGEDINT) == 0 || \
 				 ((n)&~PLMAXTAGGEDINT) == ~PLMAXTAGGEDINT)
-#define PLMAXINT		((long)0x7fffffffL)
-#define PLMININT		((long)0x80000000L)
+#define PLMININT		((long)(1L<<(WORDBITSIZE-1)))
+#define PLMAXINT		(-(PLMININT+1))
 
 #if vax
 #define MAXREAL			(1.701411834604692293e+38)
@@ -394,7 +396,7 @@ sizes  of  the  hash  tables are defined.  Note that these should all be
 	  ForeignRedoPtr(v); \
 	}
 
-#define NEED_REINDEX 0x80000000L	/* defenition needs reindexing */
+#define NEED_REINDEX (1L << (8*sizeof(long)-1)) /* defenition reindexing */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Foreign language interface definitions.  Note that these macros MUST  be
@@ -445,7 +447,7 @@ codes.
 #define B_RFUNCTOR	((code) 6)		/* start functor */
 #define H_FUNCTOR	((code) 7)
 #define H_RFUNCTOR	((code) 8)
-#define I_POP		((code) 9)		/* end functor */
+#define I_POPF		((code) 9)		/* end functor */
 #define B_VAR		((code)10)		/* variable */
 #define H_VAR		((code)11)
 #define B_CONST		((code)12)		/* constant (atomic) */
@@ -820,12 +822,13 @@ with one operation, it turns out to be faster as well.
 Handling environment (or local stack) frames.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define FR_LEVEL		(0xFFFFFF00L)
-#define FR_CUT			(0x00000001L)
-#define FR_NODEBUG		(0x00000002L)
-#define FR_SKIPPED		(0x00000004L)
-#define FR_MARKED		(0x00000008L)
-#define FR_CHOICEPT		(0x00000010L)
+#define FR_LEVEL		(~0xffL)
+#define FR_CUT			(0x01L)
+#define FR_NODEBUG		(0x02L)
+#define FR_SKIPPED		(0x04L)
+#define FR_MARKED		(0x08L)
+#define FR_CHOICEPT		(0x10L)
+#define FR_WATCHED		(0x20L)
 
 #define ARGOFFSET		((int) sizeof(struct localFrame))
 
@@ -847,6 +850,7 @@ Handling environment (or local stack) frames.
 #define contextModule(f)	((f)->context)
 
 #if O_DEBUG
+#define enterDefinition(def)	{ def->references++; }
 #define leaveDefinition(def)	{ if ( --def->references == 0 && \
 				       true(def, NEEDSCLAUSEGC) ) \
 				    gcClausesDefinition(def); \
@@ -855,23 +859,37 @@ Handling environment (or local stack) frames.
 					     predicateName(def)); \
 				    def->references = 0; \
 				  } \
+				  if ( true(fr, FR_WATCHED) ) \
+				    frameFinished(fr); \
 				}
 #else /*O_DEBUG*/
+#define enterDefinition(def)	{ def->references++; }
 #define leaveDefinition(def)	{ if ( --def->references == 0 && \
 				       true(def, NEEDSCLAUSEGC) ) \
 				    gcClausesDefinition(def); \
 				}
 #endif /*O_DEBUG*/
 
+#ifdef O_DEBUGGER
+#define leaveFrame(fr) { if ( true(fr->predicate, FOREIGN) ) \
+			 { if ( true(fr->predicate, NONDETERMINISTIC) ) \
+			     leaveForeignFrame(fr); \
+			 } else \
+			   leaveDefinition(fr->predicate); \
+			 if ( true(fr, FR_WATCHED) ) \
+			   frameFinished(fr); \
+		       }
+#else /*O_DEBUGGER*/
 #define leaveFrame(fr) { if ( true(fr->predicate, FOREIGN) ) \
 			 { if ( true(fr->predicate, NONDETERMINISTIC) ) \
 			     leaveForeignFrame(fr); \
 			 } else \
 			   leaveDefinition(fr->predicate); \
 		       }
+#endif /*O_DEBUGGER*/
 
-#define INVALID_TRAILTOP  0xffffffffL
-#define INVALID_GLOBALTOP 0xfffffffeL
+#define INVALID_TRAILTOP  ((word)~0L)
+#define INVALID_GLOBALTOP ((word)~1L)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Heuristics functions to determine whether an integer reference passed to
@@ -1235,12 +1253,13 @@ typedef struct
 		 *	      EVENTS		*
 		 *******************************/
 
-#define PLEV_ERASED	0		/* clause or record was erased */
-#define PLEV_DEBUGGING	1		/* changed debugging mode */
-#define PLEV_TRACING	2		/* changed tracing mode */
-#define PLEV_SPY	3		/* changed spypoint */
-#define PLEV_BREAK	4		/* a break-point was set */
-#define PLEV_NOBREAK	5		/* a break-point was cleared */
+#define PLEV_ERASED	   0 		/* clause or record was erased */
+#define PLEV_DEBUGGING	   1		/* changed debugging mode */
+#define PLEV_TRACING	   2		/* changed tracing mode */
+#define PLEV_SPY	   3		/* changed spypoint */
+#define PLEV_BREAK	   4		/* a break-point was set */
+#define PLEV_NOBREAK	   5		/* a break-point was cleared */
+#define PLEV_FRAMEFINISHED 6		/* A watched frame was discarded */
 
 
 		/********************************
@@ -1386,7 +1405,8 @@ GLOBAL long	  source_char_no;	/* Current source charno */
 GLOBAL bool	  fileerrors;		/* Report file errors? */
 GLOBAL atom_t	  float_format;		/* Default floating point format */
 
-#define ReadingSource (source_line_no > 0 && source_file_name != NULL_ATOM)
+#define ReadingSource (source_line_no > 0 && \
+		       source_file_name != NULL_ATOM)
 
 		/********************************
 		*        FAST DISPATCHING	*

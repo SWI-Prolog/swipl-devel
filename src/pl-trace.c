@@ -237,11 +237,11 @@ again:
   Putf("(%3ld) ", levelFrame(frame));
   writeFrameGoal(frame, debugstatus.style);
 
-  debugstatus.skiplevel = VERY_DEEP;
-  debugstatus.tracing = TRUE;
-
   if (debugstatus.leashing & port)
   { char buf[LINESIZ];
+
+    debugstatus.skiplevel = VERY_DEEP;
+    debugstatus.tracing   = TRUE;
 
     Putf(" ? ");
     pl_flush();
@@ -671,6 +671,7 @@ traceInterception(LocalFrame frame, LocalFrame bfr, int port, Code PC)
     term_t rarg = argv+3;
     atom_t portname = NULL_ATOM;
     functor_t portfunc = NULL;
+    int nodebug = FALSE;
 
     switch(port)
     { case CALL_PORT:	  portname = ATOM_call;		break;
@@ -712,7 +713,10 @@ traceInterception(LocalFrame frame, LocalFrame bfr, int port, Code PC)
       if ( PL_get_atom(rarg, &a) )
       { if ( a == ATOM_continue )
 	  rval = ACTION_CONTINUE;
-	else if ( a == ATOM_fail )
+	else if ( a == ATOM_nodebug )
+	{ rval = ACTION_CONTINUE;
+	  nodebug = TRUE;
+	} else if ( a == ATOM_fail )
 	  rval = ACTION_FAIL;
 	else if ( a == ATOM_retry )
 	  rval = ACTION_RETRY;
@@ -731,6 +735,10 @@ traceInterception(LocalFrame frame, LocalFrame bfr, int port, Code PC)
     }
     PL_close_query(qid);
     PL_discard_foreign_frame(cid);
+
+    if ( nodebug )
+      pl_nodebug();
+
   }
 
   return rval;
@@ -895,6 +903,8 @@ initTracer(void)
 		*       PROLOG PREDICATES       *
 		*********************************/
 
+#if O_DEBUGGER
+
 int
 tracemode(int doit, int *old)
 { if ( doit )
@@ -935,6 +945,19 @@ debugmode(int doit, int *old)
   succeed;
 }
 
+#else /*O_DEBUGGER*/
+
+int
+tracemode(int doit, int *old)
+{ succeed;
+}
+
+int
+debugmode(int doit, int *old)
+{ succeed;
+}
+
+#endif
 
 word
 pl_trace()
@@ -972,6 +995,7 @@ pl_debugging()
 word
 pl_skip_level(term_t old, term_t new)
 { atom_t a;
+  long sl;
 
   if ( debugstatus.skiplevel == VERY_DEEP )
   { TRY(PL_unify_atom(old, ATOM_very_deep));
@@ -979,8 +1003,10 @@ pl_skip_level(term_t old, term_t new)
   { TRY(PL_unify_integer(old, debugstatus.skiplevel));
   }
       
-  if ( PL_get_long(new, &debugstatus.skiplevel) )
+  if ( PL_get_long(new, &sl) )
+  { debugstatus.skiplevel = (unsigned long) sl;
     succeed;
+  }
   if ( PL_get_atom(new, &a) && a == ATOM_very_deep)
   { debugstatus.skiplevel = VERY_DEEP;
     succeed;
@@ -1028,6 +1054,7 @@ word
 pl_debuglevel(term_t old, term_t new)
 { return setInteger(&status.debugLevel, "$visible", old, new);
 }
+
 
 
 word
@@ -1079,6 +1106,8 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
 
   if ((fr = FrameRef(fri)) < lBase || fr > lTop)
     return warning("prolog_frame_attribute/3: illegal frame reference");
+
+  set(fr, FR_WATCHED);			/* explicit call to do this? */
 
   if ( key == ATOM_argument && arity == 1 )
   { term_t arg = PL_new_term_ref();
@@ -1191,8 +1220,10 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
 }
 
 
+#if O_DEBUGGER
+
 		 /*******************************
-		 *	  PROLOG EVENET HOOK	*
+		 *	  PROLOG EVENT HOOK	*
 		 *******************************/
 
 void
@@ -1240,6 +1271,13 @@ callEventHook(int ev, ...)
 					             : ATOM_false);
 	break;
       }
+      case PLEV_FRAMEFINISHED:
+      { LocalFrame fr = va_arg(args, LocalFrame);
+
+	PL_unify_term(arg, PL_FUNCTOR, FUNCTOR_frame_finished1,
+		           PL_INTEGER, PrologRef(fr));
+	break;
+      }
       default:
 	warning("callEventHook(): unknown event: %d", ev);
         goto out;
@@ -1251,3 +1289,5 @@ callEventHook(int ev, ...)
     va_end(args);
   }
 }
+
+#endif /*O_DEBUGGER*/

@@ -22,7 +22,7 @@ struct code_info codeTable[] = {
   CODE(B_RFUNCTOR,	"b_rfunctor",	1, CA1_FUNC),
   CODE(H_FUNCTOR,	"h_functor",	1, CA1_FUNC),
   CODE(H_RFUNCTOR,	"h_rfunctor",	1, CA1_FUNC),
-  CODE(I_POP,		"i_pop",	0, 0),
+  CODE(I_POPF,		"i_pop",	0, 0),
   CODE(B_VAR,		"b_var",	1, 0),
   CODE(H_VAR,		"h_var",	1, 0),
   CODE(B_CONST,		"b_const",	1, CA1_DATA),
@@ -173,11 +173,11 @@ initWamTable(void)
   if ( interpreter_jmp_table == NULL )
     PL_next_solution(QID_EXPORT_WAM_TABLE);
 
-  wam_table[0] = (code) ((int)interpreter_jmp_table[0]);
+  wam_table[0] = (code) (interpreter_jmp_table[0]);
   maxcoded = mincoded = wam_table[0];
 
   for(n = 1; n <= I_HIGHEST; n++)
-  { wam_table[n] = (code) ((int)interpreter_jmp_table[n]);
+  { wam_table[n] = (code) (interpreter_jmp_table[n]);
     if ( wam_table[n] > maxcoded )
       maxcoded = wam_table[n];
     if ( wam_table[n] < mincoded )
@@ -464,9 +464,9 @@ typedef struct
   int	entry[1];
 } var_table, *VarTable;
 
-#undef offset
-#define offset(t, f) ((int)&((t*)0)->f)
-#define sizeofVarTable(isize) (offset(var_table, entry) + sizeof(int)*(isize))
+#undef struct_offsetp
+#define struct_offsetp(t, f) ((int)((t*)0)->f)
+#define sizeofVarTable(isize) (struct_offsetp(var_table, entry) + sizeof(int)*(isize))
 
 #define mkCopiedVarTable(o) copyVarTable(alloca(sizeofVarTable(o->isize)), o)
 
@@ -870,9 +870,9 @@ analyseVariables()  and  returns the offset of the variable, or -1 if it
 is not produced by this function.
 
 compileArgument() returns ISVOID if a void instruction resulted from the
-compilation.  This is used to detect  the  ...ISVOID,  [I_ENTER,  I_POP]
+compilation.  This is used to detect  the  ...ISVOID,  [I_ENTER,  I_POPF]
 sequences,  in  which  case  we  can leave out the VOIDS just before the
-I_ENTER or I_POP instructions.
+I_ENTER or I_POPF instructions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -885,7 +885,7 @@ compileArgument(Word arg, int where, compileInfo *ci)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 A void.  Generate either B_VOID or H_VOID.  Note that the  return  value
 ISVOID  is reserved for head variables only (B_VOID sets the location to
-be a variable, and thus cannot be removed if it is before an I_POP.
+be a variable, and thus cannot be removed if it is before an I_POPF.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   switch(tag(*arg))
@@ -1015,7 +1015,7 @@ Non-void variables. There are many cases for this.
     }
     seekBuffer(&ci->codes, lastnonvoid, code);
     if ( !isright )
-      Output_0(ci, I_POP);
+      Output_0(ci, I_POPF);
 
     return NONVOID;
   }
@@ -1538,7 +1538,9 @@ arg1Key(Clause clause, word *key)
   for(;;)
   { code c = decode(*PC++);
 
+#if O_DEBUGGER
   again:
+#endif
     switch(c)
     { case H_FUNCTOR:
       case H_RFUNCTOR:
@@ -1566,9 +1568,11 @@ arg1Key(Clause clause, word *key)
 	fail;
       case I_NOP:
 	continue;
+#ifdef O_DEBUGGER
       case D_BREAK:
         c = decode(replacedBreak(PC-1));
 	goto again;
+#endif
       default:
 	assert(0);
         fail;
@@ -1706,13 +1710,17 @@ decompile_head(Clause clause, term_t head, decompileInfo *di)
   for(;;)
   { code c = decode(*PC++);
 
+#if O_DEBUGGER
   again:
+#endif
     switch(c)
     { case I_NOP:
 	continue;
+#if O_DEBUGGER
       case D_BREAK:
 	c = decode(replacedBreak(PC-1));
         goto again;
+#endif
       case H_NIL:
 	TRY(PL_unify_nil(argp));
         NEXTARG;
@@ -1784,7 +1792,7 @@ decompile_head(Clause clause, term_t head, decompileInfo *di)
 	  fdef = FUNCTOR_dot2;
           goto common_rfunctor;
 	}
-      case I_POP:
+      case I_POPF:
 	  PL_reset_term_refs(argp);
           argp--;
 	  pushed--;
@@ -1906,16 +1914,20 @@ decompileBody(register decompileInfo *di, code end, Code until)
   while( PC != until )
   { op = decode(*PC++);
 
+#if O_DEBUGGER
   again:
+#endif
     if ( op == end )
     { PC--;
       break;
     }
 
     switch( op )
-    {   case D_BREAK:	    op = decode(replacedBreak(PC-1));
+    {
+#if O_DEBUGGER
+        case D_BREAK:	    op = decode(replacedBreak(PC-1));
 			    goto again;
-	  
+#endif	  
         case A_ENTER:
         case I_NOP:	    continue;
 	case B_CONST:
@@ -1989,7 +2001,7 @@ decompileBody(register decompileInfo *di, code end, Code until)
 	fdef = FUNCTOR_dot2;
         goto common_brfunctor;
       }
-      case I_POP:
+      case I_POPF:
 			    ARGP = *--aTop;
 			    nested--;
 			    continue;
@@ -2392,7 +2404,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, word h)
     cr = allocHeap(sizeof(crref));
     cr->clause = cref;
     cr->index  = 1;
-    def->references++;
+    enterDefinition(def);
   } else
   { cr = ForeignContextPtr(h);
     def = cr->clause->clause->procedure->definition;
@@ -2417,6 +2429,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, word h)
   succeed;
 }
 
+#if O_DEBUGGER				/* to the end of the file */
 
 static Code
 stepPC(Code PC)
@@ -2486,8 +2499,10 @@ pl_xr_member(term_t ref, term_t term, word h)
     { bool rval = FALSE;
       code op = decode(*PC++);
       
+#ifdef O_DEBUGGER
       if ( op == D_BREAK )
 	op = decode(replacedBreak(PC-1));
+#endif
 
       switch(codeTable[op].argtype)
       { case CA1_PROC:
@@ -3218,3 +3233,5 @@ pl_current_break(term_t ref, term_t pc, control_t h)
 
   fail;
 }
+
+#endif /*O_DEBUGGER*/

@@ -1698,10 +1698,9 @@ writeSourceMarks(IOSTREAM *s)
 
 
 static int
-qlfSourceInfo(IOSTREAM *s, long offset, term_t info)
+qlfSourceInfo(IOSTREAM *s, long offset, term_t list)
 { char *str;
   term_t head = PL_new_term_ref();
-  term_t list = PL_copy_term_ref(info);
 
   if ( Sseek(s, offset, SIO_SEEK_SET) != offset )
     return warning("%s: seek failed: %s", wicFile, OsError());
@@ -1716,12 +1715,13 @@ qlfSourceInfo(IOSTREAM *s, long offset, term_t info)
 static word
 qlfInfo(const char *file,
 	term_t cversion, term_t version,
-	term_t files)
+	term_t files0)
 { IOSTREAM *s = NULL;
   int lversion;
   int nqlf, i;
   long *qlfstart = NULL;
   word rval = TRUE;
+  term_t files = PL_copy_term_ref(files0);
 
   TRY(PL_unify_integer(cversion, VERSION));
 

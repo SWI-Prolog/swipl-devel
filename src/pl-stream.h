@@ -79,10 +79,10 @@ typedef struct io_position
 } IOPOS;
 
 typedef struct io_stream
-{ unsigned char	       *bufp;		/* `here' */
-  unsigned char	       *limitp;		/* read/write limit */
-  unsigned char	       *buffer;		/* the buffer */
-  unsigned char	       *unbuffer;	/* Sungetc buffer */
+{ char		       *bufp;		/* `here' */
+  char		       *limitp;		/* read/write limit */
+  char		       *buffer;		/* the buffer */
+  char		       *unbuffer;	/* Sungetc buffer */
   int			magic;		/* magic number SIO_MAGIC */
   int  			bufsize;	/* size of the buffer */
   int			flags;		/* Status flags */

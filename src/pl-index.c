@@ -567,7 +567,7 @@ addClauseToIndex(Definition def, Clause cl, int where)
     appendClauseChain(&ch[hi], cl, where);
 
     if ( ++ci->size / 2 > ci->buckets )
-    { def->references++;
+    { enterDefinition(def);
       set(def, NEEDSREHASH);
       leaveDefinition(def);
     }

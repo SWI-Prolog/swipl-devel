@@ -179,7 +179,7 @@ static long relocation_cells;	/* # relocation cells */
 static long relocated_cells;	/* # relocated cells */
 static long needs_relocation;	/* # cells that need relocation */
 static long local_marked;	/* # cells marked local -> global ptrs */
-#if O_SHIFT_STACKS || O_SECURE || defined(O_MAINTENANCE)
+#if O_SHIFT_STACKS || O_SECURE || defined(O_MAINTENANCE) || defined(O_DEBUG)
 static long local_frames;	/* frame count for debugging */
 #endif
 #if O_SECURE
@@ -481,11 +481,16 @@ clearUninitialisedVarsFrame(LocalFrame fr, Code PC)
     for( ; ; PC += (codeTable[c].arguments + 1))
     { c = decode(*PC);
 
+#if O_DEBUGGER
     again:
+#endif
       switch( c )
-      { case D_BREAK:
+      {
+#if O_DEBUGGER
+	case D_BREAK:
 	  c = decode(replacedBreak(PC));
 	  goto again;
+#endif
 	case I_EXIT:
 	case I_EXITFACT:
 	  return;

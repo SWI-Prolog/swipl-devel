@@ -1287,11 +1287,18 @@ build_op_term(term_t term, atom_t atom, int arity, out_entry *argv)
   build_term(term, atom, arity, av);
 }
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+realloca() maintains a buffer using  alloca()   that  has  the requested
+size. The current size is maintained in   a long just below the returned
+area. This is a long, to ensure   proper  allignment of the remainder of
+the values.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 #define realloca(p, unit, n) \
-	{ int *ip = (int *)(p); \
+	{ long *ip = (long *)(p); \
 	  if ( ip == NULL || ip[-1] < (n) ) \
-	  { int nsize = (((n)+(n)/2) + 3) & ~3; \
-	    int *np = alloca(nsize * unit + sizeof(int)); \
+	  { long nsize = (((n)+(n)/2) + 3) & ~3; \
+	    long *np = alloca(nsize * unit + sizeof(long)); \
 	    *np++ = nsize; \
 	    if ( ip ) \
 	      memcpy(np, ip, ip[-1] * unit); \
@@ -1692,8 +1699,17 @@ simple_term(bool must_be_op, term_t term, bool *name, term_t positions)
     case T_PUNCTUATION:
       { switch(token->value.character)
 	{ case '(':
-	    { TRY( complex_term(")", term, positions) );
+	    { int start = token->start;
+
+	      TRY( complex_term(")", term, positions) );
 	      token = get_token(must_be_op);	/* skip ')' */
+
+	      if ( positions )
+	      { Word p = argTermP(*valTermRef(positions), 0);
+
+		*p++ = consInt(start);
+		*p   = consInt(token->end);
+	      }
 
 	      succeed;
 	    }

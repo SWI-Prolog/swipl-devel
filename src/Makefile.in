@@ -166,16 +166,16 @@ $(STUBC):	$(srcdir)/pl-extend.c $(INCLUDEDIR)
 		
 
 parms.h:	Makefile
-		@echo "#define PLHOME       \"$(PLBASE)\""      > %$@%
-		@echo "#define DEFSTARTUP   \"$(DEFSTARTUP)\"" >> %$@%
+		@echo "#define PLHOME       \"$(PLBASE)\""      > $@%
+		@echo "#define DEFSTARTUP   \"$(DEFSTARTUP)\"" >> $@%
 		@echo $(PLVERSION) | \
-		$(AWK) -F. '{ printf("#define PLVERSION %d\n", $$1 * 10000 + $$2 * 100 + $$3); }' >> %$@%
-		@echo "#define ARCH	    \"$(ARCH)\""       >> %$@%
-		@echo "#define C_LIBS	    \"$(LIBS)\""       >> %$@%
-		@echo "#define C_STATICLIBS \"$(STATICLIBS)\"" >> %$@%
-		@echo "#define C_CC	    \"$(CC)\""	       >> %$@%
-		@echo "#define C_LDFLAGS    \"$(LDFLAGS)\""    >> %$@%
-		@if cmp -s %$@% $@; then rm %$@%; else mv %$@% $@; fi
+		$(AWK) -F. '{ printf("#define PLVERSION %d\n", $$1 * 10000 + $$2 * 100 + $$3); }' >> $@%
+		@echo "#define ARCH	    \"$(ARCH)\""       >> $@%
+		@echo "#define C_LIBS	    \"$(LIBS)\""       >> $@%
+		@echo "#define C_STATICLIBS \"$(STATICLIBS)\"" >> $@%
+		@echo "#define C_CC	    \"$(CC)\""	       >> $@%
+		@echo "#define C_LDFLAGS    \"$(LDFLAGS)\""    >> $@%
+		@if cmp -s $@% $@; then rm $@%; else mv $@% $@; fi
 
 pl-main.o:	parms.h
 pl-setup.o:	parms.h

@@ -369,7 +369,7 @@ removeClausesProcedure(Procedure proc, int sfindex)
 { Definition def = proc->definition;
   ClauseRef c;
 
-  def->references++;
+  enterDefinition(def);
 
   for(c = def->definition.clauses; c; c = c->next)
   { Clause cl = c->clause;
@@ -432,9 +432,11 @@ retractClauseProcedure(Procedure proc, Clause clause)
 
 
   	freeClauseRef(c);
+#if O_DEBUGGER
 	if ( PROCEDURE_event_hook1 &&
 	     def != PROCEDURE_event_hook1->definition )
 	  callEventHook(PLEV_ERASED, clause);
+#endif
 	freeClause(clause);
 	def->number_of_clauses--;
 
@@ -452,8 +454,11 @@ retractClauseProcedure(Procedure proc, Clause clause)
 
 void
 freeClause(Clause c)
-{ if ( true(c, HAS_BREAKPOINTS) )
+{
+#if O_DEBUGGER
+  if ( true(c, HAS_BREAKPOINTS) )
     clearBreakPointsClause(c);
+#endif
 
   statistics.codes -= c->code_size;
   freeHeap(c->codes, sizeof(code) * c->code_size);
@@ -499,8 +504,10 @@ gcClausesDefinition(Definition def)
       }
 
       DEBUG(0, removed++);
+#if O_DEBUGGER
       if ( PROCEDURE_event_hook1 && def != PROCEDURE_event_hook1->definition )
 	callEventHook(PLEV_ERASED, c->clause);
+#endif
       freeClause(c->clause);
       freeClauseRef(c);
     } else
@@ -562,7 +569,7 @@ pl_check_definition(term_t spec)
 
   ClauseRef cref;
 
-  if ( get_procedure(spec, &proc, 0, GP_FIND) )
+  if ( !get_procedure(spec, &proc, 0, GP_FIND) )
     return warning("$check_definition/1: can't find definition");
   def = proc->definition;
 
@@ -797,7 +804,7 @@ pl_retract(term_t term, word h)
 		predicateName(def), def->references);
 
       cref = def->definition.clauses;
-      def->references++;			/* reference the predicate */
+      enterDefinition(def);			/* reference the predicate */
     } else
     { cref = ForeignContextPtr(h);
       proc = cref->clause->procedure;
@@ -861,7 +868,7 @@ pl_retractall(term_t head)
   if ( true(def, LOCKED) && false(def, DYNAMIC) )
     return warning("retractall/1: Attempt to retract from a system predicate");
 
-  def->references++;
+  enterDefinition(def);
   for(cref = def->definition.clauses; cref; cref = cref->next)
   { bool det;
     Word argv;

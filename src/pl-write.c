@@ -51,7 +51,7 @@ atomType(atom_t a)
     return *s2 == EOS ? AT_LOWER : AT_QUOTE;
   }
 
-  if ( streq(s, ".") )
+  if ( a == ATOM_dot )
     return AT_FULLSTOP;
   
   if (isSymbol(*s))
@@ -62,10 +62,11 @@ atomType(atom_t a)
     return *s2 == EOS ? AT_SYMBOL : AT_QUOTE;
   }
 
-  if ((isSolo(*s) || *s == ',') && s[1] == EOS)
+					/* % should be quoted! */
+  if ((isSolo(*s) || *s == ',') && s[1] == EOS && s[0] != '%' )
     return AT_SOLO;
 
-  if (streq(s, "[]") || streq(s, "{}") )
+  if ( a == ATOM_nil || a == ATOM_curl )
     return AT_SPECIAL;
   
   return AT_QUOTE;

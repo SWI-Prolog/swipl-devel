@@ -810,7 +810,7 @@ Svsprintf(char *buf, const char *fm, va_list args)
   int rval;
 
   s.bufp      = buf;
-  s.limitp    = (char *)0xffffffff;
+  s.limitp    = (char *)(~0L);
   s.buffer    = buf;
   s.flags     = SIO_FBUF|SIO_OUTPUT;
   s.position  = NULL;

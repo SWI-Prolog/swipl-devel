@@ -182,6 +182,11 @@ extern real	  CpuTime(void);
 #define TTY_OUTPUT	 3		/* enable post-processing */
 #define TTY_SAVE	 4		/* just save status */
 
+#ifdef HAVE_TCSETATTR
+#include <termios.h>
+#include <unistd.h>
+#define O_HAVE_TERMIO 1
+#else /*HAVE_TCSETATTR*/
 #ifdef HAVE_SYS_TERMIO_H
 #include <sys/termio.h>
 #define termios termio
@@ -192,6 +197,7 @@ extern real	  CpuTime(void);
 #define O_HAVE_TERMIO 1
 #endif
 #endif
+#endif /*HAVE_TCSETATTR*/
 
 #ifdef O_HAVE_TERMIO
 

@@ -393,17 +393,29 @@ heapString(const char *s)
 		 *     OPERATIONS ON DOUBLES	*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Storage of floats (doubles) on the  stacks   and  heap.  Such values are
+packed into two `guards words'.  An   intermediate  structure is used to
+ensure the possibility of  word-aligned  copy   of  the  data. Structure
+assignment is used here  to  avoid  a   loop  for  different  values  of
+WORDS_PER_DOUBLE.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define WORDS_PER_DOUBLE ((sizeof(double)+sizeof(word)-1)/sizeof(word))
+
+typedef struct
+{ word w[WORDS_PER_DOUBLE];
+} fword;
 
 double					/* take care of alignment! */
 valReal(word w)
-{ long *v = (unsigned long *)valIndirectP(w);
+{ fword *v = (fword *)valIndirectP(w);
   union
   { double d;
-    unsigned long w[2];
+    fword  l;
   } val;
   
-  val.w[0] = v[0];
-  val.w[1] = v[1];
+  val.l = *v;
 
   return val.d;
 }
@@ -411,18 +423,20 @@ valReal(word w)
 
 word
 globalReal(double d)
-{ Word p = allocGlobal(4);
+{ Word p = allocGlobal(2+WORDS_PER_DOUBLE);
   word r = consPtr(p, TAG_FLOAT|STG_GLOBAL);
-  word m = mkIndHdr(2, TAG_FLOAT);
+  word m = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
   union
   { double d;
-    unsigned long w[2];
+    fword  l;
   } val;
+  fword *v;
 
   val.d = d;
   *p++ = m;
-  *p++ = val.w[0];
-  *p++ = val.w[1];
+  v = (fword *)p;
+  *v++ = val.l;
+  p = (Word) v;
   *p   = m;
 
   return r;
@@ -431,18 +445,20 @@ globalReal(double d)
 
 word
 heapReal(double d)
-{ Word p = allocHeap(4*sizeof(word));
+{ Word p = allocHeap((2+WORDS_PER_DOUBLE)*sizeof(word));
   word r = consPtr(p, TAG_FLOAT|STG_HEAP);
-  word m = mkIndHdr(2, TAG_FLOAT);
+  word m = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
   union
   { double d;
-    unsigned long w[2];
+    fword  l;
   } val;
+  fword *v;
 
   val.d = d;
   *p++ = m;
-  *p++ = val.w[0];
-  *p++ = val.w[1];
+  v = (fword *)p;
+  *v++ = val.l;
+  p = (Word) v;
   *p   = m;
 
   return r;

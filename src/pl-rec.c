@@ -415,7 +415,9 @@ pl_erase(term_t ref)
   if ( !isRecord(record) )
     return warning("erase/1: Invalid reference");
 
+#if O_DEBUGGER
   callEventHook(PLEV_ERASED, record);
+#endif
 
   l = record->list;
   if ( record == l->firstRecord )

@@ -254,6 +254,9 @@
 /* Define if you have the sysconf function.  */
 #undef HAVE_SYSCONF
 
+/* Define if you have the tcsetattr function.  */
+#undef HAVE_TCSETATTR
+
 /* Define if you have the tgetent function.  */
 #undef HAVE_TGETENT
 

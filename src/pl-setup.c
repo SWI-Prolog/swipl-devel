@@ -59,7 +59,7 @@ setupProlog(void)
   initSignals();
 #endif
   if ( status.dumped == FALSE )
-  { hBase = (char *)0xffffffffL;
+  { hBase = (char *)(~0L);
     hTop  = (char *)NULL;
   }
   DEBUG(1, Sdprintf("Stacks ...\n"));
@@ -75,7 +75,7 @@ setupProlog(void)
 
   { void *hbase = allocHeap(sizeof(word));
 
-    base_addresses[STG_HEAP]   = (ulong)hbase & 0xff800000L;
+    base_addresses[STG_HEAP]   = (ulong)hbase & ~0x007fffffL;
     freeHeap(hbase, sizeof(word));
   }
   base_addresses[STG_LOCAL]  = (unsigned long)lBase;
@@ -165,7 +165,7 @@ CSetFeature(char *name, char *value)
 }
 
 static void
-CSetIntFeature(char *name, int value)
+CSetIntFeature(char *name, long value)
 { setFeature(lookupAtom(name), consInt(value));
 }
 

@@ -81,7 +81,7 @@ rehashFunctors()
   functor_buckets *= 2;
   allocFunctorTable();
 
-  DEBUG(0, Sdprintf("Rehashing functor-table to %d entries\n",
+  DEBUG(1, Sdprintf("Rehashing functor-table to %d entries\n",
 		    functor_buckets));
 
   for(f = oldtab[0]; f; f = n)

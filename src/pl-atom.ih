@@ -263,3 +263,5 @@
 #define ATOM_cut_call     MK_ATOM(262)
 #define ATOM_cut_exit     MK_ATOM(263)
 #define ATOM_depth_limit_exceeded MK_ATOM(264)
+#define ATOM_frame_finished MK_ATOM(265)
+#define ATOM_nodebug      MK_ATOM(266)

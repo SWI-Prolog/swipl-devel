@@ -2,8 +2,52 @@
 			SWI-Prolog ChangeLog
 			====================
 
-VERSION 2.7.21
-==============
+VERSION 2.8.0
+=============
+
+  * FIXED: `$qlf_info'/3 (always failed).  Used by the development
+    environment under construction.
+
+  * RUNTIME SYSTEM: Made various of the debugger options conditional
+    on whether or not the system is compiled as runtime system.
+
+  * ADDED: more options to user:prolog_event_hook/1 for better
+    interaction	with the GUI tracer: possibility to `watch' a
+    stack-frames end-of-lifetime.
+
+  * FIXED: writeq('%') to write '%' rather then just %.
+
+  * FIXED/MODIFIED: subterm_positions option of read to return the
+    positions of possible surrounding braces for a term.  Thus,
+    reading (hello) now yields 0-6 rather then 1-5.  This notably
+    fixes the 'f' (finish) option in the GUI tracer to properly
+    indicate the succeeded clause.
+
+  * PORT: Configure detected tcgetattr()/tcsetattr() usage rather then
+    ioctl(), fixing terminal interaction on OSF/1.
+
+  * PORT: Fix in Makefile to make it work with some broken shells.
+
+  * PORT: renamed I_POP virtual machine instruction to I_POPF, to avoid
+    a conflict with system headers on some machines.
+
+  * PORT: Added support for the 64-bit DEC Alpha processor (or, more
+    in general made the code 64-bit clean).  Tested on a DEC Alpha
+    using OSF/1 4.0 and the native C-compiler.  Should also work on
+    GCC, but the local GCC installation appeared broken.  With thanks
+    to Bryan Sorrows for providing me with access to their machine.
+    Exactly while I was working on the port, Martin Ostermann mailed
+    me patches for running on the Alpha under Linux.  Thanks for the
+    couple of problems I missed!
+
+    Remaining problems: can sparse memory management work on OSF/1?
+    Currently, saved states are portable, but the limits on the Alpha
+    are much larger.  This should be fixed.  Prolog machine words are
+    64 bits on the Alpha, doubling the stack-sizes and virtually
+    removing all limits.  In theory, it would also be possible to use
+    ints (32-bit) for this.  I have not checked this.  It is not unlikely
+    there are variables defined `int', where they should have been
+    `long', truncating large numbers.
 
   * FIXED: globalAlloc() for allocations larger than a page on machines
     with sparse memory management, not handling stack-overflows as

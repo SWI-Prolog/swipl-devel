@@ -388,7 +388,7 @@ Random(void)
   l ^= rand()<<10;
   l ^= rand()<<20;
 
-  return l & 0x7fffffff;
+  return l & (~PLMININT);
 #endif
 }
 
@@ -1733,13 +1733,15 @@ ResetTty()
   prompt_next = TRUE;
 }
 
-#ifdef O_HAVE_TERMIO				/* sys/termios.h or sys/termio.h */
+#ifdef O_HAVE_TERMIO			/* sys/termios.h or sys/termio.h */
 
+#ifndef HAVE_TCSETATTR
 #ifndef NO_SYS_IOCTL_H_WITH_SYS_TERMIOS_H
 #include <sys/ioctl.h>
 #endif
 #ifndef TIOCGETA
 #define TIOCGETA TCGETA
+#endif
 #endif
 
 bool
@@ -1752,14 +1754,26 @@ PushTty(ttybuf *buf, int mode)
   if ( status.notty )
     succeed;
 
+#ifdef HAVE_TCSETATTR 
+  if ( tcgetattr(0, &buf->tab) )	/* save the old one */
+    fail;
+#else
   if ( ioctl(0, TIOCGETA, &buf->tab) )	/* save the old one */
     fail;
+#endif
+
   tio = buf->tab;
 
   switch( mode )
   { case TTY_RAW:
+#ifdef HAVE_TCSETATTR
+	cfmakeraw(&tio);
+	tio.c_oflag = buf->tab.c_oflag;	/* donot change output modes */
+	tio.c_lflag |= ISIG;
+#else
 	tio.c_lflag &= ~(ECHO|ICANON);
 	tio.c_cc[VTIME] = 0, tio.c_cc[VMIN] = 1;
+#endif
 	break;
     case TTY_OUTPUT:
 	tio.c_oflag |= (OPOST|ONLCR);
@@ -1771,11 +1785,20 @@ PushTty(ttybuf *buf, int mode)
 	/*NOTREACHED*/
   }
 
+#ifdef HAVE_TCSETATTR
+  if ( tcsetattr(0, TCSANOW, &tio) != 0 )
+  { static int warned;
+
+    if ( !warned++ )
+      warning("Failed to set terminal: %s", OsError());
+  }
+#else
 #ifdef TIOCSETAW
   ioctl(0, TIOCSETAW, &tio);
 #else
   ioctl(0, TCSETAW, &tio);
   ioctl(0, TCXONC, (void *)1);
+#endif
 #endif
 
   succeed;
@@ -1789,11 +1812,15 @@ PopTty(ttybuf *buf)
   if ( status.notty )
     succeed;
 
+#ifdef HAVE_TCSETATTR
+  tcsetattr(0, TCSANOW, &buf->tab);
+#else
 #ifdef TIOCSETA
   ioctl(0, TIOCSETA, &buf->tab);
 #else
   ioctl(0, TCSETA, &buf->tab);
   ioctl(0, TCXONC, (void *)1);
+#endif
 #endif
 
   succeed;

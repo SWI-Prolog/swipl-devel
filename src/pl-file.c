@@ -81,14 +81,14 @@ typedef struct input_context * InputContext;
 typedef struct output_context * OutputContext;
 
 static struct input_context
-{ int	stream;				/* pushed input */
-  atom_t	term_file;			/* old term_position file */
-  int	term_line;			/* old term_position line */
-  InputContext previous;		/* previous context */
+{ int		stream;			/* pushed input */
+  atom_t	term_file;		/* old term_position file */
+  int		term_line;		/* old term_position line */
+  InputContext	previous;		/* previous context */
 } *input_context_stack = NULL;
 
 static struct output_context
-{ int	stream;				/* pushed input */
+{ int		stream;			/* pushed input */
   OutputContext previous;		/* previous context */
 } *output_context_stack = NULL;
 
@@ -257,7 +257,7 @@ push/popInputContext() maintain the source_location   info  over see(X),
 context if it concerns a new stream and seen() will only pop if it is an
 open stream.
 
-Should be fixed decently if we redesign all of I/O stream manegement.
+Should be fixed decently if we redesign all of I/O stream management.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
@@ -583,7 +583,7 @@ openStream(term_t file, int mode, int flags)
   } else
     return warning("Illegal stream specification");
 
-  DEBUG(3, Sdprintf("File/command name = %s\n", stringAtom(f)));
+  DEBUG(3, Sdprintf("File/command name = %s\n", name));
   if ( type == ST_FILE )
   { if ( mode == F_READ )
     { if ( name == ATOM_user || name == ATOM_user_input )
@@ -1297,6 +1297,7 @@ pl_open4(term_t file, term_t mode,
 	    s->flags |= SIO_FEOF2ERR;
 	}
 	Input = in;
+	pushInputContext();
         succeed;
       }
       closeStream(Input);
@@ -1442,11 +1443,16 @@ streamNo(term_t spec, int mode)
 word
 pl_close(term_t stream)
 { int n;
+  int isread;
 
   if ( (n = streamNo(stream, F_ANY)) < 0 )
     fail;
+  isread = (fileTable[n].status == F_READ);
 
   TRY( closeStream(n) );
+  if ( isread )
+    popInputContext();
+  
   if ( n == Output )
     Output = 1;
   if ( n == Input )

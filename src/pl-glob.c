@@ -285,7 +285,7 @@ match_pattern(uchar *p, char *str)
 	}
       case STAR:					/* * */
 	  do
-	  { if ( match_pattern(p, s) )
+	  { if ( match_pattern(p, (char *)s) )
 	      succeed;
 	  } while( *s++ );
 	  fail;
@@ -293,7 +293,7 @@ match_pattern(uchar *p, char *str)
 	  p += *p;
 	  continue;
       case ALT:
-	  if ( match_pattern(p+1, s) )
+	  if ( match_pattern(p+1, (char *)s) )
 	    succeed;
 	  p += *p;
 	  continue;	  

@@ -82,13 +82,13 @@ lookupHTable(Table ht, Void name)
   for(;s && !isTableRef(s); s = s->next)
   { DEBUG(0, cmps++);
     if (s->name == (word)name)
-    { DEBUG(1, Sdprintf("lookupHTable(0x%x, 0x%x --> 0x%x\n",
+    { DEBUG(9, Sdprintf("lookupHTable(0x%x, 0x%x --> 0x%x\n",
 			ht, name, s->value));
       return s;
     }
   }
 
-  DEBUG(1, Sdprintf("lookupHTable(0x%x, 0x%x --> FAIL\n", ht, name));
+  DEBUG(9, Sdprintf("lookupHTable(0x%x, 0x%x --> FAIL\n", ht, name));
   return (Symbol) NULL;
 }
 
@@ -105,7 +105,7 @@ rehashHTable(Table ht)
   ht->buckets *= 2;
   allocHTableEntries(ht);
 
-  DEBUG(0, Sdprintf("Rehashing table 0x%x to %d entries\n",
+  DEBUG(1, Sdprintf("Rehashing table 0x%x to %d entries\n",
 		    ht, ht->buckets));
 
   for(s = oldtab[0]; s; s = n)
@@ -144,7 +144,7 @@ addHTable(Table ht, Void name, Void value)
   s->next = ht->entries[v];
   ht->entries[v] = s;
   ht->size++;
-  DEBUG(1, Sdprintf("addHTable(0x%x, 0x%x, 0x%x) --> size = %d\n",
+  DEBUG(9, Sdprintf("addHTable(0x%x, 0x%x, 0x%x) --> size = %d\n",
 		    ht, name, value, ht->size));
 
   if ( ht->buckets * 2 < ht->size && !ht->locked )

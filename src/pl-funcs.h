@@ -50,11 +50,7 @@ bool		unify_atomic(Word p, word a);
 word		pl_alt(term_t skip, word h);
 void		TrailAssignment(Word p);
 void		DoTrail(Word p);
-#ifdef __WIN32__
 void		do_undo(mark *m);
-#else
-inline void	do_undo(mark *m);
-#endif
 void		fix_term_ref_count(void);
 
 /* pl-atom.c */
