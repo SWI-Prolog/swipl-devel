@@ -319,8 +319,8 @@ pl_set_feature(term_t key, term_t value)
 	{ UNLOCK();
 	  fail;
 	}
-	break;
       }
+      break;
     }
     case FT_INTEGER:
     { long i;

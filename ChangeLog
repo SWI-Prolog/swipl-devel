@@ -1,6 +1,11 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: handling mmap() based stacks and shared object interface for
+    HP/UX (hppa1.1-hpux10.20).  Tested build using bash, HPUX make
+    and gcc-2.8.1.  With thanks to Gertjan van Noord for providing
+    access to their machine.
+
   * ADDED: char_type/2 and code_type/2 for fast and locale-supported
     character classification.
 
