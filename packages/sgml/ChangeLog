@@ -1,3 +1,6 @@
+* ADDED: White space handling using the xlm:space attribute as well as
+  allow for setting the initial default as option to load_structure.
+
 * FIXED: Allow for <!ENTITY name 'value'> (i.e. without CDATA type decl).
 
 * FIXED: Allow for <!DOCTYPE name [DTD]> (i.e. no public nor system)
