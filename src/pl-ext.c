@@ -226,6 +226,10 @@ static const struct foreign {
   FRG("$break_at",		3, pl_break_at,			TRACE_ME),
   FRG("$current_break",		2, pl_current_break,	   NDET|TRACE_ME),
 #endif  
+#ifdef O_MAINTENANCE
+  FRG("$list_generations",	1, pl_list_generations,	   META|TRACE_ME),
+  FRG("$check_procedure",	1, pl_check_procedure,	   META|TRACE_ME),
+#endif
 
   FRG("flag",			3, pl_flag,			TRACE_ME),
   FRG("recorda",		3, pl_recorda,			TRACE_ME),
