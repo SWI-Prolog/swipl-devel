@@ -246,6 +246,8 @@ prolog_message(missing_feature(Name)) -->
 	[ 'This version of SWI-Prolog does not support ~w'-[Name] ].
 prolog_message(singletons(List)) -->
 	[ 'Singleton variables: ~w'-[List] ].
+prolog_message(profile_no_cpu_time) -->
+	[ 'No CPU-time info.  Check the SWI-Prolog manual for details' ].
 
 
 		 /*******************************
