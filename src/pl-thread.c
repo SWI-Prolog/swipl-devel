@@ -150,37 +150,43 @@ Some remarks:
 #define PTHREAD_MUTEX_INITIALIZER {0}
 #endif
 
-simpleMutex _PL_mutexes[] =
-{ PTHREAD_MUTEX_INITIALIZER,		/* L_MISC */
-  PTHREAD_MUTEX_INITIALIZER,		/* L_ALLOC */
-  PTHREAD_MUTEX_INITIALIZER,		/* L_ATOM */
-  PTHREAD_MUTEX_INITIALIZER,		/* L_FLAG */
-  PTHREAD_MUTEX_INITIALIZER,		/* L_FUNCTOR */
-  PTHREAD_MUTEX_INITIALIZER,		/* L_RECORD */
-  PTHREAD_MUTEX_INITIALIZER,		/* L_THREAD */
-  PTHREAD_MUTEX_INITIALIZER,		/* L_PREDICATE */
-  PTHREAD_MUTEX_INITIALIZER,		/* L_MODULE */
-  PTHREAD_MUTEX_INITIALIZER,		/* L_TABLE */
-  PTHREAD_MUTEX_INITIALIZER,		/* L_BREAK */
-  PTHREAD_MUTEX_INITIALIZER,		/* L_FILE */
-  PTHREAD_MUTEX_INITIALIZER,		/* L_FEATURE */
-  PTHREAD_MUTEX_INITIALIZER,		/* L_OP */
-  PTHREAD_MUTEX_INITIALIZER,		/* L_INIT */
-  PTHREAD_MUTEX_INITIALIZER,		/* L_TERM */
-  PTHREAD_MUTEX_INITIALIZER,		/* L_GC */
-  PTHREAD_MUTEX_INITIALIZER		/* L_FOREIGN */
+#define COUNT_MUTEX_INITIALIZER(name) \
+ { PTHREAD_MUTEX_INITIALIZER, \
+   name, \
+   0L \
+ }
+
+counting_mutex _PL_mutexes[] =
+{ COUNT_MUTEX_INITIALIZER("L_MISC"),
+  COUNT_MUTEX_INITIALIZER("L_ALLOC"),
+  COUNT_MUTEX_INITIALIZER("L_ATOM"),
+  COUNT_MUTEX_INITIALIZER("L_FLAG"),
+  COUNT_MUTEX_INITIALIZER("L_FUNCTOR"),
+  COUNT_MUTEX_INITIALIZER("L_RECORD"),
+  COUNT_MUTEX_INITIALIZER("L_THREAD"),
+  COUNT_MUTEX_INITIALIZER("L_PREDICATE"),
+  COUNT_MUTEX_INITIALIZER("L_MODULE"),
+  COUNT_MUTEX_INITIALIZER("L_TABLE"),
+  COUNT_MUTEX_INITIALIZER("L_BREAK"),
+  COUNT_MUTEX_INITIALIZER("L_FILE"),
+  COUNT_MUTEX_INITIALIZER("L_FEATURE"),
+  COUNT_MUTEX_INITIALIZER("L_OP"),
+  COUNT_MUTEX_INITIALIZER("L_INIT"),
+  COUNT_MUTEX_INITIALIZER("L_TERM"),
+  COUNT_MUTEX_INITIALIZER("L_GC"),
+  COUNT_MUTEX_INITIALIZER("L_FOREIGN")
 };
 
 #ifdef USE_CRITICAL_SECTIONS
 
 static void
 initMutexes()
-{ simpleMutex *m;
-  int n = sizeof(_PL_mutexes)/sizeof(simpleMutex);
+{ counting_mutex *m;
+  int n = sizeof(_PL_mutexes)/sizeof(*m);
   int i;
 
   for(i=0, m=_PL_mutexes; i<n; i++, m++)
-    simpleMutexInit(m);
+    simpleMutexInit(&m->mutex);
 }
 
 
@@ -204,6 +210,18 @@ DllMain(HINSTANCE hinstDll, DWORD fdwReason, LPVOID lpvReserved)
 
 #endif /*USE_CRITICAL_SECTIONS*/
 
+static
+PRED_IMPL("$mutex_statistics", 0, mutex_statistics, 0)
+{ int i;
+  counting_mutex *cm = _PL_mutexes;
+
+  Sdprintf("        Name   locked\n");
+  for(i=0; i<= L_FOREIGN; i++, cm++)
+  { Sdprintf("%12s %8d\n", cm->name, cm->count);
+  }
+
+  succeed;
+}
 
 		 /*******************************
 		 *	  LOCAL PROTOTYPES	*
@@ -3090,5 +3108,6 @@ BeginPredDefs(thread)
   PRED_DEF("thread_peek_message", 2, thread_peek_message, 0)
   PRED_DEF("message_queue_destroy", 1, message_queue_destroy, 0)
   PRED_DEF("thread_setconcurrency", 2, thread_setconcurrency, 0)
+  PRED_DEF("$mutex_statistics", 0, mutex_statistics, 0)
 #endif
 EndPredDefs

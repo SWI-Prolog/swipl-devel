@@ -75,6 +75,12 @@ typedef struct pl_mutex
   word id;				/* id of the mutex */
 } pl_mutex;
 
+typedef struct counting_mutex
+{ simpleMutex mutex;			/* mutex itself */
+  const char *name;			/* name of the mutex */
+  unsigned long count;			/* # times locked */
+} counting_mutex;
+
 #define PL_THREAD_MAGIC 0x2737234f
 
 #define PL_THREAD_UNUSED	0	/* no thread on this slot */
@@ -89,7 +95,7 @@ typedef struct pl_mutex
 #define	PL_THREAD_SUSPENDED	9	/* suspended */
 #define PL_THREAD_RESUMING     10	/* about to resume */
 
-extern simpleMutex _PL_mutexes[];	/* Prolog mutexes */
+extern counting_mutex _PL_mutexes[];	/* Prolog mutexes */
 
 #define L_MISC		0
 #define L_ALLOC		1
@@ -121,22 +127,31 @@ compile-time
 
 #define IFMT(id, g) if ( id == L_THREAD || GD->thread.enabled ) g
 
+#define countingMutexLock(cm) \
+	do \
+	{ simpleMutexLock(&(cm)->mutex); \
+	  (cm)->count++; \
+	} while(0)
+#define countingMutexUnlock(cm) \
+	simpleMutexUnlock(&(cm)->mutex)
+
+
 #ifdef O_DEBUG_MT
 #define PL_LOCK(id) \
 	do { Sdprintf("[%s] %s:%d: LOCK(%s)\n", \
 		      threadName(0), \
 		      __BASE_FILE__, __LINE__, #id); \
-             IFMT(id, simpleMutexLock(&_PL_mutexes[id])); \
+             IFMT(id, countingMutexLock(&_PL_mutexes[id])); \
 	   } while(0)
 #define PL_UNLOCK(id) \
 	do { Sdprintf("[%s] %s:%d: UNLOCK(%s)\n", \
 		      threadName(0), \
 		      __BASE_FILE__, __LINE__, #id); \
-	     IFMT(id, simpleMutexUnlock(&_PL_mutexes[id])); \
+	     IFMT(id, countingMutexUnlock(&_PL_mutexes[id])); \
 	   } while(0)
 #else
-#define PL_LOCK(id)   IFMT(id, simpleMutexLock(&_PL_mutexes[id]))
-#define PL_UNLOCK(id) IFMT(id, simpleMutexUnlock(&_PL_mutexes[id]))
+#define PL_LOCK(id)   IFMT(id, countingMutexLock(&_PL_mutexes[id]))
+#define PL_UNLOCK(id) IFMT(id, countingMutexUnlock(&_PL_mutexes[id]))
 #endif
 
 #define LOCKDEF(def) \
@@ -144,7 +159,7 @@ compile-time
 	{ if ( def->mutex ) \
 	  { simpleMutexLock(def->mutex); \
 	  } else \
-	  { simpleMutexLock(&_PL_mutexes[L_PREDICATE]); \
+	  { countingMutexLock(&_PL_mutexes[L_PREDICATE]); \
 	  } \
 	}
 
@@ -153,7 +168,7 @@ compile-time
 	{ if ( def->mutex ) \
 	  { simpleMutexUnlock(def->mutex); \
 	  } else \
-	  { simpleMutexUnlock(&_PL_mutexes[L_PREDICATE]); \
+	  { countingMutexUnlock(&_PL_mutexes[L_PREDICATE]); \
 	  } \
 	}
 
