@@ -33,7 +33,7 @@ and libraries.  If you are not sure, run `which cc' which should yield
 #define M_CFLAGS		-Wall
 #endif
 
-#define M_OPTIMIZE		-g -DO_DEBUG
+/*#define M_OPTIMIZE		-g -DO_DEBUG*/
 
 #define M_LIBS			-lm -ltermcap
 
