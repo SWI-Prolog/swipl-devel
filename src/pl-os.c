@@ -130,6 +130,8 @@ Halt(status)
 int status;
 { OnHalt h;
 
+  pl_notrace();				/* avoid recursive tracing */
+
   for(h = on_halt_list; h; h = h->next)
     (*h->function)(status, h->argument);
 
