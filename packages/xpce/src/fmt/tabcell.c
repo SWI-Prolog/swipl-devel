@@ -468,7 +468,7 @@ placeImageTableCell(TableCell cell)
     if ( notNil(ref) )
       gry = d.y + d.ry - valInt(ref->y);
     else
-      gry = gry = d.y + d.py;
+      gry = d.y + d.py;
   }
   
   av[0] = toInt(grx);
