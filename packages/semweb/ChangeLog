@@ -1,10 +1,14 @@
+Sep 10, 2003
+
+  * FIXED: Undo redo administration in rdf_edit.pl
+
 Sep 8, 2003
 
   * FIXED: rollback in failed transactions.
 
 Sep 4, 2003
 
-  * FIXED: add goal-expaction to rdfe_retractall/3
+  * FIXED: add goal-expansion to rdfe_retractall/3
 
 Sep 2, 2003
 
