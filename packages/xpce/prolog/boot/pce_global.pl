@@ -93,17 +93,15 @@ trap_ref(Ref) :-
 	;   Goal =.. List,
 	    append(List, [@Ref], GoalList),
 	    GoalTerm =.. GoalList,
-	    Module:GoalTerm
-	->  true
-	;   format(user_error,
-		   '[WARNING: pce_global/2: Goal failed: ~w:~w]~n',
-		   [Module, GoalTerm]),
-	    trace,
-	    fail
+	    (	Module:GoalTerm
+	    ->  true
+	    ;   format(user_error,
+		       '[WARNING: pce_global/2: Goal failed: ~w:~w]~n',
+		       [Module, GoalTerm]),
+		trace,
+		fail
+	    )
 	).
 trap_ref(Ref) :-
 	'pce catcher'(Module, Goal),
-	Goal =.. List,
-	append(List, [@Ref], GoalList),
-	GoalTerm =.. GoalList,
-	Module:GoalTerm.
+	call(Module:Goal, Ref).
