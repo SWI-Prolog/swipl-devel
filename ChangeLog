@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug #18: Initialisation problem for single-threaded version
+    caused by the addition below.  Lourens van der Meij.
+
   * ADDED: Prolog flag emacs_inferior_process, which is set to true
     if SWI-Prolog is running as Emacs inferior process.  After comments
     from Michael Covington.

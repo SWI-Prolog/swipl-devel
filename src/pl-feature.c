@@ -108,6 +108,8 @@ defFeature(const char *name, int flags, ...)
   va_list args;
   int type = (flags & FT_MASK);
 
+  initFeatureTable();
+
   if ( (s = lookupHTable(GD->feature.table, (void *)an)) )
   { f = s->value;
     assert((f->flags & FT_MASK) == (flags & FT_MASK));
@@ -652,9 +654,7 @@ initFeatureTable()
 
 void
 initFeatures()
-{ initFeatureTable();
-
-  defFeature("iso",  FT_BOOL, FALSE, ISO_FEATURE);
+{ defFeature("iso",  FT_BOOL, FALSE, ISO_FEATURE);
   defFeature("arch", FT_ATOM|FF_READONLY, ARCH);
 #if __WIN32__
   if ( iswin32s() )
