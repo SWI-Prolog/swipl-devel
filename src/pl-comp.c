@@ -2954,6 +2954,9 @@ static Code
 stepPC(Code PC)
 { code op = decode(*PC++);
 
+  if ( op == D_BREAK )
+    op = decode(replacedBreak(PC-1));
+
   if ( codeTable[op].argtype == CA1_STRING )
   { word m = *PC++;
     PC += wsizeofInd(m);
@@ -3071,6 +3074,9 @@ pl_xr_member(term_t ref, term_t term, word h)
     { while( PC < end )
       { code op = decode(*PC);
 
+	if ( op == D_BREAK )
+	  op = decode(replacedBreak(PC));
+
 	if ( codeTable[op].argtype == CA1_DATA &&
 	     _PL_unify_atomic(term, PC[1]) )
 	    succeed;
@@ -3080,6 +3086,9 @@ pl_xr_member(term_t ref, term_t term, word h)
     } else if ( PL_get_functor(term, &fd) && fd != FUNCTOR_module2 )
     { while( PC < end )
       { code op = decode(*PC);
+
+	if ( op == D_BREAK )
+	  op = decode(replacedBreak(PC));
 
 	if ( codeTable[op].argtype == CA1_FUNC )
 	{ functor_t fa = (functor_t)PC[1];
@@ -3103,6 +3112,9 @@ pl_xr_member(term_t ref, term_t term, word h)
     } else if ( get_procedure(term, &proc, 0, GP_FIND) )
     { while( PC < end )
       { code op = decode(*PC);
+
+	if ( op == D_BREAK )
+	  op = decode(replacedBreak(PC));
 
 	if ( codeTable[op].argtype == CA1_PROC )
 	{ Procedure pa = (Procedure)PC[1];

@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Properly handle breakpoints in $xr_member/2 (used by explain/1).
+
+
 VERSION 5.0.3
 =============
 
