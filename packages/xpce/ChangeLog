@@ -2,6 +2,9 @@
 			   ==============
 
 
+* ENHANCED: some cleanup and more robustness in library(Xserver) to create
+  a head-less server for XPCE.
+
 * FIXED: Crash in wrapped text objects.  Caused by incompatible change in
   low level string functions.  As compatibility is restored, more problems
   may be fixed by this.
