@@ -158,3 +158,18 @@ This exception is used by the library {\tt emacs_interface}, that
 integrates error handling with GNU~Emacs.
 \end{description}
 .ED
+
+.S Readline Interaction
+
+The following predicates are available if \mbox{\tt feature(readline, true)}
+succeeds.  They allow for direct interaction with the GNU readline library.
+See also {\tt readline(3)}.
+
+.BD
+.C rl_read_init_file 1 +File
+Read a readline initialisation file.  Readline by default reads
+{\tt\string~/.inputrc}.  This predicate may be used to read alternative
+readline initialisation files.
+.C rl_add_history 1 +Line
+Add a line to the Control-P/Control-N history system of the readline library.
+.ED

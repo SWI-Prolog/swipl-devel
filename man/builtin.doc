@@ -1510,6 +1510,15 @@ least one of the two arguments must be instantiated.
 Unify {\em Length} with the number of characters in {\em String}. This
 predicate is functonally equivalent to atom_length/2 and also accepts
 atoms, integers and floats as its first argument.
+.C string_concat 3 ?String1, ?String2, ?String3
+Similar to concat/3, but the unbound argument will be unified with a
+string object rather than an atom.  Also, if both {\em String1} and
+{\em String2} are unbound and {\em String3} is bound to text, it
+breaks {\em String3}, unifying the start with {\em String1} and the
+end with {\em String2} as append does with lists.  Note that this
+is not particulary fast on long strings as for each redo the system
+has to create two entirely new strings, while the list equivalent
+only creates a single new list-cell and moves some pointers around.
 .C substring 4 +String, +Start, +Length, -Sub
 Create a substring of {\em String} that starts at character {\em Start}
 (1 base) and has {\em Length} characters. Unify this substring with
@@ -2403,6 +2412,13 @@ this implies the path starts with a `/'.  For MicroSoft based systems
 this implies the path starts with $<$letter$>$:. This predicate is
 intended to provide platform-independent checking for absolute paths.
 See also absolute_file_name/2 and prolog_to_os_filename/2.
+.C file_name_extension 3 ?Base, ?Extension, ?Name
+This predicate is used to add, remove or test filename extensions. The
+main reason for its introduction is to deal with different filename
+properties in a portable manner.  If the filesystem is case-insensitive,
+testing for an extension will be done case-insensitive too. {\em
+Extension} may be specified with or without a leading dot ({\tt .}).
+If an {\em Extension} is generated, it will not have a leading dot.
 .C expand_file_name 2 +WildCard, -List
 Unify {\em List} with a sorted list of files or directories matching
 {\em WildCard}.  The normal Unix wildcard constructs `\verb+?+',
