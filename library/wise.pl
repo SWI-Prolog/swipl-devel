@@ -148,11 +148,26 @@ wise_install_xpce :-			% no XPCE around
 			      ], _), !,
 	format('Cannot find XPCE.~n', []).
 wise_install_xpce :-
+	delete_pce_common,
 	set_prolog_flag(debug_on_error, false),
 	qcompile_pce,
 	qcompile_lib.
 
+%	the file xpce/prolog/lib/pce_common.pl got into the distro by
+%	accident in version 5.4.3.  We'll try to make sure to get rid
+%	of it.
+
+delete_pce_common :-
+	(   absolute_file_name(swi('xpce/prolog/lib/pce_common.pl'),
+			       [ access(exist),
+				 file_errors(fail)
+			       ],
+			       Path)
+	->  delete_file(Path)
+	;   true
+	).
 	
+
 		 /*******************************
 		 *	 PRECOMPILED PARTS	*
 		 *******************************/

@@ -212,7 +212,7 @@ SectionEnd
 Section "XPCE graphics library"
   SectionIn 1 3
   SetOutPath $INSTDIR
-  Delete pl\xpce\prolog\lib\pce_common.pl
+  Delete $INSTDIR\xpce\prolog\lib\pce_common.pl
   File /r pl\xpce
   File pl\plwin.rc
   SetOutPath $INSTDIR\bin
@@ -596,5 +596,5 @@ FunctionEnd
 Function .onInstFailed
   MessageBox MB_OK "Installation failed.$\r$\n\
 		    If you cannot resolve the issue or it is a bug in the$\r$\n\
-		    installer, please contact prolog-bugs@swi.psy.uva.nl"
+		    installer, please contact bugs@swi-prolog.org"
 FunctionEnd
