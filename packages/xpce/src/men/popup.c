@@ -22,6 +22,7 @@ initialisePopup(PopupObj p, Name label, Code msg)
   assign(p, default_item,   DEFAULT);	/* resource */
   assign(p, show_current,   OFF);
   initialiseMenu((Menu) p, label, NAME_popup, msg);
+  assign(p, auto_align,	    OFF);
 
   succeed;
 }

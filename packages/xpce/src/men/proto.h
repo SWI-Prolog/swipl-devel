@@ -53,3 +53,11 @@ status		makeClassSlider(Class class);
 
 /* men/textitem.c */
 status		makeClassTextItem(Class class);
+
+/* men/tab.c */
+status		initialiseTab(Tab t, Name name);
+status		makeClassTab(Class class);
+
+/* men/diagroup.c */
+status		initialiseDialogGroup(DialogGroup g, Name name);
+status		makeClassDialogGroup(Class class);

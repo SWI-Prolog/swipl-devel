@@ -22,6 +22,7 @@ static status	restoreTextItem(TextItem ti);
 static status	selectionTextItem(TextItem ti, Any selection);
 static status	resetTextItem(TextItem ti);
 static status	displayedValueTextItem(TextItem ti, CharArray txt);
+static status	valueWidthTextItem(TextItem ti, Int val);
 
 
 static status
@@ -54,6 +55,7 @@ initialiseTextItem(TextItem ti, Name name, Any val, Code msg)
   assign(ti, selection,     getDefaultTextItem(ti));
   assign(ti, type,	    getSelectionTypeTextItem(ti));
   assign(ti, auto_value_align,	 OFF);
+  assign(ti, hor_stretch,   toInt(100));
 
   if ( (str = get(ti, NAME_printNameOfValue, val, 0)) )
     valueString(ti->print_name, str);
@@ -752,11 +754,11 @@ editableTextItem(TextItem ti, Bool val)
 
 static status
 lengthTextItem(TextItem ti, Int w)
-{ if ( ti->length != w )
-  { assign(ti, length, w);
-    assign(ti, value_width, DEFAULT);
+{ assign(ti, hor_stretch, ZERO);
 
-    requestComputeGraphical(ti, DEFAULT);
+  if ( ti->length != w )
+  { assign(ti, length, w);
+    valueWidthTextItem(ti, DEFAULT);
   }
 
   succeed;
@@ -820,13 +822,14 @@ labelWidthTextItem(TextItem ti, Int w)
 static status
 valueWidthTextItem(TextItem ti, Int val)
 { assign(ti, value_width, val);
+
   if ( notDefault(val) && instanceOfObject(ti->value_font, ClassFont) )
   { Int ex = getExFont(ti->value_font);
     int chars = valInt(val) / valInt(ex);
 
     if ( chars < 2 )
       chars = 2;
-    
+
     assign(ti, length, toInt(chars));
   }
   requestComputeGraphical(ti, DEFAULT);
@@ -839,12 +842,16 @@ static status
 geometryTextItem(TextItem ti, Int x, Int y, Int w, Int h)
 { if ( notDefault(w) )
   { int lw, lh;
+    int vw;
 
     compute_label_text_item(ti, &lw, &lh);
-    valueWidthTextItem(ti, toInt(valInt(w) - lw));
+    vw = valInt(w) - lw;
+    if ( vw < 15 )
+      vw = 15;
+    valueWidthTextItem(ti, toInt(vw));
   }
 
-  return geometryGraphical(ti, x, y, w, DEFAULT);
+  return geometryGraphical(ti, x, y, DEFAULT, DEFAULT);
 }
 
 		/********************************
@@ -929,7 +936,9 @@ static vardecl var_textItem[] =
   SV(NAME_editable, "bool", IV_GET|IV_STORE, editableTextItem,
      NAME_event, "TextItem may be edited"),
   IV(NAME_valueWidth, "[int]", IV_NONE,
-     NAME_layout, "Width of the value-part in pixels")
+     NAME_layout, "Width of the value-part in pixels"),
+  IV(NAME_horStretch, "0..100", IV_BOTH,
+     NAME_layout, "Horizontal stretchability")
 };
 
 /* Send Methods */

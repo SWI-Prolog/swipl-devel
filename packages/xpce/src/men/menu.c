@@ -24,7 +24,7 @@ static status	compute_popup_indicator(Menu m, MenuItem mi, int *w, int *h);
 #define CYCLE_TRIANGLE_HEIGHT 8
 #define CYCLE_DROP_DISTANCE 5
 
-#define MARK_DIAMOND_SIZE 16
+#define MARK_DIAMOND_SIZE 14
 #define MARK_BOX_SIZE     13
 #define MARK_CIRCLE_SIZE  8
 
@@ -496,11 +496,19 @@ elevated_items(Menu m, Elevation z)
 { if ( instanceOfObject(z, ClassElevation) )
   { if ( m->kind == NAME_choice )
       succeed;
+
     if ( m->look == NAME_openLook )
+    { if ( m->feedback == NAME_image )
+	fail;
       succeed;
-    if ( (m->look == NAME_motif || m->look == NAME_win) &&
-	 instanceOfObject(m, ClassPopup) )
-      succeed;
+    }
+
+    if ( m->look == NAME_motif )
+      return instanceOfObject(m, ClassPopup);
+
+    if ( m->look == NAME_win) 
+      return (m->preview_feedback != NAME_colour &&
+	      instanceOfObject(m, ClassPopup));
   }
 
   fail;
@@ -530,6 +538,27 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h, Elevation iz)
       colour = c2;
 
     r_colour(colour);
+  }
+
+					/* Windows '95 popup */
+  if ( m->preview_feedback == NAME_colour && m->preview == mi )
+  { Any fg = getResourceValueObject(m, NAME_selectedForeground);
+    Any bg = getResourceValueObject(m, NAME_selectedBackground);
+    Elevation mz = getResourceValueObject(m, NAME_elevation);
+    int bw = (mz && notNil(mz) ? valInt(mz->height) : 0);
+    int bh = valInt(m->border);
+
+    r_fill(x, y+bh/2, w-2*bw, h-bh, bg);
+    colour = fg;
+    r_colour(fg);
+  }
+  if ( mi->end_group == ON && m->look == NAME_win )
+  { Elevation mz = getResourceValueObject(m, NAME_elevation);
+
+    if ( m->layout == NAME_vertical )
+      r_3d_line(x, y+h, x+w, y+h, mz, FALSE);
+    else
+      r_3d_line(x+w, y, x+w, y+h, mz, FALSE);
   }
 
   if ( mi->selected == ON && notNil(m->on_image) )
@@ -577,7 +606,7 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h, Elevation iz)
 			       pen, radius, pp(fill)));
     }
 
-    if ( mi->end_group == ON )
+    if ( mi->end_group == ON && m->look != NAME_win )
     { r_thickness(pen+1);
       r_dash(m->texture);
       if ( m->layout == NAME_vertical )
@@ -600,30 +629,35 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h, Elevation iz)
 
   if ( instanceOfObject(leftmark, ClassImage) )
   { int bw, bh, by;
+    Elevation mz = getResourceValueObject(m, NAME_markElevation);
     
     bw = valInt(leftmark->size->w);
     bh = valInt(leftmark->size->h);
     by = item_mark_y(m, y, h, bh);
 
-    if ( instanceOfObject(iz, ClassElevation) && iz->height != ZERO )
-    { int h = valInt(iz->height);
-      r_3d_box(x+b-h, by-h, bw+2*h, bh+2*h, 0, iz, FALSE);
-      r_fill(x+b, by, bw, bh, WHITE_COLOUR);
+    if ( instanceOfObject(mz, ClassElevation) && mz->height != ZERO )
+    { int h = valInt(mz->height);
+      r_3d_box(x+b-h, by-h, bw+2*h, bh+2*h, 0, mz, FALSE);
+/*    if ( m->look == NAME_win )
+	r_fill(x+b, by, bw, bh, WHITE_COLOUR);
+*/
     }
 
     r_image(leftmark, 0, 0, x+b, by, bw, bh, ON);
   } else if ( (Name) leftmark == NAME_marked )
   { if ( m->look == NAME_motif )
-    { if ( m->multiple_selection == ON )
+    { Elevation mz = getResourceValueObject(m, NAME_markElevation);
+
+      if ( m->multiple_selection == ON )
       { int dy = item_mark_y(m, y, h, MARK_BOX_SIZE);
 
 	r_3d_box(x+b, dy, MARK_BOX_SIZE, MARK_BOX_SIZE,
-		 0, z, mi->selected == OFF);
+		 0, mz, mi->selected == OFF);
       } else
       { int dy = item_mark_y(m, y, h, MARK_DIAMOND_SIZE);
 
 	r_3d_diamond(x+b, dy, MARK_DIAMOND_SIZE, MARK_DIAMOND_SIZE,
-		     z, mi->selected == OFF);
+		     mz, mi->selected == OFF);
       }
     } else if ( m->look == NAME_win )
     { if ( m->multiple_selection == OFF )
@@ -1823,7 +1857,7 @@ static vardecl var_menu[] =
      NAME_appearance, "Kind of menu"),
   SV(NAME_preview, "item=menu_item*", IV_GET|IV_STORE, previewMenu,
      NAME_event, "Item in `preview' state"),
-  IV(NAME_previewFeedback, "feedback={box,rounded_box,inverted_rounded_box,invert}", IV_BOTH,
+  IV(NAME_previewFeedback, "feedback={box,rounded_box,inverted_rounded_box,invert,colour}", IV_BOTH,
      NAME_appearance, "Feedback given to item in preview state"),
   SV(NAME_feedback, "feedback={box,invert,image,show_selection_only}", IV_GET|IV_STORE, feedbackMenu,
      NAME_appearance, "Type of feedback for selection"),
@@ -1984,6 +2018,8 @@ static resourcedecl rc_menu[] =
      "Gap between items (XxY)"),
   RC(NAME_itemElevation, "elevation*", "0",
      "Elevation of items in the menu"),
+  RC(NAME_markElevation, "elevation*", "@nil",
+     "Elevation of marks"),
   RC(NAME_kind, "name", "marked",
      "Default menu kind"),
   RC(NAME_layout, "name", "horizontal",
@@ -2007,7 +2043,11 @@ static resourcedecl rc_menu[] =
   RC(NAME_valueWidth, "int", "0",
      "Minimum width for popup menu"),
   RC(NAME_verticalFormat, "{top,center,bottom}", "center",
-     "Adjust items {top,center,bottom} in their box")
+     "Adjust items {top,center,bottom} in their box"),
+  RC(NAME_selectedForeground, "colour|pixmap", "white",
+     "Text colour for selected item"),
+  RC(NAME_selectedBackground, "colour|pixmap", "black",
+     "Background colour for selected item")
 };
 
 /* Class Declaration */

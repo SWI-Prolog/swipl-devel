@@ -135,7 +135,7 @@ if test "$ac_cv_func_dlopen" = "yes" || \
    test "$ac_cv_func_shl_load" = "yes"; then
   configloadforeign=no
 
-AC_MSG_CHECKING(for $(CC) -c -o)
+AC_MSG_CHECKING(for cc -c -o)
   cat > conftest.c << _EOP_
 main()
 { exit(0);
