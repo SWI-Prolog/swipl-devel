@@ -74,7 +74,7 @@ variable(drag_and_drop,	bool := @off, get, "Allow drag-and-drop").
 initialise(TW) :->
 	"Create window and display empty toc_tree"::
 	send(TW, send_super, initialise),
-	send(TW, scrollbars, vertical),
+	send(TW, scrollbars, both),
 	send(TW, hor_shrink, 0),
 	send(TW, hor_stretch, 0),
 	send(TW, display, new(toc_tree), point(10, 5)).
@@ -121,7 +121,14 @@ select_node(_TW, _Id:any) :->
 expand_node(TW, Id:any) :->
 	"Define expansion of node 'id'"::
 	get(TW, node, Id, Node),
-	send(Node, slot, collapsed, @off). % HACK!!
+	send(Node, slot, collapsed, @off),
+	(   get(Node, sons, Sons),
+	    Sons \== @nil
+	->  get(Sons, map, @arg1?image, Grs),
+	    send(Grs, append, Node?image),
+	    send(TW, normalise, Grs)
+	;   true
+	).
 
 popup(_TW, _Id:any, _Popup:popup) :<-
 	"Return a menu for this node"::
