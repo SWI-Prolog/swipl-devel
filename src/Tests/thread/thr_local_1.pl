@@ -53,8 +53,10 @@ thr_local_1(Threads, Asserts) :-
 			       global(1000),
 			       trail(1000)
 			     ])),
-	thread_join(Id, true).
-
+	thread_join(Id, Ok),
+	(   Ok == true
+	;   format('Return = ~p~n', [Ok])
+	).
 
 join(Times) :-
 	forall(between(1, Times, _),

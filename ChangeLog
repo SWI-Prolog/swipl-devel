@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: More robust extistence check in get_message_queue().
+
   * FIXED: Problem compiling \+/1 if \+ introduces new variables.  May
     lead to crashes in the garbage collector.  Sergey Tikhonov.
 

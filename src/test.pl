@@ -1210,9 +1210,9 @@ run_scripts([H|T]) :-
 	    ;   Except = blocked(Reason)
 	    ->  assert(blocked(H, Reason)),
 		put(!), flush
-	    ;   script_failed(R, Except)
+	    ;   script_failed(H, Except)
 	    )
-	;   script_failed(R, fail)
+	;   script_failed(H, fail)
 	),
 	run_scripts(T).
 
@@ -1274,9 +1274,13 @@ test :-
 	retractall(failed(_)),
 	retractall(blocked(_,_)),
 	forall(testset(Set), runtest(Set)),
-	forall(testdir(Dir), run_test_scripts(Dir)),
+	scripts,
 	report_blocked,
 	report_failed.
+
+scripts :-
+	forall(testdir(Dir), run_test_scripts(Dir)).
+
 
 report_blocked :-
 	findall(Head-Reason, blocked(Head, Reason), L),

@@ -1909,7 +1909,8 @@ get_message_queue(term_t t, message_queue **queue, int create)
   } else if ( PL_get_integer(t, &tid) )
   { thread_queue:
     if ( tid < 0 || tid >= MAX_THREADS ||
-	 threads[tid].status == PL_THREAD_UNUSED )
+	 threads[tid].status == PL_THREAD_UNUSED ||
+	 !threads[tid].thread_data )
       return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_thread, t);
 
     *queue = &threads[tid].thread_data->thread.messages;
