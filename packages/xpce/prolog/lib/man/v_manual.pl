@@ -493,7 +493,7 @@ library_overview(_M) :->
 pce_ifhostproperty(prolog(quintus),
 (   about(Fmt, Font) :- pce_host:about(Fmt, Font)),
 [ about('XPCE version %s'+[@pce?version], boldhuge),
-  about('Copyright 1992-1999, University of Amsterdam', normal),
+  about('Copyright 1992-2000, University of Amsterdam', normal),
   about('xpce-request@swi.psy.uva.nl', bold),
   about('Jan Wielemaker\nAnjo Anjewierden', italic),
   about('SWI\nUniversity of Amsterdam\nRoetersstraat 15\n1018 WB  Amsterdam\nThe Netherlands', normal),
