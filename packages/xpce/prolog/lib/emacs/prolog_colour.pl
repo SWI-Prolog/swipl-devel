@@ -649,7 +649,7 @@ colour_item(Class, TB, F, T) :-
 %	Actually create the fragment.
 
 make_fragment(goal(Class, Goal), TB, F, L, Style) :-
-	callable(Goal),
+	callable(Goal), !,
 	new(Fragment, emacs_goal_fragment(TB, F, L, Style)),
 	functor(Goal, Name, Arity),
 	send(Fragment, name, Name),
@@ -661,6 +661,11 @@ make_fragment(goal(Class, Goal), TB, F, L, Style) :-
 	;   functor(Class, ClassName, _),
 	    send(Fragment, classification, ClassName)
 	).
+make_fragment(class(Type, Class), TB, F, L, Style) :-
+	atom(Class), !,
+	new(Fragment, emacs_class_fragment(TB, F, L, Style)),
+	send(Fragment, classification, Type),
+	send(Fragment, referenced_class, Class).
 make_fragment(Class, TB, F, L, Style) :-
 	new(Fragment, emacs_colour_fragment(TB, F, L, Style)),
 	message(Class, Fragment).
@@ -672,8 +677,6 @@ make_fragment(Class, TB, F, L, Style) :-
 
 :- pce_global(@prolog_mode_file_popup,
 	      make_prolog_mode_file_popup).
-:- pce_global(@prolog_mode_class_popup,
-	      make_prolog_mode_class_popup).
 
 make_prolog_mode_file_popup(G) :-
 	new(G, popup(file_actions)),
@@ -684,42 +687,6 @@ make_prolog_mode_file_popup(G) :-
 			      message(@emacs, open_file, @arg1?message, @on))
 		  ]).
 
-make_prolog_mode_class_popup(G) :-
-	new(G, popup(class_actions)),
-	new(Class, @arg1?context),
-	M = @emacs_mode,
-	send_list(G, append,
-		  [ menu_item(edit,
-			      message(M, edit_class, Class),
-			      condition := message(M, is_user_class, Class)),
-		    menu_item(edit_other_window,
-			      message(M, edit_class, Class, @on),
-			      condition := message(M, is_user_class, Class)),
-		    gap,
-		    menu_item(manual,
-			      message(M, manpce, Class))
-		  ]).
-
-is_user_class(_, ClassName:name) :->
-	get(@pce, convert, ClassName, class, Class),
-	\+ get(Class, creator, built_in).
-
-edit_class(Mode, ClassName:name, NewWindow:[bool]) :->
-	"Open XPCE class [in new window]"::
-	(   get(@pce, convert, ClassName, class, Class)
-	->  (   get(Class, creator, built_in)
-	    ->	manpce(ClassName)
-	    ;	ensure_loaded(library(edit)),
-	        prolog_edit:locate(class(ClassName), Location),
-		memberchk(file(File), Location),
-		memberchk(line(Line), Location),
-		send(@emacs, goto_source_location,
-		     source_location(File, Line), NewWindow)
-	    )
-	;   send(Mode, report, error, 'Class %s doesn''t exist', ClassName)
-	).
-
-
 %	message(+Class, +Fragment)
 %	
 %	Used to associate messages or popups to the new fragment. See
@@ -728,11 +695,6 @@ edit_class(Mode, ClassName:name, NewWindow:[bool]) :->
 message(file(Path), F) :- !,
 	send(F, message, Path),		% popup-message
 	send(F, popup, @prolog_mode_file_popup).
-message(class(Type, Class), F) :-
-	atom(Class), !,
-	send(F, message, string('%s XPCE class "%s"', Type?capitalise, Class)),
-	send(F, context, Class),
-	send(F, popup, @prolog_mode_class_popup).
 message(type_error(Type), F) :- !,
 	send(F, message, string('Type error: argument must be a %s', Type)).
 message(module(M), F) :-
@@ -1329,5 +1291,76 @@ identify_pred(Class, _, ClassName) :-
 
 :- pce_begin_class(emacs_class_fragment, emacs_colour_fragment,
 		   "Represent an XPCE class in PceEmacs Prolog mode").
+
+
+variable(classification,   name, both, "XREF classification").
+variable(referenced_class, name, both, "Name of referenced class").
+
+:- pce_group(popup).
+
+popup(_GF, Popup:popup) :<-
+	"Return popup menu"::
+	Popup = @prolog_mode_class_popup.
+
+:- pce_global(@prolog_mode_class_popup,
+	      make_prolog_mode_class_popup).
+
+make_prolog_mode_class_popup(G) :-
+	new(G, popup(class_actions)),
+	Fragment = @arg1,
+	send_list(G, append,
+		  [ menu_item(edit,
+			      message(Fragment, edit),
+			      condition := message(Fragment, user_class)),
+		    menu_item(edit_other_window,
+			      message(Fragment, edit, @on),
+			      condition := message(Fragment, user_class)),
+		    gap,
+		    menu_item(documentation,
+			      message(Fragment, documentation))
+		  ]).
+
+user_class(F) :->
+	"Test if referenced class is non-builtin"::
+	get(F, referenced_class, ClassName),
+	get(@pce, convert, ClassName, class, Class),
+	\+ get(Class, creator, built_in).
+
+edit(F, NewWindow:[bool]) :->
+	"Open XPCE class [in new window]"::
+	get(F, referenced_class, ClassName),
+	(   get(@pce, convert, ClassName, class, Class)
+	->  (   get(Class, creator, built_in)
+	    ->	manpce(ClassName)
+	    ;	ensure_loaded(library(edit)),
+	        prolog_edit:locate(class(ClassName), Location),
+		memberchk(file(File), Location),
+		memberchk(line(Line), Location),
+		send(@emacs, goto_source_location,
+		     source_location(File, Line), NewWindow)
+	    )
+	;   send(F, report, error, 'Class %s doesn''t exist', ClassName)
+	).
+
+documentation(F) :->
+	"Open XPCE manual"::
+	get(F, referenced_class, ClassName),
+	manpce(ClassName).
+
+identify(F) :->
+	"Provide identification"::
+	get(F, referenced_class, ClassName),
+	(   get(@pce, convert, ClassName, class, Class)
+	->  get(F, classification, Classification),
+	    (   get(Class, summary, Summary)
+	    ->	true
+	    ;	Summary = '<no summary>'
+	    ),
+	    send(F, report, status,
+		     string('XPCE %s class %s: %s',
+			    Classification, ClassName, Summary))
+	;   send(F, report, status, 'Class %s doesn''t exist', ClassName)
+	).
+
 
 :- pce_end_class(emacs_class_fragment).

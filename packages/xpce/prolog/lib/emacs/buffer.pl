@@ -377,12 +377,17 @@ revert(B) :->
 	->  send(B, report, warning, 'No file'),
 	    fail
 	;   new(Carets, chain),
-	    send(B?editors, for_all, message(Carets, append, @arg1?caret)),
+	    get(B, editors, Editors),
+	    send(Editors, for_all, message(Carets, append, @arg1?caret)),
 	    new(@emacs_reverting, object), % avoid trap
 	    send(B, file, File),
-	    send(B?editors, for_all,
+	    send(Editors, for_all,
 		 and(message(@arg1, caret, Carets?head),
 		     message(Carets, delete_head))),
+	    (	get(Editors, head, First)
+	    ->	send(First?mode, auto_colourise_buffer)
+	    ;	true
+	    ),
 	    free(@emacs_reverting),
 	    send(B, report, status, 'Reloaded %s', File?absolute_path)
 	).
