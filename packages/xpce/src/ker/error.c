@@ -768,7 +768,12 @@ _errorPce(Any obj, Name id, va_list args)
       hostAction(HOST_HALT);
       exit(1);
     } else
-    { sendv(obj, isFunction(obj) ? NAME_Error : NAME_error, argc, argv);
+    { if ( !(isProperObject(obj) && isProperObject(classOfObject(obj))) )
+      { Cprintf("->error on non-object %s\n", pp(obj));
+	obj = CtoString(pp(obj));
+      }
+
+      sendv(obj, isFunction(obj) ? NAME_Error : NAME_error, argc, argv);
       if ( e->kind == NAME_fatal )
       {
 #ifndef O_RUNTIME

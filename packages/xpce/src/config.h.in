@@ -193,6 +193,9 @@
 /* Define if you have the vsscanf function.  */
 #undef HAVE_VSSCANF
 
+/* Define if you have the <X11/xpm.h> header file.  */
+#undef HAVE_X11_XPM_H
+
 /* Define if you have the <bstring.h> header file.  */
 #undef HAVE_BSTRING_H
 
@@ -204,6 +207,12 @@
 
 /* Define if you have the <frame.h> header file.  */
 #undef HAVE_FRAME_H
+
+/* Define if you have the <jerror.h> header file.  */
+#undef HAVE_JERROR_H
+
+/* Define if you have the <jpeglib.h> header file.  */
+#undef HAVE_JPEGLIB_H
 
 /* Define if you have the <malloc.h> header file.  */
 #undef HAVE_MALLOC_H

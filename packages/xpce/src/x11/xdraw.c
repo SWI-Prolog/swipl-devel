@@ -117,7 +117,7 @@ static struct d_context
   int		fill_offset_y;		/* Y-offset for filling */
   int		fixed_colours;		/* The colours are fixed */
 					/* Save over d_image()/d_done() */
-  Any		colour;
+  Any		colour;			/* preserve current colours */
   Any		background;
 } context;
 
@@ -142,13 +142,32 @@ resetDraw(void)
 }
 
 
+static Any
+registerColour(Any *bin, Any c)
+{ Any old = *bin;
+
+  *bin = c;
+  if ( isObject(old) && !isProtectedObj(old) )
+  { delRefObj(old);
+    if ( isVirginObj(old) )
+    { freeObject(old);
+      old = NIL;
+    }
+  }
+  if ( isObject(c) && !isProtectedObj(c) )
+    addRefObj(c);
+
+  return old;
+}
+
+
 static void
 d_push_context(void)
 { DContext ctx = alloc(sizeof(struct d_context));
   
   if ( env->level > 0 )
-  { context.colour     = context.gcs->colour;
-    context.background = context.gcs->background;
+  { registerColour(&context.colour, context.gcs->colour);
+    registerColour(&context.background, context.gcs->background);
   }
 
   *ctx = context;			/* structure copy! */
@@ -160,6 +179,9 @@ static void
 d_pop_context()
 { if ( context.parent != NULL )
   { DContext ctx = context.parent;
+
+    registerColour(&context.colour, NIL);
+    registerColour(&context.background, NIL);
 
     context = *ctx;			/* structure copy! */
     unalloc(sizeof(struct d_context), ctx);
@@ -861,13 +883,13 @@ r_colour(Any c)
 	mask		  = (GCTile|GCFillStyle);
       }
 
-      context.gcs->colour = c;
       XChangeGC(context.display, context.gcs->workGC, mask, &values);
       if ( instanceOfObject(context.gcs->fill, ClassImage) &&
 	   instanceOfObject(c, ClassColour))
 	XChangeGC(context.display, context.gcs->fillGC, GCForeground, &values);
     } 
-    context.gcs->colour = c;
+
+    old = registerColour(&context.gcs->colour, c);
   }
 
   return old;
@@ -916,7 +938,7 @@ r_background(Any c)
 	}
       }
 
-      context.gcs->background = c;
+      ob = registerColour(&context.gcs->background, c);
       context.gcs->elevation = NIL;	/* force update */
       XChangeGC(context.display, context.gcs->clearGC, mask, &values);
     }

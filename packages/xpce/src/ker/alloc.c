@@ -152,6 +152,7 @@ alloc(register int n)
       assert((long) z >= allocBase && (long) z <= allocTop);
       assert(z->in_use == FALSE);
       assert(z->magic  == ALLOC_MAGIC_WORD);
+      assert((long)z->next % 4 == 0);
 
       z->in_use = TRUE;
 #endif
@@ -200,8 +201,8 @@ alloc(register int n)
 
 
 void
-unalloc(register int n, Any p)
-{ register Zone z = p;
+unalloc(int n, Any p)
+{ Zone z = p;
   n = roundAlloc(n);
   allocbytes -= n;
   
@@ -210,6 +211,7 @@ unalloc(register int n, Any p)
     assert((long)z >= allocBase && (long)z <= allocTop);
 
 #if ALLOC_DEBUG
+    assert((unsigned long)z % 4 == 0);
 #if ALLOC_DEBUG > 1
     memset(p, ALLOC_MAGIC_BYTE, n);
 #endif

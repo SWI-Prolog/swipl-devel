@@ -1,3 +1,14 @@
+* FIXED: Win32: `box->fill_offset' for boxes displayed on sub-devices.
+
+* PORT: Better diagnosis for libXpm and libjpeg and their headers in
+  configure, helping users to fix incomplete or broken installation
+  environment.
+
+* ENHANCED: Error recovery sending messages to broken objects.
+
+* FIXED: X11 version: problem when freeing colour objects in use by the
+  graphical engine.
+
 * ENHANCED: library(find_file), class file_item not to show . and ..
 
 * FIXED: Crash, notably related to keyboard events destryoing the window

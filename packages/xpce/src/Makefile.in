@@ -210,8 +210,8 @@ pl:
 
 man-index:	$(MANINDEX)
 
-$(MANINDEX):
-		$(PL) \
+$(MANINDEX):	$(shell find ../man/reference -name '*.doc')
+		-$(PL) \
 		  -F none \
 		  -f ../pl/src/plrc \
 		  -g "[library('man/man_index')],pce_make_manual_index('$@')" \
@@ -654,7 +654,7 @@ rt-install:	$(INSTALL) rt-home rt-misc rt-bitmaps rt-bins rt-link
 
 dv-install:	rt-install dv-home dv-lib dv-boot dv-help \
 	        dv-link dv-pl-files dv-manual dv-man \
-		dv-misc cxx-install dv-qlf dv-bins
+		dv-misc cxx-install dv-qlf dv-bins dv-online
 
 rpm-install:	manindex rt-home rt-misc rt-bitmaps rt-bins rpm-link \
 		dv-lib dv-boot dv-help dv-link dv-pl-files dv-manual dv-man \
@@ -765,10 +765,14 @@ dv-misc:
 		$(INSTALL_DATA) -C .. $(DVMISCFILES) $(DVHOME)
 
 dv-manual:	
-		-$(INSTALL_DATA) -p1 ../man/reference/index.obj $(DVHOME)
 		$(INSTALL_DATA) -p1 ../man/reference/*.doc $(DVHOME)
 		$(INSTALL_DATA) -p1 ../man/reference/class/*.doc $(DVHOME)
 		$(INSTALL_DATA) -p1 ../man/faq/*.html $(DVHOME)
+
+dv-online:	man-index
+		if [ -r $(MANINDEX) ]; then \
+		    $(INSTALL_DATA) -p1 $(MANINDEX) $(DVHOME); \
+		fi
 
 dv-man:
 		for f in xpce-client xpce; do \

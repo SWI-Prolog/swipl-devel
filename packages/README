@@ -11,24 +11,41 @@ SWI-Prolog configuration options.
 Now edit the PKG variable  in  Makefile   to  reflect  the  packages and
 options preferred. If you install XPCE  (strongly recommended for better
 online help, graphical  tracer,  integrated   editor  and  powerful  GUI
-toolkit), make sture to have  the   following  installed in a searchable
+toolkit), make sure to have  the   following  installed  in a searchable
 place:
 
 	* libjpeg  (http://www.ijg.org/)
 	* libXPM   (http://www-sop.inria.fr/koala/lehors/xpm.html)
 	* The X11 development headers and libraries
 
+Here are the required packages on   some package-based installations. In
+general, you need the X  development  package.   libjpeg  is  often in a
+separate package. Recent X development packages contain the Xpm library.
+In older versions this is often a  separate package If your distribution
+contains a development package for one of these libraries, use this.
+
+Please contribute this information for  your   distribution  by  mail to
+jan@swi.psy.uva.nl
+
+	================================================================
+	Distribution	Packages
+	================================================================
+	SuSE-6.4	xdevel-3.3   libjpeg-6.2.0 xpm-3.4k
+	SuSE-7.0	xdevel-4.0   libjpeg-6.2.0 
+	SuSE-7.1	xdevel-4.0.2 libjpeg-6.2.0 
+	================================================================
+
 Now run
 
 	./configure
-	./make
-	./make install
+	make
+	make install
 
 And   optional   one   of   the   HTML     or   PDF   documentation   in
 $(PLBASE)/doc/packages using:
 
-	./make html-install
-	./make pdf-install
+	make html-install
+	make pdf-install
 
 Provided packages
 -----------------

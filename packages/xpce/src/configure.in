@@ -710,14 +710,16 @@ if test ! -z "$x_libraries"; then
 else
   LIBS="$XLIBS $ac_oldlibs"
 fi
+
 dnl The SunOS 4.1.x linker is broken.  This hacks around this problem
 dnl the real linking hacks around it in yet another way ...
+
 case "$OS" in
   *sunos*) LIBS="$BEFOREXLIBS -lX11 $XSMLIBS";;
 esac
-AC_CHECK_LIB(jpeg, main,
-	     [XLIBS="$XLIBS -ljpeg"]
-	     AC_DEFINE(HAVE_LIBJPEG))
+
+dnl Check the critical but not very standard libXpm and libjpeg libraries
+dnl and make sure they required headers can be found.
 
 AC_ARG_WITH(xpm,[  --with-xpm=<dir>	  Location of Xpm include/lib],
 	[case $withval in 
@@ -730,8 +732,31 @@ AC_ARG_WITH(xpm,[  --with-xpm=<dir>	  Location of Xpm include/lib],
 			echo "${XINCLUDES} ${LIBS}"
 			]
 	esac])
+AC_ARG_WITH(jpeg,[  --with-jpeg=<dir>	  Location of JPEG include/lib],
+	[case $withval in 
+		no|yes)	echo 'Specify dir for JPEG please';
+			exit 1 ;;
+		*)	[LIBS="-L${withval}/lib ${LIBS}"
+			XLIB="${XLIB} -L${withval}/lib"
+			x_libraries="$x_libraries -L${withval}/lib"
+			XINCLUDES="$XINCLUDES -I${withval}/include"
+			echo "${XINCLUDES} ${LIBS}"
+			]
+	esac])
 
+dnl Clear the cache if the answer is no so re-running configure
+dnl after fixing the problem works fine without removing the cache file
+
+if test "$ac_cv_lib_Xpm_main" != yes; then unset ac_cv_lib_Xpm_main; fi
+if test "$ac_cv_lib_jpeg_main" != yes; then unset ac_cv_lib_jpeg_main; fi
+if test "$ac_cv_header_X11_xpm_h" != yes; then unset ac_cv_header_X11_xpm_h; fi
+if test "$ac_cv_header_jpeglib_h" != yes; then unset ac_cv_header_jpeglib_h; fi
+if test "$ac_cv_header_jerror_h" != yes; then unset ac_cv_header_jerror_h; fi
 	
+AC_CHECK_LIB(jpeg, main,
+	     [XLIBS="$XLIBS -ljpeg"]
+	     AC_DEFINE(HAVE_LIBJPEG))
+
 AC_CHECK_LIB(Xpm, main,
 	     [XLIBS="$XLIBS -lXpm"]
 	     AC_DEFINE(HAVE_LIBXPM))
@@ -739,17 +764,58 @@ AC_CHECK_LIB(Xpm, main,
 if test "$ac_cv_lib_Xpm_main" != "yes"; then
 cat << _EOM_
 *****************************************************************
-* Could not find library -lXpm, providing support for the XPM	*
-* coloured image format.  This support is required by many of   *
-* the XPCE tools and libraries.  Please install the XPM library,*
-* remove config.cache and rerun configure.  You can obtain a    *
-* version of the XPM library from				*
+* ERROR: Could not find library -lXpm.				*
+* Please install the XPM library and rerun configure.		*
+* The primary source for libXpm is at:				*
 *								*
-*     ftp://swi.psy.uva.nl/pub/xpce/util/images/xpm-3.4i.tar.gz	*
-*								*
+*     http://www-sop.inria.fr/koala/lehors/xpm.html		*
 *****************************************************************
 _EOM_
+exit 1
 fi
+
+AC_CHECK_HEADERS(X11/xpm.h)
+if test "$ac_cv_header_X11_xpm_h" != yes; then
+cat << _EOM_
+*****************************************************************
+* ERROR: Could not find <X11/xpm.h>				*
+* Please install the XPM development files and rerun configure.	*
+* The primary source for libXpm is at:				*
+*								*
+*     http://www-sop.inria.fr/koala/lehors/xpm.html		*
+*****************************************************************
+_EOM_
+exit 1
+fi
+
+if test "$ac_cv_lib_jpeg_main" != "yes"; then
+cat << _EOM_
+*****************************************************************
+* ERROR: Could not find library -ljpeg.				*
+* Please install the JPEG library and rerun configure.		*
+* The primary source for libjpeg is at:				*
+*								*
+*     http://www.ijg.org/					*
+*****************************************************************
+_EOM_
+exit 1
+fi
+
+AC_CHECK_HEADERS(jpeglib.h jerror.h)
+if test "$ac_cv_header_jpeglib_h" != yes -o \
+        "$ac_cv_header_jerror_h" != yes; then
+cat << _EOM_
+*****************************************************************
+* ERROR: Could not find <jpeglib.h> or <jerror.h>		*
+* Please install the JPEG development files and rerun configure.*
+* The primary source for libjpeg is at:				*
+*								*
+*     http://www.ijg.org/					*
+*****************************************************************
+_EOM_
+exit 1
+fi
+
 
 AC_CHECK_FUNCS(XtPopupSpringLoaded XmIsMotifWMRunning XInitThreads)
 LIBS="$ac_oldlibs"
