@@ -35,14 +35,19 @@ put_name_arity(term_t t, functor_t f)
 
 int
 PL_error(const char *pred, int arity, const char *msg, int id, ...)
-{ term_t except = PL_new_term_ref();
-  term_t formal = PL_new_term_ref();
-  term_t swi	= PL_new_term_ref();
+{ term_t except, formal, swi;
   va_list args;
   int do_throw = FALSE;
 
+  if ( id == ERR_FILE_OPERATION && !fileerrors )
+    fail;
+
   if ( msg == MSG_ERRNO )
     msg = OsError();
+
+  except = PL_new_term_ref();
+  formal = PL_new_term_ref();
+  swi    = PL_new_term_ref();
 
 					/* build (ISO) formal part  */
   va_start(args, id);

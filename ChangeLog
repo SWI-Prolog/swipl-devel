@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Honour fileerrors/2 to supress errors on file-operations.
+
 VERSION 3.4.1
 =============
 
