@@ -10,23 +10,33 @@
 
 Pce.Display.initialise: \
 	and(_dialog_bg @= when(@colour_display, grey80, white), \
-	    _graph_bg  @= when(@colour_display, grey95, white), \
 	    _win_pen   @= when(@colour_display, 0, 1))
+
+! Path for finding standard bitmaps
+
+Pce.Image.path:	\
+	".:bitmaps:~/lib/bitmaps:$PCEHOME/bitmaps:/usr/include/X11/bitmaps"
+
+! Binding for the logical font-names.  You can bind any name to any
+! font here.
+
+Pce.Display.system_fonts:	[ normal    := font(helvetica, roman, 12), \
+				  bold      := font(helvetica, bold, 12), \
+				  italic    := font(helvetica, oblique, 12), \
+				  small     := font(helvetica, roman, 10), \
+				  large     := font(helvetica, roman, 14), \
+				  boldlarge := font(helvetica, bold, 14), \
+				  huge      := font(helvetica, roman, 18), \
+				  boldhuge  := font(helvetica, bold, 18), \
+				  fixed     := font(screen, roman, 13) \
+				]
 
 ! This one is often slow on colour displays.  Prefer the beep then.
 Pce.*.visual_bell:		when(@colour_display, @off, @on)
 
-Pce.*.font:			@screen_roman_13
-Pce.*.value_font:		@helvetica_roman_12
-Pce.*.label_font:		@helvetica_bold_12
-
-! Temporary trick to get the Dialog editor ok.  Considering a new Resource
-! inheritance system related to the class inheritence system.
-
-Pce.DiaProtoButton.label_font:	@helvetica_roman_12
-
 ! Dialog Item definitions.
 
+Pce.DialogItem.label_font:	bold
 Pce.DialogItem.look:		open_look
 Pce.DialogItem.elevation:	when(@colour_display, 1, 0)
 Pce.DialogItem.background:	@_dialog_bg
@@ -35,13 +45,13 @@ Pce.*.inactive_colour: 		when(@colour_display, \
 				     @grey50_image)
 Pce.*.label_format:		right
 
-Pce.MenuBar.label_font:		@helvetica_roman_12
+Pce.MenuBar.label_font:		normal
 Pce.MenuBar.format:		left
 Pce.MenuBar.gap:		10
 
 Pce.Button.radius:		when(@colour_display, 8, 12)
 Pce.Button.size:		size(50,20)
-Pce.Button.label_font:		@helvetica_roman_12
+Pce.Button.label_font:		normal
 Pce.Button.alignment:		center
 Pce.Button.elevation:		when(@colour_display, 1, @nil)
 Pce.Button.shadow:		when(@colour_display, 0, 1)
@@ -49,6 +59,7 @@ Pce.Button.popup_image:		when(@colour_display, @nil, 'ol_pulldown.bm')
 
 Pce.Slider.look:		when(@colour_display, motif, open_look)
 
+Pce.Menu.value_font:		normal
 Pce.Menu.pen:			when(@colour_display, 0, 1)
 Pce.Menu.elevation:		when(@colour_display, 0, @nil)
 Pce.Menu.item_elevation:	when(@colour_display, 1, @nil)
@@ -57,7 +68,7 @@ Pce.Menu.cycle_indicator:	when(@colour_display, \
 
 Pce.Popup.look:			when(@colour_display, motif, open_look)
 Pce.Popup.format:		left
-Pce.Popup.value_font:		@helvetica_roman_12
+Pce.Popup.value_font:		normal
 Pce.Popup.pen:			0
 Pce.Popup.margin:		1
 Pce.Popup.elevation:		when(@colour_display, 1, @nil)
@@ -73,6 +84,7 @@ Pce.ScrollBar.elevation:	when(@colour_display, 1, @nil)
 Pce.ScrollBar.background:	@_dialog_bg
 Pce.ScrollBar.pen:		@_win_pen
 Pce.ScrollBar.placement:	[right,bottom]
+!Pce.ScrollBar.repeat_interval:	0.03
 
 !Use the following resources if you prefer the X11 (xterm) scrollbars
 !Pce.ScrollBar.look:		x
@@ -86,15 +98,15 @@ Pce.TextItem.elevation:			when(@colour_display, 1, @nil)
 Pce.TextItem.look:			open_look
 Pce.TextItem.border:			2
 
-Pce.Label.font:				@helvetica_roman_12
+Pce.Label.font:				normal
 Pce.Label.elevation:			@nil
 Pce.Label.border:			1
 
 Pce.Dialog.background:			@_dialog_bg
 Pce.Browser.background:			@_dialog_bg
-Pce.View.background:			@_graph_bg
+Pce.View.background:			white
 Pce.Window.pen:				@_win_pen
-Pce.Window.background:			@_graph_bg
+Pce.Window.background:			white
 Pce.Window.selection_feedback:		when(@colour_display, \
 					     colour(red), \
 					     invert)
@@ -111,6 +123,7 @@ Pce.TextCursor.proportional_font_style:	open_look
 Pce.Editor.selection_style:		when(@colour_display, \
 					     style(background := yellow), \
 					     style(highlight := @on))
+Pce.ListBrowser.font:			normal
 Pce.ListBrowser.selection_style:	when(@colour_display, \
 					     style(background := black, \
 						   colour := white), \

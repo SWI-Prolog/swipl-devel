@@ -1,3 +1,130 @@
+* ADDED: Bound ESC to cancel search in listbrowsers.  Also to cancel completer
+  of text_item.
+
+* MODIFIED: moved quoted-insert from editor to key_binding, so other
+  text-objects can exploit this as well.
+
+* FIXED: column preservation in editors for next_line/previous_line.  Cleanup
+  of `key_binding->typed' implementation.
+
+* ADDED: Forwarding current selected status of dict_item while executing
+  the messages associated with a browser.
+
+* ADDED: `list_browser ->change_selection' as an explicit message.  Allows
+  to hook into the list_browser's selection mechanism.
+
+* FIXED: selection visualization problem in browsers associated to the
+  first item.
+
+* FIXED: removed premature overflow for XPCE arithmetic functions, provided
+  the used C-compiler supports 8-byte integers.  Configure checks for the
+  support of long long.
+
+* ADDED: new(X, file) to return a file object with a system-dependent
+  temporary name.
+
+* FIXED: Various event-handling issues for scrollbars, resulting in better
+  repeated scrolling and largely reducing problems with OpenLook
+  scrollbar automatic mouse-movement.
+
+* CHANGED: Edit capabilities for the manual tools are now bound to the
+  resource Pce.ManManual.edit rather then checking write-access to the
+  manual/reference directory.
+
+* FIXED: reopening a help-file after the sequence open, split, join,
+  close.
+
+* FIXED: PceEmacs: Compile Buffer from buffers not asociated to a file
+  (just gives proper message), WIN32: consult_region to use proper
+  tmp filename.
+
+* FIXED: Various issues around process exit.  Updated demo(chess) and
+  emacs_shell_mode to exploit the new features.
+
+* FIXED: {list_browser,editor}->reference to use `graphical ->reference'
+  rather then `device ->reference' to make these objects fit into the
+  dialog layout schema.  Fixed various related problems in the
+  dialog editor.  Proper interpretation of the reference point still 
+  needs to be implemented in the dialog editor.
+
+* ADDED: Completed floating-point support for class slider.  Added ->format
+  to allow formatting (floating) numbers.
+
+* FIXED: Class process to handle premature death of the child more elegantly.
+
+* WIN32: `window->flash'.  Didn't work and left graphical infrastructure
+  in an unstable state.
+
+* FIXED: VisualHierarchy print command to be better portable.
+
+* WIN32: Fixed `frame ->delete: Window'.  Fixes `delete-other-windows'
+  in the help system.
+
+* ADDED: More flexible argument interpretation from tracepce/1 and
+  breakpce/1.
+
+* ADDED: Allow `class <->resolve_method_message' to be a c_pointer
+  with similar semantics as `method <->message'.  This makes it easier
+  to hide the dynamic binding of methods from the tracer and saves a
+  bit of time during startup.  Internal.
+
+* ADDED: `point <-plus', `point <-minus' and `point <-mirror' to make
+  position arithmetic a bit more natural.
+
+* FIXED: Dialog editor temporary file handling for Win32 platform.
+
+* FIXED: `file ->find'.  Crashed if one of the path-components contained
+  variables or other constructs that cannot be expanded (again if page
+  0 is unreadable, otherwise it has a very small propability to	yield
+  the wrong answer).
+
+* WIN32: Added read/write for PNM (Portable aNy Map) image format.  This
+  allows for the exchange of colour images between the Unix and Win32
+  versions.  `image ->save_in_file' and `file<-object' use this format,
+  making saved image-objects portable between the platforms.
+
+* FIXED: Attempt to convert an integer to a colour lead to a crash.
+
+* ADDED: `popup ->show_current' to put a style-dependent mark of the current
+  selection in the popup.  Replaces the `hack' to use `popup ->on_image'.
+
+* ADDED: Logical-font handling system: see '@display ->font_alias' and
+  friends.
+
+* MODIFIED: `menu<->kind'.  The new look-and-feel treated `marked' and
+  `choice' the same.  Both motif and windows define menus with marks
+  next to the item.  Therefore, `marked' implies to use marks if the
+  style allows for that, `choice' means use some modification of the
+  item (elevation, a box, invert, etc).
+
+* FIXED: Rewrote layout of PCE finder (library(find_file)) to use automatic
+  layout, so it will behave properly on different look-and-feel.  Also
+  fixed for case-insensitive file-systems.
+
+* WIN32: Fixed serious bug in low-level graphics, causing the system to
+  run out of graphical resources when using image-based fill-patterns.
+
+* FIXED: `chain <-complete_name' when ignore_case := @on and their are
+  several matches with different case-pattern.
+
+* WIN32: Modified library(file_item) to be case-insensitive when
+  the class-feature case_sensitive on class file indicates this.
+
+* FIXED: 'file ->backup' to give proper error message if it can't make
+  a backup.
+
+* FIXED: `image <-postscript' for colour images on system that donot permit
+  read-access to the first memory page (i.e. a null-pointer was dereferenced
+  for reading, but the result wasn't used, so the data didn't matter).
+
+* FIXED: `display ->load_font_family'.
+
+* PW3: Checked :- require/1 directives, checked the building process for
+  SunOs.
+
+* DOC: Generated the reference manual.  Documented use_class_template/1
+  in the online manual.
+
 * FIXED: class <-send_method and class <-get_method to handle the cache
   properly.  The error was harmless for normal message passing, but could
   lead to a serious performance degradation.  It crashed the ClassBrowser
