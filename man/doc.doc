@@ -22,8 +22,8 @@
 
 \newcommand{\vmajor}{2}
 \newcommand{\vminor}{9}
-\newcommand{\vpatch}{7}
-\newcommand{\vmonth}{Februari}
+\newcommand{\vpatch}{9}
+\newcommand{\vmonth}{March}
 \newcommand{\vyear}{1998}
 
 \newcommand{\versionshort}{\vmajor.\vminor}

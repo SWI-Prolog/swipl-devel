@@ -14,7 +14,7 @@
 
                         RReeffeerreennccee MMaannuuaall
 
-            _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _2_._9_._7_, _F_e_b_r_u_a_r_i _1_9_9_8
+             _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _2_._9_._9_, _M_a_r_c_h _1_9_9_8
 
                          _J_a_n _W_i_e_l_e_m_a_k_e_r
 
@@ -2563,15 +2563,16 @@ adviced to switch on debug mode using the predicate ddeebbuugg//00.
 
 33..88..22 TThhee eexxcceeppttiioonn tteerrmm
 
-Builtin predicates generates exceptions using a term error(_e_r_r_o_r).   The
-first argument is the `formal' description of the  error, specifying the
-class and  generic defined context  information.   When applicable,  the
-ISO  error-term definition  is used.    The second  part describes  some
-additional  context to  help the  programmer while  debugging.   In  its
-most generic  form this is  a term of  the form context(_c_o_n_t_e_x_t),  where
-_N_a_m_e/_A_r_i_t_y describes the  built-in predicate that raised the error,  and
-_M_e_s_s_a_g_e provides an  additional description of the  error.  Any part  of
-this structure may be a variable if no information was present.
+Builtin  predicates  generates exceptions  using  a  term  error(_F_o_r_m_a_l_,
+_C_o_n_t_e_x_t).    The  first argument  is  the  `formal' description  of  the
+error,  specifying the class  and generic  defined context  information.
+When applicable,  the ISO  error-term definition  is used.   The  second
+part  describes some  additional context  to help  the programmer  while
+debugging.    In its  most  generic form  this  is a  term of  the  form
+context(_N_a_m_e_/_A_r_i_t_y_,  _M_e_s_s_a_g_e), where _N_a_m_e/_A_r_i_t_y  describes the  built-in
+predicate  that raised  the error,  and _M_e_s_s_a_g_e  provides an  additional
+description of the error.  Any part of this structure  may be a variable
+if no information was present.
 
 
 33..88..33 PPrriinnttiinngg aa mmeessssaaggee ffrroomm aann eexxcceeppttiioonn
@@ -3120,14 +3121,14 @@ valid stream specifications.  The reserved names user_input, user_output
 and user_error are for neat integration with the explicit streams.
 
            ___________________________________________________
-           | user        |This reserved  name  refers to  the|
+           | user        |This  reserved name  refers to  the|
            |             |terminal                           |
-           | user_input  |Input from the terminal            |
+           | user_input  I|nput from the terminal            |
 
-           | user_output |Output to the terminal             |
-           | user_error  |Unix error stream (output only)    |
-           | <_A_t_o_m>      |Name of a Unix file                |
-           |_pipe(<_A_t_o_m>_|Name_of_a_Unix_command_____________|_
+           | user_output O|utput to the terminal             |
+           | user_error  U|nix error stream (output only)    |
+           | <_A_t_o_m>      N|ame of a Unix file                |
+           |_pipe(<_A_t_o_m>)N|ame_of_a_Unix_command_____________|_
 
 Source and  destination are  either a file,  one of  the reserved  words
 above, or a term  `pipe(_C_o_m_m_a_n_d)'.  In the predicate  descriptions below
@@ -3704,12 +3705,14 @@ ffuunnccttoorr((_?_T_e_r_m_, _?_F_u_n_c_t_o_r_, _?_A_r
 
 
 aarrgg((_?_A_r_g_, _?_T_e_r_m_, _?_V_a_l_u_e))
-    _T_e_r_m  should be instantiated to a term, _A_r_g to an integer  between 1
-    and  the arity of _T_e_r_m.   _V_a_l_u_e is unified with the  _A_r_g-th argument
-    of  _T_e_r_m.    _A_r_g  may  also be  unbound.    In  this _V_a_l_u_e  will  be
-    unified  with the successive arguments of  the term.  On  successful
-    unification, _A_r_g is  unified with the argument number.  Backtracking
-    yields alternative solutions.
+    _T_e_r_m  should be instantiated  to a term,  _A_r_g to an integer  between
+    1  and  the  arity of  _T_e_r_m.    _V_a_l_u_e  is  unified with  the  _A_r_g-th
+    argument  of _T_e_r_m.   _A_r_g may also  be unbound.   In this case  _V_a_l_u_e
+    will  be unified  with the  successive arguments of  the term.    On
+    successful  unification, _A_r_g  is unified  with the argument  number.
+    Backtracking  yields alternative  solutions.    The predicate  aarrgg//33
+    fails  silently if  _A_r_g= 0 or _A_r_g > _a_r_i_t_y and raises  the exception
+    domain_error(not_less_then_zero, Arg)if _A_r_g <0.
 
 
 sseettaarrgg((_+_A_r_g_, _+_T_e_r_m_, _+_V_a_l_u_e))
@@ -7648,7 +7651,7 @@ count_atoms()
 
   PL_put_atom_chars(a1, "atoms");
   PL_cons_functor(goal, s2, a1, a2);
-  PL_call(t, NULL);         /* call it in current module */
+  PL_call(goal, NULL);         /* call it in current module */
 
   PL_get_integer(a2, &atoms);
   PL_discard_foreign_frame(fid);
@@ -8055,16 +8058,15 @@ _v_o_i_d PPLL__hhaalltt((_i_n_t _s_t_a_t_u_s))
 
 55..77 LLiinnkkiinngg eemmbbeeddddeedd aapppplliiccaattiioonnss uussiinngg pplllldd
 
-The utility program  plld may be used  to link a combination of  C-files
-and  Prolog files  into  a  stand-alone executable.     It is  a  simple
-Bourne-shell script  that automates most  of the  steps outlined in  the
-previous sections.
+The  utility program  plld (Win32:   plld.exe)  may be  used  to link  a
+combination of C-files  and Prolog files into a stand-alone  executable.
+plld automates most of what is described in the previous sections.
 
-In the normal  usage, a copy is  made of the default embedding  template
-.../pl/include/stub.c.   Additional foreign  predicates are defined  and
-added  to the  extension table  PL_extensions.    The  main() routine  is
-modified to suit  your application.  PPLL__iinniittiiaalliissee(()) mmuusstt be passed  the
-program-name (_a_r_g_v_[_0_]).   The other elements of the command-line  may be
+In  the  normal  usage,  a  copy  is   made  of  the  default  embedding
+template  .../pl/include/stub.c.    The main()  routine is  modified  to
+suit your application.   PPLL__iinniittiiaalliissee(())mmuusstt be passed  the program-name
+(_a_r_g_v_[_0_])  (Win32:    the  executing  program  can   be  obtained  using
+GGeettMMoodduulleeFFiilleeNNaammee(())).   The other  elements of  the command-line may  be
 modified.  Next, plld is typically invoked as:
 
 plld -o output stubfile.c [other-c-or-o-files] [plfiles]
@@ -8088,6 +8090,41 @@ options are passed.
     get  the home-directory as well  as the compiler/linker options  and
     create a saved state of the Prolog code.
 
+--lldd _l_i_n_k_e_r
+    Linker  used to  link the raw  executable.   Default is  to use  the
+    C-compiler (Win32:  link.exe).
+
+--cccc _C_-_c_o_m_p_i_l_e_r
+    Compiler  for .c files  found on  the commandline.   Default is  the
+    compiler used to build SWI-Prolog (see ffeeaattuurree//22) (Win32:  cl.exe).
+
+--cc++++ _C_+_+_-_c_o_m_p_i_l_e_r
+    Compiler  for C++ sources (extensions  .cpp, .cxx, .cc or .C)  files
+    found  on the commandline.  Default is c++ or g++ if  the C-compiler
+    is gcc) (Win32:  cl.exe).
+
+--nnoossttaattee
+    Just  relink  the  kernel,  do  not  add  any  Prolog  code  to  the
+    new  kernel.     This  is  used  to  create  a  new  kernel  holding
+    additional  foreign predicates on machines  that do not support  the
+    shared-library  (DLL) interface, or if building the state  cannot be
+    handled  by the default procedure used by plld.  In the  latter case
+    the  state is created  seperately and appended  to the kernel  using
+    cat <_k_e_r_n_e_l> <_s_t_a_t_e> > <_o_u_t>(Win32:  copy /b <_k_e_r_n_e_l>+<_s_t_a_t_e> <_o_u_t>)
+
+--ppll--ooppttiioonnss _,_._._.
+    Additional  options passed to Prolog when creating the  saved state.
+    The  first character  immediately  following pl-options  is used  as
+    separator  and  translated to  spaces when  the  argument is  built.
+    Example:  -pl-options,-F,xpce  passed -F xpce as additional flags to
+    Prolog.
+
+--lldd--ooppttiioonnss _,_._._.
+    Passes options to the linker, similar to -pl-options.
+
+--cccc--ooppttiioonnss _,_._._.
+    Passes options to the C/C++ compiler, similar to -pl-options.
+
 --vv
     Select  verbose operation,  showing the  various programs and  their
     options.
@@ -8096,12 +8133,13 @@ options are passed.
     Reserved to specify the final output file.
 
 --ll_l_i_b_r_a_r_y
-    Specifies  a library for the C-compiler.   By default, -lpl  and the
-    libraries needed by the Prolog kernel are given.
+    Specifies  a library for the C-compiler.   By default, -lpl  (Win32:
+    libpl.lib) and the libraries needed by the Prolog kernel are given.
 
 --LL_l_i_b_r_a_r_y_-_d_i_r_e_c_t_o_r_y
-    Specifies  a library directory for the  C-compiler.  By default  the
-    directory containing -lpl for the current architecture is passed.
+    Specifies  a  library directory  for  the C-compiler.    By  default
+    the  directory  containing  the  Prolog C-library  for  the  current
+    architecture is passed.
 
 -g | -Iinclude-directory | -Ddefinition
     These  options  are passed  to  the C-compiler.    By  default,  the
