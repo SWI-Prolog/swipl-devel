@@ -1238,6 +1238,28 @@ getPrintNameProlog(PceObject hd)
 }
 
 
+static int
+equalProlog(PceObject p1, PceObject p2)
+{ term_t t1 = getTermHandle(p1);
+  term_t t2 = getTermHandle(p2);
+
+  if ( !(t2 = getTermHandle(p2)) )
+  { Atom a = nameToAtom(p2);
+    
+    if ( a )
+    { t2 = PL_new_term_ref();
+      PL_put_atom(t2, a);
+    } else
+      return PCE_FAIL;
+  }
+
+  if ( PL_compare(t1, t2) == 0 )
+    return PCE_SUCCEED;
+
+  return PCE_FAIL;
+}
+
+
 static void
 makeClassProlog()
 { PceObject av[4];
@@ -1279,6 +1301,14 @@ makeClassProlog()
   TypeProlog = pceNew(NIL, cToPceName("type"), 4, av);
 
   assert(TypeProlog);
+
+  pceSendMethod(ClassProlog,			/* The class */
+		"equal",			/* Name of the method */
+		NULL,				/* Group */
+		1,				/* # arguments */
+		"prolog",			/* Type arg1 */
+		"Test equality (==)", 		/* Summary */
+		equalProlog);			/* Function */
 }
 
 

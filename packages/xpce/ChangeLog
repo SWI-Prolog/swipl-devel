@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: `prolog_term->equal' to test for Prolog equality on terms.
+
 * ADDED: library(pce_toc): allow for the use of arbitrary graphicals as
   label of nodes.
 
