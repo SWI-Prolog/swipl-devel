@@ -1442,12 +1442,20 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
 #define O_BINARY 0
 #endif
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Open a file. In addition to the normal  arguments, "lr" means get a read
+(shared-) lock on the file and  "lw"   means  get  an write (exclusive-)
+lock.  How much do we need to test here?
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+
 IOSTREAM *
 Sopen_file(const char *path, const char *how)
 { int fd;
   int oflags = 0, flags = SIO_FILE|SIO_TEXT|SIO_RECORDPOS;
   int op = *how++;
   long lfd;
+  enum {lnone=0,lread,lwrite} lock = lnone;
 
   for( ; *how; how++)
   { switch(*how)
@@ -1457,6 +1465,16 @@ Sopen_file(const char *path, const char *how)
         break;
       case 'r':				/* no record */
 	flags &= SIO_RECORDPOS;
+        break;
+      case 'l':				/* lock r: read, w: write */
+	if ( *++how == 'r' )
+	  lock = lread;
+        else if ( *how == 'w' )
+	  lock = lwrite;
+        else
+	{ errno = EINVAL;
+	  return NULL;
+	}
         break;
       default:
 	errno = EINVAL;
@@ -1488,6 +1506,20 @@ Sopen_file(const char *path, const char *how)
 
   if ( fd < 0 )
     return NULL;
+
+  if ( lock )
+  { struct flock buf;
+
+    memset(&buf, 0, sizeof(buf));
+    buf.l_type = (lock == lread ? F_RDLCK : F_WRLCK);
+
+    if ( fcntl(fd, F_SETLKW, &buf) < 0 )
+    { int save = errno;
+      close(fd);
+      errno = save;
+      return NULL;
+    }
+  }
 
   lfd = (long)fd;
   return Snew((void *)lfd, flags, &Sfilefunctions);

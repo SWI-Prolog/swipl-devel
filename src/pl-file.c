@@ -1492,6 +1492,7 @@ static const opt_spec open4_options[] =
   { ATOM_eof_action,     OPT_ATOM },
   { ATOM_close_on_abort, OPT_BOOL },
   { ATOM_buffer,	 OPT_ATOM },
+  { ATOM_lock,		 OPT_ATOM },
   { NULL_ATOM,	         0 }
 };
 
@@ -1504,6 +1505,7 @@ openStream(term_t file, term_t mode, term_t options)
   atom_t alias	        = NULL_ATOM;
   atom_t eof_action     = ATOM_eof_code;
   atom_t buffer         = ATOM_full;
+  atom_t lock		= ATOM_none;
   bool   close_on_abort = TRUE;
   char   how[10];
   char  *h		= how;
@@ -1513,7 +1515,7 @@ openStream(term_t file, term_t mode, term_t options)
   if ( options )
   { if ( !scan_options(options, 0, ATOM_stream_option, open4_options,
 		       &type, &reposition, &alias, &eof_action,
-		       &close_on_abort, &buffer) )
+		       &close_on_abort, &buffer, &lock) )
       fail;
   }
 
@@ -1537,7 +1539,20 @@ openStream(term_t file, term_t mode, term_t options)
 
   if ( type == ATOM_binary )
     *h++ = 'b';
-  
+  if ( lock != ATOM_none )
+  { *h++ = 'l';
+    if ( lock == ATOM_read || lock == ATOM_shared )
+      *h++ = 'r';
+    else if ( lock == ATOM_write || lock == ATOM_exclusive )
+      *h++ = 'w';
+    else
+    { term_t l = PL_new_term_ref();
+      PL_put_atom(l, lock);
+      PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_lock, lock);
+      return NULL;
+    }
+  }
+
   *h = EOS;
   if ( PL_get_chars(file, &path, CVT_ATOM|CVT_STRING|CVT_INTEGER) )
   { if ( !(s = Sopen_file(path, how)) )

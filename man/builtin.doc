@@ -1828,6 +1828,21 @@ abort/0). If \const{false}, the stream is not closed. If it is an output
 stream, it will be flushed however.  Useful for logfiles and if the
 stream is associated to a process (using the \functor{pipe}{1}
 construct).
+
+    \termitem{lock}{LockingMode}
+Try to obtain a lock on the open file.  Default is \const{none}, which
+does not lock the file.  The value \const{read} or \const{shared} means
+other processes may read the file, but not write it.  The value
+\const{write} or \const{exclusive} means no other process may read
+or write the file.
+
+Locks are acquired through the POSIX function fcntl() using the command
+\const{F_SETLKW}, which makes a blocked call wait for the lock to be
+released. Please note that fcntl() locks are {\em advisory} and
+therefore only other applications using the same advisory locks
+honour your lock. As there are many issues around locking in Unix,
+expecially related to NFS (network file system), please study the
+fcntl() manual page before trusting your locks! 
 \end{description}
 
 The option \const{reposition} is not supported in SWI-Prolog.  All streams

@@ -478,6 +478,8 @@ A ioctl			"ioctl"
 A stack_parameter	"stack_parameter"
 A hash			"hash"
 A matches		"matches"
+A shared		"shared"
+A exclusive		"exclusive"
 
 F abs			1
 F acos			1

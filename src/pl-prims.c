@@ -1905,7 +1905,7 @@ sub_text(term_t atom,
   unsigned int la;			/* length of `atom' */
   unsigned int ls;			/* length of `sub' */
   sub_state *state;			/* non-deterministic state */
-  atom_t expected = (out == PL_unify_string_nchars ? ATOM_string, ATOM_atom);
+  atom_t expected = (out == PL_unify_string_nchars ? ATOM_string : ATOM_atom);
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
