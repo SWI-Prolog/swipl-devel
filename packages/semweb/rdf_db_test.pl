@@ -298,6 +298,27 @@ transaction(deadlock-1) :-
 	rdf_assert(x,y,z,g),
 	rdf_assert(x,y,z,g),
 	rdf_transaction(rdf(_S, _P, _O, _G)).
+transaction(deadlock-2) :-
+	tmp_file(rdf, F1),
+	tmp_file(rdf, F2),
+	rdf_assert(a, b, c, f1),
+	rdf_assert(x, y, z, f2),
+	rdf_save_db(F1, f1),
+	rdf_save_db(F2, f2),
+	rdf_reset_db,
+
+	rdf_assert(l, f, F1),
+	rdf_assert(l, f, F2),
+	rdf_transaction(forall(rdf(l, f, F),
+			       rdf_load_db(F))),
+	findall(rdf(S,P,O), rdf(S,P,O), L),
+	L == [ rdf(l,f,F1),
+	       rdf(l,f,F2),
+	       rdf(a,b,c),
+	       rdf(x,y,z)
+	     ],
+	delete_file(F1),
+	delete_file(F2).
 
 
 		 /*******************************
