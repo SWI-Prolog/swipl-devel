@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+VERSION 5.1.7 (Feb 02, 2003)
+============================
+
   * FIXED: Don't call cleanup of deterministic foreign predicates after
     an abort.
 

@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.1.7, distributed with SWI-Prolog 5.1.7
+================================================
+
 * ENHANCED: indirection in class editable_text to make it easier to modify
   edit-mode feedback in subclasses.
 
