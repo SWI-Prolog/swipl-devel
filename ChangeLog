@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+VERSION 5.1.8 (Feb 24, 2003)
+============================
+
   * FIXED: Bug #23: profiler on Windows platform crashed.  Holger Kanwischer.
 
   * DOC: Bug #24: Rearranged description of Prolog flags to be alphabetical

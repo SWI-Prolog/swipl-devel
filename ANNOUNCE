@@ -3,7 +3,7 @@ SWI-Prolog 5.1.7/XPCE 6.1.7 Summary of changes
 Status
 ======
   
-  * 8th beta-release.  Considering feedback, the 5.1.x series probably becomes
+  * 9th beta-release.  Considering feedback, the 5.1.x series probably becomes
     mainstream not too far from here.
 
     Remaining issues are exploiting the multi-threaded version in a
@@ -13,25 +13,26 @@ Status
 SWI-Prolog
 ==========
 
-  * Fixed reported problems.  Minor enhancements
+  * FIXED Various threading issues: atom-garbage collection bugs, clean exit,
+    SPARC alignment problem (bus error), execution profiling in Windows.
+
+  * FIXED: atom_number/1 parsing floats.
+
+  * ADDED: Allow reading the Prolog state if it is attached to a DLL.  This
+    allows for single-file DLL's that embed Prolog.  See -dll option to
+    plld.
+
+  * PORT: configure problem for MT version if gcc doesn't understand -pthread.
 
 Packages
 ========
 
-  * XPCE: object-reference problems with colours in the X11 version (could
-    crash system).
-
-  * SGML: bug in call-back mode interface.
-
-  * RDF: MODIFIED call-back mode interface, which now passes an extra
-    argument holding File:Line where the triples originate from.
-
-  * CLIB: fixed call_with_time_limit/2
+  * XPCE: a few minor issues
 
 Development environment
 =======================
 
-  * Various minor improvements
+  * Make PceEmacs cross-referencer pick up :- meta_predicate/1 declarations.
 
 Short-term Plans
 ================
@@ -40,7 +41,7 @@ Short-term Plans
 
   * Provide support for N Prolog engines in M threads (N>=1, M>=1).
 
-  * Resolve Java interface issues (Linking issues and related to the above)
+  * Resolve Java interface issues (Linking issues and related to the above).
 
 Donations
 =========

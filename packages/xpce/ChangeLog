@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.1.8, distributed with SWI-Prolog 5.1.8
+================================================
+
 * ADDED: library(pce_identifier_item) providing the class identifier_item.
 
 * FIXED: tool_bar->activate if there are `gaps' in the toolbar
