@@ -26,8 +26,6 @@
 #include <h/graphics.h>
 #include <time.h>
 
-static EventTreeObj  EventTree;		/* tree of event types */
-
 forwards void init_event_tree(void);
 
 extern EventNodeObj getNodeEventTree(EventTreeObj t, Any value);
@@ -979,6 +977,7 @@ static struct namepair
 } initial_tree[] =
 { { NAME_mouse,		NAME_any },
   { NAME_keyboard,	NAME_any },
+  { NAME_user,		NAME_any },
 					/* Keyboard events */
   { NAME_ascii,		NAME_keyboard },
   { NAME_meta,		NAME_keyboard },

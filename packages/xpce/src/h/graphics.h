@@ -1059,6 +1059,8 @@ GLOBAL	HashTable ImageTable;		/* ImageName --> Image */
 GLOBAL  HashTable WindowTable;		/* X-Window --> PceWindow|FrameObj */
 GLOBAL  Class ClassImage;		/* @image_class */
 
+GLOBAL  EventTreeObj  EventTree;	/* @event_tree */
+
 		 /*******************************
 		 *     MENU LAYER CONSTANTS	*
 		 *******************************/

@@ -26,6 +26,7 @@
 #include <h/graphics.h>
 
 static EventTreeObj	getTreeEventNode(EventNodeObj n);
+static status		sonEventNode(EventNodeObj n, EventNodeObj son);
 
 static status
 initialiseEventNode(EventNodeObj n, Any value, EventNodeObj parent)
@@ -33,8 +34,20 @@ initialiseEventNode(EventNodeObj n, Any value, EventNodeObj parent)
     parent = NIL;
 
   assign(n, value,  value);
-  assign(n, parent, parent);
-  assign(n, sons,   NIL);
+
+  if ( isName(parent) )
+  { EventNodeObj p;
+
+    if ( !EventTree )
+      realiseClass(ClassEvent);
+
+    if ( !(p=getNodeEventTree(EventTree, parent)) )
+      return errorPce(EventTree, NAME_noEvent, parent);
+    parent = p;
+  }
+
+  if ( notNil(parent) )
+    sonEventNode(parent, n);
 
   succeed;
 }
@@ -87,7 +100,7 @@ getTreeEventNode(EventNodeObj n)
 /* Type declarations */
 
 static char *T_initialise[] =
-        { "value=name", "parent=[event_node]*" };
+        { "value=name", "parent=[name|event_node]*" };
 
 /* Instance Variables */
 

@@ -1463,6 +1463,7 @@
   BUILTIN_NAME("no_default_font")
   BUILTIN_NAME("no_default_label")
   BUILTIN_NAME("no_domain")
+  BUILTIN_NAME("no_event")
   BUILTIN_NAME("no_extension")
   BUILTIN_NAME("no_fetch_function")
   BUILTIN_NAME("no_file")

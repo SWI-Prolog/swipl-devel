@@ -657,6 +657,8 @@ static const error_def errors[] =
     "%O: Not opened" },
   { NAME_noButtonEvent,		0,
     "%O: Is not a button-related event" },
+  { NAME_noEvent,		0,
+    "%O: No event named %s" },
   { NAME_signal,		ET_FATAL,
     "%O: Signal trapped: %s" },
   { NAME_createFailed,		0,

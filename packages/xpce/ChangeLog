@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: Support for new event-types.  See event_node->initialise.
+
 * ADDED: Class tabular (library(tabular)): ->append now accepts
   table_cell objects.
 
