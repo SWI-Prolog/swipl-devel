@@ -753,7 +753,7 @@ writeFrameGoal(LocalFrame frame, Code PC, unsigned int flags)
 { fid_t cid = PL_open_foreign_frame();
   Definition def = frame->predicate;
 
-  if ( !GD->bootsession && GD->initialised )
+  if ( !GD->bootsession && GD->initialised && GD->debug_level == 0 )
   { term_t fr   = PL_new_term_ref();
     term_t port = PL_new_term_ref();
     term_t pc   = PL_new_term_ref();
@@ -789,11 +789,15 @@ writeFrameGoal(LocalFrame frame, Code PC, unsigned int flags)
     term_t tmp     = PL_new_term_ref();
     char msg[3];
     const char *pp = portPrompt(flags&PORT_MASK);
+    struct foreign_context ctx;
 
     put_frame_goal(goal, frame);
     debugstatus.debugging = DBG_OFF;
     PL_put_atom(tmp, ATOM_debugger_print_options);
-    if ( !pl_feature(tmp, options, 0) )
+    ctx.context = 0;
+    ctx.control = FRG_FIRST_CALL;
+    ctx.engine  = LD;
+    if ( !pl_feature(tmp, options, &ctx) )
       PL_put_nil(options);
     PL_put_atom(tmp, ATOM_user_output);
 
