@@ -1,0 +1,16 @@
+#ffffff		white
+#000000		black
+#808080		-
+#c0c0c0		grey
+#800000		0
+#ff0000		red
+#808000		-
+#ffff00		yellow
+#008000		-
+#00ff00		green
+#008080		-
+#00ffff		cyan
+#000080		navy_blue
+#0000ff		blue
+#800080		-
+#ff00ff		magenta
