@@ -119,7 +119,7 @@ while [ $cont = "yes" ]; do
     if grep -q "$rerun" $doc.log; then
         echo "*** Cross-references changed.  Rerunning $tex ***"
     else
-        if [ -r $doc.idx -a $doc.idx.$$ ]; then
+        if [ -r $doc.idx -a -r $doc.idx.$$ ]; then
 	   if cmp -s $doc.idx $doc.idx.$$; then
 	      cont=no
 	   else
@@ -135,3 +135,10 @@ while [ $cont = "yes" ]; do
 done
 
 
+if grep -q Warning $doc.log; then
+   echo ""
+   echo "*****************************"
+   echo "The following warnings remain"
+   echo "*****************************"
+   grep Warning $doc.log
+fi
