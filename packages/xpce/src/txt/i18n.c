@@ -65,8 +65,8 @@ typedef struct rcell
   size_t	allocated;		/* bytes allocated */
 } rcell;
 
-static rcell ring[RING_SIZE];
-static int   ring_index;
+static rcell ring[RING_SIZE] = {{0}};
+static int   ring_index = 0;
 
 static rcell *
 find_ring()
@@ -80,7 +80,7 @@ find_ring()
     c->data = pceMalloc(c->allocated);
   } else if ( c->allocated >= 4096 )
   { c->allocated = 256;
-    free(c->data);
+    pceFree(c->data);
     c->data = pceMalloc(c->allocated);
   }
   c->bufp   = c->data;
