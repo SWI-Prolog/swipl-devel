@@ -1198,7 +1198,10 @@ geometryParBox(ParBox pb, Int x, Int y, Int w, Int h)
 
   if ( isDefault(x) ) x = a->x;
   if ( isDefault(y) ) y = a->y;
-  if ( isDefault(w) ) w = a->w;
+  if ( isDefault(w) )
+    w = a->w;
+  else
+    assign(pb, auto_crop, OFF);
   chw = (w != a->w);
 
   if ( x != a->x || y != a->y || chw )
