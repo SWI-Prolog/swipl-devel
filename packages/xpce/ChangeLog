@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: `editor->show_caret'.  If the caret it invisible, the up/down
+  arrow-keys scroll the editor.
+
 * ADDED: Provide support for exchanging atoms and strings holding 0-bytes
   between Prolog and XPCE, facilitating better handling of binary objects.
 

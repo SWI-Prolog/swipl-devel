@@ -387,6 +387,15 @@ updateStyleCursorEditor(Editor e)
   return updateCursorEditor(e);
 }
 
+
+static status
+showCaretEditor(Editor e, Bool show)
+{ DisplayedGraphical(e->text_cursor, show);
+
+  succeed;
+}
+
+
 		/********************************
 		*          SCROLLBAR		*
 		********************************/
@@ -1903,6 +1912,8 @@ cursorUpEditor(Editor e, Int arg, Int column)
 	    (caret = getUpDownCursorTextImage(e->image, caret,
 					      neg(arg), column)) )
     return CaretEditor(e, caret);
+  else if ( e->text_cursor->displayed == OFF && !isisearchingEditor(e) )
+    return scrollDownEditor(e, ONE);
   else
     previousLineEditor(e, arg, column);
 
@@ -1929,6 +1940,8 @@ cursorDownEditor(Editor e, Int arg, Int column)
   else if ( e->image->wrap == NAME_word &&
 	    (caret = getUpDownCursorTextImage(e->image, caret, arg, column)) )
     return CaretEditor(e, caret);
+  else if ( e->text_cursor->displayed == OFF && !isisearchingEditor(e) )
+    return scrollUpEditor(e, ONE);
   else
     nextLineEditor(e, arg, column);
 
@@ -4756,6 +4769,8 @@ static senddecl send_editor[] =
      NAME_report, "Report message (using <-error_message)"),
   SM(NAME_showCaretAt, 1, "index=[int]", showCaretAtEditor,
      NAME_report, "Display caret at indicated position"),
+  SM(NAME_showCaret, 1, "show=bool", showCaretEditor,
+     NAME_caret, "Show/hide the caret"),
   SM(NAME_showMatchingBracket, 1, "index=[int]", showMatchingBracketEditor,
      NAME_report, "->electric_caret on matching bracket"),
   SM(NAME_undefined, 0, NULL, undefinedEditor,
