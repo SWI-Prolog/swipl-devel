@@ -31,7 +31,13 @@ mkdir -p $RPM_BUILD_ROOT/usr
 cd src
 make install prefix=$RPM_BUILD_ROOT/usr
 cp README.bin ..
-
+# Make the package relocatable by using local links
+ARCH=`$RPM_BUILD_ROOT/usr/bin/pl -arch`
+for f in pl plrc plld; do
+    ( cd $RPM_BUILD_ROOT/usr/bin && \
+      rm -f $f && \
+      ln -s ../lib/pl-3.3.0/bin/$ARCH/$f $f )
+done
 
 %files
 %doc ChangeLog INSTALL INSTALL.notes COPYING LSM PORTING
