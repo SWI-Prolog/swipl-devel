@@ -4706,6 +4706,18 @@ file_to_dtd(const char *file, const char *doctype, dtd_dialect dialect)
 
 
 int
+sgml_process_stream(dtd_parser *p, FILE *fd)
+{ int chr;
+
+  while( (chr = getc(fd)) != EOF )
+  { putchar_dtd_parser(p, chr);
+  }
+
+  return end_document_dtd_parser(p);
+}
+
+
+int
 sgml_process_file(dtd_parser *p, const char *file)
 { FILE *fd;
   int rval;
@@ -4716,13 +4728,8 @@ sgml_process_file(dtd_parser *p, const char *file)
   set_mode_dtd_parser(p, DM_DATA);
 
   if ( (fd = fopen(file, "rb")) )
-  { int chr;
-
-    while( (chr = getc(fd)) != EOF )
-      putchar_dtd_parser(p, chr);
-
-    rval = end_document_dtd_parser(p);
-  } else
+    rval = sgml_process_stream(p, fd);
+  else
     rval = FALSE;
 
   pop_location(p, &oldloc);

@@ -370,10 +370,7 @@ main(int argc, char **argv)
       set_functions(p, output);
       set_src_dtd_parser(p, IN_FILE, "stdin");
       set_mode_dtd_parser(p, DM_DATA);
-      while ((chr = getchar()) != EOF)
-	putchar_dtd_parser(p, chr);
-
-      end_document_dtd_parser(p);
+      sgml_process_stream(p, stdin);
       free_dtd_parser(p);
       if (output && nerrors == 0)
 	printf("C\n");
