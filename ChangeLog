@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: listing/1 and friends (bug due to moving list predicates).
+    Anjo Anjewierden.
+
   * ADDED: thread_statistics/3: get statistics on other threads.
 
   * PORT: MacOS X: check for both plain symbol and _symbol on

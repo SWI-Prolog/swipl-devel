@@ -282,7 +282,7 @@ principal_predicates(C, Heads, Principals) :-
 	    delete_defaults(P1, P1, P2)
 	;   P2 = P0
 	),	
-	sort(P2, Principals).		% remove duplicates
+	$list_to_set(P2, Principals).		% remove duplicates
 	
 delete_defaults([], _, []) :- !.
 delete_defaults([system:Head|T], L, R) :-
