@@ -2613,9 +2613,9 @@ r_pixel(int x, int y, Any val)
 
   if ( isBoolean(val) )
   { if ( val == ON )
-      c = RGB(255, 255, 255);
-    else
       c = RGB(0, 0, 0);
+    else
+      c = RGB(255, 255, 255);
   } else
     c = cref_colour(val);
 

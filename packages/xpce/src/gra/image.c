@@ -644,18 +644,23 @@ invertImage(Image image)
 static Any
 getPixelImage(Image image, Int x, Int y)
 { if ( inImage(image, x, y) )
-  { unsigned long pixel;
+  { Any result;
     d_image(image, 0, 0, valInt(image->size->w), valInt(image->size->h));
-    pixel = r_get_pixel(valInt(x), valInt(y));
+
+    if ( image->kind == NAME_bitmap )
+      result = (r_get_mono_pixel(valInt(x), valInt(y)) ? ON : OFF);
+    else
+    { unsigned long pixel;
+
+      pixel = r_get_pixel(valInt(x), valInt(y));
+      if ( pixel == NoPixel )
+	result = FAIL;
+      else
+	result = ws_pixel_to_colour(image->display, pixel);
+    }
     d_done();
 
-    DEBUG(NAME_image, Cprintf("pixel = %ld\n", pixel));
-    if ( pixel == NoPixel )
-      fail;
-    if ( image->kind == NAME_bitmap )
-      answer((pixel == 0 ? OFF : ON));
-    
-    answer(ws_pixel_to_colour(image->display, pixel));
+    answer(result);
   }
   
   fail;
