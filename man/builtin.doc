@@ -1942,6 +1942,10 @@ terminal input is read from this stream. See also interactor/0.
     \termitem{buffer}{Buffering}
 Set the buffering mode of an already created stream.  Buffering is one
 of \const{full}, \const{line} or \const{false}.
+
+    \termitem{eof_action}{Action}
+Set end-of-file handling to one of \const{eof_code}, \const{reset} or
+\const{error}.
 \end{description}
 \end{description}
 
