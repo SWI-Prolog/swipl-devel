@@ -1026,11 +1026,11 @@ it mean anything?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifdef O_PLMT
-#define startCritical (void)(GD->critical++)
-#define endCritical   (void)(GD->critical--)
+#define startCritical (void)(LD->critical++)
+#define endCritical   (void)(LD->critical--)
 #else
-#define startCritical (void)(GD->critical++)
-#define endCritical   if ( --(GD->critical) == 0 && LD->aborted ) \
+#define startCritical (void)(LD->critical++)
+#define endCritical   if ( --(LD->critical) == 0 && LD->aborted ) \
 			pl_abort(ABORT_NORMAL)
 #endif
 

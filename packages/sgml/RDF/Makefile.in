@@ -10,6 +10,7 @@ SHELL=@SHELL@
 PLBASE=@PLBASE@
 PLARCH=@PLARCH@
 PL=@PL@
+XPCEBASE=$(PLBASE)/xpce
 PKGDOC=$(PLBASE)/doc/packages
 PCEHOME=../../xpce
 
@@ -33,13 +34,19 @@ INSTALL_PROGRAM=@INSTALL_PROGRAM@
 INSTALL_DATA=@INSTALL_DATA@
 
 LIBPL=		rdf.pl rdf_parser.pl rdf_triple.pl rewrite.pl
+XPCEPL=		rdf_diagram.pl
 
 all:		
 		@echo "Nothing to do for this package"
 
-install:	$(LIBPL)
+install:	$(LIBPL) xpce-install
 		$(INSTALL) -m 644 $(LIBPL) $(PLBASE)/library
 		$(PL) -f none -g make -t halt
+
+xpce-install:	$(XPCEPL)
+		if [ -d $(XPCEBASE) ]; then \
+		   $(INSTALL) -m 644 $(XPCEPL) $(XPCEBASE)/prolog/lib; \
+		fi
 
 rpm-install:	install
 

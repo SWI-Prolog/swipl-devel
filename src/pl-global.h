@@ -70,7 +70,6 @@ typedef struct
 { char *top_of_heap;			/* highest allocated heap address */
   char *base_of_heap;			/* lowest allocated heap address */
   ulong rounded_heap_base;		/* heap-base rounded downwards */
-  int	critical;			/* heap is being modified */
   pl_defaults_t	    defaults;		/* system default settings */
   pl_options_t	    options;		/* command-line options */
   State		stateList;		/* list of loaded states */
@@ -268,6 +267,7 @@ typedef struct PL_local_data
   ulong		pending_signals;	/* PL_raise() pending signals */
   record_t	pending_exception;	/* Pending exception from signal */
   int		current_signal;		/* Currently handled signal */
+  int		critical;		/* heap is being modified */
   int		aborted;		/* thread asked for abort */
   Stack		outofstack;		/* thread is out of stack */
   int		trim_stack_requested;	/* perform a trim-stack */

@@ -177,7 +177,7 @@ static word
 pl_throw_abort()
 { pl_notrace();
 
-  if ( GD->critical > 0 )		/* abort in critical region: delay */
+  if ( LD->critical > 0 )		/* abort in critical region: delay */
   { LD->aborted = TRUE;
     succeed;
   } else

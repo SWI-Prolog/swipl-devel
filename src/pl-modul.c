@@ -433,7 +433,8 @@ declareModule(atom_t name, SourceFile sf)
   module = lookupModule(name);
   LOCK();
   if ( module->file && module->file != sf)
-  { warning("module/2: module %s already loaded from file %s (abandoned)", 
+  { UNLOCK();
+    warning("module/2: module %s already loaded from file %s (abandoned)", 
 	    stringAtom(module->name), 
 	    stringAtom(module->file->name));
     fail;

@@ -69,7 +69,7 @@ void
 setupProlog(void)
 { DEBUG(1, Sdprintf("Starting Heap Initialisation\n"));
 
-  GD->critical = 0;
+  LD->critical = 0;
   LD->aborted = FALSE;
   LD->pending_signals = 0;
 
@@ -355,7 +355,7 @@ dispatch_signal(int sig, int sync)
 	       sig, signal_name(sig), gc_status.collections);
   }
 
-  if ( GD->critical || (true(sh, PLSIG_SYNC) && !sync) )
+  if ( LD->critical || (true(sh, PLSIG_SYNC) && !sync) )
   { PL_raise(sig);			/* wait for better times! */
     return;
   }
@@ -701,7 +701,7 @@ int
 PL_handle_signals()
 { int done = 0;
 
-  while(!GD->critical && LD->pending_signals)
+  while(!LD->critical && LD->pending_signals)
   { ulong mask = 1L;
     int sig = 1;
 

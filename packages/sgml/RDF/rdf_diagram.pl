@@ -16,8 +16,9 @@
 :- use_module(library(pce)).
 :- use_module(library(pce_tagged_connection)).
 :- use_module(library(autowin)).
+:- use_module(library(pce_report)).
 :- use_module(library(print_graphics)).
-:- use_module(rdf_parser).		% get access to declared namespaces
+:- use_module(library(rdf_parser)).	% get access to declared namespaces
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
