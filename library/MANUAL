@@ -13,7 +13,7 @@
                          SSWWII--PPrroolloogg 55..55
                         RReeffeerreennccee MMaannuuaall
 
-            _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _5_._5_._1_, _D_e_c_e_m_b_e_r _2_0_0_4
+            _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _5_._5_._2_, _D_e_c_e_m_b_e_r _2_0_0_4
 
                          _J_a_n _W_i_e_l_e_m_a_k_e_r
                        jan@swi.psy.uva.nl
@@ -1493,10 +1493,17 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
     etc.    With both arguments  unbound, it  will generate all  defined
     prolog-flags.    With  the  `Key' instantiated  it unify  the  value
     of  the  prolog-flag.    Features  come  in three  types:    boolean
-    prolog-flags,  prolog-flags  with  an  atom value  and  prolog-flags
-    with  an integer  value.    A boolean  prolog-flag is  true iff  the
-    prolog-flag  is present aanndd the _V_a_l_u_e  is the atom true.   Currently
-    defined keys in alphabetical order:
+    prolog-flags, prolog-flags  with an atom value and prolog-flags with
+    an  integer  value.    Some  prolog flags  are  not defined  in  all
+    versions, which is  normally indicated in the documentation below as
+    _`_`_i_f  _p_r_e_s_e_n_t _a_n_d _t_r_u_e_'_'.    A boolean prolog-flag  is true iff  the
+    prolog-flag  is present aanndd the _V_a_l_u_e is  the atom true.   Tests for
+    such flags should be written as below.
+
+            (   current_prolog_flag(windows, true)
+            ->  <Do MS-Windows things>
+            ;   <Do normal things>
+            )
 
     aabboorrtt__wwiitthh__eexxcceeppttiioonn _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
          Determines how  abort/0 is realised.    See the description  of
@@ -1736,11 +1743,11 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
              static predicates.
 
     llaarrggee__ffiilleess _(_b_o_o_l_)
-         If true, SWI-Prolog  has been compiled with _l_a_r_g_e _f_i_l_e  _s_u_p_p_o_r_t
-         (LFS) and is capable to access files larger than  2GB on 32-bit
-         hardware.    Large  file-support  is default  on  installations
-         built using configure that  support it and may be  switched off
-         using the configure option --disable-largefile.
+         If present and  true, SWI-Prolog has  been compiled with  _l_a_r_g_e
+         _f_i_l_e _s_u_p_p_o_r_t (LFS) and  is capable to access files  larger than
+         2GB on  32-bit  hardware.   Large  file-support  is default  on
+         installations built using configure that support it  and may be
+         switched off using the configure option --disable-largefile.
 
     mmaaxx__aarriittyy _(_u_n_b_o_u_n_d_e_d_)
          ISO  prolog-flag  describing  there  is  no  maximum  arity  to
@@ -1810,12 +1817,12 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
          is true, except for the runtime version.
 
     rruunnttiimmee _(_b_o_o_l_)
-         If true,  SWI-Prolog  is compiled  with  -DO_RUNTIME,  disabling
-         various useful development  features (currently the tracer  and
-         profiler).
+         If present and  true, SWI-Prolog is  compiled with -DO_RUNTIME,
+         disabling various  useful development  features (currently  the
+         tracer and profiler).
 
     ssaavveedd__pprrooggrraamm _(_b_o_o_l_)
-         If  true,   Prolog  is   started  from   a  state  saved   with
+         If present and true, Prolog is started from a  state saved with
          qsave_program/[1,2].
 
     sshhaarreedd__oobbjjeecctt__eexxtteennssiioonn _(_a_t_o_m_)
@@ -1867,10 +1874,10 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
          trace.  May be set.  See also the +/-tty command-line option.
 
     uunniixx _(_b_o_o_l_)
-         If  true,  the  operating  system  is  some  version  of  Unix.
-         Defined  if the  C-compiler used  to  compile this  version  of
-         SWI-Prolog either defines __unix__  or unix.  On  other systems
-         this flag is not available.
+         If present and  true, the operating  system is some version  of
+         Unix.  Defined  if the C-compiler used to compile  this version
+         of  SWI-Prolog either  defines  __unix__ or  unix.    On  other
+         systems this flag is not available.
 
     uunnkknnoowwnn _(_f_a_i_l_,_w_a_r_n_i_n_g_,_e_r_r_o_r_, _c_h_a_n_g_e_a_b_l_e_)
          Determines  the   behaviour  if  an   undefined  procedure   is
@@ -1907,8 +1914,8 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
          version-conditional statements.
 
     wwiinnddoowwss _(_b_o_o_l_)
-         If  true,   the  operating  system  is  an  implementation   of
-         Microsoft Windows  (3.1,  95/98/ME, NT/2000/XP,  etc.).    This
+         If present and true, the operating system  is an implementation
+         of Microsoft Windows (3.1,  95/98/ME, NT/2000/XP, etc.).   This
          flag is only available on MS-Windows based versions.
 
     wwrriittee__aattttrriibbuutteess _(_a_t_o_m_, _c_h_a_n_g_e_a_b_l_e_)
@@ -1918,13 +1925,15 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
 
     wwrriittee__hheellpp__wwiitthh__oovveerrssttrriikkee _(_b_o_o_l_)
          Internal flag used  by help/1 when writing  to a terminal.   If
-         true it prints bold and underlined text using _o_v_e_r_s_t_r_i_k_e.
+         present  and true  it prints  bold  and underlined  text  using
+         _o_v_e_r_s_t_r_i_k_e.
 
     xxppccee _(_b_o_o_l_)
-         Set to true if the XPCE graphics system is loaded.
+         Available  and set  to  true if  the  XPCE graphics  system  is
+         loaded.
 
     xxppccee__vveerrssiioonn _(_a_t_o_m_)
-         Set to the version of the loaded XPCE system.
+         Available and set to the version of the loaded XPCE system.
 
 
 sseett__pprroolloogg__ffllaagg((_+_K_e_y_, _+_V_a_l_u_e))
@@ -2306,12 +2315,12 @@ iissoo__llaattiinn__11
 uuttff88
     Multi-byte encoding of full UCS, compatible to ascii.  See above.
 
-uunniiccooddee__bbee((_U))
-    NICODE _B_i_g _E_n_d_i_a_n.   Reads input in pairs of bytes, most significant
-    byte first.  Can only represent 16-bit characters.
+uunniiccooddee__bbee
+    UNICODE  _B_i_g  _E_n_d_i_a_n.     Reads  input  in  pairs  of  bytes,   most
+    significant byte first.  Can only represent 16-bit characters.
 
-uunniiccooddee__llee((_U))
-    NICODE  _L_i_t_t_l_e  _E_n_d_i_a_n.    Reads  input  in pairs  of  bytes,  least
+uunniiccooddee__llee
+    UNICODE  _L_i_t_t_l_e  _E_n_d_i_a_n.    Reads input  in  pairs of  bytes,  least
     significant byte first.  Can only represent 16-bit characters.
 
 
@@ -5140,6 +5149,11 @@ ooppeenn((_+_S_r_c_D_e_s_t_, _+_M_o_d_e_, _-_S_t_r_e_a
                  read(input, Term),
                  ...
 
+    eennccooddiinngg((_E_n_c_o_d_i_n_g))
+         Define the encoding used  for reading and writing text  to this
+         stream.  The  default encoding is derived from the  Prolog flag
+         encoding.  For details on encoding issues, see section 2.17.1.
+
     eeooff__aaccttiioonn((_A_c_t_i_o_n))
          Defines  what  happens  if the  end  of  the  input  stream  is
          reached.   Action eof_code makes get0/1  and friends return  -1
@@ -5231,6 +5245,10 @@ ssttrreeaamm__pprrooppeerrttyy((_?_S_t_r_e_a_m_, _?_S_
     aalliiaass((_A_t_o_m))
          If _A_t_o_m is bound,  test of the stream has the  specified alias.
          Otherwise unify _A_t_o_m with the first alias of the stream.
+
+    eennccooddiinngg((_E_n_c_o_d_i_n_g))
+         Query the encoding  used for text.   See section 2.17.1 for  an
+         overview of wide character and encoding issues in SWI-Prolog.
 
     ppoossiittiioonn((_T_e_r_m))
          Unify  _T_e_r_m  with the  current  stream-position.     A  stream-
