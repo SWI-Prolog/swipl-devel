@@ -226,11 +226,12 @@ main(int argc, char **argv)
     p = new_dtd_parser(new_dtd(doctype));
     load_dtd_from_file(p, argv[0]);
     argc--; argv++;
-  } else if ( streq(ext, ".html") )
+  } else if ( istrcaseeq(ext, ".html") ||
+	      istrcaseeq(ext, ".htm" ) )
   { p = new_dtd_parser(new_dtd("html"));
 
     load_dtd_from_file(p, "html.dtd");
-  } else if ( streq(ext, ".xml") )
+  } else if ( istrcaseeq(ext, ".xml") )
   { dtd *dtd = new_dtd(NULL);
 
     set_dialect_dtd(dtd, DL_XML);
@@ -252,4 +253,6 @@ main(int argc, char **argv)
     return 1;
   }
 }
+
+
 
