@@ -3904,9 +3904,16 @@ emit_cdata(dtd_parser *p, int last)
   { sgml_environment *env = p->environments;
     dtd_state *new;
     
+				/* If an element is not in the DTD we must */
+				/* assume mixed content and emit spaces */
+
     if ( (new=make_dtd_transition(env->state, CDATA_ELEMENT)) )
     { env->state = new;
       if ( p->on_data )
+	(*p->on_data)(p, EC_CDATA, p->cdata->size, data);
+    } else if ( env->element->undefined &&
+		p->environments->space_mode == SP_PRESERVE )
+    { if ( p->on_data )
 	(*p->on_data)(p, EC_CDATA, p->cdata->size, data);
     }
   }

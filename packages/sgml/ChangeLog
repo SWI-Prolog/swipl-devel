@@ -1,3 +1,6 @@
+* MODIFIED: When processing non-validated data in space-preserve mode, emit
+  ALL blank data (Richard O'Keefe).
+
 * FIXED: close file after reading DTD from a file.  (Anjo Anjewierden)
 
 * FIXED: handling of (a) +(b) element declaraction (Richard O'Keefe)
