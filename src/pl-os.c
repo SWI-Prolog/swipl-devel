@@ -1,4 +1,4 @@
-/*  pl-os.c,v 1.23 1993/05/06 13:57:47 jan Exp
+/*  $Id$
 
     Copyright (c) 1990 Jan Wielemaker. All rights reserved.
     See ../LICENCE to find out about your rights.
@@ -29,10 +29,13 @@ static long	wait_ticks;	/* clock ticks not CPU time */
 #include <sys/ioctl.h>
 #endif
 #include <unistd.h>
+#include <errno.h>
 #endif
 
 #if sun
+#if !solaris
 #include <vfork.h>
+#endif
 extern int fstat(/*int, struct stat **/);
 extern int stat(/*char *, struct stat**/);
 extern int unlink(/*char **/);
@@ -401,7 +404,7 @@ TemporaryFile(char *id)
 
 #if unix
   static int temp_counter = 0;
-  sprintf(temp, "/tmp/pl_%s_%d_%d", id, getpid(), temp_counter++);
+  sprintf(temp, "/tmp/pl_%s_%d_%d", id, (int) getpid(), temp_counter++);
 #endif
 
 #if EMX

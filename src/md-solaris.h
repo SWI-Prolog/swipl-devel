@@ -1,4 +1,4 @@
-/*  md-solaris.h,v 1.16 1993/06/28 13:08:52 jan Exp
+/*  $Id$
 
     Copyright (c) 1990 Jan Wielemaker. All rights reserved.
     See ../LICENCE to find out about your rights.
@@ -15,12 +15,12 @@ NOTE:	/lri2/jan/{lib,include} hold the GNU readline library.  Modify
 #define M_CC			gcc
 #define M_OPTIMIZE	        -O2
 #define M_LDFLAGS		-L/lri2/jan/lib
-#define M_CFLAGS		-funsigned-char -I/lri2/jan/include
+#define M_CFLAGS		-Wall -funsigned-char -I/lri2/jan/include
 #define M_LIBS			-lm -ltermcap -lreadline -lelf
 
 			/* compiler */
 #define solaris			1
-#define SGU			1
+#define USG			1
 #define ANSI			__GNUC__
 #define O_ULONG_PREDEFINED	1
 

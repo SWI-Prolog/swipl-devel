@@ -25,37 +25,37 @@ is linked this way.
 		*           ANALYSIS            *
 		*********************************/
 
-int
+constf int
 PL_is_var(register Word t)
 { return isVar(*t);
 }
 
-int
+constf int
 PL_is_int(register Word t)
 { return isInteger(*t);
 }
 
-int
+constf int
 PL_is_atom(register Word t)
 { return isAtom(*t);
 }
 
-int
+constf int
 PL_is_float(register Word t)
 { return isReal(*t);
 }
 
-int
+constf int
 PL_is_string(register Word t)
 { return isString(*t);
 }
 
-int
+constf int
 PL_is_term(register Word t)
 { return isTerm(*t);
 }
 
-int
+constf int
 PL_type(register Word t)
 { if ( isVar(*t) )		return PL_VARIABLE;
   if ( isInteger(*t) )		return PL_INTEGER;
@@ -87,42 +87,42 @@ PL_list_string_value(register Word t)
   return listToString(*t);
 }
 
-long
+constf long
 PL_integer_value(register word t)
 { return valNum(t);
 }
 
-char *
-PL_atom_value(register word t)
-{ return stringAtom(t);
+char * constf
+PL_atom_value(const atomic t)
+{ return stringAtom((Atom) t);
 }
 
-functor
+constf functor
 PL_functor(register Word t)
 { return isTerm(*t) ? (functor) functorTerm(*t) : (functor) NULL;
 }
 
-atomic
+constf atomic
 PL_functor_name(register FunctorDef f)
 { return (atomic) f->name;
 }
 
-int
+constf int
 PL_functor_arity(register FunctorDef f)
 { return f->arity;
 }
 
-term
-PL_arg(register Word t, register int n)
-{ register Word a = argTermP(*t, n-1);
+term constf
+PL_arg(const term t, int n)
+{ Word a = argTermP(*(Word)t, n-1);
 
   deRef(a);
 
   return (term) a;
 }
 
-term
-PL_strip_module(term t, Module *m)
+constf term
+PL_strip_module(const term t, Module *m)
 { return (term) stripModule(t, m);
 }
 

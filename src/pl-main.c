@@ -425,7 +425,7 @@ va_list args;
   vfprintf(stderr, fm, args);
   if ( gc_status.active )
   { fprintf(stderr,
-	    "\n[While in %d-th garbage collection; skipping stacktrace]\n",
+	    "\n[While in %ld-th garbage collection; skipping stacktrace]\n",
 	    gc_status.collections);
   } else
   { fprintf(stderr, "\n[Switched to system mode: style_check(+dollar)]\n");
