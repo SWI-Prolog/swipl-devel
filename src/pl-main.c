@@ -1223,6 +1223,7 @@ vwarning(const char *fm, va_list args)
     { Sfprintf(Suser_error, "ERROR: ");
       Svfprintf(Suser_error, fm, args);
       Sfprintf(Suser_error, "\n");
+      Pause(0.5);
     }
   }
 

@@ -26,6 +26,7 @@ LIB=$(LIB);E:\jan\lib
 # Configuration selection
 
 CFG=dev
+DBG=false
 
 !IF "$(CFG)" == "rt"
 CMFLAGS=/DO_RUNTIME
@@ -54,12 +55,13 @@ LD=link.exe /nologo
 AR=lib.exe
 RSC=rc.exe
 CMD=cmd.exe
-LIBS=user32.lib shell32.lib gdi32.lib advapi32.lib wsock32.lib
 INSTALL=copy
 INSTALL_PROGRAM=$(INSTALL)
 INSTALL_DATA=$(INSTALL)
 MKDIR=mkdir
-MAKE=nmake CFG="$(CFG)" /nologo /f Makefile.mak
+MAKE=nmake CFG="$(CFG)" DBG="$(DBG)" /nologo /f Makefile.mak
+
+LIBS=user32.lib shell32.lib gdi32.lib advapi32.lib wsock32.lib
 
 # Architecture identifier for Prolog's current_prolog_flag(arch, Arch)
 
@@ -71,8 +73,16 @@ PLLIB=$(PLHOME)\lib\libpl.lib
 TERMLIB=$(PLHOME)\lib\plterm.lib
 UXLIB=$(PLHOME)\lib\uxnt.lib
 
+!IF "$(DBG)" == "false"
 CFLAGS=/MD /W3 /O2 /GX /DNDEBUG /DWIN32 /D_WINDOWS $(CMFLAGS) /nologo /c
 LDFLAGS=
+D=
+!ELSE
+CFLAGS=/MD /W3 /Zi /Od /GX /D_DEBUG /DWIN32 /D_WINDOWS $(CMFLAGS) /nologo /c
+LD=link.exe /nologo /incremental:yes
+LDFLAGS=/DEBUG
+D=D
+!ENDIF
 
 .c.obj:
 	@$(CC) -I. -Irc -I $(PLHOME)\include $(CFLAGS) /Fo$@ $<
