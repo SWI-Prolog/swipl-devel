@@ -50,6 +50,8 @@
 	    rdf_set_predicate/2,	% +Predicate, +Property
 	    rdf_predicate_property/2,	% +Predicate, ?Property
 
+	    rdf_transaction/1,		% :Goal
+
 	    rdf_save_db/1,		% +File
 	    rdf_save_db/2,		% +File, +DB
 	    rdf_load_db/1,		% +File

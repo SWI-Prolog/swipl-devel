@@ -110,6 +110,8 @@ static atom_t	ATOM_like;
 
 static atom_t	ATOM_subPropertyOf;
 
+static predicate_t PRED_call1;
+
 #define MATCH_EXACT 		0x1	/* exact triple match */
 #define MATCH_SUBPROPERTY	0x2	/* Use subPropertyOf relations */
 #define MATCH_SRC		0x4	/* Match source location */
@@ -124,6 +126,7 @@ static int  triple_hash(rdf_db *db, triple *t, int which);
 static unsigned long object_hash(triple *t);
 static int	permission_error(const char *op, const char *type,
 				 const char *obj, const char *msg);
+static void	reset_db(rdf_db *db);
 
 
 		 /*******************************
@@ -345,8 +348,9 @@ INIT_LOCK(rdf_db *db)
     return FALSE;
   }
 
-  db->writer = -1;
-  db->readers = 0;
+  db->writer          = -1;
+  db->transactor      = -1;
+  db->readers         = 0;
   db->waiting_readers = 0;
   db->waiting_writers = 0;
 
@@ -446,6 +450,12 @@ WRLOCK(rdf_db *db)
 
 
 static int
+TRLOCK(rdf_db *db)
+{ return TRUE;
+}
+
+
+static int
 UNLOCK(rdf_db *db)
 { int self = PL_thread_self();
   enum { NONE, READ, WRITE } waiting;
@@ -501,8 +511,9 @@ INIT_LOCK(rdf_db *db)
     return FALSE;
   }
 
-  db->writer = -1;
-  db->readers = 0;
+  db->writer          = -1;
+  db->transactor      = -1;
+  db->readers	      = 0;
   db->waiting_readers = 0;
   db->waiting_writers = 0;
 
@@ -3180,6 +3191,189 @@ update_duplicates_del(rdf_db *db, triple *t)
 
 
 		 /*******************************
+		 *	    TRANSACTIONS	*
+		 *******************************/
+
+static void
+append_transaction(rdf_db *db, transaction_record *tr)
+{ tr->previous = db->transactions;
+  db->transactions = tr;
+}
+
+
+static void
+open_transaction(rdf_db *db)
+{ transaction_record *tr = PL_malloc(sizeof(*tr));
+
+  memset(tr, 0, sizeof(*tr));
+  tr->type = TR_MARK;
+
+  if ( db->transactions )
+    db->tr_nesting++;
+  else
+    db->tr_nesting = 0;
+
+  append_transaction(db, tr);
+}
+
+
+static void
+record_transaction(rdf_db *db, tr_type type, triple *t)
+{ transaction_record *tr = PL_malloc(sizeof(*tr));
+
+  memset(tr, 0, sizeof(*tr));
+  tr->type = type;
+  tr->triple = t;
+
+  append_transaction(db, tr);
+}
+
+
+static void
+free_transaction(transaction_record *tr)
+{ switch(tr->type)
+  { case TR_ASSERT:
+      unlock_atoms(tr->triple);
+      PL_free(tr->triple);
+      break;
+    case TR_UPDATE:
+      unlock_atoms(tr->update.triple);
+      PL_free(tr->update.triple);
+      break;
+    default:
+      break;
+  }
+
+  PL_free(tr);
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+discard_transaction()  simply  destroys  all   actions    in   the  last
+transaction.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+discard_transaction(rdf_db *db)
+{ transaction_record *tr, *prev;
+
+  for(tr=db->transactions; tr; tr = prev)
+  { prev = tr->previous;
+
+    if ( tr->type == TR_MARK )
+    { PL_free(tr);
+      db->transactions = prev;
+      db->tr_nesting--;
+      return;
+    }
+    
+    free_transaction(tr);
+  }
+}
+
+
+static int
+commit_transaction(rdf_db *db)
+{ transaction_record *tr, *prev;
+
+  if ( db->tr_nesting > 0 )		/* commit nested transaction */
+  { tr=db->transactions;
+
+    if ( tr->type == TR_MARK )		/* empty nested transaction */
+    { db->transactions = tr->previous;
+      PL_free(tr);
+      db->tr_nesting--;
+
+      return TRUE;
+    }
+
+    for(; tr; tr = prev)
+    { prev = tr->previous;
+
+      if ( prev && prev->type == TR_MARK )
+      { tr->previous = prev->previous;
+	PL_free(prev);
+	db->tr_nesting--;
+
+	return TRUE;
+      }
+    }
+  }
+
+					/* real commit */
+  for(tr=db->transactions; tr; tr = prev)
+  { prev = tr->previous;
+
+    switch(tr->type)
+    { case TR_MARK:
+	db->transactions = NULL;
+        assert(prev == NULL);
+	break;
+      case TR_ASSERT:
+	link_triple(db, tr->triple);
+        db->generation++;
+	break;
+      case TR_RETRACT:
+	if ( !tr->triple->erased )	/* already erased */
+	{ erase_triple(db, tr->triple);
+	  db->generation++;
+	}
+	break;
+      case TR_UPDATE:
+	erase_triple(db, tr->triple);
+        link_triple(db, tr->update.triple);
+	db->generation++;
+	break;
+      case TR_UPDATE_SRC:
+        if ( tr->triple->source != tr->update.src.atom )
+	{ unregister_source(db, tr->triple);
+	  tr->triple->source = tr->update.src.atom;
+	  register_source(db, tr->triple);
+	}
+        tr->triple->line = tr->update.src.line;
+	db->generation++;
+	break;
+      case TR_RESET:
+	reset_db(db);
+        break;
+      default:
+	assert(0);
+    }
+
+    PL_free(tr);
+  }
+
+  return TRUE;
+}
+
+
+static foreign_t
+rdf_transaction(term_t goal)
+{ int rc;
+  rdf_db *db = DB;
+
+  if ( !TRLOCK(db) )
+    return FALSE;
+
+  open_transaction(db);
+
+  rc = PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, PRED_call1, goal);
+
+  if ( rc )
+  { WRLOCK(db);				/* upgrade to a write lock */
+    commit_transaction(db);
+  } else
+  { discard_transaction(db);
+  }
+  UNLOCK(db);
+
+  return rc;
+}
+
+
+
+
+		 /*******************************
 		 *	     PREDICATES		*
 		 *******************************/
 
@@ -3204,14 +3398,18 @@ rdf_assert4(term_t subject, term_t predicate, term_t object, term_t src)
   }
 
   lock_atoms(t);
-  if ( !WRLOCK(db) )
-  { unlock_atoms(t);
-    PL_free(t);
-    return FALSE;
+  if ( db->transactions )
+  { record_transaction(db, TR_ASSERT, t);
+  } else
+  { if ( !WRLOCK(db) )
+    { unlock_atoms(t);
+      PL_free(t);
+      return FALSE;
+    }
+    link_triple(db, t);
+    db->generation++;
+    UNLOCK(db);
   }
-  link_triple(db, t);
-  db->generation++;
-  UNLOCK(db);
 
   return TRUE;
 }
@@ -3554,7 +3752,6 @@ rdf_update(term_t subject, term_t predicate, term_t object, term_t action)
 static foreign_t
 rdf_retractall4(term_t subject, term_t predicate, term_t object, term_t src)
 { triple t, *p;
-  int erased = 0;
   rdf_db *db = DB;
       
   memset(&t, 0, sizeof(t));
@@ -3570,13 +3767,15 @@ rdf_retractall4(term_t subject, term_t predicate, term_t object, term_t src)
   p = db->table[t.indexed][triple_hash(db, &t, t.indexed)];
   for( ; p; p = p->next[t.indexed])
   { if ( match_triples(p, &t, MATCH_EXACT|MATCH_SRC) )
-    { erase_triple(db, p);
-      erased++;
+    { if ( db->transactions )
+      { record_transaction(db, TR_RETRACT, p);
+      } else
+      { erase_triple(db, p);
+	db->generation++;
+      }
     }
   }
 
-  if ( erased )
-    db->generation++;
   UNLOCK(db);
 
   return TRUE;
@@ -4295,22 +4494,28 @@ erase_predicates(rdf_db *db)
 }
 
 
-static foreign_t
-rdf_reset_db()
-{ rdf_db *db = DB;
-
-  if ( !WRLOCK(db) )
-    return FALSE;
-  erase_triples(db);
+static void
+reset_db(rdf_db *db)
+{ erase_triples(db);
   erase_predicates(db);
   erase_sources(db);
   db->need_update = FALSE;
   db->agenda_created = 0;
+}
 
+
+static foreign_t
+rdf_reset_db()
+{ rdf_db *db = DB;
+  
+  if ( !WRLOCK(db) )
+    return FALSE;
+  reset_db(db);
   UNLOCK(db);
 
   return TRUE;
 }
+
 
 
 		 /*******************************
@@ -4560,6 +4765,7 @@ rdf_version(term_t v)
 #define MKFUNCTOR(n, a) \
 	FUNCTOR_ ## n ## a = PL_new_functor(PL_new_atom(#n), a)
 #define NDET PL_FA_NONDETERMINISTIC
+#define META PL_FA_TRANSPARENT
 
 install_t
 install_rdf_db()
@@ -4605,6 +4811,8 @@ install_rdf_db()
   ATOM_word	     = PL_new_atom("word");
   ATOM_subPropertyOf = PL_new_atom(URL_subPropertyOf);
 
+  PRED_call1         = PL_predicate("call", 1, "user");
+
 					/* statistics */
   keys[i++] = FUNCTOR_triples1;
   keys[i++] = FUNCTOR_subjects1;
@@ -4644,6 +4852,7 @@ install_rdf_db()
   PL_register_foreign("rdf_sources_",   1, rdf_sources,     0);
   PL_register_foreign("rdf_estimate_complexity",
 					4, rdf_estimate_complexity, 0);
+  PL_register_foreign("rdf_transaction",1, rdf_transaction, META);
 #ifdef O_DEBUG
   PL_register_foreign("rdf_debug",      1, rdf_debug,       0);
 #endif

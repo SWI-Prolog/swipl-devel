@@ -155,6 +155,7 @@ typedef enum
   TR_ASSERT,				/* rdf_assert */
   TR_RETRACT,				/* rdf_retractall */
   TR_UPDATE,				/* rdf_update */
+  TR_UPDATE_SRC,			/* rdf_update */
   TR_RESET				/* rdf_reset_db */
 } tr_type;
 
@@ -163,7 +164,13 @@ typedef struct transaction_record
 { struct transaction_record    *previous;
   tr_type			type;
   triple		       *triple;		/* new/deleted triple */
-  triple		       *triple2; 	/* used for update */
+  union
+  { triple		       *triple; 	/* used for update */
+    struct
+    { atom_t			atom;
+      unsigned long		line;
+    } src;
+  } update;
 } transaction_record;
 
 
@@ -201,8 +208,8 @@ typedef struct rdf_db
   source      **source_table;		/* Hash table of sources */
   int      	source_table_size;	/* Entries in table */
   source	*last_source;		/* last accessed source */
-  transaction_record *tr_head;		/* pending transactions */
-  transaction_record *tr_tail;		/* tail of the list */
+  transaction_record *transactions;	/* pending transactions */
+  int		tr_nesting;		/* nesting depth of transactions */
 #ifdef _REENTRANT
 #ifdef WIN32
   CRITICAL_SECTION	mutex;
@@ -220,6 +227,7 @@ typedef struct rdf_db
   int		       *read_by_thread;
 #endif
   int			writer;
+  int			transactor;
   int			readers;
 } rdf_db;
 
