@@ -1932,7 +1932,9 @@ invoke(Term rec, Term cl, Term msg, Term ret)
 	    if ( rval )
 	    { if ( IsFunctor(av+3, FUNCTOR_ref1) )
 	      { if ( !get_object_from_refterm(av+3, &goal.rval) )
+		{ rval = FALSE;
 		  goto out;
+		}
 
 		if ( !PL_unify(ret, av+3) )
 		  rval = unifyObject(ret, goal.rval, FALSE);

@@ -1,6 +1,10 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Throw exception of Prolog defined get-method returns a
+  freed XPCE object. Used to succeed without binding the result.
+  Thanks to Lourens van der Meij.
+
 * FIXED: Windows: reading transparent GIF with > 128 colours.
 
 * FIXED: `Image->mask' in windows now sets the masked parts to black for
