@@ -3039,7 +3039,14 @@ pl_put_column(context *c, int nth, term_t col)
     c->rc = SQLGetData(c->hstmt, (UWORD)(nth+1), p->cTypeID,
 		       buf, sizeof(buf), &len);
     if ( c->rc == SQL_SUCCESS || c->rc == SQL_SUCCESS_WITH_INFO )
-    { if ( len >= sizeof(buf) )
+    { if ( len == SQL_NULL_DATA )
+      { put_sql_null(val, c->null);
+	goto ok;
+      } else if ( len == SQL_NO_TOTAL )
+      { /* Don't know what to do here */
+	return PL_warning("No support for SQL_NO_TOTAL.\n"
+			  "Please report to bugs@swi-prolog.org");
+      } else if ( len >= sizeof(buf) )
       { SDWORD len2;
 
 	data = odbc_malloc(len+1);

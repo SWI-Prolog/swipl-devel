@@ -132,6 +132,17 @@ type(varchar(100),
      [ codes   = sql_atom_codes
      ],
      []).
+type(varchar(2000),				% can we access as integers?
+     atom = [ 'This is a nice atom',
+	      '',
+	      Long,
+	      '$null$'
+	    ],
+     [ 
+     ],
+     []) :-
+	findall(a, between(1, 1500, _), LongChars),
+	atom_chars(Long, LongChars).
 type(binary(20),
      atom = [ foo,
 	      '',
