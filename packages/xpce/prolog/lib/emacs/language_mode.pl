@@ -58,6 +58,10 @@
 variable(comment_column,	int,	both, "Column for line comment").
 variable(show_line_numbers,	[bool], get,  "Show line numbers?").
 
+setup_mode(E) :->
+	"Switch editor into fill-mode"::
+	send(E, fill_mode, @on).
+
 initialise(M) :->
 	"Inititialise comment_column"::
 	send(M, send_super, initialise),
@@ -130,38 +134,20 @@ comment_lines(TB, S0, End, Comment) :-
 	).
 	
 
-fill_paragraph(M, Justify:[int]) :->
-	"Fill comment paragraph"::
-	get(M, caret, Caret),
-	(   (   get(M, scan_syntax, 0, Caret, tuple(comment, Start))
-	    ->  get(M, column, Start, 0)
-	    ;	get(M, column, Caret, 0),
-		Start = Caret
-	    ),
-	    get(M?syntax, comment_start, 1, CS),
-	    send(M, looking_at, CS, Start)
-	->  send(M, fill_comment_paragraph, Justify)
-	;   send_super(M, fill_paragraph, Justify)
-	).
-
-
-justify_paragraph(M) :->
-	"->fill_paragraph using right-margin"::
-	send(M, fill_paragraph, 1).
-
-
-fill_comment_paragraph(M, Justify:justify=[bool|int]) :->
+fill_comment_paragraph(M, Justify:justify=[bool|int], From:[int]) :->
 	"Fill paragraph in (line) comment"::
 	(   get(M?syntax, comment_start, 1, CS)
 	->  true
 	;   send(M, report, warning, 'No line-comment character defined'),
 	    fail
 	),
-	new(Re, regex(string('^%s?\\\\s *$', CS))),
-	new(LeadRe, regex(string('%s\\\\s *', CS))),
+	new(Re, regex(string('^%s?[ \t]*$', CS))),
+	new(LeadRe, regex(string('%s[ \t]*', CS))),
 	get(M, caret, Caret),
 	get(M, text_buffer, TB),
-	(   get(Re, search, TB, Caret, 0, StartPar),
+	(   From \== @default
+	->  Start = From
+	;   get(Re, search, TB, Caret, 0, StartPar),
 	    get(TB, scan, StartPar, line, 1, start, Start)
 	->  true
 	;   Start = 0
@@ -323,6 +309,50 @@ substitute(String, From, To) :-
 
 
 		 /*******************************
+		 *	       FILLING		*
+		 *******************************/
+
+:- pce_group(fill).
+
+
+fill_paragraph(M, Justify:[int]) :->
+	"Fill comment paragraph"::
+	get(M, caret, Caret),
+	(   (   get(M, scan_syntax, 0, Caret, tuple(comment, Start))
+	    ->  get(M, column, Start, 0)
+	    ;	get(M, column, Caret, 0),
+		Start = Caret
+	    ),
+	    get(M?syntax, comment_start, 1, CS),
+	    send(M, looking_at, CS, Start)
+	->  send(M, fill_comment_paragraph, Justify)
+	;   send_super(M, fill_paragraph, Justify)
+	).
+
+
+justify_paragraph(M) :->
+	"->fill_paragraph using right-margin"::
+	send(M, fill_paragraph, 1).
+
+
+auto_fill(M, From:[int]) :->
+	"Auto fill in comment mode"::
+	(   From == @default
+	->  get(M, caret, Caret)
+	;   Caret = From
+	),
+	(   get(M, scan_syntax, 0, Caret, tuple(comment, Start)),
+	    get(M, column, Start, 0)
+	->  (	get(M?syntax, comment_start, 1, CS),
+	        send(M, looking_at, CS, Start)
+	    ->	send(M, fill_comment_paragraph, @off, Start)
+	    ;	get(M, editor, Editor),
+	        send_class(Editor, editor, auto_fill(Caret))
+	    )
+	).
+
+
+		 /*******************************
 		 *          INDENTATION		*
 		 *******************************/
 
@@ -339,6 +369,7 @@ indent_line(E) :->
 	send(E, beginning_of_text_on_line),
 	(   send(E, indent_close_bracket_line)
 	;   send(E, indent_expression_line)
+	;   send(E, indent_comment_line)
 	;   send(E, align_with_previous_line)
 	).
 
@@ -381,6 +412,26 @@ indent_expression_line(E, Brackets:[name], Base:[int]) :->
 	    send(E, align_line, Col), !.
 
 		
+%	->indent_comment_line
+%
+
+
+indent_comment_line(M) :->
+	"Copy leading comment of previous line"::
+	get(M, text_buffer, TB),
+	get(TB?syntax, comment_start, 1, CS),
+	get(M, caret, Caret),
+	get(M, scan, Caret, line, -1, start, SOPL),
+	new(LeadRe, regex(string('%s[ \t]*', CS))),
+	get(LeadRe, match, TB, SOPL, Len), 	% Previous holds comment
+	get(M, scan, Caret, line, 0, start, SOL),
+	send(M, looking_at, string('%s?[ \t]*$', CS), SOL),
+	get(TB, contents, SOPL, Len, Lead),
+	get(M, scan, SOL, line, 0, end, EOL),
+	send(TB, delete, SOL, EOL-SOL),
+	send(M, insert, Lead).
+
+
 		/********************************
 		*           ALIGNMENT		*
 		********************************/
@@ -552,9 +603,16 @@ beginning_of_text_on_line(E) :->
 	"Position caret at first non-white on line"::
 	get(E, caret, Caret),
 	get(E, scan, Caret, line, 0, start, SOL),
-	get(E, scan, Caret, line, 0, end,   EOL),
-	get(E, skip_comment, SOL, EOL, P0),
-	send(E, caret, P0).
+	(   get(E?syntax, comment_start, 1, CS),
+	    new(LeadRe, regex(string('%s[ \t]*', CS))),
+	    get(E, text_buffer, TB),
+	    get(LeadRe, match, TB, SOL, Len)
+	->  AtText is SOL+Len,
+	    send(E, caret, AtText)
+	;   get(E, scan, Caret, line, 0, end,   EOL),
+	    get(E, skip_comment, SOL, EOL, P0),
+	    send(E, caret, P0)
+	).
 
 
 new_caret_position(M, Caret:int) :->

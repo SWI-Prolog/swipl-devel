@@ -182,7 +182,8 @@ indent_line(E) :->
 	send(E, beginning_of_text_on_line),
 	get(E, caret, Caret),
 	get(E, beginning_of_clause, Caret, Base),
-	(   send(E, indent_close_bracket_line, ')}]', Base)
+	(   send(E, indent_comment_line)
+	;   send(E, indent_close_bracket_line, ')}]', Base)
 	;   send(E, indent_if_then_else)
 	;   send(E, indent_expression_line, ')}]', Base)
 	;   send(E, indent_clause_line)

@@ -809,6 +809,13 @@ drop(E, Obj:object) :->
 	send(Mode, drop, Obj).
 
 
+auto_fill(E, Caret:[int]) :->
+	"Delegate to mode"::
+	get(E, mode, Mode),
+	get(Mode?class, send_method, auto_fill, _), 	% avoid delegation
+	send(Mode, auto_fill, Caret).
+
+
 import_selection(E) :->
 	"Import the (primary) selection or the cut_buffer"::
 	get(E, display, Display),

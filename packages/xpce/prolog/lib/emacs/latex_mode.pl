@@ -33,32 +33,27 @@
 :- use_module(library(pce)).
 :- require([ send_list/3
 	   ]).
-:- set_prolog_flag(character_escapes, false).
 
 :- emacs_begin_mode(latex, outline,
 		    "Mode for editing LaTeX documents",
 		    [ insert_quote      = key('"'),
-		      open_document     = key('\C-c\C-o') + button('LaTeX'),
-		      close_environment = key('\C-c\C-f') + button('LaTeX'),
-		      make_command      = key('\C-\') + button('LaTeX'),
-		      make_environment  = key('\C-cRET') + button('LaTeX')
+		      open_document     = key('\\C-c\\C-o') + button('LaTeX'),
+		      close_environment = key('\\C-c\\C-f') + button('LaTeX'),
+		      make_command      = key('\\C-\\') + button('LaTeX'),
+		      make_environment  = key('\\C-cRET') + button('LaTeX')
 		    ],
 		    [ \	   = symbol,
 		      -    = symbol,
 		      '`'  = open_bracket(''''),
 		      '%'  = comment_start,
 		      '\n' + comment_end,
-		      paragraph_end(regex('\s *\(\sn\|%\|\\item\|\\tick\|\\begin\|\\end\|\\\(sub\)*section\)\|%$'))
+		      paragraph_end(regex('\\s *\\(\\sn\\|%\\|\\\\item\\|\\\\tick\\|\\\\begin\\|\\\\end\\|\\\\\\(sub\\)*section\\)\\|%$'))
 		    ]).
 
 :- send(@class, attribute, outline_regex_list,
-	chain(regex('^\(\\\(sub\)*section{[^}]*}.*\n\)\(\(.*\n\)*\)\\\(sub\)*section{'))).
+	chain(regex('^\\(\\\\\\(sub\\)*section{[^}]*}.*\n\\)\\(\\(.*\n\\)*\\)\\\\\\(sub\\)*section{'))).
 
-:- pce_global(@latex_env_regex, new(regex('\\\(begin\|end\){\(\w+\)}'))).
-
-setup_mode(E) :->
-	"Switch editor into fill-mode"::
-	send(E, fill_mode, @on).
+:- pce_global(@latex_env_regex, new(regex('\\\\\\(begin\\|end\\){\\(\\w+\\)}'))).
 
 %	TBD: Nested environments?
 
@@ -80,13 +75,13 @@ close_environment(E) :->
 		    get(@latex_env_regex, register_value, TB, 2, Env),
 		    get(E, column, Start, Col),
 		    send(E, beginning_of_line),
-		    (	send(E, looking_at, '\s *$')	% blank line
+		    (	send(E, looking_at, '\\s *$')	% blank line
 		    ->	true
 		    ;	send(E, end_of_line),
 			send(E, newline)
 		    ),
 		    send(E, align, Col),
-		    send(E, insert, string('\\end{%s}\n', Env))
+		    send(E, insert, string('\\\\end{%s}\n', Env))
 		;   send(Nesting, minus, 1),
 		    send(Here, value, Start),
 		    fail
@@ -138,6 +133,21 @@ insert_self(M, Times:[int], Id:[char]) :->
 			send(M?editor, insert_self, Times, Id)).
 
 
+%	->auto_fill: From:[int]
+%
+%	First try comment-filling (normally only in style-files).  If this
+%	fails, language mode won't do any filling.  We call default text
+%	filling.
+
+auto_fill(M, From:[int]) :->
+	"Auto fill in comment mode"::
+	(   send_super(M, auto_fill, From) % auto-fill comments
+	->  true
+	;   get(M, editor, Editor),
+	    send_class(Editor, editor, auto_fill(From))
+	).
+
+
 		 /*******************************
 		 *	       QUOTE		*
 		 *******************************/
@@ -167,7 +177,7 @@ verbatim(code).
 
 open_document(M, Style:'{article,report,book,letter}|name') :->
 	"Insert document header"::
-	send(M, format, '\\documentclass{%s}\n\n', Style),
+	send(M, format, '\\\\documentclass{%s}\n\n', Style),
 	send(M, make_environment, document).
 
 
@@ -202,8 +212,8 @@ insert_section_header(E) :->
 	send(@latex_environment_name_type, slot, context, @latex_envionments).
 
 make_environment(M, Env:'latex_environment_name|name') :->
-	"Insert \begin{env} ... \end{env} with completion"::
-	send(M, format, '\\begin{%s}\n\n\\end{%s}\n', Env, Env),
+	"Insert \\begin{env} ... \\end{env} with completion"::
+	send(M, format, '\\\\begin{%s}\n\n\\\\end{%s}\n', Env, Env),
 	send(M, previous_line, 1),
 	send(M, align_with_previous_line),
 	send(M, previous_line, 1),
@@ -285,7 +295,7 @@ latex_lplain_commands(['[', ']', '!', '"', '#', '$', '%', '&', '''', '*',
 			widowpenalty, wp, wr, xi, xpt, zeta, '~']).
 
 latex_ordinary_commands(
-	[ 'Alph', 'Roman', '\\', address, addtocounter, addtolength,
+	[ 'Alph', 'Roman', '\\\\', address, addtocounter, addtolength,
 	  alph, appendix, arabic, bibliography, bibliographystyle,
 	  bigskip, centering, chapter, circle, cite, cite, cleardoublepage,
 	  clearpage, closing, dashbox, documentstyle, fbox, footnote,
@@ -327,7 +337,7 @@ latex_tabbing_commands(
    send(Chain, sort).
 
 make_command(M, Cmd:'latex_command_name|name') :->
-	"Insert a \command sequence with completion"::
-	send(M, format, '\\%s', Cmd).
+	"Insert a \\command sequence with completion"::
+	send(M, format, '\\\\%s', Cmd).
 
 :- emacs_end_mode. 
