@@ -1,4 +1,4 @@
-SWI-Prolog 5.4.0/XPCE 6.4.0 stable release
+SWI-Prolog 5.4.1/XPCE 6.4.0 stable release
 
 Although there are still various issues  with the current development it
 is decided to call it 5.4.0. This   version  is more stable than 5.2.13,
@@ -38,11 +38,17 @@ Patches in 5.4.1 relative to 5.4.0
 
   * Incorrect standard order of term handling for attributed variables.
 
+  * Bug in parser reading */* (interpreted as comment)
+
+  * Added strip_module/3 as built-in.
+
 
 Packages
 ========
 
-  * Semweb: crash in statistics supporting SeRQL query optimisation
+  * Semweb: crash in statistics supporting SeRQL query optimisation.
+    Error in branching factor statistics causing it to ignore the cached
+    value (hence causing a large slowdown).
 
 
 Incompatible changes
