@@ -202,7 +202,7 @@ WINOBJS=	win\browser.obj win\decorate.obj win\dialog.obj \
 # IMG 		--- Platform independent low-level image stuff
 ################################################################
 
-IMGOBJS=	img\jdatasrc.obj img\jdatadst.obj \
+IMGOBJS=	img\jdatasrc.obj img\jdatadst.obj img\imgutil.obj \
 		img\gifread.obj img\giftoxpm.obj img\gifwrite.obj
 
 ################################################################
