@@ -10,6 +10,7 @@
 #include "include.h"
 
 #ifdef HAVE_LIBJPEG
+#define boolean jpeg_boolean
 #undef GLOBAL				/* conflict */
 #include <jpeglib.h>
 #include <jerror.h>
@@ -17,7 +18,7 @@
 extern void jpeg_iostream_dest(j_compress_ptr cinfo, IOSTREAM *outfile);
 
 int
-write_jpeg_file(IOSTREAM *fd, HBITMAP bm)
+write_jpeg_file(IOSTREAM *fd, Image image, HBITMAP bm)
 { BITMAP bitmap;
   int width, height, depth;
   int y;
@@ -26,17 +27,30 @@ write_jpeg_file(IOSTREAM *fd, HBITMAP bm)
   struct jpeg_compress_struct cinfo;
   struct jpeg_error_mgr jerr;
   JSAMPLE *row;
+  DisplayObj d = image->display;
+  HPALETTE ohpal=0, hpal;
 
   if ( !GetObject(bm, sizeof(BITMAP), &bitmap) )
   { Cprintf("write_jpeg_file(): GetObject() failed\n");
     return -1;
   }
 
+  if ( isNil(d) )
+    d = CurrentDisplay(image);
+  if ( instanceOfObject(d->colour_map, ClassColourMap) )
+    hpal = getPaletteColourMap(d->colour_map);
+  else
+    hpal = NULL;
+
   width  = bitmap.bmWidth;
   height = bitmap.bmHeight;
   depth  = bitmap.bmPlanes * bitmap.bmBitsPixel;
 
   hdc = CreateCompatibleDC(NULL);
+  if ( hpal )
+  { ohpal = SelectPalette(hdc, hpal, FALSE);
+    RealizePalette(hdc);
+  }
   obm = ZSelectObject(hdc, bm);
 
   row = pceMalloc(sizeof(JSAMPLE)*3*width);
@@ -63,7 +77,9 @@ write_jpeg_file(IOSTREAM *fd, HBITMAP bm)
       *s++ = GetRValue(c);
       *s++ = GetGValue(c);
       *s++ = GetBValue(c);
+      DEBUG(NAME_jpeg, Cprintf("#%02x%02x%02x", s[-3], s[-2], s[-1]));
     }
+    DEBUG(NAME_jpeg, Cprintf("\n"));
 
     jpeg_write_scanlines(&cinfo, &row, 1);
   }
@@ -72,6 +88,8 @@ write_jpeg_file(IOSTREAM *fd, HBITMAP bm)
   jpeg_destroy_compress(&cinfo);
 
   ZSelectObject(hdc, obm);
+  if ( ohpal )
+    SelectPalette(hdc, ohpal, FALSE);
   DeleteDC(hdc);
 
   return 0;

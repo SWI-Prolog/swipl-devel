@@ -761,17 +761,19 @@ ws_save_image_file(Image image, FileObj file, Name fmt)
 #ifdef HAVE_LIBJPEG
     HBITMAP bm;
     IOSTREAM *fd;
+    status rval;
 
     if ( !(bm = getXrefObject(image, d)) )
       fail;
 
     if ( (fd = Sopen_object(file, "wbr")) )
-    { if ( write_jpeg_file(fd, bm) < 0 )
+    { if ( write_jpeg_file(fd, image, bm) < 0 )
 	rval = errorPce(image, NAME_xError);
       else
 	rval = SUCCEED;
 
       Sclose(fd);
+      return rval;
     }
 
     fail;

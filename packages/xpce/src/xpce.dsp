@@ -561,6 +561,10 @@ SOURCE=.\itf\iostream.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\img\jdatadst.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\img\jdatasrc.c
 # End Source File
 # Begin Source File
@@ -670,6 +674,10 @@ SOURCE=.\msw\msframe.c
 # Begin Source File
 
 SOURCE=.\msw\msimage.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\msw\msjpeg.c
 # End Source File
 # Begin Source File
 
