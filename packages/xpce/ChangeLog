@@ -1,6 +1,14 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ENHANCED: wheel-mouse events on a window are routed to the vertical
+  scrollbar if one is attached.
+
+* ADDED: `graphical<->solid' for more advanced definition of own repaint.
+
+* FIXED: `graphical->draw_image: argument-order and made transparent
+  argument accept default.
+
 * ADDED: ->background to class list_browser and class browser.
 
 * ADDED: Windows: support for UNC-filenames (//host/share/...)

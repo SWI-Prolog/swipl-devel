@@ -3037,9 +3037,9 @@ drawImageGraphical(Graphical gr, Image img,
     transparent = ON;
 
   r_image(img,
-	  valInt(x), valInt(y),
 	  isDefault(sx) ? 0 : valInt(sx),
 	  isDefault(sy) ? 0 : valInt(sy),
+	  valInt(x), valInt(y),
 	  isDefault(sw) ? valInt(img->size->w) : valInt(sw),
 	  isDefault(sh) ? valInt(img->size->w) : valInt(sh),
 	  transparent);
@@ -3068,6 +3068,23 @@ drawTextGraphical(Graphical gr, CharArray txt, FontObj font,
 }
 
 
+static status
+solidGraphical(Graphical gr, Bool solid) 
+{ if ( solid == ON )
+    setFlag(gr, F_SOLID);
+  else
+    clearFlag(gr, F_SOLID);
+
+  succeed;
+}	
+
+
+static Bool
+getSolidGraphical(Graphical gr) 
+{ answer(onFlag(gr, F_SOLID) ? ON : OFF);
+}	
+
+
 /* Type declaractions */
 
 static char *T_layout[] =
@@ -3077,7 +3094,7 @@ static char *T_resize[] =
 	{ "factor_x=real", "factor_y=[real]", "origin=[point]" };
 static char *T_drawImage[] =
 	{ "image", "x=int", "y=int", "sx=[int]", "sy=[int]",
-	  "sw=[int]", "sh=[int]", "transparent=bool" };
+	  "sw=[int]", "sh=[int]", "transparent=[bool]" };
 static char *T_postscript[] =
 	{ "landscape=[bool]", "maximum_area=[area]" };
 static char *T_network[] =
@@ -3247,6 +3264,8 @@ static senddecl send_graphical[] =
      NAME_draw, "Save current pen, texture, colours and font"),
   SM(NAME_unclip, 0, NULL, unclipGraphical,
      NAME_draw, "Undo previous ->clip"),
+  SM(NAME_solid, 1, "solid=bool", solidGraphical,
+     NAME_draw, "a ->_redraw_area touched all pixels"),
   SM(NAME_deleteRecogniser, 1, "recogniser", deleteRecogniserGraphical,
      NAME_event, "Delete a recogniser"),
   SM(NAME_event, 1, "event", eventGraphical,
@@ -3465,7 +3484,9 @@ static getdecl get_graphical[] =
   GM(NAME_network, 3, "chain", T_network, getNetworkGraphical,
      NAME_relation, "New chain with connected graphicals"),
   GM(NAME_isDisplayed, 1, "bool", "[device]", getIsDisplayedGraphical,
-     NAME_visibility, "@on if graphical is visible on device")
+     NAME_visibility, "@on if graphical is visible on device"),
+  GM(NAME_solid, 0, "bool", NULL, getSolidGraphical,
+     NAME_draw, "a ->_redraw_area touched all pixels")
 };
 
 /* Resources */

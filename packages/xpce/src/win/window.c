@@ -661,7 +661,11 @@ eventWindow(PceWindow sw, EventObj ev)
   }
 
   if ( !rval )
-    rval = mapWheelMouseEvent(ev, sw);
+  { ScrollBar sb = get(sw, NAME_verticalScrollbar, EAV);
+    Any obj = (sb && notNil(sb->object) ? sb->object : (Any)sw);
+      
+    rval = mapWheelMouseEvent(ev, obj);
+  }
     
   if ( !rval && notNil(sw->popup) && isDownEvent(ev) )
     rval = postEvent(ev, (Graphical) sw, popupGesture());
