@@ -4,6 +4,8 @@
 Version 2.7.0
 =============
 
+  * FIXED: HPUX compilation thanks to Gordon Streeter.
+
   * WIN32: The kernel is now in libpl.dll, which comes with two toplevel
     drivers: plcon.exe for a standard IO version and plwin.exe for the
     windows based version.  New directory embed with the sources of
