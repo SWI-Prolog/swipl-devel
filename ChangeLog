@@ -1,6 +1,12 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * PORT: improve portability of SWI-Prolog.h and SWI-cpp.h after comments
+    from Silvio Malisani concerning Borland's C++ Builder 5.I.
+
+  * FIXED: preserve exceptions with the GUI-tracer over callbacks to the
+    tracer.
+
   * FIXED: call_cleanup/3 when called directly from PL_next_solution()
     or tail-recursively from the initial goal.
 
