@@ -49,7 +49,7 @@ trace/trace.qlf:	.pwd trace/trace.pl trace/clause.pl trace/util.pl \
 			trace/gui.pl
 
 emacs/prolog_mode.qlf:	.pwd emacs/prolog_mode.pl emacs/prolog_colour.pl \
-			emacs/prolog_xref.pl xref/common.pl
+			xref/common.pl
 
 
 INDEX.pl:	.
