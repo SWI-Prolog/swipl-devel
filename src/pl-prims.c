@@ -2082,28 +2082,6 @@ PRED_IMPL("atom_number", 2, atom_number, 0)
 }
 
 
-
-static bool
-isPrefix(char *s, char *q)		/* s is prefix of q */
-{ while(*s && *s == *q)
-    s++, q++;
-
-  return *s == EOS ? TRUE : FALSE;
-}
-
-
-word
-pl_atom_prefix(term_t atom, term_t prefix)
-{ char *a, *p;
-
-  if ( PL_get_chars_ex(atom,   &a, CVT_ATOMIC|BUF_RING) &&
-       PL_get_chars_ex(prefix, &p, CVT_ATOMIC|BUF_RING) )
-    return isPrefix(p, a);
-
-  return FALSE;
-}
-
-
 static word
 concat(const char *pred,
        term_t a1, term_t a2, term_t a3, 

@@ -3222,7 +3222,9 @@ as code-lists and character-lists, expressing the length of the list.%
 
     \predicate{atom_prefix}{2}{+Atom, +Prefix}
 Succeeds if \arg{Atom} starts with the characters from \arg{Prefix}.
-Its behaviour is equivalent to \exam{?- concat(\arg{Prefix}, _, \arg{Atom})}, but avoids the construction of an atom for the `remainder'.
+Its behaviour is equivalent to
+\exam{?- sub_atom(\arg{Atom}, 0, _, _, \arg{Prefix})}.  Depreciated.
+
     \predicate{sub_atom}{5}{+Atom, ?Before, ?Len, ?After, ?Sub}
 ISO predicate for breaking atoms.  It maintains the following relation:
 \arg{Sub} is a sub-atom of \arg{Atom} that starts at \arg{Before}, has

@@ -41,6 +41,7 @@
 	, debugging/0
 	, concat_atom/2
 	, term_to_atom/2
+	, atom_prefix/2
 	, int_to_atom/2
 	, dwim_match/2
 	, source_file/1
@@ -303,6 +304,9 @@ int_to_atom(Int, Atom) :-
 
 dwim_match(A1, A2) :-
 	dwim_match(A1, A2, _).
+
+atom_prefix(Atom, Prefix) :-
+	sub_atom(Atom, 0, _, _, Prefix).
 
 
 		/********************************

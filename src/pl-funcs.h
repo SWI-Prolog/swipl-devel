@@ -549,7 +549,6 @@ COMMON(word) 		pl_atom_codes(term_t atom, term_t string);
 COMMON(word) 		pl_number_chars(term_t number, term_t string);
 COMMON(word) 		pl_number_codes(term_t number, term_t string);
 COMMON(word) 		pl_char_code(term_t atom, term_t chr);
-COMMON(word) 		pl_atom_prefix(term_t atom, term_t prefix);
 COMMON(word) 		pl_atom_concat(term_t a1, term_t a2, term_t a3, control_t ctx);
 COMMON(word) 		pl_concat_atom(term_t list, term_t atom);
 COMMON(word) 		pl_concat_atom3(term_t list, term_t sep, term_t atom);
