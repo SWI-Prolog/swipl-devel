@@ -48,8 +48,8 @@ Besides the written version, this document is also available as an HTML
 document from the URL below.  The second URL may be used to download
 the entire WWW tree for installation on a local host.
 \begin{quote}\small
-\url{http://swi.psy.uva.nl/projects/xpce/UserGuide/} \\
-\url{ftp://swi.psy.uva.nl/pub/xpce/HTML/UserGuide.tgz}
+\url{http://www.swi.psy.uva.nl/projects/xpce/UserGuide/} \\
+\url{ftp://ftp.swi.psy.uva.nl/xpce/HTML/UserGuide.tgz}
 \end{quote}
 
 \noindent
@@ -91,7 +91,7 @@ Utility programs, recent examples, documentation, etc.\ can be found
 in the primary \product{} anonymous ftp archive:
 
 \begin{quote}\small
-\url{ftp://swi.psy.uva.nl/pub/xpce/}
+\url{ftp://ftp.swi.psy.uva.nl/xpce/}
 \end{quote}
 
 \index{bug,reporting}%

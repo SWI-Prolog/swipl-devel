@@ -172,7 +172,7 @@ and provides a comprehensive toolkit for converting images.
 The \program{pixmap} program is a comprehensive icon editor, supporting
 all of XPM's features.  The image tools mentioned here, as well as the
 XPM library sources and a FAQ dealing with XPM related issues can be
-found at \url{ftp://swi.psy.uva.nl/pub/xpce/util/images/}
+found at \url{ftp://swi.psy.uva.nl/xpce/util/images/}
 
 
 \paragraph{Windows}
