@@ -15,6 +15,12 @@ install:
 rpm-install:
 	@cd $(BUILDARCH) && $(MAKE) $@
 
+html-install:
+	@cd $(BUILDARCH) && $(MAKE) $@
+
+pdf-install:
+	@cd $(BUILDARCH) && $(MAKE) $@
+
 clean:
 	@cd $(BUILDARCH) && $(MAKE) $@
 
