@@ -492,8 +492,8 @@ automatically decodes \jargon{base64} and \jargon{quoted-printable}
 messages.  See also the \const{transfer_encoding} attribute below.
 
  \arg{PartList} is
-a list of \funcref{mime}{3} terms.  \arg{Attributes} is a list holding
-a subset of the following arguments.  For details please consult the
+a list of \functor{mime}{3} terms. \arg{Attributes} is a list holding
+a subset of the following arguments. For details please consult the
 RFC2045 document.
 
 \begin{description}
