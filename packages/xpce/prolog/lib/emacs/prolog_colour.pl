@@ -105,7 +105,7 @@ colourise_buffer(M) :->
 	send(M, report, progress, 'Cross-referencing buffer ...'),
 	xref_source(TB),
 	send(M, report, progress, 'Colourising buffer ...'),
-	colourise_text_buffer(TB),
+	do_colourise_buffer(M),
 	send(M, colourise_comments),
 	statistics(runtime, [_,UsedMilliSeconds]),
 	Used is UsedMilliSeconds/1000,
@@ -131,7 +131,8 @@ colourise_or_recenter(M) :->
 		 *	     PREDICATES		*
 		 *******************************/
 
-colourise_text_buffer(TB) :-
+do_colourise_buffer(M) :-
+	get(M, text_buffer, TB),
 	pce_open(TB, read, Fd),
 	(   peek_char(Fd, #)		% skip #! script line
 	->  skip(Fd, 10)
@@ -141,6 +142,7 @@ colourise_text_buffer(TB) :-
 	repeat,
 	    catch(read_term(Fd, Term,
 			    [ subterm_positions(TermPos),
+			      singletons(Singletons),
 			      character_escapes(true)
 			    ]),
 		  _E,
@@ -148,7 +150,8 @@ colourise_text_buffer(TB) :-
 		      fail
 		  )),
 	    fix_operators(Term),
-	    (	colourise_term(Term, TB, TermPos)
+	    (	colourise_term(Term, TB, TermPos),
+		send(M, mark_singletons, Term, Singletons, TermPos)
 	    ->	true
 	    ;	print_message(warning,
 			      format('Failed to colourise ~p~n', [Term]))

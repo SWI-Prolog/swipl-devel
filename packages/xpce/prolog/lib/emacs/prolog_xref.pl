@@ -512,10 +512,12 @@ assert_multifile(Src, Name/Arity) :-
 %	xref_source_file(+Spec, -File, +Src)
 %	Find named source file.
 
-xref_source_file(Plain, File, Src) :-
+xref_source_file(Plain, File, Source) :-
+	canonical_source(Source, Src),
 	atom(Plain),
-	(   object(Src)
-	->  get(Src?file, absolute_path, Path)
+	(   integer(Src),
+	    object(@Src)
+	->  get(@Src?file, absolute_path, Path)
 	;   Path = Src
 	),
 	file_directory_name(Path, Dir),
@@ -550,9 +552,15 @@ open_source(Src, Fd) :-
 canonical_source(Object, Ref) :-
 	object(Object), !,
 	Object = @Ref.
+canonical_source(Ref, Ref) :-
+	integer(Ref), !.
 canonical_source(Source, Src) :-
 	absolute_file_name(Source,
 			   [ file_type(prolog),
 			     file_errors(fail)
 			   ],
 			   Src).
+
+
+
+

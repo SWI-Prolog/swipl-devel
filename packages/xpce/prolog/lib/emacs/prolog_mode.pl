@@ -732,7 +732,7 @@ check_clause(M, From:from=[int], Repair:repair=[bool], End:int) :<-
 		->  send(M, report, status, 'Clause checked')
 		;   true
 		)
-	    ;   mark_singletons(M, T, S, P),
+	    ;   send(M, mark_singletons, T, S, P),
 		(   Repair \== @off
 		->  replace_singletons(M, P)
 		;   true
@@ -846,11 +846,24 @@ unmark_singletons(M, P) :-
 		    message(@arg1, overlap, Pt)),
 		message(@arg1, free))).
 
+%	->mark_singletons: Term, Singletons, Pos
+%	
+%	Mark singleton variables in Term, where Singletons is a list of
+%	singleton variables returned from read_term/3 and Pos is the
+%	subterm-position returned.
+
+mark_singletons(M, Term:prolog, Singletons:prolog, Pos:prolog) :->
+	"Mark singleton variables using info from read_term/3"::
+	(   Singletons == []
+	->  true
+	;   mark_singletons(M, Term, Singletons, Pos)
+	).
+
 mark_singletons(M, T, S, A-Z) :-
 	var(T),
 	member_var(T, S), !,
 	get(M, text_buffer, TB),
-	new(_, fragment(TB, A, Z-A, singleton)).
+	new(_, emacs_colour_fragment(TB, A, Z-A, singleton)).
 mark_singletons(_, _, _, _-_) :- !.
 mark_singletons(_, _, _, list_position(_, _, [], none)) :- !.
 mark_singletons(M, T, S, list_position(_, _, [], Tail)) :- !,
@@ -998,7 +1011,7 @@ mark_variable(M) :->
 	    send(M, slot, has_var_marks, @on),
 	    (   subterm_position(Var, Clause, Pos, F-T),
 		Len is T - F,
-		new(_, fragment(TB, F, Len, varmark)),
+		new(_, emacs_colour_fragment(TB, F, Len, varmark)),
 		fail
 	    ;   true
 	    )
@@ -1008,9 +1021,7 @@ mark_variable(M) :->
 unmark_variables(M) :->
 	"Remove all variable-mark fragments"::
 	(   get(M, has_var_marks, @on)
-	->  send(M, for_all_fragments,
-		 if(@arg1?style == varmark,
-		    message(@arg1, free))),
+	->  send(M, remove_syntax_framents, style := varmark),
 	    send(M, slot, has_var_marks, @off)
 	;   true
 	).

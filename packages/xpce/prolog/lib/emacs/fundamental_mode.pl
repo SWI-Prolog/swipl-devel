@@ -184,19 +184,30 @@ colourise_buffer(M) :->
 	send(TB, coloured_generation, Generation).
 
 
-remove_syntax_fragments(M, From:[int], To:[int]) :->
+remove_syntax_fragments(M,
+			From:from=[int], To:to=[int],
+			Style:style=[name]) :->
 	"Remove all syntax-colouring fragments"::
-	(   From == @default,
-	    To == @default
-	->  send(M, for_all_fragments,
-		 if(message(@arg1, instance_of, emacs_colour_fragment),
-		    message(@arg1, free)))
-	;   new(Pt, point(From, To)),
-	    send(M, for_all_fragments,
-		 if(and(message(@arg1, overlap, Pt),
-		        message(@arg1, instance_of, emacs_colour_fragment)),
-		    message(@arg1, free)))
-	).
+	remove_condition(From, To, Style, Condition),
+	send(M, for_all_fragments,
+	     if(Condition, message(@arg1, free))).
+
+
+:- pce_global(@is_emacs_colour_fragment,
+	      new(message(@arg1, instance_of, emacs_colour_fragment))).
+
+remove_condition(@default, @default, @default,
+		 @is_emacs_colour_fragment).
+remove_condition(From, To, @default,
+		 and(message(@arg1, overlap, point(From, To)),
+		     @is_emacs_colour_fragment)).
+remove_condition(@default, @default, Style,
+		 and(@arg1?style == Style,
+		     @is_emacs_colour_fragment)).
+remove_condition(From, To, Style,
+		 and(@arg1?style == Style,
+		     message(@arg1, overlap, point(From, To)),
+		     @is_emacs_colour_fragment)).
 
 
 		 /*******************************

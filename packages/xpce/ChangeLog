@@ -10,6 +10,7 @@
 	- Precompile prolog_mode.pl and related files to qlf to speed up
 	  loading on slow machines.
 	- Marking variables.
+	- Integrate singleton marks with global colouring.
 
 * MODIFIED: Make pce_image_directory/1 not open the display when compiling
   a state.  This should be fine as long as the compilation process doesn't
