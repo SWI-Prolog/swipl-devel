@@ -250,6 +250,11 @@ show_file_labels(IB, Show:bool) :->
 	).
 
 
+clear(IB) :->
+	send_super(IB, clear),
+	send(IB, scroll_to, point(0,0)).
+
+
 :- pce_end_class.
 
 :- pce_begin_class(image_browser_file_item, device).
