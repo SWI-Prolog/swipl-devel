@@ -33,7 +33,7 @@ delpkg()
   found=no
 
   for p in $PKG; do
-    if [ $p == $1 ]; then
+    if [ "$p" = "$1" ]; then
       found=yes
       echo "Dropped package $p on user request"
     else
