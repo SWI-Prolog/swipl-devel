@@ -183,10 +183,12 @@ public:
   operator Any (void)
   { return self;
   }
-  operator const Any (void)
+#if !defined(__GNUC__) || __GNUC_MINOR__ < 8
+  operator const Any (void)		/* 2.8.0 says ambiguous */
   { return (const Any)self;
   }
-#if defined(__GNUC__) && D__GNUC_MINOR__ > 6
+#endif
+#if defined(__GNUC__) && __GNUC_MINOR__ > 6
   operator bool (void)
   { return self ? TRUE : FALSE;
   }
