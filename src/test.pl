@@ -1364,6 +1364,21 @@ term_atom(term_to_atom-2) :-
 
 
 		 /*******************************
+		 *	        OS		*
+		 *******************************/
+
+os(getenv-1) :-
+	(   current_prolog_flag(unix, true)
+	->  getenv('HOME', _)
+	;   true
+	).
+os(setenv-1) :-
+	setenv(pltestsetenv, yes),
+	getenv(pltestsetenv, X),
+	X == yes.
+
+
+		 /*******************************
 		 *		I/O		*
 		 *******************************/
 
@@ -1736,6 +1751,7 @@ testset(floatconv) :-
 testset(control).
 testset(exception).
 testset(term_atom).
+testset(os).
 testset(io).
 testset(popen) :-
 	current_prolog_flag(pipe, true).

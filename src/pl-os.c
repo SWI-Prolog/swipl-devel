@@ -2149,7 +2149,7 @@ char *
 getenv3(const char *name, char *buf, unsigned int len)
 { char *s = getenv(name);
 
-  if ( s && strlen(s)+1 < len )
+  if ( s && strlen(s) < len )
   { strcpy(buf, s);
 
     return buf;
