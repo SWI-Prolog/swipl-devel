@@ -151,7 +151,10 @@ statusTextItem(TextItem ti, Name stat)
 static void
 compute_label_text_item(TextItem ti, int *lw, int *lh)
 { if ( ti->show_label == ON )
-  { str_size(&ti->label->data, ti->label_font, lw, lh);
+  { if ( isDefault(ti->label_font) )
+      obtainResourcesObject(ti);
+
+    str_size(&ti->label->data, ti->label_font, lw, lh);
     *lw += valInt(getExFont(ti->label_font));
     if ( notDefault(ti->label_width) )
       *lw = max(valInt(ti->label_width), *lw);
@@ -208,7 +211,17 @@ getReferenceTextItem(TextItem ti)
 { Point ref;
 
   if ( !(ref = getReferenceDialogItem(ti)) )
-    ref = answerObject(ClassPoint, ZERO, getAscentFont(ti->label_font));
+  { TextObj vt = ti->value_text;
+    int ry;
+
+    ComputeGraphical(vt);
+    ry = valInt(getAscentFont(vt->font)) + valInt(vt->border);
+
+    if ( ti->show_label == ON )
+      ry = max(valInt(getAscentFont(ti->label_font)), ry);
+
+    ref = answerObject(ClassPoint, ZERO, toInt(ry), 0);
+  }
   
   answer(ref);
 }

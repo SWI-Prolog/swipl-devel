@@ -376,11 +376,12 @@ void	clearDFlagProgramObject(Any, ulong);
 #define D_CLONE_NIL	   makeDFlag(17) /* Cloned value is @nil */
 #define D_CLONE_VALUE	   makeDFlag(18) /* Clone the plain PCE value */
 #define D_CLONE_ALIEN	   makeDFlag(19) /* Clone alien values */
+#define D_CLONE_REFCHAIN   makeDFlag(22) /* Value is a reference chain */
 #define D_CLONE		   (D_CLONE_RECURSIVE|D_CLONE_REFERENCE|\
-			    D_CLONE_NIL|D_CLONE_VALUE|D_CLONE_ALIEN)
+			    D_CLONE_NIL|D_CLONE_VALUE|D_CLONE_ALIEN|\
+			    D_CLONE_REFCHAIN)
 
 #define D_ALIEN		   makeDFlag(20) /* Variable is alien */
-
 #define D_TYPENOWARN	   makeDFlag(21) /* Methods: donot warn */
 
 

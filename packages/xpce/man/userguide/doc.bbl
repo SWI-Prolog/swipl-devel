@@ -14,12 +14,6 @@ A.~Anjewierden, J.~Wielemaker, and C.~Toussaint.
   Someren, editors, {\em {Current trends in knowledge acquisition}}, pages 41
   -- 59, Amsterdam, May 1990. IOS Press.
 
-\bibitem[Carlsson {\em et al.}, 1991]{SICStus:manual}
-M.~Carlsson, J.~Wid{\'e}n, J.~Andersson, S.~Anderson, K.~Boortz, H.~Nilson, and
-  T.~Sj{\"o}land.
-\newblock {\em {SICStus Prolog} Users's Manual}.
-\newblock SICS, PO Box 1263, S-164 28 Kista, Sweden, 1991.
-
 \bibitem[Chambers {\em et al.}, 1989]{chambers:89}
 Craig Chambers, David Ungar, and Elgin Lee.
 \newblock An efficient implementation of {SELF}, a dynamic-typed
@@ -39,13 +33,6 @@ J.~Wielemaker and A.~Anjewierden.
   Software and Technology}, pages 25--33, Williamsburg, Virginia, November
   1989. ACM Press.
 
-\bibitem[Wielemaker \& Anjewierden, 1992]{PCE:overview}
-J.~Wielemaker and A.~Anjewierden.
-\newblock {\em {PCE-4} Functional Overview}.
-\newblock {SWI}, University of Amsterdam, Roetersstraat 15, 1018 WB Amsterdam,
-  The Netherlands, 1992.
-\newblock E-mail: jan@swi.psy.uva.nl.
-
 \bibitem[Wielemaker \& Anjewierden, 1993]{PCE:reference}
 J.~Wielemaker and A.~Anjewierden.
 \newblock {\em {XPCE-4} Reference Manual}.
@@ -60,23 +47,16 @@ J.~Wielemaker and A.~Anjewierden.
   The Netherlands, 1994.
 \newblock E-mail: jan@swi.psy.uva.nl.
 
-\bibitem[Wielemaker, 1992a]{PCE:udc}
-J.~Wielemaker.
-\newblock {\em {PCE-4} User Defined Classes Manual}.
-\newblock {SWI}, University of Amsterdam, Roetersstraat 15, 1018 WB Amsterdam,
-  The Netherlands, 1992.
-\newblock E-mail: jan@swi.psy.uva.nl.
-
-\bibitem[Wielemaker, 1992b]{PCE:draw}
+\bibitem[Wielemaker, 1992a]{PCE:draw}
 J.~Wielemaker.
 \newblock {\em {PceDraw}: An example of using {PCE-4}}.
 \newblock {SWI}, University of Amsterdam, Roetersstraat 15, 1018 WB Amsterdam,
   The Netherlands, 1992.
 \newblock E-mail: jan@swi.psy.uva.nl.
 
-\bibitem[Wielemaker, 1992c]{SWI-Prolog:manual}
+\bibitem[Wielemaker, 1992b]{SWI-Prolog:manual}
 J.~Wielemaker.
-\newblock {\em {SWI-Prolog 1.6}: Reference Manual}.
+\newblock {\em {SWI-Prolog 2.1}: Reference Manual}.
 \newblock {SWI}, University of Amsterdam, Roetersstraat 15, 1018 WB Amsterdam,
   The Netherlands, 1992.
 \newblock E-mail: jan@swi.psy.uva.nl.

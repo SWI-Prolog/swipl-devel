@@ -133,5 +133,5 @@ assert_index(Term, Index) :-
 auto_call(Goal) :-
 	strip_module(Goal, Module, Predicate),
 	functor(Predicate, Name, Arity),
-	require(Module, Name/Arity),
+	require(Module, [Name/Arity]),
 	Goal.

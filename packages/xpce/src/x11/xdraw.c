@@ -666,9 +666,6 @@ r_fillpattern(Any fill)		/* image or colour */
   { XGCValues values;
     ulong mask;
 
-    if ( isDefault(fill) )
-      fill = context.gcs->background;
-
     DEBUG(NAME_fillPattern, Cprintf("Changing\n"));
 
     if ( instanceOfObject(fill, ClassImage) )

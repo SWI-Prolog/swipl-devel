@@ -177,7 +177,6 @@ terminate(G, Ev:event) :->
 	    send(Ev?window, focus_cursor, @nil),
 	    send(G, cursor, @default),
 	    get(G, source, Source),
-	    send(G, slot, source, @nil),
 	    (   Target == @nil
 	    ->  true
 	    ;   send(G, target, Source, @nil, @nil),
@@ -197,7 +196,8 @@ terminate(G, Ev:event) :->
 		    ignore(send(Target, drop, Src)),
 		    send(Display, busy_cursor, @nil)
 		)
-	    )
+	    ),
+	    send(G, slot, source, @nil)
 	).
 
 :- pce_end_class.

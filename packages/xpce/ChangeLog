@@ -1,3 +1,28 @@
+* FIXED: various problems in the dialog editor: horizontal alignment detection,
+  code generation for objects with explicit position and some minor problems
+  in the look of the dialog editor itself.
+
+* FIXED: library(dragdrop) memory management for handling <->source.  Lead
+  to `invalid integer reference' if <-get_source yields an unconnected
+  object.
+
+* MODIFIED: `Dialog ->apply' and `Dialog ->restore' now deactivate the
+  <-default_button when completed.
+
+* FIXED/MODIFIED: Dialog Items now correctly report the Y of their reference
+  point to the baseline of the label, dominant text or similar attribute.
+  Notably fixes layout of left-to-right aligned dialog items, but may lead
+  to displacement in applications that corrected to misalignment.
+
+* FIXED: Editor <-clone.  Didn't properly clone the reference from the
+  text-buffer.  Introduced `variable ->clone_style: reference_chain' to
+  realise this.  Necessary to make editors work properly in the dialog
+  editor.  Also fixed Editor ->save_in_file.  Similar problem.
+
+* FIXED: Load/save to directory objects using ->save_in_file.
+
+* ADDED: Changed chain_list/2 to behave much more as a logical predicate.
+
 * MODIFIED: Deleted @pce <->print_c_stack and the gC option to the tracer
   to do so.  This didn't work on most machines anymore and shouldn't harm
   users.

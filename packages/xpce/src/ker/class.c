@@ -2012,7 +2012,7 @@ makeClassClass(Class class)
 	     handleClass);
   sendMethod(class, NAME_cloneStyleVariable, NAME_copy, 2,
 	     "variable=name|int",
-	     "style={recursive,reference,value,alien,nil}",
+	     "style={recursive,reference,reference_chain,value,alien,nil}",
 	     "Set <->clone_style of named variable",
 	     cloneStyleVariableClass);
   sendMethod(class, NAME_saveStyleVariable, NAME_file, 2,

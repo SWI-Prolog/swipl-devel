@@ -56,7 +56,7 @@ fill_attribute_dialog(D, Attributes, Mode) :-
 	new(MI, Dev?current),
 
 	send(D, append_dialog_item,
-	     new(M, menu(mode, marked,
+	     new(M, menu(mode, choice,
 			 and(message(Dev, mode, @arg1),
 			     message(Dev, current, @nil))))),
 	send(M, append, create),
@@ -83,7 +83,7 @@ fill_attribute_dialog(D, Attributes, Mode) :-
 append_attribute(D, end_group) :-
 	get(D, device, Dev),
 	new(MI, Dev?current),
-	send(D, append_dialog_item, new(EG, menu(end_group, marked))),
+	send(D, append_dialog_item, new(EG, menu(end_group, choice))),
 	send(EG, append, @off),
 	send(EG, append, @on),
 	send(EG, default, when(MI, MI?end_group, @off)),

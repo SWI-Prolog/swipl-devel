@@ -20,6 +20,9 @@
     actions with various events.  For example a button object executes
     its associated code object when depressed.  The most typical code
     object is a \class{message}.
+\glossitem{Control}
+    A \g{control} is a standard \g{GUI} object normally placed in dialog
+    windows.  Examples are buttons, text-entry fields and menus.
 \glossitem{Event}
     An \g{event} is an object that represents an activity of the user:
     mouse-movements, mouse-buttons, keyboard activities.
@@ -39,6 +42,8 @@
     Virtual machine operation to request information from
     some object.  Started by the Prolog predicate get/[3-13], when
     an obtainer is executed or from PCE's built-in functionality.
+\glossitem{GUI}
+    Abbreviation for Graphical User Interface.
 \glossitem{Inheritance}
     The sharing of definition from a super-class.  When a PCE \g{class}
     is created from a \g{super-class} it is initially a copy of this
@@ -95,6 +100,10 @@
 \glossitem{Super-class}
     The \g{super-class} of a \g{class} serves as the initial definition
     of a \g{class}.  See also \g{inheritance}.
+\glossitem{Template-class}
+    User-defined subclass of class \class{template}.  The refinements
+    introduced from \class{template} can be imported in another user-defined
+    class using the predicate use_class_template/1.
 \glossitem{Var}
     A \g{var} object is a \g{function}.  The commonly used \g{vars}
     objects are: @arg1, ... (general argument forwarding), @receiver

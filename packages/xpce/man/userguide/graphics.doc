@@ -7,31 +7,27 @@ a particular role.  In this section we present some of the basic
 graphical components.  These are less specialised and therefore more
 general but also more difficult to use.
 
-This section only introduces the basics of graphics in PCE.
-See also Chapter~\ref{sec:chess}, \cite{PCE:overview} and \cite{PCE:draw}.   
-The online manual and the demo programs provide more information on using
-PCE's graphics.
+This section only introduces the basics of graphics in PCE. See also
+\cite{PCE:draw}. The online manual and the demo programs provide more
+information on using PCE's graphics.
 
 
-\section{Primitive graphicals}
+\section{Graphical Building Blocks}
 
-PCE defines various primitives graphical objects.  This section
-discusses how these may be used.  An overview of the graphical
-capabilities of PCE may be found in \cite{PCE:overview} or using the
-online manual.
+\index{graphical,window}\index{window,coordinates}%
+A \class{picture} is a \class{window} for displaying drawings
+(collections of graphical objects).  The default picture may be scrolled
+using its scrollbars.  The drawing area is two-dimensional and
+infinitely large (both positive and negative).  The query below creates
+a picture and opens it on the screen.
 
 \begin{code}
 1 ?- new(@p, picture('Demo Picture')),
      send(@p, open).
 \end{code}
 
-\index{graphical,window}\index{window,coordinates}%
-A picture is a window for displaying drawings (collections of
-graphical objects). The default picture may be scrolled using its
-scrollbars. The drawing area is two-dimensional and infinitely
-large (both positive and negative). 
 
-The following queries draw various primitive graphicals on the
+The following queries draw various primitive graphicals on this
 picture.
 
 \begin{code}
@@ -58,7 +54,76 @@ following queries to test this:
 PCE avoids unnecessary repaint operations and expensive computations
 involved in updating the screen.  The screen is only updated {\em
 after} all available input has been processed or on an explicit
-request to update it.
+request to update it.  The following code illustrates this.  Running
+\mbox{\tt ?- square_to_circle(@bo).} will show the box immediately as
+a circle without showing any of the intermediate results.
+
+\begin{code}
+:- require([between/3, forall/2]).
+
+square_to_circle(Box) :-
+	get(Box, height, H),
+	MaxRadius is H // 2,
+	forall(between(0, MaxRadius, Radius),
+	       send(Box, radius, Radius)).
+\end{code}
+
+To get the intended annimating behaviour, use `graphical ->flush' to
+explicitly force redraw right now:
+
+\begin{code}
+:- require([between/3, forall/2]).
+
+square_to_circle(Box) :-
+	get(Box, height, H),
+	MaxRadius is H // 2,
+	forall(between(0, MaxRadius, Radius),
+	       (   send(Box, radius, Radius),
+		   send(Box, flush)
+	       )).
+\end{code}
+
+
+\subsection{Available primitive graphical objects}
+
+An overview of the available primitive graphical classes is most easily
+obtained using the Class Hierarchy tool described in
+\secref{classhierarchy}.  Table \tabref{primgraphics} provides an
+overview of the primitive graphicals.
+
+\begin{table}
+\begin{center}
+\begin{tabular}{|p{1.5in}|p{4in}|}
+\hline
+\class{arrow}	& Arrow-head.  Normally used implicetely
+		  by class \class{line}. \\
+\hline
+\class{bitmap}	& Visualisation of an image.  Both monochrome and
+		  full-colour images are supported. \\
+\hline
+\class{box}	& Rectangle.  Can be rounded and filled. \\
+\hline
+\class{circle}	& Special case of ellipse. \\
+\hline
+\class{ellipse} & Elliptical shape.  May be filled. \\
+\hline
+\class{arc}	& Part of ellipse.  Can have arrows.  Can show
+		  as \idx{pie-slice}. \\
+\hline
+\class{line}	& Straight line segment.  Can have arrows. \\
+\hline
+\class{path}	& Poly-line through multiple points.  Can have
+		  arrows.  Can be \idx{smooth}. \\
+\hline
+\class{text}	& Visualisation of a string in some font.  Can
+		  have various attributes, van be clipped, formated,
+		  etc. \\
+\hline
+\end{tabular}
+\end{center}
+\caption{Primitive graphical objects}
+\label{tab:primgraphics}
+\end{table}
 
 
 \section{Compound graphicals}
@@ -79,7 +144,105 @@ A compound graphical may be treated as a unit.  It may be moved, erased,
 coloured, etc.\ by sending a single message to the compound.  Compound
 graphicals are normal graphicals and thus may de displayed on other
 compound graphicals, resulting in a consists-of hierarchy of nested
-graphicals.  See also section\ref{sec:vishierarchy}.
+graphicals.  See also \secref{vishierarchy}.  The classes related to
+compound graphical objects are shown in \tabref{compoundgraphics}.
+
+\begin{table}
+\begin{center}
+\begin{tabular}{|p{1.5in}|p{4in}|}
+\hline
+\class{device}	& Most generic compound graphical object. \\
+\hline
+\class{figure}	& Subclass of \class{device}, providing clipping,
+		  background, containing rectangle, border and the
+		  possibility to show a subset of the displayed
+		  graphical objects. \\
+\hline
+\class{format}	& A format object specifies a two-dimensional table
+		  layout.  Formats may be associated to graphical
+		  devices using `device ->format'. \\
+\hline
+\end{tabular}
+\end{center}
+\caption{Compouund graphical classes}
+\label{tab:compoundgraphics}
+\end{table}
+
+
+\section{Connecting graphical objects}		\label{sec:connection}
+
+\index{graph}% The primery application domain of XPCE is handling
+graphical modeling languages.  Drawing in such languages often entails
+connecting graphical objects using lines.  Instead of adding an instance
+of \class{line} to the graphical device at the proper place, it is much
+better to declare two graphical objects to be connected.  Class
+\class{connection} provides for this.
+
+To prepare an object for making connetions, the object should first
+define \class{handle}{\em s}.  Below is a simple example.  The
+screendump is shown in \figref{connect}.
+
+\begin{pcecode}
+:- pce_global(@in_out_link, make_in_out_link).
+
+make_in_out_link(L) :-
+	new(L, link(in, out, line(0,0,0,0,second))).
+
+linked_box_demo :-
+	new(P, picture('Linked Box demo')),
+	send(P, open),
+	send(P, display, new(B1, box(50,50)), point(20,20)),
+	send(P, display, new(B2, box(25,25)), point(100,100)),
+	send(B1, handle, handle(w, h/2, in)),
+	send(B2, handle, handle(w/2, 0, out)),
+	send_list([B1, B2], recogniser, new(move_gesture)),
+	send(B1, connect, B2, @in_out_link).
+\end{pcecode}
+
+\postscriptfig{connect}{A connection between two boxes}
+
+If there are multiple handles of the same `kind' on a graphical, a
+connection will automatically try to connect to the `best' handle.
+
+The classes related to making connections are summarised in
+\tabref{connectclasses}.
+
+\begin{table}
+\begin{center}
+\begin{tabular}{|p{1.5in}|p{4in}|}
+\hline
+\class{connection}	& Subclass of class \class{line}.  A connection
+			  is established between two graphicals on the
+			  same window that have handles.  The line is
+			  automatically updated if either of the
+			  graphicals is moved, resized, changed from
+			  device, (un)displayed, hided/exposed or
+			  destroyed. \\
+\hline
+\class{handle}		& Defines the location, nature and name of a
+			  connection point for a connection.  Handles
+			  can be attached to individual graphicals as
+			  well as to their class. \\
+\hline
+\class{link}		& Defines the generic properties of a connection:
+			  the nature (`kind') of the handle at either
+			  side and the line attributes (arrows, pen and
+			  colour). \\
+\hline
+\class{connect_gesture}	& Event-processing object (see \secref{recogniser})
+			  used to connect two graphical objects. \\
+\hline
+\end{tabular}
+\end{center}
+\caption{Classes used to define connections}
+\label{tab:connectclasses}
+\end{table}
+
+Note that, as class \class{connection} is a subclass of
+\class{graphical}, connections can be created between connections. Class
+\class{graphical} defines various methods to help reading the relations
+expressed with connections and/or refine the generic
+\class{connect_gesture}.
 
 
 \section{Constraints}
@@ -98,6 +261,10 @@ Each time either the bitmap or the text changes this constraint will
 invoke <-center_x on the changed object and ->center_x with the return
 value on the other object.  Class \class{spatial} defines more
 general geometrical constraints between graphicals.
+
+Constraints are high-level, but potentionally expensive means to specify
+graphical relations.  An alternative is the redefinition of the
+->geometry method of (compound) graphical objects.  See \chapref{udc}.
 
 
 \section{Activating graphicals using the mouse}		\label{sec:recogniser}
@@ -123,6 +290,42 @@ print 'hello' in the Prolog window.
            click_gesture(left, '', double,
 			 message(@pce, write_ln, hello))).
 \end{code}
+
+The predefined recogniser classes are summarised in
+\tabref{recognisers}.  Besides the built-in recognisers, the XPCE/Prolog
+library defines various additional ones.  See also \secref{dragdrop}.
+
+\begin{table}
+\begin{center}
+\begin{tabular}{|p{1.5in}|p{4in}|}
+\hline
+\class{handler}		& Binds a single event to a \class{message}. \\
+\hline
+\class{handler_group}	& Combines multiple recognisers into a single. \\
+\hline
+\class{key_binding}	& Maps keyboard sequences to commands. \\
+\hline
+\class{click_gesture}	& Maps a mouse-click to a message.  Allows to
+			  specify modifiers (alt/meta, control, shift),
+			  button and multi (single, double, triple). \\
+\hline
+\class{connect_gesture}	& Connect two graphicals dragging from the first
+			  to the second. \\
+\hline
+\class{move_gesture}	& Move graphical by dragging it. \\
+\hline
+\class{move_outline_gesture} & Move graphical by dragging an outline. \\
+\hline
+\class{resize_gesture}	& Resize graphical by dragging a side or corner. \\
+\hline
+\class{resize_outline_gesture}	& Resize graphical by dragging a side or corner
+			of the outline. \\
+\hline
+\end{tabular}
+\end{center}
+\caption{Recogniser classes}
+\label{tab:recognisers}
+\end{table}
 
 
 \section{Summary}

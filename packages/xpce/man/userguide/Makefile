@@ -12,7 +12,8 @@ TEX=	doc.tex \
 	trouble.tex memory.tex glossary.tex techniques.tex \
 	report.tex font.tex hyper.tex udc.tex dragdrop.tex \
 	dragdropdemo.tex control.tex whoiswho.tex namedref.tex \
-	ugraphics.tex
+	ugraphics.tex code.tex resource.tex diaedit.tex dialog.tex \
+	wysiwyg.tex frame.tex error.tex
 
 LOGO=	figs/uva.ps figs/swi.ps
 
@@ -35,11 +36,10 @@ figs/swi.ps:	../../TeX/figs/swi.ps
 
 $(TEX):	$(DOCTOTEX)
 
-chess.tex:	../../prolog/demo/chess.pl $(PLTOTEX)
-	$(PLTOTEX) ../../prolog/demo/chess.pl > $@
-
 dragdropdemo.tex:	examples/dragdrop.pl
 	$(PLTOTEX) examples/dragdrop.pl > $@
+wysiwyg.tex:		examples/wysiwyg.pl
+	$(PLTOTEX) examples/wysiwyg.pl > $@
 
 .doc.tex:
 	$(DOCTOTEX) $*.doc > $*.tex

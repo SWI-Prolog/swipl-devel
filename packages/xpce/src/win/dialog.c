@@ -222,8 +222,12 @@ getDefaultButtonDialog(Dialog d)
 static status
 applyDialog(Dialog d, Bool always)
 { DialogItem di;
+  Graphical defb;
   
   for_chain(d->graphicals, di, send(di, NAME_apply, always, 0));
+  if ( (defb = get(d, NAME_defaultButton, 0)) )
+    send(defb, NAME_active, OFF, 0);
+
   succeed;
 }
 
@@ -231,8 +235,12 @@ applyDialog(Dialog d, Bool always)
 static status
 restoreDialog(Dialog d)
 { DialogItem di;
+  Graphical defb;
   
   for_chain(d->graphicals, di, send(di, NAME_restore, 0));
+  if ( (defb = get(d, NAME_defaultButton, 0)) )
+    send(defb, NAME_active, OFF, 0);
+
   succeed;
 }
 

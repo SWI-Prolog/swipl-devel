@@ -16,6 +16,10 @@ sub printTeX
   s/^(\s *\\sendmethod\{.*\}) *$/\1%/;
   s/^(\s *\\getmethod\{.*\}) *$/\1%/;
   s/^(\s *\\bothmethod\{.*\}) *$/\1%/;
+  s/^(\s *\\predicate\{.*\}) *$/\1%/;
+  s/^(\s *\\noargpredicate\{.*\}) *$/\1%/;
+  s/^(\s *\\directive\{.*\}) *$/\1%/;
+  s/^(\s *\\expanded\{.*\}) *$/\1%/;
   s/^((\\index{[^}]+})+) *$/\1%/;
 
   print;

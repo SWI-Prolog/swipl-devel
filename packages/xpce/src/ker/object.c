@@ -1091,13 +1091,13 @@ getAllGetMethodsObject(Any obj, Bool create)
 		*           KLONING		*
 		********************************/
 
-
 typedef struct clone_field *CloneField;
 
 struct clone_field
 { Any		instance;
   Any	       *field;
   Any		old_value;
+  ulong		flags;
   CloneField	next;
 };
 
@@ -1105,12 +1105,13 @@ static	HashTable	CloneTable;
 static  CloneField     	CloneFields;
 
 static void
-addCloneField(Any obj, Any *field, Any old)
+addCloneField(Any obj, ulong flags, Any *field, Any old)
 { CloneField kf = alloc(sizeof(struct clone_field));
 
   kf->instance  = obj;
   kf->field     = field;
   kf->old_value = old;
+  kf->flags     = flags;
   kf->next      = CloneFields;
   CloneFields   = kf;
 }
@@ -1140,8 +1141,19 @@ getCloneObject(Any obj)
   for(kf = CloneFields; kf != NULL; kf = kf->next)
   { Any kl;
 
-    if ( (kl = getMemberHashTable(CloneTable, kf->old_value)) != FAIL )
-      assignField(kf->instance, kf->field, kl);
+    if ( kf->flags & D_CLONE_REFCHAIN )
+    { Cell cell;
+      Chain clch = newObject(ClassChain, 0);
+
+      assignField(kf->instance, kf->field, clch);
+      for_cell(cell, (Chain)kf->old_value)
+      { if ( (kl = getMemberHashTable(CloneTable, cell->value)) )
+	  appendChain(clch, kl);
+      }
+    } else
+    { if ( (kl = getMemberHashTable(CloneTable, kf->old_value)) != FAIL )
+	assignField(kf->instance, kf->field, kl);
+    }
   }
 
   clearHashTable(CloneTable);
@@ -1165,14 +1177,19 @@ clonePceSlots(Any org, Any Clone)
 	     { assign(clone, slots[i], getClone2Object(me->slots[i]));
 	     } else if ( onDFlag(var, D_CLONE_REFERENCE) )
 	     { assign(clone, slots[i], me->slots[i]);
-	       addCloneField(clone, &clone->slots[i], me->slots[i]);
+	       addCloneField(clone, D_CLONE_REFERENCE,
+			     &clone->slots[i], me->slots[i]);
 	     } else if ( onDFlag(var, D_CLONE_VALUE) )
 	     { assign(clone, slots[i], me->slots[i]);
 	     } else if ( onDFlag(var, D_CLONE_ALIEN) )
 	     { clone->slots[i] = me->slots[i];
 	     } else if ( onDFlag(var, D_CLONE_NIL) )
 	     { assign(clone, slots[i], NIL);
-	       addCloneField(clone, &clone->slots[i], me->slots[i]);
+	       addCloneField(clone, D_CLONE_NIL,
+			     &clone->slots[i], me->slots[i]);
+	     } else if ( onDFlag(var, D_CLONE_REFCHAIN) )
+	     { addCloneField(clone, D_CLONE_REFCHAIN,
+			     &clone->slots[i], me->slots[i]);
 	     });
 	   
   succeed;
@@ -1240,9 +1257,9 @@ getClone2Object(Any obj)
   me = obj;
   class = classOfObject(me);
 
-  if ( equalName(class->cloneStyle, NAME_none) )
+  if ( class->cloneStyle == NAME_none )
     answer(me);
-  if ( equalName(class->cloneStyle, NAME_nil) )
+  if ( class->cloneStyle == NAME_nil )
     answer(NIL);
 
   clone = (Instance) allocObject(class, FALSE);

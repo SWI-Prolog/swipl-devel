@@ -16,6 +16,7 @@ static status	applySlider(Slider, Bool);
 static status	restoreSlider(Slider s);
 static Type	getTypeSlider(Slider s);
 static status	displayedValueSlider(Slider s, Any val);
+static status	widthSlider(Slider s, Int val);
 
 #define SLIDER_HEIGHT 20
 #define VALUE_GAP 20
@@ -240,7 +241,15 @@ getReferenceSlider(Slider s)
 { Point ref;
 
   if ( !(ref = getReferenceDialogItem(s)) )
-    ref = answerObject(ClassPoint, ZERO, getAscentFont(s->label_font));
+  { int ny, vx, vy, lx, ly, sx, sy, hx, hy;
+    int ascent;
+
+    ComputeGraphical(s);
+    compute_slider(s, &ny, &vx, &vy, &lx, &ly, &sx, &sy, &hx, &hy);
+    ascent = valInt(getAscentFont(s->label_font));
+
+    ref = answerObject(ClassPoint, ZERO, toInt(ascent + ny), 0);
+  }
   
   answer(ref);
 }
@@ -265,6 +274,28 @@ labelWidthSlider(Slider s, Int w)
 
   succeed;
 }
+
+static status
+geometrySlider(Slider s, Int x, Int y, Int w, Int h)
+{ if ( notDefault(w) )
+  { int extra;
+    int width;
+
+    ComputeGraphical(s);
+    extra = valInt(s->area->w) - valInt(s->width);
+    width = valInt(w) - extra;
+    
+    if ( width < 20 )
+    { w = toInt(valInt(w) + 20 - width);
+      width = 20;
+    }
+
+    widthSlider(s, toInt(width));
+  }
+
+  return geometryGraphical(s, x, y, w, DEFAULT);
+}
+
 
 
 		/********************************
@@ -542,6 +573,10 @@ makeClassSlider(Class class)
   sendMethod(class, NAME_compute, DEFAULT, 0,
 	     "Compute desired size",
 	     computeSlider);
+  sendMethod(class, NAME_geometry, DEFAULT, 4,
+	     "x=[int]", "y=[int]", "width=[int]", "height=[int]",
+	     "Adjust <-width",
+	     geometrySlider);
   sendMethod(class, NAME_event, DEFAULT, 1, "event",
 	     "Process an event",
 	     eventSlider);

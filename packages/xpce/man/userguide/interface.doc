@@ -2,8 +2,7 @@
 
 This appendix provides a description of the Prolog predicates
 to communicate with PCE.  Most of these predicates have been
-introduced informally in the previous sections.  Predicates only supporting
-the definition of user-defined classes are described in \cite{PCE:udc}.
+introduced informally in the previous sections.
 
 \section{Basic predicates}
 
@@ -75,6 +74,17 @@ argument-error.  The method itself may also produce error messages.
 This predicate only succeeds if the requested method was executed
 successfully.
 
+Trailing arguments that hac handle @default (indicated by square brackets
+in the type declaration) may be omitted.
+
+If the method accepts many arguments of which most are default, using
+the named argument convention may be preferred.  Fo example:
+
+\begin{code}
+	...,
+	send(Graphical, graphics_state, colour := red),
+	...,
+\end{code}
     \predicate{get}{[3-13]}{+Receiver, +Selector, +Argument..., -Result}
 Invoke a get-method on \arg{Receiver}.  \arg{Receiver}, \arg{Selector}
 and \arg{Argument...} are processed as with send/[2-12].  If the method
@@ -181,16 +191,55 @@ the execution of \arg{Goal} will be handled by PCE's normal error
 handling mechanism.  See section~\ref{sec:errors}.
 \end{description}
 
+\subsection{Portable declaration of required library predicates}
+
+Different Prolog implementations to which XPCE has been connected
+provide a different library structure and offers different means for
+accessing library predicates. For this reason, XPCE introduced the
+require/1 directive. This directive is the preferred way to import
+library predicates. Below is a typical declaration of an XPCE/Prolog
+module:
+
+\begin{code}
+:- module(mymodule, [myapp/0]).
+:- use_module(library(pce)).
+:- require([ member/2,
+	     send_list/3
+	   ]).
+\end{code}
+
+\begin{description}
+    \predicate{require}{1}{:ListOfNameArity}
+Defines that this module requires the named predicates.  It is the
+task of the Prolog system to make sure the module can make calls to
+the named predicates and this predicate has the `commonly accepted
+semantics'.  This predicate is built-in for SICStus and SWI-Prolog.
+It is defined in the module library(pce) for ProWindows-3/Quintus.
+This is the reason why library(pce) should always be imported
+explicitely.
+
+Note the command Pce/PceInsertRequireDirective in PceEmacs Prolog mode,
+which automatically determines the required require-directive for the
+current module-file.
+    \predicate{auto_call}{1}{:Goal}
+Acts like call/1, but dynamically loads the predicate required by {\em
+Goal} if this predicate is not defined. On systems not having
+autoloading, the definition is:
+
+\begin{code}
+auto_call(Goal) :-
+	strip_module(Goal, Module, Predicate),
+	functor(Predicate, Name, Arity),
+	require(Module:[Name/Arity]),
+	Goal.
+\end{code}
+\end{description}
+
 
 \section{Library predicates}
 
-\index{library (PCE/Prolog-)}\index{autoloading}%
-This section describes the predicates available from the PCE/Prolog
-library.  Users of SWI-Prolog can activate these predicates without
-importing them explicitely as they will be autoloaded.  Users of
-SICStus Prolog should declare these predicates using the require/1
-directive \cite{SICStus:manual}.
-
+\index{library (PCE/Prolog-)}\index{autoloading}% This section describes
+some of the predicates available from the PCE/Prolog library.
 
 \subsection{Library ``pce_util''}
 
@@ -225,13 +274,13 @@ reference the variable is unified with the term-description.  The
 arguments are unified as in get/[3-13].  Normally only used from the 
 Prolog toplevel for debugging purposes.
 
-    \predicate{chain_list}{2}{+Chain, -List}
-Translates a PCE chain into a Prolog list.  This may be useful to
-exploit Prolog's list-processing primitives.  Note however that PCE
+    \predicate{chain_list}{2}{?Chain, ?List}
+Converts between a PCE chain and a Prolog list. This may be useful to
+exploit Prolog's list-processing primitives. Note however that PCE
 chains define various operations that may be exploited to avoid the
-translation.  Suppose `Pict' is a picture and `Pos' is a point object.
-We want to determine the topmost graphical object overlapping with
-`Pos'.  The following two programs are identical:
+translation. Suppose `Pict' is a picture and `Pos' is a point object. We
+want to determine the topmost graphical object overlapping with `Pos'.
+The following two programs are identical:
 \begin{code}
 topmost_graphical(Pict, Pos, Gr) :-
 	get(Pict, graphicals, Grs0),
@@ -273,27 +322,15 @@ The predicates in this section provide shorthands for common
 commands for debugging PCE programs.
 
 \begin{description}
-\noargpredicate{debugpce}
-Switch PCE into `debugging' mode.  This includes some additional
-runtime checks and makes PCE sensitive `debug_subjects' (see
-debugpce/1).  Invokes `@pce ->debugging: @on'.
-\noargpredicate{nodebugpce}
-Switches debugging off.
-\predicate{debugpce}{1}{+Subject}
-Enable printing of debugging messages on indicated \arg{Subject}.  Invokes
-`@pce ->debug_subject: Subject'.  See the description of this method in
-the online manual for available subjects.
-\predicate{nodebugpce}{1}{+Subject}
-Disable debugging messages on \arg{Subject}.
-\noargpredicate{tracepce}
+    \noargpredicate{tracepce}
 Start tracing PCE's virtual machine instructions.  Equivalent to
 send(class(vmi), trace, @on).
-\noargpredicate{notracepce}
+    \noargpredicate{notracepce}
 Switch the interactive tracer off.  Equivalent to send(@pce, trace, never).
-\predicate{tracepce}{1}{+Class \verb$<-|->$ Selector}
-Find send- (\verb$->$) or get- (\verb$<-$) method and invokes
-`Method ->trace: @on' on this method.  Prints the method on which it has
-set the trace-point.
+    \predicate{tracepce}{1}{+Class \verb$<-|->|-$ Selector}
+Find send- (\verb$->$), get- (\verb$<-$) method or variable
+(\verb$-$) and invokes `->trace: @on' on this \class{behaviour} object.
+Prints the method on which it has set the trace-point.
 
 Syntax note:  (\verb$->$) is a standard Prolog operator with
 $priority > 1000$.  Therefore many Prolog systems require additional
@@ -301,16 +338,16 @@ brackets:
 \line{?- tracepce((graphical ->selected))}
 In SWI-Prolog this is not necessary.  To be able to trace get-methods
 with this predicate (\verb$<-$) must be declared as an infix operator.
-\predicate{notracepce}{1}{+Class \verb$<-|->$ Selector}
+    \predicate{notracepce}{1}{+Class \verb$<-|->|-$ Selector}
 Disables trace-point set with tracepce/1.
-\noargpredicate{checkpce}
+    \noargpredicate{checkpce}
 Collect all global (named-) objects and run `object ->_check' on them.
 This performs various consistency checks on the objects and prints
 diagnostic messages if something is wrong.  `object ->_check' checks
 all objects it can (recursively) find through slot-references, chains,
 vectors and hash-tables and deals properly with loops in the
 data-structure.
-\predicate{show_slots}{1}{+Reference}
+    \predicate{show_slots}{1}{+Reference}
 Prints the values of all instance variables of \arg{Reference}:
 
 \begin{code}
@@ -355,27 +392,13 @@ this predicate is:
 \end{description}
 
 
-\subsection{Library ``stayup_popup''}
-
-\index{screendump,popup in}\index{popup,in screendump}
-This library redefines the method `popup ->close'.  A popup menu may be
-activated normally.  When the user holds the control-key depressed while
-releasing the mouse-button the popup will remain on the display.
-This enables the inclusion of (multiple) popup menus in a screendump.  See
-also postscript/2 and the PceDraw `Edit' option `Import Frame'.
-
 \subsection{Miscellaneous library predicates}
 
 \begin{description}
-\predicate{manpce}{[0-1]}{[+ClassName]}
+    \predicate{manpce}{[0-1]}{[+ClassName]}
 Starts the online manual tools.  With an \arg{ClassName} argument,
 the ``Class Browser'' tool is started on the specified class.
-\noargpredicate{pcedemo}
-Open demo-starter window.
-\predicate{pcedraw}{1}{[+FileName]}
-Open the drawing tool PceDraw.  With a given filename, load this file.
-The `.pd' extension may be omitted.
-\predicate{postscript}{2}{+Reference, +File}
+    \predicate{postscript}{2}{+Reference, +File}
 Generate PostScript from the given object.  Defined as:
 
 \begin{code}
@@ -390,7 +413,7 @@ postscript(Obj, File) :-
 	format('PostScript written to ~w, ~D bytes~n',
 	       [FileName,Size]).
 \end{code}
-\predicate{show_key_bindings}{1}{+ViewOrEditor}
+    \predicate{show_key_bindings}{1}{+ViewOrEditor}
 Show the key-bindings for view or editor object.  May be used as part
 of a help-system.
 \end{description}

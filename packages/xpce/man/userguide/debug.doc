@@ -5,7 +5,7 @@ bugs in PCE/Prolog code.  Prolog provides an interactive program
 development environment.  PCE provides a dynamic object-oriented
 environment that may be inspected, traced and modified during
 execution.  Unlike Prolog, PCE almost exclusively manipulates
-static information.  This limits the possibilities for interactive
+global information.  This limits the possibilities for interactive
 manipulation of the environment.  For example, you cannot {\em undo}
 operations in PCE, change the program and redo the goal as you can
 in Prolog.
@@ -27,7 +27,7 @@ Consider the following example:
 Area = @ 803438, B = @803419/box
 \end{code}
 
-After this action the area attribute of the box has been destroyed,
+After these calls, the <-area attribute of the box has been destroyed,
 but the box is not aware of this fact.  The utility predicate
 checkpce/0 scans the PCE object-base for various inconsistencies and
 will report that the box contains a slot referring to a freed object.
@@ -73,42 +73,57 @@ using:%
 [ 1] exit: new(view) --> @v/view
 \end{code}
 
+The tracer is switched off again using notracepce/0.
+
+Unless you are desparate, full trace mode will often give an enormous
+amount of unreadable output and should be avoided.  Below we present
+predicates that allow for more fine-tuned tracing of XPCE's actions.
+
 
 \subsection{Tracing specific methods}
 
 It is often useful to inspect the execution of a particular method.
-Suppose we'd like to monitor geometry-changes of graphical objects.
-The utility predicate tracepce/1 (see also section~\ref{sec:interface})
-may be used:
+Suppose we'd like to monitor geometry-changes of graphical objects. The
+utility predicate tracepce/1 (see also \secref{interface}) may be used:
 
 \begin{code}
-1 ?- tracepce(graphical->geometry).
+1 ?- tracepce((graphical->geometry)).
 Trace method: graphical ->geometry
 \end{code}
+
+As \verb$->$ is a standard Prolog operator with priority over 1000,
+tracepce/1 requires two brackets.  Get-methods may be specified in
+a similar way.  \verb$<-$ is not an operator.  It is suggested to
+define \verb$<-$ as an infix operator in the XPCE initialisation
+file, so this operator is available during program development:
+
+\begin{code}
+:- op(100, xfx, <-).
+\end{code}
+
+Instance variables may be specified as <class>-<variable>. A trace-point
+on an instance variable makes both reading and writing the variable
+visible.
+
+The predicate notracepce/1 disables a tracepoint.
 
 
 \subsubsection{Breaking on certain operations}.
 
-According to PCE's model the {\em new} operation is allowed to fail
-silently.  In many cases however, failing new operations is an error.
-Suppose you want the system to trap failing new operations and break
-execution.
-
-\begin{code}
-1 ?- send(@vmi_new, break, @on, fail).
-\end{code}
-
-The object @vmi_new represents the virtual machine operation new.  See
-section~\ref{sec:vmi}.
+An XPCE {\em break-point} is similar to a Prolog spy-point.  Execution
+is broken and the debugger waits for further instructions. The available
+instructions are given in \secref{inspecterrors}.  The predicates to
+manipulate breakpoints are breakpce/1 and nobreakpce/1. These predicates
+use the same synbtax as tracepce/1 and notracepce/1.
 
 
-\subsection{Inspecting the context of errors}
+\subsection{Inspecting the context of errors} \label{sec:inspecterrors}
 
 Whenever an error is detected of <-kind `warning' and the <-feedback
-equals `print' the error will be printed, after which an {\em
-exception} flag is placed on the current goal and the tracer is
-switched on in `user' mode.  This will cause the tracer to `break'
-at the `fail' port of the operation that generated the error.
+equals `print' the error will be printed, after which an {\em exception}
+flag is placed on the current goal and the tracer is switched on in
+`user' mode. This will cause the tracer to `break' at the `fail' port of
+the operation that generated the error.
 
 The tracer may now be used to examine the execution context of the
 error.  The following example illustrates this
@@ -127,22 +142,17 @@ bug :-
 \end{code}
 
 The warning indicates a method has been invoked whose first argument
-should be a window object.  The ``in:'' line shows the top of the
-goal-stack.  The line starting ``[2]'' is the PCE tracer.  In such
-a situation the following tracer options are useful to find the
-context of the error:
+should be a window object. The ``in:'' line shows the top of the
+goal-stack. The line starting ``[2]'' is the PCE tracer. The following
+tracer options are useful to find the context of the error:
 
 \begin{itemize}
-    \tick{{\bf g[ahC] [depth]}: Goals}
+    \tick{{\bf g[ah] [depth]}: Goals}
 Print the stack.  By default it prints the `user' goals of PCE's stack
 of active messages.  With the `{\bf a}lways' modifier it also prints
 the internal (system) messages.  With the `{\bf h}ost' modifier it will
-print the Prolog stack.  Finally, with the `{\bf C}' modifier it will
-print PCE's C-function stack.%
-    \footnote{Printing the C-stack is only supported for the SPARC
-	      and MC680x0 processors.  Interpretation of the C-stack
-	      is generally hard for normal users.}
-The optional `depth' argument specifies the number of frames printed.
+print the Prolog stack. The optional `depth' argument specifies the
+number of frames printed.
     \tick{{\bf b}: Break}
 Start a recursive interactive Prolog toplevel (as the Prolog predicate
 break/0).  This may be used to get information on the status of the
@@ -152,6 +162,14 @@ Disable the PCE tracer and start the Prolog tracer.  This will cause
 execution to continue until control reaches Prolog again, after which
 the Prolog tracer may be used to examine the Prolog context of the
 error.
+    \tick{{\bf e[iwef] [id]}: Error Kind}
+Change the `kind' of the current error or the error with identifier {\em
+id}:  `i' is ignore; `w' is warning (print, but do not break); `e' is
+error (print and break), `f' is fatal (print stack and abort).
+    \tick{{\bf a}: Abort}
+Abort execution and restart the Prolog toplevel.  Be careful with this
+option as it sometimes leaves either the X11 library or XPCE in an
+inconsistent state.
     \tick{{\bf n}: Nodebug}
 Continue execution.  Note that the current message will fail.  Note that
 some methods do not anticipate failure of sending a message.  In these
@@ -216,7 +234,7 @@ Thus, associating a trace-point with class \class{program_object}
 associates it as a default for all traceable objects.
 
 Both trace- and break-points may be associated a {\em condition}.
-This is a code object that is evaluated before the trace- or
+This is a \class{code}object that is evaluated before the trace- or
 break-point is activated.  If the code object fails the goal is not
 printed (or execution is not `broken').  The parameters passed
 to the code ar listed in table~\ref{tab:goalargs}.
@@ -287,7 +305,7 @@ examples to help finding common problems.
 \subsubsection{Tracing event-processing}
 
 A commonly encountered problem is that your application simply
-doesn't respond to a specific mouse and/or keyboard operation.
+does not respond to a specific mouse and/or keyboard operation.
 For example you programmed an object to be movable with the
 middle-mouse-button; but it does not respond.
 
@@ -333,13 +351,6 @@ send-operations whose method summary-string starts with ``Test''.
 3 ?- send(@vmi_send, trace, @on, fail, @no_test_method).
 \end{code}
 
-\subsubsection{Status}
-
-The current implementation of the tracer is the result of a redesign
-and merging of various tracing possibilities that existed in release
-4.4.  Practice should indicate its suitability.  Comments are welcome!
-
-
 \section{Visual hierarchy tool}		\label{sec:vishierarchy}
 
 \index{hierarchy,of UI components}
@@ -347,16 +358,15 @@ The ``Visual Hierarchy'' tool provides an overview of the consists-of
 relations between the various UI components in a tool.  It is part of
 the online manual tools and may be started from the ``Tool'' entry in
 the main dialog.  Figure~\ref{fig:vishierarchy} shows this tool examining
-the structure of the ``Ispell'' demo program (see figure~\ref{fig:ispell}).
+the structure of the ``Ispell'' demo program.
 
-\postscriptfig{ispell}{The ``Ispell'' demo program}
-\postscriptfig{vishierarchy}{Visual Hierarchy Tool}
+\postscriptfig[width=\textwidth]{vishierarchy}{Visual Hierarchy Tool showing ``Ispell''}
+
 \index{postscript}
-
 This tool is very useful to examine the structure of existing
 applications (for example the various demo programs).  It may also
 be used to find object-references and to launch the inspector
-(described below) on a particular object.
+(\secref{inspector}) on a particular object.
 
 There are three ways to expand the tree of the visual hierarchy
 tool.  The first is to expand the tree from the initially displayed
@@ -376,159 +386,6 @@ which dumps the class and slot value of the argument reference in
 the Prolog window.  The inspector is started from the ``Tools'' entry
 of the manual tools.
 
-\postscriptfig{inspector}{Inspector Tool}
+\postscriptfig[width=\textwidth]{inspector}{Inspector Tool}
 \index{object,inspecting}\index{inspector}
-
-
-\section{Errors}		\label{sec:errors}
-
-Errors are abnormalities that are detected during a program's
-execution.  Errors may be caused by internal bugs in PCE, bugs
-in the application program and finally by the application user
-making errors in operating the application (e.g. specifying
-a protected file).
-
-Errors may also be discriminated according to their `seriousness': If
-a certain font cannot be found it can easily be substituted by
-another.  If a method expects an integer argument but the actual
-argument is a graphical object it is impossible to carry-out the
-operation.  In such cases PCE will normally trap the tracer. If the
-user decides to continue execution the method will return failure to
-its caller.  Finally, some problems are categorised as `fatal'.  When
-such a problem is encountered PCE does not know how execution may
-be continued.
-
-All errors (except for some that may result from PCE bugs during
-the boot phase of PCE) are represented by an \class{error} object.
-An error object has the following properties:
-
-\begin{itemize}
-    \tick{id}
-Unique identifier name of the error.  It may be used to generate
-errors; look-up error objects in the @errors database or catch
-errors (see pce_catch_error/2).
-    \tick{kind}
-The kind describes how serious the error is considered to be.  Its
-possible values are: {\em ignored} if the error is (currently) not
-regarded an error at all; {\em message} if the error is to be
-reported, but no further action is required; {\em warning} if the
-error is to be fixed.  After printing the error the system will
-start the tracer, allowing a programmer to examine the problem
-context.  Finally, {\em fatal} errors do not allow execution to
-be continued.  The system will print context information and
-request Prolog to abort back to the Prolog interactive toplevel.
-    \tick{feedback}
-Determines how the error is to be reported.  If {\em print} the
-error is printed in the Prolog window.  If {\em inform} the
-error is reported using an informer box.  The latter is intended
-for errors that may be caused by application users: file errors
-certain types of X-window related errors, etc.
-    \tick{format}
-A format specification to construct a message text from the
-context arguments provided by the generator of the error.
-\end{itemize}
-
-\index{error,description of}%
-The online manual ``Errors Browser'' may be used to examine the
-defined errors; change attributes of errors and get precise
-description of errors.
-
-
-\subsection{Handling errors in the application}
-
-\index{errors,catching}\index{catch,errors}%
-Sometimes the application wants to anticipate on certain errors.
-Explicit testing of all conditions is a cumbersome solution to this
-problem.  Therefore PCE allows catching of errors by the application.
-This is supported by the Prolog predicate pce_catch_error/2:
-
-\begin{code}
-	...,
-	pce_catch_error(backup_file, send(File, backup)),
-	...
-\end{code}
-
-If the indicated error occurs while the goal of the second argument is
-active the PCE goal that raised the error will silently fail and the
-attribute `pce <-last_error' is filled with the id of the error
-trapped.  This may be used to determine the cause of the error.
-
-
-\subsection{Raising Errors}
-
-The application programmer may define new (application specific)
-errors.  The error object is a normal PCE object and may thus be
-created using new/2.  An error is raised by invoking `object ->error'.
-The example below illustrates this:
-
-\begin{code}
-:- new(_, error(no_user, '%N: Unknown user: %s', warning, inform)).
-
-	...,
-	(   get(UserDatabase, user, Name)
-	->  ...
-	;   send(UserDatabase, error, no_user, Name)
-	),
-	...
-\end{code}
-
-Note that the names of errors should be unique.  It is advised to
-reuse existing error-id's when possible.
-
-
-\subsection{Exceptions}
-
-\idx{exception}
-On trapping certain `repairable` errors, PCE will first raise an {\em
-exception}.  Exceptions may be trapped by an {\em exception handler}
-which may solve the problem.  If the exception-handler fails to solve
-the problem, PCE will raise an {\em error}.  See section~
-\ref{sec:errors}. 
-
-Exceptions are raised by invoking `@pce ->exception: id, arg ...'.
-Exception handlers are registered in the sheet `@pce ->exception_handlers',
-which maps an exception-id onto a code object that handles the exception.
-The following illustrates this:
-
-\begin{code}
-1 ?- [user].
-|: add_user(Name) :- write(Name), nl.
-^D
-
-2 ?- send(@pce?exception_handlers, value,
-          no_user,
-	  message(@prolog, add_user, @arg1)).
-
-3 ?- send(@pce, exception, no_user, fred).
-fred
-\end{code}
-
-The {\em context arguments} passed with an exception are defined by the
-code raising the exception.  The currently defined exceptions are
-listed below.  See also the online manual: `pce->exception' and
-`pce <-exception_handlers'.
-
-\begin{itemize}
-    \tick{undefined_class}
-\index{class,undefined}\index{undefined,class}%
-An attempt is made to reference an non-existing class while
-doing one of the following: create an object; load an object from
-file using `File <-object'; create a subclass.  The var @arg1
-is bound to the class-name.
-    \tick{undefined_assoc}
-\index{assoc,undefined}\index{undefined,object reference}%
-An attempt is made to resolve a symbolic reference (i.e. @pce),
-but the reference is unknown.  The var @arg1 is bound to the missing
-reference name.
-    \tick{redefined_assoc}
-\index{assoc,redefined}\index{redefined,object reference}%
-An attempt is made to create an object with the same symbolic
-reference as an already existing object.  The var @arg1 is bound to the
-already existing reference name.
-    \tick{initialisation_failed}
-\index{new,failed}\index{initialisation,failed}%
-The ->initialisation method for some instance failed.  The var @arg1
-is bound to the (partial) instance; @arg2, ... are bound the arguments
-given to the new-operation.
-\end{itemize}
 

@@ -35,11 +35,8 @@ fill_pattern(@black_image).
 make_fill_pattern_menu(M) :-
 	new(M, menu(fill_pattern, marked)),
 	send(M, layout, horizontal),
-	(   fill_pattern(P),
-	    send(M, append, menu_item(P, @default, P)),
-	    fail
-	;   true
-	).
+	forall(fill_pattern(P),
+	       send(M, append, menu_item(P, @default, P))).
 \end{code}
 
 \subsection{Global named references}

@@ -200,10 +200,15 @@ getReferenceButton(Button b)
 { Point ref;
 
   if ( !(ref = getReferenceDialogItem(b)) )
-    ref = answerObject(ClassPoint,
-		       ZERO,
-		       add(toInt(3), getAscentFont(b->label_font)),
-		       0);
+  { int fh, ascent, h;
+
+    ComputeGraphical(b);
+    fh     = valInt(getHeightFont(b->label_font));
+    ascent = valInt(getAscentFont(b->label_font));
+    h      = valInt(b->area->h);
+
+    ref = answerObject(ClassPoint, ZERO, toInt((h - fh)/2 + ascent), 0);
+  }
   
   answer(ref);
 }

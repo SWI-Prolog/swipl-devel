@@ -1,5 +1,5 @@
 
-/* equation.c */
+/* ari/equation.c */
 status		makeClassBinaryCondition(Class class);
 Int		getVarEquation(Equation e, Var var);
 status		makeClassEquation(Class class);
@@ -8,7 +8,7 @@ status		makeClassLessEqual(Class class);
 status		makeClassGreater(Class class);
 status		makeClassGreaterEqual(Class class);
 
-/* expression.c */
+/* ari/expression.c */
 PseudoFloat	getPseudoFloatExpression(Any e);
 Int		getVarInBinaryExpression(BinaryExpression e, Var var);
 status		makeClassBinaryExpression(Class class);

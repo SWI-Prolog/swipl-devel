@@ -3,7 +3,7 @@
 This section introduces programming the PCE/Prolog environment: the
 entities (objects), referencing objects and manipulating objects.  Most
 of the material is introduced with examples.  A complete definition of
-the interface primitives is in appendix~\ref{sec:interface}.
+the interface primitives is given in \appref{interface}.
 
 \section{Starting PCE/Prolog}
 
@@ -51,7 +51,7 @@ example a position in a two-dimensional plane is represented by a
 object of class {\em point}.  The state of a point object consists of
 its X- and Y-coordinates.
 
-\subsection{New: creating objects}
+\subsection{New: creating objects}			\label{sec:new2}
 
 \index{object,reference}\index{reference, object}
 The predicate new/2 (new(?Reference,~+NewTerm)) {\em creates} an
@@ -120,9 +120,8 @@ x of the corresponding point object to the argument value.  The second
 example invokes the method append of class dialog.  This method
 appends a UI component to the dialog window.  The component is
 specified by the term `text_item(name)', which is converted into an
-object just as the second argument of new/2.
-
-The query below will open the dialog window.
+object just as the second argument of new/2.  The query below will open
+the dialog window.
 
 \begin{code}
 5 ?- send(@demo, open).
@@ -259,6 +258,83 @@ The following example illustrates the usage of this method:
 \end{code}
 
 
+\section{Argument conversion}
+
+\index{arguments,typed}\index{type}\index{type,conversion}%
+Arguments to XPCE methods are {\em typed}.  For example, the send-method
+`colour' on class \class{graphical} specifies is accepts a single
+argument of type `colour'.  A colour in XPCE is represented by a
+colour {\em object}.  Colour objects are created from their name, or
+there {\em RGB} value.  The following queries both create a colour
+object that appears as red.
+
+\begin{code}
+1 ?- new(X, colour(red)).
+2 ?- new(X, colour(@default, 65535, 0, 0)).
+\end{code}
+
+It is thus possible to specify a graphical should be coloured red using
+the following query:
+
+\begin{code}
+	...,
+	send(Box, colour, colour(red)),
+	...
+\end{code}
+
+As the colour method knows it expects an instance of class colour and
+class colour defines the conversion from a name to a colour (see
+\secref{omsmethods}), the following query achieves the same goal:
+
+\begin{code}
+	...,
+	send(Box, colour, red),
+	...
+\end{code}
+
+Some other examples of classes defining type conversion are
+\class{font}, \class{image}, \class{name}, \class{string}, \class{real}
+and the non-object data item {\em int}.  This implies the following
+queries are valid:
+
+\begin{code}
+	...,
+	send(Box, x, '10'),		% atom --> int
+	send(Box, selected, true),	% atom --> boolean
+	send(Text, font, bold),		% atom --> font
+	send(Text, string, 10),		% int  --> string
+	...
+\end{code}
+
+\section{Notation}
+
+\index{notation,in this manual}
+This manual, as well as all other XPCE documentation both printed and
+online uses some notational conventions.  Instead of speaking of
+`the send-method colour of class box', we will simple write
+
+\begin{quote}
+`box ->colour'
+\end{quote}
+
+\noindent
+Similar, instead of `the get-method height of class window', we will
+write
+
+\begin{quote}
+`window <-height'
+\end{quote}
+
+\noindent
+In some cases, the arguments and/or the return type of the method will
+be specified:
+
+\begin{quote}
+`box ->colour: colour'
+`window <-height ==>int'
+\end{quote}
+
+
 \section{Example: show files in directory}	\label{sec:fileviewer}
 
 In this section we will illustrate the above with some small examples.
@@ -325,7 +401,7 @@ infix operator of type {\tt yfx}, priority 500. This implies that
 	      case the browser {\em B} would be passed to the predicate
 	      view/1, which would extract the current filename from the
 	      browser.  Obtainers improve the readability and avoid the
-	      need to mix UI related code with functional code.}
+	      need to mix UI related code with application code.}
 
 \begin{code}
 ?(?(B, selection), key)
@@ -335,7 +411,7 @@ The result of the get-operation <-selection on a browser returns the
 \class{dict_item} object currently selected.  Dict-items are the
 elements of a \class{dict}, the underlying data object of a browser.
 A \class{dict_item} consists of a <-key (its identifier), a <-label
-(the visual text) and optionally an associated object.
+(the visual text) and optionally an associated <-object.
 
 Line 8 appends a second button to the dialog window.  The dialog window
 will automatially align this one to the right of the first.  The action

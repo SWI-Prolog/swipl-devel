@@ -110,6 +110,21 @@ getConvertDirectory(Class class, Name name)
 
 
 static status
+storeDirectory(Directory d, FileObj file)
+{ return storeSlotsObject(d, file);
+}
+
+
+static status
+loadDirectory(Directory d, FILE *fd, ClassDef def)
+{ TRY(loadSlotsObject(d, fd, def));
+
+  d->modified = MODIFIED_NOT_SET;
+  succeed;
+}
+
+
+static status
 existsDirectory(Directory d)
 { struct stat buf;
 
@@ -381,6 +396,7 @@ makeClassDirectory(Class class)
 	     "Time stamp for ->changed");
 
   termClass(class, "directory", 1, NAME_name);
+  setLoadStoreFunctionClass(class, loadDirectory, storeDirectory);
 
   sendMethod(class, NAME_initialise, DEFAULT, 1, "path=name",
 	     "Create from name",

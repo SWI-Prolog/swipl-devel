@@ -125,11 +125,11 @@ initialise(S, Name:name, Main:main) :->
 \subsubsection{Methods on class hyper}
 
 \begin{description}
-    \sendmethod{hyper}{initialise}{From:object, To:object,
-				   FromName:name, ToName:[name]}
-Create a new hyper object.  Seen from {\em From}, this hyper is
-called {\em FromName}; seen from {\em To} it is called {\em ToName}.
-The default for {\em ToName} is {\em FromName}.
+    \sendmethod{hyper}{initialise}{F:object, T:object,
+				   FName:name, TName:[name]}
+Create a new hyper object.  Seen from {\em F}, this hyper is
+called {\em FName}; seen from {\em T} it is called {\em TName}.
+The default for {\em TName} is {\em FName}.
     \sendmethod{hyper}{unlink_from}{}
 Called by the object-management system when the <-from side of the hyper
 is being destroyed.  May be refined.
@@ -147,16 +147,16 @@ that let you delete and inspect the hyper structure.  Please use the
 online manual for details.
 
 \begin{description}
-    \sendmethod{object}{send_hyper}{HyperName:[name], Selector:name,
-				    Argument:unchecked ...}
+    \sendmethod{object}{send_hyper}{Name:[name], Selector:name,
+				    Arg:unchecked ...}
 Perform a broadcast send-operation to all (named) <-hypered objects.
 Similar to <-get_hyper, but does not stop if the method is received
 successfully. Succeeds if there was at least one hypered object
 accepting the message, fails otherwise.
-    \getmethod{object}{hypered}{HyperName:[name], Test:[code]}{object}
+    \getmethod{object}{hypered}{Name:[name], Test:[code]}{object}
 Find a hyper-related object. Name is the name of the hyper (seen from
 the side of the receiver). Test is an optionally additional test. If
-present, this test is executed using the following arguments below.
+present, this test is executed using the arguments given below.
 The first matching object is returned.  See also <-all_hypers.
 	
 \begin{center}

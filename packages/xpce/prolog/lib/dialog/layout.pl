@@ -197,7 +197,31 @@ can_be_in_column(Gr) :-
 can_be_in_column(Gr) :-
 	get(Gr, fixed_alignment, @off).
 
+make_row_alignment([_]) :- !.
 make_row_alignment(Row) :-
+	findall(align_row(Sub, Alignment),
+		row_alignment(Row, Sub, Alignment),
+		Alignments),
+format('~p~n', [Alignments]),
+	delete_sub_alignments(Alignments, Alignments, Cleaned),
+format('~p~n', [Cleaned]),
+	checklist(call, Cleaned).
+
+
+delete_sub_alignments([], _, []).
+delete_sub_alignments([H|T], As, L) :-
+	H = align_row(S1, _),
+	length(S1, L1),
+	member(align_row(S2, _), As),
+	length(S2, L2),
+	L1 < L2,
+	subset(S1, S2), !,
+	delete_sub_alignments(T, As, L).
+delete_sub_alignments([H|T], As, [H|L]) :-
+	delete_sub_alignments(T, As, L).
+
+
+row_alignment(Row, Sub, Alignment) :-
 	first(First, Row),
 	get(First, device, Device),
 	append(Before, R0, Row),
@@ -207,7 +231,6 @@ make_row_alignment(Row) :-
 	right(After, Device, RightEdge),
 	\+((member(X, Sub), get(X, alignment, column))),
 	left_to_right(Sub),
-%format('Sub is ~p~n', [Sub]),
 	first(Head, Sub),
 	last(Tail, Sub),
 	get(Head, left_side, Left),
@@ -220,10 +243,7 @@ make_row_alignment(Row) :-
 	;   RH < CH
 	->  Alignment = right
 	;   Alignment = center
-	),
-	align_row(Sub, Alignment),
-	fail.
-make_row_alignment(_).
+	).
 
 left([], Device, Left) :-
 	get(Device?bounding_box, left_side, Left).

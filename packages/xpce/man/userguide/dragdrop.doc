@@ -1,4 +1,4 @@
-\section{Drag and Drop Interface}
+\section{Drag and Drop Interface}		\label{sec:dragdrop}
 
 XPCE's drag-and-drop interface allows the user to drag-and-drop
 \class{graphical} objects and \class{dict_item} objects. Drag-and-drop

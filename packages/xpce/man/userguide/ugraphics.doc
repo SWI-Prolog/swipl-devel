@@ -1,11 +1,11 @@
-\section{User Defined Graphicals}
+\section{User Defined Graphicals}		\label{sec:ugraphics}
 
 This section discusses various approaches for defining new graphical
 objects. XPCE offers three approaches for defining new graphical
 objects:
 
-\begin{description}
-    \item[Combining graphicals]
+\begin{itemize}
+    \tick{Combining graphicals}
 The simplest way to create a new graphical object is by combining
 multiple graphical objects on a graphical device.  The following
 predicate creates a `text-box':
@@ -23,18 +23,18 @@ it is not a very good approach to build a library of GUI objects or,
 more in general, to make {\em generic} and {\em reusable} new graphical
 objects.  The above object does not handle resize properly, and the user
 has to know the internal structure to modify the object.
-    \item[Subclassing class device]
+    \tick{Subclassing class device}
 Since the introduction of user-defined classes (see \secref{udc}),
 subclassing \class{device} is a common way to define new graphicals.
 Using this technique, `device->initialise' is refined to display the
 part of the compound graphical.  `device->event' and `device->geometry'
 are normally redefined to define event-handling and resize of the new
 graphical object.  See \secref{graphmethods} for details.
-    \item[(Re)defining the repaint method]
+    \tick{(Re)defining the repaint method}
 The method `graphical ->_redraw_area' can be redefined to define the
 look of a graphical.  We will discuss the advantages and disadvantages
 of this approach in this section and give some examples.
-\end{description}
+\end{itemize}
 
 
 \subsection{(Re)defining the repaint method}
@@ -191,14 +191,14 @@ disadvantages over the \class{device} based implementation:
 
 \begin{itemize}
     \tick{{\tt ++} Memory usage}
-This approach uses considerably less memory then the combination of a
+This approach uses considerably less memory than the combination of a
 \class{device}, \class{box} and \class{text}.
     \tick{{\tt --} Poor PostScript quality}
 The current version of the system will generate PostScript for
 user-defined graphicals by painting the graphical on an \class{image}
 and translating the result in a PostScript image description.
     \tick{{\tt --} More rigid}
-This version of the text-box does not have diffent colours for box and
+This version of the text-box does not have different colours for box and
 text, etc. Of course it is possible to implement a version with all
 thinkable attributes, but this is a lot of work.
 

@@ -31,9 +31,10 @@ initialise(L, Label:[string]) :->
 	send(L, append, new(B, browser('', size(60, 6)))),
 	send(B, open_message, message(L, goto, @arg1?object)),
 	send(new(D, dialog), below, B),
-	send(D, gap, size(10, 0)),
+	send(D, pen, 0),
+	send(D, gap, size(10, 5)),
 	send(D, append, button(quit, message(L, destroy))),
-	send(D, append, label(reporter)),
+	send(D, append, label(reporter), right),
 	send(L, open).
 
 

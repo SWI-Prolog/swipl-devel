@@ -49,8 +49,7 @@ collector.  Locked objects can only be freed by sending an explicit
 avoid that `toplevel' objects such as frames are deleted by the
 garbage collector.  It is also used to indicate that Prolog wants to
 be responsible for destruction of the object rather than PCE's garbage
-collector.  See the definition of field_image/4 in
-section~\ref{sec:squareimage}.  The lock flag is automatically set on
+collector.  The lock flag is automatically set on
 any object that has a named reference.  If Prolog wants to store
 integer object references in the Prolog database locking is often
 necessary to protect the object for the PCE garbage collector.  See
@@ -76,14 +75,19 @@ the object from the object base.
 
 \section{Practical considerations}
 
-\index{object,management}
+\index{object,management}%
 The principal predicates new/2, send/[2-12] and get/[3-13] will destroy
 all argument- and answer- objects created during their execution except
 for the object created by new/2 and the object returned by get/[3-13].
 
 An object created by new/2 with an integer (anonymous) object reference
 must either be attached to another object, locked against PCE's garbage
-collector or destroyed using `object ->done'.
+collector or destroyed using `object ->done' if it is created during the
+{\em initialisation} of the application or in a loop that is passed many
+times.  Such objects will be automatically reclaimed if (1) the object
+is created while handling a user-event after hanlding the event is
+finished or (2) the object is created in the implementation of a method
+on a user-defined class and the method terminates execution.
 
 If is is not known whether or not the result of get/[3-13] is a computed
 object the user should invoke `object ->done' to this result when the

@@ -82,16 +82,18 @@ status
 cloneStyleVariable(Variable var, Name style)
 { clearDFlag(var, D_CLONE);
 
-  if ( equalName(style, NAME_recursive) )
+  if ( style == NAME_recursive )
     setDFlag(var, D_CLONE_RECURSIVE);
-  else if ( equalName(style, NAME_reference) )
+  else if ( style == NAME_reference )
     setDFlag(var, D_CLONE_REFERENCE);
-  else if ( equalName(style, NAME_value) )
+  else if ( style == NAME_value )
     setDFlag(var, D_CLONE_VALUE);
-  else if ( equalName(style, NAME_alien) )
+  else if ( style == NAME_alien )
     setDFlag(var, D_CLONE_ALIEN);
-  else if ( equalName(style, NAME_nil) )
+  else if ( style == NAME_nil )
     setDFlag(var, D_CLONE_NIL);
+  else if ( style == NAME_referenceChain )
+    setDFlag(var, D_CLONE_REFCHAIN);
   else
     fail;
 
@@ -103,9 +105,9 @@ status
 saveStyleVariable(Variable var, Name style)
 { clearDFlag(var, D_SAVE);
 
-  if ( equalName(style, NAME_normal) )
+  if ( style == NAME_normal )
     setDFlag(var, D_SAVE_NORMAL);
-  else if ( equalName(style, NAME_nil) )
+  else if ( style == NAME_nil )
     setDFlag(var, D_SAVE_NIL);
   else
     fail;
@@ -120,6 +122,8 @@ getCloneStyleVariable(Variable var)
     answer(NAME_recursive);
   if ( onDFlag(var, D_CLONE_REFERENCE) )
     answer(NAME_reference);
+  if ( onDFlag(var, D_CLONE_REFCHAIN) )
+    answer(NAME_referenceChain);
   if ( onDFlag(var, D_CLONE_VALUE) )
     answer(NAME_value);
   if ( onDFlag(var, D_CLONE_ALIEN) )
@@ -513,7 +517,7 @@ makeClassVariable(Class class)
 	     "Test if variable has write access",
 	     sendAccessVariable);
   sendMethod(class, NAME_cloneStyle, NAME_copy,
-	     1, "{recursive,reference,value,alien,nil}",
+	     1, "{recursive,reference,reference_chain,value,alien,nil}",
 	     "Clone-style for this slot",
 	     cloneStyleVariable);
   sendMethod(class, NAME_saveStyle, NAME_file, 1, "{normal,nil}",

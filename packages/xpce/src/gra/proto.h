@@ -187,6 +187,7 @@ status		XopenImage(Image image, DisplayObj d);
 status		XcloseImage(Image image, DisplayObj d);
 status		loadImage(Image image, FileObj file, CharArray path);
 status		resizeImage(Image image, Int w, Int h);
+status		fillImage(Image image, Any pattern, Area area);
 status		makeClassImage(Class class);
 
 /* gra/joint.c */

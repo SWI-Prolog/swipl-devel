@@ -4,7 +4,7 @@ XPCE is an object-oriented symbolic environment for symbolic languages
 or strongly typed languages. The combination provides a hybrid
 environment with a small but powerful and transparent interface.
 Although PCE provides many general-purpose classes, it is primarily
-designed to implement user-interfaces.
+designed to implement graphical user-interfaces (GUI).
 
 XPCE is not a programming language in the traditional sence. Contructs
 of the system do not have a textual representation. The interface to the
@@ -19,13 +19,13 @@ instance-variables, inheritance, statements, conditions, iteration, etc.
 All the above primitives are represented by first-class {\em objects}
 that may be created, modified, inspected and destroyed. This allows the
 programmer to extend the XPCE object-oriented system with new methods
-and classes from the host-language. In addition, small procedures can be
+and classes from the host-language. In addition, procedures can be
 expressed as objects and then given to XPCE for execution.
 
 The main target language for XPCE is {\em Prolog} and this document
 concentrates on XPCE/Prolog rather then XPCE/Lisp or XPCE/C++.
 XPCE/Prolog comes with a graphical programming environment that allows
-for quick browsing of the source-code, provided debugging tools and
+for quick browsing of the source-code, provides debugging tools and
 allows for the graphical construction of {\em dialog boxes} (graphical
 windows with {\em controllers}). XPCE's built-in editor is modelled
 after the standard (GNU-)Emacs editor and can be programmed in
@@ -41,7 +41,8 @@ documentation:
 \begin{itemize}
     \tick{The XPCE Reference Manual} \cite{PCE:reference}
 The reference manual is available in two formats: printed and by
-means of the Prolog predicate manpce/0.  The reference manual provides
+means of the Prolog predicate manpce/0.%
+	\footnote{ProWindows-3: user_help/0} The reference manual provides
 detailed descriptions of all classes, methods, etc.\ which may be accessed
 from various viewpoints. See also Chapter~\ref{sec:online}.
     \tick{PceDraw: An example of using PCE-4 \cite{PCE:draw}}
@@ -99,22 +100,24 @@ Cooperating with languages with the named properties avoid the need
 for explicitely programmed type-conversion.
 
 \begin{itemize}
-    \tick{SWI-Prolog}\index{SWI-Prolog (binding)}
+    \tick{SWI-Prolog}
+\index{SWI-Prolog (binding)}%
 The combination SWI-Prolog/PCE is the development version.
-    \tick{Quintus Prolog}\index{Quintus Prolog (binding)}
+    \tick{Quintus Prolog}
+\index{Quintus Prolog (binding)}%
 Distributed by AIIL (UK) under the name ProWindows-3/XPCE.  This version
 is commerically supported.  Contact chris@aiil.co.uk for details.
     \tick{SICStus Prolog}\index{SICStus Prolog (binding)}
 This binding has been implemented in close cooperation with SICS. Prolog
 libraries delivered with PCE run both on SICStus and SWI-Prolog.
-    \tick{Lucid Common Lisp 4}\index{Lucid CommonLisp (binding)}
+    \tick{Lucid Common Lisp 4}
+\index{Lucid CommonLisp (binding)}%
 The Lisp language binding is described in \cite{PCE:lisp}.
     \tick{Harlequin LispWorks 3.1}
-\index{Harlequin LispWorks (binding)}%
-\index{LispWorks (binding)}%
+\index{Harlequin LispWorks (binding)}\index{LispWorks (binding)}%
 The Lisp language binding is described in \cite{PCE:lisp}.
     \tick{GNU-C++ (g++)}
-    \index{C++ (binding)}\index{g++ (binding)}
+\index{C++ (binding)}\index{g++ (binding)}%
 This binding is described in \cite{PCE:cpp}.  It allows for the
 definition of both stand-alone C++/XPCE applications as well as
 mixed Prolog/C++/XPCE applications.%
@@ -126,8 +129,8 @@ mixed Prolog/C++/XPCE applications.%
 \section{Portability}
 
 The XPCE virtual machine and built-in class library is written in
-standard ANSI-C and is portable to any machine offering a flat
-sufficiently large memory model (32 or 64 bits). XPCE's graphical
+standard ANSI-C and is portable to any machine offering a flat,
+sufficiently large, memory model (32 or 64 bits). XPCE's graphical
 classes (including windows, etc.) interface to XPCE {\em Virtual Windows
 System} (VWS). Currently there are VWS implementations for X11 and the
 Microsoft Win32 API. Please contact the authors if you are interrested

@@ -5,21 +5,18 @@
 
 \makeindex
 
-%\includeonly{online}
+%\includeonly{dialog}
 
 \begin{document}
 
 \begin{titlepage}
-\titlepageheader
-
 \vfil\vfil\vfil
 \centerline{\psfig{figure=figs/title.ps,width=\textwidth}}
 \vfil\vfil\vfil
-\noindent
-Copyright \copyright\ 1992-1995 University of Amsterdam
 \end{titlepage}
 
 \begin{titlepage}
+\titlepageheader
 \vfil\vfil
 
 \noindent
@@ -35,7 +32,11 @@ object-oriented programming for Graphical User Interfaces.  Applications
 in XPCE/Prolog are fully compatible accross the supported X11 and
 Win32 platforms.
 \vfil\vfil
-Last updated October 17, 1995 for XPCE version 4.8.14
+\noindent
+Last updated December 1, 1995 for XPCE version 4.8.15
+\vfil
+\noindent
+Copyright \copyright\ 1992-1995 University of Amsterdam
 \end{titlepage}
 
 \pagestyle{fancyplain}
@@ -57,11 +58,13 @@ Last updated October 17, 1995 for XPCE version 4.8.14
 \include{starting}
 \include{globalarch}
 \include{online}
+\include{dialog}
 \include{graphics}
+\include{diaedit}
 \include{pceprolog}
 \include{udc}
+\include{resource}
 \include{techniques}
-\include{chess}
 \include{debug}
 \bibliographystyle{name}
 \bibliography{pce}

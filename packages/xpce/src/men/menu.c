@@ -323,6 +323,11 @@ computeMenu(Menu m)
     if ( m->show_label == ON )
     { Area a = m->label_area;
 
+      if ( m->layout == NAME_horizontal )
+      { if ( valInt(m->item_size->h) > valInt(a->h) )
+	  assign(a, h, m->item_size->h);
+      }
+
       x = valInt(a->x); y = valInt(a->y);
       w = valInt(a->w); h = valInt(a->h);
     } else
@@ -370,10 +375,36 @@ getReferenceMenu(Menu m)
 { Point ref;
 
   if ( !(ref = getReferenceDialogItem(m)) )
-  { ComputeGraphical(m);
+  { int ry;
 
-    if ( notNil(m->label_font) )
-      ref = answerObject(ClassPoint, ZERO, getAscentFont(m->label_font), 0);
+    ComputeGraphical(m);
+
+    if ( m->show_label == ON )
+    { int h, fh, ascent;
+
+      h      = valInt(m->label_area->h);
+      fh     = valInt(getHeightFont(m->label_font));
+      ascent = valInt(getAscentFont(m->label_font));
+      ry     = (h-fh)/2 + ascent;
+    } else
+    { MenuItem mi = getHeadChain(m->members);
+
+      if ( mi && instanceOfObject(mi->label, ClassCharArray) )
+      { FontObj f = getFontMenuItemMenu(m, mi);
+	int vw, vh;
+	int vy;
+	int ih = valInt(m->item_size->h);
+
+	str_size(&((Name) mi->label)->data, f, &vw, &vh);
+	vy = (m->vertical_format == NAME_top    ? 0 :
+	      m->vertical_format == NAME_center ? (ih-vh)/2 :
+					          ih - vh);
+        ry = vy + valInt(getAscentFont(f));
+      } else
+	ry = valInt(m->item_offset->y) + valInt(m->item_size->h);
+    }
+
+    ref = answerObject(ClassPoint, ZERO, toInt(ry), 0);
   }
 
   answer(ref);
@@ -683,7 +714,7 @@ RedrawAreaMenu(Menu m, Area a)
     str_string(&m->label->data, m->label_font,
 	       x + valInt(m->label_area->x), y + valInt(m->label_area->y),
 	       lw, valInt(m->label_area->h),
-	       m->label_format, NAME_center);
+	       m->label_format, m->vertical_format);
   }
   
   bx = cx = x + valInt(m->item_offset->x);
@@ -1372,7 +1403,7 @@ allOffMenu(Menu m)
 static status
 kindMenu(Menu m, Name kind)
 { if ( m->look == NAME_openLook )
-  { if ( kind == NAME_marked || kind == NAME_choice || kind == NAME_toggle )
+  { if ( kind == NAME_choice || kind == NAME_toggle )
     { assign(m, on_image, NIL);
       assign(m, off_image, NIL);
       assign(m, feedback, NAME_box);
@@ -1381,6 +1412,16 @@ kindMenu(Menu m, Name kind)
       assign(m, multiple_selection, kind == NAME_toggle ? ON : OFF);
 
       assign(m, kind, kind);
+      return requestComputeGraphical(m, DEFAULT);
+    } else if ( kind == NAME_marked )
+    { assign(m, on_image, MARK_IMAGE);
+      assign(m, off_image, NOMARK_IMAGE);
+      assign(m, feedback, NAME_image);
+      assign(m, pen, ZERO);
+      assign(m, border, TWO);
+      assign(m, multiple_selection, OFF);
+      assign(m, kind, kind);
+
       return requestComputeGraphical(m, DEFAULT);
     } else if ( kind == NAME_cycle )
     { assign(m, pen, ZERO);
@@ -1396,7 +1437,7 @@ kindMenu(Menu m, Name kind)
 
       assign(m, kind, kind);
       return requestComputeGraphical(m, DEFAULT);
-    }	else if ( kind == NAME_choice )
+    } else if ( kind == NAME_choice )
     { assign(m, on_image, NIL);
       assign(m, off_image, NIL);
       assign(m, feedback, NAME_box);

@@ -1,4 +1,4 @@
-\section{Control-structure of PCE/Prolog applications}
+\section{Control-structure of PCE/Prolog applications}	\label{sec:control}
 
 This section deals with the control-structure of interactive
 applications written in PCE/Prolog. Interactive graphical applications
@@ -115,8 +115,6 @@ user that is possible in graphical user interfaces.
 If the application could be viewed as a number of commands operating
 on some data-structure and this data-structure is stored on the Prolog
 heap using assert/1 or recorda/2 one could consider rewriting the
-toplevel control and provide a more flexible interface.  A typical
-application consists of a main window with a menu_bar object attached
-to it which allows the user to select from the available operations.
+toplevel control and provide a more flexible interface.
 
 

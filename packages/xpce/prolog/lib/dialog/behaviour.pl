@@ -49,6 +49,7 @@ port_type(get,		'\C-v').
 port_type(event,	'\C-e').
 port_type(send,		'\C-c').
 port_type(constant,	@nil).
+port_type(parameter,	@nil).
 port_type(init,		'\C-i').
 
 port_class(get,		msg_get_port).
@@ -56,6 +57,7 @@ port_class(event,	msg_event_port).
 port_class(send,	msg_send_port).
 port_class(constant,	msg_constant_port).
 port_class(init,	msg_init_port).
+port_class(parameter,	msg_parameter_port).
 
 standard_object(@pce).
 standard_object(@display).
@@ -195,7 +197,7 @@ connect(_G, F:graphical, T:graphical, L:link, FH:[name], TH:[name]) :->
 
 :- pce_begin_class(msg_connection, tagged_connection).
 
-resource(tag_font,	font,	'@helvetica_bold_12', "Font for the tag").
+resource(tag_font,	font,	bold, "Font for the tag").
 
 :- pce_global(@argument_handle,
 	      new(handle(w/2, h/2, argument, argument_center))).
@@ -435,7 +437,7 @@ port_handle(Type, Handle) :-
 
 :- pce_begin_class(msg_port, editable_text, "Graphical programming port").
 
-resource(port_font,	font,	'@helvetica_roman_10',	"Default font").
+resource(port_font,	font,	small,	"Default font").
 
 initialise(P, Name:[name]) :->
 	default(Name, '', Nm),
@@ -465,8 +467,8 @@ object(P, Object:'msg_object|msg_model') :<-
 
 make_msg_port_recogniser(R) :-
 	new(R, handler_group(@msg_identify,
-%			     new(move_port_gesture),
 			     drag_and_drop_gesture(left, c),
+			     drag_and_drop_gesture(middle),
 			     connect_port_gesture(@default, @default,
 						  @msg_links),
 			     popup_gesture(new(P, popup)))),
@@ -930,12 +932,18 @@ edit(P) :->
 	get(Object, ui_object, Self),
 	get(P, name, Selector),
 	(   Self == @prolog
-	->  get(P, count_arguments, Set),
+	->  (   get(P, count_arguments, Set)
+	    ->	true
+	    ;	send(P, report, error,
+		     'No activation; cannot count make argument list'),
+		fail
+	    ),
 	    send(Set, unique),
 	    get(Set, head, ArgC),
-	    (	user:ed(Selector/ArgC)
-	    ->	true
-	    ;	get(P?frame, prolog_file, File),
+	    (	functor(Head, Selector, ArgC),
+		pce_host:callable_predicate(user:Head)
+	    ->	user:ed(Head)
+	    ;	get(Object, file, File),
 		new(B, emacs_buffer(File)),
 		send(B, open),
 		get(B?editors, head, Editor),
@@ -1027,6 +1035,61 @@ documentation(P) :->
 	    auto_call(manpce(Class))
 	).
 
+
+:- pce_end_class.
+
+
+:- pce_begin_class(msg_parameter_port, msg_port,
+		   "Parameterisation of initialisations").
+:- pce_class_directive(attach_port_handles(get)).
+
+variable(parameter_name,	name,	both, "Name of represented parameter").
+
+type(_P, T:port_type) :<- T = parameter.
+
+identify(P, Id:string) :<-
+	"Identification string"::
+	new(Id, string('Initialisation parameter "%s"', P?parameter_name)).
+
+enter(P) :->
+	"Associate new (typed) value"::
+	send(P, send_super, enter),
+	send(P, relink),
+	send(P, identify).
+
+relink(P) :->
+	"Restore after reloading"::
+	get(P?string, value, Name),
+	send(P, parameter_name, Name).
+
+value(P, Value:'any|function') :<-
+	"Parameter value"::
+	get(P, parameter_name, PName),
+	new(D, dialog(string('Value for parameter %s', PName))),
+	send(D, append, new(V, text_item(PName, ''))),
+	send(D, append, button(ok, message(D, return, V?selection))),
+	send(D, append, button(cancel, message(D, return, @nil))),
+	send(D, default_button, ok),
+	repeat,
+	get(D, confirm_centered, Atom),
+	(   Atom == @nil
+	->  !,
+	    send(D, destroy),
+	    fail
+	;   (   term_to_atom(Term, Atom)
+	    ->	(   compound(Term), Term \= @_
+		->  new(Value, Term)
+		;   Value = Term,
+		    send(D, destroy)
+		)
+	    ;	send(@display, inform, 'Syntax error'),
+		fail
+	    )
+	).
+	
+simulate(P, Value:'any|function') :<-
+	"Associated object (simulation)"::
+	invert(P, get(P, value, Value)).
 
 :- pce_end_class.
 
@@ -1244,11 +1307,14 @@ place_x(O, MinX, MaxX, Gr) :-
 		 *	      OBJECT		*
 		 *******************************/
 
-:- pce_begin_class(msg_object, device, "Graphical programming object").
+:- pce_begin_class(msg_object, figure, "Graphical programming object").
 :- use_class_template(msg_object_template).
 
-resource(size,		size,	'size(100,50)',	     "Default size of object").
-resource(label_font,	font,	'@helvetica_bold_10',"Default name-font").
+resource(size,		size,	size(120, 60),  "Default size of object").
+resource(label_font,	font,	bold,		"Default name-font").
+
+:- pce_global(@dia_component_elevation,
+	      new(elevation(@nil, 2, grey80))).
 
 initialise(O, Name:name) :->
 	send(O, send_super, initialise),
@@ -1257,11 +1323,14 @@ initialise(O, Name:name) :->
 	get(O, resource_value, label_font, Font),
 	send(O, display, new(B, box(W, H))),
 	send(B, name, shape),
-	send(B, fill_pattern, @grey12_image),
+	ifcolour(send(O, elevation, @dia_component_elevation),
+		 send(O, background, @grey25_image)),
 	send(O, display, new(T, editable_text(Name, center, Font))),
 	send(T, name, text),
 	send(T, message, value),
 	send(T, center, B?center),
+	send(T, border, 3),
+	send(T, pen, 1),
 	send(T, transparent, @off).
 
 
@@ -1335,7 +1404,8 @@ update_port_menu(Popup, Port, Model) :-
 	;   get(Model, expansion_class_name, Proto)
 	->  forall(port(Proto, _Kind, Name, Port),
 		   send(Popup, append, Name))
-	).
+	),
+	send(Popup, append, menu_item(@default, @default, 'other ...')).
 
 
 add_port_popup(@Ref, Port) :-
@@ -1462,7 +1532,7 @@ drop(O, Obj:any, Pos:point) :->
 
 variable(file,	file,	get,	"Associated source-file").
 
-resource(file_font, font, '@times_bold_12', "Font for file id").
+resource(file_font, font, normal, "Font for file id").
 
 :- pce_global(@dia_center_below_spatial,
 	      new(spatial(xref = x + w/2, yref = y+h,
@@ -1477,6 +1547,8 @@ initialise(Host, HostObject:host, File:[file]) :->
 	send(Host, display,
 	     new(T, editable_text(TheFile?name, center, Font))),
 	send(T, name, file),
+	send(T, border, 3),
+	send(T, pen, 1),
 	send(T, transparent, @off),
 	send(T, message, message(Host, file_name, @arg1)),
 	get(Host, member, text, Label),
@@ -1586,9 +1658,14 @@ make_msg_editor_recogniser(R) :-
 				      message(P, add_port, get))),
 		    new(EP, menu_item(add_event_port,
 				      message(P, add_port, event))),
-		    new(_P, menu_item(add_init_port,
+		    new(_P, menu_item(add_parameter_port,
+				      message(P, add_port, parameter))),
+		    new(_I, menu_item(add_init_port,
 				      message(P, add_port, init),
 				      end_group := @on)),
+		    menu_item(edit,
+			      message(P, edit),
+			      end_group := @on),
 		    menu_item(documentation,
 			      message(P, documentation))
 		  ]),
@@ -1608,18 +1685,32 @@ make_msg_editor_recogniser(R) :-
 				     message(@receiver, report, status, '')))).
 
 
-add_host(P, Host:host, Where:point) :->
-	"Add host instance at location"::
-	(   get(P, ui_object, Target),
-	    (	get(Target, attribute, dia_save_file, File)
-	    ->	get(File, name, Name),
+sourcefile(P, DefName:name) :<-
+	"Propose name for Prolog sourcefile"::
+	(   get(P, ui_object, Target)
+	->  (	get(Target, attribute, dia_save_file, File)
+	    ->	(   send(File, instance_of, file)
+		->  get(File, name, Name)
+		;   Name = File
+		),
 		get(Name, delete_suffix, '.dia', N2),
 		get(N2, ensure_suffix, '.pl', DefName)
 	    ;	get(Target, name, Name),
 		get(Name, ensure_suffix, '.pl', DefName)
 	    )
-	;   DefName = @default
-	),
+	;   DefName = 'scratch.pl'
+	).
+	
+
+edit(P) :->
+	"Edit/create associated sourcefile"::
+	get(P, sourcefile, FileName),
+	auto_call(emacs(FileName)).
+
+
+add_host(P, Host:host, Where:point) :->
+	"Add host instance at location"::
+	get(P, sourcefile, DefName),
 	send(P, display, new(Obj, msg_host(Host, DefName)), Where),
 	send(Obj, relink).
 
@@ -1702,7 +1793,6 @@ drop(E, Obj:any, Pos:point) :->
 		   (port_class(Type, Class),
 		    NewTerm =.. [Class, PortName],
 		    send(O, port, NewTerm))),
-	    send(O?shape, fill_pattern, @grey25_image),
 	    send(O, ui_object, Obj)
 	).
 
@@ -1781,6 +1871,10 @@ initialise(F, UI:visual) :->
 	send(new(M, msg_model), below, D),
 	send(M, name, model),
 	fill_editor_dialog(D),
+	send(new(D2, dialog), below, M),
+	send(D2, gap, size(10, 0)),
+	send(D2, append,
+	     label(reporter, 'Please drag dialog-items from interface')),
 	new(_, dia_transient_hyper(UI, M, behaviour_model, ui_object)).
 
 
@@ -1808,12 +1902,13 @@ fill_editor_dialog(D) :-
 	get(D, frame, Frame),
 	send(D, append, new(MB, menu_bar)),
 	send(MB, alignment, right),
-	send(D, append, new(A, menu(animate, marked)), right),
+	send(D, append, new(A, menu(animate, choice)), right),
 	send(A, append, @off),
 	send(A, append, @on),
 	send(A, append, step),
 	send(A, selection, @on),
 	send(D, append, new(Speed, slider(speed, 1, 50, 25)), right),
+	send(Speed, show_value, @off),
 	send(Speed, width, 75),
 	send(D, append,
 	     new(Step, button(step, message(Frame, return, step))),
@@ -1829,8 +1924,6 @@ fill_editor_dialog(D) :-
 			   message(Step, show, @on)))),
 		 message(D, layout))),
 	send(Step, show, @off),
-	send(D, append,
-	     label(reporter, 'Please drag dialog-items from interface')),
 	send(MB, append, new(File, popup(file))),
 	send_list(File, append,
 		  [ menu_item(help,
@@ -1978,3 +2071,13 @@ user(Goal) :-
 	yesno(Goal, RVal),
 	forall(user_error(Error), send(error(Error), slot, feedback, print)),
 	RVal.
+
+		 /*******************************
+		 *	      COLOUR		*
+		 *******************************/
+
+ifcolour(IfColour, IfMono) :-
+	(   get(@display, visual_type, monochrome)
+	->  IfMono
+	;   IfColour
+	).

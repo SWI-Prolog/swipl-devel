@@ -5,10 +5,39 @@ problems that appear in many applications and for which support for
 generic solutions is present, but cannot easily be found using the
 online reference manual.
 
+\begin{itemize}
+\newcommand{\secoverview}[2]{\item{\secref{#1}~~~{\it #2}}\\}
+    \secoverview{control}{Control-structure of PCE/Prolog applications}
+Discusses the event-driven control-structure used by XPCE applications.
+Also describes how to avoid using this structure.
+    \secoverview{exeobjects}{Executable Objects}
+Discusses XPCE code objects and their usage in controls, methods and
+as parameters.
+    \secoverview{namedref}{Defining global named objects}
+Discusses handling of globally named system-wide objects.
+    \secoverview{whoiswho}{Using object references: ``Who's Who?''}
+Discusses mechanism available to find object references, avoiding
+global references and explicit storage of references.
+    \secoverview{report}{Informing the user}
+Discusses the generic reporting system used to inform the user of
+progress, status and errors.
+    \secoverview{font}{Specifying fonts}
+Discusses the indirections in the font-specification mechanism.
+    \secoverview{hyper}{Using Hyper Links to Relate Object}
+Discusses a technique to relate objects.
+    \secoverview{dragdrop}{Drag and Drop Interface}
+Discusses the XPCE drag-and-drop gesture library.
+    \secoverview{ugraphics}{User Defined Graphicals}
+Discusses the definition of new graphical primitives.
+\end{itemize}
+
 \input{control.tex}
+\input{code.tex}
 \input{namedref.tex}
 \input{whoiswho.tex}
+\input{frame.doc}
 \input{report.tex}
+\input{error.tex}
 \input{font.tex}
 \input{hyper.tex}
 \input{dragdrop.tex}

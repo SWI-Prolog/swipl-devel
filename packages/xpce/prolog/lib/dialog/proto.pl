@@ -33,12 +33,12 @@ proto(button,		button(button),
       ],
       []).
 proto(text_item,	text_item(text_item),
-      [ length := 15 ],
+      [ can_resize := @on ],
       []).
 proto(slider,		slider(slider, 0, 100, 25),
-      [ width := 75 ],
+      [ can_resize := @on ],
       []).
-proto(marked,		menu(marked, marked),
+proto(choice,		menu(choice, choice),
       [ members := chain(a, or, b) ],
       [ clear ]).
 proto(toggle,		menu(toggle, toggle),
@@ -69,7 +69,7 @@ icon(image,		'image.bm').
 icon(button,		'button.bm').
 icon(text_item,		'text_item.bm').
 icon(slider,		'slider.bm').
-icon(marked,		'choice.bm').
+icon(choice,		'choice.bm').
 icon(toggle,		'toggle.bm').
 icon(cycle,		'cycle.bm').
 icon(list_browser,	'list.bm').
@@ -82,7 +82,7 @@ summary(image,		'Information image (image)').
 summary(button,		'Push button').
 summary(text_item,	'Text entry field').
 summary(slider,		'Slider for numerical values').
-summary(marked,		'Menu for a single value (radio-button)').
+summary(choice,		'Menu for a single value (radio-button)').
 summary(toggle,		'Menu for multiple values').
 summary(cycle,		'Menu for a single value (with popup)').
 summary(list_browser,	'Dynamic scrollable list of items (list_browser)').
@@ -99,7 +99,7 @@ proto_term(image,	label,		[name, selection]).
 proto_term(button,	button,		[name]).
 proto_term(text_item,	text_item,	[name]).
 proto_term(slider,	slider,		[name, low, high, selection]).
-proto_term(marked,	menu,		[name, kind := marked]).
+proto_term(choice,	menu,		[name, kind := choice]).
 proto_term(toggle,	menu,		[name, kind := toggle]).
 proto_term(cycle,	menu,		[name, kind := cycle]).
 proto_term(list_browser,list_browser,	[dict := @default,width,height]).
@@ -175,7 +175,7 @@ attribute(create, menu, show_label).
 attribute(create, menu, columns).
 
 attribute(create, image, Att)  :- attribute(create, label, Att).
-attribute(create, marked, Att) :- attribute(create, menu, Att).
+attribute(create, choice, Att) :- attribute(create, menu, Att).
 attribute(create, toggle, Att) :- attribute(create, menu, Att).
 attribute(create, cycle, Att)  :- attribute(create, menu, Att).
 
@@ -211,7 +211,7 @@ attribute(layout, dialog_item, reference_x).
 attribute(layout, dialog_item, reference_y).
 attribute(layout, dialog_item, fixed_reference).
 
-dependency(marked, F, T) :- !, dependency(menu, F, T).
+dependency(choice, F, T) :- !, dependency(menu, F, T).
 dependency(toggle, F, T) :- !, dependency(menu, F, T).
 dependency(cycle,  F, T) :- !, dependency(menu, F, T).
 
@@ -256,6 +256,7 @@ port(dialog,	optional,	return,		send).
 port(dialog,	optional,	report,		send).
 port(dialog, 	optional,	done_message,	event).
 port(dialog, 	optional,	resize_message,	event).
+port(dialog,	optional,	frame,		get).
 
 port(menu_item,	obligatory,	message,	event).
 port(menu_item,	optional,	value,		get).
@@ -271,7 +272,7 @@ port(display,	optional,	confirm,	send).
 
 port(class,	obligatory,	instance,	get).
 
-port(marked, Priority, Port, Type) :- port(menu, Priority, Port, Type).
+port(choice, Priority, Port, Type) :- port(menu, Priority, Port, Type).
 port(toggle, Priority, Port, Type) :- port(menu, Priority, Port, Type).
 port(cycle,  Priority, Port, Type) :- port(menu, Priority, Port, Type).
 

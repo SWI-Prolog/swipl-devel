@@ -31,7 +31,7 @@ createDialogItem(Any obj, Name name)
   assign(di, status,		 NAME_inactive);
   assign(di, message,		 NIL);
   assign(di, popup,		 NIL);
-  assign(di, reference,		 newObject(ClassPoint, 0));
+  assign(di, reference,		 DEFAULT);
   assign(di, above,		 NIL);
   assign(di, below,		 NIL);
   assign(di, right,		 NIL);

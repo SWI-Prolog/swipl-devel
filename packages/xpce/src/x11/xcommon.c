@@ -210,7 +210,7 @@ postscriptXImage(XImage *im,
   }
 
   if ( im->format == XYBitmap )
-  { psmap = "\0\1";
+  { psmap = "\1\0";
     psbright = 1;
   } else
   { int entries	= 1<<im->depth;

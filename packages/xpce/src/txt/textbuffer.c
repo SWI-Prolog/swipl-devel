@@ -152,7 +152,6 @@ cloneTextBuffer(TextBuffer tb, TextBuffer clone)
   memcpy(clone->tb_buffer8, tb->tb_buffer8, clone->allocated);
   clone->changed_start = clone->size;
   clone->changed_end = 0;
-  assign(clone, editors, newObject(ClassChain, 0));
 
   succeed;
 }
@@ -1913,7 +1912,7 @@ makeClassTextBuffer(Class class)
   setLoadStoreFunctionClass(class, loadTextBuffer, storeTextBuffer);
   saveStyleVariableClass(class, NAME_editors, NAME_nil);
   setCloneFunctionClass(class, cloneTextBuffer);
-  cloneStyleVariableClass(class, NAME_editors, NAME_nil);
+  cloneStyleVariableClass(class, NAME_editors, NAME_referenceChain);
 
   storeMethod(class, NAME_undoBufferSize, undoBufferSizeTextBuffer);
   storeMethod(class, NAME_modified, modifiedTextBuffer);

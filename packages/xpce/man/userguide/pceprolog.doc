@@ -17,8 +17,8 @@ PCE/Prolog.
 
 Data managed by Prolog consists of logical variables, atoms, integers,
 floats and compound terms (including lists).  PCE has natural
-counterparts for atoms (a name object), integers (a PCE int) and
-floating point numbers (a real object).  Prolog logical variables and
+counterparts for atoms (a \class{name} object), integers (a PCE int) and
+floating point numbers (a \class{real} object).  Prolog logical variables and
 compound terms however have no direct counterpart in the PCE
 environment.  PCE has variables (class \class{var}), but these obey
 totally different scoping and binding rules.
@@ -29,7 +29,7 @@ purpose:%
     \footnote{This example uses PCE user-defined classes.  The details
 	      of this mechanism do not matter for the argument in this
 	      section. User-defined classes are described in
-	      section~\ref{sec:udc}.}
+	      \chapref{udc}.}
 
 \begin{code}
 :- pce_begin_class(person(name, age, address), object).
@@ -47,7 +47,7 @@ initialise(P, Name:name, Age:int, Address:string) :->
 :- pce_end_class.
 
 1 ?- new(P, person(fred, 30, 'Long Street 45')).
-P = @3664437
+P = @3664437/person
 \end{code}
 
 These two representations have very different properties:

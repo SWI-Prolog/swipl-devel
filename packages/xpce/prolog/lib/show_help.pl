@@ -7,6 +7,12 @@
     Copyright (C) 1994 University of Amsterdam. All rights reserved.
 */
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+show_help_hook/2 is used by SWI-Prolog's help  system to display help on
+Prolog predicates in a PCE window rather then using the terminal or less
+when PCE is running.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 :- module(pl_show_help,
 	  [ show_help_hook/2
 	  ]).

@@ -43,14 +43,32 @@ dialog(<ref>,
 
 source(Dialog, Source) :-
 	retractall(reference(_,_)),
+	findall(P, parameter(Dialog, P), Ps),
 	findall(Attr := Value, source_attribute(Dialog, Attr, Value), List),
 	reference(ObjectRef, Dialog),
 	get(Dialog, name, Id),
-	Source =.. [dialog, Id, [object := ObjectRef | List]],
+	IdTerm =.. [Id|Ps],
+	Source =.. [dialog, IdTerm, [object := ObjectRef | List]],
 	retractall(reference(_,_)).
 
 :- discontiguous
 	source_attribute/3.
+
+		 /*******************************
+		 *	    PARAMETERS		*
+		 *******************************/
+
+parameter(Dialog, P) :-
+	get(Dialog, behaviour_model, Model),
+	get_chain(Model, graphicals, Grs),
+	findall('$aref'(RefName), (member(Gr, Grs),
+				   send(Gr, instance_of, msg_parameter_port),
+				   get(Gr, parameter_name, PName),
+				   prolog_variable_name(PName, RefName),
+				   asserta(reference('$aref'(RefName), Gr))),
+		Parms),
+	member(P, Parms).
+
 
 		 /*******************************
 		 *	       PARTS		*
@@ -92,7 +110,7 @@ generate_unique_variable_names([Part|Parts], Done, [NewPart|NewParts]) :-
 varname('$aref'(Name) := _, Name).
 
 set_varname('$aref'(Old) := Value, Var, '$aref'(Var) := Value) :-
-	retract(reference('$aref'(Old), Gr)),
+	retract(reference('$aref'(Old), Gr)), !,
 	assert(reference('$aref'(Var), Gr)).
 
 occurs([], _, 0).
@@ -133,10 +151,10 @@ source_attribute(Dialog, layout, Layout) :-
 	maplist(symbolic_pair, P2, Pairs),
 	aligned(P2, Aligned),
 	subtract(Items, Aligned, Explicit),
-	findall(position(Ref, Point),
+	findall(area(Ref, Area),
 		(member(I, Explicit),
 		 reference(Ref, I),
-		 get_argument(I, position, Point)),
+		 get_argument(I, area, Area)),
 		Positions),
 	append(Pairs, Positions, Layout).
 
@@ -239,12 +257,20 @@ source_attribute(Dialog, initialise, Initialise) :-
 	    message(@arg1, instance_of, msg_init_port), Chain),
 	chain_list(Chain, Ports),
 	Ports \== [],
-	findall(Name := Message,
+	findall(Send,
 		(member(Port, Ports),
 		 port_message(Port, Message),
-		 get(Port, name, Name)),
+		 (   message_to_call(Message, Send)
+		 ->  true
+		 ;   get(Port, name, Name),
+		     Send = (Name := Message)
+		 )),
 		Initialise).
 
+message_to_call(Message, Send) :-
+	functor(Message, message, _), !,
+	Message =.. [_|Args],
+	Send =.. [send|Args].
 
 behaviour(Object, Dyns) :-
 	get(Object?graphicals, find_all,
@@ -344,6 +370,8 @@ activation_argument(A, Parm := Arg) :-
 	(   send(Port, instance_of, msg_constant_port)
 	->  get(Port, name, TermAtom),
 	    term_to_atom(Arg, TermAtom)
+	;   send(Port, instance_of, msg_parameter_port)
+	->  reference(Arg, Port)
 	;   send(Port, instance_of, msg_get_port)
 	->  get(Port, object, Object),
 	    get(Port, name, Selector),
@@ -490,6 +518,7 @@ equal_on_remaining_proto_args([_|T], O1, O2) :-
 object_attributes(Object, List) :-
 	new_term(Object, NewTerm),
 	new(Tmp, NewTerm),
+	send(Tmp, obtain_resources),
 	findall(Attr := Value,
 		object_attribute(Object, Tmp, Attr, Value),
 		List),

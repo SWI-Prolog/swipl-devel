@@ -149,6 +149,9 @@ makeClassPixmap(Class class)
 	     "width=[int]", "height=[int]",
 	     "Create image of <-kind pixmap",
 	     initialisePixmap);
+  sendMethod(class, NAME_fill, NAME_edit, 2, "image|colour", "[area]",
+	     "Fill rectangular area of image with pattern",
+	     fillImage);
 
   getMethod(class, NAME_lookup, NAME_oms, "pixmap", 3,
 	     "source=image", "foreground=[colour]", "background=[colour]",

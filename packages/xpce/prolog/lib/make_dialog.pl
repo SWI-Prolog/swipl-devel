@@ -77,6 +77,9 @@ layout(Dialog, right(I1, I2)) :- !,
 	send(I1, right, I2).
 layout(Dialog, position(I1, Pos)) :-
 	send(Dialog, display, I1, Pos).
+layout(Dialog, area(I1, area(X,Y,W,H))) :-
+	send(I1, do_set, X, Y, W, H),
+	send(Dialog, display, I1).
 
 attach(Dialog, I1, _I2) :-
 	get(I1, device, Dialog), !.
@@ -98,5 +101,7 @@ behaviour(Module, Ref := List) :-
 		 *	     INITIALISE		*
 		 *******************************/
 
-initialise(_Name := Code) :-
+initialise(_Name := Code) :- !,		% compatibility
 	send(Code, forward).
+initialise(Goal) :-
+	Goal.

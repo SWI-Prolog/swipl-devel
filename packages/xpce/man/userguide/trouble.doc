@@ -6,26 +6,6 @@ in using PCE/Prolog.
 \newcommand{\problem}[1]{\tick{#1}}
 
 \begin{description}
-    \problem{Failed to start manpce/0}
-There are various common causes for this problem.  The first is that PCE
-failed to open the display.  This problem is described below.  Another
-possibility is that PCE cannot find its library or the help files.  You
-may verify the existence of the manual libraries by typing
-\begin{code}
-1 ?- [library('man/v_class')].
-/usr/local/lib/xpce/prolog/lib/man/v_class.pl compiled
-into man_class, 0.15 sec, 11,644 bytes.
-\end{code}
-If the manual appears, but the descriptions are empty PCE probably
-cannot find the help files.  These should be in $<$Home$>$/man/reference,
-where $<$Home$>$ is the result of \line{1 ?- get(@pce, home, Home).}  Check
-the existence and permissions of this directory and its member-files.
-
-Finally, PCE might not be able to read it's resource files.  The PCE
-resource file should be installed as \file{/usr/lib/X11/app-defaults/Pce}.
-Check its existence and access rights.  If you have no permission to
-create this file, you may copy <Home>/Pce to your home-directory.
-
     \problem{Cannot open display}
 PCE tries to open the display from the address specified by the DISPLAY
 environment variable.  It ignores the `--display' command line option.  The
@@ -39,6 +19,8 @@ server.  See \idx{xauth} (when running \idx{MIT_MAGIC_COOKIE}) and \idx
 {xhost}.  If PCE still complains, validate the access rights by starting
 a normal X-application (e.g.\ xterm) in the same context.  Always restart
 PCE after a fatal or system error as the system might be corrupted.
+
+This problem is not possible in the Win32 implementation.
 
     \problem{Failed to convert resource value}
 This implies PCE could not translate a default specified in

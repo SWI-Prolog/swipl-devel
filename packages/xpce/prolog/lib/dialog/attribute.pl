@@ -36,6 +36,7 @@ client(DE, Client:object, Ats:'name|tuple ...') :->
 	send(DE, append,
 	     label(reporter, string('Edit %s `%N''', ClassName, Client))),
 	send(Ats, for_all, message(DE, append_attribute, @arg1)),
+	send(DE, append, button(help)),
 	send(DE, append, button(quit)),
 	send(DE, evaluate_conditions),
 	send(DE, advance).
@@ -151,7 +152,7 @@ make_item(Attr, Type, Client, Item) :-		% we have a small value-set
 	get(Type, value_set, ValueSet),
 	get(ValueSet, size, Size),
 	Size =< 4, !,
-	new(Item, menu(Attr, marked, @att_generic)),
+	new(Item, menu(Attr, choice, @att_generic)),
 	send(ValueSet, for_all, message(Item, append, @arg1)),
 	send(Item, default, Client?Attr).
 make_item(Attr, Type, Client, Item) :-		% FONT
@@ -183,5 +184,28 @@ unalias_type(Type, T2) :-
 
 quit(DE) :->
 	send(DE, destroy).
+
+		 /*******************************
+		 *		HELP		*
+		 *******************************/
+
+help(DE) :->
+	new(Methods, chain),
+	send(DE?graphicals, for_some,
+	     message(Methods, append, ?(DE, method_from_item, @arg1))),
+	manpce,
+	send(@manual, request_selection, @nil, Methods, @on).
+	     
+	
+method_from_item(DE, Item:graphical, Method:behaviour) :<-
+	\+ send(Item, instance_of, button),
+	\+ send(Item, instance_of, label),
+	get(DE, client, Client),
+	get(Item, name, Attribute),
+	(   get(Client?class, instance_variable, Attribute, Var)
+	->  Method = Var
+	;   get(Client?class, send_method, Attribute, SM)
+	->  Method = SM
+	).
 
 :- pce_end_class.

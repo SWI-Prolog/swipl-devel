@@ -396,8 +396,8 @@ drawInImage(Image image, Graphical gr, Point pos)
 		*            FILLING		*
 		********************************/
 
-static status
-fillImage(Image image, Image pattern, Area area)
+status
+fillImage(Image image, Any pattern, Area area)
 { int x, y, w, h;
 
   TRY(verifyAccessImage(image, NAME_fill));

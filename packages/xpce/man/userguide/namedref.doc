@@ -1,4 +1,4 @@
-\section{Defining global named objects}
+\section{Defining global named objects}		\label{sec:namedref}
 
 As explained before, named references should be restricted to debugging
 and reusable objects.  A couple of problems related to their creation
@@ -57,7 +57,7 @@ would look like:
 	...
 \end{code}
 
-This approach is to be regarded as bad programming style.  If
+This approach is to be regarded bad programming style.  If
 @stones_bitmap is required at various places in the source files this
 construct needs to be repeated at various places.  
 
@@ -84,7 +84,7 @@ when the file is reconsulted: if the definition is still the same it
 will not complain.  If the definition has modified and the object is
 already created it will rename the object (using
 `object ->name_reference').  A later reference to the object will
-again trap the exception handler creating a new object according to
+trap the exception handler again, creating a new object according to
 the current specification.  The directive prints diagnostics messages
 on redefinitions and other possible problems during compilation.  See
 appendix~\ref{sec:interface} for details on pce_global/2.

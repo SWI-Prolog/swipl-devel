@@ -48,7 +48,7 @@ standard XPCE library directory.
 :- pce_autoload(finder, library(find_file)).
 :- pce_global(@finder, new(finder)).
 
-dia_version('0.7').
+dia_version('0.8').
 
 :- initialization pce_help_file(dialog, pce_help('dialog.hlp')).
 :- initialization pce_image_directory(library('dialog/bitmaps')).
@@ -888,7 +888,7 @@ fill_menu_dialog(D) :-
 	get(D, frame, Frame),
 	send(D, append, label(title, 'Mode', bold)),
 	send(D, append,
-	     new(M, menu(mode, marked, message(Frame, mode, @arg1)))),
+	     new(M, menu(mode, choice, message(Frame, mode, @arg1)))),
 	send(M, append, create),
 	send(M, append, layout),
 	send(M, append, action),

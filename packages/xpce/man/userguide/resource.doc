@@ -1,4 +1,4 @@
-\section{Using resources}		\label{sec:resources}
+\chapter{Using resources}		\label{sec:resources}
 
 
 With the term {\em resources} we actually refer to {\em preferences}
@@ -29,7 +29,7 @@ resolve a resource value.
 \end{enumerate}
 
 
-\subsection{Specifying XPCE resources}
+\section{Specifying XPCE resources}
 
 XPCE is known by the X11 application {\tt Pce}.  An XPCE resource
 specification takes the following form:
@@ -48,17 +48,19 @@ The resource-class {\tt Pce} can be changed using
 `display ->resource_class'.
 
 
-\subsection{Resource-value syntax}
+\section{Resource-value syntax}
 
 The syntax for resource-{\em values} used by XPCE is in general not the
 same as the syntax used by X11.   Exceptions are integer, boolean and
 colour resources.  Resource values are specified as XPCE objects.  The
 syntax is inspired by Prolog.  Below is a partial BNF description.
 
-\newcommand{\isa}{\>::=~}
-\newcommand(\ora}{\>  \|~}
+\def\isa{}
+\def\ora{}
+\renewcommand{\isa}{& ::=~}
+\renewcommand{\ora}{&  ~~$\|$~}
 \begin{quote}
-\begin{table}{ll}
+\begin{tabular}{|ll|}
 \hline
 <Any>			\isa <int>		\\
 			\ora <float>		\\
@@ -66,7 +68,7 @@ syntax is inspired by Prolog.  Below is a partial BNF description.
 			\ora @<Name>		\\
 			\ora <Chain>		\\
 			\ora <Object>		\\
-\hline						\\
+\hline
 <Chain>			\isa {\tt [} <Any> \{, <Any>\} {\tt ]} \\
 			\ora {\tt [} {<Blank>} {\tt ]} \\
 \hline
@@ -77,12 +79,12 @@ syntax is inspired by Prolog.  Below is a partial BNF description.
 			\ora <Any> <PostfixOp> \\
 			\ora {\tt "} <String> {\tt "} \\
 \hline
-<String>		\isa \{<CharNotDoubleQuote>|{\tt ""}\} \\
+<String>		\isa \{<CharNotDoubleQuote>$\|${\tt ""}\} \\
 \hline
-<Name>			\isa <Letter>\{<Letter>|<Digit>\} \\
-			\ora {\tt '} \{<CharNotSingleQuote>|{\tt ""}\} {\tt '} \\
+<Name>			\isa <Letter>\{<Letter>$\|$<Digit>\} \\
+			\ora {\tt '} \{<CharNotSingleQuote>$\|${\tt ""}\} {\tt '} \\
 \hline
-\end{table}
+\end{tabular}
 \end{quote}
 
 Summarising, the syntax is the same as for Prolog.  All classes that can
@@ -90,18 +92,53 @@ be specified using Prolog operators can be specified the same way, but
 as XPCE's parser is independent of Prolog, Prolog op/3 directives donot
 influence XPCE.  XPCE has no variables, thus {\tt Fred} refers to the
 name {\em Fred} rather then defining a variable.  If an instance has
-to be created without arguments, such a default \class{point} object,
-this is specified as {\tt point()} rather then {\tt new(point)}.  The
+to be created without arguments, such as and empty \class{chain} object,
+this is specified as {\tt chain()} rather then {\tt new(chain)}.  The
 latter will try to make an instance of class \class{new} (and fail).
 
 
-\subsubsection{Long lines in resource files}
+\subsection{Long lines in resource files}
 
 X11 allows resource values that donot fit on a single line to be
 continued on the next line if the newline is {\em immediately}
 preceeded by a backslash.
 
 
-\subsection{Resources and inheritance}
+\section{Resources and inheritance}
 
-\subsection{Problems}
+Resources are inherited by subclasses.  If a resource value needs to be
+obtained, XPCE will first check for the resource value given the current
+class.  If this cannot be found, it will continue with the super-class,
+etc.  If no value can be obtained for any of these classes, the default
+value stored in the resource object will be used.  This implies that
+the statement:
+
+\begin{code}
+Pce.Text.font:	normal
+\end{code}
+
+Also applies for all subclasses of class text, unless the subclass
+explicitely defines a new font resource.%
+    \footnote{If the resource-file specifies {\tt Pce.*.font: normal},
+	      its value will apply for all classes defining a font
+	      resource due to the way the X11 resource handler is
+	      defined.  The X11 resource handler will use the most
+	      specific specification.}
+
+
+\section{Obtaining resource settings}
+
+Obtaining resources is normally restricted to user-defined classes
+(\chapref{udc}).
+
+\begin{description}
+    \predicate{default}{3}{+Arg, resource(+Obj, +Name), -Value}
+This predicate is decribed in \secref{udcpreds}.
+    \getmethod{object}{resource_value}{name}{value}
+Get the value of the named resource.  Fails if the resource does
+not exist or cannot be converted.
+    \sendmethod{object}{obtain_resources}{}
+Exclusively in the context of user-defined classes.  This method
+obtains the resource value for any slot with value @default, whose
+type declaration does not accept @default.
+\end{description}

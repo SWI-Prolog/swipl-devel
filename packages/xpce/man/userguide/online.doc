@@ -7,48 +7,10 @@ library of very diverse classes with many methods.  The current
 system contains about 150 classes defining over 2700 methods.  This
 section introduces the online manual tools provided with PCE.
 
-
-\section{Why online?}
-
-Documenting PCE entails describing all classes, variables and
-methods in the system as well as how they are related and intended
-to be used.  The class hierarchy and the associated variables and
-methods provide a natural organisation for these descriptions.
-This organisation is suitable for finding exact descriptions if the
-user has a fairly global understanding of PCE's functionality.
-
-Novice users lack this understanding and for them it would be better
-to organise the material around groups of classes and methods thereof
-that are designed to cooperate.  Many classes and methods are designed
-to cooperate in different organisations to satisfy various
-functionalities.  Other methods provide some specific functionality on
-their own.  Therefore such an organisation is only partial and
-descriptions often need to be duplicated or referred to.
-
-\index{hyper-text}
-For these reasons we decided to write paper documentation providing a
-global overview of the interface and architecture (this document), the
-functionality provided by the classes (\cite{PCE:overview}) and the
-issues surrounding user-defined classes (\cite{PCE:udc}.  The
-reference material is provided online.  The material for the online
-manual is as far as possible extracted from PCE's internal
-representation of classes: available classes, methods and variables,
-inheritance and type information.  Associated {\em hyper-text}
-cards complete the documention.  The online manual provides various
-organising principles over this material.
-
-This approach allows novice users to learn about the basics and
-functional organisation from a conventional document.  Once they have
-a basic understanding of PCE's structure and architecture the online
-manual provides fast access from different viewpoints to small pieces
-of relevant information.  The extracted part of the online material
-is guaranteed to be consistent with the system you are using (even
-if you decided to modify some things).  The descriptions can easily
-be modified and searched.
-
-Finally, the online manual allows you to browse through the
-definitions of classes defined by the PCE/Prolog libraries and the
-application (see \cite{PCE:udc}). 
+The online manual tools both document the system classes as the
+user-defined classes (see \chapref{udc}).  The system provides overviews
+of the functionality of user-defined classes and allows you to jump
+directly to the implementation.
 
 
 \section{Overview}
@@ -58,55 +20,58 @@ different aspects of the PCE/Prolog environment and to navigate
 through the available material from different view-points.
 
 \begin{itemize}
-    \tick{The inheritance hierarchy}\index{class hierarchy}%
+\newcommand{\tool}[2]{\item\makebox[5in][l]{\em #1\hfill\sf #2}\mbox{}\\}
+    \tool{The inheritance hierarchy}{Browsers/Class Hierarchy}
+\index{class,hierarchy}%
 The `Class Hierarchy' tool allows the user to examine PCE's class
 hierarchy.  This tool reads the inheritance relations from the class
 objects and thus also visualises application or library classes.
 Figure~\ref{fig:classhierarchy} is created using this tool.
-    \tick{The structure of a class}\index{class,structure}%
+    \tool{The structure of a class}{Browsers/Class Browser}
+\index{class,structure}%
 The most important tool is the `Class Browser'.  It provides the
 user with a view of material related to a class.  As everything in
 PCE is an object and thus an instance of a class this tool provides
 access to everything in PCE, except for the Prolog interface.
-    \tick{Globally available object references}\index{global objects}%
+    \tool{Search Tool}{Browsers/Search}
+This tool provides full search capabilities on the entire manual contents,
+including combined search specifications.
+    \tool{Globally available object references}{Browsers/Global Objects}
+\index{global objects}%
 The PCE environment provides predefined objects (@pce, @prolog, @arg1, etc.).
 The tool allows the user to find these objects.
-    \tick{Prolog interface predicates}\index{Prolog interface}%
+    \tool{Prolog interface predicates}{Browsers/Prolog Predicates}
+\index{Prolog interface}%
 This tool documents all the PCE/Prolog predicates.
-    \tick{Instances}
-    \index{inspecting instances}\index{object,inspecting}%
+    \tool{Instances}{Tools/Inspector}
+\index{inspecting instances}\index{object,inspecting}%
 This tool is part of the runtime support system.  It allows you to
 inspect the persistent state associated with objects.
-    \tick{Structure of User Interface}
-    \index{UI,structure of}\index{consists-of}%
+    \tool{Structure of User Interface}{Tools/Visual Hierarchy}
+\index{UI,structure of}\index{consists-of}%
 This tool provides a `consists-of' view of all displayed visual objects.
 It provides a quick overview of the structure of an interface.  It is
 a useful for finding object-references, examining the structure of
 an unknown UI and verifying that your program created the expected 
 structure.
-    \tick{The manual itself (help)}
-    \index{help,on manual}%
+    \tool{The manual itself (help)}{File/Help}
+\index{help,on manual}%
 The manual tools are documented by itself.  Each tool has a `Help' button
 that documents the tool.
-    \tick{PCE Demo programs}
-    \index{demo programs}%
+    \tool{PCE Demo programs}{File/Demo Programs}
+\index{demo programs}%
 The `Demo Programs' entry of the `File' menu starts an overview of the
 available demo programs and lets you start these demos.  The sources of
 the demos may be found in \file{.../xpce/prolog/demo}, where ...
 refers to the PCE installation directory, which may be obtained using
 \begin{code}
 1 ?- get(@pce, home, Home).
-Home = '/usr/local/lib/pl-2.1.10/xpce'
+Home = '/usr/local/lib/pl-2.1.13/xpce'
 \end{code}
 Note that the DemoBrowser allows to view the sources of the main file
 of a demo application immediately. Also consider using the
 VisualHierarchy and ClassBrowser to analyse the structure of the demo
 programs.
-    \tick{Examples}
-    \index{examples}
-The `Examples' tool provides an overview of various short pieces of
-example code.  The code may be loaded into Prolog and executed from the
-tool.
 \end{itemize}
 
 
@@ -120,6 +85,7 @@ a {\em \idx{summary line}}.  This line is of the form:
 {$<$Identifier$>$ $<$Formal Description$>$ [``$<$Summary$>$'']}
 \end{quote}
 
+\noindent
 The `Identifier' is a single letter indicating the nature of the
 documentation card.  The defined identifiers are: {\bf B}rowser
 (Manual Tool), {\bf C}lass, {\bf E}xample, {\bf K}eyword, {\bf M}ethod,
@@ -150,6 +116,7 @@ described object itself:
 \end{tabular}
 \end{center}
 
+\noindent
 The same notational conventions are used in the running text of a
 card.  See section~\ref{sec:card}.
 
@@ -165,27 +132,29 @@ conversion may be found in the online manual (method `type <-convert').
 In this document we will summarise the most important types:
 
 \begin{itemize}
+\setlength{\itemsep}{5pt}
     \tick{int}
 PCE integer datum.
-    \tick{<low>..<high>}
-Range of integers (including <low> and <high>).
+    \tick{<low>..<high>, <low>.., ..<high>}
+Range of integers (including <low> and <high>).  The latter two constructs
+indicate one-side-unbound ranges.
     \tick{any}
 Both integers and objects.  Function objects will be evaluated.
 See section~\ref{sec:function}.
     \tick{object}
-Objects only. Function objects will be evaluated.
-See section~\ref{sec:function}.
-    \tick{$<$class-name$>$}
+Objects only. Function objects will be evaluated.  Equivalent to {\em any},
+except that {\em object} does {\em not} accept integers. See \secref{function}.
+    \tick{<class-name>}
 Any instance of this class or one of its sub-classes.
-    \tick{[$<$type$>$]}
+    \tick{[<type>]}
 Either this type or @default.  Trailing arguments to methods that
 accept @default may be omitted.
-    \tick{$<$type$>$*}
+    \tick{<type>*}
 Either this type or @nil.
-    \tick{$<$type$>$ ...}
-Methods with this type specification accept any number of these
-arguments that satisfy $<$type$>$.
-    \tick{\{$<$atom1$>$,$<$atom2$>$,...\}}
+    \tick{<type> ...}
+Methods with this type specification accept any number of arguments
+that satisfy <type>.
+    \tick{\{<atom1>,<atom2>,...\}}
 Any of these name objects.
 \end{itemize}
 
@@ -198,7 +167,7 @@ type declaration:
 \end{code}
 
 The first argument is an instance of class \class{char_array}, the
-super-class of \class{name} and \class{string}).  The second argument
+super-class of \class{name} and \class{string}.  The second argument
 either `left', `center' or `right' and the last argument is a font
 object.  All arguments are between square brackets and may thus be
 omitted.
@@ -231,9 +200,8 @@ for ->initialise.
 
 Below this text a hierarchy is displayed that indicates the place in the
 inheritance hierarchy as well as the classes to which messages are {\em
-delegated} (see \secref{delegation}).  After switching to a class, the
-class switched to will be the only selected class.  The user can
-select multiple classes%
+delegated} (see \secref{delegation}).  The user can select multiple
+classes%
     \footnote{multiple classes can only be selected if there is
 	      delegation and the tree actually has branches. Use for
 	      example class editor or class view to explore these
@@ -251,12 +219,9 @@ card to start the ``Card Viewer'' (see \secref{card}).
 
 \subsubsection{The ClassBrowser dialog}
 
-The class browser may be used for various queries ranging from a
-simple overview of variables to an `apropos' search.
-
 The {\bf Class} text_item (text-entry-field) may be used to  switch to
 a new class. Note that this text_item implements \idx{completion} (bound
-to pressing the space-bar).
+to the space-bar).
 
 The {\bf Filter} menu filters the candidate objects according to their
 categorisation.  Selecting {\sf all} switches off filtering, which is
@@ -265,6 +230,7 @@ again switches back to the old selection of categories.  The meaning
 of the categories is:
 
 \begin{itemize}
+\setlength{\itemsep}{5pt}
     \tick{Basic}
 Principal methods that are used very often. This is ---together with
 {\em Application}--- the default selection of this menu.
@@ -294,15 +260,14 @@ Methods implemented in the host-language.
 The {\bf Display} menu determines the objects searched for.  {\sf
 Self} refers to the class itself, {\sf Sub Class} refers to a direct
 subclass of this class.  The other fields refer to instance-variables,
-methods with send- and get-access and X-resources.
+methods with send- and get-access and resources.
 
 The {\bf Search} and {\bf ... In} controllers limit the displayed cards
 to those that have the specified search string in one of the specified
 fields. While searching, the case of the characters is ignored (i.e.\
 lower- and uppercase versions of the same letter match). Searching in
 the {\sf Name} field is useful to find a particular method if the name
-(or part of it) is known. Searching in the {\sf Summary} is similar to
-Unix ``man -k(1)'' or ``apropos(1)''.\index{apropos}
+(or part of it) is known.
 
 
 \subsubsection{Example queries to the ClassBrowser}
@@ -322,8 +287,55 @@ in the inheritance display, not only the variables of class
 only be changed using send-methods. Either the name or the summary is
 likely to have `caret' as a substring.  Thus, {\bf Display} is set to
 {\sf Send Method}, {\bf Field} to {\sf Name} and {\sf Summary}, search
-to `caret'.
+`caret'.
 \end{itemize}
+
+
+\subsubsection{Methods with special meaning}
+
+The methods described below are activated from PCE's virtual machine and
+allow a class to define creation, destruction, type conversion,
+delegation, etc. These methods may be found using the ``Class Browser''
+after which their documentation card may be requested.
+
+\begin{description}
+    \sendmethod{object}{initialise}{<Class-Defined>}
+\index{objects,creating}%
+The ->initialise method of a class defines what happens when an
+instance of this class is created.  See new/2, \secref{new2}.
+    \sendmethod{object}{unlink}{}
+\index{object,remove}%
+The ->unlink method describes what happens when an instance of this
+class is removed from the object-base.
+    \getmethod{object}{lookup}{<Class-Defined>}{object}
+\index{reusability}%
+If defined, this method describes the lookup of already an already
+defined instance instead of object creation.  For example
+
+\begin{code}
+1 ?- new(X, font(screen, roman, 13)).
+X = @screen_roman_13
+2 ?- new(Y, font(screen, roman, 13)).
+Y = @screen_roman_13
+\end{code}
+
+The same instance of the reusable font instance is returned on a second
+attempt to create a font from the same parameters.  Examples of classes
+with this capability are: \class{name}, \class{font}, \class{colour},
+\class{image} and \class{modifier}.
+    \getmethod{object}{convert}{<Class-Defined>}{object}
+\index{type,conversion}%
+Defines what can be converted into an instance of this type.  If an instance
+of this class is requested by a type but another object is provided
+PCE will call this method to translate the given argument into an instance
+of this class.
+    \sendmethod{object}{catch_all}{<Class-Defined>}
+\index{catch-all}%
+The ->catch_all method defines what happens with messages invoked
+on this object that are not implemented by any other method.
+    \getmethod{object}{catch_all}{<Class-Defined>}{any}
+As ->catch_all, but for get-operations.
+\end{description}
 
 
 \subsection{Reading cards}		\label{sec:card}
@@ -331,13 +343,12 @@ to `caret'.
 \postscriptfig[width=\textwidth]{card}{The Card Viewer}
 
 The other tools of the manual allow the user to {\em find} cards with
-documentation on the topic(s) the user is looking for. Experienced users
-often are only interested in the exact name or arguments of a method.
-The information provided by the summary-lists often suffices for this
-purpose. Whenever a card is marked with a ``(+)'' in the summary list it
-may be opened by double-clicking it. This starts the ``Card Viewer''
-tool. \Figref{card} is a screendump of this tool showing the description
-of the send-method `selection' of class `device'.
+documentation on the topic(s) the user is looking for.  The information
+provided by the summary-lists often suffices for this purpose.  Whenever
+a card is marked with a ``(+)'' in the summary list it may be opened by
+double-clicking it.  This starts the ``Card Viewer'' tool.
+\Figref{card} is a screendump of this tool showing the `selection' group
+of class `device'.
 
 The ``Card Viewer'' displays the formal information and all available
 attributes from the card related to the displayed object (method,
@@ -352,10 +363,10 @@ their documentation with another object.  Opening the card for such
 an object will show two titles above the card.  The card from which the
 documentation originates will have an underlined type-indicator.
 
-The {\bf Goto} field allows for switching to a new card. The syntax for
-this field is similar as for the predicates manpce/1 and, tracepce/1 and
-editpce/1. It consists of a classname, followed by \verb$->$ to indicate
-a send-method, \verb$<-$ for a get-method and \verb$-$ to specify an
+The {\bf Goto} field allows for switching to a new card.  The syntax for
+this field is similar to manpce/1, tracepce/1 and editpce/1 predicates.
+It consists of a classname, followed by \verb$->$ to indicate a
+send-method, \verb$<-$ for a get-method and \verb$-$ to specify an
 instance-variable without considering associated methods.
 
 The item performs {\em completion} bound to the space-bar.  The first
@@ -371,78 +382,44 @@ or get-method.  Method completion considers inheritance and delegation.%
 	      available too.}
 
 
-\subsection{Keyword browser}
+\subsection{Search Tool}		\label{sec:searchtool}
 
-\postscriptfig[width=\textwidth]{keyword}{The Keyword Browser}
+The search tool is shown in \figref{searchtool}.  It allows the user
+to search through all XPCE manual cards in an efficient manner.  A
+search specification is an expression formed from the following
+primitives:
 
-The ``Keyword Browser'' provides access on keywords. \Figref{keyword}
-shows this tool in a typical configuration. The browser on the left-side
-provides all defined keywords. The browser on the right-side shows
-related manual material.
+\begin{itemize}
+\setlength{\itemsep}{5pt}
+    \tick{Word}
+Specifies all cards containing a word for which the search
+specification is the {\em prefix}.  Case is ignored.
+    \tick{\verb$<$Word\verb$>$}
+Specifies all cards that contain the indicated word.  Case is ignored.
+    \tick{Expr1 {\tt and} Expr2}
+Specifies all cards satisfying both conditions.
+    \tick{Expr1 {\tt or} Expr2}
+Specifies all cards satisfying either condition.
+\end{itemize}
 
-\index{search,in browser}\index{browser,searching}
-PCE browsers have (incremental-) searching facilities.  If the user
-presses a letter, the browser will search for the first item that
-starts with this letter.  Subsequent typing extends the (prefix-)
-search string.  The other bindings are described in the figure.
+\noindent
+As a special shorthand, just specifying multiple words refers to all
+cards containing all these words.
+
+If the user stops typing for more than a second, the system will parse
+the expression and display the number of matching cards.
+
+\postscriptfig[width=\textwidth]{searchtool}{Manual search tool}
 
 \subsection{Class hierarchy}		\label{sec:classhierarchy}
 
 \postscriptfig[width=\textwidth]{hierarchy}{Class Hierachy Tool}
 
-The ``Class Hierachy'' tool may be used to get an overview of PCE's
-class hierarchy or to find the (inheritance) relations of a
-particular class with other classes.  Note that PCE's inheritance
-hierarchy has a technical foundation rather than a conceptual.
-Super-classes are motivated by the need for code-sharing.
-
-
-\section{Special Methods}
-
-The methods described below are activated from PCE's virtual machine and
-allow a class to define creation, destruction, type conversion,
-delegation, etc. These methods may be found using the ``Class Browser''
-after which their documentation card may be requested.
-
-\begin{description}
-\sendmethod{object}{initialise}{<Class-Defined>}
-    \index{objects,creating}%
-The ->initialise method of a class defines what happens when an
-instance of this class is created.
-\sendmethod{object}{unlink}{}
-    \index{object,remove}%
-The ->unlink method describes what happens when an instance of this
-class is removed from the object-base.
-\sendmethod{object}{catch_all}{<Class-Defined>}
-    \index{delegation}%
-The ->catch_all method defines what happens with messages invoked
-on this object that are not implemented by any method.  It may be used
-to find-out about the delegation relations of the class.  See
-section~\ref{sec:delegation}
-\getmethod{object}{lookup}{<Class-Defined>}{object}
-    \index{reusability}%
-If defined, this method describes the lookup of already an already
-defined instance instead of object creation.  For example
-
-\begin{code}
-1 ?- new(X, font(screen, roman, 13)).
-X = @screen_roman_13
-2 ?- new(Y, font(screen, roman, 13)).
-Y = @screen_roman_13
-\end{code}
-
-The same instance of the reusable font instance is returned on a second
-attempt to create a font from the same parameters.  Various classes
-have this capability.
-\getmethod{object}{convert}{<Class-Defined>}{object}
-    \index{type,conversion}%
-Defines what can be converted into an instance of this type.  If an instance
-of this class is requested by a type but another object is provided
-PCE will call this method to translate the given argument into an instance
-of this class.
-\getmethod{object}{catch_all}{<Class-Defined>}{any}
-As ->catch_all, but for get-operations.
-\end{description}
+The ``Class Hierachy'' tool shown in \figref{hierarchy} may be used to
+get an overview of PCE's class hierarchy or to find the (inheritance)
+relations of a particular class with other classes.  Note that PCE's
+inheritance hierarchy has a technical foundation rather than a
+conceptual.  Super-classes are motivated by the need for code-sharing.
 
 
 \section{Summary}
@@ -457,7 +434,3 @@ The online manual tools provides various entry-points (classes,
 global objects, predicate overview, keywords, etc.) to obtain a list
 of {\em card summaries}.  Cards may be opened from these summary
 lists to examine its contents.
-
-Experience with the online manual tools indicate most users prefer
-the tools over paper documentation such as the PCE 3.8 Reference
-Manual.

@@ -83,7 +83,7 @@ proto_class(Class, ProtoClass) :-
 
 proto_name(label(reporter, _),	reporter) :- !.
 proto_name(label(_, image(_)),	image) :- !.
-proto_name(menu(_, marked),	marked) :- !.
+proto_name(menu(_, choice),	choice) :- !.
 proto_name(menu(_, toggle),	toggle) :- !.
 proto_name(menu(_, cycle),	cycle) :- !.
 proto_name(Term, Proto) :-
@@ -134,6 +134,9 @@ layout(Dialog, right(I1, I2)) :- !,
 	send(I1, right, I2).
 layout(Dialog, position(I1, Pos)) :-
 	send(Dialog, display, I1, Pos).
+layout(Dialog, area(I1, area(X,Y,W,H))) :-
+	send(I1, do_set, X, Y, W, H),
+	send(Dialog, display, I1).
 
 attach(Dialog, I1, _I2) :-
 	get(I1, device, Dialog), !.

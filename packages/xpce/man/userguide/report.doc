@@ -1,4 +1,4 @@
-\section{Informing the user}
+\section{Informing the user}			\label{sec:report}
 
 \subsection{Aim of the report mechanism}
 
@@ -20,7 +20,7 @@ Inform the user.  The message is constructed from {\em format} and
 the {\em argument} list.  See `string->format' for a description of
 the printf-like formatting syntax of XPCE.  {\em type} describes the
 nature of the message and is used by the reporting mechanism to decide
-on the presentation-form.  See section {sec:reporttypes} for the
+on the presentation-form.  See \secref{reporttypes} for the
 available types and their meaning.
 \end{description}
 
@@ -37,17 +37,17 @@ initiated by the user and then forward the ->report message to the
 `event <-receiver', which is normally the controller activated by the
 user. If there is no current event, the action must be initiated by a
 user query to the host-language and therefore `object ->report' will
-print its feedback to the host-language console using `pce ->format'.
+print its feedback to the host-language console using `@pce ->format'.
 
 The implementation of `visual ->report' will simply forward the message
 to its containing visual object.  If the message arrives at an instance
 of class \class{frame}, the implemenation of `frame ->report' will
 broadcast the message to each of its windows, but avoid sending it back
 to the window it came from.  If this fails and the frame is a transient
-frame for another frame, the report is forward to this frame. Class
+frame for another frame, the report is forward to the main frame. Class
 \class{dialog} will look for an object named {\tt reporter}. If it can
 find such an object (typically a \class{label}), the report is sent to
-this label.
+this object.
 
 If all fails, the report will arrive at the @display object, which takes
 care of default handling.  See section~\ref{sec:reporttypes} on how
@@ -68,7 +68,7 @@ be found the message is ignored
     \tick{inform}
 The user requested information and this is the reply. Handled as
 {\tt status}, but if no appropriate location can be found it will
-invoke `display ->inform'.
+invoke `@display ->inform', presenting a messagebox.
     \tick{progress}
 Indicates progress in ongoing computation. Feedback is generally similar
 to {\tt status}, but followed by a `graphical ->flush' to take immediate
@@ -114,7 +114,7 @@ graphical window window could choose to make place a small dialog for
 feedback at the bottom.  The following fragment would build the window
 layout of such an application:
 
-\begin{code}
+\begin{pcecode}
 reportdemo :-
 	new(Frame, frame('Reporter demo')),
 	new(B, browser),
@@ -136,13 +136,13 @@ reportdemo :-
 	send(RD, append, label(reporter)),
 	send(RD, gap, size(5, 0)),
 	send(Frame, open).
-\end{code}
+\end{pcecode}
 
 Now suppose the implementation of the `load' action takes considerable
 time.  The implementation below reads a file assuming each line in the
 file contains a word.  
 
-\begin{code}
+\begin{pcecode}
 :- pce_autoload(finder, library(find_file)).
 :- pce_global(@finder, new(finder)).
 
@@ -162,7 +162,7 @@ load(Frame) :-
 		)
 	),
 	send(Frame, report, done).
-\end{code}
+\end{pcecode}
 
 The result is shown in figure~\ref{fig:reportdemo}.
 

@@ -33,6 +33,7 @@ Binary saved state of PCE object (collection). File format:
 		    <object>
 		    {'s' <object>}		(= support objects)
 		    {'n' <from> <slot> <to>}	(= nil-references)
+		    {'r' <from> <slot> {'R' <to>} 'x'} (= reference-chains)
 		    'x' 
 
 <magic>		::= <string>			(= SAVEMAGIC)
@@ -162,15 +163,32 @@ saveNilRefs(FileObj f)
 		     Any to = inst->slots[valInt(var->offset)];
 		     Int ref;
 
-		     if ( (ref = isSavedObject(to)) )
-		     { DEBUG(NAME_save,
-			     Cprintf("storing nil-ref %s-%s->%s\n",
-				     pp(inst), pp(var->name), pp(to)));
-		       storeCharFile(f, 'n');
+		     if ( onDFlag(var, D_CLONE_REFCHAIN) )
+		     { Cell cell;
+		       Chain ch = to;
+		       
+		       storeCharFile(f, 'r');
 		       storeIntFile(f, storeClass(classOfObject(inst), f));
 		       storeIdObject(inst, isSavedObject(inst), f);
 		       storeIntFile(f, var->offset);
-		       storeIdObject(to, ref, f);
+		       for_cell(cell, ch)
+		       { if ( (ref=isSavedObject(cell->value)) )
+			 { storeCharFile(f, 'R');
+			   storeIdObject(cell->value, ref, f);
+			 }
+		       }
+		       storeCharFile(f, 'x');
+		     } else
+		     { if ( (ref = isSavedObject(to)) )
+		       { DEBUG(NAME_save,
+			       Cprintf("storing nil-ref %s-%s->%s\n",
+				       pp(inst), pp(var->name), pp(to)));
+			 storeCharFile(f, 'n');
+			 storeIntFile(f, storeClass(classOfObject(inst), f));
+			 storeIdObject(inst, isSavedObject(inst), f);
+			 storeIntFile(f, var->offset);
+			 storeIdObject(to, ref, f);
+		       }
 		     }
 		   });
 
@@ -364,7 +382,7 @@ storeSlotObject(Instance inst, Variable var, FileObj file)
   if ( onDFlag(var, D_SAVE_NORMAL) )
     return storeObject(val, file);
 
-  if ( onDFlag(var, D_SAVE_NIL) )
+  if ( onDFlag(var, D_SAVE_NIL|D_CLONE_REFCHAIN) )
   { if ( isSavedObject(val) )
       return storeObject(val, file);
     if ( !saveNilRefTable )
@@ -550,6 +568,49 @@ loadNilRef(FILE * fd)
 }
 
 
+static status
+loadReferenceChain(FILE *fd)
+{ Int classid  = toInt(loadWord(fd));
+  Any r1       = loadNameObject(fd);
+  int offset   = loadWord(fd);
+  ClassDef def = getMemberHashTable(savedClassTable, classid);
+  Instance f   = getMemberHashTable(restoreTable, r1);
+
+  if ( !def )
+    return errorPce(LoadFile, NAME_noSavedClassDef, classid);
+  if ( !f )
+    return errorPce(LoadFile, NAME_referencedObjectNotLoaded, r1);
+    
+  if ( def->offset[offset] >= 0 )
+  { Chain ch = newObject(ClassChain, 0);
+    int c;
+
+    assignField(f, &(f->slots[def->offset[offset]]), ch);
+    do
+    { switch((c=getc(fd)))
+      { case 'R':
+	{ Any r2 = loadNameObject(fd);
+	  Any o2 = getMemberHashTable(restoreTable, r2);
+
+	  if ( !o2 )
+	    return errorPce(LoadFile, NAME_referencedObjectNotLoaded, r2);
+	  appendChain(ch, o2);
+	  break;
+	}
+	case 'x':
+	  break;
+	default:
+	  errorPce(f, NAME_illegalCharacter, toInt(c), toInt(ftell(fd)));
+	  fail;
+      }
+    } while( c != 'x' );
+  }
+  /* else slot is gone; no problem I think */
+
+  succeed;
+}
+
+
 Any
 getObjectFile(FileObj f)
 { FILE *fd;
@@ -589,6 +650,10 @@ getObjectFile(FileObj f)
 	  break;
 	case 'n':
 	  if ( !loadNilRef(fd) )
+	    fail;
+	  break;
+        case 'r':
+	  if ( !loadReferenceChain(fd) )
 	    fail;
 	  break;
 	case 'x':

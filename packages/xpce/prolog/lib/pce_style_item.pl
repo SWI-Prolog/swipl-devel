@@ -9,7 +9,6 @@
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 NOTE: Should also include colour attribute
-NOTE: image_item should be moved to library
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 :- module(pce_style_item, []).
@@ -18,8 +17,9 @@ NOTE: image_item should be moved to library
 	   , forall/2
 	   ]).
 
-:- pce_autoload(font_item, library(pce_font_item)).
+:- pce_autoload(font_item,  library(pce_font_item)).
 :- pce_autoload(image_item, library('dialog/image_item')).
+:- pce_autoload(tick_box,   library(pce_tick_box)).
 
 style_attribute(highlight).
 style_attribute(underline).
@@ -39,31 +39,19 @@ initialise(SI, Label:name, Default:[style], Message:[message]) :->
 	default(Message, @nil, Msg),
 	default(Default, new(style), Def),
 	send(SI, message, Msg),
-	make_tick_box(HF, has_font, font),
-	make_tick_box(HI, has_icon, icon),
-	send(SI, append_dialog_item, HF),
+	send(SI, append_dialog_item,
+	     tick_box(has_font, @off,
+		      message(?(SI, member, font), active, @arg1))),
 	send(SI, append_dialog_item, font_item(font), right),
-	send(SI, append_dialog_item, HI),
+	send(SI, append_dialog_item,
+	     tick_box(has_icon, @off,
+		      message(?(SI, member, icon), active, @arg1))),
 	send(SI, append_dialog_item, image_item(icon), right),
 	send(SI, append_dialog_item, new(AI, menu(attributes, toggle)), below),
 	forall(style_attribute(Att),
 	       send(AI, append, Att)),
 	send(SI, layout_dialog, size(0,5)),
 	send(SI, default, Def).
-
-make_tick_box(B, Name, Controls) :-
-	new(B, menu(Name, toggle)),
-	send(B, append, Name),
-	send(B, show_label, @off),
-	send(B, feedback, image),
-	send(B, pen, 0),
-	get(B, resource_value, label_font, LF),
-	send(B, value_font, LF),
-	send(B, on_image, @mark_image),
-	send(B, off_image, @nomark_image),
-	send(B, message,
-	     message(?(@receiver?device, member, Controls), active, @arg2)).
-		     
 
 get_attributes(Style, Attrs) :-
 	new(Attrs, chain),

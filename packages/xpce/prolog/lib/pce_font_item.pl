@@ -87,6 +87,11 @@ label_width(FI, W:int) :->
 	send(Wgt, relative_move, point(W-O, 0)),
 	send(Pts, relative_move, point(W-O, 0)).
 
+reference(FI, Ref:point) :<-
+	"Dialog item reference point"::
+	get(FI, member, family, Fam),
+	get(Fam, reference, Ref).
+	     
 
 active(FI, Val:bool) :->
 	send(FI?graphicals, for_all, message(@arg1, active, Val)).

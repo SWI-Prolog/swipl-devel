@@ -200,19 +200,31 @@ get_chain(Object, Selector, List) :-
 %   List is a Prolog list of all objects in Chain.  chain_list/2 returns object
 %   names, chain_list_object/2 object descriptions.
 
-chain_list(@nil, []) :- !.
 chain_list(Chain, List) :-
-	send(Chain, instance_of, chain),
-	(   send(Chain, current_no, 1)
-	->  'chain list 2'(Chain, List)
-	;   List = []
+	nonvar(Chain), !,
+	(   Chain == @nil
+	->  List = []
+	;   to_object(Chain, ChainObject),
+	    send(ChainObject, instance_of, chain),
+	    (   send(ChainObject, current_no, 1)
+	    ->  'chain list 2'(ChainObject, List)
+	    ;   List = []
+	    )
 	).
+chain_list(Chain, List) :-
+	new(Chain, chain),
+	send_list(Chain, append, List).
 
 'chain list 2'(Chain, [El|Rest]) :-
 	get(Chain, next, El), !, 
 	'chain list 2'(Chain, Rest).
 'chain list 2'(Chain, []) :-
 	\+ get(Chain, current, _).
+
+to_object(@Ref, @Ref) :- !.
+to_object(Term, Obj) :-
+	new(Obj, Term).
+
 
 		/********************************
 		*             DEFAULTS		*
