@@ -23,6 +23,10 @@
 */
 
 #include <h/kernel.h>
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Actually this isn't part of the window   system, but OS binding. For the
