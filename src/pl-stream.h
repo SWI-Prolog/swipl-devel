@@ -308,6 +308,7 @@ PL_EXPORT(IOSTREAM *)	Sopen_pipe(const char *command, const char *type);
 PL_EXPORT(IOSTREAM *)	Sopenmem(char **buffer, int *sizep, const char *mode);
 PL_EXPORT(IOSTREAM *)	Sopen_string(IOSTREAM *s, char *buf, int sz, const char *m);
 PL_EXPORT(int)		Sclosehook(void (*hook)(IOSTREAM *s));
+PL_EXPORT(void)		Sfree(void *ptr);
 
 #ifdef __cplusplus
 }

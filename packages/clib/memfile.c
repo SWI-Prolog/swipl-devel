@@ -111,7 +111,7 @@ free_memory_file(term_t handle)
     if ( m->atom )
       PL_unregister_atom(m->atom);
     else if ( m->data )
-      free(m->data);
+      Sfree(m->data);			/* MS-Windows: malloc by other DLL! */
     m->magic = 0;
     free(m);
 

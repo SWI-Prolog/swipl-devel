@@ -7,6 +7,10 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#128: memory deallocation problem in library(memfile).
+    MS-Windows only.  Added Sfree() to free memory from the right
+    pool.  Holger Kanwischer.
+
   * FIXED: Bug#129: determinism in bagof/setof.  Holger Kanwischer.
 
   * FIXED: Bug#130: writeq('/*').  Holger Kanwischer.

@@ -1909,6 +1909,12 @@ typedef struct
 } memfile;
 
 
+void
+Sfree(void *ptr)			/* Windows: must free from same */
+{ free(ptr);				/* DLL */
+}
+
+
 static int
 S__memfile_nextsize(int needed)
 { needed += needed/4;
@@ -2046,7 +2052,7 @@ Sopenmem(char **buffer, int *size, const char* mode)
       Sclose(fd);
       ...
       if ( s != buf )			(appearently moved)
-	free(s);
+	Sfree(s);
     }
 
 Note: Its is NOT allows to access   streams  created with this call from
