@@ -1,5 +1,6 @@
 :- module(queue_create,
-	  [ queue_create/0
+	  [ queue_create/0,
+	    queue_create/1
 	  ]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -8,7 +9,10 @@ associated with threads.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 queue_create :-
-	forall(between(0, 1000, _), test).
+	queue_create(1000).
+
+queue_create(Times) :-
+	forall(between(1, Times, _), test).
 
 test :-
 	thread_self(Me),
