@@ -830,15 +830,13 @@ inspectHandlerDisplay(DisplayObj d, Handler h)
 
 status
 inspectDisplay(DisplayObj d, Graphical gr, EventObj ev)
-{ Cell cell;
+{ Handler h;
 
-  for_cell(cell, d->inspect_handlers)
-  { Handler h = cell->value;
-
-    if ( isAEvent(ev, h->event) &&
-      	 forwardReceiverCode(h->message, gr, gr, ev, EAV) )
-      succeed;
-  }
+  for_chain(d->inspect_handlers, h,
+	    { if ( isAEvent(ev, h->event) &&
+		   forwardReceiverCode(h->message, gr, gr, ev, EAV) )
+		succeed;
+	    })
 
   fail;
 }
