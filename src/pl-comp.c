@@ -26,7 +26,7 @@ struct code_info codeTable[] = {
   CODE(H_VAR,		"h_var",	1, 0),
   CODE(B_CONST,		"b_const",	1, CA1_DATA),
   CODE(H_CONST,		"h_const",	1, CA1_DATA),
-  CODE(H_INDIRECT,	"h_indirect",	1, CA1_STRING),
+  CODE(H_INDIRECT,	"h_indirect",	0, CA1_STRING),
   CODE(B_INTEGER,	"b_integer",	1, CA1_INTEGER),
   CODE(H_INTEGER,	"h_integer",	1, CA1_INTEGER),
   CODE(B_FLOAT,		"b_float",	1, CA1_FLOAT),
@@ -73,7 +73,7 @@ struct code_info codeTable[] = {
   CODE(C_END,		"c_end",	0, 0),
   CODE(C_NOT,		"c_not",	2, 0),
   CODE(C_FAIL,		"c_fail",	0, 0),
-  CODE(B_INDIRECT,	"b_indirect",	1, CA1_STRING),
+  CODE(B_INDIRECT,	"b_indirect",	0, CA1_STRING),
 #if O_BLOCK
   CODE(I_CUT_BLOCK,	"i_cut_block",	0, 0),
   CODE(B_EXIT,		"b_exit",	0, 0),
@@ -1530,6 +1530,7 @@ arg1Key(Clause clause, word *key)
         succeed;
       case H_LIST:
 	*key = FUNCTOR_dot2->functor;
+        succeed;
       case H_INTEGER:
       case H_FLOAT:			/* tbd */
       case H_INDIRECT:
@@ -2297,6 +2298,21 @@ pl_nth_clause(term_t p, term_t n, term_t ref, word h)
 }
 
 
+static Code
+stepPC(Code PC)
+{ code op = decode(*PC++);
+
+  if ( codeTable[op].argtype == CA1_STRING )
+  { word m = *PC++;
+    PC += wsizeofInd(m);
+  }
+
+  PC += codeTable[op].arguments;
+
+  return PC;
+}
+
+
 word
 pl_xr_member(term_t ref, term_t term, word h)
 { Clause clause;
@@ -2366,38 +2382,39 @@ pl_xr_member(term_t ref, term_t term, word h)
 
     if ( PL_is_atomic(term) )
     { while( PC < end )
-      { code op = decode(*PC++);
+      { code op = decode(*PC);
 
-	if ( codeTable[op].argtype == CA1_DATA && _PL_unify_atomic(term, *PC) )
+	if ( codeTable[op].argtype == CA1_DATA &&
+	     _PL_unify_atomic(term, PC[1]) )
 	    succeed;
 
-	PC += codeTable[op].arguments;
+	PC = stepPC(PC);
       }
     } else if ( get_procedure(term, &proc, 0, GP_FIND) )
     { while( PC < end )
-      { code op = decode(*PC++);
+      { code op = decode(*PC);
 
 	if ( codeTable[op].argtype == CA1_PROC )
-	{ Procedure pa = (Procedure)*PC;
+	{ Procedure pa = (Procedure)PC[1];
 
 	  if ( pa->definition == proc->definition )
 	    succeed;
 	}
 
-	PC += codeTable[op].arguments;
+	PC = stepPC(PC);
       }
     } else if ( PL_get_functor(term, &fd) )
     { while( PC < end )
-      { code op = decode(*PC++);
+      { code op = decode(*PC);
 
 	if ( codeTable[op].argtype == CA1_FUNC )
-	{ FunctorDef fa = (FunctorDef)*PC;
+	{ FunctorDef fa = (FunctorDef)PC[1];
 
 	  if ( fa == fd )
 	    succeed;
 	}
 
-	PC += codeTable[op].arguments;
+	PC = stepPC(PC);
       }
     }
   }

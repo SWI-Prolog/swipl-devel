@@ -119,6 +119,8 @@ static struct foreign {
   FRG("$print",			2, pl_dprint,		META|TRACE_ME),
 
   FRG("read_variables",		2, pl_read_variables,		TRACE_ME),
+  FRG("read_term",		2, pl_read_term,		TRACE_ME),
+  FRG("read_term",		3, pl_read_term3,		TRACE_ME),
   FRG("read_variables",		3, pl_read_variables3,		TRACE_ME),
   FRG("read",			1, pl_read,			TRACE_ME),
   FRG("read_clause",		1, pl_read_clause,		TRACE_ME),
@@ -145,6 +147,7 @@ static struct foreign {
   FRG("$format_number",		3, pl_format_number,		TRACE_ME),
   FRG("concat",			3, pl_concat,			TRACE_ME),
   FRG("$concat_atom",		2, pl_concat_atom,		TRACE_ME),
+  FRG("concat_atom",		3, pl_concat_atom3,		TRACE_ME),
   FRG("atom_length",		2, pl_atom_length,		TRACE_ME),
   FRG("$term_to_atom",		4, pl_term_to_atom,		TRACE_ME),
   FRG("numbervars",		4, pl_numbervars,		TRACE_ME),

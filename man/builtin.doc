@@ -120,7 +120,7 @@ shared libraries ({\tt .so} or {\tt .dll} files).  See also
 load_foreign_library/[1,2].
 
 \begin{code}
-file_search_path(library, X) :-
+user:file_search_path(library, X) :-
 	library_directory(X).
 user:file_search_path(swi, Home) :-
 	feature(home, Home).
@@ -1306,24 +1306,99 @@ Read {\em Term} from {\em Stream}.
 Equivalent to read/1, but warns the user for variables only occurring
 once in a term (singleton variables) which do not start with an
 underscore if \tty{style_check(singleton)} is active (default).
-Used to read Prolog source files (see consult/1).
+Used to read Prolog source files (see consult/1).  New code should
+use read_term/2 with the option {\tt singletons(warning)}.
 .C read_clause 2 +Stream, -Term
-Read a clause from {\em Stream}.
+Read a clause from {\em Stream}.  See read_clause/1.
 .C read_variables 2 -Term, -Bindings
 Similar to read/1, but {\em Bindings} is unified with a list of
 `${\it Name} = {\it Var}$' tuples, thus providing access to the actual
-variable names.
+variable names.  New code should use read_term/2 using the option
+{\tt variables(X)}.
 .C read_variables 3 +Stream, -Term, -Bindings
-Read, returning term and bindings from {\em Stream}.
+Read, returning term and bindings from {\em Stream}. See
+read_variables/2.
+.C read_term 2 -Term, +Options
+Read a term from the current input stream and unify the term with {\em
+Term}. The reading is controlled by options from the list of {\em
+Options}.   If this list is empty, the bahaviour is the same as for
+read/1.	 The options are upward compatible to Quintus Prolog.  The
+argument order is according to the ISO standard.  Options:
+
+\begin{description}
+\setlength{\itemsep}{-2pt}
+\newcommand{\option}[2]{\item[\tt #1\rm(\it #2\rm)]\mbox{}\\}
+\newcommand{\optionarg}[1]{\item[\tt #1]\mbox{}\\}
+    \option{syntax_errors}{atom or variable}
+Define the behaviour for when a syntax error occurs.  The possible values
+are:
+    \begin{description}
+        \optionarg{fail}
+    Default behaviour.  The error is reported as a warning and the predicate
+    fails.
+	\optionarg{quiet}
+    Quietly fails if a syntax error has occurred.
+        \optionarg{Variable}
+    If no error occurs, the variable is unified with {\tt none}, otherwise
+    {\em Variable} is unified with a term of the form
+    \begin{code}
+    '$stream_position'(CharNo, LineNo, LinePos):Message
+    \end{code}
+    This behaviour is a SWI-Prolog extension.
+    \end{description}
+
+    \option{variable_names}{Vars}
+Unify {\em Vars} with a list of `{\em Name} = {\em Var}', where {\em
+Name} is an atom describing the variable name and {\em Var} is a
+variable that shares with the corresponding variable in {\em Term}.
+
+    \option{singletons}{Vars}
+As {\tt variable_names}, but only reports the variables occurring only
+once in the {\em Term} read. Variables starting with an underscore
+(`{\verb$_$') are not included in this list.
+
+    \option{term_position}{Pos}
+Unifies {\em Pos} with the starting position of the term read.  {\em Pos}
+if of the same format as use by stream_position/2.
+
+    \option{subterm_positions}{TermPos}
+Describes the detailed layout of the term. The formats for the various
+types of terms if given below. All positions are character positions. If
+the input is related to a normal stream, these positions are relative to
+the start of the input, when reading from the terminal, they are
+relative to the start of the term.
+    \begin{description}
+	\optionarg{{\em From}-{\em To}}
+    Used for primitive types (atoms, numbers, variables).
+	\optionarg{string_position({\em From}, {\em To})}
+    Used to indicate the position of a string enclosed in double
+    quotes (\verb$"$).
+	\optionarg{brace_term_position({\em From}, {\em To}, {\em Arg})}
+    Term of the form \verb${ ... }$, as used in DCG rules.  {\em Arg}
+    describes the argument.
+	\optionarg{list_position({\em From}, {\em To}, {\em Elms}, {\em Tail})}
+    A list.  {\em Elms} describes the positions of the elements.  If the
+    list specifies the tail as \verb$|TailTerm$, {\em Tail} is unified
+    with the term-position of the tail, otherwise with the atom {\tt none}.
+	\optionarg{term_position({\em From}, {\em To},
+				 {\em FFrom}, {\em FTo}, {\em SubPos})}
+    Used for a compound term not matching one of the above.  {\em FFrom}
+    and {\em FTo} describe the position of the functor.  {\em SubPos}
+    is a list, each element of which describes the term-position of the
+    corresponding subterm.
+    \end{description}
+\end{description}
+.C read_term 3 +Stream, -Term, +Options
+Read term with options from {\em Stream}.  See read_term/2.
 .C read_history 6 +Show, +Help, +Special, +Prompt, -Term, -Bindings
 Similar to read_variables/2, but allows for history substitutions.
-history_read/6 is used by the top level to read the user's actions.
-{\em Show} is the command the user should type to show the saved events.
-{\em Help} is the command to get an overview of the capabilities.  {\em
-Special} is a list of commands that are not saved in the history.  {\em
-Prompt} is the first prompt given.  Continuation prompts for more lines
-are determined by prompt/2.  A \verb+%w+ in the prompt is substituted by
-the event number.  See section~\ref{sec:history} for available
+history_read/6 is used by the top level to read the user's actions. {\em
+Show} is the command the user should type to show the saved events. {\em
+Help} is the command to get an overview of the capabilities. {\em
+Special} is a list of commands that are not saved in the history. {\em
+Prompt} is the first prompt given. Continuation prompts for more lines
+are determined by prompt/2. A \verb+%w+ in the prompt is substituted by
+the event number. See section~\ref{sec:history} for available
 substitutions.
 
 SWI-Prolog calls history_read/6 as follows:
@@ -1492,6 +1567,14 @@ floating point numbers.
 if {\em Atom} can be unified with the concatenated elements of {\em List}. If
 {\em List} has exactly 2 elements it is equivalent to concat/3, allowing
 for variables in the list.
+.C concat_atom 3 +List, +Separator, -Atom
+Creates an atom just like concat_atom/2, but inserts {\em Separator}
+between each pair of atoms.  For example:
+\begin{code}
+?- concat_atom([gnu, gnat], ', ', A).
+
+A = 'gnu, gnat'
+\end{code}
 .C atom_length 2 +Atom, -Length
 Succeeds if {\em Atom} is an atom of {\em Length} characters long. This
 predicate also works for integers and floats, expressing the number of
@@ -2361,7 +2444,7 @@ Return the number of seconds that elapsed since the epoch of Unix,
 1 January 1970, 0 hours.  {\em Time} is a floating point number. Its
 granularity is system dependant.  On SUN, this is 1/60 of a second.
 .C convert_time 8 +Time, -Year, -Month, -Day, -Hour, -Minute, -Second, -MilliSeconds
-Convert a time stamp, provided by get_time/1, file_time/2, etc.  {\em
+Convert a time stamp, provided by get_time/1, time_file/2, etc.  {\em
 Year} is unified with the year, {\em Month} with the month number
 (January is 1), {\em Day} with the day of the month (starting with 1),
 {\em Hour} with the hour of the day (0--23), {\em Minute} with the

@@ -1,6 +1,37 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.7.4
+=============
+
+  * ADDED: For XPCE users: nice graphical frontend for the online help
+    functions.  Working on much better Prolog mode for PceEmacs.
+
+  * PORTABILITY: Removed void * arithmetic in pl-setup.c, removed
+    a couple of other non-strict-ansi things there.  Added configure
+    for alloca().  Reported to compile using IRIX 5.3 native compiler
+    now.
+
+  * FIXED: Sclose() flushed write-buffer for read-only streams.
+
+  * ADDED: read_term/[2,3]: reading with various options
+
+  * FIXED: copy_term/2: handling of combination of ground compound
+    terms and shared variables.
+
+  * FIXED: PL_next_solution() detection of determistic success.
+
+  * ADDED: concat_atom/3 for concatenating multiple atoms with a separator.
+
+  * FIXED: Online manual generation for dynamic/1 and friends.  Parser
+    now deletes \verb from summaries.
+
+  * FIXED: $xr_member (underlying explain/[1,2]) for clauses containing
+    string objects (crashed).  Improved various details to explain/[1,2]
+
+  * MODIFIED: Quoted writing of an invalid float yields '$Infinity' or '$NaN',
+    unquoted Infinity or NaN.
+
 Version 2.7.3
 =============
 

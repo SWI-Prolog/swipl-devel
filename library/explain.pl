@@ -51,7 +51,7 @@ explain([H|T], Explanation) :-
 	length(List, L),
 	(   utter(Explanation, '"~p" is a proper list with ~d elements',
 	          [List, L])
-	;   checklist(between(32, 127), List),
+	;   checklist(printable, List),
 	    utter(Explanation, '~t~8|Text is "~s"',  [List])
 	).
 explain([H|T], Explanation) :- !,
@@ -75,6 +75,10 @@ op_type(X, infix) :-
 op_type(X, postfix) :-
 	atom_chars(X, [_, 0'f]).
 
+printable(C) :-
+	integer(C),
+	between(32, 126, C).
+
 		/********************************
 		*             ATOMS             *
 		*********************************/
@@ -97,6 +101,10 @@ explain_functor(Head, Explanation) :-
 	current_predicate(_, Module:Head),
 	\+ predicate_property(Module:Head, imported_from(_)),
 	explain_predicate(Module:Head, Explanation).
+explain_functor(Head, Explanation) :-
+	predicate_property(M:Head, undefined),
+	functor(Head, N, A),
+	utter(Explanation, '~w:~w/~d is an undefined predicate', [M,N,A]).
 explain_functor(Head, Explanation) :-
 	referenced(Head, Explanation).
 	
@@ -155,10 +163,13 @@ referenced(Term, Explanation) :-
 	\+ predicate_property(Module:Head, built_in),
 	\+ predicate_property(Module:Head, imported_from(_)),
 	Module:Head \= help_index:predicate(_,_,_,_,_),
+	Head \= '$user_query'(_,_),
 	nth_clause(Module:Head, N, Ref),
-	'$xr_member'(Ref, Term),
+	(   functor(Term, _, Arity), Arity > 0, Term \= _M:_H
+	->  '$xr_member'(Ref, user:Term)
+	;   '$xr_member'(Ref, Term)
+	),
 	functor(Head, Name, Arity),
-	\+ (Name == '$user_query', Arity == 1),
 	utter(Explanation, '~t~8|Referenced from ~d-th clause of ~w:~w/~d',
 	                   [N, Module, Name, Arity]).
 

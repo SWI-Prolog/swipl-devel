@@ -552,6 +552,13 @@ summary_description(S) -->
 	"}", !,
 	summary_description(S2),
 	{append("hook:", S2, S)}.
+summary_description(S) -->
+	"\\verb",
+	[VC],
+	string(S1),
+	[VC],
+	summary_description(S2),
+	{append(S1, S2, S)}.
 summary_description([]) --> {true}.
 summary_description([H|T]) -->
 	[H],
@@ -568,5 +575,5 @@ name_arity(Name, Arity) -->
 string("") -->
 	{ true }.
 string([C|R]) -->
-	char(C),
+	[C],
 	string(R).

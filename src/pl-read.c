@@ -8,7 +8,7 @@
 */
 
 #include <math.h>
-/*#define O_DEBUG 1*/
+#define O_DEBUG 1
 #include "pl-incl.h"
 #include "pl-ctype.h"
 
@@ -48,6 +48,8 @@ typedef struct variable * Variable;
 
 struct token
 { int type;			/* type of token */
+  int start;			/* start-position */
+  int end;			/* end-position */
   union
   { number	number;		/* int or float */
     atom_t	atom;		/* atom value */
@@ -80,6 +82,7 @@ extern int Input;		/* current input stream (from pl-file.c) */
 static char *here;		/* current character */
 static char *base;		/* base of clause */
 static char *token_start;	/* start of most recent read token */
+static char *last_syntax_error;	/* last syntax error */
 static struct token token;	/* current token */
 static bool unget = FALSE;	/* unget_token() */
 
@@ -172,7 +175,10 @@ errorWarning(char *what)
 { unsigned int c;
   
   if ( !give_syntaxerrors )
+  { source_char_no += token_start - base;
+    last_syntax_error = what;
     return;
+  }
 
   c = *token_start;
 
@@ -316,8 +322,7 @@ addToBuffer(int c)
 			   addToBuffer(c); \
 		        }
 #define set_start_line { if ( !something_read ) \
-			 { source_file_name = currentStreamName(); \
-			   source_line_no = currentInputLine(); \
+			 { setCurrentSourceLocation(); \
 			   something_read++; \
 			 } \
 		       }
@@ -328,7 +333,7 @@ addToBuffer(int c)
 			     }
 
 static char *
-raw_read2(void)
+raw_read2()
 { int c;
   bool something_read = FALSE;
   int newlines;
@@ -368,10 +373,18 @@ raw_read2(void)
 		return rb.base;
       case '/': c = getchr();
 		if ( c == '*' )
-		{ Char last;
+		{ int last;
 		  int level = 1;
+
 		  if ((last = getchr()) == EOF)
 		    rawSyntaxError("End of file in ``/* ... */'' comment");
+
+		  if ( something_read )
+		  { addToBuffer(' ');	/* positions */
+		    addToBuffer(' ');
+		    addToBuffer(last == '\n' ? last : ' ');
+		  }
+
 		  for(;;)
 		  { switch(c = getchr())
 		    { case EOF:
@@ -386,10 +399,9 @@ raw_read2(void)
 			  goto handle_c;
 			}
 			break;
-		      case '\n':
-			if ( something_read )
-			  addToBuffer(c);
 		    }
+		    if ( something_read )
+		      addToBuffer(c == '\n' ? c : ' ');
 		    last = c;
 		  }
 		} else
@@ -403,8 +415,13 @@ raw_read2(void)
 		  dotseen = FALSE;
 		  goto handle_c;
 		}
-      case '%': while((c=getchr()) != EOF && c != '\n') ;
-		c = ' ';
+      case '%': if ( something_read )
+		  addToBuffer(' ');	/* positions */
+		while((c=getchr()) != EOF && c != '\n')
+		{ if ( something_read )	/* record positions */
+		    addToBuffer(' ');
+		}
+		c = '\n';
 		goto handle_c;
      case '\'': if ( rb.here > rb.base && isDigit(rb.here[-1]) )
 		{ addToBuffer(c);			/* <n>' */
@@ -484,7 +501,10 @@ raw_read2(void)
 		      return rb.base;
 		    }
 		    do
-		    { ensure_space(c);
+		    { if ( something_read )
+			addToBuffer(c == '\n' ? c : ' '); /* positions */
+		      else
+			ensure_space(c);
 		      c = getchr();
 		    } while( c != EOF && char_type[c] == SP );
 		    goto handle_c;
@@ -629,19 +649,44 @@ lookupVariable(const char *name)
 }
 
 
-static void
-check_singletons()
+static bool
+check_singletons(term_t singles)
 { Variable var;
-  atom_t singletons[MAX_SINGLETONS];
-  int i=0;
 
-  for(var = var_list; var; var=var->next)
-  { if (var->times == 1 && var->name[0] != '_' && i < MAX_SINGLETONS)
-      singletons[i++] = lookupAtom(var->name);
+  if ( singles != TRUE )		/* returns <name> = var bindings */
+  { term_t list = PL_copy_term_ref(singles);
+    term_t head = PL_new_term_ref();
+
+    for(var = var_list; var; var=var->next)
+    { if ( var->times == 1 && var->name[0] != '_' )
+      {	if ( !PL_unify_list(list, head, list) ||
+	     !PL_unify_term(head,
+			    PL_FUNCTOR, FUNCTOR_equals2,
+			    PL_CHARS,	var->name,
+			    PL_TERM,    var->variable) )
+	  fail;
+      }
+    }
+
+    return PL_unify_nil(list);
+  } else				/* just report */
+  { atom_t singletons[MAX_SINGLETONS];
+    int i = 0;
+
+    for(var = var_list; var; var=var->next)
+    { if ( var->times == 1 && var->name[0] != '_' )
+      { if ( singles == 1 )
+	{ if ( i < MAX_SINGLETONS )
+	    singletons[i++] = lookupAtom(var->name);
+	}
+      }
+    }
+
+    if ( i > 0 )
+      singletonWarning(singletons, i);
+
+    succeed;
   }
-  
-  if ( i > 0 )
-    singletonWarning(singletons, i);
 }
 
 
@@ -677,8 +722,8 @@ bind_variables(term_t bindings)
 
 forwards Token	get_token(bool);
 forwards void	build_term(term_t term, atom_t name, int arity, term_t *args);
-forwards bool	complex_term(const char *end, term_t term);
-forwards bool	simple_term(bool, term_t term, bool *isname);
+forwards bool	complex_term(const char *end, term_t term, term_t positions);
+forwards bool	simple_term(bool, term_t term, bool *isname, term_t positions);
 
 int
 scan_number(char **s, int b, Number n)
@@ -976,6 +1021,7 @@ get_token(bool must_be_op)
 
   skipSpaces;
   token_start = here - 1;
+  token.start = source_char_no + token_start - base;
   switch(char_type[c])
   { case LC:	{ start = here-1;
 		  while(isAlpha(*here) )
@@ -988,7 +1034,7 @@ get_token(bool must_be_op)
 		  DEBUG(9, Sdprintf("%s: %s\n", c == '(' ? "FUNC" : "NAME",
 				    stringAtom(token.value.atom)));
 
-		  return &token;
+		  break;
 		}
     case UC:	{ start = here-1;
 		  while(isAlpha(*here) )
@@ -1000,12 +1046,13 @@ get_token(bool must_be_op)
 		    token.type = T_VOID;
 		  } else
 		  { token.value.variable = lookupVariable(start);
-		    DEBUG(9, Sdprintf("VAR: %s\n", token.value.variable->name));
+		    DEBUG(9, Sdprintf("VAR: %s\n",
+				      token.value.variable->name));
 		    token.type = T_VARIABLE;
 		  }
 		  *here = c;
 
-		  return &token;
+		  break;
 		}
     case_digit:
     case DI:	{ number value;
@@ -1013,7 +1060,7 @@ get_token(bool must_be_op)
 		  if ( get_number(&here[-1], &here, &value) )
 		  { token.value.number = value;
 		    token.type = T_NUMBER;
-		    return &token;
+		    break;
 		  } else
 		    syntaxError("Illegal number");
 		}
@@ -1026,7 +1073,7 @@ get_token(bool must_be_op)
 				  *here == '(' ? "FUNC" : "NAME",
 				  stringAtom(token.value.atom)));
 
-		  return &token;
+		  break;
 		}
     case SY:	{ start = here - 1;
 		  while( isSymbol(*here) )
@@ -1040,7 +1087,7 @@ get_token(bool must_be_op)
 		    }
 		    if ( c == '.' && isBlank(*here) )	/* .<blank> */
 		    { token.type = T_FULLSTOP;
-		      return &token;
+		      break;
 		    }
 		  }
 
@@ -1053,7 +1100,7 @@ get_token(bool must_be_op)
 				    end == '(' ? "FUNC" : "NAME",
 				    stringAtom(token.value.atom)));
 
-		  return &token;
+		  break;
 		}
     case PU:	{ switch(c)
 		  { case '{':
@@ -1066,20 +1113,20 @@ get_token(bool must_be_op)
 			token.type = here[0] == '(' ? T_FUNCTOR : T_NAME;
 			DEBUG(9, Sdprintf("NAME: %s\n",
 					  stringAtom(token.value.atom)));
-			return &token;
+			goto out;
 		      }
 		  }
 		  token.value.character = c;
 		  token.type = T_PUNCTUATION;
 		  DEBUG(9, Sdprintf("PUNCT: %c\n", token.value.character));
 
-		  return &token;
+		  break;
 		}
     case SQ:	{ char *s = get_string(here-1, &here);
 
 		  token.value.atom = lookupAtom(s);
 		  token.type = (here[0] == '(' ? T_FUNCTOR : T_NAME);
-		  return &token;
+		  break;
 		}
     case DQ:	{ char *s = get_string(here-1, &here);
 		  term_t t = PL_new_term_ref();
@@ -1094,12 +1141,17 @@ get_token(bool must_be_op)
 #endif /* O_STRING */
   		  token.value.term = t;
 		  token.type = T_STRING;
-		  return &token;
+		  break;
 		}
     default:	{ sysError("read/1: tokeniser internal error");
-    		  return &token;	/* make lint happy */
+    		  break;		/* make lint happy */
 		}
   }
+
+out:
+  token.end = source_char_no + here - base;
+
+  return &token;
 }
 
 		 /*******************************
@@ -1177,12 +1229,20 @@ simple_term() which reads everything, except for operators.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 typedef struct
-{ atom_t op;
-  int	kind;
-  int	left_pri;
-  int	right_pri;
-  int	op_pri;
+{ atom_t op;				/* Name of the operator */
+  short	kind;				/* kind (prefix/postfix/infix) */
+  short	left_pri;			/* priority at left-hand */
+  short	right_pri;			/* priority at right hand */
+  short	op_pri;				/* priority of operator */
+  term_t tpos;				/* term-position */
 } op_entry;
+
+
+typedef struct
+{ term_t term;				/* the term */
+  term_t tpos;				/* its term-position */
+} out_entry;
+
 
 static bool
 isOp(atom_t atom, int kind, op_entry *e)
@@ -1209,6 +1269,15 @@ isOp(atom_t atom, int kind, op_entry *e)
   succeed;
 }
 
+static void
+build_op_term(term_t term, atom_t atom, int arity, out_entry *argv)
+{ term_t av[2];
+
+  av[0] = argv[0].term;
+  av[1] = argv[1].term;
+  build_term(term, atom, arity, av);
+}
+
 #define PushOp() \
 	side[side_n++] = in_op; \
 	if ( side_n >= MAX_TERM_NESTING ) \
@@ -1224,7 +1293,8 @@ isOp(atom_t atom, int kind, op_entry *e)
 	    rmo++; \
 	    tmp = PL_new_term_ref(); \
 	    PL_put_atom(tmp, side_p->op); \
-	    out[out_n++] = tmp; \
+	    out[out_n].term = tmp; \
+	    out[out_n++].tpos = side_p->tpos; \
 	    side_n--; \
 	    side_p = (side_n == 0 ? NULL : side_p-1); \
 	  } else if ( side_p->kind == OP_INFIX && out_n > 0 && rmo == 0 && \
@@ -1233,12 +1303,70 @@ isOp(atom_t atom, int kind, op_entry *e)
 			      stringAtom(side_p->op))); \
 	    rmo++; \
 	    tmp = PL_new_term_ref(); \
-	    build_term(tmp, side_p->op, 1, &out[out_n-1]); \
-	    out[out_n-1] = tmp; \
+	    build_op_term(tmp, side_p->op, 1, &out[out_n-1]); \
+	    out[out_n-1].term = tmp; \
+	    side_p->kind = OP_POSTFIX; \
+	    out[out_n-1].tpos = opPos(side_p, &out[out_n-1]); \
 	    side_n--; \
 	    side_p = (side_n == 0 ? NULL : side_p-1); \
 	  } \
 	}
+
+
+static int
+get_int_arg(term_t t, int n)
+{ Word p = valTermRef(t);
+
+  deRef(p);
+
+  return valInt(argTerm(*p, n-1));
+}
+
+
+static term_t
+opPos(op_entry *op, out_entry *args)
+{ if ( op->tpos )
+  { int fs = get_int_arg(op->tpos, 1);
+    int fe = get_int_arg(op->tpos, 2);
+    term_t r = PL_new_term_ref();
+
+    if ( op->kind == OP_INFIX )
+    { int s = get_int_arg(args[0].tpos, 1);
+      int e = get_int_arg(args[1].tpos, 2);
+
+      PL_unify_term(r,
+		    PL_FUNCTOR,	FUNCTOR_term_position5,
+		    PL_INTEGER,	s,
+		    PL_INTEGER,	e,
+		    PL_INTEGER, fs,
+		    PL_INTEGER, fe,
+		    PL_LIST,    2, PL_TERM, args[0].tpos,
+		    		   PL_TERM, args[1].tpos);
+    } else
+    { int s, e;
+      
+      if ( op->kind == OP_PREFIX )
+      { s = fs;
+	e = get_int_arg(args[0].tpos, 2);
+      } else
+      { s = get_int_arg(args[0].tpos, 1);
+	e = fe;
+      }
+
+      PL_unify_term(r,
+		    PL_FUNCTOR,	FUNCTOR_term_position5,
+		    PL_INTEGER,	s,
+		    PL_INTEGER,	e,
+		    PL_INTEGER, fs,
+		    PL_INTEGER, fe,
+		    PL_LIST,    1, PL_TERM, args[0].tpos);
+    }
+    
+    return r;
+  }
+
+  return 0;
+}
 
 #define Reduce(cond) \
 	while( out_n > 0 && side_p != NULL && (cond) ) \
@@ -1248,27 +1376,36 @@ isOp(atom_t atom, int kind, op_entry *e)
 	  DEBUG(1, Sdprintf("Reducing %s/%d\n", \
 			    stringAtom(side_p->op), arity));\
 	  tmp = PL_new_term_ref(); \
-	  build_term(tmp, side_p->op, arity, &out[out_n - arity]); \
-	  out[out_n-arity] = tmp; \
-	  out_n -= (arity-1); \
+	  out_n -= arity; \
+	  build_op_term(tmp, side_p->op, arity, &out[out_n]); \
+	  out[out_n].term = tmp; \
+	  out[out_n].tpos = opPos(side_p, &out[out_n]); \
+	  out_n ++; \
 	  side_n--; \
 	  side_p = (side_n == 0 ? NULL : side_p-1); \
 	}
 
 
 static bool
-complex_term(const char *stop, term_t term)
-{ term_t out[MAX_TERM_NESTING];
-  op_entry in_op, side[MAX_TERM_NESTING];
+complex_term(const char *stop, term_t term, term_t positions)
+{ out_entry out[MAX_TERM_NESTING];
+  op_entry  side[MAX_TERM_NESTING];
+  op_entry  in_op;
   int out_n = 0, side_n = 0;
   int rmo = 0;				/* Rands more than operators */
   op_entry *side_p = NULL;
+  term_t pin;
 
   for(;;)
   { bool isname;
     Token token;
     term_t in = PL_new_term_ref();
 
+    if ( positions )
+      pin = PL_new_term_ref();
+    else
+      pin = 0;
+  
     if ( out_n != 0 || side_n != 0 )	/* Check for end of term */
     { if ( (token = get_token(rmo == 1)) == (Token) NULL )
 	fail;
@@ -1287,12 +1424,13 @@ complex_term(const char *stop, term_t term)
     }
 
 					/* Read `simple' term */
-    TRY( simple_term(rmo == 1, in, &isname) );
+    TRY( simple_term(rmo == 1, in, &isname, pin) );
 
     if ( isname )			/* Check for operators */
     { atom_t name;
 
       PL_get_atom(in, &name);
+      in_op.tpos = pin;
 
       DEBUG(1, Sdprintf("name %s, rmo = %d\n", stringAtom(name), rmo));
 
@@ -1331,22 +1469,27 @@ complex_term(const char *stop, term_t term)
     if ( rmo != 0 )
       syntaxError("Operator expected");
     rmo++;
-    out[out_n++] = in;
+    out[out_n].term = in;
+    out[out_n++].tpos = pin;
     if	( out_n >= MAX_TERM_NESTING )
       syntaxError("Operant stack overflow");
   }
 
 exit:
-  Modify(1000000);
+  Modify(OP_MAXPRIORITY+1);
   Reduce(TRUE);
 
   if ( out_n == 1 && side_n == 0 )	/* simple term */
-  { PL_assign_term(term, out[0]);
+  { PL_assign_term(term, out[0].term);
+    if ( positions )
+      PL_unify(positions, out[0].tpos);
     succeed;
   }
 
   if ( out_n == 0 && side_n == 1 )	/* single operator */
   { PL_put_atom(term, side[0].op);
+    if ( positions )
+      PL_unify(positions, side[0].tpos);
     succeed;
   }
 
@@ -1355,7 +1498,7 @@ exit:
 
 
 static bool
-simple_term(bool must_be_op, term_t term, bool *name)
+simple_term(bool must_be_op, term_t term, bool *name, term_t positions)
 { Token token;
 
   *name = FALSE;
@@ -1368,20 +1511,33 @@ simple_term(bool must_be_op, term_t term, bool *name)
       syntaxError("Unexpected end of clause");
     case T_VOID:
       setHandle(term, 0L);		/* variable */
-      succeed;
+      goto atomic_out;
     case T_VARIABLE:
       setHandle(term, consPtr(token->value.variable, TAG_ATOM|STG_HEAP));
       DEBUG(2, Sdprintf("Pushed var at 0x%x\n", token->value.variable));
-      succeed;
+      goto atomic_out;
     case T_NAME:
       *name = TRUE;
       PL_put_atom(term, token->value.atom);
-      succeed;
+      goto atomic_out;
     case T_NUMBER:
       _PL_put_number(term, &token->value.number);
+    atomic_out:
+      if ( positions )
+      { PL_unify_term(positions,
+		      PL_FUNCTOR, FUNCTOR_minus2,
+		      PL_INTEGER, token->start,
+		      PL_INTEGER, token->end);
+      }
       succeed;
     case T_STRING:
       PL_put_term(term,	token->value.term);
+      if ( positions )
+      { PL_unify_term(positions,
+		      PL_FUNCTOR, FUNCTOR_string_position2,
+		      PL_INTEGER, token->start,
+		      PL_INTEGER, token->end);
+      }
       succeed;
     case T_FUNCTOR:
       { if ( must_be_op )
@@ -1393,10 +1549,27 @@ simple_term(bool must_be_op, term_t term, bool *name)
 	  term_t *argv = av;
 	  int argc;
 	  atom_t functor;
+	  term_t pa;			/* argument */
+	  term_t pe;			/* term-end */
+	  term_t ph;
+
+	  if ( positions )
+	  { pa = PL_new_term_ref();
+	    pe = PL_new_term_ref();
+	    ph = PL_new_term_ref();
+	    PL_unify_term(positions,
+			  PL_FUNCTOR, FUNCTOR_term_position5,
+			  PL_INTEGER, token->start,
+			  PL_TERM,    pe,
+			  PL_INTEGER, token->start,
+			  PL_INTEGER, token->end,
+			  PL_TERM,    pa);
+	  } else
+	    pa = pe = ph = 0;
 
 	  functor = token->value.atom;
 	  argc = 0, argv;
-	  get_token(must_be_op);	/* skip '(' */
+	  get_token(must_be_op); /* skip '(' */
 
 	  do
 	  { if ( argc == avn )
@@ -1406,10 +1579,18 @@ simple_term(bool must_be_op, term_t term, bool *name)
 	      argv = nargv;
 	    }
 	    argv[argc] = PL_new_term_ref();
-	    TRY( complex_term(",)", argv[argc]) );
+	    if ( positions )
+	    { PL_unify_list(pa, ph, pa);
+	    }
+	    TRY( complex_term(",)", argv[argc], ph) );
 	    argc++;
 	    token = get_token(must_be_op); /* `,' or `)' */
 	  } while(token->value.character == ',');
+
+	  if ( positions )
+	  { PL_unify_integer(pe, token->end);
+	    PL_unify_nil(pa);
+	  }
 
 	  build_term(term, functor, argc, argv);
 	}
@@ -1418,16 +1599,31 @@ simple_term(bool must_be_op, term_t term, bool *name)
     case T_PUNCTUATION:
       { switch(token->value.character)
 	{ case '(':
-	    { TRY( complex_term(")", term) );
+	    { TRY( complex_term(")", term, positions) );
 	      token = get_token(must_be_op);	/* skip ')' */
 
 	      succeed;
 	    }
 	  case '{':
 	    { term_t arg = PL_new_term_ref();
+	      term_t pa, pe;
 
-	      TRY( complex_term("}", arg) );
+	      if ( positions )
+	      { pa = PL_new_term_ref();
+		pe = PL_new_term_ref();
+
+		PL_unify_term(positions,
+			      PL_FUNCTOR, FUNCTOR_brace_term_position3,
+			      PL_INTEGER, token->start,
+			      PL_TERM,	  pe,
+			      PL_TERM,	  pa);
+	      } else
+		pe = pa = 0;
+
+	      TRY( complex_term("}", arg, pa) );
 	      token = get_token(must_be_op);
+	      if ( positions )
+		PL_unify_integer(pe, token->end);
 	      build_term(term, ATOM_curl, 1, &arg);
 
 	      succeed;
@@ -1435,6 +1631,22 @@ simple_term(bool must_be_op, term_t term, bool *name)
 	  case '[':
 	    { term_t tail = PL_new_term_ref();
 	      term_t tmp  = PL_new_term_ref();
+	      term_t pa, pe, pt, p2;
+
+	      if ( positions )
+	      { pa = PL_new_term_ref();
+		pe = PL_new_term_ref();
+		pt = PL_new_term_ref();
+		p2 = PL_new_term_ref();
+
+		PL_unify_term(positions,
+			      PL_FUNCTOR, FUNCTOR_list_position4,
+			      PL_INTEGER, token->start,
+			      PL_TERM,    pe,
+			      PL_TERM,	  pa,
+			      PL_TERM,	  pt);
+	      } else
+		pa = pe = p2 = pt = 0;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Reading a list. Tmp is used to  read   the  next element. Tail is a very
@@ -1447,7 +1659,9 @@ term is to be written.
 	      for(;;)
 	      { Word argp;
 
-		TRY( complex_term(",|]", tmp) );
+		if ( positions )
+		  PL_unify_list(pa, p2, pa);
+		TRY( complex_term(",|]", tmp, p2) );
 		argp = allocGlobal(3);
 		*unRef(*valTermRef(tail)) = consPtr(argp,
 						    TAG_COMPOUND|STG_GLOBAL);
@@ -1460,14 +1674,22 @@ term is to be written.
 
 		switch(token->value.character)
 		{ case ']':
-		    { return PL_unify_nil(tail);
-		      succeed;
+		    { if ( positions )
+		      { PL_unify_nil(pa);
+			PL_unify_atom(pt, ATOM_none);
+			PL_unify_integer(pe, token->end);
+		      }
+		      return PL_unify_nil(tail);
 		    }
 		  case '|':
-		    { TRY( complex_term("]", tmp) );
+		    { TRY( complex_term("]", tmp, pt) );
 		      argp = unRef(*valTermRef(tail));
 		      readValHandle(tmp, argp);
 		      token = get_token(must_be_op); /* discard ']' */
+		      if ( positions )
+		      { PL_unify_nil(pa);
+			PL_unify_integer(pe, token->end);
+		      }
 		      succeed;
 		    }
 		  case ',':
@@ -1475,18 +1697,25 @@ term is to be written.
 		}
 	      }
 	    }
-	  case '|':
 	  case ',':
+	  case '|':
 	  case ')':
 	  case '}':
 	  case ']':
 	  default:
-	    { char tmp[2];
+	    { static atom_t cache[256];
+	      int c = token->value.character;
+
+	      if ( !cache[c] )
+	      { char tmp[2];
+
+		tmp[0] = c;
+		tmp[1] = EOS;
+		cache[c] = lookupAtom(tmp);
+	      }
 
 	      *name = TRUE; 
-	      tmp[0] = token->value.character;
-	      tmp[1] = EOS;
-	      PL_put_atom_chars(term, tmp);
+	      PL_put_atom(term, cache[c]);
 
 	      succeed;
 	    }
@@ -1501,7 +1730,7 @@ term is to be written.
 
 
 static bool
-read_term(term_t term, term_t variables, bool check)
+read_term(term_t term, term_t variables, term_t positions, term_t singles)
 { Token token;
   term_t result;
   Word p;
@@ -1514,7 +1743,7 @@ read_term(term_t term, term_t variables, bool check)
   unget = FALSE;
 
   result = PL_new_term_ref();
-  TRY(complex_term(NULL, result));
+  TRY(complex_term(NULL, result, positions));
   p = valTermRef(result);
   if ( isVarAtom(*p) )			/* reading a single variable */
     readValHandle(result, p);
@@ -1526,9 +1755,9 @@ read_term(term_t term, term_t variables, bool check)
 
   TRY(PL_unify(term, result));
   if ( variables )
-    TRY(bind_variables(variables) );
-  if ( check )
-    check_singletons();
+    TRY(bind_variables(variables));
+  if ( singles )
+    TRY(check_singletons(singles));
 
   succeed;
 }
@@ -1561,7 +1790,7 @@ pl_raw_read(term_t term)
 
 word
 pl_read_variables(term_t term, term_t variables)
-{ return read_term(term, variables, FALSE);
+{ return read_term(term, variables, 0, FALSE);
 }
 
 word
@@ -1571,7 +1800,7 @@ pl_read_variables3(term_t stream, term_t term, term_t variables)
 
 word
 pl_read(term_t term)
-{ return read_term(term, 0, FALSE);
+{ return read_term(term, 0, 0, FALSE);
 }
 
 word
@@ -1581,11 +1810,73 @@ pl_read2(term_t stream, term_t term)
 
 word
 pl_read_clause(term_t term)
-{ return read_term(term, 0,
+{ return read_term(term, 0, 0,
 		   debugstatus.styleCheck & SINGLETON_CHECK ? TRUE : FALSE);
 }
 
 word
 pl_read_clause2(term_t stream, term_t term)
 { streamInput(stream, pl_read_clause(term));
+}
+
+static opt_spec read_term_options[] = 
+{ { ATOM_syntax_errors,	    OPT_TERM },	/* quiet, fail, X */
+  { ATOM_variable_names,    OPT_TERM },
+  { ATOM_singletons,        OPT_TERM },
+  { ATOM_term_position,     OPT_TERM },
+  { ATOM_subterm_positions, OPT_TERM },
+  { NULL_ATOM,	     	    0 }
+};
+
+word
+pl_read_term(term_t term, term_t options)
+{ term_t syntax_errors = 0;		/* default */
+  term_t varnames      = 0;
+  term_t singles       = 0;
+  term_t tpos	       = 0;
+  term_t subtpos       = 0;
+  int osyntax 	       = give_syntaxerrors;
+  int rval;
+  atom_t w;
+
+  if ( !scan_options(options, 0, read_term_options,
+		     &syntax_errors, &varnames, &singles, &tpos, &subtpos) )
+    return warning("read_term/2: illegal option list");
+
+  if ( !syntax_errors ||
+       (PL_get_atom(syntax_errors, &w) && w != ATOM_quiet) )
+    give_syntaxerrors = TRUE;
+  else
+    give_syntaxerrors = FALSE;
+  if ( singles && PL_get_atom(singles, &w) && w == ATOM_warning )
+    singles = TRUE;
+  rval = read_term(term, varnames, subtpos, singles);
+  give_syntaxerrors = osyntax;
+
+  if ( rval )
+  { if ( tpos && source_line_no > 0 )
+      TRY(PL_unify_term(tpos,
+			PL_FUNCTOR, FUNCTOR_stream_position3,
+			PL_INTEGER, source_char_no,
+			PL_INTEGER, source_line_no,
+			PL_INTEGER, 0)); /* should be charpos! */
+    if ( syntax_errors && PL_is_variable(syntax_errors) )
+      return PL_unify_atom(syntax_errors, ATOM_none);
+  } else
+  { if ( syntax_errors && PL_is_variable(syntax_errors) )
+      return PL_unify_term(syntax_errors,
+			   PL_FUNCTOR, FUNCTOR_module2,
+			     PL_FUNCTOR, FUNCTOR_stream_position3,
+			       PL_INTEGER, source_char_no,
+			       PL_INTEGER, source_line_no,
+			       PL_INTEGER, 0, /* should be charpos! */
+			     PL_CHARS, last_syntax_error);
+  }
+
+  return rval;
+}
+
+word
+pl_read_term3(term_t stream, term_t term, term_t options)
+{ streamInput(stream, pl_read_term(term, options));
 }

@@ -242,7 +242,7 @@ pl_op1(term_t priority, term_t type, term_t name)
   if ( !PL_get_atom(name, &nm) ||
        !PL_get_atom(type, &tp) ||
        !PL_get_integer(priority, &pri) ||
-       pri < 0 || pri > 1200 ||
+       pri < 0 || pri > OP_MAXPRIORITY ||
        (t = atomToOperatorType(tp)) < 0 )
     fail;
 

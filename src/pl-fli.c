@@ -618,6 +618,23 @@ PL_get_module(term_t t, module_t *m)
 }
 
 
+void
+_PL_get_arg(int index, term_t t, term_t a)
+{ word w = valHandle(t);
+  Functor f = (Functor)valPtr(w);
+  Word p = &f->arguments[index-1];
+
+  deRef(p);
+
+  if ( isVar(*p) )
+    w = consPtr(p, TAG_REFERENCE|storage(w)); /* makeRef() */
+  else
+    w = *p;
+
+  setHandle(a, w);
+}
+
+
 int
 PL_get_arg(int index, term_t t, term_t a)
 { word w = valHandle(t);
@@ -1022,7 +1039,46 @@ int
 PL_unify_functor(term_t t, functor_t f)
 { Word p = valHandleP(t);
 
-  return unifyFunctor(p, f);
+  deRef(p);
+  if ( isVar(*p) )
+  { if ( f->arity == 0 )
+    { *p = f->name;
+    } else
+    { int arity = f->arity;
+
+#ifdef O_SHIFT_STACKS
+      if ( !roomStack(global) > (1+arity) * sizeof(word) )
+      { growStacks(environment_frame, NULL, FALSE, TRUE, FALSE);
+	p = valHandleP(t);
+	deRef(p);
+      }
+#else 
+      requireStack(global, sizeof(word)*(1+arity));
+#endif
+
+      { Word a = gTop;
+	gTop += 1+arity;
+
+	*p = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
+	*a++ = f->functor;
+	for( ; arity > 0; a++, arity-- )
+	  setVar(*a);
+      }
+    }
+
+    DoTrail(p);
+    succeed;
+  } else
+  { if ( f->arity == 0  )
+    { if ( *p == f->name )
+	succeed;
+    } else
+    { if ( hasFunctor(*p, f) )
+	succeed;
+    }
+
+    fail;
+  }
 }
 
 
@@ -1112,6 +1168,102 @@ PL_unify_nil(term_t l)
 { Word p = valHandleP(l);
 
   return unifyAtomic(p, ATOM_nil);
+}
+
+
+static int
+unify_termVP(term_t t, va_list *ap)
+{ va_list args = *ap;
+  int rval;
+
+  switch(va_arg(args, int))
+  { case PL_VARIABLE:
+      rval = TRUE;
+      break;
+    case PL_ATOM:
+      rval = PL_unify_atom(t, va_arg(args, atom_t));
+      break;
+    case PL_INTEGER:
+      rval = PL_unify_integer(t, va_arg(args, long));
+      break;
+    case PL_FLOAT:
+      rval = PL_unify_float(t, va_arg(args, double));
+      break;
+    case PL_STRING:
+      rval = PL_unify_string_chars(t, va_arg(args, const char *));
+      break;
+    case PL_TERM:
+      rval = PL_unify(t, va_arg(args, term_t));
+      break;
+    case PL_CHARS:
+      rval = PL_unify_atom_chars(t, va_arg(args, const char *));
+      break;
+    case PL_FUNCTOR:
+    { functor_t ft = va_arg(args, functor_t);
+      term_t tmp = PL_new_term_ref();
+      int n;
+
+      if ( !PL_unify_functor(t, ft) )
+	goto failout;
+
+      *ap = args;
+      for(n=1; n<=ft->arity; n++)
+      {	_PL_get_arg(n, t, tmp);
+	
+	if ( !unify_termVP(tmp, ap) )
+	  goto failout;
+      }
+      args = *ap;
+
+      rval = TRUE;
+      PL_reset_term_refs(tmp);
+      break;
+    failout:
+      rval = FALSE;
+      PL_reset_term_refs(tmp);
+      break;
+    }
+    case PL_LIST:
+    { int length = va_arg(args, int);
+      term_t tmp = PL_copy_term_ref(t);
+      term_t h   = PL_new_term_ref();
+
+      *ap = args;
+      for( ; length-- > 0; )
+      { PL_unify_list(tmp, h, tmp);
+	if ( !unify_termVP(h, ap) )
+	  goto listfailout;
+      }
+      args = *ap;
+
+      rval = PL_unify_nil(tmp);
+      PL_reset_term_refs(tmp);
+      break;
+    listfailout:
+      rval = FALSE;
+      PL_reset_term_refs(tmp);
+      break;
+    }
+    default:
+      PL_warning("Format error in PL_unify_term()");
+      rval = FALSE;
+  }
+
+  *ap = args;
+
+  return rval;
+}
+
+int
+PL_unify_term(term_t t, ...)
+{ va_list args;
+  int rval;
+
+  va_start(args, t);
+  rval = unify_termVP(t, &args);
+  va_end(args);
+
+  return rval;
 }
 
 

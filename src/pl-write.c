@@ -7,8 +7,10 @@
     Purpose: write/1 and display/1 definition
 */
 
+#include <math.h>
 #include "pl-incl.h"
 #include "pl-ctype.h"
+
 extern int Output;
 
 forwards int	priorityOperator(atom_t);
@@ -102,6 +104,10 @@ writeAtom(atom_t a, bool quote)
   succeed;
 }
 
+#if !defined(HAVE_ISNAN) && defined(NaN)
+#define isnan(f)  ((f) == NaN)
+#define HAVE_ISNAN
+#endif
 
 static void
 writePrimitive(term_t t, bool quote)
@@ -129,7 +135,24 @@ writePrimitive(term_t t, bool quote)
   }
 
   if ( PL_get_float(t, &f) )
-  { Putf(stringAtom(float_format), f);
+  {
+#ifdef HUGE_VAL
+    if ( f == HUGE_VAL )
+    { if ( quote )
+	Putf("%s", "'$Infinity'");
+      else
+	Putf("%s", "Infinity");
+    } else
+#endif
+#ifdef HAVE_NAN
+    if ( isnan(f) )
+    { if ( quote )
+	Putf("%s", "'$NaN'");
+      else
+	Putf("%s", "NaN");
+    } else
+#endif
+    Putf(stringAtom(float_format), f);
     return;
   }
 

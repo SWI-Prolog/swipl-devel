@@ -14,7 +14,7 @@
 #define MD	     "config/win32.h"
 #define PLHOME       "c:/pl"
 #define DEFSTARTUP   ".plrc"
-#define PLVERSION    "2.7.3"
+#define PLVERSION    "2.7.4"
 #define ARCH	     "i386-win32"
 #define C_LIBS	     "-lreadline -lconsole -luxnt"
 #define C_STATICLIBS ""
@@ -131,6 +131,24 @@ This has worked on TURBO_C not very long ago.
 #if (defined(__unix__) || defined(_AIX)) && !defined(unix)
 #define unix 1
 #endif
+
+/* AIX requires this to be the first thing in the file.  */
+#ifdef __GNUC__
+# define alloca __builtin_alloca
+#else
+# if HAVE_ALLOCA_H
+#  include <alloca.h>
+# else
+#  ifdef _AIX
+ #pragma alloca
+#  else
+#   ifndef alloca /* predefined by HP cc +Olibcalls */
+void *alloca ();
+#   endif
+#  endif
+# endif
+#endif
+
 
 #if HAVE_XOS_H
 #include <xos.h>
@@ -299,6 +317,7 @@ them.  Descriptions:
 #define LINESIZ			1024	/* size of a data line */
 #define MAXARITY		1024	/* arity of predicate */
 #define MAXVARIABLES		65536	/* number of variables/clause */
+#define OP_MAXPRIORITY		1200	/* maximum operator priority */
 #define SMALLSTACK		200 * 1024 /* GC policy */
 
 				/* Prolog's integer range */
@@ -844,19 +863,10 @@ LIST processing macros.
     isList(w)		word is a './2' term.
     HeadList(p)		Pointer to the head of list *p (NOT dereferenced).
     TailList(p)		Pointer to the tail of list *p (NOT dereferenced).
-    APPENDLIST(l, p)	Append *p to list *l. l points to the tail afterwards.
-    CLOSELIST(l)	Unify the tail of the list with [].
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define HeadList(p)	(argTermP(*(p), 0) )
 #define TailList(p)	(argTermP(*(p), 1) )
-
-#define APPENDLIST(l, p) { TRY(unifyFunctor(l, FUNCTOR_dot2) ); \
-			   TRY(pl_unify(HeadList(l), p) ); \
-			   l = TailList(l); deRef(l); \
-			 }
-#define CLOSELIST(l)     { TRY(unifyAtomic(l, ATOM_nil)); }
-
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Structure declarations that must be shared across multiple files.
@@ -1098,29 +1108,6 @@ struct symbol
 
 
 		 /*******************************
-		 *	   OPTION LISTS		*
-		 *******************************/
-
-#define OPT_BOOL	(0)		/* types */
-#define OPT_INT		(1)
-#define OPT_STRING	(2)
-#define OPT_ATOM	(3)
-
-#define OPT_ALL		0x1		/* flags */
-
-typedef struct
-{ word		name;			/* Name of option */
-  int		type;			/* Type of option */
-  union
-  { bool *b;				/* boolean value */
-    long *i;				/* integer value */
-    char **s;				/* string value */
-    word *a;				/* atom value */
-    void *ptr;				/* anonymous pointer */
-  } value;
-} opt_spec, *OptSpec;
-
-		 /*******************************
 		 *	     MARK/UNDO		*
 		 *******************************/
 
@@ -1172,6 +1159,31 @@ typedef unsigned long fid_t;		/* external foreign context-id */
 #define QID_EXPORT_WAM_TABLE	(qid_t)(-1)
 
 #include "pl-itf.h"
+
+		 /*******************************
+		 *	   OPTION LISTS		*
+		 *******************************/
+
+#define OPT_BOOL	(0)		/* types */
+#define OPT_INT		(1)
+#define OPT_STRING	(2)
+#define OPT_ATOM	(3)
+#define OPT_TERM	(4)		/* arbitrary term */
+
+#define OPT_ALL		0x1		/* flags */
+
+typedef struct
+{ word		name;			/* Name of option */
+  int		type;			/* Type of option */
+  union
+  { bool *b;				/* boolean value */
+    long *i;				/* integer value */
+    char **s;				/* string value */
+    word *a;				/* atom value */
+    term_t *t;				/* term-reference */
+    void *ptr;				/* anonymous pointer */
+  } value;
+} opt_spec, *OptSpec;
 
 		/********************************
 		*             STACKS            *
@@ -1312,6 +1324,7 @@ GLOBAL FliFrame   fli_context;		/* current FLI frame */
 GLOBAL bool	  novice;		/* novice user */
 GLOBAL atom_t	  source_file_name;	/* Current source file_name */
 GLOBAL int	  source_line_no;	/* Current source line_no */
+GLOBAL long	  source_char_no;	/* Current source charno */
 GLOBAL bool	  fileerrors;		/* Report file errors? */
 GLOBAL atom_t	  float_format;		/* Default floating point format */
 

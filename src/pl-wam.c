@@ -750,32 +750,6 @@ unify_atomic(Word p, word a)
   fail;
 }
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Unify a (pointer to a) term with a functor (is name/arity pair).  If the
-term is instantiated to a term of the name and arity  indicated  by  the
-functor  this  call just succeeds.  If the term is a free variable it is
-bound to a term whose arguments are all variables.  Otherwise this  call
-fails.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-bool
-unifyFunctor(register Word term, register FunctorDef functor)
-{ if (functor->arity == 0)
-    return unifyAtomic(term, functor->name);
-
-  deRef(term);
-
-  if ( isVar(*term) )
-  { *term = globalFunctor(functor);
-    Trail(term, environment_frame);
-    succeed;
-  }
-  if ( hasFunctor(*term, functor) )
-    succeed;
-
-  fail;
-}
-
 #if O_BLOCK
 		/********************************
 		*         BLOCK SUPPORT         *
@@ -2963,9 +2937,9 @@ Leave the clause:
 	{ QF = QueryFromQid(qid);	/* may be shifted: recompute */
 	  QF->solutions++;
 	  QF->bfr = BFR;
-	  QF->deterministic = deterministic;
+	  QF->deterministic = (BFR ? FALSE : TRUE);
 
-	  if ( deterministic )		/* alternatives */
+	  if ( QF->deterministic )		/* alternatives */
 	  { LocalFrame fr, fr2;
 
 	    set(FR, FR_CUT);		/* execute I_CUT */

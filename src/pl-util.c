@@ -223,6 +223,11 @@ scan_options(term_t options, int flags, OptSpec specs, ...)
 	    *s->value.a = a;
 	    break;
 	  }
+	  case OPT_TERM:
+	  { *s->value.t = val;
+	    val = PL_new_term_ref();	/* can't reuse anymore */
+	    break;
+	  }
 	  default:
 	    fail;
 	}

@@ -1111,12 +1111,12 @@ opened before opening the next or returning control back to Prolog.
 .BF
 .F qid_t PL_open_query 4 module_t ctx, int debug, predicate_t p, term_t +t0
 Opens a query and returns an identifier for it.	 This function always
-succeeds, irregardless whether the predicate is defined or not.  {\em
+succeeds, regardless whether the predicate is defined or not.  {\em
 ctx} is the {\em context module} of the goal.  When {\tt NULL}, the
 context module of the calling context will be used, or {\tt user}
 if there is no calling context (as may happen in embedded systems).
 Note that the context module only matters for {\em module_transparent}
-predicates.  See context_module/1 and module_transparent/2.
+predicates.  See context_module/1 and module_transparent/1.
 The {\em debug} argument is normally {\tt TRUE}.  If {\em FALSE}
 is specified, the goal is ran in `nodebug' mode, irregardless of
 the current debug mode.  The {\em p} argument specifies the predicate,

@@ -225,7 +225,7 @@ S__fillbuf(IOSTREAM *s)
 		 *******************************/
 
 
-inline int
+__inline int
 S__fupdatefilepos(IOPOS *p, int c)
 { if ( p )
   { switch(c)
@@ -479,7 +479,7 @@ Sclose(IOSTREAM *s)
 { int rval = 0;
 
   if ( s->buffer )
-  { if ( S__flushbuf(s) < 0 )
+  { if ( (s->flags & SIO_OUTPUT) && S__flushbuf(s) < 0 )
       rval = -1;
 
     if ( !(s->flags & SIO_USERBUF) )

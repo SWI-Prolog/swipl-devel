@@ -251,6 +251,15 @@ A tty_control		"tty_control"
 A readline		"readline"
 A debug_on_error	"debug_on_error"
 A report_error		"report_error"
+A list_position		"list_position"
+A string_position	"string_position"
+A brace_term_position	"brace_term_position"
+A term_position		"term_position"
+A syntax_errors		"syntax_errors"
+A variable_names	"variable_names"
+A singletons		"singletons"
+A subterm_positions	"subterm_positions"
+A quiet			"quiet"
 
 F abs			1
 F acos			1
@@ -340,3 +349,7 @@ F var			1
 F warning		3
 F xor			2
 F xpceref		1
+F list_position		4
+F string_position	2
+F brace_term_position	3
+F term_position		5

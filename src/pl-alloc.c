@@ -267,8 +267,8 @@ void *
 alloc_global(int n)
 { Word result = gTop;
 
+  requireStack(global, n * sizeof(word));
   gTop += n;
-  verifyStack(global);
 
   return result;
 }

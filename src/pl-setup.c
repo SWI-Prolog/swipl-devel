@@ -305,7 +305,7 @@ initSignals(void)
 #ifdef HAVE_SIGBLOCK
   defsigmask = sigblock(0);
 #endif
-#endif;
+#endif
 }
 
 
@@ -522,7 +522,7 @@ mapOrOutOf(Stack s)
 
   DEBUG(1, Sdprintf("mapped %d bytes from 0x%x to 0x%x\n",
 		    size_alignment, (unsigned) s->max, s->max + incr));
-  s->max += incr;
+  s->max = addPointer(s->max, incr);
   considerGarbageCollect(s);
 }
 
@@ -537,7 +537,7 @@ unmap(Stack s)
   caddress addr = (caddress) align_size((long) top + size_alignment);
 
   if ( addr < s->max )
-  { if ( munmap(addr, s->max - addr) != 0 )
+  { if ( munmap(addr, (char *)s->max - (char *)addr) != 0 )
       fatalError("Failed to unmap memory: %s", OsError());
     s->max = addr;
   }
@@ -588,7 +588,7 @@ restoreStack(Stack s)
   DEBUG(0, Sdprintf("mapped %d bytes from 0x%x\n", len, (unsigned) s->base));
   succeed;
 }
-#endif O_SAVE
+#endif /*O_SAVE*/
 
 #endif /* MMAP_STACK */
 

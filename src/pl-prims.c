@@ -1149,6 +1149,7 @@ pl_copy_term(term_t from, term_t to)
   pre_copy_analysis(f, &index);
   hn = PL_new_term_refs(0) - ha;
   info.shared_variables = ha;
+  info.index = 1;
   if ( hn > 0 )
   { q = p = valTermRef(ha);
 
@@ -1495,16 +1496,33 @@ pl_concat(term_t a1, term_t a2, term_t a3)
 
 
 word
-pl_concat_atom(term_t list, term_t atom)
+pl_concat_atom3(term_t list, term_t sep, term_t atom)
 { buffer b;
   char *s;
   term_t l = PL_copy_term_ref(list);
   term_t head = PL_new_term_ref();
+  int first = TRUE;
+  char *sp;
+  int splen;
+
+  if ( sep )
+  { if ( !PL_get_chars(sep, &sp, CVT_ATOMIC) )
+      return warning("concat_atom/3: illegal separator");
+    splen = strlen(sp);
+  } else
+  { sp = NULL;
+    splen = 0;
+  }
 
   initBuffer(&b);
   while( PL_get_list(l, head, l) &&
 	 PL_get_chars(head, &s, CVT_ATOMIC) )
-  { addMultipleBuffer(&b, s, strlen(s), char);
+  { if ( first )
+      first = FALSE;
+    else if ( splen )
+      addMultipleBuffer(&b, sp, splen, char);
+
+    addMultipleBuffer(&b, s, strlen(s), char);
   }
 
   if ( PL_get_nil(l) )
@@ -1519,6 +1537,12 @@ pl_concat_atom(term_t list, term_t atom)
 
   discardBuffer(&b);
   return warning("concat_atom/2: instantiation fault");
+}
+
+
+word
+pl_concat_atom(term_t list, term_t atom)
+{ return pl_concat_atom3(list, 0, atom);
 }
 
 

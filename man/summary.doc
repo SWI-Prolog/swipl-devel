@@ -86,6 +86,7 @@ xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\=\kill
 \\ \verb"compound/1"			\> Test for compound term
 \\ \verb"concat/3"			\> Append two atoms
 \\ \verb"concat_atom/2"			\> Append a list of atoms
+\\ \verb"concat_atom/3"			\> Append a list of atoms with separator
 \\ \verb"consult/1"			\> Read (compile) a Prolog source file
 \\ \verb"context_module/1"		\> Get context module of current goal
 \\ \verb"convert_time/8"		\> Convert time stamp

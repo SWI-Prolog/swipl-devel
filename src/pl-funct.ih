@@ -86,3 +86,7 @@
 #define FUNCTOR_warning3     (&functors[85])
 #define FUNCTOR_xor2         (&functors[86])
 #define FUNCTOR_xpceref1     (&functors[87])
+#define FUNCTOR_list_position4 (&functors[88])
+#define FUNCTOR_string_position2 (&functors[89])
+#define FUNCTOR_brace_term_position3 (&functors[90])
+#define FUNCTOR_term_position5 (&functors[91])

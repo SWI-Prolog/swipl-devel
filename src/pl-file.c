@@ -868,6 +868,25 @@ currentStreamName()			/* only if a file! */
   return NULL_ATOM;
 }
 
+void
+setCurrentSourceLocation()
+{ PlFile f = &fileTable[Input];
+
+  if ( f->type == ST_FILE || f->type == ST_PIPE )
+  { IOSTREAM *stream = f->stream;
+
+    source_file_name = f->name;
+    if ( stream && stream->position )
+    { source_line_no = stream->position->lineno;
+      source_char_no = stream->position->charno - 1; /* char just read! */
+    }
+  } else
+  { source_file_name = NULL_ATOM;
+    source_line_no = -1;
+    source_char_no = 0;
+  }
+}
+
 		/********************************
 		*       WAITING FOR INPUT	*
 		********************************/

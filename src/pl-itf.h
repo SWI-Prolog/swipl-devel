@@ -26,7 +26,7 @@ before loading this file.  See end of this file.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifndef PLVERSION
-#define PLVERSION "2.7.3, May 1996"
+#define PLVERSION "2.7.4, May 1996"
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -89,12 +89,18 @@ typedef foreign_t	(*pl_function_t)(); /* foreign language functions */
 		 *      TERM-TYPE CONSTANTS	*
 		 *******************************/
 
-#define	PL_VARIABLE	(1)
-#define PL_ATOM		(2)
-#define PL_INTEGER	(3)
-#define PL_FLOAT	(4)
-#define PL_STRING	(5)
+					/* PL_unify_term() arguments */
+#define	PL_VARIABLE	(1)		/* nothing */
+#define PL_ATOM		(2)		/* const char * */
+#define PL_INTEGER	(3)		/* int */
+#define PL_FLOAT	(4)		/* double */
+#define PL_STRING	(5)		/* const char * */
 #define PL_TERM		(6)
+
+#define PL_FUNCTOR	(10)		/* functor_t, arg ... */
+#define PL_LIST		(11)		/* length, arg ... */
+#define PL_CHARS	(12)		/* const char * */
+
 
 		/********************************
 		*    DETERMINISTIC CALL/RETURN  *
@@ -269,7 +275,7 @@ __pl_export int		PL_unify_functor(term_t t, functor_t f);
 __pl_export int		PL_unify_list(term_t l, term_t h, term_t t);
 __pl_export int		PL_unify_nil(term_t l);
 __pl_export int		PL_unify_arg(int index, term_t t, term_t a);
-
+__pl_export int		PL_unify_term(term_t t, ...);
 
 		 /*******************************
 		 *	  FILENAME SUPPORT	*

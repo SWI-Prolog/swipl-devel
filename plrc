@@ -16,6 +16,7 @@ configuration purposes.
 :- initialization op(100, fx,  @).
 :- initialization op(150, yfx, ?).
 :- initialization op(990, xfx, :=).
+:- initialization set_feature(character_escapes, false).
 
 :- multifile
 	file_search_path/2.
@@ -48,19 +49,32 @@ file_search_path(foreign, pce(ArchLib)) :-
 	concat('lib/', Arch, ArchLib).
 file_search_path(foreign, pce(lib)).
 
-:- initialization set_feature(character_escapes, false).
+gui_setup_ :-
+	feature(gui, true), !.
+gui_setup_ :-
+	(   getenv('DISPLAY', _)
+	;   feature(arch, Arch),
+	    '$apropos_match'(win32, Arch)
+	), !,
+	asserta((help :- !, prolog_help)),
+	asserta((help(T) :- !, prolog_help(T))),
+	asserta((apropos(T) :- !, prolog_apropos(T))),
+	set_feature(gui, true).
 
-:-  initialization
-    (   \+ feature(xpce, true),
+pce_setup_ :-
+	feature(xpce, true), !.
+pce_setup_ :-
+	'$argv'([Proc|Args]),
+	\+ member('-nopce', Args),	% explicitely no XPCE
 	pcehome_(PceHome),
 	exists_directory(PceHome),
-	'$argv'([Proc|Args]),
-	\+ member('-nopce', Args),
+	gui_setup_,
 	(   member('-pce', Args)
 	;   '$apropos_match'(pce, Proc)
-	)
-    ->  object(@pce),			% silent autoload loading
+	), !,
+	object(@pce),			% silent autoload loading
 	use_module(library(pce)),	% import all
-	flag('$banner_goal', _, pce_welcome)
-    ;   true
-    ).
+	flag('$banner_goal', _, pce_welcome).
+pce_setup_.
+
+:- initialization pce_setup_. 
