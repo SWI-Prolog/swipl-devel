@@ -1,6 +1,14 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: -s file to load a script-file in addition to the user
+    initialisation file.
+
+  * ADDED: -q commandline option to make the system operate silently.
+
+  * ADDED: PrologScript support using #!, providing direct scripting
+    in Unix and additional parameters on MS-Windows.
+
   * FIXED: Wipe the anonymous clauses for meta-calling on $dcall/1 as
     soon as possible.  Reported by Stefan Mueller.
 
