@@ -3110,7 +3110,7 @@ oonn__ssiiggnnaall((_+_S_i_g_n_a_l_, _-_O_l_d_, _:_N_e
 
     call_with_time_limit(Goal, MaxTime) :-
             alarm(MaxTime),
-            catch(Goal, signal(alrm, _), fail), !,
+            catch(Goal, error(signal(alrm, _), _), fail), !,
             alarm(0).
     call_with_time_limit(_, _) :-
             alarm(0),
@@ -10044,6 +10044,14 @@ int PPLL__iinniittiiaalliissee(_i_n_t _a_r_g_c_, _c_h_a_
     "libpl.dll" as argv[0].
 
 
+int PPLL__iiss__iinniittiiaalliisseedd(_i_n_t _*_a_r_g_c_, _c_h_a_r _*_*_*_a_r_g_v)
+    Test  whether the  Prolog engine  is already initialised.    Returns
+    FALSE  if Prolog  is not  initialised and TRUE  otherwise.   If  the
+    engine is initialised  and _a_r_g_c is not NULL, the argument count used
+    with  PL_initialise() is  stored in  _a_r_g_c.   Same  for the  argument
+    vector _a_r_g_v.
+
+
 void PPLL__iinnssttaallll__rreeaaddlliinnee()
     Installs  the GNU-readline line-editor.  Embedded  applications that
     do  not use the  Prolog toplevel should  normally delete this  line,
@@ -11758,4 +11766,4 @@ Bibliography
                                   New York, 1983.  Major revision  March
                                   1984.
 
-                                  835
+                                  836
