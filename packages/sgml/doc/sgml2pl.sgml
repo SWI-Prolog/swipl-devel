@@ -1141,6 +1141,10 @@ character-set.
     <summary>Quote text for use as PCDATA
 Very similar to <pref>xml_quote_attribute/2</pref>, but does not quote the
 single- and double-quotes.
+    <pred>xml_name(+In)
+    <summary>Test atom for valid XML name
+Succeed if <aref/In/ is an atom or string that satisfies the rules for
+a valid XML element or attribute name.
 </definitions>
 
 

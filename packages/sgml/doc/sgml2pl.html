@@ -1546,6 +1546,11 @@ character-set.
 <b><a name="xml_quote_cdata/2">xml_quote_cdata(<var>+In, -Quoted</var>)</a></b><dd>
 Very similar to <a href="#xml_quote_attribute/2"><b>xml_quote_attribute/2</b></a>, but does not quote the
 single- and double-quotes.
+    
+<dt>&nbsp;<br>
+<b><a name="xml_name/1">xml_name(<var>+In</var>)</a></b><dd>
+Succeed if <var>In</var> is an atom or string that satisfies the rules for
+a valid XML element or attribute name.
 </dl>
 
 <p>
@@ -1688,6 +1693,7 @@ standard.  He also made many suggestions for improving this document.
 <tr><td><a href="#set_sgml_parser/2"><b>set_sgml_parser/2</b></a></td><td>Set parser options (dialect, source, <em>etc.</em>)</td></tr>
 <tr><td><a href="#sgml_parse/2"><b>sgml_parse/2</b></a></td><td>Parse the input</td></tr>
 <tr><td><a href="#sgml_register_catalog_file/2"><b>sgml_register_catalog_file/2</b></a></td><td>Register a catalog file</td></tr>
+<tr><td><a href="#xml_name/1"><b>xml_name/1</b></a></td><td>Test atom for valid XML name</td></tr>
 <tr><td><a href="#xml_quote_attribute/2"><b>xml_quote_attribute/2</b></a></td><td>Quote text for use as an attribute</td></tr>
 <tr><td><a href="#xml_quote_cdata/2"><b>xml_quote_cdata/2</b></a></td><td>Quote text for use as PCDATA</td></tr>
 </table>
@@ -1787,6 +1793,7 @@ deleted. This is not yet implemented.
 <li><a href="#const:urlns"><b><tt>urlns</tt></b></a>
 <li><a href="#const:warning"><b><tt>warning</tt></b></a>
 <li><a href="#const:xml"><b><tt>xml</tt></b></a> [ <a href="#const:xml%2">2</a> <a href="#const:xml%3">3</a> <a href="#const:xml%4">4</a>]
+<li><a href="#xml_name/1"><b>xml_name/1</b></a>
 <li><a href="#xml_quote_attribute/2"><b>xml_quote_attribute/2</b></a>
 <li><a href="#xml_quote_cdata/2"><b>xml_quote_cdata/2</b></a>
 <li><a href="#const:xmlns"><b><tt>xmlns</tt></b></a> [ <a href="#const:xmlns%2">2</a> <a href="#const:xmlns%3">3</a> <a href="#const:xmlns%4">4</a> <a href="#const:xmlns%5">5</a> <a href="#const:xmlns%6">6</a> <a href="#const:xmlns%7">7</a> <a href="#const:xmlns%8">8</a> <a href="#const:xmlns%9">9</a>]

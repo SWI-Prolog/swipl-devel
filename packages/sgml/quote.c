@@ -18,6 +18,8 @@
 #include "error.h"
 #include <errno.h>
 #include <string.h>
+#include <stdio.h>
+#include "dtd.h"
 
 #define CHARSET 256
 
@@ -123,8 +125,37 @@ xml_quote_cdata(term_t in, term_t out)
 }
 
 
+static foreign_t
+xml_name(term_t in)
+{ char *ins;
+  unsigned len;
+  static dtd_charclass *map;
+  int i;
+
+  if ( !map )
+    map = new_charclass();
+
+  if ( !PL_get_nchars(in, &len, &ins, CVT_ATOMIC) )
+    return FALSE;
+  if ( len == 0 )
+    return FALSE;
+  
+  if ( !(map->class[ins[0] & 0xff] & CH_NMSTART) )
+    return FALSE;
+  for(i=1; i<len; i++)
+  { if ( !(map->class[ins[i] & 0xff] & CH_NAME) )
+      return FALSE;
+  }
+
+  return TRUE;
+}
+
+
+
+
 install_t
 install_xml_quote()
 { PL_register_foreign("xml_quote_attribute", 2, xml_quote_attribute, 0);
   PL_register_foreign("xml_quote_cdata",     2, xml_quote_cdata,     0);
+  PL_register_foreign("xml_name",            1, xml_name,            0);
 }

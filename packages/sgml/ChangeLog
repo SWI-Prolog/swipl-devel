@@ -1,3 +1,7 @@
+Nov 20, 2003
+
+  * ADDED: xml_name/1 to test an atom to refer to a valid XML name.
+
 Nov 3, 2003
 
   * FIXED: Error parsing SHORTREF declaration that has whitespace at the
