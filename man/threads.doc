@@ -3,7 +3,7 @@
 SWI-Prolog multithreading is based on standard C-language multithreading
 support. It is not like {\em ParLog} or other paralel implementations of
 the Prolog language. Prolog threads have their own stacks and only share
-the Prolog {\em heap}: predicates, records, flags and other global
+the Prolog \emph{heap}: predicates, records, flags and other global
 non-backtrackable data.  SWI-Prolog thread support is designed with the
 following goals in mind.
 
@@ -14,7 +14,7 @@ Such applications often have need for communication between services
 and/or fast non-blocking service to multiple concurrent clients.  The
 shared heap provides fast communication and thread creation is
 relatively cheap.%
-    \footnote{On an dual AMD-Athlon 1600+, SWI-Prolog 5.1.0 
+    \footnote{On an dual AMD-Athlon 1600, SWI-Prolog 5.1.0 
 	      creates and joins 4,957 threads per second elapsed time.}
 
     \item[Interactive applications]
@@ -25,10 +25,10 @@ User interfaces can also use multiple threads, each thread dealing with
 input from a distinct group of windows.  See also \secref{mt-xpce}.
 
     \item[Natural integration with foreign code]
-Each Prolog thread runs in a C-thread, automatically making them
-cooperate with \jargon{MT-safe}	foreign-code.  In addition, any
-foreign thread can create its own Prolog engine for dealing with
-calling Prolog from C-code.
+Each Prolog thread runs in a native thread of the operating system,
+automatically making them cooperate with \jargon{MT-safe} foreign-code.
+In addition, any foreign thread can create its own Prolog engine for
+dealing with calling Prolog from C-code.
 \end{itemlist}
 
 SWI-Prolog multi-threading is based on the POSIX thread standard used on
@@ -52,25 +52,31 @@ thread-identifier of the created thread is unified to \arg{Id}.
 Set the limit to which the local stack of this thread may grow.  If
 omited, the limit of the calling thread is used.  See also the
 \cmdlineoption{-L} commandline option.
+
     \termitem{global}{K-Bytes}
 Set the limit to which the global stack of this thread may grow.  If
 omited, the limit of the calling thread is used. See also the
 \cmdlineoption{-G} commandline option.
+
     \termitem{trail}{K-Bytes}
 Set the limit to which the trail stack of this thread may grow.  If
 omited, the limit of the calling thread is used. See also the
 \cmdlineoption{-T} commandline option.
+
     \termitem{argument}{K-Bytes}
 Set the limit to which the argument stack of this thread may grow.  If
 omited, the limit of the calling thread is used. See also the
 \cmdlineoption{-A} commandline option.
+
     \termitem{stack}{K-Bytes}
 Set the limit to which the system stack of this thread may grow.  The
 default, mimimum and maximum values are system-dependant.
+
     \termitem{alias}{AliasName}
 Associate an `alias-name' with the thread.  This named may be used to
 refer to the thread and remains valid until the thread is joined
 (see thread_join/2).
+
     \termitem{detached}{Bool}
 If \const{false} (default), the thread can be waited for using
 thread_join/2. thread_join/2 must be called on this thread to reclaim
@@ -80,9 +86,9 @@ finishes. Please note that thread identifiers are freed for reuse after
 a detached thread finishes or a normal thread has been joined.
 \end{description}
 
-The \arg{Goal} argument is {\em copied} to the new Prolog engine.  This
-implies further instantiation of this term in either thread does not
-have consequences for the other thread: Prolog threads do not share
+The \arg{Goal} argument is \emph{copied} to the new Prolog engine.
+This implies further instantiation of this term in either thread does
+not have consequences for the other thread: Prolog threads do not share
 data from their stacks.
 
     \predicate{thread_self}{1}{-Id}
@@ -97,7 +103,7 @@ with the thread are reclaimed. See also current_thread/2.
 
 A thread that has been completed without thread_join/2 being called on
 it is partly reclaimed: the Prolog stacks are released and the C-thread
-is destroyed.  A small data-structure represening the exit-status of the
+is destroyed. A small data-structure representing the exit-status of the
 thread is retained until thread_join/2 is called on the thread.
 
     \predicate{thread_exit}{1}{+Term}
@@ -109,7 +115,8 @@ Run \arg{Goal} after the execution of this thread has terminated. This
 is to be compared to at_halt/1, but only for the current thread.  These
 hooks are ran regardless of why the execution of the thread has been
 completed.  As these hooks are run, the return-code is already available
-through current_thread/2.
+through current_thread/2 using the result of thread_self/1 as
+thread-identifier.
 \end{description}
 
 
@@ -132,13 +139,18 @@ returned in \arg{Id} instead of the numerical thread identifier.
     \termitem{running}{}
 The thread is running.  This is the initial status of a thread.  Please
 note that threats waiting for something are considered running too.
+
     \termitem{false}{}
 The \arg{Goal} of the thread has been completed and failed.
+
     \termitem{true}{}
 The \arg{Goal} of the thread has been completed and succeeded.
+
     \termitem{exited}{Term}
 The \arg{Goal} of the thread has been terminated using thread_exit/1
-with \arg{Term} as argument.
+with \arg{Term} as argument.  If the underlying native thread has
+exited (using pthread_exit()) \arg{Term} is unbound.
+
     \termitem{exception}{Term}
 The \arg{Goal} of the thread has been terminated due to an uncaught
 exception (see throw/1 and catch/3).
@@ -171,14 +183,14 @@ in its message queue.
     \predicate{thread_send_message}{2}{+ThreadId, +Term}
 Place \arg{Term} in the message queue of the indicated thread (which can
 even be the message queue of itself (see thread_self/1).  Any term can
-be placed in a message queue, but note that the term is copied to to
+be placed in a message queue, but note that the term is copied to the
 receiving thread and variable-bindings are thus lost.  This call returns
 immediately.
 
     \predicate{thread_get_message}{1}{?Term}
 Examines the thread message-queue and if necessary blocks execution
 until a term that unifies to \arg{Term} arrives in the queue.  After
-a term from the queue has been unified unified to \arg{Term}, this
+a term from the queue has been unified unified to \arg{Term}, the
 term is deleted from the queue and this predicate returns.
 
 Please note that not-unifying messages remain in the queue.  After
@@ -239,8 +251,8 @@ two or more changes to the Prolog database.  For example, we have a
 predicate address/2, representing the address of a person and we want
 to change the address by retracting the old and asserting the new
 address.  Between these two operations the database is invalid: this
-person has either no address or two addresses (depending on the
-assert/retract order).
+person has either no address or two addresses, depending on the
+assert/retract order.
 
 Here is how to realise a correct update:
 
@@ -261,9 +273,11 @@ change_address(Id, Address) :-
 Create a mutex.  if \arg{MutexId} is an atom, a \jargon{named} mutex is
 created.  If it is a variable, an anonymous mutex reference is returned.
 There is no limit to the number of mutexes that can be created.
+
     \predicate{mutex_destroy}{1}{+MutexId}
 Destroy a mutex.  After this call, \arg{MutexId} becomes invalid and
 further references yield an \except{existence_error} exception.
+
     \predicate{mutex_lock}{1}{+MutexId}
 Lock the mutex.  Prolog mutexes are \jargon{recursive} mutexes: they
 can be locked multiple times by the same thread.  Only after unlocking
@@ -279,23 +293,29 @@ Please note that locking and unlocking mutexes should be paired
 carefully. Especially make sure to unlock mutexes even if the protected
 code fails or raises an exception. For most common cases use
 with_mutex/2, wich provides a safer way for handling prolog-level
-mutexes.
+mutexes.  The predicate call_cleanup/[2-3] is another way to guarantee
+that the mutex is unlocked while retaining non-determinism.
+
     \predicate{mutex_trylock}{1}{+MutexId}
 As mutex_lock/1, but if the mutex is held by another thread, this
 predicates fails immediately.
+
     \predicate{mutex_unlock}{1}{+MutexId}
 Unlock the mutex. This can only be called if the mutex is held by the
 calling thread. If this is not the case, a \except{permission_error}
 exception is raised.
+
     \predicate{mutex_unlock_all}{0}{}
 Unlock all mutexes held by the current thread.  This call is especially
 useful to handle thread-termination using abort/0 or exceptions.  See
 also thread_signal/2.
+
     \predicate{current_mutex}{3}{?MutexId, ?ThreadId, ?Count}
 Enumerates all existing mutexes.  If the mutex is held by some thread,
 \arg{ThreadId} is unified with the identifier of te holding thread and
 \arg{Count} with the recursive count of the mutex. Otherwise,
 \arg{ThreadId} is \const{[]} and \arg{Count} is 0.
+
     \predicate{with_mutex}{2}{+MutexId, :Goal}
 Execute \arg{Goal} while holding \arg{MutexId}.  If \arg{Goal} leaves
 choicepointes, these are destroyed (as in once/1).  The mutex is unlocked
@@ -329,9 +349,11 @@ can also be created from the {\sf Run/New thread} menu.
     \predicate{attach_console}{0}{}
 If the current thread has no console attached yet, attach one and
 redirect the user streams (input, output, and error) to the new console
-window. The console is an \program{xterm} application. For this to work,
-you should be running X-windows and your xterm should know the
-\cmdlineoption{-Sccn}.
+window. On Unix systens the console is an \program{xterm} application.
+For this to work, you should be running X-windows and your xterm should
+know the \cmdlineoption{-Sccn}.  On Windows systems this requires the
+GUI version \program{plwin.exe} rather than the console based
+\program{plconm.exe}.
 
 This predicate has a couple of useful applications.  One is to separate
 (debugging) I/O of different threads.  Another is to start debugging a
