@@ -6,6 +6,9 @@
     Purpose: Find a file
     History:
 
+	# Oct 10, 2000
+	Allow for multiple extensions
+
 	# Oct 4 1995
 	Updated under Windows-'95 to use automatic dialog layout rather
 	than the fixed position-layout used in the original version. This
@@ -175,12 +178,17 @@ selection(F, File:file) :<-
 	    ->  CleanFile = CleanFile0
 	    ;	get(F, extensions, Exts),
 		get(Exts, head, Ext),
-		clean_name(FileName, Ext, CleanFile)
+		ensure_dot(Ext, TheExt),
+		clean_name(FileName, TheExt, CleanFile)
 	    )
 	),
 	send(F, slot, directory, DirName),
 	new(File, file(string('%s%s', CleanDir, CleanFile))).
 
+ensure_dot(Ext, Ext) :-
+	sub_atom(Ext, 0, _, _, '.'), !.
+ensure_dot(Ext, DotExt) :-
+	atom_concat('.', Ext, DotExt).
 
 clean_name(Name, Ext, Clean) :-
 	new(S, string('%s', Name)),
@@ -218,15 +226,18 @@ cancel(F) :->
 	send(F, show, @off),			  % savety to get rid of it
 	send(F, transient_for, @nil).
 
-extensions(F, Ext:'name|chain') :->
+extensions(F, Ext:'name|chain*') :->
 	"Set <-extensions to chain of dot-less names"::
-	send(F, slot, extensions, new(E, chain)),
-	(   atom(Ext)
-	->  remove_dot(Ext, E2),
-	    send(E, append, E2)
-	;   chain_list(Ext, List),
-	    maplist(remove_dot, List, Plain),
-	    send_list(E, append, Plain)
+	(   Ext == @nil
+	->  send(F, slot, extensions, Ext)
+	;   send(F, slot, extensions, new(E, chain)),
+	    (   atom(Ext)
+	    ->  remove_dot(Ext, E2),
+		send(E, append, E2)
+	    ;   chain_list(Ext, List),
+		maplist(remove_dot, List, Plain),
+		send_list(E, append, Plain)
+	    )
 	).
 	
 remove_dot('', '') :- !.
@@ -262,7 +273,7 @@ re_quote(Ext, Q) :-
 	free(QS).
 
 
-directory(F, Dir:[directory], Ext:[name|chain]) :->
+directory(F, Dir:[directory], Ext:[name|chain]*) :->
 	"Set current directory and fill browser"::
 	(   Dir \== @default
 	->  send(F, slot, directory, Dir)
