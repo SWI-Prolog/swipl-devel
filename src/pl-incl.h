@@ -1216,6 +1216,9 @@ struct record
   int		size;			/* # bytes of the record */
   int		erased;			/* record has been erased */
   int		references;		/* PL_duplicate_record() support */
+#if SIZEOF_LONG != SIZEOF_INT		/* ensure long-aligned buffer */
+  int		pad;
+#endif
   char 		buffer[1];		/* array holding codes */
 };
 

@@ -658,7 +658,7 @@ discardForeignFrame(LocalFrame fr)
   int  result;
 
 #define F	(*function)
-#define A(n)	((Word)NULL)
+#define A(n)	0
 
   DEBUG(5, Sdprintf("\tCut %s, context = 0x%lx\n",
 		    predicateName(def), context));

@@ -384,6 +384,7 @@ copyRecordToGlobal(term_t copy, Record r ARG_LD)
   }
   b.gstore = allocGlobal(r->gsize);
   
+  assert(((long)b.data % sizeof(long)) == 0);
   copy_record(valTermRef(copy), &b);
   assert(b.gstore == gTop);
 

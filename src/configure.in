@@ -411,6 +411,9 @@ AC_HEADER_DIRENT
 AC_HEADER_SYS_WAIT
 AC_FUNC_VFORK
 
+AC_CHECK_SIZEOF(long, 4)
+AC_CHECK_SIZEOF(int,  4)
+
 if test "$GCC" = "yes"; then
 dnl See whether we need to force __register_frame_info to be included.
 dnl This is a glibc/egcs portability problem for binaries accross

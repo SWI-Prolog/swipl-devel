@@ -470,7 +470,8 @@ word
 pl_current_op(term_t prec, term_t type, term_t name, word h)
 { Module m = MODULE_parse;
 
-  PL_strip_module(name, &m, name);
+  if ( name )				/* FRG_CUTTED: no name! */
+    PL_strip_module(name, &m, name);
 
   return current_op(m, TRUE, prec, type, name, h);
 }
@@ -480,7 +481,8 @@ word
 pl_local_op(term_t prec, term_t type, term_t name, word h)
 { Module m = MODULE_user;
 
-  PL_strip_module(name, &m, name);
+  if ( name )				/* FRG_CUTTED: no name! */
+    PL_strip_module(name, &m, name);
 
   return current_op(m, FALSE, prec, type, name, h);
 }
