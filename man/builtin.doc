@@ -80,12 +80,14 @@ come in three flavours:
     \item [ A traditional ] Prolog source file contains a Prolog
 clauses and directives, but no \jargon{module-declaration}.  They
 are normally loaded using consult/1 or ensure_loaded/1.
+
     \item [ A module ] Prolog source file starts with a module
 declaration.  The subsequent Prolog code is loaded into the
 specified module and only the \jargon{public} predicates are
 made available to the context loading the module.  Module files
 are normally loaded using use_module/[1,2].  See \chapref{modules}
 for details.
+
     \item [ An include ] Prolog source file is loaded using
 the include/1 directive and normally contains only directives.
 \end{description}
@@ -116,12 +118,12 @@ sets).
 
 SWI-Prolog recognises grammar rules (\idx{DCG}) as defined in
 \cite{Clocksin:87}. The user may define additional compilation of the
-source file by defining the dynamic predicate term_expansion/2.
-Transformations by this predicate overrule the systems grammar rule
-transformations. It is not allowed to use assert/1, retract/1 or any
-other database predicate in term_expansion/2 other than for local
-computational purposes.%
-    \footnote{It does work for normal loading, but not for qcompile/1.}
+source file by defining the dynamic predicates term_expansion/2 and
+goal_expansion/2. Transformations by term_expansion/2 overrule the
+systems grammar rule transformations. It is not allowed to use assert/1,
+retract/1 or any other database predicate in term_expansion/2 other than
+for local computational purposes.%
+	\footnote{It does work for normal loading, but not for qcompile/1.}
 
 Directives may be placed anywhere in a source file, invoking any
 predicate.  They are executed when encountered.  If the directive fails,
@@ -135,14 +137,16 @@ already loaded.
 \begin{description}
     \predicate{load_files}{2}{+Files, +Options}
 The predicate load_files/2 is the parent of all the other loading
-predicates. It currently supports a subset of the options of Quintus
-load_files/2. \arg{Files} is either specifies a single, or a list of
-source-files. The specification for a source-file is handled
-absolute_file_name/2. See this predicate for the supported expansions.
-\arg{Options} is a list of options using the format
+predicates except for include/2. It currently supports a subset
+of the options of Quintus load_files/2. \arg{Files} is either specifies
+a single, or a list of source-files. The specification for a source-file
+is handled absolute_file_name/2. See this predicate for the supported
+expansions. \arg{Options} is a list of options using the format
+
 \begin{quote}
 \arg{OptionName}(\arg{OptionValue})
 \end{quote}
+
 The following options are currently supported:
 
 \begin{description}
@@ -180,22 +184,41 @@ If this call appears in a directive of a file that is compiled into
 Quick Load Format using qcompile/1 and this flag is \const{true}, the
 contents of the argument files are included in the \fileext{qlf} file
 instead of the loading directive.
+
+    \termitem{stream}{Input}
+This SWI-Prolog extension compiles the data from the stream
+\arg{Input}.  If this option is used, \arg{Files} must be a single atom
+which is used to identify the source-location of the loaded clauses as
+well as remove all clauses if the data is re-consulted.
+
+This option is added to allow compiling from non-file locations such as
+databases, the web, the \jargon{user} (see consult/1) or other servers.
 \end{description}
+
+The load_files/2 predicate can be hooked to load other data or data from
+other objects than files.  See prolog_load_file/2 for a description and
+\pllib{http_load} for an example.
 
     \predicate{consult}{1}{+File}
 Read \arg{File} as a Prolog source file. \arg{File} may be a list of
 files, in which case all members are consulted in turn. \arg{File} may
-start with the csh(1) special sequences \file{~}, \file{~<user>} and
-\file{\$<var>}. \arg{File} may also be \file{library(Name)}, in which
-case the libraries are searched for a file with the specified name. See
-also library_directory/1 and file_search_path/2. consult/1 may be
-abbreviated by just typing a number of file names in a list. Examples:
+start with the Unix shell special sequences \file{~}, \file{~<user>}
+and \file{\$<var>}. \arg{File} may also be \file{library(Name)}, in
+which case the libraries are searched for a file with the specified
+name. See also library_directory/1 and file_search_path/2. consult/1 may
+be abbreviated by just typing a number of file names in a list.
+Examples:
 
 \begin{center}\begin{tabular}{ll}
 \exam{?- consult(load).}        & \% consult \file{load} or \file{load.pl} \\
-\exam{?- [library(quintus)]}.   & \% load Quintus compatibility library \\
+\exam{?- [library(quintus)].}   & \% load Quintus compatibility library \\
+\exam{?- [user].}		% \% Type program on the terminal \\
 \end{tabular}\end{center}
-Equivalent to load_files(Files, []).
+
+Consult/1 is equivalent to load_files(Files, []), except for handling
+the special file \const{user}, which reads clauses from the terminal.
+See also the \term{stream}{Input} option of load_files/2.
+
     \predicate{ensure_loaded}{1}{+File}
 If the file is not already loaded, this is equivalent to consult/1.
 Otherwise, if the file defines a module, import all public predicates.
@@ -208,6 +231,7 @@ semantics without the presence of a module system.  Applications using
 modules should consider using use_module/[1,2].  
 
 Equivalent to load_files(Files, [if(changed)]).
+
     \predicate{include}{1}{+File}
 Pretend the terms in \arg{File} are in the source-file in which
 \exam{:- include(File)} appears.  The include construct is only
@@ -2076,6 +2100,16 @@ Set end-of-file handling to one of \const{eof_code}, \const{reset} or
     \termitem{close_on_abort}{Bool}
 Determine whether or not the stream is closed by abort/0.  By default
 streams are closed.
+
+    \termitem{record_position}{Bool}
+Do/do not record the line-count and line-position (see line_count/2
+and line_position/2). 
+
+    \termitem{file_name}{FileName}
+Set the file name associated to this stream.  This call can be used
+to set the file for error-locations if \arg{Stream} corresponds to
+\arg{FileName} and is not optained by opening the file directly but,
+for example, through a network service.
 \end{description}
 \end{description}
 

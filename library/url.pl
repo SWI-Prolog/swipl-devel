@@ -58,9 +58,9 @@ parse_url(+URL, -Parts)
         protocol	All protocols
 	host		Network based protocols
 	port		Network based protocols
-	path		file<,http,ftp
-	search		http
-        fragment	http
+	path		file,http,ftp
+	search		http (?name=value&...)
+        fragment	http (#fragment)
 
     For example:
 

@@ -1017,7 +1017,7 @@ pl_set_stream(term_t stream, term_t attr)
 	  return PL_error("set_stream", 2, NULL, ERR_DOMAIN,
 			  ATOM_buffer, a);
 	succeed;
-      } else if ( aname == ATOM_eof_action )
+      } else if ( aname == ATOM_eof_action ) /* eof_action(Action) */
       { atom_t action;
 
 	if ( !PL_get_atom_ex(a, &action) )
@@ -1035,7 +1035,7 @@ pl_set_stream(term_t stream, term_t attr)
 			  ATOM_eof_action, a);
 
 	succeed;
-      } else if ( aname == ATOM_close_on_abort )
+      } else if ( aname == ATOM_close_on_abort ) /* close_on_abort(Bool) */
       { int close;
 
 	if ( !PL_get_bool_ex(a, &close) )
@@ -1045,6 +1045,29 @@ pl_set_stream(term_t stream, term_t attr)
 	  s->flags &= ~SIO_NOCLOSE;
 	else
 	  s->flags |= SIO_NOCLOSE;
+
+	succeed;
+      } else if ( aname == ATOM_record_position )
+      { int rec;
+
+	if ( !PL_get_bool_ex(a, &rec) )
+	  fail;
+
+	if ( rec )
+	  s->position = &s->posbuf;
+	else
+	  s->position = NULL;
+
+	succeed;
+      } else if ( aname == ATOM_file_name ) /* file_name(Atom) */
+      {	atom_t fn;
+
+	if ( !PL_get_atom_ex(a, &fn) )
+	  fail;
+
+	LOCK();
+	setFileNameStream(s, fn);
+	UNLOCK();
 
 	succeed;
       }
@@ -2461,13 +2484,9 @@ pl_line_position(term_t stream, term_t count)
 
 word
 pl_source_location(term_t file, term_t line)
-{ char *s;
-  char tmp[MAXPATHLEN];
-
-  if ( ReadingSource &&
-       (s = AbsoluteFile(stringAtom(source_file_name), tmp)) &&
-	PL_unify_atom_chars(file, s) &&
-	PL_unify_integer(line, source_line_no) )
+{ if ( ReadingSource &&
+       PL_unify_atom(file, source_file_name) &&
+       PL_unify_integer(line, source_line_no) )
     succeed;
   
   fail;

@@ -1,3 +1,10 @@
+28/03/2002
+
+ * Record position on socket-streams (SIO_RECORDPOS).
+
+ * Many changes to library(socket): fixes for the Windows implementation,
+   dispatch events during tcp_read() while waiting for input.
+
 01/02/2002
 
  * Modified copyright for compatibility with the now LGPL SWI-Prolog system

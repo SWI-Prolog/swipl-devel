@@ -261,6 +261,23 @@ Hook in apropos/1 on the topic \arg{What}.
 \end{description}
 
 
+\section{Hooks for loading files}	\label{sec:loadfilehook}
+
+All loading of source-files is achieved by load_files/2.  The hook
+prolog_load_file/2 can be used to load Prolog code from non-files
+or even load entirely different information, such as foreign files.
+
+\begin{description}
+    \predicate{user:prolog_load_file}{2}{+Spec, +Options}
+Load a single object.  If this call succeeds, load_files/2 assumes the
+action has been taken care of. This hook is only called if \arg{Options}
+does not contain the \term{stream}{Input} option.
+
+The \pllib{http_load} provides an example, loading Prolog sources
+directly from an HTTP server.
+\end{description}
+
+
 \section{Readline Interaction}		\label{sec:readline}
 
 The following predicates are available if

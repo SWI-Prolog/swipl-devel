@@ -1430,15 +1430,14 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
     return NULL;
   }
   memset((char *)s, 0, sizeof(IOSTREAM));
-  s->magic     = SIO_MAGIC;
-  s->lastc     = EOF;
-  s->flags     = flags;
-  s->handle    = handle;
-  s->functions = functions;
+  s->magic         = SIO_MAGIC;
+  s->lastc         = EOF;
+  s->flags         = flags;
+  s->handle        = handle;
+  s->functions     = functions;
+  s->posbuf.lineno = 1;
   if ( flags & SIO_RECORDPOS )
-  { s->position = &s->posbuf;
-    s->posbuf.lineno = 1;
-  }
+    s->position = &s->posbuf;
 #ifdef O_PLMT
   if ( !(s->mutex = newRecursiveMutex()) )
     return NULL;

@@ -1,6 +1,15 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: prolog_load_file/2: a hook into load_files/2.
+
+  * MODIFIED: source_location/2 no longer changes the filename into an
+    absolute path (instead, it is the path used to open the file).
+
+  * ADDED: set_stream(Stream, file_name(Name)).
+
+  * ADDED: loading a program from a stream.  See load_files/2 for details.
+
   * FIXED: plwin.exe: console placement to use
     SystemParametersInfo(SPI_GETWORKAREA, ...) to determine the boundary.
 

@@ -988,22 +988,24 @@ static IOFUNCTIONS writeFunctions =
 
 
 foreign_t
-tcp_streams(term_t Socket, term_t Read, term_t Write)
+tcp_open_socket(term_t Socket, term_t Read, term_t Write)
 { IOSTREAM *in, *out;
   int socket;
   plsocket *pls;
+  void *handle;
 
   if ( !tcp_get_socket(Socket, &socket) )
     return FALSE;
+  handle = (void *)(long)socket;
   
   pls = lookupSocket(socket);
-  in  = Snew((void *)(long)socket, SIO_FILE|SIO_INPUT,  &readFunctions);
+  in  = Snew(handle, SIO_FILE|SIO_INPUT|SIO_RECORDPOS,  &readFunctions);
   if ( !PL_open_stream(Read, in) )
     return FALSE;
   pls->flags |= SOCK_INSTREAM;
 
   if ( !(pls->flags & SOCK_LISTEN) )
-  { out = Snew((void *)(long)socket, SIO_FILE|SIO_OUTPUT, &writeFunctions);
+  { out = Snew(handle, SIO_FILE|SIO_OUTPUT|SIO_RECORDPOS, &writeFunctions);
     if ( !PL_open_stream(Write, out) )
       return FALSE;
     pls->flags |= SOCK_OUTSTREAM;
@@ -1075,7 +1077,7 @@ install_socket()
   PL_register_foreign("tcp_bind",             2, tcp_bind,            0);
   PL_register_foreign("tcp_connect",          2, tcp_connect,         0);
   PL_register_foreign("tcp_listen",           2, tcp_listen,          0);
-  PL_register_foreign("tcp_open_socket",      3, tcp_streams,         0);
+  PL_register_foreign("tcp_open_socket",      3, tcp_open_socket,     0);
   PL_register_foreign("tcp_socket",           1, tcp_socket,          0);
   PL_register_foreign("tcp_close_socket",     1, tcp_close_socket,    0);
   PL_register_foreign("tcp_fcntl",            3, tcp_fcntl,           0);

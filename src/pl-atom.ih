@@ -488,3 +488,4 @@
 #define ATOM_natural      MK_ATOM(487)
 #define ATOM_frame_reference MK_ATOM(488)
 #define ATOM_frame_attribute MK_ATOM(489)
+#define ATOM_record_position MK_ATOM(490)

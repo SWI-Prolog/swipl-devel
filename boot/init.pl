@@ -611,11 +611,13 @@ $canonise_extension(Atom, DotAtom) :-
 :- user:(dynamic
 	 	library_directory/1,
 		$start_compilation/2,
-		$end_compilation/2).
+		$end_compilation/2,
+	        prolog_load_file/2).
 :- user:(multifile
 	 	library_directory/1,
 		$start_compilation/2,
-		$end_compilation/2).
+		$end_compilation/2,
+	        prolog_load_file/2).
 
 
 :-	flag($break_level,	_, 0),
@@ -649,16 +651,18 @@ $ifcompiling(G) :-
 preprocessor(Old, New) :-
 	flag($preprocessor, Old, New).
 
-$open_source(user, user_input, Goal) :- !,
+$open_source(stream(Id, In), In, Goal) :- !,
 	$push_input_context,
-	$open_source_call(user_input, user, Goal, True),
+	set_stream(In, file_name(Id)),
+	set_stream(In, record_position(true)),
+	$open_source_call(Id, In, Goal, True),
 	$pop_input_context,
 	True == yes.
 $open_source(File, In, Goal) :-
 	preprocessor(none, none), !,
 	$push_input_context,
 	open(File, read, In),
-	$open_source_call(In, File, Goal, True),
+	$open_source_call(File, In, Goal, True),
 	close(In),
 	$pop_input_context,
 	True == yes.
@@ -667,7 +671,7 @@ $open_source(File, In, Goal) :-
 	(   $substitute_atom('%f', File, Pre, Command)
 	->  $push_input_context,
 	    open(pipe(Command), read, In),
-	    $open_source_call(In, File, Goal, True),
+	    $open_source_call(File, In, Goal, True),
 	    close(In),
 	    $pop_input_context,
 	    True == yes
@@ -675,11 +679,12 @@ $open_source(File, In, Goal) :-
 	).
 
 
-:- flag($load_input, _, -1).
+:- dynamic
+	$load_input/2.
 
 $open_source_call(File, In, Goal, Status) :-
 	flag($compilation_level, Level, Level+1),
-	flag($load_input, OldIn, In),
+	asserta($load_input(File, In), Ref),
 	ignore(user:'$start_compilation'(File, Level)),
 	(   catch(Goal, E,
 		  (print_message(error, E),
@@ -688,7 +693,7 @@ $open_source_call(File, In, Goal, Status) :-
 	;   Status = no
 	),
 	ignore(user:'$end_compilation'(File, Level)),
-	flag($load_input, _, OldIn),
+	erase(Ref),
 	flag($compilation_level, _, Level).
 
 
@@ -711,7 +716,7 @@ $substitute_atom(From, To, In, Out) :-
 	consult/1,
 	use_module/1,
 	use_module/2,
-	$load_file/2,
+	$load_file/3,
 	load_files/1,
 	load_files/2.
 
@@ -732,7 +737,9 @@ ensure_loaded(Files) :-
 %	so.
 
 use_module(Files) :-
-	load_files(Files, [if(changed), must_be_module(true)]).
+	load_files(Files, [ if(changed),
+			    must_be_module(true)
+			  ]).
 
 %	use_module(+File, +ImportList)
 %	
@@ -742,12 +749,21 @@ use_module(Files) :-
 use_module(Files, Import) :-
 	load_files(Files, [ if(changed),
 			    must_be_module(true),
-			    imports(Import)]).
+			    imports(Import)
+			  ]).
 
+[X] :- !,
+	consult(X).
 [F|R] :-
 	consult([F|R]).
 [].
 
+consult(X) :-
+	X == user, !,
+	flag($user_consult, N, N+1),
+	NN is N + 1,
+	atom_concat('user://', NN, Id),
+	load_files(Id, [stream(user_input)]).
 consult(List) :-
 	load_files(List).
 
@@ -779,6 +795,12 @@ load_files(Files, Options) :-
 	$strip_module(Files, Module, TheFiles),
         with_mutex('$load', $load_files(TheFiles, Module, Options)).
 
+$load_files(Id, Module, Options) :-	% load_files(foo, [stream(In)])
+	memberchk(stream(_), Options), !,
+	(   atom(Id)
+	->  $load_file(Id, Module, Options)
+	;   throw(error(type_error(atom, Id), _))
+	).
 $load_files([], _, _) :- !.
 $load_files([H|T], Module, Options) :- !,
 	$load_files(H, Module, Options),
@@ -790,7 +812,8 @@ $load_files(Spec, Module, Options) :-
 	expand_file_name(Spec, Files),
 	$load_files(Files, Module, [expand(false)|Options]).
 $load_files(File, Module, Options) :-
-	$load_file(Module:File, Options).
+	$strip_module(Module:File, Into, PlainFile),
+	$load_file(PlainFile, Into, Options).
 
 
 $get_option(Term, Options, Default) :-
@@ -814,7 +837,6 @@ $noload(changed, FullFile) :-
 %	Return the QLF file if it exists.  Might check for modification
 %	time, version, etc.
 
-$qlf_file(user, user) :- !.
 $qlf_file(FullFile, QlfFile) :-
 	flag($compiling, database, database),
 	file_name_extension(Base, PlExt, FullFile),
@@ -826,12 +848,14 @@ $qlf_file(FullFile, FullFile).
 
 :- flag($load_silent, _, false).
 
-$load_file(Spec, Options) :-
+$load_file(File, Module, Options) :-
+	\+ memberchk(stream(_), Options),
+	user:prolog_load_file(Module:File, Options).
+$load_file(File, Module, Options) :-
 	statistics(heapused, OldHeap),
 	statistics(cputime, OldTime),
  
-        $strip_module(Spec, Module, File),
-	(   File == user
+	(   memberchk(stream(FromStream), Options)
 	->  true
 	;   absolute_file_name(File,
 			       [ file_type(prolog),
@@ -853,15 +877,19 @@ $load_file(Spec, Options) :-
 	;   flag($autoloading, AutoLevel, AutoLevel+1)
 	),
 
-	(   $noload(If, FullFile)
+	(   var(FromStream),
+	    $noload(If, FullFile)
 	->  (   $current_module(LoadModule, FullFile)
 	    ->  $import_list(Module, LoadModule, Import)
 	    ;   (   Module == user
 		->  true
-		;   $load_file(Spec, [if(true)|Options])
+		;   $load_file(File, Module, [if(true)|Options])
 		)
 	    )
-	;   $qlf_file(FullFile, Absolute),
+	;   (   nonvar(FromStream)
+	    ->	Absolute = File
+	    ;   $qlf_file(FullFile, Absolute)
+	    ),
 
 	    flag($compilation_level, Level, Level),
 	    (   Silent == false,
@@ -875,10 +903,15 @@ $load_file(Spec, Options) :-
 	    $print_message(silent /*MessageLevel*/,
 			   load_file(start(Level,
 					   file(File, Absolute)))),
-	    (   $consult_goal(Absolute, Goal),
+	    (   nonvar(FromStream),
+	        $consult_file(stream(Absolute, FromStream),
+			      Module, Import, IsModule, Action, LM)
+	    ->	true
+	    ;   var(FromStream),
+		$consult_goal(Absolute, Goal),
 		call(Goal, Absolute, Module, Import, IsModule, Action, LM)
 	    ->  true
-	    ;   print_message(error, load_file(failed(Spec))),
+	    ;   print_message(error, load_file(failed(File))),
 		fail
 	    ),
 
@@ -908,6 +941,8 @@ $print_message_fail(E) :-
 	print_message(error, E),
 	fail.
 
+%	$consult_file(+Path, +Module, +Import, +IsModule, -Action, -LoadedIn)
+
 $consult_file(Absolute, Module, Import, IsModule, What, LM) :-
 	$set_source_module(Module, Module), !, % same module
 	$consult_file_2(Absolute, Module, Import, IsModule, What, LM).
@@ -920,19 +955,23 @@ $consult_file(Absolute, Module, Import, IsModule, What, LM) :-
 
 $consult_file_2(Absolute, Module, Import, IsModule, What, LM) :-
 	$set_source_module(OldModule, Module),	% Inform C we start loading
-	$start_consult(Absolute),
+	$load_id(Absolute, Id),
+	$start_consult(Id),
 	$compile_type(What),
 	(   flag($compiling, wic, wic)	% TBD
-	->  $add_directive_wic($assert_load_context_module(Absolute,OldModule))
+	->  $add_directive_wic($assert_load_context_module(Id,OldModule))
 	;   true
 	),
-	$assert_load_context_module(Absolute, OldModule),
+	$assert_load_context_module(Id, OldModule),
 
 	$style_check(OldStyle, OldStyle),	% Save style parameters
 	$open_source(Absolute, In,
-		     $load_file(In, Absolute, Import, IsModule, LM)),
+		     $load_file(In, Id, Import, IsModule, LM)),
 	$style_check(_, OldStyle),		% Restore old style
 	$set_source_module(_, OldModule).	% Restore old module
+
+$load_id(stream(Id, _), Id) :- !.
+$load_id(Id, Id).
 
 $compile_type(What) :-
 	flag($compiling, How, How),
