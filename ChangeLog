@@ -7,6 +7,10 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: Separating Prolog engines from threads.
+
+  * ADDED: -embed-shared option to plld
+
   * ADDED: Make safe signal handling possible from various blocking I/O
     operations, expanding the useability of call_with_tim_limit/2.
 

@@ -448,6 +448,10 @@ unify_feature_value(Module m, atom_t key, feature *f, term_t val)
       v = ATOM_fail;
 
     return PL_unify_atom(val, v);
+#ifdef O_PLMT
+  } else if ( key == ATOM_system_thread_id )
+  { return PL_unify_integer(val, system_thread_id(NULL));
+#endif
   } else if ( key == ATOM_debug )
   { return PL_unify_bool_ex(val, debugstatus.debugging);
   } else if ( key == ATOM_debugger_show_context )
@@ -694,6 +698,7 @@ initFeatures()
 #endif
 #ifdef O_PLMT
   defFeature("threads",	FT_BOOL, TRUE, 0);	/* FF_READONLY? */
+  defFeature("system_thread_id", FT_INTEGER|FF_READONLY, 0, 0);
 #else
   defFeature("threads",	FT_BOOL|FF_READONLY, FALSE, 0);
 #endif

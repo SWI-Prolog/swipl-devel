@@ -522,6 +522,7 @@ A yfy			"yfy"
 A zero_divisor		"zero_divisor"
 A halt			"halt"
 A key_value_pair	"key_value_pair"
+A system_thread_id 	"system_thread_id"
 
 F abs			1
 F access		1

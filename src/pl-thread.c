@@ -713,32 +713,39 @@ threadName(int id)
 }
 
 
-static void
-set_system_thread_id(PL_thread_info_t *info)
-{ long id;
-
+long
+system_thread_id(PL_thread_info_t *info)
+{ if ( !info )
+  { if ( LD )
+      info = LD->thread.info;
+    else
+      return -1;
+  }
 #ifdef __linux__
-  id = info->pid = getpid();
+  return info->pid;
 #else
 #ifdef WIN32
-  id = info->w32id = GetCurrentThreadId();
+  return info->w32id;
 #else
-  id = info->tid;
+  return info->tid;
 #endif
 #endif
+}
 
-  if ( GD->statistics.threads_created > 1 )
-  { fid_t fid = PL_open_foreign_frame();
-    term_t name = PL_new_term_ref();
-    term_t value = PL_new_term_ref();
 
-    PL_put_atom_chars(name, "system_thread_id");
-    PL_put_integer(value, id);
-    pl_set_feature(name, value);
-    PL_discard_foreign_frame(fid);
-  } else
-  { PL_set_feature("system_thread_id", PL_INTEGER, id);
-  }
+
+static void
+set_system_thread_id(PL_thread_info_t *info)
+{ 
+#ifdef __linux__
+  info->pid = getpid();
+#else
+#ifdef WIN32
+  info->w32id = GetCurrentThreadId();
+#else
+  info->tid;
+#endif
+#endif
 }
 
 
