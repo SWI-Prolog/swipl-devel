@@ -1160,8 +1160,10 @@ geometryParBox(ParBox pb, Int x, Int y, Int w, Int h)
 			 assign(a, w, w);
 			 assign(a, x, x);
 			 assign(a, y, y);
-			 send(pb, NAME_lineWidth, toInt(lw), 0);
-			 computeParBox(pb); /* update ->height */
+			 if ( chw )
+			 { send(pb, NAME_lineWidth, toInt(lw), 0);
+			   computeParBox(pb); /* update ->height */
+			 }
 		       });
 
     updateConnectionsDevice((Device) pb, sub(pb->level, ONE));
