@@ -386,6 +386,10 @@ static int
 initialise_thread(PL_thread_info_t *info)
 { assert(info->thread_data);
 
+  LOCK();
+  GD->statistics.threads_created++;
+  UNLOCK();
+
   TLD_set(PL_ldata, info->thread_data);
 
   if ( !info->local_size    ) info->local_size    = GD->options.localSize;
@@ -397,14 +401,15 @@ initialise_thread(PL_thread_info_t *info)
 			 info->global_size,
 			 info->trail_size,
 			 info->argument_size) )
+  { PL_local_data_t *ld = info->thread_data;
+
+    memset(&ld->stacks, 0, sizeof(ld->stacks));
+
     fail;
+  }
 
   initPrologLocalData();
   info->thread_data->magic = LD_MAGIC;
-
-  LOCK();
-  GD->statistics.threads_created++;
-  UNLOCK();
 
   return TRUE;
 }
@@ -439,7 +444,8 @@ free_prolog_thread(void *data)
   
   DEBUG(2, Sdprintf("Destroying data\n"));
   ld->magic = 0;
-  freeStacks(ld);
+  if ( ld->stacks.global.base )		/* otherwise assume they are not */
+    freeStacks(ld);			/* initialised */
   freeLocalData(ld);
 
   if ( ld->feature.table )

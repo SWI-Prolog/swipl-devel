@@ -8,6 +8,9 @@
 					--------------------------------------
 
 
+  * FIXED: error handling issues when running out of virtual memory due
+    to creating too many threads.  Steve Moyle.
+
   * FIXED: Several issues with recursive mutexes in Windows, leading to
     errors in stream closing (Bug#211) and wrong error messages when dealing
     with Prolog-level mutexes.
