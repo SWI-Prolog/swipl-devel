@@ -16,6 +16,9 @@
 #ifdef HAVE_BSTRING_H
 #include <bstring.h>
 #endif
+#ifdef HAVE_SYS_SELECT_H
+#include <sys/select.h>
+#endif
 
 #define OsError() getOsErrorPce(PCE)
 

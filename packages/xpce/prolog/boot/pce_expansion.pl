@@ -323,8 +323,10 @@ do_expand((Head :<- DocBody), []) :-
 		      lazy_get_method(Selector, ClassName, LGM)),
 	feedback(expand_get(ClassName, Selector)).
 do_expand(end_of_file, end_of_file) :-
-	prolog_load_context(file, Path),
-	retractall(dynamic_declared(_, Path)).
+	(   prolog_load_context(file, Path)
+	->  retractall(dynamic_declared(_, Path))
+	;   true
+	).
 
 term_expand(T0, T) :-
 	user:term_expansion(T0, T), !.

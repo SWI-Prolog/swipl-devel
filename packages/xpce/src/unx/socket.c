@@ -27,6 +27,9 @@
 #include <sys/socket.h>			/* must be first to avoid send() */
 #include <netdb.h>			/* conflict ... */
 #include <netinet/in.h>
+#ifdef HAVE_SYS_SOCKETVAR_H
+#include <sys/socketvar.h>
+#endif
 #include <errno.h>
 extern int errno;
 

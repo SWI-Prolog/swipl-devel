@@ -13,6 +13,7 @@
 	   , append/3
 	   , default/3
 	   , ignore/1
+	   , concat_atom/2
 	   ]).
 
 
@@ -86,17 +87,22 @@ make_index(_, Ref) :-
 make_index(IV, @Ref) :-
 	absolute_file_name(pce('/man/reference/index'),
 			   [ extensions([obj]),
-			     access(read)],
+			     access(read),
+			     file_errors(fail)
+			   ],
 			   IndexFile), !,
 	send(IV, report, progress, 'Loading index ...'),
 	get(file(IndexFile), object, Obj),
 	send(IV, report, done),
 	send(Obj, name_reference, Ref).
 make_index(_IV, @Ref) :-
-	absolute_file_name(pce('/man/reference/index'),
-			   [ extensions([obj]),
-			     access(write)],
-			   IndexFile), !,
+	absolute_file_name(pce('/man/reference'),
+			   [ file_type(directory),
+			     access(write),
+			     file_errors(fail)
+			   ],
+			   IndexDir), !,
+	concat_atom([IndexDir, /, 'index.obj'], IndexFile),
 	send(@display, confirm,
 	     '%s\n%s %s',
 	     'Cannot find PCE manual index file.',

@@ -103,7 +103,7 @@ typedef struct progn *			Progn;
 typedef struct popup *			Popup;
 typedef struct process *		Process;
 typedef struct quote_function *		QuoteFunction;
-typedef struct socket *			Socket;
+typedef struct socketobj *		Socket;
 typedef struct program_object *		ProgramObject;
 typedef struct real *			Real;
 typedef struct recogniser *		Recogniser;

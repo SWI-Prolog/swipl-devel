@@ -151,7 +151,7 @@ loadHashTable(HashTable ht, FILE *fd, ClassDef def)
   
   buckets = (isNil(ht->size) ? 5 : ((valInt(ht->size) * 4) / 3 + 4));
   buckets = nextBucketSize(buckets);
-  if ( isNil(ht->refer) )
+  if ( isNil(ht->refer) || isOn(ht->refer) )
     assign(ht, refer, NAME_both);
 
   assign(ht, size, ZERO);

@@ -33,7 +33,7 @@ mandir=$(prefix)/man/man$(mansec)
 
 PL=pl
 XPCE=xpce
-PLARCH=sparc-sunos4.1.3
+PLARCH=sparc-solaris2.5
 BOOTPL=pl
 
 BPL=		bin/$(PLARCH)/$(BOOTPL)

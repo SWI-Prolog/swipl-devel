@@ -1,5 +1,12 @@
 [VERSION 4.9.0]
 
+* PW3: Fixed generation of Manual search index.  Fixed XPCE term-expansion
+  to properly support PceEmacs M-x pce_insert_require_directive.  Fixed
+  errornous foreign definition in pce_principal.c.
+
+* FIXED: RS6000: Fixed __unix__ definition, added sys/socketvar.h
+  configuration, various minor patches to Makefiles and other sourcefiles.
+
 * MODIFIED: Some details in class connect_gesture to allow for more
   advanced redefinition: ->terminate now invokes ->drag through the
   message-passer, making redefinitions of drag work properly.

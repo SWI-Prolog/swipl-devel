@@ -78,8 +78,6 @@ foreign(xt_create_app_context, c,
 	xt_create_app_context([-integer])).
 foreign(pce_xt_appcontext, c,
 	pce_appcontext(+integer, [-integer])).
-foreign(qp_pce_predicate_reference, c,
-	qp_pce_predicate_reference(+term, +term, [-integer])).
 foreign(setup_input, c,
 	setup_input(+integer, +integer, [-integer])).
 foreign(qp_pce_reset, c, 

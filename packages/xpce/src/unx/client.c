@@ -7,12 +7,19 @@
     Copyright (C) 1993 University of Amsterdam. All rights reserved.
 */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/socket.h>
+#ifdef HAVE_SYS_SOCKETVAR_H
+#include <sys/socketvar.h>
+#endif
 #include <sys/un.h>
 #include <netinet/in.h>
 #include <netdb.h>
@@ -20,6 +27,9 @@
 #include <string.h>
 #ifdef HAVE_BSTRING_H
 #include <bstring.h>
+#endif
+#ifdef HAVE_SYS_SELECT_H
+#include <sys/select.h>
 #endif
 
 #ifdef SYSLIB_H

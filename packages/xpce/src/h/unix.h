@@ -96,7 +96,7 @@ NewClass(process)
 End;
 
 
-NewClass(socket)
+NewClass(socketobj)
   ABSTRACT_STREAM
   Any		address;		/* Address for the socket  */
   Name		domain;			/* {unix,inet}  */

@@ -72,3 +72,6 @@
 
 /* Define if sigaction() supports SA_SIGINFO and passes thechild pid in info */
 #undef USE_SIGINFO
+
+/* Define if your system is Unix-like, but doesn't know for itself */
+#undef __unix__

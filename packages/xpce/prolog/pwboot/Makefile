@@ -1,3 +1,4 @@
+# Generated automatically from Makefile.in by configure.
 #
 #  Makefile to make a release. Requires GNU make to execute
 #
@@ -5,17 +6,18 @@
 # QUINTUS binary identifier: `machine`
 # To change PWVERSION, also modify pwversion/1 in pce_qp.pl!
 
+MAKE=make
+SHELL=/bin/bash
 BIN=sun4-5
-PWVERSION=3.1
-QPC=qpc
-QLD=qld
-
+SO=so
+builddir=solaris
 PCEMAJOR=4
 PCEMINOR=9
 PCEPATCH=0
-PCEBINDIR=solaris
 
-SO=so
+PWVERSION=3.1
+QPC=qpc
+QLD=qld
 
 CP=cp -p
 LN=ln -s
@@ -65,10 +67,10 @@ PCEQOFS=	pce_boot.qof \
 		pce_utils.qof \
 		require.qof
 
-OBJS=		../../quintus/src/$(BIN)/libpce.so
+OBJS=		../../quintus/src/$(BIN)/libpce.$(SO)
 
 BINFILES=	libpce.$(SO) \
-		libXPCE.a
+		libpce.a
 #		libXPCEmain.a
 #		libXPCE.$(SO) libXPCE.$(SO).$(PCEMAJOR) \
 #		libXPCE.$(SO).$(PCEMAJOR).$(PCEMINOR).$(PCEPATCH)
@@ -90,12 +92,12 @@ LIBPLS=		pce.pl \
 		find_file.pl \
 		keybinding.pl \
 		pce_debug.pl \
-        	pce_edit.pl \
-        	pce_manual.pl \
-        	pce_objects.pl \
-        	pce_portray.pl \
-        	pce_postscript.pl \
-        	pce_server.pl \
+		pce_edit.pl \
+		pce_manual.pl \
+		pce_objects.pl \
+		pce_portray.pl \
+		pce_postscript.pl \
+		pce_server.pl \
 		pcedraw.pl \
 		portray_object.pl \
 		scan_arguments.pl \
@@ -160,7 +162,6 @@ RBIKPLS=	rubik/maplist.pl \
 		rubik/rubik.pl \
 		rubik/rubikpce.pl \
 		rubik/README
-		
 
 DRAWPLS=	draw/align.pl \
 		draw/attribute.pl \
@@ -391,10 +392,13 @@ $(PCELIB)/Makefile:  lib_make
 $(PCEDEMO)/Makefile: demo_make
 	$(CP) $< $@
 
-$(PCELIB)/$(BIN)/libpce.$(SO):	../../quintus/src/$(BIN)/libpce.so
+$(PCELIB)/$(BIN)/libpce.$(SO):	../../quintus/src/$(BIN)/libpce.$(SO)
 	$(CP) $< $@
 
-$(PCELIB)/$(BIN)/%:	../../$(PCEBINDIR)/%
+$(PCELIB)/$(BIN)/libpce.a:	../../quintus/src/$(BIN)/libpce.a
+	$(CP) $< $@
+
+$(PCELIB)/$(BIN)/%:	../../$(builddir)/%
 	$(CP) $< $@
 $(PCELIB)/$(BIN)/libXPCE.$(SO).$(PCEMAJOR):
 	$(LN) libXPCE.$(SO) $@

@@ -38,8 +38,14 @@ AC_SUBST(VMINOR)
 AC_SUBST(VPATCH)
 AC_SUBST(LDCONFIG)
 AC_SUBST(AR)
+AC_SUBST(SHELL)
+AC_SUBST(MAKE)
+AC_SUBST(QPENTRIES)
+AC_SUBST(QPBIN)
 
 RTSUFFIX=""
+QPENTRIES=""
+QPBIN="sun4-5"
 
 LD=ld
 AC_PROG_CC
@@ -182,7 +188,7 @@ dnl Rest needs to be validated.
 
 if test -z "$MAKE_SHARED_OBJECT"; then
   case "$OS" in
-    *solaris* | *sunos* | *linux* | *irix* | *osf*)
+    *solaris* | *sunos* | *linux* | *irix* | *osf* | *aix*)
       MAKE_SHARED_OBJECT=yes;;
   esac
 fi
@@ -240,6 +246,8 @@ EOF
 				;;
     *aix*)			SO="o"
 				LDSOFLAGS="-bI:$PLBASE/include/SWI-Exports"
+				AC_DEFINE(__unix__)
+				QPENTRIES=entries.c
 				;;
     *hpux*)			SO="sl"
 				LDSOFLAGS="-b"
@@ -251,10 +259,18 @@ else
   BOOTPL=xpce
 fi
 
+if test -r ../quintus/src/machine_type; then
+    AC_MSG_CHECKING("Quintus architecture identifier")
+    QPBIN=`../quintus/src/machine_type`
+    AC_MSG_RESULT($QPBIN)
+fi
+
 if test "$runtime" = yes; then
   PLTARGET=rt-$PLTARGET
 fi
 
+AC_CHECK_PROGS(SHELL, bash sh, "/bin/sh")
+AC_CHECK_PROGS(MAKE, gmake make, "make")
 AC_CHECK_PROGS(ETAGS, etags ctags, ":")
 AC_CHECK_PROGS(GXX, g++, "NONE")
 if test "$GXX" != "NONE"; then
@@ -314,6 +330,7 @@ AC_CHECK_LIB(nsl, t_bind,
 AC_CHECK_HEADERS(unistd.h string.h memory.h sys/time.h sys/file.h pwd.h)
 AC_CHECK_HEADERS(sys/select.h sys/param.h malloc.h sys/resource.h stropts.h)
 AC_CHECK_HEADERS(frame.h sys/timeb.h sys/times.h siginfo.h bstring.h)
+AC_CHECK_HEADERS(sys/socketvar.h)
 AC_CHECK_FUNCS(vsscanf on_exit memmove select popen strerror timelocal)
 AC_CHECK_FUNCS(getdtablesize socket fork ftime getpid select getlogin)
 AC_CHECK_FUNCS(getcwd setsid grantpt gethostname fstat gettimeofday)
@@ -574,7 +591,21 @@ else
 fi
 rm -rf conftest*
 
-AC_OUTPUT(Makefile ../CXX/demo/Makefile ../pl/src/Makefile.bin)
+dnl See which parts of the sources are there, and check the Makefiles we
+dnl need to update.  You cannot call AC_OUTPUT more then once!
 
+Makefiles="Makefile"
+Makedirs="../CXX/demo ../quintus/src ../prolog/pwboot"
+OptionalMakefiles="../pl/src/Makefile.bin"
+for d in $Makedirs; do
+    if test -r $d/Makefile.in; then
+	Makefiles="$Makefiles $d/Makefile"
+    fi
+done
+for f in $OptionalMakefiles; do
+    if test -r $f.in; then
+	Makefiles="$Makefiles $f"
+    fi
+done
 
-
+AC_OUTPUT($Makefiles)
