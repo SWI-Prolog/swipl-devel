@@ -21,13 +21,45 @@ Unpacking:
 
 Will create xpce-<version> directory in the prolog home directory
 
-Installation:
-=============
+Preparation:
+============
+
+Check ``Notes for various machines:'' below whether you need to do
+      ===============================
+special preparations.
+
+
+Automatic Installation:
+=======================
+
+The qinstall bourne shell script   provides  automatic installation.  If
+this fails for any reason, the explanation   of  the manual layout below
+may help you to fix the problem.
+
+	% ./qinstall
+
+After  this,  the  XPCE  executable  is    created   in  ./bin/xpce  and
+./bin/xpce-<version>.  You may create a  symbolic   link  from  a public
+executable directory to the executable:
+
+	% cd <public binary directory>
+	% ln -s <SWI-Prolog main directory>/bin/xpce .
+	% rehash
+
+
+Manual Installation:
+====================
 
 	% ln -s xpce-<version> xpce
 	% cp xpce/pl/src/plrc .
 	% cd <public binary directory>
 	% ln -s pl xpce
+	% rehash
+	% pl -f none -g "qcompile(library(pce))" -t halt
+	% xpce -f none -g "qcompile(library(pce_manual))" -t halt
+	% xpce -f none -g "qcompile(library('emacs/emacs'))" -t halt
+	% xpce -f none -g "qcompile(library(pcedraw))" -t halt
+
 
 Notes for various machines:
 ===========================

@@ -1,0 +1,123 @@
+#!/bin/sh
+
+# This script links SWI-Prolog and the XPCE shared library installation
+# together.
+
+xpce=xpce
+
+plist="`echo $PATH | tr : ' '`"
+
+echo -n "Trying to locate SWI-Prolog executable ... "
+
+for d in ./bin $pllist; do
+  if [ -x $d/pl ]; then
+    swipl=$d/pl
+    break;
+  fi
+done
+
+if [ -z "$swipl" ]; then
+  echo "ERROR: Can't find SWI-Prolog"
+  exit 1;
+fi
+
+echo $swipl
+
+echo -n "Trying to find SWI-Prolog architecture ... "
+plarch=`$swipl -f none -g "feature(arch,A),write_ln(A)" -t halt`
+echo "$plarch"
+ARCH="$plarch"
+
+echo -n "Checking for SWI-Prolog's shared library interface ... "
+shlib=`$swipl -f none -g "feature(open_shared_object,A),write_ln(A)" -t halt`
+if [ "$shlib" = "true" ]; then
+  echo ok
+else
+  echo "ERROR: SWI-Prolog must have been configured with --enable-shared"
+  exit 1
+fi
+
+echo -n "Trying to locate the XPCE library ... "
+
+if [ -d xpce ]; then
+  xpcelib=xpce
+  echo ./xpce
+else
+  xpcelib=`echo xpce-4.8.*`
+  if [ ! -d "$xpcelib" ]; then
+    echo "ERROR: Can't find xpce library"
+    exit 1
+  fi
+  echo "Linked ./xpce --> ./$xpcelib"
+  ln -s $xpcelib xpce
+fi
+
+echo -n "Trying to get xpce version ... "
+pceversion=`cat xpce/VERSION`
+echo $pceversion
+
+echo -n "Trying to locate XPCE shared object ... "
+
+if [ -r xpce/pl/$ARCH/xpce4pl.so ]; then
+  so=xpce/pl/$ARCH/xpce4pl.so
+else
+  so="`echo xpce/pl/*/xpce4pl.so`"
+  if [ ! -r "$so" ]; then
+    echo "ERROR: Can't find xpce4pl.so shared object"
+    exit 1
+  fi
+fi
+echo "$so"
+
+if [ "$so" = "xpce/pl/$plarch/xpce4pl.so" ]; then
+  echo "xpce4pl.so located properly"
+else
+  echo "WARNING: SWI-Prolog/XPCE architecture mismatch"
+  echo "Making link $plarch --> $ARCH in xpce/pl"
+  (cd xpce/pl; ln -s $ARCH $plarch)
+fi
+
+if [ -r plrc ]; then
+  echo "Moved existing ./plrc to ./plrc.old"
+  mv plrc plrc.old
+fi
+cp xpce/pl/src/plrc .
+
+echo "Compiling XPCE/Prolog library"
+
+$swipl -f none -g "qcompile(library(pce))" -t halt
+if [ ! -r xpce/prolog/lib/pce.qlf ]; then
+  echo "ERROR: Failed to create xpce/prolog/lib/pce.qlf"
+  exit 1
+fi
+
+bindir=`dirname $swipl`
+binpl=`basename $swipl`
+echo "Linking $xpce-$pceversion --> $binpl in $bindir"
+rm -f $bindir/$xpce-$pceversion
+(cd $bindir; ln -s $binpl $xpce-$pceversion)
+if [ ! -r $bindir/$xpce ]; then
+echo "Linking $xpce --> $binpl in $bindir"
+(cd $bindir; ln -s $binpl $xpce)
+xpceinstalled="yes"
+fi
+
+echo "Compiling XPCE/Prolog user libraries"
+
+for lib in pce_manual emacs/emacs pcedraw; do
+  echo "****************************************************************"
+  echo "   Compiling prolog/lib/$lib"
+  echo "****************************************************************"
+  $bindir/$xpce-$pceversion -f none -g "qcompile(library('$lib'))" -t halt
+  if [ ! -r xpce/prolog/lib/$lib.qlf ]; then
+  echo "ERROR: Failed to create xpce/prolog/lib/$lib.qlf"
+  exit 1
+  fi
+done
+  
+cat << EOM
+****************************************************************
+The installation of XPCE-$pceversion completed successfully.  The
+executable has been installed as $bindir/$xpce-$pceversion.
+****************************************************************
+EOM
