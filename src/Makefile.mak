@@ -107,7 +107,7 @@ banner:
 !IF "$(DBG)" == "true"
 		@echo *** Compiling version for DEBUGGING
 !ENDIF
-!ID "$(MT)" == "true"
+!IF "$(MT)" == "true"
 		@echo *** Building MULTI-Threading version
 !ENDIF
 		@echo ****************
