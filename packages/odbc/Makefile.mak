@@ -45,5 +45,5 @@ clean::
 		-del *.obj *~ 2>nul
 
 distclean:	clean
-		-del *.dll *.lib *.exe *.pdb 2>nul
+		-del *.dll *.lib *.exe *.pdb *.ilk 2>nul
 

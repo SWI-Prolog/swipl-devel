@@ -48,5 +48,5 @@ clean::
 		if exist *~ del *~
 
 distclean:	clean
-		-DEL $(PKGDLL).dll $(PKGDLL).lib $(PKGDLL).exp 2>nul
+		-DEL *.dll *.lib *.exp *.pdb *.ilk 2>nul
 
