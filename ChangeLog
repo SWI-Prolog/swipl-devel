@@ -1,6 +1,11 @@
 			SWI-Prolog ChangeLog
 			====================
 			
+  * FIXED: stream_property/2 to report close_on_abort.  Was documented,
+    but not implemented ...
+
+  * ADDED: Informational print message when abort closes a stream.
+
   * ADDED: close_hook to IOSTREAM to allow setting a foreign hook on the
     closure of any stream  
 
