@@ -83,7 +83,7 @@ read_stream_to_terms(Fd, Terms, Tail) :-
 	read_stream_to_terms(C0, Fd, Terms0, Tail),
 	Terms = Terms0.
 
-read_stream_to_terms(-1, _, Tail, Tail) :- !.
+read_stream_to_terms(end_of_file, _, Tail, Tail) :- !.
 read_stream_to_terms(C, Fd, [C|T], Tail) :-
 	read(Fd, C2),
 	read_stream_to_terms(C2, Fd, T, Tail).
@@ -131,7 +131,8 @@ split_options([H|T], File, Open) :-
 read_file_to_terms(Spec, Terms, Options) :-
 	(   select(tail(Tail), Options, Options1)
 	->  true
-	;   Tail = []
+	;   Tail = [],
+	    Options1 = Options
 	),
 	split_options(Options1, FileOptions, OpenOptions),
 	absolute_file_name(Spec,

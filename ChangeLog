@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: library(readutil), read_file_to_terms: option handling and
+    end-of-file detection.
+
   * FIXED: writef('\\X'), where is is not a digit raised exception.  Now
     writes \X.  Patch by Lyosha Ilyukhin.
 
