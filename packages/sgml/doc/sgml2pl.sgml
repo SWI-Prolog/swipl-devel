@@ -205,10 +205,8 @@ Handling attributes of the types <c/NUMBER/ and <c/NUMBERS/ depends on
 the setting of the <term>number(+NumberMode)</term> attribute through
 <pref>set_sgml_parser/2</pref> or <pref>load_structure/3</pref>.  By
 default they are returned as atoms, but automatic conversion to Prolog
-integers is supported.
-
-<p>
-<aref/ListOfContent/ defines the content for the element.
+integers is supported. <aref/ListOfContent/ defines the content for the
+element.
     <termitem>entity(Code)
 If a character-entity (e.g. <verb>&#913;</verb>) is encoutered that 
 cannot be represented in the Prolog character set, this term is 
@@ -258,8 +256,8 @@ defined options are:
     <termitem>dtd(?DTD)
 Reference to a DTD object. If specified, the <verb><!DOCTYPE ...></verb>
 declaration is ignored and the document is parsed and validated against 
-the provided DTD. If provided as a variable, the implicitly created DTD 
-is returned. See <ref sec/implicitdtd/.
+the provided DTD. If provided as a variable, the created DTD is
+returned. See <ref sec/implicitdtd/.
     <termitem>dialect(+Dialect)
 Specify the parsing dialect. Supported are <c/sgml/ (default), <c/xml/ 
 and <c/xmlns/. See <ref sec/xml/ for details on the differences.
