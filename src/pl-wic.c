@@ -2324,10 +2324,9 @@ qlfCleanup()
   }
 
   if ( getstr_buffer )
-  { char *p = getstr_buffer;
-
+  { free(getstr_buffer);
     getstr_buffer = NULL;
-    free(p);
+    getstr_buffer_size = 512;
   }
 }
 

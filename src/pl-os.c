@@ -1473,6 +1473,15 @@ to be implemented directly.  What about other Unixes?
 }
 
 
+void
+PL_changed_cwd(void)
+{ if ( CWDdir )
+    remove_string(CWDdir);
+  CWDdir = NULL;
+  CWDlen = 0;
+}
+
+
 char *
 BaseName(const char *f)
 { const char *base;

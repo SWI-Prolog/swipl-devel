@@ -302,6 +302,8 @@ freeBigHeap(void *p)
   h--;					/* get the base */
   if ( h->prev )
     h->prev->next = h->next;
+  else
+    big_heaps = h->next;
   if ( h->next )
     h->next->prev = h->prev;
 
