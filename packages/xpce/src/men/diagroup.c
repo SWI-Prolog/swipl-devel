@@ -720,7 +720,7 @@ static classvardecl rc_diagroup[] =
   RC(NAME_elevation, "elevation*",
    "when(@colour_display, 1, @nil)",
      "Elevation above environment"),
-  RC(NAME_radius, "0..", "when(@colour_display, 8, 12)",
+  RC(NAME_radius, "0..", "0",
      "Radius for the corners"),
   RC(NAME_gap, "size", "size(15,8)",
      "Distance between items in X and Y"),
