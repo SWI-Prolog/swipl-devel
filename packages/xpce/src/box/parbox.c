@@ -627,6 +627,25 @@ init_shape(parshape *s, ParBox pb, int w)
 }
 
 
+static int
+y_extend_shape(parshape *s)		/* deepest shape-graphical */
+{ int y = 0;
+  int i;
+
+  for(i=0; i<s->ln; i++)
+  { if ( s->left[i].end_y > y )
+      y = s->left[i].end_y;
+  }
+  for(i=0; i<s->rn; i++)
+  { if ( s->right[i].end_y > y )
+      y = s->right[i].end_y;
+  }
+  
+  return y;
+}
+
+
+
 static void
 current_margins(parshape *s, int y, int *lm, int *lw)
 { int l	= 0;
@@ -1160,6 +1179,8 @@ computeParBox(ParBox pb)
     
     ax = valInt(pb->offset->x) + lm;
     aw = mw-lm;				/* valInt(pb->offset->x) + mw - ax */
+
+    y = max(y_extend_shape(&shape), y);
 
     if ( toInt(y)  != pb->area->h ||
 	 toInt(aw) != pb->area->w ||
