@@ -1,4 +1,4 @@
-SWI-Prolog 5.5.4/XPCE 6.5.4 development release
+SWI-Prolog 5.5.5/XPCE 6.5.5 development release
 
 Planned features in 5.5.x relative to 5.4.x and their status
 ============================================================
@@ -42,28 +42,20 @@ Planned features in 5.5.x relative to 5.4.x and their status
 	  considered beta code.
 
 
-Patches in 5.5.4 relative to 5.5.3
+Patches in 5.5.5 relative to 5.5.4
 ==================================
 
-  * Provide shared library configuration and building as default for
-    MacOS X.
-
-  * Various small issues.
-
+  * Port: provide support for "make install DESTDIR=..." and lots of
+    cleanup for more flexible building on Unix systems.  This supports
+    packagers, such as the MacOS 'port' utility.
+    
 
 Packages
 ========
 
-  * Provide wide-character support for the XPCE.  Provide support for
-    core X11 8/16 bit font handling, Xwc* wide-character versions and
-    XFT scalable anti-aliased fonts.
-
-  * Provide wide character support in literal matches (substring,
-    word, prefix, etc.) for library(rdf_db).
-
-  * Provide JPL for MacOS X.  There is an issue when loading Java in
-    Prolog and using AWT (graphics) that is unresolved.
-
+  * XPCE: Fixed using text_buffer for (temporary) binary output (used
+    to serve images using the XPCE HTTPD library).  Removed maximum
+    number of item limit on dialog windows.
 
 Incompatible changes
 ====================
