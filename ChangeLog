@@ -1,6 +1,13 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * MODIFIED: Simplified the interface around the undocumented PL_dispatch()
+    call to improve interactive response on exceptions, etc.
+
+  * ADDED: PL_is_initialised() to test whether Prolog is initialised.  Also,
+    when calling PL_initialise() twice the second call is a no-op.  Made
+    PL_initialise() thread-safe, so concurent threads can call it.
+
   * MODIFIED: Unix version no longer installs Windows specific library
     files (dde.pl, registry.pl, progman.pl).
 
