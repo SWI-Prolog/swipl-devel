@@ -2179,6 +2179,7 @@ growStacks(LocalFrame fr, Choice ch, Code PC, long l, long g, long t)
     if ( !ch )
       ch = LD->choicepoints;
 
+    SECURE(if ( !scan_global(FALSE) ) sysError("Stack not ok at shift entry"));
     SECURE(key = checkStacks(fr, ch));
 
     if ( t )

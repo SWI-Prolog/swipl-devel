@@ -814,7 +814,7 @@ local_overflow :-
 	local_overflow.
 
 global_overflow(X) :-
-	global_overflow(X+1).
+	global_overflow(s(X)).
 
 
 resource(stack-1) :-
