@@ -279,7 +279,8 @@ static const error_def errors[] =
     "%N: Not enough memory" },
   { NAME_stackOverflow,		ET_ERROR,
     "%N: Stack overflow (@pce <-max_goal_depth: %d)" },
-
+  { NAME_representation,	0,
+    "%O: cannot represent due to %s" },
 					/* Sockets  */
   { NAME_socket,		EF_REPORT,
     "%N: Cannot %s socket: %s" },
