@@ -14,15 +14,12 @@ static status	currentMenuBar(MenuBar mb, PopupObj p);
 
 static status
 initialiseMenuBar(MenuBar mb, Name name)
-{ createDialogItem(mb, name);
+{ assign(mb, pen,     CLASSDEFAULT);	/* not a resource for graphical! */
+
+  createDialogItem(mb, name);
 
   assign(mb, members, newObject(ClassChain, 0));
   assign(mb, buttons, newObject(ClassChain, 0));
-  assign(mb, label_font, DEFAULT);
-  assign(mb, pen, DEFAULT);
-  assign(mb, format, DEFAULT);
-  assign(mb, gap, DEFAULT);
-  assign(mb, radius, DEFAULT);
 
   succeed;
 }
@@ -101,7 +98,7 @@ computeMenuBar(MenuBar mb)
   if ( hasSendMethodObject(mb, NAME_assignAccelerators) ) /* TBD */
     send(mb, NAME_assignAccelerators, 0);
 
-  obtainResourcesObject(mb);
+  obtainClassVariablesObject(mb);
   gap = valInt(mb->gap);
 
   for_cell(cell, mb->buttons)
@@ -348,7 +345,7 @@ eventMenuBar(MenuBar mb, EventObj ev)
       { showPopupMenuBar(mb, p);
 	postEvent(ev, (Graphical) mb->current, DEFAULT);
 	focusCursorGraphical((Graphical)mb,
-			     getResourceValueObject(p, NAME_cursor));
+			     getClassVariableValueObject(p, NAME_cursor));
 	lastx = ev->x;
 	lasty = ev->y;
 
@@ -457,14 +454,14 @@ appendMenuBar(MenuBar mb, PopupObj p, Name alignment)
     }
 
     assign(b, popup, p);
-    obtainResourcesObject(mb);
+    obtainClassVariablesObject(mb);
     if ( mb->look != NAME_openLook )
     { if ( mb->look == NAME_win )
 	assign(b, look, NAME_winMenuBar);
 
       assign(b, label_font, mb->label_font);
-      assign(b, pen, mb->pen);
-      assign(b, radius, mb->radius);
+      assign(b, pen,        mb->pen);
+      assign(b, radius,     mb->radius);
     }
     send(p, NAME_format, getSlotObject(mb, NAME_format), 0);
     requestComputeGraphical(mb, DEFAULT);
@@ -694,10 +691,10 @@ static getdecl get_menuBar[] =
 
 /* Resources */
 
-static resourcedecl rc_menuBar[] =
-{ RC(NAME_format, "name", "center",
+static classvardecl rc_menuBar[] =
+{ RC(NAME_format, "name", "left",
      "Format items {left,center,right}"),
-  RC(NAME_gap, "int", "-1",
+  RC(NAME_gap, "int", UXWIN("10", "5"),
      "Distance between buttons"),
   RC(NAME_labelFont, "font", "normal",
      "Default font for labels"),
