@@ -28,6 +28,7 @@ new_charclass()
   
   ca['.'] |= CH_LCNMSTRT;
   ca['-'] |= CH_LCNMSTRT;
+  ca[':'] |= CH_LCNMSTRT;		/* HTML and XML */
 
   ca['\t'] |= CH_WHITE;
   ca[' ']  |= CH_WHITE;

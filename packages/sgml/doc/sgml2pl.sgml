@@ -275,6 +275,11 @@ of digits.  The <c/-/ sign is not allowed and <xmp/1/ is different from
 <xmp/01/.  For this reason the default is to handle numeric attributes as
 tokens.  If conversion to integer is enabled, negative values are silently
 accepted.
+    <termitem>defaults(+Bool)
+Determines how default and fixed values from the DTD are used.  By
+default, defaults are included in the output if they do not appear in
+the source.  If <c/false/, only the attributes occurring in the source
+are emitted.
     <termitem>file(+Name)
 Sets the name of the file on which errors are reported. Sets the 
 linenumber to 1.

@@ -974,7 +974,7 @@ itake_nonblank_chars(dtd *dtd, const ichar *in, ichar *out, int len)
   while( *in && !HasClass(dtd, *in, CH_BLANK) )
   { if ( --len <= 0 )
       gripe(ERC_REPRESENTATION, "Attribute too long");
-    *out++ = (dtd->case_sensitive ? *in++ : tolower(*in++)); /* ?? */
+    *out++ = *in++;
   }
   *out++ = '\0';
 
@@ -1058,7 +1058,7 @@ set_dialect_dtd(dtd *dtd, dtd_dialect dialect)
 
       dtd->case_sensitive = TRUE;
       dtd->charclass->class['_'] |= CH_LCNMSTRT;
-      dtd->charclass->class[':'] |= CH_LCNMSTRT;
+/*    dtd->charclass->class[':'] |= CH_LCNMSTRT;	now also for HTML */
       dtd->encoding = ENC_UTF8;
       dtd->space_mode = SP_PRESERVE;
       dtd->shorttag = FALSE;
@@ -1498,11 +1498,16 @@ set_map_element(dtd_element *e, void *closure)
 static int
 process_usemap_declaration(dtd_parser *p, const ichar *decl)
 { dtd *dtd = p->dtd;
+  ichar buf[MAXDECL];
   dtd_symbol *name;
   const ichar *s;
   dtd_symbol *ename;
   dtd_element *e;
   dtd_shortref *map;
+
+  if ( !expand_pentities(p, decl, buf, sizeof(buf)) )
+    return FALSE;
+  decl = buf;
 
   if ( !(s=itake_name(dtd, decl, &name)) )
   { if ( (s=isee_identifier(dtd, decl, "#empty")) )
@@ -2616,15 +2621,32 @@ close_current_element(dtd_parser *p)
 
 static const ichar *
 get_attribute_value(dtd_parser *p, const ichar *decl, sgml_attribute *att)
-{ ichar buf[MAXSTRINGLEN];
+{ ichar tmp[MAXSTRINGLEN];
+  ichar *buf = tmp;
   ochar cdata[MAXSTRINGLEN];
   dtd *dtd = p->dtd;
   const ichar *end;
 
-  if ( !(end=itake_string(dtd, decl, buf, sizeof(buf))) )
+  if ( (end=itake_string(dtd, decl, tmp, sizeof(tmp))) )
+  { ichar *s;
+    int hasent = FALSE;
+    int ero = dtd->charfunc->func[CF_ERO]; /* & */
+
+    for(s=tmp; *s; s++)			/* map all blank to spaces */
+    { if ( HasClass(dtd, *s, CH_BLANK) )
+	*s = ' ';
+      else if ( *s == ero )
+	hasent = TRUE;
+    }
+
+    if ( hasent )
+    { expand_entities(p, tmp, cdata, MAXSTRINGLEN);
+      buf = (ichar *)cdata;
+    }
+  } else
   { const ichar *s;
 
-    if ( !(end=itake_nonblank_chars(dtd, decl, buf, sizeof(buf))) )
+    if ( !(end=itake_nonblank_chars(dtd, decl, tmp, sizeof(tmp))) )
       return NULL;
 
     for(s=buf; *s; s++)
@@ -2638,6 +2660,7 @@ get_attribute_value(dtd_parser *p, const ichar *decl, sgml_attribute *att)
   att->value.cdata  = NULL;
   att->value.text   = NULL;
   att->value.number = 0;
+  att->flags        = 0;
 
   switch(att->definition->type)
   { case AT_NUMBER:			/* number */
@@ -2666,8 +2689,7 @@ get_attribute_value(dtd_parser *p, const ichar *decl, sgml_attribute *att)
       return end;
     }
     case AT_CDATA:			/* CDATA attribute */
-      expand_entities(p, buf, cdata, MAXSTRINGLEN);
-      att->value.cdata = ostrdup(cdata);
+      att->value.cdata = ostrdup((ochar *)buf);
       return end;
     case AT_ID:				/* identifier */
     case AT_IDREF:			/* identifier reference */
@@ -2680,8 +2702,8 @@ get_attribute_value(dtd_parser *p, const ichar *decl, sgml_attribute *att)
       att->value.text = istrdup(buf);	/* TBD: more validation */
       return end;
     case AT_NUTOKEN:			/* number token */
-      if ( HasClass(dtd, buf[0], CH_DIGIT) )
-	gripe(ERC_SYNTAX_WARNING, "NUTOKEN must start with digit");
+      if ( !HasClass(dtd, buf[0], CH_DIGIT) )
+	gripe(ERC_SYNTAX_WARNING, "NUTOKEN must start with digit", decl);
       if ( strlen(buf) > 8 )
 	gripe(ERC_LIMIT, "NUTOKEN length");
 
@@ -2797,12 +2819,82 @@ process_attributes(dtd_parser *p, dtd_element *e, const ichar *decl,
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+sgml_add_default_attributes()
+
+This function adds attributes for omitted  default and fixed attributes.
+These attributes are added to  the  end   of  the  attribute  list. This
+function returns the new  number  of   attributes.  The  `atts' array is
+assumed   to   be   MAXATTRIBUTES    long,     normally    passed   from
+process_begin_element.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+add_default_attributes(dtd_parser *p, dtd_element *e,
+		       int natts, sgml_attribute *atts)
+{ dtd_attr_list *al;
+
+  for(al=e->attributes; al; al=al->next)
+  { dtd_attr *a = al->attribute;
+
+    switch(a->def)
+    { case AT_REQUIRED:			/* TBD: check if present */
+      case AT_CURRENT:			/* TBD: register in DTD and reuse */
+      case AT_CONREF:
+      case AT_IMPLIED:
+	goto next;
+      case AT_FIXED:
+      case AT_DEFAULT:
+      { int i;
+	sgml_attribute *ap;
+
+	for(i=0, ap=atts; i<natts; i++, ap++)
+	{ if ( ap->definition == a )
+	    goto next;
+	}
+
+        ap->definition   = a;
+	ap->value.cdata  = NULL;
+	ap->value.text   = NULL;
+	ap->value.number = 0;
+	ap->flags        = SGML_AT_DEFAULT;
+
+	switch(a->type)
+	{ case AT_CDATA:
+	    ap->value.cdata = a->att_def.cdata;
+	    break;
+	  case AT_NUMBER:
+	    if ( p->dtd->number_mode == NU_TOKEN )
+	      ap->value.text = (ichar *)a->att_def.name->name;
+	    else
+	      ap->value.number = a->att_def.number;
+	    break;
+	  default:
+	    if ( a->islist )
+	      ap->value.text = a->att_def.list;
+	    else
+	      ap->value.text = (ichar *)a->att_def.name->name;
+	}
+
+	natts++;
+      }
+    }
+  next:;
+  }
+
+  return natts;
+}
+
+
 static void
 free_attribute_values(int argc, sgml_attribute *argv)
 { int i;
 
   for(i=0; i<argc; i++, argv++)
-  { if ( argv->value.cdata )
+  { if ( (argv->flags & SGML_AT_DEFAULT) )
+      continue;				/* shared with the DTD */
+
+    if ( argv->value.cdata )
       sgml_free(argv->value.cdata);
     if ( argv->value.text )
       sgml_free(argv->value.text);
@@ -2860,6 +2952,9 @@ process_begin_element(dtd_parser *p, const ichar *decl)
     }
     if ( *decl )
       gripe(ERC_SYNTAX_ERROR, "Bad attribute list", decl);
+
+    if ( !(p->flags & SGML_PARSER_NODEFS) )
+      natts = add_default_attributes(p, e, natts, atts);
 
     if ( p->on_begin_element )
       (*p->on_begin_element)(p, e, natts, atts);

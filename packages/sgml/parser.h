@@ -18,6 +18,9 @@
 		 *	      CALL-BACK		*
 		 *******************************/
 
+					/* sgml_attribute->flags */
+#define SGML_AT_DEFAULT		0x1
+
 typedef struct _sgml_attribute
 { struct				/* so we can free members */
   { ochar *cdata;			/* CDATA value */
@@ -25,6 +28,7 @@ typedef struct _sgml_attribute
     long   number;			/* numeric value */
   } value;
   dtd_attr *definition;			/* DTD definition */
+  unsigned flags;			/* additional flags */
 } sgml_attribute;
 
 typedef struct _dtd_parser *dtd_parser_p;
@@ -139,6 +143,8 @@ typedef struct _sgml_environment
   struct _sgml_environment *parent;	/* Parent environment */
 } sgml_environment;
 
+					/* parser->flags */
+#define SGML_PARSER_NODEFS	0x1	/* don't handle default atts */
 
 typedef struct _dtd_parser
 { long     magic;			/* SGML_PARSER_MAGIC */
@@ -183,6 +189,7 @@ typedef struct _dtd_parser
 #ifdef XMLNS
   xmlns_f		on_xmlns;	/* handle new namespace */
 #endif
+  unsigned		flags;		/* misc flags */
 } dtd_parser;
 
 

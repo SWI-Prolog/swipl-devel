@@ -374,6 +374,13 @@ tokens.  If conversion to integer is enabled, negative values are silently
 accepted.
     
 <dt>&nbsp;<br>
+<b>defaults(<var>+Bool</var>)</b><dd>
+Determines how default and fixed values from the DTD are used.  By
+default, defaults are included in the output if they do not appear in
+the source.  If <a name="const:false"><b><tt>false</tt></b></a>, only the attributes occurring in the source
+are emitted.
+    
+<dt>&nbsp;<br>
 <b>file(<var>+Name</var>)</b><dd>
 Sets the name of the file on which errors are reported. Sets the 
 linenumber to 1.
@@ -682,7 +689,7 @@ A list of atoms representing the names of the elements in this DTD.
 <b>element(<var>Name, Omit, Content</var>)</b><dd>
 The DTD contains an element with the given name. <var>Omit</var> is a term 
 of the format <code>omit(OmitOpen, OmitClose)</code>, where both 
-arguments are booleans (<a name="const:true"><b><tt>true</tt></b></a> or <a name="const:false"><b><tt>false</tt></b></a> representing whether the 
+arguments are booleans (<a name="const:true"><b><tt>true</tt></b></a> or <a name="const:false%2"><b><tt>false</tt></b></a> representing whether the 
 open- or close-tag may be omitted. <var>Content</var> is the content-model 
 of the element represented as a Prolog term. This term takes the 
 following form:
@@ -1566,7 +1573,7 @@ The `SGML declaration' is fixed, though most of the parameters are
 handled through indirections in the implementation. 
     
 <li><em>The DATATAG feature</em><br>
-It is regarded as superseded by SHORTREF, which is supported.
+It is regarded as superseeded by SHORTREF, which is supported.
 (SP does not support it either.)
     
 <li><em>The RANK feature</em><br>
@@ -1705,7 +1712,7 @@ deleted. This is not yet implemented.
 <li><a href="#const:entity"><b><tt>entity</tt></b></a>
 <li><a href="#const:error"><b><tt>error</tt></b></a>
 <li><a href="#const:explicit"><b><tt>explicit</tt></b></a>
-<li><a href="#const:false"><b><tt>false</tt></b></a>
+<li><a href="#const:false"><b><tt>false</tt></b></a> [ <a href="#const:false%2">2</a>]
 <li><a href="#const:file"><b><tt>file</tt></b></a>
 <li><a href="#const:fixed"><b><tt>fixed</tt></b></a>
 <li><a href="#free_dtd/1"><b>free_dtd/1</b></a>

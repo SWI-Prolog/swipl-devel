@@ -139,6 +139,7 @@ static functor_t FUNCTOR_event_class1;
 static functor_t FUNCTOR_doctype1;
 static functor_t FUNCTOR_allowed1;
 static functor_t FUNCTOR_context1;
+static functor_t FUNCTOR_defaults1;
 
 static atom_t ATOM_sgml;
 static atom_t ATOM_dtd;
@@ -199,6 +200,7 @@ initConstants()
   FUNCTOR_doctype1       = mkfunctor("doctype", 1);
   FUNCTOR_allowed1       = mkfunctor("allowed", 1);
   FUNCTOR_context1       = mkfunctor("context", 1);
+  FUNCTOR_defaults1	 = mkfunctor("defaults", 1);
 
   ATOM_dtd  = PL_new_atom("dtd");
   ATOM_sgml = PL_new_atom("sgml");
@@ -419,6 +421,20 @@ pl_set_sgml_parser(term_t parser, term_t option)
 
     else
       return sgml2pl_error(ERR_DOMAIN, "space", a);
+  } else if ( PL_is_functor(option, FUNCTOR_defaults1) )
+  { term_t a = PL_new_term_ref();
+    char *s;
+
+    PL_get_arg(1, option, a);
+    if ( !PL_get_atom_chars(a, &s) )
+      return sgml2pl_error(ERR_TYPE, "atom", a);
+
+    if ( streq(s, "true") )
+      p->flags &= ~SGML_PARSER_NODEFS;
+    else if ( streq(s, "false") )
+      p->flags |= SGML_PARSER_NODEFS;
+    else
+      return sgml2pl_error(ERR_DOMAIN, "boolean", a);
   } else if ( PL_is_functor(option, FUNCTOR_number1) )
   { term_t a = PL_new_term_ref();
     char *s;

@@ -1,7 +1,24 @@
+VERSION 1.0.12
+==============
+
+* ADDED/MODIFIED: Attributes not in the source, but with a default or
+  fixed value declared in the DTD are now included in the output.  The
+  old behaviour can be used using the defaults(false) option to
+  load_structure/3.
+
+* FIXED: expand parameter-entities in <!USEMAP declaration.
+
+* FIXED: sgml utility to canonise space in output of `list' attributes.
+
+* FIXED: proper entity-expansion and blank-canonisation in attribute-vaues
+  (Richard O'Keefe).
+
+* FIXED: false warning at start of NUTOKEN attribute (Richard O'Keefe).
+
 VERSION 1.0.11
 ==============
 
-* FIXED: Added handling of #CONREF attribute default (Richard O'Keefe).
+* ADDED: handling of #CONREF attribute default (Richard O'Keefe).
 
 * FIXED: sgml utility not to print "C" at the end when there where errors
   (Richard O'Keefe)

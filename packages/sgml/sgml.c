@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <ctype.h>
 
 #define streq(s1, s2) (strcmp(s1, s2) == 0)
 
@@ -24,7 +25,15 @@ int nerrors;
 
 static void
 usage()
-{ fprintf(stderr, "Usage: %s [-xml] [-s] [file.dtd] [file]\n", program);
+{ fprintf(stderr,
+	  "Usage: %s [-xml] [-s] [-nodefs] [file.dtd] [file]\n\n",
+	  program);
+
+  fprintf(stderr,
+	  "\t-xml\tForce XML mode\n"
+	  "\t-s\tSilent: only report errors and warnings\n"
+	  "\t-nodefs\tDo not include defaulted attributes\n");
+
   exit(1);
 }
 
@@ -67,13 +76,13 @@ static atdef attrs[] =
 };
 
 
-static const ichar *
+static atdef *
 find_attrdef(attrtype type)
 { atdef *ad = attrs;
 
   for(; ad->name; ad++)
   { if ( ad->type == type )
-      return ad->name;
+      return ad;
   }
 
   assert(0);
@@ -91,6 +100,37 @@ fixcase(dtd_parser *p, const ichar *s)
     return str2ring((char *)istrupper(buf));
   } else
     return (char *)s;
+}
+
+
+static ichar *
+istrncpy(ichar *d, const ichar *s, unsigned len)
+{ ichar *r = d;
+
+  while(len-- > 0)
+    *d++ = *s++;
+
+  return r;
+}
+
+
+static ichar *
+istrblank(const ichar *s)
+{ for( ; *s; s++ )
+  { if ( isspace(*s) )
+      return (ichar *)s;
+  }
+
+  return NULL;
+}
+
+
+static char *
+nstring(const ichar *s, unsigned len)
+{ ichar *buf = alloca(len+1);
+  istrncpy(buf, s, len);
+  buf[len] = 0;
+  return str2ring((char *)buf);
 }
 
 
@@ -121,11 +161,27 @@ print_open(dtd_parser *p, dtd_element *e, int argc, sgml_attribute *argv)
 	       fixcase(p, argv[i].value.text));
 	break;
       default:
-	printf("A%s %s %s\n",
+      { atdef *ad = find_attrdef(argv[i].definition->type);
+	const ichar *val = argv[i].value.text;
+
+	printf("A%s %s",
 	       fixcase(p, argv[i].definition->name->name),
-	       fixcase(p, find_attrdef(argv[i].definition->type)),
-	       fixcase(p, argv[i].value.text));
+	       fixcase(p, ad->name));
+
+        if ( ad->islist )
+	{ const ichar *e;
+
+	  for(e=istrblank(val); e; val = e+1, e=istrblank(val))
+	  { if ( e == val )
+	      continue;			/* skip spaces */
+	    printf(" %s", fixcase(p, nstring(val, e-val)));
+	  }
+          printf(" %s\n", fixcase(p, val));
+	} else
+	{ printf(" %s\n", fixcase(p, val));
+	}
 	break;
+      }
     }
   }
 
@@ -256,6 +312,7 @@ main(int argc, char **argv)
   char *s;
   int xml = FALSE;
   int output = TRUE;
+  int nodefs = FALSE;			/* include defaulted attributes */
 
   if ( (s=strrchr(argv[0], '/')) )
     program = s+1;
@@ -273,6 +330,9 @@ main(int argc, char **argv)
       shift;
     } else if ( streq(argv[0], "-s") )
     { output = FALSE;
+      shift;
+    } else if ( streq(argv[0], "-nodefs") )
+    { nodefs = TRUE;
       shift;
     } else
       usage();
@@ -307,6 +367,9 @@ main(int argc, char **argv)
     }
   } else
     p = new_dtd_parser(new_dtd(NULL));
+
+  if ( nodefs )
+    p->flags |= SGML_PARSER_NODEFS;
 
   switch(argc)
   { case 1:
