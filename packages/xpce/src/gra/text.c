@@ -1217,6 +1217,8 @@ loadText(TextObj t, FILE *fd, ClassDef def)
     assign(t, wrap, NAME_extend);
   if ( isNil(t->margin) )
     assign(t, margin, toInt(100));
+  if ( isNil(t->border) )
+    assign(t, border, ZERO);
     
   succeed;
 }

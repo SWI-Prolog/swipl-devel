@@ -513,7 +513,7 @@ postscriptGraphical(Any obj)
 
     if ( notDefault(gr->colour) && 
 	 (sw = getWindowGraphical(gr)) &&
-	 sw->background == gr->colour )
+	 equalColour(sw->background, gr->colour) )
     { ps_output("gsave 100 setgray\n");
       send(obj, NAME_DrawPostScript, 0);
       ps_output("grestore\n");
@@ -874,17 +874,19 @@ drawPostScriptText(TextObj t)
   if ( isDefault(t->background) )
     ps_output("~x ~y ~w ~h clear\n", t, t, t, t);
   
-  if ( t->wrap == NAME_wrap )
-  { LocalString(buf, s, s->size + MAX_WRAP_LINES);
+  if ( s[0].size > 0 )			/* i.e. non-empty */
+  { if ( t->wrap == NAME_wrap )
+    { LocalString(buf, s, s->size + MAX_WRAP_LINES);
     
-    str_format(buf, s, valInt(t->margin), t->font);
-    ps_string(buf, t->font, x, y, w, t->format);
-  } else if ( t->wrap == NAME_clip )
-  { ps_output("gsave 0 ~x ~y ~w ~h 0 boxpath clip\n", t, t, t, t);
-    ps_string(s, t->font, x+valInt(t->x_offset), y, w, t->format);
-    ps_output("grestore\n");
-  } else
-    ps_string(s, t->font, x, y, w, t->format);
+      str_format(buf, s, valInt(t->margin), t->font);
+      ps_string(buf, t->font, x, y, w, t->format);
+    } else if ( t->wrap == NAME_clip )
+    { ps_output("gsave 0 ~x ~y ~w ~h 0 boxpath clip\n", t, t, t, t);
+      ps_string(s, t->font, x+valInt(t->x_offset), y, w, t->format);
+      ps_output("grestore\n");
+    } else
+      ps_string(s, t->font, x, y, w, t->format);
+  }
 
   if ( t->pen != ZERO )
     ps_output("gsave ~T ~p ~x ~y ~w ~h 0 boxpath draw grestore\n",

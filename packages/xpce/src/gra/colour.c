@@ -45,6 +45,23 @@ getLookupColour(Class class, Name name)
 }
 
 
+status
+equalColour(Colour c1, Colour c2)
+{ if ( c1 == c2 )
+    succeed;
+  if ( instanceOfObject(c1, ClassColour) &&
+       instanceOfObject(c2, ClassColour) )
+  { if ( c1->name == c2->name ||
+	 (c1->red   == c2->red &&
+	  c1->green == c2->green &&
+	  c1->blue  == c2->blue) )
+      succeed;
+  }
+
+  fail;
+}
+
+
 static status
 storeColour(Colour c, FileObj file)
 { return storeSlotsObject(c, file);

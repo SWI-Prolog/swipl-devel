@@ -19,6 +19,7 @@ status		makeClassBox(Class class);
 status		makeClassCircle(Class class);
 
 /* colour.c */
+status		equalColour(Colour c1, Colour c2);
 Colour		getHiliteColour(Colour c);
 Colour		getReduceColour(Colour c);
 status		makeClassColour(Class class);
