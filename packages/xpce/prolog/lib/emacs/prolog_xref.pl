@@ -32,7 +32,8 @@
 :- module(pce_xref,
 	  [ xref_source/1,		% +Source
 	    xref_called/2,		% ?Source, ?Callable
-	    xref_defined/3,		% ?Source. ?Callable, How
+	    xref_called/3,		% ?Source, ?Callable, ?By
+	    xref_defined/3,		% ?Source. ?Callable, -How
 	    xref_exported/2,		% ?Source, ?Callable
 	    xref_clean/1,		% +Source
 	    xref_current_source/1,	% ?Source
@@ -45,13 +46,13 @@
 :- use_module(library(pce)).
 
 :- dynamic
-	called/2,			% called head
-	(dynamic)/2,			% defined dynamic
-	(multifile)/2,			% defined multifile
-	defined/3,			% defined head
-	imported/2,			% imported head
-	exported/2,			% exported head
-	source/1.
+	called/3,			% Head, Src, From
+	(dynamic)/2,			% Head, Src
+	(multifile)/2,			% Head, Src
+	defined/3,			% Head, Src, Line
+	imported/2,			% Head, Src
+	exported/2,			% Head, Src
+	source/1.			% Src
 
 		 /*******************************
 		 *	      HOOKS		*
@@ -91,7 +92,7 @@ system_predicate(Head) :-
 :- dynamic
 	verbose/0.
 
-%verbose.
+verbose.
 
 xref_source(Source) :-
 	verbose, !,				% do not suppress messages
@@ -103,35 +104,64 @@ xref_source(Source) :-
 	canonical_source(Source, Src),
 	xref_clean(Src),
 	assert(source(Src)),
+	xref_setup(State),
+	call_cleanup(collect(Src), xref_cleanup(State)).
+
+xref_setup(state(Xref, Ref)) :-
 	(   current_prolog_flag(xref, Xref)
 	->  true
 	;   Xref = false
 	),
 	set_prolog_flag(xref, true),
-	asserta(user:message_hook(_,_,_), Ref),
-	(   collect(Src)
-	->  erase(Ref),
-	    set_prolog_flag(xref, Xref)
-	;   erase(Ref),
-	    set_prolog_flag(xref, Xref),
-	    fail
-	).
+	asserta(user:message_hook(_,_,_), Ref).
+xref_cleanup(state(Xref, Ref)) :-
+	set_prolog_flag(xref, Xref),
+	erase(Ref).
+
+%	xref_clean(+Src)
+%	
+%	Reset the database for the given source.
 
 xref_clean(Source) :-
 	canonical_source(Source, Src),
-	retractall(called(_, Src)),
+	retractall(called(_, Src, _Origin)),
 	retractall(defined(_, Src, _Line)),
 	retractall(exported(_, Src)),
 	retractall(dynamic(_, Src)),
 	retractall(multifile(_, Src)),
 	retractall(source(Src)).
 	
+
+		 /*******************************
+		 *	    READ RESULTS	*
+		 *******************************/
+
+%	xref_current_source(?Source)
+%
+%	Check what sources have been analysed.
+
 xref_current_source(Source) :-
 	source(Source).
 
+
+%	xref_called(+Source, ?Called, ?By)
+%	
+%	Enumerate the predicate-call relations. Predicate called by
+%	directives have a By '<directive>'.
+
+xref_called(Source, Called, By) :-
+	canonical_source(Source, Src),
+	called(Called, Src, By).
+
+%	xref_called(+Source, ?Called)
+%
+%	Called is called by 
+
 xref_called(Source, Called) :-
 	canonical_source(Source, Src),
-	called(Called, Src).
+	called(Called, Src, By),
+	By \= Called.			% delete recursive calls
+
 
 %	xref_defined(+Source, +Goal, ?How)
 %	
@@ -191,7 +221,8 @@ collect(Src) :-
 %	for validation.  Otherwise we do term-expansion, handling all
 %	of the XPCE class compiler as normal Prolog afterwards.
 
-xref_expand((:- require(X)), (:- require(X))) :- !.
+xref_expand((:- require(X)),
+	    (:- require(X))) :- !.
 xref_expand(Term, _) :-
 	requires_library(Term, Lib),
 	ensure_loaded(user:Lib),
@@ -220,7 +251,7 @@ process((:- Directive), Src) :- !,
 	process_directive(Directive, Src), !.
 process((Head :- Body), Src) :- !,
 	assert_defined(Src, Head),
-	process_body(Body, Src).
+	process_body(Body, Head, Src).
 process('$source_location'(_File, _Line):Clause, Src) :- !,
 	process(Clause, Src).
 process(Head, Src) :-
@@ -250,14 +281,14 @@ process_directive(module(_Module, Export), Src) :-
 
 process_directive(op(P, A, N), _) :-
 	op(P, A, N).			% should be local ...
-process_directive(style_check(-atom), _) :-
-	style_check(-atom).		% should be local ...
+process_directive(style_check(X), _) :-
+	style_check(X).			% should be local ...
 process_directive(pce_expansion:push_compile_operators, _) :-
 	pce_expansion:push_compile_operators.
 process_directive(pce_expansion:pop_compile_operators, _) :-
 	pce_expansion:pop_compile_operators.
 process_directive(Goal, Src) :-
-	process_body(Goal, Src).
+	process_body(Goal, '<directive>', Src).
 
 
 	      /********************************
@@ -306,36 +337,41 @@ xref_meta(ifmaintainer(G),	[G]).	% used in manual
 xref_meta(listen(_, G),		[G]).	% library(broadcast)
 xref_meta(listen(_, _, G),	[G]).
 
-process_body(Var, _) :-
+%	process_body(+Body, +Origin, +Src)
+%	
+%	Process a callable body (body of a clause or directive). Origin
+%	describes the origin of the call.
+
+process_body(Var, _, _) :-
 	var(Var), !.
-process_body(Goal, Src) :-
+process_body(Goal, Origin, Src) :-
 	prolog:called_by(Goal, Called), !,
-	assert_called(Src, Goal),
-	process_called_list(Called, Src).
-process_body(Goal, Src) :-
-	process_xpce_goal(Goal, Src), !.
-process_body(Goal, Src) :-
+	assert_called(Src, Origin, Goal),
+	process_called_list(Called, Origin, Src).
+process_body(Goal, Origin, Src) :-
+	process_xpce_goal(Goal, Origin, Src), !.
+process_body(Goal, Origin, Src) :-
 	xref_meta(Goal, Metas), !,
-	assert_called(Src, Goal),
-	process_called_list(Metas, Src).
-process_body(Goal, Src) :-
-	assert_called(Src, Goal).
+	assert_called(Src, Origin, Goal),
+	process_called_list(Metas, Origin, Src).
+process_body(Goal, Origin, Src) :-
+	assert_called(Src, Origin, Goal).
 
-process_called_list([], _).
-process_called_list([H|T], Src) :-
-	process_meta(H, Src),
-	process_called_list(T, Src).
+process_called_list([], _, _).
+process_called_list([H|T], Origin, Src) :-
+	process_meta(H, Origin, Src),
+	process_called_list(T, Origin, Src).
 
-process_meta(A+N, Src) :-
+process_meta(A+N, Origin, Src) :-
 	callable(A), !,
 	\+ A = _:_,
 	A =.. List,
 	length(Rest, N),
 	append(List, Rest, NList),
 	Term =.. NList,
-	process_body(Term, Src).
-process_meta(G, Src) :-
-	process_body(G, Src).
+	process_body(Term, Origin, Src).
+process_meta(G, Origin, Src) :-
+	process_body(G, Origin, Src).
 
 
 		 /*******************************
@@ -345,9 +381,9 @@ process_meta(G, Src) :-
 pce_goal(send(_,_)).
 pce_goal(get(_,_,_)).
 
-process_xpce_goal(G, Src) :-
+process_xpce_goal(G, Origin, Src) :-
 	pce_goal(G), !,
-	assert_called(Src, G),
+	assert_called(Src, Origin, G),
 	(   term_member(Term, G),
 	    compound(Term),
 	    arg(1, Term, Prolog),
@@ -355,12 +391,12 @@ process_xpce_goal(G, Src) :-
 	    (	Term =.. [message, _, Selector | T],
 		atom(Selector)
 	    ->	Called =.. [Selector|T],
-		process_body(Called, Src)
+		process_body(Called, Origin, Src)
 	    ;	Term =.. [?, _, Selector | T],
 		atom(Selector)
 	    ->	append(T, [_R], T2),
 	        Called =.. [Selector|T2],
-		process_body(Called, Src)
+		process_body(Called, Origin, Src)
 	    ),
 	    fail
 	;   true
@@ -409,14 +445,23 @@ xref_public_list(File, Public, Src) :-
 		*       PHASE 1 ASSERTIONS	*
 		********************************/
 
-assert_called(_, Var) :-
+%	assert_called(+Src, +From, +Head)
+%
+%	Assert the fact that Head is called by From in Src. We do not
+%	assert called system predicates.
+
+assert_called(_, _, Var) :-
 	var(Var), !.
-assert_called(Src, Goal) :-
-	called(Goal, Src), !.
-assert_called(Src, Goal) :-
+assert_called(_, _, Goal) :-
+	system_predicate(Goal), !.
+assert_called(Src, Origin, Goal) :-
+	called(Goal, Src, Origin), !.
+assert_called(Src, Origin, Goal) :-
+	functor(Origin, OName, OArity),
+	functor(OTerm, OName, OArity),
 	functor(Goal, Name, Arity),
 	functor(Term, Name, Arity),
-	asserta(called(Term, Src)).
+	assert(called(Term, Src, OTerm)).
 
 assert_defined(_, _Module:_Head) :- !.	% defining in another module.  Bah!
 assert_defined(Src, Goal) :-
@@ -425,7 +470,7 @@ assert_defined(Src, Goal) :-
 	functor(Goal, Name, Arity),
 	functor(Term, Name, Arity),
 	flag(xref_src_line, Line, Line),
-	asserta(defined(Term, Src, Line)).
+	assert(defined(Term, Src, Line)).
 
 assert_import(_, []) :- !.
 assert_import(Src, [H|T]) :-
@@ -492,8 +537,9 @@ do_xref_source_file(Spec, File) :-
 
 
 open_source(Src, Fd) :-
-	(   object(Src)
-	->  pce_open(Src, read, Fd)
+	(   Obj = @Src,
+	    object(Obj)
+	->  pce_open(Obj, read, Fd)
 	;   open(Src, read, Fd)
 	),
 	(   peek_char(Fd, #)		% Deal with #! script
@@ -501,8 +547,9 @@ open_source(Src, Fd) :-
 	;   true
 	).
 
-canonical_source(Object, Object) :-
-	object(Object), !.
+canonical_source(Object, Ref) :-
+	object(Object), !,
+	Object = @Ref.
 canonical_source(Source, Src) :-
 	absolute_file_name(Source,
 			   [ file_type(prolog),

@@ -967,7 +967,7 @@ typed(M, Id:'event|event_id', Editor:editor) :->
 	(   object(M)			% Control-x k destroys the mode
 	->  get(M, caret, Caret),
 	    get(M, text_buffer, TB),
-	    (   send(regex('[_A-Z][a-zA-Z_0-9]*\\s ?'), match, TB, Caret, 0)
+	    (   send(regex('[_A-Z][a-zA-Z_0-9]*.?'), match, TB, Caret, 0)
 	    ->  send(M, mark_variable)
 	    ;   true
 	    )

@@ -164,7 +164,7 @@ colourise_text_buffer(TB) :-
 
 fix_operators((:-style_check(X))) :- !,
 	style_check(X).
-fix_operators((:-module($Name,_))) :-
+fix_operators((:-module($(Name),_))) :-
 	atom(Name),
 	style_check(+dollar),
 	fail.				% allow for other expansions
@@ -568,7 +568,7 @@ colourise_declarations((Head,Tail), TB,
 colourise_declarations(Last, TB, Pos) :-
 	colourise_declaration(Last, TB, Pos).
 
-colourise_declaration($Name/Arity, TB, Pos) :-
+colourise_declaration($(Name)/Arity, TB, Pos) :-
 	style_check(?dollar), !,	% deal with system boot-files
 	atom_concat($, Name, TheName),
 	colourise_declaration(TheName/Arity, TB, Pos).
