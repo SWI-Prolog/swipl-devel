@@ -7,9 +7,11 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
-  * FIXED: dependency problem in library(win_menu).  Joseph Bush.
+  * FIXED: avoid deadlock with set_prolog_flag(trace_gc, true).
 
-  * FIXED: Windows 95/98/ME error running the profiler.
+  * FIXED: dependency problem in library(win_menu).
+
+  * FIXED: Windows 95/98/ME error running the profiler.   Joseph Bush.
 
   * FIXED: PL_set_feature() when called before PL_initialise() on some
     versions of Windows.  Caused executable created with xpce-stub.exe

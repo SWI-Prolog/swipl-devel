@@ -514,6 +514,8 @@ pl_garbage_collect_atoms()
   }
 #endif
 
+  gc_status.blocked++;			/* avoid recursion */
+
   if ( verbose )
   {
 #ifdef O_DEBUG_ATOMGC
@@ -557,6 +559,8 @@ pl_garbage_collect_atoms()
 		     PL_LONG, GD->atoms.collected - oldcollected,
 		     PL_INT, GD->statistics.atoms,
 		     PL_DOUBLE, (double)t);
+
+  gc_status.blocked--;
 
   succeed;
 }
