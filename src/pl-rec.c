@@ -552,7 +552,8 @@ compileTermToHeap__LD(term_t t, int flags ARG_LD)
 #define	REC_ATOM    0x08		/* Record just contains	atom */
 #define	REC_GROUND  0x10		/* Record is ground */
 #define	REC_VMASK   0xe0		/* Version mask */
-#define	REC_VERSION 0x00		/* Version id */
+#define REC_VSHIFT     5		/* shift for version mask */
+#define	REC_VERSION 0x01		/* Version id */
 
 #define REC_SZMASK  (REC_32|REC_64)	/* SIZE_MASK */
 
@@ -562,7 +563,8 @@ compileTermToHeap__LD(term_t t, int flags ARG_LD)
 #define REC_SZ REC_32
 #endif
 
-#define REC_COMPAT(m)	(((m)&(REC_VMASK|REC_SZMASK)) == (REC_VERSION|REC_SZ))
+#define REC_HDR		(REC_SZ|(REC_VERSION<<REC_VSHIFT))
+#define REC_COMPAT(m)	(((m)&(REC_VMASK|REC_SZMASK)) == REC_HDR)
 
 char *
 PL_record_external(term_t t, unsigned int *len)
@@ -573,7 +575,7 @@ PL_record_external(term_t t, unsigned int *len)
   tmp_buffer hdr;
   int scode, shdr;
   char *rec;
-  int first = REC_SZ|REC_VERSION;
+  int first = REC_HDR;
 #if O_CYCLIC
   Word *m = aTop;
 #endif
@@ -1343,7 +1345,9 @@ PL_recorded_external(const char *rec, term_t t)
   fetchBuf(&b, &m, uchar);
 
   if ( !REC_COMPAT(m) )
+  { Sdprintf("PL_recorded_external: Incompatible version\n");
     fail;
+  }
 
   if ( m & (REC_INT|REC_ATOM) )		/* primitive cases */
   { if ( m & REC_INT )
@@ -1388,7 +1392,9 @@ PL_erase_external(char *rec)
   b.base = b.data = rec;
   fetchBuf(&b, &m, uchar);
   if ( !REC_COMPAT(m) )
+  { Sdprintf("PL_erase_external(): incompatible version\n");
     fail;
+  }
   if (  m & (REC_INT|REC_ATOM) )
   { if (  m & REC_INT )
       skipLong(&b);

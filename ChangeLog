@@ -8,6 +8,11 @@
 					--------------------------------------
 
 
+  * MODIFIED: incremented external record version format.  Unfortunately this
+    makes old BerkeleyDB databases loading Prolog terms unusable.  The only
+    work-around is to dump the database using an older version and rebuild
+    it using the new version.
+
   * UPDATED: URL references
 
   * FIXED: Atom-gc bug.  Thanks to the analysis work by Servey Tikhonov.
