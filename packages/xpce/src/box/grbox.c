@@ -119,7 +119,9 @@ static vardecl var_grbox[] =
 
 static senddecl send_grbox[] =
 { SM(NAME_initialise, 4, T_initialise, initialiseGrBox,
-     DEFAULT, "Create grbox from graphical and baseline")
+     DEFAULT, "Create grbox from graphical and baseline"),
+  SM(NAME_compute, 0, NULL, computeGrBox,
+     NAME_update, "Compute <-graphical and update dimensions")
 };
 
 /* Get Methods */
