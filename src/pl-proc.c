@@ -919,36 +919,35 @@ bool
 retractClauseProcedure(Procedure proc, Clause clause ARG_LD)
 { Definition def = getProcDefinition(proc);
 
-  LOCKDEF(def);
+  LOCKDYNDEF(def);
+  assert(true(def, DYNAMIC));
   if ( true(clause, ERASED) )
-  { UNLOCKDEF(def);
+  { UNLOCKDYNDEF(def);
     succeed;
   }
 
   if ( def->references ||
-       def->number_of_clauses > 16 ||
-       false(def, DYNAMIC) )
+       def->number_of_clauses > 16 )
   { set(clause, ERASED);
     if ( def->hash_info )
       markDirtyClauseIndex(def->hash_info, clause);
     def->number_of_clauses--;
     def->erased_clauses++;
-    if ( false(def, DYNAMIC) ||
-	 def->erased_clauses > (def->number_of_clauses>>4) )
-    { if ( false(def, DYNAMIC|NEEDSCLAUSEGC) )
+    if ( def->erased_clauses > (def->number_of_clauses>>4) )
+    { if ( false(def, NEEDSCLAUSEGC) )
 	registerDirtyDefinition(def);
       set(def, NEEDSCLAUSEGC);
     }
 #ifdef O_LOGICAL_UPDATE
     clause->generation.erased = ++GD->generation;
 #endif
-    UNLOCKDEF(def);
+    UNLOCKDYNDEF(def);
 
     succeed;
   }
 
   unlinkClause(def, clause PASS_LD);
-  UNLOCKDEF(def);
+  UNLOCKDYNDEF(def);
 
 					/* as we do a call-back, we cannot */
 					/* hold the L_PREDICATE mutex */
@@ -1098,7 +1097,12 @@ void
 gcClausesDefinitionAndUnlock(Definition def)
 { ClauseRef cref = cleanDefinition(def, NULL);
 
-  UNLOCKDEF(def);
+  if ( true(def, DYNAMIC) )
+  { UNLOCKDYNDEF(def);
+  } else
+  { UNLOCKDEF(def);
+  }
+
   if ( cref )
     freeClauseList(cref);
 }
@@ -1559,7 +1563,7 @@ pl_retract(term_t term, control_t h)
       if ( false(def, DYNAMIC) )
       { if ( isDefinedProcedure(proc) )
 	  return PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PROC, proc);
-	set(def, DYNAMIC);		/* implicit */
+	setDynamicProcedure(def, TRUE); /* implicit */
 	fail;				/* no clauses */
       }
 
