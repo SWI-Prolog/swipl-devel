@@ -84,8 +84,6 @@ static int
 Xterm_write(void *handle, char *buffer, int count)
 { xterm *xt = handle;
 
-  protocol(buffer, count);
-
   return write(xt->fd, buffer, count);
 }
 

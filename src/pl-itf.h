@@ -217,7 +217,7 @@ PL_EXPORT(void *)	PL_foreign_context_address(control_t);
 		*      REGISTERING FOREIGNS     *
 		*********************************/
 
-typedef struct _PL_extension
+typedef struct PL_extension
 { char 		*predicate_name;	/* Name of the predicate */
   short		arity;			/* Arity of the predicate */
   pl_function_t	function;		/* Implementing functions */

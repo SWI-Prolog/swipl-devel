@@ -8,6 +8,8 @@
 					--------------------------------------
 
 
+  * FIXED: Protocol issues due to wide character encoding.
+
   * MODIFIED: Cleanup of foreign predicate registration by Salvador
     Fandiño.  Added PL_register_foreign_in_module() and
     PL_register_extensions_in_module().  Deleted the possibility to

@@ -421,17 +421,6 @@ typedef struct PL_local_data
 
   struct				/* Local IO stuff */
   { IOSTREAM *streams[6];		/* handles for standard streams */
-#if 0
-    IOSTREAM *user_input;		/* current user input */
-    IOSTREAM *user_output;		/* current user output */
-    IOSTREAM *user_error;		/* current user error */
-    IOSTREAM *curin;			/* current input stream */
-    IOSTREAM *curout;			/* current output stream */
-    IOSTREAM *din;			/* debugger input */
-    IOSTREAM *dout;			/* debuffer output */
-    IOSTREAM *log;			/* stream used for protocolling */
-    IOSTREAM *term;			/* terminal stream */
-#endif
     struct input_context *input_stack;	/* maintain input stream info */
     struct output_context *output_stack; /* maintain output stream info */
   } IO;

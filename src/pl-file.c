@@ -1026,7 +1026,13 @@ openProtocol(term_t f, bool appnd)
 
   PL_put_atom(mode, appnd ? ATOM_append : ATOM_write);
   if ( (s = openStream(f, mode, 0)) )
-  { Sprotocol = s;
+  { s->flags |= SIO_NOCLOSE;		/* do not close on abort */
+
+    Sprotocol = s;
+    Suser_input->tee = s;
+    Suser_output->tee = s;
+    Suser_error->tee = s;
+
     return TRUE;
   }
 
@@ -1040,7 +1046,19 @@ pl_noprotocol()
   IOSTREAM *s;
 
   if ( (s = getStream(Sprotocol)) )
-  { closeStream(s);
+  { TableEnum e;
+    Symbol symb;
+
+    e = newTableEnum(streamContext);
+    while( (symb=advanceTableEnum(e)) )
+    { IOSTREAM *p = symb->name;
+
+      if ( p->tee == s )
+	p->tee = NULL;
+    }
+    freeTableEnum(e);
+
+    closeStream(s);
     Sprotocol = NULL;
   }
 

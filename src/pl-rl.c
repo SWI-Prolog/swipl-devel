@@ -330,10 +330,6 @@ Sread_readline(void *handle, char *buf, int size)
     }
   }
 
-  if ( ttymode != PL_RAWTTY )
-  { PL_add_to_protocol(buf, rval);
-  }
-
 #ifdef HAVE_CLOCK
   PL_clock_wait_ticks(clock() - oldclock);
 #endif

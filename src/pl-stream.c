@@ -722,6 +722,9 @@ Sgetcode(IOSTREAM *s)
   }
 
 out:
+  if ( s->tee && s->tee->magic == SIO_MAGIC && c != -1 )
+    Sputcode(c, s->tee);
+
   return S__updatefilepos(s, c);
 }
 
