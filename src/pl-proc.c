@@ -476,7 +476,7 @@ Patterns: ?Name/?Arity
 typedef struct
 { functor_t	functor;		/* Functor we are looking for */
   atom_t	name;			/* Name of target pred */
-  unsigned int	arity;			/* arity of target pred */
+  int		arity;			/* arity of target pred */
   Module	module;			/* Module to search in */
   Module	super;			/* Walking along super-chain */
   TableEnum	epred;			/* Predicate enumerator */
