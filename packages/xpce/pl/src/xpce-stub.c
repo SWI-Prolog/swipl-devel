@@ -33,7 +33,6 @@ static int   attach_console(void);
 
 static char *program;
 
-#ifdef O_DEBUG
 static void
 ok(const char *msg, ...)
 { char buf[1024];
@@ -45,7 +44,6 @@ ok(const char *msg, ...)
 
   MessageBox(NULL, buf, program, MB_OK|MB_TASKMODAL);
 }
-#endif
 
 
 int PASCAL
@@ -61,9 +59,16 @@ WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
   PL_set_feature("verbose", PL_ATOM, "silent"); /* operate silently */
   DEBUG(ok("About to start Prolog with %d arguments", argc));
   if ( !PL_initialise(argc, argv) )
+  { ok("Initialisation failed");
     PL_halt(1);
+  }
   
-  PL_halt(PL_toplevel() ? 0 : 1);
+  if ( PL_toplevel() )
+  { PL_halt(0);
+  } else
+  { ok("Toplevel failed");
+    PL_halt(1);
+  }
 
   return 0;
 }
