@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * PORT: Enhanced support for MacOS.  Put the Prolog kernel in a shared
+    object, support JPL in the MacOS version.
+
   * FIXED: source-file administration in saved-states.  Matt Lilley.
 
   * PORT: Enhance detection of support for ELF visibility attributes.
