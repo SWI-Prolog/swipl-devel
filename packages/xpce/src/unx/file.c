@@ -826,26 +826,35 @@ static StringObj
 getReadFile(FileObj f, Int n)
 { int size;
   int m;
+  StringObj s;
 
   TRY( check_file(f, NAME_read) );
   if ( isDefault(n) )
-    TRY(n = getSizeFile(f));
+  { Int here = getIndexFile(f);
+    Int len  = getSizeFile(f);
+
+    if ( !here || !len )
+      fail;
+    n = sub(len, here);
+  }
 
   size = valInt(n);
-  { CharBuf(buf, size);
-    string q;
+  s = answerObject(ClassString, 0);
+  str_unalloc(&s->data);
+  str_inithdr(&s->data, ENC_ASCII);
+  s->data.size = size;
+  str_alloc(&s->data);
 
-    if ( (m = fread(buf, 1, size, f->fd)) < 0 )
+  if ( (m = fread(s->data.s_text8, 1, size, f->fd)) != size )
+  { if ( m >= 0 )
+      deleteString(s, toInt(m), DEFAULT);
+    else
     { errorPce(f, NAME_ioError, getOsErrorPce(PCE), 0);
       fail;
     }
-
-    str_inithdr(&q, ENC_ASCII);
-    q.size    = m;
-    q.s_text8 = buf;
-
-    answer(StringToString(&q));
   }
+
+  answer(s);
 }
 
 
