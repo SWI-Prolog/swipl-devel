@@ -79,7 +79,6 @@ pl_profile(term_t old, term_t new)
   TRY(setInteger(&prof, old, new));
   if ( prof == LD->statistics.profiling )
     succeed;
-  LD->statistics.profiling = prof;
   switch(prof)
   { case NO_PROFILING:
 	return stopProfiler();

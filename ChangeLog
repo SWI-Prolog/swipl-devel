@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: profiler/2 not to reset profile statistics.  Spotted by
+    Mike Elston.
+
   * FIXED: <, >, =<, etc to handle user-defined arithmetic functions
     properly.  Reported by Emerson dos Santos.
 
