@@ -82,7 +82,7 @@ netscape_base(mozilla).
 :- multifile
 	user:url_path/2.
 
-user:url_path(swi,	   'http://www.swi.psy.uva.nl').
+user:url_path(swi,	   'http://hcs.science.uva.nl').
 user:url_path(pl,	   'http://www.swi-prolog.org').
 user:url_path(pl_twiki,	   'http://gollem.science.uva.nl/twiki/pl/bin/view').
 

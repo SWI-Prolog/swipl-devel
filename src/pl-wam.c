@@ -4215,8 +4215,9 @@ execution can continue at `next_instruction'
 	    leaveDefinition(DEF);
 	  }
 
-	  copyFrameArguments(lTop, FR, arity PASS_LD);
+	  FR->clause = NULL;		/* for save atom-gc */
 	  FR->predicate = DEF = ndef;
+	  copyFrameArguments(lTop, FR, arity PASS_LD);
 
 	  goto depart_continue;
 	}

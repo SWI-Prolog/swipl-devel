@@ -8,6 +8,10 @@
 					--------------------------------------
 
 
+  * UPDATED: URL references
+
+  * FIXED: Atom-gc bug.  Thanks to the analysis work by Servey Tikhonov.
+
   * ADDED: wide character support for atoms and strings, foreign interfaces
     and some of the atom-handling predicates.
 
@@ -25,6 +29,7 @@
     find out/presume whether a terminal is attached to a stream.
 
   * ADDED: cyclic_term/1 and acyclic_term/1.  Paul Singleton.
+
 
 VERSION 5.4.3 (October 18, 2004)
 ================================
