@@ -9,6 +9,9 @@
 
   * FIXED: Bug#28: race condition on message queues.  Mike Elston.
 
+  * FIXED: Error-reporting in thread_join/2.  Added check to avoid joining
+    detached threads.
+
   * PORT: Added #define _GNU_SOURCE 1 into pl-thread.c to compile without
     warnings on glibc based systems.
 
