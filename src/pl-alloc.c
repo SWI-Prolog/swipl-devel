@@ -180,7 +180,7 @@ allocate(register size_t n)
 }
 
 void
-initAlloc()
+initMemAlloc()
 { assert(ALIGN_SIZE >= ALLOC_MIN);
 
   if ( !GD->dumped )

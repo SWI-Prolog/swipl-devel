@@ -15,7 +15,7 @@ volatile void	outOf(Stack s);
 volatile void	outOfCore(void);
 Void		alloc_global(int n);
 Void		alloc_heap(size_t n);
-void		initAlloc(void);
+void		initMemAlloc(void);
 word		globalFunctor(functor_t def);
 int		sizeString(word w);
 word		globalString(const char *s);

@@ -55,7 +55,7 @@ setupProlog(void)
   signalled = 0;
 
   startCritical;
-  initAlloc();
+  initMemAlloc();
 #if HAVE_SIGNAL
   DEBUG(1, Sdprintf("Prolog Signal Handling ...\n"));
   initSignals();
