@@ -1,7 +1,7 @@
 Summary:	SWI-Prolog - Edinburgh compatible Prolog compiler
 Name:		pl
 Version: 	4.0.0
-Release:	36
+Release:	42
 Copyright:	GPL-2
 Source:		ftp://swi.psy.uva.nl/pub/SWI-Prolog/pl-%{version}.tar.gz
 Vendor:		Jan Wielemaker <jan@swi.psy.uva.nl>
@@ -54,6 +54,7 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-,root,root)
 %doc ChangeLog README COPYING
+%doc dotfiles/dot*
 /usr/lib/pl-%{version}
 /usr/man/man1/*
 /usr/bin/pl*

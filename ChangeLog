@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: Skeleton dotfiles for both Prolog and XPCE to the dotfiles
+    directory.
+
   * FIXED: plrc utility for modifying archives.  Thanks to Lourens
     van der Meij.
 
