@@ -218,6 +218,7 @@ void		ws_manage_window(PceWindow sw);
 void		ws_unmanage_window(PceWindow sw);
 void		ws_reassociate_ws_window(PceWindow from, PceWindow to);
 void		ws_geometry_window(PceWindow sw, int x, int y, int w, int h, int pen);
+void		ws_topmost_window(PceWindow sw, Bool topmost);
 void		ws_grab_pointer_window(PceWindow sw, Bool val);
 void		ws_grab_keyboard_window(PceWindow sw, Bool val);
 void		ws_grab_pointer_window(PceWindow sw, Bool val);

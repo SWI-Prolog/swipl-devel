@@ -34,10 +34,12 @@ initialiseTileAdjuster(TileAdjuster p, TileObj t)
 
   size = getCopySize(img->size);
   initialiseWindow((PceWindow) p, NAME_adjuster, size, DEFAULT);
+  assign(p, pen, ZERO);
+  assign(p, cursor, crs);
+  assign(p, orientation, t->super->orientation);
 
   send(p, NAME_display, bm=newObject(ClassBitmap, img, EAV), EAV);
-  send(bm, NAME_cursor, crs, EAV);
-  assign(p, orientation, t->super->orientation);
+/*send(bm, NAME_cursor, crs, EAV);*/
  
   assign(t, adjuster, p);
   assign(p, client, t);
@@ -79,7 +81,7 @@ eventTileAdjuster(TileAdjuster adj, EventObj ev)
     succeed;
 
   if ( isDownEvent(ev) && (offset = getEventOffsetTileAdjuster(adj, ev)) )
-  { send(adj, NAME_focus, adj, DEFAULT, DEFAULT, getButtonEvent(ev), EAV);
+  { send(adj, NAME_focus, adj, DEFAULT, adj->cursor, getButtonEvent(ev), EAV);
     
     assign(adj, down_offset, offset);
     succeed;

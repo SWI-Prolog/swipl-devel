@@ -195,6 +195,17 @@ ws_geometry_window(PceWindow sw, int x, int y, int w, int h, int pen)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Used to get the tile_adjuster windows on top   of the other windows in a
+frame.  Sofar not needed in the X11 version.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+ws_topmost_window(PceWindow sw, Bool topmost)
+{
+}
+
+
 		/********************************
 		*      XT CALLBACK HANDLING	*
 		********************************/

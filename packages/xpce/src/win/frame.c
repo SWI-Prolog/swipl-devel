@@ -1247,10 +1247,15 @@ updateTileAdjustersFrame(FrameObj fr, TileObj t)
   if ( notNil(t) )
   { if ( notNil(t->super) && getCanResizeTile(t) == ON )
     { if ( isNil(t->adjuster) )
-      { TileAdjuster adj = newObject(ClassTileAdjuster, t, EAV);
+      { PceWindow adj = newObject(ClassTileAdjuster, t, EAV);
 	assert(adj);
 
-	appendFrame(fr, (PceWindow)adj);
+	appendFrame(fr, adj);
+	ws_topmost_window(adj, ON);
+/*	Cprintf("%s: Area = %s, %s, %s, %s\n", pp(adj),
+		pp(adj->area->x), pp(adj->area->y),
+		pp(adj->area->w), pp(adj->area->h));
+*/
       }
 
       send(t, NAME_updateAdjusterPosition, EAV);

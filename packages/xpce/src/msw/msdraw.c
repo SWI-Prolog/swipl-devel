@@ -1398,9 +1398,9 @@ r_swap_background_and_foreground(void)
 }
 
 
-void
+Bool
 r_subwindow_mode(Bool val)
-{
+{ return OFF;
 }
 
 

@@ -514,6 +514,25 @@ ws_geometry_window(PceWindow sw, int x, int y, int w, int h, int pen)
 
 
 void
+ws_topmost_window(PceWindow sw, Bool topmost)
+{ HWND hwnd;
+
+  if ( (hwnd = getHwndWindow(sw)) )
+  {
+#if 0					/* somehow doesn't work */
+    SetWindowPos(hwnd,
+		 topmost == ON ? HWND_TOPMOST : HWND_NOTOPMOST,
+		 0, 0, 0, 0,
+		 SWP_NOMOVE|SWP_NOSIZE|SWP_NOACTIVATE);
+#else
+    if ( topmost == ON )
+      BringWindowToTop(hwnd);
+#endif
+  }
+}
+
+
+void
 ws_invalidate_window(PceWindow sw, Area a)
 { int clear = FALSE;
   HWND hwnd = getHwndWindow(sw);
