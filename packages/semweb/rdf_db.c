@@ -2574,11 +2574,12 @@ unify_statistics(term_t key, functor_t f)
     if ( !PL_get_atom(a, &name) )
       return type_error(a, "atom");
     if ( (src = lookup_source(name, FALSE)) )
-    { PL_get_arg(2, key, a);
-      return PL_unify_integer(a, src->triple_count);
-    }
+      v = src->triple_count;
+    else
+      v = 0;
 
-    return FALSE;
+    PL_get_arg(2, key, a);
+    return PL_unify_integer(a, src->triple_count);
   } else
     assert(0);
 

@@ -396,12 +396,11 @@ rdf_load(Spec) :-
 
 rdf_load(Spec, Options) :-
 	statistics(cputime, CpuOld),
-	rdf_statistics(triples(N0)),
 	(   memberchk(result(Action, Triples), Options)
 	->  true
 	;   true
 	),
-	(   Spec = '$stream'(_)
+	(   Spec = '$stream'(_)		% TBD: probably won't work yet
 	->  process_rdf(Spec, [], assert_triples),
 	    Load = parsed(ParseTime),
 	    Action = load
@@ -419,8 +418,7 @@ rdf_load(Spec, Options) :-
 	    ;	Action = load
 	    ),
 	    (	Action \== none
-	    ->  rdf_statistics(triples(N0a)),
-		atom_concat('file:', File, BaseURI),
+	    ->  atom_concat('file:', File, BaseURI),
 		retractall(rdf_source(File, _, _)),
 		(   cache_file(File, Cache)
 		->  (   time_file(Cache, CacheTime),
@@ -435,8 +433,7 @@ rdf_load(Spec, Options) :-
 		;   process_rdf(File, BaseURI, assert_triples),
 		    Load = parsed(ParseTime)
 		),
-		rdf_statistics(triples(N1)),
-		Triples is N1 - N0a,
+		rdf_statistics_(triples(File, Triples)),
 		assert(rdf_source(File, Modified, Triples))
 	    ;	rdf_source(File, Modified, Triples)
 	    )
@@ -444,9 +441,8 @@ rdf_load(Spec, Options) :-
 	(   Action \== none
 	->  statistics(cputime, CpuLoaded),
 	    ParseTime is CpuLoaded - CpuOld,
-	    N is N1 - N0,
 	    print_message(informational,
-			  rdf(loaded(Spec, N, Load)))
+			  rdf(loaded(Spec, Triples, Load)))
 	;   true
 	).
 
@@ -937,7 +933,7 @@ prolog:message(rdf(loaded(Spec, Triples, parsed(ParseTime)))) -->
 	->  file_base_name(Spec, Base)
 	;   Base = Spec
 	},
-	[ 'Parsed "~w" in ~2f sec; added ~D triples'-
+	[ 'Parsed "~w" in ~2f sec; ~D triples'-
 	  [Base, ParseTime, Triples]
 	].
 prolog:message(rdf(loaded(Spec, Triples, cache(ParseTime)))) -->
