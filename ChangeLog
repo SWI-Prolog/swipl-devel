@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * IMPROVED: Path presentation of edit/1.
+
   * FIXED: Win32 notion of `home' to use <currentdrive>:/ instead of just
     /, avoiding some trouble in pl-os.c
 

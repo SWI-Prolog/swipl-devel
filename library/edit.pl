@@ -305,6 +305,10 @@ edit_location(Location) -->
 	[ '~q'-[Spec] ].
 
 short_filename(Path, Spec) :-
+	absolute_file_name('', Here),
+	atom_concat(Here, Local0, Path), !,
+	remove_leading_slash(Local0, Spec).
+short_filename(Path, Spec) :-
 	setof(Id, Spec^file_search_path(Id, Spec), Ids),
 	member(Id, Ids),
 	Term =.. [Id, '.'],
