@@ -605,6 +605,8 @@ search_char(0'~).			% JW: not official URL
 search_char(0'/).
 search_char(0';).
 search_char(0':).
+search_char(0'{).			% JW: not official URL, used by ASP
+search_char(0'}).			% JW: not official URL, used by ASP
 
 
 extra(0'!).
