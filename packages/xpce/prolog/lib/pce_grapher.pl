@@ -599,10 +599,14 @@ prompt_step(G, Reply:{forward,fast_forward,abort}) :<-
 :- pce_group(clipboard).
 
 
-copy_diagram(Canvas) :->
+copy_graph(Canvas) :->
 	"Export to the Windows clipboard"::
 	new(MF, win_metafile),
-	send(MF, draw_in, Canvas?graphicals),
+	get(Canvas?graphicals, copy, Graphicals),
+	send(Graphicals, for_all,
+	     if(message(@arg1, instance_of, window),
+		message(Graphicals, delete, @arg1))),
+	send(MF, draw_in, Graphicals),
 	send(@display, selection_owner, MF,
 	     primary,			% which
 	     @receiver,			% fetch object
