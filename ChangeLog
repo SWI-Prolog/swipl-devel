@@ -7,6 +7,11 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+VERSION 5.5.5 (Februari 01, 2005)
+=================================
+
+  * FIXED: Bug#9: Windows console menus did not work.  Jiri Spitz.
+
   * FIXED: make sure PL_initialise(0, argv) inititialises the system with
     reasonable defaults.
 

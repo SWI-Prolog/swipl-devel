@@ -601,13 +601,14 @@ pl_window_pos(term_t options)
 
 
 static void
-call_menu(const char *name)
+call_menu(const TCHAR *name)
 { fid_t fid = PL_open_foreign_frame();
   predicate_t pred = PL_predicate("on_menu", 1, "prolog");
   module_t m = PL_new_module(PL_new_atom("prolog"));
   term_t a0 = PL_new_term_ref();
-  
-  PL_put_atom_chars(a0, name);
+  int len = _tcslen(name);
+
+  PL_unify_wchars(a0, PL_ATOM, len, name);
   PL_call_predicate(m, PL_Q_NORMAL, pred, a0);
 
   PL_discard_foreign_frame(fid);
@@ -700,7 +701,7 @@ pl_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       PL_handle_signals();
       return 0;
     case WM_MENU:
-    { const char *name = (const char *)lParam;
+    { const TCHAR *name = (const TCHAR *)lParam;
 
       call_menu(name);
 
