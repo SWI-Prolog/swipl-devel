@@ -1309,7 +1309,7 @@ event_editor(Editor e, EventObj ev)
     succeed;
 
   if ( isAEvent(ev, NAME_keyboard) )
-    return send(e, NAME_typed, getIdEvent(ev), EAV);
+    return send(e, NAME_typed, ev, EAV);
 
   					/* delete mode on button down */
   if ( isDownEvent(ev) )
@@ -1872,6 +1872,9 @@ cursorUpEditor(Editor e, Int arg, Int column)
   if ( isDefault(arg) )
     arg = ONE;
 
+  if ( !(bts & BUTTON_shift) )
+    send(e, NAME_selection, ZERO, ZERO, EAV);
+
   if ( bts & BUTTON_control )
     backwardParagraphEditor(e, arg);
   else if ( e->image->wrap == NAME_word &&
@@ -1896,6 +1899,9 @@ cursorDownEditor(Editor e, Int arg, Int column)
   if ( isDefault(arg) )
     arg = ONE;
 
+  if ( !(bts & BUTTON_shift) )
+    send(e, NAME_selection, ZERO, ZERO, EAV);
+
   if ( bts & BUTTON_control )
     forwardParagraphEditor(e, arg);
   else if ( e->image->wrap == NAME_word &&
@@ -1916,6 +1922,9 @@ cursorLeftEditor(Editor e, Int arg)
 { int bts = buttons();
   Int caret = e->caret;
 
+  if ( !(bts & BUTTON_shift) )
+    send(e, NAME_selection, ZERO, ZERO, EAV);
+
   if ( bts & BUTTON_control )
     backwardWordEditor(e, arg);
   else
@@ -1932,6 +1941,9 @@ static status
 cursorRightEditor(Editor e, Int arg)
 { int bts = buttons();
   Int caret = e->caret;
+
+  if ( !(bts & BUTTON_shift) )
+    send(e, NAME_selection, ZERO, ZERO, EAV);
 
   if ( bts & BUTTON_control )
     forwardWordEditor(e, arg);
@@ -1950,6 +1962,9 @@ cursorEndEditor(Editor e, Int arg)
 { int bts = buttons();
   Int caret = e->caret;
 
+  if ( !(bts & BUTTON_shift) )
+    send(e, NAME_selection, ZERO, ZERO, EAV);
+
   if ( bts & BUTTON_control )
     pointToBottomOfFileEditor(e, arg);
   else
@@ -1966,6 +1981,9 @@ static status
 cursorHomeEditor(Editor e, Int arg)
 { int bts = buttons();
   Int caret = e->caret;
+
+  if ( !(bts & BUTTON_shift) )
+    send(e, NAME_selection, ZERO, ZERO, EAV);
 
   if ( bts & BUTTON_control )
     pointToTopOfFileEditor(e, arg);
@@ -1984,6 +2002,9 @@ cursorPageUpEditor(Editor e, Int arg)
 { int bts = buttons();
   Int caret = e->caret;
 
+  if ( !(bts & BUTTON_shift) )
+    send(e, NAME_selection, ZERO, ZERO, EAV);
+
   scrollDownEditor(e, arg);
 
   if ( bts & BUTTON_shift )
@@ -1997,6 +2018,9 @@ static status
 cursorPageDownEditor(Editor e, Int arg)
 { int bts = buttons();
   Int caret = e->caret;
+
+  if ( !(bts & BUTTON_shift) )
+    send(e, NAME_selection, ZERO, ZERO, EAV);
 
   scrollUpEditor(e, arg);
 
@@ -4657,7 +4681,7 @@ static senddecl send_editor[] =
      NAME_insert, "Insert newlines after caret"),
   SM(NAME_print, 1, "text=string", printEditor,
      NAME_insert, "Insert text at caret (auto_newline)"),
-  SM(NAME_typed, 1, "event_id", typedEditor,
+  SM(NAME_typed, 1, "event|event_id", typedEditor,
      NAME_insert, "Process a keystroke"),
   SM(NAME_showLabel, 1, "show=bool", showLabelEditor,
      NAME_appearance, "Show/unshow the label"),

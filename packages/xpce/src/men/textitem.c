@@ -905,13 +905,12 @@ eventTextItem(TextItem ti, EventObj ev)
     if ( isAEvent(ev, NAME_keyboard) )
     { KeyBinding kb = (ti->editable == ON ? KeyBindingTextItem()
 			 		  : KeyBindingTextItemView());
-      Any id = ev->id;
-      Name f = getFunctionKeyBinding(kb, id);
+      Name f = getFunctionKeyBinding(kb, ev);
 
       if ( f != NAME_complete && f != NAME_keyboardQuit )
       { postEvent(ev, (Graphical)lb, DEFAULT);
 
-	f = getFunctionKeyBinding(lb->key_binding, id);
+	f = getFunctionKeyBinding(lb->key_binding, ev);
 	if ( f == NAME_backwardDeleteChar )
 	{ Int autohide = getAttributeObject(lb->device, NAME_autoHide);
 	
@@ -925,7 +924,7 @@ eventTextItem(TextItem ti, EventObj ev)
 	succeed;
       }
 
-      return send(ti, NAME_typed, id, EAV);
+      return send(ti, NAME_typed, ev, EAV);
     }	 
     
     if ( forwardCompletionEvent(ev) )
@@ -1005,7 +1004,7 @@ eventTextItem(TextItem ti, EventObj ev)
 
   if ( ti->status != NAME_inactive )
   { if ( isAEvent(ev, NAME_keyboard) )
-    { return send(ti, NAME_typed, ev->id, EAV);
+    { return send(ti, NAME_typed, ev, EAV);
     } else
     { if ( isAEvent(ev, NAME_msMiddleUp) )
 	return pasteTextItem(ti, DEFAULT);
@@ -1608,7 +1607,7 @@ static senddecl send_textItem[] =
      NAME_event, "Test if ready to accept input"),
   SM(NAME_event, 1, "event", eventTextItem,
      NAME_event, "Process user event"),
-  SM(NAME_typed, 1, "event_id", typedTextItem,
+  SM(NAME_typed, 1, "event|event_id", typedTextItem,
      NAME_event, "Process event with given id"),
   SM(NAME_key, 1, "key=name", keyTextItem,
      NAME_accelerator, "Request keyboard if accelerator is typed"),

@@ -36,7 +36,7 @@ status		makeClassEditor(Class class);
 status		makeClassFragment(Class class);
 
 /* ../src/txt/keybinding.c */
-Any		getFunctionKeyBinding(KeyBinding kb, Name key);
+Any		getFunctionKeyBinding(KeyBinding kb, EventId id);
 status		functionKeyBinding(KeyBinding kb, EventId id, Any f);
 status		typedKeyBinding(KeyBinding kb, EventId id, Graphical receiver);
 status		makeClassKeyBinding(Class class);

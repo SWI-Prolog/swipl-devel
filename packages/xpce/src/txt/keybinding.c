@@ -146,11 +146,9 @@ get_default_function_key_binding(KeyBinding kb, Name key)
 
 
 Any
-getFunctionKeyBinding(KeyBinding kb, Name key)
+getFunctionKeyBinding(KeyBinding kb, EventId id)
 { Any cmd;
-
-  if ( isInteger(key) )
-    key = characterName(key);
+  Name key = characterName(id);
 
   if ( (cmd = get_function_key_binding(kb, key)) )
     answer(cmd);
@@ -225,6 +223,8 @@ typedKeyBinding(KeyBinding kb, EventId id, Graphical receiver)
 
   key = getAppendName(kb->prefix, characterName(id));
   DEBUG(NAME_keyBinding, writef("%O: Key = %s\n", kb, key));
+  if ( instanceOfObject(id, ClassEvent) )
+    id = ((EventObj)id)->id;
     
   if ( kb->status == NAME_quotedInsert )
   { cmd = NAME_insertQuoted;
@@ -412,7 +412,7 @@ executeKeyBinding(KeyBinding kb, Any receiver, Name cmd, int argc, Any argv[])
 /* Type declarations */
 
 static char *T_typed[] =
-        { "id=event_id", "for=[object]" };
+        { "id=event|event_id", "for=[object]" };
 static char *T_fillArgumentsAndExecute[] =
         { "id=event_id", "receiver=object", "selector=name", "arguments=any ..." };
 static char *T_function[] =
@@ -477,7 +477,7 @@ static getdecl get_keyBinding[] =
      NAME_conversion, "Lookup existing table or create new named table"),
   GM(NAME_binding, 1, "name", "function=name|code", getBindingKeyBinding,
      NAME_meta, "Find key-binding from function"),
-  GM(NAME_function, 1, "name|code", "name|event_id", getFunctionKeyBinding,
+  GM(NAME_function, 1, "name|code", "event|name|event_id", getFunctionKeyBinding,
      NAME_meta, "Get function for given event-id"),
   GM(NAME_lookup, 2, "key_binding", T_lookup, getLookupKeyBinding,
      NAME_oms, "Lookup existing table")

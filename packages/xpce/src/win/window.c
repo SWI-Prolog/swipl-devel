@@ -1998,7 +1998,7 @@ static char *T_decorate[] =
 static char *T_confirmCentered[] =
         { "center=[point]", "grab=[bool]" };
 static char *T_typed[] =
-        { "event_id", "delegate=[bool]" };
+        { "event|event_id", "delegate=[bool]" };
 static char *T_focus[] =
         { "graphical*", "[recogniser]*", "[cursor]*", "[name]*" };
 static char *T_initialise[] =

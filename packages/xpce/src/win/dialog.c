@@ -329,7 +329,7 @@ assignAcceletatorsDialog(Dialog d)
 /* Type declarations */
 
 static char *T_typed[] =
-        { "event_id", "[bool]" };
+        { "event|event_id", "[bool]" };
 static char *T_display[] =
         { "graphical", "at=[point]" };
 static char *T_modifiedItem[] =

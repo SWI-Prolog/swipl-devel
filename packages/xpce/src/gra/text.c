@@ -1684,7 +1684,7 @@ static senddecl send_text[] =
      NAME_delete, "Delete lines from caret \\C-k)"),
   SM(NAME_killWord, 1, "times=[int]", killWordText,
      NAME_delete, "Deletes words forward from caret (\\ed)"),
-  SM(NAME_typed, 1, "event_id", typedText,
+  SM(NAME_typed, 1, "event|event_id", typedText,
      NAME_event, "Handle a keystroke"),
   SM(NAME_insert, 2, T_insert, insertText,
      NAME_insert, "Insert text at position [<-caret]"),

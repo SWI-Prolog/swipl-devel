@@ -597,7 +597,7 @@ start_idle_timer(E, Interval:[real]) :->
 	new(_, hyper(@emacs_idle_timer, E, editor, idle_timer)).
 
 
-typed(E, Id:event_id) :->
+typed(E, Id:'event|event_id') :->
 	"Handle typing via mode"::
 	send(E, start_idle_timer),
 	get(E, mode, Mode),

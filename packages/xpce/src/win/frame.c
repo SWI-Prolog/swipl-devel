@@ -1402,7 +1402,7 @@ eventFrame(FrameObj fr, EventObj ev)
     if ( (sw = getKeyboardFocusFrame(fr)) )
       return postEvent(ev, (Graphical) sw, DEFAULT);
 
-    return send(fr, NAME_typed, ev->id, EAV);
+    return send(fr, NAME_typed, ev, EAV);
   }
 
   if ( isDownEvent(ev) && (bfr=blockedByModalFrame(fr)) )
@@ -1700,7 +1700,7 @@ static senddecl send_frame[] =
      DEFAULT, "Destroy windows and related X-window"),
   SM(NAME_status, 1, "{unmapped,hidden,iconic,window,full_screen,open}",
      statusFrame, DEFAULT, "Current visibility of the frame"),
-  SM(NAME_typed, 1, "event_id", typedFrame,
+  SM(NAME_typed, 1, "event|event_id", typedFrame,
      NAME_accelerator, "Dispatch over available windows"),
   SM(NAME_flush, 0, NULL, flushFrame,
      NAME_animate, "Flush X-server"),

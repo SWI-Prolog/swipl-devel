@@ -174,18 +174,34 @@ checkSummaryCharp(Name classname, Name name, char *s)
 Name
 characterName(Any chr)
 { char buf[10];
+  int ctrl;
   int c;
 
-  if ( !isInteger(chr) )
-    return chr;
+  if ( instanceOfObject(chr, ClassEvent) )
+  { EventObj ev = chr;
 
-  c = valInt(chr);
+    if ( !isInteger(ev->id) )
+      return ev->id;
+    else
+    { c = valInt(ev->id);
+      ctrl = (valInt(ev->buttons) && BUTTON_control);
+    }
+  } else
+  { if ( !isInteger(chr) )
+      return chr;
+
+    c = valInt(chr);
+    ctrl = FALSE;
+  }
 
   if ( c >= META_OFFSET )
   { strcpy(buf, "\\e");
     c -= META_OFFSET;
   } else
     buf[0] = EOS;
+
+  if ( ctrl )
+    goto ctrl;
 
   switch(c)
   { case ESC:
@@ -207,6 +223,7 @@ characterName(Any chr)
       strcat(buf, "DEL");
       break;
     default:
+    ctrl:
       if ( c < ' ' )
       {	int l;
 

@@ -1,6 +1,17 @@
 			   XPCE ChangeLog
 			   ==============
 
+* MODIFIED: Control-I is now distinct from TAB, as is Control-M from
+  RETURN.  This has been accomplished by passing the raw event to the
+  ->typed methods and change the calculation of the key-name in class
+  key-binding to check the status of the control-key.  It is anticipated
+  that this has no consequences for user-code, though user-code refining
+  or invoking the ->typed methods will not profit from this change if
+  they do not define the argument type as `event|event_id'.
+
+* MODIFIED: Editor to delete selection on cursor-movement without the
+  shift key held down.
+
 * FIXED: X11 version: avoid endless loop in ws_synchronise_display().
 
 * FIXED: Inpector Tool: possible crash on ->clear.
@@ -26,7 +37,7 @@ VERSION 5.1.7
 * FIXED: get(@finder, file, @off, ...) not to return the obtainer.
   (Anjo Anjewierden).
 
-* ADDED: <-read_as_file and<-size_as_file to class char_array, so
+* ADDED: <-read_as_file and <-size_as_file to class char_array, so
   atoms and strings can be opened as a Prolog stream using pce_open.
 
 * FIXED: permission-checking when opening an object from read in
