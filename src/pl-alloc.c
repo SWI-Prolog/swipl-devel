@@ -274,7 +274,9 @@ Actually, for normal operation, consPtr() is a macro from pl-data.h
 
 static inline word
 __consPtr(void *p, int ts)
-{ unsigned long v = (unsigned long) p;
+{
+  GET_LD
+  unsigned long v = (unsigned long) p;
 
   v -= base_addresses[ts&STG_MASK];
   assert(v < MAXTAGGEDPTR);

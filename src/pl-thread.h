@@ -12,14 +12,18 @@
 #ifdef O_PLMT
 #include <pthread.h>
 
+#ifdef HAVE_SEMA_INIT
+#include <synch.h>
+#endif
+
 #define MAX_THREADS 100			/* for now */
 
 typedef struct _PL_thread_info_t
 { int		    pl_tid;		/* Prolog thread id */
-  ulong		    local_size;		/* Stack sizes */
-  ulong		    global_size;
-  ulong		    trail_size;
-  ulong		    argument_size;
+  unsigned long	    local_size;		/* Stack sizes */
+  unsigned long	    global_size;
+  unsigned long	    trail_size;
+  unsigned long	    argument_size;
   int		    open_count;		/* for PL_thread_detach_engine() */
   bool		    detached;		/* detached thread */
   int		    status;		/* PL_THREAD_* */
@@ -32,6 +36,7 @@ typedef struct _PL_thread_info_t
   record_t	    goal;		/* Goal to start thread */
   record_t	    return_value;	/* Value (term) returned */
 } PL_thread_info_t;
+
 
 #define PL_THREAD_MAGIC 0x2737234f
 
@@ -148,8 +153,8 @@ void			executeThreadSignals(int sig);
 foreign_t		pl_attach_xterm(term_t in, term_t out);
 void			threadMarkAtomsOtherThreads(void);
 
-pthread_mutex_t *	newRecursiveMutex(void);
-int			freeRecursiveMutex(pthread_mutex_t *m);
+recursive_mutex_t *	newRecursiveMutex(void);
+int			freeRecursiveMutex(recursive_mutex_t *m);
 #else /*O_PLMT*/
 
 		 /*******************************

@@ -52,10 +52,19 @@ APPROACH
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #include <errno.h>
+#ifdef HAVE_SEM_INIT
 #include <semaphore.h>
 
 static sem_t sem_mark;			/* used for atom-gc */
 static sem_t sem_canceled;		/* used on halt */
+#else
+#ifdef HAVE_SEMA_INIT
+#include <synch.h>
+static sema_t sem_mark;			/* used for atom-gc */
+static sema_t sem_canceled;		/* used on halt */
+#endif /*HAVE_SEMA_INIT*/
+#endif /*HAVE_SEM_INIT*/
+
 
 		 /*******************************
 		 *	    GLOBAL DATA		*
@@ -156,6 +165,8 @@ free_prolog_thread(void *data)
   PL_thread_info_t *info = ld->thread.info;
   int i;
 
+  DEBUG(1, Sdprintf("Freeing prolog thread %u\n", pthread_self()));
+
   pthread_setspecific(PL_ldata, data);	/* put it back */
   run_thread_exit_hooks();
   
@@ -167,7 +178,7 @@ free_prolog_thread(void *data)
   
   if ( ld->feature.table )
     destroyHTable(ld->feature.table);
-  PL_unregister_atom(ld->prompt.current);
+  //PL_unregister_atom(ld->prompt.current);
 
   freeThreadMessages(ld);
   freeThreadSignals(ld);
@@ -180,7 +191,13 @@ free_prolog_thread(void *data)
   UNLOCK();
 
   if ( info->status == PL_THREAD_CANCELED )
+#ifdef HAVE_SEM_INIT
     sem_post(&sem_canceled);
+#else
+#  ifdef HAVE_SEMA_INIT
+    sema_post(&sem_canceled);
+#  endif
+#endif
 
   if ( info->detached )
     free_thread_info(info);
@@ -223,8 +240,13 @@ exitPrologThreads()
   int me = PL_thread_self();
   int canceled = 0;
 
+#ifdef HAVE_SEM_INIT
   sem_init(&sem_canceled, 0, 0);
-
+#else
+#  ifdef HAVE_SEMA_INIT
+  sema_init(&sem_canceled, 0, USYNC_THREAD,NULL);
+#  endif
+#endif
   for(i=1; i<MAX_THREADS; i++)
   { if ( threads[i].thread_data && i != me )
     { if ( pthread_cancel(threads[i].tid) == 0 )
@@ -237,17 +259,30 @@ exitPrologThreads()
   }
 
   while(canceled)
-  { int maxwait = 10;
+  { 
+    int maxwait = 10;
 
-    while(maxwait--)
-    { if ( sem_trywait(&sem_canceled) == 0 )
+    while(maxwait--) {
+#ifdef HAVE_SEM_INIT
+    if ( sem_trywait(&sem_canceled) == 0 )
+#else
+#ifdef HAVE_SEMA_INIT
+    if (sema_trywait(&sem_canceled) == 0 )
+#endif
+#endif
 	break;
       Pause(0.1);
     }
 
     canceled--;
   }
+#ifdef HAVE_SEM_INIT
   sem_destroy(&sem_canceled);
+#else
+#ifdef HAVE_SEMA_INIT
+  sema_destroy(&sem_canceled);
+#endif
+#endif
 }
 
 
@@ -947,9 +982,12 @@ unify_mutex_owner(term_t t, int owner)
 }
 
 
-pthread_mutex_t *
+recursive_mutex_t *
 newRecursiveMutex()
-{ pthread_mutex_t *m = allocHeap(sizeof(*m));
+{ recursive_mutex_t *m = allocHeap(sizeof(*m));
+
+#ifdef RECURSIVE_MUTEXES
+  /*pthread_mutex_t *m = allocHeap(sizeof(*m));*/
   pthread_mutexattr_t attr;
 
   if ( !m )
@@ -964,20 +1002,91 @@ newRecursiveMutex()
 #endif
 #endif
   pthread_mutex_init(m, &attr);
+#else
+  m->owner = 0;
+  m->count = 0;
+  pthread_mutex_init(&(m->lock),NULL);
+#endif /* RECURSIVE_MUTEXES */
 
   return m;
 }
 
 
 int
-freeRecursiveMutex(pthread_mutex_t *m)
-{ if ( pthread_mutex_destroy(m) != 0 )
+freeRecursiveMutex(recursive_mutex_t *m)
+{
+#ifdef RECURSIVE_MUTEXES
+  if ( pthread_mutex_destroy(m) != 0 )
     fail;
-
+#else
+  if (m->owner != 0)
+    fail;
+  else if ( pthread_mutex_destroy(&(m->lock)) != 0)
+    fail;
+#endif
   freeHeap(m, sizeof(*m));
   succeed;
 }
 
+
+#ifndef RECURSIVE_MUTEXES
+int
+recursive_mutex_lock(recursive_mutex_t *m)
+{ int result = 0;
+  pthread_t self = pthread_self();
+
+  if ( pthread_equal(self, m->owner) )
+    m->count++;
+  else
+  { result = pthread_mutex_lock(&(m->lock));
+    m->owner = self;
+    m->count = 1;
+  }
+
+  return result;
+}
+
+
+int
+recursive_mutex_trylock(recursive_mutex_t *m)
+{ int result = 0;
+  pthread_t self = pthread_self();
+
+  if ( pthread_equal(self, m->owner) )
+    m->count++;
+  else
+  { result = pthread_mutex_trylock(&(m->lock));
+    if ( result == 0 )
+    { m->owner = self;
+      m->count = 1;
+    }
+  }
+
+  return result;
+}
+
+
+int
+recursive_mutex_unlock(recursive_mutex_t *m)
+{ int result = 0;
+  pthread_t self = pthread_self();
+
+  if ( pthread_equal(self,m->owner) )
+  { if ( --m->count < 1 )
+    { m->owner = 0;
+      result = pthread_mutex_unlock(&(m->lock));
+    }
+  } else if ( !pthread_equal(m->owner, 0) )
+  { Sdprintf("unlocking unowned mutex %p,not done!!\n", m);
+    Sdprintf("\tlocking thread was %u , unlocking is %u\n",m->owner,self);
+
+    result = -1;
+  }
+
+  return result;
+}
+
+#endif /*RECURSIVE_MUTEXES*/
 
 static pl_mutex *
 unlocked_pl_mutex_create(term_t mutex)
@@ -1004,18 +1113,7 @@ unlocked_pl_mutex_create(term_t mutex)
   }
 
   m = allocHeap(sizeof(*m));
-  { pthread_mutexattr_t attr;		/* can this be local? */
-
-    pthread_mutexattr_init(&attr);
-#ifdef HAVE_PTHREAD_MUTEXATTR_SETKIND_NP
-    pthread_mutexattr_setkind_np(&attr, PTHREAD_MUTEX_RECURSIVE_NP);
-#else
-#ifdef HAVE_PTHREAD_MUTEXATTR_SETTYPE
-    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-#endif
-#endif
-    pthread_mutex_init(&m->mutex, &attr);
-  }
+  pthread_mutex_init(&m->mutex, NULL);
   m->count = 0;
   m->owner = 0;
   m->id    = id;
@@ -1088,58 +1186,66 @@ get_mutex(term_t t, pl_mutex **mutex, int create)
 foreign_t
 pl_mutex_lock(term_t mutex)
 { pl_mutex *m;
+  int self = PL_thread_self();
 
   if ( !get_mutex(mutex, &m, TRUE) )
     fail;
 
-  if ( pthread_mutex_lock(&m->mutex) == 0 )
+  if ( self == m->owner )
   { m->count++;
-    m->owner = PL_thread_self();
-
-    succeed;
+  } else if ( pthread_mutex_lock(&m->mutex) == 0 )
+  { m->count = 1;
+    m->owner = self;
+  } else
+  { assert(0);
   }
 
-  assert(0);				/* should not happen */
-  fail;
+  succeed;
 }
 
 
 foreign_t
 pl_mutex_trylock(term_t mutex)
 { pl_mutex *m;
+  int self = PL_thread_self();
+  int rval;
 
   if ( !get_mutex(mutex, &m, TRUE) )
     fail;
 
-  switch( pthread_mutex_trylock(&m->mutex) )
-  { case 0:
-      m->count++;
-      m->owner = PL_thread_self();
-      succeed;
-    case EBUSY:
-      fail;
-/*    return PL_error("mutex_trylock", 1, NULL,
-		      ERR_BUSY, ATOM_mutex, mutex);
-*/
-    default:
-      assert(0);			/* should not happen */
-      fail;
+  if ( self == m->owner )
+  { m->count++;
+  } else if ( (rval = pthread_mutex_trylock(&m->mutex)) == 0 )
+  { m->count = 1;
+    m->owner = self;
+  } else if ( rval == EBUSY )
+  { fail;
+  } else
+  { assert(0);
   }
+
+  succeed;
 }
 
 
 foreign_t
 pl_mutex_unlock(term_t mutex)
 { pl_mutex *m;
+  int self = PL_thread_self();
 
   if ( !get_mutex(mutex, &m, FALSE) )
     fail;
 
-  if ( pthread_mutex_unlock(&m->mutex) == 0 )
+  if ( self == m->owner )
   { if ( --m->count == 0 )
-      m->owner = 0;
+    { if ( pthread_mutex_unlock(&m->mutex) == 0 )
+      { m->owner = 0;
 
-    succeed;
+	succeed;
+      } else
+      { assert(0);
+      }
+    }
   }
 
   return PL_error("mutex_unlock", 1, MSG_ERRNO, ERR_PERMISSION,
@@ -1178,7 +1284,7 @@ pl_mutex_destroy(term_t mutex)
   if ( !get_mutex(mutex, &m, FALSE) )
     fail;
 
-  if ( !freeRecursiveMutex(&m->mutex) )
+  if ( !pthread_mutex_destroy(&m->mutex) )
     return PL_error("mutex_destroy", 1, NULL,
 		    ERR_PERMISSION, ATOM_mutex, ATOM_destroy, mutex);
 
@@ -1345,8 +1451,13 @@ threadMarkAtoms(int sig)
       break;
     }
   }
-
+#ifdef HAVE_SEM_INIT
   sem_post(&sem_mark);
+#else
+#ifdef HAVE_SEMA_INIT
+  sema_post(&sem_mark);
+#endif
+#endif
 }
 
 
@@ -1361,7 +1472,14 @@ threadMarkAtomsOtherThreads()
   int signalled = 0;
 
   LOCK();				/* don't make new threads */
+#ifdef HAVE_SEM_INIT
   sem_init(&sem_mark, 0, 0);
+#else
+#  ifdef HAVE_SEMA_INIT
+  sema_init(&sem_mark,0,USYNC_THREAD,NULL);
+#  endif
+#endif
+
   memset(&new, 0, sizeof(new));
   new.sa_handler = threadMarkAtoms;
   new.sa_flags   = SA_RESTART;
@@ -1380,10 +1498,23 @@ threadMarkAtomsOtherThreads()
   DEBUG(1, Sdprintf("Signalled %d threads.  Waiting ... ", signalled));
 
   while(signalled)
-  { sem_wait(&sem_mark);
+  { 
+#ifdef HAVE_SEM_INIT
+    sem_wait(&sem_mark);
+#else
+#  ifdef HAVE_SEMA_INIT
+    sema_wait(&sem_mark);
+#  endif
+#endif
     signalled--;
   }
+#ifdef HAVE_SEM_INIT
   sem_destroy(&sem_mark);
+#else
+#  ifdef HAVE_SEMA_INIT
+  sema_destroy(&sem_mark);
+#  endif
+#endif
 
   DEBUG(1, Sdprintf("done!\n"));
 

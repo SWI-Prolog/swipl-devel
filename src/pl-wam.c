@@ -1137,10 +1137,9 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   int arity;
   Word ap;
   ClauseRef clause;
-
   DEBUG(4, { FunctorDef f = proc->definition->functor;
 
-	     if ( LD->IO.output )
+	     if ( Scurout )
 	     { int n;
 
 	       Sdprintf("PL_open_query: %s(", stringAtom(f->name));
@@ -1153,7 +1152,6 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 	     } else
 	       Sdprintf("PL_open_query in unitialized environment.\n");
 	   });
-
 					/* should be struct alignment, */
 					/* but for now, I think this */
 					/* is always the same */

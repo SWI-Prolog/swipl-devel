@@ -67,11 +67,11 @@ typedef long  (*Sseek_function)(void *handle, long pos, int whence);
 typedef int   (*Sclose_function)(void *handle);
 typedef int   (*Scontrol_function)(void *handle, int action, void *arg);
 
-#ifdef O_PLMT
-#include <pthread.h>
-typedef pthread_mutex_t IOLOCK;
+#ifdef O_PLMT				/* only needed when compiling kernel */
+#include "pl-mutex.h"
+typedef recursive_mutex_t IOLOCK;
 #else
-typedef void		IOLOCK;
+typedef void *		IOLOCK;		/* Definition for external use */
 #endif
 
 typedef struct io_functions

@@ -72,8 +72,8 @@ static void	run_close_hooks(IOSTREAM *s);
 #define S__fupdatefilepos(s, c) S___fupdatefilepos(s, c)
 
 #ifdef O_PLMT
-#define SLOCK(s)   if ( s->mutex ) pthread_mutex_lock(s->mutex)
-#define SUNLOCK(s) if ( s->mutex ) pthread_mutex_unlock(s->mutex)
+#define SLOCK(s)   if ( s->mutex ) recursive_mutex_lock(s->mutex)
+#define SUNLOCK(s) if ( s->mutex ) recursive_mutex_unlock(s->mutex)
 #else
 #define SLOCK(s)
 #define SUNLOCK(s)
@@ -84,8 +84,8 @@ extern int 			fatalError(const char *fm, ...);
 extern int 			PL_error(const char *pred, int arity,
 					 const char *msg, int id, ...);
 #ifdef O_PLMT
-extern pthread_mutex_t *	newRecursiveMutex(void);
-extern int			freeRecursiveMutex(pthread_mutex_t *m);
+extern recursive_mutex_t *	newRecursiveMutex(void);
+extern int			freeRecursiveMutex(recursive_mutex_t *m);
 #endif
 
 		 /*******************************

@@ -106,5 +106,8 @@
 /* Define to include support for multi-threading */
 #undef O_PLMT
 
+/* Define to make use of standard (UNIX98) pthread recursive mutexes */
+#undef RECURSIVE_MUTEXES
+
 /* Define to the extension of shared objects (.so normally) */
 #undef SO_EXT

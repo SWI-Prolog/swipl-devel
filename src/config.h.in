@@ -122,6 +122,9 @@
 /* Define to include support for multi-threading */
 #undef O_PLMT
 
+/* Define to make use of standard (UNIX98) pthread recursive mutexes */
+#undef RECURSIVE_MUTEXES
+
 /* Define to the extension of shared objects (.so normally) */
 #undef SO_EXT
 
@@ -220,6 +223,12 @@
 
 /* Define if you have the select function.  */
 #undef HAVE_SELECT
+
+/* Define if you have the sem_init function.  */
+#undef HAVE_SEM_INIT
+
+/* Define if you have the sema_init function.  */
+#undef HAVE_SEMA_INIT
 
 /* Define if you have the shl_load function.  */
 #undef HAVE_SHL_LOAD
@@ -373,6 +382,9 @@
 
 /* Define if you have the termcap library (-ltermcap).  */
 #undef HAVE_LIBTERMCAP
+
+/* Define if you have the thread library (-lthread).  */
+#undef HAVE_LIBTHREAD
 
 /* Define if you have the ucb library (-lucb).  */
 #undef HAVE_LIBUCB

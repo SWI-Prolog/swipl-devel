@@ -186,11 +186,8 @@ void *alloca ();
 #include <uxnt.h>
 #endif
 
-#ifndef CONFTEST
+#include "pl-mutex.h"
 #include "pl-stream.h"
-#else
-#include <stdio.h>			/* for testing pl-save.c */
-#endif
 
 #include <sys/types.h>
 #include <setjmp.h>

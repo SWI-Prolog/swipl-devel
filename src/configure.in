@@ -193,7 +193,22 @@ _EOM_
     AC_DEFINE(O_PLMT)
   fi
   AC_CHECK_LIB(rt, sem_init)
+  AC_CHECK_FUNCS(sem_init)
+  if test ! "$ac_cv_lib_rt_sem_init" = "yes"; then
+	AC_CHECK_LIB(thread,sema_init)
+	AC_CHECK_FUNCS(sema_init)
+  fi
   AC_CHECK_FUNCS(pthread_mutexattr_setkind_np pthread_mutexattr_settype)
+  AC_MSG_CHECKING("wether mutex support recursive locking")
+  echo '#include "confdefs.h"' > conftest.c
+  cat $srcdir/test/recmutex.c >> conftest.c
+  (eval $ac_link) 2>&5
+  if test -s conftest && ./conftest; then
+    AC_MSG_RESULT(yes)
+    AC_DEFINE(RECURSIVE_MUTEXES)
+  else
+    AC_MSG_RESULT(no)
+  fi
   AC_CHECK_FUNCS(pthread_sigmask)
 fi
 
@@ -536,7 +551,7 @@ main()
 { signal(SIGINT, catch);
   kill(getpid(), SIGINT);
   while(!signalled)
-    ;
+    sleep(1);
   if ( signal(SIGINT, catch) == catch )
     exit(0);
   exit(1);
