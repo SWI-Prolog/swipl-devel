@@ -153,7 +153,7 @@ pl_open_xterm(term_t title, term_t in, term_t out)
     signal(SIGINT, SIG_IGN);		/* Don't stop on user interaction */
 					/* from toplevel */
     cc = slavename+strlen(slavename)-2;
-    if ( index(cc, '/' ) )
+    if ( strchr(cc, '/' ) )
       sprintf(arg, "-S%s/%d", BaseName(slavename), master);
     else
       sprintf(arg, "-S%c%c%d", cc[0], cc[1], master);
