@@ -248,7 +248,7 @@ equal_attributes([], _, _).
 equal_attributes([A|T], O1, O2) :-
 	get(O1, A, V1),
 	get(O2, A, V2),
-	send(V1, equal, V2),
+	catch(send(V1, equal, V2), _, fail),
 	equal_attributes(T, O1, O2).
 
 make_fill_pattern_menu(_Draw, Menu) :-

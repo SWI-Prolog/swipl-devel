@@ -247,7 +247,7 @@ draw_attribute(Gr, Att, Val) :->
 	"Modify an attribute if ->has_attribute"::
 	send(Gr, has_attribute, Att),
 	get(Gr, draw_attribute, Att, OldVal),
-	(   send(OldVal, equal, Val)
+	(   catch(send(OldVal, equal, Val), _, fail)
 	->  true
 	;   get(Gr, window, Window),
 	    send(Window, open_undo_group),
