@@ -2371,12 +2371,14 @@ lbearing(unsigned int c, XFontStruct *info)
 }
 
 
+#if 0
 static int
 rbearing(unsigned int c, XFontStruct *info)
 { XCharStruct *def = s_char_struct(info, c);
 
   return def ? def->rbearing : info->max_bounds.width;
 }
+#endif
 
 
 int
@@ -2417,7 +2419,7 @@ str_bits_as_font(String s, FontObj f, int *shift)
 }
 
 
-static inline int
+static int
 s_width_(String s, int from, int to)
 { if ( !context.gcs->char_widths )
   { return context.gcs->font_info->max_bounds.width * (to-from);
@@ -2433,16 +2435,26 @@ s_width_(String s, int from, int to)
     { char8 *q = &s->s_text8[from];
 
       width = lbearing(*q, context.gcs->font_info);
+#if 0
       for(; n-- > 1; q++)
 	width += widths[*q];
       width += rbearing(*q, context.gcs->font_info);
+#else
+      for(; n-- > 0; q++)
+	width += widths[*q];
+#endif
     } else
     { char16 *q = &s->s_text16[from];
 
       width = lbearing(*q, context.gcs->font_info);
+#if 0
       for(; n-- > 1; q++)
 	width += widths[*q];
       width += rbearing(*q, context.gcs->font_info);
+#else
+      for(; n-- > 0; q++)
+	width += widths[*q];
+#endif
     }
 
     return width;
