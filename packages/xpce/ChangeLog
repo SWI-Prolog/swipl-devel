@@ -1,3 +1,6 @@
+VERSION 5.1.2
+=============
+
 * ADDED: library(gradient) defining class gradient for making gradient
   fill-patterns.
 
