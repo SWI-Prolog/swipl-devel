@@ -1887,7 +1887,7 @@ get_partial_triple(term_t subject, term_t predicate, term_t object,
 
 static int
 inverse_partial_triple(triple *t)
-{ predicate *i;
+{ predicate *i = 0;
 
   if ( !t->inversed &&
        (!t->predicate || (i=t->predicate->inverse_of)) &&
