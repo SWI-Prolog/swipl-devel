@@ -1,6 +1,15 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 3.3.6#2
+===============
+
+  * WIN32: Switched back to MSVC 5.0 as 5.0 cannot read the .lib files of
+    6.0.
+
+  * FIXED: get_char/[1,2] and friends to return end_of_file rather then
+    '\255'.
+
 VERSION 3.3.6
 =============
 
