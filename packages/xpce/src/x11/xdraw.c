@@ -2567,6 +2567,14 @@ s_advance(String s, int from, int to)
 }
 
 
+int
+str_advance(String s, int from, int to, FontObj font)
+{ s_font(font);
+
+  return s_advance(s, from, to);
+}
+
+
 static int
 lbearing(wint_t c)
 { XGlyphInfo info;
@@ -3054,7 +3062,7 @@ str_stext(String s, int f, int len, int x, int y, Style style)
     int w = 0;				/* make compiler happy */
 
     if ( notNil(style) )
-    { w = str_advance(s, f, f+len, NULL);
+    { w = s_advance(s, f, f+len);
 
       if ( notDefault(style->background) )
       { int a = s_ascent(NULL);
@@ -3265,13 +3273,13 @@ str_selected_string(String s, FontObj font,
 
       sf = (f <= here     ?      0 : f-here);
       sl = (t >= here+len ? len-sf : t-here-sf);
-      sx = str_advance(&line->text, 0, sf, NULL);
+      sx = s_advance(&line->text, 0, sf);
       
       str_stext(&line->text, 0,  sf, line->x,    line->y+baseline, NIL);
       str_stext(&line->text, sf, sl, line->x+sx, line->y+baseline, style);
       if ( sf+sl < len )
       { int a  = sf+sl;
-	int ax = sx + str_advance(&line->text, sf, a, NULL);
+	int ax = sx + s_advance(&line->text, sf, a);
 
 	str_stext(&line->text, a, len-a, line->x+ax, line->y+baseline, NIL);
       }
