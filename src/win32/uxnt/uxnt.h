@@ -95,12 +95,15 @@
 #undef _xos_stat
 
 _export char *  _xos_home(void);
-_export char *	_xos_os_filenameW(const char *cname, wchar_t *osname, size_t len);
-_export char *	_xos_canonical_filenameW(const wchar_t *cname, char *osname, size_t len);
+_export wchar_t*_xos_os_filenameW(const char *cname,
+				  wchar_t *osname, size_t len);
+_export char *	_xos_canonical_filenameW(const wchar_t *cname,
+					 char *osname, size_t len);
 _export int	_xos_is_absolute_filename(const char *spec);
 _export char *	_xos_absolute_filename(const char *local, char *absolute, size_t len);
 _export char *	_xos_limited_os_filename(const char *spec, char *limited);
-_export char *  _xos_long_file_nameW(wchar_t *n8and3, char *name, size_t len);
+_export wchar_t*_xos_long_file_nameW(const wchar_t *n8and3,
+				     wchar_t *name, size_t len);
 _export int	_xos_same_file(const char *p1, const char *p2);
 _export int	_xos_open(const char *path, int access, ...);
 _export int	_xos_close(int handle);
@@ -112,7 +115,7 @@ _export int	_xos_access(const char *path, int mode);
 _export int	_xos_chmod(const char *path, int mode);
 _export int	_xos_remove(const char *path);
 _export int	_xos_rename(const char *old, const char *newname);
-_export int	_xos_stat(const char *path, struct stat *sbuf);
+_export int	_xos_stat(const char *path, struct _stat *sbuf);
 _export int	_xos_chdir(const char *path);
 _export int	_xos_mkdir(const char *path, int mode);
 _export int	_xos_rmdir(const char *path);
