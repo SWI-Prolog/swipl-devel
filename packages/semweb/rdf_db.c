@@ -344,13 +344,13 @@ free_predicate(predicate *p)
 }
 
 
-static inline int
+static __inline int
 is_dummy_root(predicate *p)
 { return p && !p->name;			/* no name --> dummy root */
 }
 
 
-static inline int
+static __inline int
 is_virgin_dummy_root(predicate *p)
 { return is_dummy_root(p) && !p->siblings.head;
 }

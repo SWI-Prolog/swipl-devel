@@ -541,7 +541,7 @@ get_xy_event_graphical(EventObj ev, Graphical gr, int *rx, int *ry)
 
 static void
 get_xy_event_node(EventObj ev, Node node, int *rx, int *ry)
-{ return get_xy_event_graphical(ev, node->image, rx, ry);
+{ get_xy_event_graphical(ev, node->image, rx, ry);
 }
 
 

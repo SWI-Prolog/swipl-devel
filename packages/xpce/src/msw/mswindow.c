@@ -674,7 +674,7 @@ ws_grab_keyboard_window(PceWindow sw, Bool val)
 
 
 static void
-do_grab_pointer_window(PceWindow sw, Bool val)
+do_grab_window(PceWindow sw, Bool val)
 { HWND win;
 
   if ( (win = getHwndWindow(sw)) )
