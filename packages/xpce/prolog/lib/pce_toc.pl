@@ -69,7 +69,7 @@ Typical usage
 		 *	    TOC-WINDOW		*
 		 *******************************/
 
-:- pce_begin_class(toc_window, window,
+:- pce_begin_class(toc_window(name), window,
 		   "Window for table-of-contents").
 
 variable(drag_and_drop,	bool := @off, get, "Allow drag-and-drop").
