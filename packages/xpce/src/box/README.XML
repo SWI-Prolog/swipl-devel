@@ -1,0 +1,94 @@
+			Rendering of XML documents in XPCE
+
+
+Based on graphicals:
+--------------------
+
+Map each element to an object.  Element attributes are mapped to object
+methods.  There is a uniform mechanism for addressing the contents of
+an element.
+
+--> Easy to define new renderings and map and XML document onto an
+    XPCE object structure and visa-versa.
+
+--> Easy to handle general graphical objects
+
+--> Difficult to edit plain text.  
+
+
+Based on editor
+---------------
+
+The document is represented by an editor. Each element is mapped to a
+fragment. Fragments can hold a graphical object (embedded graphical),
+which can be converted from an XML document using the first method
+described.
+
+--> Requires many extensions to class editor and fragment:
+
+	+ Well supported word-wrapping for long paragraphs.
+	+ Well supported embedding of graphicals.
+	+ Many more options to fragments and styles.
+	+ Nested fragments might be needed for clarity and
+	  performance handling long documents.  They are also
+	  a nice representation of the XML content hierarchy!
+
+--> Embedding graphicals:
+
+	+ Represent using fragments holding 1 character.
+
+--> Class text_image:
+
+	+ Turn into a device with height/width equal to the rendered
+	  text. Scrolling implies scrolling this device. Caching ensures
+	  only visible parts are actually painted.
+
+--> Fragments as `stand-alone' objects:
+
+	+ We need some way to represent and element with its content
+	  model as a single object.
+
+	+ Allow fragments on strings?  Or use text-buffer nevertheless.
+	  The overhead of text-buffers is very modest, as long as we
+	  do not use the `undo buffer'.
+
+Summarising:
+------------
+
+	+ text_buffer fragment list is a linear list of non-overlapping
+	  fragments.
+	
+	+ Fragments can hold fragments.  Positions of sub-fragments are
+	  relative to the embedded fragment.
+
+	+ Graphicals are represented using a fragment holding a single
+          character.  Such fragments should be `read-only'
+
+	+ A text_image is a graphical device rendering an entire
+	  document.  Scrolling is achieved using by moving this
+	  object in a window (also realises horizontal scrolling).
+
+Text-image caching:
+-------------------
+
+	+ Maintain a list holding character-start indices of each
+	  physical line as well as the height and baseline of the
+	  line.  Editing updates this list from the first change
+	  to the end of the visible-area or end of the change
+	  (whichever comes first).
+
+	+ For the visible area, maintain a data-structure for each
+	  line, specifying width of each character.
+
+
+Placing graphicals:
+-------------------
+
+	+ If a graphical is encountered in the running text
+
+		- If the current line is empty place it on the
+	 	  current line
+
+		- Else place it on the queue
+
+		- Update physical line descriptions (start/end)

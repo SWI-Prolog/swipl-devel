@@ -1,0 +1,34 @@
+			Representing XML Documents
+
+
+TODO LIST
+=========
+
+----------------------------------------------------------------
+* Raised text
+
+  Alternatives
+
+	+ Add raise to style
+	+ Add raise to hbox
+	+ Create a compound hbox with raise added to it
+
+----------------------------------------------------------------
+* Searching
+	+ Find text in tbox (returning tbox+offset).  Space is
+	  mapped to special hbox?
+
+----------------------------------------------------------------
+* Achors
+	+ Source (i.e. clickable links)
+		- Provide translation of event to box
+	+ Target (i.e. link location)
+		- Provide normalising to make a box vixible
+		- Provide highlight.
+			. Translate box into coordinates?
+
+----------------------------------------------------------------
+* Selection
+	+ Addressing locations?
+		- Box+offset?  Cannot compare locations then!
+		- How to deal with nested objects (e.g. table-cells).
