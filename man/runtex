@@ -15,6 +15,22 @@ else
     export TEXINPUTS=$TEXINPUTS:$appbase/macros::
 fi
 
+function texclean
+{ rm -f *.idx *.ind *.ilg *.aux *.log *.lof *.out *.toc
+}
+
+if [ "`getopt --test`" = "--" ]; then
+   case "$1" in
+     --clean)
+	texclean
+	;;
+     *)
+        echo "ERROR: runtex requires GNU getopt"
+	exit 1
+	;;
+   esac
+fi
+
 TEMP=`getopt -o n --long tex:,pdf,help,dvi,clean,maxruns: \
      -n $program -- "$@"`
 if [ $? != 0 ] ; then echo "$program: use $program --help for options" >&2 ; exit 1 ; fi
@@ -47,7 +63,7 @@ while true ; do
 	    echo "    --clean      Just remove TeX temporary files"
 	    exit 0 ;;
 	--clean)
-	    rm -f *.idx *.ind *.ilg *.aux *.log *.lof *.out *.toc
+	    texclean
 	    exit 0
 	    ;;
         --)
