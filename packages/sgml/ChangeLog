@@ -1,3 +1,6 @@
+* FIXED: &RE; SHORTREF handling if the newline appears as the first
+  character of a (new) #PCDATA block.
+
 * CONFIG: Added -with-prolog=<Prolog> by Milan Zamazal for integration
   as Debian (linux) package.
 

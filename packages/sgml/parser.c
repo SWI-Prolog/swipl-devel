@@ -2358,7 +2358,8 @@ push_element(dtd_parser *p, dtd_element *e, int callback)
 	p->etag = e->name->name;
 	p->etaglen = istrlen(p->etag);
 	sgml_cplocation(&p->startcdata, &p->location);
-      }
+      } else
+	p->cdata_state = S_PCDATA;
     }
   }
 
@@ -3768,14 +3769,14 @@ add_cdata(dtd_parser *p, int chr)
       p->blank_cdata = FALSE;
     }
 
-    if ( chr == '\n' && buf->size > 0 )
+    if ( chr == '\n' )
     { if ( p->map && p->map->ends['\r'] &&
-	   buf->data[buf->size-1] != '\r' )
+	   (buf->data[buf->size-1] != '\r' || buf->size > 0) )
       { add_ocharbuf(buf, '\r');
 	match_shortref(p);
       }
   
-      if ( buf->data[buf->size-1] == '\r' )
+      if ( buf->size > 0 && buf->data[buf->size-1] == '\r' )
 	buf->size--;
     }
   
