@@ -1,4 +1,3 @@
-# Generated automatically from Makefile.in by configure.
 ################################################################
 # Makefile for SICSTus binding to XPCE
 #
@@ -26,12 +25,12 @@ RSYNC=rsync -aC --exclude-from=Exclude
 ARCH=linux
 ARCHDIR=../../$(ARCH)
 CC=gcc
-COFLAGS=-O2
+COFLAGS=-O2 -fno-strict-aliasing
 CWFLAGS=-Wall
 CIFLAGS=-I. -I$(ARCHDIR)
 CMFLAGS= -fPIC -funsigned-char -DHAVE_CONFIG_H
 RANLIB=ranlib
-XLIBS=-lXt -lX11 -lSM -lICE -ljpeg -lXpm
+XLIBS= -lXpm -ljpeg -lXt -lX11 -lSM -lICE
 XLIB=/usr/X11R6/lib
 
 CFLAGS=-DSICSTUS -DHAVE_CONFIG_H $(CIFLAGS) $(CWFLAGS) $(COFLAGS)
