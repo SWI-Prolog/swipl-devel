@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * PORT: Add LDFLAGS for building shared object (Paulo Moura,
+    Gregory Wright)
+
   * ENHANCED: Change Prolog integers to be 64-bit on all platforms.  Also
     some critial sizes have been changed to 64-bit.  Consequences:
 
@@ -998,7 +1001,7 @@ VERSION 5.2.2 (Jun 23, 2003)
 ============================
 
   * MAYBEFIXED: Bug#68: lacking headers compiling pl-stream.c.  Lourens
-    van der Meij and Djam� Seddah.
+    van der Meij and Djam Seddah.
 
   * FIXED: GC during autoload.  Fabien Todescato.  Thanks for the extensive
     test-suite!

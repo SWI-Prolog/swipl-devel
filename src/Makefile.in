@@ -188,11 +188,11 @@ $(RUNTIMEDIR)/$(SHARED):	$(RUNTIMEDIR) $(OBJ) $(RCOBJ) $(XOBJ)
 		$(CC) -dynamiclib -current_version $(PLVERSION) \
 			-install_name $(LIBPL_INSTALL_NAME) \
 			$(COFLAGS) -o $@ \
-			$(OBJ) $(RCOBJ) $(XOBJ) $(LIBS)
+			$(OBJ) $(RCOBJ) $(XOBJ) $(LDFLAGS) $(LIBS)
 else
 $(RUNTIMEDIR)/$(SHAREDV):	$(RUNTIMEDIR) $(OBJ) $(RCOBJ) $(XOBJ)
 		$(CC) -shared $(COFLAGS) -o $@ $(SONAMEOPT) \
-			$(OBJ) $(RCOBJ) $(XOBJ) $(LIBS)
+			$(OBJ) $(RCOBJ) $(XOBJ) $(LDFLAGS) $(LIBS)
 
 $(RUNTIMEDIR)/$(SHARED):	$(RUNTIMEDIR)/$(SHAREDV)
 		( cd ../lib/$(ARCH) && rm -f $(SHARED) && ln -s $(SHAREDV) $(SHARED) )
