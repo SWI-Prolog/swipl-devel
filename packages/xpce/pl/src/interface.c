@@ -2756,9 +2756,15 @@ PrologQuery(int what, PceCValue *value)
 
 #ifdef SWI
 
+#if 1
 #define pl_malloc NULL
 #define pl_realloc NULL
 #define pl_free NULL
+#else
+#define pl_malloc PL_malloc
+#define pl_realloc PL_realloc
+#define pl_free PL_free
+#endif
 
 		 /*******************************
 		 *	    CONSOLE I/O		*

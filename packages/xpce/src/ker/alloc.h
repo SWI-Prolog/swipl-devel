@@ -22,7 +22,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#define ALLOCSIZE	10240		/* size of allocation space */
+#define ALLOCSIZE	65000		/* size of allocation space */
 #define ALLOCFAST	1024
 
 GLOBAL char    *spaceptr;	/* allocation space */

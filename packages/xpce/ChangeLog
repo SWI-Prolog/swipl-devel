@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: `frame->keyboard_focus' to use window rather than decorator.
+  Could make dialog windows with a scrollbar insensitive to typing.
+
 * FIXED: Auto-update of library class index.
 
 * FIXED: Class persistent_frame to be more careful about changed window
