@@ -28,11 +28,11 @@ prolog_help :-
 prolog_help(Topic) :-
 	help_atom(Topic, Atom),
 	(   atomic(Atom)
-	->  send(@pui_help_window, help, Atom)
+	->  send(@pui_help_window, give_help, Atom)
 	;   get(@pui_help_window, member, pui_editor, Editor),
 	    send(Editor, clear),
 	    forall(member(A, Atom),
-		   send(@pui_help_window, help, A, @off, @off)),
+		   send(@pui_help_window, give_help, A, @off, @off)),
 	    send(Editor, home)
 	),
 	send(@pui_help_window?frame, expose).
@@ -67,9 +67,9 @@ initialise(F) :->
 	send(F, fill_menu_bar),
 	send(F, fill_dialog).
 
-help(F, What:name, Clear:[bool], ScrollToStart:[bool]) :->
+give_help(F, What:name, Clear:[bool], ScrollToStart:[bool]) :->
 	get(F, member, pui_editor, Editor),
-	send(Editor, help, What, Clear, ScrollToStart).
+	send(Editor, give_help, What, Clear, ScrollToStart).
 
 apropos(F, Atom:name) :->
 	get(F, member, pui_editor, Editor),
@@ -96,7 +96,7 @@ fill_menu_bar(F) :->
 	send(D, append, new(MB, menu_bar)),
 	send(MB, append, new(File, popup(file))),
 	send(MB, append, new(View, popup(view))),
-	send(MB, append, new(Hist, popup(history, message(F, help, @arg1)))),
+	send(MB, append, new(Hist, popup(history, message(F, give_help, @arg1)))),
 	send_list(File, append,
 		  [ menu_item(about,
 			      message(F, about),
@@ -120,7 +120,7 @@ fill_dialog(F) :->
 	chain_list(ValueSet, Names),
 	send(TI, value_set, ValueSet),
 	send(D, append, button(help,
-			       and(message(F, help, TI?selection),
+			       and(message(F, give_help, TI?selection),
 				   message(F, default_action, help)))),
 	send(D, append, button(apropos,
 			       and(message(F, apropos, TI?selection),
@@ -225,7 +225,7 @@ clear(_, @off) :- !.
 clear(V, _) :-
 	send(V, clear).
 
-help(V, What:name,
+give_help(V, What:name,
      Clear:[bool], ScrollToStart:[bool],
      FailOnError:fail_on_error=[bool]) :->
 	"Display help message"::
@@ -358,7 +358,7 @@ jump(V, Caret:[int]) :->
 	),
 	get(V, find_fragment, message(@arg1, overlap, C), Fragment),
 	get(Fragment, string, JumpTo),
-	(   send(V, help, JumpTo, fail_on_error := @on)
+	(   send(V, give_help, JumpTo, fail_on_error := @on)
 	->  true
 	;   get(JumpTo, value, Atom),
 	    try_to_edit(Atom)
@@ -377,7 +377,7 @@ insert_section(V, Text) :->
 	send(V, newline, 2).
 
 drop(V, Id:name) :->
-	send(V, help, Id, fail_on_error := @on).
+	send(V, give_help, Id, fail_on_error := @on).
 
 :- pce_end_class.
 
@@ -659,7 +659,7 @@ initialise(PT) :->
 		 *******************************/
 
 open_node(PT, Id:name) :->
-	send(PT?frame, help, Id).
+	send(PT?frame, give_help, Id).
 
 		 /*******************************
 		 *	      EXPAND		*

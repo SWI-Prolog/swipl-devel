@@ -54,11 +54,11 @@ LIBQLFS=	pce_manual.qlf dialog/dialog.qlf emacs/emacs.qlf pcedraw.qlf
 # The main targets
 ################################################################
 
-nosoall:	$(PLBASE)/plrc $(PLBASE)/xpce $(PLBASE)/Makefile \
-		$(XPCE)
+nosoall:	$(PLBASE)/pl.rc $(PLBASE)/xpce.rc $(PLBASE)/xpce \
+		$(PLBASE)/Makefile $(XPCE)
 
-soall:		$(PLBASE)/plrc $(PLBASE)/xpce $(PLBASE)/Makefile \
-		$(PLBASE)/xpce/lib/$(PLARCH) \
+soall:		$(PLBASE)/pl.rc $(PLBASE)/xpce.rc $(PLBASE)/xpce \
+		$(PLBASE)/Makefile $(PLBASE)/xpce/lib/$(PLARCH) \
 		$(XPCESO) bootqlf
 
 ################################################################
@@ -124,7 +124,10 @@ bootqlf:	$(addprefix ../../prolog/lib/, $(BOOTQLF))
 # Link xpce to the SWI-Prolog library directory
 ################################################################
 
-$(PLBASE)/plrc:	plrc
+$(PLBASE)/pl.rc:	plrc
+	cp plrc $@
+
+$(PLBASE)/xpce.rc:	plrc
 	cp plrc $@
 
 $(PLBASE)/xpce:
