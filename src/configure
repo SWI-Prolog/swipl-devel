@@ -4409,7 +4409,7 @@ else
     double *p;
     unsigned long x = (unsigned long) l;
 
-#if defined(__alpha__) || defined(__alpha) || defined __ia64__
+#if defined(__alpha__) || defined(__alpha) || defined(__ia64__)
     exit(1);
 #endif
 
@@ -4452,7 +4452,7 @@ else
     long *p;
     int i;
 
-#if defined(__alpha__) || defined(__alpha)
+#if defined(__alpha__) || defined(__alpha) || defined(__ia64__)
     exit(1);
 #endif
 

@@ -414,7 +414,7 @@ AC_TRY_RUN(
     long *p;
     int i;
 
-#if defined(__alpha__) || defined(__alpha)
+#if defined(__alpha__) || defined(__alpha) || defined(__ia64__)
     exit(1);
 #endif
 
