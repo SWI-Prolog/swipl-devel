@@ -711,7 +711,12 @@ discardForeignFrame(LocalFrame fr)
   DEBUG(5, Sdprintf("\tCut %s, context = 0x%lx\n",
 		    predicateName(def), context));
 
-  CALLNDETFN(result, argc, context);
+  if ( true(def, P_VARARG) )
+  { result = F(0, argc, context);
+  } else
+  { CALLNDETFN(result, argc, context);
+  }
+
 #undef A
 #undef F
 
