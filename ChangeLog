@@ -1,6 +1,14 @@
 			SWI-Prolog ChangeLog
 			====================
  
+VERSION 3.2.2
+=============
+
+  * FIXED: Memory problem at startup.  This caused startup-crashes in
+    Windows 95/98.  Normally harmless under NT and Unix, but can cause
+    problems here too if the size of a saved state is an exact multiple
+    of the machine's page-size.
+
 VERSION 3.2.1
 =============
 

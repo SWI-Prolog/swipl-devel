@@ -41,7 +41,7 @@ extern int html_fd_next_tag(FILE *fd, char *tag, char *props);
 extern int html_fd_find_close_tag(FILE *fd, const char *etag);
 
 extern char *html_decode_tag(const char *data, HtmlTagDef spec, void *dest);
-extern char *html_find_tag(const char *data, const char *tag);
+extern char *html_find_tag(const char *data, const char *end, const char *tag);
 extern char *html_find_close_tag(const char *data, const char *tag);
 
 extern int html_cvt_malloc_string(const char *d, int len, void *dst, void *cl);

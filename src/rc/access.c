@@ -115,10 +115,11 @@ make_file_tag_def()
 static char *
 decode_member_header(RcArchive rca, const char *p0, RcMember mbr)
 { const char *p = p0;
+  const char *end = &((const char *)rca->data)[rca->size];
 
   memset(mbr, 0, sizeof(*mbr));
 
-  if ( (p = html_find_tag(p0, "file")) )
+  if ( (p = html_find_tag(p0, end, "file")) )
   { p = html_decode_tag(p, make_file_tag_def(), mbr)+1;
 
     if ( mbr->name )
@@ -228,7 +229,8 @@ find_archive_dimensions(RcArchive rca)
   int alen = strlen(ARCHIVE_TAG);
 
   if ( strncasecmp(data, ARCHIVE_TAG, alen) != 0 )
-  { const char *end = data + rca->size - 1;
+  { const char *rc_end = &data[rca->size];
+    const char *end = rc_end-1;
     const char *s;
 
     while(end > data && *end != '<')
@@ -238,7 +240,7 @@ find_archive_dimensions(RcArchive rca)
       return FALSE;
     }
     
-    if ( (s = html_find_tag(end, "foot")) )
+    if ( (s = html_find_tag(end, rc_end, "foot")) )
     { rc_size len = contentlength(s);
 
       if ( len )
@@ -285,7 +287,7 @@ at_archive_start(RcArchive rca)
 static int
 find_archive_dimensions(RcArchive rca)
 { char buf[100];
-  char *end, *s;
+  char *end, *theend, *s;
   rc_size bufstart;
 
   if ( at_archive_start(rca) )
@@ -294,7 +296,8 @@ find_archive_dimensions(RcArchive rca)
     return FALSE;
 
   bufstart = fseek(rca->fd, sizeof(buf), SEEK_END);
-  end = buf + fread(buf, sizeof(char), sizeof(buf), rca->fd);
+  theend = buf + fread(buf, sizeof(char), sizeof(buf), rca->fd);
+  end = theend;
 
   while(end > buf && *end != '<')	/* find the last tag */
     end--;
@@ -304,7 +307,7 @@ find_archive_dimensions(RcArchive rca)
     return FALSE;
   }
 
-  if ( (s = html_find_tag(end, "foot")) )
+  if ( (s = html_find_tag(end, theend, "foot")) )
   { rc_size len = contentlength(s);
 
     if ( len )

@@ -50,16 +50,21 @@ skipidentifier(const char *s)
 
 
 char *
-html_find_tag(const char *data, const char *tag)
+html_find_tag(const char *data, const char *end, const char *tag)
 { int len = strlen(tag);
 
-  while(data)
-  { if ( (data = strchr(data, '<')) &&
-	 strncasecmp(data+1, tag, len) == 0 &&
+  for(;;)
+  { while(data != end && *data != '<')
+      data++;
+
+    if ( data == end )
+      return NULL;
+
+    if ( strncasecmp(data+1, tag, len) == 0 &&
 	 (isspace(data[len+1]) || data[len+1] == '>') )
       return (char *)data+len+1;
-    if ( data )
-      data++;
+
+    data++;
   }
 
   return NULL;
