@@ -339,7 +339,7 @@ isCurrentArithFunction(functor_t f, Module m)
 
 #if O_PROLOG_FUNCTIONS
 
-static int prologFunction(ArithFunction, term_t, Number);
+static int prologFunction(ArithFunction, term_t, Number ARG_LD);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Activating a Prolog predicate as function below the arithmetic functions
@@ -352,7 +352,7 @@ calling convention required by ar_func_n() below.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-prologFunction(ArithFunction f, term_t av, Number r)
+prologFunction(ArithFunction f, term_t av, Number r ARG_LD)
 { int arity = f->proc->definition->functor->arity;
   fid_t fid = PL_open_foreign_frame();
   qid_t qid;
@@ -361,8 +361,7 @@ prologFunction(ArithFunction f, term_t av, Number r)
   qid = PL_open_query(NULL, PL_Q_CATCH_EXCEPTION, f->proc, av);
 
   if ( PL_next_solution(qid) )
-  { GET_LD
-    rval = valueExpression(av+arity-1, r PASS_LD);
+  { rval = valueExpression(av+arity-1, r PASS_LD);
     PL_close_query(qid);
     PL_discard_foreign_frame(fid);
   } else
@@ -371,8 +370,7 @@ prologFunction(ArithFunction f, term_t av, Number r)
     if ( (except = PL_exception(qid)) )
     { rval = PL_raise_exception(except);		/* pass exception */
     } else
-    {
-      term_t goal = PL_new_term_ref();
+    { term_t goal = PL_new_term_ref();
 #ifdef O_LIMIT_DEPTH
        
 #endif
@@ -467,7 +465,7 @@ valueExpression(term_t t, Number r ARG_LD)
 	fail;
     }
 
-    rval = prologFunction(f, h0, r);
+    rval = prologFunction(f, h0, r PASS_LD);
     resetTermRefs(h0);
     return rval;
   }
@@ -1464,7 +1462,7 @@ ar_func_n(code n, int argc, Number *stack)
     for(n=0; n<argc; n++)
       _PL_put_number(h0+n, &sp[n]);
 
-    rval = prologFunction(f, h0, &result);
+    rval = prologFunction(f, h0, &result PASS_LD);
     lTop = lSave;
   } else
   { switch(argc)
