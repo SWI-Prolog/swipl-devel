@@ -152,7 +152,11 @@ __pl_export IOSTREAM *S__getiob(void);	/* get DLL's __iob[] address */
 
 __pl_export_data IOFUNCTIONS Sfilefunctions;	/* OS file functions */
 __pl_export_data int	     Slinesize;		/* Sgets() linesize */
+#if defined(__CYGWIN32__) && !defined(PL_KERNEL)
+#define S__iob S__getiob()
+#else
 __pl_export_data IOSTREAM    S__iob[3];		/* Libs standard streams */
+#endif
 
 #define Sinput  (&S__iob[0])		/* Stream Sinput */
 #define Soutput (&S__iob[1])		/* Stream Soutput */
