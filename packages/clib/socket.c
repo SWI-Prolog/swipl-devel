@@ -384,6 +384,10 @@ freeSocket(int socket)
   }
   UNLOCK();
 
+#ifdef WIN32
+  WSAAsyncSelect(socket, SocketHiddenWindow(), 0, 0);
+#endif
+
   closesocket(socket);
 }
 
@@ -679,10 +683,6 @@ tcp_close_socket(term_t Socket)
 
   if ( !tcp_get_socket(Socket, &socket) )
     return FALSE;
-
-#ifdef WIN32
-  WSAAsyncSelect(socket, SocketHiddenWindow(), 0, 0);
-#endif
 
   freeSocket(socket);
 
