@@ -277,6 +277,7 @@ suggest predicates from a keyword.
 \predicatesummary{mutex_create}{1}{Create a thread-synchronisation device}
 \predicatesummary{mutex_destroy}{1}{Destroy a mutex}
 \predicatesummary{mutex_lock}{1}{Become owner of a mutex}
+\predicatesummary{mutex_statistics}{0}{Print statistics on mutex usage}
 \predicatesummary{mutex_trylock}{1}{Become owner of a mutex (non-blocking)}
 \predicatesummary{mutex_unlock}{1}{Release ownership of mutex}
 \predicatesummary{mutex_unlock_all}{0}{Release ownership of all mutexes}

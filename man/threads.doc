@@ -199,6 +199,16 @@ stacks and CPU time yield different values for each thread.%
 		  it does not work in 95/98/ME.  For POSIX systems
 		  it requires times() to return values specific for
 		  the calling thread.}
+
+    \predicate{mutex_statistics}{0}{}
+Print usage statistics on internal mutexes and mutexes associated
+with dynamic predicates.  For each mutex two numbers are printed:
+the number of times the mutex was acquired and the number of
+\jargon{collisions}: the number times the calling thread has to
+wait for the mutex.  The collistion-count is not available on
+Windows as this would break portability to Windows-95/98/ME or
+significantly harm performance.  Generally collision count is
+close to zero on single-CPU hardware.
 \end{description}
 
 
