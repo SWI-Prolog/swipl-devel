@@ -19,6 +19,7 @@
 	   , send_list/3
 	   , show_key_bindings/1
 	   ]).
+:- set_prolog_flag(character_escapes, false).
 
 		 /*******************************
 		 *	  BUTTON (JUMP)		*

@@ -9,6 +9,7 @@
 
 :- module(emacs_text_mode, []).
 :- use_module(library(pce)).
+:- set_prolog_flag(character_escapes, false).
 
 :- emacs_begin_mode(text, fundamental,
 		    "Edit plain text (sets fillmode",

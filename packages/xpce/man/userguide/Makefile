@@ -1,4 +1,4 @@
-.SUFFIXES: .tex .dvi .doc .pl
+.SUFFIXES: .tex .dvi .doc .pl .eps .pdf
 
 PCETEX=../../TeX
 DOCTOTEX=../../bin/doc2tex
@@ -29,6 +29,11 @@ all:	$(DVI)
 pdf:	$(PDF)
 ps:	$(PS)
 
+epsimages=	$(shell find . -name *.eps)
+pdfimages=	$(epsimages:.eps=.pdf)
+
+pdfimg:	$(pdfimages)
+
 $(DVI):	$(XPCETEX) $(LOGO) figs/class
 	@TEXINPUTS=.:$(PCETEX):$$TEXINPUTS; \
 	echo "**********************************************************"; \
@@ -43,11 +48,26 @@ $(DVI):	$(XPCETEX) $(LOGO) figs/class
 	  latex $(DOC) || exit 1; \
 	done
 
+$(PDF):	$(XPCETEX) $(LOGO) figs/class
+	$(MAKE) pdfimg
+	@TEXINPUTS=.:$(PCETEX):$$TEXINPUTS; \
+	echo "**********************************************************"; \
+	echo "* Running pdflatex $(DOC)"; \
+	echo "**********************************************************"; \
+	export TEXINPUTS; \
+	rm -f $(LOG); \
+	while test ! -e $(LOG) || grep -q $(RERUN) $(LOG); do \
+	  $(CORRECTINDEX) $(DOC).idx; \
+	  $(MAKEINDEX) $(DOC).idx; \
+	  touch $(DOC).ind; \
+	  pdflatex $(DOC) || exit 1; \
+	done
+
 $(PS):	$(DVI)
 	dvips -o $@ $(DVI)
 
-$(PDF):	$(PS)
-	pstill -cgipt -o $@ $(PS)
+#$(PDF):	$(PS)
+#	pstill -cgipt -o $@ $(PS)
 
 html:	$(XPCETEX)
 	latex2html xpceusg
@@ -64,10 +84,9 @@ bib:	xpceusg.aux
 	 export TEXINPUTS BIBINPUTS; bibtex xpceusg)
 
 figs/uva.eps:	$(PCETEX)/figs/uva.eps
-	cp $(PCETEX)/figs/uva.eps figs/uva.eps
-
+	cp $< $@
 figs/swi.eps:	$(PCETEX)/figs/swi.eps
-	cp $(PCETEX)/figs/swi.eps figs/swi.eps
+	cp $< $@
 figs/class:
 	mkdir -p $@
 
@@ -88,9 +107,12 @@ summary.tex:		summary.doc classes.pl
 .pl.tex:
 	$(PLTOTEX) $*.pl > $*.tex
 
+.eps.pdf:
+	epstopdf $*.eps
+
 clean:
 	rm -f $(XPCETEX) $(PWTEX) \
-		*.dvi *.toc *.aux *.idx *.ind *.blg *.log *.ilg \
+		*.out *.dvi *.toc *.aux *.idx *.ind *.blg *.log *.ilg \
 		*~ figs/*~ \
-		$(LOGO) figs/class/* summary.tmp
-	
+		$(LOGO) summary.tmp
+	rm -rf figs/class

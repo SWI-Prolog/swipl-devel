@@ -591,15 +591,27 @@ getPreviousChain(Chain ch, Any val)
 
 status
 forAllChain(Chain ch, Code code, Bool safe)
-{ if ( safe == OFF )
+{ int i = 1;
+  Any av[2];
+
+  if ( safe == OFF )
   { Cell cell;
 
     for_cell(cell, ch)
-      TRY(forwardCodev(code, 1, &cell->value));
+    { av[0] = cell->value;
+      av[1] = toInt(i++);
+      if ( !forwardCodev(code, 2, av) )
+	fail;
+    }
   } else
   { Any obj;
 
-    for_chain(ch, obj, TRY(forwardCodev(code, 1, &obj)));
+    for_chain(ch, obj,
+	      { av[0] = obj;
+		av[1] = toInt(i++);
+		if ( !forwardCodev(code, 2, av) )
+		  fail;
+	      });
   }
 
   succeed;
@@ -608,15 +620,27 @@ forAllChain(Chain ch, Code code, Bool safe)
 
 status
 forSomeChain(Chain ch, Code code, Bool safe)
-{ if ( safe == OFF )
+{ Any av[2];
+  int i = 1;
+
+  if ( safe == OFF )
   { Cell cell;
 
     for_cell(cell, ch)
-      forwardCodev(code, 1, &cell->value);
+    { av[0] = cell->value;
+      av[1] = toInt(i++);
+
+      forwardCodev(code, 2, av);
+    }
   } else
   { Any obj;
 
-    for_chain(ch, obj, forwardCodev(code, 1, &obj));
+    for_chain(ch, obj,
+	      { av[0] = obj;
+		av[1] = toInt(i++);
+
+		forwardCodev(code, 2, av);
+	      });
   }
 
   succeed;
@@ -626,9 +650,14 @@ forSomeChain(Chain ch, Code code, Bool safe)
 Any
 getFindChain(Chain ch, Code code)
 { Cell cell;
+  Any av[2];
+  int i = 1;
 
   for_cell(cell, ch)
-  { if ( forwardCodev(code, 1, &cell->value) )
+  { av[0] = cell->value;
+    av[1] = toInt(i++);
+
+    if ( forwardCodev(code, 2, av) )
       answer(cell->value);
   }
 
@@ -640,9 +669,14 @@ Chain
 getFindAllChain(Chain ch, Code code)
 { Chain result = answerObject(ClassChain, 0);
   Cell cell;
+  Any av[2];
+  int i = 1;
 
   for_cell(cell, ch)
-  { if (forwardCodev(code, 1, &cell->value) != FAIL)
+  { av[0] = cell->value;
+    av[1] = toInt(i++);
+
+    if ( forwardCodev(code, 2, av) )
       appendChain(result, cell->value);
   }
 
@@ -652,13 +686,19 @@ getFindAllChain(Chain ch, Code code)
 
 static Chain
 getMapChain(Chain ch, Function f)
-{ Any obj;
-  Chain result = answerObject(ClassChain, 0);
-  Any rval;
+{ Chain result = answerObject(ClassChain, 0);
+  Any av[2];
+  int i = 1;
+  Cell cell;
 
-  for_chain(ch, obj,
-	    if ( (rval = getForwardFunctionv(f, 1, &obj)) )
-	      appendChain(result, rval));
+  for_cell(cell, ch)
+  { Any rval;
+
+    av[0] = cell->value;
+    av[1] = toInt(i++);
+    if ( (rval = getForwardFunctionv(f, 2, av)) )
+      appendChain(result, rval);
+  }
 
   answer(result);
 }
@@ -667,9 +707,14 @@ getMapChain(Chain ch, Function f)
 static status
 findChain(Chain ch, Code code)
 { Cell cell;
+  Any av[2];
+  int i = 1;
 
   for_cell(cell, ch)
-  { if ( forwardCodev(code, 1, &cell->value) )
+  { av[0] = cell->value;
+    av[1] = toInt(i++);
+
+    if ( forwardCodev(code, 2, av) )
     { ch->current = cell;
       succeed;
     }

@@ -17,6 +17,7 @@
 	   , shell/1
 	   , term_to_atom/2
 	   ]).
+:- set_prolog_flag(character_escapes, false).
 
 :- pce_autoload(tile_hierarchy, library('man/v_tile')).
 :- pce_autoload(toc_window,	library(pce_toc)).

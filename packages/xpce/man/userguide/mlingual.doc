@@ -23,7 +23,8 @@ and externally visible names:
     \begin{center}
     % OOPS ... fsfig doesn't appear to center properly if the
     % figure is wider then the environment.  Hence to makeboxes.
-    \makebox[0pt][c]{\makebox[\textwidth][c]{\psfig{figure=figs/username.eps}}}
+    \makebox[0pt][c]{\makebox[\textwidth][c]{%
+    \includegraphics{username}}}
     \end{center}
 
     This method may be redefined to return another name or image

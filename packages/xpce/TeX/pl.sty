@@ -1,39 +1,52 @@
 %			SWI-Prolog document-style
 
+% Test for PDF generation using pdflatex
+
+\newif\ifpdf
+\ifx\pdfoutput\undefined
+   \pdffalse
+\else
+   \pdfoutput=1
+   \pdftrue
+\fi
+
+% Get hyperrefs to work
+
+\usepackage{makeidx}
+\usepackage{url}
+
+\ifpdf
+  \usepackage[pdftex,colorlinks=true,urlcolor=blue]{hyperref}
+  \pdfcompresslevel=9
+%  \pdfcatalog{
+%    /PageMode /UseOutLines
+%  }
+  \usepackage[pdftex]{graphicx}
+  \DeclareGraphicsExtensions{.pdf,.jpg,.png}
+\else
+  \usepackage[dvips]{graphicx}
+  \DeclareGraphicsExtensions{.eps,.ps}
+\fi
+\graphicspath{{figs/}{./}}
+
 %	Other styles
 
 \input logo.sty
 \usepackage{a4wide}
 \usepackage{fancyheadings}
 \usepackage{fancychap}
-\usepackage{makeidx}
 \usepackage{longtable}
 \usepackage{ifthen}
 \usepackage{dcolumn}
-\usepackage{url}
-\usepackage{psfig}
 \usepackage{calc}
 \setlongtables
-\pssilent
 
 \catcode`\^^A=8% downarrow are for subscripts
 \catcode`\_=\active
 \def_{\ifmmode\else\_\fi}
 \def\vobeyspaces{\@vobeyspaces}
 
-%	FLOATS
-
-\setcounter{topnumber}{100}
-\renewcommand{\topfraction}{0.9}
-\setcounter{totalnumber}{100}
-\renewcommand{\bottomfraction}{0.9}
-\renewcommand{\textfraction}{0.1}
-\renewcommand{\dbltopfraction}{0.9}
-\renewcommand{\dblfloatpagefraction}{0.8}
-\renewcommand{\floatpagefraction}{0.8}
-
-\def\fps@figure{htbp}
-\def\fps@table{htbp}
+\newcommand{\onlinebreak}{}
 
 %	References
 
@@ -64,7 +77,9 @@
 %	Descriptions (definitions) of various things
 
 \newcommand{\definition}[1]{%
+	\onlinebreak%
 	\item[\mbox{#1}]\hfill\mbox{}\linebreak}
+\newcommand{\defentry}[1]{\definition{#1}}
 \newcommand{\emptydefinition}[1]{%
 	\makebox[-\leftmargin]{\mbox{}}\mbox{\bf #1}\\}
 
@@ -75,12 +90,12 @@
 \makeatother
 \newcommand{\longoptionitem}[2]{%
 	\ifthenelse{\equal{}{#2}}{%
-	    \definition{--#1}}{%
-	    \definition{--#1={\it #2}}}\ignorespaces}
+	    \definition{-{}-#1}}{%
+	    \definition{-{}-#1={\it #2}}}\ignorespaces}
 \newcommand{\longoption}[2]{%
 	\ifthenelse{\equal{}{#2}}{%
-	    \mbox{\reffont --#1}}{%
-	    \mbox{\reffont --#1={\it #2}}}}
+	    \mbox{\reffont -{}-#1}}{%
+	    \mbox{\reffont -{}-#1={\it #2}}}}
 
 \newcommand{\traceoption}[3]{%
 	\definition{{\tt #1} (#2)}#3%
@@ -98,18 +113,18 @@
 	\item[\tt #1]%
 	\ignorespaces}
 \newcommand{\directive}[3]{%
-	\definition{:- #1({\it #3})}%
+	\defentry{:- #1({\it #3})}%
 	\index{#1/#2}\ignorespaces}
 \newcommand{\predicate}[3]{%
 	\ifthenelse{\equal{#2}{0}}{%
-	    \definition{#1}}{%
-	    \definition{#1({\it #3})}}%
+	    \defentry{#1}}{%
+	    \defentry{#1({\it #3})}}%
 	\index{#1/#2}\ignorespaces}
 \newcommand{\infixop}[3]{%
-	\definition{{\it #2} #1 {\it #3}}%
+	\defentry{{\it #2} #1 {\it #3}}%
 	\index{#1/2}\ignorespaces}
 \newcommand{\prefixop}[2]{%
-	\definition{#1 {\it #2}}%
+	\defentry{#1 {\it #2}}%
 	\index{#1/1}\ignorespaces}
 \newcommand{\termitem}[2]{%
 	\ifthenelse{\equal{}{#2}}{%
@@ -121,11 +136,16 @@
 	    {\reffont #1}}{%
 	    {\reffont #1}({\it #2})}}
 \newcommand{\infixterm}[3]{{\it #2} #1 {\it #2}}
+\newcommand{\errorterm}[2]{\mbox{\tt%
+	\ifthenelse{\equal{}{#2}}{%
+	    #1}{%
+	    #1(#2)}}}
 \newcommand{\cfunction}[3]{%
-	\definition{{\it #1} #2({\it #3})}%
+	\defentry{{\tt #1} #2{\rm (}{\it #3}{\rm )}}%
 	\index{#2()}\ignorespaces}
+\newcommand{\cdecl}[2]{{\tt #1} {\em #2}}
 \newcommand{\cmacro}[3]{%
-	\definition{{\it #1} #2({\it #3})}%
+	\defentry{{\it #1} #2({\it #3})}%
 	\index{#2()}\ignorespaces}
 \newcommand{\cglobalvar}[1]{{\tt #1}}
 
@@ -135,6 +155,8 @@
 \newcommand{\isa}{& ::= &}
 \newcommand{\ora}{& $\mid$ &}
 
+\newcommand{\class}[1]{{\em #1}\index{#1 \string\idxtype{class}}}
+\newcommand{\classs}[1]{{\em #1s}\index{#1 \string\idxtype{class}}}
 \newcommand{\demo}[1]{{\sf #1}\index{#1 \string\idxtype{demo}}}
 \newcommand{\pllib}[1]{library({\tt #1})\index{#1 \string\idxtype{library}}}
 \newcommand{\clib}[1]{{\tt #1}\index{#1 \string\idxtype{library}}}
@@ -142,14 +164,14 @@
 \newcommand{\constf}[1]{{\reffont #1}}
 \newcommand{\const}[1]{{\tt #1}}
 \newcommand{\type}[1]{{\reffont #1}}
-\newcommand{\module}[1]{{\reffont #1}}
 \newcommand{\idx}[1]{#1\index{#1}}
 \newcommand{\foreseen}[1]{\footnote{#1}}
-\newcommand{\email}[1]{\mbox{\tt #1}}
-%\newcommand{\url}[1]{\mbox{\tt #1}}
+\newcommand{\metafile}[1]{\mbox{\tt #1}}
+\newcommand\file{\begingroup \urlstyle{tt}\Url}
+\newcommand\email{\begingroup \urlstyle{tt}\Url}
 \newcommand{\env}[1]{\mbox{\tt #1}}
 \newcommand{\exam}[1]{\mbox{\tt #1}}
-\newcommand{\file}[1]{\mbox{\tt #1}}
+\newcommand{\module}[1]{\mbox{\reffont #1}}
 \newcommand{\fileext}[1]{\mbox{\tt .#1}}
 \newcommand{\option}[1]{\mbox{\tt #1}}
 \newcommand{\cmdlineoption}[1]{\mbox{\tt #1}}
@@ -168,7 +190,6 @@
 
 \newcommand\satom{\begingroup \urlstyle{tt}\Url}
 \newcommand\fmtseq{\begingroup \urlstyle{tt}\Url}
-%\newcommand\file{\begingroup \urlstyle{tt}\Url}
 
 \urldef{\Sexe}\satom{#!}		% #!
 \urldef{\Scut}\satom{!}			% !
@@ -290,18 +311,17 @@
 \def\postscriptfig{\@ifnextchar[{\@scaledpostscriptfig}{\@postscriptfig}}
 \def\@scaledpostscriptfig[#1]#2#3{%
 	\begin{figure}%
-	    \centerline{\psfig{figure=figs/#2.eps,#1}}
+	    \centerline{\includegraphics[#1]{#2}}
 	    \caption{#3}
 	    \label{fig:#2}
 	\end{figure}}
 \def\@postscriptfig#1#2{%
 	\begin{figure}%
-	    \centerline{\psfig{figure=figs/#1.eps}}
+	    \centerline{\includegraphics{#1}}
 	    \caption{#2}
 	    \label{fig:#1}
 	\end{figure}}
 \makeatletter
-
 
 %	\begin{tabularlp}{longest-text}
 
@@ -314,6 +334,7 @@
 	 \setlength{\tabDright}{\linewidth-\columnsep*3-\tabDleft}%
 	 \begin{tabular}{|p{\tabDleft}|>{\raggedrightcolumn}p{\tabDright}|}}%
 	{\end{tabular}}
+
 
 %	PAGESTYLE
 %

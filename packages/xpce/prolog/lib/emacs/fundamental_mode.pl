@@ -16,6 +16,7 @@
 	   , default/3
 	   , ignore/1
 	   ]).
+:- set_prolog_flag(character_escapes, false).
 
 :- emacs_begin_mode(fundamental, [],	% []: root of the mode hierarchy
 		    "Generic PceEmacs editing mode",

@@ -29,6 +29,14 @@
 #include <signal.h>
 #endif
 
+#ifdef _REENTRANT
+#define LOCK()   pceMTLock(LOCK_PCE)
+#define UNLOCK() pceMTUnlock(LOCK_PCE)
+#else
+#define LOCK()
+#define UNLOCK()
+#endif
+
 #ifdef __WIN32__
 #include <windows.h>
 #endif
@@ -1543,14 +1551,16 @@ pl_new(Term assoc, Term descr)
 { AnswerMark mark;
   PceObject obj;
   Term d = NewTerm();
-  Module odm = PushDefaultModule();
+  Module odm;
   pce_goal goal;
 
-  goal.flags	      = PCE_GF_CATCH;
-  goal.errcode	      = PCE_ERR_OK;
-  goal.argc	      = 0;
-  goal.receiver       = NIL;
-  goal.implementation = NIL;
+  LOCK();
+  odm		      =	PushDefaultModule();
+  goal.flags	      =	PCE_GF_CATCH;
+  goal.errcode	      =	PCE_ERR_OK;
+  goal.argc	      =	0;
+  goal.receiver	      =	NIL;
+  goal.implementation =	NIL;
   pcePushGoal(&goal);
 
   StripModuleTag(descr, &DefaultModule, d);
@@ -1563,7 +1573,8 @@ pl_new(Term assoc, Term descr)
     ThrowException(EX_GOAL, &goal, descr);
 
   pceFreeGoal(&goal);
-
+  UNLOCK();
+  
   return obj ? TRUE : FALSE;
 }
 
@@ -1717,9 +1728,13 @@ invoke(Term rec, Term cl, Term msg, Term ret)
 { int rval = FALSE;
   AnswerMark mark;
   PceObject receiver;
-  Module odm = PushDefaultModule();
+  Module odm;
   pce_goal goal;
-  HostStackEntry hmark = host_handle_stack;
+  HostStackEntry hmark;
+
+  LOCK();
+  odm = PushDefaultModule();
+  hmark = host_handle_stack;
 
   goal.flags = (ret ? PCE_GF_GET : PCE_GF_SEND)|PCE_GF_CATCH;
   goal.errcode = PCE_ERR_OK;
@@ -1890,6 +1905,7 @@ out:
   rewindAnswerStack(mark, goal.rval);
   PopDefaultModule(odm);
   pceFreeGoal(&goal);
+  UNLOCK();
 
   return rval;
 } 
@@ -1950,11 +1966,16 @@ pl_object1(Term ref)
 static foreign_t
 pl_object2(Term ref, Term description)
 { PceObject obj;
+  int rval;
 
+  LOCK();
   if ( (obj = termToObject(ref, NULL, NULLATOM, FALSE)) )
-    return unifyObject(description, obj, TRUE);
+    rval = unifyObject(description, obj, TRUE);
+  else
+    rval = FALSE;
+  UNLOCK();
 
-  return FALSE;
+  return rval;
 }
 
 

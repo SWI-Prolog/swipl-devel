@@ -74,12 +74,15 @@ ensure_console()
 
 #else /* ~WIN32 */
 
-static FILE *console_in = stdin;
-static FILE *console_out = stdout;
+static FILE *console_in = NULL;
+static FILE *console_out = NULL;
 
 static int
 ensure_console()
-{ return 1;
+{ console_in = stdin;
+  console_out = stdout;
+
+  return 1;
 }
 
 #endif /*WIN32*/

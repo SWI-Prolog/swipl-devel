@@ -16,6 +16,7 @@
 :- use_module(library(pce_manual)).
 :- require([ concat_atom/2
 	   ]).
+:- set_prolog_flag(character_escapes, false).
 
 :- dynamic
 	use_gui/0.

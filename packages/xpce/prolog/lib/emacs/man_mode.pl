@@ -11,6 +11,7 @@
 :- use_module(library(pce)).
 :- require([ member/2
 	   ]).
+:- set_prolog_flag(character_escapes, false).
 
 :- pce_begin_class(emacs_man_mode, emacs_fundamental_mode).
 

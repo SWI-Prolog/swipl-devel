@@ -104,7 +104,7 @@ pce_home(PceHome) :-
 	;   PceHome = '.'
 	).
 pce_home(_) :-
-	$warning('Cannot find XPCE home directory'),
+	print_message(error, format('Cannot find XPCE home directory', [])),
 	halt(1).
 
 '$load_pce' :-
@@ -116,8 +116,8 @@ pce_home(_) :-
 	), !,
 	(   load_foreign_library(pce_principal:foreign(pl2xpce))
 	->  true
-	;   format(user_error,
-		   '[PCE ERROR: Failed to load XPCE foreign library]~n', []),
+	;   print_message(error,
+			  format('Failed to load XPCE foreign library', [])),
 	    halt(1)
 	),
 	init_pce.

@@ -16,6 +16,7 @@
 	   , forall/2
 	   , ignore/1
 	   ]).
+:- set_prolog_flag(character_escapes, false).
 
 resource(pinned,	image,	image('pinned.xpm')).
 resource(not_pinned,	image,	image('pin.xpm')).

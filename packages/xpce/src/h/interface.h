@@ -16,7 +16,7 @@
 		********************************/
 
 #ifndef PCE_VERSION
-#define PCE_VERSION "5.0.6, July 1999"
+#define PCE_VERSION "5.0.7, November 1999"
 #endif
 
 #ifndef OS_VERSION
@@ -266,6 +266,16 @@ __pce_export int	pceEnumElements(PceObject collection,
 					int (*enumfunc)(PceObject element,
 							void *closure),
 					void *closure);
+
+
+		 /*******************************
+		 *    MULTI-THREADING SUPPORT	*
+		 *******************************/
+
+#define LOCK_PCE	0
+
+__pce_export void	pceMTLock(int lock);
+__pce_export void	pceMTUnlock(int lock);
 
 		/********************************
 		*          PCE CALLING C	*

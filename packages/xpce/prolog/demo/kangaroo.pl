@@ -16,8 +16,10 @@ Left-click in the drawing area adds a kangaroo to the diagram.
 
 :- module(kangaroo, [ kangaroo/0]).
 :- use_module(library(pce)).
-:- require([ forall/2
-	   , member/2
+:- require([ concat_atom/2
+	   , forall/2
+	   , between/3
+	   , concat/3
 	   ]).
 
 kangaroo :-
@@ -58,11 +60,24 @@ set_speed(T, N) :-
 	send(T, interval, Time),
 	send(T, running, @on).
 
+%	Declare image resources.  Normally these are facts, but XPCE allows
+%	for them to be non-unit clauses as well.  Note that the resource/3
+%	clause itself is removed from the saved-state, so we have to define the
+%	support-predicate image/3 as we want to use the logic of the defined
+%	kangaroo images.
+
+image(R, N, File) :-
+	between(1, 11, N),
+	concat(kangaroo_, N, R),
+	concat_atom([kangro, N, '.bm'], File).
+
+resource(R, image, image(File)) :-
+	image(R, _N, File).
 
 new_kangaroo(Pict, Pos) :-
 	new(F, figure),
-	forall(member(N, [1,2,3,4,5,6,7,8,9,10,11]),
-	       (send(F, display, new(BM, bitmap(string('kangro%d.bm', N)))),
+	forall(image(Rc, N, _File),
+	       (send(F, display, new(BM, bitmap(resource(Rc)))),
 		send(BM, transparent, @on),
 	        send(BM, name, N))),
 	send(F, status, 1),

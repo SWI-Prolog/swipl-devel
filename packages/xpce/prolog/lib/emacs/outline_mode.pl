@@ -9,6 +9,7 @@
 
 :- module(emacs_outline_mode, []).
 :- use_module(library(pce)).
+:- set_prolog_flag(character_escapes, false).
 
 :- emacs_begin_mode(outline, language,
 		    "Mode for viewing outlines",

@@ -41,7 +41,7 @@ modelled after the standard (GNU-)Emacs editor and can be programmed in
 
 
 
-\section{Organisation of the \product{} documentation}
+\section{Organisation of the \plainproduct{} documentation}
 
 This document describes the basics of \product{} and its relation to Prolog.
 Besides the written version, this document is also available as an HTML

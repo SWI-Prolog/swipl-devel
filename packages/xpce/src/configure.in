@@ -673,7 +673,7 @@ cat << _EOM_
 _EOM_
 fi
 
-AC_CHECK_FUNCS(XtPopupSpringLoaded XmIsMotifWMRunning)
+AC_CHECK_FUNCS(XtPopupSpringLoaded XmIsMotifWMRunning XInitThreads)
 LIBS="$ac_oldlibs"
 
 AC_MSG_CHECKING("memory model")

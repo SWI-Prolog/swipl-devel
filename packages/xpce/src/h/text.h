@@ -72,6 +72,21 @@ NewClass(style)
   long		attributes;		/* style attributes */
 End;
 
+typedef struct
+{ enum
+  { TXT_FRAGMENT_START,
+    TXT_FRAGMENT_END,
+    TXT_FRAGMENT_CHAR
+  } type;
+
+  union
+  { Fragment fragment;
+    int	     character;
+  } value;
+} text_event;
+
+typedef int (*TextEventFunction)(text_event *event);
+
 
 typedef struct fragment_cache *FragmentCache;
 

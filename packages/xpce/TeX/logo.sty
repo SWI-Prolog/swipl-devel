@@ -1,17 +1,22 @@
 %	LOGOS
 
+\usepackage{psfig}
+
 % \UvA{Height}
 
-\newcommand{\UvA}[1]{\psfig{figure=figs/uva.eps,height=#1}}
+%\newcommand{\UvA}[1]{\psfig{figure=figs/uva.ps,height=#1}}
+\newcommand{\UvA}[1]{\includegraphics[height=#1]{figs/uva}}
+
 
 % \SWI{Height}
 
-\newcommand{\SWI}[1]{\psfig{figure=figs/swi.eps,height=#1}}
+%\newcommand{\SWI}[1]{\psfig{figure=figs/swi,height=#1}}
+\newcommand{\SWI}[1]{\includegraphics[height=#1]{figs/swi}}
 
 \newcommand{\titlepageheader}{
     \newlength{\uvawidth}
-%   \settowidth{\uvawidth}{\small Dept.\ of Social Science Informatics (SWI)}
-    \settowidth{\uvawidth}{\LARGE University of Amsterdam}
+    \settowidth{\uvawidth}{\small Dept.\ of Social Science Informatics (SWI)}
+%   \settowidth{\uvawidth}{\LARGE University of Amsterdam}
 
     \newcommand{\uvaaddress}{%
     \parbox[c]{\uvawidth}{%
@@ -24,6 +29,7 @@
 		    Tel. (+31) 20 5256786
 	}}
 
+    \mbox{}\vspace{-1in}
     \parbox{\textwidth}{%
 	\makebox[\textwidth]{%
 %	    \hskip -1cm%

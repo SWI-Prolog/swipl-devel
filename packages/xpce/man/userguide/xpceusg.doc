@@ -6,7 +6,7 @@
 \usepackage{html}
 
 \htmloutput{UserGuide}				% Output directory
-\htmlmainfile{Title}				% Main document file
+\htmlmainfile{index}				% Main document file
 \bodycolor{white}
 \linkimage{home}{home.gif}			% Images for links
 \linkimage{index}{yellow_pages.gif}
@@ -17,6 +17,7 @@
 \linkimage{summary}{info.gif}
 
 \newcommand{\product}{{\sc xpce}}
+\newcommand{\plainproduct}{XPCE}
 \newcommand{\productpl}{{\sc xpce/p}rolog}
 \newcommand{\productversion}{4.9.3}
 \newcommand{\quintus}{Quintus}
@@ -100,7 +101,7 @@ super-section, and sections that have subsections contain a
 \begin{titlepage}
 \mbox{}
 \vfil
-\centerline{\psfig{figure=figs/title.eps,width=\textwidth}}
+\centerline{\includegraphics[width=\textwidth]{title}}
 \vfil\vfil\vfil
 \newpage
 \titlepageheader

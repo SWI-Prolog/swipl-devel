@@ -15,6 +15,7 @@
 	   , ignore/1
 	   , concat_atom/2
 	   ]).
+:- set_prolog_flag(character_escapes, false).
 
 
 		 /*******************************
@@ -219,7 +220,7 @@ show_cards(IV, Cards:chain) :->
 	    
 
 object_from_id(Id, Obj) :-
-	atom_chars(Id, Chars),
+	atom_codes(Id, Chars),
 	phrase(id(Obj), Chars), !.
 object_from_id(Id, _) :-
 	format('Cannot parse card id "~w"~n', [Id]),
@@ -227,33 +228,33 @@ object_from_id(Id, _) :-
 
 id(Obj) -->				% methods
 	"M.", string(C), ".", sendget(SG), ".", string(N), eos, !,
-	{ atom_chars(ClassName, C),
-	  atom_chars(MName, N),
+	{ atom_codes(ClassName, C),
+	  atom_codes(MName, N),
 	  get(@pce, convert, ClassName, class, Class),
 	  get(Class, SG, MName, Obj)
 	}.
 id(Obj) -->				% variable
 	"V.", string(C), ".", string(N), eos, !,
-	{ atom_chars(ClassName, C),
-	  atom_chars(VarName, N),
+	{ atom_codes(ClassName, C),
+	  atom_codes(VarName, N),
 	  get(@pce, convert, ClassName, class, Class),
 	  get(Class, instance_variable, VarName, Obj)
 	}.
 id(Obj) -->				% resource
 	"R.", string(C), ".", string(N), eos, !,
-	{ atom_chars(ClassName, C),
-	  atom_chars(ResName, N),
+	{ atom_codes(ClassName, C),
+	  atom_codes(ResName, N),
 	  get(@pce, convert, ClassName, class, Class),
 	  get(Class, class_variable, ResName, Obj)
 	}.
 id(Obj) -->				% classes
 	"C.", string(C), eos, !,
-	{ atom_chars(ClassName, C),
+	{ atom_codes(ClassName, C),
 	  get(@pce, convert, ClassName, class, Obj)
 	}.
 id(Obj) -->				% plain cards
 	"$", string(MS), "$", string(I), eos, !,
-	{ atom_chars(Module, MS),
+	{ atom_codes(Module, MS),
 	  name(CardId, I),
 	  get(@manual, space, ManSpace),
 	  get(ManSpace, module, Module, @on, M),
@@ -273,7 +274,7 @@ eos([], []).
 		 *******************************/
 
 parse_search_spec(Spec, Term) :-
-	atom_chars(Spec, Chars),
+	atom_codes(Spec, Chars),
 	phrase(wordlist(List), Chars), !,
 	phrase(search_specification(Term), List), !.
 
@@ -282,14 +283,14 @@ search_patterns(Term, Patterns) :-
 	extract_search_patterns(Term, Patterns).
 
 extract_search_patterns(word(W), Ch) :-
-	(   atom_chars(W, [0'@|_])
+	(   atom_codes(W, [0'@|_])
 	->  new(Re, regex(string('%s\\b', W)))
 	;   new(Re, regex(string('\\b%s\\b', W)))
 	),
 	send(Ch, append, Re),
 	send(Re, ignore_case, @on).
 extract_search_patterns(prefix(W), Ch) :-
-	(   atom_chars(W, [0'@|_])
+	(   atom_codes(W, [0'@|_])
 	->  new(Re, regex(string('%s', W)))
 	;   new(Re, regex(string('\\b%s', W)))
 	),
@@ -335,7 +336,7 @@ word(W) -->
 word(W) -->
 	wordchar(C0),
 	wordchars(CT),
-	{ atom_chars(W, [C0|CT]) }.
+	{ atom_codes(W, [C0|CT]) }.
 
 wordchars([H|T]) -->
 	wordchar(H), !,

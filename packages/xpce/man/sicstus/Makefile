@@ -1,5 +1,6 @@
 .SUFFIXES: .tex .dvi .doc .pl
 
+SHELL=/bin/bash
 PCEHOME=../..
 DOC=doc
 PDF=$(DOC).pdf

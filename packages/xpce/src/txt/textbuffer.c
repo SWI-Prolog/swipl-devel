@@ -2189,6 +2189,80 @@ room(TextBuffer tb, int where, int grow)
   succeed;
 }
 
+		 /*******************************
+		 *	    EVENT VIEW		*
+		 *******************************/
+
+#define endFragment(f) ((f)->start + (f)->length)
+
+void
+forCharsInTextBuffer(TextBuffer tb, TextEventFunction f, text_event *ev)
+{ Fragment *open_fragments = alloca(sizeof(Fragment) * 4);
+  Fragment current_fragment, next_close_fragment = NULL;
+  int open_allocated = 4;
+  int open_count = 0;
+  int size = tb->size;
+  int i;
+
+  current_fragment = tb->first_fragment; /* sorted by start-index */
+  if ( isNil(current_fragment) )
+    current_fragment = NULL;
+
+  for(i=0; i<size; i++)
+  { int n, m;
+
+    if ( current_fragment && current_fragment->start == i )
+    { ev->type = TXT_FRAGMENT_START;
+      ev->value.fragment = current_fragment;
+      (*f)(ev);
+      
+					/* ensure space */
+      if ( open_count + 1 > open_allocated )
+      { Fragment *new = alloca(sizeof(Fragment)*open_allocated*2);
+	
+	memcpy(new, open_fragments, sizeof(Fragment)*open_allocated);
+	open_allocated *= 2;
+	open_fragments = new;
+      }
+
+					/* insert fragment by close index */
+      for( n=0;
+	   n<open_count &&
+	   endFragment(open_fragments[n]) > endFragment(current_fragment);
+	   n++)
+	;
+      for(m=open_count; m > n; m--)
+	open_fragments[m+1] = open_fragments[m];
+      open_fragments[n] = current_fragment;
+      next_close_fragment = open_fragments[open_count++];
+      current_fragment = notNil(current_fragment->next)
+				? current_fragment->next
+				: (Fragment)NULL;
+    }
+
+    if ( next_close_fragment && endFragment(next_close_fragment) == i )
+    { ev->type = TXT_FRAGMENT_END;
+      ev->value.fragment = next_close_fragment;
+      (*f)(ev);
+
+      for( n=0; open_fragments[n] != next_close_fragment; n++ )
+	;
+      open_count--;
+      for( ; n < open_count; n++ )
+	open_fragments[n] = open_fragments[n+1];
+      if ( open_count > 0 )
+	next_close_fragment = open_fragments[open_count-1];
+      else
+	next_close_fragment = NULL;
+    }
+
+    ev->type = TXT_FRAGMENT_CHAR;
+    ev->value.character = fetch_textbuffer(tb, i);
+
+    (*f)(ev);
+  }
+}
+
 
 		 /*******************************
 		 *	 ASFILE INTERFACE	*

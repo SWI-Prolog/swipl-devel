@@ -89,9 +89,9 @@ pce_type(Type, Type) :-
 	atom(Type), !.
 pce_type(Term, Type) :-
 	term_to_atom(Term, A0),
-	atom_chars(A0, S0),
+	atom_codes(A0, S0),
 	delete(S0, 0' , S1),
-	atom_chars(Type, S1).
+	atom_codes(Type, S1).
 
 
 		 /*******************************

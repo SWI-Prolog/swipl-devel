@@ -32,9 +32,9 @@ do_process(In, Out) :-
 	(   get(In, read_line, Line)
 	->  (   get(Line, character, 0, 0'#)
 	    ->  get(Line, value, LineAtom),
-	        atom_chars(LineAtom, LineChars),
+	        atom_codes(LineAtom, LineChars),
 		process_line(LineChars, LineNo, Converted),
-		atom_chars(ConvertedAtom, Converted),
+		atom_codes(ConvertedAtom, Converted),
 		send(Out, format, '%s', ConvertedAtom)
 	    ;   send(Out, format, '%s', Line)
 	    ),
@@ -61,7 +61,7 @@ make_diagrams(Dir) :-
 	    send(I, level_gap, 15),
 	    forall(member(C, Classes), send(I, show, C, @off)),
 	    send(I, compute),
-	    concat(File, '.ps', PsFile),
+	    concat(File, '.eps', PsFile),
 	    get(directory(Dir), file, PsFile, F),
 	    send(F, open, write),
 	    send(F, append, I?postscript),
@@ -85,7 +85,7 @@ line(Class, Header, PS) -->
 	word(Class),
 	blanks,
 	"""", string(S), """", !,
-	{atom_chars(Header, S)},
+	{atom_codes(Header, S)},
 	blanks,
 	(   word(PS)
 	->  {true}
@@ -101,7 +101,7 @@ blanks -->
 
 word(W) -->
 	nonblanks(Chars), {Chars \== []},
-	{atom_chars(W, Chars)}.
+	{atom_codes(W, Chars)}.
 
 nonblanks([X|T]) -->
 	[X], {X > 32}, !,
@@ -116,13 +116,13 @@ string([C|T]) -->
 	string(T).
 
 class_to_ps(CN, PS) :-
-	atom_chars(CN, Chars),
+	atom_codes(CN, Chars),
 	delete(Chars, 0'_, C2),
- 	atom_chars(PS, C2).
+ 	atom_codes(PS, C2).
 
 
 class_to_tex(Name, TeXName) :-
-	atom_chars(Name, Chars),
+	atom_codes(Name, Chars),
 	member(C, Chars),
 	\+ alnum(C), !,
 	concat_atom(['{\tt\string', Name, '}'], TeXName).
@@ -135,11 +135,11 @@ alnum(C) :-
 alnum(0'_).
 
 substitute(F, T, I, O) :-
-	atom_chars(F, SF),
-	atom_chars(T, ST),
-	atom_chars(I, SI),
+	atom_codes(F, SF),
+	atom_codes(T, ST),
+	atom_codes(I, SI),
 	substitute_string(SF, ST, SI, SO), !,
-	atom_chars(O, SO).
+	atom_codes(O, SO).
 substitute(_, _, I, I).
 
 substitute_string(F, T, I, O) :-

@@ -13,6 +13,8 @@
 :- use_module(library(emacs_extend)).
 :- require([ send_list/3
 	   ]).
+:- set_prolog_flag(character_escapes, false).
+
 
 		/********************************
 		*         DECLARE MODES		*

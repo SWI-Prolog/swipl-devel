@@ -20,9 +20,9 @@
 :- multifile
 	user:goal_expansion/2.
 
-:- op(800, yfx, ->>).			% send/get
-:- op(800, xfx, *>>).			% send/get super
-:- op(800, xfx, =>>).			% send/get slot
+:- op(800, yfx, user:(->>)).		% send/get
+:- op(800, xfx, user:(*>>)).		% send/get super
+:- op(800, xfx, user:(=>>)).		% send/get slot
 
 
 		 /*******************************

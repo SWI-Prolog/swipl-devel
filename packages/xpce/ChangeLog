@@ -1,3 +1,27 @@
+VERSION 5.0.7
+=============
+
+* ADDED: Compatibility to SWI-Prolog 3.3.0 (More ISO stuff)
+
+* ADDED: `vector->for_all' and other vector-iteration methods now accept
+  optional `from' and `to' to limit the range and/or enumerate backwards.
+
+* ADDED: `chain->for_all' and other chain-iteration methods now pass the
+  index of the current element in @arg2 for compatibility to class vector.
+  Suggested by Uwe Lesta.
+
+* FIXED: `vector->insert' (reference-count problem). Thanks to Uwe Lesta.
+
+* FIXED: documentation of `list_browser->select_message'.  Thanks to
+  Laurens van der Meij.
+
+* FIXED: spypce(class<-getmethod).  Thanks to Uwe Lesta.
+
+* FIXED: Added resource declaration to the kangaroo demo.
+
+* FIXED: pce_pre_expand/2 to handle pce_pre_expansion_hook/2 if it returns
+  a list.  Thanks to Uwe Lesta.
+
 VERSION 5.0.6
 =============
 

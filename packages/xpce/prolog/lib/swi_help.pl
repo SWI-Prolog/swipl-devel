@@ -190,7 +190,7 @@ fill_history_popup(F, P:popup) :->
 	     message(@prolog, append_history_menu_item, P, @arg1)).
 
 append_history_menu_item(Popup, What) :-
-	atom_chars(What, S),
+	atom_codes(What, S),
 	phrase(section(Section), S),
 	section(Section, Title, _, _), !,
 	send(Popup, append, menu_item(What, @default, Title)).
@@ -209,7 +209,7 @@ table_of_contents(F) :->
 scope(F, _Scope:name) :->
 	"Enlarge the scope"::
 	get(F?history, head, Current),
-	atom_chars(Current, Chars),
+	atom_codes(Current, Chars),
 	(   phrase(pl_function(Name), Chars)
 	->  findall(Sec, plain_function_in_section(Sec, Name), Secs)
 	;   phrase(name_and_arity(Name, Arity), Chars)
@@ -370,20 +370,18 @@ mark_titles(TB, From, To) :-
 :- dynamic
 	regex_db/2.
 
-:- set_feature(character_escapes, true).
 :- pce_global(@ul_regex, new(regex('.\b\\(.\\)'))).
 
 regex(bold,	  '\\(\\(.\\)\b\\2\\)+').
 regex(underline,  '\\(\\(.\\)\b_\\)+').
 regex(underline2,  '\\(_\b\\(.\\)\\)+').
-:- set_feature(character_escapes, false).
-regex(predicate,  '\(\w+\)/\(\sd+\)').
-regex(predicate2, '\w+/\[\sd+[-,]\sd+\]').
-regex(function,   'PL_\w+()').
-regex(section,	  '\([Ss]ection\|[Cc]hapter\)\s +\sd+\(\.\sd+\)*').
-regex(location,	  '\([a-zA-Z]:\)?\(/[-_a-zA-Z0-9~+=.]*\)+:\sd+').
-regex(clause,	  '\sd+-th clause of \w+:.*/\sd+').
-regex(method,     '\w+\(->\|<-\)\w+').
+regex(predicate,  '\\(\\w+\\)/\\(\\sd+\\)').
+regex(predicate2, '\\w+/\\[\\sd+[-,]\\sd+\\]').
+regex(function,   'PL_\\w+()').
+regex(section,	  '\\([Ss]ection\\|[Cc]hapter\\)\\s +\\sd+\\(\\.\\sd+\\)*').
+regex(location,	  '\\([a-zA-Z]:\\)?\\(/[-_a-zA-Z0-9~+=.]*\\)+:\\sd+').
+regex(clause,	  '\\sd+-th clause of \\w+:.*/\\sd+').
+regex(method,     '\\w+\\(->\\|<-\\)\\w+').
 
 regex_object(Id, Re) :-
 	regex_db(Id, Re), !.
@@ -429,7 +427,7 @@ documented(Re, V, Style) :-
         get(V, text_buffer, TB),
         get(Re, register_value, TB, 0, String),
 	send(@ul_regex, for_all, String,
-	     message(@ul_regex, replace, String, '\1')),
+	     message(@ul_regex, replace, String, '\\1')),
 	send(Re, replace, TB, String).
 documented(_, _, button).
 
@@ -494,7 +492,7 @@ manual_file(_File) :-
 %			n.m..
 
 manual_range(What, Ranges) :-
-	atom_chars(What, S),
+	atom_codes(What, S),
 	phrase(manual_spec(Ranges), S).
 
 manual_spec(From-To) -->
@@ -516,7 +514,7 @@ manual_spec(From-To) -->
 	}.
 manual_spec(Ranges) -->
 	word(S),
-	{ atom_chars(Name, S),
+	{ atom_codes(Name, S),
 	  findall(From-To, predicate(Name, _, _, From, To), Ranges),
 	  Ranges \== []
 	}.
@@ -524,7 +522,7 @@ manual_spec(Ranges) -->
 	[C1|CT],
 	"/[",
 	word(_),
-	{ atom_chars(Name, [C1|CT]),
+	{ atom_codes(Name, [C1|CT]),
 	  findall(From-To, predicate(Name, _, _, From, To), Ranges),
 	  Ranges \== []
 	}.
@@ -549,19 +547,19 @@ name_and_arity(Name, Arity) -->
 	[C1|CT],
 	"/",
 	integer(Arity), !,
-	{ atom_chars(Name, [C1|CT])
+	{ atom_codes(Name, [C1|CT])
 	}.
 
 pl_function(Name) -->
 	identifier(S),
 	"()", !,
-	{ atom_chars(Name, S)
+	{ atom_codes(Name, S)
 	}.
 pl_function(Name) -->
 	"PL_",
 	identifier(S), !,
 	{ append("PL_", S, Chars),
-	  atom_chars(Name, Chars)
+	  atom_codes(Name, Chars)
 	}.
 
 
@@ -624,7 +622,7 @@ help_atom(C, C) :-
 help_atom(F, F) :-
 	atom(F),
 	append("PL_", _, Prefix),
-	atom_chars(F, Prefix), !.
+	atom_codes(F, Prefix), !.
 help_atom(Name, List) :-
 	findall(Name/Arity, predicate(Name, Arity, _, _, _), Preds),
 	Preds \== [],
@@ -727,7 +725,7 @@ do_explain(V, Term) :-
 		 *******************************/
 
 try_to_edit(Spec) :-
-	atom_chars(Spec, S),
+	atom_codes(Spec, S),
 	phrase(source(File, Line), S), !,
 	start_emacs,
 	send(@emacs, goto_source_location, source_location(File, Line)).
@@ -736,7 +734,7 @@ source(File, Line) -->			% path:line
 	[F0|FT],
 	":",
 	integer(Line), !,
-	{ atom_chars(File, [F0|FT])
+	{ atom_codes(File, [F0|FT])
 	}.
 source(File, Line) -->			% n-th clause of module:name/arity
 	integer(NClause),
@@ -744,8 +742,8 @@ source(File, Line) -->			% n-th clause of module:name/arity
 	[M0|MT], ":",
 	[N0|NT], "/",
 	integer(Arity),
-	{ atom_chars(Name, [N0|NT]),
-	  atom_chars(Module, [M0|MT]),
+	{ atom_codes(Name, [N0|NT]),
+	  atom_codes(Module, [M0|MT]),
 	  functor(Head, Name, Arity),
 	  nth_clause(Module:Head, NClause, CRef),
 	  clause_property(CRef, file(File)),
@@ -763,8 +761,8 @@ source(File, Line) -->			% XPCE method
 	    }
 	),
 	identifier(SelectorChars),
-	{ atom_chars(Class, ClassChars),
-	  atom_chars(Selector, SelectorChars),
+	{ atom_codes(Class, ClassChars),
+	  atom_codes(Selector, SelectorChars),
 	  pce_edit:method(Method, Obj),
 	  get(Obj, source, Location),
 	  Location \== @nil,
@@ -790,7 +788,7 @@ initialise(PT) :->
 		 *******************************/
 
 select_node(PT, Id:name) :->
-	(   atom_chars(Id, S),
+	(   atom_codes(Id, S),
 	    phrase(section([_]), S)
 	->  true			% entire chapter
 	;   send(PT?frame, give_help, Id)
@@ -808,7 +806,7 @@ expand_node(PT, manual) :- !,
 	forall(section([N], Title, _, _),
 	       add_section(PT, manual, Title, [N])).
 expand_node(PT, Section) :-
-	atom_chars(Section, S),
+	atom_codes(Section, S),
 	phrase(section(List), S),
 	subsection(List, I),
 	forall(section(I, Title, _, _),

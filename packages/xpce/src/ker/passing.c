@@ -7,10 +7,40 @@
     Copyright (C) 1992 University of Amsterdam. All rights reserved.
 */
 
+#define _GNU_SOURCE 1			/* for recursive mutexes */
 #define INLINE_UTILITIES 1
 #include <h/kernel.h>
 #include <h/trace.h>
 #include <itf/c.h>
+
+#ifdef _REENTRANT
+#include <pthread.h>
+
+static pthread_mutex_t mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+#define LOCK() pthread_mutex_lock(&mutex)
+#define UNLOCK() pthread_mutex_unlock(&mutex)
+#else
+#define LOCK()
+#define UNLOCK()
+#endif
+
+void
+pceMTLock(int lock)
+{ LOCK();
+}
+
+void
+pceMTUnlock(int lock)
+{ UNLOCK();
+}
+
+#define pushGoal(g) { LOCK(); \
+		      (g)->parent   = CurrentGoal; \
+		      CurrentGoal = g; \
+		    }
+#define popGoal(g)  { CurrentGoal = (g)->parent; \
+		      UNLOCK(); \
+		    }
 
 int
 pceSetErrorGoal(PceGoal g, int err, ...)

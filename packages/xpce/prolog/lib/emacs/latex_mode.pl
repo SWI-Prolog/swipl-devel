@@ -11,6 +11,7 @@
 :- use_module(library(pce)).
 :- require([ send_list/3
 	   ]).
+:- set_prolog_flag(character_escapes, false).
 
 :- emacs_begin_mode(latex, outline,
 		    "Mode for editing LaTeX documents",

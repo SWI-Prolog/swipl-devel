@@ -62,7 +62,7 @@ various places in the source files this construct needs to be repeated
 at various places. 
 
 
-\subsection{The :- pce_global/2 directive}	\label{sec:global}
+\subsection{The `pce_global' directive}	\label{sec:global}
 
 This approach is based on \idx{exception-handling}.  If PCE translates
 a named reference into an internal reference and the named reference

@@ -55,17 +55,17 @@ See \figref{diaeditor1}.  This window is called the `target window'.
 
 \subsection{Adding controls to the new window}
 
-Next, the controls are dragged to the dialog window.  The control marked
-\psfig{figure=figs/textitemicon.eps,height=2ex} specifies a
-text-entry-field. Drag this icon using the left-mouse button to the
-target dialog. If the mouse is above the target dialog, a dotted box
-will indicate the outline of the new item when it is dropped. Drop it in
-about the right location. Now drag two instances of
-\psfig{figure=figs/buttonicon.eps,height=2ex} to the target dialog and
-place them again at about the right location. Items can be moved by
-dragging them with the left button. They can also be {\bf copied} to
-other target dialog windows by dragging them there and they can be {\bf
-deleted} by dragging them to the window holding the prototypes.
+Next, the controls are dragged to the dialog window. The control marked
+\includegraphics[height=2ex]{textitemicon} specifies a text-entry-field.
+Drag this icon using the left-mouse button to the target dialog. If the
+mouse is above the target dialog, a dotted box will indicate the outline
+of the new item when it is dropped. Drop it in about the right location.
+Now drag two instances of \includegraphics[height=2ex]{buttonicon} to
+the target dialog and place them again at about the right location.
+Items can be moved by dragging them with the left button. They can also
+be {\bf copied} to other target dialog windows by dragging them there
+and they can be {\bf deleted} by dragging them to the window holding the
+prototypes.
 
 Now, double-click, using the left button, the text-entry field.  A
 dialog with attributes will appear.  The caret is positioned at the {\sf

@@ -96,6 +96,7 @@ ws_dispatch(Int FD, Int timeout)
   else
     tid = 0;
 
+  pceMTLock(LOCK_PCE);
   while( dispatch_status == DISPATCH_RUNNING )
   { int *old_dispatch_status_address = dispatch_status_address;
 
@@ -105,6 +106,7 @@ ws_dispatch(Int FD, Int timeout)
 		      XtIMXEvent|XtIMTimer|XtIMAlternateInput);
     dispatch_status_address = old_dispatch_status_address;
   }
+  pceMTUnlock(LOCK_PCE);
 
   considerLocStillEvent();
     

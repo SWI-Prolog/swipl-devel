@@ -15,6 +15,7 @@
 	   , ignore/1
 	   , member/2
 	   ]).
+:- set_prolog_flag(character_escapes, false).
 
 :- emacs_begin_mode(language, fundamental,
 		    "Edit (programming) languages",
@@ -155,7 +156,7 @@ indent_close_bracket_line(E, Brackets:[name], Base:[int]) :->
 indent_expression_line(E, Brackets:[name], Base:[int]) :->
 	"Indent current line according to expression"::
 	default(Brackets, ')}]', B1),
-	atom_chars(B1, B2),
+	atom_codes(B1, B2),
 	get(E, text_buffer, TB),
 	member(Bracket, B2),
 	    pce_catch_error(mismatched_bracket,

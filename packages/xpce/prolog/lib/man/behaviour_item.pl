@@ -12,6 +12,7 @@
 :- use_module(util).
 :- require([ forall/2
 	   ]).
+:- set_prolog_flag(character_escapes, false).
 
 :- pce_begin_class(behaviour_item, text_item,
 		   "Text item for entering XPCE behaviour or class").

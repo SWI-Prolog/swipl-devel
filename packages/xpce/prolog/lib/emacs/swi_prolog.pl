@@ -15,7 +15,7 @@
 
 :- multifile
 	user:edit_source/1,
-	user:exception/3.
+	user:message_hook/3.
 
 		 /*******************************
 		 *       EDITOR INTERFACE	*
@@ -48,8 +48,14 @@ make_prolog_warning_list(L) :-
 	send(L, expose_on_append, @on),
 	send(L, message, error_at_location).
 
-user:exception(warning, warning(Path, Line, Message), _) :-
-	Path \== user,
+
+user:message_hook(Term, Level, Lines) :-
+	accept_level(Level),
+	(   Term = error(syntax_error(Error), file(Path, Line))
+	->  new(Message, string('Syntax error: %s', Error))
+	;   source_location(Path, Line),
+	    make_message(Lines, Message)
+	),
 	\+ object(@loading_emacs),
 	start_emacs,
 	new(Buffer, emacs_buffer(Path)),
@@ -57,10 +63,27 @@ user:exception(warning, warning(Path, Line, Message), _) :-
 	send(@prolog_warnings, append_hit, Buffer, SOL, @default, Message),
 	fail.					% give normal message too
 
+accept_level(warning).
+accept_level(error).
 
+make_message(Lines, String) :-
+	phrase(make_message(Lines), Chars), !,
+	new(String, string(Chars)).
 
+make_message([]) -->
+	[].
+make_message([nl|T]) -->
+	" ",
+	make_message(T).
+make_message([Fmt-Args|T]) --> !,
+	{ sformat(S, Fmt, Args),
+	  string_to_list(S, Chars)
+	},
+	Chars,
+	make_message(T).
+make_message([Fmt|T]) -->
+	make_message([Fmt-[]|T]).
 
-
-
+.(H, T, L, R) :- append([H|T], R, L).
 
 

@@ -9,6 +9,8 @@
 
 :- module(emacs_annotate_mode, []).
 :- use_module(library(pce)).
+:- set_prolog_flag(character_escapes, false).
+
 
 		 /*******************************
 		 *	    THE BUFFER		*

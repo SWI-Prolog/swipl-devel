@@ -1,4 +1,4 @@
-\chapter{\product{} and Prolog} \label{sec:pceprolog}
+\chapter{\plainproduct{} and Prolog} \label{sec:pceprolog}
 
 \product{} and Prolog are very different systems based on a very different
 programming paradigm.  \product{} objects have global state and use
@@ -13,15 +13,15 @@ representation of data and dealing with object-references in
 \productpl{}.
 
 
-\section{\product{} is not Prolog!}		\label{sec:notprolog}
+\section{\plainproduct{} is not Prolog!}		\label{sec:notprolog}
 
 Data managed by Prolog consists of logical variables, atoms, integers,
-floats and compound terms (including lists).  \product{} has natural
-counterparts for atoms (a \class{name} object), integers (a \product{} int) and
-floating point numbers (a \class{real} object).  Prolog logical variables and
-compound terms however have no direct counterpart in the \product{}
-environment.  \product{} has variables (class \class{var}), but these obey
-totally different scoping and binding rules.
+floats and compound terms (including lists). \product{} has natural
+counterparts for atoms (a \class{name} object), integers (a \product{}
+int) and floating point numbers (a \class{real} object). Prolog logical
+variables and compound terms however have no direct counterpart in the
+\product{} environment. \product{} has variables (class \class{var}),
+but these obey totally different scoping and binding rules.
 
 Where Prolog uses a compound term to represent data that belongs
 together (e.g.\ person(Name, Age, Address)), \product{} uses objects for this

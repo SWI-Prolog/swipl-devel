@@ -13,6 +13,7 @@
         , emacs_init_tags/1
 	, emacs_complete_tag/2
 	]).
+:- set_prolog_flag(character_escapes, false).
 
 :- meta_predicate emacs_complete_tag(+, :).
 

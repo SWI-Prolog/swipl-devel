@@ -26,6 +26,7 @@
 	   ]).
 pce_ifhostproperty(prolog(quintus),
 		   (:- use_module(library(strings), [concat_chars/2]))).
+:- set_prolog_flag(character_escapes, false).
 
 :- pce_autoload(prolog_predicate_item, library(prolog_predicate_item)).
 
@@ -714,10 +715,11 @@ read_term_from_stream(_, _, _, Error, _, _) :-
 
 pce_ifhostproperty(prolog(swi),
 (read_with_errors(Fd, _Start, T, Error, Singletons, TermPos) :-
-	read_term(Fd, T, [ syntax_errors(Error0),
-			   singletons(Singletons),
-			   subterm_positions(TermPos)
-			 ]),
+	catch(read_term(Fd, T, [ singletons(Singletons),
+				 subterm_positions(TermPos)
+			       ]),
+	      Error0,
+	      true),
 	pl_error_message(Error0, Error))).
 pce_ifhostproperty(prolog(quintus),
 (read_with_errors(Fd, Start, T, Error, Singletons, TermPos) :-
@@ -731,8 +733,18 @@ pce_ifhostproperty(prolog(quintus),
 		     qp_error_message(Message, Start, Pre, Post, Error)),
 	(var(Error) -> Error = none ; true))).
 
-pl_error_message(none, none) :- !.
-pl_error_message('$stream_position'(EP, _, _):Msg, EP:Msg).
+pce_ifhostproperty(prolog(swi),
+[(
+pl_error_message(X, none) :-
+	var(X), !
+ ),
+ (
+pl_error_message(error(syntax_error(Id),
+		       stream(_S, _Line, CharNo)),
+		 CharNo:Msg) :-
+	phrase('$messages':syntax_error(Id), [Msg], [])
+ )
+]).
 
 pce_ifhostproperty(prolog(quintus),
 (qp_error_message(Msg, Start, Pre, Post, EP:TheMsg) :-
@@ -750,13 +762,13 @@ pce_ifhostproperty(prolog(quintus),
 	),
 	(   Msg == ''
 	->  MsgChars0 = ''
-	;   atom_chars(Msg, MsgChars0)
+	;   atom_codes(Msg, MsgChars0)
 	),
 	concat_chars([ MsgChars0,
 		       "between `..", PreM, "' and `", PosM, "..'"
 		     ],
 		     MsgChars),
-	atom_chars(TheMsg, MsgChars),
+	atom_codes(TheMsg, MsgChars),
 	EP is EP0 + Start)).
 
 

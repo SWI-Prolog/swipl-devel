@@ -15,6 +15,7 @@
 	   , forall/2
 	   , ignore/1
 	   ]).
+:- set_prolog_flag(character_escapes, false).
 
 
 :- pce_begin_class(emacs_process_buffer, emacs_buffer).

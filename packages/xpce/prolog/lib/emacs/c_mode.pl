@@ -14,6 +14,7 @@
 	   , forall/2
 	   , memberchk/2
 	   ]).
+:- set_prolog_flag(character_escapes, false).
 
 :- emacs_begin_mode(c, language,
 		    "Mode for editing C programs",

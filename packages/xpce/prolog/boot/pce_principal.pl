@@ -334,6 +334,20 @@ send_implementation(trace(Id), Args, Obj) :-
 	).
 get_implementation(true, _Args, _Obj, _Rval).
 get_implementation(fail, _Args, _Obj, _Rval) :- fail.
+get_implementation(once(Id), Args, Obj, Rval) :-
+	get_implementation(Id, Args, Obj, Rval), !.
+get_implementation(spy(Id), Args, Obj, Rval) :-
+	(   '$debugging'		% SWI-Prolog
+	->  trace,
+	    get_implementation(Id, Args, Obj, Rval)
+	;   get_implementation(Id, Args, Obj, Rval)
+	).
+get_implementation(trace(Id), Args, Obj, Rval) :-
+	pce_info(trace(enter, get_implementation(Id, Args, Obj, Rval))),
+	(   get_implementation(Id, Args, Obj, Rval)
+	->  pce_info(trace(exit, get_implementation(Id, Args, Obj, Rval)))
+	;   pce_info(trace(fail, get_implementation(Id, Args, Obj, Rval)))
+	).
 
 %	SWI-Prolog: make thus a normal user (debug-able) predicate.
 

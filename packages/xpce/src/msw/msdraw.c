@@ -507,15 +507,33 @@ d_winmf(const char *fn, int x, int y, int w, int h, const char *descr)
 { HDC hdc;
   RECT bb;
   HDC refdc = GetDC(NULL);
+#if 1
   int hmm   = GetDeviceCaps(refdc, HORZSIZE);
   int hpxl  = GetDeviceCaps(refdc, HORZRES);
   int vmm   = GetDeviceCaps(refdc, VERTSIZE);
   int vpxl  = GetDeviceCaps(refdc, VERTRES);
 
   bb.left   = (x*hmm*100)/hpxl;			/* bb in .01 mm units */
-  bb.right  = ((x+w)*hmm*100)/hpxl;
+  bb.right  = ((x+w)*hmm*100+hpxl+20)/hpxl;	/* bit too big for MS bugs */
   bb.top    = (y*vmm*100)/vpxl;
-  bb.bottom = ((y+h)*vmm*100)/vpxl;
+  bb.bottom = ((y+h)*vmm*100+vpxl+20)/vpxl;
+
+  DEBUG(NAME_winMetafile,
+	Cprintf("BB in pixels = %d %d %d %d\n"
+		"hmm = %d, hpxl = %d, vmm = %d, vpxl = %d\n"
+		"BB in .01 mm = %d,%d,%d,%d\n",
+		x, y, x+w, y+h,
+		hmm, hpxl, vmm, vpxl,
+		bb.left, bb.top, bb.right, bb.bottom));
+#else
+  int rx    = GetDeviceCaps(refdc, LOGPIXELSX);
+  int ry    = GetDeviceCaps(refdc, LOGPIXELSY);
+
+  bb.left   = ((x*254)+rx-1)/rx;
+  bb.right  = (((x+w)*254)+rx-1)/rx;
+  bb.top    = ((y*254)+ry-1)/ry;
+  bb.bottom = (((y+h)*254)+ry-1)/ry;
+#endif
 
   DEBUG(NAME_winMetafile,
 	Cprintf("BB in .01 mm = %d,%d,%d,%d\n",
@@ -524,6 +542,7 @@ d_winmf(const char *fn, int x, int y, int w, int h, const char *descr)
   if ( (hdc = CreateEnhMetaFile(refdc,		/* HDC reference */
 				fn,		/* name of the metafile */
 				&bb,		/* bounding box */
+//				NULL,		/* or let GDI compute BB */
 				descr)) )
   { ReleaseDC(NULL, refdc);
     d_hdc(hdc, DEFAULT, DEFAULT);

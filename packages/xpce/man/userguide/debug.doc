@@ -48,7 +48,7 @@ see \secref{whoiswho} and \secref{hyper} for techniques
 to avoid `dangling' object references.
 
 
-\section{The \product{} tracer}
+\section{The \plainproduct{} tracer}
 
 The \product{} tracer allows both for interactive execution as for printing the
 entry and/or completion of operations. This section first introduces

@@ -9,6 +9,7 @@
 
 #include <h/kernel.h>
 #include <h/graphics.h>
+#include <h/text.h>
 
 NewClass(paragraph)
   ABSTRACT_DEVICE
@@ -20,7 +21,7 @@ NewClass(paragraph)
   Int		space_after;		/* Space below text */
   Name		quadding;		/* left,center,right */
   Bool		justify;		/* justify text? */
-  Chain		content;		/* contained text and graphics */
+  TextBuffer	text_buffer;		/* contained text and graphics */
 End;
 
 typedef struct
@@ -39,21 +40,34 @@ typedef struct
 } lineitem;
 
 
-
-
-
 		 /*******************************
 		 *	      CREATE		*
 		 *******************************/
 
 static status
-initialiseParagraph(Paragraph par)
+initialiseParagraph(Paragraph par, TextBuffer tb)
 { initialiseDevice(par);
 
-  assign(c, content, newObject(ClassChain, 0));
+  if ( isDefault(tb) )
+    tb = newObject(ClassTextBuffer, 0);
+
+  assign(c, text_buffer, tb);
 
   return obtainClassVariablesObject(par);
 }
+
+		 /*******************************
+		 *	    PLACEMENT		*
+		 *******************************/
+
+
+
+
+
+
+
+
+
 
 		 /*******************************
 		 *	      COMPUTE		*

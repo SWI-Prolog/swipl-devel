@@ -12,6 +12,7 @@
 :- require([ forall/2
 	   , ignore/1
 	   ]).
+:- set_prolog_flag(character_escapes, false).
 
 :- emacs_begin_mode(cpp, c,
 		    "Mode for (XPCE) C++ programs",

@@ -584,12 +584,12 @@ fix_source_path(Loc) :-
 	send(file(Name), exists, @on), !.
 fix_source_path(Loc) :-
 	(   pce_host:property(system_source_prefix(Prefix)),
-	    atom_chars(Prefix, PrefixChars),
+	    atom_codes(Prefix, PrefixChars),
 	    get(Loc, file_name, Name),
-	    atom_chars(Name, Chars),
+	    atom_codes(Name, Chars),
 	    append(_, S1, Chars),
 	    append(PrefixChars, PwLocalChars, S1)
-	->  atom_chars(PwLocal, PwLocalChars),
+	->  atom_codes(PwLocal, PwLocalChars),
 	    absolute_file_name(pce(PwLocal),
 			       [ access(read)
 			       ],

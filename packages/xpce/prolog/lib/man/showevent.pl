@@ -17,6 +17,7 @@
 	   , send_list/2
 	   , send_list/3
 	   ]).
+:- set_prolog_flag(character_escapes, false).
 
 :- pce_help_file(event_monitor, pce_help('event_monitor.hlp')).
 

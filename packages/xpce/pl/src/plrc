@@ -16,7 +16,6 @@ configuration purposes.
 :- initialization op(100, fx,  @).
 :- initialization op(150, yfx, ?).
 :- initialization op(990, xfx, :=).
-:- initialization set_feature(character_escapes, false).
 
 :- multifile
 	file_search_path/2.
@@ -30,12 +29,12 @@ pcehome_(Home) :-
 	pcehomestore_(Home), !.
 pcehome_(Home) :-
 	(   getenv('XPCEHOME', RawHome)
-	;   feature(home, PlHome),
-	    (   feature(xpce_version, Version),
-		concat('/xpce-', Version, Suffix)
+	;   current_prolog_flag(home, PlHome),
+	    (   current_prolog_flag(xpce_version, Version),
+		atom_concat('/xpce-', Version, Suffix)
 	    ;   Suffix = '/xpce'
 	    ),
-	    concat(PlHome, Suffix, RawHome)
+	    atom_concat(PlHome, Suffix, RawHome)
 	),
 	exists_directory(RawHome), !,
 	absolute_file_name(RawHome, Home),
@@ -45,26 +44,26 @@ file_search_path(pce, PceHome) :-
 	pcehome_(PceHome).
 file_search_path(library, pce('/prolog/lib')).
 file_search_path(foreign, pce(ArchLib)) :-
-	feature(arch, Arch),
-	concat('lib/', Arch, ArchLib).
+	current_prolog_flag(arch, Arch),
+	atom_concat('lib/', Arch, ArchLib).
 file_search_path(foreign, pce(lib)).
 
 gui_setup_ :-
-	feature(gui, true), !.
+	current_prolog_flag(gui, true), !.
 gui_setup_ :-
 	(   getenv('DISPLAY', _)
-	;   feature(arch, Arch),
+	;   current_prolog_flag(arch, Arch),
 	    '$apropos_match'(win32, Arch)
 	), !,
 	asserta((help :- !, prolog_help)),
 	asserta((help(T) :- !, prolog_help(T))),
 	asserta((apropos(T) :- !, prolog_apropos(T))),
-	set_feature(gui, true).
+	set_prolog_flag(gui, true).
 
 pce_setup_ :-
-	feature(xpce, true), !.
+	current_prolog_flag(xpce, true), !.
 pce_setup_ :-
-	'$argv'([Argv0|Args]),
+	current_prolog_flag(argv, [Argv0|Args]),
 	\+ member('-nopce', Args),	% explicitely no XPCE
 	pcehome_(PceHome),
 	exists_directory(PceHome),

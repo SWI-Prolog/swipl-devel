@@ -40,10 +40,10 @@ BPL=		bin/$(PLARCH)/$(BOOTPL)
 PWD=`pwd`
 
 STARTUP=	boot.prc
-BOOTPLS=	boot/aix_foreign.pl boot/apply.pl boot/autoload.pl \
-		boot/bags.pl boot/dwim.pl boot/make.pl boot/foreign.pl \
+BOOTPLS=	boot/apply.pl boot/autoload.pl \
+		boot/bags.pl boot/dwim.pl boot/make.pl  \
 		boot/history.pl boot/init.pl boot/list.pl boot/listing.pl \
-		boot/load.pl boot/parms.pl boot/profile.pl \
+		boot/load.pl boot/parms.pl \
 		boot/qlf.pl boot/sort.pl boot/syspred.pl boot/toplevel.pl \
 		boot/topvars.pl boot/writef.pl
 
@@ -61,7 +61,7 @@ xpce-qlfs:
 
 install:	all
 		PLBASE=$(PWD); \
-		for f in chpl pl-bite; do \
+		for f in plrc plld; do \
 		    (cd $(bindir); rm -f $$f; ln -s $$PLBASE/bin/$(PLARCH)/$$f .); \
 		done ; \
 		(cd $(bindir); rm -f $(PL); ln -s $$PLBASE/bin/$(PLARCH)/pl $(PL)) ; \
@@ -69,7 +69,7 @@ install:	all
 		  (cd $(bindir);rm -f $(XPCE);ln -s $$PLBASE/$(BPL) $(XPCE));\
 		  (cd $(bindir);rm -f $(CLIENT);ln -s $$PLBASE/xpce/bin/$(PLARCH)/xpce-client $(CLIENT)); \
 		fi
-		-for f in pl chpl; do \
+		-for f in pl plld; do \
 		    cp man/$$f.1 $(mandir)/$$f.$(mansec); \
 		done
 		-if [ -d xpce ]; then \
@@ -79,4 +79,5 @@ install:	all
 		fi
 
 		
-		
+clean:
+		rm -f `find xpce/prolog -name '*.qlf' -print`

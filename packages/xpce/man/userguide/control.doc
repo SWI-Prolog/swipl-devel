@@ -1,10 +1,10 @@
 \section{Control-structure of \productpl{} applications}	\label{sec:control}
 
 This section deals with the control-structure of interactive
-applications written in PCE/Prolog. Interactive graphical applications
-are very different from terminal oriented applications. Terminal
-oriented applications often have a top level control structure of the
-form:
+applications written in \productpl{}. Interactive graphical
+applications are very different from terminal oriented applications.
+Terminal oriented applications often have a top level control structure
+of the form:
 
 \begin{code}
 go :-
@@ -157,7 +157,7 @@ Process events and return on any of the following conditions
 \end{description}
 
 
-\subsection{\product{} and existing applications}
+\subsection{\plainproduct{} and existing applications}
 
 Due to the different control-regime described in the previous section,
 traditional terminal oriented applications are not easily transformed

@@ -27,13 +27,6 @@ GLOBAL int	MaxGoalDepth;		/* maximum recursion level */
     ServiceMode = _smode; \
   }
 
-#define pushGoal(g) { (g)->parent   = CurrentGoal; \
-		      CurrentGoal = g; \
-		    }
-#define popGoal(g)  { CurrentGoal = (g)->parent; \
-		    }
-
-
 extern void	writeGoal(PceGoal g);
 extern int	isProperGoal(PceGoal g);
 extern void	pceBackTrace(PceGoal g, int depth);

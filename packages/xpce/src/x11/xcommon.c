@@ -66,7 +66,12 @@ pceXtAppContext(XtAppContext ctx)
     { ThePceXtAppContext = ctx;
       XSetErrorHandler(x_error_handler);
     } else
-    { XtToolkitInitialize();
+    {
+#if defined(_REENTRANT) && defined(HAVE_XINITTHREADS)
+      XInitThreads();
+#endif
+
+      XtToolkitInitialize();
       XSetErrorHandler(x_error_handler);
 
       if ( (ThePceXtAppContext = XtCreateApplicationContext()) == NULL )

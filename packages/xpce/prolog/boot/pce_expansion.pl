@@ -143,7 +143,10 @@ head_arg(_, A) :-
 
 pce_pre_expand(X, Y) :-
 	user:pce_pre_expansion_hook(X, X1), !,
-	do_pce_pre_expand(X1, Y).
+	(   list(X1)
+	->  maplist(do_pce_pre_expand, X1, Y)
+	;   do_pce_pre_expand(X1, Y)
+	).
 pce_pre_expand(X, Y) :-
 	do_pce_pre_expand(X, Y).
 

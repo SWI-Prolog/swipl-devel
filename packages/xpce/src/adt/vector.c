@@ -395,7 +395,7 @@ static status
 insertVector(Vector v, Int where, Any obj)
 { int size   = valInt(v->size);
   int offset = valInt(v->offset);
-  int i = indexVector(v, where);
+  int i;
   Any *s, *p;
 
   if ( valInt(where) <= offset+1 )
@@ -407,11 +407,13 @@ insertVector(Vector v, Int where, Any obj)
     return elementVector(v, where, obj);
 
   elementVector(v, toInt(size+offset+1), NIL);
+  i = indexVector(v, where);
   s = &v->elements[i];
-  p = &v->elements[size];		/* point to last element */
+  p = &v->elements[valInt(v->size)-1];	/* point to last element */
   for( ; p>s; p-- )
   { p[0] = p[-1];
   }
+  v->elements[i] = NIL;
   assignVector(v, i, obj);
 
   succeed;
@@ -463,48 +465,130 @@ swapVector(Vector v, Int e1, Int e2)
   succeed;
 }
 
+#define BOUNDS(v, l, m) \
+	{ if ( (v) < (l) ) (v) = (l); else if ( (v) > (m) ) (v) = (m); }
+
+static int
+get_range(Vector v, Int from, Int to, int *f, int *t)
+{ int low  = valInt(getLowIndexVector(v));
+  int high = valInt(getHighIndexVector(v));
+
+  if ( low > high )
+    fail;				/* empty vector */
+
+  if ( isDefault(to) )
+  { if ( isDefault(from) )
+    { *f = low;
+      *t = high;
+    } else				/* from, @default */
+    { int i = valInt(from);
+      
+      if ( i > high )
+	fail;
+      if ( i < low )
+	i = low;
+      *f = i;
+      *t = high;
+    }
+  } else
+  { if ( isDefault(from) )		/* @default, to */
+    { int i = valInt(to);
+
+      if ( low > i )
+	fail;
+      if ( i > high )
+	i = high;
+      *t = i;
+      *f = low;
+    } else				/* from, to */
+    { int i = valInt(from);
+      
+      BOUNDS(i, low, high);
+      *f = i;
+      i = valInt(to);
+      BOUNDS(i, low, high);
+      *t = i;
+    }
+  }
+
+  succeed;
+}
+  
 
 static status
-forAllVector(Vector v, Code code)
-{ int n;
+forVector(Vector v, Code code, Int from, Int to, int some)
+{ int f, t;
 
-  for(n = 0; n < valInt(v->size); n++)
-    TRY( forwardCode(code, v->elements[n], toInt(n+1), 0) );
+  if ( get_range(v, from, to, &f, &t) )
+  { int step = (t >= f ? 1 : -1);
+    int offset = valInt(v->offset);
+
+    for(; f != t+step ; f += step)
+    { Any av[2];
+
+      av[0] = v->elements[f-offset-1];
+      av[1] = toInt(f);
+      if ( !(forwardCodev(code, 2, av) || some) )
+	fail;
+    }
+  }
 
   succeed;
 }
 
+
 static status
-forSomeVector(Vector v, Code code)
-{ int n;
+forAllVector(Vector v, Code code, Int from, Int to)
+{ return forVector(v, code, from, to, FALSE);
+}
 
-  for(n = 0; n < valInt(v->size); n++)
-    forwardCode(code, v->elements[n], toInt(n+1), 0);
 
-  succeed;
+static status
+forSomeVector(Vector v, Code code, Int from, Int to)
+{ return forVector(v, code, from, to, TRUE);
 }
 
 
 static Any
-getFindVector(Vector v, Code code)
-{ int n;
+getFindVector(Vector v, Code code, Int from, Int to)
+{ int f, t;
 
-  for(n = 0; n < valInt(v->size); n++)
-    if ( forwardCode(code, v->elements[n], toInt(n+1), 0) )
-      answer(v->elements[n]);
+  if ( get_range(v, from, to, &f, &t) )
+  { int step = (t >= f ? 1 : -1);
+    int offset = valInt(v->offset);
+
+    for(; f != t+step ; f += step)
+    { Any av[2];
+
+      av[0] = v->elements[f-offset-1];
+      av[1] = toInt(f);
+      if ( forwardCodev(code, 2, av) )
+	answer(av[0]);
+    }
+  }
 
   fail;
 }
 
 
 static Chain
-getFindAllVector(Vector v, Code code)
+getFindAllVector(Vector v, Code code, Int from, Int to)
 { Chain result = answerObject(ClassChain, 0);
-  int n;
+  int f, t;
 
-  for(n = 0; n < valInt(v->size); n++)
-    if ( forwardCode(code, 0, v->elements[n], toInt(n+1), 0) )
-      appendChain(result, v->elements[n]);
+  if ( get_range(v, from, to, &f, &t) )
+  { int step = (t >= f ? 1 : -1);
+    int offset = valInt(v->offset);
+
+    for(; f != t+step ; f += step)
+    { Any av[2];
+
+      av[0] = v->elements[f-offset-1];
+      av[1] = toInt(f);
+      if ( forwardCodev(code, 2, av) )
+	appendChain(result, av[0]);
+    }
+  }
 
   answer(result);
 }
@@ -589,6 +673,8 @@ static char *T_range[] =
         { "from=[int]", "to=[int]" };
 static char *T_sort[] =
         { "compare=code", "from=[int]", "to=[int]" };
+static char *T_enum[] =
+	{ "code=code", "from=[int]", "to=[int]" };
 
 /* Instance Variables */
 
@@ -616,9 +702,9 @@ static senddecl send_vector[] =
      NAME_element, "Insert at location, shifting higher elements"),
   SM(NAME_fill, 3, T_fill, fillVector,
      NAME_element, "Fill index range with one value"),
-  SM(NAME_forAll, 1, "action=code", forAllVector,
+  SM(NAME_forAll, 3, T_enum, forAllVector,
      NAME_iterate, "Run code on all elements; demand acceptance"),
-  SM(NAME_forSome, 1, "action=code", forSomeVector,
+  SM(NAME_forSome, 3, T_enum, forSomeVector,
      NAME_iterate, "Run code on all elements"),
   SM(NAME_append, 1, "value=any ...", appendVector,
      NAME_list, "Append element at <-high_index+1"),
@@ -653,9 +739,9 @@ static getdecl get_vector[] =
      NAME_range, "Get highest valid index"),
   GM(NAME_lowIndex, 0, "int", NULL, getLowIndexVector,
      NAME_range, "Get lowest valid index"),
-  GM(NAME_find, 1, "unchecked", "code", getFindVector,
+  GM(NAME_find, 3, "unchecked", T_enum, getFindVector,
      NAME_search, "First element accepted by code"),
-  GM(NAME_findAll, 1, "unchecked", "code", getFindAllVector,
+  GM(NAME_findAll, 3, "unchecked", T_enum, getFindAllVector,
      NAME_search, "Chain of elements accepted by code"),
   GM(NAME_index, 1, "int", "any", getIndexVector,
      NAME_search, "Get first index holding argument"),

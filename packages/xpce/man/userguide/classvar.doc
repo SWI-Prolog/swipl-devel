@@ -58,7 +58,7 @@ To access the class-variable explicitly, use the methods from
 \secref{classvaraccess}.
 
 
-\section{The \file{Defaults} file}
+\section{The `Defaults' file}
 
 The \file{Defaults} file consists of statements. Each statement is on a
 seperate line. A statement may be split over several lines by preceeding

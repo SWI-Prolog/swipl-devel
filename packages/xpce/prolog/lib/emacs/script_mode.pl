@@ -9,6 +9,7 @@
 
 :- module(emacs_script_mode, []).
 :- use_module(library(pce)).
+:- set_prolog_flag(character_escapes, false).
 
 :- emacs_begin_mode(script, language,
 		  "Edit arbitrary scripts with # line comment",

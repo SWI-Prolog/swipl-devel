@@ -10,6 +10,7 @@
 :- module(emacs_gdb_mode, []).
 
 :- use_module(library(pce)).
+:- set_prolog_flag(character_escapes, false).
 
 :- pce_begin_class(emacs_gdb_buffer, emacs_process_buffer).
 

@@ -14,6 +14,8 @@
 :- require([ append/3
 	   , default/3
 	   ]).
+:- set_prolog_flag(character_escapes, false).
+
 
 :- pce_begin_class(man_group_browser, man_frame).
 
