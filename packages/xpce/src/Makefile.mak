@@ -297,6 +297,8 @@ IDIRS=	appl-help \
 	prolog\lib\trace \
 	prolog\lib\trace\icons
 
+MANINDEX=$(IBASE)\man\index.obj
+
 README=	ChangeLog \
 	Defaults \
 	INFO \
@@ -305,7 +307,7 @@ README=	ChangeLog \
 
 INSTALL=xpce-install.exe -n
 
-install:	xpce-install.exe idirs idll ilib irc iindex ireadme
+install:	xpce-install.exe idirs idll ilib irc iindex imanidx ireadme
 		
 html-install::
 
@@ -334,6 +336,17 @@ irc::
 ireadme::
 		$(INSTALL) -C .. $(README) $(IBASE)
 		
+################################################################
+# Manual index
+################################################################
+
+imanidx:	$(MANINDEX)
+		
+$(MANINDEX):
+		$(PLBASE)\bin\plwin.exe \
+		  -g "[library('man/man_index')],pce_make_manual_index('$@')" \
+		  -t halt
+
 ################################################################
 # Uninstalling
 ################################################################

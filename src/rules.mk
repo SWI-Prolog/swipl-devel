@@ -65,7 +65,7 @@ LDFLAGS=
 # packages
 ################################################################
 
-MAKEINDEX=chdir $(PLBASE) & bin\plcon.exe \
+MAKEINDEX=chdir $(PLBASE) & del library\INDEX.pl & bin\plcon.exe \
 			-f none -F none \
 			-g make_library_index(library) \
 			-t halt

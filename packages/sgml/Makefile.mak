@@ -13,17 +13,29 @@ PLHOME=..\..
 PKGDLL=sgml2pl
 
 OBJ=		parser.obj util.obj charmap.obj catalog.obj \
-		model.obj xmlns.obj utf8.obj
+		model.obj xmlns.obj utf8.obj sgml2pl.obj error.obj
+DTDFILES=	HTML4.dcl HTML4.dtd HTML4.soc \
+		HTMLlat1.ent HTMLspec.ent HTMLsym.ent
+DTDDIR=		$(PLBASE)\library\DTD
 
 all:		$(PKGDLL).dll
 
 $(PKGDLL).dll:	$(OBJ)
 		$(LD) /dll /out:$@ $(LDFLAGS) $(OBJ) $(PLLIB) $(LIBS)
 
-install::
+install:	install-dtd
 		copy $(PKGDLL).dll $(PLBASE)\bin
 		copy sgml.pl $(PLBASE)\library
 		$(MAKEINDEX)
+
+install-dtd:	$(DTDDIR)
+		@echo "Installing DTD files in $DTDDIR"
+		@for %f in ($(DTDFILES)) do \
+		   @copy DTD\%f $(DTDDIR)
+		@echo "done"
+
+$(DTDDIR):
+		mkdir "$@"
 
 uninstall::
 		del $(PLBASE)\bin\$(PKGDLL).dll
