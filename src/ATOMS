@@ -519,6 +519,7 @@ A message_queue		"message_queue"
 A dmessage_queue	"$message_queue"
 A thread_local		"thread_local"
 A thread_local_procedure "thread_local_procedure"
+A dload			"$load"
 
 F abs			1
 F acos			1

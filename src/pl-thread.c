@@ -215,6 +215,7 @@ static int	get_message_queue(term_t t, message_queue **queue,
 				  int create);
 static void	cleanupLocalDefinitions(PL_local_data_t *ld);
 static int	unify_thread(term_t id, PL_thread_info_t *info);
+static pl_mutex *mutexCreate(atom_t name);
 
 #ifdef WIN32
 static void	attachThreadWindow(PL_local_data_t *ld);
@@ -435,6 +436,8 @@ initPrologThreads()
 
   GD->statistics.thread_cputime = 0.0;
   GD->statistics.threads_created = 1;
+  GD->thread.mutexTable = newHTable(16);
+  GD->thread.MUTEX_load = mutexCreate(ATOM_dload);
   threads_ready = TRUE;
   UNLOCK();
 }
@@ -1849,17 +1852,6 @@ TryEnterCriticalSection() is only defined on NT 4, not on Windows 95 and
 friends.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static Table mutexTable;
-static int mutex_id;
-
-typedef struct _pl_mutex
-{ pthread_mutex_t mutex;			/* the system mutex */
-  int count;				/* lock count */
-  int owner;				/* integer id of owner */
-  word id;				/* id of the mutex */
-} pl_mutex;
-
-
 static int
 unify_mutex(term_t t, pl_mutex *m)
 { if ( isAtom(m->id) )
@@ -1881,35 +1873,42 @@ unify_mutex_owner(term_t t, int owner)
 
 
 static pl_mutex *
+mutexCreate(atom_t name)
+{ pl_mutex *m;
+
+  m = allocHeap(sizeof(*m));
+  pthread_mutex_init(&m->mutex, NULL);
+  m->count = 0;
+  m->owner = 0;
+  m->id    = name;
+  addHTable(GD->thread.mutexTable, (void *)name, m);
+
+  return m;
+}
+
+
+static pl_mutex *
 unlocked_pl_mutex_create(term_t mutex)
 { Symbol s;
   atom_t name = NULL_ATOM;
   pl_mutex *m;
   word id;
 
-  if ( !mutexTable )
-    mutexTable = newHTable(16);
-  
   if ( PL_get_atom(mutex, &name) )
-  { if ( (s = lookupHTable(mutexTable, (void *)name)) )
+  { if ( (s = lookupHTable(GD->thread.mutexTable, (void *)name)) )
     { PL_error("mutex_create", 1, NULL, ERR_PERMISSION,
 	       ATOM_mutex, ATOM_create, mutex);
       return NULL;
     }
     id = name;
   } else if ( PL_is_variable(mutex) )
-  { id = consInt(mutex_id++);
+  { id = consInt(GD->thread.mutex_next_id++);
   } else
   { PL_error("mutex_create", 1, NULL, ERR_TYPE, ATOM_mutex, mutex);
     return NULL;
   }
 
-  m = allocHeap(sizeof(*m));
-  pthread_mutex_init(&m->mutex, NULL);
-  m->count = 0;
-  m->owner = 0;
-  m->id    = id;
-  addHTable(mutexTable, (void *)id, m);
+  m = mutexCreate(id);
 
   if ( unify_mutex(mutex, m) )
     return m;
@@ -1949,8 +1948,8 @@ get_mutex(term_t t, pl_mutex **mutex, int create)
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_mutex, t);
 
   LOCK();
-  if ( mutexTable )
-  { Symbol s = lookupHTable(mutexTable, (void *)id);
+  if ( GD->thread.mutexTable )
+  { Symbol s = lookupHTable(GD->thread.mutexTable, (void *)id);
 
     if ( s )
     { *mutex = s->value;
@@ -1975,13 +1974,9 @@ get_mutex(term_t t, pl_mutex **mutex, int create)
 
 
 
-foreign_t
-pl_mutex_lock(term_t mutex)
-{ pl_mutex *m;
-  int self = PL_thread_self();
-
-  if ( !get_mutex(mutex, &m, TRUE) )
-    fail;
+int
+PL_mutex_lock(struct pl_mutex *m)
+{ int self = PL_thread_self();
 
   if ( self == m->owner )
   { m->count++;
@@ -1992,6 +1987,17 @@ pl_mutex_lock(term_t mutex)
   }
 
   succeed;
+}
+
+
+foreign_t
+pl_mutex_lock(term_t mutex)
+{ pl_mutex *m;
+
+  if ( !get_mutex(mutex, &m, TRUE) )
+    fail;
+
+  return  PL_mutex_lock(m);
 }
 
 
@@ -2019,13 +2025,9 @@ pl_mutex_trylock(term_t mutex)
 }
 
 
-foreign_t
-pl_mutex_unlock(term_t mutex)
-{ pl_mutex *m;
-  int self = PL_thread_self();
-
-  if ( !get_mutex(mutex, &m, FALSE) )
-    fail;
+int
+PL_mutex_unlock(struct pl_mutex *m)
+{ int self = PL_thread_self();
 
   if ( self == m->owner )
   { if ( --m->count == 0 )
@@ -2037,8 +2039,22 @@ pl_mutex_unlock(term_t mutex)
     succeed;
   }
 
-  return PL_error("mutex_unlock", 1, MSG_ERRNO, ERR_PERMISSION,
-		  ATOM_mutex, ATOM_unlock, mutex);
+  fail;
+}
+
+
+foreign_t
+pl_mutex_unlock(term_t mutex)
+{ pl_mutex *m;
+
+  if ( !get_mutex(mutex, &m, FALSE) )
+    fail;
+
+  if ( !PL_mutex_unlock(m) )
+    return PL_error("mutex_unlock", 1, MSG_ERRNO, ERR_PERMISSION,
+		    ATOM_mutex, ATOM_unlock, mutex);
+
+  succeed;
 }
 
 
@@ -2048,10 +2064,7 @@ pl_mutex_unlock_all()
   Symbol s;
   int tid = PL_thread_self();
 
-  if ( !mutexTable )
-    succeed;
-  
-  e = newTableEnum(mutexTable);
+  e = newTableEnum(GD->thread.mutexTable);
   while( (s = advanceTableEnum(e)) )
   { pl_mutex *m = s->value;
     
@@ -2085,8 +2098,8 @@ pl_mutex_destroy(term_t mutex)
   }
 
   pthread_mutex_destroy(&m->mutex);
-  s = lookupHTable(mutexTable, (void *)m->id);
-  deleteSymbolHTable(mutexTable, s);
+  s = lookupHTable(GD->thread.mutexTable, (void *)m->id);
+  deleteSymbolHTable(GD->thread.mutexTable, s);
   freeHeap(m, sizeof(*m));
   UNLOCK();
 
@@ -2103,9 +2116,7 @@ pl_current_mutex(term_t mutex, term_t owner, term_t count, control_t h)
   switch(ForeignControl(h))
   { case FRG_FIRST_CALL:
     { if ( PL_is_variable(mutex) )
-      { if ( !mutexTable )
-	  fail;
-	e = newTableEnum(mutexTable);
+      { e = newTableEnum(GD->thread.mutexTable);
       } else
       { pl_mutex *m;
 

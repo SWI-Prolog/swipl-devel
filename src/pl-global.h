@@ -244,12 +244,15 @@ typedef struct
 
   struct
   { struct _at_exit_goal *exit_goals;	/* Global thread_at_exit/1 goals */
-    int		    enabled;		/* threads are enabled */
+    int		    	enabled;	/* threads are enabled */
+    Table		mutexTable;	/* Name --> mutex table */
+    int			mutex_next_id;	/* next id for anonymous mutexes */
+    struct pl_mutex*	MUTEX_load;	/* The $load mutex */
 #ifdef WIN32
-    HINSTANCE	    instance;		/* Win32 process instance */
+    HINSTANCE	    	instance;	/* Win32 process instance */
 #endif
   } thread;
-#endif
+#endif /*O_PLMT*/
 } PL_global_data_t;
 
 

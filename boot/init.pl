@@ -304,6 +304,10 @@ $undefined_procedure(Module, Name, Arity, Action) :-
 	user:exception(undefined_predicate, Pred, Action), !.
 $undefined_procedure(Module, Name, Arity, retry) :-
 	current_prolog_flag(autoload, true),
+	with_mutex('$load', '$autoload'(Module, Name, Arity)).
+$undefined_procedure(_, _, _, error).
+
+'$autoload'(Module, Name, Arity) :-
 	$find_library(Module, Name, Arity, LoadModule, Library),
 	functor(Head, Name, Arity),
 	flag($autoloading, Old, Old+1),
@@ -317,7 +321,6 @@ $undefined_procedure(Module, Name, Arity, retry) :-
 	),
 	flag($autoloading, _, Old),
 	$c_current_predicate(_, Module:Head).
-$undefined_procedure(_, _, _, error).
 
 $calleventhook(Term) :-
 	(   notrace(user:prolog_event_hook(Term))

@@ -1400,8 +1400,8 @@ According to Paulo Moura, predicates defined either dynamic, multifile or
 discontiguous should not cause an undefined predicate warning.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-Definition
-trapUndefined(Definition def)
+static Definition
+trapUndefined_unlocked(Definition def)
 { GET_LD
   int retry_times = 0;
   Definition newdef;
@@ -1471,6 +1471,32 @@ error:
 
   return def;
 }
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This must be  executed  holding  the   Prolog  mutex  '$load'  to  avoid
+race-conditions between threads trapping undefined   code. At the moment
+there is no neat way to share   mutexes  between C and Prolog, something
+that should be considered.
+
+This implementation is slow as it  forces   us  to setup the entire term
+manipulation machinery just to take them apart at the other end.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+Definition
+trapUndefined(Definition def)
+{ 
+#ifdef O_PLMT
+  PL_mutex_lock(GD->thread.MUTEX_load);
+  def = trapUndefined_unlocked(def);
+  PL_mutex_unlock(GD->thread.MUTEX_load);
+
+  return def;
+#else
+  return trapUndefined_unlocked(def);
+#endif
+}
+
 
 		 /*******************************
 		 *	  REQUIRE SUPPORT	*

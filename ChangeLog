@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: race-condition in autoloader.
+
   * FIXED: Streams with timeout could signal end-of-file on an interrupt.
 
   * ADDED: Base sleep/1 on nanosleep() if this function is available.

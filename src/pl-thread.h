@@ -66,6 +66,12 @@ typedef struct message_queue
   word		       id;		/* Id of the queue */
 } message_queue;
 
+typedef struct pl_mutex
+{ pthread_mutex_t mutex;		/* the system mutex */
+  int count;				/* lock count */
+  int owner;				/* integer id of owner */
+  word id;				/* id of the mutex */
+} pl_mutex;
 
 #define PL_THREAD_MAGIC 0x2737234f
 
@@ -233,6 +239,8 @@ foreign_t		pl_attach_xterm(term_t in, term_t out);
 long			threadLocalHeapUsed(void);
 int			attachConsole(void);
 Definition		localiseDefinition(Definition def);
+int			PL_mutex_lock(struct pl_mutex *m);
+int			PL_mutex_unlock(struct pl_mutex *m);
 
 
 		 /*******************************
