@@ -42,6 +42,10 @@ typedef int (*sgml_entity_f)(dtd_parser_p parser,
 			     int chr);
 typedef int (*sgml_error_f)(dtd_parser_p parser,
 			    dtd_error *error);
+#ifdef XMLNS
+typedef int (*xmlns_f)(dtd_parser_p parser,
+		       dtd_symbol *ns, dtd_symbol *url);
+#endif
 
 
 		 /*******************************
@@ -144,6 +148,9 @@ typedef struct _dtd_parser
   sgml_cdata_f		on_cdata;	/* process cdata */
   sgml_entity_f		on_entity;	/* unprocessed entity */
   sgml_error_f		on_error;	/* handle error */
+#ifdef XMLNS
+  xmlns_f		on_xmlns;	/* handle new namespace */
+#endif
 } dtd_parser;
 
 

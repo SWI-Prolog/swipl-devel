@@ -1,3 +1,5 @@
+* ADDED: Programmable XML namespace canonisation.
+
 * ADDED: White space handling using the xlm:space attribute as well as
   allow for setting the initial default as option to load_structure.
 

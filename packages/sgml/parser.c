@@ -1469,8 +1469,6 @@ free_environment(sgml_environment *env)
 }
 
 
-
-
 static int
 pop_to(dtd_parser *p, sgml_environment *to)
 { sgml_environment *env, *parent;

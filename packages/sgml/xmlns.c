@@ -22,16 +22,21 @@
 static xmlns *
 xmlns_push(dtd_parser *p, const ichar *ns, const ochar *url)
 { sgml_environment *env = p->environments;
+  dtd_symbol *n = (*ns ? dtd_add_symbol(p->dtd, ns) : (dtd_symbol *)NULL);
+  dtd_symbol *u = dtd_add_symbol(p->dtd, url); /* TBD: ochar/ichar */
+
+  if ( p->on_xmlns )
+    (*p->on_xmlns)(p, n, u);
 
   if ( env )
-  { xmlns *n = malloc(sizeof(*n));
+  { xmlns *x = malloc(sizeof(*n));
 
-    n->name = (*ns ? dtd_add_symbol(p->dtd, ns) : (dtd_symbol *)NULL);
-    n->url  = dtd_add_symbol(p->dtd, url); /* TBD: ochar/ichar */
-    n->next = env->xmlns;
-    env->xmlns = n;
+    x->name = n;
+    x->url  = u;
+    x->next = env->xmlns;
+    env->xmlns = x;
 
-    return n;
+    return x;
   }
 
   return NULL;

@@ -171,7 +171,7 @@ for details.
 <H3><A NAME="sec:2.1">2.1 `Goodies' Predicates</A></H3>
 
 <P>These predicates are for basic usage of the library, converting 
-entire and self-contained files in one of the three supported <I>X</I>ML 
+entire and self-contained files in one of the three supported X ML 
 dialects into a structured term. They are all expressed in <A NAME="idx:loadstructure3:2"></A><A HREF="#load_structure/3">load_structure/3</A>.
 
 <DL>
@@ -214,13 +214,12 @@ and <A NAME="idx:loadhtmlfile2:6"></A><A HREF="#load_html_file/2">load_html_file
 <DL>
 <DT><A NAME="load_structure/3"><STRONG>load_structure</STRONG>(<VAR>+File, 
 --ListOfContent, +Options</VAR>)</A><DD>
-Load the <I>X</I>ML file <VAR>File</VAR> and return the resulting 
-structure in <VAR>ListOfContent</VAR>. <VAR>Options</VAR> is a list of 
-options controlling the conversion process.
+Load the X ML file <VAR>File</VAR> and return the resulting structure in <VAR>ListOfContent</VAR>. <VAR>Options</VAR> 
+is a list of options controlling the conversion process.
 
-<P>A proper <I>X</I>ML document contains only a single toplevel element 
-whose name matches the document type. Nevertheless, a list is returned 
-for consistency with the representation of element content. The
+<P>A proper X ML document contains only a single toplevel element whose 
+name matches the document type. Nevertheless, a list is returned for 
+consistency with the representation of element content. The
 <VAR>ListOfContent</VAR> consists of three types:
 
 <DL>
@@ -408,6 +407,43 @@ URL is returned.
 <P>Attributes declaring namespaces (<CODE>xmlns:<VAR>ns</VAR>=<VAR>url</VAR></CODE> 
 are reported as if <CODE>xmlns</CODE> is not a defined resource.
 
+<P>In many cases, getting attribute-names as <CODE><VAR>url</VAR>:<VAR>name</VAR></CODE> 
+is not desirable. Such terms are hard to unified and sometimes multiple 
+URLs may be mapped to the same identifier. This may happen due to poor 
+version management, poor standardisation or because the the application 
+doesn't care too much about versions. This package defines two 
+call-backs that can be set using <A NAME="idx:setsgmlparser2:10"></A><A HREF="#set_sgml_parser/2">set_sgml_parser/2</A> 
+to deal with this problem.
+
+<P>the call-back <CODE>xmlns()</CODE> is called as XML namespaces are 
+pushed on the environment. It can be used to extend a canonical mapping 
+for later use by the <CODE>urlns()</CODE> call-back. The following 
+illustrates this behaviour. Any namespace containing <CODE>rdf-syntax</CODE> 
+in its URL or that is used as <CODE>rdf</CODE> namespace is canonised to <CODE>rdf</CODE>. 
+This implies that any attribute and element name from the RDF namespace 
+appears as <CODE>rdf:<VAR>name</VAR></CODE>.
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+:- dynamic
+        xmlns/3.
+
+on_xmlns(rdf, URL, _Parser) :- !,
+        asserta(xmlns(URL, rdf, _)).
+on_xmlns(_, URL, _Parser) :-
+        sub_atom(URL, _, _, _, rdf-syntax), !,
+        asserta(xmlns(URL, rdf, _)).
+
+load_rdf_xml(File, Term) :-
+        load_structure(File, Term,
+                       [ dialect(xmlns),
+                         call(xmlns, on_xmlns),
+                         call(urlns, xmlns)
+                       ]).
+</PRE>
+</TABLE>
+
 <H3><A NAME="sec:3.4">3.4 DTD-Handling</A></H3>
 
 <P>The DTD (<B>D</B>ocument <B>T</B>ype <B>D</B>efinition) is a separate 
@@ -426,7 +462,7 @@ Deallocate all resources associated to the DTD. Further use of <VAR>DTD</VAR>
 is invalid.
 <DT><A NAME="load_dtd/1"><STRONG>load_dtd</STRONG>(<VAR>+DTD, +File</VAR>)</A><DD>
 Define the DTD by loading the SGML-DTD file <VAR>File</VAR>. This 
-predicate is defined using the low-level <A NAME="idx:opendtd3:10"></A><A HREF="#open_dtd/3">open_dtd/3</A> 
+predicate is defined using the low-level <A NAME="idx:opendtd3:11"></A><A HREF="#open_dtd/3">open_dtd/3</A> 
 predicate:
 
 <P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
@@ -444,7 +480,7 @@ load_dtd(DTD, DtdFile) :-
 <DT><A NAME="open_dtd/3"><STRONG>open_dtd</STRONG>(<VAR>+DTD, +Options, 
 -OutStream</VAR>)</A><DD>
 Open either a DTD as an output stream. The option-list is currently 
-empty. See <A NAME="idx:loaddtd2:11"></A><B>load_dtd/2</B> for an 
+empty. See <A NAME="idx:loaddtd2:12"></A><B>load_dtd/2</B> for an 
 example.
 <DT><A NAME="dtd/2"><STRONG>dtd</STRONG>(<VAR>+DocType, -DTD</VAR>)</A><DD>
 Find the DTD representing the indicated <EM>doctype</EM>. This predicate 
@@ -641,7 +677,7 @@ Offset from where the parser started its processing in the file-object.
 See <A HREF="#sec:indexaccess">section 4</A>.
 <DT><STRONG>source</STRONG>(<VAR>-Stream</VAR>)<DD>
 Prolog stream being processed. May be used in the <CODE>on_begin</CODE>, 
-etc. callbacks from <A NAME="idx:sgmlparse2:12"></A><A HREF="#sgml_parse/2">sgml_parse/2</A>.
+etc. callbacks from <A NAME="idx:sgmlparse2:13"></A><A HREF="#sgml_parse/2">sgml_parse/2</A>.
 <DT><STRONG>dialect</STRONG>(<VAR>-Dialect</VAR>)<DD>
 Return the current dialect used by the parser (<CODE>sgml</CODE>, <CODE>xml</CODE> 
 or <CODE>xmlns</CODE>).
@@ -649,9 +685,9 @@ or <CODE>xmlns</CODE>).
 
 <DT><A NAME="sgml_parse/2"><STRONG>sgml_parse</STRONG>(<VAR>+Parser, 
 +Options</VAR>)</A><DD>
-Parse an <I>X</I>ML file. The parser can operate in two input and two 
-output modes. Output is either a structured term as described with
-<A NAME="idx:loadstructure2:13"></A><B>load_structure/2</B> or 
+Parse an X ML file. The parser can operate in two input and two output 
+modes. Output is either a structured term as described with
+<A NAME="idx:loadstructure2:14"></A><B>load_structure/2</B> or 
 call-backs on predefined events. The first is especially suitable for 
 manipulating not-too-large documents, while the latter provides a 
 primitive means for handling very large documents.
@@ -662,12 +698,12 @@ parser. A full description of the option-list is below.
 <DL>
 <DT><STRONG>document</STRONG>(<VAR>+Term</VAR>)<DD>
 A variable that will be unified with a list describing the content of 
-the document (see <A NAME="idx:loadstructure2:14"></A><B>load_structure/2</B>).
+the document (see <A NAME="idx:loadstructure2:15"></A><B>load_structure/2</B>).
 <DT><STRONG>source</STRONG>(<VAR>+Stream</VAR>)<DD>
 An input stream that is read. Either this option or the
 <CODE>goal(Goal)</CODE> option must be provided.
 <DT><STRONG>goal</STRONG>(<VAR>+Goal</VAR>)<DD>
-<VAR>Goal</VAR> is a callable term. The predicate <A NAME="idx:sgmlparse2:15"></A><A HREF="#sgml_parse/2">sgml_parse/2</A> 
+<VAR>Goal</VAR> is a callable term. The predicate <A NAME="idx:sgmlparse2:16"></A><A HREF="#sgml_parse/2">sgml_parse/2</A> 
 opens an output stream to the parser and invokes <CODE>call(Goal, Stream)</CODE>, 
 where <VAR>Goal</VAR> should write the data to be parsed to <VAR>Stream</VAR>. 
 This option is not compatible to <CODE>parse(element)</CODE>. This 
@@ -735,6 +771,17 @@ CDATA has been parsed. The named handler is called with two arguments: <CODE><VA
 An entity that cannot be represented as CDATA has been parsed. The named 
 handler is called with two arguments:
 <CODE><VAR>Handler</VAR>(+NameOrCode, +Parser)</CODE>.
+<DT><STRONG>xmlns</STRONG><DD>
+When parsing an in <CODE>xmlns</CODE> mode, a new namespace declaraction 
+is pushed on the environment. The named handler is called with three 
+arguments: <CODE><VAR>Handler</VAR>(+NameSpace, +URL, +Parser)</CODE>. 
+See
+<A HREF="#sec:xmlns">section 3.3.1</A> for details.
+<DT><STRONG>urlns</STRONG><DD>
+When parsing an in <CODE>xmlns</CODE> mode, this predicate can be used 
+to map a url into either a canonical URL for this namespace or another 
+internal identifier. See <A HREF="#sec:xmlns">section 3.3.1</A> for 
+details.
 </DL>
 
 </DL>
@@ -744,18 +791,18 @@ handler is called with two arguments:
 <H4><A NAME="sec:3.6.1">3.6.1 Partial Parsing</A></H4>
 
 <P>In some cases, part of a document needs to be parsed. One option is 
-to use <A NAME="idx:loadstructure2:16"></A><B>load_structure/2</B> or 
+to use <A NAME="idx:loadstructure2:17"></A><B>load_structure/2</B> or 
 one of its variations and extract the desired elements from the returned 
 structure. This is a clean solution, especially on small and 
 medium-sized documents. It however is unsuitable for parsing really big 
 documents. Such documents can only be handled with the call-back output 
 interface realised by the
-<CODE>call(Event, Action)</CODE> option of <A NAME="idx:sgmlparse2:17"></A><A HREF="#sgml_parse/2">sgml_parse/2</A>. 
+<CODE>call(Event, Action)</CODE> option of <A NAME="idx:sgmlparse2:18"></A><A HREF="#sgml_parse/2">sgml_parse/2</A>. 
 Event-driven processing is not very natural in Prolog.
 
 <P>The SGML2PL library allows for a mixed approach. Consider the case 
 where we want to process all descriptions from RDF elements in a 
-document. The code below calls <A NAME="idx:processrdfdescription1:18"></A><B>process_rdf_description/1</B> 
+document. The code below calls <A NAME="idx:processrdfdescription1:19"></A><B>process_rdf_description/1</B> 
 on any element that is directly inside an RDF element.
 
 <P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
@@ -810,11 +857,11 @@ document into memory is then undesirable.
 
 <P>Using the <CODE>parse(element)</CODE> option, we open a file, seek 
 (using
-<A NAME="idx:seek4:19"></A><B>seek/4</B>) to the position of the element 
+<A NAME="idx:seek4:20"></A><B>seek/4</B>) to the position of the element 
 and read the desired element.
 
 <P>The index can be built using the call-back interface of
-<A NAME="idx:sgmlparse2:20"></A><A HREF="#sgml_parse/2">sgml_parse/2</A>. 
+<A NAME="idx:sgmlparse2:21"></A><A HREF="#sgml_parse/2">sgml_parse/2</A>. 
 For example, the following code makes an index of the <CODE>structure.rdf</CODE> 
 file of the OpenDirectory projects:
 
@@ -870,7 +917,7 @@ the entity names and the file is done using a <EM>catalog</EM> file in a
 format compatible to that used by James Clark's SP Parser.
 
 <P>Catalog files can be specified using two primitives: the predicate
-<A NAME="idx:sgmlregistercatalogfile2:21"></A><A HREF="#sgml_register_catalog_file/2">sgml_register_catalog_file/2</A> 
+<A NAME="idx:sgmlregistercatalogfile2:22"></A><A HREF="#sgml_register_catalog_file/2">sgml_register_catalog_file/2</A> 
 or the environment variable
 <CODE>SGML_CATALOG_FILES</CODE> (compatible to the SP package).
 

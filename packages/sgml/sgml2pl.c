@@ -60,6 +60,8 @@ typedef struct _parser_data
   predicate_t on_end;			/* end element */
   predicate_t on_cdata;			/* cdata */
   predicate_t on_entity;		/* entity */
+  predicate_t on_xmlns;			/* xmlns */
+  predicate_t on_urlns;			/* url --> namespace */
 
   stopat      stopat;			/* Where to stop */
   int	      stopped;			/* Environment is complete */
@@ -415,6 +417,90 @@ pl_get_sgml_parser(term_t parser, term_t option)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+put_url(dtd_parser *p, term_t t, const ichar *url)
+    Store the url-part of a name-space qualifier in term.  We call
+    xml:xmlns(-Canonical, +Full) trying to resolve the specified
+    namespace to an internal canonical namespace.
+
+    We do a little caching as there will generally be only a very
+    small pool of urls in use.  We assume the url-pointers we get
+    life for the time of the parser.  It might be possible that
+    multiple url pointers point to the same url, but this only clobbers
+    the cache a little.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define URL_CACHE 4			/* # entries cached */
+
+typedef struct
+{ const ichar *url;			/* URL pointer */
+  atom_t canonical;
+} url_cache;
+
+static url_cache cache[URL_CACHE];
+
+static void
+reset_url_cache()
+{ int i;
+  url_cache *c = cache;
+
+  for(i=0; i<URL_CACHE; i++)
+  { c[i].url = NULL;
+    if ( c[i].canonical )
+      PL_unregister_atom(c[i].canonical);
+    c[i].canonical = 0;
+  }
+}
+
+
+static void
+put_url(dtd_parser *p, term_t t, const ichar *url)
+{ parser_data *pd = p->closure;
+  int i;
+
+  if ( !pd->on_urlns )
+  { PL_put_atom_chars(t, url);
+    return;
+  }
+
+  for(i=0; i<URL_CACHE; i++)
+  { if ( cache[i].url == url )		/* cache hit */
+    { if ( cache[i].canonical )		/* and a canonical value */
+	PL_put_atom(t, cache[i].canonical);
+      else
+	PL_put_atom_chars(t, url);
+
+      return;
+    }
+  }
+					/* shift the cache */
+  i = URL_CACHE-1;
+  if ( cache[i].canonical )
+    PL_unregister_atom(cache[i].canonical);
+  for(i=URL_CACHE-1; i>0; i--)
+    cache[i] = cache[i-1];
+  cache[0].url = url;
+  cache[0].canonical = 0;
+
+  { fid_t fid = PL_open_foreign_frame();
+    term_t av = PL_new_term_refs(3);
+    atom_t a;
+
+    PL_put_atom_chars(av+0, url);
+    unify_parser(av+2, p);
+    if ( PL_call_predicate(NULL, PL_Q_NORMAL, pd->on_urlns, av) &&
+	 PL_get_atom(av+1, &a) )
+    { PL_register_atom(a);
+      cache[0].canonical = a;
+      PL_put_atom(t, a);
+    } else
+    { PL_put_atom_chars(t, url);
+    }
+    PL_discard_foreign_frame(fid);
+  }
+}
+
+
 static void
 put_name(dtd_parser *p, term_t t, dtd_symbol *nm)
 { const ichar *url, *local;
@@ -425,7 +511,7 @@ put_name(dtd_parser *p, term_t t, dtd_symbol *nm)
     if ( url )
     { term_t av = PL_new_term_refs(2);
     
-      PL_put_atom_chars(av+0, url);
+      put_url(p, av+0, url);
       PL_put_atom_chars(av+1, local);
       PL_cons_functor_v(t, FUNCTOR_ns2, av);
     } else
@@ -446,7 +532,7 @@ put_element_name(dtd_parser *p, term_t t, dtd_element *e)
     if ( url )
     { term_t av = PL_new_term_refs(2);
     
-      PL_put_atom_chars(av+0, url);
+      put_url(p, av+0, url);
       PL_put_atom_chars(av+1, local);
       PL_cons_functor_v(t, FUNCTOR_ns2, av);
     } else
@@ -698,6 +784,32 @@ on_error(dtd_parser *p, dtd_error *error)
 
 
 static int
+on_xmlns(dtd_parser *p, dtd_symbol *ns, dtd_symbol *url)
+{ parser_data *pd = p->closure;
+
+  if ( pd->stopped )
+    return TRUE;
+
+  if ( pd->on_xmlns )
+  { fid_t fid = PL_open_foreign_frame();
+    term_t av = PL_new_term_refs(3);
+
+    if ( ns )
+      PL_put_atom_chars(av+0, ns->name);
+    else
+      PL_put_nil(av+0);
+    PL_put_atom_chars(av+1, url->name);
+    unify_parser(av+2, p);
+
+    PL_call_predicate(NULL, PL_Q_NORMAL, pd->on_xmlns, av);
+    PL_discard_foreign_frame(fid);
+  }
+
+  return TRUE;
+}
+
+
+static int
 write_parser(void *h, char *buf, int len)
 { parser_data *pd = h;
   unsigned char *s = (unsigned char *)buf;
@@ -813,6 +925,12 @@ set_callback_predicates(parser_data *pd, term_t option)
   } else if ( streq(fname, "entity") )
   { pp = &pd->on_entity;		/* name, parser */
     arity = 2;
+  } else if ( streq(fname, "xmlns") )
+  { pp = &pd->on_xmlns;			/* ns, url, parser */
+    arity = 3;
+  } else if ( streq(fname, "urlns") )
+  { pp = &pd->on_urlns;			/* url, ns, parser */
+    arity = 3;
   } else
     return sgml2pl_error(ERR_DOMAIN, "sgml_callback", a);
 
@@ -856,6 +974,7 @@ pl_sgml_parse(term_t parser, term_t options)
     p->on_entity	= on_entity;
     p->on_cdata         = on_cdata;
     p->on_error	        = on_error;
+    p->on_xmlns		= on_xmlns;
     p->dmode	        = DM_SGML;
     p->state	        = S_PCDATA;
   
@@ -935,6 +1054,7 @@ pl_sgml_parse(term_t parser, term_t options)
       end_document_dtd_parser(p);
 
   out:
+    reset_url_cache();
     if ( pd->tail )
       PL_unify_nil(pd->tail);
 
@@ -981,6 +1101,7 @@ pl_sgml_parse(term_t parser, term_t options)
 
     return sgml2pl_error(ERR_FAIL, goal);
   }
+  reset_url_cache();
 
   return TRUE;
 }

@@ -348,9 +348,41 @@ namespace is undeclared, the namespace name rather than the related URL
 is returned.
 
 Attributes declaring namespaces (\exam{xmlns:\arg{ns}=\arg{url}} are
-reported as if \const{xmlns} is not a defined resource.	 
+reported as if \const{xmlns} is not a defined resource.
 
+In many cases, getting attribute-names as \exam{\arg{url}:\arg{name}} is
+not desirable. Such terms are hard to unified and sometimes multiple
+URLs may be mapped to the same identifier. This may happen due to poor
+version management, poor standardisation or because the the application
+doesn't care too much about versions. This package defines two
+call-backs that can be set using set_sgml_parser/2 to deal with this
+problem.
 
+the call-back \term{xmlns}{} is called as XML namespaces are pushed on
+the environment.  It can be used to extend a canonical mapping for later
+use by the \term{urlns}{} call-back.  The following illustrates this
+behaviour.  Any namespace containing \const{rdf-syntax} in its URL or
+that is used as \const{rdf} namespace is canonised to \const{rdf}.  This
+implies that any attribute and element name from the RDF namespace
+appears as \exam{rdf:\arg{name}}.
+
+\begin{code}
+:- dynamic
+	xmlns/3.
+
+on_xmlns(rdf, URL, _Parser) :- !,
+	asserta(xmlns(URL, rdf, _)).
+on_xmlns(_, URL, _Parser) :-
+	sub_atom(URL, _, _, _, rdf-syntax), !,
+	asserta(xmlns(URL, rdf, _)).
+
+load_rdf_xml(File, Term) :-
+	load_structure(File, Term,
+		       [ dialect(xmlns),
+			 call(xmlns, on_xmlns),
+			 call(urlns, xmlns)
+		       ]).
+\end{code}
 
 
 \subsection{DTD-Handling}
@@ -647,6 +679,15 @@ an atom representing the data.
 An entity that cannot be represented as CDATA has been parsed. The named
 handler is called with two arguments:
 \term{\arg{Handler}}{+NameOrCode, +Parser}.
+    \termitem{xmlns}{}
+When parsing an in \const{xmlns} mode, a new namespace declaraction is
+pushed on the environment.  The named handler is called with three
+arguments: \term{\arg{Handler}}{+NameSpace, +URL, +Parser}.  See
+\secref{xmlns} for details.
+    \termitem{urlns}{}
+When parsing an in \const{xmlns} mode, this predicate can be used to
+map a url into either a canonical URL for this namespace or another
+internal identifier.  See \secref{xmlns} for details.
 \end{description}
 \end{description}
 \end{description}

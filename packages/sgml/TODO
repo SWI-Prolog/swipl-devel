@@ -2,23 +2,22 @@ TODO LIST:
 
 	* Handle multi-valued attributes
 	* Handling of external entities (both param and normal) in Prolog
-	* Improve error messages on incomplete documents
 	* Check ID/IDREF
 	* Handle memory-allocation errors
 	* Parsing of processing instructions to end at ?> instead of just >
+	* Donot use quoted values for tag identifications.  Right now the
+	  following leads to bad error handling:
+
+		<tag name="value>
+
 
 XML NameSpaces
 
 	* Allow for mapping to local identifiers?
 
-		- xmlns(rdf, 'djfejfpwe').
+		- Register multiple namespaces to local identifier:
 
-XML Space handling
+		:- xmlns_register(Local, Global).
 
-	* Recognise xml:space (default|preserve) attribute.  Default:
+		xmlns(?Local, ?Global).
 
-	 	- Canonise multiple to a single
-		- Remove leading and trailing space of an element:
-
-		  <a> foo <a>              --> 'foo'
-		  <a> foo <b> x </b> </a>  --> 'foo ', b(x)
