@@ -1,6 +1,10 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: More robust and better re-entrant implementation of pceDispatch(),
+  fixing problems with errors in select() (error code 9: EBADF).  Required
+  for SWI-Prolog's improved library(socket).
+
 * ADDED: full_screen to `@pce->show_console'.
 
 * ADDED: Start for `frame->status: full_screen' (work in progress).

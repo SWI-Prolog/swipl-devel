@@ -67,13 +67,16 @@ is_timeout(XtPointer ctx, XtIntervalId *id)
 #endif
 
 static int	  dispatch_fd = -1;
-static XtInputId  in_id;
 
 status
 ws_dispatch(Int FD, Any timeout)
 { XtIntervalId tid = 0;
-  int fd = (isDefault(FD) ? dispatch_fd : valInt(FD));
+  XtInputId iid = 0;
   status rval = SUCCEED;
+  int ofd = dispatch_fd;
+  int fd = (isDefault(FD) ? dispatch_fd : 
+	    isNil(FD)	  ? -1
+	    		  : valInt(FD));
 
 					/* No context: wait for input */
 					/* timeout */
@@ -81,6 +84,8 @@ ws_dispatch(Int FD, Any timeout)
   { struct timeval to;
     struct timeval *tp = &to;
     fd_set readfds;
+    int setmax = 0;
+    int rval;
 
     if ( isNil(timeout) )
     { tp = NULL;
@@ -99,25 +104,22 @@ ws_dispatch(Int FD, Any timeout)
 
     FD_ZERO(&readfds);
     if ( fd >= 0 )
-      FD_SET(fd, &readfds);
-    if ( select(fd+1, &readfds, NULL, NULL, tp) > 0 )
-      succeed;
-    else
-      fail;
+    { FD_SET(fd, &readfds);
+      setmax = max(setmax, fd);
+      dispatch_fd = fd;
+    }
+
+    rval = select(setmax+1, &readfds, NULL, NULL, tp);
+    dispatch_fd = ofd;
+
+    return (rval > 0 ? SUCCEED : FAIL);
   }					/* A display: dispatch until there */
 					/* is input or a timeout */
 
-  if ( fd != dispatch_fd )
-  { if ( in_id )
-    { XtRemoveInput(in_id);
-      in_id = 0;
-    }
-
-    if ( fd >= 0 )
-    { in_id = XtAppAddInput(ThePceXtAppContext, fd,
-			    (XtPointer) XtInputReadMask, is_pending, NULL);
-      dispatch_fd = fd;
-    }
+  if ( fd >= 0 )
+  { iid = XtAppAddInput(ThePceXtAppContext, fd,
+			(XtPointer) XtInputReadMask, is_pending, NULL);
+    dispatch_fd = fd;
   }
 
   if ( notNil(timeout) )
@@ -141,8 +143,12 @@ ws_dispatch(Int FD, Any timeout)
   XtAppProcessEvent(ThePceXtAppContext,
 		    XtIMXEvent|XtIMTimer|XtIMAlternateInput);
   pceMTUnlock(LOCK_PCE);
+
   if ( tid )
     XtRemoveTimeOut(tid);
+  if ( iid )
+    XtRemoveInput(iid);
+  dispatch_fd = ofd;
 
   considerLocStillEvent();
 
