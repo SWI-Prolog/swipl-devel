@@ -96,28 +96,28 @@ print_canvas(Canvas) :-			% MS-Windows
 	send(Prt, close),
 	free(Prt).
 print_canvas(Canvas) :-			% Unix/PostScript
-	get(Canvas, default_printer, Printer),
-	default_printer(Printer),
+	get(Canvas, print_command, Command),
 	new(PsFile, file),
 	send(PsFile, open, write),
 	send(PsFile, append, Canvas?postscript),
 	send(PsFile, append, 'showpage\n'),
 	send(PsFile, close),
 	get(PsFile, absolute_path, File),
-	get(Canvas, print_command_template, CmdTempl),
-	print_cmd(CmdTempl, Printer, File, Cmd),
-	pce_shell_command('/bin/sh'('-c', Cmd)),
+	get(string('%s "%s"', Command, File), value, ShellCommand),
+	pce_shell_command('/bin/sh'('-c', ShellCommand)),
 	send(PsFile, remove),
 	send(PsFile, done),
-	send(Canvas, report, status, 'Sent to printer `%s''', Printer).
+	send(Canvas, report, status, 'Sent to printer').
 	
 
-default_printer(Canvas, Printer:name) :<-
+print_command(Canvas, Command:name) :<-
 	"Get name of the printer"::
 	get(Canvas, frame, Frame),
 	default_printer(DefPrinter),
-	new(D, dialog(select_printer?label_name)),
-	send(D, append, new(P, text_item(printer, DefPrinter))),
+	get(Canvas, print_command_template, CmdTempl),
+	print_cmd(CmdTempl, DefPrinter, Cmd),
+	new(D, dialog(print_command?label_name)),
+	send(D, append, new(P, text_item(print_command, Cmd))),
 	send(D, append, button(cancel, message(D, return, @nil))),
 	send(D, append, button(ok, message(D, return, P?selection))),
 	send(D, default_button, ok),
@@ -126,7 +126,7 @@ default_printer(Canvas, Printer:name) :<-
 	get(D, confirm_centered, Canvas?frame?area?center, Answer),
 	send(D, destroy),
 	Answer \== @nil,
-	Printer = Answer.
+	Command = Answer.
 
 default_printer(Printer) :-
 	get(@pce, environment_variable, 'PRINTER', Printer), !.
@@ -136,9 +136,10 @@ default_printer(postscript).
 print_job_name(_, Job) :<-
 	"Default name of the printer job"::
 	Job = 'XPCE/SWI-Prolog'.
+
 print_command_template(_, Command) :<-
 	"Default command to send a job to the printer"::
-	Command = 'lpr -P%p "%f"'.
+	Command = 'lpr -P%p'.
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 print_cmd(+Template, +Printer, +File,  -Command)   determines  the shell
@@ -146,10 +147,9 @@ command to execute in order to get `File' printed on `Printer' using the
 given template. The substitutions are handled by a regex object.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-print_cmd(Template, Printer, File, Cmd) :-
+print_cmd(Template, Printer, Cmd) :-
 	new(S, string('%s', Template)),
 	substitute(S, '%p', Printer),
-	substitute(S, '%f', File),
 	get(S, value, Cmd),
 	free(S).
 
