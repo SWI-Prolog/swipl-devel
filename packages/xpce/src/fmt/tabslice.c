@@ -58,6 +58,18 @@ endGroupTableSlice(TableSlice slice, Bool end)
 
 
 static status
+rubberTableSlice(TableSlice slice, Rubber rubber)
+{ if ( slice->rubber != rubber )	/* equalRubber? */
+  { assign(slice, rubber, rubber);
+    if ( notNil(slice->table) )
+      changedTable(slice->table);
+  }
+
+  succeed;
+}
+
+
+static status
 widthTableSlice(TableSlice slice, Int width)
 { if ( notDefault(width) )
   { assign(slice, width, width);
@@ -71,19 +83,6 @@ widthTableSlice(TableSlice slice, Int width)
 
   succeed;
 }
-
-		 /*******************************
-		 *	      RUBBER		*
-		 *******************************/
-
-status
-distributeSlices(Vector slices, Int from, Int to, Int width)
-{ 
-
-
-}
-
-
 
 		 /*******************************
 		 *	 CLASS DECLARATION	*
@@ -117,7 +116,7 @@ static vardecl var_table_slice[] =
      NAME_layout, "Location of the reference"),
   IV(NAME_position, "int", IV_GET,
      NAME_layout, "X/Y-offset of the column/row"),
-  IV(NAME_rubber, "rubber*", IV_GET,
+  SV(NAME_rubber, "rubber*", IV_GET|IV_STORE, rubberTableSlice,
      NAME_layout, "How to handle forced width/height")
 };
   

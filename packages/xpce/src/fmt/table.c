@@ -7,8 +7,7 @@
     Copyright (C) 1997 University of Amsterdam. All rights reserved.
 */
 
-#include <h/kernel.h>
-#include <h/graphics.h>
+#include <box/boxes.h>			/* to exploit class rubber */
 
 static void	advance_table(Table tab);
 static status	placeCellsTable(Table tab);
@@ -18,11 +17,12 @@ static status
 initialiseTable(Table tab)
 { initialiseLayoutManager(tab);
 
-  assign(tab, rows,         newObject(ClassVector, 0));
-  assign(tab, columns,      newObject(ClassVector, 0));
-  assign(tab, current,      newObject(ClassPoint, ONE, ONE, 0));
-  assign(tab, area,	    newObject(ClassArea, 0));
-  assign(tab, changed,	    OFF);
+  assign(tab, rows,    newObject(ClassVector, 0));
+  assign(tab, columns, newObject(ClassVector, 0));
+  assign(tab, current, newObject(ClassPoint, ONE, ONE, 0));
+  assign(tab, area,    newObject(ClassArea, 0));
+  assign(tab, changed, OFF);
+  assign(tab, width,   DEFAULT);
 
   obtainClassVariablesObject(tab);
 
@@ -926,24 +926,39 @@ getSpannedCellsTable(Table tab, Name which)
 
 static void
 slice_stretchability(TableSlice slice, stretch *s)
-{ s->ideal   = valInt(slice->width);
-  s->minimum = 0;
-  s->maximum = INT_MAX;
-  if ( slice->fixed == ON )
-    s->stretch = 0;
-  else
-    s->stretch = 100;			/* for now */
+{ if ( notNil(slice->rubber) )
+  { Rubber r = slice->rubber;
+
+    s->ideal   = isDefault(r->natural) ? valInt(slice->width)
+				       : valInt(r->natural);
+    s->minimum = isNil(r->minimum) ? 0 : valInt(r->minimum);
+    s->maximum = isNil(r->maximum) ? INT_MAX : valInt(r->maximum);
+    s->stretch = valInt(r->stretch);
+    s->shrink  = valInt(r->shrink);
+  } else
+  { s->ideal   = valInt(slice->width);
+    s->minimum = 0;
+    s->maximum = INT_MAX;
+    s->stretch = 100;
+    s->shrink  = 100;
+  }
+
+  if ( slice->fixed == ON )		/* how to interact with <-rubber */
+  { s->stretch = s->shrink = 0;
+  }
 }
 
 
 static void
-stretch_table_slices(Vector v, int from, int span, int width, int spacing)
+stretch_table_slices(Table tab, Vector v,
+		     int from, int span, int width, int spacing,
+		     int always)
 { int i, to = from+span;
   stretch *stretches = alloca(span * sizeof(stretch));
   int tw = 0;
   int ngaps, nslices = 0;
   
-  memset(stretches, 0, span * sizeof(stretch));
+  memset(stretches, 0, span * sizeof(stretch)); /* not needed? */
 
   for(i=from; i<to; i++)
   { TableSlice slice = getElementVector(v, toInt(i));
@@ -958,17 +973,37 @@ stretch_table_slices(Vector v, int from, int span, int width, int spacing)
   ngaps = nslices <= 1 ? 0 : nslices-1;
   width -= ngaps*spacing;
 
-  if ( tw < width )
+  if ( tw < width || always )
   { distribute_stretches(stretches, span, width);
 
     for(i=from; i<to; i++)
     { TableSlice slice = getElementVector(v, toInt(i));
 
       if ( slice && notNil(slice) )
-	assign(slice, width, toInt(stretches[i-from].size));
+      { Any av[2];
+	Name sel;
+
+	av[0] = slice;
+	av[1] = toInt(stretches[i-from].size);
+
+	if ( instanceOfObject(slice, ClassTableColumn) )
+	  sel = NAME_stretchedColumn;
+	else
+	  sel = NAME_stretchedRow;
+
+	qadSendv(tab, sel, 2, av);
+      }
     }
   }
 }
+
+
+static status
+stretchedSliceTable(Table tab, TableSlice slice, Int width)
+{ assign(slice, width, width);
+
+  succeed;
+} 
 
 
 static void
@@ -984,7 +1019,7 @@ stretchColsSpannedCell(TableCell cell)
     table_cell_padding(cell, &px, &py);
     wreq = valInt(cell->image->area->w) + 2*px;
 
-    stretch_table_slices(tab->columns, x, span, wreq, colspacing);
+    stretch_table_slices(tab, tab->columns, x, span, wreq, colspacing, FALSE);
   }
 }
 
@@ -1002,7 +1037,7 @@ stretchRowsSpannedCell(TableCell cell)
     table_cell_padding(cell, &px, &py);
     hreq = valInt(cell->image->area->h) + 2*py;
 
-    stretch_table_slices(tab->rows, y, span, hreq, rowspacing);
+    stretch_table_slices(tab, tab->rows, y, span, hreq, rowspacing, FALSE);
   }
 }
 
@@ -1070,11 +1105,23 @@ computeColsTable(Table tab)
   frame_border(tab, NULL, &rborder, NULL, &lborder);
   col_range(tab, &xmin, &xmax);
 
-  for(x=xmin; x<=xmax; x++)
-  { TableColumn col = getColumnTable(tab, toInt(x), ON);
+  if ( notDefault(tab->width) )
+  { int wc = valInt(tab->width) - lborder - rborder - 2*colspacing;
 
-    if ( col && col->fixed != ON )
-      send(col, NAME_compute, 0);
+    stretch_table_slices(tab,
+			 tab->columns,	/* column vector */
+			 xmin,		/* first column */
+			 xmax-xmin+1,	/* last column */
+			 wc,		/* width to distribute */
+			 colspacing,	/* distance between columns */
+			 TRUE);		/* force alignment */
+  } else
+  { for(x=xmin; x<=xmax; x++)
+    { TableColumn col = getColumnTable(tab, toInt(x), ON);
+
+      if ( col && col->fixed != ON )
+	send(col, NAME_compute, 0);
+    }
   }
 
   if ( (spanned = getSpannedCellsTable(tab, NAME_colSpan)) )
@@ -1502,6 +1549,12 @@ rulesTable(Table tab, Name rules)
 
 
 static status
+widthTable(Table tab, Int width)
+{ return assignTable(tab, NAME_width, width, TRUE);
+}
+
+
+static status
 cellPaddingTable(Table tab, Any padding)
 { if ( isInteger(padding) )
     padding = answerObject(ClassSize, padding, padding, 0);
@@ -1541,6 +1594,10 @@ static char *T_insert_column[] =
 	{ "at=int", "new=table_column" };
 static char T_frame[] = "{void,above,below,hsides,vsides,box}";
 static char T_rules[] = "{none,groups,rows,cols,all}";
+static char *T_stretchedColumn[] =
+	{ "column=table_column", "width=int" };
+static char *T_stretchedRow[] =
+	{ "column=table_row", "height=int" };
 
 /* Instance Variables */
 
@@ -1561,6 +1618,8 @@ static vardecl var_table[] =
      NAME_appearance, "Space between the cells"),
   IV(NAME_current, "point", IV_BOTH,
      NAME_caret, "Current inserting/append location"),
+  SV(NAME_width, "[0..]", IV_GET|IV_STORE, widthTable,
+     NAME_appearance, "Total width of the table"),
   IV(NAME_area, "area", IV_GET,
      NAME_internal, "Occupied area"),
   IV(NAME_changed, "bool", IV_NONE,
@@ -1605,7 +1664,12 @@ static senddecl send_table[] =
      NAME_redraw, "Draw lines"),
 
   SM(NAME_selection, 1, "table_cell|chain*", selectionTable,
-     NAME_selection, "Specify the selection")
+     NAME_selection, "Specify the selection"),
+
+  SM(NAME_stretchedColumn, 2, T_stretchedColumn, stretchedSliceTable,
+     NAME_compute, "Column has been stretched to this width"),
+  SM(NAME_stretchedRow, 2, T_stretchedRow, stretchedSliceTable,
+     NAME_compute, "Row has been stretched to this width")
 };
 
 /* Get Methods */

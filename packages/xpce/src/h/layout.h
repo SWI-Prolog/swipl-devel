@@ -56,6 +56,7 @@ NewClass(table)
     Size	cell_padding;		/* default padding around cells */
     Size	cell_spacing;		/* Space between cells */
     Point	current;		/* Current X-Y location */
+    Int		width;			/* Total width (or @default) */
 					/* internal stuff */
     Area	area;			/* Total occupied area */
     Bool	changed;		/* layout-changing action */
@@ -112,18 +113,6 @@ typedef struct _table_cell_dimensions
   int	px;				/* H-padding */
   int	py;				/* V-padding */
 } table_cell_dimensions, *TableCellDimensions;
-
-
-#if 0
-NewClass(geometry_preferences)		/* Steps? */
-    Int		width;			/* (ideal) width */
-    Int		height;			/* (ideal) width */
-    Int		hor_stretch;		/* Horizontal stretchability */
-    Int		hor_shrink;		/* Horizontal shrinkability */
-    Int		ver_stretch;		/* Verticak stretchability */
-    Int		ver_shrink;		/* Verticak shrinkability */
-End;
-#endif
 
 #include <fmt/proto.h>			/* function prototypes */
 
