@@ -946,7 +946,8 @@ case "$ARCH" in
 	PL=swipl
 	SO_pic="-fPIC"
 	AC_DEFINE(LD_SYMBOL_PREFIX, "_")
-	AC_DEFINE(SO_FORMAT_LDFLAGS, ["-bundle -bundle_loader \"%s\"", plexe])
+	AC_DEFINE(SO_FORMAT_LDFLAGS,
+		  ["-bundle -bundle_loader \"%s\" -o \"%s\"", plexe, soout])
 	CMFLAGS="-no-cpp-precomp"
 	;;
   *cygwin*)
@@ -954,6 +955,10 @@ case "$ARCH" in
 	SO_LD="dllwrap"
 	SO_pic=""
 	SO_PIC=""
+	;;
+  *beos*)
+	AC_DEFINE(SO_FORMAT_LDFLAGS,
+		  ["-nostart -Xlinker -soname=\"%s\"", soout])
 	;;
   *)
 	;;
