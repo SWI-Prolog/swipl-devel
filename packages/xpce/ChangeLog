@@ -1,6 +1,10 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Bug#113: ERROR: - ->initialise: Argument 1 (left): `expression'
+  expected, found `Unexpected ` in PceEmacs on some errors in Prolog mode
+  (Hugo Ferreira).
+
 * FIXED: Bug#117: PceEmacs to confirm overwrite when writing to	a `save_file'.
   Extended `file_item->exists' for this purpose (Hugo Ferreira).
 

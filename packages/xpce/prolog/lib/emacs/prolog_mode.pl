@@ -822,7 +822,7 @@ pl_error_message(X, none) :-
 pl_error_message(error(syntax_error(Id),
 		       stream(_S, _Line, CharNo)),
 		 CharNo:Msg) :-
-	phrase('$messages':syntax_error(Id), [Msg], [])
+	message_to_string(error(syntax_error(Id), _), Msg)
  )
 ]).
 
