@@ -84,7 +84,7 @@ netscape_base(mozilla).
 
 user:url_path(swi,	   'http://www.swi.psy.uva.nl').
 user:url_path(pl,	   'http://www.swi-prolog.org').
-user:url_path(pl_twiki,	   'http://gollem.swi.psy.uva.nl/twiki/pl/bin/view').
+user:url_path(pl_twiki,	   'http://gollem.science.uva.nl/twiki/pl/bin/view').
 
 user:url_path(pl_at_swi,   swi('projects/SWI-Prolog')).
 user:url_path(pl_faq,	   pl_twiki('FAQ/WebHome')).
