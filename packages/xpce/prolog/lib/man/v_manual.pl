@@ -609,7 +609,7 @@ manual(M, Object:'class|behaviour|object') :->
 :- pce_global(@man_classification, load_man_classification).
 
 load_man_classification(C) :-
-	absolute_file_name(library('man/classification.obj'),
+	absolute_file_name(library('man/classification.dat'),
 			   [access(read)], FileName),
 	new(F, file(FileName)),
 	get(F, object, C),

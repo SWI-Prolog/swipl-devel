@@ -15,7 +15,6 @@
 :- require([ forall/2
 	   , pce_help_file/2
 	   , send_list/2
-	   , set_feature/2
 	   , send_list/3
 	   ]).
 
@@ -55,17 +54,11 @@ fill_menu_bar(V) :->
 			      message(V, help))
 		  ]).
 
-:- set_feature(character_escapes, true).
-
 about(_) :->
 	program_version(Version),
 	send(@display, inform,
-	     'XPCE event-monitor\n\
-	      version %s\n\n\
-	      By Jan Wielemaker',
+	     'XPCE event-monitor\nversion %s\n\nBy Jan Wielemaker',
 	     Version).
-
-:- set_feature(character_escapes, false).
 
 help(_) :->
 	send(@helper, give_help, event_monitor).

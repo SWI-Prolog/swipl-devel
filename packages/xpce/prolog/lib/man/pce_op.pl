@@ -61,7 +61,7 @@ sends([S1|Sels], Obj) :-
 		 *	  SEND/GET-SUPER	*
 		 *******************************/
 
-user:goal_expansion(Rec*>>Msg, Expanded) :- !,
+expand(Rec*>>Msg, Expanded) :- !,
 	(   nonvar(Rec),
 	    Rec = (A = Obj)
 	->  Expanded = get_super(Obj, Msg, A)
@@ -72,7 +72,7 @@ user:goal_expansion(Rec*>>Msg, Expanded) :- !,
 		 *	    SLOT ACCESS		*
 		 *******************************/
 
-user:goal_expansion(Rec=>>Msg, Expanded) :- !,
+expand(Rec=>>Msg, Expanded) :- !,
 	(   nonvar(Rec),
 	    Rec = (A = Obj)
 	->  Expanded = get(Obj, slot(Msg, A))
@@ -80,3 +80,14 @@ user:goal_expansion(Rec=>>Msg, Expanded) :- !,
 	    EMsg =.. [slot|List],
 	    Expanded = send(Rec, EMsg)
 	).
+
+pce_ifhostproperty(prolog(sicstus),
+[(   :- multifile(user:goal_expansion/3)		),
+ (   user:goal_expansion(G, M, E) :-
+	M \== pce_by_operator,
+	expand(G, E)
+ )
+],
+[(   :- multifile(user:goal_expansion/2)		),
+ (   user:goal_expansion(G, E) :- expand(G, E)		)
+]).
