@@ -32,10 +32,6 @@
 #include <winsock2.h>
 #endif
 
-#include <wchar.h>
-typedef wchar_t pl_wchar_t;
-
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This modules defines the  SWI-Prolog  I/O   streams.  These  streams are
 provided to gain common access to  any   type  of character data: files,
@@ -54,11 +50,15 @@ locking is required.
 #include <config.h>
 #endif
 
-#if O_LARGEFILES
-#define _FILE_OFFSET_BITS 64
+#if _FILE_OFFSET_BITS == 64 || defined(_LARGE_FILES)
+#define O_LARGEFILES 1		/* use for conditional code in Prolog */
+#else
+#undef O_LARGEFILES
 #endif
 
 #define PL_KERNEL 1
+#include <wchar.h>
+typedef wchar_t pl_wchar_t;
 #include "pl-stream.h"
 #include "pl-utf8.h"
 #include <sys/types.h>

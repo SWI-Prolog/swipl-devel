@@ -8,6 +8,8 @@
 					--------------------------------------
 
 
+  * FIXED: Large file support on Linux (wrong order of includes).
+
 VERSION 5.5.0 (December 1, 2004)
 ===============================
 
