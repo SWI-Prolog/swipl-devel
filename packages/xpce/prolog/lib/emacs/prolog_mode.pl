@@ -79,7 +79,13 @@ resource(mode_pl_icon, image, image('32x32/doc_pl.xpm')).
 	  '/'  + comment_start('*'),
 	  '*'  + comment_end('/'),
 
-	  paragraph_end('\\s *$\\|^/\\*\\|.*\\*/\\s *$\\|^%\\|^	\\|.*:<?->?\\s *$')
+	  paragraph_end([ '\\s *$',		% empty line
+			  '^/\\*',		% comment start
+			  '.*\\*/\\s *$', 	% comment end
+			  '^%',			% line comment
+			  '^	',		% indented line
+			  '.*:<?->?\\s *$'	% clause head
+			])
 	]).
 		 
 icon(_, I:image) :<-
@@ -89,9 +95,10 @@ icon(_, I:image) :<-
 setup_mode(M) :->
 	"Attach styles for errors, warnings, etc."::
 	send(M, send_super, setup_mode),
-	send(M, style, error,   style(background := red)),
-	send(M, style, warning, style(background := orange)),
-	send(M, style, info,    style(background := grey80)).
+	send(M,	style, breakpoint, style(background := aquamarine)),
+	send(M,	style, error,	   style(background := red)),
+	send(M,	style, warning,	   style(background := orange)),
+	send(M,	style, info,	   style(background := grey80)).
 
 
 :- send(@class, attribute, outline_regex_list,
