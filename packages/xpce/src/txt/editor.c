@@ -1107,46 +1107,49 @@ where_editor(Editor e, Int index)
 
 static status
 ensureVisibleEditor(Editor e, Int from, Int to)
-{ from = (isDefault(from) ? e->caret : normalise_index(e, from));
+{ TextImage ti = e->image;
+
+  from = (isDefault(from) ? e->caret : normalise_index(e, from));
   to   = (isDefault(to) ? from : normalise_index(e, to));
-  TextImage ti = e->image;
 
-  Before(from, to);
-
-  if ( where_editor(e, to) == NAME_below )
-  { DEBUG(NAME_scroll, Cprintf("Caret below window\n"));
-    startTextImage(ti, getScanTextBuffer(e->text_buffer,
-					 getStartTextImage(ti,ONE),
-					 NAME_line, ONE,
-					 NAME_start),
-		   ZERO);
+  if ( !(from == to && ensureVisibleTextImage(ti, from)) )
+  { Before(from, to);
 
     if ( where_editor(e, to) == NAME_below )
-    { DEBUG(NAME_scroll, Cprintf("More than one line: centering\n"));
-      centerWindowEditor(e, to);
-      ComputeGraphical(ti);
-    }
-  } else if ( valInt(to) < valInt(getStartTextImage(ti, ONE)) )
-  { startTextImage(ti, getScanTextBuffer(e->text_buffer,
-					 getStartTextImage(ti,ONE),
-					 NAME_line, toInt(-1),
-					 NAME_start),
-		   ZERO);
-    ComputeGraphical(ti);
-    if ( valInt(to) < valInt(getStartTextImage(ti, ONE)) )
-    { centerWindowEditor(e, to);
-      ComputeGraphical(ti);
-    }
-  }
-
-  if ( valInt(from) < valInt(getStartTextImage(ti, ONE)) )
-  { while( valInt(from) < valInt(getStartTextImage(ti, ONE)) )
+    { DEBUG(NAME_scroll, Cprintf("Caret below window\n"));
+      startTextImage(ti, getScanTextBuffer(e->text_buffer,
+					   getStartTextImage(ti,ONE),
+					   NAME_line, ONE,
+					   NAME_start),
+		     ZERO);
+  
+      if ( where_editor(e, to) == NAME_below )
+      { DEBUG(NAME_scroll, Cprintf("More than one line: centering\n"));
+	centerWindowEditor(e, to);
+	ComputeGraphical(ti);
+      }
+    } else if ( valInt(to) < valInt(getStartTextImage(ti, ONE)) )
     { startTextImage(ti, getScanTextBuffer(e->text_buffer,
 					   getStartTextImage(ti,ONE),
 					   NAME_line, toInt(-1),
 					   NAME_start),
 		     ZERO);
       ComputeGraphical(ti);
+      if ( valInt(to) < valInt(getStartTextImage(ti, ONE)) )
+      { centerWindowEditor(e, to);
+	ComputeGraphical(ti);
+      }
+    }
+  
+    if ( valInt(from) < valInt(getStartTextImage(ti, ONE)) )
+    { while( valInt(from) < valInt(getStartTextImage(ti, ONE)) )
+      { startTextImage(ti, getScanTextBuffer(e->text_buffer,
+					     getStartTextImage(ti,ONE),
+					     NAME_line, toInt(-1),
+					     NAME_start),
+		       ZERO);
+	ComputeGraphical(ti);
+      }
     }
   }
 
@@ -1578,19 +1581,36 @@ backwardWordEditor(Editor e, Int arg)
 
 static status
 beginningOfLineEditor(Editor e, Int arg)
-{ return CaretEditor(e,
-		     getScanTextBuffer(e->text_buffer,
-				       e->caret, NAME_line, toInt(1-UArg(arg)),
-				       NAME_start));
+{ Int caret;
+
+  if ( e->image->wrap == NAME_word && 
+       isDefault(arg) &&
+       (caret = getBeginningOfLineCursorTextImage(e->image, e->caret)) )
+  {
+  } else
+  { caret = getScanTextBuffer(e->text_buffer,
+			      e->caret, NAME_line, toInt(1-UArg(arg)),
+			      NAME_start);
+  }
+
+  return CaretEditor(e, caret);
 }
 
 
 static status
 endOfLineEditor(Editor e, Int arg)
-{ return CaretEditor(e,
-		     getScanTextBuffer(e->text_buffer,
-				       e->caret, NAME_line, toInt(UArg(arg)-1),
-				       NAME_end));
+{ Int caret;
+
+  if ( e->image->wrap == NAME_word && 
+       isDefault(arg) &&
+       (caret = getEndOfLineCursorTextImage(e->image, e->caret)) )
+  {
+  } else
+    caret = getScanTextBuffer(e->text_buffer,
+			      e->caret, NAME_line, toInt(UArg(arg)-1),
+			      NAME_end);
+
+  return CaretEditor(e, caret);
 }
 
 
@@ -2077,7 +2097,15 @@ killLineEditor(Editor e, Int arg)
   MustBeEditable(e);
   if ( notDefault(arg) )
     lines = arg;
-  else
+  else if ( e->image->wrap == NAME_word &&
+	    (end = getEndOfLineCursorTextImage(e->image, e->caret)) )
+  { int i = valInt(end);
+    TextBuffer tb = e->text_buffer;
+
+    while(i<tb->size && Fetch(e, i) == ' ')
+      i++;
+    return killEditor(e, e->caret, toInt(i));
+  } else
   { if ( tisendsline(e->text_buffer->syntax, Fetch(e, valInt(e->caret))) )
       return killEditor(e, e->caret, add(e->caret, ONE));
     else
@@ -3480,36 +3508,20 @@ centerWindowEditor(Editor e, Int pos)
 
 
 static status
-scrollUpEditor(Editor e, Int arg)
-{ TextImage ti = e->image;
-
-  if ( isDefault(arg) )
-  { ComputeGraphical(ti);
-    if ( ti->eof_in_window == ON )
-      return send(e, NAME_report, NAME_warning,
-		  CtoName("End of buffer"), 0);
-    else
-      centerTextImage(ti, getStartTextImage(ti, toInt(-1)), ONE);
-  } else if ( valInt(arg) < 0 )
-    scrollDownEditor(e, neg(arg));
+scrollDownEditor(Editor e, Int arg)
+{ if ( isDefault(arg) )
+    return send(e, NAME_scrollVertical, NAME_backwards, NAME_page, ONE, 0);
   else
-    centerTextImage(ti, getStartTextImage(ti, add(arg, ONE)), ONE);
-
-  return ensureCaretInWindowEditor(e);
+    return send(e, NAME_scrollVertical, NAME_backwards, NAME_line, arg, 0);
 }
 
 
 static status
-scrollDownEditor(Editor e, Int arg)
-{ TextImage ti = e->image;
-  int size = valInt(getLinesTextImage(ti));
-  int lines = (isDefault(arg) ? size - 1 : valInt(arg));
-
-  centerTextImage(ti,
-		  getStartTextImage(ti, toInt(-(size + lines + 1))),
-		  ONE);
-
-  return ensureCaretInWindowEditor(e);
+scrollUpEditor(Editor e, Int arg)
+{ if ( isDefault(arg) )
+    return send(e, NAME_scrollVertical, NAME_forwards, NAME_page, ONE, 0);
+  else
+    return send(e, NAME_scrollVertical, NAME_forwards, NAME_line, arg, 0);
 }
 
 

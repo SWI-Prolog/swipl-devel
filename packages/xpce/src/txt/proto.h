@@ -30,8 +30,10 @@ Point		getSelectionEditor(Editor e);
 StringObj	getSelectedEditor(Editor e);
 status		formatEditor(Editor e, CharArray fmt, int argc, Any *argv);
 status		clearEditor(Editor e);
+status		makeClassEditor(Class class);
 
 /* ../src/txt/fragment.c */
+status		makeClassFragment(Class class);
 
 /* ../src/txt/keybinding.c */
 Any		getFunctionKeyBinding(KeyBinding kb, Name key);
@@ -170,6 +172,9 @@ status		bubbleScrollBarTextImage(TextImage ti, ScrollBar sb);
 Int		getScrollStartTextImage(TextImage ti, Name dir, Name unit, Int amount);
 Int		getUpDownColumnTextImage(TextImage ti, Int here);
 Int		getUpDownCursorTextImage(TextImage ti, Int here, Int updown, Int column);
+Int		getBeginningOfLineCursorTextImage(TextImage ti, Int caret);
+Int		getEndOfLineCursorTextImage(TextImage ti, Int caret);
+status		ensureVisibleTextImage(TextImage ti, Int caret);
 status		makeClassTextImage(Class class);
 
 /* ../src/txt/textmargin.c */

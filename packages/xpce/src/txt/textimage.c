@@ -452,16 +452,16 @@ do_fill_line(TextImage ti, TextLine l, long index)
 	    return index;
 	  case '\t':
 	    x = tab(ti, x);
-	    if ( ++last_is_space == 1 )
-	      last_break = i;
+	    last_is_space = TRUE;
 	    break;
 	  case ' ':
 	    x += c_width(tc->value.c, tc->font);
-	    if ( ++last_is_space == 1 )
-	      last_break = i;
+	    last_is_space = TRUE;
 	    break;
 	  default:
 	    x += c_width(tc->value.c, tc->font);
+	    if ( last_is_space )
+	      last_break = i;
 	    last_is_space = FALSE;
 	    break;
 	}
@@ -470,10 +470,14 @@ do_fill_line(TextImage ti, TextLine l, long index)
 	ComputeGraphical(tc->value.graphical);
 
         x += valInt(tc->value.graphical->area->w);
+	if ( last_is_space )
+	  last_break = i;
 	last_is_space = FALSE;
 	break;
       case CHAR_IMAGE:
 	x += valInt(tc->value.image->size->w);
+        if ( last_is_space )
+	  last_break = i;
         last_is_space = FALSE;
 	break;
     }
@@ -1973,14 +1977,21 @@ getScrollStartTextImage(TextImage ti, Name dir, Name unit, Int amount)
 	{ if ( lines[l].y >= yt )
 	    break;
 	}
-        Cprintf("%d promille, h=%d, wh=%d, yt=%d, l=%d\n",
-		valInt(amount), h, wh, yt, l);
+	/*Cprintf("%d promille, h=%d, wh=%d, yt=%d, l=%d\n",
+		valInt(amount), h, wh, yt, l);*/
       } else
 	return ZERO;
     }
   } else
   { int start = valInt(ti->start);
     int n = valInt(amount);
+    int mxline;
+    int h = lines[count].y;
+
+    for(mxline=count-1;
+	h - lines[mxline].y < (ti->h*3)/4 && mxline > 0;
+	mxline--)
+      ;
 
     if ( dir == NAME_backwards )
       n = -n;
@@ -1995,7 +2006,7 @@ getScrollStartTextImage(TextImage ti, Name dir, Name unit, Int amount)
       int yt = y0+n*(ti->h - 2*TXT_Y_MARGIN - 20);
 
       if ( yt > y0 )
-      { while(l<count && lines[l].y < yt)
+      { while(l<mxline && lines[l].y < yt)
 	  l++;
       } else
       { while(l>0 && lines[l].y > yt)
@@ -2003,8 +2014,8 @@ getScrollStartTextImage(TextImage ti, Name dir, Name unit, Int amount)
       }
     } else if ( unit == NAME_line )
     { l += n;
-      if ( l>count )
-	l = count;
+      if ( l>mxline )
+	l = mxline;
       else if ( l < 0 )
 	l = 0;
     }
@@ -2077,11 +2088,13 @@ getUpDownCursorTextImage(TextImage ti, Int here, Int updown, Int column)
       long idx = start;
       l = tmpLine();
 
-      for(; (idx = paragraph_start(ti, idx)) > 0; idx-- )
+      for(;;)
       { int i;
-	long here = idx;
+	long here;
 
-	for(i=0; here < start; i++)
+	here = idx = paragraph_start(ti, idx);
+
+	for(i=0; here < start; i++)	/* count screen-lines */
 	{ here = do_fill_line(ti, l, here);
 	  if ( l->ends_because & END_EOF )
 	    break;			/* should not happen */
@@ -2090,17 +2103,20 @@ getUpDownCursorTextImage(TextImage ti, Int here, Int updown, Int column)
         if ( i >= -ly )
 	{ i += ly;
 
-	  for(here=idx; i-- > 0; )
+	  for(here=idx; i-- >= 0; )
 	    here = do_fill_line(ti, l, here);
 
 	  goto out;
 	}
+
+	if ( --idx < 0 )
+	  break;
       }
 
       do_fill_line(ti, l, 0);
     } else if ( ly >= ti->map->length )	/* after the screen */
-    { long idx = ti->map->lines[ti->map->length-1].start;
-      int n = ly-ti->map->length;
+    { long idx = valInt(ti->end);
+      int n = ly-(ti->map->length-1);
 
       l = tmpLine();
       while(n-- > 0)
@@ -2126,6 +2142,45 @@ out:
 }
 
 
+Int
+getBeginningOfLineCursorTextImage(TextImage ti, Int here)
+{ int cx, cy;
+
+  if ( get_xy_pos(ti, here, &cx, &cy) )
+  { int ly = cy-1+ti->map->skip;
+    TextLine l  = &ti->map->lines[ly];
+
+    answer(toInt(l->start));
+  }
+
+  fail;
+}
+
+
+Int
+getEndOfLineCursorTextImage(TextImage ti, Int here)
+{ int cx, cy;
+
+  if ( get_xy_pos(ti, here, &cx, &cy) )
+  { int ly = cy-1+ti->map->skip;
+    TextLine l  = &ti->map->lines[ly];
+
+    answer(toInt(l->end-1));
+  }
+
+  fail;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ensureVisibleTextImage()
+    See whether we can make caret part of the screen by scrolling at most
+    one screen-line up or down.  For up we start filling out the physical
+    line before the screen.  For down we fill the next line.  If caret is
+    on this line we discard the first N-lines to free up enough space for
+    the line.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 status
 ensureVisibleTextImage(TextImage ti, Int caret)
 { long here = valInt(caret);
@@ -2137,9 +2192,9 @@ ensureVisibleTextImage(TextImage ti, Int caret)
     { TextLine l = tmpLine();
       long next;
 
-      for(; ;)
+      for(; ; idx=next)
       { next = do_fill_line(ti, l, idx);
-	if ( next->ends_because & END_EOF )
+	if ( l->ends_because & END_EOF )
 	  fail;				/* should not happen */
 	if ( here >= idx && here < next )
 	  return startTextImage(ti, toInt(idx), ZERO);
@@ -2148,17 +2203,28 @@ ensureVisibleTextImage(TextImage ti, Int caret)
   } else
   { ComputeGraphical(ti);
 
-    
+    if ( here >= valInt(ti->end) && ti->eof_in_window == OFF )
+    { TextLine l = tmpLine();
+      long next;
+  
+      next = do_fill_line(ti, l, valInt(ti->end));
+      if ( here < next || l->ends_because & END_EOF ) /* shift one at most */
+      { TextLine last = &ti->map->lines[ti->map->length-1];
+	int yt = last->y + last->h + l->h;
+	int yshift = yt - (ti->h - 2*TXT_Y_MARGIN);
+	int f;
+  
+	for(f=ti->map->skip; f<ti->map->length; f++)
+	{ if ( ti->map->lines[f].y >= yshift )
+	    return startTextImage(ti, toInt(ti->map->lines[f].start), ZERO);
+	}
+      }
+    } else
+      succeed;
   }
 
-
-
+  fail;
 }
-
-
-
-
-
 
 		 /*******************************
 		 *	 CLASS DECLARATION	*
