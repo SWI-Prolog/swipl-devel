@@ -16,8 +16,8 @@ modification.
     \predicate{qsave_program}{2}{+File, +ListOfOptions}
 Saves the current state of the program to the file \arg{File}. The
 result is an executable shell-script, that will start the emulator.
-\arg{ListOfOptions} is a list of $<Key> = <Value>$ pairs. The
-available keys are described in \tabref{qsave-options}.
+\arg{ListOfOptions} is a list of $<Key> = <Value>$ or $<Key>(<Value>)$
+pairs. The available keys are described in \tabref{qsave-options}.
 
 \begin{table}
 \begin{center}

@@ -1794,7 +1794,7 @@ with an atom constructed from this list.
 Convert between character and ASCII value for a single character.
 \predicate{number_chars}{2}{?Number, ?String}
 Similar to atom_chars/2, but converts between a number and its
-representation as a list of ASCII values.  Fails silently if \arg{Atom}
+representation as a list of ASCII values.  Fails silently if \arg{Number}
 is unbound and \arg{String} does not describe a number.
 \predicate{name}{2}{?AtomOrInt, ?String}
 \arg{String} is a list of ASCII values describing \arg{Atom}. Each of the
