@@ -93,6 +93,9 @@
 /* Define to include the password checking code */
 #undef O_LICENCE
 
+/* Define if position of data-segment isn't more or less constant */
+#undef VARIABLE_POINTER_OFFSET
+
 /* Define if you have the XmIsMotifWMRunning function.  */
 #undef HAVE_XMISMOTIFWMRUNNING
 
