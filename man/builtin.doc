@@ -3673,17 +3673,18 @@ the same as sort/2.  See also keysort/2.%
 \section{Finding all Solutions to a Goal}	\label{sec:allsolutions}
 
 \begin{description}
-    \predicate{findall}{3}{+Var, +Goal, -Bag}
-Creates a list of the instantiations \arg{Var} gets successively on
+    \predicate{findall}{3}{+Template, +Goal, -Bag}
+Creates a list of the instantiations \arg{Template} gets successively on
 backtracking over \arg{Goal} and unifies the result with \arg{Bag}.
 Succeeds with an empty list if \arg{Goal} has no solutions. findall/3 is
 equivalent to bagof/3 with all free variables bound with the existence
 operator (\op{^}), except that bagof/3 fails when goal has no
 solutions.
-    \predicate{bagof}{3}{+Var, +Goal, -Bag}
-Unify \arg{Bag} with the alternatives of \arg{Var}, if \arg{Goal} has
-free variables besides the one sharing with \arg{Var} bagof will
-backtrack over the alternatives of these free variables, unifying \arg{Bag} with the corresponding alternatives of \arg{Var}. The construct
+
+    \predicate{bagof}{3}{+Template, +Goal, -Bag}
+Unify \arg{Bag} with the alternatives of \arg{Template}, if \arg{Goal} has
+free variables besides the one sharing with \arg{Template} bagof will
+backtrack over the alternatives of these free variables, unifying \arg{Bag} with the corresponding alternatives of \arg{Template}. The construct
 \exam{+\arg{Var}{^}\arg{Goal}} tells bagof not to bind \arg{Var} in
 \arg{Goal}. bagof/3 fails if \arg{Goal} has no solutions.
 
@@ -3714,7 +3715,7 @@ A = G324, B = c, C = G326, Cs = [e, f, g] ;
 No
 5 ?-
 \end{code}
-    \predicate{setof}{3}{+Var, +Goal, -Set}
+    \predicate{setof}{3}{+Template, +Goal, -Set}
 Equivalent to bagof/3, but sorts the result using sort/2 to get a sorted
 list of alternatives without duplicates.
 \end{description}
