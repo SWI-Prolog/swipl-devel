@@ -28,10 +28,6 @@
 #define HAVE_LIBXPM 1
 #define HAVE_LIBJPEG 1
 
-#ifndef O_RUNTIME
-#define O_LICENCE 1			/* use licence protection */
-#endif
-
 #define export _declspec(dllexport)
 
 #define ALLOCA_BUG			/* see ker/goodies.c. MSVC++ 2.0 bug */

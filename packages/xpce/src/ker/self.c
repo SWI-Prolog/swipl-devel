@@ -7,7 +7,7 @@
     Copyright (C) 1992 University of Amsterdam. All rights reserved.
 */
 
-#ifndef __WIN32__
+#if !defined(WIN32) && !defined(__WIN32__)
 #include <version.h>			/* get MACHINE and PCE_VERSION */
 #endif
 #include <h/kernel.h>
