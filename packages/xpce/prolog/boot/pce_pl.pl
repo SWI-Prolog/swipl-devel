@@ -83,7 +83,7 @@ pce_home(PceHome) :-
 	absolute_file_name(swi(Suffix), [file_type(directory)], PceHome),
 	exists_directory(PceHome), !.
 pce_home(PceHome) :-
-	feature(save_program, true), !,
+	feature(saved_program, true), !,
 	(   feature(home, PceHome)
 	->  true
 	;   feature(symbol_file, Exe)

@@ -295,7 +295,14 @@ do_expand(delegate_to(Var), []) :-
 	pce_compiling(ClassName),
 	add_attribute(ClassName, directive,
 		      send(@class, delegate, Var)).
-do_expand((:- pce_class_directive(Goal)), [(:- Goal)]) :-
+do_expand((:- pce_class_directive(Goal)),
+	  (:- initialization((send(@class, assign, Class),
+			      Goal)))) :-
+	pce_compiling(ClassName),
+	realised_class(ClassName),
+	attribute(ClassName, extending, true), !,
+	get(@classes, member, ClassName, Class).
+do_expand((:- pce_class_directive(Goal)), (:- Goal)) :-
 	pce_compiling(ClassName),
 	realised_class(ClassName), !.
 do_expand((:- pce_class_directive(Goal)), []) :-
