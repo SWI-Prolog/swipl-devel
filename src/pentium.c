@@ -30,6 +30,8 @@ prof_record prof_data[MAXPROF];
 prof_record *prof_current;
 ticks prof_ticks;
 
+static ticks overhead;
+
 ticks
 pentium_clock()
 { register unsigned long iax;
@@ -74,19 +76,21 @@ static int
 prof_compare(const void *p1, const void *p2)
 { const prof_record *pr1 = p1;
   const prof_record *pr2 = p2;
+  ticks t1 = pr1->ticks - pr1->calls*overhead;
+  ticks t2 = pr2->ticks - pr2->calls*overhead;
 
-  return pr1->ticks  > pr2->ticks ? -1 :
-         pr1->ticks == pr2->ticks ?  0 :
-				     1;
+  return t1  > t2 ? -1 :
+         t1 == t2 ?  0 :
+		     1;
 }
 
 
 static void
-prof_report_field(prof_record *pr, ticks overhead)
+prof_report_field(prof_record *pr)
 { if ( pr->name && pr->calls > 0 )
   { double f   = (double)(pr->fastest-overhead)/CPU_MHz();
     double av  = (double)(pr->ticks/pr->calls-overhead)/CPU_MHz();
-    double tot = av*(double)pr->ticks;
+    double tot = av*(double)pr->calls;
 
     printf("%7d %10.3f %10.3f %20.3f %s\n",
 	   pr->calls, f, av, tot, pr->name);
@@ -99,7 +103,6 @@ prof_report_field(prof_record *pr, ticks overhead)
 void
 prof_report()
 { int i;
-  ticks overhead;
   ticks totalfast = 0, totalav = 0;
   prof_record *pr = &prof_data[0];
 
@@ -112,8 +115,9 @@ prof_report()
   printf("%7s %10s %10s %20s %s\n",
 	 "calls", "fastest", "av", "total", "statement");
   printf("------------------------------------------------------\n");
+  overhead = 0;
+  prof_report_field(pr);
   overhead = pr->fastest;
-  prof_report_field(pr, 0);
   pr++;
   printf("------------------------------------------------------\n");
 
@@ -124,7 +128,7 @@ prof_report()
       totalav   += pr->ticks/pr->calls - overhead;
     }
 
-    prof_report_field(pr, overhead);
+    prof_report_field(pr);
   }
 
   printf("------------------------------------------------------\n");

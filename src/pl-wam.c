@@ -3879,6 +3879,8 @@ increase lTop too to prepare for asynchronous interrupts.
 		goto b_throw;
 	      }
 	    }
+	    END_PROF();
+	    START_PROF(PROF_FOREIGN, "PROF_FOREIGN");
 	    if ( true(def, P_VARARG) )
 	    { struct foreign_context ctx;
 	      ctx.context = 0;
