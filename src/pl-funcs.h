@@ -576,7 +576,7 @@ Procedure	isCurrentProcedure(functor_t f, Module m);
 Procedure	lookupProcedureToDefine(functor_t def, Module m);
 bool		hasClausesDefinition(Definition def);
 bool		isDefinedProcedure(Procedure proc);
-int		get_head_functor(term_t head, functor_t *fdef);
+int		get_head_functor(term_t head, functor_t *fdef, int flags);
 int		get_procedure(term_t descr, Procedure *proc, term_t he, int f);
 word		pl_current_predicate(term_t name, term_t functor, word h);
 foreign_t	pl_current_predicate1(term_t spec, word ctx);

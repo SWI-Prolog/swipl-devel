@@ -801,6 +801,7 @@ typedef struct
 #define GP_HOW_MASK	0x0ff
 #define GP_NAMEARITY	0x100		/* or'ed mask */
 #define GP_HIDESYSTEM	0x200		/* hide system module */
+#define GP_QUIET	0x400		/* don't throw errors */
 
 		 /*******************************
 		 *	      FLAGS		*

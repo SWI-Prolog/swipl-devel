@@ -260,27 +260,40 @@ get_functor(term_t descr, functor_t *fdef, Module *m, term_t h, int how)
 	  
     succeed;
   } else
-    return PL_error(NULL, 0, NULL, ERR_TYPE,
-		    ATOM_predicate_indicator, head);
+  { if ( how & GP_QUIET )
+      fail;
+    else
+      return PL_error(NULL, 0, NULL, ERR_TYPE,
+		      ATOM_predicate_indicator, head);
+  }
 }
 
       
 int
-get_head_functor(term_t head, functor_t *fdef)
+get_head_functor(term_t head, functor_t *fdef, int how)
 { int arity;
 
   if ( !PL_get_functor(head, fdef) )
-    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, head);
+  { if ( how&GP_QUIET )
+      fail;
+    else
+      return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, head);
+  }
+
   if ( (arity=arityFunctor(*fdef)) > MAXARITY )
-  { char buf[100];
-    return PL_error(NULL, 0,
-		    tostr(buf, "limit is %d, request = %d",
-			  MAXARITY, arity),
-		    ERR_REPRESENTATION, ATOM_max_arity);
+  { if ( how&GP_QUIET )
+    { fail;
+    } else
+    { char buf[100];
+      return PL_error(NULL, 0,
+		      tostr(buf, "limit is %d, request = %d",
+			    MAXARITY, arity),
+		      ERR_REPRESENTATION, ATOM_max_arity);
+    }
   }
 
   succeed;
-}
+  }
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -297,7 +310,7 @@ get_procedure(term_t descr, Procedure *proc, term_t h, int how)
   Procedure p;
 
   if ( (how&GP_NAMEARITY) )
-  { if ( !get_functor(descr, &fdef, &m, h, GF_PROCEDURE) )
+  { if ( !get_functor(descr, &fdef, &m, h, GF_PROCEDURE|(how&GP_QUIET)) )
       fail;
   } else
   { term_t head = PL_new_term_ref();
@@ -307,7 +320,7 @@ get_procedure(term_t descr, Procedure *proc, term_t h, int how)
     if ( h )
       PL_put_term(h, head);
 
-    if ( !get_head_functor(head, &fdef) )
+    if ( !get_head_functor(head, &fdef, how) )
       fail;
   }
   
@@ -1937,22 +1950,25 @@ pl_source_file(term_t descr, term_t file, control_t h)
   ListCell cell;
   
 
-  if ( ForeignControl(h) == FRG_FIRST_CALL &&
-       !PL_is_variable(descr) )
-  { if ( !get_procedure(descr, &proc, 0, GP_FIND) ||
-	 !proc->definition ||
-	 true(proc->definition, FOREIGN) ||
-	 !(cref = proc->definition->definition.clauses) ||
-	 !(sf = indexToSourceFile(cref->clause->source_no)) )
-      fail;
+  if ( ForeignControl(h) == FRG_FIRST_CALL )
+  { if ( get_procedure(descr, &proc, 0, GP_FIND|GP_QUIET) )
+    { if ( !proc->definition ||
+	   true(proc->definition, FOREIGN) ||
+	   !(cref = proc->definition->definition.clauses) ||
+	   !(sf = indexToSourceFile(cref->clause->source_no)) )
+	fail;
 
-    return PL_unify_atom(file, sf->name);
+      return PL_unify_atom(file, sf->name);
+    }
+
+    if ( PL_is_variable(file) )
+      return get_procedure(descr, &proc, 0, GP_FIND); /* throw exception */
   }
 
   if ( ForeignControl(h) == FRG_CUTTED )
     succeed;
 
-  if ( !PL_get_atom(file, &name) ||
+  if ( !PL_get_atom_ex(file, &name) ||
        !(sf = lookupSourceFile(name)) )
     fail;
 

@@ -1474,7 +1474,7 @@ assert_term(term_t term, int where, SourceLoc loc)
   PL_strip_module(term, &module, tmp);
   mhead = module;
   get_head_and_body_clause(tmp, head, body, &mhead);
-  if ( !get_head_functor(head, &fdef) )
+  if ( !get_head_functor(head, &fdef, 0) )
     return NULL;			/* not callable, arity too high */
   if ( !(proc = lookupProcedureToDefine(fdef, mhead)) )
     return NULL;			/* redefine a system predicate */
@@ -2399,7 +2399,15 @@ unify_definition(term_t head, Definition def, term_t thehead, int how)
 
     if ( !PL_strip_module(head, &m, h) ||
 	 !isSuperModule(def->module, m) )
-      fail;
+    { if ( PL_is_functor(head, FUNCTOR_module2) )
+      {	PL_get_arg(1, head, h);
+	if ( !PL_unify_atom(h, def->module->name) )
+	  fail;
+	PL_get_arg(2, head, h);
+      } else
+	fail;
+    }
+
 
     if ( unify_functor(h, def->functor->functor, how) )
     { if ( thehead )

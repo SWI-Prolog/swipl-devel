@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Instantiation problems in source_file/2, reported by
+    Richard O'Keefe.
+
   * FIXED/MODIFIED: DDE Server (Windows) returns data as atom instead of
     list of character codes.  It treads the data as a 0-terminated string.
 
