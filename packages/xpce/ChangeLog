@@ -1,3 +1,7 @@
+[VERSION 4.9.2]
+
+* FIXED: `text_buffer <-sub', first argument didn't properly default to 0.
+
 * IMPROVED: Modified PceDraw, such that it can be used both using 2 and
   3-button mice.
 
