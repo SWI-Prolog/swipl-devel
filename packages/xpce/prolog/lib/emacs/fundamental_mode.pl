@@ -867,6 +867,13 @@ count_lines_region(M) :->
 	send(M, report, inform, 'Region has %d lines', Lines).
 
 
+count_chars_region(M) :->
+	"Inform user on # characters in region"::
+	get(M, region, tuple(Start, End)),
+	Chars is End - Start,
+	send(M, report, inform, 'Region contains %d characters', Chars).
+
+
 		 /*******************************
 		 *	       HELP		*
 		 *******************************/
