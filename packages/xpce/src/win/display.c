@@ -1223,11 +1223,12 @@ static classvardecl rc_display[] =
      "  boldlarge := font(helvetica, bold, 14),\n"
      "  huge      := font(helvetica, roman, 18),\n"
      "  boldhuge  := font(helvetica, bold, 18),\n"
-     "  fixed     := font(screen, roman, 13),\n"
-     "  symbol    := font(symbol, roman, 12)\n"
+     "  fixed     := font(courier, roman, 12),\n"
+     "  tt        := font(courier, roman, 12),\n"
+     "  boldtt    := font(courier, bold, 12)\n"
      "]",
      "Predefined font-aliases"),
-  RC(NAME_noFont, "font", "fixed",
+  RC(NAME_noFont, "font", "normal",
      "Replacement for undefined fonts"),
   RC(NAME_quickAndDirty, "bool", "@on",
      "Draw quick or correct"),
@@ -1287,132 +1288,130 @@ typedef struct
 
 
 static fontdef screen_fonts[] =
-{ PFONT(NAME_roman, 10, "6x10"),
-  PFONT(NAME_roman, 12, "6x12"),
-  PFONT(NAME_roman, 13, "8x13"),
-  PFONT(NAME_roman, 14, "7x14"),
-  PFONT(NAME_roman, 15, "9x15"),
-  PFONT(NAME_bold,  13, "8x13bold"),
-  PFONT(NAME_bold,  14, "7x14bold"),
-  PFONT(NAME_bold,  15, "9x15bold"),
+{ PFONT(NAME_roman, 10,
+	"-efont-fixed-medium-r-normal--10-*-*-*-*-*-*-*"),
+  PFONT(NAME_roman, 12,
+	"-efont-fixed-medium-r-normal--12-*-*-*-*-*-*-*"),
+  PFONT(NAME_roman, 14,
+	"-efont-fixed-medium-r-normal--14-*-*-*-*-*-*-*"),
+  PFONT(NAME_roman, 16,
+	"-efont-fixed-medium-r-normal--16-*-*-*-*-*-*-*"),
+  PFONT(NAME_bold, 10,
+	"-efont-fixed-bold-r-normal--10-*-*-*-*-*-*-*"),
+  PFONT(NAME_bold, 12,
+	"-efont-fixed-bold-r-normal--12-*-*-*-*-*-*-*"),
+  PFONT(NAME_bold, 14,
+	"-efont-fixed-bold-r-normal--14-*-*-*-*-*-*-*"),
+  PFONT(NAME_bold, 16,
+	"-efont-fixed-bold-r-normal--16-*-*-*-*-*-*-*"),
   ENDFONTLIST
 };
 
 
 static fontdef courier_fonts[] =
 { PFONT(NAME_roman, 10,
-	"-adobe-courier-medium-r-normal--10-100-75-75-m-60-iso8859-1"),
+	"-*-courier new-medium-r-normal--10-*-*-*-*-*-*-*"),
   PFONT(NAME_roman, 12,
-	"-adobe-courier-medium-r-normal--12-120-75-75-m-70-iso8859-1"),
+	"-*-courier new-medium-r-normal--12-*-*-*-*-*-*-*"),
   PFONT(NAME_roman, 14,
-	"-adobe-courier-medium-r-normal--14-140-75-75-m-90-iso8859-1"),
+	"-*-courier new-medium-r-normal--14-*-*-*-*-*-*-*"),
   PFONT(NAME_roman, 18,
-	"-adobe-courier-medium-r-normal--18-180-75-75-m-110-iso8859-1"),
+	"-*-courier new-medium-r-normal--18-*-*-*-*-*-*-*"),
   PFONT(NAME_roman, 24,
-	"-adobe-courier-medium-r-normal--24-240-75-75-m-150-iso8859-1"),
+	"-*-courier new-medium-r-normal--24-*-*-*-*-*-*-*"),
   PFONT(NAME_bold, 10,
-	"-adobe-courier-bold-r-normal--10-100-75-75-m-60-iso8859-1"),
+	"-*-courier new-bold-r-normal--10-*-*-*-*-*-*-*"),
   PFONT(NAME_bold, 12,
-	"-adobe-courier-bold-r-normal--12-120-75-75-m-70-iso8859-1"),
+	"-*-courier new-bold-r-normal--12-*-*-*-*-*-*-*"),
   PFONT(NAME_bold, 14,
-	"-adobe-courier-bold-r-normal--14-140-75-75-m-90-iso8859-1"),
+	"-*-courier new-bold-r-normal--14-*-*-*-*-*-*-*"),
   PFONT(NAME_bold, 18,
-	"-adobe-courier-bold-r-normal--18-180-75-75-m-110-iso8859-1"),
+	"-*-courier new-bold-r-normal--18-*-*-*-*-*-*-*"),
   PFONT(NAME_bold, 24,
-	"-adobe-courier-bold-r-normal--24-240-75-75-m-150-iso8859-1"),
+	"-*-courier new-bold-r-normal--24-*-*-*-*-*-*-*"),
   PFONT(NAME_oblique, 10,
-	"-adobe-courier-medium-o-normal--10-100-75-75-m-60-iso8859-1"),
+	"-*-courier new-medium-o-normal--10-*-*-*-*-*-*-*"),
   PFONT(NAME_oblique, 12,
-	"-adobe-courier-medium-o-normal--12-120-75-75-m-70-iso8859-1"),
+	"-*-courier new-medium-o-normal--12-*-*-*-*-*-*-*"),
   PFONT(NAME_oblique, 14,
-	"-adobe-courier-medium-o-normal--14-140-75-75-m-90-iso8859-1"),
+	"-*-courier new-medium-o-normal--14-*-*-*-*-*-*-*"),
   PFONT(NAME_oblique, 18,
-	"-adobe-courier-medium-o-normal--18-180-75-75-m-110-iso8859-1"),
+	"-*-courier new-medium-o-normal--18-*-*-*-*-*-*-*"),
   PFONT(NAME_oblique, 24,
-	"-adobe-courier-medium-o-normal--24-240-75-75-m-150-iso8859-1"),
+	"-*-courier new-medium-o-normal--24-*-*-*-*-*-*-*"),
   ENDFONTLIST
 };
 
 
 static fontdef helvetica_fonts[] =
 { PFONT(NAME_bold, 10,
-	"-adobe-helvetica-bold-r-normal--10-100-75-75-p-60-iso8859-1"),
+	"-*-helvetica-bold-r-normal--10-*-*-*-*-*-*-*"),
   PFONT(NAME_bold, 12,
-	"-adobe-helvetica-bold-r-normal--12-120-75-75-p-70-iso8859-1"),
+	"-*-helvetica-bold-r-normal--12-*-*-*-*-*-*-*"),
   PFONT(NAME_bold, 14,
-	"-adobe-helvetica-bold-r-normal--14-140-75-75-p-82-iso8859-1"),
+	"-*-helvetica-bold-r-normal--14-*-*-*-*-*-*-*"),
   PFONT(NAME_bold, 18,
-	"-adobe-helvetica-bold-r-normal--18-180-75-75-p-103-iso8859-1"),
+	"-*-helvetica-bold-r-normal--18-*-*-*-*-*-*-*"),
   PFONT(NAME_bold, 24,
-	"-adobe-helvetica-bold-r-normal--24-240-75-75-p-138-iso8859-1"),
+	"-*-helvetica-bold-r-normal--24-*-*-*-*-*-*-*"),
   PFONT(NAME_roman, 10,
-	"-adobe-helvetica-medium-r-normal--10-100-75-75-p-56-iso8859-1"),
+	"-*-helvetica-medium-r-normal--10-*-*-*-*-*-*-*"),
   PFONT(NAME_roman, 12,
-	"-adobe-helvetica-medium-r-normal--12-120-75-75-p-67-iso8859-1"),
+	"-*-helvetica-medium-r-normal--12-*-*-*-*-*-*-*"),
   PFONT(NAME_roman, 14,
-	"-adobe-helvetica-medium-r-normal--14-140-75-75-p-77-iso8859-1"),
+	"-*-helvetica-medium-r-normal--14-*-*-*-*-*-*-*"),
   PFONT(NAME_roman, 18,
-	"-adobe-helvetica-medium-r-normal--18-180-75-75-p-98-iso8859-1"),
+	"-*-helvetica-medium-r-normal--18-*-*-*-*-*-*-*"),
   PFONT(NAME_roman, 24,
-	"-adobe-helvetica-medium-r-normal--24-240-75-75-p-130-iso8859-1"),
+	"-*-helvetica-medium-r-normal--24-*-*-*-*-*-*-*"),
   PFONT(NAME_oblique, 10,
-	"-adobe-helvetica-medium-o-normal--10-100-75-75-p-57-iso8859-1"),
+	"-*-helvetica-medium-o-normal--10-*-*-*-*-*-*-*"),
   PFONT(NAME_oblique, 12,
-	"-adobe-helvetica-medium-o-normal--12-120-75-75-p-67-iso8859-1"),
+	"-*-helvetica-medium-o-normal--12-*-*-*-*-*-*-*"),
   PFONT(NAME_oblique, 14,
-	"-adobe-helvetica-medium-o-normal--14-140-75-75-p-78-iso8859-1"),
+	"-*-helvetica-medium-o-normal--14-*-*-*-*-*-*-*"),
   PFONT(NAME_oblique, 18,
-	"-adobe-helvetica-medium-o-normal--18-180-75-75-p-98-iso8859-1"),
+	"-*-helvetica-medium-o-normal--18-*-*-*-*-*-*-*"),
   PFONT(NAME_oblique, 24,
-	"-adobe-helvetica-medium-o-normal--24-240-75-75-p-130-iso8859-1"),
+	"-*-helvetica-medium-o-normal--24-*-*-*-*-*-*-*"),
   ENDFONTLIST
 };
 
 
 static fontdef times_fonts[] =
 { PFONT(NAME_roman, 10,
-	"-adobe-times-medium-r-normal--10-100-75-75-p-54-iso8859-1"),
+	"-*-times-medium-r-normal--10-*-*-*-*-*-*-*"),
   PFONT(NAME_roman, 12,
-	"-adobe-times-medium-r-normal--12-120-75-75-p-64-iso8859-1"),
+	"-*-times-medium-r-normal--12-*-*-*-*-*-*-*"),
   PFONT(NAME_roman, 14,
-	"-adobe-times-medium-r-normal--14-140-75-75-p-74-iso8859-1"),
+	"-*-times-medium-r-normal--14-*-*-*-*-*-*-*"),
   PFONT(NAME_roman, 18,
-	"-adobe-times-medium-r-normal--18-180-75-75-p-94-iso8859-1"),
+	"-*-times-medium-r-normal--18-*-*-*-*-*-*-*"),
   PFONT(NAME_roman, 24,
-	"-adobe-times-medium-r-normal--24-240-75-75-p-124-iso8859-1"),
+	"-*-times-medium-r-normal--24-*-*-*-*-*-*-*"),
   PFONT(NAME_bold, 10,
-	"-adobe-times-bold-r-normal--10-100-75-75-p-57-iso8859-1"),
+	"-*-times-bold-r-normal--10-*-*-*-*-*-*-*"),
   PFONT(NAME_bold, 12,
-	"-adobe-times-bold-r-normal--12-120-75-75-p-67-iso8859-1"),
+	"-*-times-bold-r-normal--12-*-*-*-*-*-*-*"),
   PFONT(NAME_bold, 14,
-	"-adobe-times-bold-r-normal--14-140-75-75-p-77-iso8859-1"),
+	"-*-times-bold-r-normal--14-*-*-*-*-*-*-*"),
   PFONT(NAME_bold, 18,
-	"-adobe-times-bold-r-normal--18-180-75-75-p-99-iso8859-1"),
+	"-*-times-bold-r-normal--18-*-*-*-*-*-*-*"),
   PFONT(NAME_bold, 24,
-	"-adobe-times-bold-r-normal--24-240-75-75-p-132-iso8859-1"),
+	"-*-times-bold-r-normal--24-*-*-*-*-*-*-*"),
   PFONT(NAME_italic, 10,
-	"-adobe-times-medium-i-normal--10-100-75-75-p-52-iso8859-1"),
+	"-*-times-medium-i-normal--10-*-*-*-*-*-*-*"),
   PFONT(NAME_italic, 12,
-	"-adobe-times-medium-i-normal--12-120-75-75-p-63-iso8859-1"),
+	"-*-times-medium-i-normal--12-*-*-*-*-*-*-*"),
   PFONT(NAME_italic, 14,
-	"-adobe-times-medium-i-normal--14-140-75-75-p-73-iso8859-1"),
+	"-*-times-medium-i-normal--14-*-*-*-*-*-*-*"),
   PFONT(NAME_italic, 18,
-	"-adobe-times-medium-i-normal--18-180-75-75-p-94-iso8859-1"),
+	"-*-times-medium-i-normal--18-*-*-*-*-*-*-*"),
   PFONT(NAME_italic, 24,
-	"-adobe-times-medium-i-normal--24-240-75-75-p-125-iso8859-1"),
+	"-*-times-medium-i-normal--24-*-*-*-*-*-*-*"),
   ENDFONTLIST
 };
 
-
-static fontdef symbol_fonts[] =
-{ PFONT(NAME_roman, 10, "-adobe-symbol-*-*-*-*-10-*-*-*-*-*-*-*"),
-  PFONT(NAME_roman, 12, "-adobe-symbol-*-*-*-*-12-*-*-*-*-*-*-*"),
-  PFONT(NAME_roman, 14, "-adobe-symbol-*-*-*-*-14-*-*-*-*-*-*-*"),
-  PFONT(NAME_roman, 18, "-adobe-symbol-*-*-*-*-18-*-*-*-*-*-*-*"),
-  PFONT(NAME_roman, 24, "-adobe-symbol-*-*-*-*-24-*-*-*-*-*-*-*"),
-
-  ENDFONTLIST
-};
 
 static char *
 default_font_list(Name fam, FontDef defs)
@@ -1460,14 +1459,12 @@ attach_fonts(Class class, char *res, Name fam, FontDef defs)
 static void
 attach_font_families(Class class)
 { attach_class_variable(class, NAME_fontFamilies,  "chain",
-			"[screen_fonts, courier_fonts," /* concat */
-			"helvetica_fonts, times_fonts," /* concat */
-			"symbol_fonts]",
+			"[screen_fonts,courier_fonts,"
+			"helvetica_fonts,times_fonts]",
 			"Predefined font families");
 
-  attach_fonts(class, "screen_fonts",	 NAME_screen,	 screen_fonts);
   attach_fonts(class, "courier_fonts",	 NAME_courier,	 courier_fonts);
   attach_fonts(class, "helvetica_fonts", NAME_helvetica, helvetica_fonts);
   attach_fonts(class, "times_fonts",	 NAME_times,	 times_fonts);
-  attach_fonts(class, "symbol_fonts",	 NAME_symbol,	 symbol_fonts);
+  attach_fonts(class, "screen_fonts",	 NAME_screen,	 screen_fonts);
 }

@@ -2,6 +2,8 @@
 ! Author: Jan Wielemaker, University of Amsterdam
 ! Modified: Tue Dec  7 14:15:04 1999
 !	Added alias for symbol-font
+! Modified: Jan 6, 2005
+!	Use internationalised fonts
 !
 ! See README.customise before changing this file.
 
@@ -16,10 +18,9 @@ display.system_fonts:	[ normal    := font(helvetica, roman,   12), \
 			  boldlarge := font(helvetica, bold,    14), \
 			  huge      := font(helvetica, roman,   18), \
 			  boldhuge  := font(helvetica, bold,    18), \
-			  fixed     := font(screen,    roman,   13), \
-			  tt        := font(screen,    roman,   13), \
-			  boldtt    := font(screen,    bold,    13), \
-			  symbol    := font(symbol,    roman,   12)  \
+			  fixed     := font(screen,    roman,   14), \
+			  tt        := font(screen,    roman,   14), \
+			  boldtt    := font(screen,    bold,    14)  \
 			]
 
 ! This one is often slow on colour displays.  Prefer the beep then.
