@@ -1,3 +1,7 @@
+Oct 6, 2004
+
+  * ADDED/FIXED: Various issues in the documentation.
+
 Sep 29, 2004
 
   * FIXED: Avoid continuous recomputation of `direct' (rdf) branching

@@ -536,7 +536,7 @@ the following predicates are supplied:
 
 \begin{description}
     \predicate{rdf_equal}{2}{Resource1, Resource2}
-Defined as \infixterm{=}{Resource1, Resource2}.  As this predicate is
+Defined as \infixterm{=}{Resource1}{Resource2}.  As this predicate is
 subject to goal-expansion it can be used to obtain or test global URL
 values to readable values. The following goal unifies \arg{X} with
 \const{http://www.w3.org/2000/01/rdf-schema\#Class} without more
@@ -605,6 +605,16 @@ database increments the generation. It can be used to check the validity
 of cached results deduced from the database. Modifications changing
 multiple triples increment \arg{Generation} with the number of triples
 modified, providing a heuristic for `how dirty' cached results may be.
+
+    \predicate{rdf_estimate_complexity}{?Subject, ?Predicate, ?Object,
+					-Complexity}
+Return the number of alternatives as indicated by the database 
+internal hashed indexing.  This is a rough measure for the number
+of alternatives we can expect for an rdf_has/3 call using the
+given three arguments. When called with three variables, the total
+number of triples is returned. This estimate is used in query
+optimisation. See also rdf_predicate_property/2 and rdf_statistics/1 for
+additional information to help optimisers.
 
     \predicate{rdf_statistics}{1}{?Statistics}
 Report statistics collected by the \file{rdf_db} module.  Defined
@@ -800,7 +810,6 @@ The matching-methods are described with rdf_match_label/3.
 \end{description}
 
 
-\begin{comment}
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 		 %	       OWL		%
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -808,21 +817,12 @@ The matching-methods are described with rdf_match_label/3.
 \section{Module owl}				\label{sec:owl}
 
 \index{OWL}%
-This module provides a \emph{very} limited interpretation to some
-OWL concepts used in the current visualisation tools.  Its main task
-is to describe an evaluate restrictions on properties. OWL is
-interpreted as OWL-Full, the OWL dialect that is a superset of
-RDF-Schema.
+The current SemWeb library distributed with SWI-Prolog does not yet
+contain an OWL module.  A module \file{owl.pl} is part of the
+\url[Triple20]{http://www.swi-prolog.org/packages/Triple20/}
+triple browser and editor provides limited support for OWL
+reasoning.
 
-\index{Description, OWL}%
-Central to this library is the Prolog representation for a
-\jargon{Description}.  Predicates from this library produce these
-descriptions, owl_satisfies/2 tests whether a resource satisfies
-a description.  The Prolog description is a nested term with the
-following syntax.
-
-
-\end{comment}
 
 
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1055,6 +1055,36 @@ This event is broadcasted after an rdfe_undo/0 or rdfe_redo/0.
 \arg{Type} is one of \const{undo} or \const{redo} and \arg{Id}
 identifies the transaction as above.
 \end{description}
+
+
+\section{Related packages and issues}
+
+\index{Sesame}\index{SeRQL}%
+The SWI-Prolog SemWeb package is designed to provide access to the
+Semantic Web languages from Prolog.  It consists of the low level
+\file{rdf_db.pl} store with layers such as \file{rdfs.pl} to provide
+more high level querying of a triple set with relations such as
+rdfs_individual_of/2, rdfs_subclass_of/2, etc.
+\url[SeRQL]{http://www.openrdf.org} is a semantic web query language
+taking another route.  Instead of providing alternative relations
+SeRQL defines a graph query on de \jargon{deductive closure} of the
+triple set.  For example, under assumption of RDFS entailment rules
+this makes the query \term{rdf}{S, rdf:type, Class} equivalent to
+\term{rdfs_individual_of}{S, Class}.
+
+\index{optimising,query}%
+We developed a parser for SeRQL which compiles SeRQL path expressions
+into Prolog conjunctions of \term{rdf}{Subject, Predicate, Object}
+calls. \jargon{Entailment modules} realise a fully logical
+implementation of rdf/3 including the entailment reasoning required to
+deal with a Semantic Web language or application specific reasoning. The
+infra structure is completed with a query optimiser and an HTTP server
+compliant to the \url[Sesame]{http://www.openrdf.org} implementation of
+the SeRQL language.  The Sesame Java client can be used to access Prolog
+servers from Java, while the Prolog client can be used to access the
+Sesame SeRQL server.  For further details, see the
+\url[project
+home]{http://gollem.swi.psy.uva.nl/twiki/pl/bin/view/Library/SeRQL}.
 
 
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
