@@ -15,6 +15,7 @@ PKGDOC=$(PLBASE)/doc/packages
 PCEHOME=../xpce
 LIBDIR=$(PLBASE)/library/http
 EXDIR=$(PKGDOC)/examples/http
+DESTDIR=
 
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
 PLTOTEX=$(PCEHOME)/bin/pl2tex
@@ -42,23 +43,23 @@ all:
 		@echo "Nothing to do for this package"
 
 install:	$(LIBPL)
-		mkdir -p $(LIBDIR)
-		$(INSTALL_DATA) $(LIBPL) $(LIBDIR)
-		$(INSTALL_DATA) README $(LIBDIR)
+		mkdir -p $(DESTDIR)/$(LIBDIR)
+		$(INSTALL_DATA) $(LIBPL) $(DESTDIR)/$(LIBDIR)
+		$(INSTALL_DATA) README $(DESTDIR)/$(LIBDIR)
 		$(PL) -f none -g make -t halt
 
 rpm-install:	install
 
 pdf-install:	install-examples
-		$(INSTALL_DATA) $(DOC).pdf $(PKGDOC)
+		$(INSTALL_DATA) $(DOC).pdf $(DESTDIR)/$(PKGDOC)
 
 html-install:	install-examples
-		$(INSTALL_DATA) $(DOC).html httpserver.gif $(PKGDOC)
+		$(INSTALL_DATA) $(DOC).html httpserver.gif $(DESTDIR)/$(PKGDOC)
 
 install-examples::
 		mkdir -p $(EXDIR)
-		(cd examples && $(INSTALL_DATA) $(EXAMPLES) $(EXDIR))
-		(cd examples && $(INSTALL_PROGRAM) $(EXAMPLEEXE) $(EXDIR))
+		(cd examples && $(INSTALL_DATA) $(EXAMPLES) $(DESTDIR)/$(EXDIR))
+		(cd examples && $(INSTALL_PROGRAM) $(EXAMPLEEXE) $(DESTDIR)/$(EXDIR))
 
 uninstall::
 		(cd $(LIBDIR) && rm -f $(LIBPL))
