@@ -111,7 +111,6 @@ else
     CWFLAGS=
 fi
 CFLAGS="$CMFLAGS"
-AC_FUNC_ALLOCA
 AC_C_BIGENDIAN
 
 AC_CHECK_HEADERS(malloc.h unistd.h sys/time.h fcntl.h floatingpoint.h)

@@ -1,3 +1,7 @@
+* FIXED: Call nomem() after strdup in case of out-of-memory (Richard O'Keefe).
+
+* PORT: Removed alloca() usage (Richard O'Keefe).
+
 * LIMIT: Make maximum string length 2048 to allow parsing HTML4 DTD.
   Maybe we should remove comments while fetching parameter-entity
   values?

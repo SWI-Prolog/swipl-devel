@@ -48,6 +48,7 @@ void *		sgml_malloc(size_t size);
 void *		sgml_calloc(size_t n, size_t size);
 void		sgml_free(void *mem);
 void *		sgml_realloc(void *old, size_t size);
+void		sgml_nomem(void);
 
 #define add_icharbuf(buf, chr) \
 	do { if ( buf->size < buf->allocated ) \
@@ -81,6 +82,7 @@ void		empty_ocharbuf(ocharbuf *buf);
 
 const char *	str_summary(const char *s, int len);
 char *		str2ring(const char *in);
+char *                ringallo(size_t);
 char *		load_file_to_charp(const char *file, int *len);
 
 #if defined(USE_STRING_FUNCTIONS) && !defined(UTIL_H_IMPLEMENTATION)

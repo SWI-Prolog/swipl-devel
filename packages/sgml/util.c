@@ -350,25 +350,6 @@ empty_ocharbuf(ocharbuf *buf)
 }
 
 		 /*******************************
-		 *		MISC		*
-		 *******************************/
-
-const char *
-str_summary(const char *s, int len)
-{ ichar *buf = alloca(sizeof(ichar)*(len+10));
-  int l = strlen(s);
-
-  if ( l < len )
-    return s;
-  strncpy(buf, s, len-5);
-  strcpy(&buf[len-5], " ... ");
-  strcpy(&buf[len], &s[l-5]);
-
-  return str2ring(buf);
-}
-
-
-		 /*******************************
 		 *	   BUFFER RING		*
 		 *******************************/
 
@@ -386,8 +367,43 @@ str2ring(const char *in)
   if ( ringp == RINGSIZE )
     ringp = 0;
 
+  if ( !copy )
+    sgml_nomem();
+
   return copy;
 }
+
+
+char *ringallo(size_t size)
+{ char *result = malloc(size);
+    
+  if ( ring[ringp] != 0 )
+    sgml_free(ring[ringp]);
+  ring[ringp++] = result;
+  if ( ringp == RINGSIZE )
+    ringp = 0;
+
+  return result;
+}
+
+
+               /*******************************
+               *              MISC            *
+               *******************************/
+
+char const *
+str_summary(char const *s, int len) {
+    char *buf;
+    int l = strlen(s);
+
+    if (l < len) return s;
+    buf = ringallo(len + 10);
+    strncpy(buf, s, len-5);
+    strcpy(&buf[len-5], " ... ");
+    strcpy(&buf[len], &s[l-5]);
+    return buf;
+}
+
 
 
 		 /*******************************
@@ -444,7 +460,7 @@ load_file_to_charp(const char *file, int *length)
 #endif
 
 void
-nomem()
+sgml_nomem()
 { fprintf(stderr, "SGML: Fatal: out of memory\n");
 
 #ifdef _WINDOWS
@@ -465,7 +481,7 @@ sgml_malloc(size_t size)
   if ( (mem = malloc(size)) )
     return mem;
 
-  nomem();
+  sgml_nomem();
   return NULL;
 }
 
@@ -482,7 +498,7 @@ sgml_realloc(void *old, size_t size)
       return mem;
   }
 
-  nomem();
+  sgml_nomem();
   return NULL;
 }
 
@@ -494,7 +510,7 @@ sgml_calloc(size_t n, size_t size)
   if ( (mem=calloc(n, size)) )
     return mem;
 
-  nomem();
+  sgml_nomem();
   return NULL;
 }
 

@@ -81,7 +81,7 @@ atom(const char *name)
   switch(atomType(name, len))
   { case AT_QUOTE:
     case AT_FULLSTOP:
-    { char *tmp = alloca(len*2+1);
+    { char *tmp = ringallo(len*2+1);
       char *o = tmp;
 
       *o++ = '\'';
@@ -108,7 +108,7 @@ atom(const char *name)
       *o++ = '\'';
       *o   = '\0';
 
-      return str2ring(tmp);
+      return tmp;
     }
     default:
       return name;

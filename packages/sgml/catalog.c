@@ -129,8 +129,10 @@ is_absolute_path(const char *name)
 
 char *
 localpath(const char *ref, const char *name)
-{ if ( !ref || is_absolute_path(name) )
-    return strdup(name);
+{ char *local;
+
+  if ( !ref || is_absolute_path(name) )
+    local = strdup(name);
   else
   { char buf[MAXPATHLEN];
 
@@ -138,8 +140,13 @@ localpath(const char *ref, const char *name)
     strcat(buf, DIRSEPSTR);
     strcat(buf, name);
 
-    return strdup(buf);
+    local = strdup(buf);
   }
+
+  if ( !local )
+    sgml_nomem();
+
+  return local;
 }
 
 
@@ -195,6 +202,8 @@ register_catalog_file(const char *file, catalog_location where)
   
   cf = sgml_malloc(sizeof(*cf));
   cf->file = strdup(file);
+  if ( !cf->file )
+    sgml_nomem();
   
   if ( where == CTL_END )
   { cf->next = NULL;
