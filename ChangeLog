@@ -1,17 +1,26 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 5.0.4
+=============
+
+  * DOC: re-arranged sections on I/O handling a bit to clarify the position
+    and relation between Edinburgh-style and ISO I/O handling.
+
   * ADDED: prolog_load_file/2: a hook into load_files/2.
 
   * MODIFIED: source_location/2 no longer changes the filename into an
     absolute path (instead, it is the path used to open the file).
 
-  * ADDED: set_stream(Stream, file_name(Name)).
+  * ADDED: set_stream(Stream, file_name(Name)) and set_stream(Stream.
+    record_position(Bool)).
 
   * ADDED: loading a program from a stream.  See load_files/2 for details.
 
   * FIXED: plwin.exe: console placement to use
     SystemParametersInfo(SPI_GETWORKAREA, ...) to determine the boundary.
+    Also, get current window position from GetWindowsPlacement().
+    (Tolga Konik).
 
   * MODIFIED: Prolog Navigator now calls default edit/1 interface (suggested
     by Tolga Konik).
