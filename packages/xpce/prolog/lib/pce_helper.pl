@@ -27,6 +27,7 @@
 	   , sformat/3
 	   ]).
 
+resource(help,	image, image('32x32/help.xpm')).
 
 :- pce_global(@helper, new(helper)).
 :- pce_global(@finder, new(finder)).
@@ -947,6 +948,7 @@ initialise(F, Data:'[file|hlp_buffer|hlp_editor]') :->
 	->  E = Data
 	;   new(E, hlp_editor(Data))
 	),
+	send(F, icon, resource(help)),
 	send(F, append, new(V, view(editor := E))),
 	send(F, slot, editor, E),
 	send(new(D, dialog), above, V),
