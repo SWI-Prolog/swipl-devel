@@ -38,6 +38,7 @@ XLIB=/usr/lib
 CC=gcc
 CXX=g++
 RANLIB=ranlib
+PL=pl
 
 # LIBRARIES
 
@@ -78,7 +79,7 @@ ETAGS=etags
 SED=sed
 RM=rm
 
-VERSION=4.8.8, March. 1995
+VERSION=4.8.9, Apr. 1995
 RTSUFFIX=
 ARCH=sparc
 OS=sunos4.1.3
@@ -88,7 +89,7 @@ PLRUNTIME=$(PLBASE)/runtime/$(PLARCH)
 PLOBJ=pl$(RTSUFFIX).o
 PLINCLUDE=$(PLBASE)/include
 
-PLTARGET=xpce4pl.so
+PLTARGET=soall
 
 ################################################################
 # MAIN TARGETS
@@ -122,10 +123,14 @@ xpce-pl: xpce xpce-client
 	CANONICAL_PATHS=$(PCEHOME); export CANONICAL_PATHS; \
 	$(MAKE) $(PLTARGET)
 
+so:	
+	cd pl/src; \
+	$(MAKE) soall
+
 state:
 	cd pl/src; \
 	CANONICAL_PATHS=$(PCEHOME); export CANONICAL_PATHS; \
-	$(MAKE) TARGET=$(TARGET)
+	$(MAKE) nosoall
 
 xpce-sicstus: xpce xpce-client
 	cd sicstus/src; \

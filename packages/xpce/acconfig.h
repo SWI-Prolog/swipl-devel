@@ -48,3 +48,6 @@
 
 /* Define if you want the runtime version */
 #undef O_RUNTIME
+
+/* Define if struct tm has tm_gmtoff field */
+#undef HAVE_TM_GMTOFF
