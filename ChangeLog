@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: reconsult to lock other threads (Unix).  Sandro Hawke.
+
   * FIXED: sizeofClause() type error.  Michal Cihar.
 
   * FIXED: int/char problem in parser.  Michal Cihar.
