@@ -20,7 +20,7 @@ MIMELIBS=	rfc2045.lib rfc822.lib
 TIMEOBJ=	error.obj time.obj
 TIMELIBS=	winmm.lib
 
-all:		socket.dll cgi.dll memfile.dll mime.dll
+all:		socket.dll cgi.dll memfile.dll mime.dll time.dll
 
 socket.dll:	$(SOCKOBJ)
 		$(LD) /dll /out:$@ $(LDFLAGS) $(SOCKOBJ) $(PLLIB) $(LIBS)
@@ -44,11 +44,13 @@ idll::
 		copy cgi.dll $(BINDIR)
 		copy memfile.dll $(BINDIR)
 		copy mime.dll $(BINDIR)
+		copy time.dll $(BINDIR)
 ilib::
 		copy socket.pl $(PLBASE)\library
 		copy cgi.pl $(PLBASE)\library
 		copy memfile.pl $(PLBASE)\library
 		copy mime.pl $(PLBASE)\library
+		copy time.pl $(PLBASE)\library
 		$(MAKEINDEX)
 
 uninstall::
@@ -56,10 +58,12 @@ uninstall::
 		del $(BINDIR)\cgi.dll
 		del $(BINDIR)\memfile.dll
 		del $(BINDIR)\mime.dll
+		del $(BINDIR)\time.dll
 		del $(PLBASE)\library\socket.pl
 		del $(PLBASE)\library\cgi.pl
 		del $(PLBASE)\library\memfile.pl
 		del $(PLBASE)\library\mime.pl
+		del $(PLBASE)\library\time.pl
 		$(MAKEINDEX)
 
 html-install::

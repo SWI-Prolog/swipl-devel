@@ -54,10 +54,16 @@ with winmm.lib
 #include <windows.h>
 #include <sys/timeb.h>
 
+#ifndef SIGALRM
+#define SIGALRM 14
+#endif
+
+/* Seems to be there
 struct timeval
 { long tv_usec;
   long tv_sec;
 };
+*/
 
 struct timezone
 { int zone;
@@ -68,8 +74,8 @@ gettimeofday(struct timeval *tv, struct timezone *tz)
 { struct timeb tb;
 
   ftime(&tb);
-  tv.tv_sec  = tb.time;
-  tv.tv_usec = tb.millitm * 1000;
+  tv->tv_sec  = tb.time;
+  tv->tv_usec = tb.millitm * 1000;
 
   return 0;
 }
@@ -314,7 +320,7 @@ on_alarm(int sig)
 
 
 static void CALLBACK
-callEvent(UINT id, UINT msg, DWORD dwuser, DWORD dw1, DWORD dw2)
+callTimer(UINT id, UINT msg, DWORD dwuser, DWORD dw1, DWORD dw2)
 { Event ev = (Event)dwuser;
 
   ev->flags |= EV_FIRED;
@@ -323,13 +329,15 @@ callEvent(UINT id, UINT msg, DWORD dwuser, DWORD dw1, DWORD dw2)
 
 
 static void
-installEvent(Event ev, double t);
+installEvent(Event ev, double t)
 { MMRESULT rval;
+
+  installHandler();
 
   rval = timeSetEvent((int)(t*1000),
 		      20,			/* resolution (milliseconds) */
-		      callEvent,
-		      (DWORD)ev;
+		      callTimer,
+		      (DWORD)ev,
 		      TIME_ONESHOT);
 
   if ( rval )
