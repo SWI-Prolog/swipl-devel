@@ -1016,6 +1016,11 @@ GLOBAL Image PULLRIGHT_IMAGE;		/* Popup menu pullright marker */
 GLOBAL Image MARK_HANDLE_IMAGE;		/* connect_gesture */
 GLOBAL Image NULL_IMAGE;		/* empty image */
 GLOBAL Image INT_ITEM_IMAGE;
+GLOBAL Image SCROLL_UP_IMAGE;
+GLOBAL Image SCROLL_DOWN_IMAGE;
+GLOBAL Image SCROLL_LEFT_IMAGE;
+GLOBAL Image SCROLL_RIGHT_IMAGE;
+GLOBAL Image EXCLAMATION_IMAGE;
 
 GLOBAL Modifier MODIFIER_shift;		/* Demands `shift-is-down' */
 GLOBAL Modifier MODIFIER_control;	/* Demands `control-is-down' */

@@ -98,6 +98,7 @@ fill_dialog(D) :-
 	send(D, append, new(KI, text_item(search, ''))),
 	send(D, append, new(SM, menu(field, toggle))),
 	send(SM, label, '... In:'),
+	send(D, append, graphical(0,0,1,1)), % bit extra spacing
 	send(D, append, button(apply,
 			       and(message(D, apply),
 				   message(CB, apply)))),

@@ -871,6 +871,11 @@ stdImage(Name name, Image *global, char *bits, int w, int h)
 #include "bitmaps/pce16.xpm"
 #include "bitmaps/hadjusttile.xpm"
 #include "bitmaps/vadjusttile.xpm"
+#include "bitmaps/up.xpm"
+#include "bitmaps/down.xpm"
+#include "bitmaps/left.xpm"
+#include "bitmaps/right.xpm"
+#include "bitmaps/exclamation.xpm"
 #else
 #include "bitmaps/pce.bm"
 #endif
@@ -937,9 +942,14 @@ standardImages(void)
   stdImage(NAME_intItemImage, &INT_ITEM_IMAGE,
 	   intarrows_bits, intarrows_width, intarrows_height);
 #ifdef XPM_PCEIMAGE
-  ws_std_xpm_image(NAME_pceImage, NULL, pce16_xpm);
-  ws_std_xpm_image(NAME_hadjustTileImage, NULL, hadjusttile_xpm);
-  ws_std_xpm_image(NAME_vadjustTileImage, NULL, vadjusttile_xpm);
+  ws_std_xpm_image(NAME_pceImage,	  NULL,		       pce16_xpm);
+  ws_std_xpm_image(NAME_hadjustTileImage, NULL,		       hadjusttile_xpm);
+  ws_std_xpm_image(NAME_vadjustTileImage, NULL,		       vadjusttile_xpm);
+  ws_std_xpm_image(NAME_scrollUpImage,	  &SCROLL_UP_IMAGE,    up_xpm);
+  ws_std_xpm_image(NAME_scrollDownImage,  &SCROLL_DOWN_IMAGE,  down_xpm);
+  ws_std_xpm_image(NAME_scrollLeftImage,  &SCROLL_LEFT_IMAGE,  left_xpm);
+  ws_std_xpm_image(NAME_scrollRightImage, &SCROLL_RIGHT_IMAGE, right_xpm);
+  ws_std_xpm_image(NAME_exclamationImage, &EXCLAMATION_IMAGE,  exclamation_xpm);
 #else
   stdImage(NAME_pceImage, NULL,
 	   pce_bm_bits, pce_bm_width, pce_bm_height);

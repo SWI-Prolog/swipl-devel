@@ -1684,7 +1684,7 @@ static getdecl get_textItem[] =
 /* Resources */
 
 static classvardecl rc_textItem[] =
-{ RC(NAME_border, "0..", UXWIN("2", "4"),
+{ RC(NAME_border, "0..", "4",
      "Border around <-value_text"),
   RC(NAME_length, "int", "25",
      "Width of area for selection (chars)"),
@@ -1700,7 +1700,7 @@ static classvardecl rc_textItem[] =
      "Time to wait until start of repeat"),
   RC(NAME_repeatInterval, "real", "0.06",
      "Interval between repeats"),
-  RC(NAME_look, RC_REFINE, UXWIN("open_look", "win"), NULL),
+  RC(NAME_look, RC_REFINE, UXWIN("gtk", "win"), NULL),
   RC(NAME_elevation, RC_REFINE,
      UXWIN("when(@colour_display, 1, @nil)", "@_txt_height"), NULL),
   RC(NAME_comboBoxHeigth, "1..", "6",

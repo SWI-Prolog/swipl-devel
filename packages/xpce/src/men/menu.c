@@ -490,7 +490,10 @@ draw_popup_indicator(Menu m, MenuItem mi, int x, int y, int w, int h, int b)
 
 static inline status
 elevated_items(Menu m, Elevation z)
-{ if ( instanceOfObject(z, ClassElevation) )
+{ if ( m->feedback == NAME_showSelectionOnly )
+    fail;
+
+  if ( instanceOfObject(z, ClassElevation) )
   { if ( m->kind == NAME_choice )
       succeed;
 
@@ -1549,7 +1552,7 @@ allOffMenu(Menu m)
 
 static status
 kindMenu(Menu m, Name kind)
-{ if ( m->look == NAME_openLook )
+{ if ( m->look == NAME_openLook || m->look == NAME_gtk )
   { if ( kind == NAME_choice || kind == NAME_toggle )
     { assign(m, on_image, NIL);
       assign(m, off_image, NIL);
@@ -1623,10 +1626,8 @@ kindMenu(Menu m, Name kind)
 
       assign(m, kind, kind);
       return requestComputeGraphical(m, DEFAULT);
-    } else if ( kind == NAME_cycle )
-    { assign(m, border, toInt(4));
     }
-  }
+  } 
 
   if ( kind == NAME_cycle )
   { assign(m, on_image, NIL);
@@ -1636,10 +1637,12 @@ kindMenu(Menu m, Name kind)
     assign(m, accelerator_font, NIL);
     assign(m, auto_value_align, OFF),
     multipleSelectionMenu(m, OFF);
-    if ( m->look != NAME_win )
+    if ( getClassVariableValueObject(m, NAME_cycleIndicator) != NAME_comboBox )
     { assign(m, popup, newObject(ClassPopup, EAV));
       assign(m->popup, members, m->members);
       kindMenu((Menu) m->popup,  NAME_cyclePopup);
+    } else
+    { assign(m, border, toInt(4));
     }
   } else
   { assign(m, auto_value_align, ON);
@@ -2131,8 +2134,7 @@ static classvardecl rc_menu[] =
   RC(NAME_border, "int", "2",
      "Border around each item"),
   RC(NAME_cycleIndicator, "{combo_box}|image|elevation",
-     UXWIN("when(@colour_display,  elevation(1), @ol_cycle_image)",
-	   "combo_box"),
+     "combo_box",
      "Indication of a ->kind: cycle menu"),
   RC(NAME_feedback, "name", "image",
      "Type of feedback for selection"),

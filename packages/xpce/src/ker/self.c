@@ -1432,12 +1432,12 @@ static getdecl get_pce[] =
 static classvardecl rc_pce[] =
 { RC(NAME_initialise, "code*",
      UXWIN(/*UNIX*/
-	   "and(_dialog_bg        @= when(@colour_display, grey80, white),\n"
-	   "    _button_elevation @= elevation(button, 1, @default,\n"
+	   "and(_dialog_bg        @= colour(grey80),\n"
+	   "    _button_elevation @= elevation(button, 1, grey80,\n"
 	   "				       grey95, grey50,\n"
 	   "				      '3d', grey70),\n"
 	   "    _mark_elevation   @= elevation(mark, 0),\n"
-	   "    _win_pen	  @= when(@colour_display, 0, 1))",
+	   "    _win_pen	  @= number(0))",
 	   /*WIN32*/
            "and(_dialog_bg     @= colour(win_menu),\n"
 	   "    _graph_bg      @= colour(win_window),\n"

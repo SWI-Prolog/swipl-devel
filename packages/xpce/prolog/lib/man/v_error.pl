@@ -60,11 +60,10 @@ dialog(D) :-
 	get(Type, context, TypeNames),
 	send(TypeNames, for_all, message(T, append, @arg1)),
 	send(T, active, @off),
-	new(SS, text_item(search, regex(''))),
-	send(D, append, button(apply, message(EB, fill, SS?selection))),
+	send(D, append, new(SS, text_item(search, regex(''))), right),
+	send(D, append, button(apply, message(EB, fill, SS?selection)), right),
 	send(D, append, button(help,  message(EB, help))),
 	send(D, append, button(quit,  message(EB, quit))),
-	send(D, append, SS, right),
 
 	send(D, default_button, apply).
 	

@@ -1481,7 +1481,7 @@ static classvardecl rc_scrollBar[] =
      "Colour of background parts"),
   RC(NAME_colour, "[colour]", UXWIN("@_dialog_bg", "win_btnface"),
      "Colour of foreground parts"),
-  RC(NAME_distance, "int", "0",
+  RC(NAME_distance, "int", UXWIN("2", "0"),
      "Distance to graphical"),
   RC(NAME_elevation, "elevation*",
      UXWIN("elevation(@nil, 1, @_dialog_bg)",
