@@ -1409,7 +1409,8 @@ pl_sgml_parse(term_t parser, term_t options)
   term_t tail = PL_copy_term_ref(options);
   IOSTREAM *in = NULL;
   int recursive;
-  int content_length = -1;		/* content_length(Len) */
+  int has_content_length = FALSE;
+  long content_length = 0;		/* content_length(Len) */
 
   if ( !get_parser(parser, &p) )
     return FALSE;
@@ -1466,8 +1467,9 @@ pl_sgml_parse(term_t parser, term_t options)
     { term_t a = PL_new_term_ref();
 
       PL_get_arg(1, head, a);
-      if ( !PL_get_integer(a, &content_length) )
+      if ( !PL_get_long(a, &content_length) )
 	return sgml2pl_error(ERR_TYPE, "integer", a);
+      has_content_length = TRUE;
     } else if ( PL_is_functor(head, FUNCTOR_call2) )
     { if ( !set_callback_predicates(pd, head) )
 	return FALSE;
@@ -1547,9 +1549,20 @@ pl_sgml_parse(term_t parser, term_t options)
     }
 
     while(!eof)
-    { int c = (content_length <= 0 ? EOF : Sgetc(in));
+    { int c, ateof;
 
-      if ( --content_length <= 0 || Sfeof(in) )
+      if ( has_content_length )
+      { if ( content_length <= 0 )
+	  c = EOF;
+	else
+	  c = Sgetc(in);
+	ateof = (--content_length <= 0);
+      } else
+      { c = Sgetc(in);
+	ateof = Sfeof(in);
+      }
+
+      if ( ateof )
       { eof = TRUE;
 	if ( c == LF )			/* file ends in LF */
 	  c = CR;
