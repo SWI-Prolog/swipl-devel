@@ -83,8 +83,8 @@ static int
 add_data(const char *ndata, size_t len, void *closure)
 { struct dbuf *dbuf = closure;
 
-  if ( dbuf->size + len > dbuf->allocated )
-  { dbuf->allocated = max(dbuf->allocated, max(1024, dbuf->size + len));
+  if ( dbuf->size + (int)len > dbuf->allocated )
+  { dbuf->allocated = max(dbuf->allocated, max(1024, dbuf->size + (int)len));
     if ( dbuf->buf )
       dbuf->buf = realloc(dbuf->buf, dbuf->allocated);
     else
