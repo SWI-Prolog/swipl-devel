@@ -3,6 +3,9 @@
 VERSION 4.0.3
 =============
 
+  * FIXED: Atom-GC problem: global options structured used pointers
+    to string of unlocked atoms.
+
   * ENHANCED: the GUI debugger.  Too much to name it here.
 
   * INTERNAL: Moved message-activation of spy and nospy predicates to
