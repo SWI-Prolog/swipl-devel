@@ -8,6 +8,10 @@
 					--------------------------------------
 
 
+  * FIXED: Mutex initialisation in abolishProcedure().  Notably affects
+    redefine_system_predicate and abolish on imported predciates.
+    Sergey Tikhonov.
+
   * FIXED: PL_destroy_engine().  Uwe Lesta.
 
 

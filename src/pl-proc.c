@@ -59,20 +59,13 @@ lookupProcedure(functor_t f, Module m)
     def  = (Definition) allocHeap(sizeof(struct definition));
     proc->type = PROCEDURE_TYPE;
     proc->definition = def;
+
+    memset(def, 0, sizeof(*def));
     def->functor = valueFunctor(f);
     def->module  = m;
     addHTable(m->procedures, (void *)f, proc);
     GD->statistics.predicates++;
   
-    def->definition.clauses = NULL;
-    def->lastClause = NULL;
-    def->hash_info = NULL;
-    clearFlags(def);
-    def->references = 0;
-    def->erased_clauses = 0;
-#ifdef O_PLMT
-    def->mutex = NULL;
-#endif
     resetProcedure(proc, TRUE);
     DEBUG(3, Sdprintf("Created %s\n", procedureName(proc)));
   }
@@ -807,14 +800,10 @@ abolishProcedure(Procedure proc, Module module)
   { GET_LD
     Definition ndef	     = allocHeap(sizeof(struct definition));
 
+    memset(ndef, 0, sizeof(*ndef));
     proc->definition         = ndef;
     ndef->functor            = def->functor; /* should be merged with */
     ndef->module             = module;	     /* lookupProcedure()!! */
-    ndef->definition.clauses = NULL;
-    ndef->lastClause         = NULL;
-    ndef->hash_info	     = NULL;
-    clearFlags(ndef);
-    ndef->references         = 0;
     resetProcedure(proc, TRUE);
   } else if ( true(def, FOREIGN) )	/* foreign: make normal */
   { def->definition.clauses = def->lastClause = NULL;
