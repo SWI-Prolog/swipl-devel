@@ -42,9 +42,15 @@ MULTITHREAD ISSUES
 
 Getting rid of predicate-reference counts on static code:
 
-	* Call garbage_collect_predicates/0 at end of consult
-	* Do not run atom-gc, clause-gc together.  What about normal-gc?
-	  [or, do this while starting consult for a predicate?]
+	* Call garbage_collect_clauses/0 at end of consult
+
+	* Have start_consult remove the clauses for non-referenced
+	  predicates.
+
+	* Provide a for calling foreign functions passing the engine;
+	  extend the context to be a pointer to an opaque structure.
+
+	* Provide for a thread-local allocation-pool.
 
 SCRIPT
 ======
