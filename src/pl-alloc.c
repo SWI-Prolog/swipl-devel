@@ -90,6 +90,9 @@ GD.  Rules:
     appears to be memory it will try to nicely import the first 100
     cells of the same size from the global pool.  If it fails, allocate()
     allocates new memory.
+
+  * If a local pool holds more than 2*100 cells of a size, the first 100
+    are moved to the global pool.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifndef ALIGN_SIZE
@@ -163,8 +166,10 @@ allocHeap__LD(size_t n ARG_LD)
 		 *	       FREE		*
 		 *******************************/
 
+#define MAX_FREE_LENGTH 100
+
 static void
-freeToPool(AllocPool pool, void *mem, size_t n)
+freeToPool(AllocPool pool, void *mem, size_t n, int islocal)
 { Chunk p = (Chunk) mem;
   
   pool->allocated -= n;
@@ -174,6 +179,27 @@ freeToPool(AllocPool pool, void *mem, size_t n)
   n /= ALIGN_SIZE;
   p->next = pool->free_chains[n];
   pool->free_chains[n] = p;
+  pool->free_count[n]++;
+
+#ifdef O_PLMT
+  if ( islocal && pool->free_count[n] > 2*MAX_FREE_LENGTH )
+  { Chunk l, c;
+    int i = MAX_FREE_LENGTH;
+
+    for(l=c=pool->free_chains[n]; --i > 0; c = c->next)
+    { assert(c);
+    }
+    pool->free_chains[n] = c->next;
+    c->next = NULL;
+    pool->free_count[n] -= MAX_FREE_LENGTH;
+
+    LOCK();
+    c->next = GD->alloc_pool.free_chains[n];
+    GD->alloc_pool.free_chains[n] = l;
+    GD->alloc_pool.free_count[n] += MAX_FREE_LENGTH;
+    UNLOCK();
+  }
+#endif
 }
 
 
@@ -187,11 +213,11 @@ freeHeap__LD(void *mem, size_t n ARG_LD)
   {
 #ifdef O_PLMT
     if ( LD )				/* LD might be gone already */
-      freeToPool(&LD->alloc_pool, mem, n);
+      freeToPool(&LD->alloc_pool, mem, n, TRUE);
     else
 #endif
     { LOCK();
-      freeToPool(&GD->alloc_pool, mem, n);
+      freeToPool(&GD->alloc_pool, mem, n, FALSE);
       UNLOCK();
     }
   } else
@@ -225,6 +251,7 @@ leftoverToChains(AllocPool pool)
 
     ch->next = pool->free_chains[m];
     pool->free_chains[m] = ch;
+    pool->free_count[m]++;
   }
 
   pool->free = 0;
@@ -286,6 +313,7 @@ allocFromPool(AllocPool pool, size_t m)
   
   if ( (f = pool->free_chains[m]) )
   { pool->free_chains[m] = f->next;
+    pool->free_count[m]--;
     DEBUG(9, Sdprintf("(r) %p\n", f));
     pool->allocated += m*ALIGN_SIZE;
 
@@ -311,7 +339,7 @@ allocHeap__LD(size_t n ARG_LD)
     { if ( !(mem = allocFromPool(&LD->alloc_pool, m)) )
       { if ( GD->alloc_pool.free_chains[m] )
 	{ Chunk c;
-	  int i = 100;
+	  int i = MAX_FREE_LENGTH;
 
 	  LOCK();
 	  LD->alloc_pool.free_chains[m] = GD->alloc_pool.free_chains[m];
@@ -320,8 +348,12 @@ allocHeap__LD(size_t n ARG_LD)
 	  if ( c )
 	  { GD->alloc_pool.free_chains[m] = c->next;
 	    c->next = NULL;
+	    LD->alloc_pool.free_count[m] += MAX_FREE_LENGTH;
+	    GD->alloc_pool.free_count[m] -= MAX_FREE_LENGTH;
 	  } else
 	  { GD->alloc_pool.free_chains[m] = NULL;
+	    LD->alloc_pool.free_count[m] += GD->alloc_pool.free_count[m];
+	    GD->alloc_pool.free_count[m] = 0;
 	  }
 	  UNLOCK();
 	  
@@ -351,6 +383,7 @@ allocHeap__LD(size_t n ARG_LD)
 static void
 destroyAllocPool(AllocPool pool)
 { memset(pool->free_chains, 0, sizeof(pool->free_chains));
+  memset(pool->free_count,  0, sizeof(pool->free_count));
   pool->free  = 0;
   pool->space = NULL;
 }
@@ -430,6 +463,9 @@ mergeAllocPool(AllocPool to, AllocPool from)
 	c->next = *f;
       } else
 	*t = *f;
+
+      to->free_count[i] += from->free_count[i];
+      from->free_count[i] = 0;
 
       *f = NULL;
     }

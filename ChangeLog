@@ -7,6 +7,11 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ENHANCED: More thread-allocation issues.  Avoid memory floating
+    uncontrolled between threads through message exchange or other dynamic
+    datastructures allocated by thread 1 and consumed by thread 2.
+    Sergey Tikhonov.
+
   * FIXED: Pretty printing not proper lists in the GUI tracer.  David Reitter.
 
   * ADDED: Hooks into the profiler that allow for profiling external

@@ -1488,6 +1488,7 @@ struct alloc_pool
   long 		allocated;		/* total bytes allocated */
 					/* fast perfect fit chains */
   Chunk  	free_chains[ALLOCFAST/sizeof(Chunk)+1];
+  int		free_count[ALLOCFAST/sizeof(Chunk)+1];
 };
 
 
