@@ -87,7 +87,9 @@ static int rl_readline_state = 0;
 #ifndef RL_CLEAR_PENDING_INPUT
 #define rl_clear_pending_input() (void)0
 #endif
-
+#ifndef RL_CLEANUP_AFTER_SIGNAL
+#define rl_cleanup_after_signal() (void)0
+#endif
 
 static foreign_t
 pl_rl_read_init_file(term_t file)

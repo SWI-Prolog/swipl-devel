@@ -230,6 +230,9 @@
 /* Define if you have the rint function.  */
 #undef HAVE_RINT
 
+/* Define if you have the rl_cleanup_after_signal function.  */
+#undef HAVE_RL_CLEANUP_AFTER_SIGNAL
+
 /* Define if you have the rl_clear_pending_input function.  */
 #undef HAVE_RL_CLEAR_PENDING_INPUT
 
