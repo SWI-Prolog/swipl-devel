@@ -1226,7 +1226,7 @@ sweep_stacks(LocalFrame fr, Choice ch)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 All preparations have been made now, and the actual  compacting  of  the
 global  stack  may  start.   The  marking phase has calculated the total
-number of words (cells) in the global stack that are none-garbage.
+number of words (cells) in the global stack that are non-garbage.
 
 In the first phase, we will  walk  along  the  global  stack  from  it's
 current  top towards the bottom.  During this phase, `current' refers to
@@ -1325,7 +1325,7 @@ compact_global(void)
 #endif
 
   if ( dest != gBase )
-    sysError("Mismatch in down phase: dest = 0x%p, gBase = 0x%p\n",
+    sysError("Mismatch in down phase: dest = %p, gBase = %p\n",
 	     dest, gBase);
   if ( relocation_cells != relocated_cells )
     sysError("After down phase: relocation_cells = %ld; relocated_cells = %ld",
@@ -1367,7 +1367,7 @@ compact_global(void)
   }
 
   if ( dest != gBase + total_marked )
-    sysError("Mismatch in up phase: dest = 0x%p, gBase+total_marked = 0x%p\n",
+    sysError("Mismatch in up phase: dest = %p, gBase+total_marked = %p\n",
 	     dest, gBase + total_marked );
 
   DEBUG(3, { Word p = dest;		/* clear top of stack */
