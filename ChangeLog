@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ENHANCED: messages printed with set_prolog_flag(verbose_autoload, true)
+
   * MODIFIED: Argument order of last/2.  Compatibility to other Prolog
     systems.  Please update your sources.  If you have a Unix shell
     and utitilities you find most calls using

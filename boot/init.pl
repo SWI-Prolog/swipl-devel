@@ -311,7 +311,11 @@ $undefined_procedure(_, _, _, error).
 	$find_library(Module, Name, Arity, LoadModule, Library),
 	functor(Head, Name, Arity),
 	flag($autoloading, Old, Old+1),
-	print_message(silent, autoload(Module:Name/Arity, Library)),
+	(   current_prolog_flag(verbose_autoload, true)
+	->  Level = informational
+	;   Level = silent
+	),
+	print_message(Level, autoload(Module:Name/Arity, Library)),
 	(   Module == LoadModule
 	->  ensure_loaded(Module:Library)
 	;   (   $c_current_predicate(_, LoadModule:Head)
