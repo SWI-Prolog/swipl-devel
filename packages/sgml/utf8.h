@@ -28,7 +28,8 @@
 #define ISUTF8_MB(c) ((unsigned)(c) >= 0xc0 && (unsigned)(c) <= 0xfd)
 
 #define utf8_get_char(in, chr) \
-	(*(in) & 0x80 ? sgml__utf8_get_char(in, chr) : *chr=*in, ++in)
+	(*(in) & 0x80 ? sgml__utf8_get_char(in, chr) \
+		      : (*(chr) = *(in), (char *)(in)+1))
 
 extern char *sgml__utf8_get_char(const char *in, int *chr);
 

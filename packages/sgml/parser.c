@@ -571,7 +571,7 @@ expand_entities(dtd_parser *p, const ichar *in, ochar *out, int len)
     if ( p->utf8_decode && ISUTF8_MB(*in) )
     { int chr;
 
-      in = __utf8_get_char(in, &chr);
+      in = sgml__utf8_get_char(in, &chr);
       if ( chr >= OUTPUT_CHARSET_SIZE )
 	gripe(ERC_REPRESENTATION, "character");
       *out++ = chr;
