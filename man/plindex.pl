@@ -544,28 +544,16 @@ next_index(L, N) :-
 %	summary descriptions.  Normally this file is called summary.doc
 
 parse_summaries(File) :-
-	open(File, read, _, [alias(in)]),
-	parse_summaries,
-	close(in).
+	open(File, read, In),
+	parse_summary_stream(In),
+	close(In).
 
-parse_summaries :-
-	repeat,
-	read_line(Line),
-	(   Line == end_of_file
-	->  !
-	;   do_summary(Line),
-	    fail
-	).
-
-read_line(L) :-
-	get0(in, C),
-	(   C == -1
-	->  L = end_of_file
-	;   C == 10
-	->  L = []
-	;   L = [C|R],
-	    read_line(R)
-	).
+parse_summary_stream(In) :-
+	at_end_of_stream(In), !.
+parse_summary_stream(In) :-
+	read_line_to_codes(In, Line),
+	do_summary(Line),
+	parse_summary_stream(In).
 
 do_summary(Line) :-
 	parse_summary(Name, Arity, Summary, Line, []), !,
@@ -601,10 +589,17 @@ parse_summary(Name, Arity, Summary) -->
 	tex_arg(_Priority),
 	tex_string(Summary),
 	tex_comment.
+parse_summary(0, _, _) -->		% include a file
+	"\\input",
+	tex_arg(File),
+	string(_),
+	{ parse_summaries(File)
+	}.
 parse_summary(0, _, _) -->
 	(   "%"
 	;   "\\chapter"
 	;   "\\section"
+	;   "\\subsection"
 	;   "\\begin"
 	;   "\\end"
 	;   "\\newcommand"

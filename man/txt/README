@@ -1,6 +1,6 @@
 To install:
 
-Modified for LaTeX2e, tested using teTeX installation b y Jan
+Modified for LaTeX2e, tested using teTeX installation by Jan
 Wielemaker.  This read file has been updated.
 
 1) Copy the desired .sty files to your favoriate LaTeX library.
@@ -27,8 +27,9 @@ Wielemaker.  This read file has been updated.
 	% ln doc.tfm docbf.tfm
 	% ln doc.tfm docul.tfm
 
-3) Update the kpathsea database.  On teTeX installation, run texconfig
-   and use the `REHASH' command.
+3) Update the kpathsea database.  On teTeX installation, run texconfig:
+
+	% texconfig rehash
 
 3) Make and install the new version of dvi2tty:
 

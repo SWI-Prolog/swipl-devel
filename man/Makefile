@@ -32,9 +32,10 @@ PDF=		MANUAL.pdf
 ONLINE=		../library/MANUAL
 ONLINE_INDEX=	../library/helpidx.pl
 
+LIBFILES=	lib/library.tex lib/readutil.tex
 TEXFILES=	doc.tex intro.tex overview.tex builtin.tex module.tex \
 		foreign.tex runtime.tex hack.tex summary.tex xpce.tex \
-		glossary.tex
+		glossary.tex $(LIBFILES)
 STYFILES=	html.sty txt.sty
 
 .SUFFIXES:

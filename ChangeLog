@@ -1,5 +1,12 @@
 			SWI-Prolog ChangeLog
 			====================
+			
+  * ADDED: library(readutil) with some utility predicates to read larger
+    units from streams and files.  Started structured documentation of
+    the library in the SWI-Prolog reference manual.
+
+  * ADDED: simple/1 to quintus compatibility library.  Also exported some
+    more of the predicate-based arithmetic from there.
 
   * ADDED: Notes on slight but useful difference between ISO and SWI
     exception-handling to the manual of throw/1.  Thanks to Bart Demoen.

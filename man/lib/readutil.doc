@@ -1,0 +1,56 @@
+\section{\pllib{readutil}: Reading lines, streams and files}
+\label{sec:readutil}
+
+This library contains primitives to read lines, files, multiple terms,
+etc.
+
+\begin{description}
+    \predicate{read_line_to_codes}{2}{+Stream, -Codes}
+Read the next line of input from \arg{Stream} and unify the result with
+\arg{Codes} \emph{after} the line has been read.  A line is ended by
+a newline character or end-of-file. Unlike read_line_to_codes/3, this
+predicate removes trailing newline character.
+
+    \predicate{read_line_to_codes}{2}{+Stream, -Codes, ?Tail}
+Diference-list version to read an input line to a list of character
+codes.  Reading stops at the newline or end-of-file character, but
+unlike read_line_to_codes/2, the newline is retained in the output.
+This predicate is especially useful for readine a block of lines
+upto some delimiter.  The following example reads an HTTP header
+ended by a blank line:
+
+\begin{code}
+read_header_data(Stream, Header) :-
+	read_line_to_codes(Stream, Header, Tail),
+	read_header_data(Header, Stream, Tail).
+
+read_header_data("\r\n", _, _) :- !.
+read_header_data("\n", _, _) :- !.
+read_header_data("", _, _) :- !.
+read_header_data(_, Stream, Tail) :-
+	read_line_to_codes(Stream, Tail, NewTail),
+	read_header_data(Tail, Stream, NewTail).
+\end{code}
+
+    \predicate{read_stream_to_codes}{2}{+Stream, -Codes}
+Read all input until end-of-file and unify the result to \arg{Codes}.
+
+    \predicate{read_stream_to_codes}{2}{+Stream, -Codes, ?Tail}
+Difference-list version of read_stream_to_codes/2.
+
+    \predicate{read_file_to_codes}{3}{+Spec, -Codes, +Options}
+Read a file to a list of character codes. \arg{Spec} is a
+file-specification for absolute_file_name/3.  \arg{Codes} is the
+resulting code-list.  \arg{Options} is a list of options for
+absolute_file_name/3 and open/4.  In addition, the option
+\term{tail}{Tail} is defined, forming a difference-list.
+
+    \predicate{read_file_to_terms}{3}{+Spec, -Terms, +Options}
+Read a file to a list of character codes. \arg{Spec} is a
+file-specification for absolute_file_name/3.  \arg{Terms} is the
+resulting list of Prolog terms.  \arg{Options} is a list of options for
+absolute_file_name/3 and open/4.  In addition, the option
+\term{tail}{Tail} is defined, forming a difference-list.
+\end{description}
+
+

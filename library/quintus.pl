@@ -15,6 +15,16 @@
 	  cos/2,
 	  tan/2,
 	  log/2,
+	  log10/2,
+	  pow/3,
+	  ceiling/2,
+	  floor/2,
+	  round/2,
+	  acos/2,
+	  asin/2,
+	  atan/2,
+	  atan2/3,
+	  sign/2,
 	  sqrt/2,
 	  random/3,
 
@@ -26,6 +36,7 @@
 	  no_style_check/1,
 	  otherwise/0,
 	  numbervars/3,
+	  simple/1,
 %	  statistics/2,			% Please access as quintus:statistics/2
 
 	  current_stream/3,		% ?File, ?Mode, ?Stream
@@ -184,6 +195,16 @@ public(_).
 numbervars(Term, From, To) :-
 	numbervars(Term, '$VAR', From, To).
 
+
+		 /*******************************
+		 *	      TYPES		*
+		 *******************************/
+
+simple(X) :-
+	(   atomic(X)
+	->  true
+	;   var(X)
+	).
 
 		/********************************
 		*            MODULES            *

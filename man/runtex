@@ -9,7 +9,7 @@ appbase=$HOME/lib/tex
 rerun='Rerun to get cross-references right'
 maxruns=4
 
-export TEXINPUTS=$appbase/macros::
+export TEXINPUTS=lib:$appbase/macros::
 
 TEMP=`getopt -o n --long tex:,pdf,help,dvi,clean,maxruns: \
      -n $program -- "$@"`

@@ -164,6 +164,7 @@ Copyright \copyright\ 1990--\vyear, University of Amsterdam
 \include{foreign}
 \include{runtime}
 \appendix
+\include{lib/library}
 \include{hack}
 \include{glossary}
 \include{summary}

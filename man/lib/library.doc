@@ -1,0 +1,29 @@
+\chapter{The SWI-Prolog library}		\label{sec:library}
+
+This chapter documents the SWI-Prolog library.  As SWI-Prolog is
+auto-loaded, there is little difference between library predicates
+and built-in predicates.  Part of the library is therefore documented
+in the rest of the manual.  Library predicates differ from built-in
+predicates in the following ways.
+
+\begin{itemize}
+    \item User-definition of a built-in leads to a permission-error,
+          while using the name of a library predicate is allowed.
+
+    \item If autoloading is disabled explicitely or because trapping
+          unknown predicates is disabled (see unknown/2 and
+          current_prolog_flag/2), library predicates must be loaded
+	  explicitely.
+
+    \item Using libraries reduced the footprint of applications that
+          don't need them.
+\end{itemize}
+
+\begin{quote}\em
+The documentation of the library is just started. Material from the
+standard packages should be moved here, some material from other parts
+of the manual should be moved too and various libraries are not
+documented at all.
+\end{quote}
+
+\input{readutil}.

@@ -479,6 +479,7 @@ suggest predicates from a keyword.
 \predicatesummary{writeq}{2}{Write term, insert quotes on stream}
 \end{summarylist}
 
+\input{lib/summary.doc}
 
 \pagebreak
 \section{Arithmetic Functions}
