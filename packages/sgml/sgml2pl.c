@@ -605,7 +605,7 @@ unify_listval(dtd_parser *p,
   { char *e;
     long v = strtol(text, &e, 10);
 
-    if ( e-text == len )
+    if ( e-text == len && errno != ERANGE )
       return PL_unify_integer(t, v);
 					/* TBD: Error!? */
   }

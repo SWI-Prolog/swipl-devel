@@ -1,3 +1,14 @@
+VERSION 1.0.6
+=============
+
+* ADDED: SGML based documentation of the package with converters to LaTeX
+  and HTML in Prolog.
+
+* ADDED/MODIFIED: number(NumberMode) option to the load_structure/3.
+  By default NUMBER and NUMBERS tokens are now parsed as tokens of digits.
+  Using number(integer) they are converted to Prolog integers, provided
+  they fit (Richard O'Keefe).
+
 * ADDED: If a document is parsed without DTD and a catalog is provided,
   try finding a matching DTD file from the catalog.  If successful
   print a warning and load this DTD.

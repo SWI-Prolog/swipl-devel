@@ -18,6 +18,7 @@
 #endif
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
@@ -182,6 +183,25 @@ istrcasehash(const ichar *t, int tsize)
   return value % tsize;
 }
 
+
+int
+istrtol(const ichar *s, long *val)
+{ long v;
+  char *e;
+
+  if ( *s )
+  { v = strtol((const char *)s, &e, 10);
+    if ( !e[0] && errno != ERANGE )
+    { *val = v;
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
+
+
 		 /*******************************
 		 *    INPUT CHARACTER BUFFER	*
 		 *******************************/
@@ -240,6 +260,7 @@ void
 empty_icharbuf(icharbuf *buf)
 { buf->size = 0;
 }
+
 
 		 /*******************************
 		 *	OUTPUT CHARACTERS	*

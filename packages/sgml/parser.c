@@ -26,6 +26,7 @@
 #include <ctype.h>
 #include <string.h>
 #include "utf8.h"
+#include <errno.h>
 
 #define DEBUG(g) ((void)0)
 
@@ -761,7 +762,7 @@ itake_number(dtd *dtd, const ichar *in, dtd_attr *at)
     { char *end;
 
       at->att_def.number = strtol((const char *)in, &end, 10);
-      if ( end > (char *)in )
+      if ( end > (char *)in && errno != ERANGE )
 	return iskip_layout(dtd, (const ichar *)end);
     }
   }
@@ -2434,14 +2435,8 @@ get_attribute_value(dtd_parser *p, const ichar *decl, sgml_attribute *att)
 	    return end;
 	  }
 	  case NU_INTEGER:
-	  { long v;
-	    char *e;
-	      
-	    v = strtol((const char *)buf, &e, 10);
-	    if ( !e[0] )
-	    { att->value.number = v;
+	  { if ( istrtol(buf, &att->value.number) )
 	      return end;
-	    }
 	  }
 	}
       }

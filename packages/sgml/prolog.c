@@ -56,7 +56,6 @@ atomType(char const *s, int len)
 	   : u[0] == '!'   ? AT_SOLO
 	   : u[0] == ';'   ? AT_SOLO
 	   : u[0] == ','   ? AT_SOLO
-	   : u[0] == '|'   ? AT_SOLO
 	   :                 AT_QUOTE;
     case 2:
       if (u[0] == '[' && u[1] == ']') return AT_SPECIAL;
@@ -160,7 +159,7 @@ prolog_print_model(dtd_model *m)
 
   switch(m->type)
   { case MT_PCDATA:
-      printf("pcdata");
+      printf("'#pcdata'");
       goto card;
     case MT_ELEMENT:
       printf("%s", atom(m->content.element->name->name));
