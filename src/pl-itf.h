@@ -531,7 +531,7 @@ PL_EXPORT(int)		PL_unregister_blob_type(PL_blob_t *type);
 
 PL_EXPORT(int)		PL_get_file_name(term_t n, char **name, int flags);
 PL_EXPORT(void)		PL_changed_cwd(void); /* foreign code changed CWD */
-PL_EXPORT(const char *) PL_cwd();
+PL_EXPORT(const char *) PL_cwd(void);
 
 
 		 /*******************************
