@@ -38,6 +38,7 @@ typedef	LONGLONG		PseudoFloat;
 		********************************/
 
 typedef struct and *			And;
+typedef struct application *		Application;
 typedef struct area *			Area;
 typedef struct atable *			Atable;
 typedef struct attribute *		Attribute;
@@ -249,6 +250,7 @@ GLOBAL Type TypeVector;
 		********************************/
 
 GLOBAL Class ClassAnd;
+GLOBAL Class ClassApplication;
 GLOBAL Class ClassArc;
 GLOBAL Class ClassArea;
 GLOBAL Class ClassArrow;

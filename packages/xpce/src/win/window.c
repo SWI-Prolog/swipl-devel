@@ -534,6 +534,27 @@ offset_windows(PceWindow w1, Any w2, int *X, int *Y)
 		*        EVENT HANDLING		*
 		********************************/
 
+int
+is_service_window(PceWindow sw)
+{ Application app = getApplicationGraphical((Graphical)sw);
+
+  DEBUG(NAME_service, Cprintf("Event on %s app=%s\n", pp(sw), pp(app)));
+
+  return (app && app->kind == NAME_service ? PCE_EXEC_SERVICE
+					   : PCE_EXEC_USER);
+}
+
+
+static status
+blockedByModalWindow(PceWindow sw, EventObj ev)
+{ FrameObj fr = getFrameWindow(sw, OFF);
+
+  if ( fr )
+    return blockedByModalFrame(fr, ev);
+
+  fail;
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Support for `diaplay->inspect_handler'.  The naming of this is a bit old
@@ -566,7 +587,7 @@ eventWindow(PceWindow sw, EventObj ev)
 { int rval = FAIL;
   EventObj old_event;
 
-  if ( sw->sensitive == OFF )
+  if ( sw->sensitive == OFF || blockedByModalWindow(sw, ev) )
     fail;
 
   if ( sw->current_event == ev )	/* Hack to avoid a loop */
@@ -2114,7 +2135,7 @@ makeClassWindow(Class class)
   saveStyleVariableClass(class, NAME_focusEvent, NAME_nil);
   setRedrawFunctionClass(class, redrawAreaWindow);
 
-  WindowTable = createHashTable(toInt(32), OFF);
+  WindowTable = createHashTable(toInt(32), NAME_none);
 
   succeed;
 }

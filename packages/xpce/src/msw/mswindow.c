@@ -80,8 +80,9 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 
   switch(message)
   { case WM_CREATE:
-      if ( hasSendMethodObject(sw, NAME_dropFiles) )
-	DragAcceptFiles(hwnd, TRUE);
+      ServiceMode(is_service_window(sw),
+		  if ( hasSendMethodObject(sw, NAME_dropFiles) )
+		    DragAcceptFiles(hwnd, TRUE));
       break;
 
     case WM_DROPFILES:
@@ -97,23 +98,26 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 	AnswerMark mark;
 	int i;
 
-	markAnswerStack(mark);
-	files =	answerObject(ClassChain, 0);
-	pos   = answerObject(ClassPoint, toInt(pt.x), toInt(pt.y), 0);
+	ServiceMode(is_service_window(sw),
+		    { markAnswerStack(mark);
+		      files = answerObject(ClassChain, 0);
+		      pos   = answerObject(ClassPoint,
+					   toInt(pt.x), toInt(pt.y), 0);
 
-	for(i=0; i<nfiles; i++)
-	{ int namlen;
+		      for(i=0; i<nfiles; i++)
+		      { int namlen;
 
-	  namlen = DragQueryFile(hdrop, i, buf, sizeof(buf)-1);
-	  buf[namlen] = EOS;
-	  appendChain(files, CtoName(buf));
-	}
+			namlen = DragQueryFile(hdrop, i, buf, sizeof(buf)-1);
+			buf[namlen] = EOS;
+			appendChain(files, CtoName(buf));
+		      }
+			  
+		      DragFinish(hdrop);		/* reclaims memory */
 	
-	DragFinish(hdrop);		/* reclaims memory */
-	
-	send(sw, NAME_dropFiles, files, pos, 0);
-	rewindAnswerStack(mark, NIL);
-	RedrawDisplayManager(TheDisplayManager());
+		      send(sw, NAME_dropFiles, files, pos, 0);
+		      rewindAnswerStack(mark, NIL);
+		      RedrawDisplayManager(TheDisplayManager());
+		    })
       }
 
       return 0;
@@ -132,10 +136,12 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 	h += p2;
       }
 
-      assign(a, w, toInt(w));
-      assign(a, h, toInt(h));
-      qadSendv(sw, NAME_resize, 0, NULL);
-      changedUnionWindow(sw, a->x, a->y, ow, oh);
+      ServiceMode(is_service_window(sw),
+		  assign(a, w, toInt(w));
+		  assign(a, h, toInt(h));
+		  qadSendv(sw, NAME_resize, 0, NULL);
+		  changedUnionWindow(sw, a->x, a->y, ow, oh));
+
       return 0;
     }
 
@@ -143,8 +149,9 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
     { int x = LOWORD(lParam);
       int y = HIWORD(lParam);
 
-      assign(sw->area, x, toInt(x));
-      assign(sw->area, y, toInt(y));
+      ServiceMode(is_service_window(sw),
+		  assign(sw->area, x, toInt(x));
+		  assign(sw->area, y, toInt(y)));
 
       return 0;
     }
@@ -159,13 +166,18 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
     }
 
     case WM_SETFOCUS:
-      DEBUG(NAME_focus, Cprintf("Received FocusIn on %s\n", pp(sw)));
-      assign(sw, input_focus, ON);
+      ServiceMode(is_service_window(sw),
+		  DEBUG(NAME_focus,
+			Cprintf("Received FocusIn on %s\n", pp(sw)));
+		  assign(sw, input_focus, ON));
+
       return 0;
 
     case WM_KILLFOCUS:
-      DEBUG(NAME_focus, Cprintf("Received FocusOut on %s\n", pp(sw)));
-      assign(sw, input_focus, OFF);
+      ServiceMode(is_service_window(sw),
+		  DEBUG(NAME_focus,
+			Cprintf("Received FocusOut on %s\n", pp(sw)));
+		  assign(sw, input_focus, OFF));
       return 0;
 
     case WM_ERASEBKGND:
@@ -202,19 +214,22 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
     } else
     { iarea a;
       
-      DEBUG(NAME_redraw,
-	    Cprintf("%s (%ld) received WM_PAINT (%s clear)\n",
-		    pp(sw), (long)hwnd, clearing_update ? "" : "no"));
+      ServiceMode(is_service_window(sw),
+		  DEBUG(NAME_redraw,
+			Cprintf("%s (%ld) received WM_PAINT (%s clear)\n",
+				pp(sw), (long)hwnd,
+				clearing_update ? "" : "no"));
 
-      if ( sw->displayed == OFF )
-	send(sw, NAME_displayed, ON, 0);
+		  if ( sw->displayed == OFF )
+		    send(sw, NAME_displayed, ON, 0);
 
-      if ( d_mswindow(sw, &a, clearing_update) )
-	RedrawAreaWindow(sw, &a, clearing_update);
-      else
-      { DEBUG(NAME_redraw, Cprintf("d_mswindow() failed: empty area\n"));
-      }
-      d_done();
+		  if ( d_mswindow(sw, &a, clearing_update) )
+		    RedrawAreaWindow(sw, &a, clearing_update);
+		  else
+		  { DEBUG(NAME_redraw,
+			  Cprintf("d_mswindow() failed: empty area\n"));
+		  }
+		  d_done());
     }
     return 0;
 
@@ -224,11 +239,12 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       DEBUG(NAME_window, Cprintf("WM_DESTROY on %s, hwnd 0x%x\n",
 				 pp(sw), hwnd)); 
       if ( hwnd )
-      { if ( hasSendMethodObject(sw, NAME_dropFiles) )
-	  DragAcceptFiles(hwnd, FALSE);
-	PceWhDeleteWindow(hwnd);
-	setHwndWindow(sw, 0);
-	assign(sw, displayed, OFF);
+      { ServiceMode(is_service_window(sw),
+		    if ( hasSendMethodObject(sw, NAME_dropFiles) )
+		      DragAcceptFiles(hwnd, FALSE);
+		    PceWhDeleteWindow(hwnd);
+		    setHwndWindow(sw, 0);
+		    assign(sw, displayed, OFF));
       }
 
       return 0;
@@ -264,25 +280,25 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
     status rval = FALSE;
     markAnswerStack(mark);
   
-    if ( (ev = messageToEvent(hwnd, message, wParam, lParam)) )
-    { WsWindow w = sw->ws_ref;
+    ServiceMode(is_service_window(sw),
+		if ( (ev = messageToEvent(hwnd, message, wParam, lParam)) )
+		{ WsWindow w = sw->ws_ref;
 
-      if ( message != WM_WINENTER && message != WM_WINEXIT )
-	PceEventInWindow(hwnd);
+		  if ( message != WM_WINENTER && message != WM_WINEXIT )
+		    PceEventInWindow(hwnd);
 
-      addCodeReference(ev);
-      if ( isDownEvent(ev) && !w->capture )
-	SetCapture(hwnd);
-      else if ( isUpEvent(ev) && !w->capture )
-	ReleaseCapture();
-      rval = postEvent(ev, (Graphical) sw, DEFAULT);
-      delCodeReference(ev);
-      freeableObj(ev);
-    }
-    rewindAnswerStack(mark, NIL);
-
-    if ( ev )				/* rval won't update on failing */
-      RedrawDisplayManager(TheDisplayManager());
+		  addCodeReference(ev);
+		  if ( isDownEvent(ev) && !w->capture )
+		    SetCapture(hwnd);
+		  else if ( isUpEvent(ev) && !w->capture )
+		    ReleaseCapture();
+		  rval = postEvent(ev, (Graphical) sw, DEFAULT);
+		  delCodeReference(ev);
+		  freeableObj(ev);
+		}
+		rewindAnswerStack(mark, NIL);
+		if ( ev )		/* rval will not update on failing */
+		  RedrawDisplayManager(TheDisplayManager()));
 
     move_big_cursor();			/* only if we have one */
 

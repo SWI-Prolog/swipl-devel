@@ -43,7 +43,7 @@ variable(pool,		[name], both, "Window pool I belong too").
 
 initialise(F, B:emacs_buffer) :->
 	"Create window for buffer"::
-	send(F, send_super, initialise, B?name),
+	send(F, send_super, initialise, B?name, application := @emacs),
 	send(F, slot, sticky_window, @off),
 	send(F, append, new(MBD, dialog)),
 	send(MBD, resize_message, message(@receiver, layout, @arg2)),
@@ -234,7 +234,7 @@ prompt(F, Label:char_array, Default:[any], Type:[type], Rval:any) :<-
 	send(Item, pen, 0),
 	
 	get(F, prompt_using, Item, RawRval),
-	send(Item, free),
+	free(Item),
 	fix_rval(Type, RawRval, Rval).
 
 %	If the user entered a directory while requested for a file,

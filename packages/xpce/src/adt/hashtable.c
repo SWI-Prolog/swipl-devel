@@ -12,11 +12,22 @@
 
 static status	unlinkHashTable(HashTable ht);
 
-#define ASSIGN(ht, field, value) \
-	if ( ht->refer == ON ) \
-	  assignField((Instance)(ht), (Any *) &(field), (Any)value); \
-	else \
-	  field = (value)
+static __inline void
+assign_symbol_value(HashTable ht, Symbol symbol, Any value)
+{ if ( ht->refer == NAME_both || ht->refer == NAME_value )
+    assignField((Instance)(ht), &symbol->value, value); 
+  else
+    symbol->value = value;
+}
+
+static __inline void
+assign_symbol_name(HashTable ht, Symbol symbol, Any name)
+{ if ( ht->refer == NAME_both || ht->refer == NAME_name )
+    assignField((Instance)(ht), &symbol->name, name); 
+  else
+    symbol->name = name;
+}
+
 
 #if USE_PRIMES
 static int
@@ -51,13 +62,12 @@ nextBucketSize(int n)
 
 
 HashTable
-createHashTable(Int buckets, Bool refer)
+createHashTable(Int buckets, Name refer)
 { HashTable ht = alloc(sizeof(struct hash_table));
 
   initHeaderObj(ht, ClassHashTable);
-  ht->refer = NIL;
   initialiseHashTable(ht, buckets);
-  assign(ht, refer, refer);
+  ht->refer = refer;			/* is a protected object */
   createdObject(ht, NAME_new);
 
   return ht;
@@ -78,8 +88,7 @@ initialiseHashTable(HashTable ht, Int buckets)
 { int n = isDefault(buckets) ? 5 : valInt(buckets);
   Symbol s;
 
-  assign(ht, refer, ON);
-
+  ht->refer = NAME_both;
   n = nextBucketSize(n);
   ht->size    = ZERO;
   ht->buckets = n;
@@ -95,7 +104,7 @@ initialiseHashTable(HashTable ht, Int buckets)
 static status
 unlinkHashTable(HashTable ht)
 { if ( ht->symbols != NULL )
-  { if ( ht->refer == ON )
+  { if ( ht->refer != NAME_none )
       clearHashTable(ht);
 
     unalloc(ht->buckets * sizeof(struct symbol), ht->symbols);
@@ -143,7 +152,7 @@ loadHashTable(HashTable ht, FILE *fd, ClassDef def)
   buckets = (isNil(ht->size) ? 5 : ((valInt(ht->size) * 4) / 3 + 4));
   buckets = nextBucketSize(buckets);
   if ( isNil(ht->refer) )
-    assign(ht, refer, ON);
+    assign(ht, refer, NAME_both);
 
   assign(ht, size, ZERO);
   ht->buckets = buckets;
@@ -248,7 +257,7 @@ bucketsHashTable(HashTable ht, Int buckets)
 { int    bs    = valInt(buckets);
   Symbol old   = ht->symbols;
   int    size  = ht->buckets;
-  Bool	 refer = ht->refer;
+  Name	 refer = ht->refer;
   int    n;
   Symbol s;
 
@@ -257,7 +266,7 @@ bucketsHashTable(HashTable ht, Int buckets)
   ht->size    = ZERO;
   ht->buckets = bs;
   ht->symbols = alloc(bs * sizeof(struct symbol));
-  ht->refer   = OFF;
+  ht->refer   = NAME_none;
 
   for( n=ht->buckets, s=ht->symbols; n-- > 0; s++ )
     s->name = s->value = NULL;
@@ -288,13 +297,13 @@ appendHashTable(HashTable ht, Any name, Any value)
 
   for(;;)
   { if ( s->name == name )
-    { ASSIGN(ht, s->value, value);
+    { assign_symbol_value(ht, s, value);
       succeed;
     }
     if ( s->name == NULL )
     { s->name = s->value = NIL;
-      ASSIGN(ht, s->name, name);
-      ASSIGN(ht, s->value, value);
+      assign_symbol_name(ht, s, name);
+      assign_symbol_value(ht, s, value);
       assign(ht, size, add(ht->size, ONE));
       succeed;
     } 
@@ -309,8 +318,8 @@ appendHashTable(HashTable ht, Any name, Any value)
 
 
 #define EMPTY(ht, i) \
-  { ASSIGN(ht, ht->symbols[i].name, NIL); \
-    ASSIGN(ht, ht->symbols[i].value, NIL); \
+  { assign_symbol_name(ht, &ht->symbols[i], NIL); \
+    assign_symbol_value(ht, &ht->symbols[i], NIL); \
     ht->symbols[i].name = ht->symbols[i].value = NULL; \
   }
 
@@ -354,8 +363,8 @@ clearHashTable(HashTable ht)
   Symbol s;
 
   for(n=0, s = ht->symbols; n<ht->buckets; n++, s++)
-  { ASSIGN(ht, s->name, NIL);
-    ASSIGN(ht, s->value, NIL);
+  { assign_symbol_name(ht, s, NIL);
+    assign_symbol_value(ht, s, NIL);
     s->name = s->value = NULL;
   }
 
@@ -511,8 +520,8 @@ static char *T_convertOldSlot[] =
 /* Instance Variables */
 
 static vardecl var_hashTable[] =
-{ IV(NAME_refer, "bool", IV_NONE,
-     NAME_oms, "If @off, registers no references (internal)"),
+{ IV(NAME_refer, "{none,name,value,both}", IV_NONE,
+     NAME_oms, "Determines which fields create references (internal)"),
   IV(NAME_size, "int", IV_GET,
      NAME_cardinality, "Number of symbols in table"),
   IV(NAME_buckets, "alien:int", IV_NONE,

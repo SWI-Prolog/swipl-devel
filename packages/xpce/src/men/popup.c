@@ -142,6 +142,7 @@ openPopup(PopupObj p, Graphical gr, Point pos,
   Point offset;
   DisplayObj d = CurrentDisplay(gr);
   MenuItem mi;
+  FrameObj fr, swfr;
 
   if ( emptyChain(p->members) )
     fail;
@@ -207,8 +208,11 @@ openPopup(PopupObj p, Graphical gr, Point pos,
     if ( py + ph > dh ) moved = TRUE, py = dh - ph;
   }
 
-  send(get(sw, NAME_frame, 0), NAME_set,
-       toInt(px), toInt(py), toInt(pw), toInt(ph), 0);
+  swfr = getFrameGraphical((Graphical) sw);
+  fr   = getFrameGraphical(gr);
+  if ( fr )
+    send(swfr, NAME_application, fr->application, 0);
+  send(swfr, NAME_set, toInt(px), toInt(py), toInt(pw), toInt(ph), 0);
   send(sw, NAME_show, ON, 0);
   if ( moved && warp_pointer == ON )
   { Point pos = tempObject(ClassPoint, toInt(dx), toInt(dy), 0);

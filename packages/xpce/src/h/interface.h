@@ -16,7 +16,7 @@
 		********************************/
 
 #ifndef PCE_VERSION
-#define PCE_VERSION "4.9.0, October 1996"
+#define PCE_VERSION "4.9.0, November 1996"
 #endif
 
 #ifndef OS_VERSION
@@ -27,17 +27,6 @@
 #define MACHINE "unknown"
 #endif
 
-		/********************************
-		*          PROTOTYPES		*
-		********************************/
-
-#ifndef __P
-#if defined(__STDC__) || defined(__WIN32__) /* Prototype handling */
-# define __P(s) s
-#else
-# define __P(s) ()
-#endif
-#endif
 
 		 /*******************************
 		 *	     WIN32 DLL		*
@@ -66,8 +55,8 @@ typedef void *		PceName;	/* PCE's view of a name */
 
 typedef void *		AnswerMark;	/* Mark on AnswerStack */
 
-__pce_export void _markAnswerStack __P((AnswerMark *));
-__pce_export void _rewindAnswerStack __P((AnswerMark *, PceObject));
+__pce_export void _markAnswerStack(AnswerMark *);
+__pce_export void _rewindAnswerStack(AnswerMark *, PceObject);
 
 #define markAnswerStack(mark)	_markAnswerStack(&(mark))
 #define rewindAnswerStack(mark, obj) _rewindAnswerStack(&(mark), obj)
@@ -85,7 +74,7 @@ typedef struct pceITFSymbol    *PceITFSymbol;
 #define PceObject	Any
 #define PceName		Name
 
-char *	getHostSymbolTable __P((void));
+char *	getHostSymbolTable(void);
 
 #define PCE_MAX_HOSTHANDLES 10
 
@@ -111,12 +100,12 @@ struct pceITFSymbol
 };
 
 
-__pce_export PceITFSymbol pceLookupHandle __P((int, hostHandle));
-__pce_export void	  pceRegisterName __P((int, hostHandle, PceName));
-__pce_export void	  pceRegisterAssoc __P((int, hostHandle, PceObject));
-__pce_export int	  pceHostHandles __P((int));
+__pce_export PceITFSymbol pceLookupHandle(int, hostHandle);
+__pce_export void	  pceRegisterName(int, hostHandle, PceName);
+__pce_export void	  pceRegisterAssoc(int, hostHandle, PceObject);
+__pce_export int	  pceHostHandles(int);
 
-__pce_export PceITFSymbol getITFSymbolName __P((PceName));
+__pce_export PceITFSymbol getITFSymbolName(PceName);
 
 		/********************************
 		*           CONSTANTS		*
@@ -149,19 +138,19 @@ typedef union
 
 #define PCE_NO_POINTER  ((void *) ~0L)
 
-__pce_export int    pceToC __P((PceObject datum, PceCValue *rval));
-__pce_export int    pceToCReference __P((PceObject datum, PceCValue *rval));
-__pce_export char * pceCharArrayToC __P((PceObject datum));
-__pce_export char * pceStringToC __P((PceObject datum));
-__pce_export void * pcePointerToC __P((PceObject datum));
+__pce_export int    pceToC(PceObject datum, PceCValue *rval);
+__pce_export int    pceToCReference(PceObject datum, PceCValue *rval);
+__pce_export char * pceCharArrayToC(PceObject datum);
+__pce_export char * pceStringToC(PceObject datum);
+__pce_export void * pcePointerToC(PceObject datum);
 
 		/********************************
 		*             VMI		*
 		********************************/
 
-__pce_export PceObject	pceNew __P((PceName, PceObject, int, PceObject *));
-__pce_export int	pceSend __P((PceObject, PceName, int, PceObject *));
-__pce_export PceObject	pceGet __P((PceObject, PceName, int, PceObject *));
+__pce_export PceObject	pceNew(PceName, PceObject, int, PceObject *);
+__pce_export int	pceSend(PceObject, PceName, int, PceObject *);
+__pce_export PceObject	pceGet(PceObject, PceName, int, PceObject *);
 
 
 		/********************************
@@ -182,56 +171,56 @@ __pce_export PceObject	pceGet __P((PceObject, PceName, int, PceObject *));
 #define HOST_CHECK_INTERRUPT 12		/* Win32: periodic check for ^C */
 
 typedef struct
-{ int       (*hostSend)    __P((PceObject, PceName, int, PceObject *));
-  PceObject (*hostGet)     __P((PceObject, PceName, int, PceObject *));
-  int	    (*hostCallProc)__P((PceObject, PceObject, PceObject, int, PceObject *));
-  PceObject (*hostCallFunc)__P((PceObject, PceObject, PceObject, int, PceObject *));
-  int       (*hostQuery)   __P((int, PceCValue *));
-  int	    (*hostActionv) __P((int, va_list args));
-  void	    (*vCprintf)	   __P((const char *fmt, va_list args));
-  int	    (*Cputchar)	   __P((int));
-  void	    (*Cflush)	   __P((void));
-  char *    (*Cgetline)	   __P((char *line, int size));
-  void *    (*malloc)	   __P((size_t size));
-  void *    (*realloc)	   __P((void *ptr, size_t size));
-  void      (*free)	   __P((void *ptr));
+{ int       (*hostSend)   (PceObject, PceName, int, PceObject *);
+  PceObject (*hostGet)    (PceObject, PceName, int, PceObject *);
+  int	    (*hostCallProc)(PceObject, PceObject, PceObject, int, PceObject *);
+  PceObject (*hostCallFunc)(PceObject, PceObject, PceObject, int, PceObject *);
+  int       (*hostQuery)  (int, PceCValue *);
+  int	    (*hostActionv)(int, va_list args);
+  void	    (*vCprintf)	  (const char *fmt, va_list args);
+  int	    (*Cputchar)	  (int);
+  void	    (*Cflush)	  (void);
+  char *    (*Cgetline)	  (char *line, int size);
+  void *    (*malloc)	  (size_t size);
+  void *    (*realloc)	  (void *ptr, size_t size);
+  void      (*free)	  (void *ptr);
   void *    pad13;			/* future enhancements */
   void *    pad14;
   void *    pad15;
 } pce_callback_functions;
 
-__pce_export void pceRegisterCallbacks __P((pce_callback_functions *funcs));
+__pce_export void pceRegisterCallbacks(pce_callback_functions *funcs);
 
 
 		/********************************
 		*         INITIALISATION	*
 		********************************/
 
-__pce_export int pceInitialise __P((int handles, const char *home,
-				    int argc, char **argv));
+__pce_export int pceInitialise(int handles, const char *home,
+			       int argc, char **argv);
 
 
 		/********************************
 		*           C --> PCE		*
 		********************************/
 
-__pce_export PceObject	cToPceName __P((const char *));
-__pce_export PceObject	cToPceInteger __P((long));
-__pce_export PceObject	cToPceReal __P((double));
-__pce_export PceObject	cToPceString __P((PceName assoc, char *));
-__pce_export PceObject	cToPceAssoc __P((const char *));
-__pce_export PceObject	cToPceReference __P((unsigned long));
-__pce_export PceObject	cToPcePointer __P((void *ptr));
-__pce_export int	pceLock __P((PceObject));
+__pce_export PceObject	cToPceName(const char *);
+__pce_export PceObject	cToPceInteger(long);
+__pce_export PceObject	cToPceReal(double);
+__pce_export PceObject	cToPceString(PceName assoc, char *);
+__pce_export PceObject	cToPceAssoc(const char *);
+__pce_export PceObject	cToPceReference(unsigned long);
+__pce_export PceObject	cToPcePointer(void *ptr);
+__pce_export int	pceLock(PceObject);
 
-__pce_export PceObject	cToPceTmpCharArray __P((const char *text));
-__pce_export void	donePceTmpCharArray __P((PceObject));
+__pce_export PceObject	cToPceTmpCharArray(const char *text);
+__pce_export void	donePceTmpCharArray(PceObject);
 
-__pce_export int	pceExistsReference __P((unsigned long));
-__pce_export char *	pcePPReference __P((PceObject ref));
-__pce_export int	pceExistsAssoc __P((PceName assoc));
+__pce_export int	pceExistsReference(unsigned long);
+__pce_export char *	pcePPReference(PceObject ref);
+__pce_export int	pceExistsAssoc(PceName assoc);
 
-__pce_export int	pceInstanceOf __P((PceObject obj, PceObject class));
+__pce_export int	pceInstanceOf(PceObject obj, PceObject class);
 
 		/********************************
 		*            EVENTS		*
@@ -240,19 +229,24 @@ __pce_export int	pceInstanceOf __P((PceObject obj, PceObject class));
 #define PCE_DISPATCH_INPUT	(0)
 #define PCE_DISPATCH_TIMEOUT	(1)
 
-__pce_export int	pceDispatch __P((int fd, int msecs));
-__pce_export void	pceRedraw __P((void));
-/* XtAppContext pceXtAppContext __P((XtAppContext)); */
+__pce_export int	pceDispatch(int fd, int msecs);
+__pce_export void	pceRedraw(void);
+/* XtAppContext pceXtAppContext(XtAppContext); */
 
 
 		/********************************
 		*       DEBUGGER INTERFACE	*
 		********************************/
 
-__pce_export void	pceReset __P((void));
-__pce_export void	pceTrace __P((int)); /* 1: trace; 0: notrace */
-__pce_export void	pceTraceBack __P((int depth)); /* dump message stack */
-__pce_export void	pceWriteCurrentGoal __P((void)); /* dump top stack */
+#define PCE_EXEC_SERVICE	0	/* `service' call-back  */
+#define PCE_EXEC_USER		1	/* application call-back */
+
+__pce_export int	pceExecuteMode(void);
+__pce_export void	pceReset(void);
+__pce_export void	pceTrace(int); /* 1: trace; 0: notrace */
+__pce_export void	pceTraceBack(int depth); /* dump message stack */
+__pce_export void	pceWriteCurrentGoal(void); /* dump top stack */
+
 
 					/* XPCE console interaction */
 __pce_export void	Cprintf(const char *fmt, ...);

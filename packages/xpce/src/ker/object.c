@@ -984,7 +984,7 @@ getFindAllSendMethodsObject(Any obj, Code cond)
   static HashTable done = NULL;
   
   if ( !done )
-    done = createHashTable(toInt(32), OFF);
+    done = createHashTable(toInt(32), NAME_none);
 
   mergeSendMethodsObject(obj, ch, done, cond);
   clearHashTable(done);
@@ -1132,7 +1132,7 @@ getCloneObject(Any obj)
   CloneField kf;
 
   if ( CloneTable == NULL )
-    CloneTable = createHashTable(toInt(32), OFF);
+    CloneTable = createHashTable(toInt(32), NAME_none);
 
   clearHashTable(CloneTable);		/* security for handling reset */
   CloneFields = NULL;
@@ -2203,7 +2203,7 @@ CheckObject(Any obj, Bool recursive)
   
   if ( recursive == ON )
   { checkNames(TRUE);
-    done = createHashTable(toInt(200), OFF);
+    done = createHashTable(toInt(200), NAME_none);
   }
 
   errs = check_object(obj, recursive, done, 0);
@@ -2299,7 +2299,7 @@ forSlotReferenceObject(Any obj, Code msg, Bool recursive)
   if ( isDefault(recursive) ) 
     recursive = ON;
   if ( recursive == ON )
-    done = createHashTable(toInt(200), OFF);
+    done = createHashTable(toInt(200), NAME_none);
 
   for_slot_reference_object(obj, msg, recursive, done);
 

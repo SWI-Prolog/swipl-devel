@@ -35,6 +35,9 @@ static struct class_definition classdefs[] =
   { NAME_area, NAME_object, makeClassArea,
     &ClassArea, "Rectangular set of pixels" },
 
+  { NAME_application, NAME_visual, makeClassApplication,
+    &ClassApplication, "Collection of frames" },
+
   { NAME_arrow, NAME_graphical, makeClassArrow,
     &ClassArrow, "Arrow head (normally for joints)" },
 

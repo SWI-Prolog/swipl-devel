@@ -1962,7 +1962,7 @@ recordInstancesClass(Class class, Bool keep, Bool recursive)
 { realiseClass(class);
 
   if ( keep != OFF && isNil(class->instances) )
-    assign(class, instances, createHashTable(toInt(16), OFF));
+    assign(class, instances, createHashTable(toInt(16), NAME_none));
   else if ( keep == OFF && notNil(class->instances) )
     assign(class, instances, NIL);
 

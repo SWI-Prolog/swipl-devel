@@ -55,6 +55,7 @@ pce_ifhostproperty(prolog(swi),
 
 :- consult(window).
 :- consult(buffer).
+:- consult(application).
 :- consult(buffer_menu).
 :- consult(server).
 :- consult(fundamental_mode).
@@ -105,7 +106,7 @@ pce_ifhostproperty(prolog(swi),
 :- pce_global(@emacs_modes,
 	      new(hash_table)).			  % name --> mode object
 :- pce_global(@emacs,
-	      new(emacs_buffer_menu(@emacs_buffers))).
+	      new(emacs(@emacs_buffers))).
 :- pce_global(@emacs_comment_column, new(number(40))).
 :- pce_global(@emacs_default_mode, new(var(value := script))).
 :- pce_global(@emacs_mode_list, make_emacs_mode_list).

@@ -33,6 +33,7 @@
 GLOBAL Goal	CurrentGoal;		/* current active goal */
 GLOBAL int	TraceMode;		/* Current trace mode */
 GLOBAL int	ExecuteMode;		/* MODE_USER/MODE_SYSTEM */
+GLOBAL int	ServiceMode;		/* Running a service  call-back */
 GLOBAL int	SkipMode;		/* We're skipping */
 GLOBAL Any	VmiSend;		/* VMI representing object */
 GLOBAL Any	VmiGet;			/* VMI representing object */
@@ -54,6 +55,14 @@ GLOBAL int	MaxGoalDepth;		/* maximum recursion level */
     ExecuteMode = mode; \
     code; \
     ExecuteMode = _xmode; \
+  }
+
+
+#define ServiceMode(mode, code) \
+  { int _smode = ServiceMode; \
+    ServiceMode = mode; \
+    code; \
+    ServiceMode = _smode; \
   }
 
 

@@ -133,19 +133,21 @@ considerLocStillEvent()
     if ( now - host_last_time > 700 &&
 	 instanceOfObject(last_window, ClassWindow) &&
 	 !onFlag(last_window, F_FREED|F_FREEING) )
-    { AnswerMark mark;
-      EventObj e;
+    { ServiceMode(is_service_window(last_window),
+		  { AnswerMark mark;
+		    EventObj e;
 
-      markAnswerStack(mark);
-      e = newObject(ClassEvent,
-		    NAME_locStill, last_window,
-		    DEFAULT, DEFAULT, DEFAULT,
-		    toInt(last_time + now - host_last_time), 0);
-      addCodeReference(e);
-      postEvent(e, (Graphical) last_window, DEFAULT);
-      delCodeReference(e);
-      freeableObj(e);
-      rewindAnswerStack(mark, NIL);		   
+		    markAnswerStack(mark);
+		    e = newObject(ClassEvent,
+				  NAME_locStill, last_window,
+				  DEFAULT, DEFAULT, DEFAULT,
+				  toInt(last_time + now - host_last_time), 0);
+		    addCodeReference(e);
+		    postEvent(e, (Graphical) last_window, DEFAULT);
+		    delCodeReference(e);
+		    freeableObj(e);
+		    rewindAnswerStack(mark, NIL);		   
+		  })
     }
   }
 }

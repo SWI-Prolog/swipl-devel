@@ -19,13 +19,13 @@
 .SUFFIXES: .C .so
 
 PCEHOME=/staff/jan/src/xpce
-PCEARCH=solaris
+PCEARCH=sun4
 CC=gcc
 CXX=g++
 SO=so
-LD=/usr/ccs/bin/ld
-LIBDIR=../../solaris
-LDSOFLAGS=-G -L$(LIBDIR)
+LD=ld
+LIBDIR=../../sun4
+LDSOFLAGS= -L$(LIBDIR)
 
 all:		pcerc.o
 		@echo "This Makefile only provides default rules"

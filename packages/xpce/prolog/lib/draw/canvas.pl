@@ -75,6 +75,9 @@ variable(auto_align_mode,   bool,			both,
 	 "Autoalign graphicals after create/resize").
 variable(attribute_editor, draw_attribute_editor*,	both,
 	 "Editor handling attributes").
+variable(undo_buffer,	   draw_undo_manager,	        get,
+	 "Records undo actions").
+
 
 
 		/********************************
@@ -101,6 +104,7 @@ initialise(Canvas) :->
 	"Create a drawing canvas"::
 	send(Canvas, send_super, initialise, 'Canvas'),
 	send(Canvas, selection_feedback, handles),
+	send(Canvas, slot, undo_buffer, draw_undo_manager(Canvas, 100)),
 	send(Canvas, slot, modified, @off),
 	send(Canvas, auto_align_mode, @off),
 	send(Canvas, mode, select, @nil),
@@ -154,6 +158,7 @@ canvas_keybinding('DEL',  cut_selection).
 canvas_keybinding('\C-h', hide_selection).
 canvas_keybinding('\C-e', expose_selection).
 canvas_keybinding('\C-c', copy_selection).
+canvas_keybinding('\C-_', simple_undo).
 
 make_draw_canvas_keybinding(B) :-
 	new(B, key_binding),
@@ -206,6 +211,8 @@ unlink(Canvas) :->
 	->  send(Editor, quit)
 	;   true
 	),
+	get(Canvas, undo_buffer, UB),
+	free(UB),
 	send(Canvas, send_super, unlink).
 
 
@@ -217,6 +224,29 @@ unlink(Canvas) :->
 modified(C) :->
 	send(C, slot, modified, @on).
 
+open_undo_group(C) :->
+	"Open a new undo group"::
+	send(C?undo_buffer, open_undo_group).
+
+close_undo_group(C) :->
+	"Close the undo group"::
+	send(C?undo_buffer, close_undo_group).
+
+undo_action(C, Action:code) :->
+	"Record an action for undo"::
+	send(C?undo_buffer, undo_action, Action).
+
+simple_undo(C) :->
+	"Just undo the last action"::
+	get(C, undo_buffer, UB),
+	send(UB, start_undo),
+	send(UB, undo),
+	send(UB, end_undo).
+
+reset(C) :->
+	"Trap abort"::
+	send(C, send_super, reset),
+	send(C?undo_buffer, reset).
 
 		/********************************
 		*           SELECTION		*
@@ -353,7 +383,7 @@ hide_selection(Canvas, Grs:'[graphical|chain]') :->
 cut_selection(Canvas, Grs:[graphical|chain]) :->
 	"Erase all members of the selection"::
 	send(Canvas, copy_selection, Grs),
-	send(Canvas, edit, message(@arg1, free), Grs).
+	send(Canvas, edit, message(@arg1, cut), Grs).
 
 :- pce_global(@draw_clipboard, new(device)).
 
@@ -373,7 +403,7 @@ clean_clipboard(Device) :-
 	send(Device?graphicals, for_some,
 	     message(@prolog, clean_clipboard_connections,
 		     @arg1, Device, Done)),
-	send(Done, free).
+	send(Done, done).
 
 
 clean_clipboard_connections(Gr, _CB, Done) :-
@@ -400,9 +430,13 @@ paste(Canvas, At:[point]) :->
 	    ;   Pos = At
 	    ),
 	    get(@draw_clipboard?graphicals, clone, Clone),
+	    send(Canvas, open_undo_group),
 	    send(Clone, for_all,
 		 and(message(@arg1, relative_move, Pos),
-		     message(Canvas, display, @arg1))),
+		     message(Canvas, display, @arg1),
+		     message(Canvas, undo_action,
+			     create(message, @arg1, cut)))),
+	    send(Canvas, close_undo_group),
 	    send(Canvas, selection, Clone),
 	    send(Clone, done),
 	    send(Canvas, modified)
@@ -578,6 +612,7 @@ clear(Canvas, Confirm:[bool]) :->
 	send(Canvas, send_super, clear),
 	send(Canvas, file, @nil),
 	send(Canvas, slot, modified, @off),
+	send(Canvas?undo_buffer, clear),
 	send(Canvas, update_attribute_editor).
 	
 

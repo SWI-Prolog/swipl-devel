@@ -17,6 +17,19 @@
 	   , member/2
 	   ]).
 
+:- multifile
+	user:pce_pre_expansion_hook/2.
+:- dynamic
+	user:pce_pre_expansion_hook/2.
+
+user:pce_pre_expansion_hook((:- draw_begin_shape(Name, Super,
+						 Summary, Recognisers)),
+	       [(:- pce_begin_class(draw_shape_class:Name, Super, Summary)),
+		(:- pce_class_directive(draw_shapes:associate_recognisers(Recognisers)))
+	       ]).
+user:pce_pre_expansion_hook((:- draw_end_shape), (:- pce_end_class)).
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module defines the various shapes that can be used to construct the
 diagram.   Most  of  the  shapes  are   very  close  the  PCE's  drawing
@@ -133,7 +146,7 @@ using the call
 
 rather then the default
 
-	get(Super, sub_class(Class), _)
+	get(Super, sub_class, Class, _)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 associate_recognisers(Recognisers) :-
@@ -143,16 +156,6 @@ associate_recognisers(Recognisers) :-
 	),
 	forall(member(R, Recognisers),
 	       send(@class, recogniser, R)).
-
-draw_expansion((:- draw_begin_shape(Name, Super, Summary, Recognisers)),
-	       [(:- pce_begin_class(draw_shape_class:Name, Super, Summary)),
-		(:- pce_class_directive(draw_shapes:associate_recognisers(Recognisers)))
-	       ]).
-draw_expansion((:- draw_end_shape), (:- pce_end_class)).
-
-:- initialization
-   user:assert((pce_pre_expansion_hook(In, Out) :-
-	       		draw_shapes:draw_expansion(In, Out))).
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -173,20 +176,53 @@ included.
 :- pce_begin_class(draw_shape, template,
 		   "Common methods for PceDraw objects").
 
-
 geometry(Gr, X:[int], Y:[int], W:[int], H:[int]) :->
 	"Like super-method, but activate ->modified"::
-	send(Gr, send_super, geometry, X, Y, W, H),
+	(   get(Gr, window, Window)
+	->  send(Window, open_undo_group),
+	    get(Gr, area, area(OX, OY, OW, OH)),
+	    Msg =.. [message, Gr, do_set, OX, OY, OW, OH],
+	    send(Window, undo_action, Msg),
+	    send(Gr, send_super, geometry, X, Y, W, H),
+	    send(Window, close_undo_group)
+	;   send(Gr, send_super, geometry, X, Y, W, H)
+	),
 	send(Gr, modified).
+
+cut(Gr) :->
+	"Remove graphical from the drawing"::
+	get(Gr, window, Window),
+	send(Window, open_undo_group),
+	get(Gr, device, OldDev),
+	send(Gr, device, @nil),
+	send(Window, undo_action, message(Gr, un_cut, OldDev)),
+	send(Window, close_undo_group).
+
+un_cut(Gr, Dev:device*) :->
+	"Redisplay a cutted graphical"::
+	send(Gr, device, Dev),
+	get(Gr, window, Window),
+	send(Window, open_undo_group),
+	send(Window, undo_action, message(Gr, cut)),
+	send(Window, close_undo_group).
 
 :- pce_group(attribute).
 
-attribute(Gr, Att, Val) :->
+draw_attribute(Gr, Att, Val) :->
 	"Modify an attribute if ->has_attribute"::
 	send(Gr, has_attribute, Att),
-	send(Gr, Att, Val),
+	get(Gr, draw_attribute, Att, OldVal),
+	(   send(OldVal, equal, Val)
+	->  true
+	;   get(Gr, window, Window),
+	    send(Window, open_undo_group),
+	    send(Gr, Att, Val),
+	    send(Window, undo_action,
+		 message(Gr, draw_attribute, Att, OldVal)),
+	    send(Window, close_undo_group)
+	),
 	send(Gr, modified).
-attribute(Gr, Att, Val) :<-
+draw_attribute(Gr, Att, Val) :<-
 	"Just completeness"::
 	get(Gr, Att, Val).
 
@@ -223,7 +259,7 @@ updated and the attribute editor should be notified.
 
 modified(Gr) :->
 	"Inform <-window and update attribute editor"::
-	(   get(Gr, window, Window), Window \== @nil,
+	(   get(Gr, window, Window),
 	    send(Window, modified),
 	    get(Gr, selected, @on),
 	    send(Window, update_attribute_editor)
@@ -261,6 +297,30 @@ draw_shape_template(_) :->
 	true.
 
 :- pce_group(edit).
+
+undo_restack_action(Gr) :->
+	"Register restack-undo action"::
+	(   get(Gr, window, Canvas)
+	->  send(Canvas, open_undo_group),
+	    get(Gr?device, graphicals, Grs),
+	    (   get(Grs, next, Gr, Next)
+	    ->  send(Canvas, undo_action,
+		     message(Gr, hide, Next))
+	    ;   send(Canvas, undo_action,
+		     message(Gr, expose))
+	    ),
+	    send(Canvas, close_undo_group)
+	;   true
+	).
+
+
+hide(Gr, Behind:[graphical]) :->
+	send(Gr, undo_restack_action),
+	send(Gr, send_super, hide, Behind).
+	
+expose(Gr, Before:[graphical]) :->
+	send(Gr, undo_restack_action),
+	send(Gr, send_super, expose, Before).
 
 restack(Gr, How:'{hide,expose}|int') :->
 	"Hide one step or to background"::
@@ -371,14 +431,26 @@ NOTE:	PCE will probably provided higher-level primitives such as a
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 event(Text, Ev:event) :->
+	get(Ev, window, Canvas),
 	(   send(Ev, is_a, focus)
 	->  ignore(send(Text, send_super, event, Ev)),
 	    (	send(Ev, is_a, release_keyboard_focus)
 	    ->	(   get(Text?string, size, 0),
 		    send(Text?device, instance_of, draw_canvas) % HACK
-		->  send(Text, free)
+		->  send(Text, cut)
 		;   send(Text, show_caret, @off)
-		)
+		),
+		get(Text, attribute, old_string, Old),
+		(   send(Old, equal, Text?string)
+		->  true
+		;   send(Canvas, undo_action,
+			 message(Text, string, Old))
+		),
+		send(Text, delete_attribute, old_string),
+		send(Canvas, close_undo_group)
+	    ;	send(Ev, is_a, obtain_keyboard_focus)
+	    ->	send(Canvas, open_undo_group),
+		send(Text, attribute, old_string, Text?string?copy)
 	    ;	true
 	    )
 	;   get(Text, show_caret, @on),
@@ -410,6 +482,44 @@ NOTE:	This mechanism needs some redesign and documentation.
 '_wants_keyboard_focus'(_T) :->
 	"Indicate device I'm sensitive for typing"::
 	true.
+
+paste(T) :->
+	get(T?string, copy, Old),
+	send(T, send_super, paste),
+	(   get(T, window, Canvas),
+	    send(Canvas, has_send_method, undo_action)
+	->  send(Canvas, open_undo_group),
+	    send(Canvas, undo_action, message(T, string, Old)),
+	    send(Canvas, close_undo_group)
+	;   true
+	).
+
+
+format(T, Fmt:{left,center,right}) :->
+	(   get(T, window, Canvas),
+	    send(Canvas, has_send_method, undo_action)
+	->  send(Canvas, open_undo_group),
+	    get(T, format, Old),
+	    send(Canvas, undo_action, message(T, format, Old)),
+	    send(Canvas, close_undo_group)
+	;   true
+	),
+	send(T, send_super, format, Fmt).
+
+
+string(T, Str:char_array) :->
+	(   send(Str, equal, T?string)
+	->  true
+	;   (   get(T, window, Canvas),
+	        send(Canvas, has_send_method, undo_action)
+	    ->  send(Canvas, open_undo_group),
+		get(T?string, copy, Old),
+		send(Canvas, undo_action, message(T, string, Old)),
+		send(Canvas, close_undo_group)
+	    ;   true
+	    ),
+	    send(T, send_super, string, Str)
+	).
 
 :- pce_group(menu).
 
@@ -458,13 +568,56 @@ interpolation(L, N:int) :->
 	;   send(L, intervals, N),
 	    send(L, kind, smooth)
 	).
-
-
 interpolation(L, N:int) :<-
 	(   get(L, kind, poly)
 	->  N = 0
 	;   get(L, intervals, N)
 	).
+
+append(Path, P:point) :->
+	"Activate undo system"::
+	send(Path, send_super, append, P),
+	(   get(Path, window, Window),
+	    send(Window, has_send_method, undo_action)
+	->  send(Window, undo_action, message(Path, delete, P))
+	;   true
+	).
+
+append_at_create(Path, P:point) :->
+	"->append, but do not inform undo"::
+	send(Path, send_super, append, P).
+
+delete(Path, P:point) :->
+	"Activate undo system"::
+	(   get(Path, window, Window),
+	    send(Window, has_send_method, undo_action)
+	->  get(Path, points, Pts),
+	    (	get(Pts, previous, P, Prev)
+	    ->	send(Window, undo_action,
+		     message(Path, insert, P, Prev))
+	    ;	send(Window, undo_action,
+		     message(Path, insert, P, @nil))
+	    )
+	;   true
+	).
+	    
+insert(Path, P:point, After:point*) :->
+	send(Path, send_super, insert, P, After),
+	(   get(Path, window, Window),
+	    send(Window, has_send_method, undo_action)
+	->  send(Window, undo_action, message(Path, delete, P))
+	;   true
+	).
+
+set_point(Path, P:point, X:int, Y:int) :->
+	(   get(Path, window, Window),
+	    send(Window, has_send_method, undo_action)
+	->  object(P, point(OX, OY)),
+	    send(Window, undo_action, message(Path, set_point, P, OX, OY))
+	;   true
+	),
+	send(Path, send_super, set_point, P, X, Y).
+
 
 :- draw_end_shape.
 
@@ -483,6 +636,37 @@ objects.  See clas handle, graphical and connection for details.
 		    [@draw_connection_recogniser]).
 
 handle(w/2, h/2, link, center).
+
+initialise(C, F:graphical, T:graphical, L:[link], HF:[name]*, HT:[name]*) :->
+	send(C, send_super, initialise, F, T, L, HF, HT),
+	(   get(C, window, Window),
+	    send(Window, open_undo_group),
+	    send(Window, undo_action, message(C, cut)),
+	    send(Window, close_undo_group)
+	;   true
+	).
+
+geometry(Gr, X:[int], Y:[int], W:[int], H:[int]) :->
+	"No logging needed"::
+	send(Gr, send_super, geometry, X, Y, W, H).
+
+cut(Gr) :->
+	"Remove graphical from the drawing"::
+	get(Gr, window, Window),
+	send(Window, open_undo_group),
+	get(Gr, from, From),
+	get(Gr, to, To),
+	send(Window, undo_action, message(Gr, un_cut, From, To)),
+	send(Gr, relate, @nil, @nil),
+	send(Window, close_undo_group).
+
+un_cut(Gr, From:graphical, To:graphical) :->
+	"Redisplay a cutted graphical"::
+	send(Gr, relate, From, To),
+	get(Gr, window, Window),
+	send(Window, open_undo_group),
+	send(Window, undo_action, message(Gr, cut)),
+	send(Window, close_undo_group).
 
 start_text(_C, _Ev:[event]) :->
 	"Dummy method"::
@@ -547,6 +731,13 @@ coordinates.
 
 geometry(C, X:[int], Y:[int], W:[int], H:[int]) :->
 	"Resize compound graphical"::
+	(   get(C, window, Window)
+	->  send(Window, open_undo_group),
+	    get(C, area, area(OX, OY, OW, OH)),
+	    Msg =.. [message, C, do_set, OX, OY, OW, OH],
+	    send(Window, undo_action, Msg)
+	;   true
+	),
 	resize_factor(W, C, width,  Xfactor),
 	resize_factor(H, C, height, Yfactor),
 	(   (Xfactor \== 1 ; Yfactor \== 1)
@@ -558,6 +749,10 @@ geometry(C, X:[int], Y:[int], W:[int], H:[int]) :->
 	;   true
 	),
 	send(C, send_super, geometry, X, Y, W, H),
+	(   get(C, window, Window)
+	->  send(Window, close_undo_group)
+	;   true
+	),
 	send(C, modified).
 
 
@@ -656,7 +851,7 @@ has_attribute(C, Att:name) :->
 		_)
 	).
 
-attribute(C, Att:name, Val:any) :->
+draw_attribute(C, Att:name, Val:any) :->
 	(   geometry_selector(Att)
 	->  send(C, Att, Val)
 	;   get(C?class, part_attributes, Sheet),  Sheet \== @nil,
@@ -671,7 +866,7 @@ attribute(C, Att:name, Val:any) :->
 			message(C, modified))))
 	).
 
-attribute(C, Att:name, Val) :<-
+draw_attribute(C, Att:name, Val) :<-
 	(   geometry_selector(Att)
 	->  get(C, Att, Val)
 	;   get(C?class, part_attributes, Sheet),  Sheet \== @nil,

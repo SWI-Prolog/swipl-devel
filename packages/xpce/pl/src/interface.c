@@ -355,6 +355,8 @@ static PL_dispatch_hook_t	old_dispatch_hook;
 #define FindPredicate(n, a, m)	PL_pred(PL_new_functor(n, a), m)
 #define OpenForeign()		PL_open_foreign_frame()
 #define CloseForeign(fid)	PL_discard_foreign_frame(fid)
+#define DebugMode		(pceExecuteMode() == PCE_EXEC_USER ? TRUE \
+				 				   : FALSE)
 
 #define META	PL_FA_TRANSPARENT
 #define HIDDEN	PL_FA_NOTRACE
@@ -1475,7 +1477,7 @@ PrologSend(PceObject prolog, PceObject sel, int argc, PceObject *argv)
     }
   }
 
-  qid  = PL_open_query(MODULE_user, TRUE, pred, terms);
+  qid  = PL_open_query(MODULE_user, DebugMode, pred, terms);
   rval = PL_next_solution(qid);
   PL_close_query(qid);
 #else /*~SWI*/
@@ -1533,7 +1535,7 @@ PrologGet(PceObject prolog, PceObject sel, int argc, PceObject *argv)
     }
   }
 
-  qid  = PL_open_query(MODULE_user, TRUE, pred, terms);
+  qid  = PL_open_query(MODULE_user, DebugMode, pred, terms);
   rval = PL_next_solution(qid);
   PL_cut_query(qid);
   if ( rval )
@@ -1757,7 +1759,7 @@ PrologCallProc(PceObject handle,
     for(i=argc; i > 0; i--)
       pushObject(ap++, *objv++);
     
-    if ( (qid = PL_open_query(MODULE_user, TRUE, p, t0)) )
+    if ( (qid = PL_open_query(MODULE_user, DebugMode, p, t0)) )
     { rval = PL_next_solution(qid);
       PL_close_query(qid);
     }
@@ -1824,7 +1826,7 @@ PrologCallFunc(PceObject handle,
     for(i=argc; i > 0; i--)
       pushObject(ap++, *objv++);
 
-    qid = PL_open_query(MODULE_user, TRUE, p, t0);
+    qid = PL_open_query(MODULE_user, DebugMode, p, t0);
     rval = PL_next_solution(qid);
     PL_cut_query(qid);
     if ( rval )

@@ -1,5 +1,36 @@
 [VERSION 4.9.0]
 
+* ADDED: Multilevel undo in PceDraw.
+
+* ADDED: Modal operation of frames.  See `frame ->modal'.
+
+* ADDED: Class application.
+
+* FIXED: Reference count management for objects having hypers, attributes,
+  etc.  Caused many objects to be ignored by the incremental garbage
+  collector.
+
+* ADDED: `connection->relate' to change connections without removing
+  them.
+
+* MODIFED: `device->erase' and `graphical->device: @nil' no longer 
+  modified the <-displayed attribute.
+
+* FIXED: Binding of @class when reconsulting a file.  Make class
+  directives work properly.
+
+* MODIFIED: Handling of `chain <->current'.  The following methods no
+  longer manipulate current: ->initialise, <-head, <-tail, ->swap,
+  ->delete_head, ->member.
+
+* FIXED: emacs_tags library to handle types and #defines properly (affects
+  PceEmacs M-. command).
+
+* ADDED: Class application to define a collection of cooperating windows
+  as an application. Added `frame <->application' and `frame <->name' to
+  support finding applications and application parts.  Also `graphical
+  <-application'.
+
 * PORT: Fixed class process handling for SGI/Irix (both compilation and
   runtime problems).  Configure has been addapted to check for the
   differences between Solaris and Irix in this respect (ioctl(tty,

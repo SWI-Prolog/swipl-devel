@@ -168,9 +168,11 @@ DRAWPLS=	draw/align.pl \
 		draw/draw.pl \
 		draw/gesture.pl \
 		draw/menu.pl \
-		draw/shapes.pl
+		draw/shapes.pl \
+		draw/undo.pl
 
-EMACSPLS=	emacs/buffer.pl \
+EMACSPLS=	emacs/application.pl \
+		emacs/buffer.pl \
 		emacs/buffer_menu.pl \
 		emacs/c_mode.pl \
 		emacs/cpp_mode.pl \
@@ -220,6 +222,7 @@ DEMOPLS= 	biff.pl \
 		imageviewer.pl \
 		ispell.pl \
 		juggler.pl \
+		colour.pl \
 		kangaroo.pl
 
 PW2DEMOS=	pw2/README \
@@ -239,8 +242,7 @@ HLPFILES=	help.hlp dialog.hlp customise.hlp emacs.hlp pcedraw.hlp \
 		pcefaq.hlp
 LIBHLPFILES=	dragdrop.hlp findfile.hlp overview.hlp
 
-INFOFILES=	ChangeLog README.16bit README.CXX README.RT README.customise \
-		README.font
+INFOFILES=	ChangeLog README.customise README.font
 
 all:	qofs release
 

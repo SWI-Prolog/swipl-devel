@@ -161,17 +161,20 @@ status
 displayedGraphical(Any obj, Bool val)
 { Graphical gr = obj;
 
-  if ( notNil(gr->device) )
-  { if ( notNil(gr->request_compute) )
-    { PceWindow sw = getWindowGraphical(gr);
+  if ( gr->displayed != val )
+  { assign(gr, displayed, val);
 
-      if ( sw && sw->displayed == ON )
-	ComputeGraphical(gr);
+    if ( notNil(gr->device) )
+    { if ( notNil(gr->request_compute) )
+      { PceWindow sw = getWindowGraphical(gr);
+
+	if ( sw && sw->displayed == ON )
+	  ComputeGraphical(gr);
+      }
+      displayedGraphicalDevice(gr->device, gr, val);
     }
-    displayedGraphicalDevice(gr->device, gr, val);
   }
 
-  assign(gr, displayed, val);
   succeed;
 }
 
@@ -335,6 +338,17 @@ getDisplayGraphical(Graphical gr)
 
   if ( fr ) 
     answer(fr->display);
+
+  fail;
+}
+
+
+Application
+getApplicationGraphical(Graphical gr)
+{ FrameObj fr = getFrameGraphical(gr);
+
+  if ( fr && notNil(fr->application) ) 
+    answer(fr->application);
 
   fail;
 }
@@ -3223,6 +3237,8 @@ static getdecl get_graphical[] =
      NAME_organisation, "Deepest device both are displayed on"),
   GM(NAME_display, 0, "display", NULL, getDisplayGraphical,
      NAME_organisation, "Display graphical is displayed on"),
+  GM(NAME_application, 0, "application", NULL, getApplicationGraphical,
+     NAME_organisation, "Application my frame belongs too"),
   GM(NAME_distance, 1, "int", "graphical", getDistanceGraphical,
      NAME_organisation, "Closest distance between areas"),
   GM(NAME_distanceX, 1, "int", "graphical", getDistanceXGraphical,

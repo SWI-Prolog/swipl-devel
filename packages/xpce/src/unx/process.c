@@ -36,6 +36,7 @@ reduced to the facility to terminate the inferior process.
 #define HAVE_TERMIO_H	1
 #define HAVE_SYS_WAIT_H	1
 #define HAVE_SYS_IOCTL_H 1
+#define USE_SIGCHLD	1
 #endif
 
 #include <h/unix.h>
@@ -128,9 +129,8 @@ static Name signames[] =
 };
 
 
-#if defined(SIGCHLD) && defined(HAVE_WAIT)
+#ifdef USE_SIGCHLD
 
-#ifdef USE_SIGINFO
 #ifdef HAVE_SIGINFO_H
 #include <siginfo.h>
 #endif
@@ -151,14 +151,6 @@ static Name signames[] =
 #define SA_SIGINFO 0
 #endif
 
-#else /*USE_SIGINFO*/
-
-#undef HAVE_SIGINFO_H			/* just make sure it isn't used */
-#undef SA_SIGINFO
-
-#endifd /*USE_SIGINFO*/
-
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Catching childs that have changed status. There   appear to be many ways
 for doing this. Posix doesn't  provide   signal  context, so by default,
@@ -175,7 +167,7 @@ to myself?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-#if SA_SIGINFO
+#if USE_SIGINFO
 child_changed(int sig, siginfo_t *info, void *uctx)
 #else
 child_changed(int sig)
@@ -189,7 +181,7 @@ child_changed(int sig)
 #endif
 
 
-#if SA_SIGINFO
+#if USE_SIGINFO
   DEBUG(NAME_process, Cprintf("child %d changed called\n", info->si_pid));
 
   for_chain(ProcessChain, p,
@@ -212,7 +204,7 @@ child_changed(int sig)
 		}
 	      }
 	    });
-#else /*SA_SIGINFO*/
+#else /*USE_SIGINFO*/
   DEBUG(NAME_process, Cprintf("child_changed() called\n"));
 
   for_chain(ProcessChain, p,
@@ -228,14 +220,14 @@ child_changed(int sig)
 		  send(p, NAME_exited, toInt(WEXITSTATUS(status)), 0);
 	      }
 	    });
-#endif /*SA_SIGINFO*/
+#endif /*USE_SIGINFO*/
 
 #if !defined(BSD_SIGNALS) && !defined(HAVE_SIGACTION)
   signal(sig, child_changed);
 #endif
 }
 
-#endif /*defined(SIGCHLD) && defined(HAVE_WAIT)*/
+#endif /*USE_SIGCHLD*/
 
 void
 killAllProcesses(void)
@@ -260,7 +252,7 @@ setupProcesses()
     struct sigaction action, oaction;
 
     memset((char *) &action, 0, sizeof(action));
-#if SA_SIGINFO
+#if USE_SIGINFO
     action.sa_sigaction = child_changed;
 #else
     action.sa_handler   = child_changed;

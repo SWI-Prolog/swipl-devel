@@ -933,7 +933,7 @@ winBrushTable()
 { static HashTable table;
 
   if ( !table )
-  { table = createHashTable(toInt(16), ON);
+  { table = createHashTable(toInt(16), NAME_none);
 
     declareWindowsBrush(NIL,     GetStockObject(NULL_BRUSH));
     declareWindowsBrush(DEFAULT, GetStockObject(NULL_BRUSH)); /* play safe */

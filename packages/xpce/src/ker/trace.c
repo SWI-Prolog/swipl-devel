@@ -16,6 +16,7 @@ void
 resetDebugger(void)
 { CurrentGoal = NULL;
   ExecuteMode = MODE_SYSTEM;
+  ServiceMode = PCE_EXEC_USER;
   SkipMode    = FALSE;
   GoalDepth   = 0;
 }
@@ -58,6 +59,9 @@ tracingGoal(Goal g, Name port)
 { ProgramObject obj = g->object;
   ulong flag = nameToTraceFlag(port);
 
+  if ( ServiceMode == PCE_EXEC_SERVICE && TraceMode != TRACE_ALWAYS )
+    fail;
+
   if ( onDFlag(obj, D_TRACE_INHERIT) )
   { Class class = classOfObject(obj);
 
@@ -83,6 +87,9 @@ static int
 breakingGoal(Goal g, Name port)
 { ProgramObject obj = g->object;
   ulong flag = nameToBreakFlag(port);
+
+  if ( ServiceMode == PCE_EXEC_SERVICE && TraceMode != TRACE_ALWAYS )
+    fail;
 
   if ( onDFlag(obj, D_BREAK_INHERIT) )
   { Class class = classOfObject(obj);
@@ -451,4 +458,13 @@ getModeGoal(Any obj)
     return MODE_USER;
 
   return MODE_SYSTEM;
+}
+
+
+int
+pceDebugging(Name subject)
+{ if ( ServiceMode == PCE_EXEC_SERVICE )
+    fail;
+
+  return memberChain(PCEdebugSubjects, subject);
 }

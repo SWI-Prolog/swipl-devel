@@ -87,7 +87,7 @@ recogniser.
 
 :- pce_global(@draw_move_outline_gesture,
 	      new(handler_group(new(draw_move_selection_gesture),
-				new(draw_move_gesture)))).
+				new(draw_move_outline_gesture)))).
 :- pce_global(@draw_resize_gesture,
 	      new(handler_group(new(draw_resize_selection_gesture),
 				new(draw_resize_gesture)))).
@@ -126,7 +126,7 @@ recogniser.
 				@draw_shape_popup_gesture,
 				new(draw_change_line_gesture),
 				new(draw_move_selection_gesture),
-				new(move_gesture)))).
+				new(draw_move_gesture)))).
 :- pce_global(@draw_path_recogniser,
 	      new(handler_group(@draw_shape_select_recogniser,
 				@draw_shape_popup_gesture,
@@ -134,7 +134,7 @@ recogniser.
 				@draw_edit_path_gesture,
 				@draw_resize_gesture,
 				@draw_move_outline_gesture,
-				new(move_gesture)))).
+				new(draw_move_gesture)))).
 
 
 		/********************************
@@ -275,17 +275,24 @@ text-fields of the proto instance.
 
 make_create_proto_recogniser(R) :-
 	new(Canvas, @event?receiver),
-	new(Proto, Canvas?proto),
+	new(Pos, @event?position),
 	new(R, click_gesture(left, '', single,
-			     and(assign(new(Clone, var), Proto?clone),
-				 message(Clone, center, @event?position),
-				 message(Canvas, display, Clone),
-				 if(message(Clone, has_send_method,
-					    start_text),
-				    message(Clone, start_text)),
-				 message(Canvas, auto_align, Clone, move),
-				 message(Canvas, modified)), % thanks Lourens
+			     message(@prolog, create_prototype, Canvas, Pos),
 			     Canvas?(mode) == draw_proto)).
+	
+
+create_prototype(Canvas, Pos) :-
+	get(Canvas?proto, clone, Clone),
+	send(Canvas, open_undo_group),
+	send(Canvas, display, Clone),
+	send(Clone, center, Pos),
+	(   send(Clone, has_send_method, start_text)
+	->  send(Clone, start_text)
+	;   true
+	),
+	send(Canvas, undo_action, message(Clone, cut)),
+	send(Canvas, auto_align, Clone, move),
+	send(Canvas, close_undo_group).
 
 
 		/********************************
@@ -324,6 +331,8 @@ initiate(G, Ev:event) :->
 	get(Ev, receiver, Canvas),
 	get(Canvas?proto, clone, Object),
 	send(G, object, Object),
+	send(Canvas, open_undo_group),
+	send(Canvas, undo_action, message(Object, cut)),
 	send(Canvas, display, Object, Ev?position).
 	
 
@@ -356,26 +365,19 @@ by the gesture.
 
 terminate(G, Ev:event) :->
 	"Delete the object if it is too small"::
+	get(Ev, receiver, Canvas),
 	send(G, drag, Ev),
 	get(G, object, Obj),
 	send(G, object, @nil),
 	get(Obj, width, W),
 	get(Obj, height, H),
-	abs(W, AbsW),
-	abs(H, AbsH),
 	get(G, resource_value, minimum_size, S),
-	(   (AbsW < S ; AbsH < S)
-	->  send(Obj, free)
-	;   get(Ev, receiver, Canvas),
-	    send(Canvas, auto_align, Obj, create),
+	(   (abs(W) < S ; abs(H) < S)
+	->  send(Obj, cut)
+	;   send(Canvas, auto_align, Obj, create),
 	    send(Canvas, modified)
-	).
-
-abs(X, Y) :-
-	(   X < 0
-	->  Y is -X
-	;   Y = X
-	).
+	),
+	send(Canvas, close_undo_group).
 
 :- pce_end_class.
 
@@ -407,11 +409,12 @@ terminate(G, Ev:event) :->
 	send(G, object, @nil),
 	get(Line, length, L),
 	get(G, resource_value, minimum_size, MS),
+	get(Ev, receiver, Canvas),
 	(   L < MS
-	->  send(Line, free)
-	;   get(Ev, receiver, Canvas),
-	    send(Canvas, auto_align, Line, create)
-	).
+	->  send(Line, cut)
+	;   send(Canvas, auto_align, Line, create)
+	),
+	send(Canvas, close_undo_group).
 
 :- pce_end_class.
 
@@ -449,7 +452,9 @@ verify(G, Ev:event) :->
 
 initiate(G, Ev:event) :->
 	get(Ev, receiver, Line),
-	send(Line?device, pointer, Line?(G?side)).
+	get(Ev, window, Canvas),
+	send(Line?device, pointer, Line?(G?side)),
+	send(Canvas, open_undo_group).
 
 drag(G, Ev:event) :->
 	get(Ev, receiver, Line),
@@ -457,7 +462,9 @@ drag(G, Ev:event) :->
 	send(Line, Side, ?(Ev, position, Line?device)).
 
 terminate(G, Ev:event) :->
-	send(G, drag, Ev).
+	send(G, drag, Ev),
+	get(Ev, window, Canvas),
+	send(Canvas, close_undo_group).
 
 :- pce_end_class.
 
@@ -529,7 +536,9 @@ initiate(G, Ev:event) :->
 	    send(Line, start, Pos),
 	    send(Line, end, Pos),
 	    send(Canvas, display, Line),
-	    send(Canvas, display, Path)
+	    send(Canvas, open_undo_group),
+	    send(Canvas, display, Path),
+	    send(Canvas, undo_action, message(Path, cut))
 	;   true
 	).
 
@@ -560,7 +569,7 @@ terminate(G, Ev:event) :->
 	send(G, move),
 	(   get(G, path, Path),
 	    Path \== @nil
-	->  send(Path, append, G?line?end),
+	->  send(Path, append_at_create, G?line?end),
 	    send(G?line, start, G?line?end),
 	    send(Ev?window, focus, Ev?receiver, G, G?cursor, @nil)
 	).
@@ -574,13 +583,15 @@ than a defined minimal size; etc.).
 
 terminate_path(G) :->
 	get(G, path, Path),
+	get(Path, window, Canvas),
 	send(G?line, device, @nil),
 	send(G, path, @nil),
 	(   get(Path?points, size, Size),
 	    Size =< 1
-	->  send(Path, free)
+	->  send(Path, cut)
 	;   true
-	).
+	),
+	send(Canvas, close_undo_group).
 	
 :- pce_end_class.
 
@@ -606,6 +617,8 @@ verify(G, Ev:event) :->
 
 initiate(G, Ev:event) :->
 	"Move pointer to point"::
+	get(Ev, window, Canvas),
+	send(Canvas, open_undo_group),
 	get(Ev, receiver, Path),
 	get(G, point, Point),
 	get(Path, offset, Offset),
@@ -621,6 +634,11 @@ drag(G, Ev:event) :->
 	get(Path, offset, Offset),
 	send(Pos, minus, Offset),
 	send(Path, set_point, G?point, Pos?x, Pos?y).
+
+terminate(G, Ev:event) :->
+	send(G, drag, Ev),
+	get(Ev, window, Canvas),
+	send(Canvas, close_undo_group).
 
 :- pce_end_class.
 
@@ -692,13 +710,19 @@ action, but may also be used as a condition.
 make_draw_create_text_recogniser(R) :-
 	new(Canvas, @event?receiver),
 	new(Pos, @event?position),
-	new(Text, Canvas?graphicals?tail),
 	new(R, click_gesture(left, '', single,
-			     block(message(Canvas, display,
-					   Canvas?proto?clone, Pos),
-				   message(Canvas, keyboard_focus, Text),
-				   message(Canvas, auto_align, Text, create)),
+			     message(@prolog, create_text, Canvas, Pos),
 			     Canvas?(mode) == draw_text)).
+
+create_text(Canvas, Pos) :-
+	get(Canvas?proto, clone, Text),
+	send(Canvas, open_undo_group),
+	send(Canvas, display, Text, Pos),
+	send(Canvas, keyboard_focus, Text),
+	send(Canvas, auto_align, Text, create),
+	send(Canvas, undo_action, message(Text, cut)),
+	send(Canvas, close_undo_group).
+
 
 make_draw_edit_text_recogniser(R) :-
 	new(Text, @event?receiver),
@@ -808,9 +832,12 @@ terminate(G, Ev:event) :->
 	get(G, outline, Outline),
 	send(Outline, device, @nil),
 	get(Outline?area?position, difference, G?origin, Offset),	
+	get(Ev, window, Canvas),
+	send(Canvas, open_undo_group),
 	send(G?selection, for_all, message(@arg1, relative_move, Offset)),
 	send(G, selection, @nil),
-	send(Ev?receiver?window, modified).
+	send(Canvas, close_undo_group),
+	send(Canvas, modified).
 
 :- pce_end_class.
 
@@ -900,10 +927,13 @@ terminate(G, Ev:event) :->
 	get(Outline, area, A1),
 	x_resize(A0, A1, X0, Xfactor),
 	y_resize(A0, A1, Y0, Yfactor),
+	get(Ev, window, Canvas),
+	send(Canvas, open_undo_group),
 	send(G?selection, for_all,
 	     message(@arg1, resize, Xfactor, Yfactor, point(X0, Y0))),
 	send(G, selection, @nil),
-	send(Ev?receiver?window, modified).
+	send(Canvas, close_undo_group),
+	send(Canvas, modified).
 
 x_resize(A0, A1, X0, Xfactor) :-
 	get(A0, left_side, Left),
@@ -940,20 +970,43 @@ y_resize(A0, A1, Y0, Yfactor) :-
 
 terminate(G, Ev:event) :->
 	"Invoke auto_align"::
-	send(G, send_super, terminate, Ev),
 	get(Ev, receiver, Shape),
-	send(Shape?device, auto_align, Shape, resize).
+	get(Shape, window, Canvas),
+	send(Canvas, open_undo_group),
+	send(G, send_super, terminate, Ev),
+	send(Shape?device, auto_align, Shape, resize),
+	send(Canvas, close_undo_group).
 
 :- pce_end_class.
 
 
-:- pce_begin_class(draw_move_gesture, move_outline_gesture).
+:- pce_begin_class(draw_move_outline_gesture, move_outline_gesture).
 
 terminate(G, Ev:event) :->
 	"Invoke auto_align"::
-	send(G, send_super, terminate, Ev),
 	get(Ev, receiver, Shape),
-	send(Shape?device, auto_align, Shape, move).
+	get(Shape, window, Canvas),
+	send(Canvas, open_undo_group),
+	send(G, send_super, terminate, Ev),
+	send(Shape?device, auto_align, Shape, move),
+	send(Canvas, close_undo_group).
+
+:- pce_end_class.
+
+:- pce_begin_class(draw_move_gesture, move_gesture).
+
+initiate(G, Ev:event) :->
+	send(G, send_super, initiate, Ev),
+	get(Ev, window, Canvas),
+	send(Canvas, open_undo_group).
+
+terminate(G, Ev:event) :->
+	"Invoke auto_align"::
+	get(Ev, receiver, Shape),
+	get(Shape, window, Canvas),
+	send(G, send_super, terminate, Ev),
+	send(Shape?device, auto_align, Shape, move),
+	send(Canvas, close_undo_group).
 
 :- pce_end_class.
 
@@ -989,9 +1042,13 @@ connect(_G, From:graphical, To:graphical, Link:link,
 	->  true
 	;   ClassName = draw_connection
 	),
+	get(From, window, Canvas),
+	send(Canvas, open_undo_group),
 	Term =.. [ClassName, From, To, Link, FH, TH],
 	new(C, Term),
-	send(C, start_text).
+	send(C, start_text),
+	send(Canvas, close_undo_group),
+	send(Canvas, modified).
 
 :- pce_end_class.
 
@@ -1096,9 +1153,13 @@ terminate(G, Ev:event) :->
 	->  send(G, slot, to, @nil),
 	    get(Ev, receiver, Receiver),
 	    get(Receiver?device, proto, Link),
+	    get(Ev, window, Canvas),
+	    send(Canvas, open_undo_group),
 	    get(G, handle, Receiver, G?from_indicator?center, Link?from, FH),
 	    get(G, handle, To, G?to_indicator?center, Link?to, TH),
-	    new(_, draw_connection(Receiver, To, Link, FH, TH))
+	    new(_, draw_connection(Receiver, To, Link, FH, TH)),
+	    send(Canvas, close_undo_group),
+	    send(Canvas, modified)
 	;   true
 	).
 

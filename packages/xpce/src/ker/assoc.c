@@ -142,14 +142,14 @@ initAssoc(int handles)
 
   host_handles = handles;
 
-  ObjectToITFTable = createHashTable(toInt(1024), OFF);
-  NameToITFTable   = createHashTable(toInt(1024), OFF);
+  ObjectToITFTable = createHashTable(toInt(1024), NAME_none);
+  NameToITFTable   = createHashTable(toInt(1024), NAME_none);
 
   newAssoc(NAME_ObjectToItfTable, ObjectToITFTable);
   newAssoc(NAME_NameToItfTable,   NameToITFTable);
 
   for(n=0; n<host_handles; n++)
-    HandleToITFTables[n] = createHashTable(toInt(64), OFF);
+    HandleToITFTables[n] = createHashTable(toInt(64), NAME_none);
 }
 
 

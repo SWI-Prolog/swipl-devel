@@ -77,6 +77,7 @@ Any		pceNew(Name assoc, Any class, int argc, Any *argv);
 int		pceDispatch(int fd, int time);
 void		pceRedraw(void);
 char *		getHostSymbolTable(void);
+int		pceExecuteMode(void);
 void		pceReset(void);
 void		pceTrace(int on);
 void		pceTraceBack(int depth);

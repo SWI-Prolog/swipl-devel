@@ -65,7 +65,6 @@ initialiseChainv(Chain ch, int argc, Any *argv)
   ch->current = ch->head = ch->tail = NIL;
   for(i=0; i<argc; i++)
     appendChain(ch, argv[i]);
-  ch->current = ch->tail;
 
   succeed;
 }
@@ -300,19 +299,38 @@ insertBeforeChain(Chain ch, Any obj, Any obj2)
 }
 
 
+static Cell
+findCellChain(Chain ch, Any obj, int *idx)
+{ Cell cell;
+  int i=1;
+
+  for_cell(cell, ch)
+  { if ( cell->value == obj )
+    { if ( idx )
+	*idx = i;
+      return cell;
+    }
+    i++;
+  }
+
+  return NULL;
+}
+
+
 status
 swapChain(Chain ch, Any obj1, Any obj2)
-{ Cell cell;
+{ Cell c1, c2;
+  int i1, i2;
 
-  TRY( memberChain(ch, obj1) );
-  cell = ch->current;
-  TRY( memberChain(ch, obj2) );
+  if ( !(c1=findCellChain(ch, obj1, &i1)) ||
+       !(c2=findCellChain(ch, obj2, &i2)) )
+    fail;
 
-  ch->current->value = obj1;
-  cell->value = obj2;
+  c2->value = obj1;
+  c1->value = obj2;
 
-  ChangedChain(ch, NAME_cell, getCellIndexChain(ch, ch->current));
-  ChangedChain(ch, NAME_cell, getCellIndexChain(ch, cell));
+  ChangedChain(ch, NAME_cell, toInt(i1));
+  ChangedChain(ch, NAME_cell, toInt(i2));
 
   succeed;
 }
@@ -321,18 +339,16 @@ swapChain(Chain ch, Any obj1, Any obj2)
 status
 deleteHeadChain(Chain ch)
 { EXISTS(ch->head);
-  ch->current = ch->head;
 
-  return deleteCurrentChain(ch);
+  return deleteCellChain(ch, ch->head);
 }
 
 
 static status
 deleteTailChain(Chain ch)
 { EXISTS(ch->tail);
-  ch->current = ch->tail;
 
-  return deleteCurrentChain(ch);
+  return deleteCellChain(ch, ch->tail);
 }
 
 
@@ -421,7 +437,8 @@ deleteCellChain(Chain ch, Cell cell)
     if (cell == ch->tail)
       ch->tail = prev;
   }
-  ch->current = NIL;
+  if ( cell == ch->current )
+    ch->current = NIL;
   freeCell(ch, cell);
   assign(ch, size, dec(ch->size));
   ChangedChain(ch, NAME_delete, i);
@@ -432,7 +449,8 @@ deleteCellChain(Chain ch, Cell cell)
 
 static status
 deleteAllChain(Chain ch, Any obj)
-{ while( deleteChain(ch, obj) ) ;	/* can be more efficient */
+{ while( deleteChain(ch, obj) )
+    ;					/* can be more efficient */
 
   succeed;
 }
@@ -443,10 +461,8 @@ memberChain(Chain ch, Any obj)
 { register Cell cell;
 
   for_cell(cell, ch)
-  { if (cell->value == obj)
-    { ch->current = cell;
+  { if ( cell->value == obj )
       succeed;
-    }
   }
   fail;
 }
@@ -454,11 +470,20 @@ memberChain(Chain ch, Any obj)
 
 static status
 currentChain(Chain ch, Any obj)
-{ if (isNil(obj))
+{ if ( isNil(obj) )
   { ch->current = NIL;
     succeed;
+  } else
+  { Cell cell;
+
+    for_cell(cell, ch)
+    { if ( cell->value == obj )
+      { ch->current = cell;
+	succeed;
+      }
+    }
+    fail;
   }
-  return memberChain(ch, obj);
 }
 
 
@@ -628,7 +653,7 @@ findChain(Chain ch, Code code)
 { Cell cell;
 
   for_cell(cell, ch)
-  { if ( forwardCodev(code, 1, &cell->value) != FAIL)
+  { if ( forwardCodev(code, 1, &cell->value) )
     { ch->current = cell;
       succeed;
     }
@@ -657,9 +682,8 @@ unionChain(Chain ch, Chain ch2)
 { register Cell cell;
 
   for_cell(cell, ch2)
-  { if (memberChain(ch, cell->value) != FAIL)
-      continue;
-    appendChain(ch, cell->value);
+  { if ( !memberChain(ch, cell->value) )
+      appendChain(ch, cell->value);
   }
   succeed;
 }
@@ -670,7 +694,7 @@ intersectionChain(Chain ch, Chain ch2)
 { register Cell cell, c2;
 
   for_cell_save(cell, c2, ch)
-  { if ( memberChain(ch2, cell->value) == FAIL )
+  { if ( !memberChain(ch2, cell->value) )
       deleteCellChain(ch, cell);
   }
   succeed;
@@ -682,7 +706,7 @@ subtractChain(Chain ch, Chain ch2)
 { Cell cell, c2;
 
   for_cell_save(cell, c2, ch)
-  { if ( memberChain(ch2, cell->value) != FAIL )
+  { if ( memberChain(ch2, cell->value) )
       deleteCellChain(ch, cell);
   }
   succeed;
@@ -708,7 +732,7 @@ intersectsChain(Chain ch, Chain ch2)
 { Cell cell;
 
   for_cell(cell, ch)
-  { if ( memberChain(ch2, cell->value) == SUCCEED )
+  { if ( memberChain(ch2, cell->value) )
       succeed;
   }
 
@@ -985,13 +1009,9 @@ getIntersectionChain(Chain ch, Chain ch2)
 
 Any
 getHeadChain(Chain ch)
-{ Any result;
-  
-  EXISTS(ch->head);
-  result = ch->head->value;
-  ch->current = ch->head;
-  
-  answer(result);
+{ EXISTS(ch->head);
+
+  answer(ch->head->value);
 }
 
 
@@ -1001,14 +1021,13 @@ getDeleteHeadChain(Chain ch)
   
   EXISTS(ch->head);
   result = ch->head->value;
-  ch->current = ch->head;
   if ( isObject(result) && !isProtectedObj(result) )
   { addCodeReference(result);
-    deleteCurrentChain(ch);
+    deleteHeadChain(ch);
     delCodeReference(result);
     pushAnswerObject(result);
   } else
-    deleteCurrentChain(ch);
+    deleteHeadChain(ch);
 
   answer(result);
 }
@@ -1016,13 +1035,9 @@ getDeleteHeadChain(Chain ch)
 
 Any
 getTailChain(Chain ch)
-{ Any result;
-  
-  EXISTS(ch->tail);
-  result = ch->tail->value;
-  ch->current = ch->tail;
-  
-  answer(result);
+{ EXISTS(ch->tail);
+
+  answer(ch->tail->value);
 }
 
 
@@ -1031,11 +1046,13 @@ uniqueChain(Chain ch)
 { Cell cell, cell2;
   
   for_cell(cell, ch)
-  { for (cell2=ch->head; cell2 != cell; cell2=cell2->next)
-    { if (cell2->value == cell->value)
-      { deleteChain(ch, cell->value);
-	break;
-      }
+  { Cell next;
+
+    for (cell2=cell->next; notNil(cell2); cell2=next)
+    { next = cell2->next;
+
+      if (cell2->value == cell->value)
+	deleteCellChain(ch, cell2);
     }
   }
   succeed;
@@ -1049,7 +1066,7 @@ moveBeforeChain(Chain ch, Any obj1, Any obj2)
   if ( obj1 == obj2 )
     fail;
   
-  TRY( memberChain(ch, obj2) );
+  TRY( currentChain(ch, obj2) );
   cell = ch->current;
   addCodeReference(obj1);
   if ( deleteChain(ch, obj1) != SUCCEED )
@@ -1071,7 +1088,7 @@ moveAfterChain(Chain ch, Any obj1, Any obj2)
   status rval;
   
   if ( notDefault(obj2) && notNil(obj2) )
-  { if ( obj1 == obj2 || !memberChain(ch, obj2) )
+  { if ( obj1 == obj2 || !currentChain(ch, obj2) )
       fail;
     cell = ch->current->next;
     if ( notNil(cell) && cell->value == obj1 )

@@ -301,7 +301,7 @@ write_region(M, File:file) :->
 
 show_buffer_menu(_M) :->
 	"Expose the buffer-menu window"::
-	send(@emacs, expose).
+	send(@emacs, show_buffer_menu).
 
 switch_to_buffer(_M, Buffer:emacs_buffer) :->
 	"Switch to named buffer"::

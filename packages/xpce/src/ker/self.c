@@ -1019,6 +1019,7 @@ resetPce(Pce pce)
   resetVars();
   resetDraw();
 
+  resetApplications();
   if ( (dm = getObjectAssoc(NAME_displayManager)) )
     send(dm, NAME_reset, 0);
 
@@ -1415,6 +1416,15 @@ makeClassPce(Class class)
 		 *	  INITIALISATION	*
 		 *******************************/
 
+static HashTable
+objectAttributeTable(Name name)
+{ HashTable ht = globalObject(name, ClassHashTable, 0);
+  assign(ht, refer, NAME_value);
+
+  return ht;
+}
+
+
 export status
 pceInitialise(int handles, const char *home, int argc, char **argv)
 { AnswerMark mark;
@@ -1630,18 +1640,12 @@ pceInitialise(int handles, const char *home, int argc, char **argv)
   TypeColour   = nameToType(NAME_colour);
   TypeEquation = CtoType("=");
 
-  ObjectConstraintTable = globalObject(NAME_objectConstraintTable,
-				       ClassHashTable, 0);
-  ObjectAttributeTable  = globalObject(NAME_objectAttributeTable,
-				       ClassHashTable, 0);
-  ObjectSendMethodTable = globalObject(NAME_objectSendMethodTable,
-				       ClassHashTable, 0);
-  ObjectGetMethodTable  = globalObject(NAME_objectGetMethodTable,
-				       ClassHashTable, 0);
-  ObjectRecogniserTable = globalObject(NAME_objectRecogniserTable,
-				       ClassHashTable, 0);
-  ObjectHyperTable      = globalObject(NAME_objectHyperTable,
-				       ClassHashTable, 0);
+  ObjectConstraintTable = objectAttributeTable(NAME_objectConstraintTable);
+  ObjectAttributeTable  = objectAttributeTable(NAME_objectAttributeTable);
+  ObjectSendMethodTable = objectAttributeTable(NAME_objectSendMethodTable);
+  ObjectGetMethodTable  = objectAttributeTable(NAME_objectGetMethodTable);
+  ObjectRecogniserTable = objectAttributeTable(NAME_objectRecogniserTable);
+  ObjectHyperTable      = objectAttributeTable(NAME_objectHyperTable);
 
   name_procent_s	= CtoName("%s");
 

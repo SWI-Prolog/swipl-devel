@@ -95,15 +95,10 @@ IsDownMeta(LONG lParam)
 }
 
 
-static int WINAPI
-frame_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
-{ FrameObj fr = (FrameObj) GetWindowLong(hwnd, GWL_DATA);
-
-  if ( !fr )
-    fr = current_frame;
-  assert(isProperObject(fr));
-
-  DEBUG(NAME_event,
+static int
+do_frame_wnd_proc(FrameObj fr,
+		  HWND hwnd, UINT message, UINT wParam, LONG lParam)
+{ DEBUG(NAME_event,
 	Cprintf("%s(0x%04x): MS-Windows event 0x%04x with 0x%04x/0x%08lx\n",
 		pp(fr), hwnd, message, wParam, lParam));
 
@@ -408,6 +403,31 @@ repaint:
   RedrawDisplayManager(TheDisplayManager());
 
   return DefWindowProc(hwnd, message, wParam, lParam);
+}
+
+
+static int
+service_frame(FrameObj fr)
+{ Application app = fr->application;
+
+  return (notNil(app) && app->kind == NAME_service ? PCE_EXEC_SERVICE
+						   : PCE_EXEC_USER);
+}
+
+
+static int WINAPI
+frame_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
+{ FrameObj fr = (FrameObj) GetWindowLong(hwnd, GWL_DATA);
+  int rval;
+
+  if ( !fr )
+    fr = current_frame;
+  assert(isProperObject(fr));
+
+  ServiceMode(service_frame(fr),
+	      rval = do_frame_wnd_proc(fr, hwnd, message, wParam, lParam));
+
+  return rval;
 }
 
 

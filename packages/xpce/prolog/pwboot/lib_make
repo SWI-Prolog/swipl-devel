@@ -98,9 +98,11 @@ DRAWQOFS=draw/align.qof \
 	draw/draw.qof \
 	draw/gesture.qof \
 	draw/menu.qof \
-	draw/shapes.qof
+	draw/shapes.qof \
+	draw/undo.qof
 
-EMACSQOFS=emacs/buffer.qof \
+EMACSQOFS=emacs/application.qof \
+	emacs/buffer.qof \
 	emacs/buffer_menu.qof \
 	emacs/c_mode.qof \
 	emacs/cpp_mode.qof \

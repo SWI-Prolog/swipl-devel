@@ -351,6 +351,7 @@ void		doTraceAnswer(Goal g, Any rval);
 void		writeGoal(Goal g, Name port);
 void		traceBackPce(Int depth, Name mode);
 int		getModeGoal(Any obj);
+int		pceDebugging(Name subject);
 
 /* ker/type.c */
 status		initialiseType(Type t, Name name, Name kind, Any context, Chain supers);
@@ -400,11 +401,6 @@ WsRef		getExistingXrefObject(Any obj, DisplayObj d);
 status		registerXrefObject(Any obj, DisplayObj d, WsRef xref);
 Xref		unregisterXrefObject(Any obj, DisplayObj d);
 void		closeAllXrefs(void);
-
-/* ker/error.c */
-Error		getConvertError(Class class, Name id);
-status		makeClassError(Class class);
-status		errorPce(Any obj, Name id, ...);
 
 /* ker/classstub.c */
 status		makeClassClassStub(Class class);

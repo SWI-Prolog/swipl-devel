@@ -431,6 +431,19 @@ getHostSymbolTable(void)
 		*           DEBUGGING		*
 		********************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+pceExecuteMode()
+	returns PCE_EXEC_USER is the goal is to be processed in `user'
+        space, and PCE_EXEC_SERVICE otherwise.  goals of the latter type
+	are not supposed to be visible in the host tracer.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+pceExecuteMode(void)
+{ return ServiceMode;
+}
+
+
 void
 pceReset(void)
 { resetPce(PCE);

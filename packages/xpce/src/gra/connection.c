@@ -13,6 +13,7 @@
 
 forwards int	bestConnectionPoint(Device, Name, int, int,
 				    Graphical, Handle *, int *, int *);
+forwards int	relateConnection(Connection c, Graphical from, Graphical to);
 
 static status
 initialiseConnection(Connection c, Graphical from, Graphical to,
@@ -35,11 +36,7 @@ initialiseConnection(Connection c, Graphical from, Graphical to,
   assign(c, fixed_from,  isDefault(from_handle) ? OFF : ON);
   assign(c, fixed_to,    isDefault(to_handle)   ? OFF : ON);
   
-  attachConnectionGraphical(from, c);
-  attachConnectionGraphical(to, c);
-  assign(c, from, from);
-  assign(c, to,   to);
-  return updateDeviceConnection(c);
+  return relateConnection(c, from, to);
 }
 
 
@@ -49,6 +46,31 @@ unlinkConnection(Connection c)
   if ( notNil(c->to) )   detachConnectionGraphical(c->to, c);
 
   return unlinkGraphical((Graphical) c);
+}
+
+
+static status
+relateConnection(Connection c, Graphical from, Graphical to)
+{ if ( from != c->from && notNil(c->from) )
+  { detachConnectionGraphical(c->from, c);
+    assign(c, from, NIL);
+  }
+  if ( to != c->to && notNil(c->to) )
+  { detachConnectionGraphical(c->to, c);
+    assign(c, to, NIL);
+  }
+
+  if ( notNil(from) )
+  { attachConnectionGraphical(from, c);
+    assign(c, from, from);
+  }
+
+  if ( notNil(to) )
+  { attachConnectionGraphical(to, c);
+    assign(c, to, to);
+  }
+
+  return updateDeviceConnection(c);
 }
 
 
@@ -288,7 +310,7 @@ updateDeviceConnection(Connection c)
   Device device;
 
   if ( isNil(from) || isNil(to) ||
-       (device = getCommonDeviceGraphical(c->from, c->to)) == FAIL )
+       !(device = getCommonDeviceGraphical(c->from, c->to)) )
     return DeviceGraphical(c, NIL);
 
   DeviceGraphical(c, device);
@@ -379,15 +401,17 @@ static char *T_points[] =
         { "start_x=[int]", "start_y=[int]", "end_x=[int]", "end_y=[int]" };
 static char *T_geometry[] =
         { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
+static char *T_relate[] =
+        { "from=graphical*", "to=graphical*" };
 
 /* Instance Variables */
 
 static vardecl var_connection[] =
 { IV(NAME_link, "link", IV_GET,
      NAME_relation, "Generic definition of the link"),
-  IV(NAME_from, "graphical", IV_GET,
+  IV(NAME_from, "graphical*", IV_GET,
      NAME_relation, "Graphical at `from' side"),
-  IV(NAME_to, "graphical", IV_GET,
+  IV(NAME_to, "graphical*", IV_GET,
      NAME_relation, "Graphical at `to' side"),
   IV(NAME_fromHandle, "name*", IV_GET,
      NAME_relation, "Name of 1st handle link is connected to"),
@@ -412,6 +436,8 @@ static senddecl send_connection[] =
      DEFAULT, "Set X1, Y1, X2, Y2"),
   SM(NAME_unlink, 0, NULL, unlinkConnection,
      DEFAULT, "Detach from graphicals"),
+  SM(NAME_relate, 2, T_relate, relateConnection,
+     NAME_relation, "Specify the graphicals related"),
   SM(NAME_event, 1, "event", eventConnection,
      NAME_event, "Process an event"),
   SM(NAME_updateLinkAttributes, 0, NULL, updateLinkAttributesConnection,

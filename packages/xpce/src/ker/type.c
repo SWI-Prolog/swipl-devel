@@ -1418,7 +1418,7 @@ void
 initTypes(void)
 { struct built_in_type *i = built_in_types;
 
-  TypeTable = createHashTable(toInt(101), OFF);
+  TypeTable = createHashTable(toInt(256), NAME_none);
 
   ClassClass        = typeClass(NAME_class);
   ClassClass->class = ClassClass;

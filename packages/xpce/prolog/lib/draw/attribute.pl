@@ -382,7 +382,7 @@ fill_items(A, Client:chain) :->
 		and(message(@arg1, has_send_method, has_attribute),
 		    message(@arg1, has_attribute, Selector)),
 		Proto),
-	    get(Proto, attribute, Selector, Value)
+	    get(Proto, draw_attribute, Selector, Value)
 	->  send(Menu, active, @on),
 	    send(Menu, selection, Value)
 	;   send(Menu, active, @off)
@@ -428,11 +428,16 @@ each shape that accepts ->has_attribute.
 
 client_attribute(A, Selector:name, Val:any) :->
 	"Set attribute of client object"::
-	(   get(A, client, Chain), Chain \== @nil
+	(   get(A, client, Chain),
+	    Chain \== @nil,
+	    get(Chain, head, Head)
 	->  send(A, block),
+	    get(Head, window, Window),
+	    send(Window, open_undo_group),
 	    send(A?client, for_some,
 		 if(message(@arg1, has_attribute, Selector),
-		    message(@arg1, attribute, Selector, Val))),
+		    message(@arg1, draw_attribute, Selector, Val))),
+	    send(Window, close_undo_group),
 	    send(A, unblock)
 	;   true
 	).

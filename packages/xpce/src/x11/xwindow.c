@@ -199,32 +199,22 @@ event_window(Widget w, XtPointer xsw, XtPointer xevent)
   if ( isFreeingObj(sw) || isFreedObj(sw) )
     return;
 
-  switch(event->xany.type)
-  {
-/*
-    case FocusIn:
-      DEBUG(NAME_focus, Cprintf("Received FocusIn on %s\n", pp(sw)));
-      assign(sw, input_focus, ON);
-      return;
-    case FocusOut:
-      DEBUG(NAME_focus, Cprintf("Received FocusOut on %s\n", pp(sw)));
-      assign(sw, input_focus, OFF);
-      return;
-*/
-    default:
-    { AnswerMark mark;
-      markAnswerStack(mark);
+  ServiceMode(is_service_window(sw),
+	      switch(event->xany.type)
+	      { default:
+		{ AnswerMark mark;
+		  markAnswerStack(mark);
   
-      if ( (ev = CtoEvent(sw, event)) )
-      { addCodeReference(ev);
-	postEvent(ev, (Graphical) sw, DEFAULT);
-	delCodeReference(ev);
-	freeableObj(ev);
-      }
-
-      rewindAnswerStack(mark, NIL);
-    }
-  }
+		  if ( (ev = CtoEvent(sw, event)) )
+		  { addCodeReference(ev);
+		    postEvent(ev, (Graphical) sw, DEFAULT);
+		    delCodeReference(ev);
+		    freeableObj(ev);
+		  }
+		  
+		  rewindAnswerStack(mark, NIL);
+		}
+	      })
 }
 
 
@@ -241,10 +231,11 @@ expose_window(Widget w, XtPointer xsw, XtPointer xregion)
     appendHashTable(WindowTable, (Any) win, sw);
 
   XClipBox(region, &rect);
-  a = tempObject(ClassArea, toInt(rect.x), toInt(rect.y),
-		 	    toInt(rect.width), toInt(rect.height), 0);
-  redrawWindow(sw, a);
-  considerPreserveObject(a);
+  ServiceMode(is_service_window(sw),
+	      a = tempObject(ClassArea, toInt(rect.x), toInt(rect.y),
+			     toInt(rect.width), toInt(rect.height), 0);
+	      redrawWindow(sw, a);
+	      considerPreserveObject(a));
 }
 
 
@@ -254,8 +245,9 @@ resize_window(Widget w, XtPointer xsw, XtPointer data)
   Area a = sw->area;
   Int ow = a->w, oh = a->h;
 
-  qadSendv(sw, NAME_resize, 0, NULL);
-  changedUnionWindow(sw, a->x, a->y, ow, oh);
+  ServiceMode(is_service_window(sw),
+	      qadSendv(sw, NAME_resize, 0, NULL);
+	      changedUnionWindow(sw, a->x, a->y, ow, oh));
 }
 
 

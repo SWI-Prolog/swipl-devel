@@ -26,14 +26,19 @@ static status	grabPointerFrame(FrameObj fr, Bool grab, CursorObj cursor);
 static status	cursorFrame(FrameObj fr, CursorObj cursor);
 
 static status
-initialiseFrame(FrameObj fr, Name label, Name kind, DisplayObj display)
+initialiseFrame(FrameObj fr, Name label, Name kind,
+		DisplayObj display,
+		Application app)
 { if ( isDefault(kind) )
     kind = NAME_toplevel;
   if ( isDefault(display) )
     display = CurrentDisplay(NIL);
   if ( isDefault(label) )
     label = CtoName("Untitled");
+  if ( isDefault(app) )
+    app = NIL;
 
+  assign(fr, name,	    getClassNameObject(fr));
   assign(fr, label,         label);
   assign(fr, display,       display);	/* Host on which to open frame */
   assign(fr, geometry,	    DEFAULT);	/* resources */
@@ -55,6 +60,9 @@ initialiseFrame(FrameObj fr, Name label, Name kind, DisplayObj display)
   doneMessageFrame(fr, newObject(ClassMessage, RECEIVER, NAME_wmDelete, 0));
 
   fr->ws_ref = NULL;			/* Window System Reference */
+
+  if ( notNil(app) )
+    send(app, NAME_append, fr, 0);
 
   succeed;
 }
@@ -1022,6 +1030,19 @@ getPointerWindowFrame(FrameObj fr)
 }
 
 
+static status
+applicationFrame(FrameObj fr, Application app)
+{ if ( fr->application != app )
+  { if ( notNil(app) )
+      return send(app, NAME_append, fr, 0);
+    else if ( notNil(fr->application) )
+      return send(fr->application, NAME_delete, fr, 0);
+  }
+
+  succeed;
+}
+
+
 		 /*******************************
 		 *	   EVENT HANDLING	*
 		 *******************************/
@@ -1269,8 +1290,49 @@ resizeTileEventFrame(FrameObj fr, EventObj ev)
 
 
 status
+blockedByModalFrame(FrameObj fr, EventObj ev)
+{ FrameObj bfr;
+
+  if ( notNil(fr->application) &&
+       notNil(fr->application->modal) &&
+       fr->application->modal->status == NAME_open &&
+       fr->application->modal != fr )
+  { bfr = fr->application->modal;
+    goto blocked;
+  } else
+  { if ( notNil(fr->transients) )
+    { Cell cell;
+
+      for_cell(cell, fr->transients)
+      { FrameObj fr2 = cell->value;
+      
+	if ( fr2->modal == NAME_transient && fr2->status == NAME_open )
+	{ bfr = fr2;
+	  goto blocked;
+	}
+      }
+    }
+  }
+
+  fail;
+
+blocked:
+  if ( isAEvent(ev, NAME_button) )
+  { send(bfr, NAME_expose, 0);
+    if ( isUpEvent(ev) )		/* avoid multiple bells */
+      send(fr, NAME_bell, 0);
+  }    
+
+  succeed;
+}
+
+
+status
 eventFrame(FrameObj fr, EventObj ev)
-{ if ( isAEvent(ev, NAME_keyboard ) )
+{ if ( blockedByModalFrame(fr, ev) )
+    fail;
+
+  if ( isAEvent(ev, NAME_keyboard ) )
   { PceWindow sw;
 
     if ( (sw = getKeyboardFocusFrame(fr)) )
@@ -1294,6 +1356,23 @@ cursorFrame(FrameObj fr, CursorObj cursor)
 static status
 grabPointerFrame(FrameObj fr, Bool grab, CursorObj cursor)
 { ws_grab_frame_pointer(fr, grab, cursor);
+
+  succeed;
+}
+
+
+static status
+modalFrame(FrameObj fr, Name how)
+{ assign(fr, modal, how);
+
+  if ( notNil(fr->application) &&
+       fr->application->modal == fr &&
+       how != NAME_application )
+  { assign(fr->application, modal, NIL);
+  } else
+  { if ( how == NAME_application && notNil(fr->application) )
+      assign(fr->application, modal, fr);
+  }
 
   succeed;
 }
@@ -1438,7 +1517,10 @@ static char *T_busyCursor[] =
 static char *T_icon[] =
         { "image=image", "icon_label=[name]" };
 static char *T_initialise[] =
-        { "label=[name]", "kind=[{toplevel,transient,popup}]", "display=[display]" };
+        { "label=[name]",
+	  "kind=[{toplevel,transient,popup}]",
+	  "display=[display]",
+	  "application=[application]"};
 static char *T_label[] =
         { "label=name", "icon_label=[name]" };
 static char *T_postscript[] =
@@ -1457,7 +1539,9 @@ static char *T_grab_pointer[] =
 /* Instance Variables */
 
 static vardecl var_frame[] =
-{ IV(NAME_label, "name", IV_GET,
+{ IV(NAME_name, "name", IV_BOTH,
+     NAME_name, "Name of the frame"),
+  IV(NAME_label, "name", IV_GET,
      NAME_label, "Label of the frame"),
   SV(NAME_iconLabel, "name*", IV_NONE|IV_STORE, iconLabelFrame,
      NAME_icon, "Label in the iconic representation"),
@@ -1465,6 +1549,8 @@ static vardecl var_frame[] =
      NAME_icon, "Image used for the iconic representation"),
   SV(NAME_iconPosition, "point*", IV_GET|IV_STORE, iconPositionFrame,
      NAME_icon, "Position of the iconic image"),
+  SV(NAME_application, "application*", IV_GET|IV_STORE, applicationFrame,
+     NAME_organisation, "Application the frame belongs too"),
   IV(NAME_display, "display", IV_BOTH,
      NAME_organisation, "Display the frame resides on"),
   IV(NAME_border, "[int]", IV_GET,
@@ -1487,6 +1573,8 @@ static vardecl var_frame[] =
      NAME_transient, "Frame I'm transient for (i.e. support for)"),
   IV(NAME_transients, "chain*", IV_GET,
      NAME_transient, "Back pointer for transient frames"),
+  SV(NAME_modal, "{application,transient}*", IV_GET|IV_STORE, modalFrame,
+     NAME_modal, "Operate as modal window"),
   IV(NAME_returnValue, "any", IV_NONE,
      NAME_modal, "Bin for value of ->return"),
   SV(NAME_inputFocus, "bool", IV_GET|IV_STORE, inputFocusFrame,
@@ -1510,7 +1598,7 @@ static vardecl var_frame[] =
 static senddecl send_frame[] =
 { SM(NAME_convertOldSlot, 2, T_convertOldSlot, convertOldSlotFrame,
      DEFAULT, "Convert old `show' slot"),
-  SM(NAME_initialise, 3, T_initialise, initialiseFrame,
+  SM(NAME_initialise, 4, T_initialise, initialiseFrame,
      DEFAULT, "Create from label, kind and display"),
   SM(NAME_initialiseNewSlot, 1, "var=variable", initialiseNewSlotFrame,
      DEFAULT, "Initialise <-background"),

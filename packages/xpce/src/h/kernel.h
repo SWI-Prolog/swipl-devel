@@ -1003,7 +1003,7 @@ NewClass(handlergroup)
 End;
 
 #define ABSTRACT_HASH_TABLE \
-  Bool		refer;			/* Maintain references */ \
+  Name		refer;			/* Maintain references */ \
   Int		size;			/* # symbols in table */ \
   int		buckets;		/* # buckets in symbol-array */ \
   Symbol	symbols;		/* Symbol-array */
@@ -1619,8 +1619,7 @@ GLOBAL int	qsortReverse;		/* used by qsortCompareObjects() */
 #define NormaliseArea(x,y,w,h)	OrientateArea(x,y,w,h,NAME_northWest)
 
 #ifndef O_RUNTIME
-#define DEBUGGING(subject)	( PCEdebugging && \
-				  memberChain(PCEdebugSubjects, subject) )
+#define DEBUGGING(subject)	( PCEdebugging && pceDebugging(subject) )
 #define DEBUG(subject, goal)	{ if ( DEBUGGING(subject) ) \
 				  { goal; \
 				  } \

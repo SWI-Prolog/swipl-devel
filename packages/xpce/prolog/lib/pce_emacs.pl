@@ -20,14 +20,14 @@
 	   , unix/1
 	   ]).
 
-:- pce_autoload(emacs_buffer_menu, library('emacs/emacs')).
+:- pce_autoload(emacs, library('emacs/emacs')).
 
 :- pce_global(@emacs_buffers, new(dict)).
-:- pce_global(@emacs, new(emacs_buffer_menu(@emacs_buffers))).
+:- pce_global(@emacs, new(emacs(@emacs_buffers))).
 
 
 start_emacs :-
-	send(@emacs, create).
+	send(@emacs, start).
 
 
 emacs_server :-

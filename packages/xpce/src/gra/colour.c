@@ -393,7 +393,7 @@ makeClassColour(Class class)
   cloneStyleClass(class, NAME_none);
 
   ColourTable = globalObject(NAME_colours, ClassHashTable, toInt(32), 0);
-  assign(ColourTable, refer, OFF);
+  assign(ColourTable, refer, NAME_none);
 
   succeed;
 }

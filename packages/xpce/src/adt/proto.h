@@ -103,7 +103,7 @@ CharArray	getLabelDictItem(DictItem di);
 status		makeClassDictItem(Class class);
 
 /* adt/hashtable.c */
-HashTable	createHashTable(Int buckets, Bool refer);
+HashTable	createHashTable(Int buckets, Name refer);
 status		freeHashTable(HashTable ht);
 status		initialiseHashTable(HashTable ht, Int buckets);
 status		appendHashTable(HashTable ht, Any name, Any value);

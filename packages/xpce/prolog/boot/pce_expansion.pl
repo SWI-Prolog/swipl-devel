@@ -444,7 +444,8 @@ push_class(ClassName) :-
 	(   realised_class(ClassName)
 	->  get(@class, '_value', OldClassVal),
 	    asserta(attribute(ClassName, old_class_val, OldClassVal)),
-	    send(@class, assign, ClassName, global)
+	    get(@classes, member, ClassName, Class),
+	    send(@class, assign, Class, global)
 	;   true
 	).
 

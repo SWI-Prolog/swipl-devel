@@ -132,7 +132,7 @@ ws_create_frame(FrameObj fr)
     XtSetArg(args[n], XtNiconY, valInt(fr->icon_position->y)); n++;
   }
 #if O_MOTIF
-<  XtSetArg(args[n], XmNdeleteResponse, XmDO_NOTHING); n++;
+  XtSetArg(args[n], XmNdeleteResponse, XmDO_NOTHING); n++;
 #endif
 
   w = XtCreatePopupShell(
@@ -299,6 +299,19 @@ ws_attach_wm_prototols_frame(FrameObj fr)
 		 *     XT-CALLBACK HANDLING	*
 		 *******************************/
 
+static int
+service_frame(FrameObj fr)
+{ Application app = fr->application;
+
+  DEBUG(NAME_service, Cprintf("Event on %s, app %s, kind %s\n",
+			      pp(fr), pp(app),
+			      notNil(app) ? pp(app->kind) : "-"));
+
+  return (notNil(app) && app->kind == NAME_service ? PCE_EXEC_SERVICE
+						   : PCE_EXEC_USER);
+}
+
+
 static void
 destroyFrame(Widget w, FrameObj fr, XtPointer data)
 { if ( fr->ws_ref )
@@ -306,12 +319,13 @@ destroyFrame(Widget w, FrameObj fr, XtPointer data)
     fr->ws_ref = NULL;
   }
 
-  freeObject(fr);
+  ServiceMode(service_frame(fr),
+	      freeObject(fr));
 }
 
 
 static void
-xEventFrame(Widget w, FrameObj fr, XEvent *event)
+x_event_frame(Widget w, FrameObj fr, XEvent *event)
 { switch( event->xany.type )
   { case ClientMessage:
     { DEBUG(NAME_frame, Cprintf("Received client message\n"));
@@ -405,6 +419,14 @@ xEventFrame(Widget w, FrameObj fr, XEvent *event)
     }
   }
 }
+
+
+static void
+xEventFrame(Widget w, FrameObj fr, XEvent *event)
+{ ServiceMode(service_frame(fr),
+	      x_event_frame(w, fr, event));
+}
+
 
 		 /*******************************
 		 *	      CURSOR		*

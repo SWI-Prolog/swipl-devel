@@ -56,6 +56,7 @@ TileObj		getTileFrame(FrameObj fr);
 status		AppendFrame(FrameObj fr, PceWindow sw);
 status		DeleteFrame(FrameObj fr, PceWindow sw);
 PceWindow	getKeyboardFocusFrame(FrameObj fr);
+status		blockedByModalFrame(FrameObj fr, EventObj ev);
 status		eventFrame(FrameObj fr, EventObj ev);
 status		makeClassFrame(Class class);
 
@@ -103,6 +104,7 @@ void		offset_window(PceWindow sw, int *x, int *y);
 void		compute_window(PceWindow sw, int *x, int *y, int *w, int *h);
 status		frame_offset_window(Any obj, FrameObj *fr, int *X, int *Y);
 void		offset_windows(PceWindow w1, Any w2, int *X, int *Y);
+int		is_service_window(PceWindow sw);
 status		typedWindow(PceWindow sw, EventId id, Bool delegate);
 status		inputFocusWindow(PceWindow sw, Bool val);
 status		keyboardFocusWindow(PceWindow sw, Graphical gr);
@@ -126,3 +128,7 @@ FrameObj	getFrameWindow(PceWindow sw, Bool create);
 status		flushWindow(PceWindow sw);
 status		flashWindow(PceWindow sw, Area a, Int time);
 status		makeClassWindow(Class class);
+
+/* win/application.c */
+void		resetApplications(void);
+status		makeClassApplication(Class class);

@@ -213,8 +213,8 @@ saveInFileObject(Any obj, FileObj file)
   objects_saved = classes_saved = save_nesting = 0;
   storeCharpFile(file, SaveMagic);
   storeWordFile(file, (Any) SAVEVERSION);
-  saveTable = createHashTable(toInt(256), OFF);
-  saveClassTable = createHashTable(toInt(256), OFF);
+  saveTable = createHashTable(toInt(256), NAME_none);
+  saveClassTable = createHashTable(toInt(256), NAME_none);
   if ( candidateSaveRelations )
     clearChain(candidateSaveRelations);
   result = (storeObject(obj, file) &&
@@ -386,7 +386,7 @@ storeSlotObject(Instance inst, Variable var, FileObj file)
   { if ( isSavedObject(val) )
       return storeObject(val, file);
     if ( !saveNilRefTable )
-      saveNilRefTable = createHashTable(toInt(32), OFF);
+      saveNilRefTable = createHashTable(toInt(32), NAME_none);
     appendHashTable(saveNilRefTable, inst, var);
     storeObject(NIL, file);
   } 
@@ -645,8 +645,8 @@ getObjectFile(FileObj f)
     errorPce(f, NAME_newSaveVersion,
 	     toInt(restoreVersion), toInt(SAVEVERSION));
 
-  savedClassTable = createHashTable(toInt(128), OFF);
-  restoreTable = createHashTable(toInt(256), ON);
+  savedClassTable = createHashTable(toInt(128), NAME_none);
+  restoreTable = createHashTable(toInt(256), NAME_none);
   if ( restoreMessages )
     clearChain(restoreMessages);
   if ( (result = loadObject(fd)) )

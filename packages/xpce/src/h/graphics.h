@@ -680,12 +680,23 @@ NewClass(display_manager)
 End;
   
 
+NewClass(application)
+  ABSTRACT_VISUAL
+  Name		name;			/* name of the application */
+  Chain		members;		/* its member frames */
+  Name		kind;			/* {user,service} */
+  FrameObj	modal;			/* Modal frame */
+End;
+
+
 NewClass(frameobj)
   ABSTRACT_VISUAL
+  Name		name;			/* Name of the frame */
   Name		label;			/* Label of the frame */
   Name		icon_label;		/* Label of the icon */
   Image		icon_image;		/* Image of the icon */
   Point		icon_position;		/* Position of the icon */
+  Application	application;		/* Application it belongs too */
   DisplayObj	display;		/* Display it is displayed on */
   Int		border;			/* Border width */
   Any		background;		/* Frames background */
@@ -697,6 +708,7 @@ NewClass(frameobj)
   Name		kind;			/* Kind of frame */
   FrameObj	transient_for;		/* Sub frame of who? */
   Chain		transients;		/* Sub frames */
+  Name		modal;			/* Modal operation */
   Any		return_value;		/* ->return saved value */
   Bool		input_focus;		/* @on: focus for keyboard events */
   Name		status;			/* {unmapped,iconic,open} */

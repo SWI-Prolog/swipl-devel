@@ -260,16 +260,26 @@ file(F, Exists:exists=[bool], Ext:extension=[name],
 	),
 	send(F, show, @on),
  	(   get(@event, '_value', @nil)		% no current event
-	->  true
-	;   send(F, transient_for, @event?window)
+	->  send(F, application, @nil)
+	;   get(@event?window, frame, MainFrame),
+	    (	get(MainFrame, application, App),
+		App \== @nil
+	    ->  send(F, application, App),
+	        send(F, modal, application)
+	    ;	send(F, modal, transient)
+	    ),
+	    send(F, transient_for, MainFrame)
 	),
 	get(F, confirm, File),
 	send(F, transient_for, @nil),
+	send(F, application, @nil),
 	send(F, show, @off),
 	File \== @nil.
 
 :- pce_end_class.
 
+/*
 test :-
 	get(@finder, file, File),
 	format('File = ~w~n', File).
+*/

@@ -107,6 +107,7 @@ Graphical	getRootGraphical(Graphical gr);
 PceWindow	getWindowGraphical(Graphical gr);
 FrameObj	getFrameGraphical(Graphical gr);
 DisplayObj	getDisplayGraphical(Graphical gr);
+Application	getApplicationGraphical(Graphical gr);
 Device		getCommonDeviceGraphical(Graphical gr1, Graphical gr2);
 status		changedAreaGraphical(Any obj, Int x, Int y, Int w, Int h);
 status		changedImageGraphical(Any obj, Int x, Int y, Int w, Int h);

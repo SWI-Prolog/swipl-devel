@@ -644,12 +644,13 @@ appendDevice(Device dev, Graphical gr)
 { appendChain(dev->graphicals, gr);
   assign(gr, device, dev);
   if ( notNil(gr->request_compute) )
-    appendChain(dev->recompute, gr);
+  { appendChain(dev->recompute, gr);
+    if ( isNil(dev->request_compute) )
+      requestComputeDevice(dev, DEFAULT);
+  }
 
   if ( gr->displayed == ON )
-  { assign(gr, displayed, OFF);
     displayedGraphicalDevice(dev, gr, ON);
-  }
 
   qadSendv(gr, NAME_reparent, 0, NULL);
 
@@ -686,32 +687,19 @@ eraseDevice(Device dev, Graphical gr)
 
 status
 displayedGraphicalDevice(Device dev, Graphical gr, Bool val)
-{ if ( gr->displayed != val )
-  { int solid = onFlag(gr, F_SOLID);
+{ if ( onFlag(gr, F_SOLID) )
+  { clearFlag(gr, F_SOLID);
+    changedEntireImageGraphical(gr);
+    setFlag(gr, F_SOLID);
+  } else
+    changedEntireImageGraphical(gr);
 
-    if ( solid )
-      clearFlag(gr, F_SOLID);
+  if ( instanceOfObject(gr, ClassDevice) )
+    updateConnectionsDevice((Device) gr, dev->level);
+  else
+    updateConnectionsGraphical(gr, dev->level);
 
-    if ( val == ON )
-    { assign(gr, displayed, val);
-      changedEntireImageGraphical(gr);
-    } else
-    { changedEntireImageGraphical(gr);
-      assign(gr, displayed, val);
-    }
-
-    if ( solid )
-      setFlag(gr, F_SOLID);
-
-    if ( instanceOfObject(gr, ClassDevice) )
-      updateConnectionsDevice((Device) gr, dev->level);
-    else
-      updateConnectionsGraphical(gr, dev->level);
-
-    requestComputeDevice(dev, DEFAULT);		/* TBD: ON: just union */
-  }
-
-  succeed;
+  return requestComputeDevice(dev, DEFAULT); /* TBD: ON: just union */
 }
 
 		/********************************
@@ -1184,7 +1172,7 @@ layoutDialogDevice(Device d, Size gap, Size bb, Size border)
     send(cell->value, NAME_layoutDialog, 0);
 
   if ( !PlacedTable )
-    PlacedTable = createHashTable(toInt(32), OFF);
+    PlacedTable = createHashTable(toInt(32), NAME_none);
   else
     clearHashTable(PlacedTable);	
 

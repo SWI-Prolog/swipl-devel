@@ -43,7 +43,7 @@ emacs_tag(+Symbol, -File, -LineNo)
 :- pce_global(@emacs_tag_file_regex,
 	      new(regex(string('\f\n\\([^,]+\\),\\sd+$')))).
 :- pce_global(@emacs_tag_line_regex,
-	      new(regex(string('.*%c\\(\\sd+\\)', 127)))).
+	      new(regex(string('.*\\(\\sd+\\),\\sd+$')))).
 
 emacs_tag(Name, File, LineNo) :-
 	tag_string(String), !,
@@ -51,6 +51,7 @@ emacs_tag(Name, File, LineNo) :-
 	get(Re, quote, Name, QName),
 	(   send(Re, pattern, string('\\b%s\\b', QName))
 	;   send(Re, pattern, string('\\b%s', QName))
+	;   send(Re, pattern, string('\\b%s\01', QName))
 	),
 	get(Re, search, String, Start), !,
 	send(@emacs_tag_file_regex, search, String, Start, 0),

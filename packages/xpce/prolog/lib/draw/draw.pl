@@ -43,10 +43,11 @@ as SWI-Prolog will  inherit the PCE system  predicates from the module
 With this declaration we load the other Prolog modules of PceDraw.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-:- consult([ gesture				  % Gestures
-	   , shapes				  % Drawable shapes
-	   , canvas				  % Drawing plain
-	   , menu			  	  % Icon Menu
+:- consult([ gesture			% Gestures
+	   , shapes			% Drawable shapes
+	   , canvas			% Drawing plain
+	   , menu			% Icon Menu
+	   , undo			% Undo Recording
 	   ]).
 
 
@@ -290,6 +291,9 @@ fill_dialog(Draw, D:dialog) :->
 	send(MB, append, new(E, popup(edit))),
 	send(MB, append, new(S, popup(settings))),
 
+	new(UM, message(@arg1?frame, select_mode)),
+	send_list([F, P, E, S], update_message, UM),
+
 	send_list(F, append,
 		  [ menu_item(about,
 			      message(Draw, about))
@@ -357,8 +361,12 @@ fill_dialog(Draw, D:dialog) :->
 			      @default, @on,
 			      Menu?modified == @on)
 		  ]),
+	new(UndoBuffer, Canvas?undo_buffer),
 	send_list(E, append,
-		  [ menu_item(expose,
+		  [ menu_item(undo,
+			      message(UndoBuffer, open, Draw),
+			      condition := message(UndoBuffer, can_undo))
+		  , menu_item(expose,
 			      message(Canvas, expose_selection),
 			      @default, @off,
 			      NonEmptySelection)
@@ -401,7 +409,8 @@ fill_dialog(Draw, D:dialog) :->
 			      message(Canvas, import_frame),
 			      @default, @on)
 		  , menu_item(clear,
-			      message(Canvas, clear, @on),
+			      and(message(Draw, select_mode),
+				  message(Canvas, clear, @on)),
 			      @default, @off,
 			      NonEmptyDrawing)
 		  ]),
@@ -541,6 +550,14 @@ implement mode switches differently.  Note  that  through <-frame  the
 <menu has generic access to the tool it is part of.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+select_mode(Draw) :->
+	"Switch to select mode"::
+	(   get(Draw?canvas, mode, select)
+	->  true
+	;   send(Draw?menu, activate_select)
+	).
+
+
 mode(Draw, Mode:name, Cursor:cursor) :->
 	"Switch the mode"::
 	send(Draw?canvas, mode, Mode, Cursor).
@@ -563,7 +580,7 @@ package.
 about(_Draw) :->
 	"Print `about' message"::
 	send(@display, inform, '%s\n\n%s\n%s\n',
-	     'PceDraw version 2.0',
+	     'PceDraw version 3.0',
 	     'Author: Jan Wielemaker',
 	     'E-mail: jan@swi.psy.uva.nl').
 

@@ -84,7 +84,7 @@ void
 initGlobals()
 { struct global *g = globals;
 
-  GlobalTable = createHashTable(toInt(32), OFF);
+  GlobalTable = createHashTable(toInt(32), NAME_none);
   for(; g->reference; g++)
     appendHashTable(GlobalTable, g->reference, g->classname);
 }

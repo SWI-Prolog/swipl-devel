@@ -90,7 +90,7 @@ eventPopupGesture(PopupGesture g, EventObj ev)
   if ( eventGesture(g, ev) )
     succeed;
 
-  if ( isAEvent(ev, NAME_keyboard) )
+  if ( g->status == NAME_active && isAEvent(ev, NAME_keyboard) )
   { Name key;
 
     TRY(updatePopupGesture(g, ev));
