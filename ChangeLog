@@ -4,6 +4,9 @@
 VERSION 3.3.0 (release-3)
 =========================
 
+  * PORT: Win32: renamed console.dll to plterm.dll to avoid name-conflict
+    with Windows 2000 system DLL.
+
   * PORT: HTML Manual: renamed Index.html to DocIndex.html and place
     the titlepage in index.html.  Should fix problems with systems 
     with case-insensitive files and without links (e.i. Windows).
