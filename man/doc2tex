@@ -47,6 +47,7 @@ sub printTeX
   s/{=\.\.}/{\\Suniv}/g;
   s/{=:=}/{\\Saeq}/g;
   s/{=<}/{\\Sle}/g;
+  s/{<=}/{\\Sel}/g;
   s/{==}/{\\Sequal}/g;
   s/{=@=}/{\\Sstructeq}/g;
   s/{\\=@=}/{\\Sstructneq}/g;

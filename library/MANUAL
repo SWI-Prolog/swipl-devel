@@ -13,7 +13,7 @@
                          SSWWII--PPrroolloogg 55..55
                         RReeffeerreennccee MMaannuuaall
 
-            _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _5_._5_._0_, _D_e_c_e_m_b_e_r _2_0_0_4
+            _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _5_._5_._1_, _D_e_c_e_m_b_e_r _2_0_0_4
 
                          _J_a_n _W_i_e_l_e_m_a_k_e_r
                        jan@swi.psy.uva.nl
@@ -604,7 +604,7 @@ Version 5.4 consolidates the 5.3.x beta series.
 11..66..1199 VVeerrssiioonn 55..55 RReelleeaassee NNootteess
 
 Version  5.5.x provides  support  for  _w_i_d_e _c_h_a_r_a_c_t_e_r_s  with  UTF-8  and
-UNICODE  I/O. This  version will  also incorporate  clp(r) by  Christian
+UNICODE  I/O.  This  version  also  incorporates   clp(r)  by  Christian
 Holzbaur, brought to SWI-Prolog by Tom Schrijver and Leslie De Koninck.
 
 
@@ -15406,11 +15406,9 @@ bbbb__iinnff((_+_i_n_t_s_, _+_E_x_p_r_e_s_s_i_o_n_, _-
 
 
 dduummpp((_+_T_a_r_g_e_t_, _+_N_e_w_v_a_r_s_, _-_C_o_d_e_d_A_n_s_w_e_r))
-    Returns  the constraints  on _T_a_r_g_e_t  in the  list _C_o_d_e_d_A_n_s_w_e_r  where
-    all  variables  of _T_a_r_g_e_t  have  veen replaced  by  _N_e_w_V_a_r_s.    This
-    operation  does not change the constraint store.  This  is currently
-    the  mechanism  to use  if you  want a  readable  projection of  the
-    constraints.  E.g. in
+    Returns the constraints  on _T_a_r_g_e_t in the list _C_o_d_e_d_A_n_s_w_e_r where all
+    variables  of _T_a_r_g_e_t have veen replaced by _N_e_w_V_a_r_s.   This operation
+    does not change the constraint store.  E.g. in
 
     dump([X,Y,Z],[x,y,z],Cons)
 
@@ -15493,8 +15491,8 @@ axioms.  They are given in table 11.2.
      | X =max(Y; Z) |Y and Z are ground    |X = max(4,3)          |
      |_X_=abs(Y_)___|Y_is_ground___________|X_=_abs(-7)___________|_
      | X =pow(Y; Z) |X and Y are ground    |8 = 2 ^ Z             |
-     | X =exp(Y;ZZ) |X and Z are ground    |8 = Y ^ 3             |
-     |_X_=Y________|Y_and_Z_are_ground_____|X_=_2_^_3_____________|_
+     | X =exp(Y; Z) |X and Z are ground    |8 = Y ^ 3             |
+     |_X_=Y__^_Z___|Y_and_Z_are_ground_____|X_=_2_^_3_____________|_
 
      | X =sin(Y )   X|is ground            |1 = sin(Y)            |
      | X =cos(Y )   Y|is ground            |X = sin(1.5707)       |

@@ -102,7 +102,7 @@ result in an exception.
 <Constraint> \isa <Expression> {<} <Expression>		& less than \\
 	     \ora <Expression> {>} <Expression>		& greater than \\
 	     \ora <Expression> {=<} <Expression>	& less or equal \\
-	     \ora <=(<Expression>, <Expression>)	& less or equal \\
+	     \ora {<=}(<Expression>, <Expression>)	& less or equal \\
 	     \ora <Expression> {>=} <Expression>	& greater or equal \\
 	     \ora <Expression> {=\=} <Expression>	& not equal \\
 	     \ora <Expression> =:= <Expression>		& equal \\
@@ -182,7 +182,7 @@ $X = abs(Y)$   & Y is ground			& X = abs(-7) \\
 \hline
 $X = pow(Y,Z)$ & X and Y are ground		& 8 = 2 {^} Z \\
 $X = exp(Y,Z)$ & X and Z are ground		& 8 = Y {^} 3 \\
-$X = Y ^ Z$    & Y and Z are ground		& X = 2 {^} 3 \\
+$X = Y$ {^} $Z$  & Y and Z are ground		& X = 2 {^} 3 \\
 \hline
 $X = sin(Y)$	& X is ground			& 1 = sin(Y) \\
 $X = cos(Y)$	& Y is ground			& X = sin(1.5707) \\
