@@ -153,7 +153,15 @@ typedef struct
 #define PL_TYPE_EXT_COMPOUND	(10)	/* External (inlined) functor */
 #define PL_TYPE_EXT_FLOAT	(11)	/* float in standard-byte order */
 
-static void
+#define addUnalignedBuf(b, ptr, type) \
+	do \
+	{ if ( (b)->top + sizeof(type) > (b)->max ) \
+	    growBuffer((Buffer)b, sizeof(type)); \
+	  memcpy((b)->top, ptr, sizeof(type)); \
+	  (b)->top += sizeof(type); \
+	} while(0)
+
+static inline void
 addOpCode(CompileInfo info, int code)
 { addBuffer(&info->code, code, uchar);
   DEBUG(9, Sdprintf("Added %d, now %d big\n",
@@ -254,25 +262,14 @@ addFloat(CompileInfo info, void *val)
   } else
   { addOpCode(info, PL_TYPE_FLOAT);
 
-#ifdef NON_ALIGNED_ACCESS
-    { double f = *(double *)val;
-      addBuffer(&info->code, f, double);
-    }
-#else
-    addMultipleBuffer(&info->code, val, sizeof(double), char);
-#endif
+    addUnalignedBuf(&info->code, val, double);
   }
 }
 
 
-static void
+static inline void
 addWord(CompileInfo info, word w)
-{
-#ifdef NON_ALIGNED_ACCESS
-  addBuffer(&info->code, w, word);
-#else
-  addMultipleBuffer(&info->code, (char *)&w, sizeof(w), char);
-#endif
+{ addUnalignedBuf(&info->code, &w, word);
 }
 
 
@@ -339,7 +336,7 @@ right_recursion:
     { long n = info->nvars++;
 
       *p = (n<<7)|TAG_ATOM|STG_GLOBAL;
-      addBuffer(&info->vars, p, Word);
+      addUnalignedBuf(&info->vars, &p, Word);
       addOpCode(info, PL_TYPE_VARIABLE);
       addSizeInt(info, n);
 
@@ -595,17 +592,13 @@ other stacks as scratch-area.
 
 #define fetchBuf(b, var, type) \
 		do \
-		{ *var = *((type *)(b)->data); \
+		{ memcpy(var, (b)->data, sizeof(type)); \
 		  (b)->data += sizeof(type); \
 		} while(0)
 #define fetchMultipleBuf(b, var, times, type) \
 		do \
-		{ type *_src = (type *)b->data; \
-		  type *_dst = var; \
-		  int _len = (times); \
-		  (b)->data += _len * sizeof(type); \
-		  while(--_len >= 0) \
-		    *_dst++ = *_src++; \
+		{ memcpy(var, (b)->data, times*sizeof(type)); \
+ 		  (b)->data +=  times*sizeof(type); \
 		} while(0)
 #define skipBuf(b, type) \
 		((b)->data += sizeof(type))
@@ -658,11 +651,7 @@ static word
 fetchWord(CopyInfo b)
 { word val;
 
-#ifdef NON_ALIGNED_ACCESS
   fetchBuf(b, &val, word);
-#else
-  fetchMultipleBuf(b, (char *)&val, sizeof(word), char);
-#endif
 
   return val;
 }
@@ -674,12 +663,7 @@ Fetch a float.  Note that the destination might not be double-aligned!
 
 static void
 fetchFloat(CopyInfo b, void *f)
-{
-#ifdef NON_ALIGNED_ACCESS
-  fetchMultipleBuf(b, f, WORDS_PER_DOUBLE, word);
-#else
-  fetchMultipleBuf(b, f, sizeof(double), char);
-#endif
+{ fetchBuf(b, f, double);
 }
 
 
