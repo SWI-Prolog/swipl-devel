@@ -259,8 +259,10 @@ openFrame(FrameObj fr, Point pos, Bool grab, Bool normalise)
     }
 
     setFrame(fr, x, y, w, h);  
-  }					/* But in Windows `do-it-yourself' */
-#ifdef WIN32
+  } else if ( notNil(fr->geometry) )
+  { ws_x_geometry_frame(fr, fr->geometry);
+  }					
+#ifdef WIN32				/* But in Windows `do-it-yourself' */
   else if ( notNil(fr->transient_for) )
   { Area pa = fr->transient_for->area;
     int xb, yb, ycap;
