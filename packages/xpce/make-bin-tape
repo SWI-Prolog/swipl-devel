@@ -8,8 +8,8 @@ endif
 set arch = $1
 set version = `cat VERSION`
 set dir = `pwd`
-set binout = $dir/xpcebin.tgz
-set libout = $dir/xpcelib.tgz
+set binout = $dir/xpce-$version-bin.tgz
+set libout = $dir/xpce-$version-lib.tgz
 set compress = "gzip"
 
 if ( ! -d $dir ) mkdir $dir
@@ -38,15 +38,15 @@ if ( ! $?binonly ) then
 	xpce-$version/licence \
 	xpce-$version/INFO xpce-$version/README \
 	xpce-$version/install xpce-$version/src/{load,xpce}.pl \
-	xpce-$version/include xpce-$version/C++/demo/{Makefile,README} \
-	xpce-$version/C++/demo/*.C xpce-$version/C++/demo/*.bm \
+	xpce-$version/include xpce-$version/CXX/demo/{Makefile,README} \
+	xpce-$version/CXX/demo/*.C xpce-$version/CXX/demo/*.bm \
 	xpce-$version/STAMP xpce-$version/VERSION xpce-$version/ChangeLog \
 	xpce-$version/src/{unx/client.c,h/interface.h} \
 	xpce-$version/pl/src/{Makefile,mlist,dump} \
 	xpce-$version/pl/*.c xpce-$version/prolog/c \
 	xpce-$version/Pce xpce-$version/bitmaps xpce-$version/postscript \
 	xpce-$version/prolog/{boot,lib} \
-	xpce-$version/pl/{library,boot,include} \
+	xpce-$version/pl/{load.pl,library,boot,include} \
 	xpce-$version/man/reference \
 	xpce-$version/man/info \
 	| $compress > $libout
