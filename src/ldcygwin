@@ -24,6 +24,9 @@ while [ $done = false ]; do
         shift
 	shift
 	;;
+    -export-dynamic)
+	shift
+	;;
     -*) usage
         ;;
     *)  done=true

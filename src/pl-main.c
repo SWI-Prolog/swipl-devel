@@ -888,7 +888,6 @@ arch()
   return TRUE;
 }
 
-
 static int
 runtime_vars()
 { Sprintf("CC=\"%s\";\n"
@@ -896,7 +895,9 @@ runtime_vars()
 	  "PLARCH=\"%s\";\n"
 	  "PLLIBS=\"%s\";\n"
 	  "PLLDFLAGS=\"%s\";\n"
+#ifdef SO_EXT
 	  "PLSOEXT=\"%s\";\n"
+#endif
 	  "PLVERSION=\"%d\";\n"
 #if defined(HAVE_DLOPEN) || defined(HAVE_SHL_LOAD)
 	  "PLSHARED=\"yes\";\n"
@@ -914,7 +915,9 @@ runtime_vars()
 	  ARCH,
 	  C_LIBS,
 	  C_LDFLAGS,
+#ifdef SO_EXT
 	  SO_EXT,
+#endif
 	  PLVERSION);
 
   return TRUE;

@@ -41,11 +41,17 @@
 /* Define to prepare for multi-threading */
 #undef _REENTRANT
 
+/* Define if socket gives errors using h_error instead of errno */
+#undef HAVE_H_ERRNO
+
 /* Define if you have the setsid function.  */
 #undef HAVE_SETSID
 
 /* Define if you have the strerror function.  */
 #undef HAVE_STRERROR
+
+/* Define if you have the <alloca.h> header file.  */
+#undef HAVE_ALLOCA_H
 
 /* Define if you have the <fcntl.h> header file.  */
 #undef HAVE_FCNTL_H

@@ -528,15 +528,17 @@ usage()
 	  "       -v               verbose\n"
 	  "       -f               fake (do not run any commands)\n"
 	  "       -g               Compile/link for debugging\n"
-	  "       -c               Only compile C/C++ files, do not link\n"
 	  "\n"
 	  "       -pl prolog       Prolog to use\n"
 	  "       -ld linker       link editor to use\n"
           "       -cc compiler     compiler for C source files\n"
 	  "       -c++ compiler    compiler for C++ source files\n"
 	  "\n"
+	  "       -c               only compile C/C++ files, do not link\n"
 	  "       -nostate         just relink the kernel\n"
 	  "       -shared          link to shared object or DLL\n"
+	  "       -fpic            compile small position-independent code\n"
+	  "       -fPIC            compile large position-independent code\n"
 	  "\n"
 	  "       -pl-options,...  Add options for Prolog\n"
 	  "       -ld-options,...  Add options for linker\n"
@@ -546,6 +548,9 @@ usage()
 	  "       -toplevel goal   (Prolog) abort toplevel goal\n"
 	  "       -initfile file   (Prolog) profile file to load\n"
 	  "       -class class     {runtime,kernel,development}\n"
+	  "\n"
+	  "       -O*              Optimization passed to compiler\n"
+	  "       -W*              Warning options passed to compiler\n"
 	  "\n"
 	  "       -Dmacro          Define macro (C/C++)\n"
 	  "       -Umacro          Undefine macro (C/C++)\n"
@@ -585,8 +590,14 @@ parseOptions(int argc, char **argv)
 #endif
       appendArgList(&ldoptions, OPT_DEBUG);
 #ifdef WIN32
-	  pllib = LIB_PL_DEBUG;
+      pllib = LIB_PL_DEBUG;
 #endif
+    } else if ( strprefix(opt, "-O") )		/* -O* */
+    { appendArgList(&coptions, opt);
+      appendArgList(&cppoptions, opt);
+    } else if ( strprefix(opt, "-W") )		/* -W* */
+    { appendArgList(&coptions, opt);
+      appendArgList(&cppoptions, opt);
     } else if ( streq(opt, "-nostate") ) 	/* -nostate */
     { nostate = TRUE;
     } else if ( streq(opt, "-shared") )		/* -shared */
@@ -604,6 +615,16 @@ parseOptions(int argc, char **argv)
 #ifdef SO_pic
       appendArgList(&coptions, SO_pic);
 #endif
+#endif
+    } else if ( streq(opt, "-fpic") )		/* -fpic */
+    {
+#ifdef SO_pic
+      appendArgList(&coptions, SO_pic);
+#endif
+    } else if ( streq(opt, "-fPIC") )		/* -fPIC */
+    {
+#ifdef SO_PIC
+      appendArgList(&coptions, SO_PIC);
 #endif
     } else if ( streq(opt, "-o") ) 		/* -o out */
     { if ( argc > 1 )
@@ -675,11 +696,11 @@ parseOptions(int argc, char **argv)
     } else if ( strprefix(opt, "-I") )		/* -I<include> */
     { appendArgList(&includedirs, &opt[2]);
     } else if ( strprefix(opt, "-D") )		/* -D<def> */
-    { appendArgList(&coptions, &opt[2]);
-      appendArgList(&cppoptions, &opt[2]);
+    { appendArgList(&coptions, opt);
+      appendArgList(&cppoptions, opt);
     } else if ( strprefix(opt, "-U") )		/* -U<def> */
-    { appendArgList(&coptions, &opt[2]);
-      appendArgList(&cppoptions, &opt[2]);
+    { appendArgList(&coptions, opt);
+      appendArgList(&cppoptions, opt);
     } else if ( strprefix(opt, "-L") )		/* -L<libdir> */
     { appendArgList(&libdirs, &opt[2]);
     } else if ( streq(opt, "-lccmalloc") )	/* -lccmalloc */
@@ -1033,6 +1054,9 @@ void
 linkSharedObject()
 { char soname[MAXPATHLEN];
   char *soout;
+
+  if ( !soext )
+    soext = "so";			/* or give error? */
 
   if ( file_name_extension(out) )
   { soout = out;

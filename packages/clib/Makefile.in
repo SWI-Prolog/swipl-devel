@@ -35,7 +35,7 @@ INSTALL_PROGRAM=@INSTALL_PROGRAM@
 INSTALL_DATA=@INSTALL_DATA@
 
 LIBPL=		unix.pl socket.pl cgi.pl crypt.pl memfile.pl
-TARGETS=	unix.so socket.so cgi.so crypt.so memfile.so
+TARGETS=	unix.@SO@ socket.@SO@ cgi.@SO@ crypt.@SO@ memfile.@SO@
 
 UNXOBJ=		error.o process.o
 SOCKOBJ=	error.o socket.o

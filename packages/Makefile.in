@@ -39,15 +39,22 @@ PLINCL=$(shell dirname `pwd`)/include
 PLSHARED=@PLSHARED@
 INSTALL=@INSTALL@
 INSTALL_DATA=@INSTALL_DATA@
+SO=@SO@
+BUILDDIR=@BUILDDIR@
 
 # How to run configure.  We pass the information required from SWI-Prolog
 # in the environment.  All configure scripts in the packages are designed
 # to trust the environment if they find $PLINCL.  Otherwise they run Prolog
 # to find the required parameters.
+#
+# BUILDDIR passes the relative location of the directory SWI-Prolog was
+# build (i.e. linux, solaris, ...)  This means packages can find information
+# on the installed Prolog using ../../$BUILDDIR
 
 CONFIG=	env PL="$(PL)" PLBASE="$(PLBASE)" PLARCH="$(PLARCH)" \
 	    PLLIBS="$(PLLIBS)" PLLDFLAGS="$(PLLDFLAGS)" \
 	    PLINCL="$(PLINCL)" PLSHARED="$(PLSHARED)" \
+	    PLSOEXT="$(SO)" BUILDDIR="$(BUILDDIR)" \
 	    ./configure $(CNFG) --prefix=$(prefix)
 
 all:	objects

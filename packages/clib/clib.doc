@@ -33,12 +33,9 @@ library provides access to Unix password encryption and finally, the
 \pllib{socket} library provides access to TCP/IP communication.
 
 Currently only \pllib{socket} and \pllib{cgi} are available on
-MS-Windows based systems. The \pllib{unix} is very Unix specific,
-though it might be possible to compile it using the Cygnus win32
-tool-chain.  The \pllib{crypt} could be ported using one of the
-available open-source implementations of the crypt() function, but
-as it implements Unix password encryption it isn't worth much on
-non-Unix systems.
+the default MS-Windows distribution.  The \pllib{unix} and
+\pllib{crypt} libraries can be used if the whole SWI-Prolog suite
+is compiled using \url[Cywin]{http://www.cygwin.com}.
 \end{abstract}
 
 \vfill
@@ -138,12 +135,16 @@ pipe they do not use. Then they use the remaining stream to communicate.
 Here is a simple example:
 
 \begin{code}
-pipe_demo(Result) :-
+:- use_module(library(unix)).
+
+fork_demo(Result) :-
 	pipe(Read, Write),
 	fork(Pid),
 	(   Pid == child
 	->  close(Read),
-	    format(Write, '~w.~n', [hello(world)]),
+	    format(Write, '~q.~n',
+	           [hello(world)]),
+	    flush_output(Write),
 	    halt
 	;   close(Write),
 	    read(Read, Result),

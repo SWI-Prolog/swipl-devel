@@ -26,6 +26,8 @@ AC_SUBST(BOOTFILE)
 AC_SUBST(PLLIB)
 AC_SUBST(LDEXE)
 AC_SUBST(EXTRAHDR)
+AC_SUBST(SO)
+AC_SUBST(BUILDDIR)
 
 if test ! -z "$CIFLAGS"; then
     CFLAGS="$CIFLAGS $CFLAGS"
@@ -47,6 +49,21 @@ dnl ****************************************************************
 true()
 { test a = a
 }
+
+dnl ****************************************************************
+dnl Find the build directory, needed for building the packages
+dnl ****************************************************************
+
+AC_MSG_CHECKING(builddir)
+wd=`pwd`
+BUILDDIR=`basename $wd`
+touch conftest.unique
+if test -r ../$BUILDDIR/conftest.unique; then
+    AC_MSG_RESULT($BUILDDIR)
+else
+    AC_MSG_RESULT(no)
+    BUILDDIR=src			dnl assume this
+fi
 
 AC_PROG_CC
 LDEXE="$CC"
@@ -326,16 +343,20 @@ dnl On SCO, dlopen is in libc.so and requires dlfcn.h to compile.  Thanks
 dnl to Tamas Laufer.
 
 if test ! "$ac_cv_func_dlopen" = "yes"; then
+AC_CHECK_HEADERS(dlfcn.h)
 AC_MSG_CHECKING("dlopen in libc")
 AC_TRY_COMPILE(
 [
+#ifdef HAVE_DLFCN_H
 #include <dlfcn.h>
+#endif
 #ifndef RTLD_NOW
 #define RTLD_NOW 0
 #endif
 ],
 [ dlopen("foobar", RTLD_NOW);
-], AC_DEFINE(HAVE_DLOPEN)
+], ac_cv_func_dlopen=yes
+   AC_DEFINE(HAVE_DLOPEN)
    AC_MSG_RESULT(yes),
    AC_MSG_RESULT(no))
 fi
@@ -859,6 +880,8 @@ case "$ARCH" in
   *cygwin*)
 	SO_EXT="dll"
 	SO_LD="dllwrap"
+	SO_pic=""
+	SO_PIC=""
 	;;
   *)
 	;;
@@ -869,6 +892,7 @@ AC_DEFINE_UNQUOTED(SO_LD,      "$SO_LD")
 AC_DEFINE_UNQUOTED(SO_LDFLAGS, "$SO_LDFLAGS")
 AC_DEFINE_UNQUOTED(SO_pic,     "$SO_pic")
 AC_DEFINE_UNQUOTED(SO_PIC,     "$SO_PIC")
+SO=SO_EXT
 
 fi	dnl dlopen or shl_load
 

@@ -50,7 +50,11 @@ wait_for_input/3.
 #include <sys/socket.h>
 #include <netdb.h>
 #include <netinet/in.h>
+#ifdef HAVE_H_ERRNO
 extern int h_errno;
+#else
+#define h_errno errno
+#endif
 #define closesocket(n) close((n))	/* same on Unix */
 #endif
 #include <assert.h>
@@ -155,12 +159,13 @@ tcp_unify_socket(term_t Socket, int id)
 		 *	      ERRORS		*
 		 *******************************/
 
-struct code_map {
-    int	code;
-    const char *string;
-};
+#ifdef HAVE_H_ERRNO
+typedef struct
+{ int code;
+  const char *string;
+} error_codes;
 
-static struct code_map h_errno_codes[] = {
+static error_codes h_errno_codes[] = {
 #ifdef HOST_NOT_FOUND
     { HOST_NOT_FOUND, "Host not found" },
 #endif
@@ -179,11 +184,18 @@ static struct code_map h_errno_codes[] = {
     {0, NULL}
 };
 
+#else /*HAVE_H_ERRNO*/
+#define h_errno_codes NULL
+typedef void * error_codes;
+#endif /*HAVE_H_ERRNO*/
+
 static int
-tcp_error(int code, struct code_map *map)
+tcp_error(int code, error_codes *map)
 { const char *msg;
-  static char msgbuf[100];
   term_t except = PL_new_term_ref();
+
+#ifdef HAVE_H_ERRNO
+  static char msgbuf[100];
 
   if ( map )
   { while( map->code && map->code != code )
@@ -195,6 +207,7 @@ tcp_error(int code, struct code_map *map)
       msg = msgbuf;
     }
   } else
+#endif
     msg = strerror(code);
 
   PL_unify_term(except,

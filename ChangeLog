@@ -1,5 +1,15 @@
 			SWI-Prolog ChangeLog
 			====================
+
+  * PORT/ADDED: Started moving the trouble of compiling and linking
+    foreign packages into plld.  It now supports the following to
+    generate x.so, x.dll, ... from the given object files.
+
+    	plld -shared -o x object-file ...
+
+  * PORT: Lots of stuff to make SWI-Prolog compile under Cygwin, the
+    open source POSIX layer for Windows.  Added README.cygwin for
+    details.
 			
 VERSION 4.0.7
 =============

@@ -6,3 +6,6 @@
 
 /* Define to prepare for multi-threading */
 #undef _REENTRANT
+
+/* Define if socket gives errors using h_error instead of errno */
+#undef HAVE_H_ERRNO

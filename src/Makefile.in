@@ -393,7 +393,7 @@ distclean:	clean
 		rm -f ../library/INDEX.pl
 		rm -f Makefile config.h config.status parms.h
 		rm -f swipl swiplbin pl.prc
-		rm -f pl plld pl.1
+		rm -f pl plld pl.1 pl.exe plld.exe libplimp.a $(DEF)
 		rm -f config.log config.cache
 
 realclean:	clean

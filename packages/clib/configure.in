@@ -95,7 +95,6 @@ fi
 AC_CHECK_PROGS(MAKE, gmake make, "make")
 AC_CHECK_PROGS(ETAGS, etags ctags, ":")
 AC_PROG_INSTALL
-AC_PROG_CPP
 AC_ISC_POSIX
 AC_HEADER_STDC
 CFLAGS="$CMFLAGS"
@@ -109,6 +108,17 @@ AC_CHECK_LIB(nsl, t_bind,
 	     [NETLIBS="$NETLIBS -lnsl"]
 	     AC_DEFINE(HAVE_LIBNSL))
 AC_CHECK_LIB(crypt, crypt)
+
+AC_MSG_CHECKING(h_errno)
+AC_TRY_COMPILE(
+[
+#include <sys/types.h>
+#include <sys/socket.h>
+],
+[ int x = h_errno;
+], AC_DEFINE(HAVE_H_ERRNO)
+   AC_MSG_RESULT(yes),
+   AC_MSG_RESULT(no))
 
 AC_CHECK_HEADERS(malloc.h alloca.h unistd.h sys/time.h fcntl.h)
 AC_CHECK_FUNCS(setsid strerror)
