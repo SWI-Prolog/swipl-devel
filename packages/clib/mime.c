@@ -39,6 +39,7 @@
 #endif
 #include <errno.h>
 
+#undef max				/* be sure we have ours */
 #define max(x, y) ((x)>(y) ? (x) : (y))
 
 

@@ -1,3 +1,7 @@
+Sep 30, 2002
+
+* FIXED: stripped the left 24 characters of LONGVAR* types.  Thomas Moraitis.
+
 Sep 27, 2002
 
 * FIXED: fetch LONGVAR* types properly in drivers that do not produce

@@ -2954,7 +2954,7 @@ pl_put_column(context *c, int nth, term_t col)
   }
 
   if ( !p->ptr_value )			/* use SQLGetData() */
-  { char buf[25];
+  { char buf[256];
     char *data = buf;
     SDWORD len;
 
@@ -2963,11 +2963,13 @@ pl_put_column(context *c, int nth, term_t col)
     if ( c->rc == SQL_SUCCESS || c->rc == SQL_SUCCESS_WITH_INFO )
     { if ( len >= sizeof(buf) )
       { data = odbc_malloc(len+1);
+	memcpy(data, buf, sizeof(buf));	/* you don't get the data twice! */
 	c->rc = SQLGetData(c->hstmt, (UWORD)(nth+1), p->cTypeID,
-			   data, len+1, &len);
+			   data+sizeof(buf)-1, len-sizeof(buf)+2, &len);
 	if ( c->rc != SQL_SUCCESS )
 	{ free(data);
-	  return report_status(c);
+	  report_status(c);
+	  return FALSE;
 	}
       }
     } else if ( !report_status(c) )

@@ -10,7 +10,7 @@
 # copy the result to wherever you want.
 
 # prefix=C:\Program Files
-prefix=E:\jan\src\mt\installed
+prefix=E:\jan\installed
 PLBASE=$(prefix)\pl
 BINDIR=$(PLBASE)\bin
 LIBDIR=$(PLBASE)\lib
@@ -30,8 +30,8 @@ LIB=$(LIB);E:\jan\lib
 # DBG: true=for C-level debugging; false=non-debugging
 # MT:  true=multi-threading version; false=normal single-threading
 CFG=dev
-DBG=true
-MT=true
+DBG=false
+MT=false
 
 !IF "$(CFG)" == "rt"
 CMFLAGS=/DO_RUNTIME
