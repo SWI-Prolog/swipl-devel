@@ -1,3 +1,5 @@
+* FIXED: Line-number info for DOCTYPE declarations holding [declaractions].
+
 * FIXED: NUMBER attribute declaration with default (skip layout afterwards)
 
 * ADDED: Support for NOTATION attribute

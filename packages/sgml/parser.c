@@ -1784,7 +1784,7 @@ open_element(dtd_parser *p, dtd_element *e)
 	}
     }
     if ( e == CDATA_ELEMENT )
-      gripe(ERC_VALIDATE, "CDATA not allowed here");
+      gripe(ERC_VALIDATE, "#PCDATA not allowed here");
     else
       gripe(ERC_NOT_ALLOWED, e->name->name);
   }
@@ -2110,7 +2110,9 @@ local:
   { int grouplevel = 1;
     data_mode oldmode  = p->dmode;
     dtdstate  oldstate = p->state;
+    dtd_srcloc oldloc  = p->location;
 
+    p->location = p->startloc;		/* not really accurate */
     p->dmode = DM_DTD;
     p->state = S_PCDATA;
     empty_icharbuf(p->buffer);		/* dubious */
@@ -2121,8 +2123,9 @@ local:
       putchar_dtd_parser(p, *s);
     }
 
-    p->state = oldstate;
-    p->dmode = oldmode;
+    p->state    = oldstate;
+    p->dmode    = oldmode;
+    p->location = oldloc;
   }
 
   return TRUE;
@@ -3021,7 +3024,8 @@ putchar_dtd_parser(dtd_parser *p, int chr)
       }
 
       recover_parser(p);
-      gripe(ERC_SYNTAX_WARNING, "Illegal entity", p->buffer->data);
+      gripe(ERC_SYNTAX_WARNING,
+	    "Non-terminated (;) entity reference", p->buffer->data);
       empty_icharbuf(p->buffer);
       break;
     }

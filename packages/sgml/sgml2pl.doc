@@ -219,6 +219,14 @@ in XML nor SGML entities are case-insensitive.
 This is a special case of \term{entity}{Code}, intended to handle
 special symbols by their name rather then character code.
 
+    \termitem{sdata}{Text}
+If an entity width declared content-type \const{SDATA} is encountered,
+this term is returned holding the data in \arg{Text}.
+
+    \termitem{ndata}{Text}
+If an entity width declared content-type \const{NDATA} is encountered,
+this term is returned holding the data in \arg{Text}.
+
     \termitem{pi}{Text}
 If a processing instruction is encoutered (\verb$<?...?>$), \arg{Text}
 holds the text of the processing instruction.  Please note that the
@@ -513,6 +521,10 @@ defined entities.
     URL is provided this is returned in \arg{Url}. Otherwise this
     argument is unbound.
     \end{description}
+    \termitem{notations}{ListOfNotations}
+Returns a list holding the names of all \const{NOTATION} declarations.
+    \termitem{notation}{Name, File}
+Yields the declared file for from a \const{NOTATION} declaration. 
 \end{description}
 \end{description}
 
@@ -859,6 +871,28 @@ the provided catalog files.
 In the future we will design a call-back mechanism for locating and
 processing external entities, so Prolog-based file-location and Prolog
 resources can be used to store external entities.
+
+
+\section{Missing functionality}
+
+The current parser is rather limited.  Though suitable to deal with
+many serious documents, it also fails a number of less-used features
+in SGML and XML.  Known missing SGML features include
+
+\begin{itemlist}
+    \item [SHORTREF]
+The SGML SHORTREF features, binding characters to specific functions
+in specific environments are missing.
+    \item [NOTATION on entities]
+Though notation is fully parsed, notation attributes on external
+entity declarations are not handed to the user.
+    \item [SGML declaration]
+SGML declarations are fixed, though most of the parameters are handled
+through indirections in the implementation.
+\end{itemlist}
+
+In XML mode the parser recognises SGML constructs that are not allowed
+in XML.  Also various extensions of XML over SGML are not yet realised.
 
 
 \section{Installation}

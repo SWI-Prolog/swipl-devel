@@ -61,9 +61,11 @@ DTD. The parser is designed to be small, fast and flexible.
 </UL>
 <LI><A HREF="#sec:4"><B>4 Processing Indexed Files</B></A>
 <LI><A HREF="#sec:5"><B>5 External entities</B></A>
-<LI><A HREF="#sec:6"><B>6 Installation</B></A>
+<LI><A HREF="#sec:6"><B>6 Missing functionality</B></A>
+<LI><A HREF="#sec:7"><B>7 Installation</B></A>
 <UL>
-<LI><A HREF="#sec:6.1">6.1 Unix systems</A>
+<LI><A HREF="#sec:7.1">7.1 Unix systems</A>
+<LI><A HREF="#sec:7.2">7.2 Acknowledgements</A>
 </UL>
 </UL>
 
@@ -140,7 +142,7 @@ character strings, etc. In the first example below loads an HTML file.
                     ]),
             element(body,
                     [],
-                    [ '\n\n',
+                    [ '\n',
                       element(h1,
                               [ align = center
                               ],
@@ -149,11 +151,11 @@ character strings, etc. In the first example below loads an HTML file.
                       '\n\n',
                       element(p,
                               [],
-                              [ 'Paragraphs in HTML need not be closed.\n\n'
+                              [ 'Paragraphs in HTML need not be closed.\n'
                               ]),
                       element(p,
                               [],
-                              [ 'This is called `omitted-tag\' handling.\n'
+                              [ 'This is called `omitted-tag\' handling.'
                               ])
                     ])
           ])
@@ -171,7 +173,7 @@ for details.
 <H3><A NAME="sec:2.1">2.1 `Goodies' Predicates</A></H3>
 
 <P>These predicates are for basic usage of the library, converting 
-entire and self-contained files in one of the three supported X ML 
+entire and self-contained files in one of the three supported <I>X</I>ML 
 dialects into a structured term. They are all expressed in <A NAME="idx:loadstructure3:2"></A><A HREF="#load_structure/3">load_structure/3</A>.
 
 <DL>
@@ -214,12 +216,13 @@ and <A NAME="idx:loadhtmlfile2:6"></A><A HREF="#load_html_file/2">load_html_file
 <DL>
 <DT><A NAME="load_structure/3"><STRONG>load_structure</STRONG>(<VAR>+File, 
 --ListOfContent, +Options</VAR>)</A><DD>
-Load the X ML file <VAR>File</VAR> and return the resulting structure in <VAR>ListOfContent</VAR>. <VAR>Options</VAR> 
-is a list of options controlling the conversion process.
+Load the <I>X</I>ML file <VAR>File</VAR> and return the resulting 
+structure in <VAR>ListOfContent</VAR>. <VAR>Options</VAR> is a list of 
+options controlling the conversion process.
 
-<P>A proper X ML document contains only a single toplevel element whose 
-name matches the document type. Nevertheless, a list is returned for 
-consistency with the representation of element content. The
+<P>A proper <I>X</I>ML document contains only a single toplevel element 
+whose name matches the document type. Nevertheless, a list is returned 
+for consistency with the representation of element content. The
 <VAR>ListOfContent</VAR> consists of three types:
 
 <DL>
@@ -250,17 +253,27 @@ If an entity refers to a character-entity holding a single character,
 but this character cannot be represented in the Prolog character set, 
 this term is returned. For example, the HTML input text
 <CODE>&amp;Alpha; &amp;lt &amp;Beta;</CODE> is returned as below. Please 
-note the conversion to lowercase because SGML is case-insensitive.
+note that neither in XML nor SGML entities are case-insensitive.
 
 <P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
 <PRE>
 
-[ entity(alpha), ' &lt; ', entity(beta) ]
+[ entity('Alpha'), ' &lt; ', entity('Beta') ]
 </PRE>
 </TABLE>
 
 <P>This is a special case of <CODE>entity(Code)</CODE>, intended to 
 handle special symbols by their name rather then character code.
+<DT><STRONG>sdata</STRONG>(<VAR>Text</VAR>)<DD>
+If an entity width declared content-type <CODE>SDATA</CODE> is 
+encountered, this term is returned holding the data in <VAR>Text</VAR>.
+<DT><STRONG>ndata</STRONG>(<VAR>Text</VAR>)<DD>
+If an entity width declared content-type <CODE>NDATA</CODE> is 
+encountered, this term is returned holding the data in <VAR>Text</VAR>.
+<DT><STRONG>pi</STRONG>(<VAR>Text</VAR>)<DD>
+If a processing instruction is encoutered (<CODE>&lt;?...?&gt;</CODE>), <VAR>Text</VAR> 
+holds the text of the processing instruction. Please note that the
+<CODE>&lt;?xml ...?&gt;</CODE> instruction is handled internally.
 </DL>
 
 <P>The <VAR>Options</VAR> list controls the conversion process. 
@@ -299,20 +312,25 @@ exception of the format below is raised. The default is 50.
 
 <A NAME="sec:space"></A>
 
-<P>SGPL2PL has three modes for handling white-space. The initial mode 
-can be switched using the <CODE>space(SpaceMode)</CODE> option to <A NAME="idx:loadstructure3:8"></A><A HREF="#load_structure/3">load_structure/3</A> 
+<P>SGPL2PL has four modes for handling white-space. The initial mode can 
+be switched using the <CODE>space(SpaceMode)</CODE> option to <A NAME="idx:loadstructure3:8"></A><A HREF="#load_structure/3">load_structure/3</A> 
 and <A NAME="idx:setsgmlparser2:9"></A><A HREF="#set_sgml_parser/2">set_sgml_parser/2</A>. 
 In XML mode, the mode is further controlled by the <TT>&lt;xml:space&gt;</TT> 
 attribute, which may be specified both in the DTD as in the document. 
 The defined modes are:
 
 <DL>
+<DT><STRONG>space</STRONG>(<VAR>sgml</VAR>)<DD>
+In SGML, newlines at the start and end of an element are removed.<A NAME=back-to-note-2 HREF="index.html#note-2"> (2)</A> 
+This is the default mode for the SGML dialect.
 <DT><STRONG>space</STRONG>(<VAR>preserve</VAR>)<DD>
 White space is passed literally to the application. This is the default 
-mode. This mode leaves all white space handling to the application.
+mode. This mode leaves all white space handling to the application. This 
+is the default mode for the XML dialect.
 <DT><STRONG>space</STRONG>(<VAR>default</VAR>)<DD>
-All consequtive white-space is reduced to a single space-character. This 
-mode canonises all white space.
+In addition to <CODE>sgml</CODE> space-mode, all consequtive white-space 
+is reduced to a single space-character. This mode canonises all white 
+space.
 <DT><STRONG>space</STRONG>(<VAR>remove</VAR>)<DD>
 In addition to <CODE>default</CODE>, all leading and trailing 
 white-space is removed from <CODE>CDATA</CODE> objects. If, as a result, 
@@ -371,12 +389,12 @@ reserved names (i.e. <CODE>ELEMENT</CODE>, etc.).
 In XML mode, underscores (<CODE>_</CODE>) and colon (<CODE>:</CODE>) are 
 allowed in names.
 <LI><I>White-space handling</I><BR>
-In addition to setting white-space handling at the toplevel the XML 
-reserved attribute <TT>&lt;xml:space&gt;</TT> is honoured. It may appear 
-both in the document as the DTD. The <CODE>remove</CODE> extension is 
-honoured as <TT>&lt;xml:space&gt;</TT> value. For example, the DTD 
-statement below ensures that the <TT>&lt;pre&gt;</TT> element preserves 
-space, regardless of the default processing mode.
+White space mode is set to <CODE>preserve</CODE>. In addition to setting 
+white-space handling at the toplevel the XML reserved attribute
+<TT>&lt;xml:space&gt;</TT> is honoured. It may appear both in the 
+document as the DTD. The <CODE>remove</CODE> extension is honoured as <TT>&lt;xml:space&gt;</TT> 
+value. For example, the DTD statement below ensures that the <TT>&lt;pre&gt;</TT> 
+element preserves space, regardless of the default processing mode.
 
 <P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
 <PRE>
@@ -570,6 +588,11 @@ is provided this is returned in <VAR>Url</VAR>. Otherwise this argument
 is unbound.
 </DL>
 
+<DT><STRONG>notations</STRONG>(<VAR>ListOfNotations</VAR>)<DD>
+Returns a list holding the names of all <CODE>NOTATION</CODE> 
+declarations.
+<DT><STRONG>notation</STRONG>(<VAR>Name, File</VAR>)<DD>
+Yields the declared file for from a <CODE>NOTATION</CODE> declaration.
 </DL>
 
 </DL>
@@ -685,8 +708,8 @@ or <CODE>xmlns</CODE>).
 
 <DT><A NAME="sgml_parse/2"><STRONG>sgml_parse</STRONG>(<VAR>+Parser, 
 +Options</VAR>)</A><DD>
-Parse an X ML file. The parser can operate in two input and two output 
-modes. Output is either a structured term as described with
+Parse an <I>X</I>ML file. The parser can operate in two input and two 
+output modes. Output is either a structured term as described with
 <A NAME="idx:loadstructure2:14"></A><B>load_structure/2</B> or 
 call-backs on predefined events. The first is especially suitable for 
 manipulating not-too-large documents, while the latter provides a 
@@ -771,6 +794,11 @@ CDATA has been parsed. The named handler is called with two arguments: <CODE><VA
 An entity that cannot be represented as CDATA has been parsed. The named 
 handler is called with two arguments:
 <CODE><VAR>Handler</VAR>(+NameOrCode, +Parser)</CODE>.
+<DT><STRONG>pi</STRONG><DD>
+A processing instruction has been parsed. The named handler is called 
+with two arguments: <CODE><VAR>Handler</VAR>(+Text, +Parser)</CODE>, 
+where
+<VAR>Text</VAR> is the text of the processing instruction.
 <DT><STRONG>xmlns</STRONG><DD>
 When parsing an in <CODE>xmlns</CODE> mode, a new namespace declaraction 
 is pushed on the environment. The named handler is called with three 
@@ -950,9 +978,32 @@ using the provided catalog files.
 processing external entities, so Prolog-based file-location and Prolog 
 resources can be used to store external entities.
 
-<H2><A NAME="sec:6">6 Installation</A></H2>
+<H2><A NAME="sec:6">6 Missing functionality</A></H2>
 
-<H3><A NAME="sec:6.1">6.1 Unix systems</A></H3>
+<P>The current parser is rather limited. Though suitable to deal with 
+many serious documents, it also fails a number of less-used features in 
+SGML and XML. Known missing SGML features include
+
+<P>
+<UL>
+<LI><I>SHORTREF</I><BR>
+The SGML SHORTREF features, binding characters to specific functions in 
+specific environments are missing.
+<LI><I>NOTATION on entities</I><BR>
+Though notation is fully parsed, notation attributes on external entity 
+declarations are not handed to the user.
+<LI><I>SGML declaration</I><BR>
+SGML declarations are fixed, though most of the parameters are handled 
+through indirections in the implementation.
+</UL>
+
+<P>In XML mode the parser recognises SGML constructs that are not 
+allowed in XML. Also various extensions of XML over SGML are not yet 
+realised.
+
+<H2><A NAME="sec:7">7 Installation</A></H2>
+
+<H3><A NAME="sec:7.1">7.1 Unix systems</A></H3>
 
 <P>Installation on Unix system uses the commonly found <EM>configure</EM>,
 <EM>make</EM> and <EM>make install</EM> sequence. SWI-Prolog should be 
@@ -974,11 +1025,22 @@ using:
 and the Prolog library files in <CODE>$PLBASE/library</CODE>, where
 <CODE>$PLBASE</CODE> refers to the SWI-Prolog `home-directory'.
 
+<H3><A NAME="sec:7.2">7.2 Acknowledgements</A></H3>
+
+<P>The Prolog representation for parsed documents is based on the 
+SWI-Prolog interface to SP by Anjo Anjewierden.
+
+<P>Richard O'Keefe pointed out a number of mistakes in a earlier version 
+of this parser.
+
 <H1><A NAME="document-notes">Footnotes</A></H1>
 
 <DL>
 <DT><A NAME=note-1 HREF="index.html#back-to-note-1">note-1</A><DD>
 BUG: List-valued attributes are returned as a single atom.
+<DT><A NAME=note-2 HREF="index.html#back-to-note-2">note-2</A><DD>
+In addition, newlines at the end of lines containing only markup should 
+be deleted. This is not yet implemented.
 </DL>
 
 </BODY></HTML>
