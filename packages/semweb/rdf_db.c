@@ -190,6 +190,7 @@ static int	active_queries;		/* Calls with choicepoints */
 static int	need_update;		/* We need to update */
 static long	agenda_created;		/* #visited nodes in agenda */
 static long	duplicates;		/* #duplicate triples */
+static long	generation;		/* generation-id of the database */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 SWI-Prolog note: Atoms are integers shifted by LMASK_BITS (7)
@@ -1136,6 +1137,7 @@ load_db(IOSTREAM *in)
       case 'E':
 	if ( ctx.loaded_atoms )
 	  PL_free(ctx.loaded_atoms);
+        generation++;
 	return TRUE;
       default:
 	break;
@@ -1491,6 +1493,7 @@ rdf_assert4(term_t subject, term_t predicate, term_t object, term_t src)
   lock_atoms(t);
   link_triple(t);
   update_duplicates_add(t);
+  generation++;
 
   return TRUE;
 }
@@ -1625,13 +1628,37 @@ update_triple(term_t action, triple *t)
     return type_error(action, "rdf_action");
 
   if ( PL_is_functor(action, FUNCTOR_subject1) )
-    return get_atom_ex(a, &t->subject);
-  if ( PL_is_functor(action, FUNCTOR_predicate1) )
-    return get_predicate(a, &t->predicate);
-  if ( PL_is_functor(action, FUNCTOR_object1) )
-    return get_object(a, t);
+  { atom_t s;
 
-  return domain_error(action, "rdf_action");
+    if ( !get_atom_ex(a, &s) )
+      return FALSE;
+    if ( t->subject != s )
+    { t->subject = s;
+      generation++;
+    }
+  } else if ( PL_is_functor(action, FUNCTOR_predicate1) )
+  { predicate *p;
+
+    if ( !get_predicate(a, &p) )
+      return FALSE;
+    if ( t->predicate != p )
+    { t->predicate = p;
+      generation++;
+    }
+  } else if ( PL_is_functor(action, FUNCTOR_object1) )
+  { triple t2;
+
+    if ( !get_object(a, &t2) )
+      return FALSE;
+    if ( t2.object != t->object || t2.objtype != t->objtype )
+    { t->objtype = t2.objtype;
+      t->object = t2.object;
+      generation++;
+    }
+  } else
+    return domain_error(action, "rdf_action");
+
+  return TRUE;
 }
 
 
@@ -1661,6 +1688,7 @@ rdf_update(term_t subject, term_t predicate, term_t object, term_t action)
 static foreign_t
 rdf_retractall4(term_t subject, term_t predicate, term_t object, term_t src)
 { triple t, *p;
+  int erased = 0;
       
   memset(&t, 0, sizeof(t));
   if ( !get_partial_triple(subject, predicate, object, src, &t) )
@@ -1670,8 +1698,13 @@ rdf_retractall4(term_t subject, term_t predicate, term_t object, term_t src)
   p = table[t.indexed][triple_hash(&t, t.indexed)];
   for( ; p; p = p->next[t.indexed])
   { if ( match_triples(p, &t, MATCH_EXACT) )
-      erase_triple(p);
+    { erase_triple(p);
+      erased++;
+    }
   }
+
+  if ( erased )
+    generation++;
 
   return TRUE;
 }
@@ -2156,6 +2189,13 @@ rdf_statistics(term_t key, control_t h)
   }
 }
 
+
+static foreign_t
+rdf_generation(term_t t)
+{ return PL_unify_integer(t, generation);
+}
+
+
 		 /*******************************
 		 *	       MATCH		*
 		 *******************************/
@@ -2395,6 +2435,7 @@ install_rdf_db()
   PL_register_foreign("rdf",		4, rdf4,	    NDET);
   PL_register_foreign("rdf_has",	4, rdf_has,	    NDET);
   PL_register_foreign("rdf_statistics_",1, rdf_statistics,  NDET);
+  PL_register_foreign("rdf_generation", 1, rdf_generation,  0);
   PL_register_foreign("rdf_match_label",3, match_label,     0);
   PL_register_foreign("rdf_split_url",  3, split_url,       0);
   PL_register_foreign("rdf_save_db_",   2, rdf_save_db,     0);

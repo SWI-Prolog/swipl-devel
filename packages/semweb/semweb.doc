@@ -412,6 +412,11 @@ occur in the current database in any field of any triple.
 Return the source-location as \arg{File}:\arg{Line} of the first triple
 that is about \arg{Subject}.
 
+    \predicate{rdf_generation}{1}{-Generation}
+Returns the \arg{Generation} of the database.  Each modification to the
+database increments the generation. It can be used to check the validity
+of cached results deduced from the database.
+
     \predicate{rdf_statistics}{1}{?Statistics}
 Report statistics collected by the \file{rdf_db} module.  Defined
 values for \arg{Statistics} are:

@@ -529,6 +529,12 @@ Return the source-location as <VAR>File</VAR>:<VAR>Line</VAR> of the
 first triple that is about <VAR>Subject</VAR>.
 
 <P>
+<DT><A NAME="rdf_generation/1"><STRONG>rdf_generation</STRONG>(<VAR>-Generation</VAR>)</A><DD>
+Returns the <VAR>Generation</VAR> of the database. Each modification to 
+the database increments the generation. It can be used to check the 
+validity of cached results deduced from the database.
+
+<P>
 <DT><A NAME="rdf_statistics/1"><STRONG>rdf_statistics</STRONG>(<VAR>?Statistics</VAR>)</A><DD>
 Report statistics collected by the <CODE>rdf_db</CODE> module. Defined 
 values for <VAR>Statistics</VAR> are:
@@ -1023,6 +1029,7 @@ BUG: The current implementation cannot deal with cycles
 <DT><A HREF="#rdfe_undo/0">rdfe_undo/0</A><DD>
 <A HREF="#idx:rdfeundo0:36">5.1</A> <A HREF="#idx:rdfeundo0:44">5.4</A> <A HREF="#idx:rdfeundo0:45">5.4</A> <A HREF="#idx:rdfeundo0:51">5.6</A>
 <DT><A HREF="#rdfe_update/4">rdfe_update/4</A><DD>
+<DT><A HREF="#rdf_generation/1">rdf_generation/1</A><DD>
 <DT><A HREF="#rdf_global_id/2">rdf_global_id/2</A><DD>
 <DT><A HREF="#rdf_global_term/2">rdf_global_term/2</A><DD>
 <DT><A HREF="#rdf_has/3">rdf_has/3</A><DD>
