@@ -1278,7 +1278,7 @@ static senddecl send_pce[] =
      NAME_console, "Expose the PCE/host console window"),
   SM(NAME_iconifyConsole, 0, NULL, iconifyConsolePce,
      NAME_console, "Make PCE/host console window an icon"),
-  SM(NAME_showConsole, 1, "{open,iconic,hidden}", showConsolePce,
+  SM(NAME_showConsole, 1, "{open,full_screen,iconic,hidden}", showConsolePce,
      NAME_console, "Control visibility of the console window"),
   SM(NAME_fail, 0, NULL, failPce,
      NAME_control, "Simply fails"),

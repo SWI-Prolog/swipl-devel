@@ -160,10 +160,8 @@ setHwndFrame(FrameObj fr, HWND ref)
       f = fr->ws_ref;
     }
 
+    memset(f, 0, sizeof(*f));
     f->hwnd         = ref;
-    f->hbusy_cursor = NULL;
-    f->hcursor	    = NULL;
-    f->placed       = FALSE;
   } else
   { if ( fr->ws_ref )
     { unalloc(sizeof(ws_frame), fr->ws_ref);

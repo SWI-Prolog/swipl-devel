@@ -210,6 +210,8 @@ ws_show_console(Name how)
       ShowWindow(hwnd, SW_SHOWMINIMIZED);
     else if ( how == NAME_hidden )
       ShowWindow(hwnd, SW_HIDE);
+    else if ( how == NAME_fullScreen )
+      ShowWindow(hwnd, SW_MAXIMIZE);
 
     succeed;
   }

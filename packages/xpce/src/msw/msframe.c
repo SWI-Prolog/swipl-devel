@@ -140,14 +140,11 @@ do_frame_wnd_proc(FrameObj fr,
     { int w = LOWORD(lParam);
       int h = HIWORD(lParam);
 
-      DEBUG(NAME_frame, Cprintf("Resized %s to %d x %d\n", pp(fr), w, h));
-      assign(fr->area, w, toInt(w));
-      assign(fr->area, h, toInt(h));
-
       switch( wParam )
       { case SIZE_MINIMIZED:
 	{ Cell cell;
 
+	  DEBUG(NAME_frame, Cprintf("Minimized %s\n", pp(fr)));
 	  SetWindowText(hwnd, strName(getIconLabelFrame(fr)));
 	  assign(fr, status, NAME_iconic);
 	  for_cell(cell, fr->members)
@@ -155,7 +152,27 @@ do_frame_wnd_proc(FrameObj fr,
 	  break;
 	}
 	case SIZE_RESTORED:
+	{ WsFrame f = fr->ws_ref;
+
+	  if ( f )
+	  { RECT rect;
+
+	    if ( GetWindowRect(hwnd, &rect) )
+	    { f->bbx = rect.left;
+	      f->bby = rect.top;
+	      f->bbw = rect.right - rect.left;
+	      f->bbh = rect.bottom - rect.top;
+	      f->bb  = TRUE;
+	    } else
+	      f->bb = FALSE;
+	  }
+	}
+	/*FALLTHROUGH*/
 	case SIZE_MAXIMIZED:
+	  DEBUG(NAME_frame, Cprintf("Resized %s to %d x %d\n", pp(fr), w, h));
+	  assign(fr->area, w, toInt(w));
+	  assign(fr->area, h, toInt(h));
+
 	  if ( IsWindowVisible(hwnd) )
 	  { Cell cell;
 
@@ -790,15 +807,27 @@ ws_frame_bb(FrameObj fr, int *x, int *y, int *w, int *h)
   if ( (hwnd=getHwndFrame(fr)) )
   { RECT rect;
 
-    GetWindowRect(hwnd, &rect);
-    *x = rect.left;
-    *y = rect.top;
-    *w = rect.right - rect.left;
-    *h = rect.bottom - rect.top;
-    DEBUG(NAME_geometry, Cprintf("Got bb=%d %d %d %d from %p\n",
-				 *x, *y, *w, *h, hwnd));
+    if ( fr->status == NAME_iconic )
+    { WsFrame f = fr->ws_ref;
 
-    succeed;
+      if ( f->bb )
+      { *x = f->bbx;
+        *y = f->bby;
+        *w = f->bbw;
+        *h = f->bbh;
+
+        succeed;
+      }
+    } else if ( GetWindowRect(hwnd, &rect) )
+    { *x = rect.left;
+      *y = rect.top;
+      *w = rect.right - rect.left;
+      *h = rect.bottom - rect.top;
+      DEBUG(NAME_geometry, Cprintf("Got bb=%d %d %d %d from %p\n",
+				   *x, *y, *w, *h, hwnd));
+
+      succeed;
+    }
   }
 
   fail;

@@ -1,9 +1,12 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: full_screen to `@pce->show_console'.
+
 * ADDED: Start for `frame->status: full_screen' (work in progress).
 
-* FIXED: `frame->status: window' for the X11 version.
+* FIXED: `frame->status: window' for the X11 version, opening the frame
+  if it was iconic.
 
 * FIXED: `persistent_frame' to save deeply nested subwindow layout.
 

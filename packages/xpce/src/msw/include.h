@@ -97,6 +97,8 @@ typedef struct
   int		placed;			/* Explicit placement? */
   HCURSOR	hbusy_cursor;		/* handle for busy cursor */
   HCURSOR	hcursor;		/* cursor displayed */
+  int		bb;			/* has bounding box */
+  int		bbx, bby, bbw, bbh;	/* BB coordinates */
 } ws_frame, *WsFrame;
 
 
