@@ -398,9 +398,8 @@ The function fill_line() fills  a line description,  assuming the line
 starts at index `start' and will be displayed at `y' in the bitmap.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-
 static long
-do_fill_line(TextImage ti, TextLine l, long int index)
+do_fill_line(TextImage ti, TextLine l, long index)
 { short last_break = -1;
   int last_is_space = FALSE;
   TextChar tc;
@@ -1866,6 +1865,299 @@ Int
 getViewTextImage(TextImage ti)
 { answer(sub(ti->end, ti->start));
 }
+
+
+		 /*******************************
+		 *    PRECISE SCROLL SUPPORT	*
+		 *******************************/
+
+#define MAXPLINES 1000
+
+typedef struct pline
+{ int y;				/* y of the physical line */
+  long start;				/* start index */
+} *PLine;
+
+
+static TextLine
+tmpLine()
+{ static struct text_line tmp;
+
+  if ( !tmp.chars )
+  { tmp.chars = alloc(80 * sizeof(struct text_char));
+    tmp.allocated = 80;
+  }
+
+  return &tmp;
+}
+
+
+status
+bubbleScrollBarTextImage(TextImage ti, ScrollBar sb)
+{ TextLine tmp = tmpLine();
+  long index = 0;
+  int start = -1;
+  int view = ti->h - 2*TXT_Y_MARGIN;
+  int len;
+  int y=0;
+
+  if ( ti->rewind )
+    (*ti->rewind)(ti->text);
+
+  for(;;)
+  { long next_index;
+
+    if ( start < 0 && index >= valInt(ti->start) )
+      start = y;
+
+    next_index = do_fill_line(ti, tmp, index);
+    y += tmp->h;
+    index = next_index;
+
+    if ( tmp->ends_because & END_EOF )
+    { len = y;
+      break;
+    }
+  }
+
+  return bubbleScrollBar(sb, toInt(len), toInt(start), toInt(view));
+}
+
+
+static status
+make_pline_map(TextImage ti, PLine lines, int *size)
+{ TextLine tmp = tmpLine();
+  long index = 0;
+  int y=0;
+  int mx = *size;
+  int line;
+
+  if ( ti->rewind )
+    (*ti->rewind)(ti->text);
+
+  for(line=0; line < mx-1 ;line++)
+  { lines[line].y = y;
+    lines[line].start = index;
+    index = do_fill_line(ti, tmp, index);
+    y += tmp->h;
+
+    if ( tmp->ends_because & END_EOF )
+    { *size = ++line;
+      lines[line].y = y+tmp->h;
+      succeed;
+    }
+  }
+      
+  fail;
+}
+
+
+Int
+getScrollStartTextImage(TextImage ti, Name dir, Name unit, Int amount)
+{ struct pline lines[MAXPLINES];
+  int count = MAXPLINES;
+  int l = -1;
+
+  if ( !make_pline_map(ti, lines, &count) )
+    fail;
+
+  if ( unit == NAME_file )
+  { if ( dir == NAME_goto )
+    { int h  = lines[count].y;
+      int wh = ti->h - 2*TXT_Y_MARGIN;
+
+      if ( h>wh )
+      { int yt = ((h-wh) * valInt(amount))/1000;
+	
+	for(l=0; l<count; l++)
+	{ if ( lines[l].y >= yt )
+	    break;
+	}
+        Cprintf("%d promille, h=%d, wh=%d, yt=%d, l=%d\n",
+		valInt(amount), h, wh, yt, l);
+      } else
+	return ZERO;
+    }
+  } else
+  { int start = valInt(ti->start);
+    int n = valInt(amount);
+
+    if ( dir == NAME_backwards )
+      n = -n;
+
+    for(l=0; l<count; l++)
+    { if ( lines[l].start >= start )
+	break;
+    }
+	
+    if ( unit == NAME_page )
+    { int y0 = lines[l].y;
+      int yt = y0+n*(ti->h - 2*TXT_Y_MARGIN - 20);
+
+      if ( yt > y0 )
+      { while(l<count && lines[l].y < yt)
+	  l++;
+      } else
+      { while(l>0 && lines[l].y > yt)
+	  l--;
+      }
+    } else if ( unit == NAME_line )
+    { l += n;
+      if ( l>count )
+	l = count;
+      else if ( l < 0 )
+	l = 0;
+    }
+  }
+
+  if ( l >= 0 )
+    answer(toInt(lines[l].start));
+
+  fail;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Get desired cursor position for moving a line   up or down. This is used
+in word-wrap mode to get natural behaviour of the cursor up/down arrow.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+Int
+getUpDownColumnTextImage(TextImage ti, Int here)
+{ int cx, cy;
+
+  if ( get_xy_pos(ti, here, &cx, &cy) )
+  { int ly = cy-1+ti->map->skip;
+    TextLine l  = &ti->map->lines[ly];
+    TextChar tc = &l->chars[cx-1];
+
+    answer(toInt(tc->x));
+  }
+
+  fail;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Support cursor up/down movement for editors  using long paragraph and in
+word-wrap mode. This is pretty tricky. Unlike   the  above stuff, we use
+this routine independent from the  size  of   the  buffer,  so we cannot
+affort scanning the whole buffer.
+
+We assume the cursor is at this moment on the screen. If not, the editor
+will fall back to ->next_line, based on  the represented text. If it is,
+we deduce the X and Y of  the   characters  and look N lines up/down. If
+this happens to be on the screen,  we   are  lucky. Otehrwise we have to
+format the bits and pieces just off  the screen, to determine the proper
+location. Going down, this is  easy  again.   Going  up  we will go back
+paragraph-by-paragraph and count the number of  lines before the screen.
+If we are far enough back, we go forward to include the proper location.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+Int
+getUpDownCursorTextImage(TextImage ti, Int here, Int updown, Int column)
+{ int cx, cy;				/* grid x-y */
+  int ud = valInt(updown);
+
+  if ( get_xy_pos(ti, here, &cx, &cy) )
+  { int ly = cy-1+ti->map->skip;
+    TextLine l  = &ti->map->lines[ly];
+    TextChar tc = &l->chars[cx-1];
+    int x = tc->x;			/* pixel-x */
+    int i;
+
+    if ( isDefault(column) )
+      x = tc->x;
+    else
+      x = valInt(column);
+
+    ly += ud;
+    if ( ly < 0 )			/* before the screen */
+    { long start = ti->map->lines[0].start;
+      long idx = start;
+      l = tmpLine();
+
+      for(; (idx = paragraph_start(ti, idx)) > 0; idx-- )
+      { int i;
+	long here = idx;
+
+	for(i=0; here < start; i++)
+	{ here = do_fill_line(ti, l, here);
+	  if ( l->ends_because & END_EOF )
+	    break;			/* should not happen */
+	}
+
+        if ( i >= -ly )
+	{ i += ly;
+
+	  for(here=idx; i-- > 0; )
+	    here = do_fill_line(ti, l, here);
+
+	  goto out;
+	}
+      }
+
+      do_fill_line(ti, l, 0);
+    } else if ( ly >= ti->map->length )	/* after the screen */
+    { long idx = ti->map->lines[ti->map->length-1].start;
+      int n = ly-ti->map->length;
+
+      l = tmpLine();
+      while(n-- > 0)
+      { idx = do_fill_line(ti, l, idx);
+	if ( l->ends_because & END_EOF )
+	  break;
+      }
+    } else				/* on the screen */
+    { l  = &ti->map->lines[ly];
+    }
+
+out:
+					/* fix the X-location */
+    for(i = 0; i < l->length; i++)
+    { if ( l->chars[i+1].x > x )
+	break;
+    }
+
+    return toInt(l->start + l->chars[i].index);
+  }
+
+  fail;
+}
+
+
+status
+ensureVisibleTextImage(TextImage ti, Int caret)
+{ long here = valInt(caret);
+
+  if ( here < valInt(ti->start) )
+  { long idx = paragraph_start(ti, valInt(ti->start)-1);
+
+    if ( here >= idx )
+    { TextLine l = tmpLine();
+      long next;
+
+      for(; ;)
+      { next = do_fill_line(ti, l, idx);
+	if ( next->ends_because & END_EOF )
+	  fail;				/* should not happen */
+	if ( here >= idx && here < next )
+	  return startTextImage(ti, toInt(idx), ZERO);
+      }
+    }
+  } else
+  { ComputeGraphical(ti);
+
+    
+  }
+
+
+
+}
+
+
+
+
 
 
 		 /*******************************

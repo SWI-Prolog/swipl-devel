@@ -73,6 +73,7 @@ static Timer	ElectricTimer;
 				  (l > h && i >= h && i < l) )
 
 /* Scroll using line-parameters upto this size for the buffer */
+#define MAXPRECISESCROLLING   10000
 #define MAXLINEBASEDSCROLLING 25000
 
 
@@ -376,7 +377,7 @@ updateStyleCursorEditor(Editor e)
 		********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Scrollbar updates. This can all be   optimised  further, bot by scanning
+Scrollbar updates. This can all be  optimised  further, both by scanning
 the text only once, avoiding fetch() while scanning and finally and most
 importantly, by caching some of these values,  such as the start-line of
 the view and the number of lines in the buffer.
@@ -387,7 +388,9 @@ bubbleScrollBarEditor(Editor e, ScrollBar sb)
 { TextBuffer tb = e->text_buffer;
   Int start = getStartTextImage(e->image, ONE);
 
-  if ( tb->size < MAXLINEBASEDSCROLLING )	/* short, work line-based */
+  if ( tb->size < MAXPRECISESCROLLING )
+  { return bubbleScrollBarTextImage(e->image, sb);
+  } else if ( tb->size < MAXLINEBASEDSCROLLING ) /* short, work line-based */
   { Int len   = countLinesEditor(e, ZERO, toInt(tb->size));
     Int first = sub(getLineNumberEditor(e, start), ONE); /* 1-based! */
     Int view  = countLinesEditor(e, start, e->image->end);
@@ -1106,43 +1109,44 @@ static status
 ensureVisibleEditor(Editor e, Int from, Int to)
 { from = (isDefault(from) ? e->caret : normalise_index(e, from));
   to   = (isDefault(to) ? from : normalise_index(e, to));
+  TextImage ti = e->image;
 
   Before(from, to);
 
   if ( where_editor(e, to) == NAME_below )
   { DEBUG(NAME_scroll, Cprintf("Caret below window\n"));
-    startTextImage(e->image, getScanTextBuffer(e->text_buffer,
-					       getStartTextImage(e->image,ONE),
-					       NAME_line, ONE,
-					       NAME_start),
+    startTextImage(ti, getScanTextBuffer(e->text_buffer,
+					 getStartTextImage(ti,ONE),
+					 NAME_line, ONE,
+					 NAME_start),
 		   ZERO);
 
     if ( where_editor(e, to) == NAME_below )
     { DEBUG(NAME_scroll, Cprintf("More than one line: centering\n"));
       centerWindowEditor(e, to);
-      ComputeGraphical(e->image);
+      ComputeGraphical(ti);
     }
-  } else if ( valInt(to) < valInt(getStartTextImage(e->image, ONE)) )
-  { startTextImage(e->image, getScanTextBuffer(e->text_buffer,
-					       getStartTextImage(e->image,ONE),
-					       NAME_line, toInt(-1),
-					       NAME_start),
+  } else if ( valInt(to) < valInt(getStartTextImage(ti, ONE)) )
+  { startTextImage(ti, getScanTextBuffer(e->text_buffer,
+					 getStartTextImage(ti,ONE),
+					 NAME_line, toInt(-1),
+					 NAME_start),
 		   ZERO);
-    ComputeGraphical(e->image);
-    if ( valInt(to) < valInt(getStartTextImage(e->image, ONE)) )
+    ComputeGraphical(ti);
+    if ( valInt(to) < valInt(getStartTextImage(ti, ONE)) )
     { centerWindowEditor(e, to);
-      ComputeGraphical(e->image);
+      ComputeGraphical(ti);
     }
   }
 
-  if ( valInt(from) < valInt(getStartTextImage(e->image, ONE)) )
-  { while( valInt(from) < valInt(getStartTextImage(e->image, ONE)) )
-    { startTextImage(e->image, getScanTextBuffer(e->text_buffer,
-						 getStartTextImage(e->image,ONE),
-						 NAME_line, toInt(-1),
-						 NAME_start),
+  if ( valInt(from) < valInt(getStartTextImage(ti, ONE)) )
+  { while( valInt(from) < valInt(getStartTextImage(ti, ONE)) )
+    { startTextImage(ti, getScanTextBuffer(e->text_buffer,
+					   getStartTextImage(ti,ONE),
+					   NAME_line, toInt(-1),
+					   NAME_start),
 		     ZERO);
-      ComputeGraphical(e->image);
+      ComputeGraphical(ti);
     }
   }
 
@@ -1830,13 +1834,29 @@ caretMoveExtendSelectionEditor(Editor e, Int oldcaret)
 }
 
 
+static Int
+getUpDownColumnEditor(Editor e)
+{ if ( e->image->wrap == NAME_word )
+    return getUpDownColumnTextImage(e->image, e->caret);
+  else
+    return getColumnEditor(e, e->caret);
+}
+
+
 static status
 cursorUpEditor(Editor e, Int arg, Int column)
 { int bts = buttons();
   Int caret = e->caret;
 
+  if ( isDefault(arg) )
+    arg = ONE;
+
   if ( bts & BUTTON_control )
     backwardParagraphEditor(e, arg);
+  else if ( e->image->wrap == NAME_word &&
+	    (caret = getUpDownCursorTextImage(e->image, caret,
+					      neg(arg), column)) )
+    return CaretEditor(e, caret);
   else
     previousLineEditor(e, arg, column);
 
@@ -1852,8 +1872,14 @@ cursorDownEditor(Editor e, Int arg, Int column)
 { int bts = buttons();
   Int caret = e->caret;
 
+  if ( isDefault(arg) )
+    arg = ONE;
+
   if ( bts & BUTTON_control )
     forwardParagraphEditor(e, arg);
+  else if ( e->image->wrap == NAME_word &&
+	    (caret = getUpDownCursorTextImage(e->image, caret, arg, column)) )
+    return CaretEditor(e, caret);
   else
     nextLineEditor(e, arg, column);
 
@@ -3520,6 +3546,14 @@ recenterEditor(Editor e, Int arg)
 static status
 scrollVerticalEditor(Editor e, Name dir, Name unit, Int amount)
 { TextBuffer tb = e->text_buffer;
+  Int start;
+
+  if ( tb->size < MAXPRECISESCROLLING &&
+       (start = getScrollStartTextImage(e->image, dir, unit, amount)) )
+  { startTextImage(e->image, start, ZERO);
+
+    return ensureCaretInWindowEditor(e);
+  }
 
   if ( unit == NAME_file )
   { if ( dir == NAME_goto )
@@ -4140,6 +4174,17 @@ getTabStopsEditor(Editor e)
 }
 
 
+static status
+wrapEditor(Editor e, Name wrap)
+{ return send(e->image, NAME_wrap, wrap, 0);
+}
+
+
+static Name
+getWrapEditor(Editor e)
+{ answer(e->image->wrap);
+}
+
 		/********************************
 		*      CHANGE NOTIFICATIONS	*
 		********************************/
@@ -4411,6 +4456,8 @@ static senddecl send_editor[] =
      NAME_appearance, "Associate new name --> style object map"),
   SM(NAME_tabStops, 1, "vector*", tabStopsEditor,
      NAME_appearance, "Set tab-stops (vector of pixels)"),
+  SM(NAME_wrap, 1, "{none,character,word}", wrapEditor,
+     NAME_appearance, "Wrap mode for long lines"),
   SM(NAME_Size, 1, "pixels=size", SizeEditor,
      NAME_area, "Set size in pixels (trap window resize)"),
   SM(NAME_backwardChar, 1, "[int]", backwardCharEditor,
@@ -4722,6 +4769,8 @@ static getdecl get_editor[] =
      NAME_accelerator, "Function for specified key"),
   GM(NAME_tabStops, 0, "vector*", NULL, getTabStopsEditor,
      NAME_appearance, "Vector with tab-stop positions in pixels (or @nil)"),
+  GM(NAME_wrap, 0, "{none,character,word}", NULL, getWrapEditor,
+     NAME_appearance, "Wrap mode for long lines"),
   GM(NAME_height, 0, "character=int", NULL, getHeightEditor,
      NAME_area, "Height in character units"),
   GM(NAME_size, 0, "characters=size", NULL, getSizeEditor,
@@ -4730,6 +4779,8 @@ static getdecl get_editor[] =
      NAME_area, "Width in character units"),
   GM(NAME_column, 1, "column=int", "index=[int]", getColumnEditor,
      NAME_caret, "Column point is at"),
+  GM(NAME_upDownColumn, 0, "column=int", NULL, getUpDownColumnEditor,
+     NAME_caret, "Saved X-infor for ->cursor_up/->cursor_down"),
   GM(NAME_indentation, 2, "column=int", T_indentation, getIndentationEditor,
      NAME_indentation, "Column of first non-blank character"),
   GM(NAME_FetchFunction, 0, "alien:FetchFunction", NULL,

@@ -244,7 +244,10 @@ typedKeyBinding(KeyBinding kb, EventId id, Graphical receiver)
       } else if ( cmd == NAME_keyboardQuit )
       { resetKeyBinding(kb, receiver);
 	rval = SUCCEED;
-      } else if ( cmd == NAME_nextLine || cmd == NAME_previousLine )
+      } else if ( cmd == NAME_nextLine ||
+		  cmd == NAME_previousLine ||
+		  cmd == NAME_cursorUp ||
+		  cmd == NAME_cursorDown )
       { Any rec;
 	Method impl = resolveSendMethodObject(receiver, NULL, cmd, &rec);
 	Type argt;
@@ -255,8 +258,9 @@ typedKeyBinding(KeyBinding kb, EventId id, Graphical receiver)
 	     instanceOfObject(impl, ClassSendMethod) &&
 	     (argt = getArgumentTypeMethod(impl, toInt(2))) &&
 	     includesType(argt, TypeInt) )
-	{ if ( isNil(kb->saved_column) )
-	    assign(kb, saved_column, get(receiver, NAME_column, 0));
+	{ if ( isNil(kb->saved_column) &&
+	       hasGetMethodObject(receiver, NAME_upDownColumn) )
+	    assign(kb, saved_column, get(receiver, NAME_upDownColumn, 0));
 	  argv[argc++] = kb->saved_column;
 	}
 
