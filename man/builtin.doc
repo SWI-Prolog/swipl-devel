@@ -1955,20 +1955,26 @@ Get the current output stream.
 
 \begin{description}
     \predicate{wait_for_input}{3}{+ListOfStreams, -ReadyList, +TimeOut}
-Wait for input on one of the streams in \arg{ListOfStreams} and return
-a list of streams on which input is available in \arg{ReadyList}.
-wait_for_input/3 waits for at most \arg{TimeOut} seconds.  \arg{Timeout} may be specified as a floating point number to specify
-fractions of a second. If \arg{Timeout} equals 0, wait_for_input/3
-waits indefinitely.  This predicate can be used to implement
-timeout while reading and to handle input from multiple sources. The
-following example will wait for input from the user and an
-explicitly opened second terminal.  On return, \arg{Inputs} may hold
-\const{user} or \arg{P4} or both.
+Wait for input on one of the streams in \arg{ListOfStreams} and return a
+list of streams on which input is available in \arg{ReadyList}.
+wait_for_input/3 waits for at most \arg{TimeOut} seconds. \arg{Timeout}
+may be specified as a floating point number to specify fractions of a
+second. If \arg{Timeout} equals 0, wait_for_input/3 waits indefinitely.
+This predicate can be used to implement timeout while reading and to
+handle input from multiple sources. The following example will wait for
+input from the user and an explicitly opened second terminal. On return,
+\arg{Inputs} may hold \const{user} or \arg{P4} or both.
 
 \begin{code}
 ?- open('/dev/ttyp4', read, P4),
    wait_for_input([user, P4], Inputs, 0).
 \end{code}
+
+This predicate relies on the select() call on most operating systems. On
+Unix this call is implemented for any stream referring to a file-handle,
+which implies all OS-based streams: sockets, terminals, pipes, etc.  On
+non-Unix systems select() is generally only implemented for socket-based
+streams.  See also \pllib{socket} from the \const{clib} package.
 
     \predicate{character_count}{2}{+Stream, -Count}
 Unify \arg{Count} with the current character index.  For input streams
@@ -1977,11 +1983,13 @@ streams this is the number of characters written. Counting starts at 0.
     \predicate{line_count}{2}{+Stream, -Count}
 Unify \arg{Count} with the number of lines read or written.  Counting
 starts at 1.
+
     \predicate{line_position}{2}{+Stream, -Count}
 Unify \arg{Count} with the position on the current line. Note that this
 assumes the position is 0 after the open.  Tabs are assumed to be
 defined on each 8-th character and backspaces are assumed to reduce the
 count by one, provided it is positive.
+
     \predicate{fileerrors}{2}{-Old, +New}
 Define error behaviour on errors when opening a file for reading or
 writing. Valid values are the atoms \const{on} (default) and \const{off}.
