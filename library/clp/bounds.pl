@@ -80,7 +80,8 @@
 		(in)/2,
 		label/1,
 		labeling/2,
-		all_different/1
+		all_different/1,
+		sum/3
 	]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -327,6 +328,16 @@ different([],_).
 different([Y|Ys],X) :-
 	neq(X,Y,yes),
 	different(Ys,X).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+sum(Xs,Op,Value) :-
+	sum1(Xs,0,Op,Value).
+
+sum1([],Sum,Op,Value) :-
+	call(Op,Sum,Value).
+sum1([X|Xs],Acc,Op,Value) :-
+	NAcc #= Acc + X,
+	sum1(Xs,NAcc,Op,Value).
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 domain(X,L,U) :-
 	( var(X) ->
