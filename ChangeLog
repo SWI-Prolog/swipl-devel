@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 5.1.1 (Nov 16, 2002)
+============================
+
   * FIXED: Atom-reference corruption problem for the `built-in' atoms.
     With many thanks to David Schumann who found the problem, sometimes
     trapping the assertion assert(p->references >= 0); in
