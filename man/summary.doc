@@ -68,7 +68,7 @@ suggest predicates from a keyword.
 \predicatesummary{at_initialization}{1}{Register goal to run at start-up}
 \predicatesummary{atom}{1}{Type check for an atom}
 \predicatesummary{atom_chars}{2}{Convert between atom and list of characters}
-\predicatesummary{atom_codes}{2}{Convert between atom and list of ASCII values}
+\predicatesummary{atom_codes}{2}{Convert between atom and list of characters codes}
 \predicatesummary{atom_length}{2}{Determine length of an atom}
 \predicatesummary{atom_prefix}{2}{Test for start of atom}
 \predicatesummary{atom_number}{2}{Convert between atom and number}
@@ -87,7 +87,7 @@ suggest predicates from a keyword.
 \predicatesummary{call_with_depth_limit}{3}{Prove goal with bounded depth}
 \predicatesummary{callable}{1}{Test for atom or compound term}
 \predicatesummary{catch}{3}{Call goal, watching for exceptions}
-\predicatesummary{char_code}{2}{Convert between atom and ASCII value}
+\predicatesummary{char_code}{2}{Convert between character and character code}
 \predicatesummary{char_conversion}{2}{Provide mapping of input characters}
 \predicatesummary{char_type}{2}{Classify characters}
 \predicatesummary{character_count}{2}{Get character index on a stream}
@@ -276,7 +276,7 @@ suggest predicates from a keyword.
 \predicatesummary{mutex_trylock}{1}{Become owner of a mutex (non-blocking)}
 \predicatesummary{mutex_unlock}{1}{Release ownership of mutex}
 \predicatesummary{mutex_unlock_all}{0}{Release ownership of all mutexes}
-\predicatesummary{name}{2}{Convert between atom and list of ASCII characters}
+\predicatesummary{name}{2}{Convert between atom and list of character codes}
 \predicatesummary{nl}{0}{Generate a newline}
 \predicatesummary{nl}{1}{Generate a newline on a stream}
 \predicatesummary{nodebug}{0}{Disable debugging}
@@ -292,7 +292,7 @@ suggest predicates from a keyword.
 \predicatesummary{nth_clause}{3}{N-th clause of a predicate}
 \predicatesummary{number}{1}{Type check for integer or float}
 \predicatesummary{number_chars}{2}{Convert between number and one-char atoms}
-\predicatesummary{number_codes}{2}{Convert between number and ASCII values}
+\predicatesummary{number_codes}{2}{Convert between number and character codes}
 \predicatesummary{numbervars}{3}{Number unbound variables of a term}
 \predicatesummary{numbervars}{4}{Number unbound variables of a term}
 \predicatesummary{on_signal}{3}{Handle a software signal}
@@ -426,7 +426,7 @@ suggest predicates from a keyword.
 \predicatesummary{string_concat}{3}{atom_concat/3 for strings}
 \predicatesummary{string_length}{2}{Determine length of a string}
 \predicatesummary{string_to_atom}{2}{Conversion between string and atom}
-\predicatesummary{string_to_list}{2}{Conversion between string and list of ASCII}
+\predicatesummary{string_to_list}{2}{Conversion between string and list of character codes}
 \predicatesummary{style_check}{1}{Change level of warnings}
 \predicatesummary{sub_atom}{5}{Take a substring from an atom}
 \predicatesummary{sublist}{3}{Determine elements that meet condition}

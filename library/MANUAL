@@ -2042,8 +2042,8 @@ by SWI-Prolog:
 
   o 0'<_c_h_a_r>
     This  construct is not accepted by all Prolog systems that  claim to
-    have  Edinburgh compatible syntax.  It describes the ASCII  value of
-    <_c_h_a_r>.   To  test whether C is  a lower case character  one can use
+    have  Edinburgh compatible syntax.  It describes the  character code
+    of <_c_h_a_r>.   To test whether C is a lower case character one can use
     between(0'a, 0'z, C).
 
   o /* .../* ...*/ ...*/
@@ -2970,9 +2970,8 @@ interpreted.
 44..33 LLooaaddiinngg PPrroolloogg ssoouurrccee ffiilleess
 
 This section deals  with loading Prolog source-files.   A Prolog  source
-file  is a  text-file (often  referred to  as  _A_S_C_I_I_-_f_i_l_e) containing  a
-Prolog program  or part  thereof.   Prolog  source files  come in  three
-flavours:
+file is a plain  text file containing a Prolog program or  part thereof.
+Prolog source files come in three flavours:
 
  AA ttrraaddiittiioonnaall   Prolog  source  file  contains  a  Prolog  clauses  and
     directives,  but no  _m_o_d_u_l_e_-_d_e_c_l_a_r_a_t_i_o_n.   They are normally  loaded
@@ -5428,13 +5427,13 @@ sskkiipp((_+_S_t_r_e_a_m_, _+_C_h_a_r))
 
 
 ggeett__ssiinnggllee__cchhaarr((_-_C_h_a_r))
-    Get  a  single character  from input  stream  `user' (regardless  of
-    the  current input stream).   Unlike get0/1 this predicate does  not
-    wait  for a  return.   The  character is  not echoed  to the  user's
-    terminal.   This predicate is meant for keyboard menu selection etc.
-    If SWI-Prolog was  started with the -tty option this predicate reads
-    an  entire line of input  and returns the first non-blank  character
-    on  this line, or the ASCII code  of the newline (10) if  the entire
+    Get  a single character from input stream `user' (regardless  of the
+    current  input stream).  Unlike get0/1 this predicate does  not wait
+    for  a return.  The character is not echoed to the  user's terminal.
+    This  predicate  is meant  for  keyboard menu  selection  etc.    If
+    SWI-Prolog was started  with the -tty option this predicate reads an
+    entire  line of input and  returns the first non-blank character  on
+    this  line, or the character code of the newline (10) if  the entire
     line consisted of blank characters.
 
 
@@ -5835,12 +5834,12 @@ ccooppyy__tteerrmm((_+_I_n_, _-_O_u_t))
 
 44..2211 AAnnaallyyssiinngg aanndd CCoonnssttrruuccttiinngg AAttoommss
 
-These predicates  convert between  Prolog constants and  lists of  ASCII
-values.   The predicates atom_codes/2, number_codes/2 and name/2  behave
-the same  when converting  from a constant  to a  list of ASCII  values.
-When  converting the  other way  around, atom_codes/2  will generate  an
-atom,  number_codes/2 will generate  a  number or  exception and  name/2
-will return a number if possible and an atom otherwise.
+These  predicates  convert   between  Prolog  constants  and  lists   of
+character codes.  The predicates atom_codes/2, number_codes/2 and name/2
+behave the same when  converting from a constant to a list  of character
+codes.     When converting  the  other  way  around,  atom_codes/2  will
+generate an  atom, number_codes/2  will generate a  number or  exception
+and name/2 will return a number if possible and an atom otherwise.
 
 The  ISO  standard  defines atom_chars/2  to  describe  the  `broken-up'
 atom  as a  list of  one-character atoms  instead of  a  list of  codes.
@@ -5855,24 +5854,25 @@ the  `list-side' accepts  either  a code-list  or  a char-list  and  the
 
 
 aattoomm__ccooddeess((_?_A_t_o_m_, _?_S_t_r_i_n_g))
-    Convert  between an atom  and a list  of ASCII values.   If _A_t_o_m  is
-    instantiated, if will  be translated into a list of ASCII values and
-    the  result is unified with _S_t_r_i_n_g.   If _A_t_o_m is unbound  and _S_t_r_i_n_g
-    is  a list of  ASCII values, it  will _A_t_o_m will  be unified with  an
-    atom constructed from this list.
+    Convert  between an atom and a list of character codes.   If _A_t_o_m is
+    instantiated,  if will be translated into a list of  character codes
+    and  the result  is unified with  _S_t_r_i_n_g.   If _A_t_o_m  is unbound  and
+    _S_t_r_i_n_g  is a list of character  codes, it will _A_t_o_m will  be unified
+    with an atom constructed from this list.
 
 
 aattoomm__cchhaarrss((_?_A_t_o_m_, _?_C_h_a_r_L_i_s_t))
     As  atom_codes/2, but  _C_h_a_r_L_i_s_t  is a  list of  one-character  atoms
-    rather than a list of ASCII values.
+    rather than a list of character codes.
 
     ?- atom_chars(hello, X).
 
     X = [h, e, l, l, o]
 
 
-cchhaarr__ccooddee((_?_A_t_o_m_, _?_A_S_C_I_I))
-    Convert between character and ASCII value for a single character.
+cchhaarr__ccooddee((_?_A_t_o_m_, _?_C_o_d_e))
+    Convert   between  character  and   character  code  for  a   single
+    character.
 
 
 nnuummbbeerr__cchhaarrss((_?_N_u_m_b_e_r_, _?_C_h_a_r_L_i_s_t))
@@ -5883,10 +5883,9 @@ nnuummbbeerr__cchhaarrss((_?_N_u_m_b_e_r_, _?_C_h_a_r_
 
 
 nnuummbbeerr__ccooddeess((_?_N_u_m_b_e_r_, _?_C_o_d_e_L_i_s_t))
-    As  number_chars/2,  but  converts  to a  list  of  character  codes
-    (normally  ASCII values) rather  than one-character atoms.   In  the
-    mode  -, +, both predicates  behave identically to improve  handling
-    of non-ISO source.
+    As number_chars/2, but converts to a list  of character codes rather
+    than one-character atoms.   In the mode -, +, both predicates behave
+    identically to improve handling of non-ISO source.
 
 
 aattoomm__nnuummbbeerr((_?_A_t_o_m_, _?_N_u_m_b_e_r))
@@ -5896,17 +5895,18 @@ aattoomm__nnuummbbeerr((_?_A_t_o_m_, _?_N_u_m_b_e_r))
 
 
 nnaammee((_?_A_t_o_m_O_r_I_n_t_, _?_S_t_r_i_n_g))
-    _S_t_r_i_n_g  is a  list of ASCII  values describing  _A_t_o_m.   Each of  the
-    arguments may be a  variable, but not both.  When _S_t_r_i_n_g is bound to
-    an  ASCII value list  describing an integer  and _A_t_o_m is a  variable
-    _A_t_o_m  will be  unified with  the integer value  described by  _S_t_r_i_n_g
-    (e.g.  `name(N, "300"), 400 is N + 100' succeeds).
+    _S_t_r_i_n_g  is a list of character  codes representing the same text  as
+    _A_t_o_m.  Each of  the arguments may be a variable, but not both.  When
+    _S_t_r_i_n_g  is bound  to an  character code list  describing an  integer
+    and  _A_t_o_m  is a  variable  _A_t_o_m will  be  unified with  the  integer
+    value  described by _S_t_r_i_n_g  (e.g.   `name(N, "300"), 400 is N + 100'
+    succeeds).
 
 
 iinntt__ttoo__aattoomm((_+_I_n_t_, _+_B_a_s_e_, _-_A_t_o_m))
-    Convert  _I_n_t to an  ascii representation using  base _B_a_s_e and  unify
+    Convert  _I_n_t to an textual representation using base _B_a_s_e  and unify
     the  result with _A_t_o_m.   If _B_a_s_e 6=10 the  base will be prepended  to
-    _A_t_o_m.    _B_a_s_e= 0 will try  to interpret  _I_n_t as an  ASCII value and
+    _A_t_o_m.   _B_a_s_e= 0 will try to interpret _I_n_t as an character codes and
     return  0'<_c>.   Otherwise  2=<_B_a_s_e=< 36.   Some  examples are  given
     below.
 
@@ -6183,8 +6183,9 @@ ssttrriinngg__ttoo__aattoomm((_?_S_t_r_i_n_g_, _?_A_t_
 
 
 ssttrriinngg__ttoo__lliisstt((_?_S_t_r_i_n_g_, _?_L_i_s_t))
-    Logical conversion between  a string and a list of ASCII characters.
-    At least one of the two arguments must be instantiated.
+    Logical  conversion  between  a  string  and  a  list  of  character
+    codes  characters.    At least  one  of the  two arguments  must  be
+    instantiated.
 
 
 ssttrriinngg__lleennggtthh((_+_S_t_r_i_n_g_, _-_L_e_n_g_t_h))
@@ -6477,12 +6478,12 @@ mmiinn((_+_E_x_p_r_1_, _+_E_x_p_r_2))
 
 
 .((_+_I_n_t_, _[_]))
-    A  list of  one  element evaluates  to the  element.   This  implies
-    "a"  evaluates to  the ASCII value  of the  letter `a' (97).    This
+    A  list of one element evaluates to  the element.  This  implies "a"
+    evaluates  to the  character  code of  the letter  `a' (97).    This
     option  is available for  compatibility only.   It will not work  if
     `style_check(+string)'  is active as  "a" will  then be  transformed
-    into  a string object.    The recommended way  to specify the  ASCII
-    value of the letter `a' is 0'a.
+    into a string object.   The recommended way to specify the character
+    code of the letter `a' is 0'a.
 
 
 rraannddoomm((_+_I_n_t))
@@ -6881,9 +6882,9 @@ wwrriitteeff((_+_F_o_r_m_a_t_, _+_A_r_g_u_m_e_n_t_s))
              | \\   |The character \ is output                 |
              | \%   |The character % is output                 |
              | \nnn |where <_n_n_n>  is an  integer  (1-3 digits) |
-             |      |the character  with ASCII  code  <_n_n_n> is |
+             |      |the character  with character  code <_n_n_n> |
 
-             |______|output_(NB_:_<_n_n_n>_is_read_as_ddeecciimmaall)____|
+             |______|is_output_(NB_:_<_n_n_n>_is_read_as_ddeecciimmaall)_|
 
     Note  that  \l,   \nnn  and  \\  are  interpreted  differently  when
     character-escapes are in effect.  See section 2.15.1.1.
@@ -6906,7 +6907,7 @@ wwrriitteeff((_+_F_o_r_m_a_t_, _+_A_r_g_u_m_e_n_t_s))
               |     |print/1the next item (identical to %t)   |
               | %n  |Put the  next item as  a character (i.e.,|
 
-              |     |it is an ASCII value)                    |
+              |     |it is a character code)                  |
               | %r  |Write the  next item  N times where  N is|
               |     |the second item (an integer)             |
               | %s  |Write the  next item  as a String  (so it|
@@ -6944,29 +6945,29 @@ ffoorrmmaatt((_+_F_o_r_m_a_t))
 
 
 ffoorrmmaatt((_+_F_o_r_m_a_t_, _+_A_r_g_u_m_e_n_t_s))
-    _F_o_r_m_a_t   is  an   atom,   list  of   ASCII  values,   or  a   Prolog
+    _F_o_r_m_a_t   is  an  atom,  list   of  character  codes,  or   a  Prolog
     string.   _A_r_g_u_m_e_n_t_s  provides the arguments  required by the  format
     specification.   If  only one argument is  required and this is  not
-    a  list of  ASCII values the  argument need  not be put  in a  list.
+    a  list of character codes the argument  need not be put in  a list.
     Otherwise the arguments are put in a list.
 
     Special sequences start  with the tilde (~), followed by an optional
     numeric  argument, followed by a character describing the  action to
     be  undertaken.  A numeric argument is either a sequence  of digits,
     representing  a  positive decimal  number, a  sequence `<_c_h_a_r_a_c_t_e_r>,
-    representing  the ASCII value of the character (only useful  for ~t)
-    or  a asterisk (*), in when  the numeric argument is taken  from the
-    next  argument of  the argument  list,  which should  be a  positive
-    integer.  Actions are:
+    representing the character  code value of the character (only useful
+    for  ~t) or a asterisk  (*), in when  the numeric argument is  taken
+    from  the next  argument of  the argument  list, which  should be  a
+    positive integer.  Actions are:
 
       ~  Output the tilde itself.
 
       a  Output the  next  argument, which  should  be an  atom.    This
          option is equivalent to ww.  Compatibility reasons only.
 
-      c  Output the  next argument  as an ASCII  value.   This  argument
-         should be an  integer in the range  [0, ..., 255] (including  0
-         and 255).
+      c  Interpret the next argument as an character code and  add it to
+         the output.   This argument should  be an integer in the  range
+         [0, ..., 255] (including 0 and 255).
 
       d  Output  next argument  as  a decimal  number.    It  should  be
          an integer.    If  a numeric  argument is  specified  a dot  is
@@ -7014,14 +7015,14 @@ ffoorrmmaatt((_+_F_o_r_m_a_t_, _+_A_r_g_u_m_e_n_t_s))
 
       R  Same as rr, but uses upper case letters for digits above 9.
 
-      s  Output a string of  ASCII characters or a string  (see string/1
-         and section 4.23) from the next argument.
+      s  Output text  from a list  of character codes  or a string  (see
+         string/1 and section 4.23) from the next argument.
 
       t  All remaining space between 2 tabs tops  is distributed equally
          over ~t  statements  between the  tabs  tops.   This  space  is
          padded with  spaces by  default.   If an  argument is  supplied
-         this is taken to be  the ASCII value of the character  used for
-         padding.   This  can be  used to  do left  or right  alignment,
+         this is taken  to be the character  code of the character  used
+         for padding.  This  can be used to do left or  right alignment,
          centering, distributing, etc.   See also  ~| and ~+ to set  tab
          stops.  A tabs top is assumed at the start of each line.
 
@@ -14467,7 +14468,7 @@ suggest predicates from a keyword.
  at_initialization/1           Register goal to run at start-up
  atom/1                        Type check for an atom
  atom_chars/2                  Convert between atom and list of characters
- atom_codes/2                  Convert between atom and list of ASCII values
+ atom_codes/2                  Convert between atom and list of characters codes
 
  atom_length/2                 Determine length of an atom
  atom_prefix/2                 Test for start of atom
@@ -14489,7 +14490,7 @@ suggest predicates from a keyword.
  call_with_depth_limit/3       Prove goal with bounded depth
  callable/1                    Test for atom or compound term
  catch/3                       Call goal, watching for exceptions
- char_code/2                   Convert between atom and ASCII value
+ char_code/2                   Convert between character and character code
  char_conversion/2             Provide mapping of input characters
  char_type/2                   Classify characters
  character_count/2             Get character index on a stream
@@ -14702,7 +14703,7 @@ suggest predicates from a keyword.
  mutex_trylock/1               Become owner of a mutex (non-blocking)
  mutex_unlock/1                Release ownership of mutex
  mutex_unlock_all/0            Release ownership of all mutexes
- name/2                        Convert between atom and list of ASCII characters
+ name/2                        Convert between atom and list of character codes
  nl/0                          Generate a newline
  nl/1                          Generate a newline on a stream
  nodebug/0                     Disable debugging
@@ -14720,7 +14721,7 @@ suggest predicates from a keyword.
  nth_clause/3                  N-th clause of a predicate
  number/1                      Type check for integer or float
  number_chars/2                Convert between number and one-char atoms
- number_codes/2                Convert between number and ASCII values
+ number_codes/2                Convert between number and character codes
  numbervars/3                  Number unbound variables of a term
  numbervars/4                  Number unbound variables of a term
 
@@ -14872,7 +14873,7 @@ suggest predicates from a keyword.
  string_concat/3               atom_concat/3for strings
  string_length/2               Determine length of a string
  string_to_atom/2              Conversion between string and atom
- string_to_list/2              Conversion between string and list of ASCII
+ string_to_list/2              Conversion between string and list of character codes
  style_check/1                 Change level of warnings
  sub_atom/5                    Take a substring from an atom
  sublist/3                     Determine elements that meet condition

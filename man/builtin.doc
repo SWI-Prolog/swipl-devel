@@ -77,9 +77,8 @@ how text between double-quotes is interpreted.
 \section{Loading Prolog source files}	\label{sec:consulting}
 
 This section deals with loading Prolog source-files. A Prolog source
-file is a text-file (often referred to as \jargon{ASCII-file})
-containing a Prolog program or part thereof.  Prolog source files
-come in three flavours:
+file is a plain text file containing a Prolog program or part thereof.
+Prolog source files come in three flavours:
 
 \begin{description}
     \item [ A traditional ] Prolog source file contains a Prolog
@@ -2476,8 +2475,8 @@ return. The character is not echoed to the user's terminal. This
 predicate is meant for keyboard menu selection etc. If SWI-Prolog was
 started with the \cmdlineoption{-tty} option this predicate reads an entire
 line of input and returns the first non-blank character on this line, or
-the ASCII code of the newline (10) if the entire line consisted of blank
-characters.
+the character code of the newline (10) if the entire line consisted
+of blank characters.
 
     \predicate{at_end_of_stream}{0}{}
 Succeeds after the last character of the current input stream has
@@ -2847,11 +2846,11 @@ setarg/3 affects both the copy and original.
 
 \section{Analysing and Constructing Atoms}	\label{sec:manipatom}
 
-These predicates convert between Prolog constants and lists of ASCII
-values. The predicates atom_codes/2, number_codes/2 and name/2 behave
-the same when converting from a constant to a list of ASCII values. When
-converting the other way around, atom_codes/2 will generate an atom,
-number_codes/2 will generate a number or exception and name/2 will
+These predicates convert between Prolog constants and lists of character
+codes. The predicates atom_codes/2, number_codes/2 and name/2 behave
+the same when converting from a constant to a list of character codes.
+When converting the other way around, atom_codes/2 will generate an
+atom, number_codes/2 will generate a number or exception and name/2 will
 return a number if possible and an atom otherwise.
 
 The ISO standard defines atom_chars/2 to describe the `broken-up'
@@ -2867,13 +2866,16 @@ the `list-side' accepts either a code-list or a char-list and the
 
 \begin{description}
     \predicate{atom_codes}{2}{?Atom, ?String}
-Convert between an atom and a list of ASCII values.  If \arg{Atom} is
-instantiated, if will be translated into a list of ASCII values and the
-result is unified with \arg{String}. If \arg{Atom} is unbound and \arg{String} is a list of ASCII values, it will \arg{Atom} will be unified
-with an atom constructed from this list.
+Convert between an atom and a list of character codes. If
+\arg{Atom} is instantiated, if will be translated into a list of character
+codes and the result is unified with \arg{String}. If \arg{Atom}
+is unbound and \arg{String} is a list of character codes, it will
+\arg{Atom} will be unified with an atom constructed from this list.
+
+
     \predicate{atom_chars}{2}{?Atom, ?CharList}
 As atom_codes/2, but \arg{CharList} is a list of one-character atoms
-rather than a list of ASCII values%
+rather than a list of character codes%
 	\footnote{Upto version 3.2.x, atom_chars/2 behaved as the
 		  current atom_codes/2.  The current definition is
 		  compliant with the ISO standard}.
@@ -2882,8 +2884,9 @@ rather than a list of ASCII values%
 
 X = [h, e, l, l, o]
 \end{code}
-    \predicate{char_code}{2}{?Atom, ?ASCII}
-Convert between character and ASCII value for a single character.%
+    \predicate{char_code}{2}{?Atom, ?Code}
+Convert between character and character code for a single
+character.%
 	\footnote{This is also called atom_char/2 in older versions of
 		  SWI-Prolog as well as some other Prolog
 		  implementations.  atom_char/2 is available from
@@ -2893,26 +2896,31 @@ Similar to atom_chars/2, but converts between a number and its
 representation as a list of one-character atoms. Fails with a
 \except{representation_error} if \arg{Number} is unbound and
 \arg{CharList} does not describe a number.
+
     \predicate{number_codes}{2}{?Number, ?CodeList}
-As number_chars/2, but converts to a list of character codes (normally
-ASCII values) rather than one-character atoms.  In the mode -, +, both
-predicates behave identically to improve handling of non-ISO source.
+As number_chars/2, but converts to a list of character codes rather than
+one-character atoms. In the mode -, +, both predicates behave
+identically to improve handling of non-ISO source.
+
     \predicate{atom_number}{2}{?Atom, ?Number}
 Realises the popular combination of atom_codes/2 and number_codes/2 to
 convert between atom and number (integer or float) in one predicate,
 avoiding the intermediate list.
+
     \predicate{name}{2}{?AtomOrInt, ?String}
-\arg{String} is a list of ASCII values describing \arg{Atom}. Each of the
-arguments may be a variable, but not both. When \arg{String} is bound to an
-ASCII value list describing an integer and \arg{Atom} is a variable \arg{Atom}
-will be unified with the integer value described by \arg{String} (e.g.
-`\exam{name(N, "300"), 400 is N + 100}' succeeds).
+\arg{String} is a list of character codes representing the same text
+as \arg{Atom}. Each of the arguments may be a variable, but not both.
+When \arg{String} is bound to an character code list describing an
+integer and \arg{Atom} is a variable \arg{Atom} will be unified with the
+integer value described by \arg{String} (e.g. `\exam{name(N, "300"), 400
+is N + 100}' succeeds).
+
     \predicate{int_to_atom}{3}{+Int, +Base, -Atom}
-Convert \arg{Int} to an {\sc ascii} representation using base \arg{Base}
-and unify the result with \arg{Atom}. If $\arg{Base} \not= 10$ the base
-will be prepended to \arg{Atom}. $\arg{Base} = 0$ will try to interpret
-\arg{Int} as an ASCII value and return \const{0'}<c>. Otherwise $2 \leq
-\arg{Base} \leq 36$. Some examples are given below.
+Convert \arg{Int} to an textual representation using base \arg{Base} and
+unify the result with \arg{Atom}. If $\arg{Base} \not= 10$ the base will
+be prepended to \arg{Atom}. $\arg{Base} = 0$ will try to interpret
+\arg{Int} as an character codes and return \const{0'}<c>. Otherwise $2
+\leq \arg{Base} \leq 36$. Some examples are given below.
 
 \begin{center}\begin{tabular}{lcl}
 int_to_atom(45,  2, A) & $\longrightarrow$ & $A = 2'101101$ \\
@@ -3158,9 +3166,11 @@ handling.
 Logical conversion between a string and an atom. At least one of the
 two arguments must be instantiated. \arg{Atom} can also be an integer
 or floating point number.
+
     \predicate{string_to_list}{2}{?String, ?List}
-Logical conversion between a string and a list of ASCII characters. At
-least one of the two arguments must be instantiated.
+Logical conversion between a string and a list of character codes
+characters. At least one of the two arguments must be instantiated.
+
     \predicate{string_length}{2}{+String, -Length}
 Unify \arg{Length} with the number of characters in \arg{String}. This
 predicate is functionally equivalent to atom_length/2 and also accepts
@@ -3436,13 +3446,15 @@ $\arg{Expr} = 0$.
 Evaluates to the largest of both \arg{Expr1} and \arg{Expr2}.
     \predicate{min}{2}{+Expr1, +Expr2}
 Evaluates to the smallest of both \arg{Expr1} and \arg{Expr2}.
+
     \predicate{.}{2}{+Int, []}
 A list of one element evaluates to the element.  This implies \exam{"a"}
-evaluates to the ASCII value of the letter `a' (97). This option is
-available for compatibility only.  It will not work if
-`\exam{style_check(+string)}' is active as \exam{"a"} will then be transformed
-into a string object. The recommended way to specify the ASCII value of
-the letter `a' is \exam{0'a}.
+evaluates to the character code of the letter `a' (97). This
+option is available for compatibility only. It will not work if
+`\exam{style_check(+string)}' is active as \exam{"a"} will then be
+transformed into a string object. The recommended way to specify the
+character code of the letter `a' is \exam{0'a}.
+
     \predicate{random}{1}{+Int}
 Evaluates to a random integer \arg{i} for which $0 \leq i < \arg{Int}$.
 The seed of this random generator is determined by the system clock when
@@ -3772,7 +3784,7 @@ Escape sequences to generate a single special character:
 \fmtseq{\\}   &  The character \chr{\} is output \\
 \fmtseq{\%}   &  The character \chr{%} is output \\
 \fmtseq{\nnn} &  where <nnn> is an integer (1-3 digits) the
-		 character with ASCII code <nnn> is output
+		 character with character code <nnn> is output
 		 (NB : <nnn> is read as \strong{decimal}) \\
 \hline
 \end{tabular}
@@ -3795,7 +3807,7 @@ Escape sequences to include arguments from \arg{Arguments}. Each time a
 		write_term/2.  Mnemonic: old Edinburgh display/1. \\
 \fmtseq{%p}  &  print/1 the next item (identical to \fmtseq{%t}) \\
 \fmtseq{%n}  &  Put the next item as a character (i.e., it is
-                an ASCII value) \\
+                a character code) \\
 \fmtseq{%r}  &  Write the next item N times where N is the
                 second item (an integer) \\
 \fmtseq{%s}  &  Write the next item as a String (so it must
@@ -3826,47 +3838,56 @@ Equivalent to \exam{swritef(String, Format, []).}
 \begin{description}
     \predicate{format}{1}{+Format}
 Defined as `\exam{format(Format) :- format(Format, []).}'
+
     \predicate{format}{2}{+Format, +Arguments}
-\arg{Format} is an atom, list of ASCII values, or a Prolog string.
+\arg{Format} is an atom, list of character codes, or a Prolog string.
 \arg{Arguments} provides the arguments required by the format
-specification.  If only one argument is required and this is not a list
-of ASCII values the argument need not be put in a list.  Otherwise the
+specification. If only one argument is required and this is not a list
+of character codes the argument need not be put in a list. Otherwise the
 arguments are put in a list.
 
 Special sequences start with the tilde (\chr{~}), followed by an
 optional numeric argument, followed by a character describing the action
 to be undertaken. A numeric argument is either a sequence of digits,
 representing a positive decimal number, a sequence \exam{`<character>},
-representing the ASCII value of the character (only useful for
-\fmtseq{~t}) or a asterisk (\chr{*}), in when the numeric
-argument is taken from the next argument of the argument list, which
-should be a positive integer. Actions are:
+representing the character code value of the character (only useful
+for \fmtseq{~t}) or a asterisk (\chr{*}), in when the numeric argument
+is taken from the next argument of the argument list, which should be a
+positive integer. Actions are:
 
 \begin{itemize}
     \fmtchar{~}
 Output the tilde itself.
+
     \fmtchar{a}
 Output the next argument, which should be an atom. This option is
 equivalent to {\bf w}. Compatibility reasons only.
+
     \fmtchar{c}
-Output the next argument as an ASCII value. This argument should be an
-integer in the range [0, \ldots, 255] (including 0 and 255).
+Interpret the next argument as an character code and add it to the
+output. This argument should be an integer in the range [0, \ldots, 255]
+(including 0 and 255).
+
     \fmtchar{d}
 Output next argument as a decimal number.  It should be an integer.  If
 a numeric argument is specified a dot is inserted \arg{argument}
 positions from the right (useful for doing fixed point arithmetic with
 integers, such as handling amounts of money).
+
     \fmtchar{D}
 Same as {\bf d}, but makes large values easier to read by inserting a
 comma every three digits left to the dot or right.
+
     \fmtchar{e}
 Output next argument as a floating point number in exponential
 notation.  The numeric argument specifies the precision.  Default is 6
 digits.  Exact representation depends on the C library function
 printf(). This function is invoked with the format
 \mbox{\tt\%.<precision>e}.
+
     \fmtchar{E}
 Equivalent to {\bf e}, but outputs a capital E to indicate the exponent.
+
     \fmtchar{f}
 Floating point in non-exponential notation. See C library function
 printf().
@@ -3894,17 +3915,20 @@ be in the range $[2, \ldots, 36]$. Lower case letters are used for
 digits above 9.
     \fmtchar{R}
 Same as {\bf r}, but uses upper case letters for digits above 9.
+
     \fmtchar{s}
-Output a string of ASCII characters or a string (see string/1 and
+Output text from a list of character codes or a string (see string/1 and
 \secref{strings}) from the next argument.
+
     \fmtchar{t}
 All remaining space between 2 tabs tops is distributed equally over
 \fmtseq{~t} statements between the tabs tops. This space is padded
 with spaces by default. If an argument is supplied this is taken to be
-the ASCII value of the character used for padding. This can be used to
-do left or right alignment, centering, distributing, etc. See also
-\fmtseq{~|} and \fmtseq{~+} to set tab stops. A tabs top is
-assumed at the start of each line.
+the character code of the character used for padding. This can be
+used to do left or right alignment, centering, distributing, etc. See
+also \fmtseq{~|} and \fmtseq{~+} to set tab stops. A tabs top is assumed
+at the start of each line.
+
     \fmtchar{|}
 Set a tabs top on the current position. If an argument is supplied set a
 tabs top on the position of that argument. This will cause all
