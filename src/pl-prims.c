@@ -2053,13 +2053,14 @@ pl_number_codes(term_t atom, term_t string)
 
 word
 pl_char_code(term_t atom, term_t chr)
-{ char *s;
+{ PL_chars_t txt;
   int n;
 
-  if ( PL_get_atom_chars(atom, &s) && strlen(s) == 1 )
-  { int i = s[0] & 0xff;
-
-    return PL_unify_integer(chr, i);
+  if ( PL_get_text(atom, &txt, CVT_ATOM) && txt.length == 1 )
+  { if ( txt.encoding == ENC_WCHAR )
+      return PL_unify_integer(chr, txt.text.w[0]);
+    else
+      return PL_unify_integer(chr, txt.text.t[0]&0xff);
   } else if ( PL_get_integer(chr, &n) )
   { if ( n >= 0 )
       return PL_unify_atom(atom, codeToAtom(n));
