@@ -29,7 +29,8 @@ static status
 initialiseEditTextGesture(EditTextGesture g, Name button, Modifier modifier)
 { initialiseGesture((Gesture) g, button, modifier);
   assign(g, selection_origin, ZERO);
-  
+  assign(g, activate, OFF);
+
   succeed;
 }
 
@@ -59,16 +60,17 @@ initiateEditTextGesture(EditTextGesture g, EventObj ev)
 { Graphical t = ev->receiver;
   Int origin = get(t, NAME_pointed, getPositionEvent(ev, DEFAULT), EAV);
 
+  if ( getMulticlickEvent(ev) != NAME_single )
+    fail;
+
   if ( origin )
   { PceWindow sw = getWindowGraphical((Graphical)t);
 
     assign(g, selection_origin, origin);
     send(t, NAME_caret, origin, EAV);
     send(t, NAME_selection, NIL, EAV);
+    assign(g, activate, ON);
 
-    if ( sw )
-      send(sw, NAME_keyboardFocus, t, EAV);
-    
     succeed;
   }
 
@@ -81,6 +83,15 @@ dragEditTextGesture(EditTextGesture g, EventObj ev)
 { Graphical t = ev->receiver;
   Int end = get(t, NAME_pointed, getPositionEvent(ev, DEFAULT), EAV);
 
+  if ( notNil(g->max_drag_distance) )
+  { PceWindow sw;
+
+    if ( instanceOfObject((sw=ev->window), ClassWindow) &&
+	 valInt(getDistanceEvent(sw->focus_event, ev)) >
+	 valInt(g->max_drag_distance) )
+      assign(g, activate, OFF);
+  }
+
   if ( end )
   { send(t, NAME_selection, g->selection_origin, end, EAV);
     send(t, NAME_caret, end, EAV);
@@ -91,6 +102,23 @@ dragEditTextGesture(EditTextGesture g, EventObj ev)
   fail;
 }
 
+
+static status
+terminateEditTextGesture(EditTextGesture g, EventObj ev)
+{ TextObj t = ev->receiver;
+
+  if ( instanceOfObject(t, ClassText) && notNil(t->selection) )
+    send(t, NAME_copy, EAV);
+
+  if ( g->activate == ON )
+  { PceWindow sw = getWindowGraphical((Graphical)t);
+
+    if ( sw )
+      send(sw, NAME_keyboardFocus, t, EAV);
+  }    
+
+  succeed;
+}
 
 
 		 /*******************************
@@ -106,7 +134,11 @@ static char *T_initialise[] =
 
 static vardecl var_editTextGesture[] =
 { IV(NAME_selectionOrigin, "int", IV_BOTH,
-     NAME_internal, "Where the selection started")
+     NAME_internal, "Where the selection started"),
+  IV(NAME_maxDragDistance, "int*", IV_BOTH,
+     NAME_cancel, "Click if dragged less"),
+  IV(NAME_activate, "bool", IV_BOTH,
+     NAME_internal, "@on: activate on ->terminate")
 };
 
 /* Send Methods */
@@ -119,7 +151,9 @@ static senddecl send_editTextGesture[] =
   SM(NAME_initialise, 2, T_initialise, initialiseEditTextGesture,
      DEFAULT, "Create from button and modifier"),
   SM(NAME_initiate, 1, "event", initiateEditTextGesture,
-     DEFAULT, "Clear selection and set caret")
+     DEFAULT, "Clear selection and set caret"),
+  SM(NAME_terminate, 1, "event", terminateEditTextGesture,
+     DEFAULT, "Activate on click"),
 };
 
 /* Get Methods */
@@ -137,7 +171,9 @@ static classvardecl rc_editTextGesture[] =
 { RC(NAME_button, "button_name", "left",
      "Active on which button (middle)"),
   RC(NAME_cursor, "[cursor]", "@default",
-     "Cursor while active")
+     "Cursor while active"),
+  RC(NAME_maxDragDistance, "int*", "5",
+     "Cancel after dragging this far")
 };
 
 /* Class Declaration */

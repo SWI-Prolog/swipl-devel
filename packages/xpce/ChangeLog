@@ -1,6 +1,10 @@
 			   XPCE ChangeLog
 			   ==============
 
+* MODIFIED: Various aspects of class text_edit_gesture: only activate on
+  `click', ignore double-click and ->copy on ->terminate if there is a
+  selection.
+
 * ADDED: library(pce_editable_text) to use text_edit_gesture, adding
   selection handling.
 

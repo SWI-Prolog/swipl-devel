@@ -592,6 +592,8 @@ End;
 NewClass(edit_text_gesture)
   ABSTRACT_GESTURE
   Int		selection_origin;	/* Start of the selection */
+  Int		max_drag_distance;	/* Max distance for dragging */
+  Bool		activate;		/* @on: focus on ->terminate */
 End;
 
 
