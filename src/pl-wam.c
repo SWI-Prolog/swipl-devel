@@ -506,9 +506,13 @@ retry:
 
     ret_det:
       RestoreLocalPtr(s1, frame);
-      if ( exception_term && result )	/* False alarm */
-      { exception_term = 0;
-	setVar(*valTermRef(exception_bin));
+
+      if ( exception_term )
+      { if ( result )			/* False alarm */
+	{ exception_term = 0;
+	  setVar(*valTermRef(exception_bin));
+	} else
+	  goto except;			/* force debugging */
       }
 
 #ifdef O_DEBUGGER
@@ -520,10 +524,24 @@ retry:
 	    port = EXIT_PORT;
 	    break;
 	  case FALSE:
+	  except:
 	  { FliFrame ffr = (FliFrame)valTermRef(cid);
-	    port = FAIL_PORT;
-	    Undo(ffr->mark);
-	    break;
+
+	    if ( exception_term )
+	    { mark m;
+	      Choice ch;
+
+	      m = ffr->mark;
+	      PL_close_foreign_frame(cid);
+	      ch = newChoice(CHP_DEBUG, frame PASS_LD);
+	      ch->mark = m;
+
+	      return FALSE;
+	    } else
+	    { port = FAIL_PORT;
+	      Undo(ffr->mark);
+	      break;
+	    }
 	  }
 	  default:
 	    goto err_domain;
@@ -572,9 +590,12 @@ retry:
 
     ret_ndet:
       RestoreLocalPtr(s1, frame);
-      if ( exception_term && result )	/* False alarm */
-      { exception_term = 0;
-	setVar(*valTermRef(exception_bin));
+      if ( exception_term )
+      { if ( result )			/* False alarm */
+	{ exception_term = 0;
+	  setVar(*valTermRef(exception_bin));
+	} else
+	  goto except;			/* force debugging */
       }
       
 #ifdef O_DEBUGGER
@@ -585,7 +606,7 @@ retry:
 	{ port = EXIT_PORT;
 	} else
 	{ if ( exception_term )
-	    return FALSE;
+	    goto except;
 	  else
 	  { FliFrame ffr = (FliFrame)valTermRef(cid);
 	    port = FAIL_PORT;
@@ -2404,16 +2425,15 @@ failure. Otherwise, it will simulate an I_USERCALL0 instruction: it sets
 the FR and lTop as it it  was   running  the  throw/3 predicate. Then it
 pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    b_throw:
     VMI(B_THROW) MARK(B_THROW);
       { Word catcher;
 	word except;
 	LocalFrame catchfr;
 
-	if ( exception_term )		/* PL_throw() generated */
-	  catcher = valTermRef(exception_term);
-	else				/* throw/1 generated */
-	  catcher = argFrameP(lTop, 0);
+	PL_raise_exception(argFrameP(lTop, 0) - (Word)lBase);
+    b_throw:
+        assert(exception_term);
+        catcher = valTermRef(exception_term);
 
 	SECURE(checkData(catcher));
 	DEBUG(1, { Sdprintf("Throwing ");
@@ -2456,12 +2476,18 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 	  { Choice ch = findStartChoice(FR, LD->choicepoints);
 
 	    if ( ch )
-	    { *valTermRef(LD->exception.pending) = except;
+	    { int printed = (*valTermRef(exception_printed) == except);
 
-	      Undo(ch->mark);
+	      undo_while_saving_term(&ch->mark, catcher);
+	      except = *catcher;
+	      *valTermRef(LD->exception.pending) = except;
+	      if ( printed )
+		*valTermRef(exception_printed) = except;
+
 	      switch(tracePort(FR, ch, EXCEPTION_PORT, PC))
 	      { case ACTION_RETRY:
 		  *valTermRef(exception_printed) = 0;
+		  Undo(ch->mark);
 		  discardChoicesAfter(FR PASS_LD);
 		  DEF = FR->predicate;
 #ifdef O_LOGICAL_UPDATE
@@ -2516,8 +2542,6 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 	} else
 	{ Word p;
 
-	  *valTermRef(exception_printed) = 0; /* consider it handled */
-
 	  QF = QueryFromQid(qid);	/* may be shifted: recompute */
 	  set(QF, PL_Q_DETERMINISTIC);
 	  FR = environment_frame = &QF->frame;
@@ -2533,6 +2557,7 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 	  if ( false(QF, PL_Q_PASS_EXCEPTION) )
 	  { *valTermRef(exception_bin)     = 0;
 	    exception_term		   = 0;
+	    *valTermRef(exception_printed) = 0; /* consider it handled */
 	  } else
 	  { *valTermRef(exception_bin)     = *p;
 	    exception_term		   = exception_bin;
@@ -3632,10 +3657,10 @@ execution can continue at `next_instruction'
 #endif
 	  { Definition ndef = ((Procedure) *PC++)->definition;
 
-	    leaveDefinition(DEF);
-	    FR->predicate = DEF = ndef;
 	    if ( true(DEF, HIDE_CHILDS) )
 	      set(FR, FR_NODEBUG);
+	    leaveDefinition(DEF);
+	    FR->predicate = DEF = ndef;
 
 	    copyFrameArguments(lTop, FR, DEF->functor->arity PASS_LD);
 	  }
