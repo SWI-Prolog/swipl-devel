@@ -3,8 +3,6 @@
     Copyright (c) 1990 Jan Wielemaker. All rights reserved.
     See ../LICENCE to find out about your rights.
     jan@swi.psy.uva.nl
-
-    Purpose: read/1, 2
 */
 
 #include <math.h>
@@ -1218,10 +1216,6 @@ PL_assign_term(term_t to, term_t from)
 
 #define priorityClash { syntaxError("Operator priority clash"); }
 
-#ifndef MAX_TERM_NESTING
-#define MAX_TERM_NESTING 200
-#endif
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This part of the parser actually constructs  the  term.   It  calls  the
 tokeniser  to  find  the next token and assumes the tokeniser implements
@@ -1280,37 +1274,50 @@ build_op_term(term_t term, atom_t atom, int arity, out_entry *argv)
   build_term(term, atom, arity, av);
 }
 
+#define realloca(p, unit, n) \
+	{ int *ip = (int *)(p); \
+	  if ( ip == NULL || ip[-1] < (n) ) \
+	  { int nsize = (((n)+(n)/2) + 3) & ~3; \
+	    int *np = alloca(nsize * unit + sizeof(int)); \
+	    *np++ = nsize; \
+	    if ( ip ) \
+	      memcpy(np, ip, ip[-1] * unit); \
+	    p = (void *)np; \
+	  } \
+	}
+
 #define PushOp() \
+	realloca(side, sizeof(*side), side_n+1); \
 	side[side_n++] = in_op; \
-	if ( side_n >= MAX_TERM_NESTING ) \
-	  syntaxError("Operator stack overflow"); \
-	side_p = (side_n == 1 ? side : side_p+1);
+	side_p = (side_n == 1 ? 0 : side_p+1);
 	
 #define Modify(pri) \
-	if ( side_p != NULL && pri > side_p->right_pri ) \
+	if ( side_p >= 0 && pri > side[side_p].right_pri ) \
 	{ term_t tmp; \
-	  if ( side_p->kind == OP_PREFIX && rmo == 0 ) \
+	  if ( side[side_p].kind == OP_PREFIX && rmo == 0 ) \
 	  { DEBUG(1, Sdprintf("Prefix %s to atom\n", \
-			      stringAtom(side_p->op))); \
+			      stringAtom(side[side_p].op))); \
 	    rmo++; \
 	    tmp = PL_new_term_ref(); \
-	    PL_put_atom(tmp, side_p->op); \
+	    PL_put_atom(tmp, side[side_p].op); \
+	    realloca(out, sizeof(*out), out_n+1); \
 	    out[out_n].term = tmp; \
-	    out[out_n++].tpos = side_p->tpos; \
+	    out[out_n].tpos = side[side_p].tpos; \
+	    out_n++; \
 	    side_n--; \
-	    side_p = (side_n == 0 ? NULL : side_p-1); \
-	  } else if ( side_p->kind == OP_INFIX && out_n > 0 && rmo == 0 && \
-		      isOp(side_p->op, OP_POSTFIX, side_p) ) \
+	    side_p = (side_n == 0 ? -1 : side_p-1); \
+	  } else if ( side[side_p].kind == OP_INFIX && out_n > 0 && rmo == 0 && \
+		      isOp(side[side_p].op, OP_POSTFIX, &side[side_p]) ) \
 	  { DEBUG(1, Sdprintf("Infix %s to postfix\n", \
-			      stringAtom(side_p->op))); \
+			      stringAtom(side[side_p].op))); \
 	    rmo++; \
 	    tmp = PL_new_term_ref(); \
-	    build_op_term(tmp, side_p->op, 1, &out[out_n-1]); \
+	    build_op_term(tmp, side[side_p].op, 1, &out[out_n-1]); \
 	    out[out_n-1].term = tmp; \
-	    side_p->kind = OP_POSTFIX; \
-	    out[out_n-1].tpos = opPos(side_p, &out[out_n-1]); \
+	    side[side_p].kind = OP_POSTFIX; \
+	    out[out_n-1].tpos = opPos(&side[side_p], &out[out_n-1]); \
 	    side_n--; \
-	    side_p = (side_n == 0 ? NULL : side_p-1); \
+	    side_p = (side_n == 0 ? -1 : side_p-1); \
 	  } \
 	}
 
@@ -1371,31 +1378,31 @@ opPos(op_entry *op, out_entry *args)
 }
 
 #define Reduce(cond) \
-	while( out_n > 0 && side_p != NULL && (cond) ) \
-	{ int arity = (side_p->kind == OP_INFIX ? 2 : 1); \
+	while( out_n > 0 && side_p >= 0 && (cond) ) \
+	{ int arity = (side[side_p].kind == OP_INFIX ? 2 : 1); \
 	  term_t tmp; \
  	  if ( arity > out_n ) break; \
 	  DEBUG(1, Sdprintf("Reducing %s/%d\n", \
-			    stringAtom(side_p->op), arity));\
+			    stringAtom(side[side_p].op), arity));\
 	  tmp = PL_new_term_ref(); \
 	  out_n -= arity; \
-	  build_op_term(tmp, side_p->op, arity, &out[out_n]); \
+	  build_op_term(tmp, side[side_p].op, arity, &out[out_n]); \
 	  out[out_n].term = tmp; \
-	  out[out_n].tpos = opPos(side_p, &out[out_n]); \
+	  out[out_n].tpos = opPos(&side[side_p], &out[out_n]); \
 	  out_n ++; \
 	  side_n--; \
-	  side_p = (side_n == 0 ? NULL : side_p-1); \
+	  side_p = (side_n == 0 ? -1 : side_p-1); \
 	}
 
 
 static bool
 complex_term(const char *stop, term_t term, term_t positions)
-{ out_entry out[MAX_TERM_NESTING];
-  op_entry  side[MAX_TERM_NESTING];
+{ out_entry *out = NULL;
+  op_entry  *side = NULL;
   op_entry  in_op;
   int out_n = 0, side_n = 0;
   int rmo = 0;				/* Rands more than operators */
-  op_entry *side_p = NULL;
+  int side_p = -1;
   term_t pin;
 
   for(;;)
@@ -1441,7 +1448,7 @@ complex_term(const char *stop, term_t term, term_t positions)
 
 	Modify(in_op.left_pri);
 	if ( rmo == 1 )
-	{ Reduce(in_op.op_pri > side_p->right_pri);
+	{ Reduce(in_op.op_pri > side[side_p].right_pri);
 	  PushOp();
 	  rmo--;
 
@@ -1453,7 +1460,7 @@ complex_term(const char *stop, term_t term, term_t positions)
 
 	Modify(in_op.left_pri);
 	if ( rmo == 1 )
-	{ Reduce(in_op.op_pri > side_p->right_pri);
+	{ Reduce(in_op.op_pri > side[side_p].right_pri);
 	  PushOp();	
 	
 	  continue;
@@ -1471,10 +1478,9 @@ complex_term(const char *stop, term_t term, term_t positions)
     if ( rmo != 0 )
       syntaxError("Operator expected");
     rmo++;
+    realloca(out, sizeof(*out), out_n+1);
     out[out_n].term = in;
     out[out_n++].tpos = pin;
-    if	( out_n >= MAX_TERM_NESTING )
-      syntaxError("Operant stack overflow");
   }
 
 exit:
