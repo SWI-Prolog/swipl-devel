@@ -14,7 +14,8 @@
 	  [ rdf_triples/2,		% +Parsed, -Tripples
 	    rdf_triples/3,		% +Parsed, -Tripples, +Tail
 	    rdf_reset_ids/0,		% Reset gensym id's
-	    rdf_reset_node_ids/0,	% Reset nodeID --> Node__xxx table
+	    rdf_start_file/1,		% +Options
+	    rdf_end_file/0,
 	    anon_prefix/1		% Prefix for anonynmous resources
 	  ]).
 :- use_module(library(gensym)).
@@ -94,6 +95,20 @@ triples(container(Type, Id, Elements), Id) --> !,
 	[ rdf(Id, rdf:type, rdf:Type)
 	],
 	container(Elements, 1, Id).
+triples(description(Type, About, BagId, Props), Subject) -->
+	{ var(About),
+	  var(BagId),
+	  share_blank_nodes(true)
+	}, !,
+	(   { shared_description(description(Type, Props), Subject)
+	    }
+	->  []
+	;   { make_id('__Description', Id)
+	    },
+	    triples(description(Type, about(Id), BagId, Props), Subject),
+	    { assert_shared_description(description(Type, Props), Subject)
+	    }
+	).
 triples(description(description, IdAbout, BagId, Props), Subject) --> !,
 	{ description_id(IdAbout, Subject)
 	},
@@ -295,6 +310,56 @@ collection([H|T], Id) -->
 	  rdf(Id, rdf:rest, TId)
 	],
 	collection(T, TId).
+
+
+		 /*******************************
+		 *	       SHARING		*
+		 *******************************/
+
+:- thread_local
+	shared_description/3,		% +Hash, +Term, -Subject
+	share_blank_nodes/1,		% Boolean
+	shared_nodes/1.			% counter
+
+reset_shared_descriptions :-
+	retractall(shared_description(_,_,_)),
+	retractall(share_blank_nodes(_)),
+	retractall(shared_nodes(_)).
+
+shared_description(Term, Subject) :-
+	hash_term(Term, Hash),
+	shared_description(Hash, Term, Subject),
+	(   retract(shared_nodes(N))
+	->  N1 is N + 1
+	;   N1 = 1
+	),
+	assert(shared_nodes(N1)).
+	    
+
+assert_shared_description(Term, Subject) :-
+	hash_term(Term, Hash),
+	assert(shared_description(Hash, Term, Subject)).
+
+
+		 /*******************************
+		 *	      START/END		*
+		 *******************************/
+
+rdf_start_file(Options) :-
+	rdf_reset_node_ids,		% play safe
+	reset_shared_descriptions,
+	(   memberchk(blank_nodes(share), Options)
+	->  assert(share_blank_nodes(true))
+	;   true
+	).
+
+rdf_end_file :-
+	rdf_reset_node_ids,
+	(   shared_nodes(N)
+	->  print_message(informational, rdf(shared_blank_nodes(N)))
+	;   true
+	),
+	reset_shared_descriptions.
 
 
 		 /*******************************

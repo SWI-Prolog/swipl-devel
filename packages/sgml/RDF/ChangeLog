@@ -1,3 +1,11 @@
+Oct 6, 2003
+
+  * MODIFIED: synopsis of process_rdf/3 to
+    process_rdf(+File, :OnTriples, +Options) for consistency and to allow
+    extending the option list.  Old calls are mapped to the new.
+
+  * Added option blank_nodes(share) to load_rdf/3 and process_rdf/3.
+
 Aug 18, 2003
 
   * Guarantee that anonymous ids start with __

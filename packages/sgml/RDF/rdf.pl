@@ -17,7 +17,7 @@
 	    process_rdf/3		% +File, +BaseURI, :OnTriples
 	  ]).
 
-:- meta_predicate(process_rdf(+, +, :)).
+:- meta_predicate(process_rdf(+, :, +)).
 
 :- use_module(library(sgml)).		% Basic XML loading
 :- use_module(rdf_parser).		% Basic parser
@@ -46,6 +46,7 @@ load_rdf(File, Triples, Options) :-
 			 space(sgml)
 		       ]),
 	set_anon_prefix(BaseURI, Refs),
+	rdf_start_file(Options),
 	call_cleanup(xml_to_rdf(RDFElement, BaseURI, Triples0),
 		     cleanup_load(Refs)),
 	post_process(Options, Triples0, Triples).
@@ -62,7 +63,7 @@ set_anon_prefix(BaseURI, [Ref]) :-
 	asserta(anon_prefix(AnonBase), Ref).
 
 cleanup_load(Refs) :-
-	rdf_reset_node_ids,
+	rdf_end_file,
 	erase_refs(Refs).
 
 erase_refs([]).
@@ -115,9 +116,13 @@ member_attribute(A) :-
 	in_rdf/1,			% BaseURI
 	object_handler/2.
 
-process_rdf(File, BaseURI, OnObject) :-
+%	process_rdf(+File, +OnObject, +Options)
+
+process_rdf(File, OnObject, Options) :-
+	is_list(Options), !,
+	option(base_uri(BaseURI), Options, []),
 	retractall(rdf:in_rdf),
-	rdf_reset_node_ids,		% make sure
+	rdf_start_file(Options),
 	'$strip_module'(OnObject, Module, Pred),
 	asserta(rdf:object_handler(BaseURI, Module:Pred), Ref),
 	open(File, read, In, [type(binary)]),
@@ -132,11 +137,16 @@ process_rdf(File, BaseURI, OnObject) :-
 				  call(end, rdf:on_end)
 				]),
 		     rdf:cleanup_process(In, [Ref|Refs])).
+process_rdf(File, BaseURI, OnObject) :-
+%	print_message(warning,
+%		      format('process_rdf(): new argument order', [])),
+	process_rdf(File, OnObject, [base_uri(BaseURI)]).
+
 
 cleanup_process(In, Refs) :-
 	close(In),
 	erase_refs(Refs),
-	rdf_reset_node_ids.
+	rdf_end_file.
 
 on_end(NS:'RDF', _) :-
 	rdf_name_space(NS),
@@ -198,6 +208,8 @@ prolog:message(rdf(unparsed(Data))) -->
 	[ 'RDF: Failed to interpret "~s"'-[XML] ].
 prolog:message(rdf(protege(id, Id))) -->
 	[ 'RDF: Fixed Protege 1.3 ID="~w" bug'-[Id] ].
+prolog:message(rdf(shared_blank_nodes(N))) -->
+	[ 'RDF: Shared ~D blank nodes'-[N] ].
 
 		 /*******************************
 		 *	    XML-TO-TEXT		*

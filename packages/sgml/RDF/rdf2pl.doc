@@ -165,6 +165,7 @@ modules or using an additional argument.
 \begin{description}
     \predicate{load_rdf}{2}{+File, -Triples}
 Same as \term{load_rdf}{File, Triples, []}.
+
     \predicate{load_rdf}{3}{+File, -Triples, +Options}
 Read the RDF-XML file \arg{File} and return a list of \arg{Triples}.
 \arg{Options} defines additional processing options.  Currently defined
@@ -175,6 +176,18 @@ options are:
 If provided local identifiers and identifier-references are globalised
 using this URI.  If omited or the atom \verb$[]$, local identifiers are
 not tagged.
+
+	\termitem{expand_foreach}{Boolean}
+If \arg{Boolean} is \const{true}, expand \const{rdf:aboutEach} into
+a set of triples. By default the parser generates
+\term{rdf}{each(Container), Predicate, Subject}.
+
+	\termitem{blank_nodes}{Mode}
+If \arg{Mode} is \const{share}, blank-node properties (i.e.\ complex
+properties without identifier) are reused if they result in exactly the
+same triple-set. Two descriptions are shared if their intermediate
+description is the same.  This means they should produce the same set
+of triples in the same order.
    \end{description}
 
 The \arg{Triples} list is a list of \term{rdf}{Subject, Predicate,
@@ -235,7 +248,8 @@ Process an XML term produced by load_structure/3 using the
 \term{dialect}{xmlns} output option.  \arg{XML} is either
 a complete \elem{rdf:RDF} element, a list of RDF-objects
 (container or description) or a single description of container.
-    \predicate{process_rdf}{3}{+File, +BaseURI, :OnTriples}
+
+    \predicate{process_rdf}{3}{+File, :OnTriples, +Options}
 Exploits the call-back interface of {\bf sgml2pl}, calling
 \term{\arg{OnTriples}}{Triples, File:Line} with the list of triples
 resulting from a single top level RDF object for each RDF element in the
@@ -250,9 +264,16 @@ assert_list([H|T], Source) :-
 	assert(H),
 	assert_list(T, Source).
 
-?- process_rdf('structure,rdf', [], assert_list).
+?- process_rdf('structure,rdf', assert_list, []).
 \end{code}
 \end{description}
+
+\arg{Options} are described with load_rdf/3. The option
+\const{expand_foreach} is not supported as the container may be in a
+different description.%
+	\footnote{Older versions used the calling convention
+		  \term{process_rdf(+File, +BaseURI, :OnTriples}.  This
+		  order is still recognised for compatibility.}
 
 \section{Testing the RDF translator}
 

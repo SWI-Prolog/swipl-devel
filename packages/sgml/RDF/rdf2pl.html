@@ -31,11 +31,11 @@ E-mail: <A HREF="mailto:jan@swi.psy.uva.nl">jan@swi.psy.uva.nl</A></I>
 <TABLE WIDTH="90%" ALIGN=center BORDER=2 BGCOLOR="#f0f0f0"><TR><TD>
 <A HREF="http://www.w3.org/RDF/">RDF</A> (<B>R</B>esource <B>D</B>escription <B>F</B>ormat) 
 is a <A HREF="http://www.w3.org/">W3C</A> standard for expressing 
-meta-data about web-resources. It has three representations providing 
-the same semantics. RDF documents are normally transferred as XML 
-documents using the RDF-XML syntax. This format is unsuitable for 
-processing. The parser defined here converts an RDF-XML document into 
-the <EM>triple</EM> notation.
+meta-data about web-resources. It has two representations providing the 
+same semantics. RDF documents are normally transferred as XML documents 
+using the RDF-XML syntax. This format is unsuitable for processing. The 
+parser defined here converts an RDF-XML document into the <EM>triple</EM> 
+notation.
 </TABLE>
 
 <H1><A NAME="document-contents">Table of Contents</A></H1>
@@ -207,6 +207,20 @@ defined options are:
 If provided local identifiers and identifier-references are globalised 
 using this URI. If omited or the atom <CODE>[]</CODE>, local identifiers 
 are not tagged.
+
+<P>
+<DT><STRONG>expand_foreach</STRONG>(<VAR>Boolean</VAR>)<DD>
+If <VAR>Boolean</VAR> is <CODE>true</CODE>, expand <CODE>rdf:aboutEach</CODE> 
+into a set of triples. By default the parser generates
+<CODE>rdf(each(Container), Predicate, Subject)</CODE>.
+
+<P>
+<DT><STRONG>blank_nodes</STRONG>(<VAR>Mode</VAR>)<DD>
+If <VAR>Mode</VAR> is <CODE>share</CODE>, blank-node properties (i.e. complex 
+properties without identifier) are reused if they result in exactly the 
+same triple-set. Two descriptions are shared if their intermediate 
+description is the same. This means they should produce the same set of 
+triples in the same order.
 </DL>
 
 <P>The <VAR>Triples</VAR> list is a list of <CODE>rdf(Subject, 
@@ -279,7 +293,7 @@ complete <TT>&lt;rdf:RDF&gt;</TT> element, a list of RDF-objects
 
 <P>
 <DT><A NAME="process_rdf/3"><STRONG>process_rdf</STRONG>(<VAR>+File, 
-+BaseURI, :OnTriples</VAR>)</A><DD>
+:OnTriples, +Options</VAR>)</A><DD>
 Exploits the call-back interface of <B>sgml2pl</B>, calling
 <CODE><VAR>OnTriples</VAR>(Triples, File:Line)</CODE> with the list of 
 triples resulting from a single top level RDF object for each RDF 
@@ -296,12 +310,17 @@ assert_list([H|T], Source) :-
         assert(H),
         assert_list(T, Source).
 
-?- process_rdf('structure,rdf', [], assert_list).
+?- process_rdf('structure,rdf', assert_list, []).
 </PRE>
 </TABLE>
 
 <P>
 </DL>
+
+<P><VAR>Options</VAR> are described with <A NAME="idx:loadrdf3:4"></A><A HREF="#load_rdf/3">load_rdf/3</A>. 
+The option
+<CODE>expand_foreach</CODE> is not supported as the container may be in 
+a different description.<A NAME=back-to-note-1 HREF="index.html#note-1"> (1)</A>
 
 <H2><A NAME="sec:4">4 Testing the RDF translator</A></H2>
 
@@ -322,7 +341,7 @@ resulting triples.
 <P>
 <DT><A NAME="passed/1"><STRONG>passed</STRONG>(<VAR>+N</VAR>)</A><DD>
 Process <CODE>suite/tN.rdf</CODE> and store the resulting triples in
-<CODE>suite/ok/tN.pl</CODE> for later validation by <A NAME="idx:test0:4"></A><A HREF="#test/0">test/0</A>.
+<CODE>suite/ok/tN.pl</CODE> for later validation by <A NAME="idx:test0:5"></A><A HREF="#test/0">test/0</A>.
 
 <P>
 <DT><A NAME="test/0"><STRONG>test</STRONG></A><DD>
@@ -396,4 +415,17 @@ where
 
 <P>Run the file <CODE>setup.pl</CODE> by double clicking it. This will 
 install the required files into the SWI-Prolog directory and update the 
-library directory.</BODY></HTML>
+library directory.
+
+<H1><A NAME="document-notes">Footnotes</A></H1>
+
+<DL>
+
+<P>
+<DT><A NAME=note-1 HREF="index.html#back-to-note-1">note-1</A><DD>
+Older versions used the calling convention <CODE>process_rdf(+File, 
++BaseURI, :OnTriples(process_rdf(+File, +BaseURI, :OnTriples)</CODE> 
+This order is still recognised for compatibility.
+</DL>
+
+</BODY></HTML>
