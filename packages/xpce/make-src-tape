@@ -15,6 +15,7 @@ if [ ! "o$1" = "o-q" ]; then
   done
 
 find ./bitmaps -name '*.bm' -print >> srcfiles
+find ./appl-help -name '*.hlp' -print >> srcfiles
 
 cat >> srcfiles << EOF
 ./prolog/lib/man/classification.obj
