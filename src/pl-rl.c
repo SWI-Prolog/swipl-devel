@@ -7,6 +7,16 @@
     Purpose: Binding to the GNU readline library
 */
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This module binds the  SWI-Prolog  terminal   I/O  to  the  GNU readline
+library. Existence of this  this  library   is  detected  by  configure.
+Binding is achieved by rebinding the read function of the Sinput stream. 
+
+This  module  only  depends  on  the  public  interface  as  defined  by
+SWI-Prolog.h (pl-itf.h) and SWI-Stream.h (pl-strea.h).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+
 #ifndef __WIN32__
 #include "pl-incl.h"
 #endif
@@ -97,6 +107,19 @@ event_hook()
 { return PL_dispatch(0, PL_DISPATCH_NOWAIT);
 }
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The GNU-readline library is not reentrant (or does not appear to be so).
+Therefore we will detect this and simply   call  the default function if
+reentrant access is tried.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int in_readline = 0;
+
+static void
+reset_readline()
+{ in_readline = 0;
+}
+
 
 static int
 Sread_readline(void *handle, char *buf, int size)
@@ -123,6 +146,7 @@ Sread_readline(void *handle, char *buf, int size)
     }
 #endif
     case PL_NOTTY:			/* -tty */
+    notty:
     { PL_dispatch(fd, PL_DISPATCH_WAIT);
       rval = read(fd, buf, size);
       if ( rval > 0 && buf[rval-1] == '\n' )
@@ -135,6 +159,12 @@ Sread_readline(void *handle, char *buf, int size)
     { char *line;
       char *prompt;
 
+      if ( in_readline )
+      { Sprintf("[readline disabled] ");
+	PL_write_prompt(fd, TRUE);
+	goto notty;			/* avoid reentrance */
+      }
+
       if ( PL_dispatch(0, PL_DISPATCH_INSTALLED) )
 	rl_event_hook = event_hook;
       else
@@ -144,7 +174,11 @@ Sread_readline(void *handle, char *buf, int size)
       if ( prompt )
 	PL_add_to_protocol(prompt, strlen(prompt));
 
-      if ( (line = readline(prompt)) )
+      in_readline++;
+      line = readline(prompt);
+      in_readline--;
+
+      if ( line )
       { char *s;
 	int l = strlen(line);
 	  
@@ -261,6 +295,7 @@ PL_install_readline()
 		      PL_FA_NOTRACE);
   PL_set_feature("readline", PL_ATOM, "true");
   PL_set_feature("tty_control", PL_ATOM, "true");
+  PL_abort_hook(reset_readline);
 }
 
 #else /*HAVE_LIBREADLINE*/

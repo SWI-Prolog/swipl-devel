@@ -33,10 +33,12 @@ extern int  tputs();
 #define STAT_ERROR	2
 
 extern int Output;			/* Current output stream */
+#ifdef TERMCAP_NEEDS_VARS
 char	PC;				/* Term lib variables */
 char   *BC;
 char   *UP;
 short	ospeed;
+#endif
 
 static int	term_initialised;	/* Extracted term info? */
 static char     *string_area_pointer;	/* Current location */
