@@ -39,7 +39,7 @@
 #include <assert.h>
 #include <signal.h>
 
-#if 1
+#if 0
 #define DEBUG(g) (void)0
 #else
 #define DEBUG(g) g
