@@ -1174,7 +1174,7 @@ it does not port to other C compilers.   Hence the trick with data sizes
 to avoid problems for most platforms.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define sizeofClause(n) ((int)&((Clause)NULL)->codes[n])
+#define sizeofClause(n) ((char *)&((Clause)NULL)->codes[n] - (char *)NULL)
 
 struct clause
 { Procedure	procedure;		/* procedure we belong to */

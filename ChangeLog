@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: sizeofClause() type error.  Michal Cihar.
+
   * FIXED: int/char problem in parser.  Michal Cihar.
 
   * FIXED: Bug#128: memory deallocation problem in library(memfile).
