@@ -64,12 +64,12 @@ pack_list([H|T], Out, Boundary) :-
 	format(Out, '\r\n', []),
 	pack_list(T, Out, Boundary).
 
-pack(X) :- 
-	\+ ground(X), !,
+pack(X, _Out) :- 
+	var(X), !,
 	throw(error(instantiation_error, _)).
 pack(Name=Value, Out) :- !,
 	format(Out, 'Content-Disposition: form-data; name="~w"\n', [Name]),
-	pack(Value).
+	pack(Value, Out).
 pack(html(HTML), Out) :-
 	format(Out, 'Content-Type: text/html\r\n\r\n', []),
 	print_html(Out, HTML).
