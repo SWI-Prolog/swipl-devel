@@ -31,6 +31,7 @@
 
 :- module(pce_toc, []).
 :- use_module(library(pce)).
+:- use_module(library(pce_unclip)).
 :- require([ default/3
 	   , ignore/1
 	   ]).
