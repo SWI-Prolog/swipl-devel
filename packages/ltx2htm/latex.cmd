@@ -142,6 +142,7 @@
 \texttt{+}
 \textbf{+}
 \textit{+}
+\textsf{+}
 
 % BibTeX support
 

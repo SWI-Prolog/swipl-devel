@@ -1020,6 +1020,7 @@ cmd(emph({Tex}),   #em(+Tex)).			% \emph{text}
 cmd(texttt({Tex}), #tt(+Tex)).			% \texttt{text}
 cmd(textbf({Tex}), #b(+Tex)).			% \textbf{text}
 cmd(textit({Tex}), #i(+Tex)).			% \textit{text}
+cmd(textsf({Tex}), #b(+Tex)).			% \textsf{text}
 
 cmd(year,	Year) :-			% \year
 	get_time(Time),
