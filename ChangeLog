@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: concat_atom/3 to work the other way around:
+    concat_atom(X, -, 'aap-noot-mies') --> X = [aap, noot, mies]
+
   * ADDED: Calling PL_halt(2) on SIGHUP, forcing halt handlers to run.
 
   * FIXED: Properly throw exception when compiling arithmetic with
