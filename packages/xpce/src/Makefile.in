@@ -16,21 +16,21 @@
 # 1 and 2.  Version 3 is result of joint effort from Anjo Anjewierden and
 # Jan Wielemaker.  Versions 4 to 6 are written by Jan Wielemaker.
 #
-# Addresses:	Jan Wielemaker:		jan@swi.psy.uva.nl
-#		Anjo Anjewierden:	anjo@swi.psy.uva.nl
+# Addresses:	Jan Wielemaker:		wielemak@science.uva.nl
+#		Anjo Anjewierden:	anjo@science.uva.nl
 #
-# 		SWI
+# 		Human-Computer Studies
 #		University of Amsterdam
-#		Roetersstraat 15
-#		1018 WB  Amsterdam
+#		Kruislaan 419
+#		1098 VA  Amsterdam
 #		The Netherlands
-#		FAX: (+31) 20 5256896
-#		Phone: (+31) 20 5256121
+#		FAX: (+31) 20 888 6896
+#		Phone: (+31) 20 888 4671
 #
 # XPCE is licenced under the LGPL. See the file COPYING or
-# www.swi-prolog.org/license.html
+# http://www.swi-prolog.org/license.html
 #
-# Copyright (C) 1993-2004, University of Amsterdam
+# Copyright (C) 1993-2005, University of Amsterdam
 ################################################################
 
 .EXPORT_ALL_VARIABLES:
