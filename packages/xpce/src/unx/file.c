@@ -904,6 +904,11 @@ getReadFile(FileObj f, Int n)
   }
 
   size = valInt(n);
+  if ( size > STR_MAX_SIZE )
+  { errorPce(f, NAME_stringTooLong, toInt(size));
+    fail;
+  }
+
   s = answerObject(ClassString, EAV);
   str_unalloc(&s->data);
   str_inithdr(&s->data, ENC_ASCII);

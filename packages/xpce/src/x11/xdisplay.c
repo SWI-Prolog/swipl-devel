@@ -466,10 +466,10 @@ ws_get_cutbuffer(DisplayObj d, int n)
   else
     data = XFetchBuffer(r->display_xref, &size, valInt(n));
 
-  str_inithdr(&str, ENC_ASCII);
-  str.size = size;
-  str.s_text = (unsigned char *)data;
-  rval = StringToString(&str);
+  if ( str_set_n_ascii(&str, size, data) )
+    rval = StringToString(&str);
+  else
+    rval = FAIL;
 
   XFree(data);
   answer(rval);
@@ -529,9 +529,11 @@ collect_selection_display(Widget w, XtPointer xtp,
   { string s;
 
     if ( *format == 8 )
-    { str_inithdr(&s, ENC_ASCII);
-      s.size = *len;
-      s.s_text = (unsigned char *)value;
+    { if ( !str_set_n_ascii(&s, *len, (char *)value) )
+      { selection_error = CtoName("String too long");
+	selection_complete = TRUE;
+	return;
+      }
     } else if ( *format == 16 )
     { str_inithdr(&s, ENC_UNICODE);
       s.size = *len / 2;

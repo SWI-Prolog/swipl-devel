@@ -166,11 +166,9 @@ pceWrite(int handle, const char *buf, int size)
       return -1;
     }
 
-    str_inithdr(&s, ENC_ASCII);
-    s.size     = size;
-    s.s_text8  = (unsigned char *)buf;
-
+    str_set_n_ascii(&s, size, (char *)buf);
     ca = StringToScratchCharArray(&s);
+
     if ( (rval = send(h->object, NAME_writeAsFile, where, ca, EAV)) )
       h->point += size;
     doneScratchCharArray(ca);

@@ -218,9 +218,7 @@ dispatch_stream(Stream s, int size)
   Any str;
 
   markAnswerStack(mark);
-  str_inithdr(&q, ENC_ASCII);
-  q.size = size;
-  q.s_text8 = s->input_buffer;
+  str_set_n_ascii(&q, size, s->input_buffer);
   str = StringToString(&q);
   memcpy((char *)s->input_buffer,
 	  (char *)&s->input_buffer[size],
@@ -309,9 +307,7 @@ handleInputStream(Stream s)
 	      Cprintf("'\n");
 	    });
 
-      str_inithdr(&q, ENC_ASCII);
-      q.size = n;
-      q.s_text8 = (unsigned char *)buf;
+      str_set_n_ascii(&q, n, buf);
       str = StringToString(&q);
       addCodeReference(s);
       forwardReceiverCodev(s->input_message, s, 1, &str);
@@ -479,7 +475,10 @@ endOfFileStream(Stream s)
 static status
 recordSeparatorStream(Stream s, Any re)
 { if ( s->record_separator != re )
-  { assign(s, record_separator, re);
+  { if ( isInteger(re) && valInt(re) > STR_MAX_SIZE )
+      return errorPce(s, NAME_maxRecordSize, toInt(STR_MAX_SIZE));
+
+    assign(s, record_separator, re);
 
     if ( instanceOfObject(re, ClassRegex) )
       compileRegex(re, ON);

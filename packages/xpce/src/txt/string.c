@@ -551,6 +551,9 @@ static status
 CsetStringL(StringObj str, const char *txt, int l)
 { string s;
 
+  if ( l > STR_MAX_SIZE )
+    return errorPce(str, NAME_stringTooLong, toInt(l));
+
   s.size = l;
   s.encoding = ENC_ASCII;
   s.b16 = 0;

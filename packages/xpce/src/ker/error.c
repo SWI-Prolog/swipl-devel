@@ -543,6 +543,11 @@ static const error_def errors[] =
     "%IReference-count of %O drops below zero (while creating/freeing)" },
   { NAME_negativeRefCount, 0,
     "%IReference-count of %O drops below zero" },
+  { NAME_stringTooLong,		ET_FATAL,
+    "%O: string too long (%d; max = 134217727)" },
+  { NAME_maxRecordSize,		0,
+    "%O: max record-size is %d" },
+
   { NAME_negativeCodeReferenceCount, ET_FATAL,
     "%O: Code reference-count drops below zero" },
   { NAME_cannotCreateInstances, 0,

@@ -61,6 +61,11 @@ getContentsSourceSink(SourceSink ss, Int from, Int len)
     if ( notDefault(len) )
       size = min(valInt(len), size);
 
+    if ( size > STR_MAX_SIZE )
+    { errorPce(ss, NAME_stringTooLong, toInt(size));
+      fail;
+    }
+
     str_inithdr(&s, ENC_ASCII);
     s.size = size;
     str_alloc(&s);

@@ -209,10 +209,7 @@ readJPEGtoXpmImage(IOSTREAM *fd, XpmImage *img, Image image)
     { if ( m->marker == JPEG_COM )
       { string s;
 
-	str_inithdr(&s, ENC_ASCII);
-	s.size = m->data_length;
-	s.s_text8 = m->data;
-
+	str_set_n_ascii(&s, m->data_length, m->data);
 	appendChain(ch, StringToString(&s));
       }
     }

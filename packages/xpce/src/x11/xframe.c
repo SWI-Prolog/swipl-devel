@@ -536,9 +536,8 @@ dndEventFrame(FrameObj fr, XEvent *xevent)
 		      if ( e-start > 5 && strncmp(start, "file:", 5) == 0 )
 			start += 5;
 
-		      str.size = s-start;
-		      str.s_text = start;
-		      appendChain(files, StringToName(&str));
+		      if ( str_set_n_ascii(&str, s-start, start) )
+			appendChain(files, StringToName(&str));
 		      while(s<e && (*s == '\r' || *s == '\n'))
 			s++;
 		    }

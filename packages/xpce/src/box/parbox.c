@@ -123,10 +123,7 @@ cdataParBox(ParBox pb, StringObj cdata,
       while( text<end && !islayout(*text) )
 	text++;
 
-      str_inithdr(&s, ENC_ASCII);
-      s.size = text - start;
-      s.s_text8 = (char *)start;
-
+      str_set_n_ascii(&s, text - start, (char *)start);
       n = StringToName(&s);
 
       appendParBox(pb, (refbox=newObject(ClassTBox, n, style, EAV)));

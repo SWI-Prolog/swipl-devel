@@ -31,9 +31,12 @@ typedef unsigned char char8;		/* 8-bit character */
 typedef unsigned short char16;		/* 16-bit character */
 typedef unsigned int wchar;		/* char as passed around */
 
+#define STR_SIZE_BITS 27
+#define STR_MAX_SIZE ((1L<<STR_SIZE_BITS)-1)
+
 typedef struct _string
-{ unsigned	size : 24;		/* size indication */
-  unsigned	encoding : 5;		/* character encoding used */
+{ unsigned	size : STR_SIZE_BITS;	/* size indication (128 MB) */
+  unsigned	encoding : 2;		/* character encoding used */
   unsigned	b16 : 1;		/* 8- or 16-bit wide characters */
   unsigned	readonly : 1;		/* storage is externally managed */
   unsigned	pad : 1;		/* padding to word-boundary */

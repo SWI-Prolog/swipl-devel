@@ -84,20 +84,24 @@ str_init(String s, String proto, char8 *data)
 }
 
 
-void
-str_set_ascii(String str, char *text)
-{ str_inithdr(str, ENC_ASCII);
+status
+str_set_n_ascii(String str, int len, char *text)
+{ if ( len > STR_MAX_SIZE )
+    return errorPce(NIL, NAME_stringTooLong, toInt(len));
 
-  str->size = strlen(text);
+  str_inithdr(str, ENC_ASCII);
+  str->size = len;
   str->s_text8 = (char8 *) text;
+
+  succeed;
 }
 
 
-void
-str_set_n_ascii(String str, int len, char *text)
-{ str_inithdr(str, ENC_ASCII);
-  str->size = len;
-  str->s_text8 = (char8 *) text;
+status
+str_set_ascii(String str, char *text)
+{ int len = strlen(text);
+
+  return str_set_n_ascii(str, len, text);
 }
 
 
@@ -105,12 +109,19 @@ str_set_n_ascii(String str, int len, char *text)
 str_set_static(): initialise a string from a static C-string
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-void
+status
 str_set_static(String str, const char *text)
-{ str_inithdr(str, ENC_ASCII);
+{ int len = strlen(text);
+
+  if ( len > STR_MAX_SIZE )
+    return errorPce(NIL, NAME_stringTooLong, toInt(len));
+
+  str_inithdr(str, ENC_ASCII);
   str->readonly = TRUE;
-  str->size = strlen(text);
+  str->size = len;
   str->s_text8 = (char8 *) text;
+
+  succeed;
 }
 
 

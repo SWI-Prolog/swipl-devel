@@ -72,9 +72,7 @@ cToPceString(Name assoc, const char *s, unsigned int len, int translate)
   string ss;
   Any c;
 
-  str_inithdr(&ss, ENC_ASCII);
-  ss.size = len;
-  ss.s_text8 = (char8 *)s;
+  str_set_n_ascii(&ss, len, (char *)s);
   c = StringToScratchCharArray(&ss);
 
   if ( translate )
@@ -97,9 +95,7 @@ cToPceName(const char *text)
 { if ( text )
   { string s;
 
-    str_inithdr(&s, ENC_ASCII);
-    s.size = strlen(text);
-    s.s_text8 = (char8 *)text;
+    str_set_n_ascii(&s, strlen(text), (char *)text);
 
     return StringToName(&s);
   } else
@@ -112,9 +108,7 @@ cToPceName_n(const char *text, unsigned int len)
 { if ( text )
   { string s;
 
-    str_inithdr(&s, ENC_ASCII);
-    s.size = len;
-    s.s_text8 = (char8 *)text;
+    str_set_n_ascii(&s, len, (char *)text);
 
     return StringToName(&s);
   } else

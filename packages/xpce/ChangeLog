@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED/ENHANCED: Max size of a string is increased from 16MB to 128MB
+  and the system handles attempts to create larger strings gracefully.
+
 * FIXED: Improved handling when out of memory.
 
 * FIXED: Some dubious C constructs reported by gcc 3.1 (Paulo Mauro).

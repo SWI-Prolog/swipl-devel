@@ -73,15 +73,14 @@ storeCharArray(CharArray s, FileObj file)
 
 static status
 loadCharArray(CharArray s, IOSTREAM *fd, ClassDef def)
-{ unsigned char *data;
+{ char *data;
 
   TRY(loadSlotsObject(s, fd, def));
-  if ( (data = (unsigned char *)loadCharp(fd)) )
+  if ( (data = loadCharp(fd)) )
   { String str = &s->data;
+    int len = strlen((char *)data);
     
-    str_inithdr(str, ENC_ASCII);
-    str->size     = strlen((char *)data);
-    str->s_text8  = data;
+    return str_set_n_ascii(str, len, data);
   }
 
   succeed;
@@ -783,16 +782,16 @@ initCharArrays(void)
 CharArray
 CtoScratchCharArray(const char *s)
 { CharArray name = scratch_char_arrays;
+  int len = strlen(s);
   int n;
 
   for(n = 0; n < SCRATCH_CHAR_ARRAYS; n++, name++)
-    if ( name->data.s_text8 == NULL )
-    { str_inithdr(&name->data, ENC_ASCII);
-      name->data.size = strlen(s);
-      name->data.s_text8 = (unsigned char *) s;
+  { if ( name->data.s_text8 == NULL )
+    { str_set_n_ascii(&name->data, len, (char *)s);
 
       return name;
     }
+  }
 
   initCharArrays();			/* handle the crash better */
   NOTREACHED;
