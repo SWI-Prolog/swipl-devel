@@ -1,3 +1,10 @@
+* ADDED: library(doc/html): handle <BASE> element and be more reasonable
+  on the <SCRIPT> element.
+
+* INSTALL: (Unix) changed behaviour of `make install' to be equivalent to
+  the old `make dv-install'.  For this reason changed the name of the
+  install-program to xpce-install rather than just install.
+
 * FIXED: Document rendering (prolog/lib/doc) to pass table_cell options
   properly.  Now also passes <TR> options properly.  Currently only honours
   the BGCOLOR option of a table-row.
