@@ -1,4 +1,4 @@
-/*  $Id$
+/*  $Id$ -*- Prolog -*-
 
     Part of SWI-Prolog
 
@@ -48,13 +48,8 @@ hooks, file_search_path/2, set_prolog_flag/2 and portray/1.
 	).
 
 		 /*******************************
-		 *	   MISC SETTINGS	*
+		 *	      EDITOR		*
 		 *******************************/
-
-%	If you want to access the command-history like a Unix shell,
-%	set this to the number of commands to remember.
-
-% :- set_prolog_flag(history, 50).
 
 %	Define the editor to use.  Note that more advanced maniluation
 %	of this is defined in the SWI-Prolog reference manual, section
@@ -71,7 +66,35 @@ hooks, file_search_path/2, set_prolog_flag/2 and portray/1.
 % :- (current_prolog_flag(gui, true) ->
 %     use_module(library('emacs/swi_prolog.pl')) ; true).
 
+
+		 /*******************************
+		 *	      DEBUGGING		*
+		 *******************************/
+
 %	If you prefer graphical tracing, add the line below.
 
-% :- (current_prolog_flag(gui, true) -> guitracer ; true).
+% :- (current_prolog_flag(xpce, true) -> guitracer ; true).
 
+%	Determine how terms are printed by the debugger and toplevel.  The
+%	values here are defaults. max_depth(10) replaces all subterms at
+%	a greater depth with elipses (...). See write_term/3 for further
+%	explanation and more options.
+
+% :- set_prolog_flag(toplevel_print_options,
+%		     [quoted(true), portray(true), max_depth(10)]).
+% :- set_prolog_flag(debugger_print_options,
+%		     [quoted(true), portray(true), max_depth(10)]).
+
+
+%	If you do not want the tracer to stop at at the exit port.
+
+% :- leash(-exit).
+
+		 /*******************************
+		 *	   MISC SETTINGS	*
+		 *******************************/
+
+%	If you want to access the command-history like a Unix shell,
+%	set this to the number of commands to remember.
+
+% :- set_prolog_flag(history, 50).
