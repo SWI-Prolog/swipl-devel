@@ -20,11 +20,17 @@ url(home,     'http://www.swi-prolog.org').
 url(plfaq,    'http://gollem.swi.psy.uva.nl/twiki/pl/bin/view/FAQ/WebHome').
 url(manual,   'http://www.swi.psy.uva.nl/projects/SWI-Prolog/Manual/'). 
 url(download, 'http://www.swi.psy.uva.nl/projects/SWI-Prolog/download.html'). 
+url(plbugs,   'http://www.swi.psy.uva.nl/projects/SWI-Prolog/bugreport.html').
+url(plmail,   'http://www.swi.psy.uva.nl/projects/SWI-Prolog/#mailinglist').
+url(plquick,  'http://www.swi.psy.uva.nl/projects/SWI-Prolog/Manual/quickstart.html').
+url(pceman,   'http://www.swi.psy.uva.nl/projects/xpce/Manual/').
 
 menu('&File',
      [ '&Consult ...' = action(consult(+file(open, 'Load file into Prolog'))),
        '&Edit ...'    = action(edit(+file(open, 'Edit existing file'))),
        '&New ...'     = action(edit_new(+file(save, 'Create new Prolog source'))),
+       --,
+       '&Reload modified files' = user:make,
        --,
        '&Navigator ...' = prolog_ide(open_navigator),
        --
@@ -48,15 +54,20 @@ menu('&Debug',
      [ before_menu(-)
      ]).
 menu('&Help',
-     [ '&About ...' = about,
-       '&Online manual ...' = help,
+     [ '&About ...' 				= about,
+       '&Online manual ...' 			= help,
        --,
-       '&XPCE (GUI) Manual ...' = manpce,
+       '&SWI-Prolog WWW home (on www) ...'	= www_open(home),
+       '&SWI-Prolog FAQ (on www) ...'		= www_open(plfaq),
+       '&SWI-Prolog Quick Start (on www) ...'	= www_open(plquick),
+       '&SWI-Prolog Manual (on www) ...'	= www_open(manual),
+       '&SWI-Prolog Mailing list (on www) ...'	= www_open(plmail),
+       '&SWI-Prolog Download (on www) ...'	= www_open(download),
        --,
-       '&SWI-Prolog WWW home ...' = www_open(home),
-       '&SWI-Prolog FAQ ...'      = www_open(plfaq),
-       '&SWI-Prolog Manual ...'   = www_open(manual),
-       '&SWI-Prolog Download ...' = www_open(download)
+       '&XPCE (GUI) Manual ...' 		= manpce,
+       '&XPCE User Guide (on www) ...'   	= www_open(pceman),
+       --,
+       'Submit but report (on www) ...'  	= www_open(plbugs)
      ],
      [ before_menu(-)
      ]).
