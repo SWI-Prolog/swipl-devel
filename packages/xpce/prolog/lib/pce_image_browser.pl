@@ -117,6 +117,7 @@ open_image(IB, Img:image) :->
 	).
 
 selected_dir(IB, Dir:directory) :->
+	"User selected a sub-directory: open it"::
 	(   get(IB, display, Display)
 	->  send(Display, busy_cursor),
 	    ignore(send(IB, directory, Dir)),
@@ -125,6 +126,7 @@ selected_dir(IB, Dir:directory) :->
 	).
 
 report_image(IB, Image:image*) :->
+	"Report on the status of an image"::
 	(   Image == @nil
 	->  send(IB, report, status, '')
 	;   image_name(Image, Name),
@@ -154,6 +156,7 @@ image_name(Image, Name) :-
 :- pce_group(render).
 
 directory(IB, Dir:directory) :->
+	"Read a directory, adding images and sub-dirs"::
 	send(IB, slot, directory, Dir),
 	send(IB, clear),
 	new(Files, chain),
@@ -178,6 +181,7 @@ show_files(IB, Files:chain) :->
 
 
 show_dir(IB, Dir:directory, Label:[name]) :->
+	"Add icon for sub-directory"::
 	(   Label == @default
 	->  get(Dir, name, BaseName)
 	;   BaseName = Label
@@ -192,6 +196,7 @@ show_dir(IB, Dir:directory, Label:[name]) :->
 
 
 show_file(IB, File:file) :->
+	"Add image"::
 	get(File, base_name, BaseName),
 	(   get(IB, extensions, Exts),
 	    Exts \== @nil
