@@ -168,7 +168,7 @@ AC_CHECK_FUNCS(access chmod dossleep fstat readlink getwd getcwd getdtablesize)
 AC_CHECK_FUNCS(getpagesize getpwnam getrlimit gettimeofday opendir)
 AC_CHECK_FUNCS(popen putenv random remove rename rl_insert_close select)
 AC_CHECK_FUNCS(signal sleep srand srandom stat strerror tgetent times)
-AC_CHECK_FUNCS(memmove stricmp)
+AC_CHECK_FUNCS(memmove stricmp sigaction)
 AC_HEADER_TIME
 AC_HEADER_DIRENT
 AC_HEADER_SYS_WAIT

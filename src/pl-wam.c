@@ -681,7 +681,16 @@ findBlock(LocalFrame fr, Word block)
 #define FRAME_FAILED		goto frame_failed
 #define CLAUSE_FAILED		goto clause_failed
 #define BODY_FAILED		goto body_failed
-#define SetBfr(fr) 		(BFR = (fr))
+
+#ifdef O_SECURE
+#define SetBfr(fr)		(BFR = (fr))
+#else
+#define SetBfr(fr) \
+    do { \
+         assert(!(fr) || (fr)->mark.trailtop != INVALID_TRAILTOP); \
+         BFR = (fr); \
+       } while(0)
+#endif
 
 #if O_SHIFT_STACKS
 #define register
@@ -902,8 +911,8 @@ registers.
       set(FR, FR_NODEBUG);
     FR->backtrackFrame = (LocalFrame) NULL;
     FR->predicate = DEF;
-    SetBfr(FR);
     DoMark(FR->mark);
+    SetBfr(FR);
     environment_frame = FR;
 
 
@@ -1530,24 +1539,24 @@ C_CUT will  destroy  all  backtrack  points  created  after  the  C_MARK
 instruction in this clause.  It assumes the value of BFR has been stored
 in the nth-variable slot of the current local frame.
 
-If the saved backtrack point is older than the current  frame  use  this
-frame  as  basis.   This  avoids  us to dereference the currently active
-frame.
+We can dereference all frames that are older that the old backtrackframe
+and older than this frame.
 
 All frames created since what becomes now the  backtrack  point  can  be
 discarded.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     VMI(C_CUT, COUNT_N(c_cut), ("c_cut %d\n", *PC)) MARK(C_CUT);
       { LocalFrame obfr = (LocalFrame) varFrame(FR, *PC);
+	LocalFrame cbfr = obfr;
 	LocalFrame fr;
 	register LocalFrame fr2;
 
 	PC++;				/* cannot be in macro! */
-	if ( obfr < FR )
-	  obfr = FR;
+	if ( cbfr < FR )
+	  cbfr = FR;
 
-	for(fr = BFR; fr > obfr; fr = fr->backtrackFrame)
-	{ for(fr2 = fr; fr2->clause && fr2 > obfr; fr2 = fr2->parent)
+	for(fr = BFR; fr > cbfr; fr = fr->backtrackFrame)
+	{ for(fr2 = fr; fr2->clause && fr2 > cbfr; fr2 = fr2->parent)
 	  { DEBUG(3, Sdprintf("discard %d: ", (Word)fr2 - (Word)lBase) );
 	    DEBUG(3, writeFrameGoal(fr2, 2); pl_nl() );
 	    leaveFrame(fr2);
@@ -1555,14 +1564,14 @@ discarded.
 	  }
 	}
 
-        SetBfr(obfr);
 	DEBUG(3, Putf("BFR at "); writeFrameGoal(BFR, 2); pl_nl() );
-	{ int nvar = (true(BFR->predicate, FOREIGN)
-				? BFR->predicate->functor->arity
-				: BFR->clause->clause->variables);
-	  lTop = (LocalFrame) argFrameP(BFR, nvar);
+	{ int nvar = (true(cbfr->predicate, FOREIGN)
+				? cbfr->predicate->functor->arity
+				: cbfr->clause->clause->variables);
+	  lTop = (LocalFrame) argFrameP(cbfr, nvar);
 	  ARGP = argFrameP(lTop, 0);
 	}
+        SetBfr(obfr);
 
         NEXT_INSTRUCTION;
       }

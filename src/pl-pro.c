@@ -7,7 +7,7 @@
     Purpose: Support for virtual machine
 */
 
-/*#define O_SECURE 1*/			/* include checkData() */
+#define O_SECURE 1			/* include checkData() */
 #include "pl-incl.h"
 #include "pl-itf.h"
 #ifdef HAVE_MALLOC_H

@@ -318,7 +318,7 @@ reindexClause(Clause clause)
 
   if ( pattern == 0x0 )
     succeed;
-  else
+  if ( false(clause, ERASED) )
   { mark m;
     
     Mark(m);

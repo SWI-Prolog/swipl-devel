@@ -809,6 +809,7 @@ with one operation, it turns out to be faster as well.
 #define AUTOINDEX		(0x00040000L) /* predicate */
 #define NEEDSCLAUSEGC		(0x00080000L) /* predicate */
 #define NEEDSREHASH		(0x00100000L) /* predicate */
+#define ISCASE			(0x00200000L) /* predicate */
 
 #define ERASED			(0x0001) /* clause */
 #define UNKNOWN			(0x0002) /* module */
@@ -819,19 +820,20 @@ with one operation, it turns out to be faster as well.
 Handling environment (or local stack) frames.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define FR_LEVEL		(0xFFFFFFF0L)
+#define FR_LEVEL		(0xFFFFFF00L)
 #define FR_CUT			(0x00000001L)
 #define FR_NODEBUG		(0x00000002L)
 #define FR_SKIPPED		(0x00000004L)
 #define FR_MARKED		(0x00000008L)
+#define FR_CHOICEPT		(0x00000010L)
 
 #define ARGOFFSET		((int) sizeof(struct localFrame))
 
 #define setLevelFrame(fr, l)	{ (fr)->flags &= ~FR_LEVEL;   \
-				  (fr)->flags |= ((l) << 4); \
+				  (fr)->flags |= ((l) << 8); \
 				}
-#define levelFrame(fr)		(fr->flags >> 4)
-#define incLevel(fr)		(fr->flags += 0x10)
+#define levelFrame(fr)		(fr->flags >> 8)
+#define incLevel(fr)		(fr->flags += 0x100)
 #define argFrameP(f, n)		((Word)((f)+1) + (n))
 #define argFrame(f, n)		(*argFrameP((f), (n)) )
 #define varFrameP(f, n)		((Word)(f) + (n))
@@ -866,6 +868,9 @@ Handling environment (or local stack) frames.
 			 } else \
 			   leaveDefinition(fr->predicate); \
 		       }
+
+#define INVALID_TRAILTOP  ((void *)((char *)tBase + 1)) /* pl-gc.c/pl-wam.c */
+#define INVALID_GLOBALTOP ((void *)((char *)gBase + 1))
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Macros to turn pointers into Prolog integers and  vice-versa.   Used  to

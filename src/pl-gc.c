@@ -120,9 +120,13 @@ Marking, testing marks and extracting values from GC masked words.
 #define inShiftedArea(area, shift, ptr) \
 	((char *)ptr >= (char *)stacks.area.base + shift && \
 	 (char *)ptr <  (char *)stacks.area.max + shift )
+#define topPointerOnStack(name, addr) \
+	((char *)(addr) >= (char *)stacks.name.base && \
+	 (char *)(addr) <  (char *)stacks.name.max)
 
 #define onGlobal(p)	onStackArea(global, p)
 #define onLocal(p)	onStackArea(local, p)
+#define onTrail(p)	topPointerOnStack(trail, p)
 #define isGlobalRef(w)	(  ((isIndirect(w) || isPointer(w)) \
 				&& onGlobal(unMask(w))) \
 			|| (isRef(w) && onGlobal(unRef(w))))
@@ -139,6 +143,7 @@ Marking, testing marks and extracting values from GC masked words.
 #define makeLock(a, t)	((unsigned long)(a) | (t)) /* Create a lock */
 #define lockTag(l)	((l) & L_MASK)		 /* Tag of the lock */
 #define lockAddress(l)	((Void) ((l) & ~L_MASK)) /* Locked address */
+
 
 		 /*******************************
 		 *     FUNCTION PROTOTYPES	*
@@ -191,6 +196,7 @@ static long relocation_refs;	/* # refs that need relocation */
 static long relocation_indirect;/* # indirects */
 #if O_SHIFT_STACKS || O_SECURE
 static long local_frames;	/* frame count for debugging */
+static long trailtops_marked;
 #endif
 
 
@@ -246,7 +252,7 @@ offset_cell(Word p)
 
   if ( m )
   { if ( m == REAL_MASK )
-    { DEBUG(3, Sdprintf("REAL at 0x%p (w = 0x%lx)\n", p, w));
+    { DEBUG(3, Sdprintf("REAL at 0x%p (m = 0x%lx)\n", p, m));
       return 1;
     }
     if ( m == STRING_MASK )
@@ -529,7 +535,7 @@ mark_environments(LocalFrame fr)
     set(fr, FR_MARKED);
     
     DEBUG(3, Sdprintf("Marking [%ld] %s\n",
-		      levelFrame(fr), procedureName(fr->procedure)));
+		      levelFrame(fr), predicateName(fr->predicate)));
 
     clear_uninitialised(fr, PC);
 
@@ -581,12 +587,16 @@ mark_choicepoints(LocalFrame bfr)
 	}
       }
     }
+
+    set(bfr, FR_CHOICEPT);
+    assert(bfr->mark.trailtop != INVALID_TRAILTOP);
     needsRelocation((Word)&bfr->mark.trailtop);
     into_relocation_chain((Word)&bfr->mark.trailtop);
+    SECURE(trailtops_marked--);
 
     mark_environments(bfr);
   }
-  
+
   DEBUG(2, Sdprintf("Trail stack garbage: %ld cells\n", trailcells_deleted));
 }
 
@@ -690,7 +700,8 @@ update_relocation_chain(Word current, Word dest)
   { Word head = current;
     word val = get_value(current);
 
-    DEBUG(3, Sdprintf("unwinding relocation chain at 0x%p to 0x%p\n", current, dest));
+    DEBUG(3, Sdprintf("unwinding relocation chain at 0x%p to 0x%p\n",
+		      current, dest));
 
     do
     { unmark_first(current);
@@ -740,7 +751,7 @@ into_relocation_chain(Word current)
     set_value(head, (word)current);
   }
   DEBUG(2, Sdprintf("Into relocation chain: 0x%p (head = 0x%p)\n",
-		  current, head));
+		    current, head));
 
   if ( is_first(head) )
     mark_first(current);
@@ -905,6 +916,13 @@ sweep_environments(LocalFrame fr)
     if ( false(fr, FR_MARKED) )
       return (LocalFrame) NULL;
     clear(fr, FR_MARKED);
+
+    if ( false(fr, FR_CHOICEPT) )
+    { fr->mark.trailtop = INVALID_TRAILTOP;
+      fr->mark.globaltop = INVALID_GLOBALTOP;
+      SECURE(trailtops_marked--);
+    } else
+      clear(fr, FR_CHOICEPT);
 
     slots = (PC == NULL ? fr->predicate->functor->arity : slotsFrame(fr));
     sp = argFrameP(fr, 0);
@@ -1209,11 +1227,18 @@ LocalFrame fr;
     local_frames++;
     clear_uninitialised(fr, PC);
 
+    if ( fr->mark.trailtop == INVALID_TRAILTOP )
+    { assert(fr->mark.globaltop == INVALID_GLOBALTOP);
+    } else
+    { assert(onTrail(fr->mark.trailtop));
+      assert(onGlobal(fr->mark.globaltop));
+    }
+
     DEBUG(1, Sdprintf("Check [%ld] %s:",
 		      levelFrame(fr),
-		      procedureName(fr->procedure)));
+		      predicateName(fr->predicate)));
 
-    slots   = (PC == NULL ? fr->procedure->functor->arity : slotsFrame(fr));
+    slots   = (PC == NULL ? fr->predicate->functor->arity : slotsFrame(fr));
     sp = argFrameP(fr, 0);
     for( n=0; n < slots; n++ )
     { key += checkData(&sp[n], FALSE);
@@ -1284,6 +1309,8 @@ LocalFrame frame;
     check_choicepoints(fr->backtrackFrame);
   }
 
+  SECURE(trailtops_marked = local_frames);
+
   for( fr = frame; fr; fr = fr2 )
   { fr2 = lunmark_environments(fr);
 
@@ -1316,7 +1343,7 @@ garbageCollect(LocalFrame fr)
   if ( !scan_global() )
     sysError("Stack not ok at gc entry");
 
-  SECURE(key = checkStacks(fr));
+  key = checkStacks(fr);
 
   if ( check_table == NULL )
     check_table = newHTable(256);
@@ -1354,17 +1381,25 @@ garbageCollect(LocalFrame fr)
 
   collect_phase(fr);
 #if O_SECURE
+  assert(trailtops_marked == 0);
   if ( !scan_global() )
     sysError("Stack not ok after gc; gTop = 0x%p", gTop);
   free(mark_base);
 #endif
-  DEBUG(0, Sdprintf("(gained %ld+%ld; used: %d+%d; free: %d+%d bytes)\n",
-		  ggar, tgar,
-		  usedStack(global), usedStack(trail),
-		  roomStack(global), roomStack(trail)));
+  DEBUG(0, Sdprintf("(gained %ld+%ld; used: %d+%d; free: %d+%d bytes) ",
+		    ggar, tgar,
+		    usedStack(global), usedStack(trail),
+		    roomStack(global), roomStack(trail)));
   gc_status.time += CpuTime() - t;
 
   trimStacks();
+
+  SECURE(if ( checkStacks(fr) != key )
+	 { Sdprintf("Stack checksum failure\n");
+	   trap_gdb();
+	 });
+
+  DEBUG(0, Sdprintf("(OK)\n"));
 
   gc_status.active = FALSE;
 }

@@ -26,9 +26,29 @@ forwards void profile(int);
 
 struct itimerval value, ovalue;		/* itmer controlling structures */
 
+#ifdef HAVE_SIGACTION
+static struct sigaction osigaction;
+#endif
+
+#ifndef SA_NOMASK
+#define SA_NOMASK 0
+#endif
+
 static bool
 startProfiler(int how)
-{ pl_signal(SIGPROF, profile);
+{
+#ifdef HAVE_SIGACTION
+  struct sigaction action;
+
+  memset((char *) &action, 0, sizeof(action));
+  action.sa_handler  = profile;
+  action.sa_mask     = 0;
+  action.sa_flags    = SA_NOMASK;
+
+  sigaction(SIGPROF, &action, &osigaction);
+#else
+  pl_signal(SIGPROF, profile);
+#endif
 
   value.it_interval.tv_sec  = 0;
   value.it_interval.tv_usec = 1;
@@ -64,10 +84,14 @@ stopProfiler()
 
   stopItimer();
   statistics.profiling = NO_PROFILING;
+#ifdef HAVE_SIGACTION
+  sigaction(SIGPROF, &osigaction, NULL);
+#else
 #ifdef _AIX
   pl_signal(SIGPROF, SIG_IGN);
 #else
   pl_signal(SIGPROF, SIG_DFL);
+#endif
 #endif
 
   succeed;
@@ -183,7 +207,7 @@ profile(int sig)
     return;
 #endif
 
-#ifndef BSD_SIGNALS
+#if !defined(BSD_SIGNALS) && !defined(HAVE_SIGACTION)
   signal(SIGPROF, profile);
 #endif
 
