@@ -2424,7 +2424,7 @@ r_copy(int xf, int yf, int xt, int yt, int w, int h)
 Windows 95/98 and probably also ME  doesn't support filling using images
 with width or heigth > 8  pixels.  As   we  need  that for gradients, we
 patched r_fill() do the filling by hand.  This is used for boxes without
-radius that have the poin(0,0) as fill_offset.
+radius that have the point(0,0) as fill_offset.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
