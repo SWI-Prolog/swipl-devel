@@ -57,8 +57,11 @@ CFLAGS=		-I$(PCEHOME)/include $(CMFLAGS) $(COFLAGS)
 PCELIBS=	-lXPCEmain -lXPCE $(XLIBS) $(NETLIBS) -lm $(CXXLIBHACK)
 LDFLAGS=	-L$(LIBDIR) -L$(XLIB)
 
-clean:
+clean::
 		rm -f *.o *.so core a.out *~ *% $(PROGS)
+
+distclean:	clean
+		rm Makefile
 
 pcerc.o:	pcerc.c
 		$(CC) $(CFLAGS) -o $@ -c $*.c
