@@ -1,0 +1,9 @@
+<!DOCTYPE foo [
+  <!-- Test silently ignoring second definition of an entity -->
+  <!ENTITY nbsp "_">
+  <!ENTITY %latin SYSTEM "../DTD/HTMLlat1.ent">
+  %latin;
+  <!ELEMENT foo O O (#PCDATA)>
+]>
+
+&nbsp;
