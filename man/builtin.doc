@@ -1289,7 +1289,7 @@ a timeout occurs.%
 \begin{code}
 :- load_foreign_library(alarm).
 
-:- on_signal(alrm, throw).
+:- on_signal(alrm, _, throw).
 
 :- module_transparent
 	call_with_time_limit/2.

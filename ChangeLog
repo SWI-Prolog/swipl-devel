@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#32: A number of issues around unloading shared objects.
+    Mike Elston.
+
   * FIXED: Avoid tracing the $aborted exception.
 
   * FIXED: Call stack-shifter when low on stack in built-in sort/1.

@@ -27,6 +27,9 @@
 #define MAXPATHLEN 1024
 #endif
 
+#define LOCK()   PL_LOCK(L_FOREIGN)
+#define UNLOCK() PL_UNLOCK(L_FOREIGN)
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 SWI-Prolog interface for runtime loading of foreign code (plugins).
 
@@ -142,15 +145,22 @@ pl_open_shared_object(term_t file, term_t plhandle,
   if ( !(dlhandle = dlopen(stringAtom(afile), dlflags)) )
     return PL_error(NULL, 0, NULL, ERR_SHARED_OBJECT_OP,
 		    ATOM_open, dlerror());
+
   e = allocHeap(sizeof(struct dl_entry));
   e->id       = ++dl_plid;
   e->dlhandle = dlhandle;
   e->file     = afile;
   e->next     = NULL;
+
+  LOCK();
   if ( !dl_tail )
-    dl_head = dl_tail = e;
-  else
-    dl_tail->next = e;
+  { dl_tail = e;
+    dl_head = e;
+  } else
+  { dl_tail->next = e;
+    dl_tail = e;
+  }
+  UNLOCK();
 
   return PL_unify_integer(plhandle, e->id);
 }
@@ -235,7 +245,7 @@ pl_call_shared_object_function(term_t plhandle, term_t name)
 
 word
 pl_open_shared_object(term_t file, term_t plhandle, term_t flags)
-{ return warning("open_shared_object/3: not ported to this machine");
+{ return notImplemented("open_shared_object", 3);
 }
 
 #endif /*HAVE_DLOPEN*/

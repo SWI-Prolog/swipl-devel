@@ -257,6 +257,8 @@ unload_foreign(File) :-
 		fail
 	    ;	!
 	    )
+	->  true
+	;   true
 	).
 
 		 /*******************************
