@@ -2855,6 +2855,8 @@ lock_atoms(triple *t)
       break;
     case OBJ_STRING:
       PL_register_atom(t->object.string);
+      if ( t->qualifier )
+	PL_register_atom(t->type_or_lang);
       break;
   }
 }
@@ -2869,6 +2871,8 @@ unlock_atoms(triple *t)
       break;
     case OBJ_STRING:
       PL_unregister_atom(t->object.string);
+      if ( t->qualifier )
+	PL_unregister_atom(t->type_or_lang);
       break;
   }
 }
