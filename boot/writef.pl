@@ -165,6 +165,7 @@ $string([H|T]) :-
 $print(10).			% newline
 $print(9).			% tab
 $print(X) :-
+	integer(X),
 	between(32, 0'~, X).
 
 

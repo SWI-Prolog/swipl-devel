@@ -1941,6 +1941,21 @@ nth_clause(?Pred, ?Index, ?Reference)
         Body = member(G575, G579)
 
 
+clause_property(+ClauseRef, -Property)
+    Queries properties of a clause.  ClauseRef is a reference to a clause
+    as produced by clause/3, nth_clause/3 or prolog_frame_attribute/3.
+    Property is one of the following:
+
+    file(FileName)
+        Unify FileName with the name of the sourcefile in which the
+        clause is defined.  Fails if the clause is not associated to a
+        file.
+
+    line_count(LineNumber)
+        Unify LineNumber with the line number of the clause.  Fails if
+        the clause is not associated to a file.
+
+
 3.13 Input and Output
 
 SWI-Prolog provides two different packages for input and output.  One
@@ -3979,7 +3994,7 @@ Chapter  4
 
 Using  Modules
 
-                                412
+                                413
 
 
 4.1 Why Using Modules?
@@ -4488,7 +4503,7 @@ trade-off the user is responsible for type checking and should be careful
 not to violate consistency rules as Prolog provides access to its internal
 data structures.
 
-                                435
+                                436
 
 
 5.1 Overview of the Interface
@@ -5515,7 +5530,7 @@ debugging tools for Prolog.  The predicates described here should be
 handled with some care as it is easy to corrupt the consistency of the
 Prolog system by misusing them.
 
-                                523
+                                524
 
 
 6.1 Examining the Environment Stack
@@ -5549,6 +5564,11 @@ prolog_frame_attribute(+Frame, +Key, -Value)
                       represented as module:goal.  Do not
                       instantiate variables in this goal unless
                       you know what you are doing!
+    clause            Value is unified with a reference to the
+                      currently running clause.  Fails if the
+                      current goal is associated with a foreign
+                      (C) defined predicate.  See also
+                      nth_clause/3 and clause_property/2.
     level             Value is unified with the recursion level of
                       Frame.  The top level frame is at level `0'.
     parent            Value is unified with an integer reference
@@ -5729,6 +5749,7 @@ chdir/1                     Change working directory
 checklist/2                 Invoke goal on all members of a list
 clause/2                    Get clauses of a predicate
 clause/3                    Get clauses of a predicate
+clause_property/2            Get properties of a clause
 close/1                     Close stream
 close_dde_conversation/1      Close Windows DDE channel
 close_shared_object/1        Close shared library (.so file)
@@ -6011,4 +6032,4 @@ writeq/2                    Write term, insert quotes on stream
 xor/2                       Arithmetic:  exclusive or
 |/2                         Disjunction of goals
 
-                                532
+                                533

@@ -29,6 +29,7 @@
 	, $defined_predicate/1
 	, predicate_property/2
 	, $predicate_property/2
+	, clause_property/2
 	, clause/2
 	, clause/3
 	, recorda/2
@@ -391,6 +392,14 @@ $predicate_property(Pred, file(File)) :-
 	source_file(Pred, File).
 $predicate_property(Pred, line_count(LineNumber)) :-
 	$get_predicate_attribute(Pred, line_count, LineNumber).
+
+:- index(clause_property(0, 1)).
+
+clause_property(Clause, line_count(LineNumber)) :-
+	$get_clause_attribute(Clause, line_count, LineNumber).
+clause_property(Clause, file(File)) :-
+	$get_clause_attribute(Clause, file, File).
+
 
 :- module_transparent
 	clause/2,

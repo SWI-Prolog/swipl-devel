@@ -1,6 +1,31 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 1.9.5.
+==============
+
+  * Moved sourcecode administration from predicate to individual
+    clauses.  Purpose: better source-level debugger support, better
+    handling of multifile predicates.
+
+  * Recompiling files holding clauses for multifile predicates now
+    works properly. The clauses of the latest loaded file will
+    always be the last.
+
+  * Removing a predicate from a file and recompiling the file
+    now actually removes the definition from the Prolog database,
+    even if you are not using modules.
+
+  * Added prolog_frame_attribute(Frame, clause, ClauseRef) to get a
+    reference to the currently running clause.
+
+  * Added clause_property/2 to get the source information from a 
+    specific clause.
+
+  * Compiled state (-c compilation) has changed a little.  The system
+    does not load old states.
+
+
 Version 1.9.4.  Redefining system-predicates is no longer allowed.  This
 may be overruled using  :-   redefine_system_predicate(+Head).   Fix  in
 Makefile (from Kayvan Sylvan): fixes shell   syntax  error make install.
@@ -16,7 +41,8 @@ the XPCE graphical environment.  The   hook  is called show_help_file/2.
 Fixed  rename_file/2  (bug  introduced  in  pl-1.9.2).   Fixed  versions
 Windows-specific problems.  Added  prolog_to_os_filename/2   to  convert
 between internal and external names (DOS/Windows).  Integrated the 1.9.4
-patches for the Windows version.
+patches for the Windows  version.   Fixed   to  compile  on  AIX.  Fixed
+compilation on some Solaris version.
 
 Version  1.9.3.   Fix  index/1  problem    introduced   in  1.9.2.   Fix
 stack-expansion problem in all versions that   lack hardware support for

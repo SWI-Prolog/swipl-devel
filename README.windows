@@ -2,25 +2,39 @@
 			    Jan Wielemaker
 			       06/06/94
 
-			  (Updated: 16/06/94)
+			  (Updated: 16/11/94)
+			    (Version 1.9.4)
 
 
 This distribution contains SWI-Prolog for  Windows.    It  is  a port of
-version 1.9.0 of SWI-Prolog.  SWI-Prolog  runs   in  a  simple MS-Window
+version 1.9.4 of SWI-Prolog.  SWI-Prolog  runs   in  a  simple MS-Window
 providing traditional stream-based interaction.
 
 
 Status:
 =======
 
-Second beta test  version.   First   beta-test  version  reported mostly
-installation problems due to filename  representation problems.  No bugs
-in the Prolog engine  have  been   reported  (sofar  :-).  Please report
+Third beta test  version.   First   beta-test  version  reported  mostly
+installation problems due to filename   representation  problems.  Third
+beta-test version should run on machines lacking floating point hardware
+(`SX' machines).  It should fix a bug in the stack-expander incorporates
+various improvements and fixes in  the   common  sources.  Please report
 problems to jan@swi.psy.uva.nl.
 
 
-Fixed after first release (1.8.11):
-===================================
+Version 1.9.4 windows-specific changes
+======================================
+
+	* Compiled for floating-point emulations on machines that
+	  lack floating point hardware.
+	* Fixed memory management bug in stack-expander.
+	* Added DDE interface.
+	* Added editor declaration for Windows notepad.
+	* Fixed problem in file-name mapping that caused existing
+	  files to be reported as non-existing sometimes.
+
+Version 1.9.0 windows-specific changes
+======================================
 
 	* Filename conversion and finding the home-directory is
 	  fixed.
@@ -144,16 +158,33 @@ what I use:
 
 	set CONSOLE=sl:600,x:400,y:400
 
+Editor interface
+================
+
+SWI-Prolog defines an interface to  an   external  text editor using the
+predicates ed(+Predicate) and edit(+File).   Normally,   after  the user
+quits the editor, the system will run  the predicate make/0 to recompile
+all modified files.  This will not work  for Windows as the shell/1 call
+returns immediately, without waiting  for   the  external application to
+finish.
+
+You can specify the editor in autoexec.bat   or ~/_plrc.  If you wish to
+use the simple notepad editor delivered  with Windows, put the following
+line in your ~/_plrc:
+
+	?- setenv('EDITOR', notepad).
+
 
 Windowing and Graphics
 ======================
 
 SWI-Prolog itself has  no  graphical   capabilities.   Graphics  can  be
-provided by the XPCE toolkit, for which   an MS-Windows version is under
-development and will soon be  available   for  public  release.  XPCE is
-*not* free software.  The licence conditions   neither the price for the
-Windows version is decided yet.   Contact xpce-request@swi.psy.uva.nl if
-you are interrested.
+provided by the XPCE toolkit, for which   an  MS-Windows beta version is
+available.  XPCE is *not* free software.  It is distributed for academic
+users  at  a  price  of  dfl.   500,--  (at  the  time  of  writing,  $1
+approximates dfl.  1.75).  This licence   includes classroom and student
+usage.  For details, ftp swi.psy.uva.nl/pub/xpce/Windows/...  or contact
+xpce-request@swi.psy.uva.nl if you are interrested.
 
 
 Filenames:
@@ -172,13 +203,19 @@ The user may specify filenames either using   DOS format or Unix format.
 Unix format should be used in source-files that   need to be run both on
 the Unix and DOS/Windows version.
 
+The predicate prolog_to_os_filename(+PrologPath, +OsPath) may be used to
+explicitely  convert  filenames  between   both  representations.   This
+predicate exists in all versions of 1.9.4  and later.  On unix it simply
+unifies the arguments.  
 	
 Features and bugs specific to this version:
 ===========================================
 
 	* Dynamically expanding runtime stacks using a stack-shifter.
+	  Expands the environment (local), heap (global) and trail-stacks
+	  if necessary.
 
-	* Garbage collection works.
+	* Garbage collection on global (heap) and trail-stacks.
 
 	* Fixed C-stack of 128 KB (limits depth of unification and
 	  various other recursive tasks; does not limit normal Prolog
@@ -221,12 +258,11 @@ Features and bugs specific to this version:
 Boot compilation:
 =================
 
-The file pl\startup\startup.pc is  a   `Prolog  Intermediate  Code' file
-created from the Prolog sources in the   boot subdirectory.  If you want
-to change anything there, you can recreate   the  startup file using the
-command:
+The file bin/pl.qlf is a `Prolog Quick  Load File' file created from the
+Prolog sources in the boot subdirectory.  If you want to change anything
+there, you can recreate the startup file using the command:
 
-	pl.exe -o startup/startup.pc -b boot/init.pl -c boot/load.pl
+	pl.exe -b boot/init.pl -c boot/load.pl
 
 For this command-line the working directory should be the home directory
 of Prolog.  If not, you should absolute paths.
@@ -240,6 +276,11 @@ swi.psy.uva.nl,  directory  pub/SWI-Prolog.   The   Windows  version  is
 compiled using the 32-bit WATCOM C/C++   compiler (version 9.5).  If you
 decide to port it to another compiler  (for example GCC), please forward
 me the changes.
+
+SWI-Prolog is reported *not* to compile  using WATCOM version 10.0.  The
+problem appears that there is no   specific area in virtual memory-space
+where malloc() happens.  This implies there are  no (not enough) bits on
+a pointer to add tags to it.
 
 It uses two libraries, both of which may be found at ftp.swi.psy.uva.nl:
 Library xos.lib redefines the WATCOM file  access library to handle both
