@@ -264,18 +264,20 @@ fill_dialog(M, D) :->
 	/* TOOLS menu */
 
 	send_list(T, append,
-	     [ statistics
-	     , inspector
-	     , visual_hierarchy
-	     , menu_item(event_viewer,
+	     [ statistics,
+	       visual_hierarchy,
+	       inspector,
+	       menu_item(event_viewer,
 			 message(M, event_viewer),
-			 end_group := @on)
-	     , menu_item(dialog_editor,
-			 message(M, dialog_editor))
-	     , menu_item(emacs,
+			 end_group := @on),
+	       menu_item(prolog_graphical_tracer,
+			 message(M, guitracer)),
+	       menu_item(emacs,
 			 message(M, start_emacs),
-			 end_group := @on)
-	     , menu_item(check_object_base,
+			 end_group := @on),
+	       menu_item(dialog_editor,
+			 message(M, dialog_editor)),
+	       menu_item(check_object_base,
 			 message(M, check_object_base))
 	     ]),
 
@@ -584,6 +586,13 @@ dialog_editor(_M) :->
 event_viewer(_) :->
 	"Start event-viewer"::
 	send(new(event_viewer), open).
+
+guitracer(M) :->
+	"Start the GUI tracer for Prolog"::
+	(   catch(guitracer, _, fail)
+	->  true
+	;   send(M, report, error, 'Failed to load GUI tracer')
+	).
 
 start_emacs(_M) :->
 	"Start PceEmacs (*scratch* buffer)"::
