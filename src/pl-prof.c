@@ -163,7 +163,7 @@ startProfiler(int how)
   value.it_value.tv_usec = 1;
   
   if (setitimer(ITIMER_PROF, &value, &ovalue) != 0)
-    return PL_error(NULL, 0, ERR_ERRNO, ERR_SYSCALL, setitimer);
+    return PL_error(NULL, 0, MSG_ERRNO, ERR_SYSCALL, setitimer);
   LD->statistics.profiling = how;
 
   succeed;

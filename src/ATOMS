@@ -10,6 +10,7 @@
 # awk you can propagate the changes by hand, but be careful!
 
 
+
 A abort			"$abort"
 A aborted		"$aborted"
 A abs			"abs"
@@ -101,6 +102,7 @@ A cputime		"cputime"
 A create		"create"
 A csym			"csym"
 A csymf			"csymf"
+A cumulative		"cumulative"
 A curl			"{}"
 A current		"current"
 A current_input		"current_input"
@@ -334,6 +336,7 @@ A period		"period"
 A permission_error	"permission_error"
 A pi			"pi"
 A pipe			"pipe"
+A plain			"plain"
 A plus			"+"
 A portray		"portray"
 A position		"position"
@@ -343,6 +346,8 @@ A print			"print"
 A print_message		"print_message"
 A private_procedure	"private_procedure"
 A procedure		"procedure"
+A profile_mode		"profile_mode"
+A profile_no_cpu_time	"profile_no_cpu_time"
 A program		"program"
 A program_counter	"program_counter"
 A prolog		"prolog"
@@ -505,9 +510,6 @@ A yf			"yf"
 A yfx			"yfx"
 A yfy			"yfy"
 A zero_divisor		"zero_divisor"
-A profile_no_cpu_time	"profile_no_cpu_time"
-A cumulative		"cumulative"
-A plain			"plain"
 
 F abs			1
 F acos			1
