@@ -1195,13 +1195,13 @@ placeDialogItem(Device d, Matrix m, Graphical i,
   if ( !m->units[x][y].alignment )
     m->units[x][y].alignment = NAME_left;
 
-  if ( instanceOfObject((gr = get(i, NAME_above, EAV)), ClassGraphical) )
-    placeDialogItem(d, m, gr, x, y-1, max_x, max_y);
   if ( instanceOfObject((gr = get(i, NAME_below, EAV)), ClassGraphical) )
+    placeDialogItem(d, m, gr, x, y-1, max_x, max_y);
+  if ( instanceOfObject((gr = get(i, NAME_above, EAV)), ClassGraphical) )
     placeDialogItem(d, m, gr, x, y+1, max_x, max_y);
-  if ( instanceOfObject((gr = get(i, NAME_right, EAV)), ClassGraphical) )
+  if ( instanceOfObject((gr = get(i, NAME_left, EAV)), ClassGraphical) )
     placeDialogItem(d, m, gr, x+1, y, max_x, max_y);
-  if ( instanceOfObject((gr = get(i, NAME_left, EAV)), ClassGraphical)  )
+  if ( instanceOfObject((gr = get(i, NAME_right, EAV)), ClassGraphical)  )
     placeDialogItem(d, m, gr,  x-1, y, max_x, max_y);
 
   succeed;
@@ -1773,7 +1773,7 @@ appendDialogItemDevice(Device d, Graphical item, Name where)
   if ( where == NAME_nextRow )
   { Graphical left;
 
-    while ( (left = get(di, NAME_left, EAV)) && notNil(left) )
+    while ( (left = get(di, NAME_right, EAV)) && notNil(left) )
       di = left;
     where = NAME_below;
   }
