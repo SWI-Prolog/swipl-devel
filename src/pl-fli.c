@@ -784,9 +784,9 @@ PL_get_nchars(term_t l, unsigned int *length, char **s, unsigned flags)
     r = NULL;
     fd = Sopenmem(&r, &size, "w");
     PL_write_term(fd, l, 1200, 0);
-    len = size;
     Sputc(EOS, fd);
     Sflush(fd);
+    len = size-1;			/* need to flush first */
   } else
   { DEBUG(7, Sdprintf("--> fail\n"));
     fail;

@@ -1,6 +1,11 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: PL_get_nchars(), used when casting Prolog-terms to char *
+    using the C++ interface.  Spotted by Sebastien Devaux.
+
+  * FIXED: library(url), www_form_encode/2, decoding %OD%OA
+
   * FIXED: Honour fileerrors/2 to supress errors on file-operations.
 
 VERSION 3.4.1
