@@ -277,7 +277,11 @@ strdup(const char *in)
 
 static char *
 strndup(const char *in, int len)
-{ return memcpy(xmalloc(len+1), in, len);
+{ char *r = xmalloc(len+1);
+ 
+  r[len] = '\0'; 
+
+  return memcpy(r, in, len);
 }
 
 
