@@ -791,7 +791,7 @@ read_term_from_stream(Fd, Start, T, Error, S, P) :-
 	), !.
 read_term_from_stream(_, _, _, Error, _, _) :-
 	setof(E, retract(syntax_error(E)), Es),
-	last(Error, Es).
+	last(Es, Error).
 
 pce_ifhostproperty(prolog(swi),
 (read_with_errors(Fd, _Start, T, Error, Singletons, TermPos) :-

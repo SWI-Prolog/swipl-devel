@@ -43,6 +43,7 @@
 :- require([ ignore/1
 	   , pce_error/1
 	   , call/3
+	   , last/2
 	   ]).
 
 :- pce_global(@class, new(var(class, class, @nil))).
@@ -308,10 +309,10 @@ Other cases are reported by checkpce/0.
 
 send_binder(Class, Sel, Binder) :-
 	bagof(B, pce_lazy_send_method(Class, Sel, B), Binders),
-	last(Binder, Binders).
+	last(Binders, Binder).
 get_binder(Class, Sel, Binder) :-
 	bagof(B, pce_lazy_get_method(Class, Sel, B), Binders),
-	last(Binder, Binders).
+	last(Binders, Binder).
 
 call_binder(ClassName, Selector, Binder) :-
 	build_in_binder(Binder, ClassName, Selector), !.
@@ -349,14 +350,3 @@ pce_bind_get(Id, RType, Types, Doc, Loc, Group, ClassName, Selector) :-
 	send(Class, get_method,
 	     get_method(Selector, RType, Types, Message, Doc, Loc, Group)).
 
-		 /*******************************
-		 *	       UTIL		*
-		 *******************************/
-
-%	SICStus got the arguments of last/2 the wrong way around!
-
-pce_ifhostproperty(prolog(sicstus), [
-(last(X, [X])),
-(last(X, [_|T]) :-
-	last(X, T))
-				    ]).

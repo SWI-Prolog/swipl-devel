@@ -482,7 +482,7 @@ real_choice_type(jump).
 
 level_range(Frames, H-L) :-
 	Frames = [F0|_],
-	last(FT, Frames),
+	last(Frames, FT),
 	flevel(F0, L),
 	flevel(FT, H).
 

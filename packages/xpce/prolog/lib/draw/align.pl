@@ -459,7 +459,7 @@ closest_point([_|T], PR, D0, P0, P) :-
 candidate_path_point(Path, point(X0,Y0), point(X,Y)) :-
 	get_chain(Path, points, PointObjects),
 	maplist(object, PointObjects, Points),
-	(   (   last(point(LX,LY), Points),
+	(   (   last(Points, point(LX,LY)),
 		VX0 is X0-LX,
 		VY0 is Y0-LY,
 		align_path_vector(Points, v(VX0,VY0), v(VX,VY))

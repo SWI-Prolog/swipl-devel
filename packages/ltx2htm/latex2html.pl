@@ -2570,7 +2570,7 @@ write_html(cite(Key)) :- !,
 	).
 write_html(yearcite(Key)) :- !,
 	(   cite(Key, CiteList)
-	->  (   last(Year, CiteList),
+	->  (   last(CiteList, Year),
 		name(Year, Chars),
 		name(YearInt, Chars),
 		integer(YearInt)
