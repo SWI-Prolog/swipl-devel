@@ -14,8 +14,7 @@
 :- meta_predicate
       pce_global(+, :).
 
-
-:- use_module(pce_principal, [send/3, object/1, new/2]).
+:- use_module(pce_boot(pce_principal), [send/2, object/1, new/2]).
 
 :- require([strip_module/3, gensym/2, append/3]).
 
@@ -69,9 +68,13 @@ global(Ref, Module, Goal) :-
 		*            SYSTEM		*
 		********************************/
 
+register_handler :-
+   send(@pce?exception_handlers,
+	append(attribute(undefined_assoc,
+			 message(@prolog, call, trap_ref, @arg1)))).
+
 :- initialization
-   send(@pce?exception_handlers, append,
-	attribute(undefined_assoc, message(@prolog, call, trap_ref, @arg1))).
+	register_handler.
 
 trap(@Ref) :-
 	trap_ref(Ref).

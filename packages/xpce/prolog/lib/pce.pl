@@ -47,8 +47,6 @@ reexports the content of these files.
 	    pce_extended_class/1,
 	    pce_prolog_class/1,
 	    pce_prolog_class/2,
-%	    pce_bind_send_method/6,	% who needs this?
-%	    pce_bind_get_method/7,
 
 	    pce_catch_error/2,		% pce_error
 	    pce_open/3,
@@ -57,8 +55,6 @@ reexports the content of these files.
 	  ]).
 
 :- system_module.
-
-user:term_expansion((:- require(_)), []).
 
 		/********************************
 		*      LOAD COMMON PLATFORM	*
@@ -69,9 +65,8 @@ user:term_expansion((:- require(_)), []).
    absolute_file_name(RawBootDir, BootDir),
    assert(user:file_search_path(pce_boot, BootDir)).
 
-:- [user:pce_boot(pce_expand)].
-
-:- [ pce_boot(pce_pl),
+:- [ pce_boot(pce_expand),
+     pce_boot(pce_pl),
      pce_boot(pce_principal),
      pce_boot(pce_error),
      pce_boot(pce_operator),

@@ -15,6 +15,7 @@
 	    pce_message_context/3
 	  ]).
 :- require([ append/3
+	   , get/3
 	   ]).
 
 :- multifile

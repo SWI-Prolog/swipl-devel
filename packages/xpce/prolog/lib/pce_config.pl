@@ -46,20 +46,18 @@
 
 :- use_module(library(pce)).
 :- use_module(library(broadcast)).
-:- require([ (\=)/2
-	   , absolute_file_name/3
-	   , call/3
+:- require([ is_absolute_file_name/1
+	   , is_list/1
 	   , chain_list/2
-	   , concat_atom/2
-	   , delete/3
 	   , file_directory_name/2
 	   , forall/2
-	   , is_absolute_file_name/1
-	   , is_list/1
 	   , list_to_set/2
-	   , maplist/3
 	   , member/2
 	   , memberchk/2
+	   , absolute_file_name/3
+	   , call/3
+	   , delete/3
+	   , maplist/3
 	   , strip_module/3
 	   ]).
 

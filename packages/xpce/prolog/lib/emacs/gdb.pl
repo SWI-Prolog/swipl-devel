@@ -15,9 +15,12 @@
 
 variable(gdb_command,	string*,	get,	"Collected gdb command").
 
-initialise(B, Target:file) :->
+initialise(B, Target:file, Pid:[int]) :->
 	"Create GBD buffer for name"::
-	new(P, process(gdb, '-fullname', Target?name)),
+	(   Pid == @default
+	->  new(P, process(gdb, '-fullname', Target?name))
+	;   new(P, process(gdb, '-fullname', Target?name, Pid))
+	),
 	send(B, send_super, initialise, P, string('*gdb-%s*', Target?name)),
 	send(B, pool, gdb),
 	send(B, prompt_regex, '(gdb) ').

@@ -7,7 +7,7 @@
     Copyright (C) 1994 University of Amsterdam. All rights reserved.
 */
 
-:- module(pce_image_item, []).
+:- module(dia_image_item, []).
 :- use_module(library(pce)).
 
 

@@ -15,13 +15,11 @@
 	    pce_prolog_class/2		% ?ClassName, ?SuperName
 	  ]).
 
-:- use_module(pce_principal).
-:- use_module(pce_global).
-:- require([ pce_error/1
+:- use_module(pce_boot(pce_principal)).
+:- use_module(pce_boot(pce_global)).
+:- require([ ignore/1
+	   , pce_error/1
 	   , call/3
-	   , ignore/1
-	   , strip_module/3
-	   , notrace/1
 	   ]).
 
 :- pce_global(@class, new(var(class, class, @nil))).
@@ -217,9 +215,12 @@ resolve_method_message(X) :-
 pce_ifhostproperty(prolog(swi),
 		   (:- '$hide'('_bind_lazy', 3))).
 
-'_bind_lazy'(Type, ClassName, Selector) :-
+pce_ifhostproperty(prolog(swi),
+('_bind_lazy'(Type, ClassName, Selector) :-
 %	format('bind_lazy(~p, ~p, ~p)~n', [Type, ClassName, Selector]),
-	notrace(do_bind_lazy(Type, ClassName, Selector)).
+	notrace(do_bind_lazy(Type, ClassName, Selector))),
+('_bind_lazy'(Type, ClassName, Selector) :-
+	do_bind_lazy(Type, ClassName, Selector))).
 
 do_bind_lazy(send, ClassName, @default) :- !,
 	get(@pce, convert, ClassName, class, Class),
@@ -292,3 +293,15 @@ pce_bind_get(Id, RType, Types, Doc, Loc, Group, ClassName, Selector) :-
 	pce_method_implementation(Id, Message),
 	send(Class, get_method,
 	     get_method(Selector, RType, Types, Message, Doc, Loc, Group)).
+
+		 /*******************************
+		 *	       UTIL		*
+		 *******************************/
+
+%	SICStus got the arguments of last/2 the wrong way around!
+
+pce_ifhostproperty(prolog(sicstus), [
+(last(X, [X])),
+(last(X, [_|T]) :-
+	last(X, T))
+				    ]).

@@ -281,8 +281,10 @@ load_user_extension(_Emacs, Base:name) :->
 
 load_user_init_file(_Emacs) :->
 	"Load ~/.pceemacsrc: user extensions"::
-	(   send(file('~/.pceemacsrc'), access, read)
-	->  ignore(user:consult('~/.pceemacsrc'))
+	new(F, file('~/.pceemacsrc')),
+	(   send(F, access, read)
+	->  get(F, absolute_path, Path),
+            ignore(consult(user:Path))
 	;   true
 	).
 

@@ -19,8 +19,14 @@
 	strip_module/3,
 	'$load_pce'/0.
 
-
 :- use_module(library(quintus), [(meta_predicate)/1]).
+
+		 /*******************************
+		 *	    EXPANSION		*
+		 *******************************/
+
+user:term_expansion((:- require(_)), []).
+
 
 		 /*******************************
 		 *	    PROPERTIES		*
@@ -63,6 +69,7 @@ strip_module(Raw, Module, Term) :-
 	prolog:message/3.
 
 prolog:message(T) -->
+	{ current_module(pce_messages) }, % avoid problem while booting
 	pce_messages:pce_message(T).
 
 		/********************************
@@ -70,7 +77,10 @@ prolog:message(T) -->
 		********************************/
 
 pce_home(PceHome) :-
-	absolute_file_name(pce('.'), [file_type(directory)], PceHome),
+	absolute_file_name(pce('.'),
+			   [ file_type(directory),
+			     file_errors(fail)
+			   ], PceHome),
 	exists_directory(PceHome), !.
 pce_home(PceHome) :-
 	getenv('XPCEHOME', PceHome),
@@ -80,7 +90,10 @@ pce_home(PceHome) :-
 	    concat('/xpce-', Version, Suffix)
 	;   Suffix = '/xpce'
 	),
-	absolute_file_name(swi(Suffix), [file_type(directory)], PceHome),
+	absolute_file_name(swi(Suffix),
+			   [ file_type(directory),
+			     file_errors(fail)
+			   ], PceHome),
 	exists_directory(PceHome), !.
 pce_home(PceHome) :-
 	feature(saved_program, true), !,

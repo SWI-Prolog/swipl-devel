@@ -14,8 +14,8 @@
 	  pce_begin_recording/1,	% +- source|documentation
 	  pce_end_recording/0
 	]).
-:- use_module(pce_operator).
-:- use_module(pce_principal).
+:- use_module(pce_boot(pce_operator)).
+:- use_module(pce_boot(pce_principal)).
 :- require([ append/3
 	   , between/3
 	   , concat/3
@@ -40,18 +40,6 @@
 	recording/2.			% items recorded
 
 pce_ifhostproperty(prolog(swi), (:- index(attribute(1,1,0)))).
-
-pce_ifhostproperty(prolog(sicstus),
-[(get(R, S, A)	     :- pce_principal:get(R, S, A)),
- (get(R, S, P1, A)   :- pce_principal:get(R, S, P1, A)),
- (send(R, S, P1, P2) :- pce_principal:send(R, S, P1, P2))
-]).
-
-pce_ifhostproperty(prolog(quintus),
-[(get(R, S, A)	     :- pce_principal:get(R, S, A)),
- (get(R, S, P1, A)   :- pce_principal:get(R, S, P1, A)),
- (send(R, S, P1, P2) :- pce_principal:send(R, S, P1, P2))
-]).
 
 		 /*******************************
 		 *	     OPERATORS		*
@@ -886,6 +874,6 @@ feedback(Term) :-
 	user:term_expansion/2.
 
 user:term_expansion(A, B) :-
-	pce_expansion:pce_term_expansion(A, B).
+	pce_term_expansion(A, B).
 
 :- pop_compile_operators.

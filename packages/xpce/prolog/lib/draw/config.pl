@@ -118,11 +118,10 @@ config(file/meta_file_format,
        [ type({aldus,wmf,emf}),
 	 comment(['WMF is Windows 3.1 metafile format.  ALDUS is WMF with',
 		  'additional information. EMF is Windows 95 and NT',
-		  'metafile format.  Despite this, most',
-		  'Windows 95 and NT applications read/write only the',
-		  'ALDUS format.'
+		  'metafile format.  Use EMF whenever possible as its',
+		  'scaling behaviour is much better'
 		 ]),
-	 default(aldus)
+	 default(emf)
        ]) :-
 	get(@pce, operating_system, win32).
 config(history/recent_files,

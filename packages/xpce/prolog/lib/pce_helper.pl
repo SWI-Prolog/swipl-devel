@@ -119,7 +119,7 @@ give_help(Helper, Database:name, Label:[name]) :->
 	;   term_to_atom(DBTerm, Database),
 	    functor(DBTerm, _, 1),
 	    arg(1, DBTerm, DBname)
-	->  assert(pce_registered_help_file(DBname, DBTerm)),
+	->  assert(pce_help_file:resource(DBname, help, DBTerm)),
 	    send(Helper, give_help, DBname, Label)
 	;   send(Helper, report, error,
 		 'No help-database called %s', Database),

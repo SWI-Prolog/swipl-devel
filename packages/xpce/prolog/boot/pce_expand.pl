@@ -7,17 +7,19 @@
     Copyright (C) 1994 University of Amsterdam. All rights reserved.
 */
 
-:- multifile
-	term_expansion/2.
-:- dynamic
-	term_expansion/2.
+:- module(pce_expand, []).
 
-term_expansion(pce_ifhostproperty(Prop, Clause), TheClause) :-
+:- multifile
+	user:term_expansion/2.
+:- dynamic
+	user:term_expansion/2.
+
+user:term_expansion(pce_ifhostproperty(Prop, Clause), TheClause) :-
 	(   pce_host:property(Prop)
 	->  TheClause = Clause
 	;   TheClause = []
 	).
-term_expansion(pce_ifhostproperty(Prop, If, Else), Clause) :-
+user:term_expansion(pce_ifhostproperty(Prop, If, Else), Clause) :-
 	(   pce_host:property(Prop)
 	->  Clause = If
 	;   Clause = Else

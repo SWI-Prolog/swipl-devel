@@ -105,7 +105,7 @@ insert_quote(M) :->
 
 open_document(M, Style:'{article,report,book,letter}|name') :->
 	"Insert document header"::
-	send(M, format, '\\documentstyle[local,psfig,11pt]{%s}\n\n', Style),
+	send(M, format, '\\documentclass{%s}\n\n', Style),
 	send(M, make_environment, document).
 
 

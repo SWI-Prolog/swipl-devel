@@ -274,8 +274,8 @@ greyed(Img, Grey:image) :<-
 	    send(B2, transparent, on),
 	    send(B2, colour, white),
 	    send(Grey, draw_in, B2, point(1,1)),
-	    get(class(menu), resource, inactive_colour, Resource),
-	    get(Resource, value, GreyColour),
+	    get(class(menu), class_variable, inactive_colour, ClassVar),
+	    get(ClassVar, value, GreyColour),
 	    send(B2, colour, GreyColour),
 	    send(Grey, draw_in, B2),
 	    new(_, hyper(Img, Grey, inactive, active))

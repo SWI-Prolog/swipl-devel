@@ -69,10 +69,10 @@ server_action(edit(File, Line), Socket) :- !,
 	->  true
 	;   send(W?editor, goto_line, Line)
 	).
-server_action(gdb(File), Socket) :- !,
+server_action(gdb(File, Pid), Socket) :- !,
 	file_directory_name(File, Dir),
 	file_base_name(File, Exe),
-	new(X, emacs_gdb_buffer(Exe)),
+	new(X, emacs_gdb_buffer(Exe, Pid)),
 	get(X, process, Process),
 	(   Process \== @nil,
 	    get(Process, status, inactive)
@@ -86,7 +86,8 @@ server_action(gdb(File), Socket) :- !,
 	send(H, send_method, @emacs_server_method),
 	send(X, start_process),
 	send(X, open).
-
+server_action(gdb(File), Socket) :- !,
+	server_action(gdb(File, @default), Socket).
 
 server_action(Cmd, Socket) :-
 	Cmd =.. [Sel|Args],

@@ -185,15 +185,23 @@ load_bookmark(Term, BM) :-
 	term_to_atom(Term, Atom),
 	send(BM, report, warning, 'Unknown term in bookmarks file: %s', Atom).
 
-bookmarks_file(_, Access:[{read,write}], File:name) :<-
-	File = '~/.xpce/emacs_bookmarks',
-	(   Access == write
-	->  new(D, directory('~/.xpce')),
-	    (	send(D, exists)
-	    ->	true
-	    ;	send(D, make)
-	    )
-	;   true
+bookmarks_file(BM, Access:[{read,write}], File:name) :<-
+	(   get(BM, file, F),
+	    F \== @nil,
+	    send(F, access, Access)
+	->  get(F, absolute_path, File)
+	;   new(F, file('~/.xpce/emacs_bookmarks')),
+	    (   Access == write
+	    ->  get(F, directory_name, DirName),
+		new(D, directory(DirName)),
+		(   send(D, exists)
+		->  true
+		;   send(D, make)
+		)
+	    ;   true
+	    ),
+	    get(F, absolute_path, File),
+	    send(BM, slot, file, File)		% use the absolute path
 	).
 	    
 :- pce_end_class.
@@ -248,10 +256,14 @@ select_node(BW, Id:any) :->
 
 initialise(F, Path:name) :->
 	(   Path == /
-	->  BaseName = /
-	;   get(file(Path), base_name, BaseName)
-	),
-	send_super(F, initialise, BaseName, Path).
+	->  (	get(@pce, operating_system, win32)
+	    ->	RootName = 'My Computer'
+	    ;	RootName = '/'
+	    ),
+	    send_super(F, initialise, RootName, @nil)
+	;   get(file(Path), base_name, BaseName),
+	    send_super(F, initialise, BaseName, Path)
+	).
 
 collapsed(F, Val:bool*) :->
 	"Disable toc_window expansion mechanism"::
@@ -260,7 +272,10 @@ collapsed(F, Val:bool*) :->
 append(F, BM:emacs_bookmark, Sort:[bool]) :->
 	get(BM, file_name, FileName),
 	get(F, identifier, Path),
-	send(FileName, prefix, Path),
+	(   Path == @nil		% this is the root
+	->  true
+	;   send(FileName, prefix, Path)
+	),
 	get(F, sons, Sons),
 	(   get(Sons, find, message(@arg1, append, BM), _)
 	->  true
@@ -294,6 +309,13 @@ compare(F, N:toc_node, Diff:{smaller,equal,larger}) :<-
 	;   Diff = smaller
 	).
 		
+sub_directory(@nil, File, SubPath) :- !,
+	(   get(@pce, operating_system, win32)
+	->  new(Re, regex('[a-zA-Z]:'))
+	;   new(Re, regex('/[^/]*'))
+	),
+	send(Re, match, File),
+	get(Re, register_value, File, 0, name, SubPath).
 sub_directory(Path, File, SubPath) :-
 	send(File, prefix, Path),
 	file_directory_name(File, FileDir),
@@ -313,7 +335,10 @@ loaded_buffer(F, TB:emacs_buffer) :->
 	    File \== @nil,
 	    get(File, absolute_path, Path),
 	    get(F, identifier, Id),
-	    send(Path, prefix, Id)
+	    (	Id == @nil
+	    ->	true
+	    ;   send(Path, prefix, Id)
+	    )
 	->  send(F?sons, for_all,
 		 message(@arg1, loaded_buffer, TB))
 	;   true

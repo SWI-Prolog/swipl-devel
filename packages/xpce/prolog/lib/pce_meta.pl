@@ -16,7 +16,13 @@
 	    pce_to_pl_type/2,		% +PceType, -PrologType
 	    type_accepts_function/1	% +Type
 	  ]).
-	  
+:- use_module(library(pce)).
+:- require([ pce_error/1
+	   , chain_list/2
+	   , get_chain/3
+	   , maplist/3
+	   ]).
+
 
 		 /*******************************
 		 *	     BASE-STUFF		*

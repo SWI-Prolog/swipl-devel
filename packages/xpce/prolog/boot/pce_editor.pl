@@ -8,6 +8,8 @@
 */
 
 :- module(editor_buttons, []).
+:- use_module(pce_boot(pce_principal)).
+:- use_module(pce_boot(pce_realise), [pce_register_class/1]).
 
 make_editor_recogniser(G) :-
 	new(Editor, @event?receiver),
@@ -104,4 +106,5 @@ place_caret(G, Index:int) :->
 :- pce_end_class.
 
 :- free(@editor_recogniser).
-:- make_editor_recogniser(@editor_recogniser).
+:- initialization
+	make_editor_recogniser(@editor_recogniser).

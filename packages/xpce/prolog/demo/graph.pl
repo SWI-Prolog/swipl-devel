@@ -140,7 +140,7 @@ name(Node, Name:name) :->
 :- pce_global(@graph_node_recogniser, make_graph_node_recogniser).
 
 make_graph_node_recogniser(R) :-
-	new(R, move_gesture),
+	new(R, move_gesture(left)),
 	send(R, condition,
 	     ?(@event?position, distance, point(0,0)) < 5).
 

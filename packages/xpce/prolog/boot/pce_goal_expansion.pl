@@ -9,6 +9,11 @@
 
 :- module(pce_goal_expansion, []).
 :- use_module(pce_realise).
+:- use_module(pce_boot(pce_expansion), [pce_compiling/1]).
+:- use_module(pce_boot(pce_principal), [get/3]).
+:- require([ pce_error/1
+	   , append/3
+	   ]).
 
 expandable(send, A)       :- A >= 2.
 expandable(get, A)        :- A >= 3.
@@ -85,8 +90,15 @@ super_class(Class, Super) :-
 		 *	  REGISTER HOOK		*
 		 *******************************/
 
-user:goal_expansion(Goal, ExpandedGoal) :-
+pce_ifhostproperty(prolog(sicstus),
+(   user:goal_expansion(Goal, _Context, ExpandedGoal) :-
 	functor(Goal, Name, Arity),
 	expandable(Name, Arity),
-	expand(Goal, ExpandedGoal).
+	expand(Goal, ExpandedGoal)
+),
+(   user:goal_expansion(Goal, ExpandedGoal) :-
+	functor(Goal, Name, Arity),
+	expandable(Name, Arity),
+	expand(Goal, ExpandedGoal)
+)).
 

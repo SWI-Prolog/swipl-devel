@@ -27,7 +27,6 @@
 :- pce_autoload(man_card_editor,	library('man/v_card')).
 :- pce_autoload(man_summary_browser,	library('man/v_summary')).
 :- pce_autoload(man_class_hierarchy,	library('man/v_hierarchy')).
-:- pce_autoload(man_keyword_browser,	library('man/v_keyword')).
 :- pce_autoload(man_search_tool,	library('man/v_search')).
 :- pce_autoload(man_index_manager,	library('man/man_index')).
 :- pce_autoload(man_topic_browser,	library('man/v_topic')).

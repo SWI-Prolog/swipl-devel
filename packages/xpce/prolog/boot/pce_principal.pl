@@ -26,10 +26,11 @@
 	    pce_lazy_get_method/3,
 	    pce_uses_template/2,
 
-	    pce_method_implementation/2
+	    pce_method_implementation/2,
+
+	    pce_open/3
 	  ]).
 
-pce_ifhostproperty(prolog(swi), (:- export(pce_open(_,_,_)))).
 
 :- meta_predicate
 	send_class(+, +, :),
@@ -75,6 +76,23 @@ interface, called pce_<prolog-name>.pl
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 :- initialization pce_host:'$load_pce'.
+
+pce_ifhostproperty(prolog(sicstus), [
+(send(Object, Message) :-
+	pce_host:send(Object, Message, 1)),
+(get(Object, Message, Return) :-
+	pce_host:get(Object, Message, Return, 1)),
+(send_class(Object, Class, Message) :-
+	pce_host:send(Object, Class, Message, 1)),
+(get(Object, Class, Message, Return) :-
+	pce_host:get(Object, Class, Message, Return, 1)),
+(object(Object) :-
+	pce_host:object(Object, 1)),
+(object(Object, Term) :-
+	pce_host:object(Object, Term, 1)),
+(new(Object, Term) :-
+	pce_host:new(Object, Term, 1))
+]).
 
 
 		/********************************
@@ -303,7 +321,7 @@ send_implementation(fail, _Args, _Obj) :- fail.
 send_implementation(once(Id), Args, Obj) :-
 	send_implementation(Id, Args, Obj), !.
 send_implementation(spy(Id), Args, Obj) :-
-	(   '$debugging'		% SWi-Prolog
+	(   '$debugging'		% SWI-Prolog
 	->  trace,
 	    send_implementation(Id, Args, Obj)
 	;   send_implementation(Id, Args, Obj)
@@ -319,10 +337,12 @@ get_implementation(fail, _Args, _Obj, _Rval) :- fail.
 
 %	SWI-Prolog: make thus a normal user (debug-able) predicate.
 
-:- '$set_predicate_attribute'(send_implementation(_,_,_),  system,      0).
-:- '$set_predicate_attribute'(get_implementation(_,_,_,_), system,      0).
-:- '$set_predicate_attribute'(send_implementation(_,_,_),  hide_childs, 0).
-:- '$set_predicate_attribute'(get_implementation(_,_,_,_), hide_childs, 0).
+pce_ifhostproperty(prolog(swi), [
+(:- '$set_predicate_attribute'(send_implementation(_,_,_),  system,      0)),
+(:- '$set_predicate_attribute'(get_implementation(_,_,_,_), system,      0)),
+(:- '$set_predicate_attribute'(send_implementation(_,_,_),  hide_childs, 0)),
+(:- '$set_predicate_attribute'(get_implementation(_,_,_,_), hide_childs, 0))
+				]).
 
 		 /*******************************
 		 *	    DECLARATIONS	*

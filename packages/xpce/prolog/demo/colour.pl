@@ -16,9 +16,9 @@
 	   , send_list/3
 	   ]).
 
-:- dynamic
-	user:file_search_path/2.
 :- multifile
+	user:file_search_path/2.
+:- dynamic
 	user:file_search_path/2.
 
 user:file_search_path(x11, OpenWin) :-

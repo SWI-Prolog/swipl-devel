@@ -11,14 +11,10 @@
 	  [ declare_emacs_mode/2,
 	    declare_emacs_mode/3
 	  ]).
-
 :- use_module(library(pce)).
-:- require([ concat/3
-	   , concat_atom/2
-	   , forall/2
-	   , member/2
+:- require([ concat_atom/2
+	   , concat/3
 	   ]).
-
 
 %	declare_emacs_mode(+ModeName, +FileSpec).
 %
@@ -47,9 +43,12 @@ special_mode(annotate).
 
 declare_emacs_mode(Mode, File, Extensions) :-
 	declare_emacs_mode(Mode, File),
-	forall(member(Ext, Extensions),
-	       send(@emacs_mode_list, append,
-		    attribute(regex(Ext), Mode))).
+	declare_file_patterns(Extensions, Mode, @emacs_mode_list).
+
+declare_file_patterns([], _, _).
+declare_file_patterns([Ext|Rest], Mode, Sheet) :-
+	send(Sheet, value, regex(Ext), Mode),
+	declare_file_patterns(Rest, Mode, Sheet).
 
 %	:- emacs_begin_mode(+Mode, +Super, +Summary, +Bindings, +Syntax).
 %
@@ -101,32 +100,34 @@ emacs_mode_bindings(Mode, Module, Bindings, Syntax) :-
 	make_bindings(Bindings, Module, KB, MM),
 	make_syntax(Syntax, ST).
 
-make_bindings(Bindings, Module, KB, MM) :-
-	forall(member((Selector = Term), Bindings),
-	       bind(Term, Selector, Module, KB, MM)).
+make_bindings([], _, _, _).
+make_bindings([Selector = Term|Rest], Module, KB, MM) :-
+	bind(Term, Selector, Module, KB, MM),
+	make_bindings(Rest, Module, KB, MM).
 
-make_syntax(Syntax, ST) :-
-	forall(member(S, Syntax), syntax(S, ST)).
-
+make_syntax([], _).
+make_syntax([S|Rest], ST) :-
+	syntax(S, ST),
+	make_syntax(Rest, ST).
 
 bind(key(Key), Selector, _, KB, _) :-
 	send(KB, function, Key, Selector).
 bind(button(Button), Selector, _, _, MM) :-
 	send(MM, append, Button, Selector).
 bind(button(Button, Func), Selector, Module, _, MM) :-
-	Module:send(MM, append, Button, emacs_argument_item(Selector, Func)).
+	send(MM, Module:append(Button, emacs_argument_item(Selector, Func))).
 bind(A+B, Selector, Module, KB, MM) :-
 	bind(A, Selector, Module, KB, MM),
 	bind(B, Selector, Module, KB, MM).
 	
 syntax(Char = Term, ST) :-
-	Term =.. [Class|Args],
-	Send =.. [send, ST, syntax, Char, Class | Args],
-	Send.
+	Term =.. TermArgs,
+	Msg =.. [syntax, Char | TermArgs],
+	send(ST, Msg).
 syntax(Char + Term, ST) :-
-	Term =.. [Class|Args],
-	Send =.. [send, ST, add_syntax, Char, Class | Args],
-	Send.
+	Term =.. TermArgs,
+	Msg =.. [add_syntax, Char | TermArgs],
+	send(ST, Msg).
 syntax(paragraph_end(Regex), ST) :-
 	send(ST, paragraph_end, Regex).
 syntax(sentence_end(Regex), ST) :-
@@ -157,7 +158,10 @@ emacs_mode_class(@default, emacs_mode).
 		 *	   REGISTRATION		*
 		 *******************************/
 
-:- initialization
-   (user:asserta((pce_pre_expansion_hook(In, Out) :-
-			emacs_extend:emacs_expansion(In, Out)))).
+:- multifile
+	user:pce_pre_expansion_hook/2.
+:- dynamic
+	user:pce_pre_expansion_hook/2.
 
+user:pce_pre_expansion_hook(In, Out) :-
+	emacs_expansion(In, Out).

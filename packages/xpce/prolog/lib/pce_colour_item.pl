@@ -296,7 +296,9 @@ best_divisor([H|T], Entries, Ok0/I0, R) :-
 	).
 
 divisor(N, D) :-
-	Max is ceil(sqrt(N)),
+	sqrt(N, SqrtN),
+	Max is ceiling(SqrtN),
+%	Max is ceil(sqrt(N)),
 	between(1, Max, D),
 	N mod D =:= 0.
 
@@ -309,9 +311,9 @@ divisor(N, D) :-
 
 colour_bits(3).
 
-:- dynamic
-	user:file_search_path/2.
 :- multifile
+	user:file_search_path/2.
+:- dynamic
 	user:file_search_path/2.
 
 user:file_search_path(x11, OpenWin) :-

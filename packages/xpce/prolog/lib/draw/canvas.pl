@@ -11,7 +11,7 @@
 :- module(draw_canvas, []).
 
 :- use_module(library(pce)).
-:- consult(library('draw/align')).
+:- use_module(align).
 :- require([ add_config/2
 	   , chain_list/2
 	   , default/3

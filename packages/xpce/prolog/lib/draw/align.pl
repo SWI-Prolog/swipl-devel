@@ -14,20 +14,22 @@
 	  ]).
 
 :- use_module(library(pce)).
-:- require([ append/3
+
+:- require([ ignore/1
 	   , chain_list/2
 	   , forall/2
-	   , get_chain/3
-	   , ignore/1
 	   , last/2
-	   , maplist/3
 	   , member/2
 	   , send_list/2
+	   , append/3
+	   , get_chain/3
+	   , maplist/3
 	   ]).
 
-:- require([ pow/3,		% Needed for handling Quintus expanded math
-	     sqrt/2
-	   ]).
+pce_ifhostproperty(prolog(quintus),
+(:- require([ pow/3,		% Needed for handling Quintus expanded math
+	      sqrt/2
+	   ]))).
 
 verbose(off).
 %verbose(on).
@@ -477,9 +479,9 @@ diff_vector(v(VX0, VY0), v(VX1, VY1), v(VX, VY), H) :-
 	msign(MY),
 	VX is VX0*MX,
 	VY is VY0*MY,
-	D is sqrt((VX1-VX)**2 + (VY1-VY)**2),
+	D is sqrt((VX1-VX)*(VX1-VX) + (VY1-VY)*(VY1-VY)),
 	satisfies(displacement, D),
-	L0 is sqrt(VX0**2 + VY0**2),
+	L0 is sqrt(VX0*VX0 + VY0*VY0),
 	H is D/max(1,L0).
 
 %	align_to_path_point(+Points, +P0, -P)
@@ -500,7 +502,7 @@ align_to_path_point([_|T], PR, D, P0, P) :-
 	align_to_path_point(T, PR, D, P0, P).
 	
 distance_points(point(X0,Y0), point(X1,Y1), D) :-
-	D is sqrt((X1-X0)**2 + (Y1-Y0)**2).
+	D is sqrt((X1-X0)*(X1-X0) + (Y1-Y0)*(Y1-Y0)).
 
 
 align_mid(Points, PR, P) :-

@@ -13,11 +13,18 @@
 	, pce_autoload_all/0
 	]).
 
-:- use_module(pce_principal, [get/4, send/3]).
-:- use_module(pce_realise, [pce_realise_class/1, pce_prolog_class/1]).
-:- require([ concat_atom/2
-	   , is_absolute_file_name/1
-	   , prolog_load_context/2
+:- use_module(pce_boot(pce_principal),
+	      [ get/3,
+		send/2
+	      ]).
+:- use_module(pce_boot(pce_realise),
+	      [ pce_realise_class/1,
+		pce_prolog_class/1
+	      ]).
+:- require([ is_absolute_file_name/1
+	   , concat_atom/2
+	   , absolute_file_name/3
+	   , get/3
 	   ]).
 
 :- dynamic
@@ -42,7 +49,10 @@ pce_autoload(Class, Local) :-
 	prolog_load_context(directory, Dir),
 	concat_atom([Dir, /, Local], File),
 	pce_host:property(file_extensions(Exts)),
-	absolute_file_name(File, [extensions(Exts),access(exist)], Abs),
+	absolute_file_name(File,
+			   [ extensions(Exts),
+			     access(exist)
+			   ], Abs),
 	retractall(autoload(Class, _)),
 	assert(autoload(Class, Abs)).
 
@@ -60,10 +70,13 @@ pce_autoload_all :-
 pce_autoload_all.
 
 
-:- initialization
-   send(@pce?exception_handlers, append,
+register_handler :-
+   send(@pce?exception_handlers, append(
 	attribute(undefined_class,
-		  message(@prolog, call, trap_autoload, @arg1))).
+		  message(@prolog, call, trap_autoload, @arg1)))).
+
+:- initialization
+	register_handler.
 
 pce_ifhostproperty(prolog(swi),
 		   (:- '$hide'(trap_autoload, 1)),
