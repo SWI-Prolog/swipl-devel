@@ -259,6 +259,17 @@ PL_atomic_dec(int *addr)
 
 #undef LOCK				/* clash with Linux asm/atomic.h */
 
+
+		 /*******************************
+		 *	       ERRORS		*
+		 *******************************/
+
+static char *
+ThError(int e)
+{ return strerror(e);
+}
+
+
 		 /*******************************
 		 *	LOCK ON L_THREAD	*
 		 *******************************/
@@ -456,26 +467,32 @@ exitPrologThreads()
 	case PL_THREAD_EXITED:
 	case PL_THREAD_EXCEPTION:
 	{ void *r;
-	  if ( pthread_join(t->tid, &r) )
-	    Sdprintf("Failed to join thread %d: %s\n", i, OsError());
+	  int rc;
+
+	  if ( (rc=pthread_join(t->tid, &r)) )
+	    Sdprintf("Failed to join thread %d: %s\n", i, ThError(rc));
 
 	  break;
 	}
 	case PL_THREAD_RUNNING:
+	{
 #ifdef WIN32
   	  t->thread_data->exit_requested = TRUE;
 	  t->thread_data->pending_signals |= (1L << (SIGINT-1));
 	  PostThreadMessage(t->w32id, WM_QUIT, 0, 0);
 	  canceled++;
 #else
-	  if ( pthread_cancel(t->tid) == 0 )
+          int rc;
+
+	  if ( (rc=pthread_cancel(t->tid)) == 0 )
 	  { t->status = PL_THREAD_CANCELED;
 	    canceled++;
 	  } else
-	  { Sdprintf("Failed to cancel thread %d: %s\n", i, OsError());
+	  { Sdprintf("Failed to cancel thread %d: %s\n", i, ThError(rc));
 	  }
 #endif
 	  break;
+	}
       }
     }
   }
@@ -723,6 +740,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   atom_t alias = NULL_ATOM;
   pthread_attr_t attr;
   long stack = 0;
+  int rc;
 
   if ( !(PL_is_compound(goal) || PL_is_atom(goal)) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, goal);
@@ -790,10 +808,10 @@ pl_thread_create(term_t goal, term_t id, term_t options)
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
   if ( stack )
     pthread_attr_setstacksize(&attr, stack);
-  if ( pthread_create(&info->tid, &attr, start_thread, info) != 0 )
+  if ( (rc=pthread_create(&info->tid, &attr, start_thread, info)) != 0 )
   { free_thread_info(info);
     pthread_attr_destroy(&attr);
-    return PL_error(NULL, 0, OsError(),
+    return PL_error(NULL, 0, ThError(rc),
 		    ERR_SYSCALL, "pthread_create");
   }
   pthread_attr_destroy(&attr);
@@ -946,7 +964,7 @@ pl_thread_kill(term_t t, term_t sig)
 {
 #ifdef HAVE_PTHREAD_KILL
   PL_thread_info_t *info;
-  int s;
+  int s, rc;
 
   
   if ( !get_thread(t, &info, TRUE) )
@@ -954,8 +972,8 @@ pl_thread_kill(term_t t, term_t sig)
   if ( !_PL_get_signum(sig, &s) )
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_signal, sig);
 
-  if ( pthread_kill(info->tid, s) )
-  { assert(errno == ESRCH);
+  if ( (rc=pthread_kill(info->tid, s)) )
+  { assert(rc == ESRCH);
 
     return PL_error("thread_kill", 2, NULL, ERR_EXISTENCE, ATOM_thread, t);
   }
@@ -2187,13 +2205,15 @@ resumeThreads(void)
 
   for(t = threads, i=0; i<MAX_THREADS; i++, t++)
   { if ( t->status == PL_THREAD_SUSPENDED )
-    { t->status = PL_THREAD_RESUMING;
+    { int rc;
+
+      t->status = PL_THREAD_RESUMING;
 
       DEBUG(1, Sdprintf("Sending SIG_RESUME to %d\n", i));
-      if ( pthread_kill(t->tid, SIG_RESUME) == 0 )
+      if ( (rc=pthread_kill(t->tid, SIG_RESUME)) == 0 )
 	signalled++;
       else
-	Sdprintf("resumeThreads(): Failed to signal %d: %s\n", i, OsError());
+	Sdprintf("resumeThreads(): Failed to signal %d: %s\n", i, ThError(rc));
     }
   }
 
@@ -2269,12 +2289,14 @@ forThreadLocalData(void (*func)(PL_local_data_t *), unsigned flags)
   for(i=1; i<MAX_THREADS; i++)
   { if ( threads[i].thread_data && i != me &&
 	 threads[i].status == PL_THREAD_RUNNING )
-    { DEBUG(1, Sdprintf("Signalling %d\n", i));
+    { int rc;
+
+      DEBUG(1, Sdprintf("Signalling %d\n", i));
       threads[i].thread_data->thread.forall_flags = flags;
-      if ( pthread_kill(threads[i].tid, SIG_FORALL) == 0 )
+      if ( (rc=pthread_kill(threads[i].tid, SIG_FORALL)) == 0 )
       { signalled++;
-      } else if ( errno != ESRCH )
-	Sdprintf("forThreadLocalData(): Failed to signal: %s\n", OsError());
+      } else if ( rc != ESRCH )
+	Sdprintf("forThreadLocalData(): Failed to signal: %s\n", ThError(rc));
     }
   }
 

@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Proper handling of pthread error codes.
+
   * FIXED: listing/1 and friends (bug due to moving list predicates).
     Anjo Anjewierden.
 
