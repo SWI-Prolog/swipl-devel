@@ -115,7 +115,7 @@ show_profile(N) :-
 show_profile(How, N) :-
 	profiler(Old, false),
 	show_profile_(How, N),
-	profiler(Old, true).
+	profiler(_, Old).
 
 show_profile_(How, N) :-
 	prolog:show_profile_hook(How, N), !.
