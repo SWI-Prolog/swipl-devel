@@ -1683,7 +1683,6 @@ garbageCollect(LocalFrame fr, Choice ch)
   gc_status.requested = FALSE;		/* printMessage() */
 
   gc_status.active = TRUE;
-  finish_foreign_frame(PASS_LD1);
   if ( verbose )
     printMessage(ATOM_informational,
 		 PL_FUNCTOR_CHARS, "gc", 1,
@@ -1789,7 +1788,6 @@ pl_garbage_collect(term_t d)
     GD->debug_level = nl;
   }
 #endif
-  finish_foreign_frame(PASS_LD1);
   garbageCollect(fr, ch);
 #if O_DEBUG
   GD->debug_level = ol;
@@ -2172,8 +2170,6 @@ growStacks(LocalFrame fr, Choice ch, Code PC, long l, long g, long t)
       Sdprintf("stacks ");
     }
 
-    finish_foreign_frame(PASS_LD1);
-
     if ( !fr )
       fr = environment_frame;
     if ( !ch )
@@ -2368,14 +2364,6 @@ mark_atoms_in_environments(PL_local_data_t *ld, LocalFrame fr)
 static void
 markAtomsInTermReferences(PL_local_data_t *ld)
 { FliFrame   ff = ld->foreign_environment;
-  LocalFrame fr = ld->environment;
-  
-					/* see finish_foreign_frame() */
-  if ( (void *)fr < (void *)ff )
-  { Word ltop = (Word)ld->stacks.local.top;
-    
-    ff->size = ltop - (Word)addPointer(ff, sizeof(struct fliFrame));
-  }
   
   for(; ff; ff = ff->parent )
   { Word sp = refFliP(ff, 0);

@@ -1362,7 +1362,7 @@ run_exit_hooks(at_exit_goal *eg, int free)
   }
 
   PL_discard_foreign_frame(fid);
-  resetTermRefs(goal);
+  PL_reset_term_refs(goal);
 }
 
 

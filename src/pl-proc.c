@@ -1638,7 +1638,7 @@ pl_retract(term_t term, control_t h)
     { if ( decompile(cref->clause, cl, 0) )
       { retractClauseProcedure(proc, cref->clause PASS_LD);
 	if ( !next )
-	{ resetTermRefs(r0);
+	{ PL_reset_term_refs(r0);
 	  leaveDefinition(def);
 	  succeed;
 	}
@@ -1646,7 +1646,7 @@ pl_retract(term_t term, control_t h)
 	ForeignRedoPtr(next);
       }
 
-      resetTermRefs(r0);
+      PL_reset_term_refs(r0);
       Undo(mrk);
 
       cref = findClause(next, argv, environment_frame, def, &next PASS_LD);
@@ -1706,13 +1706,13 @@ pl_retractall(term_t head)
       retractClauseProcedure(proc, cref->clause PASS_LD);
 
     if ( !next )
-    { resetTermRefs(r0);
+    { PL_reset_term_refs(r0);
       Undo(m);
       leaveDefinition(def);
       succeed;
     }
 
-    resetTermRefs(r0);
+    PL_reset_term_refs(r0);
     Undo(m);
 
     cref = findClause(next, argv, fr, def, &next PASS_LD);

@@ -617,6 +617,7 @@ outOfStack(Stack s, stack_overflow_action how)
       fail;
     case STACK_OVERFLOW_THROW:
     case STACK_OVERFLOW_RAISE:
+    { fid_t fid = PL_open_foreign_frame();
       LD->outofstack = NULL;
       gc_status.requested = FALSE;	/* can't have that */
       PL_unify_term(LD->exception.tmp,
@@ -631,7 +632,9 @@ outOfStack(Stack s, stack_overflow_action how)
       } else
       { PL_raise_exception(LD->exception.tmp);
       }
+      PL_close_foreign_frame(fid);
       fail;
+    }
     case STACK_OVERFLOW_SIGNAL:
       LD->outofstack = s;
       succeed;

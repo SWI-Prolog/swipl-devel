@@ -2351,7 +2351,7 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
           goto common_rfunctor;
 	}
       case I_POPF:
-	  resetTermRefs(argp);
+	  PL_reset_term_refs(argp);
           argp--;
 	  pushed--;
 	  if ( !pushed )
@@ -3593,7 +3593,7 @@ add_node(term_t tail, int n ARG_LD)
   int rval;
 
   rval = PL_unify_list(tail, h, tail) && PL_unify_integer(h, n);
-  resetTermRefs(h);
+  PL_reset_term_refs(h);
 
   DEBUG(1, Sdprintf("Added %d\n", n));
 

@@ -7,6 +7,10 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Redesign of frames for foreign-term handling (FliFrame), fixing
+    problems with the garbage collector in some situations.  The new design
+    is easier to understand and debug.
+
   * FIXED: Bug#85: Prolog arithmetic functions in optimised mode evaluating
     complex not-compiled expressions.
 

@@ -1568,7 +1568,6 @@ typedef unsigned long PL_fid_t;		/* external foreign context-id */
 
 #define consTermRef(p)	 ((Word)(p) - (Word)(lBase))
 #define valTermRef(r)	 (&((Word)(lBase))[r])
-#define resetTermRefs(r) (lTop = (LocalFrame) valTermRef(r))
 
 #if O_SHIFT_STACKS
 #define SaveLocalPtr(s, ptr)	term_t s = consTermRef(ptr)

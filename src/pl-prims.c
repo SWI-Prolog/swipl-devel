@@ -953,7 +953,7 @@ start:
 
       for(i=1; ; i++)
       { if ( i == arity )
-	{ resetTermRefs(a);
+	{ PL_reset_term_refs(a);
 	  _PL_get_arg(i, t, t);
 	  goto start;			/* right-recursion optimisation */
 	} else
@@ -973,7 +973,7 @@ numberVars(term_t t, functor_t functor, int n ARG_LD)
 { term_t h2 = PL_copy_term_ref(t);
   int rval = do_number_vars(h2, functor, n PASS_LD);
 
-  resetTermRefs(h2);
+  PL_reset_term_refs(h2);
 
   return rval;
 }
@@ -1196,7 +1196,7 @@ pre_copy_analysis(Word t, int *index)
     if ( subvars == 0 )			/* ground term */
     { term_t h;
 
-      resetTermRefs(thisterm);
+      PL_reset_term_refs(thisterm);
       h = PL_new_term_ref();
       PL_put_integer(h, thisindex);
       *index = thisindex+1;		/* don't number in ground! */

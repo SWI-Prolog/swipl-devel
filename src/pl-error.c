@@ -51,6 +51,8 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
 { term_t except, formal, swi;
   va_list args;
   int do_throw = FALSE;
+  fid_t fid;
+  int rc;
 
   if ( id == ERR_FILE_OPERATION && !fileerrors )
     fail;
@@ -61,6 +63,7 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
     msg = OsError();
   }
 
+  fid    = PL_open_foreign_frame();
   except = PL_new_term_ref();
   formal = PL_new_term_ref();
   swi    = PL_new_term_ref();
@@ -451,9 +454,13 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
 
 
   if ( do_throw )
-    return PL_throw(except);
+    rc = PL_throw(except);
   else
-    return PL_raise_exception(except);
+    rc = PL_raise_exception(except);
+
+  PL_close_foreign_frame(fid);
+
+  return rc;
 }
 
 

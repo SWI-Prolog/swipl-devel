@@ -283,31 +283,10 @@ Brief description of the local stack-layout.  This stack contains:
 #undef LD
 #define LD LOCAL_LD
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-If a foreign frame is at the top   of the stack and something else needs
-to be placed on top of it, the   frame  needs to be `closed': the ->size
-must be filled with the number of term-references in the frame.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-void
-finish_foreign_frame(ARG1_LD)
-{ if ( fli_context )
-  { FliFrame fr = fli_context;
-
-    if ( (void *)environment_frame < (void *) fr &&
-	 (void *)BFR < (void *)fr )
-    { fr->size = (Word) lTop - (Word)addPointer(fr, sizeof(struct fliFrame));
-      DEBUG(9, Sdprintf("Pushed fli context with %d term-refs\n", fr->size));
-    }
-  }
-}
-
-
 static fid_t
 open_foreign_frame(ARG1_LD)
 { FliFrame fr = (FliFrame) lTop;
 
-  finish_foreign_frame(PASS_LD1);
   requireStack(local, sizeof(struct fliFrame));
   lTop = addPointer(lTop, sizeof(struct fliFrame));
   fr->size = 0;
@@ -347,7 +326,6 @@ PL_open_signal_foreign_frame()
 { GET_LD
   FliFrame fr;
 
-  finish_foreign_frame(PASS_LD1);
   lTop = addPointer(lTop, sizeof(struct localFrame) + MAXARITY*sizeof(word));
   fr = (FliFrame) lTop;
 
@@ -683,6 +661,7 @@ discardForeignFrame(LocalFrame fr ARG_LD)
   Func function  = def->definition.function;
   struct foreign_context context;
   word result;
+  fid_t fid;
 
 #define F	(*function)
 #define A(n)	0
@@ -694,11 +673,13 @@ discardForeignFrame(LocalFrame fr ARG_LD)
   context.control = FRG_CUTTED;
   context.engine  = LD; 
 
+  fid = PL_open_foreign_frame();
   if ( true(def, P_VARARG) )
   { result = F(0, argc, &context);
   } else
   { CALLNDETFN(result, argc, &context);
   }
+  PL_close_foreign_frame(fid);
 
 #undef A
 #undef F
@@ -1710,8 +1691,7 @@ dbg_discardChoicesAfter(LocalFrame fr ARG_LD)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 newChoice(CH_*, FR) Creates a new  choicepoint.   After  creation of the
 choice-point, the user has to fill the choice-points mark as well as the
-required context value. We do not need finish_foreign_frame() here as in
-none of the applicable cases we can be in a foreign environment.
+required context value.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static Choice
@@ -1754,8 +1734,6 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 	     }
 	     Sdprintf(")\n");
 	   });
-
-  finish_foreign_frame(PASS_LD1);	/* adjust the size of the context */
 
 					/* should be struct alignment, */
 					/* but for now, I think this */
@@ -2924,11 +2902,11 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 	  QF = QueryFromQid(qid);	/* may be shifted: recompute */
 	  set(QF, PL_Q_DETERMINISTIC);
 	  FR = environment_frame = &QF->frame;
-	  lTop = (LocalFrame) argFrameP(FR, FR->predicate->functor->arity);
+	  p = argFrameP(FR, FR->predicate->functor->arity);
+	  lTop = (LocalFrame)(p+1);
 
-					/* needs a foreign frame? */
-	  QF->exception = PL_new_term_ref();
-	  p = valTermRef(QF->exception);
+					/* TBD: needs a foreign frame? */
+	  QF->exception = consTermRef(p);
 	  *p = except;
 	  deRef(p);
 
@@ -2960,6 +2938,7 @@ exit(Block, RVal).  First does !(Block).
 
 	name = argFrameP(lTop, 0); deRef(name);
 	rval = argFrameP(lTop, 1); deRef(rval);
+	lTop = (LocalFrame)argFrameP(lTop, 2);
 
         if ( !(blockfr = findBlock(FR, name)) )
 	{ if ( exception_term )
@@ -3302,13 +3281,18 @@ to give the compiler a hint to put ARGP not into a register.
 	  /*NOTREACHED*/
         default:
 	{ LocalFrame lsave = lTop;	/* may do call-back on Prolog */
-	  lTop = (LocalFrame)ARGP;
-	  
-	  if ( valueExpression(consTermRef(p), n PASS_LD) )
-	  { lTop = lsave;
-	    goto a_ok;
+	  lTop = (LocalFrame)(n+1);
+	  fid_t fid = PL_open_foreign_frame();
+	  int rc;
+
+	  rc = valueExpression(consTermRef(p), n PASS_LD);
+	  PL_close_foreign_frame(fid);
+	  lTop = lsave;
+
+	  if ( rc )
+	  { goto a_ok;
 	  } else
-	  { lTop = lsave;
+	  { 
 #if O_CATCHTHROW
             if ( exception_term )
 	      goto b_throw;

@@ -421,7 +421,7 @@ static bool
 writeTerm(term_t t, int prec, write_options *options)
 { int rval;
   int levelSave = options->depth;
-  term_t save = PL_new_term_refs(0);
+  fid_t fid = PL_open_foreign_frame();
 
   if ( ++options->depth > options->max_depth && options->max_depth )
     rval = PutString("...", options->out);
@@ -429,7 +429,7 @@ writeTerm(term_t t, int prec, write_options *options)
     rval = writeTerm2(t, prec, options);
 
   options->depth = levelSave;
-  resetTermRefs(save);
+  PL_close_foreign_frame(fid);
 
   return rval;
 }

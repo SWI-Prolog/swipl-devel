@@ -332,7 +332,6 @@ void		initFeatures(void);
 
 /* pl-fli.c */
 word		makeNum__LD(long i ARG_LD);
-void		finish_foreign_frame(ARG1_LD);
 void		_PL_put_number__LD(term_t t, Number n ARG_LD);
 predicate_t	_PL_predicate(const char *name, int arity, const char *module,
 			      predicate_t *bin);

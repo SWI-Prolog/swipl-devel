@@ -351,8 +351,6 @@ isCurrentArithFunction(functor_t f, Module m)
 
 #if O_PROLOG_FUNCTIONS
 
-static int prologFunction(ArithFunction, term_t, Number ARG_LD);
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Activating a Prolog predicate as function below the arithmetic functions
 is/0, >, etc. `f' is the arithmetic function   to  be called. `t' is the
@@ -449,6 +447,7 @@ valueExpression(term_t t, Number r ARG_LD)
 #if O_PROLOG_FUNCTIONS
   if ( f->proc )
   { int rval, n, arity = arityFunctor(functor);
+    fid_t fid = PL_open_foreign_frame();
     term_t h0 = PL_new_term_refs(arity+1); /* one extra for the result */
 
     for(n=0; n<arity; n++)
@@ -458,11 +457,14 @@ valueExpression(term_t t, Number r ARG_LD)
       if ( valueExpression(h0+n, &n1 PASS_LD) )
       { _PL_put_number(h0+n, &n1);
       } else
+      { PL_close_foreign_frame(fid);
 	fail;
+      }
     }
 
     rval = prologFunction(f, h0, r PASS_LD);
-    resetTermRefs(h0);
+    PL_close_foreign_frame(fid);
+
     return rval;
   }
 #endif
@@ -494,7 +496,7 @@ valueExpression(term_t t, Number r ARG_LD)
 	else
 	  rval = FALSE;
 
-	resetTermRefs(a);
+	PL_reset_term_refs(a);
 	break;
       }
       case 2:
@@ -511,7 +513,7 @@ valueExpression(term_t t, Number r ARG_LD)
 	} else
 	  rval = FALSE;
 
-	resetTermRefs(a);
+	PL_reset_term_refs(a);
 	break;
       }
       default:
@@ -1544,14 +1546,17 @@ ar_func_n(code n, int argc, Number *stack)
     LocalFrame lSave = lTop;		/* TBD (check with stack!) */
     term_t h0;
     int n;
+    fid_t fid;
 
     lTop = (LocalFrame) (*stack);
+    fid = PL_open_foreign_frame();
     h0   = PL_new_term_refs(argc+1);
     
     for(n=0; n<argc; n++)
       _PL_put_number(h0+n, &sp[n]);
 
     rval = prologFunction(f, h0, &result PASS_LD);
+    PL_close_foreign_frame(fid);
     lTop = lSave;
   } else
   { switch(argc)

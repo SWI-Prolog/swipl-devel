@@ -134,15 +134,17 @@ term_t
 PL_new_term_refs__LD(int n ARG_LD)
 { Word t;
   term_t r;
+  int i;
 
   requireStack(local, sizeof(word)*n);
   t = (Word)lTop;
   r = consTermRef(t);
 
-  while( --n >= 0 )
+  for(i=0; i<n; i++)
     setVar(*t++);
   lTop = (LocalFrame)t;
-  
+  fli_context->size += n;
+
   return r;
 }
 
@@ -151,6 +153,7 @@ term_t
 PL_new_term_ref__LD(ARG1_LD)
 { Word t;
   term_t r;
+  FliFrame fr;
 
   requireStack(local, sizeof(word));
   t = (Word)lTop;
@@ -159,7 +162,12 @@ PL_new_term_ref__LD(ARG1_LD)
   setVar(*t);
 
   lTop = (LocalFrame)(t+1);
-  
+  fr = fli_context;
+  fr->size++;
+  SECURE({ int s = (Word) lTop - (Word)(fr+1);
+	   assert(s == fr->size);
+	 });
+
   return r;
 }
 
@@ -189,8 +197,12 @@ PL_new_term_ref()
 void
 PL_reset_term_refs(term_t r)
 { GET_LD
+  FliFrame fr = fli_context;
 
-  resetTermRefs(r);
+  lTop = (LocalFrame) valTermRef(r);
+  fr->size = (Word) lTop - (Word)addPointer(fr, sizeof(struct fliFrame));
+  SECURE(if ( fr->size < 0 || fr->size > 100 )
+	   Sdprintf("Suspect foreign frame size: %d\n", fr->size));
 }
 
 
@@ -199,6 +211,7 @@ PL_copy_term_ref(term_t from)
 { GET_LD
   Word t, p2;
   term_t r;
+  FliFrame fr;
 
   requireStack(local, sizeof(word));
 
@@ -208,7 +221,12 @@ PL_copy_term_ref(term_t from)
 
   *t = linkVal(p2);
   lTop = (LocalFrame)(t+1);
-  
+  fr = fli_context;
+  fr->size++;
+  SECURE({ int s = (Word) lTop - (Word)(fr+1);
+	   assert(s == fr->size);
+	 });
+
   return r;
 }
 
@@ -1820,7 +1838,7 @@ PL_unify_list_ncodes(term_t l, unsigned int len, const char *chars)
     }
   
     rval = PL_unify_nil(t);
-    resetTermRefs(head);
+    PL_reset_term_refs(head);
   
     return rval;
   }
@@ -1853,7 +1871,7 @@ PL_unify_list_nchars(term_t l, unsigned int len, const char *chars)
     }
   
     rval = PL_unify_nil(t);
-    resetTermRefs(head);
+    PL_reset_term_refs(head);
   
     return rval;
   }
@@ -2154,13 +2172,13 @@ cont:
       }
     }
 
-    resetTermRefs(tsave);
+    PL_reset_term_refs(tsave);
     discardBuffer(&buf);
     return TRUE;
   }
 
 failout:
-  resetTermRefs(tsave);
+  PL_reset_term_refs(tsave);
   discardBuffer(&buf);
 
   return FALSE;
