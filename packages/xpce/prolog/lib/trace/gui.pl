@@ -249,7 +249,7 @@ show_frame(_Tool, Frame:int, PC:'int|name') :->
 
 source_typed(Frame, Typed:event_id) :->
 	"Forward a typing event to the button-dialog"::
-	get(Frame, member, prolog_button_dialog, Dialog),
+	get(Frame, member, buttons, Dialog),
 	send(Dialog, typed, Typed).
 
 
