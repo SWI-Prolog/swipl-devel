@@ -45,8 +45,8 @@ SHELL=/bin/sh
 # Places of things.  These *must* be absolute paths!
 ################################################################
 
-PCEHOME=/staff/jan/src/xpce
-PLBASE=/staff/jan/src/pl
+PCEHOME=/lri2/jan/src/xpce-4.8.2
+PLBASE=/lri2/jan/src/pl
 SICSHOME=/staff/jan/src/sicstus2.1
 SICSTARGET=$(PCEHOME)/bin/xpce-sicstus
 
@@ -82,18 +82,24 @@ endif
 
 ifeq ($(ARCH),sparc-sunos-4)
 	PLARCH=sun4
-	LDFLAGS=-L$(XLIB) $(COFLAGS) -static
-	STATICLIBS=/usr/lib/libc.a -Wl,-Bdynamic -ldl
+	LDFLAGS=-L$(XLIB) $(COFLAGS)
+	NETLIBS=
+	PCELIBS=$(XBASE)/lib/libXt.a $(XBASE)/lib/libX11.a -lm
+	PLLIBS=-ldl -lreadline -ltermcap /usr/lib/libc.a 
 else
 ifeq ($(ARCH),sparc-sunos-5)
 	PLARCH=solaris
-	LDFLAGS=-L$(XLIB) -lsocket -ldl -lnsl -lelf
-	STATICLIBS=/usr/lib/libc.a
+	LDFLAGS=-Wl,-Bstatic -L$(XLIB)
+	NETLIBS=-lsocket -lnsl
+	PCELIBS=-lX11 -lXt $(NETLIBS) -lm
+	PLLIBS=-lelf -Wl,-Bdynamic -ldl
 else
 ifeq ($(ARCH),i486-linux)
 	PLARCH=i386
 	LDFLAGS=-L$(XLIB)
-	STATICLIBS=/usr/lib/libc.a
+	NETLIBS=
+	PCELIBS=-lX11 -lXt $(NETLIBS) -lm
+	PLLIBS=/usr/lib/libc.a
 else
 	PLARCH=unknown
 	LDFLAGS=-L$(XLIB)
@@ -101,8 +107,6 @@ else
 endif
 endif
 endif
-
-PLLIBS=-ltermcap -lreadline
 
 # Install XPCE/SWI-Prolog here.  See install-pl-bins for details
 
@@ -152,8 +156,6 @@ RESOURCE_CLASS=Pce
 PLRUNTIME=$(PLBASE)/runtime/$(PLARCH)
 PLINCLUDE=$(PLBASE)/include
 
-PCELIBS=-lXt -lX11 -lm
-
 TARGET=$(PCEHOME)/bin/xpce
 LIBS=$(PCELIBS) $(PLLIBS)
 
@@ -190,7 +192,7 @@ xpce-sicstus: xpce xpce-client
 xpce-client:	bin/xpce-client
 
 bin/xpce-client:	src/unx/client.c
-	cd src/unx ; $(MAKE) xpce-client
+	cd src; $(MAKE) xpce-client
 	mv src/unx/xpce-client $@
 
 check:

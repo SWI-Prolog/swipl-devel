@@ -13,7 +13,7 @@ proto.h:	$(UNXSRC)
 		$(MKPROTO) $(UNXSRC) | $(CLPROTO) > proto.h
 
 xpce-client:	client.o
-		$(CC) -o $@ client.o
+		$(CC) $(CFLAGS) -o $@ client.o $(NETLIBS)
 
 clean:
 		rm -f *~ a.out core $(UNXOBJS) addlib client.o 

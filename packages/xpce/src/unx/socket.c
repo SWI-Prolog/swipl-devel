@@ -13,14 +13,16 @@
 #include <memory.h>
 #include <unistd.h>
 #include <sys/socket.h>			/* must be first to avoid send() */
-					/* conflict ... */
+#include <netdb.h>			/* conflict ... */
+#include <netinet/in.h>
+				
+#define create PCEcreate
+
 #include <h/kernel.h>
 #include <h/unix.h>
 #include <h/interface.h>
 #include <sys/time.h>
 #include <sys/un.h>
-#include <netinet/in.h>
-#include <netdb.h>
 #include <signal.h>
 #include <errno.h>
 

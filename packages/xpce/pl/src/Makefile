@@ -12,7 +12,6 @@ XPCEOBJ=$(PCEHOME)/src/XPCE.a
 
 OBJ=	$(PLRUNTIME)/pl.o interface.o link.o $(XPCEOBJ)
 BINOBJ= ../../pl/runtime/$(ARCH)/pl.o interface.o link.o $(XPCEOBJ)
-LIBS=	-lXt -lX11 -lm -ltermcap -lreadline $(EXTRALIBS)
 TARGET=	xpce
 
 CFLAGS= 	$(COFLAGS) -I$(PLINCLUDE) -I$(PCEHOME)/src
