@@ -75,8 +75,8 @@ rc.tex:	rc.doc
 ################################################################
 
 clean:
-	rm -f *% *~ $(LIBOBJ) rc.o rcswi.o
+	rm -f *% *~ $(LIBOBJ) rc.o
 
 distclean:	clean
-	rm -f rc rcswi.so
+	rm -f rc
 
