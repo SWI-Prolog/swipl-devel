@@ -4317,12 +4317,18 @@ also absolute_file_name/2 and chdir/1.%
 Compatibility predicate.  New code should use working_directory/2.
 \end{description}
 
-\section{Multi-threading (alpha code)}		\label{sec:threads}
+\section{Multi-threading (beta code)}		\label{sec:threads}
 
 {\bf The features described in this section are only enabled on Unix
 systems providing POSIX threads and if the system is configured using
 the \longoption{enable-mt}{} option. SWI-Prolog multi-theading support
-is experimental and in some areas not safe.}
+is still beta.  Especially, it is discouraged to use I/O streams from
+multiple threads.
+
+The standard Linux RPM based binary installation provides two
+executables: \program{pl} is the single-threaded and \program{pl-mt} is
+the multi-threaded version. The packages distributed with this version
+are built with threading support.}
 
 SWI-Prolog multithreading is based on standard C-language multithreading
 support. It is not like {\em ParLog} or other paralel implementations of
@@ -4385,8 +4391,8 @@ If \const{false} (default), the thread can be waited for using
 thread_join/2. thread_join/2 must be called on this thread to reclaim
 the all resources associated to the thread. If \const{true}, the system
 will reclaim all associated resources automatically after the thread
-finishes. Please not that thread identifiers are freed for reuse after a
-detached thread finishes or a normal thread has been joined.
+finishes. Please note that thread identifiers are freed for reuse after
+a detached thread finishes or a normal thread has been joined.
 \end{description}
 
 The \arg{Goal} argument is {\em copied} to the new Prolog engine.  This
