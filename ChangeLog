@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: HTTP package for dealing with HTTP server and client software
+    from Prolog.
+
   * ADDED: library(debug) for dealing with print-statements from your code
     and assuptions you make during development.  Documented in the reference
     manual.
