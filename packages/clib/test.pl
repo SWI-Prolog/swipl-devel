@@ -124,14 +124,14 @@ dispatch_fd(Server) :-
 	assert(client(Read, Write)).
 dispatch_fd(Client) :-
 	client(Client, Write),
-	format(Write, 'You typed: ', []),
-	copy_stream(Client, Write),
 	(   at_end_of_stream(Client)
 	->  format('Closing client ~w~n', [Client]),
 	    close(Client),
 	    close(Write),
 	    retractall(client(Client, _))
-	;   flush_output(Write)
+	;   format(Write, 'You typed: ', []),
+	    copy_stream(Client, Write),
+	    flush_output(Write)
 	).
 	
 	
