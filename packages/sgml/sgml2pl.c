@@ -2072,7 +2072,25 @@ dtd_prop_entity(dtd *dtd, term_t ename, term_t value)
     case ET_LITERAL:
     default:
       if ( e->value )
-	return PL_unify_atom_chars(value, e->value);
+      { const char *wrap;
+
+	switch(e->content)
+	{ case EC_SGML:     wrap = "sgml"; break;
+	  case EC_STARTTAG: wrap = "start_tag"; break;
+	  case EC_ENDTAG:   wrap = "end_tag"; break;
+	  case EC_CDATA:    wrap = NULL; break;
+	  case EC_SDATA:    wrap = "sdata"; break;
+	  case EC_NDATA:    wrap = "ndata"; break;
+	  case EC_PI:       wrap = "pi"; break;
+	  default:	    wrap = NULL; assert(0);
+	}
+
+	if ( wrap )
+	  return PL_unify_term(value, PL_FUNCTOR_CHARS, wrap, 1,
+			       PL_CHARS, e->value);
+	else
+	  return PL_unify_atom_chars(value, e->value);
+      }
   }
 
   assert(0);
