@@ -10,6 +10,9 @@
 VERSION 5.2.5 (Jul 23, 2003)
 ============================
 
+  * FIXED: Bug#82: Saved states in Windows try to load the `associated file'.
+    Mike Elston.
+
   * FIXED: Bug in \+ inside ;/2 or (if -> then ; else) if the \+ introduces
     new variables.  Jorge Baier Aranda.  Compiler bug; saved states and
     QLF files must be recompiled.

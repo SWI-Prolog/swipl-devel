@@ -209,6 +209,8 @@ $make_alias(Chars, Alias) :-
 %	and -if possible- adjust the window title.
 
 set_associated_file :-
+	current_prolog_flag(saved_program_class, runtime), !.
+set_associated_file :-
 	$set_prolog_file_extension,
 	current_prolog_flag(associate, Ext),
 	current_prolog_flag(argv, Argv),
