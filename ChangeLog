@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * DOC: Various updates to web-references and XPCE references
+
   * FIXED: PL_cons_functor_v() and related interface functions: forgotten
     dereference (Fabien Todescato).
 

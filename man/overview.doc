@@ -389,9 +389,8 @@ Examples:
 \end{tabular}\end{center}
 
 See also apropos/1, and the SWI-Prolog home page at
-\url{http://www.swi.psy.uva.nl/projects/SWI-Prolog/}, which provides
-a FAQ, an HTML version of manual for online browsing and HTML and PDF
-versions for downloading.
+\url{http://www.swi-prolog.org}, which provides a FAQ, an HTML version
+of manual for online browsing and HTML and PDF versions for downloading.
 
     \predicate{apropos}{1}{+Pattern}
 Display all predicates, functions and sections that have {\em

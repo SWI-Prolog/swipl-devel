@@ -83,10 +83,10 @@ sources. From the same source we generate the plain-text version and
 index used by the online help system (located in the file \file{MANUAL}
 in the library directory) as well as the PDF version. Sources, binaries
 and documentation can be downloaded from the \url[SWI-Prolog download
-page]{http://www.swi.psy.uva.nl/projects/SWI-Prolog/download.html}.
+page]{http://www.swi-prolog.org/download.html}.
 
 The SWI-Prolog project {\bf home page} is located
-\url[here]{http://www.swi.psy.uva.nl/projects/SWI-Prolog/}
+\url[here]{http://www.swi-prolog.org}
 
 Copyright \copyright\ 1990--\year, University of Amsterdam
 \end{htmlonly}
