@@ -121,8 +121,8 @@ ls_([Dir]) :-
 	absolute_file_name('', Here),
 	chdir(Dir),
 	expand_file_name('*', Files),
-	chdir(Here),
-	ls__(Files).
+	ls__(Files),
+	chdir(Here).
 ls_(Files) :-
 	ls__(Files).
 
