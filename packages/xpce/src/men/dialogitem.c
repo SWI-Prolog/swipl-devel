@@ -355,6 +355,187 @@ modifiedDialogItem(Any di, Bool modified)
 
 
 		 /*******************************
+		 *	   ACCELERATORS		*
+		 *******************************/
+
+#define ACC_WSEP  0
+#define ACC_UPPER 1
+#define ACC_LOWER 2
+#define ACC_DIGIT 3
+
+#define ACC_CHARSETSIZE 256
+
+typedef struct
+{ int	      acc;
+  int	      index;
+  int	      mode;			/* ACC_UPPER, ACC_ALNUM */
+  const char *label;
+  Any	      object;
+} abin, *Abin;
+
+
+static status
+acc_index(Abin a, unsigned char *used)
+{ int i;
+
+  if ( a->mode == ACC_WSEP )
+  { i = a->index+1;
+
+    do
+    { int acc = a->label[i];
+      
+      if ( isletter(acc) )
+      { acc = tolower(acc);
+  
+	if ( !(used && used[acc]) )
+	{ a->index = i;
+	  a->acc = acc;
+	  succeed;
+	}
+      }
+      while( a->label[i] && !islayout(a->label[i]) )
+	i++;
+      while( a->label[i] && islayout(a->label[i]) )
+	i++;
+    } while( a->label[i] );
+
+    a->mode = ACC_UPPER;
+  }
+
+  if ( a->mode == ACC_UPPER )
+  { for( i = a->index+1; a->label[i]; i++ )
+    { int acc = a->label[i];
+  
+      if ( isupper(acc) )
+      { acc = tolower(acc);
+  
+	if ( used && used[acc] )
+	  continue;
+  
+	a->index = i;
+	a->acc = acc;
+	succeed;
+      }
+    }
+
+    a->mode = ACC_LOWER;
+  }
+
+  if ( a->mode == ACC_LOWER )
+  { for( i = a->index+1; a->label[i]; i++ )
+    { int acc = a->label[i];
+
+      if ( islower(acc) )
+      { if ( used && used[acc] )
+	  continue;
+
+	a->index = i;
+	a->acc = acc;
+	succeed;
+      }
+    }
+
+    a->mode = ACC_DIGIT;
+  }
+
+
+  for( i = a->index+1; a->label[i]; i++ )
+  { int acc = a->label[i];
+
+    if ( isdigit(acc) )
+    { if ( used && used[acc] )
+	continue;
+
+      a->index = i;
+      a->acc = acc;
+      succeed;
+    }
+  }
+
+  fail;
+}
+
+
+status
+assignAccelerators(Chain objects, Name prefix, Name label_method)
+{ int  size = valInt(objects->size);
+  Abin bins = alloca(sizeof(abin) * size);
+  int  n;
+  Cell cell;
+  Abin a = bins;
+  unsigned char used[ACC_CHARSETSIZE];
+
+  for(n=0; n<ACC_CHARSETSIZE; n++)
+    used[n] = 0;
+
+  for_cell(cell, objects)
+  { Any lbl;
+    const char *s;
+
+    if ( !hasSendMethodObject(cell->value, NAME_accelerator) )
+      continue;
+
+    if ( hasGetMethodObject(cell->value, label_method) &&
+	 (lbl = get(cell->value, label_method, 0)) &&
+	 ( !instanceOfObject(lbl, ClassCharArray) ||
+	   !((CharArray)lbl)->data.b16 ) &&
+	 (s = toCharp(lbl)) )
+    { a->label = s;
+      a->index = -1;
+      a->mode  = ACC_WSEP;
+      if ( acc_index(a, NULL) )
+      { used[tolower(a->acc)]++;
+	a->object = cell->value;
+	DEBUG(NAME_accelerator,
+	      Cprintf("Proposing %c for %s\n", a->acc, pp(cell->value)));
+	a++;
+      } else
+	send(cell->value, NAME_accelerator, NIL, 0);
+    } else
+      send(cell->value, NAME_accelerator, NIL, 0);
+  }
+
+  size = a - bins;
+  DEBUG(NAME_accelerator,
+	Cprintf("Trying to find accelerators for %d objects\n", size));
+
+  for(n=0; n<size; n++)
+  { int acc = bins[n].acc;
+
+    if ( used[acc] > 1 )
+    { int m;
+
+      for( m=n+1; m<size; m++ )
+      { if ( acc == bins[m].acc )
+	{ if ( acc_index(&bins[m], used) )
+	    used[bins[m].acc] = 1;
+	  else
+	    bins[m].acc = 0;
+
+	  used[acc]--;
+	}
+      }
+    }
+  }
+
+  for(n=0; n<size; n++)
+  { int acc = bins[n].acc;
+
+    if ( acc > 0 )
+    { char buf[100];
+
+      sprintf(buf, "%s%c", strName(prefix), acc);
+      send(bins[n].object, NAME_accelerator, CtoKeyword(buf), 0);
+    } else
+      send(bins[n].object, NAME_accelerator, NIL, 0);
+  }
+
+  succeed;
+}
+
+
+
+		 /*******************************
 		 *	 CLASS DECLARATION	*
 		 *******************************/
 

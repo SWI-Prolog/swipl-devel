@@ -55,7 +55,7 @@ getLookupColourMap(Class class, Name name)
 
 static Vector
 getColoursColourMap(ColourMap cm)
-{ if ( isNil(cm->colours) || cm->name == NAME_system )
+{ if ( isNil(cm->colours) )
     ws_colour_map_colours(cm);
 
   if ( notNil(cm->colours) )

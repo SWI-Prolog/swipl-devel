@@ -140,8 +140,10 @@ ws_create_cursor(CursorObj c, DisplayObj d)
 
     xref = XCreateFontCursor(r->display_xref, valInt(c->font_id));
   } else
-  { Pixmap source = (Pixmap) getXrefObject(c->image, d);
-    Pixmap mask   = (Pixmap) getXrefObject(c->mask, d);
+  { Image is = getMonochromeImage(c->image);
+    Image im = getMonochromeImage(c->mask);
+    Pixmap source = (Pixmap) getXrefObject(is, d);
+    Pixmap mask   = (Pixmap) getXrefObject(im, d);
     XColor *fg, *bg;
 
     fg = (XColor *) getXrefObject(isDefault(c->foreground) ? d->foreground
@@ -154,6 +156,11 @@ ws_create_cursor(CursorObj c, DisplayObj d)
     xref = XCreatePixmapCursor(r->display_xref, source, mask, fg, bg,
 			       valInt(c->hot_spot->x),
 			       valInt(c->hot_spot->y));
+
+    if ( is != c->image )
+      freeObject(is);
+    if ( im != c->mask )
+      freeObject(im);
   }
 
   if ( !xref )

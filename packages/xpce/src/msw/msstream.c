@@ -16,12 +16,18 @@
 #include "pcewh.h"			/* TBD */
 #include <process.h>
 
+#define USE_API_THREAD 1
+
 #define WM_SOCKET	 (WM_WINEXIT+1)
 #define WM_PROCESS_INPUT (WM_WINEXIT+2)
 #define WM_PROCESS_EXIT  (WM_WINEXIT+3)
 
 static int 	ws_read_process(Process p, char *buf, int size, Int timeout);
+#ifdef USE_API_THREAD
+static DWORD	process_thread(void *context);
+#else
 static void	process_thread(void *context);
+#endif
 static void	eof_process(Process p, int status);
 extern Name	SockError(void);		/* TBD */
 
@@ -246,7 +252,7 @@ ws_listen_socket(Socket s)
 
 void
 ws_input_stream(Stream s)
-{ HWND hwnd = PceHiddenWindow();	/* make sure to create in main thread */
+{ HWND hwnd = PceHiddenWindow();    /* make sure to create in main thread */
 
   if ( instanceOfObject(s, ClassSocket) )
   { SOCKET sock = (SOCKET) s->ws_ref;
@@ -257,9 +263,22 @@ ws_input_stream(Stream s)
       s->rdfd = 0;			/* signal open status */
     }
   } else
+#ifdef USE_API_THREAD
+  { DWORD id;
+    HANDLE h;
+
+    if ( (h = CreateThread(NULL, 10240,
+			   (LPTHREAD_START_ROUTINE)process_thread,
+			   (LPVOID) s, 0, &id)) )
+      CloseHandle(h);
+    else
+      Cprintf("%s: Failed to create wait-thread\n", pp(s));
+  }
+#else
   { if ( _beginthread(process_thread, 10240, (HANDLE) s) < 0 )
       Cprintf("%s: Failed to create wait-thread\n", pp(s));
   }
+#endif
 }
 
 status
@@ -307,9 +326,13 @@ ws_read_stream_data(Stream s, void *data, int len)
 		 *	PROCESS ASYNC INPUT	*
 		 *******************************/
 
+#ifdef USE_API_THREAD
+static DWORD
+#else
 static void
+#endif
 process_thread(void *context)
-{ Process p = context;
+{ Process p = (Process) context;
   DWORD avail;
   HWND hwnd = PceHiddenWindow();
   int peekok;
@@ -355,6 +378,10 @@ process_thread(void *context)
   PostMessage(hwnd, WM_PROCESS_EXIT, (WPARAM)p, (LPARAM)status);
 
   DEBUG(NAME_thread, Cprintf("%s: Finished process input thread\n", pp(p)));
+
+#ifdef USE_API_THREAD
+  return 0;
+#endif
 }
 
 

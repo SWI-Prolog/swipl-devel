@@ -563,7 +563,7 @@ bannerPce(Pce pce)
 	 pce->window_system_version,
 	 pce->window_system_revision);
 
-  writef("Copyright 1993-1996, University of Amsterdam.  All rights reserved.\n");
+  writef("Copyright 1993-1997, University of Amsterdam.  All rights reserved.\n");
 
   if ( host != NAME_unknown )
     writef("The host-language is %s\n", host);
@@ -625,7 +625,7 @@ infoPce(Pce pce)
   writef("	Jan Wielemaker\n");
   writef("\n");
 
-  writef("Copyright (c) 1993-1996 University of Amsterdam.  All rights reserved.");
+  writef("Copyright (c) 1993-1997 University of Amsterdam.  All rights reserved.");
   writef("\n\n");
 
   succeed;

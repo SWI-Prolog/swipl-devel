@@ -26,8 +26,7 @@ initialiseBitmap(BitmapObj b, Image image, Bool transparent)
   assign(b, image, image);
   if ( image->access == NAME_both && isNil(image->bitmap) )
     assign(image, bitmap, b);
-  if ( transparent == ON )
-    transparentBitmap(b, ON);
+  updateSolidBitmap(b);
 
   succeed;
 }
@@ -91,7 +90,11 @@ getCopyBitmap(BitmapObj bm)
 static status
 imageBitmap(BitmapObj bm, Image image)
 { if ( bm->image != image )
-  { CHANGING_GRAPHICAL(bm,
+  { if ( (notNil(bm->image) && notNil(bm->image->mask)) ||
+	 notNil(image->mask) )
+      clearFlag(bm, F_SOLID);
+
+    CHANGING_GRAPHICAL(bm,
       addRefObj(bm);			/* avoid drop-out */
       assign(bm, image, image);
       sizeArea(bm->area, image->size);
@@ -99,7 +102,20 @@ imageBitmap(BitmapObj bm, Image image)
 	assign(image, bitmap, bm);
       delRefObj(bm);
       changedEntireImageGraphical(bm));
+
+    updateSolidBitmap(bm);
   }
+
+  succeed;
+}
+
+
+status
+updateSolidBitmap(BitmapObj bm)
+{ if ( notNil(bm->image->mask) || bm->transparent == ON )
+    clearFlag(bm, F_SOLID);
+  else
+    setFlag(bm, F_SOLID);
 
   succeed;
 }
@@ -186,6 +202,8 @@ loadFdBitmap(BitmapObj bm, FILE *fd, ClassDef def)
     if ( isNil(bm->transparent) )
       assign(bm, transparent, OFF);
   }
+
+  updateSolidBitmap(bm);
 
   succeed;
 }

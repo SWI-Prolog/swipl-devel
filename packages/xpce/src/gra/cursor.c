@@ -47,8 +47,16 @@ initialiseCursor(CursorObj c, Name name,
 
     assign(c, font_id, DEFAULT);
   } else
-  { if ( isDefault(mask) ) mask = image;
-    if ( isDefault(hot) )  hot  = newObject(ClassPoint, 0);
+  { if ( isDefault(mask) )
+    { if ( notNil(image->mask) )
+	mask = image->mask;
+      else
+	mask = image;
+    }
+    if ( isDefault(hot) )
+      hot  = newObject(ClassPoint, 0);
+    if ( notNil(image->hot_spot) )
+      copyPoint(hot, image->hot_spot);
 
     assign(c, image,      image);
     assign(c, mask,       mask);

@@ -55,11 +55,22 @@ cancel(T) :->
 
 obtain_focus(T) :->
 	"Called when focus is obtained: show the caret"::
+	get(T, pen, OldPen),
+	get(T, border, OldBorder),
+	send(T, attribute, edit_saved_parms, chain(OldPen, OldBorder)),
+	send(T, pen, 1),
+	send(T, border, 2),
 	send(T, show_caret, @on).
 
 
 loose_focus(T) :->
 	"Called when focus is lost: remove the caret"::
+	(   get(T, attribute, edit_saved_parms, chain(OldPen, OldBorder))
+	->  send(T, pen, OldPen),
+	    send(T, border, OldBorder),
+	    send(T, delete_attribute, edit_saved_parms)
+	;   true
+	),
 	send(T, show_caret, @off).
 
 

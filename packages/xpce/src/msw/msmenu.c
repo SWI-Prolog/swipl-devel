@@ -190,9 +190,9 @@ ws_3d_grey()
 
 
 status
-ws_draw_button_face(Button b, int x, int y, int w, int h,
+ws_draw_button_face(DialogItem di, int x, int y, int w, int h,
 		    int up, int defb, int focus)
-{ if ( b->look != NAME_win )
+{ if ( di->look != NAME_win )
     fail;
 
   init_button_colours();

@@ -162,7 +162,8 @@ displayedGraphical(Any obj, Bool val)
 { Graphical gr = obj;
 
   if ( gr->displayed != val )
-  { assign(gr, displayed, val);
+  { if ( val == ON )
+      assign(gr, displayed, val);
 
     if ( notNil(gr->device) )
     { if ( notNil(gr->request_compute) )
@@ -173,6 +174,9 @@ displayedGraphical(Any obj, Bool val)
       }
       displayedGraphicalDevice(gr->device, gr, val);
     }
+    
+    if ( val == OFF )
+      assign(gr, displayed, val);
   }
 
   succeed;
@@ -492,6 +496,12 @@ changedImageGraphical(Any obj, Int x, Int y, Int w, Int h)
 	} else if ( instanceOfObject(gr, ClassDialogItem) )
 	{ cx -= 6; cy -= 6; cw += 12; ch += 12;
 	}				/* Motif hack */
+
+	DEBUG(NAME_changesData,
+	      Cprintf("Change of %s --> %d %d %d %d%s\n",
+		      pp(obj),
+		      cx, cy, cw, ch,
+		      offFlag(gr, F_SOLID) ? " clear" : " no clear"));
 
 	changed_window(sw, cx, cy, cw, ch, offFlag(gr, F_SOLID));
 

@@ -19,6 +19,7 @@ status		changedDialogItem(Any obj);
 Point		getReferenceDialogItem(Any obj);
 Bool		getModifiedDialogItem(Dialog di);
 status		modifiedDialogItem(Any di, Bool modified);
+status		assignAccelerators(Chain objects, Name prefix, Name label_method);
 status		makeClassDialogItem(Class class);
 
 /* men/label.c */

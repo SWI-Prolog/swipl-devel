@@ -11,6 +11,11 @@
 #include <h/graphics.h>
 #include <h/unix.h>
 
+#include <math.h>
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 static status drawInImage(Image image, Graphical gr, Point pos);
 
 		/********************************
@@ -570,7 +575,12 @@ getPixelImage(Image image, Int x, Int y)
 
 static status
 maskImage(Image image, Image mask)
-{ return assignGraphical(image, NAME_mask, mask);
+{ assign(image, mask, mask);
+
+  if ( notNil(image->bitmap) )
+    updateSolidBitmap(image->bitmap);
+
+  return changedEntireImageImage(image);
 }
 
 
@@ -625,23 +635,34 @@ xorImage(Image image, Image i2, Point pos)
 
 static Image
 getClipImage(Image image, Area area)
-{ Int x, y, w, h;
+{ int x, y, w, h;
   Image i2;
 
   if ( isDefault(area) )
-  { x = y = ZERO;
-    w = image->size->w;
-    h = image->size->h;
+  { x = y = 0;
+    w = valInt(image->size->w);
+    h = valInt(image->size->h);
   } else
-  { x = area->x; y = area->y;
-    w = area->w; h = area->h;
+  { x = valInt(area->x); y = valInt(area->y);
+    w = valInt(area->w); h = valInt(area->h);
   }
 
-  i2 = answerObject(ClassImage, NIL, w, h, image->kind, 0);
+  i2 = answerObject(ClassImage, NIL, toInt(w), toInt(h), image->kind, 0);
+
+  if ( notNil(image->hot_spot) )
+  { int hx = valInt(image->hot_spot->x) - x;
+    int hy = valInt(image->hot_spot->y) - y;
+
+    if ( hx >= 0 && hx <= w && hy >= 0 && hy <= h )
+      assign(i2, hot_spot, newObject(ClassPoint, toInt(hx), toInt(hy), 0));
+  }
+  if ( notNil(image->mask) )
+    assign(i2, mask, getClipImage(image->mask, area));
+
   CHANGING_IMAGE(i2,
-    d_image(i2, 0, 0, valInt(w), valInt(h));
+    d_image(i2, 0, 0, w, h);
     d_modify();
-    r_image(image, valInt(x), valInt(y), 0, 0, valInt(w), valInt(h), OFF);
+    r_image(image, x, y, 0, 0, w, h, OFF);
     d_done();
     changedEntireImageImage(i2););
 
@@ -649,20 +670,49 @@ getClipImage(Image image, Area area)
 }
 
 
+Image
+getMonochromeImage(Image image)
+{ if ( image->kind == NAME_bitmap )
+    answer(image);
+
+  answer(ws_monochrome_image(image));
+}
+
+
 static Image
 getScaleImage(Image image, Size size)
-{ if ( equalSize(size, image->size) )	/* just make a copy */
+{ Image i2;
+
+  if ( equalSize(size, image->size) )	/* just make a copy */
     return getClipImage(image, DEFAULT);
   if ( size->w == ZERO || size->h == ZERO )
     return answerObject(ClassImage, NIL, size->w, size->h, image->kind, 0);
   
-  return ws_scale_image(image, valInt(size->w), valInt(size->h));
+  i2 = ws_scale_image(image, valInt(size->w), valInt(size->h));
+
+  if ( notNil(image->mask) )
+  { Image m = getScaleImage(image->mask, size);
+
+    if ( m )
+      assign(i2, mask, m);
+  }
+
+  if ( notNil(image->hot_spot) )
+  { int hx = (valInt(image->hot_spot->x) * valInt(size->w)) /
+						    valInt(image->size->w);
+    int hy = (valInt(image->hot_spot->y) * valInt(size->h)) /
+						    valInt(image->size->h);
+    assign(i2, hot_spot, newObject(ClassPoint, toInt(hx), toInt(hy), 0));
+  }
+
+  answer(i2);
 }
 
 
 static Image
 getRotateImage(Image image, Int degrees)
 { int a = valInt(degrees);
+  Image rimg;
 
   a %= 360;
   if ( a < 0 )				/* normalise 0<=a<360 */
@@ -670,7 +720,38 @@ getRotateImage(Image image, Int degrees)
   else if ( a == 0 )				/* just copy */
     answer(getClipImage(image, DEFAULT));
 
-  return ws_rotate_image(image, a);
+  rimg = ws_rotate_image(image, a);
+
+  if ( rimg )
+  { if ( notNil(image->hot_spot) )
+    { int hx = valInt(image->hot_spot->x);
+      int hy = valInt(image->hot_spot->y);
+      int nhx, nhy;
+      double rads = ((double)a * M_PI) / 180.0;
+  
+      nhx = rfloat((double)hx * cos(rads) + (double)hy * sin(rads));
+      nhy = rfloat((double)hy * cos(rads) - (double)hx * sin(rads));
+      
+      if ( a <= 90 )
+      { nhy += rfloat(sin(rads) * (double)valInt(image->size->w));
+      } else if ( a <= 180 )
+      { nhx -= rfloat(cos(rads) * (double)valInt(image->size->w));
+	nhy += valInt(rimg->size->h);
+      } else if ( a <= 270 )
+      { nhx += valInt(rimg->size->w);
+	nhy -= rfloat(cos(rads) * (double)valInt(image->size->h));
+      } else
+      { nhx -= rfloat(sin(rads) * (double)valInt(image->size->h));
+      }
+  
+      assign(rimg, hot_spot, newObject(ClassPoint, toInt(nhx), toInt(nhy), 0));
+    }
+
+    if ( notNil(image->mask) )
+      assign(rimg, mask, getRotateImage(image->mask, degrees));
+  }
+  
+  answer(rimg);
 }
 
 
@@ -901,6 +982,8 @@ static getdecl get_image[] =
      DEFAULT, "Convert bitmap or (file-)name"),
   GM(NAME_clip, 1, "image", "[area]", getClipImage,
      NAME_copy, "Get a subimage"),
+  GM(NAME_monochrome, 0, "image", NULL, getMonochromeImage,
+     NAME_copy, "Get monochrome version of pixmap image"),
   GM(NAME_scale, 1, "image", "size", getScaleImage,
      NAME_copy, "Get copy with different dimensions"),
   GM(NAME_rotate, 1, "image", "degrees=int", getRotateImage,

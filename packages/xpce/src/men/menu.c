@@ -587,7 +587,8 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h, Elevation iz)
     } else if ( mi->selected == ON )
       up = FALSE;
 
-    r_3d_box(x, y, w, h, 0, z, up);
+    if ( !ws_draw_button_face((DialogItem)m, x, y, w, h, up, FALSE, FALSE) )
+      r_3d_box(x, y, w, h, 0, z, up);
 
     if ( mi->end_group == ON )
     { Elevation mz = getResourceValueObject(m, NAME_elevation);
@@ -1929,6 +1930,16 @@ applyMenu(Menu m, Bool always)
 }
 
 		 /*******************************
+		 *	   ACCELERATORS		*
+		 *******************************/
+
+static status
+assignAcceletatorsMenu(Menu m)
+{ return assignAccelerators(m->members, NAME_, NAME_label);
+}
+
+
+		 /*******************************
 		 *	 CLASS DECLARATION	*
 		 *******************************/
 
@@ -2013,6 +2024,8 @@ static senddecl send_menu[] =
      DEFAULT, "Create from label, kind and message"),
   SM(NAME_unlink, 0, NULL, unlinkMenu,
      DEFAULT, "Unlink from menu-items"),
+  SM(NAME_assignAccelerators, 0, NULL, assignAcceletatorsMenu,
+     NAME_accelerator, "Assign accelerators for the items"),
   SM(NAME_activeAllItems, 1, "active=bool", activeAllItemsMenu,
      NAME_active, "(De)activate all items in the menu"),
   SM(NAME_activeItem, 2, T_activeItem, activeItemMenu,

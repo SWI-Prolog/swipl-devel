@@ -32,7 +32,9 @@ typedef struct
   HBRUSH	ohbrush;		/* Original brush */
   int		stockpen;		/* Pen comes from GetStockObject() */
   HFONT		ohfont;			/* Original font */
+  HPALETTE	hpal;			/* selected palette */
   HPALETTE	ohpal;			/* Original palette */
+  HPALETTE	ochpal;			/* Original cache bitmap palette */
 
   HBITMAP	cache;			/* background drawing */
   HDC		cached_hdc;		/* hdc of original device */
@@ -102,6 +104,7 @@ static void	r_default_background(Any bg);
 static void	push_context(void);
 static void	empty_brush_cache(void);
 static void	make_default_context(void);
+static HBRUSH	r_fillbrush(Any fill);
 
 #include <gra/graphstate.c>
 
@@ -115,7 +118,9 @@ reset_context()
   context.ohbrush	     = 0;
   context.ohpen		     = 0;
   context.ohfont	     = 0;
-  context.ohpal		     = 0;
+  context.hpal		     = NULL;
+  context.ohpal		     = NULL;
+  context.ochpal	     = NULL;
   context.hpen 		     = 0;
   context.stockpen	     = FALSE;
   context.colour             = BLACK_COLOUR;
@@ -291,30 +296,17 @@ d_flush(void)
 
 status
 d_mswindow(PceWindow sw, IArea a, int clear)
-{ FrameObj fr = getFrameWindow(sw, DEFAULT);
-  HPALETTE hpal = NULL;
+{ HPALETTE hpal = window_palette(sw);
 
   push_context();
-
-  if ( fr &&
-       notNil(fr->colour_map) &&
-       (hpal = getPaletteColourMap(fr->colour_map)) )
-  { 
-  }
 
   context.window	 = sw;
   context.hwnd           = getHwndWindow(sw);
   context.hdc            = BeginPaint(context.hwnd, &context.ps);
   context.device         = sw;
   context.default_colour = sw->colour;
+  context.hpal		 = hpal;
   context.open++;
-
-  if ( hpal )
-  { DEBUG(NAME_colourMap,
-	  Cprintf("%s: Selected %s\n", pp(sw), pp(fr->colour_map)));
-    context.ohpal = SelectPalette(context.hdc, hpal, FALSE);
-    RealizePalette(context.hdc);
-  }
 
   if ( !IsRectEmpty(&context.ps.rcPaint) )
   { RECT *r = &context.ps.rcPaint;
@@ -324,12 +316,22 @@ d_mswindow(PceWindow sw, IArea a, int clear)
     a->w = r->right  - r->left;
     a->h = r->bottom - r->top;
 
-
+    if ( hpal )
+    { int mapped;
+      context.ohpal = SelectPalette(context.hdc, hpal, FALSE);
+      if ( !context.ohpal )
+	Cprintf("Failed to select palette: %s\n",
+		strName(WinStrError(GetLastError())));
+      mapped = RealizePalette(context.hdc);
+      DEBUG(NAME_colourMap,
+	    Cprintf("%s: added %d colours\n", pp(sw), mapped));
+      if ( mapped == GDI_ERROR )
+	Cprintf("RealizePalette(): %s\n", strName(WinStrError(GetLastError())));
+    }
+  
     if ( cache && clear )
-    { RECT rect;
-      HBRUSH hbrush;
-
-      context.cached_hdc     = context.hdc;
+    { context.cached_hdc     = context.hdc;
+      context.ochpal	     = context.ohpal;
       context.cache_x        = a->x;
       context.cache_y        = a->y;
       context.cache_w        = a->w + 1;
@@ -339,24 +341,22 @@ d_mswindow(PceWindow sw, IArea a, int clear)
 						       context.cache_h);
       context.hdc            = CreateCompatibleDC(context.hdc);
       context.cache_ohbitmap = ZSelectObject(context.hdc, context.cache);
-      context.background_rgb = cref_colour(sw->background);
+      if ( context.hpal )
+	context.ohpal = SelectPalette(context.hdc, hpal, FALSE);
 
-      rect.left   = 0;
-      rect.top    = 0;
-      rect.right  = context.cache_w;
-      rect.bottom = context.cache_h;
-      hbrush = ZCreateSolidBrush(context.background_rgb);
-      FillRect(context.hdc, &rect, hbrush);
-      ZDeleteObject(hbrush);
-
+      r_default_background(sw->background);
       SetViewportOrg(context.hdc, -context.cache_x, -context.cache_y);
 
-      DEBUG(NAME_cache, Cprintf("Created cache for %d %d %d %d\n",
+      r_clear(context.cache_x, context.cache_y,
+	      context.cache_w, context.cache_h);
+
+      DEBUG(NAME_cache, Cprintf("%s: created cache for %d %d %d %d\n",
+				pp(sw),
 				context.cache_x, context.cache_y,
 				context.cache_w, context.cache_h));
-    }
+    } else
+      r_default_background(sw->background);
 
-    r_default_background(sw->background);
     SetBkMode(context.hdc, TRANSPARENT);
 
     succeed;
@@ -630,6 +630,10 @@ d_done(void)
 	       context.hdc, 0, 0, SRCCOPY);
 	ZSelectObject(context.hdc, context.cache_ohbitmap);
 	ZDeleteObject(context.cache);
+	if ( context.ochpal )
+	{ SelectPalette(context.cached_hdc, context.ochpal, FALSE);
+	  context.ochpal = NULL;
+	}
 	DeleteDC(context.hdc);
       }
       EndPaint(context.hwnd, &context.ps);
@@ -712,7 +716,7 @@ intersection_iarea(IArea a, IArea b)
 
 void
 r_clear(int x, int y, int w, int h)
-{ HBRUSH hbrush = ZCreateSolidBrush(context.background_rgb);
+{ HBRUSH hbrush = r_fillbrush(context.background);
   RECT rect;
 
   rect.left   = x;
@@ -721,7 +725,6 @@ r_clear(int x, int y, int w, int h)
   rect.bottom = y + h;
 
   FillRect(context.hdc, &rect, hbrush);
-  ZDeleteObject(hbrush);
 }
 
 
@@ -1132,9 +1135,6 @@ r_box(int x, int y, int w, int h, int r, Any fill)
     { int da = context.thickness / 2;
       int db = max(0, (context.thickness - 1) / 2);
   
-      DEBUG(NAME_redraw, Cprintf("r_box(%d, %d, %d, %d, %d, %s)\n",
-				 x, y, w, h, r, pp(fill)));
-
       DEBUG(NAME_pen, Cprintf("context.thickness = %d\n", context.thickness));
       x += da;    y += da;
       w -= da+db; h -= da+db;
@@ -1173,17 +1173,27 @@ r_shadow_box(int x, int y, int w, int h, int r, int shadow, Image fill)
 }
 
 
-#define MAX_SHADOW 10
-
 COLORREF
 cref_colour(Colour c)
-{ COLORREF r = (COLORREF) getXrefObject(c, context.display);
-  int exact;
+{ COLORREF r;
 
-  exact = (r & EXACT_COLOUR_MASK);
-  r &= ~EXACT_COLOUR_MASK;
+  if ( !(r = (COLORREF) getExistingXrefObject(c, context.display)) )
+  { r = (COLORREF) getXrefObject(c, context.display);
+    if ( context.hpal )
+      RealizePalette(context.hdc);
+  }
 
-  return exact ? r : GetNearestColor(context.hdc, r);
+  if ( r & EXACT_COLOUR_MASK )
+    return r &= ~EXACT_COLOUR_MASK;
+  else
+  { if ( context.hpal )
+    { int n = GetNearestPaletteIndex(context.hpal, r);
+
+      return PALETTEINDEX(n);
+    }
+
+    return GetNearestColor(context.hdc, r);
+  }
 }
 
 
@@ -1349,6 +1359,7 @@ draw_arcs(larc *a, int n, HPEN pen)
   ZSelectObject(context.hdc, old);
 }
 
+#define MAX_SHADOW 10
 
 void
 r_3d_box(int x, int y, int w, int h, int radius, Elevation e, int up)
@@ -1784,7 +1795,9 @@ r_msarc(int x, int y, int w, int h,	/* bounding box */
 	int ex, int ey,			/* end point */
 	Name close,			/* none,pie_slice,chord */
 	Any fill)			/* @nil or fill pattern */
-{ if ( close == NAME_none )
+{ r_update_pen();
+
+  if ( close == NAME_none )
   { Arc(context.hdc, x, y, x+w, y+h, sx, sy, ex, ey);
   } else if ( close == NAME_pieSlice )
   { r_fillpattern(fill, NAME_background);
@@ -1931,7 +1944,11 @@ r_image(Image image,
     { HBITMAP bm = (HBITMAP) getXrefObject(image, context.display);
       HDC mhdc = CreateCompatibleDC(context.hdc);
       HBITMAP obm = ZSelectObject(mhdc, bm);
+      HPALETTE ohpal = NULL;
   
+      if ( context.hpal )
+	ohpal = SelectPalette(mhdc, context.hpal, FALSE);
+
       DEBUG(NAME_redraw,
 	    Cprintf("r_image(%s, %d, %d, %d, %d, %d, %d) (bm=0x%x)\n",
 		    pp(image), sx, sy, x, y, w, h, (long)bm));
@@ -1951,6 +1968,17 @@ r_image(Image image,
 	ZSelectObject(context.hdc, oldbrush);
 	ZDeleteObject(hbrush);
       } else if ( notNil(image->mask) )
+#if 1
+      { HBITMAP msk = (HBITMAP) getXrefObject(image->mask, context.display);
+	HDC chdc = CreateCompatibleDC(context.hdc);
+	HBITMAP obm = ZSelectObject(chdc, msk);
+
+	BitBlt(context.hdc, x, y, w, h, chdc, sx, sy, SRCAND);
+	BitBlt(context.hdc, x, y, w, h, mhdc, sx, sy, SRCPAINT);
+
+	ZSelectObject(chdc, obm);
+	DeleteDC(chdc);
+#else
       { HBITMAP msk = (HBITMAP) getXrefObject(image->mask, context.display);
 
 	MaskBlt(context.hdc,
@@ -1960,10 +1988,13 @@ r_image(Image image,
 		msk,
 		sx, sy,
 		MAKEROP4(SRCPAINT, SRCCOPY));
+#endif
       } else
       { BitBlt(context.hdc, x, y, w, h, mhdc, sx, sy, SRCCOPY);
       }
 	
+      if ( ohpal )
+	SelectPalette(mhdc, ohpal, FALSE);
       ZSelectObject(mhdc, obm);
       DeleteDC(mhdc);
     }

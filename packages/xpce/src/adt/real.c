@@ -133,6 +133,8 @@ static status
 loadReal(Real r, FILE *fd, ClassDef def)
 { TRY(loadSlotsObject(r, fd, def));
 
+  setFlag(r, F_ISREAL);
+
   if ( restoreVersion < 16 )		/* saved as single */
   { union { long l; float f; } u;
 
@@ -148,6 +150,18 @@ loadReal(Real r, FILE *fd, ClassDef def)
     r->value2 = loadWord(fd);
 #endif
   }
+  succeed;
+}
+
+
+static status
+cloneReal(Real r1, Real r2)
+{ clonePceSlots(r1, r2);
+  setFlag(r2, F_ISREAL);
+
+  r2->value1 = r1->value1;
+  r2->value2 = r1->value2;
+
   succeed;
 }
 
@@ -350,6 +364,7 @@ status
 makeClassReal(Class class)
 { declareClass(class, &real_decls);
 
+  setCloneFunctionClass(class, cloneReal);
   setLoadStoreFunctionClass(class, loadReal, storeReal);
 
   succeed;

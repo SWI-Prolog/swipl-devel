@@ -417,7 +417,11 @@ readXpmFile(Image image, FILE *fd)
 
     if ( fstat(fileno(fd), &buf) == 0 )
     { int size = buf.st_size;
+      int as = XpmAttributesSize();
+      XpmAttributes *atts = (XpmAttributes *)alloca(as);
 
+      memset(atts, 0, as);
+    
       if ( size < 10000 )
       { buffer = (char *)alloca(size+1);
       } else
@@ -430,8 +434,15 @@ readXpmFile(Image image, FILE *fd)
 
       buffer[size] = '\0';
       if ( XpmCreateImageFromBuffer(disp, buffer,
-				    &i, &shape, NULL) != XpmSuccess )
+				    &i, &shape, atts) != XpmSuccess )
 	i = NULL;
+
+      if ( atts->valuemask & XpmHotspot )
+	assign(image, hot_spot, newObject(ClassPoint,
+					  toInt(atts->x_hotspot),
+					  toInt(atts->y_hotspot), 0));
+      else
+	assign(image, hot_spot, NIL);
 
       if ( shape )
       {	assign(image, mask, newObject(ClassImage, NIL,

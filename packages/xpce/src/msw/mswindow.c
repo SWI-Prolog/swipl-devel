@@ -33,7 +33,7 @@ WinWindowClass()
     sprintf(buf, "PceWindow%d", PceHInstance);
     winclassname = CtoName(buf);
 
-    wndClass.style		= CS_HREDRAW|CS_VREDRAW;
+    wndClass.style		= 0/*CS_HREDRAW|CS_VREDRAW*/;
     wndClass.lpfnWndProc	= (LPVOID) window_wnd_proc;
     wndClass.cbClsExtra		= 0;
     wndClass.cbWndExtra		= sizeof(long);
@@ -48,6 +48,17 @@ WinWindowClass()
   }
 
   return strName(winclassname);
+}
+
+
+HPALETTE
+window_palette(PceWindow sw)
+{ FrameObj fr = getFrameWindow(sw, DEFAULT); 
+
+  if ( fr )
+    return frame_palette(fr);
+
+  return NULL;
 }
 
 
@@ -184,14 +195,27 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
     { HDC hdc = (HDC) wParam;
       RECT rect;
       HBRUSH hbrush;
+      HPALETTE hpal = window_palette(sw), ohpal = NULL;
       COLORREF rgb = (COLORREF) getXrefObject(sw->background,
 					      getDisplayWindow(sw));
 
-      rgb = GetNearestColor(hdc, rgb);
+      if ( hpal )
+      { int n;
+
+	ohpal = SelectPalette(hdc, hpal, FALSE);
+	RealizePalette(hdc);
+	n = GetNearestPaletteIndex(hpal, rgb);
+	rgb = PALETTEINDEX(n);
+      } else
+	rgb = GetNearestColor(hdc, rgb);
+
       hbrush = ZCreateSolidBrush(rgb);
       GetClipBox(hdc, &rect);
       FillRect(hdc, &rect, hbrush);
       ZDeleteObject(hbrush);
+
+      if ( ohpal )
+	SelectPalette(hdc, ohpal, FALSE);
 
       DEBUG(NAME_redraw, Cprintf("Cleared background %d %d %d %d of %s\n",
 				 rect.left, rect.top,

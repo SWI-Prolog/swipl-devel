@@ -80,8 +80,8 @@ user:term_expansion((:- require(_)), []).
      pce_boot(pce_expansion),
      pce_boot(pce_realise),
      pce_boot(pce_autoload),
-     pce_boot(pce_editor),
-     pce_boot(pce_accelerator)
+     pce_boot(pce_editor)
+%    pce_boot(pce_accelerator)
    ].
 
 

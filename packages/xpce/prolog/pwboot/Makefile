@@ -8,12 +8,12 @@
 
 MAKE=make
 SHELL=/bin/bash
-BIN=sun4-5
+BIN=sun4-4
 SO=so
-builddir=solaris
+builddir=sun4
 PCEMAJOR=4
 PCEMINOR=9
-PCEPATCH=0
+PCEPATCH=1
 
 PWVERSION=3.1
 QPC=qpc

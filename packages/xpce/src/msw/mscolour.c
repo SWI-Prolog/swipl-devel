@@ -12,6 +12,7 @@
 
 static HashTable ColourNames;		/* name --> rgb (packed in Int) */
 
+static status	ws_alloc_colour(ColourMap cm, Colour c);
 
 static HashTable
 LoadColourNames()
@@ -94,9 +95,38 @@ xpmGetRGBfromName(char *inname, int *r, int *g, int *b)
 }
 #endif
 
+
+static Name
+canonical_colour_name(Name in)
+{ char *s = strName(in);
+  char buf[100];
+  int left = sizeof(buf);
+  char *q = buf;
+  int changed = 0;
+  
+  for( ; *s && --left > 0; s++, q++ )
+  { if ( *s == ' ' )
+    { *q = '_';
+      changed++;
+    } else
+      *q = tolower(*s);
+  }
+  
+  if ( left && changed )
+  { *q = EOS;
+    return CtoKeyword(buf);
+  }
+
+  return in;
+}
+
+
 status
 ws_colour_name(DisplayObj d, Name name)
-{ if ( getMemberHashTable(LoadColourNames(), name) )
+{ HashTable ht = LoadColourNames();
+
+  if ( getMemberHashTable(ht, name) ||
+       getMemberHashTable(ht, canonical_colour_name(name)) )
     succeed;
 
   fail;
@@ -105,42 +135,43 @@ ws_colour_name(DisplayObj d, Name name)
 
 status
 ws_create_colour(Colour c, DisplayObj d)
-{ Int rgb;
+{ Int Rgb;
 
   if ( c->kind == NAME_named )
-  { if ( (rgb = getMemberHashTable(LoadColourNames(), c->name)) )
-    { COLORREF RGB = (COLORREF) valInt(rgb);
-      int r = GetRValue(RGB);
-      int g = GetGValue(RGB);
-      int b = GetBValue(RGB);
+  { HashTable ht = LoadColourNames();
 
-      r = 256*r + r;
-      g = 256*g + g;
-      b = 256*b + b;
+    if ( (Rgb = getMemberHashTable(ht, c->name)) ||
+	 (Rgb = getMemberHashTable(ht, canonical_colour_name(c->name))) )
+    { COLORREF rgb = (COLORREF) valInt(Rgb);
+      int r = GetRValue(rgb) * 257;
+      int g = GetGValue(rgb) * 257;
+      int b = GetBValue(rgb) * 257;
 
       assign(c, red,   toInt(r));
       assign(c, green, toInt(g));
       assign(c, blue,  toInt(b));
 
-#if 0
-      if ( r == g && r == b )		/* grey */
-	RGB |= EXACT_COLOUR_MASK;	/* Avoid GetNearestColor() */
-#endif
-
-      return registerXrefObject(c, d, (void *)RGB);
-    }
+      registerXrefObject(c, d, (void *)rgb);
+    } else
+      fail;
   } else
-    return registerXrefObject(c, d, (void *)RGB(valInt(c->red)/256,
-						valInt(c->green)/256,
-						valInt(c->blue)/256));
+  { COLORREF rgb = RGB(valInt(c->red)/256,
+		       valInt(c->green)/256,
+		       valInt(c->blue)/256);
 
-  fail;
+    registerXrefObject(c, d, (void *)rgb);
+  }
+
+  if ( notNil(d->colour_map) && notDefault(d->colour_map) )
+    ws_alloc_colour(d->colour_map, c);
+
+  succeed;
 }
 
 
 void
 ws_uncreate_colour(Colour c, DisplayObj d)
-{ unregisterXrefObject(c, d);
+{ 
 }
 
 
@@ -277,21 +308,27 @@ ws_open_colourmap(ColourMap cm)
     PALETTEENTRY *pe = &lp->palPalEntry[0];
     HPALETTE hpal;
     int n, nc = 0;
+    DisplayObj d = CurrentDisplay(NIL);
 
     for(n=0; n<size; n++)
     { Colour c = cm->colours->elements[n];
 
+      if ( isName(c) && (c = checkType(c, TypeColour, NIL)) )
+	elementVector(cm->colours, toInt(n+1), c);
+
       if ( instanceOfObject(c, ClassColour) )
       { if ( c->kind == NAME_named )
-	  ws_create_colour(c, CurrentDisplay(NIL));
+	  ws_create_colour(c, d);
 
-	pe->peRed   = valInt(c->red) >> 8;
+	pe->peRed   = valInt(c->red)   >> 8;
 	pe->peGreen = valInt(c->green) >> 8;
-	pe->peBlue  = valInt(c->blue) >> 8;
+	pe->peBlue  = valInt(c->blue)  >> 8;
+	pe->peFlags = 0;
 
 	pe++;
 	nc++;
-      }
+      } else
+	Cprintf("%s is not a colour\n", pp(c));
     }
     
     lp->palVersion    = 0x300;
@@ -315,7 +352,8 @@ setPaletteColourMap(ColourMap cm, HPALETTE hpal)
 
 HPALETTE
 getPaletteColourMap(ColourMap cm)
-{ ws_open_colourmap(cm);
+{ if ( !cm->ws_ref )
+    ws_open_colourmap(cm);
 
   return cm->ws_ref;
 }
@@ -362,7 +400,13 @@ ws_colour_map_colours(ColourMap cm)
 
       ReleaseDC(NULL, hdc);
     } else				/* normal palette */
-    { HPALETTE hpal = getPaletteColourMap(cm);
+    { HPALETTE hpal;
+
+      if ( cm->name == NAME_static ||
+	   cm->name == NAME_pce )
+	hpal = GetStockObject(DEFAULT_PALETTE);
+      else
+	hpal = getPaletteColourMap(cm);
 
       if ( !hpal )
 	return;
@@ -395,4 +439,48 @@ ws_create_colour_map(ColourMap cm, DisplayObj d)
 status
 ws_uncreate_colour_map(ColourMap cm, DisplayObj d)
 { fail;
+}
+
+
+		 /*******************************
+		 *EXPERIMENTAL COLOUR ALLOCATION*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static status
+ws_alloc_colour(ColourMap cm, Colour c)
+{ if ( isNil(cm->colours) )
+    ws_colour_map_colours(cm);
+
+  if ( getIndexVector(cm->colours, c) )
+    succeed;		/* already there (basically for my own colours) */
+
+  appendVector(cm->colours, 1, (Any *)&c);
+  
+  if ( cm->ws_ref )
+  { HPALETTE hpal = (HPALETTE) cm->ws_ref;
+    PALETTEENTRY peentry;
+    PALETTEENTRY *pe = &peentry;
+    int ne = valInt(cm->colours->size);
+
+    pe->peRed   = valInt(c->red)   >> 8;
+    pe->peGreen = valInt(c->green) >> 8;
+    pe->peBlue  = valInt(c->blue)  >> 8;
+    pe->peFlags = 0;
+      
+    if ( ResizePalette(hpal, ne) )
+    { if ( SetPaletteEntries(hpal, ne-1, 1, pe) != 1 )
+      { Cprintf("Failed to add %s to %s\n", pp(c), pp(cm));
+	fail;
+      }
+    } else
+    { Cprintf("Failed to extend %s\n", pp(cm));
+      fail;
+    }
+  }
+
+  succeed;
 }

@@ -573,6 +573,16 @@ currentMenuBar(MenuBar mb, PopupObj p)
 }
 
 
+		 /*******************************
+		 *	   ACCELERATORS		*
+		 *******************************/
+
+static status
+assignAcceletatorsMenuBar(MenuBar mb)
+{ return assignAccelerators(mb->buttons, CtoName("\\e"), NAME_label);
+}
+
+
 		/********************************
 		*             VISUAL		*
 		********************************/
@@ -640,6 +650,8 @@ static senddecl send_menuBar[] =
      NAME_abort, "Reset menubar after an abort"),
   SM(NAME_key, 1, "key=name", keyMenuBar,
      NAME_accelerator, "Execute (first) menu_item with accelerator"),
+  SM(NAME_assignAccelerators, 0, NULL, assignAcceletatorsMenuBar,
+     NAME_accelerator, "Assign accelerators for the items"),
   SM(NAME_activeMember, 2, T_activeMember, activeMemberMenuBar,
      NAME_active, "(De)activate popup or name"),
   SM(NAME_allActive, 1, "bool", allActiveMenuBar,

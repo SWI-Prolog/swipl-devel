@@ -191,12 +191,17 @@ geometry(Gr, X:[int], Y:[int], W:[int], H:[int]) :->
 
 cut(Gr) :->
 	"Remove graphical from the drawing"::
-	get(Gr, window, Window),
-	send(Window, open_undo_group),
-	get(Gr, device, OldDev),
-	send(Gr, device, @nil),
-	send(Window, undo_action, message(Gr, un_cut, OldDev)),
-	send(Window, close_undo_group).
+	(   get(Gr, attribute, cutting, _) % avoid recursion
+	->  true
+	;   send(Gr, attribute, cutting),
+	    get(Gr, window, Window),
+	    send(Window, open_undo_group),
+	    get(Gr, device, OldDev),
+	    send(Gr, device, @nil),
+	    send(Window, undo_action, message(Gr, un_cut, OldDev)),
+	    send(Window, close_undo_group),
+	    send(Gr, delete_attribute, cutting)
+	).
 
 un_cut(Gr, Dev:device*) :->
 	"Redisplay a cutted graphical"::

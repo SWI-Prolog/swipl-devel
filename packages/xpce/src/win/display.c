@@ -39,6 +39,7 @@ initialiseDisplay(DisplayObj d, Name address, Name resource_class)
   assign(d, quick_and_dirty,	DEFAULT);
   assign(d, cache,	 	NIL);
   assign(d, window_manager,	DEFAULT);
+  assign(d, colour_map,		DEFAULT);
   assign(d, display_manager,	dm);
 
   ws_init_display(d);
@@ -143,6 +144,14 @@ backgroundDisplay(DisplayObj d, Colour c)
 { assign(d, background, c);
   ws_background_display(d, c);
   
+  succeed;
+}
+
+
+static status
+colourMapDisplay(DisplayObj d, ColourMap cm)
+{ assign(d, colour_map, cm);
+
   succeed;
 }
 
@@ -968,6 +977,8 @@ static vardecl var_display[] =
      NAME_appearance, "Windows default foreground colour"),
   SV(NAME_background, "colour", IV_GET|IV_STORE, backgroundDisplay,
      NAME_appearance, "Windows default background colour"),
+  SV(NAME_colourMap, "[colour_map]*", IV_GET|IV_STORE, colourMapDisplay,
+     NAME_appearance, "Default for `frame ->colour_map'"),
   IV(NAME_quickAndDirty, "bool", IV_BOTH,
      NAME_cache, "Painting quick or correct?"),
   IV(NAME_cache, "image*", IV_BOTH,

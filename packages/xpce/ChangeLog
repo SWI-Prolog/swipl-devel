@@ -1,3 +1,43 @@
+* WIN32: The library uxnt.dll is now linked as a static library into the
+  xpce.dll kernel, to simplify the distribution of runtime systems.
+
+* ADDED: Win32: `frame ->icon' now defines the small icon for the system
+  menu and the task-bar.  The default icon is the resource
+  Pce.Frame.icon_image, which is set to pce16.xpm for the Win32 version.
+
+* FIXED: Defining a cursor from an image and added support for XPM-image
+  defined cursors for the Win32 version.
+
+* FIXED: Accelerator assigment moved to the C-kernel, slightly improved the
+  algorithm and avoided the possibility of ending in an almost infinite
+  loop.
+
+* FIXED: File->copy if the file does not exist.
+
+* ADDED: `cursor ->initialise' to deal with XPM masked images and hotspot
+  values for comfortable definition of user-defined cursors.
+
+* FIXED: Class Real load/save and clone: ensure the F_ISREAL flag is set,
+  so the host interface translates the value into a host float.
+
+* FIXED: Graphical->displayed: @off sometimes didn't invoke the update
+  mechanism properly.
+
+* FIXED: Correction of text-width calculation for left/right bearing (X11
+  version).  Only goes wrong on some weird fonts.
+
+* FIXED: Win32: Many aspects of full colour handling: reading XPM colour
+  images and specifying colours.  The system now maintains its own colour
+  map in `display <-colour_map'.
+
+* FIXED: Win32 painting arcs to update the pen.
+
+* ADDED: Image <-rotate and Image <-clip to properly copy and/or update
+  <-hot_spot and <-mask.
+
+* ADDED: Image loading XPM files: reading the XPM's hotspot and filling
+  `image <-hot_spot'.
+
 [VERSION 4.9.0]
 
 * PW3: Fixed generation of Manual search index.  Fixed XPCE term-expansion

@@ -363,7 +363,7 @@ getFindAllVector(Vector v, Code code)
 }
 
 
-static Int
+Int
 getIndexVector(Vector v, Any obj)
 { int n;
   int size = valInt(v->size);

@@ -152,7 +152,7 @@ static status
 parse_font(char *s, LOGFONT *lfont)
 { while(*s)
   { char att[100];
-    int n;
+    int n = -1;
     char *q;
 
     for(q=att; isletter(*s); *q++ = *s++)

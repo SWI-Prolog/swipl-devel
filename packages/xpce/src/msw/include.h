@@ -61,6 +61,7 @@ typedef struct
   int h;				/* height of image */
   BITMAPINFO *msw_info;			/* MS-Windows info structure */
   void *data;				/* the data */
+  HICON icon;				/* Icon we've created for it */
 } ws_image, *WsImage;
 
 
@@ -101,6 +102,7 @@ void		initDraw(void);
 void		exitDraw(void);
 void *		ws_image_bits(Image image);
 void *		ws_image_bits_for_cursor(Image image, Name kind, int w, int h);
+HICON		ws_icon_from_image(Image img);
 void		ws_create_image_from_x11_data(Image image, unsigned char *data,
 					      int w, int h);
 PceWindow	get_window_holding_point(FrameObj fr, POINT *pt);
@@ -131,6 +133,8 @@ WinMF		CtoWinMetafile(HENHMETAFILE hmf);
 COLORREF	cref_colour(Colour c);
 COLORREF	ws_3d_grey_rgb();
 Colour		ws_3d_grey();
+HPALETTE	window_palette(PceWindow sw);
+HPALETTE	frame_palette(FrameObj fr);
 
 		 /*******************************
 		 *	    PNM FORMATS		*

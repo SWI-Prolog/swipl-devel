@@ -29,7 +29,7 @@ WinFrameClass()
     sprintf(buf, "PceFrame%d", PceHInstance);
     winclassname = CtoName(buf);
 
-    wndClass.style		= CS_HREDRAW|CS_VREDRAW;
+    wndClass.style		= 0;
     wndClass.lpfnWndProc	= (LPVOID) frame_wnd_proc;
     wndClass.cbClsExtra		= 0;
     wndClass.cbWndExtra		= sizeof(long);
@@ -58,7 +58,7 @@ WinPopupFrameClass()
     sprintf(buf, "PcePopupFrame%d", PceHInstance);
     winclassname = CtoName(buf);
 
-    wndClass.style		= CS_HREDRAW|CS_VREDRAW|CS_SAVEBITS;
+    wndClass.style		= /*CS_HREDRAW|CS_VREDRAW|*/CS_SAVEBITS;
     wndClass.lpfnWndProc	= (LPVOID) frame_wnd_proc;
     wndClass.cbClsExtra		= 0;
     wndClass.cbWndExtra		= sizeof(long);
@@ -73,6 +73,20 @@ WinPopupFrameClass()
   }
 
   return strName(winclassname);
+}
+
+
+HPALETTE
+frame_palette(FrameObj fr)
+{ ColourMap cm = fr->colour_map;
+
+  if ( isDefault(cm) && notNil(fr->display) )
+    cm = fr->display->colour_map;
+
+  if ( isNil(cm) || isDefault(cm) )
+    return NULL;
+  else
+    return getPaletteColourMap(cm);
 }
 
 
@@ -178,6 +192,7 @@ do_frame_wnd_proc(FrameObj fr,
 	send(fr, NAME_mapped, ON, 0);
 
 	assign(fr, status, NAME_open);
+	ws_set_icon_frame(fr);
       } else
       { for_cell(cell, fr->members)
 	{ if ( !onFlag(cell->value, F_FREED|F_FREEING) )
@@ -202,13 +217,32 @@ do_frame_wnd_proc(FrameObj fr,
       goto repaint;
 
     case WM_QUERYNEWPALETTE:
-    case WM_PALETTECHANGED:
-      if ( instanceOfObject(fr->colour_map, ClassColourMap) &&
-	   fr->colour_map->ws_ref )
-	forwardColourMapChangeFrame(fr);
-      break;
+    case_query:
+    { HPALETTE hpal = frame_palette(fr);
+      if ( hpal )
+      { HDC hdc = GetDC(hwnd);
+	int i = 0;
 
-    case WM_ERASEBKGND:
+	hpal = SelectPalette(hdc, hpal, FALSE);
+	i = RealizePalette(hdc);
+	SelectPalette(hdc, hpal, FALSE);
+	ReleaseDC(hwnd, hdc);
+
+	if ( i )
+	{ forwardColourMapChangeFrame(fr);
+	  return TRUE;
+	}
+      }
+
+      return FALSE;
+    }
+    case WM_PALETTECHANGED:
+      if ( (HWND)wParam != hwnd )
+	goto case_query;
+
+      return FALSE;
+
+    case WM_ERASEBKGND:			/* TODO: Add colourmap code */
     { HDC hdc = (HDC) wParam;
       RECT rect;
       COLORREF rgb = (COLORREF) getXrefObject(fr->background, fr->display);
@@ -874,10 +908,25 @@ void
 ws_set_icon_frame(FrameObj fr)
 { HWND hwnd;
 
-  if ( (hwnd = getHwndFrame(fr)) &&
-       IsIconic(hwnd) &&
-       fr->destroying == OFF )
-    InvalidateRect(hwnd, NULL, TRUE);
+  if ( (hwnd = getHwndFrame(fr)) && fr->destroying == OFF )
+  { HICON icon;
+
+    if ( notNil(fr->icon_image) &&
+	 (icon = ws_icon_from_image(fr->icon_image)) )
+    {
+#if 1
+      SendMessage(hwnd,
+		  WM_SETICON,
+		  (WPARAM)(BOOL)FALSE,
+		  (LPARAM)(HICON)icon);
+#else
+      SetClassLong(hwnd, GCL_HICON, icon);
+#endif
+    }
+
+    if ( IsIconic(hwnd) )
+      InvalidateRect(hwnd, NULL, TRUE);
+  }
 }
 
 

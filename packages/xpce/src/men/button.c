@@ -219,7 +219,9 @@ RedrawAreaButton(Button b, Area a)
   } else
     kbf = obhf = focus = FALSE;		/* should not happen */
 
-  if ( !ws_draw_button_face(b, x, y, w, h, up, defb, kbf && focus) )
+  if ( !ws_draw_button_face((DialogItem)b,
+			    x, y, w, h,
+			    up, defb, kbf && focus) )
     draw_generic_button_face(b, x, y, w, h, up, defb, kbf && focus);
 
   if ( b->look == NAME_openLook && b->status == NAME_preview &&

@@ -107,6 +107,9 @@ void
 ws_open_display(DisplayObj d)
 { d->ws_ref = (WsRef) 1;	/* just flag; nothing to do yet */
 
+  if ( isDefault(d->colour_map) )
+    send(d, NAME_colourMap, newObject(ClassColourMap, NAME_pce, 0), 0);
+
   ws_init_loc_still_timer();
 }
 

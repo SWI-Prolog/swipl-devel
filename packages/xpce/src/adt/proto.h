@@ -170,6 +170,7 @@ status		shiftVector(Vector v, Int places);
 Any		getElementVector(Vector v, Int e);
 status		elementVector(Vector v, Int e, Any obj);
 status		appendVector(Vector v, int argc, Any obj []);
+Int		getIndexVector(Vector v, Any obj);
 Any		getArgVector(Vector v, Int arg);
 Int		getArityVector(Vector v);
 status		makeClassVector(Class class);

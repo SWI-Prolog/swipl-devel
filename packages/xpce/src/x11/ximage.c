@@ -794,6 +794,32 @@ ws_rotate_image(Image image, int angle)	/* 0<angle<360 */
 }
 
 		 /*******************************
+		 *       COLOUR --> MONO	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This is rather simple, but it will do   for the moment. A `real' version
+should consider the actual colours, properly  dithering the colour image
+on the monochrome one.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+Image
+ws_monochrome_image(Image image)
+{ Image mono;
+  Int w = image->size->w;
+  Int h = image->size->h;
+
+  mono = answerObject(ClassImage, NIL, w, h, NAME_bitmap, 0);
+  d_image(mono, 0, 0, valInt(w), valInt(h));
+  d_modify();
+  r_image(image, 0, 0, 0, 0, valInt(w), valInt(h), OFF);
+  d_done();
+
+  answer(mono);
+}
+
+
+		 /*******************************
 		 *	     POSTSCRIPT		*
 		 *******************************/
 

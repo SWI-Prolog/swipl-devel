@@ -10,6 +10,7 @@ status		paintArrow(Arrow a, Int tx, Int ty, Int rx, Int ry);
 status		makeClassArrow(Class class);
 
 /* gra/bitmap.c */
+status		updateSolidBitmap(BitmapObj bm);
 status		makeClassBitmap(Class class);
 
 /* gra/box.c */
@@ -199,6 +200,7 @@ ColourMap	getColourMapImage(Image image);
 status		loadImage(Image image, FileObj file, CharArray path);
 status		resizeImage(Image image, Int w, Int h);
 status		fillImage(Image image, Any pattern, Area area);
+Image		getMonochromeImage(Image image);
 status		makeClassImage(Class class);
 
 /* gra/joint.c */

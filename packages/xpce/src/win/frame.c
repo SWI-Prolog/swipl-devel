@@ -47,6 +47,7 @@ initialiseFrame(FrameObj fr, Name label, Name kind,
   assign(fr, border,	    DEFAULT);
   assign(fr, background,    DEFAULT);
   assign(fr, confirm_done,  DEFAULT);
+  assign(fr, colour_map,    DEFAULT);
   assign(fr, area,	    newObject(ClassArea, 0));
   assign(fr, members,	    newObject(ClassChain, 0));
   assign(fr, destroying,    OFF);
@@ -1557,7 +1558,7 @@ static vardecl var_frame[] =
      NAME_appearance, "Width of border"),
   SV(NAME_background, "colour|pixmap", IV_GET|IV_STORE, backgroundFrame,
      NAME_appearance, "Background of the frame"),
-  SV(NAME_colourMap, "colour_map*", IV_GET|IV_STORE, colourMapFrame,
+  SV(NAME_colourMap, "[colour_map]*", IV_GET|IV_STORE, colourMapFrame,
      NAME_appearance, "Colourmap for the window's frame"),
   SV(NAME_area, "area", IV_GET|IV_STORE, areaFrame,
      NAME_area, "Area of the opened frame on the display"),

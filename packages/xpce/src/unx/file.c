@@ -295,7 +295,7 @@ copyFile(FileObj to, FileObj from)
   
   if ( (fdfrom = open_file(from, O_RDONLY|O_BINARY)) < 0 )
     fail;
-  if ( (fdto = open_file(to, O_WRONLY|O_BINARY, 0666)) < 0 )
+  if ( (fdto = open_file(to, O_WRONLY|O_BINARY|O_CREAT|O_TRUNC, 0666)) < 0 )
   { close(fdfrom);
     fail;
   }

@@ -9,6 +9,7 @@
 
 #include <h/kernel.h>
 #include <h/graphics.h>
+#include <h/dialog.h>
 
 static status
 initialiseDialog(Dialog d, Name name, Size size, DisplayObj display)
@@ -252,6 +253,16 @@ getReportToDialog(Dialog d)
 
 
 		 /*******************************
+		 *	   ACCELERATORS		*
+		 *******************************/
+
+static status
+assignAcceletatorsDialog(Dialog d)
+{ return assignAccelerators(d->graphicals, CtoName("\\e"), NAME_label);
+}
+
+
+		 /*******************************
 		 *	 CLASS DECLARATION	*
 		 *******************************/
 
@@ -284,6 +295,8 @@ static senddecl send_dialog[] =
      DEFAULT, "Create from label, size and display"),
   SM(NAME_defaultButton, 1, "member:button*", defaultButtonDialog,
      NAME_accelerator, "Button connected to `RET'"),
+  SM(NAME_assignAccelerators, 0, NULL, assignAcceletatorsDialog,
+     NAME_accelerator, "Assign accelerators for the dialog_item objects"),
   SM(NAME_typed, 2, T_typed, typedDialog,
      NAME_accelerator, "Handle accelerators"),
   SM(NAME_active, 1, "bool", activeDialog,

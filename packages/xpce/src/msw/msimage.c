@@ -39,6 +39,9 @@ extern LPVOID CALLBACK gifLoad(char *);
 #include <msw/xpm.h>
 #endif
 
+#undef offset
+#define offset(s, f) ((int)&((s *)NULL)->f)
+
 /* Using ws_ref for storing the bits and the xref mechanism for storing
    the Windows HBITMAP handle
 */
@@ -53,6 +56,18 @@ ws_init_image(Image image)
 }
 
 
+static WsImage
+attach_ws_image(Image image)
+{ if ( !image->ws_ref )
+  { image->ws_ref = alloc(sizeof(ws_image));
+
+    memset(image->ws_ref, 0, sizeof(ws_image));
+  }
+
+  return image->ws_ref;
+}
+
+
 void
 ws_destroy_image(Image image)
 { WsImage r;
@@ -63,6 +78,8 @@ ws_destroy_image(Image image)
       pceFree(r->data);
     if ( r->msw_info )
       pceFree(r->msw_info);
+    if ( r->icon )
+      DestroyIcon(r->icon);
     unalloc(sizeof(ws_image), image->ws_ref);
     
     image->ws_ref = NULL;
@@ -189,10 +206,9 @@ attach_dib_image(Image image, BITMAPINFO *bmi, BYTE *bits)
 { WsImage wsi;
   BITMAPINFOHEADER *bmih = &bmi->bmiHeader;
 
-  wsi           = alloc(sizeof(ws_image));
+  wsi = attach_ws_image(image);
   wsi->data     = bits;
   wsi->msw_info = bmi;
-  image->ws_ref = wsi;
 
   assign(image->size, w, toInt(bmih->biWidth));
   assign(image->size, h, toInt(bmih->biHeight));
@@ -324,14 +340,33 @@ ws_load_image_file(Image image)
 
 #ifdef O_XPM
 { XImage *img, *shape;
-  HDC hdc  = CreateCompatibleDC(NULL);
+  HDC hdc;
+  HPALETTE hpal = NULL, ohpal = NULL;
   int rval;
   DisplayObj d;
+  int as = XpmAttributesSize();
+  char *fname = strName(getOsNameFile(image->file));
+  XpmAttributes *atts = (XpmAttributes *)alloca(as);
+  XpmImage xpmimg;
+  XpmInfo  xpminfo;
 
-  DEBUG(NAME_xpm, Cprintf("Reading XPM file using DC = 0x%x\n", hdc));
-  rval = XpmReadFileToImage(&hdc, strName(getOsNameFile(image->file)),
-			    &img, &shape, NULL);
-  DeleteDC(hdc);
+  memset(&xpmimg,  0, sizeof(xpmimg));
+  memset(&xpminfo, 0, sizeof(xpminfo));
+  memset(atts, 0, as);
+
+  d = image->display;
+  if ( isNil(d) )
+  { d = CurrentDisplay(image);
+    assign(image, display, d);
+  }
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+First step. Read the file  into  an   XpmImage,  so  we  can extract and
+register the colours.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+  xpminfo.valuemask = XpmColorTable|XpmReturnColorTable;
+  rval = XpmReadFileToXpmImage(fname, &xpmimg, &xpminfo);
   switch(rval)
   { case XpmOpenFailed:
       return errorPce(image->file, NAME_openFile,
@@ -345,12 +380,122 @@ ws_load_image_file(Image image)
     default:
       return errorPce(image, NAME_unknownError, toInt(rval));
   }
-
-  d = image->display;
-  if ( isNil(d) )
-  { d = CurrentDisplay(image);
-    assign(image, display, d);
+  if ( xpminfo.valuemask & XpmHotspot )
+  { assign(image, hot_spot, newObject(ClassPoint,
+				      toInt(xpminfo.x_hotspot),
+				      toInt(xpminfo.y_hotspot), 0));
+  } else
+  { assign(image, hot_spot, NIL);
   }
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Second step. Analyse the colours in the   info  section, and add them to
+the display's colour map.  In  the  future,   this  should  use  a local
+colourmap, and the bitmap should be converted into a DIB. I've done part
+of that, and left the code for later.  This is the XPMTODIB.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#undef XPMTODIB				/* make sure ... */
+
+#ifndef XPMTODIB
+  if ( (xpminfo.valuemask & XpmReturnColorTable) &&
+       instanceOfObject(d->colour_map, ClassColourMap) )
+  { XpmColor *xpmc = xpmimg.colorTable;
+    int n;
+
+    for(n=0; n<xpmimg.ncolors; n++, xpmc++)
+    { Colour c;
+
+      if ( streq_ignore_case(xpmc->c_color, "none") )
+	continue;			/* the transparent colour */
+
+      if ( (c = checkType(CtoKeyword(xpmc->c_color), TypeColour, NIL)) )
+      { COLORREF rgb = (COLORREF)getXrefObject(c, d); /* open it */
+      }
+    }
+
+    hpal = getPaletteColourMap(d->colour_map);
+  }
+
+#else /*XPMTODIB*/
+
+  if ( xpminfo.valuemask & XpmReturnColorTable )
+  { LOGPALETTE *lp;
+    PALETTEENTRY *pe;
+    XpmColor *xpmc = xpmimg.colorTable;
+    int n;
+    int pentries=0;
+
+    lp = pceMalloc(offset(LOGPALETTE, palPalEntry[xpmimg.ncolors]));
+    lp->palVersion    = 0x300;
+    pe                = &lp->palPalEntry[0];
+
+    for(n=0; n<xpmimg.ncolors; n++, xpmc++)
+    { Colour c;
+
+      if ( streq_ignore_case(xpmc->c_color, "none") )
+	continue;			/* the transparent colour */
+
+      if ( (c = checkType(CtoKeyword(xpmc->c_color), TypeColour, NIL)) )
+      { COLORREF rgb = (COLORREF)getXrefObject(c, d);
+
+	pe->peRed   = valInt(c->red)   >> 8;
+	pe->peGreen = valInt(c->green) >> 8;
+	pe->peBlue  = valInt(c->blue)  >> 8;
+	pe->peFlags = 0;
+	pentries++;
+	pe++;
+      }
+    }
+    lp->palNumEntries = pentries;
+
+    if ( !(hpal = CreatePalette(lp)) )
+      Cprintf("%s: failed to create colour palette\n", pp(image));	
+
+    pceFree(lp);
+  }
+#endif /*XPMTODIB*/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Final step. Convert the XpmImage into a Windows bitmap. First select our
+palette, so we can be sure the  proper   colours  will be in the devices
+palette. 
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+  if ( hpal )
+  { HDC dhdc = GetDC(NULL);
+    HPALETTE oshpal;
+
+    oshpal = SelectPalette(dhdc, hpal, FALSE); /* make colours know  */
+    RealizePalette(dhdc);
+    SelectPalette(dhdc, oshpal, FALSE);
+    ReleaseDC(NULL, dhdc);
+
+    hdc = CreateCompatibleDC(NULL);
+    ohpal = SelectPalette(hdc, hpal, FALSE);
+    RealizePalette(hdc);
+  } else
+    hdc = CreateCompatibleDC(NULL);
+
+  rval = XpmCreateImageFromXpmImage(&hdc, &xpmimg, &img, &shape, atts);
+  XpmFreeXpmImage(&xpmimg);
+  switch(rval)
+  { case XpmNoMemory:
+      return sysPce("Not enough memory");
+    case XpmSuccess:
+      break;
+    default:
+      return errorPce(image, NAME_unknownError, toInt(rval));
+  }
+
+  if ( ohpal )
+  { SelectPalette(hdc, ohpal, FALSE);
+#ifdef XPMTODIB
+    DeleteObject(hpal);
+#endif
+  }
+
+  DeleteDC(hdc);
 
   assign(image, kind, img->depth == 1 ? NAME_bitmap : NAME_pixmap);
   assign(image->size, w, toInt(img->width));
@@ -534,10 +679,11 @@ windows_bitmap_from_bits(Image image)
 
     if ( r->msw_info )
     { bm = windows_bitmap_from_dib(image);
-    } else
+    } else if ( r->data )
     { bm = ZCreateBitmap(r->w, r->h, 1, 1, NULL);
       SetBitmapBits(bm, ws_sizeof_bits(r->w, r->h), r->data);
-    }
+    } else
+      bm = 0;
 
     return bm;
   }
@@ -552,10 +698,11 @@ ws_open_image(Image image, DisplayObj d)
   HBRUSH brush = 0;
   int w = valInt(image->size->w);
   int h = valInt(image->size->h);
+  WsImage r;
 
   assign(image, display, d);
 
-  if ( image->ws_ref )
+  if ( (r=image->ws_ref) && r->data )
   { bm = windows_bitmap_from_bits(image);
     if ( bm ) 
     { registerXrefObject(image, d, (void *) bm);
@@ -568,7 +715,7 @@ ws_open_image(Image image, DisplayObj d)
 
   if ( notNil(image->file) )
   { if ( loadImage(image, DEFAULT, DEFAULT) &&
-	 image->ws_ref &&
+	 (r=image->ws_ref) && r->data &&
 	 (bm = windows_bitmap_from_bits(image)) )
     { registerXrefObject(image, d, (void *) bm);
       succeed;
@@ -838,6 +985,35 @@ ws_rotate_image(Image image, int a)	/* 0<angle<360 */
 }
 
 
+		 /*******************************
+		 *       COLOUR --> MONO	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This is rather simple, but it will do   for the moment. A `real' version
+should consider the actual colours, properly  dithering the colour image
+on the monochrome one.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+Image
+ws_monochrome_image(Image image)
+{ Image mono;
+  Int w = image->size->w;
+  Int h = image->size->h;
+
+  mono = answerObject(ClassImage, NIL, w, h, NAME_bitmap, 0);
+  d_image(mono, 0, 0, valInt(w), valInt(h));
+  d_modify();
+  r_image(image, 0, 0, 0, 0, valInt(w), valInt(h), OFF);
+  d_done();
+
+  answer(mono);
+}
+
+		 /*******************************
+		 *	    POSTSCRIPT		*
+		 *******************************/
+
 void
 ws_postscript_image(Image image, Int depth)
 { int w = valInt(image->size->w);
@@ -968,8 +1144,7 @@ ws_create_image_from_x11_data(Image image, unsigned char *data, int w, int h)
   int y;
   int byte = 0;
 
-  r = image->ws_ref = alloc(sizeof(ws_image));
-  r->msw_info = NULL;			/* X11 data */
+  r = attach_ws_image(image);
   r->w = w;
   r->h = h;
   dest = r->data = pceMalloc(ws_sizeof_bits(w, h));
@@ -1006,26 +1181,34 @@ ws_image_bits_for_cursor(Image image, Name kind, int w, int h)
 { WsImage r;
   unsigned short *c, *cbits = pceMalloc(ws_sizeof_bits(w, h));
   unsigned short *d, *dbits;
+  Image im = getMonochromeImage(image);
   int alloced;
   int dw, dh;
   int x, y;
   int saidpad=0;
 
-  if ( (r = image->ws_ref) && !r->msw_info )
+  if ( !im )
+    return NULL;
+
+  if ( ((r = im->ws_ref) && r->data) && !r->msw_info )
   { dbits = r->data;
     alloced = 0;
     dw = r->w;
     dh = r->h;
   } else
-  { HBITMAP bm = (HBITMAP) getXrefObject(image, image->display);
+  { HBITMAP bm;
     int bytes;
 
-    dw = valInt(image->size->w);
-    dh = valInt(image->size->h);
+    if ( isNil(im->display) )
+      assign(im, display, CurrentDisplay(NIL));
+
+    bm = (HBITMAP) getXrefObject(im, im->display);
+    dw = valInt(im->size->w);
+    dh = valInt(im->size->h);
     bytes = ws_sizeof_bits(dw, dh);
     dbits = alloc(bytes);
     alloced = bytes;
-   
+
     DEBUG(NAME_cursor, Cprintf("Alloced %d bytes at 0x%lx\n",
 			       alloced, (long) dbits));
 
@@ -1033,7 +1216,7 @@ ws_image_bits_for_cursor(Image image, Name kind, int w, int h)
       Cprintf("GetBitmapBits() failed\n");
 
     DEBUG(NAME_cursor, Cprintf("Got %d bytes image from %s\n",
-			       bytes, pp(image)));
+			       bytes, pp(im)));
   }
 		   
   for(y=0; y<h; y++)
@@ -1063,10 +1246,113 @@ ws_image_bits_for_cursor(Image image, Name kind, int w, int h)
 
   if ( alloced )
     unalloc(alloced, dbits);
+  if ( im != image )
+    freeObject(im);
 
   DEBUG(NAME_cursor, Cprintf("Returning %dx%d bits\n", w, h));
+
   return cbits;
 }
+
+		 /*******************************
+		 *	       ICONS		*
+		 *******************************/
+
+static Image
+black_mask(int w, int h)
+{ static Image img = NULL;
+
+  if ( ! img )
+  { img = newObject(ClassImage, NIL, toInt(w), toInt(h), NAME_bitmap, 0);
+    lockObject(img, ON);
+    send(img, NAME_invert, 0);
+  }
+
+  return img;
+}
+
+
+HICON
+ws_icon_from_image(Image img)
+{ WsImage r = attach_ws_image(img);
+
+  if ( !r->icon )
+  { int iw = GetSystemMetrics(SM_CXICON);
+    int ih = GetSystemMetrics(SM_CYICON);
+    int freemask = FALSE;
+    Image image, imask;
+    HICON icon;
+  
+#ifdef O_SCALE_ICON
+    if ( valInt(img->size->w) != iw || valInt(img->size->h) != ih )
+      image = get(img, NAME_scale,
+		  answerObject(ClassSize, toInt(iw), toInt(ih), 0),
+		  0);
+    else
+#endif
+      image = img;
+  
+    if ( notNil(image->mask) )
+    { if ( image->mask->kind == NAME_pixmap )
+      { imask = getMonochromeImage(image->mask);
+	freemask = TRUE;
+      } else
+	imask = image->mask;
+    } else
+      imask = black_mask(iw, ih);
+  
+    if ( isNil(image->display) )
+      assign(image, display, CurrentDisplay(NIL));
+    assign(imask, display, image->display);
+  
+#if 1
+  { ICONINFO iinfo;
+
+    iinfo.fIcon = TRUE;
+    iinfo.xHotspot = 0;
+    iinfo.yHotspot = 0;
+    iinfo.hbmMask  = (HBITMAP) getXrefObject(imask, imask->display);
+    iinfo.hbmColor = (HBITMAP) getXrefObject(image, image->display);
+
+    icon = CreateIconIndirect(&iinfo);
+  }
+#else
+  { HBITMAP hbm, hmsk;
+    BITMAP bm, msk;
+    BYTE *bmbits, *mskbits;
+
+    hbm  = (HBITMAP) getXrefObject(image, image->display);
+    hmsk = (HBITMAP) getXrefObject(imask, imask->display);
+    GetObject(hbm,  sizeof(bm), &bm);
+    GetObject(hmsk, sizeof(msk), &msk);
+    bmbits  = pceMalloc(ih * bm.bmWidthBytes);
+    mskbits = pceMalloc(ih * msk.bmWidthBytes);
+  
+    GetBitmapBits(hbm,  ih * bm.bmWidthBytes,  bmbits);
+    GetBitmapBits(hmsk, ih * msk.bmWidthBytes, mskbits);
+     
+    icon = CreateIcon(PceHInstance,
+		      iw, ih,
+		      (BYTE)bm.bmPlanes, (BYTE)bm.bmBitsPixel,
+		      mskbits,
+		      bmbits);
+  
+    pceFree(bmbits);
+    pceFree(mskbits);
+  }
+#endif
+  
+    if ( image != img )
+      freeObject(image);
+    if ( freemask )
+      freeObject(imask);
+
+    r->icon = icon;
+  }
+
+  return r->icon;
+}
+
 
 		 /*******************************
 		 *    WINDOWS SYSTEM BRUSHES	*

@@ -224,7 +224,7 @@ getWidthFont(FontObj f, CharArray txt)
 Int
 getExFont(FontObj f)
 { if ( isNil(f->ex) )
-    assign(f, ex, getWidthFont(f, DEFAULT));
+    assign(f, ex, toInt(c_width('x', f)));
 
   answer(f->ex);
 }

@@ -666,6 +666,7 @@ NewClass(displayobj)
   Chain		inspect_handlers;	/* Event-handlers for inspector */
   Colour	foreground;		/* Window default foreground */
   Colour	background;		/* Window default background */
+  ColourMap	colour_map;		/* Default colour_map for frames */
   Bool		quick_and_dirty;	/* Use quick_and_dirty drawing */
   Image		cache;			/* Graphics cache */
   Name		window_manager;		/* name of the window manager */

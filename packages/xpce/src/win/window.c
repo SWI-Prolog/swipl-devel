@@ -852,7 +852,7 @@ changed_window(PceWindow sw, int x, int y, int w, int h, int clear)
   UpdateArea best = NULL;
   iarea new;
   int na;
-  int ok = 4;				/* max badness */
+  int ok = 10;				/* max badness */
 
   NormaliseArea(x, y, w, h);
   new.x = x; new.y = y; new.w = w; new.h = h;

@@ -81,7 +81,12 @@ set_source(G, Ev:event) :->
 
 cursor(G, Gr, Cursor:cursor) :<-
 	"Create cursor from the graphical"::
-	(   get(G, resource_value, cursor, Cursor), Cursor \== @nil
+	(   get(G, slot, cursor, C0),
+	    (	C0 == @default
+	    ->	get(G, resource_value, cursor, Cursor)
+	    ;	Cursor = C0
+	    ),
+	    Cursor \== @nil
 	->  true
 	;   get(Gr?area, size, size(W, H)),
 	    (   get(G, warp, @on)
@@ -175,7 +180,6 @@ terminate(G, Ev:event) :->
 	    send(G, cancel)
 	;   get(G, slot, target, Target),
 	    send(Ev?window, focus_cursor, @nil),
-	    send(G, cursor, @default),
 	    get(G, source, Source),
 	    send(G, slot, source, @nil),
 	    (   Target == @nil
