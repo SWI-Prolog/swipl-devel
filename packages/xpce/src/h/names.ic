@@ -1122,6 +1122,7 @@
   BUILTIN_NAME("job")
   BUILTIN_NAME("job_name")
   BUILTIN_NAME("joint")
+  BUILTIN_NAME("jpeg")
   BUILTIN_NAME("just_one_space")
   BUILTIN_NAME("justify")
   BUILTIN_NAME("justify_paragraph")
