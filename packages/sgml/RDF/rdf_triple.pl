@@ -102,14 +102,14 @@ triples(description(Type, IdAbout, BagId, Props), Id) -->
 triples(description(description, IdAbout, _, Props), Subject) --> !,
 	{ description_id(IdAbout, Subject)
 	},
-	properties(Props, Subject).
+	properties(Props, 1, Subject).
 triples(description(Type, IdAbout, _, Props), Subject) -->
 	{ description_id(IdAbout, Subject),
 	  name_to_type_uri(Type, TypeURI)
 	},
 	[ rdf(Subject, rdf:type, TypeURI)
 	],
-	properties(Props, Subject).
+	properties(Props, 1, Subject).
 triples(unparsed(Data), Id) -->
 	{ gensym('Error__', Id),
 	  print_message(error, rdf(unparsed(Data)))
@@ -166,29 +166,36 @@ description_id(id(Id), Id).
 description_id(each(Id), each(Id)).
 description_id(prefix(Id), prefix(Id)).
 
-properties([], _) -->
+properties([], _, _) -->
 	[].
-properties([H0|T0], Subject) -->
-	property(H0, Subject),
-	properties(T0, Subject).
+properties([H0|T0], N, Subject) -->
+	property(H0, N, NN, Subject),
+	properties(T0, NN, Subject).
 
-property(Pred = Object, Subject) --> % inlined object
+property(Pred0 = Object, N, NN, Subject) --> % inlined object
+	{ li_pred(Pred0, Pred, N, NN)
+	},
 	triples(Object, Id), !,
 	[ rdf(Subject, Pred, Id)
 	].
-property(Pred = Object, Subject) --> !,
+property(Pred0 = Object, N, NN, Subject) --> !,
+	{ li_pred(Pred0, Pred, N, NN)
+	},
 	[ rdf(Subject, Pred, Object)
 	].
-property(id(Id, Pred = Object), Subject) -->
-	{ phrase(triples(Object, ObjectId), ObjectTriples)
-	}, !,
+property(id(Id, Pred0 = Object), N, NN, Subject) -->
+	{ phrase(triples(Object, ObjectId), ObjectTriples), !,
+	  li_pred(Pred0, Pred, N, NN)
+	},
 	list(ObjectTriples),
 	[ rdf(Subject, Pred, ObjectId)
 	],
 	reinify(ObjectTriples, Id),
 	[ rdf(Subject, Pred, Id)
 	].
-property(id(Id, Pred = Object), Subject) -->
+property(id(Id, Pred0 = Object), N, NN, Subject) -->
+	{ li_pred(Pred0, Pred, N, NN)
+	},
 	[ rdf(Subject, Pred, Object),
 	  rdf(Id, rdf:type, rdf:'Statement'),
 	  rdf(Id, rdf:subject, Subject),
@@ -196,6 +203,15 @@ property(id(Id, Pred = Object), Subject) -->
 	  rdf(Id, rdf:object, Object)
 	].
 
+%	li_pred(+Pred, -Pred, +Nth, -NextNth)
+%	
+%	Transform rdf:li predicates into _1, _2, etc.
+
+li_pred(rdf:li, rdf:Pred, N, NN) :- !,
+	NN is N + 1,
+	atom_concat('_', N, Pred).
+li_pred(Pred, Pred, N, N).
+	
 
 		 /*******************************
 		 *	   REINIFICATION	*

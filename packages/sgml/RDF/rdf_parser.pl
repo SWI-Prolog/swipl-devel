@@ -134,7 +134,9 @@ propertyElt(Id, Name, literal(Value), Base) ::=
 		\attrs([ \parseLiteral,
 			 \?idAttr(Id, Base)
 		       ]),
-		Value), !.
+		Content), !,
+	{ literal_value(Content, Value)
+	}.
 propertyElt(_, Name, description(description, Id, _, Properties), Base) ::=
 	element(Name,
 		\attrs([ \parseResource,
@@ -153,7 +155,17 @@ propertyElt(Id, Name, Value, Base) ::=
 		\attrs([ \?idAttr(Id, Base)
 		       ]),
 		\an_rdf_object(Value, Base)), !.
-propertyElt(_Id, Name, description(description, About, BagID, Properties), Base) ::=
+					% 5.14 emptyPropertyElt
+propertyElt(Id, Name, literal(''), Base) ::=
+	element(Name,
+		\attrs([ \?idAttr(Id, Base),
+			 \?parseLiteral
+		       | \noMoreAttrs
+		       ]),
+		[]), !.
+propertyElt(_Id, Name,
+	    description(description, About, BagID, Properties),
+	    Base) ::=
 	element(Name,
 		\attrs([ \?idRefAttr(About, Base),
 			 \?bagIdAttr(BagID, Base)
@@ -165,6 +177,16 @@ propertyElt(Id, Name, unparsed(Value), Base) ::=
 		\attrs([ \?idAttr(Id, Base)
 		       ]),
 		Value).
+
+%	literal_value(+In, -Value)
+%	
+%	Translate a literal into its value. Notably if the value is
+%	plain CDATA, remove the list.
+
+literal_value([Value], Value) :-
+	atomic(Value), !.
+literal_value(Value, Value).
+
 
 idTermAttr(id(Id), Base) ::=
 	\idAttr(Id, Base).
@@ -386,6 +408,18 @@ do_attrs([H|T], L0) :-
 	do_attrs(T, L).
 do_attrs(C, L) :-
 	rewrite(C, L).
+
+%	\noMoreAttrs
+%	
+%	Check attribute-list is empty.  Reserved xml: attributes are
+%	excluded from this test.
+
+noMoreAttrs ::=
+	[], !.
+noMoreAttrs ::=
+	[ xml:_=_
+	| \noMoreAttrs
+	].
 
 %	set_base_uri(+Element0, +Base0, -Element, -Base)
 %	

@@ -1,3 +1,7 @@
+  * ADDED: Translate rdf:li predicates into _1, _2, etc.
+
+  * FIXED: parseType=Literal to avoid extraneous [..] around the value
+
 Oct 28, 2002
 
   * CLEANUP: pass base-uri as attribute, preparing for xml:base and making

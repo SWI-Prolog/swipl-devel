@@ -74,11 +74,11 @@ run_test(Test) :-
 	exists_file(InFile),
 	rdf(Test, test:outputDocument, Out),
 	local_file(Out, NTFile),
-	load_rdf(InFile, RDF),
+	load_rdf(InFile, RDF, [base_uri(In)]),
 	load_rdf_nt(NTFile, NT),
 	(   compare_triples(RDF, NT)
-	->  pass(Test)
-	;   fail(Test, RDF, NT)
+	->  test_result(pass, Test, RDF, NT)
+	;   test_result(fail, Test, RDF, NT)
 	).
 
 
@@ -120,13 +120,13 @@ fill_browser(_F, B:browser) :->
 	send_list(P, append,
 		  [ menu_item(edit,
 			      message(@arg1, edit_test)),
+		    menu_item(run,
+			      message(@arg1, run)),
 		    gap,
 		    menu_item(show_result,
-			      message(@arg1, show_triples, result),
-			      condition := @arg1?style == fail),
+			      message(@arg1, show_triples, result)),
 		    menu_item(show_norm,
-			      message(@arg1, show_triples, norm),
-			      condition := @arg1?style == fail),
+			      message(@arg1, show_triples, norm)),
 		    gap,
 		    menu_item(discussion,
 			      message(@arg1, open_url, discussion),
@@ -135,27 +135,40 @@ fill_browser(_F, B:browser) :->
 		    menu_item(approval,
 			      message(@arg1, open_url, approval),
 			      condition :=
-			      message(@arg1, has_url, approval))
+			      message(@arg1, has_url, approval)),
+		    gap,
+		    menu_item(copy_test_uri,
+			      message(@arg1, copy_test_uri))
 		  ]).
 
 
-pass(F, Test:name) :->
+test_result(F, Result:{pass,fail}, Test:name, Our:prolog, Norm:prolog) :->
+	"Test failed"::
+	Data = [ result(Our),
+		 norm(Norm)
+	       ],
 	get(F, member, browser, B),
-	send(B, append, rdf_test_item(Test, style := pass)).
+	(   get(B, member, Test, Item)
+	->  send(Item, object, prolog(Data)),
+	    send(Item, style, Result)
+	;   send(B, append,
+		 rdf_test_item(Test, @default, prolog(Data), Result))
+	).
 
-fail(F, Test:name, Our:prolog, Norm:prolog) :->
-	get(F, member, browser, B),
-	send(B, append, rdf_test_item(Test, @default,
-				      prolog([ result(Our),
-					       norm(Norm)
-					     ]),
-				      fail)).
 clear(F) :->
 	get(F, member, browser, B),
 	send(B, clear).
 
-summarise(_F) :->
-	true.
+summarise(F) :->
+	get(F, member, browser, Browser),
+	new(Pass, number(0)),
+	new(Fail, number(0)),
+	send(Browser?members, for_all,
+	     if(@arg1?style == pass,
+		message(Pass, plus, 1),
+		message(Fail, plus, 1))),
+	send(F, report, status, '%d tests succeeded; %d failed',
+	     Pass, Fail).
 
 :- pce_end_class(w3c_rdf_test_gui).
 
@@ -198,6 +211,16 @@ has_url(Item, Which:name) :->
 	get(Item, key, Test),
 	rdf(Test, test:Which, _URL).
 
+run(Item) :->
+	"Re-run the test"::
+	get(Item, key, Test),
+	run_test(Test).
+
+copy_test_uri(Item) :->
+	"Copy URI of test to clipboard"::
+	get(Item, key, Test),
+	send(@display, copy, Test).
+
 :- pce_end_class(rdf_test_item).
 
 
@@ -207,11 +230,17 @@ make_rdf_test_gui(Ref) :-
 	send(new(Ref, w3c_rdf_test_gui), open).
 
 
-pass(Test) :-
-	send(@rdf_test_gui, pass, Test).
+test_result(Result, Test, Our, Norm) :-
+	send(@rdf_test_gui, test_result, Result, Test, Our, Norm),
+	(   Result == fail
+	->  format('~N** Our Triples~n'),
+	    pp(Our),
+	    format('~N** Normative Triples~n'),
+	    pp(Norm)
+	;   true
+	).
+	    
 
-fail(Test, Our, Norm) :-
-	send(@rdf_test_gui, fail, Test, Our, Norm).
 
 start_tests :-
 	send(@rdf_test_gui, clear).
@@ -230,7 +259,7 @@ compare_triples(A, B) :-
 compare_list([], [], S, S).
 compare_list([H1|T1], In2, S0, S) :-
 	select(H2, In2, T2),
-	compare_triple(H1, H2, S0, S1), !,
+	compare_triple(H1, H2, S0, S1), !, % put(.), flush_output,
 	compare_list(T1, T2, S1, S).
 
 compare_triple(rdf(Subj1,P1,O1), rdf(Subj2, P2, O2), S0, S) :-
@@ -239,6 +268,7 @@ compare_triple(rdf(Subj1,P1,O1), rdf(Subj2, P2, O2), S0, S) :-
 	compare_field(O1, O2, S2, S).
 
 compare_field(X, X, S, S) :- !.
+compare_field(literal(X), xml(X), S, S) :- !. % TBD
 compare_field(rdf:Name, Atom, S, S) :-
 	rdf_parser:rdf_name_space(NS),
 	atom_concat(NS, Name, Atom), !.
@@ -249,6 +279,12 @@ compare_field(X, node(Id), S, S) :-
 compare_field(X, node(Id), S, [X=Id|S]) :-
 	\+ memberchk(X=_, S),
 	atom(X),
-	sub_atom(X, 0, _, _, 'Description__'),
+	generated_prefix(Prefix),
+	sub_atom(X, 0, _, _, Prefix),
 	format('Assume ~w = ~w~n', [X, node(Id)]).
 
+generated_prefix('Bag__').
+generated_prefix('Seq__').
+generated_prefix('Alt__').
+generated_prefix('Description__').
+generated_prefix('Statement__').
