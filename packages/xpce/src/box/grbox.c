@@ -11,18 +11,14 @@
 
 static status
 initialiseGrBox(GrBox grb, Graphical gr,
-		Any baseline,
 		Any align,		/* left, right or @nil */
 		Rubber rubber)
-{ if ( isDefault(baseline) )
-    baseline = NAME_bottom;
-  if ( isDefault(align) )
-    align = NIL;
+{ if ( isDefault(align) )
+    align = NAME_center;
   if ( isDefault(rubber) )
     rubber = NIL;
 
   assign(grb, graphical, gr);
-  assign(grb, baseline,  baseline);
   assign(grb, alignment, align);
   assign(grb, rubber,    rubber);
 
@@ -70,14 +66,12 @@ computeAscentDescentGrBox(GrBox grb)
   ComputeGraphical(gr);
   h = valInt(gr->area->h);
 
-  if ( grb->baseline == NAME_top )
+  if ( grb->alignment == NAME_top )
     ascent = 0;
-  else if ( grb->baseline == NAME_bottom )
+  else if ( grb->alignment == NAME_bottom )
     ascent = h;
-  else if ( grb->baseline == NAME_center )
-    ascent = h/2;
   else
-    ascent = valInt(grb->baseline);
+    ascent = h/2;
 
   descent = h-ascent;
   if ( grb->ascent  != toInt(ascent) ||
@@ -92,9 +86,9 @@ computeAscentDescentGrBox(GrBox grb)
 
 
 static status
-baselineGrBox(GrBox grb, Any baseline)
-{ if ( grb->baseline != baseline )
-  { assign(grb, baseline, baseline);
+alignmentGrBox(GrBox grb, Any alignment)
+{ if ( grb->alignment != alignment )
+  { assign(grb, alignment, alignment);
     computeAscentDescentGrBox(grb);
   }
 
@@ -110,8 +104,7 @@ baselineGrBox(GrBox grb, Any baseline)
 
 static char *T_initialise[] =
         { "graphical=graphical",
-	  "baseline=[{top,center,bottom}|int]",
-	  "alignment=[{left,right}]*",
+	  "alignment=[{top,center,bottom,left,right}]",
 	  "rubber=[rubber]*"
 	};
 
@@ -120,18 +113,16 @@ static char *T_initialise[] =
 static vardecl var_grbox[] =
 { IV(NAME_graphical, "graphical", IV_GET,
      NAME_content, "Represented graphical object"),
-  SV(NAME_baseline, "{top,center,bottom}|int", IV_GET|IV_STORE,
-     baselineGrBox,
-     NAME_layout, "Location of the baseline"),
-  IV(NAME_alignment, "{left,right}*", IV_GET,
+  SV(NAME_alignment, "{top,center,bottom,left,right}", IV_GET|IV_STORE,
+     alignmentGrBox,
      NAME_layout, "Alignment in paragraph")
 };
 
 /* Send Methods */
 
 static senddecl send_grbox[] =
-{ SM(NAME_initialise, 4, T_initialise, initialiseGrBox,
-     DEFAULT, "Create grbox from graphical and baseline"),
+{ SM(NAME_initialise, 3, T_initialise, initialiseGrBox,
+     DEFAULT, "Create grbox from graphical, alignment and rubber"),
   SM(NAME_compute, 0, NULL, computeGrBox,
      NAME_update, "Compute <-graphical and update dimensions")
 };

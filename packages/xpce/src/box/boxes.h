@@ -57,8 +57,7 @@ End;
 NewClass(grbox)
   ABSTRACT_HBOX
   Graphical	graphical;		/* Held in-line graphical */
-  Any		baseline;		/* Location of the baseline */
-  Any		alignment;		/* left, right (in paragraph) */
+  Any		alignment;		/* top, bottom, center, left, right */
 End;
 
 

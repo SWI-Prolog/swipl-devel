@@ -888,7 +888,7 @@ fill_line(ParBox pb, int here, parline *line, parshape *shape, int compute)
       }
 
       pc->flags |= PC_GRAPHICAL;
-      if ( notNil(grb->alignment) )
+      if ( grb->alignment == NAME_left || grb->alignment == NAME_right )
       { pc->flags |= PC_ALIGNED_GR;
 
 	if ( blank )
@@ -1002,7 +1002,7 @@ compute_ascent_descent_line(parline *l)
 
 
 static status
-PlaceGrBox(ParBox pb, GrBox grb, Int x, Int y, Int w)
+PlaceGrBox(ParBox pb, GrBox grb, parline *l, Int x, Int y, Int w)
 { Graphical gr = grb->graphical;
 
   DEBUG(NAME_parbox,
@@ -1010,11 +1010,33 @@ PlaceGrBox(ParBox pb, GrBox grb, Int x, Int y, Int w)
 		pp(gr), pp(grb), pp(pb), valInt(x), valInt(y), valInt(w)));
 
   if ( gr->area->x != x || gr->area->y != y || gr->area->w != w )
-  { setGraphical(gr, x, y, w, DEFAULT);
-    if ( computeAscentDescentGrBox(grb) )
-    { DEBUG(NAME_parbox, Cprintf("    --> Size changed\n"));
-      fail;				/* modified */
-    }
+  { int h, ascent, descent;
+
+    setGraphical(gr, x, y, w, DEFAULT);
+    ComputeGraphical(gr);
+
+    if ( l )
+    { h = valInt(gr->area->h);
+
+      if ( grb->alignment == NAME_top )
+      { ascent  = l->ascent;
+	descent = h-ascent;
+      } else if ( grb->alignment == NAME_bottom )
+      { descent = l->descent;
+	ascent = h-descent;
+      } else /*if ( grb->alignment == NAME_center )*/
+      { ascent = (l->ascent - l->descent)/2 + h/2;
+	descent = h-ascent;
+      }
+  
+      if ( grb->ascent  != toInt(ascent) ||
+	   grb->descent != toInt(descent) )
+      { assign(grb, ascent,  toInt(ascent));
+	assign(grb, descent, toInt(descent));
+	DEBUG(NAME_parbox, Cprintf("    --> Size changed\n"));
+	fail;				/* modified */
+      }
+    }    
   }
 
   succeed;
@@ -1037,7 +1059,7 @@ PlaceAlignedGr(GrBox grb, parline *line, parshape *shape, int below)
   DEBUG(NAME_parbox, Cprintf("PLacing %s (y=%d)\n", pp(grb), y));
 
   if ( grb->alignment == NAME_left )
-  { PlaceGrBox(shape->parbox, grb, toInt(line->x), toInt(y), grw);
+  { PlaceGrBox(shape->parbox, grb, NULL, toInt(line->x), toInt(y), grw);
     add_left_margin(shape,
 		    y,
 		    valInt(grb->ascent)+valInt(grb->descent),
@@ -1045,7 +1067,7 @@ PlaceAlignedGr(GrBox grb, parline *line, parshape *shape, int below)
   } else
   { int grx = line->x + line->w - valInt(grw);
 
-    PlaceGrBox(shape->parbox, grb, toInt(grx), toInt(y), grw);
+    PlaceGrBox(shape->parbox, grb, NULL, toInt(grx), toInt(y), grw);
     add_right_margin(shape,
 		     y,
 		     valInt(grb->ascent)+valInt(grb->descent),
@@ -1101,6 +1123,7 @@ computeParBox(ParBox pb)
 	    { GrBox grb = (GrBox)pc->box;
 
 	      if ( !PlaceGrBox(pb, grb,
+			       &l,
 			       toInt(pc->x),
 			       toInt(y + l.ascent - valInt(grb->ascent)),
 			       toInt(pc->w)) )
@@ -1199,10 +1222,15 @@ geometryParBox(ParBox pb, Int x, Int y, Int w, Int h)
   if ( isDefault(x) ) x = a->x;
   if ( isDefault(y) ) y = a->y;
   if ( isDefault(w) )
-    w = a->w;
-  else
-    assign(pb, auto_crop, OFF);
-  chw = (w != a->w);
+  { w = a->w;
+    chw = FALSE;
+  } else
+  { if ( pb->auto_crop == ON )
+    { assign(pb, auto_crop, OFF);
+      chw = TRUE;
+    } else
+      chw = (w != a->w);
+  }
 
   if ( x != a->x || y != a->y || chw )
   { Int dx = sub(x, a->x);
@@ -1223,8 +1251,10 @@ geometryParBox(ParBox pb, Int x, Int y, Int w, Int h)
 			 assign(a, x, x);
 			 assign(a, y, y);
 			 if ( chw )
-			 { send(pb, NAME_lineWidth, toInt(lw), 0);
-			   computeParBox(pb); /* update ->height */
+			 { if ( pb->line_width != toInt(lw) )
+			   { send(pb, NAME_lineWidth, toInt(lw), 0);
+			     computeParBox(pb); /* update ->height */
+			   }
 			 }
 		       });
 
