@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Avoid text_image (used by editor and list_browser) to draw selection
+  over scrollbar.
+
 * ADDED: pce_begin_class/[2,3]: test for redefinition of built-in and user
   defined classes.
 

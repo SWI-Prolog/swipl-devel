@@ -1029,6 +1029,8 @@ paint_line(TextImage ti, Area a, TextLine l, int from, int to)
       } else
       { int x  = l->chars[s].x;
 	int tx = l->chars[e].x;
+	
+	if ( tx > rmargin ) tx = rmargin;
 	r_fill(x, l->y, tx-x, l->h, bg);
       }
     }
