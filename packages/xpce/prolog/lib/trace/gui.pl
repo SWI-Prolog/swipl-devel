@@ -472,7 +472,7 @@ button(+nostop_or_spy,
 		 "-",	'nostopspy.xpm','Delete selected stop or spy-point').
 button(gap,	 -,	-,		-).
 button(+details, "v",	'details.xpm',	'Show (variable) details').
-button(+edit,	 "e",	'edit.xpm',	'Edit').
+button(+edit,	 "e",	'edit.xpm',	'Toggle read-only/edit-mode').
 
 
 tag_balloon(Balloon0, Keys, Balloon) :-

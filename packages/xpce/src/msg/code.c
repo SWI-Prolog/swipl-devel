@@ -25,6 +25,26 @@ getConvertCode(Class class, QuoteFunction q)
 }
 
 
+static status
+debugClassCode(Code c, Name cls)
+{ if ( cls == NAME_user )
+    clearDFlag(c, D_SERVICE);
+  else
+    setDFlag(c, D_SERVICE);
+
+  succeed;
+}
+
+
+static Name
+getDebugClassCode(Code c)
+{ if ( onDFlag(c, D_SERVICE) )
+    return NAME_service;
+  else
+    return NAME_user;
+}
+
+
 		/********************************
 		*           FORWARDING		*
 		********************************/
@@ -165,7 +185,16 @@ ExecuteCode(Code c)
 
   FixGetFunctionClass(cl, NAME_Execute);
   if ( cl->get_function )
-    return (*cl->get_function)(c) ? SUCCEED : FAIL;
+  { status rval;
+
+    if ( onDFlag(c, D_SERVICE) )
+    { ServiceMode(PCE_EXEC_SERVICE,
+		  rval = ((*cl->get_function)(c) ? SUCCEED : FAIL));
+    } else
+      rval = (*cl->get_function)(c) ? SUCCEED : FAIL;
+
+    return rval;
+  }
 
   return errorPce(c, NAME_cannotExecute);
 }
@@ -341,7 +370,9 @@ static senddecl send_code[] =
   SM(NAME_forwardVector, 1, "any ...", forwardVectorCodev,
      NAME_execute, "Push @arg1, ... from a vector and execute"),
   SM(NAME_Execute, 0, NULL, ExecuteCode,
-     NAME_internal, "Execute the code object (redefined)")
+     NAME_internal, "Execute the code object (redefined)"),
+  SM(NAME_debugClass, 1, "{user,service}", debugClassCode,
+     NAME_debugging, "Specify debug-capabilities")
 };
 
 /* Get Methods */
@@ -350,7 +381,9 @@ static getdecl get_code[] =
 { GM(NAME_Execute, 0, "unchecked", NULL, getExecuteCode,
      NAME_internal, "Execute the function object (error)"),
   GM(NAME_convert, 1, "function", "quote=quote_function", getConvertCode,
-     DEFAULT, "Convert quoted function to value quoted")
+     DEFAULT, "Convert quoted function to value quoted"),
+  GM(NAME_debugClass, 0, "{user,service}", NULL, getDebugClassCode,
+     NAME_debugging, "Specify debug-capabilities")
 };
 
 /* Resources */

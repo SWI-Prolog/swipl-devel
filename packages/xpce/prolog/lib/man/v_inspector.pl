@@ -682,10 +682,16 @@ prepare_class(Object) :-
 	send(Class, changed_message, @changed_slot),
 	send(Class, freed_message, @freed_object).
 
-:- pce_global(@freed_object,
-	      new(message(@prolog, call, freed_object, @arg2))).
-:- pce_global(@changed_slot,
-	      new(message(@prolog, call, changed_slot, @arg1, @arg2, @arg3))).
+:- pce_global(@freed_object, make_freed_object).
+:- pce_global(@changed_slot, make_changed_slot).
+
+make_changed_slot(Msg) :-
+	      new(Msg, message(@prolog, call,
+			       changed_slot, @arg1, @arg2, @arg3)),
+	      send(Msg, debug_class, service).
+make_freed_object(Msg) :-
+	      new(Msg, message(@prolog, call, freed_object, @arg2)),
+	      send(Msg, debug_class, service).
 
 changed_slot(Instance, add_reference, _From) :- !,
 	inspector_window(Mon),

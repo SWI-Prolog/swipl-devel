@@ -77,8 +77,10 @@ class_variable(size, size, size(300, 300)).
 initialise(V, Root:[visual]) :->
 	default(Root, @display_manager, TheRoot),
 	V*>>initialise,
-	V=>>freed_message(message(V, freed, @arg2)),
-	V=>>changed_message(message(V, changed, @arg1)),
+	V=>>freed_message(new(F, message(V, freed, @arg2))),
+	V=>>changed_message(new(C, message(V, changed, @arg1))),
+	F->>debug_class(service),
+	C->>debug_class(service),
 	Id    = TheRoot->>object_reference,
 	Label = TheRoot->>vis_icon_label,
 	Icon  = TheRoot->>vis_icon,

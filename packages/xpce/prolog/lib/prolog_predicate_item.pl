@@ -31,17 +31,19 @@ Completion is provided on all of the three fields.  It requests at least
 one character before starting to avoid a too long waiting period.  Maybe
 we should make this dynamic.
 
-The <-selection is returned as a sheet  holding the entered module, name
-and arity. The predicate prolog_predicates_from_selection/2  may be used
-to expand this value to a list of terms of the form Module:Head.
-
-See the commented test/0 the end of this file for an example.
+The  <-selection  is  returned   as   a    Prolog   term   of  the  form
+Module:Name/Arity or Name/Arity.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 :- pce_begin_class(prolog_predicate_item, text_item,
 		   "Item for entering a Prolog predicate").
 
 class_variable(length,	int,	40, "Default # characters").
+
+initialise(FI, Name:[name], Def:[char_array], Msg:[code]*) :->
+	send_super(FI, initialise, Name, Def, Msg),
+	send(FI, style, combo_box).
+
 
 completions(FI, From:'tuple|name', Matches:chain) :<-
 	(   send(From, instance_of, char_array)

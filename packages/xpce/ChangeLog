@@ -1,3 +1,8 @@
+* ADDED: `code<->debug_class: service' to hide everything executed by a
+  code object from the tracer.  Used by PceEmacs, Visual Hierarchy and
+  Inspector to hide idle events and changes-tracking from the Prolog
+  debugger.
+
 * FIXED: Avoid possibility of last-window variable (in evt/event.c) to
   become invalid.
 

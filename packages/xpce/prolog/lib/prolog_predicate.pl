@@ -23,9 +23,9 @@ class is to have the type prolog_predicate available.
 :- pce_begin_class(prolog_predicate, object,
 		   "Represent a Prolog predicate").
 
-variable(module,	name*,	get, "Module of the predicate").
-variable(name,		name,	get, "Name of predicate").
-variable(arity,		'0..',	get, "Arity of the predicate").
+variable(module,	name*,	 get, "Module of the predicate").
+variable(name,		name,	 get, "Name of predicate").
+variable(arity,		['0..'], get, "Arity of the predicate").
 
 initialise(P, Term:prolog) :->
 	"Create from [Module]:Name/Arity"::
@@ -34,9 +34,13 @@ initialise(P, Term:prolog) :->
 	;   Term = Name/Arity,
 	    Module = @nil
 	),
+	(   var(Arity)
+	->  TheArity = @default
+	;   TheArity = Arity
+	),
 	send(P, slot, module, Module),
 	send(P, slot, name, Name),
-	send(P, slot, arity, Arity).
+	send(P, slot, arity, TheArity).
 
 convert(_, From:name, P:prolog_predicate) :<-
 	"Convert textual and Prolog term"::
@@ -57,9 +61,13 @@ print_name(P, PN:name) :<-
 	"Return as [Module:]Name/Arity"::
 	get(P, name, Name),
 	get(P, arity, Arity),
+	(   Arity == @default
+	->  TheArity = '_'
+	;   TheArity = Arity
+	),
 	(   get(P, module, Module), Module \== @nil
-	->  concat_atom([Name, /, Arity], PN)
-	;   concat_atom([Module : Name, /, Arity], PN)
+	->  concat_atom([Module, :, Name, /, TheArity], PN)
+	;   concat_atom([Name, /, TheArity], PN)
 	).
 	
 head(P, Qualify:[bool], Head:prolog) :<-
@@ -67,6 +75,7 @@ head(P, Qualify:[bool], Head:prolog) :<-
 	get(P, module, Module),
 	get(P, name, Name),
 	get(P, arity, Arity),
+	Arity \== @default,
 	functor(Head0, Name, Arity),
 	(   (   Qualify == @off
 	    ;	Qualify == @default,
@@ -78,9 +87,15 @@ head(P, Qualify:[bool], Head:prolog) :<-
 	;   Head = user:Head0
 	).
 
+%	TODO: Deal with multiple solutions
+
 source(P, Loc:source_location) :<-
 	"Return source-location from Prolog DB"::
-	get(P, head, @on, Head),
+	get(P, head, Head0),
+	(   Head0 = _:_
+	->  Head = Head0
+	;   Head = _:Head0
+	),
 	predicate_property(Head, file(File)),
 	(   predicate_property(Head, line_count(Line))
 	->  new(Loc, source_location(File, Line))

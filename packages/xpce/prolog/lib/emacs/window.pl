@@ -575,7 +575,9 @@ unlink(E) :->
 
 make_idle_timer(T) :-
 	new(T, timer(2)),
-	send(T, message, message(T, send_hyper, editor, editor_idle_event)).
+	send(T, message,
+	     new(Msg, message(T, send_hyper, editor, editor_idle_event))),
+	send(Msg, debug_class, service). 	% non-traceable
 
 editor_idle_event(E) :->
 	"Editor is idle"::

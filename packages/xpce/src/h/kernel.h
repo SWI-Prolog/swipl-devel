@@ -424,7 +424,7 @@ void	clearDFlagProgramObject(Any, unsigned long);
 
 					/* Method */
 #define D_HOSTMETHOD	  makeDFlag(22) /* Implementation is in the host */
-					/* Types */
+#define D_SERVICE	  makeDFlag(23)	/* Execute in `service' mode */
 
 
 		/********************************

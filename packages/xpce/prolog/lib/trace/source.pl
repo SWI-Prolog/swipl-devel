@@ -106,7 +106,7 @@ edit(V, Val:[bool]) :->
 	->  get(V?editable, negate, NewVal)
 	;   NewVal = Val
 	),
-	send(V, editable, Val),
+	send(V, editable, NewVal),
 	send(V, update_label).
 
 :- pce_group(stop).
