@@ -7,7 +7,7 @@
     Copyright (C) 1992 University of Amsterdam. All rights reserved.
 */
 
-:- module(pce_image, [image_viewer/0]).
+:- module(pce_imageviewer, [image_viewer/0]).
 :- use_module(library(pce)).
 :- require([ chain_list/2
 	   , concat/3
