@@ -18,10 +18,12 @@
     crash.  Joachim Katzer.
 
   * PORT: Fixed various problems on SGI (IRIX 6.5), including realisation
-    of dynamic stacks based on MAP_AUTOGROW|MAP_AUTORESRV.
+    of dynamic stacks based on MAP_AUTOGROW|MAP_AUTORESRV.  Thanks to
+    Matthijs Mourits for providing me with access to his machine.
 
   * FIXED: only open /dev/zero once in multi-threaded version where
     MAP_ANON is not supported.
+
 
 VERSION 5.1.9 (Mar 06, 2003)
 ============================
