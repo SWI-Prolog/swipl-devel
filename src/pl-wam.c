@@ -2069,6 +2069,8 @@ pl-comp.c
     &&H_INDIRECT_LBL,
     &&B_INTEGER_LBL,
     &&H_INTEGER_LBL,
+    &&B_INT64_LBL,
+    &&H_INT64_LBL,
     &&B_FLOAT_LBL,
     &&H_FLOAT_LBL,
 
@@ -2098,6 +2100,7 @@ pl-comp.c
 #if O_COMPILE_ARITH
     &&A_ENTER_LBL,
     &&A_INTEGER_LBL,
+    &&A_INT64_LBL,
     &&A_DOUBLE_LBL,
     &&A_VAR0_LBL,
     &&A_VAR1_LBL,
@@ -2362,6 +2365,27 @@ variable, compare the numbers otherwise.
       	CLAUSE_FAILED;
       }  
 
+    VMI(H_INT64) MARK(HINT64)
+      { Word k;
+
+	deRef2(ARGP++, k);
+	if ( canBind(*k) )
+	{ Word p = allocGlobal(2+WORDS_PER_INT64);
+	  word c = consPtr(p, TAG_INTEGER|STG_GLOBAL);
+	  int i;
+
+	  *p++ = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
+	  for(i=0; i<WORDS_PER_INT64; i++)
+	    *p++ = (word)*PC++;
+	  *p = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
+	  bindConst(k, c);
+	  NEXT_INSTRUCTION;
+	} else if ( isBignum(*k) && valBignum(*k) == (int64_t)*PC++ )
+	  NEXT_INSTRUCTION;
+
+      	CLAUSE_FAILED;
+      }
+
     VMI(H_FLOAT) MARK(HFLOAT)
       { Word k;
 
@@ -2437,10 +2461,23 @@ global stack and assign the pointer to *ARGP.
 
 	*ARGP++ = consPtr(p, TAG_INTEGER|STG_GLOBAL);
 	*p++ = mkIndHdr(1, TAG_INTEGER);
-	*p++ = (long)*PC++;
+	*p++ = (word)*PC++;
 	*p++ = mkIndHdr(1, TAG_INTEGER);
 	NEXT_INSTRUCTION;
       }  
+
+    VMI(B_INT64) MARK(BINT64)
+      { Word p = allocGlobal(2+WORDS_PER_INT64);
+	int i;
+	
+	*ARGP++ = consPtr(p, TAG_INTEGER|STG_GLOBAL);
+	*p++ = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
+	for(i=0; i<WORDS_PER_INT64; i++)
+	  *p++ = (word)*PC++;
+	*p++ = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
+
+	NEXT_INSTRUCTION;
+      }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Double  in  the  body.  Simply  copy  to  the  global  stack.  See  also
@@ -3341,6 +3378,16 @@ to give the compiler a hint to put ARGP not into a register.
       {	Number n = (Number)ARGP;
 
 	n->value.i = (long) *PC++;
+	n->type    = V_INTEGER;
+	ARGP       = (Word)(n+1);
+	NEXT_INSTRUCTION;
+      }
+
+    VMI(A_INT64) MARK(AINT64);
+      {	Number n = (Number)ARGP;
+	Word p = &n->value.w[0];
+
+	cpInt64Data(p, PC);
 	n->type    = V_INTEGER;
 	ARGP       = (Word)(n+1);
 	NEXT_INSTRUCTION;

@@ -52,6 +52,8 @@ const code_info codeTable[] = {
   CODE(H_INDIRECT,	"h_indirect",	0, CA1_STRING),
   CODE(B_INTEGER,	"b_integer",	1, CA1_INTEGER),
   CODE(H_INTEGER,	"h_integer",	1, CA1_INTEGER),
+  CODE(B_INT64,		"b_int64",	WORDS_PER_INT64, CA1_INT64),
+  CODE(H_INT64,		"h_int64",	WORDS_PER_INT64, CA1_INT64),
   CODE(B_FLOAT,		"b_float",	WORDS_PER_DOUBLE, CA1_FLOAT),
   CODE(H_FLOAT,		"h_float",	WORDS_PER_DOUBLE, CA1_FLOAT),
   CODE(B_FIRSTVAR,	"b_firstvar",	1, CA1_VAR),
@@ -75,6 +77,7 @@ const code_info codeTable[] = {
   CODE(I_APPLY,		"i_apply",	0, 0),
   CODE(A_ENTER,		"a_enter",	0, 0),
   CODE(A_INTEGER,	"a_integer",	1, CA1_INTEGER),
+  CODE(A_INT64,		"a_int64",	WORDS_PER_INT64, CA1_INT64),
   CODE(A_DOUBLE,	"a_double",	WORDS_PER_DOUBLE, CA1_FLOAT),
   CODE(A_VAR0,		"a_var0",	0, 0),
   CODE(A_VAR1,		"a_var1",	0, 0),
@@ -1231,7 +1234,18 @@ be a variable, and thus cannot be removed if it is before an I_POPF.
       }
     case TAG_INTEGER:
       if ( storage(*arg) != STG_INLINE )
-      {	Output_1(ci, (where&A_HEAD) ? H_INTEGER : B_INTEGER, valBignum(*arg));
+      {	int64_t val = valBignum(*arg);
+
+#if SIZEOF_LONG == 8
+	Output_1(ci, (where&A_HEAD) ? H_INTEGER : B_INTEGER, (long)val);
+#else
+	if ( val >= LONG_MIN && val <= LONG_MAX )
+	{ Output_1(ci, (where&A_HEAD) ? H_INTEGER : B_INTEGER, (long)val);
+	} else
+	{ Output_0(ci, (where&A_HEAD) ? H_INT64 : B_INT64);
+	  Output_n(ci, (Word)&val, WORDS_PER_INT64);
+	}
+#endif
 	return NONVOID;
       }
       Output_1(ci, (where & A_BODY) ? B_CONST : H_CONST, *arg);
@@ -1688,7 +1702,24 @@ compileArithArgument(Word arg, compileInfo *ci ARG_LD)
   deRef(arg);
 
   if ( isInteger(*arg) )
-  { Output_1(ci, A_INTEGER, valInteger(*arg));
+  { 
+#if SIZEOF_LONG == 8
+    Output_1(ci, A_INTEGER, valInteger(*arg));
+#else
+    if ( storage(*arg) == STG_INLINE )
+    { Output_1(ci, A_INTEGER, valInt(*arg));
+    } else
+    { int64_t val = valBignum(*arg);
+
+      if ( val >= LONG_MIN && val <= LONG_MAX )
+      { Output_1(ci, A_INTEGER, (word)val);
+      } else
+      { Output_0(ci, A_INT64);
+	Output_n(ci, (Word)&val, WORDS_PER_INT64);
+	succeed;
+      }
+    }
+#endif
     succeed;
   }
   if ( isReal(*arg) )
@@ -2131,6 +2162,9 @@ arg1Key(Clause clause, word *key)
       case H_RLIST:
 	*key = FUNCTOR_dot2;
         succeed;
+      case H_INT64:
+	*key = (word)PC[0] ^ (word)PC[1];
+        succeed;
       case H_INTEGER:
 	*key = (word)*PC;
 	succeed;
@@ -2314,6 +2348,15 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
 	}
       case H_INTEGER:
         { word copy = globalLong(XR(*PC++) PASS_LD);
+	  TRY(_PL_unify_atomic(argp, copy));
+	  NEXTARG;
+	  continue;
+	}
+      case H_INT64:
+        { int64_t *p = (int64_t*)PC;
+	  word copy = globalLong(*p PASS_LD);
+	  p++;
+	  PC = (Code)p;
 	  TRY(_PL_unify_atomic(argp, copy));
 	  NEXTARG;
 	  continue;
@@ -2552,6 +2595,14 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 	case A_INTEGER:
 			    *ARGP++ = makeNum(*PC++);
 			    continue;
+	case B_INT64:
+	case A_INT64:
+			  { Word p = allocGlobal(2+WORDS_PER_INT64);
+			    *ARGP++ = consPtr(p, TAG_INTEGER|STG_GLOBAL);
+			    *p++ = mkIndHdr(WORDS_PER_INT64, TAG_FLOAT);
+			    cpInt64Data(p, PC);
+			    *p   = mkIndHdr(WORDS_PER_INT64, TAG_FLOAT);
+			  }
 	case B_FLOAT:
 	case A_DOUBLE:
 		  	  { Word p = allocGlobal(2+WORDS_PER_DOUBLE);
@@ -3279,6 +3330,7 @@ pl_xr_member(term_t ref, term_t term, control_t h)
 	  break;
 	}
 	case CA1_INTEGER:
+	case CA1_INT64:
 	case CA1_FLOAT:
 	  break;
 	case CA1_STRING:
@@ -3472,6 +3524,15 @@ wamListInstruction(IOSTREAM *out, Clause clause, Code bp)
 	{ long l = (long) *bp++;
 	  n++;
 	  Sfprintf(out, " %ld", l);
+	  break;
+	}
+	case CA1_INT64:
+	{ int64_t val;
+	  Word p = (Word)&val;
+
+	  cpInt64Data(p, bp);
+	  n += WORDS_PER_INT64;
+	  Sfprintf(out, " %lld", val);
 	  break;
 	}
 	case CA1_FLOAT:

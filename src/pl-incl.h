@@ -440,6 +440,7 @@ them.  Descriptions:
 #define INTBITSIZE		(8 * sizeof(int))
 #define INT64BITSIZE		(8 * sizeof(int64_t))
 #define WORDS_PER_DOUBLE        ((sizeof(double)+sizeof(word)-1)/sizeof(word))
+#define WORDS_PER_INT64		(sizeof(int64_t)/sizeof(word))
 
 				/* Prolog's integer range */
 #define PLMINTAGGEDINT		(-(long)(1L<<(WORDBITSIZE - LMASK_BITS - 1)))
@@ -587,100 +588,103 @@ codes.
 #define H_INDIRECT	((code)14)		/* indirect in the head */
 #define B_INTEGER	((code)15)		/* bignum in the head */
 #define H_INTEGER	((code)16)		/* bignum in the body */
-#define B_FLOAT		((code)17)		/* double in the head */
-#define H_FLOAT		((code)18)		/* double in the body */
+#define B_INT64		((code)17)		/* bignum in the head */
+#define H_INT64		((code)18)		/* bignum in the body */
+#define B_FLOAT		((code)19)		/* double in the head */
+#define H_FLOAT		((code)20)		/* double in the body */
 
-#define B_FIRSTVAR	((code)19)		/* first occurrence of var */
-#define H_FIRSTVAR	((code)20)
-#define B_VOID		((code)21)		/* anonimous variables */
-#define H_VOID		((code)22)
-#define B_ARGFIRSTVAR	((code)23)		/* body vars nested in funct */
-#define B_ARGVAR	((code)24)
+#define B_FIRSTVAR	((code)21)		/* first occurrence of var */
+#define H_FIRSTVAR	((code)22)
+#define B_VOID		((code)23)		/* anonimous variables */
+#define H_VOID		((code)24)
+#define B_ARGFIRSTVAR	((code)25)		/* body vars nested in funct */
+#define B_ARGVAR	((code)26)
 
-#define H_NIL		((code)25)		/* [] in the head */
-#define B_NIL		((code)26)		/* [] in the body */
-#define H_LIST		((code)27)		/* ./2 in the head */
-#define H_RLIST		((code)28)		/* right-recursive list */
-#define B_LIST		((code)29)		/* ./2 in the body */
-#define B_RLIST		((code)30)		/* right-recursive list */
+#define H_NIL		((code)27)		/* [] in the head */
+#define B_NIL		((code)28)		/* [] in the body */
+#define H_LIST		((code)29)		/* ./2 in the head */
+#define H_RLIST		((code)30)		/* right-recursive list */
+#define B_LIST		((code)31)		/* ./2 in the body */
+#define B_RLIST		((code)32)		/* right-recursive list */
 
-#define B_VAR0		((code)31)		/* B_VAR 0 */
-#define B_VAR1		((code)32)		/* B_VAR 1 */
-#define B_VAR2		((code)33)		/* B_VAR 2 */
+#define B_VAR0		((code)33)		/* B_VAR 0 */
+#define B_VAR1		((code)34)		/* B_VAR 1 */
+#define B_VAR2		((code)35)		/* B_VAR 2 */
 
-#define I_USERCALL0	((code)34)		/* variable in body (call/1) */
-#define I_USERCALLN	((code)35)		/* call/[2...] */
-#define I_CUT		((code)36)		/* ! */
-#define I_APPLY		((code)37)		/* apply/2 */
+#define I_USERCALL0	((code)36)		/* variable in body (call/1) */
+#define I_USERCALLN	((code)37)		/* call/[2...] */
+#define I_CUT		((code)38)		/* ! */
+#define I_APPLY		((code)39)		/* apply/2 */
 
 #if O_COMPILE_ARITH
-#define A_ENTER		((code)38)		/* start arithmetic sequence */
-#define A_INTEGER	((code)39)		/* 32-bit signed int */
-#define A_DOUBLE	((code)40)		/* 64-bit double */
-#define A_VAR0		((code)41)		/* variable-0 */
-#define A_VAR1		((code)42)		/* variable-1 */
-#define A_VAR2		((code)43)		/* variable-2 */
-#define A_VAR		((code)44)		/* variable-n */
-#define A_FUNC0		((code)45)		/* nullary arithmic function */
-#define A_FUNC1		((code)46)		/* unary arithmic function */
-#define A_FUNC2		((code)47)		/* binary arithmic function */
-#define A_FUNC		((code)48)		/* n-ary arithmic function */
-#define A_LT		((code)49)		/* < */
-#define A_GT		((code)50)		/* > */
-#define A_LE		((code)51)		/* =< */
-#define A_GE		((code)52)		/* >= */
-#define A_EQ		((code)53)		/* =:= */
-#define A_NE		((code)54)		/* =\= */
-#define A_IS		((code)55)		/* is */
+#define A_ENTER		((code)40)		/* start arithmetic sequence */
+#define A_INTEGER	((code)41)		/* 32-bit signed int */
+#define A_INT64		((code)42)		/* 64-bit signed int */
+#define A_DOUBLE	((code)43)		/* 64-bit double */
+#define A_VAR0		((code)44)		/* variable-0 */
+#define A_VAR1		((code)45)		/* variable-1 */
+#define A_VAR2		((code)46)		/* variable-2 */
+#define A_VAR		((code)47)		/* variable-n */
+#define A_FUNC0		((code)48)		/* nullary arithmic function */
+#define A_FUNC1		((code)49)		/* unary arithmic function */
+#define A_FUNC2		((code)50)		/* binary arithmic function */
+#define A_FUNC		((code)51)		/* n-ary arithmic function */
+#define A_LT		((code)52)		/* < */
+#define A_GT		((code)53)		/* > */
+#define A_LE		((code)54)		/* =< */
+#define A_GE		((code)55)		/* >= */
+#define A_EQ		((code)56)		/* =:= */
+#define A_NE		((code)57)		/* =\= */
+#define A_IS		((code)58)		/* is */
 #endif /* O_COMPILE_ARITH */
 
 #if O_COMPILE_OR
-#define C_OR		((code)56)		/* In-clause backtract point */
-#define C_JMP		((code)57)		/* Jump over code */
-#define C_MARK		((code)58)		/* Sub-clause cut mark */
-#define C_CUT		((code)59)		/* cut to corresponding mark */
-#define C_IFTHENELSE	((code)60)		/* if-then-else start */
-#define C_VAR		((code)61)		/* make a variable */
-#define C_END		((code)62)		/* dummy to help decompiler */
-#define C_NOT		((code)63)		/* same as C_IFTHENELSE */
-#define C_FAIL		((code)64)		/* fail */
+#define C_OR		((code)59)		/* In-clause backtract point */
+#define C_JMP		((code)60)		/* Jump over code */
+#define C_MARK		((code)61)		/* Sub-clause cut mark */
+#define C_CUT		((code)62)		/* cut to corresponding mark */
+#define C_IFTHENELSE	((code)63)		/* if-then-else start */
+#define C_VAR		((code)64)		/* make a variable */
+#define C_END		((code)65)		/* dummy to help decompiler */
+#define C_NOT		((code)66)		/* same as C_IFTHENELSE */
+#define C_FAIL		((code)67)		/* fail */
 #endif /* O_COMPILE_OR */
 
-#define B_INDIRECT	((code)65)		/* INDIRECT in body */
+#define B_INDIRECT	((code)68)		/* INDIRECT in body */
 
 #if O_BLOCK
-#define I_CUT_BLOCK	((code)66)		/* !(block) */
-#define B_EXIT		((code)67)		/* exit(block, rval) */
+#define I_CUT_BLOCK	((code)69)		/* !(block) */
+#define B_EXIT		((code)70)		/* exit(block, rval) */
 #endif /*O_BLOCK*/
 
 #if O_INLINE_FOREIGNS
-#define I_CALL_FV0	((code)68)		/* call foreign, no args */
-#define I_CALL_FV1	((code)69)		/* call foreign, 1 var arg */
-#define I_CALL_FV2	((code)70)		/* call foreign, 2 var args */
+#define I_CALL_FV0	((code)71)		/* call foreign, no args */
+#define I_CALL_FV1	((code)72)		/* call foreign, 1 var arg */
+#define I_CALL_FV2	((code)73)		/* call foreign, 2 var args */
 #endif /*O_INLINE_FOREIGNS*/
 
-#define I_FAIL		((code)71)		/* fail */
-#define I_TRUE		((code)72)		/* true */
+#define I_FAIL		((code)74)		/* fail */
+#define I_TRUE		((code)75)		/* true */
 
 #ifdef O_SOFTCUT
-#define C_SOFTIF	((code)73)		/* Start A *-> B ; C */
-#define C_SOFTCUT	((code)74)		/* `Cut' of A *-> B ; C */
+#define C_SOFTIF	((code)76)		/* Start A *-> B ; C */
+#define C_SOFTCUT	((code)77)		/* `Cut' of A *-> B ; C */
 #endif /*O_SOFTCUT*/
 
-#define I_EXITFACT	((code)75)		/* exit from a fact */
-#define D_BREAK		((code)76)		/* Debugger break-point */
+#define I_EXITFACT	((code)78)		/* exit from a fact */
+#define D_BREAK		((code)79)		/* Debugger break-point */
 
 #if O_CATCHTHROW
-#define I_CATCH		((code)77)		/* $catch (catch/3) */
-#define B_THROW		((code)78)		/* throw(Exception) */
+#define I_CATCH		((code)80)		/* $catch (catch/3) */
+#define B_THROW		((code)81)		/* throw(Exception) */
 #endif
 
-#define I_CONTEXT	((code)79)		/* Push context module */
-#define C_LCUT		((code)80)		/* ! local in \+ and -> */
-#define I_CALLCLEANUP	((code)81)		/* $call_cleanup */
-#define I_EXITCLEANUP	((code)82)		/* $exit_cleanup */
+#define I_CONTEXT	((code)82)		/* Push context module */
+#define C_LCUT		((code)83)		/* ! local in \+ and -> */
+#define I_CALLCLEANUP	((code)84)		/* $call_cleanup */
+#define I_EXITCLEANUP	((code)85)		/* $exit_cleanup */
 
-#define I_HIGHEST	((code)82)		/* largest WAM code !!! */
+#define I_HIGHEST	((code)85)		/* largest WAM code !!! */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Arithmetic comparison
@@ -1125,6 +1129,20 @@ We assume the compiler will optimise this properly.
 	  } \
 	}
 
+#define cpInt64Data(to, from) \
+	{ Word _f = (Word)(from); \
+	  switch(WORDS_PER_INT64) \
+	  { case 2: \
+	      *(to)++ = *_f++; \
+	    case 1: \
+	      *(to)++ = *_f++; \
+	      from = (void *)_f; \
+	      break; \
+	    default: \
+	      assert(0); \
+	  } \
+	}
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Structure declarations that must be shared across multiple files.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -1232,10 +1250,11 @@ struct clause_ref
 #define CA1_FUNC	2	/* code arg 1 is functor */
 #define CA1_DATA	3	/* code arg 2 is prolog data */
 #define CA1_INTEGER	4	/* long value */
-#define CA1_FLOAT	5	/* next WORDS_PER_DOUBLE are double */
-#define CA1_STRING	6	/* inlined string */
-#define CA1_MODULE	7	/* a module */
-#define CA1_VAR		8	/* a variable(-offset) */
+#define CA1_INT64	5	/* int64 value */
+#define CA1_FLOAT	6	/* next WORDS_PER_DOUBLE are double */
+#define CA1_STRING	7	/* inlined string */
+#define CA1_MODULE	8	/* a module */
+#define CA1_VAR		9	/* a variable(-offset) */
 
 typedef struct
 { char		*name;		/* name of the code */

@@ -1299,7 +1299,7 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	int has_arg1 = FALSE, has_arg2 = FALSE;
 	int arg1=0, arg2=0;
 	char fbuf[100], *fs = fbuf, *fe = fbuf;
-	int islong = FALSE;
+	int islong = 0;
 	int pad = ' ';
 
 	for(;;)
@@ -1337,7 +1337,11 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	}
 
 	if ( *fm == 'l' )
-	{ islong++;
+	{ islong++;			/* 1: %ld */
+	  fm++;
+	}
+	if ( *fm == 'l' )
+	{ islong++;			/* 2: %lld */
 	  fm++;
 	}
 
@@ -1352,21 +1356,36 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	  case 'u':
 	  case 'x':
 	  case 'X':
-	  { long v;
+	  { long v = 0;			/* make compiler silent */
+	    int64_t vl = 0;
 	    char fmbuf[8], *fp=fmbuf;
 
-	    if ( islong )
-	      v = va_arg(args, long);
-	    else
-	      v = va_arg(args, int);
+	    switch( islong )
+	    { case 0:
+		v = va_arg(args, int);
+	        break;
+	      case 1:
+		v = va_arg(args, long);
+	        break;
+	      case 2:
+	        vl = va_arg(args, int64_t);
+		break;
+	    }
 
 	    *fp++ = '%';
 	    if ( modified )
 	      *fp++ = '#';
 	    *fp++ = 'l';
-	    *fp++ = *fm;
-	    *fp   = '\0';
-	    sprintf(fs, fmbuf, v);
+	    if ( islong < 2 )
+	    { *fp++ = *fm;
+	      *fp   = '\0';
+	      sprintf(fs, fmbuf, v);
+	    } else
+	    { *fp++ = 'l';
+	      *fp++ = *fm;
+	      *fp   = '\0';
+	      sprintf(fs, fmbuf, vl);
+	    }
 	    fe = &fs[strlen(fs)];
 
 	    break;
