@@ -120,3 +120,6 @@
 
 /* Name of the file to boot from */
 #undef BOOTFILE
+
+/* Alignment restrictions on setjmp()/longjmp() buffer */
+#undef JMPBUF_ALIGNMENT

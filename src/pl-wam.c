@@ -1477,8 +1477,8 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 					/* should be struct alignment, */
 					/* but for now, I think this */
 					/* is always the same */
-#ifdef DOUBLE_ALIGNMENT
-  while ( (ulong)lTop % DOUBLE_ALIGNMENT )
+#ifdef JMPBUF_ALIGNMENT
+  while ( (ulong)lTop % JMPBUF_ALIGNMENT )
     lTop = addPointer(lTop, sizeof(word));
 #endif
 

@@ -129,6 +129,21 @@ flags after running configure.
 #define DOUBLE_ALIGNMENT sizeof(double)
 #endif
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The ia64 says setjmp()/longjmp() buffer must be aligned at 128 bits
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifndef JMPBUF_ALIGNMENT
+#ifdef __ia64__
+#define JMPBUF_ALIGNMENT 128
+#else
+#ifdef DOUBLE_ALIGNMENT
+#define JMPBUF_ALIGNMENT DOUBLE_ALIGNMENT
+#endif
+#endif
+#endif
+
 #if MMAP_STACK || HAVE_VIRTUAL_ALLOC
 #define O_DYNAMIC_STACKS 1		/* sparse memory management */
 #else
