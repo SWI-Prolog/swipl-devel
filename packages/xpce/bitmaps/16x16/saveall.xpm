@@ -1,0 +1,23 @@
+/* XPM */
+static char * save_xpm[] = {
+"16 16 4 1",
+" 	s None	c None",
+".	c black",
+"X	c #861782070000",
+"o	c white",
+"    ........... ",
+"    .X.ooooo.o. ",
+"  ............. ",
+"  .X.ooooo.o.X. ",
+".............X. ",
+".X.ooooo.o.X.X. ",
+".X.ooooo...X.X. ",
+".X.ooooo.X.X.X. ",
+".X.ooooo.X.X.X. ",
+".XX.....XX.X.X. ",
+".XXXXXXXXX.X... ",
+".XX......X.X.   ",
+".XX....o.X...   ",
+".XX....o.X.     ",
+" ..........     ",
+"                "};
