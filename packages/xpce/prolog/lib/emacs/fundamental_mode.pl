@@ -942,6 +942,11 @@ describe_key(M) :->
 	    )
 	).
 
+key_binding_style(M, Style:key_binding_style) :->
+	"Switch keyboard accelerator style"::
+	send(@pce, key_binding_style, Style),
+	send(M, report, status, 'Switched to %s style keys', Style).
+
 
 		 /*******************************
 		 *	       PCE		*

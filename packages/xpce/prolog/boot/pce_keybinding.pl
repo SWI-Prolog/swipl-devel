@@ -226,3 +226,16 @@ add_styles([H|T], Chain) :-
 	add_styles(T, Chain).
 
 :- pce_end_class(pce).
+
+
+%	Create the type key_binding_style, a dynamic `name-of' type
+%	holding the defined key-binding styles.
+
+make_key_binding_style_type :-
+	get(@pce, convert, key_binding_style, type, Type),
+	send(Type, name_reference, key_binding_style_type),
+	send(Type, kind, name_of),
+	get(@pce, key_binding_styles, Styles),
+	send(Type, slot, context, Styles).
+
+:- initialization make_key_binding_style_type.
