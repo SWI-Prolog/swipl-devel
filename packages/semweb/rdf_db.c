@@ -89,6 +89,7 @@ static functor_t FUNCTOR_word1;
 static functor_t FUNCTOR_prefix1;
 
 static functor_t FUNCTOR_symetric1;
+static functor_t FUNCTOR_inverse_of1;
 static functor_t FUNCTOR_transitive1;
 
 static functor_t FUNCTOR_searched_nodes1;
@@ -104,11 +105,12 @@ static atom_t	ATOM_subPropertyOf;
 #define MATCH_EXACT 		0x1	/* exact triple match */
 #define MATCH_SUBPROPERTY	0x2	/* Use subPropertyOf relations */
 #define MATCH_SRC		0x4	/* Match source location */
-#define MATCH_SYMETRIC		0x8	/* use symetric match too */
+#define MATCH_INVERSE		0x8	/* use symetric match too */
 
 static int match(int how, atom_t search, atom_t label);
 static int update_duplicates_add(triple *t);
 static void update_duplicates_del(triple *t);
+
 
 		 /*******************************
 		 *	       ERRORS		*
@@ -920,6 +922,23 @@ triple_hash(triple *t, int which)
 
   return (int)(v % (long)table_size[which]);
 }
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+by_inverse[] returns the index key to use   for inverse search as needed
+to realise symetric and inverse predicates.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int by_inverse[8] =
+{ BY_NONE,				/* BY_NONE = 0 */
+  BY_O,					/* BY_S    = 1 */
+  BY_P,					/* BY_P    = 2 */
+  BY_OP,				/* BY_SP   = 3 */
+  BY_S,					/* BY_O    = 4 */
+  BY_SO,				/* BY_SO   = 5 */
+  BY_SP,				/* BY_OP   = 6 */
+  BY_SPO,				/* BY_SPO  = 7 */
+};
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1867,6 +1886,37 @@ get_partial_triple(term_t subject, term_t predicate, term_t object,
 
 
 static int
+inverse_partial_triple(triple *t)
+{ predicate *i;
+
+  if ( !t->inversed &&
+       (!t->predicate || (i=t->predicate->inverse_of)) &&
+       t->objtype != OBJ_LITERAL )
+  { atom_t o = t->object;
+
+    if ( (t->object = t->subject) )
+      t->objtype = OBJ_RESOURCE;
+    t->subject = o;
+
+    if ( t->predicate )
+    { if ( i == t->predicate )		/* symetric */
+      { 
+      } else
+      { t->predicate = i;
+      }
+    }
+
+    t->indexed  = by_inverse[t->indexed];
+    t->inversed = TRUE;
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
+static int
 get_source(term_t src, triple *t)
 { if ( PL_get_atom(src, &t->source) )
   { t->line = NO_LINE;
@@ -1910,10 +1960,21 @@ unify_source(term_t src, triple *t)
 
 
 static int
-unify_triple(term_t subject, term_t predicate, term_t object,
-	     term_t src, triple *t)
-{ if ( !PL_unify_atom(subject, t->subject) ||
-       !PL_unify_atom(predicate, t->predicate->name) )
+unify_triple(term_t subject, term_t pred, term_t object,
+	     term_t src, triple *t, int inversed)
+{ predicate *p = t->predicate;
+
+  if ( inversed )
+  { term_t tmp = object;
+    object = subject;
+    subject = tmp;
+
+    if ( !(p = p->inverse_of) )
+      return FALSE;
+  }
+
+  if ( !PL_unify_atom(subject, t->subject) ||
+       !PL_unify_atom(pred, p->name) )
     return FALSE;
 
   switch(t->objtype)
@@ -2089,12 +2150,8 @@ rdf_assert3(term_t subject, term_t predicate, term_t object)
 
 static foreign_t
 rdf(term_t subject, term_t predicate, term_t object,
-    term_t src, term_t realpred, control_t h)
-{ unsigned flags = realpred ? MATCH_SUBPROPERTY : MATCH_EXACT;
-  term_t retpred = realpred ? realpred : predicate;
-
-  if ( src )
-    flags |= MATCH_SRC;
+    term_t src, term_t realpred, control_t h, unsigned flags)
+{ term_t retpred = realpred ? realpred : predicate;
 
   switch(PL_foreign_control(h))
   { case PL_FIRST_CALL:
@@ -2106,15 +2163,19 @@ rdf(term_t subject, term_t predicate, term_t object,
 
       if ( !update_hash() )
 	return FALSE;
+
+    inverse:
       p = table[t.indexed][triple_hash(&t, t.indexed)];
       for( ; p; p = p->next[t.indexed])
       { if ( match_triples(p, &t, flags) )
-	{ if ( !unify_triple(subject, retpred, object, src, p) )
+	{ if ( !unify_triple(subject, retpred, object, src, p, t.inversed) )
 	    continue;
 	  if ( realpred && PL_is_variable(predicate) )
 	    PL_unify(predicate, retpred);
 
-	  for(p=p->next[t.indexed]; p; p = p->next[t.indexed])
+	  p=p->next[t.indexed];
+	inv_alt:
+	  for(; p; p = p->next[t.indexed])
 	  { if ( p->is_duplicate && !src )
 	      continue;
 
@@ -2126,26 +2187,36 @@ rdf(term_t subject, term_t predicate, term_t object,
 	    }
 	  }
 
+	  if ( (flags & MATCH_INVERSE) && inverse_partial_triple(&t) )
+	  { p = table[t.indexed][triple_hash(&t, t.indexed)];
+	    goto inv_alt;
+	  }
           return TRUE;
 	}
       }
+
+      if ( (flags & MATCH_INVERSE) && inverse_partial_triple(&t) )
+	goto inverse;
       return FALSE;
     }
     case PL_REDO:
     { triple *p, *t = PL_foreign_context_address(h);
 
       p = t->next[0];
+    retry_inv:
       for( ; p; p = p->next[t->indexed])
       { if ( p->is_duplicate && !src )
 	  continue;
 
 	if ( match_triples(p, t, flags) )
-	{ if ( !unify_triple(subject, retpred, object, src, p) )
+	{ if ( !unify_triple(subject, retpred, object, src, p, t->inversed) )
 	    continue;
 	  if ( realpred && PL_is_variable(predicate) )
 	    PL_unify(predicate, retpred);
 
-	  for(p=p->next[t->indexed]; p; p = p->next[t->indexed])
+	  p=p->next[t->indexed];
+	retry_inv_alt:
+	  for(; p; p = p->next[t->indexed])
 	  { if ( match_triples(p, t, flags) )
 	    { t->next[0] = p;
 	      
@@ -2153,10 +2224,19 @@ rdf(term_t subject, term_t predicate, term_t object,
 	    }
 	  }
 
+	  if ( (flags & MATCH_INVERSE) && inverse_partial_triple(t) )
+	  { p = table[t->indexed][triple_hash(t, t->indexed)];
+	    goto retry_inv_alt;
+	  }
+
           PL_free(t);
 	  active_queries--;
           return TRUE;
 	}
+      }
+      if ( (flags & MATCH_INVERSE) && inverse_partial_triple(t) )
+      { p = table[t->indexed][triple_hash(t, t->indexed)];
+	goto retry_inv;
       }
       PL_free(t);
       active_queries--;
@@ -2196,21 +2276,24 @@ Search specifications:
 
 static foreign_t
 rdf3(term_t subject, term_t predicate, term_t object, control_t h)
-{ return rdf(subject, predicate, object, 0, 0, h);
+{ return rdf(subject, predicate, object, 0, 0, h,
+	     MATCH_EXACT);
 }
 
 
 static foreign_t
 rdf4(term_t subject, term_t predicate, term_t object,
      term_t src, control_t h)
-{ return rdf(subject, predicate, object, src, 0, h);
+{ return rdf(subject, predicate, object, src, 0, h,
+	     MATCH_EXACT|MATCH_SRC);
 }
 
 
 static foreign_t
 rdf_has(term_t subject, term_t predicate, term_t object,
 	term_t realpred, control_t h)
-{ return rdf(subject, predicate, object, 0, realpred, h);
+{ return rdf(subject, predicate, object, 0, realpred, h,
+	     MATCH_SUBPROPERTY|MATCH_INVERSE);
 }
 
 
@@ -2435,8 +2518,18 @@ rdf_set_predicate(term_t pred, term_t option)
     if ( !get_bool_arg_ex(1, option, &val) )
       return FALSE;
 
-    p->symetric = val;
+    p->inverse_of = p;
+    return TRUE;
+  } else if ( PL_is_functor(option, FUNCTOR_inverse_of1) )
+  { term_t a = PL_new_term_ref();
+    predicate *i;
 
+    PL_get_arg(1, option, a);
+    if ( !get_predicate(a, &i) )
+      return FALSE;
+
+    p->inverse_of = i;
+    i->inverse_of = p;
     return TRUE;
   } else if ( PL_is_functor(option, FUNCTOR_transitive1) )
   { int val;
@@ -2452,14 +2545,22 @@ rdf_set_predicate(term_t pred, term_t option)
 }
 
 
-static functor_t predicate_key[3];
+static functor_t predicate_key[4];
 
 static int
 unify_predicate_property(predicate *p, term_t option, functor_t f)
 { if ( f == FUNCTOR_symetric1 )
-    return PL_unify_term(option, PL_FUNCTOR, f, PL_BOOL, p->symetric);
-  else if ( f == FUNCTOR_transitive1 )
-    return PL_unify_term(option, PL_FUNCTOR, f, PL_BOOL, p->transitive);
+    return PL_unify_term(option, PL_FUNCTOR, f,
+			 PL_BOOL, p->inverse_of == p ? TRUE : FALSE);
+  else if ( f == FUNCTOR_inverse_of1 )
+  { if ( p->inverse_of )
+      return PL_unify_term(option, PL_FUNCTOR, f,
+			   PL_ATOM, p->inverse_of->name);
+    else
+      return FALSE;
+  } else if ( f == FUNCTOR_transitive1 )
+    return PL_unify_term(option, PL_FUNCTOR, f,
+			 PL_BOOL, p->transitive);
   else
     assert(0);
     return FALSE;
@@ -2470,6 +2571,14 @@ static foreign_t
 rdf_predicate_property(term_t pred, term_t option, control_t h)
 { int n;
   predicate *p;
+
+  if ( !predicate_key[0] )
+  { int i = 0;
+
+    predicate_key[i++] = FUNCTOR_symetric1;
+    predicate_key[i++] = FUNCTOR_inverse_of1;
+    predicate_key[i++] = FUNCTOR_transitive1;
+  }
 
   switch(PL_foreign_control(h))
   { case PL_FIRST_CALL:
@@ -2491,14 +2600,19 @@ rdf_predicate_property(term_t pred, term_t option, control_t h)
 	return type_error(option, "rdf_predicate_property");
     }
     case PL_REDO:
-      if ( !get_predicate(pred, &p) )
-	return FALSE;
       n = PL_foreign_context(h);
     redo:
-      unify_predicate_property(p, option, predicate_key[n]);
-      n++;
-      if ( predicate_key[n] )
-	PL_retry(n);
+      if ( !get_predicate(pred, &p) )
+	return FALSE;
+      for( ; predicate_key[n]; n++ )
+      { if ( unify_predicate_property(p, option, predicate_key[n]) )
+	{ n++;
+	  if ( predicate_key[n] )
+	    PL_retry(n);
+	  return TRUE;
+	}
+      }
+      return FALSE;
     case PL_CUTTED:
       return TRUE;
     default:
@@ -2736,7 +2850,8 @@ bf_expand(agenda *a, atom_t resource)
 	break;
     }
   }
-
+					/* TBD: handle owl:inverseOf */
+					/* TBD: handle owl:sameAs */
   return rc;
 }
 
@@ -3246,6 +3361,7 @@ install_rdf_db()
   MKFUNCTOR(duplicates, 1);
   MKFUNCTOR(symetric, 1);
   MKFUNCTOR(transitive, 1);
+  MKFUNCTOR(inverse_of, 1);
 
   FUNCTOR_colon2 = PL_new_functor(PL_new_atom(":"), 2);
 

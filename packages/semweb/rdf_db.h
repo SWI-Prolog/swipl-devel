@@ -59,7 +59,7 @@ typedef struct predicate
   struct predicate *next;		/* next in hash-table */
   struct predicate *oldroot;		/* from previous run */
   int		    visited;		/* loop detection */
-  unsigned 	    symetric : 1;	/* P(a,b) --> P(b,a) */
+  struct predicate *inverse_of;		/* my inverse predicate */
   unsigned 	    transitive : 1;	/* P(a,b)&P(b,c) --> P(a,c) */
 } predicate;
 
@@ -88,6 +88,7 @@ typedef struct triple
   unsigned	erased  : 1;		/* If TRUE, triple is erased */
   unsigned	first   : 1;		/* I'm the first on subject */
   unsigned	match   : 3;		/* How to match literals */
+  unsigned	inversed : 1;		/* Partials: using inverse match */
   unsigned	is_duplicate : 1;	/* I'm a duplicate */
   unsigned	duplicates : 20;	/* Duplicate count */
   unsigned long line;			/* source-line number */
