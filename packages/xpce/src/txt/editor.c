@@ -550,6 +550,7 @@ geometryEditor(Editor e, Int x, Int y, Int w, Int h)
   int pen = valInt(e->pen);
   Area a = e->area;
   Any sbobj = e->image;
+  int fh = valInt(getHeightFont(e->font));
   
   if ( e->badBoundingBox == ON && (isDefault(w) || isDefault(h)) )
   { Cell cell;
@@ -574,7 +575,6 @@ geometryEditor(Editor e, Int x, Int y, Int w, Int h)
   if ( isDefault(h) ) h = a->h;
 
   if ( valInt(w) < 50 ) w = toInt(50);
-  if ( valInt(h) < 20 ) h = toInt(20);
 
   DEBUG(NAME_editor, Cprintf("geometryEditor(%s, %d, %d, %d, %d)\n",
 			     pp(e),
@@ -586,11 +586,14 @@ geometryEditor(Editor e, Int x, Int y, Int w, Int h)
     ComputeGraphical(e->label_text);
     send(e->label_text, NAME_set, ZERO, ZERO, DEFAULT, DEFAULT, EAV);
     iy = valInt(e->label_text->area->h);
-    ih = valInt(h);
   } else
   { iy = 0;
-    ih = valInt(h) - iy;
   }
+
+					/* make sure at least line fits! */
+  if ( valInt(h) - iy - fh - 2*TXT_Y_MARGIN < 0 )
+    h = toInt(iy+fh+2*TXT_Y_MARGIN);
+  ih = valInt(h) - iy;
 
   sw = isNil(e->scroll_bar) ? 0 : valInt(getMarginScrollBar(e->scroll_bar));
   mw = notNil(e->margin) ? valInt(e->margin->area->w) : 0;
