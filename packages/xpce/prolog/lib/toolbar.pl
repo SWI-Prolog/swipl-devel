@@ -32,6 +32,7 @@
 :- module(pce_tool_button, []).
 :- use_module(library(pce)).
 :- use_module(library(help_message)).
+:- use_module(library(imageops)).
 :- require([ default/3
 	   ]).
 
@@ -325,55 +326,3 @@ append(TD, B:'popup|tool_button|graphical|{gap}', Where:[name]) :->
 
 :- pce_end_class(tool_dialog).
 
-
-		 /*******************************
-		 *         GRAYING ICONS	*
-		 *******************************/
-
-:- pce_extend_class(image).
-
-active(Img, Active:bool, Img2:image) :<-
-	"Return image with proper activation"::
-	(   Active == @off
-	->  (   get(Img, hypered, inactive, Img2)
-	    ->	true
-	    ;	get(Img, hypered, active, _)
-	    ->	Img2 = Img
-	    ;	get(Img, greyed, Img2)
-	    )
-	;   (   get(Img, hypered, active, Img2)
-	    ->	true
-	    ;	Img2 = Img
-	    )
-	).
-	    
-
-greyed(Img, Grey:image) :<-
-	"Created a greyed version of a colour image"::
-	(   get(Img, hypered, inactive, Grey)
-	->  true
-	;   get(Img, size, size(W, H)),
-	    new(Grey, image(@nil, W, H, pixmap)),
-	    (   get(Img, mask, Mask),
-		send(Mask, instance_of, image)
-	    ->  send(Grey, mask, new(M, image(@nil, W, H, bitmap))),
-		new(MB, bitmap(Mask)),
-		send(MB, transparent, @on),
-		send(M, draw_in, MB),
-		send(M, draw_in, MB, point(1,1))
-	    ;   true
-	    ),
-	    get(Img, monochrome, I2),
-	    send(Grey, background, black),
-	    new(B2, bitmap(I2)),
-	    send(B2, transparent, on),
-	    send(B2, colour, white),
-	    send(Grey, draw_in, B2, point(1,1)),
-	    get(class(menu), class_variable, inactive_colour, ClassVar),
-	    get(ClassVar, value, GreyColour),
-	    send(B2, colour, GreyColour),
-	    send(Grey, draw_in, B2),
-	    new(_, hyper(Img, Grey, inactive, active))
-	).
-
-:- pce_end_class.
