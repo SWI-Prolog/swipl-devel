@@ -13,7 +13,6 @@
 	  ]).
 
 :- dynamic
-	toplevel_var/2,
 	verbose/0.
 
 :- op(1, fx, $).
@@ -79,11 +78,14 @@ expand_answer(Bindings, Bindings) :-
 	assert_bindings(Bindings).
 
 assert_bindings([]).
-assert_bindings([Var = Value|Tail]) :-
-	retractall(toplevel_var(Var, _)),
-	assert(toplevel_var(Var, Value)),
+assert_bindings([Binding|Tail]) :-
+	Binding = (Var = _),
+	forall(recorded('$topvar', Var = _, Ref), erase(Ref)),
+	recorda('$topvar', Binding, _),
 	assert_bindings(Tail).
 	  
+toplevel_var(Var, Binding) :-
+	recorded('$topvar', Var=Binding).
 
 print_toplevel_variables :-
 	toplevel_var(Name, Value),
