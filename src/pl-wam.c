@@ -1977,6 +1977,13 @@ will export jmp_table as the compiler  needs   to  know  this table. See
 pl-comp.c
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifdef O_PROF_PENTIUM
+#include "prof.h"
+#else
+#define START_PROF(Name)
+#define END_PROF()
+#endif
+
 #if VMCODE_IS_ADDRESS
   static void *jmp_table[] =
   { &&I_NOP_LBL,
@@ -2083,13 +2090,6 @@ pl-comp.c
     &&I_EXITCLEANUP_LBL,
     NULL
   };
-
-#ifdef O_PROF_PENTIUM
-#include "prof.h"
-#else
-#define START_PROF(Name)
-#define END_PROF()
-#endif
 
 #define VMI(Name)		Name ## _LBL: \
 				  count(Name, PC); \

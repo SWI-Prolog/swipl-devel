@@ -28,6 +28,7 @@
 #define __WIN32__ 1
 
 typedef unsigned long sigset_t;		/* we don't have this */
+typedef int mode_t;
 #define HAVE_SIGSET_T 1			/* For the future */
 
 #define NOTTYCONTROL TRUE		/* default -tty */
