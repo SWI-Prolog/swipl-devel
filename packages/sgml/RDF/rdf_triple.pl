@@ -74,7 +74,7 @@ And `Object' is
 rdf_triples(RDF, Tripples) :-
 	rdf_triples(RDF, Tripples, []).
 
-rdf_triples([]) -->
+rdf_triples([]) --> !,
 	[].
 rdf_triples([H|T]) --> !,
 	triples(H, _),
