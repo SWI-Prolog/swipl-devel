@@ -327,7 +327,7 @@ SWI-Prolog user libraries.
 .TP
 .I @prefix@/lib/@PL@-@PLVERSION@/boot/
 SWI-Prolog kernel parts written in Prolog.  The startup file
-@prefix@/lib/@PL@-@PLVERSION@/startup/startup may be recreated using
+@prefix@/lib/@PL@-@PLVERSION@/boot32.prc may be recreated using
 the command from the directory @prefix@/lib/@PL@-@PLVERSION@:
 .RS
 .TP
@@ -356,7 +356,7 @@ William\ F.\ Clocksin & Christopher\ S.\ Mellish,
 .IR "Programming in Prolog" ,
 fourth edition, Springer Verlag, Berlin 1994.
 .PP
-.IR chpl(1) " and " plld(1) " and " xpce(1)
+.IR plrc(1) " and " plld(1) " and " xpce(1)
 .SH WARRANTY
 The software is provided
 .B as is,
