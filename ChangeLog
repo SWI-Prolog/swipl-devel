@@ -4,6 +4,9 @@
   * MODIFIED: compiling/0 now also succeed during execution of all directives
     when compiling a state or qlf file.
 
+  * FIXED: Make compilation in `runtime' mode work again
+    (Lourens van der Meij).
+
   * FIXED: GUI tracer to handle the dynamic code used for handling compound
     meta-calls.  Found by Holger Kanwischer.  Thanks.
 
