@@ -96,25 +96,18 @@ copyTermToHeap2(register Word term, Record result, Word copy)
 
   deRef(term);
 
-  if (isAtom(*term) || isInteger(*term) )
+  if ( isAtom(*term) || isTaggedInt(*term) )
   { *copy = *term;
     return;
   }
   if ( isIndirect(*term) )
-  {
-#if O_STRING
-    if ( isString(*term) )
-    { *copy = heapString(valString(*term));
-      return;
-    }
-#endif
-    *copy = copyRealToHeap(*term);
+  { *copy = heapIndirect(*term);
     return;
   }
   SECURE(if (!isTerm(*term) )
 	    sysError("Illegal type in copyTermToHeap()") );
   if (functorTerm(*term) == FUNCTOR_var1)
-  { *copy = makeRef(result->variables + valNum(argTerm(*term, 0)));
+  { *copy = makeRef(result->variables + valInt(argTerm(*term, 0)));
     return;
   }
   arity = functorTerm(*term)->arity;
@@ -212,17 +205,10 @@ freeHeapTerm(register Word term)
   
   deRef(term);
 
-  if ( isAtom(*term) || isInteger(*term) )
+  if ( isAtom(*term) || isTaggedInt(*term) )
     return;
   if (isIndirect(*term))
-  {
-#if O_STRING
-    if ( isString(*term) )
-    { freeHeap(unMask(*term), allocSizeString(sizeString(*term)));
-      return;
-    }
-#endif /* O_STRING */
-    freeHeapReal(*term);
+  { freeHeapIndirect(*term);
     return;
   }
   if (isTerm(*term))
@@ -252,7 +238,7 @@ freeRecord(Record record)
 
 bool
 unifyKey(term_t key, word val)
-{ if ( isAtom(val) || isInteger(val) )
+{ if ( isAtom(val) || isTaggedInt(val) ) /* TBD? */
     return _PL_unify_atomic(key, val);
 
   return PL_unify_functor(key, (FunctorDef) val);
@@ -263,7 +249,7 @@ getKey(term_t key)
 { Word k = valTermRef(key);
   deRef(k);
 
-  if ( isAtom(*k) || isInteger(*k) )
+  if ( isAtom(*k) || isTaggedInt(*k) )
     return *k;
   else if ( isTerm(*k) )
     return (word)functorTerm(*k);

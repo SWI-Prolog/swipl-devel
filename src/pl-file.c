@@ -167,9 +167,6 @@ without the Unix assumptions?
   Sinput->position  = &Sinput->posbuf;	/* position logging */
   Soutput->position = &Sinput->posbuf;
   Serror->position  = &Sinput->posbuf;
-#if defined(HAVE_LIBREADLINE)
-  install_rl();
-#endif
 
   ttymode = TTY_COOKED;
   PushTty(&ttytab, TTY_SAVE);
@@ -226,7 +223,7 @@ closeFiles(void)
   read_nesting = 0;
 #endif
 
-  for(n=3; n<maxfiles; n++)
+  for(n=0; n<maxfiles; n++)
   { if ( n != protocolStream )
       closeStream(n);
   }
@@ -1119,18 +1116,20 @@ pl_prompt1(term_t prompt)
 
 
 word
-pl_tab(term_t n)
-{ word val = evaluate(n);
-  int m;
+pl_tab(term_t spaces)
+{ number n;
 
-  if ( !isInteger(val) )
-    return warning("tab/1: instantiation fault");
-  m = (int) valNum(val);
+  if ( valueExpression(spaces, &n) &&
+       toIntegerNumber(&n) )
+  { int m = n.value.i;
 
-  while(m-- > 0)
-    Put(' ');
+    while(m-- > 0)
+      Put(' ');
 
-  succeed;
+    succeed;
+  }
+
+  return warning("tab/1: instantiation fault");
 }
 
 

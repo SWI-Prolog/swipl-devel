@@ -15,7 +15,7 @@
 #
 ################################################################
 
-PLVERSION=2.5.6
+PLVERSION=2.6.0
 
 PL=pl
 prefix=/usr/local
@@ -30,7 +30,7 @@ lmansec=3
 lmandir=$(prefix)/man/man$(lmansec)
 
 CC=gcc
-LIBS=-ldl -lreadline -ltermcap -lm 
+LIBS=-ldl -lelf -lreadline -ltermcap -lm 
 STATICLIBS=
 AWK=nawk
 SED=sed
@@ -42,7 +42,7 @@ INSTALL_PROGRAM=${INSTALL}
 INSTALL_DATA=${INSTALL} -m 644
 
 COFLAGS=-O2
-CWFLAGS=
+CWFLAGS=-Wall
 CIFLAGS=
 CMFLAGS=-funsigned-char
 CFLAGS=	$(CWFLAGS) $(COFLAGS) $(CIFLAGS) $(CMFLAGS)
@@ -69,7 +69,7 @@ OBJ=	pl-wam.o pl-save.o pl-stream.o \
 	pl-dwim.o pl-ext.o pl-file.o pl-flag.o pl-fli.o pl-fmt.o pl-funct.o \
 	pl-gc.o pl-glob.o pl-itf.o pl-list.o pl-load.o \
 	pl-modul.o pl-op.o pl-os.o pl-prims.o pl-pro.o pl-proc.o \
-	pl-prof.o pl-read.o pl-rec.o pl-setup.o pl-sys.o pl-table.o \
+	pl-prof.o pl-read.o pl-rec.o pl-rl.o pl-setup.o pl-sys.o pl-table.o \
 	pl-trace.o pl-util.o pl-wic.o pl-write.o pl-term.o pl-buffer.o
 DEPOBJ=	pl-main.o
 EXT=	pl-extend.o
@@ -81,7 +81,7 @@ SRC=	$(OBJ:.o=.c) $(DEPOBJ:.o=.c) $(EXT:.o=.c) pl-index.c pl-alloc.c
 HDR=	config.h parms.h pl-buffer.h pl-ctype.h pl-incl.h pl-itf.h pl-main.h \
 	pl-os.h pl-save.h
 
-all:	banner headers system startup index runtime pl-bite chpl
+all:	banner headers system startup index runtime pl-bite chpl swipl swiplbin
 
 .c.o:
 	$(CC) -c -I. -I$(srcdir) $(CFLAGS) $< -o $@
@@ -172,32 +172,37 @@ tags:		TAGS
 TAGS:		$(SRC)
 		$(ETAGS) $(SRC) $(HDR)
 		
+swipl:
+		echo "." > $@
+swiplbin:	
+		echo ".." > $@
+
 pl-funcs.h:	$(SRC)
 		mkproto -p $(SRC) > $@
 
 install:	idirs iboot ilib iinclude iruntime iman
 		$(INSTALL_DATA) $(STARTUPPATH) $(PLBASE)/startup/startup
-		echo "." > swipl
 		$(INSTALL_DATA) swipl $(PLBASE)
+		$(INSTALL_DATA) swiplbin $(PLBASE)/bin/swipl
 		$(INSTALL_DATA) README.bin $(PLBASE)
 		$(INSTALL_DATA) ../LICENCE $(PLBASE)
 		if [ -r $(bindir)/$(PL) ]; then \
 		    mv $(bindir)/$(PL) $(bindir)/$(PL).old; \
 		fi
 		for f in $(PL) pl-bite chpl; do \
-		    $(INSTALL_PROGRAM) $$f $(PLBASE)/bin; \
+		    $(INSTALL_PROGRAM) $$f $(PLBASE)/bin/$(ARCH); \
 		done
 		cd $(PLBASE)/library; \
-		   ../bin/$(PL) \
+		   ../bin/$(ARCH)/$(PL) \
 			-f none \
 			-g make_library_index\('.'\) \
 			-t halt
 		-for f in $(PL) pl-bite chpl; do \
-		    ( cd $(bindir); rm -f $$f; ln -s $(PLBASE)/bin/$$f . ); \
+		    ( cd $(bindir); rm -f $$f; ln -s $(PLBASE)/bin/$(ARCH)/$$f . ); \
 		done
 
-installdirs=	bin lib lib/$(ARCH) man boot library startup include \
-		runtime runtime/$(ARCH)
+installdirs=	bin bin/$(ARCH) lib lib/$(ARCH) man boot library startup \
+		include runtime runtime/$(ARCH)
 
 iruntime:
 		if [ ! -d $(PLBASE)/runtime/$(ARCH) ]; then \
@@ -284,6 +289,3 @@ realclean:	clean
 		rm -f $(STARTUPPATH)
 		rm -f config.log config.cache
 		rm -rf $(PL) pl-bite ../startup ../include ../runtime
-
-rl.so:		pl-rl.o
-		ld -G -o $@ pl-rl.o -lreadline -lc

@@ -6,9 +6,9 @@
 #endif
 
 \newcommand{\vmajor}{2}
-\newcommand{\vminor}{5}
+\newcommand{\vminor}{6}
 \newcommand{\vpatch}{0}
-\newcommand{\vmonth}{January}
+\newcommand{\vmonth}{April}
 \newcommand{\vyear}{1996}
 
 \newcommand{\double}{\thispagestyle{plain}\cleardoublepage}

@@ -218,7 +218,7 @@ architecture identifier that may be obtained using feature/2.
 
 \begin{center}
 \begin{tabular}{ll}
-\verb$.../pl/runtime/<arch>/pl.o$	& Main object-file \\
+\verb$.../pl/runtime/<arch>/libpl.a$	& SWI-Library \\
 \verb$.../pl/include/SWI-Prolog.h$	& Include file \\
 \verb$.../pl/include/SWI-Stream.h$	& Stream I/O include file \\
 \verb$.../pl/include/SWI-Exports$	& Export declarations (AIX only) \\
@@ -259,64 +259,16 @@ main(int argc, char **argv, char **env)
 { if ( !PL_initialise(argc, argv, env) )
     PL_halt(1);
 
+  PL_install_readline();		/* delete if not required */
+
   PL_halt(PL_toplevel() ? 0 : 1);
 }
 \end{code}\end{boxed}
 
-Now, a new executable may be created using the make(1) Makefile
-fragment below.  The correct versions for the variables may be
-obtained using the feature/2 predicate as shown below.  The variable
-\tty{STATICLIBS} refers to \tty{libc.a} on systems for which save/1
-and friends work, but only if the standard C-library is linked
-statically.  If you do not intend to use save/1, all libraries
-can be linked dynamically.
-
-\begin{code}
-?- feature(c_cc,         CC).
-?- feature(c_ldflags,    LDFLAGS).
-?- feature(c_staticlibs, STATICLIBS).
-?- feature(c_libs,	 LIBS).
-?- feature(arch,	 ARCH).
-?- feature(home,	 HOME).
-\end{code}
-
-\begin{boxed}
-\begin{code}
-CC=gcc
-HOME=/usr/local/lib/pl-2.2.0
-CFLAGS=-I$(HOME)/include
-LDFLAGS=
-STATICLIBS=
-LIBS=-ldl -lreadline -ltermcap -lm
-ARCH=i486-linux
-
-PLOBJ=$(HOME)/$(ARCH)/pl.o
-OBJ=lowercase.o stub.o
-
-lwpl:	$(PLOBJ) $(OBJ)
-	$(CC) -o $@ $(LDFLAGS) $(PLOBJ) $(OBJ) $(STATICLIBS) $(LIBS)
-\end{code}
-\end{boxed}
-
-The resulting \tty{lwpl} file will load the standard prolog bootstrap
-file. Normally, your extensions will partly be written in Prolog. In this
-case you may wish to create a new bootfile that includes the standard
-Prolog system and your extensions.  Write a toplevel loadfile that loads
-your application and add the following to your Makefile:
-
-\begin{boxed}
-\begin{code}
-PLFILES:	load.pl foo.pl bar.pl
-
-lwpl.qlf:	lwpl $(PLFILES)
-		./lwpl -g mytoplevel \
-		       -b $(HOME)/boot/init.pl \
-		       -c load.pl
-\end{code}
-\end{boxed}
-
-See also section~\ref{compilation} for compiling Prolog sources using
-the \tty{-c} option.
+Now, a new executable may be created by compilign this file and linking
+it to libpl.a from the runtime directory and the libraries required by
+both the extensions and the SWI-Prolog kernel. This may be done by hand,
+or using the {\tt plld} utility described in section~\ref{sec:plld}.
 
 
 \subsection{Dynamic Linking based on load_foreign/[2,5]}
@@ -1485,7 +1437,8 @@ To reach at a compiled C-program with SWI-Prolog as an embedded
 application is very similar to creating a statically linked SWI-Prolog
 executable as described in section~\ref{sec:staticl}.
 
-The file {\tt pl-stub.c} defines SWI-Prologs default main program:
+The file {\tt .../pl/include/stub.c} defines SWI-Prologs default main
+program:
 
 \begin{boxed}
 \begin{code}
@@ -1493,6 +1446,8 @@ int
 main(int argc, char **argv, char **env)
 { if ( !PL_initialise(argc, argv, env) )
     PL_halt(1);
+
+  PL_install_readline();	/* delete if you don't want readline */
 
   PL_halt(PL_toplevel() ? 0 : 1);
 }
@@ -1514,6 +1469,10 @@ the at_initialisation/1 hooks and finally runs the {\tt -g goal} hook.
 PL_initialise() returns 1 if all initialisation succeeded and 0
 otherwise.  Various fatal errors may cause PL_initialise to call
 PL_halt(1), preventing it from returning at all.
+.F void PL_install_readline 0
+Installs the GNU-readline line-editor.  Embedded applications that donot
+use the Prolog toplevel should normally delete this line, shrinking the
+Prolog kernel significantly.
 .F int PL_toplevel 0
 Runs the goal of the {\tt -t}{\it toplevel} switch (default prolog/0) and
 returns 1 if successful, 0 otherwise.
@@ -1521,6 +1480,155 @@ returns 1 if successful, 0 otherwise.
 Cleanup the Prolog environment and calls exit() with the status
 argument.
 .EF
+
+\section{Linking embedded and statically linked extensions using plld}
+\label{sec:plld}
+
+The utility program {\tt plld} may be used to link a combination of
+C-files and Prolog files into a stand-alone executable.  It is a simple
+Bourne-shell script that automates most of the steps outlined in the
+previous sections.
+
+In the normal usage, a copy is made of the default embedding template
+{\tt .../pl/include/stub.c}.  Additional foreign predicates are defined
+and added to the extension table {\tt PL_extensions}. The main() routine
+is modified to suit your application.  PL_initialise() {\bf must} be
+passed the program-name ({\tt argv[0]}).  The other elements of the
+command-line may be modified.  Next, {\tt plld} is typically invoked as:
+
+\begin{code}
+plld -o output stubfile.c [other-c-or-o-files] [plfiles]
+\end{code}
+
+{\tt plld} will first split the options into various groups for both the
+C-compiler and the Prolog compiler. Next, it will add various default
+options to the C-compiler and call it to create an executable holding
+the user's C-code and the Prolog kernel. Then, it will call the
+SWI-Prolog compiler to create a saved state from the provided Prolog
+files and finally, it will attach this saved state to the created
+emulator to create the requested executable.
+
+Below, it is described how the options are split and which additional
+options are passed.
+
+\begin{description}
+\newcommand{\option}[1]{\item[\tt #1]\mbox{}\\}
+    \option{-o {\em outfile}}
+Reserved to specify the final output file.
+    \option{-l{\em library}}
+Specifies a library for the C-compiler.  By default, {\tt -lpl} and the
+libraries needed by the Prolog kernel are given.
+    \option{-L{\em library-directory}}
+Specifies a library directory for the C-compiler.  By default the
+directory containing -lpl for the current architecture is passed.
+    \option{-g {\rm or} -I{\em include-directory}}
+These options are passed to the C-compiler.  By default, the include
+directory containing \verb$<SWI-Prolog.h>$ is passed.
+    \option{*.o {\rm or} *.c {\rm or} *.C {\rm or} *.cxx {\rm or} *.cpp}
+Passed as input files to the C-compiler
+    \option{*.pl {\rm or} *.qlf}
+Passed as input files to the Prolog compiler to create the saved-state.
+    \option{*}
+I.e.\ all other options. These are passed as linker options to the
+C-compiler.
+\end{description}
+
+
+\subsection{A simple example}
+
+The following is a very simple example going through all the steps
+outlined above. It provides an arithmetic expression evaluator. We will
+call the application {\tt calc} and define it in the files {\tt calc.c}
+and {\tt calc.pl}.  The Prolog file is simple:
+
+\begin{boxed}\begin{code}
+calc(Atom) :-
+	term_to_atom(Expr, Atom),
+	A is Expr,
+	write(A),
+	nl.
+\end{code}\end{boxed}
+
+The C-part of the application parses the command-line options,
+initialises the Prolog engine, locates the calc/1 predicate and calls
+it.  The coder is in figure~\ref{fig:calc}.
+
+\begin{figure}
+\begin{boxed}\begin{code}
+#include <stdio.h>
+#include <SWI-Prolog.h>
+
+PL_extension PL_extensions [] =
+{
+/*{ "name",	arity,  function,	PL_FA_<flags> },*/
+
+  { NULL,	0, 	NULL,		0 }	/* terminating line */
+};
+
+
+#define MAXLINE 1024
+
+int
+main(int argc, char **argv, char **env)
+{ char expression[MAXLINE];
+  char *e = expression;
+  char *program = argv[0];
+  char *plav[2];
+  int n;
+
+  /* combine all the arguments in a single string */
+
+  for(n=1; n<argc; n++)
+  { if ( n != 1 )
+      *e++ = ' ';
+    strcpy(e, argv[n]);
+    e += strlen(e);
+  }
+
+  /* make the argument vector for Prolog */
+
+  plav[0] = program;
+  plav[1] = NULL;
+
+  /* initialise Prolog */
+
+  if ( !PL_initialise(1, plav, env) )
+    PL_halt(1);
+
+  /* Lookup calc/1 and make the arguments and call */
+
+  { predicate_t pred = PL_predicate("calc", 1, "user");
+    term_t h0 = PL_new_term_refs(1);
+    int rval;
+
+    PL_put_atom_chars(h0, expression);
+    rval = PL_call_predicate(NULL, FALSE, pred, h0);
+
+    PL_halt(rval);
+  }
+
+  return 0;
+}
+\end{code}\end{boxed}
+\caption{C-source for the calc application}
+\label{fig:calc}
+\end{figure}
+
+\noindent
+The application is now created using the following command-line:
+
+\begin{code}
+% plld -o calc calc.c calc.pl
+\end{code}
+
+\noindent
+The following indicates the usage of the application:
+
+\begin{code}
+% calc pi/2
+1.5708
+\end{code}
+
 
 \section{Example of Using the Foreign Interface}
 

@@ -69,7 +69,7 @@ struct
   int i_call;
   int i_exit;
 #if O_COMPILE_ARITH
-  int a_real;
+  int a_indirect;
   int a_func0[256];
   int a_func1[256];
   int a_func2[256];
@@ -104,8 +104,7 @@ pl_count()
 { countHeader();
   countArray("H_CONST", 	counting.h_const_n);  
   countArray("B_CONST", 	counting.b_const_n);  
-  countArray("B_REAL",	 	counting.b_real_n);  
-  countArray("B_STRING", 	counting.b_string_n);  
+  countArray("B_INDIRECT",	counting.b_indirect_n);  
   countOne(  "H_NIL", 		counting.h_nil);
   countArray("H_VAR", 		counting.h_var_n);  
   countArray("B_VAR", 		counting.b_var_n);  
@@ -622,30 +621,7 @@ unify(Word t1, Word t2, LocalFrame fr)
   { if ( !isIndirect(w1) )
       fail;
 
-    t1 = (Word)unMask(w1);
-    t2 = (Word)unMask(w2);
-    if ( *t1 != *t2 )
-      fail;
-
-    if ( (*t1 & DATA_TAG_MASK) == REAL_MASK )
-    { if ( t1[1] == t2[1] )
-	succeed;
-      fail;
-    }
-#if O_STRING
-    if ( (*t1 & DATA_TAG_MASK) == STRING_MASK )
-    { long l = ((*t1) << DMASK_BITS) >> (DMASK_BITS+LMASK_BITS);
-      l = allocSizeString(l)/sizeof(word);
-
-      while(--l > 0)
-      { if ( *++t1 != *++t2 )
-	  fail;
-      }
-
-      succeed;
-    }
-#endif /* O_STRING */
-    assert(0);
+    return equalIndirect(w1, w2);
   }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -732,13 +708,7 @@ unify_atomic(register Word p, word a)
   }
 
   if ( isIndirect(a) && isIndirect(*p) )
-  { if ( isReal(a) && equalReal(a, *p) )
-      succeed;
-#if O_STRING
-    if (isString(a) && isString(*p) && equalString(a, *p))
-      succeed;
-#endif /* O_STRING */
-  }
+    return equalIndirect(a, *p);
 
   fail;
 }
@@ -1012,10 +982,7 @@ pl-comp.c
     &&H_VAR_LBL,
     &&B_CONST_LBL,
     &&H_CONST_LBL,
-    &&H_REAL_LBL,
-#if O_STRING
-    &&H_STRING_LBL,
-#endif /* O_STRING */
+    &&H_INDIRECT_LBL,
 
     &&B_FIRSTVAR_LBL,
     &&H_FIRSTVAR_LBL,
@@ -1037,7 +1004,13 @@ pl-comp.c
     &&I_APPLY_LBL,
 
 #if O_COMPILE_ARITH
-    &&A_REAL_LBL,
+    &&A_ENTER_LBL,
+    &&A_INTEGER_LBL,
+    &&A_DOUBLE_LBL,
+    &&A_VAR0_LBL,
+    &&A_VAR1_LBL,
+    &&A_VAR2_LBL,
+    &&A_VAR_LBL,
     &&A_FUNC0_LBL,
     &&A_FUNC1_LBL,
     &&A_FUNC2_LBL,
@@ -1063,8 +1036,7 @@ pl-comp.c
     &&C_FAIL_LBL,
 #endif /* O_COMPILE_OR */
 
-    &&B_REAL_LBL,
-    &&B_STRING_LBL,
+    &&B_INDIRECT_LBL,
 #if O_BLOCK
     &&I_CUT_BLOCK_LBL,
     &&B_EXIT_LBL,
@@ -1194,43 +1166,19 @@ to copy the real on the global stack as the user might retract the clause:
     run :- x(X), retractall(x(_)), Y is X * 2, assert(x(Y)).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-    VMI(H_REAL, COUNT(h_real), ("h_real %d\n", *PC))	MARK(HREAL);
+    VMI(H_INDIRECT, COUNT(h_indirect), ("h_indirect %d\n", *PC)) MARK(HINDIR);
       { register Word k;
 
 	deRef2(ARGP++, k);
 	if (isVar(*k))
-	{ *k = copyRealToGlobal((word)*PC++);
+	{ *k = globalIndirect((word)*PC++);
 	  Trail(k, FR);
 	  NEXT_INSTRUCTION;
 	}
-	if ( isReal(*k) && equalReal(*k, (word)*PC++) )
+	if ( isIndirect(*k) && equalIndirect(*k, (word)*PC++) )
 	  NEXT_INSTRUCTION;
 	CLAUSE_FAILED;
       }
-
-#if O_STRING
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-String in the head. See H_REAL and H_CONST for details.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-    VMI(H_STRING, COUNT(h_string), ("h_string %d\n", *PC)) MARK(HSTR);
-      { register Word k;
-
-	deRef2(ARGP++, k);
-	if (isVar(*k))
-	{ word str = *PC++;
-	  *k = globalString(valString(str));
-	  Trail(k, FR);
-	  NEXT_INSTRUCTION;
-	}
-	if ( isString(*k) )
-	{ word str = *PC++;
-	  if ( equalString(*k, str) )
-	    NEXT_INSTRUCTION;
-	}
-	CLAUSE_FAILED;
-      }
-#endif /* O_STRING */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 An atomic constant in the body of  a  clause.   We  know  that  ARGP  is
@@ -1244,16 +1192,11 @@ above the stack anyway.
       }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-B_REAL and B_STRING need to copy the value on the global  stack  because
-the XR-table might be freed due to a retract.
+B_INDIRECT need to copy the  value  on   the  global  stack  because the
+XR-table might be freed due to a retract.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    VMI(B_REAL, COUNT_N(b_real_n), ("b_real %d\n", *PC)) MARK(BREAL);
-      { *ARGP++ = copyRealToGlobal((word)*PC++);
-	NEXT_INSTRUCTION;
-      }
-
-    VMI(B_STRING, COUNT_N(b_string_n), ("b_string %d\n", *PC)) MARK(BSTRING);
-      { *ARGP++ = globalString(valString((word)*PC++));
+    VMI(B_INDIRECT, COUNT_N(b_indirect), ("b_indirect %d\n", *PC)) MARK(BIDT);
+      { *ARGP++ = globalIndirect((word)*PC++);
 	NEXT_INSTRUCTION;
       }
 
@@ -1765,12 +1708,13 @@ Arguments to functions are pushed on the stack  starting  at  the  left,
 thus `add1(X, Y) :- Y is X + 1' translates to:
 
     I_ENTER	% enter body
-    B_VAR 0	% push X via ARGP
-    B_CONST 0	% push `1' via ARGP
-    A_FUNC2 N	% execute arithmic function 'N' (+/2), leaving X+1 on
-		% the stack
-    A_IS 	% unify top of stack ('X+1') with Y
-    EXIT	% leave the clause
+    B_VAR1	% push Y via ARGP
+    A_ENTER	% align the stack to prepare for writing doubles
+    A_VAR0	% evaluate X and push numeric result
+    A_INTEGER 1	% Push 1 as numeric value
+    A_FUNC2 0	% Add top-two of the stack and push result
+    A_IS 	% unify Y with numeric result
+    I_EXIT	% leave the clause
 
 a_func0:	% executes arithmic function without arguments, pushing
 		% its value on the stack
@@ -1782,57 +1726,89 @@ variable.  Also, for compilers that do register allocation it is unwise
 to give the compiler a hint to put ARGP not into a register.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-    VMI(A_REAL, COUNT(a_real), ("a_real %d\n", *PC)) MARK(AREAL);
-      { *ARGP++ = (word)*PC++;
+    VMI(A_ENTER, COUNT(a_enter), ("a_enter")) MARK(AENTER)
+      { 
+#ifdef DOUBLE_ALIGNMENT
+	ARGP = (Word) (((unsigned long)ARGP + (DOUBLE_ALIGNMENT-1)) &
+		       ~(DOUBLE_ALIGNMENT-1));
+#endif
+        NEXT_INSTRUCTION;
+      }
+
+    VMI(A_INTEGER, COUNT(a_integer), ("a_integer %d\n", *PC)) MARK(AINT);
+      {	Number n = (Number)ARGP;
+
+	n->value.i = (long) *PC++;
+	n->type    = V_INTEGER;
+	ARGP       = (Word)(n+1);
 	NEXT_INSTRUCTION;
       }
 
+    VMI(A_DOUBLE, COUNT(a_double), ("a_double %d\n", *PC)) MARK(ADOUBLE);
+      {	Number n = (Number)ARGP;
+
+	n->value.w[0] = *PC++;
+	n->value.w[1] = *PC++;
+	n->type       = V_REAL;
+	ARGP          = (Word)(n+1);
+	NEXT_INSTRUCTION;
+      }
+
+    VMI(A_VAR, COUNT_N(a_var_n), ("a_var %d\n", *PC)) MARK(AVARN);
+    { int offset = *PC++;
+      term_t v;
+      Number n;
+
+    a_var_n:
+      v = consTermRef(varFrameP(FR, offset));
+      n = (Number)ARGP;
+
+      if ( valueExpression(v, n) )
+      { ARGP = (Word)(n+1);
+	NEXT_INSTRUCTION;
+      } else
+	BODY_FAILED;			/* check this */
+
+    VMI(A_VAR0, COUNT(a_var0), ("a_var0\n")) MARK(AVAR0);
+      offset = ARGOFFSET / sizeof(word);
+      goto a_var_n;
+    VMI(A_VAR1, COUNT(a_var1), ("a_var1\n")) MARK(AVAR1);
+      offset = ARGOFFSET / sizeof(word) + 1;
+      goto a_var_n;
+    VMI(A_VAR2, COUNT(a_var2), ("a_var2\n")) MARK(AVAR2);
+      offset = ARGOFFSET / sizeof(word) + 2;
+      goto a_var_n;
+    }
+
     VMI(A_FUNC0, COUNT_N(a_func0), ("a_func0 %d\n", *PC)) MARK(A_FUNC0);
-      {	Word argp = ARGP;
-	if ( ar_func_n(*PC++, 0, &argp) == FALSE )
+      {	Number n = (Number) ARGP;
+	if ( !ar_func_n(*PC++, 0, &n) )
 	  BODY_FAILED;
-	ARGP = argp;
-				DEBUG(8, Sdprintf("ARGP = 0x%lx; top = ",
-						(unsigned long)ARGP);
-					 pl_write(ARGP-1);
-					 Sdprintf("\n"));
+	ARGP = (Word) n;
 	NEXT_INSTRUCTION;
       }
 
     VMI(A_FUNC1, COUNT_N(a_func1), ("a_func1 %d\n", *PC)) MARK(A_FUNC1);
-      {	Word argp = ARGP;
-	if ( ar_func_n(*PC++, 1, &argp) == FALSE )
+      {	Number n = (Number) ARGP;
+	if ( !ar_func_n(*PC++, 1, &n) )
 	  BODY_FAILED;
-	ARGP = argp;
-				DEBUG(8, Sdprintf("ARGP = 0x%lx; top = ",
-						(unsigned long)ARGP);
-					 pl_write(ARGP-1);
-					 Sdprintf("\n"));
+	ARGP = (Word) n;
 	NEXT_INSTRUCTION;
       }
 
     VMI(A_FUNC2, COUNT_N(a_func2), ("a_func2 %d\n", *PC)) MARK(A_FUNC2);
-      {	Word argp = ARGP;
-				DEBUG(8, Sdprintf("ARGP = 0x%lx; top = ",
-						(unsigned long)ARGP);
-					 pl_write(ARGP-2); Sdprintf(" & ");
-					 pl_write(ARGP-1);
-					 Sdprintf("\n"));
-	if ( ar_func_n(*PC++, 2, &argp) == FALSE )
+      {	Number n = (Number) ARGP;
+	if ( !ar_func_n(*PC++, 2, &n) )
 	  BODY_FAILED;
-	ARGP = argp;
-				DEBUG(8, Sdprintf("ARGP = 0x%lx; top = ",
-						(unsigned long)ARGP);
-					 pl_write(ARGP-1);
-					 Sdprintf("\n"));
+	ARGP = (Word) n;
 	NEXT_INSTRUCTION;
       }
 
     VMI(A_FUNC, COUNT_N(a_func), ("a_func %d %d\n",*PC,PC[1])) MARK(A_FUNC);
-      {	Word argp = ARGP;
-	if ( ar_func_n(*PC++, *PC++, &argp) == FALSE )
+      {	Number n = (Number) ARGP;
+	if ( !ar_func_n(*PC++, *PC++, &n) )
 	  BODY_FAILED;
-	ARGP = argp;
+	ARGP = (Word) n;
 	NEXT_INSTRUCTION;
       }
 
@@ -1845,70 +1821,113 @@ condition.  Example translation: `a(Y) :- b(X), X > Y'
     ENTER
     B_FIRSTVAR 1	% Link X from B's frame to a new var in A's frame
     CALL 0		% call b/1
-    B_VAR 1		% Push X
-    B_VAR 0		% Push Y
+    A_VAR 1		% Push X
+    A_VAR 0		% Push Y
     A_GT		% compare
     EXIT
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define cmpNumbers(l, r, f) compareNumbers(consTermRef(l), consTermRef(r), f)
     VMI(A_LT, COUNT(a_lt), ("a_lt\n")) MARK(A_LT);
-      { ARGP -= 2;
-	if ( cmpNumbers(ARGP, ARGP+1, LT) == FALSE )
+      { Number n = (Number)ARGP;
+	n -= 2;
+	ARGP = (Word)n;
+	if ( !ar_compare(n, n+1, LT) )
 	  BODY_FAILED;
+	ARGP = argFrameP(lTop, 0);
 	NEXT_INSTRUCTION;
       }
 
     VMI(A_LE, COUNT(a_le), ("a_le\n")) MARK(A_LE);
-      { ARGP -= 2;
-	if ( cmpNumbers(ARGP, ARGP+1, LE) == FALSE )
+      { Number n = (Number)ARGP;
+	n -= 2;
+	ARGP = (Word)n;
+	if ( !ar_compare(n, n+1, LE) )
 	  BODY_FAILED;
+	ARGP = argFrameP(lTop, 0);
 	NEXT_INSTRUCTION;
       }
 
     VMI(A_GT, COUNT(a_gt), ("a_gt\n")) MARK(A_GT);
-      { ARGP -= 2;
-	if ( cmpNumbers(ARGP, ARGP+1, GT) == FALSE )
+      { Number n = (Number)ARGP;
+	n -= 2;
+	ARGP = (Word)n;
+	if ( !ar_compare(n, n+1, GT) )
 	  BODY_FAILED;
+	ARGP = argFrameP(lTop, 0);
 	NEXT_INSTRUCTION;
       }
 
     VMI(A_GE, COUNT(a_ge), ("a_ge\n")) MARK(A_GE);
-      { ARGP -= 2;
-	if ( cmpNumbers(ARGP, ARGP+1, GE) == FALSE )
+      { Number n = (Number)ARGP;
+	n -= 2;
+	ARGP = (Word)n;
+	if ( !ar_compare(n, n+1, GE) )
 	  BODY_FAILED;
+	ARGP = argFrameP(lTop, 0);
 	NEXT_INSTRUCTION;
       }
 
     VMI(A_EQ, COUNT(a_eq), ("a_eq\n")) MARK(A_EQ);
-      { ARGP -= 2;
-	if ( cmpNumbers(ARGP, ARGP+1, EQ) == FALSE )
+      { Number n = (Number)ARGP;
+	n -= 2;
+	ARGP = (Word)n;
+	if ( !ar_compare(n, n+1, EQ) )
 	  BODY_FAILED;
+	ARGP = argFrameP(lTop, 0);
 	NEXT_INSTRUCTION;
       }
 
     VMI(A_NE, COUNT(a_ne), ("a_ne\n")) MARK(A_NE);
-      { ARGP -= 2;
-	if ( cmpNumbers(ARGP, ARGP+1, NE) == FALSE )
+      { Number n = (Number)ARGP;
+	n -= 2;
+	ARGP = (Word)n;
+	if ( !ar_compare(n, n+1, NE) )
 	  BODY_FAILED;
+	ARGP = argFrameP(lTop, 0);
 	NEXT_INSTRUCTION;
       }
-#undef cmpNumbers
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Translation of is/2. Unify the two pushed  values. Order does not matter
-here. We need to open part of a frame to ensure trailing works properly.
+Translation of is/2.  The stack has two pushed values: the variable for
+the result (a word) and the number holding the result.  For example:
+
+	 a(X) :- X is sin(3).
+
+	I_ENTER
+	B_VAR 0			push left argument of is/2
+	A_INTEGER 3		push integer as number
+	A_FUNC <sin>		run function on it
+	A_IS			bind value
+	I_EXIT
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
     VMI(A_IS, COUNT(a_is), ("a_is\n")) MARK(A_IS);
-      { int rval;
+      { Number n = (Number)ARGP;
+	Word k;
 
-	Mark(lTop->mark);
-	ARGP -= 2;
-	rval = unify(ARGP, ARGP+1, lTop);
+	n--;				/* pop the number */
+	ARGP = argFrameP(lTop, 0);	/* 1-st argument */
+	deRef2(ARGP, k);
+	canoniseNumber(n);		/* whole real --> long */
 
-	if ( rval )
+	if ( isVar(*k) )
+	{ Mark(lTop->mark);
+	  Trail(k, lTop);
+	  if ( intNumber(n) )
+	  { if ( inTaggedNumRange(n->value.i) )
+	      *k = consNum(n->value.i);
+	    else
+	      *k = globalLong(n->value.i);
+	  } else
+	    *k = globalReal(n->value.f);
 	  NEXT_INSTRUCTION;
+	} else
+	{ if ( isInteger(*k) && intNumber(n) && valInteger(*k) == n->value.i )
+	    NEXT_INSTRUCTION;
+	  if ( isReal(*k) && floatNumber(n) && valReal(*k) == n->value.f )
+	    NEXT_INSTRUCTION;
+	}
+
 	BODY_FAILED;
       }
 #endif /* O_COMPILE_ARITH */

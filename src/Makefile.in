@@ -59,7 +59,8 @@ STREAMH=$(INCLUDEDIR)/SWI-Stream.h
 STUBC=$(INCLUDEDIR)/stub.c
 STARTUPPATH=$(PL).qlf
 RUNTIMEDIR=../runtime/$(ARCH)
-RUNTIME=$(RUNTIMEDIR)/$(PL).o
+PLLIB=libpl.a
+RUNTIME=$(RUNTIMEDIR)/$(PLLIB)
 LIBRARYDIR=${PLBASE}/library
 
 
@@ -80,7 +81,7 @@ SRC=	$(OBJ:.o=.c) $(DEPOBJ:.o=.c) $(EXT:.o=.c) pl-index.c pl-alloc.c
 HDR=	config.h parms.h pl-buffer.h pl-ctype.h pl-incl.h pl-itf.h pl-main.h \
 	pl-os.h pl-save.h
 
-all:	banner headers system startup index runtime pl-bite chpl
+all:	banner headers system startup index runtime pl-bite chpl swipl swiplbin
 
 .c.o:
 	$(CC) -c -I. -I$(srcdir) $(CFLAGS) $< @COUTOPT@
@@ -108,7 +109,8 @@ $(STARTUPPATH):	$(PLINIT) pl-wam.o pl-wic.o
 $(RUNTIME):	$(OBJ) $(DEPOBJ)
 		if [ ! -d ../runtime ]; then mkdir ../runtime; fi
 		if [ ! -d $(RUNTIMEDIR) ]; then mkdir $(RUNTIMEDIR); fi
-		$(LD_R) -o $@ $(OBJ) $(DEPOBJ)
+		rm -f $@
+		$(AR) -r $@ $(OBJ) $(DEPOBJ)
 
 index:
 		./$(PL) -x $(STARTUPPATH) \
@@ -171,42 +173,45 @@ tags:		TAGS
 TAGS:		$(SRC)
 		$(ETAGS) $(SRC) $(HDR)
 		
+swipl:
+		echo "." > $@
+swiplbin:	
+		echo ".." > $@
+
 pl-funcs.h:	$(SRC)
 		mkproto -p $(SRC) > $@
 
 install:	idirs iboot ilib iinclude iruntime iman
 		$(INSTALL_DATA) $(STARTUPPATH) $(PLBASE)/startup/startup
-		echo "." > swipl
 		$(INSTALL_DATA) swipl $(PLBASE)
+		$(INSTALL_DATA) swiplbin $(PLBASE)/bin/swipl
 		$(INSTALL_DATA) README.bin $(PLBASE)
 		$(INSTALL_DATA) ../LICENCE $(PLBASE)
 		if [ -r $(bindir)/$(PL) ]; then \
 		    mv $(bindir)/$(PL) $(bindir)/$(PL).old; \
 		fi
-		for f in $(PL) pl-bite chpl; do \
-		    $(INSTALL_PROGRAM) $$f $(PLBASE)/bin; \
+		for f in $(PL) pl-bite chpl plld; do \
+		    $(INSTALL_PROGRAM) $$f $(PLBASE)/bin/$(ARCH); \
 		done
 		cd $(PLBASE)/library; \
-		   ../bin/$(PL) \
+		   ../bin/$(ARCH)/$(PL) \
 			-f none \
 			-g make_library_index\('.'\) \
 			-t halt
-		-for f in $(PL) pl-bite chpl; do \
-		    ( cd $(bindir); rm -f $$f; ln -s $(PLBASE)/bin/$$f . ); \
+		-for f in $(PL) pl-bite chpl plld; do \
+		    ( cd $(bindir); rm -f $$f; ln -s $(PLBASE)/bin/$(ARCH)/$$f . ); \
 		done
 
-installdirs=	bin lib lib/$(ARCH) man boot library startup include \
-		runtime runtime/$(ARCH)
+installdirs=	bin bin/$(ARCH) lib lib/$(ARCH) man boot library startup \
+		include runtime runtime/$(ARCH)
 
 iruntime:
 		if [ ! -d $(PLBASE)/runtime/$(ARCH) ]; then \
 			mkdir $(PLBASE)/runtime/$(ARCH); \
 		fi
-		if [ -f ../runtime/$(ARCH)/$(PL).o ]; then \
-			$(INSTALL_DATA) ../runtime/$(ARCH)/$(PL).o \
-					$(PLBASE)/runtime/$(ARCH); \
+		if [ -f $(RUNTIME) ]; then \
+			$(INSTALL_DATA) $(RUNTIME) $(PLBASE)/runtime/$(ARCH); \
 		fi
-		$(INSTALL_DATA) $(srcdir)/pl-extend.c $(PLBASE)/runtime
 
 idirs:
 		-mkdir $(PLBASE)
@@ -238,9 +243,11 @@ iinclude:
 iman:
 		$(SED) 's/PL/$(PL)/' $(srcdir)/pl.1 > $(PLBASE)/man/$(PL).$(mansec)
 		$(INSTALL_DATA) $(srcdir)/chpl.1 $(PLBASE)/man/chpl.$(mansec)
+		$(INSTALL_DATA) $(srcdir)/plld.1 $(PLBASE)/man/plld.$(mansec)
 		$(INSTALL_DATA) $(srcdir)/readline.3 $(PLBASE)/man/readline.$(lmansec)
 		-$(INSTALL_DATA) $(PLBASE)/man/$(PL).$(mansec) $(mandir)
 		-$(INSTALL_DATA) $(PLBASE)/man/chpl.$(mansec) $(mandir)
+		-$(INSTALL_DATA) $(PLBASE)/man/plld.$(mansec) $(mandir)
 		-$(INSTALL_DATA) $(PLBASE)/man/readline.$(lmansec) $(lmandir)
  
 #

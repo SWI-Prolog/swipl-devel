@@ -239,6 +239,19 @@ PL_compare(term_t t1, term_t t2)
 
 
 		 /*******************************
+		 *	      INTEGERS		*
+		 *******************************/
+
+word
+makeNum(long i)
+{ if ( inTaggedNumRange(i) )
+    return consNum(i);
+
+  return globalLong(i);
+}
+
+
+		 /*******************************
 		 *	       CONS-*		*
 		 *******************************/
 
@@ -384,7 +397,7 @@ PL_get_list_chars(term_t l, char **s, unsigned flags)
   while( isList(list) && !isNil(list) )
   { arg = argTermP(list, 0);
     deRef(arg);
-    if (isInteger(*arg) && (c=(int)valNum(*arg)) > 0 && c < 256)
+    if ( isTaggedInt(*arg) && (c=(int)valInt(*arg)) > 0 && c < 256)
     { addBuffer(b, c, char);
       tail = argTermP(list, 1);
       deRef(tail);
@@ -420,7 +433,7 @@ PL_get_chars(term_t l, char **s, unsigned flags)
     r = stringAtom((Atom)w);
   } else if ( (flags & CVT_INTEGER) && isInteger(w) )
   { type = PL_INTEGER;
-    Ssprintf(tmp, "%ld", valNum(w) );
+    Ssprintf(tmp, "%ld", valInteger(w) );
     r = tmp;
   } else if ( (flags & CVT_FLOAT) && isReal(w) )
   { type = PL_FLOAT;
@@ -459,8 +472,12 @@ int
 PL_get_integer(term_t t, int *i)
 { word w = valHandle(t);
   
-  if ( isInteger(w) )
-  { *i = valNum(w);
+  if ( isTaggedInt(w) )
+  { *i = valInt(w);
+    succeed;
+  }
+  if ( isBignum(w) )
+  { *i = valBignum(w);
     succeed;
   }
   if ( isReal(w) )
@@ -480,8 +497,12 @@ int
 PL_get_long(term_t t, long *i)
 { word w = valHandle(t);
   
-  if ( isInteger(w) )
-  { *i = valNum(w);
+  if ( isTaggedInt(w) )
+  { *i = valInt(w);
+    succeed;
+  }
+  if ( isBignum(w) )
+  { *i = valBignum(w);
     succeed;
   }
   if ( isReal(w) )
@@ -505,8 +526,12 @@ PL_get_float(term_t t, double *f)
   { *f = valReal(w);
     succeed;
   }
-  if ( isInteger(w) )
-  { *f = (double) valNum(w);
+  if ( isTaggedInt(w) )
+  { *f = (double) valInt(w);
+    succeed;
+  }
+  if ( isBignum(w) )
+  { *f = (double) valBignum(w);
     succeed;
   }
   fail;
@@ -517,7 +542,7 @@ int
 PL_get_pointer(term_t t, void **ptr)
 { word w = valHandle(t);
   
-  if ( isInteger(w) )
+  if ( isInteger(w) )			/* TBD */
   { void *p;
 
     if ( w == consNum(0) )
@@ -674,16 +699,21 @@ _PL_get_xpce_reference(term_t t, xpceref_t *ref)
   { Word p = argTermP(w, 0);
 
     do
-    { if ( isInteger(*p) )
+    { if ( isTaggedInt(*p) )
       { ref->type    = PL_INTEGER;
-	ref->value.i = valNum(*p);
-	ref->value.i &= PLMAXINT;	/* force unsigned */
+	ref->value.i = valInt(*p);
 
 	succeed;
       } 
       if ( isAtom(*p) )
       { ref->type    = PL_ATOM;
 	ref->value.a = (atom_t) *p;
+
+	succeed;
+      }
+      if ( isBignum(*p) )
+      { ref->type    = PL_INTEGER;
+	ref->value.i = valBignum(*p);
 
 	succeed;
       }
@@ -855,7 +885,16 @@ PL_put_list_chars(term_t t, const char *chars)
 
 void
 PL_put_integer(term_t t, long i)
-{ setHandle(t, consNum(i));
+{ setHandle(t, makeNum(i));
+}
+
+
+void
+_PL_put_number(term_t t, Number n)
+{ if ( intNumber(n) )
+    PL_put_integer(t, n->value.i);
+  else
+    PL_put_float(t, n->value.f);
 }
 
 
@@ -920,7 +959,7 @@ _PL_put_xpce_reference_i(term_t t, unsigned long r)
 
   setHandle(t, (word)a);
   *a++ = (word)FUNCTOR_xpceref1;
-  *a++ = consNum(r);
+  *a++ = makeNum(r);
 }
 
 
@@ -980,7 +1019,16 @@ int
 PL_unify_integer(term_t t, long i)
 { Word p = valHandleP(t);
 
-  return unifyAtomic(p, consNum(i));
+  return unifyAtomic(p, makeNum(i));
+}
+
+
+int
+_PL_unify_number(term_t t, Number n)
+{ if ( intNumber(n) )
+    return PL_unify_integer(t, n->value.i);
+  else
+    return PL_unify_float(t, n->value.f);
 }
 
 
@@ -1048,7 +1096,7 @@ _PL_unify_xpce_reference(term_t t, xpceref_t *ref)
       DoTrail(p);
       *a++ = (word) FUNCTOR_xpceref1;
       if ( ref->type == PL_INTEGER )
-	*a++ = consNum(ref->value.i);
+	*a++ = makeNum(ref->value.i);
       else
 	*a++ = (word) ref->value.a;
   
@@ -1056,7 +1104,7 @@ _PL_unify_xpce_reference(term_t t, xpceref_t *ref)
     } 
     if ( hasFunctor(*p, FUNCTOR_xpceref1) )
     { Word a = argTermP(*p, 0);
-      word v = (ref->type == PL_INTEGER ? consNum(ref->value.i)
+      word v = (ref->type == PL_INTEGER ? makeNum(ref->value.i)
 					: (word)ref->value.a);
   
       deRef(a);
@@ -1094,23 +1142,12 @@ _PL_put_atomic(term_t t, atomic_t a)
 
 void
 _PL_copy_atomic(term_t t, atomic_t arg) /* internal one */
-{ word a = (word)arg;
+{ word a;
 
-  if ( isIndirect(a) )
-  { Word p = (Word)unMask(a);
-    Word copy;
-    int  n;
-
-    if ( isReal(a) )
-      n = 2;
-    else
-      n = allocSizeString(sizeString(a)) / sizeof(word);
-
-    copy = allocGlobal(n);		/* TBD: check for stack-shift */
-    memcpy(copy, p, n * sizeof(word));
-
-    a = (word)copy | INDIRECT_MASK;
-  }
+  if ( isIndirect(arg) )
+    a = globalIndirect((word)arg);
+  else
+    a = (word)arg;
   
   setHandle(t, a);
 }
@@ -1624,6 +1661,9 @@ int
 PL_dispatch(int fd, int wait)
 { int rval;
 
+  if ( wait == PL_DISPATCH_INSTALLED )
+    return dispatch_events ? TRUE : FALSE;
+
   if ( dispatch_events )
   { do
     { rval = (*dispatch_events)(fd);
@@ -1653,7 +1693,7 @@ PL_set_feature(const char *name, int type, ...)
     }
     case PL_INTEGER:
     { int v = va_arg(args, int);
-      setFeature(lookupAtom(name), consNum(v));
+      setFeature(lookupAtom(name), makeNum(v));
       break;
     }
     default:
@@ -1794,6 +1834,10 @@ PL_query(int query)
       return PLMAXINT;
     case PL_QUERY_MIN_INTEGER:
       return PLMININT;
+    case PL_QUERY_MAX_TAGGED_INT:
+      return PLMAXTAGGEDINT;
+    case PL_QUERY_MIN_TAGGED_INT:
+      return PLMINTAGGEDINT;
     case PL_QUERY_GETC:
       PopTty(&ttytab);			/* restore terminal mode */
       return (long) Sgetchar();		/* normal reading */

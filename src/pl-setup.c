@@ -129,9 +129,9 @@ setupProlog(void)
 Feature interface
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void
+int
 CSetFeature(char *name, char *value)
-{ setFeature(lookupAtom(name), (word) lookupAtom(value));
+{ return setFeature(lookupAtom(name), (word) lookupAtom(value));
 }
 
 static void
@@ -181,14 +181,17 @@ initFeatures()
   CSetFeature("runtime",	"true");
 #endif
 					/* ISO features */
-  setFeature(lookupAtom("max_integer"), consNum(PLMAXINT));
-  setFeature(lookupAtom("min_integer"), consNum(PLMININT));
+  setFeature(lookupAtom("max_integer"), heapLong(PLMAXINT));
+  setFeature(lookupAtom("min_integer"), heapLong(PLMININT));
+  setFeature(lookupAtom("max_tagged_integer"), consNum(PLMAXTAGGEDINT));
+  setFeature(lookupAtom("min_tagged_integer"), consNum(PLMINTAGGEDINT));
   CSetFeature("bounded",	"true");
   if ( (-3 / 2) == -2 )
     CSetFeature("integer_rounding_function", "down");
   else
     CSetFeature("integer_rounding_function", "toward_zero");
   CSetFeature("max_arity", "unbounded");
+  CSetFeature("float_format", "%g");
   CSetFeature("character_escapes", "true");
 
 #if defined(__DATE__) && defined(__TIME__)
@@ -731,9 +734,7 @@ caddress addr;
 #undef FD_ZERO
 #undef FD_ISSET
 #undef FD_SET
-#undef V_ERROR
 #include <windows.h>
-#undef V_ERROR
 #undef small
 
 static void

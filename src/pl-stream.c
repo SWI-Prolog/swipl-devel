@@ -350,7 +350,7 @@ Sfread(void *data, int size, int elms, IOSTREAM *s)
     if ( (c = Sgetc(s)) == EOF )
       break;
 
-    *buf++ = c;
+    *buf++ = c & 0xff;
   }
   
   return chars ? elms : (elms - (chars+size-1)/size);

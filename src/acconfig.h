@@ -102,3 +102,6 @@
 
 /* Define if assert.h cannot be used without loading stdio.h */
 #undef ASSERT_H_REQUIRES_STDIO_H
+
+/* Define to the required alignment for doubles if not same as longs */
+#undef DOUBLE_ALIGNMENT

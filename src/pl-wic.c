@@ -19,7 +19,7 @@
 forwards char *	getString(IOSTREAM *);
 forwards long	getNum(IOSTREAM *);
 forwards real	getReal(IOSTREAM *);
-forwards bool	loadWicFd(char *, IOSTREAM *, bool, bool);
+forwards bool	loadWicFd(char *, IOSTREAM *, int);
 forwards bool	loadPredicate(IOSTREAM *, int skip);
 forwards bool	loadImport(IOSTREAM *, int skip);
 forwards void	putString(char *, IOSTREAM *);
@@ -82,6 +82,9 @@ Below is an informal description of the format of a `.qlf' file:
 			<initFile>			% a <string>
 			<home>				% a <string>
 			{<statement>}
+			'T'
+			<size>				% a stdword
+			<QLFMAGICNUM>			% a stdword
 ----------------------------------------------------------------
 <qlf-file>	::=	<qlf-magic>
 			<version-number>
@@ -125,6 +128,7 @@ Below is an informal description of the format of a `.qlf' file:
 <XR>		::=	XR_REF     <num>		% XR id from table
 			XR_ATOM    <string>		% atom
 			XR_INT     <num>		% number
+			XR_BIGNUM  <word>		% big-number
 			XR_FLOAT   <word>		% real (float)
 			XR_STRING  <string>		% string
 			XR_FUNCTOR <XR/name> <num>	% functor
@@ -154,15 +158,17 @@ between  16  and  32  bits  machines (arities on 16 bits machines are 16
 bits) as well as machines with different byte order.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define VERSION 27			/* save version number */
+#define VERSION 28			/* save version number */
+#define QLFMAGICNUM 0x716c7374		/* "qlst" on little-endian machine */
 
 #define XR_REF     0			/* reference to previous */
 #define XR_ATOM	   1			/* atom */
 #define XR_FUNCTOR 2			/* functor */
 #define XR_PRED	   3			/* procedure */
 #define XR_INT     4			/* int */
-#define XR_FLOAT   5			/* float */
-#define XR_STRING  6			/* string */
+#define XR_BIGNUM  5			/* 32-bit integer */
+#define XR_FLOAT   6			/* float */
+#define XR_STRING  7			/* string */
 
 static char saveMagic[] = "SWI-Prolog (c) 1990 Jan Wielemaker\n";
 static char qlfMagic[]  = "SWI-Prolog .qlf file\n";
@@ -464,6 +470,8 @@ loadXRc(int c, IOSTREAM *fd)
     }
     case XR_INT:
       return consNum(getNum(fd));
+    case XR_BIGNUM:
+      return heapLong(getstdw(fd));	/* global ... */
     case XR_FLOAT:
       return heapReal(getReal(fd));	/* global ... */
 #if O_STRING
@@ -550,32 +558,52 @@ All wic files loaded are appended in the  right  order  to  a  chain  of
 `states'.  They are written to a new toplevel wic file by openWic().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-bool
-loadWicFile(char *file, bool toplevel, bool load_options)
+int
+loadWicFile(char *file, int flags)
 { IOSTREAM *fd;
   bool rval = TRUE;
   bool tablealloced = FALSE;
   char *owf = wicFile;
 
   if ((fd = Sopen_file(file, "rbr")) == (IOSTREAM *) NULL)
-  { fatalError("Can't open %s: %s", file, OsError());
+  { if ( flags & QLF_EXESTATE )
+      rval = -1;
+    else
+      fatalError("Can't open %s: %s", file, OsError());
     rval = FALSE;
     goto out;
   }
 
+  if ( flags & QLF_EXESTATE )
+  { if ( Sseek(fd, -2 * sizeof(long), SIO_SEEK_END) > 0 )
+    { long size, magic;
+
+      size = getstdw(fd);
+      magic = getstdw(fd);
+      if ( magic == QLFMAGICNUM )
+	Sseek(fd, -2 * sizeof(long) - size, SIO_SEEK_END);
+      else
+	rval = -1;
+    } else
+      rval = -1;
+  }
+
+  if ( rval < 0 )
+    goto out;
+
   wicFile = file;
   notifyLoad(file);
 
-  if ( toplevel && !load_options )
+  if ( (flags & QLF_TOPLEVEL) && !(flags & QLF_OPTIONS) )
   { pushXrIdTable();
     tablealloced    = TRUE;
   }
 
-  if (loadWicFd(file, fd, toplevel, load_options) == FALSE)
+  if ( loadWicFd(file, fd, flags) == FALSE )
   { rval = FALSE;
     goto out;
   }
-  if (toplevel == TRUE && load_options == FALSE)
+  if ( (flags & QLF_TOPLEVEL) && !(flags & QLF_OPTIONS) )
   { if (appendState(file) == FALSE)
     { rval = FALSE;
       goto out;
@@ -595,16 +623,17 @@ out:
   return rval;
 }
 
+#define QLF_MAX_HEADER_LINES 100
 
 static bool
-loadWicFd(char *file, IOSTREAM *fd, bool toplevel, bool load_options)
+loadWicFd(char *file, IOSTREAM *fd, int flags)
 { char *s;
   Char c;
   int n;
   char mbuf[100];
   char *savedhome;
 
-  for(n=0; n<100; n++)			/* max first 10 lines is script */
+  for(n=0; n<QLF_MAX_HEADER_LINES; n++)
   { char line[256];
 
     if ( Sfgets(line, sizeof(line), fd) == 0 )
@@ -612,20 +641,20 @@ loadWicFd(char *file, IOSTREAM *fd, bool toplevel, bool load_options)
     if ( streq(line, "# End Header\n") )
       break;
   }
-  if ( n >= 10 )
+  if ( n >= QLF_MAX_HEADER_LINES )
     return fatalError("%s: header script too long (> 100 lines)", file);
 
   s = getMagicString(fd, mbuf, sizeof(mbuf));
   if ( !s || !streq(s, saveMagic) )
     return fatalError("%s is not a SWI-Prolog intermediate code file", file);
 
-  if (getNum(fd) != VERSION)
+  if ( getNum(fd) != VERSION )
   { fatalError("Intermediate code file %s has incompatible save version",
 	       file);
     fail;
   }
 
-  if (load_options && toplevel)
+  if ( (flags & QLF_OPTIONS) && (flags & QLF_TOPLEVEL) )
   { options.localSize    = getNum(fd);
     options.globalSize   = getNum(fd);
     options.trailSize    = getNum(fd);
@@ -659,15 +688,16 @@ loadWicFd(char *file, IOSTREAM *fd, bool toplevel, bool load_options)
 
     switch( c )
     { case EOF:
+      case 'T':				/* trailer */
 	succeed;
       case 'W':
 	{ char *name;
 
 	  name = store_string(getString(fd) );
-	  if (toplevel == TRUE)
+	  if ( (flags & QLF_TOPLEVEL) )
 	  { appendState(name);
 	    pushXrIdTable();		/* has it's own id table! */
-	    loadWicFile(name, FALSE, FALSE);
+	    loadWicFile(name, 0);
 	    popXrIdTable();
 	  }
 	  continue;
@@ -808,6 +838,16 @@ loadPredicate(IOSTREAM *fd, int skip)
 	    { FunctorDef f = (FunctorDef)loadXR(fd);
 	      *bp++ = (word) lookupProcedure(f, modules.source);
 
+	      break;
+	    }
+	    case A_INTEGER:
+	      *bp++ = getstdw(fd);
+	      break;
+	    case A_DOUBLE:
+	    { union { word w[2]; double f; } v;
+	      v.f = getReal(fd);
+	      *bp++ = v.w[0];
+	      *bp++ = v.w[1];
 	      break;
 	    }
 	    default:
@@ -1131,9 +1171,13 @@ saveXR(word xr, IOSTREAM *fd)
 { Symbol s;
   int id;
 
-  if (isInteger(xr) )
+  if ( isTaggedInt(xr) )
   { Putc(XR_INT, fd);
-    putNum(valNum(xr), fd);
+    putNum(valInt(xr), fd);
+    return;
+  } else if ( isBignum(xr) )
+  { Putc(XR_BIGNUM, fd);
+    putstdw(valBignum(xr), fd);
     return;
   } else if (isReal(xr) )
   { Putc(XR_FLOAT, fd);
@@ -1187,7 +1231,7 @@ do_save_qlf_term(Word t, IOSTREAM *fd)
   { FunctorDef f = functorTerm(*t);
 
     if ( f == FUNCTOR_var1 )
-    { int id = valNum(argTerm(*t, 0));
+    { int id = valInt(argTerm(*t, 0));
 
       Putc('v', fd);
       putNum(id, fd);
@@ -1261,6 +1305,16 @@ saveWicClause(Clause clause, IOSTREAM *fd)
 	saveXR((word)p->definition->functor, fd);
 	break;
       }
+      case A_INTEGER:
+	putstdw(*bp++, fd);
+	break;
+      case A_DOUBLE:
+      { union { word w[2]; double f; } v;
+	v.w[0] = *bp++;
+	v.w[1] = *bp++;
+	putReal(v.f, fd);
+	break;
+      }
       default:
 	for( ; n < codeTable[op].externals; n++ )
 	  saveXR(*bp++, fd);
@@ -1275,6 +1329,8 @@ saveWicClause(Clause clause, IOSTREAM *fd)
 		*         COMPILATION           *
 		*********************************/
 
+static long emulator_size;
+
 static void
 closeProcedureWic(IOSTREAM *fd)
 { if ( currentProc != (Procedure) NULL )
@@ -1282,6 +1338,31 @@ closeProcedureWic(IOSTREAM *fd)
     putNum(currentProc->definition->indexPattern & ~NEED_REINDEX, fd);
     currentProc = (Procedure) NULL;
   }
+}
+
+
+static int
+copyEmulator(IOSTREAM *out, IOSTREAM *in)
+{ long emsize = -1;
+  long sizepos;
+  int n = 0, c;
+
+  if ( (sizepos = Sseek(in, -2 * sizeof(long), SIO_SEEK_END)) >= 0 )
+  { long size, magic;
+
+    size = getstdw(in);
+    magic = getstdw(in);
+    if ( magic == QLFMAGICNUM )
+      emsize = sizepos - size;
+    Sseek(in, 0, SIO_SEEK_SET);
+  }
+
+  while((c=Sgetc(in)) != EOF && n++ != emsize)
+    Sputc(c, out);
+
+  emulator_size = n;
+
+  succeed;
 }
 
 
@@ -1296,6 +1377,7 @@ openWic(const char *file, term_t args)
   char *goal         = options.goal;
   char *topLevel     = options.topLevel;
   char *initFile     = options.initFile;
+  bool  standalone   = FALSE;
 
   if ( args )
   { TRY(parseSaveProgramOptions(args,
@@ -1306,14 +1388,15 @@ openWic(const char *file, term_t args)
 				&goal,
 				&topLevel,
 				&initFile,
-			        NULL));
+			        NULL,
+			        &standalone));
   }
 
   wicFile = (char *) file;
 
   DEBUG(1, Sdprintf("Open compiler output file %s\n", file));
   if ( (wicFd = Sopen_file(file, "wbr")) == (IOSTREAM *)NULL )
-    return warning("Can't open %s: %s", file, OsError());
+    return warning("Can not open %s: %s", file, OsError());
   mkWicFile = wicFile;
   DEBUG(1, Sdprintf("Searching for executable\n"));
   if ( loaderstatus.restored_state )
@@ -1325,6 +1408,17 @@ openWic(const char *file, term_t args)
   DEBUG(1, Sdprintf("Executable = %s\n", exec));
   if ( !(exec = OsPath(AbsoluteFile(exec))) )
     fail;
+  emulator_size = 0;
+  if ( standalone )
+  { IOSTREAM *exefd;
+
+    DEBUG(1, Sdprintf("Including executable\n", exec));
+    if ( (exefd = Sopen_file(exec, "rbr")) != NULL )
+    { copyEmulator(wicFd, exefd);
+    } else
+      warning("Can not read emulator %s --- ignoring stand_alone(on)", exec);
+  }      
+
   DEBUG(1, Sdprintf("Expanded executable = %s\n", exec));
 /*Sfprintf(wicFd, "#!%s -x\n", exec);*/
 #if OS2
@@ -1359,6 +1453,17 @@ openWic(const char *file, term_t args)
   succeed;
 }  
 
+
+void
+writeTrailer(IOSTREAM *fd)
+{ long size = Stell(fd) - emulator_size;
+
+  Putc('T', fd);
+  putstdw(size, fd);
+  putstdw(QLFMAGICNUM, fd);
+}
+
+
 static bool
 closeWic()
 { bool rval;
@@ -1370,6 +1475,7 @@ closeWic()
   Putc('X', wicFd);
   destroyHTable(savedXRTable);
   savedXRTable = NULL;
+  writeTrailer(wicFd);
   Sclose(wicFd);
   rval = MarkExecutable(wicFile);
 
@@ -1607,9 +1713,11 @@ qlfOpen(Atom name)
 
 static bool
 qlfClose()
-{ closeProcedureWic(wicFd);
-  writeSourceMarks(wicFd);
-  Sclose(wicFd);
+{ IOSTREAM *fd = wicFd;
+
+  closeProcedureWic(fd);
+  writeSourceMarks(fd);
+  Sclose(fd);
   wicFd = NULL;
   mkWicFile = NULL;
 

@@ -18,6 +18,7 @@ static opt_spec save_options[] =
   { ATOM_toplevel,   OPT_STRING },
   { ATOM_init_file,  OPT_STRING },
   { ATOM_tty,	     OPT_BOOL },
+  { ATOM_stand_alone,OPT_BOOL },
   { NULL,	     0 }
 };
 
@@ -26,11 +27,11 @@ word
 parseSaveProgramOptions(term_t args,
 			int *local, int *global, int *trail, int *argument,
 			char **goal, char **toplevel, char **init_file,
-			bool *tty)
+			bool *tty, bool *standalone)
 { return scan_options(args, 0, save_options,
 		      local, global, trail, argument,
 		      goal, toplevel, init_file,
-		      tty);
+		      tty, standalone);
 }
 
 
@@ -114,7 +115,8 @@ pl_save_program(term_t new, term_t options)
 			      &systemDefaults.goal,
 			      &systemDefaults.toplevel,
 			      &systemDefaults.startup,
-			      &systemDefaults.notty));
+			      &systemDefaults.notty,
+			      NULL));
 
   return saveProgram(new);
 }

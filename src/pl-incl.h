@@ -14,7 +14,7 @@
 #define MD	     "config/win32.h"
 #define PLHOME       "c:/pl"
 #define DEFSTARTUP   ".plrc"
-#define PLVERSION    "2.5.6"
+#define PLVERSION    "2.6.0"
 #define ARCH	     "i386-win32"
 #define C_LIBS	     "-lreadline -lconsole -luxnt"
 #define C_STATICLIBS ""
@@ -287,8 +287,12 @@ redesign of parts of the compiler.
 #define SMALLSTACK		200 * 1024 /* GC policy */
 
 				/* Prolog's integer range */
-#define PLMININT		(-(1L<<(32 - MASK_BITS - LMASK_BITS - 1)))
-#define PLMAXINT		(-PLMININT - 1)
+#define PLMINTAGGEDINT		(-(1L<<(32 - MASK_BITS - LMASK_BITS - 1)))
+#define PLMAXTAGGEDINT		(-PLMINTAGGEDINT - 1)
+#define inTaggedNumRange(n)	(((n)&~PLMAXTAGGEDINT) == 0 || \
+				 ((n)&~PLMAXTAGGEDINT) == ~PLMAXTAGGEDINT)
+#define PLMAXINT		((long)0x7fffffffL)
+#define PLMININT		((long)0x80000000L)
 
 #if vax
 #define MAXREAL			(1.701411834604692293e+38)
@@ -399,75 +403,77 @@ codes.
 #define H_VAR		((code)10)
 #define B_CONST		((code)11)		/* constant (atomic) */
 #define H_CONST		((code)12)
-#define H_REAL		((code)13)		/* real in the head */
-#if O_STRING
-#define H_STRING	((code)14)		/* string in the head */
-#endif /* O_STRING */
+#define H_INDIRECT	((code)13)		/* real in the head */
 
-#define B_FIRSTVAR	((code)15)		/* first occurrence of var */
-#define H_FIRSTVAR	((code)16)
-#define B_VOID		((code)17)		/* anonimous variables */
-#define H_VOID		((code)18)
-#define B_ARGFIRSTVAR	((code)19)		/* body vars nested in functor */
-#define B_ARGVAR	((code)20)
+#define B_FIRSTVAR	((code)14)		/* first occurrence of var */
+#define H_FIRSTVAR	((code)15)
+#define B_VOID		((code)16)		/* anonimous variables */
+#define H_VOID		((code)17)
+#define B_ARGFIRSTVAR	((code)18)		/* body vars nested in functor */
+#define B_ARGVAR	((code)19)
 
-#define H_NIL		((code)21)		/* [] in the head */
-#define H_LIST		((code)22)		/* ./2 in the head */
+#define H_NIL		((code)20)		/* [] in the head */
+#define H_LIST		((code)21)		/* ./2 in the head */
 
-#define B_VAR0		((code)23)		/* B_VAR 0 */
-#define B_VAR1		((code)24)		/* B_VAR 1 */
-#define B_VAR2		((code)25)		/* B_VAR 2 */
+#define B_VAR0		((code)22)		/* B_VAR 0 */
+#define B_VAR1		((code)23)		/* B_VAR 1 */
+#define B_VAR2		((code)24)		/* B_VAR 2 */
 
-#define I_USERCALL0	((code)26)		/* variable in body (call/1) */
-#define I_USERCALLN	((code)27)		/* call/[2...] */
-#define I_CUT		((code)28)		/* ! */
-#define I_APPLY		((code)29)		/* apply/2 */
+#define I_USERCALL0	((code)25)		/* variable in body (call/1) */
+#define I_USERCALLN	((code)26)		/* call/[2...] */
+#define I_CUT		((code)27)		/* ! */
+#define I_APPLY		((code)28)		/* apply/2 */
 
 #if O_COMPILE_ARITH
-#define A_REAL		((code)30)
-#define A_FUNC0		((code)31)		/* nullary arithmic function */
-#define A_FUNC1		((code)32)		/* unary arithmic function */
-#define A_FUNC2		((code)33)		/* binary arithmic function */
-#define A_FUNC		((code)34)		/* n-ary arithmic function */
-#define A_LT		((code)35)		/* < */
-#define A_GT		((code)36)		/* > */
-#define A_LE		((code)37)		/* =< */
-#define A_GE		((code)38)		/* >= */
-#define A_EQ		((code)39)		/* =:= */
-#define A_NE		((code)40)		/* =\= */
-#define A_IS		((code)41)		/* is */
+#define A_ENTER		((code)29)		/* start arithmetic sequence */
+#define A_INTEGER	((code)30)		/* 32-bit signed int */
+#define A_DOUBLE	((code)31)		/* 64-bit double */
+#define A_VAR0		((code)32)		/* variable-0 */
+#define A_VAR1		((code)33)		/* variable-1 */
+#define A_VAR2		((code)34)		/* variable-2 */
+#define A_VAR		((code)35)		/* variable-n */
+#define A_FUNC0		((code)36)		/* nullary arithmic function */
+#define A_FUNC1		((code)37)		/* unary arithmic function */
+#define A_FUNC2		((code)38)		/* binary arithmic function */
+#define A_FUNC		((code)39)		/* n-ary arithmic function */
+#define A_LT		((code)40)		/* < */
+#define A_GT		((code)41)		/* > */
+#define A_LE		((code)42)		/* =< */
+#define A_GE		((code)43)		/* >= */
+#define A_EQ		((code)44)		/* =:= */
+#define A_NE		((code)45)		/* =\= */
+#define A_IS		((code)46)		/* is */
 #endif /* O_COMPILE_ARITH */
 
 #if O_COMPILE_OR
-#define C_OR		((code)42)		/* In-clause backtract point */
-#define C_JMP		((code)43)		/* Jump over code */
-#define C_MARK		((code)44)		/* Sub-clause cut mark */
-#define C_CUT		((code)45)		/* cut to corresponding mark */
-#define C_IFTHENELSE	((code)46)		/* if-then-else start */
-#define C_VAR		((code)47)		/* make a variable */
-#define C_END		((code)48)		/* dummy to help decompiler */
-#define C_NOT		((code)49)		/* same as C_IFTHENELSE */
-#define C_FAIL		((code)50)		/* fail */
+#define C_OR		((code)47)		/* In-clause backtract point */
+#define C_JMP		((code)48)		/* Jump over code */
+#define C_MARK		((code)49)		/* Sub-clause cut mark */
+#define C_CUT		((code)50)		/* cut to corresponding mark */
+#define C_IFTHENELSE	((code)51)		/* if-then-else start */
+#define C_VAR		((code)52)		/* make a variable */
+#define C_END		((code)53)		/* dummy to help decompiler */
+#define C_NOT		((code)54)		/* same as C_IFTHENELSE */
+#define C_FAIL		((code)55)		/* fail */
 #endif /* O_COMPILE_OR */
 
-#define B_REAL		((code)51)		/* REAL in body */
-#define B_STRING	((code)52)		/* STRING in body */
+#define B_INDIRECT	((code)56)		/* INDIRECT in body */
 
 #if O_BLOCK
-#define I_CUT_BLOCK	((code)53)		/* !(block) */
-#define B_EXIT		((code)54)		/* exit(block, rval) */
+#define I_CUT_BLOCK	((code)57)		/* !(block) */
+#define B_EXIT		((code)58)		/* exit(block, rval) */
 #endif /*O_BLOCK*/
 
 #if O_INLINE_FOREIGNS
-#define I_CALL_FV0	((code)55)		/* call foreign, no args */
-#define I_CALL_FV1	((code)56)		/* call foreign, 1 var arg */
-#define I_CALL_FV2	((code)57)		/* call foreign, 2 var args */
+#define I_CALL_FV0	((code)59)		/* call foreign, no args */
+#define I_CALL_FV1	((code)60)		/* call foreign, 1 var arg */
+#define I_CALL_FV2	((code)61)		/* call foreign, 2 var args */
 #endif /*O_INLINE_FOREIGNS*/
 
-#define I_FAIL		((code)58)		/* fail */
-#define I_TRUE		((code)59)		/* true */
+#define I_FAIL		((code)62)		/* fail */
+#define I_TRUE		((code)63)		/* true */
 
-#define I_HIGHEST	((code)59)		/* largest WAM code !!! */
+#define I_HIGHEST	((code)63)		/* largest WAM code !!! */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Arithmetic comparison
@@ -666,14 +672,13 @@ garbage collector needs to be tested.
 
 #define MASK_BITS	3		/* high-word masks */
 #define LMASK_BITS	2		/* low-word masks */
-#define DMASK_BITS	4
 
 #define makeRef(p)	((word)(p) | REF_MASK)
 #define unRef(w)	((Word)((word)(w) & ~REF_MASK))
 #define isRef(w)	((word)(w) & REF_MASK)
 
-#define consNum(i)	fconsNum(i)
-#define valNum(i)	fvalNum(i)
+#define consNum(i)	fconsInt(i)
+#define valInt(i)	fvalInt(i)
 
 #else /*AVOID_0X80000000_BIT*/
 
@@ -685,7 +690,6 @@ garbage collector needs to be tested.
 #define INT_MASK	0x20000000L	/* Integer constant */
 #define MASK_BITS	4		/* high order mask bits */
 #define LMASK_BITS	1		/* low order mask bits */
-#define DMASK_BITS	5		/* DATA_TAG_MASK bits */
 #define FIRST_MASK	0x10000000L	/* first member of relocation chain */
 #define STRING_MASK	0x60000000L	/* Header mask on global stack */
 #define REAL_MASK	0x68000000L	/* Header mask on global stack */
@@ -747,7 +751,6 @@ as for low addresses (< 0x20000000L), but  we place the reference tag on
 #endif /* DATA_AT_0X8 */
 
 #define LMASK_BITS	2		/* low order mask bits */
-#define DMASK_BITS	4		/* DATA_TAG_MASK bits */
 #define FIRST_MASK	0x00000002L	/* first member of relocation chain */
 #define MASK_MASK	(INT_MASK|REF_MASK|INDIRECT_MASK)
 #define DATA_TAG_MASK	0xf0000000L	/* Indirect data type mask */
@@ -796,14 +799,20 @@ typedef struct stack *		Stack;		/* machine stack */
 		 *	    ARITHMETIC		*
 		 *******************************/
 
-typedef union
-{ real		f;		/* value as real */
-  long		i;		/* value as integer */
+typedef struct
+{ int	type;				/* type of number */
+  union { real  f;			/* value as real */
+	  long  i;			/* value as integer */
+	  word  w[2];			/* for packing/unpacking the double */
+	} value;
 } number, *Number;
 
-#define V_ERROR		0		/* so we can use `fail' */
-#define V_REAL		1
-#define V_INTEGER	2
+#define V_INTEGER	0		/* integer (long) value */
+#define V_REAL		1		/* just a real */
+#define V_EXPLICIT_REAL 3		/* explicely specified real */
+
+#define intNumber(n)	((n)->type == V_INTEGER)
+#define floatNumber(n)	((n)->type & V_REAL)
 
 		 /*******************************
 		 *	   GET-PROCEDURE	*
@@ -955,11 +964,11 @@ GLOBAL unsigned long ptr_to_num_offset;
 #endif /*__WIN32__*/
 
 #define pointerToNum(p) consNum(((unsigned long)(p)-PTR_TO_NUM_OFFSET)/sizeof(int))
-#define numToPointer(n) ((Word)(valNum(n)*sizeof(int)+PTR_TO_NUM_OFFSET))
+#define numToPointer(n) ((Word)(valInt(n)*sizeof(int)+PTR_TO_NUM_OFFSET))
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Macros to handle the anonimous types.  'w' implies we expect a word, 'p'
+Macros to handle the anonymous types.  'w' implies we expect a word, 'p'
 for a pointer.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -968,25 +977,68 @@ for a pointer.
 #ifndef consNum
 #define consNum(n)		((word) (unMask((n)<<LMASK_BITS) | INT_MASK))
 #endif
-#ifndef valNum
+#ifndef valInt
 #ifdef DATA_AT_0X4
-#define valNum(w)               ((long) ((((w) & SIGN_MASK) << SIGN_OFFSET) | \
+#define valInt(w)               ((long) ((((w) & SIGN_MASK) << SIGN_OFFSET) | \
 				 (unMask(w) << MASK_BITS)) >> \
 				 (MASK_BITS+LMASK_BITS))
 #else
-#define valNum(w)		((long)((w)<<MASK_BITS)>>(MASK_BITS+LMASK_BITS))
+#define valInt(w)		((long)((w)<<MASK_BITS)>>(MASK_BITS+LMASK_BITS))
 #endif
 #endif
 
-#define valReal(w)		unpack_real((Word)unMask(w))
-#if O_STRING
-#define allocSizeString(l)	(ROUND(l+1, sizeof(word)) + 2 * sizeof(word))
-#define valString(w)		((char *)((Word)unMask(w)+1))
-#define sizeString(w)		(((long)(*(Word)unMask(w))<<DMASK_BITS)>> \
-						(DMASK_BITS+LMASK_BITS))
-#define equalString(w1,w2)	(sizeString(w1) == sizeString(w2) && \
-				 streq(valString(w1), valString(w2)))
-#endif /* O_STRING */
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Indirect datatype handling. Indirect data  is   used  to  store (atomic)
+values that cannot be represented as  a   tagged  value.  At the moment,
+these are full 32-bit integers, doubles  and strings. The representation
+of the variable is a tagged pointer (using the tag INDIRECT_MASK) to the
+global stack.
+
+To facilitate generic handling  of   indirects  by  unify, term-copying,
+garbage-collection, etc, the indirect  is   enclosed  between two words,
+with the following layout:
+
+	* The top 4-bits are reserved for the tag, which is the
+	  bitwise of of the indirect and tagged-integer masks.  This
+	  tag is used by the garbage collector to determine the value
+	  is an indirect.
+
+	* The next 3 bits are reserved to indicate the type of the
+	  indirect data.
+
+	* The lower 2 bits are for the garbage collector
+	
+	* The bits 5-25 indicate the size of the indirect data (the
+	  part between the two brackets) in machine-words.
+
+	* The bits 3 and 4 indicate the padding for strings.  They may
+	  be used for other purposes on other indirect types.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define	IDT_MASK	(INDIRECT_MASK|INT_MASK)
+#define IDT_BIGNUM	0x02000000L
+#define IDT_DOUBLE	0x04000000L
+#define IDT_STRING	0x08000000L
+#define IDT_ANY		(IDT_BIGNUM|IDT_DOUBLE|IDT_STRING)
+#define IDT_MASK_MASK	(IDT_MASK|IDT_ANY)
+
+#define DMASK_BITS	6		/* # indirect word right-tag bits  */
+
+#define wSizeIndirect(m) (((m) & 0x01fffff0L) >> 4)
+#define makeIdtSizeMask(n) ((n) << 4)
+#define addressIndirect(w) ((void *)unMask(w))
+#define tagIndirect(w)	((*(Word)unMask(w)) & IDT_ANY)
+#define valIndirectP(w)	((Word)unMask(w)+1)
+
+
+#define isString(w)	(isIndirect(w) && (tagIndirect(w) & IDT_STRING))
+#define isReal(w)	(isIndirect(w) && (tagIndirect(w) & IDT_DOUBLE))
+#define isBignum(w)	(isIndirect(w) && (tagIndirect(w) & IDT_BIGNUM))
+#define isIndirectNum(w) (isIndirect(w) && \
+			  (tagIndirect(w) & (IDT_BIGNUM|IDT_DOUBLE)))
+
+#define valString(w)	((char *)valIndirectP(w))
+#define valBignum(w)	(*(long *)valIndirectP(w))
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Handling references.
@@ -1001,14 +1053,9 @@ Handling dereferenced arbitrary Prolog runtime objects.
 
 #define isMasked(w)	(mask(w))
 #define isIndirect(w)	((w) & INDIRECT_MASK)
-#define isInteger(w)	((w) & INT_MASK)
-#define isReal(w)	(isIndirect(w) && \
-			 (*((Word)unMask(w)) & DATA_TAG_MASK) == REAL_MASK)
-#if O_STRING
-#define isString(w)	(isIndirect(w) && \
-			 (*((Word)unMask(w)) & DATA_TAG_MASK) == STRING_MASK)
-#endif /* O_STRING */
-#define isNumber(w)	(isInteger(w) || isReal(w))
+#define isTaggedInt(w)	((w) & INT_MASK)
+#define isInteger(w)	(isTaggedInt(w) || isBignum(w))
+#define isNumber(w)	(isTaggedInt(w) || isIndirectNum(w))
 #define isVar(w)	((w) == (word) NULL)
 #define nonVar(w)	((w) != (word) NULL)
 #define isPointer(w)	(nonVar(w) && !isMasked(w))
@@ -1031,6 +1078,8 @@ Handling dereferenced arbitrary Prolog runtime objects.
 #define argTermP(w, n)	(((Word)(w)+1+(n)))
 #define isProcedure(w)	(((Procedure)(w))->type == PROCEDURE_TYPE)
 #define isRecordList(w)	(((RecordList)(w))->type == RECORD_TYPE)
+
+#define valInteger(w)	(isTaggedInt(w) ? valInt(w) : valBignum(w))
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Heuristics functions to determine whether an integer reference passed to
@@ -1507,6 +1556,7 @@ GLOBAL bool	  novice;		/* novice user */
 GLOBAL Atom	  source_file_name;	/* Current source file_name */
 GLOBAL int	  source_line_no;	/* Current source line_no */
 GLOBAL bool	  fileerrors;		/* Report file errors? */
+GLOBAL Atom	  float_format;		/* Default floating point format */
 
 #define ReadingSource (source_line_no > 0 && source_file_name != NULL)
 
@@ -1677,6 +1727,10 @@ struct state
 };
 
 GLOBAL State stateList;			/* list of loaded states */
+
+#define QLF_TOPLEVEL 0x1		/* toplevel wic file */
+#define QLF_OPTIONS  0x2		/* only load options */
+#define QLF_EXESTATE 0x4		/* probe qlf exe state */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Include debugging info to make it (very) verbose.  SECURE adds  code  to

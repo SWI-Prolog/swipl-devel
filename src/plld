@@ -1,0 +1,74 @@
+#!/bin/sh
+################################################################
+# plld -- link C and Prolog files to a stand-alone executable
+#
+# Author: Jan Wielemaker
+# E-mail: jan@swi.psy.uva.nl
+#
+# Copyright 1996 University of Amsterdam, all rights reserved
+#
+# For documentation, see the SWI-Prolog manual and man plld
+################################################################
+
+PL=pl
+
+if eval `$PL -dump-runtime-variables`; then
+  true
+else
+  echo "plld: failed to get runtime variables from Prolog"
+  exit 1
+fi
+
+pllibdir="$PLBASE/runtime/$PLARCH"
+
+clibs=
+clibdirs=
+ldflags="$PLLDFLAGS"
+cfiles=
+cflags=
+plfiles=
+plout="pl.out"				# temporary file for saved-state
+cout="c.out"				# temporary file for emulator
+out="a.out"				# the real output file
+
+while [ -n "$1" ]; do
+  case "$1" in
+    -o)
+	out=$2;
+	shift;;
+    -l*)
+	clibs="$clibs $1";;
+    -L*)
+        clibdirs="$clibdirs $1";;
+    -g|-I*)
+	cflags="$cflags $1";;
+    *.o|*.c|*.C|*.cxx|*.cpp)
+	cfiles="$cfiles $1";;
+    *.pl|*.qlf)
+        if [ -z "$plfiles" ]; then
+	  plfiles="'$1'"
+	else
+	  plfiles="$plfiles, '$1'"
+	fi;;
+    *)	
+	ldflags="$ldflags $1";;
+  esac
+  shift
+done
+
+cleanup ()
+{ rm -f $cout $plout;
+  exit 1;
+}
+
+trap cleanup 1 2 15
+
+LIBS="-L$pllibdir $clibdirs $clibs -lpl $PLLIBS"
+
+if $CC -o $cout -I$PLBASE/include $cflags $cfiles $LIBS &&
+   $PL -O -f none -g true -t "consult([$plfiles]),qsave_program('$plout')" &&
+   cat $cout $plout > $out &&
+   chmod +x $out; then
+  cleanup
+  exit 0
+fi

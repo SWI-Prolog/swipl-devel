@@ -36,6 +36,7 @@ init_file& \bf -f	& atom		& Personal initialisation file \\
 autoload &		& bool		& If true, run autoload/0 first \\
 map	 &	        & atom		& File containing info on dump \\
 op	 &		& \tt save/standard & Save operator declarations? \\
+stand_alone &		& bool		& Include the emulator in the state \\
 \hline
 \end{tabular}
 \end{center}
@@ -84,6 +85,13 @@ in two flavours.  The default is the {\em development} emulator.  The
 {\em runtime} emulator is similar, but lacks the tracer. The stand-alone
 program \index{chpl} {\tt chpl} may be used to change the default path
 to the emulator.
+
+If the option {\tt stand_alone(on)} is present, the emulator is prepended
+for the state.  If the emulator is started and no state is specified using
+the {\tt -x} flag, it will test whether a boot-file (state) is attached
+to the emulator itself and load this state.  Provided the application
+has all libraries loaded, the resulting file may be started anywhere.
+
 .C qsave_program 1 +File
 Equivalent to {\tt qsave_program(File, [])}.
 .C autoload 0

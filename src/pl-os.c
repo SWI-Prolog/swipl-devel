@@ -270,10 +270,11 @@ CpuTime(void)
 {
 #ifdef HAVE_TIMES
   struct tms t;
+  real hz = Hz;
 
   times(&t);
 
-  return t.tms_utime / (real)(Hz) ;
+  return (real) t.tms_utime / hz;
 #endif
 
 #if OS2 && EMX

@@ -57,7 +57,7 @@ _PL_list_string_value(term_t t)
 
 long
 _PL_integer_value(atomic_t a)
-{ return valNum(a);
+{ return valInteger(a);
 }
 
 

@@ -10,7 +10,6 @@
 #if defined(__WINDOWS__) || defined(__WIN32__)
 
 #include <windows.h>
-#undef V_ERROR
 #include <process.h>
 #undef TRANSPARENT
 #include "pl-incl.h"
@@ -19,20 +18,6 @@
 #include "pl-stream.h"
 #include <console.h>
 #include <process.h>
-
-word
-pl_window_title(term_t old, term_t new)
-{ char buf[256];
-  Atom n;
-
-  if ( !PL_get_atom(new, &n) )
-    return warning("window_title/2: instantiation fault");
-
-  rlc_title(stringAtom(n), buf, sizeof(buf));
-
-  return PL_unify_atom_chars(old, buf);
-}
-
 
 void
 PlMessage(const char *fm, ...)
@@ -186,7 +171,11 @@ System(char *command)
       return -1;
     }
     while ( !shell_finished )
-      rlc_dispatch(NULL);
+    {
+#if !defined(MAKE_PL_DLL)
+      rlc_dispatch(NULL);		/* TBD */
+#endif
+    }
     CloseHandle(pinfo.hProcess);
 
     return shell_rval;

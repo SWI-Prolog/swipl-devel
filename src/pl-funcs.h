@@ -15,17 +15,20 @@ volatile void	outOf(Stack s);
 Void		alloc_global(int n);
 Void		alloc_heap(size_t n);
 word		globalFunctor(FunctorDef def);
+int		sizeString(word w);
 word		globalString(const char *s);
 word		globalNString(long len, const char *s);
 word		heapString(const char *s);
 Word		newTerm(void);
-double		unpack_real(Word p);
 word		globalReal(real f);
+word		globalLong(long i);
+word		heapLong(long i);
 word		heapReal(real f);
-word		copyRealToGlobal(word in);
-word		copyRealToHeap(word in);
-int		equalReal(word r1, word r2);
-void		freeHeapReal(word w);
+double		valReal(word w);
+word		globalIndirect(word in);
+word		heapIndirect(word in);
+int		equalIndirect(word r1, word r2);
+void		freeHeapIndirect(word w);
 void		initAllocLocal(void);
 Void		alloc_local(size_t n);
 void		stopAllocLocal(void);
@@ -63,12 +66,13 @@ word		pl_atom_completions(term_t prefix, term_t alts);
 /* pl-arith.c */
 
 #ifdef AVOID_0X80000000_BIT
-word		fconsNum(long i);
-long		fvalNum(word w);
+word		fconsInt(long i);
+long		fvalInt(word w);
 #endif
 word		pl_between(term_t l, term_t h, term_t n, word b);
 word		pl_succ(term_t n1, term_t n2);
 word		pl_plus(term_t a, term_t b, term_t c);
+int		ar_compare(Number n1, Number n2, int what);
 word		compareNumbers(term_t n1, term_t n2, int what);
 word		pl_lessNumbers(term_t n1, term_t n2);
 word		pl_greaterNumbers(term_t n1, term_t n2);
@@ -82,8 +86,10 @@ word		pl_current_arithmetic_function(term_t f, word h);
 void		initArith(void);
 int		indexArithFunction(FunctorDef fdef, Module m);
 FunctorDef	functorArithFunction(int n);
-bool		ar_func_n(code n, int argc, Word *stack);
-word		evaluate(term_t p);
+bool		ar_func_n(code n, int argc, Number *stack);
+int		valueExpression(term_t p, Number n);
+int		toIntegerNumber(Number n);
+void		canoniseNumber(Number n);
 
 /* pl-bag.c */
 word		pl_record_bag(term_t term);
@@ -119,7 +125,7 @@ word		pl_restore(term_t file);
 word		parseSaveProgramOptions(term_t args,
 			int *local, int *global, int *trail, int *argument,
 			char **goal, char **toplevel, char **init_file,
-			bool *tty);
+			bool *tty, bool *standalone);
 
 /* pl-index.c */
 int		cardinalityPattern(unsigned long pattern);
@@ -246,7 +252,10 @@ word		pl_flag(term_t name, term_t old, term_t new);
 word		pl_current_flag(term_t k, word h);
 
 /* pl-fli.c */
+word		makeNum(long i);
 void		finish_foreign_frame();
+void		_PL_put_number(term_t t, Number n);
+int		_PL_unify_number(term_t t, Number n);
 
 /* pl-fmt.c */
 word		pl_format_predicate(term_t chr, term_t descr);
@@ -438,7 +447,8 @@ word		pl_fail(void);
 word		pl_true(void);
 word		pl_halt(term_t code);
 word		pl_statistics(term_t k, term_t value);
-void		setFeature(Atom name, word value);
+int		setFeature(Atom name, word value);
+int		CSetFeature(char *name, char *value);
 word		getFeature(Atom name);
 word		pl_feature(term_t key, term_t value, word h);
 word		pl_set_feature(term_t key, term_t value);
@@ -615,7 +625,7 @@ char *		strlwr(char *s);
 #endif
 
 /* pl-wic.c */
-bool		loadWicFile(char *file, bool toplevel, bool load_options);
+bool		loadWicFile(char *file, int flags);
 word		pl_open_wic(term_t name, term_t options);
 word		pl_close_wic(void);
 word		pl_add_directive_wic(term_t term);

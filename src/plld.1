@@ -1,0 +1,77 @@
+.TH SWI 1 "April 3 1996"
+.SH NAME
+plld \- Create a SWI-Prolog embedded executable
+.SH SYNOPSIS
+.BR plld
+.BI "options" " " "c-files" " " "o-files" 
+.BI "pl-files"
+.br
+.SH DESCRIPTION
+The utility
+.BI plld
+is a front-end for the C-compiler and linker to create a stand-alone
+executable from a series of C-compiler input files and Prolog input
+files.  It extracts information from the SWI-Prolog executable
+.BI pl
+, after which it scans the arguments and breaks them into several
+categories.  It will then call the C-compiler to create an executable
+containing the user's C-code and the SWI-Prolog kernel.  After this,
+it will call the development environment to create a Prolog saved
+state from the prolog files and finally it will create the target
+executable by concatenating the state to the emulator.  See also
+.BI qsave_program/2
+from the
+.BI SWI-Prolog " " manual.
+
+.SS Options
+.TP
+.BI \-o " file"
+Specifies the name of the final executable.  The default is
+.BI a.out.
+.TP
+.BI \-l "library"
+Specifies a C-library for linking the application.  By default,
+.BI -lpl
+as well as the libraries required by the SWI-Prolog kernel will be
+passed to the C-compiler.
+.TP
+.BI \-L "library-directory"
+Specifies an additional library directory for the C-compiler.  By
+default, the runtime directory for the current architecture is passed.
+.TP
+.BI \-g|-I*
+Passed to the compiler as c-flags.  By default, the SWI-Prolog include
+directory is passed as additional include directory.
+.TP
+.BI *.o|*.c|*.C|*.cxx|*.cpp
+Passed as C-input files.
+.TP
+.BI *.pl|*.qlf
+Passed as Prolog input files
+.TP
+.BI *
+I.e. all other flags.  These are passed as linker options to the
+C-compiler.
+.SH BUGS
+Parsing the options and distributing them over the various programs is
+probably incomplete.
+.BI plld
+is a Bourne shell script.  Feel free to modify it and please forward
+generally useful modifications to
+.BI prolog-bugs@swi.psy.uva.nl.
+
+Some care has to be taken that the state created with
+.BI qsave_program/2
+is self-contained (i.e. contains no references to the Prolog libraries).
+Also, as the state is created using the development environment rather
+then the user's emulator, the Prolog code cannot use directives that
+rely on the C-code added by the user.
+.SH "SEE ALSO"
+Jan Wielemaker
+.I pl(1)
+.I SWI-Prolog 2.6 Reference Manual,
+University of Amsterdam, Dept. of Social Science and Informatics (SWI).
+.SH COPYRIGHT
+Copyright (C) 1991-1996, Jan Wielemaker
+.SH AUTHOR
+Jan Wielemaker

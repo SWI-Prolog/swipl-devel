@@ -1,6 +1,51 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.6.0
+=============
+
+  * FIXED: flush output of terminal streams while halting.
+
+  * ADDED: option stand_alone for qsave_program to create stand-alone
+    executables!
+
+  * INSTALL: The executables are now installed in $(PLBASE)/bin/$(ARCH),
+    i.e. using a different directory for each platform, so multiple
+    platforms are supported more easily.
+
+  * MODIFIED: Drastic reorganisation of arithmetic handling:
+
+	- All arithmetic is now handled using 32-bit longs and 64-bit
+          doubles.
+
+	- Smaller integers (within the range described by the features
+	  min_tagged_integer ... max_tagged_integer) are represented
+	  internally as tagged integers.  Larger integers and doubles
+	  are represented as `indirect data'.
+
+	- A generic representation for `indirect', covering uniform
+	  handling of them by the virtual machine, unify and garbage
+	  collector.  This deals with strings, doubles and `bignums'.
+
+	- New interface between the arithmetic functions and the
+	  arithmetic predicates (is/2, >/2, etc.) as well as their
+	  virtual machine instructions.  This new interface is faster.
+	  and avoids unnecessary type-conversions.
+
+	- Augmented/renumbered the virtual machine instructions, making
+	  old saved states worthless.
+
+	- Fixed a couple of functions translating between floats and
+	  integers: integer/1, ceil/1, floor/1, float_integer_part/1,
+	  truncate/1, etc. for handling large numbers correctly.
+
+	- Added the feature float_format to define how floats are
+	  printed by write/1, print/1, etc.
+
+  * MODIFIED: Disconnected readline and Win32 I/O window interface to
+    a separate module.  This is a necessary precondition to arrive at
+    a modular and embedible Prolog engine for Win32.  See pl-rl.c
+
   * FIXED: unknown/2 (reporting instantiation fault).
 
 Version 2.5.6

@@ -1240,6 +1240,20 @@ Succeeds after the last character of the named stream is read, or
 
 .S Term Reading and Writing
 
+This section describes the basic term reading and writing predicates.
+The predicates term_to_atom/2 and atom_to_term/3 provide means for
+translating atoms and strings to terms.  The predicates format/[1,2]
+and writef/2 provide formatted output.
+
+There are two ways to manipulate the output format.  The predicate
+print/[1,2] may be programmed using portray/1.  The format of floating
+point numbers may be manipulated using the feature (see feature/2)
+{\tt float_format}.
+
+Reading is sensitive to the feature {\tt character_escapes}, which
+controls the interpretation of the \verb$\$ character in quoted atoms
+and strings.
+
 .BD
 .C display 1 +Term
 Write {\em Term} on the current output stream using standard
@@ -1258,7 +1272,7 @@ Display {\em Term} on {\em Stream}.  Equivalent to Quintus
 write_canonical/2.
 .C write 1 +Term
 Write {\em Term} to the current output, using brackets and operators where
-appropriate.
+appropriate.   See feature/2 for controlling floating point output format.
 .C write 2 +Stream, +Term
 Write {\em Term} to {\em Stream}.
 .C writeq 1 +Term
@@ -1648,7 +1662,23 @@ Succeeds when expression {\em Expr1} evaluates to a number equal to {\em
 Expr2}.
 .I -Number is +Expr
 Succeeds when {\em Number} has successfully been unified with the number
-{\em Expr} evaluates to.
+{\em Expr} evaluates to.  If {\em Expr} evaluates to a float that can be
+represetented using an integer (i.e.\ the value is integer and within the
+range that can be described by Prolog's integer representation), {\em
+Expr} is unified with the integer value. 
+
+Note that normally, is/2 will be used with unbound left operand.  If
+equality is to be tested, =:=/2 should be used.  For example:
+
+\begin{center}\begin{tabular}{lp{2.5in}}
+\tt ?- 1.0 is sin(pi/2).	& Fails!.  sin(pi/2) evaluates to 1.0,
+				  but is/2 will represent this as the
+			          integer 1, after which unify will
+				  fail. \\
+\tt ?- 1.0 is float(sin(pi/2)).	& Succeeds, as the float/1 function
+				  forces the result to be float. \\
+\tt ?- 1.0 =:= sin(pi/2).	& Succeeds as expected.
+\end{tabular}\end{center}
 .ED
 
 .S Arithmetic Functions
@@ -1668,7 +1698,7 @@ integer.  There are three types of arguments to functions:
     	   point value or an integer. \\
 \it IntExpr & Arbitrary expression that should evaluate into
 		  an integer. \\
-    \it Int & An integer.
+\it Int & An integer.
 \end{tabular}\end{center}
 
 In case integer addition, subtraction and multiplication would lead to
@@ -1719,6 +1749,11 @@ SWI-Prolog was started.
 Evaluates {\em Expr} and rounds the result to the nearest integer.
 .C integer 1 +Expr
 Same as round/1 (backward compatibility).
+.C float 1 +Expr
+Translate the result to a floating point number.  Normally, Prolog will
+use integers whenever possible.  When used around the 2nd argument of 
+is/2, the result will be returned as a floating point number.  In other
+contexts, the operation has no effect.
 .C float_fractional_part 1 +Expr
 Fractional part of a floating-point number.  Negative if {\em Expr} is
 negative, 0 if {\em Expr} is integer.

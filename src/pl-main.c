@@ -21,8 +21,9 @@ option  parsing,  initialisation  and  handling  of errors and warnings.
 #endif
 
 forwards void	usage(void);
-static void	version();
-static void	arch();
+static void	version(void);
+static void	arch(void);
+static void	runtime_vars(void);
 
 #define	optionString(s) { if (argc > 1) \
 			  { s = argv[1]; argc--; argv++; \
@@ -215,10 +216,11 @@ int
 startProlog(int argc, char **argv, char **env)
 { char *s;
   int n;
-  char *state, *symbols;
+  char *state = NULL, *symbols = NULL;
   bool compile;
   bool explicit_state = FALSE;
   bool explicit_compile_out = FALSE;
+  int loadflags = QLF_TOPLEVEL;
 
   mainArgc			= argc;
   mainArgv			= argv;
@@ -251,7 +253,6 @@ startProlog(int argc, char **argv, char **env)
   }
 #endif
 
-    systemDefaults.state       = findState(symbols);
     systemDefaults.startup     = store_string(PrologPath(DEFSTARTUP, plp));
     systemDefaults.local       = DEFLOCAL;
     systemDefaults.global      = DEFGLOBAL;
@@ -266,7 +267,6 @@ startProlog(int argc, char **argv, char **env)
   }
 
   compile			= FALSE;
-  state				= systemDefaults.state;
   status.io_initialised		= FALSE;
   status.initialised		= FALSE;
   status.notty			= systemDefaults.notty;
@@ -315,16 +315,29 @@ startProlog(int argc, char **argv, char **env)
     arch();
   if ( argc >= 1 && streq(argv[0], "-v") )
     version();
+  if ( argc >= 1 && streq(argv[0], "-dump-runtime-variables") )
+    runtime_vars();
 
 #define K * 1024L
 
   if ( status.boot == FALSE && status.dumped == FALSE )
-  { if ( state == NULL )
-      warnNoState();
+  { int state_loaded = FALSE;
 
-    DEBUG(1, Sdprintf("Scanning %s for options\n", state));
-    if ( loadWicFile(state, TRUE, TRUE) == FALSE )
+    if ( !explicit_state )
+    { if ( loadWicFile(symbols, loadflags|QLF_OPTIONS|QLF_EXESTATE) == TRUE )
+      { systemDefaults.state = state = symbols;
+	state_loaded++;
+	loadflags |= QLF_EXESTATE;
+      } else
+      { systemDefaults.state = state = findState(symbols);
+	if ( state == NULL )
+	  warnNoState();
+      }
+    }
+
+    if ( !state_loaded && loadWicFile(state, loadflags|QLF_OPTIONS) != TRUE )
       Halt(1);
+
     DEBUG(2, Sdprintf("options.localSize    = %ld\n", options.localSize));
     DEBUG(2, Sdprintf("options.globalSize   = %ld\n", options.globalSize));
     DEBUG(2, Sdprintf("options.trailSize    = %ld\n", options.trailSize));
@@ -333,7 +346,10 @@ startProlog(int argc, char **argv, char **env)
     DEBUG(2, Sdprintf("options.topLevel     = %s\n",  options.topLevel));
     DEBUG(2, Sdprintf("options.initFile     = %s\n",  options.initFile));
   } else
-  { options.compileOut	  = "a.out";
+  { if ( !explicit_state )
+      systemDefaults.state = state = findState(symbols);
+
+    options.compileOut	  = "a.out";
     options.localSize	  = systemDefaults.local    K;
     options.globalSize	  = systemDefaults.global   K;
     options.trailSize	  = systemDefaults.trail    K;
@@ -420,9 +436,10 @@ startProlog(int argc, char **argv, char **env)
 
   if ( state != NULL )
   { status.boot = TRUE;
-    if ( loadWicFile(state, TRUE, FALSE) == FALSE )
+    if ( loadWicFile(state, loadflags) != TRUE )
       Halt(1);
     status.boot = FALSE;
+    CSetFeature("boot_file", state);
   }
 
   reinitForeign(mainArgc, mainArgv);	/* run PL_reinit_hook() functions */
@@ -487,6 +504,24 @@ arch()
   Halt(0);
 }
 
+
+static void
+runtime_vars()
+{ Sprintf("CC=\"%s\";\n"
+	  "PLBASE=\"%s\";\n"
+	  "PLARCH=\"%s\";\n"
+	  "PLLIBS=\"%s\";\n"
+	  "PLLDFLAGS=\"%s\";\n"
+	  "PLVERSION=\"%s\";\n",
+	  C_CC,
+	  systemDefaults.home,
+	  ARCH,
+	  C_LIBS,
+	  C_LDFLAGS,
+	  PLVERSION);
+
+  Halt(0);
+}
 
 #include <stdarg.h>
 

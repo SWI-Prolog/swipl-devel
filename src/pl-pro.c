@@ -297,12 +297,14 @@ int on_heap;
   if ( isVar(*p) )
     return 0x737473;			/* just a random number */
 
-  if ( isInteger(*p) )
+  if ( isTaggedInt(*p) )
     return *p;
 
   if ( isIndirect(*p) )
   { if ( !on_heap && !onGlobal(unMask(*p)) )
       printk("Indirect data not on global");
+    if ( isBignum(*p) )
+      return (word) valBignum(*p);
     if ( isReal(*p) )
       return (word) valReal(*p);
     if ( isString(*p) )

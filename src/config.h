@@ -5,7 +5,7 @@
 #define HAVE_SYS_WAIT_H 1
 
 /* Define if you have <vfork.h>.  */
-#define HAVE_VFORK_H 1
+/* #undef HAVE_VFORK_H */
 
 /* Define as __inline if that's what the C compiler calls it.  */
 /* #undef inline */
@@ -29,7 +29,7 @@
 #define STACK_DIRECTION -1
 
 /* Define if you have the ANSI C header files.  */
-/* #undef STDC_HEADERS */
+#define STDC_HEADERS 1
 
 /* Define if you can safely include both <sys/time.h> and <time.h>.  */
 #define TIME_WITH_SYS_TIME 1
@@ -134,6 +134,9 @@
 /* Define if assert.h cannot be used without loading stdio.h */
 /* #undef ASSERT_H_REQUIRES_STDIO_H */
 
+/* Define to the required alignment for doubles if not same as longs */
+#define DOUBLE_ALIGNMENT sizeof(double)
+
 /* Define if you have the access function.  */
 #define HAVE_ACCESS 1
 
@@ -180,7 +183,7 @@
 #define HAVE_GETWD 1
 
 /* Define if you have the memmove function.  */
-/* #undef HAVE_MEMMOVE */
+#define HAVE_MEMMOVE 1
 
 /* Define if you have the opendir function.  */
 #define HAVE_OPENDIR 1
@@ -243,10 +246,10 @@
 #define HAVE_STAT 1
 
 /* Define if you have the strerror function.  */
-/* #undef HAVE_STRERROR */
+#define HAVE_STRERROR 1
 
 /* Define if you have the stricmp function.  */
-#define HAVE_STRICMP 1
+/* #undef HAVE_STRICMP */
 
 /* Define if you have the strlwr function.  */
 /* #undef HAVE_STRLWR */
@@ -297,7 +300,7 @@
 #define HAVE_SYS_RESOURCE_H 1
 
 /* Define if you have the <sys/select.h> header file.  */
-/* #undef HAVE_SYS_SELECT_H */
+#define HAVE_SYS_SELECT_H 1
 
 /* Define if you have the <sys/stat.h> header file.  */
 #define HAVE_SYS_STAT_H 1
@@ -321,13 +324,13 @@
 /* #undef HAVE_LIBDLD */
 
 /* Define if you have the elf library (-lelf).  */
-/* #undef HAVE_LIBELF */
+#define HAVE_LIBELF 1
 
 /* Define if you have the m library (-lm).  */
 #define HAVE_LIBM 1
 
 /* Define if you have the readline library (-lreadline).  */
-/*#define HAVE_LIBREADLINE 1*/
+#define HAVE_LIBREADLINE 1
 
 /* Define if you have the termcap library (-ltermcap).  */
 #define HAVE_LIBTERMCAP 1

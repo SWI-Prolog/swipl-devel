@@ -1,8 +1,8 @@
 # Make the documentation
 
 CP=		ln -fs
-CCCP=		/lib/cpp -C -P
-DVITOTTY=	dvi2tty
+CCCP=		gcc -E -C -P
+DVITOTTY=	./dvi2tty
 DVITOTTY-HOME=	./dvi2tty.src
 INDEX=  	makeindex
 LATEX=		latex
@@ -60,7 +60,9 @@ man:		doc.tex $(TEXFILES) doc.bbl doc.ind
 		$(LATEX) doc
 
 doc.tex:	main.doc
-		$(CCCP) main.doc | cat -s > doc.tex
+		cp main.doc main.h
+		$(CCCP) main.h | cat -s > doc.tex
+		rm -f main.h
 
 summary.tex:	summary.doc
 		expand < $*.doc > $*.tex
@@ -86,7 +88,9 @@ online.dvi:	latex_if_needed online.tex tty.sty $(TEXFILES)
 		./latex_if_needed $(LATEX) online
 
 online.tex:	main.doc
-		$(CCCP) -DONLINE main.doc | cat -s > online.tex
+		cp main.doc main.h
+		$(CCCP) -DONLINE main.h | cat -s > online.tex
+		rm -f main.h
 
 $(ONLINE_INDEX):	$(ONLINE)
 		MANUAL=$(ONLINE); INDEX=$(ONLINE_INDEX); export MANUAL INDEX; \

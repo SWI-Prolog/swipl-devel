@@ -234,3 +234,5 @@
 #define ATOM_gc           (&atoms[233])
 #define ATOM_trace_gc     (&atoms[234])
 #define ATOM_xpceref      (&atoms[235])
+#define ATOM_float_format (&atoms[236])
+#define ATOM_stand_alone  (&atoms[237])

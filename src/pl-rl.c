@@ -7,6 +7,9 @@
     Purpose: Binding to the GNU readline library
 */
 
+#if defined(__WIN32__) && !defined(PL_WIN)
+#define PL_KERNEL
+#endif
 #include "pl-stream.h"
 #include "pl-itf.h"
 #include <string.h>
@@ -25,6 +28,18 @@
 #endif
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
+#ifdef HAVE_UXNT_H
+#include <uxnt.h>
+#endif
+#ifdef HAVE_CLOCK
+#include <time.h>
+#endif
+#ifdef __WIN32__
+#include <io.h>
+#endif
+#ifdef O_RLC
+#include <console.h>
 #endif
 
 #ifdef HAVE_RL_INSERT_CLOSE
@@ -95,8 +110,18 @@ Sread_readline(void *handle, char *buf, int size)
   PL_write_prompt(fd, ttymode == PL_NOTTY);
   
   switch( ttymode )
-  { case PL_NOTTY:			/* -tty */
-    case PL_RAWTTY:			/* get_single_char/1 */
+  { case PL_RAWTTY:			/* get_single_char/1 */
+#ifdef O_RLC
+    { int chr = getkey();
+      
+      if ( chr == 04 || chr == 26 )
+	return 0;			/* EOF */
+
+      buf[0] = chr & 0xff;
+      return 1;
+    }
+#endif
+    case PL_NOTTY:			/* -tty */
     { PL_dispatch(fd, PL_DISPATCH_WAIT);
       rval = read(fd, buf, size);
       if ( rval > 0 && buf[rval-1] == '\n' )
@@ -108,7 +133,11 @@ Sread_readline(void *handle, char *buf, int size)
     default:
     { char *line;
 
-      rl_event_hook = event_hook;
+      if ( PL_dispatch(0, PL_DISPATCH_INSTALLED) )
+	rl_event_hook = event_hook;
+      else
+	rl_event_hook = NULL;
+
       if ( (line = readline(PL_prompt_string(fd))) )
       { char *s;
 	int l = strlen(line);
@@ -181,9 +210,10 @@ prolog_completion(char *text, int start, int end)
   return matches;
 }
 
+#undef read				/* UXNT redefinition */
 
 install_t
-install_rl()
+PL_install_readline()
 { static IOFUNCTIONS funcs;
 
   rl_readline_name = "Prolog";
@@ -208,6 +238,13 @@ install_rl()
   PL_register_foreign("rl_read_init_file", 1, pl_rl_read_init_file, 0);
   PL_register_foreign("rl_add_history",    1, pl_rl_add_history,    0);
   PL_set_feature("readline", PL_ATOM, "true");
+}
+
+#else /*HAVE_LIBREADLINE*/
+
+install_t
+PL_install_readline()
+{
 }
 
 #endif /*HAVE_LIBREADLINE*/

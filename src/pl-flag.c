@@ -62,14 +62,16 @@ pl_flag(term_t name, term_t old, term_t new)
 
   n = valTermRef(new);
   deRef(n);
-  if ( isAtom(*n) || isInteger(*n) )
+  if ( isAtom(*n) || isTaggedInt(*n) )
   { f->value = *n;
     succeed;
   } else
-  { word value = evaluate(new);
+  { number n;
 
-    if ( isInteger(value) )
-    { f->value = value;
+    if ( valueExpression(new, &n) &&
+	 toIntegerNumber(&n) &&
+	 inTaggedNumRange(n.value.i) )
+    { f->value = consNum(n.value.i);
       succeed;
     }
   }

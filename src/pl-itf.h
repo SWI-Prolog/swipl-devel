@@ -22,7 +22,7 @@ before loading this file.  See end of this file.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifndef PLVERSION
-#define PLVERSION "2.5.6, March 1996"
+#define PLVERSION "2.6.0, April 1996"
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -335,6 +335,7 @@ __pl_export int PL_open_stream(term_t t, IOSTREAM *s);
 		 *******************************/
 
 __pl_export int		PL_initialise(int argc, char **argv, char **env);
+install_t		PL_install_readline(void);
 __pl_export int		PL_toplevel(void);
 __pl_export void	PL_halt(int status);
 
@@ -350,8 +351,9 @@ abstract interface is necessary to make an embeddable system without the
 readline overhead.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 					/* PL_dispatch() modes */
-#define PL_DISPATCH_NOWAIT 0		/* Dispatch only once */
-#define PL_DISPATCH_WAIT 1		/* Dispatch till input available */
+#define PL_DISPATCH_NOWAIT    0		/* Dispatch only once */
+#define PL_DISPATCH_WAIT      1		/* Dispatch till input available */
+#define PL_DISPATCH_INSTALLED 2		/* dispatch function installed? */
 
 					/* PL_ttymode() results */
 #define PL_NOTTY	0		/* -tty in effect */
@@ -425,6 +427,8 @@ __pl_export void PL_on_halt(void (*)(int, void *), void *);
 #define PL_QUERY_GETC		5	/* Read character from terminal */
 #define PL_QUERY_MAX_INTEGER	6	/* largest integer */
 #define PL_QUERY_MIN_INTEGER	7	/* smallest integer */
+#define PL_QUERY_MAX_TAGGED_INT	8	/* largest tagged integer */
+#define PL_QUERY_MIN_TAGGED_INT	9	/* smallest tagged integer */
 
 __pl_export long	PL_query(int);	/* get information from Prolog */
 

@@ -42,7 +42,6 @@
 
 #define INCLUDE_DDEML_H
 #include "windows.h"
-#undef V_ERROR
 #undef TRANSPARENT       /* defined in win16.h (which we can't avoid);
                             redef'd in pl-incl.h (we don't need
 			    the win16 version) */

@@ -72,11 +72,10 @@ struct variable
 #define T_NAME		1	/* ordinary name */
 #define T_VARIABLE	2	/* variable name */
 #define T_VOID		3	/* void variable */
-#define T_REAL		4	/* realing point number */
-#define T_INTEGER	5	/* integer */
-#define T_STRING	6	/* "string" */
-#define T_PUNCTUATION	7	/* punctuation character */
-#define T_FULLSTOP	8	/* Prolog end of clause */
+#define T_NUMBER	4	/* integer or float */
+#define T_STRING	5	/* "string" */
+#define T_PUNCTUATION	6	/* punctuation character */
+#define T_FULLSTOP	7	/* Prolog end of clause */
 
 extern int Input;		/* current input stream (from pl-file.c) */
 static char *here;		/* current character */
@@ -686,24 +685,39 @@ forwards bool	simple_term(bool, term_t term, bool *isname);
 int
 scan_number(char **s, int b, Number n)
 { int d;
+  unsigned int maxi = PLMAXINT/b;	/* cache? */
+  unsigned int t = 0;
 
-  n->i = 0;
   while((d = digitValue(b, **s)) >= 0)
   { (*s)++;
-    n->i = n->i * b + d;
-    if ( n->i > PLMAXINT )
-    { n->f = (real) n->i;
+
+    if ( t > maxi )
+    { real maxf = MAXREAL / (real) b - (real) b;
+      real tf = (real)t;
+
+      tf = tf * (real)b + (real)d;
       while((d = digitValue(b, **s)) >= 0)
       { (*s)++;
-        if ( n->f > MAXREAL / (real) b - (real) d )
-	  return V_ERROR;
-        n->f = n->f * (real)b + (real)d;
+        if ( tf > maxf )
+	  fail;				/* number too large */
+        tf = tf * (real)b + (real)d;
       }
-      return V_REAL;
-    }
+      n->value.f = tf;
+      n->type = V_REAL;
+      succeed;
+    } else
+      t = t * b + d;
   }  
 
-  return V_INTEGER;
+  if ( t > PLMAXINT )
+  { n->value.f = (real)t;
+    n->type = V_REAL;
+    succeed;
+  }
+
+  n->value.i = t;
+  n->type = V_INTEGER;
+  succeed;
 }
 
 
@@ -821,11 +835,10 @@ get_string(char *in, char **end)
 
 int
 get_number(char *in, char **end, Number value)
-{ int tp;
-  int negative = FALSE;
+{ int negative = FALSE;
   unsigned int c;
 
-  if ( *in == '-' )
+  if ( *in == '-' )			/* skip optional sign */
   { negative = TRUE;
     in++;
   } else if ( *in == '+' )
@@ -837,12 +850,13 @@ get_number(char *in, char **end, Number value)
     switch(in[1])
     { case '\'':			/* 0'<char> */
       { if ( isAlpha(in[3]) )
-	  return V_ERROR;		/* illegal number */
-	value->i = (long)in[2];
+	  fail;				/* illegal number */
+	value->value.i = (long)in[2];
 	if ( negative )			/* -0'a is a bit dubious! */
-	  value->i = -value->i;
+	  value->value.i = -value->value.i;
 	*end = in+3;
-	return V_INTEGER;
+	value->type = V_INTEGER;
+	succeed;
       }
       case 'b':
 	base = 2;
@@ -856,50 +870,51 @@ get_number(char *in, char **end, Number value)
     }
 
     if ( base )				/* 0b<binary>, 0x<hex>, 0o<oct> */
-    { in += 2;
-      tp = scan_number(&in, base, value);
+    { int rval;
+      in += 2;
+      rval = scan_number(&in, base, value);
       *end = in;
-      return tp;
+      return rval;
     }
   }
 
-  if ( !isDigit(*in) || (tp = scan_number(&in, 10, value)) == V_ERROR )
-    return V_ERROR;			/* too large? */
+  if ( !isDigit(*in) || !scan_number(&in, 10, value) )
+    fail;				/* too large? */
 
 					/* base'value number */
   if ( *in == '\'' )
   { in++;
 
-    if ( tp == V_REAL || value->i > 36 )
-      return V_ERROR;			/* illegal base */
-    if ( (tp = scan_number(&in, (int)value->i, value)) == V_ERROR )
-      return V_ERROR;			/* number too large */
+    if ( !intNumber(value) || value->value.i > 36 )
+      fail;				/* illegal base */
+    if ( !scan_number(&in, (int)value->value.i, value) )
+      fail;				/* number too large */
 
     if ( isAlpha(*in) )
-      return V_ERROR;			/* illegal number */
+      fail;				/* illegal number */
 
     if ( negative )
-    { if ( tp == V_INTEGER )
-	value->i = -value->i;
+    { if ( intNumber(value) )
+	value->value.i = -value->value.i;
       else
-	value->f *= -value->f;
+	value->value.f = -value->value.f;
     }
 
     *end = in;
-    return tp;
+    succeed;
   }
 					/* Real numbers */
   if ( *in == '.' && isDigit(in[1]) )
   { double n;
 
-    if ( tp == V_INTEGER )
-    { value->f = (double) value->i;
-      tp = V_REAL;
+    if ( intNumber(value) )
+    { value->value.f = (double) value->value.i;
+      value->type = V_REAL;
     }
     n = 10.0, in++;
     while( isDigit(c = *in) )
     { in++;
-      value->f += (double)(c-'0') / n;
+      value->value.f += (double)(c-'0') / n;
       n *= 10.0;
     }
   }
@@ -922,31 +937,31 @@ get_number(char *in, char **end, Number value)
         break;
     }
 
-    if ( scan_number(&in, 10, &exponent) != V_INTEGER )
-      return V_ERROR;			/* too large exponent */
+    if ( !scan_number(&in, 10, &exponent) || !intNumber(&exponent) )
+      fail;				/* too large exponent */
 
-    if ( tp == V_INTEGER )
-    { value->f = (double) value->i;
-      tp = V_REAL;
+    if ( intNumber(value) )
+    { value->value.f = (double) value->value.i;
+      value->type = V_REAL;
     }
 
-    value->f *= pow((double)10.0,
-		    neg_exponent ? -(double)exponent.i
-		      	         : (double)exponent.i);
+    value->value.f *= pow((double)10.0,
+			  neg_exponent ? -(double)exponent.value.i
+			               : (double)exponent.value.i);
   }
 
   if ( isAlpha(c = *in) )
-    return V_ERROR;			/* illegal number */
+    fail;				/* illegal number */
 
   if ( negative )
-  { if ( tp == V_INTEGER )
-      value->i = -value->i;
+  { if ( intNumber(value) )
+      value->value.i = -value->value.i;
     else
-      value->f = -value->f;
+      value->value.f = -value->value.f;
   }
 
   *end = in;
-  return tp;
+  succeed;
 }
 
 
@@ -997,18 +1012,12 @@ get_token(bool must_be_op)
     case_digit:
     case DI:	{ number value;
 
-		  switch(get_number(&here[-1], &here, &value))
-		  { case V_INTEGER:
-		      token.value.number.i = value.i;
-		      token.type = T_INTEGER;
-		      return &token;
-		    case V_REAL:
-		      token.value.number.f = value.f;
-		      token.type = T_REAL;
-		      return &token;
-		    default:
-		      syntaxError("Illegal number");
-		  }
+		  if ( get_number(&here[-1], &here, &value) )
+		  { token.value.number = value;
+		    token.type = T_NUMBER;
+		    return &token;
+		  } else
+		    syntaxError("Illegal number");
 		}
     case SO:	{ char tmp[2];
 
@@ -1367,11 +1376,8 @@ simple_term(bool must_be_op, term_t term, bool *name)
       *name = TRUE;
       PL_put_atom(term, token->value.atom);
       succeed;
-    case T_REAL:
-      PL_put_float(term, token->value.number.f);
-      succeed;
-    case T_INTEGER:
-      PL_put_integer(term, token->value.number.i);
+    case T_NUMBER:
+      _PL_put_number(term, &token->value.number);
       succeed;
     case T_STRING:
       PL_put_term(term,	token->value.term);

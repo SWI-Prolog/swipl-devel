@@ -329,6 +329,28 @@ The predicate qsave_program/[1,2] allows for the creating of machine
 independent saved-states that load very quickly.
 \end{itemize}
 
+.S Version 2.6 Release Notes
+
+Version 2.6 provides a stable implemetation of the features added in
+the 2.5.x releases, but at the same time implements a number of new
+features that may have impact on the system stability.
+
+\begin{itemize}
+    \tick{32-bit integer and double float arithmetic}
+The biggest change is the support for full 32-bit signed integers and
+raw machine-format double precission floats. The internal data
+representation as well as the arithmetic instruction set and interface
+to the arithmetic functions has been changed for this.
+    \tick{Embedding for Win32 applications}
+The Win32 version has been reorganised.  The Prolog kernel is now
+implemented as Win32 DLL that may be embedded in C-applications.
+Two front ends are provided, one for window-based operation and
+one to run as a Win32 console application.
+    \tick{Creating stand-alone executables}
+Version 2.6.0 can create stand-alone executables by attaching the
+saved-state to the emulator.  See qsave_program/2.
+\end{itemize}
+
 
 .S Acknowledgements
 

@@ -632,6 +632,20 @@ Maximum integer value.  Most arithmetic operations will automatically
 convert to floats if integer values above this are returned.
     \option{min_integer}{integer}
 Minimum integer value.
+    \option{max_tagged_integer}{integer}
+Maximum integer value represented as a `tagged' value.  Tagged integers
+require 4-bytes storage and are used for indexing.  Larger integers are
+represented as `indirect data' and require 16-bytes on the stacks (though
+a copy requires only 4 additional bytes).
+    \option{min_tagged_integer}{integer}
+Start of the tagged-integer value range.
+    \option{float_format}{atom}
+C {\tt printf()} format specification used by write/1 and friends to
+determine how floating point numbers are printed.  The default is {\tt
+\%g}.  May be changed.  The specified value is passed to printf()
+without further checking.  For example, if you want more digits printed,
+{\tt \%.12g} will print all floats using 12 digits instead of the
+default 6.  See also format/[1,2], write/1, print/1 and portray/1.
     \option{compiled_at}{atom}
 Describes when the system has been compiled. Only available if the
 C-compiler used to compile SWI-Prolog provides the __DATE__ and __TIME__

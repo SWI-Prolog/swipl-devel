@@ -27,8 +27,7 @@ struct code_info codeTable[] = {
   CODE(H_VAR,		"h_var",	1, 0),
   CODE(B_CONST,		"b_const",	1, 1),
   CODE(H_CONST,		"h_const",	1, 1),
-  CODE(H_REAL,		"h_real",	1, 1),
-  CODE(H_STRING,	"h_string",	1, 1),
+  CODE(H_INDIRECT,	"h_real",	1, 1),
   CODE(B_FIRSTVAR,	"b_firstvar",	1, 0),
   CODE(H_FIRSTVAR,	"h_firstvar",	1, 0),
   CODE(B_VOID,		"b_void",	0, 0),
@@ -44,7 +43,13 @@ struct code_info codeTable[] = {
   CODE(I_USERCALLN,	"i_usercalln",	1, 0),
   CODE(I_CUT,		"i_cut",	0, 0),
   CODE(I_APPLY,		"i_apply",	0, 0),
-  CODE(A_REAL,		"a_real",	1, 1),
+  CODE(A_ENTER,		"a_enter",	0, 0),
+  CODE(A_INTEGER,	"a_integer",	1, 0), /* argument is long */
+  CODE(A_DOUBLE,	"a_double",	2, 0), /* double (2 longs) */
+  CODE(A_VAR0,		"a_var0",	0, 0),
+  CODE(A_VAR1,		"a_var1",	0, 0),
+  CODE(A_VAR2,		"a_var2",	0, 0),
+  CODE(A_VAR,		"a_var",	1, 0),
   CODE(A_FUNC0,		"a_func0",	1, 0),
   CODE(A_FUNC1,		"a_func1",	1, 0),
   CODE(A_FUNC2,		"a_func2",	1, 0),
@@ -65,8 +70,7 @@ struct code_info codeTable[] = {
   CODE(C_END,		"c_end",	0, 0),
   CODE(C_NOT,		"c_not",	2, 0),
   CODE(C_FAIL,		"c_fail",	0, 0),
-  CODE(B_REAL,		"b_real",	1, 1),
-  CODE(B_STRING,	"b_string",	1, 1),
+  CODE(B_INDIRECT,	"b_indirect",	1, 1),
 #if O_BLOCK
   CODE(I_CUT_BLOCK,	"i_cut_block",	0, 0),
   CODE(B_EXIT,		"b_exit",	0, 0),
@@ -817,17 +821,8 @@ be a variable, and thus cannot be removed if it is before an I_POP.
     }
 
     if ( isIndirect(*arg) )
-    { if ( isReal(*arg) )
-      { Output_1(ci, where & HEAD ? H_REAL : B_REAL, copyRealToHeap(*arg));
-	return NONVOID;
-      }
-#if O_STRING
-      if ( isString(*arg) )
-      { Output_1(ci, where & HEAD ? H_STRING : B_STRING,
-		 heapString(valString(*arg)));
-	return NONVOID;
-      }
-#endif /* O_STRING */
+    { Output_1(ci, where & HEAD ? H_INDIRECT : B_INDIRECT, heapIndirect(*arg));
+      return NONVOID;
     }
 
     Output_1(ci, (where & BODY) ? B_CONST : H_CONST, *arg);
@@ -1087,6 +1082,8 @@ This constructs a term.  In arithmetic mode, we generate:
 This has two advantages: No term is created on the global stack and  the
 mapping  between  the  term  and  the arithmetic function is done by the
 compiler rather than the evaluation routine.
+
+OUT-OF-DATE: now pushes *numbers* rather then tagged Prolog data structures.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #if O_COMPILE_ARITH
@@ -1102,20 +1099,21 @@ compileArith(Word arg, compileInfo *ci)
   else if ( fdef == FUNCTOR_smaller_equal2 )	a_func = A_LE;	/* =< */
   else if ( fdef == FUNCTOR_larger_equal2 )	a_func = A_GE;	/* >= */
   else if ( fdef == FUNCTOR_is2 )				/* is */
-  { Word a = argTermP(*arg, 1);
-
-    deRef(a);
-    if ( isTerm(*a) && isIndexedVarTerm(*a) >= 0 ) /* variable */
-      return A_NOTARITH;		/* X is Var: don't just unify */
-
-    a_func = A_IS;
+  { if ( !compileArgument(argTermP(*arg, 0), BODY, ci) )
+      return A_ERROR;
+    Output_0(ci, A_ENTER);
+    if ( !compileArithArgument(argTermP(*arg, 1), ci) )
+      return A_ERROR;
+    Output_0(ci, A_IS);
+    return A_OK;
   } else
     return A_NOTARITH;			/* not arith function */
 
-  if ( compileArithArgument(argTermP(*arg, 0), ci) == FALSE )
+  Output_0(ci, A_ENTER);
+  if ( !compileArithArgument(argTermP(*arg, 0), ci) ||
+       !compileArithArgument(argTermP(*arg, 1), ci) )
     return A_ERROR;
-  if ( compileArithArgument(argTermP(*arg, 1), ci) == FALSE )
-    return A_ERROR;
+
   Output_0(ci, a_func);
 
   return A_OK;
@@ -1128,39 +1126,44 @@ compileArithArgument(register Word arg, register compileInfo *ci)
 
   deRef(arg);
 
-  if ( isInteger(*arg) )		/* integer */
-  { Output_1(ci, B_CONST, *arg);
+  if ( isInteger(*arg) )
+  { Output_1(ci, A_INTEGER, valInteger(*arg));
     succeed;
   }
-  if ( isReal(*arg) )			/* real (does not need to copy!) */
-  { Output_1(ci, A_REAL, copyRealToHeap(*arg));
+  if ( isReal(*arg) )
+  { union
+    { double f;
+      word   w[2];
+    } v;
+    v.f = valReal(*arg);
+    Output_2(ci, A_DOUBLE, v.w[0], v.w[1]);
     succeed;
   }
 					/* variable */
   if ( isTerm(*arg) && (index = isIndexedVarTerm(*arg)) >= 0 )
   { int first = isFirstVar(&ci->used_var, index);
 
-    if ( index < ci->arity )	/* shared in the head */
+    if ( index < ci->arity )		/* shared in the head */
     { if ( index < 3 )
-      { Output_0(ci, B_VAR0 + index);
+      { Output_0(ci, A_VAR0 + index);
 	succeed;
       }
-      Output_0(ci, B_VAR);
+      Output_0(ci, A_VAR);
     } else
     { if ( index < 3 && !first )
-      { Output_0(ci, B_VAR0 + index);
+      { Output_0(ci, A_VAR0 + index);
         succeed;
       }
-      Output_0(ci, first ? B_FIRSTVAR : B_VAR);
+      if ( first )
+	return warning("Compiler: Unbound variable in arithmetic expression");
+      Output_0(ci, A_VAR);
     }          
     Output_a(ci, VAROFFSET(index));
     succeed;
   }
 
   if ( isVar(*arg) )			/* void variable */
-  { Output_0(ci, B_VOID);
-    succeed;
-  }
+    return warning("Compiler: void variable in arithmetic expression");
 
   { FunctorDef fdef;
     int ar;
@@ -1442,10 +1445,7 @@ arg1Key(Clause clause, word *key)
         succeed;
       case H_LIST:
 	*key = (word) FUNCTOR_dot2;
-#if O_STRING
-      case H_STRING:
-#endif
-      case H_REAL:
+      case H_INDIRECT:
       case H_FIRSTVAR:
       case H_VAR:
       case H_VOID:
@@ -1561,18 +1561,12 @@ decompile_head(Clause clause, term_t head, decompileInfo *di)
 	  TRY(PL_unify_nil(argp));
           next_arg_ref(argp);
 	  continue;
-      case H_REAL:
-        { word copy = copyRealToGlobal(XR(*PC++));
+      case H_INDIRECT:
+        { word copy = globalIndirect(XR(*PC++));
 	  TRY(_PL_unify_atomic(argp, copy));
 	  next_arg_ref(argp);
 	  continue;
 	}
-#if O_STRING
-      case H_STRING:
-	  TRY(PL_unify_string_chars(argp, valString(XR(*PC++))));
-	  next_arg_ref(argp);
-	  continue;
-#endif /* O_STRING */
       case H_CONST:
 	  TRY(_PL_unify_atomic(argp, XR(*PC++)));
 	  next_arg_ref(argp);
@@ -1720,25 +1714,39 @@ decompileBody(register decompileInfo *di, code end, Code until)
 
   for(; decode(*PC) != end && PC != until; )
   { switch((op=decode(*PC++)))
-    {   case I_NOP:	    continue;
+    {   case A_ENTER:
+        case I_NOP:	    continue;
 	case B_CONST:
 			    *ARGP++ = XR(*PC++);
 			    continue;
-	case A_REAL:
-	case B_REAL:
-			    *ARGP++ = copyRealToGlobal(XR(*PC++));
+	case A_INTEGER:
+			    *ARGP++ = makeNum(*PC++);
 			    continue;
-	case B_STRING:
-			    *ARGP++ = globalString(valString(XR(*PC++)));
+	case A_DOUBLE:
+		  	  { union
+			    { unsigned long w[2];
+			      double f;
+			    } v;
+			    v.w[0] = *PC++;
+			    v.w[1] = *PC++;
+			    *ARGP++ = globalReal(v.f);
+			    continue;
+			  }
+	case B_INDIRECT:
+			    *ARGP++ = globalIndirect(XR(*PC++));
 			    continue;
       { register int index;      
 
 	case B_ARGVAR:
 	case B_ARGFIRSTVAR:
 	case B_FIRSTVAR:
+	case A_VAR:
 	case B_VAR:	    index = *PC++;		goto var_common;
+	case A_VAR0:
 	case B_VAR0:	    index = VAROFFSET(0);	goto var_common;
+	case A_VAR1:
 	case B_VAR1:	    index = VAROFFSET(1);	goto var_common;
+	case A_VAR2:
 	case B_VAR2:	    index = VAROFFSET(2);	var_common:
 			    if ( nested )
 			      unifyVar(ARGP++, di->variables, index);
@@ -2343,9 +2351,9 @@ pl_wam_list(term_t ref)
 
 	  Putf("%s", n == 0 ? " " : ", ");
 	  if ( isInteger(xr) )
-	    Putf("%d", valNum(xr));
+	    Putf("%ld", valInteger(xr));
 	  else if ( isReal(xr) )
-	    Putf("%f", valReal(xr));
+	    Putf("%g", valReal(xr));
 	  else if ( isString(xr) )
 	    Putf("\"%s\"", valString(xr));
 	  else if ( isAtom(xr) )

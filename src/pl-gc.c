@@ -247,20 +247,12 @@ isGlobalRef(word w)
 
 static inline int
 offset_cell(Word p)
-{ word m = *p & DATA_TAG_MASK;		/* was get_value(p) */
+{ word m = *p;				/* was get_value(p) */
 
-  if ( m )
-  { if ( m == REAL_MASK )
-    { DEBUG(3, Sdprintf("REAL at 0x%p (m = 0x%lx)\n", p, m));
-      return 1;
-    }
-    if ( m == STRING_MASK )
-    { word w = get_value(p);
-      long l = ((w) << DMASK_BITS) >> (DMASK_BITS+LMASK_BITS);
-      DEBUG(3, Sdprintf("STRING ``%s'' at 0x%p (w = 0x%lx)\n",
-			(char *) p, p+1, w));
-      return allocSizeString(l) / sizeof(word) - 1;
-    }
+  if ( (m & (IDT_MASK|REF_MASK)) == IDT_MASK )
+  { DEBUG(0, Sdprintf("At 0x%x, cell of %d\n",
+		      (unsigned) p, wSizeIndirect(m) + 2));
+    return wSizeIndirect(m) + 1;
   }
 
   return 0;
@@ -1001,7 +993,7 @@ is_downward_ref(Word p)
   { DEBUG(5, if ( unRef(val) < p ) Sdprintf("REF: "));
     return unRef(val) < p;
   }
-  if ( isVar(val) || isInteger(val) )
+  if ( isVar(val) || isTaggedInt(val) )
     fail;
   if ( isIndirect(val) )
   { ptr = (Word) unMask(val);
@@ -1033,7 +1025,7 @@ is_upward_ref(Word p)
 
   if ( is_ref(val) )
     return unRef(val) > p;
-  if ( isVar(val) || isInteger(val) )
+  if ( isVar(val) || isTaggedInt(val) )
     fail;
   if ( isIndirect(val) )
   { ptr = (Word) unMask(val);
@@ -1207,7 +1199,8 @@ scan_global()
     if ( onGlobal(*current) && !isTerm(*current) )
       sysError("Pointer on global stack is not a term");
     if ( marked(current) || is_first(current) )
-    { warning("Illegal cell in global stack (up) at 0x%p (*= 0x%p)", current, *current);
+    { warning("Illegal cell in global stack (up) at 0x%p (*= 0x%p)",
+	      current, *current);
       if ( isAtom(*current) )
 	warning("0x%p is atom %s", current, stringAtom(*current));
       if ( isTerm(*current) )
@@ -1225,7 +1218,8 @@ scan_global()
   { cells --;
     current -= offset_cell(current);
     if ( marked(current) || is_first(current) )
-    { warning("Illegal cell in global stack (down) at 0x%p (*= 0x%p)", current, *current);
+    { warning("Illegal cell in global stack (down) at 0x%p (*= 0x%p)",
+	      current, *current);
       if ( ++errors > 10 )
       { Sdprintf("...\n");
         break;

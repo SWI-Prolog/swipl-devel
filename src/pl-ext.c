@@ -68,7 +68,6 @@ static struct foreign {
   FRG("prolog_to_os_filename",	2, pl_prolog_to_os_filename,	TRACE_ME),
 #if defined(O_XOS) && defined(__WIN32__)
   FRG("make_fat_filemap",	1, pl_make_fat_filemap,		TRACE_ME),
-  FRG("window_title",		2, pl_window_title,		TRACE_ME),
 #endif
   FRG("fileerrors",		2, pl_fileerrors,		TRACE_ME),
   FRG("$syntaxerrors",		2, pl_syntaxerrors,		TRACE_ME),

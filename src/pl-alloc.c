@@ -230,46 +230,6 @@ globalFunctor(register FunctorDef def)
   return (word) f;
 }
 
-#if O_STRING
-word
-globalString(const char *s)
-{ register long l = strlen(s) + 1;
-  register long chars = ROUND(l, sizeof(word));
-  register Word gt = allocGlobal(2 + (chars + sizeof(word) - 1)/sizeof(word));
-
-  gt[0] = gt[1+chars/sizeof(word)] = (((l-1)<<LMASK_BITS) | STRING_MASK);
-  strcpy((char *)(gt+1), s);
-
-  return ((word)gt | INDIRECT_MASK);
-}
-
-word
-globalNString(long l, const char *s)
-{ register long chars = ROUND(l+1, sizeof(word));
-  register Word gt = allocGlobal(2 + (chars + sizeof(word) - 1)/sizeof(word));
-  char *t;
-
-  gt[0] = gt[1+chars/sizeof(word)] = (((l-1)<<LMASK_BITS) | STRING_MASK);
-  t = (char *)(gt+1);
-  strncpy(t, s, l);
-  t[l] = EOS;
-
-  return ((word)gt | INDIRECT_MASK);
-}
-
-word
-heapString(const char *s)
-{ long l = strlen(s) + 1;
-  register long chars = ROUND(l, sizeof(word));
-  Word gt = (Word)allocHeap(2*sizeof(word) + chars);
-
-  gt[0] = gt[1+chars/sizeof(word)] = (((l-1)<<LMASK_BITS) | STRING_MASK);
-  strcpy((char *)(gt+1), s);
-
-  return (word)gt | INDIRECT_MASK;
-}
-
-#endif /* O_STRING */
 
 Word
 newTerm(void)
@@ -281,140 +241,223 @@ newTerm(void)
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-To allow for garbage collection,  reals  are  packed  into  two  tagged
-words.   The  4  top  bits  are  REAL_MASK  and the two bottom bits are
-reserved for garbage collection.  This leaves us with 52 bits  to  store
-the  real.   As  a  consequence,  SWI-Prolog  now uses a kind of `small
-doubles', increasing arithmetic accuracy.
+		 /*******************************
+		 *      OPERATIONS ON LONGS	*
+		 *******************************/
 
-This code is very hacky and needs to be rewritten for  systems  that  do
-not  have  IEEE  floating  point format.  Luckily almost all systems use
-IEEE these days.
+word
+globalLong(long l)
+{ Word p = allocGlobal(3);
+  word r = (word)p | INDIRECT_MASK;
 
-Fixed for GCC 2.2 with the help of Giovanni Malnati.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static void
-pack_real(double f, Word r)
-{
-#ifndef WORDS_BIGENDIAN
-  unsigned long m64 = *((unsigned long *)&f + 1);
-  unsigned long l64 = *((unsigned long *)&f);
-#else
-  unsigned long m64 = *((unsigned long *)&f);
-  unsigned long l64 = *((unsigned long *)&f + 1);
-#endif
-
-  l64 >>= 10;
-  l64 &= ~0xffc00003L;
-  l64 |= (m64 & 0x3f) << 22;
-  m64 >>= 4;
-  m64 &= ~0xf0000003L;
-#if O_16_BITS
-  m64 >>= 1;
-  l64 >>= 1;
-#endif
-  l64 |= REAL_MASK;
-  m64 |= REAL_MASK;
-
-  r[0] = l64;
-  r[1] = m64;
+  *p++ = IDT_MASK|IDT_BIGNUM|makeIdtSizeMask(1);
+  *p++ = l;
+  *p   = IDT_MASK|IDT_BIGNUM|makeIdtSizeMask(1);
+  
+  return r;
 }
 
-double
-unpack_real(Word p)
-{ unsigned long l64 = p[0];
-  unsigned long m64 = p[1];
-  double r;
-  unsigned long *rp = (unsigned long *) &r;
 
-#if O_16_BITS
-  m64 <<= 1;
-  l64 <<= 1;
-#endif
-  m64 <<= 4;
-  m64 &= ~0x0000003fL;
-  m64 |= (l64 & 0x0fc00000L) >> 22;
-  l64 <<= 10;
-  l64 &= ~0x000003ffL;
-#ifndef WORDS_BIGENDIAN
-  rp[0] = l64;
-  rp[1] = m64;
-#else
-  rp[1] = l64;
-  rp[0] = m64;
-#endif
+word
+heapLong(long l)
+{ Word p = allocHeap(3 * sizeof(word));
+  word r = (word)p | INDIRECT_MASK;
+
+  *p++ = IDT_MASK|IDT_BIGNUM|makeIdtSizeMask(1);
+  *p++ = l;
+  *p   = IDT_MASK|IDT_BIGNUM|makeIdtSizeMask(1);
+  
+  return r;
+}
+
+
+		 /*******************************
+		 *    OPERATIONS ON STRINGS	*
+		 *******************************/
+
+int
+sizeString(word w)
+{ word h  = *((Word)addressIndirect(w));
+  int wn  = wSizeIndirect(h);
+  int pad = (h & 0xf) >> 2;
+
+  if ( pad == 0 )
+    pad = sizeof(word);
+
+  return wn*sizeof(word) - pad;
+}
+
+
+word
+globalNString(long l, const char *s)
+{ int lw = (l+sizeof(word))/sizeof(word);
+  int pad = (lw*sizeof(word) - l) & 0x3;
+  Word p = allocGlobal(2 + lw);
+  word r = (word)p | INDIRECT_MASK;
+  word m = IDT_MASK|IDT_STRING|makeIdtSizeMask(lw)|(pad<<2);
+
+  *p++ = m;
+  p[lw-1] = 0L;				/* write zero's for padding */
+  memcpy(p, s, l);
+  p += lw;
+  *p = m;
+  
+  return r;
+}
+
+
+word
+globalString(const char *s)
+{ return globalNString(strlen(s), s);
+}
+
+
+word
+heapString(const char *s)
+{ int l = strlen(s);
+  int lw = (l+sizeof(word))/sizeof(word);
+  int pad = (lw*sizeof(word) - l) & 0x3;
+  Word p = allocHeap((2 + lw) * sizeof(word));
+  word r = (word)p | INDIRECT_MASK;
+  word m = IDT_MASK|IDT_STRING|makeIdtSizeMask(lw)|(pad<<2);
+
+  *p++ = m;
+  p[lw-1] = 0L;				/* padding word */
+  memcpy(p, s, l);
+  p += lw;
+  *p = m;
+  
+  return r;
+}
+
+
+		 /*******************************
+		 *     OPERATIONS ON DOUBLES	*
+		 *******************************/
+
+
+double					/* take care of alignment! */
+valReal(word w)
+{ long *v = (unsigned long *)valIndirectP(w);
+  union
+  { double d;
+    unsigned long w[2];
+  } val;
+  
+  val.w[0] = v[0];
+  val.w[1] = v[1];
+
+  return val.d;
+}
+
+
+word
+globalReal(double d)
+{ Word p = allocGlobal(4);
+  word r = (word)p | INDIRECT_MASK;
+  union
+  { double d;
+    unsigned long w[2];
+  } val;
+
+  val.d = d;
+  *p++ = IDT_MASK|IDT_DOUBLE|makeIdtSizeMask(2);
+  *p++ = val.w[0];
+  *p++ = val.w[1];
+  *p   = IDT_MASK|IDT_DOUBLE|makeIdtSizeMask(2);
 
   return r;
 }
 
 
 word
-globalReal(real f)
-{ Word p = gTop;
+heapReal(double d)
+{ Word p = allocHeap(4*sizeof(word));
+  word r = (word)p | INDIRECT_MASK;
+  union
+  { double d;
+    unsigned long w[2];
+  } val;
 
-  gTop += 2;
-  verifyStack(global);
-  pack_real((double) f, p);
+  val.d = d;
+  *p++ = IDT_MASK|IDT_DOUBLE|makeIdtSizeMask(2);
+  *p++ = val.w[0];
+  *p++ = val.w[1];
+  *p   = IDT_MASK|IDT_DOUBLE|makeIdtSizeMask(2);
 
-  DEBUG(4, Sdprintf("Put REAL on global stack at 0x%lx\n", (unsigned long)p));
-  return (word)p | INDIRECT_MASK;
+  return r;
 }
 
 
-word
-copyRealToGlobal(word in)
-{ Word p = gTop;
-  Word i = (Word)unMask(in);
-
-  gTop += 2;
-  verifyStack(global);
-  p[0] = *i++;
-  p[1] = *i;
-  
-  return (word)p | INDIRECT_MASK;
-}
-
-
-word
-copyRealToHeap(word in)
-{ Word p = (Word) allocHeap(sizeof(word) * 2);
-  Word i = (Word)unMask(in);
-
-  p[0] = *i++;
-  p[1] = *i;
-  
-  return (word)p | INDIRECT_MASK;
-}
-
-
-word
-heapReal(real f)
-{ Word p = (Word) allocHeap(sizeof(word) * 2);
-
-  pack_real((double) f, p);
-  return (word)p | INDIRECT_MASK;
-}
-
+		 /*******************************
+		 *  GENERIC INDIRECT OPERATIONS	*
+		 *******************************/
 
 int
-equalReal(word r1, word r2)
-{ Word p1 = (Word)unMask(r1);
-  Word p2 = (Word)unMask(r2);
+equalIndirect(word w1, word w2)
+{ Word p1 = addressIndirect(w1);
+  Word p2 = addressIndirect(w2);
+  
+  if ( *p1 == *p2 )
+  { int n = wSizeIndirect(*p1);
+    
+    while( --n >= 0 )
+    { if ( *++p1 != *++p2 )
+	fail;
+    }
 
-  if ( p1[0] == p2[0] && p1[1] == p2[1] )
     succeed;
+  }
 
   fail;
 }
 
 
-void
-freeHeapReal(word w)
-{ Word p = (Word)unMask(w);
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Copy an indirect data object to the heap.  The type is not of importance,
+neither is the length or original location.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+word
+heapIndirect(word w)
+{ Word p = addressIndirect(w);
+  word t = *p;
+  int  n = wSizeIndirect(t);
+  Word h = allocHeap((n+2) * sizeof(word));
+  Word hp = h;
   
-  freeHeap(p, sizeof(word) * 2);
+  *hp = t;
+  while(--n >= 0)
+    *++hp = *++p;
+  *++hp = t;
+
+  return (word)h | INDIRECT_MASK;
+}
+
+
+void
+freeHeapIndirect(word w)
+{ Word p = addressIndirect(w);
+  int  n = wSizeIndirect(*p);
+
+  freeHeap(p, (n+2) * sizeof(word));
+}
+
+
+word
+globalIndirect(word w)
+{ Word p = addressIndirect(w);
+  word t = *p;
+  int  n = wSizeIndirect(t);
+  Word h = allocGlobal((n+2));
+  Word hp = h;
+  
+  *hp = t;
+  while(--n >= 0)
+    *++hp = *++p;
+  *++hp = t;
+
+  return (word)h | INDIRECT_MASK;
 }
 
 

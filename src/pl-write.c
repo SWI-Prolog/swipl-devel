@@ -129,7 +129,7 @@ writePrimitive(term_t t, bool quote)
   }
 
   if ( PL_get_float(t, &f) )
-  { Putf("%g", f);
+  { Putf(stringAtom(float_format), f);
     return;
   }
 

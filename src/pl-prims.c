@@ -102,7 +102,7 @@ termHashValue(word term, long *hval)
 
   if ( isMasked(term) )
   { if ( isInteger(term) )
-    { *hval = (long)term;
+    { *hval = valInteger(term);
       succeed;
     }
 
@@ -157,7 +157,7 @@ pl_hash_term(term_t term, term_t hval)
   deRef(p);
 
   if ( termHashValue(*p, &hraw) )
-  { hraw = hraw & PLMAXINT;		/* ensure positive */
+  { hraw = hraw & PLMAXTAGGEDINT;	/* ensure tagged */
 
     return PL_unify_integer(hval, hraw);
   }
@@ -213,16 +213,8 @@ _pl_equal(register Word t1, register Word t2)
     succeed;
 
   if ( isIndirect(*t1) )
-  { 
-#if O_STRING
-    if ( isString(*t1) )
-    { if ( isString(*t2) && equalString(*t1, *t2) )
-        succeed;
-      fail;
-    }
-#endif /* O_STRING */
-    if ( isReal(*t2) && equalReal(*t1, *t2) )
-      succeed;
+  { if ( isIndirect(*t2) )
+      return equalIndirect(*t1, *t2);
     fail;
   }
 
@@ -308,18 +300,18 @@ compareStandard(register Word t1, register Word t2)
   
   w1 = *t1; 
 
-  if ( isNumber(w1) )
+  if ( isNumber(w1) )			/* TBD: can be optimised! */
   { if ( !isNumber(w2) )
       return LESS;
 
     if ( isInteger(w1) && isInteger(w2) )
-    { long i1 = valNum(w1);
-      long i2 = valNum(w2);
+    { long i1 = valInteger(w1);
+      long i2 = valInteger(w2);
 
       return i1 < i2 ? LESS : i1 == i2 ? EQUAL : GREATER;
     } else
-    { double f1 = (isInteger(w1) ? (double)valNum(w1) : valReal(w1));
-      double f2 = (isInteger(w2) ? (double)valNum(w2) : valReal(w2));
+    { double f1 = (isInteger(w1) ? (double)valInteger(w1) : valReal(w1));
+      double f2 = (isInteger(w2) ? (double)valInteger(w2) : valReal(w2));
     
       return f1 < f2 ? LESS : f1 == f2 ? EQUAL : GREATER;
     }
@@ -500,16 +492,9 @@ structeql(Word t1, Word t2, Buffer buf)
       fail;
   
     if ( isIndirect(w1) )
-    { 
-      if ( isReal(w2) && equalReal(w1, w2) )
+    { if ( isIndirect(w2) && equalIndirect(w1, w2) )
 	continue;
-#if O_STRING
-      if (isString(w1))
-      { if ( isString(w2) && equalString(w1, w2) )
-	  continue;
-	fail;
-      }
-#endif /* O_STRING */
+
       fail;
     }
   
@@ -1064,7 +1049,7 @@ cmp_copy_refs(const void *h1, const void *h2)
   if ( isRef(w2) )
     return 1;
 
-  return valNum(w1) - valNum(w2);
+  return valInt(w1) - valInt(w2);
 }
 
 
@@ -1098,7 +1083,7 @@ lookup_ground(CopyInfo info)
 { if ( info->nground )
   { Word g0 = valTermRef(info->ground_terms);
 
-    if ( valNum(*g0) == info->index )
+    if ( valInt(*g0) == info->index )
     { info->nground--;
       info->ground_terms++;
       succeed;
@@ -1391,15 +1376,12 @@ x_chars(const char *pred, term_t atom, term_t string, int how)
       default:
       { number n;
 	char *q;
-	int type = get_number(s, &q, &n);
 
-	if ( type != V_ERROR && *q == EOS )
-	{ switch(type)
-	  { case V_INTEGER:
-	      return PL_unify_integer(atom, n.i);
-	    case V_REAL:
-	      return PL_unify_float(atom, n.f);
-	  }
+	if ( get_number(s, &q, &n) && *q == EOS )
+	{ if ( intNumber(&n) )
+	    return PL_unify_integer(atom, n.value.i);
+	  else
+	    return PL_unify_float(atom, n.value.f);
 	}
 	if ( how == X_AUTO )
 	  return PL_unify_atom_chars(atom, s);
@@ -1797,7 +1779,7 @@ pl_halt(term_t code)
 
  ** Sun Apr 17 15:38:46 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
-#define makeNum(n)	((n) < PLMAXINT ? consNum(n) : globalReal((real)n))
+#define makeNum(n)	((n) < PLMAXTAGGEDINT ? consNum(n) : globalLong(n))
 
 word
 pl_statistics(term_t k, term_t value)
@@ -1890,6 +1872,11 @@ typedef struct
   unsigned long	mask;
 } builtin_boolean_feature;
 
+typedef struct
+{ Atom		name;
+  Atom	       *address;
+} builtin_named_feature;
+
 builtin_boolean_feature builtin_boolean_features[] = 
 { { ATOM_character_escapes,	CHARESCAPE_FEATURE },
   { ATOM_gc,			GC_FEATURE },
@@ -1897,36 +1884,59 @@ builtin_boolean_feature builtin_boolean_features[] =
   { NULL,			0L }
 };
 
+builtin_named_feature builtin_named_features[] =
+{ { ATOM_float_format,		&float_format },
+  { NULL,			NULL }
+};
 
-void
+int
 setFeature(Atom name, word value)
 { Feature f;
-  builtin_boolean_feature *bf = builtin_boolean_features;
+  builtin_boolean_feature *bf;
+  builtin_named_feature   *nf;
 
+  for(nf = builtin_named_features; nf->name; nf++)
+  { if ( name == nf->name )
+    { if ( isAtom(value) )
+      { *nf->address = (Atom)value;
+      } else
+      { warning("set_feature/2: %s feature is atom", stringAtom(name));
+	fail;
+      }
+      goto doset;
+    }
+  }
+  for(bf = builtin_boolean_features; bf->name; bf++ )
+  { if ( name == bf->name )
+    { if ( value == (word) ATOM_true ||
+	   value == (word) ATOM_on )
+	set(&features, bf->mask);
+      else if ( value == (word) ATOM_false ||
+		value == (word) ATOM_off )
+	clear(&features, bf->mask);
+      else
+      { warning("set_feature/2: %s feature is boolean", stringAtom(name));
+	fail;
+      }
+      goto doset;
+    }
+  }
+
+doset:
   for(f=feature_list; f; f = f->next)
   { if ( f->name == name )
     { f->value = value;
-      goto hooks;
+      succeed;
     }
   }
+
   f = allocHeap(sizeof(struct feature));
   f->next = feature_list;
   f->name = name;
   f->value = value;
   feature_list = f;
 
-hooks:
-  for( ; bf->name; bf++ )
-  { if ( name == bf->name )
-    { if ( value == (word) ATOM_true ||
-	   value == (word) ATOM_on )
-	set(&features, bf->mask);
-      else
-	clear(&features, bf->mask);
-
-      return;
-    }
-  }
+  succeed;
 }
 
 
@@ -1953,9 +1963,7 @@ pl_set_feature(term_t key, term_t value)
     return warning("set_feature/2; instantiation fault");
 
   v = _PL_get_atomic(value);
-  setFeature(k, v);
-
-  succeed;
+  return setFeature(k, v);
 }
 
 

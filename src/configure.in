@@ -192,6 +192,27 @@ AC_HEADER_DIRENT
 AC_HEADER_SYS_WAIT
 AC_FUNC_VFORK
 
+AC_MSG_CHECKING("alignment restrictions on doubles")
+AC_TRY_RUN(
+[ main()
+  { long l[10];
+    double *p;
+    unsigned long x = (unsigned long) p;
+
+    if ( x % sizeof(double) == 0 )
+      x += sizeof(long);
+    p = (double  *) x;
+    *p = 1.0;
+
+    exit(0);
+  }
+],
+AC_MSG_RESULT(as long),
+AC_MSG_RESULT(sizeof(double))
+AC_DEFINE(DOUBLE_ALIGNMENT, sizeof(double)),
+AC_MSG_RESULT(assuming sizeof(double))
+AC_DEFINE(DOUBLE_ALIGNMENT, sizeof(double)))
+
 AC_MSG_CHECKING("whether assert.h needs stdio.h")
 AC_TRY_COMPILE(
 [

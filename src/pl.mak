@@ -13,7 +13,7 @@ CFG=Win32 Debug
 !MESSAGE You can specify a configuration when running NMAKE on this makefile
 !MESSAGE by defining the macro CFG on the command line.  For example:
 !MESSAGE 
-!MESSAGE NMAKE /f "pl.mak" CFG="Win32 Debug"
+!MESSAGE NMAKE /f "PL.MAK" CFG="Win32 Debug"
 !MESSAGE 
 !MESSAGE Possible choices for configuration are:
 !MESSAGE 
@@ -43,7 +43,7 @@ RSC=rc.exe
 OUTDIR=c:\jan\lib
 INTDIR=c:\jan\objects\pl
 
-ALL : $(OUTDIR)/pl.exe $(OUTDIR)/pl.bsc
+ALL : $(OUTDIR)/PL.exe $(OUTDIR)/PL.bsc
 
 $(OUTDIR) : 
     if not exist $(OUTDIR)/nul mkdir $(OUTDIR)
@@ -59,76 +59,78 @@ MTL_PROJ=/nologo /D "NDEBUG" /win32
 # SUBTRACT CPP /Fr
 CPP_PROJ=/nologo /MT /W3 /GX /YX /O2 /Ob2 /I "..\..\xnt" /I "..\.." /I\
  "..\..\console" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "__WIN32__"\
- /Fp$(OUTDIR)/"pl.pch" /Fo$(INTDIR)/ /c 
+ /Fp$(OUTDIR)/"PL.pch" /Fo$(INTDIR)/ /c 
 CPP_OBJS=c:\jan\objects\pl/
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
-RSC_PROJ=/l 0x409 /fo$(INTDIR)/"pl.res" /d "NDEBUG" 
+RSC_PROJ=/l 0x409 /fo$(INTDIR)/"PL.res" /d "NDEBUG" 
 BSC32=bscmake.exe
 BSC32_SBRS= \
 	
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
-BSC32_FLAGS=/nologo /o$(OUTDIR)/"pl.bsc" 
+BSC32_FLAGS=/nologo /o$(OUTDIR)/"PL.bsc" 
 
-$(OUTDIR)/pl.bsc : $(OUTDIR)  $(BSC32_SBRS)
+$(OUTDIR)/PL.bsc : $(OUTDIR)  $(BSC32_SBRS)
 LINK32=link.exe
 DEF_FILE=
 LINK32_OBJS= \
-	$(INTDIR)/"pl-trace.obj" \
-	$(INTDIR)/"pl-term.obj" \
-	$(INTDIR)/"pl-op.obj" \
-	$(INTDIR)/"pl-write.obj" \
-	$(INTDIR)/"pl-list.obj" \
-	$(INTDIR)/"pl-table.obj" \
+	$(INTDIR)/"PL-TRACE.OBJ" \
+	$(INTDIR)/"PL-TERM.OBJ" \
+	$(INTDIR)/"PL-OP.OBJ" \
+	$(INTDIR)/"PL-WRITE.OBJ" \
+	$(INTDIR)/"PL-LIST.OBJ" \
+	$(INTDIR)/"PL-TABLE.OBJ" \
 	$(INTDIR)/"pl-buffer.obj" \
-	$(INTDIR)/"pl-prims.obj" \
-	$(INTDIR)/"pl-atom.obj" \
-	$(INTDIR)/"pl-gc.obj" \
-	$(INTDIR)/"pl-dwim.obj" \
+	$(INTDIR)/"PL-PRIMS.OBJ" \
+	$(INTDIR)/"PL-ATOM.OBJ" \
+	$(INTDIR)/"PL-GC.OBJ" \
+	$(INTDIR)/"PL-DWIM.OBJ" \
 	$(INTDIR)/"pl-extend.obj" \
-	$(INTDIR)/"pl-comp.obj" \
-	$(INTDIR)/"pl-arith.obj" \
-	$(INTDIR)/"pl-fmt.obj" \
-	$(INTDIR)/"pl-wic.obj" \
-	$(INTDIR)/"pl-file.obj" \
-	$(INTDIR)/"pl-flag.obj" \
-	$(INTDIR)/"pl-rec.obj" \
-	$(INTDIR)/"pl-save.obj" \
-	$(INTDIR)/"pl-pro.obj" \
-	$(INTDIR)/"pl-itf.obj" \
-	$(INTDIR)/"pl-prof.obj" \
-	$(INTDIR)/"pl-bag.obj" \
-	$(INTDIR)/"pl-modul.obj" \
-	$(INTDIR)/"pl-main.obj" \
-	$(INTDIR)/"pl-ext.obj" \
-	$(INTDIR)/"pl-store.obj" \
+	$(INTDIR)/"PL-COMP.OBJ" \
+	$(INTDIR)/"PL-ARITH.OBJ" \
+	$(INTDIR)/"PL-FMT.OBJ" \
+	$(INTDIR)/"PL-WIC.OBJ" \
+	$(INTDIR)/"PL-FILE.OBJ" \
+	$(INTDIR)/"PL-FLAG.OBJ" \
+	$(INTDIR)/"PL-REC.OBJ" \
+	$(INTDIR)/"PL-SAVE.OBJ" \
+	$(INTDIR)/"PL-PRO.OBJ" \
+	$(INTDIR)/"PL-ITF.OBJ" \
+	$(INTDIR)/"PL-PROF.OBJ" \
+	$(INTDIR)/"PL-BAG.OBJ" \
+	$(INTDIR)/"PL-MODUL.OBJ" \
+	$(INTDIR)/"PL-MAIN.OBJ" \
+	$(INTDIR)/"PL-EXT.OBJ" \
+	$(INTDIR)/"PL-STORE.OBJ" \
 	$(INTDIR)/"PL-SETUP.OBJ" \
-	$(INTDIR)/"pl-load.obj" \
+	$(INTDIR)/"PL-LOAD.OBJ" \
 	$(INTDIR)/"PL-OS.OBJ" \
-	$(INTDIR)/"pl-wam.obj" \
-	$(INTDIR)/"pl-read.obj" \
-	$(INTDIR)/"pl-glob.obj" \
-	$(INTDIR)/"pl-proc.obj" \
-	$(INTDIR)/"pl-funct.obj" \
-	$(INTDIR)/"pl-dump.obj" \
-	$(INTDIR)/"pl-util.obj" \
-	$(INTDIR)/"pl-sys.obj" \
+	$(INTDIR)/"PL-WAM.OBJ" \
+	$(INTDIR)/"PL-READ.OBJ" \
+	$(INTDIR)/"PL-GLOB.OBJ" \
+	$(INTDIR)/"PL-PROC.OBJ" \
+	$(INTDIR)/"PL-FUNCT.OBJ" \
+	$(INTDIR)/"PL-DUMP.OBJ" \
+	$(INTDIR)/"PL-UTIL.OBJ" \
+	$(INTDIR)/"PL-SYS.OBJ" \
 	$(INTDIR)/"PL-NT.OBJ" \
-	$(INTDIR)/"pl-dde.obj" \
-	$(INTDIR)/"pl-dll.obj" \
-	$(INTDIR)/pl.res \
+	$(INTDIR)/"PL-DDE.OBJ" \
+	$(INTDIR)/"PL-DLL.OBJ" \
+	$(INTDIR)/PL.res \
 	$(INTDIR)/"pl-stream.obj" \
-	$(INTDIR)/"pl-fli.obj"
+	$(INTDIR)/"PL-FLI.OBJ" \
+	$(INTDIR)/"pl-ntmain.obj" \
+	$(INTDIR)/"PL-RL.OBJ"
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /NOLOGO /SUBSYSTEM:windows /MACHINE:I386
 # ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib c:\jan\lib\readline.lib c:\jan\lib\console.lib c:\jan\lib\uxnt.lib /NOLOGO /SUBSYSTEM:windows /MACHINE:I386
 LINK32_FLAGS=kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib\
  advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib\
  odbccp32.lib c:\jan\lib\readline.lib c:\jan\lib\console.lib c:\jan\lib\uxnt.lib\
- /NOLOGO /SUBSYSTEM:windows /INCREMENTAL:no /PDB:$(OUTDIR)/"pl.pdb"\
- /MACHINE:I386 /OUT:$(OUTDIR)/"pl.exe" 
+ /NOLOGO /SUBSYSTEM:windows /INCREMENTAL:no /PDB:$(OUTDIR)/"PL.pdb"\
+ /MACHINE:I386 /OUT:$(OUTDIR)/"PL.exe" 
 
-$(OUTDIR)/pl.exe : $(OUTDIR)  $(DEF_FILE) $(LINK32_OBJS)
+$(OUTDIR)/PL.exe : $(OUTDIR)  $(DEF_FILE) $(LINK32_OBJS)
     $(LINK32) @<<
   $(LINK32_FLAGS) $(LINK32_OBJS)
 <<
@@ -146,7 +148,7 @@ $(OUTDIR)/pl.exe : $(OUTDIR)  $(DEF_FILE) $(LINK32_OBJS)
 OUTDIR=c:\jan\lib
 INTDIR=c:\jan\objects\pl
 
-ALL : $(OUTDIR)/pl.exe $(OUTDIR)/pl.bsc
+ALL : $(OUTDIR)/PL.exe $(OUTDIR)/PL.bsc
 
 $(OUTDIR) : 
     if not exist $(OUTDIR)/nul mkdir $(OUTDIR)
@@ -162,76 +164,78 @@ MTL_PROJ=/nologo /D "_DEBUG" /win32
 # SUBTRACT CPP /Fr
 CPP_PROJ=/nologo /MT /W3 /GX /Zi /YX /Od /I "..\..\xnt" /I "..\.." /I\
  "..\..\console" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "__WIN32__"\
- /Fp$(OUTDIR)/"pl.pch" /Fo$(INTDIR)/ /Fd$(OUTDIR)/"pl.pdb" /c 
+ /Fp$(OUTDIR)/"PL.pch" /Fo$(INTDIR)/ /Fd$(OUTDIR)/"PL.pdb" /c 
 CPP_OBJS=c:\jan\objects\pl/
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
-RSC_PROJ=/l 0x409 /fo$(INTDIR)/"pl.res" /d "_DEBUG" 
+RSC_PROJ=/l 0x409 /fo$(INTDIR)/"PL.res" /d "_DEBUG" 
 BSC32=bscmake.exe
 BSC32_SBRS= \
 	
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
-BSC32_FLAGS=/nologo /o$(OUTDIR)/"pl.bsc" 
+BSC32_FLAGS=/nologo /o$(OUTDIR)/"PL.bsc" 
 
-$(OUTDIR)/pl.bsc : $(OUTDIR)  $(BSC32_SBRS)
+$(OUTDIR)/PL.bsc : $(OUTDIR)  $(BSC32_SBRS)
 LINK32=link.exe
 DEF_FILE=
 LINK32_OBJS= \
-	$(INTDIR)/"pl-trace.obj" \
-	$(INTDIR)/"pl-term.obj" \
-	$(INTDIR)/"pl-op.obj" \
-	$(INTDIR)/"pl-write.obj" \
-	$(INTDIR)/"pl-list.obj" \
-	$(INTDIR)/"pl-table.obj" \
+	$(INTDIR)/"PL-TRACE.OBJ" \
+	$(INTDIR)/"PL-TERM.OBJ" \
+	$(INTDIR)/"PL-OP.OBJ" \
+	$(INTDIR)/"PL-WRITE.OBJ" \
+	$(INTDIR)/"PL-LIST.OBJ" \
+	$(INTDIR)/"PL-TABLE.OBJ" \
 	$(INTDIR)/"pl-buffer.obj" \
-	$(INTDIR)/"pl-prims.obj" \
-	$(INTDIR)/"pl-atom.obj" \
-	$(INTDIR)/"pl-gc.obj" \
-	$(INTDIR)/"pl-dwim.obj" \
+	$(INTDIR)/"PL-PRIMS.OBJ" \
+	$(INTDIR)/"PL-ATOM.OBJ" \
+	$(INTDIR)/"PL-GC.OBJ" \
+	$(INTDIR)/"PL-DWIM.OBJ" \
 	$(INTDIR)/"pl-extend.obj" \
-	$(INTDIR)/"pl-comp.obj" \
-	$(INTDIR)/"pl-arith.obj" \
-	$(INTDIR)/"pl-fmt.obj" \
-	$(INTDIR)/"pl-wic.obj" \
-	$(INTDIR)/"pl-file.obj" \
-	$(INTDIR)/"pl-flag.obj" \
-	$(INTDIR)/"pl-rec.obj" \
-	$(INTDIR)/"pl-save.obj" \
-	$(INTDIR)/"pl-pro.obj" \
-	$(INTDIR)/"pl-itf.obj" \
-	$(INTDIR)/"pl-prof.obj" \
-	$(INTDIR)/"pl-bag.obj" \
-	$(INTDIR)/"pl-modul.obj" \
-	$(INTDIR)/"pl-main.obj" \
-	$(INTDIR)/"pl-ext.obj" \
-	$(INTDIR)/"pl-store.obj" \
+	$(INTDIR)/"PL-COMP.OBJ" \
+	$(INTDIR)/"PL-ARITH.OBJ" \
+	$(INTDIR)/"PL-FMT.OBJ" \
+	$(INTDIR)/"PL-WIC.OBJ" \
+	$(INTDIR)/"PL-FILE.OBJ" \
+	$(INTDIR)/"PL-FLAG.OBJ" \
+	$(INTDIR)/"PL-REC.OBJ" \
+	$(INTDIR)/"PL-SAVE.OBJ" \
+	$(INTDIR)/"PL-PRO.OBJ" \
+	$(INTDIR)/"PL-ITF.OBJ" \
+	$(INTDIR)/"PL-PROF.OBJ" \
+	$(INTDIR)/"PL-BAG.OBJ" \
+	$(INTDIR)/"PL-MODUL.OBJ" \
+	$(INTDIR)/"PL-MAIN.OBJ" \
+	$(INTDIR)/"PL-EXT.OBJ" \
+	$(INTDIR)/"PL-STORE.OBJ" \
 	$(INTDIR)/"PL-SETUP.OBJ" \
-	$(INTDIR)/"pl-load.obj" \
+	$(INTDIR)/"PL-LOAD.OBJ" \
 	$(INTDIR)/"PL-OS.OBJ" \
-	$(INTDIR)/"pl-wam.obj" \
-	$(INTDIR)/"pl-read.obj" \
-	$(INTDIR)/"pl-glob.obj" \
-	$(INTDIR)/"pl-proc.obj" \
-	$(INTDIR)/"pl-funct.obj" \
-	$(INTDIR)/"pl-dump.obj" \
-	$(INTDIR)/"pl-util.obj" \
-	$(INTDIR)/"pl-sys.obj" \
+	$(INTDIR)/"PL-WAM.OBJ" \
+	$(INTDIR)/"PL-READ.OBJ" \
+	$(INTDIR)/"PL-GLOB.OBJ" \
+	$(INTDIR)/"PL-PROC.OBJ" \
+	$(INTDIR)/"PL-FUNCT.OBJ" \
+	$(INTDIR)/"PL-DUMP.OBJ" \
+	$(INTDIR)/"PL-UTIL.OBJ" \
+	$(INTDIR)/"PL-SYS.OBJ" \
 	$(INTDIR)/"PL-NT.OBJ" \
-	$(INTDIR)/"pl-dde.obj" \
-	$(INTDIR)/"pl-dll.obj" \
-	$(INTDIR)/pl.res \
+	$(INTDIR)/"PL-DDE.OBJ" \
+	$(INTDIR)/"PL-DLL.OBJ" \
+	$(INTDIR)/PL.res \
 	$(INTDIR)/"pl-stream.obj" \
-	$(INTDIR)/"pl-fli.obj"
+	$(INTDIR)/"PL-FLI.OBJ" \
+	$(INTDIR)/"pl-ntmain.obj" \
+	$(INTDIR)/"PL-RL.OBJ"
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /NOLOGO /SUBSYSTEM:windows /DEBUG /MACHINE:I386
 # ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib c:\jan\lib\readline.lib c:\jan\lib\console.lib c:\jan\lib\uxnt.lib /NOLOGO /SUBSYSTEM:windows /DEBUG /MACHINE:I386
 LINK32_FLAGS=kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib\
  advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib\
  odbccp32.lib c:\jan\lib\readline.lib c:\jan\lib\console.lib c:\jan\lib\uxnt.lib\
- /NOLOGO /SUBSYSTEM:windows /INCREMENTAL:yes /PDB:$(OUTDIR)/"pl.pdb" /DEBUG\
- /MACHINE:I386 /OUT:$(OUTDIR)/"pl.exe" 
+ /NOLOGO /SUBSYSTEM:windows /INCREMENTAL:yes /PDB:$(OUTDIR)/"PL.pdb" /DEBUG\
+ /MACHINE:I386 /OUT:$(OUTDIR)/"PL.exe" 
 
-$(OUTDIR)/pl.exe : $(OUTDIR)  $(DEF_FILE) $(LINK32_OBJS)
+$(OUTDIR)/PL.exe : $(OUTDIR)  $(DEF_FILE) $(LINK32_OBJS)
     $(LINK32) @<<
   $(LINK32_FLAGS) $(LINK32_OBJS)
 <<
@@ -253,49 +257,49 @@ $(OUTDIR)/pl.exe : $(OUTDIR)  $(DEF_FILE) $(LINK32_OBJS)
 ################################################################################
 # Begin Source File
 
-SOURCE=".\pl-trace.c"
+SOURCE=".\PL-TRACE.C"
 
-$(INTDIR)/"pl-trace.obj" :  $(SOURCE)  $(INTDIR)
-
-# End Source File
-################################################################################
-# Begin Source File
-
-SOURCE=".\pl-term.c"
-
-$(INTDIR)/"pl-term.obj" :  $(SOURCE)  $(INTDIR)
+$(INTDIR)/"PL-TRACE.OBJ" :  $(SOURCE)  $(INTDIR)
 
 # End Source File
 ################################################################################
 # Begin Source File
 
-SOURCE=".\pl-op.c"
+SOURCE=".\PL-TERM.C"
 
-$(INTDIR)/"pl-op.obj" :  $(SOURCE)  $(INTDIR)
-
-# End Source File
-################################################################################
-# Begin Source File
-
-SOURCE=".\pl-write.c"
-
-$(INTDIR)/"pl-write.obj" :  $(SOURCE)  $(INTDIR)
+$(INTDIR)/"PL-TERM.OBJ" :  $(SOURCE)  $(INTDIR)
 
 # End Source File
 ################################################################################
 # Begin Source File
 
-SOURCE=".\pl-list.c"
+SOURCE=".\PL-OP.C"
 
-$(INTDIR)/"pl-list.obj" :  $(SOURCE)  $(INTDIR)
+$(INTDIR)/"PL-OP.OBJ" :  $(SOURCE)  $(INTDIR)
 
 # End Source File
 ################################################################################
 # Begin Source File
 
-SOURCE=".\pl-table.c"
+SOURCE=".\PL-WRITE.C"
 
-$(INTDIR)/"pl-table.obj" :  $(SOURCE)  $(INTDIR)
+$(INTDIR)/"PL-WRITE.OBJ" :  $(SOURCE)  $(INTDIR)
+
+# End Source File
+################################################################################
+# Begin Source File
+
+SOURCE=".\PL-LIST.C"
+
+$(INTDIR)/"PL-LIST.OBJ" :  $(SOURCE)  $(INTDIR)
+
+# End Source File
+################################################################################
+# Begin Source File
+
+SOURCE=".\PL-TABLE.C"
+
+$(INTDIR)/"PL-TABLE.OBJ" :  $(SOURCE)  $(INTDIR)
 
 # End Source File
 ################################################################################
@@ -309,33 +313,33 @@ $(INTDIR)/"pl-buffer.obj" :  $(SOURCE)  $(INTDIR)
 ################################################################################
 # Begin Source File
 
-SOURCE=".\pl-prims.c"
+SOURCE=".\PL-PRIMS.C"
 
-$(INTDIR)/"pl-prims.obj" :  $(SOURCE)  $(INTDIR)
-
-# End Source File
-################################################################################
-# Begin Source File
-
-SOURCE=".\pl-atom.c"
-
-$(INTDIR)/"pl-atom.obj" :  $(SOURCE)  $(INTDIR)
+$(INTDIR)/"PL-PRIMS.OBJ" :  $(SOURCE)  $(INTDIR)
 
 # End Source File
 ################################################################################
 # Begin Source File
 
-SOURCE=".\pl-gc.c"
+SOURCE=".\PL-ATOM.C"
 
-$(INTDIR)/"pl-gc.obj" :  $(SOURCE)  $(INTDIR)
+$(INTDIR)/"PL-ATOM.OBJ" :  $(SOURCE)  $(INTDIR)
 
 # End Source File
 ################################################################################
 # Begin Source File
 
-SOURCE=".\pl-dwim.c"
+SOURCE=".\PL-GC.C"
 
-$(INTDIR)/"pl-dwim.obj" :  $(SOURCE)  $(INTDIR)
+$(INTDIR)/"PL-GC.OBJ" :  $(SOURCE)  $(INTDIR)
+
+# End Source File
+################################################################################
+# Begin Source File
+
+SOURCE=".\PL-DWIM.C"
+
+$(INTDIR)/"PL-DWIM.OBJ" :  $(SOURCE)  $(INTDIR)
 
 # End Source File
 ################################################################################
@@ -349,129 +353,129 @@ $(INTDIR)/"pl-extend.obj" :  $(SOURCE)  $(INTDIR)
 ################################################################################
 # Begin Source File
 
-SOURCE=".\pl-comp.c"
+SOURCE=".\PL-COMP.C"
 
-$(INTDIR)/"pl-comp.obj" :  $(SOURCE)  $(INTDIR)
-
-# End Source File
-################################################################################
-# Begin Source File
-
-SOURCE=".\pl-arith.c"
-
-$(INTDIR)/"pl-arith.obj" :  $(SOURCE)  $(INTDIR)
+$(INTDIR)/"PL-COMP.OBJ" :  $(SOURCE)  $(INTDIR)
 
 # End Source File
 ################################################################################
 # Begin Source File
 
-SOURCE=".\pl-fmt.c"
+SOURCE=".\PL-ARITH.C"
 
-$(INTDIR)/"pl-fmt.obj" :  $(SOURCE)  $(INTDIR)
-
-# End Source File
-################################################################################
-# Begin Source File
-
-SOURCE=".\pl-wic.c"
-
-$(INTDIR)/"pl-wic.obj" :  $(SOURCE)  $(INTDIR)
+$(INTDIR)/"PL-ARITH.OBJ" :  $(SOURCE)  $(INTDIR)
 
 # End Source File
 ################################################################################
 # Begin Source File
 
-SOURCE=".\pl-file.c"
+SOURCE=".\PL-FMT.C"
 
-$(INTDIR)/"pl-file.obj" :  $(SOURCE)  $(INTDIR)
-
-# End Source File
-################################################################################
-# Begin Source File
-
-SOURCE=".\pl-flag.c"
-
-$(INTDIR)/"pl-flag.obj" :  $(SOURCE)  $(INTDIR)
+$(INTDIR)/"PL-FMT.OBJ" :  $(SOURCE)  $(INTDIR)
 
 # End Source File
 ################################################################################
 # Begin Source File
 
-SOURCE=".\pl-rec.c"
+SOURCE=".\PL-WIC.C"
 
-$(INTDIR)/"pl-rec.obj" :  $(SOURCE)  $(INTDIR)
-
-# End Source File
-################################################################################
-# Begin Source File
-
-SOURCE=".\pl-save.c"
-
-$(INTDIR)/"pl-save.obj" :  $(SOURCE)  $(INTDIR)
+$(INTDIR)/"PL-WIC.OBJ" :  $(SOURCE)  $(INTDIR)
 
 # End Source File
 ################################################################################
 # Begin Source File
 
-SOURCE=".\pl-pro.c"
+SOURCE=".\PL-FILE.C"
 
-$(INTDIR)/"pl-pro.obj" :  $(SOURCE)  $(INTDIR)
-
-# End Source File
-################################################################################
-# Begin Source File
-
-SOURCE=".\pl-itf.c"
-
-$(INTDIR)/"pl-itf.obj" :  $(SOURCE)  $(INTDIR)
+$(INTDIR)/"PL-FILE.OBJ" :  $(SOURCE)  $(INTDIR)
 
 # End Source File
 ################################################################################
 # Begin Source File
 
-SOURCE=".\pl-prof.c"
+SOURCE=".\PL-FLAG.C"
 
-$(INTDIR)/"pl-prof.obj" :  $(SOURCE)  $(INTDIR)
-
-# End Source File
-################################################################################
-# Begin Source File
-
-SOURCE=".\pl-bag.c"
-
-$(INTDIR)/"pl-bag.obj" :  $(SOURCE)  $(INTDIR)
+$(INTDIR)/"PL-FLAG.OBJ" :  $(SOURCE)  $(INTDIR)
 
 # End Source File
 ################################################################################
 # Begin Source File
 
-SOURCE=".\pl-modul.c"
+SOURCE=".\PL-REC.C"
 
-$(INTDIR)/"pl-modul.obj" :  $(SOURCE)  $(INTDIR)
-
-# End Source File
-################################################################################
-# Begin Source File
-
-SOURCE=".\pl-main.c"
-
-$(INTDIR)/"pl-main.obj" :  $(SOURCE)  $(INTDIR)
+$(INTDIR)/"PL-REC.OBJ" :  $(SOURCE)  $(INTDIR)
 
 # End Source File
 ################################################################################
 # Begin Source File
 
-SOURCE=".\pl-ext.c"
+SOURCE=".\PL-SAVE.C"
 
-$(INTDIR)/"pl-ext.obj" :  $(SOURCE)  $(INTDIR)
+$(INTDIR)/"PL-SAVE.OBJ" :  $(SOURCE)  $(INTDIR)
 
 # End Source File
 ################################################################################
 # Begin Source File
 
-SOURCE=".\pl-store.c"
+SOURCE=".\PL-PRO.C"
 
-$(INTDIR)/"pl-store.obj" :  $(SOURCE)  $(INTDIR)
+$(INTDIR)/"PL-PRO.OBJ" :  $(SOURCE)  $(INTDIR)
+
+# End Source File
+################################################################################
+# Begin Source File
+
+SOURCE=".\PL-ITF.C"
+
+$(INTDIR)/"PL-ITF.OBJ" :  $(SOURCE)  $(INTDIR)
+
+# End Source File
+################################################################################
+# Begin Source File
+
+SOURCE=".\PL-PROF.C"
+
+$(INTDIR)/"PL-PROF.OBJ" :  $(SOURCE)  $(INTDIR)
+
+# End Source File
+################################################################################
+# Begin Source File
+
+SOURCE=".\PL-BAG.C"
+
+$(INTDIR)/"PL-BAG.OBJ" :  $(SOURCE)  $(INTDIR)
+
+# End Source File
+################################################################################
+# Begin Source File
+
+SOURCE=".\PL-MODUL.C"
+
+$(INTDIR)/"PL-MODUL.OBJ" :  $(SOURCE)  $(INTDIR)
+
+# End Source File
+################################################################################
+# Begin Source File
+
+SOURCE=".\PL-MAIN.C"
+
+$(INTDIR)/"PL-MAIN.OBJ" :  $(SOURCE)  $(INTDIR)
+
+# End Source File
+################################################################################
+# Begin Source File
+
+SOURCE=".\PL-EXT.C"
+
+$(INTDIR)/"PL-EXT.OBJ" :  $(SOURCE)  $(INTDIR)
+
+# End Source File
+################################################################################
+# Begin Source File
+
+SOURCE=".\PL-STORE.C"
+
+$(INTDIR)/"PL-STORE.OBJ" :  $(SOURCE)  $(INTDIR)
 
 # End Source File
 ################################################################################
@@ -485,9 +489,9 @@ $(INTDIR)/"PL-SETUP.OBJ" :  $(SOURCE)  $(INTDIR)
 ################################################################################
 # Begin Source File
 
-SOURCE=".\pl-load.c"
+SOURCE=".\PL-LOAD.C"
 
-$(INTDIR)/"pl-load.obj" :  $(SOURCE)  $(INTDIR)
+$(INTDIR)/"PL-LOAD.OBJ" :  $(SOURCE)  $(INTDIR)
 
 # End Source File
 ################################################################################
@@ -501,65 +505,65 @@ $(INTDIR)/"PL-OS.OBJ" :  $(SOURCE)  $(INTDIR)
 ################################################################################
 # Begin Source File
 
-SOURCE=".\pl-wam.c"
+SOURCE=".\PL-WAM.C"
 
-$(INTDIR)/"pl-wam.obj" :  $(SOURCE)  $(INTDIR)
-
-# End Source File
-################################################################################
-# Begin Source File
-
-SOURCE=".\pl-read.c"
-
-$(INTDIR)/"pl-read.obj" :  $(SOURCE)  $(INTDIR)
+$(INTDIR)/"PL-WAM.OBJ" :  $(SOURCE)  $(INTDIR)
 
 # End Source File
 ################################################################################
 # Begin Source File
 
-SOURCE=".\pl-glob.c"
+SOURCE=".\PL-READ.C"
 
-$(INTDIR)/"pl-glob.obj" :  $(SOURCE)  $(INTDIR)
-
-# End Source File
-################################################################################
-# Begin Source File
-
-SOURCE=".\pl-proc.c"
-
-$(INTDIR)/"pl-proc.obj" :  $(SOURCE)  $(INTDIR)
+$(INTDIR)/"PL-READ.OBJ" :  $(SOURCE)  $(INTDIR)
 
 # End Source File
 ################################################################################
 # Begin Source File
 
-SOURCE=".\pl-funct.c"
+SOURCE=".\PL-GLOB.C"
 
-$(INTDIR)/"pl-funct.obj" :  $(SOURCE)  $(INTDIR)
-
-# End Source File
-################################################################################
-# Begin Source File
-
-SOURCE=".\pl-dump.c"
-
-$(INTDIR)/"pl-dump.obj" :  $(SOURCE)  $(INTDIR)
+$(INTDIR)/"PL-GLOB.OBJ" :  $(SOURCE)  $(INTDIR)
 
 # End Source File
 ################################################################################
 # Begin Source File
 
-SOURCE=".\pl-util.c"
+SOURCE=".\PL-PROC.C"
 
-$(INTDIR)/"pl-util.obj" :  $(SOURCE)  $(INTDIR)
+$(INTDIR)/"PL-PROC.OBJ" :  $(SOURCE)  $(INTDIR)
 
 # End Source File
 ################################################################################
 # Begin Source File
 
-SOURCE=".\pl-sys.c"
+SOURCE=".\PL-FUNCT.C"
 
-$(INTDIR)/"pl-sys.obj" :  $(SOURCE)  $(INTDIR)
+$(INTDIR)/"PL-FUNCT.OBJ" :  $(SOURCE)  $(INTDIR)
+
+# End Source File
+################################################################################
+# Begin Source File
+
+SOURCE=".\PL-DUMP.C"
+
+$(INTDIR)/"PL-DUMP.OBJ" :  $(SOURCE)  $(INTDIR)
+
+# End Source File
+################################################################################
+# Begin Source File
+
+SOURCE=".\PL-UTIL.C"
+
+$(INTDIR)/"PL-UTIL.OBJ" :  $(SOURCE)  $(INTDIR)
+
+# End Source File
+################################################################################
+# Begin Source File
+
+SOURCE=".\PL-SYS.C"
+
+$(INTDIR)/"PL-SYS.OBJ" :  $(SOURCE)  $(INTDIR)
 
 # End Source File
 ################################################################################
@@ -573,28 +577,28 @@ $(INTDIR)/"PL-NT.OBJ" :  $(SOURCE)  $(INTDIR)
 ################################################################################
 # Begin Source File
 
-SOURCE=".\pl-dde.c"
+SOURCE=".\PL-DDE.C"
 
-$(INTDIR)/"pl-dde.obj" :  $(SOURCE)  $(INTDIR)
-
-# End Source File
-################################################################################
-# Begin Source File
-
-SOURCE=".\pl-dll.c"
-
-$(INTDIR)/"pl-dll.obj" :  $(SOURCE)  $(INTDIR)
+$(INTDIR)/"PL-DDE.OBJ" :  $(SOURCE)  $(INTDIR)
 
 # End Source File
 ################################################################################
 # Begin Source File
 
-SOURCE=.\pl.rc
+SOURCE=".\PL-DLL.C"
+
+$(INTDIR)/"PL-DLL.OBJ" :  $(SOURCE)  $(INTDIR)
+
+# End Source File
+################################################################################
+# Begin Source File
+
+SOURCE=.\PL.RC
 DEP_PL_RC=\
-	.\pl.ico\
-	.\xpce.ico
+	.\PL.ICO\
+	.\XPCE.ICO
 
-$(INTDIR)/pl.res :  $(SOURCE)  $(DEP_PL_RC) $(INTDIR)
+$(INTDIR)/PL.res :  $(SOURCE)  $(DEP_PL_RC) $(INTDIR)
    $(RSC) $(RSC_PROJ)  $(SOURCE) 
 
 # End Source File
@@ -609,9 +613,38 @@ $(INTDIR)/"pl-stream.obj" :  $(SOURCE)  $(INTDIR)
 ################################################################################
 # Begin Source File
 
-SOURCE=".\pl-fli.c"
+SOURCE=".\PL-FLI.C"
 
-$(INTDIR)/"pl-fli.obj" :  $(SOURCE)  $(INTDIR)
+$(INTDIR)/"PL-FLI.OBJ" :  $(SOURCE)  $(INTDIR)
+
+# End Source File
+################################################################################
+# Begin Source File
+
+SOURCE=".\pl-ntmain.c"
+DEP_PL_NT=\
+	".\PL-ITF.H"\
+	".\pl-stream.h"\
+	\JAN\SRC\CONSOLE\CONSOLE.H
+
+$(INTDIR)/"pl-ntmain.obj" :  $(SOURCE)  $(DEP_PL_NT) $(INTDIR)
+
+# End Source File
+################################################################################
+# Begin Source File
+
+SOURCE=".\PL-RL.C"
+DEP_PL_RL=\
+	".\pl-stream.h"\
+	".\PL-ITF.H"\
+	.\config\win32.h\
+	\JAN\SRC\xnt\uxnt.h\
+	\JAN\SRC\CONSOLE\CONSOLE.H\
+	\JAN\SRC\readline\readline.h\
+	\JAN\SRC\readline\keymaps.h\
+	\JAN\SRC\readline\proto.h
+
+$(INTDIR)/"PL-RL.OBJ" :  $(SOURCE)  $(DEP_PL_RL) $(INTDIR)
 
 # End Source File
 # End Group
