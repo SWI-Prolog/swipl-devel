@@ -90,17 +90,32 @@ rlc_bind_terminal()
 
 #ifndef HAVE_LIBREADLINE
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Note: actually rlc_add_history() removes  duplicates   and  empty lines.
+Also, read_line() already updates the history.   Maybe  this should just
+return TRUE? This however would not allow for programmatically inserting
+things in the history. This shouldn't matter.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static foreign_t
 pl_rl_add_history(term_t text)
-{ char *s;
+{ atom_t a;
+  static atom_t last = 0;
 
-  if ( PL_get_chars(text, &s, CVT_ALL) )
-  { rlc_add_history(s);
+  if ( PL_get_atom(text, &a) )
+  { if ( a != last )
+    { if ( last )
+	PL_unregister_atom(last);
+      last = a;
+      PL_register_atom(last);
 
-    PL_succeed;
+      rlc_add_history(PL_atom_chars(a));
+    }
+
+    return TRUE;
   }
 
-  return PL_warning("rl_add_history/1: instantation fault");
+  return FALSE;
 }
 
 

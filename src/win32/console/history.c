@@ -90,11 +90,23 @@ rlc_add_history(const char *line)
   { int i = next(hist.head);
     int len = strlen(line);
 
-    if ( len > 0 && line[len-1] == '\n' )
+    while(*line && *line <= ' ')	/* strip leading white-space */
+      line++;
+    len = strlen(line);
+					/* strip trailing white-space */
+    while ( len > 0 && line[len-1] <= ' ' )
       len--;
+
+    if ( len == 0 )
+    { hist.current = -1;
+      return;
+    }
+
     if ( hist.lines[hist.head] &&
-	 strcmp(hist.lines[hist.head], line) == 0 )
+	 strncmp(hist.lines[hist.head], line, len) == 0 )
+    { hist.current = -1;
       return;				/* same as last line added */
+    }
     
     if ( i == hist.tail )		/* this one is lost */
       hist.tail = next(hist.tail);
