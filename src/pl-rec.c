@@ -11,7 +11,7 @@
 */
 
 /*#define O_SECURE 1*/
-#define O_DEBUG 1
+/*#define O_DEBUG 1*/
 #include "pl-incl.h"
 
 static RecordList lookupRecordList(word);
@@ -434,7 +434,7 @@ compileTermToHeap(term_t t, int flags)
   memcpy(addPointer(record, rsize), info.code.base, sizeOfBuffer(&info.code));
   discardBuffer(&info.code);
 
-  DEBUG(0, pl_write(t); Sdprintf("--> record at %p\n", record));
+  DEBUG(3, Sdprintf("--> record at %p\n", record));
 
   return record;
 }
