@@ -84,15 +84,15 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
   WsFrame wfr;
   WsWindow wsw;
 
+  DEBUG(NAME_event,
+	Cprintf("%s(0x%04x): MS-Windows event 0x%04x with 0x%04x/0x%08lx\n",
+		pp(sw), hwnd, message, wParam, lParam));
+
   if ( !sw ) 
   { if ( !(sw = current_window) )
       return DefWindowProc(hwnd, message, wParam, lParam);
   }
   wsw = sw->ws_ref;
-
-  DEBUG(NAME_event,
-	Cprintf("%s(0x%04x): MS-Windows event 0x%04x with 0x%04x/0x%08lx\n",
-		pp(sw), hwnd, message, wParam, lParam));
 
   switch(message)
   { case WM_CREATE:
