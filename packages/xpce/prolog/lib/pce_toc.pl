@@ -124,14 +124,7 @@ select_node(_TW, _Id:any) :->
 expand_node(TW, Id:any) :->
 	"Define expansion of node 'id'"::
 	get(TW, node, Id, Node),
-	send(Node, slot, collapsed, @off),
-	(   get(Node, sons, Sons),
-	    Sons \== @nil
-	->  get(Sons, map, @arg1?image, Grs),
-	    send(Grs, append, Node?image),
-	    send(TW, normalise, Grs)
-	;   true
-	).
+	send(Node, slot, collapsed, @off).
 
 popup(_TW, _Id:any, _Popup:popup) :<-
 	"Return a menu for this node"::
@@ -139,10 +132,10 @@ popup(_TW, _Id:any, _Popup:popup) :<-
 
 :- pce_group(build).
 
-root(TW, Root:toc_folder) :->
+root(TW, Root:toc_folder, Relink:[bool]) :->
 	"Assign the table a root"::
 	get(TW, tree, Tree),
-	send(Tree, root, Root).
+	send(Tree, root, Root, Relink).
 
 son(TW, Parent:any, Son:toc_node) :->
 	"Add a son to a node"::
@@ -187,6 +180,18 @@ scroll_vertical(TW,
 	    )
 	).
 
+normalise_tree(TW, Id:any) :->
+	"Make as much as possible of the subtree visible"::
+	get(TW, node, Id, Node),
+	(   get(Node, sons, Sons),
+	    Sons \== @nil
+	->  send(TW, compute),		% ensure proper layout
+	    get(Sons, map, @arg1?image, Grs),
+	    send(Grs, append, Node?image),
+	    send(TW, normalise, Grs, y)	% class-variable?
+	;   true
+	).
+
 :- pce_group(event).
 
 drag_and_drop(TW, Val:bool) :->
@@ -220,9 +225,9 @@ initialise(TC) :->
 	send(TC, direction, list),
 	send(TC, level_gap, 17).
 
-root(TC, Root:toc_folder) :->
+root(TC, Root:toc_folder, Relink:[bool]) :->
 	"Assing the root"::
-	send(TC, send_super, root, Root),
+	send_super(TC, root, Root, Relink),
 	send(TC?nodes, append, Root?identifier, Root).
 
 selection(TC, SelectedNodes:chain) :<-
@@ -290,11 +295,16 @@ collapsed(Node, Val:bool*) :->
 		    ignore(send(TocWindow, expand_node, Id)),
 		    send(Display, busy_cursor, @nil)
 		;   ignore(send(TocWindow, expand_node, Id))
-		)
+		),
+		Normalise = true
 	    ;	true
 	    ),
 	    send(Node, send_super, collapsed, Val),
-	    send(Node, update_image)
+	    send(Node, update_image),
+	    (	Normalise == true
+	    ->  send(TocWindow, normalise_tree, Node)
+	    ;	true
+	    )
 	).
 
 hide_sons(Node) :->

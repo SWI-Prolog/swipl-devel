@@ -115,6 +115,9 @@ method((Receiver-Selector), Method) :- !,
 	;   get(Receiver, class, Class),
 	    get(Class, instance_variable, Selector, Method)
 	).
+method(Method, Method) :-
+	object(Method),
+	send(Method, instance_of, behaviour).
 
 
 %	succeed if the method is implemented in Prolog (dubious test).

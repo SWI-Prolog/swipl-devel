@@ -211,6 +211,7 @@ clear(SE) :->
 
 :- pce_end_class.
 
+/*
 test_arrows :-
 	pce_autoload(arrow_item, library(pce_arrow_item)),
 	ensure_loaded(library(pce_graphical_browser)),
@@ -226,5 +227,4 @@ test_arrows :-
 make_arrow_line(Arrow, Line) :-
 	new(Line, line(0, 0, 50, 0)),
 	send(Line, second_arrow, Arrow).
-				       
-
+*/
