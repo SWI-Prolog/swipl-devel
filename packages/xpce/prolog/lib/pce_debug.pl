@@ -23,6 +23,7 @@
 	, show_slots/1			% Show all pce slot-values
 	, pcerefer/1			% Print objects refering to me
 	, pcerefer/2			% Print objects refering to me
+	, pce_global_objects/1		% -globals
 	]).
 
 
@@ -122,10 +123,10 @@ trace_feedback(Action, Obj) :-
 		*       CHECK PCE DATABASE	*
 		********************************/
 
-%	globals(-ChainOfGlobalObjects)
+%	pce_global_objects(-ChainOfGlobalObjects)
 %	Return a chain with all globally known objects.
 
-globals(Chain) :-
+pce_global_objects(Chain) :-
 	new(Chain, chain),
 	send(@pce, for_name_reference,
 	     message(@prolog, '_append_reference', Chain, @arg1)).
@@ -205,7 +206,7 @@ describe_location(_, '<no source>').
 
 
 check_pce_database :-
-	globals(All),
+	pce_global_objects(All),
 	send(All, '_check'),
 	send(All, done).
 
@@ -261,12 +262,19 @@ pcerefer(Obj) :-
 	get(Obj, '_references', Refs),
 	format('~p has ~d references~n', [Obj, Refs]),
 	(   Refs > 0
-	->  globals(All),
+	->  pce_global_objects(All),
+	    new(Found, number(0)),
 	    send(All, for_slot_reference,
 		 if(message(Obj, '_same_reference', @arg4),
 		    message(@prolog, call,
-			    pcerefer, Obj, @arg1, @arg2, @arg3, All))),
-	    send(All, done)
+			    pcerefer, Obj, @arg1, @arg2, @arg3, All, Found))),
+	    send(All, done),
+	    get(Found, value, FoundRefs),
+	    (	Refs == FoundRefs
+	    ->	format('Found all references~n', [])
+	    ;	format('Found ~d of ~d references~n', [FoundRefs, Refs])
+	    ),
+	    free(Found)
 	;   true
 	).
 	
@@ -275,20 +283,23 @@ pcerefer(From, Obj) :-
 	get(Obj, references, Refs),
 	format('~p has ~d references~n', [Obj, Refs]),
 	(   Refs > 0
-	->  send(From, for_slot_reference,
+	->  new(Found, number(0)),
+	    send(From, for_slot_reference,
 		 if(Obj == @arg4,
 		    message(@prolog, call,
-			    pcerefer, Obj, @arg1, @arg2, @arg3, @nil)))
+			    pcerefer, Obj, @arg1, @arg2, @arg3, @nil))),
+	    free(Found)
 	;   true
 	).
 
-pcerefer(Obj, From, Type, Where, All) :-
+pcerefer(Obj, From, Type, Where, All, Found) :-
 	Obj \== All,
 	From \== All, !,
 	get(From, '_class_name', ClassName),
 	format('~t~8|~w ~w of ~w/~w --> ~p~n',
-	       [Type, Where, From, ClassName, Obj]).
-pcerefer(_, _, _, _, _).
+	       [Type, Where, From, ClassName, Obj]),
+	send(Found, plus, 1).
+pcerefer(_, _, _, _, _, _).
 
 
 		/********************************
