@@ -61,6 +61,7 @@ menu('&Debug',
        %'&Debug mode'	     = debug,
        %'&No debug mode'     = nodebug,
        '&Edit spy points ...' = user:prolog_ide(open_debug_status),
+       '&Threads monitor ...' = user:prolog_ide(thread_monitor),
        --,
        '&Graphical debugger' = user:guitracer
      ],
