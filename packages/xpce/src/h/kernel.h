@@ -1552,6 +1552,7 @@ status		initialiseSourceSink(SourceSink ss);
 status		checkErrorSourceSink(SourceSink ss, IOSTREAM *fd);
 status		initialiseSourceSink(SourceSink ss);
 IOSTREAM *	Sopen_object(Any obj, const char *mode);
+COMMON(status)  setStreamEncodingSourceSink(SourceSink ss, IOSTREAM *fd);
 
 #if O_CPLUSPLUS
 status 	callCPlusPlusProc(void *f, int ac, const Any av[]);
