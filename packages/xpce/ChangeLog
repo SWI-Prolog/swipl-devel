@@ -4,6 +4,8 @@
 VERSION 6.2.11, distributed with SWI-Prolog 5.2.11
 ==================================================
 
+* ENHANCED: pullright menu handling.
+
 * MODIFIED/FIXED: `node<-contained_in' now fails if the node is not
   contained in a tree (rather than returning the incorrect @nil).
 

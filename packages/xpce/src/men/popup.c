@@ -395,9 +395,10 @@ dragPopup(PopupObj p, EventObj ev, Bool check_pullright)
 	  rx = ix+iw-valInt(p->popup_image->size->w);
 	else
 	  rx = ix+iw-8;
+	rx -= 2*valInt(p->border);
 
 	get_xy_event(ev, p, ON, &ex, &ey);
-	if ( valInt(ex) > rx )
+	if ( valInt(ex) >= rx )
 	  send(p, NAME_showPullrightMenu, mi, ev, EAV);
       }
     } else
@@ -531,9 +532,8 @@ eventPopup(PopupObj p, EventObj ev)
   { send(p, NAME_drag, ev, EAV);
     succeed;
   } else if ( isAEvent(ev, NAME_locMove) )
-  { MenuItem mi = getItemFromEventMenu((Menu) p, ev);
-
-    previewMenu((Menu) p, mi && mi->active == ON ? mi : NIL);
+  { send(p, NAME_drag, ev, EAV);
+    succeed;
   } else if ( isAEvent(ev, NAME_locStill) )
   { MenuItem mi;
 
