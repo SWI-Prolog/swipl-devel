@@ -73,9 +73,7 @@ and with an eps of 0.001.
 	\predicate{dump}{3}{+Target, +Newvars, -CodedAnswer}
 Returns the constraints on \arg{Target} in the list \arg{CodedAnswer}
 where all variables of \arg{Target} have veen replaced by \arg{NewVars}.
-This operation does not change the constraint store. This is currently
-the mechanism to use if you want a readable projection of the
-constraints. E.g.\ in
+This operation does not change the constraint store. E.g.\ in
 
 \begin{code}
 dump([X,Y,Z],[x,y,z],Cons)
