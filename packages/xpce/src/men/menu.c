@@ -1243,11 +1243,13 @@ previewMenu(Menu m, MenuItem mi)
 { if ( !mi )
     mi = NIL;
 
-  if ( notNil(m->preview) )
-    ChangedItemMenu(m, m->preview);
-  assign(m, preview, mi);
-  if ( notNil(m->preview) )
-    ChangedItemMenu(m, m->preview);
+  if ( m->preview != mi )
+  { if ( notNil(m->preview) )
+      ChangedItemMenu(m, m->preview);
+    assign(m, preview, mi);
+    if ( notNil(m->preview) )
+      ChangedItemMenu(m, m->preview);
+  }
 
   succeed;
 }
