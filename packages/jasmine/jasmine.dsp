@@ -53,11 +53,11 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /machine:I386
-# ADD LINK32 d:\jasmine\jasmine\lib\jasmine.lib ..\..\lib\libpl.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /machine:I386 /out:"..\..\bin\jasmine.dll"
+# ADD LINK32 d:\jasmine\jasmine\lib\jasmine.lib ..\..\lib\libpl.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /machine:I386 /out:"jasmine.dll"
 # Begin Special Build Tool
 SOURCE=$(InputPath)
 PostBuild_Cmds=copy jasmine.pl ..\..\library	..\..\bin\plcon.exe -g make -t\
- halt
+  halt
 # End Special Build Tool
 
 !ELSEIF  "$(CFG)" == "jasmine - Win32 Debug"
@@ -88,7 +88,7 @@ LINK32=link.exe
 # Begin Special Build Tool
 SOURCE=$(InputPath)
 PostBuild_Cmds=copy jasmine.pl ..\..\library	..\..\bin\plcon.exe -g make -t\
- halt
+  halt
 # End Special Build Tool
 
 !ENDIF 

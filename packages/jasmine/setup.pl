@@ -45,7 +45,7 @@ install_dll(Base) :-
 			     access(read)
 			   ],
 			   Src),
-	progress(cpbin(Src, Lib)).
+	progress(cpbin(Src, Dir)).
 
 dll_dest(Dir) :-
 	current_prolog_flag(home, PlHome),
