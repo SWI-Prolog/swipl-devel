@@ -414,7 +414,7 @@ do_complete(RlcCompleteData data)
 
 static rlc_console
 current_console()
-{ if ( Suser_input->functions->read = Srlc_read )
+{ if ( Suser_input->functions->read == Srlc_read )
     return Suser_input->handle;
 
   return NULL;

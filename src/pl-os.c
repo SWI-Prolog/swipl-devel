@@ -1837,7 +1837,7 @@ Swrite_protocol(void *handle, char *buf, int size)
   return rval;
 }
 
-int
+static int
 Sread_terminal(void *handle, char *buf, int size)
 { long h = (long)handle;
   int fd = (int)h;
@@ -1863,7 +1863,7 @@ Sread_terminal(void *handle, char *buf, int size)
 
   LD->read_source = oldsrc;
 
-#ifdef WIN32
+#ifdef __WIN32__
   if ( size > 0 )			/* Why needed only here? */
     protocol(buf, size);		/* and what is the correct condition */
 #endif
@@ -2730,7 +2730,7 @@ Which(const char *program, char *fullname)
     point,  expressing  the  time  to sleep in seconds.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifdef WIN32
+#ifdef __WIN32__
 #define PAUSE_DONE 1			/* see pl-nt.c */
 #endif
 
