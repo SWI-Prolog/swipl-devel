@@ -1,8 +1,21 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Subframes when handling an exception themselves don't catch
+    exceptions.
+
+  * FIXED: read_term/2 subterm_positions option to return a variable
+    in some awkward situations.
+
+VERSION 3.3.10
+==============
+
+  * FIXED: Crash in exception-handling while running in debug mode.
+
   * FIXED: GC bug related to destructive assignment in setarg/3 and GC
-    bug related to new choicepoint handling (since 3.3.6).
+    bug related to new choicepoint handling (since 3.3.6).  Thanks to
+    Gertjan van Noord for reporting and providing access to their
+    Dec Alpha for tracking down the problem.
 
   * ADDED: plld: if the default linker is the C-compiler and there are
     C++ files, make the default linker the C++ compiler.

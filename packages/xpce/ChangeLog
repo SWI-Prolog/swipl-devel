@@ -1,7 +1,12 @@
+* FIXED: Added proper message for `unresolved' types.
+
+* ADDED: ignore-case argument to `char_array->prefix' for consistency with
+  ->sub and ->prefix.
+
 * ADDED: Syntax colouring in Prolog mode.  Lots of changes to the top  of
   the PceEmacs mode classes to deal with colourisation support.
 
-* FIXED: `char_array->sub: text, @on' (i.e. case-insensitive substring match
+* FIXED: `char_array->sub: text, @on' (i.e. case-insensitive substring match)
 
 * ADDED: `table_slice->displayed' to temporarily hide/show table rows and
   columns.
