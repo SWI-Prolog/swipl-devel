@@ -98,10 +98,17 @@ equalColour(Colour c1, Colour c2)
     succeed;
   if ( instanceOfObject(c1, ClassColour) &&
        instanceOfObject(c2, ClassColour) )
-  { if ( c1->name == c2->name ||
-	 (c1->red   == c2->red &&
-	  c1->green == c2->green &&
-	  c1->blue  == c2->blue) )
+  { if ( c1->name == c2->name )
+      succeed;
+
+    if ( isDefault(c1->red) )		/* `open' both colours */
+      getXrefObject(c1, CurrentDisplay(NIL));
+    if ( isDefault(c2->red) )
+      getXrefObject(c2, CurrentDisplay(NIL));
+
+    if ( c1->red   == c2->red &&	/* tolerance? */
+	 c1->green == c2->green &&
+	 c1->blue  == c2->blue )
       succeed;
   }
 
@@ -326,8 +333,8 @@ static char *T_initialise[] =
 static vardecl var_colour[] =
 { IV(NAME_name, "name|int", IV_GET,
      NAME_name, "Name of the colour"),
-  IV(NAME_kind, "{named,rgb}", IV_NONE,
-     NAME_kind, "From X-colour database or user-defined"),
+  IV(NAME_kind, "{named,rgb}", IV_GET,
+     NAME_kind, "From colour-name database or user-defined"),
   SV(NAME_red, "[0..65535]", IV_NONE|IV_FETCH, getRedColour,
      NAME_colour, "Red value"),
   SV(NAME_green, "[0..65535]", IV_NONE|IV_FETCH, getGreenColour,
@@ -346,7 +353,9 @@ static senddecl send_colour[] =
   SM(NAME_Xclose, 1, "display", XCloseColour,
      NAME_x, "Destroy window-system counterpart"),
   SM(NAME_Xopen, 1, "display", XopenColour,
-     NAME_x, "Create window-system counterpart")
+     NAME_x, "Create window-system counterpart"),
+  SM(NAME_equal, 1, "colour", equalColour,
+     DEFAULT, "Test if colours have equal RGB")
 };
 
 /* Get Methods */

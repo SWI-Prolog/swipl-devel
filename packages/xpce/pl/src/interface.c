@@ -2169,11 +2169,9 @@ PrologAction(int action, va_list args)
     }
     case HOST_ATEXIT:
     { OnExitFunction f = va_arg(args, OnExitFunction);
-#ifdef O_SHAREDLIBRARY
-      exitpce_hook = f;
-#else
+
       PL_on_halt((halthandler_t)f, NULL);
-#endif      
+
       return PCE_SUCCEED;
     }
     default:

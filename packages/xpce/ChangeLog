@@ -1,4 +1,33 @@
+[VERSION 4.9.7]
+
+* ADDED: Class int_item: specialised text item for entering integer values
+  with increment/decrement buttons.
+
+* ADDED/FIXED: `arrow ->geometry', which now moves the arrow, rather than
+  making it invalid.
+
+* ADDED: `arrow->initialise': additional arguments for `style' and `fill'.
+
+* ADDED: class `label_box' for making labeled dialog items consisting
+  of multiple parts.  Used for the new implementation of font_item, making
+  it much easier to understand.
+
+* MODIFIED: `object->equal', and all its refinement will no longer complain
+  if the argument type cannot be converted into the requested one, but simply
+  fail.  So, send(colour(red), equal, point(1,3)) now simply fails.
+
+* ADDED: `get' access to `colour<-kind'.
+
 [VERSION 4.9.6]
+
+* ADDED:  `colour->equal': test of two colours have the same RGB values.
+
+* MODIFIED: Class tree in `list' mode.  A node will now display a [+]
+  or [-] sign or nothing depending on the value of node <-collapsed.
+
+* INSTALL: modified library(dialog/dialog) to avoid a call to
+  pce_image_directory during compilation, and therefore the need to
+  have access to the X11 display while (q)compiling the library.
 
 * FIXED: Installation procedure for bitmaps.  New options have been
   added to install(.c): -d, -C and -pN to get much faster and simpler

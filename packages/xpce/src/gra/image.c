@@ -834,6 +834,7 @@ getPostscriptDepthImage(Image image)
 #include "bitmaps/pce.bm"
 #include "bitmaps/cnode.bm"
 #include "bitmaps/enode.bm"
+#include "bitmaps/intarrows.bm"
 
 static Image
 stdImage(Name name, Image *global, char *bits, int w, int h)
@@ -908,6 +909,8 @@ standardImages(void)
 	   enode_bits, enode_width, enode_height);
   stdImage(NAME_treeCollapsedImage, NULL,
 	   cnode_bits, cnode_width, cnode_height);
+  stdImage(NAME_intItemImage, &INT_ITEM_IMAGE,
+	   intarrows_bits, intarrows_width, intarrows_height);
 
   stdImage(NAME_nullImage, &NULL_IMAGE,
 	   NULL, 0, 0);

@@ -1015,6 +1015,9 @@ static HashTable PlacedTable = NULL;	/* placed objects */
 #define MAX_L_ROWS	100
 #define MAXCOLLUMNS	100
 
+					/* flags values */
+#define DLF_STRETCH_TO_BB	0x1	/* Stretch-right to BB */
+
 typedef struct _unit			/* can't use cell! */
 { Graphical item;			/* Item displayed here */
   short height;				/* Height above reference */
@@ -1024,12 +1027,15 @@ typedef struct _unit			/* can't use cell! */
   short	hstretch;			/* Strechable horizontal */
   short vstretch;			/* Strechable vertical */
   Name  alignment;			/* alignment of the item */
+  int	flags;				/* Misc alignment flags */
 } unit, *Unit;
 
-static unit empty_unit = {(Graphical) NIL, 0, 0, 0, 0, 0, 0, NAME_column};
+static unit empty_unit = {(Graphical) NIL, 0, 0, 0, 0, 0, 0, NAME_column, 0};
 
 typedef struct _matrix
-{ unit *units[MAXCOLLUMNS];
+{ int cols;				/* actual size */
+  int rows;
+  unit *units[MAXCOLLUMNS];
 } matrix, *Matrix;
 
 
@@ -1155,6 +1161,52 @@ distribute(int total, int n, int *buckets)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Adjust  to  the  bounding  box  by  adjustting  all  columns  containing
+stretchable items.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+stretchColumns(Matrix m, Size gap, Size bb, Size border)
+{ if ( notDefault(bb) )
+  { int twidth = valInt(bb->w) - 2 * valInt(border->w); /* total width */
+    Stretch s = alloca(sizeof(stretch) * m->cols);
+    int x, y;
+
+    twidth -= (m->cols-1) * valInt(gap->w);
+
+    for(x=0; x<m->cols; x++)
+    { int stretch = 0, noshrink=FALSE;
+      s[x].ideal   = m->units[x][0].left + m->units[x][0].right;
+
+      for(y=0; y<m->rows; y++)
+      { if ( m->units[x][y].alignment == NAME_column )
+	{ stretch = max(stretch, m->units[x][y].hstretch);
+	  if ( m->units[x][y].hstretch == 0 )
+	    noshrink = TRUE;
+	}
+      }
+
+      s[x].stretch = stretch;
+      if ( stretch > 0 && !noshrink )
+	s[x].shrink = stretch;
+      else
+	s[x].shrink = 0;
+    }
+
+    distribute_stretches(s, m->cols, twidth);
+    
+    for(x=0; x<m->cols; x++)
+    { for(y=0; y<m->rows; y++)
+      { if ( m->units[x][y].alignment == NAME_column )
+	  m->units[x][0].right = s[x].size - m->units[x][0].left;
+      } 
+    }
+  }
+}
+
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 adjustDialogItem() is as doSetGraphical, but returns 0 if there was no
 change and 1 if there was a change.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -1228,6 +1280,9 @@ layoutDialogDevice(Device d, Size gap, Size bb, Size border)
 
   if ( found == 0 )
     succeed;				/* finished */
+
+  m.cols = max_x;
+  m.rows = max_y;
 
   for(ln = 0; changed && ln < 4; ln++)	/* avoid endless recursion */
   { changed = 0;			/* see whether something changed */
@@ -1338,6 +1393,8 @@ layoutDialogDevice(Device d, Size gap, Size bb, Size border)
 	}
       }
     }
+    stretchColumns(&m, gap, bb, border);
+    
 
   { int gaph = valInt(gap->h);
     int ideal_y = valInt(border->h) * 2;
@@ -1417,10 +1474,14 @@ layoutDialogDevice(Device d, Size gap, Size bb, Size border)
 		    Cprintf("Right stretch of %s to BB at %d\n",
 			    pp(gr), valInt(bb->w)));
 	    } else
-	    { iw = toInt(m.units[x][y].left + m.units[x][y].right);
+	    { m.units[x][y].flags |= DLF_STRETCH_TO_BB;
 	      DEBUG(NAME_layout,
+		    Cprintf("Flagged right stretch of %s to BB\n",
+			    pp(gr)));
+	      iw = toInt(m.units[x][y].left + m.units[x][y].right);
+	      /* DEBUG(NAME_layout,
 		    Cprintf("Right stretch of %s to column width %d\n",
-			    pp(gr), valInt(iw)));
+			    pp(gr), valInt(iw))); */
 	    }
 
 	    if ( isDefault(iw) )
@@ -1442,7 +1503,7 @@ layoutDialogDevice(Device d, Size gap, Size bb, Size border)
     
     for(y = 0; y < max_y; y++)
     { if ( notDefault(bb) )
-      { px = valInt(bb->w);
+      { px = valInt(bb->w);		/* px: right-side of bb */
       } else
       { if ( instanceOfObject(d, ClassWindow) )
 	{ PceWindow sw = (PceWindow) d;
@@ -1459,8 +1520,17 @@ layoutDialogDevice(Device d, Size gap, Size bb, Size border)
       for(x = max_x-1; x >= 0; x--)
       { if ( notNil(gr = m.units[x][y].item) &&
 	     gr->displayed == ON )
-	{ if ( m.units[x][y].alignment == NAME_right ||
-	       m.units[x][y].alignment == NAME_center )
+	{ if ( m.units[x][y].flags & DLF_STRETCH_TO_BB )
+	  { int iw = px-valInt(border->w)-valInt(gr->area->x);
+
+	    if ( iw > valInt(gr->area->w) )
+	    { adjustDialogItem(gr, DEFAULT, DEFAULT, toInt(iw), DEFAULT);
+	      DEBUG(NAME_layout,
+		    Cprintf("Delayed right stretch of %s to BB %d\n",
+			    pp(gr), iw));
+	    }
+	  } else if ( m.units[x][y].alignment == NAME_right ||
+		      m.units[x][y].alignment == NAME_center )
 	  { Name algnmt = m.units[x][y].alignment;
 	    int x2;
 	    Graphical gr2 = NULL, grl = gr;

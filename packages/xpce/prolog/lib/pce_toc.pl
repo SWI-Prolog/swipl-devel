@@ -65,6 +65,8 @@ Typical usage
 :- pce_begin_class(toc_window, window,
 		   "Window for table-of-contents").
 
+variable(drag_and_drop,	bool := @off, get, "Allow drag-and-drop").
+
 initialise(TW) :->
 	"Create window and display empty toc_tree"::
 	send(TW, send_super, initialise),
@@ -117,6 +119,11 @@ delete(TW, Id:any) :->
 	get(TW, node, Id, Node),
 	send(Node?node, delete_tree).
 
+expand_root(T) :->
+	"Expand the root-node"::
+	get(T?tree, root, Node),
+	ignore(send(Node, collapsed, @off)).
+
 :- pce_group(scroll).
 
 scroll_vertical(TW,
@@ -142,6 +149,20 @@ scroll_vertical(TW,
 	    (   AY < 0
 	    ->  send(TW, scroll_to, point(0,0))
 	    ;   true
+	    )
+	).
+
+:- pce_group(event).
+
+drag_and_drop(TW, Val:bool) :->
+	"(dis)allow drag-and-drop"::
+	send(TW, slot, drag_and_drop, Val),
+	(   Val == @on
+	->  (   send(@toc_node_recogniser?members, member,
+		     @toc_drag_and_drop_recogniser)
+	    ->	true
+	    ;	send(@toc_node_recogniser?members, append,
+		     @toc_drag_and_drop_recogniser)
 	    )
 	).
 
@@ -212,16 +233,25 @@ collapsed(Node, Val:bool*) :->
 	;   (	Val == @on
 	    ->	send(Node?sons, for_all, message(@arg1, delete_tree))
 	    ;	Val == @off
-	    ->	get(Node, window, TocWindow),
-		get(TocWindow, display, Display),
+	    ->	get(Node?tree, window, TocWindow),
 		get(Node, identifier, Id),
-	        send(Display, busy_cursor),
-	        ignore(send(TocWindow, expand_node, Id)),
-		send(Display, busy_cursor, @nil)
+		(   get(TocWindow, display, Display)
+		->  send(Display, busy_cursor),
+		    ignore(send(TocWindow, expand_node, Id)),
+		    send(Display, busy_cursor, @nil)
+		;   ignore(send(TocWindow, expand_node, Id))
+		)
 	    ;	true
 	    ),
 	    send(Node, send_super, collapsed, Val),
 	    send(Node, update_image)
+	).
+
+can_expand(TF, Val:bool) :->
+	"Whether or not the node can be expanded"::
+	(   Val == @off
+	->  send(TF, send_super, collapsed, @nil)
+	;   send(TF, send_super, collapsed, @on)
 	).
 
 :- pce_group(appearance).
@@ -268,10 +298,17 @@ open(Node) :->
 				click_gesture(left, c, single,
 					      message(@toc_node, select, @on)),
 				click_gesture(left, '', double,
-					      message(@toc_node, open)),
-				drag_and_drop_gesture(left, '', @default,
-						      @arg1?drop_target)))).
+					      message(@toc_node, open))))).
 
+
+:- pce_global(@toc_drag_and_drop_recogniser,
+	      make_toc_drag_and_drop_recogniser).
+
+make_toc_drag_and_drop_recogniser(G) :-
+	new(G, drag_and_drop_gesture(left, '', @default,
+				     @arg1?drop_target)),
+	send(G, condition, @event?window?drag_and_drop == @on).
+	
 make_toc_node_format(F) :-
 	new(F, format(vertical, 1, @on)),
 	send(F, row_sep, 5).
@@ -313,7 +350,7 @@ drop_target(TF, DTG:'chain|any') :<-
 
 :- pce_end_class.
 
-image(folder, _, 'dir.xpm') :-
+image(folder, _, 'dir.bm') :-
 	get(@display, visual_type, monochrome), !.
 image(folder, @off, 'opendir.xpm') :- !.
 image(folder, _,    'closedir.xpm').

@@ -81,7 +81,7 @@ getConvertDate(Class class, StringObj str)
 
 static status
 equalDate(Date d1, Date d2)
-{ if (d1->unix_date == d2->unix_date)
+{ if ( d1->unix_date == d2->unix_date )
     succeed;
   fail;
 }

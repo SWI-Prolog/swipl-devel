@@ -48,6 +48,7 @@ Pce.*.inactive_colour: 		when(@colour_display, \
 				     colour(grey60), \
 				     @grey50_image)
 Pce.DialogItem.label_format:	right
+Pce.LabelBox.label_format:	right
 
 Pce.MenuBar.label_font:		normal
 Pce.MenuBar.format:		left

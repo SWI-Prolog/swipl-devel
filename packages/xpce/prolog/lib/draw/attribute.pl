@@ -77,9 +77,8 @@ Create the attribute  window.  Like  the drawing-tool as a whole,  the
 window is a subclass of the PCE class `frame' for simple communication
 with its various parts.  Note the use of default/3.
 
-`Frame <->done_message' is activated  when the frame receives a DELETE
-message from the window manager, normally from a `Delete Window' entry
-of the window manager.
+`Frame <->done_message' is activated when the   frame is deleted on user
+request using the normal mechanism provided by the window system.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 initialise(A, Draw:object, Label:[name]) :->
@@ -88,7 +87,48 @@ initialise(A, Draw:object, Label:[name]) :->
 	send(A, done_message, message(A, quit)),
 	send(A, append, new(dialog)),
 	send(A, slot, editor, Draw),
-	send(A, fill_dialog).
+	send(A, fill_dialog),
+	listen(A,
+	       set_config(draw_config:resources/_, _),
+	       send(A, config_changed)).
+
+
+config_changed(A) :->
+	get(A, member, dialog, D),
+	send(D, clear),
+	send(D, fill_dialog),
+	send(D, layout),
+	send(D, fit),
+	(   get(A, client, Client), Client \== @nil
+	->  send(A, client, Client)
+	;   true
+	).
+
+
+open(A, Pos:[point]) :->
+	"Open at position from config database"::
+	(   Pos == @default,
+	    get(A, editor, Draw), Draw \== @nil,
+	    get_config(draw_config:history/geometry/attributes, Diff)
+	->  get(Draw?area, position, Pos1),
+	    send(Pos1, plus, Diff)
+	;   Pos1 = Pos
+	),
+	send(A, send_super, open, Pos1).
+
+
+unlink(A) :->
+	"Save position in config database"::
+	(   get(A, editor, Draw), Draw \== @nil,
+	    get(Draw?area, position, PDraw),
+	    get(A?area, position, PA),
+	    get_object(PA, difference, PDraw, Diff),
+	    set_config(draw_config:history/geometry/attributes, Diff)
+	->  true
+	;   true
+	),
+	unlisten(A),
+	send(A, send_super, unlink).
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -141,7 +181,7 @@ fill_dialog(A) :->
 	send(D, append, W, right),
 	send(D, append, H, right),
 	
-	send(D, append, button(quit, message(A, quit, @on))).
+	send(D, append, button(quit, message(A, quit))).
 	
 
 		/********************************
@@ -162,17 +202,31 @@ make_line_menu(Menu, Attribute, Values) :-
 	send(Proto, done).
 
 
-make_arrow_menu(Menu, Draw, Attribute) :-
-	get(Draw, resource_value, draw_arrows, Arrows),
-	chain_list(Arrows, List),
-	make_line_menu(Menu, Attribute, List).
+make_arrow_menu(Menu, _Draw, Attribute) :-
+	get_config(draw_config:resources/arrows, Arrows),
+	make_line_menu(Menu, Attribute, [@nil|Arrows]),
+	send(Menu, attribute, equal_predicate, equal_arrows).
 
+equal_arrows(A1, A2) :-
+	send(A1, instance_of, Arrow),
+	send(A2, instance_of, Arrow),
+	equal_attributes([ length, wing,
+			   pen, texture, style,
+			   fill_pattern, colour
+			 ],
+			 A1, A2).
 
-make_fill_pattern_menu(Draw, Menu) :-
-	get(Draw, resource_value, draw_fill_patterns, Patterns),
-	chain_list(Patterns, List),
+equal_attributes([], _, _).
+equal_attributes([A|T], O1, O2) :-
+	get(O1, A, V1),
+	get(O2, A, V2),
+	send(V1, equal, V2),
+	equal_attributes(T, O1, O2).
+
+make_fill_pattern_menu(_Draw, Menu) :-
+	get_config(draw_config:resources/fill_palette, Patterns),
 	new(Proto, box(30, 16)),
-	make_proto_menu(Menu, Proto, fill_pattern, List),
+	make_proto_menu(Menu, Proto, fill_pattern, Patterns),
 	send(Proto, done).
 
 
@@ -197,24 +251,18 @@ image with all pixels set to 1.
 colour_display :-
 	\+ get(@display, depth, 1).
 
-colour(_, white).
-colour(Draw, Colour) :-
-	colour_display,
-	get(Draw, resource_value, draw_colours, Chain),
-	chain_list(Chain, List),
-	member(Colour, List).
-colour(_, black).
-
-colour_display_colour(red).
-colour_display_colour(green).
-colour_display_colour(blue).
-colour_display_colour(yellow).
-
+colour(_Draw, Colour) :-
+	colour_display, !,
+	get_config(draw_config:resources/colour_palette, Colours),
+	member(ColourName, Colours),
+	get(@pce, convert, ColourName, colour, Colour).
+colour(_, colour(white)).
+colour(_, colour(black)).
 
 make_colour_menu(Draw, Menu) :-
 	new(Proto, box(30, 16)),
 	send(Proto, fill_pattern, @black_image),
-	findall(colour(Colour), colour(Draw, Colour), Colours),
+	findall(Colour, colour(Draw, Colour), Colours),
 	make_proto_menu(Menu, Proto, colour, [@default|Colours]),
 	send(Proto, done).
 
@@ -252,13 +300,7 @@ Create  a menu for  some prototype attribute.   Each menu_item   has a
 :- pce_global(@menu_proto_box, new(box(30,16))).
 
 make_proto_menu(Menu, Proto, Attribute, Values) :-
-	attribute(Label, Attribute),
-	new(Menu, menu(Label, choice,
-		       message(@receiver?frame, client_attribute,
-			       Attribute, @arg1))),
-	send(Menu, off_image, @nil),
-	send(Menu, border, 2),
-	send(Menu, layout, horizontal),
+	new(Menu, draw_proto_menu(Attribute)),
 	(   Attribute == colour
 	->  Kind = pixmap
 	;   Kind = bitmap
@@ -271,8 +313,11 @@ make_proto_menu(Menu, Proto, Attribute, Values) :-
 		send(Menu, append, menu_item(Value, @default, I)),
 		fail
 	;   true
-	).
-	
+	),
+	length(Values, N),
+	Cols is (N+9) // 10,
+	send(Menu, columns, Cols).
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The coordibate menu is a rather trivial  text_item.  Note the setting of
@@ -405,15 +450,14 @@ fill_items(A, Client:chain) :->
 	),
 	fail ; true.
 
-set_selection(Menu, Arrow) :-
-	object(Arrow),
-	send(Arrow, instance_of, arrow),
-	Arrow = @Ref,
-	integer(Ref), !,
-	set_selection(Menu, @draw_default_arrow).
 set_selection(Menu, Value) :-
 	send(Menu, instance_of, menu), !,
 	(   get(Menu, member, Value, Item)
+	->  send(Menu, selection, Item)
+	;   get(Menu, attribute, equal_predicate, Pred),
+	    get(Menu?members, find,
+		message(@prolog, Pred, @arg1?value, Value),
+		Item)
 	->  send(Menu, selection, Item)
 	;   true
 	).
@@ -472,5 +516,18 @@ client_attribute(A, Selector:name, Val:any) :->
 	    send(A, unblock)
 	;   true
 	).
+
+:- pce_end_class.
+
+:- pce_begin_class(draw_proto_menu, menu).
+
+initialise(Menu, Attribute:name) :->
+	attribute(Label, Attribute),
+	send(Menu, send_super, initialise,
+	     Label, choice,
+	     message(@receiver?frame, client_attribute, Attribute, @arg1)),
+	send(Menu, off_image, @nil),
+	send(Menu, border, 2),
+	send(Menu, layout, horizontal).
 
 :- pce_end_class.

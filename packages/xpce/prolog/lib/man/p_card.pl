@@ -139,6 +139,12 @@ for_all_cards(S, Msg:code) :->
 	send(S?modules, for_all, message(@arg2, for_all_cards, Msg)).
 
 
+delete_unreferenced(S) :->
+	send(@classes, for_all, message(@arg2, realise)),
+	send(S, load_all_modules),
+	send(S, for_all_cards, message(@arg1, delete_unreferenced)).
+
+
 fix_names(S) :->
 	"Fix changed module-names"::
 	send(S?modules, for_all,
@@ -426,6 +432,15 @@ man_summary(C, S) :<-
 man_name(C, S) :<-
 	"General name string"::
 	new(S, string('%s \t%s', C?man_id, C?name)).
+
+delete_unreferenced(C) :->
+	"Delete if not referenced"::
+	(   pce_catch_error(bad_return_value, get(C, object, _))
+	->  true
+	;   get(C, identifier, Id),
+	    format(user_error, 'Deleting card ~w~n', [Id]),
+	    free(C)
+	).
 
 :- pce_end_class.
 

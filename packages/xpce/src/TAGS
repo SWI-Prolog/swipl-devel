@@ -30,115 +30,115 @@ typedef struct colour_context *ColourContext;ColourContext16,430
 #define ABSTRACT_DIALOGITEM 55,2167
 #define ABSTRACT_JOINT 78,3261
 #define ABSTRACT_LINE 83,3417
-NewClass(91,3562
-#define ABSTRACT_DIALOG_GROUP 103,3693
-#define ABSTRACT_MENU 336,11611
-#define PULLRIGHT_GAP 366,13113
-#define ABSTRACT_MOVEGESTURE 463,16547
-#define ABSTRACT_RESIZEGESTURE 476,16804
-#define ABSTRACT_WINDOW 560,19695
-#define ABSTRACT_IMAGE 592,21138
-#define BUTTON_mask	812,27891
-#define BUTTON_control	813,27919
-#define BUTTON_shift	814,27949
-#define BUTTON_meta	815,27977
-#define BUTTON_ms_left	816,28004
-#define BUTTON_ms_middle	817,28034
-#define BUTTON_ms_right	818,28066
-struct xrefxref824,28203
-#define BRIGHT	836,28514
-#define NoPixel 837,28557
-#define CHANGING_GRAPHICAL(CHANGING_GRAPHICAL855,29323
-#define DRAW_3D_DOWN	875,29896
-#define DRAW_3D_CLOSED	876,29961
-#define DRAW_3D_FILLED	877,29988
-} ipoint, *IPoint;IPoint881,30043
-} iarea, *IArea;IArea886,30097
-} isegment, *ISegment;ISegment891,30153
-struct update_areaupdate_area894,30178
-struct colour_contextcolour_context902,30400
-} device_draw_context, *DeviceDrawContext;DeviceDrawContext913,30604
-#define OverlapArea(OverlapArea920,30747
-#define GLOBAL 929,30981
-#define TEXTFIELD_EDITABLE	972,32533
-#define TEXTFIELD_COMBO	973,32588
-#define TEXTFIELD_COMBO_DOWN	974,32646
-#define LABEL_INACTIVE	976,32719
-#define CHECKBOX_SELECTED	978,32772
-#define CHECKBOX_ACTIVE	979,32825
-#define CHECKBOX_MULTIPLE	980,32875
-#define MBX_INFORM	982,32945
-#define MBX_CONFIRM	983,32996
-#define MBX_ERROR	984,33042
-#define MBX_NOTHANDLED	986,33086
-#define MBX_OK	987,33154
-#define MBX_CANCEL	988,33196
+NewClass(95,3712
+#define ABSTRACT_DIALOG_GROUP 107,3843
+#define ABSTRACT_MENU 347,11980
+#define PULLRIGHT_GAP 377,13482
+#define ABSTRACT_MOVEGESTURE 474,16916
+#define ABSTRACT_RESIZEGESTURE 487,17173
+#define ABSTRACT_WINDOW 571,20064
+#define ABSTRACT_IMAGE 603,21507
+#define BUTTON_mask	822,28213
+#define BUTTON_control	823,28241
+#define BUTTON_shift	824,28271
+#define BUTTON_meta	825,28299
+#define BUTTON_ms_left	826,28326
+#define BUTTON_ms_middle	827,28356
+#define BUTTON_ms_right	828,28388
+struct xrefxref834,28525
+#define BRIGHT	846,28836
+#define NoPixel 847,28879
+#define CHANGING_GRAPHICAL(CHANGING_GRAPHICAL865,29645
+#define DRAW_3D_DOWN	885,30218
+#define DRAW_3D_CLOSED	886,30283
+#define DRAW_3D_FILLED	887,30310
+} ipoint, *IPoint;IPoint891,30365
+} iarea, *IArea;IArea896,30419
+} isegment, *ISegment;ISegment901,30475
+struct update_areaupdate_area904,30500
+struct colour_contextcolour_context912,30722
+} device_draw_context, *DeviceDrawContext;DeviceDrawContext923,30926
+#define OverlapArea(OverlapArea930,31069
+#define GLOBAL 939,31303
+#define TEXTFIELD_EDITABLE	982,32855
+#define TEXTFIELD_COMBO	983,32910
+#define TEXTFIELD_COMBO_DOWN	984,32968
+#define LABEL_INACTIVE	986,33041
+#define CHECKBOX_SELECTED	988,33094
+#define CHECKBOX_ACTIVE	989,33147
+#define CHECKBOX_MULTIPLE	990,33197
+#define MBX_INFORM	992,33267
+#define MBX_CONFIRM	993,33318
+#define MBX_ERROR	994,33364
+#define MBX_NOTHANDLED	996,33408
+#define MBX_OK	997,33476
+#define MBX_CANCEL	998,33518
 
 h/interface.h,2143
 #define _XPCE_INTERFACE_H_INCLUDED11,284
 #define PCE_VERSION 19,441
-#define OS_VERSION 23,507
-#define MACHINE 27,560
-#define __pce_export 37,762
-#define __pce_export 39,810
-typedef void *		PceObject;PceObject49,1010
-typedef void *		PceName;PceName50,1067
-#define INT_MASK_SHIFT	52,1120
-#define PCE_MAX_INT	53,1145
-#define PCE_MIN_INT	54,1204
-typedef void *		AnswerMark;AnswerMark56,1244
-#define markAnswerStack(markAnswerStack61,1413
-#define rewindAnswerStack(rewindAnswerStack62,1469
-#define ArgVector(ArgVector65,1556
-#define ArgVector(ArgVector67,1613
-typedef struct pceITFSymbol    *PceITFSymbol;PceITFSymbol70,1721
-#define PceObject	74,1792
-#define PceName	75,1814
-#define PCE_MAX_HOSTHANDLES 79,1871
-typedef void *	hostHandle;hostHandle90,2162
-struct pceITFSymbolpceITFSymbol92,2221
-#define PCE_FAIL	115,2892
-#define PCE_SUCCEED	116,2911
-} PceCValue;PceCValue130,3327
-#define PCE_INTEGER	133,3342
-#define PCE_NAME	134,3364
-#define PCE_REFERENCE	135,3383
-#define PCE_ASSOC	136,3407
-#define PCE_REAL	137,3428
-#define PCE_NO_POINTER 139,3448
-#define HOST_QUERY	163,4297
-#define HOST_TRACE	164,4351
-#define HOST_BACKTRACE	165,4402
-#define HOST_HALT	166,4459
-#define HOST_BREAK	167,4496
-#define HOST_SYMBOLFILE	168,4550
-#define HOST_ABORT	169,4602
-#define HOST_SIGNAL	170,4656
-#define HOST_RECOVER_FROM_FATAL_ERROR 171,4706
-#define HOST_ATEXIT	172,4772
-#define HOST_CONSOLE	173,4819
-#define HOST_CHECK_INTERRUPT 174,4879
-} pce_callback_functions;pce_callback_functions193,5724
-#define PCE_DISPATCH_INPUT	233,6997
-#define PCE_DISPATCH_TIMEOUT	234,7028
-#define PCE_EXEC_SERVICE	245,7302
-#define PCE_EXEC_USER	246,7356
-#define PCE_OPEN_MAX	281,8392
-#define PCE_RDONLY	291,8813
-#define	PCE_WRONLY	292,8836
-#define	PCE_RDWR	293,8859
-#define	PCE_APPEND	294,8912
-#define	PCE_TRUNC	295,8935
-#define PCE_SEEK_SET	297,8958
-#define PCE_SEEK_CUR	298,8981
-#define PCE_SEEK_END	299,9004
-#define hostCallProc(hostCallProc308,9196
-#define hostCallFunc(hostCallFunc310,9301
-#define pceMalloc(pceMalloc312,9406
-#define pceRealloc(pceRealloc314,9466
-#define pceFree(pceFree316,9540
+#define OS_VERSION 23,511
+#define MACHINE 27,564
+#define __pce_export 37,766
+#define __pce_export 39,814
+typedef void *		PceObject;PceObject49,1014
+typedef void *		PceName;PceName50,1071
+#define INT_MASK_SHIFT	52,1124
+#define PCE_MAX_INT	53,1149
+#define PCE_MIN_INT	54,1208
+typedef void *		AnswerMark;AnswerMark56,1248
+#define markAnswerStack(markAnswerStack61,1417
+#define rewindAnswerStack(rewindAnswerStack62,1473
+#define ArgVector(ArgVector65,1560
+#define ArgVector(ArgVector67,1617
+typedef struct pceITFSymbol    *PceITFSymbol;PceITFSymbol70,1725
+#define PceObject	74,1796
+#define PceName	75,1818
+#define PCE_MAX_HOSTHANDLES 79,1875
+typedef void *	hostHandle;hostHandle90,2166
+struct pceITFSymbolpceITFSymbol92,2225
+#define PCE_FAIL	115,2896
+#define PCE_SUCCEED	116,2915
+} PceCValue;PceCValue130,3331
+#define PCE_INTEGER	133,3346
+#define PCE_NAME	134,3368
+#define PCE_REFERENCE	135,3387
+#define PCE_ASSOC	136,3411
+#define PCE_REAL	137,3432
+#define PCE_NO_POINTER 139,3452
+#define HOST_QUERY	163,4301
+#define HOST_TRACE	164,4355
+#define HOST_BACKTRACE	165,4406
+#define HOST_HALT	166,4463
+#define HOST_BREAK	167,4500
+#define HOST_SYMBOLFILE	168,4554
+#define HOST_ABORT	169,4606
+#define HOST_SIGNAL	170,4660
+#define HOST_RECOVER_FROM_FATAL_ERROR 171,4710
+#define HOST_ATEXIT	172,4776
+#define HOST_CONSOLE	173,4823
+#define HOST_CHECK_INTERRUPT 174,4883
+} pce_callback_functions;pce_callback_functions193,5728
+#define PCE_DISPATCH_INPUT	233,7001
+#define PCE_DISPATCH_TIMEOUT	234,7032
+#define PCE_EXEC_SERVICE	245,7306
+#define PCE_EXEC_USER	246,7360
+#define PCE_OPEN_MAX	281,8396
+#define PCE_RDONLY	291,8817
+#define	PCE_WRONLY	292,8840
+#define	PCE_RDWR	293,8863
+#define	PCE_APPEND	294,8916
+#define	PCE_TRUNC	295,8939
+#define PCE_SEEK_SET	297,8962
+#define PCE_SEEK_CUR	298,8985
+#define PCE_SEEK_END	299,9008
+#define hostCallProc(hostCallProc308,9200
+#define hostCallFunc(hostCallFunc310,9305
+#define pceMalloc(pceMalloc312,9410
+#define pceRealloc(pceRealloc314,9470
+#define pceFree(pceFree316,9544
 
-h/kernel.h,12079
+h/kernel.h,12110
 #define O_NOX11RESOURCES 12,265
 #define PCE_INCLUDED31,549
 #define GLOBAL 34,586
@@ -202,286 +202,287 @@ typedef void *			WsRef;WsRef232,5594
 typedef struct xref *		Xref;Xref233,5649
 typedef struct classdef        *ClassDef;ClassDef235,5704
 typedef struct dCell 	      **DelegateList;DelegateList236,5768
-#define POINTER_OFFSET 247,6052
-#define POINTER_OFFSET 250,6128
-#define PointerToCInt(PointerToCInt254,6171
-#define PointerToInt(PointerToInt255,6240
-#define longToPointer(longToPointer256,6289
-#define IntToPointer(IntToPointer257,6357
-#define INT_MASK	264,6509
-#define MASK_MASK	265,6570
-#define TAG_BITS	266,6618
-#define MaskOf(MaskOf268,6673
-#define UnMask(UnMask269,6721
-#define EQI(EQI276,6871
-#define EQ(EQ277,6916
-#define ARGC_UNKNOWN	284,7047
-#define ARGC_INHERIT	285,7074
-#define isFunction(isFunction291,7218
-#define max(max307,7838
-#define min(min308,7880
-#define isInteger(isInteger310,7923
-#define toInt(toInt311,7968
-#define valInt(valInt312,8025
-#define incrInt(incrInt313,8067
-#define decrInt(decrInt314,8113
-#define addInt(addInt315,8159
-#define subInt(subInt316,8217
-#define maxInt(maxInt317,8275
-#define absInt(absInt318,8329
-#define neg(neg321,8388
-#define add(add322,8424
-#define sub(sub323,8473
-#define div(div324,8522
-#define mul(mul325,8571
-#define avg(avg326,8620
-#define mid(mid327,8673
-#define dif(dif328,8726
-#define inc(inc329,8779
-#define dec(dec330,8818
-#define minInt(minInt331,8857
-#define ZERO	333,8896
-#define ONE	334,8935
-#define TWO	335,8973
-#define makeDFlag(makeDFlag343,9116
-#define DFlags(DFlags344,9167
-#define setDFlag(setDFlag348,9325
-#define clearDFlag(clearDFlag349,9394
-#define setDFlag(setDFlag351,9469
-#define clearDFlag(clearDFlag352,9521
-#define onDFlag(onDFlag354,9583
-#define offDFlag(offDFlag355,9633
-#define D_TRACE_ENTER	358,9711
-#define D_TRACE_EXIT	359,9782
-#define D_TRACE_FAIL	360,9851
-#define D_TRACE	361,9920
-#define D_TRACE_INHERIT	362,9982
-#define D_TRACE_CONDITION 363,10052
-#define D_BREAK_ENTER	365,10126
-#define D_BREAK_EXIT	366,10197
-#define D_BREAK_FAIL	367,10266
-#define D_BREAK	368,10335
-#define D_BREAK_INHERIT	369,10397
-#define D_BREAK_CONDITION 370,10467
-#define D_SYSTEM	372,10539
-#define D_SAVE_NORMAL	375,10639
-#define D_SAVE_NIL	376,10698
-#define D_SAVE 377,10752
-#define D_DELEGATE_SIDE_EFFECTS 378,10799
-#define D_CLONE_RECURSIVE 380,10880
-#define D_CLONE_REFERENCE 381,10952
-#define D_CLONE_NIL	382,11022
-#define D_CLONE_VALUE	383,11086
-#define D_CLONE_ALIEN	384,11157
-#define D_CLONE_REFCHAIN 385,11221
-#define D_CLONE	386,11295
-#define D_ALIEN	390,11429
-#define D_TYPENOWARN	391,11487
-#define DC_LAZY_GET	394,11580
-#define DC_LAZY_SEND	395,11647
-#define D_CXX	396,11716
-#define LocalString(LocalString405,11981
-#define isName(isName416,12416
-#define notName(notName417,12482
-#define equalName(equalName418,12520
-#define strName(strName419,12557
-#define getAppendName(getAppendName421,12613
-#define assign(assign435,13215
-#define qassign(qassign438,13317
-#define makeFlag(makeFlag440,13358
-#define setFlag(setFlag441,13397
-#define clearFlag(clearFlag442,13461
-#define onFlag(onFlag443,13528
-#define offFlag(offFlag444,13590
-#define	F_LOCKED	446,13639
-#define	F_CREATING	447,13669
-#define	F_FREED	448,13701
-#define	F_FREEING	449,13731
-#define	F_PROTECTED	450,13762
-#define	F_ANSWER	451,13795
-#define F_INSPECT	452,13825
-#define F_ACTIVE	453,13856
-#define F_CONSTRAINT	454,13907
-#define F_ATTRIBUTE	455,13964
-#define F_SENDMETHOD	456,14019
-#define F_GETMETHOD	457,14077
-#define F_HYPER	458,14133
-#define F_RECOGNISER	459,14181
-#define F_ASSOC	460,14238
-#define F_ITFNAME	461,14290
-#define F_SOLID	462,14352
-#define F_RESOURCES_OBTAINED	463,14412
-#define F_TEMPLATE_METHOD	464,14484
-#define F_ISBINDING	465,14558
-#define F_ISNAME	466,14626
-#define F_ISREAL	467,14688
-#define OBJ_MAGIC	469,14751
-#define OBJ_MAGIC_MASK	470,14801
-#define hasObjectMagic(hasObjectMagic472,14857
-#define initHeaderObj(initHeaderObj475,14950
-#define classOfObject(classOfObject481,15097
-#define	setProtectedObj(setProtectedObj483,15152
-#define	clearProtectedObj(clearProtectedObj484,15207
-#define	isProtectedObj(isProtectedObj485,15266
-#define	setCreatingObj(setCreatingObj486,15319
-#define	clearCreatingObj(clearCreatingObj487,15372
-#define	isCreatingObj(isCreatingObj488,15429
-#define	setAnswerObj(setAnswerObj489,15480
-#define	clearAnswerObj(clearAnswerObj490,15529
-#define	isAnswerObj(isAnswerObj491,15582
-#define ONE_CODE_REF	493,15630
-#define refsObject(refsObject495,15662
-#define codeRefsObject(codeRefsObject496,15732
-#define noRefsObj(noRefsObj497,15805
-#define addRefObj(addRefObj498,15865
-#define delRefObj(delRefObj499,15921
-#define addCodeReference(addCodeReference500,15977
-#define delCodeReference(delCodeReference501,16053
-#define lockObj(lockObj503,16161
-#define unlockObj(unlockObj504,16206
-#define lockedObj(lockedObj505,16255
-#define setFreedObj(setFreedObj506,16301
-#define isFreedObj(isFreedObj507,16348
-#define setFreeingObj(setFreeingObj508,16394
-#define isFreeingObj(isFreeingObj509,16445
-#define isVirginObj(isVirginObj510,16494
-#define freeableObj(freeableObj512,16585
-#define GcProtect(GcProtect515,16656
-#define NIL	526,16868
-#define DEFAULT	527,16903
-#define ON	528,16946
-#define OFF	529,16968
-#define isOn(isOn531,16993
-#define isOff(isOff532,17031
-#define isBoolean(isBoolean533,17071
-#define isNil(isNil535,17137
-#define notNil(notNil536,17177
-#define isDefault(isDefault537,17218
-#define notDefault(notDefault538,17266
-#define TrueOrFalse(TrueOrFalse540,17316
-#define nonObject(nonObject542,17365
-#define isObject(isObject543,17438
-#define validAddress(validAddress549,17583
-#define isAddress(isAddress551,17664
-#define validPceDatum(validPceDatum552,17738
-#define TRUE	556,17814
-#define FALSE	557,17856
-#define FAIL	560,17907
-#define SUCCEED	561,17944
-#define fail	563,17999
-#define succeed	564,18025
-#define answer(answer565,18057
-#define DONE(DONE567,18087
-#define TRY(TRY568,18137
-#define EXISTS(EXISTS569,18186
-#define OBJECT_HEADER 576,18339
-#define ABSTRACT_OBJECT581,18496
-#define ABSTRACT_PROGRAM_OBJECT 583,18521
-#define ABSTRACT_RECOGNISER 586,18597
-#define ABSTRACT_CODE 589,18672
-#define ABSTRACT_FUNCTION 592,18723
-#define ABSTRACT_BINARY_EXPRESSION 595,18771
-#define ABSTRACT_BINARY_CONDITION 600,18919
-#define ABSTRACT_VISUAL605,19062
-#define NewClass(NewClass612,19341
-#define End 616,19416
-struct instanceinstance619,19435
-NewClass(624,19535
-#define ABSTRACT_BEHAVIOUR 658,20131
-#define ABSTRACT_VARIABLE 663,20287
-#define ABSTRACT_METHOD 674,20705
-#define ABSTRACT_METHOD 684,21031
-#define ABSTRACT_CLASS_STUB 753,22772
-typedef struct instance_proto *InstanceProto;InstanceProto765,23130
-struct instance_protoinstance_proto767,23177
-typedef struct _vardecl_vardecl776,23403
-} vardecl;vardecl783,23700
-typedef struct _senddecl_senddecl785,23712
-} senddecl;senddecl792,23988
-typedef struct _getdecl_getdecl794,24001
-} getdecl;getdecl802,24321
-typedef struct _resourcedecl_resourcedecl804,24333
-} resourcedecl;resourcedecl809,24550
-typedef struct _classdecl_classdecl811,24567
-} classdecl;classdecl824,25132
-#define ClassDecl(ClassDecl826,25146
-#define IV_NONE	834,25387
-#define IV_GET	835,25435
-#define IV_SEND	836,25487
-#define IV_BOTH	837,25541
-#define IV_SUPER	838,25593
-#define IV_STORE	839,25642
-#define IV_FETCH	840,25688
-#define IV_REDEFINE	841,25734
-#define RC_REFINE	843,25794
-#define SM(SM845,25864
-#define GM(GM846,25932
-#define RC(RC847,26005
-#define IV(IV848,26044
-#define SV(SV849,26108
-#define IVEntries(IVEntries850,26175
-#define SMEntries(SMEntries851,26227
-#define GMEntries(GMEntries852,26280
-#define RCEntries(RCEntries853,26332
-NewClass(855,26390
-NewClass(944,30058
-#define ABSTRACT_GESTURE 991,31204
-#define ABSTRACT_HASH_TABLE 1016,31840
-#define ABSTRACT_CHAR_ARRAY 1047,32558
-#define ABSTRACT_HOST 1098,33816
-#define ABSTRACT_SHEET 1133,34593
-struct cellcell1171,35433
-struct symbolsymbol1177,35529
-#define ABSTRACT_CONSTANT 1182,35638
-NewClass(1186,35760
-#define ABSTRACT_AND 1206,36049
-struct class_definitionclass_definition1306,38259
-#define Arg(Arg1319,38621
-#define	setVar(setVar1320,38653
-} var_binding, *VarBinding;VarBinding1325,38741
-#define BINDINGBLOCKSIZE 1327,38770
-typedef struct var_environment * VarEnvironment;VarEnvironment1329,38798
-typedef struct var_extension * VarExtension;VarExtension1330,38847
-struct var_environmentvar_environment1334,38932
-struct var_extensionvar_extension1342,39070
-#define withLocalVars(withLocalVars1348,39158
-#define withArgs(withArgs1362,39413
-#define withReceiver(withReceiver1393,40179
-typedef struct to_cell *ToCell;ToCell1408,40534
-struct to_cellto_cell1410,40594
-typedef long	AnswerMark;AnswerMark1419,40857
-#define markAnswerStack(markAnswerStack1421,40883
-#define rewindAnswerStack(rewindAnswerStack1422,40944
-#define CTE_OK	1500,43605
-#define CTE_OBTAINER_FAILED	1501,43648
-#define PCEdebugging 1516,44363
-#define copyArgs(copyArgs1539,45322
-#define for_chain(for_chain1542,45410
-#define for_vector(for_vector1558,45824
-#define for_hash_table(for_hash_table1567,46004
-#define for_cell(for_cell1578,46245
-#define for_cell_save(for_cell_save1579,46309
-#define LEFTHAND(LEFTHAND1586,46531
-#define RIGHTHAND(RIGHTHAND1587,46581
-#define OrientationArea(OrientationArea1605,46954
-#define OrientateArea(OrientateArea1611,47122
-#define NormaliseArea(NormaliseArea1631,47763
-#define DEBUGGING(DEBUGGING1634,47851
-#define DEBUG(DEBUG1635,47920
-#define DEBUG_BOOT(DEBUG_BOOT1640,48012
-#define DEBUG(DEBUG1645,48113
-#define DEBUG_BOOT(DEBUG_BOOT1646,48142
-#define tracePce(tracePce1647,48167
-#define O_COUNT 1651,48220
-#define O_COUNT 1653,48267
-#define COUNT(COUNT1657,48305
-#define COUNT(COUNT1663,48492
-#define sendv(sendv1676,48736
-#define getv(getv1677,48808
-#define FixSendFunctionClass(FixSendFunctionClass1678,48878
-#define FixGetFunctionClass(FixGetFunctionClass1680,48986
-#define hashKey(hashKey1695,49333
-#define hashKey(hashKey1697,49407
+#define INVOKE_FUNC 240,5859
+#define POINTER_OFFSET 249,6089
+#define POINTER_OFFSET 252,6165
+#define PointerToCInt(PointerToCInt256,6208
+#define PointerToInt(PointerToInt257,6277
+#define longToPointer(longToPointer258,6326
+#define IntToPointer(IntToPointer259,6394
+#define INT_MASK	266,6546
+#define MASK_MASK	267,6607
+#define TAG_BITS	268,6655
+#define MaskOf(MaskOf270,6710
+#define UnMask(UnMask271,6758
+#define EQI(EQI278,6908
+#define EQ(EQ279,6953
+#define ARGC_UNKNOWN	286,7084
+#define ARGC_INHERIT	287,7111
+#define isFunction(isFunction293,7255
+#define max(max309,7875
+#define min(min310,7917
+#define isInteger(isInteger312,7960
+#define toInt(toInt313,8005
+#define valInt(valInt314,8062
+#define incrInt(incrInt315,8104
+#define decrInt(decrInt316,8150
+#define addInt(addInt317,8196
+#define subInt(subInt318,8254
+#define maxInt(maxInt319,8312
+#define absInt(absInt320,8366
+#define neg(neg323,8425
+#define add(add324,8461
+#define sub(sub325,8510
+#define div(div326,8559
+#define mul(mul327,8608
+#define avg(avg328,8657
+#define mid(mid329,8710
+#define dif(dif330,8763
+#define inc(inc331,8816
+#define dec(dec332,8855
+#define minInt(minInt333,8894
+#define ZERO	335,8933
+#define ONE	336,8972
+#define TWO	337,9010
+#define makeDFlag(makeDFlag345,9153
+#define DFlags(DFlags346,9204
+#define setDFlag(setDFlag350,9362
+#define clearDFlag(clearDFlag351,9431
+#define setDFlag(setDFlag353,9506
+#define clearDFlag(clearDFlag354,9558
+#define onDFlag(onDFlag356,9620
+#define offDFlag(offDFlag357,9670
+#define D_TRACE_ENTER	360,9748
+#define D_TRACE_EXIT	361,9819
+#define D_TRACE_FAIL	362,9888
+#define D_TRACE	363,9957
+#define D_TRACE_INHERIT	364,10019
+#define D_TRACE_CONDITION 365,10089
+#define D_BREAK_ENTER	367,10163
+#define D_BREAK_EXIT	368,10234
+#define D_BREAK_FAIL	369,10303
+#define D_BREAK	370,10372
+#define D_BREAK_INHERIT	371,10434
+#define D_BREAK_CONDITION 372,10504
+#define D_SYSTEM	374,10576
+#define D_SAVE_NORMAL	377,10676
+#define D_SAVE_NIL	378,10735
+#define D_SAVE 379,10789
+#define D_DELEGATE_SIDE_EFFECTS 380,10836
+#define D_CLONE_RECURSIVE 382,10917
+#define D_CLONE_REFERENCE 383,10989
+#define D_CLONE_NIL	384,11059
+#define D_CLONE_VALUE	385,11123
+#define D_CLONE_ALIEN	386,11194
+#define D_CLONE_REFCHAIN 387,11258
+#define D_CLONE	388,11332
+#define D_ALIEN	392,11466
+#define D_TYPENOWARN	393,11524
+#define DC_LAZY_GET	396,11617
+#define DC_LAZY_SEND	397,11684
+#define D_CXX	398,11753
+#define LocalString(LocalString407,12018
+#define isName(isName418,12453
+#define notName(notName419,12519
+#define equalName(equalName420,12557
+#define strName(strName421,12594
+#define getAppendName(getAppendName423,12650
+#define assign(assign437,13252
+#define qassign(qassign440,13354
+#define makeFlag(makeFlag442,13395
+#define setFlag(setFlag443,13434
+#define clearFlag(clearFlag444,13498
+#define onFlag(onFlag445,13565
+#define offFlag(offFlag446,13627
+#define	F_LOCKED	448,13676
+#define	F_CREATING	449,13706
+#define	F_FREED	450,13738
+#define	F_FREEING	451,13768
+#define	F_PROTECTED	452,13799
+#define	F_ANSWER	453,13832
+#define F_INSPECT	454,13862
+#define F_ACTIVE	455,13893
+#define F_CONSTRAINT	456,13944
+#define F_ATTRIBUTE	457,14001
+#define F_SENDMETHOD	458,14056
+#define F_GETMETHOD	459,14114
+#define F_HYPER	460,14170
+#define F_RECOGNISER	461,14218
+#define F_ASSOC	462,14275
+#define F_ITFNAME	463,14327
+#define F_SOLID	464,14389
+#define F_RESOURCES_OBTAINED	465,14449
+#define F_TEMPLATE_METHOD	466,14521
+#define F_ISBINDING	467,14595
+#define F_ISNAME	468,14663
+#define F_ISREAL	469,14725
+#define OBJ_MAGIC	471,14788
+#define OBJ_MAGIC_MASK	472,14838
+#define hasObjectMagic(hasObjectMagic474,14894
+#define initHeaderObj(initHeaderObj477,14987
+#define classOfObject(classOfObject483,15134
+#define	setProtectedObj(setProtectedObj485,15189
+#define	clearProtectedObj(clearProtectedObj486,15244
+#define	isProtectedObj(isProtectedObj487,15303
+#define	setCreatingObj(setCreatingObj488,15356
+#define	clearCreatingObj(clearCreatingObj489,15409
+#define	isCreatingObj(isCreatingObj490,15466
+#define	setAnswerObj(setAnswerObj491,15517
+#define	clearAnswerObj(clearAnswerObj492,15566
+#define	isAnswerObj(isAnswerObj493,15619
+#define ONE_CODE_REF	495,15667
+#define refsObject(refsObject497,15699
+#define codeRefsObject(codeRefsObject498,15769
+#define noRefsObj(noRefsObj499,15842
+#define addRefObj(addRefObj500,15902
+#define delRefObj(delRefObj501,15958
+#define addCodeReference(addCodeReference502,16014
+#define delCodeReference(delCodeReference503,16090
+#define lockObj(lockObj505,16198
+#define unlockObj(unlockObj506,16243
+#define lockedObj(lockedObj507,16292
+#define setFreedObj(setFreedObj508,16338
+#define isFreedObj(isFreedObj509,16385
+#define setFreeingObj(setFreeingObj510,16431
+#define isFreeingObj(isFreeingObj511,16482
+#define isVirginObj(isVirginObj512,16531
+#define freeableObj(freeableObj514,16622
+#define GcProtect(GcProtect517,16693
+#define NIL	528,16905
+#define DEFAULT	529,16940
+#define ON	530,16983
+#define OFF	531,17005
+#define isOn(isOn533,17030
+#define isOff(isOff534,17068
+#define isBoolean(isBoolean535,17108
+#define isNil(isNil537,17174
+#define notNil(notNil538,17214
+#define isDefault(isDefault539,17255
+#define notDefault(notDefault540,17303
+#define TrueOrFalse(TrueOrFalse542,17353
+#define nonObject(nonObject544,17402
+#define isObject(isObject545,17475
+#define validAddress(validAddress551,17620
+#define isAddress(isAddress553,17701
+#define validPceDatum(validPceDatum554,17775
+#define TRUE	558,17851
+#define FALSE	559,17893
+#define FAIL	562,17944
+#define SUCCEED	563,17981
+#define fail	565,18036
+#define succeed	566,18062
+#define answer(answer567,18094
+#define DONE(DONE569,18124
+#define TRY(TRY570,18174
+#define EXISTS(EXISTS571,18223
+#define OBJECT_HEADER 578,18376
+#define ABSTRACT_OBJECT583,18533
+#define ABSTRACT_PROGRAM_OBJECT 585,18558
+#define ABSTRACT_RECOGNISER 588,18634
+#define ABSTRACT_CODE 591,18709
+#define ABSTRACT_FUNCTION 594,18760
+#define ABSTRACT_BINARY_EXPRESSION 597,18808
+#define ABSTRACT_BINARY_CONDITION 602,18956
+#define ABSTRACT_VISUAL607,19099
+#define NewClass(NewClass614,19378
+#define End 618,19453
+struct instanceinstance621,19472
+NewClass(626,19572
+#define ABSTRACT_BEHAVIOUR 660,20168
+#define ABSTRACT_VARIABLE 665,20324
+#define ABSTRACT_METHOD 676,20742
+#define ABSTRACT_METHOD 686,21068
+#define ABSTRACT_CLASS_STUB 755,22809
+typedef struct instance_proto *InstanceProto;InstanceProto767,23167
+struct instance_protoinstance_proto769,23214
+typedef struct _vardecl_vardecl778,23440
+} vardecl;vardecl785,23737
+typedef struct _senddecl_senddecl787,23749
+} senddecl;senddecl794,24025
+typedef struct _getdecl_getdecl796,24038
+} getdecl;getdecl804,24358
+typedef struct _resourcedecl_resourcedecl806,24370
+} resourcedecl;resourcedecl811,24587
+typedef struct _classdecl_classdecl813,24604
+} classdecl;classdecl826,25169
+#define ClassDecl(ClassDecl828,25183
+#define IV_NONE	836,25424
+#define IV_GET	837,25472
+#define IV_SEND	838,25524
+#define IV_BOTH	839,25578
+#define IV_SUPER	840,25630
+#define IV_STORE	841,25679
+#define IV_FETCH	842,25725
+#define IV_REDEFINE	843,25771
+#define RC_REFINE	845,25831
+#define SM(SM847,25901
+#define GM(GM848,25969
+#define RC(RC849,26042
+#define IV(IV850,26081
+#define SV(SV851,26145
+#define IVEntries(IVEntries852,26212
+#define SMEntries(SMEntries853,26264
+#define GMEntries(GMEntries854,26317
+#define RCEntries(RCEntries855,26369
+NewClass(857,26427
+NewClass(946,30095
+#define ABSTRACT_GESTURE 993,31241
+#define ABSTRACT_HASH_TABLE 1018,31877
+#define ABSTRACT_CHAR_ARRAY 1049,32595
+#define ABSTRACT_HOST 1100,33853
+#define ABSTRACT_SHEET 1135,34630
+struct cellcell1173,35470
+struct symbolsymbol1179,35566
+#define ABSTRACT_CONSTANT 1184,35675
+NewClass(1188,35797
+#define ABSTRACT_AND 1208,36086
+struct class_definitionclass_definition1308,38296
+#define Arg(Arg1321,38658
+#define	setVar(setVar1322,38690
+} var_binding, *VarBinding;VarBinding1327,38778
+#define BINDINGBLOCKSIZE 1329,38807
+typedef struct var_environment * VarEnvironment;VarEnvironment1331,38835
+typedef struct var_extension * VarExtension;VarExtension1332,38884
+struct var_environmentvar_environment1336,38969
+struct var_extensionvar_extension1344,39107
+#define withLocalVars(withLocalVars1350,39195
+#define withArgs(withArgs1364,39450
+#define withReceiver(withReceiver1395,40216
+typedef struct to_cell *ToCell;ToCell1410,40571
+struct to_cellto_cell1412,40631
+typedef long	AnswerMark;AnswerMark1421,40894
+#define markAnswerStack(markAnswerStack1423,40920
+#define rewindAnswerStack(rewindAnswerStack1424,40981
+#define CTE_OK	1502,43642
+#define CTE_OBTAINER_FAILED	1503,43685
+#define PCEdebugging 1518,44400
+#define copyArgs(copyArgs1541,45359
+#define for_chain(for_chain1544,45447
+#define for_vector(for_vector1560,45861
+#define for_hash_table(for_hash_table1569,46041
+#define for_cell(for_cell1580,46282
+#define for_cell_save(for_cell_save1581,46346
+#define LEFTHAND(LEFTHAND1588,46568
+#define RIGHTHAND(RIGHTHAND1589,46618
+#define OrientationArea(OrientationArea1607,46991
+#define OrientateArea(OrientateArea1613,47159
+#define NormaliseArea(NormaliseArea1633,47800
+#define DEBUGGING(DEBUGGING1638,47926
+#define DEBUG(DEBUG1639,47995
+#define DEBUG_BOOT(DEBUG_BOOT1644,48087
+#define DEBUG(DEBUG1649,48188
+#define DEBUG_BOOT(DEBUG_BOOT1650,48217
+#define tracePce(tracePce1651,48242
+#define O_COUNT 1655,48295
+#define O_COUNT 1657,48342
+#define COUNT(COUNT1661,48380
+#define COUNT(COUNT1667,48567
+#define sendv(sendv1680,48811
+#define getv(getv1681,48883
+#define FixSendFunctionClass(FixSendFunctionClass1682,48953
+#define FixGetFunctionClass(FixGetFunctionClass1684,49061
+#define hashKey(hashKey1699,49408
+#define hashKey(hashKey1701,49482
 
 h/lang.h,174
 typedef struct tokeniser *		Tokeniser;Tokeniser10,243
@@ -667,7 +668,7 @@ typedef struct _goal_goal69,1945
 #define traceAnswer(traceAnswer126,3188
 #define setTraceFunctionClass(setTraceFunctionClass127,3217
 
-h/types.h,9313
+h/types.h,9369
 #define CLASSINDEX_OBJECT	14,349
 #define CLASSINDEX_TYPE	15,379
 #define CLASSINDEX_CLASS	16,408
@@ -807,42 +808,43 @@ typedef struct graphical		* Graphical;Graphical170,5601
 typedef struct image			* Image;Image171,5640
 typedef struct joint			* Joint;Joint172,5672
 typedef struct label			* Label;Label173,5704
-typedef struct line			* Line;Line174,5736
-typedef struct link			* Link;Link175,5766
-typedef struct list_browser		* ListBrowser;ListBrowser176,5796
-typedef struct menu			* Menu;Menu177,5840
-typedef struct menu_bar			* MenuBar;MenuBar178,5870
-typedef struct menu_item		* MenuItem;MenuItem179,5907
-typedef struct move_gesture     	* MoveGesture;MoveGesture180,5945
-typedef struct move_outline_gesture     * MoveOutlineGesture;MoveOutlineGesture181,5993
-typedef struct node			* Node;Node182,6055
-typedef struct path			* Path;Path183,6085
-typedef struct picture			* Picture;Picture184,6115
-typedef struct pixmapobj		* PixmapObj;PixmapObj185,6151
-typedef struct popup_gesture    	* PopupGesture;PopupGesture186,6190
-typedef struct popupobj			* PopupObj;PopupObj187,6239
-typedef struct resize_gesture   	* ResizeGesture;ResizeGesture188,6277
-typedef struct resize_outline_gesture   * ResizeOutlineGesture;ResizeOutlineGesture189,6327
-typedef struct resource			* Resource;Resource190,6391
-typedef struct scrollbar		* ScrollBar;ScrollBar191,6429
-typedef struct slider			* Slider;Slider192,6468
-typedef struct style			* Style;Style193,6502
-typedef struct tab			* Tab;Tab194,6534
-typedef struct tab_stack		* TabStack;TabStack195,6562
-typedef struct text_cursor		* TextCursor;TextCursor196,6600
-typedef struct text_image		* TextImage;TextImage197,6642
-typedef struct text_margin		* TextMargin;TextMargin198,6682
-typedef struct text_buffer		* TextBuffer;TextBuffer199,6724
-typedef struct textitem			* TextItem;TextItem200,6766
-typedef struct textobj			* TextObj;TextObj201,6804
-typedef struct tileobj			* TileObj;TileObj202,6840
-typedef struct timer			* Timer;Timer203,6876
-typedef struct tree			* Tree;Tree204,6908
-typedef struct undo_buffer		* UndoBuffer;UndoBuffer205,6938
-typedef struct view			* View;View206,6980
-typedef struct windowobj		* PceWindow;PceWindow207,7010
-typedef struct window_decorator 	* WindowDecorator;WindowDecorator208,7049
-typedef Any				EventId;EventId211,7103
+typedef struct label_box		* LabelBox;LabelBox174,5736
+typedef struct line			* Line;Line175,5774
+typedef struct link			* Link;Link176,5804
+typedef struct list_browser		* ListBrowser;ListBrowser177,5834
+typedef struct menu			* Menu;Menu178,5878
+typedef struct menu_bar			* MenuBar;MenuBar179,5908
+typedef struct menu_item		* MenuItem;MenuItem180,5945
+typedef struct move_gesture     	* MoveGesture;MoveGesture181,5983
+typedef struct move_outline_gesture     * MoveOutlineGesture;MoveOutlineGesture182,6031
+typedef struct node			* Node;Node183,6093
+typedef struct path			* Path;Path184,6123
+typedef struct picture			* Picture;Picture185,6153
+typedef struct pixmapobj		* PixmapObj;PixmapObj186,6189
+typedef struct popup_gesture    	* PopupGesture;PopupGesture187,6228
+typedef struct popupobj			* PopupObj;PopupObj188,6277
+typedef struct resize_gesture   	* ResizeGesture;ResizeGesture189,6315
+typedef struct resize_outline_gesture   * ResizeOutlineGesture;ResizeOutlineGesture190,6365
+typedef struct resource			* Resource;Resource191,6429
+typedef struct scrollbar		* ScrollBar;ScrollBar192,6467
+typedef struct slider			* Slider;Slider193,6506
+typedef struct style			* Style;Style194,6540
+typedef struct tab			* Tab;Tab195,6572
+typedef struct tab_stack		* TabStack;TabStack196,6600
+typedef struct text_cursor		* TextCursor;TextCursor197,6638
+typedef struct text_image		* TextImage;TextImage198,6680
+typedef struct text_margin		* TextMargin;TextMargin199,6720
+typedef struct text_buffer		* TextBuffer;TextBuffer200,6762
+typedef struct textitem			* TextItem;TextItem201,6804
+typedef struct textobj			* TextObj;TextObj202,6842
+typedef struct tileobj			* TileObj;TileObj203,6878
+typedef struct timer			* Timer;Timer204,6914
+typedef struct tree			* Tree;Tree205,6946
+typedef struct undo_buffer		* UndoBuffer;UndoBuffer206,6976
+typedef struct view			* View;View207,7018
+typedef struct windowobj		* PceWindow;PceWindow208,7048
+typedef struct window_decorator 	* WindowDecorator;WindowDecorator209,7087
+typedef Any				EventId;EventId212,7141
 
 h/unix.h,151
 #define _PCE_UNX_INCLUDED11,269
@@ -880,11 +882,12 @@ eventCanvas(34,1061
 exposeCanvas(62,1716
 resizeCanvas(68,1844
 
-x11/fshell.c,111
+x11/fshell.c,141
 #define offset(offset16,383
 #define offset(offset25,712
 #define offset(offset34,1041
 eventFrame(47,1503
+xpce_change_managed(110,2911
 
 x11/x11-compat.c,69
 dlopen(28,915
@@ -901,16 +904,16 @@ ws_console_label(44,571
 ws_default_scrollbar_width(59,806
 
 x11/xcolour.c,273
-#define XBRIGHT 14,314
-x_colour_name(17,357
-ws_create_colour(34,615
-ws_uncreate_colour(84,1993
-ws_colour_name(97,2246
-ws_pixel_to_colour(112,2486
-ws_colour_cube(133,3025
-ws_colour_map_colours(139,3075
-ws_create_colour_map(145,3124
-ws_uncreate_colour_map(151,3192
+#define XBRIGHT 14,315
+x_colour_name(17,358
+ws_create_colour(34,616
+ws_uncreate_colour(84,1994
+ws_colour_name(97,2247
+ws_pixel_to_colour(112,2487
+ws_colour_cube(133,3026
+ws_colour_map_colours(139,3076
+ws_create_colour_map(145,3125
+ws_uncreate_colour_map(151,3193
 
 x11/xcommon.c,988
 #define roundup(roundup17,372
@@ -940,14 +943,14 @@ makeSparceCInfo(397,9000
 greySparceCInfo(451,10388
 freeSparceCInfo(472,10910
 keycode_to_name(492,11222
-#define XK_Page_Up 554,13084
-#define XK_Page_Down 557,13140
-state_to_buttons(592,14080
-button_to_name(620,14908
-CtoEvent(633,15208
-#     define AnyButtonMask 689,16627
-Status XSetWMProtocols 721,17327
-void XtPopupSpringLoaded 742,17806
+#define XK_Page_Up 557,13162
+#define XK_Page_Down 560,13218
+state_to_buttons(595,14158
+button_to_name(623,14986
+CtoEvent(636,15286
+#     define AnyButtonMask 692,16705
+Status XSetWMProtocols 724,17405
+void XtPopupSpringLoaded 745,17884
 
 x11/xconvert.c,448
 #define O_GIFTOXPM 15,335
@@ -979,47 +982,47 @@ x11/xdisplay.c,1352
 #define X11LastEventTime(X11LastEventTime14,316
 ws_flush_display(23,456
 ws_synchronise_display(31,555
-ws_bell_display(42,779
-ws_get_size_display(50,896
-ws_get_visual_type_display(61,1141
-ws_depth_display(84,1775
-ws_activate_screen_saver(92,1866
-ws_deactivate_screen_saver(100,2003
-ws_init_display(108,2141
-ws_legal_display_name(128,2616
-ws_opened_display(140,2799
-ws_open_display(157,3470
-ws_quit_display(250,5945
-new_draw_context(256,6039
-# define GCALL 263,6268
-ws_init_graphics_display(336,8316
-ws_foreground_display(354,8643
-ws_background_display(362,8776
-ws_draw_in_display(370,8909
-ws_grab_server(382,9178
-ws_ungrab_server(390,9280
-ws_display_connection_number(398,9385
-ws_events_queued_display(409,9571
-ws_set_cutbuffer(426,9898
-ws_get_cutbuffer(439,10155
-nameToSelectionAtom(469,10775
-atomToSelectionName(479,11047
-ws_get_selection_timeout(495,11409
-ws_set_selection_timeout(501,11503
-collect_selection_display(507,11613
-ws_get_selection(539,12388
-widgetToDisplay(564,12978
-convert_selection_display(581,13235
-loose_selection_widget(618,14265
-ws_disown_selection(631,14556
-ws_own_selection(641,14752
-ws_window_manager(656,15056
-ws_synchronous(670,15223
-ws_asynchronous(678,15332
-psdepthXImage(689,15544
-ws_postscript_display(699,15688
-ws_grab_image_display(727,16319
-ws_get_resource_value(785,17521
+ws_bell_display(43,806
+ws_get_size_display(51,923
+ws_get_visual_type_display(62,1168
+ws_depth_display(85,1802
+ws_activate_screen_saver(93,1893
+ws_deactivate_screen_saver(101,2030
+ws_init_display(109,2168
+ws_legal_display_name(129,2643
+ws_opened_display(141,2826
+ws_open_display(158,3497
+ws_quit_display(251,5972
+new_draw_context(257,6066
+# define GCALL 264,6295
+ws_init_graphics_display(337,8343
+ws_foreground_display(355,8670
+ws_background_display(363,8803
+ws_draw_in_display(371,8936
+ws_grab_server(383,9205
+ws_ungrab_server(391,9307
+ws_display_connection_number(399,9412
+ws_events_queued_display(410,9598
+ws_set_cutbuffer(427,9925
+ws_get_cutbuffer(440,10182
+nameToSelectionAtom(470,10802
+atomToSelectionName(480,11074
+ws_get_selection_timeout(496,11436
+ws_set_selection_timeout(502,11530
+collect_selection_display(508,11640
+ws_get_selection(540,12415
+widgetToDisplay(565,13005
+convert_selection_display(582,13262
+loose_selection_widget(619,14292
+ws_disown_selection(632,14583
+ws_own_selection(642,14779
+ws_window_manager(657,15083
+ws_synchronous(671,15250
+ws_asynchronous(679,15359
+psdepthXImage(690,15571
+ws_postscript_display(700,15715
+ws_grab_image_display(728,16346
+ws_get_resource_value(786,17548
 
 x11/xdraw.c,2673
 #define MAX_CLIP_NESTING	80,2459
@@ -1084,52 +1087,52 @@ r_arc(1616,40480
 r_ellipse(1664,41438
 r_3d_ellipse(1670,41533
 r_line(1725,42924
-r_polygon(1735,43105
-r_path(1758,43566
-r_op_image(1827,45231
-r_image(1864,46224
-r_fill(2030,51185
-r_fill_polygon(2047,51728
-r_caret(2062,52047
-r_fill_triangle(2095,52588
-r_triangle(2111,52899
-r_pixel(2129,53423
-r_complement_pixel(2148,53871
-d_modify(2163,54188
-r_get_mono_pixel(2170,54299
-r_get_pixel(2176,54424
-#define MAX_CHAR 2219,55587
-s_char_struct(2223,55661
-s_has_char(2251,56421
-f_domain(2265,56637
-s_default_char(2281,56919
-s_font(2289,57028
-s_ascent(2307,57402
-s_descent(2315,57485
-s_height(2323,57570
-lbearing(2331,57694
-rbearing(2339,57834
-c_width(2347,57987
-str_bits_as_font(2358,58179
-s_width_(2385,58626
-str_width(2415,59307
-s_advance_x(2448,59823
-s_print8(2474,60302
-s_print16(2485,60504
-s_print(2496,60723
-str_stext(2504,60897
-str_text(2554,62001
-#define MAX_TEXT_LINES 2587,62770
-} strTextLine;strTextLine2595,63046
-str_break_into_lines(2599,63075
-str_compute_lines(2637,63905
-str_size(2668,64681
-str_string(2703,65327
-str_selected_string(2725,65855
-ps_string(2778,67309
-str_draw_text_lines(2809,68178
-r_text_colour(2845,68988
-str_label(2858,69171
+r_polygon(1752,43428
+r_path(1775,43889
+r_op_image(1844,45554
+r_image(1881,46547
+r_fill(2047,51508
+r_fill_polygon(2064,52051
+r_caret(2079,52370
+r_fill_triangle(2112,52911
+r_triangle(2128,53222
+r_pixel(2146,53746
+r_complement_pixel(2165,54194
+d_modify(2180,54511
+r_get_mono_pixel(2187,54622
+r_get_pixel(2193,54747
+#define MAX_CHAR 2236,55910
+s_char_struct(2240,55984
+s_has_char(2268,56744
+f_domain(2282,56960
+s_default_char(2298,57242
+s_font(2306,57351
+s_ascent(2324,57725
+s_descent(2332,57808
+s_height(2340,57893
+lbearing(2348,58017
+rbearing(2356,58157
+c_width(2365,58380
+str_bits_as_font(2376,58572
+s_width_(2403,59019
+str_width(2433,59710
+s_advance_x(2466,60226
+s_print8(2492,60705
+s_print16(2503,60907
+s_print(2514,61126
+str_stext(2522,61300
+str_text(2572,62404
+#define MAX_TEXT_LINES 2605,63173
+} strTextLine;strTextLine2613,63449
+str_break_into_lines(2617,63478
+str_compute_lines(2655,64308
+str_size(2686,65084
+str_string(2721,65730
+str_selected_string(2743,66258
+ps_string(2796,67720
+str_draw_text_lines(2827,68589
+r_text_colour(2863,69399
+str_label(2876,69582
 
 x11/xevent.c,318
 #define MAX_DECORATION_NESTING	22,433
@@ -1296,23 +1299,23 @@ ws_manage_window(129,3474
 ws_unmanage_window(135,3550
 ws_reassociate_ws_window(149,3952
 ws_geometry_window(176,4843
-event_window(194,5222
-expose_window(222,5797
-resize_window(243,6419
-destroy_window(255,6706
-ws_grab_pointer_window(271,7075
-ws_grab_keyboard_window(310,8135
-do_grab_window(332,8569
-ws_grab_pointer_window(363,9283
-ws_grab_keyboard_window(383,9794
-ws_ungrab_all(399,10120
-ws_flash_area_window(416,10423
-ws_flash_window(437,10877
-ws_move_pointer(460,11310
-ws_window_cursor(473,11565
-ws_window_background(489,11943
-ws_raise_window(515,12566
-ws_lower_window(525,12779
+event_window(197,5338
+expose_window(225,5913
+resize_window(246,6535
+destroy_window(258,6822
+ws_grab_pointer_window(274,7191
+ws_grab_keyboard_window(313,8251
+do_grab_window(335,8685
+ws_grab_pointer_window(366,9399
+ws_grab_keyboard_window(386,9910
+ws_ungrab_all(402,10236
+ws_flash_area_window(419,10539
+ws_flash_window(440,10993
+ws_move_pointer(463,11426
+ws_window_cursor(476,11681
+ws_window_background(492,12059
+ws_raise_window(518,12682
+ws_lower_window(528,12895
 
 adt/area.c,1205
 #define InitAreaA	21,411
@@ -1635,8 +1638,8 @@ getCompareNumber(199,2690
 getCatchAllNumber(209,2875
 getValueNumber(227,3186
 valueNumber(236,3331
-#define rc_number 315,6060
-makeClassNumber(332,6346
+#define rc_number 315,6061
+makeClassNumber(332,6347
 
 adt/point.c,443
 initialisePoint(14,305
@@ -1853,15 +1856,13 @@ indicateHandleConnectGesture(183,4449
 connectConnectGesture(215,5104
 makeClassConnectGesture(311,8499
 
-evt/edittextgest.c,263
+evt/edittextgest.c,198
 initialiseEditTextGesture(14,305
 eventEditTextGesture(23,503
-verifyEditTextGesture(45,1087
-initiateEditTextGesture(56,1251
-dragEditTextGesture(78,1697
-terminateEditTextGesture(94,1995
-#define get_editTextGesture 134,3127
-makeClassEditTextGesture(163,3732
+initiateEditTextGesture(43,1054
+dragEditTextGesture(65,1502
+#define get_editTextGesture 112,2662
+makeClassEditTextGesture(141,3267
 
 evt/event.c,1437
 #define CLICK_TYPE_mask	22,503
@@ -2299,73 +2300,74 @@ regexec 5193,170090
 regerror 5258,171907
 regfree 5302,172966
 
-gra/arc.c,548
-#define M_PI 14,319
-#define COS(COS17,365
-#define SIN(SIN18,406
-initialiseArc(21,462
-points_arc(42,1083
-RedrawAreaArc(61,1627
-  if 115,2985
-  if 123,3263
-angleInArc(137,3612
-computeArc(158,4004
-geometryArc(209,5168
-setArc(224,5469
-radiusArc(250,6026
-positionArc(261,6197
-resizeArc(272,6374
-getRadiusArc(295,7034
-getStartArc(301,7093
-getEndArc(310,7241
-sizeArc(319,7388
-startAngleArc(330,7547
-sizeAngleArc(341,7732
-endAngleArc(352,7914
-closeArc(367,8183
-connectAngleArc(383,8439
-pointsArc(399,8726
-makeClassArc(548,13025
+gra/arc.c,582
+#define M_PI 14,320
+#define COS(COS17,366
+#define SIN(SIN18,407
+initialiseArc(21,463
+points_arc(42,1084
+RedrawAreaArc(61,1628
+  if 111,2838
+  if 130,3274
+angleInArc(155,3766
+includeArrowsInAreaArc(176,4156
+computeArc(225,5319
+geometryArc(284,6653
+setArc(299,6954
+radiusArc(325,7511
+positionArc(336,7682
+resizeArc(347,7859
+getRadiusArc(370,8519
+getStartArc(376,8578
+getEndArc(385,8726
+sizeArc(394,8873
+startAngleArc(405,9032
+sizeAngleArc(416,9217
+endAngleArc(427,9399
+closeArc(442,9668
+connectAngleArc(458,9924
+pointsArc(474,10211
+makeClassArc(623,14510
 
 gra/arrow.c,464
 initialiseArrow(41,1265
-computeArrow(60,1777
-RedrawAreaArrow(123,3237
-drawArrow(144,3696
-tipArrow(172,4235
-tipXArrow(177,4334
-tipYArrow(182,4432
-referenceArrow(188,4531
-referenceXArrow(193,4636
-referenceYArrow(198,4740
-getTipXArrow(204,4842
-getTipYArrow(209,4899
-getReferenceXArrow(214,4956
-getReferenceYArrow(220,5026
-styleArrow(226,5100
-lengthArrow(237,5278
-wingArrow(249,5464
-pointsArrow(261,5635
-paintArrow(283,6112
-makeClassArrow(389,9398
+computeArrow(62,1836
+RedrawAreaArrow(125,3296
+drawArrow(146,3755
+tipArrow(176,4307
+tipXArrow(181,4406
+tipYArrow(186,4504
+referenceArrow(192,4603
+referenceXArrow(197,4708
+referenceYArrow(202,4812
+getTipXArrow(208,4914
+getTipYArrow(213,4971
+getReferenceXArrow(218,5028
+getReferenceYArrow(224,5098
+styleArrow(230,5172
+lengthArrow(241,5350
+wingArrow(253,5536
+pointsArrow(265,5707
+paintArrow(287,6184
+makeClassArrow(393,9470
 
 gra/bitmap.c,393
 initialiseBitmap(18,446
-unlinkBitmap(36,881
-getConvertBitmap(45,1062
-RedrawAreaBitmap(56,1253
-geometryBitmap(74,1613
-getCopyBitmap(80,1745
-imageBitmap(91,1917
-updateSolidBitmap(114,2448
-transparentBitmap(125,2629
-redrawBitmap(139,2929
-loadBitmap(147,3097
-storeBitmap(167,3515
-loadFdBitmap(173,3610
-getContainsBitmap(213,4525
-#define rc_bitmap 270,6260
-makeClassBitmap(289,6548
+unlinkBitmap(38,944
+getConvertBitmap(47,1125
+RedrawAreaBitmap(58,1316
+geometryBitmap(76,1676
+getCopyBitmap(82,1808
+imageBitmap(93,1980
+updateSolidBitmap(116,2511
+transparentBitmap(127,2692
+redrawBitmap(141,2992
+loadBitmap(149,3160
+storeBitmap(169,3578
+loadFdBitmap(175,3673
+getContainsBitmap(215,4588
+#define rc_bitmap 272,6323
+makeClassBitmap(291,6611
 
 gra/box.c,134
 initialiseBox(14,303
@@ -2393,19 +2395,19 @@ unlinkColour(61,1351
 getLookupColour(70,1473
 getStorageReferenceColour(79,1666
 equalColour(96,1981
-storeColour(113,2296
-loadColour(119,2386
-take_hex(133,2622
-getConvertColour(152,2986
-XopenColour(195,3738
-XCloseColour(201,3825
-getRedColour(209,3910
-getGreenColour(218,4029
-getBlueColour(227,4154
-getHiliteColour(236,4279
-getReduceColour(267,4975
-getIntensityColour(298,5654
-makeClassColour(389,8351
+storeColour(120,2511
+loadColour(126,2601
+take_hex(140,2837
+getConvertColour(159,3201
+XopenColour(202,3953
+XCloseColour(208,4040
+getRedColour(216,4125
+getGreenColour(225,4244
+getBlueColour(234,4369
+getHiliteColour(243,4494
+getReduceColour(274,5190
+getIntensityColour(305,5869
+makeClassColour(398,8658
 
 gra/colourmap.c,174
 initialiseColourMap(16,360
@@ -2415,33 +2417,37 @@ getColoursColourMap(57,1119
 #define rc_colour_map 103,2286
 makeClassColourMap(120,2621
 
-gra/connection.c,776
-initialiseConnection(22,594
-unlinkConnection(47,1370
-relateConnection(56,1587
-updateLineConnection(81,2107
-#define NO_POINTS	92,2390
-#define SAME_POINTS	93,2410
-#define POINTS_CHANGED	94,2432
-getConnectionPointsConnection(97,2472
-bestConnectionPoint(168,4815
-#define FindAHandle 180,5166
-#define FindBestHandle 217,5920
-updateHideExposeConnection(260,6825
-computeConnection(279,7193
-updateDeviceConnection(310,7870
-updateLinkAttributesConnection(325,8205
-pointsConnection(346,8855
-geometryConnection(356,9018
-getOppositeConnection(365,9180
-eventConnection(376,9341
-#define rc_connection 459,11969
-makeClassConnection(476,12342
-#define STEP 487,12537
-#define ENTRIES 488,12553
-#define EPS 489,12573
-#define EMS 490,12612
-distanceLineToPoint(493,12653
+gra/connection.c,945
+#define getStartXLine(getStartXLine21,581
+#define getStartYLine(getStartYLine22,621
+#define getEndXLine(getEndXLine23,661
+#define getEndYLine(getEndYLine24,699
+initialiseConnection(27,752
+unlinkConnection(52,1528
+relateConnection(61,1745
+updateLineConnection(86,2265
+#define NO_POINTS	97,2548
+#define SAME_POINTS	98,2568
+#define POINTS_CHANGED	99,2590
+getConnectionPointsConnection(102,2630
+bestConnectionPoint(173,4973
+#define FindAHandle 185,5324
+#define FindBestHandle 222,6078
+updateHideExposeConnection(265,6983
+computeConnection(284,7351
+updateDeviceConnection(318,8094
+updateLinkAttributesConnection(333,8429
+pointsConnection(354,9079
+geometryConnection(364,9242
+getOppositeConnection(373,9404
+eventConnection(384,9565
+#define rc_connection 467,12193
+makeClassConnection(484,12566
+#define STEP 495,12761
+#define ENTRIES 496,12777
+#define EPS 497,12797
+#define EMS 498,12836
+distanceLineToPoint(501,12877
 
 gra/cursor.c,198
 initialiseCursor(36,1274
@@ -2453,7 +2459,7 @@ getConvertCursor(108,2632
 #define rc_cursor 173,4585
 makeClassCursor(191,4871
 
-gra/device.c,2447
+gra/device.c,2485
 initialiseDevice(35,1153
 unlinkDevice(53,1616
 getDisplayedCursorDevice(68,1917
@@ -2495,49 +2501,50 @@ computeFormatDevice(880,20448
 #define MUSTBEVISIBLE(MUSTBEVISIBLE887,20625
 #define MAX_L_ROWS	1015,23527
 #define MAXCOLLUMNS	1016,23550
-typedef struct _unit	_unit1018,23575
-} unit, *Unit;Unit1027,23999
-typedef struct _matrix_matrix1031,24091
-} matrix, *Matrix;Matrix1033,24142
-#define IsPlaced(IsPlaced1036,24163
-#define SetPlaced(SetPlaced1037,24229
-shift_x_matrix(1040,24303
-shift_y_matrix(1056,24590
-expand_x_matrix(1071,24822
-expand_y_matrix(1083,25034
-free_matrix_columns(1094,25191
-placeDialogItem(1103,25338
-distribute(1145,26814
-adjustDialogItem(1163,27301
-#define Changed(Changed1166,27378
-layoutDialogDevice(1181,27656
-#define AUTO_ALIGN_LABEL 1238,29052
-#define AUTO_ALIGN_VALUE 1239,29079
-appendDialogItemDevice(1531,36489
-convertLoadedObjectDevice(1569,37369
-reparentDevice(1578,37542
-roomDevice(1594,37852
-getInsideDevice(1611,38125
-resizeDevice(1628,38432
-getMemberDevice(1655,39098
-forSomeDevice(1670,39331
-forAllDevice(1685,39599
-updateConnectionsDevice(1704,39969
-geometryDevice(1719,40309
-textMoveDevice(1753,41227
-referenceDevice(1781,41858
-set_position_device(1809,42402
-positionDevice(1823,42728
-xDevice(1829,42835
-yDevice(1835,42927
-getPositionDevice(1841,43018
-getXDevice(1848,43111
-getYDevice(1854,43186
-getOffsetDevice(1860,43263
-getCatchAllDevice(1871,43454
-getContainsDevice(1885,43730
-#define rc_device 2049,50530
-makeClassDevice(2065,50755
+#define DLF_STRETCH_TO_BB	1019,23599
+typedef struct _unit	_unit1021,23656
+} unit, *Unit;Unit1031,24123
+typedef struct _matrix_matrix1035,24218
+} matrix, *Matrix;Matrix1037,24269
+#define IsPlaced(IsPlaced1040,24290
+#define SetPlaced(SetPlaced1041,24356
+shift_x_matrix(1044,24430
+shift_y_matrix(1060,24717
+expand_x_matrix(1075,24949
+expand_y_matrix(1087,25161
+free_matrix_columns(1098,25318
+placeDialogItem(1107,25465
+distribute(1149,26941
+adjustDialogItem(1167,27428
+#define Changed(Changed1174,27601
+layoutDialogDevice(1189,27879
+#define AUTO_ALIGN_LABEL 1246,29275
+#define AUTO_ALIGN_VALUE 1247,29302
+appendDialogItemDevice(1550,37171
+convertLoadedObjectDevice(1588,38058
+reparentDevice(1597,38231
+roomDevice(1613,38541
+getInsideDevice(1630,38814
+resizeDevice(1647,39121
+getMemberDevice(1674,39787
+forSomeDevice(1689,40020
+forAllDevice(1704,40288
+updateConnectionsDevice(1723,40658
+geometryDevice(1738,40998
+textMoveDevice(1772,41916
+referenceDevice(1800,42547
+set_position_device(1828,43091
+positionDevice(1842,43417
+xDevice(1848,43524
+yDevice(1854,43616
+getPositionDevice(1860,43707
+getXDevice(1867,43800
+getYDevice(1873,43875
+getOffsetDevice(1879,43952
+getCatchAllDevice(1890,44143
+getContainsDevice(1904,44419
+#define rc_device 2068,51219
+makeClassDevice(2084,51444
 
 gra/draw.c,148
 #define D_RIGHT	27,1058
@@ -2616,7 +2623,7 @@ gra/format.c,49
 initialiseFormat(14,310
 makeClassFormat(27,685
 
-gra/graphical.c,5702
+gra/graphical.c,5743
 initialiseGraphical(27,715
 unlinkGraphical(53,1475
 copyGraphical(62,1619
@@ -2639,167 +2646,168 @@ getDisplayGraphical(341,7281
 getApplicationGraphical(352,7418
 getCommonDeviceGraphical(363,7585
 changedAreaGraphical(400,8397
-changedImageGraphical(458,9855
-changedEntireImageGraphical(520,11338
-redrawGraphical(528,11483
-requestComputeGraphical(541,11758
-ComputeGraphical(566,12322
-computeGraphical(580,12547
-selection_bubble(592,12740
-drawGraphical(603,12964
-RedrawArea(632,13481
-paintSelectedGraphical(702,14949
-RedrawAreaGraphical(758,16595
-flushGraphical(776,16893
-synchroniseGraphical(787,17016
-hideGraphical(811,17434
-exposeGraphical(826,17718
-swapGraphical(841,18011
-setGraphical(867,18946
-#define Changed(Changed870,19019
-doSetGraphical(883,19295
-#define Changed(Changed886,19370
-requestGeometryGraphical(899,19639
-geometryGraphical(909,19817
-areaGraphical(919,19982
-xGraphical(925,20095
-yGraphical(931,20195
-widthGraphical(937,20302
-heightGraphical(943,20406
-positionGraphical(949,20511
-sizeGraphical(955,20633
-setCornerGraphical(961,20753
-cornerGraphical(971,21029
-cornerXGraphical(977,21137
-cornerYGraphical(983,21238
-centerGraphical(989,21332
-centerXGraphical(998,21528
-centerYGraphical(1006,21691
-relativeMoveGraphical(1015,21855
-rotateGraphical(1028,22281
-init_resize_graphical(1055,22803
-resizeGraphical(1070,23126
-normaliseGraphical(1094,23830
-orientationGraphical(1100,23932
-getOrientationGraphical(1111,24186
-getAreaGraphical(1121,24379
-getXGraphical(1128,24462
-getYGraphical(1134,24533
-getCornerXGraphical(1140,24611
-getCornerYGraphical(1147,24731
-getWidthGraphical(1154,24844
-getHeightGraphical(1160,24919
-getLeftSideGraphical(1166,24995
-getRightSideGraphical(1177,25153
-getTopSideGraphical(1188,25319
-getBottomSideGraphical(1199,25476
-rightSideGraphical(1210,25646
-leftSideGraphical(1222,25869
-bottomSideGraphical(1234,26090
-topSideGraphical(1246,26315
-getPositionGraphical(1258,26526
-get_absolute_xy_graphical(1265,26667
-getAbsoluteXGraphical(1300,27404
-getAbsoluteYGraphical(1310,27535
-getAbsolutePositionGraphical(1320,27675
-getDisplayPositionGraphical(1330,27853
-getSizeGraphical(1357,28477
-getCornerGraphical(1365,28629
-getCenterGraphical(1373,28784
-getCenterXGraphical(1381,28937
-getCenterYGraphical(1389,29047
-getBoundingBoxGraphical(1397,29158
-getDistanceGraphical(1403,29243
-getDistanceXGraphical(1409,29356
-getDistanceYGraphical(1415,29471
-same_device(1425,29688
-assignDialogItem(1443,30157
-aboveGraphical(1464,30573
-belowGraphical(1483,30930
-rightGraphical(1502,31287
-leftGraphical(1521,31641
-referenceGraphical(1540,31996
-alignmentGraphical(1546,32110
-getAlignmentGraphical(1552,32233
-autoAlignGraphical(1565,32514
-autoLabelAlignGraphical(1571,32631
-autoValueAlignGraphical(1577,32754
-getAutoAlignGraphical(1583,32875
-getAutoLabelAlignGraphical(1603,33298
-getAutoValueAlignGraphical(1615,33510
-layoutDialogGraphical(1627,33724
-penGraphical(1639,33903
-shadowGraphical(1650,34084
-elevationGraphical(1656,34178
-fillPatternGraphical(1662,34284
-textureGraphical(1668,34409
-colourGraphical(1679,34615
-getDisplayColourGraphical(1690,34797
-toggleSelectedGraphical(1708,35085
-selectedGraphical(1714,35202
-handleGraphical(1729,35505
-getHandleGraphical(1738,35672
-getHandlePositionGraphical(1767,36103
-getHandlesGraphical(1783,36408
-invertedGraphical(1858,38027
-activeGraphical(1868,38233
-cursorGraphical(1884,38538
-focusCursorGraphical(1899,38752
-getDisplayedCursorGraphical(1910,38939
-focusGraphical(1920,39112
-WantsKeyboardFocusGraphical(1932,39348
-updateConnectionsGraphical(1944,39558
-updateHideExposeConnectionsGraphical(1964,39995
-connectGraphical(1977,40209
-attachConnectionGraphical(1986,40377
-detachConnectionGraphical(1997,40594
-match_connection(2008,40825
-connectedGraphical(2019,41086
-disconnectGraphical(2039,41443
-getConnectionsGraphical(2057,41787
-extendNetworkGraphical(2091,42470
-getNetworkGraphical(2115,42951
-#define MAX_DISTANCE	2146,44134
-layoutGraphical(2149,44214
-distance_area(2301,48306
-eventGraphical(2335,49097
-keyGraphical(2354,49422
-keyboardFocusGraphical(2360,49485
-getKeyboardFocusGraphical(2375,49773
-generateEventGraphical(2386,49938
-inEventAreaGraphical(2398,50168
-recogniserGraphical(2431,50917
-prependRecogniserGraphical(2439,51049
-deleteRecogniserGraphical(2447,51190
-getAllRecognisersGraphical(2457,51333
-assignGraphical(2478,51769
-bellGraphical(2502,52286
-flashGraphical(2512,52433
-alertGraphical(2549,53134
-getNodeGraphical(2558,53309
-popupGraphical(2569,53487
-getPopupGraphical(2582,53823
-pointerGraphical(2588,53911
-getMasterGraphical(2612,54633
-getContainerGraphical(2631,55166
-nameGraphical(2644,55369
-overlapGraphical(2652,55464
-getContainedInGraphical(2665,55793
-initialiseNewSlotGraphical(2678,55995
-drawPostScriptGraphical(2694,56356
-clipGraphical(2716,56791
-unclipGraphical(2727,56957
-saveGraphicsStateGraphical(2735,57034
-restoreGraphicsStateGraphical(2743,57117
-graphicsStateGraphical(2751,57206
-drawLineGraphical(2768,57565
-drawPolyGraphical(2776,57717
-drawArcGraphical(2825,58832
-drawBoxGraphical(2841,59235
-drawFillGraphical(2869,59811
-drawImageGraphical(2884,60104
-drawTextGraphical(2902,60541
-makeClassGraphical(3346,82006
+changedImageGraphical(455,9725
+changedEntireImageGraphical(515,11095
+redrawGraphical(523,11240
+requestComputeGraphical(536,11515
+ComputeGraphical(561,12079
+computeGraphical(575,12304
+selection_bubble(587,12497
+drawGraphical(598,12721
+RedrawArea(627,13238
+paintSelectedGraphical(697,14706
+RedrawAreaGraphical(743,16081
+flushGraphical(761,16379
+synchroniseGraphical(772,16502
+hideGraphical(796,16919
+exposeGraphical(811,17203
+swapGraphical(826,17496
+setGraphical(852,18431
+#define Changed(Changed855,18504
+doSetGraphical(868,18780
+#define Changed(Changed871,18855
+requestGeometryGraphical(884,19124
+geometryGraphical(894,19302
+areaGraphical(904,19467
+xGraphical(910,19580
+yGraphical(916,19680
+widthGraphical(922,19787
+heightGraphical(928,19891
+positionGraphical(934,19996
+sizeGraphical(940,20118
+setCornerGraphical(946,20238
+cornerGraphical(956,20514
+cornerXGraphical(962,20622
+cornerYGraphical(968,20723
+centerGraphical(974,20817
+centerXGraphical(983,21013
+centerYGraphical(991,21176
+relativeMoveGraphical(1000,21340
+rotateGraphical(1013,21766
+init_resize_graphical(1040,22288
+resizeGraphical(1055,22611
+normaliseGraphical(1079,23315
+orientationGraphical(1085,23417
+getOrientationGraphical(1096,23671
+getAreaGraphical(1106,23864
+getXGraphical(1113,23947
+getYGraphical(1119,24018
+getCornerXGraphical(1125,24096
+getCornerYGraphical(1132,24216
+getWidthGraphical(1139,24329
+getHeightGraphical(1145,24404
+getLeftSideGraphical(1151,24480
+getRightSideGraphical(1162,24638
+getTopSideGraphical(1173,24804
+getBottomSideGraphical(1184,24961
+rightSideGraphical(1195,25131
+leftSideGraphical(1207,25354
+bottomSideGraphical(1219,25575
+topSideGraphical(1231,25800
+getPositionGraphical(1243,26011
+get_absolute_xy_graphical(1250,26152
+getAbsoluteXGraphical(1285,26889
+getAbsoluteYGraphical(1295,27020
+getAbsolutePositionGraphical(1305,27160
+getDisplayPositionGraphical(1315,27338
+getSizeGraphical(1342,27962
+getCornerGraphical(1350,28114
+getCenterGraphical(1358,28269
+getCenterXGraphical(1366,28422
+getCenterYGraphical(1374,28532
+getBoundingBoxGraphical(1382,28643
+getDistanceGraphical(1388,28728
+getDistanceXGraphical(1394,28841
+getDistanceYGraphical(1400,28956
+appendDialogItemNetworkDevice(1410,29166
+same_device(1433,29862
+assignDialogItem(1451,30327
+aboveGraphical(1472,30743
+belowGraphical(1491,31100
+rightGraphical(1510,31457
+leftGraphical(1529,31811
+referenceGraphical(1548,32166
+alignmentGraphical(1554,32280
+getAlignmentGraphical(1560,32403
+autoAlignGraphical(1573,32684
+autoLabelAlignGraphical(1579,32801
+autoValueAlignGraphical(1585,32924
+getAutoAlignGraphical(1591,33045
+getAutoLabelAlignGraphical(1611,33468
+getAutoValueAlignGraphical(1623,33680
+layoutDialogGraphical(1635,33894
+penGraphical(1647,34073
+shadowGraphical(1658,34254
+elevationGraphical(1664,34348
+fillPatternGraphical(1670,34454
+textureGraphical(1676,34579
+colourGraphical(1687,34785
+getDisplayColourGraphical(1698,34967
+toggleSelectedGraphical(1716,35255
+selectedGraphical(1722,35372
+handleGraphical(1737,35675
+getHandleGraphical(1746,35842
+getHandlePositionGraphical(1775,36273
+getHandlesGraphical(1791,36578
+invertedGraphical(1866,38197
+activeGraphical(1876,38403
+cursorGraphical(1892,38708
+focusCursorGraphical(1907,38922
+getDisplayedCursorGraphical(1918,39109
+focusGraphical(1928,39282
+WantsKeyboardFocusGraphical(1940,39518
+updateConnectionsGraphical(1952,39728
+updateHideExposeConnectionsGraphical(1972,40165
+connectGraphical(1985,40379
+attachConnectionGraphical(1994,40547
+detachConnectionGraphical(2005,40764
+match_connection(2016,40995
+connectedGraphical(2027,41256
+disconnectGraphical(2047,41613
+getConnectionsGraphical(2065,41957
+extendNetworkGraphical(2099,42640
+getNetworkGraphical(2123,43121
+#define MAX_DISTANCE	2154,44304
+layoutGraphical(2157,44384
+distance_area(2309,48476
+eventGraphical(2343,49267
+keyGraphical(2362,49592
+keyboardFocusGraphical(2368,49655
+getKeyboardFocusGraphical(2383,49943
+generateEventGraphical(2394,50108
+inEventAreaGraphical(2406,50338
+recogniserGraphical(2446,51230
+prependRecogniserGraphical(2454,51362
+deleteRecogniserGraphical(2462,51503
+getAllRecognisersGraphical(2472,51646
+assignGraphical(2493,52082
+bellGraphical(2517,52599
+flashGraphical(2527,52746
+alertGraphical(2564,53447
+getNodeGraphical(2573,53622
+popupGraphical(2584,53800
+getPopupGraphical(2597,54136
+pointerGraphical(2603,54224
+getMasterGraphical(2627,54946
+getContainerGraphical(2646,55479
+nameGraphical(2659,55682
+overlapGraphical(2667,55777
+getContainedInGraphical(2680,56106
+initialiseNewSlotGraphical(2693,56308
+drawPostScriptGraphical(2709,56669
+clipGraphical(2731,57104
+unclipGraphical(2742,57270
+saveGraphicsStateGraphical(2750,57347
+restoreGraphicsStateGraphical(2758,57430
+graphicsStateGraphical(2766,57519
+drawLineGraphical(2783,57878
+drawPolyGraphical(2791,58030
+drawArcGraphical(2840,59145
+drawBoxGraphical(2856,59548
+drawFillGraphical(2884,60124
+drawImageGraphical(2899,60417
+drawTextGraphical(2917,60854
+makeClassGraphical(3361,82319
 
 gra/graphstate.c,162
 typedef struct graphics_state *GraphicsState;GraphicsState10,249
@@ -2840,77 +2848,79 @@ clearImage(328,6937
 resizeImage(350,7430
 copyImage(361,7606
 drawInImage(382,7994
-fillImage(461,9681
-pixelImage(502,10601
-setPixelImage(547,11609
-clearPixelImage(556,11806
-invertPixelImage(565,12006
-invertImage(581,12374
-getPixelImage(596,12696
-maskImage(617,13186
-opImage(632,13483
-orImage(655,13946
-andImage(661,14049
-xorImage(667,14154
-getClipImage(677,14360
-getMonochromeImage(714,15237
-getScaleImage(723,15380
-getRotateImage(753,16179
-getBoundingBoxImage(803,17557
-getPostscriptDepthImage(810,17695
-stdImage(839,18398
-greyImage(860,18903
-standardImages(871,19117
-makeClassImage(1078,27241
+fillImage(459,9594
+pixelImage(500,10514
+setPixelImage(545,11522
+clearPixelImage(554,11719
+invertPixelImage(563,11919
+invertImage(579,12287
+getPixelImage(594,12609
+maskImage(615,13099
+opImage(630,13396
+orImage(653,13859
+andImage(659,13962
+xorImage(665,14067
+getClipImage(675,14273
+getMonochromeImage(712,15150
+getScaleImage(721,15293
+getRotateImage(751,16092
+getBoundingBoxImage(801,17470
+getPostscriptDepthImage(808,17608
+stdImage(839,18367
+greyImage(860,18872
+standardImages(871,19086
+makeClassImage(1082,27381
 
-gra/joint.c,267
+gra/joint.c,291
 initialiseJoint(16,339
 copyJoint(27,526
-getDefaultArrowJoint(39,768
-setArrowsJoint(45,846
-firstArrowJoint(62,1242
-secondArrowJoint(68,1344
-initArrowJoint(74,1446
-arrowsJoint(85,1593
-getArrowsJoint(110,2298
-#define rc_joint 164,3735
-makeClassJoint(182,4014
+getDefaultArrowJoint(39,772
+setArrowsJoint(45,850
+firstArrowJoint(63,1317
+secondArrowJoint(69,1423
+initArrowJoint(75,1533
+arrowsJoint(86,1680
+getArrowsJoint(111,2389
+selectedJoint(134,2983
+#define rc_joint 187,4511
+makeClassJoint(205,4790
 
-gra/line.c,817
-#define M_PI 14,320
-#define INFINITE 18,368
-#define INFINITE 20,418
-#define INFINITE 22,450
-#define points_area(points_area25,480
-#define area_points(area_points33,665
-initialiseLine(42,852
-copyLine(61,1303
-RedrawAreaLine(69,1397
-startLine(92,1943
-endLine(98,2050
-startXLine(104,2155
-startYLine(110,2255
-endXLine(116,2355
-endYLine(122,2453
-getStartLine(128,2550
-getStartXLine(134,2645
-getStartYLine(140,2699
-getEndLine(146,2762
-getEndXLine(157,2967
-getEndYLine(168,3133
-pointsLine(179,3302
-resizeLine(201,3855
-distanceLineToPoint(231,4680
-inEventAreaLine(246,5001
-getDistanceLine(267,5426
-getLengthLine(286,5844
-parms_line(297,6062
-getIntersectionLine(317,6534
-getAngleLine(344,7136
-normaliseLine(371,7722
-orientationLine(377,7774
-#define var_line 397,8303
-makeClassLine(479,11058
+gra/line.c,836
+#define M_PI 14,321
+#define INFINITE 18,369
+#define INFINITE 20,419
+#define INFINITE 22,451
+initialiseLine(27,489
+#define area_points(area_points44,919
+loadLine(53,1420
+adjustFirstArrowLine(76,1939
+adjustSecondArrowLine(94,2244
+computeLine(112,2553
+copyLine(180,3894
+RedrawAreaLine(193,4129
+paintSelectedLine(219,4672
+geometryLine(228,4903
+startLine(268,5806
+endLine(274,5913
+startXLine(280,6018
+startYLine(286,6118
+endXLine(292,6218
+endYLine(298,6316
+getStartLine(304,6413
+getEndLine(310,6517
+pointsLine(316,6609
+resizeLine(327,6923
+distanceLineToPoint(358,7799
+inEventAreaLine(373,8120
+getDistanceLine(393,8505
+getLengthLine(410,8876
+parms_line(419,9059
+getIntersectionLine(439,9519
+getAngleLine(466,10109
+normaliseLine(492,10680
+orientationLine(498,10732
+penLine(504,10794
+makeClassLine(609,14216
 
 gra/link.c,98
 initialiseLink(14,304
@@ -3037,45 +3047,47 @@ isParentNode2(649,13576
 zoomNode(661,13748
 unzoomNode(666,13813
 collapsedNode(671,13879
-relateImagesNode(687,14151
-forAllNode(700,14342
-forSomeNode(712,14521
-getFindNodeNode(724,14686
-getFindNode(740,14911
-getContainsNode(760,15239
-getContainedInNode(766,15327
-#define rc_node 866,19153
-makeClassNode(883,19421
+relateImagesNode(691,14304
+forAllNode(704,14495
+forSomeNode(716,14674
+getFindNodeNode(728,14839
+getFindNode(744,15064
+getContainsNode(764,15392
+getContainedInNode(770,15480
+#define rc_node 870,19307
+makeClassNode(887,19575
 
-gra/path.c,678
-initialisePath(21,564
-RedrawAreaPath(52,1455
-paintSelectedPath(114,3061
-computePath(142,3697
-computeBoundingBoxPath(160,4051
-smooth_path(215,5597
-curve_fit(304,8137
-points_to_path(401,10659
-clearPath(428,11224
-appendPath(435,11331
-deletePath(442,11454
-insertPath(451,11594
-intervalsPath(460,11759
-closedPath(471,11919
-markPath(482,12084
-radiusPath(493,12247
-kindPath(505,12416
-setPointPath(517,12579
-getRadiusOrIntervalPath(525,12708
-geometryPath(532,12835
-referencePath(588,14265
-resizePath(620,14793
-getStartPath(646,15467
-getEndPath(652,15540
-getPointPath(658,15611
-getSegmentPath(689,16248
-initialiseNewSlotPath(733,17203
-makeClassPath(850,21346
+gra/path.c,740
+initialisePath(21,565
+adjustFirstArrowPath(51,1443
+adjustSecondArrowPath(75,2024
+RedrawAreaPath(104,2746
+paintSelectedPath(154,3921
+computePath(182,4557
+computeBoundingBoxPath(200,4911
+smooth_path(268,6815
+curve_fit(357,9355
+points_to_path(454,11877
+clearPath(481,12442
+appendPath(488,12549
+deletePath(495,12672
+insertPath(504,12812
+intervalsPath(513,12977
+closedPath(524,13137
+markPath(535,13302
+radiusPath(546,13465
+kindPath(558,13634
+setPointPath(570,13797
+getRadiusOrIntervalPath(578,13926
+geometryPath(585,14053
+referencePath(641,15483
+resizePath(673,16011
+getStartPath(699,16685
+getEndPath(705,16758
+getPointPath(711,16829
+getSegmentPath(742,17466
+initialiseNewSlotPath(786,18421
+makeClassPath(903,22564
 
 gra/pen.c,65
 initialisePen(14,303
@@ -3091,41 +3103,39 @@ getReplacementColourPixmap(115,2462
 #define var_pixmap 155,3497
 makeClassPixmap(203,4674
 
-gra/postscript.c,903
-getPostscriptObject(45,1438
-initOutput(85,2326
-closeOutput(92,2464
-ps_put_char(98,2534
-putString(109,2720
-_output(142,3992
-ps_output(276,7156
-ps_put_string(286,7273
-ps_font(316,7901
-ps_colour(337,8442
-fill(355,8927
-#define putByte(putByte389,9798
-postscriptDrawable(398,9993
-postscriptImage(427,10613
-header(439,10827
-macros(509,12457
-footer(537,12906
-postscriptGraphical(558,13281
-drawPostScriptDevice(582,13753
-drawPostScriptFigure(601,14030
-drawPostScriptBox(613,14311
-drawPostScriptCircle(644,15177
-drawPostScriptEllipse(655,15387
-drawPostScriptPath(681,16118
-#define points_line(points_line802,19116
-drawPostScriptLine(813,19399
-drawPostScriptArrow(835,19922
-paintPostscriptArrow(857,20399
-drawPostScriptArc(874,20749
-drawPostScriptBitmap(915,21955
-drawPostScriptImage(926,22160
-drawPostScriptText(937,22369
-postscriptFrame(985,23567
-postscriptDisplay(991,23641
+gra/postscript.c,828
+getPostscriptObject(43,1344
+initOutput(83,2232
+closeOutput(90,2370
+ps_put_char(96,2440
+putString(107,2626
+_output(140,3898
+ps_output(274,7062
+ps_put_string(284,7179
+ps_font(314,7807
+ps_colour(335,8348
+fill(353,8833
+#define putByte(putByte387,9704
+postscriptDrawable(396,9899
+postscriptImage(425,10519
+header(437,10733
+macros(507,12363
+footer(535,12812
+postscriptGraphical(556,13187
+drawPostScriptDevice(564,13310
+drawPostScriptFigure(583,13587
+drawPostScriptBox(596,13887
+drawPostScriptCircle(627,14753
+drawPostScriptEllipse(638,14963
+drawPostScriptPath(664,15694
+drawPostScriptLine(772,18211
+drawPostScriptArrow(795,18715
+drawPostScriptArc(817,19203
+drawPostScriptBitmap(882,20735
+drawPostScriptImage(893,20940
+drawPostScriptText(904,21149
+postscriptFrame(952,22375
+postscriptDisplay(958,22449
 
 gra/scrollbar.c,1914
 #define SCROLLTIMER_USE_SLEEP 14,343
@@ -3193,7 +3203,7 @@ convertLoadedObjectScrollBar(1333,34318
 #define get_scrollBar 1429,37872
 makeClassScrollBar(1475,39120
 
-gra/text.c,2070
+gra/text.c,2139
 #define Wrapped(Wrapped20,576
 #define Before(Before22,667
 #define MakeSel(MakeSel23,747
@@ -3203,105 +3213,111 @@ computeText(66,1921
 recomputeText(85,2276
 RedrawAreaText(112,2897
 str_format(129,3191
-draw_caret(210,4565
-#define OL_CURSOR_SIZE	235,5119
-repaintText(239,5159
-initAreaText(320,7360
-initPositionText(370,8514
-initOffsetText(417,9571
-resizeText(458,10439
-getCharacterPositionText(484,11238
-get_char_pos_text(494,11411
-get_pointed_text(546,12552
-getPointedText(607,13808
-backgroundText(619,14051
-transparentText(631,14244
-getTransparentText(639,14363
-fontText(646,14448
-formatText(656,14598
-borderText(666,14754
-stringText(676,14905
-showCaretText(690,15134
-selectionText(707,15472
-getSelectionText(733,15946
-getSelectedText(747,16161
-copyText(760,16378
-deleteSelectionText(772,16567
-cutText(791,16945
-geometryText(811,17216
-updateShowCaretText(844,18010
-eventText(857,18268
-typedText(878,18711
-start_of_line(884,18822
-end_of_line(895,19003
-forward_word(904,19123
-backward_word(915,19347
-#define UArg(UArg930,19663
-caretMovementText(933,19727
-caretText(939,19801
-forwardCharText(956,20122
-backwardCharText(964,20255
-nextLineText(972,20389
-previousLineText(988,20762
-getColumnText(996,20902
-endOfLineText(1008,21077
-beginningOfLineText(1024,21413
-forwardWordText(1040,21740
-backwardWordText(1050,21946
-prepareInsertText(1064,22249
-prepareEditText(1070,22322
-pasteText(1080,22504
-backwardDeleteCharText(1096,22935
-deleteCharText(1122,23452
-cutOrDeleteCharText(1128,23558
-killLineText(1137,23729
-clearText(1157,24227
-insertText(1166,24402
-insertSelfText(1179,24679
-newlineText(1216,25415
-openLineText(1222,25511
-gosmacsTransposeText(1245,25981
-transposeCharsText(1265,26347
-killWordText(1285,26707
-backwardKillWordText(1296,26987
-formatCenterText(1308,27296
-formatLeftText(1314,27379
-formatRightText(1320,27458
-lengthText(1330,27630
-marginText(1344,27860
-delegateTextv(1375,28434
-loadText(1390,28729
-convertOldSlotText(1407,29091
-makeClassText(1616,37856
+str_one_line(210,4565
+draw_caret(227,4903
+#define OL_CURSOR_SIZE	252,5457
+repaintText(256,5497
+initAreaText(343,7812
+initPositionText(400,9094
+initOffsetText(454,10273
+resizeText(495,11141
+getCharacterPositionText(521,11940
+get_char_pos_text(531,12113
+get_pointed_text(589,13361
+getPointedText(650,14617
+backgroundText(662,14860
+transparentText(674,15053
+getTransparentText(682,15172
+fontText(689,15257
+formatText(699,15407
+borderText(709,15563
+stringText(719,15714
+showCaretText(733,15943
+selectionText(749,16245
+getSelectionText(791,16957
+getSelectedTextText(805,17172
+copyText(818,17393
+deleteSelectionText(835,17698
+cutText(854,18076
+geometryText(874,18347
+updateShowCaretText(907,19141
+eventText(920,19399
+typedText(941,19842
+start_of_line(947,19953
+end_of_line(958,20134
+forward_word(967,20254
+backward_word(978,20478
+#define UArg(UArg993,20794
+deselectText(996,20858
+caretText(1003,20959
+forwardCharText(1020,21280
+backwardCharText(1028,21408
+nextLineText(1036,21537
+previousLineText(1052,21905
+getColumnText(1060,22040
+endOfLineText(1072,22215
+beginningOfLineText(1088,22546
+forwardWordText(1104,22868
+backwardWordText(1114,23069
+prepareInsertText(1128,23367
+prepareEditText(1139,23645
+pasteText(1149,23857
+backwardDeleteCharText(1164,24266
+deleteCharText(1192,24803
+cutOrDeleteCharText(1198,24909
+cutOrBackwardDeleteCharText(1207,25080
+killLineText(1216,25267
+clearText(1238,25785
+insertText(1249,25980
+insertSelfText(1262,26257
+newlineText(1298,26967
+openLineText(1304,27063
+gosmacsTransposeText(1326,27509
+transposeCharsText(1347,27896
+killWordText(1368,28277
+backwardKillWordText(1380,28576
+formatCenterText(1393,28904
+formatLeftText(1400,29006
+formatRightText(1407,29104
+lengthText(1418,29295
+marginText(1432,29525
+delegateTextv(1463,30099
+loadText(1478,30394
+convertOldSlotText(1495,30756
+makeClassText(1707,39787
 
-gra/tree.c,642
+gra/tree.c,783
 initialiseTree(22,456
 rootTree(70,1565
 unlinkTree(94,2043
 requestComputeTree(103,2159
-RedrawAreaNode(112,2342
-RedrawAreaTree(142,3110
-eventTree(198,4270
-levelGapTree(237,5113
-displayTree(249,5253
-neighbourGapTree(263,5524
-linkGapTree(275,5683
-computeTree(288,5854
-layoutTree(306,6175
-autoLayoutTree(320,6466
-directionTree(332,6649
-updateHandlesTree(345,6829
-unzoomTree(377,7990
-zoomTree(383,8051
-rootHandlerTree(399,8262
-leafHandlerTree(405,8358
-nodeHandlerTree(411,8454
-collapsedHandlerTree(417,8550
-forAllTree(423,8656
-forSomeTree(432,8779
-add_nodes_tree(445,9001
-getContainsTree(458,9188
-makeClassTree(569,12935
+leading_x_tree(112,2341
+RedrawAreaNode(136,2822
+RedrawAreaTree(177,3904
+getNodeToCollapseOrExpand(240,5461
+eventTree(283,6427
+levelGapTree(340,7775
+displayTree(352,7915
+neighbourGapTree(366,8186
+linkGapTree(378,8345
+computeBoundingBoxFigureTree(391,8516
+computeFigureTree(415,9065
+computeTree(436,9550
+layoutTree(454,9866
+autoLayoutTree(472,10202
+directionTree(484,10385
+updateHandlesTree(497,10565
+unzoomTree(529,11726
+zoomTree(535,11787
+rootHandlerTree(551,11998
+leafHandlerTree(557,12094
+nodeHandlerTree(563,12190
+collapsedHandlerTree(569,12286
+forAllTree(575,12392
+forSomeTree(584,12515
+add_nodes_tree(597,12737
+getContainsTree(610,12924
+makeClassTree(725,16920
 
 gra/visual.c,391
 containedInVisual(13,282
@@ -3547,88 +3563,88 @@ bootClass(400,11121
 lookupBootClass(414,11384
 getConvertClass(441,11976
 installClass(481,12921
-initClass(523,13916
-prepareClass(543,14268
-makeBuiltInClasses(560,14604
-initialiseClass(580,15130
-getLookupClass(616,15972
-unlinkClass(641,16675
-getSubClassClass(648,16771
-fixSubClassVariableClass(671,17273
-getLocaliseInstanceVariableClass(694,17937
-instanceVariableClass(716,18436
-refineVariableClass(762,19673
-codeExecuteCode(787,20371
-fixSendFunctionClass(793,20466
-codeGetExecuteCode(804,20734
-fixGetFunctionClass(810,20831
-fixSubClassSendMethodsClass(821,21095
-sendMethodClass(839,21562
-fixSubClassGetMethodsClass(876,22364
-getMethodClass(893,22839
-setChangedFunctionClass(932,23685
-setTraceFunctionClass(941,23811
-setInEventAreaFunctionClass(949,23922
-isPceSlot(963,24229
-allPceSlotsClass(971,24385
-_termClass(991,24955
-termClass(1016,25487
-_sendMethod(1026,25658
-sendMethod(1073,26771
-storeMethod(1086,26986
-fetchMethod(1107,27546
-_getMethod(1128,28095
-getMethod(1177,29355
-cloneStyleClass(1194,29692
-cloneStyleVariableClass(1203,29815
-saveStyleVariableClass(1214,30018
-saveStyleClass(1225,30219
-setCloneFunctionClass(1234,30340
-setRedrawFunctionClass(1241,30451
-setLoadStoreFunctionClass(1252,30679
-handleClass(1260,30839
-solidClass(1272,31066
-sourceClass(1281,31175
-rtSourceClass(1306,31667
-localClass(1313,31741
-redefineLocalClass(1334,32187
-declareClass(1357,32715
-superClass(1420,34487
-delegateClass(1441,34993
-prependDelegateClass(1456,35258
-getInstanceClassv(1471,35535
-getInstanceVariableClass(1477,35644
-boundSendMethodClass(1543,38446
-boundGetMethodClass(1566,38878
-attachLazySendMethodClass(1589,39311
-attachLazyGetMethodClass(1618,40131
-bindMethod(1652,41094
-getResolveSendMethodClass(1727,42793
-getResolveGetMethodClass(1776,43896
-clearCacheClass(1823,44913
-deleteSendMethodClass(1841,45288
-deleteGetMethodClass(1866,45821
-getNoCreatedClass(1891,46337
-getNoFreedClass(1904,46570
-createdClass(1921,46984
-freedClass(1942,47466
-recordInstancesClass(1964,47961
-changedMessageClass(1984,48456
-createdMessageClass(1997,48718
-freedMessageClass(2010,48980
-getSuperClassNameClass(2023,49232
-getManHeaderClass(2037,49483
-getManSummaryClass(2065,49947
-isAClass(2104,50633
-numberTreeClass(2111,50781
-featureClass(2133,51283
-hasFeatureClass(2147,51555
-getFeatureClass(2162,51811
-getLazyBindingClass(2177,52082
-lazyBindingClass(2185,52255
-getSendMethodsClass(2206,52673
-getGetMethodsClass(2215,52821
-makeClassClass(2224,52960
+initClass(525,14034
+prepareClass(545,14386
+makeBuiltInClasses(562,14722
+initialiseClass(582,15248
+getLookupClass(619,16115
+unlinkClass(644,16818
+getSubClassClass(651,16914
+fixSubClassVariableClass(674,17416
+getLocaliseInstanceVariableClass(697,18080
+instanceVariableClass(719,18579
+refineVariableClass(765,19816
+codeExecuteCode(790,20514
+fixSendFunctionClass(796,20609
+codeGetExecuteCode(807,20877
+fixGetFunctionClass(813,20974
+fixSubClassSendMethodsClass(824,21238
+sendMethodClass(844,21800
+fixSubClassGetMethodsClass(881,22602
+getMethodClass(898,23077
+setChangedFunctionClass(937,23923
+setTraceFunctionClass(946,24049
+setInEventAreaFunctionClass(954,24160
+isPceSlot(968,24467
+allPceSlotsClass(976,24623
+_termClass(996,25193
+termClass(1021,25725
+_sendMethod(1031,25896
+sendMethod(1078,27009
+storeMethod(1091,27224
+fetchMethod(1112,27784
+_getMethod(1133,28333
+getMethod(1182,29593
+cloneStyleClass(1199,29930
+cloneStyleVariableClass(1208,30053
+saveStyleVariableClass(1219,30256
+saveStyleClass(1230,30457
+setCloneFunctionClass(1239,30578
+setRedrawFunctionClass(1246,30689
+setLoadStoreFunctionClass(1257,30917
+handleClass(1265,31077
+solidClass(1277,31304
+sourceClass(1286,31413
+rtSourceClass(1311,31905
+localClass(1318,31979
+redefineLocalClass(1339,32425
+declareClass(1362,32953
+superClass(1425,34725
+delegateClass(1446,35231
+prependDelegateClass(1461,35496
+getInstanceClassv(1476,35773
+getInstanceVariableClass(1482,35882
+boundSendMethodClass(1548,38684
+boundGetMethodClass(1571,39116
+attachLazySendMethodClass(1594,39549
+attachLazyGetMethodClass(1623,40369
+bindMethod(1657,41332
+getResolveSendMethodClass(1732,43031
+getResolveGetMethodClass(1781,44134
+clearCacheClass(1828,45151
+deleteSendMethodClass(1846,45526
+deleteGetMethodClass(1871,46059
+getNoCreatedClass(1896,46575
+getNoFreedClass(1909,46808
+createdClass(1926,47222
+freedClass(1947,47704
+recordInstancesClass(1969,48199
+changedMessageClass(1989,48694
+createdMessageClass(2002,48956
+freedMessageClass(2015,49218
+getSuperClassNameClass(2028,49470
+getManHeaderClass(2042,49721
+getManSummaryClass(2070,50185
+isAClass(2109,50871
+numberTreeClass(2116,51019
+featureClass(2138,51521
+hasFeatureClass(2152,51793
+getFeatureClass(2167,52049
+getLazyBindingClass(2182,52320
+lazyBindingClass(2190,52493
+getSendMethodsClass(2211,52911
+getGetMethodsClass(2220,53059
+makeClassClass(2229,53198
 
 ker/classstub.c,321
 initialiseClassStub(13,285
@@ -3644,20 +3660,20 @@ getManIndicatorClass(137,2768
 makeClassClassStub(216,5216
 
 ker/conversion.c,260
-toString(13,279
-toCharp(43,899
-toInteger(54,1009
-toReal(80,1625
-toBool(89,1752
-toName(121,2493
-toType(133,2630
-#define PPRINGSIZE 149,2887
-ppsavestring(159,3212
-do_pp(179,3572
-pcePP(240,4997
-pp_sig(273,5437
-pcePP(279,5490
-expandFunction(318,6149
+toString(13,280
+toCharp(43,900
+toInteger(54,1010
+toReal(80,1626
+toBool(89,1753
+toName(121,2494
+toType(133,2631
+#define PPRINGSIZE 149,2888
+ppsavestring(159,3213
+do_pp(179,3573
+pcePP(240,4998
+pp_sig(273,5438
+pcePP(279,5491
+expandFunction(318,6150
 
 ker/csymbol.c,195
 } c_symbol, *CSymbol;CSymbol18,404
@@ -3674,10 +3690,10 @@ catchErrorSignals(48,1018
 confirmTerminal(71,1542
 
 ker/declarations.c,135
-initClassDefs(497,16469
-#define defClass(defClass500,16514
-static struct type_aliastype_alias539,18317
-initTypeAliases(552,18628
+initClassDefs(503,16720
+#define defClass(defClass506,16765
+static struct type_aliastype_alias545,18568
+initTypeAliases(558,18879
 
 ker/error.c,557
 initialiseError(17,374
@@ -3865,133 +3881,133 @@ GetBenchName(591,10921
 makeClassName(691,13462
 
 ker/object.c,3639
-#define offset(offset89,2780
-updateInstanceProtoClass(92,2843
-unallocInstanceProtoClass(111,3333
-allocObject(120,3510
-init_slots(153,4127
-initialiseObject(170,4501
-unallocObject(194,5205
-createObjectv(200,5295
-newObjectv(285,7120
-globalObjectv(291,7235
-tempObjectv(303,7480
-makeTempObject(313,7636
-considerPreserveObject(322,7735
-answerObjectv(335,7991
-newObject(350,8340
-tempObject(364,8616
-globalObject(383,8946
-answerObject(398,9247
-freeObject(422,9780
-unlinkObject(472,10823
-unlinkingObject(530,12357
-createdObject(539,12442
-succeedObject(550,12587
-failObject(556,12637
-getFailObject(562,12678
-virtualObject(568,12720
-getVirtualObject(574,12759
-getReferencesObject(580,12801
-getCodeReferencesObject(586,12872
-getFlagsObject(592,12952
-#define DoFlag(DoFlag596,13011
-protectObject(608,13212
-getProtectObject(617,13341
-doneObject(623,13420
-lockObject(632,13510
-getLockObject(645,13722
-inspectObject(652,13811
-getInspectObject(664,13959
-getClassNameObject(671,14060
-getClassObject(677,14134
-getSelfObject(683,14196
-setSlotInstance(704,14511
-sameClassObject(713,14677
-nameReferenceObject(721,14796
-getObjectReferenceObject(740,15161
-constraintObject(756,15416
-deleteConstraintObject(764,15541
-sendMethodObject(774,15695
-getMethodObject(781,15828
-attachHyperObject(789,15953
-deleteHyperObject(797,16079
-attributeObject(807,16211
-deleteAttributeObject(846,17122
-getAttributeObject(867,17449
-getSendMethodObject(888,17797
-getGetMethodObject(898,17992
-hasSendMethodObject(908,18173
-hasGetMethodObject(917,18323
-mergeMethod(930,18568
-mergeMethods(942,18833
-mergeSendMethodsObject(952,18997
-getFindAllSendMethodsObject(982,19820
-getAllConstraintsObject(1001,20211
-getAllHypersObject(1019,20542
-getAllAttributesObject(1037,20848
-getAllSendMethodsObject(1055,21174
-getAllGetMethodsObject(1073,21505
-typedef struct clone_field *CloneField;CloneField1094,21923
-struct clone_fieldclone_field1096,21964
-addCloneField(1108,22157
-destroyCloneFields(1120,22432
-getCloneObject(1130,22600
-clonePceSlots(1168,23469
-cloneExtenstions(1200,24509
-getClone2Object(1243,25634
-getArityObject(1282,26486
-getFunctorObject(1293,26638
-getArgObject(1299,26708
-getSlotObject(1314,26961
-slotObject(1332,27361
-isOnObject(1343,27602
-isOffObject(1351,27712
-hasValueObject(1359,27824
-notHasValueObject(1367,27951
-equalObject(1378,28172
-sameReferenceObject(1384,28230
-sendSubObject(1393,28404
-getGetSubObject(1402,28630
-sendSuperObject(1416,29034
-getGetSuperObject(1437,29523
-sendClassObject(1455,29949
-getGetClassObject(1473,30365
-sendVectorObject(1491,30782
-getVectorObject(1531,31521
-sendSuperVectorObject(1572,32269
-sendHyperObject(1612,33030
-getHyperObject(1637,33569
-getFindHyperObject(1662,34095
-getHyperedObject(1688,34642
-freeHypersObject(1699,34821
-addRefObject(1729,35463
-delRefObject(1744,35755
-assignField(1782,36799
-_changedObject(1818,37719
-changedObject(1847,38274
-changedFieldObject(1863,38501
-getResourceValueObject(1896,39215
-obtainResourcesObject(1905,39365
-convertLoadedObjectObject(1950,40295
-initialiseNewSlotObject(1956,40395
-getConvertObject(1976,40910
-checkExtensonsObject(2012,41652
-#define CheckExt(CheckExt2015,41736
-check_object(2041,42589
-#define Test(Test2075,43335
-CheckObject(2197,46523
-for_slot_reference_object(2221,46957
-forSlotReferenceObject(2296,48970
-errorObjectv(2318,49411
-getReportToObject(2350,49978
-reportObject(2359,50144
-getManIdObject(2399,51096
-getManIndicatorObject(2414,51309
-getPrintNameObject(2421,51392
-#define var_object 2465,52873
-#define rc_object 2670,63620
-makeClassObject(2686,63845
+#define offset(offset89,2770
+updateInstanceProtoClass(92,2833
+unallocInstanceProtoClass(111,3323
+allocObject(120,3500
+init_slots(153,4117
+initialiseObject(170,4491
+unallocObject(194,5195
+createObjectv(200,5285
+newObjectv(285,7110
+globalObjectv(291,7225
+tempObjectv(303,7470
+makeTempObject(313,7626
+considerPreserveObject(322,7725
+answerObjectv(335,7981
+newObject(350,8330
+tempObject(364,8606
+globalObject(383,8936
+answerObject(398,9237
+freeObject(422,9770
+unlinkObject(472,10813
+unlinkingObject(530,12347
+createdObject(539,12432
+succeedObject(550,12577
+failObject(556,12627
+getFailObject(562,12668
+virtualObject(568,12710
+getVirtualObject(574,12749
+getReferencesObject(580,12791
+getCodeReferencesObject(586,12862
+getFlagsObject(592,12942
+#define DoFlag(DoFlag596,13001
+protectObject(608,13202
+getProtectObject(617,13331
+doneObject(623,13410
+lockObject(632,13500
+getLockObject(645,13712
+inspectObject(652,13801
+getInspectObject(664,13949
+getClassNameObject(671,14050
+getClassObject(677,14124
+getSelfObject(683,14186
+setSlotInstance(704,14501
+sameClassObject(713,14667
+nameReferenceObject(721,14786
+getObjectReferenceObject(740,15151
+constraintObject(756,15406
+deleteConstraintObject(764,15531
+sendMethodObject(774,15685
+getMethodObject(781,15818
+attachHyperObject(789,15943
+deleteHyperObject(797,16069
+attributeObject(807,16201
+deleteAttributeObject(846,17112
+getAttributeObject(867,17439
+getSendMethodObject(888,17787
+getGetMethodObject(898,17982
+hasSendMethodObject(908,18163
+hasGetMethodObject(917,18313
+mergeMethod(930,18558
+mergeMethods(942,18823
+mergeSendMethodsObject(952,18987
+getFindAllSendMethodsObject(982,19810
+getAllConstraintsObject(1001,20201
+getAllHypersObject(1019,20532
+getAllAttributesObject(1037,20838
+getAllSendMethodsObject(1055,21164
+getAllGetMethodsObject(1073,21495
+typedef struct clone_field *CloneField;CloneField1094,21913
+struct clone_fieldclone_field1096,21954
+addCloneField(1108,22147
+destroyCloneFields(1120,22422
+getCloneObject(1130,22590
+clonePceSlots(1168,23459
+cloneExtenstions(1200,24499
+getClone2Object(1243,25624
+getArityObject(1282,26476
+getFunctorObject(1293,26628
+getArgObject(1299,26698
+getSlotObject(1314,26951
+slotObject(1332,27351
+isOnObject(1343,27592
+isOffObject(1351,27702
+hasValueObject(1359,27814
+notHasValueObject(1367,27941
+equalObject(1378,28162
+sameReferenceObject(1384,28220
+sendSubObject(1393,28394
+getGetSubObject(1402,28620
+sendSuperObject(1416,29024
+getGetSuperObject(1437,29513
+sendClassObject(1455,29939
+getGetClassObject(1473,30355
+sendVectorObject(1491,30772
+getVectorObject(1531,31511
+sendSuperVectorObject(1572,32259
+sendHyperObject(1612,33020
+getHyperObject(1637,33559
+getFindHyperObject(1662,34085
+getHyperedObject(1688,34632
+freeHypersObject(1699,34811
+addRefObject(1729,35453
+delRefObject(1744,35745
+assignField(1782,36789
+_changedObject(1818,37709
+changedObject(1847,38264
+changedFieldObject(1863,38491
+getResourceValueObject(1896,39205
+obtainResourcesObject(1905,39355
+convertLoadedObjectObject(1950,40285
+initialiseNewSlotObject(1956,40385
+getConvertObject(1976,40900
+checkExtensonsObject(2012,41642
+#define CheckExt(CheckExt2015,41726
+check_object(2041,42579
+#define Test(Test2075,43325
+CheckObject(2197,46513
+for_slot_reference_object(2221,46947
+forSlotReferenceObject(2296,48960
+errorObjectv(2318,49401
+getReportToObject(2350,49968
+reportObject(2359,50134
+getManIdObject(2399,51086
+getManIndicatorObject(2414,51299
+getPrintNameObject(2421,51382
+#define var_object 2465,52863
+#define rc_object 2670,63610
+makeClassObject(2686,63835
 
 ker/passing.c,562
 #define INLINE_UTILITIES 10,246
@@ -4088,83 +4104,83 @@ iconifyConsolePce(152,3310
 consoleLabelPce(158,3398
 getOsErrorPce(170,3585
 getUnresolvedTypesPce(194,4062
-catchErrorPce(218,4576
-catchPopPce(226,4708
-catchedErrorPce(232,4787
-getHomePce(249,5056
-getEnvironmentVariablePce(264,5291
-exitMessagePce(281,5620
-callExitMessagesPce(287,5720
-exit_pce(300,5949
-run_pce_onexit_hooks(306,6037
-run_pce_atexit_hooks(313,6189
-getIsRuntimeSystemPce(325,6372
-debugSubjectPce(338,6501
-nodebugSubjectPce(347,6675
-debuggingPce(355,6782
-tracePce(365,6910
-trapErrorsPce(385,7255
-printStackPce(394,7408
-maxGoalDepthPce(403,7563
-getMaxGoalDepthPce(411,7693
-exceptionPcev(422,7901
-exceptionPce(434,8127
-getdtablesize(460,8712
-getdtablesize(470,8834
-getFdPce(490,9101
-getCoreUsagePce(511,9420
-getWastedCorePce(517,9489
-getDeferredUnallocedPce(523,9560
-getAnswerStackSizePce(529,9644
-getNoCreatedPce(535,9720
-getNoFreedPce(541,9802
-getMethodCallsPce(547,9880
-licenceInfoPce(553,9956
-bannerPce(575,10533
-count_subclasses(602,11167
-infoPce(615,11393
-getCpuTimePce(664,12856
-getCpuTimePce(684,13249
-getMaxIntegerPce(692,13418
-getMinIntegerPce(698,13489
-featurePce(704,13556
-hasFeaturePce(710,13646
-getDatePce(716,13749
-getMclockPce(728,13910
-#define getlogin 734,13984
-_emu_getlogin(737,14030
-#define gethostname 758,14541
-_emu_gethostname(764,14661
-getUserPce(787,14998
-getUserInfoPce(805,15230
-getHostnamePce(838,15973
-getPidPce(851,16164
-catchErrorSignalsPce(865,16429
-informPce(881,16720
-confirmPce(896,17017
-syntaxPce(945,17860
-failPce(976,18602
-succeedPce(982,18645
-benchPce(989,18712
-resetPce(1039,19952
-diePce(1066,20347
-getPostscriptHeaderPce(1084,20722
-getInstancePcev(1095,20895
-getConvertPce(1101,21013
-makeClassUsingCode(1107,21111
-defineClassPce(1116,21280
-getObjectFromReferencePce(1141,21919
-forNameReferencePce(1160,22199
-renameReferencePce(1166,22284
-getVersionPce(1172,22379
-#define rc_pce 1424,33428
-makeClassPce(1442,33690
-objectAttributeTable(1460,34027
-pceInitialise(1469,34180
-  if ( !iswin32s(1734,41222
-  if 1762,41797
-#define MAXPATHLEN 1778,42130
-#define check_passwd 1782,42174
+catchErrorPce(218,4569
+catchPopPce(226,4694
+catchedErrorPce(232,4773
+getHomePce(249,5042
+getEnvironmentVariablePce(264,5277
+exitMessagePce(281,5606
+callExitMessagesPce(287,5706
+exit_pce(300,5935
+run_pce_onexit_hooks(306,6023
+run_pce_atexit_hooks(313,6175
+getIsRuntimeSystemPce(325,6358
+debugSubjectPce(338,6487
+nodebugSubjectPce(347,6661
+debuggingPce(355,6768
+tracePce(365,6896
+trapErrorsPce(385,7241
+printStackPce(394,7394
+maxGoalDepthPce(403,7549
+getMaxGoalDepthPce(411,7679
+exceptionPcev(422,7887
+exceptionPce(434,8113
+getdtablesize(460,8698
+getdtablesize(470,8820
+getFdPce(490,9087
+getCoreUsagePce(511,9406
+getWastedCorePce(517,9475
+getDeferredUnallocedPce(523,9546
+getAnswerStackSizePce(529,9630
+getNoCreatedPce(535,9706
+getNoFreedPce(541,9788
+getMethodCallsPce(547,9866
+licenceInfoPce(553,9942
+bannerPce(575,10519
+count_subclasses(602,11153
+infoPce(615,11379
+getCpuTimePce(664,12842
+getCpuTimePce(684,13235
+getMaxIntegerPce(692,13404
+getMinIntegerPce(698,13475
+featurePce(704,13542
+hasFeaturePce(710,13632
+getDatePce(716,13735
+getMclockPce(728,13896
+#define getlogin 734,13970
+_emu_getlogin(737,14016
+#define gethostname 758,14527
+_emu_gethostname(764,14647
+getUserPce(787,14984
+getUserInfoPce(805,15216
+getHostnamePce(838,15959
+getPidPce(851,16150
+catchErrorSignalsPce(865,16415
+informPce(881,16706
+confirmPce(896,17003
+syntaxPce(945,17846
+failPce(976,18588
+succeedPce(982,18631
+benchPce(989,18698
+resetPce(1039,19938
+diePce(1066,20333
+getPostscriptHeaderPce(1084,20708
+getInstancePcev(1095,20881
+getConvertPce(1101,20999
+makeClassUsingCode(1107,21097
+defineClassPce(1116,21266
+getObjectFromReferencePce(1141,21905
+forNameReferencePce(1160,22185
+renameReferencePce(1166,22270
+getVersionPce(1172,22365
+#define rc_pce 1424,33414
+makeClassPce(1442,33676
+objectAttributeTable(1460,34013
+pceInitialise(1469,34166
+  if ( !iswin32s(1734,41208
+  if 1762,41783
+#define MAXPATHLEN 1778,42116
+#define check_passwd 1782,42160
 
 ker/sendmethod.c,233
 #define INLINE_UTILITIES 10,250
@@ -4390,32 +4406,35 @@ popupImageButton(508,11185
 getSelectionButton(514,11290
 makeClassButton(614,14713
 
-men/diagroup.c,747
+men/diagroup.c,859
 initialiseDialogGroup(22,516
-compute_label(50,1269
-computeDialogGroup(77,1821
-geometryDialogGroup(128,2990
-sizeDialogGroup(157,3581
-layoutDialogDialogGroup(172,3884
-gapDialogGroup(180,4038
-borderDialogGroup(191,4205
-nameDialogGroup(209,4647
-ChangedLabelDialogGroup(218,4833
-labelDialogGroup(226,4971
-labelFontDialogGroup(237,5150
-labelFormatDialogGroup(248,5336
-getLabelNameDialogGroup(259,5532
-radiusDialogGroup(267,5662
-kindDialogGroup(277,5868
-RedrawAreaDialogGroup(298,6387
-WantsKeyboardFocusTextItem(371,8133
-eventDialogGroup(384,8327
-getDefaultButtonDialogGroup(393,8521
-applyDialogGroup(416,8943
-restoreDialogGroup(429,9206
-modifiedItemDialogGroup(442,9452
-appendDialogGroup(456,9732
-makeClassDialogGroup(586,14705
+compute_label_size_dialog_group(51,1293
+compute_label(73,1751
+computeDialogGroup(94,2179
+geometryDialogGroup(150,3461
+sizeDialogGroup(176,4008
+layoutDialogDialogGroup(191,4311
+gapDialogGroup(199,4465
+borderDialogGroup(210,4632
+nameDialogGroup(228,5074
+ChangedLabelDialogGroup(237,5260
+labelDialogGroup(245,5398
+labelFontDialogGroup(256,5577
+labelFormatDialogGroup(267,5763
+getLabelNameDialogGroup(278,5959
+radiusDialogGroup(289,6224
+elevationDialogGroup(295,6337
+kindDialogGroup(305,6545
+RedrawLabelDialogGroup(326,7057
+RedrawAreaDialogGroup(363,7903
+WantsKeyboardFocusTextItem(450,10035
+eventDialogGroup(463,10229
+getDefaultButtonDialogGroup(472,10423
+applyDialogGroup(495,10845
+restoreDialogGroup(508,11108
+modifiedItemDialogGroup(521,11354
+appendDialogGroup(535,11634
+makeClassDialogGroup(669,16766
 
 men/dialogitem.c,956
 createDialogItem(20,461
@@ -4423,35 +4442,35 @@ unlinkDialogItem(52,1295
 RedrawLabelDialogItem(65,1538
 dia_label_size(104,2397
 deviceDialogItem(133,2911
-labelDialogItem(152,3295
-labelFontDialogItem(158,3397
-getLabelNameDialogItem(164,3519
-nameDialogItem(175,3769
-lookDialogItem(187,3981
-acceleratorDialogItem(193,4087
-backgroundDialogItem(199,4205
-labelFormatDialogItem(205,4318
-forwardDialogItem(220,4776
-eventDialogItem(235,5043
-statusDialogItem(250,5309
-cancelDialogItem(259,5435
-changedDialogItem(270,5627
-showDialogItem(281,5768
-getShowDialogItem(294,6050
-getReferenceDialogItem(304,6217
-resetDialogItem(316,6382
-openDialogItem(324,6484
-getModifiedDialogItem(341,6794
-modifiedDialogItem(347,6853
-#define ACC_WSEP 361,7107
-#define ACC_UPPER 362,7127
-#define ACC_LOWER 363,7147
-#define ACC_DIGIT 364,7167
-#define ACC_CHARSETSIZE 366,7188
-} abin, *Abin;Abin374,7356
-acc_index(378,7387
-assignAccelerators(460,8624
-makeClassDialogItem(673,15558
+labelDialogItem(152,3317
+labelFontDialogItem(158,3419
+getLabelNameDialogItem(164,3541
+nameDialogItem(175,3791
+lookDialogItem(187,4003
+acceleratorDialogItem(193,4109
+backgroundDialogItem(199,4227
+labelFormatDialogItem(205,4340
+forwardDialogItem(220,4798
+eventDialogItem(235,5065
+statusDialogItem(250,5331
+cancelDialogItem(259,5457
+changedDialogItem(270,5649
+showDialogItem(281,5790
+getShowDialogItem(294,6072
+getReferenceDialogItem(304,6239
+resetDialogItem(316,6404
+openDialogItem(324,6506
+getModifiedDialogItem(341,6816
+modifiedDialogItem(347,6875
+#define ACC_WSEP 361,7129
+#define ACC_UPPER 362,7149
+#define ACC_LOWER 363,7169
+#define ACC_DIGIT 364,7189
+#define ACC_CHARSETSIZE 366,7210
+} abin, *Abin;Abin374,7378
+acc_index(378,7409
+assignAccelerators(460,8646
+makeClassDialogItem(673,15580
 
 men/label.c,366
 initialiseLabel(17,408
@@ -4470,6 +4489,17 @@ borderLabel(225,4570
 catchAllLabelv(231,4673
 reportLabel(251,5307
 makeClassLabel(372,8948
+
+men/labelbox.c,250
+initialiseLabelBox(19,407
+compute_label(36,783
+labelWidthLabelBox(52,1157
+labelFormatLabelBox(63,1346
+getLabelWidthLabelBox(74,1541
+computeLabelBox(88,1752
+RedrawAreaLabelBox(139,2835
+getReferenceLabelBox(170,3520
+makeClassLabelBox(240,5310
 
 men/menu.c,2624
 #define CYCLE_DROP_WIDTH 21,666
@@ -4534,43 +4564,43 @@ membersMenu(1402,31904
 memberMenu(1414,32070
 getMemberMenu(1422,32167
 updateMenu(1436,32381
-activeItemMenu(1461,32834
-onMenu(1475,33047
-offMenu(1481,33126
-getActiveItemMenu(1487,33205
-isOnMenu(1497,33339
-isOffMenu(1506,33446
-activeAllItemsMenu(1515,33555
-allOnMenu(1532,33793
-allOffMenu(1538,33865
-kindMenu(1547,34034
-ensureSingleSelectionMenu(1687,38326
-multipleSelectionMenu(1715,38758
-layoutMenu(1721,38874
-columnsMenu(1727,38966
-valueFontMenu(1737,39169
-valueWidthMenu(1743,39274
-getValueWidthMenu(1752,39422
-showLabelMenu(1763,39578
-offImageMenu(1769,39678
-onImageMenu(1775,39781
-popupImageMenu(1781,39882
-borderMenu(1787,39989
-gapMenu(1793,40078
-formatMenu(1799,40166
-verticalFormatMenu(1805,40262
-feedbackMenu(1811,40374
-marginMenu(1817,40482
-sortMenu(1823,40581
-getContainsMenu(1836,40820
-getModifiedMenu(1846,40984
-modifiedMenu(1886,41709
-getDefaultMenu(1897,41857
-defaultMenu(1906,41994
-restoreMenu(1918,42146
-applyMenu(1927,42270
-assignAcceletatorsMenu(1945,42647
-makeClassMenu(2183,53635
+activeItemMenu(1461,32852
+onMenu(1475,33065
+offMenu(1481,33144
+getActiveItemMenu(1487,33223
+isOnMenu(1497,33357
+isOffMenu(1506,33464
+activeAllItemsMenu(1515,33573
+allOnMenu(1532,33811
+allOffMenu(1538,33883
+kindMenu(1547,34052
+ensureSingleSelectionMenu(1687,38344
+multipleSelectionMenu(1715,38776
+layoutMenu(1721,38892
+columnsMenu(1727,38984
+valueFontMenu(1737,39187
+valueWidthMenu(1743,39292
+getValueWidthMenu(1752,39440
+showLabelMenu(1763,39596
+offImageMenu(1769,39696
+onImageMenu(1775,39799
+popupImageMenu(1781,39900
+borderMenu(1787,40007
+gapMenu(1793,40096
+formatMenu(1799,40184
+verticalFormatMenu(1805,40280
+feedbackMenu(1811,40392
+marginMenu(1817,40500
+sortMenu(1823,40599
+getContainsMenu(1836,40838
+getModifiedMenu(1846,41002
+modifiedMenu(1886,41727
+getDefaultMenu(1897,41875
+defaultMenu(1906,42012
+restoreMenu(1918,42164
+applyMenu(1927,42288
+assignAcceletatorsMenu(1945,42665
+makeClassMenu(2183,53653
 
 men/menubar.c,745
 initialiseMenuBar(16,361
@@ -4691,19 +4721,19 @@ makeClassSlider(624,15335
 men/tab.c,349
 initialiseTab(19,400
 computeLabelTab(36,765
-computeTab(55,1208
-geometryTab(103,2265
-ChangedLabelTab(127,2797
-labelOffsetTab(142,3105
-statusTab(170,3848
-#define GOTO(GOTO184,4093
-#define RMOVE(RMOVE185,4144
-RedrawAreaTab(188,4234
-inEventAreaTab(268,6217
-eventTab(287,6613
-flashTab(316,7195
-advanceTab(338,7673
-makeClassTab(436,10676
+computeTab(55,1216
+geometryTab(103,2273
+ChangedLabelTab(127,2805
+labelOffsetTab(142,3113
+statusTab(170,3856
+#define GOTO(GOTO184,4101
+#define RMOVE(RMOVE185,4152
+RedrawAreaTab(188,4242
+inEventAreaTab(272,6249
+eventTab(291,6645
+flashTab(318,7193
+advanceTab(340,7671
+makeClassTab(438,10650
 
 men/tabstack.c,242
 initialiseTabStack(19,405
@@ -4716,66 +4746,68 @@ onTopTabStack(178,3567
 getOnTopTabStack(193,3832
 makeClassTabStack(244,5056
 
-men/textitem.c,1773
+men/textitem.c,1832
 initialiseTextItem(31,1005
 RedrawAreaTextItem(72,2160
 updateShowCaretTextItem(143,3944
-statusTextItem(160,4363
-compute_label_text_item(172,4533
-computeTextItem(188,4909
-getReferenceTextItem(231,5999
-pasteTextItem(252,6416
-CompletionBrowser(266,6696
-completerShownDialogItem(315,8325
-quitCompleterDialogItem(324,8462
-selectCompletionDialogItem(347,8959
-selectCompletionTextItem(414,10896
-enterCompleterTextItem(433,11326
-selectedCompletionTextItem(445,11514
-completions(463,12159
-completeTextItem(498,12876
-getSplitCompletionTextItem(547,14124
-getCompletionsTextItem(553,14213
-indicateDirectoryTextItem(571,14623
-getHasCompletionsTextItem(581,14813
-styleTextItem(615,15631
-typeTextItem(628,15882
-valueSetTextItem(636,16010
-combo_flags(644,16143
-combo_width(659,16366
-showComboBoxTextItem(671,16525
-eventTextItem(696,17030
-keyboardQuitTextItem(788,19268
-executeTextItem(797,19390
-keyTextItem(803,19469
-typedTextItem(812,19641
-nextTextItem(820,19828
-enterTextItem(826,19920
-getModifiedTextItem(855,20563
-modifiedTextItem(862,20718
-defaultTextItem(877,21014
-getDefaultTextItem(889,21186
-restoreTextItem(895,21289
-applyTextItem(904,21428
-getSelectionTypeTextItem(917,21722
-getPrintNameOfValueTextItem(932,21988
-getSelectionTextItem(945,22265
-clearTextItem(993,23400
-selectionTextItem(1006,23771
-resetTextItem(1027,24207
-displayedValueTextItem(1041,24502
-getDisplayedValueTextItem(1054,24844
-editableTextItem(1064,25035
-lengthTextItem(1077,25285
-showLabelTextItem(1090,25477
-valueFontTextItem(1101,25658
-getLabelWidthTextItem(1112,25848
-labelWidthTextItem(1122,26007
-valueWidthTextItem(1133,26208
-geometryTextItem(1152,26608
-delegateTextItem(1172,27039
-WantsKeyboardFocusTextItem(1195,27566
-makeClassTextItem(1371,35052
+activateTextItem(165,4491
+statusTextItem(180,4847
+compute_label_text_item(192,5017
+computeTextItem(208,5393
+getReferenceTextItem(252,6505
+pasteTextItem(273,6922
+CompletionBrowser(287,7202
+completerShownDialogItem(339,8886
+quitCompleterDialogItem(348,9023
+selectCompletionDialogItem(371,9520
+selectCompletionTextItem(438,11457
+enterCompleterTextItem(457,11887
+selectedCompletionTextItem(469,12075
+completions(490,12778
+completeTextItem(525,13495
+getSplitCompletionTextItem(574,14743
+getCompletionsTextItem(580,14832
+indicateDirectoryTextItem(598,15242
+getHasCompletionsTextItem(608,15432
+styleTextItem(642,16250
+typeTextItem(655,16501
+valueSetTextItem(663,16629
+combo_flags(671,16762
+combo_width(686,16985
+showComboBoxTextItem(698,17144
+getPointedTextItem(723,17646
+eventTextItem(731,17824
+keyboardQuitTextItem(845,20766
+executeTextItem(854,20888
+keyTextItem(860,20967
+typedTextItem(869,21139
+nextTextItem(877,21326
+enterTextItem(883,21418
+getModifiedTextItem(912,22061
+modifiedTextItem(919,22216
+defaultTextItem(934,22512
+getDefaultTextItem(946,22684
+restoreTextItem(952,22787
+applyTextItem(961,22926
+getSelectionTypeTextItem(974,23220
+getPrintNameOfValueTextItem(989,23486
+getSelectionTextItem(1002,23763
+clearTextItem(1050,24898
+selectionTextItem(1063,25269
+resetTextItem(1084,25705
+displayedValueTextItem(1098,26000
+getDisplayedValueTextItem(1111,26342
+editableTextItem(1121,26533
+lengthTextItem(1134,26783
+showLabelTextItem(1147,26975
+valueFontTextItem(1158,27156
+getLabelWidthTextItem(1169,27346
+labelWidthTextItem(1179,27505
+valueWidthTextItem(1190,27706
+geometryTextItem(1209,28106
+delegateTextItem(1229,28537
+WantsKeyboardFocusTextItem(1252,29064
+makeClassTextItem(1440,37046
 
 msg/and.c,127
 initialiseAndv(13,279
@@ -5121,262 +5153,265 @@ stringToCharArray(573,11064
 #define rc_charArray 676,15470
 makeClassCharArray(693,15783
 
-txt/editor.c,7809
-#define Caret(Caret60,2374
-#define Receiver(Receiver61,2408
-#define Round(Round62,2448
-#define Before(Before63,2500
-#define MAXLINEBASEDSCROLLING 69,2674
-initialiseEditor(77,2824
-getConvertEditor(163,6051
-unlinkEditor(169,6124
-lostTextBufferEditor(200,6831
-RedrawAreaEditor(213,7057
-storeEditor(247,7798
-loadFdEditor(253,7888
-cloneEditor(265,8114
-textBufferEditor(279,8350
-showCaretAtEditor(308,9011
-updateCursorEditor(332,9581
-electricCaretEditor(338,9668
-updateStyleCursorEditor(360,10187
-bubbleScrollBarEditor(378,10839
-getStartEditor(398,11476
-getViewEditor(404,11571
-getLengthEditor(410,11648
-labelEditor(419,11827
-getLabelEditor(430,12008
-showLabelEditor(439,12157
-getShowLabelEditor(462,12780
-marginWidthEditor(475,13011
-getMarginWidthEditor(493,13507
-selectedFragmentEditor(502,13632
-selectedFragmentStyleEditor(519,14053
-geometryEditor(538,14494
-requestGeometryEditor(617,16705
-SizeEditor(640,17255
-getSizeEditor(646,17367
-getWidthEditor(652,17425
-getHeightEditor(658,17487
-styleEditor(668,17651
-stylesEditor(676,17788
-typedef struct fragment_cell  *FragmentCell;FragmentCell688,17991
-struct fragment_cellfragment_cell690,18037
-struct fragment_cachefragment_cache697,18204
-newFragmentCache(712,18745
-freeFragmentCache(724,18954
-resetFragmentCache(732,19084
-indexFragmentCache(757,19646
-#define Fetch(Fetch864,22248
-#define InRegion(InRegion865,22309
-seek_editor(869,22417
-scan_editor(877,22540
-#define GRAPHICS_START 927,23619
-fetch_editor(930,23668
-margin_editor(1001,25501
-getSeekFunctionEditor(1011,25687
-getScanFunctionEditor(1017,25766
-getFetchFunctionEditor(1023,25846
-getMarginFunctionEditor(1029,25929
-getFetchEditor(1035,26003
-getRewindFunctionEditor(1041,26107
-computeEditor(1053,26292
-normalise_index(1074,26736
-where_editor(1085,26936
-ensureVisibleEditor(1104,27388
-normaliseEditor(1154,28887
-ensureCaretInWindowEditor(1160,29014
-getFirstEditor(1181,29481
-countLinesEditor(1189,29620
-getLinesVisibleEditor(1196,29775
-ReceiverOfEditor(1211,30123
-reportEditor(1220,30274
-forwardModifiedEditor(1243,30783
-getKeyBindingEditor(1257,31060
-keyBindingEditor(1263,31168
-typedEditor(1273,31392
-event_editor(1286,31647
-eventEditor(1381,34299
-#define UArg(UArg1398,34702
-#define MustBeEditable(MustBeEditable1399,34757
-verify_editable_editor(1403,34832
-insert_editor(1414,35010
-insertSelfEditor(1450,35851
-insertQuotedEditor(1456,35961
-showMatchingBracketEditor(1462,36074
-newlineEditor(1494,37213
-openLineEditor(1502,37389
-caretEditor(1513,37645
-CaretEditor(1523,37821
-forwardCharEditor(1529,37916
-backwardCharEditor(1535,38025
-forwardWordEditor(1541,38135
-backwardWordEditor(1550,38330
-beginningOfLineEditor(1560,38558
-endOfLineEditor(1569,38759
-forwardSentenceEditor(1578,38952
-backwardSentenceEditor(1588,39154
-forwardParagraphEditor(1598,39359
-backwardParagraphEditor(1608,39563
-forwardTermEditor(1618,39770
-backwardTermEditor(1628,39962
-skipBlanksEditor(1638,40158
-pointToTopOfFileEditor(1649,40472
-pointToBottomOfFileEditor(1655,40580
-pointToTopOfWindowEditor(1664,40794
-pointToBottomOfWindowEditor(1670,40915
-nextLineEditor(1679,41084
-previousLineEditor(1694,41400
-deleteCharEditor(1700,41523
-backwardDeleteCharEditor(1708,41664
-cutOrDeleteCharEditor(1715,41813
-copyEditor(1726,42045
-cutEditor(1738,42237
-yankEditor(1753,42519
-killEditor(1773,42851
-grabEditor(1798,43326
-killWordEditor(1813,43626
-backwardKillWordEditor(1823,43846
-killLineEditor(1833,44085
-killSentenceEditor(1855,44525
-killParagraphEditor(1867,44779
-killTermEditor(1879,45035
-killOrGrabRegionEditor(1891,45279
-undefinedEditor(1909,45715
-keyboardQuitEditor(1917,45834
-undoEditor(1927,46041
-setMarkEditor(1941,46291
-switchCaseModeEditor(1953,46523
-pointToMarkEditor(1967,46864
-exchangePointAndMarkEditor(1973,46944
-transposeWordEditor(1988,47197
-transposeLinesEditor(2005,47629
-transposeTermsEditor(2024,48084
-deleteHorizontalSpaceEditor(2048,48800
-justOneSpaceEditor(2071,49429
-deleteBlankLinesEditor(2077,49522
-gosmacsTransposeEditor(2098,49963
-transposeCharsEditor(2118,50328
-saveBufferEditor(2141,50783
-downcaseRegionEditor(2172,51602
-upcaseRegionEditor(2186,51842
-capitaliseRegionEditor(2200,52078
-downcasePreviousWordEditor(2214,52322
-upcasePreviousWordEditor(2224,52595
-capitalisePreviousWordEditor(2234,52864
-downcaseWordEditor(2244,53141
-upcaseWordEditor(2255,53427
-capitaliseWordEditor(2266,53709
-toggleCharCaseEditor(2277,53999
-start_of_line(2305,54533
-end_of_line(2317,54781
-get_region_editor(2329,55025
-blankLineEditor(2337,55192
-getIndentationEditor(2354,55496
-alignEditor(2389,56194
-alignOneLineEditor(2432,57372
-alignLineEditor(2458,58002
-alignRegionEditor(2466,58200
-indentOneLineEditor(2483,58563
-indentLineEditor(2492,58791
-undentLineEditor(2501,58983
-indentRegionEditor(2507,59086
-undentRegionEditor(2524,59451
-newlineAndIndentEditor(2532,59634
-autoFillModeEditor(2557,60221
-setFillColumnEditor(2571,60554
-fillEditor(2586,60888
-fillRegionEditor(2652,62894
-fillParagraphEditor(2665,63166
-justifyParagraphEditor(2677,63504
-justifyRegionEditor(2689,63844
-insertSelfFillEditor(2702,64118
-findCutBufferEditor(2748,65390
-isisearchingEditor(2784,66360
-StartIsearchEditor(2794,66521
-beginIsearchEditor(2807,66841
-abortIsearchEditor(2820,67233
-endIsearchEditor(2830,67405
-isearchForwardEditor(2845,67720
-isearchBackwardEditor(2851,67815
-extendSearchStringToWordEditor(2857,67912
-backwardDeleteCharSearchStringEditor(2874,68438
-executeSearchEditor(2889,68739
-IsearchEditor(2944,70216
-get_dabbrev_target(3006,71794
-dabbrevExpandEditor(3027,72330
-get_dabbrev_hit_editor(3050,72937
-get_case_pattern(3067,73287
-fix_case_and_insert(3083,73580
-DabbrevExpandEditor(3109,74182
-scrollToEditor(3200,76570
-centerWindowEditor(3210,76768
-scrollUpEditor(3220,76954
-scrollDownEditor(3240,77458
-scrollOneLineUpEditor(3254,77768
-scrollOneLineDownEditor(3260,77873
-lineToTopOfWindowEditor(3266,77982
-recenterEditor(3275,78168
-scrollVerticalEditor(3284,78321
-showScrollBarEditor(3329,79452
-selectionOriginEditor(3344,79838
-selectionExtendEditor(3353,80003
-#define WordKind(WordKind3358,80164
-#define LineKind(LineKind3359,80214
-selection_editor(3390,80899
-selectLineEditor(3412,81490
-selectionEditor(3431,81960
-getSelectionEditor(3441,82183
-getSelectionStartEditor(3455,82389
-getSelectionEndEditor(3464,82527
-getSelectedEditor(3473,82667
-#define SelectionRegion(SelectionRegion3489,82987
-deleteSelectionEditor(3500,83293
-indentSelectionEditor(3510,83477
-undentSelectionEditor(3526,83840
-fillSelectionEditor(3532,83953
-selectionToCutBufferEditor(3548,84331
-insertCutBufferEditor(3566,84765
-appendEditor(3594,85405
-insertEditor(3607,85706
-formatEditor(3613,85818
-appendfEditor(3625,86036
-printEditor(3638,86268
-clearEditor(3648,86410
-deleteEditor(3659,86590
-deleteLineEditor(3666,86733
-replaceLineEditor(3678,87069
-sortEditor(3692,87469
-getWordEditor(3698,87580
-getLineEditor(3714,87976
-getReadLineEditor(3730,88372
-getFirstLineEditor(3745,88706
-getColumnEditor(3753,88843
-columnEditor(3776,89318
-lineNumberEditor(3801,89853
-getLineNumberEditor(3809,90024
-loadEditor(3823,90325
-saveEditor(3840,90659
-fontEditor(3862,91058
-tabDistanceEditor(3875,91298
-tabStopsEditor(3887,91525
-getTabStopsEditor(3893,91646
-update_index_on_insert(3903,91833
-update_caret_on_insert(3915,92046
-InsertEditor(3927,92255
-#define UPDATE_C_INDEX(UPDATE_C_INDEX3934,92506
-ChangedRegionEditor(3952,92866
-ChangedFragmentListEditor(3963,93079
-ChangedEditor(3980,93469
-referenceEditor(3991,93671
-getContainsEditor(4001,93872
-getMasterEditor(4007,93923
-makeClassEditor(4568,121293
-TextKillRing(4585,121726
-appendKill(4598,121948
-prependKill(4612,122206
-newKill(4626,122465
-killRegister(4637,122612
+txt/editor.c,7914
+#define Caret(Caret62,2467
+#define Receiver(Receiver63,2501
+#define Round(Round64,2541
+#define Before(Before65,2593
+#define HasSelection(HasSelection69,2701
+#define Fetch(Fetch70,2770
+#define InRegion(InRegion71,2831
+#define MAXLINEBASEDSCROLLING 75,2992
+initialiseEditor(83,3142
+getConvertEditor(169,6369
+unlinkEditor(175,6442
+lostTextBufferEditor(206,7149
+RedrawAreaEditor(219,7375
+storeEditor(253,8116
+loadFdEditor(259,8206
+cloneEditor(271,8432
+textBufferEditor(285,8668
+showCaretAtEditor(314,9329
+updateCursorEditor(338,9899
+electricCaretEditor(344,9986
+updateStyleCursorEditor(366,10505
+bubbleScrollBarEditor(384,11157
+getStartEditor(411,12042
+getViewEditor(417,12137
+getLengthEditor(423,12214
+labelEditor(432,12393
+getLabelEditor(443,12574
+showLabelEditor(452,12723
+getShowLabelEditor(475,13346
+marginWidthEditor(488,13577
+getMarginWidthEditor(506,14073
+selectedFragmentEditor(515,14198
+selectedFragmentStyleEditor(532,14619
+geometryEditor(551,15060
+requestGeometryEditor(630,17271
+SizeEditor(653,17821
+getSizeEditor(659,17933
+getWidthEditor(665,17991
+getHeightEditor(671,18053
+styleEditor(681,18217
+stylesEditor(689,18354
+typedef struct fragment_cell  *FragmentCell;FragmentCell701,18557
+struct fragment_cellfragment_cell703,18603
+struct fragment_cachefragment_cache710,18770
+newFragmentCache(725,19311
+freeFragmentCache(737,19520
+resetFragmentCache(745,19650
+indexFragmentCache(770,20212
+seek_editor(878,22826
+scan_editor(886,22949
+#define GRAPHICS_START 936,24028
+fetch_editor(939,24077
+margin_editor(1010,25910
+getSeekFunctionEditor(1020,26096
+getScanFunctionEditor(1026,26175
+getFetchFunctionEditor(1032,26255
+getMarginFunctionEditor(1038,26338
+getFetchEditor(1044,26412
+getRewindFunctionEditor(1050,26516
+computeEditor(1062,26701
+normalise_index(1083,27145
+where_editor(1094,27345
+ensureVisibleEditor(1113,27797
+normaliseEditor(1163,29296
+ensureCaretInWindowEditor(1169,29423
+getFirstEditor(1190,29890
+countLinesEditor(1198,30029
+getLinesVisibleEditor(1205,30184
+ReceiverOfEditor(1220,30532
+reportEditor(1229,30683
+forwardModifiedEditor(1252,31192
+getKeyBindingEditor(1268,31495
+keyBindingEditor(1274,31603
+typedEditor(1284,31827
+event_editor(1297,32082
+eventEditor(1392,34734
+#define UArg(UArg1417,35346
+#define MustBeEditable(MustBeEditable1418,35401
+verify_editable_editor(1422,35476
+insert_editor(1433,35654
+insertSelfEditor(1472,36621
+insertQuotedEditor(1478,36731
+showMatchingBracketEditor(1484,36844
+newlineEditor(1516,37983
+openLineEditor(1524,38159
+caretEditor(1535,38415
+CaretEditor(1545,38591
+forwardCharEditor(1551,38686
+backwardCharEditor(1557,38795
+forwardWordEditor(1563,38905
+backwardWordEditor(1572,39100
+beginningOfLineEditor(1582,39328
+endOfLineEditor(1591,39529
+forwardSentenceEditor(1600,39722
+backwardSentenceEditor(1610,39924
+forwardParagraphEditor(1620,40129
+backwardParagraphEditor(1630,40333
+forwardTermEditor(1640,40540
+backwardTermEditor(1650,40732
+skipBlanksEditor(1660,40928
+pointToTopOfFileEditor(1671,41242
+pointToBottomOfFileEditor(1677,41350
+pointToTopOfWindowEditor(1686,41564
+pointToBottomOfWindowEditor(1692,41685
+nextLineEditor(1701,41854
+previousLineEditor(1716,42170
+deleteCharEditor(1722,42293
+backwardDeleteCharEditor(1730,42434
+cutOrDeleteCharEditor(1737,42583
+cutOrBackwardDeleteCharEditor(1748,42815
+copyEditor(1759,43063
+cutEditor(1771,43255
+pasteEditor(1782,43392
+yankEditor(1803,43836
+killEditor(1823,44168
+grabEditor(1848,44643
+killWordEditor(1863,44943
+backwardKillWordEditor(1873,45163
+killLineEditor(1883,45402
+killSentenceEditor(1905,45842
+killParagraphEditor(1917,46096
+killTermEditor(1929,46352
+killOrGrabRegionEditor(1941,46596
+undefinedEditor(1959,47032
+keyboardQuitEditor(1967,47151
+undoEditor(1977,47358
+setMarkEditor(1991,47608
+switchCaseModeEditor(2003,47840
+pointToMarkEditor(2017,48181
+exchangePointAndMarkEditor(2023,48261
+transposeWordEditor(2038,48514
+transposeLinesEditor(2055,48946
+transposeTermsEditor(2074,49401
+deleteHorizontalSpaceEditor(2098,50117
+justOneSpaceEditor(2121,50746
+deleteBlankLinesEditor(2127,50839
+gosmacsTransposeEditor(2148,51280
+transposeCharsEditor(2168,51645
+saveBufferEditor(2191,52100
+downcaseRegionEditor(2222,52919
+upcaseRegionEditor(2236,53159
+capitaliseRegionEditor(2250,53395
+downcasePreviousWordEditor(2264,53639
+upcasePreviousWordEditor(2274,53912
+capitalisePreviousWordEditor(2284,54181
+downcaseWordEditor(2294,54458
+upcaseWordEditor(2305,54744
+capitaliseWordEditor(2316,55026
+toggleCharCaseEditor(2327,55316
+start_of_line(2355,55850
+end_of_line(2367,56098
+get_region_editor(2379,56342
+blankLineEditor(2387,56509
+getIndentationEditor(2404,56813
+alignEditor(2439,57511
+alignOneLineEditor(2482,58689
+alignLineEditor(2508,59319
+alignRegionEditor(2516,59517
+indentOneLineEditor(2533,59880
+indentLineEditor(2542,60108
+undentLineEditor(2551,60300
+indentRegionEditor(2557,60403
+undentRegionEditor(2574,60768
+newlineAndIndentEditor(2582,60951
+autoFillModeEditor(2607,61538
+setFillColumnEditor(2621,61871
+fillEditor(2636,62205
+fillRegionEditor(2702,64211
+fillParagraphEditor(2715,64483
+justifyParagraphEditor(2727,64821
+justifyRegionEditor(2739,65161
+insertSelfFillEditor(2752,65435
+findCutBufferEditor(2798,66707
+isisearchingEditor(2834,67677
+StartIsearchEditor(2844,67838
+beginIsearchEditor(2857,68158
+abortIsearchEditor(2870,68550
+endIsearchEditor(2882,68763
+isearchForwardEditor(2897,69078
+isearchBackwardEditor(2903,69173
+extendSearchStringToWordEditor(2909,69270
+backwardDeleteCharSearchStringEditor(2926,69796
+executeSearchEditor(2941,70097
+IsearchEditor(2996,71574
+get_dabbrev_target(3059,73189
+dabbrevExpandEditor(3080,73725
+get_dabbrev_hit_editor(3103,74332
+get_case_pattern(3120,74682
+fix_case_and_insert(3136,74975
+DabbrevExpandEditor(3162,75577
+scrollToEditor(3253,77965
+centerWindowEditor(3263,78163
+scrollUpEditor(3273,78349
+scrollDownEditor(3293,78853
+scrollOneLineUpEditor(3307,79163
+scrollOneLineDownEditor(3313,79268
+lineToTopOfWindowEditor(3319,79377
+recenterEditor(3328,79563
+scrollVerticalEditor(3337,79716
+showScrollBarEditor(3382,80847
+selectionOriginEditor(3397,81233
+selectionExtendEditor(3406,81398
+#define WordKind(WordKind3411,81559
+#define LineKind(LineKind3412,81609
+selection_editor(3443,82294
+selectLineEditor(3465,82885
+selectionEditor(3484,83355
+getSelectionEditor(3494,83578
+getSelectionStartEditor(3508,83784
+getSelectionEndEditor(3517,83922
+getSelectedEditor(3526,84062
+#define SelectionRegion(SelectionRegion3542,84382
+deleteSelectionEditor(3553,84688
+indentSelectionEditor(3563,84872
+undentSelectionEditor(3579,85235
+fillSelectionEditor(3585,85348
+selectionToCutBufferEditor(3601,85726
+insertCutBufferEditor(3619,86160
+appendEditor(3647,86800
+insertEditor(3660,87101
+formatEditor(3666,87213
+appendfEditor(3678,87431
+printEditor(3691,87663
+clearEditor(3701,87805
+deleteEditor(3712,87985
+deleteLineEditor(3719,88128
+replaceLineEditor(3731,88464
+sortEditor(3745,88864
+getWordEditor(3751,88975
+getLineEditor(3767,89371
+getReadLineEditor(3783,89767
+getFirstLineEditor(3798,90101
+getColumnEditor(3806,90238
+columnEditor(3829,90713
+lineNumberEditor(3854,91248
+getLineNumberEditor(3862,91419
+loadEditor(3876,91720
+saveEditor(3893,92054
+fontEditor(3915,92453
+tabDistanceEditor(3928,92693
+tabStopsEditor(3940,92920
+getTabStopsEditor(3946,93041
+update_index_on_insert(3956,93228
+update_caret_on_insert(3968,93441
+InsertEditor(3980,93650
+#define UPDATE_C_INDEX(UPDATE_C_INDEX3987,93901
+ChangedRegionEditor(4005,94261
+ChangedFragmentListEditor(4016,94474
+ChangedEditor(4033,94864
+referenceEditor(4044,95066
+getContainsEditor(4054,95267
+getMasterEditor(4060,95318
+makeClassEditor(4631,123217
+TextKillRing(4648,123650
+appendKill(4661,123872
+prependKill(4675,124130
+newKill(4689,124389
+killRegister(4700,124536
 
 txt/fragment.c,924
 #define O_STATISTICS 14,310
@@ -5432,19 +5467,19 @@ eventKeyBinding(188,4066
 #define RESET_STATUS 200,4359
 #define MAX_ARGS 202,4385
 typedKeyBinding(205,4413
-fillArgumentsAndExecuteKeyBinding(324,7700
-executeKeyBinding(394,9540
-makeClassKeyBinding(506,14104
-initInsertKeyBinding(520,14375
-initArgumentKeyBinding(537,14861
-} kbDef, *KbDef;KbDef555,15266
-#define SUPER 557,15284
-#define DEFAULT_FUNCTION 558,15312
-bindResourcesKeyBinding(747,19782
-initPredefinedKeyBinding(768,20175
-KeyBindingText(827,21806
-KeyBindingTextItem(838,21960
-KeyBindingTextItemView(849,22122
+fillArgumentsAndExecuteKeyBinding(323,7747
+executeKeyBinding(393,9587
+makeClassKeyBinding(505,14151
+initInsertKeyBinding(519,14422
+initArgumentKeyBinding(536,14908
+} kbDef, *KbDef;KbDef554,15313
+#define SUPER 556,15331
+#define DEFAULT_FUNCTION 557,15359
+bindResourcesKeyBinding(747,19862
+initPredefinedKeyBinding(768,20255
+KeyBindingText(827,21886
+KeyBindingTextItem(838,22040
+KeyBindingTextItemView(849,22202
 
 txt/regex.c,889
 #define BYTEWIDTH 16,380
@@ -5895,15 +5930,15 @@ getPrintNameDirectory(398,7814
 #define rc_directory 473,10680
 makeClassDirectory(490,10992
 canonisePath(506,11412
-dirName(538,12066
-baseName(562,12458
-getWorkingDirectoryPce(589,12876
-isAbsolutePath(629,13567
-#define isRelativePath(isRelativePath638,13707
-absolutePath(642,13758
-takeWord(673,14463
-GETENV(695,14867
-expandFileName(703,14992
+dirName(538,12057
+baseName(562,12449
+getWorkingDirectoryPce(589,12867
+isAbsolutePath(629,13558
+#define isRelativePath(isRelativePath638,13698
+absolutePath(642,13749
+takeWord(673,14454
+GETENV(695,14858
+expandFileName(703,14983
 
 unx/file.c,1403
 #define MAXPATHLEN 25,510
@@ -6161,7 +6196,7 @@ getReportToDialog(245,4716
 assignAcceletatorsDialog(260,5003
 makeClassDialog(361,8735
 
-win/display.c,1852
+win/display.c,1879
 initialiseDisplay(25,759
 getConvertDisplay(54,1584
 attachCacheDisplay(76,2062
@@ -6196,36 +6231,37 @@ looseSelectionDisplay(441,9178
 selectionOwnerDisplay(458,9597
 selectionDisplay(510,10948
 copyDisplay(530,11310
-getWindowManagerDisplay(544,11662
-create_confirmer(568,12163
-ConfirmPressedDisplay(606,13284
-display_help(625,13752
-confirmDisplay(667,15088
-informDisplay(701,15704
-reportDisplay(728,16213
-busyCursorDisplay(756,16911
-inspectHandlerDisplay(776,17295
-inspectDisplay(782,17396
-synchronousDisplay(798,17672
-resetDisplay(811,17843
-quitDisplay(825,18100
-loadResourceFileDisplay(836,18267
-loadFontFamilyDisplay(851,18514
-loadFontsDisplay(865,18834
-loadFontAliasesDisplay(885,19140
-fontAliasDisplay(930,20109
-getFontAliasDisplay(939,20321
-getContainsDisplay(949,20533
-getContainedInDisplay(955,20602
-makeClassDisplay(1194,31072
-#define PFONT(PFONT1213,31499
-#define ENDFONTLIST 1214,31531
-#define PFONT(PFONT1216,31572
-#define ENDFONTLIST 1217,31607
-} fontdef, *FontDef;FontDef1226,31741
-default_font_list(1349,36260
-attach_fonts(1384,36820
-attach_font_families(1392,36994
+getPasteDisplay(541,11576
+getWindowManagerDisplay(563,12004
+create_confirmer(587,12505
+ConfirmPressedDisplay(625,13626
+display_help(644,14094
+confirmDisplay(686,15430
+informDisplay(720,16046
+reportDisplay(747,16555
+busyCursorDisplay(775,17253
+inspectHandlerDisplay(795,17637
+inspectDisplay(801,17738
+synchronousDisplay(817,18014
+resetDisplay(830,18185
+quitDisplay(844,18442
+loadResourceFileDisplay(855,18609
+loadFontFamilyDisplay(870,18856
+loadFontsDisplay(884,19176
+loadFontAliasesDisplay(904,19482
+fontAliasDisplay(949,20451
+getFontAliasDisplay(958,20663
+getContainsDisplay(975,20990
+getContainedInDisplay(981,21059
+makeClassDisplay(1223,31652
+#define PFONT(PFONT1242,32079
+#define ENDFONTLIST 1243,32111
+#define PFONT(PFONT1245,32152
+#define ENDFONTLIST 1246,32187
+} fontdef, *FontDef;FontDef1255,32321
+default_font_list(1378,36840
+attach_fonts(1413,37400
+attach_font_families(1421,37574
 
 win/displaymgr.c,521
 initialiseDisplayManager(14,310
@@ -6245,108 +6281,108 @@ TheDisplayManager(166,3152
 #define rc_displayManager 222,4746
 makeClassDisplayManager(239,5030
 
-win/frame.c,2656
+win/frame.c,2657
 #define isOpenFrameStatus(isOpenFrameStatus29,1120
 initialiseFrame(32,1211
-unlinkFrame(76,2541
-getConvertFrame(109,3351
-storeFrame(118,3546
-loadFrame(124,3639
-convertOldSlotFrame(140,4008
-initialiseNewSlotFrame(149,4181
-getConfirmFrame(163,4500
-getConfirmCenteredFrame(194,5259
-returnFrame(212,5638
-openFrame(220,5735
-openCenteredFrame(249,6466
-resizeFrame(267,6816
-attachWmProtocolsFrame(283,7087
-wmProtocolFrame(291,7189
-deleteWmProtocolFrame(301,7385
-wmDeleteFrame(313,7644
-doneMessageFrame(327,7907
-saveMessageFrame(333,8029
-mappedFrame(339,8151
-createdFrame(359,8708
-createFrame(365,8783
-uncreateFrame(400,9401
-fitFrame(412,9561
-statusFrame(433,9938
-frame_is_upto_date(457,10388
-waitFrame(475,10656
-showFrame(492,10973
-getShowFrame(504,11199
-exposeFrame(514,11390
-hideFrame(523,11481
-exposedFrame(531,11556
-hiddenFrame(540,11716
-get_position_from_center_frame(552,11998
-ensure_on_display(571,12353
-getSizeFrame(586,12718
-getPositionFrame(592,12794
-getBoundingBoxFrame(598,12877
-getGeometryFrame(610,13068
-getImageFrame(643,13596
-geometryFrame(653,13765
-setFrame(663,13897
-xFrame(682,14201
-yFrame(688,14299
-widthFrame(694,14397
-heightFrame(700,14499
-sizeFrame(706,14602
-positionFrame(712,14707
-centerFrame(718,14820
-areaFrame(727,14999
-showLabelFrame(733,15110
-borderFrame(739,15234
-backgroundFrame(752,15439
-forwardColourMapChange(765,15638
-forwardColourMapChangeFrame(779,15913
-colourMapFrame(793,16130
-busyCursorFrame(805,16350
-resetFrame(814,16500
-iconFrame(827,16717
-getIconLabelFrame(838,16906
-iconLabelFrame(844,17018
-iconPositionFrame(853,17152
-getIconPositionFrame(864,17347
-closedFrame(875,17540
-getClosedFrame(887,17768
-flushFrame(897,17964
-synchroniseFrame(903,18042
-bellFrame(909,18132
-getTileFrame(915,18222
-labelFrame(927,18397
-appendFrame(940,18588
-getMembersFrame(946,18674
-AppendFrame(964,19013
-DeleteFrame(979,19227
-deleteFrame(998,19663
-getMemberFrame(1010,19882
-getFrameFrame(1025,20091
-getPointerWindowFrame(1031,20153
-applicationFrame(1054,20529
-keyboardFocusFrame(1071,20903
-getKeyboardFocusFrame(1096,21785
-inputWindowFrame(1129,22436
-inputFocusFrame(1152,22860
-drawFeedbackLines(1184,23461
-cancelResizeTileFrame(1193,23682
-resizeTileEventFrame(1204,23924
-blockedByModalFrame(1313,26772
-eventFrame(1351,27511
-cursorFrame(1369,27857
-grabPointerFrame(1377,27961
-modalFrame(1385,28093
-typedFrame(1402,28448
-kindFrame(1418,28717
-transientForFrame(1431,28919
-informTransientsFramev(1456,29494
-getCatchAllFramev(1471,29813
-reportFrame(1488,30128
-getContainedInFrame(1514,30808
-getContainsFrame(1520,30881
-makeClassFrame(1806,43878
+unlinkFrame(75,2507
+getConvertFrame(109,3333
+storeFrame(118,3528
+loadFrame(124,3621
+convertOldSlotFrame(140,3990
+initialiseNewSlotFrame(149,4163
+getConfirmFrame(163,4482
+getConfirmCenteredFrame(194,5241
+returnFrame(212,5620
+openFrame(220,5717
+openCenteredFrame(249,6448
+resizeFrame(267,6798
+attachWmProtocolsFrame(283,7072
+wmProtocolFrame(291,7174
+deleteWmProtocolFrame(301,7370
+wmDeleteFrame(313,7629
+doneMessageFrame(327,7892
+saveMessageFrame(333,8014
+mappedFrame(339,8136
+createdFrame(359,8693
+createFrame(365,8768
+uncreateFrame(400,9386
+fitFrame(412,9546
+statusFrame(435,9976
+frame_is_upto_date(459,10426
+waitFrame(477,10694
+showFrame(494,11017
+getShowFrame(506,11243
+exposeFrame(516,11434
+hideFrame(525,11525
+exposedFrame(533,11600
+hiddenFrame(542,11760
+get_position_from_center_frame(554,12042
+ensure_on_display(573,12397
+getSizeFrame(588,12762
+getPositionFrame(594,12838
+getBoundingBoxFrame(600,12921
+getGeometryFrame(612,13112
+getImageFrame(645,13640
+geometryFrame(655,13809
+setFrame(665,13941
+xFrame(684,14245
+yFrame(690,14343
+widthFrame(696,14441
+heightFrame(702,14543
+sizeFrame(708,14646
+positionFrame(714,14751
+centerFrame(720,14864
+areaFrame(729,15043
+showLabelFrame(735,15154
+borderFrame(741,15278
+backgroundFrame(754,15483
+forwardColourMapChange(767,15682
+forwardColourMapChangeFrame(781,15957
+colourMapFrame(795,16174
+busyCursorFrame(807,16394
+resetFrame(816,16544
+iconFrame(829,16761
+getIconLabelFrame(840,16950
+iconLabelFrame(846,17062
+iconPositionFrame(855,17196
+getIconPositionFrame(866,17391
+closedFrame(877,17584
+getClosedFrame(889,17812
+flushFrame(899,18008
+synchroniseFrame(905,18086
+bellFrame(911,18176
+getTileFrame(917,18266
+labelFrame(929,18441
+appendFrame(942,18632
+getMembersFrame(948,18718
+AppendFrame(966,19057
+DeleteFrame(988,19461
+deleteFrame(1013,20075
+getMemberFrame(1022,20250
+getFrameFrame(1037,20459
+getPointerWindowFrame(1043,20521
+applicationFrame(1066,20897
+keyboardFocusFrame(1083,21271
+getKeyboardFocusFrame(1108,22153
+inputWindowFrame(1141,22804
+inputFocusFrame(1164,23228
+drawFeedbackLines(1196,23829
+cancelResizeTileFrame(1205,24050
+resizeTileEventFrame(1216,24292
+blockedByModalFrame(1325,27140
+eventFrame(1363,27879
+cursorFrame(1381,28225
+grabPointerFrame(1389,28329
+modalFrame(1397,28461
+typedFrame(1414,28816
+kindFrame(1430,29085
+transientForFrame(1443,29287
+informTransientsFramev(1468,29862
+getCatchAllFramev(1483,30181
+reportFrame(1500,30496
+getContainedInFrame(1526,31176
+getContainsFrame(1532,31249
+makeClassFrame(1818,44272
 
 win/picture.c,108
 initialisePicture(15,308
@@ -6394,42 +6430,42 @@ ws_get_resource_value(868,19160
 
 win/setup.c,0
 
-win/tile.c,812
-#define Max(Max16,398
-#define Min(Min17,452
-#define MAX_TILE_MEMBERS 18,506
-#define INFINITE 19,535
-initialiseTile(32,952
-unlinkTile(62,1851
-cleanTile(81,2359
-unrelateTile(104,2769
-toTile(121,3078
-computeTile(130,3223
-nonDelegatingLeftTile(207,5032
-leftTile(247,6137
-rightTile(290,7296
-nonDelegatingAboveTile(296,7446
-aboveTile(336,8546
-belowTile(380,9684
-getRootTile(391,9892
-} stretch;stretch404,10140
-distribute_stretches(408,10167
-setTile(523,12920
-unenforceTile(586,14280
-enforceTile(601,14470
-layoutTile(618,14750
-areaTile(704,16828
-positionTile(710,16919
-sizeTile(716,17021
-xTile(722,17118
-yTile(728,17211
-widthTile(734,17304
-heightTile(740,17401
-cornerTile(746,17499
-centerTile(753,17655
-forAllTile(765,17904
-getSubTileToResizeTile(783,18233
-makeClassTile(935,23195
+win/tile.c,822
+#define Max(Max16,399
+#define Min(Min17,453
+#define MAX_TILE_MEMBERS 18,507
+#define INFINITE 19,536
+initialiseTile(32,953
+unlinkTile(62,1852
+cleanTile(81,2360
+unrelateTile(104,2770
+toTile(121,3079
+computeTile(130,3224
+nonDelegatingLeftRightTile(207,5033
+leftTile(249,6050
+rightTile(292,7225
+nonDelegatingAboveBelowTile(301,7462
+aboveTile(343,8476
+belowTile(387,9631
+getRootTile(401,9927
+} stretch;stretch414,10175
+distribute_stretches(418,10202
+setTile(533,12955
+unenforceTile(598,14385
+enforceTile(613,14575
+layoutTile(630,14855
+areaTile(716,16933
+positionTile(722,17024
+sizeTile(728,17126
+xTile(734,17223
+yTile(740,17316
+widthTile(746,17409
+heightTile(752,17506
+cornerTile(758,17604
+centerTile(765,17760
+forAllTile(777,18009
+getSubTileToResizeTile(795,18338
+makeClassTile(947,23300
 
 win/view.c,307
 initialiseView(15,324
@@ -6446,7 +6482,7 @@ scrollToView(136,2531
 formatView(142,2624
 makeClassView(222,5145
 
-win/window.c,2619
+win/window.c,2620
 initialiseWindow(20,512
 getConvertWindow(49,1355
 storeWindow(58,1546
@@ -6471,113 +6507,141 @@ updatePositionSubWindowsDevice(355,8135
 reparentWindow(370,8455
 deviceWindow(379,8591
 displayedWindow(393,8901
-resizeWindow(407,9127
-resizeMessageWindow(416,9299
-offset_window(437,9874
-compute_window(444,10003
-frame_offset_window(459,10487
-offset_windows(508,11596
-is_service_window(538,12351
-blockedByModalWindow(549,12624
-inspectWindow(566,13147
-eventWindow(586,13461
-typedWindow(672,15454
-inputFocusWindow(689,15885
-keyboardFocusWindow(711,16570
-focusWindow(736,17147
-computeBoundingBoxWindow(773,18281
-computeWindow(802,18865
-union_iarea(820,19213
-inside_iarea(833,19466
-#define CHDEBUG(CHDEBUG841,19627
-changed_window(844,19655
-unlink_changes_data_window(923,21564
-combine_changes_window(940,21813
-redrawWindow(968,22735
-RedrawWindow(1015,23575
-RedrawAreaWindow(1059,24546
-redrawAreaWindow(1099,25362
-scrollWindow(1119,25700
-scrollToWindow(1173,26811
-normalise_window(1179,26920
-normaliseWindow(1228,28246
-scrollHorizontalWindow(1267,29068
-scrollVerticalWindow(1292,29763
-updateScrollbarValuesWindow(1317,30462
-changedUnionWindow(1326,30637
-view_region(1332,30759
-bubbleScrollBarWindow(1346,30967
-pointerWindow(1377,31809
-focusCursorWindow(1394,32118
-getDisplayedCursorWindow(1402,32259
-updateCursorWindow(1420,32607
-geometryWindow(1439,32982
-requestGeometryWindow(1465,33551
-get_display_position_window(1489,34251
-getVisibleWindow(1504,34487
-getBoundingBoxWindow(1517,34780
-tileWindow(1529,34997
-getUserWindow(1541,35222
-for_all_tile(1553,35418
-frame_window(1568,35668
-frameWindow(1589,36110
-getTileWindow(1610,36512
-getFrameWindow(1621,36661
-mergeFramesWindow(1635,36935
-relateWindow(1662,37549
-leftWindow(1700,38405
-rightWindow(1706,38498
-aboveWindow(1712,38593
-belowWindow(1718,38688
-penWindow(1729,38884
-colourWindow(1751,39275
-backgroundWindow(1765,39538
-selectionFeedbackWindow(1780,39851
-getForegroundWindow(1794,40160
-flushWindow(1804,40327
-flashWindow(1821,40591
-exposeWindow(1853,41248
-hideWindow(1867,41466
-getContainedInWindow(1885,41774
-resetWindow(1894,41931
-catchAllWindowv(1904,42113
-makeClassWindow(2170,53284
+resizeWindow(420,9429
+resizeMessageWindow(429,9601
+offset_window(450,10176
+compute_window(457,10305
+frame_offset_window(472,10789
+offset_windows(521,11898
+is_service_window(551,12653
+blockedByModalWindow(562,12926
+inspectWindow(579,13449
+eventWindow(599,13763
+typedWindow(685,15756
+inputFocusWindow(702,16187
+keyboardFocusWindow(724,16872
+focusWindow(749,17449
+computeBoundingBoxWindow(786,18583
+computeWindow(815,19167
+union_iarea(833,19515
+inside_iarea(846,19768
+#define CHDEBUG(CHDEBUG854,19929
+changed_window(857,19957
+unlink_changes_data_window(936,21859
+combine_changes_window(953,22108
+redrawWindow(981,23030
+RedrawWindow(1028,23870
+RedrawAreaWindow(1072,24841
+redrawAreaWindow(1112,25657
+scrollWindow(1132,25995
+scrollToWindow(1186,27106
+normalise_window(1192,27215
+normaliseWindow(1241,28541
+scrollHorizontalWindow(1282,29433
+scrollVerticalWindow(1307,30128
+updateScrollbarValuesWindow(1332,30827
+changedUnionWindow(1341,31002
+view_region(1347,31124
+bubbleScrollBarWindow(1361,31332
+pointerWindow(1392,32174
+focusCursorWindow(1409,32483
+getDisplayedCursorWindow(1417,32624
+updateCursorWindow(1435,32972
+geometryWindow(1454,33347
+requestGeometryWindow(1480,33916
+get_display_position_window(1504,34616
+getVisibleWindow(1519,34852
+getBoundingBoxWindow(1532,35145
+tileWindow(1544,35362
+getUserWindow(1556,35587
+for_all_tile(1568,35783
+frame_window(1583,36033
+frameWindow(1604,36475
+getTileWindow(1625,36877
+getFrameWindow(1636,37026
+mergeFramesWindow(1651,37333
+relateWindow(1678,37947
+leftWindow(1728,39120
+rightWindow(1734,39213
+aboveWindow(1740,39308
+belowWindow(1746,39403
+penWindow(1757,39599
+colourWindow(1779,39990
+backgroundWindow(1793,40253
+selectionFeedbackWindow(1808,40566
+getForegroundWindow(1822,40875
+flushWindow(1832,41042
+flashWindow(1849,41306
+exposeWindow(1881,41963
+hideWindow(1895,42181
+getContainedInWindow(1913,42489
+resetWindow(1922,42646
+catchAllWindowv(1932,42828
+makeClassWindow(2198,53998
 
 img/gifread.c,483
-#define INTERLACE	39,1371
-#define LOCALCOLORMAP 40,1394
-#define BitSet(BitSet41,1423
-#define ReadOK(ReadOK42,1474
-#define LM_to_uint(LM_to_uint43,1542
-typedef short int		code_int;code_int45,1582
-typedef long int		count_int;count_int46,1625
-typedef unsigned char pixval;pixval47,1654
-GIFError(82,2438
-setError(87,2515
-GIFReadFD(118,3341
-ReadColorMap(275,7442
-DoExtension(298,7880
-GetDataBlock(345,8826
-GetCode(365,9168
-LZWReadByte(412,10001
-ReadImage(539,12572
+#define INTERLACE	39,1417
+#define LOCALCOLORMAP 40,1440
+#define BitSet(BitSet41,1469
+#define ReadOK(ReadOK42,1520
+#define LM_to_uint(LM_to_uint43,1588
+typedef short int		code_int;code_int45,1628
+typedef long int		count_int;count_int46,1671
+typedef unsigned char pixval;pixval47,1700
+GIFError(82,2484
+setError(87,2561
+GIFReadFD(116,3290
+ReadColorMap(273,7454
+DoExtension(296,7892
+GetDataBlock(343,8841
+GetCode(363,9189
+LZWReadByte(410,10025
+ReadImage(537,12602
 
-img/giftoxpm.c,126
-#define  FOR_MSW 12,217
-#define XpmMalloc(XpmMalloc26,419
-alloc_colortable(29,463
-alloc_color(46,763
-XpmReadGIF(60,1035
+img/giftoxpm.c,151
+#define  FOR_MSW 12,264
+#define XpmMalloc(XpmMalloc26,466
+#define SEEK_SET 28,530
+alloc_colortable(32,561
+alloc_color(49,861
+XpmReadGIF(63,1133
 
-img/jpegtoxpm.c,254
-#define  FOR_MSW 13,257
-#define boolean 16,304
-#define XpmMalloc(XpmMalloc35,600
-typedef unsigned int XpmPixel;XpmPixel36,631
-convert_colourmap(39,667
-struct my_jpeg_error_mgrmy_jpeg_error_mgr67,1227
-my_exit(74,1324
-readJPEGtoXpmImage(83,1544
+img/jpegtoxpm.c,279
+#define  FOR_MSW 13,305
+#define boolean 16,352
+#define XpmMalloc(XpmMalloc35,648
+typedef unsigned int XpmPixel;XpmPixel36,687
+#define SEEK_SET 39,736
+convert_colourmap(43,767
+struct my_jpeg_error_mgrmy_jpeg_error_mgr71,1327
+my_exit(78,1424
+readJPEGtoXpmImage(87,1644
+
+img/ppmtoxpm.c,635
+#define BRIGHT 43,1551
+#define NOPIXEL 44,1579
+#define valdigit(valdigit47,1617
+#define roundup(roundup48,1650
+#define rescale(rescale49,1697
+#define ulong 52,1754
+#define TRUE 55,1796
+#define FALSE 56,1811
+#define Symbol 59,1835
+#define symbol 60,1890
+typedef struct symbol *Symbol;Symbol70,2164
+typedef struct table  *Table;Table71,2195
+struct symbolsymbol73,2226
+struct tabletable79,2290
+#define hashvalue(hashvalue85,2343
+newTable(88,2397
+freeTable(102,2624
+addTable(120,2834
+memberTable(132,3067
+colourPixel(149,3363
+getNum(183,4146
+read_ppm_file(217,4596
+putNum(510,10250
+write_pnm_file(532,10562
 
 img/test.c,11
 main(6,62

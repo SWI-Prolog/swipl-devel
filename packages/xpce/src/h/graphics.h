@@ -106,7 +106,7 @@ End;
 
 #define ABSTRACT_DIALOG_GROUP \
   ABSTRACT_DEVICE \
-  Name		label;			/* Displayed textual-label */ \
+  Any		label;			/* Displayed textual-label */ \
   FontObj	label_font;		/* Font used for label */ \
   Name		label_format;		/* Alignment of the label */ \
   Elevation	elevation;		/* Elevation for the box */ \
@@ -126,6 +126,15 @@ NewClass(tab)
   Size		label_size;		/* Size of the label-box */
   Int		label_offset;		/* X-Offset of the label-box */
   Name		status;			/* {on_top, hidden} */
+End;
+
+NewClass(label_box)
+  ABSTRACT_DIALOG_GROUP
+  Int		label_width;		/* Width of box holding the label */
+  Bool		auto_label_align;	/* Automatically align label */
+  Code		message;		/* associated message */
+  Any		default_value;		/* default */
+  Bool		modified;		/* item has been modified */
 End;
 
 NewClass(tab_stack)
@@ -305,22 +314,25 @@ NewClass(button)
   Bool	     default_button;		/* Button is the default button */
 End;
 
-NewClass(textitem)
-  ABSTRACT_DIALOGITEM
-  Any	     selection;			/* Current selection */
-  Any	     default_value;		/* The default (initial) value */
-  StringObj  print_name;		/* Print-name of selection */
-  Type	     type;			/* Type of the value */
-  Any	     value_set;			/* Set of possible values */
-  Name	     advance;			/* Clear value after return? */
-  Int	     length;			/* Length in x's */
-  FontObj    value_font;		/* Font for entry-field */
-  Bool	     show_label;		/* Show the label */
-  TextObj    value_text;		/* Displayed text value */
-  Bool	     editable;			/* TextItem is editable */
-  Int	     value_width;		/* Width of value-field in pixels */
-  Int	     hor_stretch;		/* Horizontal stretchability */
+#define ABSTRACT_TEXTITEM \
+  ABSTRACT_DIALOGITEM \
+  Any	     selection;			/* Current selection */ \
+  Any	     default_value;		/* The default (initial) value */ \
+  StringObj  print_name;		/* Print-name of selection */ \
+  Type	     type;			/* Type of the value */ \
+  Any	     value_set;			/* Set of possible values */ \
+  Name	     advance;			/* Clear value after return? */ \
+  Int	     length;			/* Length in x's */ \
+  FontObj    value_font;		/* Font for entry-field */ \
+  Bool	     show_label;		/* Show the label */ \
+  TextObj    value_text;		/* Displayed text value */ \
+  Bool	     editable;			/* TextItem is editable */ \
+  Int	     value_width;		/* Width of value-field in pixels */ \
+  Int	     hor_stretch;		/* Horizontal stretchability */ \
   Name	     style;			/* normal, combo_box */
+
+NewClass(textitem)
+  ABSTRACT_TEXTITEM
 End;
 
 NewClass(slider)
@@ -810,6 +822,18 @@ NewClass(timer)
 End;
 
 		 /*******************************
+		 *     STRETCHABLE OBJECTS	*
+		 *******************************/
+
+typedef struct
+{ int	ideal;				/* ideal size */
+  int	stretch;			/* stretch handicap */
+  int	shrink;				/* shrink handicap */
+  int	size;				/* resulting size */
+} stretch, *Stretch;
+
+
+		 /*******************************
 		 *	      EVENTS		*
 		 *******************************/
 
@@ -847,12 +871,7 @@ struct xref
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This macro is to be called to change a graphical object.  It will pass
 the appropriate  changes to its  device, so the  device can figure out
-the optiomal redisplay behaviour.
-
-The device is maintained to ensure the  ->frozen @on and ->frozen @off
-pair is sent to the same device.  If  the graphical is moved  from one
-device to  another, displayed or deleted from  its device, the display
-or erase behaviour of graphicals will take care of the move operation.
+the optimal redisplay behaviour.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
@@ -951,6 +970,7 @@ GLOBAL Image MS_NOMARK_IMAGE;
 GLOBAL Image PULLRIGHT_IMAGE;		/* Popup menu pullright marker */
 GLOBAL Image MARK_HANDLE_IMAGE;		/* connect_gesture */
 GLOBAL Image NULL_IMAGE;		/* empty image */
+GLOBAL Image INT_ITEM_IMAGE;
 
 GLOBAL Modifier MODIFIER_shift;		/* Demands `shift-is-down' */
 GLOBAL Modifier MODIFIER_control;	/* Demands `control-is-down' */
@@ -973,9 +993,12 @@ GLOBAL  Class ClassImage;		/* @image_class */
 		 *     MENU LAYER CONSTANTS	*
 		 *******************************/
 
-#define TEXTFIELD_EDITABLE	0x1	/* if editable field */
-#define TEXTFIELD_COMBO		0x2	/* if combo-box displayed */
-#define TEXTFIELD_COMBO_DOWN	0x4	/* after combo-box has been clicked */
+#define TEXTFIELD_EDITABLE	0x01	/* if editable field */
+#define TEXTFIELD_COMBO		0x02	/* if combo-box displayed */
+#define TEXTFIELD_COMBO_DOWN	0x04	/* after combo-box has been clicked */
+#define TEXTFIELD_STEPPER	0x08	/* up/down stepper */
+#define TEXTFIELD_INCREMENT	0x10	/* stepper in `increment' mode */
+#define TEXTFIELD_DECREMENT	0x20	/* stepper in `increment' mode */
 
 #define LABEL_INACTIVE		0x1	/* str_label() flags */
 

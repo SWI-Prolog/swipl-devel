@@ -406,15 +406,7 @@ getRootTile(TileObj t)
 }
 
 
-typedef struct
-{ int	ideal;				/* ideal size */
-  int	stretch;			/* stretch handicap */
-  int	shrink;				/* shrink handicap */
-  int	size;				/* resulting size */
-} stretch;
-
-
-static status
+status
 distribute_stretches(stretch *s, int n, int w)
 { int ok = FALSE;
   int i;

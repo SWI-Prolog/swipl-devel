@@ -21,6 +21,7 @@ extern Class ClassWinMF;
 extern Class ClassWinPrinter;
 #endif
 
+extern Class ClassIntItem;
 
 		 /*******************************
 		 *	     CLASSES		*
@@ -413,6 +414,9 @@ static struct class_definition classdefs[] =
   { NAME_tab, NAME_dialogGroup, makeClassTab,
     &ClassTab, "Tab-sheet for tabbed dialog window" },
 
+  { NAME_labelBox, NAME_dialogGroup, makeClassLabelBox,
+    &ClassLabelBox, "Labeled (compound) dialog item" },
+
   { NAME_table, NAME_object, makeClassAtable,
     &ClassTable, "Table of association vectors" },
 
@@ -433,6 +437,9 @@ static struct class_definition classdefs[] =
 
   { NAME_textItem, NAME_dialogItem, makeClassTextItem,
     &ClassTextItem, "Text entry field" },
+
+  { NAME_intItem, NAME_textItem, makeClassIntItem,
+    &ClassIntItem, "Integer entry field" },
 
   { NAME_textMargin, NAME_graphical, makeClassTextMargin,
     &ClassTextMargin, "Annotation margin for editors" },

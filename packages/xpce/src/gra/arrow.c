@@ -38,7 +38,7 @@ has no well-defined meaning.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static status
-initialiseArrow(Arrow a, Int length, Int wing)
+initialiseArrow(Arrow a, Int length, Int wing, Name style, Any fill)
 { initialiseGraphical(a, ZERO, ZERO, ONE, ONE);
   assign(a, length, length);
   assign(a, wing, wing);
@@ -46,8 +46,8 @@ initialiseArrow(Arrow a, Int length, Int wing)
   assign(a, reference, newObject(ClassPoint, 0));
   assign(a, left, newObject(ClassPoint, 0));
   assign(a, right, newObject(ClassPoint, 0));
-  assign(a, fill_pattern, DEFAULT);
-  assign(a, style, DEFAULT);
+  assign(a, fill_pattern, fill);
+  assign(a, style, style);
   obtainResourcesObject(a);
   if ( notNil(a->fill_pattern) )
     assign(a, pen, ZERO);
@@ -109,12 +109,29 @@ computeArrow(Arrow a)
     w = max(x2, max(sx, rx)) - x + 1;
     h = max(y2, max(sy, ry)) - y + 1;
 
-    if ( notNil(a->device) )
-      setGraphical(a, toInt(x), toInt(y), toInt(w), toInt(h));
-    else
-      setArea(a->area, toInt(x), toInt(y), toInt(w), toInt(h));
+    CHANGING_GRAPHICAL(a, setArea(a->area,
+				  toInt(x), toInt(y), toInt(w), toInt(h)));
 
     assign(a, request_compute, NIL);
+  }
+
+  succeed;
+}
+
+
+static status
+geometryArrow(Arrow a, Int x, Int y, Int w, Int h)
+{ if ( notDefault(x) || notDefault(y) )
+  { int dx, dy;
+
+    ComputeGraphical(a);
+    dx = valInt(x)-valInt(a->area->x);
+    dy = valInt(y)-valInt(a->area->y);
+    
+    pointsArrow(a, toInt(valInt(a->tip->x)+dx),
+		   toInt(valInt(a->tip->y)+dy),
+		   toInt(valInt(a->reference->x)+dx),
+		   toInt(valInt(a->reference->y)+dy));
   }
 
   succeed;
@@ -305,9 +322,16 @@ paintArrow(Arrow a, Int tx, Int ty, Int rx, Int ry)
 /* Type declaractions */
 
 static char *T_initialise[] =
-        { "length=[int]", "wing=[int]" };
+        { "length=[int]", "wing=[int]",
+	  "style=[{open,closed}]", "fill=[image|colour]*"
+	};
 static char *T_points[] =
-        { "tip_x=[int]", "tip_y=[int]", "reference_x=[int]", "reference_y=[int]" };
+        { "tip_x=[int]", "tip_y=[int]",
+	  "reference_x=[int]", "reference_y=[int]"
+	};
+static char *T_geometry[] =
+	{ "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
+
 
 /* Instance Variables */
 
@@ -335,7 +359,9 @@ static vardecl var_arrow[] =
 static senddecl send_arrow[] =
 { SM(NAME_compute, 0, NULL, computeArrow,
      DEFAULT, "Compute <-tip, <-left and <-right"),
-  SM(NAME_initialise, 2, T_initialise, initialiseArrow,
+  SM(NAME_geometry, 4, T_geometry, geometryArrow,
+     DEFAULT, "Move arrow"),
+  SM(NAME_initialise, 4, T_initialise, initialiseArrow,
      DEFAULT, "Create from length and wing"),
   SM(NAME_points, 4, T_points, pointsArrow,
      NAME_area, "Set XY of tip and reference"),

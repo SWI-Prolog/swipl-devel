@@ -18,11 +18,7 @@ NewClass(int_item)
     ABSTRACT_TEXTITEM
 End;
 
-#define II_BOX_W   14
-#define II_BOX_GAP 5
-
 static status rangeIntItem(IntItem ii, Int low, Int high);
-static status detachTimerIntItem(IntItem ii);
 
 static status
 initialiseIntItem(IntItem ii, Name name, Int selection, Code msg,
@@ -33,64 +29,9 @@ initialiseIntItem(IntItem ii, Name name, Int selection, Code msg,
     selection = ZERO;
 
   initialiseTextItem((TextItem)ii, name, selection, msg);
+  styleTextItem((TextItem)ii, NAME_stepper);
+
   return rangeIntItem(ii, low, high);
-}
-
-
-static status
-unlinkIntItem(IntItem ii)
-{ detachTimerIntItem(ii);
-
-  return unlinkDialogItem((DialogItem) ii);
-}
-
-
-static status
-computeIntItem(IntItem ii)
-{ if ( notNil(ii->request_compute) )
-  { computeTextItem((TextItem)ii);
-
-    CHANGING_GRAPHICAL(ii,
-		       assign(ii->area, w,
-			      toInt(valInt(ii->area->w)+II_BOX_W+II_BOX_GAP)));
-  }
-
-  succeed;
-}
-
-
-static status
-RedrawAreaIntItem(IntItem ii, Area a)
-{ int x, y, w, h;
-  int bx, bh;
-  int ix, dy, iw, ih;
-  static Elevation e;
-
-  if ( !e )
-    e = newObject(ClassElevation, TWO, 0);
-
-  initialiseDeviceGraphical(ii, &x, &y, &w, &h);
-
-  a->w = toInt(w-(II_BOX_W+II_BOX_GAP));
-  RedrawAreaTextItem((TextItem)ii, a);
-  a->w = toInt(w);
-
-  bx = x+w-II_BOX_W;
-  bh = (h+1)/2;
-  r_3d_box(bx, y,    II_BOX_W, bh,   0, e,
-	   ii->status != NAME_increment);
-  r_3d_box(bx, y+bh, II_BOX_W, h-bh, 0, e,
-	   ii->status != NAME_decrement);
-  
-  iw = valInt(INT_ITEM_IMAGE->size->w)/2;
-  ih = valInt(INT_ITEM_IMAGE->size->h);
-  ix = x + w - (II_BOX_W+iw+1)/2;
-  dy = (bh-ih+1)/2;
-
-  r_image(INT_ITEM_IMAGE, 0,  0, ix, y+dy,      iw, ih, ON);
-  r_image(INT_ITEM_IMAGE, iw, 0, ix, y+h-dy-ih, iw, ih, ON);
-  
-  succeed;
 }
 
 
@@ -144,7 +85,8 @@ rangeIntItem(IntItem ii, Int low, Int high)
   valueWidthTextItem((TextItem)ii,
 		     toInt(max(width_text(ii->value_font, s1),
 			       width_text(ii->value_font, s2))
-			   + 2*b));
+			   + 2*b + 5 +
+			   + text_item_combo_width((TextItem)ii)));
 
   succeed;
 }
@@ -184,82 +126,6 @@ getHighIntItem(IntItem ii)
 		 *******************************/
 
 static status
-statusIntItem(IntItem ii, Name status)
-{ if ( ii->status != status )
-  { statusTextItem((TextItem)ii, status);
-    changedDialogItem(ii);		/* overkill */
-  }
-
-  succeed;
-}
-
-
-static Name
-getDirectionIntItem(IntItem ii, EventObj ev)
-{ Int X, Y;
-  int x, y;
-  int r = valInt(ii->area->w);
-  
-  get_xy_event(ev, ii, OFF, &X, &Y);
-  x = valInt(X);
-  y = valInt(Y);
-    
-  if ( x >= r - II_BOX_W && x < r && y >= 0 && y <= valInt(ii->area->h) )
-  { if ( y < valInt(ii->area->h)/2 )
-      answer(NAME_increment);
-    else
-      answer(NAME_decrement);
-  }
-  
-  fail;
-}
-
-
-static status
-attachTimerIntItem(IntItem ii)
-{ Real delay = getResourceValueObject(ii, NAME_repeatDelay);
-
-  if ( delay )
-  { Timer t = newObject(ClassTimer, delay,
-			newObject(ClassMessage, ii, NAME_repeat, 0), 0);
-    attributeObject(ii, NAME_Timer, t);
-    startTimer(t, NAME_once);
-  }
-
-  succeed;
-}
-
-
-static status
-detachTimerIntItem(IntItem ii)
-{ Timer t;
-
-  if ( (t = getAttributeObject(ii, NAME_Timer)) )
-  { freeObject(t);
-    deleteAttributeObject(ii, NAME_Timer);
-  }
-  
-  succeed;
-}
-
-
-static status
-repeatIntItem(IntItem ii)
-{ Timer t;
-  Real i = getResourceValueObject(ii, NAME_repeatInterval);
-
-  send(ii, ii->status, 0);
-
-  if ( (t = getAttributeObject(ii, NAME_Timer)) )
-  { intervalTimer(t, i);
-    statusTimer(t, NAME_once);
-  }
-
-  succeed;
-}
-
-
-static status
 typedIntItem(IntItem ii, EventId id)
 { CharArray save = getCopyCharArray(ii->value_text->string);
   status rval = typedTextItem((TextItem)ii, id);
@@ -274,30 +140,6 @@ typedIntItem(IntItem ii, EventId id)
 
   doneObject(save);
   return rval;
-}
-
-
-static status
-eventIntItem(IntItem ii, EventObj ev)
-{ Name dir;
-
-  if ( isAEvent(ev, NAME_msLeft) &&
-       (dir=getDirectionIntItem(ii, ev)) )
-  { if ( isUpEvent(ev) )
-    { send(ii, dir, 0);
-      detachTimerIntItem(ii);
-      statusIntItem(ii, NAME_active);
-    } else
-    { statusIntItem(ii, dir);
-
-      if ( isDownEvent(ev) )
-	attachTimerIntItem(ii);
-    }
-
-    succeed;
-  }
-       
-  return eventTextItem((TextItem)ii, ev);
 }
 
 
@@ -358,30 +200,22 @@ static char *T_range[] =
 
 /* Instance Variables */
 
+#define var_int_item NULL
+/*
 static vardecl var_int_item[] =
-{ SV(NAME_status, "{inactive,active,preview,execute,increment,decrement}",
-     IV_GET|IV_STORE|IV_REDEFINE,
-     statusIntItem,
-     NAME_event, "Status for event-processing")
+{ 
 };
-
+*/
+  
 /* Send Methods */
 
 static senddecl send_int_item[] =
 { SM(NAME_initialise, 5, T_initialise, initialiseIntItem,
      DEFAULT, "Create from name, selection and font"),
-  SM(NAME_unlink, 0, NULL, unlinkIntItem,
-     DEFAULT, "Detach repeat timer"),
   SM(NAME_range, 2, T_range, rangeIntItem,
      NAME_type, "Allowed range"),
-  SM(NAME_compute, 0, NULL, computeIntItem,
-     DEFAULT, "Recompute layout"),
-  SM(NAME_event, 1, "event", eventIntItem,
-     DEFAULT, "Handle increment/decrement buttons"),
   SM(NAME_typed, 1, "event_id", typedIntItem,
      NAME_event, "Process keyboard event"),
-  SM(NAME_repeat, 0, NULL, repeatIntItem,
-     DEFAULT, "Repeat in/decrement"),
   SM(NAME_increment, 0, NULL, incrementIntItem,
      NAME_selection, "Increment the selection"),
   SM(NAME_decrement, 0, NULL, decrementIntItem,
@@ -399,16 +233,16 @@ static getdecl get_int_item[] =
 
 /* Resources */
 
+#define rc_int_item NULL
+/*
 static resourcedecl rc_int_item[] =
-{ RC(NAME_repeatDelay, "real", "0.35",
-     "Time to wait until start of repeat"),
-  RC(NAME_repeatInterval, "real", "0.06",
-     "Interval between repeats")
+{
 };
+*/
 
 /* Class Declaration */
 
-static Name int_item_termnames[] = { NAME_name, NAME_selection, NAME_font };
+static Name int_item_termnames[] = { NAME_name, NAME_default, NAME_message };
 
 ClassDecl(int_item_decls,
           var_int_item, send_int_item, get_int_item, rc_int_item,
@@ -417,9 +251,6 @@ ClassDecl(int_item_decls,
 
 status
 makeClassIntItem(Class class)
-{ declareClass(class, &int_item_decls);
-  setRedrawFunctionClass(class, RedrawAreaIntItem);
-
-  succeed;
+{ return declareClass(class, &int_item_decls);
 }
 

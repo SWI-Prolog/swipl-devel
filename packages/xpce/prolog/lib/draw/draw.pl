@@ -13,7 +13,7 @@
 	, draw/1				  % Start editing file
 	]).
 
-draw_version(3.2).
+draw_version(4.0).
 
 		/********************************
 		*      LINKING OTHER FILES	*
@@ -35,6 +35,8 @@ as SWI-Prolog will  inherit the PCE system  predicates from the module
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 :- use_module(library(pce)).
+:- use_module(library(pce_config)).
+:- use_module(library('draw/config')).
 :- ensure_loaded(library(help_message)).
 :- require([ concat/3
 	   , pce_help_file/2
@@ -98,7 +100,7 @@ draw :-
 	send(Draw, open).
 
 draw(File) :-
-	add_extension(File, '.pd', PdFile),
+	file_name_extension(File, pd, PdFile),
 	new(Draw, draw),
 	send(Draw, open),
 	get(Draw, canvas, Canvas),
@@ -106,12 +108,6 @@ draw(File) :-
 	->  send(Canvas, load, PdFile, @on)
 	;   send(Canvas, file, PdFile)
 	).
-
-
-add_extension(Base, Ext, Base) :-
-	concat(_, Ext, Base), !.
-add_extension(Base, Ext, File) :-
-	concat(Base, Ext, File).
 
 
 		/********************************
@@ -136,46 +132,6 @@ should be class `object', the root of the PCE class hierarchy.
 variable(title,		name,	get, "Base-name of the program").
 variable(version,	real,   get, "Current version").
 
-:- pce_global(@draw_default_arrow, new(arrow)).
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The term  resource/4 is expanded  by  the PCE/Prolog class  loader.  A
-resource provides  access to  the   X-window resource  database.   The
-PceDraw user may specify a value in ~/.Xdefaults:
-
-	Pce.Draw.auto_align_mode:	@off
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-resource(auto_align_mode,		bool, '@on',
-	 "Automatically align graphicals").
-resource(postscript_file_extension,	name, '.eps',
-	 "Extension for saved PostScript").
-resource(printer,			[name], '@default',
-	 "Printer used for direct printing").
-resource(print_command,			name, 'lpr -P%p %f',
-	 "Command to print a file").
-resource(draw_fill_patterns,		chain,
-	 [ @nil
-	 , @white_image
-	 , @grey12_image
-	 , @grey25_image
-	 , @grey50_image
-	 , @grey75_image
-	 , @black_image
-	 ],
-	 "List of fill-patterns that can be used").
-resource(draw_colours,			chain,
-	 [ red
-	 , green
-	 , blue
-	 , yellow
-	 ],
-	 "List of colours that can be used").
-resource(draw_arrows,			chain,
-	 [ @nil,
-	   @draw_default_arrow
-	 ],
-	 "List of predefined arrow heads").
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 If  the initialisation of an instance  of  this class differs from the
@@ -215,6 +171,7 @@ frame, making the frame responsible for its destruction.
 
 initialise(Draw, Title:[name]) :->
 	fix_fonts,
+	ensure_loaded_config(draw_config:'PceDraw'),
 	default(Title, 'PceDraw', TheTitle),
 	send(Draw, send_super, initialise, TheTitle),
 	send(Draw, slot, title, TheTitle),
@@ -226,14 +183,24 @@ initialise(Draw, Title:[name]) :->
 	send(new(D, dialog), above, Menu),
 	send(Draw, fill_dialog, D),
 	send(Draw, fill_menu),
-	send(Menu, activate_select).
+	send(Menu, activate_select),
+	(   get_config(draw_config:history/geometry/main_window, Geometry)
+	->  send(Draw, geometry, Geometry)
+	;   true
+	).
+
+unlink(Draw) :->
+	get(Draw, geometry, Geometry),
+	send(Draw, send_super, unlink),
+	set_config(draw_config:history/geometry/main_window, Geometry).
+
 
 %  The Windows win_ansi font reproduces poorly in exported metafiles, hence
 %  we force the usage of a normal font.
 
 fix_fonts :-
 	send(@display, open),
-	get(@display, font_alias, normal, Font),
+	get(@pce, convert, normal, font, Font),
 	get(Font, family, win_ansi), !,
 	send(@display, font_alias, normal, font(helvetica, roman, 12), @on).
 fix_fonts.
@@ -351,22 +318,24 @@ fill_dialog(Draw, D:dialog) :->
 			      message(Canvas, postscript_as),
 			      @default, @off,
 			      NonEmptyDrawing)
-		  , menu_item(save_and_postscript,
-			      and(message(Canvas, save),
-				  message(Canvas, postscript)),
-			      @default, @on,
-			      and(NonEmptyDrawing,
-				  Canvas?modified == @on,
-				  HasCurrentFile))
 		  , new(SaveAsMetaFile, popup(save_as_metafile))
 		  , menu_item(print,
 			      message(Canvas, print),
 			      @default, @on,
 			      NonEmptyDrawing)
+		  , menu_item(new_window,
+			      message(Draw, new_window),
+			      end_group := @on)
+		  , new(RF, menu_item(recent_file,
+			      end_group := @on))
 		  , menu_item(quit,
 			      message(Draw, quit),
 			      @default, @off)
 		  ]),
+	send(RF, popup,
+	     new(RFP, popup(RF?value,
+			    message(Draw, load_recent_file, @arg1)))),
+	send(RFP, update_message, message(Draw, fill_recent_files, RFP)),
 	send_list(P, append,
 		  [ menu_item(create,
 			      message(Menu, create_proto, Selection),
@@ -491,10 +460,15 @@ fill_dialog(Draw, D:dialog) :->
 %	send(S, on_image, @mark_image),
 	send_list(S, append,
 		  [ menu_item(auto_align,
-			      message(Canvas, auto_align_mode, @arg1))
+			      message(Canvas, auto_align_mode, @arg1),
+			      end_group := @on),
+		    menu_item(preferences,
+			      and(message(Draw, preferences),
+				  message(S, selected, preferences, @off)),
+			      'Preferences ...')
 		  ]),
 
-	(   get(Draw, resource_value, auto_align_mode, @on)
+	(   get_config(draw_config:edit/auto_align, true)
 	->  send(S, selected, auto_align, @on),
 	    send(Canvas, auto_align_mode, @on)
 	;   true
@@ -641,6 +615,53 @@ help(_Draw) :->
 	send(@helper, give_help, pcedraw, main).
 
 
+		 /*******************************
+		 *	    PREFERENCES		*
+		 *******************************/
+
+preferences(Draw) :->
+	"Edit user preferences"::
+	edit_config(draw_config:Draw).
+
+
+		 /*******************************
+		 *	    NEW WINDOW		*
+		 *******************************/
+
+new_window(Draw) :->
+	"Create a new window"::
+	get(Draw, class_name, Class),
+	send(new(Class), open).
+
+
+		 /*******************************
+		 *	   RECENT FILES		*
+		 *******************************/
+
+fill_recent_files(_Draw, Popup:popup) :->
+	"Fill `recent-file' pull-right menu"::
+	send(Popup, clear),
+	(   get_config(draw_config:history/recent_files, Files)
+	->  append_files_to_menu(Files, Popup)
+	;   true
+	).
+
+append_files_to_menu([], _).
+append_files_to_menu([H|T], Menu) :-
+	file_base_name(H, Base),
+	send(Menu, append, menu_item(H, @default, Base)),
+	append_files_to_menu(T, Menu).
+
+
+load_recent_file(Draw, File:file) :->
+	"Load file from recent file menu"::
+	get(Draw, canvas, Canvas),
+	(   send(File, exists)
+	->  send(Canvas, load, File, @on)
+	;   send(Draw, report, error, 'No such file')
+	).
+
+
 		/********************************
 		*              QUIT		*
 		********************************/
@@ -656,31 +677,10 @@ PceDraw.
 quit(Draw) :->
 	"Leave draw"::
 	get(Draw, canvas, Canvas),
-	(   get(Canvas, modified, @on)
-	->  new(D, dialog),
-	    send(D, transient_for, Draw),
-	    send(D, append, label(message, 'Drawing has changed')),
-	    send(D, append, button('Save & Quit',
-				   message(D, return, save_and_quit))),
-	    send(D, append, button(quit,
-				   message(D, return, quit))),
-	    send(D, append, button(cancel,
-				   message(D, return, cancel))),
-	    get(D, confirm_centered, Rval),
-	    send(D, destroy),
-	    (   Rval == save_and_quit
-	    ->  send(Canvas, save),
-	        send(Draw, destroy)
-	    ;   Rval == quit
-	    ->  send(Draw, destroy)
-	    )
-	;   (   get(Draw, resource_value, confirm_done, @off)
-	    ->	send(Draw, destroy)
-	    ;	(   send(@display, confirm, 'Quit PceDraw?')
-		->  send(Draw, destroy)
-		;   fail
-		)
-	    )
+	send(Canvas, save_if_modified, @on),
+	(   object(Draw)
+	->  send(Draw, destroy)
+	;   true
 	).
 
 :- pce_end_class.	

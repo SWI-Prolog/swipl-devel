@@ -61,8 +61,6 @@ NOTE:	Should we  define  the  type  of the attribute_editor   to  be
 
 :- pce_begin_class(draw_canvas, picture, "Drawing plane of PceDraw").
 
-resource(size, size, size(500,500), "Default size of drawing area").
-
 variable(mode,		   name,			get,
 	 "Current mode of operation").
 variable(proto,		   object*,			both,
@@ -357,6 +355,7 @@ import_frame(C) :->
 	send(Display?inspect_handlers, delete, G),
 	send(D, destroy),
 	Frame \== @nil,
+ 	object(Frame),			% not yet deleted?
 	send(C, display, draw_bitmap(Frame?image)).
 
 
@@ -754,8 +753,11 @@ directory) from the last time the finder was used.
 
 save_as(Canvas) :->
 	"Save in user-specified file"::
-	get(@finder, file, @off, '.pd', File),
-	send(Canvas, save, File).
+	get(@finder, file, @off, '.pd', FileName),
+	new(File, file(FileName)),
+	send(Canvas, save, File),
+	get(File, absolute_path, Path),
+	add_config(draw_config:history/recent_files, Path).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Actual saving to file.  The  toplevel-object  saved  is a sheet.  This
@@ -784,8 +786,43 @@ save(Canvas, File:[file]) :->
 			 attribute(version, Version))),
 	send(Sheet, save_in_file, SaveFile),
 	send(Canvas, slot, modified, @off),
-	send(Canvas, report, status, 'Saved %s', SaveFile?base_name),
-	send(Sheet, free).
+	send(Sheet, free),
+	(   get_config(draw_config:file/save_postscript_on_save, true)
+	->  send(Canvas, postscript),
+	    Fmt = 'Saved (pd+ps) %s'
+	;   Fmt = 'Saved %s'
+	),
+	send(Canvas, report, status, Fmt, SaveFile?base_name).
+
+save_if_modified(Canvas, AllowQuit:[bool]) :->
+	"Save if the drawing is modified"::
+	(   get(Canvas, modified, @on)
+	->  get(Canvas, frame, Draw),
+	    new(D, dialog),
+	    send(D, transient_for, Draw),
+	    send(D, append, label(message, 'Drawing has changed')),
+	    (	AllowQuit == @on
+	    ->  send(D, append, button('Save & Quit',
+				       message(D, return, save_and_quit))),
+		send(D, append, button(quit,
+				       message(D, return, quit)))
+	    ;	send(D, append, button(save,
+				       message(D, return, save)))
+	    ),
+	    send(D, append, button(cancel,
+				   message(D, return, cancel))),
+	    get(D, confirm_centered, Rval),
+	    send(D, destroy),
+	    (   Rval == save_and_quit
+	    ->  send(Canvas, save),
+	        send(Draw, destroy)
+	    ;   Rval == quit
+	    ->  send(Draw, destroy)
+	    ;	Rval == save
+	    ->	send(Canvas, save)
+	    )
+	;   true
+	).
 
 
 load_from(Canvas) :->
@@ -810,7 +847,8 @@ NOTE:	Currently PCE provides no way for the programmer to specify
 load(Canvas, File:file, Clear:[bool]) :->
 	"Load from named file and [clear]"::
 	(    Clear == @on
-	->   send(Canvas, clear, @on)
+	->   send(Canvas, save_if_modified),
+	     send(Canvas, clear)
 	;    true
 	),
 	get(File, object, Sheet),
@@ -827,6 +865,8 @@ load(Canvas, File:file, Clear:[bool]) :->
 	),
 	send(Canvas, convert_old_drawing, SaveVersion),
 	send(Canvas, report, status, 'Loaded %s', File?base_name),
+	get(File, absolute_path, Path),
+	add_config(draw_config:history/recent_files, Path),
 	send(Sheet, done).
 
 
@@ -902,8 +942,7 @@ postscript(Canvas) :->
 postscript_as(Canvas) :->
 	"Write PostScript to file"::
 	get(Canvas, default_file, eps, DefFile),
-	get(Canvas, frame, Draw),
-	get(Draw, resource_value, postscript_file_extension, Ext),
+	get_config(draw_config:file/postscript_file_extension, Ext),
 	get(@finder, file, @off, Ext, @default, DefFile, FileName),
 	send(Canvas, generate_postscript, FileName).
 
@@ -918,16 +957,18 @@ generate_postscript(Canvas, PsFile:file) :->
 	     'Written PostScript to `%s''', PsFile?base_name).
 
 
-default_file(Canvas, Ext, DefName) :<-
+default_file(Canvas, Ext:[name], DefName:name) :<-
 	"Default name for PostScript file"::
 	(   get(Canvas, file, File),
-	    File \== @nil,
-	    get(File, name, Name),
+	    File \== @nil
+	->  get(File, name, Name),
 	    file_name_extension(Base, pd, Name)
-	->  file_name_extension(Base, Ext, DefName)
-	;   file_name_extension(scratch, Ext, DefName)
+	;   Base = scratch
+	),
+	(   Ext == @default
+	->  DefName = Base
+	;   file_name_extension(Base, Ext, DefName)
 	).
-
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Windows MetaFile generation
@@ -958,11 +999,27 @@ generate_metafile(Canvas, File:file, Format:{emf,wmf,aldus}) :->
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Print  the image to the default  printer.  Also this  method should be
-extended by resquesting additional parameters from the user.
+extended by requesting additional parameters from the user.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 print(Canvas) :->
 	"Send to default printer"::
+	print_canvas(Canvas).
+
+print_canvas(Canvas) :-
+	get(@pce, operating_system, win32), !,
+	get(Canvas, default_file, Job),
+	new(Prt, win_printer(Job)),
+	send(Prt, setup, Canvas),
+	send(Prt, open),
+	get(Canvas, bounding_box, area(_X,_Y,_W,_H)),
+	get(Prt, size, size(_PW, _PH)),
+	send(Prt, resolution, 1000),
+	send(Prt, origin, point(0,0)),
+	send(Prt, draw_in, Canvas?graphicals),
+	send(Prt, close),
+	free(Prt).
+print_canvas(Canvas) :-
 	get(Canvas, default_printer, Printer),
 	get(Canvas, frame, Draw),
 	default_printer(Draw, Printer),
@@ -972,7 +1029,7 @@ print(Canvas) :->
 	send(PsFile, append, 'showpage\n'),
 	send(PsFile, close),
 	get(PsFile, absolute_path, File),
-	get(Draw, resource_value, print_command, CmdTempl),
+	get_config(draw_config:print/print_command, CmdTempl),
 	print_cmd(CmdTempl, Printer, File, Cmd),
 	pce_shell_command('/bin/sh'('-c', Cmd)),
 	send(PsFile, remove),
@@ -994,9 +1051,14 @@ default_printer(Canvas, Printer:name) :<-
 	Answer \== @nil,
 	Printer = Answer.
 
-default_printer(Draw, Printer) :-
-	get(Draw, resource_value, printer, Printer),
-	Printer \== @default, !.
+default_printer(_, Printer) :-
+	get_config(draw_config:print/printer, Printer0),
+	Printer0 \== @default, !,
+	(   get(Printer0, scan, '$%[a-zA-Z0-9_]', vector(VarName)),
+	    get(@pce, environment_variable, VarName, Printer)
+	->  true
+	;   Printer = Printer0
+	).
 default_printer(_, Printer) :-
 	get(@pce, environment_variable, 'PRINTER', Printer), !.
 default_printer(_, postscript).

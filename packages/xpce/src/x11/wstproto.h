@@ -233,6 +233,7 @@ status		ws_draw_sb_thumb(int x, int y, int w, int h);
 Colour		ws_3d_grey(void);
 status		ws_draw_button_face(DialogItem di, int x, int y, int w, int h, int up, int defb, int focus);
 int		ws_combo_box_width(void);
+int		ws_stepper_width(void);
 status		ws_entry_field(int x, int y, int w, int h, int flags);
 status		ws_draw_checkbox(int x, int y, int w, int h, int b, int flags);
 status		ws_checkbox_size(int flags, int *w, int *h);

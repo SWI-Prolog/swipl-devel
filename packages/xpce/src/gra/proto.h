@@ -82,6 +82,7 @@ status		makeClassFigure(Class class);
 /* gra/font.c */
 status		replaceFont(FontObj f, DisplayObj d);
 status		makeBuiltinFonts(void);
+Int		getWidthFont(FontObj f, CharArray txt);
 Int		getExFont(FontObj f);
 Int		getHeightFont(FontObj f);
 Int		getAscentFont(FontObj f);
@@ -306,6 +307,7 @@ status		makeClassText(Class class);
 /* gra/tree.c */
 status		requestComputeTree(Tree t);
 status		displayTree(Tree t, Node n);
+status		computeFigureTree(Tree t);
 status		unzoomTree(Tree t);
 status		zoomTree(Tree t, Node n);
 status		makeClassTree(Class class);

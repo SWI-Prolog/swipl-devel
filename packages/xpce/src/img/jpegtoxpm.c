@@ -108,12 +108,13 @@ readJPEGtoXpmImage(FILE *fd, XpmImage *img)
 	rval = XpmFileInvalid;
 	break;
       default:
-      { char buf[1024];
+      DEBUG(NAME_image,
+	    { char buf[1024];
 
-	(*jerr.jerr.format_message)((j_common_ptr)&cinfo, buf);
-	Cprintf("JPEG: %s\n", buf);
-	rval = XpmFileInvalid;
-      }
+	      (*jerr.jerr.format_message)((j_common_ptr)&cinfo, buf);
+	      Cprintf("JPEG: %s\n", buf);
+	    });
+      rval = XpmFileInvalid;
     }
 
     jpeg_destroy_decompress(&cinfo);

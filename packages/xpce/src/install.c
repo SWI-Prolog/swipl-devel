@@ -31,6 +31,7 @@ problem.
 #include <unistd.h>
 #endif
 #include <fcntl.h>
+#include <errno.h>
 
 #ifndef MAXPATHLEN
 #define MAXPATHLEN 1024

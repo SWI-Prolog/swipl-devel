@@ -222,6 +222,15 @@ object(C, O:man_global) :<-
 	concat('O.', Reference, Name),
 	get(@man_globals, member, Reference, O).
 
+delete_unreferenced(C) :->
+	get(C, identifier, Name),
+	(   concat('O.', Reference, Name),
+	    object(@Reference)
+	->  true
+	;   format(user_error, 'Deleting card ~w~n', [Name]),
+	    free(C)
+	).
+
 :- pce_end_class.
 
 :- pce_begin_class(man_predicate_card(name), man_card,
@@ -342,7 +351,7 @@ man_id(_Card, Id) :<-
 :- pce_begin_class(man_global(reference), object).
 
 variable(reference,	name,	 get,	"Reference name of object").
-variable(man_summary,	string,  get,	"Summary string (when available").
+variable(man_summary,	string,  get,	"Summary string (when available)").
 
 initialise(G, Name:name, Summary:[string]*) :->
 	"Create from name"::

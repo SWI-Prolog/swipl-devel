@@ -494,7 +494,8 @@ read_ppm_file(Display *disp, Colormap cmap, int depth, FILE *fd)
   return img;
 
 errout:
-  Cprintf("PNM: Format error, index = %d\n", ftell(fd));
+  DEBUG(NAME_ppm,
+	Cprintf("PNM: Format error, index = %d\n", ftell(fd)));
   fseek(fd, here, SEEK_SET);
   return NULL;
 }

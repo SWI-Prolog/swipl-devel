@@ -285,6 +285,12 @@ ws_combo_box_width()
 }
 
 
+int
+ws_stepper_width()
+{ return ws_combo_box_width();
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ws_entry_field() is used by classes  that   need  to  create an editable
 field of specified dimensions. If the field   happens to be not editable
@@ -312,6 +318,37 @@ ws_entry_field(int x, int y, int w, int h, int flags)
 	r_3d_rectangle(x+w-cw-2, y+2, cw, h-4, 2, thumb_colours);
 
       r_image(WinCombo, 0, 0, x+w-cw, iy, iw, ih, OFF);
+    }
+    if ( flags & TEXTFIELD_STEPPER )
+    { int iw = valInt(WinCombo->size->w);
+      int ih = valInt(WinCombo->size->h);
+      int iy = y+2 + (h-4-valInt(WinCombo->size->h))/2;
+      int cw = iw + 4;
+      int bh = (h-4)/2;
+      COLORREF *b1colors = thumb_colours;
+      COLORREF *b2colors = thumb_colours;
+      int b1z = 2;
+      int b2z = 2;
+
+      if ( flags & TEXTFIELD_INCREMENT )
+      { b1colors = down_colours;
+	b1z = 1;
+      } else if ( flags & TEXTFIELD_DECREMENT )
+      { b2colors = down_colours;
+	b2z = 1;
+      }
+
+      r_3d_rectangle(x+w-cw-2, y+2,    cw, bh, b1z, b1colors);
+      r_3d_rectangle(x+w-cw-2, y+2+bh, cw, bh, b2z, b2colors);
+
+      { int iw = valInt(INT_ITEM_IMAGE->size->w)/2;
+	int ih = valInt(INT_ITEM_IMAGE->size->h);
+	int ix = x+w-2-(cw+iw)/2;
+	int dy = (bh-ih+1)/2;
+
+	r_image(INT_ITEM_IMAGE, 0,  0, ix, y+2+dy,      iw, ih, ON);
+	r_image(INT_ITEM_IMAGE, iw, 0, ix, y+h-2-dy-ih, iw, ih, ON);
+      }
     }
   }
 

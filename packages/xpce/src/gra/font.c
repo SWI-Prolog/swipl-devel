@@ -206,7 +206,7 @@ defaultPostScriptFont(FontObj f)
 		********************************/
 
 
-static Int
+Int
 getWidthFont(FontObj f, CharArray txt)
 { if ( isDefault(txt) )
   { if ( getB16Font(f) == ON )

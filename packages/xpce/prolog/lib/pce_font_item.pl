@@ -29,10 +29,8 @@ class may be used as an   example/template  for defining compound dialog
 items.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-:- pce_begin_class(font_item, dialog_group, "Dialog item for defining a font").
+:- pce_begin_class(font_item, label_box, "Dialog item for defining a font").
 
-variable(message,	code*,		both,	"Message executed on change").
-variable(default,	'font|function',get,	"Default value").
 variable(value_set,	chain,		get,	"List of fonts").
 
 initialise(FI, Name:[name],
@@ -40,56 +38,24 @@ initialise(FI, Name:[name],
 	   ValueSet:[chain]) :->
 	"Create font-selector"::
 	default(Name, font, Nm),
-	default(Message, @nil, Msg),
 	default(Default, normal, Def),
-	send(FI, slot, message, Msg),
-	send(FI, slot, default, Def),
-	send(FI, send_super, initialise, Nm, group),
-	send(FI, gap, size(0,0)),
+	send(FI, send_super, initialise, Nm, Message),
+	send(FI, gap, size(5,0)),
 	send(FI, alignment, column),
-	send(FI, auto_label_align, @on),
 	send(FI, append,
 	     new(Fam, menu(family, cycle, message(FI, family, @arg1)))),
 	send(FI, append,
 	     new(Wgt, menu(weight, cycle, message(FI, weight, @arg1))), right),
 	send(FI, append,
 	     new(Pts, menu(points, cycle, message(FI, points, @arg1))), right),
-	send(Fam, auto_label_align, off),
-	send(Fam, label, ?(Fam, label_name, Nm)),
-	send(Wgt, label, ''),
-	send(Pts, label, ''),
+	send(Fam, show_label, @off),
+	send(Wgt, show_label, @off),
+	send(Pts, show_label, @off),
 	send(FI, value_set, ValueSet),
-	send(FI, default, Def),
-	send(FI, layout_dialog).
+	send(FI, default, Def).
 
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The label of the compound  dialog-item   is  maintained by the left-most
-menu.   Communication  on  <->label_width  ensures  that  the  label  is
-properly aligned with other dialog-items above  and below this one.  See
-also `dialog_item ->auto_label_align'.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-label(FI, Label:name) :->
-	"Set the label"::
-	get(FI, member, family, Fam),
-	send(Fam, label, Label),
-	send(Fam, label_width, @default),	
-	send(FI, layout_dialog).
-
-label_width(FI, W:int) :<-
-	get(FI, member, family, Fam),
-	get(Fam, label_width, W).
-label_width(FI, W:int) :->
-	get(FI, member, family, Fam),
-	send(Fam, label_width, W),
-	send(FI, layout_dialog).
-
-reference(FI, Ref:point) :<-
-	"Dialog item reference point"::
-	get(FI, member, family, Fam),
-	get(Fam, reference, Ref).
-	     
+clear(_) :->
+	true.
 
 active(FI, Val:bool) :->
 	send(FI?graphicals, for_all, message(@arg1, active, Val)).
@@ -128,7 +94,11 @@ value_set(FI, ValueSet:[chain]) :->
 		 *	      CHANGES		*
 		 *******************************/
 
+modified_item(_FI, _Gr:graphical, _Modified:bool) :->
+	fail.
+
 forward(FI) :->
+	send(FI, modified, @on),
 	(   send(FI?device, modified_item, FI, @on)
 	->  true
 	;   send(FI, apply)
@@ -235,23 +205,5 @@ selection(FI, Font:font) :<-
 	get(Wgt, selection, Style),
 	get(Pts, selection, Points),
 	new(Font, font(Family, Style, Points)).
-
-
-default(FI, Def:'font|function') :->
-	send(FI, slot, default, Def),
-	send(FI, restore).
-
-
-restore(FI) :->
-	get(FI, default, Def),
-	send(FI, selection, Def).
-
-
-apply(FI, _Always:[bool]) :->
-	get(FI, message, Msg),
-	(   Msg \== @nil
-	->  send(Msg, forward, FI?selection)
-	;   true
-	).
 
 :- pce_end_class.

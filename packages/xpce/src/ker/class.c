@@ -870,6 +870,8 @@ sendMethodClass(Class class, SendMethod m)
 
   appendChain(class->send_methods, m);
   assign(m, context, class);
+  if ( m->name == NAME_equal )
+    setDFlag(m, D_TYPENOWARN);
   if ( offDFlag(class, DC_LAZY_SEND) )
     lazyBindingClass(class, NAME_send, ON);
 
@@ -1614,6 +1616,8 @@ attachLazySendMethodClass(Class class, const senddecl *sm)
 
   appendChain(class->send_methods, m);
   assign(m, context, class);
+  if ( m->name == NAME_equal )
+    setDFlag(m, D_TYPENOWARN);
 
   return m;
 }

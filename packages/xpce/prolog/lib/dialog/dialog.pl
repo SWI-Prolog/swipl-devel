@@ -49,9 +49,16 @@ standard XPCE library directory.
 
 dia_version('0.8').
 
-:- initialization pce_help_file(dialog, pce_help('dialog.hlp')).
-:- initialization pce_image_directory(library('dialog/bitmaps')).
+:- dynamic
+	paths_initialised/0.
 
+initialise_paths :-
+	paths_initialised, !.
+initialise_paths :-
+	pce_help_file(dialog, pce_help('dialog.hlp')),
+	pce_image_directory(library('dialog/bitmaps')),
+	assert(paths_initialised).
+	
 
 		 /*******************************
 		 *	  PROTO TEMPLATE	*
@@ -796,6 +803,7 @@ count_items(_I, 1).
 :- pce_begin_class(dia_editor, frame, "Dialog Editor").
 
 initialise(DE) :->
+	initialise_paths,
 	dia_version(Version),
 	send(DE, send_super, initialise,
 	     string('Dialog Editor --- Version %s', Version)),

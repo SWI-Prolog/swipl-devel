@@ -1,0 +1,4 @@
+#define intarrows_width 10
+#define intarrows_height 3
+static unsigned char intarrows_bits[] = {
+   0xe4, 0x03, 0xce, 0x01, 0x9f, 0x00};

@@ -20,9 +20,11 @@ static status	WantsKeyboardFocusTextItem(TextItem);
 static status	restoreTextItem(TextItem ti);
 static status	selectionTextItem(TextItem ti, Any selection);
 static status	resetTextItem(TextItem ti);
-static int	combo_width(TextItem ti);
 static int	combo_flags(TextItem ti);
+static status	detachTimerTextItem(TextItem ti);
 
+#define STEPPER_BOX_W   14
+#define STEPPER_BOX_GAP 5
 
 status
 initialiseTextItem(TextItem ti, Name name, Any val, Code msg)
@@ -65,6 +67,14 @@ initialiseTextItem(TextItem ti, Name name, Any val, Code msg)
 }
 
 
+static status
+unlinkTextItem(TextItem ti)
+{ detachTimerTextItem(ti);
+
+  return unlinkDialogItem((DialogItem) ti);
+}
+
+
 status
 RedrawAreaTextItem(TextItem ti, Area a)
 { int x, y, w, h;
@@ -100,7 +110,7 @@ RedrawAreaTextItem(TextItem ti, Area a)
     flags |= TEXTFIELD_EDITABLE;
   flags |= combo_flags(ti);
 
-  if ( !ws_entry_field(tx, ty, tw+combo_width(ti), th, flags) )
+  if ( !ws_entry_field(tx, ty, tw+text_item_combo_width(ti), th, flags) )
   { if ( flags & TEXTFIELD_EDITABLE )
     { if ( z && notNil(z) )
       { int zh = abs(valInt(z->height));
@@ -127,6 +137,24 @@ RedrawAreaTextItem(TextItem ti, Area a)
       try = y + (h-trh)/2;
   
       r_3d_triangle(trx+trw/2, try+trh, trx, try, trx+trw, try, z, up, 0x3);
+    }
+    if ( flags & TEXTFIELD_STEPPER )
+    { int sw = STEPPER_BOX_W;
+      int bx = x+w-sw;
+      int bh = (h+1)/2;
+      int iw, ih, ix, dy;
+      Elevation e = getResourceValueClass(ClassButton, NAME_elevation);
+
+      r_3d_box(bx, y,    sw, bh,   0, e, !(flags & TEXTFIELD_INCREMENT));
+      r_3d_box(bx, y+bh, sw, h-bh, 0, e, !(flags & TEXTFIELD_DECREMENT));
+
+      iw = valInt(INT_ITEM_IMAGE->size->w)/2;
+      ih = valInt(INT_ITEM_IMAGE->size->h);
+      ix = x + w - (sw+iw+1)/2;
+      dy = (bh-ih+1)/2;
+
+      r_image(INT_ITEM_IMAGE, 0,  0, ix, y+dy,      iw, ih, ON);
+      r_image(INT_ITEM_IMAGE, iw, 0, ix, y+h-dy-ih, iw, ih, ON);
     }
   }
 
@@ -176,9 +204,16 @@ activateTextItem(TextItem ti, Bool val)
 status
 statusTextItem(TextItem ti, Name stat)
 { if ( ti->status != stat )
-  { assign(ti, status, stat);
+  { int incdec = (ti->status == NAME_increment ||
+		  ti->status == NAME_decrement ||
+		  stat == NAME_increment ||
+		  stat == NAME_decrement );
+    assign(ti, status, stat);
 
-    return updateShowCaretTextItem(ti);
+    updateShowCaretTextItem(ti);
+
+    if ( incdec )
+      changedDialogItem(ti);		/* ensure redraw */
   }
 
   succeed;
@@ -207,7 +242,7 @@ computeTextItem(TextItem ti)
   { int lw, lh, w, h;
     int al, av, am;
     Int b = getResourceValueObject(ti, NAME_border);
-    int cwb = combo_width(ti);
+    int cwb = text_item_combo_width(ti);
     TextObj vt = ti->value_text;
 
     obtainResourcesObject(ti);
@@ -356,7 +391,7 @@ quitCompleterDialogItem(Any di)
     send(c, NAME_client, NIL, 0);
     send(c, NAME_show, OFF, 0);
     send(c, NAME_transientFor, NIL, 0);
-    if ( combo_width(di) )
+    if ( text_item_combo_width(di) )
       changedDialogItem(di);		/* indicator will change */
   }
 
@@ -442,7 +477,7 @@ selectCompletionTextItem(TextItem ti, Chain matches,
 
   send(c, NAME_prefix, prefix, 0);
 
-  if ( combo_width(ti) )
+  if ( text_item_combo_width(ti) )
     changedDialogItem(ti);
 
   return selectCompletionDialogItem((DialogItem)ti, matches,
@@ -635,7 +670,7 @@ getHasCompletionsTextItem(TextItem ti)
 }
 
 
-static status
+status
 styleTextItem(TextItem ti, Name style)
 { if ( isDefault(style) )
   { if ( get(ti, NAME_hasCompletions, 0) == ON )
@@ -673,18 +708,28 @@ combo_flags(TextItem ti)
 
     if ( completerShownDialogItem(ti) )
       flags |= TEXTFIELD_COMBO_DOWN;
+  } else if ( ti->style == NAME_stepper )
+  { flags |= TEXTFIELD_STEPPER;
+    if ( ti->status == NAME_increment )
+      flags |= TEXTFIELD_INCREMENT;
+    else if ( ti->status == NAME_decrement )
+      flags |= TEXTFIELD_DECREMENT;
   }
 
   return flags;
 }
 
 
-static int
-combo_width(TextItem ti)
+int
+text_item_combo_width(TextItem ti)
 { if ( ti->style == NAME_comboBox )
   { int w = ws_combo_box_width();
 
     return w >= 0 ? w : 14;
+  } else if ( ti->style == NAME_stepper )
+  { int w = ws_stepper_width();
+
+    return w >= 0 ? w : (STEPPER_BOX_W+STEPPER_BOX_GAP);
   }
 
   return 0;
@@ -716,6 +761,75 @@ showComboBoxTextItem(TextItem ti, Bool val)
 		********************************/
 
 
+static Name
+getIncDecTextItem(TextItem ti, EventObj ev)
+{ if ( ti->style == NAME_stepper )
+  { Int X, Y;
+    int x, y;
+    int r = valInt(ti->area->w);
+    
+    get_xy_event(ev, ti, OFF, &X, &Y);
+    x = valInt(X);
+    y = valInt(Y);
+      
+    if ( x >= r - text_item_combo_width(ti) && x < r &&
+	 y >= 0 && y <= valInt(ti->area->h) )
+    { if ( y < valInt(ti->area->h)/2 )
+	answer(NAME_increment);
+      else
+	answer(NAME_decrement);
+    }
+  }
+    
+  fail;
+}
+
+
+static status
+attachTimerTextItem(TextItem ti)
+{ Real delay = getResourceValueObject(ti, NAME_repeatDelay);
+
+  if ( delay )
+  { Timer t = newObject(ClassTimer, delay,
+			newObject(ClassMessage, ti, NAME_repeat, 0), 0);
+    attributeObject(ti, NAME_Timer, t);
+    startTimer(t, NAME_once);
+  }
+
+  succeed;
+}
+
+
+static status
+detachTimerTextItem(TextItem ti)
+{ Timer t;
+
+  if ( (t = getAttributeObject(ti, NAME_Timer)) )
+  { freeObject(t);
+    deleteAttributeObject(ti, NAME_Timer);
+  }
+  
+  succeed;
+}
+
+
+static status
+repeatTextItem(TextItem ti)
+{ Timer t;
+  Real i = getResourceValueObject(ti, NAME_repeatInterval);
+
+  send(ti, ti->status, 0);
+
+  if ( (t = getAttributeObject(ti, NAME_Timer)) )
+  { intervalTimer(t, i);
+    statusTimer(t, NAME_once);
+  }
+
+  succeed;
+}
+
+
+
 static Int
 getPointedTextItem(TextItem ti, Point pos)
 { return get_pointed_text(ti->value_text,
@@ -724,9 +838,30 @@ getPointedTextItem(TextItem ti, Point pos)
 }
 
 
+
 status
 eventTextItem(TextItem ti, EventObj ev)
 { static Int origin;			/* Multithread dubious! */
+  Name dir;
+
+  if ( WantsKeyboardFocusTextItem(ti) &&
+       isAEvent(ev, NAME_msLeft) &&
+       (dir=getIncDecTextItem(ti, ev)) )
+  { if ( isUpEvent(ev) )
+    { send(ti, dir, 0);
+      detachTimerTextItem(ti);
+      statusTextItem(ti, NAME_active);
+    } else
+    { statusTextItem(ti, dir);
+
+      if ( isDownEvent(ev) )
+      { send(ti, NAME_keyboardFocus, 0);
+	attachTimerTextItem(ti);
+      }
+    }
+
+    succeed;
+  }
 
   if ( completerShownDialogItem(ti) )
   { Browser c = CompletionBrowser();
@@ -777,7 +912,7 @@ eventTextItem(TextItem ti, EventObj ev)
 
       send(ti, NAME_keyboardFocus, 0);
       
-      if ( (cbw = combo_width(ti)) > 0 )
+      if ( (cbw = text_item_combo_width(ti)) > 0 )
       { Int X, Y;
 	int x, y;
 
@@ -1189,7 +1324,7 @@ valueWidthTextItem(TextItem ti, Int val)
 
   if ( notDefault(val) && instanceOfObject(ti->value_font, ClassFont) )
   { Int ex = getExFont(ti->value_font);
-    int chars = (valInt(val) - combo_width(ti)) / valInt(ex);
+    int chars = (valInt(val) - text_item_combo_width(ti)) / valInt(ex);
 
     if ( chars < 2 )
       chars = 2;
@@ -1279,7 +1414,12 @@ static char *T_selectedCompletion[] =
 /* Instance Variables */
 
 static vardecl var_textItem[] =
-{ SV(NAME_selection, "any", IV_NONE|IV_STORE, selectionTextItem,
+{ SV(NAME_status, "{inactive,active,preview,execute,increment,decrement}",
+     IV_GET|IV_STORE|IV_REDEFINE,
+     statusTextItem,
+     NAME_event, "Status for event-processing"),
+
+  SV(NAME_selection, "any", IV_NONE|IV_STORE, selectionTextItem,
      NAME_selection, "Current value"),
   IV(NAME_default, "any|function", IV_NONE,
      NAME_apply, "The default value"),
@@ -1305,21 +1445,21 @@ static vardecl var_textItem[] =
      NAME_layout, "Width of the value-part in pixels"),
   IV(NAME_horStretch, "0..100", IV_BOTH,
      NAME_layout, "Horizontal stretchability"),
-  IV(NAME_style, "{normal,combo_box}", IV_GET,
-     NAME_appearance, "Show combo-box item for completions")
+  IV(NAME_style, "{normal,combo_box,stepper}", IV_GET,
+     NAME_appearance, "Show plain/combo-box/stepper")
 };
 
 /* Send Methods */
 
 static senddecl send_textItem[] =
-{ SM(NAME_compute, 0, NULL, computeTextItem,
+{ SM(NAME_unlink, 0, NULL, unlinkTextItem,
+     DEFAULT, "Detach repeat timer"),
+  SM(NAME_compute, 0, NULL, computeTextItem,
      DEFAULT, "Compute desired size"),
   SM(NAME_geometry, 4, T_geometry, geometryTextItem,
      DEFAULT, "Resize the image"),
   SM(NAME_initialise, 3, T_initialise, initialiseTextItem,
      DEFAULT, "Create from label, selection and message"),
-  SM(NAME_status, 1, "{inactive,active,preview,execute}", statusTextItem,
-     DEFAULT, "Status for event-processing"),
   SM(NAME_activate, 1, "bool", activateTextItem,
      NAME_event, "Select all/deselect"),
   SM(NAME_quitCompleter, 0, NULL, quitCompleterDialogItem,
@@ -1344,7 +1484,7 @@ static senddecl send_textItem[] =
      NAME_area, "Equivalent to ->length"),
   SM(NAME_next, 0, NULL, nextTextItem,
      NAME_caret, "Advance to next item in same <-device"),
-  SM(NAME_style, 1, "[{normal,combo_box}]", styleTextItem,
+  SM(NAME_style, 1, "[{normal,combo_box,stepper}]", styleTextItem,
      DEFAULT, "Set style or termine default style"),
   SM(NAME_complete, 1, "[event_id]", completeTextItem,
      NAME_complete, "Complete current value"),
@@ -1369,6 +1509,12 @@ static senddecl send_textItem[] =
      NAME_event, "Process event with given id"),
   SM(NAME_key, 1, "key=name", keyTextItem,
      NAME_accelerator, "Request keyboard if accelerator is typed"),
+  SM(NAME_repeat, 0, NULL, repeatTextItem,
+     DEFAULT, "Repeat in/decrement"),
+  SM(NAME_increment, 0, NULL, failObject,
+     NAME_selection, "(virtual) Increment the selection"),
+  SM(NAME_decrement, 0, NULL, failObject,
+     NAME_selection, "(virtual) Decrement the selection"),
   SM(NAME_labelWidth, 1, "[int]", labelWidthTextItem,
      NAME_layout, "Width of label in pixels"),
   SM(NAME_clear, 0, NULL, clearTextItem,
@@ -1421,7 +1567,11 @@ static resourcedecl rc_textItem[] =
   RC(NAME_autoSelect, "bool", "@on",
      "Automatically select all text when ->activate'd"),
   RC(NAME_searchIgnoreCase, "bool", "@on",
-     "@on: ignore case for completion")
+     "@on: ignore case for completion"),
+  RC(NAME_repeatDelay, "real", "0.35",
+     "Time to wait until start of repeat"),
+  RC(NAME_repeatInterval, "real", "0.06",
+     "Interval between repeats")
 };
 
 /* Class Declaration */
