@@ -61,6 +61,7 @@ excluded(Obj, InheritedFrom, _Description) :-
 fetch_description(@Obj, Description) :-
 	fetched_description(Obj, Description), !.
 fetch_description(Obj, Description) :-
+	get(@manual, self, _),		% force creation
 	(   get(Obj, attribute, man_description, S0)
 	;   get(Obj, man_attribute, description, S0)
 	;   get(Obj, man_inherited_attribute, description, tuple(From, S0)),

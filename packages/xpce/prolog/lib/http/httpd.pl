@@ -11,6 +11,7 @@
 	  [ html_to_buffer/2		% +Term, -Buffer
 	  ]).
 :- use_module(library(pce)).
+:- use_module(html_write).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module implements a very  simple   HTTP  deamon skeleton, mainly to
@@ -81,20 +82,23 @@ input(S, Header:string) :->
 	send(H, value, http_version, HttpVersion),
 	send(@http_header_regex, for_all, Header,
 	     message(H, value,
-		     ?(@arg1, register_value, Header, 1, name),
+		     ?(@arg1, register_value, Header, 1, name)?downcase,
 		     ?(@arg1, register_value, Header, 2, name)),
 	     StartOfAtt),
 	send(S, break_path, H),
+	send(S, break_authorization, H),
 	send(S, slot, request, H),
 	(   send(@pce, debugging_subject, httpd)
 	->  send(S, pp_request)
 	;   true
 	),
-	(   send(S, request, H)
-	->  send(S, slot, request, @nil)
-	;   send(S, server_error),
-	    send(S, slot, request, @nil)
-	).
+	(   send(S, builtin_request, H)
+	;   send(S, request, H)
+	;   send(S, server_error)
+	;   true
+	),
+	send(S, slot, request, @nil).
+
 
 break_path(_, Header:sheet) :->
 	"Break form information from a path (GET)"::
@@ -124,19 +128,48 @@ decode_form_string(S, Sheet) :-
 	www_form_encode(Value, UrlValue),
 	send(Sheet, value, Name, Value).
 
-:- pce_group(virtual).
+%	Athorisation information
+%
+%	Authorization: Basic <Base64 for user:password>
+%	Adds the entries user and password to the header
+
+break_authorization(_, Header:sheet) :->
+	(   get(Header, value, authorization, Auth),
+	    get(Auth, split, chain('Basic', Base64)),
+	    get(Base64, base64_decode, Decoded),
+	    get(Decoded, split, :, chain(User, Password))
+	->  send(Header, value, user, User),
+	    send(Header, value, password, Password)
+	;   true
+	).
+
+:- pce_group(request).
+
+builtin_request(S, Header:sheet) :->
+	"Handle a built-in request '/http/object?reference='"::
+	get(Header, path, '/httpd/object'),
+	get(Header, form, Form), Form \== @nil,
+	get(Form, reference, ObjRef),
+	get(@pce, object_from_reference, ObjRef, Obj),
+	send(S, reply, Obj).
 
 request(S, Header:sheet) :->
 	"Process a request.  The argument is the header"::
 	(   get(Header, path, '/no')
 	->  send(S, forbidden, '/no')
+	;   get(Header, path, '/maybe')
+	->  (   get(Header, value, user, jan),
+	        get(Header, value, password, test)
+	    ->	send(S, reply, 'You hacked me')
+	    ;	send(S, authorization_required)
+	    )
 	;   send(S, reply, 'Nice try')
 	).
 
 :- pce_group(reply).
 
 reply(S,
-      Reply:data='string|source_sink|image',
+      Reply:data='string|source_sink|pixmap',
       Type:type=[name],
       Status:status=[name],
       Header:header=[sheet]) :->
@@ -196,6 +229,17 @@ forbidden(S, What:[name]) :->
 	),
 	send(S, reply_html, forbidden(Path), '403 Forbidden').
 
+authorization_required(S, Method:'method=[{Basic}]', Realm:[name]) :->
+	"Report a 401 autorization required"::
+	default(Method, 'Basic', M),
+	default(Realm, 'ByPassword', R),
+	concat_atom([M, ' realm="', R, '"'], AuthValue),
+	new(Sheet, sheet),
+	send(Sheet, value, 'WWW-Authenticate', AuthValue),
+	send(S, reply_html, authorization_required,
+	     '401 Authorization Required',
+	     Sheet).
+
 not_found(S, What:[char_array]) :->
 	"Report a 404 not found error"::
 	(   What == @default
@@ -244,6 +288,19 @@ forbidden(URL) -->
 		  ' on this server'
 		 ]),
 	       address(httpd)
+	     ]).
+
+authorization_required -->
+	page([ title('401 Authorization Required')
+	     ],
+	     [ h1('Authorization Required'),
+	       p(['This server could not verify that you ',
+		  'are authorized to access the document ',
+		  'requested.  Either you supplied the wrong ',
+		  'credentials (e.g., bad password), or your ',
+		  'browser doesn''t understand how to supply ',
+		  'the credentials required.'
+		 ])
 	     ]).
 
 not_found(URL) -->
@@ -305,18 +362,124 @@ html_to_buffer(Term, TB) :-
 %	html_dcg:expand(Object)
 %
 %	Allow placing certain XPCE objects in the token list to minimise
-%	programming.  We will extend this with images, etc.
+%	programming.  Currently this deals with:
+%
+%		# char_array
+%		Emit the text (quoted)
+%
+%		# device with (some) graphicals providing <-href
+%		Image with client-side image-map
+%
+%		# Other graphicals and images
+%		An image
+%
+%		# Anything else
+%		<-print_name (quoted)
+
 
 :- multifile
 	html_write:expand/3.
 
 html_write:expand(Object) -->
-	{ object(Object), !,
-	  (   send(Object, instance_of, char_array)
-	  ->  get(Object, value, Name)
-	  ;   get(Object, print_name, Name)
-	  )
+	{ object(Object)
+	},
+	expand_object(Object), !.
+	
+expand_object(Object) -->
+	{ send(Object, instance_of, char_array), !,
+	  get(Object, value, Name)
+	},
+	html_quoted(Name).
+expand_object(Object) -->
+	{ send(Object, instance_of, device),
+	  image_map(Object, MapId, Map), !,
+	  gensym(map, MapId),
+	  atom_concat('#', MapId, MapRef),
+	  object_url(Object, Data)
+	},
+	html([ img([ src(Data),
+		     border(0),
+		     usemap(MapRef)
+		   ]),
+	       Map
+	     ]).
+expand_object(Object) -->
+	{ (   send(Object, instance_of, graphical)
+	  ;   send(Object, instance_of, image)
+	  ), !,
+	  object_url(Object, Data)
+	},
+	html(img(src(Data))).
+expand_object(Object) -->
+	{ get(Object?print_name, value, Name)
 	},
 	html_quoted(Name).
 
-:- use_module(html_write).
+%	object_url(+Object, -URL)
+%
+%	Make sure the object has a named reference and is locked against
+%	the garbage collector and then return a URL of the form
+%
+%		'/httpd/object?reference=<Ref>'
+%
+%	Locking and using named references is required as the object will
+%	only be requested later and we need a relyable existence check to
+%	avoid security problems due to crashes.  Possibly we should make
+%	a table to allow for cleanup as well as disallow requesting any
+%	object with a known name.  See also ->builtin_request
+
+object_url(Object, URL) :-
+	get(Object, object_reference, Ref),
+	integer(Ref), !,
+	send(Object, lock_object, @on),
+	gensym('obj_', Name),
+	send(Object, name_reference, Name),
+	atom_concat('/httpd/object?reference=', Name, URL).
+object_url(Object, URL) :-
+	get(Object, object_reference, Ref),
+	atom_concat('/httpd/object?reference=', Ref, URL).
+
+
+image_map(Dev, Id, map(name(Id), Map)) :-
+	send(Dev, instance_of, device), !,
+	send(Dev, compute),		% need proper layout
+	new(MapGrs, chain),
+	\+ get(Dev, find, @default,
+	       and(message(@arg1, has_get_method, href),
+		   @arg1 \== Dev,
+		   message(MapGrs, append, @arg1),
+		   new(or)),
+	       _),
+	chain_list(MapGrs, List),
+	List \== [],
+	make_map(List, Dev, Map).
+
+make_map([], _, []).
+make_map([Gr|T0], Dev, [area([href(Href)|Area])|T]) :-
+	get(Gr, href, Href),
+	area(Gr, Dev, Area),
+	make_map(T0, Dev, T).
+
+%	area(+Graphical, +Device -MapAreaAttributes)
+%
+%	Incomplete mapping of attributes.  Should also deal with circles
+%	and try to map other items as reasonable as possible to paths.
+%	This one will then be the fall-back.
+%
+%	The complication arrives from the fact we should give the bounding
+%	box of the graphical relative to the bounding box of the device and
+%	neither is very willing to help much.
+
+area(Gr, Dev, [shape(rect), coords(Coords)]) :-
+	get(Dev, offset, point(OX, OY)),
+	get(Dev, area, area(DX, DY, _, _)),
+	get(Gr, absolute_position, Dev, point(AX, AY)),
+	get(Gr, position, point(PX, PY)),
+	get(Gr, area, area(X,Y,W,H)),
+	GrX is X + (AX-PX) + (DX-OX),
+	GrY is Y + (AY-PY) + (DY-OY),
+	GrR is GrX + W,
+	GrB is GrY + H,
+	concat_atom([GrX, GrY, GrR, GrB], ',', Coords).
+	
+	

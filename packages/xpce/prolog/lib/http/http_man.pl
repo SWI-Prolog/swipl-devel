@@ -15,7 +15,9 @@
 :- use_module(html_write).
 :- use_module(html_hierarchy).
 :- use_module(html_refman).
+
 :- use_module(library('man/v_search')).
+:- pce_autoload(man_inheritance_tree, library('man/v_inherit')).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Demo for the XPCE HTTP Deamon. This  demo   simply  lists a table of all
@@ -166,9 +168,12 @@ classpage(Class) -->
 	    ).
 
 classdoc(Class) -->
-	{ get(Class, name, Name)
+	{ get(Class, name, Name),
+	  make_diagram([Name], Diagram)
 	},
 	html([ h1([align(center)], ['XPCE class ', em(Name)]),
+	       hr([]),
+	       center(Diagram),
 	       p([]),
 	       \classtable(Class),
 	       h2('Description'),
@@ -324,6 +329,45 @@ headlines([H|T]) --> !,
 	html(br([])),
 	headlines(T).
 
+		 /*******************************
+		 *	    INHERITANCE		*
+		 *******************************/
+
+%	/inherit?class=Class
+%
+%	Show inheritance/delegation picture
+
+reply('/inherit', Form, HTTPD) :-
+	Form \== @nil,
+	get(Form, value, class, Class),
+	make_diagram([Class], Dia),
+	send(HTTPD, reply, Dia).
+	
+
+:- dynamic
+	saved_diagram/2.
+
+make_diagram(Classes, I) :-
+	saved_diagram(Classes, I), !.
+make_diagram(Classes, I) :-
+	new(I, man_inheritance_tree),
+	send(I, level_gap, 15),
+	forall(member(C, Classes), send(I, show, C, @off)),
+	send(I, for_all,
+	     message(@prolog, add_href, @arg1?image)),
+	send(I, lock_object, @on),
+	assert(saved_diagram(Classes, I)).
+
+add_href(Text) :-
+	get(Text?string, value, ClassName),
+	www_form_encode(ClassName, Encoded),
+	atom_concat('/class?name=', Encoded, HREF),
+	send(Text, attribute, href, HREF).
+
+
+		 /*******************************
+		 *	  CLASS HIERARCHY	*
+		 *******************************/
 
 %	/classhierarchy
 %	/classhierarchy?root=name
