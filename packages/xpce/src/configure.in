@@ -335,19 +335,6 @@ CFLAGS="$CMFLAGS"
 AC_PROG_RANLIB
 AC_CHECK_PROGS(AR, ar /usr/ccs/bin/ar, ar)
 AC_CHECK_PROGS(LDCONFIG, ldconfig, "true")
-AC_PROG_INSTALL
-dnl On Solaris, /usr/ucb/install is fine for what XPCE requires
-case "$INSTALL" in 
-    *install-sh)
-	case "$OS" in
-	    *solaris* | *sunos5*)
-	        INSTALL=/usr/ucb/install
-		INSTALL_PROGRAM="$INSTALL"
-		INSTALL_DATA="$INSTALL -m 644"
-		;;
-	esac
-	;;
-esac
 AC_C_INLINE
 AC_FUNC_ALLOCA
 
@@ -408,19 +395,6 @@ typedef unsigned char ushort;
 [;], AC_DEFINE(NEED_USHORT)
      AC_MSG_RESULT("need typedef ushort"),
      AC_MSG_RESULT("ushort predefined"))
-
-AC_MSG_CHECKING("for type long long")
-AC_TRY_RUN(
-[
-main()
-{ if ( sizeof(long long) == 8 )
-    exit(0);
-  exit(1);
-}
-], AC_DEFINE(LONGLONG, long long)
-   AC_MSG_RESULT(yes),
-   AC_MSG_RESULT(no),
-   AC_MSG_RESULT(assuming no))
 
 AC_TYPE_SIGNAL
 AC_MSG_CHECKING("for BSD signal handlers")
