@@ -1,0 +1,257 @@
+\documentclass[11pt]{article}
+\usepackage{pl}
+\usepackage{html}
+
+\title{GUI Tracer Implementation}
+\author{Jan Wielemaker \\
+	SWI, University of Amsterdam \\
+	Roetersstraat 15 \\
+	1018 WB~~Amsterdam \\
+	E-mail: \email{jan@swi.psy.uva.nl}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This document describes the design of the GUI Prolog development and
+debugging environment based on XPCE. Its aim is to clarify the
+requirements for porting the environment to other Prolog
+implementations.
+\end{abstract}
+
+\vfill
+\newpage
+
+\tableofcontents
+
+\newpage
+
+\section{Introduction}
+
+The XPCE/SWI-Prolog GUI tracer provides much better insight in the
+execution of a Prolog program than a conventional 4 port terminal
+oriented debugger by providing multiple views on the Prolog state in a
+well organised manner. The system is surely interesting for learning
+Prolog, but probably useful to experienced Prolog programmers.
+
+This document presents the model on which the tracer is built and
+describes the necessary interface predicates to make it run on a
+Prolog environment.
+
+\section{The Prolog Model}
+
+The Prolog model used is based on two sources. One is the standard
+4-port debugging model, with provides insight on the control-flow of
+Prolog programs, the other is the model underlying the simplyfied WAM
+stack layout used by SWI-Prolog.
+
+\subsection{The port model}
+
+SWI-Prolog is equiped with a 5-port tracer, the 4 standard ports and
+the {\em unify} port.  The unify port indicates the execution of the
+\wam{enter} instruction, separating the head-unification code from the
+body code.
+
+\subsubsection{Intercepting the tracer}
+
+Before executing the default tracer, SWI-Prolog calls the hook
+user:prolog_trace_interception/4.  If this hook succeeds does not call
+the default tracer.  This hook is defined as:
+
+\begin{description}
+    \predicate{prolog_trace_interception}{4}{+Port, +Frame, +PC, -Action}
+Dynamic predicate, normally not defined. This predicate is called from
+the SWI-Prolog debugger just before it would show a port. If this
+predicate succeeds the debugger assumes the trace action has been taken
+care of and continues execution as described by \arg{Action}. Otherwise
+the normal Prolog debugger actions are performed.
+
+\arg{Port} is one of \const{call}, \const{redo}, \const{exit},
+\const{fail} or \const{unify}. \arg{Frame} is an integer reference to
+the current local stack frame. \arg{PC} is the current value of the
+program-counter, relative to the start of the current clause, or 0 if it
+is invalid, for example because the current frame runs a foreign
+predicate, or no clause has been selected yet (at the \const{call} port.
+\arg{Action} should be unified with one of the atoms \const{continue}
+(just continue execution), \const{retry} (retry the current goal) or
+\const{fail} (force the current goal to fail). Leaving it a variable is
+identical to \const{continue}.
+
+Together with the predicates described in \secref{debugger}
+and the other predicates of this chapter this predicate enables the
+Prolog user to define a complete new debugger in Prolog. Besides this it
+enables the Prolog programmer monitor the execution of a program. The
+example below records all goals trapped by the tracer in the database.
+
+\begin{code}
+prolog_trace_interception(Port, Frame, _PC, continue) :-
+        prolog_frame_attribute(Frame, goal, Goal), 
+        prolog_frame_attribute(Frame, level, Level), 
+        recordz(trace, trace(Port, Level, Goal)).
+\end{code}
+
+To trace the execution of `go' this way the following query should be
+given:
+
+\begin{code}
+?- trace, go, notrace.
+\end{code}
+\end{description}
+
+
+\subsection{The stack model}
+
+The stack is examined for two purposes: show the calling environment
+(like the \tracecmd{g} command) and showing the active choicepoints.
+The latter is a very important addition to the standard tracer, as
+even experienced Prolog programmers sometimes introduce unwanted
+choicepoints in their program.  With the GUI tracer, just skip to the
+solution, and then inspect the remaining choicepoints is a simple and
+effective way to find such spots in your program.
+
+The SWI-Prolog stack is organised using stack-frames.  Each stack
+frame contains the following information:
+
+\begin{description}
+    \item [state-information]
+Pointers to the top of the trail- an global-stack set when the frame
+is created and used to undo back to this point.
+    \item [parent frame]
+Pointer to the parent frame.
+    \item [choice-point frame]
+Pointer to the frame where execution continues if this frame fails.
+This is a simplification of the `real' WAM, where choicepoints and
+stack-frames are seperate entities.  It also introduces problems with
+choicepoints generated in a clause by \predref{;}/2.  This problem is
+solved by creating a dummy frame.
+    \item [PC]
+Program counter of the virtual machine, indicating the current location
+in the parent frame
+    \item [Clause]
+Clause currently running in this frame.  Could be determined using the
+program of a child-frame.
+    \item [Variables]
+The first $N$ variables, where $N$ is the arity of the predicate are the
+arguments passed into this goal.  The others are the local variables of
+the currently running clause.  The current implementation of SWI-Prolog
+does not reuse variable slots, new variables are simply assigned the
+next location while the compiler analyses the clause.  See also
+clause_property/2.
+\end{description}
+
+
+The stack is analysed using prolog_frame_attribute/3:
+
+\begin{description}
+    \predicate{prolog_frame_attribute}{3}{+Frame, +Key, -Value}
+Obtain information about the local stack frame \arg{Frame}.  \arg{Frame}
+is a frame reference as obtained through prolog_current_frame/1, 
+prolog_trace_interception/4 or this predicate.  The key values are
+described below.
+
+\begin{description}
+    \termitem{alternative}{}
+\arg{Value} is unified with an integer reference to the local stack
+frame in which execution is resumed if the goal associated with
+\arg{Frame} fails. Fails if the frame has no alternative frame.
+    \termitem{has_alternatives}{}
+\arg{Value} is unified with \const{true} if \arg{Frame} still is a
+candidate for backtracking. \const{false} otherwise.
+    \termitem{goal}{}
+\arg{Value} is unified with the goal associated with \arg{Frame}. If the
+definition module of the active predicate is not \const{user} the goal
+is represented as \mbox{\tt <module>:<goal>}. Do not instantiate
+variables in this goal unless you {\bf know} what you are doing!
+    \termitem{clause}{}
+\arg{Value} is unified with a reference to the currently running clause.
+Fails if the current goal is associated with a foreign (C) defined
+predicate. See also nth_clause/3 and clause_property/2.
+    \termitem{level}{}
+\arg{Value} is unified with the recursion level of \arg{Frame}. The top
+level frame is at level `0'.
+    \termitem{parent}{}
+\arg{Value} is unified with an integer reference to the parent local
+stack frame of \arg{Frame}. Fails if \arg{Frame} is the top frame.
+    \termitem{context_module}{}
+\arg{Value} is unified with the name of the context module of the
+environment.
+    \termitem{top}{}
+\arg{Value} is unified with \const{true} if \arg{Frame} is the top Prolog
+goal from a recursive call back from the foreign language. \const{false}
+otherwise.
+    \termitem{hidden}{}
+\arg{Value} is unified with \const{true} if the frame is hidden from the
+user, either because a parent has the hide-childs attribute (all system
+predicates), or the system has no trace-me attribute.
+    \termitem{pc}{}
+\arg{Value} is unified with the program-pointer saved on behalve of the
+parent-goal if the parent-goal is not owned by a foreign predicate.
+    \termitem{argument}{N}
+\arg{Value} is unified with the \arg{N}-th slot of the frame. Argument
+1 is the first argument of the goal. Arguments above the arity
+refer to local variables. Fails silently if \arg{N} is out of range.
+\end{description}
+\end{description}
+
+
+\section{Getting information on a clause}
+
+The tracer needs the following information from a clause:
+
+\begin{description}
+    \item [Source-location]
+In addition to the physical location of the clause in the source file,
+the system needs to know the location of the `goals' in the clause.  For
+example, in:
+
+\begin{verbatim}
+a :-
+	b,
+	(   c
+	->  d
+	;   e
+	).
+\end{verbatim}
+
+it needs to be able to find the location of {\bf d} if the execution
+is in {\bf d} or a subgoal thereof and walks `up' the stack.  SWI-Prolog
+does so in two steps.  Using the $PC$ of the frame running {\bf d} and
+the clause of the frame running a/0, it calls clause_property/3 to find
+the location of the subterm {\bf d}.  In this case, this is the term:
+
+\begin{verbatim}
+[2, 2, 1, 2]
+\end{verbatim}
+
+The first `2' indicate the term is in the body, the second that it is
+in the second argument of \funcref{,}{2}, the `1' indicates the first
+argument of the \funcref{;}/2 and the final `2' the second argument
+of \funcref{->}{2}.
+
+Next, clause_property/3 is used to find the file and line of the clause.
+read_term/3 using the option \funcref{subterm_positions}{1} is then used
+to find the locations of the various parts of the clause.
+
+The tracer maintains a cache to avoid excessive file-access.  The hook
+prolog_event/1 ensures information is removed from the cache if the
+clause is modified.
+
+Dynamic code goes through the same process: first the predicate is
+decompiled into an XPCE \class{text_buffer}. Next it is read using
+read_term/3 as above.
+
+
+
+
+\end{description}
+
+
+
+
+
+\section{Showing the source location}
+
+\section{Showing variables}
+
+\end{document}

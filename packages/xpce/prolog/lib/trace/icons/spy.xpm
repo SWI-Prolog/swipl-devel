@@ -1,0 +1,23 @@
+/* XPM */
+static char * spy_xpm[] = {
+"16 16 4 1",
+" 	s None	c None",
+".	c black",
+"X	c bisque",
+"o	c #0000CCCCFFFF",
+"     .....      ",
+"    .......     ",
+"    .......     ",
+"  ...........   ",
+"  ...........   ",
+"   XX.XXX.XX    ",
+"   ....X....    ",
+"   X...X...X    ",
+"   XX.XXX.XX    ",
+"    XXXXXXX     ",
+"    oX...Xo     ",
+"    o.XXX.oo    ",
+"   ooo...ooo    ",
+"   oo.o.o.ooo   ",
+"  ooooooooooo   ",
+"  ooooo.oooooo  "};

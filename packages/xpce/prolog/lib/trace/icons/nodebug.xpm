@@ -1,0 +1,23 @@
+/* XPM */
+static char * nodebug_xpm[] = {
+"16 16 4 1",
+" 	s None	c None",
+".	c black",
+"X	c white",
+"o	c blue",
+"                ",
+".........   ..  ",
+".XXXXXXX.   ..  ",
+".XXXXXXX.   ..  ",
+".XooooXX.   ..  ",
+".XXXXXXX.   ..  ",
+".XXooooX.   ..  ",
+".XXXXXXX.   ..  ",
+".XooooXX.   ..  ",
+".XXXXXXX.   ..  ",
+".XXooooX. ......",
+".XXXXXXX.  .... ",
+".XXXXXXX.   ..  ",
+".........       ",
+"                ",
+"                "};

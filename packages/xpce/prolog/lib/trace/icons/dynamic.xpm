@@ -1,0 +1,18 @@
+/* XPM */
+static char * dynamic_xpm[] = {
+"16 12 3 1",
+" 	s None	c None",
+".	c red",
+"X	c black",
+"                ",
+"                ",
+"                ",
+"                ",
+"           ...  ",
+"     XXX  ..... ",
+"  XXX    .......",
+"XX    XX .......",
+"  XXX    .......",
+"     XXX  ..... ",
+"           ...  ",
+"                "};

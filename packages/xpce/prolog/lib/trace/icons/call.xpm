@@ -1,0 +1,21 @@
+/* XPM */
+static char * call_xpm[] = {
+"16 14 4 1",
+" 	c grey80",
+".	c green",
+"X	c black",
+"o	c blue",
+"                ",
+"                ",
+" .          X   ",
+" .. XXXXXXX XX  ",
+"....X     XXXXX ",
+" .. X  oo X XX  ",
+" .  X o   X X   ",
+"    X o   X     ",
+"  X X o   X  X  ",
+" XX X  oo X XX  ",
+"XXXXX     XXXXX ",
+" XX XXXXXXX XX  ",
+"  X          X  ",
+"                "};

@@ -1,0 +1,19 @@
+/* XPM */
+static char * meta_xpm[] = {
+"16 12 4 1",
+" 	s None	c None",
+".	c #9A69FFFFFFFF",
+"X	c yellow",
+"o	c white",
+"                ",
+"..X.........    ",
+"....X...XX..    ",
+".....o.XXXX.    ",
+"..oo.ooXXoX.    ",
+"..ooo...Xoo.    ",
+"...ooo...o..    ",
+"....ooX.....    ",
+"........X...    ",
+"............    ",
+"                ",
+"                "};

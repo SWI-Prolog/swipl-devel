@@ -1,0 +1,9 @@
+ * Predicates loaded from file `user' should be treated as dynamic ones.
+
+ * Document changes to clause_property/2 and the new hook prolog_event_hook/1.
+ 
+ * Mixup of tracer over different break environments.
+
+ * Document sources and tracer.
+
+ * Better indication of choicepoints.

@@ -1,0 +1,23 @@
+/* XPM */
+static char * breakpoint_xpm[] = {
+"16 16 4 1",
+" 	s None	c None",
+".	c red",
+"X	c black",
+"o	c green",
+"                ",
+"      .         ",
+"                ",
+"       . .      ",
+"      .  .      ",
+"       .        ",
+"     X    X     ",
+"   XXX    XXX   ",
+" XXoooX  XoooXX ",
+"XoooooX  XXooooX",
+"oooXXX     XXooo",
+"oXX          XXo",
+"X              X",
+"                ",
+"                ",
+"                "};
