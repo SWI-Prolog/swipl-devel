@@ -43,6 +43,7 @@ static struct foreign {
   ADD("exists_file",		1, pl_exists_file,		TRACE_ME),
   ADD("exists_directory",	1, pl_exists_directory,		TRACE_ME),
   ADD("rename_file",		2, pl_rename_file,		TRACE_ME),
+  ADD("same_file",		2, pl_same_file,		TRACE_ME),
   ADD("time_file",		2, pl_time_file,		TRACE_ME),
   ADD("told",			0, pl_told,			TRACE_ME),
   ADD("see",			1, pl_see,			TRACE_ME),

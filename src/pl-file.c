@@ -1442,6 +1442,7 @@ long time;
 { return unifyAtomic(t, globalReal((real)time));
 }
 
+
 word
 pl_time_file(name, t)
 Word name, t;
@@ -1554,6 +1555,28 @@ Word name;
   
   return DeleteFile(n);
 }
+
+
+word
+pl_same_file(file1, file2)
+Word file1, file2;
+{ char *n1, *n2;
+
+  initAllocLocal();
+  if ( (n1 = primitiveToString(*file1, TRUE)) == NULL ||
+       (n2 = primitiveToString(*file2, TRUE)) == NULL )
+    return warning("same_file/2: instantiation fault");
+
+  if ( (n1 = ExpandOneFile(n1)) == NULL )
+    fail;
+  n1 = store_string_local(n1);
+  if ( (n2 = ExpandOneFile(n2)) == NULL )
+    fail;
+  stopAllocLocal();
+
+  return SameFile(n1, n2);
+}
+
 
 word
 pl_rename_file(old, new)

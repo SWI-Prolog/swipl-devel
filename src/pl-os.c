@@ -697,6 +697,28 @@ char *old, *new;
 
 
 bool
+SameFile(f1, f2)
+char *f1, *f2;
+{ if ( streq(f1, f2) == FALSE )
+  { 
+#if unix
+    struct stat buf1;
+    struct stat buf2;
+
+    if ( stat(f1, &buf1) != 0 || stat(f2, &buf2) != 0 )
+      fail;
+    if ( buf1.st_ino == buf2.st_ino && buf1.st_dev == buf2.st_dev )
+      succeed;
+#endif
+
+    fail;
+  }
+
+  succeed;
+}
+
+
+bool
 OpenStream(fd)
 int fd;
 {
