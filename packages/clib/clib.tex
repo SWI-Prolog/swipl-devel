@@ -257,6 +257,12 @@ Client-interface to connect a socket to a given \arg{Port} on a given
 \arg{Host}.  After successful completion, \index{tcp_open_socket/3}\predref{tcp_open_socket}{3} can be used to
 create I/O-Streams to the remote socket.
 
+    \predicate{tcp_setopt}{2}{+Socket, +Option}
+Interface to setsockopt(), setting options for the socket.  Currently
+the only defined option is \const{reuseaddr}, which allows servers to
+reuse a port without the system being completely sure the port is no
+longer in use.
+
     \predicate{tcp_fcntl}{3}{+Stream, +Action, ?Argument}
 Interface to the Unix \funcref{fcntl}{} call.  Currently only suitable
 to deal switch stream to non-blocking mode using:

@@ -424,6 +424,31 @@ tcp_host_to_address(term_t Host, term_t Ip)
 
 
 foreign_t
+tcp_setopt(term_t Socket, term_t opt)
+{ int socket;
+  char *s;
+       
+  if ( !tcp_get_socket(Socket, &socket) )
+    return FALSE;
+
+  if ( PL_get_atom_chars(opt, &s) )
+  { if ( strcmp(s, "reuseaddr") == 0 )
+    { int val = 1;
+
+      if( setsockopt(socket, SOL_SOCKET, SO_REUSEADDR,
+		     &val, sizeof(val)) == -1)
+      { return tcp_error(h_errno, h_errno_codes);
+      }
+
+      return TRUE;
+    }
+  }
+       
+  return pl_error(NULL, 0, NULL, ERR_DOMAIN, opt, "socket_option");
+}
+
+
+foreign_t
 tcp_bind(term_t Socket, term_t Address)
 { struct sockaddr_in sockaddr;
   int socket;
@@ -688,6 +713,7 @@ install_socket()
   PL_register_foreign("tcp_socket",           1, tcp_socket,          0);
   PL_register_foreign("tcp_close_socket",     1, tcp_close_socket,    0);
   PL_register_foreign("tcp_fcntl",            3, tcp_fcntl,           0);
+  PL_register_foreign("tcp_setopt",           2, tcp_setopt,          0);
   PL_register_foreign("tcp_host_to_address",  2, tcp_host_to_address, 0);
   PL_register_foreign("gettcp_host_to_address",  2, tcp_host_to_address, 0);
   PL_register_foreign("gethostname",          1, pl_gethostname,      0);

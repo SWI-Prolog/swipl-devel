@@ -16,6 +16,7 @@
 	    tcp_accept/3,		% +Master, -Slave, -PeerName
 	    tcp_listen/2,		% +Socket, +BackLog
 	    tcp_fcntl/3,		% +Socket, +Command, ?Arg
+	    tcp_setopt/2,		% +Socket, +Option
 	    tcp_host_to_address/2,	% ?HostName, ?Ip-nr
 	    gethostname/1		% -HostName
 	  ]).

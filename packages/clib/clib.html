@@ -313,6 +313,14 @@ given
 can be used to create I/O-Streams to the remote socket.
 
 <P>
+<DT><A NAME="tcp_setopt/2"><STRONG>tcp_setopt</STRONG>(<VAR>+Socket, 
++Option</VAR>)</A><DD>
+Interface to setsockopt(), setting options for the socket. Currently the 
+only defined option is <CODE>reuseaddr</CODE>, which allows servers to 
+reuse a port without the system being completely sure the port is no 
+longer in use.
+
+<P>
 <DT><A NAME="tcp_fcntl/3"><STRONG>tcp_fcntl</STRONG>(<VAR>+Stream, 
 +Action, ?Argument</VAR>)</A><DD>
 Interface to the Unix <B>fcntl()</B> call. Currently only suitable to 
