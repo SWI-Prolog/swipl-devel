@@ -131,9 +131,13 @@ initialiseEvent(EventObj e, Name id, Any window,
   if ( !onFlag(window, F_FREED|F_FREEING) )
     last_window = window;
 
-  if ( !(isAEvent(e, NAME_focus) ||
-	 isAEvent(e, NAME_user)) )
-    loc_still_posted = FALSE;
+  if ( loc_still_posted )
+  { if ( isAEvent(e, NAME_locMove) )
+    { DEBUG(NAME_locStill,
+	    Cprintf("Re-enabled loc-still on %s\n", pp(e->id)));
+      loc_still_posted = FALSE;
+    }
+  }
 
   succeed;
 }

@@ -273,6 +273,7 @@ SectionEnd
 
 Section "Shell Extensions" SecShell
   SectionIn 1 2 3
+  ClearErrors
   ; back up old value of .pl
   ReadRegStr $1 HKCR .${EXT} ""
   StrCmp $1 "" Label1
@@ -307,6 +308,14 @@ Section "Shell Extensions" SecShell
 !endif
 
   WriteRegStr HKLM SOFTWARE\SWI\Prolog fileExtension ${EXT}
+
+  IfErrors 0 NoError
+    MessageBox MB_OK "Could not write registry to register filetypes\n \
+		      You may wish to retry the installation with\n \
+		      sufficient previleges or accept the ${EXT} files\n \
+		      cannot be opened from the shell and Prolog does not\n \
+		      appear in the start menu"
+NoError:
 SectionEnd
 
 !macro Create_Internet_Shorcut URLName URLhost
