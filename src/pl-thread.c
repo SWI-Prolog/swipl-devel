@@ -345,6 +345,7 @@ initialise_thread(PL_thread_info_t *info)
 #ifdef WIN32				/* For signals.  Do this always? */
   attachThreadWindow(info->thread_data);
 #endif
+  info->thread_data->magic = LD_MAGIC;
 
   LOCK();
   GD->statistics.threads_created++;
@@ -387,6 +388,7 @@ free_prolog_thread(void *data)
   run_thread_exit_hooks();
   
   DEBUG(2, Sdprintf("Destroying data\n"));
+  ld->magic = 0;
   freeStacks(ld);
   freeLocalData(ld);
 
@@ -427,6 +429,7 @@ initPrologThreads()
 
   TLD_alloc(&PL_ldata);			/* see also alloc_thread() */
   TLD_set(PL_ldata, &PL_local_data);
+  PL_local_data.magic = LD_MAGIC;
   info = &threads[1];
   info->tid = pthread_self();
   info->pl_tid = 1;
@@ -720,7 +723,7 @@ set_system_thread_id(PL_thread_info_t *info)
 #ifdef WIN32
   id = info->w32id = GetCurrentThreadId();
 #else
-  id = (long)pthread_self();
+  id = info->tid;
 #endif
 #endif
 
@@ -2351,7 +2354,9 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
   ldnew->_debugstatus.retryFrame = NULL;
   ldnew->feature.mask		 = ldmain->feature.mask;
   if ( ldmain->feature.table )
-  { PL_LOCK(L_FEATURE);
+  { TLD_set(PL_ldata, info->thread_data);
+
+    PL_LOCK(L_FEATURE);
     ldnew->feature.table	 = copyHTable(ldmain->feature.table);
     PL_UNLOCK(L_FEATURE);
   }
@@ -2405,6 +2410,117 @@ attachConsole()
   return rval;
 }
 
+
+		 /*******************************
+		 *	      ENGINES		*
+		 *******************************/
+
+static PL_engine_t
+PL_current_engine(void)
+{ return LD;
+}
+
+
+static void
+detach_engine(PL_engine_t e)
+{ PL_thread_info_t *info = e->thread.info;
+
+#ifdef __linux__
+  info->pid = -1;
+#endif
+#ifdef WIN32
+  info->w32id = 0;
+#endif
+  info->tid = 0L;
+
+  TLD_set(PL_ldata, NULL);
+}
+
+
+int
+PL_set_engine(PL_engine_t new, PL_engine_t *old)
+{ PL_engine_t current = PL_current_engine();
+
+  if ( new != current && new != PL_ENGINE_CURRENT )
+  { LOCK();
+
+    if ( new )
+    { if ( new == PL_ENGINE_MAIN )
+	new = &PL_local_data;
+  
+      if ( new->magic != LD_MAGIC )
+      { UNLOCK();
+	return PL_ENGINE_INVAL;
+      }
+      if ( new->thread.info->tid )
+      { UNLOCK();
+	return PL_ENGINE_INUSE;
+      }
+    }
+  
+    if ( current )
+      detach_engine(current);
+  
+    if ( new )
+    { TLD_set(PL_ldata, new);
+      new->thread.info->tid = pthread_self();
+      set_system_thread_id(new->thread.info);
+    }
+  
+    UNLOCK();
+  }
+
+  if ( old )
+  { *old = current;
+  }
+
+  return PL_ENGINE_SET;
+}
+
+
+PL_engine_t
+PL_create_engine(PL_thread_attr_t *attributes)
+{ PL_engine_t e, current;
+
+  PL_set_engine(NULL, &current);
+  if ( PL_thread_attach_engine(attributes) >= 0 )
+  { e = PL_current_engine();
+  } else
+    e = NULL;
+
+  PL_set_engine(current, NULL);
+
+  return e;
+}
+
+
+int
+PL_destroy_engine(PL_engine_t e)
+{ int rc;
+
+  LOCK();
+  if ( e->magic != LD_MAGIC )
+  { UNLOCK();
+    return PL_warning("Not an engine: %p", e);
+  }
+
+  if ( e == PL_current_engine() )
+  { rc = PL_thread_destroy_engine();
+  } else
+  { PL_engine_t current;
+    
+    if ( PL_set_engine(e, &current) )
+    { PL_thread_destroy_engine();
+      PL_set_engine(current, NULL);
+
+      rc = TRUE;
+    } else
+      rc = FALSE;
+  }
+
+  UNLOCK();
+  return rc;
+}
 
 
 		 /*******************************
@@ -2921,6 +3037,33 @@ PL_w32thread_raise(DWORD id, int sig)
 foreign_t
 pl_thread_self(term_t id)
 { return PL_unify_atom(id, ATOM_main);
+}
+
+PL_engine_t
+PL_current_engine(void)
+{ return LD;
+}
+
+int
+PL_set_engine(PL_engine_t new, PL_engine_t *old)
+{ if ( new != LD && new != PL_ENGINE_MAIN )
+    return PL_ENGINE_INVAL;
+
+  if ( old )
+  { *old = LD;
+  }
+
+  return PL_ENGINE_SET;
+}
+
+PL_engine_t
+PL_create_engine(PL_thread_attr_t *attributes)
+{ return NULL;
+}
+
+int
+PL_destroy_engine(PL_engine_t e)
+{ fail;
 }
 
 #endif  /*O_PLMT*/

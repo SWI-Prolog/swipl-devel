@@ -271,8 +271,11 @@ typedef struct
 		 *	     LOCAL DATA		*
 		 *******************************/
 
+#define LD_MAGIC	0x3cfd82b4	/* Valid local-data structure */
+
 typedef struct PL_local_data
-{ LocalFrame    environment;		/* Current local frame */
+{ ulong		magic;			/* LD_MAGIC */
+  LocalFrame    environment;		/* Current local frame */
   Choice	choicepoints;		/* Choice-point chain */
   FliFrame      foreign_environment;	/* Current foreign context */
   Word		mark_bar;		/* Mark globals > this one */

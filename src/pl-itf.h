@@ -108,6 +108,7 @@ duplicated this stuff.
 typedef Module		module_t;	/* a module */
 typedef Procedure	predicate_t;	/* a predicate handle */
 typedef Record		record_t;	/* handle to a recorded term */
+typedef struct PL_local_data *PL_engine_t; /* handle to a engine */
 #else
 typedef	unsigned long	atom_t;		/* Prolog atom */
 typedef void *		module_t;	/* Prolog module */
@@ -117,6 +118,7 @@ typedef unsigned long	term_t;		/* opaque term handle */
 typedef unsigned long	qid_t;		/* opaque query handle */
 typedef unsigned long	PL_fid_t;	/* opaque foreign context handle */
 typedef void *		control_t;	/* non-deterministic control arg */
+typedef void *		PL_engine_t;	/* opaque engine handle */
 #endif
 typedef unsigned long	functor_t;	/* Name/arity pair */
 typedef unsigned long	PL_atomic_t;	/* same a word */
@@ -697,6 +699,22 @@ PL_EXPORT(int)	PL_thread_at_exit(void (*function)(void *),
 #if defined(_WINDOWS_)			/* <windows.h> is included */
 PL_EXPORT(int) PL_w32thread_raise(DWORD dwTid, int sig);
 #endif
+
+		 /*******************************
+		 *	 ENGINES (MT-ONLY)	*
+		 *******************************/
+
+#define PL_ENGINE_MAIN	  ((PL_engine_t)0x1)
+#define PL_ENGINE_CURRENT ((PL_engine_t)0x2)
+
+#define PL_ENGINE_SET   0		/* engine set successfully */
+#define PL_ENGINE_INVAL	2		/* engine doesn't exist */
+#define PL_ENGINE_INUSE	3		/* engine is in use */
+
+PL_EXPORT(PL_engine_t)	PL_create_engine(PL_thread_attr_t *attributes);
+PL_EXPORT(int)		PL_set_engine(PL_engine_t engine, PL_engine_t *old);
+PL_EXPORT(int)		PL_destroy_engine(PL_engine_t engine);
+
 
 		 /*******************************
 		 *       FAST XPCE SUPPORT	*

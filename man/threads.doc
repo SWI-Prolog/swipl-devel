@@ -553,12 +553,29 @@ If you are using SWI-Prolog as an embedded engine in a multi-threaded
 application you can access the Prolog engine from multiple threads by
 creating an \jargon{engine} in each thread from which you call Prolog.
 Without creating an engine, a thread can only use functions that do
-not use the \type{term_t} type (for example PL_new_atom()).
+\emph{not} use the \type{term_t} type (for example PL_new_atom()).
+
+The system supports two models.  \Secref{threadoneone} describes the
+orginal one-to-one mapping.  In this schema a native thread attaches
+a Prolog thread if it needs to call Prolog and detaches is when
+finished, as opposed to the model from \secref{threadmanymany} where
+threads temporary use a Prolog engine.
 
 {\bf Please note that the interface below will only work if threading
 in your application is based on the same thread-library as used to
 compile SWI-Prolog.}
 
+
+\subsection{A Prolog thread for each native thread (one-to-one)}
+\label{sec:threadoneone}
+
+In the one-to-one model, the thread that called PL_initialise() has a
+Prolog engine attached. If another C-thread in the system wishes to call
+Prolog it must first attach an engine using PL_thread_attach_engine()
+and call PL_thread_destroy_engine() after all Prolog work is finished.
+This model is especially suitable with long running threads that need
+to do Prolog work regulary.  See \secref{threadmanymany} for the
+alternative many-to-many model.
 
 \begin{description}
     \cfunction{int}{PL_thread_self}{}
@@ -616,6 +633,92 @@ current thread only (\arg{global} == \const{FALSE}) it is stored in the
 same FIFO queue as used by thread_at_exit/1.
 \end{description}
 
+
+		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+		 %         MANY-TO-MANY		%
+		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{Pooling Prolog engines (many-to-many)}
+\label{sec:threadmanymany}
+
+In this model Prolog engines live as entities that are independent from
+threads.  If a thread needs to call Prolog it takes one of the engines
+from the pool and returns the engine when done.  This model is suitable
+in the following identified cases:
+
+\begin{itemlist}
+    \item [Compatibility with the single-threaded version]
+In the single-threaded version, foreign threads must serialise access
+the the one and only thread engine.  Functions from this section allow
+sharing one engine among multiple threads.
+
+    \item [Many native threads with infrequent Prolog work]
+Prolog threads are expensive in terms of memory and time to create and
+destroy them.  Systems that use a large number of threads that only
+infrequently need to call Prolog are better take an engine from a pool
+and return it there.
+
+    \item [Prolog status must be handed to another thread]
+This situation has been identified by Uwe Lesta when creating a .NET
+interface for SWI-Prolog. .NET distributes work for active internet
+connection over a pool of threads.  If a Prolog engine contains state
+for a connection, it must be possible to detach the engine from a
+thread and re-attach it to another thread handling the same connection.
+\end{itemlist}
+
+\begin{description}
+    \cfunction{PL_engine_t}{PL_create_engine}{PL_thread_attr_t *attributes}
+Create a new Prolog engine. \arg{attributes} is described with
+PL_thread_attach_engine(). Any thread can make this call after
+PL_initialise() returned success. The returned engine is not attached to
+any thread and lives until PL_destroy_engine() is used on the returned
+handle.
+
+In the single-threaded version this call always returns \const{NULL},
+indicating failure.
+
+    \cfunction{int}{PL_destroy_engine}{PL_engine_t e}
+Destroy the given engine.  Destroying an engine is only allowed if the
+engine is not attached to any thread or attached to the calling thread.
+On success this function returns \const{TRUE}, on failure the return
+value is \const{FALSE}.
+
+    \cfunction{int}{PL_set_engine}{PL_engine_t engine, PL_engine_t *old}
+Make the calling thread ready to use \arg{engine}. If \arg{old} is
+non-\const{NULL} the current engine associated with the calling thread
+is stored at the given location. If \arg{engine} equals
+\const{PL_ENGINE_MAIN} the initial engine is attached to the calling
+thread. If \arg{engine} is \const{PL_ENGINE_CURRENT} the engine is not
+changed. This can be used to query the current engine. This call returns
+\const{PL_ENGINE_SET} if the engine was switched successfully,
+\const{PL_ENGINE_INVAL} if \arg{engine} is not a valid engine handle and
+\const{PL_ENGINE_INUSE} if the engine is currently in use by another
+thread.
+
+Engines can be changed at any time.  For example, it is allowed to
+select an engine to initiate a Prolog goal, detach it and at a later
+moment execute the goal from another thread. Note however that the
+\ctype{term_t}, \ctype{qid_t} and \ctype{fid_t} types are interpreted
+relative to the engine for which they are created. Behaviour when
+passing one of these types from one engine to another is undefined.
+
+In the single-threaded version this call only succeeds if \arg{engine}
+refers to the main engine.
+\end{description}
+
+
+\subsubsection{Engines in single-threaded SWI-Prolog}
+
+In theory it is possible to port the API of \secref{threadmanymany} to
+the single-threaded version of SWI-Prolog.  This allows C-programs to
+control multiple Prolog engines concurrently.  This has not yet been
+realised.
+
+
+
+		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+		 %		XPCE		%
+		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Multithreading and the XPCE graphics system}	\label{sec:mt-xpce}
 \label{sec:xpcethread}
