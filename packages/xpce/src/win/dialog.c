@@ -168,6 +168,16 @@ sizeDialog(Dialog d, Size size)
 }
 
 
+static Size
+getBorderDialog(Dialog d)
+{ if ( notDefault(d->border) )
+    answer(d->border);
+  else
+    answer(d->gap);
+}
+
+
+
 
 		/********************************
 		*         MISCELLANEAUS		*
@@ -325,7 +335,7 @@ static char *T_initialise[] =
 /* Instance Variables */
 
 static vardecl var_dialog[] =
-{ IV(NAME_gap, "size", IV_BOTH,
+{ IV(NAME_gap, "size", IV_SEND,
      NAME_layout, "Distance in X and Y direction between items"),
   IV(NAME_border, "[size]", IV_BOTH,
      NAME_layout, "Free area around contents"),
@@ -382,7 +392,9 @@ static getdecl get_dialog[] =
   GM(NAME_members, 0, "chain", NULL, getMembersDialog,
      NAME_organisation, "Equivalent to <-graphicals"),
   GM(NAME_reportTo, 0, "graphical|frame", NULL, getReportToDialog,
-     NAME_report, "<-member: reporter or <-contained_in")
+     NAME_report, "<-member: reporter or <-contained_in"),
+  GM(NAME_border, 0, "size", NULL, getBorderDialog,
+     NAME_layout, "<-border or <-gap")
 };
 
 /* Resources */
