@@ -52,13 +52,13 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /machine:I386
-# ADD LINK32 ..\lib\uxnt.lib user32.lib wsock32.lib advapi32.lib /nologo /subsystem:windows /dll /map:"..\bin/libpl.map" /machine:I386 /out:"..\bin/libpl.dll"
+# ADD LINK32 ..\lib\uxnt.lib user32.lib wsock32.lib advapi32.lib shell32.lib /nologo /subsystem:windows /dll /map:"..\bin/libpl.map" /machine:I386 /out:"..\bin/libpl.dll"
 # SUBTRACT LINK32 /pdb:none
 # Begin Special Build Tool
 SOURCE=$(InputPath)
 PostBuild_Desc=Install header files
 PostBuild_Cmds=if not exist ..\include mkdir ..\include	copy pl-itf.h\
-            ..\include\SWI-Prolog.h	copy pl-stream.h ..\include\SWI-Stream.h
+             ..\include\SWI-Prolog.h	copy pl-stream.h ..\include\SWI-Stream.h
 # End Special Build Tool
 
 !ELSEIF  "$(CFG)" == "libpl - Win32 Debug"
@@ -84,12 +84,12 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /debug /machine:I386
-# ADD LINK32 ..\lib\uxntD.lib user32.lib msvcrtd.lib wsock32.lib advapi32.lib /nologo /subsystem:windows /dll /debug /machine:I386 /nodefaultlib:"msvcrt.lib" /out:"..\bin/libplD.dll"
+# ADD LINK32 ..\lib\uxntD.lib msvcrtd.lib user32.lib wsock32.lib advapi32.lib shell32.lib /nologo /subsystem:windows /dll /debug /machine:I386 /nodefaultlib:"msvcrt.lib" /out:"..\bin/libplD.dll"
 # SUBTRACT LINK32 /pdb:none
 # Begin Special Build Tool
 SOURCE=$(InputPath)
 PostBuild_Cmds=if not exist ..\include mkdir ..\include	copy pl-itf.h\
-            ..\include\SWI-Prolog.h	copy pl-stream.h ..\include\SWI-Stream.h
+             ..\include\SWI-Prolog.h	copy pl-stream.h ..\include\SWI-Stream.h
 # End Special Build Tool
 
 !ELSEIF  "$(CFG)" == "libpl - Win32 Runtime"
@@ -116,7 +116,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib c:\jan\pl\bin\uxnt.lib /nologo /subsystem:windows /dll /machine:I386
-# ADD LINK32 ..\lib\uxnt.lib user32.lib wsock32.lib advapi32.lib /nologo /subsystem:windows /dll /machine:I386 /nodefaultlib:"libcmt.lib"
+# ADD LINK32 ..\lib\uxnt.lib user32.lib wsock32.lib advapi32.lib shell32.lib /nologo /subsystem:windows /dll /machine:I386 /nodefaultlib:"libcmt.lib"
 # SUBTRACT LINK32 /debug
 
 !ENDIF 
