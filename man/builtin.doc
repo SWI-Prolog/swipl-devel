@@ -1601,24 +1601,32 @@ clause/3 or erase/1.
     \predicate{asserta}{2}{+Term, -Reference}
 Equivalent to assert/2, but \arg{Term} is asserted as first clause or fact
 of the predicate.
+
     \predicate{assertz}{2}{+Term, -Reference}
 Equivalent to assert/2.
+
     \predicate{recorda}{3}{+Key, +Term, -Reference}
 Assert \arg{Term} in the recorded database under key \arg{Key}. \arg{Key} is an
 integer, atom or term. \arg{Reference} is unified with a unique reference
 to the record (see erase/1).
+
     \predicate{recorda}{2}{+Key, +Term}
 Equivalent to \exam{recorda(\arg{Key}, \arg{Value}, _)}.
+
     \predicate{recordz}{3}{+Key, +Term, -Reference}
 Equivalent to recorda/3, but puts the \arg{Term} at the tail of the terms
 recorded under \arg{Key}.
+
     \predicate{recordz}{2}{+Key, +Term}
 Equivalent to \exam{recordz(\arg{Key}, \arg{Value}, _)}.
+
     \predicate{recorded}{3}{+Key, -Value, -Reference}
 Unify \arg{Value} with the first term recorded under \arg{Key} which does
 unify. \arg{Reference} is unified with the memory location of the record.
+
     \predicate{recorded}{2}{+Key, -Value}
 Equivalent to \exam{recorded(\arg{Key}, \arg{Value}, _)}.
+
     \predicate{erase}{1}{+Reference}
 Erase a record or clause from the database.  \arg{Reference} is an
 integer returned by recorda/3 or recorded/3, clause/3, assert/2,
@@ -1629,27 +1637,24 @@ of the system.%
 \bug{The system should have a special type for pointers, thus avoiding
 the Prolog user having to worry about consistency matters. Currently some
 simple heuristics are used to determine whether a reference is valid.}
+
     \predicate{flag}{3}{+Key, -Old, +New}
-\arg{Key} is an atom, integer or term. Unify \arg{Old} with the old
-value associated with \arg{Key}. If the key is used for the first time
-\arg{Old} is unified with the integer 0. Then store the value of
-\arg{New}, which should be an integer, float, atom or arithmetic
-expression, under \arg{Key}. flag/3 is a fast mechanism for storing
-simple facts in the database.  The flag database is shared between
-threads and updates are atomic.  Example:
-
-\begin{code}
-:- module_transparent succeeds_n_times/2.
-
-succeeds_n_times(Goal, Times) :-
-        (   flag(succeeds_n_times, Old, 0),
-	    Goal,
-	       flag(succeeds_n_times, N, N+1),
-	    fail
-	;   flag(succeeds_n_times, Times, Old)
-	).
-\end{code}
+\arg{Key} is an atom, integer or term. As with the recorded database, if
+\arg{Key} is a term, only the name and arity are used to locate the
+flag. Unify \arg{Old} with the old value associated with \arg{Key}. If
+the key is used for the first time \arg{Old} is unified with the integer
+0. Then store the value of \arg{New}, which should be an integer, float,
+atom or arithmetic expression, under \arg{Key}. flag/3 is a fast
+mechanism for storing simple facts in the database. The flag database is
+shared between threads and updates are atomic, making it suitable for
+generating unique integer counters.%
+	\footnote{The flag/3 predicate is not portable. Non-backtrackable
+		  global variables (nb_setval/2) and non-backtrackable
+		  assignment (nb_setarg/3) are more widely recognised
+		  special-purpose alternatives for non-backtrackable
+		  and/or global state.}
 \end{description}
+
 
 \subsection{Update view}			\label{sec:update}
 
@@ -3094,7 +3099,8 @@ type-restriction on \arg{Value}.  See also nb_linkarg/3.  Below
 is an example for counting the number of solutions of a goal.  Note
 that this implementation is thread-safe, reentrant and capable of
 handling exceptions.  Realising these features with a traditional
-implementation as discusses with flag/3 is much more complicated.
+implementation based on assert/retract or flag/3 is much more
+complicated.
 
 \begin{code}
 :- module_transparent succeeds_n_times/2.
@@ -3109,7 +3115,6 @@ succeeds_n_times(Goal, Times) :-
 	;   arg(1, Counter, Times)
 	).
 \end{code}
-
 
     \predicate{nb_linkarg}{3}{+Arg, +Term, +Value}
 As nb_setarg/3, but like nb_linkval/2 it does \emph{not} duplicate
