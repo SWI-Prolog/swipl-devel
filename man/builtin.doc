@@ -686,6 +686,15 @@ Succeeds if \arg{Term} is bound to an atom or a compound term, so it can
 be handed without type-error to call/1, functor/3 and =../2.
     \predicate{ground}{1}{+Term}
 Succeeds if \arg{Term} holds no free variables.
+    \predicate{cyclic_term}{1}{+Term}
+Succeeds if \arg{Term} contains cycles, i.e.\ is an infinite term.
+See also acyclic_term/1 and \secref{cyclic}.%
+	\footnote{The predicates cyclic_term/1 and acyclic_term/1 are
+		  compatible to SICStus Prolog.  Some Prolog systems
+		  supporting cyclic terms use is_cyclic/1.}
+    \predicate{acyclic_term}{1}{+Term}
+Succeeds if \arg{Term} does not contain cycles,  i.e.\ can be processed
+recursively in finite time.  See also cyclic_term/1 and \secref{cyclic}.
 \end{description}
 
 \section{Comparison and Unification or Terms}	\label{sec:compare}

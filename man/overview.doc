@@ -1607,7 +1607,7 @@ and 36. ISO defines binary, octal and hexadecimal numbers using
 a valid expression. Such numbers are always unsigned.
 
 
-\section{Infinite trees (cyclic terms)}
+\section{Infinite trees (cyclic terms)}		\label{sec:cyclic}
 
 \index{infinite trees}\index{cyclic terms}\index{terms,cyclic}%
 SWI-Prolog has limited support for infinite trees, also known as cyclic

@@ -8,6 +8,8 @@
 					--------------------------------------
 
 
+  * ADDED: cyclic_term/1 and acyclic_term/1.  Paul Singleton.
+
 VERSION 5.4.3 (October 18, 2004)
 ================================
 

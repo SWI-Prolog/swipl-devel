@@ -59,6 +59,7 @@ suggest predicates from a keyword.
 \predicatesummary{absolute_file_name}{2}{Get absolute path name}
 \predicatesummary{absolute_file_name}{3}{Get absolute path name with options}
 \predicatesummary{access_file}{2}{Check access permissions of a file}
+\predicatesummary{acyclic_term}{1}{Test term for cycles}
 \predicatesummary{add_import_module}{3}{Add module to the auto-import list}
 \predicatesummary{all_different}{1}{Constraint all values to be unique}
 \predicatesummary{append}{1}{Append to a file}
@@ -156,6 +157,7 @@ suggest predicates from a keyword.
 \predicatesummary{current_signal}{3}{Current software signal mapping}
 \predicatesummary{current_stream}{3}{Examine open streams}
 \predicatesummary{current_thread}{2}{Examine Prolog threads}
+\predicatesummary{cyclic_term}{1}{Test term for cycles}
 \predicatesummary{dde_current_connection}{2}{Win32: Examine open DDE connections}
 \predicatesummary{dde_current_service}{2}{Win32: Examine DDE services provided}
 \predicatesummary{dde_execute}{2}{Win32: Execute command on DDE server}

@@ -227,6 +227,59 @@ PRED_IMPL("callable", 1, callable, 0)
   fail;
 }
 
+
+static int
+is_acyclic(Word p ARG_LD)
+{ int arity;
+  Functor f;
+
+last:
+  deRef(p);
+
+  if ( !isTerm(*p) )
+    succeed;
+
+  f = valueTerm(*p);
+  arity = arityFunctor(f->definition);
+  p = f->arguments;
+  if ( visited(f PASS_LD) )	/* Got a cycle! */
+    fail;
+
+  for(; --arity > 0; p++)
+  { if ( !is_acyclic(p PASS_LD) )
+      fail;
+  }
+
+  goto last;
+}
+
+
+static
+PRED_IMPL("acyclic_term", 1, acyclic_term, 0)
+{ PRED_LD
+  Word *m = aTop;
+  int rc;
+
+  rc = is_acyclic(valTermRef(A1) PASS_LD);
+  unvisit(m PASS_LD);
+
+  return rc;
+}
+
+
+static
+PRED_IMPL("cyclic_term", 1, cyclic_term, 0)
+{ PRED_LD
+  Word *m = aTop;
+  int rc;
+
+  rc = is_acyclic(valTermRef(A1) PASS_LD);
+  unvisit(m PASS_LD);
+
+  return rc ? FALSE : TRUE;
+}
+
+
 		 /*******************************
 		 *	 META-CALL SUPPORT	*
 		 *******************************/
@@ -3330,6 +3383,8 @@ BeginPredDefs(prims)
   PRED_DEF("atom", 1, atom, 0)
   PRED_DEF("string", 1, string, 0)
   PRED_DEF("ground", 1, ground, 0)
+  PRED_DEF("acyclic_term", 1, acyclic_term, 0)
+  PRED_DEF("cyclic_term", 1, cyclic_term, 0)
   PRED_DEF("compound", 1, compound, 0)
   PRED_DEF("callable", 1, callable, 0)
   PRED_DEF("==", 2, equal, 0)
