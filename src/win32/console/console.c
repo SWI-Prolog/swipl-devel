@@ -25,9 +25,7 @@
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This file defines a console for porting (unix) stream-based applications
 to MS-Windows. It has been developed for  SWI-Prolog. The main source is
-part of SWI-Prolog, but unlike  the   base  system  which is distributed
-under the GPL, the console code is  distributed under the LGPL, and thus
-allows for embedding in proprietary software.
+part of SWI-Prolog.
 
 The SWI-Prolog source is at http://www.swi-prolog.org
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -321,6 +319,13 @@ rlc_long_name(char *file)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+If %PLTERM_CLASS% is in the environment, this   value is used as Windows
+class identifier for the console window.   This allows external programs
+to start PLWIN.EXE and find the window it  has started in order to embed
+it.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static char *
 rlc_window_class(HICON icon)
 { static char winclassname[32];
@@ -328,7 +333,9 @@ rlc_window_class(HICON icon)
   HINSTANCE instance = _rlc_hinstance;
 
   if ( !winclassname[0] )
-  { sprintf(winclassname, "PlTerm-%d", instance);
+  { if ( !GetEnvironmentVariable("PLTERM_CLASS",
+				 winclassname, sizeof(winclassname)) )
+      sprintf(winclassname, "PlTerm-%d", instance);
 
     wndClass.lpszClassName	= winclassname;
     wndClass.style		= CS_HREDRAW|CS_VREDRAW|CS_DBLCLKS;
