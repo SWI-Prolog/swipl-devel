@@ -3168,7 +3168,7 @@ Defines extensions. Current mapping: \const{txt} implies \const{['']},
     \termitem{file_errors}{fail/error}
 If \const{error} (default), throw and \const{existence_error} exception
 if the file cannot be found.  If \const{fail}, stay silent.%
-	footnote{Silent operation was the default upto version 3.2.6.}
+	\footnote{Silent operation was the default upto version 3.2.6.}
     \termitem{solutions}{first/all}
 If \const{first} (default), the predicates leaves no choice-point.
 Otherwise a choice-point will be left and backtracking may yield
