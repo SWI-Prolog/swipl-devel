@@ -32,7 +32,6 @@ status		makeClassColour(Class class);
 status		updateHideExposeConnection(Connection c);
 status		updateDeviceConnection(Connection c);
 status		makeClassConnection(Class class);
-int		distanceLineToPoint(int x1, int y1, int x2, int y2, int px, int py);
 
 /* gra/cursor.c */
 status		makeClassCursor(Class class);
@@ -50,6 +49,8 @@ status		computeGraphicalsDevice(Device dev);
 status		computeDevice(Any obj);
 status		computeBoundingBoxDevice(Device dev);
 status		changedUnionDevice(Device dev, Int ox, Int oy, Int ow, Int oh);
+status		EnterRedrawAreaDevice(Device dev, Area a, DeviceDrawContext ctx);
+void		ExitRedrawAreaDevice(Device dev, Area a, DeviceDrawContext ctx);
 status		RedrawAreaDevice(Device dev, Area a);
 status		flashDevice(Device dev, Area a, Int time);
 status		clearDevice(Device dev);
@@ -73,6 +74,8 @@ status		makeClassEllipse(Class class);
 
 /* gra/figure.c */
 status		initialiseFigure(Figure f);
+status		RedrawBoxFigure(Figure f, Area area);
+status		RedrawAreaFigure(Figure f, Area area);
 status		computeFigure(Figure f);
 status		makeClassFigure(Class class);
 
@@ -140,6 +143,7 @@ Int		getWidthGraphical(Graphical gr);
 Int		getHeightGraphical(Graphical gr);
 Int		getLeftSideGraphical(Graphical gr);
 Int		getRightSideGraphical(Graphical gr);
+Int		getBottomSideGraphical(Graphical gr);
 Point		getPositionGraphical(Graphical gr);
 status		get_absolute_xy_graphical(Graphical gr, Device *dev, Int *X, Int *Y);
 Int		getAbsoluteXGraphical(Any gr, Device dev);

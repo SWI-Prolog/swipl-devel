@@ -189,6 +189,34 @@ ws_3d_grey()
 }
 
 
+static VOID CALLBACK
+dotpoint(int x, int y, LPARAM hdc)
+{ static int draw = FALSE;
+
+  if ( draw )
+    SetPixel((HDC)hdc, x, y, RGB(0,0,0));
+
+  draw = !draw;
+}
+
+
+static void
+r_dotted_box(int x, int y, int w, int h)
+{ LPARAM hdc = (LPARAM)d_current_hdc();
+  int r = x+w-1;			/* right */
+  int b = y+h-1;			/* bottom */
+
+  dotpoint(x, y, hdc);
+  LineDDA(x, y, r, y, (LINEDDAPROC)dotpoint, hdc);
+  dotpoint(r, y, hdc);
+  LineDDA(r, y, r, b, (LINEDDAPROC)dotpoint, hdc);
+  dotpoint(r, b, hdc);
+  LineDDA(r, b, x, b, (LINEDDAPROC)dotpoint, hdc);
+  dotpoint(x, b, hdc);
+  LineDDA(x, b, x, y, (LINEDDAPROC)dotpoint, hdc);
+}
+
+
 status
 ws_draw_button_face(DialogItem di, int x, int y, int w, int h,
 		    int up, int defb, int focus)
@@ -207,9 +235,11 @@ ws_draw_button_face(DialogItem di, int x, int y, int w, int h,
     r_box(x, y, w, h, 0, button_face);
 
   if ( focus )
-  { r_dash(NAME_dotted);
+    r_dotted_box(x+3, y+3, w-6, h-6);
+/*{ r_dash(NAME_dotted);
     r_box(x+3, y+3, w-6, h-6, 0, NIL);
   }
+*/
 
   succeed;
 }
@@ -424,7 +454,7 @@ ws_message_box(Any msg, int flags)
   { style |= MB_OKCANCEL;
     title = "Confirm";
   } else if ( flags & MBX_ERROR )
-  { style |= MB_OKCANCEL|MB_ICONEXCLAMATION;
+  { style |= MB_OK|MB_ICONEXCLAMATION;
     title = "Error";
   } else
     return MBX_NOTHANDLED;

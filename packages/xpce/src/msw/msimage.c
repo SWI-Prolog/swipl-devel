@@ -254,6 +254,7 @@ ws_load_windows_bmp_file(Image image, FileObj f)
 
 #endif /*O_IMGLIB*/
 
+#ifdef O_OLD_ICO_LOADER
 #define OsError() getOsErrorPce(PCE)
 #define SWORD unsigned short
 #define ICOFHDRSIZE 6			/* Designed for 16-bit rounding */
@@ -276,6 +277,7 @@ typedef struct ICONDIR
   ICONDIRENTRY idEntries[1];
 } ICONHEADER;
     
+
 static status
 ws_load_windows_ico_file(Image image)
 { FILE *fd = image->file->fd;
@@ -330,6 +332,122 @@ ws_load_windows_ico_file(Image image)
   attach_dib_image(image, bmi, bits);
   succeed;
 }
+
+#else /*O_OLD_ICO_LOADER*/
+
+static status
+ws_load_windows_ico_file(Image image)
+{ char *fname = strName(getOsNameFile(image->file));
+  HICON hi;
+
+  if ( (hi=(HICON)LoadCursorFromFile(fname)) )
+  { ICONINFO info;
+
+    if ( GetIconInfo(hi, &info) )
+    { BITMAP bm;
+      int destroyicon = TRUE;
+      int iscolor = TRUE;
+
+      if ( !info.fIcon )
+	assign(image, hot_spot, newObject(ClassPoint,
+					  toInt(info.xHotspot),
+					  toInt(info.yHotspot), 0));
+
+      if ( info.hbmColor && GetObject(info.hbmColor, sizeof(bm), &bm) )
+      { HBITMAP copy = CopyImage(info.hbmColor, IMAGE_BITMAP, 
+				 0, 0, LR_COPYRETURNORG);
+	if ( !copy )
+	{ copy = info.hbmColor;
+	  destroyicon = FALSE;
+	}
+	assign(image->size, w, toInt(bm.bmWidth));
+	assign(image->size, h, toInt(bm.bmHeight));
+	assign(image,       depth, toInt(bm.bmPlanes * bm.bmBitsPixel));
+	assign(image,	    kind,  image->depth == ONE ? NAME_bitmap
+	       					       : NAME_pixmap);
+
+	registerXrefObject(image, image->display, copy);
+      } else
+	iscolor = FALSE;
+      
+      if ( GetObject(info.hbmMask, sizeof(bm), &bm) )
+      { Image mask;
+	HBITMAP copy;
+
+	if ( !iscolor )			/* Upper half is mask, lower image */
+	{ HDC dhdc = CreateCompatibleDC(NULL);
+	  HDC shdc = CreateCompatibleDC(dhdc);
+	  HBITMAP bimg = ZCreateBitmap(bm.bmWidth, bm.bmHeight/2, 1, 1, NULL);
+	  HBITMAP bmsk = ZCreateBitmap(bm.bmWidth, bm.bmHeight/2, 1, 1, NULL);
+	  HBITMAP dobm, sobm;
+	  int w = bm.bmWidth;
+	  int h = bm.bmHeight/2;
+
+	  assign(image, kind, NAME_bitmap);
+	  assign(image, depth, ONE);
+	  assign(image->size, w, toInt(w));
+	  assign(image->size, h, toInt(h));
+	  
+	  sobm = ZSelectObject(shdc, info.hbmMask); /* source */
+	  dobm = ZSelectObject(dhdc, bimg);         /* dest */
+	  BitBlt(dhdc, 0, 0, w, h, shdc, 0, h, SRCCOPY);
+	  ZSelectObject(dhdc, bmsk);
+	  BitBlt(dhdc, 0, 0, w, h, shdc, 0, 0, SRCCOPY);
+	  ZSelectObject(dhdc, dobm);
+	  ZSelectObject(shdc, sobm);
+	  DeleteDC(shdc);
+	  DeleteDC(dhdc);
+
+	  assign(image, mask, newObject(ClassImage, NIL,
+					image->size->w, image->size->h,
+					NAME_bitmap, 0));
+
+	  registerXrefObject(image, image->display, bimg);
+	  registerXrefObject(image->mask, image->display, bmsk);
+
+	  DestroyIcon(hi);
+
+	  succeed;
+	}
+
+	copy = CopyImage(info.hbmMask, IMAGE_BITMAP, 
+				 0, 0, LR_COPYRETURNORG);
+	if ( !copy )
+	{ copy = info.hbmMask;
+	  destroyicon = FALSE;
+	}
+
+	assign(image, mask, newObject(ClassImage, NIL,
+				      image->size->w, image->size->h,
+				      NAME_bitmap, 0));
+	mask = image->mask;
+
+	assign(mask->size, w, toInt(bm.bmWidth));
+	assign(mask->size, h, toInt(bm.bmHeight));
+	assign(mask,       depth, toInt(bm.bmPlanes * bm.bmBitsPixel));
+	assign(mask,	   kind,  image->depth == ONE ? NAME_bitmap
+	       					       : NAME_pixmap);
+
+	registerXrefObject(mask, image->display, copy);
+      }
+
+      if ( destroyicon )
+	DestroyIcon(hi);
+      else
+      { static int warned = FALSE;
+      
+	if ( !warned++ )
+	  Cprintf("Warning: could not copy icon images\n");
+      }
+
+      succeed;
+    }
+  }
+
+  fail;
+}
+
+#endif /*O_OLD_ICO_LOADER*/
 
 
 status
@@ -557,12 +675,16 @@ palette.
 
     rval = SUCCEED;
   } else				/* other formats */
-  { if ( send(image->file, NAME_open, NAME_read, 0) )
+  {
+#ifdef O_OLD_ICO_LOADER
+    if ( send(image->file, NAME_open, NAME_read, 0) )
     { if ( ws_load_windows_ico_file(image) )
 	rval = SUCCEED;
 
       send(image->file, NAME_close, 0);
     }
+#endif
+    return ws_load_windows_ico_file(image);
   }
 }
 #else /*O_IMGLIB*/

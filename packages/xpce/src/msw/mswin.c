@@ -129,28 +129,24 @@ ConsoleWindow()
 #endif /*USE_RLC_FUNCTIONS*/
 
 status
-ws_expose_console()
+ws_show_console(Name how)
 { HWND hwnd = ConsoleWindow();
 
   if ( hwnd )
-  { if ( IsIconic(hwnd) )
-      ShowWindow(hwnd, SW_RESTORE);
-    else
-      ShowWindow(hwnd, SW_SHOW);
+  { if ( how == NAME_open )
+    { if ( IsIconic(hwnd) )
+	ShowWindow(hwnd, SW_RESTORE);
+      else
+	ShowWindow(hwnd, SW_SHOW);
+    } else if ( how == NAME_iconic )
+      ShowWindow(hwnd, SW_SHOWMINIMIZED);
+    else if ( how == NAME_hidden )
+      ShowWindow(hwnd, SW_HIDE);
+
+    succeed;
   }
 
-  succeed;
-}
-
-
-status
-ws_iconify_console()
-{ HWND hwnd = ConsoleWindow();
-  
-  if ( hwnd )
-    ShowWindow(hwnd, SW_SHOWMINIMIZED);
-
-  succeed;
+  fail;
 }
 
 

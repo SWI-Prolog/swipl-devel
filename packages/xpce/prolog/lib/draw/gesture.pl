@@ -87,9 +87,11 @@ recogniser.
 
 :- pce_global(@draw_move_outline_gesture,
 	      new(handler_group(new(draw_move_selection_gesture),
+				draw_move_selection_gesture(left),
 				new(draw_move_outline_gesture)))).
 :- pce_global(@draw_resize_gesture,
 	      new(handler_group(new(draw_resize_selection_gesture),
+				draw_resize_selection_gesture(left),
 				new(draw_resize_gesture)))).
 
 			/* Combined shape recognisers */
@@ -105,6 +107,7 @@ recogniser.
 				@draw_edit_text_recogniser,
 				@draw_text_paste_recogniser,
 				new(draw_resize_selection_gesture),
+				draw_move_selection_gesture(left),
 				@draw_move_outline_gesture,
 				@draw_connect_gesture,
 				@draw_shape_popup_gesture))).
@@ -125,12 +128,15 @@ recogniser.
 				@draw_connect_gesture,
 				@draw_shape_popup_gesture,
 				new(draw_change_line_gesture),
+				draw_change_line_gesture(left),
 				new(draw_move_selection_gesture),
+				draw_move_selection_gesture(left),
 				new(draw_move_gesture)))).
 :- pce_global(@draw_path_recogniser,
 	      new(handler_group(@draw_shape_select_recogniser,
 				@draw_shape_popup_gesture,
 				new(draw_modify_path_gesture),
+				draw_modify_path_gesture(left),
 				@draw_edit_path_gesture,
 				@draw_resize_gesture,
 				@draw_move_outline_gesture,
@@ -440,6 +446,10 @@ end of the line.
 
 verify(G, Ev:event) :->
 	get(Ev, receiver, Line),
+	(   get(G, button, left)
+	->  get(Line, selected, @on)
+	;   true
+	),
 	get(Ev, position, Line?device, Pos),
 	(   get(Line?start, distance, Pos, D),
 	    D < 5
@@ -612,6 +622,10 @@ variable(point,		point*,		both,	"Point to move").
 verify(G, Ev:event) :->
 	"Start if event is close to point"::
 	get(Ev, receiver, Path),
+	(   get(G, button, left)
+	->  get(Path, selected, @on)
+	;   true
+	),
 	get(Path, point, Ev, Point),
 	send(G, point, Point).
 
@@ -793,10 +807,7 @@ selected.
 
 verify(_G, Ev:event) :->
 	get(Ev, receiver, Receiver),
-	get(Receiver, selected, @on),
-	get(Receiver?device?graphicals, find,
-	    and(@arg1?selected == @on,
-		@arg1 \== Receiver), _).
+	get(Receiver, selected, @on).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Initiating implies finding the  device  and the bounding  box  of  all
@@ -835,7 +846,13 @@ terminate(G, Ev:event) :->
 	get(Outline?area?position, difference, G?origin, Offset),	
 	get(Ev, window, Canvas),
 	send(Canvas, open_undo_group),
-	send(G?selection, for_all, message(@arg1, relative_move, Offset)),
+	get(G, selection, Selection),
+	send(Selection, for_all, message(@arg1, relative_move, Offset)),
+	(   get(Selection, size, 1)
+	->  get(Selection, head, Shape),
+	    send(Shape?device, auto_align, Shape, move)
+	;   true
+	),
 	send(G, selection, @nil),
 	send(Canvas, close_undo_group),
 	send(Canvas, modified).
@@ -930,8 +947,14 @@ terminate(G, Ev:event) :->
 	y_resize(A0, A1, Y0, Yfactor),
 	get(Ev, window, Canvas),
 	send(Canvas, open_undo_group),
-	send(G?selection, for_all,
+	get(G, selection, Selection),
+	send(Selection, for_all,
 	     message(@arg1, resize, Xfactor, Yfactor, point(X0, Y0))),
+	(   get(Selection, size, 1)
+	->  get(Selection, head, Shape),
+	    send(Shape?device, auto_align, Shape, resize)
+	;   true
+	),
 	send(G, selection, @nil),
 	send(Canvas, close_undo_group),
 	send(Canvas, modified).

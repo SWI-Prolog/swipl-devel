@@ -146,9 +146,6 @@ toType(Any obj)
 		*               PP		*
 		********************************/
 
-#include <setjmp.h>
-#include <signal.h>
-
 #define PPRINGSIZE 16
 
 static char *ppring[PPRINGSIZE];
@@ -208,6 +205,9 @@ do_pp(Any obj)
     } else if ( instanceOfObject(obj, ClassType) &&
 		isName(((Type)obj)->fullname) )
     { s = strName(((Type)obj)->fullname);
+    } else if ( instanceOfObject(obj, ClassReal) )
+    { sprintf(summary, "%g", valReal(obj));
+      s = summary;
     } else
       s = strName(classOfObject(obj)->name);
 
@@ -231,6 +231,41 @@ do_pp(Any obj)
   return ppsavestring(tmp);
 }
 
+
+#ifdef __WIN32__
+
+#include <excpt.h>
+
+char *
+pcePP(Any obj)
+{ char *s;
+
+#ifndef O_RUNTIME
+  int old = PCEdebugging;
+
+  PCEdebugging = FALSE;
+#endif
+
+  __try
+  { s = do_pp(obj);
+  } __except(EXCEPTION_EXECUTE_HANDLER)
+  { char tmp[100];
+    sprintf(tmp, "0x%lx", (unsigned long)obj);
+    s = ppsavestring(tmp);
+  }
+
+#ifndef O_RUNTIME
+  PCEdebugging = old;
+#endif
+
+  return s;
+}
+
+
+#else /*__WIN32__*/
+
+#include <setjmp.h>
+#include <signal.h>
 
 jmp_buf pp_env;
 
@@ -272,6 +307,8 @@ pcePP(Any obj)
 
   return s;
 }
+
+#endif /*__WIN32__*/
 
 		/********************************
 		*           FUNCTIONS		*

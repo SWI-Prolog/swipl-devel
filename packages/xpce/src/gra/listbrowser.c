@@ -234,7 +234,8 @@ statusListBrowser(ListBrowser lb, Name stat)
     assign(lb, status, stat);
 
 				/* avoid unnecessary flickering (hack) */
-    if ( !((z = getResourceValueObject(lb->image, NAME_elevation)) && notNil(z)) )
+    if ( !((z = getResourceValueObject(lb->image, NAME_elevation)) &&
+	   notNil(z)) )
     { penGraphical((Graphical) lb->image,
 		   stat == NAME_active ? add(lb->pen, ONE) : lb->pen);
     }
@@ -878,7 +879,6 @@ enterListBrowser(ListBrowser lb)
 
   succeed;
 }
-
 
 		/********************************
 		*        EVENT HANDLING		*

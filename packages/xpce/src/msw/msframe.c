@@ -122,6 +122,22 @@ do_frame_wnd_proc(FrameObj fr,
       break;
     }
 
+#if 0					/* does not work in Windows 95! */
+    case WM_WINDOWPOSCHANGED:
+    { LPWINDOWPOS wpos = (LPWINDOWPOS) lParam;
+
+      if ( (wpos->flags & SWP_NOSIZE|SWP_NOMOVE|SWP_NOZORDER) ==
+						   SWP_NOSIZE|SWP_NOMOVE )
+	send(fr, NAME_exposed, 0);
+/*
+      Cprintf("hwnd = 0x%x, insertAfter = 0x%x, flags = 0x%x\n",
+	      wpos->hwnd, wpos->hwndInsertAfter,
+	      wpos->flags);
+*/
+      break;
+    }
+#endif
+
     case WM_SIZE:			/* frame resized */
     { int w = LOWORD(lParam);
       int h = HIWORD(lParam);
@@ -631,7 +647,7 @@ ws_create_frame(FrameObj fr)
   if ( fr->kind == NAME_toplevel )
   { style = WS_OVERLAPPEDWINDOW;
   } else if ( fr->kind == NAME_transient )
-  { style = WS_DLGFRAME|WS_POPUP;
+  { style = WS_DLGFRAME|WS_POPUP; /*exstyle = WS_EX_DLGMODALFRAME;*/
   } else /* popup */
   { style = WS_POPUP;
     if ( fr->border != ZERO )

@@ -433,6 +433,11 @@ readXpmFile(Image image, FILE *fd)
 	goto out;
 
       buffer[size] = '\0';
+
+      atts->exactColors = FALSE;
+      atts->closeness   = (1<<16)-1;	/* always continue */
+      atts->valuemask   = XpmExactColors|XpmCloseness;
+      
       if ( XpmCreateImageFromBuffer(disp, buffer,
 				    &i, &shape, atts) != XpmSuccess )
 	i = NULL;

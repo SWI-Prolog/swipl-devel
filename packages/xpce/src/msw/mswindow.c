@@ -160,9 +160,11 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
     { int x = LOWORD(lParam);
       int y = HIWORD(lParam);
 
-      ServiceMode(is_service_window(sw),
-		  assign(sw->area, x, toInt(x));
-		  assign(sw->area, y, toInt(y)));
+      if ( isNil(sw->device) )		/* Window is not used as graphical */
+      { ServiceMode(is_service_window(sw),
+		    assign(sw->area, x, toInt(x));
+		    assign(sw->area, y, toInt(y)));
+      }
 
       return 0;
     }

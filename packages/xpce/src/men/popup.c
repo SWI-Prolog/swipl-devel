@@ -268,16 +268,24 @@ keyPopup(PopupObj p, Name key)
 }
 
 
+#undef BUSY
+#define BUSY(g) { busyCursorDisplay(d, DEFAULT, DEFAULT); \
+		  g; \
+		  busyCursorDisplay(d, NIL, DEFAULT); \
+		}
+
 static status
-execute_popup(PopupObj p, Any context)
-{ if ( p->kind == NAME_cyclePopup )
+executePopup(PopupObj p, Any context)
+{ DisplayObj d = CurrentDisplay(context);
+
+  if ( p->kind == NAME_cyclePopup )
   { Menu m = context;
 
     if ( instanceOfObject(m, ClassMenu) )
     { if ( notNil(p->selected_item) )
       { selectionMenu(m, p->selected_item);
 	flushGraphical(m);
-	forwardMenu(m, m->message, EVENT->value);
+	BUSY(forwardMenu(m, m->message, EVENT->value));
       }
     } else
       return errorPce(context, NAME_unexpectedType, ClassMenu);
@@ -291,21 +299,21 @@ execute_popup(PopupObj p, Any context)
       if ( instanceOfObject(p->selected_item, ClassMenuItem) )
       { MenuItem mi = p->selected_item;
     
-	if ( p->multiple_selection == ON )
-	{ toggleMenu((Menu) p, mi);
-	  if ( isDefault(mi->message) )
-	  { if ( notDefault(def_msg) && notNil(def_msg) )
-	      forwardReceiverCode(def_msg, p,
-				  mi->value, mi->selected, context, 0);
-	  } else if ( notNil(mi->message) )
-	    forwardReceiverCode(mi->message, p, mi->selected, context, 0);
-	} else
-	{ if ( isDefault(mi->message) )
-	  { if ( notDefault(def_msg) && notNil(def_msg) )
-	      forwardReceiverCode(def_msg, p, mi->value, context, 0);
-	  } else if ( notNil(mi->message) )
-	    forwardReceiverCode(mi->message, p, context, 0);
-	}
+	BUSY(if ( p->multiple_selection == ON )
+	     { toggleMenu((Menu) p, mi);
+	       if ( isDefault(mi->message) )
+	       { if ( notDefault(def_msg) && notNil(def_msg) )
+		   forwardReceiverCode(def_msg, p,
+				       mi->value, mi->selected, context, 0);
+	       } else if ( notNil(mi->message) )
+		 forwardReceiverCode(mi->message, p, mi->selected, context, 0);
+	     } else
+	     { if ( isDefault(mi->message) )
+	       { if ( notDefault(def_msg) && notNil(def_msg) )
+		   forwardReceiverCode(def_msg, p, mi->value, context, 0);
+	       } else if ( notNil(mi->message) )
+		 forwardReceiverCode(mi->message, p, context, 0);
+	     })
 
 	succeed;
       }
@@ -313,19 +321,6 @@ execute_popup(PopupObj p, Any context)
   }
 
   succeed;
-}
-
-
-static status
-executePopup(PopupObj p, Any context)
-{ status rval;
-  DisplayObj d = CurrentDisplay(context);
-
-  busyCursorDisplay(d, DEFAULT, DEFAULT);
-  rval = execute_popup(p, context);
-  busyCursorDisplay(d, NIL, DEFAULT);
-
-  return rval;
 }
 
 

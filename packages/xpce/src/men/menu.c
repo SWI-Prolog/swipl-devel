@@ -1019,6 +1019,14 @@ selectedCompletionMenu(Menu m, DictItem di)
 
 
 static status
+keyboardQuitMenu(Menu m)
+{ quitCompleterDialogItem(m);
+
+  succeed;
+}
+
+
+static status
 openComboBoxMenu(Menu m)
 { Browser c = CompletionBrowser();
   Cell cell;
@@ -1911,7 +1919,7 @@ restoreMenu(Menu m)
 { Any val;
 
   TRY(val = getDefaultMenu(m));
-  return selectionMenu(m, val);
+  return send(m, NAME_selection, val, 0);
 }
 
 
@@ -1921,7 +1929,7 @@ applyMenu(Menu m, Bool always)
 
   if ( instanceOfObject(m->message, ClassCode) &&
        (always == ON || getModifiedMenu(m) == ON) &&
-       (val = getSelectionMenu(m)) )
+       (val = get(m, NAME_selection, 0)) )
   { forwardReceiverCode(m->message, m, val, 0);
     succeed;
   }
@@ -2082,6 +2090,8 @@ static senddecl send_menu[] =
      NAME_selection, "Select menu_item or value (or chain)"),
   SM(NAME_selectedCompletion, 1, "dict_item", selectedCompletionMenu,
      NAME_internal, "Handle combo_box message"),
+  SM(NAME_keyboardQuit, 0, NULL, keyboardQuitMenu,
+     NAME_complete, "Remove completer")
 };
 
 /* Get Methods */

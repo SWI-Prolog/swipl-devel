@@ -7,8 +7,9 @@
     Copyright (C) 1995 University of Amsterdam. All rights reserved.
 */
 
-:- multifile
-	built_in/1.
+:- module(xref_common,
+	  [ built_in/1
+	  ]).
 
 built_in(!).
 built_in([]).

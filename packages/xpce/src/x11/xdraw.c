@@ -2707,6 +2707,19 @@ str_draw_text_lines(int acc, FontObj font,
 }
 
 
+static Any
+r_text_colour(Any c)
+{ int oldfixed = context.fixed_colours;
+  Any old;
+
+  context.fixed_colours = 0;
+  old = r_colour(c);
+  context.fixed_colours = oldfixed;
+
+  return old;
+}
+
+
 void
 str_label(String s, int acc, FontObj font, int x, int y, int w, int h,
 	   Name hadjust, Name vadjust, int flags)
@@ -2721,21 +2734,23 @@ str_label(String s, int acc, FontObj font, int x, int y, int w, int h,
   str_break_into_lines(s, lines, &nlines);
   str_compute_lines(lines, nlines, font, x, y, w, h, hadjust, vadjust);
   if ( acc )
+  { r_dash(NAME_none);
     r_thickness(1);
+  }
 
   if ( flags & LABEL_INACTIVE )
   { if ( context.depth > 1 )
-    { Any old = r_colour(WHITE_COLOUR);
+    { Any old = r_text_colour(WHITE_COLOUR);
 
       str_draw_text_lines(acc, font, nlines, lines, 1, 1);
-      r_colour(ws_3d_grey());
+      r_text_colour(ws_3d_grey());
       str_draw_text_lines(acc, font, nlines, lines, 0, 0);
-      r_colour(old);
+      r_text_colour(old);
     } else
-    { Any old = r_colour(GREY50_IMAGE);
+    { Any old = r_text_colour(GREY50_IMAGE);
       
       str_draw_text_lines(acc, font, nlines, lines, 0, 0);
-      r_colour(old);
+      r_text_colour(old);
     }
   } else
     str_draw_text_lines(acc, font, nlines, lines, 0, 0);

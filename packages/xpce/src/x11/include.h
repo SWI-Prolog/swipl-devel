@@ -172,8 +172,5 @@ int		intensityXColor(XColor *c);
 
 extern XtAppContext ThePceXtAppContext;	/* X toolkit application context */
 
-/* xmenu.c */
-Any		ws_3d_grey(void);
-
 #endif /*_PCE_X11_INCLUDED*/
 

@@ -13,6 +13,7 @@
 	, draw/1				  % Start editing file
 	]).
 
+version(3.1).
 
 		/********************************
 		*      LINKING OTHER FILES	*
@@ -579,8 +580,10 @@ package.
 
 about(_Draw) :->
 	"Print `about' message"::
-	send(@display, inform, '%s\n\n%s\n%s\n',
-	     'PceDraw version 3.0',
+	version(Version),
+	send(@display, inform, '%s%.1f\n\n%s\n%s\n',
+	     'PceDraw version ',
+	     Version,
 	     'Author: Jan Wielemaker',
 	     'E-mail: jan@swi.psy.uva.nl').
 

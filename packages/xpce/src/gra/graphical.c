@@ -1193,7 +1193,7 @@ getTopSideGraphical(Graphical gr)
 }
 
 
-static Int
+Int
 getBottomSideGraphical(Graphical gr)
 { Area a = getAreaGraphical(gr);
 
@@ -2391,11 +2391,16 @@ inEventAreaGraphical(Graphical gr, Int xc, Int yc)
   int ax = valInt(a->x), ay = valInt(a->y),
       aw = valInt(a->w), ah = valInt(a->h);
   int x = valInt(xc), y = valInt(yc);
-#define MIN_EVENT_AREA 5
+  static evtol = -1;
+
+  if ( evtol < 0 )
+  { Int v = getResourceValueObject(gr, NAME_eventTolerance);
+    evtol = (v ? valInt(v) : 5);
+  }
 
   NormaliseArea(ax, ay, aw, ah);
-  if ( aw < MIN_EVENT_AREA ) ax -= (MIN_EVENT_AREA-aw)/2, aw = MIN_EVENT_AREA;
-  if ( ah < MIN_EVENT_AREA ) ay -= (MIN_EVENT_AREA-ah)/2, ah = MIN_EVENT_AREA;
+  if ( aw < evtol ) ax -= (evtol-aw)/2, aw = evtol;
+  if ( ah < evtol ) ay -= (evtol-ah)/2, ah = evtol;
   
   if ( x >= ax && x <= ax + aw &&
        y >= ay && y <= ay + ah )
@@ -3298,7 +3303,9 @@ static resourcedecl rc_graphical[] =
   RC(NAME_visualBell, "bool", "@on",
      "@on: flash; @off: ring bell on ->alert"),
   RC(NAME_visualBellDuration, "int", "100",
-     "Length of flash in milliseconds")
+     "Length of flash in milliseconds"),
+  RC(NAME_eventTolerance, "0..", "5",
+     "Minimum size of event-area")
 };
 
 /* Class Declaration */

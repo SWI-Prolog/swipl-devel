@@ -90,8 +90,12 @@ unlinkFrame(FrameObj fr)
 
     ws_uncreate_frame(fr);
     deleteChain(fr->display->frames, fr);
+    if ( notNil(fr->application) && notNil(fr->application->members) )
+      deleteChain(fr->application->members, fr);
 
     for_chain(fr->members, sw, freeObject(sw));
+
+    unlinkedWindowEvent(fr);
   }
 
   succeed;

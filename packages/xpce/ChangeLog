@@ -1,3 +1,80 @@
+* IMPROVED: Modified PceDraw, such that it can be used both using 2 and
+  3-button mice.
+
+* FIXED: configure problem, not autodetecting getpwnam().  This caused
+  ~user not to be recognised as a valid filename.
+
+* ADDED: Drawing lines in tree using style `list'.
+
+* FIXED: Selection of `Sub Class' in `Display' on ClassBrowser stopped
+  finding anything if the class had no subclasses.
+
+* DEMOS/TOOLS: Improved the image viewer a little: Use normal file-patterns
+  instead of regex, and provide default extensions.
+
+* FIXED: Configure to use MAKESHELL rather then	SHELL to define the correct
+  shell.  This avoids other shells to overrun the default using the SHELL
+  variable set by most user-shells.
+
+* FIXED: Avoid colour errors.  Notably caused by Netscape running and eating
+  all colours.  Both loading XPM files and allocating XPCE colour objects
+  now always replace the colour value by an `as close as possible' value
+  from the colourmap.
+
+* FIXED: `display ->report: error' not to show the `cancel' button (Win32).
+
+* FIXED: Added trapping of frame exposure to call `frame ->exposed' in Win32.
+  This ensures transient windows are kept on top of the windows they are
+  transient for.
+
+* FIXED: Tab tag-width is recomputed automatically to fit the text.
+
+* FIXED: Loading colour database appeared to miss some colours. Also added
+  handling of uppercase colournames to the "Colours" demo program.
+
+* INTERNAL: Rewrote Win32 guarding of object pretty-printer to use __try
+  rather then the badly supported Win32 signal handling.
+
+* CHANGED: Pretty Printer (used for the tracer) to print floats as
+  @<ref>/<value>, to simplify debugging.
+
+* FIXED: Dialog layout label/value alignment for a specific combination
+  of `natural width' values.
+
+* FIXED: Added hook to ensure the last_window variable in event.c contains
+  a valid object.  Caused a crash under very specific circumstances.
+
+* FIXED: `class <-super_class_name' to fail without warning on class object.
+
+* ADDED: Win32 version: loading of .ICO and .CUR files, including mask and
+  hot-spot (for cursor).  These files can be written as .XPM, to make them
+  available in the Unix version.
+
+* FIXED: Various issues concerned with displaying windows inside other
+  graphicals and windows.  Modified scrolling approach in the X11 version
+  to properly post a redraw request instead of redrawing immediately.  This
+  should avoid useless redraw actions and avoids reentrance of the window
+  redraw system (possible, but with limited nesting).
+
+* FIXED: `line->resize'.  Used to be just graphical->resize, but this makes
+  alignment errors when applied to a line.
+
+* FIXED: `gesture ->cancel' could post the drag event to the object not
+  in focus.   This could cause a drag to be received on an object that
+  is not currently being dragged.
+
+* FIXED: PostScript generation for text objects with pen > 0 and/or
+  <-background attribute.
+
+* ADDED: Pce.Graphical.event_tolerance  This resource constrolls how far
+  outside very small objects, the event is considered in the object. Used
+  to be a fixed value of 5.
+
+* ADDED: `line <-distance' to accept a point argument for calculating the
+  distance between a line and a point.
+
+[VERSION 4.9.1]
+
 * FIXED: Memory leak in alloc()/unalloc(), causing considerable leakage on
   some applications.  Also fixed a memory leak in the debugger.
 

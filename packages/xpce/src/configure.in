@@ -38,7 +38,7 @@ AC_SUBST(VMINOR)
 AC_SUBST(VPATCH)
 AC_SUBST(LDCONFIG)
 AC_SUBST(AR)
-AC_SUBST(SHELL)
+AC_SUBST(MAKESHELL)
 AC_SUBST(MAKE)
 AC_SUBST(QPENTRIES)
 AC_SUBST(QPBIN)
@@ -293,7 +293,7 @@ if test "$runtime" = yes; then
   PLTARGET=rt-$PLTARGET
 fi
 
-AC_CHECK_PROGS(SHELL, bash sh, "/bin/sh")
+AC_CHECK_PROGS(MAKESHELL, bash sh, "/bin/sh")
 AC_CHECK_PROGS(MAKE, gmake make, "make")
 AC_CHECK_PROGS(ETAGS, etags ctags, ":")
 AC_CHECK_PROGS(GXX, g++, "NONE")
@@ -358,7 +358,7 @@ AC_CHECK_HEADERS(sys/socketvar.h)
 AC_CHECK_FUNCS(vsscanf on_exit memmove select popen strerror timelocal)
 AC_CHECK_FUNCS(getdtablesize socket fork ftime getpid select getlogin)
 AC_CHECK_FUNCS(getcwd setsid grantpt gethostname fstat gettimeofday)
-AC_CHECK_FUNCS(atexit on_exit tmpnam sysinfo sigaction)
+AC_CHECK_FUNCS(atexit on_exit tmpnam sysinfo sigaction getpwnam)
 AC_HEADER_TIME
 AC_HEADER_DIRENT
 AC_C_CHAR_UNSIGNED

@@ -11,11 +11,11 @@
 #include <h/graphics.h>
 #include <math.h>
 #ifndef M_PI
-#define M_PI (3.141593)
+#define M_PI (3.14159265358979323846)
 #endif
 
-#define COS(x) cos(((x) * 2.0 * M_PI) / 360.0)
-#define SIN(x) sin(((x) * 2.0 * M_PI) / 360.0)
+#define COS(x) cos(((x) * M_PI) / 180.0)
+#define SIN(x) sin(((x) * M_PI) / 180.0)
 
 static status
 initialiseArc(Arc a, Int radius, Real start_angle, Real size_angle)

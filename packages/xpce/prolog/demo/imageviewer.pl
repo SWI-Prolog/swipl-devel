@@ -9,9 +9,11 @@
 
 :- module(pce_imageviewer, [image_viewer/0]).
 :- use_module(library(pce)).
-:- require([ chain_list/2
+:- require([ append/3
+	   , chain_list/2
 	   , concat/3
 	   , concat_atom/2
+	   , flatten/2
 	   , send_list/3
 	   , shell/1
 	   ]).
@@ -29,7 +31,13 @@ image_viewer :-
 	get(@pce, home, Home),
 	concat(Home, '/bitmaps', DefDir),
 	send(D, append, new(Dir, directory_item(directory, DefDir))),
-	send(D, append, new(File, text_item(file_pattern, regex('\.bm$')))),
+	send(D, append, new(File, text_item(file_pattern, '*.bm'))),
+	new(ValueSet, chain('*.bm', '*.xpm')),
+	(   get(@pce, window_system, windows)
+	->  send_list(ValueSet, append, ['*.ico', '*.cur'])
+	;   true
+	),
+	send(File, value_set, ValueSet),
 	send(D, append, button(apply,
 			       message(@prolog, view, P,
 				       Dir?selection, File?selection))),
@@ -41,12 +49,13 @@ image_viewer :-
 
 view(P, Dir, Pattern) :-
 	new(D, directory(Dir)),
-	get(D, files, Pattern, Files),
+	file_pattern_to_regex(Pattern, Regex),
+	get(D, files, Regex, Files),
 	(   send(Files, empty)
 	->  send(@display, inform, 'No matching images')
 	;   send(P, clear),
-	    send(P?frame, label, string('Images from %s/%s',
-					D?path, Pattern?pattern)),
+	    get(D?path, ensure_suffix, /, DirName),
+	    send(P?frame, label, string('Images from %s%s', DirName, Pattern)),
 	    chain_list(Files, List),
 	    show(P, List, D)
 	).
@@ -145,7 +154,8 @@ resize(Bitmap, W, H) :-
 show(_, [], _) :- !.
 show(P, [F|R], Dir) :-
 	get(Dir, file, F, File),
-	new(B, bitmap(File?name)),	% the bitmap
+	new(I, image(File?name)), !,	% first make image to avoid error
+	new(B, bitmap(I)),		% the bitmap
 	send(B, recogniser, @image_recogniser),
 
 	new(F2, figure),		% elevate it from the background
@@ -168,3 +178,45 @@ show(P, [F|R], Dir) :-
 	show(P, R, Dir).
 show(P, [_|R], Dir) :-
 	show(P, R, Dir).
+
+
+		 /*******************************
+		 *	       UTIL		*
+		 *******************************/
+
+file_pattern_to_regex(Pattern, Regex) :-
+	atom_chars(Pattern, Chars),
+	phrase(file_regex(RegexChars0), Chars),
+	flatten(["^", RegexChars0, "$"], RegexChars),
+	atom_chars(Regex, RegexChars).
+
+file_regex([]) --> [].
+file_regex([".*"|T]) -->
+	"*", !,
+	file_regex(T).
+file_regex(["\."|T]) -->
+	".",
+	file_regex(T).
+file_regex(["."|T]) -->
+	"?", !,
+	file_regex(T).
+file_regex(["[",Set,"]"|T]) -->
+	"[", !,
+	charset(Set),
+	file_regex(T).
+file_regex([H|T]) -->
+	[H],
+	file_regex(T).
+
+charset([0']|T]) -->
+	"]", !,
+	charset2(T).
+charset([0'^,0']|T]) -->
+	"^]", !,
+	charset2(T).
+charset(Set) -->
+	charset2(Set).
+
+charset2([]) --> "]", !.
+charset2([H|T]) --> [H], charset2(T).
+	

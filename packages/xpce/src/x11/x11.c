@@ -35,13 +35,7 @@ ws_revision()
 
 
 status
-ws_expose_console()
-{ fail;
-}
- 
-
-status
-ws_iconify_console()
+ws_show_console(Name how)
 { fail;
 }
  

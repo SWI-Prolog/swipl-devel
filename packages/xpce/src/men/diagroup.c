@@ -353,11 +353,11 @@ RedrawAreaDialogGroup(DialogGroup g, Area a)
       if ( gr->displayed == ON && overlapArea(a, gr->area) )
 	RedrawArea(gr, a);
     }
-    d_clip_done();	     
-    
+
     r_offset(-ox, -oy);
     assign(a, x, ax);
     assign(a, y, ay);
+    d_clip_done();	     
   }
 
   return RedrawAreaGraphical(g, a);

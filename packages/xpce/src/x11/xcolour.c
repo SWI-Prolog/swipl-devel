@@ -73,6 +73,8 @@ ws_create_colour(Colour c, DisplayObj d)
       assign(c, green, toInt(exact.green));
       assign(c, blue,  toInt(exact.blue));
 
+      errorPce(c, NAME_replacedColour);
+
       return registerXrefObject(c, d, (XtPointer) color);
     }
   }

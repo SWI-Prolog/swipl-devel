@@ -2022,7 +2022,7 @@ getSuperClassNameClass(Class cl)
 { if ( notNil(cl->super_class) )
     answer(cl->super_class->name);
 
-  answer((Name) NIL);
+  fail;
 }
 
 #ifndef O_RUNTIME

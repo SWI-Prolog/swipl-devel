@@ -132,7 +132,6 @@ status		ws_on_clipboard_metafile(WinMF mf, Name type);
 WinMF		CtoWinMetafile(HENHMETAFILE hmf);
 COLORREF	cref_colour(Colour c);
 COLORREF	ws_3d_grey_rgb();
-Colour		ws_3d_grey();
 HPALETTE	window_palette(PceWindow sw);
 HPALETTE	frame_palette(FrameObj fr);
 
@@ -167,6 +166,16 @@ will also check the return value of various of the graphical calls.
 /*#define DEBUG_GRAPHICS 1*/
 
 #ifdef DEBUG_GRAPHICS
+
+#ifndef NAME_msObjects
+#define NAME_msObjects CtoName("ms_objects")
+#endif
+#ifndef NAME_solidBrush
+#define NAME_solidBrush CtoName("solid_brush")
+#endif
+#ifndef NAME_patternBrush
+#define NAME_patternBrush CtoName("pattern_brush")
+#endif
 
 static int _dobj;
 static HCURSOR _hcur;
@@ -237,6 +246,10 @@ extern HashTable	MsObjectTable(void);
 	( _hpen = CreatePen(s, t, c), \
 	  appendHashTable(MsObjectTable(), toInt(_hpen), NAME_pen), \
 	  _hpen)
+#define ZExtCreatePen(s, w, b, n, p) \
+	( _hpen = ExtCreatePen(s, w, b, n, p), \
+	  appendHashTable(MsObjectTable(), toInt(_hpen), NAME_pen), \
+	  _hpen)
 
 #else /*DEBUG_GRAPHICS*/
 
@@ -251,5 +264,6 @@ extern HashTable	MsObjectTable(void);
 #define ZCreateRectRgn(x, y, w, h) CreateRectRgn(x, y, w, h) 
 #define ZCreateRectRgnIndirect(r) CreateRectRgnIndirect(r) 
 #define ZCreatePen(s, t, c) CreatePen(s, t, c) 
+#define ZExtCreatePen(s, w, b, n, p) ExtCreatePen(s, w, b, n, p)
 
 #endif /*DEBUG_GRAPHICS*/

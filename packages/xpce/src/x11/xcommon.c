@@ -347,7 +347,8 @@ findNearestColour(Display *display, Colormap map, int depth, Name vt,
       }
     }
 
-    if ( XQueryColors(display, map, colors, entries) )
+    XQueryColors(display, map, colors, entries);
+
     { XColor *cb = NULL;
       int badness = 1000000;
 

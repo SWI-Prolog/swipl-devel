@@ -51,7 +51,7 @@ ws_draw_sb_thumb(int x, int y, int w, int h)
 		 *	      BUTTON		*
 		 *******************************/
 
-Any
+Colour
 ws_3d_grey()
 { static Colour c;
 

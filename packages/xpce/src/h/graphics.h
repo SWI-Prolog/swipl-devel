@@ -896,6 +896,13 @@ struct colour_context
   int		lock;			/* lock nesting count */
 };
 
+typedef struct
+{ Int	x;
+  Int	y;
+  Int 	w;
+  Int	h;
+} device_draw_context, *DeviceDrawContext;
+
 
 		/********************************
 		*           OVERLAP		*

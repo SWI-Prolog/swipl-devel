@@ -159,10 +159,22 @@ considerLocStillEvent()
 
 PceWindow
 WindowOfLastEvent()
-{ if ( instanceOfObject(last_window, ClassWindow) )
+{ if ( !isProperObject(last_window) )
+  { Cprintf("Warning: last_window = %s\n", pp(last_window));
+    fail;
+  }
+
+  if ( instanceOfObject(last_window, ClassWindow) )
     return last_window;
 
   fail;
+}
+
+
+void
+unlinkedWindowEvent(Any sw)
+{ if ( sw == last_window )
+    last_window = NIL;
 }
 
 
@@ -430,7 +442,10 @@ get_xy_event_display(EventObj ev, DisplayObj d, int *rx, int *ry)
   int frx, fry;
 
   get_xy_event_window(ev, ev->window, ON, rx, ry);
+  DEBUG(NAME_position, Cprintf("Ev at %d,%d relative to %s\n",
+			       *rx, *ry, pp(ev->window)));
   frame_offset_window(ev->window, &fr, &frx, &fry);
+  DEBUG(NAME_position, Cprintf("Frame offset: %d,%d\n", frx, fry));
   *rx += frx + valInt(fr->area->x);
   *ry += fry + valInt(fr->area->y);
 }

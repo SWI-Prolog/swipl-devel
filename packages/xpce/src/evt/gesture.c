@@ -66,16 +66,33 @@ succeedGesture(Gesture g, EventObj ev)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Cancel a gesture. Typically deals with  click-gestures after the pointer
+has moved too far. The gesture  undoes   focus,  switches itself off and
+then reposts the initial event to see   if another gesture wants to have
+the event. The it posts the  event  on   which  is  was started. This is
+normally window<-current event. Hence the  hack there. See eventWindow()
+for further details.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 status
 cancelGesture(Gesture g, EventObj ev)
 { PceWindow sw = ev->window;
   EventObj fe = sw->focus_event;
+  EventObj oev;
 
   addCodeReference(fe);
   assign(g, active, OFF);
   send(sw, NAME_focus, NIL, 0);
   send(sw, NAME_event, fe, 0);
+
+  addCodeReference(ev);
+  oev = sw->current_event;
+  assign(sw, current_event, NIL);
   send(sw, NAME_event, ev, 0);
+  assign(sw, current_event, oev);
+  delCodeReference(ev);
+
   assign(g, active, ON);
   delCodeReference(fe);
   freeableObj(fe);

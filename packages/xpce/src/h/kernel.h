@@ -425,9 +425,17 @@ extern struct name builtin_names[];	/* object-array of built-in's */
 		*         OBJECT HEADER		*
 		********************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+[q]assign(obj, slot, value)
+    assign() assigns a slot a value, qassign() does the same, but bypasses
+    the object management system.  It should be used in very time-critical
+    code where the value is constant (Int, Name, Constant).  Nowhere else!
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 #define assign(o, s, v)	assignField((Instance) (o), \
 				    (Any *) &((o)->s), \
 				    (Any) (v))
+#define qassign(o, s, v) ((o)->s = (v))
 
 #define makeFlag(n)		(1L << ((n) - 1))
 #define setFlag(obj, mask)	(((Instance)(obj))->flags |= (mask))

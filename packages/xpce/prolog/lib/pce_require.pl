@@ -35,12 +35,12 @@ target_prolog(common).			% Common between QP 3.2 and SICStus 3
 		 *	     BUILT-INS		*
 		 *******************************/
 
-:- multifile
-	built_in/1.
+:- use_module(library('xref/common')).	% Common built-in's
 
-built_in(require(_)).			% from PCE compatibility
-built_in(discontiguous(_)).		% directive
-:- consult('xref/common').		% Common built-in's
+system_predicate(require(_)).
+system_predicate(discontiguous(_)).
+system_predicate(Head) :-
+	built_in(Head).
 
 
 		/********************************
@@ -95,7 +95,7 @@ collect(File) :-
 req_expand((:- require(X)), (:- require(X))) :- !.
 req_expand(Term, _) :-
 	requires_library(Term, Lib),
-	user:ensure_loaded(Lib),
+	ensure_loaded(user:Lib),
 	fail.
 req_expand(Term, T) :-
 	expand_term(Term, Expanded),
@@ -236,7 +236,7 @@ process_use_module(library(pce)) :- !,	% bit special
 	file_public_list(library(pce), Public),
 	forall(member(Name/Arity, Public),
 	       (   functor(Term, Name, Arity),
-		   \+ built_in(Term),
+		   \+ system_predicate(Term),
 		   \+ Term = pce_error(_) % hack!?
 	       ->  assert_defined(Term)
 	       ;   true
@@ -300,14 +300,14 @@ assert_current_require_declaration([Name/Arity|Rest]) :-
 	assert_current_require_declaration(Rest).
 				   
 check_system_predicate(Head) :-
-	built_in(Head), !,
+	system_predicate(Head), !,
 	functor(Head, Name, Arity),
 	target_prolog(Prolog),
 	source_warning('Redefined ~w system predicate: ~w/~d',
 		       [Prolog, Name, Arity]).
 pce_ifhostproperty(prolog(swi),
 (check_system_predicate(Head) :-
-	predicate_property(system:Head, built_in), !,
+	predicate_property(system:Head, system_predicate), !,
 	functor(Head, Name, Arity),
 	Prolog = 'SWI-Prolog',
 	source_warning('Redefined ~w system predicate: ~w/~d',
@@ -321,7 +321,7 @@ check_system_predicate(_).
 undefined(Head) :-
 	defined(Head), !, fail.
 undefined(Head) :-
-	built_in(Head), !, fail.
+	system_predicate(Head), !, fail.
 undefined(_).
 
 report :-

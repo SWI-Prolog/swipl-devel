@@ -231,6 +231,8 @@ status
 makeClassDictItem(Class class)
 { declareClass(class, &dictItem_decls);
   delegateClass(class, NAME_object);
+  saveStyleVariableClass(class, NAME_dict, NAME_nil);
+  cloneStyleVariableClass(class, NAME_dict, NAME_nil);
 
   succeed;
 }

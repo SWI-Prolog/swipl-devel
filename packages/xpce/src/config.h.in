@@ -135,6 +135,9 @@
 /* Define if you have the getpid function.  */
 #undef HAVE_GETPID
 
+/* Define if you have the getpwnam function.  */
+#undef HAVE_GETPWNAM
+
 /* Define if you have the gettimeofday function.  */
 #undef HAVE_GETTIMEOFDAY
 

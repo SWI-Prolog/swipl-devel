@@ -128,7 +128,7 @@ getReplacementColourPixmap(PixmapObj pm)
   } else
     c = BLACK_COLOUR;
     
-  errorPce(pm, NAME_replacedColour, c);
+  errorPce(pm, NAME_replacedByColour, c);
   attributeObject(pm, NAME_replacementColour, c);
 
   answer(c);

@@ -31,8 +31,8 @@ initialiseFigure(Figure f)
 		*             REDRAW		*
 		********************************/
 
-static status
-RedrawAreaFigure(Figure f, Area area)
+status
+RedrawBoxFigure(Figure f, Area area)
 { if ( f->pen != ZERO || notNil(f->background) || notNil(f->elevation) )
   { int x, y, w, h;
 
@@ -49,6 +49,14 @@ RedrawAreaFigure(Figure f, Area area)
 	r_box(x, y, w, h, valInt(f->radius), f->background);
     }
   }
+
+  succeed;
+}
+
+
+status
+RedrawAreaFigure(Figure f, Area area)
+{ RedrawBoxFigure(f, area);
   
   return RedrawAreaDevice((Device) f, area);
 }

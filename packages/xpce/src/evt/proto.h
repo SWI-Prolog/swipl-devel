@@ -8,6 +8,7 @@ status		makeClassConnectGesture(Class class);
 /* evt/event.c */
 void		considerLocStillEvent(void);
 PceWindow	WindowOfLastEvent(void);
+void		unlinkedWindowEvent(Any sw);
 ulong		LastEventTime(void);
 void		setLastEventTime(ulong time);
 Int		getTimeEvent(EventObj ev, EventObj ev2);

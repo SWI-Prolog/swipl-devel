@@ -18,7 +18,7 @@ initialiseLabel(Label lb, Name name, Any selection, FontObj font)
 { if ( isDefault(name) )
     name = NAME_reporter;
   if ( isDefault(selection) )	
-    selection = CtoName("");
+    selection = NAME_;
 
   createDialogItem(lb, name);
 

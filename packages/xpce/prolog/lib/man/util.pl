@@ -291,7 +291,7 @@ apropos_class_attribute(Class, Att, _Fields, @nil, Matches) :- !,
 	get(Class, Att, Chain),
 	send(Matches, merge, Chain).
 apropos_class_attribute(Class, Att, Fields, Regex, Matches) :-
-	get(Class, Att, Chain),
+	get(Class, Att, Chain), !,
 	pce_catch_error(argument_type,
 			send(Chain, for_all,
 			     and(assign(new(Candidate, var), @arg1),
@@ -299,6 +299,7 @@ apropos_class_attribute(Class, Att, Fields, Regex, Matches) :-
 				      message(Regex, search,
 					      Candidate ? @arg1)),
 				    message(Matches, append, Candidate))))).
+apropos_class_attribute(_, _, _, _, _).
 
 %	match_apropos(+Object, +Fields, +Regex)
 %	Test if Object contains Regex in one of the specified fields

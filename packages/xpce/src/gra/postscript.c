@@ -947,10 +947,17 @@ drawPostScriptText(TextObj t)
 
   if ( isDefault(t->background) )
     ps_output("~x ~y ~w ~h clear\n", t, t, t, t);
-  
-  if ( notDefault(t->colour) )
-    ps_output("gsave ~C", t);
 
+  ps_output("gsave ~C", t);
+
+  if ( t->pen != ZERO || notNil(t->background) )
+  { ps_output("~T ~p ~x ~y ~w ~h 0 boxpath\n",
+	      t, t, t, t, t, t);
+    fill(t, NAME_background);
+    if ( t->pen != ZERO )
+      ps_output("draw\n");
+  }
+  
   if ( s[0].size > 0 )			/* i.e. non-empty */
   { int b = valInt(t->border);
 
@@ -967,13 +974,7 @@ drawPostScriptText(TextObj t)
       ps_string(s, t->font, x+b, y+b, w, t->format);
   }
 
-  if ( t->pen != ZERO )
-    ps_output("gsave ~T ~p ~x ~y ~w ~h 0 boxpath draw grestore\n",
-	      t, t, t, t, t, t);
-
-  if ( notDefault(t->colour) )
-    ps_output("grestore\n", t);
-  
+  ps_output("grestore\n", t);
 
   succeed;
 }

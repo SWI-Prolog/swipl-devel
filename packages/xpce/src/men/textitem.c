@@ -255,7 +255,7 @@ Browser
 CompletionBrowser()
 { if ( !Completer )
   { KeyBinding kb;
-    Any client;
+    Any client, lb;
     Any quit;
 
     Completer = globalObject(NAME_completer, ClassBrowser, 0);
@@ -279,6 +279,21 @@ CompletionBrowser()
     functionKeyBinding(kb, CtoName("\\C-g"), quit);
     functionKeyBinding(kb, CtoName("\\e"),   quit);
     functionKeyBinding(kb, CtoName("SPC"),   NAME_extendPrefix);
+
+    if ( (lb = get(Completer, NAME_listBrowser, 0)) )
+    { send(lb, NAME_recogniser,
+	   newObject(ClassHandler, NAME_locMove,
+		     newObject(ClassMessage, lb, NAME_selection,
+			       newObject(ClassObtain, lb, NAME_dictItem,
+					 Arg(1), 0), 0), 0), 0);
+      send(Completer, NAME_recogniser,
+	   newObject(ClassHandler, NAME_msLeftDown,
+		     newObject(ClassIf,
+			       newObject(ClassObtain, lb, NAME_dictItem,
+					 EVENT, 0),
+			       newObject(ClassMessage, Arg(1), NAME_post, lb, 0),
+			       quit, 0), 0), 0);
+    }
   }
 
   return Completer;
@@ -866,7 +881,7 @@ restoreTextItem(TextItem ti)
 { Any val;
 
   TRY(val = getDefaultTextItem(ti));
-  return selectionTextItem(ti, val);
+  return send(ti, NAME_selection, val, 0);
 }
 
 
@@ -963,12 +978,12 @@ static status
 clearTextItem(TextItem ti)
 { int modified = (getSizeCharArray(ti->value_text->string) != ZERO);
   
-  deleteString(ti->print_name, ZERO, DEFAULT); /* clear */
-  assign(ti, selection, NIL);
+  stringText(ti->value_text, (CharArray) NAME_);
   if ( modified && hasSendMethodObject(ti->device, NAME_modifiedItem) )
     send(ti->device, NAME_modifiedItem, ti, ON, 0);
   
-  return resetTextItem(ti);
+  quitCompleterDialogItem(ti);
+  return requestComputeGraphical(ti, DEFAULT);
 }
 
 
@@ -1036,6 +1051,7 @@ editableTextItem(TextItem ti, Bool val)
   { assign(ti, editable, val);
     if ( val == OFF && notNil(ti->device) )
       advanceDevice((Device) ti->device, (Graphical) ti);
+    changedDialogItem(ti);
   }
 
   succeed;

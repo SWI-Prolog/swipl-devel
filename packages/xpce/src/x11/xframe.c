@@ -252,6 +252,9 @@ ws_raise_frame(FrameObj fr)
   { XMapWindow(r->display_xref, XtWindow(w));
     XRaiseWindow(r->display_xref, XtWindow(w));
   }
+
+  send(fr, NAME_exposed, 0);		/* doesn't appear to generate a */
+					/* CirculateNotify event */
 }
 
 

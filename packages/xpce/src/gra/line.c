@@ -198,18 +198,88 @@ pointsLine(Line ln, Int sx, Int sy, Int ex, Int ey)
 
 
 static status
+resizeLine(Line ln, Real xfactor, Real yfactor, Point origin)
+{ float xf, yf;
+  int ox = valInt(ln->area->x);
+  int oy = valInt(ln->area->y);
+
+  init_resize_graphical(ln, xfactor, yfactor, origin, &xf, &yf, &ox, &oy);
+  if ( xf != 1.0 || yf != 1.0 )
+  { int x1, y1, x2, y2;
+    int x, y, w, h;
+    Area a = ln->area;
+
+    area_points(valInt(a->x), valInt(a->y), valInt(a->w), valInt(a->h));
+    x1 = ox + rfloat((float) (x1-ox) * xf);
+    x2 = ox + rfloat((float) (x2-ox) * xf);
+    y1 = oy + rfloat((float) (y1-oy) * yf);
+    y2 = oy + rfloat((float) (y2-oy) * yf);
+    
+    points_area(x1, y1, x2, y2);
+    setGraphical(ln, toInt(x), toInt(y), toInt(w), toInt(h));
+  }
+  
+  succeed;
+}
+
+
+/* (JW)	Calculate the distance between the infinite extended line through
+	(x1, y1) and (x2, y2) to the point (px, py).
+ */
+
+static int
+distanceLineToPoint(int x1, int y1, int x2, int y2, int px, int py)
+{ float a;
+
+  if (y1 == y2)
+    return abs(y1 - py);
+  if (x1 == x2)
+    return abs(x1 - px);
+
+  a = ((float)(y2 - y1)) / ((float)(x2 - x1));
+  return abs(rfloat((((float)(px - x1)) * a + ((float)(y1 - py))) /
+					 sqrt(1.0 + a*a)));
+}
+
+
+static status
 inEventAreaLine(Line ln, Int x, Int y)
 { Area a = ln->area;
   int x1, y1, x2, y2;
   int d;
+  static evtol = -1;
+
+  if ( evtol < 0 )
+  { Int v = getResourceValueObject(ln, NAME_eventTolerance);
+    evtol = (v ? valInt(v) : 5);
+  }
 
   area_points(valInt(a->x), valInt(a->y), valInt(a->w), valInt(a->h));
   d = distanceLineToPoint(x1, y1, x2, y2, valInt(x), valInt(y));
-  if ( d < 5 )
+  if ( d < evtol )
     succeed;
   
   fail;
 }
+
+
+static Int
+getDistanceLine(Line ln, Any obj)
+{ if ( instanceOfObject(obj, ClassPoint) )
+  { Point pt = obj;
+    Area a = ln->area;
+    int x1, y1, x2, y2;
+
+    area_points(valInt(a->x), valInt(a->y), valInt(a->w), valInt(a->h));
+    answer(toInt(distanceLineToPoint(x1, y1, x2, y2,
+				     valInt(pt->x), valInt(pt->y))));
+  } else
+  { Graphical gr2 = obj;
+
+    answer(getDistanceArea(ln->area, gr2->area));
+  }
+}
+
 
 
 static Int
@@ -225,9 +295,6 @@ getLengthLine(Line ln)
 
 static void
 parms_line(Line ln, int *a, float *b)			/* y = a + bx */
-        
-       
-         
 { Area area = ln->area;
   int x1, y1, x2, y2;
 
@@ -322,6 +389,8 @@ static char *T_points[] =
         { "start_x=[int]", "start_y=[int]", "end_x=[int]", "end_y=[int]" };
 static char *T_initialise[] =
         { "start_x=[int]", "start_y=[int]", "end_x=[int]", "end_y=[int]", "arrows=[{none,first,second,both}]" };
+static char *T_resize[] =
+	{ "factor_x=real", "factor_y=[real]", "origin=[point]" };
 
 /* Instance Variables */
 
@@ -358,7 +427,9 @@ static senddecl send_line[] =
   SM(NAME_startX, 1, "int", startXLine,
      NAME_tip, "Set X of start-point"),
   SM(NAME_startY, 1, "int", startYLine,
-     NAME_tip, "Set Y of start-point")
+     NAME_tip, "Set Y of start-point"),
+  SM(NAME_resize, 3, T_resize, resizeLine,
+     NAME_area, "Resize line with specified factor")
 };
 
 /* Get Methods */
@@ -370,6 +441,8 @@ static getdecl get_line[] =
      NAME_calculate, "Intersection between both infinitely extended lines"),
   GM(NAME_length, 0, "int", NULL, getLengthLine,
      NAME_calculate, "Distance between start and end-points"),
+  GM(NAME_distance, 1, "int", "graphical|point", getDistanceLine,
+     NAME_calculate, "Distance between areas or to point"),
   GM(NAME_end, 0, "point", NULL, getEndLine,
      NAME_tip, "New point representing end-point"),
   GM(NAME_endX, 0, "int", NULL, getEndXLine,

@@ -104,6 +104,82 @@ requestComputeTree(Tree t)
 { return requestComputeGraphical(t, DEFAULT);
 }
 
+		 /*******************************
+		 *	      REPAINT		*
+		 *******************************/
+
+static void
+RedrawAreaNode(Node node)
+{ Graphical img = node->image;
+  Tree t = node->tree;
+  int lg = valInt(t->levelGap)/2;
+  Node lastnode;
+
+  if ( node != t->displayRoot )		/* not the root */
+  { int ly = valInt(img->area->y) + valInt(img->area->h)/2;
+    int lx = valInt(img->area->x);
+
+    r_line(lx-lg, ly, lx, ly);		/* line to parent */
+  }
+
+  if ( notNil(node->sons) &&
+       (lastnode = getTailChain(node->sons)) )	/* I have sons */
+  { int fy	   = valInt(getBottomSideGraphical(img));
+    Graphical last = lastnode->image;
+    int	ty	   = valInt(last->area->y) + valInt(last->area->h)/2;
+    int lx	   = valInt(img->area->x) + lg;
+    Cell cell;
+
+    r_line(lx, fy, lx, ty);
+    
+    for_cell(cell, node->sons)
+      RedrawAreaNode(cell->value);
+  }
+}
+
+
+static status
+RedrawAreaTree(Tree t, Area area)
+{ device_draw_context ctx;
+
+  RedrawBoxFigure((Figure)t, area);	/* surrounding box and background */
+
+  if ( EnterRedrawAreaDevice((Device)t, area, &ctx) )
+  { Cell cell;
+
+					/* list-style connection lines */
+    if ( t->direction == NAME_list && notNil(t->displayRoot) )
+    { Line proto = t->link->line;
+
+      if ( proto->pen != ZERO )
+      { Colour old = NULL;
+
+	r_thickness(valInt(proto->pen));
+	r_dash(proto->texture);
+	if ( notDefault(proto->colour) )
+	  old = r_colour(proto->colour);
+    
+	RedrawAreaNode(t->displayRoot);
+	if ( old )
+	  r_colour(old);
+      }
+    }
+
+					/* from class device (the nodes) */
+    for_cell(cell, t->graphicals)
+    { Graphical gr = cell->value;
+
+      if ( gr->displayed == ON && overlapArea(area, gr->area) )
+	RedrawArea(gr, area);
+    }
+
+    ExitRedrawAreaDevice((Device)t, area, &ctx);
+  }
+
+  return RedrawAreaGraphical(t, area);	/* selection and orther generic stuff*/
+}
+
+
 
 		/********************************
 		*             EVENTS		*
@@ -484,6 +560,7 @@ status
 makeClassTree(Class class)
 { declareClass(class, &tree_decls);
   delegateClass(class, NAME_root);
+  setRedrawFunctionClass(class, RedrawAreaTree);
 
   succeed;
 }

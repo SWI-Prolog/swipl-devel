@@ -33,12 +33,32 @@ initialiseTab(Tab t, Name name)
 		 *******************************/
 
 static status
+computeLabelTab(Tab t)
+{ if ( notNil(t->label) && t->label != NAME_ && notNil(t->label_size) )
+  { int w, h;
+    Size minsize = getResourceValueObject(t, NAME_labelSize);
+    int ex = 2*valInt(getExFont(t->label_font));
+
+    str_size(&t->label->data, t->label_font, &w, &h);
+    w += ex;
+    w = max(w, valInt(minsize->w));
+    h = max(h, valInt(minsize->h));
+
+    setSize(t->label_size, toInt(w), toInt(h));
+  }
+
+  succeed;
+}
+
+
+static status
 computeTab(Tab t)
 { if ( notNil(t->request_compute) )
   { int x, y, w, h;
     Area a = t->area;
 
     obtainResourcesObject(t);
+    computeLabelTab(t);
     computeGraphicalsDevice((Device) t);
     
     if ( isDefault(t->size) )		/* implicit size */

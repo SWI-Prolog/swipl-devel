@@ -87,7 +87,10 @@ uncreateWindow(PceWindow sw)
 { DEBUG(NAME_window, Cprintf("uncreateWindow(%s)\n", pp(sw)));
 
   deleteChain(ChangedWindows, sw);
-  assign(sw, displayed, OFF);
+  
+  if ( isNil(sw->device) ||
+       instanceOfObject(sw->device, ClassWindowDecorator) )
+    assign(sw, displayed, OFF);
   
   ws_uncreate_window(sw);
 
@@ -140,6 +143,7 @@ destroyWindow(PceWindow sw)
 status
 unlinkWindow(PceWindow sw)
 { assign(sw, displayed, OFF);		/* avoid updates */
+  unlinkedWindowEvent(sw);
   uncreateWindow(sw);
   unlink_changes_data_window(sw);
   unlinkDevice((Device) sw);
@@ -493,6 +497,9 @@ frame_offset_window(Any obj, FrameObj *fr, int *X, int *Y)
     y += valInt(w->area->y);
   
     *fr = w->frame, *X = x, *Y = y;
+    DEBUG(NAME_position,
+	  Cprintf("frame_offset_window(%s) --> fr = %s, offset = %d,%d\n",
+		  pp(obj), pp(*fr), x, y));
   
     succeed;
   }
@@ -1120,7 +1127,22 @@ scrollWindow(PceWindow sw, Int x, Int y, Bool ax, Bool ay)
 #ifdef __WINDOWS__
     ws_scroll_window(sw, nx-ox, ny-oy);
 #else
+#if 1
+  { int x, y, w, h; 
+    int p = valInt(sw->pen);
+
+    compute_window(sw, &x, &y, &w, &h);
+    x -= valInt(sw->scroll_offset->x) + p;
+    y -= valInt(sw->scroll_offset->y) + p; 
+
+					/* should use block-move and only */
+					/* consider a small part changed */
+    changed_window(sw, x, y, w, h, TRUE);
+    addChain(ChangedWindows, sw);
+  }
+#else
     redrawWindow(sw, DEFAULT);
+#endif
 #endif
   }
 

@@ -130,18 +130,20 @@ formatPcev(Pce pce, CharArray fmt, int argc, Any *argv)
 		 *******************************/
 
 static status
-exposeConsolePce(Pce pce)
-{ ws_expose_console();
+showConsolePce(Pce pce, Name how)
+{ return ws_show_console(how);
+}
 
-  succeed;
+
+static status
+exposeConsolePce(Pce pce)
+{ return showConsolePce(pce, NAME_open);
 }
 
 
 static status
 iconifyConsolePce(Pce pce)
-{ ws_iconify_console();
-
-  succeed;
+{ return showConsolePce(pce, NAME_iconic);
 }
 
 
@@ -1252,6 +1254,8 @@ static senddecl send_pce[] =
      NAME_console, "Expose the PCE/host console window"),
   SM(NAME_iconifyConsole, 0, NULL, iconifyConsolePce,
      NAME_console, "Make PCE/host console window an icon"),
+  SM(NAME_showConsole, 1, "{open,iconic,hidden}", showConsolePce,
+     NAME_console, "Control visibility of the console window"),
   SM(NAME_fail, 0, NULL, failPce,
      NAME_control, "Simply fails"),
   SM(NAME_succeed, 0, NULL, succeedPce,

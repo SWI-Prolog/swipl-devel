@@ -89,6 +89,7 @@ Bool		toBool(Any obj);
 Name		toName(Any obj);
 Type		toType(Any obj);
 char *		pcePP(Any obj);
+char *		pcePP(Any obj);
 Any		expandFunction(Any obj);
 
 /* ker/csymbol.c */

@@ -15,6 +15,9 @@ forwards int	bestConnectionPoint(Device, Name, int, int,
 				    Graphical, Handle *, int *, int *);
 forwards int	relateConnection(Connection c, Graphical from, Graphical to);
 
+static int	distanceLineToPoint(int x1, int y1, int x2, int y2,
+				    int px, int py);
+
 static status
 initialiseConnection(Connection c, Graphical from, Graphical to,
 		     Link link, Name from_handle, Name to_handle)
@@ -481,33 +484,12 @@ makeClassConnection(Class class)
 
 
 
-/* (JW)	Calculate the distance between the infinite extended line through
-	(x1, y1) and (x2, y2) to the point (px, py).
- */
-#if 0
-static
-int
-distanceLineToPoint(x1, y1, x2, y2, px, py)
-int x1, y1, x2, y2, px, py;
-{ float a;
-
-  if (y1 == y2)
-    return abs(y1 - py);
-  if (x1 == x2)
-    return abs(x1 - px);
-
-  a = ((float)(y2 - y1)) / ((float)(x2 - x1));
-  return abs(rfloat((((float)(px - x1)) * a + ((float)(y1 - py))) /
-					 sqrt(1.0 + a*a)));
-}
-#endif
-
 #define STEP 20
 #define ENTRIES 200
 #define EPS ((float) (ENTRIES / STEP))
 #define EMS (ENTRIES * STEP)
 
-int					/* Must be more precise!!! TBD */
+static int
 distanceLineToPoint(int x1, int y1, int x2, int y2, int px, int py)
 { static int atable[ENTRIES+1];
   static int done = FALSE;

@@ -7,13 +7,13 @@
 # To change PWVERSION, also modify pwversion/1 in pce_qp.pl!
 
 MAKE=make
-SHELL=/bin/bash
+SHELL=@SHELL@
 BIN=sun4-5
 SO=so
 builddir=linux
 PCEMAJOR=4
 PCEMINOR=9
-PCEPATCH=1
+PCEPATCH=2
 
 PWVERSION=3.1
 QPC=qpc

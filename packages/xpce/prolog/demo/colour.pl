@@ -88,13 +88,18 @@ make_colour_browser(CB, DataBase) :-
 	(   send(F, open, read)
 	->  repeat,
 	    (	get(F, read_line, String)
-	    ->  get(String, scan, '%d%d%d%*[ 	]%[a-z0-9_ ]',
+	    ->  get(String, scan, '%d%d%d%*[ 	]%[a-zA-Z0-9_ ]',
 		    vector(R, G, B, Name)),
 		send(Name, translate, ' ', '_'),
-		send(CB, append,
-		     dict_item(Name,
-			       string('%s\t%d\t%d\t%d',
-				      Name, R, G, B))),
+		send(Name, downcase),
+		get(Name, value, Atom),
+		(   get(CB, member, Atom, _)
+		->  true
+		;   send(CB, append,
+			 dict_item(Name,
+				   string('%s\t%d\t%d\t%d',
+					  Name, R, G, B)))
+		),
 		fail
 	    ;	!,
 	        send(F, close)

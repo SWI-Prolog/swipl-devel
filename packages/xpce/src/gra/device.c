@@ -533,47 +533,74 @@ optimisations for later.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 status
-RedrawAreaDevice(Device dev, Area a)
-{ Cell cell;
-  Int ax = a->x, ay = a->y, aw = a->w, ah = a->h;
-  Point offset = dev->offset;
-  int ox = valInt(offset->x);
-  int oy = valInt(offset->y);
+EnterRedrawAreaDevice(Device dev, Area a, DeviceDrawContext ctx)
+{ if ( a->w != ZERO && a->h != ZERO )
+  { int ox = valInt(dev->offset->x);
+    int oy = valInt(dev->offset->y);
 
-  if ( aw == ZERO || ah == ZERO )
+    ctx->x = a->x;
+    ctx->y = a->y;
+    ctx->w = a->w;
+    ctx->h = a->h;
+
+    qassign(a, x, toInt(valInt(a->x) - ox));
+    qassign(a, y, toInt(valInt(a->y) - oy));
+    r_offset(ox, oy);
+
+    if ( notNil(dev->clip_area) )
+    { if ( !intersectionArea(a, dev->clip_area) )
+      { qassign(a, x, ctx->x);
+	qassign(a, y, ctx->y);
+	qassign(a, w, ctx->w);
+	qassign(a, h, ctx->h);
+
+	fail;
+      }
+
+      clipGraphical((Graphical)dev, a);
+    }
+
     succeed;
-
-  DEBUG(NAME_redraw, Cprintf("RedrawAreaDevice(%s, %ld %ld %ld %ld)\n",
-			     pp(dev), 
-			     valInt(a->x), valInt(a->y),
-			     valInt(a->w), valInt(a->h)));
-
-  assign(a, x, toInt(valInt(a->x) - ox));
-  assign(a, y, toInt(valInt(a->y) - oy));
-  r_offset(ox, oy);
-
-  if ( notNil(dev->clip_area) )
-  { if ( !intersectionArea(a, dev->clip_area) )
-      succeed;
-
-    clipGraphical((Graphical)dev, a);
   }
 
-  for_cell(cell, dev->graphicals)
-  { Graphical gr = cell->value;
+  fail;
+}
 
-    if ( gr->displayed == ON && overlapArea(a, gr->area) )
-      RedrawArea(gr, a);
-  }
+
+void
+ExitRedrawAreaDevice(Device dev, Area a, DeviceDrawContext ctx)
+{ int ox = valInt(dev->offset->x);
+  int oy = valInt(dev->offset->y);
 
   if ( notNil(dev->clip_area) )
     unclipGraphical((Graphical)dev);
 
   r_offset(-ox, -oy);
-  assign(a, x, ax);
-  assign(a, y, ay);
-  assign(a, w, aw);			/* why? should not change! */
-  assign(a, h, ah);
+
+  qassign(a, x, ctx->x);
+  qassign(a, y, ctx->y);
+  qassign(a, w, ctx->w);
+  qassign(a, h, ctx->h);
+}
+
+
+
+status
+RedrawAreaDevice(Device dev, Area a)
+{ device_draw_context ctx;
+
+  if ( EnterRedrawAreaDevice(dev, a, &ctx) )
+  { Cell cell;
+
+    for_cell(cell, dev->graphicals)
+    { Graphical gr = cell->value;
+
+      if ( gr->displayed == ON && overlapArea(a, gr->area) )
+	RedrawArea(gr, a);
+    }
+
+    ExitRedrawAreaDevice(dev, a, &ctx);
+  }
 
   return RedrawAreaGraphical(dev, a);
 }
@@ -619,7 +646,7 @@ status
 displayDevice(Any Dev, Any Gr, Point pos)
 { Device dev = Dev;
   Graphical gr = Gr;
-  
+    
   if ( notDefault(pos) )
   { Variable var;
 
@@ -1210,19 +1237,19 @@ layoutDialogDevice(Device d, Size gap, Size bb, Size border)
 	{ int w;
 
 	  if ( get(gr, NAME_autoLabelAlign, 0) == ON )
-	  { if ( (w = valInt(get(gr, NAME_labelWidth, 0))) > lw )
+	  { if ( (w = valInt(get(gr, NAME_labelWidth, 0))) != lw )
 	    { if ( lw >= 0 )
 		chl++;
-	      lw = w;
+	      lw = max(w, lw);
 	    }
 	    align_flags[y] |= AUTO_ALIGN_LABEL;
 	  }
 
 	  if ( get(gr, NAME_autoValueAlign, 0) == ON )
-	  { if ( (w = valInt(get(gr, NAME_valueWidth, 0))) > vw )
+	  { if ( (w = valInt(get(gr, NAME_valueWidth, 0))) != vw )
 	    { if ( vw >= 0 )
 		chv++;
-	      vw = w;
+	      vw = max(w, vw);
 	    }
 	    align_flags[y] |= AUTO_ALIGN_VALUE;
 	  }

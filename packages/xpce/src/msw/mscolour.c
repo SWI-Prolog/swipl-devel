@@ -38,11 +38,12 @@ LoadColourNames()
 	    for(e = s + strlen(s); e > s && e[-1] <= ' '; e--)
 	      ;
 	    *e = EOS;
-	    if ( isupper(*s) )
-	      *s = tolower(*s);
 	    for(e=s; *e; e++)
-	      if ( *e == ' ' )
+	    { if ( isupper(*e) )
+		*e = tolower(*e);
+	      else if ( *e == ' ' )
 		*e = '_';
+	    }
 	    cname = CtoKeyword(s);
 	    rgb = RGB(r, g, b);
 	    appendHashTable(ColourNames, cname, toInt(rgb));

@@ -306,6 +306,10 @@ static struct error_def errors[] =
     "%N: Cannot become selection owner" },
   { NAME_noSelectionType,	ET_WARNING,
     "%N: Selectiontype %s is not supported" },
+  { NAME_replacedColour,	EF_REPORT|ET_IGNORED,
+    "%N: Replaced by close value" },
+  { NAME_replacedByColour,	ET_WARNING,
+    "%O: replaced by colour(%N)" },
 
 					/* Fonts */
   { NAME_noDefaultFont,		ET_FATAL,
@@ -318,10 +322,6 @@ static struct error_def errors[] =
     "%N: No fonts in font-family %s" },
   { NAME_badFontAlias, ET_WARNING,
     "%O: Bad font alias %N --> %O" },
-
-					/* COLOURS */
-  { NAME_replacedColour,	ET_WARNING,
-    "%O: replaced by colour(%N)" },
 
 					/* X-errors */
   { NAME_xOpen,			ET_FATAL,

@@ -781,15 +781,38 @@ r_update_pen()
 	  style = PS_SOLID;
       } else if ( context.texture == NAME_dotted )
       { LOGBRUSH lbrush;
+#define DOT_USING_ALTERNATE 0
+#define DOT_USING_MASK      1
+#define DOT_USING_PSDOT	    2
+	static int how = DOT_USING_ALTERNATE;
 
-	lbrush.lbStyle = BS_SOLID;
-	lbrush.lbColor = context.rgb;
-	lbrush.lbHatch = 0L;
+	switch(how)
+	{ case DOT_USING_ALTERNATE:
+	    lbrush.lbStyle = BS_SOLID;
+	    lbrush.lbColor = context.rgb;
+	    lbrush.lbHatch = 0L;
 
-	context.hpen = ExtCreatePen(PS_COSMETIC|PS_ALTERNATE, 1,
-				    &lbrush, 0, NULL);
-	context.stockpen = FALSE;
-	goto out;
+	    context.hpen = ZExtCreatePen(PS_COSMETIC|PS_ALTERNATE, 1,
+					 &lbrush, 0, NULL);
+	    if ( context.hpen )
+	    { context.stockpen = FALSE;
+	      goto out;
+	    }
+	    how++;
+	  case DOT_USING_MASK:
+	    lbrush.lbStyle = BS_PATTERN;
+	    lbrush.lbColor = context.rgb;
+	    lbrush.lbHatch = (LONG)getXrefObject(GREY50_IMAGE,
+						 context.display);
+	    context.hpen = ZExtCreatePen(PS_GEOMETRIC, 1, &lbrush, 0, NULL);
+	    if ( context.hpen )
+	    { context.stockpen = FALSE;
+	      goto out;
+	    }
+	    how++;
+	   default:
+	     style = PS_DOT;
+	}
       } else if ( context.texture == NAME_dashed )
 	style = PS_DOT;
       else if ( context.texture == NAME_dashdot )
@@ -873,10 +896,11 @@ lookup_brush(Any fill)
   brush_cache_element *e;
 
   for(i=0, e=brush_cache; i<BRUSH_CACHE_SIZE; i++, e++)
-    if ( e->object == fill )
+  { if ( e->object == fill )
     { e->times++;
       return e->brush;
     }
+  }
 
   return (HBRUSH)0;
 }
@@ -886,6 +910,8 @@ static void
 empty_brush_cache()
 { int i;
   brush_cache_element *e;
+
+  DEBUG(NAME_fill, Cprintf("empty_brush_cache()\n"));
 
   for(i=0, e=brush_cache; i<BRUSH_CACHE_SIZE; i++, e++)
   { if ( e->brush )
@@ -905,11 +931,14 @@ add_brush(Any fill, HBRUSH brush)
   int leastusage;
   brush_cache_element *leastused;
 
+  DEBUG(NAME_fill, Cprintf("add_brush(%s, 0x%x) ... ", pp(fill), brush));
+
   for(i=0, e=brush_cache; i<BRUSH_CACHE_SIZE; i++, e++)
   { if ( !e->object )
     { e->object = fill;
       e->brush  = brush;
       e->times  = 1;
+      DEBUG(NAME_fill, Cprintf("ok\n"));
       return;
     }
   }
@@ -926,11 +955,13 @@ add_brush(Any fill, HBRUSH brush)
   }
 
   assert(leastused);
+  DEBUG(NAME_fill, Cprintf("replaced %s --> 0x%x\n",
+			   pp(leastused->object), leastused->brush));
 
   ZDeleteObject(leastused->brush);
   leastused->object = fill;
   leastused->brush  = brush;
-  leastused->times  = 0;
+  leastused->times  = 1;
 }
 
 
@@ -985,7 +1016,6 @@ r_fillbrush(Any fill)
 	hbrush = ZCreateSolidBrush(rgb);
       }
 
-      DEBUG(NAME_fill, Cprintf("add_brush(%s, 0x%x)\n", pp(fill), hbrush));
       add_brush(fill, hbrush);
     }
   }
@@ -1003,7 +1033,6 @@ r_fillpattern(Any fill, Name which)			/* colour or image */
   if ( context.fill_pattern != fill )
   { HBRUSH new, old;
     
-    DEBUG(NAME_fill, Cprintf("Selecting fill-pattern %s\n", pp(fill)));
     new = r_fillbrush(fill);
     context.hbrush = new;
     old = ZSelectObject(context.hdc, new);
@@ -2598,6 +2627,25 @@ str_draw_text_lines(int acc, FontObj font,
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Avoid fixed_colours and speedup a little.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static Any
+r_text_colour(Any colour)
+{ Any old = context.colour;
+  
+  if ( old != colour )
+  { context.modified_pen = TRUE;	/* for the line! */
+    context.colour       = colour;
+    context.rgb		 = cref_colour(colour);
+    SetTextColor(context.hdc, context.rgb);
+  }
+
+  return old;
+}
+
+
 void
 str_label(String s, int acc, FontObj font, int x, int y, int w, int h,
 	  Name hadjust, Name vadjust, int flags)
@@ -2615,12 +2663,12 @@ str_label(String s, int acc, FontObj font, int x, int y, int w, int h,
   oalign = SetTextAlign(context.hdc, TA_BASELINE|TA_LEFT|TA_NOUPDATECP);
 
   if ( flags & LABEL_INACTIVE )
-  { Any old = r_colour(WHITE_COLOUR);
+  { Any old = r_text_colour(WHITE_COLOUR);
 
     str_draw_text_lines(acc, font, nlines, lines, 1, 1);
-    r_colour(ws_3d_grey());
+    r_text_colour(ws_3d_grey());
     str_draw_text_lines(acc, font, nlines, lines, 0, 0);
-    r_colour(old);
+    r_text_colour(old);
   } else
     str_draw_text_lines(acc, font, nlines, lines, 0, 0);
 
