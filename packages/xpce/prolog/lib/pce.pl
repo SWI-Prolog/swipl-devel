@@ -73,6 +73,9 @@ reexports the content of these files.
 
 	    pce_catch_error/2,		% pce_error
 	    pce_open/3,
+	    pce_dispatch/1,		% +Options
+	    pce_end_dispatch/0,		% break dispatch loop
+	    pce_call/1,			% :Goal
 
 	    pce_welcome/0
 	  ]).

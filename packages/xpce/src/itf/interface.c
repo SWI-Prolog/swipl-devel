@@ -592,7 +592,7 @@ pceDispatch(int fd, int time)
 
       FD_ZERO(&readfds);
       FD_SET(fd, &readfds);
-      if ( select(32, &readfds, NULL, NULL, &timeout) > 0 )
+      if ( select(fd+1, &readfds, NULL, NULL, &timeout) > 0 )
 	return PCE_DISPATCH_INPUT;
       else
 	return PCE_DISPATCH_TIMEOUT;
@@ -600,7 +600,7 @@ pceDispatch(int fd, int time)
     { fd_set readfds;
       FD_ZERO(&readfds);
       FD_SET(fd, &readfds);
-      select(32, &readfds, NULL, NULL, NULL);
+      select(fd+1, &readfds, NULL, NULL, NULL);
       return PCE_DISPATCH_INPUT;
     }
 #endif /*HAVE_SELECT*/

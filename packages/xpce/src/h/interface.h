@@ -410,9 +410,13 @@ __pce_export int	pceInstanceOf(PceObject obj, PceObject class);
 #define PCE_DISPATCH_INPUT	(0)
 #define PCE_DISPATCH_TIMEOUT	(1)
 
+#ifndef _PCE_X11_INCLUDED
+#define XtAppContext void *
+#endif
+
 __pce_export int	pceDispatch(int fd, int msecs);
 __pce_export void	pceRedraw(int);
-/* XtAppContext pceXtAppContext(XtAppContext); */
+__pce_export XtAppContext pceXtAppContext(XtAppContext);
 
 
 		/********************************
