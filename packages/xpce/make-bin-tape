@@ -6,10 +6,12 @@ if [ "x$1" = "x-b" ]; then
 fi
 
 arch=$1
+RTSUFFIX=""
 version=`cat VERSION`
 dir=`pwd`
-binout=$dir/xpce-$version-bin.tgz
+binout=$dir/xpce$RTSUFFIX-$version-bin.tgz
 libout=$dir/xpce-$version-lib.tgz
+emulator="xpce$RTSUFFIX.base"
 compress="gzip"
 
 if [ ! -d $dir ]; then mkdir $dir; fi
@@ -18,18 +20,19 @@ for d in library boot include; do
     (cd pl; ln -s ../../pl/$d .)
 done
 
-if [ ! -r bin/xpce.base ]; then
-    ( cd bin; ln -s ../pl/src/xpce.base . )
+if [ ! -r bin/$emulator ]; then
+    ( cd bin; ln -s ../pl/src/$emulator . )
 fi
 
 cd ..
 rm -f xpce-$version
 ln -s xpce xpce-$version
 tar cvhf - \
-	xpce-$version/bin/xpce.base \
+	xpce-$version/bin/$emulator \
 	xpce-$version/bin/xpce-client \
 	xpce-$version/src/XPCE.a \
 	xpce-$version/pl/src/pl-crt0.o \
+	xpce-$version/install \
 	| $compress > $binout
 	
 if [ "$binonly" != "t" ]; then
@@ -37,7 +40,6 @@ if [ "$binonly" != "t" ]; then
 	xpce-$version/INSTALL xpce-$version/README.linux \
 	xpce-$version/licence \
 	xpce-$version/INFO xpce-$version/README \
-	xpce-$version/install \
 	xpce-$version/src/load.pl \
 	xpce-$version/src/xpce.pl \
 	xpce-$version/include \

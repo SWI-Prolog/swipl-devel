@@ -57,7 +57,7 @@ CMFLAGS=-funsigned-char -DHAVE_CONFIG_H
 # Paths for host-languages
 ################################################################
 
-PLBASE=/staff/jan/lib/pl-2.0.3
+PLBASE=/staff/jan/lib/pl-2.0.5
 PLARCH=sparc-sunos4.1.3
 
 SICSHOME=/staff/jan/src/sicstus2.1
@@ -72,16 +72,19 @@ AR=ar
 ARFLAGS=ru
 ETAGS=etags
 SED=sed
+RM=rm
 
 VERSION=4.8.7, Feb. 1995
+RTSUFFIX=
 ARCH=sparc
 OS=sunos4.1.3
 RESOURCE_CLASS=Pce
 
 PLRUNTIME=$(PLBASE)/runtime/$(PLARCH)
+PLOBJ=pl$(RTSUFFIX).o
 PLINCLUDE=$(PLBASE)/include
 
-TARGET=$(PCEHOME)/bin/xpce
+TARGET=$(PCEHOME)/bin/xpce$(RTSUFFIX)
 
 ################################################################
 # MAIN TARGETS
@@ -154,12 +157,12 @@ bin/xpce.qlf:
 
 clean:
 	for d in src pl/src; do (cd $$d; $(MAKE) clean); done
-	rm -f *~ *% a.out core
+	$(RM) -f *~ *% a.out core
 
 realclean:
 	for d in src pl/src; do (cd $$d; $(MAKE) realclean); done
-	rm -f bin/xpce bin/xpce-client bin/xpce-sicstus bin/xpce.base
-	rm -f config.log config.cache Pce
+	$(RM) -f bin/xpce bin/xpce-client bin/xpce-sicstus bin/xpce.base
+	$(RM) -f config.log config.cache Pce
 
 distclean:	realclean
 

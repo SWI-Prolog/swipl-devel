@@ -45,3 +45,6 @@
 
 /* Define to "file.h" to include additional system prototypes */
 #undef SYSLIB_H
+
+/* Define if you want the runtime version */
+#undef O_RUNTIME

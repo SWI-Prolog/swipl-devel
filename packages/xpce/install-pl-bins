@@ -22,12 +22,13 @@ TAR_CP_FLAGS="ch"
 INSTALL="install -c"
 INSTALL_PROGRAM="$INSTALL"
 INSTALL_DATA="$INSTALL -m 644"
+RTSUFFIX=""
 
 if [ "$1" != "" ]; then prefix="$1"; fi
 
 version=`cat VERSION`
 libdir=$prefix/lib/xpce-$version
-bin=$prefix/bin/xpce-$version
+bin=$prefix/bin/xpce$RTSUFFIX-$version
 client=$prefix/bin/xpce-client
 
 # link SWI-Prolog into this area
@@ -36,8 +37,8 @@ for d in library boot include; do
     if [ ! -d pl/$d ]; then (cd pl; ln -s ../../pl/$d .); fi
 done
 
-if [ ! -r bin/xpce.base ]; then
-    (cd bin; ln -s ../pl/src/xpce.base .);
+if [ ! -r bin/xpce$RTSUFFIX.base ]; then
+    (cd bin; ln -s ../pl/src/xpce$RTSUFFIX.base .);
 fi
 
 # collect necessary files and directories
@@ -46,7 +47,7 @@ echo ""
 echo "Installing xpce-$version libraries in $libdir"
 echo ""
 
-filesa="bin/xpce.base bin/xpce-client src/XPCE.a pl/src/pl-crt0.o"
+filesa="bin/xpce$RTSUFFIX.base bin/xpce-client src/XPCE.a pl/src/pl-crt0.o"
 filesb="INSTALL install README* INFO include pl/load.pl pl/xpce.pl"
 filesc="CXX/demo/Makefile CXX/demo/README CXX/demo/*.C CXX/demo/*.bm"
 filesd="STAMP VERSION ChangeLog licence/licence.tex"

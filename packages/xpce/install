@@ -1,9 +1,17 @@
 #!/bin/sh
-# Create xpce executable
+################################################################
+# Purpose: 	  Install XPCE/SWI-Prolog executable
+# Usage:   	  ./install [excutable]
+# Author:  	  Jan Wielemaker, University of Amsterdam
+# Last Modified:  Thu Feb 23 11:34:30 1995
+#		  + Added RTSUFFIX support for installing RUNTIME
+#		  + Updated for SWI-Prolog 2.0.4
+################################################################
 
-PLBASE=/staff/jan/lib/pl-2.0.3
+PLBASE=/staff/jan/lib/pl-2.0.5
 LN_S="ln -s"
-emulator=bin/xpce.base
+RTSUFFIX=""
+emulator=bin/xpce$RTSUFFIX.base
 xpce=bin/xpce
 PWD=`pwd`
 
@@ -21,7 +29,7 @@ if [ -r $PWD/Pce ]; then
 	    can="$PWD"
 	    topinode=`ls -di $top | awk '{print $1}'`
 	    base=""
-	    while [ "$can" != "/" && test "$PCEHOME" = "" ]; do
+	    while [ "$can" != "/" ] && [ "$PCEHOME" = "" ]; do
 		caninode=`ls -di $can | awk '{print $1}'`
 		if [ "$caninode" = "$topinode" ]; then
 		    PCEHOME=`echo $top/$base | sed 's@/$@@'`
@@ -55,7 +63,7 @@ EOF
 $emulator -o bin/pl.qlf -b pl/boot/init.pl
 
 $emulator -x bin/pl.qlf -f none -g true >.plparms << _EOS_
-(   feature(save_program, V), V == true
+(   feature(save_program, true)
 ->  format('O_SAVE=yes~n')
 ;   true
 ),
@@ -70,8 +78,8 @@ if [ "$O_SAVE" != "yes" ]; then
     target=`basename $xpce`
     prefix=`dirname $xpce`
     prefix=`dirname $prefix`
-    echo "Linking $prefix/bin/$target to $PCEHOME/bin/xpce.base"
-    (cd $prefix/bin; rm -f $target; $LN_S $PCEHOME/bin/xpce.base $target)
+    echo "Linking $prefix/bin/$target to $PCEHOME/$emulator"
+    (cd $prefix/bin; rm -f $target; $LN_S $PCEHOME/$emulator $target)
     echo "Creating quick load file"
     $xpce -b $PCEHOME/pl/boot/init.pl \
           -c $PCEHOME/pl/load.pl
@@ -86,7 +94,10 @@ rm -f $xpce				# Make sure it is gone
 $emulator -x bin/pl.qlf -f none << _EOS_
 ['prolog/boot/pce_expand'].
 use_module('prolog/boot/pce_pl').
-use_module('prolog/lib/pce').
+absolute_file_name('prolog/lib', Dir),
+assert(library_directory(Dir), Ref),
+use_module('prolog/lib/pce'),
+erase(Ref).
 
 '\$version'(PlVersion),
 send(@pce, catch_error_signals, @on),
