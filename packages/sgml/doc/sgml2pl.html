@@ -10,7 +10,7 @@
 <center>
 
 <h1>SWI-Prolog SGML/XML parser<br>
-<font size="+0"><em>Version 2.0.4, March 2005</em></font></h1>
+<font size="+0"><em>Version 2.0.5, March 2005</em></font></h1>
 
 <br>
 <a href="mailto:jan@science.uva.nl"><em>Jan Wielemaker</em></a><br>
@@ -607,31 +607,31 @@ is invalid.
     
 <dt>&nbsp;<br>
 <b><a name="load_dtd/2">load_dtd(<var>+DTD, +File</var>)</a></b><dd>
-Define the DTD by loading the SGML-DTD file <var>File</var>. This predicate 
-is defined using the low-level <a href="#open_dtd/3"><b>open_dtd/3</b></a> predicate:
+Define the DTD by loading the SGML-DTD file <var>File</var>.  Same
+as <a href="#load_dtd/3"><b>load_dtd/3</b></a> with empty option list.
 
-
-
-<p>
-<table width="90%" align="center" border="2" bgcolor="#f0f0f0">
-<tr><td>
-<pre>
-load_dtd(DTD, DtdFile) :-
-        open_dtd(DTD, [], DtdOut),
-        open(DtdFile, read, DtdIn),
-        copy_stream_data(DtdIn, DtdOut),
-        close(DtdIn),
-        close(DtdOut).
-</pre>
-</td></tr>
-</table>
-
+    
+<dt>&nbsp;<br>
+<b><a name="load_dtd/3">load_dtd(<var>+DTD, +File, +Options</var>)</a></b><dd>
+Define the DTD by loading <var>File</var>.  Defined options are the
+<a name="const:dialect"><b><tt>dialect</tt></b></a> option from <a href="#open_dtd/3"><b>open_dtd/3</b></a> and the <a name="const:encoding"><b><tt>encoding</tt></b></a>
+option from <a href="#open/4"><b>open/4</b></a>.  Notably the <a name="const:dialect%2"><b><tt>dialect</tt></b></a> option must
+match the dialect used for subsequent parsing using this DTD.
 
     
 <dt>&nbsp;<br>
 <b><a name="open_dtd/3">open_dtd(<var>+DTD, +Options, -OutStream</var>)</a></b><dd>
-Open a DTD as an output stream. The option-list is currently 
-empty. See <a href="#load_dtd/2"><b>load_dtd/2</b></a> for an example.
+Open a DTD as an output stream.  See <a href="#load_dtd/2"><b>load_dtd/2</b></a> for an example.
+Defined options are:
+
+<dl>
+<dt>&nbsp;<br>
+<b>dialect(<var>Dialect</var>)</b><dd>
+Define the DTD dialect.  Default is <a name="const:sgml%4"><b><tt>sgml</tt></b></a>.  Using <a name="const:xml%3"><b><tt>xml</tt></b></a> or <a name="const:xmlns%5"><b><tt>xmlns</tt></b></a>
+processes the DTD case-sensitive.
+</dl>
+
+
 
     
 <dt>&nbsp;<br>
@@ -935,18 +935,18 @@ Set the markup dialect. Known dialects:
 
 <dl>
 <dt>&nbsp;<br>
-<b><a name="const:sgml%4"><b><tt>sgml</tt></b></a></b><dd>
+<b><a name="const:sgml%5"><b><tt>sgml</tt></b></a></b><dd>
 The default dialect is to process as SGML. This implies markup is 
 case-insensitive and standard SGML abbreviation is allowed (abreviated 
 attributes and omitted tags). 
     
 <dt>&nbsp;<br>
-<b><a name="const:xml%3"><b><tt>xml</tt></b></a></b><dd>
+<b><a name="const:xml%4"><b><tt>xml</tt></b></a></b><dd>
 This dialect is selected automatically if the processing instruction
 <code>&lt;?xml ...&gt;</code> is encountered. See <a href="#sec:xml">xml</a> for details. 
     
 <dt>&nbsp;<br>
-<b><a name="const:xmlns%5"><b><tt>xmlns</tt></b></a></b><dd>
+<b><a name="const:xmlns%6"><b><tt>xmlns</tt></b></a></b><dd>
 Process file as XML file with namespace support. See <a href="#sec:xmlns">xmlns</a> for
 details.  See also the <code>qualify_attributes</code> option below.
 </dl>
@@ -955,7 +955,7 @@ details.  See also the <code>qualify_attributes</code> option below.
 <dt>&nbsp;<br>
 <b>qualify_attributes(<var>Boolean</var>)</b><dd>
 How to handle unqualified attribute (i.e. without an explicit namespace)
-in XML namespace (<a name="const:xmlns%6"><b><tt>xmlns</tt></b></a>) mode.  Default and standard compliant
+in XML namespace (<a name="const:xmlns%7"><b><tt>xmlns</tt></b></a>) mode.  Default and standard compliant
 is not to qualify such elements.  If <a name="const:true%2"><b><tt>true</tt></b></a>, such attributes are qualified
 with the namespace of the element they appear in.  This option is for
 backward compatibility as this is the behaviour of older versions.  In
@@ -1033,7 +1033,7 @@ callbacks from <a href="#sgml_parse/2"><b>sgml_parse/2</b></a>.
     
 <dt>&nbsp;<br>
 <b>dialect(<var>-Dialect</var>)</b><dd>
-Return the current dialect used by the parser (<a name="const:sgml%5"><b><tt>sgml</tt></b></a>, <a name="const:xml%4"><b><tt>xml</tt></b></a> or <a name="const:xmlns%7"><b><tt>xmlns</tt></b></a>).
+Return the current dialect used by the parser (<a name="const:sgml%6"><b><tt>sgml</tt></b></a>, <a name="const:xml%5"><b><tt>xml</tt></b></a> or <a name="const:xmlns%8"><b><tt>xmlns</tt></b></a>).
 
     
 <dt>&nbsp;<br>
@@ -1287,14 +1287,14 @@ If this option is present, errors and warnings are not reported using
     
 <dt>&nbsp;<br>
 <b>xmlns</b><dd>
-When parsing an in <a name="const:xmlns%8"><b><tt>xmlns</tt></b></a> mode, a new namespace declaraction is 
+When parsing an in <a name="const:xmlns%9"><b><tt>xmlns</tt></b></a> mode, a new namespace declaraction is 
 pushed on the environment. The named handler is called with three 
 arguments: <code><var>Handler</var>(+NameSpace, +URL, +Parser)</code>.
 See <a href="#sec:xmlns">xmlns</a> for details. 
     
 <dt>&nbsp;<br>
 <b>urlns</b><dd>
-When parsing an in <a name="const:xmlns%9"><b><tt>xmlns</tt></b></a> mode, this predicate can be used to map a 
+When parsing an in <a name="const:xmlns%10"><b><tt>xmlns</tt></b></a> mode, this predicate can be used to map a 
 url into either a canonical URL for this namespace or another internal 
 identifier. See <a href="#sec:xmlns">xmlns</a> for details. 
 </dl>
@@ -1380,7 +1380,7 @@ predciates and acceptable by <a href="#xml_write/3"><b>xml_write/3</b></a> and f
 <p>
 The parser can deal with ISO Latin-1 and UTF-8 encoded files, doing
 decoding based on the encoding argument provided to
-<a href="#set_sgml_parser/2"><b>set_sgml_parser/2</b></a> or, for XML, based on the <a name="const:encoding"><b><tt>encoding</tt></b></a>
+<a href="#set_sgml_parser/2"><b>set_sgml_parser/2</b></a> or, for XML, based on the <a name="const:encoding%2"><b><tt>encoding</tt></b></a>
 attribute of the XML header.  The parser reads from SWI-Prolog streams,
 which also provide encoding handling.  Therefore, there are two modes
 for parsing.  If the SWI-Prolog stream has encoding <a name="const:octet"><b><tt>octet</tt></b></a> (which
@@ -1807,6 +1807,7 @@ standard.  He also made many suggestions for improving this document.
 <tr><td><a href="#get_sgml_parser/2"><b>get_sgml_parser/2</b></a></td><td>Get parser options</td></tr>
 <tr><td><a href="#html_write/3"><b>html_write/3</b></a></td><td>Write an HTML document from a parser-compatible term</td></tr>
 <tr><td><a href="#load_dtd/2"><b>load_dtd/2</b></a></td><td>Read DTD information from a file</td></tr>
+<tr><td><a href="#load_dtd/3"><b>load_dtd/3</b></a></td><td>Read DTD information from a file</td></tr>
 <tr><td><a href="#load_html_file/2"><b>load_html_file/2</b></a></td><td>Parse HTML file into Prolog term</td></tr>
 <tr><td><a href="#load_sgml_file/2"><b>load_sgml_file/2</b></a></td><td>Parse SGML file into Prolog term </td></tr>
 <tr><td><a href="#load_structure/3"><b>load_structure/3</b></a></td><td>Parse XML/SGML/HTML data into Prolog term</td></tr>
@@ -1871,11 +1872,12 @@ deleted. This is not yet implemented.
 <li><a href="#const:current"><b><tt>current</tt></b></a>
 <li><a href="#const:declaration"><b><tt>declaration</tt></b></a>
 <li><a href="#const:default"><b><tt>default</tt></b></a> [ <a href="#const:default%2">2</a>]
+<li><a href="#const:dialect"><b><tt>dialect</tt></b></a> [ <a href="#const:dialect%2">2</a>]
 <li><a href="#dtd/2"><b>dtd/2</b></a>
 <li><a href="#dtd_property/2"><b>dtd_property/2</b></a>
 <li><a href="#const:element"><b><tt>element</tt></b></a> [ <a href="#const:element%2">2</a>]
 <li><a href="#const:empty"><b><tt>empty</tt></b></a>
-<li><a href="#const:encoding"><b><tt>encoding</tt></b></a>
+<li><a href="#const:encoding"><b><tt>encoding</tt></b></a> [ <a href="#const:encoding%2">2</a>]
 <li><a href="#const:end"><b><tt>end</tt></b></a> [ <a href="#const:end%2">2</a>]
 <li><a href="#const:entity"><b><tt>entity</tt></b></a>
 <li><a href="#const:error"><b><tt>error</tt></b></a>
@@ -1898,6 +1900,7 @@ deleted. This is not yet implemented.
 <li><a href="#const:iso-8859-1"><b><tt>iso-8859-1</tt></b></a>
 <li><a href="#const:iso_latin_1"><b><tt>iso_latin_1</tt></b></a>
 <li><a href="#load_dtd/2"><b>load_dtd/2</b></a>
+<li><a href="#load_dtd/3"><b>load_dtd/3</b></a>
 <li><a href="#load_html_file/2"><b>load_html_file/2</b></a>
 <li><a href="#load_sgml_file/2"><b>load_sgml_file/2</b></a>
 <li><a href="#load_structure/3"><b>load_structure/3</b></a>
@@ -1923,7 +1926,7 @@ deleted. This is not yet implemented.
 <li><a href="#const:remove"><b><tt>remove</tt></b></a>
 <li><a href="#const:required"><b><tt>required</tt></b></a>
 <li><a href="#set_sgml_parser/2"><b>set_sgml_parser/2</b></a>
-<li><a href="#const:sgml"><b><tt>sgml</tt></b></a> [ <a href="#const:sgml%2">2</a> <a href="#const:sgml%3">3</a> <a href="#const:sgml%4">4</a> <a href="#const:sgml%5">5</a>]
+<li><a href="#const:sgml"><b><tt>sgml</tt></b></a> [ <a href="#const:sgml%2">2</a> <a href="#const:sgml%3">3</a> <a href="#const:sgml%4">4</a> <a href="#const:sgml%5">5</a> <a href="#const:sgml%6">6</a>]
 <li><a href="#sgml_parse/2"><b>sgml_parse/2</b></a>
 <li><a href="#sgml_register_catalog_file/2"><b>sgml_register_catalog_file/2</b></a>
 <li><a href="#sgml_write/3"><b>sgml_write/3</b></a>
@@ -1937,14 +1940,14 @@ deleted. This is not yet implemented.
 <li><a href="#const:utf-8"><b><tt>utf-8</tt></b></a>
 <li><a href="#const:utf8"><b><tt>utf8</tt></b></a>
 <li><a href="#const:warning"><b><tt>warning</tt></b></a>
-<li><a href="#const:xml"><b><tt>xml</tt></b></a> [ <a href="#const:xml%2">2</a> <a href="#const:xml%3">3</a> <a href="#const:xml%4">4</a>]
+<li><a href="#const:xml"><b><tt>xml</tt></b></a> [ <a href="#const:xml%2">2</a> <a href="#const:xml%3">3</a> <a href="#const:xml%4">4</a> <a href="#const:xml%5">5</a>]
 <li><a href="#xml_is_dom/1"><b>xml_is_dom/1</b></a>
 <li><a href="#xml_name/1"><b>xml_name/1</b></a>
 <li><a href="#xml_name/2"><b>xml_name/2</b></a>
 <li><a href="#xml_quote_attribute/3"><b>xml_quote_attribute/3</b></a> [ <a href="#xml_quote_attribute/3%2">2</a>]
 <li><a href="#xml_quote_cdata/2"><b>xml_quote_cdata/2</b></a> [ <a href="#xml_quote_cdata/2%2">2</a>]
 <li><a href="#xml_write/3"><b>xml_write/3</b></a>
-<li><a href="#const:xmlns"><b><tt>xmlns</tt></b></a> [ <a href="#const:xmlns%2">2</a> <a href="#const:xmlns%3">3</a> <a href="#const:xmlns%4">4</a> <a href="#const:xmlns%5">5</a> <a href="#const:xmlns%6">6</a> <a href="#const:xmlns%7">7</a> <a href="#const:xmlns%8">8</a> <a href="#const:xmlns%9">9</a>]
+<li><a href="#const:xmlns"><b><tt>xmlns</tt></b></a> [ <a href="#const:xmlns%2">2</a> <a href="#const:xmlns%3">3</a> <a href="#const:xmlns%4">4</a> <a href="#const:xmlns%5">5</a> <a href="#const:xmlns%6">6</a> <a href="#const:xmlns%7">7</a> <a href="#const:xmlns%8">8</a> <a href="#const:xmlns%9">9</a> <a href="#const:xmlns%10">10</a>]
 </ul>
 </body>
 </html>

@@ -1189,31 +1189,33 @@ static char *xml_entities[] =
 
 int
 set_dialect_dtd(dtd *dtd, dtd_dialect dialect)
-{ dtd->dialect = dialect;
+{ if ( dtd->dialect != dialect )
+  { dtd->dialect = dialect;
 
-  switch(dialect)
-  { case DL_SGML:
-    { dtd->case_sensitive = FALSE;
-      dtd->space_mode = SP_SGML;
-      dtd->shorttag = TRUE;
-      break;
-    }
-    case DL_XML:
-    case DL_XMLNS:
-    { char **el;
-      dtd_parser p;
-
-      dtd->case_sensitive = TRUE;
-      dtd->encoding = SGML_ENC_UTF8;
-      dtd->space_mode = SP_PRESERVE;
-      dtd->shorttag = FALSE;
-
-      memset(&p, 0, sizeof(p));
-      p.dtd = dtd;
-      for(el = xml_entities; *el; el++)
-	process_entity_declaration(&p, *el);
-
-      break;
+    switch(dialect)
+    { case DL_SGML:
+      { dtd->case_sensitive = FALSE;
+	dtd->space_mode = SP_SGML;
+	dtd->shorttag = TRUE;
+	break;
+      }
+      case DL_XML:
+      case DL_XMLNS:
+      { char **el;
+	dtd_parser p;
+  
+	dtd->case_sensitive = TRUE;
+	dtd->encoding = SGML_ENC_UTF8;
+	dtd->space_mode = SP_PRESERVE;
+	dtd->shorttag = FALSE;
+  
+	memset(&p, 0, sizeof(p));
+	p.dtd = dtd;
+	for(el = xml_entities; *el; el++)
+	  process_entity_declaration(&p, *el);
+  
+	break;
+      }
     }
   }
 

@@ -2,7 +2,7 @@
 
 <pldoc>
 <head>
-<version>2.0.4
+<version>2.0.5
 <release-date>March 2005
 <package>sgml2pl
 </head>
@@ -471,22 +471,26 @@ is invalid.
 
     <pred>load_dtd(+DTD, +File)
     <summary>Read DTD information from a file
-Define the DTD by loading the SGML-DTD file <aref/File/. This predicate 
-is defined using the low-level <pref>open_dtd/3</pref> predicate:
+Define the DTD by loading the SGML-DTD file <aref/File/.  Same
+as <pref>load_dtd/3</pref> with empty option list.
 
-<code>
-load_dtd(DTD, DtdFile) :-
-        open_dtd(DTD, [], DtdOut),
-        open(DtdFile, read, DtdIn),
-        copy_stream_data(DtdIn, DtdOut),
-        close(DtdIn),
-        close(DtdOut).
-</code>
+    <pred>load_dtd(+DTD, +File, +Options)
+    <summary>Read DTD information from a file
+Define the DTD by loading <aref/File/.  Defined options are the
+<c/dialect/ option from <pref>open_dtd/3</pref> and the <c/encoding/
+option from <pref>open/4</pref>.  Notably the <c/dialect/ option must
+match the dialect used for subsequent parsing using this DTD.
 
     <pred>open_dtd(+DTD, +Options, -OutStream)
     <summary>Open a DTD object as an output stream
-Open a DTD as an output stream. The option-list is currently 
-empty. See <pref>load_dtd/2</pref> for an example.
+Open a DTD as an output stream.  See <pref>load_dtd/2</pref> for an example.
+Defined options are:
+<argdef>
+    <termitem>dialect(Dialect)
+Define the DTD dialect.  Default is <c/sgml/.  Using <c/xml/ or <c/xmlns/
+processes the DTD case-sensitive.
+</argdef>
+
 
     <pred>dtd(+DocType, -DTD)
     <summary>Find or build a DTD for a document type

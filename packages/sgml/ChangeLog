@@ -1,3 +1,10 @@
+Mar 21, 2005
+
+  * ADDED: specify dialect for loading DTDs.  After mail from Sebastien Cabot.
+
+  * FIXED: Avoid error on thread_at_exit when using in single-threaded
+    Prolog.  Anjo Anjewierden.
+
 Mar 6, 2005
 
   * ADDED: improved namespace and indentation support for xml_write/3.

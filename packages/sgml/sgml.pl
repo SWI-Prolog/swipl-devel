@@ -37,6 +37,7 @@
 	    load_structure/3,		% +File, -Term, +Options
 
 	    load_dtd/2,			% +DTD, +File
+	    load_dtd/3,			% +DTD, +File, +Options
 	    dtd/2,			% +Type, -DTD
 	    dtd_property/2,		% +DTD, ?Property
 
@@ -128,12 +129,35 @@ dtd(Type, DTD) :-
 	load_dtd(DTD, DtdFile),
 	asserta(current_dtd(Type, DTD)).
 
+%	load_dtd(+DTD, +DtdFile, +Options)
+%	
+%	Load file into a DTD.  Defined options are:
+%	
+%		# dialect(+Dialect)
+%		Dialect to use (xml, xmlns, sgml)
+%
+%		# encoding(+Encoding)
+%		Encoding of DTD file
+
 load_dtd(DTD, DtdFile) :-
-	open_dtd(DTD, [], DtdOut),
-	open(DtdFile, read, DtdIn),
+	load_dtd(DTD, DtdFile, []).
+load_dtd(DTD, DtdFile, Options) :-
+	split_dtd_options(Options, DTDOptions, FileOptions),
+	open_dtd(DTD, DTDOptions, DtdOut),
+	open(DtdFile, read, DtdIn, FileOptions),
 	copy_stream_data(DtdIn, DtdOut),
 	close(DtdIn),
 	close(DtdOut).
+
+split_dtd_options([], [], []).
+split_dtd_options([H|T], [H|TD], S) :-
+	dtd_option(H), !,
+	split_dtd_options(T, TD, S).
+split_dtd_options([H|T], TD, [H|S]) :-
+	split_dtd_options(T, TD, S).
+
+dtd_option(dialect(_)).
+
 
 %	destroy_dtds
 %	

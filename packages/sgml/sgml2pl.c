@@ -1413,6 +1413,8 @@ pl_open_dtd(term_t ref, term_t options, term_t stream)
   dtd_parser *p;
   parser_data *pd;
   IOSTREAM *s;
+  term_t tail = PL_copy_term_ref(options);
+  term_t option = PL_new_term_ref();
 
   if ( !get_dtd(ref, &dtd) )
     return FALSE;
@@ -1420,6 +1422,29 @@ pl_open_dtd(term_t ref, term_t options, term_t stream)
   p->dmode = DM_DTD;
   pd = new_parser_data(p);
   pd->free_on_close = TRUE;
+
+  while( PL_get_list(tail, option, tail) )
+  { if ( PL_is_functor(option, FUNCTOR_dialect1) )
+    { term_t a = PL_new_term_ref();
+      char *s;
+  
+      PL_get_arg(1, option, a);
+      if ( !PL_get_atom_chars(a, &s) )
+	return sgml2pl_error(ERR_TYPE, "atom", a);
+  
+      if ( streq(s, "xml") )
+	set_dialect_dtd(dtd, DL_XML);
+      else if ( streq(s, "xmlns") )
+	set_dialect_dtd(dtd, DL_XMLNS);
+      else if ( streq(s, "sgml") )
+	set_dialect_dtd(dtd, DL_SGML);
+      else
+	return sgml2pl_error(ERR_DOMAIN, "sgml_dialect", a);
+    } else
+      return sgml2pl_error(ERR_DOMAIN, "dtd_option", option);
+  }
+  if ( !PL_get_nil(tail) )
+    return sgml2pl_error(ERR_TYPE, "list", options);
 
   s = Snew(pd, SIO_OUTPUT, &sgml_stream_functions);
 
