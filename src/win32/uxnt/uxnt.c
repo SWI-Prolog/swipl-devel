@@ -22,10 +22,16 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+#define UNICODE 1
+#define _UNICODE 1
+
 #define _UXNT_KERNEL 1
 #include "uxnt.h"			/* my prototypes */
+#include "utf8.c"
 
 #include <windows.h>
+#include <tchar.h>
+#include <wchar.h>
 #include "dirent.h"
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -63,14 +69,6 @@
 #define _getcwd getcwd
 #endif
 
-
-typedef struct dir_name_map_entry *DirNameMapEntry;
-typedef struct dir_name_map	  *DirNameMap;
-
-static DirNameMap	load_dirmap(const char *dir);
-static void		free_dirmap(DirNameMap map);
-static const char *	map_fat_name(DirNameMap map, const char *fatname);
-
 static char _xos_namebuf[PATH_MAX];
 static int  xerrno;
 
@@ -92,7 +90,7 @@ _xos_errno()
 		 *******************************/
 
 static int
-existsAndWriteableDir(const char *name)
+existsAndWriteableDir(const TCHAR *name)
 { DWORD a;
 
   if ( (a=GetFileAttributes(name)) != 0xFFFFFFFF )
@@ -117,14 +115,14 @@ _xos_home()				/* expansion of ~ */
 					/* Unix, set by user */
     if ( GetEnvironmentVariable("HOME", h, sizeof(h)) &&
 	 existsAndWriteableDir(h) )
-    { _xos_canonical_filename(h, home);
+    { _xos_canonical_filenameW(h, home, sizeof(home));
     } else if ( GetEnvironmentVariable("USERPROFILE", h, sizeof(h)) &&
 		existsAndWriteableDir(h) )
-    { _xos_canonical_filename(h, home);
+    { _xos_canonical_filenameW(h, home, sizeof(home));
     } else
-    { char d[100];
-      char p[MAXPATHLEN];
-      char tmp[MAXPATHLEN];
+    { TCHAR d[100];
+      TCHAR p[MAXPATHLEN];
+      TCHAR tmp[MAXPATHLEN];
       int haved, havep;
 
       haved = GetEnvironmentVariable("HOMEDRIVE", d, sizeof(d));
@@ -132,35 +130,21 @@ _xos_home()				/* expansion of ~ */
 
       tmp[0] = '\0';
       if ( haved && havep )		/* Windows-NT */
-      { strcpy(tmp, d);
-	strcat(tmp, p);
+      { _tcscpy(tmp, d);
+	_tcscat(tmp, p);
       } else if ( haved )
-      { strcpy(tmp, d);
-	strcat(tmp, "\\");
+      { _tcscpy(tmp, d);
+	_tcscat(tmp, "\\");
       } else if ( havep )
-      { strcpy(tmp, p);
+      { _tcscpy(tmp, p);
       } else if ( GetWindowsDirectory(tmp, sizeof(tmp)) == 0 )
       { int drv = _getdrive();		/* A=1 */
 
-	home[0] = drv-1+'a';
-	strcpy(home+1, ":\\");
+	home[0] = drv-1+'a'L;
+	_tcscpy(home+1, T(":\\"));
       }
 
-      _xos_canonical_filename(tmp, home);
-#if 0
-      if ( !existsAndWriteableDir(tmp) )
-      { MessageBox(NULL,
-		   "Could not find suitable folder for storing profile information\n"
-		   "Tried the following paths:\n\n"
-		   "\t%HOME%\n"
-		   "\t%USERPROFILE%\n"
-		   "\t%HOMEDRIVE%\\%HOMEPATH%\n"
-		   "\tThe top of the current drive",
-		   "SWI-Prolog: no home (~)",
-		   MB_ICONWARNING);
-      }
-#endif
-    }
+      _xos_canonical_filenameW(tmp, home, sizeof(home));
 
     done = TRUE;
   }
@@ -173,39 +157,67 @@ _xos_home()				/* expansion of ~ */
 		 *	  NAME CONVERSION	*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Map a UTF-8 string in Prolog internal representation to a UNICODE string
+to be used with the Windows UNIODE access functions.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 char *
-_xos_os_filename(const char *cname, char *osname)
-{ char *s = osname;
+_xos_os_filenameW(const char *cname, wchar_t *osname, size_t len)
+{ wchar_t *s = osname;
+  wchar_t *e = &osname[len-1];
   const char *q = cname;
 
   if ( !osname )
     osname = _xos_namebuf;
   s = osname;
 					/* /c:/ --> c:/ */
-  if ( q[0] == '/' && isalpha(q[1]) && q[2] == ':' &&
+  if ( q[0] == '/' && q[1] < 0x80 && isalpha(q[1]) && q[2] == ':' &&
        (q[3] == '/' || q[3] == '\0') )
-  { *s++ = q[1];
+  { if ( s+2 >= e )
+    { errno = ENAMETOOLONG;
+      return NULL;
+    }
+    *s++ = q[1];
     *s++ = ':';
     q += 3;
   }
 
   if ( q[0] == '/' || q[0] == '\\' )	/* deal with //host/share */
+  { if ( s+1 >= e )
+    { errno = ENAMETOOLONG;
+      return NULL;
+    }
     *s++ = '\\';
+  }
 
   while( *q )				/* map / --> \, delete multiple '\' */
   { if ( *q == '/' || *q == '\\' )
-    { *s++ = '\\';
+    { if ( s+1 >= e )
+      { errno = ENAMETOOLONG;
+	return NULL;
+      }
+      *s++ = '\\';
       q++;
       while(*q == '/' || *q == '\\')
 	q++;
     } else
-      *s++ = *q++;
+    { int wc;
+
+      q = utf8_get_char(q, &wc);
+      if ( s+2 >= e )
+      { errno = ENAMETOOLONG;
+	return NULL;
+      }
+      *s++ = wc;
+    }
   }
 
   while(s > osname+1 && s[-1] == '\\' )	/* delete trailing '\' */
     s--;
 					/* d: --> d:\ */
-  if ( s == &osname[2] && osname[1] == ':' && isalpha(osname[0]) )
+  if ( s == &osname[2] && osname[1] == ':' &&
+       osname[0] < 0x80 && isalpha(osname[0]) )
     *s++ = '\\';
   *s = '\0';
 
@@ -214,23 +226,34 @@ _xos_os_filename(const char *cname, char *osname)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-NOTE:  for  getcwd(),  _xos_canonical_filename(buf,  buf)  should  work.
-Change _xos_getcwd() if this assumption is violated.
+Transform a UNICODE Windows filename into a UTF-8 representation of the
+filename in Prolog canonical representation.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 char *
-_xos_canonical_filename(const char *spec, char *xname)
-{ const char *s = spec;
+_xos_canonical_filenameW(const wchar_t *spec, char *xname, size_t len)
+{ const wchar_t *s = spec;
   char *p = xname;
+  char *e = &xname[len];
 
-  if ( isupper(s[0]) && s[1] == ':' )
+  if ( s[0] < 0x80 && isupper(s[0]) && s[1] == ':' )
   { *p++ = tolower(s[0]);
     *p++ = s[1];
     s += 2;
   }
 
   for(; *s; s++, p++)
-    *p = (*s == '\\' ? '/' : *s);
+  { int c = *s;
+    
+    if ( c == '\\' )
+      c = '/';
+
+    if ( p+6 >= len )
+    { errno = ENAMETOOLONG;
+      return NULL
+    }
+    p = utf8_put_char(p, c);
+  }
   *p = '\0';
 
   return xname;
@@ -239,13 +262,13 @@ _xos_canonical_filename(const char *spec, char *xname)
 
 int
 _xos_is_absolute_filename(const char *spec)
-{ char buf[PATH_MAX];
+{ TCHAR buf[PATH_MAX];
 
-  _xos_os_filename(spec, buf);
-  if ( buf[1] == ':' && isalpha(buf[0]) )
-    return TRUE;
+  _xos_os_filenameW(spec, buf, PATH_MAX);
+  if ( buf[1] == ':' && buf[0] < 0x80 && isalpha(buf[0]) )
+    return TRUE;			/* drive */
   if ( buf[0] == '\\' && buf[1] == '\\' )
-    return TRUE;
+    return TRUE;			/* UNC */
 
   return FALSE;
 }
@@ -254,11 +277,11 @@ _xos_is_absolute_filename(const char *spec)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Get rid of possible  8+3  characters   in  the  path.  The documentation
 suggests  you  can  do   that   using    a   single   FindFirstFile   or
-GetFullPathName, but it appears you canot.  If you like, here is the code
-that doesn't work:
+GetFullPathName, but it appears you cannot.  If   you  like, here is the
+code that doesn't work:
 
 char *
-_xos_long_file_name(const char *file, char *longname)
+_xos_long_file_nameW(const char *file, char *longname)
 { DWORD len;
   LPTSTR fp;
 
@@ -271,10 +294,11 @@ _xos_long_file_name(const char *file, char *longname)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 char *
-_xos_long_file_name(const char *file, char *longname)
-{ const char *i = file;
-  char *o = longname;
-  char *ok = longname;
+_xos_long_file_nameW(const TCHAR *file, TCHAR *longname, size_t len)
+{ const TCHAR *i = file;
+  TCHAR *o = longname;
+  TCHAR *ok = longname;
+  TCHAR *e = &longname[len-1];
   int changed = 0;
 
   while(*i)
@@ -283,6 +307,10 @@ _xos_long_file_name(const char *file, char *longname)
     while(*i && *i != '\\' && *i != '/' )
     { if ( *i == '~' )
 	dirty++;
+      if ( o >= e )
+      { errno = ENAMETOOLONG;
+	return NULL;
+      }
       *o++ = *i++;
     }
     if ( dirty )
@@ -291,14 +319,26 @@ _xos_long_file_name(const char *file, char *longname)
 
       *o = '\0';
       if ( (h=FindFirstFile(longname, &data)) != INVALID_HANDLE_VALUE )
-      { strcpy(ok, data.cFileName);
+      { size_t l = _tcslen(data.cFileName);
+
+	if ( ok+l >= e )
+	{ errno = ENAMETOOLONG;
+	  return NULL;
+	}
+
+	_tcscpy(ok, data.cFileName);
 	FindClose(h);
-	o = ok + strlen(ok);
+	o = ok + l;
 	changed++;
       }
     }
     if ( *i )
+    { if ( o >= e )
+      { errno = ENAMETOOLONG;
+	return NULL;
+      }
       *o++ = *i++;
+    }
     ok = o;
   }
 
@@ -309,11 +349,14 @@ _xos_long_file_name(const char *file, char *longname)
 
 
 char *
-_xos_absolute_filename(const char *local, char *absolute)
-{ char *filepart;
+_xos_absolute_filename(const char *local, char *absolute, size_t len)
+{ TCHAR buf[PATH_MAX];
+  TCHAR *filepart;
+  TCHAR abs[PATH_MAX];
 
-  if ( GetFullPathName(local, PATH_MAX, absolute, &filepart) )
-    return absolute;
+  _xos_os_filenameW(local, buf)
+  if ( GetFullPathName(buf, PATH_MAX, abs, &filepart) )
+    return _xos_canonical_filenameW(abs, absolute. len);
 
   return NULL;
 }
@@ -322,17 +365,22 @@ _xos_absolute_filename(const char *local, char *absolute)
 int
 _xos_same_file(const char *p1, const char *p2)
 { if ( strcmp(p1, p2) == 0 )
-    return TRUE;
-  else
-  { char osp1[PATH_MAX], osp2[PATH_MAX];
+  { return TRUE;
+  } else
+  { TCHAR osp1[PATH_MAX], osp2[PATH_MAX];
+    TCHAR abs1[PATH_MAX], abs2[PATH_MAX];
+    TCHAR *fp;
 
-    if ( _xos_absolute_filename(p1, osp1) &&
-	 _xos_absolute_filename(p2, osp2) )
-    { strlwr(osp1);
-      strlwr(osp2);
-      if ( strcmp(osp1, osp2) == 0 )
-	return TRUE;
-    }
+    if ( !_xos_os_filenameW(p1, osp1, PATH_MAX) ||
+	 !_xos_os_filenameW(p2, osp2, PATH_MAX) )
+      return -1;			/* error */
+
+    if ( !GetFullPathName(osp1, PATH_MAX, abs1, &file) ||
+	 !GetFullPathName(osp2, PATH_MAX, abs2, &file) )
+      return -1;
+
+    if ( _tcscmp(abs1, abs2) == 0 )
+      return TRUE;
   }
 
   return FALSE;
@@ -342,14 +390,24 @@ _xos_same_file(const char *p1, const char *p2)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Apply file-name limitations to a   path-name.  For DOS-type filesystems,
 this implies limitation to  the  8+3   convention  and  omitting illegal
-characters.  NT doesn't have all this,   but  filenames are matches case
-insensitive, so we map everything to one case.
+characters.  NT doesn't have all this,   but  filenames are matched case
+insensitive, so we map everything to one case.  Note that both arguments
+are in UTF-8 encoding!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 char *
 _xos_limited_os_filename(const char *spec, char *limited)
-{ strcpy(limited, spec);
-  strlwr(limited);
+{ const unsigned char *i = (const unsigned char*)spec;
+  char *o;
+
+  for( ; *i; )
+  { int wc;
+  
+    i = utf8_get_char(in, &wc);
+    i = towlower(i);
+    o = utf8_put_char(out, wc);
+  }
+  *o = '\0';
 
   return limited;
 }
@@ -362,14 +420,17 @@ _xos_limited_os_filename(const char *spec, char *limited)
 int
 _xos_open(const char *path, int access, ...)
 { va_list args;
-  char buf[PATH_MAX];
+  TCHAR buf[PATH_MAX];
   int mode;
   
   va_start(args, access);
   mode = va_arg(args, int);
   va_end(args);
 
-  return _open(_xos_os_filename(path, buf), access, mode);
+  if ( !_xos_os_filenameW(path, buf, PATH_MAX) )
+    return -1;
+
+  return _open(buf, access, mode);
 }
 
 
@@ -409,54 +470,68 @@ _xos_tell(int handle)
 
 int
 _xos_access(const char *path, int mode)
-{ char buf[PATH_MAX];
+{ TCHAR buf[PATH_MAX];
 
-  return _access(_xos_os_filename(path, buf), mode);
+  if ( !_xos_os_filenameW(path, buf, PATH_MAX) )
+    return -1;
+
+  return _access(buf, mode);
 }
 
 
 int
 _xos_chmod(const char *path, int mode)
-{ char buf[PATH_MAX];
+{ TCHAR buf[PATH_MAX];
 
-  return _chmod(_xos_os_filename(path, buf), mode);
+  if ( !_xos_os_filenameW(path, buf, PATH_MAX) )
+    return -1;
+
+  return _chmod(buf, mode);
 }
 
 
 int
 _xos_remove(const char *path)
-{ char buf[PATH_MAX];
+{ TCHAR buf[PATH_MAX];
 
-  return remove(_xos_os_filename(path, buf));
+  if ( !_xos_os_filenameW(path, buf, PATH_MAX) )
+    return -1;
+
+  return remove(buf);
 }
 
 
 int
 _xos_rename(const char *old, const char *new)
-{ char osold[PATH_MAX];
-  char osnew[PATH_MAX];
+{ TCHAR osold[PATH_MAX];
+  TCHAR osnew[PATH_MAX];
 
-  return rename(_xos_os_filename(old, osold),
-		_xos_os_filename(new, osnew));
+  if ( !_xos_os_filenameW(old, osold, PATH_MAX) ||
+       !_xos_os_filenameW(new, osnew, PATH_MAX) )
+    return -1;
+
+  return rename(osold, osnew);
 }
 
 
 int
 _xos_stat(const char *path, struct stat *sbuf)
-{ char buf[PATH_MAX];
-  
-  _xos_os_filename(path, buf);
+{ TCHAR buf[PATH_MAX];
 
+   if ( !_xos_os_filenameW(path, buf, PATH_MAX) )
+    return -1;
+  
   return stat(buf, (struct stat *) sbuf);
 }
 
 
 int
 _xos_exists(const char *path, int flags)
-{ char buf[PATH_MAX];
+{ TCHAR buf[PATH_MAX];
   DWORD a;
 
-  _xos_os_filename(path, buf);
+  if ( !_xos_os_filenameW(path, buf, PATH_MAX) )
+    return -1;
 
   if ( (a=GetFileAttributes(buf)) != 0xFFFFFFFF )
   { if ( flags & _XOS_DIR )
@@ -483,11 +558,12 @@ _xos_exists(const char *path, int flags)
 
 DIR *
 opendir(const char *path)
-{ char buf[PATH_MAX];
+{ TCHAR buf[PATH_MAX];
   DIR *dp = malloc(sizeof(DIR));
 
-  _xos_os_filename(path, buf);
-  strcat(buf, "\\*.*");
+  if ( !_xos_os_filenameW(path, buf, PATH_MAX-4) )
+    return -1;
+  _tcscat(buf, T("\\*.*"));
   
   if ( !(dp->data = malloc(sizeof(WIN32_FIND_DATA))) )
   { errno = ENOMEM;
@@ -497,7 +573,7 @@ opendir(const char *path)
   dp->handle = FindFirstFile(buf, dp->data);
 
   if ( dp->handle == INVALID_HANDLE_VALUE )
-  { if ( _access(path, 04) )		/* does not exist */
+  { if ( _access(buf, 04) )		/* does not exist */
     { free(dp->data);
       return NULL;
     }
@@ -525,12 +601,22 @@ closedir(DIR *dp)
 static struct dirent *
 translate_data(DIR *dp)
 { WIN32_FIND_DATA *data;
+  const TCHAR *i;
+  char *o;
+  char *e;
 
   if ( !dp->handle )
     return NULL;
 
   data = dp->data;
-  strcpy(dp->d_name, data->cFileName);
+  for(i=data->cFileName, o=dp->d_name, e=&o[sizeof(dp->d_name); *i; i++)
+  { if ( o+6 > e )
+    { errno = ENAMETOOLONG;
+      return NULL;
+    }
+    o = utf8_put_char(o, *i);
+  }
+  *o = '\0';
 
   return dp;
 }
@@ -538,25 +624,32 @@ translate_data(DIR *dp)
 
 struct dirent *
 readdir(DIR *dp)
-{ if ( dp->first )
-  { dp->first = 0;
-  } else
-  { if ( dp->handle )
-    { if ( !FindNextFile(dp->handle, dp->data) )
-	return NULL;
-    }
-  }
+{ for(;;)
+  { dirent *de;
 
-  return translate_data(dp);
+    if ( dp->first )
+    { dp->first = 0;
+    } else
+    { if ( dp->handle )
+      { if ( !FindNextFile(dp->handle, dp->data) )
+	  return NULL;
+      }
+    }
+
+    if ( (de = translate_data(dp)) )
+      return de;
+  }
 }
 
 
 int
 _xos_chdir(const char *path)
-{ char buf[PATH_MAX];
+{ TCHAR buf[PATH_MAX];
 
-  _xos_os_filename(path, buf);
-  if ( isalpha(buf[0]) && buf[1] == ':' )
+  if ( !_xos_os_filenameW(path, buf, PATH_MAX) )
+    return -1;
+
+  if ( buf[0] < 0x80 && isalpha(buf[0]) && buf[1] == ':' )
   { int drv = tolower(buf[0]) - 'a' + 1;
 
     if ( _getdrive() != drv )
@@ -571,123 +664,36 @@ _xos_chdir(const char *path)
 
 int
 _xos_mkdir(const char *path, int mode)
-{ char buf[PATH_MAX];
+{ TCHAR buf[PATH_MAX];
 
-  return _mkdir(_xos_os_filename(path, buf));
+  if ( !_xos_os_filenameW(path, buf, PATH_MAX) )
+    return -1;
+
+  return _mkdir(buf);
 }
 
 
 int
 _xos_rmdir(const char *path)
-{ char buf[PATH_MAX];
+{ TCHAR buf[PATH_MAX];
 
-  return _rmdir(_xos_os_filename(path, buf));
+  if ( !_xos_os_filenameW(path, buf, PATH_MAX) )
+    return -1;
+
+  return _rmdir(buf);
 }
 
 
 char *
 _xos_getcwd(char *buf, int len)
-{ char buf0[PATH_MAX];
-  char buf1[PATH_MAX];
+{ TCHAR buf0[PATH_MAX];
+  TCHAR buf1[PATH_MAX];
 
-  if ( _getcwd(buf0, PATH_MAX) )
-  { _xos_long_file_name(buf0, buf1);
-    if ( strlen(buf1) < (unsigned) len )
-    { _xos_canonical_filename(buf1, buf);
-
-      return buf;
-    }
+  if ( _getcwd(buf0, sizeof(buf0)/sizeof(TCHAR)) &&
+       _xos_long_file_nameW(buf0, buf1, sizeof(buf0)/sizeof(TCHAR)) )
+  { return _xos_canonical_filenameW(buf1, buf, len);
   }
 
   return NULL;
-}
-
-
-		 /*******************************
-		 *	  WIN32S NAME MAP	*
-		 *******************************/
-
-static int
-containsUpperCase(const char *s)
-{ for( ; *s; s++)
-  { if ( isupper(*s) )
-      return TRUE;
-  }
-
-  return FALSE;
-}
-
-
-FILE *
-open_dirmap(const char *dir, const char *how)
-{ char mapname[PATH_MAX];
-  char *s;
-
-  _xos_os_filename(dir, mapname);
-  s = &mapname[strlen(mapname)];
-  if ( s > mapname && s[-1] != '\\' )
-  { *s++ = '\\';
-    *s =  '\0';
-  }
-  strcpy(s, "dir.map");
-
-  return fopen(mapname, how);
-} 
-
-
-int
-_xos_make_filemap(const char *dir)
-{ char pattern[PATH_MAX];
-  char *s;
-  HANDLE handle;
-  WIN32_FIND_DATA data;
-  FILE *mapfd;
-
-  _xos_os_filename(dir, pattern);
-  s = &pattern[strlen(pattern)];
-  if ( s > pattern && s[-1] != '\\' )
-  { *s++ = '\\';
-    *s =  '\0';
-  }
-  strcpy(s, "*.*");
-
-  if ( !(mapfd = open_dirmap(dir, "w")) )
-    return -1;
-
-  if ( (handle = FindFirstFile(pattern, &data)) )
-  { do
-    { if ( data.cAlternateFileName[0] ||
-	   containsUpperCase(data.cFileName) ||
-	   (data.dwFileAttributes & FILE_ATTRIBUTE_READONLY) )
-      { if ( !data.cAlternateFileName[0] )
-	  strcpy(data.cAlternateFileName, data.cFileName);
-
-	fprintf(mapfd,
-		"%s:%s:%06o:%02o\n",
-		data.cFileName,
-		strlwr(data.cAlternateFileName),
-		(data.dwFileAttributes & FILE_ATTRIBUTE_READONLY)
-			? 0444 : 0644,
-		(data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-			? _XOS_DIR : _XOS_FILE);
-      }
-
-      if ( (data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) &&
-	   data.cFileName[0] != '.' )
-      { char subdir[PATH_MAX];
-
-	strcpy(subdir, dir);
-	strcat(subdir, "\\");
-	strcat(subdir, data.cFileName);
-
-	_xos_make_filemap(subdir);
-      }
-    } while( FindNextFile(handle, &data) );
-
-    FindClose(handle);
-  }
-
-  fclose(mapfd);
-  return 0;
 }
 

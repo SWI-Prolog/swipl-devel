@@ -76,7 +76,7 @@
 #define rmdir _xos_rmdir
 #define getcwd _xos_getcwd
 
-#define fopen(p, m) fopen(_xos_os_filename((p), alloca(PATH_MAX)),(m))
+#define fopen(p, m) fopen(_xos_os_filenameW((p), alloca(PATH_MAX*sizeof(wchar_t)), PATH_MAX),(m))
 
 #endif /*_UXNT_KERNEL*/
 
@@ -95,12 +95,12 @@
 #undef _xos_stat
 
 _export char *  _xos_home(void);
-_export char *	_xos_os_filename(const char *cname, char *osname);
-_export char *	_xos_canonical_filename(const char *cname, char *osname);
+_export char *	_xos_os_filenameW(const char *cname, wchar_t *osname, size_t len);
+_export char *	_xos_canonical_filenameW(const wchar_t *cname, char *osname, size_t len);
 _export int	_xos_is_absolute_filename(const char *spec);
-_export char *	_xos_absolute_filename(const char *local, char *absolute);
+_export char *	_xos_absolute_filename(const char *local, char *absolute, size_t len);
 _export char *	_xos_limited_os_filename(const char *spec, char *limited);
-_export char *  _xos_long_file_name(const char *n8and3, char *name);
+_export char *  _xos_long_file_nameW(wchar_t *n8and3, char *name, size_t len);
 _export int	_xos_same_file(const char *p1, const char *p2);
 _export int	_xos_open(const char *path, int access, ...);
 _export int	_xos_close(int handle);
