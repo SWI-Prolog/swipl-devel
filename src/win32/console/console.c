@@ -363,10 +363,13 @@ rlc_window_class(HICON icon)
 }
 
 
-static RlcData
-prepare_main(TCHAR **argv, int *argc, HANDLE hInstance, HANDLE hPrevInstance,
-	     LPTSTR lpszCmdLine, int nCmdShow, HICON icon)
-{ TCHAR		    program[MAXPATHLEN];
+int
+rlc_main(HANDLE hInstance, HANDLE hPrevInstance,
+	 LPTSTR lpszCmdLine, int nCmdShow,
+	 RlcMain mainfunc, HICON icon)
+{ TCHAR *	    argv[100];
+  int		    argc;
+  TCHAR		    program[MAXPATHLEN];
   TCHAR	 	    progbase[100];
   RlcData           b;
   rlc_console_attr  attr;
@@ -385,26 +388,7 @@ prepare_main(TCHAR **argv, int *argc, HANDLE hInstance, HANDLE hPrevInstance,
   _rlc_program = attr.title = progbase;
   _rlc_stdio = b = rlc_create_console(&attr);
 
-  if ( !lpszCmdLine )
-    lpszCmdLine = GetCommandLine();
-
-  *argc = rlc_breakargs(program, lpszCmdLine, argv);
-
-  return b;
-}
-
-
-
-int
-rlc_main(HANDLE hInstance, HANDLE hPrevInstance,
-	 LPTSTR lpszCmdLine, int nCmdShow,
-	 RlcMain mainfunc, HICON icon)
-{ TCHAR *	    argv[100];
-  int		    argc;
-  RlcData           b;
-
-  b = prepare_main(argv, &argc,
-		   hInstance, hPrevInstance, lpszCmdLine, nCmdShow, icon);
+  argc = rlc_breakargs(program, lpszCmdLine, argv);
 
   if ( mainfunc )
     return (*mainfunc)(b, argc, argv);
@@ -412,30 +396,6 @@ rlc_main(HANDLE hInstance, HANDLE hPrevInstance,
     return 0;
 }
 
-
-#if 0
-int
-rlc_main_utf8(HANDLE hInstance, HANDLE hPrevInstance,
-	      LPTSTR lpszCmdLine, int nCmdShow,
-	      RlcMain mainfunc, HICON icon)
-{ TCHAR *	    argv[100];
-  int		    argc;
-  RlcData           b;
-
-  b = prepare_main(argv, &argc,
-		   hInstance, hPrevInstance, lpszCmdLine, nCmdShow, icon);
-
-  if ( mainfunc )
-  { char *av;
-
-    for(i=0; i<argc; i++)
-      av[i] = dup2utf8(argv[i]);
-
-    return (*mainfunc)(b, argc, av);
-  } else
-    return 0;
-}
-#endif
 
 
 rlc_console

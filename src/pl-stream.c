@@ -2129,7 +2129,8 @@ SinitStreams()
     for(i=0; i<=2; i++)
     { if ( !isatty(i) )
 	S__iob[i].flags &= ~SIO_ISATTY;
-      S__iob[i].encoding = enc;
+      if ( S__iob[i].encoding == ENC_ISO_LATIN_1 )
+	S__iob[i].encoding = enc;
 #ifdef O_PLMT
       S__iob[i].mutex = malloc(sizeof(recursiveMutex));
       recursiveMutexInit(S__iob[i].mutex);

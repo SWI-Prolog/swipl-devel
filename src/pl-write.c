@@ -600,7 +600,7 @@ pl_nl1(term_t stream)
 { IOSTREAM *s;
 
   if ( getOutputStream(stream, &s) )
-  { Sputc('\n', s);
+  { Sputcode('\n', s);
     return streamStatus(s);
   }
 
