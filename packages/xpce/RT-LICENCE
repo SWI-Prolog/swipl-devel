@@ -1,0 +1,75 @@
+			    XPCE Runtime Licence
+			    ====================
+
+1. Product
+==========
+
+The XPCE Runtime System consists of the following components:
+
+	bin/xpce	Linked XPCE/SWI-Prolog executable.  Both subsystems
+			are compiled using the flag -DO_RUNTIME and the
+			sources have not been modified to alter the effect
+			of this compiler directive.
+
+ or	lib/xpce4pl.so	Linked XPCE shared library compile with -DO_RUNTIME
+			and the sources have not been modified to alter the
+			effect of this compiler directive.
+
+	bitmaps/*.bm	Standard XPCE bitmaps.  The XPCE bitmaps have no
+			restrictions on their usage or on copying.
+
+	postscript/pce.ps
+			PostScript (tm) header file for XPCE.  This file			may only be used in combination with XPCE.
+
+	RT-LICENCE 	This file. This file may only be copied verbatim.
+
+	README.RT	Info, installation instructions, etc.
+
+	Pce		The XPCE X11 resource file.  May be modified.
+
+2. Copying
+==========			
+
+The contents of this directory as described in (1) may be freely copied.
+Any modification to any of the parts of  this software or its licence is
+illegal.
+
+
+3. Limitations of Use
+=====================
+
+This runtime subsystem may  ONLY  be   used  to  execute XPCE/SWI-Prolog
+RUNTIME files (created using qsave_program/[1,2].  It is explicitely not
+allowed to
+
+    (a) Use any part of this software together with files from the XPCE
+    development system without permission for using the XPCE development
+    system.
+
+    (b) Distribute programs CREATED on this environment without
+    permission for using the XPCE development system.
+
+
+4. Warranty
+===========
+
+WE PROVIDE ABSOLUTELY NO WARRANTY, TO THE EXTENT PERMITTED BY APPLICABLE
+LAW. EXCEPT WHEN OTHERWISE STATED IN WRITING, THE UNIVERSITY OF
+AMSTERDAM AND/OR OTHER PARTIES PROVIDE THE XPCE RUNTIME SYSTEM "AS IS"
+WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING,
+BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+FITNESS FOR A PARTICULAR PURPOSE. THE ENTIRE RISK AS TO THE QUALITY AND
+PERFORMANCE OF THE PROGRAM IS WITH YOU. SHOULD THE XPCE PROGRAM PROVE
+DEFECTIVE, YOU ASSUME THE COST OF ALL NECESSARY SERVICING, REPAIR OR
+CORRECTION.
+
+IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW WILL THE UNIVERSITY OF
+AMSTERDAM, AND/OR ANY OTHER PARTY WHO MAY MODIFY AND REDISTRIBUTE XPCE
+AS PERMITTED ABOVE, BE LIABLE TO YOU FOR DAMAGES, INCLUDING ANY LOST
+PROFITS, LOST MONIES, OR OTHER SPECIAL, INCIDENTAL OR CONSEQUENTIAL
+DAMAGES ARISING OUT OF THE USE OR INABILITY TO USE (INCLUDING BUT NOT
+LIMITED TO LOSS OF DATA OR DATA BEING RENDERED INACCURATE OR LOSSES
+SUSTAINED BY THIRD PARTIES OR A FAILURE OF THE PROGRAM TO OPERATE WITH
+PROGRAMS NOT DISTRIBUTED BY THE UNIVERSITY BY OF AMSTERDAM) THE PROGRAM,
+EVEN IF YOU HAVE BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES, OR FOR
+ANY CLAIM BY ANY OTHER PARTY.
