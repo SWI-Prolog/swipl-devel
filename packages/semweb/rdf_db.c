@@ -1682,7 +1682,7 @@ rdf_assert4(term_t subject, term_t predicate, term_t object, term_t src)
   LOCK();
   link_triple(t);
   generation++;
-  LOCK();
+  UNLOCK();
 
   return TRUE;
 }
