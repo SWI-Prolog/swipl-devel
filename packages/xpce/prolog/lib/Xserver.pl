@@ -64,7 +64,7 @@ ensure_x_server(Display, Depth) :-
                 [ Auth, Display, Cookie, Log ]),
         shell(Cmd1),
         sformat(Cmd2, 'nohup /usr/bin/X11/Xvfb :~w -auth ~w -screen 0 640x480x~w >> ~w &',
-                [ Display, Auth, Log, Depth ]),
+                [ Display, Auth, Depth, Log ]),
         shell(Cmd2),
         sleep(5),
         export_environment(Display).
