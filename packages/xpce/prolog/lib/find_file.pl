@@ -32,7 +32,7 @@ finder in an application is:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 :- use_module(library(pce)).
-:- use_module(file_item).
+:- use_module(library(file_item)).
 :- require([ concat/3
 	   , default/3
 	   , ignore/1
@@ -107,7 +107,9 @@ fill_dialog(F, D) :->
 
 	new(DoOK, message(OK, execute)),
 	send(D, append, new(L, list_browser), right),
-	send(L, select_message, message(F, select, @arg1?key)),
+	send(L, style, directory, style(icon := 'dir.bm')),
+	send(L, style, file,      style(icon := 'file.bm')),
+	send(L, select_message, message(F, select, @arg1?key, @arg1?style)),
 	send(L, open_message, DoOK),
 	send(L, recogniser,
 	     handler(area_enter, message(D, keyboard_focus, L))),
@@ -126,13 +128,12 @@ complete_file(Dir, Prefix, Files) :-
 	get(directory(Dir), files, Re, Files).
 
 
-select(F, Name:string) :->
+select(F, Name:string, Type:{directory,file}) :->
 	"Handle selection from browser"::
 	get(F?dialog, file_member, FI),
-	(   send(Name, suffix, /),
-	    get(Name, scan, '%[^/]/', vector(string(DirName)))
+	(   Type == directory
 	->  get(F?dialog, directory_member, DI),
-	    send(F, directory, string('%s/%s', DI?selection, DirName))
+	    send(F, directory, string('%s/%s', DI?selection, Name))
 	;   send(FI, selection, Name)
 	).
 
@@ -221,10 +222,12 @@ directory(F, Dir:[directory], Ext:[name]) :->
 	    get(AllFiles, find_all, message(R, match, @arg1), Files),
 	    send(AllFiles, done)
 	),
-	send(Dirs, for_all, message(B, append,
-				       ?(@pce, instance,
-					 string, '%s/', @arg1))),
-	send(Files, for_all, message(B, append, @arg1)),
+	send(Dirs, for_all,
+	     message(B, append,
+		     create(dict_item, @arg1, @default, @nil, directory))),
+	send(Files, for_all,
+	     message(B, append,
+		     create(dict_item, @arg1, @default, @nil, file))),
 	send(Dirs, done),
 	send(Files, done),
 	
@@ -254,8 +257,6 @@ file(F, Exists:exists=[bool], Ext:extension=[name],
 
 :- pce_end_class.
 
-/*
 test :-
 	get(@finder, file, File),
 	format('File = ~w~n', File).
-*/

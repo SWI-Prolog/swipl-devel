@@ -135,7 +135,8 @@ pcePPReference(PceObject ref)
       return save_string(tmp);
     } else
       return pp(addr);
-  }
+  } else
+    return save_string("invalid reference");
 }
 
 
@@ -437,7 +438,7 @@ void
 pceTrace(int on)
 {
 #ifndef O_RUNTIME
-  tracePce(PCE, on ? NAME_user : NAME_never);
+ tracePce(PCE, on ? NAME_user : NoTraceMode);
 #endif
 }
 

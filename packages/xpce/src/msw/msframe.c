@@ -222,6 +222,17 @@ frame_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
         case VK_UP:		id = NAME_cursorUp;	break;
         case VK_DOWN:		id = NAME_cursorDown;	break;
         case VK_HOME:		id = NAME_cursorHome;	break;
+	case VK_PRIOR:		id = NAME_pageUp;	break;
+	case VK_NEXT:		id = NAME_pageDown;	break;
+	case VK_END:		id = NAME_end;		break;
+	
+	case VK_SELECT:		id = NAME_select;	break;
+	case VK_PRINT:		id = NAME_print;	break;
+	case VK_EXECUTE:	id = NAME_execute;	break;
+	case VK_INSERT:		id = NAME_insert;	break;
+	case VK_HELP:		id = NAME_help;		break;
+	case VK_MENU:		id = NAME_menu;		break;
+
         case VK_F1:		id = NAME_keyTop_1;	break;
         case VK_F2:		id = NAME_keyTop_2;	break;
         case VK_F3:		id = NAME_keyTop_3;	break;

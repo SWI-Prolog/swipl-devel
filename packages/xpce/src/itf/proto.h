@@ -57,6 +57,7 @@ void *		pcePointerToC(PceObject obj);
 Any		cToPceAssoc(const char *s);
 Any		cToPceReference(ulong val);
 int		pceExistsReference(ulong ref);
+char *		pcePPReference(PceObject ref);
 int		pceExistsAssoc(PceName assoc);
 PceObject	cToPceTmpCharArray(const char *s);
 void		donePceTmpCharArray(Any ca);

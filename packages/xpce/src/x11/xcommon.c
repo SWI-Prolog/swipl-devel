@@ -541,11 +541,31 @@ keycode_to_name(XEvent *event)
     case XK_R14:	return NAME_keyRight_14;
     case XK_R15:	return NAME_keyRight_14;
 
+/* Cursor motion */
+
     case XK_Home:	return NAME_cursorHome;
     case XK_Left:	return NAME_cursorLeft;
     case XK_Up:		return NAME_cursorUp;
     case XK_Right:	return NAME_cursorRight;
     case XK_Down:	return NAME_cursorDown;
+    case XK_Page_Up:	return NAME_pageUp;
+    case XK_Page_Down:	return NAME_pageDown;
+    case XK_End:	return NAME_end;
+    case XK_Begin:	return NAME_begin;
+
+/* Misc Functions */
+
+    case XK_Select:	return NAME_select;
+    case XK_Print:	return NAME_print;
+    case XK_Execute:	return NAME_execute;
+    case XK_Insert:	return NAME_insert;
+    case XK_Undo:	return NAME_undo;
+    case XK_Redo:	return NAME_redo;
+    case XK_Menu:	return NAME_menu;
+    case XK_Find:	return NAME_find;
+    case XK_Cancel:	return NAME_cancel;
+    case XK_Help:	return NAME_help;
+    case XK_Break:	return NAME_break;
   }
 
   DEBUG(NAME_keysym, Cprintf("sym = 0x%X\n", (unsigned int)sym));

@@ -1,4 +1,33 @@
+[VERSION 4.8.17]
+
 [VERSION 4.8.16]
+
+* ADDED: support for displaying images to the left of lines in a browser.
+  The image is specified using the icon option of the associated style.
+
+* ADDED: `image <-scale' to scale bitmaps.
+
+* ADDED: `list_browser ->{next_line,previous_line}' and some keybindings
+  to support proper keyboard driven handling of list_browsers.
+
+* ADDED: Event-conversion for many more `named function keys': page_up,
+  page_down, end, insert, help, etc.
+
+* FIXED: Exit immediately if loading pl2xpce.so fails, instead of reporting
+  lots and lots of error messages caused by this.
+
+* FIXED: Solaris to use sysinfo() rather then gethostname() for better
+  System-V compatibility.
+
+* ADDED: @pce <->trap_errors.  When set to @off, all runtime errors will
+  be ->report'ed and the tracer will never be trapped.  Useful for running
+  apps.  @pce->trap_errors sets @pce->trace to `never'.  @pce->trace has
+  a new value, called `error', which confirms to the old `never'.
+
+* FIXED: Added some extra conditions to connect_gesture to make it behave
+  better when not used entirely as it was designed for.  It is no longer
+  obligatory to invoke the super method of ->verify in subclasses of
+  connect_gesture.  Updated the class documentation.
 
 * MODIFIED: Changed default extension for PostScript output to be .eps,
   which appears to be more conforming to the current standards.  PceDraw
@@ -24,7 +53,8 @@
   popup menus.  Modified code-generation, make_dialog/2 and reload-from-id.
 
 * FIXED: `stream <->record_separator' handling.  Probably broken since
-  version 4.8.14.  Also improved underline/bold handling and feedback.
+  version 4.8.14.  Also improved underline/bold handling and feedback
+  for M-x manual_entry in PceEmacs.
 
 * Added `graphical <-displayed_cursor' to make cursor computation available
   to the (advanced) user.

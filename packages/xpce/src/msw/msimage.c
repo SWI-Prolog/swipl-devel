@@ -506,6 +506,44 @@ ws_resize_image(Image image, Int w, Int h)
 }
 
 
+Image
+ws_scale_image(Image image, int w, int h)
+{ Image copy = answerObject(ClassImage, NIL,
+			    toInt(w), toInt(h), image->kind, 0);
+  DisplayObj d = image->display;
+
+  if ( isNil(d) )
+    d = CurrentDisplay(image);
+
+  if ( copy && d )
+  { HBITMAP sbm = (HBITMAP) getXrefObject(image, d);
+
+    if ( sbm )
+    { HDC hdcsrc   = CreateCompatibleDC(NULL);
+      HDC hdcdst   = CreateCompatibleDC(hdcsrc);
+      HBITMAP osbm = ZSelectObject(hdcsrc, sbm);
+      HBITMAP  dbm = ZCreateCompatibleBitmap(hdcsrc, w, h);
+      HBITMAP odbm = ZSelectObject(hdcdst, dbm);
+
+      StretchBlt(hdcdst,
+		 0, 0, w, h,		/* dest rectangle */
+		 hdcsrc,
+		 0, 0, valInt(image->size->w), valInt(image->size->h),
+		 SRCCOPY);
+      
+      ZSelectObject(hdcsrc, osbm);
+      ZSelectObject(hdcdst, odbm);
+      DeleteDC(hdcsrc);
+      DeleteDC(hdcdst);
+
+      registerXrefObject(copy, d, (void *) dbm);
+    }
+  }
+
+  answer(copy);
+}
+
+
 void
 ws_postscript_image(Image image, Int depth)
 { int w = valInt(image->size->w);

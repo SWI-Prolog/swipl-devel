@@ -552,7 +552,7 @@ fetch_list_browser(Any obj, TextChar tc)
   tc->background   = current_background;
   tc->index        = index;
 
-  if ( pos <= current_search )
+  if ( pos > 0 && pos <= current_search )
   { Style s = getResourceValueObject(lb, NAME_isearchStyle);
 
     if ( s && notDefault(s) )
@@ -1140,6 +1140,8 @@ static status
 scrollUpListBrowser(ListBrowser lb, Int arg)
 { Int lines = (isDefault(arg) ? sub(getLinesTextImage(lb->image), ONE) : arg);
 
+  if ( isDefault(arg) )
+    cancelSearchListBrowser(lb);
   return scrollToListBrowser(lb, add(lb->start, lines));
 }
 
@@ -1148,7 +1150,17 @@ static status
 scrollDownListBrowser(ListBrowser lb, Int arg)
 { Int lines = (isDefault(arg) ? sub(getLinesTextImage(lb->image), ONE) : arg);
 
+  if ( isDefault(arg) )
+    cancelSearchListBrowser(lb);
   return scrollToListBrowser(lb, sub(lb->start, lines));
+}
+
+
+static status
+recenterListBrowser(ListBrowser lb, Int arg)
+{ cancelSearchListBrowser(lb);
+
+  succeed;
 }
 
 
@@ -1179,6 +1191,85 @@ scrollVerticalListBrowser(ListBrowser lb, Name dir, Name unit, Int amount)
   }
 
   succeed;
+}
+
+		 /*******************************
+		 *	  LINE UP/DOWN		*
+		 *******************************/
+
+static status
+nextLineListBrowser(ListBrowser lb, Int lines)
+{ if ( notNil(lb->dict) )
+  { int times = isDefault(lines) ? 1 : valInt(lines);
+    DictItem di = NULL;
+
+    if ( valInt(lb->search_hit) >= 0 )
+    { Int newi = normalise_index(lb, toInt(valInt(lb->search_hit) + times));
+
+      di = getNth0Chain(lb->dict->members, newi);
+      if ( di )
+      { CharArray lbl = getLabelDictItem(di);
+	DictItem di2 = getNth0Chain(lb->dict->members, lb->search_hit);
+
+	ChangeItemListBrowser(lb, di2);
+
+	if ( !prefixCharArray(lbl, (CharArray)lb->search_string) )
+	{ assign(lb, search_string,
+		 newObject(ClassString, name_procent_s, lbl, 0));
+	  assign(lb, search_origin, newi);
+	}
+	assign(lb, search_hit, newi);
+      }
+    } else if ( lb->multiple_selection == OFF )
+    { Int newi;
+      int start = valInt(lb->image->start) / BROWSER_LINE_WIDTH;
+      int last  = (valInt(lb->image->end) - 1) / BROWSER_LINE_WIDTH;
+      
+      if ( notNil(lb->selection) )
+      { di   = lb->selection;
+
+	if ( valInt(di->index) >= start &&
+	     valInt(di->index) <= last )
+	{ ChangeItemListBrowser(lb, di);
+	  newi = normalise_index(lb, toInt(valInt(di->index) + times));
+	  di = getNth0Chain(lb->dict->members, newi);
+	} else
+	  goto topofpage;
+      } else
+      { topofpage:
+	newi = toInt(start);
+	di   = getNth0Chain(lb->dict->members, newi);
+      }
+
+      if ( di )
+      { assign(lb, search_origin, newi);
+	assign(lb, search_hit, newi);
+	assign(lb, search_string,
+	       newObject(ClassString, name_procent_s,
+			 getLabelDictItem(di), 0));
+      }
+    }
+
+    if ( di )
+    { normaliseListBrowser(lb, di);
+      return ChangeItemListBrowser(lb, di);
+    }
+
+    fail;
+  }
+
+  fail;
+}
+
+
+static status
+previousLineListBrowser(ListBrowser lb, Int lines)
+{ if ( isDefault(lines) )
+    lines = toInt(-1);
+  else
+    lines = neg(lines);
+  
+  return nextLineListBrowser(lb, lines);
 }
 
 
@@ -1501,8 +1592,14 @@ static senddecl send_listBrowser[] =
      NAME_scroll, "Make nth-1 item start of window"),
   SM(NAME_scrollUp, 1, "[int]", scrollUpListBrowser,
      NAME_scroll, "Scroll lines up (default one window)"),
+  SM(NAME_recenter, 1, "[int]", recenterListBrowser,
+     NAME_scroll, "Recenter current line (to be implemented)"),
   SM(NAME_scrollVertical, 3, T_scrollVertical, scrollVerticalListBrowser,
      NAME_scroll, "Handle scroll_bar request"),
+  SM(NAME_nextLine, 1, "[int]", nextLineListBrowser,
+     NAME_selection, "Set selection to next item"),
+  SM(NAME_previousLine, 1, "[int]", previousLineListBrowser,
+     NAME_selection, "Set selection to previous item"),
   SM(NAME_backwardDeleteChar, 0, NULL, backwardDeleteCharListBrowser,
      NAME_search, "Undo last search extension"),
   SM(NAME_cancelSearch, 0, NULL, cancelSearchListBrowser,

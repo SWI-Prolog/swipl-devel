@@ -245,12 +245,14 @@ typedKeyBinding(KeyBinding kb, EventId id, Graphical receiver)
 	resetKeyBinding(kb, receiver);
 					/* Next/Previous line column saving */
       else if ( cmd == NAME_nextLine || cmd == NAME_previousLine )
-      { if ( isNil(kb->saved_column) &&
-	     hasGetMethodObject(receiver, NAME_column) )
+      { int preservescolumn = hasGetMethodObject(receiver, NAME_column);
+
+	if ( isNil(kb->saved_column) && preservescolumn )
 	  assign(kb, saved_column, get(receiver, NAME_column, 0));
 
 	argv[argc++] = kb->argument;
-	argv[argc++] = kb->saved_column;
+	if ( preservescolumn )
+	  argv[argc++] = kb->saved_column;
 	reset |= RESET_ARGUMENT;
 					/* Universal argument specification */
       } else if ( cmd == NAME_digitArgument && isInteger(id) )
@@ -637,6 +639,7 @@ static kbDef text_item_view[] =
 
 static kbDef list_browser[] =
 { { SUPER,		NAME_insert },
+  { SUPER,		NAME_emacsPage },
 
   { "\\C-g",		NAME_keyboardQuit },
   { "\\e",		NAME_keyboardQuit },
@@ -646,6 +649,10 @@ static kbDef list_browser[] =
   { "TAB",		NAME_extendPrefixOrNext },
   { "\\C-w",		NAME_extendToCurrent },
   { "\\C-s",		NAME_repeatSearch },
+  { "\\C-n", 		NAME_nextLine },
+  { "cursor_down",	NAME_nextLine },
+  { "\\C-p", 		NAME_previousLine },
+  { "cursor_up", 	NAME_previousLine },
 
   { DEFAULT_FUNCTION,	NAME_alert },
 
@@ -656,6 +663,8 @@ static kbDef emacs_page[] =
 { { "\\C-v",		NAME_scrollUp },
   { "\\ev",		NAME_scrollDown },
   { "\\C-l",		NAME_recenter },
+  { "page_up",		NAME_scrollDown },
+  { "page_down",	NAME_scrollUp },
 
   { NULL,		NULL }
 };
@@ -690,7 +699,9 @@ static kbDef editor[] =
   { "\\e[",		NAME_backwardParagraph },
   { "\\e]",		NAME_forwardParagraph },
   { "\\e<",		NAME_pointToTopOfFile },
+  { "cursor_home",	NAME_pointToTopOfFile },
   { "\\e>",		NAME_pointToBottomOfFile },
+  { "end",		NAME_pointToBottomOfFile },
   { "\\e/",		NAME_dabbrevExpand },
   { "\\eDEL",		NAME_backwardKillWord },
 

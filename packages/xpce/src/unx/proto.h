@@ -13,6 +13,7 @@ Name		getOsNameFile(FileObj f);
 status		closeFile(FileObj f);
 status		existsFile(FileObj f, Bool mustbefile);
 Name		getAbsolutePathFile(FileObj f);
+status		isAbsoluteFile(FileObj f);
 status		backup_name(char *old, char *ext, char *bak);
 status		backup_name(char *old, char *ext, char *bak);
 status		backupFile(FileObj f, Name ext);
@@ -29,7 +30,6 @@ status		storeCharpFile(FileObj f, char *s);
 status		storeNameFile(FileObj f, Name n);
 status		storeIntFile(FileObj f, Int i);
 status		findFile(FileObj f, CharArray path, Name mode);
-status		isAbsoluteFile(FileObj f);
 status		checkObjectFile(FileObj f);
 status		makeClassFile(Class class);
 

@@ -64,6 +64,7 @@ status		moveBeforeChain(Chain ch, Any obj1, Any obj2);
 status		moveAfterChain(Chain ch, Any obj1, Any obj2);
 status		beforeChain(Chain ch, Any obj1, Any obj2);
 Any		getNth1Chain(Chain ch, Int index);
+Any		getNth0Chain(Chain ch, Int index);
 status		cellValueChain(Chain ch, Int c, Any obj);
 Cell		getNth0CellChain(Chain ch, Int index);
 Int		getIndexChain(Chain ch, Any obj);

@@ -111,7 +111,7 @@ breakProgramObject(ProgramObject obj, Bool val, Name what, Code cond)
     clearDFlag(obj, D_BREAK_INHERIT);
     if ( val == ON )
     { setDFlag(obj, flag);
-      if ( PCE->trace == NAME_never )
+      if ( PCE->trace == NAME_never || PCE->trace == NAME_error )
 	tracePce(PCE, NAME_user);
     } else
       clearDFlag(obj, flag);

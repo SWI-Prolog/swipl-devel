@@ -20,3 +20,4 @@ void	ws_kill_process(Process p, int sig);
 int	iswin32s(void);
 char *	ws_os(void);
 Name	WinStrError(int error, ...);
+status	makeClassWinMF(Class class);

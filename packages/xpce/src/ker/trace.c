@@ -121,7 +121,7 @@ actionHelp(void)
 { writef("\nXPCE Tracer options:\n");
   writef(" a\t\tabort\t\tAbort to host-language toplevel\n");
   writef(" b\t\tbreak\t\tStart interactive toplevel\n");
-  writef(" c[nua]\t\tcontinue\tContinue to next break-point in trace-mode\n");
+  writef(" c[neua]\t\tcontinue\tContinue to next break-point in trace-mode\n");
   writef("\t\t\t\t[never/user/always]\n");
   writef(" e[iwef] [id]\terror kind\tSet kind to [ignored/warning/error/fatal]\n");
   writef(" g[ah] [depth]\tgoals\t\tPrint stack [always/host]\n");
@@ -215,7 +215,7 @@ again:
 	    Trace(TRACE_NEVER, hostAction(HOST_HALT));
 	    exit(1);
 	  case 'n':
-	    tracePce(PCE, NAME_never);
+	    tracePce(PCE, NoTraceMode);
 	    return;
 	  case 'e':
 	    { Error e;
@@ -282,7 +282,7 @@ again:
 	    return;
 	  case 't':
 	    if ( hostAction(HOST_TRACE) )
-	    { tracePce(PCE, NAME_never);
+	    { tracePce(PCE, NoTraceMode);
 	      return;
 	    } else
 	    { writef("Trace not supported by host-language\n");
@@ -293,6 +293,9 @@ again:
 	    { case 'n':
 		tracePce(PCE, NAME_never);
 		break;
+	      case 'e':
+		tracePce(PCE, NAME_error);
+	        break;
 	      case 'u':
 		tracePce(PCE, NAME_user);
 		break;

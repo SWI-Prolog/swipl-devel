@@ -3,6 +3,7 @@
 status		initialiseCharArray(CharArray n, CharArray value);
 Name		getValueCharArray(CharArray n);
 status		equalCharArray(CharArray n1, CharArray n2);
+status		prefixCharArray(CharArray n1, CharArray n2);
 status		suffixCharArray(CharArray n, CharArray s, Bool ign_case);
 CharArray	getCopyCharArray(CharArray n);
 CharArray	getCapitaliseCharArray(CharArray n);

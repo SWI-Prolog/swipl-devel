@@ -21,11 +21,14 @@
 #define G_SKIP		makeGFlag(3)	/* Skipping this goal */
 
 #define TRACE_NEVER  0
+#define TRACE_ERROR  0			/* same! */
 #define TRACE_USER   1
 #define TRACE_ALWAYS 2
 
 #define MODE_USER	0
 #define MODE_SYSTEM	G_SYSTEM	/* So we can use it as initial */
+
+#define NoTraceMode (PCE->trap_errors == ON ? NAME_error : NAME_never)
 
 GLOBAL Goal	CurrentGoal;		/* current active goal */
 GLOBAL int	TraceMode;		/* Current trace mode */

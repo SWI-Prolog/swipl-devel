@@ -62,6 +62,7 @@ status		layoutDialogDevice(Device d, Size gap);
 status		appendDialogItemDevice(Device d, Graphical item, Name where);
 Graphical	getMemberDevice(Device dev, Name name);
 status		geometryDevice(Device dev, Int x, Int y, Int w, Int h);
+status		textMoveDevice(Device dev, Int x, Int y);
 status		makeClassDevice(Class class);
 
 /* gra/ellipse.c */

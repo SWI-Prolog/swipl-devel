@@ -1141,7 +1141,7 @@ nth1Chain(Chain ch, Int index, Any value)
 }
 
 
-static Any
+Any
 getNth0Chain(Chain ch, Int index)
 { register Cell cell;
   register int n = valInt(index);

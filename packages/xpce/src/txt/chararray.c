@@ -99,7 +99,7 @@ equalCharArray(CharArray n1, CharArray n2)
 }
 
 
-static status
+status
 prefixCharArray(CharArray n1, CharArray n2) /* n2 is prefix of n1 */
 { if ( str_prefix(&n1->data, &n2->data) )
     succeed;

@@ -45,8 +45,17 @@ verifyConnectGesture(ConnectGesture g, EventObj ev)
 
 static status
 initiateConnectGesture(ConnectGesture g, EventObj ev)
-{ Device dev = g->device;
-  Point pos = getPositionEvent(ev, dev);
+{ Device dev;
+  Point pos;
+
+					/* safety for redefinition */
+  if ( isNil(ev->receiver->device) || isNil(g->link) )
+    fail;
+    
+  if ( isNil(g->device) )
+    assign(g, device, ev->receiver->device);
+  dev = g->device;
+  pos = getPositionEvent(ev, dev);
 
   send(g->line, NAME_copy, g->link->line, 0);
   send(g->line, NAME_texture, NAME_dotted, 0);
@@ -170,6 +179,9 @@ indicateHandleConnectGesture(ConnectGesture g,
   Device dev = g->device;
   Point pos = getHandlePositionGraphical(gr, name, dev);
   BitmapObj bm;
+
+  if ( !pos )
+    fail;
 
   for_cell(cell, ch)
   { bm = cell->value;

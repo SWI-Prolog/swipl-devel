@@ -51,7 +51,8 @@ initialisePce(Pce pce)
 
 #ifndef O_RUNTIME
   assign(pce, debugging,          OFF);
-  assign(pce, trace, 	          NAME_never);
+  assign(pce, trap_errors,	  ON);
+  assign(pce, trace, 	          NAME_error);
 #endif
   assign(pce, catched_errors,	  newObject(ClassChain, 0));
   assign(pce, catch_error_signals,OFF);
@@ -336,10 +337,21 @@ tracePce(Pce pce, Name val)
 
   if ( val == NAME_never )
     TraceMode = TRACE_NEVER;
+  else if ( val == NAME_error )
+    TraceMode = TRACE_ERROR;
   else if ( val == NAME_user )
     TraceMode = TRACE_USER;
   else
     TraceMode = TRACE_ALWAYS;
+
+  succeed;
+}
+
+
+static status
+trapErrorsPce(Pce pce, Bool trap)
+{ assign(pce, trap_errors, trap);
+  tracePce(pce, trap == ON ? NAME_error : NAME_never);
 
   succeed;
 }
@@ -697,7 +709,7 @@ _emu_getlogin()
 }
 #endif /*HAVE_GETLOGIN*/
 
-#ifndef HAVE_GETHOSTNAME
+#if !defined(HAVE_GETHOSTNAME) || defined(HAVE_SYSINFO)
 #undef gethostname
 #define gethostname _emu_gethostname
 #ifdef HAVE_SYSINFO			/* solaris */
@@ -986,7 +998,7 @@ resetPce(Pce pce)
   if ( notNil(pce) )
   {
 #ifndef O_RUNTIME
-    tracePce(pce, NAME_never);
+    tracePce(pce, NoTraceMode);
 #endif
     clearChain(pce->catched_errors);
   }
@@ -1178,7 +1190,9 @@ static vardecl var_pce[] =
 #ifndef O_RUNTIME
   SV(NAME_debugging, "bool", IV_GET|IV_STORE, debuggingPce,
      NAME_debugging, "Add consistency checks"),
-  IV(NAME_trace, "{never,user,always}", IV_GET,
+  SV(NAME_trapErrors, "bool", IV_GET|IV_STORE, trapErrorsPce,
+     NAME_debugging, "Trap tracer on errors"),
+  IV(NAME_trace, "{never,error,user,always}", IV_GET,
      NAME_debugging, "Trace message passing"),
 #endif
   IV(NAME_lastError, "name*", IV_BOTH,
@@ -1237,7 +1251,7 @@ static senddecl send_pce[] =
      NAME_debugging, "Don't Report internal event on terminal"),
   SM(NAME_printStack, 2, T_printStack, printStackPce,
      NAME_debugging, "Print PCE message stack to host-window"),
-  SM(NAME_trace, 1, "level=[{never,user,always}]", tracePce,
+  SM(NAME_trace, 1, "level=[{never,error,user,always}]", tracePce,
      NAME_debugging, "Set trace mode (default = user)"),
   SM(NAME_debugSubject, 1, "subject=name", debugSubjectPce,
      NAME_debugging, "Report internal event on terminal"),

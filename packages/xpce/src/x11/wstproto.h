@@ -165,6 +165,7 @@ status		ws_save_image_file(Image image, FileObj file, Name fmt);
 status		ws_open_image(Image image, DisplayObj d);
 void		ws_close_image(Image image, DisplayObj d);
 status		ws_resize_image(Image image, Int w, Int h);
+Image		ws_scale_image(Image image, int w, int h);
 void		ws_postscript_image(Image image, Int depth);
 void		ws_create_image_from_x11_data(Image image, unsigned char *data, int w, int h);
 

@@ -1036,6 +1036,7 @@ void
 run_pce_exit_hooks()
 { AtexitEntry h;
 
+  assign(PCE, trap_errors, OFF);
   tracePce(PCE, NAME_never);
 
   if ( exit_running++ )

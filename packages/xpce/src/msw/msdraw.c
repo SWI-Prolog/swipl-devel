@@ -446,6 +446,34 @@ d_hdc(HDC hdc, Colour fg, Colour bg)
 }
 
 
+status
+d_winmf(const char *fn, const char *descr)
+{ HDC hdc;
+
+  if ( (hdc = CreateEnhMetaFile(NULL,	/* HDC reference */
+				fn,	/* name of the metafile */
+				NULL,	/* bounding box */
+				descr)) )
+  { d_hdc(hdc, DEFAULT, DEFAULT);
+
+    succeed;
+  }
+
+  Cprintf("CreateEnhMetaFile() failed\n");
+  fail;
+}
+
+
+HENHMETAFILE
+d_winmfdone()
+{ HENHMETAFILE hmf = CloseEnhMetaFile(context.hdc);
+
+  d_done();
+
+  return hmf;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Clipping is nasty in MS-Windows.  The   task of the pair r_clip(x,y,w,h)
 and r_clip_done() is to set the clipping   area  of the device (given in
@@ -1698,34 +1726,51 @@ r_image(Image image,
 	int sx, int sy,
 	int x, int y, int w, int h,
 	Bool transparent)
-{ HBITMAP bm = (HBITMAP) getXrefObject(image, context.display);
-  HDC mhdc = CreateCompatibleDC(context.hdc);
-  HBITMAP obm = ZSelectObject(mhdc, bm);
+{ if ( w > 0 && h > 0 &&
+       image->size->w != ZERO && image->size->h != ZERO )
+  { HBITMAP bm = (HBITMAP) getXrefObject(image, context.display);
+    HDC mhdc = CreateCompatibleDC(context.hdc);
+    HBITMAP obm = ZSelectObject(mhdc, bm);
 
-  DEBUG(NAME_redraw,
-	Cprintf("r_image(%s, %d, %d, %d, %d, %d, %d) (bm=0x%x, mhdc=0x%x)\n",
-		pp(image), sx, sy, x, y, w, h, (long)bm, (long)mhdc));
+    DEBUG(NAME_redraw,
+	  Cprintf("r_image(%s, %d, %d, %d, %d, %d, %d) (bm=0x%x, mhdc=0x%x)\n",
+		  pp(image), sx, sy, x, y, w, h, (long)bm, (long)mhdc));
     
-  if ( transparent == ON && valInt(image->depth) <= 1 )
-  { HBRUSH hbrush = ZCreateSolidBrush(context.rgb);
-    HBRUSH oldbrush = ZSelectObject(context.hdc, hbrush);
-    COLORREF oldbk = SetBkColor(context.hdc, RGB(255,255,255));
-    COLORREF oldtx = SetTextColor(context.hdc, RGB(0,0,0));
+    if ( transparent == ON && valInt(image->depth) <= 1 )
+    { HBRUSH hbrush = ZCreateSolidBrush(context.rgb);
+      HBRUSH oldbrush = ZSelectObject(context.hdc, hbrush);
+      COLORREF oldbk = SetBkColor(context.hdc, RGB(255,255,255));
+      COLORREF oldtx = SetTextColor(context.hdc, RGB(0,0,0));
+      
+      BitBlt(context.hdc, x, y, w, h, mhdc, sx, sy, 0xB8074AL);
+      /* ROP from "Programming Windows3.1" */
+      /* 3-rd edition, page 633 */
+      SetTextColor(context.hdc, oldtx);
+      SetBkColor(context.hdc, oldbk);
 
-    BitBlt(context.hdc, x, y, w, h, mhdc, sx, sy, 0xB8074AL);
-					/* ROP from "Programming Windows3.1" */
-					/* 3-rd edition, page 633 */
-    SetTextColor(context.hdc, oldtx);
-    SetBkColor(context.hdc, oldbk);
-
-    ZSelectObject(context.hdc, oldbrush);
-    ZDeleteObject(hbrush);
-  } else
-  { BitBlt(context.hdc, x, y, w, h, mhdc, sx, sy, SRCCOPY);
+      ZSelectObject(context.hdc, oldbrush);
+      ZDeleteObject(hbrush);
+    } else
+    { BitBlt(context.hdc, x, y, w, h, mhdc, sx, sy, SRCCOPY);
+    }
+      
+    ZSelectObject(mhdc, obm);
+    DeleteDC(mhdc);
   }
+}
 
-  ZSelectObject(mhdc, obm);
-  DeleteDC(mhdc);
+
+void
+r_winmf(HENHMETAFILE hmf, int x, int y, int w, int h)
+{ RECT r;
+
+  r.left   = x;
+  r.top    = y;
+  r.bottom = y + h;
+  r.right  = x + w;
+
+  if ( !PlayEnhMetaFile(context.hdc, hmf, &r) )
+    Cprintf("PlayEnhMetaFile() failed\n"); /* TBD */
 }
 
 

@@ -433,6 +433,138 @@ ws_resize_image(Image image, Int w, Int h)
   return setSize(image->size, w, h);
 }
 
+		 /*******************************
+		 *	SCALE/ZOOM IMAGES	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This code is inspired by  the  module   zoom.c  from  the xloadimage 4.1
+package written by Jim Frost. The extend   of the `inspiration' makes me
+feel free to leave the original copyright  notice out, where it is noted
+that the original  copyright  allows   for  modification,  embedding and
+commercial usage of the code without a fee and the original author is in
+no way responsible for the consequences  of   using  his  code. I hereby
+thank him for providing a starting point.
+
+XPCE's bitmap scaling isn't  very   professional.  Scaling  up generally
+provides acceptable results, but scaling   down monochrome images should
+exploit better heuristics,  while  scaling   down  colour  images should
+exploit the freedom of the colour system.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static unsigned int *
+buildIndex(unsigned width, unsigned rwidth)
+{ float         fzoom;
+  int		 zoom;
+  unsigned int *index;
+  unsigned int  a;
+
+
+  if ( width == rwidth )
+  { zoom  = FALSE;
+    fzoom = 100.0;
+  } else
+  { zoom  = TRUE;
+    fzoom = (float)rwidth / (float) width;
+  }
+
+  index = pceMalloc(sizeof(unsigned int) * rwidth);
+
+  if ( zoom )
+  { for(a=0; a < rwidth; a++)
+      index[a] = rfloat((float)a/fzoom);
+  } else
+  { for(a=0; a < rwidth; a++)
+      index[a] = a;
+  }
+
+  return index;
+}
+
+#ifndef ROUNDUP
+#define ROUNDUP(v, n) ((((v)+(n)-1)/(n)) * (n))
+#endif
+
+XImage *
+ZoomXImage(Display *dsp, Visual *v, XImage *oimage,
+	   unsigned xwidth, unsigned ywidth)
+{ XImage       *image;
+  unsigned int *xindex, *yindex;
+  unsigned int  x, y, xsrc, ysrc;
+  unsigned long value;
+  int bytes_per_line;
+  char *data;
+
+  xindex = buildIndex(oimage->width,  xwidth);
+  yindex = buildIndex(oimage->height, ywidth);
+
+					/* determine dimensions */
+  bytes_per_line = ROUNDUP((xwidth * oimage->depth + 7)/8,
+			   oimage->bitmap_pad/8);
+  data = pceMalloc(bytes_per_line * ywidth);
+
+					/* Create the destination XImage */
+  image = XCreateImage(dsp, v,
+		       oimage->depth,
+		       oimage->format,
+		       0,
+		       data,
+		       xwidth, ywidth,
+		       oimage->bitmap_pad, bytes_per_line);
+
+  switch( oimage->format )
+  { case XYBitmap:
+    default:				/* colour images */
+      for(y = 0; y < ywidth; y++)
+      { ysrc = yindex[y];
+
+	for(x= 0; x < xwidth; x++)
+	{ xsrc = xindex[x];
+
+	  value = XGetPixel(oimage, xsrc, ysrc);
+	  XPutPixel(image, x, y, value);
+	}
+      }
+      break;
+  }
+
+  pceFree(xindex);
+  pceFree(yindex);
+
+  return(image);
+}
+
+
+Image
+ws_scale_image(Image image, int w, int h)
+{ Image copy = answerObject(ClassImage, NIL,
+			    toInt(w), toInt(h), image->kind, 0);
+  XImage *i;
+  DisplayObj d = image->display;
+  DisplayWsXref r;
+
+  if ( isNil(d) )
+    d = CurrentDisplay(image);
+  r = d->ws_ref;
+
+  if ( !(i=getXImageImage(image)) )
+  { getXImageImageFromScreen(image);
+    i=getXImageImage(image);
+  }
+
+  if ( i )
+  { XImage *ic = ZoomXImage(r->display_xref,
+			    DefaultVisual(r->display_xref,
+					  DefaultScreen(r->display_xref)),
+			    i, w, h);
+
+    setXImageImage(copy, ic);
+    assign(copy, depth, toInt(ic->depth));
+  }
+
+  answer(copy);
+}
+
 
 void
 ws_postscript_image(Image image, Int depth)

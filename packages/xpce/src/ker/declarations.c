@@ -16,6 +16,10 @@
 #include <h/unix.h>
 #include <rel/proto.h>
 
+#ifdef __WIN32__
+extern Class ClassWinMF;
+#endif
+
 
 		 /*******************************
 		 *	     CLASSES		*
@@ -455,6 +459,11 @@ static struct class_definition classdefs[] =
 
   { NAME_while, NAME_code, makeClassWhile,
     &ClassWhile, "While-loop control structure" },
+
+#ifdef __WIN32__
+  { NAME_winMetafile, NAME_graphical, makeClassWinMF,
+    &ClassWinMF, "Windows .WMF based figure" },
+#endif
 
   { NAME_window, NAME_device, makeClassWindow,
     &ClassWindow, "Interface between X-window and device" },

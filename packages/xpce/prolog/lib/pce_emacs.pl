@@ -11,6 +11,7 @@
 	  [ emacs/0
 	  , emacs/1				% x File
 	  , start_emacs/0
+	  , emacs_server/0
 	  , emacs_toplevel/0
 	  ]).
 :- use_module(library(pce)).
@@ -27,6 +28,12 @@
 
 start_emacs :-
 	send(@emacs, create).
+
+
+emacs_server :-
+	start_emacs,
+	send(@pce, trap_errors, @off),
+	send(@pce, console_label, 'PceEmacs Server').
 
 
 emacs :-

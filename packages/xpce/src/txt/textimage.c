@@ -901,20 +901,36 @@ paint_line(TextImage ti, Area a, TextLine l, int from, int to)
 
     e = s;
 
+    c      = l->chars[e].colour;
+    bg     = l->chars[e].background;
+
     switch(l->chars[e].type)
     { case CHAR_GRAPHICAL:
+	if ( notDefault(bg) && !instanceOfObject(bg, ClassElevation) )
+	{ int x  = l->chars[s].x;
+	  int tx = l->chars[s+1].x;
+	  r_fill(x, l->y, tx-x, l->h, bg);
+	}
 	paint_graphical(ti, a,
 			l->chars[e].value.graphical, 
 			l->chars[e].x,
 			l->y + l->base);
         e++;
+	paint_attributes(ti, l, s, e);
 	continue;
       case CHAR_IMAGE:
+	if ( notDefault(bg) && !instanceOfObject(bg, ClassElevation) )
+	{ int x  = l->chars[s].x;
+	  int tx = l->chars[s+1].x;
+	  r_fill(x, l->y, tx-x, l->h, bg);
+	}
+	r_colour(c);
 	paint_image(ti, a,
 		    l->chars[e].value.image, 
 		    l->chars[e].x,
 		    l->y + l->base);
 	e++;
+	paint_attributes(ti, l, s, e);
         continue;
     }
 
@@ -922,8 +938,6 @@ paint_line(TextImage ti, Area a, TextLine l, int from, int to)
     f      = l->chars[e].font;
     b16    = (f->b16 == ON);
     atts   = l->chars[e].attributes;
-    c      = l->chars[e].colour;
-    bg     = l->chars[e].background;
     out    = buf;
 
     PutBuf(chr);
@@ -932,7 +946,8 @@ paint_line(TextImage ti, Area a, TextLine l, int from, int to)
     { prt = FALSE;
 
       for(n++, e++; e < to; n++, e++)
-      { if ( l->chars[e].attributes != atts ||
+      { if ( l->chars[e].type != CHAR_ASCII ||
+	     l->chars[e].attributes != atts ||
 	     l->chars[e].background != bg ||
 	     l->chars[e].value.c != '\t' )
 	  break;

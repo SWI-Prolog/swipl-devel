@@ -48,7 +48,8 @@ static status
 displayError(Error e, int argc, Any *argv)
 { char buf[FORMATSIZE];
 
-  if ( equalName(e->feedback, NAME_report) )
+  if ( e->feedback == NAME_report ||
+       (PCE->trace == NAME_never && e->kind != NAME_fatal) )
   { ArgVector(av, argc+2);
     int i;
 
@@ -75,9 +76,11 @@ displayError(Error e, int argc, Any *argv)
 	  e->kind != NAME_warning) )
     { Cprintf("\n\tin: ");
       pceWriteErrorGoal();
-      send(PCE, NAME_exposeConsole, 0);
-      Cputchar('\007');			/* ^G: ASCII bell */
-      tracePce(PCE, NAME_user);
+      if ( PCE->trace != NAME_never )
+      { send(PCE, NAME_exposeConsole, 0);
+	Cputchar('\007');		/* ^G: ASCII bell */
+	tracePce(PCE, NAME_user);
+      }
     }
 #endif
     Cprintf("]\n");

@@ -1047,6 +1047,7 @@ End;
 NewClass(pce)
 #ifndef O_RUNTIME
   Bool		debugging;		/* debugging? (watching spy points) */
+  Bool		trap_errors;		/* Trap tracer on errors */
   Name		trace;			/* Current trace mode */
 #endif
   Name		last_error;		/* Last error occured */

@@ -98,18 +98,31 @@ pce_home(_) :-
 
 '$load_pce' :-
 	'$c_current_predicate'('$pce_init', user:'$pce_init'(_)), !,
-	pce_home(PceHome),
-	pce_principal:'$pce_init'(PceHome),
-	set_feature(xpce, true).
+	(   pce_home(PceHome),
+	    pce_principal:'$pce_init'(PceHome),
+	    set_feature(xpce, true)
+	->  true
+	;   format(user_error, '[PCE ERROR: Failed to initialise XPCE]~n'),
+	    halt(1)
+	).
 '$load_pce' :-
 	(   feature(dll, true)
 	;   feature(open_shared_object, true),
 	    push_library_dir
 	), !,
-	load_foreign_library(pce_principal:foreign(pl2xpce)),
-	absolute_file_name(pce(.), [file_type(directory)], PceHome),
-	pce_principal:'$pce_init'(PceHome),
-	set_feature(xpce, true).
+	(   load_foreign_library(pce_principal:foreign(pl2xpce))
+	->  true
+	;   format(user_error,
+		   '[PCE ERROR: Failed to load XPCE foreign library]~n'),
+	    halt(1)
+	),
+	(   absolute_file_name(pce(.), [file_type(directory)], PceHome),
+	    pce_principal:'$pce_init'(PceHome)
+	->  true
+	;   format(user_error, '[PCE ERROR: Failed to initialise XPCE]~n'),
+	    halt(1)
+	),
+	set_feature(xpce, true), !.
 
 %	Pushes LD_LIBRARY_PATH, so -lXPCE will be resolved correctly.
 %	The LD_ELF_LIBRARY_PATH is preferred on Linux systems.  It is

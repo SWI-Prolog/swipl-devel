@@ -625,6 +625,18 @@ getClipImage(Image image, Area area)
   answer(i2);
 }
 
+
+static Image
+getScaleImage(Image image, Size size)
+{ if ( equalSize(size, image->size) )	/* just make a copy */
+    return getClipImage(image, DEFAULT);
+  if ( size->w == ZERO || size->h == ZERO )
+    return answerObject(ClassImage, NIL, size->w, size->h, image->kind, 0);
+  
+  return ws_scale_image(image, valInt(size->w), valInt(size->h));
+}
+
+
 		/********************************
 		*           POSTSCRIPT		*
 		********************************/
@@ -838,6 +850,8 @@ static getdecl get_image[] =
      DEFAULT, "Convert bitmap or (file-)name"),
   GM(NAME_clip, 1, "image", "[area]", getClipImage,
      NAME_copy, "Get a subimage"),
+  GM(NAME_scale, 1, "image", "size", getScaleImage,
+     NAME_copy, "Get copy with different dimensions"),
   GM(NAME_lookup, 1, "image", "name", getLookupImage,
      NAME_oms, "Lookup in @images table"),
   GM(NAME_pixel, 2, "value=bool|colour", T_xAint_yAint, getPixelImage,
