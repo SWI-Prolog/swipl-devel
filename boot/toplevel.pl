@@ -351,8 +351,12 @@ prolog :-
 	flag($break_level, BreakLev, BreakLev), 
 	repeat, 
 	    (   $module(TypeIn, TypeIn), 
-		$system_prompt(TypeIn, BreakLev, Prompt),
-		prompt(Old, '|    '), 
+		(   stream_property(user_input, tty(true))
+		->  $system_prompt(TypeIn, BreakLev, Prompt),
+		    prompt(Old, '|    ')
+		;   Prompt = '',
+		    prompt(Old, '')
+		),
 		trim_stacks,
 		read_query(Prompt, Goal, Bindings),
 		prompt(_, Old),
@@ -395,6 +399,7 @@ read_query(Prompt, Goal, Bindings) :-
 	    fail
 	).
 
+remove_history_prompt('', '') :- !.
 remove_history_prompt(Prompt0, Prompt) :-
 	atom_chars(Prompt0, Chars0),
 	clean_history_prompt_chars(Chars0, Chars1),

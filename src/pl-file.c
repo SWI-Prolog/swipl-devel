@@ -1159,6 +1159,18 @@ pl_set_stream(term_t stream, term_t attr)
 	if ( s->timeout < 0 )
 	  s->timeout = 0;
 	goto ok;
+      } else if ( aname == ATOM_tty )	/* tty(bool) */
+      {	int val;
+
+	if ( !PL_get_bool_ex(a, &val) )
+	  goto error;
+
+	if ( val )
+	  set(s, SIO_ISATTY);
+	else
+	  clear(s, SIO_ISATTY);
+
+	goto ok;
       }
     }
   }
@@ -2346,6 +2358,15 @@ stream_file_no_prop(IOSTREAM *s, term_t prop ARG_LD)
 
 
 static int
+stream_tty_prop(IOSTREAM *s, term_t prop ARG_LD)
+{ if ( (s->flags & SIO_ISATTY) ) 
+    return PL_unify_bool_ex(prop, TRUE);
+
+  fail;
+}
+
+
+static int
 stream_buffer_prop(IOSTREAM *s, term_t prop ARG_LD)
 { atom_t b;
 
@@ -2380,6 +2401,7 @@ static const sprop sprop_list [] =
   { FUNCTOR_file_no1,	    stream_file_no_prop },
   { FUNCTOR_buffer1,	    stream_buffer_prop },
   { FUNCTOR_close_on_abort1,stream_close_on_abort_prop },
+  { FUNCTOR_tty1,	    stream_tty_prop },
   { 0,			    NULL }
 };
 

@@ -113,6 +113,8 @@ $clean_history :-
 %   prompt_history(+Prompt)
 %   Give prompt, substituting '%!' by the event number.
 
+prompt_history('') :- !,
+	ttyflush.
 prompt_history(Prompt) :-
 	(   $history(Last, _)
 	->  This is Last + 1

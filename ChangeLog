@@ -8,6 +8,14 @@
 					--------------------------------------
 
 
+  * MODIFIED: toplevel does not prompt if the user_input stream is not
+    connected to a terminal.  Using set_stream(user_input, tty(true))
+    the system can be forced to think input comes from a terminal.
+    After comments from Roberto Bagnara.
+
+  * ADDED: set_stream(S, tty(Bool)), stream_property(S, tty(Bool)) to
+    find out/presume whether a terminal is attached to a stream.
+
   * ADDED: cyclic_term/1 and acyclic_term/1.  Paul Singleton.
 
 VERSION 5.4.3 (October 18, 2004)

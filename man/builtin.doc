@@ -2152,11 +2152,16 @@ If the stream is associated with a POSIX file-descriptor, unify
 primarily for integration with foreign code.  See also Sfileno() from
 \file{SWI-Stream.h}.
 
+    \termitem{tty}{Bool}
+This property is reported with \arg{Bool} equals \const{true} if
+the stream is associated with a terminal.  See also set_stream/2.
+
     \termitem{buffer}{Buffering}
 SWI-Prolog extension to query the buffering mode of this stream. 
 \arg{Buffering} is one of \const{full}, \const{line} or \const{false}.
 See also open/4.
 \end{description}
+
     \predicate{current_stream}{3}{?Object, ?Mode, ?Stream}
 The predicate current_stream/3 is used to access the status of a
 stream as well as to generate all open streams.  \arg{Object} is the
@@ -2164,6 +2169,7 @@ name of the file opened if the stream refers to an open file, an
 integer file-descriptor if the stream encapsulates an operating-system
 stream or the atom \const{[]} if the stream refers to some other object.
 \arg{Mode} is one of \const{read} or \const{write}.
+
     \predicate{set_stream_position}{2}{+Stream, +Pos}
 Set the current position of \arg{Stream} to \arg{Pos}.  \arg{Pos} is
 a term as returned by stream_property/2 using the \term{position}{Pos}
@@ -2232,6 +2238,12 @@ Set the file name associated to this stream.  This call can be used
 to set the file for error-locations if \arg{Stream} corresponds to
 \arg{FileName} and is not optained by opening the file directly but,
 for example, through a network service.
+
+    \termitem{tty}{Bool}
+Modify whether Prolog thinks there is a terminal (i.e.\ human
+interaction) connected to this stream.  On Unix systems the initial
+value comes from isatty().  On Windows, the initial user streams are
+supposed to be associated to a terminal.  See also stream_property/2.
 \end{description}
 
     \predicate{set_prolog_IO}{3}{+In, +Out, +Error}

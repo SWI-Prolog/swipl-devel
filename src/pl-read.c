@@ -740,7 +740,7 @@ raw_read2(ReadData _PL_rd ARG_LD)
 
 static unsigned char *
 raw_read(ReadData _PL_rd ARG_LD)
-{ if ( rb.stream->flags & SIO_ISATTY )
+{ if ( (rb.stream->flags & SIO_ISATTY) && Sfileno(rb.stream) >= 0 )
   { unsigned char *s;
     ttybuf tab;
     

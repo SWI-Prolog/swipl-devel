@@ -164,3 +164,4 @@
 #define FUNCTOR_warning3     MK_FUNCTOR(163, 3)
 #define FUNCTOR_xor2         MK_FUNCTOR(164, 2)
 #define FUNCTOR_xpceref1     MK_FUNCTOR(165, 1)
+#define FUNCTOR_tty1         MK_FUNCTOR(166, 1)

@@ -716,3 +716,4 @@ F wakeup		3
 F warning		3
 F xor			2
 F xpceref		1
+F tty			1
