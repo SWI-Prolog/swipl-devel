@@ -1326,16 +1326,16 @@ resizeTileEventFrame(FrameObj fr, EventObj ev)
 }
 
 
-status
-blockedByModalFrame(FrameObj fr, EventObj ev)
-{ FrameObj bfr;
+FrameObj
+blockedByModalFrame(FrameObj fr)
+{ if ( !fr )
+    fail;
 
   if ( notNil(fr->application) &&
        notNil(fr->application->modal) &&
        isOpenFrameStatus(fr->application->modal->status) &&
        fr->application->modal != fr )
-  { bfr = fr->application->modal;
-    goto blocked;
+  { return fr->application->modal;
   } else
   { if ( notNil(fr->transients) )
     { Cell cell;
@@ -1343,41 +1343,46 @@ blockedByModalFrame(FrameObj fr, EventObj ev)
       for_cell(cell, fr->transients)
       { FrameObj fr2 = cell->value;
       
+	DEBUG(NAME_transient,
+	      Cprintf("blockedByModalFrame(%s) checking %s\n",
+		      pp(fr), pp(fr2)));
+
 	if ( fr2->modal == NAME_transient &&
 	     isOpenFrameStatus(fr2->status) )
-	{ bfr = fr2;
-	  goto blocked;
+	{ DEBUG(NAME_transient, Cprintf("\tBlocked on %s\n", pp(fr2)));
+	  return fr2;
 	}
       }
     }
   }
 
   fail;
-
-blocked:
-  if ( isAEvent(ev, NAME_button) )
-  { send(bfr, NAME_expose, 0);
-    if ( isUpEvent(ev) )		/* avoid multiple bells */
-      send(fr, NAME_bell, 0);
-  }    
-
-  succeed;
 }
 
 
 status
 eventFrame(FrameObj fr, EventObj ev)
-{ if ( blockedByModalFrame(fr, ev) )
-    fail;
+{ FrameObj bfr;
 
   if ( isAEvent(ev, NAME_keyboard ) )
   { PceWindow sw;
+
+    if ( (bfr=blockedByModalFrame(fr)) )
+    { 
+    blocked:
+      send(bfr, NAME_expose, 0);
+      send(fr, NAME_bell, 0);
+      fail;
+    }
 
     if ( (sw = getKeyboardFocusFrame(fr)) )
       return postEvent(ev, (Graphical) sw, DEFAULT);
 
     return send(fr, NAME_typed, ev->id, 0);
   }
+
+  if ( isDownEvent(ev) && (bfr=blockedByModalFrame(fr)) )
+    goto blocked;
 
   return resizeTileEventFrame(fr, ev);
 }

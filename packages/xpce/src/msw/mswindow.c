@@ -335,27 +335,56 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
   { EventObj ev;
     AnswerMark mark;
     status rval = FALSE;
-    markAnswerStack(mark);
+    FrameObj bfr;
   
+    if ( sw->sensitive == OFF )
+      goto cascade;
+
+    if ( (bfr=blockedByModalFrame(fr)) )
+    { switch(message)
+      {	case WM_KEYDOWN:
+	case WM_SYSCHAR:
+	case WM_CHAR:
+	case WM_LBUTTONUP:
+	case WM_MBUTTONUP:
+	case WM_RBUTTONUP:
+	case WM_LBUTTONDOWN:
+	case WM_MBUTTONDOWN:
+	case WM_RBUTTONDOWN:
+	  send(fr, NAME_bell, 0);
+#ifdef WM_MOUSEWHEEL
+	case WM_MOUSEWHEEL:
+	  send(bfr, NAME_expose, 0);
+#endif
+      }
+
+      goto cascade;
+    }
+
     ServiceMode(is_service_window(sw),
-		if ( (ev = messageToEvent(hwnd, message, wParam, lParam)) )
-		{ WsWindow w = sw->ws_ref;
+		{ markAnswerStack(mark);
 
-		  if ( message != WM_WINENTER && message != WM_WINEXIT )
-		    PceEventInWindow(hwnd);
+		  if ( (ev = messageToEvent(hwnd, message, wParam, lParam)) )
+		  { WsWindow w = sw->ws_ref;
+  
+		    if ( message != WM_WINENTER && message != WM_WINEXIT )
+		      PceEventInWindow(hwnd);
+  
+		    addCodeReference(ev);
+		    if ( isDownEvent(ev) && !w->capture )
+		      SetCapture(hwnd);
+		    else if ( isUpEvent(ev) && !w->capture )
+		      ReleaseCapture();
+		    rval = postEvent(ev, (Graphical) sw, DEFAULT);
+		    delCodeReference(ev);
+		    freeableObj(ev);
+		  }
 
-		  addCodeReference(ev);
-		  if ( isDownEvent(ev) && !w->capture )
-		    SetCapture(hwnd);
-		  else if ( isUpEvent(ev) && !w->capture )
-		    ReleaseCapture();
-		  rval = postEvent(ev, (Graphical) sw, DEFAULT);
-		  delCodeReference(ev);
-		  freeableObj(ev);
-		}
-		rewindAnswerStack(mark, NIL);
-		if ( ev )		/* rval will not update on failing */
-		  RedrawDisplayManager(TheDisplayManager()));
+		  rewindAnswerStack(mark, NIL);
+
+		  if ( ev )		/* rval will not update on failing */
+		    RedrawDisplayManager(TheDisplayManager())
+		});
 
     move_big_cursor();			/* only if we have one */
 

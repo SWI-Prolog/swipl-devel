@@ -197,28 +197,39 @@ static void
 event_window(Widget w, XtPointer xsw, XtPointer xevent)
 { EventObj ev;
   PceWindow sw = (PceWindow) xsw;
+  FrameObj fr = getFrameWindow(sw, OFF);
   XEvent *event = (XEvent *)xevent;
+  FrameObj bfr;
 
-  if ( isFreeingObj(sw) || isFreedObj(sw) )
+  if ( isFreeingObj(sw) || isFreedObj(sw) || sw->sensitive == OFF )
     return;
 
-  ServiceMode(is_service_window(sw),
-	      switch(event->xany.type)
-	      { default:
-		{ AnswerMark mark;
-		  markAnswerStack(mark);
-  
-		  if ( (ev = CtoEvent(sw, event)) )
-		  { addCodeReference(ev);
-		    postEvent(ev, (Graphical) sw, DEFAULT);
-		    delCodeReference(ev);
-		    freeableObj(ev);
-		  }
-		  
-		  RedrawDisplayManager(TheDisplayManager()); /* optional? */
+  if ( fr && (bfr=blockedByModalFrame(fr)) )
+  { switch( event->xany.type )
+    { case ButtonRelease:
+      case KeyPress:
+	send(fr, NAME_bell, 0);
+      case ButtonPress:
+	send(bfr, NAME_expose, 0);
+    }
 
-		  rewindAnswerStack(mark, NIL);
+    return;
+  }
+
+  ServiceMode(is_service_window(sw),
+	      { AnswerMark mark;
+		markAnswerStack(mark);
+  
+		if ( (ev = CtoEvent(sw, event)) )
+		{ addCodeReference(ev);
+		  postEvent(ev, (Graphical) sw, DEFAULT);
+		  delCodeReference(ev);
+		  freeableObj(ev);
 		}
+		  
+		RedrawDisplayManager(TheDisplayManager()); /* optional? */
+		
+		rewindAnswerStack(mark, NIL);
 	      })
 }
 

@@ -50,7 +50,7 @@ TileObj		getTileFrame(FrameObj fr);
 status		AppendFrame(FrameObj fr, PceWindow sw);
 status		DeleteFrame(FrameObj fr, PceWindow sw);
 PceWindow	getKeyboardFocusFrame(FrameObj fr);
-status		blockedByModalFrame(FrameObj fr, EventObj ev);
+FrameObj	blockedByModalFrame(FrameObj fr);
 status		eventFrame(FrameObj fr, EventObj ev);
 status		makeClassFrame(Class class);
 

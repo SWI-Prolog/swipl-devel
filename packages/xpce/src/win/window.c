@@ -546,17 +546,6 @@ is_service_window(PceWindow sw)
 }
 
 
-static status
-blockedByModalWindow(PceWindow sw, EventObj ev)
-{ FrameObj fr = getFrameWindow(sw, OFF);
-
-  if ( fr )
-    return blockedByModalFrame(fr, ev);
-
-  fail;
-}
-
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Support for `display->inspect_handler'.  The naming of this is a bit old
 fashioned.  Checks whether there is a handler   in the chain that may be
@@ -587,8 +576,12 @@ eventWindow(PceWindow sw, EventObj ev)
 { int rval = FAIL;
   EventObj old_event;
 
+/* Moved to x11/xwindow.c and msw/mswindow.c as it should be before
+   ->post to avoid focus redirection
+
   if ( sw->sensitive == OFF || blockedByModalWindow(sw, ev) )
     fail;
+*/
 
   old_event = sw->current_event;
   addCodeReference(old_event);
