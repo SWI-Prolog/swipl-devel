@@ -61,13 +61,26 @@ static XImage *
 getXImageImageFromScreen(Image image)
 { if ( notNil(image->display) )
   { DisplayWsXref r = image->display->ws_ref;
+    Display *d = r->display_xref;
     XImage *i;
 
-    i = XGetImage(r->display_xref,
+    i = XGetImage(d,
 		  (Drawable) getXrefObject(image, image->display),
 		  0, 0,
 		  valInt(image->size->w), valInt(image->size->h),
 		  AllPlanes, ZPixmap);
+
+    if ( i && !i->red_mask && i->depth > 8 )
+    { Visual *v = DefaultVisual(d, DefaultScreen(d));
+
+      if ( v )
+      { i->red_mask   = v->red_mask;
+	i->green_mask = v->green_mask;
+	i->blue_mask  = v->blue_mask;
+      }
+
+      assert(i->red_mask);
+    }
 
     return i;
   }
@@ -440,8 +453,12 @@ ws_save_image_file(Image image, SourceSink into, Name fmt)
 
       if ( !(fd=Sopen_object(into, "wbr")) )
 	fail;
-      if ( write_pnm_file(fd, i, r->display_xref, 0, 0, 0,
-			  PNM_RAWBITS) < 0 )
+      if ( write_pnm_file(fd, i, r->display_xref,
+			  0,		/* colour map */
+			  0,		/* scale [256] */
+			  pnm_fmt,	/* format */
+			  PNM_RAWBITS)	/* encoding */
+	     < 0 )
 	rval = errorPce(image, NAME_xError);
       else
 	rval = SUCCEED;
@@ -472,14 +489,13 @@ ws_open_image(Image image, DisplayObj d)
   int h = valInt(image->size->h);
   Pixmap pixmap = 0;
   DisplayWsXref r;
+  XImage *i;
 
   openDisplay(d);
   r = d->ws_ref;
 
-  if ( getXImageImage(image) )
-  { XImage *i = getXImageImage(image);
-
-    if ( isDefault(image->depth) )
+  if ( (i=getXImageImage(image)) )
+  { if ( isDefault(image->depth) )
       assign(image, depth, toInt(i->depth));
     if ( (pixmap = XCreatePixmap(r->display_xref,
 				 XtWindow(r->shell_xref),

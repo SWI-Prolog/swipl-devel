@@ -159,14 +159,12 @@ XtAppContext	pceXtAppContext(XtAppContext ctx);
 EventObj	CtoEvent(Any window, XEvent *event);
 unsigned long   getPixelColour(Colour c, DisplayObj d);
 void		setXImageImage(Image image, XImage *i);
+int		shift_for_mask(unsigned long mask);
 status		postscriptXImage(XImage *im,
 				 int x, int y, int w, int h,
 				 Display *disp, Colormap cmap,
 				 int depth);
-XColor **	makeSparceCInfo(Display *disp, Colormap cmap,
-				XImage *img, int *ncolours);
-void		greySparceCInfo(XColor **cinfo, int depth);
-void		freeSparceCInfo(XColor **table, int depth);
+int		intensityXColor(XColor *c);
 void		x11_set_gc_foreground(DisplayObj d, Any fg, int gcs, GC *gc);
 #ifdef O_XDND
 status		setDndAwareFrame(FrameObj fr);

@@ -1554,6 +1554,7 @@ drawPostScriptText(TextObj t)
     if ( t->pen != ZERO || notNil(t->background) )
     { if ( psstatus.mkheader )
       { psdef_fill(t, NAME_background);
+	psdef_texture(t);
 	psdef(NAME_boxpath);
 	if ( t->pen != ZERO )
 	  psdef(NAME_draw);
@@ -1568,7 +1569,9 @@ drawPostScriptText(TextObj t)
   
     if ( psstatus.mkheader )
     { if ( t->wrap == NAME_clip )
-	psdef(NAME_boxpath);
+      { psdef(NAME_boxpath);
+	psdef_texture(t);
+      }
       if ( t->underline == ON )
       { psdef(NAME_nodash);
 	psdef(NAME_linepath);

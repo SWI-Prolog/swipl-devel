@@ -1,6 +1,13 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Avoid missing dash-pattern definition generating PostScript from
+  text objects with a pixmap <-background.
+
+* FIXED: X11 image export to gif, jpeg, pnm and PostScript for all visual
+  types (tested using VNC in 8, 16, 24 and 32 bit mode).
+
+
 VERSION 5.1.11, distributed with SWI-Prolog 4.1.0
 =================================================
 

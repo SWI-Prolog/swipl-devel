@@ -525,19 +525,20 @@ extern void jpeg_iostream_dest(j_compress_ptr cinfo, IOSTREAM *outfile);
 		 *	   WRITING JPEG		*
 		 *******************************/
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Writing JPEG data. One of the problems is getting access to the colours.
-Upto  16-bit,  we  do  a   two-pass    process.   In   the  first  pass,
-makeSparceCInfo() walks through the image,   collecting the pixel values
-from the image and then query the X-server   for the RGB values of these
-pixels.
+static int
+shift_for_mask(unsigned long mask)
+{ unsigned long m = 0x1;
+  int shift = 0;
 
-Unfortunately, this schema won't work for 24-  and 32-bit displays as we
-cannot realistically allocate the required array and using hashing would
-be slow, and still require  a  lot  of   memory  if  there  are a lot of
-colours. It appears hinted that the pixel  is simply an 8-bit packed RGB
-value in this case. Is that true?
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+  while((mask&m) == 0)
+  { m <<= 1;
+    shift++;
+  }
+
+  return shift;
+}
+
+#define RESCALE(v, o, n)	((v) * (n) / (o))
 
 int
 write_jpeg_file(IOSTREAM *fd,
@@ -546,23 +547,27 @@ write_jpeg_file(IOSTREAM *fd,
 { int width  = img->width;
   int height = img->height;
   int depth  = img->depth;
-  int colours;
-  XColor **colorinfo = NULL;
+  XColor cdata[256];
+  XColor *colorinfo;
   int y;
   struct jpeg_compress_struct cinfo;
   struct jpeg_error_mgr jerr;
   JSAMPLE *row;
   Any comment;
 
-  if ( !cmap )
-    cmap = DefaultColormap(disp, DefaultScreen(disp));
+  if ( depth <= 8 )
+  { int entries	= 1<<img->depth;
+    int i;
 
-  if ( depth <= 16 )
-  { if ( !(colorinfo = makeSparceCInfo(disp, cmap, img, &colours)) )
-      return -1;
-  } else if ( img->bits_per_pixel != 32 )
-  { Cprintf("Cannot write JPEG for this color format\n");
-    return -1;
+    for(i=0; i<entries; i++)
+      cdata[i].pixel = i;
+
+    if ( !cmap )
+      cmap = DefaultColormap(disp, DefaultScreen(disp));
+    XQueryColors(disp, cmap, cdata, entries);
+    colorinfo = cdata;
+  } else 
+  { colorinfo = NULL;
   }
 
   row = pceMalloc(sizeof(JSAMPLE)*3*width);
@@ -611,21 +616,31 @@ write_jpeg_file(IOSTREAM *fd,
     { for(x=0; x<width; x++)
       { XColor *c;
   
-	c = colorinfo[XGetPixel(img, x, y)];
+	c = &colorinfo[XGetPixel(img, x, y)];
 	*s++ = rescale(c->red);
 	*s++ = rescale(c->green);
 	*s++ = rescale(c->blue);
       }
-    } else				/* 24 and 32-bit displays */
-    { unsigned char *line;
-
-      line = &((unsigned char *)img->data)[y * img->bytes_per_line];
+    } else				/* direct color displays  */
+    { int r_shift = shift_for_mask(img->red_mask);
+      int g_shift = shift_for_mask(img->green_mask);
+      int b_shift = shift_for_mask(img->blue_mask);
+      int r_bright = img->red_mask   >> r_shift;
+      int g_bright = img->green_mask >> g_shift;
+      int b_bright = img->blue_mask  >> b_shift;
 
       for(x=0; x<width; x++)
-      { *s++ = *line++;
-	*s++ = *line++;
-	*s++ = *line++;
-        line++;				/* the alignment */
+      { unsigned long pixel;
+	int r, g, b;
+
+	pixel = XGetPixel(img, x, y);
+	r = (pixel & img->red_mask)   >> r_shift;
+	g = (pixel & img->green_mask) >> g_shift;
+	b = (pixel & img->blue_mask)  >> b_shift;
+
+	*s++ = RESCALE(r, r_bright, 255);
+	*s++ = RESCALE(g, g_bright, 255);
+	*s++ = RESCALE(b, b_bright, 255);
       }
     }
 
@@ -634,9 +649,6 @@ write_jpeg_file(IOSTREAM *fd,
 
   jpeg_finish_compress(&cinfo);
   jpeg_destroy_compress(&cinfo);
-
-  if ( colorinfo )
-    freeSparceCInfo(colorinfo, img->depth);
   pceFree(row);
 
   return 0;
@@ -660,20 +672,24 @@ write_gif_file(IOSTREAM *fd, XImage *img, Display *disp, Colormap cmap)
 { int width  = img->width;
   int height = img->height;
   int depth  = img->depth;
-  int colours;
-  XColor **colorinfo = NULL;
+  XColor cdata[256];
+  XColor *colorinfo;
   GSAMPLE *data, *s;
   int y;
 
-  if ( !cmap )
-    cmap = DefaultColormap(disp, DefaultScreen(disp));
+  if ( depth <= 8 )
+  { int entries	= 1<<img->depth;
+    int i;
 
-  if ( depth <= 16 )
-  { if ( !(colorinfo = makeSparceCInfo(disp, cmap, img, &colours)) )
-      return -1;
-  } else if ( img->bits_per_pixel != 32 )
-  { Cprintf("Cannot write JPEG for this color format\n");
-    return -1;
+    for(i=0; i<entries; i++)
+      cdata[i].pixel = i;
+
+    if ( !cmap )
+      cmap = DefaultColormap(disp, DefaultScreen(disp));
+    XQueryColors(disp, cmap, cdata, entries);
+    colorinfo = cdata;
+  } else 
+  { colorinfo = NULL;
   }
 
   data = pceMalloc(sizeof(GSAMPLE)*3*width*height);
@@ -686,21 +702,31 @@ write_gif_file(IOSTREAM *fd, XImage *img, Display *disp, Colormap cmap)
     { for(x=0; x<width; x++)
       { XColor *c;
   
-	c = colorinfo[XGetPixel(img, x, y)];
+	c = &colorinfo[XGetPixel(img, x, y)];
 	*s++ = rescale(c->red);
 	*s++ = rescale(c->green);
 	*s++ = rescale(c->blue);
       }
-    } else				/* 24 and 32-bit displays */
-    { unsigned char *line;
-
-      line = &((unsigned char *)img->data)[y * img->bytes_per_line];
+    } else				/* Direct colour displays */
+    { int r_shift = shift_for_mask(img->red_mask);
+      int g_shift = shift_for_mask(img->green_mask);
+      int b_shift = shift_for_mask(img->blue_mask);
+      int r_bright = img->red_mask   >> r_shift;
+      int g_bright = img->green_mask >> g_shift;
+      int b_bright = img->blue_mask  >> b_shift;
 
       for(x=0; x<width; x++)
-      { *s++ = *line++;
-	*s++ = *line++;
-	*s++ = *line++;
-        line++;				/* the alignment */
+      { unsigned long pixel;
+	int r, g, b;
+
+	pixel = XGetPixel(img, x, y);
+	r = (pixel & img->red_mask)   >> r_shift;
+	g = (pixel & img->green_mask) >> g_shift;
+	b = (pixel & img->blue_mask)  >> b_shift;
+
+	*s++ = RESCALE(r, r_bright, 255);
+	*s++ = RESCALE(g, g_bright, 255);
+	*s++ = RESCALE(b, b_bright, 255);
       }
     }
   }

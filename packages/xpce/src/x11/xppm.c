@@ -529,57 +529,114 @@ putNum(int n, IOSTREAM *fd)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Low-level XImage hacking.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+typedef struct
+{ XColor       *cinfo;			/* a colour-info vector */
+  int		r_shift;		/* red-shift */
+  int		g_shift;		/* green-shift */
+  int		b_shift;		/* blue-shift */
+  int		r_fill;			/* shift to make 16-bit */
+  int		g_fill;			/* shift to make 16-bit */
+  int		b_fill;			/* shift to make 16-bit */
+  XColor	xc;			/* static one */
+} XPixelInfo;
+
+
+static int
+mask_width(unsigned long mask)
+{ unsigned long m = 0x1;
+  int width = 0;
+
+  while((mask&m) == 0)
+    m <<= 1;
+  while((mask&m))
+  { m <<= 1;
+    width++;
+  }
+
+  return width;
+}
+
+
+static XColor *
+pixelToColor(XImage *im, unsigned long pixel, XPixelInfo *info)
+{ if ( info->cinfo )
+  { return &info->cinfo[pixel];
+  } else
+  { info->xc.red   = (pixel >> info->r_shift) << info->r_fill;
+    info->xc.green = (pixel >> info->g_shift) << info->g_fill;
+    info->xc.blue  = (pixel >> info->b_shift) << info->b_fill;
+
+    return &info->xc;
+  }
+}
+
+
+static void
+makeXPixelInfo(XPixelInfo *info, XImage *img, Display *disp, Colormap cmap)
+{ if ( img->depth <= 8 )
+  { XColor *cdata = info->cinfo;
+    int entries	= 1<<img->depth;
+    int i;
+    
+    for(i=0; i<entries; i++)
+      cdata[i].pixel = i;
+
+    if ( !cmap )
+      cmap = DefaultColormap(disp, DefaultScreen(disp));
+    XQueryColors(disp, cmap, cdata, entries);
+  } else
+  { info->cinfo = 0;
+
+    info->r_shift = shift_for_mask(img->red_mask);
+    info->g_shift = shift_for_mask(img->green_mask);
+    info->b_shift = shift_for_mask(img->blue_mask);
+
+    info->r_fill  = 16 - mask_width(img->red_mask);
+    info->g_fill  = 16 - mask_width(img->green_mask);
+    info->b_fill  = 16 - mask_width(img->blue_mask);
+  }
+}
+
+
 int
 write_pnm_file(IOSTREAM *fd, XImage *img,
 	       Display *disp, Colormap cmap, int scale, int fmt, int encode)
 { int width  = img->width;
   int height = img->height;
-  int depth  = img->depth;
-  int colours;
-  XColor **cinfo = NULL;
+  XColor cdata[256];
+  XPixelInfo info;
   int x, y;
 
-  if ( !cmap )
-    cmap = DefaultColormap(disp, DefaultScreen(disp));
+
   if ( !scale )
     scale = 255;
-  if ( !fmt && img->format == XYBitmap )
-    fmt = PNM_PBM;
 
-  if ( fmt != PNM_PBM )
-  { if ( depth > 16 )
-    { Cprintf("PPM/PGM generation not yet supported for depth > 16\n");
-      return -1;
-    }
-    if ( !(cinfo = makeSparceCInfo(disp, cmap, img, &colours)) )
-      return -1;
-    if ( !fmt )
-    { int i, entries = 1<<depth;
+  if ( !fmt )
+  { if ( img->format == XYBitmap )
+      fmt = PNM_PBM;
+    else
+      fmt = PNM_PPM;
+  }
+  
+  if ( fmt == PNM_PBM && encode == PNM_RUNLEN )
+    encode = PNM_RAWBITS;		/* no use to runlen encode a bitmap */
 
-      for(i=0; i<entries; i++)
-      { if ( cinfo[i] )
-	{ XColor *c = cinfo[i];
-	  
-	  if ( c->red != c->green || c->red != c->blue )
-	  { fmt = PNM_PPM;
-	    break;
-	  }
-	}
-      }
-      if ( !fmt )
-	fmt = PNM_PGM;
-    }
-  } else if ( encode == PNM_RUNLEN )	/* no use to runlen encode a bitmap */
-    encode = PNM_RAWBITS;
+  if ( img->format != XYBitmap )
+  { info.cinfo = cdata;
+    makeXPixelInfo(&info, img, disp, cmap);
+  } 
 
   Sfprintf(fd, "P%c\n", fmt + encode + '0');
-  Sfprintf(fd, "# Creator: XPCE version %s\n", strName(get(PCE,NAME_version,EAV)));
+  Sfprintf(fd, "# Creator: XPCE version %s\n",
+	   strName(get(PCE,NAME_version,EAV)));
+  Sfprintf(fd, "%d %d\n", width, height);
+
   if ( fmt != PNM_PBM )
-  { Sfprintf(fd, "# %d colours found\n", colours);
-    Sfprintf(fd, "%d %d\n", width, height);
     Sfprintf(fd, "%d\n", scale);
-  } else
-    Sfprintf(fd, "%d %d\n", width, height);
 
   file_col = 0;
     
@@ -589,22 +646,32 @@ write_pnm_file(IOSTREAM *fd, XImage *img,
       { case PNM_PBM:
 	{ for(y=0; y<height; y++)
 	  { for(x=0; x<width; x++)
-	    { if ( putNum(XGetPixel(img, x, y) ? 1 : 0, fd) < 0 )
+	    { unsigned long pixel = XGetPixel(img, x, y);
+
+	      if ( img->format != XYBitmap )
+	      { XColor *c;
+		int r;
+  
+		c = pixelToColor(img, pixel, &info);
+		r = intensityXColor(c);
+		pixel = r < 32768 ? 1 : 0;
+	      }
+
+	      if ( putNum(pixel, fd) < 0 )
 		return -1;
 	    }
 	  }
 	  break;
 	}
 	case PNM_PGM:
-	{ greySparceCInfo(cinfo, depth);
-  
-	  for(y=0; y<height; y++)
+	{ for(y=0; y<height; y++)
 	  { for(x=0; x<width; x++)
 	    { XColor *c;
 	      unsigned int r;
   
-	      c = cinfo[XGetPixel(img, x, y)];
-	      r = rescale(c->red, BRIGHT, scale);
+	      c = pixelToColor(img, XGetPixel(img, x, y), &info);
+	      r = intensityXColor(c);
+	      r = rescale(r, BRIGHT, scale);
   
 	      if ( putNum(r, fd) < 0 )
 		return -1;
@@ -618,7 +685,7 @@ write_pnm_file(IOSTREAM *fd, XImage *img,
 	    { XColor *c;
 	      unsigned int r, g, b;
   
-	      c = cinfo[XGetPixel(img, x, y)];
+	      c = pixelToColor(img, XGetPixel(img, x, y), &info);
 	      r = rescale(c->red,   BRIGHT, scale);
 	      g = rescale(c->green, BRIGHT, scale);
 	      b = rescale(c->blue,  BRIGHT, scale);
@@ -644,7 +711,18 @@ write_pnm_file(IOSTREAM *fd, XImage *img,
   
 	  for(y=0; y<height; y++)
 	  { for(x=0; x<width; x++)
-	    { if ( XGetPixel(img, x, y) )
+	    { unsigned long pixel = XGetPixel(img, x, y);
+
+	      if ( img->format != XYBitmap )
+	      { XColor *c;
+		int r;
+  
+		c = pixelToColor(img, pixel, &info);
+		r = intensityXColor(c);
+		pixel = r < 32768 ? 1 : 0;
+	      }
+
+	      if ( pixel )
 		byte |= 1<<bit;
 	      if ( bit-- == 0 )
 	      { if ( Sputc(byte, fd) == EOF )
@@ -668,15 +746,14 @@ write_pnm_file(IOSTREAM *fd, XImage *img,
 	  break;
 	}
 	case PNM_PGM:
-	{ greySparceCInfo(cinfo, depth);
-  
-	  for(y=0; y<height; y++)
+	{ for(y=0; y<height; y++)
 	  { for(x=0; x<width; x++)
 	    { XColor *c;
 	      unsigned int r;
   
-	      c = cinfo[XGetPixel(img, x, y)];
-	      r = rescale(c->red, BRIGHT, scale);
+	      c = pixelToColor(img, XGetPixel(img, x, y), &info);
+	      r = intensityXColor(c);
+	      r = rescale(r, BRIGHT, scale);
   
 	      if ( Sputc(r, fd) == EOF )
 		return -1;
@@ -690,7 +767,7 @@ write_pnm_file(IOSTREAM *fd, XImage *img,
 	    { XColor *c;
 	      unsigned int r, g, b;
   
-	      c = cinfo[XGetPixel(img, x, y)];
+	      c = pixelToColor(img, XGetPixel(img, x, y), &info);
 	      r = rescale(c->red,   BRIGHT, scale);
 	      g = rescale(c->green, BRIGHT, scale);
 	      b = rescale(c->blue,  BRIGHT, scale);
@@ -712,9 +789,7 @@ write_pnm_file(IOSTREAM *fd, XImage *img,
 
       switch(fmt)
       { case PNM_PGM:
-	{ greySparceCInfo(cinfo, depth);
-  
-	  for(y=0; y<height; y++)
+	{ for(y=0; y<height; y++)
 	  { for(x=0; x<width; x++)
 	    { unsigned long pixel = XGetPixel(img, x, y);
 
@@ -728,8 +803,9 @@ write_pnm_file(IOSTREAM *fd, XImage *img,
 		  return -1;
 		cpixel = pixel;
 		rlen = 1;
-		c = cinfo[pixel];
-		r = rescale(c->red, BRIGHT, scale);
+		c = pixelToColor(img, pixel, &info);
+		r = intensityXColor(c);
+		r = rescale(r, BRIGHT, scale);
   		if ( Sputc(r, fd) == EOF )
 		  return -1;
 	      }
@@ -755,7 +831,7 @@ write_pnm_file(IOSTREAM *fd, XImage *img,
 		  return -1;
 		cpixel = pixel;
 		rlen = 1;
-		c = cinfo[pixel];
+		c = pixelToColor(img, pixel, &info);
 		r = rescale(c->red,   BRIGHT, scale);
 		g = rescale(c->green, BRIGHT, scale);
 		b = rescale(c->blue,  BRIGHT, scale);
@@ -775,9 +851,6 @@ write_pnm_file(IOSTREAM *fd, XImage *img,
       }
     }
   }
-
-  if ( cinfo )
-    freeSparceCInfo(cinfo, img->depth);
 
   return 0;
 }
