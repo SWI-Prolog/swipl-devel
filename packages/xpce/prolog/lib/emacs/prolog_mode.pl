@@ -360,7 +360,11 @@ find_definition(M, For:prolog_predicate, NewWindow:[bool]) :->
 	    )
 	;   get(For, source, SourceLocation)
 	->  send(@emacs, goto_source_location, SourceLocation, NewWindow)
-	;   send(M, report, warning, 'Cannot find source')
+	;   send(For, has_property, foreign)
+	->  send(M, report, warning,
+		 'Predicate is defined in a foreign language')
+	;   send(M, report, warning,
+		 'Cannot find source')
 	).
 
 

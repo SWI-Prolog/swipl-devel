@@ -144,5 +144,10 @@ autoload(P, Module:[name]) :->
 	;   '$define_predicate'(Module:Term)
 	).
 
+has_property(P, Prop:prolog) :->
+	"Test predicate property"::
+	get(P, head, Head),
+	predicate_property(Head, Prop).
+
 :- pce_end_class(prolog_predicate).
 	  
