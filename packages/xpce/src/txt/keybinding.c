@@ -215,8 +215,22 @@ eventKeyBinding(KeyBinding kb, EventObj ev)
 
 #define MAX_ARGS 16
 
+static status
+cuaKeyAsPrefixKeyBinding(KeyBinding kb, EventObj ev, Graphical receiver)
+{ if ( hasSendMethodObject(receiver, NAME_cuaKeyAsPrefix) &&
+       send(receiver, NAME_cuaKeyAsPrefix, ev, EAV) )
+    succeed;
+    
+  if ( ws_wait_for_key(250) )
+  { succeed;
+  }
+
+  fail;
+}
+
+
 status
-typedKeyBinding(KeyBinding kb, EventId id, Graphical receiver)
+typedKeyBinding(KeyBinding kb, Any id, Graphical receiver)
 { Name key;
   Any cmd;
   Any crec = getReceiverKeyBinding(kb);
@@ -224,6 +238,7 @@ typedKeyBinding(KeyBinding kb, EventId id, Graphical receiver)
   int argc = 0;
   int reset = 0;
   status rval = FAIL;
+  EventObj ev = id;
         
   if ( notDefault(receiver) )
   { if ( receiver != crec )
@@ -255,6 +270,24 @@ typedKeyBinding(KeyBinding kb, EventId id, Graphical receiver)
 
       if ( cmd == NAME_prefix )		/* Prefix (multikey)  */
       { assign(kb, prefix, key);
+	rval = SUCCEED;
+      } else if ( cmd == NAME_prefixOrCopy ) /* \\C-c: See above */
+      { if ( cuaKeyAsPrefixKeyBinding(kb, ev, receiver) )
+	{ cmd = NAME_prefix;
+	  assign(kb, prefix, key);
+	} else
+	{ cmd = NAME_copy;
+	}
+	argv[cmdi] = cmd;
+	rval = SUCCEED;
+      } else if ( cmd == NAME_prefixOrCut ) /* \\C-x: See above */
+      { if ( cuaKeyAsPrefixKeyBinding(kb, ev, receiver) )
+	{ cmd = NAME_prefix;
+	  assign(kb, prefix, key);
+	} else
+	{ cmd = NAME_cut;
+	}
+	argv[cmdi] = cmd;
 	rval = SUCCEED;
       } else if ( cmd == NAME_keyboardQuit )
       { resetKeyBinding(kb, receiver);
@@ -582,10 +615,10 @@ typedef struct
 static kbDef emacs_special[] =
 { { SUPER,		NAME_argument },
 
-  { "\\C-c",		NAME_prefix },
+  { "\\C-c",		NAME_prefixOrCopy },
   { "\\C-g",		NAME_keyboardQuit },
   { "\\C-q",		NAME_quotedInsert },
-  { "\\C-x",		NAME_prefix },
+  { "\\C-x",		NAME_prefixOrCut },
   { "\\e",		NAME_prefix },
 
   { NULL,		NULL }

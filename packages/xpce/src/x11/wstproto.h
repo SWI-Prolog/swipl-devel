@@ -138,6 +138,7 @@ void		resetDispatch(void);
 status		ws_dispatch(Int FD, Any timeout);
 void		ws_discard_input(const char *msg);
 Any		ws_event_in_subwindow(EventObj ev, Any root);
+int		ws_wait_for_key(int maxwait);
 
 /* ../src/x11/xfont.c */
 status		ws_create_font(FontObj f, DisplayObj d);

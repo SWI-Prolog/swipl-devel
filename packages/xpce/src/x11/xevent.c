@@ -275,3 +275,39 @@ ws_event_in_subwindow(EventObj ev, Any root)
 
   fail;
 }
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static Bool
+is_key_event(Display *dsp, XEvent *ev, XPointer arg)
+{ if ( ev->xany.type == KeyPress )
+  { int *p = (int *)arg;
+
+    *p = TRUE;
+  }
+
+  return FALSE;
+}
+
+
+int
+key_waiting(DisplayObj d)
+{ DisplayWsXref r = d->ws_ref;
+  int waiting = FALSE;
+  XEvent event;
+
+  XCheckIfEvent(r->display_xref, &event, is_key_event, (XPointer) &waiting);
+
+  return waiting;
+}
+
+
+int
+ws_wait_for_key(int maxwait)
+{ msleep(maxwait);
+  
+  return key_waiting(CurrentDisplay(NIL));
+}

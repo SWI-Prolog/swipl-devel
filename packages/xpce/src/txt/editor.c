@@ -1457,6 +1457,20 @@ eventEditor(Editor e, EventObj ev)
 }
 
 
+static status
+cuaKeyAsPrefixEditor(Editor e, EventObj ev)
+{ if ( instanceOfObject(ev, ClassEvent) )
+  { if ( (valInt(ev->buttons) & BUTTON_shift) )
+      succeed;
+  }
+
+  if ( !HasSelection(e) )
+    succeed;
+  
+  fail;
+}
+
+
 		/********************************
 		*         EDIT FUNCTIONS	*
 		********************************/
@@ -4753,6 +4767,8 @@ static senddecl send_editor[] =
      NAME_editContinue, "Focus function"),
   SM(NAME_WantsKeyboardFocus, 0, NULL, succeedObject,
      NAME_event, "Test if ready to accept input (true)"),
+  SM(NAME_cuaKeyAsPrefix, 1, "event|event_id", cuaKeyAsPrefixEditor,
+     NAME_event, "Test whether to use as prefix or cut/copy command"),
   SM(NAME_event, 1, "event", eventEditor,
      NAME_event, "Handle a general event"),
   SM(NAME_label, 1, "name", labelEditor,
