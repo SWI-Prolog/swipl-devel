@@ -151,7 +151,9 @@ Srlc_read(void *handle, char *buffer, int size)
 
   PL_write_prompt(TRUE);
 
-  if ( Suser_input && Suser_input->handle == c && PL_ttymode(Suser_input) == PL_RAWTTY )
+  if ( Suser_input &&
+       Suser_input->handle == c &&
+       PL_ttymode(Suser_input) == PL_RAWTTY )
   { int chr = getkey(c);
     TCHAR *tbuf = (TCHAR*)buffer;
       
