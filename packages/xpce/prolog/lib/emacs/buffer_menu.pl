@@ -20,6 +20,7 @@
 resource(open,	  image, image('16x16/open.xpm')).
 resource(saveall, image, image('16x16/saveall.xpm')).
 resource(help,    image, image('16x16/help.xpm')).
+resource(buffers, image, image('32x32/buffers.xpm')).
 
 :- pce_begin_class(emacs_buffer_menu, frame,
 		   "List showing all PceEmacs buffers").
@@ -30,10 +31,11 @@ initialise(BM, Emacs:emacs) :->
 	"Create menu for buffer-list"::
 	send(BM, send_super, initialise,
 	     'PCE Emacs Buffers', application := Emacs),
+	send(BM, icon, resource(buffers)),
 	send(BM, name, buffer_menu),
 	send(BM, append, new(D, dialog)),
 	send(D, pen, 0),
-	send(D, gap, size(0, 5)),
+	send(D, gap, size(0, 3)),
 	send(D, append, new(TB, tool_bar(Emacs))),
 	send_list(TB, append,
 		  [ tool_button(find_file,

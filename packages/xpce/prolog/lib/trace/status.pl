@@ -136,7 +136,7 @@ debugging_(Where, trace) :-
 name_of(clause(Ref, _PC), Label) :- !,
 	clause_name(Ref, Label).
 name_of(Where, Label) :-
-	predicate_name(Where, Label).
+	predicate_name(user:Where, Label).
 
 item(D, What:{spy,trace,break}, Where:prolog, Item:dict_item) :<-
 	"Find item representing this debug"::
