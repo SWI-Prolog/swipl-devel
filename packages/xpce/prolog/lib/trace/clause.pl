@@ -97,6 +97,7 @@ clause_info(ClauseRef, S, TermPos, NameOffset) :-
 	debug('ok, reading ... ', []),
 	pce_open(S, read, Handle),
 	read(Handle, user, Clause, TermPos, VarNames),
+	close(Handle),
 	debug('ok ...', []),
 	make_varnames(VarOffset, VarNames, NameOffset),
 	debug('got names~n', []), !.
