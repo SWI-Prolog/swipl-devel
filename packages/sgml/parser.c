@@ -336,15 +336,13 @@ entity_file(dtd *dtd, dtd_entity *e)
 				  e->extid,
 				  e->exturl,
 				  dtd->dialect != DL_SGML)) )
-      { const ichar *b;
-	char *file;
+      { char *file;
 
 	if ( is_absolute_path(f) ||
-	     !e->baseurl ||
-	     !(b=isee_text(dtd, e->baseurl, "file:")) )
+	     !e->baseurl )
 	  file = (char *)f;
 	else
-	  file = localpath(b, f);
+	  file = localpath(e->baseurl, f);
 
 	return file;
       }
@@ -767,6 +765,7 @@ isee_identifier(dtd *dtd, const ichar *in, char *id)
 }
 
 
+#if 0
 static const ichar *
 isee_text(dtd *dtd, const ichar *in, char *id)
 { while (*id && *id == tolower(*in) )
@@ -777,6 +776,7 @@ isee_text(dtd *dtd, const ichar *in, char *id)
 
   return NULL;
 }
+#endif
 
 
 static const ichar *
@@ -1154,11 +1154,7 @@ set_option_dtd(dtd *dtd, dtd_option option, int set)
 static ichar *
 baseurl(dtd_parser *p)
 { if ( p->location.type == IN_FILE && p->location.name )
-  { ichar buf[MAXSTRINGLEN];
-
-    strcpy(buf, "file:");
-    strcat(buf, p->location.name);
-    return istrdup(buf);
+  { return istrdup(p->location.name);
   }
 
   return NULL;

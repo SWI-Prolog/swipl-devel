@@ -232,9 +232,9 @@ print_data(dtd_parser * p, data_type type, int len, ochar const *data)
 static int
 on_entity(dtd_parser * p, dtd_entity * e, int chr)
 { if (e == 0)
-    printf("&#%d;", chr);
+    printf("&#%d;\n", chr);
   else
-    printf("&%s;", e->name->name);
+    printf("&%s;\n", e->name->name);
   return TRUE;
 }
 

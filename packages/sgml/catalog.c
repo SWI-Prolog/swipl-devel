@@ -427,19 +427,23 @@ load_one_catalogue(catalog_file * file)
 	this_item->next = 0;
 	this_item->kind = t == CAT_SYSTEM ? t : t + override;
 	this_item->target = istrdup(buffer);
+
 	if (scan(src, buffer, sizeof buffer, 0) == EOF)
 	  break;
-	if (p != base)
-	{ (void) strcpy(p, buffer);
-	  this_item->replacement = istrdup(base);
-	} else
+
+	if (is_absolute_path(buffer) || p == base)
 	{ this_item->replacement = istrdup(buffer);
-	}
+	} else
+        { (void) strcpy(p, buffer);
+          this_item->replacement = istrdup(base);
+        }
+
 	if (file->first_item == 0)
 	{ file->first_item = this_item;
 	} else
 	{ file->last_item->next = this_item;
 	}
+
 	file->last_item = this_item;
 	continue;
       case EOF:
@@ -537,7 +541,8 @@ find_in_catalogue(int kind,
       { case CAT_PUBLIC:
 	  if (sysid != 0)
 	    break;
-	 /*FALLTHROUGH*/ case OVR_PUBLIC:
+	/*FALLTHROUGH*/
+	case OVR_PUBLIC:
 	  if (pubid != 0 && result == 0 && cs_streql(pubid, item->target))
 	    result = item->replacement;
 	  break;
@@ -612,3 +617,4 @@ find_in_catalogue(int kind,
 
   return item->replacement;
 }
+
