@@ -80,6 +80,7 @@ typedef struct io_stream
 #define SIO_RECORDPOS	SmakeFlag(12)	/* Maintain position */
 #define SIO_FILE	SmakeFlag(13)	/* Stream refers to an OS file */
 #define SIO_PIPE	SmakeFlag(14)	/* Stream refers to an OS pipe */
+#define SIO_NOFEOF	SmakeFlag(15)	/* don't set SIO_FEOF flag */
 
 #define	SIO_SEEK_SET	0	/* From beginning of file.  */
 #define	SIO_SEEK_CUR	1	/* From current position.  */

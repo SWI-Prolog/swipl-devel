@@ -285,7 +285,7 @@ clearBuffer()
 }      
 
 
-static void
+static inline void
 addToBuffer(int c)
 { if (rb.left-- == 0)
   { if ((rb.base = Realloc(rb.base, rb.size * 2)) == (char *)NULL)
@@ -300,7 +300,7 @@ addToBuffer(int c)
 }
 
 
-#define getchr() Get0()
+#define getchr() Sgetc(ioi)
 
 #define ensure_space(c) { if ( something_read && \
 			       (c == '\n'|| !isBlank(rb.here[-1])) ) \
@@ -324,7 +324,13 @@ raw_read2(void)
   bool something_read = FALSE;
   int newlines;
   bool dotseen = FALSE;
+  IOSTREAM *ioi = PL_current_input();
 
+  if ( !ioi )
+  { c = EOF;
+    goto handle_c;
+  }
+  
   clearBuffer();				/* clear input buffer */
   source_line_no = -1;
 

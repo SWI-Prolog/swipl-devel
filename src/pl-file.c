@@ -408,17 +408,16 @@ Get0()
 { IOSTREAM *s = fileTable[Input].stream;
   
   if ( s )
-  { int c;
-
-    if ( (c = Sgetc(s)) == EOF && Input == 0 )
-      Sclearerr(s);
-    
-    return c;
-  }
+    return Sgetc(s);
 
   return EOF;
 }
 
+
+IOSTREAM *
+PL_current_input()
+{ return fileTable[Input].stream;
+}
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Formated put.  It would be better to define our own formated  write  for

@@ -34,7 +34,7 @@ void *		xrealloc(void *mem, size_t size);
 
 /* pl-wam.c */
 word		pl_count(void);
-bool		unify(Word t1, Word t2);
+bool		unify(Word t1, Word t2, LocalFrame env);
 bool		unify_atomic(Word p, word a);
 bool		unifyFunctor(Word term, FunctorDef functor);
 word		pl_alt(Word skip, word h);
@@ -210,6 +210,7 @@ word		pl_prolog_to_os_filename(Word pl, Word os);
 int		Get0(void);
 int		Put(int c);
 void		protocol(int c);
+IOSTREAM *	PL_current_input();
 #ifdef O_XOS
 word		pl_make_fat_filemap(Word dir);
 #endif

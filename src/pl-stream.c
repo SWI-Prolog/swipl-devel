@@ -135,7 +135,8 @@ S__fillbuf(IOSTREAM *s)
     if ( (n=(*s->functions->read)(s->handle, &chr, 1)) == 1 )
     { return char_to_int(chr);
     } else if ( n == 0 )
-    { s->flags |= SIO_FEOF;
+    { if ( !(s->flags & SIO_NOFEOF) )
+	s->flags |= SIO_FEOF;
       return EOF;
     } else
     { s->flags |= SIO_FERR;
@@ -158,7 +159,8 @@ S__fillbuf(IOSTREAM *s)
       s->limitp = s->buffer;
 
       if ( n == 0 )
-      { s->flags |= SIO_FEOF;
+      { if ( !(s->flags & SIO_NOFEOF) )
+	  s->flags |= SIO_FEOF;
 	return EOF;
       } else
       { s->flags |= SIO_FERR;
@@ -1176,7 +1178,7 @@ Sfileno(IOSTREAM *s)
 		    }
 
 IOSTREAM S__iob[] =
-{ STDIO(0, SIO_FILE|SIO_INPUT|SIO_LBUF|SIO_STATIC),  /* Sinput */
+{ STDIO(0, SIO_FILE|SIO_INPUT|SIO_LBUF|SIO_STATIC|SIO_NOFEOF),  /* Sinput */
   STDIO(1, SIO_FILE|SIO_OUTPUT|SIO_LBUF|SIO_STATIC), /* Soutput */
   STDIO(2, SIO_FILE|SIO_OUTPUT|SIO_NBUF|SIO_STATIC)  /* Serror */
 };

@@ -429,13 +429,11 @@ unboundStringHashValue(char *t)
   { unsigned int c = *t++;
     
     c -= 'a';
-    value ^= c << shift;
-    shift += 3;
-    if ( shift > 24 )
-      shift = 1;
+    value ^= c << (shift & 0xf);
+    shift ^= c;
   }
 
-  return value;
+  return value ^ (value >> 16);
 }
 
 

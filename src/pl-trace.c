@@ -80,7 +80,7 @@ canUnifyTermWithGoal(Word t, LocalFrame fr)
     b = argFrameP(fr, 0);
     arity = functorTerm(*t)->arity;
     while( arity > 0 )
-    { if ( unify(a, b) == FALSE )
+    { if ( !unify(a, b, environment_frame) )
       { Undo(m);
         fail;
       }

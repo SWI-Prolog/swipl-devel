@@ -499,7 +499,7 @@ this trick saves about 10% on this function).
 #endif
 
 bool
-unify(register Word t1, register Word t2)
+unify(register Word t1, register Word t2, LocalFrame fr)
 {
 #ifndef TAGGED_LVALUE
   register word w1, w2;
@@ -512,22 +512,22 @@ unify(register Word t1, register Word t2)
   { if (isVar(*t2) )
     { if (t1 < t2)		/* always point downwards */
       { *t2 = makeRef(t1);
-        Trail(t2, environment_frame);
+        Trail(t2, fr);
 	succeed;
       }
       if (t1 == t2)
 	succeed;
       *t1 = makeRef(t2);
-      Trail(t1, environment_frame);
+      Trail(t1, fr);
       succeed;
     }
     *t1 = *t2;
-    Trail(t1, environment_frame);
+    Trail(t1, fr);
     succeed;
   }
   if (isVar(*t2) )
   { *t2 = *t1;
-    Trail(t2, environment_frame);
+    Trail(t2, fr);
     succeed;
   }
 
@@ -566,7 +566,7 @@ atom as it is not a variable, nor a masked type.
     t1 = argTermP(w1, 0);
     t2 = argTermP(w2, 0);
     for(; arity > 0; arity--, t1++, t2++)
-      if (unify(t1, t2) == FALSE)
+      if ( !unify(t1, t2, fr) )
 	fail;
   }
 
@@ -1099,7 +1099,7 @@ this once was done in place to avoid a function call.  It turns out that
 using a function call is faster (at least on SUN_3).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     VMI(H_VAR, COUNT_N(h_var_n), ("h_var %d\n", *PC)) MARK(HVAR);
-      { if (unify(varFrameP(FR, *PC++), ARGP++) )
+      { if (unify(varFrameP(FR, *PC++), ARGP++, FR) )
 	  NEXT_INSTRUCTION;
 	CLAUSE_FAILED;
       }
@@ -1364,7 +1364,7 @@ exit(Block, RVal).  First does !(Block).
 
 	DEBUG(3, Sdprintf("BFR = %d\n", (Word)BFR - (Word)lBase) );
 
-	if ( unify(argFrameP(blockfr, 2), rval) )
+	if ( unify(argFrameP(blockfr, 2), rval, environment_frame) ) /*???*/
 	{ for( ; FR > blockfr; FR = FR->parent )
 	  { leaveFrame(FR);
 	    FR->clause = NULL;
@@ -1592,7 +1592,7 @@ thus `add1(X, Y) :- Y is X + 1' translates to:
     B_CONST 0	% push `1' via ARGP
     A_FUNC2 N	% execute arithmic function 'N' (+/2), leaving X+1 on
 		% the stack
-    A_IS 1	% unify top of stack ('X+1') with Y
+    A_IS 	% unify top of stack ('X+1') with Y
     EXIT	% leave the clause
 
 a_func0:	% executes arithmic function without arguments, pushing
@@ -1712,15 +1712,20 @@ condition.  Example translation: `a(Y) :- b(X), X > Y'
       }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Translation of is/2.  Unify the  two  pushed  values.   Order  does  not
-matter here.
+Translation of is/2. Unify the two pushed  values. Order does not matter
+here. We need to open part of a frame to ensure trailing works properly.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
     VMI(A_IS, COUNT(a_is), ("a_is\n")) MARK(A_IS);
-      { ARGP -= 2;
-	if ( unify(ARGP, ARGP+1) == FALSE )
-	  BODY_FAILED;
-	NEXT_INSTRUCTION;
+      { int rval;
+
+	DoMark(lTop->mark);
+	ARGP -= 2;
+	rval = unify(ARGP, ARGP+1, lTop);
+
+	if ( rval )
+	  NEXT_INSTRUCTION;
+	BODY_FAILED;
       }
 #endif /* O_COMPILE_ARITH */
 
@@ -2077,13 +2082,20 @@ increase lTop too to prepare for asynchronous interrupts.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 	    statistics.inferences++;
-	    environment_frame = next = lTop;
+	    next = lTop;
 	    lTop = (LocalFrame) argFrameP(next, 0);
 	    if ( true(fproc->definition, TRANSPARENT) )
 	      next->context = FR->context;
 	    else
 	      next->context = fproc->definition->module;
-	    
+#ifdef O_PROFILE
+	    next->procedure = fproc;
+#endif
+#ifdef O_PROFILE
+	    if (statistics.profiling)
+	      fproc->definition->profile_calls++;
+#endif /* O_PROFILE */
+	    environment_frame = next;
 	    DoMark(next->mark);
 
 	    switch(nvars)

@@ -1079,18 +1079,21 @@ pl_get_clause_attribute(Word ref, Word att, Word value)
 
 
 		/********************************
-		*         SOURCE IOSTREAM           *
+		*         SOURCE FILE           *
 		*********************************/
 
 SourceFile
 lookupSourceFile(Atom name)
 { SourceFile file;
   static int index = 0;
+  static Table sourceTable = NULL;
+  Symbol s;
 
-  for(file=sourceFileTable; file; file=file->next)
-  { if (file->name == name)
-      return file;
-  }
+  if ( !sourceTable )
+    sourceTable = newHTable(64);
+
+  if ( (s=lookupHTable(sourceTable, name)) )
+    return (SourceFile) s->value;
 
   file = (SourceFile) allocHeap(sizeof(struct sourceFile) );
   file->name = name;
@@ -1107,6 +1110,8 @@ lookupSourceFile(Atom name)
   { tailSourceFileTable->next = file;
     tailSourceFileTable = file;
   }
+
+  addHTable(sourceTable, name, file);
 
   return file;
 }

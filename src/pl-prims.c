@@ -200,7 +200,7 @@ pl_unify(register Word t1, register Word t2)			/* =/2 */
 { mark m;
 
   DoMark(m);
-  if (unify(t1, t2) == FALSE)
+  if ( !unify(t1, t2, environment_frame) )
   { DoUndo(m);
     fail;
   }
@@ -214,7 +214,7 @@ pl_notunify(register Word t1, register Word t2)
   mark m;
   
   DoMark(m);
-  rval = unify(t1, t2);
+  rval = unify(t1, t2, environment_frame);
   DoUndo(m);
 
   if (rval == TRUE)

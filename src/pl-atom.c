@@ -7,19 +7,37 @@
     Purpose: atom management
 */
 
+#define O_DEBUG 1
 #include "pl-incl.h"
 #include "pl-ctype.h"
 
-static Atom atomTable[ATOMHASHSIZE];
+static void	rehashAtoms();
+
+static int  atom_buckets = ATOMHASHSIZE;
+static int  atom_locked;
+static Atom *atomTable;
+
+#define lockAtoms() { atom_locked++; }
+#define unlockAtoms() if ( --atom_locked == 0 && \
+			   atom_buckets * 2 < statistics.atoms ) \
+			rehashAtoms()
+
+#if O_DEBUG
+static int	lookups;
+static int	cmps;
+#endif
 
 Atom
 lookupAtom(char *s)
 { int v0 = unboundStringHashValue(s);
-  int v = v0 & (ATOMHASHSIZE-1);
+  int v = v0 & (atom_buckets-1);
   register Atom a;
 
+  DEBUG(0, lookups++);
+
   for(a = atomTable[v]; a && !isRef((word)a); a = a->next)
-  { if (streq(s, a->name) )
+  { DEBUG(0, cmps++);
+    if (streq(s, a->name) )
       return a;
   }
   a = (Atom)allocHeap(sizeof(struct atom));
@@ -32,7 +50,54 @@ lookupAtom(char *s)
   atomTable[v]  = a;
   statistics.atoms++;
 
+  if ( atom_buckets * 2 < statistics.atoms && !atom_locked )
+    rehashAtoms();
+
   return a;
+}
+
+
+static void
+makeAtomRefPointers()
+{ Atom *a;
+  int n;
+
+  for(n=0, a=atomTable; n < (atom_buckets-1); n++, a++)
+    *a = (Atom) makeRef(a+1);
+  *a = NULL;
+}
+
+
+static void
+rehashAtoms()
+{ Atom *oldtab   = atomTable;
+  int   oldbucks = atom_buckets;
+  Atom a, n;
+
+  startCritical;
+  atom_buckets *= 2;
+  atomTable = allocHeap(atom_buckets * sizeof(Atom));
+  makeAtomRefPointers();
+  
+  DEBUG(0, Sdprintf("rehashing atoms (%d --> %d)\n", oldbucks, atom_buckets));
+
+  for(a=oldtab[0]; a; a = n)
+  { int v;
+
+    while(isRef((word)a) )
+    { a = *((Atom *)unRef(a));
+      if ( a == NULL )
+	goto out;
+    }
+    n = a->next;
+    v = a->hash_value & (atom_buckets-1);
+    a->next = atomTable[v];
+    atomTable[v] = a;
+  }
+
+out:
+  freeHeap(oldtab, oldbucks * sizeof(Atom));
+  endCritical;
 }
 
 
@@ -41,7 +106,7 @@ pl_atom_hashstat(Word i, Word n)
 { int m;
   register Atom a;
 
-  if ( !isInteger(*i) || valNum(*i) < 0 || valNum(*i) >= ATOMHASHSIZE )
+  if ( !isInteger(*i) || valNum(*i) < 0 || valNum(*i) >= atom_buckets )
     fail;
   for(m = 0, a = atomTable[valNum(*i)]; a && !isRef((word)a); a = a->next)
     m++;
@@ -67,20 +132,25 @@ struct atom atoms[] = {
    segment.
 */
 
+#if O_DEBUG
+exitAtoms(void *arg)
+{ Sdprintf("hashstat: %d lookupAtom() calls used %d strcmp() calls\n",
+	   lookups, cmps);
+}
+#endif
+
 void
 initAtoms(void)
 { register int n;
 
-  { Atom *a;
-    for(n=0, a=atomTable; n < (ATOMHASHSIZE-1); n++, a++)
-      *a = (Atom) makeRef(a+1);
-  }
+  atomTable = allocHeap(atom_buckets * sizeof(Atom));
+  makeAtomRefPointers();
 
   { Atom a;
 
     for( a = &atoms[0]; a->name; a++)
     { int v0 = unboundStringHashValue(a->name);
-      int v = v0 & (ATOMHASHSIZE-1);
+      int v = v0 & (atom_buckets-1);
 
       a->name = store_string(a->name);
       a->next       = atomTable[v];
@@ -91,6 +161,8 @@ initAtoms(void)
       statistics.atoms++;
     }
   }    
+
+  DEBUG(0, PL_on_halt(exitAtoms, NULL));
 }
 
 
@@ -104,12 +176,14 @@ pl_current_atom(Word a, word h)
       if ( !isVar(*a) ) fail;
 
       atom = atomTable[0];
+      lockAtoms();
       break;
     case FRG_REDO:
       atom = (Atom) ForeignContextAddress(h);
       break;
     case FRG_CUTTED:
     default:
+      unlockAtoms();
       succeed;
   }
 
@@ -117,7 +191,7 @@ pl_current_atom(Word a, word h)
   { while(isRef((word)atom) )
     { atom = *((Atom *)unRef(atom));
       if (atom == (Atom) NULL)
-	fail;
+	goto out;
     }
     if (unifyAtomic(a, atom) == FALSE)
       continue;
@@ -125,7 +199,8 @@ pl_current_atom(Word a, word h)
     return_next_table(Atom, atom);
   }
 
-  fail;
+out:
+  unlockAtoms();
 }
 
 		 /*******************************
