@@ -1875,24 +1875,6 @@ ResetStdin()
 }
 
 static int
-Swrite_protocol(void *handle, char *buf, int size)
-{ int rval;
-#ifdef HAVE_CLOCK
-  long oldclock = clock();
-#endif
-
-  protocol(buf, size);
-
-  rval = (*GD->os.org_terminal.write)(handle, buf, size);
-
-#ifdef HAVE_CLOCK
-  clock_wait_ticks += clock() - oldclock;
-#endif
-
-  return rval;
-}
-
-static int
 Sread_terminal(void *handle, char *buf, int size)
 { long h = (long)handle;
   int fd = (int)h;
@@ -1932,7 +1914,6 @@ ResetTty()
   if ( !GD->os.iofunctions.read )
   { GD->os.iofunctions       = *Sinput->functions;
     GD->os.iofunctions.read  = Sread_terminal;
-    GD->os.iofunctions.write = Swrite_protocol;
 
     Sinput->functions  = 
     Soutput->functions = 
