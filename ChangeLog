@@ -1,6 +1,10 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: compilation error on systems where profiling doesn't work
+    (Pierre Barbier de Reuille).
+
+
 VERSION 5.0.7 (Jun 5, 2002)
 ===========================
 
