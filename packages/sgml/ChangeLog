@@ -1,3 +1,8 @@
+Dec 19, 2004
+
+  * Start working on wide-character support: introducing wide-character
+    output buffers.
+
 Dec 15, 2004
 
   * FIXED: Bug#212: Disallow &#0; character entities.

@@ -40,6 +40,7 @@
 #endif
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <assert.h>
 
 int
 istrlen(const ichar *s)
@@ -307,13 +308,20 @@ ostrdup(const ochar *s)
 		 *    OUTPUT CHARACTER BUFFER	*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Output character buffer deals with two  representations: ISO Latin-1 and
+UCS. It starts life as ISO Latin-1 and   is upgraded to UCS as the first
+character that doesn't fit ISO Latin-1 is added to the buffer.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 ocharbuf *
 new_ocharbuf()
 { ocharbuf *buf = sgml_malloc(sizeof(*buf));
 
-  buf->allocated = 0;
   buf->size = 0;
-  buf->data = NULL;
+  buf->allocated = sizeof(buf->localbuf);
+  buf->data.t = buf->localbuf;
+  buf->encoding = SGML_ENC_ISO;
 
   return buf;
 }
@@ -321,25 +329,91 @@ new_ocharbuf()
 
 void
 free_ocharbuf(ocharbuf *buf)
-{ if ( buf->data )
-    sgml_free(buf->data);
+{ if ( buf->data.t && buf->data.t != buf->localbuf )
+    sgml_free(buf->data.t);
 
   sgml_free(buf);
 }
 
 
-void
-__add_ocharbuf(ocharbuf *buf, int chr)
-{ if ( buf->size == buf->allocated )
-  { buf->allocated = (buf->allocated ? buf->allocated*2 : 128);
+static long
+nextsize(long n)
+{ long m = 256;
 
-    if ( buf->data )
-      buf->data = sgml_realloc(buf->data, buf->allocated);
+  assert(n >= 0);
+
+  while(m<n)
+    m *= 2;
+
+  return m;
+}
+
+
+static void
+promote_ocharbuf(ocharbuf *buf)
+{ if ( buf->data.t == buf->localbuf &&
+       buf->size * sizeof(wchar_t) < sizeof(buf->localbuf) )
+  { unsigned char tmp[sizeof(buf->localbuf)];
+    unsigned char *f = tmp;
+    unsigned char *e = &tmp[buf->size];
+    wchar_t *t = (wchar_t*)buf->localbuf;
+
+    memcpy(tmp, buf->data.t, buf->size*sizeof(char));
+    while(f<e)
+      *t++ = *f++;
+    buf->data.w = (wchar_t*)buf->localbuf;
+    buf->encoding = SGML_ENC_UCS;
+  } else
+  { wchar_t *new;
+    const unsigned char *f = buf->data.t;
+    const unsigned char *e = &f[buf->size];
+    wchar_t *t;
+
+    buf->allocated = nextsize(buf->size);
+    t = new = sgml_malloc(buf->allocated*sizeof(wchar_t));
+
+    while(f<e)
+      *t++ = *f++;
+
+    buf->data.w = new;
+    buf->encoding = SGML_ENC_UCS;
+  }
+}
+
+
+void
+add_ocharbuf(ocharbuf *buf, int chr)
+{ if ( buf->encoding == SGML_ENC_ISO && chr <= 0xff )
+{ if ( buf->size == buf->allocated )
+    { buf->allocated *= 2;
+
+      if ( buf->data.t != buf->localbuf )
+	buf->data.t = sgml_realloc(buf->data.t, buf->allocated);
     else
-      buf->data = sgml_malloc(buf->allocated);
+      { buf->data.t = sgml_malloc(buf->allocated);
+	memcpy(buf->data.t, buf->localbuf, sizeof(buf->localbuf));
+      }
+  }
+    buf->data.t[buf->size++] = chr;
+  
+    return;
   }
   
-  buf->data[buf->size++] = chr;
+  if ( buf->encoding != SGML_ENC_UCS )
+    promote_ocharbuf(buf);
+  
+  if ( buf->size == buf->allocated )
+  { buf->allocated *= 2;
+
+    if ( buf->data.w != (wchar_t*)buf->localbuf )
+      buf->data.w = sgml_realloc(buf->data.w, buf->allocated*sizeof(wchar_t));
+    else
+    { buf->data.w = sgml_malloc(buf->allocated*sizeof(wchar_t));
+      memcpy(buf->data.w, buf->localbuf, sizeof(buf->localbuf));
+    }
+
+    buf->data.w[buf->size++] = chr;
+  }
 }
 
 
@@ -357,10 +431,27 @@ terminate_ocharbuf(ocharbuf *buf)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+empty_ocharbuf() frees the associated buffer after   a big lump has been
+in it. Otherwise it simply sets  the  size   to  0.  It  always sets the
+encoding to ISO Latin-1.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 void
 empty_ocharbuf(ocharbuf *buf)
 { buf->size = 0;
+
+  if ( buf->allocated > 8192 )
+  { sgml_free(buf->data.t);
+
+    buf->encoding = SGML_ENC_ISO;
+    buf->allocated = sizeof(buf->localbuf);
+    buf->data.t = buf->localbuf;
+  } else if ( buf->encoding == SGML_ENC_UCS )
+  { buf->allocated *= sizeof(wchar_t);
 }
+}
+
 
 		 /*******************************
 		 *	   BUFFER RING		*

@@ -36,6 +36,7 @@
 #include <string.h>
 #include "utf8.h"
 #include <errno.h>
+#include <wctype.h>
 
 #define DEBUG(g) ((void)0)
 
@@ -172,8 +173,32 @@ dec_location(dtd_srcloc *l, int chr)
 		 *   CLASSIFICATION PRIMITIVES	*
 		 *******************************/
 
-#define HasClass(dtd, chr, mask) \
-	(dtd->charclass->class[(chr)] & (mask))
+static inline int
+HasClass(dtd *dtd, wint_t chr, int mask)
+{ if ( chr <= 0xff )
+    return (dtd->charclass->class[(chr)] & (mask));
+  else
+  { switch(mask)
+    { case CH_NAME:
+	return iswalnum(chr) || iswdigit(chr);
+      case CH_NMSTART:
+	return iswalnum(chr);
+      case CH_WHITE:
+	return iswspace(chr);
+      case CH_BLANK:
+	return iswblank(chr);
+      case CH_DIGIT:
+	return iswdigit(chr);
+      case CH_RS:
+      case CH_RE:
+	return FALSE;
+      default:
+	assert(0);
+        return FALSE;
+    }
+  }
+}
+
 
 static const ichar *
 isee_func(dtd *dtd, const ichar *in, charfunc func)
@@ -1771,8 +1796,10 @@ process_usemap_declaration(dtd_parser *p, const ichar *decl)
 
 
 static int
-match_map(dtd *dtd, dtd_map *map, int len, ichar *data)
-{ ichar *e = data+len-1;
+match_map(dtd *dtd, dtd_map *map, ocharbuf *buf)
+{ if ( buf->encoding == SGML_ENC_ISO )
+  { ichar *data = (ichar*)buf->data.t;
+    ichar *e = data+buf->size-1;
   ichar *m = map->from+map->len-1;
 
   while( m >= map->from )
@@ -1801,7 +1828,11 @@ match_map(dtd *dtd, dtd_map *map, int len, ichar *data)
     return 0;
   }
 
-  return data+len-1-e;
+    return data+buf->size-1-e;
+  } else
+  { assert(0);
+    return 0;				/* TBD */
+  }
 }
 
 
@@ -1812,19 +1843,30 @@ match_shortref(dtd_parser *p)
   for(map = p->map->map; map; map = map->next)
   { int len;
 
-    if ( (len=match_map(p->dtd, map,
-			p->cdata->size, (ichar *)p->cdata->data)) )
+    if ( (len=match_map(p->dtd, map, p->cdata)) )
     { p->cdata->size -= len;
 
       if ( p->cdata_must_be_empty )
       { int blank = TRUE;
-	const ichar *s;
 	int i;
 
-	for(s = p->cdata->data, i=0; i++ < p->cdata->size; s++)
+	if ( p->cdata->encoding == SGML_ENC_ISO )
+	{ const ichar *s;
+
+	  for(s = p->cdata->data.t, i=0; i++ < p->cdata->size; s++)
 	{ if ( !HasClass(p->dtd, *s, CH_BLANK) )
 	  { blank = FALSE;
 	    break;
+	  }
+	}
+	} else
+	{ const wchar_t *s;
+
+	  for(s = p->cdata->data.w, i=0; i++ < p->cdata->size; s++)
+	  { if ( !iswblank(*s) )
+	    { blank = FALSE;
+	      break;
+	    }
 	  }
 	}
 
@@ -3959,10 +4001,12 @@ empty_cdata(dtd_parser *p)
 static int
 emit_cdata(dtd_parser *p, int last)
 { dtd *dtd = p->dtd;
-  ichar *s, *data = p->cdata->data;
   locbuf locsafe;
+  ocharbuf *cdata = p->cdata;
+  int offset = 0;
+  int size = cdata->size;
   
-  if ( p->cdata->size == 0 )
+  if ( size == 0 )
     return TRUE;			/* empty or done */
 
   push_location(p, &locsafe);
@@ -3974,69 +4018,96 @@ emit_cdata(dtd_parser *p, int last)
     { case SP_SGML:
       case SP_DEFAULT:
 	if ( p->first )
-	{ if ( HasClass(dtd, *data, CH_RE) )
-	  { inc_location(&p->startloc, *data);
-	    data++;
-	    p->cdata->size--;
+	{ wint_t c = fetch_ocharbuf(cdata, offset);
+
+	  if ( HasClass(dtd, c, CH_RE) )
+	  { inc_location(&p->startloc, c);
+	    offset++;
+	    size--;
+	    c = fetch_ocharbuf(cdata, offset);
 	  }
-	  if ( HasClass(dtd, *data, CH_RS) )
-	  { inc_location(&p->startloc, *data);
-	    data++;
-	    p->cdata->size--;
+	  
+	  if ( HasClass(dtd, c, CH_RS) )
+	  { inc_location(&p->startloc, c);
+	    offset++;
+	    size--;
 	  }
 	}
-	if ( last )
-	{ ichar *e = data + p->cdata->size;
+	if ( last && size > 0 )
+	{ wint_t c = fetch_ocharbuf(cdata, offset+size-1);
 
-	  if ( e > data && HasClass(dtd, e[-1], CH_RS) )
-	  { dec_location(&p->location, e[-1]);
-	    *--e = '\0';
-	    p->cdata->size--;
+	  if ( HasClass(dtd, c, CH_RS) )
+	  { dec_location(&p->location, c);
+	    size--;
+	    poke_ocharbuf(cdata, offset+size, '\0');
+	    c = fetch_ocharbuf(cdata, offset+size-1);
 	  }
-	  if ( e>data && HasClass(dtd, e[-1], CH_RE) )
-	  { dec_location(&p->location, e[-1]);
-	    *--e = '\0';
-	    p->cdata->size--;
+	  if ( HasClass(dtd, c, CH_RE) )
+	  { dec_location(&p->location, c);
+	    size--;
+	    poke_ocharbuf(cdata, offset+size, '\0');
 	  }
 	}
 	if ( p->environments->space_mode == SP_DEFAULT )
-	{ ichar *o = data;
+	{ int o = 0;
+	  int i;
   
-	  for(s=data; *s; s++)
-	  { if ( HasClass(dtd, *s, CH_BLANK) )
-	    { while(s[1] && HasClass(dtd, s[1], CH_BLANK))
-		s++;
-	      *o++ = ' ';
+	  for(i=0; i<size; i++)
+	  { wint_t c = fetch_ocharbuf(cdata, offset+i);
+
+	    if ( HasClass(dtd, c, CH_BLANK) )
+	    { for(i++; i<size; i++)
+	      { wint_t c = fetch_ocharbuf(cdata, offset+i);
+
+		if ( !HasClass(dtd, c, CH_BLANK) )
+		  break;
+	      }
+	      i--;
+	      poke_ocharbuf(cdata, o++, ' ');
 	      continue;
 	    }
-	    *o++ = *s;
+	    poke_ocharbuf(cdata, o++, c);
 	  }
-	  *o = '\0';
-	  p->cdata->size = o-data;
+	  poke_ocharbuf(cdata, o, '\0');
+	  size = o;
 	}
 	break;
       case SP_REMOVE:
-      { ichar *o = data;
-	ichar *end = data;
+      { int o = 0;
+	int i;
+	int end = 0;
 
-	for(s=data; *s && HasClass(dtd, *s, CH_BLANK); )
-	  inc_location(&p->startloc, *s++);
+	for(i=0; i<size; i++)
+	{ wint_t c = fetch_ocharbuf(cdata, offset+i);
 
-	if ( *s )
-	{ for(; *s; s++)
-	  { if ( HasClass(dtd, *s, CH_BLANK) )
-	    { while(s[1] && HasClass(dtd, s[1], CH_BLANK))
-		s++;
-	      *o++ = ' ';
+	  if ( HasClass(dtd, c, CH_BLANK) )
+	    inc_location(&p->startloc, c);
+	  else
+	    break;
+	}
+
+	if ( i<size )
+	{ for(; i<size; i++)
+	  { wint_t c = fetch_ocharbuf(cdata, offset+i);
+
+	    if ( HasClass(dtd, c, CH_BLANK) )
+	    { i++;
+
+	      while(i<size && HasClass(dtd,
+				       fetch_ocharbuf(cdata, offset+i),
+				       CH_BLANK))
+		i++;
+	      i--;
+	      poke_ocharbuf(cdata, o++, ' ');
 	      continue;
 	    }
-	    *o++ = *s;
+	    poke_ocharbuf(cdata, o++, c);
 	    end = o;
 	  }
 	}
 					/* TBD: adjust end */
-	*end = '\0';
-	p->cdata->size = end-data;
+	poke_ocharbuf(cdata, end, '\0');
+	size = end;
 	break;
       }
       case SP_PRESERVE:
@@ -4047,19 +4118,21 @@ emit_cdata(dtd_parser *p, int last)
     }
   }
 
-  if ( p->cdata->size == 0 )
+  if ( size == 0 )
   { pop_location(p, &locsafe);
+    empty_cdata(p);
+
     return TRUE;
   }
 
-  assert(p->cdata->size > 0);
+  assert(size > 0);
+
   if ( !p->blank_cdata )
   { if ( p->cdata_must_be_empty )
-    { terminate_ocharbuf(p->cdata);
-      gripe(ERC_NOT_ALLOWED_PCDATA, p->cdata->data);
+    { gripe(ERC_NOT_ALLOWED_PCDATA, p->cdata); /* TBD: now passes buffer! */
     }
-    if ( p->on_data )
-      (*p->on_data)(p, EC_CDATA, p->cdata->size, data);
+    if ( p->on_data )			/* TBD: wide character callback */
+      (*p->on_data)(p, EC_CDATA, size, cdata->data.t+offset);
   } else if ( p->environments )
   { sgml_environment *env = p->environments;
     dtd_state *new;
@@ -4069,12 +4142,12 @@ emit_cdata(dtd_parser *p, int last)
 
     if ( (new=make_dtd_transition(env->state, CDATA_ELEMENT)) )
     { env->state = new;
-      if ( p->on_data )
-	(*p->on_data)(p, EC_CDATA, p->cdata->size, data);
+      if ( p->on_data )			/* TBD: wide character callback */
+	(*p->on_data)(p, EC_CDATA, size, cdata->data.t+offset);
     } else if ( env->element->undefined &&
 		p->environments->space_mode == SP_PRESERVE )
-    { if ( p->on_data )
-	(*p->on_data)(p, EC_CDATA, p->cdata->size, data);
+    { if ( p->on_data )			/* TBD: wide character callback */
+	(*p->on_data)(p, EC_CDATA, size, cdata->data.t+offset);
     }
   }
   
@@ -4105,10 +4178,12 @@ prepare_cdata(dtd_parser *p)
 
     if ( p->blank_cdata == TRUE )
     { int blank = TRUE;
-      const ichar *s;
+      int i;
 
-      for(s = p->cdata->data; *s; s++)
-      { if ( !HasClass(dtd, *s, CH_BLANK) )
+      for(i=0; i<p->cdata->size; i++)
+      { wint_t c = fetch_ocharbuf(p->cdata, i);
+
+	if ( !HasClass(dtd, c, CH_BLANK) )
 	{ blank = FALSE;
 	  break;
 	}
@@ -4443,7 +4518,7 @@ add_cdata(dtd_parser *p, int chr)
     { int sz;
 
       if ( (sz=buf->size) == 0 ||
-	   buf->data[sz-1] != CR )
+	   fetch_ocharbuf(buf, sz-1) != CR )
 	add_cdata(p, CR);
     }
 
@@ -4458,9 +4533,9 @@ add_cdata(dtd_parser *p, int chr)
     { int sz;				/* here or in space-handling? */
 
       if ( (sz=buf->size) > 1 &&
-	   buf->data[sz-1] == LF &&
-	   buf->data[sz-2] == CR )
-      { buf->data[sz-2] = LF;
+	   fetch_ocharbuf(buf, sz-1) == LF &&
+	   fetch_ocharbuf(buf, sz-2) == CR )
+      { poke_ocharbuf(buf, sz-2, LF);
 	buf->size--;
       }
     }
@@ -4478,7 +4553,8 @@ add_verbatim_cdata(dtd_parser *p, int chr)
       p->blank_cdata = FALSE;
     }
 
-    if ( chr == '\n' && buf->size > 0 && buf->data[buf->size-1] == '\r' )
+    if ( chr == '\n' && buf->size > 0 &&
+	 fetch_ocharbuf(buf, buf->size-1) == '\r' )
       buf->size--;
   
     add_ocharbuf(buf, chr);

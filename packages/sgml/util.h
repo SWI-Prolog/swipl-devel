@@ -27,6 +27,8 @@
 #include "sgmldefs.h"
 
 #include <sys/types.h>
+#include <wchar.h>
+
 #ifdef _WINDOWS		      /* get size_t */
 #include <malloc.h>
 #endif
@@ -40,7 +42,15 @@ typedef struct
 typedef struct 
 { int allocated;
   int size;
-  ochar *data;
+  union 
+  { unsigned char *t;			/* ISO-Latin-1 */
+    wchar_t *w;				/* UCS */
+  } data;
+  enum
+  { SGML_ENC_ISO = 0,			/* ISO-Latin-1 */
+    SGML_ENC_UCS			/* UCS */
+  } encoding;
+  unsigned char localbuf[256];			/* Initial local store */
 } ocharbuf;
 
 int		istrlen(const ichar *s);
@@ -68,12 +78,6 @@ void		sgml_nomem(void);
 	     else \
 	       __add_icharbuf(buf, chr); \
 	   } while(0)
-#define add_ocharbuf(buf, chr) \
-	do { if ( buf->size < buf->allocated ) \
-	       buf->data[buf->size++] = chr; \
-	     else \
-	       __add_ocharbuf(buf, chr); \
-	   } while(0)
 
 icharbuf *	new_icharbuf(void);
 void		free_icharbuf(icharbuf *buf);
@@ -87,10 +91,18 @@ ochar *         ostrdup(const ochar *s);
 
 ocharbuf *	new_ocharbuf(void);
 void		free_ocharbuf(ocharbuf *buf);
-void		__add_ocharbuf(ocharbuf *buf, int chr);
+void		add_ocharbuf(ocharbuf *buf, int chr);
 void		del_ocharbuf(ocharbuf *buf);
 void		terminate_ocharbuf(ocharbuf *buf);
 void		empty_ocharbuf(ocharbuf *buf);
+#define fetch_ocharbuf(buf, at) \
+	(buf->encoding == SGML_ENC_ISO ? buf->data.t[at] : buf->data.w[at])
+#define poke_ocharbuf(buf, at, chr) \
+	{ if ( buf->encoding == SGML_ENC_ISO ) \
+	    buf->data.t[at] = chr; \
+	  else \
+	    buf->data.w[at] = chr; \
+	}
 
 const char *	str_summary(const char *s, int len);
 char *		str2ring(const char *in);
