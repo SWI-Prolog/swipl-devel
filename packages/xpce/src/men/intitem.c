@@ -26,15 +26,21 @@ static status rangeIntItem(IntItem ii, Int low, Int high);
 static status
 initialiseIntItem(IntItem ii, Name name, Int selection, Code msg,
 		  Int low, Int high)
-{ if ( isDefault(name) )
-    name = NAME_integer;
-  if ( isDefault(selection) )	
-    selection = ZERO;
+{ Int v0;
 
-  initialiseTextItem((TextItem)ii, name, selection, msg);
+  if ( isDefault(name) )
+    name = NAME_integer;
+  v0 = isDefault(selection) ? ZERO : selection;
+
+  initialiseTextItem((TextItem)ii, name, v0, msg);
   styleTextItem((TextItem)ii, NAME_stepper);
 
-  return rangeIntItem(ii, low, high);
+  rangeIntItem(ii, low, high);
+
+  if ( isDefault(selection) )
+    send(ii, NAME_clear, 0);
+
+  succeed;
 }
 
 
@@ -134,7 +140,7 @@ typedIntItem(IntItem ii, EventId id)
   status rval = typedTextItem((TextItem)ii, id);
   
   if ( rval &&
-       !checkType(ii->value_text->string, ii->type, NIL) &&
+       !checkType(ii->value_text->string, TypeInt, NIL) &&
        getSizeCharArray(ii->value_text->string) != ZERO )
   { displayedValueTextItem((TextItem)ii, save);
     return errorPce(ii, NAME_cannotConvertText,
