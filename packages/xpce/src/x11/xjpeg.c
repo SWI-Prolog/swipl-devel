@@ -26,12 +26,15 @@
 #include <h/graphics.h>
 #include "include.h"
 #include <memory.h>
-#include <jpeglib.h>
-#include <jerror.h>
 #ifdef HAVE_STRING_H
 #include <string.h>
 #endif
 #include <setjmp.h>
+
+#undef GLOBAL				/* avoid conflicts */
+#undef HAVE_STDLIB_H
+#include <jpeglib.h>
+#include <jerror.h>
 
 #define RESCALE(v, o, n)	((v) * (n) / (o))
 
