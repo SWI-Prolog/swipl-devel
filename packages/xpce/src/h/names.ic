@@ -1657,6 +1657,7 @@
   BUILTIN_NAME("position")
   BUILTIN_NAME("posix_value")
   BUILTIN_NAME("post")
+  BUILTIN_NAME("post_event")
   BUILTIN_NAME("postscript")
   BUILTIN_NAME("postscript_defs")
   BUILTIN_NAME("postscript_depth")

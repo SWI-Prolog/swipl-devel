@@ -107,7 +107,7 @@ static status
 eventTileAdjuster(TileAdjuster adj, EventObj ev)
 { Int offset;
 
-  if ( eventWindow((PceWindow) adj, ev) )
+  if ( postEventWindow((PceWindow) adj, ev) )
     succeed;
 
   if ( isDownEvent(ev) && (offset = getEventOffsetTileAdjuster(adj, ev)) )

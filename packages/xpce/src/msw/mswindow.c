@@ -345,7 +345,7 @@ do_window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 		      SetCapture(hwnd);
 		    else if ( isUpEvent(ev) && !w->capture )
 		      ReleaseCapture();
-		    rval = postEvent(ev, (Graphical) sw, DEFAULT);
+		    rval = postNamedEvent(ev, (Graphical) sw, DEFAULT, NAME_postEvent);
 		    delCodeReference(ev);
 		    freeableObj(ev);
 		  }

@@ -67,9 +67,11 @@ clipped_by_window(Gr) :->
 		 *	     INVISIBLE		*
 		 *******************************/
 
-:- pce_global(@unclip_window, new(unclip_window)).
+:- pce_global(@unclip_window, new(pce_unclip_window)).
 
-:- pce_begin_class(unclip_window, window).
+:- pce_begin_class(pce_unclip_window, window).
+
+variable(handler, handler, get, "Handler used to fetch all events").
 
 class_variable(background, colour, azure).
 
@@ -79,11 +81,24 @@ initialise(W) :->
 	send(Fr, kind, popup),
 	send(W, pen, 0),
 	send(Fr, border, 1),
-	send(Fr?tile, border, 0).
+	send(Fr?tile, border, 0),
+	send(W, slot, handler,
+	     handler(any, message(W, unclipped_event, @event))).
 
 attach(W, To:graphical) :->
 	"Attach to graphical"::
-	send(W, delete_hypers, mirroring),
+	get(To, window, ToWindow),
+	(   get(W, hypered, mirroring, Old)
+	->  send(W, delete_hypers, mirroring),
+	    (	get(Old, window, ToWindow)
+	    ->	true
+	    ;	send(Old, grab_pointer, @off),
+		send(ToWindow, grab_pointer, @on)
+	    )
+	;   get(W, handler, H),
+	    send(ToWindow, grab_pointer, @on),
+	    send(@display?inspect_handlers, prepend, H)
+	),
 	new(_, hyper(To, W, mirror, mirroring)),
 	send(W, update),
 	get(To, display_position, point(X,Y)),
@@ -92,8 +107,7 @@ attach(W, To:graphical) :->
 	;   get(W, border, Border)
 	),
 	send(W, open, point(X-Border,Y-Border)),
-	send(W, expose),
-	send(W, grab_pointer, @on).
+	send(W, expose).
 
 update(W) :->
 	"Update for changed receiver"::
@@ -110,36 +124,26 @@ update(W) :->
 
 detach(W) :->
 	"Detach and hide"::
-	(   get(W, hypered, mirroring, _)
-	->  send(W, grab_pointer, @off),
-	    send(W, delete_hypers, mirroring),
+	(   get(W, hypered, mirroring, Gr)
+	->  send(W, delete_hypers, mirroring),
 	    send(W, clear),
-	    send(W, show, @off)
+	    send(W, show, @off),
+	    get(W, handler, H),
+	    send(Gr?window, grab_pointer, @off),
+	    send(@display?inspect_handlers, delete, H)
 	;   true
 	).
 
-event(W, Ev:event) :->
+
+unclipped_event(W, Ev:event) :->
 	(   send(Ev, is_a, loc_move),
 	    \+ send(Ev, inside, W)
 	->  send(W, detach)
 	;   (   send(Ev, is_a, button)
 	    ;	send(Ev, is_a, keyboard)
 	    )
-	->  get(W, hypered, mirroring, Gr),
-	    get(Gr, window, W2),
-	    get(Ev, position, W2, point(X,Y)),
-	    get(W2, slot, scroll_offset, point(OX, OY)),
-	    AX is X+OX, AY is Y+OY,
-	    get(Ev, id, Id),
-	    send(W, detach),
-	    send(event(Id, W2, AX, AY), post, W2)
-	;   \+ send(Ev, is_a, area),
-	    get(W, hypered, mirroring, Gr),
-	    catch(send(Ev, post, Gr), E,
-		  (   print_message(error, E),
-		      send(W, detach)
-		  )),
-	    send(W, update)
+	->  send(W, detach),
+	    fail			% normal event-processing
 	).
 
-:- pce_end_class(unclip_window).
+:- pce_end_class(pce_unclip_window).

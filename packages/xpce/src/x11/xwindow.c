@@ -251,7 +251,7 @@ x_event_window(PceWindow sw, XEvent *event)
 
   if ( (ev = CtoEvent(sw, event)) )
   { addCodeReference(ev);
-    postEvent(ev, receiver, DEFAULT);
+    postNamedEvent(ev, receiver, DEFAULT, NAME_postEvent);
     delCodeReference(ev);
     freeableObj(ev);
 

@@ -566,7 +566,7 @@ is_service_window(PceWindow sw)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Support for `display->inspect_handler'.  The naming of this is a bit old
 fashioned.  Checks whether there is a handler   in the chain that may be
-capable of handlign the event before doing anything.
+capable of handling the event before doing anything.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static status
@@ -584,12 +584,15 @@ inspectWindow(PceWindow sw, EventObj ev)
     }
   }
 
+  DEBUG(NAME_inspect, Cprintf("inspectWindow(%s, %s) failed\n",
+			      pp(sw), pp(ev->id)));
+
   fail;
 }
 
 
 status
-eventWindow(PceWindow sw, EventObj ev)
+postEventWindow(PceWindow sw, EventObj ev)
 { int rval = FAIL;
   EventObj old_event;
 
@@ -635,7 +638,7 @@ eventWindow(PceWindow sw, EventObj ev)
 
   if ( notNil(sw->focus) )
   { if ( sw->focus == (Graphical) sw && isNil(sw->focus_recogniser) )
-      rval = eventDevice((Device)sw, ev);
+      rval = send(sw, NAME_event, ev, EAV);
     else
     { DEBUG(NAME_focus,
 	    Cprintf("FOCUS: Directing focussed %s event to %s\n",
@@ -660,7 +663,7 @@ eventWindow(PceWindow sw, EventObj ev)
   }
 
   if ( sw->focus != (Graphical) sw || notNil(sw->focus_recogniser) )
-  { rval = eventDevice((Device)sw, ev);
+  { rval = send(sw, NAME_event, ev, EAV);
   }
 
   if ( !rval )
@@ -2227,7 +2230,7 @@ static senddecl send_window[] =
      NAME_area, "Execute <-resize_message"),
   SM(NAME_catchAll, 2, T_catchAll, catchAllWindowv,
      NAME_delegate, "Handle frame methods when no frame is present"),
-  SM(NAME_event, 1, "event", eventWindow,
+  SM(NAME_postEvent, 1, "event", postEventWindow,
      NAME_event, "Handle event"),
   SM(NAME_grabKeyboard, 1, "bool", grabKeyboardWindow,
      NAME_event, "Grab keyboard events"),

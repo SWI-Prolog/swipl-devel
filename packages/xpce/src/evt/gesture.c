@@ -103,9 +103,9 @@ succeedGesture(Gesture g, EventObj ev)
 Cancel a gesture. Typically deals with  click-gestures after the pointer
 has moved too far. The gesture  undoes   focus,  switches itself off and
 then reposts the initial event to see   if another gesture wants to have
-the event. The it posts the  event  on   which  is  was started. This is
-normally window<-current event. Hence the  hack there. See eventWindow()
-for further details.
+the event. It posts the event on which  is was started. This is normally
+window<-current event. Hence the hack   there. See postEventWindow() for
+further details.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 status
@@ -122,7 +122,7 @@ cancelGesture(Gesture g, EventObj ev)
   addCodeReference(ev);
   oev = sw->current_event;
   assign(sw, current_event, NIL);
-  send(sw, NAME_event, ev, EAV);
+  send(sw, NAME_postEvent, ev, EAV);
   assign(sw, current_event, oev);
   delCodeReference(ev);
 

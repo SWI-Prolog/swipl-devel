@@ -835,7 +835,10 @@ inspectDisplay(DisplayObj d, Graphical gr, EventObj ev)
   for_chain(d->inspect_handlers, h,
 	    { if ( isAEvent(ev, h->event) &&
 		   forwardReceiverCode(h->message, gr, gr, ev, EAV) )
+	      { DEBUG(NAME_inspect, Cprintf("Inspect %s succeeded on %s\n",
+					    pp(ev->id), pp(h)));
 		succeed;
+	      }
 	    })
 
   fail;

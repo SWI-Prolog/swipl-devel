@@ -164,7 +164,7 @@ considerLocStillEvent()
 				  last_x, last_y, last_buttons,
 				  toInt(last_time + now - host_last_time), EAV);
 		    addCodeReference(e);
-		    postEvent(e, (Graphical) last_window, DEFAULT);
+		    postNamedEvent(e, (Graphical) last_window, DEFAULT, NAME_postEvent);
 		    delCodeReference(e);
 		    freeableObj(e);
 		    rewindAnswerStack(mark, NIL);		   
