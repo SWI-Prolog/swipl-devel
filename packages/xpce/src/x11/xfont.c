@@ -32,21 +32,16 @@ status
 ws_create_font(FontObj f, DisplayObj d)
 { XpceFontInfo xref;
   DisplayWsXref r = d->ws_ref;
-  XftFont *xft;
+  XftFont *xft = NULL;
 
   if ( !instanceOfObject(f->x_name, ClassCharArray) ||
        !isstrA(&f->x_name->data) )			/* HACK */
   { XftPattern *p = XftPatternCreate();
     XftPattern *match;
-    char buf[1024];
     FcResult fcrc;
     int i;
 
-    if ( f->family == NAME_screen )
-    { XftPatternAddString(p, XFT_FAMILY,  "efont");
-      XftPatternAddInteger(p, XFT_SPACING, XFT_MONO);
-    } else
-      XftPatternAddString(p, XFT_FAMILY, strName(f->family));
+    XftPatternAddString(p, XFT_FAMILY, strName(f->family));
     XftPatternAddDouble(p, XFT_PIXEL_SIZE, (double)valInt(f->points));
     if ( f->style == NAME_italic )
       XftPatternAddInteger(p, XFT_SLANT, XFT_SLANT_ITALIC);
@@ -55,21 +50,20 @@ ws_create_font(FontObj f, DisplayObj d)
     else if ( f->style == NAME_bold )
       XftPatternAddInteger(p, XFT_WEIGHT, XFT_WEIGHT_BOLD);
 
-    match = XftFontMatch(r->display_xref, r->screen, p, &fcrc);
-    XftNameUnparse(match, buf, sizeof(buf));
-    DEBUG(NAME_font, Cprintf("Match = '%s'\n", buf));
-    switch(fcrc)
-    { case FcResultMatch:
-	xft = XftFontOpenPattern(r->display_xref, match);
-             break;
-      case FcResultNoMatch:
-      case FcResultTypeMismatch:
-      case FcResultNoId:
-      case FcResultOutOfMemory:
-	return replaceFont(f, d);
-    }
+    if ( !(match = XftFontMatch(r->display_xref, r->screen, p, &fcrc)) )
+      return replaceFont(f, d);
+
+    DEBUG(NAME_font,
+	  { char buf[1024];
+	    XftNameUnparse(match, buf, sizeof(buf));
+	    Cprintf("Match = '%s'\n", buf);
+	  });
 
     xft = XftFontOpenPattern(r->display_xref, match);
+
+    if ( !xft )
+      return replaceFont(f, d);
+
     if ( FcPatternGetInteger(match, XFT_SPACING, 0, &i) == FcResultMatch )
     { Cprintf("Setting fixed from property\n");
       if ( i == XFT_MONO )
@@ -78,11 +72,9 @@ ws_create_font(FontObj f, DisplayObj d)
 	assign(f, fixed_width, OFF);
     }
 
-    XftPatternDestroy(p);
-    XftPatternDestroy(match);
+//   XftPatternDestroy(p);
+//    XftPatternDestroy(match);
 
-    if ( !xft )
-      return replaceFont(f, d);
   } else
   { const charA *xname = strName(f->x_name);
 
