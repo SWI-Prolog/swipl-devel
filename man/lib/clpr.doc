@@ -1,0 +1,191 @@
+\libdoc{clpr}{Constraint Logic Programming over Reals}
+
+Author: \emph{Leslie De Koninck}, K.U. Leuven
+as part of a thesis with supervisor Bart Demoen and
+daily advisor Tom Schrijvers.
+
+This CLP(R) system is a port of the CLP(Q,R) system of Sicstus
+Prolog by Christian Holzbaur: Holzbaur C.: OFAI clp(q,r) Manual,
+Edition 1.3.3, Austrian Research Institute for Artificial Intelligence,
+Vienna, TR-95-09, 1995. This port only contains the part concerning
+real arithmetics. This manual is roughly based on the manual of the
+above mentioned CLP(QR) implementation.
+
+Please note that the \pllib{clpr} library is \emph{not} an
+\jargon{autoload} library and therefore this library must be loaded
+explicitely before using it:
+
+\begin{code}
+:- use_module(library(clpr)).
+\end{code}
+
+\subsection{Solver predicates}
+%=============================
+
+The following predicates are provided to work with constraints:
+
+\begin{description}
+
+	\predicate{{}}{1}{+Constraints}
+Adds the constraints given by \arg{Constraints} to the constraint store.
+
+	\predicate{entailed}{1}{+Constraint}
+Succeeds if \arg{Constraint} is necessarily true within the current
+constraint store. This means that adding the negation of the constraint
+to the store results in failure.
+
+	\predicate{inf}{2}{+Expression, -Inf}
+Computes the infimum of \arg{Expression} within the current state of the
+constraint store and returns that infimum in \arg{Inf}. This predicate
+does not change the constraint store.
+
+	\predicate{sup}{2}{+Expression, -Sup}
+Computes the supremum of \arg{Expression} within the current state of
+the constraint store and returns that supremum in \arg{Sup}. This
+predicate does not change the constraint store.
+
+	\predicate{min}{1}{+Expression}
+Minimizes \arg{Expression} within the current constraint store. This is
+the same as computing the infimum and equation the expression to that
+infimum.
+
+	\predicate{max}{1}{+Expression}
+Maximizes \arg{Expression} within the current constraint store. This is
+the same as computing the supremum and equating the expression to that
+supremum.
+
+	\predicate{bb_inf}{5}{+Ints, +Expression, -Inf, -Vertex, +Eps}
+Computes the infimum of \arg{Expression} within the current constraint
+store, with the additional constraint that in that infimum, all
+variables in \arg{Ints} have integral values. \arg{Vertex} will contain
+the values of \arg{Ints} in the infimum. \arg{Eps} denotes how much a
+value may differ from an integer to be considered an integer. E.g.\ when
+\arg{Eps} = 0.001, then X = 4.999 will be considered as an integer (5 in
+this case). \arg{Eps} should be between 0 and 0.5.
+
+\predicate{bb_inf}{3}{+ints, + Expression, -Inf}
+The same as bb_inf/5 but without returning the values of the integers
+and with an eps of 0.001.
+
+	\predicate{dump}{3}{+Target, +Newvars, -CodedAnswer}
+Returns the constraints on \arg{Target} in the list \arg{CodedAnswer}
+where all variables of \arg{Target} have veen replaced by \arg{NewVars}.
+This operation does not change the constraint store. This is currently
+the mechanism to use if you want a readable projection of the
+constraints. E.g.\ in
+
+\begin{code}
+dump([X,Y,Z],[x,y,z],Cons)
+\end{code}
+
+Cons will contain the constraints on X, Y and Z where these variables
+have been replaced by atoms x, y and z.
+ 
+\end{description}
+
+\subsection{Syntax of the predicate arguments}
+%=============================================
+
+The arguments of the predicates defined in the subsection above is as follows:
+
+\begin{code}
+
+Constraints --> Constraint			% single constraint
+	      | Constraint, Constraints		% conjunction
+	      | Constraint; Constraints		% disjunction
+
+Constraint --> Expression < Expression		% less than
+	     | Expression > Expression		% greater than
+	     | Expression =< Expression		% less or equal
+	     | <=(Expression, Expression)	% less or equal
+	     | Expression >= Expression		% greater or equal
+	     | Expression =\= Expression	% not equal
+	     | Expression =:= Expression	% equal
+	     | Expression = Expression		% equal
+
+Expression --> variable				% prolog variable
+	     | number				% prolog number (float, integer)
+	     | +Expression			% unary plus
+	     | -Expression			% unary minus
+	     | Expression + Expression		% addition
+	     | Expression - Expression		% substraction
+	     | Expression * Expression		% multiplication
+	     | Expression / Expression		% division
+	     | abs(Expression)			% absolute value
+	     | sin(Expression)			% sine
+	     | cos(Expression)			% cosine
+	     | tan(Expression)			% tangent
+	     | exp(Expression)			% exponent
+	     | pow(Expression)			% exponent
+	     | Expression ^ Expression		% exponent
+	     | min(Expression, Expression)	% minimum
+	     | max(Expression, Expression)	% maximum
+
+\end{code}
+
+Failing to meet the syntax rules will result in an exception.
+
+\subsection{Use of unification}
+
+Instead of using the {}/1 predicate, you can also use the standard
+unification mechanism to store constraints. The following code samples
+are equivalent:
+
+\begin{itemlist}
+
+\item [Unification with a variable]
+
+\begin{code}
+{X =:= Y}
+{X = Y}
+X = Y
+\end{code}
+
+\item [Unification with a number]
+
+\begin{code}
+{X =:= 5.0}
+{X = 5.0}
+X = 5.0
+\end{code}
+	
+\end{itemlist}
+
+\subsection{Non-linear constraints}
+%==================================
+
+In this version, non-linear constraints do not get solved until certain conditions are satisfied. We call
+these conditions the isolation axioms. They are the following:
+
+\begin{code}
+	A = B * C
+		B or C is ground			e.g. A = 5 * C or A = B * 4
+		A and (B or C) are ground		e.g. 20 = 5 * C or 20 = B * 4
+
+	A = B / C
+		C is ground				e.g. A = B / 3
+		A and B are ground			e.g. 4 = 12 / C
+	X = min(Y,Z) 
+		Y and Z are ground			e.g. X = min(4,3)
+	X = max(Y,Z) 
+		Y and Z are ground			e.g. X = max(4,3)
+	X = abs(Y)
+		Y is ground				e.g. X = abs(-7)
+	X = pow(Y,Z),
+	X = exp(Y,Z) or
+	X = Y ^ Z
+		X and Y are ground			e.g. 8 = 2 ^ Z
+		X and Z are ground			e.g. 8 = Y ^ 3
+		Y and Z are ground			e.g. X = 2 ^ 3
+	X = sin(Y)
+		X is ground				e.g. 1 = sin(Y) 
+		Y is ground				e.g. X = sin(1.5707)
+	X = cos(Y)
+		X is ground				e.g. 1 = cos(Y)
+		Y is ground				e.g. X = cos(0)
+	X = tan(Y)
+		X is ground				e.g. 1 = tan(Y)
+		Y is ground				e.g. X = tan(0.7853)
+\end{code}
+
+% do not remove

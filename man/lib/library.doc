@@ -34,3 +34,4 @@ documented at all.
 \input{registry}
 \input{url}
 \input{bounds}
+\input{clpr}
