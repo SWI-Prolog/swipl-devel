@@ -1947,7 +1947,7 @@ pl_tab2(term_t out, term_t spaces)
 
   if ( valueExpression(spaces, &n PASS_LD) &&
        toIntegerNumber(&n) )
-  { int m = n.value.i;
+  { int64_t m = n.value.i;
     IOSTREAM *s;
 
     if ( !getOutputStream(out, &s) )
@@ -2938,8 +2938,8 @@ pl_set_stream_position(term_t stream, term_t pos)
 		    ATOM_reposition, ATOM_stream, stream);
 
   s->position->charno  = charno;
-  s->position->lineno  = lineno;
-  s->position->linepos = linepos;
+  s->position->lineno  = (int)lineno;
+  s->position->linepos = (int)linepos;
 
   releaseStream(s);
 
@@ -2981,7 +2981,7 @@ pl_seek(term_t stream, term_t offset, term_t method, term_t newloc)
     }
 
     releaseStream(s);
-    return PL_unify_integer(newloc, new);
+    return PL_unify_int64(newloc, new);
   }
 
   fail;
@@ -3038,10 +3038,10 @@ pl_character_count(term_t stream, term_t count)
   IOSTREAM *s;
 
   if ( getStreamWithPosition(stream, &s) )
-  { long n = s->position->charno;
+  { int64_t n = s->position->charno;
 
     releaseStream(s);
-    return PL_unify_integer(count, n);
+    return PL_unify_int64(count, n);
   }
 
   fail;

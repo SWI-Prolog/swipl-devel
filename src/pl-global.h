@@ -60,7 +60,7 @@ typedef struct
 { atom_t	file;			/* current source file */
   int	  	line;			/* current line */
   int		linepos;		/* position in the line */
-  long		character;		/* current character location */
+  int64_t	character;		/* current character location */
 } source_location;
 
 		 /*******************************

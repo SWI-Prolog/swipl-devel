@@ -41,6 +41,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <assert.h>
+#include <limits.h>
 #include <sys/types.h>
 #include <ctype.h>
 #include <h/interface.h>
@@ -1163,7 +1164,10 @@ get_object_arg(term_t t, PceObject* obj)
       *obj = atomToName(val.a);
       return TRUE;
     case PL_INTEGER:
-      *obj = cToPceInteger(val.i);
+      if ( val.i >= PCE_MIN_INT && val.i <= PCE_MAX_INT )
+	*obj = cToPceInteger((long)val.i);
+      else
+	*obj = cToPceReal((double)val.i);
       return TRUE;
     case PL_FLOAT:
       *obj = cToPceReal(val.f);
@@ -1209,7 +1213,7 @@ get_typed_object(PceGoal g, term_t t, PceType type, PceObject* rval)
       break;
     case PL_INTEGER:
       if ( val.i >= PCE_MIN_INT && val.i <= PCE_MAX_INT )
-	obj = cToPceInteger(val.i);
+	obj = cToPceInteger((long)val.i);
       else
 	obj = cToPceReal((double)val.i);
       break;
@@ -1257,7 +1261,10 @@ get_answer_object(PceGoal g, Term t, PceType type, PceObject *rval)
       obj = atomToName(val.a);
       break;
     case PL_INTEGER:
-      obj = cToPceInteger(val.i);
+      if ( val.i >- PCE_MIN_INT && val.i <= PCE_MAX_INT )
+	obj = cToPceInteger((long)val.i);
+      else
+	obj = cToPceReal((double)val.i);
       break;
     case PL_FLOAT:
       obj = cToPceReal(val.f);
@@ -1808,7 +1815,7 @@ put_prolog_argument(PceGoal g, Term t, PceType type, Term f)
       }
       break;
     case PL_INTEGER:
-      if ( pceCheckIntType(type, val.i) )
+      if ( pceCheckIntType(type, (long)val.i) ) /* cast ok? */
       { PL_put_int64(t, val.i);
 	return TRUE;
       }

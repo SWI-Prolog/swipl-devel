@@ -26,7 +26,11 @@
 #define _PL_STREAM_H
 
 #include <stdarg.h>
-#include <stdint.h>
+#ifdef WIN32
+typedef __int64 int64_t;
+#else
+#include <stdint.h>			/* specific-width integers */
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -98,7 +102,7 @@ stuff.
 typedef int   (*Sread_function)(void *handle, char *buf, int bufsize);
 typedef int   (*Swrite_function)(void *handle, char*buf, int bufsize);
 typedef long  (*Sseek_function)(void *handle, long pos, int whence);
-typedef long  (*Sseek64_function)(void *handle, int64_t pos, int whence);
+typedef int64_t (*Sseek64_function)(void *handle, int64_t pos, int whence);
 typedef int   (*Sclose_function)(void *handle);
 typedef int   (*Scontrol_function)(void *handle, int action, void *arg);
 
@@ -345,6 +349,9 @@ PL_EXPORT(IOSTREAM *)	Sopenmem(char **buffer, int *sizep, const char *mode);
 PL_EXPORT(IOSTREAM *)	Sopen_string(IOSTREAM *s, char *buf, int sz, const char *m);
 PL_EXPORT(int)		Sclosehook(void (*hook)(IOSTREAM *s));
 PL_EXPORT(void)		Sfree(void *ptr);
+
+PL_EXPORT(int64_t)	Stell64(IOSTREAM *s);
+PL_EXPORT(int64_t)	Sseek64(IOSTREAM *s, int64_t pos, int whence);
 
 #ifdef __cplusplus
 }

@@ -29,6 +29,7 @@
 #include <stdlib.h>			/* get size_t */
 #ifdef WIN32
 typedef __int64 int64_t;
+typedef unsigned __int64 uint64_t;
 #else
 #include <stdint.h>			/* specific-width integers */
 #endif
@@ -919,7 +920,7 @@ typedef fid_t			bktrk_buf;
 		 *******************************/
 
 PL_EXPORT(PL_atomic_t)	_PL_atomic(term_t t);
-PL_EXPORT(long)		_PL_integer_value(PL_atomic_t t);
+PL_EXPORT(int64_t)	_PL_integer_value(PL_atomic_t t);
 PL_EXPORT(double)	_PL_float_value(PL_atomic_t t);
 PL_EXPORT(char *)	_PL_string_value(PL_atomic_t t);
 PL_EXPORT(char *)	_PL_list_string_value(term_t t);

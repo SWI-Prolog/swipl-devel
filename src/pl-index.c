@@ -139,7 +139,14 @@ indexOfWord(word w ARG_LD)
 	return 0L;
       case TAG_INTEGER:
 	if ( storage(w) != STG_INLINE )
-	  return valBignum(w);
+	{ Word p = valIndirectP(w);
+
+#if SIZEOF_LONG == 4
+	  return p[0]^p[1];
+#else
+ 	  return p[0];
+#endif
+	}
       case TAG_ATOM:
 	break;				/* atom_t */
       case TAG_COMPOUND:

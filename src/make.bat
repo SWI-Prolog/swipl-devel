@@ -6,7 +6,7 @@ rem ****************************************************************
 rem Configuration section
 
 set CVSROOT=:pserver:jan@gollem:/usr/local/plcvs
-set HOME=%USERPROFILE%\My Documents
+set HOME=%USERPROFILE%
 set WINDIR=C:\WINDOWS
 set DEVSTUDIO=C:\Program Files\Microsoft Visual Studio
 set JAVA_HOME=C:\j2sdk1.4.2_04

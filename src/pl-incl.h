@@ -447,7 +447,7 @@ them.  Descriptions:
 #define PLMAXTAGGEDINT		(-PLMINTAGGEDINT - 1)
 #define inTaggedNumRange(n)	(((n)&~PLMAXTAGGEDINT) == 0 || \
 				 ((n)&~PLMAXTAGGEDINT) == ~PLMAXTAGGEDINT)
-#define PLMININT		((-1LL<<(INT64BITSIZE-1)))
+#define PLMININT		(((int64_t)-1<<(INT64BITSIZE-1)))
 #define PLMAXINT		(-(PLMININT+1))
 
 #if vax

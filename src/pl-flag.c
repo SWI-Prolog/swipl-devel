@@ -34,9 +34,9 @@ struct flag
 { word	key;				/* key to the flag */
   int	type;				/* type (atom, int, real */
   union
-  { atom_t a;				/* atom */
-    long   i;				/* integer */
-    double f;				/* float */
+  { atom_t  a;				/* atom */
+    int64_t i;				/* integer */
+    double  f;				/* float */
   } value;				/* value of the flag */
 };
 
@@ -105,7 +105,7 @@ PRED_IMPL("flag", 3, flag, PL_FA_TRANSPARENT)
 	goto out;
       break;
     case FLG_INTEGER:
-      if ( !PL_unify_integer(old, f->value.i) )
+      if ( !PL_unify_int64(old, f->value.i) )
 	goto out;
       break;
     case FLG_REAL:

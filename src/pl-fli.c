@@ -1499,7 +1499,7 @@ _PL_get_xpce_reference(term_t t, xpceref_t *ref)
       }
       if ( isBignum(*p) )
       { ref->type    = PL_INTEGER;
-	ref->value.i = valBignum(*p);
+	ref->value.i = (long)valBignum(*p);
 
 	goto ok;
       }

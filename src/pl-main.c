@@ -193,13 +193,13 @@ memarea_limit(const char *s)
     { case 'k':
       case 'K':
       case EOS:
-	return n.value.i K;
+	return (long)n.value.i K;
       case 'm':
       case 'M':
-	return n.value.i K K;
+	return (long)n.value.i K K;
       case 'b':
       case 'B':
-	return n.value.i;
+	return (long)n.value.i;
     }
   }
 
