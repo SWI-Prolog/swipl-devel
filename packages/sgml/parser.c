@@ -1254,12 +1254,17 @@ string_expected:
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The sgml-standard tells us to accept the  first definition of an entity,
+silently suppressing any further attempt to redefine the entity.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
 process_entity_declaration(dtd_parser *p, const ichar *decl)
 { dtd *dtd = p->dtd;
   const ichar *s;
   dtd_symbol *id;
-  dtd_entity *e = sgml_calloc(1, sizeof(*e));
+  dtd_entity *e;
   int isparam;
   int isdef = FALSE;
 					/* parameter entity */
@@ -1275,8 +1280,14 @@ process_entity_declaration(dtd_parser *p, const ichar *decl)
     id = dtd_add_symbol(dtd, "#DEFAULT");
     isdef = TRUE;
   }
-  decl = iskip_layout(dtd, s);
 
+  if ( isparam && find_pentity(dtd, id) )
+    return TRUE;			/* already defined parameter entity */
+  if ( id->entity )
+    return TRUE;			/* already defined normal entity */
+
+  decl = iskip_layout(dtd, s);
+  e = sgml_calloc(1, sizeof(*e));
   e->name = id;
 
   if ( (s = isee_identifier(dtd, decl, "system")) )

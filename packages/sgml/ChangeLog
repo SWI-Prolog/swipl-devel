@@ -1,3 +1,6 @@
+* MODIFIED: silently ignore attempts to redefine entity declarations.
+  Richard O'Keefe.
+
 * FIXED: skip [] for detection of nesting inside literal values and fix
   handling of [] in the <!DOCTYPE xxx [...]> declaration.  Richard O'Keefe.
 
