@@ -221,7 +221,7 @@ addInt64(CompileInfo info, int64_t v)
 
   if ( v != PLMININT )
   { int64_t absn = (v >= 0 ? v : -v);
-    int64_t mask = -1LL << (INT64BITSIZE-9);
+    int64_t mask = (int64_t)-1 << (INT64BITSIZE-9);
 
     for(; i>1; i--, mask >>= 8)
     { if ( absn & mask )
@@ -232,7 +232,7 @@ addInt64(CompileInfo info, int64_t v)
   addBuffer(&info->code, i, uchar);
   
   while( --i >= 0 )
-  { int b = (v>>(i*8)) & 0xff;
+  { int b = (int)(v>>(i*8)) & 0xff;
     
     addBuffer(&info->code, b, uchar);
   }

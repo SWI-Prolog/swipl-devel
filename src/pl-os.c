@@ -418,7 +418,7 @@ _PL_Random(void)
     l ^= rand()<<10;
     l ^= rand()<<20;
 
-    return l & (~PLMININT);
+    return l;
   }
 #endif
 }

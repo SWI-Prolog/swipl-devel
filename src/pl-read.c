@@ -1017,6 +1017,21 @@ skipAlpha(char *in)
 typedef const unsigned char * cucharp;
 typedef       unsigned char * ucharp;
 
+static real
+uint64_to_real(uint64_t i)
+{
+#ifdef WIN32
+  int64_t s = (int64_t)i;
+  if ( s >= 0 )
+    return (real)s;
+  else
+    return (real)s + 18446744073709551616.0;
+#else
+  return (real)i;
+#endif
+}
+
+
 static int
 scan_decimal(cucharp *sp, Number n)
 { uint64_t maxi = PLMAXINT/10;		/* cache? */
@@ -1027,7 +1042,7 @@ scan_decimal(cucharp *sp, Number n)
   for(c = *s; isDigit(c); c = *++s)
   { if ( t > maxi )
     { real maxf = MAXREAL / (real) 10 - (real) 10;
-      real tf = (real)t;
+      real tf = uint64_to_real(t);
 
       for(c = *s; isDigit(c); c = *++s)
       { if ( tf > maxf )
@@ -1045,7 +1060,7 @@ scan_decimal(cucharp *sp, Number n)
   *sp = s;
 
   if ( t > PLMAXINT )
-  { n->value.f = (real)t;
+  { n->value.f = uint64_to_real(t);
     n->type = V_REAL;
     succeed;
   }
@@ -1073,7 +1088,7 @@ scan_number(cucharp *s, int b, Number n)
 
     if ( t > maxi )
     { real maxf = MAXREAL / (real) b - (real) b;
-      real tf = (real)t;
+      real tf = uint64_to_real(t);
 
       tf = tf * (real)b + (real)d;
       while((d = digitValue(b, *q)) >= 0)
@@ -1091,7 +1106,7 @@ scan_number(cucharp *s, int b, Number n)
   }  
 
   if ( t > PLMAXINT )
-  { n->value.f = (real)t;
+  { n->value.f = uint64_to_real(t);
     n->type = V_REAL;
     *s = q;
     succeed;

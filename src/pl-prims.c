@@ -318,6 +318,10 @@ PRED_IMPL("deterministic", 1, deterministic, 0)
 		 *	    HASH-TERM		*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Should this be int64_t for compatibility?
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static bool
 termHashValue(word term, long *hval ARG_LD)
 { for(;;)
@@ -338,7 +342,16 @@ termHashValue(word term, long *hval ARG_LD)
         succeed;
       }
       case TAG_INTEGER:
-	*hval = valInteger(term);
+	if ( storage(term) == STG_INLINE )
+	{ *hval = valInt(term);
+	} else
+	{ Word p = valIndirectP(term);
+#if SIZEOF_LONG == 4
+	  *hval = p[0]^p[1];
+#else
+	  *hval = p[0];
+#endif
+	}
         succeed;
       case TAG_FLOAT:
       { int i;
@@ -3052,17 +3065,17 @@ qp_statistics__LD(atom_t key, int64_t v[], PL_local_data_t *ld)
   if ( key == ATOM_runtime )
   { v[0] = (int64_t)(LD->statistics.user_cputime * 1000.0);
     v[1] = v[0] - LD->statistics.last_cputime;
-    LD->statistics.last_cputime = v[0];
+    LD->statistics.last_cputime = (long)v[0];
     vn = 2;
   } else if ( key == ATOM_system_time )
   { v[0] = (int64_t)(LD->statistics.system_cputime * 1000.0);
     v[1] = v[0] - LD->statistics.last_systime;
-    LD->statistics.last_systime = v[0];
+    LD->statistics.last_systime = (long)v[0];
     vn = 2;
   } else if ( key == ATOM_real_time )
   { v[0] = (int64_t)WallTime();
     v[1] = v[0] - LD->statistics.last_walltime;
-    LD->statistics.last_walltime = v[0];
+    LD->statistics.last_walltime = (long)v[0];
     vn = 2;
   } else if ( key == ATOM_memory || key == ATOM_core )
   { v[0] = UsedMemory();
@@ -3432,7 +3445,7 @@ set_pl_option(const char *name, const char *value)
 	  if ( get_number((unsigned char *)value, &q, &n, FALSE) &&
 	       *q == EOS &&
 	       intNumber(&n) )
-	  { *val = n.value.i;
+	  { *val = (long)n.value.i;
 	    succeed;
 	  }
 	  fail;

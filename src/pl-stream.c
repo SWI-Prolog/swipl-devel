@@ -1922,6 +1922,7 @@ Sseek_file(void *handle, long pos, int whence)
 }
 
 
+#ifdef O_LARGEFILES
 static int64_t
 Sseek_file64(void *handle, int64_t pos, int whence)
 { long h = (long) handle;
@@ -1929,6 +1930,7 @@ Sseek_file64(void *handle, int64_t pos, int whence)
 					/* cannot do EINTR according to man */
   return lseek((int)h, pos, whence);
 }
+#endif
 
 
 static int
@@ -1972,7 +1974,11 @@ IOFUNCTIONS Sfilefunctions =
   Sseek_file,
   Sclose_file,
   Scontrol_file,
+#ifdef O_LARGEFILES
   Sseek_file64
+#else
+  NULL
+#endif
 };
 
 
