@@ -2798,137 +2798,147 @@ pl_xr_member(term_t ref, term_t term, word h)
 
 #define VARNUM(i) ((i) - (ARGOFFSET / (int) sizeof(word)))
 
+Code
+wamListInstruction(IOSTREAM *out, Clause clause, Code bp)
+{ code op = decode(*bp);
+  const code_info *ci;
+  int n = 0;
+  int isbreak;
+
+  if ( op == D_BREAK )
+  { op = decode(replacedBreak(bp));
+    isbreak = TRUE;
+  } else
+    isbreak = FALSE;
+
+  ci = &codeTable[op];
+
+  if ( clause )
+    Sfprintf(out, "%4d %s", bp - clause->codes, ci->name);
+  else
+    Sfprintf(out, "VMI %s", ci->name);
+
+  bp++;					/* skip the instruction */
+
+  switch(op)
+  { case B_FIRSTVAR:
+    case H_FIRSTVAR:
+    case B_ARGFIRSTVAR:
+    case B_VAR:
+    case B_ARGVAR:
+    case H_VAR:
+    case C_VAR:
+    case C_MARK:
+    case C_SOFTCUT:
+    case C_CUT:			/* var */
+      assert(ci->arguments == 1);
+      Sfprintf(out, " var(%d)", VARNUM(*bp++));
+      break;
+    case C_SOFTIF:
+    case C_IFTHENELSE:		/* var, jump */
+    case C_NOT:
+    { int var = VARNUM(*bp++);
+      int jmp = *bp++;
+      assert(ci->arguments == 2);
+      Sfprintf(out, " var(%d), jmp(%d)", var, jmp);
+      break;
+    }
+    case I_CALL_FV1:
+    case I_CALL_FV2:
+    { int vars = op - I_CALL_FV0;
+      Procedure proc = (Procedure) *bp++;
+
+      Sfprintf(out, " %s", procedureName(proc));
+      for( ; vars > 0; vars-- )
+	Sfprintf(out, ", var(%d)", VARNUM(*bp++));
+      break;
+    }
+    default:
+      switch(codeTable[op].argtype)
+      { case CA1_PROC:
+	{ Procedure proc = (Procedure) *bp++;
+	  n++;
+	  Sfprintf(out, " %s", procedureName(proc));
+	  break;
+	}
+	case CA1_MODULE:
+	{ Module m = (Module)*bp++;
+	  n++;
+	  Sfprintf(out, " %s", stringAtom(m->name));
+	  break;
+	}
+	case CA1_FUNC:
+	{ functor_t f = (functor_t) *bp++;
+	  FunctorDef fd = valueFunctor(f);
+	  n++;
+	  Sfprintf(out, " %s/%d", stringAtom(fd->name), fd->arity);
+	  break;
+	}
+	case CA1_DATA:
+	{ word xr = *bp++;
+	  n++;
+	  switch(tag(xr))
+	  { case TAG_ATOM:
+	      Sfprintf(out, " %s", stringAtom(xr));
+	      break;
+	    case TAG_INTEGER:
+	      Sfprintf(out, " %ld", valInteger(xr));
+	      break;
+	    case TAG_STRING:
+	      Sfprintf(out, " \"%s\"", valString(xr));
+	      break;
+	    default:
+	      assert(0);
+	  }
+	  break;
+	}
+	case CA1_INTEGER:
+	{ long l = (long) *bp++;
+	  n++;
+	  Sfprintf(out, " %ld", l);
+	  break;
+	}
+	case CA1_FLOAT:
+	{ union
+	  { word w[WORDS_PER_DOUBLE];
+	    double f;
+	  } v;
+	  Word p = v.w;
+	  n += 2;
+	  cpDoubleData(p, bp);
+	  Sfprintf(out, " %g", v.f);
+	  break;
+	}
+	case CA1_STRING:
+	{ word m = *bp++;
+	  int  n = wsizeofInd(m);
+	  Sfprintf(out, " \"%s\"", (char *)bp);
+	  bp += n;
+	  break;
+	}
+      }
+      for(; n < codeTable[op].arguments; n++ )
+	Sfprintf(out, "%s%d", n == 0 ? " " : ", ", *bp++);
+  }
+
+  if ( isbreak )
+    Sfprintf(out, " *break*");
+
+  Sfprintf(out, "\n");
+
+  return bp;
+}
+
+
 void
 wamListClause(Clause clause)
 { Code bp, ep;
-  IOSTREAM *out = Scurout;
 
   bp = clause->codes;
   ep = bp + clause->code_size;
 
   while( bp < ep )
-  { code op = decode(*bp);
-    const code_info *ci;
-    int n = 0;
-    int isbreak;
-
-    if ( op == D_BREAK )
-    { op = decode(replacedBreak(bp));
-      isbreak = TRUE;
-    } else
-      isbreak = FALSE;
-
-    ci = &codeTable[op];
-
-    Sfprintf(out, "%4d %s", bp - clause->codes, ci->name);
-    bp++;
-
-    switch(op)
-    { case B_FIRSTVAR:
-      case H_FIRSTVAR:
-      case B_ARGFIRSTVAR:
-      case B_VAR:
-      case B_ARGVAR:
-      case H_VAR:
-      case C_VAR:
-      case C_MARK:
-      case C_SOFTCUT:
-      case C_CUT:			/* var */
-	assert(ci->arguments == 1);
-	Sfprintf(out, " var(%d)", VARNUM(*bp++));
-	break;
-      case C_SOFTIF:
-      case C_IFTHENELSE:		/* var, jump */
-      case C_NOT:
-      { int var = VARNUM(*bp++);
-	int jmp = *bp++;
-	assert(ci->arguments == 2);
-        Sfprintf(out, " var(%d), jmp(%d)", var, jmp);
-        break;
-      }
-      case I_CALL_FV1:
-      case I_CALL_FV2:
-      { int vars = op - I_CALL_FV0;
-	Procedure proc = (Procedure) *bp++;
-
-	Sfprintf(out, " %s", procedureName(proc));
-	for( ; vars > 0; vars-- )
-	  Sfprintf(out, ", var(%d)", VARNUM(*bp++));
-        break;
-      }
-      default:
-	switch(codeTable[op].argtype)
-	{ case CA1_PROC:
-	  { Procedure proc = (Procedure) *bp++;
-	    n++;
-	    Sfprintf(out, " %s", procedureName(proc));
-	    break;
-	  }
-	  case CA1_MODULE:
-	  { Module m = (Module)*bp++;
-	    n++;
-	    Sfprintf(out, " %s", stringAtom(m->name));
-	    break;
-	  }
-	  case CA1_FUNC:
-	  { functor_t f = (functor_t) *bp++;
-	    FunctorDef fd = valueFunctor(f);
-	    n++;
-	    Sfprintf(out, " %s/%d", stringAtom(fd->name), fd->arity);
-	    break;
-	  }
-	  case CA1_DATA:
-	  { word xr = *bp++;
-	    n++;
-	    switch(tag(xr))
-	    { case TAG_ATOM:
-		Sfprintf(out, " %s", stringAtom(xr));
-	        break;
-	      case TAG_INTEGER:
-		Sfprintf(out, " %ld", valInteger(xr));
-	        break;
-	      case TAG_STRING:
-		Sfprintf(out, " \"%s\"", valString(xr));
-	        break;
-	      default:
-		assert(0);
-	    }
-	    break;
-	  }
-	  case CA1_INTEGER:
-	  { long l = (long) *bp++;
-	    n++;
-	    Sfprintf(out, " %ld", l);
-	    break;
-	  }
-	  case CA1_FLOAT:
-	  { union
-	    { word w[WORDS_PER_DOUBLE];
-	      double f;
-	    } v;
-	    Word p = v.w;
-	    n += 2;
-	    cpDoubleData(p, bp);
-	    Sfprintf(out, " %g", v.f);
-	    break;
-	  }
-	  case CA1_STRING:
-	  { word m = *bp++;
-	    int  n = wsizeofInd(m);
-	    Sfprintf(out, " \"%s\"", (char *)bp);
-	    bp += n;
-	    break;
-	  }
-	}
-        for(; n < codeTable[op].arguments; n++ )
-	  Sfprintf(out, "%s%d", n == 0 ? " " : ", ", *bp++);
-    }
-
-    if ( isbreak )
-      Sfprintf(out, " *break*");
-
-    Sfprintf(out, "\n");
-  }
+    bp = wamListInstruction(Scurout, clause, bp);
 }
 
 
