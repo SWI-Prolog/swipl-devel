@@ -110,6 +110,14 @@ option if no new data arrives within \arg{Timeout} seconds the
 stream raises an exception. Default is to wait forever
 (\const{infinite}).
 
+	\termitem{header}{+Name, -AtomValue}
+If provided, \arg{AtomValue} is unified with the value of the
+indicated field in the reply header. \arg{Name} is matched
+case-insensitive and the underscore (\chr{_}) matches the
+hyphen (\chr{-}).  Multiple of these options may be provided
+to extract multiple header fields.  If the header is not available
+\arg{AtomValue} is unified to the empty atom ('').
+
 	\termitem{size}{-Size}
 If provided \arg{Size} is unified with the value of the
 \const{Content-Length} fields of the reply-header.

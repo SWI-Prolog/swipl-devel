@@ -164,6 +164,15 @@ With this option if no new data arrives within <VAR>Timeout</VAR>
 seconds the stream raises an exception. Default is to wait forever (<CODE>infinite</CODE>).
 
 <P>
+<DT><STRONG>header</STRONG>(<VAR>+Name, -AtomValue</VAR>)<DD>
+If provided, <VAR>AtomValue</VAR> is unified with the value of the 
+indicated field in the reply header. <VAR>Name</VAR> is matched 
+case-insensitive and the underscore (<CODE>_</CODE>) matches the hyphen 
+(<CODE>-</CODE>). Multiple of these options may be provided to extract 
+multiple header fields. If the header is not available
+<VAR>AtomValue</VAR> is unified to the empty atom ('').
+
+<P>
 <DT><STRONG>size</STRONG>(<VAR>-Size</VAR>)<DD>
 If provided <VAR>Size</VAR> is unified with the value of the
 <CODE>Content-Length</CODE> fields of the reply-header.
@@ -929,12 +938,12 @@ argument list to <A NAME="idx:sformat3:32"></A><B>sformat/3</B>. The
 result is quoted and added to the output list.
 
 <P>
-<LI><I><VAR>List</VAR></I><BR>
+<LI><I><CODE>\</CODE><VAR>List</VAR></I><BR>
 Escape sequence to add atoms directly to the output list. This can be 
 used to embed external HTML code.
 
 <P>
-<LI><I><VAR>Term</VAR></I><BR>
+<LI><I><CODE>\</CODE><VAR>Term</VAR></I><BR>
 Invoke the grammar rule <VAR>Term</VAR> in the calling module. This is 
 the common mechanism to realise abstraction and modularisation in 
 generating HTML.
@@ -943,8 +952,8 @@ generating HTML.
 <LI><I><VAR>Module</VAR>:<VAR>Term</VAR></I><BR>
 Invoke the grammar rule &lt;<VAR>Module</VAR>&gt;:&lt;<VAR>Term</VAR>&gt;. 
 This is similar to
-<VAR>Term</VAR> but allows for invoking grammar rules in external 
-packages.
+<CODE>\</CODE><VAR>Term</VAR> but allows for invoking grammar rules in 
+external packages.
 
 <P>
 <LI><I>&amp;(Entity)</I><BR>
@@ -1023,7 +1032,7 @@ the begin-tag. Some examples:
 </TABLE>
 
 <P>This predicate provides an alternative to using the
-<VAR>Command</VAR> syntax in the <A NAME="idx:html1:41"></A><A HREF="#html/1">html/1</A> 
+<CODE>\</CODE><VAR>Command</VAR> syntax in the <A NAME="idx:html1:41"></A><A HREF="#html/1">html/1</A> 
 specification. The following two fragments are the same. The preferred 
 solution depends on your preferences as well as whether the 
 specification is generated or entered by the programmer.
@@ -1242,7 +1251,8 @@ able to deal with generating pages quickly and comfortably.
 
 <P>In a future version we will probably define a <A NAME="idx:goalexpansion2:55"></A><B>goal_expansion/2</B> 
 to do compile-time optimisation of the library. Quotation of known text 
-and invokation of sub-rules using the <VAR>RuleSet</VAR> and
+and invokation of sub-rules using the <CODE>\</CODE><VAR>RuleSet</VAR> 
+and
 &lt;<VAR>Module</VAR>&gt;:&lt;<VAR>RuleSet</VAR>&gt; operators are 
 costly operations in the analysis that can be done at compile-time.
 

@@ -54,6 +54,7 @@ client support is provided by http_client.pl
 %	Supported options:
 %	
 %		size(-Size)		Return size of the resource
+%		header(Name, -Atom)	Return headerfield as atom
 %		timeout(+Timeout)	Raise exception on timeout
 %		proxy(+Host, +Port)	Use an HTTP proxy server
 %		user_agent(+Agent)	User agent for identifying
@@ -109,6 +110,7 @@ user_agent(Agent, Options) :-
 
 do_open(200, _, Lines, Options, Parts, In, In) :- !,
 	return_size(Options, Lines),
+	return_fields(Options, Lines),
 					% properly re-initialise the stream
 	parse_url(Id, Parts),
 	set_stream(In, file_name(Id)),
@@ -120,6 +122,7 @@ do_open(302, _, Lines, Options, _Parts, In, Stream) :-
 	http_open(Location, Stream, Options).
 					% report anything else as error
 do_open(Code, Comment, _, _, Parts, In, In) :-
+	close(In),
 	parse_url(Id, Parts),
 	throw(error(existence_error(url, Id),
 		    context(_, status(Code, Comment)))).
@@ -140,6 +143,18 @@ return_size(Options, Lines) :-
 	memberchk(size(Size), Options), !,
 	content_length(Lines, Size).
 return_size(_, _).
+
+return_fields([], _).
+return_fields([header(Name, Value)|T], Lines) :-
+	atom_codes(Name, Codes),
+	(   member(Line, Lines),
+	    phrase(atom_field(Codes, Value), Line)
+	->  true
+	;   Value = ''
+	),
+	return_fields(T, Lines).
+return_fields([_|T], Lines) :-
+	return_fields(T, Lines).
 
 
 read_header(In, Code, Comment, Lines) :-
@@ -183,9 +198,14 @@ field([]) -->
 	skip_blanks.
 field([H|T]) -->
 	[C],
-	{ code_type(H, to_lower(C))
+	{ match_header_char(H, C)
 	},
 	field(T).
+
+match_header_char(C, C) :- !.
+match_header_char(C, U) :-
+	code_type(C, to_lower(U)), !.
+match_header_char(0'_, 0'-).
 
 
 skip_blanks -->

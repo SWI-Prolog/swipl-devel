@@ -1,3 +1,8 @@
+Mar 4, 2003
+
+  * ADDED: http_open/3: header(+Name, -Value) option.  Wouter
+    Jansweijer.
+
 Jan 23, 2003
 
   * ADDED: Provide User-Agent header for the client libraries
