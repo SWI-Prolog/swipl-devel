@@ -62,6 +62,7 @@ typedef struct _PL_thread_info_t
 #define PL_THREAD_FAILED	4
 #define PL_THREAD_EXCEPTION	5
 #define PL_THREAD_CANCELED	6
+#define	PL_THREAD_CREATED	7
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 				Thread-local data
@@ -197,4 +198,3 @@ int			freeRecursiveMutex(recursive_mutex_t *m);
 #endif /*O_PLMT*/
 
 #endif /*PL_THREAD_H_DEFINED*/
-

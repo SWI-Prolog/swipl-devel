@@ -276,11 +276,24 @@ exitPrologThreads()
 #endif
   for(i=1; i<MAX_THREADS; i++)
   { if ( threads[i].thread_data && i != me )
-    { if ( pthread_cancel(threads[i].tid) == 0 )
-      { threads[i].status = PL_THREAD_CANCELED;
-	canceled++;
-      } else
-      {	Sdprintf("Failed to cancel thread %d: %s\n", i, OsError());
+    { switch(threads[i].status)
+      { case PL_THREAD_FAILED:
+	case PL_THREAD_EXITED:
+	case PL_THREAD_EXCEPTION:
+	{ void *r;
+	  if ( pthread_join(threads[i].tid, &r) )
+	    Sdprintf("Failed to join thread %d: %s\n", i, OsError());
+
+	  break;
+	}
+	case PL_THREAD_RUNNING:
+	  if ( pthread_cancel(threads[i].tid) == 0 )
+	  { threads[i].status = PL_THREAD_CANCELED;
+	    canceled++;
+	  } else
+	  { Sdprintf("Failed to cancel thread %d: %s\n", i, OsError());
+	  }
+	  break;
       }
     }
   }
@@ -364,7 +377,7 @@ alloc_thread()
 
       threads[i].pl_tid = i;
       threads[i].thread_data = ld;
-      threads[i].status = PL_THREAD_RUNNING;
+            threads[i].status = PL_THREAD_CREATED;
       ld->thread.info = &threads[i];
       ld->thread.magic = PL_THREAD_MAGIC;
 
@@ -434,6 +447,10 @@ start_thread(void *closure)
   info->pid = getpid();
 #endif
 
+  LOCK();
+  info->status = PL_THREAD_RUNNING;
+  UNLOCK();
+
   PL_initialise_thread(info);
   pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
   pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
@@ -442,6 +459,8 @@ start_thread(void *closure)
   
   PL_recorded(info->goal, goal);
   rval  = callProlog(info->module, goal, PL_Q_CATCH_EXCEPTION, &ex);
+
+    LOCK();
   if ( rval )
   { info->status = PL_THREAD_SUCCEEDED;
   } else
@@ -452,6 +471,7 @@ start_thread(void *closure)
     { info->status = PL_THREAD_FAILED;
     }
   }    
+    UNLOCK();
   run_thread_exit_hooks();
 
   return (void *)TRUE;
@@ -564,7 +584,8 @@ unify_thread(term_t id, PL_thread_info_t *info)
 static int
 unify_thread_status(term_t status, PL_thread_info_t *info)
 { switch(info->status)
-  { case PL_THREAD_RUNNING:
+  { case PL_THREAD_CREATED:
+    case PL_THREAD_RUNNING:
       return PL_unify_atom(status, ATOM_running);
     case PL_THREAD_EXITED:
     { term_t tmp = PL_new_term_ref();
@@ -645,8 +666,11 @@ word
 pl_thread_exit(term_t retcode)
 { PL_thread_info_t *info = LD->thread.info;
 
+    LOCK();
   info->status = PL_THREAD_EXITED;
   info->return_value = PL_record(retcode);
+    UNLOCK();
+
   pthread_exit(NULL);
   fail;					/* should not happen */
 }
@@ -1495,6 +1519,19 @@ must ensure it doesn't  forget  any  atoms   (a  few  too  many  is ok).
 Basically this signal handler can run whenever  necessary, as long as as
 the thread is not in a GC,  which   makes  it impossible to traverse the
 stacks.
+
+Special attention is required  for   stack-creation  and destruction. We
+should not be missing threads that  are   about  to be created or signal
+them when they have just died. We   do this by locking the status-change
+with the L_THREAD mutex, which is held by the atom-garbage collector, so
+each starting thread will hold  until   collection  is complete and each
+terminating one will live a bit longer until atom-GC is complete.
+
+After a thread is done marking its atom  is just continues. This is safe
+as it may stop referencing atoms but   this  doesn't matter. It can only
+refer to new atoms by creating them, in which case the thread will block
+or by executing an instruction that refers to the atom. In this case the
+atom is locked by the instruction anyway.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
@@ -1548,9 +1585,9 @@ threadMarkAtomsOtherThreads()
 #ifdef HAVE_SEM_INIT
   sem_init(&sem_mark, 0, 0);
 #else
-#  ifdef HAVE_SEMA_INIT
+#ifdef HAVE_SEMA_INIT
   sema_init(&sem_mark,0,USYNC_THREAD,NULL);
-#  endif
+#endif
 #endif
 
   memset(&new, 0, sizeof(new));
@@ -1559,7 +1596,8 @@ threadMarkAtomsOtherThreads()
   sigaction(SIG_MARKATOMS, &new, &old);
 
   for(i=1; i<MAX_THREADS; i++)
-  { if ( threads[i].thread_data && i != me )
+  { if ( threads[i].thread_data && i != me &&
+	 threads[i].status == PL_THREAD_RUNNING )
     { DEBUG(1, Sdprintf("Signalling %d\n", i));
       if ( pthread_kill(threads[i].tid, SIG_MARKATOMS) == 0 )
       { signalled++;
@@ -1575,18 +1613,18 @@ threadMarkAtomsOtherThreads()
 #ifdef HAVE_SEM_INIT
     sem_wait(&sem_mark);
 #else
-#  ifdef HAVE_SEMA_INIT
+#ifdef HAVE_SEMA_INIT
     sema_wait(&sem_mark);
-#  endif
+#endif
 #endif
     signalled--;
   }
 #ifdef HAVE_SEM_INIT
   sem_destroy(&sem_mark);
 #else
-#  ifdef HAVE_SEMA_INIT
+#ifdef HAVE_SEMA_INIT
   sema_destroy(&sem_mark);
-#  endif
+#endif
 #endif
 
   DEBUG(1, Sdprintf("done!\n"));
@@ -1678,5 +1716,4 @@ pl_with_mutex(term_t mutex, term_t goal)
 
   return rval;
 }
-
 
