@@ -1,6 +1,10 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: improved type-checking converting code-lists or character-lists
+    to text.  The routine is now also faster, especially if the argument is
+    not a valid codelist of character list.
+
   * MODIFIED: Renamed write_ln/1 into writeln/1 for better compatibility.
     Added write_ln/1 to library(backcomp), so existing code shouldn't be
     bothered.

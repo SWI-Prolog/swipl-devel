@@ -680,23 +680,59 @@ int
 PL_get_list_nchars(term_t l,
 		   unsigned int *length, char **s, unsigned int flags)
 { GET_LD
-  Buffer b = findBuffer(flags);
+  Buffer b;
   word list = valHandle(l);
   Word arg, tail;
   char *r;
   unsigned int len;
+  enum { CHARS, CODES } type;
 
-  while( isList(list) && !isNil(list) )
+  if ( isList(list) )
+  { arg = argTermP(list, 0);
+    deRef(arg);
+    if ( isTaggedInt(*arg) )
+    { int i = valInt(*arg);
+      if ( i >= 0 && i < 256 )
+      { type = CODES;
+	goto ok;
+      }
+    } else if ( isAtom(*arg) )
+    { char *s = stringAtom(*arg);
+
+      if ( s[0] && !s[1] )
+      { type = CHARS;
+	goto ok;
+      }
+    }
+  }
+  fail;
+
+ok:
+  b = findBuffer(flags);
+
+  while( isList(list) )
   { int c = -1;
 
     arg = argTermP(list, 0);
     deRef(arg);
-    if ( isTaggedInt(*arg) )
-    { c = valInt(*arg);
-    } else if ( isAtom(*arg) )
-    { char *s = stringAtom(*arg);
-      if ( s[0] && !s[1] )
-	c = s[0] & 0xff;
+
+    switch(type)
+    { case CODES:
+	if ( isTaggedInt(*arg) )
+	{ int i = valInt(*arg);
+	  if ( i >= 0 && i < 256 )
+	    c = i;
+	}
+        break;
+      case CHARS:
+	if ( isAtom(*arg) )
+	{ char *s = stringAtom(*arg);
+
+	  if ( s[0] && !s[1] )
+	    c = s[0] & 0xff;
+
+	  break;
+	}
     }
 
     if ( c == -1 )
@@ -707,7 +743,7 @@ PL_get_list_nchars(term_t l,
     deRef(tail);
     list = *tail;
   }
-  if (!isNil(list))
+  if ( !isNil(list) )
     return unfindBuffer(flags);
 
   len = entriesBuffer(b, char);
