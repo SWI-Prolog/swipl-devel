@@ -237,90 +237,93 @@ IEEE these days.
 Fixed for GCC 2.2 with the help of Giovanni Malnati.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-typedef union
-{ real f;
-  struct
-  { ulong e;
-    ulong f;
-  } bits;
-} fconvert;
-
-forwards void	pack_real P((real f, fconvert *r));
-
-#define IEEE 1
-
-#if IEEE
 static void
 pack_real(f, r)
-real f;
-register fconvert *r;
-{ fconvert b;
-
-  b.f = f;
-  b.bits.f >>= 10;
-  b.bits.f &= ~0xffc00003L;
-  b.bits.f |= (b.bits.e & 0x3f) << 22;
-  b.bits.e >>= 4;
-  b.bits.e &= ~0xf0000003L;
-#if O_16_BITS
-  b.bits.e >>= 1;
-  b.bits.f >>= 1;
+double f;
+Word r;
+{
+#if i386
+  ulong m64 = *((ulong *)&f + 1);
+  ulong l64 = *((ulong *)&f);
+#else
+  ulong m64 = *((ulong *)&f);
+  ulong l64 = *((ulong *)&f + 1);
 #endif
-  b.bits.f |= REAL_MASK;
-  b.bits.e |= REAL_MASK;
 
-  (*r).bits = b.bits;
+  l64 >>= 10;
+  l64 &= ~0xffc00003L;
+  l64 |= (m64 & 0x3f) << 22;
+  m64 >>= 4;
+  m64 &= ~0xf0000003L;
+#if O_16_BITS
+  m64 >>= 1;
+  l64 >>= 1;
+#endif
+  l64 |= REAL_MASK;
+  m64 |= REAL_MASK;
+
+  r[0] = l64;
+  r[1] = m64;
 }
 
 double
 unpack_real(p)
 Word p;
-{ fconvert b;
-
-  b.bits = ((fconvert *)p)->bits;
+{ ulong l64 = p[0];
+  ulong m64 = p[1];
+  double r;
+  ulong *rp = (ulong *) &r;
 
 #if O_16_BITS
-  b.bits.e <<= 1;
-  b.bits.f <<= 1;
+  m64 <<= 1;
+  l64 <<= 1;
 #endif
-  b.bits.e <<= 4;
-  b.bits.e &= ~0x0000003fL;
-  b.bits.e |= (b.bits.f & 0x0fc00000L) >> 22;
-  b.bits.f <<= 10;
-  b.bits.f &= ~0x000003ffL;
+  m64 <<= 4;
+  m64 &= ~0x0000003fL;
+  m64 |= (l64 & 0x0fc00000L) >> 22;
+  l64 <<= 10;
+  l64 &= ~0x000003ffL;
+#if i386
+  rp[0] = l64;
+  rp[1] = m64;
+#else
+  rp[1] = l64;
+  rp[0] = m64;
+#endif
 
-  return b.f;
+  return r;
 }
-#endif /* IEEE */
+
 
 void
 setReal(w, f)
 word w;
 real f;
-{ fconvert *b = (fconvert *)unMask(w);
-  pack_real(f, b);
+{ Word p = (Word)unMask(w);
+  pack_real((double)f, p);
 }
+
 
 word
 globalReal(f)
 real f;
-{ fconvert *b = (fconvert *)gTop;
+{ Word p = gTop;
 
-  gTop += sizeof(fconvert) / sizeof(word);
+  gTop += 2;
   verifyStack(global);
-  pack_real(f, b);
+  pack_real((double) f, p);
 
   DEBUG(4, printf("Put REAL on global stack at 0x%x\n", b));
-  return (word)b | INDIRECT_MASK;
+  return (word)p | INDIRECT_MASK;
 }
 
 word
 heapReal(f)
 real f;
-{ fconvert *b = (fconvert *)allocHeap(sizeof(fconvert));
+{ Word p = (Word) allocHeap(sizeof(word) * 2);
 
-  pack_real(f, b);
-  return (word)b | INDIRECT_MASK;
+  pack_real((double) f, p);
+  return (word)p | INDIRECT_MASK;
 }
 
 

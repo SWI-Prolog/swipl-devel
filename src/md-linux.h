@@ -25,8 +25,7 @@ save_program/1 and included dynamic stacks.  Versions:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define M_CC			gcc
-/*#define M_OPTIMIZE	        -O2 -fomit-frame-pointer*/
-#define M_OPTIMIZE		-g
+#define M_OPTIMIZE	        -O2 -fomit-frame-pointer
 #define M_LDFLAGS		
 #define M_CFLAGS		
 #define M_LIBS			-lm -ltermcap
