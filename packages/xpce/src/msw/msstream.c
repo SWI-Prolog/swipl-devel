@@ -32,9 +32,32 @@
 #define send sendPCE
 #include <process.h>
 
+#ifndef SD_RECEIVE
+#define SD_RECEIVE 0
+#define SD_SEND 1
+#define SD_BOTH 2
+#endif
+
 #define WM_SOCKET	 (WM_WINEXIT+1)
 #define WM_PROCESS_INPUT (WM_WINEXIT+2)
 #define WM_PROCESS_EXIT  (WM_WINEXIT+3)
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This module implements the low-level part of class socket, a subclass of
+class stream built on top of the asynchronous WinSock layer. We need the
+asynchronous one for two reasons. First,  unlike the X11 system, Windows
+can't listen to a synchronous socket and   messages at the same time and
+second it turns out their synchronous version is unstable at best.
+
+Unfortunately it fits poorly in the stream design used for XPCE sockets
+and the socket layer doesn't really behave as advertised.
+
+One of the problems is discarding a   socket  due to ->free. We shutdown
+the connection and XPCE requires us to  discard the object. The FD_CLOSE
+resulting from the shutdown  however  comes   later.  The  docs say that
+FD_CLOSE must respond with closesocket(), after which the socket becomes
+invalid. We sometimes see FD_READ *after* closesocket()? Why?
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int 	ws_read_process(Process p, char *buf, int size, Real timeout);
 static DWORD	process_thread(void *context);
@@ -66,13 +89,29 @@ findSocketObject(SOCKET sock)
     }
   }
 
-  DEBUG(NAME_stream, Cprintf("No socket??\n"));
   return NIL;
+}
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Read pending data before calling closesocket(). See also comments at the
+start of this file.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+discardInputSocket(SOCKET sock)
+{ char buf[4*1024];
+  int rval;
+
+  do
+  { rval = recv(sock, buf, sizeof(buf), 0);
+  } while(rval > 0);
 }
 
 static status
 handleInputSocket(Socket s)
-{ u_long avail;
+{ 
+#if 0					/* sockets are non-blocking now */
+  u_long avail;
 
   while( (SOCKET)s->ws_ref != INVALID_SOCKET &&
 	 ioctlsocket((SOCKET)s->ws_ref, FIONREAD, &avail) == 0 &&
@@ -81,9 +120,13 @@ handleInputSocket(Socket s)
 
     if ( !handleInputStream((Stream)s) )
       fail;
+
   }
   
   succeed;
+#else
+  return handleInputStream((Stream)s);
+#endif
 }
 
 
@@ -110,28 +153,40 @@ socket_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 	    break;
 	  case FD_CLOSE:
 	    DEBUG(NAME_stream, Cprintf("Close on %s\n", pp(s)));
-	    closeInputStream((Stream) s);
-	    send(s, NAME_endOfFile, EAV);
+	    while(s->rdfd >= 0)
+	      handleInputSocket(s);	/* handle input to end-of-file */
+	    closesocket(sock);		/* really delete WinSock */
+	    s->ws_ref = (WsRef) INVALID_SOCKET;
+	    pceRedraw(FALSE);
 	    break;
 	}
-      } else
+      } else if ( isNil(s) )		/* socket has gone */
+      { switch( evt )
+	{ case FD_CLOSE:
+	  { DEBUG(NAME_stream,
+		  Cprintf("Discarding unknown SOCKET=%p\n", sock));
+	    discardInputSocket(sock);
+	    closesocket(sock);
+	    break;
+	  }
+	  case FD_ACCEPT:
+	    DEBUG(NAME_stream,
+		  Cprintf("FD_ACCEPT on SOCKET=%p\n", sock));
+	    break;
+	  case FD_READ:
+	    DEBUG(NAME_stream,
+		  Cprintf("FD_READ on SOCKET=%p\n", sock));
+	    break;
+	}
+      } else				/* an error occurred */
       { Name name = SockError();
 
-	if ( notNil(name) )
-	  errorPce(s, NAME_ioError, name);
-	else
-	{ DEBUG(NAME_stream,
-		{ char *op;
-		  switch(evt)
-		  { case FD_READ:	op = "fd_read";   break;
-	    	    case FD_ACCEPT:	op = "fd_accept"; break;
-	    	    case FD_CLOSE:	op = "fd_close";  break;
-	    	    default:		op = "???";	  break;
-		  }
-		  Cprintf("(Socket event = %s)\n", op);
-		});
-	} 
+	if ( isNil(name) )
+	  name = NAME_unknown;
+
+	errorPce(s, NAME_ioError, name);
       }
+
       return 0;
     }
     case WM_PROCESS_INPUT:
@@ -236,7 +291,7 @@ ws_close_input_stream(Stream obj)
 
     if ( s != INVALID_SOCKET )
     { WSAAsyncSelect(s, PceHiddenWindow(), 0, 0);
-      shutdown(s, 0);
+      shutdown(s, SD_RECEIVE);
     }
   } else				/* process */
   { HANDLE fd = (HANDLE) obj->rdfd;
@@ -254,7 +309,7 @@ ws_close_output_stream(Stream obj)
   { SOCKET s = (SOCKET) obj->ws_ref;
 
     if ( s != INVALID_SOCKET )
-    { shutdown(s, 1);
+    { shutdown(s, SD_SEND);
     }
   } else
   { HANDLE fd = (HANDLE) obj->wrfd;
@@ -268,15 +323,19 @@ ws_close_output_stream(Stream obj)
 
 void
 ws_close_stream(Stream obj)
-{ if ( instanceOfObject(obj, ClassSocket) )
+{
+#if 0					/* sockets are deleted upon FD_CLOSE */
+  if ( instanceOfObject(obj, ClassSocket) )
   { SOCKET s = (SOCKET) obj->ws_ref;
 
     if ( s != INVALID_SOCKET )
-    { DEBUG(NAME_stream, Cprintf("MS: closesocket(%s)\n", pp(obj)));
+    { DEBUG(NAME_stream,
+	    Cprintf("MS: [SOCKET=%p] closesocket(%s)\n", s, pp(obj)));
       closesocket(s);
       obj->ws_ref = (WsRef) INVALID_SOCKET;
     }
   } /* else { }*/
+#endif
 }
 
 
@@ -285,7 +344,9 @@ ws_listen_socket(Socket s)
 { SOCKET sock = (SOCKET) s->ws_ref;
 
   if ( sock != INVALID_SOCKET )
-  { WSAAsyncSelect(sock, PceHiddenWindow(), WM_SOCKET, FD_ACCEPT);
+  { DEBUG(NAME_stream,
+	  Cprintf("MS: [SOCKET=%p] listen on %s\n", sock, pp(s)));
+    WSAAsyncSelect(sock, PceHiddenWindow(), WM_SOCKET, FD_ACCEPT|FD_CLOSE);
   }
 }
 
@@ -298,7 +359,9 @@ ws_input_stream(Stream s)
   { SOCKET sock = (SOCKET) s->ws_ref;
 
     if ( sock != INVALID_SOCKET )
-    { if ( WSAAsyncSelect(sock, hwnd, WM_SOCKET, FD_READ|FD_CLOSE) )
+    { DEBUG(NAME_stream,
+	  Cprintf("MS: [SOCKET=%p] prepare input on %s\n", sock, pp(s)));
+      if ( WSAAsyncSelect(sock, hwnd, WM_SOCKET, FD_READ|FD_CLOSE) )
 	errorPce(s, NAME_socket, CtoName("WSAAsyncSelect()"), SockError());
       s->rdfd = 0;			/* signal open status */
     }

@@ -225,7 +225,7 @@ dispatch_stream(Stream s, int size)
 	  s->input_p - size);
   s->input_p -= size;
 
-  DEBUG(NAME_stream,
+  DEBUG(NAME_input,
 	{ int n = valInt(getSizeCharArray(str));
 
 	  Cprintf("Sending: %d characters, `", n);
@@ -301,7 +301,7 @@ handleInputStream(Stream s)
       AnswerMark mark;
       markAnswerStack(mark);
 
-      DEBUG(NAME_stream,
+      DEBUG(NAME_input,
 	    { Cprintf("Read (%d chars, unbuffered): `", n);
 	      write_buffer(buf, n);
 	      Cprintf("'\n");
@@ -317,7 +317,7 @@ handleInputStream(Stream s)
     } else
     { add_data_stream(s, buf, n);
 
-      DEBUG(NAME_stream,
+      DEBUG(NAME_input,
 	    { Cprintf("Read (%d chars): `", n);
 	      write_buffer(&s->input_buffer[s->input_p-n], n);
 	      Cprintf("'\n");
