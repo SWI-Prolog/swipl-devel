@@ -96,10 +96,14 @@ rdfe_retractall(Subject, Predicate, Object) :-
 	rdfe_retractall(Subject, Predicate, Object, _).
 
 rdfe_retractall(Subject, Predicate, Object, PayLoad) :-
-	rdf_retractall(Subject, Predicate, Object, PayLoad),
 	rdfe_current_transaction(TID),
-	assert_action(TID, retract(PayLoad), Subject, Predicate, Object),
-	journal(retract(TID, Subject, Predicate, Object, PayLoad)).
+	(   rdf(Subject, Predicate, Object, PayLoad),
+	    assert_action(TID, retract(PayLoad), Subject, Predicate, Object),
+	    journal(retract(TID, Subject, Predicate, Object, PayLoad)),
+	    fail
+	;   true
+	),
+	rdf_retractall(Subject, Predicate, Object, PayLoad).
 	
 %	rdfe_update(+Subject, +Predicate, +Object, +Action)
 %	
