@@ -1893,18 +1893,23 @@ odbc_row(context *ctxt, term_t trow)
       
       switch(ctxt->rc)
       { case SQL_NO_DATA_FOUND:
+	  close_context(ctxt);
 	  return PL_unify_nil(tail);
 	case SQL_SUCCESS:
 	  break;
 	default:
 	  if ( !report_status(ctxt) )
+	  { close_context(ctxt);
 	    return FALSE;
+	  }
       }
       
       if ( !PL_unify_list(tail, head, tail) ||
 	   !put_findall(ctxt, tmp) ||
 	   !PL_unify(head, tmp) )
+      { close_context(ctxt);
 	return FALSE;
+      }
     }      
   }
 

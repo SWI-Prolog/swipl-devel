@@ -1,3 +1,7 @@
+Mar 4, 2003
+
+* FIXED: Properly close statement when using the findall option.
+
 Nov 27, 2002
 
 * FIXED: if odbc_connect/3 has the silent(true) option, don't print
