@@ -1810,7 +1810,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   lTop = (LocalFrame)ap;
 
 					/* initialise flags and level */
-  clearFlags(fr);
+  fr->flags = FR_INBOX;
   if ( qf->saved_environment )
   { setLevelFrame(fr, levelFrame(qf->saved_environment)+1);
     if ( true(qf->saved_environment, FR_NODEBUG) )
@@ -1844,7 +1844,6 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   Mark(qf->choice.mark);
 					/* publish environment */
   LD->choicepoints  = &qf->choice;
-  environment_frame = fr;
 
   if ( true(def, FOREIGN) )
   { fr->clause = NULL;			/* initial context */
@@ -1865,6 +1864,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   } else
     fr->context = def->module;
 
+  environment_frame = fr;
   DEBUG(2, Sdprintf("QID=%d\n", QidFromQuery(qf)));
 
   return QidFromQuery(qf);
@@ -4311,6 +4311,7 @@ be able to access these!
 #if O_DEBUGGER
 	if ( debugstatus.debugging )
 	{ CL = DEF->definition.clauses;
+	  set(FR, FR_INBOX);
 	  switch(tracePort(FR, BFR, CALL_PORT, NULL PASS_LD))
 	  { case ACTION_FAIL:	goto frame_failed;
 	    case ACTION_IGNORE: goto exit_builtin;
@@ -4440,6 +4441,9 @@ bit more careful.
 	      discardChoicesAfter(FR PASS_LD);
 	      FRAME_FAILED;
 	  }
+
+	  if ( BFR && BFR->type == CHP_DEBUG && BFR->frame == FR )
+	    BFR = BFR->parent;
 	}
 #endif /*O_DEBUGGER*/
 
@@ -4450,6 +4454,8 @@ bit more careful.
 	  lTop = FR;
 	  DEBUG(3, Sdprintf("Deterministic exit of %s, lTop = #%ld\n",
 			    predicateName(FR->predicate), loffset(lTop)));
+	} else
+	{ clear(FR, FR_INBOX);
 	}
 
 	if ( !FR->parent )		/* query exit */
@@ -4642,7 +4648,8 @@ next_choice:
 #ifdef O_DEBUGGER
   if ( debugstatus.debugging )
   { for(; (void *)FR > (void *)ch; FR = FR->parent)
-    { if ( false(FR->predicate, FOREIGN) ) /* done by callForeign() */
+    { if ( false(FR->predicate, FOREIGN) && /* done by callForeign() */
+	   false(FR, FR_NODEBUG) )
       { Choice sch = findStartChoice(FR, ch0);
 
 	if ( sch )
@@ -4658,6 +4665,9 @@ next_choice:
 #endif
 	      goto retry_continue;
 	  }
+	} else
+	{ DEBUG(2, Sdprintf("Cannot trace FAIL [%d] %s\n",
+			    levelFrame(FR), predicateName(FR->predicate)));
 	}
       }
 
@@ -4716,7 +4726,7 @@ next_choice:
 
 	if ( fr &&
 	     (false(fr->predicate, HIDE_CHILDS) ||
-	      levelFrame(fr0) <= levelFrame(FR)) )
+	      false(fr, FR_INBOX)) )
 	{ switch( tracePort(fr, BFR, REDO_PORT, NULL PASS_LD) )
 	  { case ACTION_FAIL:
 	      FRAME_FAILED;
@@ -4729,6 +4739,7 @@ next_choice:
 #endif
 	      goto retry_continue;
 	  }
+	  set(fr, FR_INBOX);
 	}
       }
 #endif
@@ -4741,10 +4752,9 @@ next_choice:
       if ( next )
       { ch = newChoice(CHP_CLAUSE, FR PASS_LD);
 	ch->value.clause = next;
-#if 0					/* simplifies tracing */
       } else if ( debugstatus.debugging )
-      { ch = newChoice(CHP_DEBUG, FR PASS_LD);
-#endif
+      { if ( false(FR, FR_NODEBUG) && true(FR->predicate, HIDE_CHILDS) )
+	  ch = newChoice(CHP_DEBUG, FR PASS_LD);
       }
 
 			/* require space for the args of the next frame */
@@ -4783,12 +4793,14 @@ next_choice:
     case CHP_DEBUG:			/* Just for debugging purposes */
     case CHP_NONE:			/* used for C_SOFTCUT */
       BFR  = ch->parent;
+#if 0
       for(; (void *)FR > (void *)ch; FR = FR->parent)
       { /*Profile(FR->predicate->profile_fails++);*/
 	leaveFrame(FR PASS_LD);
 	if ( exception_term )
 	  goto b_throw;
       }
+#endif
       goto next_choice;
   }
 }

@@ -958,12 +958,18 @@ with one operation, it turns out to be faster as well.
 Handling environment (or local stack) frames.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define FR_BITS			5	/* mask-bits */
+#define FR_BITS			6	/* mask-bits */
 #define FR_NODEBUG		(0x01L)	/* Invisible frame */
 #define FR_SKIPPED		(0x02L)	/* We have skipped on this frame */
 #define FR_MARKED		(0x04L)	/* GC */
 #define FR_WATCHED		(0x08L)	/* GUI debugger */
 #define FR_CATCHED		(0x10L)	/* Frame catched an exception */
+#define FR_INBOX		(0x20L) /* Inside box (for REDO in built-in) */
+
+/* FR_LEVEL now handles levels upto 32M.  This is a bit low, but as it is
+   only used for the debugger (skip, etc) it is most likely acceptable.
+   We must consider using a seperate slot in the localFrame
+*/
 
 #define FR_LEVEL		((1L<<FR_BITS)-1)
 
@@ -1303,7 +1309,7 @@ struct localFrame
 		/*	LEVEL	   recursion level (28 bits) */
 		/*	FR_NODEBUG don't debug this frame ? */
 		/*	FR_SKIPPED skipped in the tracer */
-		/*	FR_MARGED  Marked by GC */
+		/*	FR_MARKED  Marked by GC */
 		/*	FR_WATCHED Watched by the debugger */
 		/*	FR_CATCHED Catched exception here */
 };  
