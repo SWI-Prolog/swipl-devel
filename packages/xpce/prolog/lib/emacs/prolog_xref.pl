@@ -408,7 +408,8 @@ find_source_file(Plain, File, Src) :-
 find_source_file(Spec, File, _) :-
 	do_find_source_file(Spec, File), !.
 find_source_file(Spec, _, _) :-
-	print_message(warning, error(existence_error(file, Spec), _)).
+	print_message(warning, error(existence_error(file, Spec), _)),
+	fail.
 
 do_find_source_file(Spec, File) :-
 	absolute_file_name(Spec,
