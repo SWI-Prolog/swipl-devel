@@ -37,7 +37,6 @@ distributed as a package known under the name <EM>clib</EM>
 <H1><A NAME="document-contents">Table of Contents</A></H1>
 
 <UL>
-<UL>
 <LI><A HREF="#sec:1"><B>1 Introduction</B></A>
 <LI><A HREF="#sec:2"><B>2 Unix Process manipulation library</B></A>
 <LI><A HREF="#sec:3"><B>3 Socket library</B></A>
@@ -53,7 +52,6 @@ distributed as a package known under the name <EM>clib</EM>
 <LI><A HREF="#sec:6"><B>6 Installation</B></A>
 <UL>
 <LI><A HREF="#sec:6.1">6.1 Unix systems</A>
-</UL>
 </UL>
 </UL>
 
@@ -88,6 +86,8 @@ considering that process manipulation is not a very time-critical
 operation we anticipate these libraries to be developed in Prolog.
 
 <DL>
+
+<P>
 <DT><A NAME="fork/1"><STRONG>fork</STRONG>(<VAR>-Pid</VAR>)</A><DD>
 Clone the current process into two branches. In the child, <VAR>Pid</VAR> 
 is unified to <CODE>child</CODE>. In the original process, <VAR>Pid</VAR> 
@@ -100,6 +100,8 @@ the programs attempts to modify the data.
 
 <P>Unix <B>fork()</B> is the only way to create new processes and <A NAME="idx:fork2:1"></A><B>fork/2</B> 
 is a simple direct interface to it.
+
+<P>
 <DT><A NAME="exec/1"><STRONG>exec</STRONG>(<VAR>+Command(...Args...)</VAR>)</A><DD>
 Replace the running program by starting <VAR>Command</VAR> using the 
 given commandline arguments. Each command-line argument must be atomic 
@@ -126,6 +128,8 @@ terminate. The predicate <A NAME="idx:wait2:3"></A><A HREF="#wait/2">wait/2</A>
 allows waiting for a child, while
 <A NAME="idx:detachIO0:4"></A><A HREF="#detach_IO/0">detach_IO/0</A> 
 disconnects the child as a deamon process.
+
+<P>
 <DT><A NAME="wait/2"><STRONG>wait</STRONG>(<VAR>-Pid, -Status</VAR>)</A><DD>
 Wait for a child to change status. Then report the child that changed 
 status as well as the reason. <VAR>Status</VAR> is unified with
@@ -135,10 +139,14 @@ is the return=status. <VAR>Status</VAR> is unified with <CODE>signaled(Signal)</
 if the child died due to a software interrupt (see <A NAME="idx:kill2:6"></A><A HREF="#kill/2">kill/2</A>). <VAR>Signal</VAR> 
 contains the signal number. Finally, if the process suspended execution 
 due to a signal, <VAR>Status</VAR> is unified with <CODE>stopped(Signal)</CODE>.
+
+<P>
 <DT><A NAME="kill/2"><STRONG>kill</STRONG>(<VAR>+Pid, +Signal</VAR>)</A><DD>
 Deliver a software interrupt to the process with identifier <VAR>Pid</VAR> 
 using software-interrupt number <VAR>Signal</VAR>. See also <A NAME="idx:onsignal2:7"></A><B>on_signal/2</B>. 
 The meaning of the signal numbers can be found in the Unix manual.<A NAME=back-to-note-1 HREF="index.html#note-1"> (1)</A>.
+
+<P>
 <DT><A NAME="pipe/2"><STRONG>pipe</STRONG>(<VAR>-InSream, -OutStream</VAR>)</A><DD>
 Create a communication-pipe. This is normally used to make a child 
 communicate to its parent. After <A NAME="idx:pipe2:8"></A><A HREF="#pipe/2">pipe/2</A>, 
@@ -163,12 +171,20 @@ pipe_demo(Result) :-
 </PRE>
 </TABLE>
 
+<P>
 <DT><A NAME="dup/2"><STRONG>dup</STRONG>(<VAR>+FromStream, +ToStream</VAR>)</A><DD>
 Interface to Unix dup2(), copying the underlying filedescriptor and thus 
 making both streams point to the same underlying object. This is 
 normally used together with <A NAME="idx:fork1:9"></A><A HREF="#fork/1">fork/1</A> 
 and <A NAME="idx:pipe2:10"></A><A HREF="#pipe/2">pipe/2</A> to talk to 
 an external program that is designed to communicate using standard I/O.
+
+<P>Both <VAR>FromStream</VAR> and <VAR>ToStream</VAR> either refer to a 
+Prolog stream or an integer descriptor number to refer directly to OS 
+descriptors. See also <CODE>demo/pipe.pl</CODE> in the 
+source-distribution of this package.
+
+<P>
 <DT><A NAME="detach_IO/0"><STRONG>detach_IO</STRONG></A><DD>
 This predicate is intended to create Unix deamon-processes. It preforms 
 two actions. First of all, the I/O streams <CODE>user_input</CODE>,
@@ -192,10 +208,14 @@ socket interface, also supported by the MS-Windows <EM>winsock</EM> API.
 defined in Prolog and based on these primitives.
 
 <DL>
+
+<P>
 <DT><A NAME="tcp_socket/1"><STRONG>tcp_socket</STRONG>(<VAR>-SocketId</VAR>)</A><DD>
 Creates an <CODE>INET</CODE>-domain stream-socket and unifies an 
 identifier to it with <VAR>SocketId</VAR>. On MS-Windows, if the socket 
 library is not yet initialised, this will also initialise the library.
+
+<P>
 <DT><A NAME="tcp_close_socket/1"><STRONG>tcp_close_socket</STRONG>(<VAR>+SocketId</VAR>)</A><DD>
 Closes the indicated socket, making <VAR>SocketId</VAR> invalid. 
 Normally, sockets are closed by closing both stream handles returned by
@@ -213,6 +233,8 @@ is not longer needed from the main server and must be discarded using <A NAME="i
 the server does not want to accept the connection, it should discard the 
 accepted socket immediately using <A NAME="idx:tcpclosesocket1:17"></A><A HREF="#tcp_close_socket/1">tcp_close_socket/1</A>.
 </UL>
+
+<P>
 <DT><A NAME="tcp_open_socket/3"><STRONG>tcp_open_socket</STRONG>(<VAR>+SocketId, 
 -InStream, -OutStream</VAR>)</A><DD>
 Open two SWI-Prolog I/O-streams, one to deal with input from the socket 
@@ -220,11 +242,15 @@ and one with output to the socket. If <A NAME="idx:tcpbind2:18"></A><A HREF="#tc
 has been called on the socket. <VAR>OutSream</VAR> is useless and will 
 not be created. After closing both <VAR>InStream</VAR> and <VAR>OutSream</VAR>, 
 the socket itself is discarded.
+
+<P>
 <DT><A NAME="tcp_bind/2"><STRONG>tcp_bind</STRONG>(<VAR>+Socket, +Port</VAR>)</A><DD>
 Bind the socket to <VAR>Port</VAR> on the current machine. This 
 operation, together with <A NAME="idx:tcplisten2:19"></A><A HREF="#tcp_listen/2">tcp_listen/2</A> 
 and <A NAME="idx:tcpaccept3:20"></A><A HREF="#tcp_accept/3">tcp_accept/3</A> 
 implement the <EM>server</EM>-side of the socket interface.
+
+<P>
 <DT><A NAME="tcp_listen/2"><STRONG>tcp_listen</STRONG>(<VAR>+Socket, 
 +Backlog</VAR>)</A><DD>
 Tells, after <A NAME="idx:tcpbind2:21"></A><A HREF="#tcp_bind/2">tcp_bind/2</A>, 
@@ -234,18 +260,24 @@ requests are requests that are not yet acknowledged using <A NAME="idx:tcpaccept
 If the indicated number is exceeded, the requesting client will be 
 signalled that the service is currently not available. A suggested 
 default value is 5.
+
+<P>
 <DT><A NAME="tcp_accept/3"><STRONG>tcp_accept</STRONG>(<VAR>+Socket, 
 -Slave, -Peer</VAR>)</A><DD>
 This predicate waits on a server socket for a connection request by a 
 client. On success, it creates a new socket for the client and binds the 
 identifier to <VAR>Slave</VAR>. <VAR>Peer</VAR> is bound to the 
 IP-address of the client.
+
+<P>
 <DT><A NAME="tcp_connect/+Socket. +Host:+Port"><STRONG>tcp_connect</STRONG>(<VAR>+Socket. 
 +Host:+Port</VAR>)</A><DD>
 lient-interface to connect a socket to a given <VAR>Port</VAR> on a 
 given
 <VAR>Host</VAR>. After successfull completion, <A NAME="idx:tcpopensocket3:23"></A><A HREF="#tcp_open_socket/3">tcp_open_socket/3</A> 
 can be used to create I/O-Streams to the remote socket.
+
+<P>
 <DT><A NAME="tcp_fcntl/3"><STRONG>tcp_fcntl</STRONG>(<VAR>+Stream, 
 +Action, ?Argument</VAR>)</A><DD>
 Interface to the Unix <B>fcntl()</B> call. Currently only suitable to 
@@ -266,6 +298,8 @@ An attempt to read from a non-blocking stream returns -1 (or
 but <A NAME="idx:atendofstream1:25"></A><B>at_end_of_stream/1</B> fails. 
 On actual end-of-input, <A NAME="idx:atendofstream1:26"></A><B>at_end_of_stream/1</B> 
 succeeds.
+
+<P>
 <DT><A NAME="tcp_host_to_address/2"><STRONG>tcp_host_to_address</STRONG>(<VAR>?HostName, 
 ?Address</VAR>)</A><DD>
 Translate between a machines host-name and it's (IP-)address. If
@@ -348,6 +382,8 @@ can be used.
 obtaining the form-data for a CGI script:
 
 <DL>
+
+<P>
 <DT><A NAME="cgi_get_form/1"><STRONG>cgi_get_form</STRONG>(<VAR>-Form</VAR>)</A><DD>
 Decodes standard input and the environment variables to obtain a list of 
 arguments passed to the CGI script. This predicate both deals with the 
@@ -423,6 +459,8 @@ complex Prolog term and provide a library for decent printing thereof.
 for encrypting and testing Unix passwords:
 
 <DL>
+
+<P>
 <DT><A NAME="crypt/2"><STRONG>crypt</STRONG>(<VAR>+Plain, ?Encrypted</VAR>)</A><DD>
 This predicate can be used in three modes. If <VAR>Encrypted</VAR> is 
 unbound, it will be unified to a string (list of character-codes) 
@@ -466,6 +504,8 @@ and the Prolog library files in <CODE>\$PLBASE/library</CODE>, where
 <H1><A NAME="document-notes">Footnotes</A></H1>
 
 <DL>
+
+<P>
 <DT><A NAME=note-1 HREF="index.html#back-to-note-1">note-1</A><DD>
 <A NAME="idx:kill2:35"></A><A HREF="#kill/2">kill/2</A> should support 
 interrupt-names as well
