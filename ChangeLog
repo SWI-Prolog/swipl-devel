@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Proper reporting of I/O errors reading/writing streams.
+
   * FIXED: writeq to handle | as a solo-char and avoid extra space
     between multiple '('.
 

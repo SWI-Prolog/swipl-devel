@@ -571,8 +571,7 @@ streamStatus(IOSTREAM *s)
     } else
       op = ATOM_write;
 
-    rval = PL_error(NULL, 0, NULL, ERR_FILE_OPERATION,
-		    op, ATOM_stream, stream);
+    rval = PL_error(NULL, 0, MSG_ERRNO, ERR_STREAM_OP, op, stream);
   } else
     rval = TRUE;
 
