@@ -78,36 +78,38 @@ hierarchy(Root, GenChild, GenLabel, Cookie, Level, Lines) -->
 	).
 	
 
-script -->
+script -->				% taged window.location.pathname
 	html(script(
 'function collapse(name)
-{ var a = document.cookie.split(\'&\');
-  var r = new String(\'&\');
+{ var a = document.cookie.split("&");
+  var r = new String("&");
   
   for(var i=0; i < a.length; i++)
-  { if ( a[i] != name && a[i] != \'\' )
-    { r += a[i] + \'&\';
+  { if ( a[i] != name && a[i] != "" )
+    { r += a[i] + "&";
     }
   }
 
+  r += " ;path=" + window.location.pathname;
   document.cookie = r;
   window.location.reload();
 }
 
 function expand(name)
-{ if ( document.cookie == \'\' )
-  { document.cookie = \'&\' + name + \'&\';
+{ if ( document.cookie == "" )
+  { document.cookie = "&" + name + "&" + " ;path=" + window.location.pathname;
   } else
-  { document.cookie += name + \'&\';
+  { document.cookie += name + "&" + " ;path=" + window.location.pathname;
   }
   window.location.reload();
 }
 
 function expandall()
-{ document.cookie = \'all\';
+{ document.cookie = "all;path=" + windows.location.pathname;
   window.location.reload(true);
 }
 ')).
+
 
 expanded(_, all) :- !.
 expanded(Class, Cookie) :-
@@ -123,7 +125,7 @@ java_collapse(Class, Code) :-
 	sformat(Code, 'javascript:collapse(\'~w\')', Encoded).
 
 
-subclasses([], _, _, _, _) -->
+subclasses([], _, _, _, _, _) -->
 	[].
 subclasses([H], GenChild, GenLabel, Cookie, Level, Lines) --> !,
 	hierarchy(H, GenChild, GenLabel, Cookie, Level, Lines).
