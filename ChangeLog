@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: abolish on running predicates.  Thanks to Andrew V. Diatchkov.
+
   * FIXED: at_end_of_stream/[0,1] to succeed if the next character to
     read is end-of-file.  Thanks to Daniel Cote.
 

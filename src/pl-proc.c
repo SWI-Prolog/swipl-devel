@@ -84,20 +84,24 @@ resetProcedure(Procedure proc)
 
   def->flags ^= def->flags & ~(SPY_ME|NEEDSCLAUSEGC);
   set(def, TRACE_ME);
-  def->indexCardinality = 0;
   def->number_of_clauses = 0;
-  if ( def->functor->arity == 0 )
-  { def->indexPattern = 0x0;
-  } else
-  { def->indexPattern = (0x0 | NEED_REINDEX);
-    set(def, AUTOINDEX);
-  }
+
+  if ( def->references == 0 )
+  { def->indexCardinality = 0;
+    if ( def->functor->arity == 0 )
+    { def->indexPattern = 0x0;
+    } else
+    { def->indexPattern = (0x0 | NEED_REINDEX);
+      set(def, AUTOINDEX);
+    }
   
-  if ( def->hash_info && def->references == 0 )
-  { unallocClauseIndexTable(def->hash_info);
-    def->hash_info = NULL;
+    if ( def->hash_info )
+    { unallocClauseIndexTable(def->hash_info);
+      def->hash_info = NULL;
+    }
   }
 }
+
 
 Procedure
 isCurrentProcedure(functor_t f, Module m)
@@ -677,9 +681,9 @@ assertProcedure(Procedure proc, Clause clause, int where)
 
   if ( def->references && (debugstatus.styleCheck & DYNAMIC_STYLE) )
     printMessage(ATOM_informational,
-		     PL_FUNCTOR_CHARS, "modify_active_procedure", 2,
-		       PL_CHARS, "assert",
-		       _PL_PREDICATE_INDICATOR, proc);
+		 PL_FUNCTOR_CHARS, "modify_active_procedure", 2,
+		   PL_CHARS, "assert",
+		   _PL_PREDICATE_INDICATOR, proc);
 
   LOCK();
   if ( !def->lastClause )
