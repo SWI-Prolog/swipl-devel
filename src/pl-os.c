@@ -33,10 +33,10 @@
 #include <os2.h>                /* this has to appear before pl-incl.h */
 #endif
 
-#include <math.h>		/* avoid abs() problem with msvc++ */
-#include <stdio.h>		/* rename() and remove() prototypes */
 #include "pl-incl.h"
 #include "pl-ctype.h"
+#include <math.h>		/* avoid abs() problem with msvc++ */
+#include <stdio.h>		/* rename() and remove() prototypes */
 
 #if HAVE_SYS_STAT_H
 #include <sys/stat.h>
@@ -768,7 +768,9 @@ ExistsFile(const char *path)
 
   if ( statfunc(OsPath(path, tmp), &buf) == -1 ||
        (buf.st_mode & S_IFMT) != S_IFREG )
+  { DEBUG(2, perror(tmp));
     fail;
+  }
   succeed;
 #endif
 

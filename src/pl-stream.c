@@ -50,6 +50,10 @@ locking is required.
 #include <config.h>
 #endif
 
+#if O_LARGEFILES
+#define _FILE_OFFSET_BITS 64
+#endif
+
 #define PL_KERNEL 1
 #include "pl-stream.h"
 #include <sys/types.h>
@@ -1655,6 +1659,10 @@ Sopen_file(const char *path, const char *how)
     }
   }
 
+#if O_LARGEFILES && defined(O_LARGEFILE)
+  oflags |= O_LARGEFILE
+#endif
+
   switch(op)
   { case 'w':
       fd = open(path, O_WRONLY|O_CREAT|O_TRUNC|oflags, 0666);
@@ -1676,6 +1684,8 @@ Sopen_file(const char *path, const char *how)
       errno = EINVAL;
       return NULL;
   }
+
+
 
   if ( fd < 0 )
     return NULL;

@@ -155,7 +155,8 @@ pl_open_xterm(term_t title, term_t in, term_t out, term_t err)
  
   tcgetattr(slave, &termio);
   termio.c_lflag &= ~ECHO;
-  tcsetattr(slave, TCSADRAIN, &termio);
+  termio.c_lflag |= (ICANON|IEXTEN);
+  tcsetattr(slave, TCSANOW, &termio);
  
   if ( (pid = fork()) == 0 )
   { char arg[64];
@@ -169,7 +170,9 @@ pl_open_xterm(term_t title, term_t in, term_t out, term_t err)
       sprintf(arg, "-S%s/%d", BaseName(slavename), master);
     else
       sprintf(arg, "-S%c%c%d", cc[0], cc[1], master);
-    execlp("xterm", "xterm", arg, "-T", titlechars, NULL);
+    execlp("xterm", "xterm", arg, "-T", titlechars,
+	   "-xrm", "*backarrowKey: false",
+	   NULL);
     perror("execlp");
   }
 
@@ -182,7 +185,9 @@ pl_open_xterm(term_t title, term_t in, term_t out, term_t err)
       break;
   }
   termio.c_lflag |= ECHO;
-  tcsetattr(slave, TCSADRAIN, &termio);
+  Sdprintf("%s: Erase = %d\n", slavename, termio.c_cc[VERASE]);
+  if ( tcsetattr(slave, TCSADRAIN, &termio) == -1 )
+    perror("tcsetattr");
  
   xt = allocHeap(sizeof(*xt));
   xt->pid   = pid;

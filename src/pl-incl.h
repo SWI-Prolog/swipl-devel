@@ -110,6 +110,9 @@ handy for it someone wants to add a data type to the system.
   O_PLMT
       Include support for multi-threaded Prolog application.  Currently
       very incomplete and only for the POSIX thread library.
+  O_LARGEFILES
+      Supports files >2GB (if the OS provides it, currently requires
+      the GNU c library).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define PL_KERNEL		1
@@ -223,6 +226,12 @@ void *alloca ();
 #   endif
 #  endif
 # endif
+#endif
+
+#if _FILE_OFFSET_BITS == 64 || defined(_LARGE_FILES)
+#define O_LARGEFILES 1		/* use for conditional code in Prolog */
+#else
+#undef O_LARGEFILES
 #endif
 
 #if HAVE_XOS_H

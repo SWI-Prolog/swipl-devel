@@ -7,6 +7,11 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: Partial support for large files (>2GB) on Unix systems.  Tested
+    on SuSE Linux.  Note that the SWI-Prolog cannot fully handle such files
+    as Prolog cannot represent offsets using its 32-bit integers.  It can
+    however open them for reading and writing.
+
   * ADDED: Bug#107 (Enhancement request): added advisory lock interface
     (lock(Type) argument to open/4) for MS-Windows based on LockFileEx()
     as suggested by Holger Kanwischer.  Thanks!
