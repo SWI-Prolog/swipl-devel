@@ -104,12 +104,17 @@ give_help(Helper, Database:name, Label:[name]) :->
 			 'Illegal data-format in "%N"', RC),
 		    fail
 		)
-	    ;	send(@display, confirm,
-		     'No help-database "%s"\n\nCreate it?', Database),
-		new(Buffer, hlp_buffer),
-		send(Buffer, file, File),
-		get(Buffer, open, Editor),
-		send(Editor, editable, @on)
+	    ;	(   get(@pce, is_runtime_system, @on)
+		->  send(@display, inform,
+			 'No help available for "%s"', Database),
+		    fail
+		;   send(@display, confirm,
+			 'No help-database "%s"\n\nCreate it?', Database),
+		    new(Buffer, hlp_buffer),
+		    send(Buffer, file, File),
+		    get(Buffer, open, Editor),
+		    send(Editor, editable, @on)
+		)
 	    )
 	;   term_to_atom(DBTerm, Database),
 	    functor(DBTerm, _, 1),

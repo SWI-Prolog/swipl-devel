@@ -17,11 +17,11 @@
 	   ]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Prepend the given directory  to  the   image  search-path.   Useful  for
+Prepend the given  directory  to  the   image  search-path.  Useful  for
 applications defining a private image directory.
 
-Typically one would put all images required   by  an application in *.bm
-files in a directory called bitmaps.  The   load file of the application
+Typically one would put all images required   by an application in *.xpm
+files in a directory called bitmaps. The   load  file of the application
 makes a call
 
 	:- pce_image_directory(bitmaps).
