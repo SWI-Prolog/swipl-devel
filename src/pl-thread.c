@@ -170,6 +170,7 @@ DllMain(HINSTANCE hinstDll, DWORD fdwReason, LPVOID lpvReserved)
 
   switch(fdwReason)
   { case DLL_PROCESS_ATTACH:
+      GD->thread.instance = hinstDll;
       initMutexes();
       break;
     case DLL_PROCESS_DETACH:
@@ -196,6 +197,9 @@ static void	run_thread_exit_hooks();
 static void	free_thread_info(PL_thread_info_t *info);
 static void	set_system_thread_id(PL_thread_info_t *info);
 
+#ifdef WIN32
+static void	attachThreadWindow(PL_local_data_t *ld);
+#endif
 
 		 /*******************************
 		 *	LOW-LEVEL UTILIIES	*
@@ -270,6 +274,9 @@ PL_initialise_thread(PL_thread_info_t *info)
 		   info->argument_size);
 
   initPrologLocalData();
+#ifdef WIN32				/* do this always? */
+  attachThreadWindow(info->thread_data);
+#endif
 
   pthread_mutex_init(&info->thread_data->thread.queue_mutex, NULL);
   pthread_cond_init(&info->thread_data->thread.cond_var, NULL);
@@ -300,6 +307,15 @@ free_prolog_thread(void *data)
   info = ld->thread.info;
   acknowlege = (info->status == PL_THREAD_CANCELED);
   DEBUG(1, Sdprintf("Freeing prolog thread %d\n", info-threads));
+
+#ifdef WIN32
+  if ( ld->thread.hwnd )
+  { HWND hwnd = ld->thread.hwnd;
+
+    ld->thread.hwnd = NULL;
+    DestroyWindow(hwnd);
+  }
+#endif
 
   run_thread_exit_hooks();
   
@@ -344,10 +360,11 @@ initPrologThreads()
   TLD_alloc(&PL_ldata);
   info = alloc_thread();
   info->tid = pthread_self();
+  TLD_set(PL_ldata, info->thread_data);
 #ifdef WIN32
   info->w32id = GetCurrentThreadId();
+  attachThreadWindow(info->thread_data);
 #endif
-  TLD_set(PL_ldata, info->thread_data);
   set_system_thread_id(info);
 
   GD->statistics.thread_cputime = 0.0;
@@ -1087,6 +1104,64 @@ run_thread_exit_hooks()
 		 *	   THREAD SIGNALS	*
 		 *******************************/
 
+#ifdef WIN32
+#define WM_SIGNALLED (WM_USER+1)
+#define WM_MENU	     (WM_USER+2)
+
+static WINAPI
+thread_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
+{ switch(message)
+  { case WM_SIGNALLED:
+      PL_handle_signals();
+      return 0;
+  }
+
+  return DefWindowProc(hwnd, message, wParam, lParam);
+}
+
+
+static char *
+ThreadWindowClass()
+{ static char winclassname[40];
+  static WNDCLASS wndClass;
+
+  if ( !winclassname[0] )
+  { sprintf(winclassname,
+	    "SWI-Prolog-thread-window-%d",
+	    GD->thread.instance);
+
+    wndClass.style		= 0;
+    wndClass.lpfnWndProc	= (LPVOID)thread_wnd_proc;
+    wndClass.cbClsExtra		= 0;
+    wndClass.cbWndExtra		= 0;
+    wndClass.hInstance		= GD->thread.instance;
+    wndClass.hIcon		= NULL;
+    wndClass.hCursor		= NULL;
+    wndClass.hbrBackground	= GetStockObject(WHITE_BRUSH);
+    wndClass.lpszMenuName	= NULL;
+    wndClass.lpszClassName	= winclassname;
+
+    RegisterClass(&wndClass);
+  }
+
+  return winclassname;
+}
+
+static void
+attachThreadWindow(PL_local_data_t *ld)
+{ HWND hwnd;
+
+  hwnd = CreateWindow(ThreadWindowClass(),
+		      "SWI-Prolog thread window",
+		      0,
+		      0, 0, 32, 32,
+		      NULL, NULL, GD->thread.instance, NULL);
+
+  ld->thread.hwnd = hwnd;
+}
+
+#endif /*WIN32*/
+
 typedef struct _thread_sig
 { struct _thread_sig *next;		/* Next in queue */
   Module   module;			/* Module for running goal */
@@ -1119,6 +1194,12 @@ pl_thread_signal(term_t thread, term_t goal)
     ld->thread.sig_tail = sg;
   }
   ld->pending_signals |= (1L << (SIG_THREAD_SIGNAL-1));
+
+#ifdef WIN32
+  if ( ld->thread.hwnd )
+    PostMessage(ld->thread.hwnd, WM_SIGNALLED, 0, 0L);
+#endif
+
   UNLOCK();
 
   succeed;

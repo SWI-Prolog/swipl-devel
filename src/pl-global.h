@@ -245,6 +245,9 @@ typedef struct
 
   struct
   { struct _at_exit_goal *exit_goals;	/* Global thread_at_exit/1 goals */
+#ifdef WIN32
+    HINSTANCE	    instance;		/* Win32 process instance */
+#endif
   } thread;
 #endif
 } PL_global_data_t;
@@ -416,6 +419,9 @@ typedef struct PL_local_data
     struct _thread_sig   *sig_head;	/* Head of signal queue */
     struct _thread_sig   *sig_tail;	/* Tail of signal queue */
     struct _at_exit_goal *exit_goals;	/* thread_at_exit/1 goals */
+#ifdef WIN32
+    HWND hwnd;				/* Window for signalling */
+#endif
   } thread;
 
   struct alloc_pool alloc_pool;		/* Thread allocation pool */
