@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Guitracer not closing a stream when tracing decompiled
+    (e.g. dynamic) code.
+
   * PORT/ADDED: Started moving the trouble of compiling and linking
     foreign packages into plld.  It now supports the following to
     generate x.so, x.dll, ... from the given object files.
@@ -100,7 +103,7 @@ VERSION 4.0.5
 
   * FIXED: Actually make re-hashing predicates work.  This bug causes
     large (dynamic) predicates that are queried while they are build
-    to show linear rather than constant-time access behaviour.  Perfomance
+    to show linear rather than constant-time access behaviour.  Performance
     difference on victim programs can be dramatic!
 
   * ENHANCED: GNU-readline interface.  Detect useful additions from readline
