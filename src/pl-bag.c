@@ -140,7 +140,8 @@ exception.
 
 foreign_t
 pl_except_bag(term_t ex)
-{ Assoc a, next;
+{ GET_LD
+  Assoc a, next;
 
   for( a=alist; a; a = next )
   { if ( a->record )
