@@ -11,6 +11,7 @@
 #undef  O_GIFREAD 			/* The GIF library */
 #define O_XPM	  1			/* use Xpm library */
 #define O_GIF	  1			/* use our GIF loader */
+#define O_GIFWRITE 1			/* allow writing GIF files */
 
 #define RedrawWindow WinRedrawWindow
 #include <windows.h>

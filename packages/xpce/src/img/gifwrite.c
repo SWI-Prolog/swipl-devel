@@ -50,6 +50,7 @@
 #include <string.h>
 #include <setjmp.h>
 #ifdef O_IOSTREAM
+#undef ferror
 #define FILE IOSTREAM
 #define fwrite Sfwrite
 #define fputc Sputc
