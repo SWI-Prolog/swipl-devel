@@ -52,11 +52,13 @@ file_search_path(foreign, pce(lib)).
 gui_setup_ :-
 	current_prolog_flag(gui, true), !.
 gui_setup_ :-
-	(   getenv('DISPLAY', _)
-	;   current_prolog_flag(arch, Arch),
-	    '$apropos_match'(win32, Arch)
-	), !,
+	getenv('DISPLAY', _), !,
 	set_prolog_flag(gui, true),
+	use_module(library(swi_hooks)).	% help, etc.
+gui_setup_ :-
+	current_prolog_flag(windows, true),
+	set_prolog_flag(gui, true),
+	use_module(library(win_menu)),
 	use_module(library(swi_hooks)).	% help, etc.
 
 pce_setup_ :-
