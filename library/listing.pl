@@ -250,6 +250,12 @@ portray_or((If -> Then), Indent) :- !,
 	nl, portray_indent(Indent), 
 	write('->  '), 
 	portray_or(Then, Indent).
+portray_or((If *-> Then), Indent) :- !, 
+	succ(Indent, NestIndent), 
+	portray_body(If, NestIndent, noindent), 	
+	nl, portray_indent(Indent), 
+	write('*-> '), 
+	portray_or(Then, Indent).
 portray_or((A;B), Indent) :- !, 
 	succ(Indent, OrIndent), 
 	portray_body(A, OrIndent, noindent), 

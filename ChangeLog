@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: portray_clause(q:-x*->y).  (Jakub Jiricek).
+
   * ADDED: Handle *-> in DCG (Jakub Jiricek).
 
   * FIXED: Cleanup dangling records in findall/3 and friends if an abort
