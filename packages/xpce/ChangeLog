@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.2.9, distributed with SWI-Prolog 5.2.9
+================================================
+
 * MODIFIED: library(pce_unclip) to detach if the pointer leaves the original
   window.  Avoids event processing problems.
 

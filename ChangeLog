@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+VERSION 5.2.9 (Oct 05, 2003)
+============================
+	
   * LINK: pl -dump-runtime-variables to set PLLIB to the link-option to
     link the Prolog library (e.g. -lpl)
 
