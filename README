@@ -121,7 +121,6 @@ options.  For the first port, I advice to set the following flags to 0:
 	- O_ASM_SWITCH
 	- O_FOREIGN
 	- O_PCE
-	- O_STORE_PROGRAM
 	- O_SHARED_MEMORY
 	- O_CAN_MAP
 
@@ -143,7 +142,7 @@ You can compile this using `pl -d level -b file'.  If this finally writes
 `Hello World' on your terminal you are getting close.  Next test program
 can be:
 
-test :-
+			       test :-
 	write('Hello World'),
 	nl.
 
