@@ -1277,3 +1277,113 @@ mark *m;
 { if ( ((--pTop)->value << 2) != (unsigned)m )
     sysError("Mismatch in lock()/unlock()\n");
 }
+
+
+#ifdef O_STACK_SHITFER
+
+/* Development work ... */
+
+
+		 /*******************************
+		 *	   STACK-SHIFTER	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Update the Prolog runtime stacks presuming they have shifted by the
+the specified offset.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+update_mark(m, gs, ts)
+mark *m;
+long gs, ts;
+{ m->trailtop  = (TrailEntry) addPointer(m->trailtop, ts);
+  m->globaltop = (Word)	      addPointer(m->globaltop, gs);
+}
+
+
+static void
+update_variable(sp)
+Word sp;
+{ if ( isRef(*sp) )
+  { if ( onGlobal(unRef(*sp)) )
+      *sp = makeRef(addPointer(unRef(*sp), gs));
+  } else if ( isPointer(*sp) )
+  { if ( onGlobal(*sp) )
+      *sp = (word) addPointer(*sp, gs);
+  } else if ( isIndirect(*sp) )
+  { if ( onGlobal(unMask(*sp)) )
+      *sp = ((word) addPointer(unMask(*sp), gs)) | INDIRECT_MASK;
+  }
+}
+
+
+static LocalFrame
+update_environments(fr, ls, gs, ts)
+LocalFrame fr;
+long ls, gs, ts;
+{ Code PC = NULL;
+
+  if ( fr == NULL )
+    return NULL;
+
+  for(;;)
+  { int slots;
+    Word sp;
+    
+    if ( true(fr, FR_MARKED) )
+      return NULL;			/* from choicepoints only */
+    set(fr, FR_MARKED);
+    
+    DEBUG(2, printf("Shifting frame [%ld] %s\n",
+		    levelFrame(fr), procedureName(fr->procedure)));
+
+    if ( ls )				/* update frame pointers */
+    { if ( fr->parent )
+	fr->parent = (LocalFrame) addPointer(fr->parent, ls);
+      if ( fr->backtrackFrame )
+	fr->backtrackFrame = (LocalFrame) addPointer(fr->backtrackFrame, ls);
+    }
+
+    update_mark(&fr->mark, gs, ts);	/* trail and global marks */
+
+    if ( gs )				/* variables pointing to global */
+    { clear_uninitialised(fr, PC);
+
+      slots = (PC == NULL ? fr->procedure->functor->arity : slotsFrame(fr));
+      sp = argFrameP(fr, 0);
+      for( ; slots > 0; slots--, sp++ )
+	update_variable(sp);
+    }
+
+    PC = fr->programPointer;
+    if ( fr->parent )			/* TBD: +/- ls */
+      fr = fr->parent;
+    else
+      return parentFrame(fr);		/* Prolog --> C --> Prolog calls */
+  }
+}
+
+
+static void
+update_choicepoints(bfr)
+LocalFrame bfr;
+{ for( ; bfr; bfr = bfr->backtrackFrame )
+    mark_environments(bfr);
+}
+
+
+static void
+update_stacks(frame, ls, gs, ts)
+LocalFrame frame;
+long ls, gs, ts;
+{ while(fr)
+    fr = update_environments(fr, ls, gs, ts);
+
+  if ( gs )
+  { update_global(gs);
+    update_trail(gs);
+  }
+}
+
+#endif /*O_STACK_SHITFER*/

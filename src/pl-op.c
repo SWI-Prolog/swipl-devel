@@ -29,6 +29,8 @@ int type;
   for(op=operatorTable[v]; op && !isRef((word)op); op=op->next)
   { if (op->name != name)
       continue;
+    if (op->priority <= 0 )
+      continue;
     switch(op->type)
     { case OP_FX:
       case OP_FY:	if (type == OP_PREFIX)
@@ -130,6 +132,8 @@ word h;
     if (Type >= 0 && Type != op->type  )
       continue;
     if (Prec > 0 && Prec != op->priority)
+      continue;
+    if ( op->priority <= 0 )
       continue;
 
     TRY(unifyAtomic(name, op->name));

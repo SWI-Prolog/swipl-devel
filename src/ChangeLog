@@ -1,3 +1,8 @@
+Mon Mar 29 11:06:34 1993  Jan Wielemaker  (jan at swi)
+
+Integrated patches from Nishida Osamu (nishida@islix.sharp.co.jp) to
+provide for 8-bit character support.
+
 Thu Feb 18 16:12:10 1993  Jan Wielemaker  (jan at swisun11)
 
 * VERSION 1.6.12
