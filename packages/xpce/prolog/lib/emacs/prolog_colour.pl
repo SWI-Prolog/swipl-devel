@@ -558,6 +558,10 @@ term_colours((:- pce_global(_, _)),
 term_colours((:- emacs_end_mode),
 	     expanded - [ expanded
 			]).
+term_colours(pce_ifhostproperty(_,_),
+	     expanded - [ classify,
+			  classify
+			]).
 term_colours((_,_),
 	     error - [ classify,
 		       classify

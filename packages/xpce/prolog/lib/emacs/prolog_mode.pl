@@ -82,7 +82,7 @@ resource(mode_pl_icon, image, image('32x32/doc_pl.xpm')).
 		 
 icon(_, I:image) :<-
 	"Return icon for mode"::
-	new(I, image(resource(mode_pl_icon))).
+	catch(new(I, image(resource(mode_pl_icon))), _, fail).
 
 setup_mode(M) :->
 	"Attach styles for errors, warnings, etc."::
@@ -664,7 +664,7 @@ insert_full_stop(M, Arg:[int]) :->
 	    get(M, character, Caret-2, Prev),
 	    \+ symbol_char(Prev),
 	    get(M, scan_syntax, 0, Caret, code)
-	->  send(M, check_clause)
+	->  get(M, check_clause, repair := @off, _End)
 	;   true
 	).
 
@@ -676,7 +676,7 @@ alternate_syntax(pce_class, pce_expansion:push_compile_operators,
 :- dynamic
 	syntax_error/1.
 
-check_clause(M, From:[int], End:int) :<-
+check_clause(M, From:from=[int], Repair:repair=[bool], End:int) :<-
 	"Check clause, returning the end of it"::
 	send(M, style, singleton, style(bold := @on)),
         (   From == @default
@@ -699,7 +699,10 @@ check_clause(M, From:[int], End:int) :<-
 		;   true
 		)
 	    ;   mark_singletons(M, T, S, P),
-		replace_singletons(M, P)
+		(   Repair \== @off
+		->  replace_singletons(M, P)
+		;   true
+		)
 	    ),
 	    (	send(M, has_send_method, colourise_term)
 	    ->	send(M, colourise_term, T, P)
@@ -708,7 +711,10 @@ check_clause(M, From:[int], End:int) :<-
 	    arg(2, P, E0),
 	    get(TB, find, E0, '.', 1, end, End)
 	;   Error = EPos:Msg,
-	    send(M, caret, EPos),
+	    (	Repair \== @off
+	    ->  send(M, caret, EPos)
+	    ;	true
+	    ),
 	    send(M, report, warning, 'Syntax error: %s', Msg),
 	    fail
 	).

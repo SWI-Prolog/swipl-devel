@@ -11,6 +11,7 @@
 :- use_module(library(pce)).
 :- use_module(library(toolbar)).
 :- use_module(library(pce_toc)).
+:- use_module(library(pce_report)).
 :- require([ ignore/1
 	   , file_directory_name/2
 	   , term_to_atom/2
@@ -36,6 +37,7 @@ Some issues to consider:
 
 :- pce_global(@emacs_mark_list, new(emacs_bookmark_editor)).
 
+resource(save, image, image('16x16/save.xpm')).
 resource(cut,  image, image('16x16/cut.xpm')).
 resource(open, image, image('16x16/book2.xpm')).
 
@@ -64,9 +66,14 @@ fill_dialog(BM) :->
 	send(D, gap, size(0, 5)),
 	send(D, append, new(TB, tool_bar(BM))),
 	send_list(TB, append,
-		  [ tool_button(goto, resource(open), 'Open editor'),
+		  [ tool_button(save, resource(save), 'Save bookmarks'),
+		    gap,
+		    tool_button(goto, resource(open), 'Open editor'),
 		    tool_button(cut,  resource(cut),  'Delete selection')
-		  ]).
+		  ]),
+	send(D, append, graphical(0,0,10,1), right), % make a gap
+	send(D, append, new(reporter), right),
+	send(D, resize_message, message(D, layout, @arg2)).
 
 unlink(BM) :->
 	get(BM, member, emacs_bookmark_window, W),
@@ -152,7 +159,8 @@ save(BM) :->
 	format(Fd, 'geometry(~q).~n~n', [Geometry]),
 	get(BM, tree, Tree),
 	send(Tree?root, save, Fd),
-	close(Fd).
+	close(Fd),
+	send(BM, report, status, 'Saved bookmarks to %s', File).
 
 load(BM) :->
 	"Load bookmarks from file"::
