@@ -486,7 +486,7 @@ man_card(Obj, Create:[bool], Card) :<-
 	).
 
 
-man_documented(Obj) :->
+has_help(Obj) :->
 	"Test if object is documented"::
 	(   get(Obj, man_card, Card),
 	    (   get(Card, description, Description), Description \== @nil
@@ -776,15 +776,20 @@ source(M, Loc) :<-
 	fix_source_path(Loc, M).
 
 
-man_documented(M) :->
+has_help(M) :->
 	"Look for inherited too"::
-	(   send(M, send_super, man_documented)
+	(   send(M, send_super, has_help)
 	->  true
 	;   get(M, context, Class),
 	    get(M, name, Selector),
 	    get(Class, instance_variable, Selector, Var),
-	    send(Var, man_documented)
+	    send(Var, has_help)
 	).
+
+
+help(M) :->
+	"Open manual browser on method"::
+	manpce(M).
 
 
 man_creator(M, Creator:name) :<-
@@ -812,7 +817,7 @@ man_summary(E, Summary:string) :<-
 	new(Summary, string('!\t%s\t%s\t%s',
 			    E?id, E?kind, Format)),
 	send(Summary, translate, '\n', ' '),
-	(   send(E, man_documented)
+	(   send(E, has_help)
 	->  send(Summary, append, ' (+)')
 	;   true
 	).

@@ -717,6 +717,22 @@ PL_EXPORT(int)		PL_destroy_engine(PL_engine_t engine);
 
 
 		 /*******************************
+		 *	     PROFILER		*
+		 *******************************/
+
+typedef struct
+{ int	(*unify)(term_t t, void *handle); 	/* implementation --> Prolog */
+  int   (*get)(term_t t, void **handle);	/* Prolog --> implementation */
+  void	(*activate)(int active);		/* (de)activate */
+  long	magic;					/* PROFTYPE_MAGIC */
+} PL_prof_type_t;
+
+PL_EXPORT(int)		PL_register_profile_type(PL_prof_type_t *type);
+PL_EXPORT(void*)	PL_prof_call(void *handle, PL_prof_type_t *type);
+PL_EXPORT(void)		PL_prof_exit(void *node);
+
+
+		 /*******************************
 		 *	 WINDOWS MESSAGES	*
 		 *******************************/
 

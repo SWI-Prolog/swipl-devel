@@ -35,12 +35,27 @@
 #define nodes      (LD->profile.nodes)		/* # nodes created */
 #define accounting (LD->profile.accounting)	/* We are accounting */
 
+#define PROFTYPE_MAGIC 0x639a2fb1
+
+static int identify_def(term_t t, void *handle);
+static int get_def(term_t t, void **handle);
+static PL_prof_type_t prof_default_type =
+{ identify_def,					/* unify a Definition */
+  get_def,
+  NULL,						/* dummy */
+  PROFTYPE_MAGIC
+};
+
+#define MAX_PROF_TYPES 10
+static PL_prof_type_t *types[MAX_PROF_TYPES] = { &prof_default_type };
+
 #define PROFNODE_MAGIC 0x7ae38f24
 
 typedef struct call_node
 { long 		    magic;		/* PROFNODE_MAGIC */
   struct call_node *parent;
-  Definition        def;
+  void *            handle;		/* handle to procedure-id */
+  PL_prof_type_t   *type;
   ulong		    calls;		/* Calls from the parent */
   ulong		    redos;		/* redos while here */
   ulong		    exits;		/* exits to the parent */
@@ -53,6 +68,17 @@ typedef struct call_node
 
 static void	freeProfileData(void);
 static ulong	collectSiblingsTime(void);
+
+static void
+activateProfiler(int active ARG_LD)
+{ int i;
+
+  LD->profile.active = active;
+  for(i=0; i<MAX_PROF_TYPES; i++)
+  { if ( types[i] && types[i]->activate )
+      (*types[i]->activate)(active);
+  }
+}
 
 
 #ifdef __WIN32__
@@ -141,7 +167,7 @@ startProfiler(void)
   else
     return PL_error(NULL, 0, NULL, ERR_SYSCALL, "timeSetEvent");
 
-  LD->profile.active = TRUE;
+  activateProfiler(TRUE PASS_LD);
 
   succeed;
 }
@@ -195,7 +221,7 @@ startProfiler(void)
   
   if (setitimer(ITIMER_PROF, &value, &ovalue) != 0)
     return PL_error(NULL, 0, MSG_ERRNO, ERR_SYSCALL, setitimer);
-  LD->profile.active = TRUE;
+  activateProfiler(TRUE PASS_LD);
 
   succeed;
 }
@@ -225,7 +251,7 @@ stopProfiler(void)
     succeed;
 
   stopItimer();
-  LD->profile.active = FALSE;
+  activateProfiler(FALSE PASS_LD);
 #ifndef __WIN32__
   set_sighandler(SIGPROF, SIG_IGN);
 #endif
@@ -338,6 +364,24 @@ PRED_IMPL("$prof_sibling_of", 2, prof_sibling_of, PL_FA_NONDETERMINISTIC)
 }
 
 
+static int
+identify_def(term_t t, void *handle)
+{ return unify_definition(t, handle, 0, 0);
+}
+
+
+static int
+unify_node_id(term_t t, call_node *n)
+{ if ( n->type->magic == PROFTYPE_MAGIC )
+  { return (*n->type->unify)(t, n->handle);
+  } else
+  { GET_LD
+  
+    return PL_unify_pointer(t, n->handle);
+  }
+}
+
+
 static
 PRED_IMPL("$prof_node", 7, prof_node, 0)
 { PRED_LD
@@ -346,7 +390,7 @@ PRED_IMPL("$prof_node", 7, prof_node, 0)
   if ( !get_node(A1, &n PASS_LD) )
     fail;
 
-  if ( unify_definition(A2, n->def, 0, 0) &&
+  if ( unify_node_id(A2, n) &&
        PL_unify_integer(A3, n->calls) &&
        PL_unify_integer(A4, n->redos) &&
        PL_unify_integer(A5, n->exits) &&
@@ -364,14 +408,15 @@ PRED_IMPL("$prof_node", 7, prof_node, 0)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 prof_procedure_data(+Head,
-		  -TimeSelf, -TimeSiblings, -Parents, -Siblings)
+		    -TimeSelf, -TimeSiblings, -Parents, -Siblings)
     Where Parents  = list_of(reference(Head, Calls, Redos))
       And Siblings = list_of(reference(Head, Calls, Redos))
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 typedef struct prof_ref
 { struct prof_ref *next;		/* next in chain */
-  Definition def;			/* predicate */
+  void * handle;			/* Procedure handle */
+  PL_prof_type_t   *type;
   int   cycle;
   ulong ticks;
   ulong sibling_ticks;
@@ -408,14 +453,17 @@ free_relatives(prof_ref *r ARG_LD)
 
 
 static void
-add_parent_ref(node_sum *sum, call_node *self, Definition def, int cycle ARG_LD)
+add_parent_ref(node_sum *sum,
+	       call_node *self,
+	       void *handle, PL_prof_type_t *type,
+	       int cycle ARG_LD)
 { prof_ref *r;
 
   sum->calls += self->calls;
   sum->redos += self->redos;
 
   for(r=sum->callers; r; r=r->next)
-  { if ( r->def == def && r->cycle == cycle )
+  { if ( r->handle == handle && r->cycle == cycle )
     { r->calls += self->calls;
       r->redos += self->redos;
       r->ticks += self->ticks;
@@ -430,7 +478,8 @@ add_parent_ref(node_sum *sum, call_node *self, Definition def, int cycle ARG_LD)
   r->redos = self->redos;
   r->ticks = self->ticks;
   r->sibling_ticks = self->sibling_ticks;
-  r->def = def;
+  r->handle = handle;
+  r->type = type;
   r->cycle = cycle;
   r->next = sum->callers;
   sum->callers = r;
@@ -443,7 +492,7 @@ add_recursive_ref(node_sum *sum, call_node *self, ulong count,
 { prof_ref *r;
 
   for(r=sum->callers; r; r=r->next)
-  { if ( r->def == DEF_RECURSIVE && r->cycle == cycle )
+  { if ( r->handle == DEF_RECURSIVE && r->cycle == cycle )
     { r->calls += count;
 
       return;
@@ -453,7 +502,7 @@ add_recursive_ref(node_sum *sum, call_node *self, ulong count,
   r = allocHeap(sizeof(*r));
   memset(r, 0, sizeof(*r));
   r->calls = count;
-  r->def = DEF_RECURSIVE;
+  r->handle = DEF_RECURSIVE;
   r->cycle = cycle;
   r->next = sum->callers;
   sum->callers = r;
@@ -466,7 +515,7 @@ add_sibling_ref(node_sum *sum, call_node *self, call_node *sibling,
 { prof_ref *r;
 
   for(r=sum->callees; r; r=r->next)
-  { if ( r->def == sibling->def && r->cycle == cycle )
+  { if ( r->handle == sibling->handle && r->cycle == cycle )
     { r->calls += sibling->calls;
       r->redos += sibling->redos;
       r->ticks += sibling->ticks;
@@ -481,7 +530,8 @@ add_sibling_ref(node_sum *sum, call_node *self, call_node *sibling,
   r->redos = sibling->redos;
   r->ticks = sibling->ticks;
   r->sibling_ticks = sibling->sibling_ticks;
-  r->def = sibling->def;
+  r->handle = sibling->handle;
+  r->type = sibling->type;
   r->cycle = cycle;
   r->next = sum->callees;
   sum->callees = r;
@@ -491,18 +541,23 @@ add_sibling_ref(node_sum *sum, call_node *self, call_node *sibling,
 
 
 static int
-sumProfile(call_node *n, Definition def, node_sum *sum, int seen ARG_LD)
+sumProfile(call_node *n, void *handle, PL_prof_type_t *type,
+	   node_sum *sum, int seen ARG_LD)
 { call_node *s;
   int count = 0;
 
-  if ( n->def == def )
+  if ( n->handle == handle )
   { count++;
     if ( !seen )
     { sum->ticks         += n->ticks;
       sum->sibling_ticks += n->sibling_ticks;
     }
 
-    add_parent_ref(sum, n, n->parent ? n->parent->def : DEF_SPONTANEOUS, seen PASS_LD);
+    if ( n->parent )
+      add_parent_ref(sum, n, n->parent->handle, n->parent->type, seen PASS_LD);
+    else
+      add_parent_ref(sum, n, DEF_SPONTANEOUS, NULL, seen PASS_LD);
+
     if ( n->recur )
       add_recursive_ref(sum, n, n->recur, seen PASS_LD);
 
@@ -513,7 +568,7 @@ sumProfile(call_node *n, Definition def, node_sum *sum, int seen ARG_LD)
   }
 
   for(s=n->siblings; s; s = s->next)
-    count += sumProfile(s, def, sum, seen PASS_LD);
+    count += sumProfile(s, handle, type, sum, seen PASS_LD);
 
   return count;
 }
@@ -536,12 +591,12 @@ unify_relatives(term_t list, prof_ref *r ARG_LD)
       fail;
 
     PL_put_variable(tmp);
-    if ( r->def == DEF_SPONTANEOUS )
+    if ( r->handle == DEF_SPONTANEOUS )
       rc=PL_unify_atom_chars(tmp, "<spontaneous>");
-    else if ( r->def == DEF_RECURSIVE )
+    else if ( r->handle == DEF_RECURSIVE )
       rc=PL_unify_atom_chars(tmp, "<recursive>");
     else
-      rc=unify_definition(tmp, r->def, 0, 0);
+      rc=(*r->type->unify)(tmp, r->handle);
 
     if ( !rc ||
 	 !PL_unify_term(head, PL_FUNCTOR, FUNCTOR_node6,
@@ -558,24 +613,55 @@ unify_relatives(term_t list, prof_ref *r ARG_LD)
 }
 
 
+static int
+get_def(term_t t, void **handle)
+{ Procedure proc;
+
+  if ( get_procedure(t, &proc, 0, GP_FIND) )
+  { *handle = proc->definition;
+    succeed;
+  }
+
+  fail;
+}
+
+
+static int
+get_handle(term_t t, void **handle)
+{ int i;
+
+  for(i=0; i<MAX_PROF_TYPES; i++)
+  { if ( types[i] && types[i]->get )
+    { switch( (*types[i]->get)(t, handle) )
+      { case TRUE:
+	  succeed;
+	case FALSE:
+	  break;
+	default:
+	  assert(0);
+      }
+    }
+  }
+
+  fail;
+}
+
 
 static
 PRED_IMPL("$prof_procedure_data", 7, prof_procedure_data, PL_FA_TRANSPARENT)
 { PRED_LD
-  Procedure proc;
-  Definition def;
+  void *handle;
   node_sum sum;
   call_node *n;
   int rc;
   int count = 0;
 
-  if ( !get_procedure(A1, &proc, 0, GP_FIND) )
-    return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_procedure, A1);
-  def = proc->definition;
+  if ( !get_handle(A1, &handle) )
+    fail;
 
   memset(&sum, 0, sizeof(sum));
   for(n=roots; n; n=n->next)
-    count += sumProfile(n, def, &sum, 0 PASS_LD);
+    count += sumProfile(n, handle, &prof_default_type, &sum, 0 PASS_LD);
   
   if ( count == 0 )
     fail;				/* nothing known about this one */
@@ -713,12 +799,12 @@ profile(int sig)
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-profCall(Definition def)
-    Make a call from the current node to def.
+profCall(Definition handle)
+    Make a call from the current node to handle.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-call_node *
-profCall(Definition def ARG_LD)
+static call_node *
+prof_call(void *handle, PL_prof_type_t *type ARG_LD)
 { call_node *node = current;
 
   accounting = TRUE;
@@ -726,7 +812,7 @@ profCall(Definition def ARG_LD)
 
   if ( !node )				/* root-node of the profile */
   { for(node = roots; node; node=node->next)
-    { if ( node->def == def )
+    { if ( node->handle == handle )
       { node->calls++;
 	current = node;
 	DEBUG(2, Sdprintf("existing root %p\n", current));
@@ -740,7 +826,8 @@ profCall(Definition def ARG_LD)
     nodes++;
 
     node->magic = PROFNODE_MAGIC;
-    node->def = def;
+    node->handle = handle;
+    node->type = type;
     node->calls++;
     node->next = roots;
     roots = node;
@@ -752,18 +839,18 @@ profCall(Definition def ARG_LD)
   }
 
 					/* straight recursion */
-  if ( node->def == def )
+  if ( node->handle == handle )
   { node->recur++;
     DEBUG(2, Sdprintf("direct recursion\n"));
     accounting = FALSE;
     return node;
   } else				/* from same parent */
-  { Definition parent = node->def;
+  { void *parent = node->handle;
 
     for(node=node->parent; node; node = node->parent)
-    { if ( node->def == def &&
+    { if ( node->handle == handle &&
 	   node->parent &&
-	   node->parent->def == parent )
+	   node->parent->handle == parent )
       { node->recur++;
 
 	current = node;
@@ -776,7 +863,7 @@ profCall(Definition def ARG_LD)
 
 
   for(node=current->siblings; node; node=node->next)
-  { if ( node->def == def )
+  { if ( node->handle == handle )
     { current = node;
       node->calls++;
       DEBUG(2, Sdprintf("existing child\n"));
@@ -789,7 +876,8 @@ profCall(Definition def ARG_LD)
   memset(node, 0, sizeof(*node));
   nodes++;
   node->magic = PROFNODE_MAGIC;
-  node->def = def;
+  node->handle = handle;
+  node->type = type;
   node->parent = current;
   node->calls++;
   node->next = current->siblings;
@@ -799,6 +887,15 @@ profCall(Definition def ARG_LD)
   accounting = FALSE;
 
   return node;
+}
+
+
+call_node *
+profCall(Definition def ARG_LD)
+{ if ( true(def, P_NOPROFILE) )
+    return current;
+
+  return prof_call(def, &prof_default_type PASS_LD);
 }
 
 
@@ -836,6 +933,52 @@ profRedo(struct call_node *node ARG_LD)
   }
   current = node;
 }
+
+
+		 /*******************************
+		 *	 FOREIGN ACCESS		*
+		 *******************************/
+
+int
+PL_register_profile_type(PL_prof_type_t *type)
+{ int i;
+
+  for(i=0; i<MAX_PROF_TYPES; i++)
+  { if ( types[i] == type )
+      return TRUE;
+  }
+  for(i=0; i<MAX_PROF_TYPES; i++)
+  { if ( !types[i] )
+    { types[i] = type;
+      type->magic = PROFTYPE_MAGIC;
+      return TRUE;
+    }
+  }
+
+  assert(0);
+  return FALSE;
+}
+
+
+void *
+PL_prof_call(void *handle, PL_prof_type_t *type)
+{ GET_LD
+
+  return prof_call(handle, type PASS_LD);
+}
+
+void
+PL_prof_exit(void *node)
+{ GET_LD
+  struct call_node *n = node;
+
+  profExit(n->parent PASS_LD);
+}
+
+
+		 /*******************************
+		 *	       COLLECT		*
+		 *******************************/
 
 
 static ulong

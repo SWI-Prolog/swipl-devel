@@ -71,7 +71,7 @@ pce_extended_class(_).
 
 %	pce_begin_class_definition(+ClassName, +Meta, +Super, +Summary)
 %	
-%	Dummy to allow cross-referencing and other tools to locates
+%	Dummy to allow cross-referencing and other tools to locate
 %	class-definitions after term-expansion.
 
 pce_begin_class_definition(_,_,_,_).

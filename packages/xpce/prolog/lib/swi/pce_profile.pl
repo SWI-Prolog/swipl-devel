@@ -81,7 +81,8 @@ load_profile(F) :->
 	send(B, load_profile),
 	send(F, report, done),
 	send(F, show_statistics),
-	reset_profiler.			% Cleanup loaded data from the Prolog database
+%	reset_profiler. % Cleanup loaded data from the Prolog database
+	true.
 
 
 show_statistics(F) :->
@@ -467,7 +468,11 @@ show_predicate(W, Data:prolog,
 	send(T, append, Siblings, halign := right, BG),
 	send(T, append, Call, halign := right, BG),
 	send(T, append, Redo, halign := right, BG),
-	send(T, append, new(Txt, prof_predicate_text(Pred, self)), BG),
+	(   object(Pred)
+	->  new(Txt, prof_node_text(Pred, self))
+	;   new(Txt, prof_predicate_text(Pred, self))
+	),
+	send(T, append, Txt, BG),
 	send(W, label, string('Details -- %s', Txt?string)),
 	send(T, next_row).
 
@@ -488,6 +493,8 @@ show_relative(W, Caller:prolog, Role:name) :->
 	    send(T, append, Redos, halign := right),
 	    (   Pred == '<spontaneous>'
 	    ->  send(T, append, Pred, italic)
+	    ;	object(Pred)
+	    ->	send(T, append, prof_node_text(Pred, Role))
 	    ;   send(T, append, prof_predicate_text(Pred, Role))
 	    )
 	),
@@ -497,16 +504,16 @@ show_relative(W, Caller:prolog, Role:name) :->
 :- pce_end_class(prof_details).
 
 
-:- pce_begin_class(prof_predicate_text, text,
-		   "Show a predicate").
+:- pce_begin_class(prof_node_text, text,
+		   "Show executable object").
 
-variable(predicate, prolog_predicate,	   get,	"Represented predicate").
+variable(context,   any,		   get, "Represented executable").
 variable(role,	    {parent,self,sibling}, get,	"Represented role").
 
-initialise(T, Pred:prolog, Role:{parent,self,sibling}, Cycle:[int]) :->
-	send(T, slot, predicate, new(P, prolog_predicate(Pred))),
+initialise(T, Context:any, Role:{parent,self,sibling}, Cycle:[int]) :->
+	send(T, slot, context, Context),
 	send(T, slot, role, Role),
-	get(P, print_name, Label),
+	get(T, label, Label),
 	(   (   Cycle == 0
 	    ;	Cycle == @default
 	    )
@@ -522,13 +529,18 @@ initialise(T, Pred:prolog, Role:{parent,self,sibling}, Cycle:[int]) :->
 	;   true
 	).
 
-:- free(@prof_predicate_text_recogniser).
-:- pce_global(@prof_predicate_text_recogniser,
-	      make_prof_predicate_text_recogniser).
 
-make_prof_predicate_text_recogniser(G) :-
+label(T, Label:char_array) :<-
+	get(T?context, print_name, Label).
+
+
+:- free(@prof_node_text_recogniser).
+:- pce_global(@prof_node_text_recogniser,
+	      make_prof_node_text_recogniser).
+
+make_prof_node_text_recogniser(G) :-
 	Text = @arg1,
-	Pred = @arg1?predicate,
+	Pred = @arg1?context,
 	new(P, popup),
 	send_list(P, append,
 		  [ menu_item(details,
@@ -539,9 +551,10 @@ make_prof_predicate_text_recogniser(G) :-
 			      condition := Pred?source),
 		    menu_item(documentation,
 			      message(Pred, help),
-			      condition := message(Pred, has_help))
+			      condition := if(message(Pred, has_send_method, has_help),
+					      message(Pred, has_help)))
 		  ]),
-	new(C, click_gesture(left, '', double,
+	new(C, click_gesture(left, '', single,
 			     message(@receiver, details))),
 	new(G, handler_group(C, popup_gesture(P))).
 
@@ -549,12 +562,26 @@ make_prof_predicate_text_recogniser(G) :-
 event(T, Ev:event) :->
 	(   send_super(T, event, Ev)
 	->  true
-	;   send(@prof_predicate_text_recogniser, event, Ev)
+	;   send(@prof_node_text_recogniser, event, Ev)
 	).
 
 details(T) :->
 	"Show details of clicked predicate"::
-	get(T?predicate, head, @on, Head),
+	get(T, context, Context),
+	send(T?frame, details, Context).
+
+:- pce_end_class(prof_node_text).
+
+
+:- pce_begin_class(prof_predicate_text, prof_node_text,
+		   "Show a predicate").
+
+initialise(T, Pred:prolog, Role:{parent,self,sibling}, Cycle:[int]) :->
+	send_super(T, initialise, prolog_predicate(Pred), Role, Cycle).
+
+details(T) :->
+	"Show details of clicked predicate"::
+	get(T?context, head, @on, Head),
 	send(T?frame, details, Head).
 
 :- pce_end_class(prof_predicate_text).
@@ -598,6 +625,9 @@ sort_by(by_number_of_redos, redo,	    reverse).
 %	
 %	Create a human-readable label for the given head
 
+predicate_label(Obj, Label) :-
+	object(Obj), !,
+	get(Obj, print_name, Label).
 predicate_label(M:H, Label) :- !,
 	functor(H, Name, Arity),
 	(   hidden_module(M, H)
@@ -625,17 +655,32 @@ predicate_name(H, Name) :-
 %
 %	Collect data for each of the interesting predicates.
 
-prof_node(Node) :-
-	style_check(+dollar),
-	call_cleanup(get_prof_node(Node), style_check(-dollar)).
-
-get_prof_node(node(M:H,
-		   TicksSelf, TicksSiblings,
-		   Call, Redo,
-		   Parents, Siblings)) :-
-	current_predicate(_, M:H),
-	\+ predicate_property(M:H, imported_from(_)),
-	'$prof_procedure_data'(M:H,
+prof_node(node(Impl,
+	       TicksSelf, TicksSiblings,
+	       Call, Redo,
+	       Parents, Siblings)) :-
+	setof(Impl, prof_impl(Impl, -), Impls0),
+	join_impl(Impls0, Impls),
+	member(Impl, Impls),
+	'$prof_procedure_data'(Impl,
 			       TicksSelf, TicksSiblings,
 			       Call, Redo,
 			       Parents, Siblings).
+
+join_impl([], []).
+join_impl([H|T0], [H|T]) :-
+	same(H, T0, T1),
+	join_impl(T1, T).
+
+same(H, [H|T0], T) :- !,
+	same(H, T0, T).
+same(_, L, L).
+
+
+prof_impl(Impl, Node) :-
+	Node \== (-),
+	'$prof_node'(Node, Impl, _, _, _, _, _).
+prof_impl(Impl, Root) :-
+	'$prof_sibling_of'(Node, Root),
+	prof_impl(Impl, Node).
+

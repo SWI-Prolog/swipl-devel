@@ -368,6 +368,14 @@ typedef struct
 
 __pce_export void pceRegisterCallbacks(pce_callback_functions *funcs);
 
+typedef struct
+{ void *   (*call)	(void *impl, void *type);
+  void	   (*exit)	(void *node);
+  void	  *handle;			/* context (type) handle */
+} pce_profile_hooks;
+
+__pce_export int pceSetProfileHooks(pce_profile_hooks *hooks);
+
 
 		/********************************
 		*         INITIALISATION	*
@@ -522,6 +530,8 @@ PceObject	hostGet(PceObject host, PceName selector,
 			int argc, PceObject argv []);
 int		hostQuery(int what, PceCValue *value);
 int		hostAction(int what, ...);
-#endif
+
+extern pce_profile_hooks PceProfile;
+#endif /*PCE_INCLUDED*/
 
 #endif /*_XPCE_INTERFACE_H_INCLUDED*/

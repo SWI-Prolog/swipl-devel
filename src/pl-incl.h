@@ -900,7 +900,7 @@ with one operation, it turns out to be faster as well.
 #define FOREIGN			(0x00000008L) /* predicate */
 #define HIDE_CHILDS		(0x00000010L) /* predicate */
 #define MULTIFILE		(0x00000020L) /* predicate */
-#define PROFILE_TICKED		(0x00000040L) /* predicate */
+#define P_NOPROFILE		(0x00000040L) /* predicate */
 #define SPY_ME			(0x00000080L) /* predicate */
 #define SYSTEM			(0x00000100L) /* predicate, module */
 #define TRACE_ME		(0x00000200L) /* predicate */

@@ -1409,6 +1409,9 @@ autoLoader(LocalFrame fr, Code PC, Definition def)
     fr->predicate = def;
     fr->programPointer = PC;
     fr->clause = NULL;
+#ifdef O_PROFILE
+    fr->prof_node = NULL;
+#endif
     environment_frame = fr;
   }
   qid = PL_open_query(MODULE_system, PL_Q_NODEBUG,
@@ -1800,6 +1803,7 @@ attribute_mask(atom_t key)
   if (key == ATOM_discontiguous) return DISCONTIGUOUS;
   if (key == ATOM_volatile)	 return VOLATILE;
   if (key == ATOM_thread_local)  return P_THREAD_LOCAL;
+  if (key == ATOM_noprofile)     return P_NOPROFILE;
 
   return 0;
 }

@@ -687,8 +687,14 @@ pceExecuteGoal(PceGoal g)
   if ( objectIsInstanceOf(g->implementation, ClassMethod) )
   { status rval;
     Method m = g->implementation;
+    void *prof_node;
 
     DEBUGGER(pcePrintEnterGoal(g));
+    if ( PceProfile.call )
+      prof_node = (*PceProfile.call)(g->implementation,
+				     PceProfile.handle);
+    else
+      prof_node = NULL;
 
     if ( m->function )
     { Any r      = g->receiver;
@@ -862,6 +868,8 @@ pceExecuteGoal(PceGoal g)
     }
 
 out:
+    if ( prof_node && PceProfile.exit )
+      (*PceProfile.exit)(prof_node);
     DEBUGGER(pcePrintReturnGoal(g, rval));
     return rval;
 					/* end of method-implemtation */

@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: Hooks into the profiler that allow for profiling external
+    packages such as XPCE.
+
   * FIXED: Bug in profiler causing very large overhead under some
     circumstances.  Tolga Konik.
 

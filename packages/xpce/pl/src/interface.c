@@ -2881,6 +2881,59 @@ PrologOpenResource(const char *name, const char *rc_class, const char *mode)
 { return PL_open_resource(pceContextModule(), name, rc_class, mode);
 }
 
+
+		 /*******************************
+		 *	      PROFILING		*
+		 *******************************/
+
+static PL_prof_type_t pceProfType;
+
+static int
+unify_prof_node(term_t t, void *impl)
+{ return unifyObject(t, impl, FALSE);
+}
+
+
+static int
+get_prof_node(term_t ref, void **impl)
+{ Atom name;
+  int arity;
+
+  if ( GetNameArity(ref, &name, &arity) &&
+       name == ATOM_ref &&
+       arity == 1 )
+  { *impl = termToObject(ref, NULL, NULLATOM, FALSE);
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
+static void
+prof_activate(int active)
+{ pce_profile_hooks hooks;
+
+  memset(&hooks, 0, sizeof(hooks));
+  if ( active )
+  { hooks.call   = (void*)PL_prof_call;
+    hooks.exit   = PL_prof_exit;
+    hooks.handle = &pceProfType;
+  }
+
+  pceSetProfileHooks(&hooks);
+}
+
+static void
+registerProfiler()
+{ pceProfType.unify    = unify_prof_node;
+  pceProfType.get      = get_prof_node;
+  pceProfType.activate = prof_activate;
+
+  PL_register_profile_type(&pceProfType);
+}
+
+
 		 /*******************************
 		 *	     TRANSLATE		*
 		 *******************************/
@@ -3082,6 +3135,7 @@ pl_pce_init(Term a)
     initPrologConstants();		/* Public prolog constants */
     initHostConstants();		/* Host-specific Prolog constants */
     registerPredicates();		/* make the interface known */
+    registerProfiler();			/* hook the profilers */
 
     plname = cToPceName("prolog");
     pceSend(PROLOG, NULL, cToPceName("name_reference"), 1, &plname);

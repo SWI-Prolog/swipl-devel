@@ -67,7 +67,7 @@ Typical usage
 			   "Browser for a directory-hierarchy").
 
 	initialise(FB, Root:directory) :->
-		send(FB, send_super, initialise),
+		send_super(FB, initialise),
 		get(Root, name, Name),
 		send(FB, root, toc_folder(Name, Root)).
 

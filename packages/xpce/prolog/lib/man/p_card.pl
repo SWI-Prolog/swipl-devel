@@ -445,7 +445,7 @@ has_source(_C) :->
 man_summary(C, S) :<-
 	"General summary string"::
 	new(S, string('%s\t%s\t%s', C?man_id, C?name, C?summary)),
-	(   send(C, man_documented)
+	(   send(C, has_help)
 	->  send(S, append, ' (+)')
 	;   true
 	).

@@ -821,6 +821,18 @@ Cgetline(char *line, int size)
   }
 }
 
+pce_profile_hooks PceProfile =
+{ NULL,					/* call */
+  NULL,					/* exit */
+  NULL					/* handle */
+};
+
+int
+pceSetProfileHooks(pce_profile_hooks *hooks)
+{ PceProfile = *hooks;			/* structure copy */
+}
+
+
 		 /*******************************
 		 *	 MEMORY ALLOCATION	*
 		 *******************************/
