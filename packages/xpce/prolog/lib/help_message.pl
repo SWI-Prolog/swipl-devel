@@ -148,7 +148,7 @@ help_message(V, What:{tag,summary}, _Ev:[event], Msg:string) :<-
 
 :- pce_extend_class(graphical).
 
-help(Gr, What:name, Ev:event) :->
+show_help_message(Gr, What:name, Ev:event) :->
 	find_help_message(Gr, What, Ev, Owner, Msg),
 	send(@help_message_window, feedback, Msg, Ev, Owner).
 
@@ -195,9 +195,11 @@ unlink_from(H) :->
 
 register_help_message_window :-
 	send(@display, inspect_handler,
-	     handler(loc_still, message(@receiver, help, tag, @event))),
+	     handler(loc_still,
+		     message(@receiver, show_help_message, tag, @event))),
 	send(@display, inspect_handler,
-	     handler(help, message(@receiver, help, summary, @event))).
+	     handler(help,
+		     message(@receiver, show_help_message, summary, @event))).
 
 :- initialization
    register_help_message_window.
