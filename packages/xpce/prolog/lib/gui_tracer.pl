@@ -19,16 +19,22 @@ guitracer :-
 	current_prolog_flag(gui_tracer, true), !.
 guitracer :-
 	current_prolog_flag(gui_tracer, _), !,
-	set_prolog_flag(gui_tracer, true).
+	set_prolog_flag(gui_tracer, true),
+	print_message(informational, gui_tracer(true)).
 guitracer :-
-	format(user_error, 'Loading XPCE GUI tracer ...', []),
 	load_files([library('trace/trace')], [silent(true)]),
-	format(user_error, ' loaded!~n', []),
-	format(user_error,
-	       'The graphical front-end will be used for subsequent tracing.~n', []).
+	print_message(informational, gui_tracer(true)).
 
 noguitracer :-
-	current_prolog_flag(gui_tracer, _), !,
-	set_prolog_flag(gui_tracer, false).
+	current_prolog_flag(gui_tracer, true), !,
+	set_prolog_flag(gui_tracer, false),
+	print_message(informational, gui_tracer(false)).
 noguitracer.
 
+:- multifile
+	prolog:message/3.
+
+prolog:message(gui_tracer(true)) -->
+	['The graphical front-end will be used for subsequent tracing'].
+prolog:message(gui_tracer(false)) -->
+	['Subsequent tracing uses the commandline tracer'].

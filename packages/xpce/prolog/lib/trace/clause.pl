@@ -317,17 +317,21 @@ meta((ignore(_))).
 meta((forall(_, _))).
 
 goal_expansion(send(R, Msg), send_class(R, _, SuperMsg), P, P) :-
+	compound(Msg),
 	Msg =.. [send_super, Selector | Args], !,
 	SuperMsg =.. [Selector|Args].
 goal_expansion(get(R, Msg, A), get_class(R, _, SuperMsg, A), P, P) :-
+	compound(Msg),
 	Msg =.. [get_super, Selector | Args], !,
 	SuperMsg =.. [Selector|Args].
 goal_expansion(send_super(R, Msg), send_class(R, _, Msg), P, P).
 goal_expansion(get_super(R, Msg, V), get_class(R, _, Msg, V), P, P).
 goal_expansion(SendSuperN, send_class(R, _, Msg), P, P) :-
+	compound(SendSuperN),
 	SendSuperN =.. [send_super, R, Sel | Args],
 	Msg =.. [Sel|Args].
 goal_expansion(GetSuperN, get_class(R, _, Msg, Answer), P, P) :-
+	compound(GetSuperN),
 	GetSuperN =.. [get_super, R, Sel | AllArgs],
 	append(Args, [Answer], AllArgs),
 	Msg =.. [Sel|Args].
