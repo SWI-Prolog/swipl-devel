@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: sub_atom(+,-,-,+,-): crash on backtracking.  Thanks to Anjo
+    Anjewierden.
+
 VERSION 4.1.0
 =============
 

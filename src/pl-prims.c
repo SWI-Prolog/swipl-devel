@@ -2050,7 +2050,11 @@ sub_text(term_t atom,
 
       PL_unify_integer(before, b);
       PL_unify_integer(len, l);
-      goto out;
+      (*out)(sub, l, aa+b);
+      if ( l > 0 )
+	ForeignRedoPtr(state);
+      else
+	goto exit_succeed;
     }
     case SUB_ENUM:
     { b  = state->n1;

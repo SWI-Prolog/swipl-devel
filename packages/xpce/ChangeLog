@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: If there is a default button in a dialog, give it the keyboard
+  focus instead of giving it to another button (Christophe Costa Florencio).
+
 * FIXED: Avoid missing dash-pattern definition generating PostScript from
   text objects with a pixmap <-background.
 
