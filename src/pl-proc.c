@@ -89,13 +89,20 @@ resetProcedure() is called  by  lookupProcedure()   for  new  ones,  and
 abolishProcedure() by abolish/2. In the latter   case, abolish may leave
 dirty clauses when called on a   running predicate. Hence, NEEDSCLAUSEGC
 should be retained. Bug found by Paulo Moura, LogTalk developer.
+
+There are two cases where a  complete  reset   is  safe:  if  this is an
+unreferenced dynamic predicate and if this is   a  predicate that has no
+clause-list. Such predicates can't be active  and can't become active as
+that requires clauses which, even under  MT,   can  only  be added after
+locking the L_PREDICATE mutex.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
 resetProcedure(Procedure proc, bool isnew)
 { Definition def = proc->definition;
 
-  if ( true(def, DYNAMIC) && def->references == 0 )
+  if ( (true(def, DYNAMIC) && def->references == 0) ||
+       def->definition.clauses == NULL )
     isnew = TRUE;
 
   def->flags ^= def->flags & ~(SPY_ME|NEEDSCLAUSEGC|P_SHARED);

@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: bug loosing clause-indexing after abolish on an undefined
+    predicate (caused by MT redesign).
+
   * FIXED: load .pl files rather then .qlf if user told us so.  Thanks to
     Holger Kanwischer.
 
