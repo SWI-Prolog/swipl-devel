@@ -531,6 +531,7 @@ NewClass(popup_gesture)
   PopupObj	popup;			/* Popup shown */
   PopupObj	current;		/* Currently visible popup */
   Any		context;		/* Execution context parameter */
+  Int		max_drag_distance;	/* Cancel after dragging this far */
 End;
 
 #define ABSTRACT_MOVEGESTURE \

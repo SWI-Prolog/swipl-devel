@@ -39,11 +39,11 @@ initialisePopupGesture(PopupGesture g, PopupObj popup,
 
 
 static status
-cancelPopupGesture(PopupGesture g)
+cancelPopupGesture(PopupGesture g, EventObj ev)
 { assign(g, current, NIL);
   assign(g, context, NIL);
 
-  succeed;
+  return cancelGesture((Gesture)g, ev);
 }
 
 
@@ -71,7 +71,7 @@ updatePopupGesture(PopupGesture g, EventObj ev)
   send(p, NAME_update, g->context, EAV);
 
   if ( p->active == OFF || emptyChain(p->members) )
-  { cancelPopupGesture(g);
+  { send(g, NAME_cancel, ev, EAV);
     fail;
   }
 
@@ -87,9 +87,14 @@ eventPopupGesture(PopupGesture g, EventObj ev)
     if ( !(sw = getWindowGraphical(ev->receiver)) )
       sw = ev->window;
     
-    if ( valInt(getClickTimeEvent(ev)) < 400 &&
-	 /*valInt(getClickDisplacementEvent(ev)) < 10 &&*/
-	 getAttributeObject(g, NAME_Stayup) != ON )
+    if ( notNil(g->current) && g->current->displayed == OFF )
+    { send(g->current, NAME_open, ev->receiver,
+	   getAreaPositionEvent(ev, DEFAULT), EAV);
+      attributeObject(g, NAME_Stayup, ON);
+      grabPointerWindow(sw, ON);
+      focusWindow(sw, ev->receiver, (Recogniser) g, g->cursor, NIL);
+    } else if ( valInt(getClickTimeEvent(ev)) < 400 &&
+		getAttributeObject(g, NAME_Stayup) != ON )
     { attributeObject(g, NAME_Stayup, ON);
       grabPointerWindow(sw, ON);
       focusWindow(sw, ev->receiver, (Recogniser) g, g->cursor, NIL);
@@ -104,7 +109,7 @@ eventPopupGesture(PopupGesture g, EventObj ev)
     }
 
     succeed;
-  } else if ( notNil(g->current) )
+  } else if ( notNil(g->current) && g->current->displayed == ON )
     return postEvent(ev, (Graphical) g->current, DEFAULT);
       
   if ( eventGesture(g, ev) )
@@ -126,7 +131,7 @@ eventPopupGesture(PopupGesture g, EventObj ev)
       send(current, NAME_execute, context, EAV);
       succeed;
     } else
-      cancelPopupGesture(g);
+      send(g, NAME_cancel, ev, EAV);
   }
 
   fail;
@@ -145,17 +150,31 @@ verifyPopupGesture(PopupGesture g, EventObj ev)
 
 static status
 initiatePopupGesture(PopupGesture g, EventObj ev)
-{ send(g->current, NAME_open, ev->receiver,
-       getAreaPositionEvent(ev, DEFAULT), EAV);
-  postEvent(ev, (Graphical) g->current, DEFAULT);
+{ if ( isNil(g->max_drag_distance) )
+  { send(g->current, NAME_open, ev->receiver,
+	 getAreaPositionEvent(ev, DEFAULT), EAV);
+    postEvent(ev, (Graphical) g->current, DEFAULT);
+  }
+
   succeed;
 }
 
 
 static status
 dragPopupGesture(PopupGesture g, EventObj ev)
-{ if ( notNil(g->current) )
+{ if ( notNil(g->current) && g->current->displayed == ON )
+  { DEBUG(NAME_popup, Cprintf("Posting drag to %s\n", pp(g->current)));
     return postEvent(ev, (Graphical) g->current, DEFAULT);
+  } else
+  { if ( notNil(g->max_drag_distance) )
+    { PceWindow sw;
+
+      if ( instanceOfObject((sw=ev->window), ClassWindow) &&
+	   valInt(getDistanceEvent(sw->focus_event, ev)) >
+	   valInt(g->max_drag_distance) )
+	send(g, NAME_cancel, ev, EAV);
+    }
+  }
 
   fail;
 }
@@ -210,7 +229,9 @@ static vardecl var_popupGesture[] =
   IV(NAME_current, "popup*", IV_NONE,
      NAME_popup, "Currently visible popup"),
   IV(NAME_context, "any", IV_BOTH,
-     NAME_context, "Context to be send with the ->execute")
+     NAME_context, "Context to be send with the ->execute"),
+  IV(NAME_maxDragDistance, "int*", IV_BOTH,
+     NAME_cancel, "Cancel after dragging this far")
 };
 
 /* Send Methods */
@@ -226,6 +247,8 @@ static senddecl send_popupGesture[] =
      DEFAULT, "Unshow popup and execute selected item"),
   SM(NAME_verify, 1, "event", verifyPopupGesture,
      DEFAULT, "Verify popup can be activated"),
+  SM(NAME_cancel, 1, "event", cancelPopupGesture,
+     NAME_cancel, "Cancel this gesture and try the next"),
   SM(NAME_event, 1, "event", eventPopupGesture,
      NAME_accelerator, "Handle accelerators")
 };
@@ -247,7 +270,9 @@ static classvardecl rc_popupGesture[] =
   RC(NAME_cursor, "cursor", "right_ptr",
      "Cursor while active"),
   RC(NAME_modifier, "modifier", "",
-     "Condition on shift, control and meta")
+     "Condition on shift, control and meta"),
+  RC(NAME_maxDragDistance, "int*", "5",
+     "Cancel after dragging this far")
 };
 
 /* Class Declaration */

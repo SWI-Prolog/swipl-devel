@@ -97,7 +97,8 @@ static status
 terminateClickGesture(ClickGesture g, EventObj ev)
 { if ( insideEvent(ev, DEFAULT) ||
        valInt(getDistancePoint(g->down_position,
-			       getPositionEvent(ev, DEFAULT))) < 5 )
+			       getPositionEvent(ev, DEFAULT))) <
+       					valInt(g->max_drag_distance) )
   { if ( notNil(g->execute_message) )
     { if ( getMulticlickEvent(ev) == NAME_single )
       { forwardReceiverCode(g->execute_message, getMasterEvent(ev), ev, EAV);
@@ -110,8 +111,7 @@ terminateClickGesture(ClickGesture g, EventObj ev)
       }
     }
   } else
-  { if ( notNil(g->cancel_message) )
-      forwardReceiverCode(g->cancel_message, getMasterEvent(ev), ev, EAV);
+  { send(g, NAME_cancel, ev, EAV);
   }
     
   succeed;

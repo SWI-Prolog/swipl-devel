@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: popup_gesture->max_drag_distance to get a popup that opens at
+  the `Up' event.
+
 * MODIFIED: Allow drag_and_drop_gesture->cursor: @default to create the
   cursor from the dragged graphical.
 
