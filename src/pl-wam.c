@@ -462,7 +462,9 @@ callForeign(LocalFrame frame, control_t ctx ARG_LD)
   fid_t cid;
   SaveLocalPtr(s1, frame);
   
+#ifdef O_DEBUGGER
 retry:
+#endif
   lTop = (LocalFrame) argFrameP(frame, argc);
   exception_term = 0;
 
@@ -548,7 +550,9 @@ retry:
 	case FALSE:
 	  fail;
 	default:
+#ifdef O_DEBUGGER
 	err_domain:
+#endif
 	{ FunctorDef fd = def->functor;
 	  term_t ex = PL_new_term_ref();
 
