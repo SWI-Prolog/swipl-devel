@@ -141,3 +141,18 @@ init_pce :-
 prolog:message(pce(no_threads)) -->
         [ 'This version of XPCE does not support multi-threading'
         ].
+
+
+		 /*******************************
+		 *	       ABORT		*
+		 *******************************/
+
+:- multifile
+	user:message_hook/3.
+:- dynamic
+	user:message_hook/3.
+
+user:message_hook('$aborted', _Kind, _Lines) :-
+	current_prolog_flag(xpce, true),
+	send(@display, reset),
+	fail.
