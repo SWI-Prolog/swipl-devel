@@ -44,12 +44,22 @@ test(File) :-
 	ground(Term),			% make sure
 	okfile(File, OkFile),
 	(   exists_file(OkFile)
-	->  load_prolog_file(OkFile, TermOk),
+	->  load_prolog_file(OkFile, TermOk, ErrorsOk),
 	    (	compare_dom(Term, TermOk)
-	    ->	format('ok~n')
-	    ;	format('WRONG~n')
-	    )
-	;   format('Loaded, no validating data~n'),
+	    ->	format('ok')
+	    ;	format('WRONG')
+	    ),
+	    error_terms(Errors),
+	    (	compare_errors(Errors, ErrorsOk)
+	    ->	true
+	    ;	format(' [Different errors]')
+%		pp(ErrorsOk),
+%		format('**************~n'),
+%		pp(Errors)
+	    ),
+	    nl
+	;   show_errors,
+	    format('Loaded, no validating data~n'),
 	    pp(Term)
 	).
 
@@ -62,16 +72,47 @@ pass(File) :-
 	okfile(File, OkFile),
 	open(OkFile, write, Fd),
 	format(Fd, '~q.~n', [Term]),
+	(   error_terms(Errors)
+	->  format(Fd, '~q.~n', [Errors])
+	;   true
+	),
 	close(Fd).
+
+:- dynamic
+	error/3.
+:- multifile
+	user:message_hook/3.
+
+user:message_hook(Term, Kind, Lines) :-
+	Term = sgml(_,_,_,_),
+	assert(error(Term, Kind, Lines)).
+
+show_errors :-
+	(   error(_Term, Kind, Lines),
+	    atom_concat(Kind, ': ', Prefix),
+	    print_message_lines(user_error, Prefix, Lines),
+	    fail
+	;   true
+	).
+
+error_terms(Errors) :-
+	findall(Term, error(Term, _, _), Errors).
+
+compare_errors([], []).
+compare_errors([sgml(_Parser1, _File1, Line, Msg)|T0],
+	       [sgml(_Parser2, _File2, Line, Msg)|T]) :-
+	compare_errors(T0, T).
 
 load_file(File, Term) :-
 	load_pred(Ext, Pred),
 	file_name_extension(_, Ext, File), !,
+	retractall(error(_,_,_)),
 	call(Pred, File, Term).
 load_file(Base, Term) :-
 	load_pred(Ext, Pred),
 	file_name_extension(Base, Ext, File),
 	exists_file(File), !,
+	retractall(error(_,_,_)),
 	call(Pred, File, Term).
 
 
@@ -84,9 +125,14 @@ okfile(File, OkFile) :-
 	file_directory_name(Base, Dir),
 	concat_atom([Dir, '/ok/', Base, '.ok'], OkFile).
 
-load_prolog_file(File, Term) :-
+load_prolog_file(File, Term, Errors) :-
 	open(File, read, Fd),
 	read(Fd, Term),
+	(   read(Fd, Errors),
+	    Errors \== end_of_file
+	->  true
+	;   Errors = []
+	),
 	close(Fd).
 
 compare_dom([], []) :- !.

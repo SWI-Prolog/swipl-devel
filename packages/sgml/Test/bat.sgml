@@ -1,0 +1,68 @@
+<!DOCTYPE bat [
+ <!-- The purpose of this is to test bad attribute values -->
+ <!NOTATION no SYSTEM "http://www.example.com/notations/no.xml">
+ <!ENTITY   en SYSTEM "http://www.example.com/entities/en.not" NDATA no>
+ <!ELEMENT bat O O (x+)>
+ <!ELEMENT x   - O EMPTY>
+ <!ATTLIST x
+    a CDATA     #IMPLIED
+    b ENTITY    #IMPLIED
+    c ENTITIES  #IMPLIED
+    d ID        #IMPLIED
+    e IDREF     #IMPLIED
+    f IDREFS    #IMPLIED
+    g NAME      #IMPLIED
+    h NAMES     #IMPLIED
+    i NMTOKEN   #IMPLIED
+    j NMTOKENS  #IMPLIED
+    k NUMBER    #IMPLIED
+    l NUMBERS   #IMPLIED
+    m NUTOKEN   #IMPLIED
+    n NUTOKENS  #IMPLIED
+    o NOTATION (no) #IMPLIED
+ >
+]>
+<x a=foo>
+<x a=bar//
+<x a=foo&bar>
+<x a=file.cgi?y=1>
+<x b=en>
+<x b=en en>
+<x b="en en">
+<x c=en>
+<x c=en en>
+<x c="en en">
+<x c=un>
+<x c=12>
+<x d=an-id>
+<x d=an*id>
+<x d=*id*>
+<x d="an id">
+<x e=an-id>
+<x e=un-id>
+<x f="">
+<x f=an-id>
+<x f="  an-id   an-id   ">
+<x g=1>
+<x g=''>
+<x g=a-rather-long-name>
+<x g=a%name%with%percents>
+<x g=" a name ">
+<x g=" a-name ">
+<x h="">
+<x h=a>
+<x h="NAME">
+<x h="A NAME">
+<x k=1>
+<x k=999999999999999999999999999999999999999999999>
+<x k=1.2>
+<x k="1.2">
+<x k="-1.2">
+<x n="one two">
+<x n="1a 2a">
+<x n="1*ft 2*in">
+<x o=no>
+<x o=un>
+<x p=--a-->
+<x p=--b-->
+<x p=" --a-- ">
