@@ -296,8 +296,7 @@ printk(char *fm, ...)
 
 
 word
-checkData(p)
-Word p;
+checkData(Word p)
 { int arity; int n;
   Word p2;
 

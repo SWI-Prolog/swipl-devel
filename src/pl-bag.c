@@ -114,7 +114,7 @@ pl_collect_bag(term_t bindings, term_t bag)
     }
   }
 
-  SECURE(checkData(var_term, FALSE));
+  SECURE(checkData(valTermRef(var_term)));
 
   return PL_unify(bag, list);
 }

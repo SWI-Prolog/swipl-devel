@@ -79,7 +79,9 @@ doc.ind:	doc.idx
 
 
 $(ONLINE):	online.dvi $(DVITOTTY)
-		$(DVITOTTY) -w100 online | cat -s > $(ONLINE)
+		$(DVITOTTY) -w100 online | \
+		cat -s | \
+		sed 's/\(.\)_/_\1/g' > $(ONLINE)
 
 online.dvi:	latex_if_needed online.tex $(TEXFILES)
 		./latex_if_needed $(LATEX) online

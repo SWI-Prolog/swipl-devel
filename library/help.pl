@@ -97,7 +97,9 @@ show_help(_, [Start-End]) :-
 	End - Start > 4000, !,
 	find_manual(Manual),
 	find_pager(Pager),
-	sformat(Cmd, 'pl-bite ~d:~d ~a | ~a', [Start, End, Manual, Pager]),
+	plbite_flags(Flags),
+	sformat(Cmd, 'pl-bite ~w ~d:~d ~a | ~a',
+		[Flags, Start, End, Manual, Pager]),
 	shell(Cmd).	
 show_help(_, Ranges) :-
 	online_manual_stream(Manual),
@@ -106,6 +108,9 @@ show_help(_, Ranges) :-
 	close(Manual),
 	close(Pager).
 
+plbite_flags('-e') :-
+	feature(write_help_with_overstrike, true), !.
+plbite_flags('').
 
 show_ranges([], _, _) :- !.
 show_ranges([From-To|Rest], Manual, Pager) :-
@@ -115,16 +120,26 @@ show_ranges([From-To|Rest], Manual, Pager) :-
 	nl(Pager),
 	show_ranges(Rest, Manual, Pager).
 
-copy_chars(0, _, _) :- !.
-copy_chars(N, _, To) :-
+copy_chars(N, From, To) :-
+	get0(From, C0),
+	copy_chars(N, From, To, C0).
+
+copy_chars(0, _, _, _) :- !.
+copy_chars(N, _, To, _) :-
 	0 =:= N mod 4096,
 	flush_output(To),
 	fail.
-copy_chars(N, From, To) :-
-	get0(From, C),
-	put_printable(To, C),
-	NN is N - 1,
-	copy_chars(NN, From, To).
+copy_chars(N, From, To, C) :-
+	get0(From, C1),
+	(   C1 == 8,			% backspace
+	    \+ feature(write_help_with_overstrike, true)
+	->  get0(From, C2),
+	    NN is N - 3,
+	    copy_chars(NN, From, To, C2)
+	;   put_printable(To, C),
+	    NN is N - 1,
+	    copy_chars(NN, From, To, C1)
+	).
 
 put_printable(_, 12) :- !.
 put_printable(_, -1) :- !.
@@ -145,6 +160,21 @@ find_manual(Path) :-
 find_pager(Pager) :-
 	getenv('PAGER', Pager), !.
 find_pager(more).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Set the write_help_with_overstrike feature.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+set_overstrike_feature :-
+	feature(write_help_with_overstrike, _), !.
+set_overstrike_feature :-
+	getenv('TERM', xterm), !,
+	set_feature(write_help_with_overstrike, true).
+set_overstrike_feature :-
+	set_feature(write_help_with_overstrike, false).
+	
+:- initialization set_overstrike_feature.
+
 
 %	APROPOS
 

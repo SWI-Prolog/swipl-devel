@@ -141,7 +141,7 @@ CpuTime()
 
 
 char *
-Symbols()
+Symbols(char *buf)
 { char buf[MAXPATHLEN];
   int n;
 
@@ -151,13 +151,15 @@ Symbols()
     buf[n] = EOS;
     _xos_long_file_name(buf, buf2);
 
-    return store_string(buf2);
+    strcpy(buf, buf2);
   } else
   { char tmp[MAXPATHLEN];
     PrologPath(GD->cmdline.argv[0], buf);
 
-    return store_string(Which(buf, tmp));
+    strcpy(buf, tmp);
   }
+
+  return buf;
 }
 
 		 /*******************************

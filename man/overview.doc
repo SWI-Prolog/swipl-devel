@@ -177,6 +177,24 @@ Online help provides a fast lookup and browsing facility to this
 manual. The online manual can show predicate definitions as well as
 entire sections of the manual.
 
+The online help is displayed from the file \pllib{'MANUAL'}. The file
+\pllib{helpidx} provides an index into this file. \pllib{'MANUAL'} is
+created from the \LaTeX{} sources with a modified version of
+\program{dvitty}, using overstrike for printing bold text and
+underlining for rendering italic text. XPCE is shipped with
+\pllib{swi_help}, presenting the information from the online help in a
+hypertext window. The feature \const{write_help_with_overstrike}
+controls whether or not help/1 writes its output using overstrike to
+realise bold and underlined output or not. If this feature is not set it
+is initialised by the help library to \const{true} if the \const{TERM}
+variable equals \const{xterm} and \const{false} otherwise. If this
+default does not satisfy you, add the following line to \file{~/.plrc}.
+
+\begin{code}
+:- set_feature(write_help_with_overstrike, true).
+\end{code}
+
+
 \begin{description}
     \predicate{help}{0}{}
 Equivalent to \exam{help(help/1)}.

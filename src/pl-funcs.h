@@ -384,7 +384,7 @@ bool		PopTty(ttybuf *buf);
 char *		Setenv(char *name, char *value);
 char *		Unsetenv(char *name);
 int		System(char *cmd);
-char *		Symbols(void);
+char *		Symbols(char *buf);
 void		Pause(real time);
 #if __WIN32__
 int		iswin32s(void);

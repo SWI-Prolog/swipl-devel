@@ -2413,7 +2413,7 @@ char *command;
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    char *Symbols()
+    char *Symbols(char *buf)
 
     Return the path name of the executable of SWI-Prolog. Used by the -c
     compiler to generate the #!<path> header line and by the incremental
@@ -2423,7 +2423,7 @@ char *command;
 #ifndef __WIN32__			/* Win32 version in pl-nt.c */
 
 char *
-Symbols(void)
+Symbols(char *buffer)
 { char *file;
   char buf[MAXPATHLEN];
   char tmp[MAXPATHLEN];
@@ -2453,7 +2453,9 @@ Symbols(void)
 	  ;
 	*q = EOS;
 
-	return store_string(s);
+	strcpy(buffer, s);
+
+	return buffer;
       }
     }
 
@@ -2461,7 +2463,9 @@ Symbols(void)
   }
 #endif /*__unix__*/
 
-  return file;
+  strcpy(buffer, file);
+
+  return buffer;
 }
 #endif /*__WIN32__*/
 

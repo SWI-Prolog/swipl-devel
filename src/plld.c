@@ -113,6 +113,7 @@ static arglist ldoptions;		/* LD options */
 static arglist ploptions;		/* PL options for saved state */
 
 static arglist libs;			/* (C) libraries */
+static arglist lastlibs;		/* libs that must be at the end */
 static arglist libdirs;			/* -L library directories */
 static arglist includedirs;		/* -I include directories */
 
@@ -301,6 +302,28 @@ addArgs(const char *s, arglist *list)
 
 
 void
+addLibs(const char *s, arglist *list)
+{ const char *f;
+  char tmp[1024];
+
+  while(*s)
+  { while(*s && isspace(*s))
+      s++;
+    f = s;
+    while(*s && !isspace(*s))
+      s++;
+    if ( s > f )
+    { if ( s > f+2 && strprefix(f, "-l") )
+	f += 2;
+      strncpy(tmp, f, s-f);
+      tmp[s-f] = '\0';
+      appendArgList(list, tmp);
+    }
+  }
+}
+
+
+void
 appendOptions(arglist *args, const char *from)
 { int sep = *from++;
   const char *f;
@@ -357,6 +380,38 @@ freeArgList(arglist *l)
 
   xfree(l);
 }  
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+If the filename has an extension, replace it, otherwise add the given
+extension.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+char *
+replaceExtension(const char *base, const char *ext, char *buf)
+{ char *e = NULL, *q = buf;
+  const char *s = base;
+
+  for( ; *s; s++, q++ )
+  { *q = *s;
+    if ( *q == '.' )
+      e = q;
+    else if ( *q == '/' || *q == '\\' )
+      e = NULL;
+  }
+  
+  if ( e )
+    e++;
+  else
+  { e = q + strlen(q);
+    *e++ = '.';
+  }
+  
+  strcpy(e, ext);
+
+  return buf;
+}
+
 
 
 		 /*******************************
@@ -438,6 +493,8 @@ usage()
 	  "       -ld linker       link editor to use\n"
           "       -cc compiler     compiler for C source files\n"
 	  "       -c++ compiler    compiler for C++ source files\n"
+	  "\n"
+	  "       -nostate         just relink the kernel\n"
 	  "\n"
 	  "       -pl-options,...  Add options for Prolog\n"
 	  "       -ld-options,...  Add options for linker\n"
@@ -543,6 +600,8 @@ parseOptions(int argc, char **argv)
       appendArgList(&cppoptions, &opt[2]);
     } else if ( strprefix(opt, "-L") )		/* -L<libdir> */
     { appendArgList(&libdirs, &opt[2]);
+    } else if ( streq(opt, "-lccmalloc") )	/* -lccmalloc */
+    { appendArgList(&lastlibs, &opt[2]);
     } else if ( strprefix(opt, "-l") )		/* -l<lib> */
     { appendArgList(&libs, &opt[2]);
     }
@@ -658,7 +717,7 @@ getPrologOptions()
 	else if ( streq(name, "PLARCH") )
 	  defaultPath(&plarch, v);
 	else if ( streq(name, "PLLIBS") )
-	  addArgs(v, &libs);
+	  addLibs(v, &libs);
 	else if ( streq(name, "PLLDFLAGS" ) )
 	  appendArgList(&ldoptions, v);
 	else
@@ -835,10 +894,26 @@ linkBaseExecutable()
   concatArgList(&ldoptions, "-L", &libdirs);    /* library directories */
 #endif
   appendArgList(&ldoptions, LIB_PL);		/* -lpl */
+#ifdef WIN32
   concatArgList(&ldoptions, "", &libs);		/* libraries */
+#else
+  concatArgList(&ldoptions, "-l", &libs);	/* libraries */
+#endif
+#ifdef WIN32
+  concatArgList(&ldoptions, "", &lastlibs);	/* libraries */
+#else
+  concatArgList(&ldoptions, "-l", &lastlibs);	/* libraries */
+#endif
 
   if ( !nostate )
-    appendArgList(&tmpfiles, ctmp);		/* register for deletion */
+  { appendArgList(&tmpfiles, ctmp);	/* register for deletion */
+#ifdef WIN32
+    {					/* schedule .exp file for deletion */
+      char buf[MAXPATHLEN];
+      appendArgList(&tmpfiles, replaceExtension(ctmp, "exp", buf));
+    }
+#endif
+  }
 
   callprog(ld, &ldoptions);
 }

@@ -157,6 +157,12 @@ blank_line([C|R]) -->
 
 get_line([]) -->
 	char(10), !.
+get_line([C|R]) -->
+	[0'_, 8, C], !,
+	get_line(R).
+get_line([C|R]) -->
+	[C, 8, 0'_], !,
+	get_line(R).
 get_line(L) -->
 	[8,_], !,
 	get_line(L).

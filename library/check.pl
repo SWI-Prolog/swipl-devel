@@ -42,9 +42,12 @@ list_undefined_ :-
 	\+ predicate_property(Module:Head, imported_from(_)), 
 	functor(Head, Functor, Arity), 
 	\+ $in_library(Functor, Arity),
+	\+ system_undefined(Module:Functor/Arity),
 	write_undefined(Module:Functor/Arity), 
 	fail.
 list_undefined_.
+
+system_undefined(user:prolog_trace_interception/4).
 
 write_undefined(user:Name/Arity) :- !, 
 	format('~w/~w~n', [Name, Arity]).

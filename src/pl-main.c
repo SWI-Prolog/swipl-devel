@@ -123,7 +123,7 @@ proposeStartupFile(char *symbols)
 { char state[MAXPATHLEN];
   char buf[MAXPATHLEN];
 
-  if ( !symbols && (symbols = Symbols()) )
+  if ( !symbols && (symbols = Symbols(state)) )
     symbols = DeRefLink(symbols, buf);
 
   if ( symbols )
@@ -308,7 +308,7 @@ startProlog(int argc, char **argv)
   if ( GD->dumped == FALSE )
   { char plp[MAXPATHLEN];
 
-    if ( (symbols = Symbols()) )
+    if ( (symbols = Symbols(plp)) )
       symbols = store_string(DeRefLink(symbols, plp));
 
     systemDefaults.arch        = ARCH;

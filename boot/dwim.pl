@@ -129,7 +129,7 @@ $find_predicate(Spec, List) :-
 		       functor(Head, Name, Arity)), List),
 	List \== [], !.
 $find_predicate(Spec, _) :-
-	$break($warning('No predicates for `~w''', [Spec])),
+	$warning('No predicates for `~w''', [Spec]),
 	fail.
 	
 find_predicate(Module, C, Name, Arity, VList) :-
@@ -270,7 +270,8 @@ dwim_predicate(Head, DWIM) :-
 dwim_predicate_list(Head, [Head]) :-
 	current_predicate(_, Head), !.
 dwim_predicate_list(Head, DWIMs) :-
-	setof(DWIM, $dwim_predicate(Head, DWIM), DWIMs), !.
+	context_module(C),
+	setof(DWIM, $dwim:dwim_pred(C:Head, DWIM), DWIMs), !.
 dwim_predicate_list(Head, DWIMs) :-
 	setof(DWIM, $similar_module(Head, DWIM), DWIMs), !.
 dwim_predicate_list(Head, DWIMs) :-
@@ -278,6 +279,11 @@ dwim_predicate_list(Head, DWIMs) :-
 	setof(Module:Goal, ( current_module(Module),
 			     current_predicate(_, Module:Goal)
 			   ), DWIMs).
+
+dwim_pred(Head, Dwim) :-
+	'$strip_module'(Head, Module, H),
+	default_module(Module, M),
+	'$dwim_predicate'(M:H, Dwim).
 
 $similar_module(Head, DwimModule:Goal) :-
 	$strip_module(Head, Module, Goal),

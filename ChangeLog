@@ -1,6 +1,22 @@
 
 			SWI-Prolog ChangeLog
 			====================
+VERSION 2.9.5
+=============
+
+  * FIXED: dwim_predicate to deal properly with default modules.
+
+  * FIXED online manual not to use overstrike by default.  See manual
+    for details.  XPCE requires patched prolog/lib/swi_help.pl to work
+    properly with this version.
+
+  * FIXED: plld for handling -l<lib> correctly in the Unix version, and
+    automatically deleting temporary .exp files in Win32.
+
+  * FIXED important fix returning address of local variable, found by
+    Jean Daniel Fekete.  Thanks.
+
+
 VERSION 2.9.4
 =============
 

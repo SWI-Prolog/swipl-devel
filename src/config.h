@@ -35,9 +35,9 @@
 /* If using the C implementation of alloca, define if you know the
    direction of stack growth for your system; otherwise it will be
    automatically deduced at run-time.
-	STACK_DIRECTION > 0 => grows toward higher addresses
-	STACK_DIRECTION < 0 => grows toward lower addresses
-	STACK_DIRECTION = 0 => direction of growth unknown
+ STACK_DIRECTION > 0 => grows toward higher addresses
+ STACK_DIRECTION < 0 => grows toward lower addresses
+ STACK_DIRECTION = 0 => direction of growth unknown
  */
 #define STACK_DIRECTION -1
 
@@ -61,7 +61,7 @@
 #define MMAP_STACK 1
 
 /* Define if maximum address we can map at */
-#define MMAP_MAX_ADDRESS 0x20000000L
+/* #undef MMAP_MAX_ADDRESS */
 
 /* Define if minimum address we can map and if > sbrk(0) */
 /* #undef MMAP_MIN_ADDRESS */
@@ -132,6 +132,9 @@
 /* Define if doubles cannot be aligned as longs */
 /* #undef DOUBLE_ALIGNMENT */
 
+/* Define top of heap.  See pl-setup.c */
+/* #undef TOPOFHEAP */
+
 /* Define if you have the access function.  */
 #define HAVE_ACCESS 1
 
@@ -140,6 +143,9 @@
 
 /* Define if you have the ceil function.  */
 #define HAVE_CEIL 1
+
+/* Define if you have the cfmakeraw function.  */
+#define HAVE_CFMAKERAW 1
 
 /* Define if you have the chmod function.  */
 #define HAVE_CHMOD 1
@@ -255,11 +261,17 @@
 /* Define if you have the sysconf function.  */
 #define HAVE_SYSCONF 1
 
+/* Define if you have the tcsetattr function.  */
+#define HAVE_TCSETATTR 1
+
 /* Define if you have the tgetent function.  */
 #define HAVE_TGETENT 1
 
 /* Define if you have the times function.  */
 #define HAVE_TIMES 1
+
+/* Define if you have the <bstring.h> header file.  */
+#define HAVE_BSTRING_H 1
 
 /* Define if you have the <dirent.h> header file.  */
 #define HAVE_DIRENT_H 1

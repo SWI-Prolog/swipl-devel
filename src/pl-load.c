@@ -23,17 +23,18 @@ structure status are filled properly.
 bool
 getSymbols(void)
 { char *symbols, *abs_symbols;
-  char tmp[MAXPATHLEN];
+  char tmp1[MAXPATHLEN];
+  char tmp2[MAXPATHLEN];
 
   if ( loaderstatus.symbolfile != NULL_ATOM )
     succeed;
   
-  if ( (symbols = Symbols()) == (char *)NULL )
+  if ( (symbols = Symbols(tmp1)) == (char *)NULL )
   { symbols = GD->cmdline.argv[0];
     Putf("[WARNING: Failed to find symbol table. Trying %s]\n", symbols);
   }
   DEBUG(2, Sdprintf("Symbol file = %s\n", symbols));
-  if ( !(abs_symbols = AbsoluteFile(symbols, tmp)) )
+  if ( !(abs_symbols = AbsoluteFile(symbols, tmp2)) )
     fail;
 
   loaderstatus.symbolfile = loaderstatus.orgsymbolfile

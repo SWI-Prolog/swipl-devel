@@ -218,5 +218,4 @@ extern void ResetTty(void);
 #define Wait(stat)	wait(stat)
 
 extern int System(char *command);
-extern char *Symbols(void);
 extern char *Which(const char *cmd, char *buf);
