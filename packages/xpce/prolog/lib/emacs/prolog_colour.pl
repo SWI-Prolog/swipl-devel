@@ -967,7 +967,7 @@ term_colours(:- pce_end_class(_),
 				     ]
 			]).
 term_colours(:- use_class_template(_),
-	     expanded - [ expanded - [ classify
+	     expanded - [ expanded - [ pce_new
 				     ]
 			]).
 term_colours((:- emacs_begin_mode(_,_,_,_,_)),
