@@ -370,6 +370,25 @@ read_sun_icon_file(IOSTREAM *fd, int *width, int *height)
 		 *          XPM SUPPORT		*
 		 *******************************/
 
+static void
+setXpmAttributesImage(Image image, XImage *shape, XpmAttributes *atts)
+{ if ( atts->valuemask & XpmHotspot )
+    assign(image, hot_spot, newObject(ClassPoint,
+				      toInt(atts->x_hotspot),
+				      toInt(atts->y_hotspot), 0));
+  else
+    assign(image, hot_spot, NIL);
+
+  if ( shape )
+  { assign(image, mask, newObject(ClassImage, NIL,
+				  toInt(shape->width),
+				  toInt(shape->height),
+				  NAME_bitmap, 0));
+    setXImageImage(image->mask, shape);
+  }
+}
+
+
 static XImage *
 readXpmFile(Image image, IOSTREAM *fd)
 { int offset = Stell(fd);
@@ -408,20 +427,7 @@ readXpmFile(Image image, IOSTREAM *fd)
 				    &i, &shape, atts) != XpmSuccess )
 	i = NULL;
 
-      if ( atts->valuemask & XpmHotspot )
-	assign(image, hot_spot, newObject(ClassPoint,
-					  toInt(atts->x_hotspot),
-					  toInt(atts->y_hotspot), 0));
-      else
-	assign(image, hot_spot, NIL);
-
-      if ( shape )
-      {	assign(image, mask, newObject(ClassImage, NIL,
-				      toInt(shape->width),
-				      toInt(shape->height),
-				      NAME_bitmap, 0));
-	setXImageImage(image->mask, shape);
-      }
+      setXpmAttributesImage(image, shape, atts);
     }
   }
 
@@ -456,7 +462,7 @@ readGIFFile(Image image, IOSTREAM *fd)
       if ( XpmCreateImageFromXpmImage(disp, &img, &i,
 				      &shape, atts) != XpmSuccess )
 	return NULL;
-
+      setXpmAttributesImage(image, shape, atts);
       XpmFreeXpmImage(&img);
 
       return i;
