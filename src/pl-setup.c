@@ -350,10 +350,8 @@ pl_signal_handler(int sig)
   }
 
   blockGC();
-
-  lTop = addPointer(lTop, sizeof(struct localFrame) + MAXARITY*sizeof(word));
-  fid = PL_open_foreign_frame();
   LD->current_signal = sig;
+  fid = PL_open_signal_foreign_frame();
 
   DEBUG(1, Sdprintf("Handling signal %d, pred = %p, handler = %p\n",
 		    sig, sh->predicate, sh->handler));
@@ -399,6 +397,7 @@ pl_signal_handler(int sig)
     { unblockGC();
       if ( gc_status.blocked )
 	Sdprintf("GC: blocked %d\n", gc_status.blocked);
+      PL_close_foreign_frame(fid);
       PL_throw(exception_term);		/* throw longjmp's */
       return;				/* make sure! */
     }

@@ -1608,6 +1608,8 @@ undo_while_saving_term(mark *m, Word term)
   uint n;
   Word *p;
 
+  SECURE(checkData(term));
+
   initBuffer(&info.code);
   initBuffer(&info.vars);
   info.size = 0;

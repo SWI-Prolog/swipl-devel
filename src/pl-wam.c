@@ -329,6 +329,32 @@ PL_open_foreign_frame()
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Open a foreign frame to handle a signal.  We must skip MAXARITY words to
+deal with the fact that the WAM write-mode   writes above the top of the
+stack.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+fid_t
+PL_open_signal_foreign_frame()
+{ GET_LD
+  FliFrame fr;
+
+  finish_foreign_frame(PASS_LD1);
+  lTop = addPointer(lTop, sizeof(struct localFrame) + MAXARITY*sizeof(word));
+  fr = (FliFrame) lTop;
+
+  requireStack(local, sizeof(struct fliFrame));
+  lTop = addPointer(lTop, sizeof(struct fliFrame));
+  fr->size = 0;
+  Mark(fr->mark);
+  fr->parent = fli_context;
+  fli_context = fr;
+
+  return consTermRef(fr);
+}
+
+
 void
 PL_close_foreign_frame(fid_t id)
 { GET_LD
