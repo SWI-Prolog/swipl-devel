@@ -267,6 +267,8 @@ xref_meta(phrase(G, _A),	[G+2]).
 xref_meta(phrase(G, _A, _R),	[G+2]).
 xref_meta(catch(A, _, B),	[A, B]).
 xref_meta(thread_create(A,_,_), [A]).
+xref_meta(predsort(A,_,_),	[A+3]).
+
 					% XPCE meta-predicates
 xref_meta(pce_global(_, new(_)), _) :- !, fail.
 xref_meta(pce_global(_, B),     [B+1]).
