@@ -2321,3 +2321,8 @@
   BUILTIN_NAME("yref")
   BUILTIN_NAME("yref_var")
   BUILTIN_NAME("zoom")
+  BUILTIN_NAME("base64_deocde")
+  BUILTIN_NAME("base64_encode")
+  BUILTIN_NAME("mime")
+  BUILTIN_NAME("base64_decode")
+  BUILTIN_NAME("split")

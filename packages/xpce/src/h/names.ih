@@ -2321,3 +2321,8 @@
 #define NAME_yref (&builtin_names[2320])
 #define NAME_yrefVar (&builtin_names[2321])
 #define NAME_zoom (&builtin_names[2322])
+#define NAME_base64Deocde (&builtin_names[2323])
+#define NAME_base64Encode (&builtin_names[2324])
+#define NAME_mime (&builtin_names[2325])
+#define NAME_base64Decode (&builtin_names[2326])
+#define NAME_split (&builtin_names[2327])
