@@ -2527,6 +2527,12 @@ s_print(String s, int x, int y, FontObj f)
 }
 
 
+void
+s_print_aligned(String s, int x, int y, FontObj f)
+{ s_print(s, x, y, f);			/* same on Win32: no {l,r}bearing */
+}					/* in font metrics */
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 str_text() is only called from str_label, using SetTextAlign() to use
 the baseline.

@@ -1,3 +1,6 @@
+VERSION 5.0.7-beta-5
+====================
+
 * FIXED: Update problem with (dis)appearing scrollbars of the content of a
   window depends on its size.
 
