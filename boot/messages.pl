@@ -268,8 +268,10 @@ user_predicate_indicator(Module:PI, PI) :-
 	hidden_module(Module), !.
 user_predicate_indicator(PI, PI).
 
-hidden_module(user).
-hidden_module(system).
+hidden_module(user) :- !.
+hidden_module(system) :- !.
+hidden_module(M) :-
+	sub_atom(M, 0, _, _, $).
 
 		 /*******************************
 		 *	        GC		*
