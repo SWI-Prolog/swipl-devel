@@ -2318,10 +2318,10 @@ PL_register_foreign(const char *name, int arity, Func f, int flags)
 }  
 
 
-bool
-PL_load_extensions(PL_extension *ext)
+void
+PL_load_extensions(const PL_extension *ext)
 { GET_LD
-  PL_extension *e;
+  const PL_extension *e;
   Module m;
 
   m = (environment_frame ? contextModule(environment_frame)
@@ -2360,8 +2360,6 @@ PL_load_extensions(PL_extension *ext)
 
     notify_registered_foreign(def->functor->functor, m);
   }    
-
-  succeed;
 }
 
 		 /*******************************
