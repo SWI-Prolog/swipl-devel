@@ -1,0 +1,60 @@
+ATOM STATISTICS
+===============
+
+Hash on OpenDir structure.pl:
+
+	1179841 atoms
+	34960276 bytes total.
+	29.7 bytes/atom
+
+Hash performance
+----------------
+
+bits	 records buckets longest
+
+32-bits: 1181834 727238	   93
+28-bits: 1181831 727236	   93
+24-bits: 1181830 727236	   93
+20-bits: 1181830 550262	   96
+16-bits: 1181830 65536	  125
+16-bits: 1181836 65513   1201		# (H xor (H>>16)) /\ 0xffff
+12-bits: 1181834 4096	 1141
+
+Using an atom-table
+-------------------
+
+DB size is 101664768: 86.2 bytes/atom.  Average overhead: 50 bytes/atom.
+This overhead is consistent with the other experiments.
+
+================================================================
+Estimated storage requirements for 1,8M RDF statements represented as
+
+	rdf(Subject, NS:Predicate) = Object
+
+Assuming avg. atom length of 30 bytes.
+
+	# Inlined-atoms, 4-byte codes
+	1.8M entries of 240 bytes (520M, measured = 560M)
+	
+	# Inlined-atoms, 1-byte codes
+	1.8M entries of 160 bytes (378M)
+
+	# Symbol-table and 1-bytes codes
+	1.8M statenents of 52 bytes (183M)
+	1.2M atoms of 34 bytes (108M, measured = 99M)
+	Total 290M.
+
+Performance:
+
+	# Inline storage is clearly faster (no lookup).
+
+	# Retrieval may be faster when using a retrieval cache mapping
+	  system identifiers to internal Prolog identifiers.
+
+================================================================
+Clause-cache Interface:
+
+int
+findClause(predicate_t p, int argc, term_t argv, void **context, int flags)
+
+

@@ -1,5 +1,7 @@
+Makefile
 Debug
 Release
 *.ncb
 *.opt
 *.plg
+*.tex

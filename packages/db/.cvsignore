@@ -1,0 +1,7 @@
+Makefile
+config.h
+config.log
+*.log
+*.aux
+*.tex
+*.db

@@ -1,0 +1,326 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog External Database</TITLE>
+</HEAD>
+<BODY BGCOLOR="white">
+<BLOCKQUOTE>
+<BLOCKQUOTE>
+<BLOCKQUOTE>
+<BLOCKQUOTE>
+<CENTER>
+
+<H1>SWI-Prolog External Database</H1>
+
+</CENTER>
+<HR>
+<CENTER>
+<I>Jan Wielemaker <BR>
+SWI, <BR>
+University of Amsterdam <BR>
+The Netherlands <BR>
+E-mail: <A HREF="mailto:jan@swi.psy.uva.nl">jan@swi.psy.uva.nl</A></I>
+</CENTER>
+<HR>
+</BLOCKQUOTE>
+</BLOCKQUOTE>
+</BLOCKQUOTE>
+</BLOCKQUOTE>
+<CENTER><H3>Abstract</H3></Center>
+<TABLE WIDTH="90%" ALIGN=center BORDER=2 BGCOLOR="#f0f0f0"><TR><TD>
+This package realised external storage of Prolog terms based on the <EM>Berkeley 
+DB</EM> library from <A HREF="http://www.sleepycat.com">Sleepycat 
+Software</A>. The DB library implements modular support for the bottom 
+layers of a database. The database itself maps unconstrained keys onto 
+values. Both key and value are <EM>binary blobs</EM>.
+
+<P>The SWI-Prolog interface for DB allows for fast storage of general 
+Prolog terms in the database.
+</TABLE>
+
+<H1><A NAME="document-contents">Table of Contents</A></H1>
+
+<UL>
+<LI><A HREF="#sec:1"><B>1 Introduction</B></A>
+<LI><A HREF="#sec:2"><B>2 The DB interface</B></A>
+<UL>
+<LI><A HREF="#sec:2.1">2.1 Opening a database</A>
+<LI><A HREF="#sec:2.2">2.2 Accessing a database</A>
+<LI><A HREF="#sec:2.3">2.3 Transactions</A>
+<LI><A HREF="#sec:2.4">2.4 Notes on signals and other interrupts</A>
+<LI><A HREF="#sec:2.5">2.5 Initialisation</A>
+</UL>
+<LI><A HREF="#sec:3"><B>3 Installation</B></A>
+<UL>
+<LI><A HREF="#sec:3.1">3.1 DB version</A>
+<LI><A HREF="#sec:3.2">3.2 Unix systems</A>
+</UL>
+</UL>
+
+<P>
+
+<H2><A NAME="sec:1">1 Introduction</A></H2>
+
+<P>The native Prolog database is not very well suited for either <EM>very</EM> 
+large data-sets or dynamically changing large data-sets that need to be 
+communicated between Prolog instances or need to be safely guarded 
+against system failure. These cases ask for an external database that 
+can be attached quickly and provides protection against system failure.
+
+<P>The Berkeley DB package by SleepyCat software is a GPL'ed library 
+realising the bottom-layers of a database. It is a modular system, which 
+in it's simplest deals with resource management on a mapped file and in 
+its most complex form deals with network transparency, transaction 
+management, locking, recovery, life-backup, etc.
+
+<P>The DB library maps keys to values. Optionally multiple values can be 
+associated with a key. Both key and value are arbitrary-length binary 
+objects.
+
+<P>This package stores arbitrary Prolog terms, using 
+PL_record_external() introduced in SWI-Prolog 3.3.7, in the database. It 
+provides an interface similar to the recorded-database (<A NAME="idx:recorda3:1"></A><B>recorda/3</B>). 
+In the future we plan to link this interface transparently to a 
+predicate.
+
+<H2><A NAME="sec:2">2 The DB interface</A></H2>
+
+<H3><A NAME="sec:2.1">2.1 Opening a database</A></H3>
+
+<DL>
+<DT><A NAME="db_open/4"><STRONG>db_open</STRONG>(<VAR>+File, +Mode, -DB, 
++Options</VAR>)</A><DD>
+Open a file holding a database. <VAR>Mode</VAR> is one of <CODE>read</CODE>, 
+providing read-only access or <CODE>update</CODE>, providing read/write 
+access. <VAR>Options</VAR> is a list of options. Currently supported 
+options are:
+
+<DL>
+<DT><STRONG>duplicates</STRONG>(<VAR>bool</VAR>)<DD>
+Do/do not allow for duplicate values on the same key. Default is not to 
+allow for duplicates.
+<DT><STRONG>database</STRONG>(<VAR>Name</VAR>)<DD>
+If <VAR>File</VAR> contains multiple databases, address the named 
+database in the file. A DB file can only consist of multiple databases 
+if the <A NAME="idx:dbopen4:2"></A><A HREF="#db_open/4">db_open/4</A> 
+call that created it specified this argument. Each database in the file 
+has its own characteristics.
+<DT><STRONG>key</STRONG>(<VAR>Type</VAR>)<DD>
+Specify the type of the key. Allowed values are:
+
+<DL>
+<DT><STRONG>term</STRONG><DD>
+Key is a Prolog term (default). This type allows for representing 
+arbitrary Prolog data in both keys and value. The representation is 
+space-efficient, but Prolog specific. See PL_record_external() in the 
+SWI-Prolog Reference Manual for details on the representation. The other 
+representations are more neutral. This implies they are more stable and 
+sharing the DB with other languages is feasible.
+<DT><STRONG>atom</STRONG><DD>
+Key is an atom. The text is represented using the character data and its 
+length.
+<DT><STRONG>c_string</STRONG><DD>
+Key is an atom. The text is represented as a C 0-terminated string.
+<DT><STRONG>c_long</STRONG><DD>
+Key is an integer. The value is represented as a native C long in the 
+machines byte-order.
+</DL>
+
+<DT><STRONG>value</STRONG>(<VAR>Type</VAR>)<DD>
+Specify the type of the value. See <CODE>key</CODE> for details.
+</DL>
+
+</DL>
+
+<H3><A NAME="sec:2.2">2.2 Accessing a database</A></H3>
+
+<DL>
+<DT><A NAME="db_put/3"><STRONG>db_put</STRONG>(<VAR>+DB, +Key, +Value</VAR>)</A><DD>
+Add a new key-value pair to the database. If the database allows for 
+duplicates this will always succeed, unless a system error occurs.
+<DT><A NAME="db_del/2"><STRONG>db_del</STRONG>(<VAR>+DB, +Key</VAR>)</A><DD>
+Delete all key-value pairs with the named <VAR>Key</VAR> from the 
+database. Note that this is equivalent to <CODE>db_delall(DB, Key, _)</CODE>.
+<DT><A NAME="db_del/3"><STRONG>db_del</STRONG>(<VAR>+DB, ?Key, ?Value</VAR>)</A><DD>
+Delete the first matching key-value pair from the database. If the 
+database allows for duplicates, this predicate is non-deterministic. The 
+enumeration performed by this predicate is the same as for
+<A NAME="idx:dbget3:3"></A><A HREF="#db_get/3">db_get/3</A>.
+<DT><A NAME="db_delall/3"><STRONG>db_delall</STRONG>(<VAR>+DB, +Key, 
+?Value</VAR>)</A><DD>
+Delete all matching key-value pairs from the database. With unbound key 
+this calls <A NAME="idx:dbdel2:4"></A><A HREF="#db_del/2">db_del/2</A>.
+<DT><A NAME="db_get/3"><STRONG>db_get</STRONG>(<VAR>+DB, ?Key, -Value</VAR>)</A><DD>
+Query the database. If the database allows for duplicates this predicate 
+is non-deterministic. If <VAR>Key</VAR> is unbound, all keys are 
+enumerated. This mode is especially useful to enumerating the entire 
+content of a database.
+<DT><A NAME="db_getall/3"><STRONG>db_getall</STRONG>(<VAR>+DB, +Key, 
+-Value</VAR>)</A><DD>
+Get all values associated with <VAR>Key</VAR>. Fails if the key does not 
+exist (as <A NAME="idx:bagof3:5"></A><B>bagof/3</B>).
+</DL>
+
+<H3><A NAME="sec:2.3">2.3 Transactions</A></H3>
+
+<A NAME="sec:transactions"></A>
+
+<P>Using the DB transaction protocol, security against system failure, 
+atomicy of multiple changes and accessing a database from multiple 
+writers is provided.
+
+<P>Accessing a DB under transactions from Prolog is very simple. First 
+of all, the option <CODE>transactions(true)</CODE> needs to be provided 
+to
+<A NAME="idx:dbinit1:6"></A><A HREF="#db_init/1">db_init/1</A> to 
+initialise the transaction subsystem. Next, the predicate
+<A NAME="idx:dbtransaction1:7"></A><A HREF="#db_transaction/1">db_transaction/1</A> 
+may be used to execute multiple updates inside a transaction.
+
+<DL>
+<DT><A NAME="db_transaction/1"><STRONG>db_transaction</STRONG>(<VAR>:Goal</VAR>)</A><DD>
+Start a transaction, execute <VAR>Goal</VAR> and terminate the 
+transaction.
+<B>Only</B> if <VAR>Goal</VAR> succeeds, the transaction is <EM>commited</EM>. 
+If <VAR>Goal</VAR> fails or raises an exception, the transaction is
+<EM>aborted</EM> and <A NAME="idx:dbtransaction1:8"></A><A HREF="#db_transaction/1">db_transaction/1</A> 
+either fails or rethrows the exception.
+
+<P>Of special interest is the exception
+<BLOCKQUOTE>
+<CODE>error(<CODE>package(db, deadlock)</CODE>, _)</CODE>
+</BLOCKQUOTE>
+
+<P>This exception indicates a <EM>deadlock</EM> was raised by one of the 
+DB predicates. Deadlocks may arise if multiple processes or threads 
+access the same keys in a different order. The DB infra-structure causes 
+one of the processes involved in the deadlock to abort its transaction. 
+This process may choose to restart the transaction.
+
+<P>For example, a DB application may define to realise transactions and 
+restart these automatically is a deadlock is raised:
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+{}(Goal) :-
+        catch(db_transaction(Goal), E, true),
+        (   var(E)
+        -&gt;  true
+        ;   E = error(package(db, deadlock), _)
+        -&gt;  { Goal }
+        ;   throw(E)
+        ).
+</PRE>
+</TABLE>
+
+<P>
+</DL>
+
+<H3><A NAME="sec:2.4">2.4 Notes on signals and other interrupts</A></H3>
+
+<P>The Berkeley DB routines are not signal-safe. Without precaution, 
+this implies it is not possible to interrupt Prolog programs using the 
+DB routines in a safe manner. To improve convinience, interrupt signals 
+are blocked during the execution of the DB calls. As <A NAME="idx:dbtransaction1:9"></A><A HREF="#db_transaction/1">db_transaction/1</A> 
+handles aborts gracefully, PrologDB applications can be interrupted and 
+aborted safely.
+
+<P>Signals other than <CODE>SIGINT</CODE> caught during the execution of 
+one of the DB interaction predicates may leave the DB in an inconsistent 
+state. Fatal signals thrown by other Prolog or foreign language 
+facilities are handled gracefully.
+
+<H3><A NAME="sec:2.5">2.5 Initialisation</A></H3>
+
+<DL>
+<DT><A NAME="db_init/1"><STRONG>db_init</STRONG>(<VAR>+Options</VAR>)</A><DD>
+Initialise the DB package. This must be done before the first call to <A NAME="idx:dbopen4:10"></A><A HREF="#db_open/4">db_open/4</A> 
+and at maximum once. If <A NAME="idx:dbopen4:11"></A><A HREF="#db_open/4">db_open/4</A> 
+is called without calling <A NAME="idx:dbinit1:12"></A><A HREF="#db_init/1">db_init/1</A>, 
+default initialisation is used, which is generally suitable for handling 
+small databases without support for advanced features.
+
+<P><VAR>Options</VAR> is a list of options. The currently supported are 
+listed below. For details, please refer to the DB manual.
+
+<DL>
+<DT><STRONG>home</STRONG>(<VAR>Home</VAR>)<DD>
+Specify the DB home directory, the directory holding the database files.
+<DT><STRONG>config</STRONG>(<VAR>+ListOfConfig</VAR>)<DD>
+Specify a list of configuration options, each option is of the form <CODE><VAR>Name</VAR>(Value)</CODE>.
+<DT><STRONG>mp_size</STRONG>(<VAR>+Integer</VAR>)<DD>
+Size of the memory-pool used for caching.
+<DT><STRONG>mp_mmapsize</STRONG>(<VAR>+Integer</VAR>)<DD>
+Maximum size of a DB file mapped entirely into memory.
+</DL>
+
+<DT><STRONG>create</STRONG>(<VAR>+Bool</VAR>)<DD>
+If <CODE>true</CODE>, create any underlying file as required. By 
+default, no new files are created. This option should be set for 
+prograns that create new databases.
+<DT><STRONG>logging</STRONG>(<VAR>+Bool</VAR>)<DD>
+Enable logging the DB modifications. Logging enables recovery of 
+databases in case of system failure. Normally it is used in combination 
+with transactions.
+<DT><STRONG>transactions</STRONG>(<VAR>+Bool</VAR>)<DD>
+Enable transactions, providing atomicy of changes and security. Implies <CODE>logging</CODE> 
+and <CODE>locking</CODE>. See
+<A HREF="#sec:transactions">section 2.3</A>.
+</DL>
+
+<H2><A NAME="sec:3">3 Installation</A></H2>
+
+<H3><A NAME="sec:3.1">3.1 DB version</A></H3>
+
+<P>This package was developed for DB version 3.1. The interface of DB 
+3.x is fundamentally different from previous releases and db4pl relies 
+on functionality provided by DB 3.x. Unfortunately many distributions of 
+DB are still based on DB 2.x. Please make sure to install DB 3.1 or 
+later before building db4pl.
+
+<H3><A NAME="sec:3.2">3.2 Unix systems</A></H3>
+
+<P>Installation on Unix system uses the commonly found <EM>configure</EM>,
+<EM>make</EM> and <EM>make install</EM> sequence. SWI-Prolog should be 
+installed before building this package. If SWI-Prolog is not installed 
+as <B>pl</B>, the environment variable <CODE>PL</CODE> must be set to 
+the name of the SWI-Prolog executable. Installation is now accomplished 
+using:
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+% ./configure
+% make
+% make install
+</PRE>
+</TABLE>
+
+<P>This installs the foreign libraries in <CODE>$PLBASE/lib/$PLARCH</CODE> 
+and the Prolog library files in <CODE>$PLBASE/library</CODE>, where
+<CODE>$PLBASE</CODE> refers to the SWI-Prolog `home-directory'.
+
+<P>Configure recognises the following options in addition to the default 
+GNU configure options.
+
+<DL>
+<DT><STRONG>--enable-mt</STRONG><DD>
+Enable thread-support for the multi-threaded version of SWI-Prolog. 
+Currently not supported.
+<DT><STRONG>--with-db=<VAR>DIR</VAR></STRONG><DD>
+Point to the installation-directory of DB 3.x for finding include files 
+and the DB libraries. For example:
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+./configure --with-db=/usr/local/BerkeleyDB.3.1
+</PRE>
+</TABLE>
+
+<P>
+</DL>
+
+</BODY></HTML>
