@@ -197,6 +197,8 @@ $make_alias(Chars, Alias) :-
 %	and -if possible- adjust the window title.
 
 set_associated_file :-
+	!.
+set_associated_file :-
 	$set_prolog_file_extension,
 	current_prolog_flag(associate, Ext),
 	current_prolog_flag(argv, Argv),
@@ -209,7 +211,10 @@ set_associated_file :-
 	working_directory(_, Dir),
 	set_prolog_flag(associated_file, File),
 	atom_concat('SWI-Prolog -- ', File, Title),
-	catch(user:window_title(_, Title), _, true).
+	(   '$c_current_predicate'(_, system:window_title(_, _))
+	->  system:window_title(_, Title)
+	;   true
+	).
 set_associated_file.
 
 
@@ -223,7 +228,7 @@ hkey('HKEY_CURRENT_USER/Software/SWI/Prolog').
 hkey('HKEY_LOCAL_MACHINE/Software/SWI/Prolog').
 
 $set_prolog_file_extension :-
-	current_predicate(_, win_registry_get_value(_,_,_)),
+	'$c_current_predicate'(_, system:win_registry_get_value(_,_,_)),
 	hkey(Key),
 	catch(win_registry_get_value(Key, fileExtension, Ext0),
 	      _, fail), !,
