@@ -4,6 +4,9 @@
 VERSION 4.0.10
 ==============
 
+  * FIXED: Prefer %HOMEDRIVE%\%HOMEPATH% over %USERPROFILE% for expanding
+    ~ on Windows.
+
   * FIXED: MT version: cleanup mutex after closing a stream.  Memory leak
     detected by Andrew V. Diatchkov.
 
