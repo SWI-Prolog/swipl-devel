@@ -7,8 +7,11 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
-VERSION 5.2.8 (Sep 12, 2003)
+VERSION 5.2.8 (Sep 13, 2003)
 ============================
+
+  * ENHANCED: more consistency tests and replaced some old-style
+    warnings with print_message/2 and exceptions in module handling.
 
   * FIXED: current_predicate(Name/Arity) with unbound Arity.  Dmitry.
 

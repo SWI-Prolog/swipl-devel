@@ -578,16 +578,21 @@ int
 declareModule(atom_t name, SourceFile sf)
 { GET_LD
   Module module;
+  term_t tmp, rdef = 0, rtail = 0;
 
   LOCK();
   module = _lookupModule(name);
 
   if ( module->file && module->file != sf)
-  { UNLOCK();
-    warning("module/2: module %s already loaded from file %s (abandoned)", 
-	    stringAtom(module->name), 
-	    stringAtom(module->file->name));
-    fail;
+  { term_t obj;
+    char msg[1024];
+    UNLOCK();
+
+    obj = PL_new_term_ref();
+    PL_put_atom(obj, name);
+    Ssprintf(msg, "Alread loaded from %s", stringAtom(module->file->name));
+    return PL_error("module", 2, msg, ERR_PERMISSION,
+		    ATOM_redefine, ATOM_module, obj);
   }
 	    
   module->file = sf;
@@ -596,13 +601,34 @@ declareModule(atom_t name, SourceFile sf)
   for_table(module->procedures, s,
 	    { Procedure proc = s->value;
 	      Definition def = proc->definition;
-	      if ( def->module == module &&
+	      if ( /*def->module == module &&*/
 		   !true(def, DYNAMIC|MULTIFILE|FOREIGN) )
+	      { if ( def->module == module && isDefinedProcedure(proc) )
+		{ if ( !rdef )
+		  { rdef = PL_new_term_ref();
+		    rtail = PL_copy_term_ref(rdef);
+		    tmp = PL_new_term_ref();
+		  }
+
+		  PL_unify_list(rtail, tmp, rtail);
+		  unify_definition(tmp, def, 0, GP_NAMEARITY);
+		}
 		abolishProcedure(proc, module);
+	      }
 	    })
   clearHTable(module->public);
   UNLOCK();
   
+  if ( rdef )
+  { PL_unify_nil(rtail);
+
+    printMessage(ATOM_warning,
+		 PL_FUNCTOR_CHARS, "declare_module", 2,
+		   PL_ATOM, name,
+		   PL_FUNCTOR_CHARS, "abolish", 1,
+		     PL_TERM, rdef);
+  }
+
   succeed;
 }
 

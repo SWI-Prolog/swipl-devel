@@ -278,6 +278,8 @@ prolog_message(illegal_autoload_index(Dir, Term)) -->
 	[ 'Illegal term in INDEX file of directory ~w: ~w'-[Dir, Term] ].
 prolog_message(redefined_procedure(Type, Proc)) -->
 	[ 'Redefined ~w procedure ~p'-[Type, Proc] ].
+prolog_message(declare_module(Module, abolish(Predicates))) -->
+	[ 'Loading module ~w abolished: ~p'-[Module, Predicates] ].
 prolog_message(discontiguous((-)/2)) -->
 	prolog_message(minus_in_identifier).
 prolog_message(discontiguous(Proc)) -->
