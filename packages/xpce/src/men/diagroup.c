@@ -545,7 +545,7 @@ eventDialogGroup(DialogGroup g, EventObj ev)
 
 
 static Button
-getDefaultButtonDialogGroup(DialogGroup g)
+getDefaultButtonDialogGroup(DialogGroup g, Bool delegate)
 { Device d;
   Cell cell;	
 
@@ -558,9 +558,11 @@ getDefaultButtonDialogGroup(DialogGroup g)
     }
   }
 
-  for(d= g->device; notNil(d); d = d->device)
-  { if ( hasGetMethodObject(d, NAME_defaultButton) )
-      answer(get(d, NAME_defaultButton, EAV));
+  if ( delegate != OFF )
+  { for(d= g->device; notNil(d); d = d->device)
+    { if ( hasGetMethodObject(d, NAME_defaultButton) )
+	answer(get(d, NAME_defaultButton, EAV));
+    }
   }
 
   fail;
@@ -595,13 +597,17 @@ restoreDialogGroup(DialogGroup g)
 
 static status
 modifiedItemDialogGroup(DialogGroup g, Graphical gr, Bool m)
-{ Button b;
+{ if ( m == ON )
+  { Button b;
 
-  if ( m == ON )
-  { if ( (b = get(g, NAME_defaultButton, EAV)) )
-      return send(b, NAME_active, ON, EAV);
+    if ( (b = get(g, NAME_defaultButton, OFF, EAV)) )
+    { send(b, NAME_active, ON, EAV);
+      if ( send(b, NAME_isApply, EAV) )
+	succeed;
+    }
+
     if ( notNil(g->device) )
-      return send(g->device, NAME_modifiedItem, g, ON, EAV); /* or gr? */
+      return send(g->device, NAME_modifiedItem, gr, ON, EAV);
   }
 
   fail;
@@ -734,7 +740,8 @@ static getdecl get_diagroup[] =
      NAME_area, "Top-side of tab"),
   GM(NAME_labelName, 1, "name", "name", getLabelNameDialogGroup,
      NAME_label, "Determine default-label from the name"),
-  GM(NAME_defaultButton, 0, "button", NULL, getDefaultButtonDialogGroup,
+  GM(NAME_defaultButton, 1, "button", "delegate=[bool]",
+     getDefaultButtonDialogGroup,
      NAME_accelerator, "Current Button connected to `RET'")
 };
 

@@ -107,6 +107,7 @@ label(B, Label:bar_label) :<-
 
 center_base(BS, Base:point) :<-
 	"Return the location of the center of the base"::
+	send(BS, compute),
 	(   get(BS, orientation, horizontal)
 	->  get(BS, center_y, Y),
 	    get(BS, x, X)
@@ -215,12 +216,14 @@ compute(B) :->
 	(   plotter(B, Plotter)
 	->  get(B, value, Value),
 	    (   get(B, orientation, vertical)
-	    ->	get(Plotter, translate_y, Value, YVal),
-		get(Plotter, translate_y, 0, YVal0),
+	    ->	get(Plotter, member, y, Axis),
+	        get(Axis, location, Value, YVal),
+		get(Axis, location, Axis?low, YVal0),
 		H is YVal - YVal0,
 		send(B, height, H)
-	    ;	get(Plotter, translate_x, Value, XVal),
-		get(Plotter, translate_x, 0, X0),
+	    ;	get(Plotter, member, xm, Axis),
+		get(Axis, location, Value, XVal),
+		get(Axis, location, Axis?low, X0),
 		W is XVal - X0,
 		send(B, width, W)
 	    ),
@@ -229,7 +232,6 @@ compute(B) :->
 	;   true
 	).
 	
-
 
 :- free(@bar_recogniser).
 :- pce_global(@bar_recogniser, new(bar_drag_gesture)).
