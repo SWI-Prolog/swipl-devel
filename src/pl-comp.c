@@ -3559,7 +3559,7 @@ pl_clause_term_position(term_t ref, term_t pc, term_t locterm)
       }					/* closes the special constructs */
       case I_CONTEXT:			/* used to compile m:head :- body */
 	PC += ci->arguments;
-	add_node(tail, 1);
+	add_node(tail, 2);
         continue;
       case I_CALL:
       case I_DEPART:

@@ -204,7 +204,7 @@ unify_clause((Head :- Read),
 	TermPos1 = term_position(TA,TZ,FA,FZ,[PH,PB]),
 	TermPos  = term_position(TA,TZ,FA,FZ,
 				 [ PH,
-				   term_position(0,0,0,0,[PB])
+				   term_position(0,0,0,0,[0-0,PB])
 				 ]).
 					% general term-expansion
 unify_clause(Read, Compiled1, TermPos0, TermPos) :-
@@ -348,13 +348,21 @@ pce_unify_head_arg(A:_, A).
 %	on an isolated method.
 %
 %	TermPos0 is the term-position term of the whole clause!
+%	
+%	Further, please note that the body of the method-clauses reside
+%	in another module than pce_principal, and therefore the body
+%	starts with an I_CONTEXT call. This implies we need a
+%	hypothetical term-position for the module-qualifier.
 
 pce_method_body(::(_,A0), A, TermPos0, TermPos) :- !,
 	TermPos0 = term_position(F, T, FF, FT,
 				 [ HeadPos,
 				   term_position(_,_,_,_, [_,BodyPos0])
 				 ]),
-	TermPos = term_position(F, T, FF, FT, [HeadPos, BodyPos]),
+	TermPos  = term_position(F, T, FF, FT,
+				 [ HeadPos,
+				   term_position(0,0,0,0, [0-0,BodyPos])
+				 ]),
 	expand_goal(A0, A, BodyPos0, BodyPos).
 pce_method_body(A0, A, TermPos0, TermPos) :-
 	TermPos0 = term_position(F, T, FF, FT,
@@ -363,7 +371,7 @@ pce_method_body(A0, A, TermPos0, TermPos) :-
 				 ]),
 	TermPos  = term_position(F, T, FF, FT,
 				 [ HeadPos,
-				   BodyPos
+				   term_position(0,0,0,0, [0-0,BodyPos])
 				 ]),
 	expand_goal(A0, A, BodyPos0, BodyPos).
 

@@ -109,9 +109,9 @@ get_tracer(Term, Result) :-
 	prolog_tracer(Ref),
 	get(Ref, Term, Result).
 
-user:prolog_event_hook(Term) :-
-	debug('prolog_event_hook(~w).~n', [Term]),
-	fail.
+%user:prolog_event_hook(Term) :-
+%	debug('prolog_event_hook(~w).~n', [Term]),
+%	fail.
 user:prolog_event_hook(frame_finished(Frame)) :-
 	gui(_, Gui),
 	send(Gui, frame_finished, Frame),
