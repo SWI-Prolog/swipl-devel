@@ -40,7 +40,7 @@ NOTE: Should also include colour attribute
 	   ]).
 
 :- pce_autoload(font_item,  library(pce_font_item)).
-:- pce_autoload(image_item, library('dialog/image_item')).
+:- pce_autoload(image_item, library(pce_image_item)).
 :- pce_autoload(tick_box,   library(pce_tick_box)).
 
 style_attribute(highlight).
@@ -95,7 +95,7 @@ font(SI, Font:[font]) :->
 	get(SI, member, has_font, Box),
 	get(SI, member, font, FontItem),
 	(   Font == @default
-	->  send(Box, selection, @nil),
+	->  send(Box, selection, @off),
 	    send(FontItem, active, @off)
 	;   send(Box, selection, has_font),
 	    send(FontItem, active, @on),
@@ -113,7 +113,7 @@ icon(SI, Icon:image*) :->
 	get(SI, member, has_icon, Box),
 	get(SI, member, icon, ImageItem),
 	(   Icon == @nil
-	->  send(Box, selection, @nil),
+	->  send(Box, selection, @off),
 	    send(ImageItem, active, @off)
 	;   send(Box, selection, has_icon),
 	    send(ImageItem, active, @on),

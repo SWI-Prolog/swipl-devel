@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: library(pce_style_item). Ferreira Maurizio.
+
 * ADDED: <->gap to graphical_browser (library(pce_graphical_browser)).
 
 * FIXED: Placing of window objects in tables (class table).
