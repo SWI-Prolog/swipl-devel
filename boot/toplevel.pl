@@ -27,7 +27,7 @@
 $welcome :-
 	$version(Version),
 	$ttyformat('Welcome to SWI-Prolog (Version ~w)~n', [Version]),
-	$ttyformat('Copyright (c) 1992, University of Amsterdam.  '),
+	$ttyformat('Copyright (c) 1993, University of Amsterdam.  '),
 	$ttyformat('All rights reserved.~n~n').
 
 $load_init_file(none) :- !.
