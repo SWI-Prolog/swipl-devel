@@ -213,7 +213,10 @@ mkrcname(M, Name, RcName) :-
 	concat_atom([M, :, Name], RcName).
 
 save_resource(RC, Name, Class, FileSpec) :-
-	absolute_file_name(FileSpec, [access(read)], File), !,
+	absolute_file_name(FileSpec,
+			   [ access(read),
+			     file_errors(fail)
+			   ], File), !,
 	feedback('~t~8|~w~t~32|~w~t~48|~w~n',
 		 [Name, Class, File]),
 	$rc_append_file(RC, Name, Class, none, File).
@@ -221,7 +224,10 @@ save_resource(RC, Name, Class, _) :-
 	$rc_handle(SystemRC),
 	copy_resource(SystemRC, RC, Name, Class), !.
 save_resource(_, Name, Class, FileSpec) :-
-	print_message(error, no_resource(Name, Class, FileSpec)).
+	print_message(warning,
+		      error(existence_error(resource,
+					    resource(Name, Class, FileSpec)),
+			    _)).
 
 copy_resources(ToRC) :-
 	$rc_handle(FromRC),

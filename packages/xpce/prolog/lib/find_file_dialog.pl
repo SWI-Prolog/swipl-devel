@@ -33,6 +33,19 @@
 :- module(find_file_dialog, []).
 :- use_module(library(pce)).
 :- use_module(library(file_item)).
+:- require([ ignore/1
+	   , access_file/2
+	   , chain_list/2
+	   , concat_atom/2
+	   , send_list/2
+	   , catch/3
+	   , concat_atom/3
+	   , default/3
+	   , file_name_extension/3
+	   , maplist/3
+	   , send_list/3
+	   , sub_atom/5
+	   ]).
 
 :- multifile
 	pce_finder:file_type/2.
