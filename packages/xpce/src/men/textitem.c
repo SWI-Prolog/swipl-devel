@@ -156,7 +156,12 @@ RedrawAreaTextItem(TextItem ti, Area a)
     }
   }
 
-  repaintText(vt, tx, ty, tw, th);
+  if ( notDefault(vt->colour) )
+  { Any old = r_colour(vt->colour);
+    repaintText(vt, tx, ty, tw, th);
+    r_colour(old);
+  } else
+    repaintText(vt, tx, ty, tw, th);
 
   return RedrawAreaGraphical(ti, a);
 }
