@@ -26,7 +26,7 @@ LIB=$(LIB);E:\jan\lib
 # Configuration selection
 
 CFG=dev
-DBG=true
+DBG=false
 
 !IF "$(CFG)" == "rt"
 CMFLAGS=/DO_RUNTIME
