@@ -934,7 +934,7 @@ get_object_from_refterm(Term t, PceObject *obj)
 
   _PL_get_arg(1, t, a);
 
-  if ( GetInteger(a, &r) )
+  if ( PL_get_long(a, &r) )
   { if ( (o = cToPceReference(r)) )
     { *obj = o;
 
@@ -1208,7 +1208,10 @@ get_typed_object(PceGoal g, term_t t, PceType type, PceObject* rval)
       obj = atomToName(val.a);
       break;
     case PL_INTEGER:
-      obj = cToPceInteger(val.i);
+      if ( val.i >= PCE_MIN_INT && val.i <= PCE_MAX_INT )
+	obj = cToPceInteger(val.i);
+      else
+	obj = cToPceReal((double)val.i);
       break;
     case PL_FLOAT:
       obj = cToPceReal(val.f);
@@ -1806,7 +1809,7 @@ put_prolog_argument(PceGoal g, Term t, PceType type, Term f)
       break;
     case PL_INTEGER:
       if ( pceCheckIntType(type, val.i) )
-      { PutInteger(t, val.i);
+      { PL_put_int64(t, val.i);
 	return TRUE;
       }
       break;

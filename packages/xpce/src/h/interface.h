@@ -69,7 +69,7 @@ typedef void *		PceClass;	/* PCE's view of a class */
 typedef void *		PceHostData;	/* PCE's view of a host data handle */
 
 #define INT_MASK_SHIFT	1
-#define PCE_MAX_INT	((long)((1L<<(sizeof(Any)*8 - INT_MASK_SHIFT-1))-1))
+#define PCE_MAX_INT	((long)((1L<<(sizeof(void*)*8 - INT_MASK_SHIFT-1))-1))
 #define PCE_MIN_INT	(-(PCE_MAX_INT-1))
 
 typedef long		AnswerMark;	/* Mark on AnswerStack */

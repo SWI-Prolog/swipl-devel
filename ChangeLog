@@ -7,8 +7,20 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
-  * ENHANCED: Ongoing work to support 64 bit integer arithmetic on 32
-    bit machines.
+  * ENHANCED: Change Prolog integers to be 64-bit on all platforms.  Also
+    some critial sizes have been changed to 64-bit.  Consequences:
+
+	* Foreign code using IOSTREAM (SWI-Stream.h) must be recompiled
+          (i.e. source but no binary compatibility).
+	* Code using PL_get_int() or PL_get_long() must be aware these
+   	  can return FALSE, even if the value is a Prolog integer.  The
+  	  new API PL_get_int64() can be used to extract 64-bit values on
+  	  32 bit hardware.  On 64-bit hardware these functions are the
+  	  same.
+	* Code using PL_get_term_value() must be aware that integers
+   	  are returned as int64_t.  Such code must be recompiled.  In
+  	  addition the application should decide how to handle values
+  	  outside the domain of a C long.
 
 VERSION 5.5.5 (Februari 01, 2005)
 =================================
@@ -849,7 +861,7 @@ VERSION 5.2.6 (Aug 15, 2003)
 
   * FIXED: pl -q -t true printed a single newline.  Eric Goldlust.
 
-  * FIXED: Ignore -x in pl -- -x foo.  With patch from Salvador "Fandi�o.
+  * FIXED: Ignore -x in pl -- -x foo.  With patch from Salvador "Fandio.
 
   * FIXED: Memory management issues in the multi-threaded version.  Thanks to
     Sergey Tikhonov for his analysis.

@@ -135,7 +135,7 @@ typedef foreign_t	(*pl_function_t)(); /* foreign language functions */
 
 					/* values for PL_get_term_value() */
 typedef union
-{ long   i;				/* PL_INTEGER */
+{ int64_t i;				/* PL_INTEGER */
   double f;				/* PL_FLOAT */
   char * s;				/* PL_STRING */
   atom_t a;				/* PL_ATOM */
