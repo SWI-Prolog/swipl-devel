@@ -32,7 +32,9 @@
 #endif
 
 static char *	getString(IOSTREAM *, unsigned *len);
-static int64_t	getNum(IOSTREAM *);
+static int64_t	getInt64(IOSTREAM *);
+static long	getLong(IOSTREAM *);
+static int	getInt(IOSTREAM *);
 static real	getReal(IOSTREAM *);
 static bool	loadWicFd(IOSTREAM *);
 static bool	loadPredicate(IOSTREAM *, int skip ARG_LD);
@@ -315,7 +317,7 @@ static int  getstr_buffer_size = 0;
 static char *
 getString(IOSTREAM *fd, unsigned *length)
 { char *s;
-  int len = getNum(fd);
+  int len = getInt(fd);
   int i;
 
   if ( getstr_buffer_size < len+1 )
@@ -354,7 +356,7 @@ static atom_t
 getAtom(IOSTREAM *fd ARG_LD)
 { char buf[1024];
   char *tmp, *s;
-  int len = getNum(fd);
+  int len = getInt(fd);
   int i;
   atom_t a;
 
@@ -397,7 +399,7 @@ getMagicString(IOSTREAM *fd, char *buf, int maxlen)
 
 
 static int64_t
-getNum(IOSTREAM *fd)
+getInt64(IOSTREAM *fd)
 { int64_t first = Getc(fd);
   int bytes, shift, b;
 
@@ -405,7 +407,7 @@ getNum(IOSTREAM *fd)
   { first <<= (LONGBITSIZE-6);
     first >>= (LONGBITSIZE-6);
 
-    DEBUG(4, Sdprintf("getNum() --> %ld\n", first));
+    DEBUG(4, Sdprintf("getInt64() --> %lld\n", first));
     return first;
   }
 
@@ -422,8 +424,8 @@ getNum(IOSTREAM *fd)
   } else
   { int m;
 
-    bytes = first;
-    first = 0L;
+    bytes = (int)first;
+    first = (int64_t)0;
 
     for(m=0; m<bytes; m++)
     { first <<= 8;
@@ -435,8 +437,24 @@ getNum(IOSTREAM *fd)
   first <<= shift;
   first >>= shift;
   
-  DEBUG(4, Sdprintf("getNum() --> %ld\n", first));
+  DEBUG(4, Sdprintf("getInt64() --> %lld\n", first));
   return first;
+}
+
+
+static long
+getLong(IOSTREAM *fd)
+{ int64_t val = getInt64(fd);
+
+  return (long)val;
+}
+
+
+static int
+getInt(IOSTREAM *fd)
+{ int64_t val = getInt64(fd);
+
+  return (int)val;
 }
 
 
@@ -468,8 +486,8 @@ getReal(IOSTREAM *fd)
 }
 
 
-unsigned long
-getLong(IOSTREAM *s)
+word
+getWord(IOSTREAM *s)
 { unsigned long v;
 
   v  = (Sgetc(s) & 0xff) << 24;
@@ -495,7 +513,7 @@ loadXRc(int c, IOSTREAM *fd ARG_LD)
 
   switch( c )
   { case XR_REF:
-    { long xr  = getNum(fd);
+    { long xr  = getLong(fd);
       word val = lookupXrId(xr);
 
       return val;
@@ -512,7 +530,7 @@ loadXRc(int c, IOSTREAM *fd ARG_LD)
 
       id = ++loadedXRTableId;
       name = loadXR(fd);
-      arity = getNum(fd);
+      arity = getInt(fd);
       xr = (word) lookupFunctorDef(name, arity);
       DEBUG(3, Sdprintf("XR(%d) = %s/%d\n", id, stringAtom(name), arity));
       break;
@@ -537,7 +555,7 @@ loadXRc(int c, IOSTREAM *fd ARG_LD)
       break;
     }
     case XR_INT:
-      return makeNum(getNum(fd));
+      return makeNum(getInt64(fd));
     case XR_FLOAT:
       return globalReal(getReal(fd));
 #if O_STRING
@@ -559,7 +577,7 @@ loadXRc(int c, IOSTREAM *fd ARG_LD)
       { case 'u':
 	case 's':
 	{ atom_t name   = loadXR(fd);
-	  word   time   = getNum(fd);
+	  word   time   = getLong(fd);
 	  const char *s = stringAtom(name);
 	  SourceFile sf = lookupSourceFile(qlfFixSourcePath(s));
 
@@ -598,7 +616,7 @@ do_load_qlf_term(IOSTREAM *fd, term_t vars[], term_t term ARG_LD)
 { int c = Qgetc(fd);
 
   if ( c == 'v' )
-  { int id = getNum(fd);
+  { int id = getInt(fd);
     
     if ( vars[id] )
       PL_unify(term, vars[id]);
@@ -630,7 +648,7 @@ loadQlfTerm(term_t term, IOSTREAM *fd ARG_LD)
 
   DEBUG(3, Sdprintf("Loading from %d ...", Stell(fd)));
 
-  if ( (nvars = getNum(fd)) )
+  if ( (nvars = getInt(fd)) )
   { term_t *v;
     int n;
 
@@ -698,12 +716,12 @@ loadWicFd(IOSTREAM *fd)
   if ( !s || !streq(s, saveMagic) )
     return fatalError("Not a SWI-Prolog saved state");
 
-  if ( (saved_version=getNum(fd)) < LOADVERSION )
+  if ( (saved_version=getInt(fd)) < LOADVERSION )
   { fatalError("Saved state has incompatible save version");
     fail;
   }
 
-  saved_wsize = getNum(fd);
+  saved_wsize = getInt(fd);
   if ( saved_wsize != sizeof(word)*8 )
   { fatalError("Saved state has incompatible (%d) word-length", saved_wsize);
     fail;
@@ -764,7 +782,7 @@ loadStatement(int c, IOSTREAM *fd, int skip ARG_LD)
       int     oln = source_line_no;
 
       source_file_name = (currentSource ? currentSource->name : NULL_ATOM);
-      source_line_no   = getNum(fd);
+      source_line_no   = getInt(fd);
       
       loadQlfTerm(goal, fd PASS_LD);
       DEBUG(2, Sdprintf("%s:%d: Directive: ",
@@ -808,7 +826,7 @@ loadPredicateFlags(Definition def, IOSTREAM *fd, int skip ARG_LD)
   { if ( !skip && SYSTEM_MODE )
       set(def, SYSTEM|HIDE_CHILDS|LOCKED);
   } else
-  { int	flags = getNum(fd);
+  { int	flags = getInt(fd);
 
     if ( !skip )
     { unsigned long lflags = 0L;
@@ -847,7 +865,7 @@ loadPredicate(IOSTREAM *fd, int skip ARG_LD)
   for(;;)
   { switch(Getc(fd) )
     { case 'X':
-      { unsigned long pattern = getNum(fd);
+      { unsigned long pattern = getLong(fd);
 
 	if ( (def->indexPattern & ~NEED_REINDEX) != pattern )
 	{ if ( def->references == 0 && !def->hash_info )
@@ -861,12 +879,12 @@ loadPredicate(IOSTREAM *fd, int skip ARG_LD)
       }
       case 'C':
       { Code bp, ep;
-	int ncodes = getNum(fd);
+	int ncodes = getInt(fd);
 
 	DEBUG(3, Sdprintf("."));
 	clause = (Clause) allocHeap(sizeofClause(ncodes));
 	clause->code_size = (unsigned short) ncodes;
-	clause->line_no = (unsigned short) getNum(fd);
+	clause->line_no = (unsigned short) getInt(fd);
 	if ( load_state->saved_version < 32 )
 	  clause->source_no = (currentSource ? currentSource->index : 0);
 	else
@@ -880,12 +898,12 @@ loadPredicate(IOSTREAM *fd, int skip ARG_LD)
 	  }
 	}
 	clearFlags(clause);
-	clause->prolog_vars = (unsigned short) getNum(fd);
-	clause->variables   = (unsigned short) getNum(fd);
+	clause->prolog_vars = (unsigned short) getInt(fd);
+	clause->variables   = (unsigned short) getInt(fd);
 #ifdef O_SHIFT_STACKS
 	clause->marks = clause->variables - clause->prolog_vars;
 #endif
-	if ( getNum(fd) == 0 )		/* 0: fact */
+	if ( getLong(fd) == 0 )		/* 0: fact */
 	  set(clause, UNIT_CLAUSE);
 	clause->procedure = proc;
 	GD->statistics.codes += clause->code_size;
@@ -894,7 +912,7 @@ loadPredicate(IOSTREAM *fd, int skip ARG_LD)
 	ep = bp + clause->code_size;
 
 	while( bp < ep )
-	{ code op = getNum(fd);
+	{ code op = getInt(fd);
 	  int n = 0;
 	  int narg = codeTable[op].arguments;
 	  
@@ -920,11 +938,11 @@ loadPredicate(IOSTREAM *fd, int skip ARG_LD)
 	      n++;
 	      break;
 	    case CA1_INTEGER:
-	      *bp++ = getNum(fd);
+	      *bp++ = getLong(fd);
 	      n++;
 	      break;
 	    case CA1_INT64:
-	    { int64_t val = getNum(fd);
+	    { int64_t val = getInt64(fd);
 	      Word p = (Word)&val;
 	      
 	      cpInt64Data(bp, p);
@@ -943,7 +961,7 @@ loadPredicate(IOSTREAM *fd, int skip ARG_LD)
 	      break;
 	    }
 	    case CA1_STRING:		/* <n> chars */
-	    { int l = getNum(fd);
+	    { int l = getInt(fd);
 	      int lw = (l+sizeof(word))/sizeof(word);
 	      int pad = (lw*sizeof(word) - l);
 	      char *s = (char *)&bp[1];
@@ -959,7 +977,7 @@ loadPredicate(IOSTREAM *fd, int skip ARG_LD)
 	    }
 	  }
 	  for( ; n < narg; n++ )
-	    *bp++ = getNum(fd);
+	    *bp++ = getInt(fd);
 	}
 
 	if ( skip )
@@ -1016,7 +1034,7 @@ qlfFixSourcePath(const char *raw)
 static bool
 qlfLoadSource(IOSTREAM *fd)
 { char *str = getString(fd, NULL);
-  long time = getNum(fd);
+  long time = getLong(fd);
   int issys = (Qgetc(fd) == 's') ? TRUE : FALSE;
   atom_t fname;
 
@@ -1234,22 +1252,22 @@ putNum(int64_t n, IOSTREAM *fd)
 
   if ( n != PLMININT )
   { if ( absn < (1L << 5) )
-    { Sputc((n & 0x3f), fd);
+    { Sputc((int)(n & 0x3f), fd);
       return;
     } else if ( absn < (1L << 13) )
-    { Sputc((((n >> 8) & 0x3f) | (1 << 6)), fd);
-      Sputc((n & 0xff), fd);
+    { Sputc((int)(((n >> 8) & 0x3f) | (1 << 6)), fd);
+      Sputc((int)(n & 0xff), fd);
       return;
     } else if ( absn < (1L << 21) )
-    { Sputc((((n >> 16) & 0x3f) | (2 << 6)), fd);
-      Sputc(((n >> 8) & 0xff), fd);
-      Sputc((n & 0xff), fd);
+    { Sputc((int)(((n >> 16) & 0x3f) | (2 << 6)), fd);
+      Sputc((int)((n >> 8) & 0xff), fd);
+      Sputc((int)(n & 0xff), fd);
       return;
     }
   }
 
   for(m = sizeof(n); ; m--)
-  { int b = (absn >> (((m-1)*8)-1)) & 0x1ff;
+  { int b = (int)(absn >> (((m-1)*8)-1)) & 0x1ff;
 
     if ( b == 0 )
       continue;
@@ -1259,7 +1277,7 @@ putNum(int64_t n, IOSTREAM *fd)
   Sputc(m | (3 << 6), fd);
 
   for( ; m > 0; m--)
-  { int b = (n >> ((m-1)*8)) & 0xff;
+  { int b = (int)(n >> ((m-1)*8)) & 0xff;
     
     Sputc(b, fd);
   }
@@ -1841,19 +1859,19 @@ qlfInfo(const char *file,
   }
   TRY(PL_unify_integer(version, lversion));
 
-  saved_wsize = getNum(s);		/* word-size of file */
+  saved_wsize = getInt(s);		/* word-size of file */
   TRY(PL_unify_integer(wsize, saved_wsize));
 
   pushPathTranslation(s, file, 0);
 
   if ( Sseek(s, -4, SIO_SEEK_END) < 0 )	/* 4 bytes of putLong() */
     return warning("qlf_info/4: seek failed: %s", OsError());
-  nqlf = getLong(s);
+  nqlf = getWord(s);
   DEBUG(1, Sdprintf("Found %d sources at", nqlf));
   qlfstart = (long *)allocHeap(sizeof(long) * nqlf);
   Sseek(s, -4 * (nqlf+1), SIO_SEEK_END);
   for(i=0; i<nqlf; i++)
-  { qlfstart[i] = getLong(s);
+  { qlfstart[i] = getWord(s);
     DEBUG(1, Sdprintf(" %d", qlfstart[i]));
   }
   DEBUG(1, Sdprintf("\n"));
@@ -1953,7 +1971,7 @@ qlfVersion(IOSTREAM *s)
     return warning("%s: not a SWI-Prolog .qlf file", wicFile);
   }
 
-  return getNum(s);
+  return getInt(s);
 }
 
 
@@ -2045,7 +2063,7 @@ qlfLoad(char *file, Module *module ARG_LD)
 	      wicFile, lversion, VERSION);
     fail;
   }
-  saved_wsize = getNum(fd);
+  saved_wsize = getInt(fd);
   if ( saved_wsize != sizeof(word)*8 )
   { warning("QLF file %s has incompatible (%d) word-length",
 	    file, saved_wsize);
