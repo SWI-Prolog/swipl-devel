@@ -11,39 +11,33 @@
 */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This file may  be make screendumps  of applications with  one or  more
-popup menu's on  it.  To include a  popup in the screendump,  activate
-the popup  as  normal.  If  the  control-key is  depressed  while  the
-mouse-button is released  the popup menu  will not disappear  from the
-screen.
-
-After making the  screendump the popup may be  removed by  clicking it
-with the same mouse-button as the one that opened it,
-
-This file may be used together with PceDraw's `Import Frame' option to
-created annotated screendumps.
+After this file is loaded, pressing ALT-ESC releases event focussing. It
+may be used for debugging purposes  as   well  as for making screendumps
+holding popup-windows: load this file, open   the requested popups using
+`clicking' so they remain open and then   hit  ALT-ESC to keep the popup
+open while releasing the pointer and keyboard.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-:- module(stayup_popup, []).
+:- module(stayup_popup,
+	  [ install_unfocus_hook/0
+	  ]).
 :- use_module(library(pce)).
 
-:- pce_extend_class(popup).
+install_unfocus_hook :-
+	send(@display, inspect_handler,
+	     handler(65563,		% ALT-ESC
+		     message(@prolog, unfocus))).
 
-close(P) :->
-	"No-op if control- is depressed"::
-	(   send(@event, has_modifier, c)
-	->  true
-	;   (   get(P, slot, pullright, PR), PR \== @nil
-	    ->  send(PR, close),
-	        send(P, slot, pullright, @nil)
-	    ;   true
-	    ),
-	    (   get(P, device, Dev), Dev \== @nil
-	    ->  send(Dev, show, @off),
-	        send(Dev, sensitive, @off),
-		send(Dev, clear)
-	    )
-	).
+unfocus :-
+	format('Destroying XPCE focus~n'),
+	get(@event, window, W),
+	format('Releasing ~p~n', [W]),
+	send(W, focus, @nil),
+	send(W, grab_pointer, @off),
+	send(W, grab_keyboard, @off).
 
-:- pce_end_class.
-	
+:- initialization(install_unfocus_hook).
+
+
+
+
