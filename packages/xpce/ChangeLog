@@ -1,6 +1,16 @@
 			   XPCE ChangeLog
 			   ==============
 
+* PORT: MacOS X.  Changed:
+	- Fixed xpm header detection if not in default path
+	- Added __unix__ to config.h
+	- Fixed configure to deal with shells where eval "" fails
+	- Use plld -shared to link the pl2xpce.so shared object
+	- Allow for different-named executable Prolog (swipl)
+	- Use hacky function + call in ker/glob.c to work around
+	  a bug in the linker.
+	- See the SWI-Prolog twiki web for more info.
+
 * ADDED: Allow for `editor->style: Name, @nil' to delete the given style from
   the editor.
 
@@ -11,6 +21,8 @@
 	  loading on slow machines.
 	- Marking variables.
 	- Integrate singleton marks with global colouring.
+	- Deal with (direct) recursion while cross-referencing and
+	  underline recursive calls.
 
 * MODIFIED: Make pce_image_directory/1 not open the display when compiling
   a state.  This should be fine as long as the compilation process doesn't

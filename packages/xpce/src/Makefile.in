@@ -720,8 +720,8 @@ rt-bins:
 		    $(INSTALL_PROGRAM) xpce $(PLBINDIR); \
 		else \
 		    rm -f $(PLBINDIR)/xpce; \
-		    echo "linking xpce to pl in $(PLBINDIR)"; \
-		    (cd $(PLBINDIR); ln -s pl xpce) ; \
+		    echo "linking xpce to $(PL) in $(PLBINDIR)"; \
+		    (cd $(PLBINDIR); ln -s $(PL) xpce) ; \
 		fi
 		@for f in xpce-client; do \
 		    if [ -f $$f ]; then \
@@ -767,8 +767,9 @@ dv-lib:
 		        mkdir $(DVHOME)/prolog/$$d; \
 		    fi; \
 		    echo -n "Installing icons in prolog/$$d ..."; \
-		    $(INSTALL_DATA) ../prolog/$$d/*.bm ../prolog/$$d/*.xpm \
-						$(DVHOME)/prolog/$$d; \
+		    $(INSTALL_DATA) \
+			`find ../prolog/$$d \( -name '*.bm' -o -name '*.xpm' \)` \
+				$(DVHOME)/prolog/$$d; \
 		    echo done; \
 		done
 		$(INSTALL_DATA) ../prolog/lib/man/classification.dat \

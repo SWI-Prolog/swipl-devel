@@ -79,6 +79,7 @@ char *argv[];
     }
   }
   
+  printf("mmodel=ok\n");	/* Some sh don't like eval '' */
   if ( ndecl > 0 )
   { int n;
 

@@ -60,10 +60,22 @@ static void	run_pce_atexit_hooks(void);
 #endif
 #endif
 
+/* The MacOS X hack.  The mac loader doesn't want to load ker/glob.o, from
+   libXPCE.a as it only contains common variables.  This is fixed by adding
+   a function and calling it from here.  See __APPLE__ below.
+*/
+
 static status
 initialisePce(Pce pce)
 { if ( PCE && notNil(PCE) )
     return errorPce(classOfObject(pce), NAME_cannotCreateInstances);
+
+#ifdef __APPLE__
+ { extern int IAmAGlobalFunctionToMakeMeLoad(void);
+  
+   (void)IAmAGlobalFunctionToMakeMeLoad();
+ }
+#endif
 
 #ifndef O_RUNTIME
   assign(pce, debugging,              OFF);

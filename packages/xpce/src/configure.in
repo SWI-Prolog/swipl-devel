@@ -386,6 +386,7 @@ EOF
 	;;
     *aix*)
         LDSOFLAGS="-bI:$PLBASE/include/SWI-Exports"
+	undefine([__unix__])
 	AC_DEFINE(__unix__)
 	QPENTRIES=entries.c
 	;;
@@ -413,6 +414,7 @@ EOF
 	LD=plld
 	GCCLIB=""
 	CMFLAGS="$CMFLAGS -no-cpp-precomp"
+	AC_DEFINE(__unix__)
 	;;
     *)
 	;;
@@ -885,7 +887,7 @@ fi
 AC_MSG_CHECKING("memory model")
 echo '#include "confdefs.h"' > conftest.c
 cat $srcdir/test/m-model.c >> conftest.c
-eval $ac_link
+(eval $ac_link) 2>&5
 if test -s conftest && eval `./conftest`; then
     msg=
     if test ! -z "$POINTER_OFFSET"; then

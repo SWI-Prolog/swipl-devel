@@ -28,6 +28,23 @@
 #else
 #define PUBLIC_GLOBAL
 #endif
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Oops. The MacOS X (darwin) linker doesn't get a .o file for a library if
+there are only common symbols in there. So,   we add a function and call
+it from ker/self.c to force loading this file.
+
+Looks like a bug to me, but   this  work-around will never cause trouble
+and isn't too ugly.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifdef __APPLE__
+int
+IAmAGlobalFunctionToMakeMeLoad()
+{ return 42;
+}
+#endif
+
 #include <h/kernel.h>
 #include <h/trace.h>
 #include <h/interface.h>
