@@ -31,7 +31,6 @@
 
 :- module(emacs_annotate_mode, []).
 :- use_module(library(pce)).
-:- set_prolog_flag(character_escapes, false).
 
 
 		 /*******************************
@@ -100,7 +99,7 @@ do_save(B, File:file) :->
 
 :- initialization
 	new(KB, emacs_key_binding(emacs_annotate, emacs_text)),
-	send(KB, function, '\C-c\C-d', define_style).
+	send(KB, function, '\\C-c\\C-d', define_style).
 
 :- initialization
 	new(_, syntax_table(annotate)).
