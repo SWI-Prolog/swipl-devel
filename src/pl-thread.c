@@ -212,6 +212,7 @@ PL_atomic_inc(int *addr)
   atomic_inc((atomic_t *)addr);
 #else
 #ifdef WIN32
+  assert(sizeof(int) == sizeof(long));
   InterlockedIncrement((long *)addr);
 #else
   PL_LOCK(L_MISC);
