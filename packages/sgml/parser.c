@@ -1703,8 +1703,8 @@ process_attributes(dtd_parser *p, dtd_element *e, const ichar *decl,
 	{ attn++;
 	  continue;
 	}
-      } else if ( e->structure )	/* value shorthand */
-      { dtd_attr_list *al;
+      } else if ( e->structure && dtd->dialect == DL_SGML )
+      { dtd_attr_list *al;		/* value shorthand */
 
 	for(al=e->attributes; al; al=al->next)
 	{ dtd_attr *a = al->attribute;
@@ -1723,6 +1723,10 @@ process_attributes(dtd_parser *p, dtd_element *e, const ichar *decl,
 	  }
 	}
 	gripe(ERC_NO_ATTRIBUTE_VALUE, e->name->name, nm->name);
+	decl = s;
+      } else
+      { gripe(ERC_SYNTAX_ERROR, "Bad attribute", decl);
+	decl = s;
       }
     } else
     { *argc = attn;
