@@ -96,7 +96,7 @@ PRED_IMPL("$record_bag", 1, record_bag, 0)
     a->record = compileTermToHeap(A1, 0);
 
   DEBUG(1, { Sdprintf("Recorded %p: ", a->record);
-	     pl_write(t);
+	     pl_write(A1);
 	     pl_nl();
 	   });
 
