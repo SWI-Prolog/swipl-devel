@@ -32,7 +32,7 @@ prolog:debug_control_hook(nospy(Method)) :-
 
 prolog:help_hook(help) :- !,
 	call(prolog_help(help/1)).
-prolog:help_hook(apropose(What)) :- !,
+prolog:help_hook(apropos(What)) :- !,
 	call(prolog_apropos(What)).
 prolog:help_hook(help(What)) :- !,
 	call((   pce_to_method(What, Method)
