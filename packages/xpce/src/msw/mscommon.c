@@ -236,7 +236,6 @@ setHwndWindow(PceWindow sw, HWND ref)
     w->saved_window_procedure = NULL;
     w->hcursor		      = 0;
     w->capture		      = 0;
-    w->open		      = 0;
   } else
   { if ( sw->ws_ref )
     { unalloc(sizeof(ws_window), sw->ws_ref);

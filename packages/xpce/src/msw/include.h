@@ -93,7 +93,6 @@ typedef struct
   HCURSOR	hcursor;		/* current cursor handle */
   WNDPROC	saved_window_procedure;	/* For refinement */
   unsigned capture    : 1;		/* has capture */
-  unsigned open	      : 1;		/* window is opened */
   unsigned drop	      : 1;		/* Have done DropAcceptFiles() */
 } ws_window, *WsWindow;
 

@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: MS-Windows: painting (redraw) in windows displayed inside a
+  `tabbed_window'.
+
 * ADDED: `menu_item->background'.
 
 * PORT: Define _THREAD_SAFE for FreeBSD if threaded code is requested.

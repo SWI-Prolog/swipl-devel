@@ -180,16 +180,8 @@ do_window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
     }
 
     case WM_SHOWWINDOW:
-    { HWND hwnd;
-
-      if ( !wParam && (hwnd = getHwndWindow(sw)) )
-      {	WsWindow wsw = sw->ws_ref;
-
-	if ( wsw )
-	{ PceWhDeleteWindow(wsw->hwnd);
-	  wsw->open = FALSE;
-	}
-      }
+    { if ( !wParam && wsw && wsw->hwnd )
+	PceWhDeleteWindow(wsw->hwnd);
 
       goto cascade;
     }
@@ -234,13 +226,6 @@ do_window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
     } else
     { iarea a;
       
-      if ( !clearing_update )
-      { WsWindow wsw;
-
-	if ( (wsw = sw->ws_ref) )
-	  wsw->open = TRUE;
-      }
-
       ServiceMode(is_service_window(sw),
 		  DEBUG(NAME_redraw,
 			Cprintf("%s (0x%04x) received WM_PAINT (%s clear)\n",
@@ -545,7 +530,9 @@ ws_invalidate_window(PceWindow sw, Area a)
   clearing_update = FALSE;
 
   if ( hwnd && IsWindowVisible(hwnd) )
-  { if ( isDefault(a) )
+  { DEBUG(NAME_redraw, Cprintf("%s: InvalidateRect(%p)\n", pp(sw), hwnd));
+
+    if ( isDefault(a) )
       InvalidateRect(hwnd, NULL, TRUE);
     else				/* actually not used ... */
     { RECT rect;
@@ -557,6 +544,8 @@ ws_invalidate_window(PceWindow sw, Area a)
   
       InvalidateRect(hwnd, &rect, clear);
     }
+  } else
+  { DEBUG(NAME_redraw, Cprintf("%s: hwnd %p invisible\n", pp(sw), hwnd));
   }
   pceMTUnlock(LOCK_PCE);
 }
@@ -611,7 +600,7 @@ void
 ws_redraw_window(PceWindow sw, IArea a, int clear)
 { WsWindow wsw = sw->ws_ref;
 
-  if ( wsw && wsw->hwnd && wsw->open )
+  if ( wsw && wsw->hwnd && IsWindowVisible(wsw->hwnd) )
   { RECT rect;
 
     rect.left   = a->x      + valInt(sw->scroll_offset->x);
@@ -623,7 +612,9 @@ ws_redraw_window(PceWindow sw, IArea a, int clear)
     clearing_update = clear;
     UpdateWindow(wsw->hwnd);		/* will start WM_PAINT */
     clearing_update = FALSE;		/* ok for normal WM_PAINT call */
-  }
+  } else
+  { DEBUG(NAME_redraw, Cprintf("ws_redraw_window(%s): invisible\n", pp(sw)));
+  } 
 }
 
 
