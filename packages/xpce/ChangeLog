@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Improved compatibility of X11 selection-handling.  Works again
+  with recent Qt versions which demanded the obligatory `targets' target.
+
 * FIXED: Win32: Loading X11 .BM files (broken due with new DIB-based jpeg
   loading).
 

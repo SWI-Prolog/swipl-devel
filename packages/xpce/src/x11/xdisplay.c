@@ -595,6 +595,17 @@ widgetToDisplay(Widget w)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Deliver the selection. This needs  to  be   expanded  a  bit.  We should
+provide more answers to the `targets'  request, the protocol requires us
+to implement MULTIPLE as well and we should provide COMPOUND_TEXT and/or
+UTF8_STRING as return values for text.
+
+Full  specs  for  the  inter-client  communication    can  be  found  at
+http://tronche.com/gui/x/icccm/ (Inter-Client Communication  Conventions
+Manual)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static Boolean
 convert_selection_display(Widget w,
 			  Atom *selection, Atom *target, Atom *type_return,
@@ -604,6 +615,10 @@ convert_selection_display(Widget w,
   Function msg;
   Name which = atomToSelectionName(d, *selection);
   Name hypername = getAppendName(which, NAME_selectionOwner);
+  DisplayWsXref r = d->ws_ref;
+
+  DEBUG(NAME_selection,
+	Cprintf("Request for %s selection\n", pp(which)));
 
   if ( d &&
        (h = getFindHyperObject(d, hypername, DEFAULT)) &&
@@ -612,16 +627,37 @@ convert_selection_display(Widget w,
   { CharArray ca;
     Name tname = atomToSelectionName(d, *target);
 
+    DEBUG(NAME_selection,
+	  Cprintf("\ttarget = %s\n", pp(tname)));
+
+    if ( tname == NAME_targets )
+    { Atom *buf = (Atom *)XtMalloc(2*sizeof(Atom));
+
+      buf[0] = XInternAtom(r->display_xref, "TARGETS", False);
+      buf[1] = XA_STRING;
+      *value = buf;
+      *len = 2;
+      *format = 32;
+      *type_return = XA_ATOM;
+
+      return True;
+    }
+
     if ( (ca = getForwardReceiverFunction(msg, h->to, which, tname, EAV)) &&
 	 (ca = checkType(ca, TypeCharArray, NIL)) )
     { String s = &ca->data;
       int data = str_datasize(s);
       char *buf = XtMalloc(data);
+      int fmt = (isstr8(s) ? sizeof(char8) : sizeof(char16)) * 8;
+
+      DEBUG(NAME_selection,
+	    Cprintf("returning XA_STRING, %d characters format = %d\n",
+		    data, fmt));
 
       memcpy(buf, s->s_text, data);
       *value = buf;
       *len = data;
-      *format = (isstr8(s) ? sizeof(char8) : sizeof(char16)) * 8;
+      *format = fmt;
       *type_return = XA_STRING;
 
       return True;
