@@ -69,15 +69,17 @@ NewClass(table_cell)
     Size	cell_padding;		/* Padding for this cell (default) */
     Bool	selected;		/* Cell is selected */ \
     Any		background;		/* Background colour in */
+    Image	note_mark;		/* Mark for (foot-) notes */
 End;
 
 #define ABSTRACT_TABLE_SLICE \
     ABSTRACT_VECTOR			/* vector attributes */ \
     Table	table;			/* Table I belong to */ \
     Any		background;		/* Background colour in */ \
-    Bool	selected;		/* Default <-selected for cells */ \
+    Bool	selected;		/* Default <-selected of cells */ \
     Name	alignment;		/* halign,valign */ \
     Bool	end_group;		/* Slice ends a (row/column) group */ \
+    Name	name;			/* Name of the slice */ \
     Int		index;			/* nth row/column */ \
     Bool	fixed;			/* Width/reference is fixed */ \
     Int		width;			/* width/height of the row/column */ \

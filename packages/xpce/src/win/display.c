@@ -22,23 +22,15 @@ Create a display.  The display is not yet opened.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static status
-initialiseDisplay(DisplayObj d, Name address, Name resource_class)
+initialiseDisplay(DisplayObj d, Name address)
 { DisplayManager dm = TheDisplayManager();
-
-  if ( isDefault(resource_class) )
-    resource_class = CtoName(RESOURCE_CLASS);
 
   assign(d, size,        	NIL);
   assign(d, address,     	address);
-  assign(d, resource_class,    	resource_class);
   assign(d, font_table,		newObject(ClassHashTable, 0));
   assign(d, frames,	 	newObject(ClassChain, 0));
   assign(d, inspect_handlers,	newObject(ClassChain, 0));
-  assign(d, foreground,	 	DEFAULT);
-  assign(d, background,	 	DEFAULT);
-  assign(d, quick_and_dirty,	DEFAULT);
   assign(d, cache,	 	NIL);
-  assign(d, window_manager,	DEFAULT);
   assign(d, colour_map,		DEFAULT);
   assign(d, display_manager,	dm);
 
@@ -74,7 +66,7 @@ getConvertDisplay(Class class, Any obj)
 
 static status
 attachCacheDisplay(DisplayObj d)
-{ Size sz = getResourceValueObject(d, NAME_graphicsCache);
+{ Size sz = getClassVariableValueObject(d, NAME_graphicsCache);
 
   if ( isDefault(sz) )
     sz = getSizeDisplay(d);
@@ -97,28 +89,21 @@ shells.  This widget is never realised (page 35 of Xt manual).
 
 status
 openDisplay(DisplayObj d)
-{ Code code;
-
-  if ( ws_opened_display(d) )
+{ if ( ws_opened_display(d) )
     succeed;
 
   DEBUG(NAME_display, Cprintf("Opening display %s\n", pp(d)));
 
   ws_open_display(d);			/* generate exception on failure */
-  if ( isDefault(d->foreground) )
-    foregroundDisplay(d, getResourceValueObject(d, NAME_foreground));
-  if ( isDefault(d->background) )
-    backgroundDisplay(d, getResourceValueObject(d, NAME_background));
+  obtainClassVariablesObject(d);
+  ws_foreground_display(d, d->foreground);
+  ws_background_display(d, d->background);
   ws_init_graphics_display(d);
 
-  assign(d, quick_and_dirty, getResourceValueObject(d, NAME_quickAndDirty));
   BLACK_COLOUR = newObject(ClassColour, NAME_black, 0);
   WHITE_COLOUR = newObject(ClassColour, NAME_white, 0);
-  attachCacheDisplay(d);
 
-  if ( (code = getResourceValueObject(d, NAME_initialise)) &&
-       instanceOfObject(code, ClassCode) )
-    forwardReceiverCodev(code, d, 0, NULL);
+  attachCacheDisplay(d);
 
   succeed;
 }
@@ -294,7 +279,7 @@ bellDisplay(DisplayObj d, Int vol)
 { openDisplay(d);
 
   if ( isDefault(vol) )
-    vol = (Int) getResourceValueObject(d, NAME_volume);
+    vol = (Int) getClassVariableValueObject(d, NAME_volume);
 
   ws_bell_display(d, valInt(vol));
 
@@ -566,7 +551,7 @@ getWindowManagerDisplay(DisplayObj d)
   if ( notDefault(d->window_manager) )
     answer(d->window_manager);
 
-  if ( (wm = getResourceValueObject(d, NAME_windowManager)) &&
+  if ( (wm = getClassVariableValueObject(d, NAME_windowManager)) &&
        notDefault(wm) )
   { assign(d, window_manager, wm);
     answer(d->window_manager);
@@ -594,8 +579,8 @@ create_confirmer(DisplayObj d)
   TRY( m = newObject(ClassText, CtoName(""), NAME_center, 0) );
   TRY( h = newObject(ClassText, CtoName(""), NAME_center, 0) );
 
-  send(m, NAME_font, getResourceValueObject(d, NAME_labelFont), 0);
-  send(h, NAME_font, getResourceValueObject(d, NAME_valueFont), 0);
+  send(m, NAME_font, getClassVariableValueObject(d, NAME_labelFont), 0);
+  send(h, NAME_font, getClassVariableValueObject(d, NAME_valueFont), 0);
   send(p, NAME_display, m, 0);
   send(p, NAME_display, h, 0);
   send(p, NAME_kind, NAME_popup, 0);
@@ -847,21 +832,6 @@ quitDisplay(DisplayObj d)
   succeed;
 }
 
-		 /*******************************
-		 *	      RESOURCES		*
-		 *******************************/
-
-status
-loadResourceFileDisplay(DisplayObj d, FileObj f)
-{
-#ifdef O_NOX11RESOURCES
-  return load_resource_file(f);
-#else
-  fail;
-#endif
-}
-
-
 		/********************************
 		*          FONT TABLES		*
 		********************************/
@@ -870,10 +840,10 @@ static status
 loadFontFamilyDisplay(DisplayObj d, Name fam)
 { Class class = classOfObject(d);
 
-  if ( !getResourceClass(class, fam) )
-    attach_resource(class, strName(fam), "chain", "[]", "Font family set");
+  if ( !getClassVariableClass(class, fam) )
+    attach_class_variable(class, fam, "chain", "[]", "Font family set");
 
-  if ( !getResourceValueObject(d, fam) )
+  if ( !getClassVariableValueObject(d, fam) )
     return errorPce(d, NAME_noFontsInFamily, fam);
 
   succeed;
@@ -889,7 +859,7 @@ loadFontsDisplay(DisplayObj d)
     succeed;
   done = TRUE;
 
-  if ( (fams = getResourceValueObject(d, NAME_fontFamilies)) )
+  if ( (fams = getClassVariableValueObject(d, NAME_fontFamilies)) )
   { Cell cell;
 
     for_cell(cell, fams)
@@ -902,7 +872,7 @@ loadFontsDisplay(DisplayObj d)
 
 static status
 loadFontAliasesDisplay(DisplayObj d, Name res)
-{ Chain ch = getResourceValueObject(d, res);
+{ Chain ch = getClassVariableValueObject(d, res);
 
   if ( ch )
   { Cell cell;
@@ -988,8 +958,6 @@ getContainedInDisplay(DisplayObj d)
 
 /* Type declarations */
 
-static char *T_initialise[] =
-        { "address=[name]", "resource_class=[name]" };
 static char *T_cutBuffer[] =
         { "buffer=[0..7]", "value=string" };
 static char *T_busyCursor[] =
@@ -1026,8 +994,6 @@ static vardecl var_display[] =
      NAME_dimension, "Size (width, height) of display"),
   IV(NAME_address, "[name]", IV_BOTH,
      NAME_address, "Host/screen on which display resides"),
-  IV(NAME_resourceClass, "name", IV_GET,
-     NAME_resource, "Resource class of display [Pce]"),
   IV(NAME_fontTable, "hash_table", IV_BOTH,
      NAME_font, "Mapping for logical font-names to fonts"),
   IV(NAME_frames, "chain", IV_GET,
@@ -1055,8 +1021,8 @@ static vardecl var_display[] =
 /* Send Methods */
 
 static senddecl send_display[] =
-{ SM(NAME_initialise, 2, T_initialise, initialiseDisplay,
-     DEFAULT, "Create from address and resource class"),
+{ SM(NAME_initialise, 1, "address=[name]", initialiseDisplay,
+     DEFAULT, "Create at given address (<host>:<screen>)"),
   SM(NAME_reset, 0, NULL, resetDisplay,
      NAME_abort, "Closedown informer/confirmer"),
   SM(NAME_flush, 0, NULL, flushDisplay,
@@ -1075,16 +1041,14 @@ static senddecl send_display[] =
      NAME_event, "Test if there are X-events waiting"),
   SM(NAME_inspectHandler, 1, "handler", inspectHandlerDisplay,
      NAME_event, "Register handler for inspect tool"),
-  SM(NAME_loadResourceFile, 1, "file", loadResourceFileDisplay,
-     NAME_resource, "Load resource-definitions from file"),
   SM(NAME_fontAlias, 3, T_fontAlias, fontAliasDisplay,
      NAME_font, "Define a logical name for a font"),
-  SM(NAME_loadFontAliases, 1, "resource=name", loadFontAliasesDisplay,
-     NAME_font, "Load font aliases from named resource"),
+  SM(NAME_loadFontAliases, 1, "set=name", loadFontAliasesDisplay,
+     NAME_font, "Load font aliases from named class-variable"),
   SM(NAME_loadFontFamily, 1, "family=name", loadFontFamilyDisplay,
      NAME_font, "Create predefined fonts from family"),
   SM(NAME_loadFonts, 0, NULL, loadFontsDisplay,
-     NAME_font, "Create predefined font set from resources"),
+     NAME_font, "Create predefined font set from defaults"),
   SM(NAME_ConfirmPressed, 1, "event", ConfirmPressedDisplay,
      NAME_internal, "Handle confirmer events"),
   SM(NAME_open, 0, NULL, openDisplay,
@@ -1165,15 +1129,13 @@ static getdecl get_display[] =
 
 /* Resources */
 
-static resourcedecl rc_display[] =
+static classvardecl rc_display[] =
 { RC(NAME_background, "colour", "white",
      "Default background for windows"),
   RC(NAME_foreground, "colour", "black",
      "Default foreground for windows"),
   RC(NAME_graphicsCache, "[size]", "@default",
      "Size of cache image to avoid flickering"),
-  RC(NAME_initialise, "code*", "@nil",
-     "Code object to run on ->open"),
   RC(NAME_labelFont, "font", "bold",
      "Label font for confirm/inform"),
   RC(NAME_systemFonts, "chain",
@@ -1188,8 +1150,6 @@ static resourcedecl rc_display[] =
      "  fixed     := font(screen, roman, 13)\n"
      "]",
      "Predefined font-aliases"),
-  RC(NAME_userFonts, "chain", "[]",
-     "User font-aliases"),
   RC(NAME_noFont, "font", "fixed",
      "Replacement for undefined fonts"),
   RC(NAME_quickAndDirty, "bool", "@on",
@@ -1212,11 +1172,11 @@ static resourcedecl rc_display[] =
 
 /* Class Declaration */
 
-static Name display_termnames[] = { NAME_address, NAME_resourceClass };
+static Name display_termnames[] = { NAME_address };
 
 ClassDecl(display_decls,
           var_display, send_display, get_display, rc_display,
-          2, display_termnames,
+          1, display_termnames,
           "$Rev$");
 
 
@@ -1413,18 +1373,18 @@ default_font_list(Name fam, FontDef defs)
 
 static void
 attach_fonts(Class class, char *res, Name fam, FontDef defs)
-{ attach_resource(class, res, "chain",
-		  default_font_list(fam, defs),
-		  "Font family set");
+{ attach_class_variable(class, CtoName(res), "chain",
+			default_font_list(fam, defs),
+			"Font family set");
 }
 
 
 static void
 attach_font_families(Class class)
-{ attach_resource(class, "font_families",  "chain",
-		  "[screen_fonts, courier_fonts," /* concat */
-		  "helvetica_fonts, times_fonts]",
-		  "Predefined font families");
+{ attach_class_variable(class, NAME_fontFamilies,  "chain",
+			"[screen_fonts, courier_fonts," /* concat */
+			"helvetica_fonts, times_fonts]",
+			"Predefined font families");
 
   attach_fonts(class, "screen_fonts", NAME_screen, screen_fonts);
   attach_fonts(class, "courier_fonts", NAME_courier, courier_fonts);
