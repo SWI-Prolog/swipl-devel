@@ -91,7 +91,7 @@ $(PDF):		$(TEX)
 
 html:		$(TEX)
 		latex2html $(DOC)
-		mv html/index.html clib.html
+		mv html/index.html $(DOC).html
 		rm -r html
 
 $(TEX):		$(DOCTOTEX)
