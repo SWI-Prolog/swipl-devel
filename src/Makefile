@@ -75,7 +75,7 @@ xmakefile:	Makefile md.h ../config.h
 		@$(CPP) junk.c | \
 		sed -e 's/^[ 	]*$$//' \
 		    -e 's/^ /	/' \
-		    -e 's/\([^\]\)"/\1/g' | \
+		    -e 's/\([^\\]\)"/\1/g' | \
 		sed -n -e '/^..*$$/p' > xmakefile
 		@rm -f junk.c make.h
 
@@ -149,7 +149,7 @@ clean:		xmakefile
 
 xclean:
 		rm -f *.o a.out core makefile pl-bite
-		rm $(SYS)
+		rm -f $(SYS)
 .c.s:
 		$(CC) -S $(CFLAGS) $*.c
 

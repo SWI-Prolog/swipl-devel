@@ -505,21 +505,32 @@ PL_action(action, arg)
 int action;
 void * arg;
 { switch(action)
-  { case PL_ACTION_TRACE:	return (bool) pl_trace();
-    case PL_ACTION_DEBUG:	return (bool) pl_debug();
-    case PL_ACTION_BACKTRACE:	backTrace(environment_frame, 20); succeed;
-    case PL_ACTION_BREAK:	return (bool) pl_break();
-    case PL_ACTION_HALT:	return (bool) pl_halt();
-    case PL_ACTION_ABORT:	return (bool) pl_abort();
-    case PL_ACTION_SYMBOLFILE:	loaderstatus.symbolfile = lookupAtom((char *) arg);
-				succeed;
-    case PL_ACTION_WRITE:	Putf("%s", (char *)arg);
-				succeed;
-    case PL_ACTION_FLUSH:	pl_flush();
-    				succeed;
-    default:			sysError("PL_action(): Illegal action: %d", action);
-				/*NOTREACHED*/
-				fail;
+  { case PL_ACTION_TRACE:
+      return (bool) pl_trace();
+    case PL_ACTION_DEBUG:
+      return (bool) pl_debug();
+    case PL_ACTION_BACKTRACE:
+      backTrace(environment_frame, (int) arg);
+      succeed;
+    case PL_ACTION_BREAK:
+      return (bool) pl_break();
+    case PL_ACTION_HALT:
+      return (bool) pl_halt();
+    case PL_ACTION_ABORT:
+      return (bool) pl_abort();
+    case PL_ACTION_SYMBOLFILE:
+      loaderstatus.symbolfile = lookupAtom((char *) arg);
+      succeed;
+    case PL_ACTION_WRITE:
+      Putf("%s", (char *)arg);
+      succeed;
+    case PL_ACTION_FLUSH:
+      pl_flush();
+      succeed;
+    default:
+      sysError("PL_action(): Illegal action: %d", action);
+      /*NOTREACHED*/
+      fail;
   }
 }
 
