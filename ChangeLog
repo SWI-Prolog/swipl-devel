@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+VERSION 5.5.3 (Januari 17, 2005)
+================================
+
   * ADDED: copy_term_nat/2: copy without attributes.  Required by
     Tom Schrijvers for CHR.
 
