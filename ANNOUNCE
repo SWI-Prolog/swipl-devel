@@ -1,4 +1,4 @@
-SWI-Prolog 5.5.5/XPCE 6.5.5 development release
+SWI-Prolog 5.5.6/XPCE 6.5.6 development release
 
 Planned features in 5.5.x relative to 5.4.x and their status
 ============================================================
@@ -41,23 +41,36 @@ Planned features in 5.5.x relative to 5.4.x and their status
 	  This library is added to the default installation.  Should be
 	  considered beta code.
 
+  * Wider integers
 
-Patches in 5.5.5 relative to 5.5.4
+	- Provide 64-bit integers, also for 32-bit platforms.
+	- Tested on Linux, Windows, and MacOS.
+
+      Lacking
+      -------
+
+	- Realise full compatibility of 32- and 64-bit saved states.
+	- Possible alignment problems on some platforms
+	- Option to disable it on platforms that cannot support it.
+
+Patches in 5.5.6 relative to 5.5.5
 ==================================
 
-  * Port: provide support for "make install DESTDIR=..." and lots of
-    cleanup for more flexible building on Unix systems.  This supports
-    packagers, such as the MacOS 'port' utility.
-    
-  * Binary: Windows binary version is now compiled using MSVC 6.0.  This
-    should not have any consequences, but you never know ...
+  * ADDED: 64-bit integers for 32-bit platforms.  Relies in C99
+    <stdint.h>, except MS-Windows where we use __int64.
+
+  * ADDED: library(unicode/unicode_data) to read official UNICODE
+    code properties.  See fileheader.
+
+  * Various minor patches.
 
 Packages
 ========
 
-  * XPCE: Fixed using text_buffer for (temporary) binary output (used
-    to serve images using the XPCE HTTPD library).  Removed maximum
-    number of item limit on dialog windows.
+  * XPCE: missing close loading text in editors (broken while introducing
+    wide character support).
+
+  * TABLE: Added support for hexadecimal columns.
 
 Incompatible changes
 ====================

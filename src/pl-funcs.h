@@ -911,8 +911,6 @@ COMMON(foreign_t) 	pl_open_xterm(term_t title, term_t in, term_t out, term_t err
 
 /* pl-ctype.c */
 
-COMMON(foreign_t) 	pl_char_type(term_t chr, term_t class, control_t h);
-COMMON(foreign_t) 	pl_code_type(term_t chr, term_t class, control_t h);
 COMMON(foreign_t) 	pl_downcase_atom(term_t in, term_t out);
 COMMON(foreign_t) 	pl_upcase_atom(term_t in, term_t out);
 COMMON(IOENC)		initEncoding(void);

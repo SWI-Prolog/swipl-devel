@@ -166,8 +166,6 @@ static const PL_extension foreigns[] = {
   FRG("number_chars",		2, pl_number_chars,		0),
   FRG("number_codes",		2, pl_number_codes,		0),
   FRG("char_code",		2, pl_char_code,		0),
-  FRG("char_type",		2, pl_char_type,	     NDET),
-  FRG("code_type",		2, pl_code_type,	     NDET),
   FRG("downcase_atom",		2, pl_downcase_atom,		0),
   FRG("upcase_atom",		2, pl_upcase_atom,		0),
   FRG("int_to_atom",		3, pl_int_to_atom,		0),
@@ -575,6 +573,7 @@ DECL_PLIST(gvar);
 DECL_PLIST(win);
 DECL_PLIST(file);
 DECL_PLIST(btree);
+DECL_PLIST(ctype);
 
 void
 initBuildIns(void)
@@ -597,6 +596,7 @@ initBuildIns(void)
   REG_PLIST(wic);
   REG_PLIST(file);
   REG_PLIST(btree);
+  REG_PLIST(ctype);
 #ifdef O_ATTVAR
   REG_PLIST(attvar);
 #endif

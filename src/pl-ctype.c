@@ -39,7 +39,7 @@ See manual for details.
 #define CODE_MODE 1
 
 #define CTX_CHAR 0			/* Class(Char) */
-#define CTX_CODE  1			/* Class(Int) */
+#define CTX_CODE 1			/* Class(Int) */
 
 typedef struct
 { atom_t	name;			/* name of the class */
@@ -425,16 +425,35 @@ do_char_type(term_t chr, term_t class, control_t h, int how)
 
 
 
-foreign_t
-pl_char_type(term_t chr, term_t class, control_t h)
-{ return do_char_type(chr, class, h, CHAR_MODE);
+static
+PRED_IMPL("char_type", 2, char_type, PL_FA_NONDETERMINISTIC)
+{ return do_char_type(A1, A2, PL__ctx, CHAR_MODE);
 }
 
 
-foreign_t
-pl_code_type(term_t chr, term_t class, control_t h)
-{ return do_char_type(chr, class, h, CODE_MODE);
+static
+PRED_IMPL("code_type", 2, code_type, PL_FA_NONDETERMINISTIC)
+{ return do_char_type(A1, A2, PL__ctx, CODE_MODE);
 }
+
+
+#if 0
+static
+PRED_IMPL("iswctype", 2, iswctype, 0)
+{ char *s;
+  int chr;
+  wctype_t t;
+
+  if ( !PL_get_char_ex(A1, &chr, FALSE) ||
+       !PL_get_chars_ex(A2, &s, CVT_ATOM) )
+    return FALSE;
+
+  if ( !(t=wctype(s)) )
+    return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_type, A2);
+
+  return iswctype(chr, t) ? TRUE : FALSE;
+}
+#endif
 
 
 static inline wint_t
@@ -542,6 +561,16 @@ foreign_t
 pl_upcase_atom(term_t in, term_t out)
 { return modify_case_atom(in, out, FALSE);
 }
+
+		 /*******************************
+		 *      PUBLISH PREDICATES	*
+		 *******************************/
+
+BeginPredDefs(ctype)
+  PRED_DEF("char_type", 2, char_type, PL_FA_NONDETERMINISTIC)
+  PRED_DEF("code_type", 2, code_type, PL_FA_NONDETERMINISTIC)
+EndPredDefs
+
 
 #if defined(HAVE_LOCALE_H) && defined(HAVE_SETLOCALE)
 #include <locale.h>
