@@ -320,6 +320,86 @@ PL_functor_arity(functor_t f)
 
 
 		 /*******************************
+		 *    WIDE CHARACTER SUPPORT	*
+		 *******************************/
+
+static PL_blob_t ucs_atom =
+{ PL_BLOB_MAGIC,
+  PL_BLOB_UNIQUE|PL_BLOB_TEXT,		/* unique representation of text */
+  "ucs_text"
+};
+
+#define TEXT_REPRESENTATION_MASK 0xff
+
+int
+PL_unify_wchars(term_t t, int flags, unsigned int len, const pl_wchar_t *text)
+{ const pl_wchar_t *p = text, *end = &text[len];
+  char *small, *s;
+  int malloced;
+
+  if ( len < 4096 )
+  { small = alloca(len);
+    malloced = FALSE;
+  } else
+  { small = PL_malloc(len);
+    malloced = TRUE;
+  }
+
+  for(s=small; p<end && *p <= 0xff; p++)
+    *s++ = *p;
+
+  if ( p == end )
+  { int rval;
+
+    switch(flags&TEXT_REPRESENTATION_MASK)
+    { case PL_ATOM:
+	rval = PL_unify_atom_nchars(t, len, small);
+        break;
+      case PL_STRING:
+	rval = PL_unify_string_nchars(t, len, small);
+        break;
+      case PL_CODE_LIST:
+	rval = PL_unify_list_ncodes(t, len, small);
+        break;
+      case PL_CHAR_LIST:
+	rval = PL_unify_list_nchars(t, len, small);
+        break;
+      default:
+	rval = PL_warning("PL_unify_wchars(): bad flags");
+    }
+
+    if ( malloced )
+      PL_free(small);
+
+    return rval;
+  } else				/* wide character version */
+  { if ( malloced )
+      PL_free(small);
+
+    switch(flags&TEXT_REPRESENTATION_MASK)
+    { case PL_ATOM:
+      { GET_LD
+	atom_t a;
+	int new, rval;
+
+	a = lookupBlob((const char *)text, len*sizeof(pl_wchar_t),
+		       &ucs_atom, &new);
+	rval = unifyAtomic(t, a PASS_LD);
+	PL_unregister_atom(a);
+	return rval;
+      }
+      case PL_STRING:
+      case PL_CODE_LIST:
+      case PL_CHAR_LIST:
+	return PL_warning("PL_unify_wchars(): TBD");
+      default:
+	return PL_warning("PL_unify_wchars(): bad flags");
+    }
+  }
+}
+
+
+		 /*******************************
 		 *    QUINTUS WRAPPER SUPPORT   *
 		 *******************************/
 

@@ -123,6 +123,7 @@ typedef void *		PL_engine_t;	/* opaque engine handle */
 typedef unsigned long	functor_t;	/* Name/arity pair */
 typedef unsigned long	PL_atomic_t;	/* same a word */
 typedef unsigned long	foreign_t;	/* return type of foreign functions */
+typedef unsigned short  pl_wchar_t;	/* Prolog wide character */
 #ifdef __cplusplus
 typedef void * 		pl_function_t;	/* can only pass function as void * */
 #else
@@ -419,6 +420,14 @@ PL_EXPORT(int)		PL_unify_list(term_t l, term_t h, term_t t);
 PL_EXPORT(int)		PL_unify_nil(term_t l);
 PL_EXPORT(int)		PL_unify_arg(int index, term_t t, term_t a);
 PL_EXPORT(int)		PL_unify_term(term_t t, ...);
+
+
+		 /*******************************
+		 *    WIDE CHARACTER VERSIONS	*
+		 *******************************/
+
+PL_EXPORT(int)		PL_unify_wchars(term_t t, int flags,
+					unsigned int len, const pl_wchar_t *text);
 
 
 		 /*******************************
