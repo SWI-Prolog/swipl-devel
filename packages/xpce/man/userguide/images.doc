@@ -57,7 +57,7 @@ XBM	   & -&-&-&  +	  &  +		      &   +  &  -   \\
 \multicolumn{8}{|c|}{Large rectangular images} \\
 \hline
 JPEG	   & +&-&-&  +	  &  -		      &   +  &  -   \\
-GIF	   & +&-&-&  +	  &  -		      &   +  &  -   \\
+GIF	   & +&-&+&  +	  &  -		      &   +  &  -   \\
 BMP	   & +&-&-&  -	  &  -		      &   +  &  -   \\
 PNM	   & +&-&-&  +	  &  +		      &   +  &  +   \\
 \hline

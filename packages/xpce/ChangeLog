@@ -1,3 +1,5 @@
+* ADDED: Support for loading transparent .GIF image files.
+
 * FIXED: SWI-Prolog help interface for syntax errors on `explain'.
 
 * FIXED: library(compatibility/resource) to handle resources correctly
