@@ -51,7 +51,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /machine:I386
-# ADD LINK32 ..\lib\libpl.lib ..\lib\console.lib user32.lib gdi32.lib /nologo /subsystem:windows /machine:I386
+# ADD LINK32 ..\lib\libpl.lib ..\lib\plterm.lib user32.lib gdi32.lib /nologo /subsystem:windows /machine:I386
 
 !ELSEIF  "$(CFG)" == "plwin - Win32 Debug"
 
@@ -76,7 +76,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /debug /machine:I386
-# ADD LINK32 ..\lib\libplD.lib ..\lib\consoleD.lib user32.lib gdi32.lib /nologo /subsystem:windows /debug /machine:I386 /out:"..\bin/plwinD.exe"
+# ADD LINK32 ..\lib\libplD.lib ..\lib\pltermD.lib user32.lib gdi32.lib /nologo /subsystem:windows /debug /machine:I386 /out:"..\bin/plwinD.exe"
 
 !ENDIF 
 
