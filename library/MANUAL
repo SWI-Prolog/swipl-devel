@@ -13,7 +13,7 @@
                          SSWWII--PPrroolloogg 55..11
                         RReeffeerreennccee MMaannuuaall
 
-            _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _5_._1_._8_, _F_e_b_r_u_a_r_y _2_0_0_3
+             _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _5_._1_._9_, _M_a_r_c_h _2_0_0_3
 
                          _J_a_n _W_i_e_l_e_m_a_k_e_r
                        jan@swi.psy.uva.nl
@@ -4114,7 +4114,7 @@ CPU  intruction,  arithmetic  domain  errors,   illegal  memory  access,
 resource  overflow,   etc.),  as   well  as  for  dealing   asynchronous
 inter-process communication.
 
-Signals  are  defined  by  the Posix  standard  and  part  of  all  Unix
+Signals  are  defined  by  the POSIX  standard  and  part  of  all  Unix
 machines.    The  MS-Windows  Win32  provides  a subset  of  the  signal
 handling  routines, lacking  the vital  funtionality to  raise a  signal
 in  another   thread  for   achieving  asynchronous  inter-process   (or
@@ -4170,7 +4170,9 @@ oonn__ssiiggnnaall((_+_S_i_g_n_a_l_, _-_O_l_d_, _:_N_e
     { PL_register_foreign("alarm", 1, pl_alarm, 0);
     }
 
-    Next, we can define the following Prolog code:
+    Next,  we can  define the  Prolog below.   This will  run _G_o_a_l  just
+    as  once/1, throwing  the exception  error(_s_i_g_n_a_l_(_a_l_r_m_,  ___)_, __) if  a
+    timeout occurs.
 
     :- load_foreign_library(alarm).
 
@@ -4181,11 +4183,7 @@ oonn__ssiiggnnaall((_+_S_i_g_n_a_l_, _-_O_l_d_, _:_N_e
 
     call_with_time_limit(Goal, MaxTime) :-
             alarm(MaxTime),
-            catch(Goal, error(signal(alrm, _), _), fail), !,
-            alarm(0).
-    call_with_time_limit(_, _) :-
-            alarm(0),
-            fail.
+            call_cleanup(Goal, _, alarm(0)), !.
 
     The  signal names are  defined by the  C-Posix standards as  symbols
     of  the form  SIG_<_S_I_G_N_A_M_E>.    The Prolog name  for a  signal is the
@@ -4220,7 +4218,13 @@ consider the following:
     construct  to  direct control  to the  innermost PL_next_solution(),
     thus  forcing an external procedure to be abandoned at  an arbitrary
     moment.   Most likely not all SWI-Prologs own foreign code  is (yet)
-    safe too.
+    safe  too.   For  the multi-threaded  versions this  is even  worse:
+    signals can easily violate thread synchronisation consistency.
+
+    The  C-interface described  in  section 7.6.10  provides the  option
+    PL_SIGSYNC for registering a signal handler  that delays delivery of
+    signals  to a safe point.   Unfortunately this may cause signals  to
+    be delayed for a long time if Prolog is executing foreign code.
 
   o _G_a_r_b_a_g_e _C_o_l_l_e_c_t_i_o_n
     The  garbage  collector  will block  all  signals that  are  handled
@@ -15510,8 +15514,8 @@ numbervars/4, 346, 347
 
 on_signal/3, 197
 on_signal/3, 19, 197, 198
-once/1, 181, 182,  184, 569, 583,
-      672, 828
+once/1, 181, 182,  184, 197, 569,
+      583, 672, 828
 online_help _l_i_b_r_a_r_y, 982
 onsult/1, 104
 op/3, 21, 100, 231, 321, 381, 382
