@@ -202,6 +202,9 @@ prompt(F, Label:char_array, Default:[any], Type:[type], Rval:any) :<-
 	    ->	new(Item, file_item(Label, DefPath))
 	    ;	new(Item, directory_item(Label, DefPath))
 	    )
+	;   send(Type, includes, emacs_mode_command)
+	->  new(Item, emacs_command_item(Label, Selection)),
+	    send(Item, type, Type)
 	;   send(Type, includes, emacs_buffer)
 	->  new(Item, text_item(Label, Selection)),
 	    send(Item, type, Type),
@@ -224,6 +227,25 @@ prompt(F, Label:char_array, Default:[any], Type:[type], Rval:any) :<-
 	get(F, prompt_using, Item, Rval),
 	send(Item, free).
 
+
+:- pce_end_class.
+
+:- pce_begin_class(emacs_command_item, text_item).
+
+cannonise(TI) :->
+	get(TI, value_text, Text),
+	get(Text, string, String),
+	get(String, copy, Str2),
+	send(Str2, translate, -, '_'),
+	send(TI, displayed_value, Str2).
+
+complete(TI, Ev:[event_id]) :->
+	send(TI, cannonise),
+	send(TI, send_super, complete, Ev).
+
+selection(TI, Name:name) :<-
+	send(TI, cannonise),
+	get(TI, get_super, selection, Name).
 
 :- pce_end_class.
 
