@@ -6,6 +6,19 @@
 Version 2.7.14
 ==============
 
+  * FIXED: Win32 shell/1 implementation has changed radically, not
+    using threads anymore.  This hopefully fixes shell/1 on all
+    platforms.  The old version started a thread to wait for the
+    process, while the main thread continued processing windows
+    messages.  The new version loops through PeekMessage, GetExitCodeProcess
+    and Sleep, processing messages and waiting in the same (main)
+    thread.
+
+  * FIXED: reentrance problem in Sgetc() (low level fetch for character),
+    upsetting the tracer sometimes when using XPCE.
+
+<this version was put on the ftp server Sep  6>
+
   * FIXED: current_stream/3 failed to properly enumerate the streams.
     Thanks to Robert van Engelen.
 
