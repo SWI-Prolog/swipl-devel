@@ -23,7 +23,9 @@ guitracer :-
 guitracer :-
 	format(user_error, 'Loading XPCE GUI tracer ...', []),
 	load_files([library('trace/trace')], [silent(true)]),
-	format(user_error, ' loaded!~n', []).
+	format(user_error, ' loaded!~n', []),
+	format(user_error,
+	       'The graphical front-end will be used for subsequent tracing.~n', []).
 
 noguitracer :-
 	current_prolog_flag(gui_tracer, _), !,
