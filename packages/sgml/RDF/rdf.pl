@@ -118,7 +118,7 @@ member_attribute(A) :-
 process_rdf(File, BaseURI, OnObject) :-
 	retractall(rdf:in_rdf),
 	rdf_reset_node_ids,		% make sure
-	strip_module(OnObject, Module, Pred),
+	'$strip_module'(OnObject, Module, Pred),
 	asserta(rdf:object_handler(BaseURI, Module:Pred), Ref),
 	open(File, read, In, [type(binary)]),
 	new_sgml_parser(Parser, []),
