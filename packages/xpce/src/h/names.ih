@@ -2376,3 +2376,4 @@
 #define NAME_yref (&builtin_names[2375])
 #define NAME_yrefVar (&builtin_names[2376])
 #define NAME_zoom (&builtin_names[2377])
+#define NAME_xmlString (&builtin_names[2378])

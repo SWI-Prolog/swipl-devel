@@ -37,6 +37,10 @@ static time_t mktime(struct tm *);
 #endif
 #endif
 
+#ifndef HAVE_TIMEGM
+time_t timegm(struct tm *tm);
+#endif
+
 static status	setDate(Date d, Int s, Int m, Int h, Int D, Int M, Int Y);
 
 #define unix_date date.date
@@ -101,12 +105,70 @@ posixValueDate(Date d, Real r)
 }
 
 
+static time_t
+convert_XML(const char *in)
+{ int Y,M,D,h,m,s,n;
+
+  if ( sscanf(in, "%4d-%2d-%2dT%2d:%2d:%2d%n",
+	      &Y, &M, &D, &h, &m, &s, &n) >= 6 )
+  { struct tm tm;
+    int diff;
+    time_t now;
+
+    in += n;
+    switch(in[0])
+    { case EOS:
+	diff = 0;
+        break;
+      case 'Z':
+	if ( in[1] == EOS )
+	{ diff = 0;
+	  break;
+	}
+        goto error;
+      case '+':
+      case '-':
+      { int dh, dm;
+	
+	if ( sscanf(in+1, "%d:%d", &dh, &dm) == 2 )
+	{ diff = 60*dh+dm;
+	  if ( in[0] == '-' )
+	    diff = -diff;
+	  break;
+	}
+	goto error;
+      }
+      default:
+	goto error;
+    }
+
+    now = time(0);
+    tm = *localtime(&now);
+    tm.tm_sec = s;
+    tm.tm_min = m+diff;
+    tm.tm_hour = h;
+    tm.tm_mday = D;
+    tm.tm_mon = M-1;
+    tm.tm_year = Y-1900;
+
+    return timegm(&tm);
+  }
+
+error:
+  return (time_t)-1;
+}
+
+
 static Date
 getConvertDate(Class class, StringObj str)
 { if ( isstr8(&str->data) )
-  { long t = get_date((char *)str->data.s_text8, NULL);
+  { time_t t;
+    char *s = (char *)str->data.s_text8;
 
-    if ( t != -1 )
+    if ( (t=convert_XML(s)) == (time_t)-1 )
+      t = get_date(s, NULL);
+
+    if ( t != (time_t)-1 )
     { Date d = answerObject(ClassDate, EAV);
       d->unix_date = t;
 
@@ -343,6 +405,23 @@ getRfcStringDate(Date d)
 }
 
 
+static StringObj
+getXMLStringDate(Date d)
+{ struct tm *tm = gmtime(&d->unix_date);
+  char date[30];
+
+  sprintf(date, "%04d-%02d-%02dT%02d:%02d:%02dZ",
+	  tm->tm_year + 1900,
+	  tm->tm_mon + 1,
+	  tm->tm_mday,
+	  tm->tm_hour,
+	  tm->tm_min,
+	  tm->tm_sec);
+
+  answer(CtoString(date));
+}
+
+
 static Name
 getCompareDate(Date d1, Date d2)
 { answer(d1->unix_date < d2->unix_date ? NAME_smaller :
@@ -508,6 +587,8 @@ static getdecl doget_date[] =
      NAME_textual, "Same as <-string"),
   GM(NAME_rfcString, 0, "string", NULL, getRfcStringDate,
      NAME_textual, "<-string in RFC compatible format"),
+  GM(NAME_xmlString, 0, "string", NULL, getXMLStringDate,
+     NAME_textual, "<-string in XML dateTime compatible format"),
   GM(NAME_string, 0, "string", NULL, getStringDate,
      NAME_textual, "New string representing date")
 };
@@ -576,4 +657,36 @@ struct tm *tm;
 
   return sec;
 }
+#endif
+
+#ifndef HAVE_TIMEGM
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+timegm() is provided by glibc and the inverse of gmtime().  The glibc
+library suggests using mktime with TZ=UTC as alternative.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+time_t
+timegm(struct tm *tm)
+{ char *otz = getenv("TZ");
+  time_t t;
+  char oenv[20];
+
+  if ( otz && strlen(otz) < 10 )	/* avoid buffer overflow */
+  { putenv("TZ=UTC");
+    t = mktime(tm);
+    strcpy(oenv, "TZ=");
+    strcat(oenv, otz);
+    putenv(oenv);
+  } else if ( otz )
+  { Cprintf("Too long value for TZ: %s", otz);
+    t = mktime(tm);
+  } else				/* not set, what to do? */
+  { t = mktime(tm);
+  }
+
+  return t;
+}
+
+
 #endif
