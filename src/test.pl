@@ -841,9 +841,7 @@ resource(stack-1) :-
 	catch(local_overflow, E, true),
 	E = error(resource_error(stack), local).
 resource(stack-2) :-
-	set_prolog_flag(gc, false),
 	catch(global_overflow(0), E, true),
-	set_prolog_flag(gc, true),
 	E = error(resource_error(stack), global).
 
 
