@@ -32,6 +32,9 @@ PDF=		MANUAL.pdf
 ONLINE=		../library/MANUAL
 ONLINE_INDEX=	../library/helpidx.pl
 
+WWWMAN=		/export/home/www/docs/projects/SWI-Prolog/Manual
+FTPDIR=		/export/home/ftp/docs/SWI-Prolog
+
 LIBFILES=	lib/library.tex lib/readutil.tex lib/netscape.tex \
 		lib/registry.tex lib/check.tex lib/url.tex
 TEXFILES=	doc.tex intro.tex overview.tex builtin.tex module.tex \
@@ -148,5 +151,11 @@ $(ONLINE_INDEX):	$(ONLINE)
 $(DVITOTTY):
 		$(MAKE) -C$(DVITOTTY-HOME) dvi2tty
 		$(CP) $(DVITOTTY-HOME)/dvi2tty ./$(DVITOTTY)
+
+install::
+		rm -rf $(WWWMAN)
+		cp -a Manual $(WWWMAN)
+		tar zcvf $(FTPDIR)/refman/HTMLmanual.tar.gz Manual
+		cp -a $(PDF) $(FTPDIR)/refman/refman.pdf
 
 # EOF #
