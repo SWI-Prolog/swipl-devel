@@ -2338,36 +2338,9 @@ sync_statistics(PL_thread_info_t *info, atom_t key)
 
 #else /*WIN32*/
 
-#ifdef __linux__
-
-#include <execinfo.h>
-#include <string.h>
-
-static void
-print_trace(int frames)
-{ void *array[frames];
-  size_t size;
-  char **strings;
-  size_t i;
-     
-  size = backtrace(array, frames);
-  strings = backtrace_symbols(array, size);
-     
-  Sdprintf("Thread %d: SyncUserCPU() C-context:\n", PL_thread_self());
-  
-  for(i = 0; i < size; i++)
-  { if ( !strstr(strings[i], "checkData") )
-      Sdprintf("\t[%d] %s\n", i, strings[i]);
-  }
-       
-  free(strings);
-}
-#endif
-
 static void
 SyncUserCPU(int sig)
-{ //print_trace(100);
-  LD->statistics.user_cputime = CpuTime(CPU_USER);
+{ LD->statistics.user_cputime = CpuTime(CPU_USER);
   sem_post(&sem_mark);
 }
 
