@@ -82,7 +82,7 @@ passed(File) :-
 	rdf_reset_ids,
 	ok_file(File, OkFile),
 	load_rdf(File, Triples),
-	open(OkFile, write, Fd),
+	open(OkFile, write, Fd, [encoding(utf8)]),
 	save_triples(Triples, Fd),
 	close(Fd),
 	length(Triples, N),
@@ -121,7 +121,7 @@ test(How, File) :-
 	rdf_reset_ids,
 	ok_file(File, OkFile),
 	(   call(How, File, Triples)
-	->  (   catch(open(OkFile, read, Fd), _, fail)
+	->  (   catch(open(OkFile, read, Fd, [encoding(utf8)]), _, fail)
 	    ->  (   read_triples(Fd, OkTriples),
 		    close(Fd),
 		    compare_triples(Triples, OkTriples, _Subst)
@@ -333,7 +333,7 @@ generated_prefix('Statement__').
 
 show_ok(Test) :-
 	ok_file(Test, File),
-	open(File, read, Fd),
+	open(File, read, Fd, [encoding(utf8)]),
 	read_triples(Fd, OkTriples),
 	close(Fd),
 	new(D, rdf_diagram(string('Ok for %s', File))),
