@@ -53,10 +53,10 @@ test_file(File) :-
 	format('************* Test ~w ***~n', [File]),
 	cat(File),
 	load_structure(File,
-		       [ RDFElement
-		       ],
+		       XMLTerm,
 		       [ dialect(xmlns)
 		       ]),
+	find_rdf(XMLTerm, RDFElement),
 	xml_to_plrdf(RDFElement, [], RDF),
 	format('============= Prolog term ==============~n', []),
 	pretty_print(RDF),
@@ -71,10 +71,10 @@ time_file(File) :-
 
 rdf_parse(File, Triples) :-
 	load_structure(File,
-		       [ RDFElement
-		       ],
+		       XMLTerm,
 		       [ dialect(xmlns)
 		       ]),
+	find_rdf(XMLTerm, RDFElement),
 	xml_to_plrdf(RDFElement, [], RDF),
 	rdf_triples(RDF, Triples).
 
@@ -203,3 +203,30 @@ is_xml(_XML). % for now
 is_rdf_predicate(RdfPred) :- atom(RdfPred).
 
 is_rdf_type(RdfType) :- atom(RdfType).
+
+		 /*******************************
+		 *	       UTIL		*
+		 *******************************/
+
+%	find_rdf(+XMLTerm, -RDFTerm)
+%
+%	If the document contains an embedded RDF term, return it, else
+%	return the whole document.  The latter is a bit dubious, but good
+%	for the purpose of this test-file
+
+find_rdf(Term, RDFTerm) :-
+	RDFTerm = element(NS:'RDF', _, _),
+	term_member(RDFTerm, Term), !,
+	(   rdf_name_space(NS)
+	->  true
+	;   assert(rdf_parser:rdf_name_space(NS)),
+	    assert(new_rdf_namespace(NS))
+	).
+find_rdf(Term, Term).
+
+term_member(X, X).
+term_member(X, Compound) :-
+	compound(Compound),
+	arg(_, Compound, Arg),
+	term_member(X, Arg).
+
