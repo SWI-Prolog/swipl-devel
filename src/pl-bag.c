@@ -11,6 +11,7 @@
 */
 
 /*#define O_SECURE 1*/
+/*#define O_DEBUG 1*/
 #include "pl-incl.h"
 
 #undef LD
@@ -156,7 +157,9 @@ pl_except_bag(term_t ex)
       freeRecord(a->record);
       next = a->next;
     } else
+    { alist = a->next;
       next = NULL;
+    }
 
     freeHeap(a, sizeof(*a));
   }

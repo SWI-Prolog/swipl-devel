@@ -1,9 +1,16 @@
 			SWI-Prolog ChangeLog
 			====================
 
-  * MAINTAIN: Some improvements to manual generation (Serg Korolyov).
+  * FIXED: Cleanup after exceptions inside the generator of
+    bagof/setof/findall.  Left inconsistent linked-list with possibility
+    for random crashes on further use of these predicates.  Spotted by
+    Laurens van der Meij.
 
-  * ADDED: option lock to open/4.
+  * ADDED: option lock to open/4, providing simple fcntl() based advisory
+    locks on files.  POSIX only (Windows says it is, but appearently this
+    isn't true as they don't have fcntl()).
+
+  * MAINTAIN: Some improvements to manual generation (Serg Korolyov).
 
   * FIXED: expected type in sub_string/5 (Pierre.Nugues)
 

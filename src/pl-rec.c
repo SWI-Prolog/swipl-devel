@@ -143,7 +143,7 @@ typedef struct
 static void
 addOpCode(CompileInfo info, int code)
 { addBuffer(&info->code, code, uchar);
-  DEBUG(1, Sdprintf("Added %d, now %d big\n",
+  DEBUG(9, Sdprintf("Added %d, now %d big\n",
 		    code, sizeOfBuffer(&info->code)));
 }
 
@@ -434,7 +434,7 @@ compileTermToHeap(term_t t, int flags)
   memcpy(addPointer(record, rsize), info.code.base, sizeOfBuffer(&info.code));
   discardBuffer(&info.code);
 
-  DEBUG(1, Sdprintf("--> record at %p\n", record));
+  DEBUG(3, Sdprintf("--> record at %p\n", record));
 
   return record;
 }
@@ -575,7 +575,7 @@ fetchOpCode(CopyInfo b)
 { uchar tag;
 
   fetchBuf(b, &tag, uchar);
-  DEBUG(1, Sdprintf("fetchOpCode() --> %d, (at %d)\n",
+  DEBUG(9, Sdprintf("fetchOpCode() --> %d, (at %d)\n",
 		    tag, b->data-b->base));
   return tag;
 }
@@ -793,7 +793,7 @@ copyRecordToGlobal(term_t copy, Record r ARG_LD)
   Word *p;
   int n;
 
-  DEBUG(1, Sdprintf("PL_recorded(%p)\n", r));
+  DEBUG(3, Sdprintf("PL_recorded(%p)\n", r));
 
   b.base = b.data = dataRecord(r);
   if ( r->nvars > 0 )
@@ -1113,7 +1113,7 @@ freeRecord(Record record)
   if ( false(record, R_EXTERNAL) )
   { copy_info ci;
 
-    DEBUG(1, Sdprintf("PL_recorded(%p)\n", record));
+    DEBUG(3, Sdprintf("freeRecord(%p)\n", record));
 
     ci.base = ci.data = dataRecord(record);
     unregisterAtomsRecord(&ci);
