@@ -2042,7 +2042,7 @@ check_object(Any obj, Bool recursive, HashTable done, int errs)
 	{ errorPce(obj, NAME_freedCellValue,
 		   toInt(i), CtoName(pp(cell->value)));
 	  errs++;
-	} else if ( recursive == ON && isObject(call->value) )
+	} else if ( recursive == ON && isObject(cell->value) )
 	{ if ( !isProperObject(cell->value) )
 	  { errorPce(obj, NAME_badCellCalue,
 		     toInt(i), CtoName(pp(cell->value)));
