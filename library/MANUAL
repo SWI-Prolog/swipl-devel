@@ -434,16 +434,22 @@ now defined on top of this layer instead of the other  way around.  This
 fixes various internal problems and removes Prolog limits  on the number
 of streams.
 
-Progress has been made  to improve ISO compliance:  handling  strings as
-lists of one-character  atoms is now supported (next to  character codes
-as integers).  Many more exceptions have been added  and printing of ex-
-ceptions and messages  is rationalised using Quintus and SICStus  Prolog
-compatible  print_message/2,  message_hook/3 and  print_message_lines/3.
-All  predicates   descriped  in   [Deransart _e_t _a_l_., 1996]  except   for
-char_conversion/2 and current_char_conversion/2are now implemented.
+Much  progress  has been  made  to  improve ISO  compliance:    handling
+strings  as  lists  of  one-character  atoms  is   now  supported  (next
+to  character   codes  as  integers).      Many  more  exceptions   have
+been  added   and  printing  of  exceptions   and  messages  is   ratio-
+nalised  using Quintus  and SICStus  Prolog compatible  print_message/2,
+message_hook/3  and   print_message_lines/3.       All   predicates   de-
+scriped  in [Deransart _e_t _a_l_., 1996]  except  for char_conversion/2  and
+current_char_conversion/2are now implemented.
 
 As of version  3.3, SWI-Prolog adheres the  ISO _l_o_g_i_c_a_l _u_p_d_a_t_e _v_i_e_w  for
 dynamic predicates.  See section 3.13.1 for details.
+
+SWI-Prolog  3.3  includes garbage  collection  on  atoms,  removing  the
+last serious memory  leak especially in text-manipulation  applications.
+See  section 5.6.2.1.    In addition,  both the  user-level and  foreign
+interface supports atoms holding _0_-_b_y_t_e_s.
 
 Finally, an  alpha version of a  multi-threaded SWI-Prolog for Linux  is
 added.    This version  is still  much slower  than the  single-threaded
@@ -4458,9 +4464,7 @@ aattoomm__ccoonnccaatt((_?_A_t_o_m_1_, _?_A_t_o_m_2_, 
     _A_t_o_m_3 forms the concatenationof _A_t_o_m_1 and_A_t_o_m_2.  Atleast two ofthe arguments
     must beinstantiated to atoms,integers orfloating pointnumbers. ForISO compliance,
     the instantiation-pattern -,-, +is allowedtoo, non-deterministically splittingthe 3-th
-    argument into twoparts (as append/3does for lists).Note that, asSWI-Prolog does
-    not yet havean atom-garbagecollector, usingthis polutes theatom-database. See also
-    string_concat/3.
+    argument into twoparts (asappend/3 does forlists). See alsostring_concat/3.
 
 
 ccoonnccaatt__aattoomm((_+_L_i_s_t_, _-_A_t_o_m))
@@ -4498,10 +4502,8 @@ ssuubb__aattoomm((_+_A_t_o_m_, _?_B_e_f_o_r_e_, _?_L_e
 
     A = 1, S = b
 
-    The implementation minimalises non-determinism and creationof atoms.  This isa
-    very flexible predicatethat cando search, prefix-and suffix-matching,etc. Please note
-    however that SWI-Prologdoes notprovide atomgarbage-collection. Non-deterministic
-    usage with unbound_S_u_b onlong atoms polutesthe atom-spaceconsiderably!
+    The implementationminimalises non-determinismand creationof atoms. Thisis avery
+    flexible predicate thatcan dosearch, prefix- andsuffix-matching, etc.
 
 
 33..2222 CCllaassssiiffyyiinngg cchhaarraacctteerrss
@@ -4615,9 +4617,26 @@ SWI-Prologsupports thedata type_s_t_r_i_n_g. Strings area timeand spaceeff
 to handletext text inProlog. Strings are storesas a bytearray on theglobal (term) stack
 and thusdestroyed onbacktracking and reclaimedby thegarbage collector.
 
-Strings asdefined here willbe madeobsolete if SWI-Prologgets an atomgarbage collector.
-Atoms areequally space-efficientand if garbagecollection isdefined they canbe used tofor
-storing temporarydata.
+Strings were addedto SWI-Prolog based on anearly draft of theISO standard, offerring
+a mechanismto represent temporary characterdata efficiently. As SWI-Prolog stringscan
+handle 0-bytes,they are frequently usedthrough the foreign languageinterface (section 5)
+for storingarbitrary byte-sequences.
+
+Starting withversion 3.3,SWI-Prolog offers garbagecollection on theatom-space aswell as
+representing 0-bytesin atoms. Althoughstrings and atomsstill have differentfeatures, new
+code shouldconsider using atoms toavoid too manyrepresentations for textas well as for
+compatibility toother Prologsystems. Below aresome of thedifferences:
+
+  o _c_r_e_a_t_i_o_n
+    Creating strings is fast,as the data issimply copied to theglobal stack. Atoms are
+    unique and thereforemore expensive interms of memoryand time tocreate.  Onthe
+    other hand, if the same texthas to be represented multiple times, atomsare more
+    efficient.
+
+  o _d_e_s_t_r_u_c_t_i_o_n
+    Backtracking destroysatoms atno cost. Theycheap tohandle bythe garbagecollector,
+    but itshould benoted that extensiveuse ofstrings willcause manygarbage collections.
+    Atom garbage collectionis generallyfaster.
 
 See alsothe prolog-flagdouble_quotes.
 
@@ -5567,9 +5586,13 @@ sshheellll((_+_C_o_m_m_a_n_d_, _-_S_t_a_t_u_s))
     (/bin/sh). _S_t_a_t_u_s isunified with theexit statusof the command.
 
     On _W_i_n_3_2 systems, shell/[1,2] executesthe command using the CreateProcess()
-    API and waitsfor thecommand to terminate.If the commandends witha &sign, the
-    command is handed tothe WinExec() API,which does not waitfor the newtask to
-    terminate. See alsowin_exec/2.
+    API and  waits for the command to terminate.  If the command ends with a &
+    sign, the command is handed to the WinExec() API,which does not wait for the
+    new task to terminate.   See also win_exec/2.  Please note that the CreatePro-
+    cess() API doesnnoott implythe Windowscommand interpreter(command.exe on Win-
+    dows 95/98 and cmd.exe onWindows-NT) and therefore commands built-into the
+    command-interpreter can onlybe activatedusing the commandinterpreter. For exam-
+    ple: 'command.exe /C copy file1.txt file2.txt'
 
 
 sshheellll((_+_C_o_m_m_a_n_d))
@@ -6324,39 +6347,42 @@ ssttaattiissttiiccss((_+_K_e_y_, _-_V_a_l_u_e))
     Unify system statisticsdetermined by_K_e_y with _V_a_l_u_e.The possible keysare givenin
     the table 3.2.
    __________________________________________________________________
+   | agc             |Number of atom garbage-collections performed  |
+   | agc_gained      |Number of atoms removed                       |
+   | agc_time        |Time spent in atom garbage-collections        |
    | cputime         |(User) cpu  time since  Prolog was  started in|
    |                 |seconds                                       |
    | inferences      |Total number of  passes via the  call and redo|
    |                 |ports since Prolog was started.               |
+
    | heap            |Estimated  total   size   of  the   heap  (see|
    |                 |section 2.16.1.1)                             |
    | heapused        |Bytes heap in use by Prolog.                  |
-
    | heaplimit       |Maximum   size   of   the   heap   (see   sec-|
    |                 |tion 2.16.1.1)                                |
    | local           |Allocated size of the local stack in bytes.   |
    | localused       |Number of bytes in use on the local stack.    |
+
    | locallimit      |Size to  which the  local stack  is allowed to|
    |                 |grow                                          |
    | global          |Allocated size of the global stack in bytes.  |
-
    | globalused      |Number of bytes in use on the global stack.   |
    | globallimit     |Size to which  the global stack  is allowed to|
    |                 |grow                                          |
    | trail           |Allocated size of the trail stack in bytes.   |
    | trailused       |Number of bytes in use on the trail stack.    |
+
    | traillimit      |Size to  which the  trail stack  is allowed to|
    |                 |grow                                          |
    | atoms           |Total number of defined atoms.                |
-
    | functors        |Total number of defined name/arity pairs.     |
    | predicates      |Total number of predicate definitions.        |
    | modules         |Total number of module definitions.           |
    | codes           |Total amount of byte codes in all clauses.    |
+
    | threads         |MT-version:  number of active threads         |
    | threads_created |MT-version:  number of created threads        |
    | threads_cputime |MT-version:  seconds CPU time used by finished|
-
    |_________________|threads_______________________________________|_
 
                    Table 3.2:  Keys for statistics/2
