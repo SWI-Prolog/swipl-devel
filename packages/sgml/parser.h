@@ -96,6 +96,14 @@ typedef struct _sgml_environment
 } sgml_environment;
 
 
+typedef struct _dtd_srcloc
+{ const char *file;			/* name of the file */
+  int	      line;			/* 1-based Line no */
+  int	      linepos;			/* 1-based char  */
+  int	      charpos;			/* 0-based file char  */
+} dtd_srcloc;
+
+
 typedef struct _dtd_parser
 { long     magic;			/* SGML_PARSER_MAGIC */
   dtd     *dtd;				/* DTD we are building */
@@ -118,8 +126,8 @@ typedef struct _dtd_parser
   int	   utf8_left;			/* bytes left */
   dtdstate saved_state;			/* state from which we come */
 #endif
-  int	   line;			/* line number */
-  const char *file;			/* name of the file */
+  dtd_srcloc	location;		/* Current location */
+  dtd_srcloc	startloc;		/* Start of last point */
 
   void *closure;			/* client handle */
   sgml_begin_element_f	on_begin_element; /* start an element */
@@ -131,11 +139,3 @@ typedef struct _dtd_parser
 
 
 #endif /*SGML_PARSER_H_INCLUDED*/
-
-
-
-
-
-
-
-

@@ -25,7 +25,8 @@ typedef enum
 
   ERR_FAIL,				/* term_t goal */
 
-  ERR_LIMIT				/* char *limit, long max */
+  ERR_LIMIT,				/* char *limit, long max */
+  ERR_MISC				/* char *fmt, ... */
 } plerrorid;
 
 int		pl_error(plerrorid, ...);

@@ -16,6 +16,7 @@
 #include "error.h"
 #include <assert.h>
 #include <string.h>
+#include <stdio.h>
 
 int
 pl_error(plerrorid id, ...)
@@ -23,6 +24,7 @@ pl_error(plerrorid id, ...)
   term_t formal = PL_new_term_ref();
   term_t swi	= PL_new_term_ref();
   va_list args;
+  char msgbuf[1024];
   char *msg = NULL;
 
   va_start(args, id);
@@ -120,6 +122,18 @@ pl_error(plerrorid id, ...)
 		    PL_CHARS, limit,
 		    PL_INTEGER, maxval);
 
+      break;
+    }
+    case ERR_MISC:
+    { const char *id = va_arg(args, const char *);
+      const char *fmt = va_arg(args, const char *);
+
+      vsprintf(msgbuf, fmt, args);
+      msg = msgbuf;
+      
+      PL_unify_term(formal,
+		    PL_FUNCTOR_CHARS, "miscellaneous", 1,
+		      PL_CHARS, id);
       break;
     }
     default:

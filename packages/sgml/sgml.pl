@@ -23,9 +23,13 @@
 
 	    new_dtd/2,			% +Doctype, -DTD
 	    free_dtd/1,			% +DTD
+	    open_dtd/3,			% +DTD, +Options, -Stream
+
 	    new_sgml_parser/2,		% -Parser, +Options
 	    free_sgml_parser/1,		% +Parser
-	    sgml_open/3			% +DTD|Parser, +Options, -OutStream
+	    set_sgml_parser/2,		% +Parser, +Options
+	    get_sgml_parser/2,		% +Parser, +Options
+	    sgml_parse/2		% +Parser, +Options
 	  ]).
 
 :- multifile user:file_search_path/2.
@@ -59,7 +63,7 @@ dtd(Type, DTD) :-
 	asserta(current_dtd(Type, DTD)).
 
 load_dtd(DTD, DtdFile) :-
-	sgml_open(DTD, [], DtdOut),
+	open_dtd(DTD, [], DtdOut),
 	open(DtdFile, read, DtdIn),
 	copy_stream_data(DtdIn, DtdOut),
 	close(DtdIn),
@@ -141,14 +145,12 @@ load_structure(File, Term, Options) :-
 			]),
 	set_sgml_parser(Parser, file(File)),
 	set_parser_options(Parser, Options2, Options3),
-	sgml_open(Parser,
+	sgml_parse(Parser,
 		  [ document(Term),
-		    goal(copy_stream_data(In, Out))
+		    source(In)
 		  | Options3
-		  ],
-		  Out),
+		  ]),
 	close(In),
-	close(Out),
 	(   ExplicitDTD == true
 	->  (   DTD = dtd(_, DocType),
 	        dtd_property(DTD, doctype(DocType))

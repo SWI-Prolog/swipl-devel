@@ -9,7 +9,7 @@
 
 \renewcommand{\runningtitle}{SWI-Prolog SGML/XML parser}
 
-\newcommand{\anyml}{$\cal X$ML}
+\newcommand{\anyml}{{\cal X}ML}
 \newcommand{\elem}[1]{{\tt\string<#1\string>}}
 
 \begin{document}
@@ -302,16 +302,20 @@ is invalid.
 
     \predicate{load_dtd}{1}{+DTD, +File}
 Define the DTD by loading the SGML-DTD file \arg{File}.  This predicate
-is defined using the low-level sgml_open/2 predicate:
+is defined using the low-level open_dtd/3 predicate:
 
 \begin{code}
 load_dtd(DTD, DtdFile) :-
-	sgml_open(DTD, [], DtdOut),
+	open_dtd(DTD, [], DtdOut),
 	open(DtdFile, read, DtdIn),
 	copy_stream_data(DtdIn, DtdOut),
 	close(DtdIn),
 	close(DtdOut).
 \end{code}
+
+    \predicate{open_dtd}{3}{+DTD, +Options, -OutStream}
+Open either a DTD as an output stream.  The option-list is currently empty.
+See load_dtd/2 for an example.
 
     \predicate{dtd}{2}{+DocType, -DTD}
 Find the DTD representing the indicated \jargon{doctype}. This predicate
@@ -427,49 +431,248 @@ elements_in_xml_document(File, Elements) :-
 \end{code}
 
 
-\subsection{Primitives}
+\subsection{Parsing Primitives}
 
 \begin{description}
-    \predicate{sgml_open}{2}{+DTDOrParser, +Options, -OutStream}
-Open either a DTD or an SGML parser as an output stream.  For a DTD,
-the option-list is currently empty.
+    \predicate{new_sgml_parser}{2}{-Parser, +Options}
+Creates a new parser.  A parser can be used one or multiple times for
+parsing documents or parts thereof.  It may be bound to a DTD or the
+DTD may be left implicit, in which case it is created from the
+document prologue or parsing is performed without a DTD.  Options:
 
-Opening a parser is a bit unconventional as we aim at returning a Prolog
-structure representing the document (see load_sgml_file/[2,3]), but we
-cannot pass the term-reference of the requested document as
-term-references do not survive over foreign language calls. Hence,
-copying the data to be parsed should happen in the \term{goal}{Goal}
-argument. We provide the implementation of load_sgml_file/2 for
-reference:
+\begin{description}
+    \termitem{dtd}{?DTD}
+If specified with an initialised DTD, this DTD is used for parsing the
+document, regardless of the document prologue.  If specified using as
+a variable, a reference to the created DTD is returned.  This DTD may
+be created from the document prologue or build implicitely from the
+document's content.
+\end{description}
 
-\begin{code}
-load_sgml_file(File, Term) :-
-	open(File, read, SgmlIn),
-	new_sgml_parser(Parser, [dtd(DTD)]),
-	sgml_open(Parser,
-		  [ document(Term),
-		    goal(copy_stream_data(SgmlIn, SgmlOut))
-		  ],
-		  SgmlOut),
-	close(SgmlIn),
-	close(SgmlOut),
-	free_dtd(DTD).
-\end{code}
+    \predicate{free_sgml_parser}{2}{+Parser}
+Destroy all resources related to the parser.  This does not destroy
+the DTD if the parser was created using the \term{dtd}{DTD} option.
+
+    \predicate{set_sgml_parser}{2}{+Parser, +Option}
+Sets attributes to the parser.  Currently defined attributes:
+\begin{description}
+    \termitem{file}{File}
+Sets the file for reporting errors and warnings.  Sets the line
+to 1.
+    \termitem{line}{Line}
+Sets the current line.  Useful if the stream is not at the start of
+the (file) object for generating proper line-numbers.
+    \termitem{dialect}{SGMLorXML}
+Sets the markup dialect.  Default is SGML, but switched automatically
+to XML if the file starts with \verb$<?xml ...>$.  See \secref{xml}.
+\end{description}
+
+    \predicate{get_sgml_parser}{2}{+Parser, -Option}
+Retrieve infomation on the current status of the parser.  Notably useful
+if the parser is used in the call-back mode.  Currently defined options:
+\begin{description}
+    \termitem{file}{-File}
+Current file-name.  Note that this may be different from the provided
+file if an external entity is being loaded.
+    \termitem{charpos}{-CharPos}
+Offset from where the parser started its processing in the file-object.
+See \secref{indexaccess}.
+    \termitem{source}{-Stream}
+Prolog stream being processed.  May be used in the \const{on_begin},
+etc.\ callbacks from sgml_parse/2.
+\end{description}
+
+    \predicate{sgml_parse}{2}{+Parser, +Options}
+Parse an \anyml{} file.  The parser can operate in two input and two
+output modes.  Output is either a structured term as described with
+load_structure/2 or call-backs on predefined events.  The first is
+especially suitable for manipulating not-too-large documents, while
+the latter provides a primitive means for handling very large
+documents.
+
+Input is either a stream or an goal that pushes characters into the
+parser.	 A full description of the option-list is below.
 
 \begin{description}
     \termitem{document}{+Term}
 A variable that will be unified with a list describing the content of
-the document (see load_sgml_file/2).
+the document (see load_structure/2).
+    \termitem{source}{+Stream}
+An input stream that is read. Either this option or the
+\term{goal}{Goal} option must be provided.
     \termitem{goal}{+Goal}
-\arg{Goal} is a callable term that should copy the input to the parser.
-The provided output stream is flushed automatically on completion of
-\arg{Goal}.
+\arg{Goal} is a callable term.  The predicate sgml_parse/2 opens an
+output stream to the parser and invokes \term{call}{Goal, Stream},
+where \arg{Goal} should write the data to be parsed to \arg{Stream}.
+This option is not compatible to \term{parse}{element}.  This option
+can be used for example to parse a Prolog atom:
+
+\begin{code}
+parse_atom(Atom, Term) :-
+	new_sgml_parser(Parser, []),
+	sgml_parse(Parser,
+		   [ document(Term),
+		     goal(provide_atom(Atom))
+		   ]),
+	free_sgml_parser(Parser).
+
+provide_atom(Atom, ParserStream) :-
+	write(ParserStream, Atom).
+\end{code}
+
+For example:
+
+\begin{code}
+?- parse_atom('<h1>hello world</h1>', X).
+
+X = [element(h1, [], ['hello world'])] 
+\end{code}
+    \termitem{parse}{Unit}
+If \const{file} (default), parse everything upto the end of the input.
+If \const{element}, the parser will stop after reading the first
+element.  Using \term{source}{Stream}, this implies reading is stopped
+as soon as the element is complete, and another call may be issued on
+the same stream to read the next element.  Using \term{goal}{Goal} as
+input, the stream reports an I/O error after completing the first
+element.  This exception destroyes the built \term{dcoument}{Term},
+making this option useless using `Goal' driven input.
+The value \const{content} may be used in a call-back from
+\term{call}{\const{on_begin}, Pred} to parse individual elements after
+validating their headers.
     \termitem{max_errors}{+MaxErrors}
 Set the maximum number of errors.  If this number is exceeded further
 writes to the stream will yield an I/O error exception.  Printing of
 errors is suppressed after reaching this value.  The default is 100.
+    \termitem{call}{+Event, :PredicateName}
+Issue call-backs on the specified events.  \arg{PredicateName} is the
+name of the predicate to call on this event, possibly prefixed with a
+module identifier.  The defined events are:
+
+\begin{description}
+    \termitem{begin}{}
+An open-tag has been parsed.  The named handler is called with three
+arguments: \term{\arg{Handler}}{+Tag, +Attributes, +Parser}.
+    \termitem{end}{}
+A close-tag has been parsed.  The named handler is called with two
+arguments: \term{\arg{Handler}}{+Tag, +Parser}.
+    \termitem{cdata}{}
+CDATA has been parsed.  The named handler is called with two
+arguments: \term{\arg{Handler}}{+CDATA, +Parser}, where CDATA is
+an atom representing the data.
+    \termitem{entity}{}
+An entity that cannot be represented as CDATA has been parsed. The named
+handler is called with two arguments:
+\term{\arg{Handler}}{+NameOrCode, +Parser}.
 \end{description}
 \end{description}
+\end{description}
+
+
+\subsubsection{Partial Parsing}
+
+In some cases, part of a document needs to be parsed. One option is to
+use load_structure/2 or one of its variations and extract the desired
+elements from the returned structure. This is a clean solution,
+especially on small and medium-sized documents. It however is unsuitable
+for parsing really big documents.  Such documents can only be handled
+with the call-back output interface realised by the
+\term{call}{Event, Action} option of sgml_parse/2.  Event-driven
+processing is not very natural in Prolog.
+
+The SGML2PL library allows for a mixed approach.  Consider the case
+where we want to process all descriptions from RDF elements in a
+document.  The code below calls process_rdf_description/1 on any
+element that is directly inside an RDF element.
+
+\begin{code}
+:- dynamic
+	in_rdf/0.
+
+load_rdf(File) :-
+	retractall(in_rdf),
+	open(File, read, In),
+	new_sgml_parser(Parser, []),
+	set_sgml_parser(Parser, file(File)),
+	set_sgml_parser(Parser, dialect(xml)),
+	sgml_parse(Parser,
+		   [ source(In),
+		     call(begin, on_begin),
+		     call(end, on_end)
+		   ]),
+	close(In).
+
+on_end('RDF', _) :-
+	retractall(in_rdf).
+
+on_begin('RDF', _, _) :-
+	assert(in_rdf).
+on_begin(Tag, Attr, Parser) :-
+	in_rdf, !,
+	sgml_parse(Parser,
+		   [ document(Content),
+		     parse(content)
+		   ]),
+	process_rdf_description(element(Tag, Attr, Content)).
+\end{code}
+
+
+\section{Processing Indexed Files}	\label{sec:indexaccess}
+
+In some cases applications which to process small portions of large
+SGML, XML or RDF files.  For example, the {\em OpenDirectory} project
+by Netscape has produced a 90MB RDF file representing the main index.
+The parser described here can process this document as a unit, but
+loading takes 85 seconds on a Pentium-II 450 and the resulting term
+requires about 70MB global stack.  One option is to process
+the entire document and output it as a Prolog fact-based of RDF
+tripplets, but in many cases this is undesirable.  Another example
+is a large SGML file containing online documentation.  The application
+normally wishes to provide only small portions at a time to the user.
+Loading the entire document into memory is then undesirable.
+
+Using the \term{parse}{element} option, we open a file, seek (using
+seek/4) to the position of the element and read the desired element.
+
+The index can be built using the call-back interface of
+sgml_parse/2.  For example, the following code makes an index of
+the \file{structure.rdf} file of the OpenDirectory projects:
+
+
+\begin{code}
+:- dynamic
+	location/3.			% Id, File, Offset
+
+rdf_index(File) :-
+	retractall(location(_,_)),
+	open(File, read, In, [type(binary)]),
+	new_sgml_parser(Parser, []),
+	set_sgml_parser(Parser, file(File)),
+	set_sgml_parser(Parser, dialect(xml)),
+	sgml_parse(Parser,
+		   [ source(In),
+		     call(begin, index_on_begin)
+		   ]),
+	close(In).
+
+index_on_begin(_Element, Attributes, Parser) :-
+	memberchk('r:id'=Id, Attributes),
+	get_sgml_parser(Parser, charpos(Offset)),
+	get_sgml_parser(Parser, file(File)),
+	assert(location(Id, File, Offset)).
+\end{code}
+
+
+The following code extracts the RDF element with required id:
+
+\begin{code}
+rdf_element(Id, Term) :-
+	location(Id, File, Offset),
+	load_structure(File, Term,
+		       [ dialect(xml),
+			 offset(Offset),
+			 parse(element)
+		       ]).
+\end{code}
 
 
 \section{Installation}
@@ -494,4 +697,5 @@ the Prolog library files in \file{$PLBASE/library}, where
 \file{$PLBASE} refers to the SWI-Prolog `home-directory'.
 
 \end{document}
+
 

@@ -308,6 +308,7 @@ typedef struct _dtd
   dtd_charclass	       *charclass;	/* ichar -> CH_-mask */
   dtd_charmap	       *charmap;	/* ichar ->ochar */
   dtd_char_encoding	encoding;	/* document encoding */
+  int			references;	/* destruction reference count */
 } dtd;
 
 extern dtd_charfunc *new_charfunc(void);   /* default classification */
@@ -342,6 +343,7 @@ int		set_dialect_dtd(dtd *dtd, dtd_dialect dialect);
 void		putchar_dtd_parser(dtd_parser *p, int chr);
 int		begin_document_dtd_parser(dtd_parser *p);
 int		end_document_dtd_parser(dtd_parser *p);
+void		set_file_dtd_parser(dtd_parser *p, const char *file);
 #endif /*DTD_IMPLEMENTATION*/
 
 

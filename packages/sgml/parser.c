@@ -683,19 +683,21 @@ new_dtd(const ichar *doctype)
 
 void
 free_dtd(dtd *dtd)
-{ if ( dtd->doctype )
-    free(dtd->doctype);
+{ if ( --dtd->references <= 0 )
+  { if ( dtd->doctype )
+      free(dtd->doctype);
   
-  free_entity_list(dtd->entities);
-  free_entity_list(dtd->pentities);
-  free_elements(dtd->elements);
-  free_symbol_table(dtd->symbols);
-  free(dtd->charfunc);
-  free(dtd->charclass);
-  free(dtd->charmap);
-  dtd->magic = 0;
-
-  free(dtd);
+    free_entity_list(dtd->entities);
+    free_entity_list(dtd->pentities);
+    free_elements(dtd->elements);
+    free_symbol_table(dtd->symbols);
+    free(dtd->charfunc);
+    free(dtd->charclass);
+    free(dtd->charmap);
+    dtd->magic = 0;
+  
+    free(dtd);
+  }
 }
 
 
@@ -1900,10 +1902,22 @@ process_declaration(dtd_parser *p, const ichar *decl)
 
 static dtd_parser *current_parser;	/* For gripes */
 
+void
+set_file_dtd_parser(dtd_parser *p, const char *file)
+{ p->location.file    = file;
+  p->location.line    = 1;
+  p->location.linepos = 1;
+  p->location.charpos = 0;
+}
+
 dtd_parser *
 new_dtd_parser(dtd *dtd)
 { dtd_parser *p = calloc(1, sizeof(*p));
   
+  if ( !dtd )
+    dtd = new_dtd(NULL);
+  dtd->references++;
+
   p->magic      = SGML_PARSER_MAGIC;
   p->dtd	= dtd;
   p->state	= S_PCDATA;
@@ -1912,7 +1926,7 @@ new_dtd_parser(dtd *dtd)
   p->encoding	= ENC_ISO_LATIN1;
   p->buffer	= new_icharbuf();
   p->cdata	= new_ocharbuf();
-  p->line	= 1;
+  set_file_dtd_parser(p, NULL);
 
   return p;
 }
@@ -1923,6 +1937,7 @@ clone_dtd_parser(dtd_parser *p)
 { dtd_parser *clone = calloc(1, sizeof(*p));
   
   *clone = *p;
+  clone->dtd->references++;
   clone->environments =	NULL;
   clone->marked	      =	NULL;
   clone->etag	      =	NULL;
@@ -1932,7 +1947,6 @@ clone_dtd_parser(dtd_parser *p)
   clone->dmode	      =	DM_DTD;
   clone->buffer	      =	new_icharbuf();
   clone->cdata	      =	new_ocharbuf();
-  clone->line	      =	1;
 
   return clone;
 }
@@ -1942,6 +1956,8 @@ void
 free_dtd_parser(dtd_parser *p)
 { free_icharbuf(p->buffer);
   free_ocharbuf(p->cdata);
+
+  free_dtd(p->dtd);
 
   free(p);
 }
@@ -1968,16 +1984,13 @@ process_include(dtd_parser *p, const ichar *entity_name)
 
 static int
 process_chars(dtd_parser *p, const ichar *name, const ichar *s)
-{ const ichar *oldfile = p->file;
-  int   oldline  = p->line;
-
-  p->file = (char *)name;
-  p->line = 1;
+{ dtd_srcloc old = p->location;
+  
+  set_file_dtd_parser(p, (char *)name);
   empty_icharbuf(p->buffer);		/* dubious */
   for(; *s; s++)
     putchar_dtd_parser(p, *s);
-  p->file = oldfile;
-  p->line = oldline;
+  p->location = old;
 
   return TRUE;
 }
@@ -2112,8 +2125,6 @@ process_entity(dtd_parser *p, const ichar *name)
     if ( (id=dtd_find_symbol(dtd, name)) && (e=id->entity) )
     { const ichar *text = entity_value(dtd, e);
       const ichar *s;
-      const ichar *oldfile = p->file;
-      int   oldline  = p->line;
       int   chr;
 
       if ( !text )
@@ -2131,13 +2142,13 @@ process_entity(dtd_parser *p, const ichar *name)
 	    return gripe(ERC_REPRESENTATION, "character");
 	}
       } else
-      { p->file = (char *)name;			/* TBD: derefed file */
-	p->line = 1;
+      { dtd_srcloc oldloc = p->location;
+
+	set_file_dtd_parser(p, (char *)name);
 	empty_icharbuf(p->buffer);		/* dubious */
 	for(s=text; *s; s++)
 	  putchar_dtd_parser(p, *s);
-	p->file = oldfile;
-	p->line = oldline;
+	p->location = oldloc;
       }
 
       return TRUE;
@@ -2263,26 +2274,35 @@ putchar_dtd_parser(dtd_parser *p, int chr)
 { dtd *dtd = p->dtd;
   const ichar *f = dtd->charfunc->func;
   ichar prev = p->previous_char;
+  dtd_srcloc old = p->location;
 
   p->previous_char = chr;
 
   if ( f[CF_RS] == chr )
-    p->line++;
+  { p->location.line++;
+    p->location.linepos = 0;
+  }
+  p->location.linepos++;
+  p->location.charpos++;
 
   switch(p->state)
   { case S_PCDATA:
     { if ( f[CF_MDO1] == chr )		/* < */
-      { p->state = S_DECL;
+      { p->startloc = old;
+	p->state = S_DECL;
+	empty_icharbuf(p->buffer);	/* make sure */
 	return;
       }
       if ( p->dmode == DM_DTD )
       { if ( f[CF_PERO] == chr )	/* % */
-	{ p->state = S_PENT;
+	{ p->startloc = old;
+	  p->state = S_PENT;
 	  return;
 	}
       } else
       { if ( f[CF_ERO] == chr )		/* & */
-	{ p->state = S_ENT;
+	{ p->startloc = old;
+	  p->state = S_ENT;
 	  p->saved = chr;		/* for recovery */
 	  return;
 	}
@@ -2492,14 +2512,12 @@ load_dtd_from_file(dtd_parser *p, const char *file)
   int rval;
   data_mode   oldmode  = p->dmode;
   dtdstate    oldstate = p->state;
-  const char* oldfile  = p->file;
-  int         oldline  = p->line;
+  dtd_srcloc  oldloc   = p->location;
 
   p->dmode = DM_DTD;
   p->state = S_PCDATA;
   empty_icharbuf(p->buffer);		/* dubious */
-  p->file = file;
-  p->line = 1;
+  set_file_dtd_parser(p, file);
 
   if ( (fd = fopen(file, "rb")) )
   { int chr;
@@ -2512,8 +2530,7 @@ load_dtd_from_file(dtd_parser *p, const char *file)
   } else
     rval = FALSE;
 
-  p->line  = oldline;
-  p->file  = oldfile;
+  p->location = oldloc;
   p->dmode = oldmode;
   p->state = oldstate;
 
@@ -2541,11 +2558,10 @@ file_to_dtd(const char *file, const char *doctype)
 int
 sgml_process_file(dtd_parser *p, const char *file)
 { FILE *fd;
-
   int rval;
+  dtd_srcloc oldloc = p->location;
 
-  p->file  = file;
-  p->line  = 1;
+  set_file_dtd_parser(p, file);
   p->dmode = DM_SGML;
   p->state = S_PCDATA;
 
@@ -2559,8 +2575,7 @@ sgml_process_file(dtd_parser *p, const char *file)
   } else
     rval = FALSE;
 
-  p->file = NULL;
-  p->line = 1;
+  p->location = oldloc;
 
   return rval;
 }
@@ -2632,8 +2647,8 @@ gripe(dtd_error_id e, ...)
   memset(&error, 0, sizeof(error));
 
   if ( current_parser )
-  { error.file = current_parser->file;
-    error.line = current_parser->line;
+  { error.file = current_parser->startloc.file;
+    error.line = current_parser->startloc.line;
     if ( current_parser->dmode == DM_DTD )
       dtdmode = TRUE;
   } else
@@ -2649,11 +2664,14 @@ gripe(dtd_error_id e, ...)
       break;
     case ERC_SYNTAX_ERROR:
     case ERC_SYNTAX_WARNING:
-    { const char *m = va_arg(args, const char *);
+    { char *m = va_arg(args, char *);
       const char *s = va_arg(args, const char *);
 
-      sprintf(buf, "%s, found \"%s\"", m, str_summary(s, 25));
-      error.argv[0] = buf;
+      if ( s && *s )
+      { sprintf(buf, "%s, found \"%s\"", m, str_summary(s, 25));
+	error.argv[0] = buf;
+      } else
+	error.argv[0] = m;
       
       error.severity = (e == ERC_SYNTAX_WARNING ? ERS_WARNING : ERS_ERROR);
       e = ERC_SYNTAX_ERROR;

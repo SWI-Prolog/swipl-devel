@@ -23,6 +23,55 @@
 #define MAX_ERRORS	50
 #define MAX_WARNINGS	50
 
+		 /*******************************
+		 *     PARSER CONTEXT DATA	*
+		 *******************************/
+
+#define PD_MAGIC	0x36472ba1	/* just a number */
+
+typedef enum
+{ SA_FILE = 0,				/* Stop at end-of-file */
+  SA_ELEMENT,				/* Stop after first element */
+  SA_CONTENT				/* Stop after close */
+} stopat;
+
+
+typedef struct _env
+{ term_t	tail;
+  struct _env *parent;
+} env;
+
+
+typedef struct _parser_data
+{ int	      magic;			/* PD_MAGIC */
+  dtd_parser *parser;			/* parser itself */
+
+  int	      warnings;			/* #warnings seen */
+  int	      errors;			/* #errors seen */
+  int	      max_errors;		/* error limit */
+  int	      max_warnings;		/* warning limit */
+
+  predicate_t on_begin;			/* begin element */
+  predicate_t on_end;			/* end element */
+  predicate_t on_cdata;			/* cdata */
+  predicate_t on_entity;		/* entity */
+
+  stopat      stopat;			/* Where to stop */
+  int	      stopped;			/* Environment is complete */
+
+  IOSTREAM*   source;			/* Where we are reading from */
+
+  term_t      list;			/* output term (if any) */
+  term_t      tail;			/* tail of the list */
+  env 	     *stack;			/* environment stack */
+  int	      free_on_close;		/* free parser on close */
+} parser_data;
+
+
+		 /*******************************
+		 *	      CONSTANTS		*
+		 *******************************/
+
 static functor_t FUNCTOR_and2;
 static functor_t FUNCTOR_bar2;
 static functor_t FUNCTOR_comma2;
@@ -48,6 +97,9 @@ static functor_t FUNCTOR_plus1;
 static functor_t FUNCTOR_rep1;
 static functor_t FUNCTOR_sgml_parser1;
 static functor_t FUNCTOR_parse1;
+static functor_t FUNCTOR_source1;
+static functor_t FUNCTOR_call2;
+static functor_t FUNCTOR_charpos1;
 
 static atom_t ATOM_sgml;
 static atom_t ATOM_dtd;
@@ -86,6 +138,9 @@ initConstants()
   FUNCTOR_dialect1     = mkfunctor("dialect", 1);
   FUNCTOR_max_errors1  = mkfunctor("max_errors", 1);
   FUNCTOR_parse1       = mkfunctor("parse", 1);
+  FUNCTOR_source1      = mkfunctor("source", 1);
+  FUNCTOR_call2	       = mkfunctor("call", 2);
+  FUNCTOR_charpos1     = mkfunctor("charpos", 1);
 
   ATOM_dtd  = PL_new_atom("dtd");
   ATOM_sgml = PL_new_atom("sgml");
@@ -181,6 +236,7 @@ pl_new_sgml_parser(term_t ref, term_t options)
 
       if ( PL_is_variable(tmp) )	/* dtd(X) */
       { dtd = new_dtd(NULL);		/* no known doctype */
+	dtd->references++;
 	unify_dtd(tmp, dtd);
       } else if ( !get_dtd(tmp, &dtd) )
 	return FALSE;
@@ -189,8 +245,6 @@ pl_new_sgml_parser(term_t ref, term_t options)
   if ( !PL_get_nil(tail) )
     return pl_error(ERR_TYPE, "list", tail);
 
-  if ( !dtd )
-    dtd = new_dtd(NULL);
   p = new_dtd_parser(dtd);
 
   return unify_parser(ref, p);
@@ -220,6 +274,8 @@ pl_new_dtd(term_t doctype, term_t ref)
 
   if ( !(dtd=new_dtd(dt)) )
     return FALSE;
+
+  dtd->references++;
 
   return unify_dtd(ref, dtd);
 }
@@ -251,16 +307,17 @@ pl_set_sgml_parser(term_t parser, term_t option)
 
   if ( PL_is_functor(option, FUNCTOR_file1) )
   { term_t a = PL_new_term_ref();
+    char *file;
 
     PL_get_arg(1, option, a);
-    if ( !PL_get_atom_chars(a, (char **)&p->file) )
+    if ( !PL_get_atom_chars(a, &file) )
       return pl_error(ERR_TYPE, "atom", a);
-    p->line = 1;
+    set_file_dtd_parser(p, file);
   } else if ( PL_is_functor(option, FUNCTOR_line1) )
   { term_t a = PL_new_term_ref();
 
     PL_get_arg(1, option, a);
-    if ( !PL_get_integer(a, &p->line) )
+    if ( !PL_get_integer(a, &p->location.line) )
       return pl_error(ERR_TYPE, "integer", a);
   } else if ( PL_is_functor(option, FUNCTOR_dialect1) )
   { term_t a = PL_new_term_ref();
@@ -282,36 +339,40 @@ pl_set_sgml_parser(term_t parser, term_t option)
   return TRUE;
 }
 
-		 /*******************************
-		 *	       STREAM		*
-		 *******************************/
 
-typedef enum
-{ SA_FILE = 0,				/* Stop at end-of-file */
-  SA_ELEMENT				/* Stop after first element */
-} stopat;
+static foreign_t
+pl_get_sgml_parser(term_t parser, term_t option)
+{ dtd_parser *p;
 
-typedef struct _env
-{ term_t	tail;
-  struct _env *parent;
-} env;
+  if ( !get_parser(parser, &p) )
+    return FALSE;
 
-typedef struct _parser_data
-{ dtd_parser *parser;			/* parser itself */
+  if ( PL_is_functor(option, FUNCTOR_charpos1) )
+  { term_t a = PL_new_term_ref();
 
-  int	      warnings;			/* #warnings seen */
-  int	      errors;			/* #errors seen */
-  int	      max_errors;		/* error limit */
-  int	      max_warnings;		/* warning limit */
+    PL_get_arg(1, option, a);
+    return PL_unify_integer(a, p->startloc.charpos);
+  } else if ( PL_is_functor(option, FUNCTOR_file1) )
+  { if ( p->startloc.file )
+    { term_t a = PL_new_term_ref();
 
-  stopat      stopat;			/* Where to stop */
-  int	      stopped;			/* Environment is complete */
+      PL_get_arg(1, option, a);
+      return PL_unify_atom_chars(a, p->startloc.file);
+    }
+  } else if ( PL_is_functor(option, FUNCTOR_source1) )
+  { parser_data *pd = p->closure;
 
-  term_t      list;			/* output term (if any) */
-  term_t      tail;			/* tail of the list */
-  env 	     *stack;			/* environment stack */
-  int	      free_on_close;		/* free parser on close */
-} parser_data;
+    if ( pd && pd->magic == PD_MAGIC && pd->source )
+    { term_t a = PL_new_term_ref();
+
+      PL_get_arg(1, option, a);
+      return PL_unify_stream(a, pd->source);
+    }
+  } else
+    return pl_error(ERR_DOMAIN, "parser_option", option);
+
+  return FALSE;
+}
 
 
 static int
@@ -353,10 +414,13 @@ unify_attribute_list(term_t alist, int argc, sgml_attribute *argv)
 
 
 static int
-print_open(dtd_parser *p, dtd_element *e, int argc, sgml_attribute *argv)
+on_begin(dtd_parser *p, dtd_element *e, int argc, sgml_attribute *argv)
 { parser_data *pd = p->closure;
 
-  if ( pd->tail && !pd->stopped )
+  if ( pd->stopped )
+    return TRUE;
+
+  if ( pd->tail )
   { term_t content = PL_new_term_ref();	/* element content */
     term_t alist   = PL_new_term_ref();	/* attribute list */
     term_t et	   = PL_new_term_ref();	/* element structure */
@@ -377,22 +441,44 @@ print_open(dtd_parser *p, dtd_element *e, int argc, sgml_attribute *argv)
 
       pd->tail = content;
       PL_reset_term_refs(alist);
-
-      return TRUE;
     }
+
+    return TRUE;
   }
 
-  return FALSE;
+  if ( pd->on_begin )
+  { fid_t fid = PL_open_foreign_frame();
+    term_t av = PL_new_term_refs(3);
+
+    PL_put_atom_chars(av+0, e->name->name);
+    unify_attribute_list(av+1, argc, argv);
+    unify_parser(av+2, p);
+
+    PL_call_predicate(NULL, PL_Q_NORMAL, pd->on_begin, av);
+    PL_discard_foreign_frame(fid);
+  }
+
+  return TRUE;
 }
 
 
 static int
-print_close(dtd_parser *p, dtd_element *e)
+on_end(dtd_parser *p, dtd_element *e)
 { parser_data *pd = p->closure;
-  int rval = FALSE;
+
+  if ( pd->on_end )
+  { fid_t fid = PL_open_foreign_frame();
+    term_t av = PL_new_term_refs(2);
+
+    PL_put_atom_chars(av+0, e->name->name);
+    unify_parser(av+1, p);
+
+    PL_call_predicate(NULL, PL_Q_NORMAL, pd->on_end, av);
+    PL_discard_foreign_frame(fid);
+  }
 
   if ( pd->tail && !pd->stopped )
-  { rval = PL_unify_nil(pd->tail);
+  { PL_unify_nil(pd->tail);
     PL_reset_term_refs(pd->tail);	/* ? */
 
     if ( pd->stack )
@@ -404,46 +490,71 @@ print_close(dtd_parser *p, dtd_element *e)
 
       if ( !parent && pd->stopat == SA_ELEMENT )
 	pd->stopped = TRUE;
+    } else
+    { if ( pd->stopat == SA_CONTENT )
+	pd->stopped = TRUE;
     }
   }
 
-  return rval;
+  return TRUE;
 }
 
 
 static int
-print_entity(dtd_parser *p, dtd_entity *e, int chr)
+on_entity(dtd_parser *p, dtd_entity *e, int chr)
 { parser_data *pd = p->closure;
+
+  if ( pd->on_entity )
+  { fid_t fid = PL_open_foreign_frame();
+    term_t av = PL_new_term_refs(2);
+
+    if ( e )
+      PL_put_atom_chars(av+0, e->name->name);
+    else
+      PL_put_integer(av+0, chr);
+
+    unify_parser(av+1, p);
+
+    PL_call_predicate(NULL, PL_Q_NORMAL, pd->on_end, av);
+    PL_discard_foreign_frame(fid);
+  }
 
   if ( pd->tail && !pd->stopped )
   { term_t h = PL_new_term_ref();
-    int ok;
 
     if ( !PL_unify_list(pd->tail, h, pd->tail) )
       return FALSE;
 
     if ( e )
-      ok = PL_unify_term(h,
-			 PL_FUNCTOR, FUNCTOR_entity1,
-			 PL_CHARS, e->name->name);
+      PL_unify_term(h,
+		    PL_FUNCTOR, FUNCTOR_entity1,
+		    PL_CHARS, e->name->name);
     else
-      ok = PL_unify_term(h,
-			 PL_FUNCTOR, FUNCTOR_entity1,
-			 PL_INTEGER, chr);
+      PL_unify_term(h,
+		    PL_FUNCTOR, FUNCTOR_entity1,
+		    PL_INTEGER, chr);
 			 
-    if ( ok )
-    { PL_reset_term_refs(h);
-      return TRUE;
-    }
+    PL_reset_term_refs(h);
   }
 
-  return FALSE;
+  return TRUE;
 }
 
 
 static int
-print_cdata(dtd_parser *p, int len, const ochar *data)
+on_cdata(dtd_parser *p, int len, const ochar *data)
 { parser_data *pd = p->closure;
+
+  if ( pd->on_cdata )
+  { fid_t fid = PL_open_foreign_frame();
+    term_t av = PL_new_term_refs(2);
+
+    PL_put_atom_nchars(av+0, len, data);
+    unify_parser(av+1, p);
+
+    PL_call_predicate(NULL, PL_Q_NORMAL, pd->on_cdata, av);
+    PL_discard_foreign_frame(fid);
+  }
 
   if ( pd->tail && !pd->stopped )
   { term_t h = PL_new_term_ref();
@@ -460,7 +571,7 @@ print_cdata(dtd_parser *p, int len, const ochar *data)
 
 
 static int
-sgml_error(dtd_parser *p, dtd_error *error)
+on_error(dtd_parser *p, dtd_error *error)
 { parser_data *pd = p->closure;
 
   if ( pd->stopped )
@@ -575,38 +686,87 @@ pl_open_dtd(term_t ref, term_t options, term_t stream)
 }
 
 
+static int
+set_callback_predicates(parser_data *pd, term_t option)
+{ term_t a = PL_new_term_ref();
+  char *fname;
+  atom_t pname;
+  predicate_t *pp = NULL;		/* keep compiler happy */
+  int arity;
+  module_t m = NULL;
+
+  PL_get_arg(2, option, a);
+  PL_strip_module(a, &m, a);
+  if ( !PL_get_atom(a, &pname) )
+    return pl_error(ERR_TYPE, "atom", a);
+  PL_get_arg(1, option, a);
+  if ( !PL_get_atom_chars(a, &fname) )
+    return pl_error(ERR_TYPE, "atom", a);
+  
+  if ( streq(fname, "begin") )
+  { pp = &pd->on_begin;			/* tag, attributes, parser */
+    arity = 3;
+  } else if ( streq(fname, "end") )
+  { pp = &pd->on_end;			/* tag, parser */
+    arity = 2;
+  } else if ( streq(fname, "cdata") )
+  { pp = &pd->on_cdata;			/* cdata, parser */
+    arity = 2;
+  } else if ( streq(fname, "entity") )
+  { pp = &pd->on_entity;		/* name, parser */
+    arity = 2;
+  } else
+    return pl_error(ERR_DOMAIN, "sgml_callback", a);
+
+  *pp = PL_pred(PL_new_functor(pname, arity), m);
+  return TRUE;
+}
+
+
 static foreign_t
-pl_sgml_open(term_t parser, term_t options, term_t stream)
+pl_sgml_parse(term_t parser, term_t options)
 { dtd_parser *p;
   parser_data *pd;
+  parser_data *oldpd;
   term_t head = PL_new_term_ref();
   term_t tail = PL_copy_term_ref(options);
   term_t goal = 0;
-  IOSTREAM *s;
-
-  if ( PL_is_functor(parser, FUNCTOR_dtd2) )
-    return pl_open_dtd(parser, options, stream);
+  IOSTREAM *in = NULL, *s = NULL;
+  int recursive;
 
   if ( !get_parser(parser, &p) )
     return FALSE;
-  p->on_begin_element = print_open;
-  p->on_end_element   = print_close;
-  p->on_entity	      = print_entity;
-  p->on_cdata         = print_cdata;
-  p->on_error	      = sgml_error;
-  p->dmode	      = DM_SGML;
-  p->state	      = S_PCDATA;
-  
-  pd = calloc(1, sizeof(*pd));
-  pd->parser = p;
-  pd->max_errors = MAX_ERRORS;
-  pd->max_warnings = MAX_WARNINGS;
-  p->closure = pd;
 
-  s = Snew(pd, SIO_OUTPUT, &sgml_stream_functions);
-  if ( !PL_open_stream(stream, s) )
-  { Sclose(s);
-    return FALSE;
+  if ( p->closure )			/* recursive call */
+  { recursive = TRUE;
+
+    oldpd = p->closure;
+    if ( oldpd->magic != PD_MAGIC || oldpd->parser != p )
+      return pl_error(ERR_MISC, "sgml", "Parser associated with illegal data");
+    
+    pd = calloc(1, sizeof(*pd));
+    *pd = *oldpd;
+    p->closure = pd;
+
+    in = pd->source;
+  } else
+  { recursive = FALSE;
+    oldpd = NULL;			/* keep compiler happy */
+
+    p->on_begin_element = on_begin;
+    p->on_end_element   = on_end;
+    p->on_entity	= on_entity;
+    p->on_cdata         = on_cdata;
+    p->on_error	        = on_error;
+    p->dmode	        = DM_SGML;
+    p->state	        = S_PCDATA;
+  
+    pd = calloc(1, sizeof(*pd));
+    pd->magic = PD_MAGIC;
+    pd->parser = p;
+    pd->max_errors = MAX_ERRORS;
+    pd->max_warnings = MAX_WARNINGS;
+    p->closure = pd;
   }
 
   while ( PL_get_list(tail, head, tail) )
@@ -619,6 +779,15 @@ pl_sgml_open(term_t parser, term_t options, term_t stream)
     { goal = PL_new_term_ref();
 
       PL_get_arg(1, head, goal);
+    } else if ( PL_is_functor(head, FUNCTOR_source1) )
+    { term_t a = PL_new_term_ref();
+
+      PL_get_arg(1, head, a);
+      if ( !PL_get_stream_handle(a, &in) )
+	return FALSE;
+    } else if ( PL_is_functor(head, FUNCTOR_call2) )
+    { if ( !set_callback_predicates(pd, head) )
+	return FALSE;
     } else if ( PL_is_functor(head, FUNCTOR_parse1) )
     { term_t a = PL_new_term_ref();
       char *s;
@@ -628,6 +797,8 @@ pl_sgml_open(term_t parser, term_t options, term_t stream)
 	return pl_error(ERR_TYPE, "atom", a);
       if ( streq(s, "element") )
 	pd->stopat = SA_ELEMENT;
+      else if ( streq(s, "content") )
+	pd->stopat = SA_CONTENT;
       else if ( streq(s, "file") )
 	pd->stopat = SA_FILE;
       else
@@ -644,33 +815,71 @@ pl_sgml_open(term_t parser, term_t options, term_t stream)
   if ( !PL_get_nil(tail) )
     return pl_error(ERR_TYPE, "list", tail);
 
+					/* Parsing input from a stream */
+  if ( in )
+  { int chr;
+
+    if ( !recursive )
+    { pd->source = in;
+      begin_document_dtd_parser(p);
+    }
+    while( (chr = Sgetc(in)) != EOF )
+    { putchar_dtd_parser(p, chr);
+
+      if ( pd->errors > pd->max_errors )
+	return pl_error(ERR_LIMIT, "max_errors", (long)pd->max_errors);
+      if ( pd->stopped )
+      { pd->stopped = FALSE;
+	goto out;
+      }
+    }
+    if ( !recursive )
+      end_document_dtd_parser(p);
+
+  out:
+    if ( pd->tail )
+      PL_unify_nil(pd->tail);
+
+    if ( recursive )
+    { p->closure = oldpd;
+    } else
+    { p->closure = NULL;
+    }
+
+    pd->magic = 0;			/* invalidate */
+    free(pd);
+
+    return TRUE;
+  }
+
+					/* Parsing data from a goal */
   if ( goal )
   { fid_t fid = PL_open_foreign_frame();
-    predicate_t pred = PL_predicate("call", 1, "user");
+    term_t av = PL_new_term_refs(2);
+    predicate_t pred = PL_predicate("call", 2, "user");
     qid_t qid;
     int rval;
 
+    PL_put_term(av+0, goal);
+    s = Snew(pd, SIO_OUTPUT, &sgml_stream_functions);
+    PL_open_stream(av+1, s);
+
     begin_document_dtd_parser(p);
-    qid = PL_open_query(NULL, PL_Q_CATCH_EXCEPTION, pred, goal);
+    qid = PL_open_query(NULL, PL_Q_CATCH_EXCEPTION, pred, av);
     rval = PL_next_solution(qid);
     PL_cut_query(qid);
     if ( rval &&
-	 Sflush(s) == 0 &&
+	 Sclose(s) == 0 &&
 	 end_document_dtd_parser(p) )
     { PL_close_foreign_frame(fid);
       return TRUE;
     }
+    PL_discard_foreign_frame(fid);
+    Sclose(s);
 
     if ( pd->errors > pd->max_errors )
-    { PL_discard_foreign_frame(fid);
       return pl_error(ERR_LIMIT, "max_errors", (long)pd->max_errors);
-    }
-    if ( pd->stopped )
-    { PL_close_foreign_frame(fid);
-      return TRUE;
-    }
 
-    PL_discard_foreign_frame(fid);
     return pl_error(ERR_FAIL, goal);
   }
 
@@ -1151,8 +1360,11 @@ install()
   PL_register_foreign("new_sgml_parser",  2, pl_new_sgml_parser,  0);
   PL_register_foreign("free_sgml_parser", 1, pl_free_sgml_parser, 0);
   PL_register_foreign("set_sgml_parser",  2, pl_set_sgml_parser,  0);
-  PL_register_foreign("sgml_open",        3, pl_sgml_open,
+  PL_register_foreign("get_sgml_parser",  2, pl_get_sgml_parser,  0);
+  PL_register_foreign("open_dtd",         3, pl_open_dtd,	  0);
+  PL_register_foreign("sgml_parse",       2, pl_sgml_parse,
 		      PL_FA_TRANSPARENT);
+
   PL_register_foreign("$dtd_property",	  2, pl_dtd_property,
 		      PL_FA_NONDETERMINISTIC);
 }

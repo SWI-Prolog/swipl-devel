@@ -75,6 +75,7 @@ sgml:		$(SGMLOBJ)
 ################################################################
 
 doc:		$(PDF) $(HTML)
+pdf:		$(PDF)
 
 $(HTML):	$(TEX)
 		latex2html $(DOC)
