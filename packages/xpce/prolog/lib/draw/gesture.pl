@@ -658,10 +658,10 @@ execute(G, Ev:event) :->
 		********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Class `draw_create_path_gesture' is the most complicated  of PceDraw's
-gestures because it does not yet fit in very well  with the concept of
-`gesture' that describes event-handling  from  a button-down upto  the
-corresponding  button-up.  A  path  is  created by  clicking  on  each
+Class `draw_create_path_gesture' is the most   complicated  of PceDraw's
+gestures because it does not  yet  fit   very  well  with the concept of
+`gesture' that describes event-handling  from   a  button-down  upto the
+corresponding  button-up.  A  path  is  created   by  clicking  on  each
 subsequent control-point.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -789,6 +789,9 @@ terminate_path(G) :->
 	),
 	send(Canvas, close_undo_group).
 	
+cancel(G) :->
+	send(G, terminate_path).
+
 :- pce_end_class.
 
 

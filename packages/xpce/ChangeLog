@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: PceDraw to properly cancel pending operations (notably creating a
+  path).
+
 * ADDED: library(password_item) to allow entering passwords through the GUI.
 
 

@@ -1303,6 +1303,16 @@ mode(Canvas, Mode:name, Cursor:cursor*) :->
 	send(Canvas, cursor, Cursor),
 	send(Canvas, slot, mode, Mode),
 	send(Canvas, keyboard_focus, @nil),
-	send(Canvas, selection, @nil).
+	send(Canvas, selection, @nil),
+					% cleanup pending operations
+	(   get(Canvas, focus_recogniser, R),
+	    R \== @nil
+	->  (   send(R, has_send_method, cancel)
+	    ->	send(R, cancel)
+	    ;	true
+	    ),
+	    send(Canvas, focus, @nil)
+	;   true
+	).
 
 :- pce_end_class.
