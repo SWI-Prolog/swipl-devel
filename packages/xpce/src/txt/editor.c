@@ -3665,11 +3665,11 @@ DabbrevExpandEditor(Editor e, EventId id)
 		********************************/
 
 status
-scrollToEditor(Editor e, Int pos)
+scrollToEditor(Editor e, Int pos, Int screenline)
 { if ( isDefault(pos) )
     pos = toInt(e->text_buffer->size);
 
-  centerTextImage(e->image, pos, DEFAULT);
+  centerTextImage(e->image, pos, screenline);
   return ensureCaretInWindowEditor(e);
 }
 
@@ -3771,7 +3771,7 @@ scrollVerticalEditor(Editor e, Name dir, Name unit, Int amount)
       { long h = (long)(((double)tb->size * (double)valInt(amount)) / 1000.0);
 					/* avoid integer arithmetic overflow */
 
-	scrollToEditor(e, toInt(h));
+	scrollToEditor(e, toInt(h), DEFAULT);
       }
     }
   } else 
@@ -4537,6 +4537,8 @@ static char *T_selection[] =
 static char *T_mark[] =
         { "mark=[int]", "status=[{active,inactive,highlight}]"
 	};
+static char *T_scrollTo[] = 
+	{ "index=[int]", "screenline=[int]" };
 
 /* Instance Variables */
 
@@ -4895,7 +4897,7 @@ static senddecl send_editor[] =
      NAME_scroll, "Scroll lines (1 line) downward"),
   SM(NAME_scrollOneLineUp, 1, "[int]", scrollOneLineUpEditor,
      NAME_scroll, "Scroll lines (1 line) upward"),
-  SM(NAME_scrollTo, 1, "index=[int]", scrollToEditor,
+  SM(NAME_scrollTo, 2, T_scrollTo, scrollToEditor,
      NAME_scroll, "Set start of window to index"),
   SM(NAME_scrollUp, 1, "[int]", scrollUpEditor,
      NAME_scroll, "Scroll lines (1 screen) upward"),

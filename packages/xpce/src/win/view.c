@@ -148,8 +148,8 @@ normaliseView(View v, Int from, Int to)
 
 
 static status
-scrollToView(View v, Int index)
-{ return scrollToEditor(v->editor, index);
+scrollToView(View v, Int index, Int screenline)
+{ return scrollToEditor(v->editor, index, screenline);
 }
 
 
@@ -177,6 +177,8 @@ static char *T_selection[] =
         { "mark=[int]", "caret=[int]",
 	  "status=[{active,inactive,highlight}]"
 	};
+static char *T_scrollTo[] = 
+	{ "index=[int]", "screenline=[int]" };
 
 /* Instance Variables */
 
@@ -202,7 +204,7 @@ static senddecl send_view[] =
      NAME_format, "Formatted insert (see `string->format')"),
   SM(NAME_normalise, 2, T_fromAint_toAint, normaliseView,
      NAME_scroll, "Overrule window behaviour"),
-  SM(NAME_scrollTo, 1, "int", scrollToView,
+  SM(NAME_scrollTo, 2, T_scrollTo, scrollToView,
      NAME_scroll, "Overrule window behaviour"),
   SM(NAME_selection, 3, T_selection, selectionView,
      NAME_selection, "Overrule window behaviour")

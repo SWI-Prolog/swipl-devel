@@ -24,7 +24,7 @@ status		makeClassCharArray(Class class);
 status		normaliseEditor(Editor e, Int start, Int end);
 Any		ReceiverOfEditor(Editor e);
 status		forwardModifiedEditor(Editor e, Bool val);
-status		scrollToEditor(Editor e, Int pos);
+status		scrollToEditor(Editor e, Int pos, Int screenline);
 status		selectionEditor(Editor e, Int from, Int to, Name how);
 Point		getSelectionEditor(Editor e);
 StringObj	getSelectedEditor(Editor e);
