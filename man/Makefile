@@ -64,6 +64,7 @@ clean:
 
 distclean:	clean
 		rm -f $(MANUAL) $(DVITOTTY)
+		rm -rf Manual
 		make -C$(DVITOTTY-HOME) distclean
 
 $(PDF):		doc.tex $(TEXFILES) doc.bbl
