@@ -87,8 +87,10 @@ attach(W, To:graphical) :->
 	new(_, hyper(To, W, mirror, mirroring)),
 	send(W, update),
 	get(To, display_position, point(X,Y)),
-	get(W, border, Border),
-%	Border = 1,
+	(   get(@pce, window_system, windows)
+	->  Border = 0			% TBD: Fix inside kernel
+	;   get(W, border, Border)
+	),
 	send(W, open, point(X-Border,Y-Border)),
 	send(W, expose),
 	send(W, grab_pointer, @on).
