@@ -3763,18 +3763,14 @@ clearBreak(Clause clause, int offset)
   BreakPoint bp;
   Symbol s;
 
-  PL_LOCK(L_BREAK);
   PC = clause->codes + offset;
   if ( !breakTable || !(s=lookupHTable(breakTable, PC)) )
-  { PL_UNLOCK(L_BREAK);
     fail;
-  }
 
   bp = (BreakPoint)s->value;
   *PC = bp->saved_instruction;
   freeHeap(bp, sizeof(*bp));
   deleteSymbolHTable(breakTable, s);
-  PL_UNLOCK(L_BREAK);
 
   callEventHook(PLEV_NOBREAK, clause, offset);
   succeed;
@@ -3784,12 +3780,14 @@ clearBreak(Clause clause, int offset)
 void
 clearBreakPointsClause(Clause clause)
 { if ( breakTable )
-  { for_table(breakTable, s,
-	      { BreakPoint bp = (BreakPoint)s->value;
-
-		if ( bp->clause == clause )
-		  clearBreak(bp->clause, bp->offset);
-	      });
+  { PL_LOCK(L_BREAK);
+    for_unlocked_table(breakTable, s,
+		       { BreakPoint bp = (BreakPoint)s->value;
+			 
+			 if ( bp->clause == clause )
+			   clearBreak(bp->clause, bp->offset);
+		       });
+    PL_UNLOCK(L_BREAK);
   }
 
   clear(clause, HAS_BREAKPOINTS);
@@ -3800,12 +3798,16 @@ code
 replacedBreak(Code PC)
 { Symbol s;
   BreakPoint bp;
+  code c;
 
   if ( !breakTable || !(s=lookupHTable(breakTable, PC)) )
+  { PL_UNLOCK(L_BREAK);
     return (code) sysError("No saved instruction for break");
+  }
   bp = (BreakPoint)s->value;
+  c = bp->saved_instruction;
 
-  return bp->saved_instruction;
+  return c;
 }
 
 
@@ -3823,10 +3825,12 @@ pl_break_at(term_t ref, term_t pc, term_t set)
   if ( offset < 0 || offset >= clause->code_size )
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_pc, pc);
 
+  PL_LOCK(L_BREAK);
   if ( doit )
     setBreak(clause, offset);
   else
     clearBreak(clause, offset);
+  PL_UNLOCK(L_BREAK);
 
   succeed;
 }

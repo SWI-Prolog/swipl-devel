@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: deadlock reconsuling files with breakpoints (debugger).
+
   * FIXED: remove rc/rc.o from libpl.a (anonymous).
 
   * FIXED/ENHANCED: many issues use call_with_depth_limit/3: fixed
