@@ -1717,9 +1717,11 @@ split_atom(term_t list, term_t sep, term_t atom)
   term_t tail = PL_copy_term_ref(list);
   term_t head = PL_new_term_ref();
 
-  if ( !PL_get_nchars(atom, &tlen,  &text, CVT_ATOMIC|BUF_RING) )
+  if ( !sep )
     return -1;
-  PL_get_nchars(sep, &splen, &sp, CVT_ATOMIC|BUF_RING);
+  if ( !PL_get_nchars(atom, &tlen,  &text, CVT_ATOMIC|BUF_RING) ||
+       !PL_get_nchars(sep, &splen, &sp, CVT_ATOMIC|BUF_RING) )
+    return -1;
 
   for(last=i=0; i<=(int)tlen-(int)splen; )
   { if ( memcmp(sp, text+i, splen) == 0 )
