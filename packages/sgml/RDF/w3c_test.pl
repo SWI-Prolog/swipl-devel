@@ -13,12 +13,14 @@
 :- module(rdf_w3c_test,
 	  [ process_manifest/0,
 	    process_manifest/1,
-	    run_tests/0,
-	    run_failed/0,
-	    edit_failed/0
+	    run_tests/0
 	  ]).
 :- use_module(rdf).			% our RDF parser
 :- use_module(rdf_nt).			% read .nt files
+:- use_module(library(pce)).
+:- use_module(library(toolbar)).
+:- use_module(library(pce_report)).
+:- use_module(rdf_diagram).
 
 :- dynamic
 	rdf/3.
@@ -53,14 +55,11 @@ canonise(Absolute, N:Name) :-
 canonise(X, X).
 	
 
-:- dynamic
-	test_result/2.
-
 run_tests :-
-	retractall(test_result(_, _)),
+	start_tests,
 	(   rdf(About, rdf:type, test:Type),
 	    test_type(Type),
-	    run_test(About, true),
+	    run_test(About),
 	    fail
 	;   true
 	), !,
@@ -69,15 +68,7 @@ run_tests :-
 test_type('PositiveParserTest').
 %test_type('NegativeParserTest').
 
-report_results :-
-	findall(X, test_result(X, true), Positive),
-	findall(X, test_result(X, false), Negative),
-	length(Positive, P),
-	length(Negative, N),
-	format('~N~n~w tests succeeded, ~w tests failed~n', [P, N]).
-
-
-run_test(Test, Assert) :-
+run_test(Test) :-
 	rdf(Test, test:inputDocument, In),
 	local_file(In, InFile),
 	exists_file(InFile),
@@ -86,17 +77,9 @@ run_test(Test, Assert) :-
 	load_rdf(InFile, RDF),
 	load_rdf_nt(NTFile, NT),
 	(   compare_triples(RDF, NT)
-	->  store(Assert, test_result(Test, true))
-	;   store(Assert, test_result(Test, false)),
-	    format('~N*** Test failed: ~w. Our triples~n', [Test]),
-	    pp(RDF),
-	    format('~N*** Normative output~n'),
-	    pp(NT)
+	->  pass(Test)
+	;   fail(Test, RDF, NT)
 	).
-
-store(true, Term) :- !,
-	assert(Term).
-store(_, _).
 
 
 local_file(URL, File) :-
@@ -104,20 +87,137 @@ local_file(URL, File) :-
 	atom_concat(URLPrefix, Base, URL), !,
 	atom_concat(FilePrefix, Base, File).
 
+
 		 /*******************************
-		 *	    DEBUG TESTS		*
+		 *	       GUI		*
 		 *******************************/
 
-run_failed :-
-	test_result(Test, false), !,
-	run_test(Test, false).
+:- pce_begin_class(w3c_rdf_test_gui, frame).
 
-edit_failed :-
-	test_result(Test, false), !,
+initialise(F) :->
+	send_super(F, initialise, 'W3C RDF test suite results'),
+	send(F, append, new(D, tool_dialog(F))),
+	send(new(B, browser), below, D),
+	send(F, fill_menu, D),
+	send(F, fill_browser, B),
+	send(new(report_dialog), below, B).
+
+fill_menu(F, D:tool_dialog) :->
+	send_list(D,
+		  [ append(menu_item(exit, message(F, destroy)),
+			   file)
+		  ]).
+
+fill_browser(_F, B:browser) :->
+	send(B, style, pass, style(colour := dark_green)),
+	send(B, style, fail, style(colour := red)),
+	send(B?image, recogniser,
+	     handler(ms_right_down,
+		     and(message(B, selection,
+				 ?(B, dict_item, @event)),
+			 new(or)))),
+	send(B, popup, new(P, popup)),
+	send_list(P, append,
+		  [ menu_item(edit,
+			      message(@arg1, edit_test)),
+		    gap,
+		    menu_item(show_result,
+			      message(@arg1, show_triples, result),
+			      condition := @arg1?style == fail),
+		    menu_item(show_norm,
+			      message(@arg1, show_triples, norm),
+			      condition := @arg1?style == fail),
+		    gap,
+		    menu_item(discussion,
+			      message(@arg1, open_url, discussion),
+			      condition :=
+			      message(@arg1, has_url, discussion)),
+		    menu_item(approval,
+			      message(@arg1, open_url, approval),
+			      condition :=
+			      message(@arg1, has_url, approval))
+		  ]).
+
+
+pass(F, Test:name) :->
+	get(F, member, browser, B),
+	send(B, append, rdf_test_item(Test, style := pass)).
+
+fail(F, Test:name, Our:prolog, Norm:prolog) :->
+	get(F, member, browser, B),
+	send(B, append, rdf_test_item(Test, @default,
+				      prolog([ result(Our),
+					       norm(Norm)
+					     ]),
+				      fail)).
+clear(F) :->
+	get(F, member, browser, B),
+	send(B, clear).
+
+summarise(_F) :->
+	true.
+
+:- pce_end_class(w3c_rdf_test_gui).
+
+:- pce_begin_class(rdf_test_item, dict_item).
+
+
+edit_test(Item) :->
+	"Edit input document of test"::
+	get(Item, key, Test),
 	rdf(Test, test:inputDocument, In),
 	local_file(In, InFile),
 	edit(file(InFile)).
 
+show_triples(Item, Set:{result,norm}) :->
+	"Show result of our parser"::
+	get(Item, key, Test),
+	get(Item, object, List),
+	Term =.. [Set,Triples],
+	member(Term, List),
+	send(Item, show_diagram(Triples,
+				string('%s for %s', Set?label_name, Test))).
+
+show_diagram(_Item, Triples:prolog, Label:name) :->
+	"Show diagram for triples"::
+	new(D, rdf_diagram(Label)),
+	send(new(report_dialog), below, D),
+	forall(member(T, Triples),
+	       send(D, append, T)),
+	send(D, layout),
+	send(D, open).
+
+open_url(Item, Which:name) :->
+	"Open associated URL in browser"::
+	get(Item, key, Test),
+	rdf(Test, test:Which, URL),
+	www_open_url(URL).
+
+has_url(Item, Which:name) :->
+	"Test if item has URL"::
+	get(Item, key, Test),
+	rdf(Test, test:Which, _URL).
+
+:- pce_end_class(rdf_test_item).
+
+
+:- pce_global(@rdf_test_gui, make_rdf_test_gui).
+
+make_rdf_test_gui(Ref) :-
+	send(new(Ref, w3c_rdf_test_gui), open).
+
+
+pass(Test) :-
+	send(@rdf_test_gui, pass, Test).
+
+fail(Test, Our, Norm) :-
+	send(@rdf_test_gui, fail, Test, Our, Norm).
+
+start_tests :-
+	send(@rdf_test_gui, clear).
+
+report_results :-
+	send(@rdf_test_gui, summarise).
 
 
 		 /*******************************

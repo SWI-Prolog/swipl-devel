@@ -397,3 +397,27 @@ set_base_uri(element(Name, Attrs0, Content), Base0,
 	select(xml:base=Base1, Attrs0, Attrs), !,
 	canonical_uri(Base1, Base0, Base).
 
+		 /*******************************
+		 *     HELP PCE-EMACS A BIT	*
+		 *******************************/
+
+:- multifile
+	emacs_prolog_colours:term_colours/2,
+	emacs_prolog_colours:goal_classification/2.
+
+emacs_prolog_colours:term_colours((_ ::= _, {_}),
+				  rewrite - [ head,
+					      curl - [ body ]
+					    ]).
+emacs_prolog_colours:term_colours(_ ::= _,
+				  rewrite - [ head, % head+1
+					      match
+					    ]).
+
+emacs_prolog_colours:goal_classification(\_, expanded).
+
+:- multifile
+	prolog:meta_goal/2.
+
+prolog:meta_goal(rewrite(A, _), [A]).
+prolog:meta_goal(\A,		[A+1]).
