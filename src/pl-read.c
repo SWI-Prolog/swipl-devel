@@ -2325,7 +2325,7 @@ pl_atom_to_term(term_t atom, term_t term, term_t bindings)
     return rval;
   }
 
-  if ( PL_get_chars(atom, &s, CVT_ALL) )
+  if ( PL_get_chars_ex(atom, &s, CVT_ALL) )
   { GET_LD
     read_data rd;
     word rval;
@@ -2345,7 +2345,7 @@ pl_atom_to_term(term_t atom, term_t term, term_t bindings)
     return rval;
   }
 
-  return PL_error("term_to_atom", 2, NULL, ERR_INSTANTIATION);
+  fail;
 }
 
 
