@@ -1,0 +1,73 @@
+\libdoc{registry}{Manipulating the Windows registry}
+
+The \pllib{registry} is only available on the MS-Windows version of
+SWI-Prolog. It loads the foreign extension \file{plregtry.dll},
+providing the predicates described below. This library only makes the
+most common operations on the registry available through the Prolog
+user. The underlying DLL provides a more complete coverage of the
+Windows registry API. Please consult the sources in
+\file{pl/src/win32/foreign/plregtry.c} for further details.
+
+
+In all these predicates, \arg{Path} refers to a `/' separated path
+into the registry.  This is \emph{not} an atom containing `/'-characters
+as used for filenames, but a term using the functor \functor{/}{2}.
+Windows defines the following roots for the registry:
+\const{classes_root},
+\const{current_user},
+\const{local_machine} and
+\const{users}
+
+
+\begin{description}
+    \predicate{registry_get_key}{2}{+Path, -Value} 
+Get the principal (default) value associated to this key. Fails silently
+of the key does not exist.
+
+    \predicate{registry_get_key}{3}{+Path, +Name, -Value}
+Get a named value associated to this key.
+
+    \predicate{registry_set_key}{2}{+Path, +Value}
+Set the principal (default) value of this key.  Creates (a path to) the key
+if this does not already exist.
+
+    \predicate{registry_set_key}{3}{+Path, +Name, +Value}
+Associated a named value to this key. Creates (a path to) the key
+if this does not already exist.
+
+    \predicate{registry_delete_key}{1}{+Path}
+Delete the indicated key.
+
+    \predicate{shell_register_file_type}{4}{+Ext, +Type, +Name, +OpenAction}
+Register a file-type. \arg{Ext} is the extension to associate.
+\arg{Type} is the type name, often something link \const{prolog.type}.
+\arg{Name} is the name visible in the Windows file-type browser.
+Finally, \arg{OpenAction} defines the action to execute when a file with
+this extension is opened in the Windows explorer.
+
+    \predicate{shell_register_dde}{6}{+Type, +Action, +Service, +Topic,
+				      +Command, +IfNotRunning}
+Associate DDE actions to a type. \arg{Type} is the same type as used for
+the 2nd argument of shell_register_file_type/4, \arg{Action} is the a
+action to perform, \arg{Service} and \arg{Topic} specify the DDE topic
+to address and \arg{Command} is the command to execute on this topic.
+Finally, \arg{IfNotRunning} defines the command to execute if the
+required DDE server is not present.
+
+    \predicate{shell_register_prolog}{1}{+Ext}
+Default registration of SWI-Prolog, which is invoked as part of the
+initialisation process on Windows systems.  As the source also explains
+the above predicates, it is given as an example:
+
+\begin{code}
+shell_register_prolog(Ext) :-
+	current_prolog_flag(argv, [Me|_]),
+	concat_atom(['"', Me, '" "%1"'], OpenCommand),
+	shell_register_file_type(Ext, 'prolog.type', 'Prolog Source',
+				 OpenCommand),
+	shell_register_dde('prolog.type', consult,
+			   prolog, control, 'consult(''%1'')', Me), 
+	shell_register_dde('prolog.type', edit,
+			   prolog, control, 'edit(''%1'')', Me).
+\end{code}
+\end{description}

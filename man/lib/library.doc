@@ -1,7 +1,7 @@
 \chapter{The SWI-Prolog library}		\label{sec:library}
 
-This chapter documents the SWI-Prolog library.  As SWI-Prolog is
-auto-loaded, there is little difference between library predicates
+This chapter documents the SWI-Prolog library.  As SWI-Prolog provides
+auto-loading, there is little difference between library predicates
 and built-in predicates.  Part of the library is therefore documented
 in the rest of the manual.  Library predicates differ from built-in
 predicates in the following ways.
@@ -26,4 +26,7 @@ of the manual should be moved too and various libraries are not
 documented at all.
 \end{quote}
 
-\input{readutil}.
+\input{check}
+\input{readutil}
+\input{netscape}
+\input{registry}

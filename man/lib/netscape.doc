@@ -1,0 +1,26 @@
+\libdoc{netscape}{Activating your Web-browser}
+
+This library deals with the very system dependent task of opening a
+web-browser.  See also \pllib{url}.
+
+\begin{description}
+    \predicate{www_open_url}{1}{+URL}
+Open \arg{URL} in an external web-browser. The reason to place this in
+the library is to centralise the maintenance on this highly platform
+and browser specific task.  It distinguishes between the following
+cases:
+
+\begin{itemlist}
+    \item [MS-Windows]
+If it detects MS-Windows it uses win_shell/2 to open the \arg{URL}.  The
+behaviour and browser started depends on the Window and Windows-shell
+configuration, but in general it should be the behaviour expected by
+the user.
+
+    \item [Other platforms]
+On other platforms it assumes the browser is \program{netscape}.  It
+first tries to tell a running netscape to open the page and only after
+this fails it starts a new browser.
+\end{itemlist}
+\end{description}
+

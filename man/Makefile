@@ -32,7 +32,8 @@ PDF=		MANUAL.pdf
 ONLINE=		../library/MANUAL
 ONLINE_INDEX=	../library/helpidx.pl
 
-LIBFILES=	lib/library.tex lib/readutil.tex
+LIBFILES=	lib/library.tex lib/readutil.tex lib/netscape.tex \
+		lib/registry.tex lib/check.tex
 TEXFILES=	doc.tex intro.tex overview.tex builtin.tex module.tex \
 		foreign.tex runtime.tex hack.tex summary.tex xpce.tex \
 		glossary.tex $(LIBFILES)
@@ -65,7 +66,7 @@ dvi:		$(TEXFILES)
 
 html:		$(TEXFILES) $(STYFILES) doc.bbl
 		rm -rf Manual
-		latex2html doc
+		env TEXINPUTS=lib:$$TEXINPUTS latex2html doc
 
 pdf:		$(PDF)
 
@@ -80,6 +81,7 @@ html.sty:	../packages/ltx2htm/html.sty
 
 clean:		
 		rm -f *~ *% tmp.* *.aux *.idx *.ind *.log *.toc *.ilg
+		rm -f lib/*~ lib/*.tex lib/*.aux
 		rm -f online.* *.tex
 
 distclean:	clean

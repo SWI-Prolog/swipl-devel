@@ -58,6 +58,7 @@
 \file{-}
 \metafile{+}
 \pllib{+}
+\libdoc{-}{+}
 \clib{+}
 \env{+}
 \program{-}

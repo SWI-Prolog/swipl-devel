@@ -21,6 +21,7 @@
 	    translate_reference/4,	% +Kind, +RefPrefix, +Label, -HTML
 	    translate_footnote/2,	% +Text, -HTML
 	    translate_table/3,		% +Format, +BodyTokens, -HTML
+	    translate_section/4,	% +Level, -/*, +Title, -HTML
 	    current_setting/1,		% +Type(-Value ...)
 	    do_float/2,			% +Float(+Number), :Goal
 	    tex_load_commands/1,	% +BaseName
@@ -32,7 +33,7 @@
 	  ]).
 :- use_module(library(quintus)).
 
-version('0.14').			% for SWI-Prolog 3.3
+version('0.15').			% for SWI-Prolog 3.3
 page_header('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">\n\n').
 
 :- dynamic			

@@ -1,5 +1,4 @@
-\section{\pllib{readutil}: Reading lines, streams and files}
-\label{sec:readutil}
+\libdoc{readutil}{Reading lines, streams and files}
 
 This library contains primitives to read lines, files, multiple terms,
 etc.
@@ -11,7 +10,7 @@ Read the next line of input from \arg{Stream} and unify the result with
 a newline character or end-of-file. Unlike read_line_to_codes/3, this
 predicate removes trailing newline character.
 
-    \predicate{read_line_to_codes}{2}{+Stream, -Codes, ?Tail}
+    \predicate{read_line_to_codes}{3}{+Stream, -Codes, ?Tail}
 Diference-list version to read an input line to a list of character
 codes.  Reading stops at the newline or end-of-file character, but
 unlike read_line_to_codes/2, the newline is retained in the output.
@@ -35,7 +34,7 @@ read_header_data(_, Stream, Tail) :-
     \predicate{read_stream_to_codes}{2}{+Stream, -Codes}
 Read all input until end-of-file and unify the result to \arg{Codes}.
 
-    \predicate{read_stream_to_codes}{2}{+Stream, -Codes, ?Tail}
+    \predicate{read_stream_to_codes}{3}{+Stream, -Codes, ?Tail}
 Difference-list version of read_stream_to_codes/2.
 
     \predicate{read_file_to_codes}{3}{+Spec, -Codes, +Options}

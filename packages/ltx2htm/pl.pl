@@ -217,6 +217,14 @@ cmd(g({Term}),	#lref(RefName, Term)) :-
 	canonise_glossitem(Term, Ref),
 	sformat(RefName, 'gloss:~w', [Ref]).
 
+% library stuff
+cmd(libdoc({Name}, {Summary}),
+    [HTML, #label(Name, [], Tag)]) :-
+	translate_section(2, -,
+			  ['library(', Name, '): ', Summary],
+			  HTML),
+	tex:label_tag(Tag).
+
 
 		 /*******************************
 		 *	     GLOSSARY		*

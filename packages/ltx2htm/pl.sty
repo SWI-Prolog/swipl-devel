@@ -1,16 +1,44 @@
 %			SWI-Prolog document-style
 
+% Test for PDF generation using pdflatex
+
+\newif\ifpdf
+\ifx\pdfoutput\undefined
+   \pdffalse
+\else
+   \pdfoutput=1
+   \pdftrue
+\fi
+
+% Get hyperrefs to work
+
+\usepackage{makeidx}
+\usepackage{url}
+
+\ifpdf
+  \usepackage[pdftex,colorlinks=true,urlcolor=blue]{hyperref}
+  \pdfcompresslevel=9
+%  \pdfcatalog{
+%    /PageMode /UseOutLines
+%  }
+  \usepackage[pdftex]{graphicx}
+  \DeclareGraphicsExtensions{.pdf,.jpg,.png}
+\else
+  \usepackage[dvips]{graphicx}
+  \DeclareGraphicsExtensions{.eps,.ps}
+\fi
+\graphicspath{{figs/}{./}}
+
 %	Other styles
 
 \input logo.sty
 \usepackage{a4wide}
 \usepackage{fancyheadings}
 \usepackage{fancychap}
-\usepackage{makeidx}
 \usepackage{longtable}
 \usepackage{ifthen}
 \usepackage{dcolumn}
-\usepackage{url}
+\usepackage{calc}
 \setlongtables
 
 \catcode`\^^A=8% downarrow are for subscripts
@@ -48,12 +76,16 @@
 
 %	Descriptions (definitions) of various things
 
+\def\@nodescription{false}
+
+\newcommand{\defentry}[1]{\definition{#1}}
 \newcommand{\definition}[1]{%
 	\onlinebreak%
-	\item[\mbox{#1}]\hfill\mbox{}\linebreak}
-\newcommand{\defentry}[1]{\definition{#1}}
-\newcommand{\emptydefinition}[1]{%
-	\makebox[-\leftmargin]{\mbox{}}\mbox{\bf #1}\\}
+	\ifthenelse{\equal{\@nodescription}{true}}{%
+	    \def\@nodescription{false}%
+	    \makebox[-\leftmargin]{\mbox{}}\mbox{\bf #1}\\}{%
+	    \item[\mbox{#1}]\hfill\mbox{}\linebreak}}
+\newcommand{\nodescription}{\def\@nodescription{true}}
 
 \makeatletter
 \def\cmdlineoptionitem{\@ifstar{\@gluedcmdoptitem}{\@cmdoptitem}}
@@ -75,8 +107,9 @@
 \newcommand{\pleaseoption}[3]{%
 	\definition{#1 {\it #2} {\rm(default: \it #3)}}%
 	\ignorespaces}
-\newcommand{\featureoption}[2]{%
-	\definition{#1 ({\it #2})}%
+\newcommand{\prologflagitem}[3]{%
+	\definition{#1 {\it (#2%
+	    \ifthenelse{\equal{rw}{#3}}{, changeable}{})}}%
 	\ignorespaces}
 \newcommand{\escapeitem}[1]{%
 	\definition{\Sesc{\tt #1}}
@@ -115,11 +148,23 @@
 \newcommand{\cfunction}[3]{%
 	\defentry{{\tt #1} #2{\rm (}{\it #3}{\rm )}}%
 	\index{#2()}\ignorespaces}
+\newcommand{\constructor}[2]{%
+	\defentry{#1::#1{\rm (}{\it #2}{\rm )}}%
+	\index{#1::#1()}\ignorespaces}
+\newcommand{\destructor}[1]{%
+	\defentry{#1::\Stilde{}#1{\rm ()}}%
+	\index{#1::\Stilde{}#1()}\ignorespaces}
+\newcommand{\cppcast}[2]{%
+	\defentry{#1::operator #2{\rm ({\it void})}}%
+	\index{#1::operator #2()}\ignorespaces}
 \newcommand{\cdecl}[2]{{\tt #1} {\em #2}}
 \newcommand{\cmacro}[3]{%
 	\defentry{{\it #1} #2({\it #3})}%
 	\index{#2()}\ignorespaces}
 \newcommand{\cglobalvar}[1]{{\tt #1}}
+\newcommand{\classitem}[1]{%
+	\definition{Class #1}%
+	\index{#1 \string\idxtype{class}}\ignorespaces}
 
 \renewcommand{\arg}[1]{\ifmmode\mbox{\em #1}\else{\em #1}\fi}
 \newcommand{\bnfmeta}[1]{\ifmmode{\langle\mbox{\it #1}\rangle}\else$\langle\mbox{\it #1}\rangle$\fi}
@@ -135,13 +180,15 @@
 \newcommand{\tool}[1]{{\em #1}\index{#1 \string\idxtype{tool}}}
 \newcommand{\constf}[1]{{\reffont #1}}
 \newcommand{\const}[1]{{\tt #1}}
+\newcommand{\plflag}[1]{{\tt #1}}
 \newcommand{\type}[1]{{\reffont #1}}
 \newcommand{\idx}[1]{#1\index{#1}}
 \newcommand{\foreseen}[1]{\footnote{#1}}
-\newcommand{\metafile}{\mbox{\tt #1}}
+\newcommand{\metafile}[1]{\mbox{\tt #1}}
 \newcommand\file{\begingroup \urlstyle{tt}\Url}
 \newcommand\email{\begingroup \urlstyle{tt}\Url}
 \newcommand{\env}[1]{\mbox{\tt #1}}
+\newcommand{\except}[1]{\mbox{\tt #1}}
 \newcommand{\exam}[1]{\mbox{\tt #1}}
 \newcommand{\module}[1]{\mbox{\reffont #1}}
 \newcommand{\fileext}[1]{\mbox{\tt .#1}}
@@ -159,6 +206,7 @@
 \newcommand{\texenv}[1]{{\tt #1}}
 \newcommand{\texmode}[1]{{\tt #1}}
 \newcommand{\HTML}[1]{{\bf #1}}
+\newcommand{\libdoc}[2]{\section{\pllib{#1}: #2}\label{sec:lib:#1}}
 
 \newcommand\satom{\begingroup \urlstyle{tt}\Url}
 \newcommand\fmtseq{\begingroup \urlstyle{tt}\Url}
@@ -283,13 +331,13 @@
 \def\postscriptfig{\@ifnextchar[{\@scaledpostscriptfig}{\@postscriptfig}}
 \def\@scaledpostscriptfig[#1]#2#3{%
 	\begin{figure}%
-	    \centerline{\psfig{figure=figs/#2.eps,#1}}
+	    \centerline{\includegraphics[#1]{#2}}
 	    \caption{#3}
 	    \label{fig:#2}
 	\end{figure}}
 \def\@postscriptfig#1#2{%
 	\begin{figure}%
-	    \centerline{\psfig{figure=figs/#1.eps}}
+	    \centerline{\includegraphics{#1}}
 	    \caption{#2}
 	    \label{fig:#1}
 	\end{figure}}
@@ -306,6 +354,7 @@
 	 \setlength{\tabDright}{\linewidth-\columnsep*3-\tabDleft}%
 	 \begin{tabular}{|p{\tabDleft}|>{\raggedrightcolumn}p{\tabDright}|}}%
 	{\end{tabular}}
+
 
 %	PAGESTYLE
 %

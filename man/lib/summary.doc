@@ -1,13 +1,41 @@
 \pagebreak
 \section{Library predicates}
 
+\subsection{\pllib{check}}
+
+\begin{summarylist}{ll}
+\predicatesummary{check}{0}{Program completeness and consistency}
+\predicatesummary{list_undefined}{0}{List undefined predicates}
+\predicatesummary{list_autoload}{0}{List predicates that require autoload}
+\predicatesummary{list_redefined}{0}{List locally redefined predicates}
+\end{summarylist}
+
 \subsection{\pllib{readutil}}
 
-\begin{summarylist}
+\begin{summarylist}{ll}
 \predicatesummary{read_line_to_codes}{2}{Read line from a stream}
 \predicatesummary{read_line_to_codes}{3}{Read line from a stream}
 \predicatesummary{read_stream_to_codes}{2}{Read contents of stream}
 \predicatesummary{read_stream_to_codes}{3}{Read contents of stream}
 \predicatesummary{read_file_to_codes}{3}{Read contents of file}
 \predicatesummary{read_file_to_terms}{3}{Read contents of file to Prolog terms}
+\end{summarylist}
+
+\subsection{\pllib{netscape}}
+
+\begin{summarylist}{ll}
+\predicatesummary{www_open_url}{1}{Open a web-page in a browser}
+\end{summarylist}
+
+\subsection{\pllib{registry}}
+
+\begin{summarylist}{ll}
+\predicatesummary{registry_get_key}{2}{Get principal value of key}
+\predicatesummary{registry_get_key}{3}{Get associated value of key}
+\predicatesummary{registry_set_key}{2}{Set principal value of key}
+\predicatesummary{registry_set_key}{3}{Set associated value of key}
+\predicatesummary{registry_delete_key}{1}{Remove a key}
+\predicatesummary{shell_register_file_type}{4}{Register a file-type}
+\predicatesummary{shell_register_dde}{6}{Register DDE action}
+\predicatesummary{shell_register_prolog}{1}{Register Prolog}
 \end{summarylist}

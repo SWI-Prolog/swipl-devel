@@ -250,11 +250,13 @@ Sread_readline(void *handle, char *buf, int size)
 	{ int state = rl_readline_state;
   
 	  rl_clear_pending_input();
+	  rl_discard_argument();
 	  rl_deprep_terminal();
 	  rl_readline_state = (RL_STATE_INITIALIZED);
 	  line = readline(prompt);
 	  rl_prep_terminal(FALSE);
 	  rl_readline_state = state;
+	  rl_done = 0;
 	} else
 	  line = readline(prompt);
 	in_readline--;

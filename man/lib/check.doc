@@ -1,0 +1,38 @@
+\libdoc{check}{Elementary completeness checks}
+
+This library defines the predicate check/0 and a few friends that allow
+for a quick-and-dirty cross-referencing.
+
+\begin{description}
+    \predicate{check}{0}{}
+Performs the three checking passes implemented by list_undefined/0,
+list_autoload/0 and list_redefined/0.  Please check the definition
+of these predicates for details.
+
+The typical usage of this predicate is right after loading your program
+to get a quick overview on the completeness and possible conflicts in
+your program.
+
+    \predicate{list_undefined}{0}{}
+Scans the database for predicates that have no definition.  A predicate
+is considered defined if it has clauses, is declared using dynamic/1 or
+multifile/1.  As a program is compiled calls are translated to
+predicates.  If the called predicate is not yet defined it is created
+as a predicate without definition. The same happens with runtime
+generated calls.  This predicate lists all such undefined predicates
+that are not defined in the library.  See also list_autoload/0.
+
+Note: undefined predicates are never removed from the database.  For
+proper results it is therefore adviced to run check/0 right after
+loading your program.
+
+    \predicate{list_autoload}{0}{}
+Lists all undefined (see list_undefined/0) predicates that have a
+definition in the library along with the file from which they will
+be autoloaded when accessed.  See also autoload/0.
+
+    \predicate{list_redefined}{0}{}
+Lists predicates that are defined in the global module \const{user}
+as well as in a normal module.  I.e.\ predicates for which the local
+definition overrules the global default definition.
+\end{description}
