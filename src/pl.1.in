@@ -55,11 +55,13 @@ Displays version and architecture information.
 .B \-arch
 Prints the architecture identifier.
 .TP
-.B \-dump\-runtime\-variables
+.B \-dump\-runtime\-variables[=format]
 Dump information that is generally useful for installation scripts in
-a form compatible with the
-.B sh
-(bourne) shell.  This option is used by
+a form defined by
+.IR format .
+Defines formats are
+.BR sh " (default, bourne shell) and " cmd " (Windows CMD)" .
+This option is used by
 .B plld (1)
 to fetch necessary information about Prolog.  It is normally invoked as
 .I eval `@PL@ -dump-runtime-variables`,
