@@ -1633,9 +1633,11 @@ makeClassTextImage(Class class)
 	     "Source of the text");
   localClass(class, NAME_image, NAME_cache, "image*", NAME_get,
 	     "Scratch image");
-  localClass(class, NAME_background, NAME_appearance, "colour|pixmap", NAME_get,
+  localClass(class, NAME_background, NAME_appearance,
+	     "colour|pixmap", NAME_get,
 	     "Background colour");
-  localClass(class, NAME_foreground, NAME_appearance, "colour|pixmap", NAME_get,
+  localClass(class, NAME_foreground, NAME_appearance,
+	     "colour|pixmap", NAME_get,
 	     "Text (foreground) colour");
   localClass(class, NAME_start, NAME_scroll, "int", NAME_none,
 	     "Index of first character displayed");

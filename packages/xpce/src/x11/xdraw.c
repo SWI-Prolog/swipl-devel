@@ -215,9 +215,6 @@ d_window(PceWindow sw, int x, int y, int w, int h, int clear, int limit)
   d_push_context();
   d_display(d);
 
-  context.default_foreground = sw->colour;
-  context.default_background = sw->background;
-  context.default_colour     = sw->colour;
   context.origin_x	     = context.offset_x;
   context.origin_y	     = context.offset_y;
   context.drawable	     = (Drawable) XtWindow(widgetWindow(sw));
@@ -284,6 +281,7 @@ d_window(PceWindow sw, int x, int y, int w, int h, int clear, int limit)
   d_clip(x, y, w, h);
 
   r_background(sw->background);
+  r_default_colour(sw->colour);
 
   if ( clear )
     r_clear(x, y, w, h);
@@ -444,6 +442,12 @@ d_done()
 
   env--;
   d_clip_done();
+  if ( env->level > 0 )
+  { if ( context.parent->default_foreground )
+      r_default_colour(context.parent->default_foreground);
+    if ( context.parent->default_background )
+      r_background(context.parent->default_background);
+  }
   d_pop_context();
   DEBUG(NAME_redraw, printf("After d_done(): env->level = %d\n", env->level));
 }

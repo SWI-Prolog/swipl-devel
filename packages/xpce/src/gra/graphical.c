@@ -578,8 +578,7 @@ drawGraphical(Graphical gr, Point offset, Area area)
 
 status
 RedrawArea(Any obj, Area area)
-{ Class class = classOfObject(obj);
-  Graphical gr = obj;
+{ Graphical gr = obj;
   Any c, oc = NULL;
   status rval;
 
