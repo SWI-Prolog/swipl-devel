@@ -322,7 +322,7 @@ modifiedDialogItem(Any di, Bool modified)
 { Dialog d = di;
 
   if ( modified == ON )
-    return send(d->device, NAME_modifiedItem, d, ON, 0);
+    send(d->device, NAME_modifiedItem, d, ON, 0);
 
   succeed;
 }
