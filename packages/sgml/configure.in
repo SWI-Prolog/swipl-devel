@@ -107,8 +107,9 @@ else
 fi
 CFLAGS="$CMFLAGS"
 AC_C_BIGENDIAN
+AC_CHECK_SIZEOF(long, 4)
 
 AC_CHECK_HEADERS(malloc.h unistd.h sys/time.h fcntl.h floatingpoint.h)
-AC_CHECK_FUNCS(snprintf strerror)
+AC_CHECK_FUNCS(snprintf strerror strtoll)
 
 AC_OUTPUT(Makefile)

@@ -1,3 +1,8 @@
+Feb 7, 2005
+
+  * ADDED: when converting attributes to integers on 32-bit machines,
+    exploit 64-bit Prolog integers.
+
 Jan 6, 2005
 
   * FIXED: Documentation

@@ -815,10 +815,16 @@ unify_listval(dtd_parser *p,
 	      term_t t, attrtype type, int len, const char *text)
 { if ( type == AT_NUMBERS && p->dtd->number_mode == NU_INTEGER )
   { char *e;
+#if SIZEOF_LONG == 8 && defined(HAVE_STRTOLL)
     long v = strtol(text, &e, 10);
 
     if ( e-text == len && errno != ERANGE )
       return PL_unify_integer(t, v);
+#else
+    int64_t v = strtoll(text, &e, 10);
+    if ( e-text == len && errno != ERANGE )
+      return PL_unify_int64(t, v);
+#endif
 					/* TBD: Error!? */
   }
 
