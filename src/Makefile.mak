@@ -27,26 +27,25 @@
 #
 ################################################################
 
+PLHOME=..
 !include rules.mk
 
 PL=pl
-PLCON=..\bin\plcon.exe
-PLWIN=..\bin\plwin.exe
-PLLD=..\bin\plld.exe
-PLRC=..\bin\plrc.exe
-PLDLL=..\bin\libpl.dll
-TERMDLL=..\bin\plterm.dll
-PLLIB=..\lib\libpl.lib
-TERMLIB=..\lib\plterm.lib
+PLCON=$(PLHOME)\bin\plcon.exe
+PLWIN=$(PLHOME)\bin\plwin.exe
+PLLD=$(PLHOME)\bin\plld.exe
+PLRC=$(PLHOME)\bin\plrc.exe
+PLDLL=$(PLHOME)\bin\libpl.dll
+TERMDLL=$(PLHOME)\bin\plterm.dll
 
 LOCALLIB=win32/uxnt/uxnt.lib rc/rc.lib
 
-PB=..\boot
-INCLUDEDIR=..\include
+PB=$(PLHOME)\boot
+INCLUDEDIR=$(PLHOME)\include
 CINCLUDE=$(INCLUDEDIR)/SWI-Prolog.h
 STREAMH=$(INCLUDEDIR)/SWI-Stream.h
 BOOTFILE=boot32.prc
-STARTUPPATH=..\$(BOOTFILE)
+STARTUPPATH=$(PLHOME)\$(BOOTFILE)
 LIBRARYDIR=$(PLBASE)/library
 
 OBJ=	pl-atom.obj pl-wam.obj pl-stream.obj pl-error.obj pl-arith.obj \
@@ -86,7 +85,8 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl \
 
 all:	banner \
 	headers	swipl subdirs \
-	$(PLCON) startup index $(PLWIN) $(PLLD)
+	$(PLCON) startup index $(PLWIN) $(PLLD) \
+	packages
 
 system:		$(PLCON)
 startup:	$(STARTUPPATH)
@@ -104,7 +104,7 @@ $(PLLIB):	$(OBJ) $(LOCALLIB)
 $(PLCON):	$(PLLIB) pl-ntcon.obj
 		$(LD) $(LDFLAGS) /subsystem:console /out:$@ pl-ntcon.obj $(PLLIB)
 
-$(PLWIN):	$(PLLIB) pl-ntmain.obj
+$(PLWIN):	$(PLLIB) pl-ntmain.obj pl.res
 		$(LD) $(LDFLAGS) /subsystem:windows /out:$@ pl-ntmain.obj $(PLLIB) $(TERMLIB) pl.res $(LIBS)
 
 pl.res:		pl.rc pl.ico xpce.ico
@@ -167,7 +167,7 @@ check:
 
 install:	dv-install
 
-dv-install:	install-arch install-libs
+dv-install:	install-arch install-libs install_packages
 
 install-arch:	idirs
 		$(INSTALL_PROGRAM) $(PLWIN) "$(PLBASE)\bin"
@@ -197,26 +197,51 @@ $(IDIRS):
 idirs:		$(IDIRS)
 
 iboot:		
-		chdir ..\boot & copy *.pl "$(PLBASE)\boot"
+		chdir $(PLHOME)\boot & copy *.pl "$(PLBASE)\boot"
 ilib:		
-		chdir ..\library & \
+		chdir $(PLHOME)\library & \
 			for %f in ($(PLLIBS)) do copy %f "$(PLBASE)\library"
 
 iinclude:       
-		$(INSTALL_DATA) ..\include\SWI-Prolog.h "$(PLBASE)\include"
-		$(INSTALL_DATA) ..\include\SWI-Stream.h "$(PLBASE)\include"
+		$(INSTALL_DATA) $(PLHOME)\include\SWI-Prolog.h "$(PLBASE)\include"
+		$(INSTALL_DATA) $(PLHOME)\include\SWI-Stream.h "$(PLBASE)\include"
+
+################################################################
+# Build and install packages
+################################################################
+
+packages:
+		for %p in ($(PKGS)) do \
+		   if exist "$(PKGDIR)\%p" \
+		      $(CMD) /c "chdir $(PKGDIR)\%p & $(MAKE)"
+
+install_packages:
+		for %p in ($(PKGS)) do \
+		   if exist "$(PKGDIR)\%p" \
+		      $(CMD) /c "chdir $(PKGDIR)\%p & $(MAKE) install"
+
+clean_packages:
+		for %p in ($(PKGS)) do \
+		   if exist "$(PKGDIR)\%p" \
+		      $(CMD) /c "chdir $(PKGDIR)\%p & $(MAKE) clean"
+
+distclean_packages:
+		for %p in ($(PKGS)) do \
+		   if exist "$(PKGDIR)\%p" \
+		      $(CMD) /c "chdir $(PKGDIR)\%p & $(MAKE) distclean"
+
 
 ################################################################
 # Cleanup
 ################################################################
 
-clean:
+clean:		clean_packages
 		chdir rc & $(MAKE) clean
 		chdir win32\uxnt & $(MAKE) clean
 		chdir win32\console & $(MAKE) clean
 		del *.obj *~ pl.res
 
-distclean:	clean
+distclean:	clean distclean_packages
 		@cd rc & $(MAKE) distclean
 		rm -rf $(INCLUDEDIR) $(RUNTIMEDIR)
 		rm -f ../library/INDEX.pl
@@ -231,3 +256,4 @@ realclean:	clean
 
 uninstall:
 		rmdir /s /q $(PLBASE)
+

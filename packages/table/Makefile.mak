@@ -8,25 +8,32 @@
 #	nmake /f Makefile.mak install
 ################################################################
 
+PLHOME=..\..
 !include ..\..\src\rules.mk
-PLHOME=		..\..
+PKGDLL=table
 
 OBJ=		table.obj order.obj error.obj
 
-all:		table.dll
+all:		$(PKGDLL).dll
 
-table.dll:	$(OBJ)
+$(PKGDLL).dll:	$(OBJ)
 		$(LD) /dll /out:$@ $(LDFLAGS) $(OBJ) $(PLLIB) $(LIBS)
 
-install:
-		copy table.dll $(PLBASE)\bin
+install::
+		copy $(PKGDLL).dll $(PLBASE)\bin
 		copy table.pl $(PLBASE)\library
 		copy table_util.pl $(PLBASE)\library
 		$(MAKEINDEX)
 
-clean:
+uninstall::
+		del $(PLBASE)\bin\$(PKGDLL).dll
+		del $(PLBASE)\library\table.pl
+		del $(PLBASE)\library\table_util.pl
+		$(MAKEINDEX)
+
+clean::
 		DEL *.obj *~
 
 distclean:	clean
-		DEL table.dll table.lib table.exp
+		DEL $(PKGDLL).dll $(PKGDLL).lib $(PKGDLL).exp
 

@@ -2,7 +2,7 @@
 			    Jan Wielemaker
 			       06/06/94
 
-		(Last Updated: 08/03/00) (Version 3.3.3)
+		(Last Updated: 02/02/01) (Version 4.0.0)
 		  
 
 
@@ -88,14 +88,21 @@ SWI-Prolog stores information on the current installation on the key
 Redoing the boot compilation
 ============================
 
-The system normally loads the Prolog code  from the file boot.prc If you
-changed anything to the Prolog sources  in   the  boot  directory or the
+The system normally loads the Prolog code   from  the file boot32.prc If
+you changed anything to the Prolog sources  in the boot directory or the
 system appears to have path-problems with   system related files, it may
 be wise to redo the boot compilation.   To  do this, run mkboot.bat from
 the pl\bin directory, which executes:
 
 	cd ..
-	bin\plwin.exe -O -o boot.prc -b boot/init.pl
+	bin\plwin.exe -O -o boot32.prc -b boot/init.pl
+
+Version 4.0 Release Notes
+=========================
+
+As of version 4.0, we attempted to provide a better environment to allow
+the user recompiling SWI-Prolog  from  the   sourcecode  by  providing a
+comprehensive makefile for the NMAKE utility.
 
 
 Version 3.2.0 Release Notes
