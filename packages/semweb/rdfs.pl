@@ -125,9 +125,13 @@ rdfs_subclass_of(Class, Super) :-
 %	rdfs_individual(+Resource, -Class)
 %	rdfs_individual(-Resource, +Class)
 %	
-%	Generate resources belonging to a class or classes a resource
-%	belongs to.  We assume everything at the `object' end of a 
-%	triple is a class.  A validator should confirm this property.
+%	Generate resources belonging to a class   or  classes a resource
+%	belongs to. We assume everything at the `object' end of a triple
+%	is a class. A validator should confirm this property.
+%	
+%	rdfs_individual(+,  -)  does  not  exploit    domain  and  range
+%	properties, deriving that if rdf(R,  P,   _)  is  present R must
+%	satisfy the domain of P (and similar for range).
 %	
 %	There are a few hacks:
 %	
@@ -138,10 +142,9 @@ rdfs_individual_of(Resource, Class) :-
 	nonvar(Resource), !,
 	(   Resource = literal(_)
 	->  rdfs_subclass_of(Class, rdfs:'Literal')
-	;   rdf_equal(Class, rdfs:'Resource')
-	->  true
 	;   rdf_has(Resource, rdf:type, MyClass),
 	    rdfs_subclass_of(MyClass, Class)
+	;   rdf_equal(Class, rdfs:'Resource')
 	).
 rdfs_individual_of(Resource, Class) :-
 	nonvar(Class), !,
