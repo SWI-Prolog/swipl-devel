@@ -1,3 +1,7 @@
+Mar 31, 2005
+
+  * FIXED: memory leak in process_rdf/2
+
 Mar 29, 2005
 
   * FIXED: dataType --> datatype (Vangelis Vassiliadis)

@@ -178,13 +178,14 @@ do_process_rdf(Parser, In, NSList, Close, Cleanup) :-
 				    ]),
 			 exit_ns_collect(NSList)
 		     ),
-		     cleanup_process(Close, Cleanup)).
+		     cleanup_process(Close, Cleanup, Parser)).
 
-cleanup_process(In, Cleanup) :-
+cleanup_process(In, Cleanup, Parser) :-
 	(   var(In)
 	->  true
 	;   close(In)
 	),
+	free_sgml_parser(Parser),
 	nb_delete(rdf_options),
 	nb_delete(rdf_object_handler),
 	nb_delete(rdf_state),
