@@ -45,6 +45,10 @@ file_exists( File ) :-
 		*          META CALLS           *
 		*********************************/
 
+:- module_transparent
+	call/2,
+	call/3.
+
 %	call( +Pred,+Argument,... )
 %	call `Pred', appending the additional arguments to the goal
 

@@ -128,8 +128,9 @@ exception(warning, warning(Path, Line, Message), _) :-
 
 emacs_start_compilation :-
 	absolute_file_name('', Pwd),
+	concat(Cwd, /, Pwd),
 	asserta(compilation_base_dir(Pwd)),
-	call_emacs('(prolog-compilation-start "~w")', [Pwd]).
+	call_emacs('(prolog-compilation-start "~w")', [Cwd]).
 
 	
 emacs_finish_compilation :-
