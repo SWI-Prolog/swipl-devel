@@ -360,7 +360,7 @@ writePrimitive(term_t t, write_options *options)
       
       return writeQuoted(out, s, n, q, options);
     } else
-      return PutString(s, out);
+      return PutStringN(s, n, out);
   }
 #endif /* O_STRING */
 

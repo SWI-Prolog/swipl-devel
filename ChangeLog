@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug #52: write/1 to write SWI-Prolog string objects with
+    embedded 0 chacters.  Mike Elston.
+
   * FIXED/MODIFIED: library(url), parse_url_search(-Spec, +Fields), packing
     a search specification.
 
