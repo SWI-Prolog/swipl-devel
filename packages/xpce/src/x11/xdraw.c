@@ -2321,9 +2321,11 @@ ps_string(String s, FontObj font, int x, int y, int w, Name format)
   str_compute_lines(lines, nlines, font, x, y, w, 0, format, NAME_top);
 
   for(n=0, line = lines; n++ < nlines; line++)
-    ps_output("~D ~D 0 ~D ~a text\n",
-	      line->x, line->y+baseline,
-	      line->width, &line->text);
+  { if ( line->text.size > 0 )
+      ps_output("~D ~D 0 ~D ~a text\n",
+		line->x, line->y+baseline,
+		line->width, &line->text);
+  }
 }
 
 
