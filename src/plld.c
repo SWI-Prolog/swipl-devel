@@ -31,7 +31,7 @@ embedded application.
 
 #define PROG_PL "plcon.exe"
 #define PROG_LD "link.exe"
-#define PROG_LDSO "link.exe"
+#define SO_LD "link.exe"
 #define PROG_CC "cl.exe"
 #define PROG_CXX "cl.exe"
 #define PROG_OUT "plout.exe"
@@ -39,7 +39,6 @@ embedded application.
 #define LIB_PLMT "libplmt.lib"
 #define LIB_PL_DEBUG "libplD.lib"
 #define EXT_OBJ "obj"
-#define EXT_SO "dll"
 #define OPT_DEBUG "/DEBUG"
 #else /*WIN32*/
 #include "pl-incl.h"
@@ -51,14 +50,12 @@ embedded application.
 #define EXT_OBJ "o"
 #define LIB_PL	"-lpl"
 #define LIB_PLMT "-lplmt"
-#ifdef __CYGWIN32__
-#define EXT_SO "dll"
-#define PROG_LDSO "dllwrap"
-#define LIB_PLEXPORT "-lplexp"
-#else
-#define EXT_SO "so"
-#endif
 #define OPT_DEBUG "-g"
+
+#ifndef SO_LDFLAGS
+#define SO_LDFLAGS "-shared"
+#endif
+
 #endif /*WIN32*/
 
 #include <stdio.h>
@@ -595,6 +592,19 @@ parseOptions(int argc, char **argv)
     } else if ( streq(opt, "-shared") )		/* -shared */
     { shared = TRUE;
       nostate = TRUE;
+#ifdef SO_pic
+      appendArgList(&coptions, SO_pic);
+#endif
+    } else if ( streq(opt, "-SHARED") )		/* -SHARED */
+    { shared = TRUE;
+      nostate = TRUE;
+#ifdef SO_PIC
+      appendArgList(&coptions, SO_PIC);
+#else
+#ifdef SO_pic
+      appendArgList(&coptions, SO_pic);
+#endif
+#endif
     } else if ( streq(opt, "-o") ) 		/* -o out */
     { if ( argc > 1 )
       { out = argv[1];
@@ -728,10 +738,10 @@ fillDefaultOptions()
   if ( !ld )				/* not specified */
   { if ( shared )
     {
-#ifndef PROG_LDSO
+#ifndef SO_LD
        ld = (cppfiles.size > 0 ? cxx : cc);
 #else
-       ld = PROG_LDSO;
+       ld = SO_LD;
 #endif
     } else
 #ifndef PROG_LD
@@ -757,6 +767,10 @@ fillDefaultOptions()
   free(pltmp);
   pltmp = strdup(tmp);
 #endif
+  if ( shared && !out && !nolink )
+  { fprintf(stderr, "%s: \"-o out\" required for linking shared object\n", plld);
+    exit(1);
+  }
   defaultPath(&out, PROG_OUT);
 
   defaultProgram(&plgoal,     "$welcome");
@@ -771,12 +785,6 @@ fillDefaultOptions()
   prependArgList(&libdirs, tmp);
   sprintf(tmp, "%s/include", plbase);
   prependArgList(&includedirs, tmp);
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Supporting -shared
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-  defaultProgram(&soext, EXT_SO);
 }
 
 		 /*******************************
@@ -816,10 +824,12 @@ getPrologOptions()
 	  defaultPath(&plbase, v);
 	else if ( streq(name, "PLARCH") )
 	  defaultPath(&plarch, v);
-	else if ( streq(name, "PLLIBS") )
+	else if ( streq(name, "PLLIBS") && !shared )
 	  addLibs(v, &libs);
-	else if ( streq(name, "PLLDFLAGS" ) )
+	else if ( streq(name, "PLLDFLAGS") && !shared )
 	  appendArgList(&ldoptions, v);
+	else if ( streq(name, "PLSOEXT") )
+	  soext = strdup(v);
 	else if ( streq(name, "PLTHREADS") && streq(v, "true") )
 	{ ensureOption(&coptions, "-D_REENTRANT");
 	  ensureOption(&cppoptions, "-D_REENTRANT");
@@ -917,7 +927,8 @@ compileFile(const char *compiler, arglist *options, const char *cfile)
 
   prependArgList(args, "-c");
   appendArgList(args, "-D__SWI_PROLOG__");
-  appendArgList(args, "-D__SWI_EMBEDDED__");
+  if ( !shared )
+    appendArgList(args, "-D__SWI_EMBEDDED__");
   concatArgList(args, "-I", &includedirs);
 
   appendArgList(args, "-o");
@@ -1050,7 +1061,7 @@ linkSharedObject()
   concatArgList(&ldoptions, "-l", &libs);	/* libraries */
   concatArgList(&ldoptions, "-l", &lastlibs);	/* libraries */
 #else /*__CYGWIN32__*/
-  prependArgList(&ldoptions, "-shared"); 	/* gcc */
+  prependArgList(&ldoptions, SO_LDFLAGS);
   prependArgList(&ldoptions, soout);
   prependArgList(&ldoptions, "-o");		/* -o ctmp */
   concatArgList(&ldoptions, "", &ofiles);	/* object files */
@@ -1290,10 +1301,10 @@ main(int argc, char **argv)
 
   compileObjectFiles();
 
-  if ( shared )
-  { linkSharedObject();
-  } else
-  { if ( !nolink )
+  if ( !nolink )
+  { if ( shared )
+      linkSharedObject();
+    else
     { linkBaseExecutable();
       
       if ( !nostate )

@@ -896,6 +896,7 @@ runtime_vars()
 	  "PLARCH=\"%s\";\n"
 	  "PLLIBS=\"%s\";\n"
 	  "PLLDFLAGS=\"%s\";\n"
+	  "PLSOEXT=\"%s\";\n"
 	  "PLVERSION=\"%d\";\n"
 #if defined(HAVE_DLOPEN) || defined(HAVE_SHL_LOAD)
 	  "PLSHARED=\"yes\";\n"
@@ -903,15 +904,17 @@ runtime_vars()
 	  "PLSHARED=\"no\";\n"
 #endif
 #ifdef O_PLMT
-	  "PLTHREADS=\"yes\";\n",
+	  "PLTHREADS=\"yes\";\n"
 #else
-	  "PLTHREADS=\"no\";\n",
+	  "PLTHREADS=\"no\";\n"
 #endif
+	  ,
 	  C_CC,
 	  systemDefaults.home ? systemDefaults.home : "<no home>",
 	  ARCH,
 	  C_LIBS,
 	  C_LDFLAGS,
+	  SO_EXT,
 	  PLVERSION);
 
   return TRUE;

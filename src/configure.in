@@ -809,27 +809,66 @@ fi	dnl test for -exportdynamic
 
 dnl Some specific OS stuff
 
+SO_LDFLAGS="-shared"
+SO_pic="-fpic"
+SO_PIC="-fPIC"
+SO_LD="$CC"
+SO_EXT="so"
+
 case "$ARCH" in
+  *solaris* | *sunos5*)
+	AC_DEFINE(SO_LD, "/usr/ccs/bin/ld")
+	SO_LDFLAGS="-G"
+	if test "$GCC" != "yes"; then
+	    SO_pic="-Kpic"
+	    SO_PIC="-KPIC"
+	fi
+	;;
+  *sunos*)
+	AC_DEFINE(SO_LD, "ld")
+	SO_LDFLAGS="-assert nodefinitions"
+	if test "$GCC" != "yes"; then
+	    SO_pic="-Kpic"
+	    SO_PIC="-KPIC"
+	fi
+	;;
   *hppa*|*hpux*)
-	AC_DEFINE(SO_EXT, "sl")
+	SO_EXT="sl"
 	if test "$GCC" = "yes"; then
 	    LDFLAGS="$LDFLAGS -Wl,-E"
 	else
 	    LDFLAGS="$LDFLAGS -E"
+	    SO_LDFLAGS="-b"
 	fi
+	;;
+  *osf*)
+	SO_LD=ld
+	SO_LDFLAGS="-shared -expect_unresolved \*"
+	SO_pic="-std"
 	;;
   *aix*)
-	AC_DEFINE(SO_EXT, "so")
+	SO_EXT="o"
 	if test "$GCC" = "yes"; then
 	    LDFLAGS="$LDFLAGS -Wl,-bE:../include/SWI-Exports"
+	    SO_LDFLAGS="-Wl,-bI:$PLBASE/include/SWI-Exports"
 	else
 	    LDFLAGS="$LDFLAGS -bE:../include/SWI-Exports"
+	    SO_LDFLAGS="-bI:$PLBASE/include/SWI-Exports"
 	fi
 	;;
+  *cygwin*)
+	SO_EXT="dll"
+	SO_LD="dllwrap"
+	;;
   *)
-	AC_DEFINE(SO_EXT, "so")
 	;;
 esac
+
+AC_DEFINE_UNQUOTED(SO_EXT,     "$SO_EXT")
+AC_DEFINE_UNQUOTED(SO_LD,      "$SO_LD")
+AC_DEFINE_UNQUOTED(SO_LDFLAGS, "$SO_LDFLAGS")
+AC_DEFINE_UNQUOTED(SO_pic,     "$SO_pic")
+AC_DEFINE_UNQUOTED(SO_PIC,     "$SO_PIC")
 
 fi	dnl dlopen or shl_load
 

@@ -45,15 +45,15 @@ MEMOBJ=		error.o memfile.o
 
 all:		$(TARGETS)
 
-unix.so:	$(UNXOBJ)
+unix.@SO@:	$(UNXOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(UNXOBJ)
-socket.so:	$(SOCKOBJ)
+socket.@SO@:	$(SOCKOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(SOCKOBJ) $(NETLIBS)
-cgi.so:		$(CGIOBJ)
+cgi.@SO@:	$(CGIOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(CGIOBJ)
-crypt.so:	$(CRYPTOBJ)
+crypt.@SO@:	$(CRYPTOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(CRYPTOBJ) $(LIBS)
-memfile.so:	$(MEMOBJ)
+memfile.@SO@:	$(MEMOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(MEMOBJ) $(LIBS)
 
 install:	$(TARGETS) $(LIBPL)

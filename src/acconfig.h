@@ -126,3 +126,16 @@
 
 /* On Cygwin we should use VirtualAlloc() */
 #undef HAVE_VIRTUALALLOC
+
+/* Program to use for linking shared objects */
+#undef SO_LD
+
+/* Flags to use for linking shared objects */
+#undef SO_LDFLAGS
+
+/* Flags for compiling position-independent BIG object */
+#undef SO_PIC
+
+/* Flags for compiling position-independent small object */
+#undef SO_pic
+

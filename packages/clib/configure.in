@@ -43,18 +43,17 @@ AC_MSG_RESULT("		PLARCH=$PLARCH")
 AC_MSG_RESULT("		PLLIBS=$PLLIBS")
 AC_MSG_RESULT("		PLLDFLAGS=$PLLDFLAGS")
 AC_MSG_RESULT("		PLSHARED=$PLSHARED")
+AC_MSG_RESULT("		PLSOEXT=$PLSOEXT")
 fi
 
-case "$PLARCH" in
-    *)			LDFLAGS="$PLLDFLAGS" ;;
-esac
+LDFLAGS="$PLLDFLAGS"
+SO="$PLSOEXT"
 
 if test "$PLSHARED" = "yes"; then
   if test ! -z "$GCC"; then
     CMFLAGS="$CMFLAGS -fpic"
   fi
 
-  SO="so"				 # Default shared object extension
   LD="$CC"				 # Default linking through gcc
   LDSOFLAGS="-shared"			 # Create a shared object
 
@@ -73,12 +72,10 @@ if test "$PLSHARED" = "yes"; then
 				  CMFLAGS="$CMFLAGS -std"
 				fi
 				;;
-    *aix*)			SO="o"
-				LDSOFLAGS="-bI:$PLBASE/include/SWI-Exports"
+    *aix*)			LDSOFLAGS="-bI:$PLBASE/include/SWI-Exports"
 				AC_DEFINE(__unix__)
 				;;
-    *hpux*)			SO="sl"
-				LDSOFLAGS="-b"
+    *hpux*)			LDSOFLAGS="-b"
 				;;
     *)				;;
   esac

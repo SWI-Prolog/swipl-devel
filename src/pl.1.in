@@ -1,5 +1,5 @@
 .\" -*- nroff -*-
-.TH @PL@ 1L "May 10, 1997" "SWI-Prolog 2.8"
+.TH @PL@ 1L "June 17, 2001" "SWI-Prolog 4.0"
 .SH NAME
 @PL@ \- SWI-Prolog @PLVERSION@
 .SH SYNOPSIS
@@ -19,16 +19,24 @@
 .RB [ "\-o \fIoutput" ]
 .BI \-b " initfile ..."
 .SH DESCRIPTION
-SWI-Prolog is an implementation of Prolog in the Edinburgh tradition.  It is
-based on a restricted form of the WAM (RISC-WAM?).  It has a good collection
-of built-in predicates, a large set of which it shares with C-Prolog, Quintus
-Prolog and SICStus Prolog.  It has a fairly good performance, with a fast
-compiler.  It includes a Quintus-like module system, a library autoload
-facility, a garbage collector, on-line help, a trasparent and fast C interface
-(in both directions), and a profiler.
+SWI-Prolog is an ISO compatible Prolog compiler. It has a good
+collection of built-in predicates, a large set of which it shares with
+Edinburgh C-Prolog, Quintus Prolog and SICStus Prolog.  Among its features
+are a very fast compiler, a Quintus-like module system, library autoloading,
+garbage collection, atom garbage collection, fast bi-directional C
+interface, true C++ interface, execution profiling and many more.
 
-SWI-Prolog runs on most Unix machines, as well as on the Microsoft Win32
-platform.
+All of SWI-Prolog and its packages should work out-of-the-box on
+ELF-based Unix systems using gcc. On other Unix systems or using another
+C-compiler it is often required to tweak a bit with the compiler options
+to get the foreign packages compiled. For MS-Windows Makefiles and tools
+are maintained seperately. The status on other non-POSIX platforms is
+varying and unstable.
+
+This manual page only lists the commandline options.  Full documentation
+is available on-line as well as in
+.BR HTML " and " PDF
+format from the WWW home page.
 
 .SH LICENSE INFORMATION
 SWI-Prolog is distributed under the GNU-2 (Gnu Public License, version 2).
@@ -37,7 +45,7 @@ for those who want to use SWI-Prolog with
 .B proprietary
 software.  See the
 SWI-Prolog home page at
-.B ftp://swi.psy.uva.nl/pub/SWI-Prolog/
+.B http://swi.psy.uva.nl/projects/SWI-Prolog/
 for details.
 
 .SH OPTIONS
@@ -85,6 +93,11 @@ The required libraries for linking
 .TP
 .B PLLDFLAGS
 Flags that need to be passed to the C-linker for linking embedded executables.
+.TP
+.B PLSOEXT
+Extension used by the hosting operating system for shared objects. On most
+Unix systems this is "so"; on MS-Windows it is "dll".  AIX uses "o", HPUX
+"sl".
 .TP
 .B PLVERSION
 Numeric representation of the SWI-Prolog version.
@@ -183,18 +196,35 @@ Specifies the base-name of the script.  The extension is
 .I .rc.
 The default script is deduced from the basename of the executable,
 taking all leading alphanumerical (letters, digits and underscore)
-from the program name.  Thus if the proram is named
+from the program name.  Thus if the program is named
 .I swi-2.0
 it will try to load the file
 .I swi.rc
 from the SWI-Prolog home directory.  If the file does not exist, or
 the user has no read-access to it, the script is silently not loaded.
 .TP
+.BI \-s " file"
+Load
+.I file
+as a script.  This option may be used from the shell to make
+Prolog load a file before entering the toplevel.  It is also
+used to turn a file into an executable Prolog script on Unix
+systems using the following first line
+.RS
+.TP
+.BR #!@prefix@/bin/@PL@ " option ... " \-s
+.RE
+.TP
+.B \-q
+Operate silently.  This option suppresses all
+.I informational
+messages, such as for compiling files.
+.TP
 .BI \-g " goal"
 .I Goal
 is executed just before entering the top level. The default is a
 predicate which prints the welcome message. The welcome message
-can thus be supressed by giving
+can thus be suppressed by giving
 .BR "\-g true" .
 .I goal
 can be a complex term. In this case, quotes are normally needed
@@ -319,7 +349,7 @@ is used.
 Location for the executables.
 .TP
 .I @prefix@/lib/@PL@-@PLVERSION@/include/
-Location for the include files.  If writeable, SWI-Prolog.h is also
+Location for the include files.  If writable, SWI-Prolog.h is also
 copied to @prefix@/include/SWI-Prolog.h.
 .TP
 .I @prefix@/lib/@PL@-@PLVERSION@/library/
@@ -329,13 +359,13 @@ SWI-Prolog user libraries.
 SWI-Prolog kernel parts written in Prolog.  The startup file
 @prefix@/lib/@PL@-@PLVERSION@/boot32.prc may be recreated using
 the command from the directory @prefix@/lib/@PL@-@PLVERSION@:
-.TP
-.I @prefix@/lib/@PL@-@PLVERSION@/doc/packages
-HTML and/or PDF documentation on the installed add-ons.
 .RS
 .TP
 bin/@ARCH@/@PL@ -O -o boot32.prc -b boot/init.pl
 .RE
+.TP
+.I @prefix@/lib/@PL@-@PLVERSION@/doc/packages
+HTML and/or PDF documentation on the installed add-ons.
 .TP
 .I @prefix@/lib/@PL@-@PLVERSION@/boot32.prc
 Default startup file.  This is a `intermediate code' file containing
@@ -368,7 +398,7 @@ The software is provided
 .B as is,
 without warranty of any kind, express or implied, including but not
 limited to the warranties of merchantability, fitness for a particular
-purpose and noninfringement. In no event shall the author or his
+purpose and non infringement. In no event shall the author or his
 employer be liable for any claim, damages or other liability, whether in
 an action of contract, tort or otherwise, arising from, out of or in
 connection with the software or the use or other dealings in the
@@ -388,7 +418,7 @@ indicate changes, don't change copyright messages and
 .B copy or make the source in some other form available for free to your users 
 .PP
 Especially if you do not wish to distribute the source of your work you
-may wish to consider optaining a
+may wish to consider obtaining a
 .I commercial license.
 Please visit the SWI-Prolog home-page for details.
 .SH COPYRIGHT

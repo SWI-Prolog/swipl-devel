@@ -5263,36 +5263,87 @@ fi
 
 fi	
 
+SO_LDFLAGS="-shared"
+SO_pic="-fpic"
+SO_PIC="-fPIC"
+SO_LD="$CC"
+SO_EXT="so"
+
 case "$ARCH" in
-  *hppa*|*hpux*)
+  *solaris* | *sunos5*)
 	cat >> confdefs.h <<\EOF
-#define SO_EXT "sl"
+#define SO_LD "/usr/ccs/bin/ld"
 EOF
 
+	SO_LDFLAGS="-G"
+	if test "$GCC" != "yes"; then
+	    SO_pic="-Kpic"
+	    SO_PIC="-KPIC"
+	fi
+	;;
+  *sunos*)
+	cat >> confdefs.h <<\EOF
+#define SO_LD "ld"
+EOF
+
+	SO_LDFLAGS="-assert nodefinitions"
+	if test "$GCC" != "yes"; then
+	    SO_pic="-Kpic"
+	    SO_PIC="-KPIC"
+	fi
+	;;
+  *hppa*|*hpux*)
+	SO_EXT="sl"
 	if test "$GCC" = "yes"; then
 	    LDFLAGS="$LDFLAGS -Wl,-E"
 	else
 	    LDFLAGS="$LDFLAGS -E"
+	    SO_LDFLAGS="-b"
 	fi
+	;;
+  *osf*)
+	SO_LD=ld
+	SO_LDFLAGS="-shared -expect_unresolved \*"
+	SO_pic="-std"
 	;;
   *aix*)
-	cat >> confdefs.h <<\EOF
-#define SO_EXT "so"
-EOF
-
+	SO_EXT="o"
 	if test "$GCC" = "yes"; then
 	    LDFLAGS="$LDFLAGS -Wl,-bE:../include/SWI-Exports"
+	    SO_LDFLAGS="-Wl,-bI:$PLBASE/include/SWI-Exports"
 	else
 	    LDFLAGS="$LDFLAGS -bE:../include/SWI-Exports"
+	    SO_LDFLAGS="-bI:$PLBASE/include/SWI-Exports"
 	fi
 	;;
+  *cygwin*)
+	SO_EXT="dll"
+	SO_LD="dllwrap"
+	;;
   *)
-	cat >> confdefs.h <<\EOF
-#define SO_EXT "so"
-EOF
-
 	;;
 esac
+
+cat >> confdefs.h <<EOF
+#define SO_EXT "$SO_EXT"
+EOF
+
+cat >> confdefs.h <<EOF
+#define SO_LD "$SO_LD"
+EOF
+
+cat >> confdefs.h <<EOF
+#define SO_LDFLAGS "$SO_LDFLAGS"
+EOF
+
+cat >> confdefs.h <<EOF
+#define SO_pic "$SO_pic"
+EOF
+
+cat >> confdefs.h <<EOF
+#define SO_PIC "$SO_PIC"
+EOF
+
 
 fi	
 echo "	CFLAGS=$CWFLAGS $COFLAGS $CIFLAGS $CMFLAGS"
