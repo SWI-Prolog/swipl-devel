@@ -1,3 +1,8 @@
+Nov 27, 2002
+
+* FIXED: if odbc_connect/3 has the silent(true) option, don't print
+  informational message from the connect (Mike Elston).
+
 Nov 4, 2002
 
 * FIXED: Fetching VARCHAR/VARBINARY columns with value NULL and column-width

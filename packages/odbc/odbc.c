@@ -262,7 +262,7 @@ static int pl_put_column(context *c, int nth, term_t col);
 static SWORD CvtSqlToCType(context *ctxt, SQLSMALLINT, SQLSMALLINT);
 static void free_context(context *ctx);
 static void close_context(context *ctx);
-static foreign_t odbc_set_connection(term_t con, term_t option);
+static foreign_t odbc_set_connection(connection *cn, term_t option);
 static int get_pltype(term_t t, SWORD *type);
 static SWORD get_sqltype_from_atom(atom_t name, SWORD *type);
 
@@ -1110,6 +1110,7 @@ pl_odbc_connect(term_t tdsource, term_t cid, term_t options)
    term_t head = PL_new_term_ref();
    term_t after_open = PL_new_term_refs(MAX_AFTER_OPTIONS);
    int i, nafter = 0;
+   int silent = FALSE;
 
    /* Read parameters from terms. */
    if ( !PL_get_atom(tdsource, &dsn) )
@@ -1131,10 +1132,12 @@ pl_odbc_connect(term_t tdsource, term_t cid, term_t options)
        if ( !(open == ATOM_once ||
 	      open == ATOM_multiple) )
 	 return domain_error(head, "open_mode");
+     } else if ( PL_is_functor(head, FUNCTOR_silent1) )
+     { if ( !get_bool_arg_ex(1, head, &silent) )
+	 return FALSE;
      } else if ( PL_is_functor(head, FUNCTOR_auto_commit1) ||
 		 PL_is_functor(head, FUNCTOR_null1) ||
 		 PL_is_functor(head, FUNCTOR_access_mode1) ||
-		 PL_is_functor(head, FUNCTOR_silent1) ||
 		 PL_is_functor(head, FUNCTOR_cursor_type1) )
      { if ( nafter < MAX_AFTER_OPTIONS )
 	 PL_put_term(after_open+nafter++, head);
@@ -1172,11 +1175,15 @@ pl_odbc_connect(term_t tdsource, term_t cid, term_t options)
    rc = SQLConnect(hdbc, (SQLCHAR *)dsource, SQL_NTS,
                          (SQLCHAR *)uid,     SQL_NTS,
                          (SQLCHAR *)pwd,     SQL_NTS);
-   if ( rc != SQL_SUCCESS && !odbc_report(henv, hdbc, NULL, rc) )
+   if ( rc == SQL_ERROR )
+     return odbc_report(henv, hdbc, NULL, rc);
+   if ( rc != SQL_SUCCESS && !silent && !odbc_report(henv, hdbc, NULL, rc) )
      return FALSE;
 
    if ( !(cn=alloc_connection(alias, dsn)) )
      return FALSE;
+   if ( silent )
+     set(cn, CTX_SILENT);
 
    cn->hdbc = hdbc;
 
@@ -1186,7 +1193,7 @@ pl_odbc_connect(term_t tdsource, term_t cid, term_t options)
    }
 
    for(i=0; i<nafter; i++)
-   { if ( !odbc_set_connection(cid, after_open+i) )
+   { if ( !odbc_set_connection(cn, after_open+i) )
      { free_connection(cn);
        return FALSE;
      }
@@ -1258,14 +1265,10 @@ odbc_current_connection(term_t cid, term_t dsn, control_t h)
 
 
 static foreign_t
-odbc_set_connection(term_t con, term_t option)
-{ connection *cn;
-  RETCODE rc;
+odbc_set_connection(connection *cn, term_t option)
+{ RETCODE rc;
   UWORD opt;
   UDWORD optval;
-
-  if ( !get_connection(con, &cn) )
-    return FALSE;
 
   if ( PL_is_functor(option, FUNCTOR_auto_commit1) )
   { int val;
@@ -1327,6 +1330,17 @@ odbc_set_connection(term_t con, term_t option)
     return odbc_report(henv, cn->hdbc, NULL, rc);
 
   return TRUE;
+}
+
+
+static foreign_t
+pl_odbc_set_connection(term_t con, term_t option)
+{ connection *cn;
+
+  if ( !get_connection(con, &cn) )
+    return FALSE;
+  
+  return odbc_set_connection(cn, option);
 }
 
 
@@ -2858,7 +2872,7 @@ install_odbc4pl()
    DET("odbc_connect",		   3, pl_odbc_connect);
    DET("odbc_disconnect",	   1, pl_odbc_disconnect);
    NDET("odbc_current_connection", 2, odbc_current_connection);
-   DET("odbc_set_connection",	   2, odbc_set_connection);
+   DET("odbc_set_connection",	   2, pl_odbc_set_connection);
    NDET("odbc_get_connection",	   2, odbc_get_connection);
    DET("odbc_end_transaction",	   2, odbc_end_transaction);
 
