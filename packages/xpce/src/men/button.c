@@ -464,6 +464,19 @@ defaultButtonButton(Button b, Bool val)
 }
 
 
+status
+isApplyButton(Button b)
+{ if ( instanceOfObject(b->message, ClassMessage) )
+  { Message m = (Message)b->message;
+
+    if ( m->selector == NAME_apply )
+      succeed;
+  }
+
+  fail;
+}
+
+
 static status
 radiusButton(Button b, Int radius)
 { return assignGraphical(b, NAME_radius, radius);
@@ -574,7 +587,9 @@ static senddecl send_button[] =
   SM(NAME_label, 1, "char_array|image*", labelButton,
      NAME_label, "Sets the visible label"),
   SM(NAME_selection, 1, "char_array|image*", labelButton,
-     NAME_label, "Equivalent to ->label")
+     NAME_label, "Equivalent to ->label"),
+  SM(NAME_isApply, 0, NULL, isApplyButton,
+     NAME_apply, "Test if button ->apply the dialog")
 };
 
 /* Get Methods */

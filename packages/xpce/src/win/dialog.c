@@ -289,8 +289,11 @@ modifiedItemDialog(Dialog d, Graphical gr, Bool m)
 { Button b;
 
   if ( (b = getDefaultButtonDialog(d)) )
-    return send(b, NAME_active, ON, 0);
-
+  { send(b, NAME_active, ON, 0);
+    if ( send(b, NAME_isApply, 0) )
+      succeed;
+  }
+    
   fail;
 }
 

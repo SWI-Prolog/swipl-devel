@@ -2326,3 +2326,4 @@
 #define NAME_yref (&builtin_names[2325])
 #define NAME_yrefVar (&builtin_names[2326])
 #define NAME_zoom (&builtin_names[2327])
+#define NAME_isApply (&builtin_names[2328])
