@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Errornous messages on recursively receiving (error) signals.
+
   * FIXED: Various issues in the GUI tracer.
 
   * FIXED: when loading foreign libraries in `system mode', the loaded 
