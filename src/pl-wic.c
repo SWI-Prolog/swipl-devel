@@ -22,7 +22,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-/*#define O_DEBUG 1*/
+#define O_DEBUG 1
 #include "pl-incl.h"
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
@@ -212,8 +212,6 @@ struct xr_table
 static XrTable loadedXrs;		/* head pointer */
 
 #define loadedXRTableId		(loadedXrs->id)
-#define loadedXRTable		(loadedXrs->table)
-#define loadedXRTableArrays	(loadedXrs->tablesize)
 
 #define SUBENTRIES ((ALLOCSIZE)/sizeof(word))
 
@@ -229,34 +227,35 @@ static void
 pushXrIdTable(ARG1_LD)
 { XrTable t = allocHeap(sizeof(struct xr_table));
 
+  if ( !(t->table = malloc(ALLOCSIZE)) )
+    outOfCore();
+  t->tablesize = 0;
+  t->id = 0;
+
   t->previous = loadedXrs;
   loadedXrs = t;
-
-  if ( !(loadedXRTable = malloc(ALLOCSIZE)) )
-    outOfCore();
-  loadedXRTableArrays = 0;
-  loadedXRTableId = 0;
 }
 
 
 static void
 popXrIdTable(ARG1_LD)
 { int i;
-  XrTable prev = loadedXrs->previous;
+  XrTable t = loadedXrs;
 
-  for(i=0; i<loadedXRTableArrays; i++)
-    free(loadedXRTable[i]);
+  loadedXrs = t->previous;		/* pop the stack */
 
-  free(loadedXRTable);
-  freeHeap(loadedXrs, sizeof(struct xr_table));
+  for(i=0; i<t->tablesize; i++)		/* destroy obsolete table */
+    free(t->table[i]);
 
-  loadedXrs = prev;
+  free(t->table);
+  freeHeap(t, sizeof(*t));
 }
 
 
 static word
 lookupXrId(long id)
-{ Word array = loadedXRTable[id/SUBENTRIES];
+{ XrTable t = loadedXrs;
+  Word array = t->table[id/SUBENTRIES];
 
   return array[id%SUBENTRIES];
 }
@@ -264,14 +263,15 @@ lookupXrId(long id)
 
 static void
 storeXrId(long id, word value)
-{ int i = id/SUBENTRIES;
+{ XrTable t = loadedXrs;
+  int i = id/SUBENTRIES;
 
-  while ( i >= loadedXRTableArrays )
-  { if ( !(loadedXRTable[loadedXRTableArrays++] = malloc(ALLOCSIZE)) )
+  while ( i >= t->tablesize )
+  { if ( !(t->table[t->tablesize++] = malloc(ALLOCSIZE)) )
       outOfCore();
   }
   
-  loadedXRTable[i][id%SUBENTRIES] = value;
+  t->table[i][id%SUBENTRIES] = value;
 }
 
 
@@ -867,6 +867,7 @@ loadPredicate(IOSTREAM *fd, int skip ARG_LD)
 	  int n = 0;
 	  int narg = codeTable[op].arguments;
 	  
+	  DEBUG(3, Sdprintf("\t%s (%d args)\n", codeTable[op].name, narg));
 	  *bp++ = encode(op);
 	  switch(codeTable[op].argtype)
 	  { case CA1_PROC:
