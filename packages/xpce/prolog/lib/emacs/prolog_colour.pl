@@ -442,6 +442,15 @@ term_colours(class_variable(_,_,_,_),
 			  pce(default),
 			  pce(comment)
 			]).
+term_colours(class_variable(_,_,_),
+	     expanded - [ pce(identifier),
+			  pce(type),
+			  pce(default),
+			  pce(comment)
+			]).
+term_colours(delegate_to(_),
+	     expanded - [ classify
+			]).
 term_colours((:- pce_begin_class(_, _, _)),
 	     expanded - [ expanded - [ pce(identifier),
 				       classify,
@@ -451,6 +460,10 @@ term_colours((:- pce_begin_class(_, _, _)),
 term_colours((:- pce_begin_class(_, _)),
 	     expanded - [ expanded - [ pce(identifier),
 				       classify
+				     ]
+			]).
+term_colours((:- pce_extend_class(_)),
+	     expanded - [ expanded - [ pce(identifier)
 				     ]
 			]).
 term_colours((:- pce_end_class),
