@@ -4,6 +4,10 @@
 \textwidth 12cm
 \textheight 100in
 
+%\renewcommand{\familydefault}{\ttdefault}
+%\renewcommand{\rmdefault}{cmtt}
+%\renewcommand{\sfdefault}{cmtt}
+
 \def\Huge{}
 \def\LARGE{}
 \def\Large{}
@@ -20,7 +24,6 @@
 \def\hline{}
 \def\vline{}
 \renewcommand{\footnote}[1]{}
-\renewenvironment{boxed}{}{}
 
 \def_{\ifmmode^A\else\char95\fi}
 \def\bullet{\verb|*|}
@@ -61,5 +64,4 @@
 
 \let\chap=\chapter
 \renewcommand{\chapter}[1]{\chap{#1}\thispagestyle{empty}}
-\renewcommand{\double}{}
 \renewcommand{\onlinebreak}{\pagebreak}

@@ -1,48 +1,47 @@
-#ifndef ONLINE
-\documentstyle[manual,twoside,makeidx,psfig]{report}
+\documentclass[11pt,twoside]{report}
+\usepackage{pl}
+\usepackage{html}
+%\onefile
 \makeindex
-#else
-\documentstyle[manual,11pt,psfig]{report}
-#endif
 
 \newcommand{\vmajor}{2}
 \newcommand{\vminor}{7}
-\newcommand{\vpatch}{15}
-\newcommand{\vmonth}{October}
-\newcommand{\vyear}{1996}
-
-\newcommand{\double}{\thispagestyle{plain}\cleardoublepage}
-\newcommand{\onlinebreak}{}
-\newcommand{\pow}[2]{{#1}^{#2}}
-
-#ifdef ONLINE
-\input tty.sty
-\raggedright
-\sloppy
-#endif
+\newcommand{\vpatch}{18}
+\newcommand{\vmonth}{January}
+\newcommand{\vyear}{1997}
 
 \newcommand{\versionshort}{\vmajor.\vminor}
 \newcommand{\versionlong}{\vmajor.\vminor.\vpatch, \vmonth~\vyear}
 \renewcommand{\arabicday}{\versionshort}
 
-\newcommand{\predicate}[3]{\onlinebreak\item[#1({\it #3})]\hfil\mbox{}\\}
-\newcommand{\noargpredicate}[1]{\onlinebreak\item[#1]\hfil\mbox{}\\}
+\title{SWI-Prolog Reference Manual}
+\author{\email[Jan Wielemaker]{jan@swi.psy.uva.nl}\\
+	Dept. of Social Science Informatics (SWI)	\\
+	    Roeterstraat 15, 1018 WB~~Amsterdam		\\
+		    The Netherlands			\\
+		Tel. (+31) 20 5256121}
+	
+\begin{htmlonly}
+\maketitle
 
-\newcommand{\prefix}[2]{\onlinebreak\item[#1 {\it #2}]\hfil\mbox{}\\}
-\newcommand{\infix}[3]{\onlinebreak\item[{\it #1} #2 {\it #3}]\hfil\mbox{}\\}
+\begin{abstract}
+SWI-Prolog is a Prolog implementation based on a subset of the WAM
+(Warren Abstract Machine \cite{Warren:83b}). SWI-Prolog has been
+designed and implemented such that it can easily be modified for
+experiments with logic programming and the relation between logic
+programming and other programming paradigms (such as the object
+oriented XPCE environment \cite{P1098:C1.6}).  SWI-Prolog has a rich
+set of built-in predicates and reasonable performance, which makes it
+possible to develop substantial applications in it.  The current
+version offers a module system, garbage collection and an interface to
+the C language.
 
-\newcommand{\function}[4]{\onlinebreak\item[{\it #1}] {\bf #2({\it #4})}\\}
-\newcommand{\noargfunction}[2]{\onlinebreak\item[{\it #1}] {\bf #2()}\\}
+This document gives an overview of the features, system limits and
+built-in predicates.
+\end{abstract}
 
-\newcommand{\macro}[4]{\onlinebreak\item[{\it #1}] {\bf #2({\it #4})}\\}
-\newcommand{\noargmacro}[2]{\onlinebreak\item[{\it #1}] {\bf #2}\\}
-
-\newcommand{\variable}[2]{\onlinebreak\item[{\it #1}] {\bf #2}\\}
-
-\newcommand{\tty}[1]{\mbox{\verb"#1"}}
-\newcommand{\bug}[1]{\footnote{BUG: #1}}
-
-\itemsep 0pt
+Copyright \copyright\ 1990--\year, University of Amsterdam
+\end{htmlonly}
 
 
 \begin{document}
@@ -61,7 +60,7 @@
 	Dept. of Social Science Informatics (SWI)	\\%
 	    Roeterstraat 15, 1018 WB~~Amsterdam		\\%
 		    The Netherlands			\\%
-		Tel. (+31) 20 5256786
+		Tel. (+31) 20 5256121
     \end{center}}}
 
 \mbox{}\vspace{-1in}
@@ -100,67 +99,24 @@ built-in predicates.
 \vfil
 \vfil
 \begin{quote}
-Copyright \copyright\ 1990--\vyear, Jan Wielemaker
+Copyright \copyright\ 1990--\vyear, University of Amsterdam
 \end{quote}
 \setcounter{page}{1}
 \end{titlepage}
 
-
-#ifndef ONLINE
-\pagenumbering{roman}
-\setcounter{page}{2}
-\thispagestyle{empty}
-\double
-
-\pagestyle{esprit}
-\newcommand{\bottomleft}{\mbox{}}
-\newcommand{\bottomright}{\mbox{}}
-#else
-\pagestyle{empty}
-#endif
-
-{\parskip 0pt
 \tableofcontents
-}
-
-#ifndef ONLINE
-%double
-
-\printindex
-\double
-
-\pagenumbering{arabic}
-\setcounter{page}{1}
-#endif
-
 
 \include{intro}
-\double
-
 \include{overview}
-\double
-
 \include{builtin}
-\double
-
 \include{module}
-\double
-
 \include{foreign}
-\double
-
 \include{runtime}
-\double
-
 \appendix
 \include{hack}
-\double
-
 \include{summary}
-\double
 
-#ifndef ONLINE
 \bibliography{whatever}
-#endif
+\printindex
 
 \end{document}

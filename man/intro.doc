@@ -1,6 +1,6 @@
 \chapter{Introduction}
 
-.S SWI-Prolog
+\section{SWI-Prolog}
 
 SWI-Prolog has been designed and implemented to get a Prolog
 implementation which can be used for experiments with logic programming
@@ -28,12 +28,12 @@ interpreter improves performance by about 20\%) and somewhat
 additional memory usage to help the decompiler and debugger.
 
 SWI-Prolog extends the minimal set of instructions described in
-\cite{Bowen:83} to improve performance.  While extending this set care
+\cite{Bowen:83} to improve performance. While extending this set care
 has been taken to maintain the advantages of decompilation and tracing
-of compiled code.  The extensions include specialised instructions for
+of compiled code. The extensions include specialised instructions for
 unification, predicate invocation, some frequently used built-in
-predicates, arithmetic, and control (\verb$;/2$, \verb$|/2$), if-then
-(\verb$->/2$) and not (\verb$\+/1$).
+predicates, arithmetic, and control (\predref{;}{2}, \predref{|}{2}),
+if-then (\predref{->}{2}) and not (\predref{\+}{1}).
 
 This manual does not describe the full syntax and semantics of
 SWI-Prolog, nor how one should write a program in Prolog.  These
@@ -50,7 +50,7 @@ Quintus Prolog%
 \cite{BIMPROLOG:manual}.
 
 
-.S Status
+\section{Status}
 
 This manual describes version \versionshort\ of SWI-Prolog.  SWI-Prolog has
 been used now for several years. The application range includes Prolog course
@@ -65,79 +65,64 @@ Some bugs are known to the author. They are described as footnotes in
 this manual.
 
 
-.S Should you be Using SWI-Prolog?
+\section{Should you be Using SWI-Prolog?}
 
 There are a number of reasons why you better choose a commercial Prolog
 system, or another academic product:
 
-\begin{itemize}
-    \tick{SWI-Prolog is not supported}
+\begin{itemlist}
+    \item [SWI-Prolog is not supported]
 Although I usually fix bugs shortly after a bug report arrives, I cannot
 promise anything.  Now that the sources are provided, you can always
 dig into them yourself.
-    \tick{Memory requirements and performance are your first concerns}
+    \item [Memory requirements and performance are your first concerns]
 A number of commercial compilers are more keen on memory and performance
 than SWI-Prolog.  I do not wish to sacrifice some of the nice features of
 the system, nor its portability to compete on raw performance.
-    \tick{You need features not offered by SWI-Prolog}
+    \item [You need features not offered by SWI-Prolog]
 In this case you may wish to give me suggestions for extensions. If
 you have great plans, please contact me (you might have to implement
 them yourself however).
-\end{itemize}
+\end{itemlist}
 
 On the other hand, SWI-Prolog offers some nice facilities:
 
-\begin{itemize}
-    \tick{Nice environment}
+\begin{itemlist}
+    \item [Nice environment]
 This includes `Do What I Mean', automatic completion of atom names,
 history mechanism and a tracer that operates on single key-strokes.
 Interfaces to standard Unix editors are provided, as well as a facility
 to maintain programs (see make/0).
-    \tick{Very fast compiler}
+    \item [Very fast compiler]
 The compiler handles about 100K bytes per second on a SPARC-II
 processor.
-    \tick{Transparent compiled code}
+    \item [Transparent compiled code]
 SWI-Prolog compiled code can be treated just as interpreted code: you
 can list it, trace it, assert to or retract from it, etc. This implies
 you do not have to decide beforehand whether a module should be loaded
 for debugging or not. Also, performance is much better than the
 performance of most interpreters.
-    \tick{Profiling}
+    \item [Profiling]
 SWI-Prolog offers tools for performance analysis, which can be very
 useful to optimise programs. Unless you are very familiar with Prolog
 and Prolog performance considerations this might be more helpful than a
 better compiler without these facilities.
-    \tick{Flexibility}
+    \item [Flexibility]
 SWI-Prolog allows for easy and flexible integration with C, both
 Prolog calling C functions as C calling Prolog predicates.  SWI-Prolog
 is provided in source form, which implies SWI-Prolog can be linked in
 with another package.  Command line options and predicates to obtain
 information from the system and feedback into the system are provided.
-    \tick{Integration with PCE}
+    \item [Integration with PCE]
 SWI-Prolog offers a tight integration to the Object Oriented Package
 for User Interface Development, called PCE \cite{P1098:C1.6}.
 PCE is now also available for the X Window System.
-\end{itemize}
+\end{itemlist}
 
 
-.S Graphics					\label{sec:XPCE}
+\input{xpce}
 
-SWI-Prolog has no provisions for graphical applications itself. The
-standard graphical environment to be used with SWI-Prolog is XPCE.
-XPCE/SWI-Prolog provides an interactive graphical development platform
-that is portable over many Unix/X11 implementations as well as
-MS-Windows (3.1) and Windows~NT (3.5).
-
-XPCE is a licensed product.  A fully functional free demo version for
-PC/Linux is available from \tty{ftp://swi.psy.uva.nl/pub/xpce/linux},
-for more information see URL
-\begin{code}
-http://www.swi.psy.uva.nl/projects/xpce/home.html
-\end{code}
-or contact xpce-request@swi.psy.uva.nl
-
-
-.S Version 1.5 Release Notes
+\section{Version 1.5 Release Notes}
 
 There are not many changes between version 1.4 and 1.5.  The C-sources
 have been cleaned and comments have been updated.  The stack memory 
@@ -158,7 +143,7 @@ back to me.  Difference listings are of no use, as I generally won't have
 exactly the same version around.
 
 
-.S Version 1.6 Release Notes
+\section{Version 1.6 Release Notes}
 
 Version 1.6 is completely compatible with version 1.5.  Some new features
 have been added, the system has been ported to various new platforms and
@@ -172,40 +157,40 @@ From version 1.6, the sources are now versioned using the CVS version
 control system.
 
 
-.S Version 1.7 Release Notes
+\section{Version 1.7 Release Notes}
 
 Version 1.7 integrates the GNU-readline library, offering powerful
 history and command-line editing both using Emacs and vi key-bindings.
 
 
-.S Version 1.8 Release Notes
+\section{Version 1.8 Release Notes}
 
 Version 1.8 offers a stack-shifter to provide dynamically expanding
 stacks on machines that do not offer operating-system support for
 implementing dynamic stacks.
 
 
-.S Version 1.9 Release Notes
+\section{Version 1.9 Release Notes}
 
 Version 1.9 offers better portability including an MS-Windows 3.1
 version.  Changes to the Prolog system include:
 
-\begin{itemize}
-    \tick{Redefinition of system predicates}
+\begin{itemlist}
+    \item [Redefinition of system predicates]
 Redefinition of system predicates was allowed silently in older versions.
 Version 1.9 only allows it if the new definition is headed by a
 :- redefine_system_predicate/1 directive.
-    \tick{`Answer' reuse}
+    \item [`Answer' reuse]
 The toplevel maintains a table of bindings returned by toplevel goals and
 allows for reuse of these bindings by prefixing the variables with the \$
-sign.  See section~\ref{sec:topvars}.
-    \tick{Better source code administration}
+sign.  See \secref{topvars}.
+    \item [Better source code administration]
 Allows for proper updating of multifile predicates and finding the
 sources of individual clauses.
-\end{itemize}
+\end{itemlist}
 
 
-.S Version 2.0 Release Notes
+\section{Version 2.0 Release Notes}
 
 \index{Win32s}
 Version 2.0 is first of all a freeze of all the features added to the
@@ -215,84 +200,84 @@ the Win32s NT emulator.
 
 New features offered:
 
-\begin{itemize}
-    \tick{32-bit Virtual Machine}
+\begin{itemlist}
+    \item [32-bit Virtual Machine]
 Removes various limits and improves performance.
-    \tick{Inline foreign functions}
+    \item [Inline foreign functions]
 `Simple' foreign predicates no longer build a Prolog stack-frame, but
 are directly called from the VM.  Notably provides a speedup for the
 test predicates such as var/1, etc.
-    \tick{Various compatibility improvements}
-    \tick{Stream based I/O library}
+    \item [Various compatibility improvements]
+    \item [Stream based I/O library]
 All SWI-Prolog's I/O is now handled by the stream-package defined in
-the foreign include file $<$SWI-Stream.h$>$.  Physical I/O of Prolog
-streams may be redefined through the foreign language interface,
+the foreign include file \file{SWI-Stream.h}. Physical I/O of
+Prolog streams may be redefined through the foreign language interface,
 facilitating much simpler integration in window environments.
-\end{itemize}
+\end{itemlist}
 
 Version 2.0.6 offers a few incompatibilities:
 
-\begin{itemize}
-    \tick{retractall/1}
+\begin{itemlist}
+    \item [retractall/1]
 In previous releases, the definition of retractall/1 was:
 \begin{code}
 retractall(Term) :-
-	retract(Term),
-	fail.
+        retract(Term),
+        fail.
 retractall(_).
 \end{code}
 As from version 2.0.6, retractall/1 is implemented as a deterministic
 foreign predicate compatible with Quintus Prolog.  It behaves as:
 \begin{code}
 retractall(Head) :-
-	retract(Head),
-	fail.
+        retract(Head),
+        fail.
 retractall(Head) :-
-	retract((Head :- _)),
-	fail.
+        retract((Head :- _)),
+        fail.
 retractall(_).
 \end{code}
 I.e. the definition behaves the same when handling predicates consisting
 of facts.  Clauses with a non-true body will be retracted if their head
 matches.
-    \tick{Foreign interface types}
-All foreign interface types now have names ending in \tty{_t} to lessen
-the chance for conflicts.  \tty{term}, \tty{atomic}, \tty{functor} and
-\tty{module} have \verb$#define$'s for backward compatibility.
-    \tick{\tt PL_register_foreign()}
+    \item [Foreign interface types]
+All foreign interface types now have names ending in \ctype{_t} to lessen
+the chance for conflicts.  \ctype{term}, \ctype{atomic}, \ctype{functor} and
+\ctype{module} have \exam{\#define}'s for backward compatibility.
+    \item [PL_register_foreign()]
 The attributes is now a bitwise or of the attribute flags rather than
 a 0 terminated list.  This has no consequences for predicates that have
 no attributes (99\% of them), while predicates with just one attribute
 will generate a compiler warning, but work properly otherwise.
 Predicates with more than one attributes must be changed.
-    \tick{\tt PL_dispatch_events}
+    \item [\cglobalvar{PL_dispatch_events}]
 This pointer is replaced by PL_dispatch_hook(). A function was necessary
-for the Windows~NT .DLL interface.
-\end{itemize}
+for the Win32 \fileext{DLL} interface.
+\end{itemlist}
 
 
-.S Version 2.1 Release Notes
+\section{Version 2.1 Release Notes}
 
 In addition to several bug fixes, the 2.1 versions provide some new features:
-\begin{itemize}
-    \tick{setarg/3}
+\begin{itemlist}
+    \item [setarg/3]
 A new predicate setarg/3 for extra-logical (destructive) assignment to
 arguments of terms is provided.
-    \tick{Modified keysort/2}
+    \item [Modified keysort/2]
 keysort/2 is now stable with regard to multiple values on the same key.
 Makes this predicate compatible with SICStus and Quintus.
-    \tick{Modified grammar rule expansion}
+    \item [Modified grammar rule expansion]
 DCG translation of free variables now calls phrase/3, which has been changed
 slightly to deal with `un-parsing'.  Modification is probably not complete,
 but it fixes some problems encountered by Michael B\"ohlen.
-    \tick{Exception handling}
+    \item [Exception handling]
 The top of the runtime stack are automatically dumped on floating point
 exceptions.
-    \tick{Foreign interface}
+    \item [Foreign interface]
 Added facilities to allow for embedding SWI-Prolog in C applications.
-\end{itemize}
+\end{itemlist}
 
-.S Version 2.5 Release Notes
+\section{Version 2.5 Release Notes}
 
 Version 2.5 is an intermediate release on the path from 2.1 to 3.0.  All
 changes are to the foreign-language interface, both to user- and system
@@ -301,7 +286,7 @@ all to make garbage-collection and stack-expansion (stack-shifts)
 possible while foreign code is active without the C-programmer having
 to worry about locking and unlocking C-variables pointing to Prolog
 terms.  The new approach is closely compatible to the Quintus and
-SICStus Prolog foreign interface using the {\tt +term} argument
+SICStus Prolog foreign interface using the \const{+term} argument
 specification (see their respective manuals).  This allows for writing
 foreign interfaces that are easily portable over these three Prolog
 platforms.
@@ -313,45 +298,45 @@ be called 3.0.
 Apart from various bug fixes listed in the Changelog file, these
 are the main changes since 2.1.0:
 
-\begin{itemize}
-    \tick{ISO compatibility}
+\begin{itemlist}
+    \item [ISO compatibility]
 Many ISO compatibility features have been added: open/4, arithmetic
 functions, syntax, etc.
-    \tick{WIN32}
+    \item [WIN32]
 Many fixes for the Win32 (NT, '95 and win32s) platforms.  Notably
 many problems related to pathnames and a problem in the garbage
 collector.
-    \tick{Performance}
+    \item [Performance]
 Many changes to the clause indexing system: added hash-tables,
 lazy computation of the index information, etc.
-    \tick{Portable saved-states}
+    \item [Portable saved-states]
 The predicate qsave_program/[1,2] allows for the creating of machine
 independent saved-states that load very quickly.
-\end{itemize}
+\end{itemlist}
 
-.S Version 2.6 Release Notes
+\section{Version 2.6 Release Notes}
 
 Version 2.6 provides a stable implementation of the features added in
 the 2.5.x releases, but at the same time implements a number of new
 features that may have impact on the system stability.
 
-\begin{itemize}
-    \tick{32-bit integer and double float arithmetic}
+\begin{itemlist}
+    \item [32-bit integer and double float arithmetic]
 The biggest change is the support for full 32-bit signed integers and
 raw machine-format double precision floats. The internal data
 representation as well as the arithmetic instruction set and interface
 to the arithmetic functions has been changed for this.
-    \tick{Embedding for Win32 applications}
+    \item [Embedding for Win32 applications]
 The Win32 version has been reorganised.  The Prolog kernel is now
 implemented as Win32 DLL that may be embedded in C-applications.
 Two front ends are provided, one for window-based operation and
 one to run as a Win32 console application.
-    \tick{Creating stand-alone executables}
+    \item [Creating stand-alone executables]
 Version 2.6.0 can create stand-alone executables by attaching the
 saved-state to the emulator.  See qsave_program/2.
-\end{itemize}
+\end{itemlist}
 
-.S Version 2.7 Release Notes
+\section{Version 2.7 Release Notes}
 
 Version 2.7 reorganises the entire data-representation of the Prolog data
 itself.  The aim is to remove most of the assumption on the machine's
@@ -365,7 +350,7 @@ variables in a clause considerably and allow for further expansion at
 minimal cost.
 
 
-.S Acknowledgements
+\section{Acknowledgements}
 
 Some small parts of the Prolog code of SWI-Prolog are modified
 versions of the corresponding Edinburgh C-Prolog code: grammar rule
@@ -381,8 +366,8 @@ versions of this system, suggested extensions or reported bugs.  Among
 them are Anjo Anjewierden, Huub Knops, Bob Wielinga, Wouter Jansweijer,
 Luc Peerdeman, Eric Nombden, Frank van Harmelen, Bert Rengel.
 
-Martin Jansche (jansche@novell1.gs.uni-heidelberg.de) has been so kind
-to reorganise the sources for version 2.1.3 of this manual.
+Martin Jansche (\email{jansche@novell1.gs.uni-heidelberg.de}) has been
+so kind to reorganise the sources for version 2.1.3 of this manual.
 
 Horst von Brand has been so kind to fix many typos in the 2.7.14 manual.
 Thanks!

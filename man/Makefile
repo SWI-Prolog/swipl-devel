@@ -11,18 +11,18 @@ ONLINE=		../library/MANUAL
 ONLINE_INDEX=	../library/helpidx.pl
 PL=		../linux/pl
 
-ALLFILES=	Makefile biblio.doc builtin.doc correct_idx correct_ind   \
-		doc_to_tex foreign.doc hack.doc intro.doc latex_if_needed \
-		main.doc manual.sty module.doc overview.doc psfig.sty     \
-		summary.doc runtime.doc swi.ps tty.sty uva.ps $(DVITOTTY-HOME)
+ALLFILES=	Makefile biblio.doc builtin.doc correct_idx correct_ind \
+		doc2tex foreign.doc hack.doc intro.doc latex_if_needed  \
+		main.doc manual.sty module.doc overview.doc psfig.sty   \
+		summary.doc runtime.doc swi.ps figs/tty.sty figs/uva.ps \
+		$(DVITOTTY-HOME)
 
-TEXFILES=	manual.sty psfig.sty uva.ps swi.ps                        \
-		intro.tex overview.tex builtin.tex module.tex             \
-		foreign.tex runtime.tex hack.tex summary.tex
+TEXFILES=	manual.sty psfig.sty figs/uva.ps figs/swi.ps          \
+		doc.tex intro.tex overview.tex builtin.tex module.tex \
+		foreign.tex runtime.tex hack.tex summary.tex xpce.tex
 
 .SUFFIXES:
 .SUFFIXES: .doc .tex 
-
 
 help:		$(ALLFILES)
 		@echo
@@ -37,6 +37,13 @@ help:		$(ALLFILES)
 
 all:		online manual
 
+dvi:		$(TEXFILES)
+		$(LATEX) doc
+
+html:		$(TEXFILES) doc.bbl
+		latex2html doc
+		mv doc/doc.html doc/Title.html
+
 manual:		$(MANUAL)
 
 online:		$(ONLINE) $(ONLINE_INDEX)
@@ -44,8 +51,8 @@ online:		$(ONLINE) $(ONLINE_INDEX)
 dvi2tty:	$(DVI2TTY)
 
 clean:		
-		rm -f tmp.* *.aux *.idx *.log *.toc
-		rm -f doc.* online.* *.tex
+		rm -f *~ *% tmp.* *.aux *.idx *.log *.toc *.ilg
+		rm -f online.* *.tex
 
 distclean:	clean
 		rm -f $(MANUAL) $(DVITOTTY)
@@ -59,26 +66,21 @@ $(MANUAL):	latex_if_needed doc.tex $(TEXFILES) doc.bbl doc.ind
 man:		doc.tex $(TEXFILES) doc.bbl doc.ind
 		$(LATEX) doc
 
-doc.tex:	main.doc
-		cp main.doc main.h
-		$(CCCP) main.h | cat -s > doc.tex
-		rm -f main.h
-
-summary.tex:	summary.doc
-		expand < $*.doc > $*.tex
-
 .doc.tex:	
-		./doc_to_tex $*.doc | expand > $*.tex
+		./doc2tex $*.doc > $*.tex
 
 doc.bbl:	biblio.doc
-		expand < biblio.doc > doc.bbl
+		cp  biblio.doc $@
 
-doc.ind:	latex_if_needed correct_idx correct_ind doc.tex \
-		$(TEXFILES) doc.bbl
+htmldoc.bbl:	biblio.doc
+		cp  biblio.doc $@
+
+doc.idx:	$(TEXFILES)
+		$(LATEX) doc
+
+doc.ind:	doc.idx
 		./latex_if_needed $(LATEX) doc
-		./correct_idx doc.idx > tmp.idx
-		$(INDEX) tmp
-		./correct_ind tmp.ind > doc.ind
+		makeindex doc.idx
 
 
 $(ONLINE):	$(DVITOTTY) online.dvi
