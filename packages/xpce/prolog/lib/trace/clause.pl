@@ -455,42 +455,6 @@ pce_unify_head_arg(A:_, A).
 %	starts with an I_CONTEXT call. This implies we need a
 %	hypothetical term-position for the module-qualifier.
 
-pce_method_body(::(_,A0), A, TermPos0, TermPos) :- !,
-	TermPos0 = term_position(F, T, FF, FT,
-				 [ HeadPos,
-				   term_position(_,_,_,_, [_,BodyPos0])
-				 ]),
-	TermPos  = term_position(F, T, FF, FT,
-				 [ HeadPos,
-				   term_position(0,0,0,0, [0-0,BodyPos])
-				 ]),
-	expand_goal(A0, A, BodyPos0, BodyPos).
-pce_method_body(A0, A, TermPos0, TermPos) :-
-	A0 =.. [Func,::(_,B0),C0],
-	control_op(Func), !,
-	A =.. [Func,B,C],
-	TermPos0 = term_position(F, T, FF, FT,
-				 [ HeadPos,
-				   term_position(F1,T1,FF1,FT1,
-						 [ term_position(_,_,_,_,
-								 [ _,
-								   BP0
-								 ]),
-						   CP0
-						 ])
-				 ]),
-	TermPos  = term_position(F, T, FF, FT,
-				 [ HeadPos,
-				   term_position(0,0,0,0,
-						 [ 0-0,
-						   term_position(F1,T1,FF1,FT1,
-								 [ BP,
-								   CP
-								 ])
-						 ])
-				 ]),
-	expand_goal(B0, B, BP0, BP),
-	expand_goal(C0, C, CP0, CP).
 pce_method_body(A0, A, TermPos0, TermPos) :-
 	TermPos0 = term_position(F, T, FF, FT,
 				 [ HeadPos,
@@ -500,7 +464,29 @@ pce_method_body(A0, A, TermPos0, TermPos) :-
 				 [ HeadPos,
 				   term_position(0,0,0,0, [0-0,BodyPos])
 				 ]),
+	pce_method_body2(A0, A, BodyPos0, BodyPos).
+
+
+pce_method_body2(::(_,A0), A, TermPos0, TermPos) :- !,
+	TermPos0 = term_position(_, _, _, _, [_Cmt,BodyPos0]),
+	TermPos  = BodyPos,
 	expand_goal(A0, A, BodyPos0, BodyPos).
+pce_method_body2(A0, A, TermPos0, TermPos) :-
+	A0 =.. [Func,B0,C0],
+	control_op(Func), !,
+	A =.. [Func,B,C],
+	TermPos0 = term_position(F, T, FF, FT,
+				 [ BP0,
+				   CP0
+				 ]),
+	TermPos  = term_position(F, T, FF, FT,
+				 [ BP,
+				   CP
+				 ]),
+	pce_method_body2(B0, B, BP0, BP),
+	expand_goal(C0, C, CP0, CP).
+pce_method_body2(A0, A, TermPos0, TermPos) :-
+	expand_goal(A0, A, TermPos0, TermPos).
 
 control_op((,)).
 control_op((;)).

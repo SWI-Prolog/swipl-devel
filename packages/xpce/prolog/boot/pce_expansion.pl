@@ -811,12 +811,12 @@ ex_documentation(::(DocText, Body), Summary, Body) :- !,
 	pce_summary(DocText, Summary).
 ex_documentation((::(DocText, A), B), Summary, (A,B)) :- !,
 	pce_summary(DocText, Summary).
-ex_documentation((::(DocText, A); B), Summary, (A;B)) :- !,
-	pce_summary(DocText, Summary).
-ex_documentation((::(DocText, A)->B), Summary, (A->B)) :- !,
-	pce_summary(DocText, Summary).
-ex_documentation((::(DocText, A)*->B), Summary, (A*->B)) :- !,
-	pce_summary(DocText, Summary).
+ex_documentation((A0 ; B), Summary, (A;B)) :-
+	ex_documentation(A0, Summary, A), !.
+ex_documentation((A0->B), Summary, (A->B)) :- !,
+	ex_documentation(A0, Summary, A), !.
+ex_documentation((A0*->B), Summary, (A*->B)) :- !,
+	ex_documentation(A0, Summary, A), !.
 
 return_type(Term, RType) :-
 	functor(Term, _, Arity),

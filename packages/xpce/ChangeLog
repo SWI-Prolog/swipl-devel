@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Issues resulting from the :: priority change.  Anders Bouwer.
+
 VERSION 6.2.3, distributed with SWI-Prolog 5.2.3
 ================================================
 

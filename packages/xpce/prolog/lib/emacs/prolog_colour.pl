@@ -332,14 +332,13 @@ colourise_method_body(_Comment::Body, TB,
 	colour_item(comment, TB, CP),
 	colourise_body(Body, TB, BP).
 colourise_method_body(Body, TB, Pos) :-		% deal with pri(::) < 1000
-	Body =.. [F,_Comment::A,B],
+	Body =.. [F,A,B],
 	control_op(F), !,
 	Pos = term_position(_F,_T,_FF,_FT,
-			    [ term_position(_,_,_,_,[CP,AP]),
+			    [ AP,
 			      BP
 			    ]),
-	colour_item(comment, TB, CP),
-	colourise_body(A, TB, AP),
+	colourise_method_body(A, TB, AP),
 	colourise_body(B, TB, BP).
 colourise_method_body(Body, TB, Pos) :-
 	colourise_body(Body, TB, Pos).

@@ -500,18 +500,20 @@ way of handling this case, but what else can we do?
 fill_items(A, Client:chain) :->
 	"Fill the dialog items from chain of shapes"::
 	get(A, member, dialog, Dialog),
-	attribute(Label, Selector),
-	get(Dialog, member, Label, Menu),
-	(   get(Client, find,
-		and(message(@arg1, has_send_method, has_attribute),
-		    message(@arg1, has_attribute, Selector)),
-		Proto),
-	    get(Proto, draw_attribute, Selector, Value)
-	->  send(Menu, active, @on),
-	    set_selection(Menu, Value)
-	;   send(Menu, active, @off)
-	),
-	fail ; true.
+	(   attribute(Label, Selector),
+	    get(Dialog, member, Label, Menu),
+	    (   get(Client, find,
+		    and(message(@arg1, has_send_method, has_attribute),
+			message(@arg1, has_attribute, Selector)),
+		    Proto),
+		get(Proto, draw_attribute, Selector, Value)
+	    ->  send(Menu, active, @on),
+		set_selection(Menu, Value)
+	    ;   send(Menu, active, @off)
+	    ),
+	    fail
+	;   true
+	).
 
 set_selection(Menu, Value) :-
 	send(Menu, instance_of, menu), !,
