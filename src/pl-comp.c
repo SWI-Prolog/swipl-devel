@@ -1388,9 +1388,25 @@ compileArgument().
 For normal cases, simply compile the arguments   (push on the stack) and
 create a call-instruction. Finally, some  special   atoms  are mapped to
 special instructions.
+
+If we call a currently undefined procedure we   check it is not a system
+procedure. If it is, we import the  procedure immediately to avoid later
+re-definition.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     { Procedure proc = lookupProcedure(functor, tm);
       int ar = fdef->arity;
+
+      if ( !isDefinedProcedure(proc) && !GD->bootsession )
+      { Procedure syspred;
+
+	if ( (tm != MODULE_user &&
+	      (syspred=isCurrentProcedure(functor, MODULE_user))) ||
+	     (tm != MODULE_system &&
+	      (syspred=isCurrentProcedure(functor, MODULE_system))) )
+	{ freeHeap(proc->definition, sizeof(struct definition));
+	  proc->definition = syspred->definition;
+	}
+      }
 
 #ifdef O_INLINE_FOREIGNS
 #define MAX_FV 2

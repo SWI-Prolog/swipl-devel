@@ -847,10 +847,6 @@ pce_ifhostproperty(prolog(quintus),
 	EP is EP0 + Start)).
 
 
-last(X, [X]).
-last(X, [_|T]) :-
-	last(X, T).
-
 check_clause(M, From:[int]) :->
 	"Check syntax of clause"::
 	get(M, check_clause, From, _).

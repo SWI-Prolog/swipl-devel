@@ -4,6 +4,8 @@
 VERSION 5.0.6 (May 15, 2002)
 ============================
 
+  * FIXED: Be more consistent on attempts to redefine system predicates
+
   * ADDED: type-check on 2nd argument of absolute_file_name/2 as well as
     a new option expand(Boolean) to control expanding meta-characters.
 
