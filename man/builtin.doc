@@ -1645,20 +1645,36 @@ they can also be called by a program.  Do not rely on this feature if
 you want to maintain portability to other Prolog implementations.
 
 \begin{description}
-    \prefixop{dynamic}{+Functor/+Arity, \ldots}
+    \prefixop{dynamic}{+Name/+Arity, \ldots}
 Informs the interpreter that the definition of the predicate(s) may change
 during execution (using assert/1 and/or retract/1). In the
 multi-threaded version, the clauses of dynamic predicates are shared
 between the threads. The directive thread_local/1 provides an
 alternative where each threads has its own clause-list for the
-predicate.
+predicate.  Dynamic predicates can be turned into static ones using
+compile_predicates/1.
 
-    \prefixop{multifile}{+Functor/+Arity, \ldots}
+    \predicate{compile_predicates}{1}{:ListOfNameArity}
+Compile a list of specified dynamic predicates (see dynamic/1 and
+assert/1) into normal static predicates.  This call tells the Prolog
+environment the definition will not change anymore and further calls
+to assert/1 or retract/1 on the named predicates raise a permission
+error.  This predicate is designed to deal with parts of the program
+that is generated at runtime but does not change during the remainder
+of the program execution.%
+	\footnote{The specification of this predicate is from
+		  Richard O'Keefe.  The implementation is allowed to
+		  optimise the predicate.  This is not yet implemented.
+		  In multi-threaded Prolog however, static code runs
+		  faster as it does not require synchronization.  This
+		  is particulary true on SMP hardware.}
+
+    \prefixop{multifile}{+Name/+Arity, \ldots}
 Informs the system that the specified predicate(s) may be defined over
 more than one file. This stops consult/1 from redefining a predicate
 when a new definition is found.
 
-    \prefixop{discontiguous}{+Functor/+Arity, \ldots}
+    \prefixop{discontiguous}{+Name/+Arity, \ldots}
 Informs the system that the clauses of the specified predicate(s) might
 not be together in the source file.  See also style_check/1.
 

@@ -1977,6 +1977,30 @@ pl_redefine_system_predicate(term_t pred)
 }
 
 
+static
+PRED_IMPL("compile_predicates",  1, compile_predicates, PL_FA_TRANSPARENT)
+{ GET_LD
+  term_t tail = PL_copy_term_ref(A1);
+  term_t head = PL_new_term_ref();
+
+  while( PL_get_list(tail, head, tail) )
+  { Procedure proc;
+
+    if ( !get_procedure(head, &proc, 0, GP_NAMEARITY|GP_FINDHERE) )
+      fail;
+    if ( !proc || !isDefinedProcedure(proc) )
+      return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_procedure, head);
+
+    if ( !setDynamicProcedure(proc, FALSE) )
+      fail;
+  }
+
+  return PL_get_nil_ex(tail);
+}
+
+
+
+
 		/********************************
 		*          DECOMPILER           *
 		*********************************/
@@ -3951,4 +3975,5 @@ BeginPredDefs(comp)
   PRED_DEF("assert",  2, assertz2, PL_FA_TRANSPARENT)
   PRED_DEF("assertz", 2, assertz2, PL_FA_TRANSPARENT)
   PRED_DEF("asserta", 2, asserta2, PL_FA_TRANSPARENT)
+  PRED_DEF("compile_predicates",  1, compile_predicates, PL_FA_TRANSPARENT)
 EndPredDefs

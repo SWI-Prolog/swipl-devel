@@ -102,6 +102,8 @@ suggest predicates from a keyword.
 \predicatesummary{close_dde_conversation}{1}{Win32: Close DDE channel}
 \predicatesummary{close_shared_object}{1}{UNIX:  Close shared library (.so file)}
 \predicatesummary{compare}{3}{Compare, using a predicate to determine the order}
+\predicatesummary{compile_predicates}{1}{Compile dynamoc code to static}
+
 \predicatesummary{compiling}{0}{Is this a compilation run?}
 \predicatesummary{compound}{1}{Test for compound term}
 \predicatesummary{atom_concat}{3}{Append two atoms}

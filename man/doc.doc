@@ -7,10 +7,10 @@
 
 % Configure latex2html
 
-\htmloutput{Manual}				% Output directory
-\htmlmainfile{index}				% Main document file
-\bodycolor{white}				% Page colour
-\linkimage{home}{home.gif}			% Images for links
+\htmloutput{Manual} % Output directory
+\htmlmainfile{index} % Main document file
+\bodycolor{white} % Page colour
+\linkimage{home}{home.gif} % Images for links
 \linkimage{index}{yellow_pages.gif}
 \linkimage{contents}{index.gif}
 \linkimage{up}{up.gif}
@@ -37,7 +37,7 @@
 
 \newcommand{\vmajor}{5}
 \newcommand{\vminor}{1}
-\newcommand{\vpatch}{10}
+\newcommand{\vpatch}{11}
 \newcommand{\vmonth}{March}
 \newcommand{\vyear}{2003}
 
@@ -46,12 +46,8 @@
 \renewcommand{\arabicday}{\versionshort}
 
 \title{SWI-Prolog \versionshort{} Reference Manual}
-\author{\email[Jan Wielemaker]{jan@swi.psy.uva.nl}	\\ 
-	Dept. of Social Science Informatics (SWI)	\\ 
-	    Roeterstraat 15, 1018 WB~~Amsterdam		\\ 
-		    The Netherlands			\\ 
-		Tel. (+31) 20 5256121}
-	
+\author{\email[Jan Wielemaker]{jan@swi.psy.uva.nl} \ Dept. of Social Science Informatics (SWI) \ Roeterstraat 15, 1018 WB~~Amsterdam \ The Netherlands \ Tel. (+31) 20 5256121}
+
 \begin{htmlonly}
 \maketitle
 
@@ -101,30 +97,30 @@ Copyright \copyright\ 1990--\year, University of Amsterdam
 \newcommand{\uvaaddress}{%
 \parbox[b]{\uvawidth}{%
     \begin{center}
-	\LARGE
-	      University of Amsterdam			\\[3mm]
-	\small
-	Dept. of Social Science Informatics (SWI)	\\%
-	    Roeterstraat 15, 1018 WB~~Amsterdam		\\%
-		    The Netherlands			\\%
-		Tel. (+31) 20 5256121
+        \LARGE
+              University of Amsterdam \\[3mm]
+        \small
+        Dept. of Social Science Informatics (SWI) \\%
+            Roeterstraat 15, 1018 WB~~Amsterdam \\%
+                    The Netherlands \\%
+                Tel. (+31) 20 5256121
     \end{center}}}
 
 \raisebox{4cm}{
 \parbox{\textwidth}{%
     \makebox[\textwidth]{%
         \includegraphics{figs/swipl}
-	\hfill%
-	\raisebox{15mm}{\uvaaddress}}
+        \hfill%
+        \raisebox{15mm}{\uvaaddress}}
 }}
 \vfil\vfil\vfil
 \begin{center}
-	{\Huge \bf SWI-Prolog \versionshort	\\[3mm]
-	 \LARGE Reference Manual}		\\[3mm]
-        {\it Updated for version \versionlong}	\\[10mm]
-	{\large \it Jan Wielemaker}		\\[0mm]
-	{\large \email{jan@swi.psy.uva.nl}}	\\[0mm]
-	{\large	http://www.swi-prolog.org}
+        {\Huge \bf SWI-Prolog \versionshort \\[3mm]
+         \LARGE Reference Manual} \\[3mm]
+        {\it Updated for version \versionlong} \\[10mm]
+        {\large \it Jan Wielemaker} \\[0mm]
+        {\large \email{jan@swi.psy.uva.nl}} \\[0mm]
+        {\large http://www.swi-prolog.org}
 \end{center}
 
 \vfil
