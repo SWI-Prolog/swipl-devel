@@ -460,6 +460,16 @@ atom_handling(concat-4) :-
 atom_handling(concat-5) :-
 	findall(X-Y, atom_concat(X, Y, 'abc'), Pairs),
 	Pairs == [''-abc, a-bc, ab-c, abc-''].
+
+atom_handling(number-1) :-
+	atom_number('42', X), X == 42.
+atom_handling(number-2) :-
+	atom_number('1.0', X), float(X).
+atom_handling(number-3) :-
+	atom_number(X, 1.0), X == '1.0'.
+atom_handling(number-4) :-
+	atom_number(X, 42), X == '42'.
+
 atom_handling(current-1) :-
 	findall(X, current_atom(X), Atoms),
 	checklist(atom, Atoms),

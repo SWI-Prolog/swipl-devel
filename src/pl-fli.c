@@ -851,9 +851,23 @@ PL_get_nchars(term_t l, unsigned int *length, char **s, unsigned flags)
     Ssprintf(tmp, "%ld", valInteger(w) );
     r = tmp;
   } else if ( (flags & CVT_FLOAT) && isReal(w) )
-  { type = PL_FLOAT;
+  { char *q;
+    type = PL_FLOAT;
     Ssprintf(tmp, LD->float_format, valReal(w) );
     r = tmp;
+
+    q = tmp;				/* See also writePrimitive() */
+    if ( *q == '-' )
+      q++;
+    for(; *q; q++)
+    { if ( !isDigit(*q) )
+	break;
+    }
+    if ( !*q )
+    { *q++ = '.';
+      *q++ = '0';
+      *q = EOS;
+    }
 #ifdef O_STRING
   } else if ( (flags & CVT_STRING) && isString(w) )
   { type = PL_STRING;

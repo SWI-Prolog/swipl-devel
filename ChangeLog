@@ -7,6 +7,11 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * MODIFIED: PL_get_chars() and friends always return floats in a format
+    that reads as a float.
+
+  * FIXED: atom_number('1.0', X).  Added test-cases.  Anjo Anjewierden.
+
   * ENHANCED: Make library(gensym) thread-safe.
 
 

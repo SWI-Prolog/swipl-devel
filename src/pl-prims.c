@@ -1671,7 +1671,7 @@ PRED_IMPL("atom_number", 2, atom_number, 0)
     { if ( intNumber(&n) )
 	return PL_unify_integer(A2, n.value.i);
       else
-	return PL_unify_float(A3, n.value.f);
+	return PL_unify_float(A2, n.value.f);
     } else
       return PL_error(NULL, 0, NULL, ERR_SYNTAX, "illegal_number");
   } else if ( PL_get_nchars(A2, &len, &s, CVT_NUMBER) )
