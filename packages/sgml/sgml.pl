@@ -93,7 +93,14 @@ init :-
 		 *	   DTD HANDLING		*
 		 *******************************/
 
-:- dynamic
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Note that concurrent access to DTD objects  is not allowed, and hence we
+will allocate and destroy them in each   thread.  Possibibly it would be
+nicer to find out why  concurrent  access   to  DTD's  is  flawed. It is
+diagnosed to mess with the entity resolution by Fabien Todescato.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+:- thread_local
 	current_dtd/2.
 :- volatile
 	current_dtd/2.
@@ -124,6 +131,20 @@ load_dtd(DTD, DtdFile) :-
 	copy_stream_data(DtdIn, DtdOut),
 	close(DtdIn),
 	close(DtdOut).
+
+%	destroy_dtds
+%	
+%	Destroy  DTDs  cached  by  this  thread   as  they  will  become
+%	unreachable anyway.
+
+destroy_dtds :-
+	(   current_dtd(_Type, DTD),
+	    free_dtd(DTD),
+	    fail
+	;   true
+	).
+
+:- thread_at_exit(destroy_dtds).
 
 
 		 /*******************************

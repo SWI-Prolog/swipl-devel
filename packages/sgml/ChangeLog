@@ -1,3 +1,7 @@
+Jan 9, 2004
+
+  * FIXED: avoid sharing DTD objects between threads.  Fabien Todescato.
+
 Nov 20, 2003
 
   * ADDED: xml_name/1 to test an atom to refer to a valid XML name.
