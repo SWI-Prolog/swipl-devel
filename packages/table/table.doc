@@ -359,13 +359,13 @@ fields from a record.
     idtable(Handle) :-
             stored_idtable_handle(Handle).
     idtable(Handle) :-
-    	    new_table('rootdisp.dat',
+    	    new_table('disproot.dat',
 		      [ id(atom, [downcase, sorted, unique]),
-			name(atom),
+			name(atom)
 		      ],
 		      [ field_separator(0',)
 		      ], Handle),
-	    asserta(stored_idtable_handle(Handle)).
+	    assert(stored_idtable_handle(Handle)).
 
     identifier_name(Id, Name) :-
 	    idtable(Handle),
