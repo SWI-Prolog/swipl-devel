@@ -18,6 +18,7 @@
 #	* make install-bins	Link executables from $(exec_prefix)/bin
 #	* make install-arch	Install machine dependent files
 #	* make install-libs	Install machine independent files
+#	* make install-mt	Install multi-threaded version next to normal
 #
 # Copyright (C) University of Amsterdam, all rights reserved
 # 
@@ -110,6 +111,17 @@ PLSRC=	../boot/syspred.pl ../boot/toplevel.pl ../boot/listing.pl \
 	../boot/profile.pl ../boot/dwim.pl ../boot/rc.pl \
 	../boot/parms.pl ../boot/autoload.pl ../boot/qlf.pl \
 	../boot/topvars.pl ../boot/messages.pl ../boot/load.pl
+PLLIB=  MANUAL helpidx.pl help.pl explain.pl \
+	qsave.pl shlib.pl statistics.pl system.pl \
+	backcomp.pl \
+	bim.pl quintus.pl edinburgh.pl ctypes.pl files.pl \
+	edit.pl emacs_interface.pl shell.pl check.pl \
+	tty.pl readln.pl \
+	am_match.pl oset.pl \
+	netscape.pl url.pl \
+	oset.pl \
+	threadutil.pl
+PLWIN=	wise.pl dde.pl progman.pl registry.pl
 
 all:	banner \
 	headers rc-lib system startup index runtime \
@@ -223,6 +235,10 @@ install-version: install-arch install-libs install-vbins
 
 dv-install:	install-arch install-libs install-bins
 
+install-mt:	
+		$(INSTALL_PROGRAM) $(PL) $(PLBASE)/bin/$(ARCH)/pl-mt
+		(cd $(bindir); rm pl-mt; ln -s $(PLBASE)/bin/$(ARCH)/pl-mt .)
+
 install-bins:	install-arch
 		-if [ ! -d $(bindir)  ]; then $(MKDIR) $(bindir); fi
 		for f in $(PL) plld plrc; do \
@@ -280,7 +296,7 @@ iboot:
 		for f in *.pl; do $(INSTALL_DATA) $$f $(PLBASE)/boot; done
 ilib:		
 		cd ../library; \
-		for f in *.pl MANUAL; do \
+		for f in $(PLLIB); do \
 			$(INSTALL_DATA) $$f $(PLBASE)/library; \
 		done
 
