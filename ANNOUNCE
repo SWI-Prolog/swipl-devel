@@ -20,6 +20,10 @@ SWI-Prolog
     trap debugger on `skip', make behaviour of call_cleanup/3 consistent in
     debug/nondebug mode.
 
+  * Windows: included debugging symbols (.PDB files) for the main
+    Prolog system and the smaller extension libraries to help people
+    tracking problems.  Installed if the user checks installation type
+    `Full'.
 
 Packages
 --------
