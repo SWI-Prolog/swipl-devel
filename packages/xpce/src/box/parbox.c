@@ -147,7 +147,7 @@ typedef struct _parline
   int		y;			/* Y, relative to device */
   int		w;			/* Total width of the line */
   int		minx;			/* left side */
-  int		maxx;		/* Natural width */
+  int		maxx;			/* Natural width */
   int		ascent;			/* Total ascent of the line */
   int		descent;		/* Total descent of the line */
   int		size;			/* # hboxes contained */
@@ -982,6 +982,7 @@ print_line(parline *l)
 }
 
 
+/*
 static void
 compute_ascent_descent_line(parline *l)
 { int ascent  = 0;
@@ -999,7 +1000,7 @@ compute_ascent_descent_line(parline *l)
   l->ascent  = ascent;
   l->descent = descent;
 }
-
+*/
 
 static status
 PlaceGrBox(ParBox pb, GrBox grb, parline *l, Int x, Int y, Int w)
@@ -1134,7 +1135,7 @@ computeParBox(ParBox pb)
 	  }
 
           if ( modified )
-	    compute_ascent_descent_line(&l);
+	    compute_line(&l);
 	  else
 	    break;
 	}
@@ -1219,6 +1220,14 @@ geometryParBox(ParBox pb, Int x, Int y, Int w, Int h)
   Point o = pb->offset;
   int chw;
 
+/*
+  DEBUG(NAME_lbox,
+	Cprintf("geometryParBox() pb->offset = %d,%d, xyw=%d,%d,%d, lw=%d\n",
+		valInt(o->x), valInt(o->y),
+		valInt(a->x), valInt(a->y), valInt(a->w),
+		valInt(pb->line_width)));
+*/
+
   if ( isDefault(x) ) x = a->x;
   if ( isDefault(y) ) y = a->y;
   if ( isDefault(w) )
@@ -1237,15 +1246,17 @@ geometryParBox(ParBox pb, Int x, Int y, Int w, Int h)
     Int dy = sub(y, a->y);
 
     CHANGING_GRAPHICAL(pb,
-		       { int lw = valInt(x)+valInt(w)-valInt(o->x);
+		       { int lw;
+
+			 assign(o, x, add(o->x, dx));
+			 assign(o, y, add(o->y, dy));
+
+			 lw = valInt(x)+valInt(w)-valInt(o->x);
 
 			 if ( lw < 0 )
 			 { w = toInt(valInt(w)-lw);
 			   lw = 0;
 			 }
-
-			 assign(o, x, add(o->x, dx));
-			 assign(o, y, add(o->y, dy));
 
 			 assign(a, w, w);
 			 assign(a, x, x);

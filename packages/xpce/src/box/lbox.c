@@ -34,6 +34,7 @@ PlaceLBox(LBox lp, Graphical gr, Int x, Int y, Int w)
 	Cprintf("Placing %s on %s at %d,%d (width = %d)\n",
 		pp(gr), pp(lp), valInt(x), valInt(y), valInt(w)));
 
+  ComputeGraphical(gr);
   if ( gr->area->x != x || gr->area->y != y || gr->area->w != w )
     setGraphical(gr, x, y, w, DEFAULT);
 
@@ -232,7 +233,9 @@ static getdecl get_lbox[] =
 { GM(NAME_newLabel, 0, "graphical*", NULL, getNewLabelLBox,
      NAME_organisation, "Create label for new item"),
   GM(NAME_newItem,  0, "graphical*", NULL, getNewItemLBox,
-     NAME_organisation, "Create new item body")
+     NAME_organisation, "Create new item body"),
+  GM(NAME_itemWidth,  0, "int", NULL, getItemWidthLBox,
+     NAME_layout, "Width of an item")
 };
 
 /* Resources */
