@@ -366,7 +366,7 @@ static getdecl get_dialog[] =
 /* Resources */
 
 static classvardecl rc_dialog[] =
-{ RC(NAME_gap, "size", "size(15,10)",
+{ RC(NAME_gap, "size", "size(15,8)",
      "Distance between items in X and Y"),
   RC(NAME_background, RC_REFINE, "@_dialog_bg", NULL)
 };
