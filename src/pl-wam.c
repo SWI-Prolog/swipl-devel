@@ -149,9 +149,7 @@ pl_count()
 		 *	     DEBUGGING		*
 		 *******************************/
 
-#if defined(O_DEBUG) || defined(SECURE_GC) /* use counting for debugging */
-
-static long
+static inline long
 loffset(void *p)
 { if ( p == NULL )
     return 0;
@@ -159,8 +157,6 @@ loffset(void *p)
   assert((long)p % sizeof(word) == 0);
   return (Word)p-(Word)lBase;
 }
-
-#endif
 
 
 #ifdef O_DEBUG
@@ -755,11 +751,24 @@ unify_finished(term_t catcher, enum finished reason)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+frameFinished() is used for two reasons:   providing hooks for the (GUI)
+debugger  for  updating   the   stack-view    and   for   dealing   with
+call_cleanup/3. Both may call-back the Prolog engine, but in general the
+system is not in a state where we can do garbage collection.
+
+As a consequence the cleanup-handler  of   call_cleanup()  runs  with GC
+disables and so do the callEventHook()  hooks.   The  latter is merely a
+developers issue. Cleanup seems reasoanble too.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static void
 frameFinished(LocalFrame fr, enum finished reason)
 { GET_LD
-  fid_t cid = PL_open_foreign_frame();
-    
+  fid_t cid;
+
+  cid  = PL_open_foreign_frame();
+
   if ( fr->predicate == PROCEDURE_call_cleanup3->definition )
   { term_t catcher = argFrameP(fr, 1) - (Word)lBase;
 
@@ -768,7 +777,10 @@ frameFinished(LocalFrame fr, enum finished reason)
       term_t ex;
       int rval;
       
+      blockGC();
       rval = callProlog(fr->context, clean, PL_Q_CATCH_EXCEPTION, &ex);
+      unblockGC();
+
       if ( !rval && ex )
 	PL_throw(ex);
     }

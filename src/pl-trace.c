@@ -322,9 +322,12 @@ We are in searching mode; should we actually give this port?
 Do the Prolog trace interception.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+  blockGC();
   action = traceInterception(frame, bfr, port, PC);
   if ( action >= 0 )
+  { unblockGC();
     return action;
+  }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 All failed.  Things now are upto the normal Prolog tracer.
@@ -363,11 +366,14 @@ again:
 	readLine(Sdin, Sdout, buf);
       }
     }
-    action = traceAction(buf, port, frame, bfr, trueFeature(TTY_CONTROL_FEATURE));
+    action = traceAction(buf, port, frame, bfr,
+			 trueFeature(TTY_CONTROL_FEATURE));
     if ( action == ACTION_AGAIN )
       goto again;
   } else
     Sputc('\n', Sdout);
+
+  unblockGC();
 
   return action;
 }
@@ -1519,8 +1525,12 @@ callEventHook(int ev, ...)
   
   if ( PROCEDURE_event_hook1->definition->definition.clauses )
   { va_list args;
-    fid_t fid = PL_open_foreign_frame();
-    term_t arg = PL_new_term_ref();
+    fid_t fid;
+    term_t arg;
+
+    blockGC();
+    fid = PL_open_foreign_frame();
+    arg = PL_new_term_ref();
 
     va_start(args, ev);
     switch(ev)
@@ -1574,6 +1584,7 @@ callEventHook(int ev, ...)
     PL_call_predicate(MODULE_user, FALSE, PROCEDURE_event_hook1, arg);
   out:
     PL_discard_foreign_frame(fid);
+    unblockGC();
     va_end(args);
   }
 }

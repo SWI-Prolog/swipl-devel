@@ -1,6 +1,11 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: call_cleanup/3 crashed if the cleanup handler invoked GC.  GC
+    is now explicitely blocked.  Found by Mike Elston.
+
+  * callProlog(): replaced warning with exception.
+
   * IDE: Avoid various problems selecting the preferred editor.  See the
     new prolog-flag `editor' and the example .plrc (pl.ini).
 

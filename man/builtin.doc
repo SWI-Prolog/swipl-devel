@@ -932,7 +932,9 @@ raising an exception and \arg{Catcher} unifies to the termination
 code (see below), \arg{Cleanup} is called.  Success or failure of
 \arg{Cleanup} is ignored and possibly choicepoints it created are
 destroyed (as once/1).  If cleanup throws an exception this is
-executed as normal.
+executed as normal.%
+	\bug{During the execution of \arg{Cleanup}, garbage collection
+	     and stack-shifts are disabled.}
 
 \arg{Catcher} is unified with a term describing how the call has
 finished.  If this unification fails, \arg{Cleanup} is \emph{not}
