@@ -1,27 +1,14 @@
 /*  $Id$
 
-    Copyright (c) 1992 Jan Wielemaker/Pieter Olivier. All rights reserved.
+    Copyright (c) 1993 Jan Wielemaker. All rights reserved.
     See ../LICENCE to find out about your rights.
     jan@swi.psy.uva.nl
 
-    Purpose: Machine description for Linux
+    Purpose: Machine description for System V Release 3.2 on i386
 */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The   port to LINUX   was made  by   Pieter  Olivier.   It   has  been
-incorperated  into the most  recent   version  (1.5.5) of  the  common
-sources, but not tested afterwards.
-
-Updated version 1.6.8 after an important fix sent to me by Peter Barth
-(barth@mpi-sb.mpg.de)   and   minor   fixes    from    Philip   Perucc  
-(dsc3pzp@nmrdc1.nmrdc.nnmc.navy.mil).  LINUX versions:
-
-	gcc 2.3.3, libc 4.2, Linux 0.99pl2:
-
-Updated version  1.6.14 by  Jan Wielemaker  (got  my own  now).  Fixed 
-save_program/1 and included dynamic stacks.  Versions:
-
-	gcc 2.3.3, libc 4.3, Linux 0.99pl7:
+Port to System V Release 3.2 by Eric S. Raymond <esr@snark.thyrsus.com>
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define M_CC			gcc
@@ -34,7 +21,7 @@ save_program/1 and included dynamic stacks.  Versions:
 #define v7			1	/* Mostly v7 unix */
 
 			/* compiler */
-#define ANSI			1
+#define ANSI			0
 #define O_NO_LEFT_CAST		0
 #define O_NO_VOID_POINTER	0
 #define O_SHORT_SYMBOLS		0
@@ -42,14 +29,14 @@ save_program/1 and included dynamic stacks.  Versions:
 #define O_ULONG_PREDEFINED	1	/* type ulong is predefined */
 
 			/* Operating system */
-#define O_PROFILE		1
-#define O_SIG_AUTO_RESET	1
+#define O_PROFILE		0
+#define O_SIG_AUTO_RESET	0
 #define O_SHARED_MEMORY		0
-#define O_CAN_MAP		1
+#define O_CAN_MAP		0
 #define O_SHIFT_STACKS		0
 #define O_NO_SEGV_ADDRESS	1
 #define MAX_VIRTUAL_ADDRESS     (220*1024*1024) /* not sure, but it will do */
-#define O_FOREIGN		1
+#define O_FOREIGN		0
 #define O_SAVE			1
 #define FIRST_DATA_SYMBOL	etext
 #define DEFAULT_PATH		":.:/bin:/usr/bin:/usr/local/bin:";
@@ -58,7 +45,12 @@ save_program/1 and included dynamic stacks.  Versions:
 #define DIR_INCLUDE		<sys/dir.h>
 #define DIR_INCLUDE2		<dirent.h>
 #define TERMIO_INCLUDE		<termio.h>
+#define TIME_INCLUDE		<time.h>
+#define O_NOSELECT		1
 #define O_GETCWD		1
+#define O_NOGETTIMEOFDAY	1
+#define DESCRIPTOR_TABLE_SIZE	_NFILE
+#define MAXPATHLEN		256
 			/* terminal driver */
 #define O_TERMIOS 		1
 #define O_EXTEND_ATOMS 		1
@@ -69,7 +61,7 @@ save_program/1 and included dynamic stacks.  Versions:
 #define O_PCE 			1
 
 #define MACHINE			"i386"
-#define OPERATING_SYSTEM  	"linux"
+#define OPERATING_SYSTEM  	"sysvr3"
 
 
 		/********************************
@@ -77,4 +69,9 @@ save_program/1 and included dynamic stacks.  Versions:
 		********************************/
 
 #define bzero(t, l)	memset(t, 0, l)
+#define bcopy(s, t, n)	memcpy(t, s, n)
 #define vfork()		fork()
+
+extern char *getenv();
+extern char *malloc();
+extern char *realloc();

@@ -217,13 +217,18 @@ Word time, year, month, day, hour, minute, second, usec;
 word
 pl_get_time(t)
 Word t;
-{ struct timeval tp;
-  real time;
+{
+  real stime;
+#if O_NOGETTIMEOFDAY
+  stime = (real)time((time_t *)NULL);
+#else
+  struct timeval tp;
 
   gettimeofday(&tp, NULL);
-  time = (real)tp.tv_sec + (real)tp.tv_usec/1000000.0;
-  
-  return unifyAtomic(t, globalReal(time));
+  stime = (real)tp.tv_sec + (real)tp.tv_usec/1000000.0;
+#endif
+
+  return unifyAtomic(t, globalReal(stime));
 }
 
 word

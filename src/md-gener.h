@@ -10,32 +10,35 @@
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 			COMPILER FLAGS
 
-Compiler  flags for  making `xmakefile'   from  `Makefile' using  cpp.
-Default is  gcc,  which is   preferred  on   machines  that  have  it.
-SWI-Prolog needs   to   be loaded statically   when   using O_SAVE  or
-O_STORE_PROGRAM.  Hence the -static.   If  gcc complains it  does  not
-know -static,  this   probably implies the   operating   system has no
-dynamic libraries so you may safely drop -static then.
+Compiler  flags  for  making  `xmakefile'  from  `Makefile'  using  cpp.
+Default is gcc, which is preferred on machines that have it.  SWI-Prolog
+needs to be loaded statically  when   using  O_SAVE  or O_STORE_PROGRAM.
+Hence the -static.  If gcc complains  it   does  not  know -static, this
+probably implies the operating system has   no  dynamic libraries so you
+may safely drop -static then.
+
+The -funsigned-char option is needed  to   get  transparent  handling of
+8-bit characters required for many character-set extensions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define M_CC			gcc
 #define M_OPTIMIZE	        -O2
 #define M_LDFLAGS		-static
-#define M_CFLAGS		-Wall
+#define M_CFLAGS		-Wall -funsigned-char
 #define M_LIBS			-lm -ltermcap
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 			COMPILER OPTIONS
 
-If   it exists for your   machine, I suggest to   use  the GNU project
-C-compiler GCC.  It is the only compiler I've seen which is capable of
-optimising  the virtual  machine  interpreter.   Many  compilers don't
-understand the complex   flow control of  this gigantic  function  and
-either tell you they refuse  to optimise,  silently refuse to optimise
-or even crash.  GCC passes small structures often  more efficient than
-the native compiler.  Notably the implementation of clause indexing is
-improved by this.
+If it exists for  your  machine,  I   suggest  to  use  the  GNU project
+C-compiler GCC.  It is the only compiler   I've seen which is capable of
+optimising  the  virtual  machine  interpreter.   Many  compilers  don't
+understand the complex flow control of this gigantic function and either
+tell you they refuse to optimise, silently   refuse  to optimise or even
+crash.  GCC passes small structures often more efficient than the native
+compiler.  Notably the implementation of clause  indexing is improved by
+this.
 
   ANSI
       This flag indicates the compiler provides ANSI prototypes and  the
@@ -90,6 +93,9 @@ improved by this.
   O_DATA_AT_0X2
       The data segment starts at 0x20000000.  Many AIX machines
 
+  O_DATA_AT_0X4
+      The data segment starts at 0x40000000.  Many HPUX machines
+
   DATA_START
       Start     of   the  data  segment.    Needed     when O_SAVE  or
       O_STORE_PROGRAM  is  defined.   For    O_SAVE  (preferred), only
@@ -113,9 +119,21 @@ improved by this.
       slightly decreases overall performance (about 1%).
 
   O_SIG_AUTO_RESET
-      Signals set with signal() automatically
- reset after  a  signal  has
+      Signals set with signal() automatically reset   after a signal has
       been catched.  Use this with v7 Unix systems.
+
+  O_NOSELECT
+      System does not provide select() system   call.   As a consequence
+      sleep/1 will only honour 1   second granularity.  wait_for_input/3
+      is not supported without select().
+
+  O_GETCWD
+      System provides getcwd() library function.  If not set, getwd() is
+      assumed.
+
+  O_NOGETTIMEOFDAY
+      System lacks gettimeofday() function.  Used   by get_time/1.  When
+      not available time is in whole seconds.
 
   DEFAULT_PATH
       The search path for executables, used if $PATH is not  set.   This

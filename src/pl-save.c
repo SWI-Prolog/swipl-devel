@@ -424,7 +424,7 @@ SaveSection sections;
 
   header.magic 		= SAVE_MAGIC;
   header.save_version   = saveVersion();
-  header.brk		= sbrk(0);
+  header.brk		= (caddr)sbrk(0);
   header.nsections	= nsects;
     
   section_offset = sizeof(header) + sects_size;

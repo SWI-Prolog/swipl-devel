@@ -80,6 +80,7 @@ Integrated O_FOREIGN support sent to me by Dave	Sherratt.
 #define O_FOREIGN		1
 #endif
 #define O_SAVE			1
+#define O_GETCWD		1
 #define DEFAULT_PATH		":/usr/ucb:/bin:/usr/bin:/usr/local:.:";
 			/* terminal driver */
 #define O_TERMIOS 		1

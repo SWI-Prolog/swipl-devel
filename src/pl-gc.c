@@ -1459,7 +1459,7 @@ LocalFrame frame;
 
 
 
-#endif O_SECURE
+#endif /* O_SECURE */
 
 		 /*******************************
 		 *	   LOCAL STACK		*

@@ -21,7 +21,8 @@ void	growBuffer P((Buffer, long));
 	do \
 	{ if ( (b)->top + sizeof(type) > (b)->max ) \
 	    growBuffer(b, sizeof(type)); \
-	  *((type *)(b)->top)++ = obj; \
+ 	  *((type *)(b)->top) = obj; \
+          (b)->top += sizeof(type); \
 	} while(0)
   
 #define baseBuffer(b, type)	 ((type *) (b)->base)

@@ -559,7 +559,7 @@ the range of integers to +- 2^25.  (Macros have to be rewritten))
 
 #if O_16_BITS
 #define INDIRECT_MASK	0x40000000L	/* Indirect constant */
-#define INT_MASK	0x20000000L	/* Indirect constant */
+#define INT_MASK	0x20000000L	/* Integer constant */
 #define MASK_BITS	4		/* high order mask bits */
 #define LMASK_BITS	1		/* low order mask bits */
 #define DMASK_BITS	5		/* DATA_TAG_MASK bits */
@@ -576,17 +576,19 @@ the range of integers to +- 2^25.  (Macros have to be rewritten))
 #if O_DATA_AT_0X4
 #define INDIRECT_MASK	0x20000000L	/* Indirect constant */
 #define INT_MASK	0x10000000L	/* Indirect constant */
-#define MASK_BITS	4		/* high order mask bits */
+#define SIGN_MASK	0x40000000L     /* Sign of an integer */
+#define MASK_BITS	3		/* high order mask bits */
+#define SIGN_OFFSET     1               /* Offset of sign bit from M.S. bit */
 #define STRING_MASK	0x30000000L	/* Header mask on global stack */
 #else
 #if O_DATA_AT_0X2
 #define INDIRECT_MASK	0x40000000L	/* Indirect constant */
-#define INT_MASK	0x10000000L	/* Indirect constant */
+#define INT_MASK	0x10000000L	/* Integer constant */
 #define MASK_BITS	4		/* high order mask bits */
 #define STRING_MASK	0x50000000L	/* Header mask on global stack */
 #else /* 0X1 or lower */
 #define INDIRECT_MASK	0x40000000L	/* Indirect constant */
-#define INT_MASK	0x20000000L	/* Indirect constant */
+#define INT_MASK	0x20000000L	/* Integer constant */
 #define MASK_BITS	3		/* high order mask bits */
 #define STRING_MASK	0x60000000L	/* Header mask on global stack */
 #endif /* O_DATA_AT_0X2 */
@@ -742,7 +744,14 @@ for a pointer.
 #define unMask(w)		((w) & ~MASK_MASK)
 #define mask(w)			(w & MASK_MASK)
 #define consNum(n)		((word) (unMask((n)<<LMASK_BITS) | INT_MASK))
-#define valNum(w)		((long) ((w)<<MASK_BITS)>>(MASK_BITS+LMASK_BITS))
+#if O_DATA_AT_0X4
+#define valNum(w)               ((long) ((((w) & SIGN_MASK) << SIGN_OFFSET) | \
+				 (unMask(w) << MASK_BITS)) >> \
+				 (MASK_BITS+LMASK_BITS))
+#else
+#define valNum(w)		((long)((w)<<MASK_BITS)>>(MASK_BITS+LMASK_BITS))
+#endif
+
 #define consNumFromCode(c)	consNum((signed short)(c))
 #define valReal(w)		unpack_real((Word)unMask(w))
 #if O_STRING

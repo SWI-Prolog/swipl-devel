@@ -21,20 +21,14 @@ handling times must be cleaned, but that not only holds for this module.
 #include "pl-incl.h"
 #include "pl-ctype.h"
 #if unix || EMX
-#include <sys/time.h>
 #include <sys/file.h>
 #endif
 
 #define MAXSTRINGNEST	20		/* tellString --- Told nesting */
 
-#if AIX || hpux
-#define file prolog_file
-#define File PrologFile
-#endif
+typedef struct plfile *	PlFile;
 
-typedef struct file *	File;
-
-static struct file
+static struct plfile
 { Atom		name;			/* name of file */
   Atom		stream_name;		/* stream identifier name */
   FILE *	fd;			/* Unix file descriptor */
@@ -44,7 +38,7 @@ static struct file
   int		status;			/* opened, how ? */
   bool		pipe;			/* opened as a pipe ? */
   bool		isatty;			/* Stream connects to a terminal */
-} *fileTable = (File) NULL;		/* Our file table */
+} *fileTable = (PlFile) NULL;		/* Our file table */
 
 int 	Input;				/* current input */
 int	Output;				/* current output */
@@ -87,7 +81,7 @@ forwards bool	flush P((void));
 forwards bool	openProtocol P((Atom, bool appnd));
 forwards bool	closeProtocol P((void));
 forwards bool	closeStream P((int));
-forwards void	updateCounts P((Char, File));
+forwards void	updateCounts P((Char, PlFile));
 forwards bool	unifyStreamName P((Word, int));
 forwards bool	unifyStreamNo P((Word, int));
 forwards bool	setUnifyStreamNo P((Word, int));
@@ -136,10 +130,10 @@ initIO()
 { int n;
 
   if ( maxfiles != GetDTableSize() )
-  { if ( fileTable != (File) NULL )
-      freeHeap(fileTable, (File) allocHeap(sizeof(struct file) * maxfiles));
+  { if ( fileTable != (PlFile) NULL )
+      freeHeap(fileTable, (PlFile) allocHeap(sizeof(struct plfile) * maxfiles));
     maxfiles = GetDTableSize();
-    fileTable = (File) allocHeap(sizeof(struct file) * maxfiles);
+    fileTable = (PlFile) allocHeap(sizeof(struct plfile) * maxfiles);
   }
   inString = (char *) NULL;
   outStringDepth = 0;
@@ -314,7 +308,7 @@ int stream;
 static void
 updateCounts(c, f)
 register Char c;
-register File f;
+register PlFile f;
 { f->charno++;
   switch(c)
   { case '\n':  f->lineno++;
@@ -825,7 +819,15 @@ currentStreamName()
 		*       WAITING FOR INPUT	*
 		********************************/
 
-#if unix || EMX
+#if O_NOSELECT
+
+word
+pl_wait_for_input(streams, available, timeout)
+Word streams, available, timeout;
+{ return notImplemented("wait_for_input", 3);
+}
+
+#else
 
 word
 pl_wait_for_input(streams, available, timeout)
@@ -876,15 +878,7 @@ Word streams, available, timeout;
   succeed;
 }
 
-#else
-
-word
-pl_wait_for_input(streams, available, timeout)
-Word streams, available, timeout;
-{ return notImplemented("wait_for_input", 3);
-}
-
-#endif /* unix */
+#endif /* O_SELECT */
 
 		/********************************
 		*      PROLOG CONNECTION        *

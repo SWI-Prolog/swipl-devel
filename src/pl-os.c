@@ -459,7 +459,7 @@ are defined here:
     write() by small integers, returned by open(). These integers should
     be  in  the range [0, ..., GetDTableSize()). If your system does not
     do this you better redefine the Open(), Read() and Write() macros so
-    they  do  meat  this  requirement.   Prolog  allocates  a  table  of
+    they  do  meet  this  requirement.   Prolog  allocates  a  table  of
     structures with GetDTableSize entries.
 
     long LastModifiedFile(path)
@@ -1253,26 +1253,24 @@ char *spec;
 }
 
 
-#if unix            /* convert the names to PrologPath before use !! */
-#if hpux || linux
-char	*getwd P((char *));
+#if unix
+#if O_GETCWD
+char	*getcwd P((char *));
 
 char *
 getwd(buf)
 char *buf;
-{ extern char *getcwd();
-
-  return getcwd(buf, MAXPATHLEN);
+{ return getcwd(buf, MAXPATHLEN);
 }
 #else
 extern char *getwd P((char *));
-#endif /* hpux */
+#endif
 #endif
 
 #if OS2 && EMX
 char *getwd P((char *));
 
-char *getwd(buf)       /* the current directory INCLUDING the current drive */
+char *getwd(buf)
 char *buf;
 { strcpy(buf, PrologPath(_getcwd2(buf, MAXPATHLEN)));
   return buf;
@@ -2410,7 +2408,9 @@ char *cmd;
   { int waitstat, retstat;		/* the parent */
 
     old_int  = signal(SIGINT,  SIG_IGN);
+#ifdef SIGTSTP
     old_stop = signal(SIGTSTP, SIG_DFL);
+#endif /* SIGTSTP */
 
     while( (waitstat = Wait(&retstat)) != pid && waitstat != -1 )
       ;
@@ -2426,7 +2426,9 @@ char *cmd;
     int n;
 
     old_int  = signal(SIGINT,  SIG_IGN);
+#ifdef SIGTSTP
     old_stop = signal(SIGTSTP, SIG_DFL);
+#endif /* SIGTSTP */
 
     while((n = Wait(&status)) != -1 && n != pid);
     if (n == -1)
@@ -2446,7 +2448,9 @@ char *cmd;
 #endif /* v7 */
 
   signal(SIGINT,  old_int);		/* restore signal handlers */
+#ifdef SIGTSTP
   signal(SIGTSTP, old_stop);
+#endif /* SIGTSTP */
   PopTty(&buf);
 
   return rval;
@@ -2726,8 +2730,8 @@ char *program;
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #if unix
-#if minix			/* v7 unix does not have fine granularity */
-void				/* timer. Just use sleep() */
+#if O_NOSELECT
+void
 Sleep(time)
 real time;
 { if ( time < 0.5 )
@@ -2735,7 +2739,7 @@ real time;
   sleep( (int)(time+0.5) );
 }
 
-#else /* has select() */
+#else
 
 void
 Sleep(time)			/* system has select() */

@@ -7,9 +7,7 @@
     Purpose: Select part of a file
 */
 
-#include <stdio.h>
-extern char *index();
-typedef int Char;
+#include "pl-incl.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This is a very simple stand alone program that picks  a  region  from  a

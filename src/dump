@@ -1,24 +1,14 @@
-#!/bin/csh -f
+#!/bin/sh
 # Create a stand alone executable of SWI-Prolog
 
-set pl=./pl
+if [ $# != 2 ]
+then
+    echo "Usage: $0 prolog saved-state"
+    exit 1
+fi
 
-switch( $#argv )
-	case 0:
-		set bin=/usr/local/bin/$pl
-		breaksw
-	case 1:
-		set pl=$1
-		set bin=/usr/local/bin/$pl
-		breaksw
-	case 2:
-		set pl=$1
-		set bin=$2
-		breaksw
-	default:
-		echo "Usage: dump [sys] [executable]"
-		exit 1
-endsw
+pl=$1
+bin=$2
 
 $pl -f none -B << _EOS_
 save_program('$bin',
