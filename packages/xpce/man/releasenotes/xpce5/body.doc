@@ -89,6 +89,38 @@ associated term is displayed.
 
 \postscriptfig{parsetree}{Resulting window for ?- showtree.}
 
+\subsection{Prolog terms and type any}
+
+The features described in this section have been added to \product{} in
+version 5.1.
+
+The \product{} type any refers to `anything but functions'. It is only natural
+that this includes Prolog terms.  However, the interface says that the
+goal below creates a chain holding a point object and not a chain
+holding a Prolog term:
+
+\begin{code}
+?- new(Ch, chain(point(1,2))).
+\end{code}
+
+This ambiguity is fixed using a \funcref{prolog}{1} term.  A term of
+the form \exam{prolog(...)} is translated into a \class{prolog_term}
+object it is not atomic.  The prolog_term instance however is marked
+such that the type-check for \type{any} accepts it.  This constructs
+allow for passing Prolog terms through any method argument typed as
+\type{any}. Useful examples are storing Prolog terms in \product{}
+\class{vector} objects, associating Prolog data to objects using
+`object->attribute' (see below), etc.
+
+\begin{code}
+	...
+	send(Object, attribute, list, [this, is, a, list]),
+	...,
+	get(Object, attribute, list, List),
+	...
+\end{code}
+
+
 \section{The predicates send/2 and get/3}
 
 \product{} now supports two formats for the send- and get-predicates.
@@ -111,10 +143,10 @@ Advantages of this representation are:
 \begin{itemize}
     \item No limits to the number of arguments.
     \item Generally easier specification of utility-predicates
-          that wrap around the XPCE primitives as messages are
+          that wrap around the \product{} primitives as messages are
 	  represented using single Prolog term.
     \item Possibility to define (efficiently) other syntaxes
-          for XPCE.%
+          for \product{}.%
 	\footnote{Using an infix-operator for send/2, we could
 		  express send using \arg{Receiver} op \arg{Message}.
 		  Unfortunately it is not easy to find a good
@@ -126,11 +158,11 @@ Advantages of this representation are:
 		  welcome!}
 \end{itemize}
 
-As a disadvantage, XPCE produces more Prolog garbage, but using
+As a disadvantage, \product{} produces more Prolog garbage, but using
 modern compilers, this is unlikely to be a problem.
 
 \paragraph{The old syntax} is still acceptable.  When appearing
-as a normal subclause, the XPCE term-expansion will automatically
+as a normal subclause, the \product{} term-expansion will automatically
 rewrite it.  Actual calls are modified at runtime.
 
 \section{Invoking behaviour on the super-class}		\label{sec:sendsuper}
@@ -140,7 +172,7 @@ different. In the old system, send(\arg{Object}, send_super, selector, ...)
 was used. In the new system, the primitive send_class/2 is used and
 application programmers use send_super/2 with the same syntax as send/2.
 
-The construct send_super/2 is translated by the XPCE term-expansion
+The construct send_super/2 is translated by the \product{} term-expansion
 module into a proper send_class/2 message. All variations are
 recognised:
 
@@ -199,7 +231,7 @@ feasible.
 
 \chapter{Class-variables}
 
-The XPCE-4 notion of resources, expressing user-defaults, has been
+The \product{}-4 notion of resources, expressing user-defaults, has been
 replaced by the notion of class-variables, the default of which can
 be read from the \product{} \file{Defaults}-file and/or the user's
 \file{\$HOME/.xpce/Defaults} file.

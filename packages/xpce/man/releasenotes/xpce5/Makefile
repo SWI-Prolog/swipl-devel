@@ -5,32 +5,18 @@ PDF=relnotes-5.pdf
 PS=relnotes-5.ps
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
 PLTOTEX=$(PCEHOME)/bin/pl2tex
-CORRECTINDEX=$(PCEHOME)/bin/correctindex
-MAKEINDEX=makeindex -s $(PCEHOME)/TeX/makeindex.ist
 DOC=doc
 DVI=$(DOC).dvi
 LOG=$(DOC).log
-RERUN="Rerun to get cross-references right"
 
 TEX=	$(DOC).tex body.tex tree.tex showdir.tex 
 
-all:	$(DVI)
+all:	pdf
 pdf:	$(PDF)
 ps:	$(PS)
 
 $(DVI):	$(TEX)
-	@TEXINPUTS=.:$(PCEHOME)/TeX:$$TEXINPUTS; \
-	echo "**********************************************************"; \
-	echo "* Running latex $(DOC)"; \
-	echo "**********************************************************"; \
-	export TEXINPUTS; \
-	rm -f $(LOG); \
-	while test ! -e $(DVI) -o ! -e $(LOG) || grep -q $(RERUN) $(LOG); do \
-	  $(CORRECTINDEX) $(DOC).idx; \
-	  $(MAKEINDEX) $(DOC).idx; \
-	  touch $(DOC).ind; \
-	  latex $(DOC) || exit 1; \
-	done
+	env TEXINPUTS=$(PCEHOME)/TeX:: runtex $(DOC)
 
 html:	$(TEX)
 	latex2html $(DOC)
@@ -38,8 +24,9 @@ html:	$(TEX)
 $(PS):	$(DVI)
 	dvips -o $@ $(DVI)
 
-$(PDF):	$(PS)
-	pstill -cgipt -o $@ $(PS)
+$(PDF):	$(TEX)
+	env TEXINPUTS=$(PCEHOME)/TeX:: runtex --pdf $(DOC)
+	mv $(DOC).pdf $@
 
 $(TEX):	$(DOCTOTEX)
 
