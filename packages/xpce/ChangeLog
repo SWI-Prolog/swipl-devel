@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.2.3, distributed with SWI-Prolog 5.2.3
+================================================
+
 * MODIFIED: Changed priority of :: using in "comment"::<Body> from 1150 xfx
   to 910 xfy.  Must be above \+ (900) to avoid a conflict.
 
