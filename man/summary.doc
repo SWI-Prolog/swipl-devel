@@ -202,6 +202,7 @@ suggest predicates from a keyword.
 \predicatesummary{getenv}{2}{Get shell environment variable}
 \predicatesummary{goal_expansion}{2}{Hook for macro-expanding goals}
 \predicatesummary{ground}{1}{Verify term holds no unbound variables}
+\predicatesummary{guitracer}{0}{Install hooks for the graphical debugger}
 \predicatesummary{halt}{0}{Exit from Prolog}
 \predicatesummary{halt}{1}{Exit from Prolog with status}
 \predicatesummary{hash_term}{2}{Hash-value of ground term}
@@ -262,6 +263,7 @@ suggest predicates from a keyword.
 \predicatesummary{nl}{0}{Generate a newline}
 \predicatesummary{nl}{1}{Generate a newline on a stream}
 \predicatesummary{nodebug}{0}{Disable debugging}
+\predicatesummary{noguitracer}{0}{Disable the graphical debugger}
 \predicatesummary{nonvar}{1}{Type check for bound term}
 \predicatesummary{noprotocol}{0}{Disable logging of user interaction}
 \predicatesummary{nospy}{1}{Remove spy point}

@@ -504,13 +504,13 @@ Yes
 8 ?-
 \end{code}
 
-\section{Overview of the Debugger}
+\section{Overview of the Debugger}		\label{sec:debugoverview}
 
 SWI-Prolog has a 6-port tracer, extending the standard 4-port tracer
 \cite{Clocksin:87} with two additional ports. The optional \arg{unify}
 port allows the user to inspect the result after unification of the
-head.  The \arg{exception} port shows exceptions raised by throw/1
-or one of the built-in predicates.  See \secref{exception}.
+head. The \arg{exception} port shows exceptions raised by throw/1 or one
+of the built-in predicates. See \secref{exception}.
 
 The standard ports are called \const{call}, \const{exit}, \const{redo},
 \const{fail} and \const{unify}. The tracer is started by the trace/0
@@ -642,6 +642,9 @@ removed by the cut.  In debug mode, tail recursion optimisation is
 switched off.%
     \footnote{This implies the system can run out of local stack in debug
               mode, while no problems arise when running in non-debug mode.}
+
+Reference information to all predicates available for manipulating the
+debugger is in \secref{debugger}.
 
 
 \section{Compilation}			\label{sec:compilation}

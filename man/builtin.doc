@@ -4255,6 +4255,12 @@ unifies \arg{File} with the current protocol output file.
 
 \section{Debugging and Tracing Programs}	\label{sec:debugger}
 
+This section is a reference to the debugger interaction predicates. A
+more use-oriented overview of the debugger is in \secref{debugoverview}.
+
+If you have installed XPCE, you can use the graphical frontend of the
+tracer.  This frontend is installed using the predicate guitracer/0.
+
 \begin{description}
     \predicate{trace}{0}{}
 Start the tracer. trace/0 itself cannot be seen in the tracer.  Note that
@@ -4264,6 +4270,13 @@ Succeeds when the tracer is currently switched on.  tracing/0 itself can
 not be seen in the tracer.
     \predicate{notrace}{0}{}
 Stop the tracer. notrace/0 itself cannot be seen in the tracer.
+    \predicate{guitracer}{0}{}
+Installs hooks (see prolog_trace_interception/4) into the system that
+redirects tracing information to a GUI frontend providing structured
+access to variable-bindings, graphical overview of the stack and
+highlighting of relevant source-code.
+    \predicate{noguitracer}{0}{}
+Reverts back to the textual tracer.
     \predicate{trace}{1}{+Pred}
 Equivalent to \exam{trace(\arg{Pred}, +all)}.
     \predicate{trace}{2}{+Pred, +Ports}
@@ -4366,7 +4379,6 @@ Name & Default & Description \\
 \hline
 \end{tabular}
 \end{center}
-
 \end{description}
 
 \section{Obtaining Runtime Statistics}

@@ -74,7 +74,7 @@ online_index:	$(ONLINE_INDEX)
 dvi2tty:	$(DVI2TTY)
 txt.sty:	txt/txt.sty
 		cp txt/txt.sty $@
-html.sty:	../html/html.sty
+html.sty:	../packages/ltx2htm/html.sty
 		cp $< $@
 
 clean:		

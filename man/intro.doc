@@ -413,6 +413,25 @@ This library can be loaded explicitely or by calling check_old_select/0.
 \end{itemlist}
 
 
+\subsection{Version 4.0 Release Notes}
+
+As of version 4.0 the standard distribution of SWI-Prolog is bundled
+with a number of its popular extension packages, among which the now
+open source XPCE GUI toolkit (see \secref{xpce}). No significant changes
+have been made to the basic SWI-Prolog engine.
+
+Some useful tricks in the integrated environment:
+
+\begin{itemlist}
+    \item [Register the GUI tracer]
+Using a call to guitracer/0, hooks are installed that replace the normal
+command-line driven tracer with a graphical forntend.
+    \item [Register PceEmacs for editing files]
+From your initialisation file. you can load \pllib{emacs/swi_prolog} that
+cause edit/1 to use the built-in PceEmacs editor.
+\end{itemlist}
+
+
 \section{Acknowledgements}
 
 Some small parts of the Prolog code of SWI-Prolog are modified

@@ -35,11 +35,11 @@
 \cfoot{}
 \pagestyle{fancyplain}
 
-\newcommand{\vmajor}{3}
-\newcommand{\vminor}{4}
-\newcommand{\vpatch}{5}
-\newcommand{\vmonth}{December}
-\newcommand{\vyear}{2000}
+\newcommand{\vmajor}{4}
+\newcommand{\vminor}{0}
+\newcommand{\vpatch}{0}
+\newcommand{\vmonth}{February}
+\newcommand{\vyear}{2001}
 
 \newcommand{\versionshort}{\vmajor.\vminor}
 \newcommand{\versionlong}{\vmajor.\vminor.\vpatch, \vmonth~\vyear}
