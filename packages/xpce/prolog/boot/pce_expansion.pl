@@ -559,7 +559,7 @@ isa_prolog_class(Class, Super) :-		% Loaded Prolog class
 
 push_class(ClassName) :-
 	compiling(ClassName, _), !,
-	pce_error(resursive_loading_class(ClassName)),
+	pce_error(recursive_loading_class(ClassName)),
 	fail.
 push_class(ClassName) :-
 	push_compile_operators,
