@@ -2401,7 +2401,7 @@ variable, compare the numbers otherwise.
 
 	deRef2(ARGP++, k);
 	if ( canBind(*k) )
-	{ Word p = allocGlobal(4);
+	{ Word p = allocGlobal(2+WORDS_PER_DOUBLE);
 	  word c = consPtr(p, TAG_FLOAT|STG_GLOBAL);
 
 	  *p++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
