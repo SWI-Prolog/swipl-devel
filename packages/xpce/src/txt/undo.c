@@ -259,7 +259,9 @@ markUndoTextBuffer(TextBuffer tb)
 { UndoBuffer ub;
 
   if ( (ub = getUndoBufferTextBuffer(tb)) )
-  { if ( ub->head )
+  { DEBUG(NAME_undo, Cprintf("markUndoTextBuffer(%s)\n", pp(tb)));
+
+    if ( ub->head )
     { ub->head->marked = TRUE;
       ub->lastmark = ub->head;
     }

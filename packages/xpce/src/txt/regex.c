@@ -24,7 +24,7 @@ End;
 
 
 static status
-initialiseRegex(Regex re, CharArray pattern)
+initialiseRegex(Regex re, CharArray pattern, Bool case_sensitive)
 { if ( isDefault(pattern) )
     pattern = (CharArray)NAME_;
   assign(re, pattern, pattern);
@@ -32,6 +32,9 @@ initialiseRegex(Regex re, CharArray pattern)
   re->registers    = NULL;
   re->compiled     = alloc(sizeof(struct re_pattern_buffer));
   memset(re->compiled, 0, sizeof(struct re_pattern_buffer));
+
+  if ( notDefault(case_sensitive) )
+    ignoreCaseRegex(re, case_sensitive == ON ? OFF : ON);
 
   succeed;
 }
@@ -707,8 +710,11 @@ filePatternRegex(Regex re, CharArray file_pattern)
 
 /* Type declarations */
 
+static char *T_initialise[] =
+	{ "pattern=[char_array]", "case_sensitive=[bool]" };
 static char *T_forAll[] =
-        { "in=char_array|text_buffer|fragment", "action=code", "from=[int]", "to=[int]" };
+        { "in=char_array|text_buffer|fragment",
+	  "action=code", "from=[int]", "to=[int]" };
 static char *T_inAchar_arrayOtext_bufferOfragment_startADintD_endADintD[] =
         { "in=char_array|text_buffer|fragment", "start=[int]", "end=[int]" };
 static char *T_gregisterValue[] =
@@ -732,7 +738,7 @@ static vardecl var_regex[] =
 /* Send Methods */
 
 static senddecl send_regex[] =
-{ SM(NAME_initialise, 1, "pattern=[char_array]", initialiseRegex,
+{ SM(NAME_initialise, 2, T_initialise, initialiseRegex,
      DEFAULT, "Create regex from pattern"),
   SM(NAME_unlink, 0, NULL, unlinkRegex,
      DEFAULT, "Deallocate private storage"),

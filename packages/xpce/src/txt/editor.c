@@ -1387,11 +1387,8 @@ eventEditor(Editor e, EventObj ev)
   
   if ( rval && !isFreedObj(e) )
   { if ( isAEvent(ev, NAME_keyboard) ||
-	 isAEvent(ev, NAME_button) )
-    { DEBUG(NAME_undo,
-	    Cprintf("markUndoTextBuffer(%s)\n", pp(e->text_buffer)));
+	 (isAEvent(ev, NAME_button) /*&& isDownEvent(ev)*/) )
       markUndoTextBuffer(e->text_buffer);
-    }
 
     if ( notNil(e->text_buffer) && notNil(e->request_compute) )
     { assign(e, caret, normalise_index(e, e->caret));
