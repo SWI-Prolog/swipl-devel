@@ -1,6 +1,11 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 3.3.0 (final)
+=====================
+
+  * FIXED: Undesired interaction between abort and exceptions.
+
   * MODIFIED: Simplified the interface around the undocumented PL_dispatch()
     call to improve interactive response on exceptions, etc.
 
