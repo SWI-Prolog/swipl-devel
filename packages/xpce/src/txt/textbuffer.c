@@ -622,10 +622,10 @@ scan_textbuffer(TextBuffer tb, int from, Name unit, int amount, int az)
   
   here = from;
   
-  if ( equalName(unit, NAME_character) )
+  if ( unit == NAME_character )
   { here = from + amount;	/* 'az' does not count (no separator) */
     return NormaliseIndex(tb, here);
-  } else if ( equalName(unit, NAME_word) )
+  } else if ( unit == NAME_word )
   { if ( az == 'a' )
     { if ( amount <= 0 )
       { for( ; here > 0 && amount <= 0; amount++ )
@@ -655,7 +655,7 @@ scan_textbuffer(TextBuffer tb, int from, Name unit, int amount, int az)
 	return here == 0 ? here : here+1;
       }
     } 	   
-  } else if ( equalName(unit, NAME_line) )
+  } else if ( unit == NAME_line )
   { if ( az == 'a' )		/* return first char of line */
     { if ( amount <= 0 )
       { for( ; here >= 0 && amount <= 0; amount++ )
@@ -692,7 +692,7 @@ scan_textbuffer(TextBuffer tb, int from, Name unit, int amount, int az)
 	}
       }             
     }
-  } else if ( equalName(unit, NAME_sentence) )
+  } else if ( unit == NAME_sentence )
   { if ( az == 'z' )
     { if ( amount >= 0 )
       { for( ; here < size && amount >= 0; amount-- )
@@ -726,7 +726,7 @@ scan_textbuffer(TextBuffer tb, int from, Name unit, int amount, int az)
 	return here;
       }
     }
-  } else if ( equalName(unit, NAME_paragraph) )
+  } else if ( unit == NAME_paragraph )
   { if ( az == 'z' )
     { if ( amount >= 0 )
       { here = scan_textbuffer(tb, here, NAME_line, 0, 'a');
@@ -769,7 +769,7 @@ scan_textbuffer(TextBuffer tb, int from, Name unit, int amount, int az)
 	return here;
       }
     }
-  } else if ( equalName(unit, NAME_term) )
+  } else if ( unit == NAME_term )
   { if ( amount > 0 )	/* forwards */
     { for( ; here < size && amount > 0; amount-- )
       { while( here < size && !tischtype(syntax, fetch(here), AN|OB|QT) )
@@ -1168,21 +1168,22 @@ getSkipCommentTextBuffer(TextBuffer tb, Int where, Int to, Bool layouttoo)
     again:
 
       if ( pos < end )
-	answer(ZERO);
+	break;
 
       if ( layouttoo != OFF )
-	for(; pos >= end && tislayout(tb->syntax, c=fetch(pos))
+      {	for(; pos >= end && tislayout(tb->syntax, c=fetch(pos))
 	                 && !tiscommentend(tb->syntax, c)
 	    ; pos-- )
 	  ;
+      }
 
-      if ( tiscommentend(tb->syntax, fetch(pos)) )
+      if ( tiscommentend(tb->syntax, c=fetch(pos)) )
       { long possave = pos;
 
 	for( pos--;
 	     pos >= end && !tiscommentstart(tb->syntax, c=fetch(pos));
 	     pos-- )
-	  if ( tiscommentend(tb->syntax, c) )
+	{ if ( tiscommentend(tb->syntax, c) )
 	  { pos = possave;
 	    if ( tislayout(tb->syntax, fetch(pos)) )
 	    { pos--;
@@ -1190,9 +1191,16 @@ getSkipCommentTextBuffer(TextBuffer tb, Int where, Int to, Bool layouttoo)
 	    } else
 	      goto next;
 	  }
-
-	if ( pos > end )
-	  pos--;
+	}
+        if ( pos < end )
+	{ pos = possave;
+	  if ( tislayout(tb->syntax, fetch(pos)) )
+	  { pos--;
+	    goto again;
+	  } else
+	    goto next;
+	}
+	pos--;
 	continue;
       }
 
