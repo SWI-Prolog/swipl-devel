@@ -462,14 +462,16 @@ ws_grab_pointer_window(PceWindow sw, Bool val)
 
   if ( widgetWindow(sw) != NULL )
   { if ( val == ON )
-    { do_grab_window(sw);
-      appendChain(grabbedWindows, sw);
+    { if ( getHeadChain(grabbedWindows) != sw )
+      { do_grab_window(sw);
+	prependChain(grabbedWindows, sw);
+      }
     } else
     { XtUngrabPointer(widgetWindow(sw), CurrentTime);
       flushWindow(sw);
       deleteChain(grabbedWindows, sw);
-      if ( notNil(grabbedWindows->tail) )
-        do_grab_window(grabbedWindows->tail->value);
+      if ( notNil(grabbedWindows->head) )
+        do_grab_window(grabbedWindows->head->value);
     }
   }
 }
