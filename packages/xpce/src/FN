@@ -28,7 +28,7 @@ fi
 
 fgrep NAME_ $* | ./Names.X | sort -u > names/found
 
-if [ "$all" == true ]; then
+if [ "$all" = true ]; then
   cp names/found names/all
   cp names/found names/sorted
 else
