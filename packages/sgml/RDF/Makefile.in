@@ -116,6 +116,6 @@ clean:
 		rm -f *~ *% config.log
 
 distclean:	clean
-		rm -f $(TARGETS) config.cache config.status Makefile
+		rm -f $(TARGETS) config.h config.cache config.status Makefile
 		rm -f $(TEX)
 		runtex --clean $(DOC)
