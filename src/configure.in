@@ -223,7 +223,7 @@ pthread_ok=false
 
   if test "$GCC" = "yes"; then
 AC_MSG_CHECKING("whether gcc supports -pthread")
-ocflags=CFLAGS
+ocflags="$CFLAGS"
 CFLAGS="$CFLAGS -pthread"
 AC_TRY_LINK([
 #include <pthread.h>
@@ -239,7 +239,7 @@ AC_TRY_LINK([
 	    CMFLAGS="$CMFLAGS -pthread"
 	    LDFLAGS="$LDFLAGS -pthread"
 	    AC_MSG_RESULT(yes),
-	    CFLAGS=ocflags
+	    CFLAGS="$ocflags"
 	    AC_MSG_RESULT(no))
   fi
 
