@@ -1460,9 +1460,8 @@ check_mark(mark *m)
 
 
 static QueryFrame
-check_environments(LocalFrame fr)
+check_environments(LocalFrame fr, Code PC)
 { GET_LD
-  Code PC = NULL;
 
   if ( fr == NULL )
     return NULL;
@@ -1508,9 +1507,12 @@ check_choicepoints(Choice ch)
 { GET_LD
 
   for( ; ch; ch = ch->parent )
-  { choice_count++;
+  { if ( !ch->parent )
+      assert(ch->type == CHP_TOP);
+    choice_count++;
     check_mark(&ch->mark);
-    check_environments(ch->frame);
+    check_environments(ch->frame,
+		       ch->type == CHP_JUMP ? ch->value.PC : NULL);
   }
 }
 
@@ -1577,7 +1579,7 @@ checkStacks(LocalFrame frame, Choice choice)
   for( fr = frame, ch=choice;
        fr;
        fr = qf->saved_environment, ch = qf->saved_bfr )
-  { qf = check_environments(fr);
+  { qf = check_environments(fr, NULL);
     assert(qf->magic == QID_MAGIC);
 
     check_choicepoints(ch);
@@ -1851,7 +1853,9 @@ update_choicepoints(Choice ch, long ls, long gs, long ts)
       update_pointer(&ch->parent, ls);
     }
     update_mark(&ch->mark, gs, ts);
-    update_environments(ch->frame, NULL, ls, gs, ts);
+    update_environments(ch->frame,
+		        ch->type == CHP_JUMP ? ch->value.PC : NULL,
+			ls, gs, ts);
     choice_count++;
   }
 }
