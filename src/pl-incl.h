@@ -919,6 +919,7 @@ with one operation, it turns out to be faster as well.
 #define P_SHARED		(0x00400000L) /* predicate */
 #define P_REDEFINED		(0x00800000L) /* predicate */
 #define PROC_DEFINED		(DYNAMIC|FOREIGN|MULTIFILE|DISCONTIGUOUS)
+#define P_THREAD_LOCAL		(0x01000000L) /* predicate */
 
 #define ERASED			(0x0001) /* clause, record */
 #define UNIT_CLAUSE		(0x0002) /* clause */

@@ -1462,7 +1462,7 @@ pl_erase(term_t ref)
   { Clause clause = (Clause) record;
   
     if ( true(clause->procedure->definition, LOCKED) &&
-	 false(clause->procedure->definition, DYNAMIC) )
+	 false(clause->procedure->definition, DYNAMIC|P_THREAD_LOCAL) )
       PL_error("erase", 1, NULL, ERR_PERMISSION,
 	       ATOM_clause, ATOM_erase, ref);
 

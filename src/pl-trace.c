@@ -943,7 +943,7 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
 
   proc = _PL_predicate("prolog_trace_interception", 4, "user",
 		       &GD->procedures.prolog_trace_interception4);
-  if ( !proc->definition->definition.clauses )
+  if ( !getProcDefinition(proc)->definition.clauses )
     return rval;
 
   if ( !GD->bootsession && GD->debug_level == 0 )
@@ -1398,8 +1398,10 @@ pl_spy(term_t p)
 { Procedure proc;
 
   if ( get_procedure(p, &proc, 0, GP_FIND) )
-  { if ( false(proc->definition, SPY_ME) )
-    { set(proc->definition, SPY_ME);
+  { Definition def = getProcDefinition(proc);
+
+    if ( false(def, SPY_ME) )
+    { set(def, SPY_ME);
       printMessage(ATOM_informational,
 		   PL_FUNCTOR_CHARS, "spy", 1,
 		     PL_TERM, p);
@@ -1416,8 +1418,10 @@ pl_nospy(term_t p)
 { Procedure proc;
 
   if ( get_procedure(p, &proc, 0, GP_FIND) )
-  { if ( true(proc->definition, SPY_ME) )
-    { clear(proc->definition, SPY_ME);
+  { Definition def = getProcDefinition(proc);
+    
+    if ( true(def, SPY_ME) )
+    { clear(def, SPY_ME);
       printMessage(ATOM_informational,
 		   PL_FUNCTOR_CHARS, "nospy", 1,
 		     PL_TERM, p);

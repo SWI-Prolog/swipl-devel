@@ -1,6 +1,11 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * REORGANISED: introduced abstraction between procedures and their
+    definitions to allow for thread-local predicates (work in progress).
+
+  * ENHANCED: profile-utilities to raise proper exceptions.
+
   * FIXED: Ensure the message queue of a thread is available after
     thread_create/3 returns.  Holger Kanwischer
 

@@ -238,9 +238,9 @@ pl_profile_count(term_t head, term_t calls, term_t prom)
   int pm;
 
   if ( !get_procedure(head, &proc, 0, GP_FIND) )
-    return warning("profile_count/3: No such predicate");
+    return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_procedure, head);
 
-  def = proc->definition;
+  def = getProcDefinition(proc);
   pm  = (LD->statistics.profile_ticks == 0 ? 0 :
 					     ((1000 * def->profile_ticks) /
 					      LD->statistics.profile_ticks));
@@ -261,8 +261,8 @@ pl_profile_box(term_t head,
   Definition def;
 
   if ( !get_procedure(head, &proc, 0, GP_FIND) )
-    return warning("profile_box/5: No such predicate");
-  def = proc->definition;
+    return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_procedure, head);
+  def = getProcDefinition(proc);
 
   if ( PL_unify_integer(calls, def->profile_calls) &&
        PL_unify_integer(redos, def->profile_redos) &&
@@ -286,7 +286,7 @@ pl_reset_profiler(void)
 
 	      for_unlocked_table(module->procedures, sp,
 				 { Procedure proc = sp->value;
-				   Definition def = proc->definition;
+				   Definition def = getProcDefinition(proc);
 
 				   def->profile_calls = 0;
 				   def->profile_redos = 0;

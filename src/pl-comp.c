@@ -727,7 +727,7 @@ LocalFrame structure:
 
 	FR->clause	Point to the ClauseRef struct
 	FR->context	Module argument
-        FR->predicate	proc->definition
+        FR->predicate	getProcDefinition(proc)
 
 Using `local' compilation, all variables are   shared  with the original
 goal-term and therefore initialised. This implies   there  is no need to
@@ -743,7 +743,7 @@ compileClause(Word head, Word body, Procedure proc, Module module ARG_LD)
   if ( head )
   { ci.islocal      = FALSE;
     ci.subclausearg = 0;
-    ci.arity        = proc->definition->functor->arity;
+    ci.arity        = getProcDefinition(proc)->functor->arity;
     ci.argvars      = 0;
     clause.flags    = 0;
   } else
@@ -807,6 +807,7 @@ automatic update if a predicate is later defined as meta-predicate.
 
     if ( head )
     { Output_0(&ci, I_ENTER);
+					/* ok; all live in the same module */
       if ( ci.module != proc->definition->module &&
 	   false(proc->definition, METAPRED) )
       { Output_1(&ci, I_CONTEXT, (code)ci.module);
@@ -868,7 +869,7 @@ Finish up the clause.
 
     fr->clause = cref;
     fr->context = module;
-    fr->predicate = proc->definition;
+    fr->predicate = getProcDefinition(proc);
 
     DEBUG(1, Sdprintf("; now %d vars\n", clause->variables));
     lTop = (LocalFrame)p;
@@ -1813,7 +1814,7 @@ assert_term(term_t term, int where, SourceLoc loc ARG_LD)
   if ( !(clause = compileClause(h, b, proc, module PASS_LD)) )
     return NULL;
   DEBUG(2, Sdprintf("ok\n"));
-  def = proc->definition;
+  def = getProcDefinition(proc);
 
   if ( def->indexPattern && !(def->indexPattern & NEED_REINDEX) )
   { getIndex(argTermP(*h, 0),
@@ -2124,7 +2125,7 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
   term_t argp;
   int argn = 0;
   int pushed = 0;
-  Definition def = clause->procedure->definition;
+  Definition def = getProcDefinition(clause->procedure);
 
   if ( di->bindings )
   { term_t *p = &di->variables[VAROFFSET(0)];
@@ -2299,7 +2300,7 @@ decompile(Clause clause, term_t term, term_t bindings)
   di->body_context = NULL;
 
 #ifdef O_RUNTIME
-  if ( false(clause->procedure->definition, DYNAMIC) )
+  if ( false(getProcDefinition(clause->procedure), DYNAMIC|P_THREAD_LOCAL) )
     fail;
 #endif
 
@@ -2809,7 +2810,7 @@ pl_clause4(term_t head, term_t body, term_t ref, term_t bindings,
 	      
 	  decompile(clause, term, bindings);
 	  proc = clause->procedure;
-	  def = proc->definition;
+	  def = getProcDefinition(proc);
 	  if ( true(clause, GOAL_CLAUSE) )
 	  { tmp = head;
 	  } else
@@ -2827,7 +2828,7 @@ pl_clause4(term_t head, term_t body, term_t ref, term_t bindings,
       }
       if ( !get_procedure(head, &proc, 0, GP_FIND) )
 	fail;
-      def = proc->definition;
+      def = getProcDefinition(proc);
 
       if ( true(def, FOREIGN) ||
 	   (   trueFeature(ISO_FEATURE) &&
@@ -2843,7 +2844,7 @@ pl_clause4(term_t head, term_t body, term_t ref, term_t bindings,
     case FRG_REDO:
     { cref = ForeignContextPtr(ctx);
       proc = cref->clause->procedure;
-      def  = proc->definition;
+      def  = getProcDefinition(proc);
       break;
     }
     case FRG_CUTTED:
@@ -2851,7 +2852,7 @@ pl_clause4(term_t head, term_t body, term_t ref, term_t bindings,
     { cref = ForeignContextPtr(ctx);
 
       if ( cref )
-      { def  = cref->clause->procedure->definition;
+      { def  = getProcDefinition(cref->clause->procedure);
 	leaveDefinition(def);
       }
       succeed;
@@ -2931,7 +2932,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
   { cr = ForeignContextPtr(h);
 
     if ( cr )
-    { def = cr->clause->clause->procedure->definition;
+    { def = getProcDefinition(cr->clause->clause->procedure);
       leaveDefinition(def);
       freeHeap(cr, sizeof(crref));
     }
@@ -2949,7 +2950,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
       fail;				/* I'm don't belong to a predicate */
 
     proc = clause->procedure;
-    def  = proc->definition;
+    def  = getProcDefinition(proc);
     for( cref = def->definition.clauses, i=1; cref; cref = cref->next)
     { if ( cref->clause == clause )
       { if ( !PL_unify_integer(n, i) ||
@@ -2972,7 +2973,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
          true(proc->definition, FOREIGN) )
       fail;
 
-    def = proc->definition;
+    def = getProcDefinition(proc);
     cref = def->definition.clauses;
     while ( cref && !visibleClause(cref->clause, generation) )
       cref = cref->next;
@@ -3001,7 +3002,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
     enterDefinition(def);
   } else
   { cr = ForeignContextPtr(h);
-    def = cr->clause->clause->procedure->definition;
+    def = getProcDefinition(cr->clause->clause->procedure);
   }
 
   PL_unify_integer(n, cr->index);
@@ -3084,7 +3085,7 @@ wouldBindToDefinition(Definition from, Definition to)
 
     if ( (m = m->super) )
     { proc = isCurrentProcedure(from->functor->functor, m);
-      def = proc ? proc->definition : (Definition)NULL;
+      def = proc ? getProcDefinition(proc) : (Definition)NULL;
     } else
       break;
   }
@@ -3123,7 +3124,7 @@ pl_xr_member(term_t ref, term_t term, control_t h)
       switch(codeTable[op].argtype)
       { case CA1_PROC:
 	{ Procedure proc = (Procedure) *PC;
-	  rval = unify_definition(term, proc->definition, 0, 0);
+	  rval = unify_definition(term, getProcDefinition(proc), 0, 0);
 	  break;
 	}
 	case CA1_FUNC:

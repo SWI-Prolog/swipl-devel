@@ -843,6 +843,26 @@ do_undo(mark *m)
 #define Undo(m) __do_undo(&m PASS_LD)
 #endif /*O_DESTRUCTIVE_ASSIGNMENT*/
 
+
+		 /*******************************
+		 *	    PROCEDURES		*
+		 *******************************/
+
+static inline Definition
+pl__getProcDefinition(Procedure proc)
+{ return proc->definition;
+}
+
+
+Definition
+getProcDefinition(Procedure proc)
+{ return pl__getProcDefinition(proc);
+}
+
+#define getProcDefinition(proc) pl__getProcDefinition(proc)
+
+
+
 		/********************************
 		*          UNIFICATION          *
 		*********************************/
@@ -1673,7 +1693,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 
   qf	= (QueryFrame) lTop;
   fr    = &qf->frame;
-  def   = proc->definition;
+  def   = getProcDefinition(proc);
   arity	= def->functor->arity;
 
   requireStack(local, sizeof(struct queryFrame)+arity*sizeof(word));
@@ -3529,7 +3549,7 @@ frame and write  the  module  name  just  below  the  frame.   See  also
 contextModule().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-	DEF = resolveProcedure(functor, module)->definition;
+	DEF = getProcDefinition(resolveProcedure(functor, module));
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Save the program counter (note  that   I_USERCALL0  has no argument) and
@@ -3890,7 +3910,7 @@ program pointer and jump to the common part.
 	{ functor_t fdef;
 
 	  fdef = lookupFunctorDef(functor, arity);
-	  DEF = resolveProcedure(fdef, module)->definition;
+	  DEF = getProcDefinition(resolveProcedure(fdef, module));
 	  next->context = module;
 	}
 
@@ -3915,7 +3935,7 @@ execution can continue at `next_instruction'
 	     && trueFeature(TAILRECURSION_FEATURE)
 #endif
 	   )
-	{ Definition ndef = ((Procedure) *PC++)->definition;
+	{ Definition ndef = getProcDefinition((Procedure) *PC++);
 	  arity = ndef->functor->arity;
 
 	  if ( true(FR, FR_WATCHED) )
@@ -3943,7 +3963,7 @@ execution can continue at `next_instruction'
         next->flags = FR->flags;
 	if ( true(DEF, HIDE_CHILDS) ) /* parent has hide_childs */
 	  set(next, FR_NODEBUG);
-	DEF = ((Procedure) *PC++)->definition;
+	DEF = getProcDefinition((Procedure) *PC++);
 	next->context = FR->context;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

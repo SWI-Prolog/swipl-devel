@@ -84,6 +84,7 @@ lookupProcedure(functor_t f, Module m)
 }
 
 
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 resetProcedure() is called  by  lookupProcedure()   for  new  ones,  and
 abolishProcedure() by abolish/2. In the latter   case, abolish may leave
@@ -720,7 +721,7 @@ freeClauseRef(ClauseRef cref ARG_LD)
 
 ClauseRef
 assertProcedure(Procedure proc, Clause clause, int where ARG_LD)
-{ Definition def = proc->definition;
+{ Definition def = getProcDefinition(proc);
   ClauseRef cref = newClauseRef(clause PASS_LD);
 
   if ( def->references && (debugstatus.styleCheck & DYNAMIC_STYLE) )
@@ -837,7 +838,8 @@ abolishProcedure(Procedure proc, Module module)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Remove (mark for  deletion)  all  clauses   that  come  from  the  given
-source-file or any sourcefile
+source-file or any sourcefile. Note   that thread-local predicates don't
+have clauses from files, so we don't need to bother.
 
 MT: Caller must hold L_PREDICATE
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -850,6 +852,9 @@ removeClausesProcedure(Procedure proc, int sfindex)
 #ifdef O_LOGICAL_UPDATE
   GD->generation++;
 #endif
+
+  if ( true(def, P_THREAD_LOCAL) )
+    return;
 
   for(c = def->definition.clauses; c; c = c->next)
   { Clause cl = c->clause;
@@ -917,7 +922,7 @@ the definition is always referenced.
 
 bool
 retractClauseProcedure(Procedure proc, Clause clause ARG_LD)
-{ Definition def = proc->definition;
+{ Definition def = getProcDefinition(proc);
 
   LOCK();
   if ( true(clause, ERASED) )
@@ -1236,7 +1241,7 @@ pl_check_definition(term_t spec)
 
   if ( !get_procedure(spec, &proc, 0, GP_FIND) )
     return Sdprintf("$check_definition/1: can't find definition");
-  def = proc->definition;
+  def = getProcDefinition(proc);
 
   if ( true(def, FOREIGN) )
     succeed;
@@ -1471,7 +1476,7 @@ pl_retract(term_t term, control_t h)
   { ClauseRef cref = ForeignContextPtr(h);
 
     if ( cref )
-    { Definition def = cref->clause->procedure->definition;
+    { Definition def = getProcDefinition(cref->clause->procedure);
 
       leaveDefinition(def);
     }
@@ -1513,7 +1518,7 @@ pl_retract(term_t term, control_t h)
 	fail;
       }
 
-      def = proc->definition;
+      def = getProcDefinition(proc);
 
       if ( true(def, FOREIGN) )
 	return PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PROC, proc);
@@ -1539,7 +1544,7 @@ pl_retract(term_t term, control_t h)
     } else
     { cref = ForeignContextPtr(h);
       proc = cref->clause->procedure;
-      def  = proc->definition;
+      def  = getProcDefinition(proc);
       cref = findClause(cref, argv, environment_frame, def, &next PASS_LD);
     }
 
@@ -1585,7 +1590,7 @@ pl_retractall(term_t head)
   if ( !get_procedure(head, &proc, thehead, GP_FINDHERE) )
     succeed;
 
-  def = proc->definition;
+  def = getProcDefinition(proc);
   if ( true(def, FOREIGN) )
     return PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PROC, proc);
   if ( false(def, DYNAMIC) )
@@ -1761,7 +1766,7 @@ pl_get_predicate_attribute(term_t pred,
   } else if ( key == ATOM_line_count )
   { int line;
 
-    if ( false(def, FOREIGN) &&
+    if ( false(def, FOREIGN|P_THREAD_LOCAL) &&
 	 def->definition.clauses &&
 	 (line=def->definition.clauses->clause->line_no) )
       return PL_unify_integer(value, line);
@@ -2161,6 +2166,7 @@ redefineProcedure(Procedure proc, SourceFile sf)
 		   PL_CHARS, "foreign",
 		   _PL_PREDICATE_INDICATOR, proc);
   }
+  assert(false(def, P_THREAD_LOCAL));	/* what to do? */
 
   if ( false(def, MULTIFILE) )
   { ClauseRef first = hasClausesDefinition(def);
@@ -2218,7 +2224,7 @@ pl_source_file(term_t descr, term_t file, control_t h)
   if ( ForeignControl(h) == FRG_FIRST_CALL )
   { if ( get_procedure(descr, &proc, 0, GP_FIND|GP_QUIET) )
     { if ( !proc->definition ||
-	   true(proc->definition, FOREIGN) ||
+	   true(proc->definition, FOREIGN|P_THREAD_LOCAL) ||
 	   !(cref = proc->definition->definition.clauses) ||
 	   !(sf = indexToSourceFile(cref->clause->source_no)) )
 	fail;
@@ -2556,7 +2562,7 @@ pl_check_procedure(term_t desc)
 
   if ( !get_procedure(desc, &proc, 0, GP_FIND) )
     fail;
-  def = proc->definition;
+  def = getProcDefinition(proc);
 
   if ( true(def, FOREIGN) )
     fail;	
@@ -2574,7 +2580,7 @@ pl_list_generations(term_t desc)
 
   if ( !get_procedure(desc, &proc, 0, GP_FIND) )
     fail;
-  def = proc->definition;
+  def = getProcDefinition(proc);
 
   if ( true(def, FOREIGN) )
     fail;				/* permission error */

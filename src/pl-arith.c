@@ -360,7 +360,8 @@ calling convention required by ar_func_n() below.
 
 static int
 prologFunction(ArithFunction f, term_t av, Number r ARG_LD)
-{ int arity = f->proc->definition->functor->arity;
+{ Definition def = getProcDefinition(f->proc);
+  int arity = def->functor->arity;
   fid_t fid = PL_open_foreign_frame();
   qid_t qid;
   int rval;
@@ -384,7 +385,7 @@ prologFunction(ArithFunction f, term_t av, Number r ARG_LD)
       else
 #endif
       { term_t goal = PL_new_term_ref();
-	PL_cons_functor(goal, f->proc->definition->functor->functor, av);
+	PL_cons_functor(goal, def->functor->functor, av);
 	
 	rval = PL_error(NULL, 0,
 			"Aritmetic function must succeed or throw exception",
