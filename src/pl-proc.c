@@ -687,8 +687,14 @@ assertProcedure(Procedure proc, Clause clause, int where)
 #endif
 
   if ( def->hash_info )
+  { assert(!(def->indexPattern & NEED_REINDEX));
+
+    DEBUG(1,
+	  if ( !clause->index.varmask )
+	    Sdprintf("Adding non-indexed clause to %s\n", predicateName(def)));
+
     addClauseToIndex(def, clause, where);
-  else
+  } else
   { if ( def->number_of_clauses == 25 && true(def, AUTOINDEX) )
       def->indexPattern |= NEED_REINDEX;
   }
@@ -795,7 +801,7 @@ retractClauseProcedure(Procedure proc, Clause clause)
     def->number_of_clauses--;
     def->erased_clauses++;
     if ( false(def, DYNAMIC) ||
-	 def->erased_clauses > (def->number_of_clauses<<5) )
+	 def->erased_clauses > (def->number_of_clauses>>5) )
       set(def, NEEDSCLAUSEGC);
 #ifdef O_LOGICAL_UPDATE
     clause->generation.erased = ++GD->generation;
@@ -1217,7 +1223,10 @@ pl_retract(term_t term, word h)
   { ClauseRef cref = ForeignContextPtr(h);
 
     if ( cref )
-      leaveDefinition(cref->clause->procedure->definition);
+    { Definition def = cref->clause->procedure->definition;
+
+      leaveDefinition(def);
+    }
 
     succeed;
   } else
@@ -1598,6 +1607,8 @@ reindexDefinition(Definition def)
 { ClauseRef cref;
   int do_hash = 0;
   unsigned long pattern;
+
+  assert(def->references == 1);
 
   DEBUG(2, if ( def->definition.clauses )
 	   { Procedure proc = def->definition.clauses->clause->procedure;
@@ -2052,3 +2063,142 @@ pl_clause_from_source(term_t file, term_t line, term_t clause)
   
   fail;
 }
+
+
+#ifdef O_MAINTENANCE
+
+		 /*******************************
+		 *	INTERNAL DEBUGGING	*
+		 *******************************/
+
+  
+static void
+listGenerations(Definition def)
+{ ulong gen = environment_frame->generation;
+  ClauseRef cl;
+
+  Sdprintf("%s has %d clauses at generation %ld (%s)\n",
+	   predicateName(def),
+	   def->number_of_clauses, gen,
+	   true(def, NEEDSCLAUSEGC) ? "needs clause-gc" : "clean");
+	   
+
+  for(cl=def->definition.clauses; cl; cl=cl->next)
+  { Clause clause = cl->clause;
+
+    Sdprintf("%8u: %8u-%10u %s\n",
+	     ((ulong)clause - heap_base)>>2,
+	     clause->generation.created,
+	     clause->generation.erased,
+	     visibleClause(clause, gen) ? "ok" : "erased");
+  }
+
+  if ( def->hash_info )
+  { int i;
+
+    Sdprintf("Hash index (%s, %s)\n",
+	     true(def, NEEDSREHASH) ? "needs rehash" : "clean",
+	     def->hash_info->alldirty ? "dirty" : "clean");
+
+    for(i=0; i<def->hash_info->buckets; i++)
+    { if ( !def->hash_info->entries[i].head &&
+	   !def->hash_info->entries[i].dirty )
+	continue;
+
+      Sdprintf("\nClauses at i = %d, dirty = %d:\n",
+	       i, def->hash_info->entries[i].dirty);
+      
+      for(cl=def->hash_info->entries[i].head; cl; cl=cl->next)
+      { Clause clause = cl->clause;
+
+	Sdprintf("%8u: %8u-%10u %s\n",
+		 ((ulong)clause - heap_base)>>2,
+		 clause->generation.created,
+		 clause->generation.erased,
+		 visibleClause(clause, gen) ? "ok" : "erased");
+      }
+    }
+  }
+}
+
+
+void
+checkDefinition(Definition def)
+{ int nc;
+  ClauseRef cl;
+  int indexed = 0;
+    
+  for(nc=0, cl = def->definition.clauses; cl; cl=cl->next)
+  { Clause clause = cl->clause;
+    
+    if ( false(clause, ERASED) )
+    { if ( clause->index.varmask )
+	indexed++;
+      nc++;
+    }
+  }
+  if ( nc != def->number_of_clauses )
+  { listGenerations(def);
+    pl_break();
+  }
+
+  if ( def->hash_info )
+  { int i;
+
+    nc = 0;
+    for(i=0; i<def->hash_info->buckets; i++)
+    { for(cl=def->hash_info->entries[i].head; cl; cl=cl->next)
+      { Clause clause = cl->clause;
+
+	if ( false(clause, ERASED) )
+	{ if ( clause->index.varmask )
+	    nc++;
+	}
+      }
+    }
+
+    if ( nc != indexed )
+    { listGenerations(def);
+      pl_break();
+    }
+  }
+}
+
+
+foreign_t
+pl_check_procedure(term_t desc)
+{ Procedure proc;
+  Definition def;
+
+  if ( !get_procedure(desc, &proc, 0, GP_FIND) )
+    fail;
+  def = proc->definition;
+
+  if ( true(def, FOREIGN) )
+    fail;	
+
+  checkDefinition(def);
+
+  succeed;
+}
+
+
+foreign_t
+pl_list_generations(term_t desc)
+{ Procedure proc;
+  Definition def;
+
+  if ( !get_procedure(desc, &proc, 0, GP_FIND) )
+    fail;
+  def = proc->definition;
+
+  if ( true(def, FOREIGN) )
+    fail;				/* permission error */
+
+  listGenerations(def);
+
+  succeed;
+}
+
+
+#endif /*O_MAINTENANCE*/
