@@ -7,7 +7,7 @@
     Purpose: load and save intermediate code files
 */
 
-#define O_DEBUG 1
+/*#define O_DEBUG 1*/
 #include "pl-incl.h"
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>

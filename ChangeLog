@@ -1,6 +1,19 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.1.2
+=============
+
+  * FIXED: read/1 problem.  Try reading just '0'. ...  Reported by
+    Daniela Genius.
+
+  * FIXED: `toplevel' variable expansion system, leading to various strange
+    behaviours in handling queries from the user.  It now can also handle
+    cases as:
+
+    	?- X = 5.
+	?- X is $X + 1.
+
 Version 2.1.1
 =============
 

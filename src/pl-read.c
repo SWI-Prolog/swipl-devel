@@ -8,6 +8,7 @@
 */
 
 #include <math.h>
+/*#define O_DEBUG 1*/
 #include "pl-incl.h"
 #include "pl-ctype.h"
 
@@ -49,7 +50,7 @@ struct token
 { int type;			/* type of token */
   union
   { word prolog;		/* a Prolog value */
-    char character;		/* a punctuation character (T_PUNCTUATION) */
+    unsigned int character;	/* a punctuation character (T_PUNCTUATION) */
     Variable variable;		/* a variable record (T_VARIABLE) */
   } value;			/* value of token */
 };
@@ -145,7 +146,7 @@ stopRead(void)
 
 static void
 errorWarning(char *what)
-{ char c = *token_start;
+{ unsigned int c = *token_start;
   
   if ( !ReadingSource )			/* not reading from a file */
   { Sfprintf(Serror, "\n[WARNING: Syntax error: %s \n", what);
@@ -289,7 +290,7 @@ addToBuffer(int c)
 
 static char *
 raw_read2(void)
-{ register Char c;
+{ int c;
   bool something_read = FALSE;
   int newlines;
 
@@ -298,14 +299,13 @@ raw_read2(void)
 
   for(;;)
   { c = getchr();
-    DEBUG(3, if ( Input == 0 ) Sdprintf("getchr() -> %d (%c)\n", c, c));
-    DEBUG(3, if ( Input == 0 ) Sdprintf("here = %ld, base = %ld",
-				      (long) rb.here, (long) rb.base));
+
 #if !defined(HAVE_LIBREADLINE) && defined(O_TERMIO)
     if ( c == ttytab.tab.c_cc[VEOF] )		/* little hack ... */
-      c = EOF ;
+      c = EOF;
 #endif
 
+  handle_c:
     switch(c)
     { case EOF:
 		if (seeingString())		/* do not require '. ' when */
@@ -361,8 +361,8 @@ raw_read2(void)
 		  else
 		    goto e_o_f;		  
 		}
-
-		goto case_default;		/* Hack */
+		ensure_space(c);
+		break;
      case '\'': if ( rb.here > rb.base && isDigit(rb.here[-1]) )
 		{ addToBuffer(c);			/* <n>' */
 		  if ( rb.here[-2] == '0' )		/* 0'<c> */
@@ -403,32 +403,52 @@ raw_read2(void)
 		  rawSyntaxError("End of file in string");
 		addToBuffer(c);
 		break;
-      case_default:				/* Hack, needs fixing */
-      default:	if ( isBlank(c) )
-		{ long rd;
-
-		  rd = rb.here - rb.base;
-		  if (rd == 1 && rb.here[-1] == '.')
-		    rawSyntaxError("Unexpected end of clause");
-		  if (rd >= 2)
-		  { if ( rb.here[-1] == '.' &&
-			 !isSymbol(rb.here[-2]) &&
-			 !(rb.here[-2] == '\'' && rd >= 3 && rb.here[-3] == '0'))
-		    { ensure_space(c);
-		      addToBuffer(EOS);
-		      return rb.base;
-		    }
-		  }
+      case '.': addToBuffer(c);
+		set_start_line;
+		c = getchr();
+		if ( isBlank(c) )
+		{ if ( rb.here - rb.base == 1 )
+		    rawSyntaxError("Unexpected end of file");
 		  ensure_space(c);
-		} else
-		{ addToBuffer(c);
-		  if ( c != '/' )	/* watch comment start */
+		  addToBuffer(EOS);
+		  return rb.base;
+		}
+		goto handle_c;
+      case_default:			/* Hack, needs fixing */
+      default:	switch(char_type[c])
+		{ case SP:
+		    do
+		    { ensure_space(c);
+		      c = getchr();
+		    } while( c != EOF && char_type[c] == SP );
+		    goto handle_c;
+		  case SY:
+		    if ( c != '/' )	/* watch comment start */
+		    { set_start_line;
+		      do
+		      { addToBuffer(c);
+			c = getchr();
+		      } while( c != EOF && char_type[c] == SY );
+		      goto handle_c;
+		    }
+		    addToBuffer(c);
+		    break;
+		  case LC:
+		  case UC:
+		    set_start_line;
+		    do
+		    { addToBuffer(c);
+		      c = getchr();
+		    } while( c != EOF &&
+			     (char_type[c] == LC || char_type[c] == UC) );
+		    goto handle_c;
+		  default:
+		    addToBuffer(c);
 		    set_start_line;
 		}
-		break;
     }
   }
-}  
+}
 
 static char *
 raw_read(void)
@@ -647,9 +667,9 @@ scan_number(char **s, int b, number *n)
 
 static Token
 get_token(bool must_be_op)
-{ char c;
+{ unsigned int c;
   char *start;
-  char end;
+  int end;
   int negative = 1;
 
   if (unget)
@@ -659,7 +679,7 @@ get_token(bool must_be_op)
 
   skipSpaces;
   token_start = here - 1;
-  switch(char_type[(unsigned)c & 0xff])
+  switch(char_type[c])
   { case LC:	{ start = here-1;
 		  while(isAlpha(*here) )
 		    here++;

@@ -452,11 +452,11 @@ $chk_file(File, Exts, FullName) :-
 	$absolute_file_name(Extended, FullName).
 $chk_file(File, Exts, FullName) :-
 	source_location(ContextFile, _Line),
-	$file_dir_name(ContextFile, ContextDir), !,
+	$file_dir_name(ContextFile, ContextDir),
 	$concat_atom([ContextDir, /, File], AbsFile),
 	member(Ext, Exts),
 	ensure_extension(AbsFile, Ext, Extended),
-	exists_file(Extended),
+	exists_file(Extended), !,
 	$absolute_file_name(Extended, FullName).
 $chk_file(File, Exts, FullName) :-
 	member(Ext, Exts),
