@@ -431,10 +431,15 @@ getScanCharArray(CharArray n, CharArray fmt)
 
 
 static Name
-getCompareCharArray(CharArray n1, CharArray n2)
+getCompareCharArray(CharArray n1, CharArray n2, Bool ignore_case)
 { int rval;
 
-  if ( (rval = str_cmp(&n1->data, &n2->data)) < 0 )
+  if ( ignore_case == ON )
+    rval = str_icase_cmp(&n1->data, &n2->data);
+  else
+    rval = str_cmp(&n1->data, &n2->data);
+
+  if ( rval < 0 )
     answer(NAME_smaller);
   else if ( rval == 0 )
     answer(NAME_equal);
@@ -582,8 +587,8 @@ makeClassCharArray(Class class)
   getMethod(class, NAME_size, NAME_cardinality, "int", 0,
 	    "Number of characters in the text",
 	    getSizeCharArray);
-  getMethod(class, NAME_compare, NAME_compare, "{smaller,equal,larger}", 1,
-	    "char_array",
+  getMethod(class, NAME_compare, NAME_compare, "{smaller,equal,larger}", 2,
+	    "char_array", "ignore_case=[bool]",
 	    "Alphabetical comparison",
 	    getCompareCharArray);
   getMethod(class, NAME_character, NAME_content, "char", 1, "int",
