@@ -590,7 +590,7 @@ functors.
 \cfunction{atom_t}{PL_new_atom}{const char *}
 Return an atom handle for the given C-string.  This function always
 succeeds.  The returned handle is valid for the entire session.
-\cfunction{char *}{PL_atom_chars}{atom_t atom}
+\cfunction{const char *}{PL_atom_chars}{atom_t atom}
 Return a C-string for the text represented by the given atom.  The
 returned text will not be changed by Prolog.  It is not allowed to
 modify the contents, not even `temporary' as the string may reside
@@ -700,9 +700,9 @@ is a pointer to the output value or a term-reference.
 \begin{description}
 \cfunction{int}{PL_get_atom}{term_t +t, atom_t *a}
 If \arg{t} is an atom, store the unique atom identifier over \arg{a}.
-See also PL_string_from_atom() and PL_new_atom().  If there is
-no need to access the data (characters) of an atom, it is advised to
-manipulate atoms using their handle.
+See also PL_atom_chars() and PL_new_atom(). If there is no need to
+access the data (characters) of an atom, it is advised to manipulate
+atoms using their handle.
 \cfunction{int}{PL_get_atom_chars}{term_t +t, char **s}
 If \arg{t} is an atom, store a pointer to a 0-terminated C-string in
 \arg{s}.  It is explicitly \strong{not} allowed to modify the contents
@@ -854,7 +854,7 @@ pl_display(term_t t)
     { term_t a = PL_new_term_ref();
 
       PL_get_name_arity(t, &name, &arity);
-      Sprintf("%s(", PL_string_from_atom(name));
+      Sprintf("%s(", PL_atom_chars(name));
       for(n=1; n<=arity; n++)
       { PL_get_arg(n, t, a);
         if ( n > 1 )
@@ -895,7 +895,7 @@ lost after a write to the term-references.  After using this function,
 the variable will continue to live.
 \cfunction{void}{PL_put_atom}{term_t -t, atom_t a}
 Put an atom in the term reference from a handle.  See also
-PL_new_atom() and PL_string_from_atom().
+PL_new_atom() and PL_atom_chars().
 \cfunction{void}{PL_put_atom_chars}{term_t -t, const char *chars}
 Put an atom in the term-reference constructed from the 0-terminated
 string.  The string itself will never be references by Prolog after this

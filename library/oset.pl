@@ -159,7 +159,7 @@ happ([S|Ss], H, [[H|S],S|Rest]) :-
 % oset_addel(+Set, +El, -Add)  
 %   ordered set element addition
 % ------------------------------
-oset_addel([], El, [El|_Add]). 
+oset_addel([], El, [El]). 
 oset_addel([H|T], El, Add) :-
     compare(Order, H, El),
     addel(Order, H, T, El, Add).

@@ -20,6 +20,7 @@
 	    translate_environment/4,	% +In, +ModeIn, -ModeOut, -HTML
 	    translate_reference/4,	% +Kind, +RefPrefix, +Label, -HTML
 	    translate_footnote/2,	% +Text, -HTML
+	    translate_table/3,		% +Format, +BodyTokens, -HTML
 	    current_setting/1,		% +Type(-Value ...)
 	    do_float/2,			% +Float(+Number), :Goal
 	    tex_load_commands/1,	% +BaseName
@@ -31,7 +32,7 @@
 	  ]).
 :- use_module(library(quintus)).
 
-version('0.7').
+version('0.8').
 
 :- dynamic			
 	html_output_dir/1,		% output relative to this dir
@@ -39,6 +40,11 @@ version('0.7').
 	html_split_level/1,		% Split upto this level
 	title/1,			% \title{} storage
 	author/1.			% \auther{} command storage
+:- discontiguous
+	cmd/2,
+	cmd/3,
+	cmd/4.
+
 
 html_split_level(2).
 
@@ -66,9 +72,13 @@ read_tex_inputs :-
 	split(Val, ":", PathElement),
 	retractall(user:file_search_path(tex, _)),
 	reverse(PathElement, RevPath),
-	forall(member(E, RevPath),
-	       asserta(user:file_search_path(tex, E))).
+	forall(member(E, RevPath), assert_tex_input(E)).
 read_tex_inputs.
+
+assert_tex_input('') :- !,
+	asserta(user:file_search_path(tex, '.')).
+assert_tex_input(Dir) :-
+	asserta(user:file_search_path(tex, Dir)).
 
 		 /*******************************
 		 *       EXTENSION MODULES	*
@@ -88,7 +98,8 @@ latex2html_module :-
 	->  true
 	;   asserta(tex:tex_extension_module(M))
 	),
-	M:dynamic((cmd/2, cmd/3, cmd/4, env/2, (#)/2)).
+	M:dynamic((cmd/2, cmd/3, cmd/4, env/2, (#)/2)),
+	M:discontiguous((cmd/2, cmd/3, cmd/4, env/2, (#)/2)).
 
 %	Load a tex command file
 
@@ -699,7 +710,7 @@ prolog_function(\(renewcommand, [{Name}, [Args], {Expanded}])) :-
 cmd(onefile, preamble, []) :-
 	retractall(onefile(_)),
 	assert(onefile(true)).
-cmd(htmlpackage({File}), []) :-
+cmd(htmlpackage({File}), preamble, []) :-
 	(   absolute_file_name(tex(File),
 			       [ extensions([pl, qlf]),
 				 access(read)
@@ -775,6 +786,7 @@ cmd(subparagraph({Title}), [#b(+Title), ' ']).
 cmd(label({Label}), #label(Label, [], Tag)) :-	% \label and \xyzref
 	label_tag(Tag).
 cmd(ref({RefName}), #lref(RefName, ref(RefName))).
+cmd(pageref({RefName}), #lref(RefName, ref(RefName))).
 	
 cmd(secref({Label}), HTML) :-
 	translate_reference(section, sec, Label, HTML).
@@ -934,9 +946,6 @@ cmd(caption({Caption}),
     #center(#b([#nameof(Type), ' ', Number, ':', ' ', +Caption]))) :-
 	current_float(Type, Number).
 
-ps_extension(eps).
-ps_extension(ps).
-
 cmd(psdirectories({Spec}), []) :-
 	split(Spec, ",", Dirs),
 	retractall(user:file_search_path(psfig, _)),
@@ -999,6 +1008,9 @@ cmd(postscriptfig(_Options, {File}, Title),
 	->  true
 	;   ps2gif(psfig(File), OutFile, [margin(5)])
 	).
+
+ps_extension(eps).
+ps_extension(ps).
 
 %
 %	HTML documentation
@@ -1072,16 +1084,16 @@ html_font(bf, html('<B>'),  html('</B>')).
 html_font(it, html('<I>'),  html('</I>')).
 html_font(tt, html('<TT>'), html('</TT>')).
 html_font(sf, html('<B>'),  html('</B>')).
-html_font(sc, [],           []).
+html_font(sc, html('<font size=-1>'), html('</font>')).
 html_font(rm, [],           []).
 html_font(sl, html('<B>'),  html('</B>')).
 html_font(scriptsize,   [], []).
-html_font(footnotesize, [], []).
-html_font(small,        [], []).
+html_font(footnotesize, html('<font size=-1>'), html('</font>')).
+html_font(small,        html('<font size=-1>'), html('</font>')).
 html_font(normalsize,   [], []).
-html_font(large,        [], []).
-html_font('Large',      [], []).
-html_font('Huge',       [], []).
+html_font(large,        html('<font size=+1>'), html('</font>')).
+html_font('Large',      html('<font size=+2>'), html('</font>')).
+html_font('Huge',       html('<font size=+3>'), html('</font>')).
 
 
 		 /*******************************

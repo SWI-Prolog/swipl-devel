@@ -1667,6 +1667,8 @@ pl_string_to_list(term_t str, term_t list)
 
   if ( PL_get_chars(str, &s, CVT_ALL) )
     return PL_unify_list_chars(list, s);
+  if ( PL_get_list_chars(list, &s, 0) )	/* string_to_list(S, []). */
+    return PL_unify_string_chars(str, s);
   if ( PL_get_chars(list, &s, CVT_ALL) )
     return PL_unify_string_chars(str, s);
 

@@ -189,6 +189,16 @@ Halt(int rval)
 
     qlfCleanup();			/* remove errornous .qlf files */
     dieIO();
+
+    if ( status.initialised )
+    { fid_t cid = PL_open_foreign_frame();
+      predicate_t proc = PL_predicate("unload_all_foreign_libraries", 0,
+				      "shlib");
+      if ( isDefinedProcedure(proc) )
+	PL_call_predicate(MODULE_system, FALSE, proc, 0);
+      PL_discard_foreign_frame(cid);
+    }
+
     RemoveTemporaryFiles();
   }
 

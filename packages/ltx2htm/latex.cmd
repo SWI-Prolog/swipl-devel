@@ -85,6 +85,7 @@
 \label{-}
 \caption{+}		1 1
 \ref{-}
+\pageref{-}
 \cite{-}
 \yearcite{-}
 \opencite{-}

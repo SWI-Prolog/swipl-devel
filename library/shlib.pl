@@ -165,8 +165,16 @@ reload_foreign_libraries :-
 		 *     CLEANUP (WINDOWS ...)	*
 		 *******************************/
 
-:- at_halt(unload_all_foreign_libraries).
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Called from Halt() in pl-os.c (if it  is defined), *after* all at_halt/1
+hooks have been executed, and after   dieIO(),  closing and flushing all
+files has been called.
 
+On Unix, this is not very useful, and can only lead to conflicts.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+unload_all_foreign_libraries :-
+	feature(unix, true), !.
 unload_all_foreign_libraries :-
 	forall(current_foreign_library(File, _),
 	       unload_foreign_library(File)).
