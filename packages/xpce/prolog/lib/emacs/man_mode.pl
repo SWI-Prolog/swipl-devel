@@ -130,15 +130,15 @@ man(M, Spec:name) :->
 
 
 :- pce_global(@emacs_man_underline_fragment_regex,
-	      new(regex('\\(_\b.\\)+\\|\\(.\b_\\)+'))).
+	      new(regex('(_\b.)+|(.\b_)+'))).
 :- pce_global(@emacs_man_bold_fragment_regex,
-	      new(regex('\\(.\b.\\)+'))).
+	      new(regex('(.\b.)+'))).
 :- pce_global(@emacs_man_underline_regex,
-	      new(regex('_\b\\|\b_'))).
+	      new(regex('_\b|\b_'))).
 :- pce_global(@emacs_man_bold_regex,
 	      new(regex('\b.'))).
 :- pce_global(@emacs_man_title_regex,
-	      new(regex('\n+Sun Release.*\n*\\(\\su+\\).*\\1.*\n+'))).
+	      new(regex('\n+Sun Release.*\n*([[:upper:]]+).*\\1.*\n+'))).
 :- pce_global(@emacs_man_newline_regex,
 	      new(regex('\n\n+'))).
 
@@ -175,7 +175,7 @@ goto_man_page(M) :->
 	get(M, word, Page),
 	get(M, text_buffer, TB),
 	get(M, caret, Caret),
-	new(Re, regex('\\w+(\\(\\sd\\w?\\))')),
+	new(Re, regex('\\w+\\((\\d\\w?)\\)')),
 	(   send(Re, match, TB, Caret)
 	->  get(Re, register_value, TB, 1, Section),
 	    send(Section, downcase),

@@ -346,7 +346,7 @@ human_accelerator(Key, Text) :-
 	accel_cache(Key, Text), !.
 human_accelerator(Key, Text) :-
 	new(S, string('%s', Key)),
-	send(regex('\\\\C-\\(.\\)'), for_all, S,
+	send(regex('\\\\C-(.)'), for_all, S,
 	     message(@arg1, replace, @arg2, 'Control-\\1 ')),
 	send(regex('\\\\e'), for_all, S,
 	     message(@arg1, replace, @arg2, 'Alt-')),

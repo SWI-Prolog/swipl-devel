@@ -116,7 +116,7 @@ split_completion(_FI, Value, Tuple:tuple) :<-
 	new(S, string('%s', Value)),
 						% delete ...// or .../~
 	get(S, size, L),
-	(   get(regex('//\\|~\\|\\w:[/\\]'), search, S, L, 0, Start)
+	(   get(regex('//|~|\\w:[/\\]'), search, S, L, 0, Start)
 	->  send(S, delete, 0, Start),
 	    (   send(S, prefix, '//')
 	    ->  send(S, delete, 0, 1)
@@ -153,7 +153,7 @@ selection(FI, Warn:[bool], FileName:name) :<-
 	get(FI, modified, Modified),
 	get(FI?value_text, string, RawName),
 	get(RawName, size, L),
-	(   get(regex('//\\|/~'), search, RawName, L, 0, Start)
+	(   get(regex('//|/~'), search, RawName, L, 0, Start)
 	->  new(S, string('%s', RawName)),
 	    send(S, delete, 0, Start),
 	    (	send(S, prefix, '//')
@@ -195,7 +195,7 @@ check_existence(_FI, Name:name) :->
 clean_file_name(Def, Clean) :-
 	\+ send(Def, '_instance_of', function),
 	get(@pce, convert, Def, string, Clean), !,
-	send(regex('//'), for_all, Clean,
+	send(regex(//), for_all, Clean,
 	     message(@arg1, replace, @arg2, '/')).
 clean_file_name(Def, Def).
 	

@@ -218,7 +218,7 @@ save_if_modified(MB) :->
 	).
 
 :- pce_global(@man_group_line_regex,
-	      new(regex('\\([^\t]*\\)\t\\(.*\\)\n'))).
+	      new(regex('([^\t]*)\t(.*)\n'))).
 
 save(MB) :->
 	"Save all summary cards"::
@@ -275,7 +275,7 @@ load_manual_groups(MB) :->
 	    (	get(F, read_line, Line)
 	    ->  substitute(Line, ['\%.*',
 				  	'',
-				  '#group\\s *\\(\\w+\\)\\s *"\\(.*\\)"',
+				  '#group\\s*(\\w+)\\s*"(.*)"',
 				  	'\\1\t\\2'
 				  ]),
 		send(Line, strip),

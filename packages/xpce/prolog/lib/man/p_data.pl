@@ -285,7 +285,7 @@ man_id(_Card, Id) :<-
 
 predicate_name(Card, PredName:name) :<-
 	get(Card, name, Name),
-	new(R, regex('\\(\\w+\\)')),
+	new(R, regex('(\\w+)')),
 	send(R, search, Name),
 	get(R, register_value, Name, 1, name, PredName).
 

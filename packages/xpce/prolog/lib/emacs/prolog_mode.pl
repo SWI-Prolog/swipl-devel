@@ -110,12 +110,12 @@ resource(breakpoint,   image, image('16x16/stop.xpm')).
 	  '/'  + comment_start('*'),
 	  '*'  + comment_end('/'),
 
-	  paragraph_end([ '\\s *$',		% empty line
+	  paragraph_end([ '\\s*$',		% empty line
 			  '^/\\*',		% comment start
-			  '.*\\*/\\s *$', 	% comment end
+			  '.*\\*/\\s*$', 	% comment end
 			  '^%',			% line comment
 			  '^	',		% indented line
-			  '.*:<?->?\\s *$'	% clause head
+			  '.*:<?->?\\s*$'	% clause head
 			])
 	]).
 		 
@@ -147,7 +147,7 @@ setup_mode(M) :->
 
 
 :- send(@class, attribute, outline_regex_list,
-	chain(regex('\\(^\\w+.*:<?->?\\)\\([^.]+\\.\\(\\s *\n\\)*\\)\\s '))).
+	chain(regex('(^\\w+.*:<?->?)([^.]+\\.(\\s*\n)*)\\s'))).
 
 source_file_chain(Ch) :-
 	new(Ch, chain),
@@ -179,9 +179,9 @@ expand_path(Term, D) :-
 :- pce_group(indent).
 
 :- pce_global(@prolog_neck_regex,
-	      new(regex(':-\\|:->\\|:<-\\|-->'))).
+	      new(regex(':-|:->|:<-|-->'))).
 :- pce_global(@prolog_full_stop,
-	      new(regex('[^-#$&*+./:<=>?@\\^`~]\\.\\($\\|\\s \\)'))).
+	      new(regex('[^-#$&*+./:<=>?@\\^`~]\\.($|\\s)'))).
 
 indent_line(E) :->
 	"Indent current line (Prolog indentation)"::
@@ -246,7 +246,7 @@ indent_if_then_else(E) :->
 	get(E, skip_comment, Caret-1, OpenPos, EndOfPreviousTerm),
 	(   send(regex(','), match, TB, EndOfPreviousTerm)
 	->  get(TB, scan, Caret, line, -1, start, StartOfPrevLine),
-	    get(regex('\\s *\\(->\\|;\\)\\s *'), match, TB, StartOfPrevLine, L),
+	    get(regex('\\s*(->|;)\\s*'), match, TB, StartOfPrevLine, L),
 	    get(E, column, L+StartOfPrevLine, PrevExprCol),
 	    send(E, align_line, PrevExprCol)
 	;   get(E, column, OpenPos, OpenCol),
@@ -259,7 +259,7 @@ indent_clause_line(E) :->
 	get(E, caret, Caret),
 	get(E, text_buffer, TB),
 	get(E, skip_comment, Caret-1, 0, Glue),
-	(   send(regex('\\.'), match, TB, Glue)		% new clause
+	(   send(regex(\.), match, TB, Glue)		% new clause
 	->  send(E, align_line, 0)
 	;   send(regex(','), match, TB, Glue)	  	% Next subclause
 	->  get(E, alignment_of_previous_line, N),
@@ -279,12 +279,12 @@ insert_if_then_else(E, Times:[int], Char:char) :->
 	get(E, caret, Caret),
 	get(E, text_buffer, TB),
 	get(TB, scan, Caret, line, 0, start, SOL),
-	(   get(regex('\\s *\\((\\|->\\|;\\)'), match, TB, SOL, L),
+	(   get(regex('\\s*(\\(|->|;)'), match, TB, SOL, L),
 	    Caret =:= SOL + L,
 	    get(E, beginning_of_if_then_else, OpenPos)
 	->  get(E, text_buffer, TB),
 	    get(TB, scan, Caret, line, 0, start, SOL),
-	    (   (   send(regex('\\s *\\((\\|->\\|;\\)$'), match,
+	    (   (   send(regex('\\s*(\\(|->|;)$'), match,
 			 TB, SOL, Caret)
 		;   Caret =:= 1 + OpenPos
 		)
@@ -304,7 +304,7 @@ indent_clause(E) :->
 	between(0, 1000, _),		% avoid loops on errors
 	    send(E, indent_line),
 	    get(E, caret, Caret),
-	    (	get(regex('.*\\S.\\.'), match, TB, Caret, Size),
+	    (	get(regex('.*[^[:punct:]]\\.'), match, TB, Caret, Size),
 		End is Caret + Size,
 		get(TB, scan_syntax, Start, End, tuple(code,_))
 	    ->	!
@@ -414,11 +414,11 @@ find_local_definition(M, For:prolog_predicate) :->
 		 *	    PCE CLASSES		*
 		 *******************************/
 
-class_regex(':-\\s *pce_begin_class(\\(\\w+\\)',
-	    ':-\\s *pce_end_class\\s *.',
+class_regex(':-\\s*pce_begin_class\\((\\w+)',
+	    ':-\\s*pce_end_class\\s*.',
 	    A-[A]).
-class_regex(':-\\s *emacs_begin_mode(\\(\\w+\\)',
-	    ':-\\s *emacs_end_mode\\s *.',
+class_regex(':-\\s*emacs_begin_mode\\((\\w+)',
+	    ':-\\s*emacs_end_mode\\s*.',
 	    A-[emacs_, A, '_mode']).
 
 what_class(E, ClassName:name) :<-
@@ -588,7 +588,7 @@ pce_check_require(M, File:file) :->
 	    (   send(Message, sub, 'up-to-date')
 	    ->  true
 	    ;   new(B, emacs_buffer(File)),
-		(   get(regex('^:-\\s *require('), search, B, Index)
+		(   get(regex('^:-\\s*require\\('), search, B, Index)
 		->  true
 		;   Index = 0
 		),
@@ -1165,7 +1165,7 @@ at_start_of_clause(M, Pos:[int]) :->
 	;   get(M, text_buffer, TB),
 	    get(TB, scan, C, term, 1, end, TE),
 	    get(TB, skip_comment, TE, Neck),
-	    send(M, looking_at, ':-\\|-->\\|:<-\\|\\.', Neck)
+	    send(M, looking_at, ':-|-->|:<-|\\.', Neck)
 	).
 
 backward_clause(M, Start:int, BOC:int) :<-

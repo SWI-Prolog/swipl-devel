@@ -48,9 +48,9 @@ initialise(B, Target:file, Pid:[int]) :->
 	send(B, prompt_regex, '(gdb) ').
 
 :- pce_global(@gdb_fullname_regex,	% 032 ==26 == Ctrl-Z!
-	      new(regex('\32\\32\\\([^:]+\\):\\(\\sd+\\):.*'))).
+	      new(regex('\032\\032\([^:]+):(\\d+):.*'))).
 :- pce_global(@gdb_at_regex,
-	      new(regex('at \\([^:]\\):\\(\\sd+\\)'))).
+	      new(regex('at ([^:]):(\\d+)'))).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ->insert_process_input is a little complicated.  As both the application

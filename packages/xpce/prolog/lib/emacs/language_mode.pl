@@ -52,7 +52,7 @@
 	],
 	[ '"'  = string_quote('"'),
 	  '''' = string_quote(''''),
-	  paragraph_end(regex('\\s *$\\|/\\* - - -\\|- - -.*\\*/$'))
+	  paragraph_end(regex('\\s*$|/\\* - - -|- - -.*\\*/$'))
 	]).
 
 

@@ -887,7 +887,7 @@ type(T) -->
 
 make_breakable(Atom, Breakable) :-
 	new(Breakable, string('%s', Atom)),
-	send(regex('\\([,|]\\)'), for_all, Breakable,
+	send(regex('([,|])'), for_all, Breakable,
 		   message(@arg1, replace, @arg2, '\\1 ')).
 
 type_default(T, C) -->

@@ -47,13 +47,13 @@
 		      '`'  = open_bracket(''''),
 		      '%'  = comment_start,
 		      '\n' + comment_end,
-		      paragraph_end(regex('\\s *\\(\\sn\\|%\\|\\\\item\\|\\\\tick\\|\\\\begin\\|\\\\end\\|\\\\\\(sub\\)*section\\)\\|%$'))
+		      paragraph_end(regex('\\s*(\n|%|\\\\item|\\\\tick|\\\\begin|\\\\end|\\\\(sub)*section)|%$'))
 		    ]).
 
 :- send(@class, attribute, outline_regex_list,
-	chain(regex('^\\(\\\\\\(sub\\)*section{[^}]*}.*\n\\)\\(\\(.*\n\\)*\\)\\\\\\(sub\\)*section{'))).
+	chain(regex('^(\\\\(sub)*section\\{[^}]*\\}.*\n)((.*\n)*)\\\\(sub)*section\\{'))).
 
-:- pce_global(@latex_env_regex, new(regex('\\\\\\(begin\\|end\\){\\(\\w+\\)}'))).
+:- pce_global(@latex_env_regex, new(regex('\\\\(begin|end)\\{(\\w+)\\}'))).
 
 %	TBD: Nested environments?
 
@@ -75,7 +75,7 @@ close_environment(E) :->
 		    get(@latex_env_regex, register_value, TB, 2, Env),
 		    get(E, column, Start, Col),
 		    send(E, beginning_of_line),
-		    (	send(E, looking_at, '\\s *$')	% blank line
+		    (	send(E, looking_at, '\\s*$')	% blank line
 		    ->	true
 		    ;	send(E, end_of_line),
 			send(E, newline)

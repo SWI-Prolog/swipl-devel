@@ -102,7 +102,7 @@ free(I) :->
 load(I, URL:name, Cache:[bool]) :->
 	"load from URL data"::
 	send(I, slot, url, URL),
-	(   new(Re, regex('file:\\(.*\\)', @off)),
+	(   new(Re, regex('file:(.*)', @off)),
 	    send(Re, match, URL)
 	->  get(Re, register_value, URL, 1, name, FileName),
 	    send_super(I, load, FileName)

@@ -81,11 +81,11 @@ http_client <-header --> Sheet
 
 :- pce_global(@nl_regex, new(regex('\n'))).
 :- pce_global(@http_reply_regex,
-	      new(regex('HTTP/\\([0-9]\\.[0-9]\\)\\s *\\(\\sd+\\)\\s *\\(\\w*\\)'))).
+	      new(regex('HTTP/([0-9]\\.[0-9])\\s*(\\d+)\\s*(\\w*)'))).
 :- pce_global(@http_field_regex,
-	      new(regex('\\([a-zA-Z0-9-]+\\):\\s *\\(.*\\)$'))).
+	      new(regex('([a-zA-Z0-9-]+):\\s*(.*)$'))).
 :- pce_global(@http_empty_line_regex,
-	      new(regex('\\s *\r?$'))).
+	      new(regex('\\s*\r?$'))).
 
 :- initialization
    new(_, error(http_bad_header,

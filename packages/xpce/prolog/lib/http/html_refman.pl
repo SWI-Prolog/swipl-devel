@@ -51,7 +51,7 @@
 %	Find XPCE object holding documentation from a textual specification.
 
 atom_to_method(String, Object) :-
-	(   new(Re, regex('\\([A-Z]?[a-z_]*\\)\\s *\\(<?->?\\)\\([a-z_]+\\)\\(:.*\\)?$')),
+	(   new(Re, regex('([A-Z]?[a-z_]*)\\s*(<?->?)([a-z_]+)(:.*)?$')),
 	    send(Re, match, String)
 	->  get(Re, register_value, String, 1, name, Class0),
 	    get(Re, register_value, String, 2, name, What0),
@@ -62,7 +62,7 @@ atom_to_method(String, Object) :-
 	    ;	What = What0
 	    ),
 	    Term =.. [What, Class, Selector]
-	;   new(Re, regex('@\\(.+\\)$')),
+	;   new(Re, regex('@(.+)$')),
 	    send(Re, match, String)
 	->  get(Re, register_value, String, 1, name, Reference),
 	    Term = @Reference
@@ -153,17 +153,17 @@ substitute(S, [Search, Replace | Rest]) :-
 desc_to_html(S, Obj) :-
 	send(S, ensure_nl),
 	html_escape(S),
-	substitute(S, ['\n\\s +\n', '\n\n']), % cannonise
+	substitute(S, ['\n\\s+\n', '\n\n']), % cannonise
 	html_lists(S),
 	substitute(S,
 		   [ %   HEADING
-		     '\n\n\\s *\\([A-Z ?!._-]+\\)\\s *\n\n',
+		     '\n\n\\s*([A-Z ?!._-]+)\\s*\n\n',
 		     	call(header),	% uses \1
  		     %   ** SubHeader
-		     '\n\n\\*\\*+\\s +\\(.*\\)\n\n',
+		     '\n\n\\*\\*+\\s+(.*)\n\n',
  			'\n\n<h4>\\1</h4>\n\n',
 		     %   *bold*
-		     '\\*\\([^ ]+\\)\\*',
+		     '\\*([^ ]+)\\*',
 		        '<b>\\1</b>'
 		   ]),
 	substitute(S, ['\n\n+', '\n\n<p>\n']), % paragraphs
@@ -175,30 +175,30 @@ html_lists(S) :-
 	substitute(S,
 		   [ %   1)
 		     %   2)
-		     '\n\n+\\(\t\\sd+).*\\(\n\t.*\\|\n *\\)*\\)',
+		     '\n\n+(\t\\d+\\).*(\n\t.*|\n *)*)',
 		     	call(enumerate),
 		     %   aap	noot
 		     %   zus	jet
-		     '\n\n\\(\\(\n*\t[^\t\n]+\t.*\n\\)+\\)',
+		     '\n\n((\n*\t[^\t\n]+\t.*\n)+)',
 		     	call(table),
 		     %   * header
 		     %   text
-		     '\n\n+\\(\t\\*.*\\(\n\t.*\\|\n *\\)*\\)',
+		     '\n\n+(\t\\*.*(\n\t.*|\n *)*)',
 		     	call(itemize),
 		     %	 # text
 		     %   more text
-		     '\n\n+\\(\t#.*\\(\n\t.*\\|\n *\\)*\\)',
+		     '\n\n+(\t#.*(\n\t.*|\n *)*)',
 		     	call(description),
 		     %   Indented by tabs
 %		     '\n\n+\\(\\(\n*\t.*\\)+\\)',	% fails on regex 0.12
-		     '\n+\\(\\(\n+\t.*\\)+\\)',
+		     '\n+((\n+\t.*)+)',
 		     	call(example)
 		   ]).
 	
 
 example(Re, String) :-
 	get(Re, register_value, String, 1, S2),
-	substitute(S2, ['^\t\\(.*\\)', '\\1']),
+	substitute(S2, ['^\t(.*)', '\\1']),
 	send(S2, untabify, 4),
 	send(S2, prepend, string('\n<pre>')),
 	send(S2, append, string('\n</pre>\n')),
@@ -233,7 +233,7 @@ list(itemize, Re, String) :-
 itemize(Re, String) :-
 	get(Re, register_value, String, 1, S2),
 	substitute(S2,
-		   [ '\n*\t\\*\\s *\\(.*\\)\\(\\(\n\t[^*].*\\|\n *\\)*\\)',
+		   [ '\n*\t\\*\\s*(.*)((\n\t[^*].*|\n *)*)',
 		     	call(list(itemize))
 		   ]),
 	send(S2, prepend, string('\n<p><ul>\n')),
@@ -245,7 +245,7 @@ itemize(Re, String) :-
 description(Re, String) :-
 	get(Re, register_value, String, 1, S2),
 	substitute(S2,
-		   [ '\n*\t#\\s *\\(.*\\)\\(\\(\n\t[^#].*\\|\n *\\)*\\)',
+		   [ '\n*\t#\\s*(.*)((\n\t[^#].*|\n *)*)',
 		        call(list(description))
 		   ]),
 	send(S2, ensure_nl),
@@ -257,7 +257,7 @@ description(Re, String) :-
 enumerate(Re, String) :-
 	get(Re, register_value, String, 1, S2),
 	substitute(S2,
-		   [ '\n*\t\\sd+)\\s *\\(.*\\)\\(\\(\n\t[^0-9].*\\|\n *\\)*\\)',
+		   [ '\n*\t\\d+\\)\\s*(.*)((\n\t[^0-9].*|\n *)*)',
 			call(list(itemize))
 		   ]),
 	send(S2, ensure_nl),
@@ -269,7 +269,7 @@ enumerate(Re, String) :-
 table(Re, String) :-
 	get(Re, register_value, String, 1, S2),
 	substitute(S2,
-		   [ '\n*\t\\([^\t]+\\)\t+\\(.*\\)\n',
+		   [ '\n*\t([^\t]+)\t+(.*)\n',
 		       '<tr><td>\\1<td>\\2</tr>\n'
 		   ]),
 	send(S2, prepend, string('\n<p><table align=center border=1 width=50%>\n')),
@@ -295,17 +295,17 @@ header(Re, String) :-
 
 hyperlinks(S, Obj) :-
 	substitute(S,
-		   [ '`\\([^`\']+\\)\'',
+		   [ '`([^`\']+)\'',
 		     	call(make_link),
-		     '-&gt;\\([a-z_]+\\)',
+		     '-&gt;([a-z_]+)',
 		        call(make_sendmethod_link(Obj)),
-		     '&lt;-\\([a-z_]+\\)',
+		     '&lt;-([a-z_]+)',
 		        call(make_getmethod_link(Obj)),
-		     '\\(@[a-z_]+\\)',
+		     '(@[a-z_]+)',
 		        call(make_link),
-		     '\\b[Cc]lass\\s +\\([a-z_]+\\)',
+		     '\\y[Cc]lass\\s+([a-z_]+)',
 		        call(make_link),
-		     '\\([a-z_]+\\)\\s +object\\b',
+		     '([a-z_]+)\\s+object\\y',
 		        call(make_link)
 		   ]).
 

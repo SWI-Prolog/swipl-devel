@@ -75,7 +75,7 @@ elements that are closed by omited elements.
 		    % SYNTAX TABLE
 		    [ '"'  = string_quote('"'),
 		      '\'' = string_quote('\''),
-		      paragraph_end('\\s *$\\|^<p>\\|\\s +<')
+		      paragraph_end('\\s*$|^<p>|\\s+<')
 		    ]).
 
 class_variable(auto_colourise_size_limit, int, 100000,
@@ -712,10 +712,10 @@ insert_attribute(M, Att:name, Val:'[name|int|real]') :->
 	"Add attribute-value pair"::
 	get(M, text_buffer, TB),
 	get(M, caret, Caret),
-	new(Re, regex('\\(\\s +\\|[/>]\\)')),
+	new(Re, regex('(\\s+|[/>])')),
 	send(Re, search, TB, Caret),	% find place to insert
 	get(Re, register_start, 0, Where),
-	(   send(regex('\\s +'), match, TB, Where)
+	(   send(regex('\\s+'), match, TB, Where)
 	->  get(Re, register_end, 0, NewCaret), % after blanks
 	    send(M, caret, NewCaret)
 	;   send(M, caret, Where),
@@ -724,13 +724,13 @@ insert_attribute(M, Att:name, Val:'[name|int|real]') :->
 	(   Val == @default
 	->  send(M, format, '%s=""', Att),
 	    get(M, caret, C),
-	    (	send(M, looking_at, '\\s \\|[/>]')
+	    (	send(M, looking_at, '\\s|[/>]')
 	    ->  true
 	    ;	send(M, format, ' ')
 	    ),
 	    send(M, caret, C-1)
 	;   send(M, format, '%s="%s"', Att, Val),
-	    (	send(M, looking_at, '\\s \\|[/>]')
+	    (	send(M, looking_at, '\\s|[/>]')
 	    ->  true
 	    ;	send(M, format, ' ')
 	    )
@@ -832,7 +832,7 @@ prepare_insert(M) :->
 		Col is Col0+2,
 		get(M, text_buffer, TB),
 		get(TB, scan, Caret, line, 0, start, SOL),
-		(   new(Re, regex('\\s *')),
+		(   new(Re, regex('\\s*')),
 		    send(Re, match, TB, SOL, Caret),
 		    get(Re, register_end, Caret)
 		->  true		% at a blank line
@@ -898,7 +898,7 @@ insert_by_style(@default, M, Tag, End) :-
 	get(M, text_buffer, TB),
 	get(M, caret, Caret),
 	get(TB, scan, Caret, line, 0, start, SOL),
-	(   send(regex('\\s *$'), match, TB, SOL)
+	(   send(regex('\\s*$'), match, TB, SOL)
 	->  insert_by_style(block, M, Tag, End)
 	;   insert_by_style(inline, M, Tag, End)
 	).
@@ -947,7 +947,7 @@ required_content(A) -->
 
 
 looking_at_element(M, From:int, Elem:name) :<-
-	new(Re, regex('<\\([-_:a-zA-Z0-9]+\\)')),
+	new(Re, regex('<([-_:a-zA-Z0-9]+)')),
 	get(M, text_buffer, TB),
 	send(Re, match, TB, From),
 	get(Re, register_value, TB, 1, name, Elem).

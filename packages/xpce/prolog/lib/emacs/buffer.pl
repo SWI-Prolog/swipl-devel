@@ -114,10 +114,10 @@ scratch_text('% This buffer is for notes you don\'t want to save.\n\
 	     % then enter the text in that file\'s own buffer.\n\n').
 
 :- pce_global(@emacs_interpreter_regex,
-	      new(regex('#!\\(\\S +\\)\\s '))).
+	      new(regex('#!(\\S+)\\s'))).
 :- pce_global(@emacs_mode_regex,	% -*- Mode -*-
 					% -*- mode: Mode; ... -*-
-	      new(regex('.*-\\*-\\s *\\([Mm]ode:\\s *\\(\\w+\\);.*-\\*-\\|\\(\\w+\\)\\s *-\\*-\\)'))).
+	      new(regex('.*-\\*-\\s*([Mm]ode:\\s*(\\w+);.*-\\*-|(\\w+)\\s*-\\*-)'))).
 
 
 determine_initial_mode(B) :->

@@ -154,9 +154,9 @@ make_emacs_mode_list(Sheet) :-
 	).
 	
 default_emacs_mode('.*\\.pl~?$',   		   	prolog).
-default_emacs_mode('\\.\\(pl\\|xpce\\|pceemacs\\)rc~?', prolog).
+default_emacs_mode('\\.(pl|xpce|pceemacs)rc~?', prolog).
 default_emacs_mode('.*\.chr~?$',			chr).
-default_emacs_mode('.*\\.\\(tex\\|sty\\)~?$', 		latex).
+default_emacs_mode('.*\\.(tex|sty)~?$', 		latex).
 default_emacs_mode('.*\\.doc~?$',	 		latex).
 default_emacs_mode('.*\\.html~?$',	 		html).
 default_emacs_mode('.*\\.php[0-9]?~?$',	 		html).
@@ -173,7 +173,7 @@ default_emacs_mode('.*\\.cc$',				cpp).
 default_emacs_mode('.*\\.cpp$',				cpp).
 default_emacs_mode('.*\\.idl$',				cpp).
 default_emacs_mode('.*\\.txt~?$',			text).
-default_emacs_mode('[Cc]ompose\\|README\\|\\.article',	text).
+default_emacs_mode('[Cc]ompose|README|\\.article',	text).
 default_emacs_mode(Pattern, prolog) :-
 	current_prolog_flag(associate, Ext),
 	concat_atom(['.*\\.', Ext, '~?$'], Pattern).

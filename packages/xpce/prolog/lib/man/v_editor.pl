@@ -442,26 +442,26 @@ mark_search_hit(E, Pattern:regex) :->
 		*            JUMPING		*
 		********************************/
 
-jump_pattern('\\W\\(<?->?\\w+\\)').
+jump_pattern('\\W(<?->?\\w+)').
 
 :- pce_global(@man_object_regex,
-	      new(regex('@\\(\\w+\\)'))).
+	      new(regex('@(\\w+)'))).
 :- pce_global(@man_global_method_regex,
-	      new(regex('`@?\\(\\(\\w+\\)\\s *\\(<?->?\\)\\(\\w+\\)\\):?[^\']*\''))).
+	      new(regex('`@?((\\w+)\\s*(<?->?)(\\w+)):?[^\']*\''))).
 :- pce_global(@man_local_method_regex,
-	      new(regex('\\W\\(\\(<?->?\\)\\(\\w+\\)\\)'))).
+	      new(regex('\\W((<?->?)(\\w+))'))).
 :- pce_global(@man_classclass_regex,
-	      new(regex('\\b[Cc]lass\\s +\\(\\w+\\|[-+*/?\\=]\\)'))).
+	      new(regex('\\y[Cc]lass\\s+(\\w+|[-+*/?\\=])'))).
 :- pce_global(@man_objectclass_regex,
-	      new(regex('\\(\\w+\\|[-+*/?\\=]\\)[ \\t\\n]object'))).
+	      new(regex('(\\w+|[-+*/?\\=])[ \\t\\n]object'))).
 :- pce_global(@man_classvar_regex,
-	      new(regex('\\(\\w+\\)\\.\\(\\w+\\)'))).
+	      new(regex('(\\w+)\\.(\\w+)'))).
 :- pce_global(@man_example_code_regex,
-	      new(regex('\n\\s *\\(\\(\n\t\t+[^\t#*0-9].*\\|\n\\s *\\)+\\)\n'))).
+	      new(regex('\n\\s*((\n\t\t+[^\t#*0-9].*|\n\\s*)+)\n'))).
 :- pce_global(@man_example_regex,
-	      new(regex('[Ee]xample\\s +`\\([^'']+\\)'''))).
+	      new(regex('[Ee]xample\\s+`([^\']+)\''))).
 :- pce_global(@man_predicate_regex,
-	      new(regex('\\(\\w+\\)/\\(\\sd+\\|\\[[0-9,-]+\\]\\)'))).
+	      new(regex('(\\w+)/(\\d+|\\[[0-9,-]+\\])'))).
 
 mark_jumpable(E) :->
 	"Mark possible active fragments"::
@@ -664,9 +664,9 @@ save_fragments(E, Changes) :-
 
 
 :- pce_global(@man_blank_line_regex,
-	      new(regex('\\(\\s *\n\\)*'))).
+	      new(regex('(\\s*\n)*'))).
 :- pce_global(@man_empty_regex,
-	      new(regex('\\s *\\((not documented\\)?\\s *'))).
+	      new(regex('\\s*(\\(not documented)?\\s*'))).
 :- pce_global(@man_undent_regex,
 	      new(regex(@man_indent))).
 

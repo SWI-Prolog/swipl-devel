@@ -491,18 +491,18 @@ end_of_file(E) :->
 		 *******************************/
 
 :- pce_global(@emacs_error_regexs,
-	      new(chain(regex('\\(\\S +\\):\\s *\\(\\sd+\\):'),        % gcc, grep
-			regex('"\\(\\S +\\)", line \\(\\sd+\\):')))). % SUN cc
+	      new(chain(regex('(\\S+):\\s*(\\d+):'),        % gcc, grep
+			regex('"(\\S+)", line (\\d+):')))). % SUN cc
 :- pce_global(@emacs_cd_regexs,
-	      new(chain(regex('\\bcd\\s +\\(\\(\\w\\|[_/+-.:]\\)+\\)'),
-			regex('Entering directory `\\([^'']+\\)''')))).
+	      new(chain(regex('\\ycd\\s+((\\w|[_/+-.:])+)'),
+			regex('Entering directory `([^\']+)\'')))).
 :- pce_global(@emacs_canonise_dir_regex,
 	      new(regex('[^/]+/\\.\\./'))).
 
 canonise_path(Path) :-
 	send(regex('[^/]+/\\.\\./'), for_all, Path,
 	     message(@arg1, replace, Path, '')),
-	send(regex('/\\./\\|//'), for_all, Path,
+	send(regex('/\\./|//'), for_all, Path,
 	     message(@arg1, replace, Path, '/')).
 
 directory_name(M, Pos:[int]*, DirName:string) :<-

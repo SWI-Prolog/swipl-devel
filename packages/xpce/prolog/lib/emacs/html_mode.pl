@@ -44,8 +44,8 @@
 
 make_parent_regex(R) :-
 	findall(P, par(P), Ps),
-	concat_atom(Ps, '\\|', P0),
-	concat_atom(['\\s *\\($\\|<\\(', P0, '\\)\\)'], P1),
+	concat_atom(Ps, '|', P0),
+	concat_atom(['\\s*(\n|<(', P0, '))'], P1),
 	new(R, regex(P1)),
 	send(R, ignore_case, @on).
 

@@ -541,7 +541,7 @@ to_regex(Tuple, Regex) :-
 	alt_regex(Exts, Regex),
 	send(Regex, attribute, print_name, LabelName?label_name).
 to_regex(*, Regex) :- !,
-	new(Regex, regex('.*')),
+	new(Regex, regex(.*)),
 	send(Regex, attribute, print_name, all_files?label_name).
 to_regex(Atom, Regex) :-
 	new(Regex, regex),
@@ -563,7 +563,7 @@ alt_regex(Atom, Regex) :-
 alt_regex(Chain, Regex) :-
 	chain_list(Chain, List),
 	maplist(ext_pattern, List, Patterns),
-	concat_atom(Patterns, '\\|', AltPattern),
+	concat_atom(Patterns, |, AltPattern),
 	send(Regex, pattern, AltPattern),
 	(   List = [Def|_]
 	->  send(Regex, attribute, default_extension, Def)

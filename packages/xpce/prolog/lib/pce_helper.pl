@@ -177,8 +177,8 @@ emptied(F) :->
 
 :- pce_begin_class(hlp_header, hlp_fragment, "Header in help-file").
 
-:- pce_global(@clean_header_regex, new(regex('\\(\\sd+\\.\\)+\\s *'))).
-:- pce_global(@empty_header_regex, new(regex('\\s *$'))).
+:- pce_global(@clean_header_regex, new(regex('(\\d+\\.)+\\s*'))).
+:- pce_global(@empty_header_regex, new(regex('\\s*$'))).
 
 level(section,		1, '%d.  ').
 level(subsection,	2, '%d.%d.  ').
@@ -544,7 +544,7 @@ indentation(subsubsubsection, 14).
 
 link_contents_entry(E, F) :-
 	get(E, scan, E?caret, line, 0, start, SOL),
-	new(R, regex('\\s *\\(.*\\)')),
+	new(R, regex('\\s*(.*)')),
 	send(R, match, E, SOL),
 	get(R, register_start, 1, CLS),
 	get(R, register_end, 1, CLE),
@@ -738,9 +738,9 @@ ispell(E) :->
 		 *******************************/
 
 
-:- pce_global(@hlp_external_regex, new(regex('^\\(.+\\):\\(\\w+$\\)'))).
-:- pce_global(@hlp_prolog_regex, new(regex('^prolog://\\(.*\\)$'))).
-:- pce_global(@hlp_manpce_regex, new(regex('^manpce://\\(.*\\)$'))).
+:- pce_global(@hlp_external_regex, new(regex('^(.+):(\\w+$)'))).
+:- pce_global(@hlp_prolog_regex, new(regex('^prolog://(.*)$'))).
+:- pce_global(@hlp_manpce_regex, new(regex('^manpce://(.*)$'))).
 
 button(E, Button:hlp_fragment) :<-
 	"Find button at caret"::

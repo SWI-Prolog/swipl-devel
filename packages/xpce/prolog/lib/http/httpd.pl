@@ -57,9 +57,9 @@ initialise(S, Port:[int]) :->
 	send(S, listen, reuse := @on).
 
 :- pce_global(@http_header_regex,
-	      new(regex('^\\([^:]+\\):\\s *\\(.*\\)$'))).
+	      new(regex('^([^:]+):\\s*(.*)$'))).
 :- pce_global(@http_path_regex,
-	      new(regex('\\(\\w+\\)\\s *\\(\\S +\\)\\s *HTTP/\\([0-9.]+\\)\r?\n?'))).
+	      new(regex('(\\w+)\\s*(\\S+)\\s*HTTP/([0-9.]+)\r?\n?'))).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Process the request into a  sheet   holding  the request attributes. The

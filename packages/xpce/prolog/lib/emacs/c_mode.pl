@@ -58,17 +58,17 @@
 		      (/)  + comment_start(*),
 		      (*)  + comment_end(/),
 
-		      paragraph_end(regex('\\s *$\\|/\\*\\|.*\\*/'))
+		      paragraph_end(regex('\\s*$|/\\*|.*\\*/'))
 		    ]).
 
 :- initialization
 	send(@class, attribute, outline_regex_list,
-	     chain(regex('^\\(\\w+([^)]*).*\n\\)\\({\\([^}].*\n\\)+}\\(\\s *\n\\)*\\)'),
-		   regex('^\\(\\w+.*\n\\)\\({\\([^}].*\n\\)+};\\(\\s *\n\\)*\\)'),
-		   regex('^\\(#\\s *define.*\\\\\\)\n\\(\\(.*\\\\\n\\)+.*\n\\)'))).
+	     chain(regex('^(\\w+\\([^)]*\\).*\n)(\\{([^}].*\n)+\\}(\\s*\n)*)'),
+		   regex('^(\\w+.*\n)(\\{([^}].*\n)+\\};(\\s*\n)*)'),
+		   regex('^(#\\s*define.*\\\\)\n((.*\\\\\n)+.*\n)'))).
 
 :- pce_global(@c_indent, new(number(2))).
-:- pce_global(@c_undent_regex, new(regex('{\\|else\\|\\w+:'))).
+:- pce_global(@c_undent_regex, new(regex('\\{|else|\\w+:'))).
 
 indent_line(E, Times:[int]) :->
 	"Indent according to C-mode"::
@@ -78,7 +78,7 @@ indent_line(E, Times:[int]) :->
 	    (	(   send(E, indent_close_bracket_line)
 		;   send(E, indent_expression_line, ')]')
 		;   send(E, indent_statement)
-		;   send(E, align_with_previous_line, '\\s *\\({\\s *\\)*')
+		;   send(E, align_with_previous_line, '\\s*(\\{\\s*)*')
 		)
 	    ->	true
 	    ),
@@ -159,7 +159,7 @@ indent_statement(E) :->
 back_prefixes(E, P0, P) :-
 	get(E, text_buffer, TB),
 	get(TB, scan, P0, line, 0, start, SOL),
-	(   get(regex('\\s(\\|:'), search, TB, P0, SOL, P1)
+	(   get(regex('[({[]|:'), search, TB, P0, SOL, P1)
 	->  P2 is P1 + 1
 	;   P2 = SOL
 	),

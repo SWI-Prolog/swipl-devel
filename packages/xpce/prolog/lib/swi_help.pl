@@ -469,18 +469,18 @@ mark_titles(TB, From, To) :-
 :- dynamic
 	regex_db/2.
 
-:- pce_global(@ul_regex, new(regex('.\b\\(.\\)'))).
+:- pce_global(@ul_regex, new(regex('.\b(.)'))).
 
-regex(bold,	  '\\(\\(.\\)\b\\2\\)+').
-regex(underline,  '\\(\\(.\\)\b_\\)+').
-regex(underline2,  '\\(_\b\\(.\\)\\)+').
-regex(predicate,  '\\(\\w+\\)/\\(\\sd+\\)').
-regex(predicate2, '\\w+/\\[\\sd+[-,]\\sd+\\]').
-regex(function,   'PL_\\w+()').
-regex(section,	  '\\([Ss]ection\\|[Cc]hapter\\)\\s +\\sd+\\(\\.\\sd+\\)*').
-regex(location,	  '\\([a-zA-Z]:\\)?\\(/[-_a-zA-Z0-9~+=.]*\\)+:\\sd+').
-regex(clause,	  '\\sd+-th clause of \\w+:.*/\\sd+').
-regex(method,     '\\w+\\(->\\|<-\\)\\w+').
+regex(bold,	  '((.)\b\\2)+').
+regex(underline,  '((.)\b_)+').
+regex(underline2,  '(_\b(.))+').
+regex(predicate,  '(\\w+)/(\\d+)').
+regex(predicate2, '\\w+/\\[\\d+[-,]\\d+\\]').
+regex(function,   'PL_\\w+\\(\\)').
+regex(section,	  '([Ss]ection|[Cc]hapter)\\s+\\d+(\\.\\d+)*').
+regex(location,	  '([a-zA-Z]:)?(/[-_a-zA-Z0-9~+=.]*)+:\\d+').
+regex(clause,	  '\\d+-th clause of \\w+:.*/\\d+').
+regex(method,     '\\w+(->|<-)\\w+').
 
 regex_object(Id, Re) :-
 	regex_db(Id, Re), !.
