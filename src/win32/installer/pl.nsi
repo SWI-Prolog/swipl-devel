@@ -172,6 +172,13 @@ Section "CLP"
   File pl\library\clp\bounds.pl
 SectionEnd
 
+Section "CLP on real numbers: CLP(R)"
+  SectionIn 1 3
+  SetOutPath $INSTDIR\library\clp
+  File /r pl\library\clp\clpr
+  File pl\library\clp\clpr.pl
+SectionEnd
+
 Section "Demo files"
   SectionIn 1 3
   SetOutPath $INSTDIR

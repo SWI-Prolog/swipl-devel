@@ -2824,7 +2824,8 @@ notify_registered_foreign(functor_t fd, Module m)
 
 static bool
 bindForeign(Module m, const char *name, int arity, Func f, int flags)
-{ Procedure proc;
+{ GET_LD
+  Procedure proc;
   Definition def;
   functor_t fdef;
   atom_t aname;
@@ -2835,7 +2836,7 @@ bindForeign(Module m, const char *name, int arity, Func f, int flags)
   proc = lookupProcedure(fdef, m);
   def = proc->definition;
 
-  if ( true(def, LOCKED) )
+  if ( true(def, LOCKED) && !SYSTEM_MODE )
   { warning("PL_register_foreign: attempt to redefine a system predicate: %s",
 	    procedureName(proc));
     fail;
@@ -2853,11 +2854,8 @@ bindForeign(Module m, const char *name, int arity, Func f, int flags)
 
   if ( m == MODULE_system )
     set(def, SYSTEM|HIDE_CHILDS);
-  else
-  { GET_LD    
-    if ( SYSTEM_MODE )
-      set(def, SYSTEM|HIDE_CHILDS);
-  }
+  else if ( SYSTEM_MODE )
+    set(def, SYSTEM|HIDE_CHILDS);
 
   if ( (flags & PL_FA_NOTRACE) )	  clear(def, TRACE_ME);
   if ( (flags & PL_FA_TRANSPARENT) )	  set(def, METAPRED);

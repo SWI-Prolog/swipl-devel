@@ -69,7 +69,7 @@ BINDIR=$(PLBASE)\runtime
 # Define the packages to be installed automatically.  Note that the
 # Makefile also checks whether the package directory exists.
 
-PKGS=	chr table cpp odbc clib sgml sgml\RDF semweb http xpce jpl ssl
+PKGS=	chr clpr table cpp odbc clib sgml sgml\RDF semweb http xpce jpl ssl
 PKGDIR=$(PLHOME)\packages
 PKGDOC=$(PLBASE)\doc\packages
 

@@ -462,17 +462,18 @@ dupStr(const char *str)
 static PL_extension *
 dupExtensions(const PL_extension *e)
 { int i;
-  PL_extension *dup;
+  PL_extension *dup, *o;
   int len = 0;
 
-  while ( e[len++].predicate_name );
-  dup = PL_malloc(len*sizeof(*e));
+  while(e[len++].predicate_name)
+    ;
+  o = dup = PL_malloc(len*sizeof(*e));
 
-  for ( i=0; i<len; i++)
-  { dup[i].predicate_name = dupStr(e->predicate_name);
-    dup[i].arity = e->arity;
-    dup[i].function = e->function;
-    dup[i].flags = e->flags;
+  for ( i=0; i<len; i++, o++, e++)
+  { o->predicate_name = dupStr(e->predicate_name);
+    o->arity = e->arity;
+    o->function = e->function;
+    o->flags = e->flags;
   }
 
   return dup;
