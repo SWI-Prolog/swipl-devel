@@ -133,6 +133,16 @@ immediately.  If \const{false}, an update statement starts a transaction
 that can be committed or rolled-back.  See \secref{sqltrans} for details
 on transaction management.
 
+    \termitem{cursor_type}{CursorType}
+I haven't found a good description of what this does, but setting it
+to \const{dynamic} makes it possible to have multiple active statements
+on the same connection with Microsoft SQL server.  Other values
+are \const{static}, \const{forwards_only} and \const{keyset_driven}.
+
+    \termitem{silent}{Bool}
+If \const{true} (default \const{false}), statements returning
+\const{SQL_SUCCESS_WITH_INFO} succeed without printing the info.
+
     \termitem{null}{NullSpecifier}
 Defines how the SQL constant NULL is represented. Without specification,
 the default is the atom \verb|$null$|. \arg{NullSpecifier} is an
@@ -169,7 +179,11 @@ ODBC version supported by the driver.
 The drivers version identifier.
     \termitem{active_statements}
 Maximum number of statements that can be active at the same time on
-this connection.  Returns 0 (zero) if this is unlimited.
+this connection.  Returns 0 (zero) if this is unlimited.%
+	\footnote{Microsoft SQL server can have multiple active
+		  statements after setting the option
+		  \const{cursor_type} to \const{dynamic}.  See
+		  odbc_set_connection/2.}
 \end{description}
 \end{description}
 

@@ -193,6 +193,18 @@ transaction that can be committed or rolled-back. See <A HREF="#sec:sqltrans">se
 2.3</A> for details on transaction management.
 
 <P>
+<DT><STRONG>cursor_type</STRONG>(<VAR>CursorType</VAR>)<DD>
+I haven't found a good description of what this does, but setting it to <CODE>dynamic</CODE> 
+makes it possible to have multiple active statements on the same 
+connection with Microsoft SQL server. Other values are <CODE>static</CODE>, <CODE>forwards_only</CODE> 
+and <CODE>keyset_driven</CODE>.
+
+<P>
+<DT><STRONG>silent</STRONG>(<VAR>Bool</VAR>)<DD>
+If <CODE>true</CODE> (default <CODE>false</CODE>), statements returning
+<CODE>SQL_SUCCESS_WITH_INFO</CODE> succeed without printing the info.
+
+<P>
 <DT><STRONG>null</STRONG>(<VAR>NullSpecifier</VAR>)<DD>
 Defines how the SQL constant NULL is represented. Without specification, 
 the default is the atom <CODE>$null$</CODE>. <VAR>NullSpecifier</VAR> is 
@@ -245,7 +257,7 @@ he drivers version identifier.
 <P>
 <DT><STRONG>active_statements</STRONG>(<VAR>active_statements</VAR>)<DD>
 aximum number of statements that can be active at the same time on this 
-connection. Returns 0 (zero) if this is unlimited.
+connection. Returns 0 (zero) if this is unlimited.<A NAME=back-to-note-1 HREF="index.html#note-1"> (1)</A>
 </DL>
 
 </DL>
@@ -335,7 +347,7 @@ for details.
 If <CODE>true</CODE> (default <CODE>false</CODE>), include the source of 
 the column with each result-value. With this option, each result in the <B>row(<VAR>N</VAR>)</B>-term 
 is of the format below. <VAR>TableName</VAR> or <VAR>ColumnName</VAR> 
-may be the empty atom if the information is not available.<A NAME=back-to-note-1 HREF="index.html#note-1"> (1)</A>
+may be the empty atom if the information is not available.<A NAME=back-to-note-2 HREF="index.html#note-2"> (2)</A>
 <BLOCKQUOTE>
 <CODE>column(TableName, ColumnName, Value)</CODE>
 </BLOCKQUOTE>
@@ -433,14 +445,14 @@ This predicate may return type_error exceptions if the provided
 parameter values cannot be converted to the declared types.
 
 <P>ODBC doesn't appear to allow for multiple cursors on the same 
-result-set.<A NAME=back-to-note-2 HREF="index.html#note-2"> (2)</A> This 
+result-set.<A NAME=back-to-note-3 HREF="index.html#note-3"> (3)</A> This 
 would imply there can only be one active <A NAME="idx:odbcexecute3:14"></A><A HREF="#odbc_execute/3">odbc_execute/3</A> 
 (i.e. have a choice-point) on a prepared statement. Suppose we have a 
 table <CODE>age (name char(25), age integer)</CODE> bound to the 
 predicate <B>age/2</B> we cannot write the code below without special 
 precautions. The ODBC interface therefore creates a clone of a statement 
 if it discovers the statement is being executed, which is discarded 
-after the statement is finished.<A NAME=back-to-note-3 HREF="index.html#note-3"> (3)</A>
+after the statement is finished.<A NAME=back-to-note-4 HREF="index.html#note-4"> (4)</A>
 
 <P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
 <PRE>
@@ -875,12 +887,15 @@ null-representation.
 
 <P>
 <DT><A NAME=note-1 HREF="index.html#back-to-note-1">note-1</A><DD>
+Microsoft SQL server can have multiple active statements after setting 
+the option <CODE>cursor_type</CODE> to <CODE>dynamic</CODE>. See <A NAME="idx:odbcsetconnection2:28"></A><A HREF="#odbc_set_connection/2">odbc_set_connection/2</A>.
+<DT><A NAME=note-2 HREF="index.html#back-to-note-2">note-2</A><DD>
 This is one possible interface to this information. In many cases it is 
 more efficient and conveniant to provide this information seperately as 
 it is the same for each result-row.
-<DT><A NAME=note-2 HREF="index.html#back-to-note-2">note-2</A><DD>
-Is this right?
 <DT><A NAME=note-3 HREF="index.html#back-to-note-3">note-3</A><DD>
+Is this right?
+<DT><A NAME=note-4 HREF="index.html#back-to-note-4">note-4</A><DD>
 The code is prepared to maintain a cache of statements. Practice should 
 tell us whether it is worthwhile activating this.
 </DL>

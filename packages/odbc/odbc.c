@@ -90,6 +90,9 @@ static atom_t	 ATOM_;			/* "" */
 static atom_t	 ATOM_read;
 static atom_t	 ATOM_update;
 static atom_t    ATOM_dynamic;
+static atom_t	 ATOM_forwards_only;
+static atom_t	 ATOM_keyset_driven;
+static atom_t	 ATOM_static;
 
 static functor_t FUNCTOR_timestamp7;	/* timestamp/7 */
 static functor_t FUNCTOR_time3;		/* time/7 */
@@ -118,6 +121,7 @@ static functor_t FUNCTOR_source1;
 static functor_t FUNCTOR_column3;
 static functor_t FUNCTOR_access_mode1;
 static functor_t FUNCTOR_cursor_type1;
+static functor_t FUNCTOR_silent1;
 
 #define SQL_PL_DEFAULT  0		/* don't change! */
 #define SQL_PL_ATOM	1		/* return as atom */
@@ -166,6 +170,7 @@ typedef struct connection
   atom_t       dsn;			/* DSN name of the connection */
   HDBC	       hdbc;			/* ODBC handle */
   nulldef     *null;			/* Prolog null value */
+  unsigned     flags;			/* general flags */
   struct connection *next;		/* next in chain */
 } connection;
 
@@ -202,6 +207,7 @@ static struct
 #define CTX_INUSE	0x0008		/* statement is running */
 #define CTX_OWNNULL	0x0010		/* null-definition is not shared */
 #define CTX_SOURCE	0x0020		/* include source of results */
+#define CTX_SILENT	0x0040		/* don't produce messages */
 
 #define true(s, f)	((s)->flags & (f))
 #define false(s, f)	!true(s, f)
@@ -283,6 +289,10 @@ report_status(context *ctxt)
   switch(ctxt->rc)
   { case SQL_SUCCESS:
       return TRUE;
+    case SQL_SUCCESS_WITH_INFO:
+      if ( true(ctxt, CTX_SILENT) )
+	return TRUE;
+      break;
     case SQL_NO_DATA_FOUND:
       close_context(ctxt);
       return FALSE;
@@ -757,7 +767,9 @@ pl_odbc_connect(term_t tdsource, term_t cid, term_t options)
 	 return domain_error(head, "open_mode");
      } else if ( PL_is_functor(head, FUNCTOR_auto_commit1) ||
 		 PL_is_functor(head, FUNCTOR_null1) ||
-		 PL_is_functor(head, FUNCTOR_access_mode1) )
+		 PL_is_functor(head, FUNCTOR_access_mode1) ||
+		 PL_is_functor(head, FUNCTOR_silent1) ||
+		 PL_is_functor(head, FUNCTOR_cursor_type1) )
      { if ( nafter < MAX_AFTER_OPTIONS )
 	 PL_put_term(after_open+nafter++, head);
        else
@@ -918,8 +930,23 @@ odbc_set_connection(term_t con, term_t option)
     
     if ( val == ATOM_dynamic )
       optval = SQL_CURSOR_DYNAMIC;
+    else if ( val == ATOM_forwards_only )
+      optval = SQL_CURSOR_FORWARD_ONLY;
+    else if ( val == ATOM_keyset_driven )
+      optval = SQL_CURSOR_KEYSET_DRIVEN;
+    else if ( val == ATOM_static )
+      optval = SQL_CURSOR_STATIC;
     else
       return domain_error(val, "cursor_type");
+  } else if ( PL_is_functor(option, FUNCTOR_silent1) )
+  { int val;
+
+    if ( !get_bool_arg_ex(1, option, &val) )
+      return FALSE;
+    
+    set(cn, CTX_SILENT);
+
+    return TRUE;
   } else if ( PL_is_functor(option, FUNCTOR_null1) )
   { term_t a = PL_new_term_ref();
 
@@ -1092,6 +1119,7 @@ new_context(connection *cn)
   ctxt->henv  = henv;
   ctxt->connection = cn;
   ctxt->null = cn->null;
+  ctxt->flags = cn->flags;
   SQLAllocStmt(cn->hdbc, &ctxt->hstmt);
   statistics.statements_created++;
 
@@ -2259,6 +2287,9 @@ install_odbc4pl()
    ATOM_read	      = PL_new_atom("read");
    ATOM_update	      = PL_new_atom("update");
    ATOM_dynamic	      = PL_new_atom("dynamic");
+   ATOM_forwards_only = PL_new_atom("forwards_only");
+   ATOM_keyset_driven = PL_new_atom("keyset_driven");
+   ATOM_static	      = PL_new_atom("static");
 
    FUNCTOR_timestamp7		 = MKFUNCTOR("timestamp", 7);
    FUNCTOR_time3		 = MKFUNCTOR("time", 3);
@@ -2288,6 +2319,7 @@ install_odbc4pl()
    FUNCTOR_column3		 = MKFUNCTOR("column", 3);
    FUNCTOR_access_mode1		 = MKFUNCTOR("access_mode", 1);
    FUNCTOR_cursor_type1		 = MKFUNCTOR("cursor_type", 1);
+   FUNCTOR_silent1		 = MKFUNCTOR("silent", 1);
 
    DET("odbc_connect",		   3, pl_odbc_connect);
    DET("odbc_disconnect",	   1, pl_odbc_disconnect);
