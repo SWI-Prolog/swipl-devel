@@ -52,7 +52,8 @@ is_timeout(XtPointer ctx, XtIntervalId *id)
 #define FD_SET(n, x)	{(x)->fds_bits[0] |= 1<<(n); }
 #endif
 
-static int dispatch_fd = -1;
+static int	  dispatch_fd = -1;
+static XtInputId  in_id;
 
 status
 ws_dispatch(Int FD, Int timeout)
@@ -78,10 +79,17 @@ ws_dispatch(Int FD, Int timeout)
   }					/* A display: dispatch until there */
 					/* is input or a timeout */
 
-  if ( fd != dispatch_fd && fd >= 0 )
-  { XtAppAddInput(ThePceXtAppContext, fd,
-		  (XtPointer) XtInputReadMask, is_pending, NULL);
-    dispatch_fd = fd;
+  if ( fd != dispatch_fd )
+  { if ( in_id )
+    { XtRemoveInput(in_id);
+      in_id = 0;
+    }
+
+    if ( fd >= 0 )
+    { in_id = XtAppAddInput(ThePceXtAppContext, fd,
+			    (XtPointer) XtInputReadMask, is_pending, NULL);
+      dispatch_fd = fd;
+    }
   }
 
   if ( notNil(timeout) && valInt(timeout) > 0 )
@@ -89,6 +97,8 @@ ws_dispatch(Int FD, Int timeout)
 			  is_timeout, NULL);
   else
     tid = 0;
+
+  DEBUG(NAME_dispatch, Cprintf("Dispatch: tid = %d\n", tid));
 
   pceMTLock(LOCK_PCE);
   RedrawDisplayManager(TheDisplayManager());
@@ -112,7 +122,7 @@ input_on_fd(int fd)
   FD_ZERO(&rfds);
   FD_SET(fd, &rfds);
   tv.tv_sec = 0;
-  tv.tv_usec = 1;
+  tv.tv_usec = 0;
 
   return select(fd+1, &rfds, NULL, NULL, &tv) != 0;
 }

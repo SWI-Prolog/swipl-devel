@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: wait_for_input/3 crash if stream-list contains an
+    non-stream.
+
   * FIXED: Handle "-F base" option in combination with -c file.pl.
     Reported by Alok Singh.
 

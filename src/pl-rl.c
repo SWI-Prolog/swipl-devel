@@ -137,7 +137,7 @@ input_on_fd(int fd)
   FD_ZERO(&rfds);
   FD_SET(fd, &rfds);
   tv.tv_sec = 0;
-  tv.tv_usec = 1;
+  tv.tv_usec = 0;
 
   return select(fd+1, &rfds, NULL, NULL, &tv) != 0;
 }
