@@ -1,10 +1,12 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Guitracer: goal-expansion loop.
+
 * ENHANCED: image->draw_in to avoid redrawing the whole graphical if only
   part overlaps the image.
 	
-* ADDED: Support for writing PostScript color images.
+* ADDED: Support for writing PostScript colour images.
 
 * ADDED: Windows version: load .ICO data from streams and therefore from
   SWI-Prolog resources.  With help from	Fabien Todescato.  Thanks.

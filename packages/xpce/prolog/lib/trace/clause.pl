@@ -532,7 +532,8 @@ goal_expansion(GetSuperN, get_class(R, _, Msg, Answer), P, P) :-
 	append(Args, [Answer], AllArgs),
 	Msg =.. [Sel|Args].
 goal_expansion(G0, G, P, P) :-
-	goal_expansion(G0, G).
+	goal_expansion(G0, G),
+	G0 \== G.			% \=@=?
 
 		 /*******************************
 		 *	  PRINTABLE NAMES	*
