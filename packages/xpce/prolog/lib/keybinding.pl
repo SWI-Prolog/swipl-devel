@@ -16,8 +16,45 @@
 	   , term_to_atom/2
 	   ]).
 
+:- pce_global(@show_key_bindings_recogniser,
+	      make_show_key_bindings_recogniser).
+
+make_show_key_bindings_recogniser(R) :-
+	new(R, popup_gesture(new(P, popup(options)))),
+	send_list(P, append,
+		  [ menu_item(documentation,
+			      message(@prolog, show_documentation, @arg1),
+			      end_group := @on),
+		    menu_item(source,
+			      message(@prolog, show_source, @arg1))
+		  ]).
+
+show_source(TextImage) :-
+	method(TextImage, Method),
+	editpce(Method).
+
+show_documentation(TextImage) :-
+	method(TextImage, Method),
+	manpce(Method).
+
+method(TextImage, Method) :-
+	get(TextImage, window, View),
+	get(View, hypered, target, Target),
+	get(TextImage, index, View?focus_event, Here),
+	get(View, scan, Here, line, 0, start, StartOfLine),
+	get(View?text_buffer, find, StartOfLine,
+	    string('\t'), StartOfSelector),
+	get(View, word, StartOfSelector, Selector),
+	get(Target, send_method, Selector, tuple(_, Method)).
+
+
+		 /*******************************
+		 *	    ENTRY POINT		*
+		 *******************************/
+
 show_key_bindings(Object) :-
 	new(V, view),
+	send(V?image, cursor, arrow),
 	send(new(D, dialog), below, V),
 	send(D, append, button(quit, message(V, destroy))),
 	send(D, append,
@@ -31,6 +68,7 @@ show_key_bindings(Object) :-
 	send(D, default_button, apply),
 	send(V, tab_stops, vector(100, 300)),
 	send(V?image, wrap, none),
+	send(V?image, recogniser, @show_key_bindings_recogniser),
 	show_key_bindings(Object, V, R),
 	send(V, open).
 
@@ -52,8 +90,7 @@ show_key_bindings(TableName, View, Pattern) :-
 	send(View?frame, label,
 	     string('Key Binding table "%s"', Label)),
 	display_bindings(Table, Instance, Pattern, View),
-	send(View, caret, 0),
-	free(Instance).
+	send(View, caret, 0).
 show_key_bindings(TableName, View, Pattern) :-
 	atom(TableName), !,
 	get(@pce, convert, TableName, key_binding, Table),
@@ -69,6 +106,7 @@ show_key_bindings(Editor, View, Pattern) :-
 
 
 display_bindings(Table, Object, Pattern, Output) :-
+	new(_, hyper(Output, Object, target, show_key_binding_view)),
 	new(Done, chain),
 	send(Output, clear),
 	display_bindings(Table, Object, '', Done, Pattern, Output),
