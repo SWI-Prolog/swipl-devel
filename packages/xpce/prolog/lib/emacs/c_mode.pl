@@ -15,7 +15,7 @@
 	   , memberchk/2
 	   ]).
 
-:- emacs_begin_mode(c, outline,
+:- emacs_begin_mode(c, language,
 		    "Mode for editing C programs",
 		    [ insert_c_begin	= key('{'),
 		      prototype_mark	= key('\C-cRET'),

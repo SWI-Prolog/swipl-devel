@@ -13,7 +13,7 @@
 static status	uncreateWindow(PceWindow sw);
 static status   tileWindow(PceWindow sw, TileObj t);
 static status   updateScrollbarValuesWindow(PceWindow sw);
-static void	unlink_changes_data_window(PceWindow sw);
+extern void	unlink_changes_data_window(PceWindow sw);
 
 
 status
@@ -65,7 +65,6 @@ loadWindow(PceWindow sw, FILE *fd, ClassDef def)
 { TRY(loadSlotsObject(sw, fd, def));
 
   sw->ws_ref = NULL;
-  assign(sw, displayed, OFF);
   if ( isNil(sw->has_pointer) )
     assign(sw, has_pointer, OFF);
 
@@ -87,11 +86,6 @@ uncreateWindow(PceWindow sw)
 { DEBUG(NAME_window, Cprintf("uncreateWindow(%s)\n", pp(sw)));
 
   deleteChain(ChangedWindows, sw);
-  
-  if ( isNil(sw->device) ||
-       instanceOfObject(sw->device, ClassWindowDecorator) )
-    assign(sw, displayed, OFF);
-  
   ws_uncreate_window(sw);
 
   succeed;
@@ -400,10 +394,23 @@ displayedWindow(PceWindow sw, Bool val)
 { displayedGraphical(sw, val);
 
   if ( notNil(sw->decoration) )
-    DisplayedGraphical(sw->decoration, val);
+    displayedWindow(sw->decoration, val);
 
   if ( val == ON )
+  {
+#if 0					/* does not solve windows redraw */
+					/* problems ... */
+    int x, y, w, h; 
+    int p = valInt(sw->pen);
+
+    compute_window(sw, &x, &y, &w, &h);
+    x -= valInt(sw->scroll_offset->x) + p;
+    y -= valInt(sw->scroll_offset->y) + p;
+
+    changed_window(sw, x, y, w, h, TRUE);
+#endif
     addChain(ChangedWindows, sw);
+  }
 
   succeed;
 }
@@ -429,7 +436,6 @@ resizeMessageWindow(PceWindow sw, Code msg)
 }
 
   
-
 		/********************************
 		*           COMPUTING		*
 		********************************/
@@ -564,7 +570,7 @@ blockedByModalWindow(PceWindow sw, EventObj ev)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Support for `diaplay->inspect_handler'.  The naming of this is a bit old
+Support for `display->inspect_handler'.  The naming of this is a bit old
 fashioned.  Checks whether there is a handler   in the chain that may be
 capable of handlign the event before doing anything.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -926,7 +932,7 @@ changed_window(PceWindow sw, int x, int y, int w, int h, int clear)
 }
 
 
-static void
+void
 unlink_changes_data_window(PceWindow sw)
 { UpdateArea a, b;
 
@@ -981,7 +987,7 @@ redrawWindow(PceWindow sw, Area a)
   int tmp = FALSE;
   iarea ia;
 
-  if ( sw->displayed == OFF )
+  if ( sw->displayed == OFF || !createdWindow(sw) )
     succeed;
 
   compute_window(sw, &ox, &oy, &dw, &dh);
@@ -1066,7 +1072,7 @@ status
 RedrawAreaWindow(PceWindow sw, IArea a, int clear)
 { static Area oa = NULL;		/* Object Area */
 
-  if ( sw->displayed == OFF )
+  if ( sw->displayed == OFF || !createdWindow(sw) )
     succeed;
 
   if ( a->w != 0 && a->h != 0 )
@@ -1237,6 +1243,8 @@ normaliseWindow(PceWindow sw, Any obj)
     return normalise_window(sw, obj);
 
   ComputeGraphical(sw);
+  if ( notNil(sw->decoration) )
+    ComputeGraphical(sw->decoration);
 
   if ( instanceOfObject(obj, ClassGraphical) )
   { Graphical gr = obj;
@@ -1631,7 +1639,8 @@ getFrameWindow(PceWindow sw, Bool create)
   if ( instanceOfObject(root, ClassWindow) )
   { if ( create != OFF )
       frameWindow(root, DEFAULT);
-    answer(root->frame);
+    if ( notNil(root->frame) )
+      answer(root->frame);
   }    
 
   fail;
@@ -1826,7 +1835,7 @@ flushWindow(PceWindow sw)
 
 status
 flashWindow(PceWindow sw, Area a, Int time)
-{ if ( sw->displayed == ON )
+{ if ( sw->displayed == ON && createdWindow(sw) )
   { int t;
     
     if ( isDefault(time) )
@@ -1920,8 +1929,12 @@ catchAllWindowv(PceWindow sw, Name selector, int argc, Any *argv)
 
   if ( getSendMethodClass(ClassFrame, selector) )
   { FrameObj fr = getFrameWindow(sw, DEFAULT);
-    assign(PCE, last_error, NIL);
-    return sendv(fr, selector, argc, argv);
+
+    if ( fr && notNil(fr) )
+    { assign(PCE, last_error, NIL);
+      return sendv(fr, selector, argc, argv);
+    } else
+      fail;
   }	
 
   if ( getSendMethodClass(ClassTile, selector) )

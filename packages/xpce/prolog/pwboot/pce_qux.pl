@@ -35,6 +35,7 @@
 	  expand_file_name/2,
 	  callable_predicate/1,
 	  modified_since_last_loaded/1,
+	  notrace/1,
 	  xpce_loop/0
 	]).
 
@@ -42,7 +43,8 @@
 	ignore(:),
 	auto_call(:),
 	defined_predicate(:),
-	sublist(:, +, ?).
+	sublist(:, +, ?),
+	notrace(:).
 
 :- op(100, fx, @).
 
@@ -270,6 +272,34 @@ auto_call(Goal) :-
 	functor(Predicate, Name, Arity),
 	require:require(Module, [Name/Arity]),
 	Goal.
+
+%	notrace(:Goal)
+%	Run Goal, which may indirectly call user code without tracing this
+%	user code.
+
+:- dynamic
+	switching_debug_mode/0.
+
+:- multifile	user:message_hook/3.
+%:- dynamic	user:message_hook/3.
+
+user:message_hook(debug_message(_), informational, _Message) :-
+	switching_debug_mode.
+
+notrace(Goal) :-
+	prolog_flag(debugging, off), !,
+	Goal, !.			% behave as once/1
+notrace(Goal) :-
+	assert(switching_debug_mode),
+	prolog_flag(debugging, Old, off),
+	(   Goal
+	->  prolog_flag(debugging, _, Old),
+	    retract(switching_debug_mode)
+	;   prolog_flag(debugging, _, Old),
+	    retract(switching_debug_mode),
+	    fail
+	).
+
 
 % atom_length(+Atom, -Length)
 

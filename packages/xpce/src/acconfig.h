@@ -13,6 +13,9 @@
 /* Define if you have the dl library (-ldl).  */
 #undef HAVE_LIBDL
 
+/* Define if you have the jpeg library (-ljpeg).  */
+#undef HAVE_LIBJPEG
+
 /* Define if you have the Xpm library (-lXpm).  */
 #undef HAVE_LIBXPM
 

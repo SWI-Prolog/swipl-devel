@@ -84,3 +84,7 @@ status		makeClassResizeGesture(Class class);
 
 /* evt/rzolgesture.c */
 status		makeClassResizeOutlineGesture(Class class);
+
+/* evt/edittextgest.c */
+status		initialiseEditTextGesture(EditTextGesture g, Name button, Modifier modifier);
+status		makeClassEditTextGesture(Class class);

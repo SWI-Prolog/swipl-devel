@@ -1,5 +1,94 @@
 [VERSION 4.9.4]
 
+* IMPROVED: allow for user-abort while creating the manual index for the
+  search tool.
+
+* CHANGED: `Menu->update' now explicitely invokes `menu_item ->active' on
+  all changed items, so this method may be redefined on class menu_item.
+
+* FIXED: PceEmacs M-x find_tag command for better finding the line-numbers.
+
+* FIXED: Now use hypers for dependency between PceEmacs hit-list and
+  fragments.  This avoids the mark fragments from being invalidated.
+
+* MODIFIED: `text->wrap: clip' (used by text_item) now shows the text as
+  a single line, mapping \n, \r and \t to the paragraph sign, << and >>.
+  Modified PceEmacs prompter handling such that Control-Q <one of the above>
+  may be entered for search/replace.  
+
+* FIXED: `window->normalise' to be prepared for (dis)appearing scrollbars.
+
+* FIXED: PceEmacs query_replace_regex: 'n' if it was the last match.
+
+* ADDED: Class text_item `combo-box' handling: Show drop-down indicator in
+  Unix/X11 version and immediately execute ->apply after a user selection.
+  See ->selected_completion for details on altering this behaviour.  Also
+  see library(file_item) for an example.
+
+* ADDED: Selection handling in text and text_item classes.  
+
+* ADDED: Various additions to mouse-based editing:
+	+ `editor ->cut_or_delete_char', bound to DEL
+	+ `editor ->cut' and `editor->copy'
+	+ `display ->copy' and `display->selection'
+  The latter two used to be part of library(pce_selection).  This library
+  will be removed.
+
+* FIXED: PceEmacs: various improvements to input-focus handling.  This fixes
+  various cases where the editor appeared `death'.
+
+* FIXED: Win32: `window->cursor: @nil', also avoid changing the cursor if
+  an XPCE cursor is changed in a window now holding the cursor.
+
+* IMPROVED: Unix/X11 version: try even harder to get a colour.
+
+* ADDED: Moved images from main bitmaps directory that are used by XPCE
+  itself into the code, so runtime applications no longer need the bitmaps
+  directory and its contents.  The new predefines images are
+  @ol_pulldown_image, @ol_pullright_image, @ol_cycle_image and @pce_image
+  (the default frame icon).
+
+* ADDED: Win32: Automatic handling of the colourmap for DIB based images.
+
+* ADDED: Reading .JP(E)G and .GIF files.  Requires -ljpeg, JPEG library
+  version 6a.  Use archie on jpegsrc.v6a.tar.gz to find it on the net.
+  The Win32 version now uses the same code, removing the 3rd party
+  gifread and imglib libraries.
+
+* IMPROVED: Request the X11 selection both as text and string.  Fixes import
+  of selected text from ApplixWare (and maybe others).
+
+* FIXED: PostScript generation bug in class text.
+
+* ADDED: Win32: `frame->status: full_screen'.  The frame-status `open' has
+  been replaced by `window', though the method still recognises `open' as
+  a synonym.  An open window returns status `full_screen' or `window'.
+
+* Win32: ensure popup and completion windows are displayed above the Windows
+  95/NT 4.0 task-bar.
+
+* FIXED: Completion-window is repositioned to ensure it fits on the screen.
+
+* ADDED: Handling of (undocumented) MS_MOUSELEAVE event for Windows-NT 4.0,
+  hopefully curing some old problems.
+
+* FIXED: Colour handling drawing masked monochrome bitmap on colour device.
+
+* FIXED: Avoid references to @manual from card-browser and visual
+  hierarchy tools.
+
+* FIXED: Deletion of the main manual tool through the window-manager.
+
+* FIXED: `object ->delete_hypers': wrong argument order if invoked
+  from the `to' object.  Also added documentation.
+
+* FIXED: Figure/tree background setting, so dialog items and other
+  graphicals using r_clear() show properly.
+
+* FIXED: Window delegation to frame: avoid crash if no frame exists.
+
+* PceEmacs server: Check for modified file when opening a window.
+
 * ADDED: extra argument to `device->advance'.  All internals to call
   this as a method.  Added `tab->advance' to default the new propagate
   argument to @off.  Causes advancing in a tab to circulate, rather

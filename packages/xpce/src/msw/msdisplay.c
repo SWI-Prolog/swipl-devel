@@ -401,12 +401,7 @@ ws_display_connection_number(DisplayObj d)
 
 status
 ws_events_queued_display(DisplayObj d)
-{ MSG msg;
-
-  if ( PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE) )
-    succeed;
-
-  fail;
+{ return GetInputState() ? SUCCEED : FAIL;
 }
 
 		 /*******************************

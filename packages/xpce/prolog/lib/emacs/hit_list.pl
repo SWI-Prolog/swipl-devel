@@ -85,7 +85,8 @@ append_hit(L, Buffer:emacs_buffer, Start:int, Len:[int], Msg:[char_array]) :->
 	     new(DI, dict_item('',
 			       string('%s:%d: %s',
 				      BufName, LineNo, String),
-			       fragment(Buffer, Start, FragLength)))),
+			       new(F, fragment(Buffer, Start, FragLength))))),
+	new(_, emacs_mark_hyper(DI, F, dict_item, fragment)),
 	send(ListBrowser, normalise, DI).
 
 goto(L, Fragment:fragment) :->
@@ -96,5 +97,18 @@ goto(L, Fragment:fragment) :->
 	get(TB?editors, head, Editor),
 	get(L, message, Method),
 	send(Editor, Method, Fragment?start).
+
+:- pce_end_class.
+
+:- pce_begin_class(emacs_mark_hyper, hyper).
+
+unlink_to(H) :->
+	get(H, from, From),
+	free(From),
+	free(H).
+unlink_from(H) :->
+	get(H, to, To),
+	free(To),
+	free(H).
 
 :- pce_end_class.

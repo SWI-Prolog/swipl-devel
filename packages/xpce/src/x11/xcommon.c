@@ -323,13 +323,13 @@ distanceColours(Name vt, XColor *c1, XColor *c2)
 
 
 status
-findNearestColour(Display *display, Colormap map, int depth, Name vt,
-		  XColor *c)
+allocNearestColour(Display *display, Colormap map, int depth, Name vt,
+		   XColor *c)
 { XColor *colors;
   int entries = 1<<depth;
 
   if ( (colors = alloc(entries * sizeof(XColor))) )
-  { int i;
+  { int i, j;
       
     for(i=0; i<entries; i++)
       colors[i].pixel = i;
@@ -349,19 +349,19 @@ findNearestColour(Display *display, Colormap map, int depth, Name vt,
 
     XQueryColors(display, map, colors, entries);
 
+    for(j=0; j<entries; j++)
     { XColor *cb = NULL;
       int badness = 1000000;
+      XColor *e = colors;
 
-      for(i=0; i<entries; i++)
-      { XColor *e = &colors[i];
-	int d = distanceColours(vt, c, e);
+      for(i=0; i<entries; i++, e++)
+      { if ( e->flags != 0xff )		/* tried this one */
+	{ int d = distanceColours(vt, c, e);
 
-	DEBUG(NAME_colour, Cprintf("\t%d: %d %d %d (d=%d)\n",
-				   i, e->red, e->green, e->blue, d));
-
-	if ( d < badness )
-	{ cb = e;
-	  badness = d;
+	  if ( d < badness )
+	  { cb = e;
+	    badness = d;
+	  }
 	}
       }
 
@@ -372,8 +372,13 @@ findNearestColour(Display *display, Colormap map, int depth, Name vt,
 				 cb->red, cb->green, cb->blue));
 
       *c = *cb;
-      unalloc(entries * sizeof(XColor), colors);
-      succeed;
+      if ( XAllocColor(display, map, c) )
+      { unalloc(entries * sizeof(XColor), colors);
+	succeed;
+      } else
+      {	cb->flags = 0xff;		/* don't try this one anymore! */
+	DEBUG(NAME_colour, Cprintf("Can't allocate, trying another one\n"));
+      }
     }
   } 
 
@@ -492,7 +497,10 @@ keycode_to_name(XEvent *event)
   bytes = XLookupString((XKeyEvent *) event, buf, 256, &sym, NULL);
 
   switch(sym)				/* special ones */
-  { case XK_BackSpace:	return NAME_backspace;
+  { case XK_BackSpace:
+      if ( event->xkey.state & Mod1Mask )
+	return toInt(8+META_OFFSET);
+      return NAME_backspace;
   }
 
   if ( bytes == 1 )

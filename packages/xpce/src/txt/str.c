@@ -643,13 +643,13 @@ str_common_length(String s1, String s2)
     { char8 *t1 = s1->s_text8;
       char8 *t2 = s2->s_text8;
 
-      while( i <= size && *t1++ == *t2++ )
+      while( i < size && *t1++ == *t2++ )
 	i++;
     } else
     { char16 *t1 = s1->s_text16;
       char16 *t2 = s2->s_text16;
 
-      while( i <= size && *t1++ == *t2++ )
+      while( i < size && *t1++ == *t2++ )
 	i++;
     }
   }
@@ -668,13 +668,13 @@ str_icase_common_length(String s1, String s2)
     { char8 *t1 = s1->s_text8;
       char8 *t2 = s2->s_text8;
 
-      while( i <= size && tolower(*t1) == tolower(*t2) )
+      while( i < size && tolower(*t1) == tolower(*t2) )
 	i++, t1++, t2++;
     } else
     { char16 *t1 = s1->s_text16;
       char16 *t2 = s2->s_text16;
 
-      while( i <= size && *t1++ == *t2++ )
+      while( i < size && *t1++ == *t2++ )
 	i++;
     }
   }

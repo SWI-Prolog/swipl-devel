@@ -104,12 +104,12 @@ RedrawAreaTextItem(TextItem ti, Area a)
   flags |= combo_flags(ti);
 
   if ( !ws_entry_field(tx, ty, tw+combo_width(ti), th, flags) )
-  { if ( ti->editable == ON )
+  { if ( flags & TEXTFIELD_EDITABLE )
     { if ( z && notNil(z) )
       { int zh = abs(valInt(z->height));
 	int ly = y+am+zh+valInt(getDescentFont(vt->font));
   
-	r_3d_line(x+lw, ly, x+w-1, ly, z, TRUE);
+	r_3d_line(x+lw, ly, x+lw+tw, ly, z, TRUE);
       } else if ( ti->pen != ZERO )
       { int pen = valInt(ti->pen);
 	int ly = y+am+1+pen/2;
@@ -117,8 +117,19 @@ RedrawAreaTextItem(TextItem ti, Area a)
 	r_dash(ti->texture);
 	r_thickness(valInt(ti->pen));
   
-	r_line(x+lw, ly, x+w-pen, ly);
+	r_line(x+lw, ly, x+lw+tw, ly);
       }
+    }
+    if ( flags & (TEXTFIELD_COMBO|TEXTFIELD_COMBO_DOWN) )
+    { int trh = 8;
+      int trw = 9;
+      int trx, try;
+      int up = (flags & TEXTFIELD_COMBO) ? TRUE : FALSE;
+  
+      trx = tx+tw+5;
+      try = y + (h-trh)/2;
+  
+      r_3d_triangle(trx+trw/2, try+trh, trx, try, trx+trw, try, z, up, 0x3);
     }
   }
 
@@ -130,16 +141,36 @@ RedrawAreaTextItem(TextItem ti, Area a)
 
 static status
 updateShowCaretTextItem(TextItem ti)
-{ if ( ti->status != NAME_inactive )
+{ Any old = ti->value_text->show_caret;
+
+  if ( ti->status != NAME_inactive )
   { PceWindow sw = getWindowGraphical((Graphical)ti);
     int active = (sw && sw->input_focus == ON);
 
-    caretText(ti->value_text, DEFAULT);
     showCaretText(ti->value_text, active ? (Any)ON : (Any)NAME_passive);  
   } else
     showCaretText(ti->value_text, OFF);
 
-  return requestComputeGraphical(ti, DEFAULT);
+  if ( old != ti->value_text->show_caret )
+  { send(ti, NAME_activate, ti->value_text->show_caret == ON ? ON : OFF, 0);
+
+    return requestComputeGraphical(ti, DEFAULT);
+  }
+
+  succeed;
+}
+
+
+static status
+activateTextItem(TextItem ti, Bool val)
+{ if ( getResourceValueObject(ti, NAME_autoSelect) == ON )
+  { if ( val == ON )
+    { send(ti->value_text, NAME_selection,
+	   ZERO, getSizeCharArray(ti->value_text->string), 0);
+      send(ti, NAME_caret, DEFAULT, 0);
+    } else
+      send(ti->value_text, NAME_selection, NIL, 0);
+  }
 
   succeed;
 }
@@ -177,32 +208,33 @@ static status
 computeTextItem(TextItem ti)
 { if ( notNil(ti->request_compute) )
   { int lw, lh, w, h;
+    int al, av, am;
     Int b = getResourceValueObject(ti, NAME_border);
     int cwb = combo_width(ti);
+    TextObj vt = ti->value_text;
 
     obtainResourcesObject(ti);
-    fontText(ti->value_text, ti->value_font);
-    borderText(ti->value_text, b);
+    fontText(vt, ti->value_font);
+    borderText(vt, b);
     if ( notDefault(ti->value_width) )
     { Int vw = toInt(valInt(ti->value_width) - cwb);
-      marginText(ti->value_text, vw, NAME_clip);
+      marginText(vt, vw, NAME_clip);
     } else
-      lengthText(ti->value_text, ti->length);
-    ComputeGraphical(ti->value_text);
+      lengthText(vt, ti->length);
+    ComputeGraphical(vt);
 
     compute_label_text_item(ti, &lw, &lh);
-    h = max(lh, valInt(ti->value_text->area->h));
-    w = lw + valInt(ti->value_text->area->w) + cwb;
+    al = valInt(getAscentFont(ti->label_font));
+    av = valInt(getAscentFont(vt->font)) + valInt(vt->border);
+    am = max(al, av);
+    assign(vt->area, x, toInt(lw));
+    assign(vt->area, y, toInt(am-av));
+    
+    h = max(lh, valInt(vt->area->h));
+    w = lw + valInt(vt->area->w) + cwb;
 
     if ( ti->pen != ZERO )
-    { int al, av, am;
-
-      al = valInt(getAscentFont(ti->label_font));
-      av = valInt(getAscentFont(ti->value_text->font));
-      am = max(al, av);
-
       h = max(h, am+1+valInt(ti->pen));
-    }
 
     CHANGING_GRAPHICAL(ti,
 	  assign(ti->area, w, toInt(w));
@@ -268,7 +300,10 @@ CompletionBrowser()
     attributeObject(Completer, NAME_prefix, NAME_);
     attributeObject(Completer, NAME_autoHide, ZERO);
     send(Completer, NAME_selectMessage,
-	 newObject(ClassMessage, client, NAME_selectedCompletion, Arg(1), 0),
+	 newObject(ClassMessage, client, NAME_selectedCompletion,
+		   newObject(ClassObtain, Arg(1), NAME_key,
+			     0),
+		   0),
 	 0);
     send(get(Completer, NAME_tile, 0), NAME_border, ZERO, 0);
     send(Completer, NAME_kind, NAME_popup, 0);
@@ -379,7 +414,8 @@ selectCompletionDialogItem(Any item, Chain matches,
        toInt(lw), di->area->h, 0);
   send(c, NAME_transientFor, getFrameGraphical((Graphical) di), 0);
   send(c->frame, NAME_set, pos->x, pos->y, toInt(fw), toInt(bh), 0);
-  send(c, NAME_open, DEFAULT, ON, 0);	/* pos, normalise */
+  ws_topmost_frame(c->frame, ON);
+  send(c, NAME_open, pos, ON, 0);	/* pos, normalise */
   if ( (sw = getWindowGraphical((Graphical)di)) )
   { grabPointerWindow(sw, ON);
     focusWindow(sw, (Graphical)di, DEFAULT, DEFAULT, NIL);
@@ -430,12 +466,15 @@ enterCompleterTextItem(TextItem ti)
 
 
 static status
-selectedCompletionTextItem(TextItem ti, DictItem di)
+selectedCompletionTextItem(TextItem ti, CharArray value, Bool apply)
 { Any c = CompletionBrowser();
   Any prefix = get(c, NAME_prefix, 0);
 
-  displayedValueTextItem(ti, getAppendCharArray(prefix, (CharArray) di->key));
+  displayedValueTextItem(ti, getAppendCharArray(prefix, value));
   quitCompleterDialogItem(ti);
+
+  if ( apply != OFF )
+    send(ti, NAME_apply, ON, 0);
 
   succeed;
 }
@@ -646,7 +685,10 @@ combo_flags(TextItem ti)
 static int
 combo_width(TextItem ti)
 { if ( ti->style == NAME_comboBox )
-    return ws_combo_box_width();
+  { int w = ws_combo_box_width();
+
+    return w >= 0 ? w : 14;
+  }
 
   return 0;
 }
@@ -677,9 +719,19 @@ showComboBoxTextItem(TextItem ti, Bool val)
 		********************************/
 
 
+static Int
+getPointedTextItem(TextItem ti, Point pos)
+{ return get_pointed_text(ti->value_text,
+			  valInt(pos->x)-valInt(ti->value_text->area->x),
+			  valInt(pos->y));
+}
+
+
 static status
 eventTextItem(TextItem ti, EventObj ev)
-{ if ( completerShownDialogItem(ti) )
+{ static Int origin;			/* Multithread dubious! */
+
+  if ( completerShownDialogItem(ti) )
   { Browser c = CompletionBrowser();
 
     if ( isAEvent(ev, NAME_keyboard) )
@@ -724,6 +776,7 @@ eventTextItem(TextItem ti, EventObj ev)
   if ( isAEvent(ev, NAME_msLeftDown) )
   { if ( WantsKeyboardFocusTextItem(ti) )
     { int cbw;
+      int wasactive = (ti->status == NAME_active);
 
       send(ti, NAME_keyboardFocus, 0);
       
@@ -744,8 +797,27 @@ eventTextItem(TextItem ti, EventObj ev)
 
 	succeed;
       }
+
+      origin = getPointedTextItem(ti, getPositionEvent(ev, ti));
+      if ( origin && wasactive )
+      { send(ti->value_text, NAME_selection, NIL, 0);
+	send(ti, NAME_caret, origin, 0);
+
+	succeed;
+      }
     } else
       return alertGraphical((Graphical) ti);
+  } else if ( isAEvent(ev, NAME_msLeftDrag) )
+  { Int here = getPointedTextItem(ti, getPositionEvent(ev, ti));
+    
+    if ( here )
+    { send(ti->value_text, NAME_selection, origin, here, 0);
+      send(ti, NAME_caret, here, 0);
+    }
+  } else if ( isAEvent(ev, NAME_msLeftUp) )
+  { if ( notNil(ti->selection) &&
+	 getResourceValueObject(ti, NAME_autoCopy) == ON )
+      send(ti, NAME_copy, 0);
   } else if ( isAEvent(ev, NAME_focus) )
   { if ( isAEvent(ev, NAME_obtainKeyboardFocus) )
     { send(ti, NAME_status, NAME_active, 0);
@@ -1203,6 +1275,9 @@ static char *T_selectCompletion[] =
 	  "search=[char_array]*", "auto_hide=[0..]" };
 static char *T_geometry[] =
         { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
+static char *T_selectedCompletion[] =
+	{ "item=char_array", "apply=[bool]" };
+
 
 /* Instance Variables */
 
@@ -1248,6 +1323,8 @@ static senddecl send_textItem[] =
      DEFAULT, "Create from label, selection and message"),
   SM(NAME_status, 1, "{inactive,active,preview,execute}", statusTextItem,
      DEFAULT, "Status for event-processing"),
+  SM(NAME_activate, 1, "bool", activateTextItem,
+     NAME_event, "Select all/deselect"),
   SM(NAME_quitCompleter, 0, NULL, quitCompleterDialogItem,
      NAME_abort, "Remove completer"),
   SM(NAME_reset, 0, NULL, quitCompleterDialogItem,
@@ -1280,7 +1357,8 @@ static senddecl send_textItem[] =
      NAME_complete, "Remove completer and ->alert"),
   SM(NAME_selectCompletion, 4, T_selectCompletion, selectCompletionTextItem,
      NAME_complete, "Select candidate expansion using browser"),
-  SM(NAME_selectedCompletion, 1, "dict_item", selectedCompletionTextItem,
+  SM(NAME_selectedCompletion, 2, T_selectedCompletion,
+     selectedCompletionTextItem,
      NAME_complete, "Handle selection from browser"),
   SM(NAME_showComboBox, 1, "bool", showComboBoxTextItem,
      NAME_complete, "Show the combo-box browser"),
@@ -1324,6 +1402,8 @@ static getdecl get_textItem[] =
      NAME_layout, "Width required to display label"),
   GM(NAME_selection, 0, "any", NULL, getSelectionTextItem,
      NAME_selection, "Current value of the selection"),
+  GM(NAME_pointed, 1, "index=int", "at=point", getPointedTextItem,
+     NAME_event, "Convert position to character index"),
   GM(NAME_displayedValue, 0, "char_array", NULL, getDisplayedValueTextItem,
      NAME_textual, "Visible (typed) textual value"),
   GM(NAME_printNameOfValue, 1, "char_array", "any", getPrintNameOfValueTextItem,
@@ -1339,6 +1419,10 @@ static resourcedecl rc_textItem[] =
      "Width of area for selection (chars)"),
   RC(NAME_pen, "int", "1",
      "Thickness of line below selection"),
+  RC(NAME_autoCopy, "bool", "@off",
+     "Automatically copy selected text to the clipboard"),
+  RC(NAME_autoSelect, "bool", "@on",
+     "Automatically select all text when ->activate'd"),
   RC(NAME_searchIgnoreCase, "bool", "@on",
      "@on: ignore case for completion")
 };

@@ -32,7 +32,7 @@ image_viewer :-
 	concat(Home, '/bitmaps', DefDir),
 	send(D, append, new(Dir, directory_item(directory, DefDir))),
 	send(D, append, new(File, text_item(file_pattern, '*.bm'))),
-	new(ValueSet, chain('*.bm', '*.xpm')),
+	new(ValueSet, chain('*.bm', '*.xpm', '*.gif', '*.jpg', '*.jpeg')),
 	(   get(@pce, window_system, windows)
 	->  send_list(ValueSet, append, ['*.ico', '*.cur'])
 	;   true

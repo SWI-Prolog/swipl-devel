@@ -18,7 +18,7 @@
 :- emacs_begin_mode(language, fundamental,
 		    "Edit (programming) languages",
 	[ indent_line			= key('TAB'),
-	  backward_delete_char_untabify	= key(backspace) + key('DEL'),
+	  backward_delete_char_untabify	= key(backspace),
 	  align_close_bracket		= key(']') + key('}') + key(')'),
 	  insert_section_header		= key('\eh'),
 	  insert_comment_block		= key('\C-c\C-q'),
@@ -192,8 +192,12 @@ visit_tag_table(M, Table:tag_file='file|directory') :->
 	;   TagFile = Table
 	),
 	get(TagFile, absolute_path, TagFileName),
-	auto_call(emacs_init_tags(TagFileName)),
-	send(M, report, status, 'Loaded TAG table %s', TagFileName).
+	(   send(TagFile, access, read)
+	->  auto_call(emacs_init_tags(TagFileName)),
+	    send(M, report, status, 'Loaded TAG table %s', TagFileName)
+	;   send(M, report, warning, '%s: no such file', TagFileName),
+	    fail
+	).
 
 
 expand_tag(M, Tag:[name], TheTag:name) :<-

@@ -33,6 +33,7 @@ initialiseDialogGroup(DialogGroup g, Name name, Name kind)
   assign(g, border,	  getResourceValueObject(g, NAME_border));
   assign(g, auto_align,	  ON);
   assign(g, alignment,	  DEFAULT);	/* Resource */
+  assign(g, elevation,	  NIL);
 
   nameDialogGroup(g, name);
 
@@ -96,17 +97,21 @@ computeDialogGroup(DialogGroup g)
       }
       relativeMoveArea(a, g->offset);
 
+      x = valInt(a->x) -     valInt(border->w);
+      y = valInt(a->y) -     valInt(border->h);
       w = valInt(a->w) + 2 * valInt(border->w);
       h = valInt(a->h) + 2 * valInt(border->h);
     } else				/* explicit size */
-    { w = valInt(g->size->w);
+    { x = valInt(g->offset->x);
+      y = valInt(g->offset->y);
+      w = valInt(g->size->w);
       h = valInt(g->size->h);
     }
 
     if ( ly < 0 )
-      h -= ly;
-    x = valInt(g->offset->x);
-    y = valInt(g->offset->y) + (ly < 0 ? ly : 0);
+    { h -= ly;
+      y += ly;
+    }
 
     CHANGING_GRAPHICAL(g,
 	assign(a, x, toInt(x));
@@ -146,10 +151,7 @@ geometryDialogGroup(DialogGroup g, Int x, Int y, Int w, Int h)
     doneObject(size);
   }
 
-  geometryDevice((Device) g, x, y, w, h);
-  requestComputeGraphical(g, DEFAULT);
-
-  succeed;
+  return geometryDevice((Device) g, x, y, w, h);
 }
 
 
@@ -269,6 +271,12 @@ radiusDialogGroup(DialogGroup g, Int radius)
 }
 
 
+static status
+elevationDialogGroup(DialogGroup d, Elevation e)
+{ return assignGraphical(d, NAME_elevation, e);
+}
+
+
 		 /*******************************
 		 *	       KIND		*
 		 *******************************/
@@ -300,6 +308,7 @@ RedrawAreaDialogGroup(DialogGroup g, Area a)
   int lx, ly, lw, lh;
   int eh;
   int ex = valInt(getExFont(g->label_font));
+  Any obg = NIL, bg = NIL;
 
   initialiseDeviceGraphical(g, &x, &y, &w, &h);
   compute_label(g, &lx, &ly, &lw, &lh);
@@ -327,6 +336,15 @@ RedrawAreaDialogGroup(DialogGroup g, Area a)
       r_dash(g->texture);
       r_box(x, y-ly, w, h+ly, valInt(g->radius), NIL);
     }
+  } else if ( notNil(g->elevation) )
+  { int bx = x;
+    int by = y-ly;
+    int bw = w;
+    int bh = h+ly;
+
+    r_3d_box(bx, by, bw, bh, valInt(g->radius), g->elevation, TRUE);
+    bg = g->elevation->background;
+    eh = valInt(g->elevation->height);
   } else
     eh = 0;
 
@@ -343,20 +361,24 @@ RedrawAreaDialogGroup(DialogGroup g, Area a)
     int oy = valInt(offset->y);
 
     d_clip(x+eh, y-ly+eh, w-2*eh, h-2*eh+ly); /* check if needed! */
-    assign(a, x, toInt(valInt(a->x) - ox));
-    assign(a, y, toInt(valInt(a->y) - oy));
+    qassign(a, x, toInt(valInt(a->x) - ox));
+    qassign(a, y, toInt(valInt(a->y) - oy));
     r_offset(ox, oy);
 
+    if ( notNil(bg) )
+      obg = r_background(bg);
     for_cell(cell, g->graphicals)
     { Graphical gr = cell->value;
 
       if ( gr->displayed == ON && overlapArea(a, gr->area) )
 	RedrawArea(gr, a);
     }
+    if ( notNil(obg) )
+      r_background(obg);
 
     r_offset(-ox, -oy);
-    assign(a, x, ax);
-    assign(a, y, ay);
+    qassign(a, x, ax);
+    qassign(a, y, ay);
     d_clip_done();	     
   }
 
@@ -484,10 +506,12 @@ static vardecl var_diagroup[] =
   SV(NAME_labelFormat, "{top,center,bottom}", IV_GET|IV_STORE,
      labelFormatDialogGroup,
      NAME_appearance, "Alignment of label with top"),
+  SV(NAME_elevation, "elevation*", IV_GET|IV_STORE, elevationDialogGroup,
+     NAME_appearance, "Elevation from background"),
   SV(NAME_radius, "0..", IV_GET|IV_STORE, radiusDialogGroup,
      NAME_appearance, "Radius for the corners"),
   IV(NAME_size, "[size]", IV_GET,
-     NAME_geometry, "Size of the contents"),
+     NAME_area, "Size of the contents"),
   SV(NAME_gap, "size", IV_GET|IV_STORE, gapDialogGroup,
      NAME_appearance, "Distance between the items"),
   SV(NAME_border, "[size]", IV_GET|IV_STORE, borderDialogGroup,
@@ -506,13 +530,13 @@ static senddecl send_diagroup[] =
   SM(NAME_geometry, 4, T_geometry, geometryDialogGroup,
      DEFAULT, "Move/resize tab"),
   SM(NAME_position, 1, "point", positionGraphical,
-     NAME_geometry, "Top-left corner of tab"),
+     NAME_area, "Top-left corner of tab"),
   SM(NAME_x, 1, "int", xGraphical,
-     NAME_geometry, "Left-side of tab"),
+     NAME_area, "Left-side of tab"),
   SM(NAME_y, 1, "int", yGraphical,
-     NAME_geometry, "Top-side of tab"),
+     NAME_area, "Top-side of tab"),
   SM(NAME_size, 1, "[size]", sizeDialogGroup,
-     NAME_geometry, "Size, @default implies minimal size"),
+     NAME_area, "Size, @default implies minimal size"),
   SM(NAME_layoutDialog, 0, NULL, layoutDialogDialogGroup,
      NAME_layout, "(Re)compute layout of dialog_items"),
   SM(NAME_label, 1, "name", labelDialogGroup,
@@ -543,11 +567,11 @@ static senddecl send_diagroup[] =
 
 static getdecl get_diagroup[] =
 { GM(NAME_position, 0, "point", NULL, getPositionGraphical,
-     NAME_geometry, "Top-left corner of tab"),
+     NAME_area, "Top-left corner of tab"),
   GM(NAME_x, 0, "int", NULL, getXGraphical,
-     NAME_geometry, "Left-side of tab"),
+     NAME_area, "Left-side of tab"),
   GM(NAME_y, 0, "int", NULL, getYGraphical,
-     NAME_geometry, "Top-side of tab"),
+     NAME_area, "Top-side of tab"),
   GM(NAME_labelName, 1, "name", "name", getLabelNameDialogGroup,
      NAME_label, "Determine default-label from the name"),
   GM(NAME_defaultButton, 0, "button", NULL, getDefaultButtonDialogGroup,

@@ -12,9 +12,19 @@
 #include "include.h"
 #include <memory.h>
 
+#define O_GIFTOXPM 1
+
 #ifdef HAVE_LIBXPM
 #include <X11/xpm.h>
 static XImage *readXpmFile(Image image, FILE *fd);
+#ifdef O_GIFTOXPM
+#include <img/gif.h>
+static XImage *readGIFFile(Image image, FILE *fd);
+#endif
+#include <img/jpeg.h>
+#ifdef HAVE_LIBJPEG
+static XImage *readJPEGFile(Image image, FILE *fd);
+#endif
 #endif
 
 
@@ -104,14 +114,24 @@ XImage *
 readImageFile(Image image, FILE *fd)
 { unsigned char *data;
   int w, h;
+  XImage *img=NULL;
 
   if ( (data = read_bitmap_data(fd, &w, &h)) != NULL )
     return CreateXImageFromData(data, w, h);
 #ifdef HAVE_LIBXPM
-  return readXpmFile(image, fd);
+#ifdef HAVE_LIBJPEG
+  if ( (img=readJPEGFile(image, fd)) )
+    return img;
+#endif  
+#ifdef O_GIFTOXPM
+  if ( (img=readGIFFile(image, fd)) )
+    return img;
+#endif  
+  if ( (img=readXpmFile(image, fd)) )
+    return img;
 #endif
 
-  return NULL;
+  return img;
 }
 
 
@@ -468,4 +488,73 @@ out:
   return i;
 }
 
+#ifdef O_GIFTOXPM
+
+static XImage *
+readGIFFile(Image image, FILE *fd)
+{ XpmImage img;
+
+  switch( XpmReadGIF(fd, &img) )
+  { case GIF_OK:
+    { int as = XpmAttributesSize();
+      XpmAttributes *atts = (XpmAttributes *)alloca(as);
+      XImage *i = NULL;
+      XImage *shape = NULL;
+      Display *disp = defaultXDisplay();
+
+      memset(atts, 0, as);
+      atts->exactColors = FALSE;
+      atts->closeness   = (1<<16)-1;	/* always continue */
+      atts->valuemask   = XpmExactColors|XpmCloseness;
+
+      if ( XpmCreateImageFromXpmImage(disp, &img, &i,
+				      &shape, atts) != XpmSuccess )
+	return NULL;
+
+      XpmFreeXpmImage(&img);
+
+      return i;
+    }
+    case GIF_NOMEM:
+    case GIF_INVALID:
+    default:
+      return NULL;
+  }
+}
+
+#endif /*O_GIFTOXPM*/
+#ifdef HAVE_LIBJPEG
+
+static XImage *
+readJPEGFile(Image image, FILE *fd)
+{ XpmImage img;
+
+  switch( readJPEGtoXpmImage(fd, &img) )
+  { case GIF_OK:
+    { int as = XpmAttributesSize();
+      XpmAttributes *atts = (XpmAttributes *)alloca(as);
+      XImage *i = NULL;
+      XImage *shape = NULL;
+      Display *disp = defaultXDisplay();
+
+      memset(atts, 0, as);
+      atts->exactColors = FALSE;
+      atts->closeness   = (1<<16)-1;	/* always continue */
+      atts->valuemask   = XpmExactColors|XpmCloseness;
+
+      if ( XpmCreateImageFromXpmImage(disp, &img, &i,
+				      &shape, atts) != XpmSuccess )
+	return NULL;
+
+      XpmFreeXpmImage(&img);
+
+      return i;
+    }
+    case GIF_NOMEM:
+    case GIF_INVALID:
+    default:
+      return NULL;
+  }
+}
+#endif /*HAVE_LIBJPEG*/
 #endif /*HAVE_LIBXPM*/

@@ -419,8 +419,7 @@ draw_arrow(ScrollBar s, int x, int y, int w, int h, Name which, int up)
 	r_box(x, y, w, h, 0, isDefault(z->colour) ? NIL : (Any) z->colour);
 
       compute_arrow_corners(x, y, w, h, which, w/2, h/4, pts);
-      r_fillpattern(BLACK_COLOUR, NAME_foreground);
-      r_triangle(X1, Y1, X2, Y2, X3, Y3);
+      r_triangle(X1, Y1, X2, Y2, X3, Y3, BLACK_COLOUR);
     } else				/* motif */
     {
     }
@@ -711,14 +710,15 @@ sb_triangle(int x1, int y1,
 	    int x3, int y3,
 	    int vertical, Elevation z,
 	    int active)
-{ if ( !vertical )
+{ Any fill = ((z || active) ? BLACK_IMAGE : GREY50_IMAGE);
+
+  if ( !vertical )
   { swap(x1, y1);
     swap(x2, y2);
     swap(x3, y3);
   }
 
-  r_fillpattern((z || active) ? BLACK_IMAGE : GREY50_IMAGE, NAME_foreground);
-  r_triangle(x1, y1, x2, y2, x3, y3);
+  r_triangle(x1, y1, x2, y2, x3, y3, fill);
 }
 
 

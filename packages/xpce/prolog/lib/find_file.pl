@@ -91,9 +91,11 @@ fill_dialog(F, D) :->
 	send(D, append, label(reporter)),
 
 	send(D, append,
-	     new(DI, directory_item(directory, '',
-				    message(F, directory, @arg1)))),
+	     new(DI, finder_directory_item(directory, '',
+					   message(F, directory, @arg1)))),
+	send(DI, style, normal),
 	send(D, append, new(FI, text_item(file, ''))),
+	     
 	send_list([DI, FI], width, 50),
 
 	send(FI, value_set,
@@ -278,8 +280,10 @@ file(F, Exists:exists=[bool], Ext:extension=[name],
 
 :- pce_end_class.
 
-/*
-test :-
-	get(@finder, file, File),
-	format('File = ~w~n', File).
-*/
+:- pce_begin_class(finder_directory_item, directory_item).
+
+selected_completion(DI, Item:char_array, _Apply:[bool]) :->
+	send(DI, send_super, selected_completion, Item, @off),
+	send(DI, apply, @on).
+
+:- pce_end_class.

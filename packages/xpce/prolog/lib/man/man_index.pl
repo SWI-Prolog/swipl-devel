@@ -45,24 +45,24 @@ pce_make_manual_index(File) :-
 	access_file(File, write), !,	% just make sure!
 	new(Ch, chain),			% gather all built-in classes
 	send(@man_tmp_view, format, 'Collecting built-in classes ... '),
-	send(@man_tmp_view, flush),
+	send(@man_tmp_view, synchronise),
 	send(@classes, for_all,
 	     if(@arg2?creator == built_in,
 		message(Ch, append, @arg2))),
 	send(Ch, sort, ?(@arg1?name, compare, @arg2?name)),
 	send(@man_tmp_view, format, '%d classes.\n', Ch?size),
-	send(@man_tmp_view, flush),
+	send(@man_tmp_view, synchronise),
 	send(Ch, for_all, message(@prolog, make_class_index, @arg1)),
 	make_module_index,
 	send(@man_tmp_view, format, '\n\nCleaning index table'),
-	send(@man_tmp_view, flush),
+	send(@man_tmp_view, synchronise),
 	clean_index(@man_tmp_index),
 	send(@man_tmp_view, format, 'Cleaning done\n\n'),
 	send(@man_tmp_view, format, 'Saving index table to %s ... ', File),
-	send(@man_tmp_view, flush),
+	send(@man_tmp_view, synchronise),
 	send(@man_tmp_index, save_in_file, File),
 	send(@man_tmp_view, format, '%d bytes. Finished.\n', file(File)?size),
-	send(@man_tmp_view, flush).
+	send(@man_tmp_view, synchronise).
 make_manual_index(File) :-
 	send(file(File), report, error, 'Cannot write %s', File),
 	fail.
@@ -75,7 +75,7 @@ make_class_index(Class) :-
 	;   true
 	),
 	send(@man_tmp_view, format, '(%s', Name),
-	send(@man_tmp_view, flush),
+	send(@man_tmp_view, synchronise),
 	new(Objs, chain),
 	send(Objs, merge, Class?send_methods),
 	send(Objs, merge, Class?get_methods),
@@ -90,7 +90,7 @@ make_class_index(Class) :-
 	     message(@prolog, make_card_index, @arg1)),
 	send(Objs, done),
 	send(@man_tmp_view, format, ') ', Name),
-	send(@man_tmp_view, flush).
+	send(@man_tmp_view, synchronise).
 
 make_card_index(Card) :-
 	get(Card, man_id, Id),
@@ -116,6 +116,11 @@ make_man_tmp_view(V) :-
 	new(V, view('Build PCE manual index')),
 	send(new(D, dialog), below, V),
 	send(D, append, button(quit, message(D, destroy))),
+	send(D, append,
+	     button(abort,
+		    and(message(@display, confirm,
+				'Abort generation of search index?'),
+			message(@prolog, halt)))),
 	send(D, append, label(reporter), right),
 	send(V, open),
 	send(V, wait),
@@ -139,10 +144,10 @@ make_module_index :-
 	send(@man_tmp_view, format, '\n\n'),
 	non_class_module(Module),
 	send(@man_tmp_view, format, '%s index ... ', Module),
-	send(@man_tmp_view, flush),
+	send(@man_tmp_view, synchronise),
 	make_module_index(Module),
 	send(@man_tmp_view, format, 'done.\n'),
-	send(@man_tmp_view, flush),
+	send(@man_tmp_view, synchronise),
 	fail.
 make_module_index.
 
@@ -154,6 +159,7 @@ make_module_index(ModuleName) :-
 
 
 index_card(Module, CardId, Card) :-
+	send(@man_tmp_view, synchronise),
 	concat_atom([$, Module, $, CardId], Id),
 	(   get(Card, man_summary, Summary)
 	->  word_index(Summary, Id)
@@ -210,7 +216,7 @@ clean_index(Table) :-
 	get(Table, member, Word, Chain),
 	get(Chain, size, Size),
 	send(@man_tmp_view, format, 'Deleted "%s", %d entries\n', Word, Size),
-	send(@man_tmp_view, flush),
+	send(@man_tmp_view, synchronise),
 	send(Table, delete, Word),
 	fail.
 clean_index(Table) :-

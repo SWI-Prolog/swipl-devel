@@ -39,8 +39,10 @@ RedrawAreaMenuBar(MenuBar mb, Area a)
     assign(b->area, x, add(b->area->x, x));
     assign(b->area, y, mb->area->y);
     if ( overlapArea(b->area, a) )
-    { assign(b, device, mb->device);
-      assign(b, active, b->popup->active);
+    { int ba = (mb->active == ON && b->popup->active == ON);
+
+      assign(b, device, mb->device);
+      assign(b, active, ba ? ON : OFF);
       assign(b, status, b->popup == mb->current ? NAME_preview
 	     					: NAME_inactive);
       RedrawAreaButton(b, a);

@@ -103,7 +103,7 @@ unregisterXrefObject(Any obj, DisplayObj d)
   static struct xref old;
 
   for( ; r != NULL; R = &r->next, r = *R )
-    if ( r->object == obj && (r->display == d || isDefault(d)) )
+  { if ( r->object == obj && (r->display == d || isDefault(d)) )
     { *R = r->next;
 
       DEBUG(NAME_xref, Cprintf("unregisterXrefObject(%s, %s)\n",
@@ -112,6 +112,7 @@ unregisterXrefObject(Any obj, DisplayObj d)
       unalloc(sizeof(struct xref), r);
       return &old;
     }
+  }
 
   fail;
 }

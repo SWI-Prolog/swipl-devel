@@ -19,7 +19,27 @@
 
 initialise(FI, Name:[name], Def:[any|function], Msg:[code]*) :->
 	clean_file_name(Def, Clean),
-	send(FI, send_super, initialise, Name, Clean, Msg).
+	send(FI, send_super, initialise, Name, Clean, Msg),
+	send(FI, style, combo_box).
+
+
+activate(FI, Val:bool) :->
+	(   Val == @on
+	->  true
+	;   send(FI, send_super, activate, Val)
+	).
+
+
+selected_completion(FI, Component:char_array, _Apply:[bool]) :->
+	send(FI, send_super, selected_completion, Component, @off),
+	get(FI, selection, Selection),
+	(   send(directory(Selection), exists)
+	->  send(FI, append, '/'),
+	    send(FI, caret, @default)
+	;   send(file(Selection), exists)
+	->  send(FI, apply, @on)
+	;   true
+	).
 
 
 completions(_FI, Tuple:tuple, Matches:chain) :<-

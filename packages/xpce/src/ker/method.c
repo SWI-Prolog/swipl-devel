@@ -160,7 +160,7 @@ invokeMethod(Method m, Name c, Any receiver, int argc, const Any argv[])
   int i;
 
   ExecuteCalls++;
-#ifdef __WINDOWS__
+#ifdef __WIN32__
   { static int tick;
 
     if ( !(++tick & 0xff) )

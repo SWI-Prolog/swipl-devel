@@ -2,7 +2,7 @@
 
 .pl.qof:
 	@rm -f $@
-	qpc -L . -L dialog/lib -i pce_qpc.qof -Nc $*.pl
+	qpc -L . -i pce_qpc.qof -NcH $*.pl
 
 LIBQOFS= area.qof \
 	pce_emacs.qof \

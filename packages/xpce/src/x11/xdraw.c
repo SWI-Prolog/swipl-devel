@@ -67,6 +67,7 @@ s_string(s, f, x, y, w, h, had, vad)
 
 #include <h/kernel.h>
 #include <h/graphics.h>
+#include <h/text.h>
 #include "include.h"
 
 static void	clip_area(int *, int *, int *, int *);
@@ -1480,11 +1481,16 @@ r_3d_triangle(int x1, int y1, int x2, int y2, int x3, int y3,
 	      Elevation e, int up, int map)
 { XSegment s[3];
   GC topGC, botGC;
-  int z = valInt(e->height);
-  int n, i, p;
+  int z, n, i, p;
   int cx, cy;
 
+  if ( !e || isNil(e) )
+  { r_triangle(x1, y1, x2, y2, x3, y3, up ? NIL : BLACK_COLOUR);
+    return;
+  }
+
   r_elevation(e);
+  z = valInt(e->height);
 
   if ( !up )
     z = -z;
@@ -2102,10 +2108,13 @@ r_fill_triangle(int x1, int y1, int x2, int y2, int x3, int y3)
 
 
 void
-r_triangle(int x1, int y1, int x2, int y2, int x3, int y3)
+r_triangle(int x1, int y1, int x2, int y2, int x3, int y3, Any fill)
 { XSegment s[3];
 
-  r_fill_triangle(x1, y1, x2, y2, x3, y3);
+  if ( notNil(fill) )
+  { r_fillpattern(fill, NAME_foreground);
+    r_fill_triangle(x1, y1, x2, y2, x3, y3);
+  }
   
   s[0].x1 = X(x1);   s[0].y1 = Y(y1);   s[0].x2 = X(x2);   s[0].y2 = Y(y2);
   s[1].x1 = s[0].x2; s[1].y1 = s[0].y2; s[1].x2 = X(x3);   s[1].y2 = Y(y3);
@@ -2435,6 +2444,32 @@ str_width(String s, int from, int to, FontObj f)
 }
 
 
+static int
+s_advance_x(String s, int from, int to)
+{ if ( !context.gcs->char_widths )
+  { return context.gcs->font_info->max_bounds.width * (to-from);
+  } else
+  { cwidth *widths = context.gcs->char_widths;
+    int width = 0;
+    int n = to-from;
+
+    if ( isstr8(s) )
+    { char8 *q = &s->s_text8[from];
+
+      for(; n-- > 0; q++)
+	width += widths[*q];
+    } else
+    { char16 *q = &s->s_text16[from];
+
+      for(; n-- > 0; q++)
+	width += widths[*q];
+    }
+
+    return width;
+  }
+}
+
+
 void
 s_print8(char8 *s, int l, int x, int y, FontObj f)
 { if ( l > 0 )
@@ -2463,6 +2498,55 @@ s_print(String s, int x, int y, FontObj f)
     s_print8(s->s_text8, s->size, x, y, f);
   else
     s_print16(s->s_text16, s->size, x, y, f);
+}
+
+static void
+str_stext(String s, int f, int len, int x, int y, Style style)
+{ if ( len > 0 )
+  { string s2;
+    Any ofg = NULL;
+
+    if ( notNil(style) )
+    { if ( notDefault(style->background) )
+      { int w = s_advance_x(s, f, f+len);
+	int a = context.gcs->font_info->ascent;
+	int b = context.gcs->font_info->descent;
+
+	r_fillpattern(style->background, NAME_foreground);
+	XFillRectangle(context.display, context.drawable, context.gcs->fillGC,
+		       x, y-a, w, b+a);
+      }
+      if ( notDefault(style->colour) )
+	ofg = r_colour(style->colour);
+    }
+
+    if ( context.gcs->font->b16 == ON )
+    { if ( isstr8(s) )
+      { s2 = *s;
+	s2.size /= 2;
+	s2.b16 = TRUE;
+	s = &s2;
+	len /= 2;
+	f /= 2;
+      }
+      XDrawString16(context.display, context.drawable, context.gcs->workGC,
+		    x, y, (XChar2b *)s->s_text16+f, len);
+    } else
+    { if ( isstr16(s) )
+      { s2 = *s;
+	s2.size *= 2;
+	s2.b16 = FALSE;
+	s = &s2;
+	len *= 2;
+	f *= 2;
+      }
+      XDrawString(context.display, context.drawable, context.gcs->workGC,
+		  x, y, s->s_text8+f, len);
+    }
+
+    if ( ofg )
+      r_colour(ofg);
+  }
 }
 
 
@@ -2558,11 +2642,11 @@ str_compute_lines(strTextLine *lines, int nlines, FontObj font,
   strTextLine *line;
   int n;
 
-  if ( equalName(vadjust, NAME_top) )
+  if ( vadjust == NAME_top )
     cy = y;
-  else if ( equalName(vadjust, NAME_center) )
+  else if ( vadjust == NAME_center )
     cy = y + (h - nlines*th)/2;
-  else /*if ( equalName(vadjust, NAME_bottom) )*/
+  else /*if ( vadjust == NAME_bottom )*/
     cy = y + h - nlines*th;
 
   for( n = 0, line = lines; n++ < nlines; line++, cy += th )
@@ -2570,11 +2654,11 @@ str_compute_lines(strTextLine *lines, int nlines, FontObj font,
     line->height = th;
     line->width  = str_width(&line->text, 0, line->text.size, font);
 
-    if ( equalName(hadjust, NAME_left) )
+    if ( hadjust == NAME_left )
       line->x = x;
-    else if ( equalName(hadjust, NAME_center) )
+    else if ( hadjust == NAME_center )
       line->x = x + (w - line->width)/2;
-    else /*if ( equalName(hadjust, NAME_right) )*/
+    else /*if ( hadjust == NAME_right )*/
       line->x = x + w - line->width;
   }
 }
@@ -2635,6 +2719,56 @@ str_string(String s, FontObj font, int x, int y, int w, int h,
   for(n=0, line = lines; n++ < nlines; line++)
     str_text(&line->text, line->x, line->y+baseline);
 }
+
+
+void
+str_selected_string(String s, FontObj font,
+		    int f, int t, Style style,	/* selection parameters */
+		    int x, int y, int w, int h,
+		    Name hadjust, Name vadjust)
+{ strTextLine lines[MAX_TEXT_LINES];
+  strTextLine *line;
+  int nlines, n;
+  int baseline;
+  int here = 0;
+
+  if ( s->size == 0 )
+    return;
+
+  Translate(x, y);
+  s_font(font);
+  baseline = context.gcs->font_info->ascent;
+  str_break_into_lines(s, lines, &nlines);
+  str_compute_lines(lines, nlines, font, x, y, w, h, hadjust, vadjust);
+
+  for(n=0, line = lines; n++ < nlines; line++)
+  { int len = line->text.size;
+
+    line->x += lbearing(str_fetch(&line->text, 0), context.gcs->font_info);
+
+    if ( t <= here || f >= here+len )	/* outside */
+      str_stext(&line->text, 0, len, line->x, line->y+baseline, NIL);
+    else
+    { int sf, sx, sl;
+
+      sf = (f <= here     ?      0 : f-here);
+      sl = (t >= here+len ? len-sf : t-here-sf);
+      sx = s_advance_x(&line->text, 0, sf);
+      
+      str_stext(&line->text, 0,  sf, line->x,    line->y+baseline, NIL);
+      str_stext(&line->text, sf, sl, line->x+sx, line->y+baseline, style);
+      if ( sf+sl < len )
+      { int a  = sf+sl;
+	int ax = sx + s_advance_x(&line->text, sf, a);
+
+	str_stext(&line->text, a, len-a, line->x+ax, line->y+baseline, NIL);
+      }
+    }
+
+    here += len + 1;			/* 1 for the newline */
+  }
+}
+
 
 		 /*******************************
 		 *      POSTSCRIPT SUPPORT	*

@@ -157,17 +157,14 @@ colourPixel(Display *disp, int depth, Colormap cmap,
 
   ncolours++;
 
-  c.red   = r * 256 + r;
-  c.green = g * 256 + g;
-  c.blue  = b * 256 + b;
+  c.red   = r * 257;
+  c.green = g * 257;
+  c.blue  = b * 257;
   if ( !XAllocColor(disp, cmap, &c) )
-  { if ( findNearestColour(disp, cmap, depth, DEFAULT, &c) )
-    { if ( !XAllocColor(disp, cmap, &c) )
-      { Cprintf("PNM: failed to alloc pixel %d/%d/%d\n", r, g, b);
-	c.pixel = 0;			/* TMP */
-	nfailed++;
-      } else
-	nmapped++;
+  { if ( !allocNearestColour(disp, cmap, depth, DEFAULT, &c) )
+    { Cprintf("PNM: failed to alloc pixel %d/%d/%d\n", r, g, b);
+      c.pixel = 0;
+      nfailed++;
     }
   }
   

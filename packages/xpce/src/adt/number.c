@@ -268,7 +268,7 @@ static senddecl send_number[] =
   SM(NAME_convertOldSlot, 2, T_convertOldSlot, convertOldSlotNumber,
      NAME_file, "Convert old value slot to new representation"),
   SM(NAME_value, 1, T_arg, valueNumber,
-     NAME_assign, "Assign a value to the number"),
+     NAME_storage, "Assign a value to the number"),
   SM(NAME_divide, 1, T_arg, divideNumber,
      NAME_calculate, "Divide value by argument"),
   SM(NAME_maximum, 1, T_arg, maximumNumber,

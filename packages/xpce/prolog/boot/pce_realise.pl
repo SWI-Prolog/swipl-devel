@@ -26,6 +26,7 @@
 :- require([ pce_error/1
 	   , call/3
 	   , strip_module/3
+	   , notrace/1
 	   ]).
 
 :- dynamic
@@ -292,8 +293,7 @@ find_data(Goal) :-
 	Goal.
 
 pce_ifhostproperty(prolog(swi),
-		   (:- '$hide'('_bind_lazy', 4)),
-		   (notrace(G) :- G)).
+		   (:- '$hide'('_bind_lazy', 4))).
 pce_ifhostproperty(need_extern_declaration,
 		   (:- extern('_bind_lazy'(+term, +term, +term, +term)))).
 

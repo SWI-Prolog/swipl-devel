@@ -1,5 +1,5 @@
 
-/*  A Bison parser, made from ../src/gnu/getdate.y with Bison version GNU Bison version 1.22
+/*  A Bison parser, made from ../src/gnu/getdate.y with Bison version GNU Bison version 1.24
   */
 
 #define YYBISON 1  /* Identify Bison output.  */
@@ -54,7 +54,9 @@ extern void *pceFree(void *p);
 #endif
 #endif
 
+#ifndef WIN32
 extern struct tm *localtime();
+#endif
 
 #define yyparse getdate_yyparse
 #define yylex getdate_yylex
@@ -127,7 +129,7 @@ static time_t	yyRelMonth;
 static time_t	yyRelSeconds;
 
 
-#line 110 "../src/gnu/getdate.y"
+#line 112 "../src/gnu/getdate.y"
 typedef union {
     time_t		Number;
     enum _MERIDIAN	Meridian;
@@ -222,13 +224,13 @@ static const short yyrhs[] = {    -1,
 
 #if YYDEBUG != 0
 static const short yyrline[] = { 0,
-   124,   125,   128,   131,   134,   137,   140,   143,   146,   152,
-   158,   165,   171,   181,   185,   189,   196,   200,   204,   210,
-   214,   219,   223,   228,   232,   239,   243,   246,   249,   252,
-   255,   258,   261,   264,   267,   270,   275,   303,   306
+   126,   127,   130,   133,   136,   139,   142,   145,   148,   154,
+   160,   167,   173,   183,   187,   191,   198,   202,   206,   212,
+   216,   221,   225,   230,   234,   241,   245,   248,   251,   254,
+   257,   260,   263,   266,   269,   272,   277,   305,   308
 };
 
-static const char * const yytname[] = {   "$","error","$illegal.","tAGO","tDAY",
+static const char * const yytname[] = {   "$","error","$undefined.","tAGO","tDAY",
 "tDAYZONE","tID","tMERIDIAN","tMINUTE_UNIT","tMONTH","tMONTH_UNIT","tSEC_UNIT",
 "tSNUMBER","tUNUMBER","tZONE","tDST","':'","','","'/'","spec","item","time",
 "zone","day","date","rel","relunit","number","o_merid",""
@@ -291,14 +293,14 @@ static const short yycheck[] = {     0,
      8,    16,    10,    11,    13,     0,    13,    13,    44
 };
 /* -*-C-*-  Note some compilers choke on comments on `#line' lines.  */
-#line 3 "/usr/lib/bison.simple"
+#line 3 "/usr/local/share/bison.simple"
 
 /* Skeleton output parser for bison,
-   Copyright (C) 1984, 1989, 1990 Bob Corbett and Richard Stallman
+   Copyright (C) 1984, 1989, 1990 Free Software Foundation, Inc.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 1, or (at your option)
+   the Free Software Foundation; either version 2, or (at your option)
    any later version.
 
    This program is distributed in the hope that it will be useful,
@@ -310,6 +312,10 @@ static const short yycheck[] = {     0,
    along with this program; if not, write to the Free Software
    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.  */
 
+/* As a special exception, when this file is copied by Bison into a
+   Bison output file, you may use that output file without restriction.
+   This special exception was added by the Free Software Foundation
+   in version 1.24 of Bison.  */
 
 #ifndef alloca
 #ifdef __GNUC__
@@ -383,10 +389,18 @@ while (0)
 
 #ifdef YYPURE
 #ifdef YYLSP_NEEDED
+#ifdef YYLEX_PARAM
+#define YYLEX		yylex(&yylval, &yylloc, YYLEX_PARAM)
+#else
 #define YYLEX		yylex(&yylval, &yylloc)
+#endif
+#else /* not YYLSP_NEEDED */
+#ifdef YYLEX_PARAM
+#define YYLEX		yylex(&yylval, YYLEX_PARAM)
 #else
 #define YYLEX		yylex(&yylval)
 #endif
+#endif /* not YYLSP_NEEDED */
 #endif
 
 /* If nonreentrant, generate the variables here */
@@ -434,14 +448,14 @@ int yyparse (void);
 #endif
 
 #if __GNUC__ > 1		/* GNU C and GNU C++ define this.  */
-#define __yy_bcopy(FROM,TO,COUNT)	__builtin_memcpy(TO,FROM,COUNT)
+#define __yy_memcpy(FROM,TO,COUNT)	__builtin_memcpy(TO,FROM,COUNT)
 #else				/* not GNU C or C++ */
 #ifndef __cplusplus
 
 /* This is the most reliable way to avoid incompatibilities
    in available built-in functions on various systems.  */
 static void
-__yy_bcopy (from, to, count)
+__yy_memcpy (from, to, count)
      char *from;
      char *to;
      int count;
@@ -459,7 +473,7 @@ __yy_bcopy (from, to, count)
 /* This is the most reliable way to avoid incompatibilities
    in available built-in functions on various systems.  */
 static void
-__yy_bcopy (char *from, char *to, int count)
+__yy_memcpy (char *from, char *to, int count)
 {
   register char *f = from;
   register char *t = to;
@@ -472,9 +486,24 @@ __yy_bcopy (char *from, char *to, int count)
 #endif
 #endif
 
-#line 184 "/usr/lib/bison.simple"
+#line 192 "/usr/local/share/bison.simple"
+
+/* The user can define YYPARSE_PARAM as the name of an argument to be passed
+   into yyparse.  The argument should have type void *.
+   It should actually point to an object.
+   Grammar actions can access the variable by casting it
+   to the proper pointer type.  */
+
+#ifdef YYPARSE_PARAM
+#define YYPARSE_PARAM_DECL void *YYPARSE_PARAM;
+#else
+#define YYPARSE_PARAM
+#define YYPARSE_PARAM_DECL
+#endif
+
 int
-yyparse()
+yyparse(YYPARSE_PARAM)
+     YYPARSE_PARAM_DECL
 {
   register int yystate;
   register int yyn;
@@ -590,12 +619,12 @@ yynewstate:
       if (yystacksize > YYMAXDEPTH)
 	yystacksize = YYMAXDEPTH;
       yyss = (short *) alloca (yystacksize * sizeof (*yyssp));
-      __yy_bcopy ((char *)yyss1, (char *)yyss, size * sizeof (*yyssp));
+      __yy_memcpy ((char *)yyss1, (char *)yyss, size * sizeof (*yyssp));
       yyvs = (YYSTYPE *) alloca (yystacksize * sizeof (*yyvsp));
-      __yy_bcopy ((char *)yyvs1, (char *)yyvs, size * sizeof (*yyvsp));
+      __yy_memcpy ((char *)yyvs1, (char *)yyvs, size * sizeof (*yyvsp));
 #ifdef YYLSP_NEEDED
       yyls = (YYLTYPE *) alloca (yystacksize * sizeof (*yylsp));
-      __yy_bcopy ((char *)yyls1, (char *)yyls, size * sizeof (*yylsp));
+      __yy_memcpy ((char *)yyls1, (char *)yyls, size * sizeof (*yylsp));
 #endif
 #endif /* no yyoverflow */
 
@@ -756,37 +785,37 @@ yyreduce:
   switch (yyn) {
 
 case 3:
-#line 128 "../src/gnu/getdate.y"
+#line 130 "../src/gnu/getdate.y"
 {
 	    yyHaveTime++;
 	;
     break;}
 case 4:
-#line 131 "../src/gnu/getdate.y"
+#line 133 "../src/gnu/getdate.y"
 {
 	    yyHaveZone++;
 	;
     break;}
 case 5:
-#line 134 "../src/gnu/getdate.y"
+#line 136 "../src/gnu/getdate.y"
 {
 	    yyHaveDate++;
 	;
     break;}
 case 6:
-#line 137 "../src/gnu/getdate.y"
+#line 139 "../src/gnu/getdate.y"
 {
 	    yyHaveDay++;
 	;
     break;}
 case 7:
-#line 140 "../src/gnu/getdate.y"
+#line 142 "../src/gnu/getdate.y"
 {
 	    yyHaveRel++;
 	;
     break;}
 case 9:
-#line 146 "../src/gnu/getdate.y"
+#line 148 "../src/gnu/getdate.y"
 {
 	    yyHour = yyvsp[-1].Number;
 	    yyMinutes = 0;
@@ -795,7 +824,7 @@ case 9:
 	;
     break;}
 case 10:
-#line 152 "../src/gnu/getdate.y"
+#line 154 "../src/gnu/getdate.y"
 {
 	    yyHour = yyvsp[-3].Number;
 	    yyMinutes = yyvsp[-1].Number;
@@ -804,7 +833,7 @@ case 10:
 	;
     break;}
 case 11:
-#line 158 "../src/gnu/getdate.y"
+#line 160 "../src/gnu/getdate.y"
 {
 	    yyHour = yyvsp[-3].Number;
 	    yyMinutes = yyvsp[-1].Number;
@@ -814,7 +843,7 @@ case 11:
 	;
     break;}
 case 12:
-#line 165 "../src/gnu/getdate.y"
+#line 167 "../src/gnu/getdate.y"
 {
 	    yyHour = yyvsp[-5].Number;
 	    yyMinutes = yyvsp[-3].Number;
@@ -823,7 +852,7 @@ case 12:
 	;
     break;}
 case 13:
-#line 171 "../src/gnu/getdate.y"
+#line 173 "../src/gnu/getdate.y"
 {
 	    yyHour = yyvsp[-5].Number;
 	    yyMinutes = yyvsp[-3].Number;
@@ -834,56 +863,56 @@ case 13:
 	;
     break;}
 case 14:
-#line 181 "../src/gnu/getdate.y"
+#line 183 "../src/gnu/getdate.y"
 {
 	    yyTimezone = yyvsp[0].Number;
 	    yyDSTmode = DSToff;
 	;
     break;}
 case 15:
-#line 185 "../src/gnu/getdate.y"
+#line 187 "../src/gnu/getdate.y"
 {
 	    yyTimezone = yyvsp[0].Number;
 	    yyDSTmode = DSTon;
 	;
     break;}
 case 16:
-#line 190 "../src/gnu/getdate.y"
+#line 192 "../src/gnu/getdate.y"
 {
 	    yyTimezone = yyvsp[-1].Number;
 	    yyDSTmode = DSTon;
 	;
     break;}
 case 17:
-#line 196 "../src/gnu/getdate.y"
+#line 198 "../src/gnu/getdate.y"
 {
 	    yyDayOrdinal = 1;
 	    yyDayNumber = yyvsp[0].Number;
 	;
     break;}
 case 18:
-#line 200 "../src/gnu/getdate.y"
+#line 202 "../src/gnu/getdate.y"
 {
 	    yyDayOrdinal = 1;
 	    yyDayNumber = yyvsp[-1].Number;
 	;
     break;}
 case 19:
-#line 204 "../src/gnu/getdate.y"
+#line 206 "../src/gnu/getdate.y"
 {
 	    yyDayOrdinal = yyvsp[-1].Number;
 	    yyDayNumber = yyvsp[0].Number;
 	;
     break;}
 case 20:
-#line 210 "../src/gnu/getdate.y"
+#line 212 "../src/gnu/getdate.y"
 {
 	    yyMonth = yyvsp[-2].Number;
 	    yyDay = yyvsp[0].Number;
 	;
     break;}
 case 21:
-#line 214 "../src/gnu/getdate.y"
+#line 216 "../src/gnu/getdate.y"
 {
 	    yyMonth = yyvsp[-4].Number;
 	    yyDay = yyvsp[-2].Number;
@@ -891,14 +920,14 @@ case 21:
 	;
     break;}
 case 22:
-#line 219 "../src/gnu/getdate.y"
+#line 221 "../src/gnu/getdate.y"
 {
 	    yyMonth = yyvsp[-1].Number;
 	    yyDay = yyvsp[0].Number;
 	;
     break;}
 case 23:
-#line 223 "../src/gnu/getdate.y"
+#line 225 "../src/gnu/getdate.y"
 {
 	    yyMonth = yyvsp[-3].Number;
 	    yyDay = yyvsp[-2].Number;
@@ -906,14 +935,14 @@ case 23:
 	;
     break;}
 case 24:
-#line 228 "../src/gnu/getdate.y"
+#line 230 "../src/gnu/getdate.y"
 {
 	    yyMonth = yyvsp[0].Number;
 	    yyDay = yyvsp[-1].Number;
 	;
     break;}
 case 25:
-#line 232 "../src/gnu/getdate.y"
+#line 234 "../src/gnu/getdate.y"
 {
 	    yyMonth = yyvsp[-1].Number;
 	    yyDay = yyvsp[-2].Number;
@@ -921,68 +950,68 @@ case 25:
 	;
     break;}
 case 26:
-#line 239 "../src/gnu/getdate.y"
+#line 241 "../src/gnu/getdate.y"
 {
 	    yyRelSeconds = -yyRelSeconds;
 	    yyRelMonth = -yyRelMonth;
 	;
     break;}
 case 28:
-#line 246 "../src/gnu/getdate.y"
+#line 248 "../src/gnu/getdate.y"
 {
 	    yyRelSeconds += yyvsp[-1].Number * yyvsp[0].Number * 60L;
 	;
     break;}
 case 29:
-#line 249 "../src/gnu/getdate.y"
+#line 251 "../src/gnu/getdate.y"
 {
 	    yyRelSeconds += yyvsp[-1].Number * yyvsp[0].Number * 60L;
 	;
     break;}
 case 30:
-#line 252 "../src/gnu/getdate.y"
+#line 254 "../src/gnu/getdate.y"
 {
 	    yyRelSeconds += yyvsp[0].Number * 60L;
 	;
     break;}
 case 31:
-#line 255 "../src/gnu/getdate.y"
+#line 257 "../src/gnu/getdate.y"
 {
 	    yyRelSeconds += yyvsp[-1].Number;
 	;
     break;}
 case 32:
-#line 258 "../src/gnu/getdate.y"
+#line 260 "../src/gnu/getdate.y"
 {
 	    yyRelSeconds += yyvsp[-1].Number;
 	;
     break;}
 case 33:
-#line 261 "../src/gnu/getdate.y"
+#line 263 "../src/gnu/getdate.y"
 {
 	    yyRelSeconds++;
 	;
     break;}
 case 34:
-#line 264 "../src/gnu/getdate.y"
+#line 266 "../src/gnu/getdate.y"
 {
 	    yyRelMonth += yyvsp[-1].Number * yyvsp[0].Number;
 	;
     break;}
 case 35:
-#line 267 "../src/gnu/getdate.y"
+#line 269 "../src/gnu/getdate.y"
 {
 	    yyRelMonth += yyvsp[-1].Number * yyvsp[0].Number;
 	;
     break;}
 case 36:
-#line 270 "../src/gnu/getdate.y"
+#line 272 "../src/gnu/getdate.y"
 {
 	    yyRelMonth += yyvsp[0].Number;
 	;
     break;}
 case 37:
-#line 275 "../src/gnu/getdate.y"
+#line 277 "../src/gnu/getdate.y"
 {
 	    if (yyHaveTime && yyHaveDate && !yyHaveRel)
 		yyYear = yyvsp[0].Number;
@@ -1011,20 +1040,20 @@ case 37:
 	;
     break;}
 case 38:
-#line 303 "../src/gnu/getdate.y"
+#line 305 "../src/gnu/getdate.y"
 {
 	    yyval.Meridian = MER24;
 	;
     break;}
 case 39:
-#line 306 "../src/gnu/getdate.y"
+#line 308 "../src/gnu/getdate.y"
 {
 	    yyval.Meridian = yyvsp[0].Meridian;
 	;
     break;}
 }
    /* the action file gets copied in in place of this dollarsign */
-#line 465 "/usr/lib/bison.simple"
+#line 487 "/usr/local/share/bison.simple"
 
   yyvsp -= yylen;
   yyssp -= yylen;
@@ -1220,7 +1249,7 @@ yyerrhandle:
   yystate = yyn;
   goto yynewstate;
 }
-#line 311 "../src/gnu/getdate.y"
+#line 313 "../src/gnu/getdate.y"
 
 
 /* Month and day table. */

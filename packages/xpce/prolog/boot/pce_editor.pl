@@ -55,12 +55,16 @@ make_editor_recogniser(R) :-
 			      message(Editor, selection_unit, character),
 			      message(Editor, selection_origin, DownIndex)),
 			  and(message(R, saved_caret, Editor?caret),
-			      message(R, down_index, Index))))),
+			      message(R, down_index, Index),
+			      if(?(Editor, resource_value,
+				   caret_moves_on_select) == @on,
+				 message(Editor, caret, DownIndex)))))),
 	send(L, max_drag_distance, 25),			  
 				  
 	send(R, append,
 	     click_gesture(middle, '', single,
-			   message(Editor, import_selection))),
+			   and(message(Editor, paste),
+			       message(Editor, mark_undo)))),
 
 	make_make_selection_gesture(R, MakeSelectionGesture),
 	make_extend_selection_gesture(ExtendGesture),
@@ -79,7 +83,10 @@ make_make_selection_gesture(R, G) :-
 		 and(message(Editor, selection_unit,
 			     when(@arg1?multiclick == single,
 				  character,
-				  progn(message(Editor, caret, R?saved_caret),
+				  progn(if(?(Editor, resource_value,
+					     caret_moves_on_select) == @off,
+					   message(Editor, caret,
+						   R?saved_caret)),
 					when(@arg1?multiclick == double,
 					     word, line)))),
 		     message(Editor, selection_origin, Index)))),
@@ -89,7 +96,8 @@ make_make_selection_gesture(R, G) :-
 	send(G, send_method,
 	     send_method(terminate, vector(event),
 			 and(message(Editor, selection_extend, Index),
-			     message(Editor, export_selection)))).
+			     if(?(Editor, resource_value, auto_copy) == @on,
+				message(Editor, copy))))).
 					 
 
 make_extend_selection_gesture(G) :-
@@ -114,35 +122,6 @@ make_extend_selection_gesture(G) :-
 	send(G, send_method,
 	     send_method(terminate, vector(event),
 			 and(message(Editor, selection_extend, Index),
-			     message(Editor, export_selection)))).
+			     if(?(Editor, resource_value, auto_copy) == @on,
+				message(Editor, copy))))).
 					 
-
-:- pce_extend_class(editor).
-
-export_selection(E) :->
-	"Export the selection to the X11 world"::
-	send(E, selection_to_cut_buffer),
-	get(E, display, Display),
-	(   get(Display, selection_owner, E)
-	->  true
-	;   send(Display, selection_owner, E, primary,
-		 @receiver?selected,
-		 message(@receiver, selection, 0, 0))
-	).
-
-
-import_selection(E) :->
-	"Import the (primary) selection or the cut_buffer"::
-	(   get(E, editable, @on)
-	->  get(E, display, Display),
-	    (   pce_catch_error(get_selection, get(Display, selection, String)),
-		send(E, insert, String),
-		send(String, done)
-	    ;   send(E, insert_cut_buffer)
-	    )
-	;   send(E, report, warning, 'Text is read-only'),
-	    fail
-	).
-	
-
-:- pce_end_class.

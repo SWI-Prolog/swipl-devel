@@ -27,7 +27,7 @@
 pce_ifhostproperty(prolog(quintus),
 		   (:- use_module(library(strings), [concat_chars/2]))).
 
-:- emacs_begin_mode(prolog, outline,
+:- emacs_begin_mode(prolog, language,
 		    "Mode for editing XPCE/Prolog sources",
 					% BINDINGS
 	[ indent_line		       = key('TAB'),

@@ -27,6 +27,64 @@ initialiseTabStack(TabStack t, int argc, Tab tabs[])
 }
 
 		 /*******************************
+		 *	      REDRAW		*
+		 *******************************/
+
+static status
+RedrawAreaTabStack(TabStack t, Area a)
+{ Device dev = (Device) t;
+  device_draw_context ctx;
+
+  if ( EnterRedrawAreaDevice(dev, a, &ctx) )
+  { Cell cell;
+
+    for_cell(cell, dev->graphicals)
+    { Graphical gr = cell->value;
+
+      if ( overlapArea(a, gr->area) )
+	RedrawArea(gr, a);
+    }
+
+    ExitRedrawAreaDevice(dev, a, &ctx);
+  }
+
+  return RedrawAreaGraphical(dev, a);
+}
+
+		 /*******************************
+		 *	       EVENT		*
+		 *******************************/
+
+static status
+eventTabStack(TabStack t, EventObj ev)
+{ Cell cell;
+
+  for_cell(cell, t->graphicals)
+  { if ( instanceOfObject(cell->value, ClassTab) )
+    { Tab tab = cell->value;
+      Int X, Y;
+      int x, y;
+
+      get_xy_event(ev, tab, OFF, &X, &Y);
+      x = valInt(X), y = valInt(Y);
+
+      if ( y < 0 )			/* tab-bar */
+      { if ( isDownEvent(ev) &&
+	     y > -valInt(tab->label_size->h) &&
+	     x > valInt(tab->label_offset) &&
+	     x < valInt(tab->label_offset) + valInt(tab->label_size->w) )
+	{ send(t, NAME_onTop, tab, 0);	/* TBD: use gesture? */
+	  succeed;
+	}
+      }
+    }
+  }
+
+  return eventDevice(t, ev);
+}
+
+
+		 /*******************************
 		 *	     MEMBERS		*
 		 *******************************/
 
@@ -82,7 +140,13 @@ layoutDialogTabStack(TabStack ts, Size s)
   { struct area a;
 
     for_cell(cell, ts->graphicals)
+    { Graphical gr = cell->value;
+      Bool old = gr->displayed;
+
+      assign(gr, displayed, ON);	/* why? */
       send(cell->value, NAME_layoutDialog, 0);
+      assign(gr, displayed, old);
+    }
     
     initHeaderObj(&a, ClassArea);
     a.x = a.y = a.w = a.h = ZERO;
@@ -101,8 +165,9 @@ layoutDialogTabStack(TabStack ts, Size s)
   h -= valInt(first->label_size->h);
 
   for_cell(cell, ts->graphicals)
-  { send(cell->value, NAME_size,
-	 answerObject(ClassSize, toInt(w), toInt(h), 0), 0);
+  { Size sz = answerObject(ClassSize, toInt(w), toInt(h), 0);
+
+    send(cell->value, NAME_size, sz, 0);
   }
 
   succeed;
@@ -148,6 +213,8 @@ getOnTopTabStack(TabStack ts)
 static senddecl send_tab_stack[] =
 { SM(NAME_initialise, 1, "member=tab ...", initialiseTabStack,
      DEFAULT, "Create from list of tab objects"),
+  SM(NAME_event, 1, "event", eventTabStack,
+     NAME_event, "Process an event"),
   SM(NAME_append, 1, "tab", appendTabStack,
      NAME_organisation, "Append a tab object"),
   SM(NAME_layoutLabels, 0, NULL, layoutLabelsTabStack,
@@ -176,6 +243,7 @@ ClassDecl(tab_stack_decls,
 status
 makeClassTabStack(Class class)
 { declareClass(class, &tab_stack_decls);
+  setRedrawFunctionClass(class, RedrawAreaTabStack);
 
   succeed;
 }

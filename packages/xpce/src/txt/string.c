@@ -564,6 +564,29 @@ str_insert_string(StringObj str, Int where, String s)
 }
 
 
+					/* used in text <-selected */
+StringObj
+getSubString(StringObj n, Int start, Int end)
+{ string s;
+  int x, y;
+  int len = n->data.size;
+
+  x = valInt(start);
+  y = (isDefault(end) ? len : valInt(end));
+  if ( x < 0 || y > len || x > y )
+    fail;
+
+  str_cphdr(&s, &n->data);
+  s.size = y-x;
+  if ( isstr8(&n->data) )
+    s.s_text8 = &n->data.s_text8[x];
+  else
+    s.s_text16 = &n->data.s_text16[x];
+  
+  answer(StringToString(&s));
+}
+
+
 		 /*******************************
 		 *	 CLASS DECLARATION	*
 		 *******************************/

@@ -141,8 +141,12 @@ RedrawAreaNode(Node node)
 static status
 RedrawAreaTree(Tree t, Area area)
 { device_draw_context ctx;
+  Any bg, obg;
 
-  RedrawBoxFigure((Figure)t, area);	/* surrounding box and background */
+  if ( notNil(bg = RedrawBoxFigure((Figure)t, area)) )
+    obg = r_background(bg);
+  else
+    obg = NULL;
 
   if ( EnterRedrawAreaDevice((Device)t, area, &ctx) )
   { Cell cell;
@@ -176,7 +180,12 @@ RedrawAreaTree(Tree t, Area area)
     ExitRedrawAreaDevice((Device)t, area, &ctx);
   }
 
-  return RedrawAreaGraphical(t, area);	/* selection and orther generic stuff*/
+  RedrawAreaGraphical(t, area);	/* selection and orther generic stuff*/
+  
+  if ( obg )
+    r_background(obg);
+
+  succeed;
 }
 
 

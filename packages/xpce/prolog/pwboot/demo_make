@@ -2,7 +2,7 @@
 
 .pl.qof:
 	@rm -f $@
-	qpc -L ../library -L ../library/dialog/lib -i ../library/pce_qpc.qof -Nc $*.pl
+	qpc -L ../library -i ../library/pce_qpc.qof -Nc $*.pl
 
 DEMOQOFS=biff.qof \
 	chess.qof \

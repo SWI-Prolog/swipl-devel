@@ -281,6 +281,9 @@ static struct class_definition classdefs[] =
   { NAME_moveGesture, NAME_gesture, makeClassMoveGesture,
     &ClassMoveGesture, "Gesture to move an object by dragging" },
 
+  { NAME_editTextGesture, NAME_gesture, makeClassEditTextGesture,
+    &ClassEditTextGesture, "Edit a text-object" },
+
   { NAME_moveOutlineGesture, NAME_moveGesture, makeClassMoveOutlineGesture,
     &ClassMoveOutlineGesture, "Gesture to move an object by outline" },
 

@@ -110,6 +110,7 @@ status		upcaseString(StringObj s);
 status		deleteString(StringObj str, Int start, Int length);
 status		insertString(StringObj s1, Int n, CharArray s2);
 status		str_insert_string(StringObj str, Int where, String s);
+StringObj	getSubString(StringObj n, Int start, Int end);
 status		makeClassString(Class class);
 
 /* txt/style.c */

@@ -407,9 +407,8 @@ pceDispatch(int fd, int time)
   } else
   {
 #ifndef HAVE_SELECT
-    while( !kbhit() )
-      ;
-    return PCE_DISPATCH_INPUT;
+    ws_dispatch(toInt(fd), toInt(time));
+    return PCE_DISPATCH_TIMEOUT;
 #else
     if ( time > 0 )
     { struct timeval timeout;

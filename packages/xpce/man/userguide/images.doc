@@ -56,10 +56,10 @@ XBM	   & -&-&-&  +	  &  +		      &   +  &  -   \\
 \hline
 \multicolumn{8}{|c|}{Large rectangular images} \\
 \hline
-JPEG	   & +&-&-&  -	  &  -		      &   +  &  -   \\
-GIF	   & +&-&-&  -	  &  -		      &   +  &  -   \\
+JPEG	   & +&-&-&  +	  &  -		      &   +  &  -   \\
+GIF	   & +&-&-&  +	  &  -		      &   +  &  -   \\
 BMP	   & +&-&-&  -	  &  -		      &   +  &  -   \\
-PNM	   & +&-&-&  +	  &  +		      &   +  &  -   \\
+PNM	   & +&-&-&  +	  &  +		      &   +  &  +   \\
 \hline
 \end{tabular}
 \end{center}

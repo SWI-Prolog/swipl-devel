@@ -67,6 +67,9 @@ returns the bounding box of all displayed <-graphicals.
 #class display
 #end class
 
+#class application
+#end class
+
 #class display_manager
 #description group current
 The methods below deal with the notion of `current' display.  This idea

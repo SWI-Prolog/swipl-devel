@@ -33,7 +33,9 @@ extern void *pceFree(void *p);
 #endif
 #endif
 
+#ifndef WIN32
 extern struct tm *localtime();
+#endif
 
 #define yyparse getdate_yyparse
 #define yylex getdate_yylex

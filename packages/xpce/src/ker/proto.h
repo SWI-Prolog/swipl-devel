@@ -307,6 +307,8 @@ status		loadSlotsObject(Any obj, FILE *fd, ClassDef def);
 /* ker/self.c */
 status		formatPcev(Pce pce, CharArray fmt, int argc, Any *argv);
 Name		getOsErrorPce(Pce pce);
+status		catchErrorPce(Pce pce, Any ids);
+status		catchPopPce(Pce pce);
 status		catchedErrorPce(Pce pce, Name id);
 Name		getEnvironmentVariablePce(Pce pce, Name name);
 status		tracePce(Pce pce, Name val);

@@ -192,31 +192,6 @@ ws_realise_frame(FrameObj fr)
 
 
 		 /*******************************
-		 *	    VISIBILITY		*
-		 *******************************/
-
-void
-ws_show_frame(FrameObj fr, Bool grab)
-{ Widget w = widgetFrame(fr);
-
-  if ( w )
-  { if ( grab == ON )
-      XtPopupSpringLoaded(w);
-    else
-      XtPopup(w, XtGrabNone);
-  }
-}
-
-
-void
-ws_unshow_frame(FrameObj fr)
-{ Widget w = widgetFrame(fr);
-  
-  if ( w )
-    XtPopdown(w);
-}
-
-		 /*******************************
 		 *   FIND WINDOW HOLDING POINT	*
 		 *******************************/
 
@@ -366,7 +341,7 @@ x_event_frame(Widget w, FrameObj fr, XEvent *event)
 	send(cell->value, NAME_displayed, ON, 0);
       updateAreaFrame(fr, DEFAULT);
       send(fr, NAME_mapped, ON, 0);
-      assign(fr, status, NAME_open);
+      assign(fr, status, NAME_window);
       return;
     }
     case UnmapNotify:
@@ -813,29 +788,30 @@ ws_get_icon_position_frame(FrameObj fr, int *x, int *y)
 
 
 void
-ws_iconify_frame(FrameObj fr)
+ws_status_frame(FrameObj fr, Name status)
 { Widget w = widgetFrame(fr);
 
-  if ( w )
-  { Arg args[1];
-    XtSetArg(args[0], XtNiconic, True);
-    XtSetValues(w, args, 1);
+  if ( status == NAME_window || status == NAME_fullScreen )
+  { if ( w )
+      XtPopup(w, XtGrabNone);
+  } else if ( status == NAME_iconic )
+  { if ( w )
+    { Arg args[1];
+      XtSetArg(args[0], XtNiconic, True);
+      XtSetValues(w, args, 1);
+    }
+  } else if ( status == NAME_hidden )
+  { if ( w )
+      XtPopdown(w);
   }
 }
 
 
 void
-ws_deiconify_frame(FrameObj fr)
-{ Widget w = widgetFrame(fr);
-DisplayWsXref r = fr->display->ws_ref;
-
-  if ( w )
-  { Arg args[1];
-    XtSetArg(args[0], XtNiconic, False);
-    XtSetValues(w, args, 1);
-    XMapWindow(r->display_xref, XtWindow(w));
-  }
+ws_topmost_frame(FrameObj fr, Bool topmost)
+{ 
 }
+
 
 		 /*******************************
 		 *	       LABEL		*

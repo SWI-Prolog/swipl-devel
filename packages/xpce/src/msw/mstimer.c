@@ -66,7 +66,7 @@ ws_status_timer(Timer tm, Name status)
     { if ( !TimerTable )
       { TimerTable = globalObject(CtoName("active_timers"),
 				  ClassHashTable, 0);
-	assign(TimerTable, refer, OFF);
+	assign(TimerTable, refer, NAME_none);
       }
       appendHashTable(TimerTable, toInt(id), tm);
       setIdTimer(tm, id);

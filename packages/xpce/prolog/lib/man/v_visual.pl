@@ -11,7 +11,6 @@
 :- module(pce_visual, []).
 
 :- use_module(library(pce)).
-:- ensure_loaded(library(pce_selection)).
 :- require([ concat_atom/2
 	   , ignore/1
 	   , portray_object/2
@@ -117,6 +116,7 @@ make_vis_node_handler(H) :-
 	new(CanFlash, ?(Visual?class, send_method, flash)),
 	new(CanExpand, ?(Visual, contains)),
 	new(Tool, Node?frame),
+	new(Manual, Tool?manual),
 
 	new(H, handler_group(
 		popup_gesture(new(P, popup)),
@@ -155,11 +155,11 @@ make_vis_node_handler(H) :-
 			      Visual \== @display_manager)
 		  , menu_item(source,
 			      and(message(Tool, selection, Node),
-				  message(@manual, request_source,
+				  message(Manual, request_source,
 					  Visual?class)))
 		  , menu_item(inspect,
 			      and(message(Tool, selection, Node),
-				  message(@manual, inspect, Visual)),
+				  message(Manual, inspect, Visual)),
 			      @default, @off)
 		  , menu_item(tile_hierarchy,
 			      and(message(Tool, selection, Node),

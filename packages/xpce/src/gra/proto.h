@@ -74,7 +74,7 @@ status		makeClassEllipse(Class class);
 
 /* gra/figure.c */
 status		initialiseFigure(Figure f);
-status		RedrawBoxFigure(Figure f, Area area);
+Any		RedrawBoxFigure(Figure f, Area area);
 status		RedrawAreaFigure(Figure f, Area area);
 status		computeFigure(Figure f);
 status		makeClassFigure(Class class);
@@ -287,6 +287,7 @@ status		makeClassScrollBar(Class class);
 status		computeText(TextObj t);
 void		str_format(String out, const String in, const int width, const FontObj font);
 status		repaintText(TextObj t, int x, int y, int w, int h);
+Int		get_pointed_text(TextObj t, int x, int y);
 status		transparentText(TextObj t, Bool val);
 Bool		getTransparentText(TextObj t);
 status		fontText(TextObj t, FontObj font);

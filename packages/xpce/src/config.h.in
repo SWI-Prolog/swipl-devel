@@ -54,6 +54,9 @@
 /* Define if you have BSD signals (i.e. signal handler does *not* reset */
 #undef BSD_SIGNALS
 
+/* Define if you have the jpeg library (-ljpeg).  */
+#undef HAVE_LIBJPEG
+
 /* Define if you have the Xpm library (-lXpm).  */
 #undef HAVE_LIBXPM
 

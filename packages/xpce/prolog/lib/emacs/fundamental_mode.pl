@@ -9,7 +9,6 @@
 
 :- module(emacs_fundamental_mode, []).
 :- use_module(library(pce)).
-:- use_module(library(pce_selection)).
 :- require([ append/3
 	   , auto_call/1
 	   , between/3
@@ -216,25 +215,6 @@ delete_rectangle(M) :->
 	
 */
 
-
-cut(M) :->
-	"Delete selection and copy to clipboard"::
-	send(M, copy),
-	send(M, delete_selection).
-
-
-copy(M) :->
-	"Copy selection to clipboard"::
-	get(M, selected, String),
-	send(M?display, copy, String).
-
-
-paste(M) :->
-	"Insert the current clipboard"::
-	get(M?display, paste, Value),
-	send(M, insert, Value).
-
-
 		 /*******************************
 		 *	      LOAD/SAVE		*
 		 *******************************/
@@ -387,7 +367,10 @@ replace_end(M) :-
 	    replace_end(M),
 	    send(M, report, status, 'Done.')
 	;   Id == 0'n				% donot replace and continue
-	->  replace_find_and_mark(M)
+	->  (   replace_find_and_mark(M)
+	    ->	true
+	    ;	get(M, focus_function, @nil)
+	    )
 	;   Id == 27				% exit
 	->  replace_end(M)
 	;   Id == 0'!				% replace no-query

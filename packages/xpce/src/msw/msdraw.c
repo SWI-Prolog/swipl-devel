@@ -8,6 +8,7 @@
 */
 
 #include "include.h"
+#include <h/text.h>
 #include <math.h>
 #ifndef M_PI
 #define M_PI (3.141593)
@@ -1672,6 +1673,11 @@ r_3d_triangle(int x1, int y1, int x2, int y2, int x3, int y3,
   HPEN top_pen, bot_pen;
   int z = valInt(e->height);
 
+  if ( !e || isNil(e) )
+  { r_triangle(x1, y1, x2, y2, x3, y3, up ? NIL : BLACK_COLOUR);
+    return;
+  }
+
   r_elevation(e);
 
   if ( !up )
@@ -1948,7 +1954,7 @@ r_image(Image image,
 { if ( w > 0 && h > 0 &&
        image->size->w != ZERO && image->size->h != ZERO )
   { if ( image->ws_ref && ((WsImage)image->ws_ref)->msw_info &&
-	 isNil(image->mask) && transparent == ON )
+	 isNil(image->mask) /*&& transparent == ON*/ )
     { WsImage wsi = image->ws_ref;
 
       if ( transparent == ON /*&& image->kind == NAME_bitmap*/ )
@@ -1970,18 +1976,15 @@ r_image(Image image,
 		      wsi->data, wsi->msw_info, DIB_RGB_COLORS, SRCCOPY);
       }
     } else
-    { HBITMAP bm = (HBITMAP) getXrefObject(image, context.display);
+    { HBITMAP obm, bm = (HBITMAP) getXrefObject(image, context.display);
       HDC mhdc = CreateCompatibleDC(context.hdc);
-      HBITMAP obm = ZSelectObject(mhdc, bm);
       HPALETTE ohpal = NULL;
   
       if ( context.hpal )
 	ohpal = SelectPalette(mhdc, context.hpal, FALSE);
 
-      DEBUG(NAME_redraw,
-	    Cprintf("r_image(%s, %d, %d, %d, %d, %d, %d) (bm=0x%x)\n",
-		    pp(image), sx, sy, x, y, w, h, (long)bm));
-      
+      obm = ZSelectObject(mhdc, bm);
+
       if ( transparent == ON && image->kind == NAME_bitmap )
       { HBRUSH hbrush = ZCreateSolidBrush(context.rgb);
 	HBRUSH oldbrush = ZSelectObject(context.hdc, hbrush);
@@ -1997,27 +2000,40 @@ r_image(Image image,
 	ZSelectObject(context.hdc, oldbrush);
 	ZDeleteObject(hbrush);
       } else if ( notNil(image->mask) )
-#if 1
       { HBITMAP msk = (HBITMAP) getXrefObject(image->mask, context.display);
 	HDC chdc = CreateCompatibleDC(context.hdc);
 	HBITMAP obm = ZSelectObject(chdc, msk);
+	COLORREF oldbg, oldfg;
 
+	oldbg = SetBkColor(context.hdc, RGB(255,255,255));
+	oldfg = SetTextColor(context.hdc, RGB(0,0,0));
 	BitBlt(context.hdc, x, y, w, h, chdc, sx, sy, SRCAND);
-	BitBlt(context.hdc, x, y, w, h, mhdc, sx, sy, SRCPAINT);
+	SetBkColor(context.hdc, oldbg);
+	SetTextColor(context.hdc, oldfg);
+
+	if ( image->kind == NAME_bitmap )
+	{ HDC hdc = CreateCompatibleDC(context.hdc);
+	  HBITMAP otbm, tbm = ZCreateCompatibleBitmap(context.hdc, w, h);
+	  otbm = ZSelectObject(hdc, tbm);
+
+	  oldbg = SetBkColor(hdc, context.background_rgb);
+	  oldfg = SetTextColor(hdc, context.rgb);
+	  BitBlt(hdc, 0, 0, w, h, mhdc, sx, sy, SRCCOPY);
+	  SetBkColor(hdc, RGB(0,0,0));
+	  SetTextColor(hdc, RGB(255,255,255));
+	  BitBlt(hdc, 0, 0, w, h, chdc, sx, sy, SRCAND);
+	  SetBkColor(hdc, oldbg);
+	  SetTextColor(hdc, oldfg);
+	  BitBlt(context.hdc, x, y, w, h, hdc, 0, 0, SRCPAINT);
+	  ZSelectObject(hdc, otbm);
+	  ZDeleteObject(tbm);
+	  DeleteDC(hdc);
+	} else
+	{ BitBlt(context.hdc, x, y, w, h, mhdc, sx, sy, SRCPAINT);
+	}
 
 	ZSelectObject(chdc, obm);
 	DeleteDC(chdc);
-#else
-      { HBITMAP msk = (HBITMAP) getXrefObject(image->mask, context.display);
-
-	MaskBlt(context.hdc,
-		x, y, w, h,
-		mhdc,
-		sx, sy,
-		msk,
-		sx, sy,
-		MAKEROP4(SRCPAINT, SRCCOPY));
-#endif
       } else
       { BitBlt(context.hdc, x, y, w, h, mhdc, sx, sy, SRCCOPY);
       }
@@ -2070,7 +2086,7 @@ r_copy(int xf, int yf, int xt, int yt, int w, int h)
 
 
 void
-r_fill(int x, int y, int w, int h, Image pattern)
+r_fill(int x, int y, int w, int h, Any fill)
 { RECT rect;
   HBRUSH hbrush;
 
@@ -2079,7 +2095,7 @@ r_fill(int x, int y, int w, int h, Image pattern)
   rect.top    = y;
   rect.bottom = y + h;
 
-  hbrush = r_fillbrush(pattern);
+  hbrush = r_fillbrush(fill);
   FillRect(context.hdc, &rect, hbrush);
 }
 
@@ -2148,7 +2164,7 @@ r_fill_triangle(int x1, int y1, int x2, int y2, int x3, int y3)
 
 
 void
-r_triangle(int x1, int y1, int x2, int y2, int x3, int y3)
+r_triangle(int x1, int y1, int x2, int y2, int x3, int y3, Any fill)
 { POINT pts[3];
 
   pts[0].x = x1;
@@ -2158,7 +2174,7 @@ r_triangle(int x1, int y1, int x2, int y2, int x3, int y3)
   pts[2].x = x3;
   pts[2].y = y3;
 
-  r_fillpattern(BLACK_COLOUR, NAME_foreground);
+  r_fillpattern(fill, NAME_foreground);
   Polygon(context.hdc, pts, sizeof(pts)/sizeof(POINT));
 }
 
@@ -2379,7 +2395,7 @@ void
 s_print8(char8 *s, int l, int x, int y, FontObj f)
 { if ( l > 0 )
   { s_font(f);
-    y -= s_ascent(f);
+    y -= context.wsf->ascent;
     TextOut(context.hdc, x, y, s, l);
   }
 }
@@ -2387,7 +2403,7 @@ s_print8(char8 *s, int l, int x, int y, FontObj f)
 
 void
 s_print16(char16 *s, int l, int x, int y, FontObj f)
-{ Cprintf("16-bits characters are not (yet) supported on XPCE for Windows\n");
+{ Cprintf("16-bits characters are not supported on XPCE for Windows\n");
 }
 
 
@@ -2674,3 +2690,86 @@ str_label(String s, int acc, FontObj font, int x, int y, int w, int h,
 
   SetTextAlign(context.hdc, oalign);
 }
+
+
+static void
+str_stext(String s, int f, int len, Style style)
+{ if ( len > 0 )
+  { Any ofg = NULL;
+
+    if ( notNil(style) )
+    { if ( notDefault(style->background) )
+      { POINT here;
+	int w = s_width_(s, f, f+len);
+	int a = context.wsf->ascent;
+	int b = context.wsf->descent;
+
+	MoveToEx(context.hdc, 0, 0, &here);
+	r_fill(here.x, here.y-a, w, b+a, style->background);
+	MoveToEx(context.hdc, here.x, here.y, NULL);
+      }
+      if ( notDefault(style->colour) )
+	ofg = r_colour(style->colour);
+    }
+
+    if ( isstr8(s) )
+    { TextOut(context.hdc, 0, 0, s->s_text8+f, len);
+    } else
+    { Cprintf("16-bits characters are not supported on XPCE for Windows\n");
+    }
+
+    if ( ofg )
+      r_colour(ofg);
+  }
+}
+
+
+void
+str_selected_string(String s, FontObj font,
+		    int f, int t, Style style,	/* selection parameters */
+		    int x, int y, int w, int h,
+		    Name hadjust, Name vadjust)
+{ strTextLine lines[MAX_TEXT_LINES];
+  strTextLine *line;
+  int nlines, n;
+  int baseline;
+  int here = 0;
+  UINT oalign;
+
+  if ( s->size == 0 )
+    return;
+
+  s_font(font);
+  baseline = context.wsf->ascent;
+  str_break_into_lines(s, lines, &nlines);
+  str_compute_lines(lines, nlines, font, x, y, w, h, hadjust, vadjust);
+
+  oalign = SetTextAlign(context.hdc, TA_BASELINE|TA_LEFT|TA_UPDATECP);
+    
+  for(n=0, line = lines; n++ < nlines; line++)
+  { int len = line->text.size;
+
+    MoveToEx(context.hdc, line->x, line->y+baseline, NULL);
+
+    if ( t <= here || f >= here+len || f == t )	/* outside */
+      str_stext(&line->text, 0, len, NIL);
+    else
+    { int sf, sl;
+
+      sf = (f <= here     ?      0 : f-here);
+      sl = (t >= here+len ? len-sf : t-here-sf);
+      
+      str_stext(&line->text, 0,  sf, NIL);
+      str_stext(&line->text, sf, sl, style);
+      if ( sf+sl < len )
+      { int a  = sf+sl;
+	str_stext(&line->text, a, len-a, NIL);
+      }
+    }
+
+    here += len + 1;			/* 1 for the newline */
+  }
+
+  SetTextAlign(context.hdc, oalign);
+}
+

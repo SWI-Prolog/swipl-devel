@@ -1703,17 +1703,17 @@ freeHypersObject(Any obj, Name hname, Code cond)
   { Hyper h;
 
     for_chain(ch, h,
-	      { if ( ( ( h->from == obj &&
-			 (hname == h->forward_name || isDefault(hname))
-		       ) ||
-		       ( h->to == obj &&
-			 (hname == h->backward_name || isDefault(hname))
-		       )
-		     ) &&
-		     ( isDefault(cond) ||
-		       forwardCode(cond, h->to, h, h->from, 0)
-		     ) )
-		  freeObject(h);
+	      { if ( h->from == obj )
+		{ if ( (hname == h->forward_name || isDefault(hname)) &&
+		       (isDefault(cond) ||
+			forwardCode(cond, h->from, h, h->to, 0)) )
+		    freeObject(h);
+		} else
+		{ if ( (hname == h->backward_name || isDefault(hname)) &&
+		       (isDefault(cond) ||
+			forwardCode(cond, h->to, h, h->from, 0)) )
+		    freeObject(h);
+		}
 	      });
   }
 

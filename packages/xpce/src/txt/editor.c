@@ -53,6 +53,9 @@ static status		tabDistanceEditor(Editor e, Int tab);
 static status		isisearchingEditor(Editor e);
 static status		showLabelEditor(Editor e, Bool val);
 static Int		countLinesEditor(Editor e, Int from, Int to);
+static status		deleteEditor(Editor e, Int from, Int to);
+static status		deleteSelectionEditor(Editor e);
+static status		abortIsearchEditor(Editor e);
 
 static Timer	ElectricTimer;
 
@@ -63,6 +66,7 @@ static Timer	ElectricTimer;
 			  { Int _tmp = t; t = f; f = _tmp; \
 			  } \
 			}
+#define HasSelection(e) ((e)->selection_start != (e)->selection_end)
 
 /* Scroll using line-parameters upto this size for the buffer */
 #define MAXLINEBASEDSCROLLING 25000
@@ -1240,7 +1244,9 @@ reportEditor(Editor e, Name kind, CharArray fm, int argc, Any *argv)
 
 status
 forwardModifiedEditor(Editor e, Bool val)
-{ if ( notNil(e->modified_message) )
+{ abortIsearchEditor(e);
+
+  if ( notNil(e->modified_message) )
     forwardReceiverCode(e->modified_message, Receiver(e), val, 0);
 
   succeed;
@@ -1380,10 +1386,18 @@ static status
 eventEditor(Editor e, EventObj ev)
 { status rval = event_editor(e, ev);
   
-  if ( notNil(e->text_buffer) && notNil(e->request_compute) )
-  { markUndoTextBuffer(e->text_buffer);
-    assign(e, caret, normalise_index(e, e->caret));
-    ensureVisibleEditor(e, e->caret, e->caret);
+  if ( rval && !isFreedObj(e) )
+  { if ( isAEvent(ev, NAME_keyboard) ||
+	 isAEvent(ev, NAME_button) )
+    { DEBUG(NAME_undo,
+	    Cprintf("markUndoTextBuffer(%s)\n", pp(e->text_buffer)));
+      markUndoTextBuffer(e->text_buffer);
+    }
+
+    if ( notNil(e->text_buffer) && notNil(e->request_compute) )
+    { assign(e, caret, normalise_index(e, e->caret));
+      ensureVisibleEditor(e, e->caret, e->caret);
+    }
   }
 
   return rval;
@@ -1416,6 +1430,9 @@ insert_editor(Editor e, Int times, Int chr, int fill)
   LocalString(s, &tb->buffer, 1);
 
   MustBeEditable(e);
+  if ( HasSelection(e) &&
+       getResourceValueObject(e, NAME_insertDeletesSelection) == ON )
+    deleteSelectionEditor(e);
 
   if ( fill && e->fill_mode == ON )
     return insertSelfFillEditor(e, times, chr);
@@ -1698,6 +1715,7 @@ previousLineEditor(Editor e, Int arg, Int column)
 static status
 deleteCharEditor(Editor e, Int arg)
 { MustBeEditable(e);
+
   return delete_textbuffer(e->text_buffer, Caret(e), UArg(arg));
 }
 
@@ -1706,6 +1724,68 @@ static status
 backwardDeleteCharEditor(Editor e, Int arg)
 { MustBeEditable(e);
   return delete_textbuffer(e->text_buffer, Caret(e), -UArg(arg));
+}
+
+
+static status
+cutOrDeleteCharEditor(Editor e, Int arg)
+{ MustBeEditable(e);
+
+  if ( isDefault(arg) && e->selection_start != e->selection_end )
+    return send(e, NAME_cut, 0);
+  else
+    return send(e, NAME_deleteChar, arg, 0);
+}
+
+
+static status
+cutOrBackwardDeleteCharEditor(Editor e, Int arg)
+{ MustBeEditable(e);
+
+  if ( isDefault(arg) && e->selection_start != e->selection_end )
+    return send(e, NAME_cut, 0);
+  else
+    return send(e, NAME_backwardDeleteChar, arg, 0);
+}
+
+
+static status
+copyEditor(Editor e)
+{ StringObj s = getSelectedEditor(e);
+  DisplayObj d = getDisplayGraphical((Graphical)e);
+
+  if ( s && d )
+    return send(d, NAME_copy, s, 0);
+
+  fail;
+}
+
+
+static status
+cutEditor(Editor e)
+{ MustBeEditable(e);
+
+  if ( send(e, NAME_copy, 0) )
+    return deleteSelectionEditor(e);
+
+  fail;
+}
+
+
+static status
+pasteEditor(Editor e)
+{ DisplayObj d = getDisplayGraphical((Graphical)e);
+  CharArray selection;
+
+  if ( d && (selection=get(d, NAME_paste, 0)) )
+  { if ( HasSelection(e) &&
+	 getResourceValueObject(e, NAME_insertDeletesSelection) == ON )
+      deleteSelectionEditor(e);
+
+    return insertEditor(e, selection);
+  }
+
+  fail;
 }
 
 
@@ -2782,9 +2862,11 @@ beginIsearchEditor(Editor e, Name direction)
 
 static status
 abortIsearchEditor(Editor e)
-{ assign(e, focus_function, NIL);
-  selection_editor(e, ZERO, ZERO);
-  DisplayedGraphical(e->text_cursor, ON);
+{ if ( isisearchingEditor(e) )
+  { assign(e, focus_function, NIL);
+    selection_editor(e, ZERO, ZERO);
+    DisplayedGraphical(e->text_cursor, ON);
+  }
   
   succeed;
 }
@@ -4214,6 +4296,16 @@ static senddecl send_editor[] =
      NAME_delete, "Delete blank lines around point"),
   SM(NAME_deleteChar, 1, "[int]", deleteCharEditor,
      NAME_delete, "Delete characters forward"),
+  SM(NAME_copy, 0, NULL, copyEditor,
+     NAME_selection, "Copy selection"),
+  SM(NAME_cut, 0, NULL, cutEditor,
+     NAME_selection, "Copy and delete selection"),
+  SM(NAME_paste, 0, NULL, pasteEditor,
+     NAME_selection, "Paste the clipboard value"),
+  SM(NAME_cutOrDeleteChar, 1, "[int]", cutOrDeleteCharEditor,
+     NAME_delete, "Cut selection or delete characters forward"),
+  SM(NAME_cutOrBackwardDeleteChar, 1, "[int]", cutOrBackwardDeleteCharEditor,
+     NAME_delete, "Cut selection or delete characters backward"),
   SM(NAME_deleteHorizontalSpace, 1, "[int]", deleteHorizontalSpaceEditor,
      NAME_delete, "Delete blanks around caret"),
   SM(NAME_deleteSelection, 0, NULL, deleteSelectionEditor,
@@ -4504,6 +4596,12 @@ static resourcedecl rc_editor[] =
      "Modify selection using this modifier"),
   RC(NAME_selectionStyle, "[style]", "@default",
      "Style for <-selection"),
+  RC(NAME_insertDeletesSelection, "bool", "@on",
+     "->insert_self and ->paste delete the selection"),
+  RC(NAME_caretMovesOnSelect, "bool", "@on",
+     "The caret is moved if a selection is made"),
+  RC(NAME_autoCopy, "bool", "@on",
+     "Automatically copy selected text to the clipboard"),
   RC(NAME_showOpenBracket, "bool", "@on",
      "Show open-bracket when inserting close-bracket"),
   RC(NAME_size, "size", "size(40,20)",

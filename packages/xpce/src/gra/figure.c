@@ -31,34 +31,50 @@ initialiseFigure(Figure f)
 		*             REDRAW		*
 		********************************/
 
-status
+Any
 RedrawBoxFigure(Figure f, Area area)
-{ if ( f->pen != ZERO || notNil(f->background) || notNil(f->elevation) )
+{ Any rval = NIL;
+
+  if ( f->pen != ZERO || notNil(f->background) || notNil(f->elevation) )
   { int x, y, w, h;
 
     initialiseDeviceGraphical(f, &x, &y, &w, &h);
     if ( f->pen == ZERO && f->radius == ZERO && isNil(f->elevation) )
-      r_fill(x, y, w, h, f->background);
-    else
+    { r_fill(x, y, w, h, f->background);
+      rval = f->background;
+    } else
     { r_thickness(valInt(f->pen));
       r_dash(f->texture);
 
       if ( notNil(f->elevation) )
-	r_3d_box(x, y, w, h, valInt(f->radius), f->elevation, TRUE);
-      else
-	r_box(x, y, w, h, valInt(f->radius), f->background);
+      { r_3d_box(x, y, w, h, valInt(f->radius), f->elevation, TRUE);
+	rval = f->elevation->background;
+      } else
+      { r_box(x, y, w, h, valInt(f->radius), f->background);
+	rval = f->background;
+      }
     }
   }
 
-  succeed;
+  return rval;
 }
 
 
 status
 RedrawAreaFigure(Figure f, Area area)
-{ RedrawBoxFigure(f, area);
+{ Any bg, obg;
+
+  if ( notNil(bg = RedrawBoxFigure(f, area)) )
+    obg = r_background(bg);
+  else
+    obg = NULL;
   
-  return RedrawAreaDevice((Device) f, area);
+  RedrawAreaDevice((Device) f, area);
+
+  if ( obg )
+    r_background(obg);
+
+  succeed;
 }
 
 

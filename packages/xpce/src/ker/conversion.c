@@ -183,7 +183,7 @@ do_pp(Any obj)
 
   switch((int) obj)
   { case FAIL:			return ppsavestring("FAIL");
-    case SUCCEED:		return ppsavestring("SUCCEED");
+/*  case SUCCEED:		return ppsavestring("SUCCEED"); (= ONE)*/
   }
 
   if ( isInteger(obj) && abs(valInt(obj)) < 10000000)

@@ -356,16 +356,13 @@ fill(Any gr, Name sel)
 { Image pattern = get(gr, sel, 0);
   Int greyLevel;
 
-  if ( isNil(pattern) )
-    succeed;
-
   if ( instanceOfObject(pattern, ClassColour) )
   { Colour c = (Colour) pattern;
 
     ps_output("gsave ");
     ps_colour(c, 100);
     ps_output(" fill grestore\n");
-  } else
+  } else if ( instanceOfObject(pattern, ClassImage) )
   { if ( hasGetMethodObject(pattern, NAME_postscriptGrey) &&
 	 (greyLevel = (Int) get(pattern, NAME_postscriptGrey, 0)) )
     { Colour c = get(gr, NAME_displayColour, 0);

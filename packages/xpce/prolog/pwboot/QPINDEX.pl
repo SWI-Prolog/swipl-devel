@@ -111,6 +111,7 @@ index((pce_warn), 1, pce_qux, pce_qux).
 index((pce_info), 1, pce_qux, pce_qux).
 index((ignore), 1, pce_qux, pce_qux).
 index((auto_call), 1, pce_qux, pce_qux).
+index((notrace), 1, pce_qux, pce_qux).
 index((concat), 3, pce_qux, pce_qux).
 index((free_variables), 2, pce_qux, pce_qux).
 index((atom_length), 2, pce_qux, pce_qux).

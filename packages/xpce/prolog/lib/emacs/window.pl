@@ -126,8 +126,8 @@ sticky_window(F, Val:[bool]) :->
 	get(F, member, mini_window, WM),
 	get(WM, member, sticky_indicator, Bitmap),
 	(   get(F, sticky_window, @on)
-	->  send(Bitmap, image, 'sticky.bm')
-	;   send(Bitmap, image, 'nosticky.bm')
+	->  send(Bitmap, image, @emacs_pinned_image)
+	;   send(Bitmap, image, @emacs_pin_image)
 	).
 
 
@@ -140,6 +140,14 @@ fit(F) :->
 	).
 
 
+keyboard_focus(F, W:window) :->
+	(   send(W, instance_of, view),
+	    get(F, member, mini_window, MW),
+	    get(MW, prompter, Prompter), Prompter \== @nil
+	->  send(F, send_super, keyboard_focus, MW)
+	;   send(F, send_super, keyboard_focus, W)
+	).
+
 		 /*******************************
 		 *	    PROMPTING		*
 		 *******************************/
@@ -147,44 +155,59 @@ fit(F) :->
 :- pce_global(@emacs_nil,
 	      new(constant(emacs_nil,
 			   string("Nil that does not match @nil")))).
-:- pce_global(@prompt_recogniser,
- 	new(handler_group(handler('\t',
-				  message(@receiver, complete)),
-			  handler('\r',
-				  and(@receiver?modified == @off,
-				      message(@receiver, apply, @on))),
-			  handler('\C-g',
-				  and(message(@receiver, keyboard_quit),
-				      message(@receiver?frame, return,
-					      @emacs_nil)))))).
+:- pce_global(@prompt_recogniser, make_prompt_binding).
 
+make_prompt_binding(G) :-
+	new(G, key_binding(emacs_prompter, text_item)),
+	send(G, function, 'TAB',  complete),
+	send(G, function, 'SPC',  insert_self),
+	send(G, function, 'RET',  message(@receiver, apply, @on)),
+	send(G, function, '\C-g', and(message(@receiver, keyboard_quit),
+				      message(@receiver?frame, return,
+					      @emacs_nil))).
 
 prompt_using(F, Item:dialog_item, Rval:any) :<-
 	"Prompt for value in dialog using Item"::
 	get(F, member, mini_window, W),
+	get(F, member, dialog, Dialog),
+	get(Dialog, member, menu_bar, MB),
 
+	send(MB, active, @off),
 	send(W, prompter, Item),
 	send(Item, message, message(F, return, @receiver?selection)),
-	send(Item, recogniser, @prompt_recogniser),
-	
+	(   send(Item, instance_of, text_item)
+	->  send(Item, recogniser, @prompt_recogniser),
+	    send(Item, value_font, fixed)
+	;   true
+	),
 	send(F, keyboard_focus, W),
 	get(F, confirm, RawVal),
 	object(F),			% may be freed!
-	get(F, member, view, View),
-	send(F, keyboard_focus, View),
 
 	send(RawVal, lock_object, @on),	% protect for gc
 	send(Item, message, @nil),
 	send(W, prompter, @nil),
+	get(F, member, view, View),
+	send(F, keyboard_focus, View),
+	send(MB, active, @on),
 	RawVal \== @emacs_nil,		% must be able to pass @nil!
 
 	Rval = RawVal.
-	
+
+reset(F) :->
+	"Remove prompter"::
+	send(F, send_super, reset),
+	get(F, member, mini_window, W),
+	send(W, prompter, @nil),
+	get(F, member, dialog, Dialog),
+	get(Dialog, member, menu_bar, MB),
+	send(MB, active, @on).
 
 :- pce_autoload(behaviour_item, library('man/behaviour_item')).
 :- pce_autoload(directory_item, library('file_item')).
 
-prompt(F, Label:char_array, Default:[any], Type:[type], Rval:any) :<-
+prompt(F, Label:char_array, Default:[any], Type:[type], History:[chain],
+       Rval:any) :<-
 	"Prompt for a value in the mini-window"::
 	default(Default, '', Selection),
 	(   Type == @default
@@ -228,7 +251,11 @@ prompt(F, Label:char_array, Default:[any], Type:[type], Rval:any) :<-
 	    send(@classes, for_all, message(Classes, append, @arg1)),
 	    send(Item, value_set, Classes)
 	;   new(Item, text_item(Label, Selection)),
-	    send(Item, type, Type)
+	    send(Item, type, Type),
+	    (	History \== @default
+	    ->	send(Item, value_set, History)
+	    ;	true
+	    )
 	),
 	send(Item, length, 60),
 	send(Item, pen, 0),
@@ -272,6 +299,16 @@ selection(TI, Name:name) :<-
 :- pce_end_class.
 
 
+:- pce_global(@emacs_pin_image,    make_image('pin.xpm')).	      
+:- pce_global(@emacs_pinned_image, make_image('pinned.xpm')).	      
+
+make_image(File, Ref) :-
+	new(Ref, image(File)), !.
+make_image(File, Ref) :-
+	new(T, text(File)),
+	new(Ref, image(@nil, T?width, T?height)),
+	send(Ref, draw_in, T).
+
 :- pce_begin_class(emacs_mini_window, dialog, "Prompt and feedback window").
 
 variable(prompter, 	 dialog_item*,  get,	"Current prompter").
@@ -283,7 +320,7 @@ initialise(D) :->
 	send(D, slot, report_count, number(0)),
 	send(D, gap, size(10, 2)),
 	send(D, pen, 0),
-	send(D, display, new(StickyIndicator, bitmap('nosticky.bm', @on))),
+	send(D, display, new(StickyIndicator, bitmap(@emacs_pin_image, @on))),
 	send(StickyIndicator, name, sticky_indicator),
 	send(StickyIndicator, recogniser,
 	     click_gesture(left, '', single,
@@ -441,6 +478,13 @@ typed(E, Id:event_id) :->
 	ignore(send(Mode, typed, Id, E)). % don't delegate to frame
 
 
+event(E, Ev:event) :->
+	(   send(Ev, is_a, area_enter)
+	->  send(E?frame, keyboard_focus, E?window)
+	;   send(E, send_super, event, Ev)
+	).
+
+
 mode(E, ModeName:mode_name) :->
 	"Associate argument mode"::
 	get(E, mode, OldMode),
@@ -483,9 +527,7 @@ drop(E, Obj:object) :->
 import_selection(E) :->
 	"Import the (primary) selection or the cut_buffer"::
 	get(E, display, Display),
-	(   pce_catch_error(get_selection, get(Display, selection, String))
-	;   get(Display, cut_buffer, 0, String)
-	), !,
+	get(Display, selected_text, String),
 	(   get(E, frame, Frame),
 	    get(Frame, member, mini_window, MiniWindow),
 	    get(MiniWindow, prompter, TI),
@@ -755,11 +797,14 @@ close_history(M, Argv:[vector]) :->
 	get(M, m_x_history, History),
 	(   Argv \== @nil, Argv \== @default
 	->  clean_argv(Argv),
-	    (	get(History, find,
-		    message(@prolog, same_argv, Argv, @arg1),
-		    Old)
-	    ->	send(History, move_after, Old)
-	    ;	send(History, prepend, Argv)
+	    (	History \== @nil
+	    ->  (   get(History, find,
+			message(@prolog, same_argv, Argv, @arg1),
+			Old)
+		->	send(History, move_after, Old)
+		;	send(History, prepend, Argv)
+		)
+	    ;	send(M, m_x_history, chain(Argv))
 	    )
 %	    send(@pce, send_vector, write_ln,
 %		 'History:', @c_method?print_name, ':', Argv)
@@ -926,9 +971,9 @@ interactive_argument(M, Implementation:any, Which:int, Value:any) :<-
 	get(M, frame, EmacsWindow),
 	get(Implementation, argument_type, Which, Type),
 	send(M, m_x_argn, Which),
+	get(M, m_x_history, History),
 	(   get(M, m_x_index, Idx), Idx \== @nil % use M-x History!
-	->  get(M, m_x_history, History),
-	    get(History, nth1, Idx, HistArgv),
+	->  get(History, nth1, Idx, HistArgv),
 	    get(HistArgv, element, Which, DefaultValue)
 	->  true
 	;   get(M, selected, Selection),
@@ -940,7 +985,13 @@ interactive_argument(M, Implementation:any, Which:int, Value:any) :<-
 	->  true
 	;   get(Type, name, Label)
 	),
-	get(EmacsWindow, prompt, Label, DefaultValue, Type, Value).
+	(   (   History == @nil
+	    ;	send(History, empty)
+	    )
+	->  ValueSet = @default
+	;   get(History, map, ?(@arg1, element, Which), ValueSet)
+	),
+	get(EmacsWindow, prompt, Label, DefaultValue, Type, ValueSet, Value).
 
 
 m_x_previous(M, Value:any) :<-

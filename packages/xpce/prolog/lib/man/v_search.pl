@@ -95,7 +95,7 @@ make_index(IV, @Ref) :-
 	get(file(IndexFile), object, Obj),
 	send(IV, report, done),
 	send(Obj, name_reference, Ref).
-make_index(_IV, @Ref) :-
+make_index(IV, @Ref) :-
 	absolute_file_name(pce('/man/reference'),
 			   [ file_type(directory),
 			     access(write),
@@ -107,7 +107,9 @@ make_index(_IV, @Ref) :-
 	     '%s\n%s %s',
 	     'Cannot find PCE manual index file.',
 	     'Create', IndexFile),
+	send(IV, busy_cursor),
 	get(new(man_index_manager), make_index, IndexFile, TmpTable),
+	send(IV, busy_cursor, @nil),
 	send(TmpTable, name_reference, Ref),
 	send(@display, inform,
 	     '%s\n%s\n%s\n%s',

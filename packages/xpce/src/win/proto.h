@@ -46,7 +46,6 @@ Any		getConfirmCenteredFrame(FrameObj fr, Point pos, Bool grab);
 status		resizeFrame(FrameObj fr);
 status		createdFrame(FrameObj fr);
 status		fitFrame(FrameObj fr);
-status		statusFrame(FrameObj fr, Name stat);
 status		exposeFrame(FrameObj fr);
 status		hideFrame(FrameObj fr);
 status		forwardColourMapChangeFrame(FrameObj fr);

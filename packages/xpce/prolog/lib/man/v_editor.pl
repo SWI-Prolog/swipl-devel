@@ -172,11 +172,11 @@ make_editor_recogniser(G) :-
 			      @default, @on,
 			      Manual?selection_history?size > 1)
 		  , menu_item(class_browser,
-			      message(@manual, request_tool_focus, Class),
+			      message(Manual, request_tool_focus, Class),
 			      @default, @on,
 			      HasClass)
 		  , menu_item(source,
-			      message(@manual, request_source, Obj),
+			      message(Manual, request_source, Obj),
 			      @default, @on,
 			      and(AF \== @nil,
 				  message(Obj, has_send_method, has_source),

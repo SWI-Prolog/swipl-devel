@@ -1023,7 +1023,7 @@ EOF
     CMFLAGS="$CMFLAGS -fPIC"
   fi
 
-  BOOTPL=${PL-pl}
+  BOOTPL=pl
 
   SO="so"				 # Default shared object extension
   LD="gcc"				 # Default linking through gcc
@@ -3583,14 +3583,14 @@ if test ! -z "$x_libraries"; then
 else
   LIBS="$XLIBS $ac_oldlibs"
 fi
-echo $ac_n "checking for main in -lXpm""... $ac_c" 1>&6
-echo "configure:3588: checking for main in -lXpm" >&5
-ac_lib_var=`echo Xpm'_'main | sed 'y%./+-%__p_%'`
+echo $ac_n "checking for main in -ljpeg""... $ac_c" 1>&6
+echo "configure:3588: checking for main in -ljpeg" >&5
+ac_lib_var=`echo jpeg'_'main | sed 'y%./+-%__p_%'`
 if eval "test \"`echo '$''{'ac_cv_lib_$ac_lib_var'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   ac_save_LIBS="$LIBS"
-LIBS="-lXpm  $LIBS"
+LIBS="-ljpeg  $LIBS"
 cat > conftest.$ac_ext <<EOF
 #line 3596 "configure"
 #include "confdefs.h"
@@ -3600,6 +3600,46 @@ main()
 ; return 0; }
 EOF
 if { (eval echo configure:3603: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest; then
+  rm -rf conftest*
+  eval "ac_cv_lib_$ac_lib_var=yes"
+else
+  echo "configure: failed program was:" >&5
+  cat conftest.$ac_ext >&5
+  rm -rf conftest*
+  eval "ac_cv_lib_$ac_lib_var=no"
+fi
+rm -f conftest*
+LIBS="$ac_save_LIBS"
+
+fi
+if eval "test \"`echo '$ac_cv_lib_'$ac_lib_var`\" = yes"; then
+  echo "$ac_t""yes" 1>&6
+  XLIBS="$XLIBS -ljpeg"
+	     cat >> confdefs.h <<\EOF
+#define HAVE_LIBJPEG 1
+EOF
+
+else
+  echo "$ac_t""no" 1>&6
+fi
+
+echo $ac_n "checking for main in -lXpm""... $ac_c" 1>&6
+echo "configure:3628: checking for main in -lXpm" >&5
+ac_lib_var=`echo Xpm'_'main | sed 'y%./+-%__p_%'`
+if eval "test \"`echo '$''{'ac_cv_lib_$ac_lib_var'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  ac_save_LIBS="$LIBS"
+LIBS="-lXpm  $LIBS"
+cat > conftest.$ac_ext <<EOF
+#line 3636 "configure"
+#include "confdefs.h"
+
+int main() {
+main()
+; return 0; }
+EOF
+if { (eval echo configure:3643: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -3626,12 +3666,12 @@ fi
 for ac_func in XtPopupSpringLoaded XmIsMotifWMRunning
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
-echo "configure:3630: checking for $ac_func" >&5
+echo "configure:3670: checking for $ac_func" >&5
 if eval "test \"`echo '$''{'ac_cv_func_$ac_func'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 3635 "configure"
+#line 3675 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char $ac_func(); below.  */
@@ -3654,7 +3694,7 @@ $ac_func();
 
 ; return 0; }
 EOF
-if { (eval echo configure:3658: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest; then
+if { (eval echo configure:3698: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest; then
   rm -rf conftest*
   eval "ac_cv_func_$ac_func=yes"
 else
@@ -3681,7 +3721,7 @@ done
 LIBS="$ac_oldlibs"
 
 echo $ac_n "checking "memory model"""... $ac_c" 1>&6
-echo "configure:3685: checking "memory model"" >&5
+echo "configure:3725: checking "memory model"" >&5
 echo '#include "confdefs.h"' > conftest.c
 cat $srcdir/test/m-model.c >> conftest.c
 eval $ac_link

@@ -15,6 +15,7 @@ static int	distance_area(int, int, int, int, int, int, int, int);
 static status	orientationGraphical(Graphical gr, Name orientation);
 static Point	getCenterGraphical(Graphical gr);
 static status	updateHideExposeConnectionsGraphical(Graphical gr);
+static Any	getContainerGraphical(Any gr);
 
 
 		/********************************
@@ -422,10 +423,7 @@ changedAreaGraphical(Any obj, Int x, Int y, Int w, Int h)
             cw = valInt(a->w), ch = valInt(a->h);
 
 	if ( !createdWindow(sw) )
-	{ DEBUG(NAME_window, Cprintf("%s: Change on non-displayed window\n",
-				     pp(sw)));
-	  break;
-	}
+	  succeed;
 
 	NormaliseArea(ox, oy, ow, oh);
 	NormaliseArea(cx, cy, cw, ch);
@@ -473,6 +471,9 @@ changedImageGraphical(Any obj, Int x, Int y, Int w, Int h)
       if ( instanceOfObject(d, ClassWindow) )
       { PceWindow sw = (PceWindow) d;
 	int cx, cy, cw, ch;
+
+	if ( !createdWindow(sw) )
+	  succeed;
 
 	if ( isDefault(x) ) x = ZERO;
 	if ( isDefault(y) ) y = ZERO;
@@ -550,11 +551,12 @@ requestComputeGraphical(Any obj, Any val)
 
   assign(gr, request_compute, val);
     
-  if ( notNil(gr->device) )
+  if ( instanceOfObject(gr, ClassWindow) && gr->displayed == ON )
+    addChain(ChangedWindows, gr);
+  else if ( notNil(gr->device) )
   { appendChain(gr->device->recompute, gr);
     requestComputeGraphical((Graphical) gr->device, DEFAULT);
-  } else if ( instanceOfObject(gr, ClassWindow) && gr->displayed == ON )
-    addChain(ChangedWindows, gr);
+  }
 
   succeed;
 }
@@ -789,7 +791,7 @@ synchroniseGraphical(Graphical gr, Bool always)
   if ( always != ON )
   { long now = mclock();
     
-    if ( now - last < 200 )
+    if ( now - last < 50 )
       succeed;
 
     last = now;
@@ -1421,7 +1423,10 @@ getDistanceYGraphical(Graphical gr, Graphical gr2)
 
 static status
 same_device(Graphical gr1, Graphical gr2)
-{ if ( notNil(gr1) && notNil(gr2) && gr1->device != gr2->device )
+{ gr1 = getContainerGraphical(gr1);
+  gr2 = getContainerGraphical(gr2);
+
+  if ( notNil(gr1) && notNil(gr2) && gr1->device != gr2->device )
   { if ( isNil(gr1->device) )
       displayDevice((Dialog) gr2->device, gr1, DEFAULT);
     else if ( isNil(gr2->device) )
@@ -1437,14 +1442,20 @@ same_device(Graphical gr1, Graphical gr2)
 static status
 assignDialogItem(Graphical gr, Name slot, Any value)
 { Variable var;
+  Graphical gr2;
 
   if ( (var = getInstanceVariableClass(classOfObject(gr), slot)) )
     return sendVariable(var, gr, 1, &value);
 
   if ( isNil(value) )
-    return deleteAttributeObject(gr, slot);
+    deleteAttributeObject(gr, slot);
   else
-    return attributeObject(gr, slot, value);
+    attributeObject(gr, slot, value);
+
+  if ( (gr2=getContainerGraphical(gr)) != gr )
+    assignDialogItem(gr2, slot, value);
+
+  succeed;
 }
 
 
@@ -2605,8 +2616,24 @@ getMasterGraphical(Graphical gr)
 
     if ( (master=getFindNodeNode(t->displayRoot, gr)) )
       answer(master);
-    else
-      answer(gr);			/* graphical displayed on tree */
+  }
+
+  answer(gr);
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Similar problem. See  `device->append_dialog_item'.   Without  this, the
+methods are done on the window, rather than on its decorator.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static Any
+getContainerGraphical(Any gr)
+{ if ( instanceOfObject(gr, ClassWindow) )
+  { PceWindow sw = (PceWindow) gr;
+
+    if ( notNil(sw->decoration) )
+      answer(sw->decoration);
   }
 
   answer(gr);

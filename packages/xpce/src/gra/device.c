@@ -718,19 +718,25 @@ eraseDevice(Device dev, Graphical gr)
 
 status
 displayedGraphicalDevice(Device dev, Graphical gr, Bool val)
-{ if ( onFlag(gr, F_SOLID) )
+{ Bool old = gr->displayed;
+  
+  if ( onFlag(gr, F_SOLID) )
   { clearFlag(gr, F_SOLID);
     changedEntireImageGraphical(gr);
     setFlag(gr, F_SOLID);
   } else
     changedEntireImageGraphical(gr);
 
+  gr->displayed = val;
   if ( instanceOfObject(gr, ClassDevice) )
     updateConnectionsDevice((Device) gr, dev->level);
   else
     updateConnectionsGraphical(gr, dev->level);
 
-  return requestComputeDevice(dev, DEFAULT); /* TBD: ON: just union */
+  requestComputeDevice(dev, DEFAULT); /* TBD: ON: just union */
+  gr->displayed = old;
+
+  succeed;
 }
 
 		/********************************
@@ -1157,6 +1163,10 @@ static int
 adjustDialogItem(Any obj, Int x, Int y, Int w, Int h)
 { Graphical gr = obj;
 
+  DEBUG(NAME_layout,
+	Cprintf("%s --> %s %s %s %s\n",
+		pp(obj), pp(x), pp(y), pp(w), pp(h)));
+
 #define Changed(a) (gr->area->a != a && notDefault(a))
   if ( Changed(x) || Changed(y) || Changed(w) || Changed(h) )
   { Int av[4];
@@ -1442,7 +1452,7 @@ layoutDialogDevice(Device d, Size gap, Size bb, Size border)
 	       valInt(border->w);
 	} else
 	{ px = valInt(d->area->x) - valInt(d->offset->x) +
-	       valInt(d->area->w) + valInt(border->w);
+	       valInt(d->area->w)/* + valInt(border->w)*/;
 	} 
       }
 

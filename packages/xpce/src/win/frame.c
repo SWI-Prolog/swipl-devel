@@ -24,6 +24,9 @@ static status	informTransientsFramev(FrameObj fr, Name selector,
 				       int argc, Any *argv);
 static status	grabPointerFrame(FrameObj fr, Bool grab, CursorObj cursor);
 static status	cursorFrame(FrameObj fr, CursorObj cursor);
+static status   statusFrame(FrameObj fr, Name stat);
+
+#define isOpenFrameStatus(s) ((s) == NAME_window || (s) == NAME_fullScreen)
 
 static status
 initialiseFrame(FrameObj fr, Name label, Name kind,
@@ -235,7 +238,8 @@ openFrame(FrameObj fr, Point pos, Bool grab, Bool normalise)
     setFrame(fr, x, y, w, h);  
   }
 
-  statusFrame(fr, NAME_open);
+  if ( !isOpenFrameStatus(fr->status) )
+    statusFrame(fr, NAME_window);
   
   succeed;
 }
@@ -425,23 +429,23 @@ fitFrame(FrameObj fr)
 }
 
 
-status
+static status
 statusFrame(FrameObj fr, Name stat)
 { if ( stat != NAME_unmapped && !createdFrame(fr) )
     TRY(send(fr, NAME_create, 0));
 
+  if ( stat == NAME_open )
+    stat = NAME_window;
+
   if ( fr->status != stat )
-  { assign(fr, status, stat);
-    if ( stat == NAME_open )
-    { ws_show_frame(fr, OFF);		/* TBD: grab arg does not work anyway */
-      resizeFrame(fr);
+  { int opened = (isOpenFrameStatus(stat) && !isOpenFrameStatus(fr->status));
+
+    ws_status_frame(fr, stat);
+    assign(fr, status, stat);
+
+    if ( opened )
+    { resizeFrame(fr);
       flushFrame(fr);
-    } else if ( stat == NAME_iconic )
-    { ws_iconify_frame(fr);
-    } else if ( stat == NAME_hidden )
-    { ws_unshow_frame(fr);
-    } else /*unmapped*/
-    {
     }
   }
   
@@ -477,7 +481,7 @@ waitFrame(FrameObj fr)
       ws_discard_input("Waiting for frame to open");
   }
 
-  if ( fr->status == NAME_open )
+  if ( isOpenFrameStatus(fr->status) )
     succeed;
 
   fail;					/* error? */
@@ -486,13 +490,19 @@ waitFrame(FrameObj fr)
 
 static status
 showFrame(FrameObj fr, Bool val)
-{ return statusFrame(fr, val == ON ? NAME_open : NAME_hidden);
+{ if ( val == ON )
+  { if ( isOpenFrameStatus(fr->status) )
+      succeed;
+    else
+      return statusFrame(fr, NAME_window);
+  } else
+    return statusFrame(fr, NAME_hidden);
 }
 
 
 static Bool
 getShowFrame(FrameObj fr)
-{ answer(fr->status == NAME_open ? ON : OFF);
+{ answer(isOpenFrameStatus(fr->status) ? ON : OFF);
 }
 
 
@@ -502,8 +512,7 @@ getShowFrame(FrameObj fr)
 
 status
 exposeFrame(FrameObj fr)
-{ statusFrame(fr, NAME_open);
-
+{ showFrame(fr, ON);
   ws_raise_frame(fr);
 
   succeed;
@@ -864,13 +873,19 @@ getIconPositionFrame(FrameObj fr)
 
 static status
 closedFrame(FrameObj fr, Bool val)
-{ return statusFrame(fr, val == ON ? NAME_iconic : NAME_open);
+{ if ( val == ON )
+  { if ( isOpenFrameStatus(fr->status) )
+      succeed;
+    else
+      return statusFrame(fr, NAME_window);
+  } else
+    return statusFrame(fr, NAME_iconic);
 }
 
 
 static Bool
 getClosedFrame(FrameObj fr)
-{ answer(fr->status == NAME_open ? OFF : ON);	/* dubious */
+{ answer(fr->status == NAME_iconic ? ON : OFF);
 }
 
 
@@ -1584,7 +1599,7 @@ static vardecl var_frame[] =
      NAME_modal, "Bin for value of ->return"),
   SV(NAME_inputFocus, "bool", IV_GET|IV_STORE, inputFocusFrame,
      NAME_event, "Frame has focus for keyboard events"),
-  SV(NAME_status, "{unmapped,hidden,iconic,open}", IV_GET|IV_STORE, statusFrame,
+  IV(NAME_status, "{unmapped,hidden,iconic,window,full_screen}", IV_GET,
      NAME_visibility, "Current visibility of the frame"),
   IV(NAME_canDelete, "bool", IV_BOTH,
      NAME_permission, "Frame can be deleted by user"),
@@ -1611,6 +1626,8 @@ static senddecl send_frame[] =
      DEFAULT, "Remove ->busy_cursor"),
   SM(NAME_unlink, 0, NULL, unlinkFrame,
      DEFAULT, "Destroy windows and related X-window"),
+  SM(NAME_status, 1, "{unmapped,hidden,iconic,window,full_screen,open}",
+     statusFrame, DEFAULT, "Current visibility of the frame"),
   SM(NAME_typed, 1, "event_id", typedFrame,
      NAME_accelerator, "Dispatch over available windows"),
   SM(NAME_flush, 0, NULL, flushFrame,
@@ -1765,7 +1782,7 @@ static resourcedecl rc_frame[] =
      "Show confirmer on `Delete'"),
   RC(NAME_geometry, "name*", "@nil",
      "Position/size of the frame"),
-  RC(NAME_iconImage, "image*", "\"pce.bm\"",
+  RC(NAME_iconImage, "image*", "@pce_image",
      "Image displayed for an icon"),
   RC(NAME_iconLabel, "name*", "@nil",
      "Label displayed in the icon"),

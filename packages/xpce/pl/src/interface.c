@@ -1717,10 +1717,9 @@ PrologCallProc(PceObject handle,
     for(i=argc; i > 0; i--)
       pushObject(ap++, *objv++);
     
-    if ( (qid = PL_open_query(MODULE_user, DebugMode, p, t0)) )
-    { rval = PL_next_solution(qid);
-      PL_close_query(qid);
-    }
+    qid = PL_open_query(MODULE_user, DebugMode, p, t0);
+    rval = PL_next_solution(qid);
+    PL_close_query(qid);
 
 #else /*~SWI*/
 
@@ -2066,11 +2065,6 @@ PrologAction(int action, va_list args)
     case HOST_RECOVER_FROM_FATAL_ERROR:
       SP_action(SP_ACTION_ABORT, NULL);
       return PCE_FAIL;			/* could not abort: failure */
-#ifdef _CONSOLE_H_INCLUDED
-    case HOST_CHECK_INTERRUPT:
-      rlc_check_intr();
-      return PCE_SUCCEED;
-#endif
     case HOST_BACKTRACE:
     case HOST_ATEXIT:
     default:
@@ -2165,11 +2159,9 @@ PrologAction(int action, va_list args)
     case HOST_RECOVER_FROM_FATAL_ERROR:
       PL_action(PL_ACTION_ABORT, NULL);
       return PCE_FAIL;			/* could not abort: failure */
-#ifdef _CONSOLE_H_INCLUDED
     case HOST_CHECK_INTERRUPT:
-      rlc_check_intr();
+      PL_handle_signals();
       return PCE_SUCCEED;
-#endif
     case HOST_BACKTRACE:
     { int frames = va_arg(args, int);
       PL_action(PL_ACTION_BACKTRACE, (void *) frames);

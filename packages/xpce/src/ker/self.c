@@ -214,7 +214,7 @@ getUnresolvedTypesPce(Pce pce)
 #endif /*O_RUNTIME*/
 
 
-static status
+status
 catchErrorPce(Pce pce, Any ids)
 { assign(pce, last_error, NIL);
 
@@ -222,7 +222,7 @@ catchErrorPce(Pce pce, Any ids)
 }
 
 
-static status
+status
 catchPopPce(Pce pce)
 { return deleteHeadChain(pce->catched_errors);
 }
@@ -310,7 +310,7 @@ run_pce_onexit_hooks(int rval, void *context)
 
 #ifdef HAVE_ATEXIT
 static void				/* for usage with ANSI atexit() */
-run_pce_atexit_hooks()
+run_pce_atexit_hooks(void)
 { run_pce_exit_hooks(0);
 }
 #endif
@@ -576,7 +576,7 @@ bannerPce(Pce pce)
 { Name host = get(HostObject(), NAME_system, 0);
 
 #ifdef __WIN32__
-  writef("PCE %s (%s for %I%IWin32: NT, '95 and win32s%I%I)\n",
+  writef("PCE %s (%s for %I%IWin32: NT and '95%I%I)\n",
 #else
   writef("PCE %s (%s for %s-%s and X%dR%d)\n",
 #endif

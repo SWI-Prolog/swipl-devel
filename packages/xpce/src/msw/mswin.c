@@ -190,6 +190,14 @@ ws_mousebuttons()
 }
 
 
+#ifdef O_IMGLIB
+void
+remove_ilerrout(int status)
+{ unlink("ilerr.out");
+}
+#endif
+
+
 void
 ws_initialise(int argc, char **argv)
 { initHinstance(argc, argv);

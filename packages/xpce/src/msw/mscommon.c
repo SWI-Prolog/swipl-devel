@@ -106,12 +106,12 @@ setHwndWindow(PceWindow sw, HWND ref)
     w->hwnd       = ref;
     w->hcursor    = 0;
     w->capture    = 0;
+    w->open	  = 0;
   } else
   { if ( sw->ws_ref )
     { unalloc(sizeof(ws_window), sw->ws_ref);
       sw->ws_ref = NULL;
     }
-    assign(sw, displayed, OFF);
   }
 }
 
@@ -141,6 +141,10 @@ messageToEvent(HWND hwnd, UINT message, UINT wParam, LONG lParam)
   Int buttons = DEFAULT;
   Any window = (Any)GetWindowLong(hwnd, GWL_DATA);
   int mouse_ev = FALSE;
+
+  DEBUG(NAME_event,
+	Cprintf("messageToEvent(%s(0x%04x), 0x%04x, 0x%04x, 0x%08lx)\n",
+		pp(window), hwnd, message, wParam, lParam));
 
   switch(message)
   { case WM_CHAR:
@@ -241,6 +245,9 @@ messageToEvent(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       break;
 
     case WM_WINEXIT:
+#ifdef WM_MOUSELEAVE			/* Windows NT 4.0 they say! */
+    case WM_MOUSELEAVE:
+#endif
       id = NAME_areaExit;
       mouse_ev++;
       break;

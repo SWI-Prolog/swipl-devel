@@ -12,7 +12,6 @@
 :- module(pce_inspector, []).
 
 :- use_module(library(pce)).
-:- ensure_loaded(library(pce_selection)).
 :- require([ between/3
 	   , nth1/3
 	   , portray_object/2

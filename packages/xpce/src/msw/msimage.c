@@ -202,9 +202,44 @@ read_bitmap_info(FileObj f)
 
 
 static void
+register_colours(BITMAPINFO *bmi)
+{ int ncolors = 0;
+
+  if ( bmi->bmiHeader.biClrImportant > 0 )
+    ncolors = bmi->bmiHeader.biClrImportant;
+  else if ( bmi->bmiHeader.biClrUsed > 0 )
+    ncolors = bmi->bmiHeader.biClrUsed;
+  else if ( bmi->bmiHeader.biBitCount <= 8 )
+    ncolors = 1<<bmi->bmiHeader.biBitCount;
+
+  if ( ncolors )
+  { DisplayObj d = CurrentDisplay(NIL);
+    RGBQUAD *colours = (RGBQUAD *)((LPSTR)bmi + (WORD)(bmi->bmiHeader.biSize)); 
+    int i;
+
+    for(i=0; i<ncolors; i++, colours++)
+    { char xcolorname[8];
+      Colour c;
+
+      sprintf(xcolorname, "#%02x%02x%02x",
+	      colours->rgbRed,
+	      colours->rgbGreen,
+	      colours->rgbBlue);
+
+      if ( (c = checkType(CtoKeyword(xcolorname), TypeColour, NIL)) )
+      { COLORREF rgb = (COLORREF)getXrefObject(c, d); /* open it */
+      }
+    }
+  }
+}
+
+
+static void
 attach_dib_image(Image image, BITMAPINFO *bmi, BYTE *bits)
 { WsImage wsi;
   BITMAPINFOHEADER *bmih = &bmi->bmiHeader;
+
+  register_colours(bmi);
 
   wsi = attach_ws_image(image);
   wsi->data     = bits;
@@ -254,86 +289,6 @@ ws_load_windows_bmp_file(Image image, FileObj f)
 
 #endif /*O_IMGLIB*/
 
-#ifdef O_OLD_ICO_LOADER
-#define OsError() getOsErrorPce(PCE)
-#define SWORD unsigned short
-#define ICOFHDRSIZE 6			/* Designed for 16-bit rounding */
-
-typedef struct tagICONDIRENTRY
-{ BYTE	bWidth;
-  BYTE	bHeight;
-  BYTE	bColorCount;
-  BYTE	bReserved;
-  SWORD	wPlanes;
-  SWORD	wBitCount;
-  DWORD	dwBytesInRes;
-  DWORD	dwImageOffset;
-} ICONDIRENTRY;
-
-typedef struct ICONDIR
-{ SWORD	idReserved;
-  SWORD idType;
-  SWORD	idCount;
-  ICONDIRENTRY idEntries[1];
-} ICONHEADER;
-    
-
-static status
-ws_load_windows_ico_file(Image image)
-{ FILE *fd = image->file->fd;
-  ICONHEADER ico_hdr;
-  ICONDIRENTRY ico_entry;
-  BITMAPINFO *bmi;
-  BYTE *bits;
-  long pos = ftell(fd);
-  int databytes;
-
-  if ( fread(&ico_hdr, ICOFHDRSIZE, 1, fd) != 1 ||
-       ico_hdr.idType != 1 )
-  { fseek(fd, pos, SEEK_SET);
-    fail;				/* not a MS-Windows .ico file */
-  }
-  DEBUG(NAME_image, Cprintf("Header to %d: idType = %d, idCount = %d\n",
-			    ftell(fd), ico_hdr.idType, ico_hdr.idCount));
-  if ( ico_hdr.idCount > 1 )
-    errorPce(image->file, NAME_moreThanOneIcon);
-
-#define BadDimension(x) (x!=16 && x!=32 && x!=64)
-#define BadColorCount(x) (x!=2 && x!=8 && x!=16)
-  if ( fread(&ico_entry, sizeof(ico_entry), 1, fd) != 1 ||
-       BadDimension(ico_entry.bWidth) ||
-       BadDimension(ico_entry.bHeight) ||
-       BadColorCount(ico_entry.bColorCount) )
-  { fseek(fd, pos, SEEK_SET);
-    fail;				/* not a MS-Windows .ico file */
-  }
-#undef BadDimension
-#undef BadColorCount
-
-  DEBUG(NAME_image,
-	Cprintf("%dx%d icon with %d colors\n",
-		ico_entry.bWidth, ico_entry.bHeight, ico_entry.bColorCount));
-  DEBUG(NAME_image,
-	Cprintf("dwBytesInRes = %d, dwImageOffset = %d\n",
-		ico_entry.dwBytesInRes, ico_entry.dwImageOffset));
-
-  if ( fseek(fd, ico_entry.dwImageOffset, SEEK_SET) ||
-       !(bmi=read_bitmap_info(image->file)) )
-    return errorPce(image->file, NAME_ioError, OsError());
-  bmi->bmiHeader.biWidth  = ico_entry.bWidth; /* MS-Windows bug! */
-  bmi->bmiHeader.biHeight = ico_entry.bHeight;
-  databytes = ico_entry.dwBytesInRes - ftell(fd);
-  bits = pceMalloc(databytes);
-  if ( fread(bits, sizeof(BYTE), databytes, fd) != databytes )
-  { pceFree(bmi);
-    return errorPce(image->file, NAME_ioError, OsError());
-  }
-
-  attach_dib_image(image, bmi, bits);
-  succeed;
-}
-
-#else /*O_OLD_ICO_LOADER*/
 
 static status
 ws_load_windows_ico_file(Image image)
@@ -447,7 +402,46 @@ ws_load_windows_ico_file(Image image)
   fail;
 }
 
-#endif /*O_OLD_ICO_LOADER*/
+
+#ifdef O_XPM
+#ifdef HAVE_LIBJPEG
+#include <img/jpeg.h>
+#endif
+#ifdef O_GIF
+#include <img/gif.h>
+#endif
+
+static int
+readXpmImage(Image image, XpmImage *img, XpmInfo *info)
+{ if ( send(image->file, NAME_open, NAME_read, 0) )
+  { FILE *fd = image->file->fd;
+    int rval;
+
+#ifdef HAVE_LIBJPEG
+    if ( (rval=readJPEGtoXpmImage(fd, img)) == XpmSuccess )
+      goto out;
+#endif
+#ifdef O_GIF
+    if ( (rval=XpmReadGIF(fd, img)) == XpmSuccess )
+      goto out;
+#endif
+
+    send(image->file, NAME_close, 0);
+
+    { char *fname = strName(getOsNameFile(image->file));
+      return XpmReadFileToXpmImage(fname, img, info);
+    }
+
+out:
+    memset(info, 0, sizeof(*info));
+    info->valuemask = XpmReturnColorTable;
+    send(image->file, NAME_close, 0);
+    return rval;
+  }
+
+  return XpmOpenFailed;
+}
+#endif
 
 
 status
@@ -463,7 +457,6 @@ ws_load_image_file(Image image)
   int rval;
   DisplayObj d;
   int as = XpmAttributesSize();
-  char *fname = strName(getOsNameFile(image->file));
   XpmAttributes *atts = (XpmAttributes *)alloca(as);
   XpmImage xpmimg;
   XpmInfo  xpminfo;
@@ -484,7 +477,7 @@ register the colours.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   xpminfo.valuemask = XpmColorTable|XpmReturnColorTable;
-  rval = XpmReadFileToXpmImage(fname, &xpmimg, &xpminfo);
+  rval = readXpmImage(image, &xpmimg, &xpminfo);
   switch(rval)
   { case XpmOpenFailed:
       return errorPce(image->file, NAME_openFile,
@@ -675,16 +668,7 @@ palette.
 
     rval = SUCCEED;
   } else				/* other formats */
-  {
-#ifdef O_OLD_ICO_LOADER
-    if ( send(image->file, NAME_open, NAME_read, 0) )
-    { if ( ws_load_windows_ico_file(image) )
-	rval = SUCCEED;
-
-      send(image->file, NAME_close, 0);
-    }
-#endif
-    return ws_load_windows_ico_file(image);
+  { return ws_load_windows_ico_file(image);
   }
 }
 #else /*O_IMGLIB*/
@@ -1672,6 +1656,7 @@ ColourMap
 ws_colour_map_for_image(Image img)
 { WsImage wsi = img->ws_ref;
 
+#ifdef O_IMGLIB
   if ( wsi && wsi->msw_info )
   { HPALETTE hpal = CreateDIBPalette(wsi->msw_info);
 
@@ -1683,6 +1668,7 @@ ws_colour_map_for_image(Image img)
       answer(cm);
     }
   }
+#endif
 
   fail;
 }

@@ -105,6 +105,7 @@ End;
   Name		label;			/* Displayed textual-label */ \
   FontObj	label_font;		/* Font used for label */ \
   Name		label_format;		/* Alignment of the label */ \
+  Elevation	elevation;		/* Elevation for the box */ \
   Int		radius;			/* corners rounding radius */ \
   Size		size;			/* Size of the drawing area */ \
   Size		gap;			/* Layout gap for items (dialog) */ \
@@ -251,6 +252,7 @@ NewClass(textobj)
   Int	     x_offset;		/* Shift in X-direction (length > 0) */
   Int	     x_caret;		/* Caret X, relative to graphical */
   Int	     y_caret;		/* Caret Y, relative to graphical */
+  Int	     selection;		/* Represented selection */
 End;
 
 NewClass(joint)
@@ -513,6 +515,13 @@ NewClass(connect_gesture)
   Name		to_handle;		/* Handle at to side */
   Graphical	to;			/* Graphical at to side */
 End;
+
+NewClass(edit_text_gesture)
+  ABSTRACT_GESTURE
+  Int		selection_origin;	/* Start of the selection */
+End;
+
+
 
 		/********************************
 		*          BROWSERS		*

@@ -163,14 +163,15 @@ do_frame_wnd_proc(FrameObj fr,
 
 	    send(fr, NAME_resize, 0);
 	    SetWindowText(hwnd, strName(fr->label));
-	    assign(fr, status, NAME_open);
+	    assign(fr, status, wParam == SIZE_MAXIMIZED ? NAME_fullScreen
+		   					: NAME_window);
 	    for_cell(cell, fr->members)
 	      DisplayedGraphical(cell->value, ON);
 	  }
 	  break;
       }
 
-      return 0;
+      goto repaint;
     }
 
     case WM_MOVE:			/* frame moved */
@@ -203,13 +204,18 @@ do_frame_wnd_proc(FrameObj fr,
  
       if ( wParam )			/* show on */
       { for_cell(cell, fr->members)
+	{ extern void unlink_changes_data_window(PceWindow sw);
+
 	  send(cell->value, NAME_displayed, ON, 0);
+	  ComputeGraphical(cell->value);
+	  unlink_changes_data_window(cell->value);
+	}
 
 	send(fr, NAME_mapped, ON, 0);
 
-	assign(fr, status, NAME_open);
+	assign(fr, status, NAME_window); /* Or full_screen? */
 	ws_set_icon_frame(fr);
-      } else
+      } else				/* show off */
       { for_cell(cell, fr->members)
 	{ if ( !onFlag(cell->value, F_FREED|F_FREEING) )
 	    send(cell->value, NAME_displayed, OFF, 0);
@@ -284,8 +290,8 @@ do_frame_wnd_proc(FrameObj fr,
       { paint_icon(fr);
 	return 0;
       } else
-	break;
-
+        goto repaint;
+      
     case WM_KEYDOWN:
     { Any id = NIL;
 
@@ -727,32 +733,6 @@ ws_place_frame(FrameObj fr)
 
 
 void
-ws_show_frame(FrameObj fr, Bool grab)
-{ WsFrame f = fr->ws_ref;
-
-  if ( f )
-  { if ( !f->placed )
-    { ws_place_frame(fr);
-
-      f->placed = TRUE;
-    }
-
-    ShowWindow(f->hwnd, fr->kind == NAME_popup ? SW_SHOWNA : SW_RESTORE);
-    UpdateWindow(f->hwnd);
-  }
-}
-
-
-void
-ws_unshow_frame(FrameObj fr)
-{ HWND hwnd = getHwndFrame(fr);
-
-  if ( hwnd )
-    ShowWindow(hwnd, SW_HIDE);
-}
-
-
-void
 ws_raise_frame(FrameObj fr)
 { BringWindowToTop(getHwndFrame(fr));
 }
@@ -764,6 +744,19 @@ ws_lower_frame(FrameObj fr)
 	       HWND_BOTTOM,
 	       0, 0, 0, 0,
 	       SWP_NOMOVE|SWP_NOSIZE);
+}
+
+
+void
+ws_topmost_frame(FrameObj fr, Bool topmost)
+{ HWND hwnd;
+
+  if ( (hwnd = getHwndFrame(fr)) )
+  { SetWindowPos(hwnd,
+		 topmost == ON ? HWND_TOPMOST : HWND_NOTOPMOST,
+		 0, 0, 0, 0,
+		 SWP_NOMOVE|SWP_NOSIZE|SWP_NOACTIVATE);
+  }
 }
 
 
@@ -965,14 +958,34 @@ ws_get_icon_position_frame(FrameObj fr, int *x, int *y)
 
 
 void
-ws_iconify_frame(FrameObj fr)
-{ ShowWindow(getHwndFrame(fr), SW_MINIMIZE);
-}
+ws_status_frame(FrameObj fr, Name stat)
+{ WsFrame f = fr->ws_ref;
 
+  if ( stat == NAME_window || stat == NAME_fullScreen )
+  { int how;
 
-void
-ws_deiconify_frame(FrameObj fr)
-{ ShowWindow(getHwndFrame(fr), SW_RESTORE);
+    if ( !f->placed )
+    { ws_place_frame(fr);
+      f->placed = TRUE;
+    }
+
+    if ( fr->kind == NAME_popup )
+    { how = SW_SHOWNOACTIVATE; /*SW_SHOWNA;*/
+    } else
+    { if ( stat == NAME_window )
+	how = SW_RESTORE;
+      else
+	how = SW_MAXIMIZE;
+    }
+
+    ShowWindow(f->hwnd, how);
+    UpdateWindow(f->hwnd);
+  } else if ( stat == NAME_iconic )
+  { ShowWindow(f->hwnd, SW_MINIMIZE);
+  } else if ( stat == NAME_hidden )
+  { if ( f->hwnd )
+      ShowWindow(f->hwnd, SW_HIDE);
+  }
 }
 
 

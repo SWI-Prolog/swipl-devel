@@ -112,6 +112,7 @@ variable(search_patterns,	chain*,		both,
 initialise(M, Dir:[directory]) :->
 	"Create the manual main object"::
 	send(M, send_super, initialise, 'PCE Manual'),
+	send(M, done_message, message(M, quit)),
 	default(Dir, directory('$PCEHOME/man/reference'), Directory),
 	get(M, resource_value, user_scope, Scope),
 	get(M, resource_value, edit, Edit),
@@ -143,6 +144,8 @@ open(M, Pos:[point]) :->
 
 unlink(M) :->
 	"Manual is destroyed"::
+	get(M, space, Space),
+	send(Space, delete_attribute, report_to),
 	get(M, exit_message, Msg),
 	ignore(send(@pce?exit_messages, delete, Msg)),
 	send(M, send_super, unlink).

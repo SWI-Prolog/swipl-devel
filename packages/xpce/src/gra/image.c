@@ -830,7 +830,10 @@ getPostscriptDepthImage(Image image)
 #include "bitmaps/mark_handle_bm"
 #include "bitmaps/ms_mark.bm"
 #include "bitmaps/ms_nomark.bm"
-
+#include "bitmaps/ol_pulldown.bm"
+#include "bitmaps/ol_pullright.bm"
+#include "bitmaps/ol_cycle.bm"
+#include "bitmaps/pce.bm"
 
 static Image
 stdImage(Name name, Image *global, char *bits, int w, int h)
@@ -839,7 +842,8 @@ stdImage(Name name, Image *global, char *bits, int w, int h)
   assign(image, access, NAME_read);
   if ( bits )
     ws_create_image_from_x11_data(image, (unsigned char *)bits, w, h);
-  *global = image;
+  if ( global )
+    *global = image;
 
   return image;
 }
@@ -892,6 +896,15 @@ standardImages(void)
 	   pullright_bm_bits, pullright_bm_width, pullright_bm_height);
   stdImage(NAME_markHandleImage, &MARK_HANDLE_IMAGE,
 	   mark_handle_bm_bits, mark_handle_bm_width, mark_handle_bm_height);
+  stdImage(NAME_olPullrightImage, NULL,
+	   ol_pullright_bits, ol_pullright_width, ol_pullright_height);
+  stdImage(NAME_olPulldownImage, NULL,
+	   ol_pulldown_bits, ol_pulldown_width, ol_pulldown_height);
+  stdImage(NAME_olCycleImage, NULL,
+	   ol_cycle_bits, ol_cycle_width, ol_cycle_height);
+  stdImage(NAME_pceImage, NULL,
+	   pce_bm_bits, pce_bm_width, pce_bm_height);
+
   stdImage(NAME_nullImage, &NULL_IMAGE,
 	   NULL, 0, 0);
 }

@@ -59,7 +59,8 @@ server_action(edit(File), Socket) :- !,
 	send(W, sticky_window),
 	get(W, editor, Editor),
 	new(H, hyper(Socket, Editor, editor, server)),
-	send(H, send_method, @emacs_server_method).
+	send(H, send_method, @emacs_server_method),
+	send(B, check_modified_file).
 server_action(Cmd, Socket) :-
 	Cmd =.. [Sel|Args],
 	Msg =.. [send, Socket, hyper_send, editor, Sel | Args],

@@ -61,22 +61,19 @@ ws_create_colour(Colour c, DisplayObj d)
     }
   }
 
-  if ( findNearestColour(r->display_xref, r->colour_map, r->depth, 
-			 get(d, NAME_visualType, 0),
-			 &exact) )
+  if ( allocNearestColour(display, r->colour_map, r->depth, 
+			  get(d, NAME_visualType, 0),
+			  &exact) )
   { XColor *color = alloc(sizeof(XColor));
       
     *color = exact;
-					/* can this go wrong? */
-    if ( XAllocColor(display, r->colour_map, color) )
-    { assign(c, red,   toInt(exact.red));
-      assign(c, green, toInt(exact.green));
-      assign(c, blue,  toInt(exact.blue));
+    assign(c, red,   toInt(exact.red));
+    assign(c, green, toInt(exact.green));
+    assign(c, blue,  toInt(exact.blue));
 
-      errorPce(c, NAME_replacedColour);
+    errorPce(c, NAME_replacedColour);
 
-      return registerXrefObject(c, d, (XtPointer) color);
-    }
+    return registerXrefObject(c, d, (XtPointer) color);
   }
 
   return errorPce(c, NAME_xOpen, d);

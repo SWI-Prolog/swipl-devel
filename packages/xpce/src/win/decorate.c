@@ -254,6 +254,11 @@ ComputeDesiredSizeWindowDecorator(WindowDecorator dw)
 }
 
 
+static status
+layoutDialogWindowDecorator(Device d, Size gap, Size bb, Size border)
+{ succeed;
+}
+
 		 /*******************************
 		 *	    WINDOW LABEL	*
 		 *******************************/
@@ -301,6 +306,8 @@ static char *T_label[] =
         { "format=char_array*", "argument=any ..." };
 static char *T_showScrollBar[] =
         { "show=[bool]", "which=[scroll_bar]" };
+static char *T_layout[] =
+        { "gap=[size]", "size=[size]", "border=[size]" };
 static char *T_initialise[] =
         { "window=window", "scrollbars=[{none,vertical,horizontal,both}]", "label=[char_array]" };
 static char *T_xADintD_yADintD_widthADintD_heightADintD[] =
@@ -338,6 +345,8 @@ static senddecl send_windowDecorator[] =
      NAME_label, "Define window-level label"),
   SM(NAME_ComputeDesiredSize, 0, NULL, ComputeDesiredSizeWindowDecorator,
      NAME_layout, "Compute the desired size (delegate to <-window)"),
+  SM(NAME_layoutDialog, 3, T_layout, layoutDialogWindowDecorator,
+     NAME_layout, "(Re)compute layout of dialog_items (ignore)"),
   SM(NAME_rearrange, 0, NULL, rearrangeWindowDecorator,
      NAME_layout, "Rearrange <-window, <-scrollbars and <-label_text"),
   SM(NAME_horizontalScrollbar, 1, "bool", horizontalScrollbarWindowDecorator,

@@ -100,11 +100,7 @@ eventQueuedDisplayManager(DisplayManager dm)
   fail;
 }
 
-#ifdef __WINDOWS__
-#define TestBreakDraw()
-#else
 #define TestBreakDraw() if ( eventQueuedDisplayManager(dm) ) fail;
-#endif
 
 status
 RedrawDisplayManager(DisplayManager dm)

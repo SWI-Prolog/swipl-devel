@@ -51,3 +51,12 @@ a general description of this mechanism.
 #class menu_bar
 #end class
 
+#class dialog_group
+#end class
+
+
+#class tab
+#end class
+
+#class tab_stack
+#end class

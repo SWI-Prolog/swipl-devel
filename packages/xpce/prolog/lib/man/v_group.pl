@@ -15,7 +15,7 @@
 	   , default/3
 	   ]).
 
-:- pce_begin_class(man_group_browser(module_name), man_frame).
+:- pce_begin_class(man_group_browser, man_frame).
 
 variable(module,	man_module*,	get,	"Group module").
 

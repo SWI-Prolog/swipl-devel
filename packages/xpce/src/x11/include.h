@@ -166,8 +166,8 @@ int		write_pnm_file(FILE *fd, XImage *img,
 			       int scale, int fmt, int asascii);
 
 /* xcolour.c */
-status		findNearestColour(Display *display, Colormap map,
-				  int depth, Name vt, XColor *c);
+status		allocNearestColour(Display *display, Colormap map,
+				   int depth, Name vt, XColor *c);
 int		intensityXColor(XColor *c);
 
 extern XtAppContext ThePceXtAppContext;	/* X toolkit application context */

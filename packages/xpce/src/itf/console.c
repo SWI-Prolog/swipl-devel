@@ -33,10 +33,10 @@ based systems you may redefine these functions to use a window.
 	Behaves like: fgets(buf, size, stdin); 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static FILE *console_in = stdin;
-static FILE *console_out = stdout;
-
 #ifdef WIN32
+
+static FILE *console_in = NULL;
+static FILE *console_out = NULL;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Whenever a stand-alone XPCE/Something application  writes explicitely to
@@ -73,6 +73,9 @@ ensure_console()
 }
 
 #else /* ~WIN32 */
+
+static FILE *console_in = stdin;
+static FILE *console_out = stdout;
 
 static int
 ensure_console()

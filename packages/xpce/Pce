@@ -35,10 +35,6 @@ Pce.Display.system_fonts:	[ normal    := font(helvetica, roman, 12), \
 				  fixed     := font(screen, roman, 13) \
 				]
 
-Pce.KeyBinding.emacs_edit_basics: [ DEL	    := backward_delete_char, \
-				    '\eDEL' := backward_kill_word \
-				  ]
-
 ! This one is often slow on colour displays.  Prefer the beep then.
 Pce.*.visual_bell:		when(@colour_display, @off, @on)
 
@@ -63,7 +59,7 @@ Pce.Button.label_font:		normal
 Pce.Button.alignment:		center
 Pce.Button.elevation:		when(@colour_display, button, @nil)
 Pce.Button.shadow:		when(@colour_display, 0, 1)
-Pce.Button.popup_image:		when(@colour_display, @nil, 'ol_pulldown.bm')
+Pce.Button.popup_image:		when(@colour_display, @nil, @ol_pulldown_image)
 
 Pce.Slider.look:		when(@colour_display, motif, open_look)
 
@@ -74,7 +70,7 @@ Pce.Menu.elevation:		when(@colour_display, 0, @nil)
 Pce.Menu.item_elevation:	when(@colour_display, button, @nil)
 Pce.Menu.mark_elevation:	when(@colour_display, mark, @nil)
 Pce.Menu.cycle_indicator:	when(@colour_display, \
-				     elevation(1), 'ol_cycle.bm')
+				     elevation(1), @ol_cycle_image)
 
 Pce.Popup.look:			when(@colour_display, motif, open_look)
 Pce.Popup.format:		left
@@ -86,7 +82,7 @@ Pce.Popup.item_elevation:	when(@colour_display, 0, @nil)
 Pce.Popup.preview_elevation:	1
 Pce.Popup.border:		4
 Pce.Popup.preview_feedback:	rounded_box
-Pce.Popup.popup_image:		when(@colour_display, @nil, 'ol_pullright.bm')
+Pce.Popup.popup_image:		when(@colour_display, @nil, @ol_pullright_image)
 Pce.Popup.accelerator_font:	@nil
 
 Pce.DialogGroup.radius:		when(@colour_display, 8, 12)

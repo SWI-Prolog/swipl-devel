@@ -173,7 +173,13 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
     { HWND hwnd;
 
       if ( !wParam && (hwnd = getHwndWindow(sw)) )
-	PceWhDeleteWindow(hwnd);
+      {	WsWindow wsw = sw->ws_ref;
+
+	if ( wsw )
+	{ PceWhDeleteWindow(wsw->hwnd);
+	  wsw->open = FALSE;
+	}
+      }
 
       break;
     }
@@ -240,6 +246,13 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
     } else
     { iarea a;
       
+      if ( !clearing_update )
+      { WsWindow wsw;
+
+	if ( (wsw = sw->ws_ref) )
+	  wsw->open = TRUE;
+      }
+
       ServiceMode(is_service_window(sw),
 		  DEBUG(NAME_redraw,
 			Cprintf("%s (%ld) received WM_PAINT (%s clear)\n",
@@ -250,8 +263,11 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 		    send(sw, NAME_displayed, ON, 0);
 
 		  if ( d_mswindow(sw, &a, clearing_update) )
+		  { DEBUG(NAME_redraw,
+			  Cprintf("Redrawing %d %d %d %d\n",
+				  a.x, a.y, a.w, a.h));
 		    RedrawAreaWindow(sw, &a, clearing_update);
-		  else
+		  } else
 		  { DEBUG(NAME_redraw,
 			  Cprintf("d_mswindow() failed: empty area\n"));
 		  }
@@ -262,15 +278,15 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
     case WM_DESTROY:
     { HWND hwnd = getHwndWindow(sw);
 
-      DEBUG(NAME_window, Cprintf("WM_DESTROY on %s, hwnd 0x%x\n",
-				 pp(sw), hwnd)); 
       if ( hwnd )
       { ServiceMode(is_service_window(sw),
+		    DEBUG(NAME_window,
+			  Cprintf("WM_DESTROY on %s, hwnd 0x%x\n",
+				  pp(sw), hwnd)); 
 		    if ( hasSendMethodObject(sw, NAME_dropFiles) )
 		      DragAcceptFiles(hwnd, FALSE);
 		    PceWhDeleteWindow(hwnd);
-		    setHwndWindow(sw, 0);
-		    assign(sw, displayed, OFF));
+		    setHwndWindow(sw, 0));
       }
 
       return 0;
@@ -442,7 +458,7 @@ ws_invalidate_window(PceWindow sw, Area a)
 
   clearing_update = FALSE;
 
-  if ( hwnd && sw->displayed == ON )
+  if ( hwnd && IsWindowVisible(hwnd) )
   { if ( isDefault(a) )
       InvalidateRect(hwnd, NULL, TRUE);
     else				/* actually not used ... */
@@ -461,9 +477,9 @@ ws_invalidate_window(PceWindow sw, Area a)
 
 void
 ws_redraw_window(PceWindow sw, IArea a, int clear)
-{ HWND hwnd = getHwndWindow(sw);
+{ WsWindow wsw = sw->ws_ref;
 
-  if ( hwnd && sw->displayed == ON )
+  if ( wsw && wsw->hwnd && wsw->open )
   { RECT rect;
 
     rect.left   = a->x      + valInt(sw->scroll_offset->x);
@@ -471,9 +487,9 @@ ws_redraw_window(PceWindow sw, IArea a, int clear)
     rect.top    = a->y      + valInt(sw->scroll_offset->y);
     rect.bottom = rect.top  + a->h;
 
-    InvalidateRect(hwnd, &rect, FALSE);
+    InvalidateRect(wsw->hwnd, &rect, FALSE);
     clearing_update = clear;
-    UpdateWindow(hwnd);			/* will start WM_PAINT */
+    UpdateWindow(wsw->hwnd);		/* will start WM_PAINT */
     clearing_update = FALSE;		/* ok for normal WM_PAINT call */
   }
 }
@@ -577,8 +593,11 @@ void
 ws_window_cursor(PceWindow sw, CursorObj c)
 { if ( ws_created_window(sw) )
   { WsWindow w = sw->ws_ref;
-    
+
     exit_big_cursor();			/* should there be one */
+
+    if ( isNil(c) )
+      c = getResourceValueObject(sw, NAME_cursor);
 
     if ( notNil(c->image) &&
 	 (valInt(c->image->size->w) > 32 || valInt(c->image->size->h) > 32) &&
@@ -586,9 +605,13 @@ ws_window_cursor(PceWindow sw, CursorObj c)
     { start_big_cursor(c);
       w->hcursor = NULL;
     } else
-    { w->hcursor = (HCURSOR)getXrefObject(c,
+    { POINT pt;
+
+      w->hcursor = (HCURSOR)getXrefObject(c,
 					  getDisplayGraphical((Graphical)sw));
-      ZSetCursor(w->hcursor);
+
+      if ( getHwndWindow(sw) == WindowFromPoint(pt) )
+	ZSetCursor(w->hcursor);
     }
   }
 }

@@ -245,6 +245,7 @@ pce_open(Object, Mode, Stream) :-
 		 *******************************/
 
 :- multifile user:message_hook/3.
+%:- dynamic   user:message_hook/3.
 
 user:message_hook(execution_aborted,error,[['Execution aborted'-[]]]):-
      write('Aborting ...'),

@@ -222,7 +222,7 @@ EOF
     CMFLAGS="$CMFLAGS -fPIC"
   fi
 
-  BOOTPL=${PL-pl}
+  BOOTPL=pl
 
   SO="so"				 # Default shared object extension
   LD="gcc"				 # Default linking through gcc
@@ -602,6 +602,9 @@ if test ! -z "$x_libraries"; then
 else
   LIBS="$XLIBS $ac_oldlibs"
 fi
+AC_CHECK_LIB(jpeg, main,
+	     [XLIBS="$XLIBS -ljpeg"]
+	     AC_DEFINE(HAVE_LIBJPEG))
 AC_CHECK_LIB(Xpm, main,
 	     [XLIBS="$XLIBS -lXpm"]
 	     AC_DEFINE(HAVE_LIBXPM))

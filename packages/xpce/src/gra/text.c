@@ -17,7 +17,15 @@ static status	recomputeText(TextObj t, Name what);
 static status	get_char_pos_text(TextObj t, Int chr, int *X, int *Y);
 static status	prepareEditText(TextObj t);
 
-#define Wrapped(t) ((t)->wrap == NAME_wrap || (t)->wrap == NAME_wrapFixedWidth)
+#define Wrapped(t)      ((t)->wrap == NAME_wrap || \
+			 (t)->wrap == NAME_wrapFixedWidth)
+#define Before(x, y)    if ( valInt(x) > valInt(y) ) { Int _z = x; x=y; y=_z; }
+#define MakeSel(f, t)   toInt(((valInt(t) & 0xffff) << 16) | \
+			      (valInt(f) & 0xffff))
+#define GetSel(s,f,t)	{ *(t) = ((valInt(s) >> 16) & 0xffff); \
+			  *(f) = (valInt(s) & 0xffff); \
+			}
+
 
 
 		/********************************
@@ -45,6 +53,7 @@ initialiseText(TextObj t, CharArray string, Name format, FontObj font)
   assign(t, x_offset,	  ZERO);
   assign(t, x_caret,	  ZERO);
   assign(t, y_caret,	  ZERO);
+  assign(t, selection,	  NIL);
 
   return recomputeText(t, NAME_position);
 }
@@ -74,7 +83,20 @@ computeText(TextObj t)
 
 static status
 recomputeText(TextObj t, Name what)
-{ if ( notNil(t->request_compute) && t->request_compute != what )
+{ if ( notNil(t->selection) )		/* normalise the selection */
+  { int from, to;
+    int size = t->string->data.size;
+
+    GetSel(t->selection, &from, &to);
+    if ( from > size || to > size )
+    { if ( from > size ) from = size;
+      if ( from > size ) to = size;
+
+      assign(t, selection, MakeSel(toInt(from), toInt(to)));
+    }
+  }
+
+  if ( notNil(t->request_compute) && t->request_compute != what )
     computeText(t);
 
   return requestComputeGraphical(t, what);
@@ -185,6 +207,23 @@ str_format(String out, const String in, const int width, const FontObj font)
 
 
 static void
+str_one_line(String to, String from)
+{ int n;
+
+  for(n=0; n<from->size; n++)
+  { unsigned int c = str_fetch(from, n);
+	
+    if      ( c == '\n' ) c = 0xb6;	/* Paragraph sign */
+    else if ( c == '\t' ) c = 0xbb;	/* >> */
+    else if ( c == '\r' ) c = 0xab;	/* << */
+    str_store(to, n, c);
+  }
+
+  to->size = from->size;
+}
+
+
+static void
 draw_caret(int x, int y, int w, int h, int active)
 { if ( active )
   { int cx = x + w/2;
@@ -217,6 +256,8 @@ status
 repaintText(TextObj t, int x, int y, int w, int h)
 { String s = &t->string->data;
   int b = valInt(t->border);
+  int sf, st;
+  Style style = NIL;
 
   if ( notNil(t->background) )
   { if ( isDefault(t->background) )
@@ -233,6 +274,11 @@ repaintText(TextObj t, int x, int y, int w, int h)
   if ( t->wrap == NAME_clip )
     d_clip(x, y, w, h);
 
+  if ( notNil(t->selection) )
+  { GetSel(t->selection, &sf, &st);
+    style = getResourceValueObject(t, NAME_selectionStyle);
+  }
+
   if ( Wrapped(t) )
   { LocalString(buf, s, s->size + MAX_WRAP_LINES);
 
@@ -241,9 +287,22 @@ repaintText(TextObj t, int x, int y, int w, int h)
 	       x+valInt(t->x_offset), y, w, h,
 	       t->format, NAME_top);
   } else
-    str_string(s, t->font,
-	       x+valInt(t->x_offset), y, w, h,
-	       t->format, NAME_top);
+  { if ( t->wrap == NAME_clip )
+    { LocalString(buf, s, s->size);
+
+      str_one_line(buf, s);
+      s = buf;
+    }
+    if ( notNil(t->selection) )
+    { str_selected_string(s, t->font, sf, st, style,
+			  x+valInt(t->x_offset), y, w, h,
+			  t->format, NAME_top);
+    } else
+    { str_string(s, t->font,
+		 x+valInt(t->x_offset), y, w, h,
+		 t->format, NAME_top);
+    }
+  }
 
   if ( t->wrap == NAME_clip )
     d_clip_done();
@@ -256,7 +315,7 @@ repaintText(TextObj t, int x, int y, int w, int h)
 					      : NAME_inactiveColour);
     Any old = r_colour(colour);
 
-    draw_caret(valInt(t->x_caret) - OL_CURSOR_SIZE/2 + x - b - 2,
+    draw_caret(valInt(t->x_caret) - OL_CURSOR_SIZE/2 + x - b,
 	       valInt(t->y_caret) + y + fh - b - 3,
 	       OL_CURSOR_SIZE, OL_CURSOR_SIZE,
 	       active);
@@ -301,7 +360,14 @@ initAreaText(TextObj t)
     if ( t->wrap == NAME_wrapFixedWidth && tw < valInt(t->margin) )
       tw = valInt(t->margin);
   } else
+  { if ( t->wrap == NAME_clip )
+    { LocalString(buf, s, s->size);
+      
+      str_one_line(buf, s);
+      s = buf;
+    }
     str_size(s, t->font, &tw, &h);
+  }
 
   if ( t->wrap == NAME_clip )
     w = valInt(t->area->w) - 2*b;
@@ -345,7 +411,14 @@ initPositionText(TextObj t)
     if ( t->wrap == NAME_wrapFixedWidth && tw < valInt(t->margin) )
       tw = valInt(t->margin);
   } else
+  { if ( t->wrap == NAME_clip )
+    { LocalString(buf, s, s->size);
+
+      str_one_line(buf, s);
+      s = buf;
+    }
     str_size(s, t->font, &tw, &h);
+  }
 
   if ( t->wrap == NAME_clip )
     w = valInt(t->area->w) - 2*b;
@@ -462,14 +535,20 @@ get_char_pos_text(TextObj t, Int chr, int *X, int *Y)
   int cx, cy = 0, lw, sl;
   int shift;
   String s = str_bits_as_font(&t->string->data, t->font, &shift);
-  LocalString(buf, s, Wrapped(t) ? s->size + MAX_WRAP_LINES : 0);
   int b = valInt(t->border);
 
   if ( shift )
     caret = (shift > 0 ? caret << shift : caret >> -shift);
 
   if ( Wrapped(t) )
-  { str_format(buf, s, valInt(t->margin), t->font);
+  { LocalString(buf, s, Wrapped(t) ? s->size + MAX_WRAP_LINES : 0);
+
+    str_format(buf, s, valInt(t->margin), t->font);
+    s = buf;
+  } else if ( t->wrap == NAME_clip )
+  { LocalString(buf, s, s->size);
+
+    str_one_line(buf, s);
     s = buf;
   }
 
@@ -506,7 +585,7 @@ get_char_pos_text(TextObj t, Int chr, int *X, int *Y)
 }
 
 
-static Int
+Int
 get_pointed_text(TextObj t, int x, int y)
 { String s = &t->string->data;
   int ch = valInt(getHeightFont(t->font));
@@ -657,11 +736,138 @@ showCaretText(TextObj t, Any val)
 
   CHANGING_GRAPHICAL(t,
 		     assign(t, show_caret, val);
-		     recomputeText(t, NAME_area);
 		     changedEntireImageGraphical(t));
 
   succeed;
 }
+
+		 /*******************************
+		 *	     SELECTION		*
+		 *******************************/
+
+static status
+selectionText(TextObj t, Int from, Int to)
+{ int changed = FALSE;
+
+  if ( from == to )
+    from = NIL;
+
+  if ( isNil(from) )
+  { if ( notNil(t->selection) )
+    { assign(t, selection, NIL);
+      changed++;
+    }
+  } else
+  { int ofrom, oto;
+    Int new;
+
+    if ( notNil(t->selection) )
+    { GetSel(t->selection, &ofrom, &oto);
+    } else
+      ofrom = oto = 0;
+  
+    if ( isDefault(from) )
+      from = toInt(ofrom);
+    if ( isDefault(to) )
+      to = toInt(oto);
+  
+    Before(from, to);
+    new = MakeSel(from, to);
+
+    if ( new != t->selection )
+    { assign(t, selection, MakeSel(from, to));
+      changed++;
+    }
+  }
+
+  if ( changed )
+    changedEntireImageGraphical(t);
+
+  succeed;
+}
+
+
+static Point
+getSelectionText(TextObj t)
+{ if ( notNil(t->selection) )
+  { int from, to;
+
+    GetSel(t->selection, &from, &to);
+
+    answer(answerObject(ClassPoint, toInt(from), toInt(to), 0));
+  }
+
+  fail;
+}
+
+
+static StringObj
+getSelectedText(TextObj t)
+{ if ( notNil(t->selection) )
+  { int from, to;
+
+    GetSel(t->selection, &from, &to);
+    answer(getSubString((StringObj)t->string, toInt(from), toInt(to)));
+  }
+
+  fail;
+}
+
+
+static status
+copyText(TextObj t)
+{ StringObj s = getSelectedText(t);
+  DisplayObj d = getDisplayGraphical((Graphical)t);
+
+  if ( !d )
+  { if ( instanceOfObject(EVENT->value, ClassEvent) )
+      d = getDisplayEvent(EVENT->value);
+  }
+
+  if ( s && d )
+    return send(d, NAME_copy, s, 0);
+
+  fail;
+}
+
+
+static status
+deleteSelectionText(TextObj t)
+{ if ( notNil(t->selection) )
+  { int from, to;
+
+    GetSel(t->selection, &from, &to);
+
+    prepareEditText(t);
+    deleteString((StringObj)t->string, toInt(from), toInt(to-from));
+    assign(t, selection, NIL);
+    if ( valInt(t->caret) > from )
+      caretText(t, toInt(from));
+    recomputeText(t, NAME_area);
+  }
+
+  succeed;
+}
+
+
+static status
+cutText(TextObj t)
+{ if ( send(t, NAME_copy, 0) )
+  { int from, to;
+
+    GetSel(t->selection, &from, &to);
+    return deleteSelectionText(t);
+  }
+
+  fail;
+}
+
+
+
+
+		 /*******************************
+		 *	     GEOMETRY		*
+		 *******************************/
 
 
 static status
@@ -786,6 +992,13 @@ backward_word(String s, int i, int n)
 
 #define UArg(t)	(isDefault(arg) ? 1 : valInt(arg))
 
+static void
+deselectText(TextObj t)
+{ if ( notNil(t->selection) )
+    selectionText(t, NIL, DEFAULT);
+}
+
+
 status
 caretText(TextObj t, Int where)
 { int size = t->string->data.size;
@@ -805,13 +1018,17 @@ caretText(TextObj t, Int where)
 
 static status
 forwardCharText(TextObj t, Int arg)
-{ return caretText(t, add(t->caret, toInt(UArg(t))));
+{ deselectText(t);
+
+  return caretText(t, add(t->caret, toInt(UArg(t))));
 }
 
 
 static status
 backwardCharText(TextObj t, Int arg)
-{ return caretText(t, sub(t->caret, toInt(UArg(t))));
+{ deselectText(t);
+
+  return caretText(t, sub(t->caret, toInt(UArg(t))));
 }
 
 
@@ -820,6 +1037,7 @@ nextLineText(TextObj t, Int arg, Int column)
 { int cx, cy;
   int fw, fh;
 
+  deselectText(t);
   fw = valInt(getExFont(t->font));
   fh = valInt(getHeightFont(t->font));
   get_char_pos_text(t, DEFAULT, &cx, &cy);
@@ -832,7 +1050,9 @@ nextLineText(TextObj t, Int arg, Int column)
 
 static status
 previousLineText(TextObj t, Int arg, Int column)
-{ return nextLineText(t, toInt(-UArg(t)), column);
+{ deselectText(t);
+
+  return nextLineText(t, toInt(-UArg(t)), column);
 }
 
 
@@ -854,6 +1074,7 @@ endOfLineText(TextObj t, Int arg)
   int caret = valInt(t->caret);
   int n;
 
+  deselectText(t);
   caret = end_of_line(s, caret);
   for(n = UArg(t)-1; caret < t->string->data.size && n > 0; n--)
   { caret++;
@@ -869,6 +1090,7 @@ beginningOfLineText(TextObj t, Int arg)
   int caret = valInt(t->caret);
   int n;
 
+  deselectText(t);
   caret = start_of_line(s, caret);
   for(n = UArg(t)-1; caret > 0 && n > 0; n--)
   { caret--;
@@ -882,6 +1104,7 @@ static status
 forwardWordText(TextObj t, Int arg)
 { int caret = valInt(t->caret);
 
+  deselectText(t);
   caret = forward_word(&t->string->data, caret, UArg(t));
   return caretText(t, toInt(caret));
 }
@@ -891,8 +1114,20 @@ static status
 backwardWordText(TextObj t, Int arg)
 { int caret = valInt(t->caret);
 
+  deselectText(t);
   caret = backward_word(&t->string->data, caret, UArg(t));
   return caretText(t, toInt(caret));
+}
+
+
+		 /*******************************
+		 *	  EDIT COMMANDS		*
+		 *******************************/
+
+static void
+prepareInsertText(TextObj t)
+{ if ( getResourceValueObject(t, NAME_insertDeletesSelection) == ON )
+    deleteSelectionText(t);
 }
 
 
@@ -902,7 +1137,7 @@ prepareEditText(TextObj t)
     assign(t, string, newObject(ClassString, name_procent_s,
 				t->string, 0));
 
-  succeed;
+  return selectionText(t, NIL, DEFAULT);
 }
 
 
@@ -914,6 +1149,7 @@ pasteText(TextObj t, Int buffer)
   TRY((str = get(d, NAME_cutBuffer, buffer, 0)) &&
       (str = checkType(str, nameToType(NAME_charArray), NIL)));
   prepareEditText(t);
+  prepareInsertText(t);
   insertString((StringObj) t->string, t->caret, str);
   caretText(t, add(t->caret, getSizeCharArray(str)));
   doneObject(str);
@@ -928,6 +1164,8 @@ backwardDeleteCharText(TextObj t, Int arg)
   int from = (len > 0 ? caret - len : caret);
   int size = t->string->data.size;
   
+  deselectText(t);
+
   len = abs(len);
   if ( from < 0 )
   { len += from;
@@ -954,10 +1192,30 @@ deleteCharText(TextObj t, Int arg)
 
 
 static status
+cutOrDeleteCharText(TextObj t, Int arg)
+{ if ( notNil(t->selection) && isDefault(arg) )
+    return cutText(t);
+  else
+    return deleteCharText(t, arg);
+}
+
+
+static status
+cutOrBackwardDeleteCharText(TextObj t, Int arg)
+{ if ( notNil(t->selection) && isDefault(arg) )
+    return cutText(t);
+  else
+    return backwardDeleteCharText(t, arg);
+}
+
+
+static status
 killLineText(TextObj t, Int arg)
 { String s = &t->string->data;
   int caret = valInt(t->caret);
   int end, n;
+
+  deselectText(t);
 
   if ( isDefault(arg) && str_fetch(s, caret) == '\n' )
     return deleteCharText(t, DEFAULT);
@@ -975,7 +1233,9 @@ killLineText(TextObj t, Int arg)
 
 static status
 clearText(TextObj t)
-{ prepareEditText(t);
+{ deselectText(t);
+
+  prepareEditText(t);
   deleteString((StringObj) t->string, ZERO, DEFAULT);
   caretText(t, ZERO);
   return recomputeText(t, NAME_area);
@@ -1015,6 +1275,7 @@ insertSelfText(TextObj t, Int times, Int chr)
     c = valInt(chr);
     
     prepareEditText(t);
+    prepareInsertText(t);
 
   { LocalString(buf, &t->string->data, tms);
     int i;
@@ -1051,6 +1312,7 @@ openLineText(TextObj t, Int arg)
     buf->size = nl->size * tms;
 
     prepareEditText(t);
+    prepareInsertText(t);
     str_insert_string((StringObj) t->string, t->caret, buf);
     recomputeText(t, NAME_area);
   }
@@ -1067,6 +1329,7 @@ gosmacsTransposeText(TextObj t)
   { wchar tmp;
     String s;
 
+    deselectText(t);
     prepareEditText(t);
     s = &((StringObj)t->string)->data;
     tmp = str_fetch(s, caret-2);
@@ -1087,6 +1350,7 @@ transposeCharsText(TextObj t)
   { wchar tmp;
     String s;
 
+    deselectText(t);
     prepareEditText(t);
     s = &((StringObj)t->string)->data;
     tmp = str_fetch(s, caret-1);
@@ -1103,6 +1367,7 @@ static status
 killWordText(TextObj t, Int arg)
 { int caret = valInt(t->caret);
 
+  deselectText(t);
   prepareEditText(t);
   caret = forward_word(&t->string->data, caret, UArg(t));
   deleteString((StringObj) t->string, t->caret, sub(toInt(caret), t->caret));
@@ -1114,6 +1379,7 @@ static status
 backwardKillWordText(TextObj t, Int arg)
 { Int caret = t->caret;
 
+  deselectText(t);
   prepareEditText(t);
   caret = toInt(backward_word(&t->string->data, valInt(caret), UArg(t)));
   deleteString((StringObj) t->string, caret, sub(t->caret, caret));
@@ -1124,19 +1390,22 @@ backwardKillWordText(TextObj t, Int arg)
 
 static status
 formatCenterText(TextObj t)
-{ return formatText(t, NAME_center);
+{ deselectText(t);
+  return formatText(t, NAME_center);
 }
 
 
 static status
 formatLeftText(TextObj t)
-{ return formatText(t, NAME_left);
+{ deselectText(t);
+  return formatText(t, NAME_left);
 }
 
 
 static status
 formatRightText(TextObj t)
-{ return formatText(t, NAME_right);
+{ deselectText(t);
+  return formatText(t, NAME_right);
 }
 
 
@@ -1254,6 +1523,9 @@ static char *T_insertSelf[] =
         { "times=[int]", "character=[char]" };
 static char *T_geometry[] =
         { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
+static char *T_selection[] =
+        { "from=[int]*", "to=[int]" };
+
 
 /* Instance Variables */
 
@@ -1283,7 +1555,9 @@ static vardecl var_text[] =
   IV(NAME_xCaret, "int", IV_NONE,
      NAME_internal, "X-position of caret"),
   IV(NAME_yCaret, "int", IV_NONE,
-     NAME_internal, "Y-position of caret")
+     NAME_internal, "Y-position of caret"),
+  IV(NAME_Selection, "int*", IV_NONE,
+     NAME_internal, "Selected text")
 };
 
 /* Send Methods */
@@ -1340,9 +1614,14 @@ static senddecl send_text[] =
   SM(NAME_backwardKillWord, 1, "times=[int]", backwardKillWordText,
      NAME_delete, "Deletes words backward from caret (\\eDEL)"),
   SM(NAME_clear, 0, NULL, clearText,
-     NAME_delete, "Wipe out all text"),
+     NAME_delete, "Wipe out all text (\\C-u)"),
   SM(NAME_deleteChar, 1, "times=[int]", deleteCharText,
      NAME_delete, "Delete characters forwards (\\C-d)"),
+  SM(NAME_cutOrDeleteChar, 1, "times=[int]", cutOrDeleteCharText,
+     NAME_delete, "Cur or delete characters forwards (DEL)"),
+  SM(NAME_cutOrBackwardDeleteChar, 1, "times=[int]",
+     cutOrBackwardDeleteCharText,
+     NAME_delete, "Cut or delete characters backward (BS)"),
   SM(NAME_killLine, 1, "times=[int]", killLineText,
      NAME_delete, "Delete lines from caret \\C-k)"),
   SM(NAME_killWord, 1, "times=[int]", killWordText,
@@ -1366,7 +1645,15 @@ static senddecl send_text[] =
   SM(NAME_gosmacsTranspose, 0, NULL, gosmacsTransposeText,
      NAME_transpose, "Transpose two char_array before caret"),
   SM(NAME_transposeChars, 0, NULL, transposeCharsText,
-     NAME_transpose, "Transpose two char_array around caret")
+     NAME_transpose, "Transpose two char_array around caret"),
+  SM(NAME_selection, 2, T_selection, selectionText,
+     NAME_selection, "Make [from, to) the selection"),
+  SM(NAME_copy, 0, NULL, copyText,
+     NAME_selection, "Copy selection (\\C-c)"),
+  SM(NAME_cut, 0, NULL, cutText,
+     NAME_selection, "Copy and delete selection"),
+  SM(NAME_cutOrDeleteChar, 1, "times=[int]", cutOrDeleteCharText,
+     NAME_delete, "Delete characters forwards (DEL)")
 };
 
 /* Get Methods */
@@ -1380,7 +1667,11 @@ static getdecl get_text[] =
   GM(NAME_transparent, 0, "bool", NULL, getTransparentText,
      NAME_compatibility, "Map <-background"),
   GM(NAME_pointed, 1, "index=int", "at=point", getPointedText,
-     NAME_event, "Convert position to character index")
+     NAME_event, "Convert position to character index"),
+  GM(NAME_selected, 0, "string", NULL, getSelectedText,
+     NAME_selection, "New string with contents of selection"),
+  GM(NAME_selection, 0, "point", NULL, getSelectionText,
+     NAME_selection, "New point with start and end of selection")
 };
 
 /* Resources */
@@ -1392,6 +1683,11 @@ static resourcedecl rc_text[] =
      "Default font"),
   RC(NAME_format, "name", "left",
      "Default adjustment: {left,center,right}"),
+  RC(NAME_selectionStyle, "style",
+     "style(colour := white, background := black)",
+     "Style for <-selection"),
+  RC(NAME_insertDeletesSelection, "bool", "@on",
+     "->insert_self and ->paste delete the selection"),
   RC(NAME_keyBinding, "string", "",
      "`Key = selector' binding list")
 };
@@ -1404,8 +1700,6 @@ ClassDecl(text_decls,
           var_text, send_text, get_text, rc_text,
           3, text_termnames,
           "$Rev$");
-
-
 
 
 status

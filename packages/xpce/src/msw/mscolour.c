@@ -241,7 +241,7 @@ ws_create_colour(Colour c, DisplayObj d)
 
 void
 ws_uncreate_colour(Colour c, DisplayObj d)
-{ 
+{ unregisterXrefObject(c, d);
 }
 
 
@@ -517,7 +517,13 @@ ws_uncreate_colour_map(ColourMap cm, DisplayObj d)
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Allocate a colour in the XPCE central  colourmap. At the moment, the map
+is filled, and colours are nog changed afterwards. It would be better to
+collect all colours and now and then   build an optimal palette from the
+defined colours. How does one do that? 
 
+Also, all device dependant (read: based  on this colourmap) images would
+need to be updated (or all images should be stored as DIB images).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static status
@@ -528,8 +534,6 @@ ws_alloc_colour(ColourMap cm, Colour c)
   if ( getIndexVector(cm->colours, c) )
     succeed;		/* already there (basically for my own colours) */
 
-  appendVector(cm->colours, 1, (Any *)&c);
-  
   if ( cm->ws_ref )
   { HPALETTE hpal = (HPALETTE) cm->ws_ref;
     PALETTEENTRY peentry;
@@ -543,14 +547,18 @@ ws_alloc_colour(ColourMap cm, Colour c)
       
     if ( ResizePalette(hpal, ne) )
     { if ( SetPaletteEntries(hpal, ne-1, 1, pe) != 1 )
-      { Cprintf("Failed to add %s to %s\n", pp(c), pp(cm));
+      { DEBUG(NAME_colour,
+	      Cprintf("Failed to add %s to %s\n", pp(c), pp(cm)));
 	fail;
       }
     } else
-    { Cprintf("Failed to extend %s\n", pp(cm));
+    { DEBUG(NAME_colour,
+	    Cprintf("Failed to extend %s\n", pp(cm)));
       fail;
     }
   }
+
+  appendVector(cm->colours, 1, (Any *)&c);
 
   succeed;
 }

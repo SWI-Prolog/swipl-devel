@@ -7,9 +7,10 @@
     Copyright (C) 1994 University of Amsterdam. All rights reserved.
 */
 
-#define O_IMGLIB  1			/* Generic IMGLIB support */
-#define O_GIFREAD 1			/* The GIF library */
+#undef  O_IMGLIB  			/* Generic IMGLIB support */
+#undef  O_GIFREAD 			/* The GIF library */
 #define O_XPM	  1			/* use Xpm library */
+#define O_GIF	  1			/* use our GIF loader */
 
 #define RedrawWindow WinRedrawWindow
 #include <windows.h>
@@ -69,6 +70,7 @@ typedef struct
 { HWND		hwnd;
   HCURSOR	hcursor;		/* current cursor handle */
   unsigned capture    : 1;		/* has capture */
+  unsigned open	      : 1;		/* window is opened */
 } ws_window, *WsWindow;
 
 

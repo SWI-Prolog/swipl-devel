@@ -161,9 +161,18 @@ labelOffsetTab(Tab t, Int offset)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Hack! Maybe we should  make  hidden   tabs  non-displayed,  and make the
+tab_stack handle the redraw?
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static status
 statusTab(Tab t, Name stat)
-{ return assignGraphical(t, NAME_status, stat);
+{ assignGraphical(t, NAME_status, stat);
+  
+  displayedGraphical(t, stat == NAME_hidden ? OFF : ON);
+
+  succeed;
 }
 
 
@@ -373,11 +382,11 @@ static senddecl send_tab[] =
   SM(NAME_flash, 2, T_flash, flashTab,
      NAME_report, "Flash tab or area"),
   SM(NAME_position, 1, "point", positionGraphical,
-     NAME_geometry, "Top-left corner of tab"),
+     NAME_area, "Top-left corner of tab"),
   SM(NAME_x, 1, "int", xGraphical,
-     NAME_geometry, "Left-side of tab"),
+     NAME_area, "Left-side of tab"),
   SM(NAME_y, 1, "int", yGraphical,
-     NAME_geometry, "Top-side of tab"),
+     NAME_area, "Top-side of tab"),
   SM(NAME_compute, 0, NULL, computeTab,
      NAME_update, "Recompute area"),
   SM(NAME_advance, 2, T_advance, advanceTab,
@@ -390,11 +399,11 @@ static senddecl send_tab[] =
 
 static getdecl get_tab[] =
 { GM(NAME_position, 0, "point", NULL, getPositionGraphical,
-     NAME_geometry, "Top-left corner of tab"),
+     NAME_area, "Top-left corner of tab"),
   GM(NAME_x, 0, "int", NULL, getXGraphical,
-     NAME_geometry, "Left-side of tab"),
+     NAME_area, "Left-side of tab"),
   GM(NAME_y, 0, "int", NULL, getYGraphical,
-     NAME_geometry, "Top-side of tab")
+     NAME_area, "Top-side of tab")
 };
 
 /* Resources */

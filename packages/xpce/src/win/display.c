@@ -502,6 +502,58 @@ selectionOwnerDisplay(DisplayObj d, Any owner, Name selection,
   succeed;
 }
 
+		 /*******************************
+		 *  SIMPLE SELECTION INTERFACE	*
+		 *******************************/
+
+static status
+selectionDisplay(DisplayObj d, Name which, StringObj data)
+{ StringObj s2 = get(data, NAME_copy, 0);
+
+  if ( s2 )
+  { lockObject(s2, ON);
+
+    return selectionOwnerDisplay(d,
+				 s2, which,
+				 newObject(ClassObtain,
+					   RECEIVER, NAME_self, 0),
+				 newObject(ClassMessage,
+					   RECEIVER, NAME_free, 0),
+				 NAME_text);
+  }
+
+  fail;
+}
+
+
+static status
+copyDisplay(DisplayObj d, StringObj data)
+{ int rval = (send(d, NAME_cutBuffer, ZERO, data, 0) |
+	      send(d, NAME_selection, NAME_primary, data, 0) |
+	      send(d, NAME_selection, NAME_clipboard, data, 0));
+
+
+  return rval ? SUCCEED : FAIL;
+}
+
+
+static StringObj
+getPasteDisplay(DisplayObj d)
+{ StringObj s;
+  status rval;
+
+  catchErrorPce(PCE, NAME_getSelection);
+  rval = ((s=get(d, NAME_selection, 0)) ||
+	  (s=get(d, NAME_selection, DEFAULT, NAME_string, 0)) ||
+	  (s=get(d, NAME_cutBuffer, ZERO, 0)));
+  catchPopPce(PCE);
+
+  if ( rval )
+    answer(s);
+
+  fail;
+}
+
 
 		/********************************
 		*  WINDOW_MANAGER/LOOK-AND-FEEL	*
@@ -955,8 +1007,10 @@ static char *T_selectionOwner[] =
 	  "type=[{text}]"
 #endif
 	};
-static char *T_selection[] =
+static char *T_getSelection[] =
         { "which=[name]", "target=[name]", "type=[type]" };
+static char *T_selection[] =
+        { "which=[name]", "value=char_array" };
 
 /* Instance Variables */
 
@@ -1048,6 +1102,10 @@ static senddecl send_display[] =
      NAME_selection, "Define the owner of the X11 selection"),
   SM(NAME_selectionTimeout, 1, "real", selectionTimeoutDisplay,
      NAME_selection, "Set the timeout-time for getting the selection value"),
+  SM(NAME_selection, 2, T_selection, selectionDisplay,
+     NAME_selection, "Set the (textual) selection"),
+  SM(NAME_copy, 1, "char_array", copyDisplay,
+     NAME_selection, "Copy to selection and cut_buffer"),
   SM(NAME_screenSaver, 1, "bool", screenSaverDisplay,
      NAME_x, "Activate (@on) or deactivate (@off) screensaver")
 };
@@ -1085,13 +1143,16 @@ static getdecl get_display[] =
      NAME_conversion, "Image with the pixels of a region from the display"),
   GM(NAME_cutBuffer, 1, "string", "buffer=[0..7]", getCutBufferDisplay,
      NAME_selection, "New string with value of cut-buffer"),
-  GM(NAME_selection, 3, "any", T_selection, getSelectionDisplay,
+  GM(NAME_selection, 3, "any", T_getSelection, getSelectionDisplay,
      NAME_selection, "Query value of the X-window selection"),
   GM(NAME_selectionOwner, 1, "object", "which=[name]", getSelectionOwnerDisplay,
      NAME_selection, "Current object owning the X11 selection"),
   GM(NAME_selectionTimeout, 0, "real", NULL, getSelectionTimeoutDisplay,
      NAME_selection, "Get the current selection timeout time (seconds)"),
-  GM(NAME_windowManager, 0, "[{twm,olwm,mwm,fvwm}|name]", NULL, getWindowManagerDisplay,
+  GM(NAME_paste, 0, "string", NULL, getPasteDisplay,
+     NAME_selection, "Simple interface to get clipboard value"),
+  GM(NAME_windowManager, 0, "[{twm,olwm,mwm,fvwm}|name]", NULL,
+     getWindowManagerDisplay,
      NAME_windowManager, "Window manager running on this display")
 };
 

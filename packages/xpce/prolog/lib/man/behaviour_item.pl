@@ -16,6 +16,10 @@
 :- pce_begin_class(behaviour_item, text_item,
 		   "Text item for entering XPCE behaviour or class").
 
+initialise(FI, Name:[name], Def:[any|function], Msg:[code]*) :->
+	send(FI, send_super, initialise, Name, Def, Msg),
+	send(FI, style, combo_box).
+
 completions(_MI, Spec:'char_array|tuple', Matches:chain) :<-
 	new(Matches, chain),
 	(   send(Spec, instance_of, char_array)
@@ -57,6 +61,15 @@ split_completion(_MI, Value:char_array, RVal:'char_array|tuple') :<-
 	).
 
 
+selected_completion(MI, Selected:char_array, _Apply:[bool]) :->
+	send(MI, send_super, selected_completion, Selected, @off),
+	(   get(MI, selection, Selection),
+	    send(Selection, instance_of, behaviour)
+	->  send(MI, apply, @on)
+	;   true
+	).
+
+
 selection(MI, S:'behaviour|class*') :<-
 	"Get selection as behaviour or class"::
 	get(MI, get_super, selection, Text),
@@ -85,10 +98,3 @@ selection(MI, S:'behaviour|class*') :<-
 
 
 :- pce_end_class.
-
-/*
-test :-
-	send(behaviour_item(manpce, '',
-			    message(@prolog, manpce, @arg1)),
-	     open).
-*/

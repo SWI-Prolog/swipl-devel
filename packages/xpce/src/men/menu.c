@@ -1445,7 +1445,7 @@ updateMenu(Menu m, Any context)
 
       if ( a != mi->active )
       { changed = TRUE;
-	assign(mi, active, a);
+	qadSendv(mi, NAME_active, 1, (Any*) &a);
       }
     }
   }

@@ -31,6 +31,7 @@ void
 ws_synchronise_display(DisplayObj d)
 { DisplayWsXref r = d->ws_ref;
 
+  XFlush(r->display_xref);
   XSync(r->display_xref, False);
 
   while( XtAppPending(pceXtAppContext(NULL)) & XtIMAll )

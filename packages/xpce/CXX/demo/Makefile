@@ -29,7 +29,7 @@ LDSOFLAGS=-shared -L$(LIBDIR)
 COFLAGS=-O
 CMFLAGS= -fPIC -funsigned-char
 XLIB=/usr/X11R6/lib
-XLIBS=-lXt -lX11 -lSM -lICE -lXpm
+XLIBS=-lXt -lX11 -lSM -lICE -ljpeg -lXpm
 NETLIBS=
 CXXLIBHACK=-lc -Wl,-Bstatic
 

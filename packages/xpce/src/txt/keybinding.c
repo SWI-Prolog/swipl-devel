@@ -592,15 +592,16 @@ static kbDef emacs_caret_basics[] =
 static kbDef emacs_edit_basics[] =
 { { SUPER,		NAME_insert },
 
+  { "backspace",	NAME_cutOrBackwardDeleteChar },
   { "\\C-d", 		NAME_deleteChar },
-  { "DEL",		NAME_deleteChar },
+  { "DEL",		NAME_cutOrDeleteChar },
   { "\\C-h", 		NAME_backwardDeleteChar },
   { "\\C-t", 		NAME_transposeChars },
   { "\\C-k", 		NAME_killLine },
   { "\\C-o", 		NAME_openLine },
 
   { "\\ed",		NAME_killWord },
-  { "backspace",	NAME_backwardDeleteChar },
+  { "\\ebackspace",	NAME_backwardKillWord },
   { "\\e\\C-h",		NAME_backwardKillWord },
 
   { NULL,		NULL }
@@ -639,6 +640,8 @@ static kbDef text[] =
 static kbDef text_item[] =
 { { SUPER,		NAME_emacsBasics },
 
+  { "\\C-c",		NAME_copy },
+  { "\\C-v",		NAME_paste },
   { "\\C-u",		NAME_clear },
   { "\\C-g",		NAME_keyboardQuit },
   { "RET",		NAME_enter },
@@ -652,6 +655,7 @@ static kbDef text_item[] =
 
 static kbDef text_item_view[] =
 { { SUPER,		NAME_emacsViewBasics },
+  { "\\C-c",		NAME_copy },
   { "TAB",		NAME_next },
 
   { NULL,		NULL }
@@ -732,6 +736,7 @@ static kbDef editor[] =
   { "\\C-x\\C-l",	NAME_downcaseRegion },
   { "\\C-x\\C-u",	NAME_upcaseRegion },
   { "\\C-x\\C-s",	NAME_saveBuffer },
+  { "\\C-xu",		NAME_undo },
 
   { DEFAULT_FUNCTION,	NAME_undefined },
 

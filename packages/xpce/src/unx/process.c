@@ -62,7 +62,11 @@ reduced to the facility to terminate the inferior process.
 #include <sys/ioctl.h>
 #endif
 
-extern char **environ;
+#ifdef __WIN32__
+#define environ _environ	/* declared in STDLIB.H */
+#else
+extern char **environ;		/* Unix version */
+#endif
 
 					/* this fixes RS6000/AIX problems */
 #if !defined(TCGETS) && defined(HAVE_TERMIO_H)

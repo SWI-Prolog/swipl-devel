@@ -141,6 +141,8 @@
 #group stacking		"Overlapping frames and graphicals"
 #group visibility	"Making object (in-)visible"
 
+#group draw		"Methods for user-defined graphics"
+
 #group classify		"Classify events"
 
 #group connection	"Line connection graphicals"
@@ -183,6 +185,7 @@
 #group completion	"Automatic completion of textual constants"
 #group complete		"Automatic completion of textual constants"
 #group textual		"Textual representation"
+#group stream		"Handling objects as Prolog I/O streams" 
 
 #group report		"Reporting events, status and errors"
 #group reporting	"Reporting events, status and errors"
@@ -201,6 +204,7 @@
 #group hierarchy	"Hierarchical structure"
 #group server 		"Unix socket organisation (server)"
 #group display		"X-Screen oriented behaviour"
+#group dialog_item	"Dialog Item placement for graphicals"
 
 #group root		"Manipulation of the root window (background)"
 
@@ -247,6 +251,7 @@
 
 #group change		"Trapping object modifications"
 
+#group stack		"Stacking order (object, goals)"
 #group repaint		"Behaviour dealing with repaint"
 #group term		"Conversion to (Prolog) term"
 #group manual		"Support for the online reference manual"
