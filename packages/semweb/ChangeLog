@@ -1,3 +1,7 @@
+Aug 6, 2003
+
+  * FIXED: namespace generation in rdf_save/2.  Laura Hollink
+
 Aug 01, 2003
 
   * ADDED: rdf_save/[1,2] to generate rdf:parseType=Collection for anonymous

@@ -568,6 +568,7 @@ rdf_save_header(Out, DB) :-
 %	Return the list of namespaces used in an RDF database.
 
 used_namespaces(List, DB) :-
+	decl_used_predicate_ns(DB),
 	setof(NS, Full^ns(NS, Full), NS0),
 	used_ns(NS0, List, DB).
 
@@ -578,6 +579,7 @@ used_ns([H|T0], [H|T], DB) :-
 used_ns([_|T0], T, DB) :-
 	used_ns(T0, T, DB).
 
+used_ns(rdf, _) :- !.			% we need rdf:RDF
 used_ns(NS, DB) :-
 	ns(NS, Full),
 	rdf_db(S,P,O,DB),
@@ -586,6 +588,54 @@ used_ns(NS, DB) :-
 	;   atom(O),
 	    sub_atom(O, 0, _, _, Full)
 	), !.
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+For every URL used as a predicate  we   *MUST*  define a namespace as we
+cannot use names holding /, :, etc. as XML identifiers.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+:- thread_local
+	predicate_ns/2.
+
+decl_used_predicate_ns(DB) :-
+	retractall(predicate_ns(_,_)),
+	(   rdf_db(_,P,_,DB),
+	    decl_predicate_ns(P),
+	    fail
+	;   true
+	).
+
+decl_predicate_ns(Pred) :-
+	predicate_ns(Pred, _), !.
+decl_predicate_ns(Pred) :-
+	rdf_global_id(NS:_Local, Pred),
+	assert(predicate_ns(Pred, NS)), !.
+decl_predicate_ns(Pred) :-
+	atom_codes(Pred, Codes),
+	append(NSCodes, LocalCodes, Codes),
+	xml_codes(LocalCodes), !,
+	(   NSCodes \== []
+	->  atom_codes(NS, NSCodes),
+	    (   between(1, 1000000, N),
+		atom_concat(ns, N, Id),
+		\+ ns(Id, _)
+	    ->  rdf_register_ns(Id, NS),
+		print_message(informational,
+			      rdf(using_namespace(Id, NS)))
+	    ),
+	    assert(predicate_ns(Pred, Id))
+	;   assert(predicate_ns(Pred, -)) % no namespace used
+	).
+
+xml_codes([]).
+xml_codes([H|T]) :-
+	xml_code(H),
+	xml_codes(T).
+
+xml_code(X) :-
+	code_type(X, csym), !.
+xml_code(0'-).
 
 
 rdf_save_footer(Out) :-
@@ -832,3 +882,5 @@ prolog:message(rdf(saved(File, SavedSubjects, SavedTriples))) -->
 	[ 'Saved ~D triples about ~D subjects into ~p'-
 	  [SavedTriples, SavedSubjects, File]
 	].
+prolog:message(rdf(using_namespace(Id, NS))) -->
+	[ 'Using namespace id ~w for ~w'-[Id, NS] ].
