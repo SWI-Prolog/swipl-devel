@@ -96,6 +96,10 @@ append(D, Triple:prolog) :->
 	    ),
 	    send(Subject, connect, PredName, Object)
 	).
+append(D, Triple:prolog) :->
+	term_to_atom(Triple, Atom),
+	ignore(send(D, report, error,
+		    'Failed to display triple: %s', Atom)).
 	
 triples(D, Triples:prolog) :->
 	"Show disgram from Prolog triples"::

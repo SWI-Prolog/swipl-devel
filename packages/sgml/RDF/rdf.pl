@@ -45,7 +45,9 @@ load_rdf(File, Triples, Options) :-
 		       [ dialect(xmlns),
 			 space(sgml)
 		       ]),
+	rdf_reset_node_ids,		% make sure
 	xml_to_rdf(RDFElement, BaseURI, Triples0),
+	rdf_reset_node_ids,
 	post_process(Options, Triples0, Triples).
 
 	
@@ -102,6 +104,7 @@ member_attribute(A) :-
 
 process_rdf(File, BaseURI, OnObject) :-
 	retractall(rdf:in_rdf),
+	rdf_reset_node_ids,		% make sure
 	strip_module(OnObject, Module, Pred),
 	asserta(rdf:object_handler(BaseURI, Module:Pred), Ref),
 	open(File, read, In, [type(binary)]),
@@ -115,7 +118,8 @@ process_rdf(File, BaseURI, OnObject) :-
 		     call(end, rdf:on_end)
 		   ]),
 	close(In),
-	erase(Ref).
+	erase(Ref),
+	rdf_reset_node_ids.
 
 on_end(NS:'RDF', _) :-
 	rdf_name_space(NS),

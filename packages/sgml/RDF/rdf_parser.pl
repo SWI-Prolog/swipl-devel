@@ -160,25 +160,12 @@ propertyElt(Id, Name, Value, Base0) ::=
 	  rewrite(\propertyElt(Id, Name, Value, Base), E)
 	}.
 					% 5.14 emptyPropertyElt
-propertyElt(Id, Name, literal(''), Base) ::=
-	element(Name,
-		\attrs([ \?propIdAttr(Id, Base),
-			 \?parseLiteral
-		       | \noMoreAttrs
-		       ]),
-		\all_ws), !.
-propertyElt(Id, Name,
-	    description(description, About, BagID, Properties),
-	    Base) ::=
-	element(Name,
-		\attrs([ \?idAttr(Id, Base),
-			 \?aboutResourceEmptyElt(About, Base),
-			 \?bagIdAttr(BagID, Base),
-			 \?parseResource
-		       | \propAttrs(Properties, Base)
-		       ]),
-		\all_ws),
-	!.
+propertyElt(Id, Name, Value, Base) ::=
+	element(Name, A, \all_ws),
+	{ !,
+	  rewrite(\emptyPropertyElt(Id, Value, Base), A)
+	}.
+
 propertyElt(_, Name, description(description, Id, _, Properties), Base) ::=
 	element(Name,
 		\attrs([ \parseResource,
@@ -218,9 +205,25 @@ propertyElt(Id, Name, unparsed(Value), Base) ::=
 		       ]),
 		Value).
 
-aboutResourceEmptyElt(about(URI), Base) ::=
-	\resourceAttr(URI, Base).
+emptyPropertyElt(Id, literal(''), Base) ::=
+	\attrs([ \?idAttr(Id, Base),
+		 \?parseLiteral
+	       | \noMoreAttrs
+	       ]), !.
+emptyPropertyElt(Id,
+		 description(description, About, BagID, Properties),
+		 Base) ::=
+	\attrs([ \?idAttr(Id, Base),
+		 \?aboutResourceEmptyElt(About, Base),
+		 \?bagIdAttr(BagID, Base),
+		 \?parseResource
+	       | \propAttrs(Properties, Base)
+	       ]), !.
 
+aboutResourceEmptyElt(about(URI), Base) ::=
+	\resourceAttr(URI, Base), !.
+aboutResourceEmptyElt(node(URI), _Base) ::=
+	\nodeIDAttr(URI).
 
 %	literal_value(+In, -Value)
 %	
@@ -239,8 +242,8 @@ idAboutAttr(id(Id), Base) ::=
 	\idAttr(Id, Base), !.
 idAboutAttr(about(About), Base) ::=
 	\aboutAttr(About, Base), !.
-idAboutAttr(about(About), Base) ::=
-	\nodeIDAttr(About, Base), !.
+idAboutAttr(node(About), _Base) ::=
+	\nodeIDAttr(About), !.
 idAboutAttr(AboutEach, Base) ::=
 	\aboutEachAttr(AboutEach, Base).
 
@@ -248,11 +251,6 @@ idRefAttr(Id, Base) ::=
 	\idAttr(Id, Base), !.
 idRefAttr(about(URI), Base) ::=
 	\resourceAttr(URI, Base).
-
-propIdAttr(Id, Base) ::=
-	\idAttr(Id, Base), !.
-propIdAttr(about(About), Base) ::=
-	\nodeIDAttr(About, Base), !.
 
 %	an_rdf_object(-Object, +BaseURI)
 %
@@ -306,8 +304,8 @@ bagIdAttr(Id, Base) ::=
 aboutAttr(About, Base) ::=
 	\rdf_or_unqualified(about) = \uri(About, Base).
 
-nodeIDAttr(About, Base) ::=
-	\rdf_or_unqualified(nodeID) = \uri(About, Base).
+nodeIDAttr(About) ::=
+	\rdf_or_unqualified(nodeID) = About.
 
 %	Not allowed in current RDF!
 

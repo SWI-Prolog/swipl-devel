@@ -13,7 +13,8 @@
 :- module(rdf_triple,
 	  [ rdf_triples/2,		% +Parsed, -Tripples
 	    rdf_triples/3,		% +Parsed, -Tripples, +Tail
-	    rdf_reset_ids/0		% Reset gensym id's
+	    rdf_reset_ids/0,		% Reset gensym id's
+	    rdf_reset_node_ids/0	% Reset nodeID --> Node__xxx table
 	  ]).
 :- use_module(library(gensym)).
 
@@ -82,7 +83,7 @@ rdf_triples([H|T]) --> !,
 rdf_triples(Term) -->
 	triples(Term, _).
 
-%	triples(-Tripples, -Id, +In, -Tail)
+%	triples(-Triples, -Id, +In, -Tail)
 %
 %	DGC set processing the output of xml_to_rdf/3.  In Id, the identifier
 %	of the main description or container is returned.
@@ -153,6 +154,12 @@ container_id(Type, Id) :-
 		 *	    DESCRIPTIONS	*
 		 *******************************/
 
+:- thread_local
+	node_id/2.			% nodeID --> ID
+
+rdf_reset_node_ids :-
+	retractall(node_id(_,_)).
+
 description_id(Id, Id) :-
 	var(Id), !,
 	gensym('Description__', Id).
@@ -160,6 +167,12 @@ description_id(about(Id), Id).
 description_id(id(Id), Id).
 description_id(each(Id), each(Id)).
 description_id(prefix(Id), prefix(Id)).
+description_id(node(NodeID), Id) :-
+	(   node_id(NodeID, Id)
+	->  true
+	;   gensym('Node__', Id),
+	    assert(node_id(NodeID, Id))
+	).
 
 properties(PlRDF, BagId, Subject) -->
 	{ nonvar(BagId)
@@ -296,4 +309,5 @@ rdf_reset_ids :-
 	reset_gensym('Alt__'),
 	reset_gensym('Description__'),
 	reset_gensym('Statement__'),
-	reset_gensym('List__').
+	reset_gensym('List__'),
+	reset_gensym('Node__').
