@@ -232,10 +232,11 @@ do_frame_wnd_proc(FrameObj fr,
 
 	hpal = SelectPalette(hdc, hpal, FALSE);
 	i = RealizePalette(hdc);
-	SelectPalette(hdc, hpal, FALSE);
+	SelectPalette(hdc, hpal, TRUE);
+	RealizePalette(hdc);
 	ReleaseDC(hwnd, hdc);
 
-	if ( i )
+	if ( i > 0 )
 	{ forwardColourMapChangeFrame(fr);
 	  return TRUE;
 	}

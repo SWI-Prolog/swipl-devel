@@ -672,3 +672,32 @@ ws_unalloc_colour(ColourMap cm, Colour c)
     }
   }
 }
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Check  whether  the  display   supports    colourmaps.   Got  this  from
+http://www.compuphase.com/palette.htm
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+status
+ws_has_colourmap(DisplayObj d)
+{ HDC hdc    = GetDC(NULL);
+  int rc     = GetDeviceCaps(hdc,RASTERCAPS);
+  int bits   = GetDeviceCaps(hdc,BITSPIXEL);
+  int planes = GetDeviceCaps(hdc,PLANES);
+  ReleaseDC(NULL, hdc);
+  bits *= planes;       /* bits == flat number of bits per pixel */
+  /* The only hardware modes that use a palette are modes
+   * with 2, 4, 16 and 256 colours.
+   * Microsoft Windows supports palette operations only
+   * on displays with 256 colours. That is, in 16-colour
+   * mode, you cannot use the palette.
+   * So you only need to check for the RC_PALETTE bit if
+   * the number of bits per pixel is 8.
+   */
+  return (rc & RC_PALETTE) != 0 && bits == 8;
+}
+
+
+
+

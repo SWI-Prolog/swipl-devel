@@ -118,6 +118,8 @@ KEROBJS=	ker\alloc.obj ker\assoc.obj ker\behaviour.obj \
 		ker\type.obj ker\variable.obj ker\xref.obj \
 		ker\classvar.obj ker\inline.obj
 
+ker\name.obj:	h\names.ic h\names.ih
+
 ################################################################
 # MEN 		--- Menu (Dialog) items
 ################################################################

@@ -93,6 +93,7 @@ typedef struct
 
 static int		cache = 1;	/* Do or don't */
 static int		quick;		/* Prefer speed */
+static int		has_cmap;	/* Do we have a colourmap? */
 static wdraw_context	context; 	/* current context */
 static wdraw_context	ctx_stack[MAX_CTX_DEPTH];  /* Context stack */
 static int		ctx_stacked;	/* Saved frames */
@@ -157,7 +158,9 @@ initDraw()
   if ( !TheDisplay )
     TheDisplay = CurrentDisplay(NIL);
   if ( !display_depth )
-    display_depth = ws_depth_display(TheDisplay);
+  { display_depth = ws_depth_display(TheDisplay);
+    has_cmap = ws_has_colourmap(TheDisplay);
+  }
 
   resetDraw();
 
@@ -360,7 +363,10 @@ d_mswindow(PceWindow sw, IArea a, int clear)
 				context.cache_x, context.cache_y,
 				context.cache_w, context.cache_h));
     } else
-      r_default_background(sw->background);
+    { r_default_background(sw->background);
+      if ( clear )
+	r_clear(a->x, a->y, a->w, a->h);
+    }
 
     SetBkMode(context.hdc, TRANSPARENT);
 
@@ -492,8 +498,10 @@ d_hdc(HDC hdc, Colour fg, Colour bg)
   context.hdc = hdc;
   context.device = NIL;			/* anonymous device */
 
-  r_default_background(bg);
-  r_default_colour(fg);
+  if ( notNil(bg) )
+    r_default_background(bg);
+  if ( notNil(fg) )
+    r_default_colour(fg);
 }
 
 
@@ -659,10 +667,6 @@ d_done(void)
     { ZSelectObject(context.hdc, context.ohfont);
       context.ohfont = 0;
     }
-    if ( context.ohpal )
-    { SelectPalette(context.hdc, context.ohpal, FALSE);
-      context.ohpal = NULL;
-    }
     if ( context.relief_pen )
     { ZDeleteObject(context.relief_pen);
       context.relief_pen = 0;
@@ -672,23 +676,33 @@ d_done(void)
       context.shadow_pen = 0;
     }
 
-    if ( instanceOfObject(context.device, ClassWindow) )
-    { if ( context.cache )
-      { DEBUG(NAME_cache, Cprintf("Writing cache to window\n"));
-	SetViewportOrg(context.hdc, 0, 0);
-	BitBlt(context.cached_hdc,
-	       context.cache_x, context.cache_y,
-	       context.cache_w, context.cache_h,
-	       context.hdc, 0, 0, SRCCOPY);
-	ZSelectObject(context.hdc, context.cache_ohbitmap);
-	ZDeleteObject(context.cache);
-	if ( context.ochpal )
-	{ SelectPalette(context.cached_hdc, context.ochpal, FALSE);
-	  context.ochpal = NULL;
-	}
-	DeleteDC(context.hdc);
+    if ( context.cache )
+    { DEBUG(NAME_cache, Cprintf("Writing cache to window\n"));
+      SetViewportOrg(context.hdc, 0, 0);
+      BitBlt(context.cached_hdc,
+	     context.cache_x, context.cache_y,
+	     context.cache_w, context.cache_h,
+	     context.hdc, 0, 0, SRCCOPY);
+      ZSelectObject(context.hdc, context.cache_ohbitmap);
+      ZDeleteObject(context.cache);
+      if ( context.ochpal )
+      { SelectPalette(context.cached_hdc, context.ochpal, FALSE);
+	context.ochpal = NULL;
       }
-      EndPaint(context.hwnd, &context.ps);
+      if ( context.ohpal )
+      { SelectPalette(context.hdc, context.ohpal, FALSE);
+	context.ohpal = NULL;
+      }
+      DeleteDC(context.hdc);
+    } else
+    { if ( context.ohpal )
+      { SelectPalette(context.hdc, context.ohpal, FALSE);
+	context.ohpal = NULL;
+      }
+    }
+
+    if ( instanceOfObject(context.device, ClassWindow) )
+    { EndPaint(context.hwnd, &context.ps);
     } else if ( instanceOfObject(context.device, ClassImage) )
     { ZSelectObject(context.hdc, context.ohbitmap);
       DeleteDC(context.hdc);

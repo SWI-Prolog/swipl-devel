@@ -56,10 +56,14 @@ ws_get_size_display(DisplayObj d, int *w, int *h)
 
 Name
 ws_get_visual_type_display(DisplayObj d)
-{ if ( ws_depth_display(d) == 1 )
+{ int depth = ws_depth_display(d);
+
+  if ( depth == 1 )
     return NAME_monochrome;
-  else
+  else if ( depth <= 8 )		/* test for colourmap? */
     return NAME_pseudoColour;
+  else
+    return NAME_trueColour;
 }
 
 
@@ -111,7 +115,11 @@ ws_open_display(DisplayObj d)
 { d->ws_ref = (WsRef) 1;	/* just flag; nothing to do yet */
 
   if ( isDefault(d->colour_map) )
-    send(d, NAME_colourMap, newObject(ClassColourMap, NAME_pce, 0), 0);
+  { if ( ws_has_colourmap(d) )
+      send(d, NAME_colourMap, newObject(ClassColourMap, NAME_pce, 0), 0);
+    else
+      send(d, NAME_colourMap, NIL, 0);
+  }
 
   ws_init_loc_still_timer();
 }

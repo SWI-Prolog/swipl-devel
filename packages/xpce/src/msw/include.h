@@ -123,6 +123,7 @@ void		PceEventInWindow(HWND win);
 
 void		ws_system_colours(DisplayObj d);
 Colour		ws_system_colour(DisplayObj d, const char *name, COLORREF rgb);
+status		ws_has_colourmap(DisplayObj d);
 void		declareWindowsBrush(Any obj, HBRUSH brush);
 status		d_winmf(const char *fn,
 			int x, int y, int w, int h,

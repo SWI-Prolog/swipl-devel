@@ -208,6 +208,13 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
     case WM_ERASEBKGND:
     { HDC hdc = (HDC) wParam;
       RECT rect;
+
+#if 1
+      d_hdc(hdc, NIL, sw->background);
+      GetClipBox(hdc, &rect);
+      r_clear(rect.left, rect.top, rect.right-rect.left, rect.bottom-rect.top);
+      d_done();
+#else
       HBRUSH hbrush;
       HPALETTE hpal = window_palette(sw), ohpal = NULL;
       COLORREF rgb = (COLORREF) getXrefObject(sw->background,
@@ -236,6 +243,7 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 				 rect.right - rect.left,
 				 rect.bottom - rect.top,
 				 pp(sw)));
+#endif /*1*/
 
       return 1;				/* non-zero: I've erased it */
     }
