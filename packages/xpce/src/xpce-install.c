@@ -40,6 +40,7 @@ interpreter and copy command.
 #include <fcntl.h>
 #include <errno.h>
 #include <time.h>
+#include <string.h>
 
 #ifndef MAXPATHLEN
 #define MAXPATHLEN 1024
