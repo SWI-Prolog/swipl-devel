@@ -1,6 +1,10 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: printing PLTHREADS from pl -dump-runtime-variables.  plld
+    automatically pushes -D_REENTRANT to the C and C++ options of pl
+    is multi-threaded.
+
   * FIXED: errorneous `redefined' messages.
 
   * MODIFIED: Implemented `logical update-view' for dynamic predicates!

@@ -769,7 +769,10 @@ getPrologOptions()
 	  addLibs(v, &libs);
 	else if ( streq(name, "PLLDFLAGS" ) )
 	  appendArgList(&ldoptions, v);
-	else
+	else if ( streq(name, "PLTHREADS") && streq(v, "true") )
+	{ ensureOption(&coptions, "-D_REENTRANT");
+	  ensureOption(&cppoptions, "-D_REENTRANT");
+	} else
 	  continue;
 
 	if ( verbose )

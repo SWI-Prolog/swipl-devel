@@ -143,6 +143,17 @@ architecture identifier.
 When given as the only option, it prints the architecture identifier
 (see current_prolog_flag(arch, Arch)) and exits.
 
+    \cmdlineoptionitem{-dump-runtime-variables}{}
+When given as the only option, it prints a sequence of variable settings
+that can be used in shell-scripts to deal with Prolog parameters.  This
+feature is also used by \program{plld} (see \secref{plld}).  Below is
+a typical example of using this feature.
+
+\begin{code}
+eval `pl -dump-runtime-variables`
+cc -I$PLBASE/include -L$PLBASE/runtime/$PLARCH ...
+\end{code}
+
     \cmdlineoptionitem*{-L}{size[km]}
 Give local stack limit (2 Mbytes default). Note that there is no space
 between the size option and its argument.  By default, the argument is
