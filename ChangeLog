@@ -1,6 +1,10 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: -nosignals option to inhibit signal handling.  Added a section
+    to the manual about embedding in complicated environments. With help of
+    David Sitsky.  
+
   * PORT: Removed static linking of frame.o.  Shouldn't be needed anymore
     and raised problems on PPC Linux (Aaron Macks).  Typo found by
     Paulo Moura.

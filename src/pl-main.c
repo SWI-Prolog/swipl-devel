@@ -373,6 +373,8 @@ static int
 parseCommandLineOptions(int argc0, char **argv, int *compile)
 { int argc = argc0;
 
+  
+
   for( ; argc > 0 && (argv[0][0] == '-' || argv[0][0] == '+'); argc--, argv++ )
   { char *s = &argv[0][1];
 
@@ -386,6 +388,10 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
 	setFeatureMask(TTY_CONTROL_FEATURE);
       else
 	clearFeatureMask(TTY_CONTROL_FEATURE);
+
+      continue;
+    } else if ( streq(s, "nosignals") )
+    { clearFeatureMask(SIGNALS_FEATURE);
       continue;
     }
 
@@ -766,6 +772,9 @@ properly on Linux. Don't bother with it.
 
     DEBUG(1, if (GD->bootsession) Sdprintf("Boot session\n"););
 
+#ifdef HAVE_SIGNAL
+    setFeatureMask(SIGNALS_FEATURE);	/* default: handle signals */
+#endif
     if ( !GD->resourceDB )
     { if ( !(GD->resourceDB = openResourceDB(argc, argv)) )
       { UNLOCK();

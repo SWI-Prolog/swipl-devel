@@ -1801,6 +1801,7 @@ typedef struct debuginfo
 #define TAILRECURSION_FEATURE	  0x10000 /* Tail recursion enabled? */
 #define EX_ABORT_FEATURE	  0x20000 /* abort with exception */
 #define BACKQUOTED_STRING_FEATURE 0x40000 /* `a string` */
+#define SIGNALS_FEATURE		  0x80000 /* Handle signals */
 
 typedef struct
 { unsigned long flags;			/* the feature flags */

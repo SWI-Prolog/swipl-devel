@@ -1127,7 +1127,8 @@ void
 resetTracer(void)
 {
 #ifdef O_INTERRUPT
-  PL_signal(SIGINT, interruptHandler);
+  if ( trueFeature(SIGNALS_FEATURE) )
+    PL_signal(SIGINT, interruptHandler);
 #endif
 
   debugstatus.tracing      = FALSE;

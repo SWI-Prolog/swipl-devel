@@ -1002,6 +1002,9 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	}
 	fm++;
       }
+    } else if ( *fm == '\\' && fm[1] )
+    { OUT(s, fm[1]);
+      fm += 2;
     } else
     { OUT(s, *fm);
       fm++;

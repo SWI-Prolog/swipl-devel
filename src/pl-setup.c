@@ -78,7 +78,8 @@ setupProlog(void)
   initMemAlloc();
 #if HAVE_SIGNAL
   DEBUG(1, Sdprintf("Prolog Signal Handling ...\n"));
-  initSignals();
+  if ( trueFeature(SIGNALS_FEATURE) )
+    initSignals();
 #endif
   DEBUG(1, Sdprintf("Stacks ...\n"));
   initPrologStacks(GD->options.localSize, 
@@ -452,7 +453,7 @@ set_sighandler(int sig, handler_t func)
 #if !defined(NO_SEGV_HANDLING) && defined(O_DYNAMIC_STACKS)
 static handler_t
 set_stack_guard_handler(int sig, void *func)
-{
+{ 
 #ifdef HAVE_SIGACTION
   struct sigaction old;
   struct sigaction new;
@@ -465,6 +466,13 @@ set_stack_guard_handler(int sig, void *func)
   new.sa_handler   = func;
   new.sa_flags     = SA_RESTART;
 #endif
+
+  if ( !trueFeature(SIGNALS_FEATURE) &&
+       !GD->options.silent )
+  {			/* We need double \\ to get a single at Sdprintf() */
+    Sdprintf("\\% Prolog still handles SIG_SEGV\n"
+	     "\\% To avoid this, reconfigure using --disable-segv-handling\n");
+  }
 
   if ( sigaction(sig, &new, &old) == 0 )
     return old.sa_handler;

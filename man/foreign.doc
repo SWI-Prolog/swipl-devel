@@ -2386,35 +2386,37 @@ debugging purposes, wrapping the handle in a compound is a good
 suggestion.
 
 
-\subsection{Embedding SWI-Prolog in a C-program}
+\subsection{Embedding SWI-Prolog in other applications}	\label{sec:embedded}
 
-As of version 2.1.0, SWI-Prolog may be embedded in a C-program.
-To reach at a compiled C-program with SWI-Prolog as an embedded
-application is very similar to creating a statically linked SWI-Prolog
-executable as described in \secref{staticl}.
+With embedded Prolog we refer to the situation where the `main' program
+is not the Prolog application.  Prolog is sometimes embedded in C, C++,
+Java or other languages to provide logic based services in a larger
+application.  Embedding loads the Prolog engine as a library to the
+external language.  Prolog itself only provides for embedding in the
+C-language (compatible to C++).  Embedding in Java is achieved using
+JPL using a C-glue between the Java and Prolog C-interfaces.
 
-The file \file{\ldots/pl/include/stub.c} defines SWI-Prologs default main
-program:
-
+The most simple embedded program is below. The interface function
+PL_initialise() {\bf must} be called before any of the other SWI-Prolog
+foreign language functions described in this chapter, except for
+PL_initialise_hook(), PL_new_atom() and PL_register_foreign().
+PL_initialise() interprets all the command-line arguments, except for
+the \argoption{-t}{toplevel} flag that is interpreted by PL_toplevel().
 
 \begin{code}
 int
 main(int argc, char **argv)
-{ if ( !PL_initialise(argc, argv) )
-    PL_halt(1);
+{ 
+#ifdef READLINE	/* Remove if you don't want readline */
+  PL_initialise_hook(install_readline);
+#endif
 
-  PL_install_readline();        /* delete if you don't want readline */
+  if ( !PL_initialise(argc, argv) )
+    PL_halt(1);
 
   PL_halt(PL_toplevel() ? 0 : 1);
 }
 \end{code}
-
-
-This may be replaced with your own main C-program. The interface
-function PL_initialise() {\bf must} be called before any of the other
-SWI-Prolog foreign language functions described in this chapter.  
-PL_initialise() interprets all the command-line arguments, except for
-the \argoption{-t}{toplevel} flag that is interpreted by PL_toplevel().
 
 \begin{description}
 \cfunction{int}{PL_initialise}{int argc, char **argv}
@@ -2486,7 +2488,8 @@ for the argument vector \arg{argv}.
     \cfunction{void}{PL_install_readline}{}
 Installs the GNU-readline line-editor.  Embedded applications that do not
 use the Prolog toplevel should normally delete this line, shrinking the
-Prolog kernel significantly.
+Prolog kernel significantly.  Note that the Windows version does not use
+GNU readline.
 
     \cfunction{int}{PL_toplevel}{}
 Runs the goal of the \argoption{-t}{toplevel} switch (default prolog/0) and
@@ -2508,6 +2511,58 @@ clib package\index{clib,package},\index{package,clib}).
 Cleanup the Prolog environment using PL_cleanup() and calls exit() with
 the status argument.
 \end{description}
+
+
+\subsubsection{Threading, Signals and embedded Prolog}
+\label{sec:sigembedded}
+
+This section applies to Unix-based environments that have signals or
+multi-threading.  The Windows version is compiled for multi-threading
+and Windows lacks proper signals.
+
+We can distinguish two classes of embedded executables. There are small
+C/C++-programs that act as an interfacing layer around Prolog. Most of
+these programs can be replaced using the normal Prolog executable
+extended with a dynamically loaded foreign extension and in most cases
+this is the preferred route. In other cases, Prolog is embedded in a
+complex application that---like Prolog---wants to control the process
+environment. A good example is Java. Embedding Prolog is generally the
+only way to get these environments together in one process image. Java
+applications however are by nature multi-threaded and appear to do
+signal-handling (software interrupts).
+
+\index{--disable-segv-handling}%
+To make Prolog operate smoothly in such environments it must be told
+not to alter the process environment. This is partly done at build-time
+and partly execution time.  At build-time we must specify the use of
+software stack-overflow rather then the default hardware checks.  This
+is done using
+
+\begin{code}
+sh configure --disable-segv-handling
+\end{code}
+ 
+The resulting Prolog executable is about 10\% slower than the normal
+executable, but behaves much more reliable in complicated embedded
+situations.  In addition, as the process no longer handles segmentation
+violations, debugging foreign code linked to it is much easier.
+
+At runtime, it is adviced to pass the flag \cmdlineoption{-nosignals},
+which inhibits all default signal handling.  This has a few consequences
+though:
+
+\begin{itemize}
+    \item It is no longer possible to break into the tracer using
+          an interrupt signal (Control-C).
+    \item \const{SIGPIPE} is normally set to be ignored.  Prolog uses
+          return-codes to diagnose broken pipes.  Depending on the
+	  situation one should take appropriate action if Prolog
+	  streams are connected to pipes.
+    \item Fatal errors normally cause Prolog to call PL_cleanup() and
+          exit().  It is adviced to call PL_cleanup() as part of the
+	  exit-procedure of your application.
+\end{itemize}
+
 
 \section{Linking embedded applications using plld}	\label{sec:plld}
 

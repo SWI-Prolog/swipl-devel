@@ -738,6 +738,8 @@ initFeatures()
 
   defFeature("tty_control", FT_BOOL|FF_READONLY,
 	     trueFeature(TTY_CONTROL_FEATURE), TTY_CONTROL_FEATURE);
+  defFeature("signals", FT_BOOL|FF_READONLY,
+	     trueFeature(SIGNALS_FEATURE), SIGNALS_FEATURE);
   defFeature("readline", FT_BOOL/*|FF_READONLY*/, FALSE, 0);
 
 #if defined(__WIN32__) && defined(_DEBUG)

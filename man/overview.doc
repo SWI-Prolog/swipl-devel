@@ -279,6 +279,11 @@ it is not connected to a terminal or it is running as a GNU-Emacs
 inferior process. This flag is sometimes required for smooth interaction
 with other applications.
 
+    \cmdlineoptionitem{-nosignals}{}
+Inhibit any signal handling by Prolog, a property that is sometimes
+desirable for embedded applications. This option sets the flag
+\const{signals} to \const{false}. See \secref{sigembedded} for defails.
+
     \cmdlineoptionitem{-x}{bootfile}
 Boot from \arg{bootfile} instead of the system's default boot file. A
 bootfile is a file resulting from a Prolog compilation using the
@@ -1139,6 +1144,12 @@ ISO prolog-flag describing integer representation is bound by
 Determines whether the terminal is switched to raw mode for
 get_single_char/1, which also reads the user-actions for the trace.  May
 be set.  See also the \cmdlineoption{+/-tty} command-line option.
+
+    \prologflagitem{signals}{bool}{r}
+Determine whether Prolog is handling signals (software interrupts). This
+flag is \const{false} if the hosting OS does not support signal handling
+or the command-line option \cmdlineoption{-nosignals} is active.  See
+\secref{sigembedded} for details.
 
     \prologflagitem{editor}{atom}{rw}
 Determines the editor used by edit/1. See \secref{listing} for
