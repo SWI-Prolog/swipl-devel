@@ -28,7 +28,7 @@
 :- dynamic
 	called/2,			% called head
 	(dynamic)/2,			% defined dynamic
-	defined/2,			% defined head
+	defined/3,			% defined head
 	imported/2,			% imported head
 	exported/2,			% exported head
 	source/1.
@@ -100,7 +100,7 @@ xref_source(Source) :-
 xref_clean(Source) :-
 	canonical_source(Source, Src),
 	retractall(called(_, Src)),
-	retractall(defined(_, Src)),
+	retractall(defined(_, Src, _Line)),
 	retractall(exported(_, Src)),
 	retractall(source(Src)).
 	
@@ -113,8 +113,8 @@ xref_called(Source, Called) :-
 
 xref_defined(Source, Called, How) :-
 	canonical_source(Source, Src),
-	(   defined(Called, Src),
-	    How = local
+	(   defined(Called, Src, Line),
+	    How = local(Line)
 	;   imported(Called, Src),
 	    How = imported
 	;   dynamic(Called, Src),
@@ -134,14 +134,17 @@ collect(Src) :-
 	style_check(+dollar),
 	repeat,
 	    catch(read_term(Fd, Term,
-			    [ character_escapes(true) % TBD: how to switch!?
+			    [ character_escapes(true), % TBD: how to switch!?
+			      term_position(TermPos)
 			    ]), _, fail),
 	    xref_expand(Term, T),
 	    (   T == end_of_file
 	    ->  !,
 	        '$style_check'(_, Old),
 	        close(Fd)
-	    ;   process(T, Src),
+	    ;   arg(2, TermPos, Line),
+		flag(xref_src_line, _, Line),
+	        process(T, Src),
 		fail
 	    ).
 
@@ -378,11 +381,12 @@ assert_called(Src, Goal) :-
 
 assert_defined(_, _Module:_Head) :- !.	% defining in another module.  Bah!
 assert_defined(Src, Goal) :-
-	defined(Goal, Src), !.
+	defined(Goal, Src, _), !.
 assert_defined(Src, Goal) :-
 	functor(Goal, Name, Arity),
 	functor(Term, Name, Arity),
-	asserta(defined(Term, Src)).
+	flag(xref_src_line, Line, Line),
+	asserta(defined(Term, Src, Line)).
 
 assert_import(_, []) :- !.
 assert_import(Src, [H|T]) :-

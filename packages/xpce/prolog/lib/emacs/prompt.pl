@@ -12,8 +12,9 @@
 	  ]).
 :- use_module(library(pce)).
 
-:- pce_autoload(behaviour_item, library('man/behaviour_item')).
-:- pce_autoload(directory_item, library('file_item')).
+:- pce_autoload(behaviour_item,	       library('man/behaviour_item')).
+:- pce_autoload(directory_item,	       library('file_item')).
+:- pce_autoload(prolog_predicate_item, library(prolog_predicate_item)).
 
 resource(back,	image, image('16x16/fatleft_arrow.xpm')).
 resource(forw,	image, image('16x16/fatright_arrow.xpm')).
@@ -80,6 +81,12 @@ make_item(_Mode, Label, Default, Type, _History, Item) :-
 	new(Classes, chain),
 	send(@classes, for_all, message(Classes, append, @arg1)),
 	send(Item, value_set, Classes).
+					% Prolog predicates
+make_item(_Mode, Label, Default, Type, _History, Item) :-
+	get(@pce, convert, prolog_predicate, class, _),
+	send(Type, includes, prolog_predicate), !,
+	default(Default, '', Selection),
+	new(Item, prolog_predicate_item(Label, Selection)).
 					% Anything else
 make_item(_Mode, Label, Default, Type, History, Item) :-
 	default(Default, '', Selection),
@@ -166,7 +173,10 @@ fill(D, Mode:emacs_mode, Impl:any, Argv:vector) :->
 	    ->	true
 	    ;	get(ArgType, name, ArgName)
 	    ),
-	    get(Argv, element, ArgN, Default),
+	    (	get(Mode, default, ArgType, Default)
+	    ->	true
+	    ;	Default = @default
+	    ),
 	    make_item(Mode, ArgName, Default, ArgType, @default, Item),
 	    (	send(Item, instance_of, text_item)
 	    ->	send(Item, recogniser, @emacs_prompt_dialog_recogniser),
@@ -230,7 +240,11 @@ collect(D, Argv:vector) :->
 collect_from(_, Item:dialog_item, Argv:vector) :->
 	get(Item, argn, ArgN),
 	get(Item, selection, Value),
-	send(Argv, element, ArgN, Value).
+	(   send(Item, instance_of, prolog_predicate_item)
+	->  new(TheValue, prolog_predicate(Value))
+	;   TheValue = Value
+	),
+	send(Argv, element, ArgN, TheValue).
 
 
 :- pce_group(history).

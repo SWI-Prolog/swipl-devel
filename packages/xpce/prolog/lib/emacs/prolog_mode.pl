@@ -12,6 +12,8 @@
 
 :- module(emacs_prolog_mode, []).
 :- use_module(library(pce)).
+:- use_module(library(prolog_predicate)).
+:- use_module(library('emacs/prolog_xref')).
 :- require([ make/0
 	   , absolute_file_name/3
 	   , auto_call/1
@@ -29,8 +31,6 @@
 	   ]).
 pce_ifhostproperty(prolog(quintus),
 		   (:- use_module(library(strings), [concat_chars/2]))).
-
-:- pce_autoload(prolog_predicate_item, library(prolog_predicate_item)).
 
 resource(mode_pl_icon, image, image('32x32/doc_pl.xpm')).
 
@@ -292,113 +292,31 @@ compile_buffer(E) :->
 		*       FINDING PREDICATES	*
 		********************************/
 
-find_definition(E) :->
+default(M, For:type, Default:unchecked) :<-
+	"Provide default for prompter"::
+	(   send(For, includes, prolog_predicate)
+	->  get(M, caret, Caret),
+	    get(M, name_and_arity, Caret, tuple(Name, Arity)),
+	    concat_atom([Name, /, Arity], Default)
+	;   get_super(M, default, For, Default)
+	).
+
+
+find_definition(M, For:prolog_predicate) :->
 	"Find definition of predicate"::
-	current_name_arity(E, Module, PredName, PredArity),
-	find_predicate(Module, PredName, PredArity, Preds),
-	(   Preds = []
-	->  ignore(PredArity = '?'),
-	    send(E, report, warning,
-		 'Cannot find %s/%s', PredName, PredArity)
-	;   Preds = [Pred]
-	->  (	locate_predicate(Pred, Buffer, Index)
-	    ->	send(Buffer, open),
-		send(Buffer?editors?head, caret, Index)
-	    ;	send(E, report, warning,
-		     'Cannot locate %s/%d', PredName, PredArity)
-	    )
-	;   (   var(PredArity)
-	    ->	Label = PredName
-	    ;	new(Label, string('%s/%d', [PredName, PredArity]))
-	    ),
-	    mark_predicates(Preds, Label)
+	get(M, text_buffer, TB),
+	get(For, head, @off, Head),
+	(   xref_defined(TB, Head, local(Line))
+	->  send(M, goto_line, Line)
+	;   get(For, source, SourceLocation)
+	->  send(@emacs, goto_source_location, SourceLocation)
+	;   send(M, report, warning, 'Cannot find source')
 	).
 
 
-current_name_arity(E, Module, PredName, PredArity) :-
-	get(E, caret, Caret),
-	(   get(E, name_and_arity, Caret, tuple(Name, Arity))
-	->  true
-	;   Name = '',
-	    Arity = @default
-	),
-	(   Arity == @default
-	->  Def = Name
-	;   Def = string('%s/%d', Name, Arity)
-	),
-	new(Item, prolog_predicate_item('[Module:]Name[/Arity]', Def)),
-	get(E?window, prompt_using, Item, Selection),
-	free(Item),
-	(   Selection = Module:PredName/PredArity
-	->  true
-	;   Selection = PredName/PredArity
-	).
-	
-%	Finding predicates (SWI-Prolog specific)
-
-find_predicate(Module, Name, Arity, Preds) :-
-	(   integer(Arity)
-	->  functor(Head, Name, Arity)
-	;   true
-	),
-	findall(H, find_predicate_(Module, Name, Head, H), Hs),
-	list_to_set(Hs, Preds).			% remove duplicates
-
-find_predicate_(Module, Name, Head, TheModule:Head) :-
-	current_predicate(Name, Module:Head),
-	(   predicate_property(Module:Head, imported_from(TheModule))
-	->  true
-	;   TheModule = Module
-	).
-
-%	Marking predicates (SWI-Prolog specific)
-
-mark_predicates(List, Label) :-
-	new(L, emacs_hit_list(string('Predicates for %s', Label))),
-	forall(member(Pred, List),
-	       (locate_predicate(Pred, Buffer, CharIndex),
-		send(L, append_hit, Buffer, CharIndex))).
-
-
-locate_predicate(Head, Buffer, CharIndex) :-
-	source_file(Head, Path),
-	new(Buffer, emacs_buffer(Path)),
-	(   strip_module(Head, _Module, PlainHead),
-	    functor(PlainHead, Name, Arity),
-	    locate(Buffer, Name, Arity, CharIndex)
-	->  true
-	;   predicate_property(Head, line_count(Line)),
-	    get(Buffer, scan, 0, line, Line, start, CharIndex)
-	).
-
-
-locate(Buffer, Name, Arity, CharIndex) :-
-	new(Idx, number(0)),
-	new(Regex, regex('')),
-	get(Regex, quote, Name, QName),
-	(   Arity == 0
-	->  send(Regex, pattern, string('\n%s\\\\b', QName))
-	;   send(Regex, pattern, string('\n%s(', QName))
-	),
-	repeat,
-	    (	get(Regex, search, Buffer, Idx, Hit)
-	    ->	Start is Hit + 1,
-		send(Idx, value, Start),
-		get(Buffer, name_and_arity, Start, tuple(_Name, Arity)),
-		!,
-		CharIndex = Start
-	    ;	!,
-	        functor(Head, Name, Arity),
-		predicate_property(_:Head, line_count(Line)),
-		get(Buffer, scan, 0, line, Line-1, start, CharIndex)
-	    ).
-
-
-locate(E, Name, Arity) :->
-	"Locate definition of predicate"::
-	get(E, text_buffer, TB),
-	locate(TB, Name, Arity, Index),
-	send(E, caret, Index).
+		 /*******************************
+		 *	    PCE CLASSES		*
+		 *******************************/
 
 class_regex(':-\\s *pce_begin_class(\\(\\w+\\)',
 	    ':-\\s *pce_end_class\\s *.',

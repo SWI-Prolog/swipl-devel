@@ -1104,6 +1104,10 @@ select_line(E, Line:int) :->
 	send(E?editor, select_line, Line),
 	send(E, keep_selection, @on).
 
+default(_E, _Type:type, _Default:unchecked) :<-
+	"[virtual] Provide default for prompting"::
+	fail.
+
 
 		 /*******************************
 		 *	     EVENTS		*

@@ -426,7 +426,7 @@ goal_classification(Goal, built_in) :-
 goal_classification(Goal, autoload) :-			% SWI-Prolog
 	functor(Goal, Name, Arity),
 	'$in_library'(Name, Arity), !.
-goal_classification(Goal, global) :-
+goal_classification(Goal, global) :-	% SWI-Prolog
 	current_predicate(_, user:Goal), !.
 goal_classification(SS, expanded) :-	% XPCE (TBD)
 	functor(SS, send_super, A),
@@ -476,7 +476,7 @@ style(goal(expanded),	  style(colour	   := blue,
 				underline  := @on)).
 
 style(head(exported),	  style(bold	   := @on, colour := blue)).
-style(head(local),	  style(bold	   := @on)).
+style(head(local(_)),	  style(bold	   := @on)).
 style(head(unreferenced), style(bold	   := @on, colour := red)).
 
 style(comment,		  style(colour	   := dark_green)).
