@@ -8,29 +8,15 @@
 */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Note: when using gcc, make sure you have patched the SUN include files
-using the shell script fixincludes  provided with gcc.   If you don't,
-the terminal interface does not operate properly.   To fix this either
-run fixincludes or compile  pl-os.c using cc: `cc  -c -O pl-os.c'  and
-run make again.
-
-When using SUN cc, make sure to  use  the  BSD compiler, include files
-and libraries.  If you are not sure, run `which cc' which should yield
-/usr/ucb/cc.
+As SWI-Prolog is ported to ANSI-C, it can no longer be compiled using
+SunOS cc.  
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifdef USE_CC				/* Sun cc (slower) */
-#define M_CC			cc
-#define M_OPTIMIZE		-O	/* O2 hardly helps */
-#define M_LDFLAGS		-Bstatic -L/usr/local/lib
-#define M_CFLAGS		
-#include <alloca.h>
-#else					/* gcc (preferred) */
 #define M_CC			gcc
 #define M_OPTIMIZE	        -O2
 #define M_LDFLAGS		-static
-#define M_CFLAGS		-ansi -pedantic -Wall -funsigned-char
-#endif
+/*#define M_CFLAGS		-ansi -pedantic -Wall -funsigned-char*/
+#define M_CFLAGS		-Wall -funsigned-char
 
 /*#define M_OPTIMIZE		-g -DO_DEBUG*/
 
