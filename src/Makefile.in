@@ -141,7 +141,7 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl \
 	checklast.pl checkselect.pl operators.pl \
 	prolog_stack.pl
 CLP=	bounds.pl
-UNICODE=blocks.pl
+UNICODE=blocks.pl unicode_data.pl
 PLWIN=	wise.pl dde.pl progman.pl registry.pl
 builddirs = ../lib ../lib/$(ARCH)
 

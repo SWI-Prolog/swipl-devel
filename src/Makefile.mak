@@ -90,7 +90,7 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl \
 PLLIBS=$(PLLIBS) threadutil.pl
 !ENDIF
 CLP=	bounds.pl
-UNICODE=blocks.pl
+UNICODE=blocks.pl unicode_data.pl
 
 all:	lite packages
 
