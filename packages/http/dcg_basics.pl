@@ -30,7 +30,9 @@
 */
 
 :- module(dcg_basics,
-	  [ blank/2,			% <blank>
+	  [ white/2,			% <white inside line>
+	    whites/2,			% <white inside line>*
+	    blank/2,			% <blank>
 	    blanks/2,			% <blank>*
 	    nonblank/3,			% <nonblank>
 	    nonblanks/3,		% <nonblank>* --> chars		(long)
@@ -118,6 +120,23 @@ blanks_to_nl -->
 	blanks_to_nl.
 blanks_to_nl -->
 	eos.
+
+%	whites//0
+%	
+%	Skip white space _inside_ a line.
+
+whites -->
+	white, !,
+	whites.
+whites -->
+	[].
+
+white -->
+	[C],
+	{ nonvar(C),
+	  code_type(C, white)
+	}.
+
 
 		 /*******************************
 		 *	 CHARACTER STUFF	*

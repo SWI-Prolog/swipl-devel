@@ -480,7 +480,7 @@ header_field(Name, Value) -->
 	}, !,
 	field_name(Name),
 	":",
-	blanks,
+	whites,
 	string(ValueChars),
 	blanks_to_nl, !,
 	{ field_to_prolog(Name, ValueChars, Value)

@@ -1,3 +1,7 @@
+Feb 11, 2005
+
+  * FIXED: empy header field eats next line as value.  Chris Ritchey.
+
 Jan 4, 2005
 
   * FIXED: Bug#2: Disconnect from POST replies.
