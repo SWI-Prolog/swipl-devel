@@ -1,6 +1,11 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Added overflow test for too many (>32 million) atoms.  TBD:
+    turn into proper exception, but getting a relyable exception from
+    PL_new_atom() is very difficult.  This at least is better than
+    an uncontrolled crash.
+
   * FIXED: wait_for_input/3 crash if stream-list contains an
     non-stream.
 

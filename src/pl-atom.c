@@ -182,6 +182,8 @@ registerAtom(Atom a)
     { n = p - ap;
       *p = a;
       a->atom = (n<<LMASK_BITS)|TAG_ATOM;
+      if ( indexAtom(a->atom) != n )	/* TBD: user-level exception */
+	fatalError("Too many (%d) atoms", n);
       GD->atoms.no_hole_before = n+1;
 
       return;
