@@ -785,13 +785,16 @@ fill_line(ParBox pb, int here, parline *line, parshape *shape, int compute)
       continue;				/* vector? */
 
     bw = valInt(hb->width);
+    if ( cx+bw > ex && last_break )
+    { pc   = last_break;
+      here = last_break_index;
+      line->end_of_par = FALSE;
+      break;
+    }
+
     if ( notNil(hb->rubber) && notNil(hb->rubber->linebreak) )
     { if ( cx+bw > ex )
-      { if ( last_break )
-	{ pc   = last_break;
-	  here = last_break_index;
-	}
-	line->end_of_par = FALSE;
+      { line->end_of_par = FALSE;
 	break;
       }
       if ( hb->rubber->linebreak == NAME_force )
