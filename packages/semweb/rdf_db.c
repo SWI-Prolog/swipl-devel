@@ -3605,7 +3605,8 @@ rdf_transaction(term_t goal)
 
   if ( rc )
   { if ( db->tr_nesting == 0 )
-    { if ( !LOCKOUT_READERS(db) )
+    { if ( db->tr_last && db->tr_last->type != TR_MARK && /* not empty */
+	   !LOCKOUT_READERS(db) )
 	goto discard;
     }
 
