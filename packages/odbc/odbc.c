@@ -123,6 +123,7 @@ static functor_t FUNCTOR_access_mode1;
 static functor_t FUNCTOR_cursor_type1;
 static functor_t FUNCTOR_silent1;
 static functor_t FUNCTOR_findall2;	/* findall(Term, row(...)) */
+static functor_t FUNCTOR_affected1;
 
 #define SQL_PL_DEFAULT  0		/* don't change! */
 #define SQL_PL_ATOM	1		/* return as atom */
@@ -1731,8 +1732,21 @@ odbc_row(context *ctxt, term_t trow)
   }
       
   if ( !ctxt->result )
-  { close_context(ctxt);
-    return TRUE;			/* no results defined */
+  { DWORD rows;
+    int rval;
+
+    ctxt->rc = SQLRowCount(ctxt->hstmt, &rows);
+    if ( ctxt->rc == SQL_SUCCESS ||
+	 ctxt->rc == SQL_SUCCESS_WITH_INFO )
+      rval = PL_unify_term(trow,
+			   PL_FUNCTOR, FUNCTOR_affected1,
+			     PL_INTEGER, (long)rows);
+    else
+      rval = TRUE;
+    
+    close_context(ctxt);
+    
+    return rval;
   }
 
   if ( ctxt->findall )
@@ -2676,6 +2690,7 @@ install_odbc4pl()
    FUNCTOR_cursor_type1		 = MKFUNCTOR("cursor_type", 1);
    FUNCTOR_silent1		 = MKFUNCTOR("silent", 1);
    FUNCTOR_findall2		 = MKFUNCTOR("findall", 2);
+   FUNCTOR_affected1		 = MKFUNCTOR("affected", 1);
 
    DET("odbc_connect",		   3, pl_odbc_connect);
    DET("odbc_disconnect",	   1, pl_odbc_disconnect);

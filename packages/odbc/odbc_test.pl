@@ -303,12 +303,14 @@ make_mark_table :-
 		     Statement),
 	forall(mark(Name, Mark),
 	       odbc_execute(Statement, [Name,Mark])),
-	odbc_free_statement(Statement),
-	odbc_prepare(test, 'select * from marks', [], SelectStatement),
-	assert(statement(select_mark, SelectStatement)).
-	
+	odbc_free_statement(Statement).
+
 db_mark(Name, Mark) :-
-	statement(select_mark, Stmt),
+	(   statement(select_mark, Stmt)
+	->  true
+	;   odbc_prepare(test, 'select * from marks', [], Stmt),
+	    assert(statement(select_mark, Stmt))
+	),
 	odbc_execute(Stmt, [], row(Name, Mark)).
 
 same_mark(Name1, Name2) :-
@@ -322,12 +324,13 @@ marks(L) :-
 		   'select * from marks', L,
 		   [findall(mark(X,Y), row(X,Y))]).
 
-with_mark(Mark, L) :-
+with_mark(Mark, L) :-			% doesn't work yet
 	open_db,
 	odbc_query(test,
 		   'select * from marks', L,
 		   [ findall(Name, row(Name, Mark))
 		   ]).
+
 		 /*******************************
 		 *	     FEEDBACK		*
 		 *******************************/

@@ -77,14 +77,14 @@ odbc_query(Connection, SQL, Row) :-
 
 odbc_query(Connection, SQL) :-
 	odbc_query(Connection, SQL, Row), !,
-	(   var(Row)
+	(   Row = affected(_)
 	->  true
 	;   print_message(warning, odbc(unexpected_result(Row)))
 	).
 
 odbc_execute(Statement, Parameters) :-
 	odbc_execute(Statement, Parameters, Row), !,
-	(   var(Row)
+	(   Row = affected(_)
 	->  true
 	;   print_message(warning, odbc(unexpected_result(Row)))
 	).
@@ -254,6 +254,8 @@ prolog:message(error(context_error(Obj, Error, What), _)) -->
 
 prolog:message(odbc(ODBCCode, _NativeCode, Comment)) -->
 	[ 'ODBC: State ~w: ~w'-[ODBCCode, Comment] ].
+prolog:message(odbc(unexpected_result(Row))) -->
+	[ 'ODBC: Unexpected result-row: ~p'-[Row] ].
 
 context(in_use) -->
 	[ 'object is in use' ].

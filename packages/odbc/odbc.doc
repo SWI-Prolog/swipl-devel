@@ -119,7 +119,9 @@ handle illegal.
 Enumerate the existing ODBC connections.
 
 \predicate{odbc_set_connection}{2}{+Connection, +Option}
-Set options on an existing connection.  Defined options are:
+Set options on an existing connection.  All options defined here may
+also be specified with odbc_connect/2 in the option-list.
+Defined options are:
 
 \begin{description}
     \termitem{access_mode}{Mode}
@@ -300,7 +302,7 @@ lemmas(Lemmas) :-
 The current implementation is incomplete. It does not allow arguments of
 \term{row}{\ldots} to be instantiated. Plain instantiation can always
 be avoided using a proper SELECT statement. Potentionally useful however
-would be the translation of compound terms, especially to translates
+would be the translation of compound terms, especially to translate
 date/time/timestamp structures to a format for use by the application. 
 \end{quote}
 \end{description}
@@ -308,7 +310,7 @@ date/time/timestamp structures to a format for use by the application.
     \predicate{odbc_query}{2}{+Connection, +SQL}
 As odbc_query/3, but used for SQL-statements that should not return
 result-rows (i.e.\ all statements except for \const{SELECT}).  The
-predicate prints a diagnostic message if teh query returns a result.
+predicate prints a diagnostic message if the query returns a result.
 \end{description}
 
 
@@ -340,7 +342,7 @@ Uses the ODBC function SQLDescribeParam() to obtain information about
 the parameter and applies default rules.  See \secref{sqltypes} for
 details.
 
-    \termitem{\arg{SqlType}{Specifier, ...}}
+    \termitem{\arg{SqlType}}{Specifier, ...}
 Declare the parameter to be of type \arg{SqlType} with the given
 specifiers. Specifiers are required for \type{char}, \type{varchar},
 etc.\ to specify the field-width. In odbc_execute/2, the must supply the
