@@ -2198,10 +2198,8 @@ pl_qlf_assert_clause(term_t ref, term_t saveclass)
     IOSTREAM *s = wicFd;
     atom_t sclass;
 
-    if ( !PL_get_pointer(ref, (void **)&clause) ||
-	 !inCore(clause) || !isClause(clause) )
-      return PL_error("qlf_assert_clause", 2, NULL,
-		      ERR_DOMAIN, ATOM_clause_reference, 1);
+    if ( !get_clause_ptr_ex(ref, &clause) )
+      fail;
     if ( !PL_get_atom(saveclass, &sclass) )
       return PL_error("qlf_assert_clause", 2, NULL,
 		      ERR_DOMAIN, ATOM_save_class, 2);

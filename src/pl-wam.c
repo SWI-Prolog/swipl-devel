@@ -3285,7 +3285,8 @@ atom is referenced by the goal-term anyway.
 	    next->parent	 = FR;
 	    next->programPointer = PC;
 #ifdef O_LOGICAL_UPDATE
-	    next->generation     = GD->generation;
+	    cl->generation.erased = ~0L;
+	    cl->generation.created = next->generation = GD->generation;
 #endif
 	    incLevel(next);
 	    PC = cl->codes;

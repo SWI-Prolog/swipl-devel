@@ -73,7 +73,7 @@ pl_break1(term_t goal)
 
   { fid_t cid = PL_open_foreign_frame();
 
-    rval = callProlog(MODULE_user, goal, PL_Q_NODEBUG, NULL);
+    rval = callProlog(MODULE_user, goal, PL_Q_NORMAL, NULL);
 
     PL_discard_foreign_frame(cid);
   }

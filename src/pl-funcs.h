@@ -153,6 +153,7 @@ word		pl_break_at(term_t ref, term_t pc, term_t set);
 code		replacedBreak(Code PC);
 void		clearBreakPointsClause(Clause clause);
 word		pl_current_break(term_t ref, term_t pc, control_t h);
+int		get_clause_ptr_ex(term_t ref, Clause *cl);
 
 /* pl-dump.c */
 word		saveProgram(term_t new);

@@ -712,6 +712,7 @@ compileClause(Word head, Word body, Procedure proc, Module module)
     ci.arity        = proc->definition->functor->arity;
     ci.argvars      = 0;
     clause          = allocHeap(sizeof(struct clause));
+    clause->flags   = 0;
   } else
   { Word g = varFrameP(lTop, VAROFFSET(1));
 
@@ -721,6 +722,7 @@ compileClause(Word head, Word body, Procedure proc, Module module)
     ci.argvar       = 1;
     ci.arity        = 0;
     clause          = &local_clause;
+    clause->flags   = GOAL_CLAUSE;
     *g		    = *body;
   }
 
@@ -729,7 +731,6 @@ Allocate the clause and fill initialise the field we already know.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   clause->procedure  = proc;
-  clause->flags      = 0;
   clause->code_size  = 0;
   clause->source_no  = clause->line_no = 0;
 
@@ -2082,6 +2083,11 @@ decompile_head(Clause clause, term_t head, decompileInfo *di)
       p[n] = PL_new_term_ref();
   }
 
+  PC = clause->codes;
+
+  if ( true(clause, GOAL_CLAUSE) )
+    return PL_unify_atom(head, ATOM_dcall);
+
   argp  = PL_new_term_ref();
 
   DEBUG(5, Sdprintf("Decompiling head of %s\n", predicateName(def)));
@@ -2089,7 +2095,7 @@ decompile_head(Clause clause, term_t head, decompileInfo *di)
   TRY( PL_unify_functor(head, def->functor->functor) );
   if ( arity > 0 )
     get_arg_ref(head, argp);
-  PC = clause->codes;
+
 
 #define NEXTARG { next_arg_ref(argp); if ( !pushed ) argn++; }
 
@@ -2708,16 +2714,21 @@ pl_clause4(term_t head, term_t body, term_t ref, term_t bindings, word ctx)
 
       if ( ref )
       { if ( PL_get_pointer(ref, (void **)&clause) )
-	{ term_t tmp  = PL_new_term_ref();
+	{ term_t tmp;
       
-	  if ( !inCore(clause) || !isClause(clause) )
+	  if ( !isClause(clause) )
 	    PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_clause_reference, ref);
 	      
 	  decompile(clause, term, bindings);
 	  proc = clause->procedure;
 	  def = proc->definition;
-	  if ( !unify_definition(head, def, tmp, 0) )
-	    fail;
+	  if ( true(clause, GOAL_CLAUSE) )
+	  { tmp = head;
+	  } else
+	  { tmp = PL_new_term_ref();
+	    if ( !unify_definition(head, def, tmp, 0) )
+	      fail;
+	  }
 	  get_head_and_body_clause(term, h, b, NULL);
 	  if ( unify_head(tmp, h) && PL_unify(body, b) )
 	    succeed;
@@ -2841,10 +2852,13 @@ pl_nth_clause(term_t p, term_t n, term_t ref, word h)
   if ( PL_get_pointer(ref, (void **)&clause) )
   { int i;
 
-    if (!inCore(clause) || !isClause(clause))
+    if ( !isClause(clause) )
       return PL_error(NULL, 0, "Invalid integer reference", ERR_DOMAIN,
 		      ATOM_clause_reference, ref);
 	
+    if ( true(clause, GOAL_CLAUSE) )
+      fail;				/* I'm don't belong to a predicate */
+
     proc = clause->procedure;
     def  = proc->definition;
     for( cref = def->definition.clauses, i=1; cref; cref = cref->next)
@@ -2965,13 +2979,13 @@ wouldBindToDefinition(Definition from, Definition to)
 }
 
 
-static int
+int
 get_clause_ptr_ex(term_t ref, Clause *cl)
 { Clause clause;
 
   if ( !PL_get_pointer(ref, (void **)&clause) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_clause_reference, ref);
-  if ( !inCore(clause) || !isClause(clause) )
+  if ( !isClause(clause) )
     return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_clause_reference, ref);
 
   *cl = clause;
@@ -3403,6 +3417,9 @@ pl_clause_term_position(term_t ref, term_t pc, term_t locterm)
   loc = &PC[pcoffset];
   end = &PC[clause->code_size - 1];	/* forget the final I_EXIT */
 
+  if ( true(clause, GOAL_CLAUSE) )
+    add_node(tail, 2);			/* $call :- <Body> */
+
   while( PC < loc )
   { code op = decode(*PC++);
     const code_info *ci;
@@ -3590,9 +3607,7 @@ pl_break_pc(term_t ref, term_t pc, term_t nextpc, control_t h)
       offset = ForeignContextInt(h);
   }
 
-  
-  if ( !PL_get_pointer(ref, (void **)&clause) ||
-       !inCore(clause) || !isClause(clause) )
+  if ( !get_clause_ptr_ex(ref, &clause) )
     fail;
   PC = clause->codes + offset;
   end = clause->codes + clause->code_size;

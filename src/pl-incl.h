@@ -890,6 +890,7 @@ with one operation, it turns out to be faster as well.
 #define ERASED			(0x0001) /* clause, record */
 #define UNIT_CLAUSE		(0x0002) /* clause */
 #define HAS_BREAKPOINTS		(0x0004) /* clause */
+#define GOAL_CLAUSE		(0x0008) /* clause */
 
 #define CHARESCAPE		(0x0004) /* module */
 #define DBLQ_CHARS		(0x0008) /* "ab" --> ['a', 'b'] */
@@ -988,10 +989,11 @@ erase and assert/2, clause/3, etc.  really points to a clause or record.
 #define inCore(a)	((char *)(a) >= hBase && (char *)(a) <= hTop)
 #define isProcedure(w)	(((Procedure)(w))->type == PROCEDURE_TYPE)
 #define isRecordList(w)	(((RecordList)(w))->type == RECORD_TYPE)
-#define isClause(c)	(inCore(((Clause)(c))->procedure) && \
-			  isProcedure(((Clause)(c))->procedure))
+#define isClause(c)	((inCore(c) || onStackArea(local, (c))) && \
+			 inCore(((Clause)(c))->procedure) && \
+			 isProcedure(((Clause)(c))->procedure))
 #define isRecordRef(r)	(inCore(((RecordRef)(r))->list) && \
-			  isRecordList(((RecordRef)(r))->list))
+			 isRecordList(((RecordRef)(r))->list))
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 At times an abort is not allowed because the heap  is  inconsistent  the
@@ -1118,6 +1120,9 @@ struct clause
   unsigned short	source_no;	/* Index of source-file */
   unsigned short	flags;		/* Flag field holding: */
 		/* ERASED	   Clause is retracted, but referenced */
+		/* UNIT_CLAUSE     Clause has no body */
+		/* HAS_BREAKPOINTS Break-instructions in the clause */
+		/* GOAL_CLAUSE	   Temporary 'islocal' clause (no head) */
 };
 
 struct clause_ref

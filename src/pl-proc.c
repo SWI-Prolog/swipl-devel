@@ -1789,9 +1789,8 @@ pl_get_clause_attribute(term_t ref, term_t att, term_t value)
 { Clause clause;
   atom_t a;
 
-  if ( !PL_get_pointer(ref, (void **)&clause)  ||
-       !inCore(clause) || !isClause(clause) )
-    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_clause, ref);
+  if ( !get_clause_ptr_ex(ref, &clause) )
+    fail;
   if ( !PL_get_atom(att, &a) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, a);
 

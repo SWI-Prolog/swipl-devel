@@ -69,12 +69,12 @@ clear_clause_info_cache :-
 clause_info(ClauseRef, File, TermPos, NameOffset) :-
 	clause_info_cache(ClauseRef, File, TermPos, NameOffset), !.
 clause_info(ClauseRef, File, TermPos, NameOffset) :-
+	clause_property(ClauseRef, file(File)),
 	'$clause'(Head, Body, ClauseRef, VarOffset),
 	(   Body == true
 	->  DecompiledClause = Head
 	;   DecompiledClause = (Head :- Body)
 	),
-	clause_property(ClauseRef, file(File)),
 	File \== user,			% loaded using ?- [user].
 	clause_property(ClauseRef, line_count(LineNo)),
 	(   current_module(Module, File)
@@ -457,10 +457,11 @@ predicate_name(Predicate, PName) :-
 clause_name(Ref, Name) :-
 	user:prolog_clause_name(Ref, Name), !.
 clause_name(Ref, Name) :-
-	nth_clause(Head, N, Ref),
+	nth_clause(Head, N, Ref), !,
 	predicate_name(Head, PredName),
 	thaffix(N, Th),
 	sformat(Name, '~d-~w clause of ~w', [N, Th, PredName]).
+clause_name(_, '<meta-call>').
 
 predicate_classification(Goal, Style) :-
 	predicate_property(Goal, Prop),

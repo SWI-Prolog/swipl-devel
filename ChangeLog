@@ -1,8 +1,10 @@
 			SWI-Prolog ChangeLog
 			====================
 
-  * FIXED: make pl-wam.c compile in `runtime mode'.  Lourens van der Meij,
+  * FIXED: GUI tracer to handle the dynamic code used for handling compound
+    meta-calls.  Found by Holger Kanwischer.  Thanks.
 
+  * FIXED: make pl-wam.c compile in `runtime mode'.  Lourens van der Meij,
 
 VERSION 5.0.1
 =============
