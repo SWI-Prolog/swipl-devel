@@ -349,7 +349,7 @@ file(F, File:[file]) :->
 	"Load file (or ask for one)"::
 	send(F, clear_errors),
 	(   File == @default
-	->  get(@finder, file, LoadName),
+	->  get(@finder, file, open, LoadName),
 	    new(LoadFile, file(LoadName))
 	;   LoadFile = File
 	),
