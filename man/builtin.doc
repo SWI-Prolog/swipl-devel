@@ -811,18 +811,19 @@ the choices made at its left-hand side, destroying choice-points created
 inside the clause (by \predref{;}{2}), or by goals called by
 this clause. Unlike \predref{!}{0}, the choicepoint of the predicate as
 a whole (due to multiple clauses) is \strong{not} destroyed. The
-combination \predref{;}{2} and \predref{->}{2} is
-defines as:
+combination \predref{;}{2} and \predref{->}{2} acts as if
+defines by:
+
 \begin{code}
 If -> Then; _Else :- If, !, Then.
 If -> _Then; Else :- !, Else.
 If -> Then :- If, !, Then.
 \end{code}
-Note that the operator precedence relation between \const{;} and
-\const{->} ensure \exam{If -> Then ; Else} is actually a term of the
-form \exam{;(->(If, Then), Else)}.  The first two clauses belong to
-the definition of \predref{;}{2}), while only the last defines
-\predref{->}{2}.
+
+Please note that (If \verb$->$ Then) acts as (If \verb$->$ Then ;
+\textbf{fail}), making the construct \emph{fail} if the condition
+fails. This unusual semantics is part of the ISO and all de-facto Prolog
+standards.
 
 \infixop{*->}{+Condition}{+Action ; +Else}
 This construct implements the so-called `soft-cut'. The control is
