@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: bar->compute can fail.
+
 * FIXED: Prolog navigator loading wrong Prolog module.  Fabien Todescato.
 
 VERSION 6.1.11, distributed with SWI-Prolog 5.1.11

@@ -221,7 +221,7 @@ compute(B) :->
 		get(Axis, location, Axis?low, YVal0),
 		H is YVal - YVal0,
 		send(B, height, H)
-	    ;	get(Plotter, member, xm, Axis),
+	    ;	get(Plotter, member, x, Axis),
 		get(Axis, location, Value, XVal),
 		get(Axis, location, Axis?low, X0),
 		W is XVal - X0,
