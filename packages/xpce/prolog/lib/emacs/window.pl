@@ -733,7 +733,8 @@ typed(E, Id:'event|event_id') :->
 
 caret(E, Caret:[int]) :->
 	"Deal with idle-timing and ->new_caret_position"::
-	send(E, send_super, caret, Caret),
+	get(E, caret, Old),
+	send_super(E, caret, Caret),
 	send(E, start_idle_timer),
 	get(E, mode, Mode),
 	(   send(Mode, has_send_method, new_caret_position)
@@ -741,7 +742,10 @@ caret(E, Caret:[int]) :->
 	    ->  get(E, caret, NewCaret)
 	    ;   NewCaret = Caret
 	    ),
-	    send(Mode, new_caret_position, NewCaret)
+	    (   Old \== NewCaret
+	    ->  send(Mode, new_caret_position, NewCaret)
+	    ;   true
+	    )
 	;   true
 	).
 
@@ -989,6 +993,7 @@ mode_name(Mode, Name) :-
 table_name(ClassName, TableName) :-
 	concat(TableName, '_mode', ClassName).
 
+
 new_buffer(M) :->
 	"Called if a new buffer is attached to this mode"::
 	(   get(M, frame, Frame),
@@ -1011,6 +1016,7 @@ new_caret_position(M, Caret:int) :->
 		 message(M, in_fragment, @arg1))
 	).
 
+
 in_fragment(M, Fragment:fragment) :->
 	"Called after a caret movement brings the caret in fragment"::
 	(   send(Fragment, has_send_method, identify)
@@ -1021,6 +1027,7 @@ in_fragment(M, Fragment:fragment) :->
 	    ;   true
 	    )
 	).
+
 
 bindings(M) :->
 	"Associate key_binding table"::

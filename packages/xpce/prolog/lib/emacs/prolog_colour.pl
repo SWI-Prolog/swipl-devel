@@ -956,8 +956,7 @@ term_colours(class_variable(_,_,_,_),
 term_colours(class_variable(_,_,_),
 	     expanded - [ identifier,
 			  pce(type),
-			  pce(default),
-			  comment
+			  pce(default)
 			]).
 term_colours(delegate_to(_),
 	     expanded - [ classify

@@ -71,7 +71,7 @@ resource(breakpoint,   image, image('16x16/stop.xpm')).
 	  insert_full_stop	       = key(.),
 	  find_definition	       = key('\\e.') + button(browse),
 	  -			       = button(prolog),
-	  make			       = key('\\C-cRET') + button(compile),
+	  make			       = key('\\C-c\\C-m') + button(compile),
 	  compile_buffer	       = key('\\C-c\\C-b') + button(compile),
 	  consult_selection	       = button(compile) + button(compile),
 	  source_file		       = button(browse,
@@ -114,6 +114,13 @@ resource(breakpoint,   image, image('16x16/stop.xpm')).
 			])
 	]).
 		 
+class_variable(varmark_style, style*,
+	       style(background := honeydew,
+		     underline := @on)).
+
+variable(varmark_style, style*,       get, "How to mark variables").
+variable(has_var_marks, bool := @off, get, "Optimise a bit").
+
 icon(_, I:image) :<-
 	"Return icon for mode"::
 	catch(new(I, image(resource(mode_pl_icon))), _, fail).
@@ -126,6 +133,11 @@ setup_mode(M) :->
 	send(M,	style, error,	   style(background := red)),
 	send(M,	style, warning,	   style(background := orange)),
 	send(M,	style, info,	   style(background := grey80)),
+	(   get(M, varmark_style, Style),
+	    Style \== @nil
+	->  send(M, style, varmark, Style)
+	;   true
+	),
 	send(M, setup_styles).
 
 
@@ -913,7 +925,16 @@ prepare_replace_singletons(M) :-
 		 *        TERM-READING		*
 		 *******************************/
 
-prolog_term(M, From:[int], Clause:prolog) :<-
+%	<-prolog_term
+%	
+%	Read a Prolog term from the buffer. If From is specified, this
+%	is taken to be the start of the clause rather than using
+%	<-beginning_of_clause from <-caret. If Silent is @off, error
+%	messages are not printed. If a variable is passed into TermPos,
+%	it is unified with the subterm-position specification a
+%	specified in read_term/3.
+
+prolog_term(M, From:[int], Silent:[bool], TermPos:[prolog], Clause:prolog) :<-
 	  "Read clause start at <From> or around caret"::
 	  (   From == @default
 	  ->  get(M, caret, Caret),
@@ -922,15 +943,113 @@ prolog_term(M, From:[int], Clause:prolog) :<-
 	  ),
 	  get(M, text_buffer, TB),
 	  pce_open(TB, read, Fd),
-	  read_term_from_stream(Fd, Start, Clause, Error, _S, _P),
+	  read_term_from_stream(Fd, Start, Clause, Error, _S, P),
 	  close(Fd),
+	  ignore(P = TermPos),
 	  (   Error == none
 	  ->  true
-	  ;   Error = EPos:Msg,
-	      send(M, caret, EPos),
-	      send(M, report, warning, 'Syntax error: %s', Msg),
+	  ;   (   Silent \== @on
+	      ->  Error = EPos:Msg,
+		  send(M, caret, EPos),
+		  send(M, report, warning, 'Syntax error: %s', Msg)
+	      ),
 	      fail
 	  ).
+
+
+		 /*******************************
+		 *	   MARK VARIABLE	*
+		 *******************************/
+
+typed(M, Id:'event|event_id', Editor:editor) :->
+	"Extend variable marks"::
+	send_super(M, typed, Id, Editor),
+	(   object(M)			% Control-x k destroys the mode
+	->  get(M, caret, Caret),
+	    get(M, text_buffer, TB),
+	    (   send(regex('[_A-Z][a-zA-Z_0-9]*\\s ?'), match, TB, Caret, 0)
+	    ->  send(M, mark_variable)
+	    ;   true
+	    )
+	;   true
+	).
+	
+new_caret_position(M, NewCaret:int) :->
+	"Mark variables around caret"::
+	send_super(M, new_caret_position, NewCaret),
+	(   get(M, varmark_style, Style),
+	    Style \== @nil
+	->  send(M, mark_variable)
+	;   true
+	).
+
+varmark_style(M, Style:style*) :->
+	"Set the style for marking variables"::
+	send(M, slot, varmark_style, Style),
+	send(M, style, varmark, Style).
+
+mark_variable(M) :->
+	"Mark variable around caret"::
+	send(M, unmark_variables),
+	get(M, caret, Caret),
+	(   get(M, prolog_term, @default, @on, Pos, Clause),
+	    find_variable(Pos, Clause, Caret, Var)
+	->  get(M, text_buffer, TB),
+	    send(M, slot, has_var_marks, @on),
+	    (   subterm_position(Var, Clause, Pos, F-T),
+		Len is T - F,
+		new(_, fragment(TB, F, Len, varmark)),
+		fail
+	    ;   true
+	    )
+	;   true
+	).
+
+unmark_variables(M) :->
+	"Remove all variable-mark fragments"::
+	(   get(M, has_var_marks, @on)
+	->  send(M, for_all_fragments,
+		 if(@arg1?style == varmark,
+		    message(@arg1, free))),
+	    send(M, slot, has_var_marks, @off)
+	;   true
+	).
+
+%	find_variable(+TermPos, +Clause, +Caret, -Var)
+%	
+%	Find the variable around the caret and return it in Var. If the
+%	caret is not on a variable, fail.
+
+find_variable(F-T, Var, Caret, Var) :-
+	between(F, T, Caret), !,
+	var(Var).
+find_variable(term_position(_,_,_,_,ArgPos), Compound, Caret, Var) :-
+	nth1(N, ArgPos, P),
+	arg(N, Compound, Arg),
+	find_variable(P, Arg, Caret, Var).
+find_variable(list_position(_,_,EP,TP), List, Caret, Var) :-
+	list_pos(EP, TP, List, P, E),
+	find_variable(P, E, Caret, Var).
+
+list_pos([], P, T, P, T) :-
+	P \== none, !.
+list_pos([PH|_],  _, [EH|_], PH, EH).
+list_pos([_|PT], TP, [_|ET],  P,  E) :-
+	list_pos(PT, TP, ET, P, E).
+
+%	subterm_position(+Term, +Clause, +TermPos, -Pos)
+%	
+%	Find all positions at which Term appears in Clause.
+
+subterm_position(Search, Term, Pos, Pos) :-
+	Search == Term.
+subterm_position(Search, Term, term_position(_,_,_,_,ArgPos), Pos) :- !,
+	nth1(N, ArgPos, P2),
+	arg(N, Term, A),
+	subterm_position(Search, A, P2, Pos).
+subterm_position(Search, List, list_position(_,_,EP,TP), Pos) :-
+	list_pos(EP, TP, List, P, E),
+	subterm_position(Search, E, P, Pos).
 
 
 		 /*******************************

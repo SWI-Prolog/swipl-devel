@@ -73,7 +73,7 @@
 	  shell			   = button(file),
 	  (mode)		   = key('\\em') +
 	  			     button(file, @emacs_mode?modes),
-	  identify		   = button(file),
+	  properties		   = button(file),
 	  -			   = button(file),
 	  quit			   = key('\\C-x\\C-c') + button(file),
 

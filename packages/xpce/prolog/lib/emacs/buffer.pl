@@ -486,11 +486,11 @@ open(B, New:[bool]) :->
 	get(B, open, New, _).
 
 
-identify(Buffer) :->
+properties(Buffer) :->
 	"Display information-window on buffer"::
-	get(Buffer, identify, _).
+	get(Buffer, properties, _).
 
-identify(Buffer, V:view) :<-
+properties(Buffer, V:view) :<-
 	"Display information-window on buffer"::
 	get(Buffer, name, Name),
 	get(Buffer, modified, Modified),

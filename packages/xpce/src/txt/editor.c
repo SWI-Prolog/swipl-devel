@@ -691,7 +691,11 @@ getHeightEditor(Editor e)
 
 static status
 styleEditor(Editor e, Name name, Style style)
-{ valueSheet(e->styles, name, style);
+{ if ( isNil(style) )
+    deleteSheet(e->styles, name);
+  else
+    valueSheet(e->styles, name, style);
+
   ChangedEditor(e);
 
   succeed;    
@@ -4387,7 +4391,7 @@ static char *T_showScrollBar[] =
 static char *T_formatAchar_array_argumentAany_XXX[] =
         { "format=char_array", "argument=any ..." };
 static char *T_style[] =
-        { "fragment=name", "style=style" };
+        { "fragment=name", "style=style*" };
 static char *T_fromADintD_toADintD[] =
         { "from=[int]", "to=[int]" };
 static char *T_fromAint_toAint[] =

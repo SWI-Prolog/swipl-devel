@@ -264,8 +264,8 @@ kill(B) :->
 	).
 
 
-identify(B) :->
-	get(B, identify, V),
+properties(B) :->
+	get(B, properties, V),
 	get(B, process, Process),
 	send(V, appendf, 'Command:\t%s\n', Process?name),
 	send(V, appendf, 'Arguments:\t'),
