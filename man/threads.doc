@@ -135,6 +135,15 @@ compared to at_halt/1, but only for the current thread. These hooks are
 ran regardless of why the execution of the thread has been completed. As
 these hooks are run, the return-code is already available through
 current_thread/2 using the result of thread_self/1 as thread-identifier.
+
+    \predicate{thread_setconcurrency}{2}{-Old, +New}
+\index{Solaris}%
+Determine the concurrency of the process, which is defined as the
+maximum number of concurrently active threads. `Active' here means they
+are using CPU time. This option is provided if the thread-implementation
+provides pthread_setconcurrency(). Solaris is a typical example of this
+family. On other systems this predicate unifies \arg{Old} to 0 (zero)
+and succeeds silently.
 \end{description}
 
 

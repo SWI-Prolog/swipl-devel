@@ -273,7 +273,7 @@ AC_TRY_LINK([
   else
     AC_MSG_RESULT(no)
   fi
-  AC_CHECK_FUNCS(pthread_sigmask)
+  AC_CHECK_FUNCS(pthread_sigmask pthread_setconcurrency)
 
 dnl ATOMIC inc/dec for reference counts
 

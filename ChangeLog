@@ -7,6 +7,10 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: pthread_setconcurrency/2 to query/set thread concurrency.
+
+  * FIXED: Alignment problems in message_queue_create/1.
+
   * FIXED: testing for gcc -pthread in configure.
 
   * FIXED: Many PL_cleanup() problems, notably related to thread-management.

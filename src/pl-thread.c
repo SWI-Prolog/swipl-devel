@@ -1144,6 +1144,29 @@ threadLocalHeapUsed(void)
 }
 
 
+static
+PRED_IMPL("thread_setconcurrency", 2, thread_setconcurrency, 0)
+{
+#ifdef HAVE_PTHREAD_GETCONCURRENCY
+  int val = pthread_getconcurrency();
+  int rc;
+
+  if ( PL_unify_integer(A1, val) )
+  { if ( PL_compare(A1, A2) != 0  )
+    { if ( PL_get_integer_ex(A2, &val) )
+      { if ( (rc=pthread_setconcurrency(val)) != 0 )
+	  return PL_error(NULL, 0, ThError(rc),
+			  ERR_SYSCALL, "pthread_setconcurrency");
+      }
+    }
+  }
+
+  succeed;
+#else
+  return PL_unify_integer(A1, 0);
+#endif
+}
+
 
 		 /*******************************
 		 *	     CLEANUP		*
@@ -1642,7 +1665,7 @@ unlocked_message_queue_create(term_t queue)
     return NULL;
   }
 
-  q = allocHeap(sizeof(*q));
+  q = alignedAllocHeap(sizeof(*q));
   init_message_queue(q);
   q->id    = id;
   addHTable(queueTable, (void *)id, q);
@@ -2853,5 +2876,6 @@ BeginPredDefs(thread)
   PRED_DEF("thread_get_message", 2, thread_get_message, 0)
   PRED_DEF("thread_peek_message", 2, thread_peek_message, 0)
   PRED_DEF("message_queue_destroy", 1, message_queue_destroy, 0)
+  PRED_DEF("thread_setconcurrency", 2, thread_setconcurrency, 0)
 #endif
 EndPredDefs

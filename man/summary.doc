@@ -458,6 +458,7 @@ suggest predicates from a keyword.
 \predicatesummary{thread_peek_message}{2}{Test for message in a queue}
 \predicatesummary{thread_self}{1}{Get identifier of current thread}
 \predicatesummary{thread_send_message}{2}{Send message to another thread}
+\predicatesummary{thread_setconcurrency}{2}{Number of active threads}
 \predicatesummary{thread_signal}{2}{Execute goal in another thread}
 \predicatesummary{thread_statistics}{3}{Get statistics of another thread}
 \predicatesummary{threads}{0}{List running threads}
