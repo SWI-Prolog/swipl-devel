@@ -351,13 +351,14 @@ entity_value(dtd_parser *p, dtd_entity *e, int *len)
 static int
 expand_pentities(dtd_parser *p, const ichar *in, ichar *out, int len)
 { dtd *dtd = p->dtd;
+  int pero = dtd->charfunc->func[CF_PERO]; /* % */
   const ichar *s;
 
   while(*in)
-  { if ( (s = isee_func(dtd, in, CF_PERO)) ) 	/* % */
+  { if ( *in == pero )
     { dtd_symbol *id;
 
-      if ( (s = itake_entity_name(dtd, s, &id)) )
+      if ( (s = itake_entity_name(dtd, in+1, &id)) )
       { dtd_entity *e = find_pentity(dtd, id);
 	const ichar *eval;
 	int l;
@@ -379,11 +380,7 @@ expand_pentities(dtd_parser *p, const ichar *in, ichar *out, int len)
 	len -= l;
 
 	continue;
-      } /*				No warning: '%', etc are allowed!?
-        else
-	return gripe(ERC_SYNTAX_ERROR,
-		     "Illegal parameter entity reference", s);
-        */
+      }
     }
 
     if ( --len <= 0 )
@@ -457,11 +454,15 @@ static int
 expand_entities(dtd_parser *p, const ichar *in, ochar *out, int len)
 { const ichar *s;
   dtd *dtd = p->dtd;
+  int ero = dtd->charfunc->func[CF_ERO]; /* & */
+  const ochar *map = dtd->charmap->map;
 
   while(*in)
-  { if ( (s = isee_func(dtd, in, CF_ERO)) ) /* & */
+  { if ( *in == ero )
     { const ichar *estart = in;		/* for recovery */
       int chr;
+
+      s = in+1;
 
       if ( (in=isee_character_entity(dtd, in, &chr)) )
       { if ( chr <= 0 || chr >= OUTPUT_CHARSET_SIZE )
@@ -518,7 +519,7 @@ expand_entities(dtd_parser *p, const ichar *in, ochar *out, int len)
       *out++ = chr;
     }
 #endif
-    *out++ = dtd->charmap->map[*in++];
+    *out++ = map[*in++];
   }
 
   *out = 0;
@@ -680,7 +681,7 @@ find_attribute(dtd_element *e, dtd_symbol *name)
 
 static const ichar *
 iskip_layout(dtd *dtd, const ichar *in)
-{ ichar cmt = dtd->charfunc->func[CF_CMT];
+{ ichar cmt = dtd->charfunc->func[CF_CMT]; /* also skips comment */
 
   for( ; *in; in++ )
   { if ( HasClass(dtd, *in, CH_BLANK) )

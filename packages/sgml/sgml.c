@@ -279,8 +279,13 @@ main(int argc, char **argv)
   if ( argc == 0 )
     usage();
 
-  ext = strchr(argv[0], '.');
-  if ( streq(ext, ".dtd") )
+					/* fixed (ok) */
+  { char *slash = strchr(argv[0], '/');
+    char *dot   = strchr(argv[0], '.');
+    ext = dot == NULL || (slash != 0 && slash > dot) ? "." : dot;
+  }
+
+  if ( istrcaseeq(ext, ".dtd") )
   { char doctype[256];
     
     strncpy(doctype, argv[0], ext-argv[0]);

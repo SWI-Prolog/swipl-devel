@@ -1,3 +1,9 @@
+* PERFORMANCE: Improved expand_[p]entities(), providing about 10%
+  overall improvement.
+
+* FIXED: crash in sgml (demo-)driver app causing a crash if the input
+  file has no extension (Richard O'Keefe).
+
 * ADDED: support for RCDATA declared-content elements
 
 * FIXED: SGML-mode: immediately close EMPTY elements (i.e. do not allow
