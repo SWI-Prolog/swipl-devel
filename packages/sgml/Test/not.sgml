@@ -1,0 +1,13 @@
+<!DOCTYPE not [
+  <!ELEMENT not - - (Formula*)>
+  <!NOTATION TeX SYSTEM "">
+  <!NOTATION Eqn SYSTEM "">
+  <!ELEMENT formula - O CDATA>
+  <!ATTLIST formula notation NOTATION (TeX|Eqn) #CURRENT>
+]>
+
+<not>
+<formula notation=TeX>
+$$E = MC^2$$
+</formula>
+</not>

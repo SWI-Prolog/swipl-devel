@@ -1988,7 +1988,7 @@ dtd_prop_notations(dtd *dtd, term_t list)
 
 
 static int
-dtd_prop_notation(dtd *dtd, term_t nname, term_t file)
+dtd_prop_notation(dtd *dtd, term_t nname, term_t desc)
 { char *s;
   dtd_symbol *id;
 
@@ -2000,7 +2000,26 @@ dtd_prop_notation(dtd *dtd, term_t nname, term_t file)
 
     for(n=dtd->notations; n; n=n->next)
     { if ( n->name == id )
-	return PL_unify_atom_chars(file, n->file);
+      { term_t tail = PL_copy_term_ref(desc);
+	term_t head = PL_new_term_ref();
+
+	if ( n->system )
+	{ if ( !PL_unify_list(tail, head, tail) ||
+	       !PL_unify_term(head,
+			      PL_FUNCTOR_CHARS, "system", 1,
+			        PL_CHARS, n->system) )
+	    return FALSE;
+	}
+	if ( n->public )
+	{ if ( !PL_unify_list(tail, head, tail) ||
+	       !PL_unify_term(head,
+			      PL_FUNCTOR_CHARS, "public", 1,
+			        PL_CHARS, n->public) )
+	    return FALSE;
+	}
+
+	return PL_unify_nil(tail);
+      }
     }
   }
 

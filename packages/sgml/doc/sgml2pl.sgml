@@ -607,8 +607,9 @@ unbound.
 </argdef>
     <termitem>notations(ListOfNotations)
 Returns a list holding the names of all <c/NOTATION/ declarations. 
-    <termitem>notation(Name, File)
-Yields the declared file for from a <c/NOTATION/ declaration. 
+    <termitem>notation(Name, Decl)
+Unify <aref/Decl/ with a list if <term>system(+File)</term> and/or
+<term>public(+PublicId)</term>.
 </argdef>
 </definitions>
 

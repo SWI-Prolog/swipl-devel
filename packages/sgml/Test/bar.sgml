@@ -1,0 +1,8 @@
+<!DOCTYPE bar [
+ <!ELEMENT bar - O EMPTY>
+ <!ATTLIST bar a CDATA #REQUIRED b NAME #REQUIRED c NUMBER #REQUIRED
+               d CDATA #REQUIRED>
+]>
+
+<bar a="Major Mynah" b="&#65;&#66;&#67;" c="&#49;&#50;" d="foo
+bar     ugh">

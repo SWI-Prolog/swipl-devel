@@ -1,0 +1,9 @@
+<!DOCTYPE ugh [
+ <!ELEMENT ugh O O (extension+)>
+ <!ELEMENT extension - O (#PCDATA)>
+ <!ATTLIST extension exchange NUTOKEN 479 missing (missing) #CONREF>
+]>
+<extension missing>
+<extension>8494
+<extension exchange=555>1234
+<extension exchange=03-555>1234

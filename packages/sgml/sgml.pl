@@ -110,6 +110,7 @@ load_dtd(DTD, DtdFile) :-
 prop(doctype(_), _).
 prop(elements(_), _).
 prop(entities(_), _).
+prop(notations(_), _).
 prop(entity(E, _), DTD) :-
 	(   nonvar(E)
 	->  true

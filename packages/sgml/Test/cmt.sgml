@@ -1,0 +1,13 @@
+<!DOCTYPE a
+ [ <!ENTITY %attrs
+   "id	ID #implied -- document-wide unique id --
+    class CDATA #IMPLIED -- comment --">
+
+   <!ELEMENT a - - (#PCDATA) -- foo-bar -->
+   <!ATTLIST a %attrs;>
+ ]
+>
+
+<!-- x -->
+
+<a></a>

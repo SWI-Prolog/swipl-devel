@@ -1,0 +1,12 @@
+<!DOCTYPE test [
+  <!ENTITY QS "<q>">
+  <!ENTITY QE ENDTAG "q">
+  <!ENTITY Q2 CDATA "<q>">
+  <!ENTITY S SDATA "special">
+  <!ELEMENT test - - (#PCDATA|q)*>
+  <!ELEMENT q    - - (#PCDATA)>
+]>
+
+<test>
+&Q2;! Hello &QS;you there&QE;, I'm &S;
+</test>

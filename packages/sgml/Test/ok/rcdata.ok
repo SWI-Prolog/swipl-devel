@@ -1,0 +1,1 @@
+[element(doc, [], [element(t, [], ['This is rcdata Hello & World Hello']), element(a, [], ['This is an a'])])].

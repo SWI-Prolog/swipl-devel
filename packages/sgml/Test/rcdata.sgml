@@ -1,0 +1,19 @@
+<!DOCTYPE doc
+ [ <!ELEMENT doc - - (t|a)*>
+   <!ELEMENT a   - - (#PCDATA)>
+   <!ELEMENT t - - rcdata>
+   <!ENTITY  hello "Hello">
+   <!ENTITY  world "World &hello;">
+ ]
+>
+
+<!-- coment -->
+
+<doc>
+<t>
+This is rcdata &hello; & &world
+</t>
+
+<a>This is an a</a>
+
+</doc>

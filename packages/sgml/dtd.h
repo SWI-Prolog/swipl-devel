@@ -282,7 +282,9 @@ typedef struct _dtd_entity
 
 typedef struct _dtd_notation
 { dtd_symbol *name;			/* name of the notation */
-  ichar *file;				/* file with info */
+  entity_type type;			/* ET_{PUBLIC|SYSTEM} */
+  ichar *public;			/* public id */
+  ichar *system;			/* file with info */
   struct _dtd_notation *next;		/* list-link */
 } dtd_notation;
 
@@ -401,6 +403,7 @@ typedef struct _dtd
   dtd_symbol_table     *symbols;	/* symbol-table */
   dtd_entity           *pentities;	/* defined parameter entities */
   dtd_entity	       *entities;	/* defined entities */
+  dtd_entity	       *default_entity;	/* default-entity (if any) */
   dtd_notation	       *notations;	/* Declared notations */
   dtd_shortref	       *shortrefs;	/* SHORTREF declarations */
   dtd_element          *elements;	/* defined elements */

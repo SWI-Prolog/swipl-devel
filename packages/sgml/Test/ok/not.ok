@@ -1,0 +1,1 @@
+[element(not, [], [element(formula, [notation=tex], ['$$E = MC^2$$'])])].

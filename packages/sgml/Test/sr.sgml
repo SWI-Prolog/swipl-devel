@@ -1,0 +1,20 @@
+<!DOCTYPE test [
+  <!ELEMENT test - - p*>
+  <!ELEMENT p    o o (#PCDATA|q)*>
+  <!ELEMENT q    - - (#PCDATA)>
+
+  <!ENTITY   beg..q "<q><!USEMAP in..q>">
+  <!ENTITY   end..q ENDTAG "q">
+  <!ENTITY   beg..p STARTTAG "p">
+
+  <!SHORTREF in..p  '"' beg..q
+		    '&#RS;B&#RE' beg..p>
+  <!SHORTREF in..q  '"' end..q>
+  <!USEMAP in..p p>
+]>
+
+<test>
+Peter said: "He, this is a nice program".
+
+Bob said: "Yes, it is"
+</test>

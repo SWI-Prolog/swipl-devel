@@ -1,3 +1,13 @@
+* FIXED: Proper parsing of <!NOTATION ...> declaration.  Also fixed
+  dtd_property(DTD, notations(Notations)) and modified
+  dtd_property(DTD, notation(N, Decl)).
+
+* ADDED: <!ENTITY #DEFAULT ...> (Richard O'Keefe).
+
+* FIXED: Ignore newline after entity
+
+* FIXED: Allow omitted ; expanding entities in CDATA attributes
+
 * FIXED: Possible crash with SHORTREF endding in &#RE.
 
 * FIXED: avoid crash on illegal syntax in DTD omited-tag declaration

@@ -1,0 +1,14 @@
+<!DOCTYPE bar [
+  <!ELEMENT bar - - (foo)>
+  <!ELEMENT foo O O (a+)>
+  <!ELEMENT a   O O (b,c)>
+  <!ELEMENT b   - O (#PCDATA)>
+  <!ELEMENT c   - O (#PCDATA)>
+]>
+
+<bar>
+<b>x<c>y
+<b>x<c>y
+<b>x<c>y
+<b>x<c>y
+</bar>

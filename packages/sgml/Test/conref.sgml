@@ -1,0 +1,8 @@
+<!DOCTYPE con [
+ <!ELEMENT con - - (foo,bar)>
+ <!ATTLIST con missing (missing) #CONREF>
+ <!ELEMENT (foo|bar) - O (#PCDATA)>
+]>
+
+<con missing>
+

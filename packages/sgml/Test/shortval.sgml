@@ -1,0 +1,6 @@
+<!DOCTYPE num [
+  <!ELEMENT num - O EMPTY>
+  <!ATTLIST num val (1|2|3) #REQUIRED>
+]>
+
+<num 2>

@@ -1,0 +1,9 @@
+<!DOCTYPE per [
+  <!ENTITY % fred "jim">
+  <!ELEMENT per - - (%fred;)>
+  <!ELEMENT %fred - - (#PCDATA)>
+  <!ATTLIST %fred tom (dick|harry) #IMPLIED>
+  <!USEMAP #EMPTY %fred>
+]>
+
+<per><jim>snark</jim></per>

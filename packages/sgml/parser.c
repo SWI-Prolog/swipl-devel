@@ -497,12 +497,10 @@ expand_entities(dtd_parser *p, const ichar *in, ochar *out, int len)
 	int l;
 	
 	in = itake_name(dtd, s, &id);
-	if ( !(in=isee_func(dtd, in, CF_ERC)) )
-	{ in = estart;
-	  goto recover;
-	}
+	if ( isee_func(dtd, in, CF_ERC) || *in == '\n' )
+	  in++;
   
-	if ( !(e = id->entity) )
+	if ( !(e = id->entity) && !(e=dtd->default_entity) )
 	{ gripe(ERC_EXISTENCE, "entity", id->name);
 	  in = estart;
 	  goto recover;
@@ -796,7 +794,7 @@ itake_entity_name(dtd *dtd, const ichar *in, dtd_symbol **id)
 
   *id = dtd_add_symbol(dtd, buf);
 
-  return iskip_layout(dtd, in);
+  return in;
 }
 
 
@@ -1141,6 +1139,7 @@ process_entity_declaraction(dtd_parser *p, const ichar *decl)
   dtd_symbol *id;
   dtd_entity *e = sgml_calloc(1, sizeof(*e));
   int isparam;
+  int isdef = FALSE;
 					/* parameter entity */
   if ( (s=isee_func(dtd, decl, CF_PERO)) )
   { isparam = TRUE;
@@ -1149,8 +1148,12 @@ process_entity_declaraction(dtd_parser *p, const ichar *decl)
     isparam = FALSE;
 
   if ( !(s = itake_entity_name(dtd, decl, &id)) )
-    return gripe(ERC_SYNTAX_ERROR, "Name expected", decl);
-  decl = s;
+  { if ( !(s = isee_identifier(dtd, decl, "#default")) )
+      return gripe(ERC_SYNTAX_ERROR, "Name expected", decl);
+    id = dtd_add_symbol(dtd, "#DEFAULT");
+    isdef = TRUE;
+  }
+  decl = iskip_layout(dtd, s);
 
   e->name = id;
 
@@ -1221,6 +1224,9 @@ process_entity_declaraction(dtd_parser *p, const ichar *decl)
     dtd->entities = e;
   }
   
+  if ( isdef )
+    dtd->default_entity = e;
+
   return TRUE;
 }
 
@@ -1234,34 +1240,46 @@ process_notation_declaration(dtd_parser *p, const ichar *decl)
 { dtd *dtd = p->dtd;
   dtd_symbol *nname;
   const ichar *s;
-  ichar *file;
+  ichar *system = NULL, *public = NULL;
   dtd_notation **n;
   dtd_notation *not;
 
   if ( !(s=itake_name(dtd, decl, &nname)) )
     return gripe(ERC_SYNTAX_ERROR, "Notation name expected", decl);
   decl = s;
-  if ( !(s=isee_identifier(dtd, decl, "system")) )
-    return gripe(ERC_SYNTAX_ERROR, "SYSTEM expected", decl);
+
+  if ( (s=isee_identifier(dtd, decl, "system")) )
+  { ;
+  } else if ( (s=isee_identifier(dtd, decl, "public")) )
+  { decl = s;
+    if ( !(s=itake_dubbed_string(dtd, decl, &public)) )
+      return gripe(ERC_SYNTAX_ERROR, "Public identifier expected", decl);
+  } else
+    return gripe(ERC_SYNTAX_ERROR, "SYSTEM or PUBLIC expected", decl);
+
   decl = s;
-  if ( !(s=itake_dubbed_string(dtd, decl, &file)) )
-    return gripe(ERC_SYNTAX_ERROR, "file-name expected", decl);
-  decl = s;
-  if ( *s )
+  if ( (s=itake_dubbed_string(dtd, decl, &system)) )
+    decl = s;
+
+  if ( *decl )
     return gripe(ERC_SYNTAX_ERROR, "Unexpected end of declaraction", decl);
 
   for(n=&dtd->notations; *n; n = &(*n)->next)
   { if ( (*n)->name == nname )
     { gripe(ERC_REDEFINED, "notation", nname->name);
-      sgml_free((*n)->file);
-      (*n)->file = file;
+      sgml_free((*n)->system);
+      sgml_free((*n)->public);
+      (*n)->system = system;
+      (*n)->public = public;
+      
       return FALSE;
     }
   }
 
   not = sgml_calloc(1, sizeof(*not));
   not->name = nname;
-  not->file = file;
+  not->system = system;
+  not->public = public;
   not->next = NULL;
   *n = not;
 
@@ -1276,7 +1294,8 @@ free_notations(dtd_notation *n)
   for( ; n; n=next)
   { next = n->next;
 
-    if ( n->file ) sgml_free(n->file);
+    sgml_free(n->system);
+    sgml_free(n->public);
 
     sgml_free(n);
   }
@@ -2681,6 +2700,8 @@ get_attribute_value(dtd_parser *p, const ichar *decl, sgml_attribute *att)
 	  s++;
 	if ( *s )
 	  *d++ = ' ';
+	else
+	  break;
       }
       *d = 0;
     }
@@ -3680,80 +3701,83 @@ process_entity(dtd_parser *p, const ichar *name)
   { dtd_symbol *id;
     dtd_entity *e;
     dtd *dtd = p->dtd;
+    int len;
+    const ichar *text;
+    const ichar *s;
+    int   chr;
 
-    if ( (id=dtd_find_entity_symbol(dtd, name)) &&
-	 (e=id->entity) )
-    { int len;
-      const ichar *text = entity_value(p, e, &len);
-      const ichar *s;
-      int   chr;
+    if ( !(id=dtd_find_entity_symbol(dtd, name)) ||
+	 !(e=id->entity) )
+    { if ( dtd->default_entity )
+	e = dtd->default_entity;
+      else
+	return gripe(ERC_EXISTENCE, "entity", name);
+    }
 
-      if ( !text )
-	return gripe(ERC_NO_VALUE, e->name->name);
+    if ( !(text = entity_value(p, e, &len)) )
+      return gripe(ERC_NO_VALUE, e->name->name);
 
-      switch ( e->content )
-      { case EC_SGML:
-	case EC_CDATA:
-	  if ( (s=isee_character_entity(dtd, text, &chr)) && *s == '\0' )
-	  { if ( p->blank_cdata == TRUE && !HasClass(dtd, chr, CH_BLANK) )
-	    { p->cdata_must_be_empty = !open_element(p, CDATA_ELEMENT, FALSE);
-	      p->blank_cdata = FALSE;
-	    }
-	      
-	    if ( chr > 0 && chr < OUTPUT_CHARSET_SIZE )
-	    { add_ocharbuf(p->cdata, chr);
-	      return TRUE;
-	    } else
-	    { if ( p->on_entity )
-	      { process_cdata(p, FALSE);
-		(*p->on_entity)(p, e, chr);
-	      } else
-		return gripe(ERC_REPRESENTATION, "character");
-	    }
-	    break;
+    switch ( e->content )
+    { case EC_SGML:
+      case EC_CDATA:
+	if ( (s=isee_character_entity(dtd, text, &chr)) && *s == '\0' )
+	{ if ( p->blank_cdata == TRUE && !HasClass(dtd, chr, CH_BLANK) )
+	  { p->cdata_must_be_empty = !open_element(p, CDATA_ELEMENT, FALSE);
+	    p->blank_cdata = FALSE;
 	  }
-	  if ( e->content == EC_SGML )
-	  { locbuf oldloc;
-
-	    push_location(p, &oldloc);
-	    set_src_dtd_parser(p, IN_ENTITY, e->name->name);
-	    empty_icharbuf(p->buffer);		/* dubious */
-	    for(s=text; *s; s++)
-	      putchar_dtd_parser(p, *s);
-	    pop_location(p, &oldloc);
-	    break;
+	    
+	  if ( chr > 0 && chr < OUTPUT_CHARSET_SIZE )
+	  { add_ocharbuf(p->cdata, chr);
+	    return TRUE;
 	  } else
-	  { ochar cdata[MAXSTRINGLEN];
-	    const ochar *o;
-
-	    expand_entities(p, text, cdata, MAXSTRINGLEN);
-	    for(o=cdata; *o; o++)
-	      add_ocharbuf(p->cdata, *o);
-	    break;
+	  { if ( p->on_entity )
+	    { process_cdata(p, FALSE);
+	      (*p->on_entity)(p, e, chr);
+	    } else
+	      return gripe(ERC_REPRESENTATION, "character");
 	  }
-	case EC_STARTTAG:
-	  prepare_cdata(p);
-	  process_begin_element(p, text);
 	  break;
-	case EC_ENDTAG:
-	  prepare_cdata(p);
-	  process_end_element(p, text);
-	  break;
-	case EC_SDATA:
-	case EC_NDATA:
-	  process_cdata(p, FALSE);
-	  if ( p->on_data )
-	    (*p->on_data)(p, e->content, len, text);
-	  break;
-	case EC_PI:
-	  process_cdata(p, FALSE);
-	  if ( p->on_pi )
-	    (*p->on_pi)(p, text);
-      }
+	}
+	if ( e->content == EC_SGML )
+	{ locbuf oldloc;
 
-      return TRUE;
-    } else
-      return gripe(ERC_EXISTENCE, "entity", name);
+	  push_location(p, &oldloc);
+	  set_src_dtd_parser(p, IN_ENTITY, e->name->name);
+	  empty_icharbuf(p->buffer);		/* dubious */
+	  for(s=text; *s; s++)
+	    putchar_dtd_parser(p, *s);
+	  pop_location(p, &oldloc);
+	  break;
+	} else
+	{ ochar cdata[MAXSTRINGLEN];
+	  const ochar *o;
+
+	  expand_entities(p, text, cdata, MAXSTRINGLEN);
+	  for(o=cdata; *o; o++)
+	    add_ocharbuf(p->cdata, *o);
+	  break;
+	}
+      case EC_STARTTAG:
+	prepare_cdata(p);
+	process_begin_element(p, text);
+	break;
+      case EC_ENDTAG:
+	prepare_cdata(p);
+	process_end_element(p, text);
+	break;
+      case EC_SDATA:
+      case EC_NDATA:
+	process_cdata(p, FALSE);
+	if ( p->on_data )
+	  (*p->on_data)(p, e->content, len, text);
+	break;
+      case EC_PI:
+	process_cdata(p, FALSE);
+	if ( p->on_pi )
+	  (*p->on_pi)(p, text);
+    }
+
+    return TRUE;
   }
 
   return TRUE;
@@ -4176,7 +4200,7 @@ reprocess:
       }
       empty_icharbuf(p->buffer);
       
-      if ( f[CF_ERC] != chr )
+      if ( f[CF_ERC] != chr && chr != '\n'  )
 	goto reprocess;
 
       break;

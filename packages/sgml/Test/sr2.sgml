@@ -1,0 +1,25 @@
+<!DOCTYPE test
+ [ <!ELEMENT test - - (t*)>
+   <!ELEMENT t - - ((name|op),arg)>
+   <!ELEMENT name o o (#PCDATA)>
+   <!ELEMENT op   - - (#PCDATA)>
+   <!ELEMENT arg  - - (#PCDATA)>
+   <!ELEMENT desc  o o (#PCDATA)>
+
+   <!ENTITY end-t ENDTAG "t">
+   <!ENTITY beg-arg STARTTAG "arg">
+   <!ENTITY end-arg ENDTAG "arg">
+
+   <!SHORTREF in.t
+	'&#RE'  end-t
+        '('     beg-arg>
+   <!SHORTREF in.arg
+	')'	end-arg>
+
+   <!USEMAP in.t t>
+   <!USEMAP in.arg arg>
+ ]>
+
+<test>
+<t>n(a)
+</test>

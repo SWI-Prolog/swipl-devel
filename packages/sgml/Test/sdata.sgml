@@ -1,0 +1,8 @@
+<!DOCTYPE text [
+  <!ENTITY Omega SDATA "\Omega">
+  <!ELEMENT text - - (#PCDATA)>
+]>
+
+<text>
+Van Alpha tot &Omega;
+</text>

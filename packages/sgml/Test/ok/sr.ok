@@ -1,0 +1,1 @@
+[element(test, [], [element(p, [], ['Peter said: ', element(q, [], ['He, this is a nice program']), '.']), element(p, [], ['Bob said: ', element(q, [], ['Yes, it is'])])])].

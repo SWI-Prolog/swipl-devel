@@ -1,0 +1,10 @@
+<!DOCTYPE def [
+  <!ENTITY #DEFAULT SDATA "?">
+  <!ELEMENT def - - RCDATA>
+]>
+
+<def>&#65
+&#66 &#67
+&b
+&#66
+&c</def>

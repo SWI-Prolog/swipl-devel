@@ -1,0 +1,7 @@
+<!DOCTYPE foo [ 
+ <!ELEMENT foo O O (name+)>
+ <!ELEMENT name - O (#PCDATA)>
+ <!ATTLIST name title cdata #implied sex cdata #implied>
+]>
+<name title=Dr sex=M>Neddie Seagoon
+<name title=Miss sex=F>Minnie Bannister

@@ -1,0 +1,7 @@
+<!DOCTYPE test [
+  <!ELEMENT test - - (#PCDATA)>
+]>
+
+<test>
+Test for handling character entities: &#65; &#RS;
+</test>
