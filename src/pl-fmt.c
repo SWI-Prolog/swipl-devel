@@ -48,7 +48,7 @@ typedef struct
   struct rubber rub[MAXRUBBER];
 } format_state;
 
-#define BUFSIZE 	10240
+#define BUFSIZE 	1024
 #define DEFAULT 	(-1)
 #define SHIFT   	{ argc--; argv++; }
 #define NEED_ARG	{ if ( argc <= 0 ) \
@@ -649,7 +649,10 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
 		  break;
 		}
 	      case 't':			/* insert tab */
-		{ state.rub[state.pending_rubber].where = state.buffered;
+		{ if ( state.pending_rubber >= MAXRUBBER )
+		    FMT_ERROR("Too many tab stops");
+
+		  state.rub[state.pending_rubber].where = state.buffered;
 		  state.rub[state.pending_rubber].pad   =
 					(arg == DEFAULT ? (pl_wchar_t)' '
 							: (pl_wchar_t)arg);
