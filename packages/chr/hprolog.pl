@@ -11,8 +11,7 @@
 	    or_list/2,			% +ListOfInts, -BitwiseOr
 	    sublist/2,
 	    min_list/2,
-	    chr_delete/3,
-	    copy_term_nat/2
+	    chr_delete/3
 	  ]).
 :- use_module(library(lists)).
 
@@ -171,31 +170,4 @@ chr_delete([H|T], X, L) :-
         ;   L=[H|RT],
             chr_delete(T, X, RT)
         ).
-
-copy_term_nat(A,B) :-
-    term_variables(A,AVars),
-    strip_attributes(AVars,AVarAttrs),
-    copy_term(A,B),
-    restore_attributes(AVars,AVarAttrs).
-    
-strip_attributes([],[]).
-strip_attributes([V|R],[V2|R2]) :-
-    ( attvar(V) ->
-	get_attrs(V,VAttrs),
-	remove_attrs(V,VAttrs,V2)
-    ;
-	V2 = []
-    ),
-    strip_attributes(R,R2).
-
-remove_attrs(_V,[],[]).
-remove_attrs(V,att(X,Y,OtherAttrs),[(X,Y)|R]) :-
-    del_attr(V,X),
-    remove_attrs(V,OtherAttrs,R).
-
-restore_attributes([],[]).
-restore_attributes([_V|R],[[]|R2]) :- restore_attributes(R,R2).
-restore_attributes([V|R],[[(X,Y)|RVAttr]|R2]) :-
-    put_attr(V,X,Y),
-    restore_attributes([V|R],[RVAttr|R2]).
     
