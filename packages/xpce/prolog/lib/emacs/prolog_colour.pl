@@ -125,7 +125,7 @@ colourise_text_buffer(TB) :-
 		  (   %print_message(error, _E),
 		      fail
 		  )),
-	    colourise_term(Term, TB, TermPos),
+	    once(colourise_term(Term, TB, TermPos)),
 	    fix_operators(Term),
 	    Term == end_of_file, !,
 	close(Fd).

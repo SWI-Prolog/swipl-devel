@@ -80,7 +80,7 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl \
 	bim.pl quintus.pl edinburgh.pl ctypes.pl files.pl \
 	edit.pl emacs_interface.pl shell.pl check.pl \
 	tty.pl readln.pl \
-	am_match.pl oset.pl \
+	am_match.pl oset.pl ordsets.pl occurs.pl \
 	netscape.pl url.pl \
 	qpforeign.pl \
 	$(PLWINLIBS)

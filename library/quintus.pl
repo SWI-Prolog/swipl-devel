@@ -36,9 +36,12 @@
 	  no_style_check/1,
 	  otherwise/0,
 	  numbervars/3,
+	  subsumes_chk/2,		% ?General, ?Specific
 	  simple/1,
 %	  statistics/2,			% Please access as quintus:statistics/2
 	  prolog_flag/2,
+
+	  date/1,			% -date(Year, Month, Day)
 
 	  current_stream/3,		% ?File, ?Mode, ?Stream
 	  stream_position/3,		% +Stream, -Old, +New
@@ -47,7 +50,11 @@
 
 	  compile/1,			% +File(s)
 
-	  atom_char/2
+	  atom_char/2,
+	  midstring/3,			% ABC, B, AC
+	  midstring/4,			% ABC, B, AC, LenA
+	  midstring/5,			% ABC, B, AC, LenA, LenB
+	  midstring/6			% ABC, B, AC, LenA, LenB, LenC
 	]).
 
 		/********************************
@@ -194,6 +201,19 @@ statistics(Key, Value) :-
 	system:statistics(Key, Value).
 
 
+		 /*******************************
+		 *	     DATE/TIME		*
+		 *******************************/
+
+%	date(-Date)
+%
+%	Get current date.
+
+date(date(Year,Month,Day)) :-
+	get_time(T),
+	convert_time(T, Year, Month, Day, _, _, _, _).
+
+
 		/********************************
 		*          STYLE CHECK          *
 		*********************************/
@@ -222,6 +242,19 @@ public(_).
 
 numbervars(Term, From, To) :-
 	numbervars(Term, '$VAR', From, To).
+
+
+%	temporary hack for subsumes_chk/2 in ordinary Prolog world.
+%	This comes from the SWI-Prolog port of ALE.
+%	If all works fine we might move this to the kernel.
+
+subsumes_chk(X,Y) :-
+  \+ \+ (copy_term(Y,Y2),
+         free_variables(Y,YFVs),
+         free_variables(Y2,Y2FVs),
+         X = Y2,
+         numbervars(YFVs,'$VAR',0,_),   % don't use '$VAR' in a_ atoms!
+         YFVs = Y2FVs).
 
 
 		 /*******************************
@@ -320,8 +353,27 @@ compile(Files) :-
 atom_char(Char, Code) :-
 	char_code(Char, Code).
 
+%	midstring(?ABC, ?B, ?AC, LenA, LenB, LenC)
+%
+%	Too difficult to explain.  See the Quintus docs.  As far as I
+%	understand them the code below emulates this function just fine.
 
-
-
+midstring(ABC, B, AC) :-
+	midstring(ABC, B, AC, _, _, _).
+midstring(ABC, B, AC, LenA) :-
+	midstring(ABC, B, AC, LenA, _, _).
+midstring(ABC, B, AC, LenA, LenB) :-
+	midstring(ABC, B, AC, LenA, LenB, _).
+midstring(ABC, B, AC, LenA, LenB, LenC) :-
+	var(ABC), !,
+	sub_atom(AC, 0, LenA, _, A),
+	sub_atom(AC, _, LenC, 0, C),
+	atom_length(B, LenB),
+	concat_atom([A,B,C], ABC).
+midstring(ABC, B, AC, LenA, LenB, LenC) :-
+	sub_atom(ABC, LenA, LenB, LenC, B),
+	sub_atom(ABC, 0, LenA, _, A),
+	sub_atom(ABC, _, LenC, 0, C),
+	atom_concat(A, C, AC).
 
 

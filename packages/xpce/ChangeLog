@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ENHANCED: Performance of PceEmacs colourisation in Prolog mode by
+  removing some non-determinism
+
 VERSION 5.1.8
 =============
 

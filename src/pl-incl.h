@@ -870,6 +870,7 @@ with one operation, it turns out to be faster as well.
 #define NEEDSCLAUSEGC		(0x00080000L) /* predicate */
 #define NEEDSREHASH		(0x00100000L) /* predicate */
 #define P_VARARG		(0x00200000L) /* predicate */
+#define P_SHARED		(0x00400000L) /* predicate */
 #define PROC_DEFINED		(DYNAMIC|FOREIGN|MULTIFILE|DISCONTIGUOUS)
 
 #define ERASED			(0x0001) /* clause, record */
@@ -1199,6 +1200,7 @@ struct definition
 		/*	NEEDSCLAUSEGC	   Clauses have been erased */
 		/*	NEEDSREHASH	   Hash-table is out-of-date */
 		/*	P_VARARG	   Foreign called using t0, ac, ctx */
+  		/*	P_SHARED	   Multiple procs are using me */
   unsigned	indexCardinality : 8;	/* cardinality of index pattern */
   unsigned	number_of_clauses : 24;	/* number of associated clauses */
 };

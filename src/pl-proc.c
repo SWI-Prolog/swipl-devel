@@ -79,7 +79,7 @@ static void
 resetProcedure(Procedure proc)
 { Definition def = proc->definition;
 
-  def->flags ^= def->flags & ~(SPY_ME|NEEDSCLAUSEGC);
+  def->flags ^= def->flags & ~(SPY_ME|NEEDSCLAUSEGC|P_SHARED);
   set(def, TRACE_ME);
   def->number_of_clauses = 0;
 

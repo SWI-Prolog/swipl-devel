@@ -1,6 +1,21 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Two-step import/export of predicates with special ordering
+    of the loading.
+
+  * FIXED: While checking the export list of a module, consider imported
+    predicates defined, even if they have no definition.
+
+  * ADDED: The following predicates where added to library(quintus):
+    compile/1, midstring/[3-6], date/1, subsumes_chk/2.
+
+  * ADDED: library(occurs), a Quintus compatible library for subterm
+    relations.
+
+  * ADDED: library(ordsets), a very partial implementation of this
+    Quintus compatible library.
+
   * FIXED: compilation of pl-load.c on MacOS X (Paulo Moura).
 
   * ADDED: library(qpforeign) to load Quintus foreign code.

@@ -513,7 +513,8 @@ pl_check_export()
 	    { Procedure proc = (Procedure) s->value;
 	      Definition def = proc->definition;
 
-	      if ( !isDefinedProcedure(proc) )
+	      if ( !isDefinedProcedure(proc) && /* not defined */
+		   proc->definition->module == module ) /* not imported */
 	      { warning("Exported procedure %s:%s/%d is not defined", 
 			stringAtom(module->name), 
 			stringAtom(def->functor->name), 
@@ -535,7 +536,37 @@ current  context  module.   If  the  predicate is already defined in the
 context a warning is displayed and the predicate is  NOT  imported.   If
 the  predicate  is  not  on  the  public  list of the exporting module a
 warning is displayed, but the predicate is imported nevertheless.
+
+A particulary nasty problem happens  if   a  procedure  is exported from
+module A to B and then to C, while C   loads B before B loads A. In this
+case C will share the definition of B, which is subsequently overwritten
+when B imports A. The fixExport() stuff deals with this situation. It is
+considered very rare and probably scanning  all predicate definitions is
+fine.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static inline void
+fixExportModule(Module m, Definition old, Definition new)
+{ for_unlocked_table(m->procedures, s,
+		     { Procedure proc = s->value;
+
+		       if ( proc->definition == old )
+		       { DEBUG(1, Sdprintf("Patched def of %s\n",
+					   procedureName(proc)));
+			 proc->definition = new;
+		       }
+		     });
+}
+
+
+static void
+fixExport(Definition old, Definition new)
+{ LOCK();
+  for_unlocked_table(GD->tables.modules, s,
+		     fixExportModule(s->value, old, new));
+  UNLOCK();
+}
+
 
 word
 pl_import(term_t pred)
@@ -559,7 +590,12 @@ pl_import(term_t pred)
       succeed;			/* already done this! */
 
     if ( !isDefinedProcedure(old) )
-    { old->definition = proc->definition;
+    { Definition odef = old->definition;
+
+      old->definition = proc->definition;
+      if ( true(odef, P_SHARED) )
+	fixExport(odef, proc->definition);
+      set(proc->definition, P_SHARED);
 
       succeed;
     }
@@ -592,6 +628,7 @@ pl_import(term_t pred)
   
     nproc->type = PROCEDURE_TYPE;
     nproc->definition = proc->definition;
+    set(proc->definition, P_SHARED);
   
     LOCK();
     addHTable(destination->procedures,
