@@ -1,13 +1,20 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.1.9
+=============
+
+  * FIXED: Updated stach-shifter code for the changed layout of the
+    environment-stack frames.  This bug prevented pl-gc.c to compile
+    on machines having no virtual-memory based stack allocation.
+
 Version 2.1.8
 =============
 
   * ADDED: check in exit code that removes possibly incomplete .qlf and
     bootfiles if an error occurred while building the file.
 
-  * FIXED: WIN32 tmp_file/2.
+  * FIXED: WIN32 tmp_file/2.  This fixes help/1.
 
   * FIXED: configure for users of a shell that doesn't export $PWD and
     the system chooses the install-sh script.

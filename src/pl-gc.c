@@ -1630,7 +1630,7 @@ long ls, gs, ts;
     
     DEBUG(2,
 	  Sdprintf("Shifting frame 0x%p [%ld] %s ... ",
-		 fr, levelFrame(fr), procedureName(fr->procedure)));
+		 fr, levelFrame(fr), predicateName(fr->predicate)));
 
     if ( ls )				/* update frame pointers */
     { if ( fr->parent )
@@ -1644,7 +1644,7 @@ long ls, gs, ts;
     if ( gs || ls )			/* update variables */
     { clear_uninitialised(fr, PC);
 
-      slots = (PC == NULL ? fr->procedure->functor->arity : slotsFrame(fr));
+      slots = (PC == NULL ? fr->predicate->functor->arity : slotsFrame(fr));
       sp = argFrameP(fr, 0);
       DEBUG(2, Sdprintf("\n\t%d slots in 0x%p ... 0x%p ... ",
 		      slots, sp, sp+slots));
@@ -1677,7 +1677,7 @@ LocalFrame bfr;
 long ls, gs, ts;
 { for( ; bfr; bfr = bfr->backtrackFrame )
   { DEBUG(1, Sdprintf("Updating choicepoints from 0x%p [%ld] %s ... ",
-		    bfr, levelFrame(bfr), procedureName(bfr->procedure)));
+		    bfr, levelFrame(bfr), predicateName(bfr->predicate)));
     update_environments(bfr, NULL, ls, gs, ts);
   }
 }

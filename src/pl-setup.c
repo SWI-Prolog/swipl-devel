@@ -1023,18 +1023,6 @@ initStacks(long local, long global, long trail, long argument, long lck)
 		*     STACK TRIMMING & LIMITS   *
 		*********************************/
 
-void
-trimStacks()
-{ unmap((Stack) &stacks.local);
-  unmap((Stack) &stacks.global);
-  unmap((Stack) &stacks.trail);
-  unmap((Stack) &stacks.argument);
-  unmap((Stack) &stacks.lock);
-  stacks.global.gced_size = usedStack(global);
-  stacks.trail.gced_size  = usedStack(trail);
-}
-
-
 static void
 gcPolicy(Stack s, int policy)
 { s->gc = ((s == (Stack) &stacks.global ||
@@ -1216,3 +1204,18 @@ long local, global, trail, argument, lck;
 }
 
 #endif /* O_DYNAMIC_STACKS */
+
+void
+trimStacks()
+{
+#ifdef O_DYNAMIC_STACKS
+  unmap((Stack) &stacks.local);
+  unmap((Stack) &stacks.global);
+  unmap((Stack) &stacks.trail);
+  unmap((Stack) &stacks.argument);
+  unmap((Stack) &stacks.lock);
+#endif /*O_DYNAMIC_STACKS*/
+
+  stacks.global.gced_size = usedStack(global);
+  stacks.trail.gced_size  = usedStack(trail);
+}
