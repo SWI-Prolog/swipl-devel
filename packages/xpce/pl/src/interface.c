@@ -2547,7 +2547,7 @@ the possibility of reentrance at moments this is not allowed in PCE ...
 #endif
 
 #ifndef TIMEOUT
-#define TIMEOUT 0			/* just wait */
+#define TIMEOUT 250			/* just wait */
 #endif
 
 static int

@@ -1,4 +1,4 @@
-\chapter{Hackers corner}
+\chapter{Hackers corner}			\label{sec:hack}
 
 This appendix describes a number of predicates which enable the Prolog
 user to inspect the Prolog environment and manipulate (or even redefine)

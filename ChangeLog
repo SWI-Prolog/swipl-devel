@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: Allow for MKINDEX.pl to control indexing process of library
+    directories for auto-loading.
+
   * ADDED: call_cleanup/2 and call_cleanup/3.
 
   * ENHANCED: handling of call/1.  Instead of doing a full compilation of

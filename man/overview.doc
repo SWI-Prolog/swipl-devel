@@ -1226,7 +1226,7 @@ auto load system.
 
 The auto-loader only works if the unknown flag (see unknown/2) is set to
 \const{trace} (default).  A more appropriate interaction with this flag
-will be considered.
+should be considered.
 
 Autoloading only handles (library) source files that use the module
 mechanism described in \chapref{modules}.  The files are loaded
@@ -1240,12 +1240,17 @@ following format:
 index(Name, Arity, Module, File).
 \end{code}
 
-The predicate make/0 scans the autoload libraries and updates the
-index if it exists, is writable and out-of-date.  It is advised to
-create an empty file called \file{INDEX.pl} in a library directory
-meant for auto loading before doing anything else.  This index file
-can then be updated by running the prolog make_library_index/1 (`\%' is
-the Unix prompt):
+The predicate make/0 updates the autoload index. It searches for all
+library directories (see library_directory/1 and file_search_path/2)
+holding the file \file{MKINDEX.pl} or \file{INDEX.pl}. If the current
+user can write or create the file \file{INDEX.pl} and it does not exist
+or is older than the directory or one of its files, the index for this
+directory is updated. If the file \file{MKINDEX.pl} exists updating is
+achieved by loading this file, normally containing a directive calling
+make_library_index/2. Otherwise make_library_index/1 is called, creating
+an index for all \file{*.pl} files containing a module.
+
+Below is an example creating a completely indexed library directory.
 
 \begin{code}
 % mkdir ~/lib/prolog
@@ -1269,14 +1274,35 @@ the following search schema is followed:
 Create an index for this directory.  The index is written to the file
 'INDEX.pl' in the specified directory.  Fails with a warning if the
 directory does not exist or is write protected.
+    
+    \predicate{make_library_index}{2}{+Directory, +ListOfPatterns}
+Normally used in \file{MKINDEX.pl}, this predicate creates \file{INDEX.pl}
+for \arg{Directory}, indexing all files that match one of the file-patterns
+in \arg{ListOfPatterns}.
+
+Sometimes library packages consist of one public load file and a number
+of files used by this load-file, exporting predicates that should not be
+used directly by the end-user. Such a library can be placed in a
+sub-directory of the library and the files containing public
+functionality can be added to the index of the library.  As an
+example we give the XPCE library's \file{MKINDEX.pl}, including the
+public functionality of \file{trace/browse.pl} to the autoloadable
+predicates for the XPCE package.
+
+\begin{code}
+:- make_library_index('.',
+		      [ '*.pl',
+			'trace/browse.pl'
+		      ]).
+\end{code}
 \end{description}
 
 
 \section{Garbage Collection}
 
-SWI-Prolog version 1.4 was the first release to support garbage
-collection. Together with last-call optimisation this guarantees forward
-chaining programs do not waste infinite amounts of memory.
+SWI-Prolog provides garbage-collection, last-call optimization and atom
+garbage collection.  These features are controlled using prolog flags
+(see current_prolog_flag/2).
 
 
 \section{Syntax Notes}

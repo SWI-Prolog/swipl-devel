@@ -247,6 +247,7 @@ suggest predicates from a keyword.
 \predicatesummary{make_directory}{1}{Create a folder on the file system}
 \predicatesummary{make_fat_filemap}{1}{Win32: Create file containing non-FAT filenames}
 \predicatesummary{make_library_index}{1}{Create autoload file INDEX.pl}
+\predicatesummary{make_library_index}{2}{Create selective autoload file INDEX.pl}
 \predicatesummary{maplist}{3}{Transform all elements of a list}
 \predicatesummary{member}{2}{Element is member of a list}
 \predicatesummary{memberchk}{2}{Deterministic member/2}

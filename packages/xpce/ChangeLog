@@ -1,6 +1,16 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: PceEmacs: add file-pattern to Prolog mode for user-choosen
+  extension (.pro on Windows).
+
+* FIXED: ->free bitmap on ->unlink of associated image.
+
+* FIXED: `image->save' cache errors handling the associated XImage.
+
+* ADDED: Class image: support for loading and saving the JPEG_COM markers
+  associating comments with JPEG files.  See `image->load' and `image->save'.
+
 * ADDED: PceEmacs: show accelerators in menu-bar in human-readable form.
 
 * ADDED: PceEmacs: show current line-number in status window.
