@@ -2965,7 +2965,7 @@ Converts, similar to downcase_atom/2, an atom to upper-case.
 \section{Representing text in strings}		\label{sec:strings}
 
 SWI-Prolog supports the data type \arg{string}. Strings are a time and
-space efficient mechanism to handle text text in Prolog. Strings are
+space efficient mechanism to handle text in Prolog. Strings are
 stores as a byte array on the global (term) stack and thus destroyed on
 backtracking and reclaimed by the garbage collector.
 
