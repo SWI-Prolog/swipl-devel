@@ -901,6 +901,7 @@ odbc_set_connection(term_t con, term_t option)
 
     if ( !get_atom_arg_ex(1, option, &val) )
       return FALSE;
+    opt = SQL_ACCESS_MODE;
 	      
     if ( val == ATOM_read )
       optval = SQL_MODE_READ_ONLY;
@@ -913,7 +914,8 @@ odbc_set_connection(term_t con, term_t option)
 
     if ( !get_atom_arg_ex(1, option, &val) )
       return FALSE;
-
+    opt = SQL_CURSOR_TYPE;
+    
     if ( val == ATOM_dynamic )
       optval = SQL_CURSOR_DYNAMIC;
     else
