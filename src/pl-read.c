@@ -1931,11 +1931,16 @@ term is to be written.
 		}
 	      }
 	    }
-	  case ',':
-	  case '|':
 	  case ')':
 	  case '}':
 	  case ']':
+	    syntaxError("cannot_start_term", _PL_rd);
+	  case '|':			/* TBD: we need this, but */
+	  case ',':			/* it should NOT be possible to */
+					/* modify these operators to atoms */
+					/* later.  Not really trivial how */
+					/* to do that! */
+					/* now x,,y is read as x, ',', y! */
 	  default:
 	    *name = TRUE;
 	    PL_put_atom(term, codeToAtom(token->value.character));

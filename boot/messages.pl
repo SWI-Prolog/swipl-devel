@@ -122,6 +122,8 @@ syntax_error(operator_expected) -->
 	[ 'Operator expected' ].
 syntax_error(operator_balance) -->
 	[ 'Unbalanced operator' ].
+syntax_error(cannot_start_term) -->
+	[ 'Illegal start of term' ].
 
 
 dwim_predicates(Module:Name/_Arity, Dwims) :- !,
