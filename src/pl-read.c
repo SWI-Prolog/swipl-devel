@@ -1065,7 +1065,7 @@ static void
 get_string(unsigned char *in, unsigned char **end, Buffer buf,
 	   ReadData _PL_rd)
 { int quote;
-  char c;
+  int c;
 
   quote = *in++;
 

@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: int/char problem in parser.  Michal Cihar.
+
   * FIXED: Bug#128: memory deallocation problem in library(memfile).
     MS-Windows only.  Added Sfree() to free memory from the right
     pool.  Holger Kanwischer.
