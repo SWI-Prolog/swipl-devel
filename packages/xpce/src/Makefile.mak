@@ -260,7 +260,7 @@ $(PL2XPCE).dll:	$(PLOBJ)
 ################################################################
 
 xpce-stub.exe:	xpce-stub.res xpce-stub.obj
-		$(LD) $(LDFLAGS) /subsystem:windows /out:$@ xpce.obj $(PLLIB) xpce-stub.res $(LIBS)
+		$(LD) $(LDFLAGS) /subsystem:windows /out:$@ xpce-stub.obj $(PLLIB) xpce-stub.res $(LIBS)
 
 xpce-stub.res:	..\pl\src\xpce-stub.rc ..\pl\src\xpce.ico
 		$(RSC) /fo$@ ..\pl\src\xpce-stub.rc

@@ -654,7 +654,10 @@ pl_feature(term_t name, term_t value, control_t h)
 void
 initFeatureTable()
 { if ( !GD->feature.table )
+  { initPrologThreads();	/* may be called before PL_initialise() */
+  
     GD->feature.table = newHTable(32);
+  }
 }
 
 

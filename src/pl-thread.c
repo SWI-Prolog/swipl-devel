@@ -3151,6 +3151,15 @@ PL_destroy_engine(PL_engine_t e)
 { fail;
 }
 
+
+void
+initPrologThreads()
+{					/* TBD: only once? */
+#ifdef O_MULTIPLE_ENGINES
+  PL_current_engine_ptr = &PL_local_data;
+#endif
+}
+
 #endif  /*O_PLMT*/
 
 		 /*******************************

@@ -14,6 +14,13 @@
 #include <SWI-Prolog.h>
 #include <windows.h>
 #include <malloc.h>
+#include <stdio.h>
+
+#ifdef O_DEBUG
+#define DEBUG(g) g
+#else
+#define DEBUG(g) (void)0
+#endif
 
 #ifndef MAXPATHLEN
 #define MAXPATHLEN 1024
@@ -26,6 +33,21 @@ static int   attach_console(void);
 
 static char *program;
 
+#ifdef O_DEBUG
+static void
+ok(const char *msg, ...)
+{ char buf[1024];
+  va_list args;
+
+  va_start(args, msg);
+  vsprintf(buf, msg, args);
+  va_end(args);
+
+  MessageBox(NULL, buf, program, MB_OK|MB_TASKMODAL);
+}
+#endif
+
+
 int PASCAL
 WinMain(HANDLE hInstance, HANDLE hPrevInstance,
 	LPSTR lpszCmdLine, int nCmdShow)
@@ -36,8 +58,8 @@ WinMain(HANDLE hInstance, HANDLE hPrevInstance,
   argc = breakargs(program, lpszCmdLine, argv);
 
   bind_terminal();
-/*attach_console();*/
   PL_set_feature("verbose", PL_ATOM, "silent"); /* operate silently */
+  DEBUG(ok("About to start Prolog with %d arguments", argc));
   if ( !PL_initialise(argc, argv) )
     PL_halt(1);
   
@@ -45,13 +67,6 @@ WinMain(HANDLE hInstance, HANDLE hPrevInstance,
 
   return 0;
 }
-
-
-static void
-ok(const char *msg)
-{ MessageBox(NULL, msg, program, MB_OK|MB_TASKMODAL);
-}
-
 
 
 		 /*******************************
@@ -216,7 +231,9 @@ ask_attach(int read)
   switch(rc)
   { case IDABORT:
     case IDCANCEL:
+      
       PostQuitMessage(1);
+      ExitProcess(1);
     case IDYES:
     case IDOK:
     case IDRETRY:

@@ -721,13 +721,7 @@ PL_initialise(int argc, char **argv)
   { succeed;
   }
 
-#ifdef O_PLMT
   initPrologThreads();			/* initialise thread system */
-#endif
-#ifdef O_MULTIPLE_ENGINES
-  PL_current_engine_ptr = &PL_local_data;
-#endif
-
   SinitStreams();			/* before anything else */
 
   script_argv(argc, argv);		/* hande #! arguments */
