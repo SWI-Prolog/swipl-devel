@@ -369,6 +369,14 @@ case "$ARCH" in
 	    LDFLAGS="$LDFLAGS -E"
 	fi
 	;;
+  *aix*)
+	AC_DEFINE(SO_EXT, "so")
+	if test "$GCC" = "yes"; then
+	    LDFLAGS="$LDFLAGS -Wl,-bE:../include/SWI-Exports"
+	else
+	    LDFLAGS="$LDFLAGS -bE:../include/SWI-Exports"
+	fi
+	;;
   *)
 	AC_DEFINE(SO_EXT, "so")
 	;;

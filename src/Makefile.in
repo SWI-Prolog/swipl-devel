@@ -175,8 +175,8 @@ $(INCLUDEDIR):
 
 $(EXPORTS):	Makefile $(srcdir)/pl-itf.h $(INCLUDEDIR)
 		echo \#\!$(bindir)/$(PL) > $(EXPORTS)
-		grep '^__pl_export' $(srcdir)/pl-itf.h | \
-			$(SED) 's/.*\(PL_[a-zA-Z0-9_]*\).*/\1/' | \
+		grep '^__pl_export' $(srcdir)/pl-itf.h $(srcdir)/pl-stream.h | \
+			$(SED) 's/.*[ 	*]\(_*PL_[a-zA-Z0-9_]*\|S[a-z_]*\).*/\1/' | \
 			grep -v '_t$$' | \
 			sort -u >> $(EXPORTS)
 

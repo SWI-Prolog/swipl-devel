@@ -1,6 +1,10 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * PORTABILITY: Autoconf to produce suitable linking options for AIX.
+    Tested on AIX 4.3.3.  Also a change in the Makefile to produce a correct
+    SWI-Exports file in the include directory.
+
   * FIXED: handling operators of type yfy.  Reported by Johann Schumann.
 
   * FIXED: Terminal control for raw-mode (OpenBSD, patch by Kamo Hiroyasu).
