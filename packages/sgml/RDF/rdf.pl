@@ -47,7 +47,7 @@ load_rdf(File, Triples, Options) :-
 		       ]),
 	set_anon_prefix(BaseURI, Refs),
 	call_cleanup(xml_to_rdf(RDFElement, BaseURI, Triples0),
-		     cleanup_load([Refs])),
+		     cleanup_load(Refs)),
 	post_process(Options, Triples0, Triples).
 	
 %	xml_to_rdf(+XML, +BaseURI, -Triples)

@@ -1,3 +1,7 @@
+Mar 20, 2003
+
+  * Fixed exception in cleanup.  Dominique de Waleffe.
+
 Feb 28, 2003
 
   * ADDED: Use BaseURI to create non-conflicting anonymous resources.
