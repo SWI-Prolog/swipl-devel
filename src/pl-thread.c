@@ -92,7 +92,7 @@ typedef sema_t sem_t;
 
 #endif /*HAVE_SEMA_INIT*/
 
-#ifdef USE_SEM_OPEN
+#ifdef USE_SEM_OPEN			/* see below */
 static sem_t *sem_canceled_ptr;
 #else
 static sem_t sem_canceled;		/* used on halt */
@@ -103,6 +103,19 @@ static sem_t sem_canceled;		/* used on halt */
 #include <signal.h>
 
 #ifdef USE_SEM_OPEN
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Apple Darwin (6.6) only contains the sem_init()   function as a stub. It
+only provides named semaphores  through   sem_open().  These defines and
+my_sem_open() try to hide the details of   this as much as possible from
+the rest of the code. Note  that   we  unlink  the semaphore right after
+creating it, using the common Unix trick to keep access to it as long as
+we do not close it. We assume  the   OS  will close the semaphore as the
+application terminates. All this is highly   undesirable, but it will do
+for now. The USE_SEM_OPEN define  is  set   by  configure  based  on the
+substring "darwin" in the architecture identifier.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static sem_t *sem_mark_ptr;
 
 #define sem_init(ptr, flags, val) my_sem_open(&ptr, val)
@@ -128,24 +141,24 @@ my_sem_open(sem_t **ptr, unsigned int val)
   return 0;
 }
 
-#else
+#else /*USE_SEM_OPEN*/
 
 static sem_t sem_mark;			/* used for atom-gc */
 #define sem_mark_ptr (&sem_mark)
 
-#endif
+#endif /*USE_SEM_OPEN*/
 
 #ifndef SA_RESTART
 #define SA_RESTART 0
 #endif
 
-//#define SIG_FORALL SIGHUP
+#if defined(__APPLE__)
 #define SIG_FORALL SIGUSR1
-#define SIG_RESUME SIG_FORALL
+#else
+#define SIG_FORALL SIGHUP
 #endif
-
-
-
+#define SIG_RESUME SIG_FORALL
+#endif /*!WIN32*/
 
 
 		 /*******************************
@@ -792,7 +805,6 @@ set_system_thread_id(PL_thread_info_t *info)
 #else
 #ifdef WIN32
   info->w32id = GetCurrentThreadId();
-#endif
 #endif
 #endif
 }
