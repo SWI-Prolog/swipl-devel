@@ -8,6 +8,7 @@
 
 #include <SWI-Prolog.h>
 #include <stdio.h>
+#include <string.h>
 
 #define MAXLINE 10240
 
