@@ -66,7 +66,7 @@ in config.h and report the problem (please with a fix :-).
 SWI-Prolog provided 3) on these machines, 4) is not included by default.
 If you want dlopen() and friends, configure using
 
-	./configure --with-dlopen
+	./configure --with-shared
 
 # Saved states (save/[1,2], save_program/[1,2])
 

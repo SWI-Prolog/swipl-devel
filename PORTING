@@ -65,6 +65,13 @@ description of various such problems:
 WORKING ON A SMALL PROGRAM
 ==========================
 
+[skip this, it is out of date, and doesn't work anymore.  Debug using
+
+ ./pl -d <n> -b ../boot/init.pl
+
+ where <n> is the debugging level to be used.
+]
+
 If  you are   very lucky  the   system will  compile and perform   the
 bootstrap compilation in one go.  Normally you are not.  On how to get
 it through the C compiler, you  are on your  own.  If  the system does

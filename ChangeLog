@@ -1,6 +1,12 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.0.9
+=============
+
+  * FIXED: generation of include/SWI-Exports, the AIX export declaration
+    file.
+
 Version 2.0.8
 =============
 
