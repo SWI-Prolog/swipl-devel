@@ -26,6 +26,7 @@
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
 #include "pl-ctype.h"
+#include "pl-utf8.h"
 
 #undef LD
 #define LD LOCAL_LD
@@ -430,14 +431,6 @@ clearBuffer(ReadData _PL_rd)
   rdbase = rb.here = rb.base;
 }      
 
-#define addToBuffer(c, _PL_rd) \
-	do \
-        { \
-	  if ( rb.here >= rb.end ) \
-	    growToBuffer(c, _PL_rd); \
-	  else \
-	    *rb.here++ = c; \
-	} while(0)
 
 static void
 growToBuffer(int c, ReadData _PL_rd)
@@ -453,7 +446,33 @@ growToBuffer(int c, ReadData _PL_rd)
   rb.size *= 2;
   rb.end  = rb.base + rb.size;
 
-  *rb.here++ = c & 0xff;
+  *rb.here++ = c;
+}
+
+
+static inline void
+addByteToBuffer(int c, ReadData _PL_rd)
+{ c &= 0xff;
+
+  if ( rb.here >= rb.end )
+    growToBuffer(c, _PL_rd);
+  else
+    *rb.here++ = c;
+}
+
+
+static void
+addToBuffer(int c, ReadData _PL_rd)
+{ if ( c <= 0x7f )
+  { addByteToBuffer(c, _PL_rd);
+  } else
+  { char buf[10];
+    char *s, *e;
+
+    e = utf8_put_char(buf, c);
+    for(s=buf; s<e; s++)
+      addByteToBuffer(*s, _PL_rd);
+  }
 }
 
 
@@ -702,52 +721,78 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		  break;
 		}
       	        /*FALLTHROUGH*/
-      default:	switch(_PL_char_types[c])
-		{ case SP:
-		  case CT:
-		    if ( dotseen )
-		    { if ( rb.here - rb.base == 1 )
-			rawSyntaxError("end_of_clause");
-		      ensure_space(c);
-		      addToBuffer(EOS, _PL_rd);
-		      return rb.base;
-		    }
-		    do
-		    { if ( something_read ) /* positions */
-			addToBuffer(c, _PL_rd);
-		      else
+      default:	if ( c < 0xff )
+		{ switch(_PL_char_types[c])
+		  { case SP:
+		    case CT:
+		    blank:
+		      if ( dotseen )
+		      { if ( rb.here - rb.base == 1 )
+			  rawSyntaxError("end_of_clause");
 			ensure_space(c);
-		      c = getchr();
-		    } while( c != EOF && isBlank(c) );
-		    goto handle_c;
-		  case SY:
-		    set_start_line;
+			addToBuffer(EOS, _PL_rd);
+			return rb.base;
+		      }
+		      do
+		      { if ( something_read ) /* positions */
+			  addToBuffer(c, _PL_rd);
+			else
+			  ensure_space(c);
+			c = getchr();
+		      } while( c != EOF && isBlankW(c) );
+		      goto handle_c;
+		    case SY:
+		      set_start_line;
+		      do
+		      { addToBuffer(c, _PL_rd);
+			c = getchr();
+			if ( c == '`' && _PL_rd->backquoted_string )
+			  break;
+		      } while( c != EOF && c <= 0xff && isSymbol(c) );
+		      dotseen = FALSE;
+		      goto handle_c;
+		    case LC:
+		    case UC:
+		      set_start_line;
+		      do
+		      { addToBuffer(c, _PL_rd);
+			c = getchr();
+		      } while( c != EOF && isAlphaW(c) );
+		      dotseen = FALSE;
+		      goto handle_c;
+		    default:
+		      addToBuffer(c, _PL_rd);
+		      dotseen = FALSE;
+		      set_start_line;
+		  }
+		} else			/* > 255 */
+		{ if ( isAlphaW(c) )
+		  { set_start_line;
 		    do
 		    { addToBuffer(c, _PL_rd);
 		      c = getchr();
-		      if ( c == '`' && _PL_rd->backquoted_string )
-			break;
-		    } while( c != EOF && isSymbol(c) );
+		    } while( c != EOF && isAlphaW(c) );
 		    dotseen = FALSE;
 		    goto handle_c;
-		  case LC:
-		  case UC:
-		    set_start_line;
-		    do
-		    { addToBuffer(c, _PL_rd);
-		      c = getchr();
-		    } while( c != EOF && isAlpha(c) );
-		    dotseen = FALSE;
-		    goto handle_c;
-		  default:
-		    addToBuffer(c, _PL_rd);
+		  } else if ( isBlankW(c) )
+		  { goto blank;
+		  } else
+		  { addToBuffer(c, _PL_rd);
 		    dotseen = FALSE;
 		    set_start_line;
+		  }
 		}
     }
   }
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Raw reading returns a string in  UTF-8   notation  of the a Prolog term.
+Comment inside the term is  replaced  by   spaces  or  newline to ensure
+proper reconstruction of source locations. Comment   before  the term is
+skipped.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static unsigned char *
 raw_read(ReadData _PL_rd ARG_LD)

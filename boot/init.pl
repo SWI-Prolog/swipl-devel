@@ -1247,6 +1247,10 @@ $consult_clause(Clause, File) :-
 
 $execute_directive(include(File), F) :- !,
 	$expand_include(File, F).
+$execute_directive(encoding(Encoding), F) :- !,
+	source_location(F, _),
+	$load_input(F, S),
+	set_stream(S, encoding(Encoding)).
 $execute_directive(ISO, F) :-
 	$expand_directive(ISO, Normal), !,
 	$execute_directive(Normal, F).
