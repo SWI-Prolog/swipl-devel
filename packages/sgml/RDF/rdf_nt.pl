@@ -156,6 +156,15 @@ escaped_uri_codes([C|T]) -->
 	},
 	escaped_uri_codes(T).
 escaped_uri_codes([C|T]) -->
+	"\\u", [D0,D1,D2,D3], !,
+	{ code_type(D0, xdigit(V0)),
+	  code_type(D1, xdigit(V1)),
+	  code_type(D2, xdigit(V2)),
+	  code_type(D3, xdigit(V3)),
+	  C is V0<<12 + V1<<8 + V2<<4 + V3
+	},
+	escaped_uri_codes(T).
+escaped_uri_codes([C|T]) -->
 	[C],
 	escaped_uri_codes(T).
 

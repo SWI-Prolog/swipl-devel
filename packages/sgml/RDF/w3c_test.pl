@@ -79,6 +79,7 @@ run_tests :-
 	process_manifest,
 	start_tests,
 	(   rdf(About, rdf:type, test:Type),
+	    \+ rdf(About, test:status, literal('OBSOLETE')),
 	    test_type(Type),
 %	    once(run_test(About)),		% Should not be needed
 	    run_test(About),
@@ -94,10 +95,13 @@ run_test(Test) :-
 	rdf(Test, test:inputDocument, In),
 	local_file(In, InFile),
 	exists_file(InFile),
-	load_rdf(InFile, RDF,
-		 [ base_uri(In),
-		   expand_foreach(true)
-		 ]),
+	(   load_rdf(InFile, RDF,
+		     [ base_uri(In),
+		       expand_foreach(true)
+		     ])
+	->  true
+	;   RDF = []
+	),
 	Data = [ source(InFile),
 		 result(RDF),
 		 norm(NT),
@@ -108,7 +112,7 @@ run_test(Test) :-
 	(   rdf(Test, test:outputDocument, Out),
 	    local_file(Out, NTFile),
 	    load_rdf_nt(NTFile, NT),
-	    format('Comparing to ~w~n', [NTFile]),
+	    feedback('Comparing to ~w~n', [NTFile]),
 	    compare_triples(RDF, NT, Substitions)
 	->  test_result(pass, Test, Data)
 					% if all fails, display the first

@@ -162,11 +162,11 @@ propertyElt(Id, Name, Value, Base0) ::=
 					% 5.14 emptyPropertyElt
 propertyElt(Id, Name, literal(''), Base) ::=
 	element(Name,
-		\attrs([ \?idAttr(Id, Base),
+		\attrs([ \?propIdAttr(Id, Base),
 			 \?parseLiteral
 		       | \noMoreAttrs
 		       ]),
-		[]), !.
+		\all_ws), !.
 propertyElt(Id, Name,
 	    description(description, About, BagID, Properties),
 	    Base) ::=
@@ -177,7 +177,7 @@ propertyElt(Id, Name,
 			 \?parseResource
 		       | \propAttrs(Properties, Base)
 		       ]),
-		[]),
+		\all_ws),
 	!.
 propertyElt(_, Name, description(description, Id, _, Properties), Base) ::=
 	element(Name,
@@ -239,6 +239,8 @@ idAboutAttr(id(Id), Base) ::=
 	\idAttr(Id, Base), !.
 idAboutAttr(about(About), Base) ::=
 	\aboutAttr(About, Base), !.
+idAboutAttr(about(About), Base) ::=
+	\nodeIDAttr(About, Base), !.
 idAboutAttr(AboutEach, Base) ::=
 	\aboutEachAttr(AboutEach, Base).
 
@@ -247,6 +249,10 @@ idRefAttr(Id, Base) ::=
 idRefAttr(about(URI), Base) ::=
 	\resourceAttr(URI, Base).
 
+propIdAttr(Id, Base) ::=
+	\idAttr(Id, Base), !.
+propIdAttr(about(About), Base) ::=
+	\nodeIDAttr(About, Base), !.
 
 %	an_rdf_object(-Object, +BaseURI)
 %
@@ -272,7 +278,14 @@ ws ::=
 	{ atom(A),
 	  atom_chars(A, Chars),
 	  all_blank(Chars)
-	}.
+	}, !.
+ws ::=
+	pi(_).
+
+all_ws ::=
+	[], !.
+all_ws ::=
+	[\ws | \all_ws].
 
 all_blank([]).
 all_blank([H|T]) :-
@@ -292,6 +305,11 @@ bagIdAttr(Id, Base) ::=
 
 aboutAttr(About, Base) ::=
 	\rdf_or_unqualified(about) = \uri(About, Base).
+
+nodeIDAttr(About, Base) ::=
+	\rdf_or_unqualified(nodeID) = \uri(About, Base).
+
+%	Not allowed in current RDF!
 
 aboutEachAttr(each(AboutEach), Base) ::=
 	\rdf_or_unqualified(aboutEach) = \uri(AboutEach, Base), !.
