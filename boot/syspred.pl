@@ -17,6 +17,7 @@
 	, trace/2
 	, nospyall/0
 	, debugging/0
+	, setarg/3
 	, concat_atom/2
 	, term_to_atom/2
 	, atom_to_term/3
@@ -248,6 +249,16 @@ show_trace_ports(Head) :-
 	fail.
 show_trace_ports(_).
 
+		 /*******************************
+		 *	   TERM HACKING		*
+		 *******************************/
+
+setarg(N, Term, Arg) :-
+	arg(N, Term, Old),
+	(   '$setarg'(N, Term, Arg)
+	;   '$setarg'(N, Term, Old)
+	).
+	  
 
 		/********************************
 		*             ATOMS             *

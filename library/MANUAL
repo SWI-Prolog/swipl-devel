@@ -2683,6 +2683,16 @@ arg(?Arg, ?Term, ?Value)
     alternative solutions.
 
 
+setarg(+Arg, +Term, +Value)
+    Extra-logical predicate.  Assigns the Arg-th argument of the compound
+    term Term with the given Value.  The predicate leaves a backtrack
+    point, undoing its assignment and restoring the original value when
+    activated.
+
+    This predicate may be used for destructive assignment to terms, using
+    them as and extra-logical storage bin.
+
+
 ?Term =..  ?List
     List is a list which head is the functor of Term and the remaining
     arguments are the arguments of the term.  Each of the arguments may
@@ -4417,7 +4427,7 @@ Chapter  4
 
 Using  Modules
 
-                                441
+                                442
 
 
 4.1 Why Using Modules?
@@ -4926,7 +4936,7 @@ trade-off the user is responsible for type checking and should be careful
 not to violate consistency rules as Prolog provides access to its internal
 data structures.
 
-                                464
+                                465
 
 
 5.1 Overview of the Interface
@@ -5839,7 +5849,7 @@ The following example realises the same as the example from figure 5.4
       t[1] = PL_new_term();
       PL_unify_atomic(t[0], PL_new_atom("atoms"));
       PL_call_predicate(NULL, TRUE,
-                      PL_predicate(PL_functor(PL_new_atom("statistics"), 2)
+                      PL_predicate(PL_new_functor(PL_new_atom("statistics"), 2)
                                   PL_new_module(PL_new_atom("user"))),
                       t);
 
@@ -6287,7 +6297,7 @@ debugging tools for Prolog.  The predicates described here should be
 handled with some care as it is easy to corrupt the consistency of the
 Prolog system by misusing them.
 
-                                578
+                                579
 
 
 6.1 Examining the Environment Stack
@@ -6739,6 +6749,7 @@ set_feature/2                Define a system feature
 set_input/1                 Set current input stream from a stream
 set_output/1                Set current output stream from a stream
 set_tty/2                   Set `tty' stream
+setarg/3                    Assign to argument of compound term
 setenv/2                    Set Unix environment variable
 setof/3                     Find all unique solutions to a goal
 sformat/2                   Format on a string
@@ -6813,4 +6824,4 @@ writeq/2                    Write term, insert quotes on stream
 xor/2                       Arithmetic:  exclusive or
 |/2                         Disjunction of goals
 
-                                587
+                                588

@@ -526,6 +526,22 @@ pl_arg(register Word n, register Word term, register Word arg, word b)
 }
 	
 
+word
+pl_setarg(Word n, Word term, Word value)
+{ int argn;
+
+  if ( !isTerm(*term) || !isInteger(*n) )
+    return warning("$setarg/3: instantiation fault");
+  
+  argn = (int) valNum(*n);
+  if ( argn < 1 || argn > functorTerm(*term)->arity )
+    fail;
+
+  setVar(*argTermP(*term, argn-1));
+  return pl_unify(argTermP(*term, argn-1), value);
+}
+
+
 /*  Determine the length of a list. If the list is not proper (or not
     a list at all) -1 is returned.
 

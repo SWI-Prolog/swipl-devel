@@ -4,6 +4,8 @@
 Version 2.1.3
 =============
 
+  * ADDED: setarg/3 for extra-logical assignment to arguments of terms.
+
   * MODIFIED: PL_new_integer() now returns a floating point value if the
     argument exceeds SWI-Prolog's integer range.
 

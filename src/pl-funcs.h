@@ -365,6 +365,7 @@ word		pl_structural_equal(Word t1, Word t2);
 word		pl_structural_nonequal(Word t1, Word t2);
 word		pl_functor(Word t, Word f, Word a);
 word		pl_arg(Word n, Word term, Word arg, word b);
+word		pl_setarg(Word n, Word term, Word arg);
 int		lengthList(Word list);
 word		pl_univ(Word t, Word l);
 int		numberVars(Word t, FunctorDef functor, int n);
