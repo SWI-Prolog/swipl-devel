@@ -1244,6 +1244,7 @@ pl_retract(term_t term, word h)
     ClauseRef next;
     atom_t b;
     mark mrk;
+    term_t r0;
 
     PL_strip_module(term, &m, cl);
     get_head_and_body_clause(cl, head, body, NULL);
@@ -1298,13 +1299,13 @@ pl_retract(term_t term, word h)
     }
 
     Mark(mrk);
+    r0 = PL_new_term_refs(0);
     while( cref )
-    { term_t r0 = PL_new_term_ref();
-
-      if ( decompile(cref->clause, cl, 0) )
+    { if ( decompile(cref->clause, cl, 0) )
       { retractClauseProcedure(proc, cref->clause);
 	if ( !next )
-	{ leaveDefinition(def);
+	{ PL_reset_term_refs(r0);
+	  leaveDefinition(def);
 	  succeed;
 	}
 
@@ -1334,6 +1335,7 @@ pl_retractall(term_t head)
   Word argv;
   LocalFrame fr = environment_frame;
   mark m;
+  term_t r0;
 
   if ( !get_procedure(head, &proc, thehead, GP_FINDHERE) )
     succeed;
@@ -1368,14 +1370,14 @@ pl_retractall(term_t head)
     succeed;
   }
 
+  r0 = PL_new_term_refs(0);
   while( cref )
-  { term_t r0 = PL_new_term_ref();
-    
-    if ( decompileHead(cref->clause, thehead) )
+  { if ( decompileHead(cref->clause, thehead) )
       retractClauseProcedure(proc, cref->clause);
 
     if ( !next )
-    { Undo(m);
+    { PL_reset_term_refs(r0);
+      Undo(m);
       leaveDefinition(def);
       succeed;
     }
