@@ -244,7 +244,7 @@ Section "Shell Extensions" SecShell
   StrCmp $0 "" 0 skipNSIAssoc
 	WriteRegStr HKCR "PrologFile" "" "Prolog Source"
 	WriteRegStr HKCR "PrologFile\shell" "" "open"
-	WriteRegStr HKCR "PrologFile\DefaultIcon" "" $INSTDIR\bin\plwin.exe,1
+	WriteRegStr HKCR "PrologFile\DefaultIcon" "" $INSTDIR\bin\plwin.exe,0
   skipNSIAssoc:
   ; OPEN
   WriteRegStr HKCR "PrologFile\shell\open\command" "" '"$INSTDIR\bin\plwin.exe" "%1"'
