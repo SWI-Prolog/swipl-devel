@@ -1207,10 +1207,11 @@ pl_arithmetic_function(term_t descr)
   f->proc     = proc;
 
   startCritical;
-  for(ap = &arithFunctionTable[v], a=*ap; ; ap = &a->next)
-  { if ( !a || isTableRef(a) || a->level >= f->level )
+  for(ap = &arithFunctionTable[v], a=*ap; ; ap = &a->next, a = *ap)
+  { if ( !a || isTableRef(a) || f->level >= a->level )
     { f->next = a;
       *ap = f;
+      break;
     }
   }
   registerFunction(f);
