@@ -83,6 +83,7 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl \
 	am_match.pl oset.pl ordsets.pl occurs.pl lists.pl \
 	netscape.pl url.pl win_menu.pl \
 	qpforeign.pl \
+	checklast.pl checkselect.pl \
 	$(PLWINLIBS)
 !IF "$(MT)" == "true"
 PLLIBS=$(PLLIBS) threadutil.pl
