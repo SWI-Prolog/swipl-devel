@@ -1,7 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
-  * Fixed: Bug #9: GUI tracer handling string objects (Holger Kanwischer)
+  * ADDED: assume/1 (library(debug)) to call expand_goal/2 on arguments.
+
+  * FIXED: Bug #9: GUI tracer handling string objects (Holger Kanwischer)
 
   * FIXED: Bug #8: module-specifier while listing declarations.
     Tolga Konik.
