@@ -699,7 +699,7 @@ x_event_frame(Widget w, FrameObj fr, XEvent *event)
       if ( (sw=getKeyboardFocusFrame(fr2)) &&
 	   (ev=CtoEvent(sw, event)) )
       { addCodeReference(ev);
-	postEvent(ev, (Graphical) sw, DEFAULT);
+	postNamedEvent(ev, (Graphical) sw, DEFAULT, NAME_postEvent);
 	delCodeReference(ev);
 	freeableObj(ev);
       }
