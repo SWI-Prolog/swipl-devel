@@ -42,9 +42,13 @@
 
 /* overrides for regguts.h definitions, if any */
 #define	FUNCPTR(name, args)	(*name) _ANSI_ARGS_(args)
+#ifndef NOPCE
 #define	MALLOC(n)		pceMalloc(n)
 #define	FREE(p)			pceFree(VS(p))
 #define	REALLOC(p,n)		pceRealloc(VS(p),n)
+#else
+#undef assert
+#endif
 
 #include "regtypes.h"
 

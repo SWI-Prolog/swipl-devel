@@ -1,13 +1,13 @@
 # Makefile for Henry Spencer/Tcl regex library adjusted for use in XPCE
 
-CC=@CC@
-COFLAGS=@COFLAGS@
-CWFLAGS=@CWFLAGS@
-CIFLAGS=-I. -I$(srcdir) @CIFLAGS@
-CMFLAGS=@CMFLAGS@ @DEFS@
+CC=gcc
+COFLAGS=-Wall -O2 -g
+CWFLAGS=
+CIFLAGS=-I. -I../../linux -I.. -DHAVE_CONFIG_H -DNOPCE
+CMFLAGS=
 CFLAGS=$(CWFLAGS) $(COFLAGS) $(CIFLAGS) $(CMFLAGS)
-AR=@AR@
-RANLIB=@RANLIB@
+AR=ar
+RANLIB=ranlib
 RM=rm
 
 OBJS= 		regcompA.o regexecA.o regcompW.o regexecW.o regfree.o regerror.o
@@ -35,6 +35,9 @@ regcompW.o: regcomp.c regc_lex.c regc_color.c regc_nfa.c regc_cvec.c regc_locale
 
 regexecA.o: regexec.c rege_dfa.c
 regexecW.o: regexec.c rege_dfa.c
+
+test:		test.c
+		$(CC) -o $@ test.c libregex.a
 
 clean: 
 		$(RM) -f *~ $(OBJS)
