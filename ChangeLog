@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: wide-character support for '$apropos_match'/2.
+
   * FIXED: Serious error in saved states dealing with multifile predicates
     and modules.  Jocelyn Paine.
 

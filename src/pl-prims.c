@@ -2390,6 +2390,8 @@ pl_concat_atom(term_t list, term_t atom)
 word
 pl_apropos_match(term_t a1, term_t a2)
 { char *s1=NULL, *s2=NULL;
+  pl_wchar_t *w1=NULL, *w2=NULL;
+  unsigned int l1, l2;
 
   if ( PL_get_chars(a1, &s1, CVT_ALL|BUF_RING) &&
        PL_get_chars(a2, &s2, CVT_ALL) )
@@ -2405,8 +2407,25 @@ pl_apropos_match(term_t a1, term_t a2)
     }
     fail;
   }
+  if ( PL_get_wchars(a1, &l1, &w1, CVT_ALL|BUF_RING) &&
+       PL_get_wchars(a2, &l2, &w2, CVT_ALL) )
+  { pl_wchar_t *s, *q;
+    pl_wchar_t *eq = &w1[l1];
+    pl_wchar_t *es = &w2[l2];
+    unsigned int i2;
+
+    for (i2=0; i2<l2; i2++)
+    { for(q=w1, s=w2+i2; q<eq && s<es; q++, s++)
+      { if ( *q != *s && *q != towlower(*s) )
+	  break;
+      }
+      if ( q == eq )
+	succeed;
+    }
+    fail;
+  }
   
-  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_text, s1 ? a2 : a1);
+  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_text, (s1||w1) ? a2 : a1);
 }
 
 
