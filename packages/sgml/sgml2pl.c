@@ -1516,26 +1516,64 @@ pl_sgml_parse(term_t parser, term_t options)
     return sgml2pl_error(ERR_TYPE, "list", tail);
 
 					/* Parsing input from a stream */
+#define CHECKERROR \
+      if ( pd->errors > pd->max_errors && pd->max_errors >= 0 ) \
+	return sgml2pl_error(ERR_LIMIT, "max_errors", (long)pd->max_errors);
+
   if ( in )
-  { int chr;
+  { int p0, p1;
 
     if ( !recursive )
     { pd->source = in;
       begin_document_dtd_parser(p);
     }
-    while( (chr = Sgetc(in)) != EOF && content_length-- != 0 )
-    { putchar_dtd_parser(p, chr);
 
-      if ( pd->errors > pd->max_errors && pd->max_errors >= 0 )
-	return sgml2pl_error(ERR_LIMIT, "max_errors", (long)pd->max_errors);
+    if ( content_length-- == 0 || (p0 = Sgetc(in)) == EOF )
+      goto out;
+    if ( content_length-- == 0 || (p1 = Sgetc(in)) == EOF )
+    { putchar_dtd_parser(p, p0);
+      goto end;
+    }
+
+    for(;;)				/* perform newline handling */
+    { int p2;
+
+      if ( content_length-- == 0 || (p2 = Sgetc(in)) == EOF )
+      { putchar_dtd_parser(p, p0);
+	if ( p1 != LF )
+	  putchar_dtd_parser(p, p1);
+  
+	break;
+      } else if ( p2 == LF )
+      { if ( p1 != CR )
+	{ putchar_dtd_parser(p, p0);
+	  if ( pd->stopped )
+	  { p2 = CR;
+	    goto stopped;
+	  }
+	  p0 = p1;
+	  p1 = CR;
+	}
+      }
+  
+      putchar_dtd_parser(p, p0);
+      CHECKERROR;
       if ( pd->stopped )
-      { pd->stopped = FALSE;
+      { stopped:
+	pd->stopped = FALSE;
 	reset_document_dtd_parser(p);	/* ensure a clean start */
+	Sungetc(p2, in);
+	Sungetc(p1, in);
 	goto out;
       }
+      p0 = p1;
+      p1 = p2;
     }
+
+  end:
     if ( !recursive )
       end_document_dtd_parser(p);
+    CHECKERROR;
 
   out:
     reset_url_cache();

@@ -344,18 +344,28 @@ entity_file(dtd *dtd, dtd_entity *e)
 }
 
 
+/* Process long entities by reading the file.
+static long
+size_file(const char *path)
+{ struct stat buf;
+
+  if ( stat(path, &buf) == -1 )
+    return -1;
+
+  return buf.st_size;
+}
+*/
+
+
 static const ichar *
 entity_value(dtd_parser *p, dtd_entity *e, int *len)
 { const char *file;
 
-  if ( e->value )
-  { if ( len )
-      *len = e->length;  
-    return e->value;
+  if ( !e->value && (file=entity_file(p->dtd, e)) )
+  { int normalise = (e->content == EC_SGML || e->content == EC_CDATA);
+
+    e->value = load_sgml_file_to_charp(file, normalise, &e->length);
   }
-  
-  if ( (file=entity_file(p->dtd, e)) )
-    e->value = load_file_to_charp(file, &e->length);
 
   if ( len )
     *len = e->length;
@@ -2844,14 +2854,18 @@ get_attribute_value(dtd_parser *p, ichar const *decl, sgml_attribute *att)
   { if (att->definition->type == AT_CDATA)
     { int hasent = FALSE;
       ichar const ero = dtd->charfunc->func[CF_ERO];	/* & */
+      ichar *q;
 
-      for (d = tmp; *d; d++)
-      { if (HasClass(dtd, *d, CH_BLANK))
+      for (d = q = tmp; *d; *q++ = *d++)
+      { if ( d[0] == CR && d[1] == LF )
+	  d++;
+	if (HasClass(dtd, *d, CH_BLANK))
 	{ *d = ' ';		/* map all blanks to spaces */
 	} else if (*d == ero)
 	{ hasent = TRUE;	/* notice char/entity references */
 	}
       }
+      *q = '\0';
       if (hasent)
       { expand_entities(p, tmp, cdata, MAXSTRINGLEN);
 	buf = (ichar *) cdata;
@@ -4447,7 +4461,16 @@ reprocess:
       }
       empty_icharbuf(p->buffer);
       
-      if ( f[CF_ERC] != chr && chr != '\n'  )
+      if ( chr == CR )
+	p->state = S_ENTCR;
+      else if ( f[CF_ERC] != chr  )
+	goto reprocess;
+
+      break;
+    }
+    case S_ENTCR:			/* seen &entCR, eat the LF */
+    { p->state = p->cdata_state;
+      if ( chr != LF )
 	goto reprocess;
 
       break;

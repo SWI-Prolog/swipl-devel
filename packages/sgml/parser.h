@@ -91,6 +91,7 @@ typedef enum
   S_PENT,				/* Seen % */
   S_ENT0,				/* Seen & */
   S_ENT,				/* Seen &(#|\w) */
+  S_ENTCR,				/* Seen &entity<CR> */
   S_SHORTTAG_CDATA			/* Seen <tag/ */
 } dtdstate;
 

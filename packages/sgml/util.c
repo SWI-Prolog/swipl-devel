@@ -413,11 +413,21 @@ str_summary(char const *s, int len)
 		 *	      FILES		*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Load a file into memory. This would be so  easy if we didn't had to deal
+with &#RE/&#RS handling that forces us to create the proper record start
+and end.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif
+
 ichar *
-load_file_to_charp(const char *file, int *length)
+load_sgml_file_to_charp(const char *file, int normalise_rsre, int *length)
 { int fd;
 
-  if ( (fd = open(file, O_RDONLY)) >= 0 )
+  if ( (fd = open(file, O_RDONLY|O_BINARY)) >= 0 )
   { struct stat buf;
 
     if ( fstat(fd, &buf) == 0 )
@@ -440,11 +450,46 @@ load_file_to_charp(const char *file, int *length)
 	  s += n;
 	}
 
-	if ( length )
-	  *length = s-r;
-
+	len = s-r;
 	*s = '\0';			/* ensure closing EOS */
 	close(fd);
+
+	if ( normalise_rsre )
+	{ int nl;
+	  int last_is_lf;
+
+	  last_is_lf = (s > 0 && s[-1] == '\n');
+
+	  for(s=r, nl=0; *s; s++)
+	  { if ( *s == '\n' && s>r && s[-1] != '\r' )
+	      nl++;
+	  }
+
+	  if ( nl > 0 )
+	  { char *r2 = sgml_malloc(len+nl+1);
+	    char *t;
+
+	    for(s=r, t=r2; *s; s++)
+	    { if ( *s == '\n' )
+	      { if ( s>r && s[-1] != '\r' )
+		  *t++ = CR;
+		*t++ = LF;
+	      } else
+		*t++ = *s;
+	    }
+            len = t-r2;
+	    *t = '\0';
+	    sgml_free(r);
+	    r = r2;
+	  }
+
+	  if ( last_is_lf )
+	    r[--len] = '\0';		/* delete last LF */
+	}
+	
+	if ( length )
+	  *length = len;
+
 	return (ichar *)r;
       }
     }

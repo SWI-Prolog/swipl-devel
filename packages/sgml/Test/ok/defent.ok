@@ -1,1 +1,2 @@
-[element(def, [], ['AB C', sdata(?), 'B', sdata(?)])].
+[element(def, [], ['AB C@ D', sdata(?), 'B', sdata(?)])].
+[].

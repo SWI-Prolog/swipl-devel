@@ -47,7 +47,11 @@ test(File) :-
 	->  load_prolog_file(OkFile, TermOk, ErrorsOk),
 	    (	compare_dom(Term, TermOk)
 	    ->	format('ok')
-	    ;	format('WRONG')
+	    ;	format('WRONG'),
+	        format('~NOK:~n'),
+		pp(TermOk),
+		format('~NANSWER:~n'),
+		pp(Term)
 	    ),
 	    error_terms(Errors),
 	    (	compare_errors(Errors, ErrorsOk)
