@@ -1021,7 +1021,7 @@ mark_variable(M) :->
 unmark_variables(M) :->
 	"Remove all variable-mark fragments"::
 	(   get(M, has_var_marks, @on)
-	->  send(M, remove_syntax_framents, style := varmark),
+	->  send(M, remove_syntax_fragments, style := varmark),
 	    send(M, slot, has_var_marks, @off)
 	;   true
 	).
