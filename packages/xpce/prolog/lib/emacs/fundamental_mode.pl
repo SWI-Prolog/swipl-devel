@@ -159,7 +159,8 @@ auto_colourise_buffer(M) :->
 	(   Coloured \== Generation,
 	    get(TB, size, Size),
 	    get(M, auto_colourise_size_limit, Limit),
-	    Size < Limit
+	    Size < Limit,
+	    get(M, focus_function, @nil) 	% don't colour in special modes
 	->  (	send(M, colourise_buffer)
 	    ->	send(TB, coloured_generation, Generation)
 	    ;	true

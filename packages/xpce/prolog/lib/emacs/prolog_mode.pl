@@ -925,22 +925,29 @@ replace_singletons(M, P) :-
 '_replace_singletons'(M, Id:event_id) :->
 	get(M, attribute, singletons, Frags),
 	get(Frags, delete_head, Frag),
-	(   Id == 0'y
-	->  send(Frag, insert, 0, '_'),
-	    send(Frag, free)
-	;   Id == 0'_
-	->  send(Frag, string, '_'),
-	    send(Frag, free)
-	;   Id == 0'n
-	->  true
-	),
-	(   send(Frags, empty)
-	->  send(M, focus_function, @nil),
-	    send(M, selection, 0, 0),
-	    send(M, caret, M?mark),
-	    send(M, report, status, '')
-	;   prepare_replace_singletons(M)
+	(   (   Id == 0'y
+	    ->  send(Frag, insert, 0, '_'),
+	        send(Frag, free)
+	    ;   Id == 0'_
+	    ->  send(Frag, string, '_'),
+		send(Frag, free)
+	    ;   Id == 0'n
+	    ->  true
+	    )
+	->  (   send(Frags, empty)
+	    ->  send(M, caret, M?mark),
+		cancel_replace_singletons(M)
+	    ;   prepare_replace_singletons(M)
+	    )
+	;   cancel_replace_singletons(M),
+	    Id == 27			% ESC: succeed
 	).
+
+cancel_replace_singletons(M) :-
+	send(M, focus_function, @nil),
+	send(M, selection, 0, 0),
+	send(M, delete_attribute, singletons),
+	send(M, report, status, '').
 
 prepare_replace_singletons(M) :-
 	get(M, attribute, singletons, Frags),

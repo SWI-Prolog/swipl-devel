@@ -4,6 +4,11 @@
 VERSION 6.0.6, distributed with SWI-Prolog 5.0.6
 ================================================
 
+* FIXED: PceEmacs prolog mode trapping an error when pausing during
+  singleton-replace mode (error became severe after fixing timer :-).
+
+* FIXED: real_range type handling of unbound (e.g. "1.0..").
+
 * FIXED: X11 version: timers sometimes stopped spontaneously.
 
 * ENHANCED: library(find_file).  New and more flexible file-browser.

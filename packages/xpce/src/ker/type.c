@@ -641,7 +641,8 @@ realRangeType(const Type t, const Any val, const Any ctx)
   { Tuple tp = t->context;
     Real low = tp->first, high = tp->second, r = val;
 
-    if ( valReal(r) >= valReal(low) && valReal(r) <= valReal(high) )
+    if ( (isNil(low)  || valReal(r) >= valReal(low)) &&
+	 (isNil(high) || valReal(r) <= valReal(high)) )
       succeed;
   }
   
@@ -1289,29 +1290,31 @@ int_range_type(TmpString str)
 
 static Type
 real_range_type(TmpString str)
-{ char *e, *e2;
+{ char *e0, *e, *e2;
   double low, high;
   Type type;
+  Real l = NIL, h = NIL;
 
-  low = StrTod(str->start, &e);
-  if ( e > str->start )
-  { while( *e == ' ' )
-      e++;
-    if ( e[0] != '.' || e[1] != '.' )
-      fail;
-    e += 2;
-    high = StrTod(e, &e2);
-    if ( e2 != str->end+1 )
-      fail;
-    type = newObject(ClassType, CtoName(str->start), NAME_realRange, EAV);
+  low = StrTod(str->start, &e0);
+  for( e=e0; *e == ' '; e++ )
+    ;
+  if ( e[0] != '.' || e[1] != '.' )
+    fail;
+  e += 2;
+  high = StrTod(e, &e2);
+  if ( e2 != str->end+1 )
+    fail;
+  if ( e2 == e && e0 == str->start )
+    fail;				/* no high nor low */
 
-    assign(type, context, newObject(ClassTuple,
-				    CtoReal(low), CtoReal(high), EAV));
-
-    return type;
-  }
-
-  fail;
+  type = newObject(ClassType, CtoName(str->start), NAME_realRange, EAV);
+  if ( e2 > e )
+    h = CtoReal(high);
+  if ( e0 > str->start )
+    l = CtoReal(low);
+  assign(type, context, newObject(ClassTuple, l, h, EAV));
+  
+  return type;
 }
 
 
