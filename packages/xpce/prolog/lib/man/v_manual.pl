@@ -201,20 +201,30 @@ fill_dialog(M, D) :->
 	/* FILE menu */
 
 	send_list(F, append,
-	     [ menu_item(about,
-			 message(M, about))
-	     , menu_item(help,
-			 message(M, help))
-	     , menu_item(demo_programs,
-			 message(M, start_demo),
-			 @default, @on)
-	     , menu_item('ChangeLog',
-			 message(M, changelog))
-	     , menu_item('FAQ',
-			 message(M, faq),
-			 @default, @on)
+		  [ menu_item(about,
+			      message(M, about)),
+		    menu_item(help,
+			      message(M, help)),
+		    menu_item(demo_programs,
+			      message(M, start_demo),
+			      @default, @on),
+		    menu_item('ChangeLog',
+			      message(M, changelog)),
+		    menu_item('FAQ',
+			      message(M, faq),
+			      @default, @on),
+		    new(Prefs, popup(edit_preferences))
 	     ]),
-
+	send(Prefs, end_group, @on),
+	send_list(Prefs, append,
+		  [ menu_item('XPCE User Defaults',
+			      message(M, edit_preferences, xpce_user)),
+		    menu_item('XPCE System Defaults',
+			      message(M, edit_preferences, xpce),
+			      end_group := @on),
+		    menu_item('Prolog Defaults',
+			      message(M, edit_preferences, prolog))
+		  ]),
 	(    get(M, maintainer, @on)
 	->   send_list(F, append,
 		       [ menu_item(edit_mode,
@@ -231,11 +241,11 @@ fill_dialog(M, D) :->
 	;    true
 	),
 	send_list(F, append,
-	     [ menu_item(quit,
-			 message(M, quit))
-	     , menu_item(quit_pce,
-			 message(M, quit_pce))
-	     ]),
+		  [ menu_item(quit,
+			      message(M, quit)),
+		    menu_item(quit_pce,
+			      message(M, quit_pce))
+		  ]),
 
 
 	/* BROWSERS menu */
@@ -431,6 +441,48 @@ save_if_modified(M, Ask:[bool]) :->
 	    )
 	;   true
 	).
+
+		 /*******************************
+		 *	    PREFERENCES		*
+		 *******************************/
+
+edit_preferences(_, What:name) :->
+	"Edit preferences file"::
+	locate_preferences(What, File),
+	auto_call(start_emacs),
+	(   \+ access_file(File, exist)
+	->  send(@display, confirm,
+		 'Preferences file %s doesn''t exist.\nCreate it?')
+	;   access_file(File, write)
+	->  true
+	;   send(@display, inform,
+		 'You cannot modify the preferences file %s')
+	),
+	send(@emacs, goto_source_location, File).
+
+locate_preferences(xpce, File) :-
+	get(@pce, home, Home),
+	get(string('%s/Defaults', Home), value, File).
+locate_preferences(xpce_user, File) :-
+	ensure_xpce_config_dir(Dir),
+	get(string('%s/Defaults', Dir), value, File).
+locate_preferences(prolog, File) :-
+	'$option'(init_file, Base, Base), % should be in current_prolog_flag!
+	member(Access, [read, write]),
+	absolute_file_name(user_profile(Base),
+			   [ access(Access),
+			     file_errors(fail)
+			   ], File), !.
+	
+
+ensure_xpce_config_dir(Dir) :-
+	catch(expand_file_name('~/.xpce', [Dir]), _, fail),
+	new(D, directory(Dir)),
+	(   send(D, exists)
+	->  true
+	;   send(D, make)
+	).
+
 
 		/********************************
 		*           MANUAL DATA		*
