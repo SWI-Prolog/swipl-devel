@@ -46,7 +46,7 @@ This module combines libpl.dll and plterm.dll  with some glue to produce
 the final executable plwin.exe.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static rlc_console	current_console();
+__declspec(dllexport) rlc_console	PL_current_console();
 static int		type_error(term_t actual, const char *expected);
 static int		domain_error(term_t actual, const char *expected);
 static HWND		create_prolog_hidden_window(rlc_console c);
@@ -322,7 +322,7 @@ pl_rl_add_history(term_t text)
       last = a;
       PL_register_atom(last);
 
-      rlc_add_history(current_console(), PL_atom_chars(a));
+      rlc_add_history(PL_current_console(), PL_atom_chars(a));
     }
 
     return TRUE;
@@ -412,8 +412,8 @@ do_complete(RlcCompleteData data)
 		 *	   CONSOLE STUFF	*
 		 *******************************/
 
-static rlc_console
-current_console()
+rlc_console
+PL_current_console()
 { if ( Suser_input->functions->read == Srlc_read )
     return Suser_input->handle;
 
@@ -429,7 +429,7 @@ pl_window_title(term_t old, term_t new)
   if ( !PL_get_atom_chars(new, &n) )
     return type_error(new, "atom");
 
-  rlc_title(current_console(), n, buf, sizeof(buf));
+  rlc_title(PL_current_console(), n, buf, sizeof(buf));
 
   return PL_unify_atom_chars(old, buf);
 }
@@ -560,7 +560,7 @@ pl_window_pos(term_t options)
   if ( !PL_get_nil(tail) )
    return type_error(tail, "list");
 
-  rlc_window_pos(current_console(), z, x, y, w, h, flags);
+  rlc_window_pos(PL_current_console(), z, x, y, w, h, flags);
 
   return TRUE;
 }
@@ -594,7 +594,7 @@ pl_win_insert_menu_item(foreign_t menu, foreign_t label, foreign_t before)
   if ( strcmp(l, "--") == 0 )
     l = NULL;				/* insert a separator */
     
-  return rlc_insert_menu_item(current_console(), m, l, b);
+  return rlc_insert_menu_item(PL_current_console(), m, l, b);
 }
 
 
@@ -609,7 +609,7 @@ pl_win_insert_menu(foreign_t label, foreign_t before)
   if ( strcmp(b, "-") == 0 )
     b = NULL;
     
-  return rlc_insert_menu(current_console(), l, b);
+  return rlc_insert_menu(PL_current_console(), l, b);
 }
 
 		 /*******************************

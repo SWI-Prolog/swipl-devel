@@ -303,6 +303,42 @@ pl_tty_size(term_t r, term_t c)
 
 #else /* ~TGETENT */
 
+#ifdef __WIN32__
+
+static void *
+getModuleFunction(const char *module, const char *name)
+{ HMODULE hconsole;
+
+  if ( (hconsole=GetModuleHandle(module)) )
+  { return GetProcAddress(hconsole, name);
+  }
+
+  return NULL;
+}
+
+word
+pl_tty_size(term_t r, term_t c)
+{ int (*ScreenCols)(void *h) = getModuleFunction("plterm", "ScreenCols");
+  int (*ScreenRows)(void *h) = getModuleFunction("plterm", "ScreenRows");
+
+  if ( ScreenCols && ScreenRows )
+  { void *(*get_console)(void) = getModuleFunction(NULL, "PL_current_console");
+    void *con = (get_console ? (*get_console)() : NULL);
+    int rows = (*ScreenRows)(con);
+    int cols = (*ScreenCols)(con);
+
+    if ( PL_unify_integer(r, rows) &&
+	 PL_unify_integer(c, cols) )
+      succeed;
+  }
+
+  return notImplemented("tty_size", 2);
+}
+
+#define HAVE_PL_TTY_SIZE 1
+
+#endif /*__WIN32__*/
+
 void resetTerm()
 {
 }
@@ -327,9 +363,11 @@ pl_set_tty(term_t old, term_t new)
 { return notImplemented("set_tty", 2);
 }
 
+#ifndef HAVE_PL_TTY_SIZE
 word
 pl_tty_size(term_t r, term_t c)
 { return notImplemented("tty_size", 2);
 }
+#endif
 
 #endif /* TGETENT */

@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: PLWIN.EXE: make tty_size/2 return the window size in rows and
+    columns.
+
   * FIXED: Bug#30: calling halt/0 and friends from `sub-threads' now causes
     a permission error.  This isn't perfect, but better than an uncontrolled
     crash.  Joachim Katzer.
