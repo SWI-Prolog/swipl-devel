@@ -1,3 +1,8 @@
+07/12/2001
+
+ * FIXED: memory_file_to_atom/2 and friends to return size 0, empty atom
+   when the file contains no data.
+
 10/06/2001
  
  * ADDED: library(mime) for MIME message parsing.

@@ -172,7 +172,8 @@ size_memory_file(term_t handle, term_t size)
       return alreadyOpen(handle, "size");
     if ( m->data )
     { return PL_unify_integer(size, m->size);
-    }
+    } else
+      return PL_unify_integer(size, 0);
   }
 
   return FALSE;
@@ -213,7 +214,8 @@ memory_file_to_atom(term_t handle, term_t atom)
       return alreadyOpen(handle, "to_atom");
     if ( m->data )
     { return PL_unify_atom_nchars(atom, m->size, m->data);
-    }
+    } else
+      return PL_unify_atom_nchars(atom, 0, "");
   }
 
   return FALSE;
@@ -229,7 +231,8 @@ memory_file_to_codes(term_t handle, term_t codes)
       return alreadyOpen(handle, "to_codes");
     if ( m->data )
     { return PL_unify_list_ncodes(codes, m->size, m->data);
-    }
+    } else
+      return PL_unify_list_ncodes(codes, 0, "");
   }
 
   return FALSE;
