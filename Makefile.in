@@ -5,18 +5,61 @@
 ################################################################
 
 BUILDARCH=@BUILDARCH@
+MTBUILDARCH=@MTBUILDARCH@
 
-all:
+all:		@TARGET@
+
+install:	install-@TARGET@
+
+################################################################
+# Build just the single-threaded Prolog engine
+################################################################
+
+lite::
+	@cd $(BUILDARCH) && $(MAKE) all
+
+install-lite::
+	@cd $(BUILDARCH) && $(MAKE) install
+
+rpm-install::
 	@cd $(BUILDARCH) && $(MAKE) $@
 
-install:
+clean::
 	@cd $(BUILDARCH) && $(MAKE) $@
+	@if [ -f packages/Makefile ]; then \
+	   cd packages && make clean; \
+	fi
+	@if [ -f $(MTBUILDARCH)/Makefile ]; then \
+	   cd $(MTBUILDARCH) && make clean; \
+	fi
 
-rpm-install:
+distclean::
+	rm -f .pkg-config
 	@cd $(BUILDARCH) && $(MAKE) $@
+	@if [ -f packages/Makefile ]; then \
+	   cd packages && make distclean; \
+	fi
+	@if [ -f $(MTBUILDARCH)/Makefile ]; then \
+	   cd $(MTBUILDARCH) && make distclean; \
+	fi
 
-clean:
-	@cd $(BUILDARCH) && $(MAKE) $@
+################################################################
+# Build the whole default set of tools
+################################################################
 
-distclean:
-	@cd $(BUILDARCH) && $(MAKE) $@
+world:	lite mt .pkg-config packages
+
+.pkg-config:
+	cd packages && ./configure --enable-mt
+	touch $@
+
+packages::
+	cd packages && make
+
+mt::
+	cd $(MTBUILDARCH) && make
+
+install-world::
+	cd $(BUILDARCH) && make install
+	cd $(MTBUILDARCH) && make install-mt
+	cd packages && make install

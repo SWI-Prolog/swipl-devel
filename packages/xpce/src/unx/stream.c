@@ -425,7 +425,7 @@ getReadLineStream(Stream s, Real timeout)
     use_timeout = TRUE;
   } else
   { use_timeout = FALSE;
-    epoch = tmo = left = 0L;		/* keep compiler happy */
+    epoch = tmo = 0L;		/* keep compiler happy */
   }
 
   while(s->rdfd >= 0)
@@ -457,7 +457,8 @@ getReadLineStream(Stream s, Real timeout)
       if ( now - epoch > tmo )
 	answer((StringObj)NIL);
       left = tmo - (now - epoch);
-    }
+    } else
+      left = 0;				/* keep compiler happy */
 
     if ( !ws_dispatch(DEFAULT, use_timeout ? toInt(left) : NIL) )
       return (StringObj) NIL;

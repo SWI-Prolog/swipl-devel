@@ -1,6 +1,10 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * INSTALL: Added some code to configure and Makefile.in in the top-directory
+    to allow for ./configure --with-world && make && make install to build
+    the complete suite on a well-supported platform.
+
   * INSTALL: Fixed detection of profiling support on really fast machines
     (Sergey Tikhonov).
 

@@ -12,12 +12,39 @@
 #	% make
 #	% make install
 
+TARGET=lite
+configoptions=""
+
+while [ "$1" != "" ]; do
+  case "$1" in
+    --with-world)	TARGET=world
+			shift
+			;;
+    *)			configoptions="$configoptions $1"
+			shift
+			;;
+  esac
+done
+
 if [ -z "$BUILDARCH" ]; then
   BUILDARCH=src;
+  MTBUILDARCH=mt
 else
-  if [ ! -d "$BUILDARCH" ]; then mkdir "$BUILDARCH"; fi
+  MTBUILDARCH=${BUILDARCH}-mt
 fi
 
-sed "s/@BUILDARCH@/$BUILDARCH/" Makefile.in > Makefile
+if [ ! -d "$BUILDARCH" ]; then mkdir "$BUILDARCH"; fi
 
-cd $BUILDARCH && ../src/configure "$@"
+sed -e "s/@BUILDARCH@/$BUILDARCH/" \
+    -e "s/@MTBUILDARCH@/$MTBUILDARCH/" \
+    -e "s/@TARGET@/$TARGET/" \
+	Makefile.in > Makefile
+
+(cd $BUILDARCH && ../src/configure $configoptions)
+
+case $TARGET in
+  world)
+        if [ ! -d "$MTBUILDARCH" ]; then mkdir "$MTBUILDARCH"; fi
+	cd $MTBUILDARCH && ../src/configure --enable-mt $configoptions
+	;;
+esac
