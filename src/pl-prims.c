@@ -529,6 +529,7 @@ pl_arg(register Word n, register Word term, register Word arg, word b)
 word
 pl_setarg(Word n, Word term, Word value)
 { int argn;
+  Word a;
 
   if ( !isTerm(*term) || !isInteger(*n) )
     return warning("$setarg/3: instantiation fault");
@@ -537,8 +538,22 @@ pl_setarg(Word n, Word term, Word value)
   if ( argn < 1 || argn > functorTerm(*term)->arity )
     fail;
 
-  setVar(*argTermP(*term, argn-1));
-  return pl_unify(argTermP(*term, argn-1), value);
+  a = argTermP(*term, argn-1);
+
+					/* this is unify(), but the */
+					/* assignment must *not* be trailed */
+  if ( isVar(*value) )
+  { if ( value < a )
+    { *a = makeRef(value);
+    } else if ( a < value )
+    { setVar(*a);
+      *value = makeRef(a);
+    } else
+      setVar(*a);
+  } else
+    *a = *value;
+
+  succeed;
 }
 
 
