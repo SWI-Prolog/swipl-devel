@@ -238,8 +238,8 @@ prolog_message(unhandled_exception(E)) -->
 	[ 'Unhandled exception: ~p~n'-[E] ].
 prolog_message(no_predicates_for(Spec)) -->
 	[ 'No predicates for `~w'''-[Spec] ].
-prolog_message(goal_failed(Context, Goal)) -->
-	[ 'Goal (~w) failed: ~p'-[Context, Goal] ].
+prolog_message(goal_failed(Goal, Context)) -->
+	[ 'Goal (~w) failed: ~p'-[Goal, Context] ].
 prolog_message(no_current_module(Module)) -->
 	[ '~w is not a current module (created)'-[Module] ].
 prolog_message(commandline_arg_type(Flag, Arg)) -->
