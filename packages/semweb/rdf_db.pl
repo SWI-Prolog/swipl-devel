@@ -57,7 +57,7 @@
 :- use_module(library(rdf)).
 
 :- initialization
-   load_foreign_library(rdf_db).
+   load_foreign_library(foreign(rdf_db)).
 
 :- multifile
 	ns/2.
