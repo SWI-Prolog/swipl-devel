@@ -140,7 +140,7 @@ allAlpha(register char *s)
 }
 
 
-char *
+static char *
 extendAtom(char *prefix, bool *unique)
 { Atom a = atomTable[0];
   bool first = TRUE;

@@ -358,7 +358,7 @@ traceAction(char *cmd, int port, LocalFrame frame, bool interactive)
     case '\04':
     case EOF:	FeedBack("EOF: ");
     case 'e':	FeedBack("exit\n");
-		pl_halt();
+		Halt(0);
     case 'f':	FeedBack("fail\n");
 		return ACTION_FAIL;
     case 'i':	if (port & (CALL_PORT|REDO_PORT|FAIL_PORT))
@@ -745,7 +745,7 @@ again:
     case 04:
     case EOF:	Putf("EOF: ");
     case 'e':	Putf("exit\n");
-		pl_halt();
+		Halt(0);
 		break;
     case 'g':	Putf("goals\n");
 		backTrace(environment_frame, 5);

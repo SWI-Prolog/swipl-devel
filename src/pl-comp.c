@@ -405,7 +405,7 @@ calculation at runtime.
 #define PC(ci)		entriesBuffer(&(ci)->codes, code)
 #define OpCode(ci, pc)	(baseBuffer(&(ci)->codes, code)[pc])
 
-struct vartable
+static struct vartable
 { int	entry[MAXVARIABLES/BITSPERINT];
 } empty_var_table;
 

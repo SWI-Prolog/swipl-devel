@@ -1724,7 +1724,7 @@ way to reach at dynamic stacks.
 	}
 
 
-LocalFrame
+static LocalFrame
 updateStacks(frame, PC, lb, gb, tb)
 LocalFrame frame;
 Code PC;

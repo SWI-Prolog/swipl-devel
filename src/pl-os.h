@@ -18,7 +18,7 @@
 # endif
 #endif
 
-#if tos
+#ifndef HAVE_GETTIMEOFDAY
 struct timeval
 { long tv_sec;
   long tv_usec;
@@ -82,12 +82,7 @@ extern long Random(void);
 #define STREAM_OPEN_BIN_WRITE "wb"
 #endif
 
-#if unix
-#define PIPE 1
-#define Popen(path, m)	popen(OsPath(path), m)
-#define Pclose(fd)	pclose(fd)
-#endif
-#if OS2 && EMX
+#ifdef HAVE_POPEN
 #define PIPE 1
 #define Popen(path, m)	popen(OsPath(path), m)
 #define Pclose(fd)	pclose(fd)

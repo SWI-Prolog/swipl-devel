@@ -21,7 +21,6 @@ word		globalString(char *s);
 word		heapString(char *s);
 Word		newTerm(void);
 double		unpack_real(Word p);
-void		setReal(word w, real f);
 word		globalReal(real f);
 word		heapReal(real f);
 void		freeHeapReal(word w);
@@ -48,7 +47,6 @@ Atom		lookupAtom(char *s);
 word		pl_atom_hashstat(Word i, Word n);
 void		initAtoms(void);
 word		pl_current_atom(Word a, word h);
-char *		extendAtom(char *prefix, bool *unique);
 word		pl_complete_atom(Word prefix, Word common, Word unique);
 word		pl_atom_completions(Word prefix, Word alts);
 char *		atom_generator(char *prefix, int state);
@@ -76,7 +74,6 @@ word		evaluate(Word p);
 /* pl-bag.c */
 word		pl_record_bag(Word key, Word value);
 int 		checkBags(void);
-word		globalTerm(FunctorDef fdef, ...);
 word		pl_collect_bag(Word bindings, Word bag);
 
 /* pl-comp.c */
@@ -197,6 +194,7 @@ word		pl_absolute_file_name(Word name, Word expanded);
 word		pl_chdir(Word dir);
 word		pl_file_base_name(Word f, Word b);
 word		pl_file_dir_name(Word f, Word b);
+word		pl_prolog_to_os_filename(Word pl, Word os);
 
 /* pl-flag.c */
 void		initFlags(void);
@@ -211,10 +209,7 @@ bool		format(char *fm, ...);
 
 /* pl-funct.c */
 FunctorDef	lookupFunctorDef(Atom atom, int arity);
-int		atomIsFunctor(Atom atom);
 FunctorDef	isCurrentFunctor(Atom atom, int arity);
-bool		atomIsProcedureModule(Atom atom, Module m);
-bool		atomIsProcedure(Atom atom);
 void		initFunctors(void);
 int 		checkFunctors(void);
 word		pl_current_functor(Word name, Word arity, word h);
@@ -233,7 +228,6 @@ void		unlockp(Void ptr);
 void		unlockMark(mark *m);
 word		checkStacks(LocalFrame frame);
 Word		findGRef(int n);
-LocalFrame	updateStacks(LocalFrame frame, Code PC, Void lb, Void gb, Void tb);
 void		growStacks(LocalFrame fr, Code PC, int l, int g, int t);
 
 /* pl-glob.c */
@@ -266,11 +260,9 @@ word		pl_load_shared_object(Word file, Word entry);
 
 /* pl-modul.c */
 Module		lookupModule(Atom name);
-Module		isCurrentModule(Atom name);
 void		initModules(void);
 Word		stripModule(Word term, Module *module);
 bool		isPublicModule(Module module, Procedure proc);
-bool		isSuperModule(Module m, Module s);
 word		pl_default_module(Word me, Word old, Word new);
 word		pl_current_module(Word module, Word file, word h);
 word		pl_strip_module(Word spec, Word module, Word term);
@@ -289,7 +281,6 @@ word		pl_current_op(Word prec, Word type, Word name, word h);
 bool		isPrefixOperator(Atom atom, int *type, int *priority);
 bool		isPostfixOperator(Atom atom, int *type, int *priority);
 bool		isInfixOperator(Atom atom, int *type, int *priority);
-bool		operator(Atom name, int type, int priority);
 word		pl_op1(Word priority, Word type, Word name);
 bool		newOp(char *name, int type, int pri);
 void		initOperators(void);
@@ -390,7 +381,7 @@ word		pl_write_on_list(Word goal, Word string);
 word		pl_term_to_atom(Word term, Word atom, Word bindings);
 word		pl_repeat(word h);
 word		pl_fail(void);
-word		pl_halt(void);
+word		pl_halt(Word code);
 word		pl_statistics(Word k, Word value);
 void		setFeature(Atom name, Atom value);
 Atom		getFeature(Atom name);
@@ -585,4 +576,11 @@ bool		warning(char *fm, ...);
 bool		vsysError(char *fm, va_list args);
 bool		vfatalError(char *fm, va_list args);
 bool		vwarning(char *fm, va_list args);
+
+/* pl-dde.c */
+
+word		pl_open_dde_conversation(Word service, Word topic, Word hdl);
+word		pl_close_dde_conversation(Word handle);
+word		pl_dde_request(Word handle, Word item, Word value);
+
 

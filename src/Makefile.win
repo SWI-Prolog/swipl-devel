@@ -1,4 +1,4 @@
-# SWI-Prolog 1.8.12 Makefile for MS-DOS
+# SWI-Prolog 1.9.4 Makefile for MS-Windows
 # Compiler: WATCOM C/C++-32 version 9.50
 
 .NOCHECK
@@ -11,6 +11,8 @@ bindir = $(exec_prefix)\bin
 libdir = $(exec_prefix)\lib
 mandir = $(prefix)\man\man1
 manext = 1
+PLVERSION=1.9.4
+DEFSTARTUP=_plrc
 
 CC = wcc386
 LD = wlink system win386
@@ -21,11 +23,12 @@ INSTALL = copy
 INSTALL_PROGRAM = copy
 INSTALL_DATA = copy
 
-DEFS = /dMD="md-mswin.h"
+DEFS = /dMD="config/windows.h"
 LIBS = 
 
-CFLAGS = /bt=windows /oelirt -I..\..\
-#CFLAGS = /bt=windows /d2 -I..\..\
+CFLAGS = /bt=windows /oelirt /fpc -I..\..\
+#CFLAGS = /bt=windows /d2 /fpc -I..\..\
+#CFLAGS = /bt=windows /d1 /fpc -I..\..\
 LDFLAGS = 
 
 OBJ1=	pl-wam.obj pl-save.obj &
@@ -35,7 +38,7 @@ OBJ1=	pl-wam.obj pl-save.obj &
 	pl-load.obj pl-modul.obj pl-op.obj pl-os.obj pl-prims.obj &
 	pl-pro.obj pl-proc.obj pl-prof.obj pl-read.obj pl-rec.obj &
 	pl-setup.obj pl-sys.obj pl-table.obj pl-trace.obj pl-util.obj &
-	pl-wic.obj pl-write.obj pl-term.obj pl-buffer.obj
+	pl-wic.obj pl-write.obj pl-term.obj pl-buffer.obj pl-dde.obj
 OBJ2=	pl-main.obj
 EXT=	pl-extend.obj
 
@@ -51,11 +54,24 @@ all:		pl.exe
 
 pl.exe:		$(OBJS) ..\..\readline\readline.lib
 		$(LD) NAME pl @pl.lnk
-		wbind pl -n -q
+		wbind pl -q
 
-m-model:	m-model.exe
-		@%null
+pl-main.obj:	pl-main.c parms.h
+pl-setup.obj:	pl-setup.c parms.h
 
-m-model.exe:	m-model.obj
-		$LD NAME m-model @m-model.lnk
-		wbind m-model -n -q
+parms.h:	makefile
+		@echo $#define PLHOME       "$(srcdir)"         > $@
+		@echo $#define DEFSTARTUP   "$(DEFSTARTUP)"    >> $@
+		@echo $#define PLVERSION    "$(PLVERSION)"     >> $@
+		@echo $#define ARCH	    "windows"          >> $@
+		@echo $#define C_LIBS	    "-lreadline -lxos" >> $@
+		@echo $#define C_STATICLIBS ""                 >> $@
+		@echo $#define C_CC	    "$(CC)"            >> $@
+		@echo $#define C_LDFLAGS    ""                 >> $@
+
+
+clean:
+		del *.obj
+	        del *.??~
+                del *.?~
+	        del *.~

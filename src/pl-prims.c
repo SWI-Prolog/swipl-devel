@@ -1311,8 +1311,15 @@ pl_fail(void)		/* just to define it */
 }
 
 word
-pl_halt(void)
-{ Halt(0);
+pl_halt(Word code)
+{ int status;
+
+  if ( isInteger(*code) )
+    status = valNum(*code);
+  else
+    status = 1;
+
+  Halt(status);
   /*NOTREACHED*/
   fail;
 }

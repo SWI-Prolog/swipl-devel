@@ -3499,6 +3499,15 @@ expand_file_name(+WildChart, -List)
     either `.pl' or the empty string.
 
 
+prolog_to_os_filename(?PrologPath, ?OsPath)
+    Converts between the internal Prolog pathname conventions and the
+    operating-system pathname conventions.  The internal conventions are
+    Unix and this predicates is equivalent to =/2 (unify) on Unix
+    systems.  On DOS systems it will change the directory-separator,
+    limit the filename length map dots, except for the last one, onto
+    underscores.
+
+
 chdir(+Path)
     Change working directory to Path.
 
@@ -3869,7 +3878,37 @@ stack_parameter(+Stack, +Key, -Old, +New)
     definition is subject to change.
 
 
-3.40 Miscellaneous
+3.40 Windows DDE client interface
+
+The predicates in this section deal with MS-Windows `Dynamic Data
+Exchange' or DDE protocol.
+
+
+open_dde_conversation(+Service, +Topic, -Handle)
+    Open a conversation with a server supporting the given service name
+    and topic (atoms).  If successful, Handle may be used to send
+    transactions to the server.  If no willing server is found this
+    predicate fails silently.
+
+
+close_dde_conversation(+Handle)
+    Close the conversation associated with Handle.  All opened
+    conversations should be closed when they're no longer needed,
+    although the system will close any that remain open on process
+    termination.
+
+
+dde_request(+Handle, +Item, -Value)
+    Request a value from the server.  Item is an atom that identifies the
+    requested data, and Value will be an atom (CF_TEXT data in DDE
+    parlance) representing that data, if the request is successful.  If
+    unsuccessful, Value will be unified with a term of form
+    error(reason), identifying the problem.
+
+    BUG: It could be argued that the atoms above should be strings.
+
+
+3.41 Miscellaneous
 
 
 dwim_match(+Atom1, +Atom2)
@@ -3940,7 +3979,7 @@ Chapter  4
 
 Using  Modules
 
-                                407
+                                412
 
 
 4.1 Why Using Modules?
@@ -4449,7 +4488,7 @@ trade-off the user is responsible for type checking and should be careful
 not to violate consistency rules as Prolog provides access to its internal
 data structures.
 
-                                430
+                                435
 
 
 5.1 Overview of the Interface
@@ -5476,7 +5515,7 @@ debugging tools for Prolog.  The predicates described here should be
 handled with some care as it is easy to corrupt the consistency of the
 Prolog system by misusing them.
 
-                                518
+                                523
 
 
 6.1 Examining the Environment Stack
@@ -5691,6 +5730,7 @@ checklist/2                 Invoke goal on all members of a list
 clause/2                    Get clauses of a predicate
 clause/3                    Get clauses of a predicate
 close/1                     Close stream
+close_dde_conversation/1      Close Windows DDE channel
 close_shared_object/1        Close shared library (.so file)
 compiling/0                 Is this a compilation run?
 concat/3                    Append two atoms
@@ -5711,6 +5751,7 @@ current_op/3                Examine current operator declaractions
 current_output/1             Get the current output stream
 current_predicate/2          Examine existing predicates
 current_stream/3             Examine open streams
+dde_request/3                Make an MS-Windows DDE request
 debug/0                     Test for debugging mode
 debugging/0                 Show debugger status
 delete/3                    Delete all matching members from a list
@@ -5835,6 +5876,7 @@ numbervars/4                Enumerate unbound variables of a term
 once/1                      Call a goal deterministicaly
 op/3                        Declare an operator
 open/3                      Open a file (creating a stream)
+open_dde_conversation/3       Open Windows DDE channel
 open_null_stream/1           Open a stream to discard output
 open_shared_object/2         Open shared library (.so file)
 phrase/2                    Activate grammar-rule set
@@ -5856,6 +5898,7 @@ prolog/0                    Run interactive toplevel
 prolog_current_frame/1       Reference to goal's environment stack
 prolog_frame_attribute/3      Obtain information on a goal environment
 prolog_skip_level/2          Indicate deepest recursion to trace
+prolog_to_os_filename/2       Convert between Prolog and OS filenames
 prolog_trace_interception/3   Intercept the Prolog tracer
 prompt/2                    Change the prompt used by read/1
 proper_list/1                Type check for list
@@ -5968,4 +6011,4 @@ writeq/2                    Write term, insert quotes on stream
 xor/2                       Arithmetic:  exclusive or
 |/2                         Disjunction of goals
 
-                                527
+                                532

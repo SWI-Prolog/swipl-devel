@@ -102,20 +102,22 @@ $edit(File) :-
 	).
 
 edit_command(Editor, File, _Line, $nopredicate, Command) :- !,
+	prolog_to_os_filename(File, OsFile),
 	$file_base_name(Editor, Base),
 	(   edit_command(Base, nosearch, Cmd)
 	->  name(Cmd, S0),
 	    substitute("%e", Editor, S0, S1),
-	    substitute("%f", File, S1, S),
+	    substitute("%f", OsFile, S1, S),
 	    name(Command, S)
 	;   $warning('Don''t know how to use editor `~w''', [Editor])
 	).
 edit_command(Editor, File, Line, Pred, Command) :-
+	prolog_to_os_filename(File, OsFile),
 	$file_base_name(Editor, Base),
 	(   edit_command(Base, search, Cmd)
 	->  name(Cmd, S0),
 	    substitute("%e", Editor, S0, S1),
-	    substitute("%f", File, S1, S2),
+	    substitute("%f", OsFile, S1, S2),
 	    substitute("%s", Pred, S2, S3),
 	    substitute("%d", Line, S3, S),
 	    name(Command, S)
@@ -141,10 +143,11 @@ not sensitive to changes.  Smart editors  may pass both informations and
 search nearby the given line number.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-edit_command(top,   search,   '%e ''%f'' ''-^%s''').
-edit_command(vi,    search,   '%e ''+/^%s'' ''%f''').
-edit_command(emacs, search,   '%e +%d ''%f''').
-edit_command(_,     nosearch, '%e ''%f''').
+edit_command(top,     search,   '%e ''%f'' ''-^%s''').
+edit_command(vi,      search,   '%e ''+/^%s'' ''%f''').
+edit_command(emacs,   search,   '%e +%d ''%f''').
+edit_command(notepad, nosearch, '%e %f').
+edit_command(_,       nosearch, '%e ''%f''').
 
 substitute(From, ToAtom, Old, New) :-
 	name(ToAtom, To),

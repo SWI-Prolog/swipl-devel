@@ -151,6 +151,9 @@ initFeatures()
 #ifdef HAVE_POPEN
   CSetFeature("pipe",		"true");
 #endif
+#ifdef O_DDE
+  CSetFeature("dde",		"true");
+#endif
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -59,7 +59,9 @@ char *argv[];
   printf("\tC-Stack grows %sward\n", stack_up ? "Up" : "Down");
 #endif	 
 
-  if      ( (gva & 0xf0000000L) == 0x40000000L )
+  if      ( (gva & 0xf0000000L) == 0x80000000L )
+    decl[ndecl++] = "DATA_AT_0X8=1;";
+  else if ( (gva & 0xf0000000L) == 0x40000000L )
     decl[ndecl++] = "DATA_AT_0X4=1;";
   else if ( (gva & 0xf0000000L) == 0x20000000L )
     decl[ndecl++] = "DATA_AT_0X2=1;";

@@ -7,7 +7,7 @@
     Purpose: Windows DDE interface (client side)
 */
 
-#if O_DDE
+#if defined(__WINDOWS__)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Extension of SWI-Prolog:
@@ -46,6 +46,9 @@
                             redef'd in pl-incl.h (we don't need
 			    the win16 version) */
 #include "pl-incl.h"
+
+#if O_DDE
+
 #include "pl-itf.h"
 #include "string.h"
 
@@ -74,7 +77,7 @@ DdeCallback(UINT type, UINT fmt, HCONV hconv, HSZ hsz1, HSZ hsz2,
 
 
 word
-pl_open_dde(Word service, Word topic, Word handle)
+pl_open_dde_conversation(Word service, Word topic, Word handle)
 {
   UINT i;
   HSZ Hservice, Htopic;
@@ -119,7 +122,7 @@ pl_open_dde(Word service, Word topic, Word handle)
 
 
 word
-pl_close_dde(Word handle)
+pl_close_dde_conversation(Word handle)
 {
   int hdl = valNum(*handle);
 
@@ -207,3 +210,4 @@ pl_dde_request(Word handle, Word item, Word value)
 }
 
 #endif /*O_DDE*/
+#endif /*__WINDOWS__*/

@@ -1,30 +1,15 @@
 DEBUG	all
-
 FILE	pl-wam.obj,pl-save.obj,pl-atom.obj,pl-arith.obj,pl-bag.obj
-
 FILE    pl-comp.obj,pl-dump.obj,pl-dwim.obj,pl-ext.obj,pl-file.obj
-
 FILE	pl-flag.obj,pl-fmt.obj,pl-funct.obj,pl-gc.obj,pl-glob.obj
-
 FILE	pl-itf.obj,pl-list.obj,pl-load.obj,pl-modul.obj,pl-op.obj
-
 FILE	pl-os.obj,pl-prims.obj,pl-pro.obj,pl-proc.obj,pl-prof.obj
-
 FILE	pl-read.obj,pl-rec.obj,pl-setup.obj,pl-sys.obj,pl-table.obj
-
 FILE	pl-trace.obj,pl-util.obj,pl-wic.obj,pl-write.obj,pl-term.obj
-
-FILE	pl-buffer.obj,pl-main.obj,pl-extend.obj
-
+FILE	pl-buffer.obj,pl-main.obj,pl-extend.obj,pl-dde.obj
 library ..\..\readline\readline.lib
-
 library ..\..\xos\xos.lib
-
 option  caseexact
-
 option	stack=128k
-
 option  quiet
-
 option	map=pl
-

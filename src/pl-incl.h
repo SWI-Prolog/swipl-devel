@@ -89,7 +89,7 @@ hard to write and maintain code that runs on both old and new compilers.
 This has worked on TURBO_C not very long ago.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if defined(__unix__) && !defined(unix)
+#if (defined(__unix__) || defined(_AIX)) && !defined(unix)
 #define unix 1
 #endif
 

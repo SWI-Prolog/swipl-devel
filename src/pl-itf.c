@@ -453,7 +453,8 @@ PL_action(int action, void *arg)
     case PL_ACTION_BREAK:
       return (bool) pl_break();
     case PL_ACTION_HALT:
-      return (bool) pl_halt();
+      Halt((int) arg);
+      fail;				/* should not happen */
     case PL_ACTION_ABORT:
       return (bool) pl_abort();
     case PL_ACTION_SYMBOLFILE:

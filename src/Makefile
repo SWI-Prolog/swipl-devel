@@ -15,8 +15,8 @@
 #
 ################################################################
 
-PL=pl-1.9.4
-prefix=/usr/local
+PL=pl
+prefix=/staff/jan
 exec_prefix=${prefix}
 bindir=$(exec_prefix)/bin
 PLBASE=$(prefix)/lib/$(PL)
@@ -31,7 +31,7 @@ SED=sed
 LD_R=ld -r
 ETAGS=etags
 ARCH=sparc-sunos4.1.3
-INSTALL=/usr/local/bin/gnu/install -c
+INSTALL=/usr/gnu/bin/install -c
 INSTALL_PROGRAM=${INSTALL}
 INSTALL_DATA=${INSTALL} -m 644
 

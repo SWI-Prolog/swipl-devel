@@ -15,7 +15,6 @@ finding source files, etc.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 forwards void	resetReferencesModule(Module);
-forwards bool	attribute(Definition, Word, short);
 forwards bool	autoImport(FunctorDef, Module);
 
 SourceFile sourceFileTable = (SourceFile) NULL;

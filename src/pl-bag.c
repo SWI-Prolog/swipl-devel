@@ -30,7 +30,7 @@ struct assoc
   Assoc		next;			/* next in chain */
 };
 
-Assoc bags = (Assoc) NULL;		/* chain of value pairs */
+static Assoc bags = (Assoc) NULL;	/* chain of value pairs */
 
 forwards void freeAssoc(Assoc, Assoc);
 
@@ -68,7 +68,7 @@ checkBags()
 }
 #endif
 
-word
+static word
 globalTerm(FunctorDef fdef, ...)
 { va_list args;
   word rval = globalFunctor(fdef);

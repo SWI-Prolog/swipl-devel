@@ -241,6 +241,13 @@ startProlog(int argc, char **argv, char **env)
     systemDefaults.arch        = ARCH;
     systemDefaults.home	       = findHome(symbols,
 					  store_string(PrologPath(PLHOME)));
+#ifdef O_XOS
+  { char buf[MAXPATHLEN];
+    _xos_limited_os_filename(systemDefaults.home, buf);
+    systemDefaults.home = store_string(buf);
+  }
+#endif
+
     systemDefaults.state       = findState(symbols);
     systemDefaults.startup     = store_string(PrologPath(DEFSTARTUP));
     systemDefaults.local       = DEFLOCAL;

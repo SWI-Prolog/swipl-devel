@@ -2452,6 +2452,7 @@ if test "$O_SAVE" = "yes"; then
 case "$host" in
     *linux*)	STATICLIBS=/usr/lib/libc.a ;;
     *sunos5*)	STATICLIBS=/usr/lib/libc.a ;;
+    *solaris2*)	STATICLIBS=/usr/lib/libc.a ;;
     *sunos4*)	LDFLAGS="$LDFLAGS -static" ;;
     *)
     for ac_prog in ldd
@@ -2494,7 +2495,7 @@ test -n "$LDD" || LDD=""none""
 	echo $ac_n "checking "what kind of static linking is required"""... $ac_c" 1>&4
 
 cat > conftest.$ac_ext <<EOF
-#line 2498 "configure"
+#line 2499 "configure"
 #include "confdefs.h"
 
 int main() { return 0; }
@@ -2526,7 +2527,7 @@ esac
 echo $ac_n "checking "how to reset stdin"""... $ac_c" 1>&4
 # BSD Unix
 cat > conftest.$ac_ext <<EOF
-#line 2530 "configure"
+#line 2531 "configure"
 #include "confdefs.h"
 
 #include <stdio.h>
@@ -2552,7 +2553,7 @@ rm -f conftest*
 if test "$reset_stdin" != "yes"; then
 # Older GNU clibs
 cat > conftest.$ac_ext <<EOF
-#line 2556 "configure"
+#line 2557 "configure"
 #include "confdefs.h"
 
 #include <stdio.h>
@@ -2578,7 +2579,7 @@ fi
 if test "$reset_stdin" != "yes"; then
 # New GNU clibs
 cat > conftest.$ac_ext <<EOF
-#line 2582 "configure"
+#line 2583 "configure"
 #include "confdefs.h"
 
 #include <stdio.h>
@@ -2605,7 +2606,7 @@ fi
 if test "$reset_stdin" != "yes"; then
 # EMX
 cat > conftest.$ac_ext <<EOF
-#line 2609 "configure"
+#line 2610 "configure"
 #include "confdefs.h"
 
 #include <stdio.h>
@@ -2636,7 +2637,7 @@ fi
 
 echo $ac_n "checking "foreign C-interface"""... $ac_c" 1>&4
 cat > conftest.$ac_ext <<EOF
-#line 2640 "configure"
+#line 2641 "configure"
 #include "confdefs.h"
 
 #include <stdio.h>
@@ -2669,7 +2670,7 @@ rm -f conftest*
 
 if test "$ac_foreign" != "yes"; then
 cat > conftest.$ac_ext <<EOF
-#line 2673 "configure"
+#line 2674 "configure"
 #include "confdefs.h"
 
 #include <rld.h>
@@ -2720,7 +2721,7 @@ EOF
 rm -rf conftest*
 echo $ac_n "checking "BSD a.out based loading"""... $ac_c" 1>&4
 cat > conftest.$ac_ext <<EOF
-#line 2724 "configure"
+#line 2725 "configure"
 #include "confdefs.h"
 
 #include <stdio.h>

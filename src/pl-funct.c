@@ -41,20 +41,6 @@ lookupFunctorDef(register Atom atom, register int arity)
 }
 
 
-int
-atomIsFunctor(Atom atom)
-{ int v = pointerHashValue(atom, FUNCTORHASHSIZE);
-  FunctorDef f;
-
-  for(f = functorDefTable[v]; f && !isRef((word)f); f = f->next)
-  { if ( atom == f->name )
-      return f->arity;
-  }
-
-  return -1;
-}
-
-
 FunctorDef
 isCurrentFunctor(Atom atom, int arity)
 { int v = pointerHashValue(atom, FUNCTORHASHSIZE);
@@ -69,7 +55,7 @@ isCurrentFunctor(Atom atom, int arity)
 }
 
 
-bool
+static bool
 atomIsProcedureModule(Atom atom, Module m)
 { int v = pointerHashValue(atom, FUNCTORHASHSIZE);
   FunctorDef f;
@@ -81,18 +67,6 @@ atomIsProcedureModule(Atom atom, Module m)
 	 isDefinedProcedure(proc) )
       succeed;
   }
-
-  fail;
-}
-
-
-bool
-atomIsProcedure(Atom atom)
-{ Symbol s;
-
-  for_table(s, moduleTable)
-    if ( atomIsProcedureModule(atom, (Module)s->value) )         
-      succeed;
 
   fail;
 }

@@ -59,15 +59,17 @@ lookupModule(Atom name)
   return m;
 }
 
-Module
+
+static Module
 isCurrentModule(Atom name)
 { Symbol s;
-
+  
   if ((s = lookupHTable(moduleTable, name)) != (Symbol) NULL)
     return (Module) s->value;
 
   return (Module) NULL;
 }
+
 
 void
 initModules(void)
@@ -112,14 +114,6 @@ isPublicModule(Module module, Procedure proc)
 								      : TRUE;
 }
 
-bool
-isSuperModule(Module m, Module s)
-{ for( ; m; m = m->super )
-    if ( m == s )
-      succeed;
-
-  fail;
-}
 
 		/********************************
 		*       PROLOG CONNECTION       *

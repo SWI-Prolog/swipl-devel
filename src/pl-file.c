@@ -33,7 +33,9 @@ handling times must be cleaned, but that not only holds for this module.
 #include <sys/file.h>
 #endif
 #ifdef HAVE_UNISTD_H
+#define lock lock_function		/* WATCOM defines function lock() */
 #include <unistd.h>
+#undef lock
 #endif
 
 #define MAXSTRINGNEST	20		/* tellString --- Told nesting */
@@ -60,14 +62,14 @@ int	ttymode;			/* Current tty mode */
 
 static Atom prompt_atom;		/* current prompt */
 static char *first_prompt;		/* First-line prompt */
-static first_prompt_used;		/* flag */
-int    protocolStream = -1;		/* doing protocolling on stream <n> */
+static int first_prompt_used;		/* flag */
+static int protocolStream = -1;		/* doing protocolling on stream <n> */
 
 static struct
 { char *string;
   long  left;
 } outStringStack[MAXSTRINGNEST];	/* maximum depth to nest string i/o */
-int outStringDepth = 0;			/* depth of nesting */
+static int outStringDepth = 0;		/* depth of nesting */
 static char *inString;			/* string for reading */
 
 static int   maxfiles;			/* maximum file index */
@@ -755,7 +757,7 @@ currentStreamName()
 		*       WAITING FOR INPUT	*
 		********************************/
 
-#ifdef HAVE_SELECT
+#ifndef HAVE_SELECT
 
 word
 pl_wait_for_input(streams, available, timeout)
@@ -1546,7 +1548,14 @@ pl_rename_file(Word old, Word new)
   n = store_string_local(n);
   stopAllocLocal();
 
-  return RenameFile(o, n);
+  if ( RenameFile(o, n) )
+    succeed;
+  else
+  { if ( fileerrors )
+      warning("rename_file/2: could not rename %s --> %s: %s\n",
+	      o, n, OsError());
+    fail;
+  }
 }
 
 
@@ -1606,3 +1615,24 @@ pl_file_dir_name(Word f, Word b)
   return unifyAtomic(b, lookupAtom(DirName(stringAtom(*f))));
 }
 
+word
+pl_prolog_to_os_filename(Word pl, Word os)
+{
+#ifdef O_XOS
+  char buf[MAXPATHLEN];
+
+  if ( isAtom(*pl) )
+  { _xos_os_filename(stringAtom(*pl), buf);
+    return unifyAtomic(os, lookupAtom(buf));
+  } else if ( isAtom(*os) )
+  { _xos_canonical_filename(stringAtom(*os), buf);
+#ifdef __msdos__
+    strlwr(buf);
+#endif
+    return unifyAtomic(pl, lookupAtom(buf));
+  } else
+    return warning("prolog_to_os_filename/2: instantiation fault");
+#else /*O_XOS*/
+  return pl_unify(pl, os);
+#endif /*O_XOS*/
+}

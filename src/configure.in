@@ -357,6 +357,7 @@ dnl ****************************************************************
 case "$host" in
     *linux*)	STATICLIBS=/usr/lib/libc.a ;;
     *sunos5*)	STATICLIBS=/usr/lib/libc.a ;;
+    *solaris2*)	STATICLIBS=/usr/lib/libc.a ;;
     *sunos4*)	LDFLAGS="$LDFLAGS -static" ;;
     *)
     AC_CHECK_PROGS(LDD, ldd, "none")

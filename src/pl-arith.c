@@ -484,7 +484,7 @@ valueExpression(register Word t, Number r)
 /* C-primitive binairy operators */
 
 #define BINAIRYFUNCTION(name, op) \
-  int \
+  static int \
   name(n1, n2, r) \
   Word n1, n2; \
   Number r; \

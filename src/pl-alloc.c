@@ -315,13 +315,6 @@ unpack_real(Word p)
 }
 
 
-void
-setReal(word w, real f)
-{ Word p = (Word)unMask(w);
-  pack_real((double)f, p);
-}
-
-
 word
 globalReal(real f)
 { Word p = gTop;
@@ -333,6 +326,7 @@ globalReal(real f)
   DEBUG(4, printf("Put REAL on global stack at 0x%lx\n", (unsigned long)p));
   return (word)p | INDIRECT_MASK;
 }
+
 
 word
 heapReal(real f)

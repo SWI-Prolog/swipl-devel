@@ -60,10 +60,11 @@ static struct foreign {
   ADD("absolute_file_name",	2, pl_absolute_file_name,	TRACE_ME),
   ADD("$file_base_name",	2, pl_file_base_name,		TRACE_ME),
   ADD("$file_dir_name",		2, pl_file_dir_name,		TRACE_ME),
+  ADD("prolog_to_os_filename",	2, pl_prolog_to_os_filename,	TRACE_ME),
   ADD("fileerrors",		2, pl_fileerrors,		TRACE_ME),
   ADD("chdir",			1, pl_chdir,			TRACE_ME),
 
-  ADD("halt",			0, pl_halt,			TRACE_ME),
+  ADD("halt",			1, pl_halt,			TRACE_ME),
   ADD("$shell",			2, pl_shell,			TRACE_ME),
   ADD("getenv",			2, pl_getenv,			TRACE_ME),
   ADD("setenv",			2, pl_setenv,			TRACE_ME),

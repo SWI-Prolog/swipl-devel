@@ -36,7 +36,9 @@ static long	wait_ticks;	/* clock ticks not CPU time */
 #include <vfork.h>
 #endif
 #ifdef HAVE_UNISTD_H
+#define lock lock_function		/* WATCOM problem */
 #include <unistd.h>
+#undef lock
 #endif
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
@@ -46,7 +48,9 @@ static long	wait_ticks;	/* clock ticks not CPU time */
 #endif
 
 #include <fcntl.h>
+#ifndef __WATCOMC__			/* appears a conflict */
 #include <errno.h>
+#endif
 
 #if defined(__WATCOMC__)
 #define lock lock_function
@@ -1120,7 +1124,7 @@ canoniseFileName(char *path)
   char *osave[100];
   int  osavep = 0;
 
-#ifdef O_XOS
+#if defined(O_XOS) && 0			/* dubious */
 { char b[MAXPATHLEN];
   _xos_limited_os_filename(path, b);
   strcpy(path, b);
@@ -1362,10 +1366,6 @@ getwd(char *buf)
 }
 #endif
 
-#ifdef unix
-#define isAbsolutePath(p) ( p[0] == '/' )
-#define isRelativePath(p) ( p[0] == '.' )
-#endif
 #if OS2 || O_HPFS || O_XOS
 #define isAbsolutePath(p) (p[0] == '/' && isLetter(p[1]) && \
 			   p[2] == ':' && (p[3] == '/' || p[3] == '\0') )
@@ -1373,6 +1373,9 @@ getwd(char *buf)
 #define isRootlessPath(p) (p[0] == '/' && isLetter(p[1]) && \
 			   p[2] == ':' && p[3] != '/')
 #define isRelativePath(p) (p[0] == '.')
+#else
+#define isAbsolutePath(p) ( p[0] == '/' )
+#define isRelativePath(p) ( p[0] == '.' )
 #endif /* OS2 */
 
 /*
@@ -2424,6 +2427,45 @@ char *command;
 }
 #endif
 
+#ifdef __WINDOWS__
+#define SPECIFIC_SYSTEM 1
+
+int
+System(char *command)
+{ char *msg;
+  int rval = WinExec(command, SW_SHOWNORMAL);
+
+  if ( rval < 32 )
+  { switch( rval )
+    { case 0:	msg = "Not enough memory"; break;
+      case 2:	msg = "File not found"; break;
+      case 3:	msg = "No path"; break;
+      case 5:	msg = "Unknown error"; break;
+      case 6:	msg = "Lib requires separate data segment"; break;
+      case 8:	msg = "Not enough memory"; break;
+      case 10:	msg = "Incompatible Windows version"; break;
+      case 11:	msg = "Bad executable file"; break;
+      case 12:	msg = "Incompatible operating system"; break;
+      case 13:	msg = "MS-DOS 4.0 executable"; break;
+      case 14:	msg = "Unknown executable file type"; break;
+      case 15:	msg = "Real-mode application"; break;
+      case 16:	msg = "Cannot start multiple copies"; break;
+      case 19:	msg = "Executable is compressed"; break;
+      case 20:	msg = "Invalid DLL"; break;
+      case 21:	msg = "Application is 32-bits"; break;
+      default:	msg = "Unknown error";
+    }
+
+    warning("Could not start %s: error %d (%s)",
+	    command, rval, msg);
+    return 1;
+  }
+
+  return 0;
+}
+#endif
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Nothing special is needed.  Just hope the C-library defines system().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -2447,6 +2489,14 @@ char *command;
 char *
 Symbols(void)
 { char *file = Which(PrologPath(mainArgv[0]));
+
+#ifdef O_XOS
+  char buf[MAXPATHLEN];
+  if ( file )
+  { _xos_limited_os_filename(file, buf);
+    file = buf;
+  }
+#endif
 
   if ( file )
   { int n, fd;
@@ -2506,6 +2556,18 @@ okToExec(char *s)
 #endif
 
 #ifdef EXEC_EXTENSIONS
+static int
+stripostfix(char *s, char *e)
+{ int ls = strlen(s);
+  int le = strlen(e);
+
+  if ( ls >= le )
+    return stricmp(&s[ls-le], e) == 0;
+
+  return FALSE;
+} 
+
+
 static char *
 okToExec(s)
 char *s;
@@ -2513,11 +2575,11 @@ char *s;
   static char **ext;
 
   DEBUG(2, printf("Checking %s\n", s));
-  for(ext = extensions; *ext, ext++)
-    if ( strpostfix(s, *ext) )
+  for(ext = extensions; *ext; ext++)
+    if ( stripostfix(s, *ext) )
       return ExistsFile(s) ? s : (char *) NULL;
 
-  for(ext = extensions; *ext, ext++)
+  for(ext = extensions; *ext; ext++)
   { static char path[MAXPATHLEN];
 
     strcpy(path, s);
@@ -2638,7 +2700,15 @@ Sleep(real t)
 
   sleep((int)(t + 0.5));
 }
+#else /*HAVE_SLEEP*/
+#ifdef HAVE_DELAY
 
+void
+Sleep(real t)
+{ delay((int)(t * 1000));
+}
+
+#endif /*HAVE_DELAY*/
 #endif /*HAVE_SLEEP*/
 #endif /*HAVE_DOSSLEEP*/
 #endif /*HAVE_SELECT*/

@@ -9,10 +9,11 @@
 	, (ls)/1
 	, (cd)/0
 	, (cd)/1
-	, (p)/0
-	, (p)/1
-	, d/0
-	, pd/0
+	, (pushd)/0
+	, (pushd)/1
+	, dirs/0
+	, pwd/0
+	, popd/0
 	, mv/2
 	, (rm)/1
 	, (grep)/1
@@ -20,7 +21,7 @@
 	, (tg)/1
 	]).
 
-% :- op(900, fy, [ls, cd, p, rm, grep, tg]).
+% :- op(900, fy, [ls, cd, pushd, rm, grep, tg]).
 
 /*  Shell Emulation Library
 
@@ -53,10 +54,10 @@ cd(Dir) :-
 :- dynamic
 	stack/1.
 
-(p) :-
-	p(+1).
+(pushd) :-
+	pushd(+1).
 
-p(N) :-
+pushd(N) :-
 	integer(N), !,
 	findall(D, stack(D), Ds),
 	(   nth1(N, Ds, Go),
@@ -65,28 +66,33 @@ p(N) :-
 	;   warning('Directory stack not that deep'),
 	    fail
 	).
-p(Dir) :-
+pushd(Dir) :-
 	name_to_atom(Dir, Name),
 	absolute_file_name('', Old),
 	chdir(Name),
 	asserta(stack(Old)).
 
-pd :-
+popd :-
 	retract(stack(Dir)), !,
 	chdir(Dir).
-pd :-
+popd :-
 	warning('Directory stack empty'),
 	fail.
 
-d :-
+dirs :-
 	(   absolute_file_name('', D)
 	;   stack(D)
 	),
 	dir_name(D, Name),
 	format('~w ', [Name]),
 	fail.
-d :-
+dirs :-
 	nl.
+
+pwd :-
+	absolute_file_name('', D),
+	dir_name(D, Name),
+	format('~w ', [Name]).
 
 dir_name('/', '/') :- !.
 dir_name(Path, Name) :-

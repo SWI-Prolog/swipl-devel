@@ -12,7 +12,11 @@ more natural ?- trace(append, fail).  as a shorthand for [+fail].  Added
 autoloader handling to ed/1, listing/1, spy/1 and trace/2.  Manipulating
 not-yet-loaded autoload predicates will trap the autoloader.  Added hook
 for help-system, so we provide a   decent help-window when running under
-the XPCE graphical environment.  The hook is called show_help_file/2.
+the XPCE graphical environment.  The   hook  is called show_help_file/2.
+Fixed  rename_file/2  (bug  introduced  in  pl-1.9.2).   Fixed  versions
+Windows-specific problems.  Added  prolog_to_os_filename/2   to  convert
+between internal and external names (DOS/Windows).  Integrated the 1.9.4
+patches for the Windows version.
 
 Version  1.9.3.   Fix  index/1  problem    introduced   in  1.9.2.   Fix
 stack-expansion problem in all versions that   lack hardware support for

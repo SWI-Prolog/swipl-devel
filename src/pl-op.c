@@ -202,7 +202,7 @@ isInfixOperator(Atom atom, int *type, int *priority)
 
  ** Sun Apr 17 13:24:04 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
-bool
+static bool
 operator(Atom name, int type, int priority)
 { Operator op = (Operator) NULL;
 
