@@ -48,9 +48,12 @@ The following constraints are supported:
 	\infixop{#\=}{?Expr}{?Expr}
 		The left-hand expression is constrained to be not equal to
 		the right-hand expressions.
+	\predicate{sum}{3}{+Vars,+Op,?Value}
+		Here \arg{Vars} is a list of variables and integers,
+		\arg{Op} is one of the binary constraint relation symbols above
+		and \arg{Value} is an integer or variable. It represents the
+		constraint ($\sum$\arg{Vars}) \arg{Op} \arg{Value}.
 	\predicate{all_different}{1}{+Vars}
-		All variables in the list \arg{Vars} are constrained to be
-		different.
 	\predicate{label}{1}{+Vars}
 		All variables are assigned a variable that does not
 		violate the constraint on them.
