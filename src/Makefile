@@ -159,7 +159,7 @@ $(OS-STARTUPPATH):	$(PLBOOT) $(PLINIT) pl-wam.o
 		rm xxfoo.c xxfoo
 		cmd /C boot
 #else
-		./$(SYS) -O -o $(OS-STARTUPPATH) -b $(PLINIT) -c $(PLBOOT)
+		./$(SYS) -d 1 -O -o $(OS-STARTUPPATH) -b $(PLINIT) -c $(PLBOOT)
 #endif /* OS2MAKE */
 
 $(RUNTIMEDIR):

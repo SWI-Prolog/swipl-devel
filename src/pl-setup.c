@@ -595,9 +595,17 @@ char *addr;
        expandStack(&stacks.trail, addr) ||
        expandStack(&stacks.argument, addr) ||
        expandStack(&stacks.lock, addr) )
+  {
+#if O_SIG_AUTO_RESET
+    signal(SIGSEGV, segv_handler);
+#endif
     return;
+  }
 
   deliverSignal(sig, type, scp, addr);
+#if O_SIG_AUTO_RESET
+  signal(SIGSEGV, segv_handler);
+#endif
 }
 
 static bool

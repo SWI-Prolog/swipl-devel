@@ -190,6 +190,7 @@ void		garbageCollect P((LocalFrame)),
 		lockw P((Word)), unlockw P((Word)),
 		lockp P((Word *)), unlockp P((Word *)),
 		lockMark P((mark *)), unlockMark P((mark *));
+LocalFrame	growStacks P((LocalFrame, int, int, int));
 word		pl_garbage_collect P((Word)),
 		pl_collect_parms P((Word, Word));
 
@@ -505,7 +506,7 @@ word		pl_trace P((void)),
 		pl_prolog_current_frame P((Word)),
 		pl_prolog_frame_attribute P((Word, Word, Word)),
 		pl_trace_continuation P((Word));
-void		interruptHandler P((void));
+void		interruptHandler P((int));
 
 		/* pl-wic.c */
 bool		loadWicFile P((char *, bool, bool));

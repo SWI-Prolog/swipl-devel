@@ -66,14 +66,24 @@ Word e, list;
   }
 }
 
-forwards int	qsort_compare_standard P((Word *, Word *));
+forwards int	qsort_compare_standard P((const void *, const void *));
 forwards Word	*list_to_sorted_array P((Word, int *));
+
+#ifdef __STDC__
+static int
+qsort_compare_standard(p1, p2)
+const void *p1, *p2;
+{ return compareStandard(*((Word *)p1), *((Word *)p2));
+}
+
+#else
 
 static int
 qsort_compare_standard(p1, p2)
 Word *p1, *p2;
 { return compareStandard(*p1, *p2);
 }
+#endif
 
 static Word *
 list_to_sorted_array(list, size)

@@ -686,7 +686,8 @@ helpInterrupt()
 }
 
 void
-interruptHandler()
+interruptHandler(sig)
+int sig;
 { extern int Output;
   int OldOut = Output;
   LocalFrame oldltop = lTop;

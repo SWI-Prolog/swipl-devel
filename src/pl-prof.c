@@ -17,7 +17,7 @@
 extern int setitimer P((int, struct itimerval *,struct itimerval *));
 #endif
 
-forwards void profile P((void));
+forwards void profile P((int));
 
 struct itimerval value, ovalue;		/* itmer controlling structures */
 
@@ -171,7 +171,8 @@ clear the flags again.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-profile()
+profile(sig)
+int sig;
 { register LocalFrame fr = environment_frame;
 
 #if _AIX

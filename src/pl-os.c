@@ -1256,7 +1256,7 @@ char *spec;
 
 
 #if unix            /* convert the names to PrologPath before use !! */
-#if hpux || LINUX
+#if hpux || linux
 char	*getwd P((char *));
 
 char *
@@ -1841,7 +1841,7 @@ ResetTty()
 #ifdef RESET_STDIN
   RESET_STDIN;
 #else
-#if unix && !LINUX
+#if unix && !linux
   stdin->_ptr = stdin->_base;
   stdin->_cnt = 0;
 #endif
@@ -2054,7 +2054,7 @@ Char c;
   else if ( c == d->intr )
   { d->in = d->out = 0;		/* empty queue */
     d->emitting = 0;
-    interruptHandler();
+    interruptHandler(3);
   }
   else
     tty_insert(d, c);
@@ -2574,7 +2574,7 @@ static char *
 okToExec(s)
 char *s;
 { struct stat stbuff;
-#if !LINUX
+#if sun
   extern int access(/*char *, int*/);
 #endif
 

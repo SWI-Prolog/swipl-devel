@@ -13,24 +13,27 @@ incorperated  into the most  recent   version  (1.5.5) of  the  common
 sources, but not tested afterwards.
 
 Updated version 1.6.8 after an important fix sent to me by Peter Barth
-(barth@mpi-sb.mpg.de)     and   minor  fixes     from   Philip  Perucc
+(barth@mpi-sb.mpg.de)   and   minor   fixes    from    Philip   Perucc  
 (dsc3pzp@nmrdc1.nmrdc.nnmc.navy.mil).  LINUX versions:
 
 	gcc 2.3.3, libc 4.2, Linux 0.99pl2:
+
+Updated version  1.6.14 by  Jan Wielemaker  (got  my own  now).  Fixed 
+save_program/1 and included dynamic stacks.  Versions:
+
+	gcc 2.3.3, libc 4.3, Linux 0.99pl7:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define M_CC			gcc
-#define M_OPTIMIZE	        -O2
+#define M_OPTIMIZE	        -O2 -fomit-frame-pointer
 #define M_LDFLAGS		
 #define M_CFLAGS		
 #define M_LIBS			-lm -ltermcap
 
-#define LINUX			1	/* Remaining #if's for linux */
 #define v7			1	/* Mostly v7 unix */
 
 			/* compiler */
-#define ANSI			0
-#define PROTO			0
+#define ANSI			1
 #define O_NO_LEFT_CAST		0
 #define O_NO_VOID_POINTER	0
 #define O_SHORT_SYMBOLS		0
@@ -39,15 +42,16 @@ Updated version 1.6.8 after an important fix sent to me by Peter Barth
 
 			/* Operating system */
 #define O_PROFILE		1
-#define O_SIG_AUTO_RESET	0
+#define O_SIG_AUTO_RESET	1
 #define O_SHARED_MEMORY		0
-#define O_CAN_MAP		0
-#define O_NO_SEGV_ADDRESS	0
-#define MAX_VIRTUAL_ADDRESS     (220*1024*1024) /* I don't know how bit it is */
+#define O_CAN_MAP		1
+#define O_NO_SEGV_ADDRESS	1
+#define MAX_VIRTUAL_ADDRESS     (220*1024*1024) /* not sure, but it will do */
 #define O_FOREIGN		1
-#define O_STORE_PROGRAM		0
+#define O_SAVE			1
+#define FIRST_DATA_SYMBOL	etext
 #define DEFAULT_PATH		":.:/bin:/usr/bin:/usr/local/bin:";
-#define SIGNAL_HANDLER_TYPE	int
+#define SIGNAL_HANDLER_TYPE	void
 #define DESCRIPTOR_TABLE_SIZE   32
 #define O_STRUCT_DIRECT		0
 #define DIR_INCLUDE		<sys/dir.h>
@@ -57,7 +61,8 @@ Updated version 1.6.8 after an important fix sent to me by Peter Barth
 #define O_TERMIOS 		1
 #define O_EXTEND_ATOMS 		1
 #define O_LINE_EDIT 		1
-#define O_FOLD 		 	79	
+#define O_MAP_TAB_ON_ESC	1
+#define O_FOLD 		 	0
 			/* Interfaces */
 #define O_PCE 			0
 

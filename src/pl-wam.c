@@ -1562,10 +1562,22 @@ Testing is suffices to find out that the predicate is defined.
 	  garbageCollect(FR);
 	}
 #else
+#if O_SHIFT_STACKS
+	if ( gMax - gTop < 1024L || tMax - tTop < 1024L )
+	{ lTop = (LocalFrame) argFrameP(FR, PROC->functor->arity);
+	  garbageCollect(FR);
+	  FR = growStacks(FR,
+			   ((long)lMax - (long)lTop) < 8192L,
+			   (gMax - gTop) * 2 > (gTop - gBase),
+			   (tMax - tTop) * 2 > (tTop - tBase));
+	} else if ( ((long)lMax - (long)lTop) < 8192L )
+	  FR = growStacks(FR, TRUE, FALSE, FALSE);
+#else
 	if ( gMax - gTop < 1024L || tMax - tTop < 1024L )
 	{ lTop = (LocalFrame) argFrameP(FR, PROC->functor->arity);
 	  garbageCollect(FR);
 	}
+#endif
 #endif	
 
 	if ( debugstatus.debugging )

@@ -174,7 +174,7 @@ long
 allocText(size)
 long size;
 {
-#if !hpux
+#if !hpux && !linux
     extern char *valloc();
 #endif
   long base;

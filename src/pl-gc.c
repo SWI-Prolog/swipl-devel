@@ -111,6 +111,7 @@ Marking, testing marks and extracting values from GC masked words.
 #define set_value(p, w)	{ *(p) &= GC_MASK; *(p) |= w; }
 
 #define onGlobal(p)	((Word)(p) >= gBase && (Word)(p) < gTop)
+#define onLocal(p)	((LocalFrame)(p) >= lBase && (LocalFrame)(p) < lTop)
 #define isGlobalRef(w)	(  ((isIndirect(w) || isPointer(w)) \
 				&& onGlobal(unMask(w))) \
 			|| (isRef(w) && onGlobal(unRef(w))))
@@ -1086,9 +1087,8 @@ scan_global()
 
   for( current = gBase; current < gTop; current += (offset_cell(current)+1) )
   { cells++;
-    if ( (Word)(*current) >= gBase && (Word)(*current) < gTop )
-      if ( !isTerm(*current) )
-        sysError("Pointer on global stack is not a term");
+    if ( onGlobal(*current) && !isTerm(*current) )
+      sysError("Pointer on global stack is not a term");
     if ( marked(current) || is_first(current) )
     { warning("Illegal cell in global stack (up) at 0x%lx (*= 0x%lx)", current, *current);
       if ( isAtom(*current) )
@@ -1279,7 +1279,7 @@ mark *m;
 }
 
 
-#ifdef O_STACK_SHITFER
+#if O_SHIFT_STACKS
 
 /* Development work ... */
 
@@ -1291,23 +1291,44 @@ mark *m;
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Update the Prolog runtime stacks presuming they have shifted by the
 the specified offset.
+
+Memory management description.
+
+
+
+
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Update a mark (either held by foreign code or on the local stack.  Just
+update both pointers.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
 update_mark(m, gs, ts)
 mark *m;
 long gs, ts;
-{ m->trailtop  = (TrailEntry) addPointer(m->trailtop, ts);
-  m->globaltop = (Word)	      addPointer(m->globaltop, gs);
+{ m->trailtop  = addPointer(m->trailtop,  ts);
+  m->globaltop = addPointer(m->globaltop, gs);
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Update a variable.  The variable may either live on the local- or global
+stack.  If it is a reference  it might  be  both to  a global- and local
+address.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static void
-update_variable(sp)
+update_variable(sp, ls, gs)
 Word sp;
+long ls, gs;
 { if ( isRef(*sp) )
   { if ( onGlobal(unRef(*sp)) )
       *sp = makeRef(addPointer(unRef(*sp), gs));
+    if ( onLocal(unRef(*sp)) )
+      *sp = makeRef(addPointer(unRef(*sp), ls));
   } else if ( isPointer(*sp) )
   { if ( onGlobal(*sp) )
       *sp = (word) addPointer(*sp, gs);
@@ -1317,6 +1338,10 @@ Word sp;
   }
 }
 
+
+		 /*******************************
+		 *	   LOCAL STACK		*
+		 *******************************/
 
 static LocalFrame
 update_environments(fr, ls, gs, ts)
@@ -1353,14 +1378,20 @@ long ls, gs, ts;
       slots = (PC == NULL ? fr->procedure->functor->arity : slotsFrame(fr));
       sp = argFrameP(fr, 0);
       for( ; slots > 0; slots--, sp++ )
-	update_variable(sp);
+	update_variable(sp, ls, gs);
     }
 
     PC = fr->programPointer;
     if ( fr->parent )			/* TBD: +/- ls */
       fr = fr->parent;
-    else
-      return parentFrame(fr);		/* Prolog --> C --> Prolog calls */
+    else				/* Prolog --> C --> Prolog calls */
+    { LocalFrame parent = (LocalFrame) varFrame(fr, -1);
+
+      if ( parent )
+	varFrame(fr, -1) = (word) addPointer(parent, ls);
+
+      return parent;
+    }
   }
 }
 
@@ -1369,21 +1400,171 @@ static void
 update_choicepoints(bfr)
 LocalFrame bfr;
 { for( ; bfr; bfr = bfr->backtrackFrame )
-    mark_environments(bfr);
+    update_environments(bfr);
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Clear the marks set by update_environments().
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static LocalFrame
+unmark_environments(fr)
+LocalFrame fr;
+{ if ( fr == NULL )
+    return NULL;
+
+  for(;;)
+  { if ( false(fr, FR_MARKED) )
+      return NULL;
+    clear(fr, FR_MARKED);
+    
+    if ( fr->parent )
+      fr = fr->parent;
+    else				/* Prolog --> C --> Prolog calls */
+      return parentFrame(fr);
+  }
 }
 
 
 static void
-update_stacks(frame, ls, gs, ts)
-LocalFrame frame;
-long ls, gs, ts;
-{ while(fr)
-    fr = update_environments(fr, ls, gs, ts);
+unmark_choicepoints(bfr)
+LocalFrame bfr;
+{ for( ; bfr; bfr = bfr->backtrackFrame )
+    unmark_environments(bfr);
+}
 
-  if ( gs )
-  { update_global(gs);
-    update_trail(gs);
+		 /*******************************
+		 *	   GLOBAL STACK		*
+		 *******************************/
+
+static void
+update_global(gs)
+long gs;
+{ Word p = addPointer(gBase, gs);
+  Word t = addPointer(gTop, gs);
+
+  for( ; p < t; p += (offset_cell(p)+1) )
+  { if ( onGlobal(*p) )
+      *p = (word) addPointer(*p, gs);
   }
 }
 
-#endif /*O_STACK_SHITFER*/
+
+		 /*******************************
+		 *	    TRAIL STACK		*
+		 *******************************/
+
+static void
+update_trail(ts, ls, gs)
+long ts, ls, gs;			/* trail-, local- and global offsets */
+{ TrailEntry p = addPointer(tBase, ts);
+  TrailEntry t = addPointer(tTop, ts);
+
+  for( ; p < t; p++ )
+  { if ( onGlobal(p->address) )
+    { p->address = addPointer(t->address, gs);
+    } else
+    { assert(onLocal(p->address));
+      p->address = addPointer(t->address, ls);
+    }
+  }
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Entry-point.   Update the  stacks to  reflect  their current  positions.
+This function should be called *after*  the  stacks have been relocated.
+Note that these functions are  only used  if  there is no vitrual memory
+way to reach at dynamic stacks.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define updateStackHeader(name, offset) \
+	{ stacks.name.base = addPointer(stacks.name.base, offset); \
+	  stacks.name.top  = addPointer(stacks.name.top,  offset); \
+	  stacks.name.max  = addPointer(stacks.name.max,  offset); \
+	}
+
+
+LocalFrame
+updateStacks(frame, lb, gb, tb)
+LocalFrame frame;
+Void lb, gb, tb;			/* bases addresses */
+{ long ls, gs, ts;
+  LocalFrame fr, fr2;
+
+  ls = (long) lb - (long) lBase;
+  gs = (long) gb - (long) gBase;
+  ts = (long) tb - (long) tBase;
+
+  if ( ls || gs || ts )
+  { for(fr = frame; fr; fr = fr2)
+    { fr2 = update_environments(fr, ls, gs, ts);
+
+      update_choicepoints(fr->backtrackFrame);
+    }
+
+    for(fr = frame; fr; fr = fr2)
+    { fr2 = unmark_environments(fr, ls, gs, ts);
+
+      unmark_choicepoints(fr->backtrackFrame);
+    }
+
+    if ( gs )
+    { update_global(gs);
+      update_trail(ts, ls, gs);
+    }
+
+    updateStackHeader(local,  ls);
+    updateStackHeader(global, gs);
+    updateStackHeader(trail,  ts);
+  }
+
+  return addPointer(frame, ls);
+}
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Entry point from interpret()
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define sizeStack(name) ((long)stacks.name.top - (long)stacks.name.base)
+
+LocalFrame
+growStacks(fr, l, g, t)
+LocalFrame fr;
+int l, g, t;
+{ TrailEntry tb = tBase;
+  Word gb = gBase;
+  LocalFrame lb = lBase;
+  long lsize = sizeStack(local);
+  long gsize = sizeStack(global);
+  long tsize = sizeStack(trail);
+
+  if ( t )
+  { tsize += tsize / 2;
+    tb = realloc(tb, tsize);
+  }
+
+  if ( g || l )
+  { assert(lb == addPointer(gb, gsize));
+
+    if ( g )
+      gsize += gsize / 2;
+    if ( l )
+      lsize += lsize / 2;
+
+    gb = realloc(gb, lsize + gsize);
+    lb = addPointer(gb, gsize);
+  }
+      
+  fr = updateStacks(fr, lb, gb, tb);
+
+  stacks.local.top  = addPointer(stacks.local.base,  lsize);
+  stacks.global.top = addPointer(stacks.global.base, gsize);
+  stacks.trail.top  = addPointer(stacks.trail.base,  tsize);
+
+  return fr;
+}
+
+
+#endif /*O_SHIFT_STACKS*/

@@ -78,9 +78,9 @@ static int   fold = -1;			/* line folding */
 #endif
 
 #if JOBCONTROL
-forwards void	stopHandler P((void));
+forwards void	stopHandler P((int));
 #endif
-forwards void	pipeHandler P((void));
+forwards void	pipeHandler P((int));
 forwards void	protocol P((Char c, int mode));
 forwards bool	openStream P((word file, int mode, int fresh));
 forwards bool	flush P((void));
@@ -103,7 +103,8 @@ forwards bool	unifyStreamMode P((Word, int));
 
 static
 void
-stopHandler()
+stopHandler(sig)
+int sig;
 { ttybuf tab;
 
   if (novice == TRUE)
@@ -120,7 +121,8 @@ stopHandler()
 
 #if PIPE
 static void
-pipeHandler()
+pipeHandler(sig)
+int sig;
 { Putf("Broken pipe\n");
   pl_abort();
 

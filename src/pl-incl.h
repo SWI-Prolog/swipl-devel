@@ -177,7 +177,8 @@ typedef SIGNAL_HANDLER_TYPE (*handler_t)();
 typedef void (*handler_t)();
 #endif
 #ifndef SIGNAL_CONTEXT_TYPE
-#define SIGNAL_CONTEXT_TYPE struct sigcontext *
+typedef struct sigcontext * SignalContext;
+#define SIGNAL_CONTEXT_TYPE SignalContext
 #endif
 #endif /* unix */
 
@@ -203,7 +204,7 @@ typedef char *			caddress;
 #endif
 				/* n is 2^m !!! */
 #define ROUND(p, n)		((((p) + (n) - 1) & ~((n) - 1)))
-#define addPointer(p, n)	((char *)(p) + (long)(n))
+#define addPointer(p, n)	((Void) ((char *)(p) + (long)(n)))
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 			     LIMITS

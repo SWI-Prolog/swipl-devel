@@ -89,7 +89,7 @@ static struct out
 
 forwards char	*compile_pattern P((struct out *, char *, int));
 forwards bool	match_pattern P((uchar *, char *));
-forwards int	stringCompare P((char**, char**));
+forwards int	stringCompare P((const void *, const void *));
 forwards bool	expand P((char *, char **, int *));
 forwards bool	Exists P((char *));
 forwards char	*change_string P((char *, char *));
@@ -326,11 +326,21 @@ Word f, l;
   succeed;
 }
 
+#if __STDC__
+static int
+stringCompare(a1, a2)
+const void *a1, *a2;
+{ return strcmp(*((char **)a1), *((char **)a2));
+}
+
+#else
+
 static int
 stringCompare(s1, s2)
 register char **s1, **s2;
 { return strcmp(*s1, *s2);
 }
+#endif
 
 static bool
 expand(f, argv, argc)
