@@ -803,6 +803,8 @@ Finish up the clause.
     DEBUG(1, Sdprintf("%d argvars; %d prolog vars; %d vars",
 		      ci.argvars, clause->prolog_vars, clause->variables));
     assert(ci.argvars == ci.argvar);
+    requireStack(local, (clause->variables * sizeof(word) +
+			 sizeof(*clause) + sizeof(*cref)));
 
     clause->codes = (Code) p;
     p = addPointer(p, size);
@@ -1123,6 +1125,7 @@ isvar:
       DEBUG(1, Sdprintf("Linking b_var(%d) to %s\n",
 			index, vName(v->address)));
 
+      requireStack(local, (voffset+1)*sizeof(word));
       *k = makeRef(v->address);
 
       if ( index < 3 )
@@ -1189,6 +1192,7 @@ isvar:
     voffset = VAROFFSET(ci->argvar);
     k = varFrameP(lTop, voffset);
 
+    requireStack(local, (voffset+1)*sizeof(word));
     *k = *arg;
     if ( ci->argvar < 3 )
     { Output_0(ci, B_VAR0 + ci->argvar);
