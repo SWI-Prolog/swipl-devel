@@ -2655,8 +2655,12 @@ is undone if backtracking brings the state back into a position before
 the setarg/3 call.
 
 This predicate may be used for destructive assignment to terms, using
-them as and extra-logical storage bin.
-\infixop{=..}{?Term}{?List}
+them as and extra-logical storage bin.  Always try hard to avoid the
+use of setarg/3 as it is not supported by many Prolog systems and one
+has to be very careful about unexpected copying as well as unexpected
+not copying of terms.
+
+    \infixop{=..}{?Term}{?List}
 \arg{List} is a list which head is the functor of \arg{Term} and the
 remaining arguments are the arguments of the term. Each of the
 arguments may be a variable, but not both.  This predicate is called
@@ -2701,12 +2705,16 @@ Ground parts of \arg{In} are shared by \arg{Out}.  Provided \arg{In} and
 \arg{Out} have no sharing variables before this call they will have no
 sharing variables afterwards.  copy_term/2 is semantically equivalent
 to:
+
 \begin{code}
 copy_term(In, Out) :-
         recorda(copy_key, In, Ref),
         recorded(copy_key, Out, Ref),
         erase(Ref).
 \end{code}
+
+Note that as copy_term/2 does not create copies for ground terms
+setarg/3 affects both the copy and original.
 \end{description}
 
 \section{Analysing and Constructing Atoms}	\label{sec:manipatom}
