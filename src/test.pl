@@ -265,6 +265,18 @@ cleanup(clean-3) :-
 	retractall(clean_rval(_)),
 	\+ call_cleanup(cleanup_3, R, assert(clean_rval(R))),
 	retract(clean_rval(fail)).
+cleanup(clean-4) :-
+	catch(call_cleanup(throw(a), true), E, true),
+	E == a.
+cleanup(clean-5) :-
+	catch(call_cleanup(throw(a), throw(b)), E, true),
+	E == b.
+cleanup(clean-6) :-
+	catch(call_cleanup(true, throw(b)), E, true),
+	E == b.
+cleanup(clean-7) :-
+	catch(call_cleanup(fail, throw(b)), E, true),
+	E == b.
 
 
 		 /*******************************

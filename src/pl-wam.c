@@ -763,11 +763,21 @@ frameFinished(LocalFrame fr, enum finished reason ARG_LD)
       int rval;
       
       blockGC(PASS_LD1);
-      rval = callProlog(fr->context, clean, PL_Q_CATCH_EXCEPTION, &ex);
+      if ( reason == FINISH_EXCEPT )
+      {	word pending = *valTermRef(exception_bin);
+
+	rval = callProlog(fr->context, clean, PL_Q_CATCH_EXCEPTION, &ex);
+	if ( rval || !ex )
+	{ *valTermRef(exception_bin) = pending;
+	  exception_term = exception_bin;
+	}
+      } else
+      { rval = callProlog(fr->context, clean, PL_Q_CATCH_EXCEPTION, &ex);
+      }
       unblockGC(PASS_LD1);
 
       if ( !rval && ex )
-	PL_throw(ex);
+	PL_raise_exception(ex);
     }
 
   }
@@ -1628,7 +1638,10 @@ discardChoicesAfter(LocalFrame fr ARG_LD)
     for(fr2 = BFR->frame;    
 	fr2 && fr2->clause && fr2 > fr;
 	fr2 = fr2->parent)
-      discardFrame(fr2, FINISH_CUT PASS_LD);
+    { discardFrame(fr2, FINISH_CUT PASS_LD);
+      if ( exception_term )
+	break;
+    }
   }
 
   DEBUG(3, Sdprintf(" --> BFR = #%ld\n", loffset(BFR)));
@@ -2676,6 +2689,8 @@ parent (it is the entry of PL_next_solution()),
 	  BFR = BFR->parent;
 
 	  frameFinished(FR, FINISH_EXITCLEANUP PASS_LD);
+	  if ( exception_term )
+	    goto b_throw;
 	}
 
 	NEXT_INSTRUCTION;		/* goto i_exit? */
@@ -2976,6 +2991,8 @@ debugger output.
 	  lTop = (LocalFrame) argFrameP(FR, CL->clause->variables);
 	  ch = newChoice(CHP_DEBUG, FR PASS_LD);
 	  ARGP = argFrameP(lTop, 0);
+	  if ( exception_term )
+	    goto b_throw;
 
 	  switch(tracePort(FR, BFR, CUT_EXIT_PORT, PC))
 	  { case ACTION_RETRY:
@@ -2988,6 +3005,8 @@ debugger output.
 	{ discardChoicesAfter(FR PASS_LD);
 	  lTop = (LocalFrame) argFrameP(FR, CL->clause->variables);
 	  ARGP = argFrameP(lTop, 0);
+	  if ( exception_term )
+	    goto b_throw;
 	}
 
 	NEXT_INSTRUCTION;
@@ -3084,7 +3103,10 @@ conditions should be rare (I hope :-).
 	  for(fr2 = ch->frame;    
 	      fr2 && fr2->clause && fr2 > fr;
 	      fr2 = fr2->parent)
-	    discardFrame(fr2, FINISH_CUT PASS_LD);
+	  { discardFrame(fr2, FINISH_CUT PASS_LD);
+	    if ( exception_term )
+	      goto b_throw;
+	  }
 	}
 	assert(och == ch);
 	BFR = och;
@@ -4504,12 +4526,16 @@ next_choice:
 
       Profile(FR->predicate->profile_fails++);
       leaveFrame(FR PASS_LD);
+      if ( exception_term )
+	goto b_throw;
     }
   } else
 #endif /*O_DEBUGGER*/
   { for(; (void *)FR > (void *)ch; FR = FR->parent)
     { Profile(FR->predicate->profile_fails++);
       leaveFrame(FR PASS_LD);
+      if ( exception_term )
+	goto b_throw;
     }
   }
 
