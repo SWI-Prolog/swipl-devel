@@ -880,6 +880,34 @@ Extract text and length of an atom.
 \end{description}
 
 
+\subsubsection{Wide character versions}
+
+Support for exchange of wide character strings is still under
+considerations. The functions dealing with 8-bit character strings
+return failure when operating on a wide character atom or Prolog string
+object. The functions below can extract and unify bith 8-bit and wide
+atoms and string objects. Wide character strings are represented as C
+arrays of objects of the type \ctype{pl_wchar_t}, which is guaranteed to
+be the same as \ctype{wchar_t} on platforms supporting this type. For
+example, on MS-Windows, this represents 16-bit UCS2 characters, while
+using the GNU C library (glibc) this represents 32-bit UCS4 characters.
+
+\begin{description}
+    \cfunction{int}{PL_get_wchars}{term_t t, unsigned int *len,
+				   pl_wchar_t **s, unsigned flags}
+Wide-character version of PL_get_chars().  The \arg{flags} argument
+is the same as for PL_get_chars().  
+
+    \cfunction{int}{PL_unify_wchars}{term_t t, int type,
+				     unsigned int len,
+				     const pl_wchar_t *s}
+Unify \arg{t} with a textual representation of the C wide character
+array \arg{s}.  The \arg{arg}{type} argument defines the Prolog
+representation and is one of \const{PL_ATOM}, \const{PL_STRING},
+\const{PL_CODE_LIST} or \const{PL_CHAR_LIST}.
+\end{description}
+
+
 \subsubsection{Reading a list}
 
 The functions from this section are intended to read a Prolog list from
