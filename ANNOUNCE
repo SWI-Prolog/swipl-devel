@@ -29,6 +29,9 @@ Packages
     the `xml_browser' and added to the demo programs.  Show windows in
     tables.  Some fixes to the Prolog library.
     
+  * ODBC: Added odbc_fetch/3, providing forward-chaining and random
+    access to the result-set.
+
   * RDF: Allow prefixing anonymous resources (with the base-URL).
 
 Development environment
