@@ -1,7 +1,16 @@
+* ADDED: Symbol font to standard font list and `symbol' font alias.  See
+  FontViewer demo.
+
+* FIXED: `editor->cut' to ensure the selection is cleared after cutting.
+  Reported by Peter Mott.
+
 * ADDED: Class chain_hyper to express mutual dependent objects.
 
 * FIXED: Removed limits on # rows/columns of devices with a format object
   attached (used to be 1024x1024).
+
+VERSION 5.0.7-beta-3
+====================
 
 * ADDED: Class variable text_item.combo_box_heigth to define the maximum
   height of completer/combox box windows (default 6).

@@ -1,7 +1,8 @@
-! XPCE 4.10 Class Variable defaults for colour and monochrome displays
+! XPCE 5.0 Class Variable defaults for colour and monochrome displays
 ! Author: Jan Wielemaker, University of Amsterdam
-! Last Modified: Fri May 29 11:09:37 1998
-
+! Modified: Tue Dec  7 14:15:04 1999
+!	Added alias for symbol-font
+!
 ! See README.customise before changing this file.
 
 ! Binding for the logical font-names.  You can bind any name to any
@@ -15,7 +16,8 @@ display.system_fonts:	[ normal    := font(helvetica, roman,   12), \
 			  boldlarge := font(helvetica, bold,    14), \
 			  huge      := font(helvetica, roman,   18), \
 			  boldhuge  := font(helvetica, bold,    18), \
-			  fixed     := font(screen,    roman,   13) \
+			  fixed     := font(screen,    roman,   13), \
+			  symbol    := font(symbol,    roman,   12)  \
 			]
 
 ! This one is often slow on colour displays.  Prefer the beep then.
