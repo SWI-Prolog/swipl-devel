@@ -1584,6 +1584,56 @@ cleanup_get_message(void *context)
   pthread_mutex_unlock(&ctx->queue->mutex);
 }
 
+#ifdef WIN32
+#include <sys/timeb.h>
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+dispatch_cond_wait() is like pthread_cond_wait(),  but   it  watches for
+Windows messages and signals comming through thread_signal/2. The latter
+allows us to use call_with_time_limit/2 with thread_get_message/1.
+
+Dispatching Windows messages appears necessary, at  least on NT. Without
+this, windows belonging to this thread (e.g.  the hidden window used for
+signalling) can cause other  applications  to   lock  up.  This  notably
+happens to MS-Word in Windows-NT4. A better   solution might be to avoid
+the  use  of  this  hidden  window    and   define  that  threads  using
+thread_get_message/1 should not be using windows.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+dispatch_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
+{ struct timeb now;
+  struct timespec timeout;
+  int rc;
+
+  for(;;)
+  { ftime(&now);
+    timeout.tv_sec  = now.time;
+    timeout.tv_nsec = (now.millitm+250) * 1000000;
+
+    switch( (rc=pthread_cond_timedwait(cond, mutex, &timeout)) )
+    { case ETIMEDOUT:
+      { MSG msg;
+
+	DEBUG(2, Sdprintf("Checking messages\n"));
+	if ( PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) )
+	{ TranslateMessage(&msg);
+	  DispatchMessage(&msg);
+	}
+	if ( LD->pending_signals )
+	  return EINTR;
+
+	continue;
+      }
+      default:
+	return rc;
+    }
+  }
+}
+
+#else
+#define dispatch_cond_wait(cond, mutex) pthread_cond_wait(cond, mutex)
+#endif
 
 static int
 get_message(message_queue *queue, term_t msg)
@@ -1591,6 +1641,7 @@ get_message(message_queue *queue, term_t msg)
   term_t tmp = PL_new_term_ref();
   int isvar = PL_is_variable(msg) ? 1 : 0;
   word key = (isvar ? 0L : getIndexOfTerm(msg));
+  int rval = TRUE;
   mark m;
 
   Mark(m);
@@ -1631,8 +1682,14 @@ get_message(message_queue *queue, term_t msg)
     queue->waiting++;
     queue->waiting_var += isvar;
     DEBUG(1, Sdprintf("%d: waiting on queue\n", PL_thread_self()));
-    while( pthread_cond_wait(&queue->cond_var, &queue->mutex) == EINTR )
-      ;
+    while( dispatch_cond_wait(&queue->cond_var, &queue->mutex) == EINTR )
+    { if ( PL_handle_signals() < 0 )	/* thread-signal */
+      { queue->waiting--;
+	queue->waiting_var -= isvar;
+	rval = FALSE;
+	goto out;
+      }
+    }
     DEBUG(1, Sdprintf("%d: wakeup on queue\n", PL_thread_self()));
     queue->waiting--;
     queue->waiting_var -= isvar;
@@ -1641,7 +1698,8 @@ out:
 
   pthread_mutex_unlock(&queue->mutex);
   pthread_cleanup_pop(0);
-  succeed;
+
+  return rval;
 }
 
 
