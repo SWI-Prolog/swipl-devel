@@ -58,7 +58,7 @@ been changed, so we can forward this to the device's update algorithm.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
-#define INFINITE PCE_MAX_INT
+#define INFINITE 0x3fffffff		/* 31-bit int, but will do anyhow */
 #define Round(n, r)  ((((n) + ((r)-1)) / (r)) * (r))
 
 		/********************************

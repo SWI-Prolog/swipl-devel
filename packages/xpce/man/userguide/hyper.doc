@@ -3,7 +3,7 @@
 A \class{hyper} is a binary relation between two objects.  Hypers are,
 like \class{connection} objects, guarded automatically against
 destruction of one of the related objects.  Special methods allow for
-the easy communication between {\em hypered} objects.
+easy communication between {\em hypered} objects.
 
 Hypers form an adequate answer if objects need to be related that
 depend temporary and incidentally on each other.  It is possible to
@@ -82,29 +82,73 @@ unlink(S) :->
 :- pce_end_class.
 \end{pcecode}
 
-A similar schema to this is used by the \product{} manual tools described in
-\secref{online}. Using hypers, the same relation can be
+A similar schema to this is used by the \product{} manual tools
+described in \secref{online}. Using hypers, the same relation can be
 expressed much simpler and less error-prone.
 
-The semantic relation that, if the main window is destroyed, all slaves
-must be destroyed can both be expressed in the main window and by
-specialising the hyper.  Below we will first implement it using the
-main window's ->unlink method.
+\subsection{Programming existence dependencies}
+
+The example of this section demonstrates a common existence
+relationship. If the `main' object is destroyed, all related slave
+objects should be destroyed too, but if a slave is destroyed, the main
+should not be destroyed. This semantic is expressed using a refinement
+of class \class{hyper}.
 
 \begin{pcecode}
+:- pce_begin_class(master_slave_hyper, hyper,
+		   "Maintain a master-slave relationship").
+
+initialise(H, F:object, T:object, FN:[name], TN:[name]) :->
+	default(FN, slave, FromName),
+	default(TN, master, ToName),
+	send(H, send_super, initialise, F, T, FromName, ToName).
+
+unlink_from(H) :->
+	"From-side (master is destroyed)"::
+	get(H, to, To),
+	free(To),
+	free(H).
+
+:- pce_end_class.
+\end{pcecode}
+
+This hyper is demonstrated in the following application.  It defines a
+frame holding a graphical window and a dialog with a {\sf Quit} button and
+also a dialog frame for modifying the label of the first frame.  See
+\figref{hyperdemo}.  If the main window is destroyed, the
+label-editor will be destroyed automatically.
+
+\postscriptfig[width=\textwidth]{hyperdemo}{Two frames related by a hyper-link}
+
+\begin{pcecode}
+hyperdemo :-
+	new(F, frame('Main Window')),
+	send(F, append, new(P, picture)),
+	send(new(D, dialog), below, P),
+	send(D, append, button(quit, message(F, destroy))),
+	send(F, open),
+
+	new(E, dialog('Edit label')),
+	send(E, append, text_item(label, F?label,
+				  message(F, label, @arg1))),
+	send(E, append, button(cancel, message(E, destroy))),
+	new(_, master_slave_hyper(F, E)),
+	send(E, open).
+\end{pcecode}
+
+Using the \class{master_slave_hyper}, the frame-demo from above can be
+rewritten using the code below:
+
+\begin{code}
 :- pce_begin_class(main, frame, "Applications main window").
 
-unlink(F) :->
-	ignore(send(F, send_hyper, slave, destroy)),
-	send(F, send_super, unlink).
-
-slave(F, Name:name, Create:[bool], S:slave) :<-
+slave(F, Name:name, Create:[bool], Slave:slave) :<-
 	"Return existing slave or create new one"::
 	(   get(F, hypered, slave, @arg3?name == Name, Slave)
 	->  true
 	;   (	Create == @off
 	    ->	fail
-	    ;	new(S, slave(Name, F))
+	    ;	new(Slave, slave(Name, F))
 	    )
 	).
 
@@ -114,14 +158,15 @@ slave(F, Name:name, Create:[bool], S:slave) :<-
 
 variable(name, name, get, "Slave name of this frame").
 
-initialise(S, Name:name, Main:main) :->
+initialise(S, Name:name, M:main) :->
 	"Create and register with main"::
 	send(S, send_super, initialise, 'Slave frame'),
 	send(S, slot, name, Name),
-	new(_, hyper(S, M, main, slave)).
+	new(_, master_slave_hyper(M, S)),
+	...
 
 :- pce_end_class.
-\end{pcecode}
+\end{code}
 
 
 \subsection{Methods for handling hyper objects}
@@ -170,56 +215,3 @@ The first matching object is returned.  See also <-all_hypers.
 \end{tabular}
 \end{center}
 \end{description}
-
-
-\subsection{Programming existence dependencies}
-
-The example of this section demonstrates a common existence
-relationship: if the `main' object is destroyed, all related slave
-objects should be destroyed too, but if a slave is destroyed, the
-main should not be destroyed.  This semantic could also be expressed
-using a refinement of class \class{hyper}.
-
-\begin{pcecode}
-:- pce_begin_class(master_slave_hyper, hyper,
-		   "Maintain a master-slave relationship").
-
-initialise(H, F:object, T:object, FN:[name], TN:[name]) :->
-	default(FN, slave, FromName),
-	default(TN, master, ToName),
-	send(H, send_super, initialise, F, T, FromName, ToName).
-
-unlink_from(H) :->
-	"From-side (master is destroyed)"::
-	get(H, to, To),
-	free(To),
-	free(H).
-
-:- pce_begin_class.
-\end{pcecode}
-
-This hyper is demonstrated in the following application.  It defines a
-frame holding a graphical window and a dialog with a {\sf Quit} button and
-also a dialog frame for modifying the label of the first frame.  See
-\figref{hyperdemo}.  If the main window is destroyed, the
-label-editor will be destroyed automatically.
-
-\postscriptfig[width=\textwidth]{hyperdemo}{Two frames related by a hyper-link}
-
-\begin{pcecode}
-hyperdemo :-
-	new(F, frame('Main Window')),
-	send(F, append, new(P, picture)),
-	send(new(D, below, P)),
-	send(D, append, button(quit, message(F, destroy))),
-	send(F, open),
-
-	new(E, dialog('Edit label')),
-	send(E, append, text_item(label, F?label,
-				  message(F, label, @arg1))),
-	send(E, append, button(cancel, message(E, destroy))),
-	new(_, master_slave_hyper(F, E)),
-	send(E, open).
-\end{pcecode}
- 
-\mbox{}

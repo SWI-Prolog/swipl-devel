@@ -78,7 +78,7 @@ dragdropdemo.tex:	examples/dragdrop.pl
 wysiwyg.tex:		examples/wysiwyg.pl
 	$(PLTOTEX) examples/wysiwyg.pl > $@
 summary.tex:		summary.doc classes.pl
-	xpce -g "[classes],process('summary.doc','summary.tmp')" -t halt
+	xpce -f classes.pl -g "process('summary.doc','summary.tmp')" -t halt
 	$(DOCTOTEX) summary.tmp > summary.tex
 	rm -f summary.tmp
 

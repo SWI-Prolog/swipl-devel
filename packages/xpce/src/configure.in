@@ -42,9 +42,11 @@ AC_SUBST(LDCONFIG)
 AC_SUBST(AR)
 AC_SUBST(MAKESHELL)
 AC_SUBST(MAKE)
+AC_SUBST(RSYNC)
 AC_SUBST(QPENTRIES)
 AC_SUBST(QPBIN)
 AC_SUBST(QPPATH)
+AC_SUBST(SP_PATH)
 
 RTSUFFIX=""
 QPENTRIES=""
@@ -63,7 +65,7 @@ VMINOR=`sed 's/[0-9]*\.\([0-9]*\).*/\1/' ../VERSION`
 VPATCH=`sed 's/[0-9]*\.[0-9]*\.\([0-9]*\).*/\1/' ../VERSION`
 changequote([,])dnl
 
-swipl=yes
+swipl=maybe
 runtime=no
 
 
@@ -135,7 +137,7 @@ AC_MSG_CHECKING("Path relative to $PCEHOME")
 builddir=`basename $PWD`
 AC_MSG_RESULT("$builddir")
 
-if test "$swipl" = "yes"; then
+if test "$swipl" != "no"; then
   if test "$runtime" = "yes"; then
     if test -z "$PL"; then
       if test "$exec_prefix" = "NONE"; then
@@ -160,25 +162,33 @@ if test "$swipl" = "yes"; then
   fi
   AC_CHECK_PROGS(PL, $plcandidates, "none")
   if test $PL = "none"; then
-     AC_ERROR("Cannot find SWI-Prolog. SWI-Prolog must be installed first")
+     if test "$swipl" = yes; then
+        AC_ERROR("Cannot find SWI-Prolog. SWI-Prolog must be installed first")
+     else
+        swipl=no
+     fi
   else
      AC_CHECKING("Running $PL -dump-runtime-variables")
      eval `$PL -dump-runtime-variables`
   fi
-  if test -z "$MAKE_SHARED_OBJECT" && test "$PLSHARED" = "yes"; then
-     MAKE_SHARED_OBJECT=yes
+  if test "$swipl" = yes; then
+    if test -z "$MAKE_SHARED_OBJECT" && test "$PLSHARED" = "yes"; then
+       MAKE_SHARED_OBJECT=yes
+    fi
+    AC_MSG_RESULT("		PLBASE=$PLBASE")
+    AC_MSG_RESULT("		PLARCH=$PLARCH")
+    AC_MSG_RESULT("		PLLIBS=$PLLIBS")
+    AC_MSG_RESULT("		PLLDFLAGS=$PLLDFLAGS")
+    AC_MSG_RESULT("		MAKE_SHARED_OBJECT=$MAKE_SHARED_OBJECT")
+    
+    case "$PLARCH" in
+	*)			LDFLAGS="$PLLDFLAGS" ;;
+    esac
+    ALLTARGET=xpce-pl
+    PLTARGET=nosoall
+  else
+    ALLTARGET=xpce
   fi
-  AC_MSG_RESULT("		PLBASE=$PLBASE")
-  AC_MSG_RESULT("		PLARCH=$PLARCH")
-  AC_MSG_RESULT("		PLLIBS=$PLLIBS")
-  AC_MSG_RESULT("		PLLDFLAGS=$PLLDFLAGS")
-  AC_MSG_RESULT("		MAKE_SHARED_OBJECT=$MAKE_SHARED_OBJECT")
-  
-  case "$PLARCH" in
-      *)			LDFLAGS="$PLLDFLAGS" ;;
-  esac
-  ALLTARGET=xpce-pl
-  PLTARGET=nosoall
 else
   ALLTARGET=xpce
 fi
@@ -313,6 +323,32 @@ dnl %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 dnl % End Quintus specific configuration
 dnl %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+dnl %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+dnl % Begin SICStus specific configuration
+dnl %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+if test -d ../sicstus/src; then
+AC_CHECK_PROGS(SICSTUS, sicstus, ":")
+if test $SICSTUS != ":"; then
+cat > conftest.sh << _EOS_
+$SICSTUS << _EOF_
+absolute_file_name('\\\$SP_PATH', X),
+write(X), nl, halt(0).
+halt(1).
+_EOF_
+_EOS_
+SP_PATH=`sh conftest.sh 2>/dev/null`
+rm -f conftest.sh
+
+if test ! -d "$SP_PATH"; then SP_PATH=""; fi
+fi
+fi
+
+dnl %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+dnl % End SICStus specific configuration
+dnl %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
 if test "$runtime" = yes; then
   PLTARGET=rt-$PLTARGET
 fi
@@ -320,6 +356,7 @@ fi
 AC_CHECK_PROGS(MAKESHELL, bash sh, "/bin/sh")
 AC_CHECK_PROGS(MAKE, gmake make, "make")
 AC_CHECK_PROGS(ETAGS, etags ctags, ":")
+AC_CHECK_PROGS(RSYNC, rsync ./rsync.sh)
 AC_CHECK_PROGS(GXX, g++, "NONE")
 if test "$GXX" != "NONE"; then
   AC_DEFINE(O_CPLUSPLUS)
@@ -659,7 +696,7 @@ dnl See which parts of the sources are there, and check the Makefiles we
 dnl need to update.  You cannot call AC_OUTPUT more then once!
 
 Makefiles="Makefile ../xpce.spec"
-Makedirs="../CXX/demo ../quintus/src ../prolog/pwboot"
+Makedirs="../CXX/demo ../quintus/src ../prolog/pwboot ../sicstus/src"
 OptionalMakefiles="../pl/src/Makefile.bin"
 for d in $Makedirs; do
     if test -r $d/Makefile.in; then

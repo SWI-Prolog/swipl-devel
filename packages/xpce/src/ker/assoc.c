@@ -15,7 +15,7 @@
 static int	host_handles;		/* # handles */
 static long	itf_symbols;		/* # symbols */
 
-#define SizeOfSymbol ((int)(&(((PceITFSymbol)NULL)->handle[host_handles])))
+#define SizeOfSymbol ((int)(long)(&(((PceITFSymbol)NULL)->handle[host_handles])))
 
 		/********************************
 		*            SYMBOLS		*

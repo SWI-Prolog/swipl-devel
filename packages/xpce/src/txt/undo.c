@@ -106,8 +106,8 @@ struct undo_buffer
 #define Address(b, c, i)	((b)->b16 ? &(c)->chars[(i)*2] \
 					  : &(c)->chars[(i)])
 #define Chars(b, l)		((b)->b16 ? (l) * 2 : (l))
-#define _UndoDeleteSize(len)    ((unsigned) &((UndoDelete)NULL)->chars[len])
-#define _UndoChangeSize(len)    ((unsigned) &((UndoChange)NULL)->chars[len])
+#define _UndoDeleteSize(len)    ((unsigned)(long) &((UndoDelete)NULL)->chars[len])
+#define _UndoChangeSize(len)    ((unsigned)(long) &((UndoChange)NULL)->chars[len])
 #define UndoDeleteSize(b, l)	_UndoDeleteSize((b)->b16 ? (l)*2 : (l))
 #define UndoChangeSize(b, l)	_UndoChangeSize((b)->b16 ? (l)*2 : (l))
 

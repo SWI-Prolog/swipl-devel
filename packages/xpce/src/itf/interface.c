@@ -505,9 +505,13 @@ pceGet(Any receiver, Name classname, Name selector, int argc, Any *argv)
 
   if ( classname )
   { if ( !(cl = getMemberHashTable(classTable, classname)) )
-      return (Any)errorPce(receiver, NAME_noClass, classname);
+    { errorPce(receiver, NAME_noClass, classname);
+      fail;
+    }
     if ( !instanceOfObject(receiver, cl) )
-      return (Any)errorPce(receiver, NAME_noSuperClassOf, classname);
+    { errorPce(receiver, NAME_noSuperClassOf, classname);
+      fail;
+    }
   } else
     cl = NULL;
 

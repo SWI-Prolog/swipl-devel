@@ -497,18 +497,6 @@ getCheckType(Type t, Any val, Any ctx)
 		********************************/
 
 static inline status
-failType(const Type t, const Any val, const Any ctx)
-{ fail;
-}
-
-
-static inline status
-succeedType(const Type t, const Any val, const Any ctx)
-{ succeed;
-}
-
-
-static inline status
 valueType(const Type t, const Any val, const Any ctx)
 { if ( val == t->context )
     succeed;

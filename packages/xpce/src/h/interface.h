@@ -16,7 +16,7 @@
 		********************************/
 
 #ifndef PCE_VERSION
-#define PCE_VERSION "5.0.4, April 1999"
+#define PCE_VERSION "5.0.6, July 1999"
 #endif
 
 #ifndef OS_VERSION
@@ -276,7 +276,7 @@ __pce_export int	pceEnumElements(PceObject collection,
 #define HOST_BACKTRACE	2		/* give stack trace on host */
 #define HOST_HALT	3		/* exit host */
 #define HOST_BREAK	4		/* start interactive session */
-#define HOST_SYMBOLFILE	5		/* query symbol table */
+/*#define HOST_SYMBOLFILE	5*/	/* This is deleted */
 #define HOST_ABORT	6		/* abort, return to toplevel */
 #define HOST_SIGNAL	7		/* signal() replacement */
 #define HOST_RECOVER_FROM_FATAL_ERROR 9 /* Error: don't return */

@@ -85,8 +85,10 @@
 
 \renewcommand{\arg}[1]{{\em #1}}
 
-\newcommand{\class}[1]{{\reffont #1}\index{#1 \string\idxtype{class}}}
-\newcommand{\classs}[1]{{\reffont #1s}\index{#1 \string\idxtype{class}}}
+\def\class{}
+\def\classs{}
+\renewcommand{\class}[1]{{\reffont #1}\index{#1 \string\idxtype{class}}}
+\renewcommand{\classs}[1]{{\reffont #1s}\index{#1 \string\idxtype{class}}}
 \newcommand{\lib}[1]{library({\tt #1})\index{#1 \string\idxtype{library}}}
 
 \newlength{\clwidth}

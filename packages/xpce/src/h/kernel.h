@@ -89,6 +89,10 @@ generate warnings on accidental use of them.
 #define SCAN_MAX_ARGS 		32	/* scanstr maximum arguments */
 #define PCE_MAX_INT		((long)((1L<<(sizeof(Any)*8 - TAG_BITS-1))-1))
 #define PCE_MIN_INT		(-(PCE_MAX_INT-1))
+#ifndef INT_MAX
+#define INT_MAX			((int)(((unsigned int)1<<(sizeof(int)*8-1))-1))
+#define INT_MIN			(-(INT_MIN)-1)
+#endif
 
 #define LINESIZE		2048	/* maximum length of a line */
 #define FORMATSIZE		10000	/* maximum length of a ->format */
@@ -148,7 +152,7 @@ typedef void			(*atexit_function)(int status);
 #define Promote(type) type
 #endif
 
-#if !O_INLINE || defined(__osf__)
+#if !O_INLINE
 #define inline
 #endif
 
@@ -573,7 +577,7 @@ extern struct name builtin_names[];	/* object-array of built-in's */
 
 #define TrueOrFalse(b)	(isOn(b) ? TRUE : FALSE)
 
-#define nonObject(obj)	(((int) (obj) & MASK_MASK) || (Any)(obj) == NULL)
+#define nonObject(obj)	(MaskOf(obj) || !(obj))
 #define isObject(obj)	(!nonObject(obj))
 
 		/********************************
@@ -598,8 +602,8 @@ extern struct name builtin_names[];	/* object-array of built-in's */
 #define succeed		return SUCCEED
 #define answer(v)	return (v)
 
-#define DONE(goal)	if ( (status) (goal) ) succeed
-#define TRY(goal)	if ( !((status) (goal)) ) fail
+#define DONE(goal)	if ( (goal)  ) succeed
+#define TRY(goal)	if ( !(goal) ) fail
 #define EXISTS(object)	if ( isNil(object) ) fail
 
 

@@ -928,7 +928,7 @@ status
 storeCharpFile(FileObj f, char *s)
 { int l = strlen(s);
 
-  TRY(storeWordFile(f, (Any) l));
+  TRY(storeWordFile(f, (Any) (long)l));
   fwrite(s, sizeof(char), l, f->fd);
   
   return checkErrorFile(f);

@@ -64,7 +64,7 @@ callCPlusPlusProc(Any f, int ac, const Any av[])
 				  A(7), A(8));
     default:
       Cprintf("[PCE: Too many C++ arguments]\n");
-      return FALSE;
+      return FAIL;
   }
 }
 
@@ -120,7 +120,7 @@ callCPlusPlusMethodProc(Any obj, Any f, int ac, const Any av[])
 				  A(6), A(7), A(8));
     default:
       Cprintf("[PCE: Too many C++ arguments]\n");
-      return FALSE;
+      return FAIL;
   }
 }
 
@@ -191,7 +191,7 @@ callCPlusPlusPceMethodProc(Any obj, Any f, int ac, const Any av[])
 				  A(6), A(7), A(8));
     default:
       Cprintf("[PCE: Too many C++ arguments]\n");
-      return FALSE;
+      return FAIL;
   }
 }
 

@@ -7,10 +7,7 @@ Vendor:		SWI, University of Amsterdam
 Source:		xpce-@VMAJOR@.@VMINOR@.@VPATCH@.tar.gz
 Url:		http://www.swi.psy.uva.nl/projects/xpce/
 Group:		Development/Languages
-Requires:	pl >= 3.2.2
-Requires:	libXt.so.6, libX11.so.6, libSM.so.6, libICE.so.6
-Requires:	libjpeg.so.6, libXpm.so.4
-Requires:	libm.so.5, libc.so.5
+Requires:	pl >= 3.2.6
 Prefix:		/usr
 BuildRoot:	/var/tmp/xpce
 

@@ -213,20 +213,11 @@ ws_emulate_three_buttons(int time)
 
 static int
 IsDownKey(code)
-{ int mask = GetKeyState(code);
+{ short mask = GetKeyState(code);
 
   DEBUG(NAME_key, Cprintf("IsDownKey(%d): mask = 0x%x\n", code, mask));
 
-  return mask & ~0xff;
-}
-
-
-static int
-IsDownMeta(LONG lParam)
-{ DEBUG(NAME_key, Cprintf("IsDownMeta(0x%lx)\n", lParam));
-
-  return lParam & (1L << (30-1));	/* bit-29 is 1 if ALT is depressed */
-					/* test tells me it is bit 30 ??? */
+  return mask & 0x8000;
 }
 
 
@@ -239,6 +230,8 @@ messageToKeyId(UINT message, UINT wParam, LONG lParam, unsigned long *bmask)
     state |= BUTTON_control;
   if ( IsDownKey(VK_SHIFT) )
     state |= BUTTON_shift;
+  if ( IsDownKey(VK_MENU) )
+    state |= BUTTON_meta;
 
   switch(message)
   { case WM_KEYDOWN:
@@ -258,7 +251,7 @@ messageToKeyId(UINT message, UINT wParam, LONG lParam, unsigned long *bmask)
 	case VK_EXECUTE:	id = NAME_execute;	break;
 	case VK_INSERT:		id = NAME_insert;	break;
 	case VK_HELP:		id = NAME_help;		break;
-	case VK_MENU:		id = NAME_menu;		break;
+	case VK_APPS:		id = NAME_menu;		break; /* ??? */
 
         case VK_F1:		id = NAME_keyTop_1;	break;
         case VK_F2:		id = NAME_keyTop_2;	break;
@@ -279,11 +272,11 @@ messageToKeyId(UINT message, UINT wParam, LONG lParam, unsigned long *bmask)
 	    id = toInt(Control('_'));
 	  break;
 	case 0x56:			/* OEM specific 'V' ??? */
-	  if ( (state & BUTTON_control) && IsDownMeta(lParam) )
+	  if ( (state & BUTTON_control) && (state & BUTTON_meta) )
 	    id = toInt(Control('V') + META_OFFSET);
 	  break;
 	case 0x49:			/* OEM specific 'I' ??? */
-	  if ( (state & BUTTON_control) && IsDownMeta(lParam) )
+	  if ( (state & BUTTON_control) && (state & BUTTON_meta) )
 	    id = toInt(Control('I') + META_OFFSET);
 	  break;
       }
@@ -298,9 +291,9 @@ messageToKeyId(UINT message, UINT wParam, LONG lParam, unsigned long *bmask)
     case WM_CHAR:
     { id = toInt(wParam);
 
-      if ( wParam == ' ' && IsDownKey(VK_CONTROL) )
+      if ( wParam == ' ' &&  (state & BUTTON_control) )
         id = ZERO;			/* ^-space --> ^@ */
-      else if ( wParam == 8 && !IsDownKey(VK_CONTROL) )
+      else if ( wParam == 8 && !(state & BUTTON_control) )
 	id = NAME_backspace;
 
       break;

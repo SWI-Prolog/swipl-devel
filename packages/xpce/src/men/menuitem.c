@@ -52,7 +52,7 @@ static MenuItem
 getConvertMenuItem(Class class, Any value)
 { if ( instanceOfObject(value, ClassPopup) )
   { PopupObj popup = value;
-    MenuItem mi = newObject(ClassMenuItem, get(popup, NAME_label, 0), 0);
+    MenuItem mi = newObject(ClassMenuItem, popup->name, 0);
 
     assign(mi, popup, popup);
     assign(popup, context, mi);

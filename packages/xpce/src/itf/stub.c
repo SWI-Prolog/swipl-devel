@@ -35,7 +35,7 @@ static char * host_action_names[] =
   "HOST_BACKTRACE",
   "HOST_HALT",
   "HOST_BREAK",
-  "HOST_SYMBOLFILE",
+  "<unused (5)>",
   "HOST_ABORT",
   "HOST_SIGNAL",
   "HOST_RECOVER_FROM_FATAL_ERROR",
@@ -96,9 +96,7 @@ Stub__HostActionv(int action, va_list args)
 int
 Stub__HostQuery(int what, PceCValue *value)
 { switch(what)
-  { case HOST_SYMBOLFILE:
-      return PCE_FAIL;
-    case HOST_CONSOLE:
+  { case HOST_CONSOLE:
       return PCE_FAIL;
     default:
       Cprintf("Unknown query from PCE: %d\n", what);

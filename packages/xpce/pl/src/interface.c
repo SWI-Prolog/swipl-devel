@@ -1796,7 +1796,7 @@ invoke(Term rec, Term cl, Term msg, Term ret)
 				      type,
 				      arg) )
 	    { if ( goal.errcode == PCE_ERR_ARGTYPE )
-	      { goal.argn = (i<0 ? goal.argc+1 : i);
+	      { goal.argn = (i<0 ? goal.argc : i);
 		goal.errc1 = makeTermHandle(arg);
 	      }
 
@@ -1861,7 +1861,7 @@ invoke(Term rec, Term cl, Term msg, Term ret)
 	      goto error;
 	    if ( !get_typed_object(&goal, arg, type, &value) )
 	    { if ( goal.errcode == PCE_ERR_ARGTYPE )
-		goal.argn = (i < 0 ? goal.argc+1 : i);
+		goal.argn = (i < 0 ? goal.argc : i);
 	      goto error;
 	    }
 	    if ( i >= 0 )
@@ -2592,10 +2592,7 @@ PrologAction(int action, va_list args)
 static int
 PrologQuery(int what, PceCValue *value)
 { switch(what)
-  { case HOST_SYMBOLFILE:
-      if ( (value->string = (char *)SP_inquiry(SP_INQUIRY_SYMBOLFILE)) )
-	return PCE_SUCCEED;
-      return PCE_FAIL;
+  { 
 #ifdef _CONSOLE_H_INCLUDED		/* Win32 console */
     case HOST_CONSOLE:
       if ( (value->pointer = indirect_rlc_hwnd()) )
@@ -2699,10 +2696,7 @@ PrologAction(int action, va_list args)
 static int
 PrologQuery(int what, PceCValue *value)
 { switch(what)
-  { case HOST_SYMBOLFILE:
-      if ( (value->string = (char *)PL_query(PL_QUERY_SYMBOLFILE)) )
-	return PCE_SUCCEED;
-      return PCE_FAIL;
+  { 
 #ifdef _CONSOLE_H_INCLUDED		/* Win32 console */
     case HOST_CONSOLE:
       if ( (value->pointer = indirect_rlc_hwnd()) )

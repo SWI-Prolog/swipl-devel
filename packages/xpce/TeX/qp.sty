@@ -1,5 +1,6 @@
 \def\booktitle{\mbox{}}
 
+\def\reffont{}
 \renewcommand{\reffont}{\bf}
 \setlength{\codeindent}{0pt}
 
@@ -31,7 +32,7 @@
 %\setlength{\headsep}{1cm - \headheight}
 %\setlength{\footskip}{1.5cm -\baselineskip}
 
-\newcommand{\setupfancyplain}{%
+\providecommand{\setupfancyplain}{%
     \renewcommand{\chaptermark}[1]{\markboth{\thechapter:\ ##1}{\thechapter:\ ##1}}%
     \renewcommand{\sectionmark}[1]{\markright{\thesection:\ ##1}}}
 

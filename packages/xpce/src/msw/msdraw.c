@@ -527,6 +527,7 @@ d_winmf(const char *fn, int x, int y, int w, int h, const char *descr)
 				descr)) )
   { ReleaseDC(NULL, refdc);
     d_hdc(hdc, DEFAULT, DEFAULT);
+    SetBkMode(hdc, TRANSPARENT);
 
     succeed;
   }

@@ -727,7 +727,7 @@ XPCE_chain_head(XPCE_Object chain)
 { if ( instanceOfObject(chain, ClassChain) )
   { Chain ch = chain;
 
-    return (XPCE_Object) notNil(ch->head) ? ch->head : NULL;
+    return (XPCE_Object) (notNil(ch->head) ? ch->head : NULL);
   }
 
   fail;					/* error? */

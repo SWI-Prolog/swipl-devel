@@ -557,35 +557,58 @@ makeClassDirectory(Class class)
 		*           PRIMITIVES		*
 		********************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Copied from SWI-Prolog pl-os.c. No poblem, as  SWI has copyright to both
+systems.  If you spot a bug, please synchronise.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static char *
 canonisePath(char *path)
-{ register char *out = path;
+{ char *out = path, *in = path;
   char *osave[100];
   int  osavep = 0;
-  char *bsave = out;
 
-  while( IsDirSep(path[0]) && path[1] == '.' &&
-	 path[2] == '.'    && IsDirSep(path[3]) )
-    path += 3;
+  while( IsDirSep(in[0]) && in[1] == '.' && in[2] == '.' && IsDirSep(in[3]) )
+    in += 3;
+  if ( IsDirSep(in[0]) )
+    *out++ = '/';
+  osave[osavep++] = out;
 
-  while(*path)
-  { if ( IsDirSep(*path) )
-    { while(IsDirSep(path[1]))
-	path++;
-      while (path[1] == '.' && (IsDirSep(path[2]) || path[2] == EOS))
-	path += 2;
-      while (path[1] == '.' && path[2] == '.' && IsDirSep(path[3]))
-      { out = osave[--osavep];
-	path += 3;
+  while(*in)
+  { if ( IsDirSep(in[0]) )
+    {
+    again:
+      if ( *in )
+      { while( IsDirSep(in[1]) )		/* delete multiple / */
+	  in++;
+	if ( in[1] == '.' )
+	{ if ( IsDirSep(in[2]) )		/* delete /./ */
+	  { in += 2;
+	    goto again;
+	  }
+	  if ( in[2] == EOS )		/* delete trailing /. */
+	  { *out = EOS;
+	    return path;
+	  }
+	  if ( in[2] == '.' &&		/* delete /foo/../ */
+	       (IsDirSep(in[3]) || in[3] == EOS) && osavep > 0 )
+	  { out = osave[--osavep];
+	    in += 3;
+	    goto again;
+	  }
+	}
       }
+      if ( *in )
+	in++;
+      if ( out > path && !IsDirSep(out[-1]) )
+	*out++ = '/';
       osave[osavep++] = out;
-      *out++ = *path++;
     } else
-      *out++ = *path++;
+      *out++ = *in++;
   }
-  *out++ = *path++;
+  *out++ = *in++;
 
-  return bsave;
+  return path;
 }
 
 

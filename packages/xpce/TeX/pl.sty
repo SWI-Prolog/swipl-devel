@@ -73,6 +73,14 @@
 \def\@gluedcmdoptitem#1#2{\definition{#1\var{#2}}}
 \def\@cmdoptitem#1#2{\definition{#1 \var{#2}}}
 \makeatother
+\newcommand{\longoptionitem}[2]{%
+	\ifthenelse{\equal{}{#2}}{%
+	    \definition{--#1}}{%
+	    \definition{--#1={\it #2}}}\ignorespaces}
+\newcommand{\longoption}[2]{%
+	\ifthenelse{\equal{}{#2}}{%
+	    \mbox{\reffont --#1}}{%
+	    \mbox{\reffont --#1={\it #2}}}}
 
 \newcommand{\traceoption}[3]{%
 	\definition{{\tt #1} (#2)}#3%

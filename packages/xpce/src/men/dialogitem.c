@@ -159,6 +159,9 @@ static CharArray
 getLabelNameDialogItem(DialogItem di, Name name)
 { Any suffix, label = GetLabelNameName(name);
 
+  if ( !label || !instanceOfObject(label, ClassCharArray) )
+    label = name;			/* play safe */
+
   if ( (suffix = getClassVariableValueObject(di, NAME_labelSuffix)) )
     label = getEnsureSuffixCharArray(label, suffix);
 

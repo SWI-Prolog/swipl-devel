@@ -6,6 +6,9 @@
 
 History:	Fri Apr 26, 1996 for version 4.8.17 (complete rewrite)
 		Tue Jan 21, 1997 updated for 4.9.1  (minor changes)
+		Fri Aug 29, 1997 updated for 4.9.3  (minor changes)
+		Mon Dec  8, 1997 updated for 4.9.7  (minor changes)
+		Fri Feb  5, 1999 updated for 5.0.0  (deleted old stuff)
 
 Configuration, compilation and installation is based on the GNU autoconf
 package. General comments on installing packages   based on autoconf are
@@ -15,32 +18,40 @@ Required tools
 ==============
 
 	# GNU-Make
-	We're using version 3.74.  Many other versions will do as well,
+	We're using version 3.76.  Many other versions will do as well,
 	but non-gnu versions of make will fail.
 
 	# GCC
 	Necessary on most machines, though you might get away with
 	another ANSI C compiler.  Check the Makefile carefully for
 	the various flags passed to compiler in that case.  The only
-	non-gcc compiler used by us is MSVC++ 2.0 for the Win32 version.
+	non-gcc compiler used by us is MSVC++ 5.0 for the Win32 version.
 
-	Most GCC versions these days are fine.  Early versions, before
-	2.5.8 with low patch-level numbers (notably early 2.1, 2,2 and
-	2.3 versions) should not be trusted.  We use 2.6.3 and 2.7.2
-	at the moment of writing.
+	Most GCC versions these days are fine.  We use egcs-1.0.3 and
+	gcc-2.7.2.
 
 	You need g++ to compile the C++ interface, but if you don't
 	have it, configure will automatically exclude the C++ interface.
-	libg++ is not required.
+	libg++ is not required *NOTE: C++ is currently not supported*
 
-	# GNU-install
-	Not really needed, but on some systems it avoids a fall-back to
-	the shell-script install-sh, giving an tremendous speedup while
-	running `make dv-install'.
+	# libXpm
+	The X11 XPM (XPixMap) format libary for handling coloured and
+	masked images.  Not strickly necessary, but without it .xpm
+	files cannot be handled and various of the library components
+	and demo programs use XPM files.  XPM is an X11 contrib package.
+	You can fetch the sources from many places on the net, or from
+	
+	    ftp://swi.psy.uva.nl/pub/xpce/util/images/xpm-3.4i.tar.gz
 
-	Well, maybe I should say: GET GNU INSTALL.  Many problems in the
-	final installation have been reported using other versions of
-	install 
+	# libjpeg
+	The JPEG group library for handling JPEG images.  When not
+	available, jpeg images cannot be handled. The sources for this
+	library are in:
+
+	    ftp://swi.psy.uva.nl/pub/xpce/util/images/jpegsrc.v6a.tar.gz
+
+	which, again, can be found at many other places on the net.
+
 
 For all other required tools, both the   GNU,  BSD and System-V versions
 are supposed to work properly. Our path   prefers the tools in the order
@@ -74,29 +85,37 @@ Unfortunately, libXpm is not part of   many  standard X11 distributions,
 and should thus be installed prior to   running  configure for XPCE. You
 can find a version of the xpm sources in
 
-	ftp://swi.psy.uva.nl/pub/xpce/util/xpm-3.4i.tar.gz.
+	ftp://swi.psy.uva.nl/pub/xpce/util/images/xpm-3.4i.tar.gz.
 
 If you make a version for  distribution,   it  is  good practice to link
 using the static version of libXpm.
 
+JPEG colour image files
+=======================
 
-===================================================
-Installation Guide to arrive at a *Working* Version
-===================================================
+When available, XPCE will use libjpeg to deal with JPEG image files.
+The jpeg format is especially useful for handling large full-colour
+images of real-world scenes.  JPEG reading is based on the jpeg library
+as provided by the independent JPEG group.  The source for this library
+is free, and available from
 
-This is slightly  more  complicated  :-)   We  start  at  the SWI-Prolog
-installation,  as  this  needs  some   special  considerations  on  most
-platforms.
+	ftp://swi.psy.uva.nl/pub/xpce/util/images/jpegsrc.v6a.tar.gz
+
+
+===========================
+Detailed Installation Guide
+===========================
+
+We start at the SWI-Prolog  installation,   as  this  needs some special
+considerations on some platforms.
 
 
 Choosing the build-directory
 ============================
 
-You can place the directory for  building XPCE/Prolog anywhere, but some
-older versions had trouble if the pathname  contains the string `pce'. A
-good choice is /usr/local/src or, if  you   are  installing as a private
-user, $HOME/src. Unpack the  Prolog  and   XPCE  archives  from the same
-directory:
+You can place the directory for   building  XPCE/Prolog anywhere. A good
+choice is /usr/local/src or, if you are   installing  as a private user,
+$HOME/src. Unpack the Prolog and XPCE archives from the same directory:
 
 	% gunzip < pl-<version>.tar.gz | tar xvfB -
 	% gunzip < xpce-<version>.tar.gz | tar xvfB -
@@ -170,30 +189,9 @@ By  default,  SWI-Prolog  will  try  to  configure  the  shared  library
 interface and the XPCE configure run will   notify  this and prepare for
 building a shared object.
 
-At least on SunOS and  Solaris,  gcc   should  be  configured to use the
-system version of ld, and *not*  GNU-ld.   To  check  this, make a small
-C-program and compiler it using gcc -v:
-
-----------------test.c------------------------------------------
-main()
-{}
-----------------------------------------------------------------
-
-	% gcc -v test.c
-
-If it uses ld from  the  gcc   directories,  add  the following flags to
-LDFLAGS in Makefile:
-
-	* SunOS 4.1: -B/bin
-	* Solaris:   -B/usr/ccs/bin
-
-Build and install SWI-Prolog
-----------------------------
-
-Now, build and install SWI-Prolog:
-					     
-	% make
-	% make install
+Older versions of gcc (prior 2.7?) on Sun  require the Sun version of LD
+rather than the GNU version to create  shared objects. In that case, add
+-B<dir-holding-system-version-of-ld> to the CFLAGS.
 
 ****************************************************************
 
@@ -226,9 +224,9 @@ Just to make sure your programs are accessible and of the right version,
 try:
 
 	% pl -v
-	SWI-Prolog version 2.7.18 for sparc-solaris2.5
+	SWI-Prolog version 3.2.2 for sparc-solaris2.5
 	% make -v
-	GNU Make version 3.74, by Richard Stallman and Roland McGrath.
+	GNU Make version 3.76, by Richard Stallman and Roland McGrath.
 	...
 	% gcc -v
 	Reading specs from /usr/local/lib/gcc-lib/sparc-sun-solaris2.5/2.7.2/specs
@@ -251,30 +249,6 @@ If you have configured for using shared libraries, the -fPIC flag should
 be passed to the compiler. If this is  not the case, please look closely
 at the steps above. If all goes well, the compilation should finish with
 few warnings, resulting in the library libXPCE.a
-
-
-Building libXPCE.so?
-====================
-
-When using shared libraries, there are still  two ways to organise XPCE.
-One (the default) is to create pl2xpce.so,  a shared object holding both
-libXPCE.a  and  the  Prolog/XPCE  interface.  The  other  is  to  create
-libXPCE.so, the `pure' XPCE  shared  object   and  pl2xpce.so,  just the
-interface. The latter way is recommended if   you  want to use XPCE with
-multiple  host  languages,  such  as  C++    or  other  Prolog  or  Lisp
-implementations.  To build the shared object, do:
-
-	% make so
-
-And then, with access to the $prefix/lib directory:
-
-	% make so-install
-
-Prolog is setup to  look  there  for   shared  objects  by  means of the
-LD_RUN_PATH  variable.  If  this  doesn't  work    on  your  system  and
-$prefix/lib is not  a  place  where   ld.so  looks  for  shared objects,
-configure ld.so to look in $prefix/lib or move/link the libraries to the
-proper location.
 
 
 Building the interface:
@@ -335,6 +309,3 @@ Which will:
 
 	# in $exec_prefix/bin, make links to the xpce and xpce-client
 	executables
-					     
-
-	

@@ -872,7 +872,7 @@ sendSendMethod(SendMethod sm, Any receiver, int argc, const Any argv[])
   int i;
   status rval;
 
-					/* this is pceResolveSend() */
+				/* this is pceResolveImplementation() */
   g.selector       = sm->name;
   g.va_allocated   = 0;
   g.va_argc        = 0; 
@@ -881,6 +881,9 @@ sendSendMethod(SendMethod sm, Any receiver, int argc, const Any argv[])
   g.receiver       = receiver;
   g.implementation = sm;
   g.errcode        = PCE_ERR_OK;
+
+  if ( onDFlag(sm, D_HOSTMETHOD) )
+    g.flags |= PCE_GF_HOST;
 
   pushGoal(&g);
 
@@ -936,6 +939,9 @@ getGetGetMethod(GetMethod gm, Any receiver, int argc, const Any argv[])
   g.implementation = gm;
   g.errcode        = PCE_ERR_OK;
   g.return_type	   = gm->return_type;
+
+  if ( onDFlag(gm, D_HOSTMETHOD) )
+    g.flags |= PCE_GF_HOST;
 
   g.argc  = valInt(gm->types->size);
   g.types = (PceType *)gm->types->elements;

@@ -393,7 +393,7 @@ printStackPce(Pce pce, Int depth)
 
 static status
 maxGoalDepthPce(Pce pce, Int depth)
-{ MaxGoalDepth = (isInteger(depth) ? valInt(depth) : PCE_MAX_INT);
+{ MaxGoalDepth = (isInteger(depth) ? valInt(depth) : NO_MAX_GOAL_DEPTH);
 
   succeed;
 }
@@ -401,7 +401,7 @@ maxGoalDepthPce(Pce pce, Int depth)
 
 static Int
 getMaxGoalDepthPce(Pce pce)
-{ answer(MaxGoalDepth == PCE_MAX_INT ? NIL : toInt(MaxGoalDepth));
+{ answer(MaxGoalDepth == NO_MAX_GOAL_DEPTH ? NIL : toInt(MaxGoalDepth));
 }
 
 
@@ -1445,7 +1445,7 @@ pceInitialise(int handles, const char *home, int argc, char **argv)
   PCEargc = argc;
   PCEargv = argv;
 
-  MaxGoalDepth = PCE_MAX_INT;
+  MaxGoalDepth = NO_MAX_GOAL_DEPTH;
   initAnswerStack();
   initMClock();
 

@@ -29,10 +29,10 @@ processInput(FILE *fd, FILE *ic, FILE *ih)
   { char *s, *q;
 
     for(s=name, q=prolog; *s; s++)
-    { if ( isupper(*s) )
+    { if ( isupper(*s & 0xff) )
       { *q++ = '_';
 	*q++ = *s + 'a' - 'A';
-      } else if ( isspace(*s) )
+      } else if ( isspace(*s & 0xff) )
       { *s = EOS;
 	break;
       } else

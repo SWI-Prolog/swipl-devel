@@ -1063,6 +1063,7 @@ resizeGraphical(Graphical gr, Real xfactor, Real yfactor, Point origin)
   int ox = valInt(gr->area->x);
   int oy = valInt(gr->area->y);
   int nx, ny, nw, nh;
+  Any av[4];
 
   init_resize_graphical(gr, xfactor, yfactor, origin, &xf, &yf, &ox, &oy);
   if ( xf == 1.0 && yf == 1.0 )
@@ -1073,7 +1074,12 @@ resizeGraphical(Graphical gr, Real xfactor, Real yfactor, Point origin)
   nw = rfloat((float) valInt(gr->area->w) * xf);
   nh = rfloat((float) valInt(gr->area->h) * yf);
 
-  return setGraphical(gr, toInt(nx), toInt(ny), toInt(nw), toInt(nh));
+  av[0] = toInt(nx);
+  av[1] = toInt(ny);
+  av[2] = toInt(nw);
+  av[3] = toInt(nh);
+
+  return qadSendv(gr, NAME_doSet, 4, av);
 }
 
 

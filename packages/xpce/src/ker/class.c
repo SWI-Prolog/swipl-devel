@@ -19,7 +19,7 @@ static status	lazyBindingClass(Class class, Name which, Bool val);
 
 #define CLASS_PCE_SLOTS 42
 
-#define InstanceSize(c)	((int) &((Instance) NULL)->slots[valInt((c)->slots)])
+#define InstanceSize(c)	((int)(long) &((Instance) NULL)->slots[valInt((c)->slots)])
 #define SlotsClass(c) \
       ((sizeof(struct c) - ((int) &((Instance) NULL)->slots[0])) / sizeof(Any))
 

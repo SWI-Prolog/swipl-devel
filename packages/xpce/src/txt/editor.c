@@ -2647,8 +2647,11 @@ alignOneLineEditor(Editor e, Int where, Int column)
   long sol = start_of_line(e, where);
   long sot;
   int tabs, spaces;
-  int col = valInt(column);
+  int col;
 
+  if ( isDefault(column) )
+    column = e->left_margin;
+  col = valInt(column);
   if ( col < 0 )
     col = 0;
 
@@ -2670,8 +2673,7 @@ alignOneLineEditor(Editor e, Int where, Int column)
 static status
 alignLineEditor(Editor e, Int arg)	/* align line on indentation arg */
 { MustBeEditable(e);
-  return alignOneLineEditor(e, e->caret,
-			    isDefault(arg) ? e->left_margin : arg);
+  return alignOneLineEditor(e, e->caret, arg);
 }
 
 

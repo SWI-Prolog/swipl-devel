@@ -32,7 +32,8 @@
 #endif
 #include <setjmp.h>
 
-#define XpmMalloc(n) (void *)pceMalloc(n)
+/* left to free(), so use malloc() rather then pceMalloc() */
+#define XpmMalloc(n) (void *)malloc(n)
 typedef unsigned int XpmPixel;
 
 #ifndef SEEK_SET
@@ -41,8 +42,8 @@ typedef unsigned int XpmPixel;
 
 extern void	jpeg_iostream_src(j_decompress_ptr cinfo, IOSTREAM* infile);
 
-int
-convert_colourmap(int ncolors,
+static int
+convert_colourmap(int ncolors, int ncomponents,
 		  JSAMPARRAY colourmap,
 		  XpmImage *img)
 { int i;
@@ -57,11 +58,25 @@ convert_colourmap(int ncolors,
   { XpmColor *c = &img->colorTable[i];
 
     if ( (c->c_color = XpmMalloc(8)) )
-    { sprintf(c->c_color,
-	      "#%02x%02x%02x",
-	      colourmap[0][i],
-	      colourmap[1][i],
-	      colourmap[2][i]);
+    { int r, g, b;
+
+      switch(ncomponents)
+      { case 3:
+	  r = colourmap[0][i];
+	  g = colourmap[1][i];
+	  b = colourmap[2][i];
+	  break;
+	case 1:
+	  r = colourmap[0][i];
+	  g = b = r;
+	  break;
+	default:
+	  r = g = b = 0;		/* keep compiler happy */
+	  sysPce("JPEG: Unknown number of colour components: %d\n",
+		 ncomponents);
+      }
+      
+      sprintf(c->c_color, "#%02x%02x%02x", r, g, b);
     } else
       return XpmNoMemory;
   }
@@ -134,6 +149,7 @@ readJPEGtoXpmImage(IOSTREAM *fd, XpmImage *img)
   jpeg_start_decompress(&cinfo);
   
   if ( (rval=convert_colourmap(cinfo.actual_number_of_colors,
+			       cinfo.out_color_components,
 			       cinfo.colormap,
 			       img) != XpmSuccess) )
     return rval;

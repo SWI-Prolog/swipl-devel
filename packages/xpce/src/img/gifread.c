@@ -81,19 +81,12 @@ GIFError()
 }
 
 static void
-setError(const char *fmt, ...)
-{ va_list args;
-  char buf[1024];
-
-  va_start(args, fmt);
-  vsprintf(buf, fmt, args);
-  va_end(args);
-
-  if ( GIFErrorText )
+setGifError(const char *fmt)
+{ if ( GIFErrorText )
     pceFree(GIFErrorText);
 
-  if ( (GIFErrorText = pceMalloc(strlen(buf)+1)) )
-    strcpy(GIFErrorText, buf);
+  if ( (GIFErrorText = pceMalloc(strlen(fmt)+1)) )
+    strcpy(GIFErrorText, fmt);
 }
 
 
@@ -121,12 +114,12 @@ GIFReadFD(IOSTREAM *fd,
 
   /* read GIF file header */
   if (!ReadOK(fd, buf, 6))
-  { setError("Error reading GIF Magic");
+  { setGifError("Error reading GIF Magic");
     return GIF_INVALID;
   }
   /* need the string "GIF" in the header */
   if (strncmp((char *) buf, "GIF", 3) != 0)
-  { setError("not a valid .GIF file");
+  { setGifError("not a valid .GIF file");
     return GIF_INVALID;
   }
   strncpy(version, (char *) (buf + 3), 3);
@@ -134,12 +127,12 @@ GIFReadFD(IOSTREAM *fd,
 
   /* only handle v 87a and 89a */
   if ((strcmp(version, "87a") != 0) && (strcmp(version, "89a") != 0))
-  { setError("Error, Bad GIF Version number");
+  { setGifError("Error, Bad GIF Version number");
     return GIF_INVALID;
   }
   /* screen description */
   if (!ReadOK(fd, buf, 7))
-  { setError("failed to GIF read screen descriptor. Giving up");
+  { setGifError("failed to GIF read screen descriptor. Giving up");
     return GIF_INVALID;
   }
   GifScreen.Width = LM_to_uint((UCHAR) buf[0], (UCHAR) buf[1]);
@@ -155,14 +148,14 @@ GIFReadFD(IOSTREAM *fd,
   if ( BitSet((UCHAR) buf[4], LOCALCOLORMAP) )
   { if ( (rval=ReadColorMap(fd, GifScreen.BitPixel, at, ac, closure))
 	 							!= GIF_OK )
-    { setError("Error reading GIF colormap");
+    { setGifError("Error reading GIF colormap");
       return rval;
     }
   }
   /* non-square pixels, so what?   */
   if ((GifScreen.AspectRatio != 0) && (GifScreen.AspectRatio != 49))
   {
-    setError("Non-square pixels in GIF image.  Ignoring that fact ...");
+    setGifError("Non-square pixels in GIF image.  Ignoring that fact ...");
   }
   /* there can be multiple images in a GIF file... uh? */
   /* what the hell do we do with multiple images? */
@@ -174,7 +167,7 @@ GIFReadFD(IOSTREAM *fd,
     /* read a byte; */
     if (!ReadOK(fd, &c, 1))
     {
-      setError("Unexpected EOF in GIF.  Giving up");
+      setGifError("Unexpected EOF in GIF.  Giving up");
       return GIF_INVALID;
     }
     /* image terminator */
@@ -183,7 +176,7 @@ GIFReadFD(IOSTREAM *fd,
     }
     if (c == '!')
     { if (!ReadOK(fd, &c, 1))
-      { setError("Error on extension read.  Giving up");
+      { setGifError("Error on extension read.  Giving up");
 	return GIF_INVALID;
       }
       DoExtension(fd, c);
@@ -197,7 +190,7 @@ GIFReadFD(IOSTREAM *fd,
     /* read image header */
     if (!ReadOK(fd, buf, 9))
     {
-      setError("Error on dimension read.  Giving up");
+      setGifError("Error on dimension read.  Giving up");
       return GIF_INVALID;
     }
     useGlobalColormap = !BitSet((UCHAR) buf[8], LOCALCOLORMAP);
@@ -218,7 +211,7 @@ GIFReadFD(IOSTREAM *fd,
     h = LM_to_uint((UCHAR) buf[6], (UCHAR) buf[7]);
 
     if ((w < 0) || (h < 0))
-    { setError("Negative image dimensions!  Giving up");
+    { setGifError("Negative image dimensions!  Giving up");
       return GIF_INVALID;
     }
     bufsize = (long) w *(long) h;
@@ -226,26 +219,26 @@ GIFReadFD(IOSTREAM *fd,
 
     if (bigBuf == NULL)
     {
-      setError("Out of Memory in GIFRead");
+      setGifError("Out of Memory in GIFRead");
       return GIF_NOMEM;
     }
     if (!useGlobalColormap)
     { if ( (rval=ReadColorMap(fd, bitPixel, at, ac, closure)) != GIF_OK )
-      {	setError("Error reading GIF colormap. Giving up");
+      {	setGifError("Error reading GIF colormap. Giving up");
 	pceFree(bigBuf);
 	return rval;
       }
       /*read image */
       if ( (rval=ReadImage(fd, bigBuf, w, h,
 			   BitSet((UCHAR) buf[8], INTERLACE))) != GIF_OK )
-      { setError("Error reading GIF file.  LocalColorMap. Giving up");
+      { setGifError("Error reading GIF file.  LocalColorMap. Giving up");
 	pceFree(bigBuf);
 	return rval;
       }
     } else
     { if ( (rval=ReadImage(fd, bigBuf, w, h,
 			   BitSet((UCHAR) buf[8], INTERLACE))) != GIF_OK )
-      { setError("Error reading GIF file.  GIFScreen Colormap.  Giving up");
+      { setGifError("Error reading GIF file.  GIFScreen Colormap.  Giving up");
 	pceFree(bigBuf);
 	return rval;
       }

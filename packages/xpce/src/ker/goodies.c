@@ -287,7 +287,7 @@ writef(char *fm, ...)
 }
 
   
-#define NOT_SET PCE_MAX_INT
+#define NOT_SET INT_MAX
 #define Skip(q)	while(*(q)) (q)++
 #define DoPP() \
 	{ char *_s = pp(argv[0]); \

@@ -181,10 +181,8 @@ do_pp(Any obj)
   char summary[25];
   char *s;
 
-  switch((int) obj)
-  { case FAIL:			return ppsavestring("FAIL");
-/*  case SUCCEED:		return ppsavestring("SUCCEED"); (= ONE)*/
-  }
+  if ( !obj )
+    return ppsavestring("FAIL");
 
   if ( isInteger(obj) )
   { sprintf(tmp, "%ld", valInt(obj));

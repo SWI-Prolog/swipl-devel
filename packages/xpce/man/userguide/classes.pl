@@ -15,6 +15,7 @@
 :- pce_autoload(man_inheritance_tree, library('man/v_inherit')).
 
 process(In, Out) :-
+	manpce,
 	send(@display, font_alias, normal, font(times, roman,  10), @on),
 	send(@display, font_alias, bold,   font(times, bold,   10), @on),
 	send(@display, font_alias, italic, font(times, italic, 10), @on),

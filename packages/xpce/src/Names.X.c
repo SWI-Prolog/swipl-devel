@@ -32,7 +32,7 @@ main(int argc, char **argv)
       { char *start = s = s + len;
 	char nbuf[200];
 
-	while(*s && (isalnum(*s) || *s == '_') )
+	while(*s && (isalnum(*s & 0xff) || *s == '_') )
 	  s++;
 	strncpy(nbuf, start, s-start);
 	nbuf[s-start] = '\0';

@@ -1,3 +1,52 @@
+* PORTABILITY: Integrated many patches for compilation using egcs-1.1.1 on
+  DEC/Alpha running OSF/1 4.0.  Most general 64-bit problems detected by
+  the compiler.
+
+* FIXED: Updated INSTALL.notes to be the same as the much more up-to-date
+  INSTALL.src from the distribution directory.
+
+* FIXED: drawing transparent text in Windows metafiles.  It appears diagrams
+  can be properly transferred to Office 97 and compatible applications using
+  the `EMF' format.  EMF is now the default format for PceDraw.
+
+* FIXED: reporting errors for type-errors on var-arg methods.  Thanks to
+  Lourens van der Meij.
+
+* FIXED/MODIFIED: If a popup is appended to another popup (for creating
+  a pull-right-menu), the `menu_item<-value' of the created menu-item
+  is now the <-name of the popup rather then the <-label.  This makes
+  <-member work consistent.  Reported by Lourens van der Meij.
+
+* FIXED: UserGuide section on using hyperlinks.  Thanks to Uwe Lesta.
+
+* FIXED: Various cleanup, adding declarations, etc. to get the XPCE/Prolog
+  library running under SICStus.
+
+VERSION 5.0.5
+=============
+
+* FIXED: Path-canonisation in class directory (could yield incorrect value).
+
+* FIXED: `graphical ->resize' to invoke the method ->do_set, rather then
+  bypassing message passing.  Thanks the Uwe Lesta.
+
+* FIXED: catching initialisation exceptions better.
+
+* FIXED: `editor->align_region' to honour default column correctly.
+
+* FIXED: PceEmacs: Show bookmarks in Windows version.
+
+* FIXED: Spying prolog-implemented methods that are called using
+  sendSendMethod() (e.g. ->initialise).
+
+* FIXED: handling grayscale JPEG images correctly.  Thanks to Bob Wielinga.
+
+* FIXED: Win32: Added -f none to running Prolog during the installation to
+  avoid problems with user's ~/.plrc file.  Thanks the Uwe Lesta.
+
+* FIXED: Win32: Detection of `menu' key-event.  Caused problems on ALT-Gr.
+  Thanks the Uwe Lesta.
+
 VERSION 5.0.4
 =============
 

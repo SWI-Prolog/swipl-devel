@@ -20,6 +20,7 @@ initialiseBrowser(Browser b, Name name, Size size, DisplayObj display)
     size = getClassVariableValueObject(b, NAME_size);
 
   TRY(lb = newObject(ClassListBrowser, DEFAULT, size->w, size->h, 0) );
+  send(lb, NAME_pen, ZERO, 0);		/* leave to window */
   initialiseWindow((PceWindow)b, name,
 		   getSizeGraphical((Graphical) lb), display);
   t = get(b, NAME_tile, 0);
