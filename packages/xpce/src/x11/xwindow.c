@@ -638,7 +638,7 @@ ws_enable_window(PceWindow sw, int enable)
   if ( (w = widgetWindow(sw)) )
   { Arg args[1];
 
-    XtSetArg(args[0], XtNinput, val ? True : False);
+    XtSetArg(args[0], XtNinput, enable ? True : False);
     XtSetValues(w, args, 1);
 
     succeed;
