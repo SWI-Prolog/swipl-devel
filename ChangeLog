@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 3.4.5
+=============
+
   * FIXED: Don't save prolog_flag `argv'.  Reported by Mark Staples.
 
   * FIXED: MT-Version: wrong saving of undo information in
