@@ -183,8 +183,7 @@ outtext(format_state *state, PL_chars_t *txt)
 #define format_predicates (GD->format.predicates)
 
 static int	update_column(int, Char);
-static bool	do_format(IOSTREAM *fd,
-			  const char *fmt, unsigned len, int ac, term_t av);
+static bool	do_format(IOSTREAM *fd, PL_chars_t *fmt, int ac, term_t av);
 static void	distribute_rubber(struct rubber *, int, int);
 static int	emit_rubber(format_state *state);
 
@@ -259,19 +258,18 @@ pl_current_format_predicate(term_t chr, term_t descr, control_t h)
 
 
 word
-pl_format3(term_t stream, term_t fmt, term_t Args)
+pl_format3(term_t stream, term_t format, term_t Args)
 { term_t argv;
   int argc = 0;
-  char *f;
   term_t args = PL_copy_term_ref(Args);
   IOSTREAM *out;
   int rval;
-  unsigned len;
+  PL_chars_t fmt;
 
   if ( !getOutputStream(stream, &out) )
     fail;
 
-  if ( !PL_get_nchars(fmt, &len, &f, CVT_ALL|BUF_RING) )
+  if ( !PL_get_text(format, &fmt, CVT_ALL|BUF_RING) )
     return PL_error("format", 3, NULL, ERR_TYPE, ATOM_text, fmt);
 
   if ( (argc = lengthList(args, FALSE)) >= 0 )
@@ -288,7 +286,7 @@ pl_format3(term_t stream, term_t fmt, term_t Args)
     PL_put_term(argv, args);
   }
   
-  if ( (rval = do_format(out, f, len, argc, argv)) )
+  if ( (rval = do_format(out, &fmt, argc, argv)) )
     return streamStatus(out);
   else
   { PL_release_stream(out);
@@ -302,16 +300,30 @@ pl_format(term_t fmt, term_t args)
 { return pl_format3(0, fmt, args);
 }
 
+
+static inline int
+get_chr_from_text(const PL_chars_t *t, int index)
+{ switch(t->encoding)
+  { case ENC_ISO_LATIN_1:
+      return t->text.t[index]&0xff;
+    case ENC_WCHAR:
+      return t->text.w[index];
+    default:
+      assert(0);
+  }
+}
+
+
 		/********************************
 		*       ACTUAL FORMATTING	*
 		********************************/
 
 static bool
-do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
+do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
 { format_state state;			/* complete state */
   int tab_stop = 0;			/* padded tab stop */
   Symbol s;
-  const char *end = fmt+len;
+  int here = 0;
   int rc = TRUE;
 
   Slock(fd);				/* buffer locally */
@@ -326,29 +338,43 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
   else
     state.column = 0;
 
-  while(fmt < end)
-  { switch(*fmt)
+  while(here < fmt->length)
+  { int c = get_chr_from_text(fmt, here);
+
+    switch(c)
     { case '~':
 	{ int arg = DEFAULT;		/* Numeric argument */
 					/* Get the numeric argument */
-	  if ( isDigit(*++fmt) )
-	  { for( ; isDigit(*fmt); fmt++ )
-	      arg = (arg == DEFAULT ? *fmt - '0' : arg*10 + *fmt - '0');
-	  } else if ( *fmt == '*' )
+	  c = get_chr_from_text(fmt, ++here);
+
+	  if ( isDigitW(c) )
+	  { arg = c - '0';
+
+	    here++;
+	    while(here < fmt->length)
+	    { c = get_chr_from_text(fmt, here);
+
+	      if ( isDigitW(c) )
+	      { arg = arg*10 + c - '0';
+		here++;
+	      } else
+		break;
+	    }
+	  } else if ( c == '*' )
 	  { NEED_ARG;
 	    if ( PL_get_integer(argv, &arg) )
 	    { SHIFT;
 	    } else
 	      FMT_ERROR("no or negative integer for `*' argument");
-	    fmt++;
-	  } else if ( *fmt == '`' )
-	  { arg = *++fmt;
-	    fmt++;
+	    c = get_chr_from_text(fmt, ++here);
+	  } else if ( c == '`' && here < fmt->length )
+	  { arg = get_chr_from_text(fmt, ++here);
+	    c = get_chr_from_text(fmt, ++here);
 	  }
-	    
+
 					/* Check for user defined format */
 	  if ( format_predicates &&
-	       (s = lookupHTable(format_predicates, (Void)((long)*fmt))) )
+	       (s = lookupHTable(format_predicates, (Void)((long)c))) )
 	  { Procedure proc = (Procedure) s->value;
 	    FunctorDef fdef = proc->definition->functor;
 	    term_t av = PL_new_term_refs(fdef->arity);
@@ -379,9 +405,9 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 	    if ( str != buf )
 	      free(str);
 
-	    fmt++;
+	    here++;
 	  } else
-	  { switch(*fmt)		/* Build in formatting */
+	  { switch(c)			/* Build in formatting */
 	    { case 'a':			/* atomic */
 		{ PL_chars_t txt;
 
@@ -390,23 +416,23 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 		    FMT_ARG("a", argv);
 		  SHIFT;
 		  outtext(&state, &txt);
-		  fmt++;
+		  here++;
 		  break;
 		}
-	      case 'c':			/* ascii */
-		{ int c;
+	      case 'c':			/* ~c: character code */
+		{ int chr;
 
 		  NEED_ARG;
-		  if ( PL_get_integer(argv, &c) && c>=0 && c<=255 )
+		  if ( PL_get_integer(argv, &chr) && chr >= 0 )
 		  { int times = (arg == DEFAULT ? 1 : arg);
 
 		    SHIFT;
 		    while(times-- > 0)
-		    { outchr(&state, c);
+		    { outchr(&state, chr);
 		    }
 		  } else
 		    FMT_ARG("c", argv);
-		  fmt++;
+		  here++;
 		  break;
 		}
 	      case 'e':			/* exponential float */
@@ -422,15 +448,15 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 		  if ( !PL_get_float(argv, &f) )
 		  { char f[2];
 		    
-		    f[0] = fmt[0];
+		    f[0] = c;
 		    f[1] = EOS;
 		    FMT_ARG(f, argv);
 		  }
 		  SHIFT;
-		  Ssprintf(tmp, "%%.%d%c", arg == DEFAULT ? 6 : arg, *fmt);
+		  Ssprintf(tmp, "%%.%d%c", arg == DEFAULT ? 6 : arg, c);
 		  Ssprintf(buf, tmp, f);
 		  outstring0(&state, buf);
-		  fmt++;
+		  here++;
 		  break;
 		}
 	      case 'd':			/* integer */
@@ -444,19 +470,19 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 		  if ( !PL_get_integer(argv, &i) )
 		  { char f[2];
 		    
-		    f[0] = fmt[0];
+		    f[0] = c;
 		    f[1] = EOS;
 		    FMT_ARG(f, argv);
 		  }
 		  SHIFT;
 		  if ( arg == DEFAULT )
 		    arg = 0;
-		  if ( *fmt == 'd' || *fmt == 'D' )
-		    formatInteger(*fmt == 'D', arg, 10, TRUE, i, tmp);
+		  if ( c == 'd' || c == 'D' )
+		    formatInteger(c == 'D', arg, 10, TRUE, i, tmp);
 		  else
-		    formatInteger(FALSE, 0, arg, *fmt == 'r', i, tmp);
+		    formatInteger(FALSE, 0, arg, c == 'r', i, tmp);
 		  outstring0(&state, tmp);			
-		  fmt++;
+		  here++;
 		  break;
 		}
 	      case 's':			/* string */
@@ -467,13 +493,13 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 		    FMT_ARG("s", argv);
 		  outtext(&state, &txt);
 		  SHIFT;
-		  fmt++;
+		  here++;
 		  break;
 		}
 	      case 'i':			/* ignore */
 		{ NEED_ARG;
 		  SHIFT;
-		  fmt++;
+		  here++;
 		  break;
 		}
 		{ Func f;
@@ -527,7 +553,7 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 		    }
 		  }
 		  SHIFT;
-		  fmt++;
+		  here++;
 		  break;
 		}
 	      case 'W':			/* write_term(Value, Options) */
@@ -577,7 +603,7 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 		  }
 		  SHIFT;
 		  SHIFT;
-		  fmt++;
+		  here++;
 		  break;
 	       }
 	      case '@':
@@ -603,23 +629,23 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 		  }
 
 		  SHIFT;
-		  fmt++;
+		  here++;
 		  break;
 	        }
 	      case '~':			/* ~ */
 		{ outchr(&state, '~');
-		  fmt++;
+		  here++;
 		  break;
 		}
 	      case 'n':			/* \n */
 	      case 'N':			/* \n if not on newline */
 		{ if ( arg == DEFAULT )
 		    arg = 1;
-		  if ( *fmt == 'N' && state.column == 0 )
+		  if ( c == 'N' && state.column == 0 )
 		    arg--;
 		  while( arg-- > 0 )
 		    outchr(&state, '\n');
-		  fmt++;
+		  here++;
 		  break;
 		}
 	      case 't':			/* insert tab */
@@ -628,7 +654,7 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 					(arg == DEFAULT ? (pl_wchar_t)' '
 							: (pl_wchar_t)arg);
 		  state.pending_rubber++;
-		  fmt++;
+		  here++;
 		  break;
 		}
 	      case '|':			/* set tab */
@@ -639,7 +665,7 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 	      case '+':			/* tab relative */
 		  if ( arg == DEFAULT )
 		    arg = 8;
-		  stop = (*fmt == '+' ? tab_stop + arg : arg);
+		  stop = (c == '+' ? tab_stop + arg : arg);
 
 		  if ( state.pending_rubber == 0 ) /* nothing to distribute */
 		  { state.rub[0].where = state.buffered;
@@ -652,7 +678,7 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 		  emit_rubber(&state);
 
 		  state.column = tab_stop = stop;
-		  fmt++;
+		  here++;
 		  break;
 		}
 	      default:
@@ -669,8 +695,8 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 	  break;			/* the '~' switch */
 	}
       default:
-	{ outchr(&state, *fmt);
-	  fmt++;
+	{ outchr(&state, c);
+	  here++;
 	  break;
 	}
     }
