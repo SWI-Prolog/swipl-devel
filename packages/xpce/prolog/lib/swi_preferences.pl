@@ -25,7 +25,11 @@ prolog_edit_preferences(What) :-
 	auto_call(start_emacs),
 	(   \+ access_file(File, exist)
 	->  send(@display, confirm,
-		 'Preferences file %s doesn''t exist.\nCreate it?', File)
+		 'Preferences file %s doesn''t exist.\nCreate it?', File),
+	    (	default_preferences(What, DefFile)
+	    ->	copy_file(DefFile, File)
+	    ;	true
+	    )
 	;   access_file(File, write)
 	->  true
 	    ;   send(@display, inform,
@@ -50,6 +54,21 @@ locate_preferences(prolog, File) :-
 			   ], File),
 	File \== Here, !.
 	
+%	default_preferences(+Id, -File)
+%
+%	If there is a default file for the preferences, return a path to
+%	it, so the user can be presented a starting point.
+
+default_preferences(prolog, File) :-
+	member(Location, 
+	       [ swi('custom/pl.ini'),
+		 swi('dotfiles/dotplrc')
+	       ]),
+	absolute_file_name(Location,
+			   [ access(read),
+			     file_errors(fail)
+			   ], File), !.
+
 
 ensure_xpce_config_dir(Dir) :-
 	catch(expand_file_name('~/.xpce', [Dir]), _, fail),
@@ -58,6 +77,10 @@ ensure_xpce_config_dir(Dir) :-
 	->  true
 	;   send(D, make)
 	).
+
+
+copy_file(From, To) :-
+	send(file(To), copy, From).
 
 
 		 /*******************************
