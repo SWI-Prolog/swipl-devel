@@ -15,7 +15,7 @@
 	    rdfe_transaction/2,		% :Goal, +Name
 	    rdfe_transaction_member/2,	% +Transactions, -Action
 	    rdfe_transaction_name/2,	% +Transactions, -Name
-	    rdfe_set_transaction_name/2,% +Transactions, +Name
+	    rdfe_set_transaction_name/1,% +Name
 
 	    rdfe_undo/0,		% 
 	    rdfe_redo/0,
@@ -389,12 +389,12 @@ rdfe_transaction_name(TID, Name) :-
 	transaction_name(TID, Name),
 	Name \== [].
 
-%	rdfe_set_transaction_name(+TID, +Name)
+%	rdfe_set_transaction_name(+Name)
 %	
 %	Set name of the current transaction
 
-rdfe_set_transaction_name(TID, Name) :-
-	current_transaction(TID),
+rdfe_set_transaction_name(Name) :-
+	current_transaction(TID), !,
 	assert(transaction_name(TID, Name)).
 
 %	rdfe_transaction_member(+TID, -Action)

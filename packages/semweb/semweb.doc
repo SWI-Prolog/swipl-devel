@@ -255,7 +255,16 @@ Changes the second field of the triple.
     \termitem{object}{Object}
 Changes the last field of the triple to the given resource or
 \term{literal}{Value}.
+    \termitem{source}{Source}
+Changes the source location (\jargon{payload}).  Not that updating the
+source has no consequences for the semantics and therefore the
+\jargon{generation} (see rdf_generation/1) is \emph{not} updated.
 \end{description}
+
+    \predicate{rdf_update}{5}{+Subject, +Predicate, +Object,
+			      +Source,+Action}
+As rdf_update/4 but allows for specifying the source.
+
 \end{description}
 
 
@@ -469,10 +478,10 @@ All matching is performed case-insensitive.  Defines methods are:
 
 This RDF low-level module has been created after two year experimenting
 with a plain Prolog based module and a brief evaluation of a second
-generation pure Prolog implementation. The was to be able to handle upto
-aboud 2 million triples on standard (notebook) hardware and deal
-efficiently with \const{subPropertyOf} which was identified as a
-crucial feature of RDFS to realise fusion of different data-sets.
+generation pure Prolog implementation. The aim was to be able to handle
+upto about 2 million triples on standard (notebook) hardware and deal
+efficiently with \const{subPropertyOf} which was identified as a crucial
+feature of RDFS to realise fusion of different data-sets.
 
 The following issues are identified and not solved in suitable manner.
 
@@ -483,14 +492,17 @@ C-based implementation adheres the \jargon{immediate} update model,
 mainly because the current foreign language interface does not provide
 the required information to realise logical updates in C.
 
-    \item [Property hierarchy] 
-The system currently cannot deal with properties that have multiple
-parents if not all parents ultimately have the save root.  I.e.\ there
-must be a single root property for each property hierarchy.  Although
-the design accomodates for this case, it has not yet been implemented.
-
     \item [\const{subPropertyOf} of \const{subPropertyOf}] is not
 supported.
+
+    \item [Literals] The current system doesn't support typed literals
+or the literal \const{xml:lang} tag.  It is likely that we will support
+arbitrary Prolog terms for literal values in the future.
+
+    \item [Equivalence]
+Similar to \const{subPropertyOf}, it is likely to be profitable to
+handle resource identity efficient.  The current system has no support
+for it.
 \end{description}
 
 
@@ -665,6 +677,29 @@ as well.
 
 A successful outer transaction (`level-0') may be undone using
 rdfe_undo/0.
+
+    \predicate{rdfe_transaction}{2}{:Goal, +Name}
+As rdfe_transaction/1, naming the transaction \arg{Name}.  Transaction
+naming is intended for the GUI to give the user an idea of the next undo
+action. See also rdfe_set_transaction_name/1 and
+rdfe_transaction_name/2.
+
+    \predicate{rdfe_set_transaction_name}{1}{+Name}
+Set the `name' of the current transaction to \arg{Name}.
+
+    \predicate{rdfe_transaction_name}{2}{?TID, ?Name}
+Query assigned transaction names.
+
+    \predicate{rdfe_transaction_member}{2}{+TID, -Action}
+Enumerate the actions that took place inside a transaction.  This can
+be used by a GUI to optimise the MVC (Model-View-Controller) feedback
+loop.  \arg{Action} is one of:
+
+\begin{description}
+    \termitem{assert}{Subject, Predicate, Object}
+    \termitem{retract}{Subject, Predicate, Object}
+    \termitem{update}{Subject, Predicate, Object, Action}
+\end{description}
 \end{description}
 
 
@@ -713,13 +748,15 @@ if there is no more undo information.
 Revert the last rdfe_undo/0.  Successive calls revert more rdfe_undo/0
 operations.   Fails if there is no more redo information.
 
-    \predicate{rdfe_can_undo}{0}{}
+    \predicate{rdfe_can_undo}{1}{-TID}
 Test if there is another transaction that can be reverted.  Used for
-activating menus in a graphical environment.
+activating menus in a graphical environment.  \arg{TID} is unified to
+the transaction id of the action that will be reverted.
 
-    \predicate{rdfe_can_redo}{0}{}
+    \predicate{rdfe_can_redo}{1}{-TID}
 Test if there is another undo that can be reverted.  Used for
-activating menus in a graphical environment.
+activating menus in a graphical environment.  \arg{TID} is unified to
+the transaction id of the action that will be reverted.
 \end{description}
 
 \subsection{Journalling}

@@ -70,6 +70,7 @@ static functor_t FUNCTOR_duplicates1;
 static functor_t FUNCTOR_subject1;
 static functor_t FUNCTOR_predicate1;
 static functor_t FUNCTOR_object1;
+static functor_t FUNCTOR_source1;
 static functor_t FUNCTOR_indexed8;
 
 static functor_t FUNCTOR_exact1;
@@ -338,15 +339,20 @@ alloc_dummy_root_predicate()
   return p;
 }
 
+#if 0
+/* We do not yet have a safe mechanism to avoid multiple destruction.  As
+   it is anticipated to be very infrequent we'll forget about freeing
+   predicates for the time being.
+*/
 
 static void				/* currently only frees dummy root */
-free_predicate(predicate *p)
-{ assert(!p->name);
+free_predicate(predicate *p) { assert(!p->name);
 
   free_list(&p->siblings);
   free_list(&p->subPropertyOf);
   PL_free(p);
 }
+#endif
 
 
 static __inline int
@@ -1393,6 +1399,31 @@ get_object(term_t object, triple *t)
 
 
 static int
+get_src(term_t src, triple *t)
+{ if ( src && !PL_is_variable(src) )
+  { if ( PL_get_atom(src, &t->source) )
+    { t->line = NO_LINE;
+    } else if ( PL_is_functor(src, FUNCTOR_colon2) )
+    { term_t a = PL_new_term_ref();
+      long line;
+      
+      PL_get_arg(1, src, a);
+      if ( !get_atom_or_var_ex(a, &t->source) )
+	return FALSE;
+      PL_get_arg(2, src, a);
+      if ( PL_get_long(a, &line) )
+	t->line = line;
+      else if ( !PL_is_variable(a) )
+	return type_error(a, "integer");
+    } else
+      return type_error(src, "rdf_source");
+  }
+
+  return TRUE;
+}
+
+
+static int
 get_predicate(term_t t, predicate **p)
 { atom_t name;
 
@@ -1456,24 +1487,8 @@ get_partial_triple(term_t subject, term_t predicate, term_t object,
       return type_error(object, "rdf_object");
   }
 					/* the source */
-  if ( src && !PL_is_variable(src) )
-  { if ( PL_get_atom(src, &t->source) )
-    { t->line = NO_LINE;
-    } else if ( PL_is_functor(src, FUNCTOR_colon2) )
-    { term_t a = PL_new_term_ref();
-      long line;
-      
-      PL_get_arg(1, src, a);
-      if ( !get_atom_or_var_ex(a, &t->source) )
-	return FALSE;
-      PL_get_arg(2, src, a);
-      if ( PL_get_long(a, &line) )
-	t->line = line;
-      else if ( !PL_is_variable(a) )
-	return type_error(a, "integer");
-    } else
-      return type_error(src, "rdf_source");
-  }
+  if ( !get_src(src, t) )
+    return FALSE;
 
   if ( t->subject )
     t->indexed |= BY_S;
@@ -1885,6 +1900,17 @@ update_triple(term_t action, triple *t)
 
     tmp.objtype = t2.objtype;
     tmp.object = t2.object;
+  } else if ( PL_is_functor(action, FUNCTOR_source1) )
+  { triple t2;
+
+    if ( !get_source(a, &t2) )
+      return FALSE;
+    if ( t2.source == t->source && t2.line == t->line )
+      return TRUE;
+    t->source = t2.source;
+    t->line = t2.line;
+
+    return TRUE;			/* considered no change */
   } else
     return domain_error(action, "rdf_action");
 
@@ -1907,13 +1933,15 @@ update_triple(term_t action, triple *t)
 
 
 static foreign_t
-rdf_update(term_t subject, term_t predicate, term_t object, term_t action)
+rdf_update5(term_t subject, term_t predicate, term_t object, term_t src,
+	    term_t action)
 { triple t, *p;
   int indexed = BY_SP;
   int done = 0;
     
   memset(&t, 0, sizeof(t));
-  if ( !get_triple(subject, predicate, object, &t) )
+  if ( !get_triple(subject, predicate, object, &t) ||
+       !get_src(src, &t) )
     return FALSE;
   
   if ( !update_hash() )
@@ -1928,6 +1956,12 @@ rdf_update(term_t subject, term_t predicate, term_t object, term_t action)
   }
 
   return done ? TRUE : FALSE;
+}
+
+
+static foreign_t
+rdf_update(term_t subject, term_t predicate, term_t object, term_t action)
+{ return rdf_update5(subject, predicate, object, 0, action);
 }
 
 
@@ -2645,6 +2679,7 @@ install_rdf_db()
   MKFUNCTOR(subject, 1);
   MKFUNCTOR(predicate, 1);
   MKFUNCTOR(object, 1);
+  MKFUNCTOR(source, 1);
   MKFUNCTOR(indexed, 8);
   MKFUNCTOR(exact, 1);
   MKFUNCTOR(substring, 1);
@@ -2678,6 +2713,7 @@ install_rdf_db()
   PL_register_foreign("rdf_assert",	3, rdf_assert3,	    0);
   PL_register_foreign("rdf_assert",	4, rdf_assert4,	    0);
   PL_register_foreign("rdf_update",	4, rdf_update,      0);
+  PL_register_foreign("rdf_update",	5, rdf_update5,     0);
   PL_register_foreign("rdf_retractall",	3, rdf_retractall3, 0);
   PL_register_foreign("rdf_retractall",	4, rdf_retractall4, 0);
   PL_register_foreign("rdf_subject",	1, rdf_subject,	    NDET);

@@ -22,6 +22,7 @@
 	    rdf_retractall/3,		% ?Subject, ?Predicate, ?Object
 	    rdf_retractall/4,		% ?Subject, ?Predicate, ?Object, +DB
 	    rdf_update/4,		% +Subject, +Predicate, +Object, +Act
+	    rdf_update/5,		% +Subject, +Predicate, +Object, +Src, +Act
 
 	    rdf_save_db/1,		% +File
 	    rdf_save_db/2,		% +File, +DB
