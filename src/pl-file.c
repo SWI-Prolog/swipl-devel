@@ -567,8 +567,8 @@ openStream(term_t file, int mode, int flags)
 	succeed;
       }
     }
-  } else if ( type == ST_PIPE && mode == F_APPEND )
-    return warning("Cannot open a pipe in `append' mode");
+  } else if ( type == ST_PIPE && (mode == F_APPEND || mode == F_UPDATE) )
+    return warning("Cannot open a pipe in `append' or `update' mode");
     
   if ( !(flags & OPEN_OPEN) )		/* see/1, tell/1, append/1 */
   { for( n=0; n<maxfiles; n++ )
@@ -577,6 +577,7 @@ openStream(term_t file, int mode, int flags)
 	{ switch(mode)
 	  { case F_READ:	Input = n; break;
 	    case F_WRITE:
+	    case F_UPDATE:
 	    case F_APPEND:	Output = n; break;
 	  }
 	  DEBUG(3, Sdprintf("Switched back to already open stream %d\n", n));
@@ -593,7 +594,7 @@ openStream(term_t file, int mode, int flags)
   }
 
   DEBUG(2, Sdprintf("Starting Unix open\n"));
-  cmode[0] = (mode == F_READ ? 'r' : mode == F_WRITE ? 'w' : 'a');
+  cmode[0] = FOPENMODE[mode];
   if ( flags & OPEN_TEXT )
     cmode[1] = EOS;
   else
@@ -632,13 +633,17 @@ openStream(term_t file, int mode, int flags)
   fileTable[n].stream_name = NULL_ATOM;
   fileTable[n].type = type;
   fileTable[n].stream = stream;
-  fileTable[n].status = (mode == F_APPEND ? F_WRITE : mode);
 
   switch(mode)
-  { case F_READ:		Input = n; break;
+  { case F_READ:
+      Input = n; break;
     case F_WRITE:
-    case F_APPEND:		Output = n; break;
+    case F_UPDATE:
+    case F_APPEND:
+      mode = F_WRITE;
+      Output = n; break;
   }
+  fileTable[n].status = mode;
 
   DEBUG(2, Sdprintf("Prolog fileTable[] updated\n"));
 
@@ -1233,6 +1238,8 @@ pl_open4(term_t file, term_t mode,
       m = F_WRITE;
     else if ( mname == ATOM_append )
       m = F_APPEND;
+    else if ( mname == ATOM_update )
+      m = F_UPDATE;
     else if ( mname == ATOM_read )
       m = F_READ;
   }
@@ -1375,13 +1382,14 @@ streamNo(term_t spec, int mode)
   }
 
   switch(mode)
-  { case F_READ|F_WRITE:
+  { case F_ANY:
       return n;
     case F_READ:
       if ( fileTable[n].status != F_READ )
 	return warning("Stream is not open for reading");
       break;
     case F_APPEND:
+    case F_UPDATE:
     case F_WRITE:	
       if ( fileTable[n].status != F_WRITE )
       { warning("Stream is not open for writing");
@@ -1397,7 +1405,7 @@ word
 pl_close(term_t stream)
 { int n;
 
-  if ( (n = streamNo(stream, F_READ|F_WRITE)) < 0 )
+  if ( (n = streamNo(stream, F_ANY)) < 0 )
     fail;
 
   TRY( closeStream(n) );
@@ -1457,7 +1465,7 @@ ioStreamWithPosition(term_t stream)
 { int n;
   IOSTREAM *s;
 
-  if ( (n = streamNo(stream, F_READ|F_WRITE)) < 0 )
+  if ( (n = streamNo(stream, F_ANY)) < 0 )
     fail;
   s = fileTable[n].stream;
   if ( !s->position )

@@ -547,13 +547,17 @@ Operator types
 #define OP_POSTFIX 3
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Files and streams
+Files and streams.  Don't change the numbers, or change FOPENMODE below.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define F_CLOSED	0		/* closed entry */
 #define F_READ		1		/* open for reading */
 #define F_WRITE		2		/* open for writing */
-#define F_APPEND	6		/* open for append writing */
+#define F_APPEND	3		/* open for append writing */
+#define F_UPDATE	4		/* open for write without truncate */
+#define F_ANY		5		/* any mode (finding stream) */
+
+#define FOPENMODE "-rwau"		/* Sopen_file() mode argument */
 
 #define streamOutput(stream, goal) \
 	{ int SOn = streamNo(stream, F_WRITE); \

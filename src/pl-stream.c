@@ -1210,6 +1210,10 @@ Sopen_file(const char *path, char *how)
       fd = open(path, O_WRONLY|O_CREAT|O_APPEND|oflags, 0666);
       flags |= SIO_OUTPUT;
       break;
+    case 'u':
+      fd = open(path, O_WRONLY|O_CREAT|oflags, 0666);
+      flags |= SIO_OUTPUT;
+      break;
     case 'r':
       fd = open(path, O_RDONLY|oflags);
       flags |= SIO_INPUT;

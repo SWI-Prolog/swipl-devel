@@ -1064,25 +1064,29 @@ or destination of the data.
 .BD
 .C open 4 +SrcDest, +Mode, -Stream, +Options
 ISO compliant predicate to open a stream. {\em SrcDes} is either an
-atom, specifying a Unix file, or a term `\tty{pipe(}{\em Command}\tty{)}',
-just like see/1 and tell/1.
-{\em Mode} is one of \tty{read}, \tty{write} or
-\tty{append}. {\em Stream} is either a variable, in which case it is
-bound to a small integer identifying the stream, or an atom, in which
-case this atom will be the stream indentifier.  The {\em Options} list
-can contain the following options:
+atom, specifying a Unix file, or a term `\tty{pipe(}{\em
+Command}\tty{)}', just like see/1 and tell/1. {\em Mode} is one of
+\tty{read}, \tty{write}, \tty{append} or \tty{update}. Mode \tty{append}
+opens the file for writing, positioning the file-pointer at the end.
+Mode \tty{update} opens the file for writing, positioning the
+file-pointer at the beginning of the file without truncating the file.
+See also stream_position/3. {\em Stream} is either a variable, in which
+case it is bound to an integer identifying the stream, or an atom, in
+which case this atom will be the stream indentifier. The {\em Options}
+list can contain the following options:
+
 \begin{itemize}
-    \item {\tt type(Type)}.  Using type {\tt text} (default), Prolog
+    \tick {\tt type(Type)}.  Using type {\tt text} (default), Prolog
 will write a text-file in an operating-system compatible way. Using type
 {\tt binary} the bytes will be read or written without any translation.
 Note there is no difference between the two on Unix systems.
-    \item {\tt alias(Atom)} gives the stream a name.  The following two
+    \tick {\tt alias(Atom)} gives the stream a name.  The following two
 calls are identical, but only the latter is allowed in ISO Prolog.
 \begin{code}
 ?- open(foo, read, in, []).
 ?- open(foo, read, S, [alias(in)]).
 \end{code}
-    \item {\tt eof_action(Action)} defines what happens if the end of the
+    \tick {\tt eof_action(Action)} defines what happens if the end of the
 input stream is reached.  Action {\tt eof_code} makes get0/1 and friends
 return -1 and read/1 and friends return the atom {\tt end_of_file}.
 Repetitive reading keeps yielding the same result. Action {\tt error}

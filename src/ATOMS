@@ -262,6 +262,7 @@ A subterm_positions	"subterm_positions"
 A quiet			"quiet"
 A system_init_file	"system_init_file"
 A term_expansion	"term_expansion"
+A update		"update"
 
 F abs			1
 F acos			1
