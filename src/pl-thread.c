@@ -71,18 +71,27 @@ APPROACH
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #include <errno.h>
-#ifdef HAVE_SEM_INIT
+
+#ifdef HAVE_SEMA_INIT			/* Solaris */
+#include <synch.h>
+
+typedef sema_t sem_t;
+#define sem_trywait(s)	sema_trywait(s)
+#define sem_destroy(s)	sema_destroy(s)
+#define sem_post(s)	sema_post(s)
+#define sem_init(s, type, cnt) sema_init(s, cnt, type, NULL)
+
+#else /*HAVE_SEMA_INIT*/
 #include <semaphore.h>
+
+#ifndef USYNC_THREAD
+#define USYNC_THREAD 0
+#endif
+
+#endif /*HAVE_SEMA_INIT*/
 
 static sem_t sem_mark;			/* used for atom-gc */
 static sem_t sem_canceled;		/* used on halt */
-#else
-#ifdef HAVE_SEMA_INIT
-#include <synch.h>
-static sema_t sem_mark;			/* used for atom-gc */
-static sema_t sem_canceled;		/* used on halt */
-#endif /*HAVE_SEMA_INIT*/
-#endif /*HAVE_SEM_INIT*/
 
 
 		 /*******************************
@@ -202,8 +211,7 @@ PL_atomic_inc(int *addr)
   atomic_inc((atomic_t *)addr);
 #else
 #ifdef WIN32
-  if ( sizeof(int) == sizeof(long) )
-    InterlockedIncrement((long *)addr);
+  InterlockedIncrement((long *)addr);
 #else
   PL_LOCK(L_MISC);
   (*addr)++;
@@ -220,8 +228,7 @@ PL_atomic_dec(int *addr)
   atomic_dec((atomic_t *)addr);
 #else
 #ifdef WIN32
-  if ( sizeof(int) == sizeof(long) )
-    InterlockedDecrement((long *)addr);
+  InterlockedDecrement((long *)addr);
 #else
   PL_LOCK(L_MISC);
   (*addr)--;
@@ -230,7 +237,7 @@ PL_atomic_dec(int *addr)
 #endif
 }
 
-#undef LOCK				/* clash with asm/atomic.h */
+#undef LOCK				/* clash with Linux asm/atomic.h */
 
 		 /*******************************
 		 *	LOCK ON L_THREAD	*
@@ -323,15 +330,7 @@ free_prolog_thread(void *data)
   UNLOCK();
 
   if ( info->status == PL_THREAD_CANCELED )
-  {
-#ifdef HAVE_SEM_INIT
-    sem_post(&sem_canceled);
-#else
-#  ifdef HAVE_SEMA_INIT
-    sema_post(&sem_canceled);
-#  endif
-#endif
-    ;					/* make sure syntax is ok */
+  { sem_post(&sem_canceled);
   }
 
   if ( info->detached )
@@ -380,13 +379,8 @@ exitPrologThreads()
   int me = PL_thread_self();
   int canceled = 0;
 
-#ifdef HAVE_SEM_INIT
-  sem_init(&sem_canceled, 0, 0);
-#else
-#  ifdef HAVE_SEMA_INIT
-  sema_init(&sem_canceled, 0, USYNC_THREAD,NULL);
-#  endif
-#endif
+  sem_init(&sem_canceled, USYNC_THREAD, 0);
+
   for(i=1; i<MAX_THREADS; i++)
   { if ( threads[i].thread_data && i != me )
     { switch(threads[i].status)
@@ -415,27 +409,16 @@ exitPrologThreads()
   { 
     int maxwait = 10;
 
-    while(maxwait--) {
-#ifdef HAVE_SEM_INIT
-    if ( sem_trywait(&sem_canceled) == 0 )
-#else
-#ifdef HAVE_SEMA_INIT
-    if (sema_trywait(&sem_canceled) == 0 )
-#endif
-#endif
+    while(maxwait--)
+    { if ( sem_trywait(&sem_canceled) == 0 )
 	break;
       Pause(0.1);
     }
 
     canceled--;
   }
-#ifdef HAVE_SEM_INIT
+
   sem_destroy(&sem_canceled);
-#else
-#ifdef HAVE_SEMA_INIT
-  sema_destroy(&sem_canceled);
-#endif
-#endif
 
   threads_exited = TRUE;
 }
@@ -1808,13 +1791,8 @@ doThreadLocalData(int sig)
       break;
     }
   }
-#ifdef HAVE_SEM_INIT
+
   sem_post(&sem_mark);
-#else
-#ifdef HAVE_SEMA_INIT
-  sema_post(&sem_mark);
-#endif
-#endif
 }
 
 
@@ -1829,13 +1807,7 @@ forThreadLocalData(void (*func)(PL_local_data_t *))
   assert(ldata_function == NULL);
   ldata_function = func;
 
-#ifdef HAVE_SEM_INIT
-  sem_init(&sem_mark, 0, 0);
-#else
-#ifdef HAVE_SEMA_INIT
-  sema_init(&sem_mark,0,USYNC_THREAD,NULL);
-#endif
-#endif
+  sem_init(&sem_mark, USYNC_THREAD, 0);
 
   memset(&new, 0, sizeof(new));
   new.sa_handler = doThreadLocalData;
@@ -1856,23 +1828,11 @@ forThreadLocalData(void (*func)(PL_local_data_t *))
   DEBUG(1, Sdprintf("Signalled %d threads.  Waiting ... ", signalled));
 
   while(signalled)
-  { 
-#ifdef HAVE_SEM_INIT
-    sem_wait(&sem_mark);
-#else
-#ifdef HAVE_SEMA_INIT
-    sema_wait(&sem_mark);
-#endif
-#endif
+  { sem_wait(&sem_mark);
     signalled--;
   }
-#ifdef HAVE_SEM_INIT
+
   sem_destroy(&sem_mark);
-#else
-#ifdef HAVE_SEMA_INIT
-  sema_destroy(&sem_mark);
-#endif
-#endif
 
   DEBUG(1, Sdprintf("done!\n"));
 
