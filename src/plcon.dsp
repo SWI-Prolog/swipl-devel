@@ -1,5 +1,5 @@
 # Microsoft Developer Studio Project File - Name="plcon" - Package Owner=<4>
-# Microsoft Developer Studio Generated Build File, Format Version 5.00
+# Microsoft Developer Studio Generated Build File, Format Version 6.00
 # ** DO NOT EDIT **
 
 # TARGTYPE "Win32 (x86) Console Application" 0x0103
@@ -22,8 +22,9 @@ CFG=plcon - Win32 Release
 !MESSAGE 
 
 # Begin Project
-# PROP Scc_ProjName ""
-# PROP Scc_LocalPath ""
+# PROP AllowPerConfigDependencies 0
+# PROP Scc_ProjName ""$/Prolog/plcon", XWAAAAAA"
+# PROP Scc_LocalPath "."
 CPP=cl.exe
 RSC=rc.exe
 
@@ -50,9 +51,8 @@ LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /machine:I386
 # ADD LINK32 ..\lib\libpl.lib user32.lib /nologo /subsystem:console /machine:I386
 # Begin Special Build Tool
-SOURCE=$(InputPath)
-PostBuild_Cmds=..\bin\plcon.exe -O -o ../boot.prc -b ../boot/init.pl\
-  	..\bin\plcon.exe -g "make_library_index('../library')" -t halt
+SOURCE="$(InputPath)"
+PostBuild_Cmds=..\bin\plcon.exe -O -o ../boot32.prc -b ../boot/init.pl   	..\bin\plcon.exe -g "make_library_index('../library')" -t halt
 # End Special Build Tool
 
 !ELSEIF  "$(CFG)" == "plcon - Win32 Debug"
@@ -67,8 +67,7 @@ PostBuild_Cmds=..\bin\plcon.exe -O -o ../boot.prc -b ../boot/init.pl\
 # PROP Intermediate_Dir "..\objects\debug\plcon"
 # PROP Ignore_Export_Lib 0
 # ADD BASE CPP /nologo /ML /W3 /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /FR /YX /c
-# ADD CPP /nologo /MD /W3 /Gm /GX /Zi /Od /I "c:\jan\pl\include" /D "_DEBUG" /D "WIN32" /D "_CONSOLE" /D "__WIN32__" /YX /FD /ZI /c
-# SUBTRACT CPP /Fr
+# ADD CPP /nologo /MD /W3 /Gm /GX /ZI /Od /I "c:\jan\pl\include" /D "_DEBUG" /D "WIN32" /D "_CONSOLE" /D "__WIN32__" /Fr /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
 BSC32=bscmake.exe
@@ -79,9 +78,8 @@ LINK32=link.exe
 # ADD LINK32 ..\lib\libplD.lib user32.lib /nologo /subsystem:console /debug /machine:I386 /out:"..\bin/plconD.exe"
 # SUBTRACT LINK32 /pdb:none
 # Begin Special Build Tool
-SOURCE=$(InputPath)
-PostBuild_Cmds=..\bin\plconD.exe -O -o ../boot.prc -b ../boot/init.pl\
-  	..\bin\plconD.exe -g "make_library_index('../library')" -t halt
+SOURCE="$(InputPath)"
+PostBuild_Cmds=..\bin\plconD.exe -O -o ../boot32.prc -b ../boot/init.pl   	..\bin\plconD.exe -g "make_library_index('../library')" -t halt
 # End Special Build Tool
 
 !ENDIF 

@@ -3,10 +3,14 @@ Microsoft Developer Studio Workspace File, Format Version 6.00
 
 ###############################################################################
 
-Project: "console"=.\win32\console\console.dsp - Package Owner=<4>
+Project: "console"=".\win32\console\console.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
+    begin source code control
+    "$/Prolog/console", ATAAAAAA
+    .\win32\console
+    end source code control
 }}}
 
 Package=<4>
@@ -15,10 +19,14 @@ Package=<4>
 
 ###############################################################################
 
-Project: "dlltest"=.\win32\foreign\dlltest.dsp - Package Owner=<4>
+Project: "dlltest"=".\win32\foreign\dlltest.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
+    begin source code control
+    "$/Prolog/dlltest", JTAAAAAA
+    .\win32\foreign
+    end source code control
 }}}
 
 Package=<4>
@@ -33,10 +41,14 @@ Package=<4>
 
 ###############################################################################
 
-Project: "libpl"=.\libpl.dsp - Package Owner=<4>
+Project: "libpl"=".\libpl.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
+    begin source code control
+    "$/Prolog/libpl", PTAAAAAA
+    .
+    end source code control
 }}}
 
 Package=<4>
@@ -48,10 +60,14 @@ Package=<4>
 
 ###############################################################################
 
-Project: "plcon"=.\plcon.dsp - Package Owner=<4>
+Project: "plcon"=".\plcon.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
+    begin source code control
+    "$/Prolog/plcon", XWAAAAAA
+    .
+    end source code control
 }}}
 
 Package=<4>
@@ -63,10 +79,14 @@ Package=<4>
 
 ###############################################################################
 
-Project: "plld"=.\plld.dsp - Package Owner=<4>
+Project: "plld"=".\plld.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
+    begin source code control
+    "$/Prolog/plld", IWAAAAAA
+    .
+    end source code control
 }}}
 
 Package=<4>
@@ -75,10 +95,14 @@ Package=<4>
 
 ###############################################################################
 
-Project: "plrc"=.\plrc.dsp - Package Owner=<4>
+Project: "plrc"=".\plrc.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
+    begin source code control
+    "$/Prolog/plrc", JXAAAAAA
+    .
+    end source code control
 }}}
 
 Package=<4>
@@ -87,10 +111,14 @@ Package=<4>
 
 ###############################################################################
 
-Project: "plregtry"=.\win32\foreign\plregtry.dsp - Package Owner=<4>
+Project: "plregtry"=".\win32\foreign\plregtry.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
+    begin source code control
+    "$/Prolog/plregtry", MTAAAAAA
+    .\win32\foreign
+    end source code control
 }}}
 
 Package=<4>
@@ -102,10 +130,14 @@ Package=<4>
 
 ###############################################################################
 
-Project: "plwin"=.\plwin.dsp - Package Owner=<4>
+Project: "plwin"=".\plwin.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
+    begin source code control
+    "$/Prolog/plwin", BXAAAAAA
+    .
+    end source code control
 }}}
 
 Package=<4>
@@ -123,10 +155,14 @@ Package=<4>
 
 ###############################################################################
 
-Project: "uxnt"=.\win32\uxnt\uxnt.dsp - Package Owner=<4>
+Project: "uxnt"=".\win32\uxnt\uxnt.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
+    begin source code control
+    "$/Prolog", USAAAAAA
+    .\win32\uxnt
+    end source code control
 }}}
 
 Package=<4>

@@ -1,5 +1,5 @@
 # Microsoft Developer Studio Project File - Name="plwin" - Package Owner=<4>
-# Microsoft Developer Studio Generated Build File, Format Version 5.00
+# Microsoft Developer Studio Generated Build File, Format Version 6.00
 # ** DO NOT EDIT **
 
 # TARGTYPE "Win32 (x86) Application" 0x0101
@@ -22,8 +22,9 @@ CFG=plwin - Win32 Release
 !MESSAGE 
 
 # Begin Project
-# PROP Scc_ProjName ""
-# PROP Scc_LocalPath ""
+# PROP AllowPerConfigDependencies 0
+# PROP Scc_ProjName ""$/Prolog/plwin", BXAAAAAA"
+# PROP Scc_LocalPath "."
 CPP=cl.exe
 MTL=midl.exe
 RSC=rc.exe
@@ -65,8 +66,7 @@ LINK32=link.exe
 # PROP Intermediate_Dir "..\objects\debug\plwin"
 # PROP Ignore_Export_Lib 0
 # ADD BASE CPP /nologo /W3 /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /YX /c
-# ADD CPP /nologo /MD /W3 /Gm /GX /Zi /Od /I "win32\console" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "__WIN32__" /D "PL_WIN" /YX /FD /ZI /c
-# SUBTRACT CPP /Fr
+# ADD CPP /nologo /MD /W3 /Gm /GX /ZI /Od /I "win32\console" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "__WIN32__" /D "PL_WIN" /Fr /YX /FD /c
 # ADD BASE MTL /nologo /D "_DEBUG" /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
@@ -94,13 +94,6 @@ SOURCE=".\pl-ntmain.c"
 # Begin Source File
 
 SOURCE=.\pl.rc
-
-!IF  "$(CFG)" == "plwin - Win32 Release"
-
-!ELSEIF  "$(CFG)" == "plwin - Win32 Debug"
-
-!ENDIF 
-
 # End Source File
 # End Group
 # Begin Group "Header Files"
