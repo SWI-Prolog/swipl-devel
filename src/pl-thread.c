@@ -365,9 +365,11 @@ free_prolog_thread(void *data)
     return;				/* Post-mortem */
 
   info = ld->thread.info;
+  LOCK();
   if ( info->status == PL_THREAD_RUNNING )
     info->status = PL_THREAD_EXITED;	/* foreign pthread_exit() */
   acknowlege = (info->status == PL_THREAD_CANCELED);
+  UNLOCK();
   DEBUG(1, Sdprintf("Freeing prolog thread %d\n", info-threads));
 
   run_thread_exit_hooks();
@@ -1329,6 +1331,20 @@ typedef struct _thread_sig
 } thread_sig;
 
 
+static int
+is_alive(int status)
+{ switch(status)
+  { case PL_THREAD_CREATED:
+    case PL_THREAD_RUNNING:
+    case PL_THREAD_SUSPENDED:
+    case PL_THREAD_RESUMING:
+      succeed;
+    default:
+      fail;
+  }
+}
+
+
 foreign_t
 pl_thread_signal(term_t thread, term_t goal)
 { Module m = NULL;
@@ -1336,20 +1352,23 @@ pl_thread_signal(term_t thread, term_t goal)
   PL_thread_info_t *info;
   PL_local_data_t *ld;
 
-					/* can be expensive; keep outside */
-  PL_strip_module(goal, &m, goal);	/* locked area */
-  sg = allocHeap(sizeof(*sg));
-  sg->next = NULL;
-  sg->module = m;
-  sg->goal = PL_record(goal);
+  PL_strip_module(goal, &m, goal);
 
   LOCK();
   if ( !get_thread(thread, &info, TRUE) )
   { UNLOCK();
-    PL_erase(sg->goal);			/* bad luck ... */
-    freeHeap(sg, sizeof(*sg));
     fail;
   }
+  if ( !is_alive(info->status) )
+  { PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_thread, thread);
+    UNLOCK();
+    fail;
+  }       
+
+  sg = allocHeap(sizeof(*sg));
+  sg->next = NULL;
+  sg->module = m;
+  sg->goal = PL_record(goal);
 
   ld = info->thread_data;
   if ( !ld->thread.sig_head )
