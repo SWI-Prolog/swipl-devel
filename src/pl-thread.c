@@ -1262,12 +1262,12 @@ pl_mutex_unlock(term_t mutex)
   if ( self == m->owner )
   { if ( --m->count == 0 )
     { m->owner = 0;
-      if ( pthread_mutex_unlock(&m->mutex) == 0 )
-      {	succeed;
-      } else
-      { assert(0);
-      }
+
+      if ( pthread_mutex_unlock(&m->mutex) != 0 )
+	assert(0);
     }
+
+    succeed;
   }
 
   return PL_error("mutex_unlock", 1, MSG_ERRNO, ERR_PERMISSION,
@@ -1289,8 +1289,9 @@ pl_mutex_unlock_all()
   { pl_mutex *m = s->value;
     
     if ( m->owner == tid )
-    { while( --m->count > 0 )
-	pthread_mutex_unlock(&m->mutex);
+    { m->count = 0;
+      m->owner = 0;
+      pthread_mutex_unlock(&m->mutex);
     }
   }
   freeTableEnum(e);
