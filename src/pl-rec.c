@@ -106,6 +106,11 @@ typedef struct
   int	     nvars;			/* # variables */
 } compile_info, *CompileInfo;
 
+#define WORDS_PER_DOUBLE ((sizeof(double)+sizeof(word)-1)/sizeof(word))
+
+typedef struct
+{ word w[WORDS_PER_DOUBLE];
+} fword;
 
 #define	PL_TYPE_VARIABLE	(1)	/* variable */
 #define PL_TYPE_ATOM		(2)	/* atom */
@@ -125,24 +130,24 @@ right_recursion:
 
   switch(tag(w))
   { case TAG_VAR:
-    { int n = info->nvars++;
+    { long n = info->nvars++;
 
       *p = (n<<7)|TAG_ATOM|STG_GLOBAL;
-      addUnalignedBuffer(&info->vars, p, Word);
-      addBuffer(&info->code, PL_TYPE_VARIABLE, char);
-      addUnalignedBuffer(&info->code, n, int);
+      addBuffer(&info->vars, p, Word);
+      addBuffer(&info->code, PL_TYPE_VARIABLE, long);
+      addBuffer(&info->code, n, long);
 
       return;
     }
     case TAG_ATOM:
     { if ( storage(w) == STG_GLOBAL )
-      { int n = ((long)(w) >> 7);
+      { long n = ((long)(w) >> 7);
 
-	addBuffer(&info->code, PL_TYPE_VARIABLE, char);
-	addUnalignedBuffer(&info->code, n, int);
+	addBuffer(&info->code, PL_TYPE_VARIABLE, long);
+	addBuffer(&info->code, n, long);
       } else
-      { addBuffer(&info->code, PL_TYPE_ATOM, char);
-	addUnalignedBuffer(&info->code, w, atom_t);
+      { addBuffer(&info->code, PL_TYPE_ATOM, long);
+	addBuffer(&info->code, w, atom_t);
 	PL_register_atom(w);
       }
       return;
@@ -152,35 +157,36 @@ right_recursion:
 
       if ( isTaggedInt(w) )
       { val = valInt(w);
-	addBuffer(&info->code, PL_TYPE_TAGGED_INTEGER, char);
+	addBuffer(&info->code, PL_TYPE_TAGGED_INTEGER, long);
       } else
       { info->size += sizeof(long)/sizeof(word) + 2;
 	val = valBignum(w);
-	addBuffer(&info->code, PL_TYPE_INTEGER, char);
+	addBuffer(&info->code, PL_TYPE_INTEGER, long);
       }
       
-      addUnalignedBuffer(&info->code, val, long);
+      addBuffer(&info->code, val, long);
       return;
     }
     case TAG_STRING:
     { Word f  = addressIndirect(w);
       int n   = wsizeofInd(*f);
       int pad = padHdr(*f);		/* see also sizeString() */
-      int l   = n*sizeof(word)-pad;
+      long l  = n*sizeof(word)-pad;
 
       info->size += n+2;
-      addBuffer(&info->code, PL_TYPE_STRING, char);
-      addUnalignedBuffer(&info->code, l, int);
-      addMultipleBuffer(&info->code, f+1, n, word);
+      addBuffer(&info->code, PL_TYPE_STRING, long);
+      addBuffer(&info->code, l, long);
+      f++;
+      addMultipleBuffer(&info->code, f, n, word);
       
       return;
     }
     case TAG_FLOAT:
-    { double val = valReal(w);
+    { Word v = valIndirectP(w);
 
-      info->size += sizeof(double)/sizeof(word) + 2;
-      addBuffer(&info->code, PL_TYPE_FLOAT, char);
-      addUnalignedBuffer(&info->code, val, double);
+      info->size += WORDS_PER_DOUBLE + 2;
+      addBuffer(&info->code, PL_TYPE_FLOAT, long);
+      addMultipleBuffer(&info->code, v, WORDS_PER_DOUBLE, word);
 
       return;
     }
@@ -189,8 +195,8 @@ right_recursion:
       int arity = arityFunctor(f->definition);
 
       info->size += arity+1;
-      addBuffer(&info->code, PL_TYPE_COMPOUND, char);
-      addUnalignedBuffer(&info->code, f->definition, word);
+      addBuffer(&info->code, PL_TYPE_COMPOUND, long);
+      addBuffer(&info->code, f->definition, word);
       p = f->arguments;
       for(; --arity > 0; p++)
       { compile_term_to_heap(p, info);
@@ -200,6 +206,8 @@ right_recursion:
     case TAG_REFERENCE:
       p = unRef(w);
       goto right_recursion;
+    default:
+      assert(0);
   }
 }
 
@@ -252,37 +260,31 @@ typedef struct
 		{ *var = *((type *)(b)->data); \
 		  (b)->data += sizeof(type); \
 		} while(0)
-#define fetchUnalignedBuf(b, var, type) \
-		do \
-		{ memcpy(var, (b)->data, sizeof(type)); \
-		  (b)->data += sizeof(type); \
-		} while(0)
 #define fetchMultipleBuf(b, var, times, type) \
 		do \
-		{ int _n = (times) * sizeof(type); \
-		  memcpy(var, (b)->data, _n); \
-		  (b)->data += _n; \
+		{ type *_src = (type *)b->data; \
+		  type *_dst = var; \
+		  int _len = (times); \
+		  (b)->data += _len * sizeof(type); \
+		  while(--_len >= 0) \
+		    *_dst++ = *_src++; \
 		} while(0)
 #define skipBuf(b, type) \
 		((b)->data += sizeof(type))
 
 
-#ifndef WORDS_PER_DOUBLE
-#define WORDS_PER_DOUBLE ((sizeof(double)+sizeof(word)-1)/sizeof(word))
-#endif
-
 static void
 copy_record(Word p, CopyInfo b)
 { GET_LD
-  int tag;
+  long tag;
 
 right_recursion:
-  fetchBuf(b, &tag, char);
+  fetchBuf(b, &tag, long);
   switch(tag)
   { case PL_TYPE_VARIABLE:
-    { int n;
+    { long n;
 
-      fetchUnalignedBuf(b, &n, int);
+      fetchBuf(b, &n, long);
       if ( b->vars[n] )
       { if ( p > b->vars[n] )		/* ensure the reference is in the */
 	  *p = makeRef(b->vars[n]);	/* right direction! */
@@ -299,57 +301,49 @@ right_recursion:
       return;
     }
     case PL_TYPE_ATOM:
-    { atom_t val;
-
-      fetchUnalignedBuf(b, &val, atom_t);
-      *p = val;
+    { fetchBuf(b, p, word);
 
       return;
     }
     case PL_TYPE_TAGGED_INTEGER:
     { long val;
 
-      fetchUnalignedBuf(b, &val, long);
+      fetchBuf(b, &val, long);
       *p = consInt(val);
 
       return;
     }
     case PL_TYPE_INTEGER:
-    { long val;
-
-      fetchUnalignedBuf(b, &val, long);
-      *p = consPtr(b->gstore, TAG_INTEGER|STG_GLOBAL);
+    { *p = consPtr(b->gstore, TAG_INTEGER|STG_GLOBAL);
       *b->gstore++ = mkIndHdr(1, TAG_INTEGER);
-      *b->gstore++ = val;
+      fetchBuf(b, b->gstore, word);
+      b->gstore++;
       *b->gstore++ = mkIndHdr(1, TAG_INTEGER);
 
       return;
     }
     case PL_TYPE_FLOAT:
-    { double val;
-
-      fetchUnalignedBuf(b, &val, double);
-      *p = consPtr(b->gstore, TAG_FLOAT|STG_GLOBAL);
+    { *p = consPtr(b->gstore, TAG_FLOAT|STG_GLOBAL);
       *b->gstore++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
-      memcpy(b->gstore, &val, WORDS_PER_DOUBLE * sizeof(word));
+      fetchMultipleBuf(b, b->gstore, WORDS_PER_DOUBLE, word);
       b->gstore += WORDS_PER_DOUBLE;
       *b->gstore++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
 
       return;
     }
     case PL_TYPE_STRING:
-    { int len, lw, pad;
+    { long len;
+      int lw, pad;
       word hdr;
 
-      fetchUnalignedBuf(b, &len, int);
-      lw = (len+sizeof(word))/sizeof(word); /* see globalNString() */
-      pad = (lw*sizeof(word) - len);
+      fetchBuf(b, &len, long);
+      lw = ((int)len+sizeof(word))/sizeof(word); /* see globalNString() */
+      pad = (lw*sizeof(word) - (int)len);
       *p = consPtr(b->gstore, TAG_STRING|STG_GLOBAL);
       *b->gstore++ = hdr = mkStrHdr(lw, pad);
-      memcpy(b->gstore, b->data, lw * sizeof(word));
+      fetchMultipleBuf(b, b->gstore, lw, word);
       b->gstore += lw;
       *b->gstore++ = hdr;
-      b->data += lw * sizeof(word);
 
       return;
     }
@@ -357,7 +351,7 @@ right_recursion:
     { word fdef;
       int arity;
 
-      fetchUnalignedBuf(b, &fdef, word);
+      fetchBuf(b, &fdef, word);
       arity = arityFunctor(fdef);
 
       *p = consPtr(b->gstore, TAG_COMPOUND|STG_GLOBAL);
@@ -368,6 +362,8 @@ right_recursion:
 	copy_record(p, b);
       goto right_recursion;
     }
+    default:
+      assert(0);
   }
 }
 
@@ -405,10 +401,10 @@ recursion.   Other   options:   combine     into    copyRecordToGlobal()
 
 static void
 unregisterAtomsRecord(CopyInfo b)
-{ int tag;
+{ long tag;
 
 right_recursion:
-  fetchBuf(b, &tag, char);
+  fetchBuf(b, &tag, long);
   switch(tag)
   { case PL_TYPE_VARIABLE:
     { skipBuf(b, int);
@@ -417,7 +413,7 @@ right_recursion:
     case PL_TYPE_ATOM:
     { atom_t val;
 
-      fetchUnalignedBuf(b, &val, atom_t);
+      fetchBuf(b, &val, atom_t);
       PL_unregister_atom(val);
       return;
     }
@@ -431,9 +427,9 @@ right_recursion:
       return;
     }
     case PL_TYPE_STRING:
-    { int len, lw;
+    { long len, lw;
 
-      fetchUnalignedBuf(b, &len, int);
+      fetchBuf(b, &len, long);
       lw = (len+sizeof(word))/sizeof(word); /* see globalNString() */
       b->data += lw * sizeof(word);
 
@@ -443,12 +439,14 @@ right_recursion:
     { word fdef;
       int arity;
 
-      fetchUnalignedBuf(b, &fdef, word);
+      fetchBuf(b, &fdef, word);
       arity = arityFunctor(fdef);
       while(--arity > 0)
 	unregisterAtomsRecord(b);
       goto right_recursion;
     }
+    default:
+      assert(0);
   }
 }
 
@@ -468,10 +466,10 @@ typedef struct
 static int
 se_record(Word p, SeInfo info ARG_LD)
 { word w;
-  int stag;
+  long stag;
 
 right_recursion:
-  fetchBuf(info, &stag, char);
+  fetchBuf(info, &stag, long);
 unref_cont:
   w = *p;
 
@@ -479,24 +477,24 @@ unref_cont:
   { case TAG_VAR:
       if ( stag == PL_TYPE_VARIABLE )
       { int n = entriesBuffer(&info->vars, Word);
-	int i;
+	long i;
 
-	fetchUnalignedBuf(info, &i, int);
+	fetchBuf(info, &i, long);
 	if ( i != n )
 	  fail;
 
 	*p = (n<<7)|TAG_ATOM|STG_GLOBAL;
-	addUnalignedBuffer(&info->vars, p, Word);
+	addBuffer(&info->vars, p, Word);
 	succeed;
       }
       fail;
     case TAG_ATOM:
       if ( storage(w) == STG_GLOBAL )
       { if ( stag == PL_TYPE_VARIABLE )
-	{ int n = ((long)(w) >> 7);
-	  int i;
+	{ long n = ((long)(w) >> 7);
+	  long i;
 
-	  fetchUnalignedBuf(info, &i, int);
+	  fetchBuf(info, &i, long);
 	  if ( i == n )
 	    succeed;
 	}
@@ -504,7 +502,7 @@ unref_cont:
       } else if ( stag == PL_TYPE_ATOM )
       { atom_t val;
 
-	fetchUnalignedBuf(info, &val, atom_t);
+	fetchBuf(info, &val, atom_t);
 	if ( val == w )
 	  succeed;
       }
@@ -516,7 +514,7 @@ unref_cont:
 	{ long val = valInt(w);
 	  long v2;
 
-	  fetchUnalignedBuf(info, &v2, long);
+	  fetchBuf(info, &v2, long);
 	  if ( v2 == val )
 	    succeed;
 	}
@@ -525,7 +523,7 @@ unref_cont:
 	{ long val = valBignum(w);
 	  long v2;
 
-	  fetchUnalignedBuf(info, &v2, long);
+	  fetchBuf(info, &v2, long);
 	  if ( v2 == val )
 	    succeed;
 	}
@@ -533,12 +531,14 @@ unref_cont:
       fail;
     case TAG_STRING:
       if ( stag == PL_TYPE_STRING )
-      { int len;
+      { long llen;
+	int len;
 	char *s1 = valString(w);
 	word m  = *((Word)addressIndirect(w));
 	int wn  = wsizeofInd(m);
 
-	fetchUnalignedBuf(info, &len, int);
+	fetchBuf(info, &llen, long);
+	len = (int)llen;
 	if ( wn == len && memcmp(s1, info->data, len * sizeof(word)) == 0 )
 	{ info->data += len * sizeof(word);
 	  succeed;
@@ -547,12 +547,16 @@ unref_cont:
       fail;
     case TAG_FLOAT:
       if ( stag == PL_TYPE_FLOAT )
-      { double val = valReal(w);
-	
-	if ( memcmp(&val, info->data, sizeof(double)) == 0 )
-	{ info->data += sizeof(double);
-	  succeed;
+      { Word v = valIndirectP(w);
+	Word d = (Word)info->data;
+	int i;
+
+	for(i=0; i<WORDS_PER_DOUBLE; i++)
+	{ if ( v[i] != d[i] )
+	    fail;
 	}
+	info->data += sizeof(double);
+	succeed;
       }
 
       fail;
@@ -561,7 +565,7 @@ unref_cont:
       { Functor f = valueTerm(w);
 	word fdef;
 
-	fetchUnalignedBuf(info, &fdef, word);
+	fetchBuf(info, &fdef, word);
 	if ( fdef == f->definition )
 	{ int arity = arityFunctor(fdef);
 
@@ -592,7 +596,7 @@ structuralEqualArg1OfRecord(term_t t, Record r ARG_LD)
   Word *p;
 
   initBuffer(&info.vars);
-  info.data = r->buffer + sizeof(char) + sizeof(word);
+  info.data = r->buffer + sizeof(long) + sizeof(word);
 					/* skip PL_TYPE_COMPOUND <functor> */
   rval = se_record(valTermRef(t), &info PASS_LD);
   n = entriesBuffer(&info.vars, Word);

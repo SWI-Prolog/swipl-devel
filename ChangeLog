@@ -1,6 +1,10 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * INTERNAL: recorded database to to avoid unaligned retrieval using
+    memcpy().  Provides a little extra speed notably in findall, setof
+    and friends, at the cost of some memory.
+
   * FIXED: scan_options() for machines where sizeof(int) != sizeof(long).
     With help from Bob Moniot.
 

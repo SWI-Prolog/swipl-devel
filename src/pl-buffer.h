@@ -40,21 +40,15 @@ void	growBuffer(Buffer, long);
           (b)->top += sizeof(type); \
 	} while(0)
   
-#define addUnalignedBuffer(b, obj, type) \
-	do \
-	{ if ( (b)->top + sizeof(type) > (b)->max ) \
-	    growBuffer((Buffer)b, sizeof(type)); \
-	  memcpy((b)->top, (char *)&obj, sizeof(type)); \
-          (b)->top += sizeof(type); \
-	} while(0)
-  
 #define addMultipleBuffer(b, ptr, times, type) \
 	do \
-	{ int _len = sizeof(type) * (times); \
+	{ int _len = (times); \
 	  if ( (b)->top + _len > (b)->max ) \
 	    growBuffer((Buffer)b, _len); \
-	  memcpy((b)->top, ptr, _len); \
-          (b)->top += _len; \
+          while ( --_len >= 0 ) \
+	  { *((type *)(b)->top) = *ptr++; \
+	    (b)->top += sizeof(type); \
+	  } \
 	} while(0)
   
 #define baseBuffer(b, type)	 ((type *) (b)->base)
