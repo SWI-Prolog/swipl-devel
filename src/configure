@@ -3404,7 +3404,7 @@ fi
 done
 
 
-for ac_func in access chmod dossleep fstat readlink getwd getcwd
+for ac_func in access fchmod chmod dossleep fstat readlink getwd getcwd
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
 echo "configure:3411: checking for $ac_func" >&5

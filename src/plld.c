@@ -1146,7 +1146,12 @@ createOutput()
       printf("\tchmod %03o %s\n", 0777 & ~mask, out);
 
     if ( !fake )
-    { if ( fchmod(ofd, 0777 & ~mask) != 0 )
+    {
+#ifdef HAVE_FCHMOD
+      if ( fchmod(ofd, 0777 & ~mask) != 0 )
+#else
+      if ( chmod(out, 0777 & ~mask) != 0 )
+#endif
       { fprintf(stderr, "Could make %s executable: %s\n", out, oserror());
 	error(1);
       }

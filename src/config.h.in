@@ -161,6 +161,9 @@
 /* Define if you have the dossleep function.  */
 #undef HAVE_DOSSLEEP
 
+/* Define if you have the fchmod function.  */
+#undef HAVE_FCHMOD
+
 /* Define if you have the floor function.  */
 #undef HAVE_FLOOR
 

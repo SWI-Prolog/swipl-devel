@@ -345,7 +345,7 @@ AC_CHECK_HEADERS(malloc.h sys/malloc.h)
 AC_CHECK_HEADERS(sys/termios.h sys/termio.h bstring.h sys/mman.h)
 AC_CHECK_HEADERS(mach-o/rld.h locale.h)
 
-AC_CHECK_FUNCS(access chmod dossleep fstat readlink getwd getcwd)
+AC_CHECK_FUNCS(access fchmod chmod dossleep fstat readlink getwd getcwd)
 AC_CHECK_FUNCS(getpagesize getpwnam getrlimit gettimeofday opendir sysconf)
 AC_CHECK_FUNCS(popen putenv random remove rename select)
 AC_CHECK_FUNCS(signal sigset sigprocmask sleep usleep srand srandom stat)
