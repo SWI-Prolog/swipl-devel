@@ -1,0 +1,18 @@
+			SWI-Prolog ODBC interface
+
+I once thought Prolog was poorly standardised,   but  now I know better.
+SQL is very poorly standardised.
+
+Microsoft SQL Server
+====================
+
+    * If you want to use the option source(true) to get the table-name
+      in the result-set, you must use add 'FOR BROWSE' at the end of the
+      SQL SELECT statement.  Read more in
+
+	http://msdn.microsoft.com/library/default.asp?url=/library/en-us/odbcsql/od_odbc_c_9qp1.asp
+
+    * To allow multiple active statements, use
+
+	odbc_set_connection(Connection, cursor_type(dynamic))
+      
