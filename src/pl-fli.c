@@ -405,14 +405,15 @@ PL_cons_functor_v(term_t h, functor_t fd, term_t a0)
   if ( arity == 0 )
   { setHandle(h, nameFunctor(fd));
   } else
-  { Word a  = allocGlobal(1 + arity);
+  { Word t  = allocGlobal(1 + arity);
+    Word a  = t;
     Word ai = valHandleP(a0);
-
-    setHandle(h, consPtr(a, TAG_COMPOUND|STG_GLOBAL));
 
     *a = fd;
     while( --arity >= 0 )
       bindConsVal(++a, ai++);
+
+    setHandle(h, consPtr(t, TAG_COMPOUND|STG_GLOBAL));
   }
 }
 
