@@ -577,6 +577,7 @@ make_prolog_binding_recogniser(G) :-
 
 initialise(B) :->
 	send_super(B, initialise),
+	send(B?text_buffer, undo_buffer_size, 0),
 	get(B, font, Font),
 	get(Font, ex, Ex),
 	Tab is 15 * Ex,
@@ -653,8 +654,8 @@ append_binding(B, Names:prolog, Value:prolog, Fd:prolog) :->
 	    ;	Names = [VarName:ArgN|_],
 	        write_varnames(Fd, Names)
 	    ),
-	    format(Fd, '\t= ', []),
-	    format(Fd, '~p~n', [Value]),
+	    current_prolog_flag(toplevel_print_options, Options),
+	    format(Fd, '\t= ~W~n', [Value, Options]),
 	    flush_output(Fd),
 	    get(TB, size, S1),
 	    new(Frag, fragment(TB, S0, S1-S0, frame)),

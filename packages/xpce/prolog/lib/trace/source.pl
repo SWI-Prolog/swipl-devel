@@ -144,7 +144,8 @@ source(V, Source:'name|emacs_buffer*') :->
 	;   (   Source == @nil
 	    ->  send(V, text_buffer, emacs_buffer(@nil, '<no source>'))
 	    ;   send(Source, instance_of, emacs_buffer)
-	    ->  send(V, text_buffer, Source)
+	    ->  send(Source, margin_width, 22),
+	        send(V, text_buffer, Source)
 	    ;   absolute_file_name(Source, Canonical),
 		buffer(Canonical, B),
 		send(V, text_buffer, B),
