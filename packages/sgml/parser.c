@@ -902,6 +902,12 @@ process_entity_declaraction(dtd *dtd, const ichar *decl)
       } else if ( (s=isee_identifier(dtd, decl, "pi")) )
       { decl = s;
 	e->content = EC_PI;
+      } else if ( (s=isee_identifier(dtd, decl, "starttag")) )
+      { decl = s;
+	e->content = EC_STARTTAG;
+      } else if ( (s=isee_identifier(dtd, decl, "endtag")) )
+      { decl = s;
+	e->content = EC_ENDTAG;
       } else
 	e->content = EC_SGML;
     }
@@ -2049,6 +2055,7 @@ process_end_element(dtd_parser *p, const ichar *decl)
   dtd_symbol *id;
   const ichar *s;
   
+  emit_cdata(p, TRUE);
   if ( (s=itake_name(dtd, decl, &id)) && *s == '\0' )
     return close_element(p, find_element(dtd, id));
 
@@ -2243,8 +2250,7 @@ process_declaration(dtd_parser *p, const ichar *decl)
 
   if ( p->dmode != DM_DTD )
   { if ( (s=isee_func(dtd, decl, CF_ETAGO2)) ) /* </ ... > */
-    { emit_cdata(p, TRUE);
-      return process_end_element(p, s);
+    { return process_end_element(p, s);
     } else
     { return process_begin_element(p, decl);
     }
@@ -2688,6 +2694,14 @@ process_entity(dtd_parser *p, const ichar *name)
 	      add_ocharbuf(p->cdata, *o);
 	    break;
 	  }
+	case EC_STARTTAG:
+	  prepare_cdata(p);
+	  process_begin_element(p, text);
+	  break;
+	case EC_ENDTAG:
+	  prepare_cdata(p);
+	  process_end_element(p, text);
+	  break;
 	case EC_SDATA:
 	case EC_NDATA:
 	  process_cdata(p, FALSE);

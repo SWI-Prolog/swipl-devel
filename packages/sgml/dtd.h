@@ -128,6 +128,8 @@ typedef enum
 
 typedef enum
 { EC_SGML,				/* SGML data */
+  EC_STARTTAG,				/* SGML start-tag */
+  EC_ENDTAG,				/* SGML end-tag */
   EC_CDATA,				/* CDATA entity */
   EC_SDATA,				/* SDATA entity */
   EC_NDATA,				/* non-sgml data */
