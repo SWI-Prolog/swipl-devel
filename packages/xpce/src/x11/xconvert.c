@@ -56,14 +56,23 @@ read_bitmap_data(FILE *fd, int *w, int *h)
 		*          ENTRY POINT		*
 		********************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The call to _XInitImageFuncPtrs() is  an   undocumented  X11 call, which
+proved to be necessary on IRIX machines   (thanks  to Fred Kwakkel).  If
+your machine reports this function as   undefined,  remove the call.  If
+the system then crashes while opening an image object, we have a problem
+:-)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 XImage *
 CreateXImageFromData(unsigned char *data, int width, int height)
-{ XImage *image = (XImage *) XMalloc(sizeof(XImage));
-  memset(image, 0, sizeof(XImage));
+{ extern void _XInitImageFuncPtrs(XImage *);
+  XImage *image = (XImage *) XMalloc(sizeof(XImage));
 
-  if ( image != NULL )
-  { image->height = height;
+  if ( image )
+  { memset(image, 0, sizeof(XImage));
+
+    image->height = height;
     image->width = width;
     image->depth = 1;
     image->xoffset = 0;
@@ -74,6 +83,7 @@ CreateXImageFromData(unsigned char *data, int width, int height)
     image->bitmap_bit_order = LSBFirst;
     image->bitmap_pad = 8;
     image->bytes_per_line = (width+7)/8;
+    _XInitImageFuncPtrs(image);		/* see comment above! */
   }
 
   return image;

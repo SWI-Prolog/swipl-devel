@@ -9,6 +9,7 @@
 
 #include <h/kernel.h>
 #include <h/graphics.h>
+#include <h/interface.h>
 #include "include.h"
 
 
@@ -32,5 +33,15 @@ ws_expose_console()
 
 status
 ws_console_label(CharArray label)
-{ fail;
+{ char *t = getenv("TERM");
+
+  if ( t && streq(t, "xterm") )
+  { char buf[1000];
+
+    sprintf(buf, "\033]2;%s\007", strName(label));
+    hostAction(HOST_WRITE, buf);
+    hostAction(HOST_FLUSH);
+  }
+
+  succeed;
 }
