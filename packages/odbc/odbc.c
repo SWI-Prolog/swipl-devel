@@ -1708,6 +1708,7 @@ prepare_result(context *ctxt)
 
     switch (ptr_result->cTypeID)
     { case SQL_C_CHAR:
+	columnSize++;			/* one for decimal dot */
 	ptr_result->len_value = sizeof(char)*columnSize+1;
 	break;
       case SQL_C_SLONG:
@@ -2303,7 +2304,10 @@ declare_parameters(context *ctxt, term_t parms)
     { case SQL_C_CHAR:
       case SQL_C_BINARY:
 	if ( cbColDef > 0 )
-	{ if ( cbColDef+1 > PARAM_BUFSIZE )
+	{ if ( params->sqlTypeID == SQL_DECIMAL ||
+	       params->sqlTypeID == SQL_NUMERIC )
+	    cbColDef++;			/* add one for decimal dot */
+	  if ( cbColDef+1 > PARAM_BUFSIZE )
 	  { if ( !(params->ptr_value = odbc_malloc(cbColDef+1)) )
 	      return FALSE;
 	  }

@@ -89,6 +89,10 @@ type(decimal(10,2),
      atom = ['3.43', '4.50', '5.00', '$null$'],
      [
      ]).
+type(decimal(6,2),
+     atom = ['1000.00'],
+     [
+     ]).
 type(numeric(10),
      integer = [-1, 0, 42, '$null$'],
      [

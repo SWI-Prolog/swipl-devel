@@ -1,3 +1,8 @@
+Sep 15, 2002
+
+* FIXED: increase column-width for DECIMAL columns as the interface doesn't
+  appear to consider the decimal dot when providing the column width.
+
 Jul 24, 2002
 
 * FIXED: Check malloc() return and use PL_* allocation where necessary.
