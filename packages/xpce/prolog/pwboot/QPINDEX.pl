@@ -120,6 +120,7 @@ index((pce_arg), 3, pce_qux, pce_qux).
 index((sublist), 3, pce_qux, pce_qux).
 index((exists_file), 1, pce_qux, pce_qux).
 index((make), 0, pce_qux, pce_qux).
+index((pce_load_cxx), 1, pce_loadcxx, pce_loadcxx).
 index((source_warning), 2, pce_qux, pce_qux).
 index((sformat), 3, pce_qux, pce_qux).
 index((is_absolute_file_name), 1, pce_qux, pce_qux).

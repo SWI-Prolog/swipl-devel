@@ -10,7 +10,7 @@ MAKE=make
 SHELL=bash
 BIN=sun4-5
 SO=so
-builddir=linux
+builddir=openwin
 PCEMAJOR=4
 PCEMINOR=9
 PCEPATCH=3
@@ -126,7 +126,8 @@ LIBPLS=		pce.pl \
 		pce_image.pl \
 		pce_prompter.pl \
 		pce_template.pl \
-		pce_tagged_connection.pl
+		pce_tagged_connection.pl \
+		pce_loadcxx.pl
 
 MANPLS= 	man/p_card.pl \
 		man/p_data.pl \
@@ -354,6 +355,8 @@ english:
 
 $(PCELIB)/pce.pl:	../pwboot/pce.pl
 	$(CP) ../pwboot/pce.pl $(PCELIB)/pce.pl
+$(PCELIB)/pce_loadcxx.pl: pce_loadcxx.pl
+	$(CP) pce_loadcxx.pl $(PCELIB)/pce_loadcxx.pl
 
 # copy - implicit rules
 

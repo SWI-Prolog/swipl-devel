@@ -51,6 +51,7 @@ LIBQOFS= area.qof \
 	pce_qux.qof \
 	pce_template.qof \
 	pce_style_item.qof \
+	pce_loadcxx.qof \
 	english/pce_messages.qof
 
 MANQOFS=man/p_card.qof \

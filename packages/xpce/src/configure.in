@@ -232,6 +232,8 @@ EOF
 				LDSOFLAGS="-G"
 				SONAMEFLAG="-h $(LIBXPCESOM)"
 				SOWHOLEARCHIVE="-u pceSend -u pceOpen"
+				if "$GXX" != "NONE"; then
+				  LDSOFLAGS="$LDSOFLAGS -u __builtin_new"
     				;;
     *sunos*)			LD=ld
 				LDSOFLAGS=""

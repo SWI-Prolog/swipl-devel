@@ -16,6 +16,7 @@ all:	$(TEX) $(LOGO)
 
 html:	$(TEX)
 	latex2html doc
+	mv doc/doc.html doc/Title.html
 
 bib:	doc.aux
 	(TEXINPUTS=../../TeX:$$TEXINPUTS; \
