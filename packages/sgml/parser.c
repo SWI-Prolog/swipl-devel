@@ -46,6 +46,7 @@ static int		process_entity_declaraction(dtd *dtd,
 static void		free_notations(dtd_notation *n);
 static void		free_shortrefs(dtd_shortref *sr);
 static int		process_cdata(dtd_parser *p, int last);
+static int		process_entity(dtd_parser *p, const ichar *name);
 static int		emit_cdata(dtd_parser *p, int last);
 static dtd_space_mode	istr_to_space_mode(const ichar *val);
 static void		update_space_mode(dtd_parser *p, dtd_element *e,
@@ -1170,13 +1171,23 @@ process_shortref_declaration(dtd *dtd, const ichar *decl)
 }
 
 
-static dtd_map *
+static dtd_shortref *
 find_map(dtd *dtd, dtd_symbol *name)
 { dtd_shortref *sr;
+  static dtd_shortref *empty;
+
+  if ( istrcaseeq(name->name, "#empty") )
+  { if ( !empty )
+    { empty = calloc(1, sizeof(*empty));
+      empty->name = dtd_add_symbol(dtd, "#EMPTY");
+    }
+
+    return empty;
+  }
 
   for( sr = dtd->shortrefs; sr; sr = sr->next )
   { if ( sr->name == name )
-      return sr->map;
+      return sr;
   }
        
   gripe(ERC_EXISTENCE, "map", name->name);
@@ -1189,6 +1200,7 @@ set_map_element(dtd_element *e, void *closure)
 { e->map = closure;
 }
 
+
 static int
 process_usemap_declaration(dtd_parser *p, const ichar *decl)
 { dtd *dtd = p->dtd;
@@ -1196,7 +1208,7 @@ process_usemap_declaration(dtd_parser *p, const ichar *decl)
   const ichar *s;
   dtd_symbol *ename;
   dtd_element *e;
-  dtd_map *map;
+  dtd_shortref *map;
 
   if ( !(s=itake_name(dtd, decl, &name)) )
     return gripe(ERC_SYNTAX_ERROR, "map-name expected", decl);
@@ -1263,6 +1275,28 @@ match_map(dtd *dtd, dtd_map *map, int len, ichar *data)
       continue;
     }
     return FALSE;
+  }
+
+  return TRUE;
+}
+
+
+static int
+match_shortref(dtd_parser *p)
+{ if ( p->map )
+  { dtd_map *map;
+
+    for(map = p->map->map; map; map = map->next)
+    { int len;
+
+      if ( (len=match_map(p->dtd, map,
+			  p->cdata->size, (ichar *)p->cdata->data)) )
+      { p->cdata->size -= len;
+
+	process_entity(p, map->to->name); /* TBD: optimise */
+	break;
+      }
+    }
   }
 
   return TRUE;
@@ -3145,23 +3179,14 @@ a single \n for Windows newline conventions.
 static void
 add_cdata(dtd_parser *p, int chr)
 { ocharbuf *buf = p->cdata;
-  dtd_map *map;
 
   if ( chr == '\n' && buf->size > 0 && buf->data[buf->size-1] == '\r' )
     buf->size--;
 
   add_ocharbuf(buf, chr);
 
-  for(map = p->map; map; map = map->next)
-  { int len;
-
-    if ( (len=match_map(p->dtd, map, p->cdata->size, (ichar *)p->cdata->data)) )
-    { p->cdata->size -= len;
-
-      process_entity(p, map->to->name);	/* TBD: optimise */
-      break;
-    }
-  }
+  if ( p->map )
+    match_shortref(p);
 }
 
 

@@ -107,7 +107,7 @@ typedef struct _sgml_environment
   struct _xmlns *thisns;		/* Name space of element */
 #endif
   dtd_space_mode space_mode;		/* How to handle blanks */
-  dtd_map *map;				/* SHORTREF map */
+  dtd_shortref *map;			/* SHORTREF map */
   struct _sgml_environment *parent;	/* Parent environment */
 } sgml_environment;
 
@@ -138,7 +138,7 @@ typedef struct _dtd_parser
   int      previous_char;		/* previous character */
   int	   saved;			/* saved character */
   dtd_char_encoding encoding;		/* CDATA output character-set */
-  dtd_map *map;				/* SHORTREF map */
+  dtd_shortref *map;			/* SHORTREF map */
 #ifdef UTF8
   int	   utf8_decode;			/* decode UTF-8 sequences? */
   int      utf8_char;			/* building character */

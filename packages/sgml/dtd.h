@@ -330,7 +330,7 @@ typedef struct _dtd_element
   dtd_edef	*structure;		/* content structure of the element */
   dtd_attr_list *attributes;		/* defined attributes */
   dtd_space_mode space_mode;		/* How to handle white-space (SP_*) */
-  dtd_map	*map;			/* SHORTREF map */
+  dtd_shortref	*map;			/* SHORTREF map */
   int		undefined;		/* Only implicitely defined */
   struct _dtd_element *next;		/* in DTD'e element list */
 } dtd_element;
