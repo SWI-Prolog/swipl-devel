@@ -673,9 +673,9 @@ Sgetcode(IOSTREAM *s)
     { int c1, c2;
 
       c1 = Snpgetc(s);
-      c2 = Snpgetc(s);
       if ( c1 == EOF )
 	return EOF;
+      c2 = Snpgetc(s);
 
       if ( c2 == EOF )
       { Sseterr(s, SIO_WARN, "EOF in unicode character");

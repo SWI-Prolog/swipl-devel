@@ -178,7 +178,7 @@ swipl:
 		echo . > $@
 
 check:
-		$(PLCON) -f test.pl -F none -g test,halt -t 'halt(1)'
+		$(PLCON) -f test.pl -F none -g test,halt -t halt(1)
 
 ################################################################
 # Installation.  The default target is dv-install to install the
