@@ -554,6 +554,9 @@ Sputcode(int c, IOSTREAM *s)
     return -1;
   }
 
+  if ( s->tee && s->tee->magic == SIO_MAGIC )
+    Sputcode(c, s->tee);
+
   switch(s->encoding)
   { case ENC_NONE:
     case ENC_ISO_LATIN_1:
@@ -1489,6 +1492,7 @@ Svsprintf(char *buf, const char *fm, va_list args)
   s.functions = NULL;
   s.mutex     = NULL;
   s.encoding  = ENC_ISO_LATIN_1;
+  s.tee	      = NULL;
   
   if ( (rval = Svfprintf(&s, fm, args)) >= 0 )
     *s.bufp = '\0';

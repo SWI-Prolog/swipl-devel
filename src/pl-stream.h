@@ -157,7 +157,8 @@ typedef struct io_stream
 					/* SWI-Prolog 5.4.4 */
   char *		message;	/* error/warning message */
   IOENC			encoding;	/* character encoding used */
-  long			reserved[8];	/* reserved for extension */
+  struct io_stream *	tee;		/* copy data to this stream */
+  long			reserved[7];	/* reserved for extension */
 } IOSTREAM;
 
 
