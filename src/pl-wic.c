@@ -460,6 +460,19 @@ getReal(IOSTREAM *fd)
 }
 
 
+unsigned long
+getLong(IOSTREAM *s)
+{ unsigned long v;
+
+  v  = (Sgetc(s) & 0xff) << 24;
+  v |= (Sgetc(s) & 0xff) << 16;
+  v |= (Sgetc(s) & 0xff) << 8;
+  v |= (Sgetc(s) & 0xff);
+
+  return v;
+}
+
+
 static word
 loadXRc(int c, IOSTREAM *fd)
 { word xr;
@@ -1246,6 +1259,15 @@ putReal(real f, IOSTREAM *fd)
 }
 
 
+static void
+putLong(unsigned long v, IOSTREAM *fd)	/* always 4 bytes */
+{ Sputc((v>>24)&0xff, fd);
+  Sputc((v>>16)&0xff, fd);
+  Sputc((v>>8)&0xff, fd);
+  Sputc(v&0xff, fd);
+}
+
+
 static int
 savedXR(void *xr, IOSTREAM *fd)
 { Symbol s;
@@ -1681,7 +1703,7 @@ sourceMark(IOSTREAM *s)
 
 static int
 writeSourceMarks(IOSTREAM *s)
-{ int n = 0;
+{ unsigned int n = 0;
   SourceMark pn, pm = source_mark_head;
 
   DEBUG(1, Sdprintf("Writing source marks: "));
@@ -1690,13 +1712,13 @@ writeSourceMarks(IOSTREAM *s)
   { pn = pm->next;
 
     DEBUG(1, Sdprintf(" %d", pm->file_index));
-    putNum(pm->file_index, s);
+    putLong(pm->file_index, s);
     freeHeap(pm, sizeof(*pm));
     n++;
   }
   
   DEBUG(1, Sdprintf("Written %d marks\n", n));
-  putNum(n, s);
+  putLong(n, s);
 
   return 0;
 }
@@ -1733,7 +1755,12 @@ qlfInfo(const char *file,
   wicFile = (char *)file;
 
   if ( !(s = Sopen_file(file, "rbr")) )
-    return warning("Can't open %s: %s", file, OsError());
+  { term_t f = PL_new_term_ref();
+
+    PL_put_atom_chars(f, file);
+    return PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
+		    ATOM_open, ATOM_source_sink, f);
+  }    
 
   if ( !(lversion = qlfVersion(s)) )
   { Sclose(s);
@@ -1742,14 +1769,14 @@ qlfInfo(const char *file,
     
   TRY(PL_unify_integer(version, lversion));
 
-  if ( Sseek(s, -(int)sizeof(long), SIO_SEEK_END) < 0 )
+  if ( Sseek(s, -4, SIO_SEEK_END) < 0 )	/* 4 bytes of putLong() */
     return warning("qlf_info/3: seek failed: %s", OsError());
-  nqlf = getNum(s);
+  nqlf = getLong(s);
   DEBUG(1, Sdprintf("Found %d sources at %d starting at", nqlf, rval));
   qlfstart = (long *)allocHeap(sizeof(long) * nqlf);
-  Sseek(s, -(int)sizeof(long) * (nqlf+1), SIO_SEEK_END);
+  Sseek(s, -4 * (nqlf+1), SIO_SEEK_END);
   for(i=0; i<nqlf; i++)
-  { qlfstart[i] = getNum(s);
+  { qlfstart[i] = getLong(s);
     DEBUG(1, Sdprintf(" %d", qlfstart[i]));
   }
   DEBUG(1, Sdprintf("\n"));
@@ -1782,7 +1809,7 @@ pl_qlf_info(term_t file,
   char buf[MAXPATHLEN];
 
   if ( !(name = PL_get_filename(file, buf, sizeof(buf))) )
-    return warning("qlf_info/3: instantiation fault");
+    fail;
 
    return qlfInfo(name, cversion, version, files);
 }
@@ -1871,7 +1898,12 @@ qlfLoad(char *file, Module *module)
     fail;
   
   if ( !(fd = Sopen_file(file, "rbr")) )
-    return warning("$qlf_load/1: can't open %s: %s", file, OsError());
+  { term_t f = PL_new_term_ref();
+
+    PL_put_atom_chars(f, file);
+    return PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
+		    ATOM_open, ATOM_source_sink, f);
+  }
   if ( !(lversion = qlfVersion(fd)) || lversion < LOADVERSION )
   { Sclose(fd);
     if ( lversion )
