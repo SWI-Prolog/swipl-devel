@@ -816,7 +816,7 @@ termToObject(Term t, Atom assoc, int new)
 
       GetArg(1, t, a);
       if ( GetChars(a, &s) )
-	return cToPceString(pceassoc, s);
+	return cToPceString(pceassoc, s, TRUE);
 
       PceException(ATOM_badStringArgument, 1, a);
       return PCE_FAIL;
@@ -896,7 +896,7 @@ termToObject(Term t, Atom assoc, int new)
   { char *s;
     int len;
     if ( GetString(t, &s, &len) )	/* string object (if supported) */
-      return cToPceString(atomToAssoc(assoc), s);
+      return cToPceString(atomToAssoc(assoc), s, FALSE);
   }
 #endif
 
