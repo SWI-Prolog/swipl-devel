@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: PL_cons_functor_v() and related interface functions: forgotten
+    dereference (Fabien Todescato).
+
   * PORT: Added (non-tested) support for loading shared objects in BeOS
     (with help by Axel Dörfler)
 

@@ -417,6 +417,8 @@ makeNum(long i)
 static inline void
 bindConsVal(Word to, Word p)
 { GET_LD
+
+  deRef(p);
   if ( isVar(*p) )
   { if ( to < p )
     { setVar(*to);
