@@ -1679,13 +1679,16 @@ exitCyclicCopy(Word *m ARG_LD)
 }
 
 
+#define COPY_SHARE 0x01			/* Allow sharing ground terms */
+#define COPY_ATTRS 0x02			/* do copy attributes */
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 FALSE: term cannot be shared
 TRUE:  term can be shared (ground)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-do_copy_term(Word from, Word to, int share ARG_LD)
+do_copy_term(Word from, Word to, int flags ARG_LD)
 { 
 
 again:
@@ -1702,13 +1705,18 @@ again:
       }
     }
     case TAG_VAR:
+    case_var:
       *to = VAR_MARK;
       *from = makeRef(to);
       TrailCyclic(from PASS_LD);
       return FALSE;
     case TAG_ATTVAR:
-    { Word p = valPAttVar(*from);
-      
+    { Word p;
+
+      if ( !(flags & COPY_ATTRS) )
+	goto case_var;
+
+      p = valPAttVar(*from);
       if ( isAttVar(*p) )		/* already copied */
       { *to = makeRefG(p);
         return FALSE;
@@ -1727,7 +1735,8 @@ again:
 	*from = consPtr(to, STG_GLOBAL|TAG_ATTVAR);
 	*to = consPtr(attr, STG_GLOBAL|TAG_ATTVAR);
 
-	do_copy_term(p, attr, FALSE PASS_LD);	/* copy attribute value */
+	flags &= ~COPY_SHARE;
+	do_copy_term(p, attr, flags PASS_LD);	/* copy attribute value */
 	return FALSE;
       }
     }
@@ -1760,9 +1769,9 @@ again:
 	from = &f1->arguments[0];
 	to   = &f2->arguments[0];
 	while(--arity > 0)
-	  ground &= do_copy_term(from++, to++, share PASS_LD);
-	if ( share )
-	{ ground &= do_copy_term(from, to, share PASS_LD);
+	  ground &= do_copy_term(from++, to++, flags PASS_LD);
+	if ( (flags & COPY_SHARE) )
+	{ ground &= do_copy_term(from, to, flags PASS_LD);
 	  if ( ground )
 	  { exitCyclicCopy(am PASS_LD);
 	    gTop = oldtop;
@@ -1788,7 +1797,8 @@ PRED_IMPL("copy_term", 2, copy_term, 0)
   term_t copy = PL_new_term_ref();
   Word *m = aTop;
 
-  do_copy_term(valTermRef(A1), valTermRef(copy), TRUE PASS_LD);
+  do_copy_term(valTermRef(A1), valTermRef(copy),
+	       COPY_SHARE|COPY_ATTRS PASS_LD);
   exitCyclicCopy(m PASS_LD);
   
   return PL_unify(copy, A2);
@@ -1799,7 +1809,8 @@ static void
 duplicate_term(term_t in, term_t copy ARG_LD)
 { Word *m = aTop;
 
-  do_copy_term(valTermRef(in), valTermRef(copy), FALSE PASS_LD);
+  do_copy_term(valTermRef(in), valTermRef(copy),
+	       COPY_ATTRS PASS_LD);
   exitCyclicCopy(m PASS_LD);
 }
 
@@ -1814,6 +1825,18 @@ PRED_IMPL("duplicate_term", 2, duplicate_term, 0)
   return PL_unify(copy, A2);
 }
 
+
+static
+PRED_IMPL("copy_term_nat", 2, copy_term_nat, 0)
+{ PRED_LD
+  term_t copy = PL_new_term_ref();
+  Word *m = aTop;
+
+  do_copy_term(valTermRef(A1), valTermRef(copy), COPY_SHARE PASS_LD);
+  exitCyclicCopy(m PASS_LD);
+  
+  return PL_unify(copy, A2);
+}
 
 #undef LD
 #define LD GLOBAL_LD
@@ -3501,6 +3524,7 @@ BeginPredDefs(prims)
 #endif
   PRED_DEF("copy_term", 2, copy_term, 0)
   PRED_DEF("duplicate_term", 2, duplicate_term, 0)
+  PRED_DEF("copy_term_nat", 2, copy_term_nat, 0)
 #ifdef O_LIMIT_DEPTH
   PRED_DEF("$depth_limit_except", 3, depth_limit_except, 0)
   PRED_DEF("$depth_limit_false",  3, depth_limit_false, 0)

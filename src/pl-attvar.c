@@ -426,7 +426,10 @@ PRED_IMPL("put_attr", 3, put_attr3, 0)	/* +Var, +Name, +Value */
   if ( !PL_get_atom_ex(A2, &name) )
     fail;
 
-  if ( !onStackArea(global, (vp=valTermRef(A3))) )
+  vp = valTermRef(A3);
+  deRef(vp);
+
+  if ( isVar(*vp) && !onStackArea(global, vp) )
   { Word p = allocGlobal(1);		/* attribute values should be on */
 					/* the global stack! */
     

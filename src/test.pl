@@ -1331,8 +1331,13 @@ copy_term(reset-1) :-			% reset cycle resetting for shared
 	A = [a:b,c:d|_],		% terms.
 	copy_term(A,_B),
 	A = [a:b,c:d|_].
-	
-
+copy_term(nat-1) :-
+	put_attr(X, foo, y),
+	copy_term_nat(x(X,X), Y),
+	Y = x(A,B),
+	A == B,
+	var(A),
+	\+ attvar(A).
 
 
 		 /*******************************

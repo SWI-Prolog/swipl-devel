@@ -123,7 +123,7 @@ attribute is considered printed.  Otherwise \exam{Module = ...} is
 printed to indicate the existence of a variable.
 \end{description}
 
-\subsection{Accessing all attributes}
+\subsection{Special purpose predicates for attributes}
 
 Normal user code should deal with put_attr/3, get_attr/3 and del_attr/2.
 The routines in this section fetch or set the entire attribute list of a
@@ -139,6 +139,10 @@ Get all attributes of \arg{Var}. \arg{Attributes} is a term of the form
     \predicate{put_attrs}{2}{+Var, -Attributes}
 Set all attributes of \arg{Var}.  See get_attrs/2 for a description of
 \arg{Attributes}.
+
+    \predicate{copy_term_nat}{2}{+Term, -Copy}
+As copy_term/2.  Attributes however, are \emph{not} copied but replaced
+by fresh variables.
 \end{description}
 
 

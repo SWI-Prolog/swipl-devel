@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: copy_term_nat/2: copy without attributes.  Required by
+    Tom Schrijvers for CHR.
+
   * FIXED: Avoid wakeup in tracer, portray, event-hooks and interrupts.
     Fixes problems reported by Hugo Ferreira and Tom Schrijvers.
 
