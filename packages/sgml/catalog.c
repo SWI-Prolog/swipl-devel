@@ -158,7 +158,7 @@ find_public_entity_in_catalog(const char *catfile,
 
 
 int
-register_catalog(const char *file, catalog_location where)
+register_catalog_file(const char *file, catalog_location where)
 { catalog_file **f = &catalog;
   catalog_file *cf;
 
@@ -204,11 +204,11 @@ init_catalog()
 	  buf[s-path] = '\0';
 	  path = s+1;
 	} else
-	{ register_catalog(path, CTL_START);
+	{ register_catalog_file(path, CTL_START);
 	  return;
 	}
 
-	register_catalog(buf, CTL_START);
+	register_catalog_file(buf, CTL_START);
       }
     }
   }
