@@ -791,6 +791,14 @@ updateAreaFrame(FrameObj fr, Int border)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Returns the window which  we  believe   is  the  window manager's window
+encapsulating out window as well as the offset of the client-area of our
+window relative to the real outside  of the window-manager's window. The
+latter is used to correct the position if   we send ->geometry to a life
+window.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static Window
 getWMFrameFrame(FrameObj fr, int *dxp, int *dyp)
 { Widget wdg;
@@ -805,26 +813,35 @@ getWMFrameFrame(FrameObj fr, int *dxp, int *dyp)
     if ( fr->kind != NAME_popup )
     { Window root, parent, *children;
       unsigned int nchildren;
-      int m = 5;
+      int m = 0;
 
-      while(--m >= 0)			/* avoid a loop */
+      while( m++ < 5 )			/* avoid a loop */
       { if ( !XQueryTree(d, w, &root, &parent,
 			 &children, &nchildren) )
 	  break;
 	XFree((char *) children);	/* declared char * ???? */
 
-	DEBUG(NAME_frame, Cprintf("w = %ld; root = %ld; parent = %ld\n",
-				  w, root, parent));
-	if ( parent == root )
-	  break;
-
 	if ( dxp || dyp )
 	{ unsigned int x, y, width, h, bw, depth;
 
 	  XGetGeometry(d, w, &root, &x, &y, &width, &h, &bw, &depth);
-	  dx += x;
-	  dy += y;
+
+	  dx += bw;
+	  dy += bw;
+
+	  if ( parent != root )
+	  { dx += x;
+	    dy += y;
+	  }
+
+	  DEBUG(NAME_frame,
+		Cprintf("w = %ld; root = %ld; parent = %ld; "
+			"dx=%d; dy=%d; bw = %d\n",
+			w, root, parent, dx, dy, bw));
 	}
+
+	if ( parent == root )
+	  break;
 
 	w = parent;
       }
@@ -903,13 +920,17 @@ ws_x_geometry_frame(FrameObj fr, Name spec)
       XGetGeometry(d, wm, &root, &wmx, &wmy, &wmw, &wmh, &wmbw, &depth);
 
       DEBUG(NAME_frame,
-	    Cprintf("wmbw %d; mew %d; meh %d; wmw %d; wmh %d; mex %d; mey %d\n",
-		    wmbw, mew, meh, wmw, wmh, mex, mey));
+	    Cprintf("wmbw %d; mew %d; meh %d; wmw %d; wmh %d; dx %d; dy %d\n",
+		    wmbw, mew, meh, wmw, wmh, dx, dy));
 
-/*    if ( (mask & XValue) && (mask & XNegative) ) */
-	x -= dx;
-/*    if ( (mask & YValue) && (mask & YNegative) ) */
-	y -= dy;
+      if ( (mask & XNegative) )
+	x -= wmw-mew-dx;
+      else
+	x += dx;
+      if ( (mask & YNegative) ) 
+	y -= wmh-meh-dy;
+      else
+	y += dy;
 
       w -= wmw-mew;
       h -= wmh-meh;
