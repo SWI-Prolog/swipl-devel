@@ -8,28 +8,30 @@
 #   Copyright (c) 1991, University of Amsterdam
 # 
 
+.SUFFIXES: .qlf .pl
+
 XPCEOBJ=$(PCEHOME)/src/XPCE.a
 
+PL=     pl
 OBJ=	$(PLRUNTIME)/$(PLOBJ) interface.o link.o $(XPCEOBJ)
 XPCE=	xpce$(RTSUFFIX)
 QLF=    xpce$(RTSUFFIX).qlf
 XLIBS=	-lXt -lX11
+XPCESO= xpce4pl.$(SO)
 
 CFLAGS= 	$(COFLAGS) $(CMFLAGS) -I$(PLINCLUDE) -I$(PCEHOME)/src
 ITF=		../../prolog/c/interface.c ../../prolog/c/interface.h
 
-PLBOOT=		init.pl syspred.pl toplevel.pl listing.pl edit.pl sort.pl \
-		bags.pl apply.pl list.pl writef.pl history.pl portray.pl \
-		profile.pl dwim.pl foreign.pl parms.pl autoload.pl qlf.pl \
-		topvars.pl
-PLLIB=		quintus.pl
-PCEBOOT=	pce_expand.pl english/pce_messages.pl pce_pl.pl \
-		pce_principal.pl pce_error.pl pce_autoload.pl pe_global.pl \
-		pce_operator.pl pce_compile.pl pce_editor.pl pce_boot.pl
-PCELIB=		pce.pl
-PLLOAD=		load.pl xpce.pl
+PCEPLS=		pce_expand.pl english/pce_messages.pl pce_pl.pl \
+		pce_principal.pl pce_error.pl pce_autoload.pl pce_global.pl \
+		pce_operator.pl pce_compile.pl pce_editor.pl
+BOOTQLF=	pce.qlf
+LIBQLFS=	pce_manual.qlf dialog/dialog.qlf emacs/emacs.qlf pcedraw.qlf
 
-all:		$(QLF) pl-crt0.o $(SHOBJ)
+nosoall:	$(QLF) pl-crt0.o
+
+soall:		$(PLBASE)/plrc $(PLBASE)/xpce ../$(PLARCH)/$(XPCESO) \
+		pl-crt0.o bootqlf libqlfs
 
 interface.o:	$(ITF) interface.c
 
@@ -50,8 +52,29 @@ shitf.o:	interface.c
 Initialize.o:	
 		ar x $(XLIB)/libXt.a $@
 
-xpce4pl.$(SO):	shitf.o $(XPCEOBJ) $(SOEXTRAOBJ)
+$(XPCESO):	shitf.o $(XPCEOBJ) $(SOEXTRAOBJ)
 		$(LD) shitf.o $(XPCEOBJ) $(SOEXTRAOBJ) $(GCCLIB) $(XLIBS) -o $@
+
+libqlfs:	$(addprefix ../../prolog/lib/, $(LIBQLFS))
+bootqlf:	$(addprefix ../../prolog/lib/, $(BOOTQLF))
+
+../../prolog/lib/pce.qlf: $(addprefix ../../prolog/boot/, $(PCEPLS))
+		$(PL) -g "qcompile('../../prolog/lib/pce.pl')" -t halt
+		
+.pl.qlf:
+		$(PL) -g "pce_welcome,qcompile('$*')" -t halt
+
+../$(PLARCH):
+		mkdir $@
+
+../$(PLARCH)/$(XPCESO): ../$(PLARCH) $(XPCESO)
+		(cd ../$(PLARCH); ln -s ../src/$(XPCESO) .)
+
+$(PLBASE)/plrc:	plrc
+		cp plrc $@
+
+$(PLBASE)/xpce:
+		(cd $(PLBASE); rm -f xpce; ln -s $(PCEHOME) xpce)
 
 mangle:		mangle.c
 		$(CC) -O -o mangle mangle.c

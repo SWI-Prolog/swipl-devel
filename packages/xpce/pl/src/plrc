@@ -1,0 +1,42 @@
+/*  $Id$
+
+    Part of SWI-Prolog
+    Designed and implemented by Jan Wielemaker
+    E-mail: jan@swi.psy.uva.nl
+
+    Copyright (C) 1995 University of Amsterdam. All rights reserved.
+*/
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This file is loaded  on  startup.  Use   it  for  local  (not  personal)
+configuration purposes.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+:- op(100, fx,  @).
+:- op(150, yfx, ?).
+
+pcehome_(Home) :-
+	feature(home, PlHome),
+	concat_atom([PlHome, /, xpce], RawHome),
+	absolute_file_name(RawHome, Home).
+
+library_directory(Lib) :-
+	pcehome_(Home),
+	concat(Home, '/prolog/lib', Lib).
+
+file_search_path(so, SoDir) :-
+	pcehome_(Home),
+	feature(arch, Arch),
+	concat_atom([Home, '/pl/', Arch], SoDir).
+
+:-  (   pcehome_(PceHome),
+	exists_directory(PceHome),
+	unix(argv([Proc|Args])),
+	(   member('-pce', Args)
+	;   '$apropos_match'(pce, Proc)
+	)
+    ->  object(@pce),
+	flag('$banner_goal', _, pce_welcome)
+    ;   true
+    ).
