@@ -224,9 +224,9 @@ static getdecl get_visual[] =
   GM(NAME_contains, 0, "chain", NULL, getContainsVisual,
      NAME_organisation, "Chain with visuals I manage"),
   GM(NAME_frame, 0, "frame", NULL, getFrameVisual,
-     NAME_organisation, "Frame I'm part of (when existing)"),
+     NAME_organisation, "Frame I'm part of (if present)"),
   GM(NAME_reportTo, 0, "visual", NULL, getReportToVisual,
-     NAME_report, "Object for ->report (equivalent to <-containe_in")
+     NAME_report, "Object for ->report (equivalent to <-contained_in")
 };
 
 /* Resources */
