@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: plld --version to run <cc> --version and test for GCC version.
+    Michael Piefel.
+
   * MAYBEFIXED: toplevel configure and makefile driver
 
   * FIXED: Bug #68: building on  cygwin.  Lourens van der Meij.

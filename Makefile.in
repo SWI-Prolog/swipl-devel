@@ -43,7 +43,7 @@ distclean::
 world:	lite mt .pkg-config packages
 
 .pkg-config:
-	cd packages && ./configure --enable-mt
+	cd packages && ./configure
 	touch $@
 
 packages::

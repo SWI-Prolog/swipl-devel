@@ -203,6 +203,7 @@ static int embed_shared = FALSE;	/* -dll/-embed-shared: embed Prolog */
 					/* in a DLL/.so file */
 static int verbose = TRUE;		/* verbose operation */
 static int fake = FALSE;		/* don't really do anything */
+static int show_version = FALSE;	/* --version */
 
 static void	removeTempFiles();
 static void	parseOptions(int argc, char **argv);
@@ -586,6 +587,7 @@ usage()
 	  "       -v               verbose\n"
 	  "       -f               fake (do not run any commands)\n"
 	  "       -g               Compile/link for debugging\n"
+	  "       --version        for GCC: run gcc --version\n"
 	  "\n"
 	  "       -pl prolog       Prolog to use\n"
 	  "       -ld linker       link editor to use\n"
@@ -638,6 +640,10 @@ parseOptions(int argc, char **argv)
     { usage();
     } else if ( streq(opt, "-v") )		/* -v */
     { verbose++;
+    } else if ( streq(opt, "--version") )	/* --version */
+    { appendArgList(&coptions, opt);
+      appendArgList(&cppoptions, opt);
+      show_version = TRUE;
     } else if ( streq(opt, "-f") )		/* -f */
     { fake++;
     } else if ( streq(opt, "-c") )		/* -c */
@@ -1482,6 +1488,11 @@ main(int argc, char **argv)
   defaultProgram(&pl, PROG_PL);
   getPrologOptions();
   fillDefaultOptions();
+
+  if ( show_version )
+  { callprog(cc, &coptions);
+    exit(0);
+  }
 
   compileObjectFiles();
 
