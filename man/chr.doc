@@ -513,10 +513,10 @@ syntax in SWI-Prolog, but will have no effect. A warning will be given
 during compilation.
 
         \item [The \predref{rules}{1} declaration]
-In SICStus every CHR it is possible to only enable a subset of the
-available rules through the \predref{rules}{1} declaration. The
-declaration is valid syntax in SWI-Prolog, but will have no effect. A
-warning will be given during compilation.
+In SICStus, for every CHR module it is possible to only enable a subset
+of the available rules through the \predref{rules}{1} declaration. The
+declaration is valid syntax in SWI-Prolog, but has no effect. A
+warning is given during compilation.
 
 	\item [Sourcefile naming]
 SICStus uses a two-step compiler, where \fileext{chr} files are

@@ -3099,7 +3099,7 @@ is undone if backtracking brings the state back into a position before
 the setarg/3 call.  See also nb_setarg/3.
 
 This predicate may be used for destructive assignment to terms, using
-them as and extra-logical storage bin.  Always try hard to avoid the
+them as an extra-logical storage bin.  Always try hard to avoid the
 use of setarg/3 as it is not supported by many Prolog systems and one
 has to be very careful about unexpected copying as well as unexpected
 not copying of terms.
