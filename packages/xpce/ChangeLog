@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Cursor up/down in list-browser.  Anjo Anjewierden.
+
 * FIXED: default-button and modified-item handling in nested dialog-groups.
   Juergen Repp.
 

@@ -760,6 +760,7 @@ static status
 cancelSearchListBrowser(ListBrowser lb)
 { DictItem di;
 
+  assign(lb, caret, NIL);
   assign(lb, search_string, NIL);
   assign(lb, search_origin, ZERO);
   if ( valInt(lb->search_hit) >= 0 )
