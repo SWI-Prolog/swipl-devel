@@ -201,6 +201,10 @@ SOURCE=.\ker\behaviour.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\gra\bezier.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\msg\binding.c
 # End Source File
 # Begin Source File

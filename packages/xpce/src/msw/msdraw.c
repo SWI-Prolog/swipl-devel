@@ -1980,8 +1980,23 @@ r_line(int x1, int y1, int x2, int y2)
 
 
 void
-r_polygon(IPoint pts, int n, int close)
-{ 
+r_polygon(IPoint in, int n, int close)
+{ POINT *points = (POINT *)alloca((n+1) * sizeof(POINT));
+  POINT *p = points;
+  IPoint q = in;
+  int i;
+
+  for(i=0; i<n; i++, p++, q++)
+  { p->x = q->x;
+    p->y = q->y;
+  }
+
+  r_update_pen();
+
+  if ( close )
+    Polygon(context.hdc, points, n);
+  else
+    Polyline(context.hdc, points, n);
 }
 
 

@@ -1026,11 +1026,26 @@ ws_scale_image(Image image, int w, int h)
   { HBITMAP sbm = (HBITMAP) getXrefObject(image, d);
 
     if ( sbm )
-    { HDC hdcsrc   = CreateCompatibleDC(NULL);
+    { HPALETTE ohpalsrc=0, ohpaldst=0, hpal;
+      HDC hdcsrc   = CreateCompatibleDC(NULL);
       HDC hdcdst   = CreateCompatibleDC(hdcsrc);
-      HBITMAP osbm = ZSelectObject(hdcsrc, sbm);
-      HBITMAP  dbm = ZCreateCompatibleBitmap(hdcsrc, w, h);
-      HBITMAP odbm = ZSelectObject(hdcdst, dbm);
+      HBITMAP osbm, dbm, odbm;
+
+      if ( instanceOfObject(d->colour_map, ClassColourMap) )
+	hpal = getPaletteColourMap(d->colour_map);
+      else
+	hpal = NULL;
+    
+      if ( hpal )
+      { ohpalsrc = SelectPalette(hdcsrc, hpal, FALSE);
+	RealizePalette(hdcsrc);
+	ohpaldst = SelectPalette(hdcdst, hpal, FALSE);
+	RealizePalette(hdcdst);
+      }
+      
+      osbm = ZSelectObject(hdcsrc, sbm);
+       dbm = ZCreateCompatibleBitmap(hdcsrc, w, h);
+      odbm = ZSelectObject(hdcdst, dbm);
 
       StretchBlt(hdcdst,
 		 0, 0, w, h,		/* dest rectangle */
@@ -1040,6 +1055,12 @@ ws_scale_image(Image image, int w, int h)
       
       ZSelectObject(hdcsrc, osbm);
       ZSelectObject(hdcdst, odbm);
+
+      if ( ohpalsrc )
+	SelectPalette(hdcsrc, ohpalsrc, FALSE);
+      if ( ohpaldst )
+	SelectPalette(hdcdst, ohpaldst, FALSE);
+
       DeleteDC(hdcsrc);
       DeleteDC(hdcdst);
 
