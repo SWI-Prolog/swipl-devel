@@ -700,7 +700,7 @@ initFeatures()
 #ifdef O_PLMT
   defFeature("threads",	FT_BOOL, TRUE, 0);	/* FF_READONLY? */
 #else
-  defFeature("threads",	FT_BOOL, FALSE|FF_READONLY, 0);
+  defFeature("threads",	FT_BOOL|FF_READONLY, FALSE, 0);
 #endif
 #ifdef ASSOCIATE_SRC
   defFeature("associate", FT_ATOM, ASSOCIATE_SRC);
