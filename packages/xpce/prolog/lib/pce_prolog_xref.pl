@@ -48,6 +48,9 @@
 	    xref_defined_class/3	% ?Source, ?ClassName, -How
 	  ]).
 :- use_module(library(pce)).
+:- use_module(library(operators)).
+:- use_module(library(lists)).
+:- use_module(library(debug)).
 
 :- dynamic
 	called/3,			% Head, Src, From
@@ -55,12 +58,14 @@
 	(thread_local)/2,		% Head, Src
 	(multifile)/2,			% Head, Src
 	defined/3,			% Head, Src, Line
+	constraint/3,			% Head, Src, Line
 	imported/3,			% Head, Src, From
 	exported/2,			% Head, Src
 	xmodule/2,			% Module, Src
 	source/1,			% Src
 	used_class/2,			% Name, Src
-	defined_class/5.		% Name, Super, Summary, Src, Line
+	defined_class/5,		% Name, Super, Summary, Src, Line
+	(mode)/2.			% Mode, Src
 
 
 		 /*******************************
@@ -101,17 +106,9 @@ system_predicate(Head) :-
 		*            TOPLEVEL		*
 		********************************/
 
-:- dynamic
-	verbose/0.
+verbose :-
+	debugging(xref).
 
-%verbose.
-
-xref_source(Source) :-
-	verbose, !,				% do not suppress messages
-	canonical_source(Source, Src),
-	xref_clean(Src),
-	assert(source(Src)),
-	collect(Src).
 xref_source(Source) :-
 	canonical_source(Source, Src),
 	xref_clean(Src),
@@ -119,18 +116,43 @@ xref_source(Source) :-
 	xref_setup(State),
 	call_cleanup(collect(Src), xref_cleanup(State)).
 
-xref_setup(state(Xref, Ref, SM)) :-
+xref_setup(state(Xref, Ref, Style, SM)) :-
 	(   current_prolog_flag(xref, Xref)
 	->  true
 	;   Xref = false
 	),
 	set_prolog_flag(xref, true),
 	'$set_source_module'(SM, SM),
-	asserta(user:message_hook(_,_,_), Ref).
-xref_cleanup(state(Xref, Ref, SM)) :-
+	'$style_check'(Style, Style),
+	push_operators([]),
+	(   verbose
+	->  Ref = []
+	;   asserta(user:message_hook(_,_,_), Ref)
+	).
+xref_cleanup(state(Xref, Ref, Style, SM)) :-
 	set_prolog_flag(xref, Xref),
-	erase(Ref),
+	(   Ref \== []
+	->  erase(Ref)
+	;   true
+	),
+	pop_operators,
+	'$style_check'(_, Style),
 	'$set_source_module'(_, SM).
+
+%	xref_push_op(+Prec, +Type, :Name)
+%	
+%	Define operators into the default source module and register
+%	them to be undone by pop_operators/0.
+
+xref_push_op(P, T, N0) :- !,
+	(   N0 = _:_
+	->  N = N0
+	;   '$set_source_module'(M, M),
+	    N = M:N0
+	),
+	push_op(P, T, N),
+	debug(xref, ':- ~w.', [op(P,T,N)]).
+
 
 %	xref_clean(+Src)
 %	
@@ -142,12 +164,14 @@ xref_clean(Source) :-
 	retractall(dynamic(_, Src)),
 	retractall(multifile(_, Src)),
 	retractall(defined(_, Src, _Line)),
+	retractall(constraint(_, Src, _Line)),
 	retractall(imported(_, Src, _From)),
 	retractall(exported(_, Src)),
 	retractall(xmodule(_, Src)),
 	retractall(source(Src)),
 	retractall(used_class(_, Src)),
-	retractall(defined_class(_, _, _, Src, _)).
+	retractall(defined_class(_, _, _, Src, _)),
+	retractall(mode(_, Src)).
 	
 
 		 /*******************************
@@ -200,6 +224,8 @@ xref_defined2((multifile), Src, Called) :-
 	multifile(Called, Src).
 xref_defined2(local(Line), Src, Called) :-
 	defined(Called, Src, Line).
+xref_defined2(constraint(Line), Src, Called) :-
+	constraint(Called, Src, Line).
 xref_defined2(imported(From), Src, Called) :-
 	imported(Called, Src, From).
 
@@ -232,24 +258,29 @@ xref_defined_class(Source, Class, file(File)) :-
 	defined_class(Class, _, _, Src, file(File)).
 
 collect(Src) :-
-	open_source(Src, Fd),
-	'$style_check'(Old, Old),
-	style_check(+dollar),
+	open_source(Src, Fd),		% also skips #! line if present
 	repeat,
+	    '$set_source_module'(SM, SM),
 	    catch(read_term(Fd, Term,
-			    [ character_escapes(true), % TBD: how to switch!?
-			      term_position(TermPos)
-			    ]), _, fail),
+			    [ term_position(TermPos),
+			      module(SM)
+			    ]), E, syntax_error(E)),
 	    xref_expand(Term, T),
 	    (   T == end_of_file
 	    ->  !,
-	        '$style_check'(_, Old),
 	        close(Fd)
 	    ;   arg(2, TermPos, Line),
 		flag(xref_src_line, _, Line),
 	        process(T, Src),
 		fail
 	    ).
+
+syntax_error(E) :-
+	(   verbose
+	->  print_message(error, E)
+	;   true
+	),
+	fail.
 
 
 		 /*******************************
@@ -258,9 +289,11 @@ collect(Src) :-
 
 %	xref_expand(+Term, -Expanded)
 %
-%	Do the term-expansion.  We have to pass require as we need it
-%	for validation.  Otherwise we do term-expansion, handling all
-%	of the XPCE class compiler as normal Prolog afterwards.
+%	Do the term-expansion. We have to pass require as we need it for
+%	validation. Otherwise we do term-expansion,  handling all of the
+%	XPCE class compiler as normal   Prolog  afterwards. CHR programs
+%	are processed using process_chr/2  directly   from  the  source,
+%	which is why we inhibit expansion here.
 
 xref_expand((:- require(X)),
 	    (:- require(X))) :- !.
@@ -268,6 +301,10 @@ xref_expand(Term, _) :-
 	requires_library(Term, Lib),
 	ensure_loaded(user:Lib),
 	fail.
+xref_expand(Term, Term) :-
+	chr_expandable(Term), !.
+xref_expand('$:-'(X), '$:-'(X)) :- !,	% boot module
+	style_check(+dollar).
 xref_expand(Term, T) :-
 	catch(expand_term(Term, Expanded), _, Expanded=Term),
 	(   is_list(Expanded)
@@ -290,11 +327,16 @@ requires_library((:- draw_begin_shape(_,_,_,_)), library(pcedraw)).
 
 process((:- Directive), Src) :- !,
 	process_directive(Directive, Src), !.
+process((?- Directive), Src) :- !,
+	process_directive(Directive, Src), !.
 process((Head :- Body), Src) :- !,
 	assert_defined(Src, Head),
 	process_body(Body, Head, Src).
 process('$source_location'(_File, _Line):Clause, Src) :- !,
 	process(Clause, Src).
+process(Term, Src) :-
+	chr_expandable(Term), !,
+	process_chr(Term, Src).
 process(Head, Src) :-
 	assert_defined(Src, Head).
 
@@ -302,6 +344,11 @@ process(Head, Src) :-
 		 *           DIRECTIVES		*
 		 ********************************/
 
+process_directive(Var, _) :-
+	var(Var), !.			% error, but that isn't our business
+process_directive((A,B), Src) :- !,	% TBD: whta about other control
+	process_directive(A, Src),	% structures?
+	process_directive(B, Src).
 process_directive(List, Src) :-
 	is_list(List), !,
 	process_directive(consult(List), Src).
@@ -330,13 +377,17 @@ process_directive(pce_begin_class_definition(Name, Meta, Super, Doc), Src) :-
 process_directive(pce_autoload(Name, From), Src) :-
 	assert_defined_class(Src, Name, imported_from(From)).
 
-
 process_directive(op(P, A, N), _) :-
-	op(P, A, N).			% should be local ...
+	xref_push_op(P, A, N).
 process_directive(style_check(X), _) :-
-	style_check(X).			% should be local ...
+	style_check(X).
+process_directive(system_module, _) :-
+	style_check(+dollar).
+process_directive(set_prolog_flag(character_escapes, Esc), _) :-
+	set_prolog_flag(character_escapes, Esc).
 process_directive(pce_expansion:push_compile_operators, _) :-
-	pce_expansion:push_compile_operators.
+	'$set_source_module'(SM, SM),
+	pce_expansion:push_compile_operators(SM).
 process_directive(pce_expansion:pop_compile_operators, _) :-
 	pce_expansion:pop_compile_operators.
 process_directive(meta_predicate(Meta), _) :-
@@ -393,7 +444,9 @@ xref_meta(findall(_V, G, _L),	[G]).
 xref_meta(setof(_V, G, _L),	[G]).
 xref_meta(bagof(_V, G, _L),	[G]).
 xref_meta(forall(A, B),		[A, B]).
-xref_meta(maplist(G, _L1, _L2),	[G+2]).
+xref_meta(maplist(G, _),	[G+1]).
+xref_meta(maplist(G, _, _),	[G+2]).
+xref_meta(maplist(G, _, _, _),	[G+3]).
 xref_meta(checklist(G, _L),	[G+1]).
 xref_meta(sublist(G, _, _),	[G+1]).
 xref_meta(call(G),		[G]).
@@ -418,6 +471,13 @@ xref_meta(call_cleanup(A, _, B),[A, B]).
 xref_meta(on_signal(_,_,A),	[A+1]).
 xref_meta(with_mutex(_,A),	[A]).
 xref_meta(assume(G),		[G]).	% library(debug)
+xref_meta(freeze(_, G),		[G]).
+xref_meta(when(C, A),		[C, A]).
+xref_meta(clause(G, _),		[G]).
+xref_meta(clause(G, _, _),	[G]).
+xref_meta(time(G),		[G]).	% development system
+xref_meta(profile(G),		[G]).
+xref_meta(at_halt(G),		[G]).
 
 					% XPCE meta-predicates
 xref_meta(pce_global(_, new(_)), _) :- !, fail.
@@ -537,18 +597,29 @@ process_use_module([H|T], Src) :- !,
 	process_use_module(T, Src).
 process_use_module(library(pce), Src) :- !,	% bit special
 	xref_public_list(library(pce), Path, Public, Src),
-	forall(member(Name/Arity, Public),
-	       (   functor(Term, Name, Arity),
-		   \+ system_predicate(Term),
-		   \+ Term = pce_error(_) 	% hack!?
-	       ->  assert_import(Src, Name/Arity, Path)
-	       ;   true
-	       )).
+	forall(member(Import, Public),
+	       process_pce_import(Import, Src, Path)).
 process_use_module(File, Src) :-
 	(   catch(xref_public_list(File, Path, Public, Src), _, fail)
-	->  assert_import(Src, Public, Path)
+	->  assert_import(Src, Public, Path),
+	    (	File = library(chr)	% hacky
+	    ->	assert(mode(chr, Src))
+	    ;	true
+	    )
 	;   true
 	).
+
+process_pce_import(Name/Arity, Src, Path) :-
+	atom(Name),
+	integer(Arity), !,
+	functor(Term, Name, Arity),
+	(   \+ system_predicate(Term),
+	    \+ Term = pce_error(_) 	% hack!?
+	->  assert_import(Src, Name/Arity, Path)
+	;   true
+	).
+process_pce_import(op(P,T,N), _, _) :-
+	xref_push_op(P, T, N).
 
 %	xref_public_list(+File, -Path, -Public, +Src)
 %	
@@ -559,9 +630,91 @@ process_use_module(File, Src) :-
 
 xref_public_list(File, Path, Public, Src) :-
 	xref_source_file(File, Path, Src),
-	open(Path, read, Fd),
+	open_source(Path, Fd),		% skips possible #! line
 	call_cleanup(read(Fd, ModuleDecl), close(Fd)),
 	ModuleDecl = (:- module(_, Public)).
+
+
+		 /*******************************
+		 *	    CHR SUPPORT		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This part of the file supports CHR. Our choice is between making special
+hooks to make CHR expansion work and  then handle the (complex) expanded
+code or process the  CHR  source   directly.  The  latter looks simpler,
+though I don't like the idea  of   adding  support for libraries to this
+module.  A  file  is  supposed  to  be  a    CHR   file  if  it  uses  a
+use_module(library(chr) or contains a :-   constraint/1 directive. As an
+extra bonus we get the source-locations right :-)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+chr_expandable((:- constraints(_))).
+chr_expandable((constraints(_))).
+chr_expandable((handler(_))) :-
+	is_chr_file.
+chr_expandable((rules(_))) :-
+	is_chr_file.
+chr_expandable(<=>(_, _)) :-
+	is_chr_file.
+chr_expandable(@(_, _)) :-
+	is_chr_file.
+chr_expandable(==>(_, _)) :-
+	is_chr_file.
+chr_expandable(pragma(_, _)) :-
+	is_chr_file.
+chr_expandable(option(_, _)) :-
+	is_chr_file.
+
+is_chr_file :-
+	source(Src),
+	mode(chr, Src), !.
+
+process_chr(@(_Name, Rule), Src) :-
+	process_chr(Rule, Src).
+process_chr(pragma(Rule, _Pragma), Src) :-
+	process_chr(Rule, Src).
+process_chr(<=>(Head, Body), Src) :-
+	chr_head(Head, Src, H),
+	chr_body(Body, H, Src).
+process_chr(==>(Head, Body), Src) :-
+	chr_head(Head, H, Src),
+	chr_body(Body, H, Src).
+process_chr((:- constraints(C)), Src) :-
+	process_chr(constraints(C), Src).
+process_chr(constraints(_), Src) :-
+	(   mode(chr, Src)
+	->  true
+	;   assert(mode(chr, Src))
+	).
+
+chr_head(\(A,B), Src, H) :-
+	chr_head(A, Src, H),
+	process_body(B, H, Src).
+chr_head((H0,B), Src, H) :-
+	chr_defined(H0, Src, H),
+	process_body(B, H, Src).
+chr_head(H0, Src, H) :-
+	chr_defined(H0, Src, H).
+
+chr_defined(#(C,_Id), Src, C) :- !,
+	assert_constraint(Src, C).
+chr_defined(A, Src, A) :-
+	assert_constraint(Src, A).
+
+chr_body('|'(Guard, Goals), H, Src) :- !,
+	chr_body(Guard, H, Src),
+	chr_body(Goals, H, Src).
+chr_body(G, From, Src) :-
+	process_body(G, From, Src).
+
+assert_constraint(Src, Head) :-
+	constraint(Head, Src, _), !.
+assert_constraint(Src, Head) :-
+	functor(Head, Name, Arity),
+	functor(Term, Name, Arity),
+	flag(xref_src_line, Line, Line),
+	assert(constraint(Term, Src, Line)).
 
 
 		/********************************
@@ -602,31 +755,47 @@ assert_defined(Src, Goal) :-
 	assert(defined(Term, Src, Line)).
 
 assert_import(_, [], _) :- !.
-assert_import(Src, [H|T], From) :-
+assert_import(Src, [H|T], From) :- !,
 	assert_import(Src, H, From),
 	assert_import(Src, T, From).
-assert_import(Src, Name/Arity, From) :-
+assert_import(Src, Name/Arity, From) :- !,
 	functor(Term, Name, Arity),
 	assert(imported(Term, Src, From)).
+assert_import(_, op(P,T,N), _) :-
+	xref_push_op(P,T,N).
 
 %	assert_module(+Src, +Module)
 %	
 %	Assert we are loading code into Module.  This is also used to
 %	exploit local term-expansion and other rules.
 
+assert_module(Src, $(Module)) :-	% deal with system modules
+	atom(Module), !,
+	atom_concat($, Module, Name),
+	assert_module(Src, Name).
 assert_module(Src, Module) :-
 	xmodule(Module, Src), !.
 assert_module(Src, Module) :-
 	'$set_source_module'(_, Module),
-	assert(xmodule(Module, Src)).
+	assert(xmodule(Module, Src)),
+	(   sub_atom(Module, 0, _, _, $)
+	->  style_check(+dollar)
+	;   true
+	).
 
 assert_export(_, []) :- !.
 assert_export(Src, [H|T]) :-
 	assert_export(Src, H),
 	assert_export(Src, T).
-assert_export(Src, Name/Arity) :-
+assert_export(Src, Name0/Arity) :-
+	(   Name0 = $Hidden		% deal with system modules
+	->  atom_concat($, Hidden, Name)
+	;   Name = Name0
+	),
 	functor(Term, Name, Arity),
 	assert(exported(Term, Src)).
+assert_export(_, op(P, A, N)) :-
+	xref_push_op(P, A, N).
 
 assert_dynamic(Src, (A, B)) :- !,
 	assert_dynamic(Src, A),
@@ -690,6 +859,7 @@ assert_defined_class(Src, Name, imported_from(File)) :-
 		********************************/
 
 %	xref_source_file(+Spec, -File, +Src)
+%	
 %	Find named source file.
 
 xref_source_file(Plain, File, Source) :-

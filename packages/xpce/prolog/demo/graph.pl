@@ -35,7 +35,7 @@
 
 :- use_module(library(pce)).
 :- require([ forall/2
-	   , free_variables/2
+	   , term_variables/2
 	   , random/3
 	   , term_to_atom/2
 	   ]).
@@ -104,7 +104,7 @@ postscript(F) :->
 generate(F, Generator:name) :->
 	"Create graph using generator"::
 	(   term_to_atom(Term, Generator),
-	    free_variables(Term, [From, To])
+	    term_variables(Term, [From, To])
 	->  send(F, clear),
 	    forall(user:Term,
 		   send(F, display_arc, From, To)),

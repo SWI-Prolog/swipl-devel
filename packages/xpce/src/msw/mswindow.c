@@ -285,7 +285,10 @@ do_window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       if ( (fr = getExistingFrameWindow(sw)) &&
 	   (wfr = fr->ws_ref) &&
 	   wfr->hbusy_cursor )
-      { ZSetCursor(wfr->hbusy_cursor);
+      { DEBUG(NAME_busyCursor,
+	      Cprintf("Setting busy cursor for %s to %p\n",
+		      pp(fr), wfr->hbusy_cursor));
+	ZSetCursor(wfr->hbusy_cursor);
       } else
       { if ( (w = sw->ws_ref) )
 	{ if ( !w->hcursor )

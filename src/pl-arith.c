@@ -128,7 +128,11 @@ pl_between(term_t low, term_t high, term_t n, control_t ctx)
 	if ( !PL_get_long(low, &l) )
 	  return PL_error("between", 3, NULL, ERR_TYPE, ATOM_integer, low);
 	if ( !PL_get_long(high, &h) )
-	  return PL_error("between", 3, NULL, ERR_TYPE, ATOM_integer, high);
+	{ if ( PL_is_inf(high) )
+	    h = PLMAXINT;
+	  else
+	    return PL_error("between", 3, NULL, ERR_TYPE, ATOM_integer, high);
+	}
 
 	if ( PL_get_long(n, &i) )
 	{ if ( i >= l && i <= h )
@@ -575,7 +579,7 @@ arithChar(Word p ARG_LD)
   } else if ( isAtom(*p) )
   { Atom a = atomValue(*p);
     
-    if ( a->length == 1 )
+    if ( true(a->type, PL_BLOB_TEXT) && a->length == 1 )
       return a->name[0] & 0xff;		/* ASCII! */
   }
 
@@ -987,6 +991,34 @@ ar_negation(Number n1, Number r)
     return PL_error("\\", 1, NULL, ERR_AR_TYPE, ATOM_integer, n1);
 
   r->value.i = ~n1->value.i;
+  r->type = V_INTEGER;
+  succeed;
+}
+
+
+static int
+ar_msb(Number n1, Number r)
+{ long i;
+  int j = 0;
+
+  if ( !toIntegerNumber(n1) )
+    return PL_error("msb", 1, NULL, ERR_AR_TYPE, ATOM_integer, n1);
+  i = n1->value.i;
+  if ( i < 0 )
+  { GET_LD
+    term_t t = PL_new_term_ref();
+
+    PL_put_integer(t, i);
+    return PL_error("msb", 1, NULL, ERR_DOMAIN, ATOM_not_less_than_zero, t);
+  }
+
+  if (i >= 0x10000) { i >>= 16; j += 16;}
+  if (i >= 0x100) {i >>= 8; j += 8;}
+  if (i >= 0x10) {i >>= 4; j += 4;}
+  if (i >= 0x4) {i >>= 2; j += 2;}
+  if (i >= 0x2) j++;
+
+  r->value.i = j;
   r->type = V_INTEGER;
   succeed;
 }
@@ -1429,6 +1461,7 @@ static const ar_funcdef ar_funcdefs[] = {
   ADD(FUNCTOR_e0,		ar_e),
 
   ADD(FUNCTOR_cputime0,		ar_cputime),
+  ADD(FUNCTOR_msb1,		ar_msb)
 };
 
 #undef ADD

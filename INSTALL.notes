@@ -66,6 +66,30 @@ requires GNU-MAKE.  For example:
 	% make install
 
 
+Put the Prolog kernel in a shared object
+========================================
+
+There is limited support to compile the Prolog kernel in a shared object
+rather than an executable and static library.  This feature is tested on
+Linux (SuSE 9.0) and activated using
+
+	./configure --enable-shared
+
+This creates $PLBASE/lib/$ARCH/libpl.so.<version> and   a  symbolic link
+from $PLBASE/lib/$ARCH/libpl.so to  this  file.   The  executable  pl is
+linked using -rpath=$PLBASE/lib/$ARCH.  This schema is likely to work on
+other ELF-based platforms using GCC and GNU-ld.
+
+Doing this causes the Prolog sources to be compiled with -fPIC (position
+independent code). On  some  platform  this   can  lead  to  significant
+performance  degradation.  The  approach   has    some   advantages  and
+disadvantages:
+
+	- `stand-alone' executables need the shared object
+	- less performance for most processors
+	+ Easier linking, especially for complicated embedded systems
+
+
 Building a runtime version
 ==========================
 

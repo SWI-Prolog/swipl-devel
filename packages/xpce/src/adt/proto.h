@@ -1,179 +1,180 @@
+#define COMMON(type) type SO_LOCAL
 
-/* ../src/adt/area.c */
-status		intersectionArea(Area a, Area b);
-status		unionNormalisedArea(Area a, Area b);
-status		sizeArea(Area a, Size s);
-Size		getSizeArea(Area a);
-status		pointInArea(Area a, Point p);
-status		overlapArea(Area a, Area b);
-status		relativeMoveArea(Area a, Point p);
-status		relativeMoveBackArea(Area a, Point p);
-Point		getPositionArea(Area a);
-status		copyArea(Area a, Area b);
-Area		getCopyArea(Area a);
-status		insideArea(Area a, Area b);
-Int		getDistanceXArea(Area a, Area b);
-Int		getDistanceYArea(Area a, Area b);
-Int		getDistanceArea(Area a, Area b);
-status		clearArea(Area a);
-status		setArea(Area a, Int x, Int y, Int w, Int h);
-status		increaseArea(Area a, Int i);
-status		orientationArea(Area a, Name orientation);
-Name		getOrientationArea(Area a);
-status		makeClassArea(Class class);
+/* /staff/jan/src/pl/packages/xpce/src/adt/area.c */
+COMMON(status)	intersectionArea(Area a, Area b);
+COMMON(status)	unionNormalisedArea(Area a, Area b);
+COMMON(status)	sizeArea(Area a, Size s);
+COMMON(Size)	getSizeArea(Area a);
+COMMON(status)	pointInArea(Area a, Point p);
+COMMON(status)	overlapArea(Area a, Area b);
+COMMON(status)	relativeMoveArea(Area a, Point p);
+COMMON(status)	relativeMoveBackArea(Area a, Point p);
+COMMON(Point)	getPositionArea(Area a);
+COMMON(status)	copyArea(Area a, Area b);
+COMMON(Area)	getCopyArea(Area a);
+COMMON(status)	insideArea(Area a, Area b);
+COMMON(Int)	getDistanceXArea(Area a, Area b);
+COMMON(Int)	getDistanceYArea(Area a, Area b);
+COMMON(Int)	getDistanceArea(Area a, Area b);
+COMMON(status)	clearArea(Area a);
+COMMON(status)	setArea(Area a, Int x, Int y, Int w, Int h);
+COMMON(status)	increaseArea(Area a, Int i);
+COMMON(status)	orientationArea(Area a, Name orientation);
+COMMON(Name)	getOrientationArea(Area a);
+COMMON(status)	makeClassArea(Class class);
 
-/* ../src/adt/atable.c */
-status		makeClassAtable(Class class);
+/* /staff/jan/src/pl/packages/xpce/src/adt/atable.c */
+COMMON(status)	makeClassAtable(Class class);
 
-/* ../src/adt/attribute.c */
-status		makeClassAttribute(Class class);
+/* /staff/jan/src/pl/packages/xpce/src/adt/attribute.c */
+COMMON(status)	makeClassAttribute(Class class);
 
-/* ../src/adt/bool.c */
-status		makeClassBool(Class class);
+/* /staff/jan/src/pl/packages/xpce/src/adt/bool.c */
+COMMON(status)	makeClassBool(Class class);
 
-/* ../src/adt/chain.c */
-status		initialiseChainv(Chain ch, int argc, Any *argv);
-status		clearChain(Chain ch);
-Int		getSizeChain(Chain ch);
-status		prependChain(register Chain ch, Any obj);
-status		appendChain(register Chain ch, Any obj);
-status		addChain(register Chain ch, Any obj);
-status		insertChain(Chain ch, Any obj);
-status		insertAfterChain(Chain ch, Any obj, Any obj2);
-status		insertBeforeChain(Chain ch, Any obj, Any obj2);
-status		swapChain(Chain ch, Any obj1, Any obj2);
-status		deleteHeadChain(Chain ch);
-status		deleteChain(Chain ch, register Any obj);
-status		deleteCellChain(Chain ch, Cell cell);
-status		memberChain(Chain ch, Any obj);
-Any		getNextChain(Chain ch, Any val);
-Any		getPreviousChain(Chain ch, Any val);
-status		forAllChain(Chain ch, Code code, Bool safe);
-status		forSomeChain(Chain ch, Code code, Bool safe);
-Any		getFindChain(Chain ch, Code code);
-Chain		getFindAllChain(Chain ch, Code code);
-status		mergeChain(Chain ch, Chain ch2);
-status		replaceChain(Chain ch, Any obj1, Any obj2);
-status		emptyChain(Chain ch);
-Chain		getCopyChain(Chain ch);
-int		qsortCompareObjects(const void *o1, const void *o2);
-status		sortChain(Chain ch, Code msg, Bool unique);
-status		sortNamesChain(Chain ch, Bool unique);
-Tuple		getCompleteNameChain(Chain ch, CharArray prefix, Function map, Bool ignore_case);
-Chain		getIntersectionChain(Chain ch, Chain ch2);
-Any		getHeadChain(Chain ch);
-Any		getDeleteHeadChain(Chain ch);
-Any		getTailChain(Chain ch);
-status		moveBeforeChain(Chain ch, Any obj1, Any obj2);
-status		moveAfterChain(Chain ch, Any obj1, Any obj2);
-status		beforeChain(Chain ch, Any obj1, Any obj2);
-Any		getNth1Chain(Chain ch, Int index);
-Any		getNth0Chain(Chain ch, Int index);
-status		cellValueChain(Chain ch, Int c, Any obj);
-Cell		getNth0CellChain(Chain ch, Int index);
-Int		getIndexChain(Chain ch, Any obj);
-Int		getArityChain(Chain ch);
-Any		getArgChain(Chain ch, Int arg);
-status		makeClassChain(Class class);
+/* /staff/jan/src/pl/packages/xpce/src/adt/chain.c */
+COMMON(status)	initialiseChainv(Chain ch, int argc, Any *argv);
+COMMON(status)	clearChain(Chain ch);
+COMMON(Int)	getSizeChain(Chain ch);
+COMMON(status)	prependChain(register Chain ch, Any obj);
+COMMON(status)	appendChain(register Chain ch, Any obj);
+COMMON(status)	addChain(register Chain ch, Any obj);
+COMMON(status)	insertChain(Chain ch, Any obj);
+COMMON(status)	insertAfterChain(Chain ch, Any obj, Any obj2);
+COMMON(status)	insertBeforeChain(Chain ch, Any obj, Any obj2);
+COMMON(status)	swapChain(Chain ch, Any obj1, Any obj2);
+COMMON(status)	deleteHeadChain(Chain ch);
+COMMON(status)	deleteChain(Chain ch, register Any obj);
+COMMON(status)	deleteCellChain(Chain ch, Cell cell);
+COMMON(status)	memberChain(Chain ch, Any obj);
+COMMON(Any)	getNextChain(Chain ch, Any val);
+COMMON(Any)	getPreviousChain(Chain ch, Any val);
+COMMON(status)	forAllChain(Chain ch, Code code, Bool safe);
+COMMON(status)	forSomeChain(Chain ch, Code code, Bool safe);
+COMMON(Any)	getFindChain(Chain ch, Code code);
+COMMON(Chain)	getFindAllChain(Chain ch, Code code);
+COMMON(status)	mergeChain(Chain ch, Chain ch2);
+COMMON(status)	replaceChain(Chain ch, Any obj1, Any obj2);
+COMMON(status)	emptyChain(Chain ch);
+COMMON(Chain)	getCopyChain(Chain ch);
+COMMON(int)	qsortCompareObjects(const void *o1, const void *o2);
+COMMON(status)	sortChain(Chain ch, Code msg, Bool unique);
+COMMON(status)	sortNamesChain(Chain ch, Bool unique);
+COMMON(Tuple)	getCompleteNameChain(Chain ch, CharArray prefix, Function map, Bool ignore_case);
+COMMON(Chain)	getIntersectionChain(Chain ch, Chain ch2);
+COMMON(Any)	getHeadChain(Chain ch);
+COMMON(Any)	getDeleteHeadChain(Chain ch);
+COMMON(Any)	getTailChain(Chain ch);
+COMMON(status)	moveBeforeChain(Chain ch, Any obj1, Any obj2);
+COMMON(status)	moveAfterChain(Chain ch, Any obj1, Any obj2);
+COMMON(status)	beforeChain(Chain ch, Any obj1, Any obj2);
+COMMON(Any)	getNth1Chain(Chain ch, Int index);
+COMMON(Any)	getNth0Chain(Chain ch, Int index);
+COMMON(status)	cellValueChain(Chain ch, Int c, Any obj);
+COMMON(Cell)	getNth0CellChain(Chain ch, Int index);
+COMMON(Int)	getIndexChain(Chain ch, Any obj);
+COMMON(Int)	getArityChain(Chain ch);
+COMMON(Any)	getArgChain(Chain ch, Int arg);
+COMMON(status)	makeClassChain(Class class);
 
-/* ../src/adt/chaintable.c */
-status		appendChainTable(ChainTable ct, Any name, Any value);
-status		addChainTable(ChainTable ct, Any name, Any value);
-status		makeClassChainTable(Class class);
+/* /staff/jan/src/pl/packages/xpce/src/adt/chaintable.c */
+COMMON(status)	appendChainTable(ChainTable ct, Any name, Any value);
+COMMON(status)	addChainTable(ChainTable ct, Any name, Any value);
+COMMON(status)	makeClassChainTable(Class class);
 
-/* ../src/adt/constant.c */
-status		makeClassConstant(Class class);
+/* /staff/jan/src/pl/packages/xpce/src/adt/constant.c */
+COMMON(status)	makeClassConstant(Class class);
 
-/* ../src/adt/date.c */
-Date		CtoDate(long int time);
-status		makeClassDate(Class class);
+/* /staff/jan/src/pl/packages/xpce/src/adt/date.c */
+COMMON(Date)	CtoDate(long int time);
+COMMON(status)	makeClassDate(Class class);
 
-/* ../src/adt/dict.c */
-DictItem	getMemberDict(Dict dict, Any obj);
-status		deleteDict(Dict dict, Any obj);
-status		appendDict(Dict dict, DictItem di);
-DictItem	getFindIndexDict(Dict dict, Int ln);
-DictItem	getFindPrefixDict(Dict dict, StringObj str, Int from, Bool ign_case);
-status		clearDict(Dict dict);
-status		makeClassDict(Class class);
+/* /staff/jan/src/pl/packages/xpce/src/adt/dict.c */
+COMMON(DictItem) getMemberDict(Dict dict, Any obj);
+COMMON(status)	deleteDict(Dict dict, Any obj);
+COMMON(status)	appendDict(Dict dict, DictItem di);
+COMMON(DictItem) getFindIndexDict(Dict dict, Int ln);
+COMMON(DictItem) getFindPrefixDict(Dict dict, StringObj str, Int from, Bool ign_case);
+COMMON(status)	clearDict(Dict dict);
+COMMON(status)	makeClassDict(Class class);
 
-/* ../src/adt/dictitem.c */
-CharArray	getLabelDictItem(DictItem di);
-status		makeClassDictItem(Class class);
+/* /staff/jan/src/pl/packages/xpce/src/adt/dictitem.c */
+COMMON(CharArray) getLabelDictItem(DictItem di);
+COMMON(status)	makeClassDictItem(Class class);
 
-/* ../src/adt/hashtable.c */
-HashTable	createHashTable(Int buckets, Name refer);
-status		freeHashTable(HashTable ht);
-status		initialiseHashTable(HashTable ht, Int buckets);
-status		appendHashTable(HashTable ht, Any name, Any value);
-status		deleteHashTable(HashTable ht, Any name);
-status		clearHashTable(HashTable ht);
-status		makeClassHashTable(Class class);
+/* /staff/jan/src/pl/packages/xpce/src/adt/hashtable.c */
+COMMON(HashTable) createHashTable(Int buckets, Name refer);
+COMMON(status)	freeHashTable(HashTable ht);
+COMMON(status)	initialiseHashTable(HashTable ht, Int buckets);
+COMMON(status)	appendHashTable(HashTable ht, Any name, Any value);
+COMMON(status)	deleteHashTable(HashTable ht, Any name);
+COMMON(status)	clearHashTable(HashTable ht);
+COMMON(status)	makeClassHashTable(Class class);
 
-/* ../src/adt/number.c */
-Number		CtoNumber(long i);
-status		makeClassNumber(Class class);
+/* /staff/jan/src/pl/packages/xpce/src/adt/number.c */
+COMMON(Number)	CtoNumber(long i);
+COMMON(status)	makeClassNumber(Class class);
 
-/* ../src/adt/point.c */
-status		equalPoint(Point p1, Point p2);
-status		copyPoint(Point p1, Point p2);
-status		setPoint(Point pt, Int x, Int y);
-status		offsetPoint(Point pt, Int x, Int y);
-int		get_distance_point(Point p, int x, int y);
-Int		getDistancePoint(Point p, Point q);
-Point		getMidPoint(Point p, Point q);
-status		plusPoint(Point p, Point q);
-status		minusPoint(Point p, Point q);
-status		makeClassPoint(Class class);
+/* /staff/jan/src/pl/packages/xpce/src/adt/point.c */
+COMMON(status)	equalPoint(Point p1, Point p2);
+COMMON(status)	copyPoint(Point p1, Point p2);
+COMMON(status)	setPoint(Point pt, Int x, Int y);
+COMMON(status)	offsetPoint(Point pt, Int x, Int y);
+COMMON(int)	get_distance_point(Point p, int x, int y);
+COMMON(Int)	getDistancePoint(Point p, Point q);
+COMMON(Point)	getMidPoint(Point p, Point q);
+COMMON(status)	plusPoint(Point p, Point q);
+COMMON(status)	minusPoint(Point p, Point q);
+COMMON(status)	makeClassPoint(Class class);
 
-/* ../src/adt/real.c */
-void		setReal(Real r, double f);
-double		valReal(Real r);
-Real		CtoReal(double f);
-Real		getConvertReal(Class class, Any obj);
-status		valueReal(Real r, Real v);
-status		makeClassReal(Class class);
+/* /staff/jan/src/pl/packages/xpce/src/adt/real.c */
+COMMON(void)	setReal(Real r, double f);
+COMMON(double)	valReal(Real r);
+COMMON(Real)	CtoReal(double f);
+COMMON(Real)	getConvertReal(Class class, Any obj);
+COMMON(status)	valueReal(Real r, Real v);
+COMMON(status)	makeClassReal(Class class);
 
-/* ../src/adt/region.c */
-status		insideRegion(RegionObj r, Area a, Point p);
-status		makeClassRegion(Class class);
+/* /staff/jan/src/pl/packages/xpce/src/adt/region.c */
+COMMON(status)	insideRegion(RegionObj r, Area a, Point p);
+COMMON(status)	makeClassRegion(Class class);
 
-/* ../src/adt/sheet.c */
-Sheet		getCopySheet(Sheet sh);
-status		isAttributeSheet(Sheet sh, Any name);
-Attribute	getMemberSheet(Sheet sh, register Any name);
-status		deleteSheet(Sheet sh, Any name);
-Any		getValueSheet(Sheet sh, Any name);
-status		valueSheet(Sheet sh, Any name, Any value);
-status		makeClassSheet(Class class);
+/* /staff/jan/src/pl/packages/xpce/src/adt/sheet.c */
+COMMON(Sheet)	getCopySheet(Sheet sh);
+COMMON(status)	isAttributeSheet(Sheet sh, Any name);
+COMMON(Attribute) getMemberSheet(Sheet sh, register Any name);
+COMMON(status)	deleteSheet(Sheet sh, Any name);
+COMMON(Any)	getValueSheet(Sheet sh, Any name);
+COMMON(status)	valueSheet(Sheet sh, Any name, Any value);
+COMMON(status)	makeClassSheet(Class class);
 
-/* ../src/adt/size.c */
-status		equalSize(Size s, Size s2);
-status		copySize(Size s, Size s2);
-Size		getCopySize(Size s);
-status		setSize(Size s, Int w, Int h);
-status		makeClassSize(Class class);
+/* /staff/jan/src/pl/packages/xpce/src/adt/size.c */
+COMMON(status)	equalSize(Size s, Size s2);
+COMMON(status)	copySize(Size s, Size s2);
+COMMON(Size)	getCopySize(Size s);
+COMMON(status)	setSize(Size s, Int w, Int h);
+COMMON(status)	makeClassSize(Class class);
 
-/* ../src/adt/tuple.c */
-status		initialiseTuple(Tuple t, Any first, Any second);
-status		makeClassTuple(Class class);
+/* /staff/jan/src/pl/packages/xpce/src/adt/tuple.c */
+COMMON(status)	initialiseTuple(Tuple t, Any first, Any second);
+COMMON(status)	makeClassTuple(Class class);
 
-/* ../src/adt/vector.c */
-status		initialiseVectorv(Vector v, int argc, Any *argv);
-Vector		createVectorv(int argc, Any *argv);
-status		unlinkVector(Vector v);
-Int		getLowIndexVector(Vector v);
-Int		getHighIndexVector(Vector v);
-status		rangeVector(Vector v, Int low, Int high);
-status		clearVector(Vector v);
-Any		getTailVector(Vector v);
-Vector		getCopyVector(Vector v);
-status		fillVector(Vector v, Any obj, Int from, Int to);
-status		shiftVector(Vector v, Int places);
-Any		getElementVector(Vector v, Int e);
-status		elementVector(Vector v, Int e, Any obj);
-status		appendVector(Vector v, int argc, Any obj []);
-Int		getIndexVector(Vector v, Any obj);
-Any		getArgVector(Vector v, Int arg);
-Int		getArityVector(Vector v);
-status		makeClassVector(Class class);
+/* /staff/jan/src/pl/packages/xpce/src/adt/vector.c */
+COMMON(status)	initialiseVectorv(Vector v, int argc, Any *argv);
+COMMON(Vector)	createVectorv(int argc, Any *argv);
+COMMON(status)	unlinkVector(Vector v);
+COMMON(Int)	getLowIndexVector(Vector v);
+COMMON(Int)	getHighIndexVector(Vector v);
+COMMON(status)	rangeVector(Vector v, Int low, Int high);
+COMMON(status)	clearVector(Vector v);
+COMMON(Any)	getTailVector(Vector v);
+COMMON(Vector)	getCopyVector(Vector v);
+COMMON(status)	fillVector(Vector v, Any obj, Int from, Int to);
+COMMON(status)	shiftVector(Vector v, Int places);
+COMMON(Any)	getElementVector(Vector v, Int e);
+COMMON(status)	elementVector(Vector v, Int e, Any obj);
+COMMON(status)	appendVector(Vector v, int argc, Any obj []);
+COMMON(Int)	getIndexVector(Vector v, Any obj);
+COMMON(Any)	getArgVector(Vector v, Int arg);
+COMMON(Int)	getArityVector(Vector v);
+COMMON(status)	makeClassVector(Class class);

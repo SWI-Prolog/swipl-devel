@@ -47,7 +47,7 @@
 %	loaded.
 
 make :-
-	$update_library_index,
+	'$update_library_index',
 	findall(File, modified_file(File), Reload),
 	print_message(silent, make(reload(Reload))),
 	reload(Reload),
@@ -55,7 +55,12 @@ make :-
 	list_undefined.
 
 modified_file(File) :-
-	$time_source_file(File, LoadTime),
+	'$time_source_file'(Source, Time),
+	(   '$derived_source'(Source, File, LoadTime)
+	->  true
+	;   File = Source,
+	    LoadTime = Time
+	),
 	time_file(File, Modified),
 	Modified > LoadTime.
 

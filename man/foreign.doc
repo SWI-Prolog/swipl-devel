@@ -100,17 +100,16 @@ predicates from \secref{shlib} in your application.
 
 \begin{description}
     \predicate{open_shared_object}{2}{+File, -Handle}
-\arg{File} is the name of a \fileext{so} file (see your C programmers
-documentation on how to create a \fileext{so} file). This file is
-attached to the current process and \arg{Handle} is unified with a
-handle to the shared object. Equivalent to
-\exam{open_shared_object(File, [global], Handle)}. See also
+\arg{File} is the name of a shared object file (called dynamic load
+library in MS-Windows). This file is attached to the current process and
+\arg{Handle} is unified with a handle to the library. Equivalent to
+\exam{open_shared_object(File, [], Handle)}. See also
 load_foreign_library/[1,2].
 
 On errors, an exception \term{shared_object}{Action, Message} is
 raised. \arg{Message} is the return value from \funcref{dlerror}{}.
 
-    \predicate{open_shared_object}{3}{+File, +Options, -Handle}
+    \predicate{open_shared_object}{3}{+File, -Handle, +Options}
 As open_shared_object/2, but allows for additional flags to be passed.
 \arg{Options} is a list of atoms. \const{now} implies the symbols are
 resolved immediately rather than lazy (default). \const{global} implies
@@ -698,6 +697,9 @@ All these functions return either \const{TRUE} or \const{FALSE}.
 \begin{description}
 \cfunction{int}{PL_is_variable}{term_t}
 Returns non-zero if \arg{term} is a variable.
+\cfunction{int}{PL_is_ground}{term_t}
+Returns non-zero if \arg{term} is a ground term.  See also ground/1.
+This function is cycle-safe.
 \cfunction{int}{PL_is_atom}{term_t}
 Returns non-zero if \arg{term} is an atom.
 \cfunction{int}{PL_is_string}{term_t}
@@ -1337,6 +1339,164 @@ call_chars(const char *goal)
     \arg{chr} and any occurence of \arg{chr} is doubled.  In the
     future the behaviour will depend on the \const{character_escape}
     prolog-flag.  See current_prolog_flag/2.
+\end{description}
+
+
+\subsection{BLOBS: Using atoms to store arbitrary binary data}
+\label{sec:blob}
+
+\index{Java}\index{COM}
+SWI-Prolog atoms as well as strings can represent arbitrary binary data
+of arbitrary length.  This facility is attractive for storing foreign
+data such as images in an atom.  An atom is a unique handle to this
+data and the atom garbage collector is able to destroy atoms that
+are no longer referenced by the Prolog engine.  This property of atoms
+makes them attractive as a handle to foreign resources, such as
+Java atoms,  Microsoft's COM objects, etc., providing safe combined
+garbage collection.
+
+To exploit these features safely and in an organised manner the
+SWI-Prolog foreign interface allows for creating `atoms' with additional
+type information. The type is represented by a structure holding C
+function pointers that tell Prolog how to handle releasing the atom,
+writing it, sorting it, etc. Two atoms created with different types can
+represent the same sequence of bytes. Atoms are first ordered on the
+rank number of the type and then on the result of the
+\funcref{compare}{} function.  Rank numbers are assigned when the
+type is registered.
+
+
+\subsubsection{Defining a BLOB type}
+\label{sec:blobtype}
+
+The type \ctype{PL_blob_t} represents a structure with the layout
+displayed above. The structure contains additional fields at the
+\ldots for internal bookkeeping as well as future extension. 
+
+\begin{code}
+typedef struct PL_blob_t
+{ unsigned long		magic;		/* PL_BLOB_MAGIC */
+  unsigned long		flags;		/* Bitwise or of PL_BLOB_* */
+  char *		name;		/* name of the type */
+  int			(*release)(atom_t a);
+  int			(*compare)(atom_t a, atom_t b);
+  int			(*write)(IOSTREAM *s, atom_t a, int flags);
+  ...
+} PL_blob_t;
+\end{code}
+
+For each type exactly one such structure should be allocated.  Its
+first field must be initialised to \const{PL_BLOB_MAGIC}.  The
+\arg{flags} is a bitwise or of the following constants:
+
+\begin{description}
+    \constitem{PL_BLOB_TEXT}
+If specified the blob is assumed to contain text and is considered
+a normal Prolog atom.
+
+    \constitem{PL_BLOB_UNIQUE}
+If specified the system ensures that the blob-handle is a unique
+reference for a blob with the given type, length and content.
+If this flag is not specified each lookup creates a new blob.
+
+    \constitem{PL_BLOB_NOCOPY}
+By default the content of the blob is copied. Using this flag the blob
+references the external data directly. The user must ensure the provided
+pointer is valid as long as the atom lives.  If \const{PL_BLOB_UNIQUE}
+is also specified uniqueness is determined by comparing the pointer
+rather than the data pointed at.
+\end{description}
+
+The \arg{name} field represents the type name as available to Prolog.
+See also current_blob/2. The other field are function pointers that must
+be initialised to proper functions or \const{NULL} to get the default
+behaviour of builtin atoms. Below are the defined member functions:
+
+\begin{description}
+    \cfunction{void}{acquire}{atom_t a}
+Called if a new blob of this type is created through PL_put_blob()
+or PL_unify_blob().  This callback may be used together with the
+release hook to deal with reference counted external objects.
+
+    \cfunction{int}{release}{atom_t a}
+The blob (atom) \arg{a} is about to be released.  This function
+can retrieve the data of the blob using PL_blob_data().  If it
+returns \const{FALSE} the atom garbage collector will \emph{not}
+reclaim the atom.
+
+    \cfunction{int}{compare}{atom_t a, atom_t b}
+Compare the blobs \arg{a} and \arg{b}, both of which are of the
+type associated to this blob-type.  Return values are, as memcmp(),
+$< 0$ if \arg{a} is less then \arg{b}, $= 0$ if both are equal and
+$> 0$ otherwise.
+
+    \cfunction{int}{write}{IOSTREAM *s, atom_t a, int flags}
+Write the content of the blob \arg{a} to the stream \arg{s}
+and respecting the \arg{flags}.  The \arg{flags} are a bitwise
+or of zero or more of the \const{PL_WRT_*} flags defined in
+\file{SWI-Prolog.h}. This prototype is available if the
+undocumented \file{SWI-Stream.h} is included \emph{before}
+\file{SWI-Prolog.h}.
+
+If this function is not provided, write/1 emits the content
+of the blob for blobs of type \const{PL_BLOB_TEXT} or a
+string of the format \verb$<#$\textit{hex data}\verb$>$
+for binary blobs.
+\end{description}
+
+
+If a blob type is registered from a loadable object (shared object
+or DLL) the blob-type must be deregistered before the object may be
+released.
+
+\begin{description}
+    \cfunction{int}{PL_unregister_blob_type}{PL_blob_t *type}
+Unlink the blob type from the registered type and transform the type of
+possible living blobs to \const{unregistered}, avoiding further
+reference to the type structure, functions referred by it as well as the
+data. This function returns \const{TRUE} if no blobs of this type
+existed and \const{FALSE} otherwise. PL_unregister_blob_type() is
+intended for the uninstall() hook of foreign modules, avoiding further
+references to the module.
+\end{description}
+
+
+\subsubsection{Accessing blobs}
+\label{sec:blobaccess}
+
+The blob access functions are similar to the atom accessing functions.
+Blobs being atoms, the atom functions operate on blobs and visa versa.
+For clarity and possible future compatibility issues however it is not
+advised to rely on this.
+
+\begin{description}
+    \cfunction{int}{PL_unify_blob}{term_t t, void *blob, unsigned int len,
+				   PL_blob_t *type}
+Unify \arg{t} to a new blob constructed from the given data and
+associated to the given type.  See also PL_unify_atom_nchars().
+
+    \cfunction{int}{PL_put_blob}{term_t t, void *blob, unsigned int len,
+				 PL_blob_t *type}
+Store the described blob in \arg{t}.  The return value indicates whether
+a new blob was allocated (\const{FALSE}) or the blob is a reference to
+an existing blob (\const{TRUE}).  Reporting new/existing can be used to
+deal with external objects having their own reference counts.  If the
+return is \const{TRUE} this reference count must be incremented and it
+must be decremented on blob destruction callback.  See also
+PL_put_atom_nchars().
+
+    \cfunction{int}{PL_get_blob}{term_t t, void **blob, unsigned int *len,
+				 PL_blob_t **type}
+If \arg{t} holds a blob or atom get the data and type and return
+\const{TRUE}.  Otherwise return \const{FALSE}.  Each result pointer
+may be \const{NULL}, in which case the requested information is 
+ignored.
+
+    \cfunction{int}{PL_blob_data}{atom_t a,
+				  unsigned int *len,
+				  struct PL_blob_t **type}
+Get the data and type associated to a blob.  This function is mainly
+used from the callback functions described in \secref{blobtype}.
 \end{description}
 
 
@@ -2013,6 +2173,41 @@ forms bitwise or'ed list of options for the installation. These are:
 \const{PL_FA_VARARGS}	       & Use alternative calling convention. \\
 \hline
 \end{tabular}
+
+Default calling (i.e.\ without \const{PL_FA_VARARGS}) \arg{function} is
+passed the same number of term_t arguments as the arity of the predicate
+and, if the predicate is non-deterministic, an extra argument of type
+\ctype{control_t} (see \secref{foreignnondet}). If \const{PL_FA_VARARGS}
+is provided, \arg{function} is called with three arguments. The first
+argument is a \ctype{term_t} handle to the first argument. Further
+arguments can be reached by adding the offset (see also
+PL_new_term_refs()). The second argument is the arity, which defines the
+number of valid term-references in the argument vector.  The last argument
+is used for non-deterministic calls.  It is currently undocument and should
+be defined of type \ctype{void*}.  Here is an example:
+
+\begin{code}
+static foreign_t
+atom_checksum(term_t a0, int arity, void* context)
+{ char *s;
+  
+  if ( PL_get_atom_chars(a0, &s) )
+  { int sum;
+    
+    for(sum=0; *s; s++)
+      sum += *s&0xff;
+
+    return PL_unify_integer(a0+1, sum&0xff);
+  }
+
+  return FALSE;
+}
+
+install_t
+install()
+{ PL_register_foreign("atom_checksum", 2, atom_checksum, PL_FA_VARARGS);
+}
+\end{code}
 
     \cfunction{void}{PL_load_extensions}{PL_extension *e}
 Register foreign predicates from a table of structures. This is an

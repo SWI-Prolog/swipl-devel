@@ -247,6 +247,22 @@ setUnknown(atom_t a, unsigned int *flagp)
 }
 
 
+static int
+setWriteAttributes(atom_t a)
+{ int mask = writeAttributeMask(a);
+
+  if ( mask )
+  { LD->feature.write_attributes = mask;
+    succeed;
+  } else
+  { term_t value = PL_new_term_ref();
+
+    PL_put_atom(value, a);
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_write_attributes, value);
+  }
+}
+
+
 word
 pl_set_feature(term_t key, term_t value)
 { atom_t k;
@@ -384,10 +400,9 @@ pl_set_feature(term_t key, term_t value)
       } else if ( k == ATOM_double_quotes )
       { rval = setDoubleQuotes(a, &m->flags);
       } else if ( k == ATOM_unknown )
-      { if ( !setUnknown(a, &m->flags) )
-	{ UNLOCK();
-	  fail;
-	}
+      { rval = setUnknown(a, &m->flags);
+      } else if ( k == ATOM_write_attributes )
+      { rval = setWriteAttributes(a);
       }
       break;
     }
@@ -679,6 +694,8 @@ initFeatures()
   defFeature("pid", FT_INTEGER|FF_READONLY, getpid());
 #endif
   defFeature("optimise", FT_BOOL, GD->cmdline.optimise, OPTIMISE_FEATURE);
+  defFeature("generate_debug_info", FT_BOOL,
+	     trueFeature(DEBUGINFO_FEATURE), DEBUGINFO_FEATURE);
   defFeature("tail_recursion_optimisation", FT_BOOL,
 	     TRUE, TAILRECURSION_FEATURE);
 #ifdef O_PLMT
@@ -692,7 +709,7 @@ initFeatures()
   defFeature("c_cc",	  FT_ATOM|FF_READONLY, C_CC);
   defFeature("c_ldflags", FT_ATOM|FF_READONLY, C_LDFLAGS);
 #ifdef O_LARGEFILES
-  defFeature("large_files", FT_BOOL|FF_READONLY, TRUE);
+  defFeature("large_files", FT_BOOL|FF_READONLY, TRUE, 0);
 #endif
   defFeature("gc",	  FT_BOOL,	       TRUE,  GC_FEATURE);
   defFeature("trace_gc",  FT_BOOL,	       FALSE, TRACE_GC_FEATURE);
@@ -749,6 +766,7 @@ initFeatures()
   defFeature("character_escapes", FT_BOOL, TRUE, CHARESCAPE_FEATURE);
   defFeature("char_conversion", FT_BOOL, FALSE, CHARCONVERSION_FEATURE);
   defFeature("backquoted_string", FT_BOOL, FALSE, BACKQUOTED_STRING_FEATURE);
+  defFeature("write_attributes", FT_ATOM, "ignore");
   defFeature("double_quotes", FT_ATOM, "codes");
   defFeature("unknown", FT_ATOM, "error");
   defFeature("debug", FT_BOOL, FALSE, 0);

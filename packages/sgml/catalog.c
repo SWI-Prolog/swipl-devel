@@ -31,6 +31,17 @@
 #define DTD_MINOR_ERRORS 1
 #include <dtd.h>			/* error codes */
 
+#ifdef _REENTRANT
+#include <pthread.h>
+
+static pthread_mutex_t catalog_mutex = PTHREAD_MUTEX_INITIALIZER;
+#define LOCK() pthread_mutex_lock(&catalog_mutex)
+#define UNLOCK() pthread_mutex_unlock(&catalog_mutex)
+#else
+#define LOCK()
+#define UNLOCK()
+#endif
+
 #ifndef MAXPATHLEN
 #define MAXPATHLEN 1024
 #endif
@@ -134,7 +145,7 @@ localpath(const char *ref, const char *name)
 
 
 int
-register_catalog_file(const char *file, catalog_location where)
+register_catalog_file_unlocked(const char *file, catalog_location where)
 { catalog_file **f = &catalog;
   catalog_file *cf;
 
@@ -167,30 +178,47 @@ static void
 init_catalog()
 { static int done = FALSE;
 
-  if (!done)
-  { if (!catalog)
-    { char *path = getenv("SGML_CATALOG_FILES");
+  LOCK();
+  if ( !done++ )
+  { char *path = getenv("SGML_CATALOG_FILES");
 
-      if (!path)
-	return;
+    if (!path)
+    { UNLOCK();
+      return;
+    }
 
-      while (*path)
-      { char buf[MAXPATHLEN];
-	char *s;
+    while (*path)
+    { char buf[MAXPATHLEN];
+      char *s;
 
-	if ((s = strchr(path, ':')))
-	{ strncpy(buf, path, s - path);
-	  buf[s - path] = '\0';
-	  path = s + 1;
-	} else
-	{ register_catalog_file(path, CTL_START);
-	  return;
-	}
-
-	register_catalog_file(buf, CTL_START);
+      if ((s = strchr(path, ':')))
+      { strncpy(buf, path, s - path);
+	buf[s - path] = '\0';
+	path = s + 1;
+	if ( buf[0] )			/* skip empty entries */
+	  register_catalog_file_unlocked(buf, CTL_START);
+      } else
+      { if ( path[0] )			/* skip empty entries */
+	  register_catalog_file_unlocked(path, CTL_START);
+	break;
       }
     }
   }
+  UNLOCK();
+}
+
+
+int
+register_catalog_file(const char *file, catalog_location where)
+{ int rc;
+  
+  init_catalog();
+
+  LOCK();
+  rc = register_catalog_file_unlocked(file, where);
+  UNLOCK();
+
+  return rc;
 }
 
 

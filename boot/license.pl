@@ -38,6 +38,9 @@
 :- dynamic
 	licensed/2.			% +Id, +Module
 
+:- multifile
+	license/3.
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 License  definitions.  This  data  is   (still  incomplete)  taken  from
 http://www.fsf.org/licenses/license-list.html. The first argument is the
@@ -130,15 +133,32 @@ warn_if_unknown(License) :-
 %	Report current license situation
 
 eval_license :-
+	report_gpl,
+	report_proprietary.
+
+report_gpl :-
 	setof(Module, gpled(Module), Modules), !,
 	print_message(informational, license(gpl, Modules)).
-eval_license :-
+report_gpl :-
 	print_message(informational, license(lgpl)).
 
 gpled(Module) :-
 	licensed(X, Module),
 	license(X, gpl, _).
 	
+report_proprietary :-
+	(   setof(Module, proprietary(Module, L), Modules),
+	    print_message(informational, license(proprierary(L), Modules)),
+	    fail
+	;   true
+	).
+
+proprietary(Module, L) :-
+	licensed(L, Module),
+	license(L, C, _),
+	C \== gpl,
+	C \== lgpl.
+
 		  
 		 /*******************************
 		 *	       MESSAGES		*
@@ -164,6 +184,21 @@ prolog:message(license(lgpl)) -->
 	  'must be made available.', nl
 	],
 	see_also.
+prolog:message(license(proprierary(L), Modules)) -->
+	{ license(L, _, Att) },
+	{   memberchk(comment(C), Att)
+	->  true
+	;   C = L
+	},
+	[ nl,
+	  'The program contains modules covered by the "~w" license'-[C], nl
+	],
+	(   { memberchk(url(URL), Att) }
+	->  [ 'See ~w'-[URL], nl ]
+	;   []
+	),
+	[ nl ],
+	file_list(Modules).
 
 see_also -->
 	[ nl,
@@ -173,14 +208,20 @@ see_also -->
 	].
 
 license_list -->
-	{ findall(X-C, current_license(X, C), Pairs)
+	{ findall(X, license(X, _, _), Pairs)
 	},
 	license_list(Pairs).
 
 license_list([]) -->
 	[].
-license_list([X-C|T]) -->
-	[ '    ~w~t16~|~w'-[X, C], nl ],
+license_list([L|T]) -->
+	{ license(L, _, Att) },
+	(   { memberchk(comment(C), Att)
+	    ; memberchk(url(C), Att)
+	    }
+	->  [ '    ~w~t16~|~w'-[X, C], nl ]
+	;   [ '	   ~w'-[X, C], nl ]
+	),
 	license_list(T).
 
 file_list([]) -->

@@ -166,6 +166,9 @@
 \newcommand{\cmacro}[3]{%
 	\defentry{{\it #1} #2({\it #3})}%
 	\index{#2()}\ignorespaces}
+\newcommand{\constitem}[1]{%
+	\definition{#1}%
+	\index{#1}\ignorespaces}
 \newcommand{\cglobalvar}[1]{{\tt #1}}
 \newcommand{\classitem}[1]{%
 	\definition{Class #1}%
@@ -231,6 +234,17 @@
 \newcommand\fmtseq{\begingroup \urlstyle{tt}\Url}
 
 \urldef{\Sexe}\satom{#!}		% #!
+\urldef{\Scgt}\satom{#>}		% #>
+\urldef{\Scge}\satom{#>=}		% #>=
+\urldef{\Sclt}\satom{#<}		% #<
+\urldef{\Scle}\satom{#=<}		% #=<
+\urldef{\Sceq}\satom{#=}		% #=
+\urldef{\Scne}\satom{#\=}		% #\=
+\urldef{\Sequiv}\satom{#<=>}            % #<=>
+\urldef{\Slimpl}\satom{#<=}            % #<=
+\urldef{\Srimpl}\satom{#=>}            % #=>
+\urldef{\Scieq}\satom{#=:=}		% #=:=
+\urldef{\Scine}\satom{#=\=}		% #=\=
 \urldef{\Scut}\satom{!}			% !
 \urldef{\Scomma}\satom{,}		% ,
 \urldef{\Sifthen}\satom{->}		% ->

@@ -47,7 +47,10 @@ faster operation.
 Create a new Prolog thread (and underlying C-thread) and start it
 by executing \arg{Goal}.  If the thread is created succesfully, the
 thread-identifier of the created thread is unified to \arg{Id}.
-\arg{Options} is a list of options.  Currently defined options are:
+\arg{Options} is a list of options.  The currently defined options are
+below.  Stack size options can also take the value \const{inf} or
+\const{infinite}, which is mapped to the maximum stack size supported
+by the platform.
 
 \begin{description}
     \termitem{local}{K-Bytes}
@@ -87,6 +90,11 @@ will reclaim all associated resources automatically after the thread
 finishes. Please note that thread identifiers are freed for reuse after
 a detached thread finishes or a normal thread has been joined.
 See also thread_join/2 and thread_detach/1.
+
+If a detached thread dies due to failure or exception of the initial
+goal the thread prints a message using print_message/2.  If such
+termination is considered normal the code must be wrapped using
+ignore/1 and/or catch/3 to ensure successful completion.
 \end{description}
 
 The \arg{Goal} argument is \emph{copied} to the new Prolog engine.
@@ -786,19 +794,4 @@ For further information about XPCE in threaded applications, please
 visit
 \url{http://gollem.swi.psy.uva.nl/twiki/pl/bin/view/Development/MultiThreadsXPCE}
 
-\section{Threaded Prolog: Status and plans}
-\label{sec:threadplans}
-
-
-With SWI-Prolog 5.1.0 Prolog threads have become portable and the
-performance gap between the single and multi-threaded version has
-become acceptable.%
-    \footnote{Dual AMD 1600+ running SuSE Linux 7.3: 18\%,
-	      Single P-III 733 running SuSE Linux 8.0: 12\%,
-	      Single P-III 450 running NT-4/TSE: 1\%.}
-Most of the basic machinery and API have been tested on some large
-applications and appear to be stable. Especially as we do not anticipate
-problems as long as multi-threading is not used or threads do not
-interact much we believe it is time to move towards making the
-multi-threaded version the default distribution.
 

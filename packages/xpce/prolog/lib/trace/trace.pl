@@ -48,7 +48,7 @@
 		 *	      INTERCEPT		*
 		 *******************************/
 
-:- dynamic
+:- thread_local
 	last_action/1,
 	show_unify_as/2,
 	showing/1.
@@ -118,7 +118,7 @@ do_intercept(call, Frame, CHP, Action) :-
 	    ;	prolog_frame_attribute(Frame, parent, Parent),
 		(   prolog_frame_attribute(Parent, hidden, true)
 		;   prolog_frame_attribute(Parent, goal, ParentGoal),
-		    predicate_property(ParentGoal, built_in)
+		    predicate_property(ParentGoal, nodebug)
 		)
 	    )
 	->  Action = into,
@@ -129,7 +129,7 @@ do_intercept(call, Frame, CHP, Action) :-
 do_intercept(exit, Frame, CHP, Action) :-
 	(   %last_action(finish)
 	    prolog_frame_attribute(Frame, goal, Goal),
-	    \+(( predicate_property(Goal, built_in)
+	    \+(( predicate_property(Goal, nodebug)
 	       ; predicate_property(Goal, foreign)
 	      )),
 	    \+(( last_action(skip),
@@ -146,7 +146,7 @@ do_intercept(exit, Frame, CHP, Action) :-
 	).
 do_intercept(fail, Frame, CHP, Action) :-
 	(   prolog_frame_attribute(Frame, goal, Goal),
-	    (	predicate_property(Goal, built_in)
+	    (	predicate_property(Goal, nodebug)
 	    ;	predicate_property(Goal, foreign)
 	    )
 	->  Up = 1
@@ -156,7 +156,7 @@ do_intercept(fail, Frame, CHP, Action) :-
 	action(Action).
 do_intercept(exception(Except), Frame, CHP, Action) :-
 	(   prolog_frame_attribute(Frame, goal, Goal),
-	    (	predicate_property(Goal, built_in)
+	    (	predicate_property(Goal, nodebug)
 	    ;	predicate_property(Goal, foreign)
 	    )
 	->  Up = 1
@@ -166,7 +166,7 @@ do_intercept(exception(Except), Frame, CHP, Action) :-
 	action(Action).
 do_intercept(redo, Frame, CHP, Action) :-
 	prolog_frame_attribute(Frame, goal, Goal),
-	(   predicate_property(Goal, built_in)
+	(   predicate_property(Goal, nodebug)
 	;   predicate_property(Goal, foreign)
 	), !,
 	show(Frame, CHP, 1, redo),
@@ -354,7 +354,8 @@ subgoal_position(ClauseRef, exception, File, CharA, CharZ) :- !,
 subgoal_position(ClauseRef, PC, File, CharA, CharZ) :-
 	clause_info(ClauseRef, File, TPos, _),
 	(   '$clause_term_position'(ClauseRef, PC, List)
-	->  debug('Term-position: ~w~n', [List]),
+	->  debug('Term-position: for ref=~w at PC=~w: ~w~n',
+		  [ClauseRef, PC, List]),
 	    (   find_subgoal(List, TPos, PosTerm)
 	    ->  true
 	    ;   PosTerm = TPos,

@@ -78,27 +78,42 @@ resize(W, Tab:[tab]) :->
 	;   send(Tab, size, size(Width,TabH))
 	).
     
+layout_dialog(W, _Gap:[size], _Size:[size], _Border:[size]) :->
+	"Overrule to deal with nested tabbed windows"::
+	new(S0, size(0,0)),
+	send_super(W, layout_dialog, S0, S0, S0).
+
 :- pce_group(stack).
 
 on_top(W, Name:name) :->
 	"Put the named tab on top"::
 	get_super(W, member, tab_stack, TS),
-	send(TS, on_top, Name).
+	(   get(TS, member, Name, Tab)
+	->  send(TS, on_top, Tab)
+	;   get(W, hypered, tab, @arg3?name == Name, Window)
+	->  send(Window, expose)
+	).
 
 :- pce_group(members).
 
-%	->append: Window, Label
+%	->append: Window, Label, [Expose]
 %	
 %	Append a new tab using Window with the given tab label.
 %
 %	The call to ->'_compute_desired_size' should be properly delayed
 %	until the tabbed window is actually   created,  but this doesn't
-%	appear to work properly.
+%	appear to work properly. If Expose == @on the tab is immediately
+%	brought to the top.
 
-append(W, Window:window=window, Label:name=[name]) :->
+append(W, Window:window=window, Label:name=[name], Expose:expose=[bool]) :->
 	"Append a window to the tabs"::
 	send(Window, '_compute_desired_size'),
-	send(W, tab, window_tab(Window, Label)).
+	send(W, tab, new(Tab, window_tab(Window, Label))),
+	(   Expose == @on
+	->  get_super(W, member, tab_stack, TS),
+	    send(TS, on_top, Tab)
+	;   true
+	).
 
 member(W, Name:name, Window:window) :<-
 	"Get named window from tabbed window"::
@@ -111,7 +126,13 @@ members(W, Windows:chain) :<-
 	new(Windows, chain),
 	get_super(W, member, tab_stack, TS),
 	send(TS?graphicals, for_all,
-	     message(Windows, append, @arg1?window)).
+	     message(Windows, append, @arg1?window)),
+	(   get(W, all_hypers, Hypers)
+	->  send(Hypers, for_all,
+		 if(@arg1?forward_name == toplevel,
+		    message(Windows, append, @arg1?to)))
+	;   true
+	).
 	
 clear(W) :->
 	"Remove all member tabs"::
@@ -122,7 +143,7 @@ tab(W, Tab:tab) :->
 	"Add normal tab"::
 	get_super(W, member, tab_stack, TS),
 	send(TS, append, Tab),
-	(   get(Tab, is_displayed, @on)
+	(   get(W, is_displayed, @on)
 	->  send(W, resize, Tab)
 	;   true
 	).
@@ -140,57 +161,70 @@ tab(W, Name:name, Tab:tab) :<-
 		 *******************************/
 
 
-:- pce_begin_class(window_tab, tab,
+:- pce_begin_class(window_tab(name), tab,
 		   "Tab displaying a window").
 
-variable(window,	window*, get, "Displayed window").
+variable(window,	window*,      get, "Displayed window").
+variable(closing,	bool := @off, get, "We are about to close").
 delegate_to(window).
 
 initialise(T, Window:window=[window], Name:name=[name]) :->
 	"Create from window and name"::
 	(   Window == @default
-	->  new(P, picture)
-	;   P = Window
+	->  new(W, picture)
+	;   W = Window
 	),
 	(   Name == @default
-	->  get(P, name, TheName)
+	->  get(W, name, TheName)
 	;   TheName = Name
 	),
-	(   get(Window, slot, frame, Frame),
+	(   get(W, decoration, Decor),
+	    Decor \== @nil
+	->  true
+	;   Decor = Window
+	),
+	send(Decor, lock_object, @on),
+	(   get(Decor, slot, frame, Frame),
 	    Frame \== @nil
-	->  send(Window, lock_object, @on),
-	    send(Frame, delete, Window),
-	    get(Window, unlock, _)
+	->  send(Frame, delete, Decor)
 	;   true
 	),
+	send(Decor, slot, tile, @nil),
 	send_super(T, initialise, TheName),
 	send(T, border, size(0,0)),
-	send_super(T, display, P),
-	send(T, slot, window, P),
-	new(_, mutual_dependency_hyper(T, P, window, tab)).
+	send_super(T, display, Decor),
+	get(Decor, unlock, _),
+	send(T, slot, window, W),
+	new(_, mutual_dependency_hyper(T, W, window, tab)).
 
 
 :- pce_group(resize).
 
+%	->size
+%	
+%	This method must update the size of  the window. For some, to me
+%	unknown,  reason  this  does  not    work  correctly  when  done
+%	immediately.  Possibly  this  has  something   to  do  with  X11
+%	synchronisation. We use the hack   in_pce_thread/1 to reschedule
+%	the window resize in the event loop.
+
 size(T, Size:size) :->
 	"Adjust size of tab and window"::
+	(   get(T, closing, @on)
+	->  true
+	;   in_pce_thread(send(T, resize_window)),
+	    send_super(T, size, Size)
+	).
+
+resize_window(T) :->
+	get(T, size, size(W, H)),
 	get(T, window, Window),
-	get(Size, width, W),
-	get(Size, height, H),
 	(   get(Window, decoration, Decor),
 	    Decor \== @nil
-	->  send(Decor, do_set, 0,0,W,H)
-	;   send(Window, do_set, 0,0,W,H)
+	->  Resize = Decor
+	;   Resize = Window
 	),
-	send_super(T, size, Size).
-
-%layout_dialog(T) :->
-%	(   get(T, window, Window),
-%	    Window \== @nil
-%	->  send(Window, '_compute_desired_size')
-%	;   true
-%	),
-%	send_super(T, layout_dialog).
+	send(Resize, do_set, 0,0,W,H).
 
 :- pce_group(event).
 
@@ -198,10 +232,8 @@ status(T, Status:{on_top,hidden}) :->
 	send_super(T, status, Status),
 	(   Status == on_top,
 	    get(T, is_displayed, @on),
-	    get(T, frame, Frame)
-	->  get(T, window, Window),
-	    send(Window, resize),
-	    send(Frame, keyboard_focus, Window)
+	    get(T, container, tabbed_window, TabbedWindow)
+	->  send(TabbedWindow, resize, T)
 	;   true
 	).
 
@@ -237,6 +269,31 @@ label_event(G, Ev:event) :->
 
 :- pce_group(frame).
 
+rank(Tab, Rank:'1..') :<-
+	"Get position number of the tab"::
+	get(Tab, device, Stack),
+	get(Stack?graphicals, index, Tab, Rank).
+
+rank(Tab, Rank:'1..') :->
+	"Move tab in rank"::
+	get(Tab, device, Stack),
+	get(Stack?graphicals, index, Tab, Rank0),
+	(   Rank == Rank0
+	->  true
+	;   (   Rank > Rank0
+	    ->  Rank1 is Rank+1
+	    ;   Rank1 = Rank
+	    ),
+	    (   Rank1 == 1
+	    ->  send(Tab, hide)
+	    ;   Before is Rank1 - 1,
+		get(Stack?graphicals, nth1, Before, BeforeGr)
+	    ->  send(Tab, expose, BeforeGr)
+	    ;   send(Tab, expose)		% make last one
+	    ),
+	    send(Stack, layout_labels)
+	).
+
 untab(Tab, W:window) :<-
 	"Remove a tab from the tabbed window and return the window"::
 	get(Tab, window, W),
@@ -247,9 +304,64 @@ untab(Tab, W:window) :<-
 	
 untab(Tab) :->
 	"Turn the window into a toplevel window"::
+	get(Tab, rank, Rank),
 	get(Tab, name, Name),
+	get(Tab, container, dialog, TabbedWindow),
+	get(Tab, display_position, point(X, Y)),
 	get(Tab, untab, Window),
-	send(Window?frame, label, Name?label_name),
-	send(Window, open).
+	send(new(window_tab_frame(Window, Name, Rank)), open, point(X, Y+20)),
+	new(_, partof_hyper(TabbedWindow, Window, toplevel, tab)).
+
+%	->close_other_tabs
+%	
+%	Close all tabs but be. To work   around scheduled resize for the
+%	subwindows we first indicate we are about to close the tabs. See
+%	also ->size.
+
+close_other_tabs(Tab) :->
+	"Destroy all tabs except for me"::
+	get(Tab, device, Stack),
+	send(Stack?graphicals, for_all,
+	     if(@arg1 \== Tab,
+		message(@arg1, slot, closing, @on))),
+	send(Stack?graphicals, for_all,
+	     if(@arg1 \== Tab,
+		message(@arg1, destroy))).
 
 :- pce_end_class(window_tab).
+
+
+:- pce_begin_class(window_tab_frame, frame,
+		   "Temporary frame for an untabbed window").
+
+variable(rank, '1..', get, "Saved position in tabbed window").
+
+initialise(F, Window:window, Name:name, Rank:'1..') :->
+	send(F, slot, rank, Rank),
+	send_super(F, initialise, Name?label_name),
+	send(F, append, Window),
+	send(F, done_message, message(F, retab)).
+
+
+window(F, Window:window) :<-
+	"Get the un-tabbed window"::
+	get(F?members, head, Window).
+
+retab(F) :->
+	"Bring the window back to its tab"::
+	get(F, window, Window),
+	get(Window, hypered, tab, TabbedWindow),
+	get(F, rank, Rank),
+	send(F, delete, Window),
+	send(Window, delete_hypers, tab),
+	send(TabbedWindow, append, Window),
+	get(Window, container, tab, Tab),
+	send(Tab, rank, Rank),
+	send(F, destroy).
+
+contained_in(F, TabbedWindow:tabbed_window) :<-
+	"An untabbed window is consider part of the tab"::
+	get(F, window, Window),
+	get(Window, hypered, tab, TabbedWindow).
+
+:- pce_end_class(window_tab_frame).

@@ -44,7 +44,7 @@ before loading this file.  See end of this file.
 /* PLVERSION: 10000 * <Major> + 100 * <Minor> + <Patch> */
 
 #ifndef PLVERSION
-#define PLVERSION 50213
+#define PLVERSION 50400
 #endif
 
 		 /*******************************
@@ -225,6 +225,7 @@ typedef struct _PL_extension
 #define PL_FA_TRANSPARENT	(0x02)	/* foreign is module transparent */
 #define PL_FA_NONDETERMINISTIC	(0x04)	/* foreign is non-deterministic */
 #define PL_FA_VARARGS		(0x08)	/* call using t0, ac, ctx */
+#define PL_FA_CREF		(0x10)	/* Internal: has clause-reference */
 
 extern			PL_extension PL_extensions[]; /* not Win32! */
 PL_EXPORT(void)		PL_register_extensions(const PL_extension *e);
@@ -354,6 +355,7 @@ PL_EXPORT(char *)	PL_quote(int chr, const char *data);
 			/* Verify types */
 PL_EXPORT(int)		PL_term_type(term_t t);
 PL_EXPORT(int)		PL_is_variable(term_t t);
+PL_EXPORT(int)		PL_is_ground(term_t t);
 PL_EXPORT(int)		PL_is_atom(term_t t);
 PL_EXPORT(int)		PL_is_integer(term_t t);
 PL_EXPORT(int)		PL_is_string(term_t t);
@@ -417,6 +419,61 @@ PL_EXPORT(int)		PL_unify_list(term_t l, term_t h, term_t t);
 PL_EXPORT(int)		PL_unify_nil(term_t l);
 PL_EXPORT(int)		PL_unify_arg(int index, term_t t, term_t a);
 PL_EXPORT(int)		PL_unify_term(term_t t, ...);
+
+
+		 /*******************************
+		 *     ATTRIBUTED VARIABLES	*
+		 *******************************/
+
+PL_EXPORT(int)		PL_is_attvar(term_t t);
+PL_EXPORT(int)		PL_get_attr(term_t v, term_t a);
+
+
+		 /*******************************
+		 *	       BLOBS		*
+		 *******************************/
+
+#define PL_BLOB_MAGIC_B	0x75293a00	/* Magic to validate a blob-type */
+#define PL_BLOB_VERSION 1		/* Current version */
+#define PL_BLOB_MAGIC	(PL_BLOB_MAGIC_B|PL_BLOB_VERSION)
+
+#define PL_BLOB_UNIQUE	0x01		/* Blob content is unique */
+#define PL_BLOB_TEXT	0x02		/* blob contains text */
+#define PL_BLOB_NOCOPY	0x04		/* do not copy the data */
+
+typedef struct PL_blob_t
+{ unsigned long		magic;		/* PL_BLOB_MAGIC */
+  unsigned long		flags;		/* PL_BLOB_* */
+  char *		name;		/* name of the type */
+  int			(*release)(atom_t a);
+  int			(*compare)(atom_t a, atom_t b);
+#ifdef SIO_MAGIC
+  int			(*write)(IOSTREAM *s, atom_t a, int flags);
+#else
+  int			(*write)(void *s, atom_t a, int flags);
+#endif
+  void			(*acquire)(atom_t a);
+					/* private */
+  void *		reserved[12];	/* for future extension */
+  int			registered;	/* Already registered? */
+  int			rank;		/* Rank for ordering atoms */
+  struct PL_blob_t *    next;		/* next in registered type-chain */
+  atom_t		atom_name;	/* Name as atom */
+} PL_blob_t;
+
+PL_EXPORT(int)		PL_is_blob(term_t t, PL_blob_t **type);
+PL_EXPORT(int)		PL_unify_blob(term_t t, void *blob, unsigned int len,
+				      PL_blob_t *type);
+PL_EXPORT(int)		PL_put_blob(term_t t, void *blob, unsigned int len,
+				    PL_blob_t *type);
+PL_EXPORT(int)		PL_get_blob(term_t t, void **blob, unsigned int *len,
+				    PL_blob_t **type);
+
+PL_EXPORT(void*)	PL_blob_data(atom_t a,
+				     unsigned int *len,
+				     struct PL_blob_t **type);
+PL_EXPORT(int)		PL_unregister_blob_type(PL_blob_t *type);
+
 
 		 /*******************************
 		 *	  FILENAME SUPPORT	*
@@ -543,6 +600,16 @@ PL_EXPORT(IOSTREAM *)*_PL_streams(void);	/* base of streams */
 #define PL_WRT_PORTRAY		0x08	/* call portray */
 #define PL_WRT_CHARESCAPES	0x10	/* Output ISO escape sequences */
 #define PL_WRT_BACKQUOTED_STRING 0x20	/* Write strings as `...` */
+					/* Write attributed variables */
+#define PL_WRT_ATTVAR_IGNORE	0x040	/* Default: just write the var */
+#define PL_WRT_ATTVAR_DOTS	0x080	/* Write as Var{...} */
+#define PL_WRT_ATTVAR_WRITE	0x100	/* Write as Var{Attributes} */
+#define PL_WRT_ATTVAR_PORTRAY	0x200	/* Use Module:portray_attrs/2 */
+#define PL_WRT_ATTVAR_MASK \
+	(PL_WRT_ATTVAR_IGNORE | \
+	 PL_WRT_ATTVAR_DOTS | \
+	 PL_WRT_ATTVAR_WRITE | \
+	 PL_WRT_ATTVAR_PORTRAY)
 
 PL_EXPORT(int) PL_write_term(IOSTREAM *s,
 			      term_t term,

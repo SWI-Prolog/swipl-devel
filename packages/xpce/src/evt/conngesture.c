@@ -145,6 +145,7 @@ terminateConnectGesture(ConnectGesture g, EventObj ev)
 
   assign(g, from_handle, DEFAULT);
   assign(g, to_handle,   DEFAULT);
+  assign(g, device,      NIL);
 
   succeed;
 }

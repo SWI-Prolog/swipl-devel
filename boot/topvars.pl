@@ -41,7 +41,7 @@
 
 expand_query(Query, Expanded, Bindings, ExpandedBindings) :-
 	expand_vars(Bindings, Query, Expanded),
-	free_variables(Expanded, Free),
+	term_variables(Expanded, Free),
 	delete_bound_vars(Bindings, Free, ExpandedBindings),
 	(   verbose,
 	    Query \=@= Expanded
@@ -51,7 +51,7 @@ expand_query(Query, Expanded, Bindings, ExpandedBindings) :-
 
 
 print_query(Query, Bindings) :-
-	checklist(call, Bindings),
+	maplist(call, Bindings),
 	writeq(Query), write('.'), nl,
 	fail.
 print_query(_, _).

@@ -97,7 +97,6 @@ reexports the content of these files.
 		pce_boot(pce_pl),
 		pce_boot(pce_principal),
 		pce_boot(pce_error),
-		pce_boot(pce_operator),
 		pce_boot(pce_global),
 		pce_boot(pce_expansion),
 		pce_boot(pce_realise),

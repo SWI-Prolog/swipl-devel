@@ -177,15 +177,21 @@ different types when passed to a vararg function.
 #endif
 
 #ifdef __GNUC__
-#if !__STRICT_ANSI__			/* gcc -ansi */
-#ifndef O_INLINE
-#define O_INLINE 1
-#endif
-#define O_CONST_FUNCTION 1
-#endif
-#define Promote(type) int
+# if !__STRICT_ANSI__			/* gcc -ansi */
+#  ifndef O_INLINE
+#   define O_INLINE 1
+#  endif
+#  define O_CONST_FUNCTION 1
+# endif
+# define Promote(type) int
 #else
-#define Promote(type) type
+# define Promote(type) type
+#endif
+
+#ifdef HAVE_HIDDEN_ATTRIBUTE
+#define SO_LOCAL __attribute__((visibility("hidden")))
+#else
+#define SO_LOCAL
 #endif
 
 #if !O_INLINE
@@ -243,12 +249,14 @@ cpdata(to, from, type, n)
 		 * OS-IDENTIFIERS (STRICT_ANSI) *
 		 *******************************/
 
-#if defined(__unix__) && !defined(unix)
-#define unix 1
+#ifndef __unix__
+#if defined(_AIX) || defined(__APPLE__) || defined(__unix) || defined(__BEOS__) || defined(__NetBSD__)
+#define __unix__ 1
+#endif
 #endif
 
-#if defined(__sun__) && !defined(sun)
-#define sun 1
+#if defined(__unix__) && !defined(unix)
+#define unix 1
 #endif
 
 		 /*******************************

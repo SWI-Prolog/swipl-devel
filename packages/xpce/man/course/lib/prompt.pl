@@ -38,7 +38,7 @@ NOTE:	Package is under development.  Needs support for more types;
 
 prompt(Title, Attributes) :-
 	send(@prompter, clear),
-	checklist(append_prompter(@prompter), Attributes),
+	maplist(append_prompter(@prompter), Attributes),
 	send(@prompter, append,
 	     button(ok, message(@prompter, return, ok)), next_row),
 	send(@prompter, append,
@@ -48,7 +48,7 @@ prompt(Title, Attributes) :-
 	repeat,
 	    get(@prompter, confirm_centered, ?(@event, position, @display), OK),
 	    (   OK == ok
-	    ->  checklist(read_prompter(@prompter), Attributes), !,
+	    ->  maplist(read_prompter(@prompter), Attributes), !,
 	        send(@prompter, show, @off)
 	    ;   !,
 		send(@prompter, show, @off),

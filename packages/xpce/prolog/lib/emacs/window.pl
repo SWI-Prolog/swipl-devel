@@ -738,7 +738,11 @@ typed(E, Id:'event|event_id') :->
 	"Handle typing via mode"::
 	send(E, start_idle_timer),
 	get(E, mode, Mode),
-	ignore(send(Mode, typed, Id, E)). % don't delegate to frame
+	(   send(Mode, typed, Id, E),
+	    object(Mode)		% may disappear
+	->  send(Mode, highlight_matching_bracket)
+	;   true
+	).
 
 
 caret(E, Caret:[int]) :->
@@ -776,7 +780,16 @@ event(E, Ev:event) :->
 
 paste(E) :->
 	send(E, start_idle_timer),
-	send_super(E, paste).
+	send_super(E, paste),
+	send(E, highlight_matching_bracket).
+
+
+highlight_matching_bracket(E) :->
+	get(E, mode, Mode),
+	(   send(Mode, highlight_matching_bracket)
+	->  true
+	;   true			% avoid delegation
+	).
 
 
 mode(E, ModeName:mode_name) :->
@@ -1026,6 +1039,11 @@ new_caret_position(M, Caret:int) :->
 	;   send(Fragments, for_some,
 		 message(M, in_fragment, @arg1))
 	).
+
+
+highlight_matching_bracket(_M, _At:[int]) :->
+	"Virtual.  Statically highlight bracket matching caret"::
+	true.
 
 
 in_fragment(M, Fragment:fragment) :->

@@ -108,6 +108,7 @@ standardStreamIndexFromStream(IOSTREAM *s)
 		 *******************************/
 
 static void aliasStream(IOSTREAM *s, atom_t alias);
+static void unaliasStream(IOSTREAM *s, atom_t name);
 
 static Table streamAliases;		/* alias --> stream */
 static Table streamContext;		/* stream --> extra data */
@@ -155,7 +156,12 @@ void
 aliasStream(IOSTREAM *s, atom_t name)
 { GET_LD
   stream_context *ctx;
+  Symbol symb;
   alias *a;
+
+					/* ensure name is free (error?) */
+  if ( (symb = lookupHTable(streamAliases, (void *)name)) )
+    unaliasStream(symb->value, name);
 
   ctx = getStreamContext(s);
   addHTable(streamAliases, (void *)name, s);
@@ -1045,7 +1051,6 @@ pl_set_stream(term_t stream, term_t attr)
 
       if ( aname == ATOM_alias )	/* alias(name) */
       { atom_t alias;
-	Symbol symb;
 	int i;
   
 	if ( !PL_get_atom_ex(a, &alias) )
@@ -1059,8 +1064,6 @@ pl_set_stream(term_t stream, term_t attr)
 	}
   
 	LOCK();
-	if ( (symb = lookupHTable(streamAliases, (void *)alias)) )
-	  unaliasStream(symb->value, alias);
 	aliasStream(s, alias);
 	UNLOCK();
 	goto ok;
@@ -1376,6 +1379,53 @@ pl_wait_for_input(term_t Streams, term_t Available,
 		/********************************
 		*      PROLOG CONNECTION        *
 		*********************************/
+
+#define MAX_PENDING SIO_BUFSIZE		/* 4096 */
+
+PRED_IMPL("read_pending_input", 3, read_pending_input, 0)
+{ PRED_LD
+  IOSTREAM *s;
+
+  if ( getInputStream(A1, &s) )
+  { char buf[MAX_PENDING];
+    int n, i;
+    Word gstore, lp, tp;
+
+    if ( Sferror(s) )
+      return streamStatus(s);
+
+    n = Sread_pending(s, buf, sizeof(buf), 0);
+    if ( n < 0 )			/* should not happen */
+      return streamStatus(s);
+
+    gstore = allocGlobal(n*3);
+    lp = valTermRef(A2);
+    deRef(lp);
+    tp = valTermRef(A3);
+    deRef(tp);
+
+    if ( !isVar(*lp) )
+      return PL_error(NULL, 0, NULL, ERR_INSTANTIATION, A2);
+    *lp = consPtr(gstore, TAG_COMPOUND|STG_GLOBAL);
+
+    for(i=0; i<n; )
+    { *gstore++ = FUNCTOR_dot2;
+      *gstore++ = consInt(buf[i]&0xff);
+      if ( ++i < n )
+      { *gstore = consPtr(&gstore[1], TAG_COMPOUND|STG_GLOBAL);
+        gstore++;
+      }
+    }
+
+    setVar(*gstore);
+    unify_ptrs(gstore, tp PASS_LD);
+    
+    return streamStatus(s);
+  }
+
+  fail;
+}
+
 
 int
 PL_get_char(term_t c, int *p, int eof)
@@ -2771,6 +2821,9 @@ pl_at_end_of_stream1(term_t stream)
     }
     
     releaseStream(s);
+    if ( rval && Sferror(s) )		/* due to error */
+      return streamStatus(s);
+
     return rval;
   }
 
@@ -2837,6 +2890,131 @@ pl_peek_char2(term_t stream, term_t chr)
 word
 pl_peek_char1(term_t chr)
 { return peek(0, chr, CHAR_MODE);
+}
+
+
+		 /*******************************
+		 *	    INTERACTION		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+set_prolog_OI(+In, +Out, +Error)
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+typedef struct wrappedIO
+{ void		   *wrapped_handle;	/* original handle */
+  IOFUNCTIONS      *wrapped_functions;	/* original functions */
+  IOSTREAM	   *wrapped_stream;	/* stream we wrapped */
+  IOFUNCTIONS       functions;		/* new function block */
+} wrappedIO;
+
+
+int
+Sread_user(void *handle, char *buf, int size)
+{ GET_LD
+  wrappedIO *wio = handle;
+
+  if ( LD->prompt.next && ttymode != TTY_RAW )
+  { Sfputs(PrologPrompt(), Suser_output);
+    
+    LD->prompt.next = FALSE;
+  }
+
+  Sflush(Suser_output);
+  size = (*wio->wrapped_functions->read)(wio->wrapped_handle, buf, size);
+  if ( size == 0 )			/* end-of-file */
+  { Sclearerr(Suser_input);
+    LD->prompt.next = TRUE;
+  } else if ( size > 0 && buf[size-1] == '\n' )
+    LD->prompt.next = TRUE;
+
+  return size;
+}
+
+
+static int
+closeWrappedIO(void *handle)
+{ wrappedIO *wio = handle;
+  int rval;
+
+  if ( wio->wrapped_functions->close )
+    rval = (*wio->wrapped_functions->close)(wio->wrapped_handle);
+  else
+    rval = 0;
+  
+  wio->wrapped_stream->functions = wio->wrapped_functions;
+  wio->wrapped_stream->handle = wio->wrapped_handle;
+  PL_free(wio);
+
+  return rval;
+}
+
+
+static void
+wrapIO(IOSTREAM *s,
+       int (*read)(void *, char *, int),
+       int (*write)(void *, char *, int))
+{ wrappedIO *wio = PL_malloc(sizeof(*wio));
+
+  wio->wrapped_functions = s->functions;
+  wio->wrapped_handle =	s->handle;
+  wio->wrapped_stream = s;
+
+  wio->functions = *s->functions;
+  if ( read  ) wio->functions.read  = read;
+  if ( write ) wio->functions.write = write;
+  wio->functions.close = closeWrappedIO;
+
+  s->functions = &wio->functions;
+  s->handle = wio;
+}
+
+
+static
+PRED_IMPL("set_prolog_IO", 3, set_prolog_IO, 0)
+{ PRED_LD
+  IOSTREAM *in = NULL, *out = NULL, *error = NULL;
+  int rval = FALSE;
+
+  if ( !PL_get_stream_handle(A1, &in) ||
+       !PL_get_stream_handle(A2, &out) )
+    goto out;
+
+  if ( PL_compare(A2, A3) == 0 )	/* == */
+  { error = Snew(out->handle, out->flags, out->functions);
+    error->flags &= ~SIO_ABUF;		/* disable buffering */
+    error->flags |= SIO_NBUF;
+  } else
+  { if ( !PL_get_stream_handle(A3, &error) )
+      goto out;
+  }
+
+  LOCK();
+  out->flags &= ~SIO_ABUF;		/* output: line buffered */
+  out->flags |= SIO_LBUF;
+
+  LD->IO.streams[0] = in;		/* user_input */
+  LD->IO.streams[1] = out;		/* user_output */
+  LD->IO.streams[2] = error;		/* user_error */
+  LD->IO.streams[3] = in;		/* current_input */
+  LD->IO.streams[4] = out;		/* current_output */
+
+  wrapIO(in, Sread_user, NULL);
+  LD->prompt.next = TRUE;
+
+  UNLOCK();
+  rval = TRUE;
+
+out:
+  if ( in )
+    releaseStream(in);
+  if ( out )
+    releaseStream(out);
+  if ( error && error != out )
+    releaseStream(error);
+
+  return rval;
 }
 
 
@@ -3095,7 +3273,11 @@ pl_delete_file(term_t name)
   if ( !PL_get_file_name(name, &n, 0) )
     fail;
   
-  return RemoveFile(n);
+  if ( RemoveFile(n) )
+    succeed;
+
+  return PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
+		    ATOM_delete, ATOM_file, name);
 }
 
 
@@ -3148,7 +3330,14 @@ pl_rename_file(term_t old, term_t new)
 
   if ( PL_get_file_name(old, &o, 0) &&
        PL_get_file_name(new, &n, 0) )
-  { if ( RenameFile(o, n) )
+  { if ( SameFile(o, n) )
+    { if ( fileerrors )
+	return PL_error("rename_file", 2, "same file", ERR_PERMISSION,
+			ATOM_rename, ATOM_file, old);
+      fail;
+    }
+
+    if ( RenameFile(o, n) )
       succeed;
 
     if ( fileerrors )
@@ -3452,3 +3641,12 @@ pl_copy_stream_data2(term_t in, term_t out)
 { return pl_copy_stream_data3(in, out, 0);
 }
 
+
+		 /*******************************
+		 *      PUBLISH PREDICATES	*
+		 *******************************/
+
+BeginPredDefs(file)
+  PRED_DEF("set_prolog_IO", 3, set_prolog_IO, 0)
+  PRED_DEF("read_pending_input", 3, read_pending_input, 0)
+EndPredDefs

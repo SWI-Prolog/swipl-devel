@@ -29,7 +29,7 @@ test :-
 testdir(Dir) :-
 	atom_concat(Dir, '/*', Pattern),
 	expand_file_name(Pattern, Files),
-	checklist(dotest, Files).
+	maplist(dotest, Files).
 
 dotest(File) :-
 	file_name_extension(_, Ext, File),

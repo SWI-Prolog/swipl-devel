@@ -14,8 +14,8 @@
 	  [ rdf_triples/2,		% +Parsed, -Tripples
 	    rdf_triples/3,		% +Parsed, -Tripples, +Tail
 	    rdf_reset_ids/0,		% Reset gensym id's
-	    rdf_start_file/1,		% +Options
-	    rdf_end_file/0,
+	    rdf_start_file/2,		% +Options, -Cleanup
+	    rdf_end_file/1,		% +Cleanup
 	    anon_prefix/1		% Prefix for anonynmous resources
 	  ]).
 :- use_module(library(gensym)).
@@ -40,22 +40,13 @@ Where `Subject' is
 
 And `Predicate' is
 
-	# rdf:Predicate
-	RDF reserved predicate of this name
-
-	# Namespace:Predicate
-	Predicate inherited from another namespace
-
-	# Predicate
-	Unqualified predicate
+	# Atom
+	The predicate is always a resource
 
 And `Object' is
 
 	# Atom
 	URI of Object resource
-
-	# rdf:URI
-	URI section in the rdf namespace (i.e. rdf:'Bag').
 
 	# literal(Value)
 	Literal value (Either a single atom or parsed XML data)
@@ -92,8 +83,7 @@ rdf_triples(Term) -->
 triples(container(Type, Id, Elements), Id) --> !,
 	{ container_id(Type, Id)
 	},
-	[ rdf(Id, rdf:type, rdf:Type)
-	],
+	rdf(Id, rdf:type, rdf:Type),
 	container(Elements, 1, Id).
 triples(description(Type, About, BagId, Props), Subject) -->
 	{ var(About),
@@ -144,19 +134,16 @@ container([H0|T0], N, Id) -->
 	container(T0, NN, Id).
 
 li(li(Nid, V), _, Id) --> !,
-	[ rdf(Id, rdf:Nid, V)
-	].
+	rdf(Id, rdf:Nid, V).
 li(V, N, Id) -->
 	triples(V, VId), !,
 	{ atom_concat('_', N, Nid)
 	},
-	[ rdf(Id, rdf:Nid, VId)
-	].
+	rdf(Id, rdf:Nid, VId).
 li(V, N, Id) -->
 	{ atom_concat('_', N, Nid)
 	},
-	[ rdf(Id, rdf:Nid, V)
-	].
+	rdf(Id, rdf:Nid, V).
 	
 container_id(_, Id) :-
 	nonvar(Id), !.
@@ -202,8 +189,7 @@ description_id(node(NodeID), Id) :-
 properties(PlRDF, BagId, Subject) -->
 	{ nonvar(BagId)
 	}, !,
-	[ rdf(BagId, rdf:type, rdf:'Bag')
-	],
+	rdf(BagId, rdf:type, rdf:'Bag'),
 	properties(PlRDF, 1, Statements, [], Subject),
 	fill_bag(Statements, 1, BagId).
 properties(PlRDF, _BagId, Subject) -->
@@ -216,8 +202,7 @@ fill_bag([H|T], N, BagId) -->
 	{ NN is N + 1,
 	  atom_concat('_', N, ElemId)
 	},
-	[ rdf(BagId, rdf:ElemId, H)
-	],
+	rdf(BagId, rdf:ElemId, H),
 	fill_bag(T, NN, BagId).
 
 
@@ -269,19 +254,17 @@ property(id(Id, Pred0 = Object), N, NN, BagH, BagT, Subject) -->
 %	statement using the given Id.
 
 statement(Subject, Pred, Object, Id, BagH, BagT) -->
-	[ rdf(Subject, Pred, Object)
-	],
+	rdf(Subject, Pred, Object),
 	{   BagH = [Id|BagT]
 	->  statement_id(Id)
 	;   BagT = BagH
 	},
 	(   { nonvar(Id)
 	    }
-	->  [ rdf(Id, rdf:type, rdf:'Statement'),
-	      rdf(Id, rdf:subject, Subject),
-	      rdf(Id, rdf:predicate, Pred),
-	      rdf(Id, rdf:object, Object)
-	    ]
+	->  rdf(Id, rdf:type, rdf:'Statement'),
+	    rdf(Id, rdf:subject, Subject),
+	    rdf(Id, rdf:predicate, Pred),
+	    rdf(Id, rdf:object, Object)
 	;   []
 	).
 
@@ -305,17 +288,41 @@ li_pred(Pred, Pred, N, N).
 %	Handle the elements of a collection and return the identifier
 %	for the whole collection in Id.
 
-collection([], rdf:nil) -->
-	[].
+collection([], Nil) -->
+	{ global_ref(rdf:nil, Nil)
+	}.
 collection([H|T], Id) -->
 	triples(H, HId),
 	{ make_id('__List', Id)
 	},
-	[ rdf(Id, rdf:type, rdf:'List'),
-	  rdf(Id, rdf:first, HId),
-	  rdf(Id, rdf:rest, TId)
-	],
+	rdf(Id, rdf:type, rdf:'List'),
+	rdf(Id, rdf:first, HId),
+	rdf(Id, rdf:rest, TId),
 	collection(T, TId).
+
+
+rdf(S0, P0, O0) -->
+	{ global_ref(S0, S),
+	  global_ref(P0, P),
+	  global_obj(O0, O)
+	},
+	[ rdf(S, P, O) ].
+
+
+global_ref(URI, URI) :-
+	var(URI), !.
+global_ref(rdf:Local, Global) :-
+	rdf_name_space(NS), !,
+	atom_concat(NS, Local, Global).
+global_ref(NS:Local, Global) :- !,
+	atom_concat(NS, Local, Global).
+global_ref(URI, URI).
+
+global_obj(V, V) :-
+	var(V), !.
+global_obj(literal(X), literal(X)) :- !.
+global_obj(Local, Global) :-
+	global_ref(Local, Global).
 
 
 		 /*******************************
@@ -329,7 +336,6 @@ collection([H|T], Id) -->
 
 reset_shared_descriptions :-
 	retractall(shared_description(_,_,_)),
-	retractall(share_blank_nodes(_)),
 	retractall(shared_nodes(_)).
 
 shared_description(Term, Subject) :-
@@ -351,21 +357,42 @@ assert_shared_description(Term, Subject) :-
 		 *	      START/END		*
 		 *******************************/
 
-rdf_start_file(Options) :-
+rdf_start_file(Options, Cleanup) :-
 	rdf_reset_node_ids,		% play safe
 	reset_shared_descriptions,
-	(   memberchk(blank_nodes(share), Options)
-	->  assert(share_blank_nodes(true))
-	;   true
-	).
+	set_bnode_sharing(Options, C1),
+	set_anon_prefix(Options, C2),
+	add_cleanup(C1, C2, Cleanup).
 
-rdf_end_file :-
+rdf_end_file(Cleanup) :-
 	rdf_reset_node_ids,
 	(   shared_nodes(N)
 	->  print_message(informational, rdf(shared_blank_nodes(N)))
 	;   true
 	),
-	reset_shared_descriptions.
+	reset_shared_descriptions,
+	Cleanup.
+
+set_bnode_sharing(Options, erase(Ref)) :-
+	option(blank_nodes(Share), Options, noshare),
+	(   Share == share
+	->  assert(share_blank_nodes(true), Ref), !
+	;   Share == noshare
+	->  fail			% next clause
+	;   throw(error(domain_error(share, Share), _))
+	).
+set_bnode_sharing(_, true).
+
+set_anon_prefix(Options, erase(Ref)) :-
+	option(base_uri(BaseURI), Options, []),
+	BaseURI \== [], !,
+	concat_atom(['__', BaseURI, '#'], AnonBase),
+	asserta(anon_prefix(AnonBase), Ref).
+set_anon_prefix(_, true).
+
+add_cleanup(true, X, X) :- !.
+add_cleanup(X, true, X) :- !.
+add_cleanup(X, Y, (X, Y)).
 
 
 		 /*******************************

@@ -205,6 +205,9 @@ PL_EXPORT_DATA(IOSTREAM)    S__iob[3];		/* Libs standard streams */
 #define SIO_GETSIZE	(1)		/* get size of underlying object */
 #define SIO_GETFILENO	(2)		/* get underlying file (if any) */
 
+/* Sread_pending() */
+#define SIO_RP_BLOCK 0x1		/* wait for new input */
+
 #if IOSTREAM_REPLACES_STDIO
 
 #undef FILE
@@ -287,6 +290,8 @@ PL_EXPORT(long)		Stell(IOSTREAM *s);
 PL_EXPORT(int)		Sclose(IOSTREAM *s);
 PL_EXPORT(char *)	Sfgets(char *buf, int n, IOSTREAM *s);
 PL_EXPORT(char *)	Sgets(char *buf);
+PL_EXPORT(int)		Sread_pending(IOSTREAM *s,
+				      char *buf, int limit, int flags);
 PL_EXPORT(int)		Sfputs(const char *q, IOSTREAM *s);
 PL_EXPORT(int)		Sputs(const char *q);
 PL_EXPORT(int)		Sfprintf(IOSTREAM *s, const char *fm, ...);

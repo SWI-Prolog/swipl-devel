@@ -24,6 +24,17 @@ sub printTeX
   s/\\htmloutput{([^}]+)}/\\htmloutput@\1@/g;
 
   s/{#!}/{\\Sexe}/g;
+  s/{#>}/{\\Scgt}/g;
+  s/{#>=}/{\\Scge}/g;
+  s/{#<}/{\\Sclt}/g;
+  s/{#=<}/{\\Scle}/g;
+  s/{#=}/{\\Sceq}/g;
+  s/{#\\=}/{\\Scne}/g;
+  s/{#<=>}/{\\Sequiv}/g;
+  s/{#<=}/{\\Slimpl}/g;
+  s/{#=>}/{\\Srimpl}/g;
+  s/{#=\\=}/{\\Scine}/g;
+  s/{#=:=}/{\\Scieq}/g;
   s/{!}/{\\Scut}/g;
   s/{,}/{\\Scomma}/g;
   s/{->}/{\\Sifthen}/g;

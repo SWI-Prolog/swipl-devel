@@ -48,7 +48,12 @@ guitracer :-
 	visible(+cut_call),
 	print_message(informational, gui_tracer(true)).
 guitracer :-
-	load_files([library('trace/trace')], [silent(true)]),
+	load_files([library('trace/trace')],
+		   [ silent(true),
+		     if(not_loaded)
+		   ]),
+	set_prolog_flag(gui_tracer, true),
+	visible(+cut_call),
 	print_message(informational, gui_tracer(true)).
 
 noguitracer :-

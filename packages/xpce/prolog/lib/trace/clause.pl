@@ -99,6 +99,7 @@ clause_info(ClauseRef, S, TermPos, NameOffset) :-
 	->  Clause = Head
 	;   Clause = (Head :- Body)
 	),
+	start_emacs,
 	S = @dynamic_source_buffer,
 	clause_name(ClauseRef, ClauseName),
 	send(S, attribute, comment,
@@ -154,8 +155,9 @@ unify_args(I, Arity, T1, T2) :-
 
 alternate_syntax(prolog,    true,
 			    true).
-alternate_syntax(pce_class, pce_expansion:push_compile_operators,
-			    pce_expansion:pop_compile_operators).
+alternate_syntax(pce_class, pce_expansion:push_compile_operators(SM),
+			    pce_expansion:pop_compile_operators) :-
+	'$set_source_module'(SM, SM).
 alternate_syntax(system,    style_check(+dollar),
 			    style_check(-dollar)).
 

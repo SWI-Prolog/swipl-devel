@@ -279,18 +279,17 @@ ws_load_image_file(Image image)
 }
 
 
-Image
-ws_std_xpm_image(Name name, Image *global, char **data)
+status
+ws_create_image_from_xpm_data(Image image, char **data, DisplayObj d)
 {
 #ifdef HAVE_LIBXPM
   extern XImage *attachXpmImageImage(Image image, XpmImage *xpm);
 
-  Image image = globalObject(name, ClassImage, name, ZERO, ZERO, EAV);
   XpmImage img;
   XpmInfo info;
   XImage *i;
 
-  assign(image, display, CurrentDisplay(NIL));
+  assign(image, display, d);
   XpmCreateXpmImageFromData(data, &img, &info);
   if ( (i=attachXpmImageImage(image, &img)) )
   { assign(image, depth, toInt(i->depth));
@@ -299,11 +298,8 @@ ws_std_xpm_image(Name name, Image *global, char **data)
     setSize(image->size, toInt(i->width), toInt(i->height));
   }
   XpmFreeXpmImage(&img);
-  assign(image, access, NAME_read);
-  if ( global )
-    *global = image;
 
-  return image;
+  succeed;
 #else
   assert(0);
   fail;

@@ -22,6 +22,9 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+					/* see also console.c */
+#define WM_RLC_MENU	 WM_USER+15	/* Insert a menu */
+
 #define IDM_USER 100			/* reserve below 100 */
 #define MAXLABELLEN 256			/* max length of menu-item label */
 
@@ -34,3 +37,4 @@
 
 const char *lookupMenuId(UINT id);
 void 	    rlc_add_menu_bar(HWND win);
+void	    rlc_menu_action(rlc_console c, struct menu_data *data);

@@ -240,7 +240,12 @@ Used in combination with \cmdlineoption{-c} or \cmdlineoption{-b} to
 determine output file for compilation.
 
     \cmdlineoptionitem{-O}{}
-Optimised compilation. See current_prolog_flag/2.
+Optimised compilation. See current_prolog_flag/2 flag
+\const{optimise} for details.
+
+    \cmdlineoptionitem{-nodebug}{}
+Disable debugging.  See the current_prolog_flag/2 flag
+\const{generate_debug_info} for details.
 
     \cmdlineoptionitem{-s}{file}
 Use \arg{file} as a script-file.  The script file is loaded after
@@ -1010,7 +1015,7 @@ be changed.  Default is {\tt true}, except for the runtime version.
 This argument is given as option-list to write_term/2 for printing goals
 by the debugger.  Modified by the `w', `p' and `<N> d' commands of the
 debugger.  Default is \exam{[quoted(true), portray(true),
-max_depth(10)]}.
+max_depth(10), attributes(portray)]}.
 
     \prologflagitem{debugger_show_context}{bool}{rw}
 If \const{true}, show the context module while printing a stack-frame in
@@ -1074,6 +1079,19 @@ If true (default), the garbage collector is active.  If false, neither
 garbage-collection, nor stack-shifts will take place, even not on
 explicit request.  May be changed.
 
+    \prologflagitem{generate_debug_info}{bool}{rw}
+If \const{true} (default) generate code that can be debugged using
+trace/0, spy/1, etc. Can be set to \const{false} using the
+\cmdlineoption{-nodebug}. The predicate load_files/2 restores the value
+of this flag after loading a file, causing modifications to be local
+to a source-file.  Many of the libraries have
+\verb$:- set_prolog_flag(generate_debug_info, false)$ to hide their
+details from a normal trace.%
+	\footnote{In the current implementation this only causes a flag
+		  to be set on the predicate that causes children to be
+		  hidden from the debugger. The name anticipates on
+		  anticipated changes to the compiler.}
+
     \prologflagitem{gui}{bool}{r}
 Set to \const{true} if XPCE is around and can be used for graphics.
 
@@ -1116,6 +1134,16 @@ SWI-Prolog behaviour.  Currently it has the following effect:
     \item abolish/[1,2] raises a permission error when accessing static
           predicates.
 \end{itemize}
+
+    \prologflagitem{large_files}{bool}{r}
+If true, SWI-Prolog has been compiled with \jargon{large file support}
+(LFS) and is capable to access files larger than 2GB on 32-bit hardware.
+Large file-support is default on installations built using
+\program{configure} that support it and may be switched off using
+the configure option \const{--disable-largefile}.%
+    \bug{As SWI-Prolog integers are 32-bits, SWI-Prolog cannot represent
+	 offsets in large files.  Therefore, calls involving file sizes
+	 or offsets do not work properly.}
 
     \prologflagitem{max_arity}{unbounded}{r}
 ISO prolog-flag describing there is no maximum arity to compound terms.
@@ -1163,16 +1191,6 @@ flag is implementation dependent.
 If true, \exam{open(pipe(command), mode, Stream)}, etc.\ are supported.
 Can be changed to disable the use of pipes in applications testing this
 feature.  Not recommended.
-
-    \prologflagitem{large_files}{bool}{r}
-If true, SWI-Prolog has been compiled with \jargon{large file support}
-(LFS) and is capable to access files larger than 2GB on 32-bit hardware.
-Large file-support is default on installations built using
-\program{configure} that support it and may be switched off using
-the configure option \const{--disable-largefile}.%
-    \bug{As SWI-Prolog integers are 32-bits, SWI-Prolog cannot represent
-	 offsets in large files.  Therefore, calls involving file sizes
-	 or offsets do not work properly.}
 
     \prologflagitem{readline}{bool}{r}
 If true, SWI-Prolog is linked with the readline library.  This is done
@@ -1226,7 +1244,8 @@ This may be used to hide bindings in complex queries from the toplevel.
 
     \prologflagitem{toplevel_print_options}{term}{rw}
 This argument is given as option-list to write_term/2 for printing results
-of queries.  Default is \exam{[quoted(true), portray(true), max_depth(10)]}.
+of queries. Default is \exam{[quoted(true), portray(true),
+max_depth(10), attributes(portray)]}.
 
     \prologflagitem{toplevel_var_size}{int}{rw}
 Maximum size counted in literals of a term returned as a binding for a
@@ -1244,9 +1263,10 @@ be set.  See also the \cmdlineoption{+/-tty} command-line option.
 
     \prologflagitem{unix}{bool}{r}
 \index{unix}%
-If {\tt true}, the operating system is some version of Unix.  Defined
-if the C-compiler used to compile this version of SWI-Prolog either
-defines \verb$__unix__$ or \const{unix}.
+If \const{true}, the operating system is some version of Unix.
+Defined if the C-compiler used to compile this version of SWI-Prolog
+either defines \verb$__unix__$ or \const{unix}.  On other systems this
+flag is not available.
 
     \prologflagitem{unknown}{fail,warning,error}{rw}
 Determines the behaviour if an undefined procedure is encountered.  If
@@ -1280,8 +1300,14 @@ easier for implementing version-conditional statements.
 
     \prologflagitem{windows}{bool}{r}
 \index{windows}%
-If {\tt true}, the operating system is an implementation of Microsoft
-Windows (3.1, 95/98/ME, NT/2000/XP, etc.).
+If \const{true}, the operating system is an implementation of
+Microsoft Windows (3.1, 95/98/ME, NT/2000/XP, etc.).  This flag
+is only available on MS-Windows based versions.
+
+    \prologflagitem{write_attributes}{atom}{rw}
+Defines how write/1 an friends write attributed variables.  The option
+values are described with the \const{attributes} option of
+write_term/3.  Default is \const{ignore}.
 
     \prologflagitem{write_help_with_overstrike}{bool}{r}
 Internal flag used by help/1 when writing to a terminal. If \const{true}
@@ -1356,6 +1382,9 @@ Hook in help/0, help/1 and apropos/1 to extend the help-system.
 Defines a new resource (not really a hook, but similar) (SWI).    
     \item [exception/3]
 Old attempt to a generic hook mechanism.  Handles undefined predicates (SWI).
+    \item [attr_unify_hook/2]
+Unification hook for attributed variables. Can be defined in any
+module.  See \secref{attvar} for details.
 \end{itemlist}
 
 
@@ -1490,12 +1519,22 @@ commented out.
 
 SWI-Prolog offers ISO compatible extensions to the Edinburgh syntax.
 
-\subsubsection{Character Escape Syntax} \label{sec:charescapes}
+\subsubsection{Processor Character Set}		\label{sec:processorcharset}
+
+\index{iso latin 1}\index{character set}%
+The processor character set specifies the class of each character used
+for parsing Prolog source text.  The character classes are compatible to
+the ISO-latin-1 character set.  The style_check/1 flag \const{charset}
+can be used to provide warnings on the use of unquoted variables and
+atoms holding non-ASCII characters.
+
+
+\subsubsection{Character Escape Syntax} 	\label{sec:charescapes}
 
 Within quoted atoms (using single quotes: \exam{'<atom>'} special
-characters are represented using escape-sequences.  An escape sequence
-is lead in by the backslash (\chr{\}) character. The list of
-escape sequences is compatible with the ISO standard, but contains one
+characters are represented using escape-sequences. An escape sequence is
+lead in by the backslash (\chr{\}) character. The list of escape
+sequences is compatible with the ISO standard, but contains one
 extension and the interpretation of numerically specified characters is
 slightly more flexible to improve compatibility.
 
@@ -1568,6 +1607,21 @@ and 36. ISO defines binary, octal and hexadecimal numbers using
 a valid expression. Such numbers are always unsigned.
 
 
+\section{Infinite trees (cyclic terms)}
+
+\index{infinite trees}\index{cyclic terms}\index{terms,cyclic}%
+SWI-Prolog has limited support for infinite trees, also known as cyclic
+terms. Full support requires special code in all builtin predicates that
+require recursive exploration of a term. The current version supports
+cycles terms in the pure Prolog kernel including the garbage collector
+and in the following predicates: \predref{=}{2}, \predref{==}{2},
+\predref{\==}{2}, \predref{\=}{2}, \predref{=@=}{2}, \predref{\=@=}{2},
+\predref{@<}{2}, \predref{@=<}{2}, \predref{@>}{2}, \predref{@>=}{2},
+compare/3, \predref{=..}{2}, copy_term/2, duplicate_term/2, write/1,
+dif/2, when/2, term_variables/2, numbervars/[3,4], hash_term/2,
+recorda/3, recordz/3, findall/3, bagof/3, setof/3, throw/1.
+
+
 \section{System limits}				\label{sec:limits}
 
 \subsection{Limits on memory areas}		\label{sec:memlimit}
@@ -1627,7 +1681,12 @@ Option & Default & Area name & Description \\
                        stack is determined entirely by the depth in
                        which terms are nested in the clauses that
                        constitute the program. Overflow is most likely
-                       when using long strings in a clause. \\
+                       when using long strings in a clause.
+
+		       In addition, this stack is used by some builtin
+		       predicates to handle cyclic terms.  Its default
+		       size limit is proportional to the global stack 
+		       limit such that it will never overflow. \\
 \hline
 \end{tabular}
 \end{center}

@@ -50,7 +50,7 @@ Pentium 1.5Ghz).
 SWI-Prolog has started support for web-documents with the development of
 a small and fast SGML/XML parser, followed by an RDF parser (early
 2000). With the \file{semweb} library we provide more high level support
-for manipulating semantic web documents.  The semantic web is a likely
+for manipulating semantic web documents.  The semantic web is the likely
 point of orientation for knowledge representation in the future, making
 a library designed in its spirit promising.
 
@@ -105,26 +105,45 @@ Currently the following indexing is provided.
 	  \const{subPropertyOf} predicates indexing happens on the most
 	  abstract predicate. This makes calls to rdf_has/4 very
 	  efficient.
-    \item Literal \arg{Objects} are indexed case-insensitive to make
-          case-insensitive queries fully indexed.  See rdf/3.
+    \item String literal \arg{Objects} are indexed case-insensitive to make
+          case-insensitive queries fully indexed. See rdf/3.
 \end{itemize}
 
 \subsection{Query the RDF database}
 
 \begin{description}
     \predicate{rdf}{3}{?Subject, ?Predicate, ?Object}
-Elementary query for triples.  \arg{Subject} and \arg{Predicate} are
+Elementary query for triples. \arg{Subject} and \arg{Predicate} are
 atoms representing the fully qualified URL of the resource. \arg{Object}
-is either an atom representing a resource or \term{literal}{Text} if the
-object is a literal value.%
-	\footnote{The current implementation has no provisions for
-		  XML-Schema typed literals.}
-If a value of the form \infixterm{:}{NameSpaceID}{LocalName} is provided
-it is expanded to a ground atom using expand_goal/2. This implies you
-can use this construct in compiled code without paying a preformance
-penalty.  See also \secref{rdfns}. 
-For querying purposes, \arg{Object} can be of the form
+is either an atom representing a resource or \term{literal}{Value} if
+the object is a literal value. If a value of the form
+\infixterm{:}{NameSpaceID}{LocalName} is provided it is expanded to a
+ground atom using expand_goal/2. This implies you can use this construct
+in compiled code without paying a preformance penalty. See also
+\secref{rdfns}.  Literal values take one of the following forms:
+
+\begin{description}
+    \termitem{Atom}{}
+If the value is a simple atom it is the textual representation of
+a string literal without explicit type or language (\const{xml:lang})
+qualifier.
+
+    \termitem{lang}{LangID, Atom}
+\arg{Atom} represents the text of a string literal qualified with
+the given language.
+
+    \termitem{type}{TypeID, Value}
+Used for attributes qualified using the \const{rdf:dataType}
+\arg{TypeID}. The \arg{Value} is either the textual representation
+or a natural Prolog representation.  See the option
+\term{convert_typed_literal}{:Convertor} of the parser.  The storage
+layer provides efficient handling of atoms, integers and floats.  All
+other data is represented as a Prolog record.
+\end{description}
+
+For string querying purposes, \arg{Object} can be of the form
 \term{literal}{+Query, -Value}, where \arg{Query} is one of
+
     \begin{description}
 	\termitem{exact}{+Text}
     	    Perform exact, but case-insensitive match.  This query is
@@ -140,6 +159,10 @@ For querying purposes, \arg{Object} can be of the form
 	    Match any literal that starts with \arg{Text}.  This call
 	    is intended for \jargon{completion}.  The query is not
 	    indexed on \arg{Object}.
+	\termitem{like}{+Pattern}
+	    Match any literal that matches \arg{Pattern} case
+	    insensitively, where the `*' character in \arg{Pattern}
+	    matches zero or more characters.
     \end{description}
 
 Backtracking never returns duplicate triples. Duplicates can be
@@ -211,6 +234,64 @@ duplicates} as one gets using \term{rdf}{Subject, _, _}.
 \end{description}
 
 
+\subsection{Predicate properties}		\label{sec:predproperty}
+
+The predicates below form an experimental interface to provide more
+reasoning inside the kernel of the rdb_db engine. Note that
+\const{symetric}, \const{inverse_of} and \const{transitive} are not yet
+supported by the rest of the engine.
+
+\begin{description}
+    \predicate{rdf_set_predicate}{2}{+Predicate, +Property}
+Define a property of the predicate.  Defined properties are listed
+with rdf_predicate_property/2.
+
+    \predicate{rdf_predicate_property}{2}{+Predicate, -Property}
+Query properties of a defined predicate.  Currently defined properties
+are given below.
+
+    \begin{description}
+	\termitem{symmetric}{Bool}
+True if the predicate is defined to be symetric.  I.e.\ 
+\mbox{\{A\} P \{B\}} implies \mbox{\{B\} P \{A\}}.
+
+	\termitem{inverse_of}{Inverse}
+True if this predicate is the inverse of \arg{Inverse}.
+
+	\termitem{transitive}{Bool}
+True if this predicate is transitive.
+
+	\termitem{triples}{Triples}
+Unify \arg{Triples} with the number of existing triples using
+this predicate as second argument.  Reporting the number of 
+triples is intended to support query optimization.
+
+	\termitem{rdf_subject_branch_factor}{-Float}
+Unify \arg{Float} with the average number of triples associated with
+each unique value for the subject-side of this relation.  If there
+are no triples the value 0.0 is returned.  This value is cached with
+the predicate and recomputed only after substantial changes to the
+triple set associated to this relation.  This property is indented
+for path optimalisation when solving conjunctions of rdf/3 goals.
+
+	\termitem{rdf_object_branch_factor}{-Float}
+Unify \arg{Float} with the average number of triples associated with
+each unique value for the object-side of this relation.  In addition
+to the comments with the subject_branch_factor property, uniqueness
+of the object value is computed from the hash key rather than the
+actual values.
+
+	\termitem{rdfs_subject_branch_factor}{-Float}
+Same as \functor{rdf_subject_branch_factor}{1}, but also considering
+triples of `subPropertyOf' this relation.  See also rdf_has/3.
+
+	\termitem{rdfs_object_branch_factor}{-Float}
+Same as \functor{rdf_object_branch_factor}{1}, but also considering
+triples of `subPropertyOf' this relation. See also rdf_has/3.
+    \end{description}
+\end{description}
+
+
 \subsection{Modifying the database}		\label{sec:rdfmodify}
 
 As depicted in \figref{modules}, there are two levels of modification.
@@ -224,8 +305,9 @@ predicates from this section directly.
 Assert a new triple into the database. This is equivalent to
 rdf_assert/4 using \arg{SourceRef} \const{user}. \arg{Subject} and
 \arg{Predicate} are resources. \arg{Object} is either a resource or a
-term \term{literal}{Value}. All arguments are subject to name-space
-expansion (see \secref{rdfns}).
+term \term{literal}{Value}. See rdf/3 for an explanation of \arg{Value}
+for typed and language qualified literals. All arguments are subject to
+name-space expansion (see \secref{rdfns}).
 
     \predicate{rdf_assert}{4}{+Subject, +Predicate, +Object, +SourceRef}
 As rdf_assert/3, adding \arg{SourceRef} to specify the orgin of the
@@ -287,17 +369,40 @@ described below.  Caching is activated by creating a directory
 the \fileext{rdf} files.  Cached RDF files are loaded at approx.\
 25 times the speed of RDF-XML files.
 
+    \predicate{rdf_load}{2}{+File, +Options}
+As rdf_load/1, providing additional options.  The options are handed
+to the RDF parser as implemented by process_rdf/3.
+
     \predicate{rdf_unload}{1}{+Spec}
 Remove all triples loaded from \arg{Spec}. In the current implementation
 \arg{Spec} must refer to a file.
 
     \predicate{rdf_save}{1}{+File}
-Save all known triples to the given \arg{File}.
+Save all known triples to the given \arg{File}.  Same as
+\term{rdf_save}{File, \[\]}.
 
-    \predicate{rdf_save}{2}{+File, +FileRef}
+    \predicate{rdf_save}{2}{+File, +Options}
+Save with options.  Provided options are:
+
+    \begin{description}
+        \termitem{db}{+FileRef}
 Save all triples whose file-part of their \arg{SourceRef} matches
 \arg{FileRef} to the given \arg{File}.   Saving arbitrary selections
 is possible using predicates from \secref{partsave}.
+
+        \termitem{anon}{+Bool}
+if \term{anon}{false} is provided anonymous resources are only saved
+if the resource appears in the object field of another triple that is
+saved.
+
+	\termitem{convert_typed_literal}{:Converter}
+If present, raw literal values are first passed to \arg{Converter} to
+apply the reverse of the \const{convert_typed_literal} option of the
+RDF parser.  The \arg{Converter} is called with the same arguments
+as in the RDF parser, but now with the last argument instantiated
+and the first two unbound.   A proper convertor that can be used for
+both loading and saving must be a logical predicate.
+    \end{description}
 
     \predicate{rdf_source}{1}{?File}
 Test or enumerate the files loaded using rdf_load/1.
@@ -318,11 +423,18 @@ to be saved or exchange RDF descriptions over an open network link. The
 predicates in this section provide for this.
 
 \begin{description}
-    \predicate{rdf_save_header}{2}{+Stream, ?FileRef}
+    \predicate{rdf_save_header}{2}{+Stream, +Options}
 Save an RDF header, with the XML header, \const{DOCTYPE},
 \const{ENTITY} and opening the \const{rdf:RDF} element with appropriate
 namespace declarations.  It uses the primitives from \secref{rdfns} to
-generate the required namespaces and desired short-name.
+generate the required namespaces and desired short-name.  \arg{Options}
+is one of:
+
+    \begin{description}
+	\termitem{db}{+FileRef}
+    Only search for namespaces used in triples labeled with
+    \arg{FileRef}.
+    \end{description}
 
     \predicate{rdf_save_footer}{1}{+Stream}
 Close the work opened with rdf_save_header/2.
@@ -341,7 +453,7 @@ designed a binary format that is more compact, avoids the complications
 of the RDF parser and avoids repetitive lookup of (URL) identifiers.
 Especially the speed improvement of about 25 times is worth-while when
 loading large databases.  These predicates are used for caching by
-rdf_load/1 under certain conditions.
+rdf_load/[1,2] under certain conditions.
 
 \begin{description}
     \predicate{rdf_save_db}{1}{+File}
@@ -380,6 +492,19 @@ digest incrementally on rdf_load/[1,2], rdf_load_db/1, rdf_assert/[3,4]
 and rdf_retractall/[3,4].  Checking whether the digest has changed since
 the last rdf_load/[1,2] call provides a practical means for checking
 whether the file needs to be saved.
+
+    \predicate{rdf_atom_md5}{3}{+Text, +Times, -MD5}
+Computes the MD5 hash from \arg{Text}, which is an atom, string or
+list of character codes.  \arg{Times} is an integer $\geq 1$.  When
+$> 0$, the MD5 algorithm is repeated \arg{Times} times on the
+generated hash.  This can be used for password encryption algorithms
+to make generate-and-test loops slow.
+
+This predicate bears little relation to RDF handling. It is provided
+because the RDF library already contains the MD5 algorithm and semantic
+web services may involve security and consistency checking. This
+predicate provides a platform independant alternative to the
+\pllib{crypt} library provided with the \texttt{clib} package.
 \end{description}
 
 
@@ -432,6 +557,12 @@ Runtime translation between \arg{Alias} and \arg{Local} and a
 predicate is often used to turn a global URL into a more readable
 term.
 
+    \predicate{rdf_global_object}{2}{?Object, ?NameExpandedObject}
+As rdf_global_id/2, but also expands the type field if the object
+is of the form \term{literal}{\term{type}{Type, Value}}.  This predicate
+is used for goal expansion of the object fields in rdf/3 and similar
+goals.
+
     \predicate{rdf_global_term}{2}{+Term0, -Term}
 Expands all \arg{Alias}:\arg{Local} in \arg{Term0} and return the
 result in \arg{Term}.  Use infrequently for runtime expansion of
@@ -459,14 +590,21 @@ Generate a unique blank node reference. The returned atom is guaranteed
 not to occur in the current database in any field of any triple and
 starts with '__bnode'.
 
+    \predicate{rdf_is_bnode}{1}{+Id}
+Succeeds if \arg{Id} is a blank node identifier (also called
+\jargon{anonymous resource}).  In the current implementation this
+implies it is an atom starting with a double underscore.
+
     \predicate{rdf_source_location}{2}{+Subject, -SourceRef}
 Return the source-location as \arg{File}:\arg{Line} of the first triple
 that is about \arg{Subject}.
 
     \predicate{rdf_generation}{1}{-Generation}
-Returns the \arg{Generation} of the database.  Each modification to the
+Returns the \arg{Generation} of the database. Each modification to the
 database increments the generation. It can be used to check the validity
-of cached results deduced from the database.
+of cached results deduced from the database. Modifications changing
+multiple triples increment \arg{Generation} with the number of triples
+modified, providing a heuristic for `how dirty' cached results may be.
 
     \predicate{rdf_statistics}{1}{?Statistics}
 Report statistics collected by the \file{rdf_db} module.  Defined
@@ -504,11 +642,20 @@ All matching is performed case-insensitive.  Defines methods are:
 	    \arg{Search} appears as a whole-word in \arg{Text}.
 	\termitem{prefix}{}
 	    \arg{Text} start with \arg{Search}.
+	\termitem{like}{}
+	    \arg{Text} matches \arg{Search}, case insensitively, where
+	    the `*' character in \arg{Search} matches zero or more
+	    characters.
     \end{description}
 
     \predicate{rdf_reset_db}{0}{}
 Erase all triples from the database and reset all counts and statistics
 information.
+
+    \predicate{rdf_version}{1}{-Version}
+Unify \arg{Version} with the library version number.  This number is,
+like to the SWI-Prolog version flag, defined as $10,000 \times
+Major + 100 \times Minor + Patch$.
 \end{description}
 
 
@@ -532,10 +679,6 @@ the required information to realise logical updates in C.
 
     \item [\const{subPropertyOf} of \const{subPropertyOf}] is not
 supported.
-
-    \item [Literals] The current system doesn't support typed literals
-or the literal \const{xml:lang} tag.  It is likely that we will support
-arbitrary Prolog terms for literal values in the future.
 
     \item [Equivalence]
 Similar to \const{subPropertyOf}, it is likely to be profitable to
@@ -625,16 +768,24 @@ literal objects are hashed case-insensitive to speed up the commonly
 used case-insensitive search.
 
 \begin{description}
-    \predicate{rdfs_label}{2}{?Resource, ?Label}
+    \predicate{rdfs_label}{3}{?Resource, ?Language, ?Label}
 Extract the label from \arg{Resource} or generate all resources with
 the given \arg{Label}. The label is either associated using
 a sub-property of \const{rdfs:label} or it is extracted from the URL
-using rdf_split_url/3.
+using rdf_split_url/3.  \arg{Language} is unified to the value of
+the \const{xml:lang} attribute of the label or a variable if the
+label has no language specified.
 
-    \predicate{rdfs_ns_label}{2}{?Resource, ?Label}
+    \predicate{rdfs_label}{2}{?Resource, ?Label}
+Defined as \term{rdfs_label}{Resource, _, Label}.
+
+    \predicate{rdfs_ns_label}{3}{?Resource, ?Language, ?Label}
 Similar to rdfs_label/2, but prefixes the result using the declared
 namespace alias (see \secref{rdfns}) to facilitate user-friendly labels
 in applications using multiple namespaces that may lead to confusion.
+
+    \predicate{rdfs_ns_label}{2}{?Resource, ?Label}
+Defined as \term{rdfs_ns_label}{Resource, _, Label}.
 
     \predicate{rdfs_find}{5}{+String, +Description, +Properties, +Method, -Subject}
 \index{search}%

@@ -38,7 +38,7 @@ inserted  in  the  intermediate  code  file.   Used  to print diagnostic
 messages and start the Prolog defined compiler for  the  remaining  boot
 modules.
 
-If you want  to  debug  this  module,  put  a  '$:-'  trace.   directive
+If you want  to  debug  this  module,  put  a  '$:-'(trace).   directive
 somewhere.   The  tracer will work properly under boot compilation as it
 will use the C defined write predicate  to  print  goals  and  does  not
 attempt to call the Prolog defined trace interceptor.
@@ -109,8 +109,7 @@ noprofile(Spec) :-
 	(volatile)/1,
 	(thread_local)/1,
 	(noprofile)/1,
-	$hide/2,
-	$show_childs/2.
+	$hide/2.
 
 
 		/********************************
@@ -123,12 +122,6 @@ noprofile(Spec) :-
 $hide(Name, Arity) :-
 	$set_predicate_attribute(Name/Arity, trace, 0).
 
-%	$show_childs(+Name, +Arity)
-%	Normally system predicates hide their childs frames if these are
-%	system predicates as well.  $show_childs suppresses this.
-
-$show_childs(Name, Arity) :-  
-        $set_predicate_attribute(Name/Arity, hide_childs, 0).
 
 		/********************************
 		*       CALLING, CONTROL        *
@@ -138,7 +131,8 @@ $show_childs(Name, Arity) :-
 	      catch/3,
 	      once/1,
 	      ignore/1,
-	      call_cleanup/3)).
+	      call_cleanup/3,
+	      (^)/2)).
 
 :- module_transparent
 	';'/2,
@@ -260,28 +254,6 @@ call_cleanup(Goal, Cleanup) :-
 call_cleanup(_Goal, _Catcher, _Cleanup) :-
 	$call_cleanup.
 
-:-
-	$hide((';'), 2),
-	$hide(('|'), 2),
-	$hide((','), 2),
-	$hide((->), 2),
-	$show_childs(^, 2),
-	$show_childs(call, 1),
-	$show_childs(call, 2),
-	$show_childs(call, 3),
-	$show_childs(call, 4),
-	$show_childs(call, 5),
-	$show_childs(call, 6),
-	$show_childs(not, 1),
-	$show_childs(\+, 1),
-	$show_childs(once, 1),
-	$show_childs(ignore, 1), 	
-	$show_childs((','), 2), 	
-	$show_childs((';'), 2), 	
-	$show_childs(('|'), 2),
-	$show_childs(block, 3),
-	$show_childs((->), 2).
-
 
 		/********************************
 		*            MODULES            *
@@ -351,10 +323,16 @@ $calleventhook(Term) :-
 
 $set_debugger_print_options(write) :- !,
 	set_prolog_flag(debugger_print_options,
-			[quoted(true)]).
+			[ quoted(true),
+			  attributes(write)
+			]).
 $set_debugger_print_options(print) :- !,
 	set_prolog_flag(debugger_print_options,
-			[quoted(true), portray(true), max_depth(10)]).
+			[ quoted(true),
+			  portray(true),
+			  max_depth(10),
+			  attributes(portray)
+			]).
 $set_debugger_print_options(Depth) :-
 	current_prolog_flag(debugger_print_options, Options0),
 	(   $select(max_depth(_), Options0, Options)
@@ -757,6 +735,8 @@ $open_source(File, In, Goal) :-
 
 :- dynamic
 	$load_input/2.
+:- volatile
+	$load_input/2.
 
 $open_source_call(File, In, Goal, Status) :-
 	flag($compilation_level, Level, Level+1),
@@ -782,6 +762,25 @@ $substitute_atom(From, To, In, Out) :-
 	concat_atom([Before, To, After], Out).
 
 
+		 /*******************************
+		 *	    DERIVED FILES	*
+		 *******************************/
+
+:- dynamic
+	$derived_source_db/3.		% Loaded, DerivedFrom, Time
+
+'$register_derived_source'(Loaded, DerivedFrom) :-
+	retractall('$derived_source_db'(Loaded, _, _)),
+	time_file(DerivedFrom, Time),
+	assert('$derived_source_db'(Loaded, DerivedFrom, Time)).
+
+%	Auto-importing dynamic predicates is not very elegant and
+%	leads to problems with qsave_program/[1,2]
+
+$derived_source(Loaded, DerivedFrom, Time) :-
+	$derived_source_db(Loaded, DerivedFrom, Time).
+
+
 		/********************************
 		*       LOAD PREDICATES         *
 		*********************************/
@@ -803,7 +802,7 @@ $substitute_atom(From, To, In, Out) :-
 %	module.
 
 ensure_loaded(Files) :-
-	load_files(Files, [if(changed)]).
+	load_files(Files, [if(not_loaded)]).
 
 %	use_module(+File|+ListOfFiles)
 %	
@@ -813,7 +812,7 @@ ensure_loaded(Files) :-
 %	so.
 
 use_module(Files) :-
-	load_files(Files, [ if(changed),
+	load_files(Files, [ if(not_loaded),
 			    must_be_module(true)
 			  ]).
 
@@ -823,7 +822,7 @@ use_module(Files) :-
 %	the specified predicates rather than all public predicates.
 
 use_module(Files, Import) :-
-	load_files(Files, [ if(changed),
+	load_files(Files, [ if(not_loaded),
 			    must_be_module(true),
 			    imports(Import)
 			  ]).
@@ -903,6 +902,10 @@ $noload(true, _) :- !,
 	fail.
 $noload(not_loaded, FullFile) :-
 	source_file(FullFile), !.
+$noload(changed, Derived) :-
+	'$derived_source'(_FullFile, Derived, LoadTime),
+	time_file(Derived, Modified),
+        Modified @=< LoadTime, !.
 $noload(changed, FullFile) :-
 	$time_source_file(FullFile, LoadTime),
         time_file(FullFile, Modified),
@@ -942,7 +945,7 @@ $spec_extension(Spec, Ext) :-
 
 $load_file(File, Module, Options) :-
 	\+ memberchk(stream(_), Options),
-	user:prolog_load_file(Module:File, Options).
+	user:prolog_load_file(Module:File, Options), !.
 $load_file(File, Module, Options) :-
 	statistics(heapused, OldHeap),
 	statistics(cputime, OldTime),
@@ -963,6 +966,7 @@ $load_file(File, Module, Options) :-
 	flag($load_silent, _, Silent),
 	$get_option(if(If), Options, true),
 	$get_option(autoload(Autoload), Options, false),
+	$get_option(derived_from(DerivedFrom), Options, -),
 
 	(   Autoload == false
 	->  flag($autoloading, AutoLevel, AutoLevel)
@@ -1009,6 +1013,11 @@ $load_file(File, Module, Options) :-
 
 	    (	Level == 0
 	    ->	garbage_collect_clauses
+	    ;	true
+	    ),
+
+	    (	DerivedFrom \== -
+	    ->	'$register_derived_source'(Absolute, DerivedFrom)
 	    ;	true
 	    ),
 
@@ -1061,10 +1070,12 @@ $consult_file_2(Absolute, Module, Import, IsModule, What, LM) :-
 	),
 	$assert_load_context_module(Id, OldModule),
 
+	current_prolog_flag(generate_debug_info, DebugInfo),
 	$style_check(OldStyle, OldStyle),	% Save style parameters
 	$open_source(Absolute, In,
 		     $load_file(In, Id, Import, IsModule, LM)),
 	$style_check(_, OldStyle),		% Restore old style
+	set_prolog_flag(generate_debug_info, DebugInfo),
 	$set_source_module(_, OldModule).	% Restore old module
 
 $load_id(stream(Id, _), Id) :- !.
@@ -1132,8 +1143,9 @@ $load_module(Module, Public, Import, In, File) :-
 	$set_source_module(OldModule, OldModule),
 	source_location(_File, Line),
 	$declare_module(Module, File, Line),
-	$export_list(Module, Public),
+	$export_list(Public, Module, File, Ops),
 	$ifcompiling($qlf_start_module(Module)),
+	$export_ops(Ops, Module, File),
 	$consult_stream(In, File),
 	Module:$check_export,
 	$ifcompiling($qlf_end_part),
@@ -1148,7 +1160,8 @@ $import_list(Module, Source, [Name/Arity|Rest]) :- !,
 	$import_list(Module, Source, Rest).
 $import_list(Context, Module, all) :- !,
 	export_list(Module, Exports),
-	$import_all(Exports, Context, Module).
+	$import_all(Exports, Context, Module),
+	$import_ops(Context, Module).
 
 
 $import_all([], _, _).
@@ -1158,14 +1171,53 @@ $import_all([Head|Rest], Context, Source) :-
 	$import_all(Rest, Context, Source).
 
 
-$export_list(_, []) :- !.
-$export_list(Module, [Name/Arity|Rest]) :-
+%	$import_ops(+Target, +Source)
+%	
+%	Import the operators export from Source into the module table of
+%	Target.
+
+$import_ops(To, From) :-
+	(   '$c_current_predicate'(_, From:$exported_op(_, _, _)),
+	    From:$exported_op(Pri, Assoc, Name),
+	    op(Pri, Assoc, To:Name),
+	    fail
+	;   true
+	).
+
+
+%	$export_list(+Declarations, +Module, +File, -Ops)
+%	
+%	Handle the export list of the module declaration for Module
+%	associated to File.
+
+$export_list([H|T], Module, File, Ops) :-
+	(   H = op(_,_,_)
+	->  Ops = [H|RestOps]
+	;   catch($export1(H, Module, File), E, print_message(error, E))
+	->  RestOps = Ops
+	;   print_message(error, error(type_error(export_declaration, H), _)),
+	    RestOps = Ops
+	),
+	$export_list(T, Module, File, RestOps).
+$export_list([], _, _, []).
+
+
+$export_ops([H|T], Module, File) :-
+	(   catch($export1(H, Module, File), E, print_message(error, E))
+	->  true
+	;   print_message(error, error(type_error(export_declaration, H), _))
+	),
+	$export_ops(T, Module, File).
+$export_ops([], _, _).
+
+
+$export1(Name/Arity, Module, _File) :-
 	functor(Term, Name, Arity), !,
-	catch(export(Module:Term), E, print_message(error, E)),
-	$export_list(Module, Rest).
-$export_list(Module, [Term|Rest]) :-
-	print_message(error, error(type_error(predicate_indicator, Term), _)),
-	$export_list(Module, Rest).
+	export(Module:Term).
+$export1(op(Pri, Assoc, Name), Module, File) :-
+	op(Pri, Assoc, Module:Name),
+	$store_clause($exported_op(Pri, Assoc, Name), File).
+
 
 %	$consult_stream(+Stream, +File)
 %
@@ -1398,6 +1450,12 @@ $do_expand_body(ignore(A), ignore(EA)) :- !,
 $do_expand_body(catch(A, E, B), catch(EA, E, EB)) :- !,
         $do_expand_body(A, EA),
         $do_expand_body(B, EB).
+$do_expand_body(call_cleanup(A, B), call_cleanup(EA, EB)) :- !,
+        $do_expand_body(A, EA),
+	$do_expand_body(B, EB).
+$do_expand_body(call_cleanup(A, R, B), call_cleanup(EA, R, EB)) :- !,
+        $do_expand_body(A, EA),
+	$do_expand_body(B, EB).
 $do_expand_body(forall(A, B), forall(EA, EB)) :- !,
         $do_expand_body(A, EA),
         $do_expand_body(B, EB).
@@ -1409,6 +1467,11 @@ $do_expand_body(setof(V, G, B), setof(V, EG, B)) :- !,
         $do_expand_body(G, EG).
 $do_expand_body(V^G, V^EG) :- !,
         $do_expand_body(G, EG).
+$do_expand_body(M:G, M:EG) :-
+	atom(M),
+	$set_source_module(Old, M),
+	call_cleanup($do_expand_body(G, EG),
+		     $set_source_module(_, Old)), !.
 $do_expand_body(A, B) :-
         $goal_expansion_module(M),
         M:goal_expansion(A, B0),
@@ -1473,7 +1536,7 @@ $translate_rule((LP-->List), H) :-
         ;   List = [X]
         ->  $t_head(LP, [X|S], S, H)
         ;   $append(List, SR, S),
-            $extend([S, SR], LP, H)
+            $extend(LP, S, SR, H)
         ).
 $translate_rule((LP-->RP), (H:-B)):-
 	$t_head(LP, S, SR, H),
@@ -1482,9 +1545,9 @@ $translate_rule((LP-->RP), (H:-B)):-
 
 $t_head((LP, List), S, SR, H) :-
 	$append(List, SR, List2), !,
-	$extend([S, List2], LP, H).
+	$extend(LP, S, List2, H).
 $t_head(LP, S, SR, H) :-
-	$extend([S, SR], LP, H).
+	$extend(LP, S, SR, H).
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1564,25 +1627,16 @@ $t_body((T;R), S, SR, (Tt;Rt)) :- !,
 $t_body((T|R), S, SR, (Tt;Rt)) :- !,
 	$t_body(T, S, S1, T1), $t_fill(S, SR, S1, T1, Tt),
 	$t_body(R, S, S2, R1), $t_fill(S, SR, S2, R1, Rt).
-$t_body((C->T;E), S, SR, (Ct->Tt;Et)) :- !,
-	$t_body(C, S, S1, Ct),
-	$t_body(T, S1, S2, T1), $t_fill(S, SR, S2, T1, Tt),
-	$t_body(E, S1, S3, E1), $t_fill(S, SR, S3, E1, Et).
-$t_body((C*->T;E), S, SR, (Ct*->Tt;Et)) :- !,
-	$t_body(C, S, S1, Ct),
-	$t_body(T, S1, S2, T1), $t_fill(S, SR, S2, T1, Tt),
-	$t_body(E, S1, S3, E1), $t_fill(S, SR, S3, E1, Et).
-$t_body((C->T|E), S, SR, (Ct->Tt;Et)) :- !,
-	$t_body(C, S, S1, Ct),
-	$t_body(T, S1, S2, T1), $t_fill(S, SR, S2, T1, Tt),
-	$t_body(E, S1, S3, E1), $t_fill(S, SR, S3, E1, Et).
 $t_body((C->T), S, SR, (Ct->Tt)) :- !,
+	$t_body(C, S, SR1, Ct),
+	$t_body(T, SR1, SR, Tt).
+$t_body((C*->T), S, SR, (Ct*->Tt)) :- !,
 	$t_body(C, S, SR1, Ct),
 	$t_body(T, SR1, SR, Tt).
 $t_body((\+ C), S, S, (\+ Ct)) :- !,
 	$t_body(C, S, _, Ct).
 $t_body(T, S, SR, Tt) :-
-	$extend([S, SR], T, Tt).
+	$extend(T, S, SR, Tt).
 
 
 $t_fill(S, SR, S1, T, (T, SR=S)) :-
@@ -1590,12 +1644,43 @@ $t_fill(S, SR, S1, T, (T, SR=S)) :-
 $t_fill(_S, SR, SR, T, T).
 
 
-$extend(More, M:OldT, M:NewT) :- !,
-	$extend(More, OldT, NewT).
-$extend(More, OldT, NewT) :-
-	OldT =.. OldL,
-	$append(OldL, More, NewL),
-	NewT =.. NewL.
+%	$extend(+Head, +Extra1, +Extra2, -NewHead)
+%	
+%	Extend Head with two more arguments (on behalf DCG compilation).
+%	The solution below is one option. Using   =..  and append is the
+%	alternative. In the current version (5.3.2), the =.. is actually
+%	slightly faster, but it creates less garbage.
+
+:- dynamic  $extend_cache/4.
+:- volatile $extend_cache/4.
+
+$extend(M:OldT, A1, A2, M:NewT) :- !,
+	$extend(OldT, A1, A2, NewT).
+$extend(OldT, A1, A2, NewT) :-
+	$extend_cache(OldT, A1, A2, NewT), !.
+$extend(OldT, A1, A2, NewT) :-
+	functor(OldT, Name, Arity),
+	functor(CopT, Name, Arity),
+	NewArity is Arity+2,
+	functor(NewT, Name, NewArity),
+	$copy_args(1, Arity, CopT, NewT),
+	A1Pos is Arity+1,
+	A2Pos is Arity+2,
+	arg(A1Pos, NewT, A1C),
+	arg(A2Pos, NewT, A2C),
+	assert($extend_cache(CopT, A1C, A2C, NewT)),
+	OldT = CopT,
+	A1C = A1,
+	A2C = A2.
+
+$copy_args(I, Arity, Old, New) :-
+	I =< Arity, !,
+	arg(I, Old, A),
+	arg(I, New, A),
+	I2 is I + 1,
+	$copy_args(I2, Arity, Old, New).
+$copy_args(_, _, _, _).
+
 
 'C'([X|S], X, S).
 
@@ -1606,14 +1691,10 @@ $extend(More, OldT, NewT) :-
 phrase(RuleSet, Input) :-
 	phrase(RuleSet, Input, []).
 phrase(RuleSet, Input, Rest) :-
-	$strip_module(RuleSet, _, Head),
-	(   Head == []
-	->  Rest = Input
-	;   nonvar(Head),
-	    Head = [_|_]
-	->  $append(Head, Rest, Input)
-	;   call(RuleSet, Input, Rest)
-	).
+	$strip_module(RuleSet, M, Plain),
+	$t_body(Plain, S0, S, Body),
+	Input = S0, Rest = S,
+	M:Body.
 
 
 		/********************************

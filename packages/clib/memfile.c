@@ -157,6 +157,11 @@ open_memory_file(term_t handle, term_t mode, term_t stream)
     if ( m->atom )
       return pl_error("open_memory_file", 3, NULL, ERR_PERMISSION,
 		      handle, "write", "memory_file");
+    if ( m->data )
+    { Sfree(m->data);
+      m->data = NULL;
+      m->size = 0;
+    }
   } else if ( streq(s, "read") )
     x = "r";
   else

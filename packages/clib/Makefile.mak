@@ -12,7 +12,7 @@ PLHOME=..\..
 !include $(PLHOME)\src\rules.mk
 PKGDLL=socket
 
-SOCKOBJ=	socket.obj error.obj
+SOCKOBJ=	socket.obj nonblockio.obj error.obj
 CGIOBJ=		error.obj form.obj cgi.obj
 MEMOBJ=		error.obj memfile.obj
 MIMEOBJ=	error.obj mime.obj
@@ -39,6 +39,24 @@ install:	idll
 install:	idll ilib
 !ENDIF
 
+################################################################
+# Testing
+################################################################
+
+check:		check-socket
+
+torture:	torture-socket
+
+check-socket::
+		"$(PLCON)" -q -f testsocket.pl -F none -g tcp_test,halt -t 'halt(1)'
+
+torture-socket::
+		"$(PLCON)" -q -f stresssocket.pl -F none -g test,halt -t 'halt(1)'
+
+################################################################
+# Installation
+################################################################
+
 idll::
 		copy socket.dll "$(BINDIR)"
 		copy cgi.dll "$(BINDIR)"
@@ -55,6 +73,7 @@ idll::
 
 ilib::
 		copy socket.pl "$(PLBASE)\library"
+		copy prolog_server.pl "$(PLBASE)\library"
 		copy streampool.pl "$(PLBASE)\library"
 		copy cgi.pl "$(PLBASE)\library"
 		copy memfile.pl "$(PLBASE)\library"

@@ -4,7 +4,7 @@
 <HEAD>
 <TITLE>SWI-Prolog C-library</TITLE>
 </HEAD>
-<BODY BGCOLOR="white">
+<BODY BGCOLOR="white"> 
 <BLOCKQUOTE>
 <BLOCKQUOTE>
 <BLOCKQUOTE>
@@ -624,7 +624,7 @@ main :-
         format('&lt;BODY&gt;~n', []),
         format('&lt;P&gt;', []),
         print_args(Arguments),
-        format('&lt;BODY&gt;~n&lt;/HTML&gt;~n', []).
+        format('&lt;/BODY&gt;~n&lt;/HTML&gt;~n', []).
 
 print_args([]).
 print_args([A0|T]) :-
@@ -653,7 +653,7 @@ is a Prolog wrapper around the rfc2045 library for deconding MIME
 messages.
 
 <P>The general name `mime' is used for this library as it is anticipated 
-to add MIME-creation functionality to this message.
+to add MIME-creation functionality to this library.
 
 <P>Currently the mime library defines one predicate:
 
@@ -975,8 +975,7 @@ and the Prolog library files in <CODE>$PLBASE/library</CODE>, where
 
 <P>
 <DT><A NAME=note-1 HREF="index.html#back-to-note-1">note-1</A><DD>
-<A NAME="idx:kill2:53"></A><A HREF="#kill/2">kill/2</A> should support 
-interrupt-names as well
+kill/2 should support interrupt-names as well
 <DT><A NAME=note-2 HREF="index.html#back-to-note-2">note-2</A><DD>
 More subtle handling of I/O, especially for debugging is required: 
 communicate with the syslog deamon and optionally start a debugging 
@@ -987,6 +986,125 @@ read-commands provide for a timeout.
 <DT><A NAME=note-4 HREF="index.html#back-to-note-4">note-4</A><DD>
 It is unclear to me whether a MIME note can contain a mixture of content 
 and parts, but I believe the answer is `no'.
+</DL>
+
+<H1><A NAME="document-index">Index</A></H1>
+
+<DL>
+
+<P>
+<DT><STRONG>A</STRONG><DD>
+<DT><A HREF="#add_stream_to_pool/2">add_stream_to_pool/2</A><DD>
+<A HREF="#idx:addstreamtopool2:35">4.3</A>
+<DT><A HREF="#alarm/3">alarm/3</A><DD>
+<DT><A HREF="#alarm/4">alarm/4</A><DD>
+<A HREF="#idx:alarm4:48">9</A>
+<DT>at_end_of_stream/1<DD>
+<A HREF="#idx:atendofstream1:25">4</A> <A HREF="#idx:atendofstream1:26">4</A>
+<DT><A HREF="#atom_to_memory_file/2">atom_to_memory_file/2</A><DD>
+<DT>atom_to_term/3<DD>
+<A HREF="#idx:atomtoterm3:41">8</A>
+<DT><STRONG>C</STRONG><DD>
+<DT><A HREF="#call_with_time_limit/2">call_with_time_limit/2</A><DD>
+<DT>catch/3<DD>
+<A HREF="#idx:catch3:47">9</A> <A HREF="#idx:catch3:51">10</A>
+<DT><A HREF="#cgi_get_form/1">cgi_get_form/1</A><DD>
+<DT>close/1<DD>
+<A HREF="#idx:close1:44">8</A>
+<DT><A HREF="#close_stream_pool/0">close_stream_pool/0</A><DD>
+<A HREF="#idx:closestreampool0:34">4.3</A>
+<DT><A HREF="#crypt/2">crypt/2</A><DD>
+<A HREF="#idx:crypt2:39">7</A>
+<DT><A HREF="#current_alarm/4">current_alarm/4</A><DD>
+<DT><STRONG>D</STRONG><DD>
+<DT><A HREF="#delete_stream_from_pool/1">delete_stream_from_pool/1</A><DD>
+<DT><A HREF="#detach_IO/0">detach_IO/0</A><DD>
+<A HREF="#idx:detachIO0:4">2</A>
+<DT><A HREF="#dispatch_stream_pool/1">dispatch_stream_pool/1</A><DD>
+<A HREF="#idx:dispatchstreampool1:37">4.3</A>
+<DT><A HREF="#dup/2">dup/2</A><DD>
+<DT><STRONG>E</STRONG><DD>
+<DT><A HREF="#exec/1">exec/1</A><DD>
+<DT><STRONG>F</STRONG><DD>
+<DT><A HREF="#fork/1">fork/1</A><DD>
+<A HREF="#idx:fork1:2">2</A> <A HREF="#idx:fork1:9">2</A> <A HREF="#idx:fork1:14">4</A> <A HREF="#idx:fork1:29">4.1</A> <A HREF="#idx:fork1:30">4.1</A>
+<DT>fork/2<DD>
+<A HREF="#idx:fork2:1">2</A>
+<DT>format/2<DD>
+<A HREF="#idx:format2:38">5.1</A>
+<DT><A HREF="#free_memory_file/1">free_memory_file/1</A><DD>
+<DT><STRONG>G</STRONG><DD>
+<DT><A HREF="#gethostname/1">gethostname/1</A><DD>
+<DT><STRONG>H</STRONG><DD>
+<DT>halt/[0,1]<DD>
+<A HREF="#idx:halt01:5">2</A>
+<DT><STRONG>K</STRONG><DD>
+<DT><A HREF="#kill/2">kill/2</A><DD>
+<A HREF="#idx:kill2:6">2</A>
+<DT><STRONG>M</STRONG><DD>
+<DT><A HREF="#memory_file_to_atom/2">memory_file_to_atom/2</A><DD>
+<DT><A HREF="#memory_file_to_codes/2">memory_file_to_codes/2</A><DD>
+<DT><A HREF="#mime_parse/2">mime_parse/2</A><DD>
+<DT><STRONG>N</STRONG><DD>
+<DT><A HREF="#new_memory_file/1">new_memory_file/1</A><DD>
+<DT><STRONG>O</STRONG><DD>
+<DT>once/1<DD>
+<A HREF="#idx:once1:46">9</A>
+<DT>on_signal/2<DD>
+<A HREF="#idx:onsignal2:7">2</A>
+<DT>on_signal/3<DD>
+<A HREF="#idx:onsignal3:52">10</A>
+<DT><A HREF="#open_memory_file/3">open_memory_file/3</A><DD>
+<DT>open_socket/3<DD>
+<A HREF="#idx:opensocket3:11">4</A>
+<DT><STRONG>P</STRONG><DD>
+<DT>pce_open/3<DD>
+<A HREF="#idx:pceopen3:43">8</A>
+<DT><A HREF="#pipe/2">pipe/2</A><DD>
+<A HREF="#idx:pipe2:8">2</A> <A HREF="#idx:pipe2:10">2</A>
+<DT><STRONG>R</STRONG><DD>
+<DT>read/1<DD>
+<A HREF="#idx:read1:24">4</A>
+<DT>read_term/3<DD>
+<A HREF="#idx:readterm3:50">9</A>
+<DT><A HREF="#remove_alarm/1">remove_alarm/1</A><DD>
+<A HREF="#idx:removealarm1:45">9</A>
+<DT><A HREF="#rlimit/3">rlimit/3</A><DD>
+<DT><STRONG>S</STRONG><DD>
+<DT><A HREF="#set_time_file/3">set_time_file/3</A><DD>
+<DT>sformat/3<DD>
+<A HREF="#idx:sformat3:40">8</A>
+<DT><A HREF="#size_memory_file/2">size_memory_file/2</A><DD>
+<DT>sleep/1<DD>
+<A HREF="#idx:sleep1:49">9</A>
+<DT>socket<DD>
+<A HREF="#sec:4">4</A>
+<DT><A HREF="#stream_pool_main_loop/0">stream_pool_main_loop/0</A><DD>
+<DT><STRONG>T</STRONG><DD>
+<DT><A HREF="#tcp_accept/3">tcp_accept/3</A><DD>
+<A HREF="#idx:tcpaccept3:13">4</A> <A HREF="#idx:tcpaccept3:16">4</A> <A HREF="#idx:tcpaccept3:20">4</A> <A HREF="#idx:tcpaccept3:22">4</A> <A HREF="#idx:tcpaccept3:28">4.1</A>
+<DT><A HREF="#tcp_bind/2">tcp_bind/2</A><DD>
+<A HREF="#idx:tcpbind2:18">4</A> <A HREF="#idx:tcpbind2:21">4</A>
+<DT><A HREF="#tcp_close_socket/1">tcp_close_socket/1</A><DD>
+<A HREF="#idx:tcpclosesocket1:12">4</A> <A HREF="#idx:tcpclosesocket1:15">4</A> <A HREF="#idx:tcpclosesocket1:17">4</A>
+<DT><A HREF="#tcp_connect/+Socket. +Host:+Port">tcp_connect/+Socket. 
++Host:+Port</A><DD>
+<DT><A HREF="#tcp_fcntl/3">tcp_fcntl/3</A><DD>
+<A HREF="#idx:tcpfcntl3:32">4.2</A>
+<DT><A HREF="#tcp_host_to_address/2">tcp_host_to_address/2</A><DD>
+<DT><A HREF="#tcp_listen/2">tcp_listen/2</A><DD>
+<A HREF="#idx:tcplisten2:19">4</A>
+<DT><A HREF="#tcp_open_socket/3">tcp_open_socket/3</A><DD>
+<A HREF="#idx:tcpopensocket3:23">4</A>
+<DT><A HREF="#tcp_setopt/2">tcp_setopt/2</A><DD>
+<DT><A HREF="#tcp_socket/1">tcp_socket/1</A><DD>
+<DT>term_to_atom/2<DD>
+<A HREF="#idx:termtoatom2:42">8</A>
+<DT><STRONG>W</STRONG><DD>
+<DT><A HREF="#wait/2">wait/2</A><DD>
+<A HREF="#idx:wait2:3">2</A>
+<DT>wait_for_input/3<DD>
+<A HREF="#idx:waitforinput3:27">4.1</A> <A HREF="#idx:waitforinput3:31">4.2</A> <A HREF="#idx:waitforinput3:33">4.3</A> <A HREF="#idx:waitforinput3:36">4.3</A>
 </DL>
 
 </BODY></HTML>

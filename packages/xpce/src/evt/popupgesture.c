@@ -62,7 +62,9 @@ updatePopupGesture(PopupGesture g, EventObj ev)
     } else
       p = g->popup;
   } else
-  { TRY( p = get(rec, NAME_popup, EAV) );
+  { if ( !(p = get(rec, NAME_popup, EAV)) ||
+	 !instanceOfObject(p, ClassPopup) )
+      fail;
   }
 
   assign(g, current, p);

@@ -47,8 +47,7 @@
 
 
 :- use_module(library(pce)).
-:- require([ checklist/2
-	   , forall/2
+:- require([ forall/2
 	   , pce_to_method/2
 	   , append/3
 	   , between/3
@@ -186,9 +185,9 @@ check_classes :-
 
 check_redefined_methods :-
 	findall(S, redefined_send_method(S), SL),
-	checklist(report_redefined_method, SL),
+	maplist(report_redefined_method, SL),
 	findall(G, redefined_get_method(G), GL),
-	checklist(report_redefined_method, GL),
+	maplist(report_redefined_method, GL),
 	SL == [],
 	GL == [].
 	

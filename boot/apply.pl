@@ -29,35 +29,39 @@
     the GNU General Public License.
 */
 
-:- module($apply, [
-	checklist/2, 
-	maplist/3, 
-	sublist/3, 
-	forall/2]).
+:- module($apply,
+	  [ maplist/2,			% :Goal, +List
+	    maplist/3,			% :Goal, ?List, ?List
+	    maplist/4,			% :Goal, ?List, ?List, ?List
+	    sublist/3,			% :Goal, +List, -List
+	    forall/2			% :Goal, :Goal
+	  ]).
 
 :- module_transparent
-	checklist/2, 
-	checklist2/2, 
+	maplist/2, 
+	maplist2/2, 
 	maplist/3, 
 	maplist2/3, 
+	maplist/4, 
+	maplist2/4, 
 	sublist/3, 
 	forall/2.
 
-%	checklist(+Goal, +List)
+%	maplist(:Goal, +List)
 %
 %	True if Goal can succesfully be applied on all elements of List.
 %	Arguments are reordered to gain performance as well as to make
 %	the predicate deterministic under normal circumstances.
 
-checklist(Goal, List) :-
-	checklist2(List, Goal).
+maplist(Goal, List) :-
+	maplist2(List, Goal).
 
-checklist2([], _).
-checklist2([Elem|Tail], Goal) :-
+maplist2([], _).
+maplist2([Elem|Tail], Goal) :-
 	call(Goal, Elem), 
-	checklist2(Tail, Goal).
+	maplist2(Tail, Goal).
 
-%	maplist(+Goal, +List1, ?List2)
+%	maplist(:Goal, ?List1, ?List2)
 %
 %	True if Goal can succesfully be applied to all succesive pairs
 %	of elements of List1 and List2.
@@ -70,7 +74,20 @@ maplist2([Elem1|Tail1], [Elem2|Tail2], Goal) :-
 	call(Goal, Elem1, Elem2), 
 	maplist2(Tail1, Tail2, Goal).
 
-%	sublist(+Goal, +List1, ?List2)
+%	maplist(:Goal, ?List1, ?List2, ?List)
+%
+%	True if Goal can succesfully be applied to all succesive triples
+%	of elements of List1 and List2.
+
+maplist(Goal, List1, List2, List3) :-
+	maplist2(List1, List2, List3, Goal).
+
+maplist2([], [], [], _).
+maplist2([Elem1|Tail1], [Elem2|Tail2], [Elem3|Tail3], Goal) :-
+	call(Goal, Elem1, Elem2, Elem3), 
+	maplist2(Tail1, Tail2, Tail3, Goal).
+
+%	sublist(:Goal, +List1, ?List2)
 %	
 %	Succeeds if List2 unifies with a list holding those terms for wich
 %	apply(Goal, Elem) succeeds.

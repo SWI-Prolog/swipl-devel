@@ -232,10 +232,11 @@ setupGNUEmacsInferiorMode()
 
 static void
 initPaths()
-{ char plp[MAXPATHLEN];
+{ char plp1[MAXPATHLEN];
+  char plp[MAXPATHLEN];
   char *symbols = NULL;			/* The executable */
 
-  if ( !(symbols = findExecutable(GD->cmdline.argv[0], plp)) ||
+  if ( !(symbols = findExecutable(GD->cmdline.argv[0], plp1)) ||
        !(symbols = DeRefLink(symbols, plp)) )
     symbols = GD->cmdline.argv[0];
 
@@ -281,10 +282,13 @@ initDefaults()
   GD->io_initialised	     = FALSE;
   GD->initialised	     = FALSE;
   GD->bootsession	     = FALSE;
+
   if ( systemDefaults.notty )
     clearFeatureMask(TTY_CONTROL_FEATURE);
   else
     setFeatureMask(TTY_CONTROL_FEATURE);
+
+  setFeatureMask(DEBUGINFO_FEATURE);
 }
 
 
@@ -401,6 +405,9 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
     } else if ( streq(s, "nosignals") )
     { clearFeatureMask(SIGNALS_FEATURE);
       continue;
+    } else if ( streq(s, "nodebug") )
+    { clearFeatureMask(DEBUGINFO_FEATURE);
+      continue;
     }
 
     while(*s)
@@ -448,7 +455,9 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
 
 	  switch(*s)
 	  { case 'L':	GD->options.localSize    = size; goto next;
-	    case 'G':	GD->options.globalSize   = size; goto next;
+	    case 'G':	GD->options.globalSize   = size;
+	    		GD->options.argumentSize = size/8;
+							 goto next;
 	    case 'T':	GD->options.trailSize    = size; goto next;
 	    case 'A':	GD->options.argumentSize = size; goto next;
 	    case 'H':	GD->options.heapSize     = size; goto next;
@@ -896,7 +905,7 @@ usage()
     "    1) %s -help      Display this message\n",
     "    2) %s -v         Display version information\n",
     "    3) %s -arch      Display architecture\n",
-    "    4) %s -dump-runtime-variables\n"
+    "    4) %s -dump-runtime-variables[=format]\n"
     "                     Dump link info in sh(1) format\n",
     "    5) %s [options]\n",
     "    6) %s [options] [-o output] -c file ...\n",
@@ -911,6 +920,7 @@ usage()
     "    -s file          Script source file\n",
     "    [+/-]tty         Allow tty control\n",
     "    -nosignals       Do not modify any signal handling\n",
+    "    -nodebug         Omit generation of debug info\n",
     "    -O               Optimised compilation\n",
     "    -q               Quiet operation\n",
     NULL
@@ -942,39 +952,69 @@ arch()
   return TRUE;
 }
 
+#define FMT_SH 1			/* Unix sh: name="value" */
+#define FMT_CMD 2			/* Windows cmd.exe: set name=value */
+
+static void
+printvar(const char *name, const char *value, int format)
+{ switch(format)
+  { case FMT_SH:
+      Sprintf("%s=\"%s\";\n", name, value);
+      break;
+    case FMT_CMD:
+      Sprintf("SET %s=%s\n", name, value);
+      break;
+    default:
+      assert(0);
+  }
+}
+
+
 static int
-runtime_vars()
-{ Sprintf("CC=\"%s\";\n"
-	  "PLBASE=\"%s\";\n"
-	  "PLARCH=\"%s\";\n"
-	  "PLLIBS=\"%s\";\n"
-	  "PLLIB=\"%s\";\n"
-	  "PLLDFLAGS=\"%s\";\n"
-#ifdef SO_EXT
-	  "PLSOEXT=\"%s\";\n"
+runtime_vars(int format)
+{ char *home;
+#ifdef O_XOS
+  char base[MAXPATHLEN];
 #endif
-	  "PLVERSION=\"%d\";\n"
-#if defined(HAVE_DLOPEN) || defined(HAVE_SHL_LOAD)
-	  "PLSHARED=\"yes\";\n"
+  char version[20];
+
+  if ( systemDefaults.home )
+  { 
+#ifdef O_XOS
+    if ( format == FMT_CMD )
+    { _xos_os_existing_filename(systemDefaults.home, base);
+      home = base;
+    } else
+      home = systemDefaults.home;
 #else
-	  "PLSHARED=\"no\";\n"
+    home = systemDefaults.home;
+#endif
+  } else
+  { home = "<no home>";
+  }
+
+  Ssprintf(version, "%d", PLVERSION);
+
+  printvar("CC",	C_CC, format);
+  printvar("PLBASE",	home, format);
+  printvar("PLARCH",	ARCH, format);
+  printvar("PLLIBS",	C_LIBS, format);
+  printvar("PLLIB",	C_PLLIB, format);
+  printvar("PLLDFLAGS", C_LDFLAGS, format);
+#ifdef SO_EXT
+  printvar("PLSOEXT",	SO_EXT, format);
+#endif
+  printvar("PLVERSION", version, format);
+#if defined(HAVE_DLOPEN) || defined(HAVE_SHL_LOAD) || defined(EMULATE_DLOPEN)
+  printvar("PLSHARED",	"yes", format);
+#else
+  printvar("PLSHARED",	"no", format);
 #endif
 #ifdef O_PLMT
-	  "PLTHREADS=\"yes\";\n"
+  printvar("PLTHREADS", "yes", format);
 #else
-	  "PLTHREADS=\"no\";\n"
+  printvar("PLTHREADS", "no", format);
 #endif
-	  ,
-	  C_CC,
-	  systemDefaults.home ? systemDefaults.home : "<no home>",
-	  ARCH,
-	  C_LIBS,
-	  C_PLLIB,
-	  C_LDFLAGS,
-#ifdef SO_EXT
-	  SO_EXT,
-#endif
-	  PLVERSION);
 
   return TRUE;
 }
@@ -989,7 +1029,11 @@ giveVersionInfo(const char *a)
   if ( streq(a, "-v") )
     return version();
   if ( streq(a, "-dump-runtime-variables") )
-    return runtime_vars();
+    return runtime_vars(FMT_SH);
+  if ( streq(a, "-dump-runtime-variables=sh") )
+    return runtime_vars(FMT_SH);
+  if ( streq(a, "-dump-runtime-variables=cmd") )
+    return runtime_vars(FMT_CMD);
 
   return FALSE;
 }
@@ -1180,17 +1224,15 @@ vsysError(const char *fm, va_list args)
   Svfprintf(Serror, fm, args);
   if ( gc_status.active )
   { Sfprintf(Serror,
-	    "\n[While in %ld-th garbage collection; skipping stacktrace]\n",
+	    "\n[While in %ld-th garbage collection]\n",
 	    gc_status.collections);
   }
 
 #if defined(O_DEBUGGER)
-  if ( !gc_status.active )
-  { systemMode(TRUE);
-    Sfprintf(Serror, "\n\nPROLOG STACK:\n");
-    backTrace(NULL, 10);
-    Sfprintf(Serror, "]\n");
-  }
+  systemMode(TRUE);
+  Sfprintf(Serror, "\n\nPROLOG STACK:\n");
+  backTrace(NULL, 10);
+  Sfprintf(Serror, "]\n");
 #endif /*O_DEBUGGER*/
 
   if ( GD->bootsession )
@@ -1259,7 +1301,8 @@ vwarning(const char *fm, va_list args)
 
   if ( trueFeature(REPORT_ERROR_FEATURE) )
   { if ( !GD->bootsession && GD->initialised &&
-	 !LD->outofstack )		/* cannot call Prolog */
+	 !LD->outofstack && 		/* cannot call Prolog */
+	 !fm[0] == '$')			/* explicit: don't call Prolog */
     { char message[LINESIZ];
       char *s = message;
       fid_t cid   = PL_open_foreign_frame();

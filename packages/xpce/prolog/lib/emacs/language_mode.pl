@@ -31,6 +31,7 @@
 
 :- module(emacs_language_mode, []).
 :- use_module(library(pce)).
+:- use_module(library(hyper)).
 :- require([ auto_call/1
 	   , chain_list/2
 	   , default/3
@@ -61,7 +62,8 @@ variable(show_line_numbers,	[bool], get,  "Show line numbers?").
 setup_mode(E) :->
 	"Switch editor into fill-mode"::
 	send_super(E, setup_mode),
-	send(E, fill_mode, @on).
+	send(E, fill_mode, @on),
+	send(E, style, matching_bracket, style(background := skyblue)).
 
 initialise(M) :->
 	"Inititialise comment_column"::
@@ -620,8 +622,8 @@ new_caret_position(M, Caret:int) :->
 	"Update line number"::
 	send_super(M, new_caret_position, Caret),
 	(   get(M, frame, Frame),
-	    send(Frame, has_send_method, show_line_number),
-	    (	get(M, show_line_numbers, @off)
+	    send(Frame, has_send_method, show_line_number)
+	->  (	get(M, show_line_numbers, @off)
 	    ->	send(Frame, show_line_number, @nil)
 	    ;   (   (   get(M, show_line_numbers, @default)
 		    ->  Caret < 50000
@@ -634,12 +636,59 @@ new_caret_position(M, Caret:int) :->
 	    ;	true
 	    )
 	;   true
-	).
+	),
+	send(M, highlight_matching_bracket, Caret).
+
 
 show_line_numbers(M, Show:bool) :->
 	"Show/do not show line numbers"::
 	send(M, slot, show_line_numbers, Show),
 	send(M, new_caret_position, M?caret).
+
+
+		 /*******************************
+		 *	 MATCHING BRACKETS	*
+		 *******************************/
+
+highlight_matching_bracket(M, CaretSpec:[int]) :->
+	(   CaretSpec == @default
+	->  get(M, caret, Caret)
+	;   Caret = CaretSpec
+	),
+	get(M, text_buffer, TB),
+	get(TB, syntax, SyntaxTable),
+	(   (   Here = Caret,
+	        get(TB, character, Here, Char),
+		send(SyntaxTable, has_syntax, Char, open_bracket)
+	    ;   Here is Caret - 1,
+		get(TB, character, Here, Char),
+	        send(SyntaxTable, has_syntax, Char, close_bracket)
+	    )
+	->  get(TB, matching_bracket, Here, Match),
+	    send(M, show_matching_bracket_fragment, Match)
+	;   send(M, unshow_matching_bracket_fragment)
+	).
+
+show_matching_bracket_fragment(M, At:int) :->
+	"Show matching bracket at position"::
+	get(M, text_buffer, TB),
+	(   get(TB, hypered, matching_bracket_fragment, F)
+	->  send(F, start, At),
+	    send(F, length, 1)
+	;   new(_, partof_hyper(TB,
+				new(F, fragment(TB, At, 1, matching_bracket)),
+				matching_bracket_fragment,
+				text_buffer))
+	).
+
+unshow_matching_bracket_fragment(M) :->
+	"Delete the matching bracket fragment"::
+	get(M, text_buffer, TB),
+	(   get(TB, hypered, matching_bracket_fragment, F)
+	->  free(F)
+	;   true
+	).
+
 
 
 		 /*******************************

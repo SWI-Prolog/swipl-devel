@@ -599,23 +599,18 @@ readXpmImage(IOSTREAM *fd, Image image, XpmImage *img, XpmInfo *info)
 }
 
 
-Image
-ws_std_xpm_image(Name name, Image *global, char **data)
-{ Image image = globalObject(name, ClassImage, name, ZERO, ZERO, EAV);
-  XpmImage img;
+status
+ws_create_image_from_xpm_data(Image image, char **data, DisplayObj d)
+{ XpmImage img;
   XpmInfo info;
 
-  assign(image, display, CurrentDisplay(NIL));
+  assign(image, display, d);
 
   XpmCreateXpmImageFromData(data, &img, &info);
   ws_attach_xpm_image(image, &img, &info);
   XpmFreeXpmImage(&img);
 
-  assign(image, access, NAME_read);
-  if ( global )
-    *global = image;
-
-  return image;
+  succeed;
 }
 
 

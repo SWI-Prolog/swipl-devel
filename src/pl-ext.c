@@ -60,6 +60,7 @@ Flags almost always is TRACE_ME.  Additional common flags:
 #define META    PL_FA_TRANSPARENT
 #define NDET	PL_FA_NONDETERMINISTIC
 #define VA	PL_FA_VARARGS
+#define CREF	PL_FA_CREF
 
 #define FRG(n, a, f, flags) { n, a, f, flags }
 
@@ -161,7 +162,6 @@ static const PL_extension foreigns[] = {
   FRG("current_op",		3, pl_current_op,	NDET|META),
   FRG("$local_op",		3, pl_local_op,	        NDET|META),
   FRG("$builtin_op",		3, pl_builtin_op,	     NDET),
-  FRG("current_atom",		1, pl_current_atom,	     NDET),
   FRG("current_functor",	2, pl_current_functor,	     NDET),
   FRG("$complete_atom",		3, pl_complete_atom,		0),
   FRG("$atom_completions",	2, pl_atom_completions,		0),
@@ -170,7 +170,6 @@ static const PL_extension foreigns[] = {
   FRG("current_char_conversion",2, pl_current_char_conversion, NDET),
 
   FRG("!",			0, pl_metacut,			0),
-  FRG("setarg",			3, pl_setarg,			0),
   FRG("=..",			2, pl_univ,			0),
   FRG("name",			2, pl_name,			0),
   FRG("atom_chars",		2, pl_atom_chars,		0),
@@ -183,15 +182,12 @@ static const PL_extension foreigns[] = {
   FRG("downcase_atom",		2, pl_downcase_atom,		0),
   FRG("upcase_atom",		2, pl_upcase_atom,		0),
   FRG("int_to_atom",		3, pl_int_to_atom,		0),
-  FRG("$format_number",		3, pl_format_number,		0),
   FRG("atom_prefix",		2, pl_atom_prefix,		0),
   FRG("atom_concat",		3, pl_atom_concat,	     NDET),
   FRG("$concat_atom",		2, pl_concat_atom,		0),
   FRG("concat_atom",		3, pl_concat_atom3,		0),
   FRG("atom_length",		2, pl_atom_length,		0),
   FRG("atom_to_term",		3, pl_atom_to_term,		0),
-  FRG("numbervars",		4, pl_numbervars,		0),
-  FRG("free_variables",		2, pl_free_variables,		0),
   FRG("$e_free_variables",	2, pl_e_free_variables,		0),
 
   FRG("$open_wic",		1, pl_open_wic,			0),
@@ -220,11 +216,11 @@ static const PL_extension foreigns[] = {
 
   FRG("abolish",    		1, pl_abolish1,		     META),
   FRG("abolish",    		2, pl_abolish,		     META),
-  FRG("clause",    		2, pl_clause2,	        NDET|META),
-  FRG("clause",    		3, pl_clause3,	        NDET|META),
-  FRG("$clause",	        4, pl_clause4,	        NDET|META),
-  FRG("nth_clause", 		3, pl_nth_clause,       NDET|META),
-  FRG("retract",    		1, pl_retract,          NDET|META),
+  FRG("clause",    		2, pl_clause2,	        NDET|META|CREF),
+  FRG("clause",    		3, pl_clause3,	        NDET|META|CREF),
+  FRG("$clause",	        4, pl_clause4,	        NDET|META|CREF),
+  FRG("nth_clause", 		3, pl_nth_clause,       NDET|META|CREF),
+  FRG("retract",    		1, pl_retract,          NDET|META|CREF),
   FRG("retractall",		1, pl_retractall,	     META),
 #if O_DEBUGGER
   FRG("$xr_member",		2, pl_xr_member,        NDET|META),
@@ -260,11 +256,6 @@ static const PL_extension foreigns[] = {
   FRG("$make_system_source_files",0,pl_make_system_source_files,0),
   FRG("$default_predicate",	2, pl_default_predicate,     META),
   FRG("$clause_from_source",	3, pl_clause_from_source,	0),
-
-  FRG("integer",		1, pl_integer,			0),
-  FRG("float",			1, pl_float,			0),
-  FRG("number",			1, pl_number,			0),
-  FRG("compound",		1, pl_compound,			0),
 
   FRG("unify_with_occurs_check",2, pl_unify_with_occurs_check,  0),
   FRG("\\=",			2, pl_notunify,			0),
@@ -339,7 +330,6 @@ static const PL_extension foreigns[] = {
 #endif /*O_DDE*/
 
 #if O_STRING
-  FRG("string",			1, pl_string,		 	0),
   FRG("string_concat",		3, pl_string_concat,	     NDET),
   FRG("string_length",		2, pl_string_length,		0),
   FRG("string_to_atom",		2, pl_string_to_atom,		0),
@@ -349,8 +339,7 @@ static const PL_extension foreigns[] = {
 
   FRG("$length",		2, pl_length,			0),
   FRG("memberchk",		2, pl_memberchk,		0),
-  FRG("format",			2, pl_format,			0),
-  FRG("$except_bag",		1, pl_except_bag, 		0),
+  FRG("format",			2, pl_format,		     META),
 #ifdef O_DEBUG
   FRG("$check_definition",	1, pl_check_definition,      META),
 #endif
@@ -367,12 +356,10 @@ static const PL_extension foreigns[] = {
 #ifdef O_ATOMGC
   FRG("garbage_collect_atoms",	0, pl_garbage_collect_atoms,	0),
   FRG("garbage_collect_clauses", 0, pl_garbage_collect_clauses,	0),
-  FRG("current_atom",		2, pl_current_atom2,	     NDET),
 #ifdef O_DEBUG_ATOMGC
   FRG("track_atom",		2, pl_track_atom,		0),
 #endif
 #endif
-  FRG("copy_term",		2, pl_copy_term,		0),
   FRG("current_key",		1, pl_current_key,	     NDET),
   FRG("current_flag",		1, pl_current_flag,	     NDET),
 
@@ -419,7 +406,7 @@ static const PL_extension foreigns[] = {
   FRG("writeq",			2, pl_writeq2,			0),
   FRG("print",			2, pl_print2,			0),
   FRG("write_canonical",	2, pl_write_canonical2,		0),
-  FRG("format",			3, pl_format3,			0),
+  FRG("format",			3, pl_format3,		     META),
 
   FRG("tty_get_capability",	3, pl_tty_get_capability,	0),
   FRG("tty_goto",		2, pl_tty_goto,			0),
@@ -514,6 +501,7 @@ bindExtensions(const PL_extension *e)
     if ( e->flags & PL_FA_TRANSPARENT )	     flags |= METAPRED;
     if ( e->flags & PL_FA_NONDETERMINISTIC ) flags |= NONDETERMINISTIC;
     if ( e->flags & PL_FA_VARARGS )	     flags |= P_VARARG;
+    if ( e->flags & PL_FA_CREF )	     flags |= P_FOREIGN_CREF;
 
     def = lookupProcedure(lookupFunctorDef(name, e->arity), m)->definition;
     PL_unregister_atom(name);
@@ -572,12 +560,13 @@ registerBuiltins(const PL_extension *f)
 
     PL_unregister_atom(name);
     def = lookupProcedure(fdef, m)->definition;
-    set(def, FOREIGN|SYSTEM|LOCKED);
+    set(def, FOREIGN|SYSTEM|HIDE_CHILDS|LOCKED);
 
     if ( f->flags & PL_FA_NOTRACE )	     clear(def, TRACE_ME);
     if ( f->flags & PL_FA_TRANSPARENT )	     set(def, METAPRED);
     if ( f->flags & PL_FA_NONDETERMINISTIC ) set(def, NONDETERMINISTIC);
     if ( f->flags & PL_FA_VARARGS )	     set(def, P_VARARG);
+    if ( f->flags & PL_FA_CREF )	     set(def, P_FOREIGN_CREF);
 
     def->definition.function = f->function;
     def->indexPattern = 0;
@@ -594,6 +583,7 @@ registerBuiltins(const PL_extension *f)
 #define REG_PLIST(id) \
 	registerBuiltins(PL_predicates_from_ ## id)
 
+DECL_PLIST(atom);
 DECL_PLIST(arith);
 DECL_PLIST(bag);
 DECL_PLIST(comp);
@@ -606,7 +596,10 @@ DECL_PLIST(wam);
 DECL_PLIST(thread);
 DECL_PLIST(profile);
 DECL_PLIST(wic);
+DECL_PLIST(attvar);
+DECL_PLIST(gvar);
 DECL_PLIST(win);
+DECL_PLIST(file);
 
 void
 initBuildIns(void)
@@ -614,6 +607,7 @@ initBuildIns(void)
   Module m = MODULE_system;
 
   registerBuiltins(foreigns);
+  REG_PLIST(atom);
   REG_PLIST(arith);
   REG_PLIST(bag);
   REG_PLIST(comp);
@@ -626,6 +620,13 @@ initBuildIns(void)
   REG_PLIST(thread);
   REG_PLIST(profile);
   REG_PLIST(wic);
+  REG_PLIST(file);
+#ifdef O_ATTVAR
+  REG_PLIST(attvar);
+#endif
+#ifdef O_GVAR
+  REG_PLIST(gvar);
+#endif
 #ifdef __WIN32__
   REG_PLIST(win);
 #endif
@@ -638,6 +639,9 @@ initBuildIns(void)
   PROCEDURE_print_message2   = lookupProcedure(FUNCTOR_print_message2, 	  m);
   PROCEDURE_dcall1	     = lookupProcedure(FUNCTOR_dcall1,		  m);
   PROCEDURE_call_cleanup3    = lookupProcedure(FUNCTOR_call_cleanup3,	  m); 
+#ifdef O_ATTVAR
+  PROCEDURE_dwakeup1	     = lookupProcedure(FUNCTOR_dwakeup1,	  m);
+#endif
 					/* allow debugging in call/1 */
   clear(PROCEDURE_dcall1->definition, HIDE_CHILDS);
   set(PROCEDURE_dcall1->definition, DYNAMIC);

@@ -184,6 +184,9 @@ cmd(infixop({RawName}, {Arg1}, {Arg2}),
 	clean_name(RawName, Name),
 	predicate_refname(Name, 2, RefName),
 	add_to_index(RefName, +RefName).
+cmd(constitem({Name}), #defitem(#label(RefName, #strong(+Name)))) :-
+	clean_name(Name, RefName),
+	add_to_index(RefName, +RefName).
 cmd(termitem({Name}, {[]}), #defitem(#strong(+Name))).
 cmd(termitem({Name}, {Arg}),
     #defitem([#strong(+Name), #embrace(#var(+Arg))])).
@@ -288,11 +291,24 @@ cmd(g({Term}),	#lref(RefName, Term)) :-
 % library stuff
 cmd(libdoc({Name}, {Summary}),
     [HTML, #label(Name, [], Tag)]) :-
+	filebase(Name, File),
 	translate_section(2, -,
 			  ['library(', Name, '): ', Summary],
 			  HTML,
-			  Name),
+			  File),
 	tex:label_tag(Tag).
+
+filebase(Name, File) :-
+	atom_codes(Name, Codes),
+	select_csym(Codes, Alnums),
+	atom_codes(File, Alnums).
+
+select_csym([], []).
+select_csym([H|T0], [H|T]) :-
+	code_type(H, csymf), !,
+	select_csym(T0, T).
+select_csym([_|T0], T) :-
+	select_csym(T0, T).
 
 
 		 /*******************************
@@ -328,7 +344,7 @@ canonical_char(X, X).
 
 remove_trailing_spaces([], []).
 remove_trailing_spaces([0' |T], []) :-
-	checklist(=(0' ), T), !.
+	maplist(=(0' ), T), !.
 remove_trailing_spaces([H|T0], [H|T]) :-
 	remove_trailing_spaces(T0, T).
 
@@ -342,6 +358,17 @@ cmd(Cmd, HTML) :-
 
 
 special('Sexe', '#!').
+special('Scgt', #>).
+special('Scge', #>=).
+special('Sclt', #<).
+special('Scle', #=<).
+special('Scne', #\=).
+special('Sceq', '#=').
+special('Sequiv', #<=>).
+special('Slimpl', #<=).
+special('Srimpl', #=>).
+special('Scine', #=\=).
+special('Scieq', #=:=).
 special('Scut', !).
 special('Scomma',  (,)).
 special('Sifthen',  (->)).

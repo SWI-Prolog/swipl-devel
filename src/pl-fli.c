@@ -92,24 +92,22 @@ Second, we can opt  for  inlining  or   not.  Especially  in  the latter
 variation, which is a bit longer, a function might actually be faster.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static word
+word
 linkVal__LD(Word p ARG_LD)
 { word w = *p;
 
-  if ( isVar(w) )
+  if ( needsRef(w) )
     return makeRef(p);
 
   while( isRef(w) )
   { p = unRef(w);
-    if ( isVar(*p) )
+    if ( needsRef(*p) )
       return w;
     w = *p;
   }
 
   return w;
 }
-
-#define linkVal(p) linkVal__LD(p PASS_LD)
 
 term_t
 wordToTermRef(Word p)
@@ -244,9 +242,8 @@ unifyAtomic(term_t t, word w ARG_LD)
 { Word p = valHandleP(t);
 
   for(;;)
-  { if ( isVar(*p) )
-    { *p = w;
-      Trail(p);  
+  { if ( canBind(*p) )
+    { bindConst(p, w);
       succeed;
     }
 
@@ -407,7 +404,7 @@ PL_compare(term_t t1, term_t t2)
   Word p1 = valHandleP(t1);
   Word p2 = valHandleP(t2);
 
-  return compareStandard(p1, p2 PASS_LD);	/* -1, 0, 1 */
+  return compareStandard(p1, p2, FALSE PASS_LD);	/* -1, 0, 1 */
 }
 
 
@@ -451,8 +448,9 @@ makeNum__LD(long i ARG_LD)
 static inline void
 bindConsVal(Word to, Word p ARG_LD)
 { deRef(p);
-  if ( isVar(*p) )
-  { if ( to < p )
+
+  if ( canBind(*p) )
+  { if ( to < p && !isAttVar(*p) )
     { setVar(*to);
       *p = makeRefG(to);
     } else
@@ -661,9 +659,14 @@ PL_get_atom_chars(term_t t, char **s)
   word w = valHandle(t);
 
   if ( isAtom(w) )
-  { *s = stringAtom(w);
-    succeed;
+  { Atom a = atomValue(w);
+
+    if ( true(a->type, PL_BLOB_TEXT) )
+    { *s = a->name;
+      succeed;
+    }
   }
+
   fail;
 }
 
@@ -676,10 +679,12 @@ PL_get_atom_nchars(term_t t, unsigned int *len, char **s)
   if ( isAtom(w) )
   { Atom a = atomValue(w);
 
-    *s   = a->name;
-    *len = a->length;
+    if ( true(a->type, PL_BLOB_TEXT) )
+    { *s   = a->name;
+      *len = a->length;
 
-    succeed;
+      succeed;
+    }
   }
 
   fail;
@@ -769,9 +774,9 @@ PL_get_list_nchars(term_t l,
 	goto ok;
       }
     } else if ( isAtom(*arg) )
-    { char *s = stringAtom(*arg);
+    { Atom a = atomValue(*arg);
 
-      if ( s[0] && !s[1] )
+      if ( a->length == 1 && true(a->type, PL_BLOB_TEXT) )
       { type = CHARS;
 	goto ok;
       }
@@ -802,10 +807,10 @@ ok:
         break;
       case CHARS:
 	if ( isAtom(*arg) )
-	{ char *s = stringAtom(*arg);
+	{ Atom a = atomValue(*arg);
 
-	  if ( s[0] && !s[1] )
-	    c = s[0] & 0xff;
+	  if ( a->length == 1 && true(a->type, PL_BLOB_TEXT) )
+	    c = a->name[0] & 0xff;
 
 	  break;
 	}
@@ -861,6 +866,8 @@ PL_get_nchars(term_t l, unsigned int *length, char **s, unsigned flags)
 
   if ( (flags & CVT_ATOM) && isAtom(w) )
   { Atom a = atomValue(w);
+    if ( false(a->type, PL_BLOB_TEXT) )
+      fail;				/* non-textual atom */
     type = PL_ATOM;
     r = a->name;
     len = a->length;
@@ -1052,6 +1059,19 @@ PL_get_long(term_t t, long *i)
 
 
 int
+PL_is_inf(term_t t)
+{ GET_LD
+  atom_t a;
+
+  if ( PL_get_atom(t, &a) &&
+       (a == ATOM_inf || a == ATOM_infinite) )
+    succeed;
+
+  fail;
+}
+
+
+int
 PL_get_float(term_t t, double *f)
 { GET_LD
   word w = valHandle(t);
@@ -1108,7 +1128,7 @@ PL_get_name_arity(term_t t, atom_t *name, int *arity)
     *arity = fd->arity;
     succeed;
   }
-  if ( isAtom(w) )
+  if ( isTextAtom(w) )
   { *name = (atom_t)w;
     *arity = 0;
     succeed;
@@ -1126,7 +1146,7 @@ PL_get_functor__LD(term_t t, functor_t *f ARG_LD)
   { *f = functorTerm(w);
     succeed;
   }
-  if ( isAtom(w) )
+  if ( isTextAtom(w) )
   { *f = lookupFunctorDef(w, 0);
     succeed;
   }
@@ -1199,6 +1219,24 @@ PL_get_arg(int index, term_t t, term_t a)
 
   fail;
 }
+
+
+#ifdef O_ATTVAR
+int
+PL_get_attr(term_t t, term_t a)
+{ GET_LD
+  word w = valHandle(t);
+
+  if ( isAttVar(w) )
+  { Word p = valPAttVar(w);
+
+    setHandle(a, makeRef(p));		/* reference, so we can assign */
+    succeed;
+  }
+
+  fail;
+}
+#endif
 
 
 int
@@ -1288,7 +1326,7 @@ _PL_get_xpce_reference(term_t t, xpceref_t *ref)
 
 	goto ok;
       } 
-      if ( isAtom(*p) )
+      if ( isTextAtom(*p) )
       { ref->type    = PL_ATOM;
 	ref->value.a = (atom_t) *p;
 
@@ -1320,7 +1358,7 @@ int
 PL_is_variable__LD(term_t t ARG_LD)
 { word w = valHandle(t);
 
-  return isVar(w) ? TRUE : FALSE;
+  return canBind(w) ? TRUE : FALSE;
 }
 
 
@@ -1330,7 +1368,7 @@ PL_is_variable(term_t t)
 { GET_LD
   word w = valHandle(t);
 
-  return isVar(w) ? TRUE : FALSE;
+  return canBind(w) ? TRUE : FALSE;
 }
 #define PL_is_variable(t) PL_is_variable__LD(t PASS_LD)
 
@@ -1339,7 +1377,10 @@ int
 PL_is_atom__LD(term_t t ARG_LD)
 { word w = valHandle(t);
 
-  return isAtom(w) ? TRUE : FALSE;
+  if ( isTextAtom(w) )
+    return TRUE;
+
+  return FALSE;
 }
 
 
@@ -1347,11 +1388,37 @@ PL_is_atom__LD(term_t t ARG_LD)
 int
 PL_is_atom(term_t t)
 { GET_LD
-  word w = valHandle(t);
-
-  return isAtom(w) ? TRUE : FALSE;
+  
+  return PL_is_atom__LD(t PASS_LD);
 }
 #define PL_is_atom(t) PL_is_atom__LD(t PASS_LD)
+
+
+int
+PL_is_blob(term_t t, PL_blob_t **type)
+{ GET_LD
+  word w = valHandle(t);
+
+  if ( isAtom(w) )
+  { if ( type )
+    { Atom a = atomValue(w);
+      *type = a->type;
+    }
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
+int
+PL_is_attvar(term_t t)
+{ GET_LD
+  word w = valHandle(t);
+
+  return isAttVar(w) ? TRUE : FALSE;
+}
 
 
 int
@@ -2285,6 +2352,71 @@ _PL_copy_atomic(term_t t, PL_atomic_t arg) /* internal one */
 
 
 		 /*******************************
+		 *	       BLOBS		*
+		 *******************************/
+
+int
+PL_unify_blob(term_t t, void *blob, unsigned int len, PL_blob_t *type)
+{ GET_LD
+  int new;
+  atom_t a = lookupBlob(blob, len, type, &new);
+  int rval = unifyAtomic(t, a PASS_LD);
+
+  PL_unregister_atom(a);
+
+  return rval;
+}
+
+
+int
+PL_put_blob(term_t t, void *blob, unsigned int len, PL_blob_t *type)
+{ GET_LD
+  int new;
+  atom_t a = lookupBlob(blob, len, type, &new);
+
+  setHandle(t, a);
+  PL_unregister_atom(a);
+
+  return new;
+}
+
+
+int
+PL_get_blob(term_t t, void **blob, unsigned int *len, PL_blob_t **type)
+{ GET_LD
+  word w = valHandle(t);
+
+  if ( isAtom(w) )
+  { Atom a = atomValue(w);
+
+    if ( blob )
+      *blob = a->name;
+    if ( len )
+      *len  = a->length;
+    if ( type )
+      *type = a->type;
+
+    succeed;
+  }
+
+  fail;
+}
+
+
+void *
+PL_blob_data(atom_t a, unsigned int *len, PL_blob_t **type)
+{ Atom x = atomValue(a);
+
+  if ( len )
+    *len = x->length;
+  if ( type )
+    *type = x->type;
+
+  return x->name;
+}
+
+
+		 /*******************************
 		 *	       TYPE		*
 		 *******************************/
 
@@ -2347,7 +2479,7 @@ PL_strip_module__LD(term_t raw, module_t *m, term_t plain ARG_LD)
   { if ( *m == NULL )
       *m = environment_frame ? contextModule(environment_frame)
 			     : MODULE_user;
-    setHandle(plain, isVar(*p) ? makeRef(p) : *p);
+    setHandle(plain, needsRef(*p) ? makeRef(p) : *p);
   }
 
   succeed;

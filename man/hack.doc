@@ -225,11 +225,10 @@ allowing the user to alter the behaviour on some predefined events.
 
 \begin{description}
     \predicate{exception}{3}{+Exception, +Context, -Action}
-Dynamic predicate, normally not defined.  Called by the Prolog system on
-run-time exceptions.  Currently exception/3 is only used for trapping
-undefined predicates.  Future versions might handle signal handling, 
-floating exceptions and other runtime errors via this mechanism. The
-values for \arg{Exception} are described below.
+Dynamic predicate, normally not defined. Called by the Prolog system on
+run-time exceptions that can be repaired `just in time'. Currently
+exception/3 is only used for trapping undefined predicates. The values
+for \arg{Exception} are described below.  See also catch/3 and throw/1.
 
 \begin{description}
     \termitem{undefined_predicate}{}

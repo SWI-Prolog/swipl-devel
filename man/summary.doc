@@ -18,6 +18,15 @@ suggest predicates from a keyword.
 \begin{summarylist}{ll}
 \predicatesummary{!}{0}{Cut (discard choicepoints)}
 \predicatesummary{!}{1}{Cut block. See block/3}
+\oppredsummary{#>}{2}{xfx}{700}{Greater than constraint}
+\oppredsummary{#<}{2}{xfx}{700}{Less than constraint}
+\oppredsummary{#>=}{2}{xfx}{700}{Greater or equal constraint}
+\oppredsummary{#=<}{2}{xfx}{700}{Less of equal constraint}
+\oppredsummary{#\=}{2}{xfx}{700}{Non-equal constraint}
+\oppredsummary{#=}{2}{xfx}{700}{Equality constraint}
+\oppredsummary{#<=>}{2}{xfx}{760}{Constraint equivalence}
+\oppredsummary{#<=}{2}{xfx}{750}{Constraint implication to the left}
+\oppredsummary{#=>}{2}{xfx}{750}{Constraint implication to the right}
 \oppredsummary{,}{2}{xfy}{1000}{Conjunction of goals}
 \oppredsummary{->}{2}{xfy}{1050}{If-then-else}
 \oppredsummary{*->}{2}{xfy}{1050}{Soft-cut}
@@ -33,6 +42,7 @@ suggest predicates from a keyword.
 \oppredsummary{=\=}{2}{xfx}{700}{Arithmetic not equal}
 \oppredsummary{>}{2}{xfx}{700}{Arithmetic larger}
 \oppredsummary{>=}{2}{xfx}{700}{Arithmetic larger or equal}
+\predicatesummary{?=}{2}{Test of terms can be compared now}
 \oppredsummary{@<}{2}{xfx}{700}{Standard order smaller}
 \oppredsummary{@=<}{2}{xfx}{700}{Standard order smaller or equal}
 \oppredsummary{@>}{2}{xfx}{700}{Standard order larger}
@@ -50,6 +60,7 @@ suggest predicates from a keyword.
 \predicatesummary{absolute_file_name}{3}{Get absolute path name with options}
 \predicatesummary{access_file}{2}{Check access permissions of a file}
 \predicatesummary{add_import_module}{3}{Add module to the auto-import list}
+\predicatesummary{all_different}{1}{Constraint all values to be unique}
 \predicatesummary{append}{1}{Append to a file}
 \predicatesummary{apply}{2}{Call goal with additional arguments}
 \predicatesummary{apropos}{1}{\pllib{online_help} Search manual}
@@ -63,6 +74,9 @@ suggest predicates from a keyword.
 \predicatesummary{assertz}{2}{Add a clause to the database (last)}
 \predicatesummary{assume}{1}{Make assertions about your program}
 \predicatesummary{attach_console}{0}{Attach I/O console to thread}
+\predicatesummary{attr_unify_hook}{2}{Attributed variable unification hook}
+\predicatesummary{attr_portray_hook}{2}{Attributed variable print hook}
+\predicatesummary{attvar}{1}{Type test for attributed variable}
 \predicatesummary{at_end_of_stream}{0}{Test for end of file on input}
 \predicatesummary{at_end_of_stream}{1}{Test for end of file on stream}
 \predicatesummary{at_halt}{1}{Register goal to run at halt/1}
@@ -76,6 +90,8 @@ suggest predicates from a keyword.
 \predicatesummary{atom_to_term}{3}{Convert between atom and term}
 \predicatesummary{atomic}{1}{Type check for primitive}
 \predicatesummary{autoload}{0}{Autoload all predicates now}
+\predicatesummary{b_getval}{2}{Fetch backtrackable global variable}
+\predicatesummary{b_setval}{2}{Assign backtrackable global variable}
 \predicatesummary{bagof}{3}{Find all solutions to a goal}
 \predicatesummary{between}{3}{Integer range checking/generating}
 \predicatesummary{block}{3}{Start a block (`catch'/`throw')}
@@ -93,7 +109,10 @@ suggest predicates from a keyword.
 \predicatesummary{char_type}{2}{Classify characters}
 \predicatesummary{character_count}{2}{Get character index on a stream}
 \predicatesummary{chdir}{1}{Compatibility: change working directory}
-\predicatesummary{checklist}{2}{Invoke goal on all members of a list}
+\predicatesummary{chr_show_store}{1}{List suspended CHR constraints}
+\predicatesummary{chr_trace}{0}{Start CHR tracer}
+\predicatesummary{chr_notrace}{0}{Stop CHR tracer}
+\predicatesummary{chr_leash}{1}{Define CHR leashed ports}
 \predicatesummary{clause}{2}{Get clauses of a predicate}
 \predicatesummary{clause}{3}{Get clauses of a predicate}
 \predicatesummary{clause_property}{2}{Get properties of a clause}
@@ -119,6 +138,7 @@ suggest predicates from a keyword.
 \predicatesummary{copy_term}{2}{Make a copy of a term}
 \predicatesummary{current_arithmetic_function}{1}{Examine evaluable functions}
 \predicatesummary{current_atom}{1}{Examine existing atoms}
+\predicatesummary{current_blob}{2}{Examine typed blobs}
 \predicatesummary{current_char_conversion}{2}{Query input character mapping}
 \predicatesummary{current_flag}{1}{Examine existing flags}
 \predicatesummary{current_foreign_library}{2}{\pllib{shlib} Examine loaded shared libraries (.so files)}
@@ -150,12 +170,15 @@ suggest predicates from a keyword.
 \predicatesummary{debugging}{0}{Show debugger status}
 \predicatesummary{debugging}{1}{Test where we are debugging topic}
 \predicatesummary{default_module}{2}{Get the default modules of a module}
+\predicatesummary{del_attr}{2}{Delete attribute from variable}
 \predicatesummary{delete_directory}{1}{Remove a folder from the file system}
 \predicatesummary{delete_file}{1}{Remove a file from the file system}
 \predicatesummary{delete_import_module}{2}{Remove module from import list}
 \predicatesummary{deterministic}{1}{Test deterministicy of current clause}
+\predicatesummary{dif}{2}{Contrain two terms to be different}
 \oppredsummary{discontiguous}{1}{fx}{1150}{Indicate distributed definition of a predicate}
 \predicatesummary{downcase_atom}{2}{Convert atom to lower-case}
+\predicatesummary{duplicate_term}{2}{Create a copy of a term}
 \predicatesummary{dwim_match}{2}{Atoms match in ``Do What I Mean'' sense}
 \predicatesummary{dwim_match}{3}{Atoms match in ``Do What I Mean'' sense}
 \predicatesummary{dwim_predicate}{2}{Find predicate in ``Do What I Mean'' sense}
@@ -197,7 +220,10 @@ suggest predicates from a keyword.
 \predicatesummary{format}{2}{Formatted output with arguments}
 \predicatesummary{format}{3}{Formatted output on a stream}
 \predicatesummary{format_predicate}{2}{Program format/[1,2]}
-\predicatesummary{free_variables}{2}{Find unbound variables in a term}
+\predicatesummary{term_variables}{2}{Find unbound variables in a term}
+\predicatesummary{term_variables}{3}{Find unbound variables in a term}
+\predicatesummary{freeze}{2}{Delay execution until variable is bound}
+\predicatesummary{frozen}{2}{Query delayed goals on var}
 \predicatesummary{functor}{3}{Get name and arity of a term or construct a term }
 \predicatesummary{garbage_collect}{0}{Invoke the garbage collector}
 \predicatesummary{garbage_collect_atoms}{0}{Invoke the atom garbage collector}
@@ -206,6 +232,8 @@ suggest predicates from a keyword.
 \predicatesummary{get}{2}{Read first non-blank character from a stream}
 \predicatesummary{get0}{1}{Read next character}
 \predicatesummary{get0}{2}{Read next character from a stream}
+\predicatesummary{get_attr}{3}{Fetch named attribute from a variable}
+\predicatesummary{get_attrs}{2}{Fetch all attributes of a variable}
 \predicatesummary{get_byte}{1}{Read next byte (ISO)}
 \predicatesummary{get_byte}{2}{Read next byte from a stream (ISO)}
 \predicatesummary{get_char}{1}{Read next character as an atom (ISO)}
@@ -228,6 +256,7 @@ suggest predicates from a keyword.
 \predicatesummary{ignore}{1}{Call the argument, but always succeed}
 \predicatesummary{import}{1}{Import a predicate from a module}
 \predicatesummary{import_module}{2}{Query import modules}
+\oppredsummary{in}{2}{xfx}{700}{Define interval for variable}
 \predicatesummary{include}{1}{Include a file with declarations}
 \predicatesummary{index}{1}{Change clause indexing}
 \predicatesummary{initialization}{1}{Initialization directive}
@@ -239,6 +268,7 @@ suggest predicates from a keyword.
 \predicatesummary{is_absolute_file_name}{1}{True if arg defines an absolute path}
 \predicatesummary{is_list}{1}{Type check for a list}
 \predicatesummary{keysort}{2}{Sort, using a key}
+\predicatesummary{label}{1}{Solve constraints for variables}
 \predicatesummary{last}{2}{Last element of a list}
 \predicatesummary{leash}{1}{Change ports visited by the tracer}
 \predicatesummary{length}{2}{Length of a list}
@@ -249,6 +279,7 @@ suggest predicates from a keyword.
 \predicatesummary{line_count}{2}{Line number on stream}
 \predicatesummary{line_position}{2}{Character position in line on stream}
 \predicatesummary{list_debug_topics}{0}{List registered topics for debugging}
+\predicatesummary{list_to_set}{2}{Remove duplicates from a list}
 \predicatesummary{listing}{0}{List program in current module}
 \predicatesummary{listing}{1}{List predicate}
 \predicatesummary{load_files}{2}{Load source files with options}
@@ -259,7 +290,9 @@ suggest predicates from a keyword.
 \predicatesummary{make_fat_filemap}{1}{Win32: Create file containing non-FAT filenames}
 \predicatesummary{make_library_index}{1}{Create autoload file INDEX.pl}
 \predicatesummary{make_library_index}{2}{Create selective autoload file INDEX.pl}
-\predicatesummary{maplist}{3}{Transform all elements of a list}
+\predicatesummary{maplist}{2}{Apply predicate on all elements}
+\predicatesummary{maplist}{3}{Map elements pairwise}
+\predicatesummary{maplist}{4}{Map triples of elements}
 \predicatesummary{memberchk}{2}{Deterministic member/2}
 \predicatesummary{merge}{3}{Merge two sorted lists}
 \predicatesummary{merge_set}{3}{Merge two sorted sets}
@@ -281,6 +314,13 @@ suggest predicates from a keyword.
 \predicatesummary{mutex_unlock}{1}{Release ownership of mutex}
 \predicatesummary{mutex_unlock_all}{0}{Release ownership of all mutexes}
 \predicatesummary{name}{2}{Convert between atom and list of character codes}
+\predicatesummary{nb_current}{2}{Enumerate non-backtrackable global variables}
+\predicatesummary{nb_delete}{1}{Delete a non-backtrackable global variable}
+\predicatesummary{nb_getval}{2}{Fetch non-backtrackable global variable}
+\predicatesummary{nb_linkarg}{3}{Non-backtrackable assignment to term}
+\predicatesummary{nb_linkval}{2}{Assign non-backtrackable global variable}
+\predicatesummary{nb_setarg}{3}{Non-backtrackable assignment to term}
+\predicatesummary{nb_setval}{2}{Assign non-backtrackable global variable}
 \predicatesummary{nl}{0}{Generate a newline}
 \predicatesummary{nl}{1}{Generate a newline on a stream}
 \predicatesummary{nodebug}{0}{Disable debugging}
@@ -360,6 +400,8 @@ suggest predicates from a keyword.
 \predicatesummary{protocolling}{1}{On what file is user interaction logged}
 \predicatesummary{put}{1}{Write a character}
 \predicatesummary{put}{2}{Write a character on a stream}
+\predicatesummary{put_attr}{3}{Put attribute on a variable}
+\predicatesummary{put_attrs}{2}{Set/replace all attributes on a variable}
 \predicatesummary{put_byte}{1}{Write a byte}
 \predicatesummary{put_byte}{2}{Write a byte on a stream}
 \predicatesummary{put_char}{1}{Write a character}
@@ -375,6 +417,7 @@ suggest predicates from a keyword.
 \predicatesummary{read_clause}{2}{Read clause from stream}
 \predicatesummary{read_history}{6}{Read using history substitution}
 \predicatesummary{read_link}{3}{Read a symbolic link}
+\predicatesummary{read_pending_input}{3}{Fetch buffered input from a stream}
 \predicatesummary{read_term}{2}{Read term with options}
 \predicatesummary{read_term}{3}{Read term with options from stream}
 \predicatesummary{recorda}{2}{Record term in the database (first)}
@@ -399,6 +442,7 @@ suggest predicates from a keyword.
 \predicatesummary{seen}{0}{Close the current input stream}
 \predicatesummary{set_input}{1}{Set current input stream from a stream}
 \predicatesummary{set_output}{1}{Set current output stream from a stream}
+\predicatesummary{set_prolog_IO}{3}{Prepare streams for interactive session}
 \predicatesummary{set_prolog_flag}{2}{Define a system feature}
 \predicatesummary{set_stream}{2}{Set stream attribute}
 \predicatesummary{set_stream_position}{2}{Seek stream to position}
@@ -479,6 +523,7 @@ suggest predicates from a keyword.
 \predicatesummary{tty_size}{2}{Get row/column size of the terminal}
 \predicatesummary{ttyflush}{0}{Flush output on terminal}
 \predicatesummary{unify_with_occurs_check}{2}{Logically sound unification}
+\predicatesummary{unifyable}{3}{Determing binding required for unification}
 \predicatesummary{unix}{1}{OS interaction}
 \predicatesummary{unknown}{2}{Trap undefined predicates}
 \predicatesummary{unload_foreign_library}{1}{\pllib{shlib} Detach shared library (.so file)}
@@ -490,6 +535,7 @@ suggest predicates from a keyword.
 \predicatesummary{visible}{1}{Ports that are visible in the tracer}
 \oppredsummary{volatile}{1}{fx}{1150}{Predicates that are not saved}
 \predicatesummary{wait_for_input}{3}{Wait for input with optional timeout}
+\predicatesummary{when}{2}{Execute goal when condition becomes true}
 \predicatesummary{wildcard_match}{2}{Csh(1) style wildcard match}
 \predicatesummary{win_exec}{2}{Win32: spawn Windows task}
 \predicatesummary{win_has_menu}{0}{Win32: true if console menu is available}
@@ -555,6 +601,7 @@ suggest predicates from a keyword.
 \functionsummary{log10}{1}{10 base logarithm}
 \functionsummary{max}{2}{Maximum of two numbers}
 \functionsummary{min}{2}{Minimum of two numbers}
+\functionsummary{msb}{1}{Most significant bit}
 \opfuncsummary{mod}{2}{xfx}{300}{Remainder of division}
 \functionsummary{random}{1}{Generate random number}
 \functionsummary{rem}{2}{Remainder of division}

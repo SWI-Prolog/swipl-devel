@@ -530,7 +530,7 @@ keyboard_event_frame(FrameObj fr, Any id,
        !(sw = getKeyboardFocusFrame(fr)) )
     receiver = fr;
   else
-    receiver = sw;
+    receiver = userWindow(sw);
 
   markAnswerStack(mark);
 
@@ -1023,6 +1023,33 @@ ws_border_frame(FrameObj fr, int b)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+I can find this nowhere,  but   calling  SetCursor() not always actually
+changes the cursor, but sometimes  makes   it  disappear. Only after the
+user moves the mouse the  cursor   re-appears.  Redrawing  a little area
+around the cursor `fixes' this problem.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+set_cursor_now(HWND hwnd, HCURSOR cursor)
+{ RECT rect;
+
+  if ( GetWindowRect(hwnd, &rect) )
+  { POINT pt;
+
+    ZSetCursor(cursor);
+    GetCursorPos(&pt);
+    rect.left = pt.x - 8 - rect.left;
+    rect.top  = pt.y - 8 - rect.top;
+    if ( rect.left < 0 ) rect.left = 0;
+    if ( rect.top  < 0 ) rect.top  = 0;
+    rect.right = rect.left + 16;
+    rect.bottom= rect.top  + 16;
+    InvalidateRect(hwnd, &rect, FALSE);
+  }
+}
+
+
 void
 ws_busy_cursor_frame(FrameObj fr, CursorObj c)
 { WsFrame r = fr->ws_ref;
@@ -1039,8 +1066,9 @@ ws_busy_cursor_frame(FrameObj fr, CursorObj c)
 	 isProperObject(obj) &&
 	 hasGetMethodObject(obj, NAME_frame) &&
 	 (fr == qadGetv(obj, NAME_frame, 0, NULL)) )
+    { DEBUG(NAME_busyCursor, Cprintf("Setting cursor for %s\n", pp(fr)));
       setcursor = TRUE;
-    else
+    } else
     { obj = NULL;
       setcursor = FALSE;
     }
@@ -1052,9 +1080,10 @@ ws_busy_cursor_frame(FrameObj fr, CursorObj c)
 	if ( obj && instanceOfObject(obj, ClassWindow) &&
 	     (ref = ((PceWindow)obj)->ws_ref) &&
 	     ref->hcursor )
-	{ ZSetCursor(ref->hcursor);
+	{ set_cursor_now(hwnd, ref->hcursor);
 	} else
-	  ZSetCursor(LoadCursor(NULL, IDC_ARROW));
+	{ SetCursorPos(pt.x, pt.y);	/* this should call a WM_SETCURSOR */
+	}
       }
 
       r->hbusy_cursor = NULL;
@@ -1063,10 +1092,11 @@ ws_busy_cursor_frame(FrameObj fr, CursorObj c)
 	c = getClassVariableValueObject(fr, NAME_busyCursor);
 
       if ( c )
-      { if ( setcursor )
-	{ r->hbusy_cursor = (HCURSOR)getXrefObject(c, fr->display);
-	  ZSetCursor(r->hbusy_cursor);
-	}
+      { HCURSOR hc = (HCURSOR)getXrefObject(c, fr->display);
+
+	r->hbusy_cursor = hc;
+	if ( setcursor )
+	  set_cursor_now(hwnd, hc);
       }
     }
   }

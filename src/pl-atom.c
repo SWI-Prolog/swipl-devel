@@ -165,6 +165,89 @@ static void	rehashAtoms();
 #define LD LOCAL_LD
 
 		 /*******************************
+		 *	      TYPES		*
+		 *******************************/
+
+static PL_blob_t text_atom =
+{ PL_BLOB_MAGIC,
+  PL_BLOB_UNIQUE|PL_BLOB_TEXT,		/* unique representation of text */
+  "text"
+};
+
+
+static PL_blob_t unregistered_blob_atom =
+{ PL_BLOB_MAGIC,
+  PL_BLOB_NOCOPY|PL_BLOB_TEXT,
+  "unregistered"
+};
+
+
+static void
+PL_register_blob_type(PL_blob_t *type)
+{ PL_LOCK(L_MISC);			/* cannot use L_ATOM */
+
+  if ( !type->registered )
+  { if ( !GD->atoms.types )
+    { GD->atoms.types = type;
+      type->atom_name = ATOM_text;	/* avoid deadlock */
+      type->registered = TRUE;
+    } else
+    { PL_blob_t *t = GD->atoms.types;
+
+      while(t->next)
+	t = t->next;
+
+      t->next = type;
+      type->rank = t->rank+1;
+      type->registered = TRUE;
+      type->atom_name = PL_new_atom(type->name);
+    }
+
+  }
+
+  PL_UNLOCK(L_MISC);
+}
+
+
+int
+PL_unregister_blob_type(PL_blob_t *type)
+{ unsigned int i;
+  PL_blob_t **t;
+  int discarded = 0;
+
+  PL_LOCK(L_MISC);
+  for(t = &GD->atoms.types; *t; t = &(*t)->next)
+  { if ( *t == type )
+    { *t = type->next;
+      type->next = NULL;
+    }
+  }
+  PL_UNLOCK(L_MISC);
+
+  PL_register_blob_type(&unregistered_blob_atom);
+
+  LOCK();
+  for(i=0; i < entriesBuffer(&atom_array, Atom); i++ )
+  { Atom atom;
+
+    if ( (atom = baseBuffer(&atom_array, Atom)[i]) )
+    { if ( atom->type == type )
+      { atom->type = &unregistered_blob_atom;
+	
+	atom->name = "<discarded blob>";
+	atom->length = strlen(atom->name);
+
+	discarded++;
+      }
+    }
+  }
+  UNLOCK();
+
+  return discarded == 0 ? TRUE : FALSE;
+}
+
+
+		 /*******************************
 		 *      BUILT-IN ATOM TABLE	*
 		 *******************************/
 
@@ -219,26 +302,51 @@ registerAtom(Atom a)
 		 *******************************/
 
 word
-lookupAtom(const char *s, unsigned int length)
+lookupBlob(const char *s, unsigned int length, PL_blob_t *type, int *new)
 { int v0, v;
   ulong oldheap;
   Atom a;
+
+  if ( !type->registered )		/* avoid deadlock */
+    PL_register_blob_type(type);
 
   LOCK();
   v0 = unboundStringHashValue(s, length);
   v  = v0 & (atom_buckets-1);
   DEBUG(0, lookups++);
 
-  for(a = atomTable[v]; a; a = a->next)
-  { DEBUG(0, cmps++);
-    if ( length == a->length &&
-	 memcmp(s, a->name, length) == 0 )
-    { 
+  if ( true(type, PL_BLOB_UNIQUE) )
+  { if ( false(type, PL_BLOB_NOCOPY) )
+    { for(a = atomTable[v]; a; a = a->next)
+      { DEBUG(0, cmps++);
+	if ( length == a->length &&
+	     type == a->type &&
+	     memcmp(s, a->name, length) == 0 )
+	{ 
 #ifdef O_ATOMGC
-      a->references++;
+	  a->references++;
 #endif
-      UNLOCK();
-      return a->atom;
+          UNLOCK();
+	  *new = FALSE;
+	  return a->atom;
+	}
+      }
+    } else
+    { for(a = atomTable[v]; a; a = a->next)
+      { DEBUG(0, cmps++);
+
+	if ( length == a->length &&
+	     type == a->type &&
+	     s == a->name )
+	{ 
+#ifdef O_ATOMGC
+	  a->references++;
+#endif
+          UNLOCK();
+	  *new = FALSE;
+	  return a->atom;
+	}
+      }
     }
   }
 
@@ -246,9 +354,14 @@ lookupAtom(const char *s, unsigned int length)
     oldheap = GD->statistics.heap;
     a = allocHeap(sizeof(struct atom));
     a->length = length;
-    a->name = allocHeap(length+1);
-    memcpy(a->name, s, length);
-    a->name[length] = EOS;
+    a->type = type;
+    if ( false(type, PL_BLOB_NOCOPY) )
+    { a->name = allocHeap(length+1);
+      memcpy(a->name, s, length);
+      a->name[length] = EOS;
+    } else
+    { a->name = (char *)s;
+    }
 #ifdef O_HASHTERM
     a->hash_value = v0;
 #endif
@@ -256,8 +369,10 @@ lookupAtom(const char *s, unsigned int length)
     a->references = 1;
 #endif
     registerAtom(a);
-    a->next       = atomTable[v];
-    atomTable[v]  = a;
+    if ( true(type, PL_BLOB_UNIQUE) )
+    { a->next       = atomTable[v];
+      atomTable[v]  = a;
+    }
     GD->statistics.atoms++;
   }
 
@@ -274,8 +389,21 @@ lookupAtom(const char *s, unsigned int length)
 
   UNLOCK();
   
+  *new = TRUE;
+  if ( type->acquire )
+    (*type->acquire)(a->atom);
+
   return a->atom;
 }
+
+
+word
+lookupAtom(const char *s, unsigned int length)
+{ int new;
+
+  return lookupBlob(s, length, &text_atom, &new);
+}
+
 
 		 /*******************************
 		 *	      ATOM-GC		*
@@ -417,7 +545,10 @@ destroyAtom(Atom *ap, unsigned long mask ARG_LD)
 { Atom a = *ap;
   Atom *ap2 = &atomTable[a->hash_value & mask];
 
-  if ( GD->atoms.gc_hook )
+  if ( a->type->release )
+  { if ( !(*a->type->release)(a->atom) )
+      return;
+  } else if ( GD->atoms.gc_hook )
   { if ( !(*GD->atoms.gc_hook)(a->atom) )
       return;				/* foreign hooks says `no' */
   }
@@ -447,7 +578,8 @@ destroyAtom(Atom *ap, unsigned long mask ARG_LD)
   GD->atoms.collected++;
   GD->statistics.atoms--;
 
-  freeHeap(a->name, a->length+1);
+  if ( false(a->type, PL_BLOB_NOCOPY) )
+    freeHeap(a->name, a->length+1);
   freeHeap(a, sizeof(*a));
 }
 
@@ -680,6 +812,7 @@ registerBuiltinAtoms()
 
     a->name       = (char *)*s;
     a->length     = len;
+    a->type       = &text_atom;
 #ifdef O_ATOMGC
     a->references = 0;
 #endif
@@ -717,6 +850,7 @@ initAtoms(void)
     GD->atoms.margin     = 10000;
     lockAtoms();
 #endif
+    PL_register_blob_type(&text_atom);
 
     DEBUG(0, PL_on_halt(exitAtoms, NULL));
   }
@@ -730,23 +864,20 @@ cleanupAtoms(void)
 }
 
 
-word
-pl_current_atom2(term_t a, term_t refs, control_t h)
-{ GET_LD
-  unsigned int i;
+static word
+current_blob(term_t a, term_t type, frg_code call, int i ARG_LD)
+{ atom_t type_name = 0;
 
-  switch( ForeignControl(h) )
+  switch( call )
   { case FRG_FIRST_CALL:
-      if ( PL_is_atom(a) )
-      {
-#ifdef O_ATOMGC
-	if ( refs )
-	{ Atom ap = atomValue(a);
+    { PL_blob_t *bt;
 
-	  return PL_unify_integer(refs,
-				  ap->references & ~ATOM_MARKED_REFERENCE);
-	}
-#endif
+      if ( PL_is_blob(a, &bt) )
+      { if ( type )
+	  return PL_unify_atom(type, bt->atom_name);
+	else if ( false(bt, PL_BLOB_TEXT) )
+	  fail;
+	  
 	succeed;
       }
       if ( !PL_is_variable(a) )
@@ -754,24 +885,32 @@ pl_current_atom2(term_t a, term_t refs, control_t h)
 
       i = 0;
       break;
+    }
     case FRG_REDO:
-      i = ForeignContextInt(h);
       break;
     case FRG_CUTTED:
     default:
       succeed;
   }
 
-  for( ; i < entriesBuffer(&atom_array, Atom); i++ )
+  if ( type )
+  { if ( !PL_is_variable(type) &&
+	 !PL_get_atom_ex(type, &type_name) )
+      fail;
+  }
+
+  for( ; i < (int)entriesBuffer(&atom_array, Atom); i++ )
   { Atom atom;
 
     if ( (atom = baseBuffer(&atom_array, Atom)[i]) )
-    { 
-#ifdef O_ATOMGC
-      if ( refs &&
-	   !PL_unify_integer(refs, atom->references & ~ATOM_MARKED_REFERENCE) )
+    { if ( type )
+      { if ( type_name && type_name != atom->type->atom_name )
+	  continue;
+
+	PL_unify_atom(type, atom->type->atom_name);
+      } else if ( false(atom->type, PL_BLOB_TEXT) )
 	continue;
-#endif
+	
       PL_unify_atom(a, atom->atom);
       ForeignRedoInt(i+1);
     }
@@ -781,9 +920,19 @@ pl_current_atom2(term_t a, term_t refs, control_t h)
 }
 
 
-word
-pl_current_atom(term_t a, control_t h)
-{ return pl_current_atom2(a, 0, h);
+static
+PRED_IMPL("current_blob", 2, current_blob, PL_FA_NONDETERMINISTIC)
+{ PRED_LD
+
+  return current_blob(A1, A2, CTX_CNTRL, CTX_INT PASS_LD);
+}
+
+
+static
+PRED_IMPL("current_atom", 1, current_atom, PL_FA_NONDETERMINISTIC)
+{ PRED_LD
+
+  return current_blob(A1, 0, CTX_CNTRL, CTX_INT PASS_LD);
 }
 
 
@@ -916,8 +1065,8 @@ pl_atom_completions(term_t prefix, term_t alternatives)
   term_t alts = PL_copy_term_ref(alternatives);
   term_t head = PL_new_term_ref();
 
-  if ( !PL_get_chars(prefix, &p, CVT_ALL) )
-    return warning("$atom_completions/2: instanstiation fault");
+  if ( !PL_get_chars_ex(prefix, &p, CVT_ALL) )
+    fail;
   strcpy(buf, p);
 
   extend_alternatives(buf, altv, &altn);
@@ -995,4 +1144,11 @@ PL_atom_generator(const char *prefix, int state)
   return NULL;
 }
 
+		 /*******************************
+		 *      PUBLISH PREDICATES	*
+		 *******************************/
 
+BeginPredDefs(atom)
+  PRED_DEF("current_blob",  2, current_blob, PL_FA_NONDETERMINISTIC)
+  PRED_DEF("current_atom", 1, current_atom, PL_FA_NONDETERMINISTIC)
+EndPredDefs

@@ -194,6 +194,8 @@ fill_menu_bar(F) :->
 			      message(F, about),
 			      end_group := @on),
 
+		    menu_item('Package documentation ...',
+			      message(F, open_package_doc)),
 		    menu_item('SWI-Prolog WWW home (on www) ...',
 			      message(F, open_url, pl)),
 		    menu_item('SWI-Prolog FAQ (on www) ...',
@@ -229,6 +231,20 @@ open_url(F, Id) :->
 	Spec =.. [Id, '.'],
 	www_open_url(Spec),
 	send(F, report, done).
+
+
+open_package_doc(_F) :->
+	(   absolute_file_name(swi('doc/packages/index.html'),
+			       [ access(read),
+				 file_errors(fail)
+			       ],
+			       Page)
+	->  atom_concat('file://', Page, URL),
+	    www_open_url(URL)
+	;   send(@display, inform,
+		 'Package documentation is not installed.  You may\n \
+		  wish to view it on http://www.swi-prolog.org')
+	).
 
 
 edit_preferences(_F, Which:name) :->

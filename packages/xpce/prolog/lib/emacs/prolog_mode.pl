@@ -371,7 +371,9 @@ find_definition(M, For:prolog_predicate, NewWindow:[bool]) :->
 	"Find definition of predicate [in new window]"::
 	get(M, text_buffer, TB),
 	get(For, head, @off, Head),
-	(   xref_defined(TB, Head, local(Line))		% local
+	(   (   xref_defined(TB, Head, local(Line))		% local
+	    ;	xref_defined(TB, Head, constraint(Line))
+	    )
 	->  (   NewWindow == @on
 	    ->	get(M, text_buffer, TB),
 		new(W2, emacs_frame(TB)),
@@ -730,10 +732,14 @@ insert_full_stop(M, Arg:[int]) :->
 	;   true
 	).
 
+:- multifile
+	alternate_syntax/3.
+
 alternate_syntax(prolog,    true,
 			    true).
-alternate_syntax(pce_class, pce_expansion:push_compile_operators,
-			    pce_expansion:pop_compile_operators).
+alternate_syntax(pce_class, pce_expansion:push_compile_operators(SM),
+			    pce_expansion:pop_compile_operators) :-
+	'$set_source_module'(SM, SM).
 
 :- dynamic
 	syntax_error/1.
@@ -822,7 +828,7 @@ pl_error_message(X, none) :-
  ),
  (
 pl_error_message(error(syntax_error(Id),
-		       stream(_S, _Line, CharNo)),
+		       stream(_S, _Line, _LinePos, CharNo)),
 		 CharNo:Msg) :-
 	message_to_string(error(syntax_error(Id), _), Msg)
  )

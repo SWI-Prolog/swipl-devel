@@ -62,6 +62,7 @@ static atom_t ATOM_locking;
 static atom_t ATOM_logging;
 static atom_t ATOM_transactions;
 static atom_t ATOM_create;
+static atom_t ATOM_type;
 static atom_t ATOM_database;
 static atom_t ATOM_key;
 static atom_t ATOM_value;
@@ -116,6 +117,7 @@ initConstants()
   ATOM_logging	      =	PL_new_atom("logging");
   ATOM_transactions   =	PL_new_atom("transactions");
   ATOM_create	      =	PL_new_atom("create");
+  ATOM_type	      =	PL_new_atom("type");
   ATOM_database	      =	PL_new_atom("database");
   ATOM_key	      =	PL_new_atom("key");
   ATOM_value	      =	PL_new_atom("value");
@@ -451,10 +453,12 @@ db_options(term_t t, dbh *dbh, char **subdb)
 	} else if ( name == ATOM_value )
 	{ if ( !get_dtype(a0, &dbh->value_type) )
 	    return FALSE;
-	} else
-	  return pl_error(ERR_DOMAIN, "db_option", head);
+	} else if ( name == ATOM_type )
+	    ;  /* skip [ ... type(_) ... ]  because it's handled by db_type */
+	else
+	    return pl_error(ERR_DOMAIN, "db_option", head);
       } else
-	return pl_error(ERR_DOMAIN, "db_option", head);
+	  return pl_error(ERR_DOMAIN, "db_option", head);
     }
   }
 
@@ -596,6 +600,15 @@ pl_db_closeall()
 		 *	   TRANSACTIONS		*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+NOTE: as of 4.2 txn_begin(), txn_commit()  and txn_abort() are no longer
+available as functions but as memberfunctions of DB_ENV. If I understand
+the docs correctly this was already possible for older versions as well.
+
+If there are troubles  with  older  versions   we  must  handle  this in
+configure.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 typedef struct _transaction
 { DB_TXN *tid;				/* transaction id */
   struct _transaction *parent;		/* parent id */
@@ -615,7 +628,7 @@ begin_transaction()
     else
       pid = NULL;
   
-    if ( (rval=txn_begin(db_env, pid, &tid, 0)) )
+    if ( (rval=db_env->txn_begin(db_env, pid, &tid, 0)) )
       return db_status(rval);
   
     t = malloc(sizeof(*t));
@@ -642,7 +655,7 @@ commit_transaction()
     transaction_stack = t->parent;
     free(t);
 
-    if ( (rval=txn_commit(tid, 0)) )
+    if ( (rval=tid->commit(tid, 0)) ) /* was txn_commit(tid, 0) */
       return db_status(rval);
 
     return TRUE;
@@ -663,7 +676,7 @@ abort_transaction()
     transaction_stack = t->parent;
     free(t);
 
-    if ( (rval=txn_abort(tid)) )
+    if ( (rval=tid->abort(tid)) )	/* was txn_abort(tid) */
       return db_status(rval);
 
     return TRUE;
@@ -1004,10 +1017,16 @@ pl_db_getdel(term_t handle, term_t key, term_t value, control_t ctx, int del)
 	memset(&v, 0, sizeof(v));
 
 	if ( (rval=db->db->get(db->db, TheTXN, &k, &v, 0)) == 0 )
-	  return unify_dbt(value, db->value_type, &v);
+	{ int rc = unify_dbt(value, db->value_type, &v);
 
-	free_dbt(&k, db->key_type);
-	return db_status(rval);
+	  if ( rc && del )
+	  { int flags = 0;
+
+	    return db_status(db->db->del(db->db, TheTXN, &k, flags));
+	  } else
+	    return rc;
+	} else
+	  return db_status(rval);
       }
     case PL_REDO:
       c = PL_foreign_context_address(ctx);
@@ -1161,6 +1180,11 @@ get_server(term_t options, server_info *info)
 }
 
 
+#if defined(DB_CLIENT) && !defined(DB_RPCCLIENT)
+#define DB_RPCCLIENT DB_CLIENT
+#endif
+
+
 #define MAXCONFIG 20
 
 static foreign_t
@@ -1181,7 +1205,7 @@ pl_db_init(term_t option_list)
   config[0] = NULL;
 
   if ( get_server(option_list, &si) )
-  { if ( (rval=db_env_create(&db_env, DB_CLIENT)) )
+  { if ( (rval=db_env_create(&db_env, DB_RPCCLIENT)) )
       return db_status(rval);
 #ifdef HAVE_SET_RPC_SERVER		/* >= 4.0 */
     rval = db_env->set_rpc_server(db_env, 0, si.host,

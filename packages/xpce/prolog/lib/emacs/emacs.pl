@@ -103,8 +103,10 @@ pce_ifhostproperty(prolog(swi),
 %:- declare_emacs_mode(outline, library('emacs/outline_mode')).
 %:- declare_emacs_mode(language,library('emacs/language_mode')).
 :- declare_emacs_mode(prolog,	library('emacs/prolog_mode')).
+:- declare_emacs_mode(chr,	library('emacs/chr_mode')).
 :- declare_emacs_mode(latex,	library('emacs/latex_mode')).
 %:- declare_emacs_mode(html,	library('emacs/html_mode')).
+:- declare_emacs_mode(java,	library('emacs/java_mode')).
 :- declare_emacs_mode(c,	library('emacs/c_mode')).
 :- declare_emacs_mode(cpp,	library('emacs/cpp_mode')).
 :- declare_emacs_mode(script,	library('emacs/script_mode')).
@@ -136,6 +138,7 @@ pce_ifhostproperty(prolog(swi),
 :- pce_global(@emacs_default_mode, new(var(value := script))).
 :- pce_global(@emacs_mode_list, make_emacs_mode_list).
 :- pce_global(@emacs_interpreter_mode_list, make_emacs_interpreter_mode_list).
+:- pce_global(@emacs_content_mode_list, make_emacs_content_mode_list).
 :- pce_global(@emacs_no_backup_list, make_no_backup_list).
 
 make_emacs_mode_list(Sheet) :-
@@ -152,6 +155,7 @@ make_emacs_mode_list(Sheet) :-
 	
 default_emacs_mode('.*\\.pl~?$',   		   	prolog).
 default_emacs_mode('\\.\\(pl\\|xpce\\|pceemacs\\)rc~?', prolog).
+default_emacs_mode('.*\.chr~?$',			chr).
 default_emacs_mode('.*\\.\\(tex\\|sty\\)~?$', 		latex).
 default_emacs_mode('.*\\.doc~?$',	 		latex).
 default_emacs_mode('.*\\.html~?$',	 		html).
@@ -163,6 +167,7 @@ default_emacs_mode('.*\\.rdfs~?$',	 		rdfs).
 default_emacs_mode('.*\\.owl~?$',	 		owl).
 default_emacs_mode('.*\\.ann~?$',	 		annotate).
 default_emacs_mode('.*\\.[ch]~?$', 			c).
+default_emacs_mode('.*\\.java~?$',			java).
 default_emacs_mode('.*\\.C$',				cpp).
 default_emacs_mode('.*\\.cc$',				cpp).
 default_emacs_mode('.*\\.cpp$',				cpp).
@@ -185,6 +190,22 @@ emacs_interpreter_mode('.*/pl',				prolog).
 emacs_interpreter_mode('.*/xpce',			prolog).
 emacs_interpreter_mode('.*/perl',			c).
 emacs_interpreter_mode('.*/awk',			c).
+
+%	emacs_content_mode(+Regex, +SearchLimit, +Mode)
+%	
+%	Select Mode if Regex matches in the first SearchLimit characters
+%	of the file.
+
+make_emacs_content_mode_list(Sheet) :-
+	new(Sheet, sheet),
+	(   emacs_content_mode(Regex, SearchLimit, Mode),
+	       send(Sheet, value, tuple(regex(Regex), SearchLimit), Mode),
+	    fail
+	;   true
+	).
+
+emacs_content_mode('library(chr)', 	5000,	chr).
+
 
 %	Do not make backup of a file matching this pattern
 

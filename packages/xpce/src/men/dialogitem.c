@@ -470,6 +470,12 @@ assignAccelerators(Chain objects, Name prefix, Name label_method)
   Cell cell;
   Abin a = bins;
   unsigned char used[ACC_CHARSETSIZE];
+  int do_free = FALSE;
+
+  if ( size && !bins )
+  { bins = pceMalloc(sizeof(abin) * size);
+    do_free = TRUE;
+  }
 
   for(n=0; n<ACC_CHARSETSIZE; n++)
     used[n] = 0;
@@ -535,6 +541,9 @@ assignAccelerators(Chain objects, Name prefix, Name label_method)
     } else
       send(bins[n].object, NAME_accelerator, NIL, EAV);
   }
+
+  if ( do_free )
+    pceFree(bins);
 
   succeed;
 }

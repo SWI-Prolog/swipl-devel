@@ -32,9 +32,9 @@ This code can only be distributed as part of XPCE.
 	    nth1/3,			% sicstus nth/3
 	    subtract/3,			% +List, -DeleteList, -Rest
 	    subset/2,			% +Set, +Subset (test for subset)
+	    maplist/2,			% :Goal, +InList, -OutList
 	    maplist/3,			% :Goal, +InList, -OutList
 	    sublist/3,			% :Goal, +InList, -OutList
-	    checklist/2,		% :Goal, +List
 	    call/2,			% :Goal, +Arg1
 	    call/3,			% :Goal, +Arg1, +Arg2
 	    ignore/1,			% :Goal
@@ -49,7 +49,6 @@ This code can only be distributed as part of XPCE.
 	    unix/1,			% unix(argv(Argv))
 	    term_to_atom/2,		% ?Term, ?Atom
 	    atom_to_term/3,		% +Atom, -Term, -Bindings
-	    free_variables/2,		% SICStus term_variables/2
 	    concat/3,			% ?A, ?B, ?AB
 	    concat_atom/2,		% +List, -Atom
 	    concat_atom/3,		% +List, +Separator, -Atom
@@ -63,8 +62,8 @@ This code can only be distributed as part of XPCE.
 	call(:, +, +),
 	ignore(:),
 	auto_call(:),
+	maplist(:, +),
 	maplist(:, +, -),
-	checklist(:, +),
 	sublist(:, +, -),
 	callable_predicate(:).
 
@@ -270,19 +269,19 @@ sublist(Goal, [H|T], Sub) :-
 sublist(Goal, [_|T], R) :-
 	sublist(Goal, T, R).
 
-%	checklist(+Goal, +List)
+%	maplist(+Goal, +List)
 %
 %	True if Goal can succesfully be applied on all elements of List.
 %	Arguments are reordered to gain performance as well as to make
 %	the predicate deterministic under normal circumstances.
 
-checklist(Goal, List) :-
-	checklist2(List, Goal).
+maplist(Goal, List) :-
+	maplist2(List, Goal).
 
-checklist2([], _).
-checklist2([Elem|Tail], Goal) :-
+maplist2([], _).
+maplist2([Elem|Tail], Goal) :-
 	call(Goal, Elem), 
-	checklist2(Tail, Goal).
+	maplist2(Tail, Goal).
 
 %	call(+Goal, +Arg ...)
 
@@ -506,14 +505,6 @@ unix(argv(Argv)) :- !,
 	prolog_flag(argv, Argv).
 unix(Term) :-
 	throw(error(domain_error(system_command, Term), _)).
-
-
-		 /*******************************
-		 *	      VARIABLES		*
-		 *******************************/
-
-free_variables(Term, Vars) :-
-	term_variables(Term, Vars).
 
 
 		 /*******************************

@@ -212,50 +212,97 @@ rlc_add_menu_bar(HWND cwin)
   SetMenu(cwin, menu);
 }
 
+		 /*******************************
+		 *	    EXTERNAL		*
+		 *******************************/
 
-int
-rlc_insert_menu_item(rlc_console c,
-		     const char *menu, const char *label, const char *before)
+#define MEN_MAGIC 0x6c4a58e0
+
+typedef struct menu_data
+{ long magic;				/* safety */
+  const char *menu;			/* menu to operate on */
+  const char *label;			/* new label */
+  const char *before;			/* add before this one */
+  int         rc;			/* result */
+} menu_data;
+
+
+void
+rlc_menu_action(rlc_console c, menu_data *data)
 { RlcData b = rlc_get_data(c);
-  HMENU popup;
 
-  if ( (popup = findPopup(b, menu, NULL)) )
-    return insertMenu(popup, label, before);
+  if ( !data || !data->magic == MEN_MAGIC )
+    return;
+  
+  if ( data->menu )			/* rlc_insert_menu_item() */
+  { HMENU popup;
+
+    if ( (popup = findPopup(b, data->menu, NULL)) )
+      data->rc = insertMenu(popup, data->label, data->before);
+    else
+      data->rc = FALSE;
+  } else				/* insert_menu() */
+  { HMENU mb;
+    HWND hwnd = rlc_hwnd(c);
+
+    if ( !(mb = GetMenu(hwnd)) )
+    { data->rc = FALSE;
+      return;
+    }
+
+    if ( !findPopup(b, data->label, NULL) )	/* already there */
+    { MENUITEMINFO info;
+      int bid = -1;
+
+      if ( data->before )
+	findPopup(b, data->before, &bid);
+
+      memset(&info, 0, sizeof(info));
+      info.cbSize = sizeof(info);
+      info.fMask = MIIM_TYPE|MIIM_SUBMENU;
+      info.fType = MFT_STRING;
+      info.hSubMenu = CreatePopupMenu();
+      info.dwTypeData = (char *)data->label;
+      info.cch = strlen(data->label);
       
-  return FALSE;
+      InsertMenuItem(mb, bid, TRUE, &info);
+					/* force redraw; not automatic! */
+      DrawMenuBar(hwnd);
+    }
+
+    data->rc = TRUE;
+  }
 }
 
 
 int
 rlc_insert_menu(rlc_console c, const char *label, const char *before)
-{ RlcData b = rlc_get_data(c);
-  HMENU mb;
-  HWND hwnd = rlc_hwnd(c);
+{ HWND hwnd = rlc_hwnd(c);
+  menu_data data;
 
-  if ( !(mb = GetMenu(hwnd)) )
-    return FALSE;
+  data.magic  = MEN_MAGIC;
+  data.menu   = NULL;
+  data.label  = label;
+  data.before = before;
 
-  if ( !findPopup(b, label, NULL) )	/* already there */
-  { MENUITEMINFO info;
-    int bid = -1;
+  SendMessage(hwnd, WM_RLC_MENU, 0, (LPARAM)&data);
 
-    if ( before )
-      findPopup(b, before, &bid);
-
-    memset(&info, 0, sizeof(info));
-    info.cbSize = sizeof(info);
-    info.fMask = MIIM_TYPE|MIIM_SUBMENU;
-    info.fType = MFT_STRING;
-    info.hSubMenu = CreatePopupMenu();
-    info.dwTypeData = (char *)label;
-    info.cch = strlen(label);
-    
-    InsertMenuItem(mb, bid, TRUE, &info);
-					/* force redraw; not automatic! */
-    RedrawWindow(hwnd, NULL, 0,
-		 RDW_FRAME|RDW_INVALIDATE|RDW_NOINTERNALPAINT);
-  }
-
-  return TRUE;
+  return data.rc;
 }
 
+
+int
+rlc_insert_menu_item(rlc_console c,
+		     const char *menu, const char *label, const char *before)
+{ HWND hwnd = rlc_hwnd(c);
+  menu_data data;
+
+  data.magic  = MEN_MAGIC;
+  data.menu   = menu;
+  data.label  = label;
+  data.before = before;
+
+  SendMessage(hwnd, WM_RLC_MENU, 0, (LPARAM)&data);
+
+  return data.rc;
+}

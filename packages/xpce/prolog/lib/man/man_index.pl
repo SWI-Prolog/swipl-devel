@@ -203,7 +203,7 @@ prepare_manual :-
 	manpce.
 prepare_manual :-
 	new(Directory, directory('$PCEHOME/man/reference')),
-	new(_, man_space(reference, Directory)),
+	new(@man_space, man_space(reference, Directory)),
 	send(@pce, send_method,		% make it silent
 	     send_method(report, vector('any ...'), new(and))).
 
@@ -228,7 +228,10 @@ make_module_index :-
 make_module_index.
 
 make_module_index(ModuleName) :-
-	get(@manual, space, ManSpace),
+	(   object(@manual)
+	->  get(@manual, space, ManSpace)
+	;   ManSpace = @man_space	% non-gui building
+	),
 	get(ManSpace, module, ModuleName, @on, Module),
 	send(Module?id_table, for_all,
 	     message(@prolog, index_card, ModuleName, @arg1, @arg2)).

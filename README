@@ -75,7 +75,7 @@ Otherwise, run configure using the options below,   first  to get rid of
 exception-handling and second to  fall  back   to  malloc()  based stack
 management.
 
-	./configure --diable-segv-handling
+	./configure --disable-segv-handling
 	./configure --disable-mapped-stacks
 
 Run `make clean && make' to recompile after reconfiguration.

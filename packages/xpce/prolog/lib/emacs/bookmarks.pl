@@ -241,7 +241,8 @@ load_bookmark(bookmark(File0, Line, Title, Stamp, Note), BM) :- !,
 			       ],
 			       File)
 	->  new(Created, date),
-	    send(Created, posix_value, Stamp),
+	    FStamp is float(Stamp),		% avoid overflow
+	    send(Created, posix_value, FStamp),
 	    send(BM, bookmark,
 		 new(M, emacs_bookmark(File, Line, Title, Created, Note)),
 		 @off),			% do not sort

@@ -1,3 +1,8 @@
+Apr 11, 2004
+
+ * Fixed ambiguity in PlTermvDomainError constructor showing up with g++
+   3.3.
+
 Jan 21, 2003
 
  * One more const to avoid confusing the compiler.  Thanks to Alan Baljeu

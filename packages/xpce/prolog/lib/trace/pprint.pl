@@ -70,7 +70,7 @@ Options:
 print_term(Term, Options0) :-
 	defaults(Defs),
 	append(Options0, Defs, Options1),
-	select(write_options(WrtOpts0), Options1, Options2),
+	select(write_options(WrtOpts0), Options1, Options2), !,
 	(   select(max_depth(MaxDepth), WrtOpts0, WrtOpts)
 	->  Options = [write_options(WrtOpts)|Options2]
 	;   MaxDepth = inf,

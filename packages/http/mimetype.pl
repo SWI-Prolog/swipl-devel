@@ -65,8 +65,19 @@ mime_extension(html, text/html).
 mime_extension(sgml, text/'x-sgml').
 mime_extension(sgm,  text/'x-sgml').
 mime_extension(xml,  text/xml).
+					% semantic web stuff
+mime_extension(rdf,  application/'rdf+xml').
+mime_extension(rdfs, application/'rdf+xml').
+mime_extension(owl,  application/'rdf+xml').
 					% Prolog source
 mime_extension(pl,   application/'x-prolog').
+					% Packaged formats
+mime_extension(gz,   application/'x-gzip').
+mime_extension(zip,  application/zip).
+mime_extension(tgz,  application/'x-gtar').
+					% Some document formats
+mime_extension(pdf,  application/pdf).
+mime_extension(doc,  application/msword).
 					% Some image formats
 mime_extension(jpg,  image/jpeg).
 mime_extension(jpeg, image/jpeg).

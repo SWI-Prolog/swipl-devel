@@ -22,7 +22,6 @@
 #	* make install-arch	Install machine dependent files
 #	* make install-libs	Install machine independent files
 #	* make install-lman	Install man files in Prolog lib hierarchy
-#	* make install-mt	Install multi-threaded version next to normal
 #	* make check		Run some tests
 #
 # Copyright (C) University of Amsterdam, all rights reserved
@@ -62,6 +61,7 @@ RANLIB=@RANLIB@
 ARCH=@ARCH@
 INSTALL=@INSTALL@
 INSTALL_PROGRAM=@INSTALL_PROGRAM@
+INSTALL_SCRIPT=@INSTALL_SCRIPT@
 INSTALL_DATA=@INSTALL_DATA@
 MKDIR=@MKDIR@
 REL_LN=$(srcdir)/rel-ln
@@ -85,11 +85,17 @@ CINCLUDE=$(INCLUDEDIR)/SWI-Prolog.h
 STREAMH=$(INCLUDEDIR)/SWI-Stream.h
 STUBC=$(INCLUDEDIR)/stub.c
 STARTUPPATH=$(PL).prc
-RUNTIMEDIR=../runtime/$(ARCH)
+RUNTIMEDIR=../lib/$(ARCH)
 PLLIB=@PLLIB@
+LNLIBS=@LNLIBS@
 USEPLLIB=@USEPLLIB@
 RUNTIME=$(RUNTIMEDIR)/$(PLLIB)
+SHARED=@PLSO@
+SHAREDV=$(SHARED).$(PLVERSION)
+SONAMEOPT=-Wl,-soname=@PLSO@.$(PLVERSION)
 LIBRARYDIR=${PLBASE}/library
+MKLIBS=@MKLIBS@
+DEVPL=./pl.sh
 
 OBJ=	pl-atom.o pl-wam.o pl-stream.o pl-error.o pl-arith.o pl-bag.o \
 	pl-comp.o pl-rc.o pl-dwim.o pl-ext.o pl-file.o pl-flag.o \
@@ -98,24 +104,23 @@ OBJ=	pl-atom.o pl-wam.o pl-stream.o pl-error.o pl-arith.o pl-bag.o \
 	pl-proc.o pl-prof.o pl-read.o pl-rec.o pl-rl.o pl-setup.o \
 	pl-sys.o pl-table.o pl-trace.o pl-util.o pl-wic.o pl-write.o \
 	pl-term.o pl-buffer.o pl-thread.o pl-xterm.o pl-feature.o pl-ctype.o \
-	pl-beos.o
+	pl-beos.o pl-attvar.o pl-gvar.o pl-main.o
 XOBJ=	@ALLOCA@ @EXTRAOBJ@
 RCOBJ=	rc/access.o rc/build.o rc/html.o rc/util.o
 
-DEPOBJ=	pl-main.o
-EXT=	pl-extend.o
-ALLOBJ= $(OBJ) $(DEPOBJ) $(EXT) $(XOBJ)
+PLOBJ=	pl-extend.o
+ALLOBJ= $(OBJ) $(PLOBJ) $(XOBJ)
 
 PLINIT=	$(PB)/init.pl
 
 INCSRC=	pl-index.c pl-alloc.c pl-fli.c
-SRC=	$(OBJ:.o=.c) $(DEPOBJ:.o=.c) $(EXT:.o=.c) $(INCSRC)
+SRC=	$(OBJ:.o=.c) $(PLOBJ:.o=.c) $(INCSRC)
 HDR=	config.h parms.h pl-buffer.h pl-ctype.h pl-incl.h pl-itf.h pl-main.h \
 	pl-os.h pl-data.h
 
 PLSRC=	../boot/syspred.pl ../boot/toplevel.pl ../boot/license.pl \
 	../boot/sort.pl ../boot/bags.pl ../boot/apply.pl \
-	../boot/writef.pl ../boot/history.pl \
+	../boot/writef.pl ../boot/history.pl ../boot/attvar.pl \
 	../boot/dwim.pl ../boot/rc.pl \
 	../boot/parms.pl ../boot/autoload.pl ../boot/qlf.pl \
 	../boot/topvars.pl ../boot/messages.pl ../boot/load.pl
@@ -126,14 +131,16 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl \
 	edit.pl emacs_interface.pl shell.pl check.pl \
 	tty.pl readln.pl readutil.pl make.pl option.pl \
 	am_match.pl oset.pl ordsets.pl occurs.pl lists.pl \
-	netscape.pl url.pl main.pl \
-	threadutil.pl qpforeign.pl \
-	checklast.pl checkselect.pl
+	netscape.pl url.pl main.pl assoc.pl \
+	threadutil.pl qpforeign.pl dif.pl when.pl \
+	checklast.pl checkselect.pl operators.pl \
+	prolog_stack.pl
+CLP=	bounds.pl
 PLWIN=	wise.pl dde.pl progman.pl registry.pl
+builddirs = ../lib ../lib/$(ARCH)
 
-all:	banner \
-	headers rc-lib system startup index runtime \
-	plld
+all:	banner dirs \
+	headers rc-lib $(MKLIBS) system startup index plld
 
 .c.o:
 	$(CC) -c -I. -I$(srcdir) -I$(srcdir)/rc $(CFLAGS) $< @COUTOPT@
@@ -141,7 +148,9 @@ all:	banner \
 system:		$(PL)
 startup:	$(STARTUPPATH)
 headers:	parms.h $(CINCLUDE) $(STREAMH) $(STUBC) @EXTRAHDR@
-runtime:	$(RUNTIME)
+staticlib:	$(RUNTIME)
+sharedlib:	$(RUNTIMEDIR)/$(SHARED)
+index:		../library/INDEX.pl
 
 banner::
 		@echo "****************"
@@ -151,26 +160,35 @@ banner::
 		@echo "****************"
 
 
-$(PL):		$(ALLOBJ) rc/librc.a
-		$(LDEXE) $(LDFLAGS) -o $(PL) $(ALLOBJ) -Lrc -lrc $(LIBS)
-
+$(PL):		$(RUNTIME) $(PLOBJ)
+		$(LDEXE) $(LDFLAGS) -o $(PL) $(PLOBJ) -L../lib/$(ARCH) -lpl $(LNLIBS)
 
 $(STARTUPPATH):	$(PLINIT) $(PLSRC) $(PL)
-		./$(PL) -O -o $(STARTUPPATH) -b $(PLINIT)
+		$(DEVPL) -O -o $(STARTUPPATH) -b $(PLINIT)
 
 
-$(RUNTIME):	$(OBJ) $(RCOBJ) $(DEPOBJ) $(XOBJ)
-		if [ ! -d ../runtime ]; then $(MKDIR) ../runtime; fi
-		if [ ! -d $(RUNTIMEDIR) ]; then $(MKDIR) $(RUNTIMEDIR); fi
+dirs::
+		@for d in $(builddirs); do \
+		  if [ ! -d $$d ]; then mkdir $$d; fi; \
+		done
+
+$(RUNTIME):	$(OBJ) $(RCOBJ) $(XOBJ)
 		rm -f $@
-		$(AR) r $@ $(OBJ) $(RCOBJ) $(DEPOBJ) $(XOBJ)
+		$(AR) r $@ $(OBJ) $(RCOBJ) $(XOBJ)
 		$(RANLIB) $@
+
+$(RUNTIMEDIR)/$(SHAREDV):	$(RUNTIMEDIR) $(OBJ) $(RCOBJ) $(XOBJ)
+		$(CC) -shared $(COFLAGS) -o $@ $(SONAMEOPT) \
+			$(OBJ) $(RCOBJ) $(XOBJ) $(LIBS)
+
+$(RUNTIMEDIR)/$(SHARED):	$(RUNTIMEDIR)/$(SHAREDV)
+		( cd ../lib/$(ARCH) && rm -f $(SHARED) && ln -s $(SHAREDV) $(SHARED) )
 
 rc-lib:
 		@(cd rc && $(MAKE) COFLAGS="$(COFLAGS)")
 
-index:
-		./$(PL) -x $(STARTUPPATH) \
+../library/INDEX.pl:	../library ../library/[a-z]*.pl
+		$(DEVPL) -x $(STARTUPPATH) \
 			-f none -F none \
 			-g make_library_index\(\'../library\'\) \
 			-t halt
@@ -218,7 +236,7 @@ parms.h:	Makefile
 		@echo $(PLVERSION) | \
 		$(AWK) -F. '{ printf("#define PLVERSION %d\n", $$1 * 10000 + $$2 * 100 + $$3); }' >> $@%
 		@echo "#define ARCH	    \"$(ARCH)\""       >> $@%
-		@echo "#define C_LIBS	    \"$(LIBS)\""       >> $@%
+		@echo "#define C_LIBS	    \"$(LNLIBS)\""     >> $@%
 		@echo "#define C_PLLIB	    \"$(USEPLLIB)\""   >> $@%
 		@echo "#define C_CC	    \"$(CC)\""	       >> $@%
 		@echo "#define C_LDFLAGS    \"$(LDFLAGS)\""    >> $@%
@@ -252,16 +270,12 @@ $(srcdir)/TAGS:	$(SRC)
 		(cd $(srcdir) && $(ETAGS) $(SRC) $(HDR))
 
 check:
-		./$(PL) -f $(srcdir)/test.pl -F none -g test,halt -t 'halt(1)'
+		$(DEVPL) -f $(srcdir)/test.pl -F none -g test,halt -t 'halt(1)'
 
 install:	@INSTALLTARGET@
 install-version: install-arch install-libs install-vbins
 
 dv-install:	install-arch install-libs install-bins
-
-install-mt:	
-		$(INSTALL_PROGRAM) $(PL) $(PLBASE)/bin/$(ARCH)/pl-mt
-		$(REL_LN) $(PLBASE)/bin/$(ARCH)/pl-mt $(bindir)
 
 install-bins:	install-arch
 		-if [ ! -d $(bindir)  ]; then $(MKDIR) $(bindir); fi
@@ -292,14 +306,18 @@ install-libs:	idirs iboot ilib iruntime iinclude iman idot
 			-t halt
 
 installdirs=	bin bin/$(ARCH) lib lib/$(ARCH) man boot library \
-		include runtime runtime/$(ARCH) dotfiles
+		library/clp include dotfiles
 
 iruntime::
-		$(INSTALL_DATA) $(RUNTIME) $(PLBASE)/runtime/$(ARCH)
-		$(RANLIB) $(PLBASE)/runtime/$(ARCH)/$(PLLIB)
+		$(INSTALL_DATA) $(RUNTIME) $(PLBASE)/lib/$(ARCH)
+		$(RANLIB) $(PLBASE)/lib/$(ARCH)/$(PLLIB)
+		if [ -f $(RUNTIMEDIR)/$(SHAREDV) ]; then \
+		  $(INSTALL_DATA) $(RUNTIMEDIR)/$(SHAREDV) $(PLBASE)/lib/$(ARCH) ; \
+		( cd $(PLBASE)/lib/$(ARCH) && rm -f $(SHARED) && ln -s $(SHAREDV) $(SHARED) ) ; \
+		fi
 
 install-implib::
-		$(INSTALL_DATA) libplimp.a $(PLBASE)/runtime/$(ARCH)
+		$(INSTALL_DATA) libplimp.a $(PLBASE)/lib/$(ARCH)
 
 idirs::
 		if [ ! -d $(prefix)/lib  ]; then $(MKDIR) $(prefix)/lib; fi
@@ -314,17 +332,24 @@ idirs::
 iboot::		
 		cd ../boot; \
 		for f in *.pl; do $(INSTALL_DATA) $$f $(PLBASE)/boot; done
-ilib::		
+
+ilib:		iclp
 		cd ../library; \
 		for f in $(PLLIBS); do \
 			$(INSTALL_DATA) $$f $(PLBASE)/library; \
+		done
+
+iclp::
+		cd ../library/clp; \
+		for f in $(CLP); do \
+			$(INSTALL_DATA) $$f $(PLBASE)/library/clp; \
 		done
 
 idot::
 		$(INSTALL_DATA) ../dotfiles/dotplrc $(PLBASE)/dotfiles
 		$(INSTALL_DATA) ../dotfiles/dotxpcerc $(PLBASE)/dotfiles
 		$(INSTALL_DATA) ../dotfiles/README $(PLBASE)/dotfiles
-		$(INSTALL_PROGRAM) ../dotfiles/edit $(PLBASE)/dotfiles
+		$(INSTALL_SCRIPT) ../dotfiles/edit $(PLBASE)/dotfiles
 
 iinclude::
 		cd ../include; \
@@ -387,7 +412,7 @@ clean:
 
 distclean:	clean
 		@(cd rc && $(MAKE) distclean)
-		rm -rf $(INCLUDEDIR) ../runtime
+		rm -rf $(INCLUDEDIR) ../lib
 		rm -f ../library/INDEX.pl
 		rm -f Makefile config.h config.status parms.h
 		rm -f swipl swiplbin pl.prc
@@ -397,5 +422,5 @@ distclean:	clean
 realclean:	clean
 		rm -f $(STARTUPPATH)
 		rm -f config.log config.cache
-		rm -rf $(PL) ../startup ../include ../runtime
+		rm -rf $(PL) ../startup ../include ../lib
 

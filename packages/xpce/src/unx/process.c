@@ -35,12 +35,12 @@ four notions in Unix: pipes, pseudo-terminals, the fork/exec combination
 to create a new process and  the   kill  mechanims  to communicate in an
 asynchronous manner between processes.
 
-This call subsumes from class stream,  that implements the communication
-to  the  exernal  process.   In  Unix,    pipes  are  sockets  and  this
-communication is thus uniform.  In Win32  it appears there are different
+This class subsumes from class stream, that implements the communication
+to  the  exernal  process.  In  Unix,    pipes   are  sockets  and  this
+communication is thus uniform. In Win32   it appears there are different
 types for these things that all require their own communicaton.
 
-Win32 doesn't know about psuedo  terminals.  Pipe()/Fork()/exec() may be
+Win32 doesn't know about pseudo  terminals.  Pipe()/Fork()/exec() may be
 simulated using CreatePipe() and CreateProcess().  The kill mechanism is
 reduced to the facility to terminate the inferior process.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -78,7 +78,7 @@ reduced to the facility to terminate the inferior process.
 #ifdef HAVE_SYS_WAIT_H
 #include <sys/wait.h>
 #endif
-#if defined(HAVE_SYS_IOCTL_H) && !defined(sun) /* leads to redefines */
+#if defined(HAVE_SYS_IOCTL_H) && !defined(__sun__) /* leads to redefines */
 #include <sys/ioctl.h>
 #endif
 

@@ -137,6 +137,7 @@ static void initHeapDebug(void);
 #define WM_RLC_FLUSH	 WM_USER+12	/* flush buffered data */
 #define WM_RLC_READY	 WM_USER+13	/* Window thread is ready */
 #define WM_RLC_CLOSEWIN  WM_USER+14	/* Close the window */
+/*#define WM_RLC_MENU	 WM_USER+15	   Insert a menu (defined in menu.h) */
 
 #define IMODE_RAW	1		/* char-by-char */
 #define IMODE_COOKED	2		/* line-by-line */
@@ -1278,6 +1279,12 @@ rlc_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 
     case WM_RLC_FLUSH:
     { rlc_flush_output(b);
+      return 0;
+    }
+
+    case WM_RLC_MENU:
+    { rlc_menu_action((rlc_console) b, (struct menu_data*)lParam);
+
       return 0;
     }
 

@@ -53,7 +53,7 @@ dehex(int chr)
   if ( chr >= 'A' && chr <= 'F' )
     return chr - 'A' + 10;
   if ( chr >= 'a' && chr <= 'f' )
-    return chr - 'f' + 10;
+    return chr - 'a' + 10;
 
   return -1;
 }

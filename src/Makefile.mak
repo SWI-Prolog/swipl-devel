@@ -58,7 +58,7 @@ OBJ=	pl-atom.obj pl-wam.obj pl-stream.obj pl-error.obj pl-arith.obj \
 	pl-sys.obj pl-table.obj pl-trace.obj pl-util.obj pl-wic.obj \
 	pl-write.obj pl-term.obj pl-buffer.obj pl-thread.obj \
 	pl-xterm.obj pl-feature.obj pl-ctype.obj pl-main.obj \
-	pl-dde.obj pl-nt.obj
+	pl-dde.obj pl-nt.obj pl-attvar.obj pl-gvar.obj
 
 PLINIT=	$(PB)/init.pl
 
@@ -81,13 +81,14 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl \
 	edit.pl emacs_interface.pl shell.pl check.pl \
 	tty.pl readln.pl readutil.pl make.pl option.pl \
 	am_match.pl oset.pl ordsets.pl occurs.pl lists.pl \
-	netscape.pl url.pl win_menu.pl \
-	qpforeign.pl \
-	checklast.pl checkselect.pl \
+	netscape.pl url.pl win_menu.pl assoc.pl \
+	qpforeign.pl dif.pl when.pl prolog_stack.pl \
+	checklast.pl checkselect.pl operators.pl \
 	$(PLWINLIBS)
 !IF "$(MT)" == "true"
 PLLIBS=$(PLLIBS) threadutil.pl
 !ENDIF
+CLP=	bounds.pl
 
 all:	lite packages
 
@@ -225,7 +226,7 @@ install-libs:	idirs iinclude iboot ilib
 
 IDIRS=		"$(BINDIR)" "$(LIBDIR)" "$(PLBASE)\include" \
 		"$(PLBASE)\boot" "$(PLBASE)\library" "$(PKGDOC)" \
-		"$(PLCUSTOM)" "$(PLBASE)\demo"
+		"$(PLCUSTOM)" "$(PLBASE)\demo" "$(PLBASE)\library\clp"
 
 $(IDIRS):
 		if not exist $@/$(NULL) $(MKDIR) $@
@@ -236,9 +237,13 @@ iboot:
 		chdir $(PLHOME)\boot & copy *.pl "$(PLBASE)\boot"
 		copy win32\misc\mkboot.bat "$(PLBASE)\bin\mkboot.bat"
 
-ilib:		
+ilib:		iclp
 		chdir $(PLHOME)\library & \
 			for %f in ($(PLLIBS)) do copy %f "$(PLBASE)\library"
+
+iclp::
+		chdir $(PLHOME)\library\clp & \
+			for %f in ($(CLP)) do copy %f "$(PLBASE)\library\clp"
 
 iinclude:       
 		$(INSTALL_DATA) $(PLHOME)\include\SWI-Prolog.h "$(PLBASE)\include"

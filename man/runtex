@@ -5,14 +5,44 @@
 program=`basename $0`
 tex=latex
 format=dvi
-appbase=$HOME/lib/tex
 rerun='Rerun to get cross-references right'
 maxruns=4
 
-if [ -z "$TEXINPUTS" ]; then
-    export TEXINPUTS=$appbase/macros::
-else
-    export TEXINPUTS=$TEXINPUTS:$appbase/macros::
+appbase=`dirname $0`
+case "$appbase" in
+    /*)
+	;;
+    .)  appbase=`pwd`
+        ;;
+    ./*|../*)
+	appbase="`pwd`/$appbase"
+	clean=false
+	while [ $clean = false ]; do
+	  b=`echo $appbase | sed -e 's@/\./@/@g' -e 's@/[a-z]*/\.\./@/@g'`
+	    if [ "x$b" = "x$appbase" ]; then
+	      clean=true
+	    else
+	      appbase="$b"
+	    fi
+	done
+	;;
+    *)  echo "ERROR: runtex must be called with relative or absolute path"
+        exit 1
+	;;
+esac
+
+echo "runtex application base = $appbase"
+
+function addinput
+{ if [ -z "$TEXINPUTS" ]; then
+    export TEXINPUTS="$1::"
+  else
+    export TEXINPUTS=$TEXINPUTS:$1::
+  fi
+}
+
+if [ -d $appbase ]; then
+  addinput $appbase
 fi
 
 function texclean
@@ -32,7 +62,7 @@ if [ x`getopt --test` = x-- ]; then
    esac
 fi
 
-TEMP=`getopt -o n --long tex:,pdf,help,dvi,clean,maxruns: \
+TEMP=`getopt -o n --long tex:,pdf,help,dvi,clean,maxruns,inputs: \
      -n $program -- "$@"`
 if [ $? != 0 ] ; then echo "$program: use $program --help for options" >&2 ; exit 1 ; fi
 eval set -- "$TEMP"
@@ -49,6 +79,9 @@ while true ; do
 	    shift ;;
 	--maxruns)
 	    maxruns="$2"
+	    shift 2 ;;
+	--inputs)
+	    addinput "$2"
 	    shift 2 ;;
 	--help)
 	    echo "Usage:"

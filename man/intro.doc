@@ -468,6 +468,20 @@ Version 5.2 consolidates the 5.1.x beta series that introduced threading
 and many related modifications to the kernel.
 
 
+\subsection{Version 5.3 Release Notes} \label{sec:rel-5.3}
+
+Version 5.3.x is a development series for adding coroutining,
+constraints, global variables, cyclic terms (infinite trees) and other
+goodies to the kernel.  The package JPL, providing a bidirectional
+Java/Prolog interface is added to the common sourcetree and common
+binary packages.
+
+
+\subsection{Version 5.4 Release Notes} \label{sec:rel-5.4}
+
+Version 5.4 consolidates the 5.3.x beta series.
+
+
 \section{Donate to the SWI-Prolog project}	\label{sec:sponsor}
 
 If you are happy with SWI-Prolog, you care it to be around for much
@@ -501,3 +515,15 @@ so kind to reorganise the sources for version 2.1.3 of this manual.
 
 Horst von Brand has been so kind to fix many typos in the 2.7.14 manual.
 Thanks!
+
+Bart Demoen and Tom Schrijvers have helped me adding coroutining,
+constraints, global variables and support for cyclic terms to the
+kernel.  Tom has provided the integer interval constraint solver,
+the CHR compiler and some of the coroutining predicates.
+
+Paul Singleton has integrated Fred Dushin's Java-calls-Prolog side
+with his Prolog-calls-Java side into the current bidirectional JPL
+interface package.
+
+Richard O'Keefe is gratefully acknowledged for his efforts to educate
+beginners as well as valuable comments on proposed new developments.

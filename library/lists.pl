@@ -51,7 +51,7 @@
 	  subset/2,
 	  subtract/3
 	]).
-%:- system_module.			% hide details
+:- set_prolog_flag(generate_debug_info, false).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Some of these predicates are copied from   "The  Craft of Prolog" and/or

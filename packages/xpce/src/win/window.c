@@ -360,6 +360,7 @@ updatePositionWindow(PceWindow sw)
       TRY(send(sw, NAME_create, parent, EAV));
 
     ws_geometry_window(sw, x, y, w, h, pen);
+    UpdateScrollbarValuesWindow(sw);
   } else
   { uncreateWindow(sw);
     assign(sw, displayed, ON);
@@ -679,7 +680,7 @@ postEventWindow(PceWindow sw, EventObj ev)
     rval = mapWheelMouseEvent(ev, obj);
   }
     
-  if ( !rval && notNil(sw->popup) && isDownEvent(ev) )
+  if ( !rval && isDownEvent(ev) )
     rval = postEvent(ev, (Graphical) sw, popupGesture());
 
 out:
@@ -1237,7 +1238,7 @@ scrollWindow(PceWindow sw, Int x, Int y, Bool ax, Bool ay)
   { assign(sw->scroll_offset, x, toInt(nx));
     assign(sw->scroll_offset, y, toInt(ny));
 
-    updateScrollbarValuesWindow(sw);
+    UpdateScrollbarValuesWindow(sw);
     updatePositionSubWindowsDevice((Device) sw);
 
 #ifdef WIN32_GRAPHICS
@@ -1432,6 +1433,11 @@ scrollVerticalWindow(PceWindow sw,
 
 
 static status
+UpdateScrollbarValuesWindow(PceWindow sw)
+{ return qadSendv(sw, NAME_updateScrollBarValues, 0, NULL);
+}
+
+static status
 updateScrollbarValuesWindow(PceWindow sw)
 { if ( notNil(sw->decoration) )
     requestComputeScrollbarsWindowDecorator((WindowDecorator)sw->decoration);
@@ -1439,10 +1445,9 @@ updateScrollbarValuesWindow(PceWindow sw)
   succeed;
 }
 
-
 status
 changedUnionWindow(PceWindow sw, Int ox, Int oy, Int ow, Int oh)
-{ return updateScrollbarValuesWindow(sw);
+{ return UpdateScrollbarValuesWindow(sw);
 }
 
 
@@ -2280,6 +2285,8 @@ static senddecl send_window[] =
   SM(NAME_bubbleScrollBar, 1, "scroll_bar", bubbleScrollBarWindow,
      NAME_scroll, "Update bubble of given scroll_bar object"),
   SM(NAME_changedUnion, 4, T_changedUnion, changedUnionWindow,
+     NAME_scroll, "Bounding box of content changed"),
+  SM(NAME_updateScrollBarValues, 0, NULL, updateScrollbarValuesWindow,
      NAME_scroll, "Request scroll_bar update"),
   SM(NAME_normalise, 2, T_normalise, normaliseWindow,
      NAME_scroll, "Ensure area|graphical|chain is visible"),

@@ -28,6 +28,7 @@
 \longoption{+}{+}
 \longoptionitem{+}{+}=item	1 0
 \termitem{+}{+}=item		1 0
+\constitem{+}=item		1 0
 \term{+}{+}
 \errorterm{+}{+}
 \optionval{+}=item		1 0
@@ -135,6 +136,17 @@
 % Special atoms
 
 \Sexe
+\Scgt
+\Scge
+\Sclt
+\Scle
+\Scne
+\Sceq
+\Sequiv
+\Slimpl
+\Srimpl
+\Scine
+\Scieq
 \Scut
 \Scomma
 \Sifthen

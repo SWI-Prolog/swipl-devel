@@ -1,38 +1,31 @@
-SWI-Prolog 5.2.13/XPCE 6.2.13 stable release
+SWI-Prolog 5.4.0/XPCE 6.4.0 stable release
 
-Status
-======
-  
-  * Stable release integrating shared-database multi-threaded execution.
+Although there are still various issues  with the current development it
+is decided to call it 5.4.0. This   version  is more stable than 5.2.13,
+the remaining issues do not  involve  core   components  and  we  do not
+anticipate incompatible changes while resolving them.
 
 
-Brief summary of changes since 5.2.11/12
-========================================
+New features in 5.4.x relative to 5.2.x and their status
+========================================================
 
-SWI-Prolog
-----------
+  * Attributed variables.
 
-  * 5.2.13: fixed saved-state crashes that became more
-    likely due to changes in the tag-schema in 5.2.12
+  * Coroutining.
 
-  * Fixed various atom-gc problems (5.2.13 incoporates
-    patch for Unix; 5.2.12 platform independent patches) 
+  * Global variables
 
-  * Fixed hashed dynamic predicate update problems
+  * Infinite terms (cyclic terms)
+    Incomplete but useable.
 
-  * Added file-locking in MS-Windows
+    Supported: =/2, ==/2, @>/2 (and friends), copy_term/2, =../2,
+               duplicate_term/2, ground/2, dif/2, when/2, term_variables/2,
+	       numbervars/3, hash_term/3, findall/3, bagof/3, setof/3,
+	       recorded database.
 
-Packages
---------
+  * CHR constraint language support
 
-  * XPCE: Minor patches (only in 6.2.12)
+  * integer bounds constraint library (clp/bounds.pl) (a subset if CLP(fd)).
 
-Development environment
------------------------
-
-  * Minor patches (only in 6.2.12)
-
-INCOMPATIBILITIES
-=================
-
-  (none)
+  * JPL: Integrated Java/Prolog interface package
+    Does not yet support MacOS and various (notably COFF based) systems.

@@ -2,6 +2,7 @@
 \usepackage{times}
 \usepackage{pl}
 \usepackage{html}
+\makeindex
 
 \onefile
 \htmloutput{html}				% Output directory
@@ -129,6 +130,10 @@ Use an HTTP proxy to connect to the outside world.
 	\termitem{user_agent}{+Agent}
 Defines the value of the \const{User-Agent} field of the HTTP header.
 Default is \const{SWI-Prolog (http://www.swi-prolog.org)}.
+
+	\termitem{request_header}{+Name = +Value}
+Additional name-value parts are added in the order of appearance to
+the HTTP request header.  No interpretation is done.
     \end{description}
 
 Here is a simple example:
@@ -179,6 +184,18 @@ Use an HTTP proxy to connect to the outside world.
 	\termitem{user_agent}{+Agent}
 Defines the value of the \const{User-Agent} field of the HTTP header.
 Default is \const{SWI-Prolog (http://www.swi-prolog.org)}.
+
+	\termitem{request_header}{Name = Value}
+Add a line "\arg{Name}: \arg{Value}" to the HTTP request header. Both
+name and value are added uninspected and literally to the request
+header. This may be used to specify accept encodings, languages, etc.
+Please check the RFC2616 (HTTP) document for available fields and their
+meaning.
+
+	\termitem{reply_header}{Header}
+Unify \arg{Header} with a list of \arg{Name}=\arg{Value} pairs
+expressing all header fields of the reply.  See http_read_request/2
+for the result format.
     \end{description}
 
 Remaining options are passed to http_read_data/3.
@@ -264,6 +281,35 @@ Send data of the MIME type \const{application/x-www-form-urlencoded}
 as produced by browsers issuing a POST request from an HTML form.
 \arg{ListOfParameter} is a list of \arg{Name}=\arg{Value} or
 \term{\arg{Name}}{Value}.
+
+	\termitem{form_data}{+ListOfData}
+Send data of the MIME type \const{multipart/form-data} as produced by
+browsers issuing a POST request from an HTML form using \const{enctype}
+\const{multipart/form-data}.  This is a somewhat simplified MIME
+\const{multipart/mixed} encoding used by browser forms including
+file input fields. \arg{ListOfData} is the same as for the \arg{List}
+alternative described below.  Below is an example from the SWI-Prolog
+\url[Sesame]{http://www.openrdf.org} interface.  \arg{Repository}, etc.\
+are atoms providing the value, while the last argument provides a value
+from a file.
+
+\begin{code}
+	...,
+	http_post([ protocol(http),
+		    host(Host),
+		    port(Port),
+		    path(ActionPath)
+		  ],
+		  form_data([ repository = Repository,
+			      dataFormat = DataFormat,
+			      baseURI    = BaseURI,
+			      verifyData = Verify,
+			      data       = file(File)
+			    ]),
+		  _Reply,
+		  []),
+	...,
+\end{code}
 
 	\termitem{List}{}
 If the argument is a plain list, it is sent using the MIME type
@@ -353,6 +399,29 @@ print_request([H|T]) :-
 	print_request(T).
 \end{code}
 
+
+\subsubsection{Returning special status codes}	\label{sec:httpspecials}
+
+Besides returning a page by writing it to the current output stream,
+the server goal can raise an exception using throw/1 to generate special
+pages such as \const{not_found}, \const{moved}, etc. The defined
+exceptions are:
+
+\begin{description}
+    \termitem{http_reply}{+Reply, +HdrExtra}
+Return a result page using http_reply/3.  See http_reply/3 for details.
+
+    \termitem{http_reply}{+Reply}
+Equivalent to \term{http_reply}{Reply, []}.
+
+    \termitem{http}{not_modified}
+Equivalent to \term{http_reply}{not_modified, []}.  This exception is
+for backward compatibility and can be used by the server to indicate
+the referenced resource has not been modified since it was requested
+last time.
+\end{description}
+
+
 \subsection{Request format}			\label{sec:request}
 
 The body-code (see \secref{body}) is driven by a \arg{Request}.  This
@@ -393,6 +462,18 @@ search-specification.
 If the first line contains the \const{HTTP/}\arg{Major}.\arg{Minor}
 version indicator this element indicate the HTTP version of the
 peer.  Otherwise this field is not present.
+
+    \termitem{cookie}{ListOfNameValue}
+If the header contains a \const{Cookie} line, the value of the
+cookie is broken down in \arg{Name}=\arg{Value} pairs, where the
+\arg{Name} is the lowercase version of the cookie name as used
+for the HTTP fields.
+
+    \termitem{set_cookie}{set_cookie(Name, Value, Options)}
+If the header contains a \const{SetCookie} line, the cookie field
+is broken down into the \arg{Name} of the cookie, the \arg{Value}
+and a list of \arg{Name}=\arg{Value} pairs for additional options
+such as \const{expire}, \const{path}, \const{domain} or \const{secure}.
 \end{description}
 
 If the first line of the request is tagged with
@@ -589,6 +670,12 @@ As a single persistent server process maintains communication to all
 clients startup time is not an important issue and the server can
 easily maintain state-information for all clients.
 
+In addition to the functionality provided by the other (XPCE and
+inetd) servers, the threaded server can also be used to realise an
+HTTPS server exploiting the \pllib{ssl} library.  See option
+\term{ssl}{+SSLOptions} below.
+
+
 \begin{description}
     \predicate{http_server}{3}{:Goal, +Options}
 Create the server. \arg{Options} must provide the \term{port}{?Port}
@@ -622,6 +709,15 @@ making each worker wait forever for a request to complete.  Without a
 timeout, a worker may wait forever on an a client that doesn't complete
 its request.
 
+    \termitem{keep_alive_timeout}{+SecondsOrInfinite}
+Maximum time to wait for new actity on \emph{Keep-Alive} connections.
+Choosing the correct value for this parameter is hard. Disabling
+Keep-Alive is bad for performance if the clients request multiple
+documents for a single page. This may ---for example-- be caused by HTML
+frames, HTML pages with images, associated CSS files, etc.  Keeping
+a connection open in the threaded model however prevents the thread
+servicing the client servicing other clients.  The default is 5 seconds.
+
     \termitem{local}{+KBytes}
 Size of the local-stack for the workers. Default is taken from the
 commandline option.
@@ -637,6 +733,15 @@ commandline option.
     \termitem{after}{:Goal}
 After replying a request, execute \arg{Goal} providing the request as
 argument.
+
+    \termitem{ssl}{+SSLOptions}
+Use SSL (Secure Socket Layer) rather than plan TCP/IP. A server created
+this way is accessed using the \const{https://} protocol. SSL allows for
+encrypted communication to avoid others from tapping the wire as well as
+improved authentication of client and server. The \arg{SSLOptions}
+option list is passed to ssl_init/3. The port option of the main option
+list is forwarded to the SSL layer. See the \pllib{ssl} library for
+details.
 \end{description}
 
     \predicate{http_current_server}{2}{?:Goal, ?Port}
@@ -656,6 +761,12 @@ in the queue, discarding the excess workers as they finish their jobs
 This can be used to tune the number of workers for performance.  Another
 possible application is to reduce the pool to one worker to facilitate
 easier debugging.
+
+    \predicate{http_current_worker}{2}{?Port, ?ThreadID}
+True if \arg{ThreadID} is the identifier of a Prolog thread serving
+\arg{Port}. This predicate is motivated to allow for the use of
+arbitrary interaction with the worker thread for development and
+statistics.
 \end{description}
 
 
@@ -748,6 +859,69 @@ Request)}, watching for exceptions and failure. If \arg{Goal} executes
 successfully it generates a complete reply from the created output.
 Otherwise it generates an HTTP server error with additional context
 information derived from the exception.
+\end{description}
+
+
+\subsection{Handling HTTP headers}			\label{sec:httpheader}
+
+The library \pllib{http/http_header} provides primitives for parsing and
+composing HTTP headers. Its functionality is normally hidden by the
+other parts of the HTTP server and client libraries.  We provide a brief
+overview of http_reply/3 which can be accessed from the reply body using
+an exception as explain in \secref{httpspecials}.
+
+
+\begin{description}
+    \predicate{http_reply}{3}{+Type, +Stream, +HdrExtra}
+Compose a complete HTTP reply from the term \arg{Type} using additional
+headers from \arg{HdrExtra} to the output stream \arg{Stream}.
+\arg{ExtraHeader} is a list of \term{Field}{Value}.  \arg{Type} is
+one of:
+
+    \begin{description}
+        \termitem{html}{+HTML}
+Produce a HTML page using print_html/1, normally generated using the
+\pllib{http/html_write} described in \secref{htmlwrite}.
+
+        \termitem{file}{+MimeType, +Path}
+Reply the content of the given file, indicating the given MIME type.
+
+        \termitem{tmp_file}{+MimeType, +Path}
+Similar to \term{File}{+MimeType, +Path}, but do not include a
+modification time header.
+
+        \termitem{stream}{+Stream, +Len}
+Reply using the next \arg{Len} characters from \arg{Stream}.  The
+user must provides the MIME type and other attributes through the
+\arg{ExtraHeader} argument.
+
+	\termitem{cgi_stream}{+Stream, +Len}
+Similar to \term{stream}{+Stream, +Len}, but the data on \arg{Stream}
+must contain an HTTP header.
+
+	\termitem{moved}{+URL}
+Generate a ``301 Moved Permanently'' page with the given target
+\arg{URL}.
+
+ 	\termitem{not_found}{+URL}
+Generate a ``404 Not Found'' page.
+
+        \termitem{forbidden}{+URL}
+Generate a ``403 Forbidden'' page, denying access without challenging
+the client.
+
+        \termitem{authorise}{+Method, +Realm}
+Generate a ``401 Authorization Required'', requesting the client to
+retry using proper credentials (i.e.\ user and password).
+
+        \termitem{not_modified}{}
+Generate a ``304 Not Modified'' page, indicating the requested resource
+has not changed since the indicated time.
+
+        \termitem{server_error}{+Error}
+Generate a ``500 Internal server error'' page with a message generated
+from a Prolog exception term (see print_message/2).
+    \end{description}
 \end{description}
 
 
@@ -1129,6 +1303,8 @@ use Prolog directly as a web-server.
 This library is by no means complete and you are free to extend it.
 Partially or completely lacking are notably session management and
 authorisation.
+
+\printindex
 
 \end{document}
 

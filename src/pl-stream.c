@@ -370,12 +370,13 @@ S__fillbuf(IOSTREAM *s)
 	break;
       }
 
-      if ( !FD_ISSET(fd, &wait) )
+      if ( rc == 0 )
       { s->flags |= (SIO_TIMEOUT|SIO_FERR);
 	goto error;
       }
     } else
     { errno = EPERM;			/* no permission to select */
+      s->flags |= SIO_FERR;
       goto error;
     }
   }
@@ -601,6 +602,37 @@ Sfwrite(const void *data, int size, int elms, IOSTREAM *s)
   
   return (size*elms - chars)/size;
 }
+
+
+		 /*******************************
+		 *	       PENDING		*
+		 *******************************/
+
+int
+Sread_pending(IOSTREAM *s, char *buf, int limit, int flags)
+{ int done = 0;
+  int n;
+
+  if ( s->bufp >= s->limitp && (flags & SIO_RP_BLOCK) )
+  { int c = S__fillbuf(s);
+
+    if ( c < 0 )
+      return c;
+
+    buf[0] = c;
+    limit--;
+    done = 1;
+  }
+
+  n = s->limitp - s->bufp;
+  if ( n > limit )
+    n = limit;
+  memcpy(&buf[done], s->bufp, n);
+  s->bufp += n;
+
+  return done+n;
+}
+
 
 
 		 /*******************************
@@ -1783,7 +1815,7 @@ Sfileno(IOSTREAM *s)
 		      EOF, SIO_MAGIC, 0, f, {0, 0, 0}, NULL, \
 		      ((void *)(n)), &Sfilefunctions, \
 		      0, NULL, \
-		      NULL, NULL, \
+		      (void (*)(void *))0, NULL, \
 		      -1 \
 		    }
 
@@ -1833,6 +1865,12 @@ S__getiob()
 		 *******************************/
 
 #ifdef HAVE_POPEN
+#ifdef WIN32
+#include "popen.c"
+
+#define popen(cmd, how) pt_popen(cmd, how)
+#define pclose(fd)	pt_pclose(fd)
+#endif
 
 static int
 Sread_pipe(void *handle, char *buf, int size)
@@ -1862,7 +1900,7 @@ Sclose_pipe(void *handle)
 IOFUNCTIONS Spipefunctions =
 { Sread_pipe,
   Swrite_pipe,
-  NULL,
+  (Sseek_function)0,
   Sclose_pipe
 };
 
@@ -1870,6 +1908,11 @@ IOFUNCTIONS Spipefunctions =
 IOSTREAM *
 Sopen_pipe(const char *command, const char *type)
 { FILE *fd = popen(command, type);	/* HACK for now */
+
+#if 0
+  Sdprintf("Opening \"%s\", mode \"%s\" --> %p (%d)\n",
+	   command, type, fd, errno);
+#endif
 
   if ( fd )
   { int flags;
@@ -1915,11 +1958,14 @@ Sfree(void *ptr)			/* Windows: must free from same */
 }
 
 
-static int
-S__memfile_nextsize(int needed)
-{ needed += needed/4;
+static long
+S__memfile_nextsize(long needed)
+{ long size = 512;
 
-  return (needed + 255) & ~255;
+  while ( size < needed )
+    size *= 2;
+
+  return size;
 }
 
 
@@ -1928,7 +1974,7 @@ Swrite_memfile(void *handle, char *buf, int size)
 { memfile *mf = handle;
 
   if ( mf->here + size + 1 >= mf->allocated )
-  { long ns = S__memfile_nextsize(mf->here + size);
+  { long ns = S__memfile_nextsize(mf->here + size + 1);
     char *nb;
 
     if ( mf->allocated == 0 || !mf->malloced )
@@ -2034,7 +2080,7 @@ IOFUNCTIONS Smemfunctions =
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Sopenmem(char **buffer, int *size, const char* mode)
-    Open an memory area as a stream.  Output streams will automatically
+    Open a memory area as a stream.  Output streams will automatically
     resized using realloc() if *size = 0 or the stream is opened with mode
     "wa".
 
@@ -2145,7 +2191,7 @@ Sclose_string(void *handle)
 IOFUNCTIONS Sstringfunctions =
 { Sread_string,
   Swrite_string,
-  NULL,
+  (Sseek_function)0,
   Sclose_string
 };
 

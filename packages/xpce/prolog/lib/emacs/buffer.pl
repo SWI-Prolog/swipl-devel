@@ -128,6 +128,8 @@ determine_initial_mode(B) :->
 	    get(Mode0?downcase, value, Mode),
 	    get(@pce, convert, Mode, emacs_mode, _ModeObject)
 	->  send(B, slot, mode, Mode)
+	;   content_from_mode(B, Mode)
+	->  send(B, slot, mode, Mode)
 	;   (   send(@emacs_interpreter_regex, match, B),
 		get(@emacs_interpreter_regex, register_value, B, 1, Match),
 		To = @emacs_interpreter_mode_list
@@ -140,6 +142,18 @@ determine_initial_mode(B) :->
 	->  send(B, slot, mode, Att?value)
 	;   send(B, slot, mode, @emacs_default_mode)
 	).
+
+
+%	content_from_mode(+Buffer, -Mode)
+%	
+%	Search Buffer with the patterns from @emacs_content_mode_list
+
+content_from_mode(B, Mode) :-
+	get(@emacs_content_mode_list?members, find,
+	     message(@arg1?name?first, search, B,
+		     0, @arg1?name?second),
+	    Att),
+	get(Att, value, Mode).
 
 
 attach(B, E:editor) :->

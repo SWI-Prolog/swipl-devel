@@ -66,6 +66,7 @@ initialiseFrame(FrameObj fr, Name label, Name kind,
   assign(fr, status,	    	    NAME_unmapped);
   assign(fr, can_delete,    	    ON);
   assign(fr, input_focus,   	    OFF);
+  assign(fr, sensitive,   	    ON);
   assign(fr, fitting,		    OFF);
   assign(fr, wm_protocols,  	    newObject(ClassSheet, EAV));
   assign(fr, wm_protocols_attached, OFF);
@@ -105,8 +106,8 @@ unlinkFrame(FrameObj fr)
 
     ws_uncreate_frame(fr);
     deleteChain(fr->display->frames, fr);
-    if ( notNil(fr->application) && notNil(fr->application->members) )
-      deleteChain(fr->application->members, fr);
+    if ( notNil(fr->application) )
+      send(fr->application, NAME_delete, fr, EAV);
 
     for_chain(fr->members, sw, freeObject(sw));
 
@@ -1315,27 +1316,34 @@ blockedByModalFrame(FrameObj fr)
 { if ( !fr )
     fail;
 
-  if ( notNil(fr->application) &&
-       notNil(fr->application->modal) &&
-       isOpenFrameStatus(fr->application->modal->status) &&
-       fr->application->modal != fr )
-  { return fr->application->modal;
-  } else
-  { if ( notNil(fr->transients) )
-    { Cell cell;
+  if ( notNil(fr->application) )
+  { Cell cell;
 
-      for_cell(cell, fr->transients)
-      { FrameObj fr2 = cell->value;
-      
-	DEBUG(NAME_transient,
-	      Cprintf("blockedByModalFrame(%s) checking %s\n",
-		      pp(fr), pp(fr2)));
+    for_cell(cell, fr->application->modal)
+    { FrameObj fr2 = cell->value;
 
-	if ( fr2->modal == NAME_transient &&
-	     isOpenFrameStatus(fr2->status) )
-	{ DEBUG(NAME_transient, Cprintf("\tBlocked on %s\n", pp(fr2)));
-	  return fr2;
-	}
+      if ( fr == fr2 )
+	break;
+
+      if ( isOpenFrameStatus(fr2->status) )
+	return fr2;
+    }
+  }	
+
+  if ( notNil(fr->transients) )
+  { Cell cell;
+
+    for_cell(cell, fr->transients)
+    { FrameObj fr2 = cell->value;
+    
+      DEBUG(NAME_transient,
+	    Cprintf("blockedByModalFrame(%s) checking %s\n",
+		    pp(fr), pp(fr2)));
+
+      if ( fr2->modal == NAME_transient &&
+	   isOpenFrameStatus(fr2->status) )
+      { DEBUG(NAME_transient, Cprintf("\tBlocked on %s\n", pp(fr2)));
+	return fr2;
       }
     }
   }
@@ -1393,12 +1401,12 @@ modalFrame(FrameObj fr, Name how)
 { assign(fr, modal, how);
 
   if ( notNil(fr->application) &&
-       fr->application->modal == fr &&
+       memberChain(fr->application->modal, fr) &&
        how != NAME_application )
-  { assign(fr->application, modal, NIL);
+  { deleteChain(fr->application->modal, fr);
   } else
   { if ( how == NAME_application && notNil(fr->application) )
-      assign(fr->application, modal, fr);
+      send(fr->application, NAME_modal, fr, EAV);
   }
 
   succeed;

@@ -85,7 +85,7 @@ explain([H|T], Explanation) :-
 	length(List, L),
 	(   utter(Explanation, '"~p" is a proper list with ~d elements',
 	          [List, L])
-	;   checklist(printable, List),
+	;   maplist(printable, List),
 	    utter(Explanation, '~t~8|Text is "~s"',  [List])
 	).
 explain([H|T], Explanation) :- !,

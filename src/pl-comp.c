@@ -270,6 +270,7 @@ with  a  structure  that  mimics  a term, but isn't one.
 
 typedef struct _varDef
 { word		functor;		/* mimic a functor (FUNCTOR_var1) */
+  word		saved;			/* saved value */
   Word		address;		/* address of the variable */
   int		times;			/* occurences */
   int		offset;			/* offset in environment frame */
@@ -428,11 +429,12 @@ right_recursion:
 
   deRef(head);
 
-  if ( isVar(*head) )
+  if ( isVar(*head) || (isAttVar(*head) && !ci->islocal) )
   { VarDef vd;
     int index = ((argn >= 0 && argn < arity) ? argn : (arity + nvars++));
 
     vd = getVarDef(index PASS_LD);
+    vd->saved = *head;
     vd->address = head;
     vd->times = 1;
     *head = (index<<LMASK_BITS)|TAG_ATOM|STG_GLOBAL; /* special mark */
@@ -484,7 +486,7 @@ right_recursion:
     }
   }
 
-  if ( ci->subclausearg && isString(*head) )
+  if ( ci->subclausearg && (isString(*head) || isAttVar(*head)) )
     ci->argvars++;
 
   return nvars;
@@ -513,7 +515,7 @@ analyse_variables(Word head, Word body, CompileInfo ci ARG_LD)
     if ( !vd->address )
       continue;
     if ( vd->times == 1 && !ci->islocal ) /* ISVOID */
-    { setVar(*(vd->address));
+    { *vd->address = vd->saved;
       vd->address = (Word) NULL;
       if (n >= arity)
 	body_voids++;
@@ -710,7 +712,8 @@ resetVars(ARG1_LD)
   { VarDef vd = LD->comp.vardefs[n];
 
     if ( vd->address )
-      setVar(*(vd->address));
+    { *vd->address = vd->saved;
+    }
   }
 }
 
@@ -1209,12 +1212,19 @@ be a variable, and thus cannot be removed if it is before an I_POPF.
 
   switch(tag(*arg))
   { case TAG_VAR:
+    var:
       if (where & A_BODY)
       { Output_0(ci, B_VOID);
 	return NONVOID;
       }
       Output_0(ci, H_VOID);
       return ISVOID;
+    case TAG_ATTVAR:
+      if ( ci->islocal )
+      { goto argvar;
+      } else
+      { goto var;
+      }
     case TAG_INTEGER:
       if ( storage(*arg) != STG_INLINE )
       {	Output_1(ci, (where&A_HEAD) ? H_INTEGER : B_INTEGER, valBignum(*arg));
@@ -1334,7 +1344,10 @@ isvar:
     k = varFrameP(lTop, voffset);
 
     requireStack(local, (voffset+1)*sizeof(word));
-    *k = *arg;
+    if ( isAttVar(*arg) )		/* attributed variable: must make */
+      *k = makeRef(arg);		/* a reference to avoid binding a */
+    else				/* copy! */
+      *k = *arg;
     if ( ci->argvar < 3 )
     { Output_0(ci, B_VAR0 + ci->argvar);
     } else
@@ -1447,7 +1460,7 @@ will use the meta-call mechanism for all these types of calls.
       Word mp, g;
 
       mp = argTermP(*arg, 0); deRef(mp);
-      if ( isAtom(*mp) )
+      if ( isTextAtom(*mp) )
       { g = argTermP(*arg, 1); deRef(g);
 	if ( isIndexedVarTerm(*g PASS_LD) < 0 )
 	{ arg = g;
@@ -1565,7 +1578,7 @@ re-definition.
     }
   }
 
-  if ( isAtom(*arg) )
+  if ( isTextAtom(*arg) )
   { if ( *arg == ATOM_cut )
     { if ( ci->cut.var )			/* local cut for \+ */
 	Output_1(ci, ci->cut.instruction, ci->cut.var);
@@ -1716,7 +1729,7 @@ compileArithArgument(Word arg, compileInfo *ci ARG_LD)
     int n, ar;
     Word a;
 
-    if ( isAtom(*arg) )
+    if ( isTextAtom(*arg) )
     { fdef = lookupFunctorDef(*arg, 0);
       ar = 0;
       a = NULL;
@@ -1935,10 +1948,17 @@ This `if' locks predicates as system predicates  if  we  are  in  system
 mode, the predicate is still undefined and is not dynamic or multifile.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-    if ( SYSTEM_MODE && false(def, SYSTEM) &&
-	 !(true(def, DYNAMIC|FOREIGN|MULTIFILE) ||
-	   hasClausesDefinition(def)) )
-      set(def, SYSTEM|HIDE_CHILDS|LOCKED);
+    if ( !isDefinedProcedure(proc) )
+    { if ( SYSTEM_MODE )
+      { if ( false(def, SYSTEM) )
+	  set(def, SYSTEM|HIDE_CHILDS|LOCKED);
+      } else
+      { if ( trueFeature(DEBUGINFO_FEATURE) )
+	  clear(def, HIDE_CHILDS);
+	else
+	  set(def, HIDE_CHILDS);
+      }
+    }
 
     addProcedureSourceFile(sf, proc);
     sf->current_procedure = proc;
@@ -1948,13 +1968,10 @@ mode, the predicate is still undefined and is not dynamic or multifile.
   /* assert[az]/1 */
 
   if ( false(def, DYNAMIC) )
-  { if ( isDefinedProcedure(proc) )
-    { PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PROC, proc);
-      freeClause(clause PASS_LD);
+  { if ( !setDynamicProcedure(proc, TRUE) )
+    { freeClause(clause PASS_LD);
       return NULL;
     }
-
-    setDynamicProcedure(proc, TRUE);
   }
 
   return assertProcedure(proc, clause, where PASS_LD) ? clause : (Clause)NULL;
@@ -3572,15 +3589,44 @@ find_code1(Code PC, code fop, code ctx)
 
 
 static Code
-find_code0(Code PC, code fop)
+find_if_then_end(Code PC)
 { for(;;)
   { code op = fetchop(PC++);
 
-    if ( fop == op )
+    if ( op == C_END )
       return &PC[-1];
+
     assert(op != I_EXIT);
 
-    PC += codeTable[op].arguments;
+    switch(op)				/* jump over control structures */
+    { case C_OR:
+      { Code jmploc;
+	code inc = *PC++;
+	
+	jmploc = PC + inc;
+	PC = jmploc + jmploc[-1];
+	break;
+      }
+      case C_NOT:
+	PC = PC + PC[1] + 2;
+        break;
+      case C_SOFTIF:
+      case C_IFTHENELSE:
+      { Code elseloc = PC + PC[1] + 2;
+
+	PC = elseloc + elseloc[-1];
+	break;
+      }
+      case C_MARK:
+      { Code cutloc = find_code1(&PC[1], C_CUT, PC[0]);
+	PC = find_if_then_end(cutloc+2) + 1; /* returns location of C_END */
+	break;
+      }
+      default:
+	PC += codeTable[op].arguments;
+        break;
+    }
+
   }
 }
 
@@ -3753,9 +3799,9 @@ pl_clause_term_position(term_t ref, term_t pc, term_t locterm)
 				/* C_MARK <var> <A> C_CUT <var> <B> C_END */
       { Code cutloc = find_code1(&PC[1], C_CUT, PC[0]);
 	
-	endloc = find_code0(cutloc+2, C_END);
+	endloc = find_if_then_end(cutloc+2);
 
-	DEBUG(1, Sdprintf("cut = %d, end = %d\n",
+	DEBUG(0, Sdprintf("C_MARK: cut = %d, end = %d\n",
 			  cutloc - clause->codes, endloc - clause->codes));
 
 	if ( loc <= endloc )

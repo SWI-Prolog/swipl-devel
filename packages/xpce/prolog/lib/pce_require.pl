@@ -194,7 +194,9 @@ meta_goal(findall(_V, G, _L),	[G]).
 meta_goal(setof(_V, G, _L),	[G]).
 meta_goal(bagof(_V, G, _L),	[G]).
 meta_goal(forall(A, B),		[A, B]).
-meta_goal(maplist(G, _L1, _L2),	[G+2]).
+meta_goal(maplist(G, _),	[G+1]).
+meta_goal(maplist(G, _, _),	[G+2]).
+meta_goal(maplist(G, _, _, _),	[G+3]).
 meta_goal(checklist(G, _L),	[G+1]).
 meta_goal(call(G),		[G]).
 meta_goal(call(G, _A1),		[G+1]).

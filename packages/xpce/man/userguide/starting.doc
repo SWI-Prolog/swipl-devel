@@ -422,20 +422,22 @@ the user to view a file.  \Figref{fileviewer} shows the result.
 
 \begin{pcecode}
 fileviewer(Dir) :-
+	new(DirObj, directory(Dir)),
 	new(F, frame('File Viewer')),
 	send(F, append(new(B, browser))),
 	send(new(D, dialog), below(B)),
 	send(D, append(button(view,
 			      message(@prolog, view,
-				      B?selection?key)))),
+				      DirObj, B?selection?key)))),
 	send(D, append(button(quit,
 			      message(F, destroy)))),
-	send(B, members(directory(Dir)?files)),
+	send(B, members(DirObj?files)),
 	send(F, open).
 
-view(F) :-
+view(DirObj, F) :-
 	send(new(V, view(F)), open),
-	send(V, load(F)).
+	get(DirObj, file, F, FileObj),
+	send(V, load(FileObj)).
 \end{pcecode}
 
 The main window of the application consists of a \class{frame} holding

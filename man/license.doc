@@ -154,6 +154,28 @@ only use these conditions when forced by other code used in the
 component.
     \end{description}
 
+Other licenses known to the system are \const{guile}, \const{gnu_ada},
+\const{x11}, \const{expat}, \const{sml}, \const{public_domain},
+\const{cryptix}, \const{bsd}, \const{zlib}, const{lgpl_compatible}
+and \const{gpl_compatible}.  New licenses can be defined by adding
+clauses for the multifile predicate license:license/3.  Below is
+an example.  The second argument is either \const{gpl} or \const{lgpl}
+to indicate compatibility to these licenses.  Other values cause the
+license to interpreted as \jargon{proprietary}.  Proprietary licenses
+are reported by eval_license/0.  See the file \file{boot/license.pl} for
+details.
+
+\begin{code}
+:- multifile license:license/3.
+
+license:license(mylicense, lgpl,
+		[ comment('My personal license'),
+		  url('http://www.mine.org/license.html')
+		]).
+
+:- license(mylicense).
+\end{code}
+
     \predicate{license}{1}{+LicenseId}
 Intented as a directive in Prolog source files.  It takes the current
 filename and calls license/2.

@@ -24,7 +24,7 @@
 
 /*#define O_DEBUG 1*/
 
-#define GLOBAL				/* allocate global variables here */
+#define GLOBAL SO_LOCAL			/* allocate global variables here */
 #include "pl-incl.h"
 #include <sys/stat.h>
 #ifdef HAVE_UNISTD_H
@@ -140,6 +140,7 @@ initPrologLocalData(void)
   environment_frame = (LocalFrame) NULL;
   LD->statistics.inferences = 0;
   LD->float_format = "%g";
+  LD->feature.write_attributes = PL_WRT_ATTVAR_IGNORE;
 }
 
 
@@ -719,14 +720,18 @@ PL_signal(int sigandflags, handler_t func)
 int
 PL_handle_signals()
 { int done = 0;
+  PL_local_data_t *ld = LD;
 
-  while(!LD->critical && LD->pending_signals)
+  if ( !ld )
+    return 0;
+
+  while(!ld->critical && ld->pending_signals)
   { ulong mask = 1L;
     int sig = 1;
 
     for( ; mask ; mask <<= 1, sig++ )
-    { if ( LD->pending_signals & mask )
-      { LD->pending_signals &= ~mask;	/* reset the signal */
+    { if ( ld->pending_signals & mask )
+      { ld->pending_signals &= ~mask;	/* reset the signal */
 
 	done++;
 
@@ -740,10 +745,10 @@ PL_handle_signals()
 	  pl_garbage_collect_atoms();
 	else
 #endif
-        if ( sig == SIG_EXCEPTION && LD->pending_exception )
-	{ record_t ex = LD->pending_exception;
+        if ( sig == SIG_EXCEPTION && ld->pending_exception )
+	{ record_t ex = ld->pending_exception;
 	  
-	  LD->pending_exception = 0;
+	  ld->pending_exception = 0;
 
 	  PL_put_variable(exception_bin);
 	  PL_recorded(ex, exception_bin);
@@ -869,8 +874,9 @@ enforce_limit(long *size, long maxarea, const char *name)
 { if ( *size == 0 )
     *size = maxarea;
   else if ( *size > MAXTAGGEDPTR+1 )
-  { Sdprintf("WARNING: Maximum stack size for %s stack is %d MB\n",
-	     name, (MAXTAGGEDPTR+1) / (1 MB));
+  { if ( *size != PLMAXINT )		/* user demanded maximum */
+      Sdprintf("WARNING: Maximum stack size for %s stack is %d MB\n",
+	       name, (MAXTAGGEDPTR+1) / (1 MB));
     *size = MAXTAGGEDPTR;
   }
 }
@@ -887,7 +893,7 @@ initPrologStacks(long local, long global, long trail, long argument)
   enforce_limit(&local,	   maxarea, "local");
   enforce_limit(&global,   maxarea, "global");
   enforce_limit(&trail,	   maxarea, "trail");
-  enforce_limit(&argument, 16 MB,   "argument");
+  enforce_limit(&argument, 64 MB,   "argument");
 
   if ( !allocStacks(local, global, trail, argument) )
     fail;
@@ -936,6 +942,14 @@ emptyStacks()
   exception_printed     = PL_new_term_ref();
   LD->exception.tmp     = PL_new_term_ref();
   LD->exception.pending = PL_new_term_ref();
+#ifdef O_ATTVAR
+  LD->attvar.head	= PL_new_term_ref();
+  LD->attvar.tail       = PL_new_term_ref();
+#endif
+#ifdef O_GVAR
+  LD->gvar.b_vars	= PL_new_term_ref();
+  destroyGlobalVars();
+#endif
 
   LD->mark_bar          = gLimit;
 }
@@ -1773,4 +1787,9 @@ freeLocalData(PL_local_data_t *ld)
 
     memset(&ld->comp, 0, sizeof(ld->comp));
   }
+
+#ifdef O_GVAR
+  if ( ld->gvar.nb_vars )
+    destroyHTable(ld->gvar.nb_vars);
+#endif
 }

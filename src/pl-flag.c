@@ -63,7 +63,7 @@ lookupFlag(word key ARG_LD)
 
   f = (Flag) allocHeap(sizeof(struct flag));
   f->key = key;
-  if ( isAtom(key) )
+  if ( isTextAtom(key) )
     PL_register_atom(key);
   f->type = FLG_INTEGER;
   f->value.i = 0;

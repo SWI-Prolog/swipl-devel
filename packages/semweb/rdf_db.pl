@@ -30,7 +30,9 @@
 */
 
 :- module(rdf_db,
-	  [ rdf/3,			% ?Subject, ?Predicate, ?Object
+	  [ rdf_version/1,		% -Version
+
+	    rdf/3,			% ?Subject, ?Predicate, ?Object
 	    rdf/4,			% ?Subject, ?Predicate, ?Object, ?DB
 	    rdf_has/3,			% ?Subject, +Pred, ?Obj
 	    rdf_has/4,			% ?Subject, +Pred, ?Obj, -RealPred
@@ -55,6 +57,7 @@
 
 	    rdf_node/1,			% -Id
 	    rdf_bnode/1,		% -Id
+	    rdf_is_bnode/1,		% +Id
 
 	    rdf_load/1,			% +File
 	    rdf_load/2,			% +File, +Options
@@ -63,6 +66,7 @@
 	    rdf_unload/1,		% +File
 
 	    rdf_md5/2,			% +DB, -MD5
+	    rdf_atom_md5/3,		% +Text, +Times, -MD5
 
 	    rdf_source/1,		% ?File
 	    rdf_make/0,			% Reload modified databases
@@ -70,6 +74,7 @@
 	    rdf_source_location/2,	% +Subject, -Source
 	    rdf_statistics/1,		% -Key
 	    rdf_generation/1,		% -Generation
+	    rdf_estimate_complexity/4,	% +S,+P,+O,-Count
 
 	    rdf_save_subject/3,		% +Stream, +Subject, +DB
 	    rdf_save_header/2,		% +Out, +DB
@@ -79,6 +84,7 @@
 
 	    rdf_register_ns/2,		% +Alias, +URI
 	    rdf_global_id/2,		% ?NS:Name, ?Global
+	    rdf_global_object/2,	% ?Object, ?NSExpandedObject
 	    rdf_global_term/2,		% Term, WithExpandedNS
 
 	    rdf_match_label/3,		% +How, +String, +Label
@@ -108,12 +114,12 @@
 		 *******************************/
 
 ns(rdf,  'http://www.w3.org/1999/02/22-rdf-syntax-ns#').
-%ns(rdfs, 'http://www.w3.org/TR/1999/PR-rdf-schema-19990303#').
 ns(rdfs, 'http://www.w3.org/2000/01/rdf-schema#').
 ns(owl,  'http://www.w3.org/2002/07/owl#').
 ns(xsd,  'http://www.w3.org/2001/XMLSchema#').
 ns(dc,   'http://purl.org/dc/elements/1.1/').
 ns(eor,  'http://dublincore.org/2000/03/13/eor#').
+ns(serql,'http://www.openrdf.org/schema/serql#').
 
 %	rdf_register_ns(+Alias, +URI)
 %
@@ -135,14 +141,35 @@ rdf_register_ns(Alias, URI) :-
 %	Convert between NS:Local and global atomic identifier.
 %	To be completed.
 
-rdf_global_id(Global, Global) :-
-	var(Global), !.
-rdf_global_id(NS:Local, Global) :- !,
-	(   ns(NS, Full)
-	*-> atom_concat(Full, Local, Global)
-	;   atom_concat(NS, Local, Global)
-	).
+rdf_global_id(NS:Local, Global) :-
+	global(NS, Local, Global), !.
 rdf_global_id(Global, Global).
+
+
+%	rdf_global_object(?Object, ?GlobalObject)
+%	
+%	Same as rdf_global_id/2,  but  intended   for  dealing  with the
+%	object part of a  triple,  in   particular  the  type  for typed
+%	literals.
+
+rdf_global_object(NS:Local, Global) :-
+	global(NS, Local, Global), !.
+rdf_global_object(literal(type(NS:Local, Value)),
+		  literal(type(Global, Value))) :-
+	global(NS, Local, Global), !.
+rdf_global_object(Global, Global).
+	    
+global(NS, Local, Global) :-
+	(   atom(Global)
+	->  ns(NS, Full),
+	    atom_concat(Full, Local, Global)
+	;   atom(NS), atom(Local)
+	->  (   ns(NS, Full)
+	    *-> atom_concat(Full, Local, Global)
+	    ;   atom_concat(NS, Local, Global)
+	    )
+	).
+
 
 
 %	rdf_global_term(+TermIn, -GlobalTerm)
@@ -177,53 +204,53 @@ user:goal_expansion(rdf(Subj0, Pred0, Obj0),
 		    rdf(Subj, Pred, Obj)) :-
 	rdf_global_id(Subj0, Subj),
 	rdf_global_id(Pred0, Pred),
-	rdf_global_id(Obj0, Obj).
+	rdf_global_object(Obj0, Obj).
 user:goal_expansion(rdf_has(Subj0, Pred0, Obj0, RP0),
 		    rdf_has(Subj, Pred, Obj, RP)) :-
 	rdf_global_id(Subj0, Subj),
 	rdf_global_id(Pred0, Pred),
-	rdf_global_id(Obj0, Obj),
+	rdf_global_object(Obj0, Obj),
 	rdf_global_id(RP0, RP).
 user:goal_expansion(rdf_has(Subj0, Pred0, Obj0),
 		    rdf_has(Subj, Pred, Obj)) :-
 	rdf_global_id(Subj0, Subj),
 	rdf_global_id(Pred0, Pred),
-	rdf_global_id(Obj0, Obj).
+	rdf_global_object(Obj0, Obj).
 user:goal_expansion(rdf_assert(Subj0, Pred0, Obj0),
 		    rdf_assert(Subj, Pred, Obj)) :-
 	rdf_global_id(Subj0, Subj),
 	rdf_global_id(Pred0, Pred),
-	rdf_global_id(Obj0, Obj).
+	rdf_global_object(Obj0, Obj).
 user:goal_expansion(rdf_retractall(Subj0, Pred0, Obj0),
 		    rdf_retractall(Subj, Pred, Obj)) :-
 	rdf_global_id(Subj0, Subj),
 	rdf_global_id(Pred0, Pred),
-	rdf_global_id(Obj0, Obj).
+	rdf_global_object(Obj0, Obj).
 user:goal_expansion(rdf(Subj0, Pred0, Obj0, PayLoad),
 		    rdf(Subj, Pred, Obj, PayLoad)) :-
 	rdf_global_id(Subj0, Subj),
 	rdf_global_id(Pred0, Pred),
-	rdf_global_id(Obj0, Obj).
+	rdf_global_object(Obj0, Obj).
 user:goal_expansion(rdf_reachable(Subj0, Pred0, Obj0),
 		    rdf_reachable(Subj, Pred, Obj)) :-
 	rdf_global_id(Subj0, Subj),
 	rdf_global_id(Pred0, Pred),
-	rdf_global_id(Obj0, Obj).
+	rdf_global_object(Obj0, Obj).
 user:goal_expansion(rdf_assert(Subj0, Pred0, Obj0, PayLoad),
 		    rdf_assert(Subj, Pred, Obj, PayLoad)) :-
 	rdf_global_id(Subj0, Subj),
 	rdf_global_id(Pred0, Pred),
-	rdf_global_id(Obj0, Obj).
+	rdf_global_object(Obj0, Obj).
 user:goal_expansion(rdf_retractall(Subj0, Pred0, Obj0, PayLoad),
 		    rdf_retractall(Subj, Pred, Obj, PayLoad)) :-
 	rdf_global_id(Subj0, Subj),
 	rdf_global_id(Pred0, Pred),
-	rdf_global_id(Obj0, Obj).
+	rdf_global_object(Obj0, Obj).
 user:goal_expansion(rdf_update(Subj0, Pred0, Obj0, Action0),
 		    rdf_update(Subj, Pred, Obj, Action)) :-
 	rdf_global_id(Subj0, Subj),
 	rdf_global_id(Pred0, Pred),
-	rdf_global_id(Obj0, Obj),
+	rdf_global_object(Obj0, Obj),
 	rdf_global_term(Action0, Action).
 user:goal_expansion(rdf_equal(SubjA0, SubjB0),
 		    rdf_equal(SubjA, SubjB)) :-
@@ -241,6 +268,12 @@ user:goal_expansion(rdf_set_predicate(P0, Prop),
 user:goal_expansion(rdf_predicate_property(P0, Prop),
 		    rdf_predicate_property(P, Prop)) :-
 	rdf_global_id(P0, P).
+user:goal_expansion(rdf_estimate_complexity(Subj0, Pred0, Obj0, C),
+		    rdf_estimate_complexity(Subj, Pred, Obj, C)) :-
+	rdf_global_id(Subj0, Subj),
+	rdf_global_id(Pred0, Pred),
+	rdf_global_object(Obj0, Obj).
+
 
 %	rdf_equal(?Resource1, ?Resource2)
 %	
@@ -288,7 +321,8 @@ rdf_member_property(P, N) :-
 
 %	rdf_node(-Id)
 %
-%	Generate a unique identifier for a subject.
+%	Generate a unique identifier for a subject.  Obsolete.  New
+%	code should use rdf_bnode/1.
 
 rdf_node(Value) :-
 	repeat,
@@ -308,6 +342,16 @@ rdf_bnode(Value) :-
 	\+ rdf_subject(Value),
 	\+ rdf(_, _, Value),
 	\+ rdf(_, Value, _), !.
+
+
+%	rdf_is_bnode(+Id)
+%	
+%	Tests if a resource is a blank node (i.e. is an anonymous
+%	resource).
+
+rdf_is_bnode(Id) :-
+	atom(Id),
+	sub_atom(Id, 0, _, _, '__').
 
 
 		 /*******************************
@@ -408,10 +452,22 @@ rdf_save_db(File, DB) :-
 	call_cleanup(rdf_save_db_(Out, DB), close(Out)).
 
 
-rdf_load_db(File) :-
+rdf_load_db_no_admin(File) :-
 	open(File, read, Out, [type(binary)]),
 	call_cleanup(rdf_load_db_(Out), close(Out)).
 
+
+rdf_load_db(File) :-
+	rdf_load_db_no_admin(File),
+	rdf_sources_(Sources),
+	(   member(Src, Sources),
+	    rdf_md5(Src, MD5),
+	    rdf_statistics_(triples(Src, Triples)),
+	    retractall(rdf_source(Src, _, _, _)),
+	    assert(rdf_source(Src, 0, Triples, MD5)),
+	    fail
+	;   true
+	).
 
 
 		 /*******************************
@@ -427,28 +483,32 @@ rdf_load_db(File) :-
 %	    	Return action taken (load, reload, none) and number
 %	    	of triples loaded from the file as well as the MD5
 %	    	digest.
+%	    	
+%	Other options are forwarded to process_rdf/3.
 
 rdf_load(Spec) :-
 	rdf_load(Spec, []).
 
-rdf_load(Spec, Options) :-
+rdf_load(Spec, Options0) :-
 	statistics(cputime, CpuOld),
-	(   select(result(Action, Triples, MD5), Options, Options1)
+	(   select(result(Action, Triples, MD5), Options0, Options1)
 	->  true
-	;   Options1 = Options
+	;   Options1 = Options0
+	),
+	(   memberchk(blank_nodes(_), Options1)
+	->  Options2 = Options1
+	;   Options2 = [ blank_nodes(share)|Options1 ]
 	),
 	(   (   Spec = '$stream'(_)
 	    ->	In = Spec
 	    ;	Spec = stream(In)
 	    )
-	->  (   memberchk(base_uri(BaseURI), Options1)
-	    ->	true
-	    ;	gensym('stream://', BaseURI)
+	->  (   memberchk(base_uri(BaseURI), Options2)
+	    ->	Options = Options2
+	    ;	gensym('stream://', BaseURI),
+		Options = [base_uri(BaseURI)|Options2]
 	    ),
-	    process_rdf(In, assert_triples,
-			[ base_uri(BaseURI),
-			  blank_nodes(share)
-			]),
+	    process_rdf(In, assert_triples, Options),
 	    rdf_statistics_(triples(BaseURI, Triples)),
 	    rdf_md5(BaseURI, MD5),
 	    assert(rdf_source(BaseURI, Modified, Triples, MD5)),
@@ -456,6 +516,7 @@ rdf_load(Spec, Options) :-
 	    Load = parsed(ParseTime),
 	    Action = load
 	;   Source = Spec,
+	    Options = Options2,
 	    absolute_file_name(Spec,
 			       [ access(read),
 				 extensions([rdf,rdfs,owl,''])
@@ -477,19 +538,13 @@ rdf_load(Spec, Options) :-
 		->  (   time_file(Cache, CacheTime),
 		        time_file(File, FileTime),
 			CacheTime >= FileTime,
-			catch(rdf_load_db(Cache), _, fail)
+			catch(rdf_load_db_no_admin(Cache), _, fail)
 		    ->  Load = cache(ParseTime)
-		    ;   process_rdf(File, assert_triples,
-				    [ base_uri(BaseURI),
-				      blank_nodes(share)
-				    ]),
+		    ;   process_rdf(File, assert_triples, Options),
 			Load = parsed(ParseTime),
 			save_cache(File, Cache)
 		    )
-		;   process_rdf(File, assert_triples,
-				[ base_uri(BaseURI),
-				  blank_nodes(share)
-				]),
+		;   process_rdf(File, assert_triples, Options),
 		    Load = parsed(ParseTime)
 		),
 		rdf_statistics_(triples(File, Triples)),
@@ -537,7 +592,8 @@ rdf_source(File) :-
 %	time they were loaded.
 
 rdf_make :-
-	forall(rdf_source(File, _Time, _Triples, _),
+	forall((rdf_source(File, Time, _Triples, _),
+		Time \== 0),
 	       rdf_load(File)).
 
 
@@ -574,10 +630,7 @@ save_cache(File, Cache) :-
 
 assert_triples([], _).
 assert_triples([rdf(S,P,O)|T], DB) :- !,
-	rdf_global_id(S, Subject),
-	rdf_global_id(P, Predicate),
-	rdf_global_id(O, Object),
-	rdf_assert(Subject, Predicate, Object, DB),
+	rdf_assert(S, P, O, DB),
 	assert_triples(T, DB).
 assert_triples([H|_], _) :-
 	throw(error(type_error(rdf_triple, H), _)).
@@ -601,24 +654,51 @@ rdf_reset_db :-
 		 *	     SAVE RDF		*
 		 *******************************/
 
-%	rdf_save(File)
+%	rdf_save(File, [+Options])
 %
-%	Save RDF data to file
+%	Save RDF data to file.  Options is a list of one or more of the
+%	following options:
+%	
+%		# db(+DB)
+%		Save only triples associated to the given DB
+%		
+%		# anon(Bool)
+%		If false (default true) do not save blank nodes that do
+%		not appear (indirectly) as object of a named resource.
+%
+%		# convert_typed_literal(:Convertor)
+%		Call Convertor(-Type, -Content, +RDFObject), providing
+%		the opposite for the convert_typed_literal option of
+%		the RDF parser.
+
+:- module_transparent
+	rdf_save/2,
+	meta_options/2.
 
 rdf_save(File) :-
-	rdf_save(File, _).
+	rdf_save2(File, []).
 
+rdf_save(File, Options0) :-
+	is_list(Options0), !,
+	meta_options(Options0, Options),
+	rdf_save2(File, Options).
 rdf_save(File, DB) :-
+	atom(DB), !,			% backward compatibility
+	rdf_save2(File, [db(DB)]).
+
+
+rdf_save2(File, Options) :-
 	open(File, write, Out),
 	flag(rdf_db_saved_subjects, OSavedSubjects, 0),
 	flag(rdf_db_saved_triples, OSavedTriples, 0),
-	call_cleanup(rdf_do_save(Out, DB),
+	call_cleanup(rdf_do_save(Out, Options),
 		     Reason,
 		     cleanup_save(Reason,
 				  File,
 				  OSavedSubjects,
 				  OSavedTriples,
 				  Out)).
+
 
 cleanup_save(Reason,
 	     File,
@@ -634,28 +714,57 @@ cleanup_save(Reason,
 	;   format(user_error, 'Reason = ~w~n', [Reason])
 	).
 
-rdf_do_save(Out, DB) :-
-	rdf_save_header(Out, DB),
-	forall(rdf_subject(Subject, DB),
-	       rdf_save_non_anon_subject(Out, Subject, DB)),
+rdf_do_save(Out, Options) :-
+	rdf_save_header(Out, Options),
+	forall(rdf_subject(Subject, Options),
+	       rdf_save_non_anon_subject(Out, Subject, Options)),
 	rdf_save_footer(Out), !.	% dubious cut; without the
 					% cleanup handlers isn't called!?
 
-rdf_subject(Subject, DB) :-
+rdf_subject(Subject, Options) :-
+	db(Options, DB),
 	var(DB), !,
 	rdf_subject(Subject).
-rdf_subject(Subject, DB) :-
+rdf_subject(Subject, Options) :-
+	db(Options, DB),
 	rdf_subject(Subject),
 	(   rdf(Subject, _, _, DB:_)
 	->  true
 	).
 
-%	rdf_save_header(+Fd, +DB)
+db(Options, DB) :-
+	(   memberchk(db(DB0), Options)
+	->  DB = DB0
+	;   true			% leave unbound
+	).
+
+
+%	meta_options(+OptionsIn, -OptionsOut)
+%	
+%	Do module qualification for options that are module sensitive.
+
+meta_options([], []).
+meta_options([Name=Value|T0], List) :-
+	atom(Name), !,
+	Opt =.. [Name, Value],
+	meta_options([Opt|T0], List).
+meta_options([H0|T0], [H|T]) :-
+	(   H0 = convert_typed_literal(Handler)
+	->  '$strip_module'(Handler, M, P),
+	    H = convert_typed_literal(M:P)
+	;   H = H0
+	),
+	meta_options(T0, T).
+
+
+%	rdf_save_header(+Fd, +Options)
 %
-%	Save XML documentheader, doctype and open the RDF environment.
+%	Save XML document header, doctype and open the RDF environment.
 %	This predicate also sets up the namespace notation.
 
-rdf_save_header(Out, DB) :-
+rdf_save_header(Out, Options) :-
+	is_list(Options), !,
+	db(Options, DB),
 	format(Out, '<?xml version=\'1.0\' encoding=\'ISO-8859-1\'?>~n', []),
 	format(Out, '<!DOCTYPE rdf:RDF [', []),
 	used_namespaces(NSList, DB),
@@ -673,6 +782,10 @@ rdf_save_header(Out, DB) :-
 	;   true
 	),
 	format(Out, '>~n', []).
+rdf_save_header(Out, FileRef) :-	% compatibility
+	atom(FileRef),
+	rdf_save_header(Out, [db(FileRef)]).
+	
 
 %	used_namespaces(-List)
 %
@@ -752,20 +865,38 @@ xml_code(0'-).
 rdf_save_footer(Out) :-
 	format(Out, '</rdf:RDF>~n', []).
 
-rdf_save_non_anon_subject(_Out, Subject, _DB) :-
-	anonymous_subject(Subject), !.
-rdf_save_non_anon_subject(Out, Subject, DB) :-
+%	rdf_save_non_anon_subject(+Out, +Subject, +Options)
+%	
+%	Save an object.  Anonymous objects not saved if anon(false)
+%	is present in the Options list.
+
+rdf_save_non_anon_subject(_Out, Subject, Options) :-
+	anonymous_subject(Subject),
+	(   memberchk(anon(false), Options)
+	;   db(Options, DB),
+	    rdf_db(_, _, Subject, DB)
+	), !.
+rdf_save_non_anon_subject(Out, Subject, Options) :-
+	db(Options, DB),
 	rdf_save_subject(Out, Subject, DB),
 	flag(rdf_db_saved_subjects, X, X+1).
 
 
+rdf_save_subject(Out, Subject, Options) :-
+	is_list(Options), !,
+	(   rdf_save_subject(Out, Subject, -, 0, Options)
+	->  format(Out, '~n', [])
+	;   throw(error(rdf_save_failed(Subject), 'Internal error'))
+	).
 rdf_save_subject(Out, Subject, DB) :-
-	rdf_save_subject(Out, Subject, -, 0, DB),
-	format(Out, '~n', []), !.
-rdf_save_subject(_, Subject, _DB) :-
-	throw(error(rdf_save_failed(Subject), 'Internal error')).
+	(   var(DB)
+	->  rdf_save_subject(Out, Subject, [])
+	;   rdf_save_subject(Out, Subject, [db(DB)])
+	).
+		  
 
-rdf_save_subject(Out, Subject, DefNS, Indent, DB) :-
+rdf_save_subject(Out, Subject, DefNS, Indent, Options) :-
+	db(Options, DB),
 	findall(Pred=Object, rdf_db(Subject, Pred, Object, DB), Atts0),
 	sort(Atts0, Atts),		% remove duplicates
 	length(Atts, L),
@@ -776,7 +907,7 @@ rdf_save_subject(Out, Subject, DefNS, Indent, DB) :-
 			  rdf(save_removed_duplicates(Del, Subject)))
 	;   true
 	),
-	rdf_save_subject(Out, Subject, DefNS, Atts, Indent, DB),
+	rdf_save_subject(Out, Subject, DefNS, Atts, Indent, Options),
 	flag(rdf_db_saved_triples, X, X+L).
 
 rdf_db(Subject, Pred, Object, DB) :-
@@ -785,28 +916,27 @@ rdf_db(Subject, Pred, Object, DB) :-
 rdf_db(Subject, Pred, Object, DB) :-
 	rdf(Subject, Pred, Object, DB:_).
 
-rdf_save_subject(Out, Subject, DefNS, Atts, Indent, DB) :-
+rdf_save_subject(Out, Subject, DefNS, Atts, Indent, Options) :-
 	rdf_equal(rdf:type, RdfType),
 	select(RdfType=Type, Atts, Atts1),
 	rdf_id(Type, DefNS, TypeId),
 	xml_is_name(TypeId), !,
 	format(Out, '~*|<~w', [Indent, TypeId]),
-	save_about(Out, Subject, Indent),
-	save_attributes(Atts1, DefNS, Out, TypeId, Indent, DB).
-rdf_save_subject(Out, Subject, _DefNS, Atts, Indent, DB) :-
+	save_about(Out, Subject),
+	save_attributes(Atts1, DefNS, Out, TypeId, Indent, Options).
+rdf_save_subject(Out, Subject, _DefNS, Atts, Indent, Options) :-
 	format(Out, '~*|<rdf:Description', [Indent]),
-	save_about(Out, Subject, Indent),
-	save_attributes(Atts, rdf, Out, rdf:'Description', Indent, DB).
+	save_about(Out, Subject),
+	save_attributes(Atts, rdf, Out, rdf:'Description', Indent, Options).
 
 xml_is_name(_NS:Atom) :- !,
 	xml_name(Atom).
 xml_is_name(Atom) :-
 	xml_name(Atom).
 
-save_about(_Out, Subject, Indent) :-
-	Indent > 0,
+save_about(_Out, Subject) :-
 	anonymous_subject(Subject), !.
-save_about(Out, Subject, _) :-
+save_about(Out, Subject) :-
 	rdf_value(Subject, QSubject),
 	format(Out, ' rdf:about="~w"', [QSubject]).
 
@@ -816,14 +946,14 @@ save_about(Out, Subject, _) :-
 %	tag.  Others as the content of the description element.  The
 %	begin tag has already been filled.
 
-save_attributes(Atts, DefNS, Out, Element, Indent, DB) :-
+save_attributes(Atts, DefNS, Out, Element, Indent, Options) :-
 	split_attributes(Atts, InTag, InBody),
 	SubIndent is Indent + 2,
-	save_attributes2(InTag, DefNS, tag, Out, SubIndent, DB),
+	save_attributes2(InTag, DefNS, tag, Out, SubIndent, Options),
 	(   InBody == []
 	->  format(Out, '/>~n', [])
 	;   format(Out, '>~n', []),
-	    save_attributes2(InBody, _, body, Out, SubIndent, DB),
+	    save_attributes2(InBody, _, body, Out, SubIndent, Options),
 	    format(Out, '~N~*|</~w>~n', [Indent, Element])
 	).
 
@@ -835,7 +965,7 @@ save_attributes(Atts, DefNS, Out, Element, Indent, DB) :-
 
 split_attributes(Atts, HeadAttr, BodyAttr) :-
 	duplicate_attributes(Atts, Dupls, Singles),
-	literal_attributes(Singles, HeadAttr, Rest),
+	simple_literal_attributes(Singles, HeadAttr, Rest),
 	append(Dupls, Rest, BodyAttr).
 
 %	duplicate_attributes(+Attrs, -Duplicates, -Singles)
@@ -862,19 +992,20 @@ named_attributes(Name, [H|T], D, R) :-
 	    named_attributes(Name, T, D, RT)
 	).
 
-%	literal_attributes(+Attributes, -Inline, -Body)
+%	simple_literal_attributes(+Attributes, -Inline, -Body)
 %
 %	Split attributes for (literal) attributes to be used in the
 %	begin-tag and ones that have to go into the body of the description.
 
-literal_attributes([], [], []).
-literal_attributes([H|TA], [H|TI], B) :-
+simple_literal_attributes([], [], []).
+simple_literal_attributes([H|TA], [H|TI], B) :-
 	in_tag_attribute(H), !,
-	literal_attributes(TA, TI, B).
-literal_attributes([H|TA], I, [H|TB]) :-
-	literal_attributes(TA, I, TB).
+	simple_literal_attributes(TA, TI, B).
+simple_literal_attributes([H|TA], I, [H|TB]) :-
+	simple_literal_attributes(TA, I, TB).
 
 in_tag_attribute(_=literal(Text)) :-
+	atom(Text),			% may not have lang qualifier
 	atom_length(Text, Len),
 	Len < 60.
 
@@ -883,30 +1014,46 @@ in_tag_attribute(_=literal(Text)) :-
 %	Save a list of attributes.
 
 save_attributes2([], _, _, _, _, _).
-save_attributes2([H|T], DefNS, Where, Out, Indent, DB) :-
-	save_attribute(Where, H, DefNS, Out, Indent, DB),
-	save_attributes2(T, DefNS, Where, Out, Indent, DB).
+save_attributes2([H|T], DefNS, Where, Out, Indent, Options) :-
+	save_attribute(Where, H, DefNS, Out, Indent, Options),
+	save_attributes2(T, DefNS, Where, Out, Indent, Options).
 
 save_attribute(tag, Name=literal(Value), DefNS, Out, Indent, _DB) :-
 	AttIndent is Indent + 2,
 	rdf_att_id(Name, DefNS, NameText),
 	xml_quote_attribute(Value, QVal),
 	format(Out, '~N~*|~w="~w"', [AttIndent, NameText, QVal]).
-save_attribute(body, Name=literal(Value), DefNS, Out, Indent, _DB) :- !,
+save_attribute(body, Name=literal(Literal0), DefNS, Out, Indent, Options) :- !,
 	rdf_id(Name, DefNS, NameText),
-	xml_quote_cdata(Value, QVal),
-	format(Out, '~N~*|<~w>~w</~w>', [Indent, NameText, QVal, NameText]).
-save_attribute(body, Name=Value, DefNS, Out, Indent, DB) :-
+	(   memberchk(convert_typed_literal(Converter), Options),
+	    call(Converter, Type, Content, Literal0)
+	->  Literal = type(Type, Content)
+	;   Literal = Literal0
+	),
+	(   Literal = lang(Lang, Value)
+	->  rdf_id(Lang, DefNS, LangText),
+	    format(Out, '~N~*|<~w xml:lang="~w">',
+		   [Indent, NameText, LangText])
+	;   Literal = type(Type, Value)
+	->  rdf_id(Type, DefNS, TypeText),
+	    format(Out, '~N~*|<~w rdf:dataType="~w">',
+		   [Indent, NameText, TypeText])
+	;   format(Out, '~N~*|<~w>', [Indent, NameText]),
+	    Value = Literal
+	),
+	save_attribute_value(Value, Out),
+	format(Out, '</~w>', [NameText]).
+save_attribute(body, Name=Value, DefNS, Out, Indent, Options) :-
 	anonymous_subject(Value), !,
 	rdf_id(Name, DefNS, NameText),
 	SubIndent is Indent + 2,
 	(   rdf(Value, rdf:type, rdf:'List')
-	->  format(Out, '~N~*|<~w rdf:parseType=Collection>~n',
+	->  format(Out, '~N~*|<~w rdf:parseType="Collection">~n',
 		   [Indent, NameText]),
-	    rdf_save_list(Out, Value, DefNS, SubIndent, DB)
+	    rdf_save_list(Out, Value, DefNS, SubIndent, Options)
 	;   format(Out, '~N~*|<~w>~n',
 		   [Indent, NameText]),
-	    rdf_save_subject(Out, Value, DefNS, SubIndent, DB)
+	    rdf_save_subject(Out, Value, DefNS, SubIndent, Options)
 	),
 	format(Out, '~N~*|</~w>~n', [Indent, NameText]).
 save_attribute(body, Name=Value, DefNS, Out, Indent, _DB) :-
@@ -914,13 +1061,23 @@ save_attribute(body, Name=Value, DefNS, Out, Indent, _DB) :-
 	rdf_id(Name, DefNS, NameText),
 	format(Out, '~N~*|<~w rdf:resource="~w"/>', [Indent, NameText, QVal]).
 
+save_attribute_value(Value, Out) :-	% strings
+	atom(Value), !,
+	xml_quote_cdata(Value, QVal),
+	write(Out, QVal).
+save_attribute_value(Value, Out) :-	% numbers
+	number(Value), !,
+	writeq(Out, Value).		% quoted: preserve floats
+save_attribute_value(Value, _Out) :-
+	throw(error(save_attribute_value(Value), _)).
+
 rdf_save_list(_, List, _, _, _) :-
 	rdf_equal(List, rdf:nil), !.
-rdf_save_list(Out, List, DefNS, Indent, DB) :-
+rdf_save_list(Out, List, DefNS, Indent, Options) :-
 	rdf_has(List, rdf:first, First),
 	(   anonymous_subject(First)
 	->  nl(Out),
-	    rdf_save_subject(Out, First, DefNS, Indent, DB)
+	    rdf_save_subject(Out, First, DefNS, Indent, Options)
 	;   rdf_value(First, QVal),
 	    format(Out, '~N~*|<rdf:Description about="~w"/>',
 		   [Indent, QVal])
@@ -928,7 +1085,7 @@ rdf_save_list(Out, List, DefNS, Indent, DB) :-
 	flag(rdf_db_saved_triples, X, X+3),
 	(   rdf_has(List, rdf:rest, List2),
 	    \+ rdf_equal(List2, rdf:nil)
-	->  rdf_save_list(Out, List2, DefNS, Indent, DB)
+	->  rdf_save_list(Out, List2, DefNS, Indent, Options)
 	;   true
 	).
 

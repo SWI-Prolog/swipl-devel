@@ -69,7 +69,8 @@ property(runtime) :-
 	prolog:message/3.
 
 prolog:message(T) -->
-	{ current_module(pce_messages) }, % avoid problem while booting
+	{ '$c_current_predicate'(_, pce_messages:pce_message(_))
+	}, % avoid problem while booting
 	pce_messages:pce_message(T).
 
 		/********************************

@@ -343,7 +343,7 @@ predarg(1) -->
 
 input_output -->
 	char(C),
-	{ memberchk(C, "+-?:") }.
+	{ memberchk(C, "+-?:@") }.
 
 optional_input_output -->
 	input_output, !.

@@ -39,6 +39,7 @@
 	    www_form_encode/2,		% Value <-> Encoded
 	    parse_url_search/2		% Form-data <-> Form fields
 	  ]).
+:- use_module(library(lists)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Utility library to break down URL  specifications. This library is based
@@ -250,13 +251,16 @@ cform(Atom) -->
 %	Parse a URL to a sequence of attributes.  In the version with
 %	three arguments, URL may be an URL relative to BaseURL.
 %
-%	AttributesL
+%	Attributes:
 %
 %		protocol(Protocol)	Protocol identifier
 %		host(Host)		Name of host
 %		port(Port)		Number of port to contact
 %		path(Path)		The path
 %		search(Search)		Search specification
+%		
+%	The parse_url/3	predicate deals with relative URLs.  BaseURL can
+%	be specified as an atom or parsed URL.
 
 parse_url(URL, Attributes) :-
 	nonvar(URL), !,
@@ -266,14 +270,15 @@ parse_url(URL, Attributes) :-
 	phrase(curl(Attributes), Codes), !,
 	atom_codes(URL, Codes).
 
-
-
 parse_url(URL, BaseURL, Attributes) :-
 	nonvar(URL), !, 
 	atom_codes(URL, Codes),
 	(   phrase(absolute_url, Codes, _)
 	->  phrase(url(Attributes), Codes)
-	;   parse_url(BaseURL, BaseA0),
+	;   (   atomic(BaseURL)
+	    ->  parse_url(BaseURL, BaseA0)
+	    ;	BaseA0 = BaseURL
+	    ),
 	    memberchk(protocol(Protocol), BaseA0),
 	    select(path(BasePath), BaseA0, BaseA1),
 	    delete(BaseA1, search(_), BaseA2),

@@ -35,8 +35,7 @@
 :- meta_predicate make_dialog(-, :).
 
 :- use_module(library(pce)).
-:- require([ checklist/2
-	   , forall/2
+:- require([ forall/2
 	   , member/2
 	   , memberchk/2
 	   , send_list/3
@@ -60,7 +59,7 @@ make_dialog(Dialog, Module, TheId) :-
 
 do(Goal, Attribute, List) :-
 	memberchk(Attribute := Value, List), !,
-	checklist(Goal, Value).
+	maplist(Goal, Value).
 do(_, _, _).
 
 

@@ -185,7 +185,7 @@ status		loadXImage(Image image, IOSTREAM *fd);
 status		loadPNMImage(Image image, IOSTREAM *fd);
 status		ws_load_old_image(Image image, IOSTREAM *fd);
 status		ws_load_image_file(Image image);
-Image		ws_std_xpm_image(Name name, Image *global, char **data);
+status		ws_create_image_from_xpm_data(Image image, char **data, DisplayObj d);
 status		ws_save_image_file(Image image, SourceSink into, Name fmt);
 status		ws_open_image(Image image, DisplayObj d);
 void		ws_close_image(Image image, DisplayObj d);

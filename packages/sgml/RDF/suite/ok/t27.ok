@@ -6,7 +6,7 @@ rdf('MirroredSites', rdf:type, rdf:'Bag').
 rdf('MirroredSites', rdf:'_1', 'http://www.foo.com.au/cool.html').
 rdf('MirroredSites', rdf:'_2', 'http://www.foo.com.it/cool.html').
 rdf('http://www.foo.com/cool.html', 'http://purl.org/metadata/dublin_core#':'Identifier', 'MirroredSites').
-rdf('__Description1', rdf:type, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Alt').
-rdf('__Description1', rdf:'_1', literal('The Coolest Web Page')).
-rdf('__Description1', rdf:'_2', literal('Il Pagio di Web Fuba')).
-rdf('http://www.foo.com/cool.html', 'http://purl.org/metadata/dublin_core#':'Title', '__Description1').
+rdf('__Alt1', rdf:type, rdf:'Alt').
+rdf('__Alt1', rdf:'_1', literal(lang(en, 'The Coolest Web Page'))).
+rdf('__Alt1', rdf:'_2', literal(lang(it, 'Il Pagio di Web Fuba'))).
+rdf('http://www.foo.com/cool.html', 'http://purl.org/metadata/dublin_core#':'Title', '__Alt1').

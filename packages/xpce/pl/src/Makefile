@@ -51,7 +51,7 @@ CFLAGS= 	$(COFLAGS) $(CWFLAGS) $(CMFLAGS) $(CPLIFLAGS) $(CITFFLAGS)
 
 PCEPLS=		pce_expand.pl ../lib/english/pce_messages.pl pce_pl.pl \
 		pce_principal.pl pce_error.pl pce_autoload.pl pce_global.pl \
-		pce_operator.pl pce_expansion.pl pce_realise.pl pce_editor.pl \
+		pce_expansion.pl pce_realise.pl pce_editor.pl \
 		pce_goal_expansion.pl
 BOOTQLF=	pce.qlf
 LIBQLFS=	pce_manual.qlf dialog/dialog.qlf emacs/emacs.qlf pcedraw.qlf
@@ -116,11 +116,11 @@ $(XPCESO):	$(SOITF) $(libXPCE) $(SOEXTR)
 sopce$(XPCESO):
 		LD_RUN_PATH="$(libdir):$$LD_RUN_PATH"; \
 		export LD_RUN_PATH; \
-		$(PLLD) -shared $(SOITF) -L$(XLIB) -L$(LIBDIR) -lXPCE -o $(XPCESO);
+		$(PLLD) -shared $(SOITF) $(LDFLAGS) -L$(XLIB) -L$(LIBDIR) -lXPCE -o $(XPCESO);
 axpce$(XPCESO):
 		LD_RUN_PATH="$(libdir):$$LD_RUN_PATH"; \
 		export LD_RUN_PATH; \
-		$(PLLD) -shared $(SOITF) $(SOEXTR) -L$(LIBDIR) \
+		$(PLLD) -shared $(LDFLAGS) $(SOITF) $(SOEXTR) -L$(LIBDIR) \
 		-lXPCE $(GCCLIB) -L$(XLIB) $(XLIBS) $(NETLIBS) -o $(XPCESO);
 
 ################################################################$

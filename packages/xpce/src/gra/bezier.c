@@ -70,7 +70,10 @@ adjustFirstArrowBezier(Bezier b)
     av[3] = b->control1->y;
 
     if ( qadSendv(b->first_arrow, NAME_points, 4, av) )
+    { assign(b->first_arrow, displayed, ON);
+
       return ComputeGraphical(b->first_arrow);
+    }
   }
 
   fail;
@@ -93,7 +96,9 @@ adjustSecondArrowBezier(Bezier b)
     }
 
     if ( qadSendv(b->second_arrow, NAME_points, 4, av) )
+    { assign(b->second_arrow, displayed, ON);
       return ComputeGraphical(b->second_arrow);
+    }
   }
 
   fail;

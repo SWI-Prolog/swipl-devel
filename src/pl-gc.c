@@ -112,7 +112,11 @@ Marking, testing marks and extracting values from GC masked words.
 #if O_SECURE
 char tmp[256];				/* for calling print_val(), etc. */
 #define check_relocation(p) do_check_relocation(p, __FILE__, __LINE__ PASS_LD)
-#define recordMark(p)   { if ( (p) < gTop ) *mark_top++ = (p); }
+#define recordMark(p)   { if ( (p) < gLimit ) \
+			  { assert(onStack(global, p)); \
+			    *mark_top++ = (p); \
+			  } \
+			}
 #else
 #define recordMark(p)
 #define needsRelocation(p) { needs_relocation++; }
@@ -120,19 +124,17 @@ char tmp[256];				/* for calling print_val(), etc. */
 #endif
 
 #define ldomark(p)	{ *(p) |= MARK_MASK; }
-#define domark(p)	{ if ( marked(p) ) \
+#define domark(p)	{ if ( is_marked(p) ) \
 			    sysError("marked twice: %p (*= 0x%lx), gTop = %p", p, *(p), gTop); \
 			  *(p) |= MARK_MASK; \
 			  total_marked++; \
 			  recordMark(p); \
-			  DEBUG(4, Sdprintf("marked(%p)\n", p)); \
+			  DEBUG(4, Sdprintf("is_marked(%p)\n", p)); \
 			}
 #define unmark(p)	(*(p) &= ~MARK_MASK)
-#define marked(p)	(*(p) & MARK_MASK)
 
 #define mark_first(p)	(*(p) |= FIRST_MASK)
 #define unmark_first(p)	(*(p) &= ~FIRST_MASK)
-#define is_first(p)	(*(p) & FIRST_MASK)
 #define is_ref(w)	isRef(w)
 
 #define get_value(p)	(*(p) & VALUE_MASK)
@@ -163,6 +165,7 @@ char tmp[256];				/* for calling print_val(), etc. */
 
 forwards void		mark_variable(Word ARG_LD);
 forwards void		sweep_foreign(void);
+static void		sweep_global_mark(Word *m ARG_LD);
 forwards QueryFrame	mark_environments(LocalFrame, Code PC);
 forwards void		update_relocation_chain(Word, Word ARG_LD);
 forwards void		into_relocation_chain(Word, int stg ARG_LD);
@@ -180,8 +183,9 @@ forwards void		compact_global(void);
 forwards int		cmp_address(const void *, const void *);
 forwards void		do_check_relocation(Word, char *file, int line ARG_LD);
 forwards void		needsRelocation(void *);
-forwards bool		scan_global(int marked);
+/*forwards bool		scan_global(int marked);*/
 forwards void		check_mark(mark *m);
+static int		check_marked(const char *s);
 #endif
 
 		/********************************
@@ -425,7 +429,7 @@ mark_variable(Word start ARG_LD)
 
   DEBUG(3, Sdprintf("marking %p\n", start));
 
-  if ( marked(start) )
+  if ( is_marked(start) )
     sysError("Attempt to mark twice");
 
   local_marked++;
@@ -436,15 +440,14 @@ mark_variable(Word start ARG_LD)
   FORWARD;
 
 forward:				/* Go into the tree */
-  if ( marked(current) )		/* have been here */
+  if ( is_marked(current) )		/* have been here */
     BACKWARD;
   domark(current);
 
   switch(tag(val))
   { case TAG_REFERENCE:
     { next = unRef(val);		/* address pointing to */
-      if ( next < gBase )
-	sysError("REF pointer to %p\n", next);
+      SECURE(assert(onStack(global, next)));
       needsRelocation(current);
       if ( is_first(next) )		/* ref to choice point. we will */
         BACKWARD;			/* get there some day anyway */
@@ -454,13 +457,30 @@ forward:				/* Go into the tree */
       current = next;			/* invariant */
       FORWARD;
     }
+#ifdef O_ATTVAR
+    case TAG_ATTVAR:
+    { SECURE(assert(storage(val) == STG_GLOBAL));
+      next = valPtr2(val, STG_GLOBAL);
+      SECURE(assert(onStack(global, next)));
+      needsRelocation(current);
+      if ( is_marked(next) )
+	BACKWARD;			/* term has already been marked */
+      val  = get_value(next);		/* invariant */
+					/* backwards pointer */
+      set_value(next, makePtr(current, TAG_ATTVAR PASS_LD));
+      DEBUG(5, Sdprintf("Marking ATTVAR from %p to %p\n", current, next));
+      current = next;			/* invariant */
+      FORWARD;
+    }
+#endif
     case TAG_COMPOUND:
     { int args;
 
       SECURE(assert(storage(val) == STG_GLOBAL));
       next = valPtr2(val, STG_GLOBAL);
+      SECURE(assert(onStack(global, next)));
       needsRelocation(current);
-      if ( marked(next) )
+      if ( is_marked(next) )
 	BACKWARD;			/* term has already been marked */
       args = arityFunctor(((Functor)next)->definition) - 1;
       DEBUG(5, Sdprintf("Marking TERM %s/%d at %p\n",
@@ -468,7 +488,9 @@ forward:				/* Go into the tree */
 			args+1, next));
       domark(next);
       for( next += 2; args > 0; args--, next++ )
+      { SECURE(assert(!is_first(next)));
 	mark_first(next);
+      }
       next--;				/* last cell of term */
       val = get_value(next);		/* invariant */
 					/* backwards pointer (NO ref!) */
@@ -484,11 +506,12 @@ forward:				/* Go into the tree */
     { next = valPtr2(val, STG_GLOBAL);
 
       SECURE(assert(storage(val) == STG_GLOBAL));
+      SECURE(assert(onStack(global, next)));
       needsRelocation(current);
-      if ( marked(next) )		/* can be referenced from multiple */
+      if ( is_marked(next) )		/* can be referenced from multiple */
         BACKWARD;			/* places */
       domark(next);
-      DEBUG(3, Sdprintf("Marked indirect data type, size = %ld\n",
+      DEBUG(5, Sdprintf("Marked indirect data type, size = %ld\n",
 			offset_cell(next) + 1));
       total_marked += offset_cell(next);
     }
@@ -498,20 +521,33 @@ forward:				/* Go into the tree */
 backward:  				/* reversing backwards */
   while( !is_first(current) )
   { word w = get_value(current);
+    int t = tag(w);
+
+    assert(onStack(global, current));
 
     next = valPtr(w);
     set_value(current, val);
-    if ( isRef(w) )
-      val = makeRef(current);
-    else
-      val = makePtr(current-1, TAG_COMPOUND PASS_LD);
+    switch(t)
+    { case TAG_REFERENCE:
+	val = makeRef(current);
+        break;
+      case TAG_COMPOUND:
+	val = makePtr(current-1, t PASS_LD);
+        break;
+      case TAG_ATTVAR:
+	val = makePtr(current, t PASS_LD);
+        break;
+      default:
+	assert(0);
+    }
     current= next;
   }
 
   unmark_first(current);
   if ( current == start )
     return;
-
+ 
+  SECURE(assert(onStack(global, current)));
   { word tmp;
 
     tmp = get_value(current);
@@ -537,14 +573,18 @@ mark_term_refs()
   { Word sp = refFliP(fr, 0);
     int n = fr->size;
 
+    assert(fr->magic == FLI_MAGIC);
     for( ; n-- > 0; sp++ )
-    { if ( !marked(sp) )		/* can this be marked?? */
-      { if ( isGlobalRef(*sp) )
-	  mark_variable(sp PASS_LD);
-	else
-	  ldomark(sp);      
+    { SECURE(assert(!is_marked(sp)));
+
+      if ( isGlobalRef(*sp) )
+      { mark_variable(sp PASS_LD);
+      } else
+      { ldomark(sp);      
       }
     }
+
+    SECURE(check_marked("After marking foreign frame"));
   }
 }
 
@@ -559,6 +599,109 @@ mark_foreign_trail_refs()
     alien_into_relocation_chain(&fr->mark.trailtop, STG_TRAIL, STG_LOCAL PASS_LD);
   }
 }
+
+
+#ifdef O_GVAR
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Dealing  with  nb_setval/2  and   nb_getval/2  non-backtrackable  global
+variables as defined  in  pl-gvar.c.  We   cannot  mark  and  sweep  the
+hash-table itself as the  reversed   pointers  cannot  address arbitrary
+addresses returned by allocHeap(). Therefore we   turn all references to
+the global stack  into  term-references  and   reply  on  the  available
+mark-and-sweep for foreign references. If none   of  the global variable
+refers to the global stack we  can   `unfreeze'  the  global stack right
+away.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static fid_t
+gvars_to_term_refs(Word **saved_bar_at)
+{ GET_LD
+
+  *saved_bar_at = NULL;
+
+  if ( LD->gvar.nb_vars )
+  { fid_t fid = PL_open_foreign_frame();
+    TableEnum e = newTableEnum(LD->gvar.nb_vars);
+    int found = 0;
+    Symbol s;
+
+    while( (s=advanceTableEnum(e)) )
+    { Word p = (Word)&s->value;
+
+      if ( isGlobalRef(*p) )
+      { term_t t = PL_new_term_ref();
+
+	*valTermRef(t) = *p;
+	found++;
+      }
+    }
+
+    freeTableEnum(e);
+
+    if ( found )
+    { Word *sb = (Word*)lTop;
+
+      DEBUG(0, Sdprintf("Found %d global vars on global stack. "
+			"stored in frame %p\n", found, fli_context));
+      
+      lTop = (LocalFrame)(sb+1);
+      *sb = LD->frozen_bar;
+      *saved_bar_at = sb;
+
+      return fid;
+    } else
+    { LD->frozen_bar = 0;		/* unless used elsewhere */
+      PL_close_foreign_frame(fid);
+      return 0;
+    }
+  } else			/* other use is nb_setarg/3, but */
+    LD->frozen_bar = 0;		/* term is always accessible otherwise */
+
+  return 0;
+}
+
+
+static void
+term_refs_to_gvars(fid_t fid, Word *saved_bar_at)
+{ GET_LD
+
+  if ( saved_bar_at )
+  { assert((void *)(saved_bar_at+1) == (void*)lTop);
+    LD->frozen_bar = valPtr2((word)*saved_bar_at, STG_GLOBAL);
+
+    assert(onStack(global, LD->frozen_bar) || LD->frozen_bar == gTop);
+    lTop = (LocalFrame) saved_bar_at;
+  }
+
+  if ( fid )
+  { FliFrame fr = (FliFrame) valTermRef(fid);
+    Word fp = (Word)(fr+1);
+    TableEnum e = newTableEnum(LD->gvar.nb_vars);
+    int found = 0;
+    Symbol s;
+
+    while( (s=advanceTableEnum(e)) )
+    { Word p = (Word)&s->value;
+
+      if ( isGlobalRef(*p) )
+      { *p = *fp++;
+	found++;
+      }
+    }
+    assert(found == fr->size);
+
+    freeTableEnum(e);
+    PL_close_foreign_frame(fid);
+  }
+}
+
+#else /*O_GVAR*/
+
+#define gvars_to_term_refs() 0
+#define term_refs_to_gvars(f) (void)0
+
+#endif /*O_GVAR*/
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -665,7 +808,7 @@ mark_environments(LocalFrame fr, Code PC)
 #endif
     sp = argFrameP(fr, 0);
     for( ; slots-- > 0; sp++ )
-    { if ( !marked(sp) )
+    { if ( !is_marked(sp) )
       { if ( isGlobalRef(*sp) )
 	  mark_variable(sp PASS_LD);
 	else
@@ -683,21 +826,99 @@ mark_environments(LocalFrame fr, Code PC)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+If multiple TrailAssignment() calls happen on  the same address within a
+choicepoint we only need to keep the  first. Therefore we scan the trail
+for this choicepoint from the mark to the  top and mark (using the FIRST
+mark) the (global stack) addresses trailed. If we find one marked we can
+delete the trail entry. To  avoid  a   second  scan  we store the marked
+addresses on the argument stack.
+
+Note that this additional scan of a section   of the trail stack is only
+required if there are  at  least   two  trailed  assignments  within the
+trail-ranged described by the choicepoint.
+
+As far as I can  see  the  only   first-marks  in  use  at this time are
+references to the trail-stack and we use   the first marks on the global
+stack.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#if O_DESTRUCTIVE_ASSIGNMENT
+static void
+push_marked(Word p ARG_LD)
+{ requireStack(argument, sizeof(Word));
+  *aTop++ = p;
+}
+
+static void
+popall_marked(Word *base ARG_LD)
+{ Word *p = aTop;
+
+  while(p>base)
+  { p--;
+    unmark_first(*p);
+  }
+
+  aTop = base;
+}
+
+static void
+mergeTrailedAssignments(GCTrailEntry top, GCTrailEntry mark,
+			int assignments ARG_LD)
+{ GCTrailEntry te;
+  Word *m = aTop;
+
+  DEBUG(2, Sdprintf("Scanning %d trailed assignments\n", assignments));
+
+#if O_SECURE
+  for(te=mark; te <= top; te++)
+  { if ( ttag(te[1].address) == TAG_TRAILVAL )
+    { Word p = val_ptr(te->address);
+      assert(!is_first(p));
+    }
+  }
+#endif
+
+  for(te=mark; te <= top; te++)
+  { if ( ttag(te[1].address) == TAG_TRAILVAL )
+    { Word p = val_ptr(te->address);
+
+      assignments--;
+      if ( is_first(p) )
+      {	DEBUG(3, Sdprintf("Delete duplicate trailed assignment at %p\n", p));
+	te->address = 0;
+	te[1].address = 0;
+	trailcells_deleted += 2;
+      } else
+      { mark_first(p);
+	push_marked(p PASS_LD);
+      }
+    }
+  }
+
+  popall_marked(m PASS_LD);
+  assert(assignments == 0);
+}
+#endif
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Mark the choicepoints. This function walks   along the environments that
 can be reached from  the  choice-points.   In  addition,  it deletes all
 trail-references  that  will   be   overruled    by   the   choice-point
 stack-reference anyway.
 
-When using setarg/3 (O_DESTRUCTIVE_ASSIGNMENT),   destrctive assignments
+When using setarg/3 (O_DESTRUCTIVE_ASSIGNMENT),  destructive assignments
 are stored on the trail-stack as  two   entries.  The first entry is the
 normal trail-pointer, while the  second   is  flagged  with TAG_TRAILVAL
 (0x1). When undoing, the tail is scanned backwards and if a tagged value
 is encountered, this value is restored  at   the  location  of the first
 trail-cell.
 
-If the has become  garbage,  we  can   destroy  both  cells.  Note  that
-mark_trail() already has marked the replaced value,  so that will not be
-garbage collected during this pass. 
+If the trail cell has become garbage,   we  can destroy both cells. Note
+that mark_trail() already has marked the   replaced  value, so that will
+not be garbage collected during this pass. We cannot reverse marking the
+stacks and the trail-stack as one trailed   value might make another one
+non-garbage. It isn't too bad however as the   next GC will take care of
+the term.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static GCTrailEntry
@@ -707,7 +928,9 @@ mark_choicepoints(Choice ch, GCTrailEntry te)
   for( ; ch; ch = ch->parent )
   { LocalFrame fr = ch->frame;
     GCTrailEntry tm = (GCTrailEntry)ch->mark.trailtop;
+    GCTrailEntry te0 = te;
     Word top;
+    int assignments = 0;
 
     if ( ch->type == CHP_CLAUSE )
       top = argFrameP(fr, fr->predicate->functor->arity);
@@ -719,7 +942,19 @@ mark_choicepoints(Choice ch, GCTrailEntry te)
     for( ; te >= tm; te-- )		/* early reset of vars */
     { 
 #if O_DESTRUCTIVE_ASSIGNMENT
-      if ( ttag(te->address) != TAG_TRAILVAL )
+      if ( ttag(te->address) == TAG_TRAILVAL )
+      { Word tard = val_ptr(te[-1].address);
+
+	if ( is_marked(tard) )
+	{ assignments++;
+	} else
+	{ setVar(*tard);
+	  te->address = 0;
+	  te--;
+	  te->address = 0;
+	  trailcells_deleted += 2;
+	}
+      } else
 #endif
       { Word tard = val_ptr(te->address);
 
@@ -727,21 +962,19 @@ mark_choicepoints(Choice ch, GCTrailEntry te)
 	{ SECURE(assert(ttag(te[1].address) != TAG_TRAILVAL));
 	  te->address = 0;
 	  trailcells_deleted++;
-	} else if ( !marked(tard) )	/* garbage */
+	} else if ( !is_marked(tard) )	/* garbage */
 	{ setVar(*tard);
-	  SECURE(assert(*tard != QID_MAGIC));
-#if O_DESTRUCTIVE_ASSIGNMENT
-	  if ( ttag(te[1].address) == TAG_TRAILVAL)
-	  { te[1].address = 0;
-	    trailcells_deleted++;
-	  }
-#endif
 	  DEBUG(3, Sdprintf("Early reset of %p\n", te->address));
 	  te->address = 0;
 	  trailcells_deleted++;
 	}
       }
     }
+
+#if O_DESTRUCTIVE_ASSIGNMENT
+    if ( assignments >= 2 )
+      mergeTrailedAssignments(te0, tm, assignments PASS_LD);
+#endif
 
     needsRelocation(&ch->mark.trailtop);
     alien_into_relocation_chain(&ch->mark.trailtop, STG_TRAIL, STG_LOCAL PASS_LD);
@@ -801,10 +1034,11 @@ mark_trail()
 			&te->address, gp, *gp));
 
       assert(onGlobal(gp));
-      if ( !marked(gp) )
-      { mark_variable(gp PASS_LD);
-	total_marked++;			/* fix counters */
+      if ( !is_marked(gp) )
+      {	total_marked++;			/* fix counters */
 	local_marked--;
+
+	mark_variable(gp PASS_LD);
       }
     }
   }
@@ -828,6 +1062,7 @@ mark_phase(LocalFrame fr, Choice ch)
 { GET_LD
   total_marked = 0;
 
+  SECURE(check_marked("Before mark_term_refs()"));
   mark_term_refs();
 #ifdef O_DESTRUCTIVE_ASSIGNMENT
   mark_trail();
@@ -975,23 +1210,37 @@ compact_trail(void)
 } 
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+{tag,untag}_trail() are used to turn  the   native  pointers used on the
+trail-stack into tagged ones as  used  on   the  other  stacks,  to make
+pointer reversal in the relocation chains uniform.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static void
 tag_trail()
 { GET_LD
   TrailEntry te;
 
-  for(te = tBase; te < tTop; te++)
-  { if ( te->address )
-    { word mask = ttag(te->address);
-      int stg;
+  for( te = tTop; --te >= tBase; )
+  { Word p = te->address;
+    int stg;
 
-      if ( onLocal(te->address) )
-	stg = STG_LOCAL;
-      else
-	stg = STG_GLOBAL;
+    if ( isTrailVal(p) )
+    { Word p2 = trailValP(p);
 
-      te->address = (Word)consPtr(te->address, stg|mask);
+      SECURE(assert(onStack(global, p2)));
+      te->address = (Word)consPtr(p2, STG_GLOBAL|TAG_TRAILVAL);
+      te--;
     }
+
+    if ( onLocal(te->address) )
+    { stg = STG_LOCAL;
+    } else
+    { SECURE(assert(onStackArea(global, te->address)));
+      stg = STG_GLOBAL;
+    }
+
+    te->address = (Word)consPtr(te->address, stg);
   }
 }
 
@@ -1020,32 +1269,39 @@ cell. Hence the `goto found'.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-sweep_mark(mark *m ARG_LD)
+sweep_global_mark(Word *m ARG_LD)
 { Word gm, prev;
 
-  marks_swept++;
-  gm = m->globaltop;
+  SECURE(assert(onStack(local, m)));
+  gm = *m;
 
   for(;;)
   { if ( gm == gBase )
-    { m->globaltop = (Word)consPtr(gm, STG_GLOBAL);
+    { *m = (Word)consPtr(gm, STG_GLOBAL);
       alien_relocations++;
       break;
     }
     if ( is_first(gm-1) )
       goto found;
     prev = previous_gcell(gm);
-    if ( marked(prev) )
+    if ( is_marked(prev) )
     {
     found:
-      m->globaltop = gm, STG_GLOBAL;
+      *m = gm;
       DEBUG(3, Sdprintf("gTop mark from choice point: "));
-      needsRelocation(&m->globaltop);
-      alien_into_relocation_chain(&m->globaltop, STG_GLOBAL, STG_LOCAL PASS_LD);
+      needsRelocation(m);
+      alien_into_relocation_chain(m, STG_GLOBAL, STG_LOCAL PASS_LD);
       break;
     }
     gm = prev;
   }
+}
+
+
+static inline void
+sweep_mark(mark *m ARG_LD)
+{ marks_swept++;
+  sweep_global_mark(&m->globaltop PASS_LD);
 }
 
 
@@ -1060,7 +1316,7 @@ sweep_foreign()
 
     sweep_mark(&fr->mark PASS_LD);
     for( ; n-- > 0; sp++ )
-    { if ( marked(sp) )
+    { if ( is_marked(sp) )
       {	unmark(sp);
 	if ( isGlobalRef(get_value(sp)) )
 	{ local_marked--;
@@ -1167,7 +1423,7 @@ sweep_environments(LocalFrame fr, Code PC)
 
     sp = argFrameP(fr, 0);
     for( ; slots > 0; slots--, sp++ )
-    { if ( marked(sp) )
+    { if ( is_marked(sp) )
       { unmark(sp);
 	if ( isGlobalRef(get_value(sp)) )
 	{ local_marked--;
@@ -1236,11 +1492,17 @@ is_downward_ref(Word p ARG_LD)
   { case TAG_INTEGER:
       if ( storage(val) == STG_INLINE )
 	fail;
+    case TAG_ATTVAR:
     case TAG_STRING:
     case TAG_FLOAT:
     case TAG_REFERENCE:
     case TAG_COMPOUND:
-      return val_ptr(val) < p;
+    { Word d = val_ptr(val);
+
+      SECURE(assert(d >= gBase));
+
+      return d < p;
+    }
   }
 
   fail;
@@ -1255,15 +1517,50 @@ is_upward_ref(Word p ARG_LD)
   { case TAG_INTEGER:
       if ( storage(val) == STG_INLINE )
 	fail;
+    case TAG_ATTVAR:
     case TAG_STRING:
     case TAG_FLOAT:
     case TAG_REFERENCE:
     case TAG_COMPOUND:
-      return val_ptr(val) > p;
+    { Word d = val_ptr(val);
+
+      SECURE(assert(d < gTop));
+
+      return d > p;
+    }
   }
 
   fail;
 }
+
+
+#if O_SECURE
+
+static int
+check_marked(const char *s)
+{ GET_LD
+  long m = 0;
+  Word current;
+  long cells = 0;
+
+  for( current = gBase; current < gTop; current += (offset_cell(current)+1) )
+  { cells++;
+    if ( is_marked(current) )
+    { m += (offset_cell(current)+1);
+    }
+  }
+
+  if ( m == total_marked )
+    return TRUE;
+
+  if ( m != total_marked )
+    Sdprintf("**** ERROR: size: %ld != %ld (%s) ****\n",
+	     m, total_marked, s);
+
+  return FALSE;
+}
+
+#endif /*O_SECURE*/
 
 
 static void
@@ -1278,11 +1575,11 @@ compact_global(void)
 
   dest = gBase + total_marked;			/* first FREE cell */
   for( current = gTop; current >= gBase; current-- )
-  { long offset = (marked(current) || is_first(current)
+  { long offset = (is_marked(current) || is_first(current)
 		   			? 0 : offset_cell(current));
     current -= offset;
 
-    if ( marked(current) )
+    if ( is_marked(current) )
     {
 #if O_SECURE
       if ( current != *--v )
@@ -1320,10 +1617,12 @@ compact_global(void)
     sysError("After down phase: relocation_cells = %ld; relocated_cells = %ld",
 	     relocation_cells, relocated_cells);
 
+  SECURE(check_marked("Before up"));
+
   DEBUG(2, Sdprintf("Scanning global stack upwards\n"));
   dest = gBase;
   for(current = gBase; current < gTop; )
-  { if ( marked(current) )
+  { if ( is_marked(current) )
     { long l, n;
 
       if ( is_first(current) )
@@ -1368,15 +1667,21 @@ compact_global(void)
 }
 
 static void
-collect_phase(LocalFrame fr, Choice ch)
+collect_phase(LocalFrame fr, Choice ch, Word *saved_bar_at)
 { GET_LD
  
+  SECURE(check_marked("Start collect"));
+
   DEBUG(2, Sdprintf("Sweeping foreign references\n"));
   sweep_foreign();
   DEBUG(2, Sdprintf("Sweeping trail stack\n"));
   sweep_trail();
   DEBUG(2, Sdprintf("Sweeping local stack\n"));
   sweep_stacks(fr, ch);
+  if ( saved_bar_at )
+  { DEBUG(2, Sdprintf("Sweeping frozen bar\n"));
+    sweep_global_mark(saved_bar_at PASS_LD);
+  }
   DEBUG(2, Sdprintf("Compacting global stack\n"));
   compact_global();
 
@@ -1422,22 +1727,25 @@ considerGarbageCollect(Stack s)
 
 
 #if O_SECURE || O_DEBUG || defined(O_MAINTENANCE)
-static bool
+bool
 scan_global(int marked)
 { GET_LD
-  Word current;
+  Word current, next;
   int errors = 0;
   long cells = 0;
 
   for( current = gBase; current < gTop; current += (offset_cell(current)+1) )
-  { cells++;
-    if ( (!marked && marked(current)) || is_first(current) )
-    { warning("Illegal cell in global stack (up) at %p (*= %p)",
+  { int offset;
+
+    cells++;
+
+    if ( (!marked && is_marked(current)) || is_first(current) )
+    { warning("!Illegal cell in global stack (up) at %p (*= %p)",
 	      current, *current);
       if ( isAtom(*current) )
-	warning("%p is atom %s", current, stringAtom(*current));
+	warning("!%p is atom %s", current, stringAtom(*current));
       if ( isTerm(*current) )
-	warning("%p is term %s/%d",
+	warning("!%p is term %s/%d",
 		current,
 		stringAtom(nameFunctor(functorTerm(*current))),
 		arityTerm(*current));
@@ -1446,13 +1754,25 @@ scan_global(int marked)
         break;
       }
     }
+
+    offset = offset_cell(current);
+    next = current+offset+1;
+    if ( offset > 0 )
+    { if ( offset_cell(next-1) != offset )
+      { errors++;
+	Sdprintf("ERROR: Illegal indirect cell on global stack at %p-%p\n"
+		 "       tag=%d, offset=%d\n",
+		 current, next, tag(*current), offset);
+	trap_gdb();
+      }
+    }
   }
 
   for( current = gTop - 1; current >= gBase; current-- )
-  { cells --;
+  { cells--;
     current -= offset_cell(current);
-    if ( (!marked && marked(current)) || is_first(current) )
-    { warning("Illegal cell in global stack (down) at %p (*= %p)",
+    if ( (!marked && is_marked(current)) || is_first(current) )
+    { warning("!Illegal cell in global stack (down) at %p (*= %p)",
 	      current, *current);
       if ( ++errors > 10 )
       { Sdprintf("...\n");
@@ -1547,6 +1867,9 @@ check_foreign()
   for(ff = fli_context; ff; ff = ff->parent )
   { Word sp = refFliP(ff, 0);
     int n = ff->size;
+
+    assert(ff->magic == FLI_MAGIC);
+    assert(ff->parent < ff);
 
     for(n=0 ; n < ff->size; n++ )
       key += checkData(&sp[n]);
@@ -1671,6 +1994,8 @@ garbageCollect(LocalFrame fr, Choice ch)
   double t = CpuTime(CPU_USER);
   int verbose = trueFeature(TRACE_GC_FEATURE);
   sigset_t mask;
+  fid_t fid;
+  Word *saved_bar_at;
 
   DEBUG(0, verbose = TRUE);
 
@@ -1718,6 +2043,7 @@ garbageCollect(LocalFrame fr, Choice ch)
   setVar(*gTop);
   tTop->address = 0;
 
+  fid = gvars_to_term_refs(&saved_bar_at);
   tag_trail();
   mark_phase(fr, ch);
   tgar = trailcells_deleted * sizeof(struct trail_entry);
@@ -1729,8 +2055,9 @@ garbageCollect(LocalFrame fr, Choice ch)
   DEBUG(2, Sdprintf("Compacting trail ... "));
   compact_trail();
 
-  collect_phase(fr, ch);
+  collect_phase(fr, ch, saved_bar_at);
   untag_trail();
+  term_refs_to_gvars(fid, saved_bar_at);
 #if O_SECURE
   assert(trailtops_marked == 0);
   if ( !scan_global(FALSE) )
@@ -1783,8 +2110,8 @@ pl_garbage_collect(term_t d)
   int nl;
 
   if ( d )
-  { if ( !PL_get_integer(d, &nl) )
-      return warning("garbage_collect/1: instantiation fault");
+  { if ( !PL_get_integer_ex(d, &nl) )
+      fail;
     GD->debug_level = nl;
   }
 #endif
@@ -2483,6 +2810,10 @@ frame has a clause we must consider all variables of this clause.
 This  routine  is  used   by    garbage_collect_clauses/0   as  well  as
 start_consult/1. In the latter case, only  predicates in this sourcefile
 are marked.
+
+Predicates marked with P_FOREIGN_CREF are   foreign  predicates that use
+the frame->clause choicepoint info for  storing the clause-reference for
+the next clause. Amoung these are retract/1, clause/2, etc.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static QueryFrame
@@ -2491,26 +2822,36 @@ mark_predicates_in_environments(PL_local_data_t *ld, LocalFrame fr)
     return NULL;
 
   for(;;)
-  { if ( true(fr, FR_MARKED) )
+  { Definition def;
+
+    if ( true(fr, FR_MARKED) )
       return NULL;			/* from choicepoints only */
     set(fr, FR_MARKED);
     ld->gc._local_frames++;
 
-    if ( true(fr->predicate, NEEDSCLAUSEGC) &&
-	 false(fr->predicate, DYNAMIC) )
+    if ( true(fr->predicate, P_FOREIGN_CREF) && fr->clause )
+    { ClauseRef cref = (ClauseRef)fr->clause;
+
+      def = getProcDefinition(cref->clause->procedure);
+    } else
+      def = fr->predicate;
+
+    if ( def &&
+	 true(def, NEEDSCLAUSEGC) &&
+	 false(def, DYNAMIC) )
     { if ( GD->procedures.reloading )
       { ListCell cell;
 
 	for(cell=GD->procedures.reloading->procedures; cell; cell=cell->next)
 	{ Procedure proc = cell->value;
-	  if ( proc->definition == fr->predicate )
-	  { fr->predicate->references++;
+	  if ( proc->definition == def )
+	  { def->references++;
 	    GD->procedures.active_marked++;
 	    break;
 	  }
 	}
       } else
-	fr->predicate->references++;
+	def->references++;
     }
 
     if ( fr->parent )
@@ -2541,7 +2882,7 @@ markPredicatesInEnvironments(PL_local_data_t *ld)
     assert(qf->magic == QID_MAGIC);
 
     for(; ch; ch = ch->parent)
-    { mark_atoms_in_environments(ld, ch->frame);
+    { mark_predicates_in_environments(ld, ch->frame);
     }
   }
 

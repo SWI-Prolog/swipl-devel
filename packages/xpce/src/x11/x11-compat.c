@@ -37,7 +37,7 @@ thus cannot be loaded through many foreign  language interfaces.  What
 to do????
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if !defined(HAVE_LIBDL) && defined(sun) && XT_REVISION == 5
+#if !defined(HAVE_LIBDL) && defined(__sun__) && XT_REVISION == 5
 
 void *
 dlopen(char *path, int mode)

@@ -45,8 +45,9 @@ notation.
 <LI><A HREF="#sec:2"><B>2 Parsing RDF in Prolog</B></A>
 <LI><A HREF="#sec:3"><B>3 Predicates</B></A>
 <UL>
-<LI><A HREF="#sec:3.1">3.1 Name spaces</A>
-<LI><A HREF="#sec:3.2">3.2 Low-level access</A>
+<LI><A HREF="#sec:3.1">3.1 RDF Object representation</A>
+<LI><A HREF="#sec:3.2">3.2 Name spaces</A>
+<LI><A HREF="#sec:3.3">3.3 Low-level access</A>
 </UL>
 <LI><A HREF="#sec:4"><B>4 Testing the RDF translator</B></A>
 <LI><A HREF="#sec:5"><B>5 Metrics</B></A>
@@ -209,18 +210,50 @@ using this URI. If omited or the atom <CODE>[]</CODE>, local identifiers
 are not tagged.
 
 <P>
-<DT><STRONG>expand_foreach</STRONG>(<VAR>Boolean</VAR>)<DD>
-If <VAR>Boolean</VAR> is <CODE>true</CODE>, expand <CODE>rdf:aboutEach</CODE> 
-into a set of triples. By default the parser generates
-<CODE>rdf(each(Container), Predicate, Subject)</CODE>.
-
-<P>
 <DT><STRONG>blank_nodes</STRONG>(<VAR>Mode</VAR>)<DD>
 If <VAR>Mode</VAR> is <CODE>share</CODE>, blank-node properties (i.e. complex 
 properties without identifier) are reused if they result in exactly the 
 same triple-set. Two descriptions are shared if their intermediate 
 description is the same. This means they should produce the same set of 
 triples in the same order.
+
+<P>
+<DT><STRONG>expand_foreach</STRONG>(<VAR>Boolean</VAR>)<DD>
+If <VAR>Boolean</VAR> is <CODE>true</CODE>, expand <CODE>rdf:aboutEach</CODE> 
+into a set of triples. By default the parser generates
+<CODE>rdf(each(Container), Predicate, Subject)</CODE>.
+
+<P>
+<DT><STRONG>lang</STRONG>(<VAR>Lang</VAR>)<DD>
+Define the initial language (i.e. pretend there is an <CODE>xml:lang</CODE> 
+declaration in an enclosing element).
+
+<P>
+<DT><STRONG>ignore_lang</STRONG>(<VAR>Bool</VAR>)<DD>
+If <CODE>true</CODE>, <CODE>xml:lang</CODE> declarations in the document 
+are ignored. This is mostly for compatibility with older versions of 
+this library that did not support language identifiers.
+
+<P>
+<DT><STRONG>convert_typed_literal</STRONG>(<VAR>:ConvertPred</VAR>)<DD>
+If the parser finds a literal with the <CODE>rdf:dataType</CODE>=<VAR>Type</VAR> 
+attribute, call <CODE>ConvertPred(+Type, +Content, -Literal)</CODE>.
+<VAR>Content</VAR> is the XML element contentas returned by the XML 
+parser (a list). The predicate must unify <VAR>Literal</VAR> with a 
+Prolog representation of <VAR>Content</VAR> according to
+<VAR>Type</VAR> or throw an exception if the conversion cannot be made.
+
+<P>This option servers two purposes. First of all it can be used to 
+ignore type declarations for backward compatibility of this library. 
+Second it can be used to convert typed literals to a meaningful Prolog 
+representation. E.g. convert '42' to the Prolog integer 42 if the type 
+is <CODE>xsd:int</CODE> or a related type.
+
+<P>
+<DT><STRONG>namespaces</STRONG>(<VAR>-List</VAR>)<DD>
+Unify <VAR>List</VAR> with a list of <VAR>NS</VAR>=<VAR>URL</VAR> for 
+each encountered <CODE>xmlns</CODE>:<VAR>NS</VAR>=<VAR>URL</VAR> 
+declaration found in the source.
 </DL>
 
 <P>The <VAR>Triples</VAR> list is a list of <CODE>rdf(Subject, 
@@ -236,7 +269,44 @@ is either a plain atom or a parsed XML term (list of atoms and
 elements).
 </DL>
 
-<H3><A NAME="sec:3.1">3.1 Name spaces</A></H3>
+<H3><A NAME="sec:3.1">3.1 RDF Object representation</A></H3>
+
+<A NAME="sec:rdfobject"></A>
+
+<P>The <EM>Object</EM> (3rd) part of a triple can have several different 
+types. If the object is a resource it is returned as either a plain atom 
+or a term <VAR>NameSpace</VAR><B>:</B><VAR>Name</VAR>. If it is a 
+literal it is returned as <CODE>literal(Value)</CODE>, where <VAR>Value</VAR> 
+takes one of the formats defined below.
+
+<P>
+<UL>
+<LI><I>An atom</I><BR>
+If the literal <VAR>Value</VAR> is a plain atom is a literal value not 
+subject to a datatype or <CODE>xml:lang</CODE> qualifier.
+
+<P>
+<LI><I><CODE>lang(LanguageID, Atom)</CODE></I><BR>
+If the literal is subject to an <CODE>xml:lang</CODE> qualifier
+<VAR>LanguageID</VAR> specifies the language and <VAR>Atom</VAR> the 
+actual text.
+
+<P>
+<LI><I>A list</I><BR>
+If the literal is an XML literal as created by parseType="Literal" , the 
+raw output of the XML parser for the content of the element is returned. 
+This content is a list of
+<CODE>element(Name, Attributes, Content)</CODE> and atoms for CDATA 
+parts as described with the SWI-Prolog <A HREF="http://www.swi-prolog.org/packages/sgml2pl.html">SGML/XML 
+parser</A>
+
+<P>
+<LI><I><CODE>type(Type, StringValue)</CODE></I><BR>
+If the literal has an <CODE>rdf:dataType=</CODE><VAR>Type</VAR> a term 
+of this format is returned.
+</UL>
+
+<H3><A NAME="sec:3.2">3.2 Name spaces</A></H3>
 
 <P>XML name spaces are identified using a URI. Unfortunately various 
 URI's are in common use to refer to RDF. The <CODE>rdf_parser.pl</CODE> 
@@ -267,7 +337,7 @@ rdf_name_space('http://www.w3.org/TR/REC-rdf-syntax').
 </PRE>
 </TABLE>
 
-<H3><A NAME="sec:3.2">3.2 Low-level access</A></H3>
+<H3><A NAME="sec:3.3">3.3 Low-level access</A></H3>
 
 <P>The above defined <A NAME="idx:loadrdf23:2"></A><A HREF="#load_rdf/2">load_rdf/[2,3]</A> 
 is not always suitable. For example, it cannot deal with documents where 

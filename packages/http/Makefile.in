@@ -82,7 +82,7 @@ $(HTML):	$(TEX)
 		rmdir html
 
 $(PDF):		$(TEX)
-		runtex --pdf $(DOC)
+		../../man/runtex --pdf $(DOC)
 
 $(TEX):		$(DOCTOTEX)
 

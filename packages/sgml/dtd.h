@@ -81,7 +81,7 @@ typedef enum
 } charfunc;				/* function of characters */
 
 typedef enum
-{ ENC_ISO_LATIN1,			/* ISO-Latin-1 */
+{ ENC_ISO_LATIN1 = 0,			/* ISO-Latin-1 */
   ENC_UTF8				/* Multi-byte UTF-8 encoding */
 } dtd_char_encoding;
 
@@ -478,6 +478,7 @@ void		set_src_dtd_parser(dtd_parser *p,
 				   input_type in, const char *file);
 void		set_mode_dtd_parser(dtd_parser *p, data_mode mode);
 void		sgml_cplocation(dtd_srcloc *dst, dtd_srcloc *src);
+int		xml_set_encoding(dtd_parser *p, const char *enc);
 
 #endif /*DTD_H_INCLUDED*/
 

@@ -75,6 +75,48 @@ lookupProcedure(functor_t f, Module m)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Add (import) a defintion to a  module.   Used  by  loadImport(). Must be
+merged with pl_import().
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+importDefinitionModule(Module m, Definition def)
+{ functor_t functor = def->functor->functor;
+  Procedure proc;
+  int rc = TRUE;
+  Symbol s;
+
+  LOCKMODULE(m);
+  if ( (s = lookupHTable(m->procedures, (void *)functor)) )
+  { proc = s->value;
+    
+    if ( proc->definition == def )
+      goto done;
+    if ( !isDefinedProcedure(proc) )
+    { proc->definition = def;		/* TBD: what about the old one */
+      goto done;
+    }
+    rc = warning("Failed to import %s into %s",
+		 predicateName(def), PL_atom_chars(m->name));
+    goto done;
+  } else
+  { GET_LD
+
+    proc = (Procedure) allocHeap(sizeof(struct procedure));
+    proc->type = PROCEDURE_TYPE;
+    proc->definition = def;
+    addHTable(m->procedures, (void *)functor, proc);
+    set(proc->definition, P_SHARED);
+  }
+
+done:
+  UNLOCKMODULE(m);
+
+  return rc;
+}
+
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 resetProcedure() is called  by  lookupProcedure()   for  new  ones,  and
@@ -457,7 +499,6 @@ pl_current_predicate(term_t name, term_t spec, control_t h)
       continue;
 
     ForeignRedoPtr(e);
-    succeed;
   }
 
   freeTableEnum(e);
@@ -793,8 +834,12 @@ assertProcedure(Procedure proc, Clause clause, int where ARG_LD)
 
 bool
 abolishProcedure(Procedure proc, Module module)
-{ Definition def = proc->definition;
+{ GET_LD
+  Definition def = proc->definition;
 
+  DEBUG(2, Sdprintf("abolishProcedure(%s)\n", predicateName(def)));
+
+  startCritical;
   LOCKDEF(def);
   if ( def->module != module )		/* imported predicate; remove link */
   { GET_LD
@@ -810,6 +855,7 @@ abolishProcedure(Procedure proc, Module module)
     resetProcedure(proc, TRUE);
   } else if ( true(def, P_THREAD_LOCAL) )
   { UNLOCKDEF(def);
+    endCritical;
     return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
 		    ATOM_modify, ATOM_thread_local_procedure, def);
   } else				/* normal Prolog procedure */
@@ -819,13 +865,14 @@ abolishProcedure(Procedure proc, Module module)
     { if ( def->references == 0 )
       { resetProcedure(proc, FALSE);
 	gcClausesDefinitionAndUnlock(def);
+	endCritical;
 	succeed;
       } else				/* dynamic --> static */
-      { setDynamicProcedure(proc, FALSE);
-	if ( true(def, NEEDSCLAUSEGC|NEEDSREHASH) )
-	{ registerDirtyDefinition(def);
-	  def->references = 0;
-	}
+      { UNLOCKDYNDEF(def);		/* release private lock */
+	setDynamicProcedure(proc, FALSE);
+	endCritical;
+
+	succeed;
       }
     } else if ( true(def, NEEDSCLAUSEGC) )
     { registerDirtyDefinition(def);
@@ -834,6 +881,7 @@ abolishProcedure(Procedure proc, Module module)
     resetProcedure(proc, FALSE);
   }
   UNLOCKDEF(def);
+  endCritical;
 
   succeed;
 }
@@ -862,7 +910,10 @@ removeClausesProcedure(Procedure proc, int sfindex)
   for(c = def->definition.clauses; c; c = c->next)
   { Clause cl = c->clause;
 
-    if ( (sfindex == 0 || sfindex == cl->source_no) && false(cl, ERASED) )
+    if ( (sfindex == 0 ||
+	   (sfindex == cl->source_no &&
+	    cl->line_no > 0)) &&	/* == 0: dynamic clauses */
+	 false(cl, ERASED) )
     { set(cl, ERASED);
       set(def, NEEDSCLAUSEGC);		/* only on first */
 
@@ -1613,10 +1664,12 @@ pl_retract(term_t term, control_t h)
 		       PL_CHARS, "retract",
 		       _PL_PREDICATE_INDICATOR, proc);
 
+      startCritical;
       enterDefinition(def);			/* reference the predicate */
       cref = firstClause(argv, environment_frame, def, &next PASS_LD);
       if ( !cref )
       { leaveDefinition(def);
+	endCritical;
 	fail;
       }
     } else
@@ -1624,6 +1677,7 @@ pl_retract(term_t term, control_t h)
       proc = cref->clause->procedure;
       def  = getProcDefinition(proc);
       cref = findClause(cref, argv, environment_frame, def, &next PASS_LD);
+      startCritical;
     }
 
     Mark(mrk);
@@ -1634,9 +1688,11 @@ pl_retract(term_t term, control_t h)
 	if ( !next )
 	{ PL_reset_term_refs(r0);
 	  leaveDefinition(def);
+	  endCritical;
 	  succeed;
 	}
 
+	endCritical;
 	ForeignRedoPtr(next);
       }
 
@@ -1647,6 +1703,7 @@ pl_retract(term_t term, control_t h)
     }
 
     leaveDefinition(def);
+    endCritical;
     fail;
   }
 }
@@ -1687,10 +1744,12 @@ pl_retractall(term_t head)
     argv = NULL;			/* retract(foobar) */
 
   Mark(m);
+  startCritical;
   enterDefinition(def);
 
   if ( !(cref = firstClause(argv, fr, def, &next PASS_LD)) )
-  { leaveDefinition(def);
+  { endCritical;
+    leaveDefinition(def);
     succeed;
   }
 
@@ -1699,18 +1758,19 @@ pl_retractall(term_t head)
   { if ( decompileHead(cref->clause, thehead) )
       retractClauseProcedure(proc, cref->clause PASS_LD);
 
-    if ( !next )
-    { PL_reset_term_refs(r0);
-      Undo(m);
-      leaveDefinition(def);
-      succeed;
-    }
-
     PL_reset_term_refs(r0);
     Undo(m);
 
+    if ( !next )
+    { leaveDefinition(def);
+      endCritical;
+      succeed;
+    }
+
+
     cref = findClause(next, argv, fr, def, &next PASS_LD);
   }
+  endCritical;
   leaveDefinition(def);
 
   succeed;
@@ -1935,6 +1995,8 @@ setDynamicProcedure(Procedure proc, bool isdyn)
 
   if ( isdyn )				/* static --> dynamic */
   { GET_LD
+    char *msg;
+    
     if ( def->definition.clauses )
     { UNLOCKDEF(def);
       if ( true(def, NEEDSCLAUSEGC) )
@@ -1944,7 +2006,14 @@ setDynamicProcedure(Procedure proc, bool isdyn)
 	  goto ok;
 	UNLOCKDEF(def);
       }
-      return PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PROC, proc);
+
+      if ( isDefinedProcedure(proc) )
+	msg = NULL;
+      else
+	msg = "procedure has active clauses";
+
+      return PL_error(NULL, 0, msg,
+		      ERR_MODIFY_STATIC_PROC, proc);
     }
   ok:
     set(def, DYNAMIC);
@@ -1955,9 +2024,8 @@ setDynamicProcedure(Procedure proc, bool isdyn)
   } else				/* dynamic --> static */
   { clear(def, DYNAMIC);
     if ( def->references && true(def, NEEDSCLAUSEGC|NEEDSREHASH) )
-    { registerDirtyDefinition(def);
-      def->references = 0;
-    }
+      registerDirtyDefinition(def);
+    def->references = 0;
 
     detachMutexAndUnlock(def);
   }
@@ -2014,7 +2082,7 @@ pl_set_predicate_attribute(term_t pred,
   Procedure proc;
   Definition def;
   atom_t key;
-  int val;
+  int val, rc;
   unsigned long att;
 
   if ( !PL_get_atom(what, &key) )
@@ -2034,20 +2102,39 @@ pl_set_predicate_attribute(term_t pred,
   def = proc->definition;
 
   if ( att == DYNAMIC )
-    return setDynamicProcedure(proc, val);
-  if ( att == P_THREAD_LOCAL )
-    return set_thread_local_procedure(proc, val);
-
-  if ( !val )
-  { clear(def, att);
+  { rc = setDynamicProcedure(proc, val);
+  } else if ( att == P_THREAD_LOCAL )
+  { rc = set_thread_local_procedure(proc, val);
   } else
-  { set(def, att);
-    if ( (att == DYNAMIC || att == MULTIFILE) && SYSTEM_MODE )
+  { if ( !val )
+    { clear(def, att);
+    } else
+    { set(def, att);
+    }
+  
+    rc = TRUE;
+  }
+
+  if ( rc && val &&
+       (att & PROC_DEFINED) &&
+       false(def, FILE_ASSIGNED) &&
+       ReadingSource )
+  { DEBUG(2, Sdprintf("Associating %s to %s (%p)\n",
+		      predicateName(def), PL_atom_chars(source_file_name),
+		      def));
+    addProcedureSourceFile(lookupSourceFile(source_file_name), proc);
+
+    if ( SYSTEM_MODE )
     { set(def, SYSTEM|HIDE_CHILDS);
+    } else
+    { if ( trueFeature(DEBUGINFO_FEATURE) )
+	clear(def, HIDE_CHILDS);
+      else
+	set(def, HIDE_CHILDS);
     }
   }
 
-  succeed;
+  return rc;
 }
 
 
@@ -2320,18 +2407,30 @@ indexToSourceFile(int index)
 }
 
 
+static int
+hasProcedureSourceFile(SourceFile sf, Procedure proc)
+{ ListCell cell;
+
+  if ( true(proc->definition, FILE_ASSIGNED) )
+  { for(cell=sf->procedures; cell; cell = cell->next)
+    { if ( cell->value == proc )
+	succeed;
+    }
+  }
+
+  fail;
+}
+
+
+
 void
 addProcedureSourceFile(SourceFile sf, Procedure proc)
 { ListCell cell;
 
   LOCK();
-  if ( true(proc->definition, FILE_ASSIGNED) )
-  { for(cell=sf->procedures; cell; cell = cell->next)
-    { if ( cell->value == proc )
-      { UNLOCK();
-	return;
-      }
-    }
+  if ( hasProcedureSourceFile(sf, proc) )
+  { UNLOCK();
+    return;
   }
 
   { GET_LD
@@ -2370,7 +2469,7 @@ redefineProcedure(Procedure proc, SourceFile sf)
 	printMessage(ATOM_warning,
 		     PL_FUNCTOR_CHARS, "discontiguous", 1,
 		       _PL_PREDICATE_INDICATOR, proc);
-    } else
+    } else if ( !hasProcedureSourceFile(sf, proc) )
     { abolishProcedure(proc, def->module);
 
       if ( def->references )
@@ -2550,7 +2649,10 @@ startConsult(SourceFile f)
 
       next = cell->next;
       if ( def )
-      { removeClausesProcedure(proc,
+      { DEBUG(2, Sdprintf("removeClausesProcedure(%s), refs = %d\n",
+			  predicateName(def), def->references));
+
+	removeClausesProcedure(proc,
 			       true(def, MULTIFILE) ? f->index : 0);
 
 	if ( true(def, NEEDSCLAUSEGC) )
@@ -2564,6 +2666,9 @@ startConsult(SourceFile f)
 	{ def->references = 0;
 	  GD->procedures.active_marked--;
 	}
+
+	if ( false(def, MULTIFILE) )
+	  clear(def, FILE_ASSIGNED);
       }
       freeHeap(cell, sizeof(struct list_cell));
     }

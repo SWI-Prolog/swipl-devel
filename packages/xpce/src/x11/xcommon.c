@@ -762,7 +762,7 @@ Status XSetWMProtocols (dpy, w, protocols, count)
 
 #endif
 
-#if !defined(HAVE_XTPOPUPSPRINGLOADED) && !defined(sun)
+#if !defined(HAVE_XTPOPUPSPRINGLOADED) && !defined(__sun__)
 					/* sun's X11R5 fails on AC_HAVE_FUNC */
 					/* for X11 functions */
 

@@ -63,7 +63,7 @@
 #ifdef HAVE_FTIME
 #include <sys/timeb.h>
 #endif
-
+#include <time.h>
 #include <fcntl.h>
 #ifndef __WATCOMC__			/* appears a conflict */
 #include <errno.h>
@@ -257,7 +257,7 @@ CpuTime(cputime_kind which)
     used = 0.0;				/* happens when running under GDB */
 
   return used;
-#endif
+#else
 
 #if OS2 && EMX
   DATETIME i;
@@ -267,13 +267,17 @@ CpuTime(cputime_kind which)
                  + (i.minutes * 60) 
 		 + i.seconds
 	         + (i.hundredths / 100.0)) - initial_time);
-#endif
+#else
 
 #ifdef HAVE_CLOCK
   return (real) (clock() - clock_wait_ticks) / (real) CLOCKS_PER_SEC;
-#endif
+#else
 
   return 0.0;
+
+#endif
+#endif
+#endif
 }
 
 #endif /*__WIN32__*/
@@ -935,15 +939,24 @@ SameFile(const char *f1, const char *f2)
 #ifdef O_XOS
   { char p1[MAXPATHLEN];
     char p2[MAXPATHLEN];
+    int i;
+  
+    for(i=0; i<=1; i++)
+    { if ( i == 0 )
+      { _xos_limited_os_filename(f1, p1);
+	_xos_limited_os_filename(f2, p2);
+      } else
+      { AbsoluteFile(f1, p1);
+	AbsoluteFile(f2, p2);
+      }
 
-    _xos_limited_os_filename(f1, p1);
-    _xos_limited_os_filename(f2, p2);
-    if ( trueFeature(FILE_CASE_FEATURE) )
-    { if ( streq(p1, p2) )
-	succeed;
-    } else
-    { if ( stricmp(p1, p2) == 0 )
-	succeed;
+      if ( trueFeature(FILE_CASE_FEATURE) )
+      { if ( streq(p1, p2) )
+	  succeed;
+      } else
+      { if ( stricmp(p1, p2) == 0 )
+	  succeed;
+      }
     }
   }
 #endif /*O_XOS*/
@@ -1677,7 +1690,8 @@ DirName(const char *f, char *dir)
     else
       strcpy(dir, ".");
   } else
-  { strncpy(dir, f, base-f);
+  { if ( dir != f )			/* otherwise it is in-place */
+      strncpy(dir, f, base-f);
     dir[base-f] = EOS;
   }
   
@@ -1823,7 +1837,7 @@ ChDir(const char *path)
 struct tm *
 LocalTime(long int *t, struct tm *r)
 {
-#ifdef HAVE_LOCALTIME_R
+#if defined(_REENTRANT) && defined(HAVE_LOCALTIME_R)
   return localtime_r(t, r);
 #else
   *r = *localtime((const time_t *) t);
@@ -2750,7 +2764,7 @@ Which(const char *program, char *fullname)
 	;
       if (*path)
 	path++;				/* skip : */
-      if (strlen(fullname) + strlen(program)+2 > MAXPATHLEN)
+      if ((dir-fullname) + strlen(program)+2 > MAXPATHLEN)
         continue;
       *dir++ = '/';
       strcpy(dir, program);

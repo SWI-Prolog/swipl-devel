@@ -37,11 +37,11 @@ FTPDIR=		/export/home/ftp/docs/SWI-Prolog
 
 LIBFILES=	lib/library.tex lib/readutil.tex lib/netscape.tex \
 		lib/registry.tex lib/check.tex lib/url.tex lib/debug.tex \
-		lib/lists.tex
+		lib/lists.tex lib/bounds.tex
 TEXFILES=	doc.tex intro.tex overview.tex builtin.tex module.tex \
 		foreign.tex runtime.tex hack.tex summary.tex xpce.tex \
 		glossary.tex ide.tex license.tex threads.tex $(LIBFILES) \
-		profile.tex
+		profile.tex attvar.tex chr.tex
 STYFILES=	html.sty txt.sty
 
 .SUFFIXES:
@@ -159,6 +159,10 @@ install::
 		cp -a Manual $(WWWMAN)
 		tar zcvf $(FTPDIR)/refman/HTMLmanual.tar.gz Manual
 		cp -a $(PDF) $(FTPDIR)/refman/refman.pdf
+
+beta-install::
+		install -m 644 MANUAL.pdf $(FTPDIR)/BETA/Manual.pdf
+		tar zcvf $(FTPDIR)/BETA/Manual.html.tgz Manual
 
 ################################################################
 # Windows readme

@@ -43,10 +43,10 @@
 #endif
 
 \newcommand{\vmajor}{5}
-\newcommand{\vminor}{2}
-\newcommand{\vpatch}{11}
-\newcommand{\vmonth}{November}
-\newcommand{\vyear}{2003}
+\newcommand{\vminor}{4}
+\newcommand{\vpatch}{0}
+\newcommand{\vmonth}{September}
+\newcommand{\vyear}{2004}
 
 \newcommand{\versionshort}{\vmajor.\vminor}
 \newcommand{\versionlong}{\vmajor.\vminor.\vpatch, \vmonth~\vyear}
@@ -63,19 +63,23 @@
 \maketitle
 
 \begin{abstract}
-SWI-Prolog is a Prolog implementation based on a subset of the WAM
-(Warren Abstract Machine). SWI-Prolog was developed as an {\em open}
-Prolog environment, providing a powerful and bi-directional interface to
-C in an era this was unknown to other Prolog implementations. This
-environment is required to deal with XPCE, an object-oriented GUI system
-developed at SWI. XPCE is used at SWI for the development of
-knowledge-intensive graphical applications.
+SWI-Prolog started life in 1986 as a Prolog in the Edinburgh tradition.
+Its development has been guided from the very beginning by the desire to
+build large scale applications in Prolog.  For this reason it stresses
+connectivity to the C-language, few system limits, comprehensive
+memory management, modules, multi-threading, coroutining, constraints
+and a fast and interactive development environment. Portable libraries
+for graphics, databases, networking, web-services, XML, RDF and many
+more complete the system. 
 
-As SWI-Prolog became more popular, a large user-community provided
-requirements that guided its development. Compatibility, portability,
-scalability, stability and providing a powerful development environment
-have been the most important requirements. Edinburgh, Quintus, SICStus
-and the ISO-standard guide the development of the SWI-Prolog primitives.
+SWI-Prolog is compliant to part one of ISO standard Prolog. In addition
+it provides functionality compatible to Quintus, SICStus, LPA, Ciao and
+many more.
+
+Since version 5 the system and all bundled extensions are distributed
+under the Lesser General Public License (LGPL) and the system enjoys
+attention from a large community of academic researchers, students
+and commercial users.
 
 This document gives an overview of the features, system limits and
 built-in predicates.
@@ -171,6 +175,8 @@ Copyright \copyright\ 1990--\vyear, University of Amsterdam
 \include{ide}
 \include{builtin}
 \include{module}
+\include{attvar}
+\include{chr}
 \include{threads}
 \include{foreign}
 \include{runtime}

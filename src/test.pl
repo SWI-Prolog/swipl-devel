@@ -80,6 +80,42 @@ syntax(number-2) :-
 
 
 		 /*******************************
+		 *	       WRITE		*
+		 *******************************/
+
+write_test(q-1) :-
+	term_to_atom(-(0), X), X == '-(0)'.
+write_test(q-2) :-
+	term_to_atom(+(0), X), X == '+(0)'.
+write_test(q-3) :-
+	term_to_atom(+(a), X), X == '+a'.
+
+
+		 /*******************************
+		 *	       UNIFY		*
+		 *******************************/
+
+%	Some cyclic unification tests (normal unification should be fixed
+%	already).
+
+unify(cycle-1) :-			% Kuniaki Mukai
+	X = f(Y), Y=f(X), X=Y.
+unify(cycle-2) :-			% Kuniaki Mukai
+	X = f(X), Y=f(Y), X=f(Y).
+
+
+		 /*******************************
+		 *	       CYCLIC		*
+		 *******************************/
+
+cyclic(hash_term-1) :-
+	X = f(X), hash_term(X, T),
+	integer(T).
+cyclic(streq-1) :-
+	X = [X], Y = [Y], X =@= Y.
+
+
+		 /*******************************
 		 *      INTEGER ARITHMETIC	*
 		 *******************************/
 
@@ -319,6 +355,12 @@ cleanup(clean-6) :-
 cleanup(clean-7) :-
 	catch(call_cleanup(fail, throw(b)), E, true),
 	E == b.
+cleanup(clean-8) :-
+	retractall(clean_rval(_)),
+	call_cleanup(bagof(x, cleanup_1, _Xs), Reason,
+		     assert(clean_rval(Reason))),
+	retract(clean_rval(exit)).
+
 
 
 		 /*******************************
@@ -529,14 +571,17 @@ atom_handling(number-4) :-
 
 atom_handling(sub_atom-1) :-
 	\+ sub_atom(a, _, _, 3, _).
-atom_handling(sub_atom-1) :-
+atom_handling(sub_atom-2) :-
 	\+ sub_atom(a, _, 3, _, _).
-atom_handling(sub_atom-1) :-
+atom_handling(sub_atom-3) :-
 	\+ sub_atom(a, 3, _, _, _).
+atom_handling(sub_atom-4) :-		% sharing variables
+	findall(t(B,L,S), sub_atom(ab, B, L, L, S), List),
+	List == [t(0, 1, a), t(2, 0, '')].
 
 atom_handling(current-1) :-
 	findall(X, current_atom(X), Atoms),
-	checklist(atom, Atoms),
+	maplist(atom, Atoms),
 	member(atom, Atoms),
 	member(testset, Atoms),
 	member('', Atoms),
@@ -553,6 +598,8 @@ atom_handling(current-1) :-
 
 string_handling(sub-1) :-
 	\+ sub_string(`HTTP/1.1 404 Not Found`, _, _, _, `OK`).
+string_handling(cmp-1) :-
+	`hello` == `hello`.
 
 :- set_prolog_flag(backquoted_string, false).
 
@@ -585,6 +632,16 @@ proc(retract-2) :-
 proc(current_predicate-1) :-
 	setof(X, current_predicate(cpxx/X), L), % order is not defined!
 	L == [0, 2].
+proc(compile_predicate-1) :-		% Bug#152
+	cp_one, !, cp_one.
+
+cp_one :-
+	assert(cp_foo(a)),
+	assert(cp_foo(b)),
+	cp_foo(_),
+	compile_predicates([cp_foo/1]),
+	abolish(cp_foo/1).
+
 
 		 /*******************************
 		 *	       CLAUSE		*
@@ -686,6 +743,21 @@ record(erase-2) :-
 	findall(X, a(X), Xs),
 	Xs = [].
 
+
+		 /*******************************
+		 *	       FLAGS		*
+		 *******************************/
+
+flag(arith-1) :-
+	flag(f, Old, 0),
+	flag(f, V, V+1),
+	flag(f, NV, Old),
+	NV == 1.
+flag(arith-2) :-
+	flag(f, Old, 100),
+	flag(f, V, mean(V, 0)),
+	flag(f, NV, Old),
+	NV == 50.
 
 
 		 /*******************************
@@ -942,7 +1014,7 @@ floatconv(float-1) :-
 	A is 5.5/5.5, integer(A).
 floatconv(float-2) :-
 	current_prolog_flag(max_integer, MI),
-	ToHigh is MI + 1,
+	ToHigh is MI + 10000,		% +1 may fail on 64-bit systems
 	float(ToHigh).
 floatconv(float-3) :-
 	(   current_prolog_flag(max_integer, 2147483647)
@@ -951,6 +1023,246 @@ floatconv(float-3) :-
 	->  term_to_atom(X, 9223372036854775808)
 	),
 	float(X).
+
+
+		 /*******************************
+		 *	ATTRIBUTED VARIABLES	*
+		 *******************************/
+
+test:attr_unify_hook(_Att, _Val).
+
+u_predarg(predarg).
+u_termarg(f(termarg)).
+u_nil([]).
+u_list([a]).
+u_args(X, X).
+
+u(predarg, X) :-
+	u_predarg(X).
+u(termarg, X) :-
+	u_termarg(f(X)).
+u(nil, X) :-
+	u_nil(X).
+u(list, X) :-
+	u_list(X).
+u(unify, X) :-
+	X = unify.
+u(arith, X) :-
+	X is 3.
+u(args, X) :-
+	u_args(X, args).
+
+test_wakeup(How) :-
+	freeze(X, Y=ok),
+	u(How, X),
+	Y == ok.
+
+avar(access-1) :-			% very basic access
+	put_attr(X, test, hello),
+	get_attr(X, test, H),
+	H == hello.
+avar(backtrack-1) :-			% test backtracking
+	retractall(mark(_)),
+	put_attr(X, test, hello),
+	(   put_attr(X, test, world),
+	    get_attr(X, test, A),
+	    A == world,
+	    assert(mark(1)),		% point must be reached
+	    fail
+	;   get_attr(X, test, A),
+	    A == hello
+	),
+	retract(mark(1)).
+avar(rec-1) :-
+	put_attr(X, test, hello),
+	recorda(x, x(X,X), Ref),
+	recorded(_, x(A,B), Ref),
+	erase(Ref),
+	A == B.
+avar(rec-2) :-
+	put_attr(X, test, hello),
+	recorda(x, X, Ref),
+	recorded(_, Y, Ref),
+	erase(Ref),
+	var(Y),
+	get_attr(Y, test, A),
+	A == hello.
+avar(wakeup-1) :-
+	test_wakeup(predarg).
+avar(wakeup-2) :-
+	test_wakeup(termarg).
+avar(wakeup-3) :-
+	test_wakeup(nil).
+avar(wakeup-4) :-
+	test_wakeup(unify).
+avar(wakeup-5) :-
+	test_wakeup(arith).
+avar(wakeup-6) :-
+	test_wakeup(args).
+avar(type-1) :-
+	put_attr(X, test, a),
+	avar(X).
+avar(type-2) :-
+	put_attr(X, test, a),
+	var(X).
+avar(type-3) :-
+	put_attr(X, test, a),
+	\+ nonvar(X).
+avar(type-4) :-
+	put_attr(X, test, a),
+	\+ ground(X).
+avar(type-5) :-
+	put_attr(X, test, a),
+	\+ atomic(X).
+avar(hash_term-1) :-
+	freeze(X, write(a)),
+	hash_term(X, H),
+	var(H).
+avar(findall-1) :-
+	retractall(avar_findall(_)),
+	findall(A, freeze(A, assert(avar_findall(A))), L),
+	L=[aap],
+	retract(avar_findall(X)),
+	X == aap.
+avar(bagof-1) :-
+	CVars = [X1,X2],
+	put_attr(X1, test, x),
+	put_attr(X2, test, x),
+        bagof(CVar, member(CVar,CVars), All),
+	All = [C1, C2],
+	get_attr(C1, test, x),
+	get_attr(C2, test, x).
+avar(streq-1) :-
+	freeze(X, write(x)), freeze(Y, write(x)), X =@= Y.
+avar(streq-2) :-
+	freeze(X, write(x)), freeze(Y, write(y)), X \=@= Y.
+avar(streq-3) :-
+	freeze(X, write(X)), freeze(Y, write(Y)), X =@= Y.
+avar(streq-4) :-
+	freeze(X, write(X)), freeze(Y, write(_Z)), X \=@= Y.
+avar(throw-1) :-
+	freeze(X, write(X)),
+	T = x(X),
+	catch(throw(T), Ex, true),
+	Ex =@= T.			% should be ==
+avar(throw-2) :-
+	freeze(X, write(X)),
+	freeze(Y, write(Y)),
+	T = x(X,_,Y),
+	catch(throw(T), Ex, true),
+	Ex =@= T.
+
+
+		 /*******************************
+		 *	  GLOBAL VARIABLES	*
+		 *******************************/
+
+nogvar(Var) :-
+	catch(nb_getval(Var, _), E, true),
+	E =@= error(existence_error(variable, Var), _).
+
+gvar(set-1) :-
+	nb_setval(gnu, gnat),
+	nb_getval(gnu, gnat),
+	\+ nb_getval(gnu, x),
+	nb_getval(gnu, X),
+	X == gnat,
+	nb_delete(gnu),
+	nogvar(gnu).
+gvar(set-2) :-
+	nb_setval(gnu, gnat(1)),
+	(   b_setval(gnu, gnat(2)),
+	    garbage_collect,
+	    b_getval(gnu, gnat(2)),
+	    fail
+	;   b_getval(gnu, gnat(1))
+	),
+	nb_delete(gnu).
+gvar(set-3) :-
+	nb_setval(gnu, gnat),
+	(   b_setval(gnu, gnat),
+	    garbage_collect,
+	    b_getval(gnu, gnat),
+	    fail
+	;   b_getval(gnu, gnat)
+	),
+	nb_delete(gnu).
+gvar(set-4) :-
+	(   b_setval(gnu, 1),
+	    fail
+	;   b_getval(gnu, [])
+	),
+	nb_delete(gnu).
+gvar(avar-1) :-
+	freeze(A, fail),
+	nb_setval(gvar1, A),
+	nb_getval(gvar1, B),
+	A =@= B.		% ... but =@= is broken on attvar
+
+
+
+		 /*******************************
+		 *	     COPY-TERM		*
+		 *******************************/
+
+copy_term(rct-1) :-
+	copy_term(a, X), X == a.
+copy_term(rct-2) :-
+	copy_term(X, Y), X \== Y.
+copy_term(rct-3) :-
+	copy_term(f(a), Y), Y == f(a).
+copy_term(rct-4) :-
+	copy_term(f(X), Y), Y = f(Z), X \== Z.
+copy_term(rct-5) :-
+	copy_term(f(X, X), Y), Y = f(A,B), A == B.
+copy_term(rct-6) :-
+	X = f(X),
+	copy_term(X, Y),
+	X = Y.
+copy_term(ct-1) :-
+	T = (A=foo(bar(A), y:x(A, b, c))),
+	copy_term(T, B),
+	numbervars(B, 0, _),
+	\+ ground(T).
+copy_term(av-1) :-			% copy attributed variables
+	X = foo(V),
+	put_attr(V, test, y),
+	copy_term(X, Y),
+	Y = foo(Arg),
+	get_attr(Arg, test, A),
+	A == y,
+	put_attr(Arg, test, z),
+	get_attr(V, test, y).
+copy_term(av-2) :-
+	X = foo(V,V),
+	put_attr(V, test, y),
+	copy_term(X, Y),
+	Y = foo(A,B),
+	A == B,
+	get_attr(A, test, y).
+copy_term(av-3) :-
+	put_attr(X, test, f(X)),
+	copy_term(X, Y),
+	get_attr(Y, test, A),
+	A = f(Z),
+	Y == Z.
+copy_term(av-3) :-
+	freeze(X, true),
+	freeze(X, Done = true),
+	copy_term(X, Y),
+	X = ok,
+	Done == true,
+	get_attr(Y, freeze, (true, D2=true)),
+	var(D2),
+	Y = ok,
+	D2  == true.
+copy_term(reset-1) :-			% reset cycle resetting for shared
+	A = [a:b,c:d|_],		% terms.
+	copy_term(A,_B),
+	A = [a:b,c:d|_].
+	
+
+
 
 		 /*******************************
 		 *    BIG TERMS, ATOM-TO-TERM	*
@@ -1018,21 +1330,32 @@ io(tell-2) :-
 		 *******************************/
 
 popen(pwd-1) :-
-	open(pipe(pwd), read, Fd),
+	(   current_prolog_flag(windows, true)
+	->  Command = cd
+	;   Command = pwd
+	),
+	open(pipe(Command), read, Fd),
 	collect_line(Fd, String),
 	close(Fd),
 	atom_codes(Pwd, String),
 	same_file(Pwd, '.').
 popen(cat-1) :-
-	open(pipe('cat > .pltest'), write, Fd),
-	format(Fd, 'Hello World', []),
-	close(Fd),
-	open('.pltest', read, Fd2),
-	collect_data(Fd2, String),
-	close(Fd2),
-	delete_file('.pltest'),
-	atom_codes(A, String),
-	A == 'Hello World'.
+	(   current_prolog_flag(windows, true)
+	->  true		% there is *no* cmd.exe command like cat!?
+	;   File = 'pltest.txt',
+	    Text = 'Hello World',
+	    Cmd = cat,
+	    concat_atom([Cmd, ' > ', File], Command),
+	    open(pipe(Command), write, Fd),
+	    format(Fd, '~w', [Text]),
+	    close(Fd),
+	    open(File, read, Fd2),
+	    collect_data(Fd2, String),
+	    close(Fd2),
+	    delete_file(File),
+	    atom_codes(A, String),
+	    A == Text
+	).
 popen(cat-2) :-
 	absolute_file_name(swi('library/MANUAL'), Manual),
 	open(Manual, read, Fd),
@@ -1081,7 +1404,8 @@ collect_data(C, Fd, [C|T]) :-
 		 *******************************/
 
 timeout(pipe-1) :-
-	(   current_prolog_flag(pipe, true)
+	(   current_prolog_flag(pipe, true),
+	    \+ current_prolog_flag(windows, true) % cannot wait on pipes
 	->  open(pipe('echo xx && sleep 2 && echo xx.'), read, In),
 	    set_stream(In, timeout(1)),
 	    wait_for_input([In], [In], infinite),
@@ -1245,7 +1569,7 @@ run_test_scripts(Directory) :-
 	atom_concat(Dir, '/*.pl', Pattern),
 	expand_file_name(Pattern, Files),
 	file_base_name(Dir, BaseDir),
-	format('Running scripts from ~w ', [BaseDir]), flush_output,
+	format('Running scripts from ~w ', [BaseDir]), flush,
 	run_scripts(Files),
 	format(' done~n').
 
@@ -1253,10 +1577,10 @@ run_scripts([]).
 run_scripts([H|T]) :-
 	(   catch(run_test_script(H), Except, true)
 	->  (   var(Except)
-	    ->  put(.), flush_output
+	    ->  put(.), flush
 	    ;   Except = blocked(Reason)
 	    ->  assert(blocked(H, Reason)),
-		put(!), flush_output
+		put(!), flush
 	    ;   script_failed(H, Except)
 	    )
 	;   script_failed(H, fail)
@@ -1264,10 +1588,12 @@ run_scripts([H|T]) :-
 	run_scripts(T).
 
 script_failed(File, fail) :-
-	format('~NScript ~w failed~n', [File]).
+	format('~NScript ~w failed~n', [File]),
+	assert(failed(script(File))).
 script_failed(File, Except) :-
 	message_to_string(Except, Error),
-	format('~NScript ~w failed: ~w~n', [File, Error]).
+	format('~NScript ~w failed: ~w~n', [File, Error]),
+	assert(failed(script(File))).
 
 
 		 /*******************************
@@ -1275,6 +1601,8 @@ script_failed(File, Except) :-
 		 *******************************/
 
 testset(syntax).
+testset(write_test).
+testset(unify).
 testset(arithmetic).
 testset(arithmetic_functions).
 testset(floattest).
@@ -1283,6 +1611,10 @@ testset(depth_limit) :-
 	current_predicate(_, user:call_with_depth_limit(_,_,_)).
 testset(type_test).
 testset(meta).
+testset(avar).
+testset(gvar).
+testset(copy_term).
+testset(cyclic).
 testset(cleanup).
 testset(term).
 testset(list).
@@ -1292,6 +1624,7 @@ testset(string_handling).
 testset(proc).
 testset(cl).
 testset(record).
+testset(flag).
 testset(update).
 testset(gc).
 testset(floatconv) :-
@@ -1310,6 +1643,11 @@ testset(thread) :-
 	current_prolog_flag(threads, true).
 testset(resource).
 
+%	testdir(Dir)
+%	
+%	Enumerate directories holding tests.
+
+testdir('Tests/attvar').
 testdir('Tests/thread') :-
 	current_prolog_flag(threads, true).
 
@@ -1322,6 +1660,7 @@ test :-
 	retractall(blocked(_,_)),
 	forall(testset(Set), runtest(Set)),
 	scripts,
+	statistics,
 	report_blocked,
 	report_failed.
 
@@ -1351,16 +1690,16 @@ report_failed :-
 
 runtest(Name) :-
 	format('Running test set "~w" ', [Name]),
-	flush_output,
+	flush,
 	functor(Head, Name, 1),
 	nth_clause(Head, _N, R),
 	clause(Head, _, R),
 	(   catch(Head, Except, true)
 	->  (   var(Except)
-	    ->  put(.), flush_output
+	    ->  put(.), flush
 	    ;   Except = blocked(Reason)
 	    ->  assert(blocked(Head, Reason)),
-		put(!), flush_output
+		put(!), flush
 	    ;   test_failed(R, Except)
 	    )
 	;   test_failed(R, fail)

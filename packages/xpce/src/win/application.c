@@ -32,7 +32,7 @@ initialiseApplication(Application app, Name name)
 { assign(app, name,    name);
   assign(app, members, newObject(ClassChain, EAV));
   assign(app, kind,    NAME_user);
-/*assign(app, modal,   NIL);*/
+  assign(app, modal,   newObject(ClassChain, EAV));
 
   appendChain(TheApplications, app);
 
@@ -63,7 +63,7 @@ appendApplication(Application app, FrameObj fr)
     assign(fr, application, app);
     appendChain(app->members, fr);
     if ( fr->modal == NAME_application )
-      assign(app, modal, fr);
+      send(app, NAME_modal, fr, EAV);
   }
 
   succeed;
@@ -78,8 +78,7 @@ deleteApplication(Application app, FrameObj fr)
   if ( fr->application == app )
   { deleteChain(app->members, fr);
     assign(fr, application, NIL);
-    if ( app->modal == fr )
-      app->modal = NIL;
+    deleteChain(app->modal, fr);
     succeed;
   }
 
@@ -128,13 +127,24 @@ resetApplications()
 
 static status
 modalApplication(Application app, FrameObj fr)
-{ if ( fr->application != app )
-  { TRY(send(fr, NAME_application, app, EAV));
+{ if ( notNil(fr) )
+  { if ( fr->application != app )
+    { TRY(send(fr, NAME_application, app, EAV));
+    }
+
+    prependChain(app->modal, fr);
   }
 
-  assign(app, modal, fr);
-
   succeed;
+}
+
+
+static FrameObj
+getModalApplication(Application app)
+{ if ( instanceOfObject(app->modal, ClassChain) )
+    answer(getHeadChain(app->modal));
+
+  fail;
 }
 
 
@@ -149,7 +159,7 @@ static vardecl var_application[] =
      NAME_organisation, "Chain holding member frames"),
   IV(NAME_kind, "{user,service}", IV_BOTH,
      NAME_debugging, "If service, events cannot be debugged"),
-  SV(NAME_modal, "frame*", IV_GET, modalApplication,
+  IV(NAME_modal, "chain", IV_NONE,
      NAME_event, "Frame for modal operation")
 };
 
@@ -165,7 +175,9 @@ static senddecl send_application[] =
   SM(NAME_delete, 1, "frame", deleteApplication,
      NAME_organisation, "Remove frame from the application"),
   SM(NAME_reset, 0, NULL, resetApplication,
-     DEFAULT, "Reset <-modal to @nil")
+     DEFAULT, "Reset <-modal to @nil"),
+  SM(NAME_modal, 1, "frame", modalApplication,
+     NAME_event, "Make frame modal to application")
 };
 
 /* Get Methods */
@@ -174,7 +186,9 @@ static getdecl get_application[] =
 { GM(NAME_member, 1, "frame", "name", getMemberApplication,
      NAME_organisation, "Member frame with given name"),
   GM(NAME_contains,  0, "chain", NULL, getContainsApplication,
-     NAME_organisation, "Chain with frames I manage")
+     NAME_organisation, "Chain with frames I manage"),
+  GM(NAME_modal,  0, "frame", NULL, getModalApplication,
+     NAME_event, "Frame that is modal to the application")
 };
 
 /* Resources */

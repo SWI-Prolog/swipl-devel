@@ -28,7 +28,7 @@
 In traditional Prolog, the operator table is global.  In modern systems
 this is undesirable for at least two reasons:
 
-	* Operators influence syntax and posible semantics.  Using modules
+	* Operators influence syntax and possibly semantics.  Using modules
 	  we would like to minimise the scope of operator-changes.
 
 	* Using multiple-threads, changing operators in one thread causes

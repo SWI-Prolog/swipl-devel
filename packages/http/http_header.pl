@@ -166,6 +166,17 @@ http_reply(authorise(Method, Realm), Out, HrdExtra) :- !,
 	phrase(reply_header(authorise(Method, Realm, HTML), HrdExtra), Header),
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
+http_reply(not_modified, Out, HrdExtra) :- !,
+	phrase(page([ title('304 Not Modified')
+		    ],
+		    [ h1('Not Modified'),
+		      p(['The resource has not changed']),
+		      address(httpd)
+		    ]),
+	       HTML),
+	phrase(reply_header(status(not_modified, HTML), HrdExtra), Header),
+	format(Out, '~s', [Header]),
+	print_html(Out, HTML).
 http_reply(server_error(ErrorTerm), Out, HrdExtra) :-
 	message_to_html(ErrorTerm, Tokens),
 	phrase(page([ title('500 Internal server error')
@@ -253,6 +264,23 @@ http_post_data(form(Fields), Out, HdrExtra) :- !,
 	phrase(post_header(cgi_data(Size), Header), HeaderChars),
 	format(Out, '~s', [HeaderChars]),
 	format(Out, '~s', [Codes]).
+http_post_data(form_data(Data), Out, HdrExtra) :- !,
+	new_memory_file(MemFile),
+	open_memory_file(MemFile, write, MimeOut),
+	mime_pack(Data, MimeOut, Boundary),
+	close(MimeOut),
+	size_memory_file(MemFile, Size),
+	sformat(ContentType, 'multipart/form-data; boundary=~w', [Boundary]),
+	http_join_headers(HdrExtra,
+			  [ mime_version('1.0'),
+			    content_type(ContentType)
+			  ], Header),
+	phrase(post_header(cgi_data(Size), Header), HeaderChars),
+	format(Out, '~s', [HeaderChars]),
+	open_memory_file(MemFile, read, In),
+	copy_stream_data(In, Out),
+	close(In),
+	free_memory_file(MemFile).
 http_post_data(List, Out, HdrExtra) :-		% multipart-mixed
 	is_list(List), !,
 	new_memory_file(MemFile),
@@ -260,7 +288,7 @@ http_post_data(List, Out, HdrExtra) :-		% multipart-mixed
 	mime_pack(List, MimeOut, Boundary),
 	close(MimeOut),
 	size_memory_file(MemFile, Size),
-	sformat(ContentType, 'multipart/mixed; boundary="~w"', [Boundary]),
+	sformat(ContentType, 'multipart/mixed; boundary=~w', [Boundary]),
 	http_join_headers(HdrExtra,
 			  [ mime_version('1.0'),
 			    content_type(ContentType)
@@ -272,20 +300,22 @@ http_post_data(List, Out, HdrExtra) :-		% multipart-mixed
 	close(In),
 	free_memory_file(MemFile).
 
+%	post_header//2: DCG for generating the POST request
+
 post_header(html(Tokens), HdrExtra) -->
 	header_fields(HdrExtra),
 	content_length(html(Tokens)),
 	content_type(text/html),
-	"\n".
+	"\r\n". 
 post_header(file(Type, File), HdrExtra) -->
 	header_fields(HdrExtra),
 	content_length(file(File)),
 	content_type(Type),
-	"\n".
+	"\r\n". 
 post_header(cgi_data(Size), HdrExtra) -->
 	header_fields(HdrExtra),
 	content_length(Size),
-	"\n".
+	"\r\n". 
 
 
 		 /*******************************
@@ -303,14 +333,14 @@ reply_header(string(Type, String), HdrExtra) -->
 	header_fields(HdrExtra),
 	content_length(ascii_string(String)),
 	content_type(Type),
-	"\n".
+	"\r\n".
 reply_header(html(Tokens), HdrExtra) -->
 	vstatus(ok),
 	date(now),
 	header_fields(HdrExtra),
 	content_length(html(Tokens)),
 	content_type(text/html),
-	"\n".
+	"\r\n".
 reply_header(file(Type, File), HdrExtra) -->
 	vstatus(ok),
 	date(now),
@@ -318,20 +348,20 @@ reply_header(file(Type, File), HdrExtra) -->
 	header_fields(HdrExtra),
 	content_length(file(File)),
 	content_type(Type),
-	"\n".
+	"\r\n".
 reply_header(tmp_file(Type, File), HdrExtra) -->
 	vstatus(ok),
 	date(now),
 	header_fields(HdrExtra),
 	content_length(file(File)),
 	content_type(Type),
-	"\n".
+	"\r\n".
 reply_header(cgi_data(Size), HdrExtra) -->
 	vstatus(ok),
 	date(now),
 	header_fields(HdrExtra),
 	content_length(Size),
-	"\n".
+	"\r\n".
 reply_header(moved(To, Tokens), HdrExtra) -->
 	vstatus(moved),
 	date(now),
@@ -339,14 +369,14 @@ reply_header(moved(To, Tokens), HdrExtra) -->
 	header_fields(HdrExtra),
 	content_length(html(Tokens)),
 	content_type(text/html),
-	"\n".
+	"\r\n".
 reply_header(status(Status, Tokens), HdrExtra) -->
 	vstatus(Status),
 	date(now),
 	header_fields(HdrExtra),
 	content_length(html(Tokens)),
 	content_type(text/html),
-	"\n".
+	"\r\n".
 reply_header(authorise(Method, Realm, Tokens), HdrExtra) -->
 	vstatus(authorise),
 	date(now),
@@ -354,26 +384,32 @@ reply_header(authorise(Method, Realm, Tokens), HdrExtra) -->
 	header_fields(HdrExtra),
 	content_length(html(Tokens)),
 	content_type(text/html),
-	"\n".
+	"\r\n".
 
 vstatus(Status) -->
 	"HTTP/1.1 ",
 	status_number(Status),
 	" ",
 	status_comment(Status),
-	"\n".
+	"\r\n".
 
+status_number(continue)	    --> "100".
 status_number(ok)	    --> "200".
 status_number(moved)	    --> "301".
+status_number(not_modified) --> "304". 
 status_number(not_found)    --> "404".
 status_number(forbidden)    --> "403".
 status_number(authorise)    --> "401".
 status_number(server_error) --> "500".
 
+status_comment(continue) -->
+	"Continue".
 status_comment(ok) -->
 	"OK".
 status_comment(moved) -->
 	"Moved Permanently".
+status_comment(not_modified) --> 
+	"Not Modified".
 status_comment(not_found) -->
 	"Not Found".
 status_comment(forbidden) -->
@@ -396,7 +432,7 @@ date(Time) -->
 	->  now
 	;   rfc_date(Time)
 	),
-	"\n".
+	"\r\n".
 	
 modified(file(File)) --> !,
 	{ time_file(File, Time)
@@ -408,7 +444,7 @@ modified(Time) -->
 	->  now
 	;   rfc_date(Time)
 	),
-	"\n".
+	"\r\n".
 
 content_length(ascii_string(String)) --> !,
 	{ length(String, Len)
@@ -425,18 +461,19 @@ content_length(html(Tokens)) --> !,
 content_length(Len) -->
 	{ number_codes(Len, LenChars)
 	},
-	"Content-Length: ", string(LenChars), "\n".
+	"Content-Length: ", string(LenChars),
+	"\r\n".
 
 content_type(Main/Sub) --> !,
 	"Content-Type: ",
 	atom(Main),
 	"/",
 	atom(Sub),
-	"\n".
+	"\r\n".
 content_type(Type) --> !,
 	"Content-Type: ",
 	atom(Type),
-	"\n".
+	"\r\n".
 
 header_field(Name, Value) -->
 	{ var(Name)
@@ -446,17 +483,41 @@ header_field(Name, Value) -->
 	blanks,
 	string(ValueChars),
 	blanks_to_nl, !,
-	{   int_field(Name)
-	->  number_codes(Value, ValueChars)
-	;   atom_codes(Value, ValueChars)
+	{ field_to_prolog(Name, ValueChars, Value)
 	}.
 header_field(Name, Value) -->
 	field_name(Name),
 	": ",
-	atom(Value),
-	"\n".
+	field_value(Value),
+	"\r\n".
 
-int_field(content_length).
+field_to_prolog(content_length, ValueChars, ContentLength) :- !,
+	number_codes(ContentLength, ValueChars).
+field_to_prolog(cookie, ValueChars, Cookies) :- !,
+	debug(cookie, 'Cookie: ~s', [ValueChars]),
+	phrase(cookies(Cookies), ValueChars).
+field_to_prolog(set_cookie, ValueChars, SetCookie) :- !,
+	debug(cookie, 'SetCookie: ~s', [ValueChars]),
+	phrase(set_cookie(SetCookie), ValueChars).
+field_to_prolog(_, ValueChars, Atom) :-
+	atom_codes(Atom, ValueChars).
+
+field_value(set_cookie(Name, Value, Options)) --> !,
+	atom(Name), "=", atom(Value),
+	set_cookie_options(Options).
+field_value(Atomic) -->
+	atom(Atomic).
+
+set_cookie_options([]) -->
+	[].
+set_cookie_options([secure=true|T]) --> !,
+	" ; secure",
+	set_cookie_options(T).
+set_cookie_options([Name=Value|T]) -->
+	" ; ", field_name(Name), "=",
+	atom(Value),
+	set_cookie_options(T).
+
 
 %	Process a sequence of [Name(Value), ...] attributes for the
 %	header.
@@ -468,8 +529,8 @@ header_fields([H|T]) -->
 	},
 	field_name(Name),
 	": ",
-	atom(Value),
-	"\n",
+	field_value(Value),
+	"\r\n",
 	header_fields(T).
 
 %	field_name(?PrologName)
@@ -479,7 +540,7 @@ header_fields([H|T]) -->
 field_name(Name) -->
 	{ var(Name)
 	}, !,
-	rd_field_chars(Chars),
+	rd_field_chars(0':, Chars),
 	{ atom_codes(Name, Chars)
 	}.
 field_name(mime_version) --> !,
@@ -489,16 +550,16 @@ field_name(Name) -->
 	},
 	wr_field_chars(Chars).
 
-rd_field_chars([C0|T]) -->
+rd_field_chars(End, [C0|T]) -->
 	[C],
-	{ C \== 0':, !,
+	{ C \== End, !,
 	  (   C == 0'-
 	  ->  C0 = 0'_
 	  ;   code_type(C, to_upper(C0))
 	  )
 	},
-	rd_field_chars(T).
-rd_field_chars([]) -->
+	rd_field_chars(End, T).
+rd_field_chars(_, []) -->
 	[].
 
 wr_field_chars([C|T]) -->
@@ -593,6 +654,86 @@ http_version_number(Major-Minor) -->
 
 
 		 /*******************************
+		 *	      COOKIES		*
+		 *******************************/
+
+%	cookies are of the format NAME=Value; ...
+
+cookies([Name=Value|T]) -->
+	blanks,
+	cookie(Name, Value), !,
+	blanks,
+	(   ";"
+	->  cookies(T)
+	;   { T = [] }
+	).
+
+cookie(Name, Value) -->
+	cookie_name(Name),
+	"=",
+	cookie_value(Value).
+
+cookie_name(Name) -->
+	{ var(Name)
+	}, !,
+	rd_field_chars(0'=, Chars),
+	{ atom_codes(Name, Chars)
+	}.
+
+cookie_value(Value) -->
+	chars_to_semicolon_or_blank(Chars),
+	{ atom_codes(Value, Chars)
+	}.
+
+chars_to_semicolon_or_blank([]) -->
+	peek(0';), !.
+chars_to_semicolon_or_blank([]) -->
+	blank, !.
+chars_to_semicolon_or_blank([H|T]) -->
+	[H], !,
+	chars_to_semicolon_or_blank(T).
+chars_to_semicolon_or_blank([]) -->
+	[].
+
+peek(C, L, L) :-
+	L = [C|_].
+
+set_cookie(set_cookie(Name, Value, Options)) -->
+	blanks,
+	cookie(Name, Value),
+	cookie_options(Options).
+
+cookie_options([H|T]) -->
+	blanks,
+	";",
+	blanks,
+	cookie_option(H), !,
+	cookie_options(T).
+cookie_options([]) -->
+	blanks.
+
+
+cookie_option(secure=true) -->
+	"secure", !.
+cookie_option(Name=Value) -->
+	rd_field_chars(0'=, NameChars),
+	"=", blanks,
+	chars_to_semicolon(ValueChars),
+	{ atom_codes(Name, NameChars),
+	  atom_codes(Value, ValueChars)
+	}.
+
+chars_to_semicolon([]) -->
+	blanks,
+	peek(0';), !.
+chars_to_semicolon([H|T]) -->
+	[H], !,
+	chars_to_semicolon(T).
+chars_to_semicolon([]) -->
+	[].
+
+
+		 /*******************************
 		 *	     REPLY DCG		*
 		 *******************************/
 
@@ -654,4 +795,3 @@ header([Att|T]) -->
 header([]) -->
 	blanks,
 	[].
-

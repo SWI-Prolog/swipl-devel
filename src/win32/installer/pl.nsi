@@ -35,7 +35,7 @@ InstType "Full"					# 3
 Page license
 Page components
 Page directory
-Page custom SetCustom ": Installation options"
+Page custom SetCustom "" ": Installation options"
 Page instfiles
 
 Section "Base system (required)"
@@ -69,6 +69,9 @@ Section "Base system (required)"
   File pl\library\system.pl
   File pl\library\threadutil.pl
   File pl\library\tty.pl
+  File pl\library\dif.pl
+  File pl\library\when.pl
+  File pl\library\prolog_stack.pl
 
 ; COMPATIBILITY
   File pl\library\backcomp.pl
@@ -85,6 +88,8 @@ Section "Base system (required)"
   File pl\library\occurs.pl
   File pl\library\ordsets.pl
   File pl\library\oset.pl
+  File pl\library\assoc.pl
+  File pl\library\operators.pl
 
 ; WINDOWS
   File pl\library\dde.pl
@@ -138,6 +143,35 @@ Section "Documentation and Help-system"
   File pl\library\help.pl
 SectionEnd
 
+Section "Constraint Handling Rules"
+  SectionIn 1 3
+  SetOutPath $INSTDIR\library
+  File pl\library\chr.pl
+  SetOutPath $INSTDIR\library\chr
+  File pl\library\chr\chr_runtime.pl
+  File pl\library\chr\chr_messages.pl
+  File pl\library\chr\chr_debug.pl
+  File pl\library\chr\chr_op.pl
+  File pl\library\chr\chr_translate.pl
+  File pl\library\chr\hprolog.pl
+  File pl\library\chr\pairlist.pl
+  File pl\library\chr\a_star.pl
+  File pl\library\chr\binomialheap.pl
+  File pl\library\chr\builtins.pl
+  File pl\library\chr\chr_hashtable_store.pl
+  File pl\library\chr\clean_code.pl
+  File pl\library\chr\find.pl
+  File pl\library\chr\README.TXT
+  SetOutPath $INSTDIR\doc\packages\examples
+  File /r pl\doc\packages\examples\chr
+SectionEnd
+
+Section "CLP"
+  SectionIn 1 3
+  SetOutPath $INSTDIR\library\clp
+  File pl\library\clp\bounds.pl
+SectionEnd
+
 Section "Demo files"
   SectionIn 1 3
   SetOutPath $INSTDIR
@@ -148,14 +182,31 @@ SectionEnd
 
 Section "C/C++ Interface"
   SectionIn 1 3 
+  SetOutPath $INSTDIR\lib
+  File pl\lib\libpl.lib
+  File pl\lib\plterm.lib
+  File pl\lib\pthreadVC.lib
   SetOutPath $INSTDIR
-  File /r pl\lib
   File /r pl\include
   SetOutPath $INSTDIR\bin
   File pl\bin\plld.exe
   File pl\bin\plrc.exe
   SetOutPath $INSTDIR\doc\packages
   File pl\doc\packages\pl2cpp.html
+SectionEnd
+
+Section "JPL -- Java <-> Prolog"
+  SectionIn 1 3
+  SetOutPath $INSTDIR\bin
+  File pl\bin\jpl.dll
+  SetOutPath $INSTDIR\lib
+  File pl\lib\jpl.jar
+  SetOutPath $INSTDIR\library
+  File pl\library\jpl.pl
+  SetOutPath $INSTDIR\doc\packages
+  File /r pl\doc\packages\jpl
+  SetOutPath $INSTDIR\doc\packages\examples
+  File /r pl\doc\packages\examples\jpl
 SectionEnd
 
 Section "XPCE graphics library"
@@ -181,9 +232,22 @@ Section "Package CLIB"
   File pl\library\memfile.pl
   File pl\library\mime.pl
   File pl\library\socket.pl
+  File pl\library\prolog_server.pl
   File pl\library\time.pl
   SetOutPath $INSTDIR\doc\packages
   File pl\doc\packages\clib.html
+SectionEnd
+
+Section "SSL Interface"
+  SectionIn 1 3
+  SetOutPath $INSTDIR\bin
+  File pl\bin\ssl4pl.dll
+  SetOutPath $INSTDIR\library
+  File pl\library\ssl.pl
+  SetOutPath $INSTDIR\doc\packages
+  File pl\doc\packages\ssl.html
+  SetOutPath $INSTDIR\doc\packages\examples
+  File /r pl\doc\packages\examples\ssl
 SectionEnd
 
 Section "ODBC Interface"
@@ -203,6 +267,8 @@ Section "SGML/XML/HTML parser"
   SetOutPath $INSTDIR\library
   File /r pl\library\DTD
   File pl\library\sgml.pl
+  File pl\library\xsdp_types.pl
+  File pl\library\iso_639.pl
   SetOutPath $INSTDIR\doc\packages
   File pl\doc\packages\sgml2pl.html
 SectionEnd
@@ -217,6 +283,7 @@ Section "RDF and Semantic Web Library"
   File pl\library\rdf_parser.pl
   File pl\library\rdf_triple.pl
   File pl\library\rewrite.pl
+  File pl\library\rdf_ntriples.pl
   File /r pl\library\semweb
 
   SetOutPath $INSTDIR\doc\packages
@@ -261,6 +328,7 @@ Section "C Debugging Symbols (.pdb files)"
   File pl\bin\sgml2pl.pdb
   File pl\bin\socket.pdb
   File pl\bin\time.pdb
+  File pl\bin\ssl4pl.pdb
 SectionEnd
 
 Section "Sources for system predicates"

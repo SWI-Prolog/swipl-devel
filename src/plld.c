@@ -611,6 +611,7 @@ usage()
 	  "       -class class     {runtime,kernel,development}\n"
 	  "\n"
 	  "       -O*              Optimization passed to compiler\n"
+	  "       -Wl,*            Options passed to linker\n"
 	  "       -W*              Warning options passed to compiler\n"
 	  "\n"
 	  "       -Dmacro          Define macro (C/C++)\n"
@@ -660,6 +661,8 @@ parseOptions(int argc, char **argv)
     } else if ( strprefix(opt, "-O") )		/* -O* */
     { appendArgList(&coptions, opt);
       appendArgList(&cppoptions, opt);
+    } else if ( strprefix(opt, "-Wl,") )	/* -Wl,* */
+    { appendArgList(&ldoptions, opt);
     } else if ( strprefix(opt, "-W") )		/* -W* */
     { appendArgList(&coptions, opt);
       appendArgList(&cppoptions, opt);
@@ -894,7 +897,7 @@ fillDefaultOptions()
 #ifdef WIN32
   sprintf(tmp, "%s/lib", plbase);
 #else
-  sprintf(tmp, "%s/runtime/%s", plbase, plarch);
+  sprintf(tmp, "%s/lib/%s", plbase, plarch);
 #endif
   prependArgList(&libdirs, tmp);
   sprintf(tmp, "%s/include", plbase);

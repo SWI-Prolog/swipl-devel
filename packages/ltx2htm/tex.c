@@ -1458,7 +1458,7 @@ output(PPContext pp, const char *fmt, ...)
 
   va_start(args, fmt);
   vsprintf(buf, fmt, args);
-  va_end(fmt);
+  va_end(args);
 
   if ( pp->verbatim )
   { for(;;s++)

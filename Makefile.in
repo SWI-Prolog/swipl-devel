@@ -23,6 +23,12 @@ install-lite::
 rpm-install::
 	@cd $(BUILDARCH) && $(MAKE) $@
 
+check::
+	@cd $(BUILDARCH) && $(MAKE) $@
+	@if [ -f packages/Makefile ]; then \
+	   cd packages && make $@; \
+	fi
+
 clean::
 	@cd $(BUILDARCH) && $(MAKE) $@
 	@if [ -f packages/Makefile ]; then \
@@ -53,3 +59,5 @@ packages::
 install-world::
 	cd $(BUILDARCH) && make install
 	cd packages && make install
+	cd packages && make html-install
+

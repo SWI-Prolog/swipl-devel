@@ -41,6 +41,18 @@ typedef enum
   LDATA_ANSWERED
 } ldata_status_t;
 
+#ifdef WIN32
+enum
+{ SIGNAL     = 0,
+  BROADCAST  = 1,
+  MAX_EVENTS = 2
+} win32_event_t;
+
+typedef struct
+{ HANDLE events[MAX_EVENTS];		/* events to be signalled */
+  int    waiters;			/* # waiters */
+} win32_cond_t;
+#endif
 
 typedef struct _PL_thread_info_t
 { int		    pl_tid;		/* Prolog thread id */
@@ -68,8 +80,12 @@ typedef struct _PL_thread_info_t
 } PL_thread_info_t;
 
 typedef struct message_queue
-{ pthread_mutex_t      mutex;		/* Message queue mutex */
+{ simpleMutex	       mutex;		/* Message queue mutex */
+#ifdef WIN32
+  win32_cond_t	       cond_var;
+#else
   pthread_cond_t       cond_var;	/* condition variable of queue */
+#endif
   struct _thread_msg   *head;		/* Head of message queue */
   struct _thread_msg   *tail;		/* Tail of message queue */
   word		       id;		/* Id of the queue */
@@ -385,6 +401,12 @@ extern void		initPrologThreads(void);
 #define getInputStream(t, s)	getInputStream__LD(t, s PASS_LD)
 #define valReal(w)		valReal__LD(w PASS_LD)
 #define compileTermToHeap(t, f)	compileTermToHeap__LD(t, f PASS_LD)
+#define linkVal(p)		linkVal__LD(p PASS_LD)
+#ifdef O_SHIFT_STACKS
+#define allocGlobalNoShift(n)	allocGlobalNoShift__LD(n PASS_LD)
+#else
+#define allocGlobalNoShift(n)	allocGlobal__LD(n PASS_LD)
+#endif
 
 #define _PL_get_arg(n, t, a)	_PL_get_arg__LD(n, t, a PASS_LD)
 #define _PL_put_number(t, n) 	_PL_put_number__LD(t, n PASS_LD)

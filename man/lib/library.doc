@@ -33,3 +33,4 @@ documented at all.
 \input{netscape}
 \input{registry}
 \input{url}
+\input{bounds}

@@ -152,6 +152,9 @@ typedef struct
 #define PL_TYPE_EXT_ATOM	(9)	/* External (inlined) atom */
 #define PL_TYPE_EXT_COMPOUND	(10)	/* External (inlined) functor */
 #define PL_TYPE_EXT_FLOAT	(11)	/* float in standard-byte order */
+#define PL_TYPE_ATTVAR		(12)	/* Attributed variable */
+#define PL_REC_ALLOCVAR		(13)	/* Allocate a variable on global */
+#define PL_REC_CYCLE		(14)	/* cyclic reference */
 
 #define addUnalignedBuf(b, ptr, type) \
 	do \
@@ -212,7 +215,7 @@ Add a signed long value. First byte   is  number of bytes, remaining are
 value-bytes, starting at most-significant.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define PLMINLONG   ((long)(1L<<(LONGBITSIZE-1)))
+#define PLMINLONG   ((long)(-1L<<(LONGBITSIZE-1)))
 
 static void
 addLong(CompileInfo info, long v)
@@ -220,7 +223,7 @@ addLong(CompileInfo info, long v)
 
   if ( v != PLMINLONG )
   { long absn = (v >= 0 ? v : -v);
-    long mask = 0x1ffL << (LONGBITSIZE-9);
+    long mask = -1L << (LONGBITSIZE-9);
 
     for(; i>1; i--, mask >>= 8)
     { if ( absn & mask )
@@ -324,6 +327,10 @@ addFunctor(CompileInfo info, functor_t f)
 }
 
 
+#define mkAttVarP(p)  ((Word)((word)(p) | 0x1L))
+#define isAttVarP(p)  ((word)(p) & 0x1)
+#define valAttVarP(p) ((Word)((word)(p) & ~0x1L))
+
 static void
 compile_term_to_heap(Word p, CompileInfo info ARG_LD)
 { word w;
@@ -336,20 +343,45 @@ right_recursion:
     { long n = info->nvars++;
 
       *p = (n<<7)|TAG_ATOM|STG_GLOBAL;
-      addUnalignedBuf(&info->vars, &p, Word);
+      addBuffer(&info->vars, p, Word);
       addOpCode(info, PL_TYPE_VARIABLE);
       addSizeInt(info, n);
 
       return;
     }
+#if O_ATTVAR
+    case TAG_ATTVAR:
+    { long n = info->nvars++;
+      Word ap = valPAttVar(w);
+
+      if ( isEmptyBuffer(&info->code) )
+      { addOpCode(info, PL_REC_ALLOCVAR); 	/* only an attributed var */
+	info->size++;
+      }
+
+      addBuffer(&info->vars, *p, word);		/* save value */
+      *p = (n<<7)|TAG_ATOM|STG_GLOBAL;
+      addBuffer(&info->vars, mkAttVarP(p), Word);
+      addOpCode(info, PL_TYPE_ATTVAR);
+      addSizeInt(info, n);
+      info->size++;
+      DEBUG(9, Sdprintf("Added attvar %d\n", n));
+
+      p = ap;
+      goto right_recursion;
+    }
+#endif
     case TAG_ATOM:
     { if ( storage(w) == STG_GLOBAL )	/* this is a variable */
       { long n = ((long)(w) >> 7);
 
 	addOpCode(info, PL_TYPE_VARIABLE);
 	addSizeInt(info, n);
+	DEBUG(9, Sdprintf("Added var-link %d\n", n));
       } else
-	addAtom(info, w);
+      { addAtom(info, w);
+	DEBUG(9, Sdprintf("Added '%s'\n", stringAtom(w)));
+      }
 
       return;
     }
@@ -388,10 +420,36 @@ right_recursion:
     }
     case TAG_COMPOUND:
     { Functor f = valueTerm(w);
-      int arity = arityFunctor(f->definition);
+      int arity;
+      word functor;
 
+#if O_CYCLIC
+      if ( isInteger(f->definition) )
+      { addOpCode(info, PL_REC_CYCLE);
+	addSizeInt(info, valInt(f->definition));
+
+	DEBUG(1, Sdprintf("Added cycle for offset = %d\n",
+			  valInt(f->definition)));
+
+	return;
+      } else
+      { arity   = arityFunctor(f->definition);
+	functor = f->definition;
+
+	requireStack(argument, sizeof(Word)*2);
+	*aTop++ = (Word)f;
+	*aTop++ = (Word)f->definition;
+	f->definition = (functor_t)consInt(info->size);
+	assert(valInt(f->definition) == info->size); /* overflow test */
+      }
+#endif
+      
       info->size += arity+1;
-      addFunctor(info, f->definition);
+      addFunctor(info, functor);
+      DEBUG(9, if ( GD->io_initialised )
+	         Sdprintf("Added %s/%d\n",
+			  stringAtom(valueFunctor(functor)->name),
+			  arityFunctor(functor)));
       p = f->arguments;
       for(; --arity > 0; p++)
 	compile_term_to_heap(p, info PASS_LD);
@@ -406,14 +464,42 @@ right_recursion:
 }
 
 
+#if O_CYCLIC
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Argument stack contains pairs of pointer to   term and first word of the
+term (functor) before entering. The first  word itself contains a Prolog
+integer with the current stack-offset for the new term.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+unvisit(Word *base ARG_LD)
+{ Word *p = aTop;
+  Word gp;
+
+  while(p>base)
+  { p -= 2;
+
+    gp  = p[0];
+    *gp = (word)p[1];
+  }
+
+  aTop = base;
+}
+
+#endif
+
 
 Record
 compileTermToHeap__LD(term_t t, int flags ARG_LD)
 { compile_info info;
   Record record;
   Word *p;
-  int n, size;
+  int size;
   int rsize = SIZERECORD(flags);
+#if O_CYCLIC
+  Word *m = aTop;
+#endif
 
   SECURE(checkData(valTermRef(t)));
 
@@ -424,11 +510,20 @@ compileTermToHeap__LD(term_t t, int flags ARG_LD)
   info.external = (flags & R_EXTERNAL);
 
   compile_term_to_heap(valTermRef(t), &info PASS_LD);
-  n = info.nvars;
-  p = (Word *)info.vars.base;
-  while(--n >= 0)
-    setVar(**p++);
+  p = topBuffer(&info.vars, Word);
+  while(p > baseBuffer(&info.vars, Word))
+  { p--;
+    if (isAttVarP(*p) )
+    { *valAttVarP(*p) = (word)p[-1];
+      p--;
+    } else
+      setVar(**p);
+  }
   discardBuffer(&info.vars);
+  
+#if O_CYCLIC
+  unvisit(m PASS_LD);
+#endif
   
   size = rsize + sizeOfBuffer(&info.code);
   record = allocHeap(size);
@@ -455,7 +550,7 @@ compileTermToHeap__LD(term_t t, int flags ARG_LD)
 #define	REC_64	    0x02		/* word is 64-bits	*/
 #define	REC_INT	    0x04		/* Record just contains	int  */
 #define	REC_ATOM    0x08		/* Record just contains	atom */
-#define	REC_GROUND  0x10		/* Record just contains	atom */
+#define	REC_GROUND  0x10		/* Record is ground */
 #define	REC_VMASK   0xe0		/* Version mask */
 #define	REC_VERSION 0x00		/* Version id */
 
@@ -479,6 +574,9 @@ PL_record_external(term_t t, unsigned int *len)
   int scode, shdr;
   char *rec;
   int first = REC_SZ|REC_VERSION;
+#if O_CYCLIC
+  Word *m = aTop;
+#endif
 
   SECURE(checkData(valTermRef(t)));
   p = valTermRef(t);
@@ -527,6 +625,10 @@ PL_record_external(term_t t, unsigned int *len)
   if ( info.nvars == 0 )
     first |= REC_GROUND;
 
+#if O_CYCLIC
+  unvisit(m PASS_LD);
+#endif
+
   initBuffer(&hdr);
   addBuffer(&hdr, first, uchar);		/* magic code */
   addUintBuffer((Buffer)&hdr, scode);		/* code size */
@@ -553,11 +655,14 @@ PL_record_external(term_t t, unsigned int *len)
 		 *******************************/
 
 typedef struct
-{ const char *data;
-  const char *base;			/* start of data */
-  Word *vars;
-  uint  nvars;				/* for se_record() */
-  Word gstore;
+{ const char   *data;
+  const char   *base;			/* start of data */
+  Word	       *vars;
+  Word		gbase;			/* base of term on global stack */
+  Word 		gstore;			/* current storage location */
+					/* for se_record() */
+  uint  	nvars;			/* Variables seen */
+  TmpBuffer 	avars;			/* Values stored for attvars */
 } copy_info, *CopyInfo;
 
 
@@ -569,7 +674,7 @@ heep allocation in this case. We could   also  consider using one of the
 other stacks as scratch-area.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define MAX_ALLOCA_VARS 2048		/* most machines should to 8k */
+#define MAX_ALLOCA_VARS 2048		/* most machines should do 8k */
 #define INITCOPYVARS(info, n) \
 { if ( (n) > 0 ) \
   { Word *p; \
@@ -706,9 +811,9 @@ right_recursion:
       { if ( p > b->vars[n] )		/* ensure the reference is in the */
 	  *p = makeRef(b->vars[n]);	/* right direction! */
 	else
-	{ setVar(*p);			/* wrong way.  make sure b->vars[n] */
+	{ *p = *b->vars[n];		/* wrong way.  make sure b->vars[n] */
 	  *b->vars[n] = makeRef(p);	/* stays at the real variable */
-	  b->vars[n] = p;
+	  b->vars[n] = p;		/* NOTE: also links attvars! */
 	}
       } else
       {	setVar(*p);
@@ -717,6 +822,22 @@ right_recursion:
       
       return;
     }
+    case PL_REC_ALLOCVAR:
+    { setVar(*b->gstore);
+      *p = makeRefG(b->gstore);
+      p = b->gstore++;
+      goto right_recursion;
+    }
+#if O_ATTVAR
+    case PL_TYPE_ATTVAR:
+    { long n = fetchSizeInt(b);
+
+      *p = consPtr(b->gstore, TAG_ATTVAR|STG_GLOBAL);
+      b->vars[n] = p;
+      p = b->gstore++;
+      goto right_recursion;
+    }
+#endif
     case PL_TYPE_ATOM:
     { *p = fetchWord(b);
 
@@ -771,6 +892,16 @@ right_recursion:
 
       return;
     }
+#ifdef O_CYCLIC
+    case PL_REC_CYCLE:
+    { unsigned offset = fetchSizeInt(b);
+      Word ct = b->gbase+offset;
+
+      *p = consPtr(ct, TAG_COMPOUND|STG_GLOBAL);
+
+      return;
+    }
+#endif
   { word fdef;
     long arity;
     case PL_TYPE_COMPOUND:
@@ -818,7 +949,7 @@ copyRecordToGlobal(term_t copy, Record r ARG_LD)
   DEBUG(3, Sdprintf("PL_recorded(%p)\n", r));
 
   b.base = b.data = dataRecord(r);
-  b.gstore = allocGlobal(r->gsize);
+  b.gbase = b.gstore = allocGlobal(r->gsize);
 
   INITCOPYVARS(b, r->nvars);
   copy_record(valTermRef(copy), &b PASS_LD);
@@ -867,9 +998,18 @@ right_recursion:
 
   switch( fetchOpCode(b) )
   { case PL_TYPE_VARIABLE:
+    case PL_REC_CYCLE:
     { skipSizeInt(b);
       return;
     }
+    case PL_REC_ALLOCVAR:
+      goto right_recursion;
+#ifdef O_ATTVAR
+    case PL_TYPE_ATTVAR:
+    { skipSizeInt(b);
+      goto right_recursion;
+    }
+#endif
     case PL_TYPE_ATOM:
     { atom_t a = fetchWord(b);
 
@@ -953,6 +1093,24 @@ unref_cont:
 	succeed;
       }
       fail;
+    case TAG_ATTVAR:
+      if ( stag == PL_REC_ALLOCVAR )	/* skip variable allocation */
+	stag = fetchOpCode(info);
+      if ( stag == PL_TYPE_ATTVAR )
+      { Word ap = valPAttVar(w);
+	uint i = fetchSizeInt(info);
+
+	if ( i != info->nvars )
+	  fail;
+
+	addBuffer(info->avars, *p, word);
+	*p = (info->nvars<<7)|TAG_ATOM|STG_GLOBAL;
+	info->vars[info->nvars++] = mkAttVarP(p);
+
+	p = ap;				/* do the attribute value */
+	goto right_recursion;
+      }
+      fail;
     case TAG_ATOM:
       if ( storage(w) == STG_GLOBAL )
       { if ( stag == PL_TYPE_VARIABLE )
@@ -963,7 +1121,10 @@ unref_cont:
 	    succeed;
 	}
 	fail;
-      } else if ( stag == PL_TYPE_ATOM )
+      }
+
+      DEBUG(9, Sdprintf("Matching '%s'\n", stringAtom(w)));
+      if ( stag == PL_TYPE_ATOM )
       { atom_t val = fetchWord(info);
 
 	if ( val == w )
@@ -1032,6 +1193,9 @@ unref_cont:
 
       fail;
     case TAG_COMPOUND:
+      DEBUG(9, Sdprintf("Matching %s/%d\n",
+			stringAtom(valueFunctor(functorTerm(w))->name),
+			arityTerm(w)));
       if ( stag == PL_TYPE_COMPOUND )
       { Functor f = valueTerm(w);
 	word fdef = fetchWord(info);
@@ -1089,14 +1253,21 @@ unref_cont:
 
 int
 structuralEqualArg1OfRecord(term_t t, Record r ARG_LD)
-{ copy_info info;
-  int n, rval;
+{ tmp_buffer avars;
+  copy_info info;
+  int n, rval, navars;
   Word *p;
   long stag;
 
+  DEBUG(3, Sdprintf("structuralEqualArg1OfRecord() of ");
+	   PL_write_term(Serror, t, 1200, PL_WRT_ATTVAR_WRITE);
+	   Sdprintf("\n"));
+  
   info.base = info.data = dataRecord(r);
   info.nvars = 0;
   INITCOPYVARS(info, r->nvars);
+  initBuffer(&avars);
+  info.avars = &avars;
 
 					/* skip PL_TYPE_COMPOUND <functor> */
   stag = fetchOpCode(&info);
@@ -1110,9 +1281,17 @@ structuralEqualArg1OfRecord(term_t t, Record r ARG_LD)
 
   rval = se_record(valTermRef(t), &info PASS_LD);
 
-  for(p = info.vars, n=info.nvars; --n >= 0; p++)
-    setVar(**p);
+  for(p = info.vars, n=info.nvars, navars=0; --n >= 0; p++)
+  { if ( isAttVarP(*p) )
+    { *valAttVarP(*p) = fetchBuffer(&avars, navars++, word);
+    } else
+      setVar(**p);
+  }
+
+  discardBuffer(&avars);
   FREECOPYVARS(info, r->nvars);
+
+  DEBUG(3, Sdprintf("structuralEqualArg1OfRecord() --> %d\n", rval));
 
   return rval;
 }
@@ -1181,7 +1360,7 @@ PL_recorded_external(const char *rec, term_t t)
 
   skipSizeInt(&b);			/* code-size */
   gsize = fetchSizeInt(&b);
-  b.gstore = allocGlobal(gsize);
+  b.gbase = b.gstore = allocGlobal(gsize);
   if ( !(m & REC_GROUND) )
   { uint nvars = fetchSizeInt(&b);
 
@@ -1308,6 +1487,10 @@ record(term_t key, term_t term, term_t ref, int az)
   RecordRef r;
   Record copy;
   word k;
+
+  DEBUG(3, Sdprintf("record() of ");
+	   PL_write_term(Serror, term, 1200, PL_WRT_ATTVAR_WRITE);
+	   Sdprintf("\n"));
 
   if ( !getKeyEx(key, &k PASS_LD) )
     fail;
@@ -1528,7 +1711,13 @@ right_recursion:
     return -1;
   count++;
 
-  if ( isTerm(*t) )
+  if ( isAttVar(*t) )
+  { Word p = valPAttVar(*t);
+    
+    assert(onStackArea(global, p));
+    t = p;
+    goto right_recursion;
+  } else if ( isTerm(*t) )
   { int arity = arityTerm(*t);
     int me;
 
@@ -1596,6 +1785,9 @@ undo_while_saving_term(mark *m, Word term)
   copy_info b;
   uint n;
   Word *p;
+#if O_CYCLIC
+  Word *cycle_mark = aTop;
+#endif
 
   SECURE(checkData(term));
   assert(onStack(local, term));
@@ -1607,26 +1799,43 @@ undo_while_saving_term(mark *m, Word term)
   info.external = FALSE;
 
   compile_term_to_heap(term, &info PASS_LD);
-  n = info.nvars;
-  p = (Word *)info.vars.base;
-  while(n-- > 0)
-    setVar(**p++);
+  p = topBuffer(&info.vars, Word);
+  while(p > baseBuffer(&info.vars, Word))
+  { p--;
+    if (isAttVarP(*p) )
+    { *valAttVarP(*p) = (word)p[-1];
+      p--;
+    } else
+      setVar(**p);
+  }
+
+#if O_CYCLIC
+  unvisit(cycle_mark PASS_LD);
+#endif
 
   Undo(*m);
   
   b.data = info.code.base;
-  b.gstore = allocGlobal(info.size);
+  b.gbase = b.gstore = allocGlobal(info.size);
   INITCOPYVARS(b, info.nvars);
   copy_record(term, &b PASS_LD);
   FREECOPYVARS(b, info.nvars);
   assert(b.gstore == gTop);
   discardBuffer(&info.code);
 
-  for(n=0; n<info.nvars; n++)
-  { Word v = ((Word *)info.vars.base)[n];
-    
-    if ( onStack(local, v) || (v > gBase && v < m->globaltop) )
-      unify_ptrs(v, ((Word *)b.vars)[n] PASS_LD);
+  p = topBuffer(&info.vars, Word);
+  n = info.nvars;
+  while(p > baseBuffer(&info.vars, Word))
+  { p--;
+    n--;
+    if (isAttVarP(*p) )
+    { p--;				/* what to do? */
+    } else
+    { Word v = *p;
+
+      if ( onStack(local, v) || (v > gBase && v < m->globaltop) )
+	unify_ptrs(v, ((Word *)b.vars)[n] PASS_LD);
+    }
   }
 
   discardBuffer(&info.vars);

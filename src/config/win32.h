@@ -248,7 +248,7 @@ typedef int mode_t;
 #define HAVE_OPENDIR 1
 
 /* Define if you have the popen function.  */
-#undef HAVE_POPEN
+#define HAVE_POPEN 1
 
 /* Define if you have the putenv function.  */
 #define HAVE_PUTENV 1

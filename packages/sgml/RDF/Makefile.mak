@@ -22,6 +22,7 @@ install::
 		copy rdf_parser.pl "$(PLBASE)\library"
 		copy rdf_triple.pl "$(PLBASE)\library"
 		copy rewrite.pl "$(PLBASE)\library"
+		copy rdf_ntriples.pl "$(PLBASE)\library"
 		$(MAKEINDEX)
 !ENDIF
 

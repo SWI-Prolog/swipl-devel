@@ -25,6 +25,9 @@ pdf-install::
 clean::
 	@cd $(BUILDARCH) && $(MAKE) $@
 
+check::
+	@cd $(BUILDARCH) && $(MAKE) $@
+
 distclean::
 	@cd $(BUILDARCH) && $(MAKE) $@
 	rm -f Makefile

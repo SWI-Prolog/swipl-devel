@@ -37,6 +37,7 @@
 	    ord_union/3
 	  ]).
 :- use_module(library(oset)).
+:- set_prolog_flag(generate_debug_info, false).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Very incomplete implementation  of   Quintus/SICStus  compatible  ordset

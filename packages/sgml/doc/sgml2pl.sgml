@@ -154,7 +154,8 @@ load_html_file(File, Term) :-
         dtd(html, DTD),
         load_structure(File, Term,
                        [ dtd(DTD),
-                         dialect(sgml)
+                         dialect(sgml),
+			 shorttag(false)
                        ]).
 </code>
 </definitions>
@@ -735,6 +736,12 @@ If <c/token/ (default), attributes of type number are passed as a Prolog atom.
 If <c/integer/, such attributes are translated into Prolog integers.  If
 the conversion fails (e.g. due to overflow) a warning is issued and the
 value is passed as an atom.
+    <termitem>encoding(Encoding)
+Set the initial encoding.  The default initial encoding for XML documents is
+UTF-8 and for SGML documents ISO-8859-1.  XML documents may change the
+encoding using the <xmp>encoding=</xmp> attribute in the header.  Explicit
+use of this option is only required to parse non-conforming documents.
+Currently accepted values are <c/iso-8859-1/ and <c/utf-8/.
     <termitem>doctype(Element)
 Defines the toplevel element expected. If a <verb><!DOCTYPE</verb>
 declaration has been parsed, the default is the defined doctype. The
@@ -1014,7 +1021,7 @@ on_begin(Tag, Attr, Parser) :-
 <s1 name="indexaccess">Processing Indexed Files</title>
 
 <p>
-In some cases applications which to process small portions of large 
+In some cases applications wish to process small portions of large 
 SGML, XML or RDF files. For example, the <em>OpenDirectory</em> project 
 by Netscape has produced a 90MB RDF file representing the main index. 
 The parser described here can process this document as a unit, but 

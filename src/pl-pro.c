@@ -247,7 +247,9 @@ machine interpreter with the toplevel goal.
 
 static void
 resetProlog()
-{ emptyStacks();
+{
+  if ( !LD->gvar.nb_vars )		/* we would loose nb_setval/2 vars */
+    emptyStacks();
 
 #ifdef O_LIMIT_DEPTH
   depth_limit   = (unsigned long)DEPTH_NO_LIMIT;
@@ -376,9 +378,38 @@ printk(char *fm, ...)
   trap_gdb();
 }
 
+static long check_marked;
 
-word
-checkData(Word p)
+#define mark(p)		(*(p) |= MARK_MASK, check_marked++)
+#define unmark(p)	(*(p) &= ~MARK_MASK, check_marked--)
+
+static void
+unmark_data(Word p)
+{
+last_arg:
+  deRef(p);
+
+  if ( isAttVar(*p) && is_marked(p) )
+  { unmark(p);
+    p = valPAttVar(*p);
+    goto last_arg;
+  } else if ( isTerm(*p) && is_marked(p) )
+  { Functor f;
+    int n, arity;
+
+    unmark(p);
+    f = valueTerm(*p);
+    arity = arityFunctor(f->definition);
+    for(n=0; n<arity-1; n++)
+      unmark_data(&f->arguments[n]);
+    p = &f->arguments[n];
+    goto last_arg;
+  }
+}
+
+
+static word
+check_data(Word p, int *recursive)
 { int arity; int n;
   Word p2;
   word key = 0L;
@@ -386,7 +417,8 @@ checkData(Word p)
 last_arg:
 
   while(isRef(*p))
-  { p2 = unRef(*p);
+  { assert(!is_marked(p));
+    p2 = unRef(*p);
     if ( p2 > p )
       printk("Reference to higher address");
     if ( !onLocal(p2) && !onGlobal(p2) )
@@ -398,11 +430,38 @@ last_arg:
   if ( isVar(*p) )
     return key+0x737473;		/* just a random number */
 
+#ifdef O_ATTVAR
+  if ( isAttVar(*p) )
+  { if ( is_marked(p) )			/* loop */
+    { (*recursive)++;
+      return key;
+    }
+
+    key += 0x427e8ac;			/* another random number */
+    p2 = valPAttVar(*p);
+    mark(p);
+
+    if ( !onGlobal(p) )
+      printk("attvar: not on global stack: 0x%x", p);
+    if ( !onGlobal(p2) )
+      printk("attvar: attribute not on global stack: 0x%x --> 0x%x", p, p2);
+    if ( p == p2 )
+      printk("attvar: self-reference: 0x%x", p);
+
+    p = p2;
+    goto last_arg;
+  }
+#endif
+
   if ( isTaggedInt(*p) )
+  { assert(!is_marked(p));
     return key + *p;
+  }
 
   if ( isIndirect(*p) )
   { Word a = addressIndirect(*p);
+
+    assert(!is_marked(p));
 
     if ( !onGlobal(a) )
       printk("Indirect at %p not on global stack", a);
@@ -434,6 +493,7 @@ last_arg:
   { unsigned long idx;
     unsigned long mx = entriesBuffer(&atom_array, Atom);
 
+    assert(!is_marked(p));
     if ( storage(*p) != STG_STATIC )
       printk("Atom doesn't have STG_STATIC");
 
@@ -447,7 +507,13 @@ last_arg:
        storage(*p) != STG_GLOBAL )
     printk("Illegal term at: %p: 0x%x", p, *p);
 
+  if ( is_marked(p) )
+  { (*recursive)++;
+    return key;				/* recursive */
+  }
+
   { Functor f = valueTerm(*p);
+    mark(p);
 
     if ( !onGlobal(f) )
       printk("Term at %p not on global stack", f);
@@ -459,10 +525,23 @@ last_arg:
     if (arity <= 0 || arity > 256)
       printk("Dubious arity (%d)", arity);
     for(n=0; n<arity-1; n++)
-      key += checkData(&f->arguments[n]);
+      key += check_data(&f->arguments[n], recursive);
 	
     p = &f->arguments[n];
     goto last_arg;
   }
 }
+
+
+word
+checkData(Word p)
+{ int recursive = 0;
+  word key;
+
+  key = check_data(p, &recursive);
+  unmark_data(p);
+
+  return key;
+}
+
 #endif /* TEST */

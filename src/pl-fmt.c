@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        jan@swi.psy.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2004, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -39,14 +39,11 @@ source should also use format() to produce error messages, etc.
 			}
 #define FMT_ERROR(fmt)	do \
 			{ Sunlock(fd); \
-			  return warning("format/2: %s", fmt); \
+			  return PL_error(NULL, 0, NULL, ERR_FORMAT, fmt); \
 			} while(0)
-#define FMT_ERROR1(fmt, a)	{ char tp[50]; \
-			  strcpy(tp, "format/2: "); \
-			  strcat(tp, fmt); \
-			  Sunlock(fd); \
-			  return warning(tp, a); \
-			}
+#define FMT_ARG(c, a)	return Sunlock(fd), \
+			       PL_error(NULL, 0, NULL, \
+					ERR_FORMAT_ARG, c, a)
 #define OUTSTRING(s, n)	{ int _i; char *q = s; \
 			  for(_i=0; _i++<(int)(n); q++) OUTCHR(*q); \
 			}
@@ -82,23 +79,19 @@ static void	emit_rubber(IOSTREAM *fd, char *, int, struct rubber *, int);
 
 word
 pl_format_predicate(term_t chr, term_t descr)
-{ long c;
+{ int c;
   Procedure proc;
   Symbol s;
 
-  if ( !PL_get_long(chr, &c) || c < 0 || c > 255 )
-  { char *s;
-    
-    if ( PL_get_atom_chars(chr, &s) && s[0] && !s[1] )
-      c = s[0] & 0xff;
-    else
-      return warning("format_predicate/2: illegal character");
-  }
+  if ( !PL_get_char_ex(chr, &c, FALSE) )
+    fail;
 
   if ( !get_procedure(descr, &proc, 0, GP_CREATE) )
     fail;
   if ( proc->definition->functor->arity == 0 )
-    return warning("format_predicate/2: predicate must have at least 1 argument");
+    return PL_error(NULL, 0, "arity must be > 0", ERR_DOMAIN,
+		    PL_new_atom("format_predicate"),
+		    descr);
 
   if ( !format_predicates )
     format_predicates = newHTable(8);
@@ -289,7 +282,7 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 
 		  NEED_ARG;
 		  if ( !PL_get_nchars(argv, &len, &s, CVT_ATOMIC) )
-		    FMT_ERROR("illegal argument to ~a");
+		    FMT_ARG("a", argv);
 		  SHIFT;
 		  OUTSTRING(s, len);
 		  fmt++;
@@ -307,7 +300,7 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 		    { OUTCHR(c);
 		    }
 		  } else
-		    FMT_ERROR("illegal argument to ~c");
+		    FMT_ARG("c", argv);
 		  fmt++;
 		  break;
 		}
@@ -322,7 +315,12 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 
 		  NEED_ARG;
 		  if ( !PL_get_float(argv, &f) )
-		    FMT_ERROR1("illegal argument to ~%c", *fmt);
+		  { char f[2];
+		    
+		    f[0] = fmt[0];
+		    f[1] = EOS;
+		    FMT_ARG(f, argv);
+		  }
 		  SHIFT;
 		  Ssprintf(tmp, "%%.%d%c", arg == DEFAULT ? 6 : arg, *fmt);
 		  Ssprintf(buf, tmp, f);
@@ -339,7 +337,12 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 
 		  NEED_ARG;
 		  if ( !PL_get_integer(argv, &i) )
-		    FMT_ERROR1("illegal argument to ~%c", *fmt);
+		  { char f[2];
+		    
+		    f[0] = fmt[0];
+		    f[1] = EOS;
+		    FMT_ARG(f, argv);
+		  }
 		  SHIFT;
 		  if ( arg == DEFAULT )
 		    arg = 0;
@@ -357,7 +360,7 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 
 		  NEED_ARG;
 		  if ( !PL_get_nchars(argv, &len, &s, CVT_LIST|CVT_STRING) )
-		    FMT_ERROR("illegal argument to ~s");
+		    FMT_ARG("s", argv);
 		  OUTSTRING(s, len);
 		  SHIFT;
 		  fmt++;
@@ -465,6 +468,30 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 		  fmt++;
 		  break;
 	       }
+	      case '@':
+	        { char buf[BUFSIZE];
+		  char *str = buf;
+		  int bufsize = BUFSIZE;
+		  term_t ex = 0;
+		  int rval;
+
+		  if ( argc < 1 )
+		  { FMT_ERROR("not enough arguments");
+		  }
+		  tellString(&str, &bufsize);
+		  rval = callProlog(NULL, argv, PL_Q_CATCH_EXCEPTION, &ex);
+		  toldString();
+		  OUTSTRING(str, bufsize);
+		  if ( str != buf )
+		    free(str);
+
+		  if ( !rval && ex )
+		    return PL_raise_exception(ex);
+
+		  SHIFT;
+		  fmt++;
+		  break;
+	        }
 	      case '~':			/* ~ */
 		{ OUTCHR('~');
 		  fmt++;
@@ -514,7 +541,14 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 		  break;
 		}
 	      default:
-		FMT_ERROR1("unknown format: %c", *fmt);
+	      { term_t ex = PL_new_term_ref();
+
+		Sunlock(fd);
+		PL_put_atom(ex, codeToAtom(*fmt));
+		return PL_error("format", 2, NULL, ERR_EXISTENCE,
+				PL_new_atom("format_character"),
+				ex);
+	      }
 	    }
 	  }
 	  break;			/* the '~' switch */

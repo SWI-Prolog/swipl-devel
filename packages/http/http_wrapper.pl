@@ -80,10 +80,34 @@ http_wrapper(Goal, In, Out, Close, Options) :-
 	    free_memory_file(MemFile),
 	    memberchk(connection(Close), Header)
 	;   free_memory_file(MemFile),
-	    http_reply(server_error(E), Out),
+	    map_exception(E, Reply, HdrExtra),
+	    http_reply(Reply, Out, HdrExtra),
 	    flush_output(Out),
-	    Close = close
+	    (	memberchk(connection(Close), HdrExtra)
+	    ->	true
+	    ;   Close = close
+	    )
 	).
+
+%	map_exception(+Exception, -Reply, -HdrExtra)
+%	
+%	Map certain defined  exceptions  to   special  reply  codes. The
+%	http(not_modified)   provides   backward     compatibility    to
+%	http_reply(not_modified).
+
+map_exception(http(not_modified),
+	      not_modified,
+	      [connection(close)]) :- !.
+map_exception(http_reply(Reply),
+	      Reply,
+	      [connection(close)]) :- !.
+map_exception(http_reply(Reply, HdrExtra),
+	      Reply,
+	      HdrExtra) :- !.
+map_exception(E,
+	      server_error(E),
+	      [connection(close)]).
+
 
 join_cgi_header(Request, CgiHeader, [connection(Connect)|Rest]) :-
 	select(connection(CgiConn), CgiHeader, Rest), !,

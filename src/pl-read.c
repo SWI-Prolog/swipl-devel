@@ -291,6 +291,7 @@ errorWarning(const char *id_str, term_t id_term, ReadData _PL_rd)
 { GET_LD
   term_t ex = PL_new_term_ref();
   term_t loc = PL_new_term_ref();
+  unsigned char const *s, *ll = NULL;
 
   if ( !id_term )
   { id_term = PL_new_term_ref();
@@ -304,12 +305,37 @@ errorWarning(const char *id_str, term_t id_term, ReadData _PL_rd)
 		  PL_TERM, loc);
 
   source_char_no += last_token_start - rdbase;
+  for(s=rdbase; s<last_token_start; s++)
+  { if ( *s == '\n' )
+    { source_line_no++;
+      ll = s+1;
+    }
+  }
+
+  if ( ll )
+  { int lp = 0;
+
+    for(s = ll; s<last_token_start; s++)
+    { switch(*s)
+      { case '\b':
+	  if ( lp > 0 ) lp--;
+	  break;
+	case '\t':
+	  lp |= 7;
+	default:
+	  lp++;
+      }
+    }
+
+    source_line_pos = lp;
+  }
 
   if ( ReadingSource )			/* reading a file */
   { PL_unify_term(loc,
-		  PL_FUNCTOR, FUNCTOR_file3,
+		  PL_FUNCTOR, FUNCTOR_file4,
 		    PL_ATOM, source_file_name,
 		    PL_INT, source_line_no,
+		    PL_INT, source_line_pos,
 		    PL_LONG, source_char_no);
   } else if ( isStringStream(rb.stream) )
   { PL_unify_term(loc,
@@ -321,9 +347,10 @@ errorWarning(const char *id_str, term_t id_term, ReadData _PL_rd)
 
     PL_unify_stream_or_alias(stream, rb.stream);
     PL_unify_term(loc,
-		  PL_FUNCTOR, FUNCTOR_stream3,
+		  PL_FUNCTOR, FUNCTOR_stream4,
 		    PL_TERM, stream,
 		    PL_INT, source_line_no,
+		    PL_INT, source_line_pos,
 		    PL_LONG, source_char_no);
   }
 
@@ -435,11 +462,13 @@ setCurrentSourceLocation(IOSTREAM *s ARG_LD)
 { atom_t a;
 
   if ( s->position )
-  { source_line_no = s->position->lineno;
-    source_char_no = s->position->charno - 1; /* char just read! */
+  { source_line_no  = s->position->lineno;
+    source_line_pos = s->position->linepos - 1;	/* char just read! */
+    source_char_no  = s->position->charno - 1;	/* char just read! */
   } else
-  { source_line_no = -1;
-    source_char_no = 0;
+  { source_line_no  = -1;
+    source_line_pos = -1;
+    source_char_no  = 0;
   }
 
   if ( (a = fileNameStream(s)) )
@@ -674,7 +703,7 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		    }
 		    do
 		    { if ( something_read ) /* positions */
-			addToBuffer(c == '\n' ? c : ' ', _PL_rd);
+			addToBuffer(c, _PL_rd);
 		      else
 			ensure_space(c);
 		      c = getchr();
@@ -980,7 +1009,7 @@ escape_char(cucharp in, ucharp *end, unsigned int quote)
   int chr;
   unsigned c;
 
-#define OK(v)	do { chr = (v); goto ok; } while(0) 
+#define OK(v) if (1) {chr = (v); goto ok;} else (void)0
 
 again:
   switch((c = *in++))
@@ -999,7 +1028,8 @@ again:
 	  goto again;
 	}
 	if ( c == quote )		/* \c ' --> no output */
-	  OK(EOF);
+	{ OK(EOF);
+	}
 	in++;
 	OK(c);
       }
@@ -1231,6 +1261,22 @@ get_number(cucharp in, ucharp *end, Number value, int escape)
 }
 
 
+static void
+checkASCII(unsigned char *name, int len, const char *type)
+{ int i;
+
+  for(i=0; i<len; i++)
+  { if ( (name[i]) >= 128 )
+    { printMessage(ATOM_warning,
+		   PL_FUNCTOR_CHARS, "non_ascii", 2,
+                   PL_NCHARS, len, (char const *)name,
+		     PL_CHARS, type);
+      return;
+    }
+  }
+}
+
+
 static Token
 get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 { unsigned int c;
@@ -1250,6 +1296,8 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  while(isAlpha(*rdhere) )
 		    rdhere++;
 		  c = *rdhere;
+		  if ( _PL_rd->styleCheck & CHARSET_CHECK )
+		    checkASCII(start, rdhere-start, "atom");
 		  cur_token.value.atom = lookupAtom((char *)start,
 						    rdhere-start);
 		  cur_token.type = (c == '(' ? T_FUNCTOR : T_NAME);
@@ -1263,6 +1311,8 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		    rdhere++;
 		  c = *rdhere;
 		  *rdhere = EOS;
+		  if ( _PL_rd->styleCheck & CHARSET_CHECK )
+		    checkASCII(start, rdhere-start, "variable");
 		  if ( c == '(' && trueFeature(ALLOW_VARNAME_FUNCTOR) )
 		  { cur_token.value.atom = lookupAtom((char *)start,
 						      rdhere-start);
@@ -1330,6 +1380,8 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		    }
 		  }
 
+		  if ( _PL_rd->styleCheck & CHARSET_CHECK )
+		    checkASCII(start, rdhere-start, "symbol");
 		  cur_token.value.atom = lookupAtom((char *)start, rdhere-start);
 		  cur_token.type = (end == '(' ? T_FUNCTOR : T_NAME);
 		  DEBUG(9, Sdprintf("%s: %s\n",
@@ -1939,6 +1991,7 @@ simple_term(bool must_be_op, term_t term, bool *name,
 	{ *name = TRUE;
 	  PL_put_atom(term, token->value.atom);
 	  PL_unregister_atom(token->value.atom);
+	  goto atomic_out;
 	} else
 	{ term_t av[16];
 	  int avn = 16;

@@ -56,12 +56,13 @@ test_file(File) :-
 	format('************* Test ~w ***~n', [File]),
 	cat(File),
 	load_structure(File,
-		       XMLTerm,
+		       [ RDFElement ],
 		       [ dialect(xmlns),
-			 space(remove)
+			 space(sgml)
 		       ]),
-	find_rdf(XMLTerm, RDFElement),
-	xml_to_plrdf(RDFElement, [], RDF),
+	rdf_start_file([], Cleanup),
+	xml_to_plrdf(RDFElement, RDF, []),
+	rdf_end_file(Cleanup),
 	format('============= Prolog term ==============~n', []),
 	pretty_print(RDF),
 	rdf_triples(RDF, Triples),
@@ -69,19 +70,9 @@ test_file(File) :-
 	write_triples(Triples).
 
 time_file(File) :-
-	time(rdf_parse(File, Triples)),
+	time(load_rdf(File, Triples)),
 	length(Triples, Len),
 	format('Created ~w triples~n', [Len]).
-
-rdf_parse(File, Triples) :-
-	load_structure(File,
-		       XMLTerm,
-		       [ dialect(xmlns),
-			 space(sgml)
-		       ]),
-	find_rdf(XMLTerm, RDFElement),
-	xml_to_plrdf(RDFElement, [], RDF),
-	rdf_triples(RDF, Triples).
 
 passed(Id) :-
 	integer(Id), !,
@@ -90,36 +81,58 @@ passed(Id) :-
 passed(File) :-
 	rdf_reset_ids,
 	ok_file(File, OkFile),
-	rdf_parse(File, Triples),
+	load_rdf(File, Triples),
 	open(OkFile, write, Fd),
 	save_triples(Triples, Fd),
 	close(Fd),
 	length(Triples, N),
 	format('Saved ~d triples to ~w~n', [N, OkFile]).
 
+:- dynamic failed/1.
+
 test :-
-	test_dir(suite).
+	test(load_rdf),
+	test(process_rdf).
+
+test(How) :-
+	retractall(failed(_)),
+	test_dir(suite, How),
+	findall(F, failed(F), Failed),
+	(   Failed == []
+	->  true
+	;   length(Failed, N),
+	    format('ERROR: ~w tests failed~n', [N]),
+	    fail
+	).
+
 
 test_dir(Dir) :-
+	test_dir(Dir, load_rdf).
+
+test_dir(Dir, How) :-
+	format('Tests from "~w" [~w]: ', [Dir, How]),
 	atom_concat(Dir, '/*.rdf', Pattern),
 	expand_file_name(Pattern, TestFiles),
-	checklist(test, TestFiles).
+	maplist(test(How), TestFiles),
+	format(' done~n').
 
-test(File) :-
-	format('Testing ~w ... ', [File]), flush_output,
+test(How, File) :-
+	format('.'), flush_output,
 	rdf_reset_ids,
 	ok_file(File, OkFile),
-	(   rdf_parse(File, Triples)
+	(   call(How, File, Triples)
 	->  (   catch(open(OkFile, read, Fd), _, fail)
 	    ->  (   read_triples(Fd, OkTriples),
 		    close(Fd),
 		    compare_triples(Triples, OkTriples, _Subst)
-		->  format('ok~n')
-		;   format('WRONG ANSWER~n', [])
+		->  true
+		;   assert(failed(File)),
+		    format('~N~w: WRONG ANSWER~n', [File])
 		)
-	    ;	format('(no .ok file)~n', [])
+	    ;	format('~N~w: (no .ok file)~n', [File])
 	    )
-	;   format('PARSE FAILED~n', [])
+	;   assert(failed(File)),
+	    format('~N~w: PARSE FAILED~n', [File])
 	).
 
 ok_file(File, OkFile) :-
@@ -139,9 +152,24 @@ read_triples(Fd, Terms) :-
 	read_triples(T0, Fd, Terms).
 
 read_triples(end_of_file, _, []) :- !.
-read_triples(T0, Fd, [T0|R]) :-
+read_triples(rdf(S0,P0,O0), Fd, [rdf(S,P,O)|R]) :-
+	global_ref(S0, S),
+	global_ref(P0, P),
+	global_obj(O0, O),
 	read(Fd, T1),
 	read_triples(T1, Fd, R).
+
+global_ref(rdf:Local, Global) :-
+	rdf_name_space(NS), !,
+	atom_concat(NS, Local, Global).
+global_ref(NS:Local, Global) :- !,
+	atom_concat(NS, Local, Global).
+global_ref(URI, URI).
+
+global_obj(literal(X), literal(X)) :- !.
+global_obj(Local, Global) :-
+	global_ref(Local, Global).
+
 
 write_triples([]) :- !.
 write_triples([H|T]) :- !,
@@ -160,6 +188,18 @@ cat(File) :-
 	open(File, read, Fd),
 	copy_stream_data(Fd, user_output),
 	close(Fd).
+
+:- dynamic triple/1.
+
+process_rdf(File, Triples) :-
+	retractall(triple(_)),
+	process_rdf(File, assert_triples, []),
+	findall(T, retract(triple(T)), Triples).
+
+assert_triples([], _).
+assert_triples([H|T], Loc) :-
+	assert(triple(H)),
+	assert_triples(T, Loc).
 
 
 		 /*******************************

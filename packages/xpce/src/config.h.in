@@ -70,6 +70,9 @@
 /* Define to 1 if you have the `grantpt' function. */
 #undef HAVE_GRANTPT
 
+/* Define if GCC visibility attribute is supported */
+#undef HAVE_HIDDEN_ATTRIBUTE
+
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 

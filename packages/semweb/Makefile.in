@@ -51,7 +51,7 @@ LIBPL=		rdf_db.pl rdfs.pl rdf_edit.pl
 DATA=		rdfs.rdfs dc.rdfs eor.rdfs owl.owl
 TARGETS=	rdf_db.@SO@
 
-RDFDBOBJ=	rdf_db.o md5.o
+RDFDBOBJ=	rdf_db.o md5.o atom_set.o
 
 all:		$(TARGETS)
 
@@ -118,6 +118,14 @@ $(TEX):		$(DOCTOTEX)
 		$(DOCTOTEX) $*.doc > $*.tex
 .pl.tex:
 		$(PLTOTEX) $*.pl > $*.tex
+
+################################################################
+# Check
+################################################################
+
+check::
+		$(PL) -q -f rdf_db_test.pl -g test,halt -t 'halt(1)'
+
 
 ################################################################
 # Clean

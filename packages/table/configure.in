@@ -45,14 +45,7 @@ AC_MSG_RESULT("		PLLDFLAGS=$PLLDFLAGS")
 AC_MSG_RESULT("		PLSHARED=$PLSHARED")
 AC_MSG_RESULT("		PLSOEXT=$PLSOEXT")
 else
-case "$PLARCH" in
-  *darwin*|*aix*)
-    PLLD=plld
-    ;;
-  *)
-    PLLD="../../$BUILDDIR/plld -pl ../../$BUILDDIR/$PL"
-    ;;
-esac
+PLLD=../plld.sh
 fi
 
 CC=$PLLD

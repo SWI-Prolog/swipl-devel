@@ -30,6 +30,7 @@
 #include <assert.h>
 #include <string.h>
 #include <ctype.h>
+#include "atom_set.h"
 #ifdef WITH_MD5
 #include "md5.h"
 
@@ -76,7 +77,6 @@ static functor_t FUNCTOR_triples2;
 static functor_t FUNCTOR_subjects1;
 static functor_t FUNCTOR_predicates1;
 static functor_t FUNCTOR_duplicates1;
-
 static functor_t FUNCTOR_subject1;
 static functor_t FUNCTOR_predicate1;
 static functor_t FUNCTOR_object1;
@@ -87,18 +87,26 @@ static functor_t FUNCTOR_exact1;
 static functor_t FUNCTOR_substring1;
 static functor_t FUNCTOR_word1;
 static functor_t FUNCTOR_prefix1;
+static functor_t FUNCTOR_like1;
 
 static functor_t FUNCTOR_symmetric1;
 static functor_t FUNCTOR_inverse_of1;
 static functor_t FUNCTOR_transitive1;
+static functor_t FUNCTOR_rdf_subject_branch_factor1; /* S --> BF*O */
+static functor_t FUNCTOR_rdf_object_branch_factor1;	/* O --> BF*S */
+static functor_t FUNCTOR_rdfs_subject_branch_factor1; /* S --> BF*O */
+static functor_t FUNCTOR_rdfs_object_branch_factor1;	/* O --> BF*S */
 
 static functor_t FUNCTOR_searched_nodes1;
+static functor_t FUNCTOR_lang2;
+static functor_t FUNCTOR_type2;
 
 static atom_t   ATOM_user;
 static atom_t	ATOM_exact;
 static atom_t	ATOM_prefix;
 static atom_t	ATOM_substring;
 static atom_t	ATOM_word;
+static atom_t	ATOM_like;
 
 static atom_t	ATOM_subPropertyOf;
 
@@ -110,6 +118,10 @@ static atom_t	ATOM_subPropertyOf;
 static int match(int how, atom_t search, atom_t label);
 static int update_duplicates_add(triple *t);
 static void update_duplicates_del(triple *t);
+static void unlock_atoms(triple *t);
+static int  update_hash(void);
+static int  triple_hash(triple *t, int which);
+static unsigned long object_hash(triple *t);
 
 
 		 /*******************************
@@ -229,22 +241,53 @@ get_bool_arg_ex(int a, term_t t, int *val)
 
 #ifdef O_DEBUG
 
-static void
-print_triple_source(triple *t)
-{ if ( t->line == NO_LINE )
-    Sdprintf("[%s]: ", PL_atom_chars(t->source));
-  else
-    Sdprintf("%s:%ld: ", PL_atom_chars(t->source), t->line);
-}
-  
-static void
-print_triple(triple *t)
-{ char *sep = t->objtype == OBJ_RESOURCE ? "" : "\"";
+#define PRT_SRC	0x1
 
-  Sdprintf("<%s %s %s%s%s>",
+static void
+print_object(triple *t)
+{ switch(t->objtype)
+  { case OBJ_RESOURCE:
+      Sdprintf("%s", PL_atom_chars(t->object.resource));
+      break;
+    case OBJ_STRING:
+      Sdprintf("\"%s\"", PL_atom_chars(t->object.string));
+      break;
+    case OBJ_INTEGER:
+      Sdprintf("%ld", t->object.integer);
+      break;
+    case OBJ_DOUBLE:
+      Sdprintf("%f", t->object.real);
+      break;
+    case OBJ_TERM:
+    { fid_t fid = PL_open_foreign_frame();
+      term_t term = PL_new_term_ref();
+
+      PL_recorded_external(t->object.term.record, term);
+      PL_write_term(Serror, term, 1200,
+		    PL_WRT_QUOTED|PL_WRT_NUMBERVARS|PL_WRT_PORTRAY);
+      break;
+      PL_discard_foreign_frame(fid);
+      break;
+    }
+    default:
+      assert(0);
+  }
+}
+
+
+static void
+print_triple(triple *t, int flags)
+{ Sdprintf("<%s %s ",
 	   PL_atom_chars(t->subject),
-	   PL_atom_chars(t->predicate->name),
-	   sep, PL_atom_chars(t->object), sep);
+	   PL_atom_chars(t->predicate->name));
+  print_object(t);
+  if ( (flags & PRT_SRC) )
+  { if ( t->line == NO_LINE )
+      Sdprintf(" @%s", PL_atom_chars(t->source));
+    else
+      Sdprintf(" @%s:%ld", PL_atom_chars(t->source), t->line);
+  }
+  Sdprintf(">");
 }
 
 #endif
@@ -256,9 +299,11 @@ print_triple(triple *t)
 static triple  *by_none, *by_none_tail;
 static triple **table[INDEX_TABLES];
 static triple **tail[INDEX_TABLES];
+static int     *counts[INDEX_TABLES];
 static int	table_size[INDEX_TABLES];
 static long	created;		/* #triples created */
 static long	erased;			/* #triples erased */
+static long	freed;			/* #triples actually erased */
 static long	subjects;		/* subjects (unique first) */
 static long	indexed[8];		/* Count calls */
 static predicate **pred_table;		/* Hash-table of predicates */
@@ -372,7 +417,6 @@ lookup_predicate(atom_t name)
   memset(p, 0, sizeof(*p));
   p->name = name;
   p->root = p;
-  p->oldroot = NULL;
   PL_register_atom(name);
   p->next = pred_table[hash];
   pred_table[hash] = p;
@@ -693,6 +737,127 @@ isSubPropertyOf(predicate *sub, predicate *p)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Branching  factors  are  crucial  in  ordering    the  statements  of  a
+conjunction. These functions compute  the   average  branching factor in
+both directions ("subject --> P  -->  object"   and  "object  -->  P -->
+subject") by determining the number of unique   values at either side of
+the predicate. This number  is  only   recomputed  if  it  is considered
+`dirty'.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+update_predicate_counts(predicate *p, int which)
+{ long total = 0;
+
+  if ( !update_hash() )
+    return FALSE;
+
+  if ( which == DISTINCT_DIRECT )
+  { long changed = abs(p->triple_count - p->distinct_updated[DISTINCT_DIRECT]);
+
+    if ( changed < p->distinct_updated[DISTINCT_DIRECT] )
+      return TRUE;
+  } else
+  { long changed = generation - p->distinct_updated[DISTINCT_SUB];
+
+    if ( changed < p->distinct_count[DISTINCT_SUB] )
+      return TRUE;
+  }
+
+  { avl_tree subject_set;
+    avl_tree object_set;
+    triple t;
+    triple *byp;
+
+    memset(&t, 0, sizeof(t));
+    t.predicate = p;
+    t.indexed |= BY_P;
+
+    avl_init(&subject_set);
+    avl_init(&object_set);
+    for(byp = table[t.indexed][triple_hash(&t, t.indexed)];
+	byp;
+	byp = byp->next[t.indexed])
+    { if ( !byp->erased && !byp->is_duplicate )
+      { if ( (which == DISTINCT_DIRECT && byp->predicate == p) ||
+	     (which != DISTINCT_DIRECT && isSubPropertyOf(byp->predicate, p)) )
+	{ total++;
+	  avl_insert(&subject_set, byp->subject);
+	  avl_insert(&object_set, object_hash(byp)); /* NOTE: not exact! */
+	}
+      }
+    }
+
+    avl_destroy(&subject_set);
+    avl_destroy(&object_set);
+
+    p->distinct_count[which]    = total;
+    p->distinct_subjects[which] = subject_set.size;
+    p->distinct_objects[which]  = object_set.size;
+
+    if ( which == DISTINCT_DIRECT )
+      p->distinct_updated[DISTINCT_DIRECT] = total;
+    else
+      p->distinct_updated[DISTINCT_SUB] = generation;
+
+    DEBUG(1, Sdprintf("%s: distinct subjects (%s): %ld, objects: %ld\n",
+		      PL_atom_chars(p->name),
+		      (which == DISTINCT_DIRECT ? "rdf" : "rdfs"),
+		      p->distinct_subjects[which],
+		      p->distinct_objects[which]));
+  }
+
+  return TRUE;
+}
+
+
+static void
+invalidate_distinct_counts()
+{ predicate **ht;
+  int i;
+
+  for(i=0,ht = pred_table; i<pred_table_size; i++, ht++)
+  { predicate *p;
+
+    for( p = *ht; p; p = p->next )
+    { p->distinct_updated[DISTINCT_SUB] = 0;
+      p->distinct_count[DISTINCT_SUB] = 0;
+      p->distinct_subjects[DISTINCT_SUB] = 0;
+      p->distinct_objects[DISTINCT_SUB] = 0;
+    }
+  }
+}
+
+
+static double
+subject_branch_factor(predicate *p, int which)
+{ if ( !update_predicate_counts(p, which) )
+    return FALSE;
+
+  if ( p->distinct_subjects[which] == 0 )
+    return 0.0;				/* 0 --> 0 */
+
+  return (double)p->distinct_count[which] /
+         (double)p->distinct_subjects[which];
+}
+
+
+static double
+object_branch_factor(predicate *p, int which)
+{ if ( !update_predicate_counts(p, which) )
+    return FALSE;
+
+  if ( p->distinct_objects[which] == 0 )
+    return 0.0;				/* 0 --> 0 */
+
+  return (double)p->distinct_count[which] /
+         (double)p->distinct_objects[which];
+}
+
+
+
+
 		 /*******************************
 		 *	     SOURCE FILES	*
 		 *******************************/
@@ -807,6 +972,37 @@ unregister_source(triple *t)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+rdf_sources_(-ListOfSources)
+
+Return a list holding the names  of   all  currently defined sources. We
+return a list to avoid the need for complicated long locks.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static foreign_t
+rdf_sources(term_t list)
+{ int i;
+  term_t tail = PL_copy_term_ref(list);
+  term_t head = PL_new_term_ref();
+
+  LOCK();
+  for(i=0; i<source_table_size; i++)
+  { source *src;
+
+    for(src=source_table[i]; src; src = src->next)
+    { if ( !PL_unify_list(tail, head, tail) ||
+	   !PL_unify_atom(head, src->name) )
+      { UNLOCK();
+	return FALSE;
+      }
+    }
+  }
+  UNLOCK();
+
+  return PL_unify_nil(tail);
+}
+
+
 		 /*******************************
 		 *	      TRIPLES		*
 		 *******************************/
@@ -815,6 +1011,7 @@ static void
 init_tables()
 { int i;
   int bytes = sizeof(triple*)*INITIAL_TABLE_SIZE;
+  int cbytes = sizeof(int)*INITIAL_TABLE_SIZE;
 
   table[0] = &by_none;
   tail[0]  = &by_none_tail;
@@ -827,6 +1024,8 @@ init_tables()
     memset(table[i], 0, bytes);
     tail[i] = PL_malloc(bytes);
     memset(tail[i], 0, bytes);
+    counts[i] = PL_malloc(cbytes);
+    memset(counts[i], 0, cbytes);
     table_size[i] = INITIAL_TABLE_SIZE;
   }
 
@@ -884,9 +1083,16 @@ static unsigned long
 object_hash(triple *t)
 { switch(t->objtype)
   { case OBJ_RESOURCE:
-      return t->object;
-    case OBJ_LITERAL:
-      return case_insensitive_atom_hash(t->object);
+      return t->object.resource;
+    case OBJ_STRING:
+      return case_insensitive_atom_hash(t->object.string);
+    case OBJ_INTEGER:
+      return t->object.integer;
+    case OBJ_DOUBLE:
+      return t->object.integer;		/* TBD: get all bits */
+    case OBJ_TERM:
+      return string_hash((const char*)t->object.term.record,
+			 t->object.term.len);
     default:
       assert(0);
       return 0;
@@ -978,6 +1184,7 @@ link_triple_hash(triple *t)
       { table[i][hash] = t;
       }
       tail[i][hash] = t;
+      counts[i][hash]++;
     }
   }
 }
@@ -1011,13 +1218,14 @@ link_triple(triple *t)
   if ( t->predicate->name == ATOM_subPropertyOf &&
        t->objtype == OBJ_RESOURCE )
   { predicate *me    = lookup_predicate(t->subject);
-    predicate *super = lookup_predicate(t->object);
+    predicate *super = lookup_predicate(t->object.resource);
 
     addSubPropertyOf(me, super);
   }
 
 ok:
   created++;
+  t->predicate->triple_count++;
   register_source(t);
 }
 
@@ -1028,29 +1236,82 @@ rehash_triples()
 Relink the triples in the hash-chains after the hash-keys for properties
 have changed or the tables have  been   resized.  The caller must ensure
 there are no active queries and the tables are of the proper size.
+
+At the same time, this predicate actually removes erased triples.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static long
+tbl_size(long triples)
+{ long s0 = 1024;
+
+  while(s0 < triples)
+    s0 *= 2;
+
+  return s0;
+}
+
+
 
 static void
 rehash_triples()
 { int i;
-  triple *t;
+  triple *t, *t2;
+  long count = created - freed;
+  long tsize = tbl_size(count);
 
   for(i=1; i<INDEX_TABLES; i++)
   { if ( table[i] )
-    { long bytes = sizeof(triple*) * table_size[i];
+    { long bytes  = sizeof(triple*) * tsize;
+      long cbytes = sizeof(int)    * tsize;
+
+      table_size[i] = tsize;
+      table[i]  = PL_realloc(table[i], bytes);
+      tail[i]   = PL_realloc(tail[i], bytes);
+      counts[i] = PL_realloc(counts[i], cbytes);
 
       memset(table[i], 0, bytes);
       memset(tail[i], 0, bytes);
+      memset(counts[i], 0, cbytes);
     }
   }
 
-  for(t=by_none; t; t = t->next[BY_NONE])
-  { for(i=1; i<INDEX_TABLES; i++)
+					/* delete leading erased triples */
+  for(t=by_none; t && t->erased; t=t2)
+  { t2 = t->next[BY_NONE];
+
+    unlock_atoms(t);
+    PL_free(t);
+    freed++;
+
+    by_none = t2;
+  }
+
+  for(t=by_none; t; t = t2)
+  { triple *t3;
+
+    t2 = t->next[BY_NONE];
+
+    for(i=1; i<INDEX_TABLES; i++)
       t->next[i] = NULL;
 
-    if ( t->erased == FALSE )
-      link_triple_hash(t);
+    assert(t->erased == FALSE);
+    link_triple_hash(t);
+
+    for( ; t2 && t2->erased; t2=t3 )
+    { t3 = t2->next[BY_NONE];
+
+      unlock_atoms(t2);
+      PL_free(t2);
+      freed++;
+    }
+
+    t->next[BY_NONE] = t2;
+    if ( !t2 )
+      by_none_tail = t;
   }
+
+  if ( by_none == NULL )
+    by_none_tail = NULL;
 }
 
 
@@ -1059,23 +1320,53 @@ update_hash()
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-update_hash()
-{ if ( need_update )
+WANT_GC()
+{ long dirty = erased-freed;
+  long count = created-erased;
+
+  if ( dirty > 1000 && dirty > count )
+    return TRUE;
+  if ( count > table_size[1]*4 )
+    return TRUE;
+
+  return FALSE;
+}
+
+
+static int
+update_hash(void)
+{ int want_gc = WANT_GC();
+
+  if ( want_gc )
+    DEBUG(1, Sdprintf("rdf_db: want GC\n"));
+
+  if ( need_update || want_gc )
   { LOCK();
 
     if ( active_queries )
     { UNLOCK();
-      return permission_error("rdf_db", "update", "db", "Active queries");
+
+      if ( need_update )
+	return permission_error("rdf_db", "update", "db", "Active queries");
+      else
+	return TRUE;			/* only GC, no worries */
     }
 
     if ( need_update )			/* check again */
     { if ( organise_predicates() )
-      { Sdprintf("Re-hash ...");
+      { DEBUG(1, Sdprintf("Re-hash ..."));
+	invalidate_distinct_counts();
 	rehash_triples();
-	Sdprintf("ok\n");
+	generation += (created-erased);
+	DEBUG(1, Sdprintf("ok\n"));
       }
       need_update = 0;
+    } else if ( WANT_GC() )
+    { DEBUG(1, Sdprintf("rdf_db: GC ..."));
+      rehash_triples();
+      DEBUG(1, Sdprintf("ok\n"));
     }
+
     UNLOCK();
   }
 
@@ -1095,7 +1386,7 @@ erase_triple(triple *t)
     if ( t->predicate->name == ATOM_subPropertyOf &&
 	 t->objtype == OBJ_RESOURCE )
     { predicate *me    = lookup_predicate(t->subject);
-      predicate *super = lookup_predicate(t->object);
+      predicate *super = lookup_predicate(t->object.resource);
 
       delSubPropertyOf(me, super);
     }
@@ -1109,9 +1400,54 @@ erase_triple(triple *t)
 	subjects--;
     }
     erased++;
+    t->predicate->triple_count--;
     unregister_source(t);
   }
 }
+
+
+static int
+match_object(triple *t, triple *p)
+{ if ( p->objtype )			/* something is filled in */
+  { if ( p->objtype != t->objtype )
+      return FALSE;
+
+    switch( p->objtype )
+    { case OBJ_RESOURCE:
+	return t->object.resource == p->object.resource;
+      case OBJ_STRING:
+        if ( p->qualifier && t->qualifier && t->qualifier != p->qualifier )
+	  return FALSE;
+	if ( p->type_or_lang && t->type_or_lang != p->type_or_lang )
+	  return FALSE;
+	if ( p->object.string )
+	{ if ( t->object.string != p->object.string )
+	  { if ( p->match )
+	      return match(p->match, p->object.string, t->object.string);
+	    else
+	      return FALSE;
+	  }
+	}
+	return TRUE;
+      case OBJ_INTEGER:
+	return t->object.integer == p->object.integer;
+      case OBJ_DOUBLE:
+	return t->object.real == p->object.real;
+      case OBJ_TERM:
+	if ( p->object.term.len != t->object.term.len )
+	  return FALSE;
+	return memcmp(t->object.term.record, p->object.term.record,
+		      p->object.term.len) == 0;
+      default:
+	assert(0);
+    }
+
+    return FALSE;
+  }
+
+  return TRUE;
+}
+
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1121,20 +1457,14 @@ Match triple t to pattern p.  Erased triples are always skipped.
 static int
 match_triples(triple *t, triple *p, unsigned flags)
 { DEBUG(3, Sdprintf("match_triple(");
-	   print_triple(t);
+	   print_triple(t, 0);
 	   Sdprintf(")\n"));
 
   if ( t->erased )
     return FALSE;
   if ( p->subject && t->subject != p->subject )
     return FALSE;
-  if ( p->object && t->object != p->object )
-  { if ( p->match && match(p->match, p->object, t->object) )
-      return TRUE;
-
-    return FALSE;
-  }
-  if ( p->objtype && t->objtype != p->objtype )
+  if ( !match_object(t, p) )
     return FALSE;
   if ( flags & MATCH_SRC )
   { if ( p->source && t->source != p->source )
@@ -1317,6 +1647,13 @@ save_atom(IOSTREAM *out, atom_t a)
 }
 
 
+#ifdef WORDS_BIGENDIAN
+static const int double_byte_order[] = { 7,6,5,4,3,2,1,0 };
+#else
+static const int double_byte_order[] = { 0,1,2,3,4,5,6,7 };
+#endif
+
+
 static void
 write_triple(IOSTREAM *out, triple *t)
 { Sputc('T', out);
@@ -1324,17 +1661,50 @@ write_triple(IOSTREAM *out, triple *t)
   save_atom(out, t->subject);
   save_atom(out, t->predicate->name);
 
+  if ( t->qualifier )
+  { assert(t->type_or_lang);
+    Sputc(t->qualifier == Q_LANG ? 'l' : 't', out);
+    save_atom(out, t->type_or_lang);
+  }
+
   switch(t->objtype)
   { case OBJ_RESOURCE:
       Sputc('R', out);
+      save_atom(out, t->object.resource);
       break;
-    case OBJ_LITERAL:
+    case OBJ_STRING:
       Sputc('L', out);
+      save_atom(out, t->object.string);
       break;
+    case OBJ_INTEGER:
+      Sputc('I', out);
+      save_int(out, t->object.integer);
+      break;
+    case OBJ_DOUBLE:
+    { double f = t->object.real;
+      unsigned char *cl = (unsigned char *)&f;
+      unsigned int i;
+      
+      Sputc('F', out);
+      for(i=0; i<sizeof(double); i++)
+	Sputc(cl[double_byte_order[i]], out);
+
+      break;
+    }
+    case OBJ_TERM:
+    { const char *s = t->object.term.record;
+      int len = t->object.term.len;
+      
+      Sputc('T', out);
+      save_int(out, len);
+      while(--len >= 0)
+	Sputc(*s++, out);
+
+      break;
+    }
     default:
       assert(0);
   }
-  save_atom(out, t->object);
 
   save_atom(out, t->source);
   save_int(out, t->line);
@@ -1503,6 +1873,24 @@ load_atom(IOSTREAM *in, ld_context *ctx)
 }
 
 
+static double
+load_double(IOSTREAM *fd)
+{ double f;
+  unsigned char *cl = (unsigned char *)&f;
+  unsigned int i;
+
+  for(i=0; i<sizeof(double); i++)
+  { int c = Sgetc(fd);
+    
+    assert(c != EOF);
+      
+    cl[double_byte_order[i]] = c;
+  }
+  
+  return f;
+}
+
+
 static int
 load_triple(IOSTREAM *in, ld_context *ctx)
 { triple *t = PL_malloc(sizeof(*t));
@@ -1510,17 +1898,49 @@ load_triple(IOSTREAM *in, ld_context *ctx)
   memset(t, 0, sizeof(*t));
   t->subject   = load_atom(in, ctx);
   t->predicate = lookup_predicate(load_atom(in, ctx));
+value:
   switch(Sgetc(in))
   { case 'R':
       t->objtype = OBJ_RESOURCE;
+      t->object.resource = load_atom(in, ctx);
       break;
     case 'L':
-      t->objtype = OBJ_LITERAL;
+      t->objtype = OBJ_STRING;
+      t->object.resource = load_atom(in, ctx);
       break;
+    case 'I':
+      t->objtype = OBJ_INTEGER;
+      t->object.integer = load_int(in);
+      break;
+    case 'F':
+      t->objtype = OBJ_DOUBLE;
+      t->object.real = load_double(in);
+      break;
+    case 'T':
+    { int i;
+      char *s;
+
+      t->objtype = OBJ_TERM;
+      t->object.term.len = load_int(in);
+      t->object.term.record = PL_malloc(t->object.term.len);
+      s = (char *)t->object.term.record;
+
+      for(i=0; i<t->object.term.len; i++)
+	s[i] = Sgetc(in);
+
+      break;
+    }
+    case 'l':
+      t->qualifier = Q_LANG;
+      t->type_or_lang = load_atom(in, ctx);
+      goto value;
+    case 't':
+      t->qualifier = Q_TYPE;
+      t->type_or_lang = load_atom(in, ctx);
+      goto value;
     default:
       assert(0);
   }
-  t->object = load_atom(in, ctx);
   t->source = load_atom(in, ctx);
   t->line   = load_int(in);
   link_triple(t);
@@ -1547,6 +1967,7 @@ load_db(IOSTREAM *in)
 { ld_context ctx;
   int version;
   int c;
+  long created0 = created;
 
   if ( !load_magic(in) )
     return FALSE;
@@ -1586,7 +2007,7 @@ load_db(IOSTREAM *in)
 	  ctx.source->md5 = ctx.md5;
 	}
 
-        generation++;
+        generation += (created-created0);
 	UNLOCK();
 	return TRUE;
       default:
@@ -1631,10 +2052,37 @@ md5_triple(triple *t, md5_byte_t *digest)
   tmp[0] = 'O';
   tmp[1] = (char)t->objtype;
   md5_append(&state, tmp, 2);
-  s = PL_atom_nchars(t->object, &len);
+  switch(t->objtype)
+  { case OBJ_RESOURCE:
+      s = PL_atom_nchars(t->object.resource, &len);
+      break;
+    case OBJ_STRING:
+      s = PL_atom_nchars(t->object.string, &len);
+      break;
+    case OBJ_INTEGER:			/* TBD: byte order issues */
+      s = (const char *)&t->object.integer;
+      len = sizeof(t->object.integer);
+      break;
+    case OBJ_DOUBLE:
+      s = (const char *)&t->object.real;
+      len = sizeof(t->object.real);
+      break;
+    case OBJ_TERM:
+      s = (const char *)t->object.term.record;
+      len = t->object.term.len;
+      break;
+    default:
+      assert(0);
+  }
   md5_append(&state, (const md5_byte_t *)s, len);
+  if ( t->qualifier )
+  { assert(t->type_or_lang);
+    md5_append(&state, t->qualifier == Q_LANG ? "l" : "t", 1);
+    s = PL_atom_nchars(t->type_or_lang, &len);
+    md5_append(&state, (const md5_byte_t *)s, len);
+  }
   if ( t->source )
-  { md5_append(&state, "S", 2);
+  { md5_append(&state, "S", 1);
     s = PL_atom_nchars(t->source, &len);
     md5_append(&state, (const md5_byte_t *)s, len);
   }
@@ -1724,6 +2172,33 @@ rdf_md5(term_t file, term_t md5)
 }
 
 
+static foreign_t
+rdf_atom_md5(term_t text, term_t times, term_t md5)
+{ char *s;
+  int n, i, len;
+  md5_byte_t digest[16];
+
+  if ( !PL_get_nchars(text, &len, &s, CVT_ALL) )
+    return type_error(text, "text");
+  if ( !PL_get_integer(times, &n) )
+    return type_error(times, "integer");
+  if ( n < 1 )
+    return domain_error(times, "positive_integer");
+
+  for(i=0; i<n; i++)
+  { md5_state_t state;
+    md5_init(&state);
+    md5_append(&state, (const md5_byte_t *)s, len);
+    md5_finish(&state, digest);
+    s = digest;
+    len = sizeof(digest);
+  }
+
+  return md5_unify_digest(md5, digest);
+}
+
+
+
 #endif /*WITH_MD5*/
 
 
@@ -1739,13 +2214,28 @@ in the predicate structure.
 static void
 lock_atoms(triple *t)
 { PL_register_atom(t->subject);
-  PL_register_atom(t->object);
+  switch(t->objtype)
+  { case OBJ_RESOURCE:
+      PL_register_atom(t->object.resource);
+      break;
+    case OBJ_STRING:
+      PL_register_atom(t->object.string);
+      break;
+  }
 }
+
 
 static void
 unlock_atoms(triple *t)
 { PL_unregister_atom(t->subject);
-  PL_unregister_atom(t->object);
+  switch(t->objtype)
+  { case OBJ_RESOURCE:
+      PL_unregister_atom(t->object.resource);
+      break;
+    case OBJ_STRING:
+      PL_unregister_atom(t->object.string);
+      break;
+  }
 }
 
 
@@ -1753,17 +2243,75 @@ unlock_atoms(triple *t)
 		 *      PROLOG CONVERSION	*
 		 *******************************/
 
+#define LIT_TYPED	0x1
+#define LIT_NOERROR	0x2
+#define LIT_PARTIAL	0x4
+
+static int
+get_lit_atom_ex(term_t t, atom_t *a, int flags)
+{ if ( PL_get_atom(t, a) )
+    return TRUE;
+  if ( (flags & LIT_PARTIAL) && PL_is_variable(t) )
+  { *a = 0L;
+    return TRUE;
+  }
+
+  return type_error(t, "atom");
+}
+
+
+static int
+get_literal(term_t lit, triple *t, int flags)
+{ if ( PL_get_atom(lit, &t->object.string) )
+  { t->objtype = OBJ_STRING;
+  } else if ( PL_is_integer(lit) && PL_get_long(lit, &t->object.integer) )
+  { t->objtype = OBJ_INTEGER;
+  } else if ( PL_get_float(lit, &t->object.real) )
+  { t->objtype = OBJ_DOUBLE;
+  } else if ( PL_is_functor(lit, FUNCTOR_lang2) )
+  { term_t a = PL_new_term_ref();
+    
+    PL_get_arg(1, lit, a);
+    if ( !get_lit_atom_ex(a, &t->type_or_lang, flags) )
+      return FALSE;
+    PL_get_arg(2, lit, a);
+    if ( !get_lit_atom_ex(a, &t->object.string, flags) )
+      return FALSE;
+
+    t->qualifier = Q_LANG;
+    t->objtype = OBJ_STRING;
+  } else if ( PL_is_functor(lit, FUNCTOR_type2) &&
+	      !(flags & LIT_TYPED) )	/* avoid recursion */
+  { term_t a = PL_new_term_ref();
+    
+    PL_get_arg(1, lit, a);
+    if ( !get_lit_atom_ex(a, &t->type_or_lang, flags) )
+      return FALSE;
+    t->qualifier = Q_TYPE;
+    PL_get_arg(2, lit, a);
+
+    return get_literal(a, t, LIT_TYPED|flags);
+  } else if ( !PL_is_ground(lit) )
+  { if ( !(flags & LIT_PARTIAL) )
+      return type_error(lit, "rdf_object");
+  } else
+  { t->object.term.record = PL_record_external(lit, &t->object.term.len);
+    t->objtype = OBJ_TERM;
+  }
+
+  return TRUE;
+}
+
+
 static int
 get_object(term_t object, triple *t)
-{ if ( PL_get_atom(object, &t->object) )
+{ if ( PL_get_atom(object, &t->object.resource) )
     t->objtype = OBJ_RESOURCE;
   else if ( PL_is_functor(object, FUNCTOR_literal1) )
   { term_t a = PL_new_term_ref();
     
     PL_get_arg(1, object, a);
-    if ( !get_atom_ex(a, &t->object) )
-      return FALSE;
-    t->objtype = OBJ_LITERAL;
+    return get_literal(a, t, 0);
   } else
     return type_error(object, "rdf_object");
 
@@ -1829,33 +2377,34 @@ get_partial_triple(term_t subject, term_t predicate, term_t object,
     return FALSE;
 					/* the object */
   if ( object && !PL_is_variable(object) )
-  { if ( PL_get_atom(object, &t->object) )
+  { if ( PL_get_atom(object, &t->object.resource) )
       t->objtype = OBJ_RESOURCE;
     else if ( PL_is_functor(object, FUNCTOR_literal1) )
     { term_t a = PL_new_term_ref();
       
       PL_get_arg(1, object, a);
-      if ( !get_atom_or_var_ex(a, &t->object) )
+      if ( !get_literal(a, t, LIT_PARTIAL) )
 	return FALSE;
-      t->objtype = OBJ_LITERAL;
     } else if ( PL_is_functor(object, FUNCTOR_literal2) )
     { term_t a = PL_new_term_ref();
       
       PL_get_arg(1, object, a);
       if ( PL_is_functor(a, FUNCTOR_exact1) )
-	t->match = MATCH_EXACT;
+	t->match = STR_MATCH_EXACT;
       else if ( PL_is_functor(a, FUNCTOR_substring1) )
-	t->match = MATCH_SUBSTRING;
+	t->match = STR_MATCH_SUBSTRING;
       else if ( PL_is_functor(a, FUNCTOR_word1) )
-	t->match = MATCH_WORD;
+	t->match = STR_MATCH_WORD;
       else if ( PL_is_functor(a, FUNCTOR_prefix1) )
-	t->match = MATCH_PREFIX;
-      else
+	t->match = STR_MATCH_PREFIX;
+      else if ( PL_is_functor(a, FUNCTOR_like1) )
+	t->match = STR_MATCH_LIKE;
+      else 
 	return domain_error(a, "match_type");
       PL_get_arg(1, a, a);
-      if ( !get_atom_or_var_ex(a, &t->object) )
+      if ( !get_atom_or_var_ex(a, &t->object.string) )
 	return FALSE;
-      t->objtype = OBJ_LITERAL;
+      t->objtype = OBJ_STRING;
     } else
       return type_error(object, "rdf_object");
   }
@@ -1867,7 +2416,9 @@ get_partial_triple(term_t subject, term_t predicate, term_t object,
     t->indexed |= BY_S;
   if ( t->predicate )
     t->indexed |= BY_P;
-  if ( t->object && t->match <= MATCH_EXACT )
+  if ( t->objtype == OBJ_STRING && t->match <= STR_MATCH_EXACT )
+    t->indexed |= BY_O;
+  else if ( t->objtype == OBJ_RESOURCE )
     t->indexed |= BY_O;
 
   indexed[t->indexed]++;		/* statistics */
@@ -1891,10 +2442,10 @@ inverse_partial_triple(triple *t)
 
   if ( !t->inversed &&
        (!t->predicate || (i=t->predicate->inverse_of)) &&
-       t->objtype != OBJ_LITERAL )
-  { atom_t o = t->object;
+       t->objtype <= OBJ_RESOURCE )	/* also allow OBJ_UNTYPED */
+  { atom_t o = t->object.resource;
 
-    if ( (t->object = t->subject) )
+    if ( (t->object.resource = t->subject) )
       t->objtype = OBJ_RESOURCE;
     t->subject = o;
 
@@ -1960,9 +2511,83 @@ unify_source(term_t src, triple *t)
 
 
 static int
+put_value(term_t v, triple *t)
+{ switch(t->objtype)
+  { case OBJ_STRING:
+      PL_put_atom(v, t->object.string);
+      break;
+    case OBJ_INTEGER:
+      PL_put_integer(v, t->object.integer);
+      break;
+    case OBJ_DOUBLE:
+      PL_put_float(v, t->object.real);
+      break;
+    case OBJ_TERM:
+      PL_recorded_external(t->object.term.record, v);
+      break;
+    default:
+      assert(0);
+      return FALSE;
+  }
+
+  return TRUE;
+}
+
+
+
+static int
+unify_object(term_t object, triple *t)
+{ if ( t->objtype == OBJ_RESOURCE )
+  { return PL_unify_atom(object, t->object.resource);
+  } else
+  { term_t v = PL_new_term_ref();
+    term_t lit = PL_new_term_ref();
+
+    put_value(v, t);
+
+    if ( PL_unify_functor(object, FUNCTOR_literal1) )
+      PL_get_arg(1, object, lit);
+    else if ( PL_is_functor(object, FUNCTOR_literal2) )
+      PL_get_arg(2, object, lit);
+
+    if ( t->qualifier )
+    { functor_t qf;
+
+      assert(t->type_or_lang);
+
+      if ( t->qualifier == Q_LANG )
+	qf = FUNCTOR_lang2;
+      else
+	qf = FUNCTOR_type2;
+
+      if ( PL_unify_term(lit, PL_FUNCTOR, qf,
+			   PL_ATOM, t->type_or_lang,
+			   PL_TERM, v) )
+	return TRUE;
+
+      return PL_unify(lit, v);		/* allow rdf(X, Y, literal(foo)) */
+    } else if ( PL_unify(lit, v) )
+    { return TRUE;
+    } else if ( PL_is_functor(lit, FUNCTOR_lang2) &&
+		t->objtype == OBJ_STRING )
+    { term_t a = PL_new_term_ref();
+      PL_get_arg(2, lit, a);
+      return PL_unify(a, v);
+    } else if ( PL_is_functor(lit, FUNCTOR_type2) )
+    { term_t a = PL_new_term_ref();
+      PL_get_arg(2, lit, a);
+      return PL_unify(a, v);
+    } else
+      return FALSE;
+  }
+}
+
+
+static int
 unify_triple(term_t subject, term_t pred, term_t object,
 	     term_t src, triple *t, int inversed)
 { predicate *p = t->predicate;
+  fid_t fid;
 
   if ( inversed )
   { term_t tmp = object;
@@ -1973,37 +2598,18 @@ unify_triple(term_t subject, term_t pred, term_t object,
       return FALSE;
   }
 
+  fid = PL_open_foreign_frame();
+
   if ( !PL_unify_atom(subject, t->subject) ||
-       !PL_unify_atom(pred, p->name) )
+       !PL_unify_atom(pred, p->name) ||
+       !unify_object(object, t) ||
+       (src && !unify_source(src, t)) )
+  { PL_discard_foreign_frame(fid);
     return FALSE;
-
-  switch(t->objtype)
-  { case OBJ_RESOURCE:
-      if ( !PL_unify_atom(object, t->object) )
-	return FALSE;
-      break;
-    case OBJ_LITERAL:
-      if ( PL_is_functor(object, FUNCTOR_literal2) )
-      { term_t a = PL_new_term_ref();
-
-	PL_get_arg(2, object, a);
-	if ( !PL_unify_atom(a, t->object) )
-	  return FALSE;
-      } else
-      { if ( !PL_unify_term(object,
-			    PL_FUNCTOR, FUNCTOR_literal1,
-			      PL_ATOM, t->object) )
-	  return FALSE;
-      }
-      break;
-    default:
-      assert(0);
+  } else
+  { PL_close_foreign_frame(fid);
+    return TRUE;
   }
-
-  if ( src )
-    return unify_source(src, t);
-
-  return TRUE;
 }
 
 
@@ -2039,23 +2645,21 @@ update_duplicates_add(triple *t)
   assert(t->duplicates == 0);
 
   d = table[indexed][triple_hash(t, indexed)];
-  for( ; d; d = d->next[indexed] )
-  { if ( d != t && match_triples(d, t, MATCH_EXACT) )
+  for( ; d && d != t; d = d->next[indexed] )
+  { if ( match_triples(d, t, MATCH_EXACT) )
     { t->is_duplicate = TRUE;
-      if ( !d->is_duplicate )
-      { d->duplicates++;
+      assert( !d->is_duplicate );
 
-	DEBUG(1,
-	      print_triple_source(t);
-	      Sdprintf("%p: %d-th duplicate: ", t, d->duplicates);
-	      print_triple(t);
-	      print_triple_source(d);
-	      Sdprintf("Location of first (%p)\n", d));
+      d->duplicates++;
 
-	assert(d->duplicates);		/* check overflow */
-	duplicates++;
-	return TRUE;
-      }
+      DEBUG(1,
+	    print_triple(t, PRT_SRC);
+	    Sdprintf(" %p: %d-th duplicate: ", t, d->duplicates);
+	    Sdprintf("Location of first (%p)\n", d));
+      
+      assert(d->duplicates);		/* check overflow */
+      duplicates++;
+      return TRUE;
     }
   }
 
@@ -2073,8 +2677,8 @@ update_duplicates_del(triple *t)
   { triple *d;
       
     DEBUG(1,
-	  print_triple(t);
-	  Sdprintf(": Deleting %p, %d duplicates\n", t, t->duplicates));
+	  print_triple(t, PRT_SRC);
+	  Sdprintf(": Deleting %p, %d duplicates: ", t, t->duplicates));
 
     d = table[indexed][triple_hash(t, indexed)];
     for( ; d; d = d->next[indexed] )
@@ -2092,18 +2696,22 @@ update_duplicates_del(triple *t)
   { triple *d;
       
     DEBUG(1,
-	  print_triple(t);
-	  Sdprintf(": Deleting, is a duplicate\n"));
+	  print_triple(t, PRT_SRC);
+	  Sdprintf(": Deleting, is a duplicate: "));
 
     d = table[indexed][triple_hash(t, indexed)];
     for( ; d; d = d->next[indexed] )
     { if ( d != t && match_triples(d, t, MATCH_EXACT) )
       { if ( d->duplicates )
 	{ d->duplicates--;
+	  DEBUG(1, Sdprintf("Principal %p has %d duplicates\n",
+			    d, d->duplicates));
 	  return;
 	}
       }
     }
+    Sdprintf("FATAL\n");
+    PL_halt(1);
     assert(0);
   }
 }
@@ -2298,6 +2906,30 @@ rdf_has(term_t subject, term_t predicate, term_t object,
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+rdf_estimate_complexity(+S,+P,+O,-C)
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static foreign_t
+rdf_estimate_complexity(term_t subject, term_t predicate, term_t object,
+		        term_t complexity)
+{ triple t;
+  int c;
+
+  if ( !update_hash() )			/* or ignore this problem? */
+    return FALSE;
+
+  memset(&t, 0, sizeof(t));
+  if ( !get_partial_triple(subject, predicate, object, 0, &t) )
+    return FALSE;
+  
+  c = counts[t.indexed][triple_hash(&t, t.indexed)];
+
+  return PL_unify_integer(complexity, c);
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 rdf_update(+Subject, +Predicate, +Object, +Action)
 
 Update a triple. Please note this is actually erase+assert as the triple
@@ -2337,13 +2969,16 @@ update_triple(term_t action, triple *t)
   } else if ( PL_is_functor(action, FUNCTOR_object1) )
   { triple t2;
 
+    memset(&t2, 0, sizeof(t2));
     if ( !get_object(a, &t2) )
       return FALSE;
-    if ( t2.object == tmp.object && t2.objtype == tmp.objtype )
+    if ( match_object(&t2, &tmp) && t2.qualifier == tmp.qualifier )
       return TRUE;
 
     tmp.objtype = t2.objtype;
-    tmp.object = t2.object;
+    tmp.object = t2.object;		/* Union copy.  Portable? */
+    tmp.type_or_lang = t2.type_or_lang;
+    tmp.qualifier = t2.qualifier;
   } else if ( PL_is_functor(action, FUNCTOR_source1) )
   { triple t2;
 
@@ -2371,12 +3006,14 @@ update_triple(term_t action, triple *t)
   erase_triple(t);
   new = PL_malloc(sizeof(*new));
   memset(new, 0, sizeof(*new));
-  new->subject	 = tmp.subject;
-  new->predicate = tmp.predicate;
-  new->object	 = tmp.object;
-  new->objtype	 = tmp.objtype;
-  new->source	 = tmp.source;
-  new->line	 = tmp.line;
+  new->subject	    = tmp.subject;
+  new->predicate    = tmp.predicate;
+  new->object	    = tmp.object;
+  new->objtype	    = tmp.objtype;
+  new->type_or_lang = tmp.type_or_lang;
+  new->qualifier    = tmp.qualifier;
+  new->source	    = tmp.source;
+  new->line	    = tmp.line;
 
   lock_atoms(new);
   link_triple(new);
@@ -2545,7 +3182,8 @@ rdf_set_predicate(term_t pred, term_t option)
 }
 
 
-static functor_t predicate_key[4];
+#define PRED_PROPERTY_COUNT 9
+static functor_t predicate_key[PRED_PROPERTY_COUNT];
 
 static int
 unify_predicate_property(predicate *p, term_t option, functor_t f)
@@ -2559,11 +3197,27 @@ unify_predicate_property(predicate *p, term_t option, functor_t f)
     else
       return FALSE;
   } else if ( f == FUNCTOR_transitive1 )
-    return PL_unify_term(option, PL_FUNCTOR, f,
+  { return PL_unify_term(option, PL_FUNCTOR, f,
 			 PL_BOOL, p->transitive);
-  else
-    assert(0);
+  } else if ( f == FUNCTOR_triples1 )
+  { return PL_unify_term(option, PL_FUNCTOR, f,
+			 PL_INTEGER, p->triple_count);
+  } else if ( f == FUNCTOR_rdf_subject_branch_factor1 )
+  { return PL_unify_term(option, PL_FUNCTOR, f,
+			 PL_FLOAT, subject_branch_factor(p, DISTINCT_DIRECT));
+  } else if ( f == FUNCTOR_rdf_object_branch_factor1 )
+  { return PL_unify_term(option, PL_FUNCTOR, f,
+			 PL_FLOAT, object_branch_factor(p, DISTINCT_DIRECT));
+  } else if ( f == FUNCTOR_rdfs_subject_branch_factor1 )
+  { return PL_unify_term(option, PL_FUNCTOR, f,
+			 PL_FLOAT, subject_branch_factor(p, DISTINCT_SUB));
+  } else if ( f == FUNCTOR_rdfs_object_branch_factor1 )
+  { return PL_unify_term(option, PL_FUNCTOR, f,
+			 PL_FLOAT, object_branch_factor(p, DISTINCT_SUB));
+  } else
+  { assert(0);
     return FALSE;
+  }
 }
 
 
@@ -2578,6 +3232,12 @@ rdf_predicate_property(term_t pred, term_t option, control_t h)
     predicate_key[i++] = FUNCTOR_symmetric1;
     predicate_key[i++] = FUNCTOR_inverse_of1;
     predicate_key[i++] = FUNCTOR_transitive1;
+    predicate_key[i++] = FUNCTOR_triples1;
+    predicate_key[i++] = FUNCTOR_rdf_subject_branch_factor1;
+    predicate_key[i++] = FUNCTOR_rdf_object_branch_factor1;
+    predicate_key[i++] = FUNCTOR_rdfs_subject_branch_factor1;
+    predicate_key[i++] = FUNCTOR_rdfs_object_branch_factor1;
+    assert(i < PRED_PROPERTY_COUNT);
   }
 
   switch(PL_foreign_control(h))
@@ -2795,7 +3455,7 @@ can_reach_target(agenda *a)
   triple *p;
 
   if ( indexed & BY_S )			/* subj ---> */
-  { a->pattern.object = a->target;
+  { a->pattern.object.resource = a->target;
     indexed |= BY_O;
   } else
   { a->pattern.subject = a->target;
@@ -2811,7 +3471,7 @@ can_reach_target(agenda *a)
   }
 
   if ( a->pattern.indexed & BY_S )	
-  { a->pattern.object = 0;
+  { a->pattern.object.resource = 0;
   } else
   { a->pattern.subject = 0;
   }
@@ -2830,7 +3490,7 @@ bf_expand(agenda *a, atom_t resource)
   if ( indexed & BY_S )			/* subj ---> */
   { a->pattern.subject = resource;
   } else
-  { a->pattern.object = resource;
+  { a->pattern.object.resource = resource;
   }
 
   if ( a->target && can_reach_target(a) )
@@ -2840,7 +3500,7 @@ bf_expand(agenda *a, atom_t resource)
   p = table[indexed][triple_hash(&a->pattern, indexed)];
   for( ; p; p = p->next[indexed])
   { if ( match_triples(p, &a->pattern, MATCH_SUBPROPERTY) )
-    { atom_t found = (indexed & BY_S) ? p->object : p->subject;
+    { atom_t found = (indexed & BY_S) ? p->object.resource : p->subject;
       visited *v;
 
       v = append_agenda(a, found);
@@ -2902,7 +3562,7 @@ rdf_reachable(term_t subj, term_t pred, term_t obj, control_t h)
       if ( !PL_is_variable(subj) )		/* subj .... obj */
       { if ( !get_partial_triple(subj, pred, 0, 0, &a.pattern) )
 	  return FALSE;
-	a.target = a.pattern.object;
+	a.target = a.pattern.object.resource;
 	target_term = obj;
       } else if ( !PL_is_variable(obj) ) 	/* obj .... subj */
       {	if ( !get_partial_triple(0, pred, obj, 0, &a.pattern) )
@@ -2917,7 +3577,7 @@ rdf_reachable(term_t subj, term_t pred, term_t obj, control_t h)
       if ( (a.pattern.indexed & BY_S) ) 	/* subj ... */
 	append_agenda(&a, a.pattern.subject);
       else
-	append_agenda(&a, a.pattern.object);
+	append_agenda(&a, a.pattern.object.resource);
       a.to_return = a.head;
       a.to_expand = a.head;
 
@@ -3084,6 +3744,7 @@ erase_triples()
 
     unlock_atoms(t);
     PL_free(t);
+    freed++;
   }
   by_none = by_none_tail = NULL;
 
@@ -3171,7 +3832,7 @@ match(int how, atom_t search, atom_t label)
   const char *f = PL_atom_chars(search);
 
   switch(how)
-  { case MATCH_EXACT:
+  { case STR_MATCH_EXACT:
     { for( ; *l && *f; l++, f++ )
       { if ( tolower(*l) != tolower(*f) )
 	  return FALSE;
@@ -3181,7 +3842,7 @@ match(int how, atom_t search, atom_t label)
   
       return FALSE;
     }
-    case MATCH_PREFIX:
+    case STR_MATCH_PREFIX:
     { for( ; *l && *f; l++, f++ )
       { if ( tolower(*l) != tolower(*f) )
 	  return FALSE;
@@ -3191,7 +3852,7 @@ match(int how, atom_t search, atom_t label)
   
       return FALSE;
     }
-    case MATCH_SUBSTRING:		/* use Boyle-More! */
+    case STR_MATCH_SUBSTRING:		/* use Boyle-More! */
     { const char *h;
       const char *f0 = f;
   
@@ -3208,7 +3869,7 @@ match(int how, atom_t search, atom_t label)
   
       return FALSE;
     }
-    case MATCH_WORD:
+    case STR_MATCH_WORD:
     { const char *h;
       const char *f0 = f;
   
@@ -3225,6 +3886,55 @@ match(int how, atom_t search, atom_t label)
 	  return FALSE;
       }
   
+      return FALSE;
+    }
+    case STR_MATCH_LIKE:		/* SeRQL like: * --> wildcart */
+    { typedef struct chp { const char *pattern;
+			   const char *label; } chp;
+      chp chps[MAX_LIKE_CHOICES];
+      int chn=0;
+
+      for( ; *l && *f; l++, f++ )
+      { if ( *f == '*' )
+	{ f++;
+
+	  if ( *f == '\0' )		/* foo* */
+	    return TRUE;
+
+	search_like:
+	  while ( *l && tolower(*l) != tolower(*f) )
+	    l++;
+
+	  if ( *l )
+	  { if ( chn >= MAX_LIKE_CHOICES )
+	    { Sdprintf("rdf_db: too many * in `like' expression (>%d)",
+		       MAX_LIKE_CHOICES);
+	      return FALSE;
+	    }
+	    chps[chn].pattern = f;
+	    chps[chn].label   = l+1;
+	    chn++;
+
+	    continue;
+	  } else
+	    goto retry_like;
+	}
+
+	if ( tolower(*l) != tolower(*f) )
+	  goto retry_like;
+      }
+      if ( *l == '\0' && (*f == '\0' ||
+			 (*f == '*' && f[1] == '\0')) )
+	return TRUE;
+  
+retry_like:
+      if ( chn > 0 )
+      { chn--;
+	f = chps[chn].pattern;
+	l = chps[chn].label;
+	goto search_like;
+      }
+
       return FALSE;
     }
     default:
@@ -3245,13 +3955,15 @@ match_label(term_t how, term_t search, term_t label)
     return FALSE;
 
   if ( h == ATOM_exact )
-    type = MATCH_EXACT;
+    type = STR_MATCH_EXACT;
   else if ( h == ATOM_substring )
-    type = MATCH_SUBSTRING;
+    type = STR_MATCH_SUBSTRING;
   else if ( h == ATOM_word )
-    type = MATCH_WORD;
+    type = STR_MATCH_WORD;
   else if ( h == ATOM_prefix )
-    type = MATCH_PREFIX;
+    type = STR_MATCH_PREFIX;
+  else if ( h == ATOM_like )
+    type = STR_MATCH_LIKE;
   else
     return domain_error(how, "search_method");
 
@@ -3270,7 +3982,7 @@ split_url(term_t base, term_t local, term_t url)
     { char buf[1024];
 
       memcpy(buf, b, bl);
-      memcpy(buf, l, ll);
+      memcpy(buf+bl, l, ll);
 
       return PL_unify_atom_nchars(url, bl+ll, buf);
     } else
@@ -3278,7 +3990,7 @@ split_url(term_t base, term_t local, term_t url)
       int rc;
 
       memcpy(buf, b, bl);
-      memcpy(buf, l, ll);
+      memcpy(buf+bl, l, ll);
 
       rc = PL_unify_atom_nchars(url, bl+ll, buf);
       PL_free(buf);
@@ -3328,6 +4040,17 @@ rdf_debug(term_t level)
 
 #endif
 
+
+		 /*******************************
+		 *	       VERSION		*
+		 *******************************/
+
+static foreign_t
+rdf_version(term_t v)
+{ return PL_unify_integer(v, RDF_VERSION);
+}
+
+
 		 /*******************************
 		 *	     REGISTER		*
 		 *******************************/
@@ -3356,18 +4079,26 @@ install_rdf_db()
   MKFUNCTOR(substring, 1);
   MKFUNCTOR(word, 1);
   MKFUNCTOR(prefix, 1);
+  MKFUNCTOR(like, 1);
   MKFUNCTOR(literal, 2);
   MKFUNCTOR(searched_nodes, 1);
   MKFUNCTOR(duplicates, 1);
   MKFUNCTOR(symmetric, 1);
   MKFUNCTOR(transitive, 1);
   MKFUNCTOR(inverse_of, 1);
+  MKFUNCTOR(lang, 2);
+  MKFUNCTOR(type, 2);
+  MKFUNCTOR(rdf_subject_branch_factor, 1);
+  MKFUNCTOR(rdf_object_branch_factor, 1);
+  MKFUNCTOR(rdfs_subject_branch_factor, 1);
+  MKFUNCTOR(rdfs_object_branch_factor, 1);
 
   FUNCTOR_colon2 = PL_new_functor(PL_new_atom(":"), 2);
 
   ATOM_user	     = PL_new_atom("user");
   ATOM_exact	     = PL_new_atom("exact");
   ATOM_prefix	     = PL_new_atom("prefix");
+  ATOM_like	     = PL_new_atom("like");
   ATOM_substring     = PL_new_atom("substring");
   ATOM_word	     = PL_new_atom("word");
   ATOM_subPropertyOf = PL_new_atom(URL_subPropertyOf);
@@ -3385,6 +4116,7 @@ install_rdf_db()
 					/* setup database */
   init_tables();
 
+  PL_register_foreign("rdf_version",    1, rdf_version,     0);
   PL_register_foreign("rdf_assert",	3, rdf_assert3,	    0);
   PL_register_foreign("rdf_assert",	4, rdf_assert4,	    0);
   PL_register_foreign("rdf_update",	4, rdf_update,      0);
@@ -3403,12 +4135,18 @@ install_rdf_db()
   PL_register_foreign("rdf_load_db_",   1, rdf_load_db,     0);
   PL_register_foreign("rdf_reachable",  3, rdf_reachable,   NDET);
   PL_register_foreign("rdf_reset_db_",  0, rdf_reset_db,    0);
-  PL_register_foreign("rdf_set_predicate", 2, rdf_set_predicate, 0);
-  PL_register_foreign("rdf_predicate_property", 2, rdf_predicate_property, NDET);
+  PL_register_foreign("rdf_set_predicate",
+					2, rdf_set_predicate, 0);
+  PL_register_foreign("rdf_predicate_property",
+					2, rdf_predicate_property, NDET);
+  PL_register_foreign("rdf_sources_",   1, rdf_sources,     0);
+  PL_register_foreign("rdf_estimate_complexity",
+					4, rdf_estimate_complexity, 0);
 #ifdef O_DEBUG
   PL_register_foreign("rdf_debug",      1, rdf_debug,       0);
 #endif
 #ifdef WITH_MD5
   PL_register_foreign("rdf_md5",	2, rdf_md5,	    0);
+  PL_register_foreign("rdf_atom_md5",	3, rdf_atom_md5,    0);
 #endif
 }

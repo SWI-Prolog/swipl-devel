@@ -113,6 +113,14 @@ handy for it someone wants to add a data type to the system.
   O_LARGEFILES
       Supports files >2GB (if the OS provides it, currently requires
       the GNU c library).
+  O_ATTVAR
+      Include support for attributes variables.
+      This option requires O_DESTRUCTIVE_ASSIGNMENT.
+  O_GVAR
+      Include support for backtrackable global variables.  This option
+      requires O_DESTRUCTIVE_ASSIGNMENT.
+  O_CYCLIC
+      Provide support for cyclic terms.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define PL_KERNEL		1
@@ -133,6 +141,9 @@ handy for it someone wants to add a data type to the system.
 #define O_LOGICAL_UPDATE	1
 #define O_ATOMGC		1
 #define O_CLAUSEGC		1
+#define O_ATTVAR		1
+#define O_GVAR			1
+#define O_CYCLIC		1
 
 #ifndef DOUBLE_TO_LONG_CAST_RAISES_SIGFPE
 #ifdef __i386__
@@ -206,7 +217,7 @@ gcc.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifndef __unix__
-#if defined(_AIX) || defined(__APPLE__) || defined(__unix) || defined(__BEOS__)
+#if defined(_AIX) || defined(__APPLE__) || defined(__unix) || defined(__BEOS__) || defined(__NetBSD__)
 #define __unix__ 1
 #endif
 #endif
@@ -328,6 +339,11 @@ A common basis for C keywords.
 #define volatile
 #endif
 
+#ifdef HAVE_HIDDEN_ATTRIBUTE
+#define SO_LOCAL __attribute__((visibility("hidden")))
+#else
+#define SO_LOCAL
+#endif
 
 #if __STRICT_ANSI__
 #undef TAGGED_LVALUE
@@ -429,7 +445,7 @@ them.  Descriptions:
 #define PLMAXTAGGEDINT		(-PLMINTAGGEDINT - 1)
 #define inTaggedNumRange(n)	(((n)&~PLMAXTAGGEDINT) == 0 || \
 				 ((n)&~PLMAXTAGGEDINT) == ~PLMAXTAGGEDINT)
-#define PLMININT		((long)(1L<<(WORDBITSIZE-1)))
+#define PLMININT		((long)(-1L<<(WORDBITSIZE-1)))
 #define PLMAXINT		(-(PLMININT+1))
 
 #if vax
@@ -452,6 +468,9 @@ sizes  of  the  hash  tables are defined.  Note that these should all be
 #define PUBLICHASHSIZE		8	/* Module export table */
 #define FLAGHASHSIZE		16	/* global flag/3 table */
 #define ARITHHASHSIZE		64	/* arithmetic function table */
+
+#define TABLE_UNLOCKED		0x10000000L /* do not create mutex for table */
+#define TABLE_MASK		0xf0000000L
 
 #define pointerHashValue(p, size) ((((long)(p) >> LMASK_BITS) ^ \
 				    ((long)(p) >> (LMASK_BITS+5)) ^ \
@@ -945,6 +964,7 @@ with one operation, it turns out to be faster as well.
 #define P_REDEFINED		(0x00800000L) /* predicate */
 #define PROC_DEFINED		(DYNAMIC|FOREIGN|MULTIFILE|DISCONTIGUOUS)
 #define P_THREAD_LOCAL		(0x01000000L) /* predicate */
+#define P_FOREIGN_CREF		(0x02000000L) /* predicate */
 
 #define ERASED			(0x0001) /* clause, record */
 #define UNIT_CLAUSE		(0x0002) /* clause */
@@ -1060,14 +1080,9 @@ MT/TBD: how to handle this gracefully in the multi-threading case.  Does
 it mean anything?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifdef O_PLMT
-#define startCritical (void)(LD->critical++)
-#define endCritical   (void)(LD->critical--)
-#else
 #define startCritical (void)(LD->critical++)
 #define endCritical   if ( --(LD->critical) == 0 && LD->aborted ) \
 			pl_abort(ABORT_NORMAL)
-#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 LIST processing macros.
@@ -1120,6 +1135,7 @@ struct atom
 #ifdef O_ATOMGC
   unsigned int	references;	/* reference-count */
 #endif
+  struct PL_blob_t *type;	/* blob-extension */
   unsigned int  length;		/* length of the atom */
   char *	name;		/* name associated with atom */
 };
@@ -1399,8 +1415,12 @@ struct queryFrame
 };
 
 
+#define FLI_MAGIC 		0x82c4a821
+#define FLI_MAGIC_CLOSED	0x42424242
+
 struct fliFrame
-{ int		size;			/* # slots on it */
+{ long		magic;			/* Magic code */
+  int		size;			/* # slots on it */
   FliFrame	parent;			/* parent FLI frame */
   mark		mark;			/* data-stack mark */
 };
@@ -1486,6 +1506,9 @@ struct table
 { int		buckets;	/* size of hash table */
   int		size;		/* # symbols in the table */
   TableEnum	enumerators;	/* Handles for enumeration */
+#ifdef O_PLMT
+  simpleMutex  *mutex;		/* Mutex to guard table */
+#endif
   void 		(*copy_symbol)(Symbol s);
   void 		(*free_symbol)(Symbol s);
   Symbol	*entries;	/* array of hash symbols */
@@ -1553,7 +1576,8 @@ struct alloc_pool
 			    setVar(*tt->address); \
 			  } \
 			  tTop = tt; \
-			  gTop = (b).globaltop; \
+			  gTop = (LD->frozen_bar > (b).globaltop ? \
+				  LD->frozen_bar : (b).globaltop); \
 			}
 #endif /*O_DESTRUCTIVE_ASSIGNMENT*/
 
@@ -1692,6 +1716,8 @@ typedef struct
 #define OPT_ATOM	(3)
 #define OPT_TERM	(4)		/* arbitrary term */
 #define OPT_LONG	(5)
+#define OPT_TYPE_MASK	0xff
+#define OPT_INF		0x100		/* allow 'inf' */
 
 #define OPT_ALL		0x1		/* flags */
 
@@ -1824,6 +1850,17 @@ typedef enum
 #endif
 
 
+		 /*******************************
+		 *	     NUMBERVARS		*
+		 *******************************/
+
+typedef enum
+{ AV_BIND,
+  AV_SKIP,
+  AV_ERROR
+} av_action;
+
+
 		/********************************
 		*       READ WARNINGS           *
 		*********************************/
@@ -1894,6 +1931,7 @@ typedef struct
 #define PROCEDURE_print_message2	(GD->procedures.print_message2)
 #define PROCEDURE_dcall1		(GD->procedures.dcall1)
 #define PROCEDURE_call_cleanup3		(GD->procedures.call_cleanup3)
+#define PROCEDURE_dwakeup1		(GD->procedures.dwakeup1)
 
 extern const code_info codeTable[]; /* Instruction info (read-only) */
 
@@ -1930,6 +1968,7 @@ Tracer communication declarations.
 #define DOLLAR_STYLE	    0x04	/* dollar is lower case */
 #define DISCONTIGUOUS_STYLE 0x08	/* warn on discontiguous predicates */
 #define DYNAMIC_STYLE	    0x10	/* warn on assert/retract active */
+#define CHARSET_CHECK	    0x20	/* warn on unquoted characters */
 #define MAXNEWLINES	    5		/* maximum # of newlines in atom */
 #define SYSTEM_MODE	    (debugstatus.styleCheck & DOLLAR_STYLE)
 
@@ -1974,6 +2013,7 @@ typedef struct debuginfo
 #define EX_ABORT_FEATURE	  0x20000 /* abort with exception */
 #define BACKQUOTED_STRING_FEATURE 0x40000 /* `a string` */
 #define SIGNALS_FEATURE		  0x80000 /* Handle signals */
+#define DEBUGINFO_FEATURE	  0x100000 /* generate debug info */
 
 typedef struct
 { unsigned long flags;			/* the feature flags */

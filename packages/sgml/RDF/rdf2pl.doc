@@ -177,17 +177,46 @@ If provided local identifiers and identifier-references are globalised
 using this URI.  If omited or the atom \verb$[]$, local identifiers are
 not tagged.
 
-	\termitem{expand_foreach}{Boolean}
-If \arg{Boolean} is \const{true}, expand \const{rdf:aboutEach} into
-a set of triples. By default the parser generates
-\term{rdf}{each(Container), Predicate, Subject}.
-
 	\termitem{blank_nodes}{Mode}
 If \arg{Mode} is \const{share}, blank-node properties (i.e.\ complex
 properties without identifier) are reused if they result in exactly the
 same triple-set. Two descriptions are shared if their intermediate
 description is the same.  This means they should produce the same set
 of triples in the same order.
+
+	\termitem{expand_foreach}{Boolean}
+If \arg{Boolean} is \const{true}, expand \const{rdf:aboutEach} into
+a set of triples. By default the parser generates
+\term{rdf}{each(Container), Predicate, Subject}.
+
+	\termitem{lang}{Lang}
+Define the initial language (i.e.\ pretend there is an \const{xml:lang}
+declaration in an enclosing element).
+
+	\termitem{ignore_lang}{Bool}
+If \const{true}, \const{xml:lang} declarations in the document are
+ignored.  This is mostly for compatibility with older versions of
+this library that did not support language identifiers.
+
+	\termitem{convert_typed_literal}{:ConvertPred}
+If the parser finds a literal with the \const{rdf:dataType}=\arg{Type}
+attribute, call \term{ConvertPred}{+Type, +Content, -Literal}.
+\arg{Content} is the XML element contentas returned by the XML
+parser (a list). The predicate must unify \arg{Literal}
+with a Prolog representation of \arg{Content} according to
+\arg{Type} or throw an exception if the conversion cannot be made.
+
+This option servers two purposes.  First of all it can be used
+to ignore type declarations for backward compatibility of this
+library.  Second it can be used to convert typed literals to 
+a meaningful Prolog representation.  E.g.\ convert '42' to the
+Prolog integer 42 if the type is \const{xsd:int} or a related
+type.
+
+	\termitem{namespaces}{-List}
+Unify \arg{List} with a list of \arg{NS}=\arg{URL} for each
+encountered \const{xmlns}:\arg{NS}=\arg{URL} declaration found
+in the source.
    \end{description}
 
 The \arg{Triples} list is a list of \term{rdf}{Subject, Predicate,
@@ -201,6 +230,38 @@ Finally, \arg{Object} is a URI, a \arg{Predicate} or a term of the
 format \term{literal}{Value} for literal values.  \arg{Value} is
 either a plain atom or a parsed XML term (list of atoms and elements).
 \end{description}
+
+
+\subsection{RDF Object representation}		\label{sec:rdfobject}
+
+The \emph{Object} (3rd) part of a triple can have several different
+types.  If the object is a resource it is returned as either a plain
+atom or a term \mbox{\arg{NameSpace}{\bf :}\arg{Name}}.  If it is a
+literal it is returned as \term{literal}{Value}, where \arg{Value}
+takes one of the formats defined below.
+
+\begin{itemlist}
+    \item [An atom]
+If the literal \arg{Value} is a plain atom is a literal value not
+subject to a datatype or \const{xml:lang} qualifier.
+
+    \item [\term{lang}{LanguageID, Atom}]
+If the literal is subject to an \const{xml:lang} qualifier
+\arg{LanguageID} specifies the language and \arg{Atom} the
+actual text.
+
+    \item [A list]
+If the literal is an XML literal as created by
+\mbox{parseType="Literal"}, the raw output of the XML parser for the
+content of the element is returned. This content is a list of
+\term{element}{Name, Attributes, Content} and atoms for CDATA parts as
+described with the SWI-Prolog \url[SGML/XML
+parser]{http://www.swi-prolog.org/packages/sgml2pl.html}
+
+    \item [\term{type}{Type, StringValue}]
+If the literal has an \verb$rdf:dataType=$\arg{Type} a term of this
+format is returned.
+\end{itemlist}
 
 
 \subsection{Name spaces}

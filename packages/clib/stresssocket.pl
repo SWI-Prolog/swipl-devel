@@ -46,7 +46,9 @@ For simple tests, get yourself a free machine and run
 It creates a logfile named <host>-forever.txt
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-:- use_module(library(socket)). :- use_module(library(debug)).
+:- asserta(user:file_search_path(foreign, '.')).
+:- use_module(socket).
+:- use_module(library(debug)).
 
 :- dynamic
 	on_thread/2,
@@ -355,7 +357,7 @@ concurrent(Times, 1, Goal) :- !,
 	forall(between(1, Times, _),
 	       ok(Goal)).
 concurrent(Times, Threads, Goal) :-
-	strip_module(Goal, M, G),
+	'$strip_module'(Goal, M, G),
 	message_queue_create(Done),
 	message_queue_create(Queue),
 	create_workers(Threads, M, Queue, Done),

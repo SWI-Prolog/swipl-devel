@@ -85,8 +85,8 @@ $dwim_correct_goal(Goal, _, NewGoal) :-
 
 existence_error(user:Name/Arity) :- !,
 	throw(error(existence_error(procedure, Name/Arity), _)).
-existence_error(Module:Name/Arity) :- !,
-	throw(error(existence_error(procedure, Module:Name/Arity), _)).
+existence_error(PredSpec) :-
+	throw(error(existence_error(procedure, PredSpec), _)).
 
 correct_goal(Goal, Bindings, [Dwim], DwimGoal) :-
 	$strip_module(Goal, _, G1), 
@@ -130,7 +130,7 @@ has_arity(A, G) :-
 %	Transform Goal into a readable format.
 
 goal_name(Goal, Bindings, String) :-
-	checklist(call, Bindings),		% Bind the variables
+	maplist(call, Bindings),		% Bind the variables
 	goal_name_(Goal, String),
 	recorda($goal_name, String),
 	fail.
@@ -180,8 +180,7 @@ $find_predicate(Spec, List) :-
 		       functor(Head, Name, Arity)), List),
 	List \== [], !.
 $find_predicate(Spec, _) :-
-	print_message(error, no_predicates_for(Spec)),
-	fail.
+	existence_error(Spec).
 	
 find_predicate(Module, C, Name, Arity, VList) :-
 	findall(Head, find_predicate_(Module, C, Name, Arity, Head), VList),

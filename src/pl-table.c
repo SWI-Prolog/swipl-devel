@@ -24,8 +24,13 @@
 
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
-#define LOCK()   PL_LOCK(L_TABLE)
-#define UNLOCK() PL_UNLOCK(L_TABLE)
+#ifdef O_PLMT
+#define LOCK_TABLE(t)   if ( t->mutex ) simpleMutexLock(t->mutex)
+#define UNLOCK_TABLE(t)	if ( t->mutex ) simpleMutexUnlock(t->mutex)
+#else
+#define LOCK_TABLE(t) (void)0
+#define UNLOCK_TABLE(t) (void)0
+#endif
 
 static inline Symbol rawAdvanceTableEnum(TableEnum e);
 
@@ -63,11 +68,19 @@ newHTable(int buckets)
 { Table ht;
 
   ht		  = allocHeap(sizeof(struct table));
-  ht->buckets	  = buckets;
+  ht->buckets	  = (buckets & ~TABLE_MASK);
   ht->size	  = 0;
   ht->enumerators = NULL;
   ht->free_symbol = NULL;
   ht->copy_symbol = NULL;
+#ifdef O_PLMT
+  if ( (buckets & TABLE_UNLOCKED) )
+    ht->mutex = NULL;
+  else
+  { ht->mutex     = allocHeap(sizeof(simpleMutex));
+    simpleMutexInit(ht->mutex);
+  }
+#endif
 
   allocHTableEntries(ht);
   return ht;
@@ -76,7 +89,16 @@ newHTable(int buckets)
 
 void
 destroyHTable(Table ht)
-{ clearHTable(ht);
+{
+#ifdef O_PLMT
+  if ( ht->mutex )
+  { simpleMutexDelete(ht->mutex);
+    freeHeap(ht->mutex, sizeof(*ht->mutex));
+	ht->mutex = NULL;
+  }
+#endif
+
+  clearHTable(ht);
   freeHeap(ht->entries, ht->buckets * sizeof(Symbol));
   freeHeap(ht, sizeof(struct table));
 }
@@ -101,13 +123,11 @@ void
 initTables()
 { static int done = FALSE;
 
-  LOCK();
   if ( !done )
   { done = TRUE;
     
     HASHSTAT(PL_on_halt(exitTables, NULL));
   }
-  UNLOCK();
 }
 
 
@@ -177,16 +197,16 @@ rehashHTable(Table ht)
 }
 
 
-bool
+Symbol
 addHTable(Table ht, void *name, void *value)
 { Symbol s;
   int v;
 
-  LOCK();
+  LOCK_TABLE(ht);
   v = pointerHashValue(name, ht->buckets);
   if ( lookupHTable(ht, name) )
-  { UNLOCK();
-    fail;
+  { UNLOCK_TABLE(ht);
+    return NULL;
   }
   s = allocHeap(sizeof(struct symbol));
   s->name  = name;
@@ -199,10 +219,10 @@ addHTable(Table ht, void *name, void *value)
 
   if ( ht->buckets * 2 < ht->size && !ht->enumerators )
     rehashHTable(ht);
-  UNLOCK();
+  UNLOCK_TABLE(ht);
 
   DEBUG(1, checkHTable(ht));
-  succeed;
+  return s;
 }  
 
 
@@ -216,7 +236,7 @@ deleteSymbolHTable(Table ht, Symbol s)
   Symbol *h;
   TableEnum e;
 
-  LOCK();
+  LOCK_TABLE(ht);
   v = pointerHashValue(s->name, ht->buckets);
   h = &ht->entries[v];
 
@@ -236,7 +256,7 @@ deleteSymbolHTable(Table ht, Symbol s)
     }
   }
 
-  UNLOCK();
+  UNLOCK_TABLE(ht);
 }
 
 
@@ -245,7 +265,7 @@ clearHTable(Table ht)
 { int n;
   TableEnum e;
 
-  LOCK();
+  LOCK_TABLE(ht);
   for( e=ht->enumerators; e; e = e->next )
   { e->current = NULL;
     e->key     = ht->buckets;
@@ -267,7 +287,7 @@ clearHTable(Table ht)
   }
 
   ht->size = 0;
-  UNLOCK();
+  UNLOCK_TABLE(ht);
 }
 
 
@@ -285,9 +305,12 @@ copyHTable(Table org)
 { Table ht;
   int n;
 
-  LOCK();
   ht = allocHeap(sizeof(struct table));
+  LOCK_TABLE(org);
   *ht = *org;				/* copy all attributes */
+#ifdef O_PLMT
+  ht->mutex = NULL;
+#endif
   allocHTableEntries(ht);
 
   for(n=0; n < ht->buckets; n++)
@@ -307,7 +330,13 @@ copyHTable(Table org)
     }
     *q = NULL;
   }
-  UNLOCK();
+#ifdef O_PLMT  
+  if ( org->mutex )
+  { ht->mutex = allocHeap(sizeof(simpleMutex));
+    simpleMutexInit(ht->mutex);
+  }
+#endif
+  UNLOCK_TABLE(org);
 
   return ht;
 }
@@ -322,7 +351,7 @@ newTableEnum(Table ht)
 { TableEnum e = allocHeap(sizeof(struct table_enum));
   Symbol n;
 
-  LOCK();
+  LOCK_TABLE(ht);
   e->table	  = ht;
   e->key	  = 0;
   e->next	  = ht->enumerators;
@@ -332,7 +361,7 @@ newTableEnum(Table ht)
   while(!n && ++e->key < ht->buckets)
     n=ht->entries[e->key];
   e->current = n;
-  UNLOCK();
+  UNLOCK_TABLE(ht);
 
   return e;
 }
@@ -346,9 +375,8 @@ freeTableEnum(TableEnum e)
   if ( !e )
     return;
 
-  LOCK();
-
   ht = e->table;
+  LOCK_TABLE(ht);
   for( ep=&ht->enumerators; *ep ; ep = &(*ep)->next )
   { if ( *ep == e )
     { *ep = (*ep)->next;
@@ -357,8 +385,7 @@ freeTableEnum(TableEnum e)
       break;
     }
   }
-
-  UNLOCK();
+  UNLOCK_TABLE(ht);
 }
 
 
@@ -388,10 +415,13 @@ rawAdvanceTableEnum(TableEnum e)
 Symbol
 advanceTableEnum(TableEnum e)
 { Symbol s;
+#ifdef O_PLMT
+  Table ht = e->table;
+#endif
 
-  LOCK();
+  LOCK_TABLE(ht);
   s = rawAdvanceTableEnum(e);
-  UNLOCK();
+  UNLOCK_TABLE(ht);
 
   return s;
 }

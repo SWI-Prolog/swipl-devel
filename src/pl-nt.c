@@ -23,6 +23,8 @@
 */
 
 #if defined(__WINDOWS__) || defined(__WIN32__) || defined(WIN32)
+#define _WIN32_WINNT 0x0400
+#include <windows.h>
 
 #include "pl-incl.h"
 #include <crtdbg.h>
@@ -32,6 +34,8 @@
 #include <stdarg.h>
 #include "pl-stream.h"
 #include <process.h>
+#include <winbase.h>
+
 
 		 /*******************************
 		 *	    MESSAGE BOX		*
@@ -143,18 +147,52 @@ again:
 
 int
 Pause(double t)
-{ DWORD msecs = (DWORD)(t * 1000.0);
+{ HANDLE h;
 
-  while( msecs >= 100 )
-  { Sleep(100);
-    if ( PL_handle_signals() < 0 )
-      return FALSE;
-    msecs -= 100;
+  if ( (h = CreateWaitableTimer(NULL, TRUE, NULL)) )
+  { LARGE_INTEGER ft;
+
+    ft.QuadPart = -(LONGLONG)(t * 10000000.0); /* 100 nanosecs per tick */
+
+    SetWaitableTimer(h, &ft, 0, NULL, NULL, FALSE);
+    for(;;)
+    { int rc = MsgWaitForMultipleObjects(1,
+					 &h,
+					 FALSE,
+					 INFINITE,
+					 QS_ALLINPUT);
+      if ( rc == WAIT_OBJECT_0+1 )
+      { MSG msg;
+	
+	while( PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) )
+	{ TranslateMessage(&msg);
+	  DispatchMessage(&msg);
+	}
+	
+	if ( PL_handle_signals() < 0 )
+	{ CloseHandle(h);
+	  return FALSE;
+	}
+      } else
+	break;
+    }
+    CloseHandle(h);
+
+    return TRUE;
+  } else				/* Pre NT implementation */
+  { DWORD msecs = (DWORD)(t * 1000.0);
+
+    while( msecs >= 100 )
+    { Sleep(100);
+      if ( PL_handle_signals() < 0 )
+	return FALSE;
+      msecs -= 100;
+    }
+    if ( msecs > 0 )
+      Sleep(msecs);
+    
+    return TRUE;
   }
-  if ( msecs > 0 )
-    Sleep(msecs);
-
-  return TRUE;
 }
 
 		 /*******************************

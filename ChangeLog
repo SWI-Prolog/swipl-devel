@@ -7,7 +7,428 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+VERSION 5.4.0 (September 21, 2004)
+==================================
+
+  * ADDED: write_term/3 using option numbervars(true) writes atoms
+    appearing as argument to '$VAR'(X) without quotes.  I.e.
+    write_term(x('$VAR'('Foo')), [quoted(true), numbervars(true)])
+    writes "x(Foo)".
+
+  * FIXED: throw/1 crashed on attributed variables in the ball.
+
+  * ADDED: option list to numbervars/4.
+
+  * ADDED: return value for PL_put_blob() to indicate new/reused blob
+    identifier.  Also added `acquire' hook to the blob type.
+    Salvador Fandiño.
+
+
+VERSION 5.3.21 (September 14, 2004)
+===================================
+
+  * FIXED/ENHANCED: license/[1,2] and eval_license/0 issues reported on
+    the mailinglist.
+
+  * FIXED: DCG translation of *->
+
+
+VERSION 5.3.20 (August 26, 2004)
+================================
+
+  * FIXED: prolog_frame_attribute(Frame, goal, Goal) created term that
+    cannot be handled by the garbage collector.
+
+  * ADDED: read_pending_input/3, fetching pending input from a stream.
+
+  * ENHANCED: On Windows-NT, use Waitable Timers to realise sleep/1,
+    resulting in improved handling of events and timeouts as well as
+    better timer resolution.  Uses old Sleep() based version on older
+    windows platforms.
+
+  * ENHANCED: realised native Win32 guarding of thread message queues,
+    sponsored by SSS (www.sss.co.nz).
+
+  * FIXED: Recorded database handling of attributed variables (could loose
+    attributes on some terms).
+
+  * ADDED: Support for attributed variables and cyclic terms for =@= and
+    \=@=.
+
+
+VERSION 5.3.18 (August 16, 2004)
+================================
+
+  * MODIFIED: perform goal expansion relative to indicated module for
+    goals of the format Module:Goal where Module is known at compiletime.
+
+
+VERSION 5.3.17 (August 2, 2004)
+===============================
+
+  * FIXED: source-location handling for if -> then if then holds control
+    structures.  Alan Baljeu.
+
+  * FIXED: global-variables related GC bug.  Thanks to David Reitter for
+    producing an reproducable case.
+
+  * FIXED: reconsulting a file with dynamic predicate declaration no
+    longer deletes the clauses added with assert.
+
+  * CLEANUP: Many stylistic issues to the C-source, removing warnings
+    especially for Sun CC.  Richard O'Keefe.
+
+  * ADDED: nb_setarg/3 and nb_linkarg/3, providing non-backtrackable
+    assignments on terms.
+
+  * ADDED: cycle-check in bagof/setof code handling existential bindings
+    (should be an error!?).
+
+  * ADDED: Support for cyclic terms in the recorded term representation,
+    providing cyclic-safe recorda/3, findall/3, bagof/3, setof/3, exceptions
+    and Prolog terms in XPCE objects.
+
+  * ADDED: inf/infinite for stack options in create_thread/3 as well as for
+    the `High' in between/3.
+
+  * ENHANCED: use right-recursion optimisation in $e_free_variables/2
+    used by bagof/3 and setof/3.  Alan Baljeu.
+
+  * FIXED: Avoid "Loading module ... abolished: ..." messages when
+    reloading discontiguous predicates.
+
+  * FIXED: A == B if A and B are equal string objects.
+    (typo when providing support for cyclic terms)  Jacques Abel.
+
+
+VERSION 5.3.16 (July 21, 2004)
+==============================
+
+  * MODIFIED: print/1 behaves as write/1 instead of writeq/1.  This
+    new behaviour is compatible to other Prolog systems and the
+    documentation.  Lourens van der Meij.  Use write_term/[2,3]
+    to get unambiguous ISO compliant printing in a specific mode.
+
+    Affected code must be updated.  
+
+  * MODIFIED: By default, symbols from shared objects are not made
+    global any longer.  The argument order of open_shared_object/3
+    has changes, though the predicate automatically reverses the
+    arguments when confronted with the old order.
+
+    This is unlikely to affect user code.  If it does, the user can
+    use open_shared_object(File, Handle, [global]) for compatibility.
+
+
+VERSION 5.3.15 (July 16, 2004)
+==============================
+
+  * FIXED: MS-Windows: same_file/2 for relative paths.
+
+  * ADDED: support for open(pipe(Command), ...) for the Windows version
+    after recent discussion on the mailinglist.  Works both in plwin.exe
+    and plcon.exe thanks to code used from the LUA programming language
+    and distributed under the compatible MIT license.
+
+  * FIXED: import/export issues loading QLF files leading to
+    ERROR: Failed to import ... into ... messages.
+
+  * ADDED/MODIFIED: print message if a detached thread dies abnormally.
+    After report by Fabien Todescato.
+
+  * FIXED: portability issue in Makefile (Solaris).  Bill McEnaney.
+
+  * FIXED: possibility to crash the debugger on exceptions in callback
+    from C.  Salvador Fandiño.
+
+
+VERSION 5.3.14 (July 1, 2004)
+=============================
+
+  * MODIFIED: Merged backtrackable and non-backtrackable global variables.
+    Tom Schrijvers.
+
+  * ADDED: term_variables/3: difference list version of term_variables/2.
+    Suggested by Tom Schrijvers for the next version of CHR.
+
+
+VERSION 5.3.13 (June 28, 2004)
+==============================
+
+  * FIXED: at_end_of_stream/[0,1] to throw an exception if the stream
+    is at the end due to an error.
+
+  * FIXED: attributed variable handling in findall/3 and friends.
+    David Reitter.
+
+  * FIXED: nb_linkval/2 (and therefore nb_setval/2) if value is an
+    attributed variable.  David Reitter.
+
+
+VERSION 5.3.12 (June 15, 2004)
+==============================
+
+  * FIXED: option processing in read_line_to_codes/3.  David Reitter.
+
+  * ADDED: library(prolog_stack) to get and print stack-traces from Prolog.
+
+
+VERSION 5.3.11 (May 25, 2004)
+=============================
+
+  * FIXED: hash_term/2 to handle terms holding attributed variables
+    and cyclic terms.  David Reitter.
+
+  * ADDED: first integration of JPL with the normal Prolog tree.
+
+  * ADDED: [=format] to -dump-runtime-variables to dump them in CMD.EXE
+    compatible format.
+
+  * PORT: Added a few NetBSD patches (incomplete, ongoing work).
+    Hubert Feyrer.
+
+  * FIXED: cleanup at exit if there are engines not attached to threads.
+
+  * ADDED: Hook prolog:error_message//1 to add new error types and print
+    them in readable format.
+
+  * ADDED: plld: add -Wl,* options to the linker options.
+
+  * MODIFIED: Renamed checklist/2 --> maplist/2 for compatibility reasons.
+    Added checklist/2 to the compatibility library.
+
+  * ADDED: Maplist/4
+
+  * FIXED: Bug#152: making active dynamic predicates static using
+    compile_predicates/1.  Marc Bezem.
+
+  * CLEANUP: some errors reported by the valgrind tool.
+
+
+VERSION 5.3.10 (Apr 29, 2004)
+=============================
+
+  * FIXED: import warning on $derived_source/3.  Mike Elston.
+
+  * FIXED: numbervars option of the write predicates.  Steve Moyle.
+
+  * Provided limited stack trace for errors during GC.
+
+  * FIXED: throw/1 throwing a single variable if the exception is not
+    caught (Roberto Bagnara)
+
+  * ADDED: PL_is_ground() to check for term groundness in the foreign
+    interface.
+
+  * ENHANCED: error messages produced by load_foreign_library/1.
+
+  * MAINTENANCE: Fixed incorrect assertion in O_SECURE mode.  Barry Evans.
+
+  * ENHANCED: some Makefile cleanup.  Fixed typo spotted by Tom Schrijvers.
+
+  * PORT: Cleanup of autoconf configuration (dropped acconfig.h)
+
+  * ENHANCED: Exploit GCC visibility("hidden") attribute.  Improves symbol
+    handling for embedded applications on ELF-based systems.
+
+
+VERSION 5.3.9 (Apr 15, 2004)
+============================
+
+  * MODIFIED: the library for embedded linking has been moved from
+    runtime/$ARCH to lib/$ARCH.  Installation scripts using plld work
+    without modification, but hand-crafted building of embedded executables
+    must be adapted.
+
+  * ADDED: configure option --enable-shared to create the Prolog kernel
+    as a shared object.  Works on ELF based systems using the GNU toolchain.
+    MODOFIED: configure option --disable-shared is renamed to
+    --disable-load-foreign.
+
+  * FIXED: Renamed corouting --> coroutining (Joachim Schimpf).
+
+  * FIXED: debug/nondebug issues with multifile predicates (causing
+    gtrace/0 to trace itself).  David Reitter.
+
+  * MODIFIED: listing/1 throws exception if the target cannot be
+    found (Enhancement#143).  Holger Kanwischer.
+
+  * FIXED/MODIFIED: Syntax errors are now reported using a term
+    file(Path, Line, LinePos, CharPos) or stream/4 if a stream is
+    not associated to a file.  The LinePos element is added to this
+    structure.  Syntax errors are reported using file:line:linepos.
+    After suggestion from David Reitter.
+
+  * FIXED: Made when/2 module-aware.
+
+  * FIXED: Debug-settings for system predicates defined as discontiguous,
+    etc.  Tom Schrijvers.
+
+  * FIXED: bug in b_setvar/2 when assigning a local-stack hosted variable.
+    David Reitter.
+
+  * FIXED: read_term/3 option subterm_position on @receiver?(mode).
+
+  * FIXED: assertion failure in b_setval/2 and b_getval/2.  David Reitter.
+
+  * MODIFIED: moved XPCE boot file pce_operator.pl to the general Prolog
+    library under the name operators.pl.  Applications that used to fetch
+    this file using unsupported :- use_module(boot(pce_operator)) should
+    now use :- use_module(library(operators)).  
+
+  * FIXED: Turn error messages produced	by format/[1-3] into proper
+    exceptions.  Dima.
+
+  * ADDED: predicate_property/2: `nodebug' to detect predicates without
+    debug info.  Used by the guitracer.
+
+  * MODIFIED: listing/0 now only lists predicates defined in the target
+    module.  Used to also list imported predicates.  Applications that
+    rely on the old behaviour should use listing/1 on all predicates
+    enumerated by current_predicate/1.
+
+
+VERSION 5.3.8 (Apr 07, 2004)
+============================
+
+  * FIXED: Quoted write of -(0) and similar cases.  Mike Elston.
+
+  * ADDED: Exporting operators from modules.
+
+  * ADDED: flag called generate_debug_info and commandline option -nodebug.
+    Fixed/cleanup of various tracing options.
+
+  * FIXED: Bug#140, various problems with complicated reload of files.
+    Hans van de Koot.
+
+  * FIXED: clause garbage collection for references from retract/1,
+    clause/2, etc.
+
+  * FIXED: profile detection on older versions of gcc.  Tom Schrijvers.
+
+  * FIXED: repetitive qsave_program/2 handling.  Dima.
+
+  * FIXED: Buffer overflow asserting to predicates with a very long
+    name (caused by naming the mutex for mutex statistics).  Reported
+    by Lourens van der Meij.
+
+  * MODIFIED/FIXED: ensure_loaded/1 and use_module/[1,2] now use 
+    load_files/2 with the option if(not_loaded) rather than if(changed).
+    This avoids time handling problems with quick-load files, especially
+    on Windows systems that base their time-stamp on local time rather
+    than universal time.
+
+    Use make/0 to update your project.  Applications that really need
+    the old semantics should use load_files/2 directly.
+
+  * ADDED: Central "make check" to run regression tests in main system and
+    all packages.
+
+  * CLEANED: handle command history per thread.
+
+  * FIXED: handling of attributed variables in meta-calls.  Tom Schrijvers.
+
+  * ADDED: set_prolog_OI/3 to handle interactive I/O from arbitrary
+    streams.
+
+VERSION 5.3.7 (Mar 26, 2004)
+============================
+
+  * ADDED: First prototype of binary-blobs-in-atoms after
+    discussion on the mailinglist.
+
+  * ADDED: CHR Debugger.  Tom Schrijvers.
+
+  * FIXED: sub_atom/5 with variables sharing in the call.  Emerson.
+
+  * MODIFIED: delete_file/2 now throws an exception rather than failing
+    silently if the file cannot be deleted.
+
+
+VERSION 5.3.6 (Mar 17, 2004)
+============================
+
+  * ENHANCED: performance for term_variables/2 in terms with many variables.
+
+  * FIXED: handling attributed variables in bagof/setof.  Tom Schrijvers.
+
+  * FIXED: Handle goal_expansion/2 for the arguments of call_cleanup/2.
+
+  * ADDED: clp/bounds.pl: an Integer Bounds Constraint Solver by
+    Tom Schrijvers.
+
+
+VERSION 5.3.5 (Mar 13, 2004)
+============================
+
+  * FIXED: Bug#138: Avoid trying to compile pl-xterm.c on Cygwin.
+    Shawn Legrand.
+
+  * FIXED: Bug in copy_term/2 when copying (sharing) ground terms with
+    nested compounds.  David Reitter.
+
+
+VERSION 5.3.4 (Mar 12, 2004)
+============================
+
+  * ADDED: style_check(+charset) option.
+
+  * FIXED: Bug#139 Trail-stack overflow after many assignments
+    (using setarg/3) to the same location in deterministic code.
+    Holger Kanwischer.
+
+  * ADDED: handle cycles in term_variables/2 and numbervars/3 as well as
+    in the goal for bagof/setof.
+
+  * MODIFIED: character classification for the range 159-255 to follow
+    ISO-latin-1.  Richard O'Keefe.  All these characters used to be
+    classified as lowercase letter.  Note that this may cause errors
+    reading old code containing not-quoted atoms holding such characters.
+    For example, Æab used to be read as an atom but is now read as a
+    Prolog variable.  Please use ?- style_check(+charset) to get warnings
+    in possible conflicts.
+
+  * ENHANCED: Cleanup of dif/2 by Tom Schrijvers.
+
+  * FIXED: ensure a thread is considered to exist before it actually
+    starts running.
+
+  * ADDED: experimental	predicate unifyable/3.  New versions of dif/2
+    and when/2 based on this predicate by Tom Schrijvers.
+
+  * ADDED: when/2
+
+  * ADDED: ?=/2
+
+  * FIXED: A \= B to run attributed variable wakeup handlers before
+    doing the negation.
+
+
+VERSION 5.3.3 (Mar 5, 2004)
+===========================
+
+  * ADDED: Initial version to control printing attributed variables.
+    With input from Tom Schrijvers.
+
+  * FIXED: Bug#127 (partially), system slowing down after Control-C
+    followed by abort if the Control-C happens inside retract/1.
+    Holger Kanwischer.
+
+  * ENHANCED: CHR compiler and documentation.  By Tom Schrijvers.
+
+  * ADDED: dif/2 in the library(dif).  Code contributed by Tom
+    Schrijvers.  Thanks!
+
   * FIXED: reconsult to lock other threads (Unix).  Sandro Hawke.
+
+  * FIXED: http_open/3 problems using redirection to non-absolute URL.
+    Anjo Anjewierden.
+
+  * FIXED: Bug#133: setarg/3 did not throw an exception.  Holger
+    Kanwischer.
+
+  * ADDED: Handle ~@ in format/[2,3].  SICStus compatibility.  Reported
+    by Tom Schrijvers.
 
   * FIXED: sizeofClause() type error.  Michal Cihar.
 
@@ -19,20 +440,52 @@
 
   * FIXED: Bug#129: determinism in bagof/setof.  Holger Kanwischer.
 
+  * FIXED: Bug#125: rename_file/2 if source and destination are the same.
+    Dr. Werner Wolff.
+
+  * FIXED: phrase/3.  Detmar Meurers and others.
+
+
+VERSION 5.3.2 (Feb 4, 2004)
+===========================
+
+  * ADDED: frozen/2.
+
+  * FIXED/ADDED: Merged win_shell issues from main branch
+
+  * ADDED: CHR library by Tom Schrijvers and Christian Holzbaur.  Thanks!
+
+  * ADDED: Support for cyclic terms in ==/2, @>/2, etc.
+
+  * ADDED: library assoc.pl, Adapted YAP version, originally by Richard
+    O'Keefe.
+
+  * FIXED: Bug in unifying cyclic terms.  Kuniaki Mukai.
+
+  * ADDED: Support for cyclic terms in ground/1
+
   * FIXED: Bug#130: writeq('/*').  Holger Kanwischer.
 
   * FIXED: win_shell/2.  Added win_shell/3.  Dmitry.
 
   * FIXED: allow for peek_byte(-1), etc.  Michael A. Covington.
 
+  * FIXED: Merged saved-state patches from main branch
 
-VERSION 5.2.13 (Jan 29, 2004)
-=============================
-	
-  * FIXED: Bug#123: error in saved-state handling.  With help from
-    Lourens van der Meij and Holger Kanwischer.
+  * NEW: renamed nb_setval/2 to nb_linkval/2, giving nb_setval/2 a better
+    defined semantics.  Added duplicate_term/2 to really duplicate a term.
 
   * FIXED: module handling in flag/3
+
+  * ADDED: derived_from(File) option to load_files/2.
+
+  * MODIFIED: renamed free_variables/2 into the more widely used name
+    term_variables/2.  Added free_variables/2 to the library backcomp,
+    so applications with autoloading enabled (default) do not have
+    to be modified.
+
+  * ADDED: protect write/1 from looping on cyclic terms.  Short-term
+    solution writes ** if it detects a cycle.
 
   * FIXED: Hanging atom garbage collector in multi-threaded execution
     on Unix platforms.  With lots of help from Sergey Tikhonov.
@@ -40,11 +493,27 @@ VERSION 5.2.13 (Jan 29, 2004)
   * FIXED: make convert_time/7 thread-safe using localtime_r() if
     provided.
 
+  * ADDED: msb/1 arithmetic function.
+
+  * ADDED: support for attributed variables and cyclic terms in copy_term/2
+
+
+VERSION 5.3.0 (Jan 16, 2004)
+============================
+
+  * ADDED: Partial support for cyclic terms.  Covered sofar:
+    unify()
+
+  * ADDED: global variables: b_setval/2, b_getval/2, nb_setval/2,
+    nb_getval/2.
+
+  * ADDED: Coroutining: freeze/2
+
+  * ADDED: Attributed variables: attvar/1, put_attr/3, get_attr/3.
+
 
 VERSION 5.2.12 (Jan 17, 2004)
 =============================
-	
-  * FIXED: Reducing hash-tables too often (Holger Kanwischer).
 
   * FIXED: Crash in atom-garbage collection.  Sergey Tikhonov.
 

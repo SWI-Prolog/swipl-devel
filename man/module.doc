@@ -117,22 +117,22 @@ exist.  The use_module/[1,2] predicates load a module file and import
 imports any predicate from any module.
 
 \begin{description}
-\predicate{use_module}{1}{+File}
+    \predicate{use_module}{1}{+File}
 Load the file(s) specified with \arg{File} just like ensure_loaded/1.
 The files should all be module files.  All exported predicates from the
-loaded files are imported into the context module.  The difference
-between this predicate and ensure_loaded/1 becomes apparent if the file
-is already loaded into another module.  In this case ensure_loaded/1
-does nothing; use_module will import all public predicates of the module
-into the current context module.
-\predicate{use_module}{2}{+File, +ImportList}
+loaded files are imported into the context module.  This predicate is
+equivalent to ensure_loaded/1, except that it raises an error if 
+\arg{File} is not a module file.  
+
+    \predicate{use_module}{2}{+File, +ImportList}
 Load the file specified with \arg{File} (only one file is accepted).
 \arg{File} should be a module file. \arg{ImportList} is a list of
 name/arity pairs specifying the predicates that should be imported from
 the loaded module.  If a predicate is specified that is not exported from
 the loaded module a warning will be printed.  The predicate will
 nevertheless be imported to simplify debugging.
-\predicate{import}{1}{+Head}
+
+    \predicate{import}{1}{+Head}
 Import predicate \arg{Head} into the current context module. \arg{Head}
 should specify the source module using the \mbox{<module>:<term>}
 construct. Note that predicates are normally imported using one of the
@@ -397,7 +397,10 @@ built-in predicates that handle modules.
 This directive can only be used as the first term of a source file. It
 declares the file to be a \jargon{module file}, defining \arg{Module} and
 exporting the predicates of \arg{PublicList}. \arg{PublicList} is a
-list of name/arity pairs.
+list of predicate indicators (name/arity pairs) or operator declarations
+using the format \term{op}{Precedence, Type, Name}.  Operators
+defined in the export list are available inside the module as well as
+to modules importing this module.  See also \secref{operators}.
 
     \prefixop{module_transparent}{+Preds}
 \arg{Preds} is a comma separated list of name/arity pairs (like
@@ -487,6 +490,8 @@ modules are visible in all other modules as well.
     \item
 Quintus has the `meta_predicate/1' declaration were SWI-Prolog has the
 module_transparent/1 declaration.
+    \item
+Operator declarations are local to a module and may be exported.
 \end{itemize}
 
 The meta_predicate/1 declaration causes the compiler to tag arguments

@@ -23,10 +23,13 @@ AC_SUBST(INSTALLTARGET)
 AC_SUBST(EXTRAOBJ)
 AC_SUBST(BOOTFILE)
 AC_SUBST(PLLIB)			dnl libpl.a
+AC_SUBST(PLSO)			dnl libpl.so
 AC_SUBST(USEPLLIB)		dnl -lpl
+AC_SUBST(LNLIBS)		dnl libs to link with Prolog
 AC_SUBST(LDEXE)
 AC_SUBST(EXTRAHDR)
 AC_SUBST(SO)
+AC_SUBST(MKLIBS)		dnl system libraries to make
 AC_SUBST(BUILDDIR)
 AC_SUBST(CNFG)
 
@@ -38,10 +41,12 @@ fi
 EXTRAOBJ=""
 EXTRAHDR=""
 INSTALLTARGET=dv-install
-PL=pl
+if test -z "$PL"; then PL=pl; fi
 PLLIB=libpl.a
+MKLIBS=staticlib
 RT=""
 PLVERSION=`cat ../VERSION`
+PLBASE="$prefix/lib/$PL-$PLVERSION"
 CNFG=""				dnl Package configuration options
 
 dnl ****************************************************************
@@ -78,7 +83,8 @@ changequote([,])dnl
 
 AC_ARG_ENABLE(runtime, [  --enable-runtime	  Runtime system only],
 	      [case "$enableval" in
-		   yes) AC_DEFINE(O_RUNTIME)
+		   yes) AC_DEFINE(O_RUNTIME, 1,
+				  [Define to make runtime version])
 		        runtime=yes
 			RT=rt
 			INSTALLTARGET=rt-install ;;
@@ -88,7 +94,15 @@ AC_ARG_ENABLE(runtime, [  --enable-runtime	  Runtime system only],
 AC_ARG_ENABLE(mt, [  --enable-mt		  Enable Multi-threading],
 	      [case "$enableval" in
 		   yes) MT=yes
-		        AC_DEFINE(NO_SEGV_HANDLING)
+		        AC_DEFINE(NO_SEGV_HANDLING, 1,
+				  [Define to 1 not to use SIGSEGV for guarding stack-overflows])
+			;;
+		   *)  ;;
+	       esac])
+
+AC_ARG_ENABLE(shared, [  --enable-shared	  Prolog kernel as shared obj],
+	      [case "$enableval" in
+		   yes) MKSHARED=yes
 			;;
 		   *)  ;;
 	       esac])
@@ -152,7 +166,8 @@ case "$INSTALL" in
     ./*) INSTALL="`pwd`/$INSTALL" ;;
 esac
 AC_PROG_CPP
-AC_DEFINE_UNQUOTED(PROG_CPP, "$CPP")
+AC_DEFINE_UNQUOTED(PROG_CPP, "$CPP",
+		   [Program to run the C preprocessor])
 AC_ISC_POSIX
 AC_HEADER_STDC
 AC_SYS_LARGEFILE
@@ -203,11 +218,28 @@ AC_C_INLINE
 AC_FUNC_ALLOCA
 AC_C_BIGENDIAN
 
+if test "$GCC" = "yes"; then
+  ac_oldcflags="$CFLAGS"
+  CFLAGS="$CFLAGS -Werror -shared"
+  AC_MSG_CHECKING("GCC Visibility attribute")
+  AC_TRY_COMPILE(
+  [ int __attribute__((visibility("hidden"))) test();
+  ],
+  [ 
+  ], AC_DEFINE(HAVE_HIDDEN_ATTRIBUTE, 1,
+	       [Define if GCC visibility attribute is supported])
+     AC_MSG_RESULT(yes),
+     AC_MSG_RESULT(no))
+  CFLAGS="$ac_oldcflags"
+fi
+
+
 case "$ARCH" in
     *cygwin*)
 	AC_MSG_CHECKING("Cygwin ...")
         configmmappedstacks=no
-	AC_DEFINE(HAVE_VIRTUALALLOC)
+	AC_DEFINE(HAVE_VIRTUALALLOC, 1,
+		  [On Cygwin we should use VirtualAlloc()])
 	AC_DEFINE(NO_SEGV_HANDLING)
 	LDEXE="../src/ldcygwin"
 	AC_MSG_RESULT("Use VirtualAlloc")
@@ -225,7 +257,6 @@ dnl ****************************************************************
 
 if test "$MT" = "yes"; then
 pthread_ok=false
-  PLLIB=libplmt.a
 
 case "$ARCH" in
     *freebsd*)
@@ -268,7 +299,8 @@ AC_TRY_LINK([
   fi
 
   if test "$pthread_ok" = "true"; then
-    AC_DEFINE(O_PLMT)
+    AC_DEFINE(O_PLMT, 1,
+	      [Define to include support for multi-threading])
     CNFG="--enable-mt"
   fi
 
@@ -286,7 +318,8 @@ AC_TRY_LINK([
   (eval $ac_link) 2>&5
   if test -s conftest && ./conftest; then
     AC_MSG_RESULT(yes)
-    AC_DEFINE(RECURSIVE_MUTEXES)
+    AC_DEFINE(RECURSIVE_MUTEXES, 1,
+	      [Define to make use of standard (UNIX98) pthread recursive mutexes])
   else
     AC_MSG_RESULT(no)
   fi
@@ -313,7 +346,8 @@ dnl ATOMIC inc/dec for reference counts
     }
   ],
   AC_MSG_RESULT(yes)
-  AC_DEFINE(HAVE_ATOMIC_INC),
+  AC_DEFINE(HAVE_ATOMIC_INC, 1,
+	    [Define if you have atomic_inc() and atomic_dec() with atomic_t == int]),
   AC_MSG_RESULT(no),
   AC_MSG_RESULT(assuming no))
 fi	dnl End of MT configuration
@@ -385,7 +419,7 @@ else
   readline_ok=yes			# specified absent
 fi
 
-AC_ARG_ENABLE(shared, [  --disable-shared	  No shared-lib interface],
+AC_ARG_ENABLE(load-foreign, [  --disable-load-foreign  No shared-lib interface],
 	      configshared="$enableval",
 	      configshared=yes)
 
@@ -417,7 +451,8 @@ AC_TRY_COMPILE(
 ],
 [ dlopen("foobar", RTLD_NOW);
 ], ac_cv_func_dlopen=yes
-   AC_DEFINE(HAVE_DLOPEN)
+   AC_DEFINE(HAVE_DLOPEN, 1,
+	     [Define if you have a working dlopen()])
    AC_MSG_RESULT(yes),
    AC_MSG_RESULT(no))
 fi
@@ -443,7 +478,7 @@ _EOP_
 
 AC_CHECK_HEADERS(unistd.h string.h memory.h sys/time.h sys/stat.h pwd.h)
 AC_CHECK_HEADERS(sys/select.h sys/param.h sys/file.h sys/resource.h)
-AC_CHECK_HEADERS(malloc.h sys/malloc.h)
+AC_CHECK_HEADERS(malloc.h sys/malloc.h sys/stropts.h)
 AC_CHECK_HEADERS(sys/termios.h sys/termio.h bstring.h sys/mman.h)
 AC_CHECK_HEADERS(mach-o/rld.h locale.h)
 AC_CHECK_HEADERS(floatingpoint.h SupportDefs.h)
@@ -467,7 +502,8 @@ AC_CHECK_SIZEOF(int,  4)
 
 AC_MSG_CHECKING("Boot filename");
 BOOTFILE=boot`expr ${ac_cv_sizeof_long} \* 8`.prc
-AC_DEFINE_UNQUOTED(BOOTFILE, "$BOOTFILE")
+AC_DEFINE_UNQUOTED(BOOTFILE, "$BOOTFILE",
+		   [Name of the file to boot from])
 AC_MSG_RESULT($BOOTFILE)
 
 dnl if test "$GCC" = "yes"; then
@@ -499,7 +535,8 @@ if test "$ac_cv_func_fcntl" = yes; then
 ],
 [ struct flock buf;
   fcntl(0, F_SETLKW, &buf);
-], AC_DEFINE(FCNTL_LOCKS)
+], AC_DEFINE(FCNTL_LOCKS, 1,
+	     [we have fcntl() and it supports F_SETLKW])
    AC_MSG_RESULT(yes),
    AC_MSG_RESULT(no))
 fi
@@ -526,7 +563,8 @@ AC_TRY_RUN(
 ],
 AC_MSG_RESULT(as long),
 AC_MSG_RESULT(sizeof(double))
-AC_DEFINE(DOUBLE_ALIGNMENT, sizeof(double)),
+AC_DEFINE(DOUBLE_ALIGNMENT, sizeof(double),
+	  [Define if doubles cannot be aligned as longs]),
 AC_MSG_RESULT(assuming sizeof(double))
 AC_DEFINE(DOUBLE_ALIGNMENT, sizeof(double)))
 
@@ -565,7 +603,8 @@ AC_TRY_RUN(
   }
 ],
 AC_MSG_RESULT(allowed)
-AC_DEFINE(NON_ALIGNED_ACCESS),
+AC_DEFINE(NON_ALIGNED_ACCESS, 1,
+	  [Define if it is allowed to access long integers with non-aligned pointers]),
 AC_MSG_RESULT(not allowed),
 AC_MSG_RESULT(assuming not allowed))
 
@@ -578,7 +617,8 @@ AC_TRY_COMPILE(
 #include <sys/resource.h>
 ],
 [ rlim_t datasize;
-], AC_DEFINE(HAVE_RLIM_T)
+], AC_DEFINE(HAVE_RLIM_T, 1,
+	     [Define if the type rlim_t is defined by <sys/resource.h>])
    AC_MSG_RESULT(yes),
    AC_MSG_RESULT(no))
 fi
@@ -595,7 +635,8 @@ AC_TRY_COMPILE(
   unsigned long rss;
 
   rss = usage.ru_idrss;
-], AC_DEFINE(HAVE_RU_IDRSS)
+], AC_DEFINE(HAVE_RU_IDRSS, 1,
+	     [Define if struct rusage contains the field ru_idrss])
    AC_MSG_RESULT(yes),
    AC_MSG_RESULT(no))
 fi
@@ -608,7 +649,8 @@ AC_TRY_COMPILE(
 [ assert(1);
 ], AC_MSG_RESULT(no),
    AC_MSG_RESULT(yes);
-   AC_DEFINE(ASSERT_H_REQUIRES_STDIO_H))
+   AC_DEFINE(ASSERT_H_REQUIRES_STDIO_H, 1,
+	     [Define if <assert.h> requires <stdio.h>]))
 
 AC_CHECKING("for including sys/ioctl.h after sys/termios.h")
 if test "$GCC" = "yes"; then
@@ -623,7 +665,8 @@ AC_TRY_COMPILE(
 #include <sys/ioctl.h> 
 ],
 [;
-], true, AC_DEFINE(NO_SYS_IOCTL_H_WITH_SYS_TERMIOS_H))
+], true, AC_DEFINE(NO_SYS_IOCTL_H_WITH_SYS_TERMIOS_H, 1,
+		   [Define if <sys/ioctl> should *not* be included after <sys/termios.h>]))
 if test "$GCC" = "yes"; then CFLAGS="$ac_oldcflags"; fi
 
 if test -z "$ac_cv_header_sys_termio_h" -a -z "$ac_cv_header_sys_termios_h"; then
@@ -635,7 +678,8 @@ AC_TRY_COMPILE(
 ],
 [ struct sgttyb buf;
   ;
-], AC_DEFINE(HAVE_SGTTYB)
+], AC_DEFINE(HAVE_SGTTYB, 1,
+	     [Define if you don't have termio(s), but struct sgttyb])
    AC_MSG_RESULT(yes),
    AC_MSG_RESULT(no))
 fi
@@ -647,7 +691,7 @@ AC_TRY_COMPILE(
 #include <sys/types.h>
 typedef unsigned char uchar;
 ],
-[;], AC_DEFINE(NEED_UCHAR)
+[;], AC_DEFINE(NEED_UCHAR, 1, Define if uchar is not defined in <sys/types.h>)
      AC_MSG_RESULT("need typedef uchar"),
      AC_MSG_RESULT("uchar predefined"))
 
@@ -660,12 +704,14 @@ AC_TRY_COMPILE(
 ],
 [ return errno;
 ], AC_MSG_RESULT(no),
-   AC_DEFINE(NEED_DECL_ERRNO)
+   AC_DEFINE(NEED_DECL_ERRNO, 1,
+	     [Define if, in addition to <errno.h>, extern int errno; is needed])
    AC_MSG_RESULT(yes))
 
 AC_MSG_CHECKING("for symbolic links")
 if touch conftest.x && ln -s conftest.x conftest.lns && cmp conftest.x conftest.lns; then
-    AC_DEFINE(HAVE_SYMLINKS)
+    AC_DEFINE(HAVE_SYMLINKS, 1,
+	      [Define if the ln command supports -s])
     AC_MSG_RESULT(yes)
 else
     AC_MSG_RESULT(no)
@@ -692,7 +738,8 @@ main()
   if ( signal(SIGINT, catch) == catch )
     exit(0);
   exit(1);
-}], AC_DEFINE(BSD_SIGNALS)
+}], AC_DEFINE(BSD_SIGNALS, 1,
+	      [Define if BSD compatible signals (i.e. no reset when fired)])
     AC_MSG_RESULT("BSD signals"),
     AC_MSG_RESULT("Posix signals"),
     AC_MSG_RESULT("assuming Posix signals"))
@@ -744,12 +791,12 @@ set_sighandler(int sig, handler_t func)
 
 main()
 { struct itimerval value, ovalue;
+  time_t t0 = time(NULL);
+  int i;
   value.it_interval.tv_sec  = 0;
   value.it_interval.tv_usec = 1;
   value.it_value.tv_sec  = 0;
   value.it_value.tv_usec = 1;
-  time_t t0 = time(NULL);
-  int i;
   
   set_sighandler(SIGPROF, prof);
 
@@ -767,7 +814,7 @@ main()
     exit(0);
   } else
     exit(1);
-}], AC_DEFINE(O_PROFILE)
+}], AC_DEFINE(O_PROFILE, 1, Define if SIGPROF and setitimer() are available)
     AC_MSG_RESULT(yes),
     AC_MSG_RESULT(no),
     true)
@@ -780,7 +827,8 @@ AC_TRY_COMPILE(
 [ union wait status;
   waitpid(1, &status, WNOHANG);
 ], AC_MSG_RESULT(yes)
-   AC_DEFINE(UNION_WAIT),
+   AC_DEFINE(UNION_WAIT, 1,
+	     [Define if wait() uses union wait]),
    AC_MSG_RESULT(no))
 
 AC_MSG_CHECKING("for tagged lvalues")
@@ -790,7 +838,7 @@ AC_TRY_COMPILE(
 [ int x;
   *(char *)&x = 'a';
   exit(0);
-], AC_DEFINE(TAGGED_LVALUE)
+], AC_DEFINE(TAGGED_LVALUE, 1, [Define if (type)var = value is allowed])
    AC_MSG_RESULT(yes),
    AC_MSG_RESULT(no))
 
@@ -815,7 +863,8 @@ AC_TRY_COMPILE(
   	  exit(0);
 
         exit(1);
-], AC_DEFINE(O_LABEL_ADDRESSES)
+], AC_DEFINE(O_LABEL_ADDRESSES, 1,
+	     [Define to 1 if &&label and goto *var is supported (GCC-2)])
    AC_MSG_RESULT(yes),
    AC_DEFINE(O_LABEL_ADDRESSES, 0)
    AC_MSG_RESULT(no))
@@ -851,7 +900,8 @@ cat $srcdir/test/nop.c >> conftest.c
 if test -s conftest && eval `./conftest`; then
     AC_MSG_RESULT(yes)
 else
-    AC_DEFINE(NO_ASM_NOP)
+    AC_DEFINE(NO_ASM_NOP, 1,
+	      "Define if you can't use asm("nop") to separate two labels")
     AC_MSG_RESULT(no)
 fi
 rm -fr conftest*
@@ -894,7 +944,8 @@ if test "$ac_cv_func_mmap" = "yes"; then
     }
   ],
   AC_MSG_RESULT(yes)
-  AC_DEFINE(CAN_MMAP_FILES),
+  AC_DEFINE(CAN_MMAP_FILES, 1,
+	    Define if regular files can be mapped),
   AC_MSG_RESULT(no),
   AC_DEFINE(CAN_MMAP_FILES)
   AC_MSG_RESULT(assuming yes))
@@ -924,7 +975,8 @@ AC_TRY_COMPILE(
   act.sa_flags = SA_SIGINFO;
   
   sigaction(SIGSEGV, (void *)0, &act);
-], AC_DEFINE(HAVE_SIGINFO)
+], AC_DEFINE(HAVE_SIGINFO, 1,
+	     [Define if signal handler is compliant to POSIX.1b])
    AC_MSG_RESULT(yes),
    AC_MSG_RESULT(no))
 
@@ -949,18 +1001,22 @@ if test -s conftest; then
     if test "$?" = 0 && eval $res; then
 	if test "$MMAP_STACK" = "1"; then
 	    if test "$HAVE_MAP_ANON" = "1"; then
-		AC_DEFINE(HAVE_MAP_ANON)
+		AC_DEFINE(HAVE_MAP_ANON, 1,
+			  [Define if MAP_ANON is defined and works ok])
 	    fi
-	    AC_DEFINE(MMAP_STACK)
+	    AC_DEFINE(MMAP_STACK, 1,
+		      [Define if mmap() can be used to allocate stacks])
 	    if test "$mmap_tried" = "sgi"; then
-	      AC_DEFINE(SGIMMAP)
+	      AC_DEFINE(SGIMMAP, 1,
+			[Define if SGI-style mmap() is provided: MAP_AUTOGROW|MAP_AUTORESRV])
 	      AC_DEFINE(NO_SEGV_HANDLING)
 	    fi
 	    AC_MSG_RESULT(yes)
 	    AC_MSG_CHECKING("if SA_SIGINFO is usable")
 	    if test "$SIGNAL_HANDLER_PROVIDES_ADDRESS" = "1"; then
 	      AC_MSG_RESULT(yes)
-	      AC_DEFINE(USE_SIGINFO)
+	      AC_DEFINE(USE_SIGINFO, 1,
+			[Define if signal handler works compliant to POSIX.1b])
 	    else
 	      AC_MSG_RESULT(no)
 	    fi
@@ -1045,7 +1101,8 @@ SO_EXT="so"
 
 case "$ARCH" in
   *solaris* | *sunos5*)
-	AC_DEFINE(SO_LD, "/usr/ccs/bin/ld")
+	AC_DEFINE(SO_LD, "/usr/ccs/bin/ld",
+		  [Program to use for linking shared objects])
 	SO_LDFLAGS="-G"
 	if test "$GCC" != "yes"; then
 	    SO_pic="-Kpic"
@@ -1088,10 +1145,13 @@ case "$ARCH" in
   *darwin*)
 	PL=swipl
 	SO_pic="-fPIC"
-	AC_DEFINE(USE_SEM_OPEN)
-	AC_DEFINE(LD_SYMBOL_PREFIX, "_")
+	AC_DEFINE(USE_SEM_OPEN, 1,
+		  [Define if we must use sem_open() instead of the preferred sem_init()])
+	AC_DEFINE(LD_SYMBOL_PREFIX, "_",
+		  [String used to prefix all symbols requested through dlsym()])
 	AC_DEFINE(SO_FORMAT_LDFLAGS,
-		  ["-bundle -bundle_loader \"%s\" -o \"%s\"", plexe, soout])
+		  ["-bundle -bundle_loader \"%s\" -o \"%s\"", plexe, soout],
+		  [Arguments to pass to sprintf() to create SO_LDFLAGS])
 	CMFLAGS="-no-cpp-precomp"
 	;;
   *cygwin*)
@@ -1110,21 +1170,40 @@ case "$ARCH" in
 	;;
 esac
 
-AC_DEFINE_UNQUOTED(SO_EXT,     "$SO_EXT")
+AC_DEFINE_UNQUOTED(SO_EXT,     "$SO_EXT",
+		   [Define to the extension of shared objects (.so normally)])
 AC_DEFINE_UNQUOTED(SO_LD,      "$SO_LD")
-AC_DEFINE_UNQUOTED(SO_LDFLAGS, "$SO_LDFLAGS")
-AC_DEFINE_UNQUOTED(SO_pic,     "$SO_pic")
-AC_DEFINE_UNQUOTED(SO_PIC,     "$SO_PIC")
-AC_DEFINE_UNQUOTED(PROG_PL,    "$PL")
+AC_DEFINE_UNQUOTED(SO_LDFLAGS, "$SO_LDFLAGS",
+		   [Flags to use for linking shared objects])
+AC_DEFINE_UNQUOTED(SO_pic,     "$SO_pic",
+		   [Flags for compiling position-independent small object])
+AC_DEFINE_UNQUOTED(SO_PIC,     "$SO_PIC",
+		   [Flags for compiling position-independent BIG object])
+AC_DEFINE_UNQUOTED(PROG_PL,    "$PL",
+		   [Name of the SWI-Prolog executable (normally pl)])
 SO=$SO_EXT
+PLSO=libpl.$SO
 
 fi	dnl dlopen or shl_load
+
+dnl ================================================================
+
+if test "$MKSHARED" = yes; then
+  MKLIBS="$MKLIBS sharedlib"
+  CMFLAGS="$CMFLAGS $SO_PIC"
+  LDFLAGS="$LDFLAGS -Wl,-rpath=$PLBASE/lib/$ARCH"
+  LNLIBS=$(USEPLLIB)
+else
+  LNLIBS="$LIBS"
+fi dnl MKSHARED
+
+dnl ================================================================
 
 echo "	CFLAGS=$CWFLAGS $COFLAGS $CIFLAGS $CMFLAGS"
 echo "	LDFLAGS=$LDFLAGS"
 echo "	LIBS=$LIBS"
 
-OutputFiles="Makefile rc/Makefile pl.1"
+OutputFiles="Makefile rc/Makefile pl.1 pl.sh"
 
 dnl autoconf 2.5.3 doesn't handle relative srcdir properly.  We'll hack
 dnl around making this variable global.
@@ -1134,19 +1213,21 @@ srcdir=`cd $srcdir && pwd`
 # Prepare the package configuration if present
 
 if test -r ../packages/Makefile.in; then
-  OutputFiles="$OutputFiles ../packages/Makefile"
+  OutputFiles="$OutputFiles ../packages/Makefile ../packages/plld.sh"
 fi
 
 if test -r ../packages/configure.in; then
   OutputFiles="$OutputFiles ../packages/configure"
 fi
 
+AC_CONFIG_COMMANDS([exe],
+		   [ if test -r ../packages/configure; then
+		       chmod +x ../packages/configure
+		       chmod +x ../packages/plld.sh
+		     fi
+		     chmod +x pl.sh
+		   ])
 AC_OUTPUT($OutputFiles)
-
-if test -r ../packages/configure; then
-  chmod +x ../packages/configure
-fi
-
 
 if test "$readline_ok" = no; then
 cat << _EOM_

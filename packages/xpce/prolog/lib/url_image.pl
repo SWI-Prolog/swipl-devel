@@ -32,29 +32,49 @@
 :- module(url_image, []).
 :- use_module(library(pce)).
 
+resource(noimg, image, image('16x16/noimg.xpm')).
+
 :- pce_autoload(http_client, library(http_client)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Simple class to provide URL-based  images.   Currently  deals  only with
 fetching images using the file and http protocols.
 
-Fetched images are stored in a table.   Creating a url_image for the 2nd
-time will return the previously loaded image.
+Fetched images may be cached in a table using @on for the cache argument
+of ->initialise. Creating a url_image  for   the  2nd  time with caching
+enabled returns the previously loaded image.
 
-TBD: Proper handling of errors.
-TBD: What to do on a reload?
+->initialise also provides a no_image argument. This  image is used as a
+default image if the system cannot find the required image.
+
+TBD: What to  do/how  to  implement  reload?   Could  we  be  using  the
+broadcasting service for this?
+
+This class was designed to be used with the library scaledbitmap.pl.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 :- pce_begin_class(url_image, image,
 		   "Image whose source comes from a URL").
 
-variable(url,	name,	get,  "Source of the image").
-variable(cache, bool,   get, "Image is cached").
+variable(url,	 name, get, "Source of the image").
+variable(cache,  bool, get, "Image is cached").
+variable(exists, bool, get, "We succeeded loading the image from URL").
 
-initialise(I, URL:url=name, Cache:cache=[bool]) :->
+initialise(I, URL:url=name, Cache:cache=[bool], NoImage:no_image=[image]*) :->
 	"Create image from URL data"::
 	send_super(I, initialise),
-	send(I, load, URL, Cache).
+	(   (   NoImage == @nil
+	    ->	send(I, load, URL, Cache)
+	    ;	pce_catch_error(_, send(I, load, URL, Cache))
+	    )
+	->  send(I, slot, exists, @on)
+	;   send(I, slot, exists, @off),
+	    (	send(NoImage, instance_of, image)
+	    ->  send(I, copy, NoImage)
+	    ;   NoImage == @default
+	    ->  send_super(I, load, resource(noimg))
+	    )
+	).
 
 :- pce_global(@url_image_table, new(hash_table)).
 

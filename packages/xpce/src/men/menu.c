@@ -1261,17 +1261,23 @@ clearSelectionMenu(Menu m)
 }
 
 
-#define MAX_ITEMS 1000
 #define IS_SET 1
 #define NEEDS_SET 2
 
 status
 selectionMenu(Menu m, Any selection)
 { Cell cell;
-  char is_set[MAX_ITEMS];
-  int n;
+  char *is_set;
+  int size = valInt(m->members->size);
+  int n, do_free;
 
   DEBUG(NAME_popup, Cprintf("selectionMenu(%s, %s)\n", pp(m), pp(selection)));
+
+  if ( !(is_set = alloca((size+1)*sizeof(char))) )
+  { is_set = pceMalloc((size+1)*sizeof(char));
+    do_free = TRUE;
+  } else
+    do_free = FALSE;
 
   is_set[0] = 0;
   n = 1;
@@ -1309,6 +1315,9 @@ selectionMenu(Menu m, Any selection)
     }
     n++;
   }
+
+  if ( do_free )
+    pceFree(is_set);
 
   succeed;
 }
@@ -1896,15 +1905,21 @@ getModifiedMenu(Menu m)
     answer((mi && m->selection == mi->value) ? OFF : ON);
   } else
   { Cell cell;
-    char is_set[MAX_ITEMS];
-    int n;
+    int size = valInt(m->members->size);
+    char *is_set;
+    int n, do_free;
 
     if ( !instanceOfObject(m->selection, ClassChain) )
       answer(ON);
 
+    if ( !(is_set = alloca(size*sizeof(char))) )
+    { is_set = pceMalloc(size*sizeof(char));
+      do_free = TRUE;
+    } else
+      do_free = FALSE;
+
     n = 1;
     for_cell(cell, m->members)
-
       is_set[n++] = 0;
     
     for_cell(cell, (Chain) m->selection)
@@ -1919,9 +1934,16 @@ getModifiedMenu(Menu m)
 
       if ( (is_set[n] && mi->selected == OFF) ||
 	   (!is_set[n] && mi->selected == ON) )
+      { if ( do_free )
+	  pceFree(is_set);
+
 	answer(ON);
+      }
       n++;
     }
+
+    if ( do_free )
+      pceFree(is_set);
 
     answer(OFF);
   }

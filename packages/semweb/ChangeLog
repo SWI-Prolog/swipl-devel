@@ -1,3 +1,118 @@
+Sep 14, 2004
+
+  * ENHANCED: Actually start of with small tables and resize them if the
+    triple count increases.  Reduces memory usage and improves speed on
+    erasing and re-hashing small datasets.
+
+  * FIXED: Bug#183: memory corruption due to invalid free.  Sandro Hawke.
+    Same test also provided other consistency errors.
+
+Sep 2, 2004
+
+  * FIXED: rdfs_subclass_of(+Class, -Super) to relate all classes 
+    implicitely to rdfs:Resource (rdfs entailment rule).
+
+  * FIXED: Bug#182: After rdf_retractall(_,_,_) database cannot be refilled.
+    Sandro Hawke.
+
+Sep 1, 2004
+
+  * FIXED: rdf_match_label(like, '*Rijn*', 'van Rijn')
+
+  * ADDED: rdf_predicate_property/2 new properties rdfs_object_branch_factor
+    and rdfs_subject_branch_factor.
+
+Aug 31, 2004
+
+  * ADDED: rdf_predicate_property/2 new properties rdf_object_branch_factor
+    and rdf_subject_branch_factor.
+
+Aug 27, 2004
+
+  * FIXED: module problem in rdf_db.pl
+
+Aug 26, 2004
+
+  * ADDED: convert_typed_literal option to rdf_save/2.  Bug#171. 
+    Sandro Hawke.
+
+Aug 19, 2004
+
+  * ADDED: rdf_estimate_complexity/4.
+
+  * ADDED: rdf_predicate_property(+Predicate, triples(-Count)) to find
+    the number of triples on a predciate.
+
+Aug 11, 2004
+
+  * FIXED: rdf_load_db/1 now updates the source registration
+    (rdf_source/1).
+
+Jul 30, 2004
+
+  * ADDED: rdf_atom_md5/3 for password encryption purposes.
+
+Jul 29, 2004
+
+  * ADDED: matching using the SeRQL compatible `like' operator.
+
+Jul 22, 2004
+
+  * ADDED: Namespace expansion in rdf(S,P,literal(type(xsd:int, 5))).
+    Bug#170.  Sandro Hawke.
+
+  * FIXED: rdf(X,X,X) and similar queries.
+
+Jul 15, 2004
+
+  * ENHANCED: Added triple garbage collector.  After Bug#161 by Sandro Hawke.
+
+  * FIXED: Bug#160: rdf_safe_header/2 implementation and documentation.
+    Sandro Hawke.
+
+Jun 29, 2004
+
+  * FIXED: rdf_split_url(+, +, -).  Bob Wielinga.
+
+Jun 17, 2004
+
+  * FIXED: pass base_uri option to rdf_load from rdfe_load to avoid clashes
+    of bnodes.
+
+Jun 16, 2004
+
+  * FIXED: rdf(-,+,+) was indexed as rdf(-,+,-) if the object is a resource.
+
+Jun 2, 2004
+
+  * ADDED: rdf_is_bnode/1
+
+May 22, 2004
+
+  * FIXED: Literal string matching broken with introduction of
+    language support. (Sandro Hawke)
+
+Apr 23, 2004
+
+  * ADDED: first version of lang and dataType support.  Improved test-suite
+
+Apr 22, 2004
+
+  * ADDED: Support for arbitrary Prolog values for `Object'.  This will be
+    used to support xml:lang, rdf:dataType and XML literals.
+
+Apr 11, 2004
+
+  * FIXED: rdf:parseType="Collection": XML attribute value _always_ requires
+    quotes.  Maarten Menken.
+
+Apr 1, 2004
+
+  * FIXED: Save toplevel anonymous resources unless anon(false) is provided
+    in the option list of rdf_save/2.  Simon Price and Dan Brickley.
+
+  * ADDED: Option list to rdf_save/2
+
 Nov 29, 2003
 
   * FIXED: rdfs_individual_of(+, -) (only generated Resource).

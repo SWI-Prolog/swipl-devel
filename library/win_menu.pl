@@ -75,6 +75,7 @@ menu('&Debug',
 menu('&Help',
      [ '&About ...' 				= about,
        '&Online manual ...' 			= help,
+       '&Package documentation ...' 		= html_open(swi('doc/packages/index.html')),
        --,
        'SWI-Prolog &WWW home (on www) ...'	= www_open(pl),
        'SWI-Prolog &FAQ (on www) ...'		= www_open(pl_faq),
@@ -146,6 +147,10 @@ www_open(Id) :-
 	call(www_open_url(URL)),	% avoid autoloading
 	print_message(informational, opened_url(URL)).
 	
+html_open(Spec) :-
+	absolute_file_name(Spec, [access(read)], Path),
+	call(win_shell(open, Path)).
+
 about :-
 	print_message(informational, about).
 

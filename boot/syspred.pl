@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        jan@swi.psy.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2004, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -75,6 +75,7 @@
 	, call_with_depth_limit/3
 	, length/2
 	, numbervars/3
+	, nb_setval/2				% +Var, +Value
 	]).	
 
 		/********************************
@@ -124,6 +125,7 @@ $map_style_check(singleton, 	    2'0000010).
 $map_style_check(dollar,   	    2'0000100).
 $map_style_check((discontiguous),   2'0001000).
 $map_style_check(dynamic,	    2'0010000).
+$map_style_check(charset,	    2'0100000).
 
 style_check(+string) :- !,
 	set_prolog_flag(double_quotes, string).
@@ -329,7 +331,7 @@ prolog_load_context(file, F) :-
 	source_location(F, _).
 prolog_load_context(stream, S) :-
 	source_location(F, _),
-	(   $load_input(F, S0)
+	(   system:$load_input(F, S0)
 	->  S = S0
 	).
 prolog_load_context(directory, D) :-
@@ -457,11 +459,10 @@ $predicate_property(line_count(LineNumber), Pred) :-
 	$get_predicate_attribute(Pred, line_count, LineNumber).
 $predicate_property(notrace, Pred) :-
 	$get_predicate_attribute(Pred, trace, 0).
+$predicate_property(nodebug, Pred) :-
+	$get_predicate_attribute(Pred, hide_childs, 1).
 $predicate_property(spying, Pred) :-
 	$get_predicate_attribute(Pred, spy, 1).
-$predicate_property(show_childs, Pred) :-
-	$get_predicate_attribute(Pred, system, 1),
-	$get_predicate_attribute(Pred, hide_childs, 0).
 $predicate_property(hashed(N), Pred) :-
 	$get_predicate_attribute(Pred, hashed, N),
 	N > 0.
@@ -671,12 +672,15 @@ map_dlflags([F|T], M) :-
 	dlopen_flag(F, I),
 	M is M0 \/ I.
 
-open_shared_object(File, Flags, Handle) :-
+open_shared_object(File, Flags, Handle) :- % compatibility
+	is_list(Flags), \+ is_list(Handle), !,
+	open_shared_object(File, Handle, Flags).
+open_shared_object(File, Handle, Flags) :-
 	map_dlflags(Flags, Mask),
 	$open_shared_object(File, Handle, Mask).
 
 open_shared_object(File, Handle) :-
-	open_shared_object(File, [global], Handle). % use pl-load.c defaults
+	open_shared_object(File, [], Handle). % use pl-load.c defaults
 
 
 		/********************************
@@ -774,6 +778,17 @@ length2([_|List], N) :-
 %	will be given to the next variable.
 
 numbervars(Term, From, To) :-
-	numbervars(Term, '$VAR', From, To).
+	numbervars(Term, From, To, []).
 
 
+		 /*******************************
+		 *	       GVAR		*
+		 *******************************/
+
+%	nb_setval(+Name, +Value)
+%	
+%	Bind the non-backtrackable variable Name with a copy of Value
+
+nb_setval(Name, Value) :-
+	duplicate_term(Value, Copy),
+	nb_linkval(Name, Copy).

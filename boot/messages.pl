@@ -36,7 +36,8 @@
 	  ]).
 
 :- multifile
-	prolog:message/3.
+	prolog:message/3,
+	prolog:error_message/3.
 :- discontiguous
 	prolog_message/3.
 
@@ -76,6 +77,8 @@ term_message(Term) -->
 	{var(Term)}, !,
 	[ 'Unknown error term: ~p'-[Term] ].
 term_message(Term) -->
+	prolog:error_message(Term).
+term_message(Term) -->
 	iso_message(Term).
 term_message(Term) -->
 	swi_message(Term).
@@ -84,6 +87,9 @@ term_message(Term) -->
 
 iso_message(type_error(evaluable, Actual)) -->
 	[ 'Arithmetic: `~p'' is not a function'-[Actual] ].
+iso_message(type_error(free_of_attvar, Actual)) -->
+	[ 'Type error: `~W'' contains attributed variables'-
+	  [Actual,[portray(true), attributes(portray)]] ].
 iso_message(type_error(Expected, Actual)) -->
 	[ 'Type error: `~w'' expected, found `~p'''-[Expected, Actual] ].
 iso_message(domain_error(Domain, Actual)) -->
@@ -150,7 +156,8 @@ syntax_error(cannot_start_term) -->
 	[ 'Illegal start of term' ].
 syntax_error(punct(Punct, End)) -->
 	[ 'Unexpected `~w\' before `~w\''-[Punct, End] ].
-
+syntax_error(Message) -->
+	[ '~w'-[Message] ].
 
 dwim_predicates(Module:Name/_Arity, Dwims) :- !,
 	findall(Dwim, dwim_predicate(Module:Name, Dwim), Dwims).
@@ -197,6 +204,10 @@ swi_message(timeout_error(Op, Stream)) -->
 	[ 'Timeout in ~w from ~p'-[Op, Stream] ].
 swi_message(not_implemented(Type, What)) -->
 	[ '~w `~p\' is not implemented in this version'-[Type, What] ].
+swi_message(format_argument_type(Fmt, Arg)) -->
+	[ 'Illegal argument to format sequence ~~~w: ~p'-[Fmt, Arg] ].
+swi_message(format(Msg)) -->
+	[ 'Format error: ~w'-[Msg] ].
 
 swi_context(X) -->
 	{ var(X)
@@ -206,10 +217,10 @@ swi_context(context(Name/Arity, _Msg)) -->
 	{ nonvar(Name)
 	}, !,
 	[ '~q/~w: '-[Name, Arity] ].
-swi_context(file(Path, Line, _CharNo)) -->
-	[ '~w:~d: '-[Path, Line] ].
-swi_context(stream(Stream, Line, _CharNo)) -->
-	[ 'Stream ~w:~d: '-[Stream, Line] ].
+swi_context(file(Path, Line, LinePos, _CharNo)) -->
+	[ '~w:~d:~d: '-[Path, Line, LinePos] ].
+swi_context(stream(Stream, Line, LinePos, _CharNo)) -->
+	[ 'Stream ~w:~d:~d '-[Stream, LinePos, Line] ].
 swi_context(_) -->
 	[].
 
@@ -218,7 +229,7 @@ swi_extra(X) -->
 	}, !,
 	[].
 swi_extra(context(_, Msg)) -->
-	{ atomic(Msg),
+	{ nonvar(Msg),
 	  Msg \== ''
 	}, !,
 	[ ' (~w)'-[Msg] ].
@@ -242,8 +253,6 @@ prolog_message(initialization_exception(E)) -->
 	translate_message(E).
 prolog_message(unhandled_exception(E)) -->
 	[ 'Unhandled exception: ~p~n'-[E] ].
-prolog_message(no_predicates_for(Spec)) -->
-	[ 'No predicates for `~w'''-[Spec] ].
 prolog_message(goal_failed(Goal, Context)) -->
 	[ 'Goal (~w) failed: ~p'-[Goal, Context] ].
 prolog_message(no_current_module(Module)) -->
@@ -256,6 +265,8 @@ prolog_message(singletons(List)) -->
 	[ 'Singleton variables: ~w'-[List] ].
 prolog_message(profile_no_cpu_time) -->
 	[ 'No CPU-time info.  Check the SWI-Prolog manual for details' ].
+prolog_message(non_ascii(Text, Type)) -->
+	[ 'Unquoted ~w with non-portable characters: ~w'-[Type, Text] ].
 
 
 		 /*******************************
@@ -657,6 +668,17 @@ clean_goal(M:Goal, Goal) :-
 clean_goal(M:Goal, Goal) :-
 	predicate_property(M:Goal, built_in), !.
 clean_goal(Goal, Goal).
+
+
+		 /*******************************
+		 *	      THREADS		*
+		 *******************************/
+
+prolog_message(abnormal_thread_completion(Goal, exception(Ex))) --> !,
+	[ 'Thread running "~p" died on exception: '-[Goal] ],
+	translate_message(Ex).
+prolog_message(abnormal_thread_completion(Goal, fail)) -->
+	[ 'Thread running "~p" died due to failure'-[Goal] ].
 
 
 		 /*******************************

@@ -61,7 +61,8 @@ clear_message_list :-
 
 user:message_hook(Term, Level, Lines) :-
 	accept_level(Level),
-	(   Term = error(syntax_error(Error), file(Path, Line))
+	(   Term = error(syntax_error(Error),
+			 file(Path, Line, _LinePos, _CharPos))
 	->  new(Message, string('Syntax error: %s', Error))
 	;   Term = error(_, Location),
 	    nonvar(Location),
@@ -70,6 +71,7 @@ user:message_hook(Term, Level, Lines) :-
 	;   source_location(Path, Line),
 	    make_message(Lines, Message)
 	),
+	atom(Path),			% void surprises
 	\+ object(@loading_emacs),
 	start_emacs,
 	new(Buffer, emacs_buffer(Path)),

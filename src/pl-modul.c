@@ -145,24 +145,22 @@ initModules(void)
 
 int
 isSuperModule(Module s, Module m)	/* s is a super-module of m */
-{ for(;;)
-  { ListCell c;
+{ ListCell c;
 
-  next:
-    if ( m == s )
-      succeed;
-    
-    for(c=m->supers; c; c=c->next)
-    { if ( c->next )
-      { if ( isSuperModule(s, c->value) )
-	  succeed;
-      } else
-      { m = c->value;
-	goto next;
-      }
+next:
+  if ( m == s )
+    succeed;
+  
+  for(c=m->supers; c; c=c->next)
+  { if ( c->next )
+    { if ( isSuperModule(s, c->value) )
+	succeed;
+    } else
+    { m = c->value;
+      goto next;
     }
-    fail;
   }
+  fail;
 }
 
 
@@ -231,7 +229,7 @@ stripModule(Word term, Module *module ARG_LD)
   { Word mp;
     mp = argTermP(*term, 0);
     deRef(mp);
-    if ( !isAtom(*mp) )
+    if ( !isTextAtom(*mp) )
       break;
     *module = lookupModule(*mp);
     term = argTermP(*term, 1);
@@ -585,12 +583,13 @@ declareModule(atom_t name, SourceFile sf, int line)
 
   if ( module->file && module->file != sf)
   { term_t obj;
-    char msg[1024];
+    char msg[256];
     UNLOCK();
 
     obj = PL_new_term_ref();
     PL_put_atom(obj, name);
-    Ssprintf(msg, "Alread loaded from %s", stringAtom(module->file->name));
+    Ssprintf(msg, "Alread loaded from %s",
+	     atom_summary(module->file->name, 100));
     return PL_error("module", 2, msg, ERR_PERMISSION,
 		    ATOM_redefine, ATOM_module, obj);
   }
@@ -604,7 +603,8 @@ declareModule(atom_t name, SourceFile sf, int line)
 	      Definition def = proc->definition;
 	      if ( /*def->module == module &&*/
 		   !true(def, DYNAMIC|MULTIFILE|FOREIGN) )
-	      { if ( def->module == module && isDefinedProcedure(proc) )
+	      { if ( def->module == module &&
+		     hasClausesDefinition(def) )
 		{ if ( !rdef )
 		  { rdef = PL_new_term_ref();
 		    rtail = PL_copy_term_ref(rdef);

@@ -37,8 +37,7 @@
 :- use_module(library(pce)).
 :- use_module(proto).
 :- use_module(behaviour).
-:- require([ checklist/2
-	   , forall/2
+:- require([ forall/2
 	   , ignore/1
 	   , is_list/1
 	   , member/2
@@ -79,7 +78,7 @@ make_dialog(Dialog, Module, TheId) :-
 do(Goal, Attribute, List) :-
 	memberchk(Attribute := Value, List), !,
 	(   is_list(Value)
-	->  checklist(Goal, Value)
+	->  maplist(Goal, Value)
 	;   call(Goal, Value)
 	).
 do(_, _, _).
@@ -215,7 +214,7 @@ object_name(@Ref, Name) :-
 
 
 add_model_item(Model, Item, EventPorts) :-
-	checklist(add_event_port(Model, Item), EventPorts).
+	maplist(add_event_port(Model, Item), EventPorts).
 
 
 add_event_port(Model, Item, PortName := Message) :-
@@ -227,7 +226,7 @@ add_event_port(Model, Item, PortName := Message) :-
 
 add_message(Model, Port, Sequence) :-
 	Sequence =.. [and | Messages], !,
-	checklist(add_message(Model, Port), Messages).
+	maplist(add_message(Model, Port), Messages).
 add_message(Model, Port, if(Cond, Message)) :- !,
 	add_message(Model, Port, Message, Connection),
 	add_message(Model, Connection, Cond).
@@ -241,7 +240,7 @@ add_message(Model, Port, Message, Connection) :-
 	send(ReceiverObject, add_port, send, Selector, point(0,0)), %TBD
 	get(ReceiverObject, member, Selector, CallPort),
 	make_relation(Connection, Port, CallPort),
-	checklist(add_argument(Model, Connection), Args).
+	maplist(add_argument(Model, Connection), Args).
 add_message(Model, Port, Message, Connection) :- % to be completed
 	term_to_atom(Message, Atom),
 	random_position(Model, Pos),
@@ -258,7 +257,7 @@ add_argument(Model, Connection, Obtainer) :-
 	send(RecObj, add_port, get, Selector, point(0,0)), % TBD
 	get(RecObj, member, Selector, ValuePort),
 	make_relation(ArgRelation, ValuePort, Connection),
-	checklist(add_argument(Model, ArgRelation), Args).
+	maplist(add_argument(Model, ArgRelation), Args).
 add_argument(Model, Connection, Item) :-
 	get(Item, hypered, behaviour_model, _), !,
 	add_argument(Model, Connection, Item?self).

@@ -443,6 +443,23 @@ else
   BOOTPL=xpce
 fi
 
+
+if test "$GCC" = "yes"; then
+  ac_oldcflags="$CFLAGS"
+  CFLAGS="$CFLAGS -Werror -shared"
+  AC_MSG_CHECKING("GCC Visibility attribute")
+  AC_TRY_COMPILE(
+  [ int __attribute__((visibility("hidden"))) test();
+  ],
+  [ 
+  ], AC_DEFINE(HAVE_HIDDEN_ATTRIBUTE, 1,
+	       [Define if GCC visibility attribute is supported])
+     AC_MSG_RESULT(yes),
+     AC_MSG_RESULT(no))
+  CFLAGS="$ac_oldcflags"
+fi
+
+
 dnl %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 dnl % Begin Quintus specific configuration
 dnl %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

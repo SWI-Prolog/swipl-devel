@@ -165,6 +165,12 @@ backgroundView(View v, Any bg)
 }
 
 
+static status
+colourView(View v, Any c)
+{ return colourEditor(v->editor, c);
+}
+
+
 
 		 /*******************************
 		 *	 CLASS DECLARATION	*
@@ -216,7 +222,9 @@ static senddecl send_view[] =
   SM(NAME_selection, 3, T_selection, selectionView,
      NAME_selection, "Overrule window behaviour"),
   SM(NAME_background, 1, "colour|pixmap", backgroundView,
-     NAME_appearance, "Backround for the window")
+     NAME_appearance, "Backround for the window"),
+  SM(NAME_colour, 1, "colour|pixmap", colourView,
+     NAME_appearance, "Foreground colour for the text")
 };
 
 /* Get Methods */

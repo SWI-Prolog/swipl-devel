@@ -561,7 +561,7 @@ about(M) :->
 	new(D, dialog('About XPCE')),
 	send(D, transient_for, M),
 	about(List),
-	checklist(add_about(D), List),
+	maplist(add_about(D), List),
 	send(D, append, button(ok, message(D, destroy))),
 	send(D, open_centered).
 

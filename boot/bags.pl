@@ -29,10 +29,11 @@
     the GNU General Public License.
 */
 
-:- module($bags, [
-	findall/3, 
-	bagof/3, 
-	setof/3]).
+:- module($bags,
+	  [ findall/3, 
+	    bagof/3, 
+	    setof/3
+	  ]).
 
 :- module_transparent
 	findall/3, 
@@ -75,7 +76,8 @@ bagof(Gen, Goal, Bag) :-
 
 assert_bag(Templ, G) :-
 	$record_bag(-), 
-	catch(G, E, $except_bag(E)),
+%	call_cleanup(G, exception(_), $discard_bag),
+	catch(G, E, ($discard_bag, throw(E))),
 	    $record_bag(Templ), 
 	fail.
 assert_bag(_, _).

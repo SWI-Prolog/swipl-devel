@@ -50,14 +50,7 @@ AC_MSG_RESULT("		PLSHARED=$PLSHARED")
 AC_MSG_RESULT("		PLSOEXT=$PLSOEXT")
 AC_CHECK_PROGS(RUNTEX, runtex, ":")
 else
-case "$PLARCH" in
-  *darwin*|*aix*)
-    PLLD=plld
-    ;;
-  *)
-    PLLD="../../$BUILDDIR/plld -pl ../../$BUILDDIR/$PL"
-    ;;
-esac
+PLLD=../plld.sh
 RUNTEX=../../man/runtex
 fi
 

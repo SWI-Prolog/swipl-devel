@@ -1,3 +1,15 @@
+Sep 14, 2004
+
+* FIXED: Bug#185: handle types.  Sandro Hawke.
+
+Aug 31, 2004
+
+* FIXED: Bug#180: db_del/3 on database with unique key
+
+May 28, 2004
+
+* PORT: Provide support for BerkeleyDB 4.2.
+
 Jun 4, 2003
 
 * PORT: Updated Makefile.mak for MS-Windows.  Fixed for spaces in path.

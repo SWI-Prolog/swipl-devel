@@ -31,7 +31,9 @@
 #undef LD
 #define LD LOCAL_LD
 
-forwards char 	*prependBase(int, char *);
+static char 	*prependBase(int, char *);
+static void	duplicate_term(term_t in, term_t copy ARG_LD);
+
 
 		/********************************
 		*         TYPE CHECKING         *
@@ -50,26 +52,26 @@ PRED_IMPL("var", 1, var, 0)
   return PL_is_variable(A1);
 }
 
-word
-pl_integer(term_t k)
-{ return PL_is_integer(k);
+static
+PRED_IMPL("integer", 1, integer, 0)
+{ return PL_is_integer(A1);
 }
 
-word
-pl_float(term_t k)
-{ return PL_is_float(k);
+static
+PRED_IMPL("float", 1, float, 0)
+{ return PL_is_float(A1);
 }
 
 #if O_STRING
-word
-pl_string(term_t k)
-{ return PL_is_string(k);
+static
+PRED_IMPL("string", 1, string, 0)
+{ return PL_is_string(A1);
 }
 #endif /* O_STRING */
 
-word
-pl_number(term_t k)
-{ return PL_is_number(k);
+static
+PRED_IMPL("number", 1, number, 0)
+{ return PL_is_number(A1);
 }
 
 static
@@ -84,36 +86,135 @@ PRED_IMPL("atomic", 1, atomic, 0)
   return PL_is_atomic(A1);
 }
 
+
+#if O_CYCLIC
+
+static inline int
+visitedWord(Word p ARG_LD)
+{ if ( is_marked(p) )
+    succeed;
+  set_marked(p);
+  requireStack(argument, sizeof(Word));
+  *aTop++ = p;
+  fail;
+}
+
+
 static int
-_pl_ground(Word p ARG_LD)
+visited(Functor f ARG_LD)
+{ Word p = &f->definition;
+
+  return visitedWord(p PASS_LD);
+}
+
+
+static void
+unvisit(Word *base ARG_LD)
+{ Word *p = aTop;
+
+  while(p>base)
+  { p--;
+    clear_marked(*p);
+  }
+
+  aTop = base;
+}
+
+
+					/* see also pl-wam.c, unify() */
+static inline void
+linkTermsCyclic(Functor f1, Functor f2 ARG_LD)
+{ Word p1 = (Word)&f1->definition;
+  Word p2 = (Word)&f2->definition;
+
+  *p1 = makeRefG(p2);
+  requireStack(argument, sizeof(Word));
+  *aTop++ = p1;
+}
+
+
+static inline void
+exitCyclic(Word *base ARG_LD)
+{ Word *sp = aTop;
+
+  while(sp>base)
+  { Word p;
+
+    sp--;
+    p = *sp;
+    *p = *unRef(*p);
+  }
+
+  aTop = base;
+}
+
+#else
+
+static inline visited(Functor f ARG_LD) { fail; }
+static inline unvisit(Word *base ARG_LD) { }
+static inline void exitCyclic(ARG1_LD) {}
+static inline void linkTermsCyclic(Functor f1, Functor f2 ARG_LD) {}
+
+#endif /*O_CYCLIC*/
+
+static int
+ground(Word p ARG_LD)
 { int arity;
+  Functor f;
 
 last:
   deRef(p);
 
-  if (isVar(*p) )
+  if ( canBind(*p) )		/* attributed variables are not ground */
     fail;
-  if (!isTerm(*p) )
+  if ( !isTerm(*p) )
     succeed;
 
-  arity = arityFunctor(functorTerm(*p));
-  for(p = argTermP(*p, 0); --arity > 0; p++)
-    TRY( _pl_ground(p PASS_LD) );
+  f = valueTerm(*p);
+  arity = arityFunctor(f->definition);
+  p = f->arguments;
+  if ( visited(f PASS_LD) )	/* already been here, so it must be ground */
+    succeed;
+
+  for(; --arity > 0; p++)
+  { if ( !ground(p PASS_LD) )
+      fail;
+  }
 
   goto last;
+}
+
+
+int
+PL_is_ground(term_t t)
+{ GET_LD
+
+  Word *m = aTop;
+  int rc;
+
+  rc = ground(valTermRef(t) PASS_LD);
+  unvisit(m PASS_LD);
+
+  return rc;
 }
 
 
 static
 PRED_IMPL("ground", 1, ground, 0)
 { PRED_LD
-  return _pl_ground(valTermRef(A1) PASS_LD);
+  Word *m = aTop;
+  int rc;
+
+  rc = ground(valTermRef(A1) PASS_LD);
+  unvisit(m PASS_LD);
+
+  return rc;
 }
 
 
-word
-pl_compound(term_t k)
-{ return PL_is_compound(k);
+static
+PRED_IMPL("compound", 1, compound, 0)
+{ return PL_is_compound(A1);
 }
 
 
@@ -166,6 +267,7 @@ termHashValue(word term, long *hval ARG_LD)
 { for(;;)
   { switch(tag(term))
     { case TAG_VAR:
+      case TAG_ATTVAR:
 	fail;
       case TAG_ATOM:
 	*hval = atomValue(term)->hash_value;
@@ -187,13 +289,17 @@ termHashValue(word term, long *hval ARG_LD)
 	succeed;
       }
       case TAG_COMPOUND:
-      { functor_t fd = functorTerm(term);
-	int arity = arityFunctor(fd);
-	Word a, a2;
+      { Functor f = valueTerm(term);
+	int arity = arityFunctor(f->definition);
+	Word a = f->arguments;
 
-	*hval = atomValue(nameFunctor(fd))->hash_value + arity;
-	for(a = argTermP(term, 0); arity; arity--, a++)
+	if ( visited(f PASS_LD) )
+	  succeed;
+
+	*hval = atomValue(nameFunctor(f->definition))->hash_value + arity;
+	for(; arity; arity--, a++)
 	{ long av;
+	  Word a2;
 
 	  deRef2(a, a2);
 	  if ( termHashValue(*a2, &av PASS_LD) )
@@ -218,10 +324,15 @@ PRED_IMPL("hash_term", 2, hash_term, 0)
 { PRED_LD
   Word p = valTermRef(A1);
   long hraw;
+  Word *m = aTop;
+  int rc;
 
   deRef(p);
 
-  if ( termHashValue(*p, &hraw PASS_LD) )
+  rc = termHashValue(*p, &hraw PASS_LD);
+  unvisit(m PASS_LD);
+
+  if ( rc )
   { hraw = hraw & PLMAXTAGGEDINT;	/* ensure tagged */
 
     return PL_unify_integer(A2, hraw);
@@ -234,70 +345,6 @@ PRED_IMPL("hash_term", 2, hash_term, 0)
 
 
 		/********************************
-		*           EQUALITY            *
-		*********************************/
-
-static word
-_pl_equal(register Word t1, register Word t2 ARG_LD)
-{ int arity;
-
-right_recursive:
-  deRef(t1);
-  deRef(t2);
-
-  if ( isVar(*t1) )
-  { if (t1 == t2)
-      succeed;
-    fail;
-  }
-
-  if (*t1 == *t2)
-    succeed;
-
-  if ( isIndirect(*t1) )
-  { if ( isIndirect(*t2) )
-      return equalIndirect(*t1, *t2);
-    fail;
-  }
-
-  if (!isTerm(*t1) || !isTerm(*t2) ||
-       functorTerm(*t1) != functorTerm(*t2) )
-    fail;
-
-  arity = arityFunctor(functorTerm(*t1));
-  t1 = argTermP(*t1, 0);
-  t2 = argTermP(*t2, 0);
-  if ( arity == 0 )
-    succeed;
-  for(; --arity > 0; t1++, t2++)
-    TRY(_pl_equal(t1, t2 PASS_LD));
-  goto right_recursive;
-
-  succeed;
-}
-
-
-static
-PRED_IMPL("==", 2, equal, 0)
-{ PRED_LD
-  Word p1 = valTermRef(A1);
-  Word p2 = p1+1;
-
-  return _pl_equal(p1, p2 PASS_LD);
-}
-
-
-static
-PRED_IMPL("\\==", 2, nonequal, 0)
-{ PRED_LD
-  Word p1 = valTermRef(A1);
-  Word p2 = p1+1;
-
-  return _pl_equal(p1, p2 PASS_LD) ? FALSE : TRUE;
-}
-
-
-		/********************************
 		*        STANDARD ORDER         *
 		*********************************/
 
@@ -305,13 +352,21 @@ static int
 compareAtoms(atom_t w1, atom_t w2)
 { Atom a1 = atomValue(w1);
   Atom a2 = atomValue(w2);
-  int l   = (a1->length <= a2->length ? a1->length : a2->length);
-  int v;
 
-  if ( (v=memcmp(a1->name, a2->name, l)) != 0 )
-    return v;
+  if ( a1->type == a2->type )
+  { if ( a1->type->compare )
+    { return (*a1->type->compare)(w1, w2);
+    } else
+    { int l   = (a1->length <= a2->length ? a1->length : a2->length);
+      int v;
 
-  return (int)a1->length - (int)a2->length;
+      if ( (v=memcmp(a1->name, a2->name, l)) != 0 )
+	return v;
+      return (int)a1->length - (int)a2->length;
+    }
+  } else
+  { return a1->type->rank - a2->type->rank;
+  }
 }
 
 
@@ -331,9 +386,12 @@ compareStrings(word w1, word w2 ARG_LD)
 }
 
 
-/*  Rules:
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+compareStandard(Word p1, Word p2, int eq)
 
-    Var @< Number @< Atom @< String < Term
+    Rules:
+
+    Var @< AttVar @< Number @< Atom @< String < Term
     
     OldVar < NewVar	(not relyable)
     Atom:	alphabetically
@@ -341,14 +399,17 @@ compareStrings(word w1, word w2 ARG_LD)
     number:	value
     Term:	arity / alphabetically / recursive
 
- ** Tue Apr 26 16:25:50 1988  jan@swivax.UUCP (Jan Wielemaker)  */
+If eq == TRUE, only test for equality. In this case expensive inequality
+tests (alphabetical order) are skipped and the call returns NOTEQ.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define LESS -1
-#define EQUAL  0
+#define LESS    -1
+#define EQUAL    0
 #define GREATER  1
+#define NOTEQ    2
 
-int
-compareStandard(Word p1, Word p2 ARG_LD)
+static int
+do_compare(Word p1, Word p2, int eq ARG_LD)
 { word w1, w2;
   int t1, t2;
 
@@ -368,7 +429,7 @@ tail_recursion:
   t2 = tag(w2);
 
   if ( t1 != t2 )
-  { if ( !trueFeature(ISO_FEATURE) )
+  { if ( !trueFeature(ISO_FEATURE) && !eq )
     { if ( t1 == TAG_INTEGER && t2 == TAG_FLOAT )
       { real f1 = (real)valInteger(w1);
 	real f2 = valReal(w2);
@@ -387,6 +448,7 @@ tail_recursion:
 
   switch(t1)
   { case TAG_VAR:
+    case TAG_ATTVAR:
     cmpvars:
       return p1 < p2 ? LESS : p1 == p2 ? EQUAL : GREATER;
     case TAG_INTEGER:
@@ -402,12 +464,21 @@ tail_recursion:
       return f1 < f2 ? LESS : f1 == f2 ? EQUAL : GREATER;
     }
     case TAG_ATOM:
-      return compareAtoms(w1, w2);
+      return eq ? NOTEQ : compareAtoms(w1, w2);
     case TAG_STRING:
       return compareStrings(w1, w2 PASS_LD);
     case TAG_COMPOUND:
     { Functor f1 = (Functor)valPtr(w1);
       Functor f2 = (Functor)valPtr(w2);
+
+#if O_CYCLIC
+      while ( isRef(f1->definition) )
+	f1 = (Functor)unRef(f1->definition);
+      while ( isRef(f2->definition) )
+	f2 = (Functor)unRef(f2->definition);
+      if ( f1 == f2 )
+	return EQUAL;
+#endif
 
       if ( f1->definition != f2->definition )
       { FunctorDef fd1 = valueFunctor(f1->definition);
@@ -416,15 +487,16 @@ tail_recursion:
 	if ( fd1->arity != fd2->arity )
 	  return fd1->arity > fd2->arity ? GREATER : LESS;
 
-	return compareAtoms(fd1->name, fd2->name);
+	return eq ? NOTEQ : compareAtoms(fd1->name, fd2->name);
       } else
       { int arity = arityFunctor(f1->definition);
 	int rval;
 	
 	p1 = f1->arguments;
 	p2 = f2->arguments;
+	linkTermsCyclic(f1, f2 PASS_LD);
 	for( ; --arity > 0; p1++, p2++ )
-	{ if ((rval = compareStandard(p1, p2 PASS_LD)) != EQUAL)
+	{ if ((rval = do_compare(p1, p2, eq PASS_LD)) != EQUAL)
 	    return rval;
 	}
         goto tail_recursion;
@@ -437,6 +509,18 @@ tail_recursion:
 }
 
 
+int
+compareStandard(Word p1, Word p2, int eq ARG_LD)
+{ Word *m = aTop;
+  int rc;
+
+  rc = do_compare(p1, p2, eq PASS_LD);
+  exitCyclic(m PASS_LD);
+
+  return rc;
+}
+
+
 /* compare(-Diff, +T1, +T2) */
 
 static
@@ -445,7 +529,7 @@ PRED_IMPL("compare", 3, compare, 0)
   Word p1 = valTermRef(A2);
   Word p2 = p1+1;
 
-  int val = compareStandard(p1, p2 PASS_LD);
+  int val = compareStandard(p1, p2, FALSE PASS_LD);
 
   return PL_unify_atom(A1, val < 0 ? ATOM_smaller :
 		           val > 0 ? ATOM_larger :
@@ -459,7 +543,7 @@ PRED_IMPL("@<", 2, std_lt, 0)
   Word p1 = valTermRef(A1);
   Word p2 = p1+1;
 
-  return compareStandard(p1, p2 PASS_LD) < 0 ? TRUE : FALSE;
+  return compareStandard(p1, p2, FALSE PASS_LD) < 0 ? TRUE : FALSE;
 }
 
 
@@ -469,7 +553,7 @@ PRED_IMPL("@=<", 2, std_leq, 0)
   Word p1 = valTermRef(A1);
   Word p2 = p1+1;
 
-  return compareStandard(p1, p2 PASS_LD) <= 0 ? TRUE : FALSE;
+  return compareStandard(p1, p2, FALSE PASS_LD) <= 0 ? TRUE : FALSE;
 }
 
 
@@ -479,7 +563,7 @@ PRED_IMPL("@>", 2, std_gt, 0)
   Word p1 = valTermRef(A1);
   Word p2 = p1+1;
 
-  return compareStandard(p1, p2 PASS_LD) > 0 ? TRUE : FALSE;
+  return compareStandard(p1, p2, FALSE PASS_LD) > 0 ? TRUE : FALSE;
 }
 
 
@@ -489,8 +573,32 @@ PRED_IMPL("@>=", 2, std_geq, 0)
   Word p1 = valTermRef(A1);
   Word p2 = p1+1;
 
-  return compareStandard(p1, p2 PASS_LD) >= 0 ? TRUE : FALSE;
+  return compareStandard(p1, p2, FALSE PASS_LD) >= 0 ? TRUE : FALSE;
 }
+
+		/********************************
+		*           EQUALITY            *
+		*********************************/
+
+static
+PRED_IMPL("==", 2, equal, 0)
+{ PRED_LD
+  Word p1 = valTermRef(A1);
+  Word p2 = p1+1;
+
+  return compareStandard(p1, p2, TRUE PASS_LD) == EQUAL ? TRUE : FALSE;
+}
+
+
+static
+PRED_IMPL("\\==", 2, nonequal, 0)
+{ PRED_LD
+  Word p1 = valTermRef(A1);
+  Word p2 = p1+1;
+
+  return compareStandard(p1, p2, TRUE PASS_LD) == EQUAL ? FALSE : TRUE;
+}
+
 
 		/********************************
 		*     STRUCTURAL EQUIVALENCE    *
@@ -528,6 +636,7 @@ static bool
 structeql(Word t1, Word t2, TmpBuffer buf ARG_LD)
 { int todo = 1;
   UChoice nextch = NULL, tailch = NULL;
+  int arity;
 
   for(;;)
   { Word p1, p2;
@@ -571,6 +680,13 @@ structeql(Word t1, Word t2, TmpBuffer buf ARG_LD)
     { case TAG_VAR:
       case TAG_ATOM:
 	fail;
+      case TAG_ATTVAR:
+      { p1 = valPAttVar(w1);
+	p2 = valPAttVar(w2);
+	arity = 1;
+
+	goto compound;
+      }
       case TAG_INTEGER:
 	if ( storage(w1) == STG_INLINE ||
 	     storage(w2) == STG_INLINE )
@@ -581,32 +697,46 @@ structeql(Word t1, Word t2, TmpBuffer buf ARG_LD)
 	  continue;
         fail;
       case TAG_COMPOUND:
-      { functor_t fd = functorTerm(w1);
-	int arity;
+      { Functor f1 = (Functor)valPtr(w1);
+	Functor f2 = (Functor)valPtr(w2);
 
-	if ( !hasFunctor(w2, fd) )
-	  fail;
-
-	arity = arityFunctor(fd);
-	p1 = argTermP(w1, 0);
-	p2 = argTermP(w2, 0);
-	if ( todo == 0 )		/* right-most argument recursion */
-	{ todo = arity;
-	  t1 = p1;
-	  t2 = p2;
-	} else if ( arity > 0 )
-	{ UChoice next = alloca(sizeof(*next));
-
-	  next->size   = arity;
-	  next->alist1 = p1;
-	  next->alist2 = p2;
-	  next->next   = NULL;
-	  if ( !nextch )
-	    nextch = tailch = next;
-	  else
-	  { tailch->next = next;
-	    tailch = next;
+#if O_CYCLIC
+        while ( isRef(f1->definition) )
+	  f1 = (Functor)unRef(f1->definition);
+	while ( isRef(f2->definition) )
+	  f2 = (Functor)unRef(f2->definition);
+	if ( f1 == f2 )
+	  continue;
+#endif
+	
+	if ( f1->definition == f2->definition )
+	{ arity = arityFunctor(f1->definition);
+	  
+	  p1 = f1->arguments;
+	  p2 = f2->arguments;
+	  linkTermsCyclic(f1, f2 PASS_LD);
+	  
+	compound:
+	  if ( todo == 0 )		/* right-most argument recursion */
+	  { todo = arity;
+	    t1 = p1;
+	    t2 = p2;
+	  } else if ( arity > 0 )
+	  { UChoice next = alloca(sizeof(*next));
+  
+	    next->size   = arity;
+	    next->alist1 = p1;
+	    next->alist2 = p2;
+	    next->next   = NULL;
+	    if ( !nextch )
+	      nextch = tailch = next;
+	    else
+	    { tailch->next = next;
+	      tailch = next;
+	    }
 	  }
+	} else
+	{ fail;
 	}
       }
     }
@@ -622,6 +752,7 @@ PRED_IMPL("=@=", 2, structural_eq, 0)
   Reset r;
   Word p1 = valTermRef(A1);
   Word p2 = p1+1;
+  Word *m = aTop;
 
   deRef(p1);
   deRef(p2);
@@ -636,6 +767,7 @@ PRED_IMPL("=@=", 2, structural_eq, 0)
     setVar(*r->v2);
   }
   discardBuffer(&buf);
+  exitCyclic(m PASS_LD);
 
   return rval;
 }
@@ -644,6 +776,30 @@ PRED_IMPL("=@=", 2, structural_eq, 0)
 static
 PRED_IMPL("\\=@=", 2, structural_neq, 0)
 { return pl_structural_eq_va(PL__t0, PL__ac, PL__ctx) ? FALSE : TRUE;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+?=(X, Y) is true if we can decide for   now and forever that X and Y are
+either equal or non-equal. I.e. X and Y are equal or they cannot unify.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static
+PRED_IMPL("?=", 2, can_compare, 0)
+{ PRED_LD
+  mark m;
+  bool rval;
+
+  Mark(m);
+  rval = PL_unify(A1, A2);
+  if ( rval )
+  { if ( m.trailtop != tTop )
+      rval = FALSE;			/* can be equal after substitution */
+  } else
+    rval = TRUE;			/* cannot unify */
+  Undo(m);
+
+  return rval;
 }
 
 
@@ -712,7 +868,7 @@ PRED_IMPL("arg", 3, arg, PL_FA_NONDETERMINISTIC)
       deRef(p);
       if ( isTerm(*p) )
 	arity = arityTerm(*p);
-      else if ( isAtom(*p) && !trueFeature(ISO_FEATURE) )
+      else if ( isTextAtom(*p) && !trueFeature(ISO_FEATURE) )
 	arity = 0;
       else
 	return PL_error("arg", 3, NULL, ERR_TYPE, ATOM_compound, term);
@@ -769,32 +925,58 @@ PRED_IMPL("arg", 3, arg, PL_FA_NONDETERMINISTIC)
 }
 	
 
-word
-pl_setarg(term_t n, term_t term, term_t value)
+#define SETARG_BACKTRACKABLE    0x1
+#define SETARG_LINK		0x2
+
+
+static word
+setarg(term_t n, term_t term, term_t value, int flags)
 { GET_LD
   int arity, argn;
   atom_t name;
   Word a, v;
 
-  if ( !PL_get_integer(n, &argn) ||
-       !PL_get_name_arity(term, &name, &arity) )
-    return warning("$setarg/3: instantiation fault");
+  if ( !PL_get_integer_ex(n, &argn) )
+    fail;
+  if ( argn < 0 )
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+		    ATOM_not_less_than_zero, n);
+  if ( !PL_get_name_arity(term, &name, &arity) )
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_compound, term);
   
-  if ( argn < 1 || argn > arity )
+  if ( argn > arity )
     fail;
 
-  a = valTermRef(term);
-  v = valTermRef(value);
-  deRef(a);
-  deRef(v);
+  if ( (flags & SETARG_BACKTRACKABLE) )
+  { a = valTermRef(term);
+    deRef(a);
+    a = argTermP(*a, argn-1);
 
-  a = argTermP(*a, argn-1);
+    TrailAssignment(a);
+  } else
+  { v = valTermRef(value);
+    deRef(v);
 
-#ifdef O_DESTRUCTIVE_ASSIGNMENT
-  TrailAssignment(a);
-#endif
+    if ( !isAtomic(*v) )
+    { if ( !(flags & SETARG_LINK) )
+      { term_t copy = PL_new_term_ref();
+
+	duplicate_term(value, copy PASS_LD);
+	value = copy;
+      }
+
+      freezeGlobal(PASS_LD1);
+    }
+
+    a = valTermRef(term);		/* duplicate may shift stacks */
+    deRef(a);
+    a = argTermP(*a, argn-1);
+  }
 					/* this is unify(), but the */
 					/* assignment must *not* be trailed */
+  v = valTermRef(value);
+  deRef(v);
+
   if ( isVar(*v) )
   { if ( v < a )
     { *a = makeRef(v);
@@ -803,11 +985,32 @@ pl_setarg(term_t n, term_t term, term_t value)
       *v = makeRef(a);
     } else
       setVar(*a);
+  } else if ( isAttVar(*v) )
+  { *a = makeRef(v);
   } else
     *a = *v;
 
   succeed;
 }
+
+
+static
+PRED_IMPL("setarg", 3, setarg, 0)
+{ return setarg(A1, A2, A3, SETARG_BACKTRACKABLE);
+}
+
+
+static
+PRED_IMPL("nb_setarg", 3, nb_setarg, 0)
+{ return setarg(A1, A2, A3, 0);
+}
+
+
+static
+PRED_IMPL("nb_linkarg", 3, nb_linkarg, 0)
+{ return setarg(A1, A2, A3, SETARG_LINK);
+}
+
 
 
 /*  Determine the length of a list. If the list is not proper (or not
@@ -913,15 +1116,30 @@ pl_univ(term_t t, term_t list)
 
 
 static int
-do_number_vars(term_t t, functor_t functor, int n ARG_LD)
+do_number_vars(term_t t, functor_t functor, av_action on_av, int n ARG_LD)
 { Word p;
 
 start:
+  if ( n < 0 )
+    return n;				/* error */
+
   p = valTermRef(t);
   deRef(p);
 
-  if ( isVar(*p) )
+  if ( canBind(*p) )
   { Word a;
+    word v;
+
+    if ( isAttVar(*p) )
+    { switch(on_av)
+      { case AV_SKIP:
+	  return n;
+	case AV_ERROR:
+	  return -1;
+	case AV_BIND:
+	  break;
+      }
+    }
 
 #ifdef O_SHIFT_STACKS
     if ( roomStack(global) < 2 * (long)sizeof(word) )
@@ -937,13 +1155,25 @@ start:
     a[0] = functor;
     a[1] = makeNum(n);
     gTop += 2;
-    *p = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
-    Trail(p);
+    
+
+    v = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
+    if ( isAttVar(*p) )
+    { assignAttVar(p, &v PASS_LD);
+    } else
+    { *p = v;
+      Trail(p);
+    }
     
     n++;
   } else if ( isTerm(*p) )
-  { int arity = arityFunctor(functorTerm(*p));
+  { Functor f = valueTerm(*p);
+    int arity;
 
+    if ( visited(f PASS_LD) )
+      return n;
+
+    arity = arityFunctor(f->definition);
     if ( arity == 1 )
     { _PL_get_arg(1, t, t);
       goto start;
@@ -958,7 +1188,7 @@ start:
 	  goto start;			/* right-recursion optimisation */
 	} else
 	{ _PL_get_arg(i, t, a);
-	  n = do_number_vars(a, functor, n PASS_LD);
+	  n = do_number_vars(a, functor, on_av, n PASS_LD);
 	}
       }
     }
@@ -969,9 +1199,11 @@ start:
 
 
 int
-numberVars(term_t t, functor_t functor, int n ARG_LD)
+numberVars(term_t t, functor_t functor, av_action on_av, int n ARG_LD)
 { term_t h2 = PL_copy_term_ref(t);
-  int rval = do_number_vars(h2, functor, n PASS_LD);
+  Word *m = aTop;
+  int rval = do_number_vars(h2, functor, on_av, n PASS_LD);
+  unvisit(m PASS_LD);
 
   PL_reset_term_refs(h2);
 
@@ -979,52 +1211,188 @@ numberVars(term_t t, functor_t functor, int n ARG_LD)
 }
 
 
-word
-pl_numbervars(term_t t, term_t f,
-	      term_t start, term_t end)
+static const opt_spec numbervar_options[] = 
+{ { ATOM_attvar,	    OPT_ATOM },
+  { ATOM_functor_name,	    OPT_ATOM },
+  { NULL_ATOM,	     	    0 }
+};
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+numbervars(+Term, +Start, -End, +Options)
+numbervars(+Term, +Functor, +Start, -End)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static
+PRED_IMPL("numbervars", 4, numbervars, 0)
 { GET_LD
   int n;
   functor_t functor;
-  atom_t name;
-  
-  if ( !PL_get_integer_ex(start, &n) ||
-       !PL_get_atom_ex(f, &name) )
+  atom_t name = ATOM_isovar;		/* '$VAR' */
+  atom_t av = ATOM_error;
+  term_t t, end, options;
+  av_action on_av;
+
+  t = PL_copy_term_ref(A1);
+
+  if ( !PL_get_integer(A2, &n) )
+  { if ( PL_get_atom(A2, &name) &&
+	 PL_get_integer(A3, &n)	)	/* old calling conventions */
+    { end = A4;
+      options = 0;
+    } else
+    { return PL_get_integer_ex(A2, &n);
+    }
+  } else
+  { end = A3;
+    options = A4;
+  }
+
+  if ( options &&
+       !scan_options(options, 0, ATOM_numbervar_option, numbervar_options,
+		     &av, &name) )
     fail;
 
+  if ( av == ATOM_error )
+    on_av = AV_ERROR;
+  else if ( av == ATOM_skip )
+    on_av = AV_SKIP;
+  else if ( av == ATOM_bind )
+    on_av = AV_BIND;
+  else
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_numbervar_option, options);
+
   functor = PL_new_functor(name, 1);
-  n = numberVars(t, functor, n PASS_LD);
+  n = numberVars(t, functor, on_av, n PASS_LD);
+  if ( n == -1 )
+    return PL_error(NULL, 0, NULL,
+		    ERR_TYPE, ATOM_free_of_attvar, A1);
 
   return PL_unify_integer(end, n);
 }
 
 
 static int
-free_variables(Word t, term_t l, int n ARG_LD)
+term_variables_loop(Word t, term_t l, int n ARG_LD)
 { 
 right_recursion:
   deRef(t);
 
-  if ( isVar(*t) )
-  { int i;
-    term_t v;
+  if ( canBind(*t) )
+  { term_t v;
 
-    for(i=0; i<n; i++)
-    { Word p2 = valTermRef(l+i);	/* see whether we got this one! */
+    if ( visitedWord(t PASS_LD) )
+      return n;
 
-      deRef(p2);
-      if ( p2 == t )
-	return n;
-    }
     v = PL_new_term_ref();
     *valTermRef(v) = makeRef(t);
 
     return n+1;
   }
   if ( isTerm(*t) )
-  { int arity = arityFunctor(functorTerm(*t));
+  { int arity;
+    Functor f = valueTerm(*t);
 
-    for(t = argTermP(*t, 0); --arity > 0; t++)
-      n = free_variables(t, l, n PASS_LD);
+    if ( visited(f PASS_LD) )
+      return n;
+    
+    arity = arityFunctor(f->definition);
+    for(t = f->arguments; --arity > 0; t++)
+      n = term_variables_loop(t, l, n PASS_LD);
+
+    goto right_recursion;
+  }
+    
+  return n;
+}
+
+
+static int
+term_variables(term_t t, term_t vars, term_t tail ARG_LD)
+{ term_t head = PL_new_term_ref();
+  term_t v0   = PL_new_term_refs(0);
+  Word *m     = aTop;
+  int i, n;
+
+  startCritical;
+  n = term_variables_loop(valTermRef(t), v0, 0 PASS_LD);
+  unvisit(m PASS_LD);
+  endCritical;
+
+  for(i=0; i<n; i++)
+  { if ( !PL_unify_list(vars, head, vars) ||
+	 !PL_unify(head, v0+i) )
+      fail;
+  }
+      
+  if ( tail )
+    return PL_unify(vars, tail);
+  else
+    return PL_unify_nil(vars);
+}
+
+
+
+static
+PRED_IMPL("term_variables", 2, term_variables2, 0)
+{ PRED_LD
+
+  return term_variables(A1, A2, 0 PASS_LD);
+}
+
+
+static
+PRED_IMPL("term_variables", 3, term_variables3, 0)
+{ PRED_LD
+
+  return term_variables(A1, A2, A3 PASS_LD);
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+pl_e_free_variables(V0^V1^t, vars) is used  by   setof/3  and bagof/3 to
+determine  the  free  variables  in  the    goal   that  have  not  been
+existentially   bound.   The   implementation   is     very   close   to
+term_variables/2, but while traversing the lefthand   of ^, the variable
+is marked but not added to the list.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+free_variables_loop(Word t, term_t l, int n, int existential ARG_LD)
+{ 
+right_recursion:
+  deRef(t);
+
+  if ( canBind(*t) )
+  { term_t v;
+
+    if ( !visitedWord(t PASS_LD) && !existential )
+    { v = PL_new_term_ref();
+      *valTermRef(v) = makeRef(t);
+
+      n++;
+    }
+
+    return n;
+  }
+  if ( isTerm(*t) )
+  { int arity;
+    Functor f = valueTerm(*t);
+    word fd = f->definition;
+
+    if ( visited(f PASS_LD) )
+      return n;
+    
+    t = f->arguments;
+    if ( fd == FUNCTOR_hat2 )
+    { n = free_variables_loop(t, l, n, TRUE PASS_LD);
+      t++;
+    } else
+    { arity = arityFunctor(f->definition);
+      for(; --arity > 0; t++)
+	n = free_variables_loop(t, l, n, existential PASS_LD);
+    }
+
     goto right_recursion;
   }
     
@@ -1033,346 +1401,351 @@ right_recursion:
 
 
 word
-pl_free_variables(term_t t, term_t variables)
-{ GET_LD
-  term_t head = PL_new_term_ref();
-  term_t vars = PL_copy_term_ref(variables);
-  term_t v0   = PL_new_term_refs(0);
-  int i, n    = free_variables(valTermRef(t), v0, 0 PASS_LD);
-
-  for(i=0; i<n; i++)
-  { if ( !PL_unify_list(vars, head, vars) ||
-	 !PL_unify(head, v0+i) )
-      fail;
-  }
-      
-  return PL_unify_nil(vars);
-}
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-pl_e_free_variables(V0^V1^t, vars) is used  by   setof/3  and bagof/3 to
-determine  the  free  variables  in  the    goal   that  have  not  been
-existentially bound.  The implementation is rather tricky:
-
-A backtract mark is pushed. Then  bind_existential_vars(t) will bind all
-variables in terms at the left-side  of   the  ^/2 operator to []. Next,
-free_variables() is used to  make  PL_term_refs   for  all  of  the free
-variables. The Undo() is used to free all []-bound variables and finally
-the list is constructed.  All  this  works   thanks  to  the  fact  that
-free_variables() doesn't use unification and its   bindings are thus not
-undone by the Undo().
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static void
-dobind_vars(Word t, atom_t constant ARG_LD)
-{ deRef(t);
-
-  if ( isVar(*t) )
-  { *t = constant;
-    Trail(t);
-    return;
-  }
-  if ( isTerm(*t) )
-  { int arity = arityFunctor(functorTerm(*t));
-
-    for(t = argTermP(*t, 0); arity > 0; arity--, t++)
-      dobind_vars(t, constant PASS_LD);
-  }
-}
-
-
-static Word
-bind_existential_vars(Word t ARG_LD)
-{ deRef(t);
-
-  if ( isTerm(*t) )
-  { Functor f = valueTerm(*t);
-    int arity;
-    Word a;
-
-    if ( f->definition == FUNCTOR_hat2 )
-    { dobind_vars(&f->arguments[0], ATOM_nil PASS_LD);
-      return bind_existential_vars(&f->arguments[1] PASS_LD);
-    }
-    
-    arity = arityFunctor(f->definition);
-    for(a = f->arguments; arity > 0; arity--, a++)
-      bind_existential_vars(a PASS_LD);
-  }
-
-  return t;
-}
-
-
-word
 pl_e_free_variables(term_t t, term_t vars)
 { GET_LD
-  mark m;
+  Word *vm = aTop;
+  Word t2 = valTermRef(t);
+  term_t v0 = PL_new_term_refs(0);
+  int i, n;
 
-  Mark(m);
-  { Word t2   = bind_existential_vars(valTermRef(t) PASS_LD);
-    term_t v0 = PL_new_term_refs(0);
-    int i, n  = free_variables(t2, v0, 0 PASS_LD);
-    Undo(m);
+  startCritical;
+  n = free_variables_loop(t2, v0, 0, FALSE PASS_LD);
+  unvisit(vm PASS_LD);
+  endCritical;
 
-    if ( PL_unify_functor(vars, PL_new_functor(ATOM_v, n)) )
-    { for(i=0; i<n; i++)
-      { TRY(PL_unify_arg(i+1, vars, v0+i));
-      }
-
-      succeed;
+  if ( PL_unify_functor(vars, PL_new_functor(ATOM_v, n)) )
+  { for(i=0; i<n; i++)
+    { TRY(PL_unify_arg(i+1, vars, v0+i));
     }
 
-    fail;
-  }  
-}
-  
-#undef LD
-#define LD GLOBAL_LD
-
-
-		 /*******************************
-		 *	      COPY-TERM		*
-		 *******************************/
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Term copying is used to create a  term with `fresh' variables. The ideal
-algorithm should take care of sharing  variables   in  the term and copy
-ground parts of the term by  sharing   them  with the original term. The
-implementation below satisfies these requirements,  passes the term only
-twice, is safe to stack-shifting and garbage-collection while in progres
-and is efficient for both large and small terms. Here is how it works.
-
-Phase *1* analyses the term. It will   make  a foreign term-reference to
-any variable found in the term. It  will add a foreign-reference holding
-the index-number of a ground term encountered. While numbering the tree,
-only compound terms are numbered and a ground term counts as one.
-
-Next, the array of foreign references   is  sorted. Variables are placed
-first, ordered on their address and  ground-term indices after them. The
-variable array is then  scanned  and   for  each  shared  variable (i.e.
-reference to the same address), two  term-references are made. The first
-points to the old term's shared variable and   the  other is set to NULL
-(var). This field will be  used  to   store  a  reference  to the copied
-variable.
-
-Finally, the term is copied. If a variable  is found, it is looked up in
-the shared variable database.  When  present   and  already  copied, the
-reference is copied. When present, but not   copied, a reference is made
-from  the  free  cell  to  the  copy.  Otherwise  no  action  is  needed
-(singleton). If a term is found and it  is in the ground-list, just copy
-the term-reference, otherwise, recurse into the term.  Finally, copy all
-other (atomic) data by reference.
-
-NOTE: the variable detection could be  more efficient by introducing two
-special constants. Finding a variable,  assign   the  first, finding the
-first, assign the second and make a  reference in the variable array. To
-be considered.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static int
-pre_copy_analysis(Word t, int *index)
-{ deRef(t);
-
-  if ( isVar(*t) )
-  { term_t h = PL_new_term_ref();
-    Word p = valTermRef(h);
-
-    *p = makeRef(t);
-    return 1;				/* 1 variable */
-  }
-
-  if ( isTerm(*t) )
-  { int arity = arityFunctor(functorTerm(*t));
-    int subvars = 0;
-    int thisindex = (*index)++;
-    term_t thisterm = PL_new_term_refs(0);
-    
-    t = argTermP(*t, 0);
-    for( ; --arity >= 0; t++ )
-      subvars += pre_copy_analysis(t, index);
-    
-    if ( subvars == 0 )			/* ground term */
-    { term_t h;
-
-      PL_reset_term_refs(thisterm);
-      h = PL_new_term_ref();
-      PL_put_integer(h, thisindex);
-      *index = thisindex+1;		/* don't number in ground! */
-    }
-
-    return subvars;
-  }
-    
-  return 0;
-}
-
-
-static int
-cmp_copy_refs(const void *h1, const void *h2)
-{ word w1 = *((Word) h1);
-  word w2 = *((Word) h2);
-
-  if ( isRef(w1) )
-  { if ( isRef(w2) )
-      return unRef(w1) - unRef(w2);
-    return -1;
-  }
-  if ( isRef(w2) )
-    return 1;
-
-  return valInt(w1) - valInt(w2);
-}
-
-
-typedef struct
-{ term_t shared_variables;		/* handle of first shared var */
-  int    nshared;			/* # shared variables */
-  term_t ground_terms;			/* index of first ground term */
-  int	 nground;			/* # ground terms */
-  int    index;				/* index of current compound */
-} copy_info, *CopyInfo;
-
-
-static Word
-lookup_shared_var(CopyInfo info, Word v)
-{ if ( info->nshared )
-  { Word v0 = valTermRef(info->shared_variables);
-    int n;
-
-    for(n = info->nshared; n > 0; n--, v0 += 2)
-    { if ( unRef(*v0) == v )
-	return v0;
-    }
-  }
-
-  return NULL;
-}
-
-
-static int
-lookup_ground(CopyInfo info)
-{ if ( info->nground )
-  { Word g0 = valTermRef(info->ground_terms);
-
-    if ( valInt(*g0) == info->index )
-    { info->nground--;
-      info->ground_terms++;
-      succeed;
-    }
+    succeed;
   }
 
   fail;
 }
 
 
-static void
-do_copy(term_t from, term_t to, CopyInfo info)
-{ Word p = valTermRef(from);
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+unifyable(@X, @Y, -Substitution)
 
-  deRef(p);
-  if ( isVar(*p) )
-  { Word p2 = lookup_shared_var(info, p);
+If X can be unified to Y, unify   Substitution with a list of Variable =
+value for the substitutions that must be made to make X and Y identical.
 
-    if ( p2 )
-    { Word t = valTermRef(to);
+The implementation extracts the substitutions  from the trail, rewinding
+the trail at the same  time.  This   is  fairly  trivial, except for the
+assignments of attributed variables (assignAttVar()). The last operation
+of assignAttVar() is a trailed assignment  replacing the attvar with its
+value. Before that it performs two trailed  actions to update the wakeup
+list. These two must be skipped.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-      deRef(t);
-      if ( p2[1] )
-	*t = p2[1];
-      else
-      { setVar(*t);
-	p2[1] = makeRef(t);
+static
+PRED_IMPL("unifyable", 3, unifyable, 0)
+{ PRED_LD
+  mark m;
+
+  Mark(m);
+  if ( PL_unify(A1, A2) )
+  { TrailEntry tt = tTop;
+    TrailEntry mt = m.trailtop;
+
+    if ( tt > mt )
+    { Word list = allocGlobalNoShift((tt-mt)*6+1);
+      Word gp = list+1;
+      Word tail = list;
+
+      *list = ATOM_nil;
+      while(--tt >= mt)
+      { Word p = tt->address;
+
+	*tail = consPtr(&gp[0], TAG_COMPOUND|STG_GLOBAL);
+	gp[0] = FUNCTOR_dot2;
+	gp[1] = consPtr(&gp[3], TAG_COMPOUND|STG_GLOBAL);
+	gp[2] = ATOM_nil;
+	tail = &gp[2];
+	gp[3] = FUNCTOR_equals2;
+	if ( isTrailVal(p) )
+	{ Word p2 = tt[-1].address;
+	  gp[4] = makeRef(p2);
+	  gp[5] = *p2;
+	} else
+	{ gp[4] = makeRef(p);
+	  gp[5] = *p;
+	}
+	gp += 6;
+
+	if ( !isTrailVal(p) )
+	{ setVar(*p);
+	} else
+	{ assert(isAttVar(trailVal(p)));
+
+	  tt--;				/* re-insert the attvar */
+	  *tt->address = trailVal(p);
+
+	  tt--;				/* restore tail of wakeup list */
+	  p = tt->address;
+	  assert(isTrailVal(p));
+	  tt--;
+	  *tt->address = trailVal(p);
+
+	  tt--;				/* restore head of wakeup list */
+	  p = tt->address;
+	  if ( isTrailVal(p) )
+	  { tt--;
+	    *tt->address = trailVal(p);
+	  } else
+	  { setVar(*p);
+	  }
+
+	  assert(tt>=mt);
+	}
       }
-    }
-  } else if ( isTerm(*p) )
-  { if ( lookup_ground(info) )
-    { info->index++;
-      PL_unify(to, from);
+      gTop = gp;			/* may not have used all space */
+      tTop = m.trailtop;
+
+      return PL_unify(wordToTermRef(list), A3);
     } else
-    { functor_t fd = functorTerm(*p);
-      int n, arity = arityFunctor(fd);
-      term_t af = PL_new_term_ref();
-      term_t at = PL_new_term_ref();
-
-      info->index++;
-      PL_unify_functor(to, fd);
-      for(n=0; n<arity; n++)
-      { PL_get_arg(n+1, from, af);
-	PL_get_arg(n+1, to, at);
-	do_copy(af, at, info);
-      }
-    }
+      return PL_unify_atom(A3, ATOM_nil);
   } else
-    PL_unify(to, from);
+    fail;
+}
+
+#if O_CYCLIC
+
+		 /*******************************
+		 *	       CYCLES		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+term_cycles(+Term, -Cycles)
+is_cycle(+SubTerm, +Cycles)
+
+term_cycles(+Term, -Cycles) returns a binary tree  holding the cycles of
+Term sorted by address. The tree   is  represented as cycle(Cycle, Left,
+Right) where [] represents terminals.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+
+  
+#endif /*O_CYCLIC*/
+
+		 /*******************************
+		 *	    COPY TERM		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+copy_term(+Term, -Copy)
+
+Copy a term, renaming its  variables.   Attributed  variables have their
+attributed copied, so futher modification of the attribute list does not
+affect the copy  and  visa  versa.   The  algorithm  deals  with  shared
+variables as well as cyclic  terms.  It   works,  like  unify for cyclic
+terms, by creating references from  the   original  to the reference and
+restoring the references using the argument stack.
+
+There are three types of references between the original and the copy:
+
+	* For variables we set the new variable to VAR_MARK and
+	  make a reference to it.  This means that if we find a
+	  reference to a variable VAR_MARK we must create a reference
+	  to the same address.
+	* For attributed variables we create an TAG_ATTVAR link to the
+	  copy.  If we find a TAG_ATTVAR pointing to a TAG_ATTVAR we
+	  no we found a copy.  Unfortunately just trailing the old
+	  location doesn't suffice as we must recreate the link to
+	  the old address, so we push this one first.
+	* Compounds use the old trick to make the functor a reference
+	  to the copy.
+
+do_copy_term() returns TRUE if the term can   be shared and FALSE if not
+(i.e. it is a variable or attributed variable). If, in sharing mode, the
+copying routine copied a shareable term it   discards the copy and links
+the original.
+
+NOTE: when using the stack-shifter, we cannot   affort  the stacks to be
+shifted during the execution of copy_term/2. I think the proper solution
+is to try and copy. If the copy   fails  we use exitCyclic() to undo the
+damage, reset gTop, get more space   and try again. allocGlobalNoShift()
+is a version of allocGlobal() that returns NULL if the stack needs to be
+shifted rather than doing it.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define VAR_MARK (0x1<<LMASK_BITS|TAG_VAR)
+
+static inline void
+TrailCyclic(Word p ARG_LD)
+{ requireStack(argument, sizeof(Word));
+  *aTop++ = p;
 }
 
 
-word
-pl_copy_term(term_t from, term_t to)
-{ Word f = valTermRef(from);
-  term_t copy = PL_new_term_ref();
-  term_t ha = copy+1;			/* next free one */
-  int hn;
-  Word p, q;
-  copy_info info;
-  int n, index = 1;
+static inline void
+exitCyclicCopy(Word *m ARG_LD)
+{ Word *sp;
 
-  pre_copy_analysis(f, &index);
-  hn = PL_new_term_refs(0) - ha;
-  info.shared_variables = ha;
-  info.index = 1;
-  if ( hn > 0 )
-  { q = p = valTermRef(ha);
+  for(sp = aTop; sp > m; )
+  { Word p = *--sp;
 
-    qsort(p, hn, sizeof(word), cmp_copy_refs);
-    for( n = hn; n > 0; n--)
-    { if ( isRef(*p) )
-      { Word v = unRef(*p);
-	int shared = 1;
+    if ( isRef(*p) )
+    { Word p2 = unRef(*p);
 
-	while(n > 1 && isRef(p[shared]) && unRef(p[shared]) == v )
-	{ shared++;
-	  n--;
-	}
-
-	if ( shared > 1 )
-	{ *q++ = *p;
-	  *q++ = 0;			/* reserved for new one */
-	}
-	p += shared;
-      } else				/* hit ground terms */
-      { info.nshared = (q-valTermRef(ha))/2;
-	info.nground = n;
-	info.ground_terms = consTermRef(q);
-
-	while(n-- > 0)
-	  *q++ = *p++;
-	goto end_analysis;
+      if ( *p2 == VAR_MARK )		/* sharing variables */
+      { setVar(*p2);
+	setVar(*p);
+      } else
+      { *p = *p2;			/* cyclic terms */
       }
+    } else				/* attributed variable */
+    { Word old = *--sp;
+      *p = consPtr(old, STG_GLOBAL|TAG_ATTVAR);
     }
-    info.nshared = (q-valTermRef(ha))/2;
-    info.nground = 0;
-  } else
-  { info.nshared = 0;
-    info.nground = 0;
   }
-end_analysis:
-
-  DEBUG(5, Sdprintf("%d shared variables and %d ground terms:\n",
-		    info.nshared, info.nground);
-	for(n=0; n<info.nground; n++)
-	{ Sdprintf("\t");
-	  pl_write(info.ground_terms+n);
-	  Sdprintf("\n");
-	});
-
-  do_copy(from, copy, &info);
-
-  return PL_unify(to, copy);
+  aTop = sp;
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+FALSE: term cannot be shared
+TRUE:  term can be shared (ground)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+do_copy_term(Word from, Word to, int share ARG_LD)
+{ 
+
+again:
+  switch(tag(*from))
+  { case TAG_REFERENCE:
+    { Word p2 = unRef(*from);
+
+      if ( *p2 == VAR_MARK )
+      { *to = makeRef(p2);
+        return FALSE;
+      } else
+      { from = p2;
+	goto again;
+      }
+    }
+    case TAG_VAR:
+      *to = VAR_MARK;
+      *from = makeRef(to);
+      TrailCyclic(from PASS_LD);
+      return FALSE;
+    case TAG_ATTVAR:
+    { Word p = valPAttVar(*from);
+      
+      if ( isAttVar(*p) )		/* already copied */
+      { *to = makeRefG(p);
+        return FALSE;
+      } else
+      { Word attr;			/* the new attributes */
+
+	if ( !onStackArea(global, to) )
+	{ Word t = allocGlobalNoShift(1);
+	  
+	  *to = makeRefG(t);
+	  to = t;
+	}
+	attr = allocGlobalNoShift(1);
+	TrailCyclic(p PASS_LD);
+	TrailCyclic(from PASS_LD);
+	*from = consPtr(to, STG_GLOBAL|TAG_ATTVAR);
+	*to = consPtr(attr, STG_GLOBAL|TAG_ATTVAR);
+
+	do_copy_term(p, attr, FALSE PASS_LD);	/* copy attribute value */
+	return FALSE;
+      }
+    }
+    case TAG_ATOM:
+    case TAG_FLOAT:
+    case TAG_INTEGER:
+    case TAG_STRING:
+      *to = *from;
+      return TRUE;
+    case TAG_COMPOUND:
+    { Functor f1 = valueTerm(*from);
+
+      if ( isRef(f1->definition) )
+      { *to = consPtr(unRef(f1->definition), TAG_COMPOUND|STG_GLOBAL);
+        return FALSE;			/* Cyclic */
+      } else
+      { int arity = arityFunctor(f1->definition);
+	Word oldtop = gTop;
+	Word to0 = to;
+	Word from0 = from;
+	Functor f2 = (Functor)allocGlobalNoShift(arity+1);
+	int ground = TRUE;
+	Word *am = aTop;
+
+	f2->definition = f1->definition;
+	f1->definition = makeRefG((Word)f2);
+	TrailCyclic(&f1->definition PASS_LD);
+	*to = consPtr(unRef(f1->definition), TAG_COMPOUND|STG_GLOBAL);
+	
+	from = &f1->arguments[0];
+	to   = &f2->arguments[0];
+	while(--arity > 0)
+	  ground &= do_copy_term(from++, to++, share PASS_LD);
+	if ( share )
+	{ ground &= do_copy_term(from, to, share PASS_LD);
+	  if ( ground )
+	  { exitCyclicCopy(am PASS_LD);
+	    gTop = oldtop;
+	    *to0 = *from0;
+	    DEBUG(2, Sdprintf("Shared\n"));
+	    return TRUE;
+	  } else
+	    return FALSE;
+	} else
+	  goto again;
+      }
+    }
+    default:
+      assert(0);
+      return FALSE;
+  }
+}
+
+
+static
+PRED_IMPL("copy_term", 2, copy_term, 0)
+{ PRED_LD
+  term_t copy = PL_new_term_ref();
+  Word *m = aTop;
+
+  do_copy_term(valTermRef(A1), valTermRef(copy), TRUE PASS_LD);
+  exitCyclicCopy(m PASS_LD);
+  
+  return PL_unify(copy, A2);
+}
+
+
+static void
+duplicate_term(term_t in, term_t copy ARG_LD)
+{ Word *m = aTop;
+
+  do_copy_term(valTermRef(in), valTermRef(copy), FALSE PASS_LD);
+  exitCyclicCopy(m PASS_LD);
+}
+
+
+static
+PRED_IMPL("duplicate_term", 2, duplicate_term, 0)
+{ PRED_LD
+  term_t copy = PL_new_term_ref();
+
+  duplicate_term(A1, copy PASS_LD);
+  
+  return PL_unify(copy, A2);
+}
+
+
+#undef LD
+#define LD GLOBAL_LD
+
+		 /*******************************
+		 *	       ATOMS		*
+		 *******************************/
 
 word
 pl_atom_length(term_t w, term_t n)
@@ -1488,60 +1861,6 @@ formatInteger(bool split, int div, int radix, bool small, long int n,
 
   return strcpy(out, s);
 }	  
-
-
-word
-pl_format_number(term_t format, term_t number, term_t string)
-{ char *fmt;
-  int arg;
-  char conv;
-
-  if ( !PL_get_chars(format, &fmt, CVT_ALL) )
-    return warning("$format_number/2: instantiation fault");
-  if ( *fmt == EOS )
-    return warning("$format_number/3: illegal format");
-  arg = atoi(fmt);
-  conv = fmt[strlen(fmt)-1];
-
-  switch(conv)
-  { case 'D':
-    case 'd':
-    case 'r':
-    case 'R':
-      { long i;
-	char result[50];
-
-	if ( !PL_get_long(number, &i) )
-	  return warning("format_number/3: 2nd argument is not an integer");
-	if (conv == 'd' || conv == 'D')
-	  formatInteger(conv == 'D', arg, 10, TRUE, i, result);
-	else
-	  formatInteger(FALSE, 0, arg, conv == 'r', i, result);
-
-	return PL_unify_list_codes(string, result);
-      }
-    case 'e':
-    case 'E':
-    case 'f':
-    case 'g':
-    case 'G':
-      { double f;
-	char tmp[100];
-	char form2[10];
-
-	if ( fmt[1] == EOS )
-	  arg = 6;
-	if ( !PL_get_float(number, &f) )
-	  return warning("$format_number/3: 2nd argument is not a float");
-	Ssprintf(form2, "%%.%d%c", arg, conv);
-	Ssprintf(tmp, form2, f);
-
-	return PL_unify_list_codes(string, tmp);
-      }
-    default:
-      return warning("$format_number/3: illegal conversion code");
-  }
-}
 
 
 #define X_AUTO   0x00
@@ -1992,6 +2311,8 @@ sub_text(term_t atom,
   unsigned int ls;			/* length of `sub' */
   sub_state *state;			/* non-deterministic state */
   atom_t expected = (out == PL_unify_string_nchars ? ATOM_string : ATOM_atom);
+  int match;
+  mark mrk;
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
@@ -2117,6 +2438,8 @@ sub_text(term_t atom,
       fail;
   }
 
+  Mark(mrk);
+again:
   switch(state->type)
   { case SUB_SEARCH:
     { PL_get_chars(sub,  &s,  CVT_ATOMIC);
@@ -2125,12 +2448,12 @@ sub_text(term_t atom,
 
       for( ; state->n1+ls <= la; state->n1++ )
       { if ( memcmp(aa+state->n1, s, ls) == 0 )
-	{ PL_unify_integer(before, state->n1);
-	  PL_unify_integer(len,    ls);
-	  PL_unify_integer(after,  la-ls-state->n1);
+	{ match = (PL_unify_integer(before, state->n1) &&
+		   PL_unify_integer(len,    ls) &&
+		   PL_unify_integer(after,  la-ls-state->n1));
 	  
 	  state->n1++;
-	  ForeignRedoPtr(state);
+	  goto next;
 	}
       }
       goto exit_fail;
@@ -2140,22 +2463,24 @@ sub_text(term_t atom,
       b  = state->n3;
       l  = state->n1++;
 
-      PL_unify_integer(len, l);
-      PL_unify_integer(after, la-b-l);
+      match = (PL_unify_integer(len, l) &&
+	       PL_unify_integer(after, la-b-l));
     out:
-      (*out)(sub, l, aa+b);
+      match = (match && (*out)(sub, l, aa+b));
       if ( b+l < (int)la )
-	ForeignRedoPtr(state);
-      else
+	goto next;
+      else if ( match )
 	goto exit_succeed;
+      else
+	goto exit_fail;
     }
     case SUB_SPLIT_LEN:
     { b  = state->n1++;
       l  = state->n2;
       la = state->n3;
 
-      PL_unify_integer(before, b);
-      PL_unify_integer(after, la-b-l);
+      match = (PL_unify_integer(before, b) &&
+	       PL_unify_integer(after, la-b-l));
       goto out;
     }
     case SUB_SPLIT_HEAD:
@@ -2164,13 +2489,15 @@ sub_text(term_t atom,
       a  = state->n3;
       l  = la - a - b;
 
-      PL_unify_integer(before, b);
-      PL_unify_integer(len, l);
-      (*out)(sub, l, aa+b);
+      match = (PL_unify_integer(before, b) &&
+	       PL_unify_integer(len, l) &&
+	       (*out)(sub, l, aa+b));
       if ( l > 0 )
-	ForeignRedoPtr(state);
-      else
+	goto next;
+      else if ( match )
 	goto exit_succeed;
+      else
+	goto exit_fail;
     }
     case SUB_ENUM:
     { b  = state->n1;
@@ -2178,23 +2505,35 @@ sub_text(term_t atom,
       la = state->n3;
       a  = la-b-l;
 
-      PL_unify_integer(before, b);
-      PL_unify_integer(len, l);
-      PL_unify_integer(after, a);
-      (*out)(sub, l, aa+b);
+      match = (PL_unify_integer(before, b) &&
+	       PL_unify_integer(len, l) &&
+	       PL_unify_integer(after, a) &&
+	       (*out)(sub, l, aa+b));
       if ( a == 0 )
       { if ( b == (int)la )
-	  goto exit_succeed;
+	{ if ( match )
+	    goto exit_succeed;
+	  else
+	    goto exit_fail;
+	}
 	state->n2 = 0;
 	state->n1++;
       }
-      ForeignRedoPtr(state);
+      goto next;
     }
   }
 
 exit_fail:
   freeHeap(state, sizeof(*state));
   fail;
+
+next:
+  if ( match )
+  { ForeignRedoPtr(state);
+  } else
+  { Undo(mrk);
+    goto again;
+  }
 }
 
 
@@ -2982,10 +3321,15 @@ PRED_IMPL("$style_check", 2, style_check, 0)
 BeginPredDefs(prims)
   PRED_DEF("nonvar", 1, nonvar, 0)
   PRED_DEF("var", 1, var, 0)
+  PRED_DEF("integer", 1, integer, 0)
+  PRED_DEF("float", 1, float, 0)
+  PRED_DEF("number", 1, number, 0)
   PRED_DEF("arg", 3, arg, PL_FA_NONDETERMINISTIC)
   PRED_DEF("atomic", 1, atomic, 0)
   PRED_DEF("atom", 1, atom, 0)
+  PRED_DEF("string", 1, string, 0)
   PRED_DEF("ground", 1, ground, 0)
+  PRED_DEF("compound", 1, compound, 0)
   PRED_DEF("callable", 1, callable, 0)
   PRED_DEF("==", 2, equal, 0)
   PRED_DEF("\\==", 2, nonequal, 0)
@@ -2996,10 +3340,17 @@ BeginPredDefs(prims)
   PRED_DEF("@>=", 2, std_geq, 0)
   PRED_DEF("=@=", 2, structural_eq, 0)
   PRED_DEF("\\=@=", 2, structural_neq, 0)
+  PRED_DEF("?=", 2, can_compare, 0)
   PRED_DEF("functor", 3, functor, 0)
+  PRED_DEF("numbervars", 4, numbervars, 0)
+  PRED_DEF("term_variables", 2, term_variables2, 0)
+  PRED_DEF("term_variables", 3, term_variables3, 0)
+  PRED_DEF("unifyable", 3, unifyable, 0)
 #ifdef O_HASHTERM
   PRED_DEF("hash_term", 2, hash_term, 0)
 #endif
+  PRED_DEF("copy_term", 2, copy_term, 0)
+  PRED_DEF("duplicate_term", 2, duplicate_term, 0)
 #ifdef O_LIMIT_DEPTH
   PRED_DEF("$depth_limit_except", 3, depth_limit_except, 0)
   PRED_DEF("$depth_limit_false",  3, depth_limit_false, 0)
@@ -3009,4 +3360,7 @@ BeginPredDefs(prims)
   PRED_DEF("$option", 3, option, PL_FA_NONDETERMINISTIC)
   PRED_DEF("$style_check", 2, style_check, 0)
   PRED_DEF("deterministic", 1, deterministic, 0)
+  PRED_DEF("setarg", 3, setarg, 0)
+  PRED_DEF("nb_setarg", 3, nb_setarg, 0)
+  PRED_DEF("nb_linkarg", 3, nb_linkarg, 0)
 EndPredDefs

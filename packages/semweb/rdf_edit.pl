@@ -37,6 +37,7 @@
 	    rdfe_update/4,		% Sub, Pred, Obj, +Action
 	    rdfe_update/5,		% Sub, Pred, Obj, +PayLoad, +Action
 	    rdfe_load/1,		% +File
+	    rdfe_load/2,		% +File, +Options
 	    rdfe_delete/1,		% +Resource
 
 	    rdfe_register_ns/2,		% +Id, +URI
@@ -107,22 +108,22 @@ user:goal_expansion(rdfe_assert(Subj0, Pred0, Obj0),
 		    rdfe_assert(Subj, Pred, Obj)) :-
 	rdf_global_id(Subj0, Subj),
 	rdf_global_id(Pred0, Pred),
-	rdf_global_id(Obj0, Obj).
+	rdf_global_object(Obj0, Obj).
 user:goal_expansion(rdfe_assert(Subj0, Pred0, Obj0, PayLoad),
 		    rdfe_assert(Subj, Pred, Obj, PayLoad)) :-
 	rdf_global_id(Subj0, Subj),
 	rdf_global_id(Pred0, Pred),
-	rdf_global_id(Obj0, Obj).
+	rdf_global_object(Obj0, Obj).
 user:goal_expansion(rdfe_retractall(Subj0, Pred0, Obj0),
 		    rdfe_retractall(Subj, Pred, Obj)) :-
 	rdf_global_id(Subj0, Subj),
 	rdf_global_id(Pred0, Pred),
-	rdf_global_id(Obj0, Obj).
+	rdf_global_object(Obj0, Obj).
 user:goal_expansion(rdfe_update(Subj0, Pred0, Obj0, Action0),
 		    rdfe_update(Subj, Pred, Obj, Action)) :-
 	rdf_global_id(Subj0, Subj),
 	rdf_global_id(Pred0, Pred),
-	rdf_global_id(Obj0, Obj),
+	rdf_global_object(Obj0, Obj),
 	(   compound(Action0)
 	->  Action0 =.. [Name,Res0],
 	    rdf_global_id(Res0, Res),
@@ -226,13 +227,20 @@ delete(Subject) :-
 %	to facilitate reliable reload.
 
 rdfe_load(File) :-
+	rdfe_load(File, []).
+
+
+rdfe_load(File, Options) :-
 	rdfe_current_transaction(TID),
 	absolute_file_name(File,
 			   [ access(read),
 			     extensions([rdf,rdfs,owl,''])
 			   ], Path),
+	atom_concat('file://', Path, BaseURI),
 	rdf_load(Path,
-		 [ result(Action, Triples, MD5)
+		 [ base_uri(BaseURI),
+		   result(Action, Triples, MD5)
+		 | Options
 		 ]),
 	(   Action == none		% load, reload, none
 	->  true
@@ -659,11 +667,13 @@ user_transaction_member(Update, Subject, Predicate, Object,
 %		access(ro/rw)
 %		default(all/fallback)
 
-rdfe_set_file_property(File, access(Access)) :- !,
+rdfe_set_file_property(File0, access(Access)) :- !,
+	absolute_file_name(File0, File),
 	retractall(rdf_source_permission(File, _)),
 	assert(rdf_source_permission(File, Access)),
 	broadcast(rdf_file_property(File, access(Access))).
-rdfe_set_file_property(File, default(Type)) :-
+rdfe_set_file_property(File0, default(Type)) :-
+	absolute_file_name(File0, File),
 	rdfe_set_file_property(File, access(rw)), % must be writeable
 	retractall(rdf_current_default_file(_,_)),
 	assert(rdf_current_default_file(File, Type)),

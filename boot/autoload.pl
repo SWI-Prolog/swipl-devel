@@ -107,7 +107,7 @@ $define_predicate(Term) :-
 
 $update_library_index :-
 	setof(Dir, indexed_directory(Dir), Dirs), !,
-	checklist(guarded_make_library_index, Dirs),
+	maplist(guarded_make_library_index, Dirs),
 	(   flag($modified_index, true, false)
 	->  reload_library_index
 	;   true
@@ -287,7 +287,7 @@ do_make_library_index(Index, Files) :-
 	style_check(-dollar),
 	open(Index, write, Fd),
 	index_header(Fd),
-	checklist(index_file(Fd), Files),
+	maplist(index_file(Fd), Files),
 	close(Fd),
 	$style_check(_, OldStyle).
 
@@ -334,7 +334,7 @@ autoload(Options) :-
 	->  true
 	;   set_prolog_flag(autoload, true),
 	    set_prolog_flag(verbose_autoload, Verbose),
-	    checklist($define_predicate, Preds),
+	    maplist($define_predicate, Preds),
 	    set_prolog_flag(autoload, OldAutoLoad),
 	    set_prolog_flag(verbose_autoload, OldVerbose),
 	    autoload(Verbose)		% recurse for possible new

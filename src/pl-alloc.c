@@ -558,7 +558,7 @@ freeAllBigHeaps(void)
 #else /*O_MYALLOC*/
 
 void *
-allocHeap(size_t n)
+allocHeap__LD(size_t n ARG_LD)
 { if ( n )
   { void *mem = malloc(n);
 
@@ -568,7 +568,7 @@ allocHeap(size_t n)
     GD->statistics.heap += n;
     if ( !hTop )
     { hBase = mem;
-      hTop = (char *)mem + size;
+      hTop = (char *)mem + n;
       heap_base = (ulong)mem & ~0x007fffffL; /* 8MB */
     } else
     { SetHBase(mem);
@@ -583,7 +583,7 @@ allocHeap(size_t n)
 
 
 void
-freeHeap(void *mem, size_t n)
+freeHeap__LD(void *mem, size_t n ARG_LD)
 {
 #if ALLOC_DEBUG
   memset((char *) mem, ALLOC_FREE_MAGIC, n);
@@ -597,6 +597,11 @@ freeHeap(void *mem, size_t n)
 void
 cleanupMemAlloc(void)
 { 					/* TBD: Cleanup! */
+}
+
+void
+mergeAllocPool(AllocPool to, AllocPool from)
+{
 }
 
 #endif /*O_MYALLOC*/
@@ -674,7 +679,7 @@ __consPtr(void *p, int ts)
   unsigned long v = (unsigned long) p;
 
   v -= base_addresses[ts&STG_MASK];
-  assert(v < MAXTAGGEDPTR);
+  assert(v < MAXTAGGEDPTR && !(v&0x3));
   return (v<<5)|ts;
 }
 
@@ -685,9 +690,6 @@ consPtr(void *p, int ts)
 
 #define consPtr(p, s) __consPtr(p, s)
 #endif
-
-#define makeRefL(p) consPtr(p, TAG_REFERENCE|STG_LOCAL)
-#define makeRefG(p) consPtr(p, TAG_REFERENCE|STG_GLOBAL)
 
 static inline word
 __makeRef(Word p ARG_LD)
@@ -727,6 +729,21 @@ allocGlobal__LD(int n ARG_LD)
 
     if ( roomStack(global) < (long) (n * sizeof(word)) )
       outOfStack((Stack) &LD->stacks.global, STACK_OVERFLOW_FATAL);
+  }
+
+  result = gTop;
+  gTop += n;
+
+  return result;
+}
+
+Word
+allocGlobalNoShift__LD(int n ARG_LD)
+{ Word result;
+
+  if ( roomStack(global) < (long) (n * sizeof(word)) )
+  { assert(0);				/* TBD: see copy_term/2 */
+    return NULL;
   }
 
   result = gTop;

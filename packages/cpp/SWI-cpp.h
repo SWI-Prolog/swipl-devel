@@ -337,7 +337,7 @@ public:
 			   PlTermv(PlCompound("domain_error",
 					      PlTermv(PlCompound("argv",
 								 size),
-						      n)),
+						      PlTerm((long)n))),
 				   PlTerm())))
   {
   }

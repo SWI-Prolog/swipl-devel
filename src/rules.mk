@@ -17,11 +17,18 @@ BINDIR=$(PLBASE)\bin
 LIBDIR=$(PLBASE)\lib
 INCDIR=$(PLBASE)\include
 PLCUSTOM=$(PLBASE)\custom
+
 # We get pthreadVC.dll, pthreadVC.lib, pthread.h, sched.h and semaphore.h
 # from the locations below
 WINDLLDIR=$(WINDIR)\system32
 PTHREADLIBDIR=$(HOME)\lib
 PTHREADINCDIR=$(HOME)\include
+
+# The OpenSSL library and include files
+# http://www.slproweb.com/products/Win32OpenSSL.html
+OPENSSL=C:\OpenSSL
+OPENSSLLIBDIR=$(OPENSSL)\lib\VC
+OPENSSLINCDIR=$(OPENSSL)\include
 
 # Setup the environment.  Use this to additional libraries and include
 # files to the path.  In particular provide access to the jpeg and xpm
@@ -62,7 +69,7 @@ BINDIR=$(PLBASE)\runtime
 # Define the packages to be installed automatically.  Note that the
 # Makefile also checks whether the package directory exists.
 
-PKGS=	table cpp odbc clib sgml sgml\RDF semweb http xpce
+PKGS=	chr table cpp odbc clib sgml sgml\RDF semweb http xpce jpl ssl
 PKGDIR=$(PLHOME)\packages
 PKGDOC=$(PLBASE)\doc\packages
 
@@ -137,6 +144,8 @@ MAKEINDEX=chdir "$(PLBASE)" & del library\INDEX.pl & bin\plcon.exe \
 			-f none -F none \
 			-g make_library_index(library) \
 			-t halt
+
+PLCON=$(PLBASE)\bin\plcon.exe
 
 ################################################################
 # Windows-versions garbage.  Most likely this won't work on Windows 98

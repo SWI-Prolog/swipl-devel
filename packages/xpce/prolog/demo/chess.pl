@@ -122,7 +122,7 @@ SICStus Prolog and ignores the require/1 directive.
 :- require([ between/3
 	   , call/2
 	   , concat_atom/2
-	   , free_variables/2
+	   , term_variables/2
 	   ]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -613,7 +613,7 @@ chess_utterance(Board, Utterance) :-
 	utterance(Pattern, Goal),
 	make_regex(Pattern, RegEx),
 	send(RegEx, search, Utterance), !,
-	free_variables(Goal, List),
+	term_variables(Goal, List),
 	bind_args(List, 1, RegEx, Utterance),
 	call(Goal, Board).
 

@@ -94,29 +94,30 @@ read_history_(History, Help, DontStore, Raw, Term, Bindings) :-
 %   Write history events to the current output stream.
 
 list_history :-
-	flag($last_event, Last, Last), 
+	(   $history(Last, _)
+	->  true
+	;   Last = 0
+	),
 	history_depth_(Depth), 
 	plus(First, Depth, Last), 
 	findall(Nr/Event,
 		(   between(First, Last, Nr), 
-		    recorded($history_list, Nr/Event)
+		    $history(Nr, Event)
 		),
 		Events),
 	print_message(query, history(history(Events))).
 
 $clean_history :-
-	recorded($history_list, _, Ref),
-	    erase(Ref),
-	fail.
-$clean_history :-
-	flag($last_event, _, 0).
+	retractall($history(_,_)).
 
 %   prompt_history(+Prompt)
 %   Give prompt, substituting '%!' by the event number.
 
 prompt_history(Prompt) :-
-	flag($last_event, Old, Old), 
-	succ(Old, This), 
+	(   $history(Last, _)
+	->  This is Last + 1
+	;   This = 1
+	),
 	atom_codes(Prompt, SP),
 	atom_codes(This, ST),
 	(   substitute("%!", ST, SP, String)
@@ -140,11 +141,15 @@ save_event(Dont, Event) :-
 save_event(_, Event) :-
 	$save_history(Event).
 
+:- thread_local
+	$history/2.
+
 $save_history(Event) :-
-	flag($last_event, Old, Old), 
-	succ(Old, New), 
-	flag($last_event, _, New), 
-	recorda($history_list, New/Event), 
+	(   $history(Old, _)
+	->  New is Old + 1
+	;   New is 1
+	),
+	asserta($history(New, Event)), 
 	history_depth_(Depth), 
 	remove_history(New, Depth).
 
@@ -152,8 +157,7 @@ remove_history(New, Depth) :-
 	New - Depth =< 0, !.
 remove_history(New, Depth) :-
 	Remove is New - Depth,
-	recorded($history_list, Remove/_, Ref), !,
-	erase(Ref).
+	retract($history(Remove, _)), !.
 remove_history(_, _).	
 
 %    history_depth_(-Depth)
@@ -221,7 +225,7 @@ new([H|T], [H|New], Left) :-
 %   return last event typed as a string
 
 get_last_event(Event) :-
-	recorded($history_list, _/Atom), 
+	$history(_, Atom), 
 	atom_chars(Atom, Event), !.
 get_last_event(_) :-
 	print_message(query, history(no_event)),
@@ -272,7 +276,7 @@ find_event([N|Rest], Event, Left) :-
 	code_type(N, digit), !, 
 	take_number([N|Rest], String, Left), 
 	number_codes(Number, String), 
-	recorded($history_list, Number/Atom), 
+	$history(Number, Atom), 
 	atom_chars(Atom, Event).
 find_event(Spec, Event, Left) :-
 	take_string(Spec, String, Left), 
@@ -294,11 +298,11 @@ take_number([], [], []).
 %   Return first event with prefix String as a Prolog string.
 
 matching_event(prefix, String, Event) :-
-	recorded($history_list, _/AtomEvent), 
+	$history(_, AtomEvent), 
 	atom_chars(AtomEvent, Event), 
 	$append(String, _, Event), !.
 matching_event(substring, String, Event) :-
-	recorded($history_list, _/AtomEvent), 
+	$history(_, AtomEvent), 
 	atom_chars(AtomEvent, Event), 
 	$append(_, MatchAndTail, Event), 
 	$append(String, _, MatchAndTail), !.	

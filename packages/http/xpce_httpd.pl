@@ -122,12 +122,15 @@ initialise(S, Goal:prolog, Port:[int]) :->
 
 accepted(S) :->
 	"A new connection is established on this socket"::
-	get(S, peer_name, tuple(Peer, _Port)),
-	send(S, slot, peer, Peer),
-	send(S, authorise),
-	debug(connection, 'New connection from ~w~n', [Peer]),
-	pce_open(S, append, Fd),
-	send(S, slot, out_stream, Fd).
+	(   pce_catch_error(_, get(S, peer_name, tuple(Peer, _Port)))
+	->  send(S, slot, peer, Peer),
+	    send(S, authorise),
+	    debug(connection, 'New connection from ~w', [Peer]),
+	    pce_open(S, append, Fd),
+	    send(S, slot, out_stream, Fd)
+	;   debug(connection, 'Cannot get peer: closing.', []),
+	    free(S)
+	).
 
 authorise(S) :->
 	"See whether we will proceeed with this connection"::
@@ -139,7 +142,7 @@ authorise(S) :->
 		message(@arg1, match, Peer),
 		_)
 	->  true
-	;   debug(connection, 'Refused connection from ~w~n', [Peer]),
+	;   debug(connection, 'Refused connection from ~w', [Peer]),
 	    free(S),
 	    fail
 	).
@@ -147,7 +150,7 @@ authorise(S) :->
 unlink(S) :->
 	(   debugging(connection)
 	->  get(S, peer, Peer),
-	    debug(connection, 'Closed connection from ~w~n', [Peer])
+	    debug(connection, 'Closed connection from ~w', [Peer])
 	;   true
 	),
 	(   get(S, slot, out_stream, Fd),
@@ -235,19 +238,29 @@ dispatch(S, Input:string) :->
 	get(S, goal, Goal),
 	get(S, after, After),
 	get(S, out_stream, Out),
-	http_wrapper(Goal, In, Out, Close, [request(Request)]),
-	close(In),
-	(   downcase_atom(Close, 'keep-alive')
-	->  send(S, slot, mode, request), % prepare for next
-	    send(S, record_separator, @http_end_line_regex),
-	    send(S, slot, data, @nil)
-	;   free(S)
-	),
-	(   After \== []
-	->  call(After, Request)
-	;   true
+	(   catch(http_wrapper(Goal, In, Out, Close, [request(Request)]),
+		  E, wrapper_error(E))
+	->  close(In),
+	    (   downcase_atom(Close, 'keep-alive')
+	    ->  send(S, slot, mode, request), % prepare for next
+		send(S, record_separator, @http_end_line_regex),
+		send(S, slot, data, @nil)
+	    ;   free(S)
+	    ),
+	    (   After \== []
+	    ->  call(After, Request)
+	    ;   true
+	    )
+	;   close(In),			% exception or failure
+	    free(S)
 	).
 	
+wrapper_error(Error) :-
+	(   debugging(connection)
+	->  print_message(error, Error)
+	;   true
+	),
+	fail.
 
 :- pce_group(post).
 

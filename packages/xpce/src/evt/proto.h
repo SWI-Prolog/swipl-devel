@@ -1,96 +1,97 @@
+#define COMMON(type) type SO_LOCAL
 
-/* ../src/evt/clickgesture.c */
-status		makeClassClickGesture(Class class);
+/* /staff/jan/src/pl/packages/xpce/src/evt/clickgesture.c */
+COMMON(status)	makeClassClickGesture(Class class);
 
-/* ../src/evt/conngesture.c */
-status		makeClassConnectGesture(Class class);
+/* /staff/jan/src/pl/packages/xpce/src/evt/conngesture.c */
+COMMON(status)	makeClassConnectGesture(Class class);
 
-/* ../src/evt/event.c */
-void		considerLocStillEvent(void);
-PceWindow	WindowOfLastEvent(void);
-void		unlinkedWindowEvent(Any sw);
-unsigned long	LastEventTime(void);
-void		setLastEventTime(unsigned long time);
-status		isAEvent(EventObj e, Any id);
-status		eventName(Name name);
-status		allButtonsUpEvent(EventObj e);
-status		isUpEvent(EventObj e);
-status		isDownEvent(EventObj e);
-Name		getButtonEvent(EventObj e);
-status		isDragEvent(EventObj ev);
-status		hasModifierEvent(EventObj ev, Modifier m);
-Name		getMulticlickEvent(EventObj e);
-Int		getClickTimeEvent(EventObj e);
-Int		getClickDisplacementEvent(EventObj e);
-status		windowEvent(EventObj ev, PceWindow sw);
-status		get_xy_event(EventObj ev, Any obj, Bool area, Int *rx, Int *ry);
-Point		getPositionEvent(EventObj ev, Any obj);
-Point		getAreaPositionEvent(EventObj ev, Graphical gr);
-Int		getXEvent(EventObj ev, Any obj);
-Int		getYEvent(EventObj ev, Any obj);
-status		insideEvent(EventObj ev, Graphical gr);
-Int		getDistanceEvent(EventObj ev1, EventObj ev2);
-Any		getIdEvent(EventObj ev);
-Any		getReceiverEvent(EventObj ev);
-status		postNamedEvent(EventObj ev, Graphical obj, Recogniser rec, Name method);
-status		postEvent(EventObj ev, Graphical obj, Recogniser rec);
-Any		getMasterEvent(EventObj ev);
-DisplayObj	getDisplayEvent(EventObj ev);
-status		mapWheelMouseEvent(EventObj ev, Any rec);
-status		makeClassEvent(Class class);
+/* /staff/jan/src/pl/packages/xpce/src/evt/event.c */
+COMMON(void)	considerLocStillEvent(void);
+COMMON(PceWindow) WindowOfLastEvent(void);
+COMMON(void)	unlinkedWindowEvent(Any sw);
+COMMON(unsigned long) LastEventTime(void);
+COMMON(void)	setLastEventTime(unsigned long time);
+COMMON(status)	isAEvent(EventObj e, Any id);
+COMMON(status)	eventName(Name name);
+COMMON(status)	allButtonsUpEvent(EventObj e);
+COMMON(status)	isUpEvent(EventObj e);
+COMMON(status)	isDownEvent(EventObj e);
+COMMON(Name)	getButtonEvent(EventObj e);
+COMMON(status)	isDragEvent(EventObj ev);
+COMMON(status)	hasModifierEvent(EventObj ev, Modifier m);
+COMMON(Name)	getMulticlickEvent(EventObj e);
+COMMON(Int)	getClickTimeEvent(EventObj e);
+COMMON(Int)	getClickDisplacementEvent(EventObj e);
+COMMON(status)	windowEvent(EventObj ev, PceWindow sw);
+COMMON(status)	get_xy_event(EventObj ev, Any obj, Bool area, Int *rx, Int *ry);
+COMMON(Point)	getPositionEvent(EventObj ev, Any obj);
+COMMON(Point)	getAreaPositionEvent(EventObj ev, Graphical gr);
+COMMON(Int)	getXEvent(EventObj ev, Any obj);
+COMMON(Int)	getYEvent(EventObj ev, Any obj);
+COMMON(status)	insideEvent(EventObj ev, Graphical gr);
+COMMON(Int)	getDistanceEvent(EventObj ev1, EventObj ev2);
+COMMON(Any)	getIdEvent(EventObj ev);
+COMMON(Any)	getReceiverEvent(EventObj ev);
+COMMON(status)	postNamedEvent(EventObj ev, Graphical obj, Recogniser rec, Name method);
+COMMON(status)	postEvent(EventObj ev, Graphical obj, Recogniser rec);
+COMMON(Any)	getMasterEvent(EventObj ev);
+COMMON(DisplayObj) getDisplayEvent(EventObj ev);
+COMMON(status)	mapWheelMouseEvent(EventObj ev, Any rec);
+COMMON(status)	makeClassEvent(Class class);
 
-/* ../src/evt/eventnode.c */
-status		isAEventNode(EventNodeObj sb, EventNodeObj super);
-status		makeClassEventNode(Class class);
+/* /staff/jan/src/pl/packages/xpce/src/evt/eventnode.c */
+COMMON(status)	isAEventNode(EventNodeObj sb, EventNodeObj super);
+COMMON(status)	makeClassEventNode(Class class);
 
-/* ../src/evt/eventtree.c */
-status		addNodeEventTree(EventTreeObj t, EventNodeObj n);
-EventNodeObj	getNodeEventTree(EventTreeObj t, Any value);
-status		makeClassEventTree(Class class);
+/* /staff/jan/src/pl/packages/xpce/src/evt/eventtree.c */
+COMMON(status)	addNodeEventTree(EventTreeObj t, EventNodeObj n);
+COMMON(EventNodeObj) getNodeEventTree(EventTreeObj t, Any value);
+COMMON(status)	makeClassEventTree(Class class);
 
-/* ../src/evt/gesture.c */
-status		initialiseGesture(Gesture g, Name button, Modifier modifier);
-status		eventGesture(Any obj, EventObj ev);
-status		cancelGesture(Gesture g, EventObj ev);
-status		restrictAreaEvent(EventObj ev, Graphical gr);
-status		makeClassGesture(Class class);
+/* /staff/jan/src/pl/packages/xpce/src/evt/gesture.c */
+COMMON(status)	initialiseGesture(Gesture g, Name button, Modifier modifier);
+COMMON(status)	eventGesture(Any obj, EventObj ev);
+COMMON(status)	cancelGesture(Gesture g, EventObj ev);
+COMMON(status)	restrictAreaEvent(EventObj ev, Graphical gr);
+COMMON(status)	makeClassGesture(Class class);
 
-/* ../src/evt/handler.c */
-status		makeClassHandler(Class class);
+/* /staff/jan/src/pl/packages/xpce/src/evt/handler.c */
+COMMON(status)	makeClassHandler(Class class);
 
-/* ../src/evt/handlergroup.c */
-status		makeClassHandlerGroup(Class class);
+/* /staff/jan/src/pl/packages/xpce/src/evt/handlergroup.c */
+COMMON(status)	makeClassHandlerGroup(Class class);
 
-/* ../src/evt/modifier.c */
-status		makeClassModifier(Class class);
+/* /staff/jan/src/pl/packages/xpce/src/evt/modifier.c */
+COMMON(status)	makeClassModifier(Class class);
 
-/* ../src/evt/movegesture.c */
-status		initialiseMoveGesture(MoveGesture g, Name button, Modifier modifier);
-status		makeClassMoveGesture(Class class);
+/* /staff/jan/src/pl/packages/xpce/src/evt/movegesture.c */
+COMMON(status)	initialiseMoveGesture(MoveGesture g, Name button, Modifier modifier);
+COMMON(status)	makeClassMoveGesture(Class class);
 
-/* ../src/evt/mvolgesture.c */
-status		makeClassMoveOutlineGesture(Class class);
+/* /staff/jan/src/pl/packages/xpce/src/evt/mvolgesture.c */
+COMMON(status)	makeClassMoveOutlineGesture(Class class);
 
-/* ../src/evt/popupgesture.c */
-status		makeClassPopupGesture(Class class);
-Recogniser	popupGesture(void);
+/* /staff/jan/src/pl/packages/xpce/src/evt/popupgesture.c */
+COMMON(status)	makeClassPopupGesture(Class class);
+COMMON(Recogniser) popupGesture(void);
 
-/* ../src/evt/recogniser.c */
-status		initialiseRecogniser(Recogniser r);
-status		makeClassRecogniser(Class class);
+/* /staff/jan/src/pl/packages/xpce/src/evt/recogniser.c */
+COMMON(status)	initialiseRecogniser(Recogniser r);
+COMMON(status)	makeClassRecogniser(Class class);
 
-/* ../src/evt/resizegesture.c */
-status		initialiseResizeGesture(ResizeGesture g, Name button, Modifier modifier);
-status		makeClassResizeGesture(Class class);
+/* /staff/jan/src/pl/packages/xpce/src/evt/resizegesture.c */
+COMMON(status)	initialiseResizeGesture(ResizeGesture g, Name button, Modifier modifier);
+COMMON(status)	makeClassResizeGesture(Class class);
 
-/* ../src/evt/rzolgesture.c */
-status		makeClassResizeOutlineGesture(Class class);
+/* /staff/jan/src/pl/packages/xpce/src/evt/rzolgesture.c */
+COMMON(status)	makeClassResizeOutlineGesture(Class class);
 
-/* ../src/evt/edittextgest.c */
-status		makeClassEditTextGesture(Class class);
+/* /staff/jan/src/pl/packages/xpce/src/evt/edittextgest.c */
+COMMON(status)	makeClassEditTextGesture(Class class);
 
-/* ../src/evt/browserselgesture.c */
-status		makeClassBrowserSelectGesture(Class class);
+/* /staff/jan/src/pl/packages/xpce/src/evt/browserselgesture.c */
+COMMON(status)	makeClassBrowserSelectGesture(Class class);
 
-/* ../src/evt/resizetabslice.c */
-status		makeClassResizeTableSliceGesture(Class class);
+/* /staff/jan/src/pl/packages/xpce/src/evt/resizetabslice.c */
+COMMON(status)	makeClassResizeTableSliceGesture(Class class);

@@ -421,6 +421,24 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
       PL_unify_term(formal, PL_FUNCTOR, FUNCTOR_busy2, type, mutex);
       break;
     }
+    case ERR_FORMAT:
+    { const char *s = va_arg(args, const char*);
+
+      PL_unify_term(formal,
+		    PL_FUNCTOR_CHARS, "format", 1,
+		      PL_CHARS, s);
+      break;
+    }
+    case ERR_FORMAT_ARG:
+    { const char *s = va_arg(args, const char*);
+      term_t arg = va_arg(args, term_t);
+
+      PL_unify_term(formal,
+		    PL_FUNCTOR_CHARS, "format_argument_type", 2,
+		      PL_CHARS, s,
+		      PL_TERM, arg);
+      break;
+    }
     default:
       assert(0);
   }
@@ -577,6 +595,15 @@ PL_get_float_ex(term_t t, double *f)
     succeed;
 
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_float, t);
+}
+
+
+int
+PL_get_char_ex(term_t t, int *p, int eof)
+{ if ( PL_get_char(t, p, eof) )
+    succeed;
+
+  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_character, t);
 }
 
 

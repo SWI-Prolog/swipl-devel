@@ -40,7 +40,6 @@
 	  ignore/1,
 	  auto_call/1,
 	  concat/3,
-	  free_variables/2,
 	  atom_length/2,
 	  time_file/2,
 	  strip_module/3,
@@ -332,13 +331,6 @@ atom_length(Atom, Length) :-
 atom_length(String, Length) :-
 	length(String, Length).
 
-% free_variables(+Term, -ListOfUnBound)
-%
-% ListOfUnbound is a list of unbound variables in the term
- 
-free_variables(Term, ListOfUnbound) :-
-        free_variables(Term, [], [], ListOfUnbound).
- 
 % pce_arg(?N, +Term, ?Arg)
 %
 % uses genarg/3 from library(arg), can solve for N

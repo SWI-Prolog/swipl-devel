@@ -30,7 +30,7 @@
 # XPCE is licenced under the LGPL. See the file COPYING or
 # www.swi-prolog.org/license.html
 #
-# Copyright (C) 1993-2002, University of Amsterdam
+# Copyright (C) 1993-2004, University of Amsterdam
 ################################################################
 
 .EXPORT_ALL_VARIABLES:
@@ -69,8 +69,7 @@ PL=@PL@
 PLBUILD=@PLBUILD@
 PLLD=@PLLD@
 PLNAME=@PLNAME@
-MKPROTO=mkproto -p
-CLPROTO=grep -vw NewClass
+MKPROTO=$(srcdir)/mkproto.sh
 LN=@LN_S@
 AR=@AR@
 ARFLAGS=ru
@@ -147,7 +146,7 @@ SICSTARGET=xpce-sicstus
 VMAJOR=@VMAJOR@
 VMINOR=@VMINOR@
 VPATCH=@VPATCH@
-PCEVERSIONDATE=January 2004
+PCEVERSIONDATE=September 2004
 
 SOMAJOR=$(VMAJOR)
 SOMINOR=$(VMINOR).$(VPATCH)
@@ -350,7 +349,7 @@ ADTOBJS=	area.o atable.o attribute.o bool.o chain.o chaintable.o \
 ADTSRC=		$(addprefix $(srcdir)/adt/, $(ADTOBJS:.o=.c))
 
 $(srcdir)/adt/proto.h:	$(ADTSRC)
-		$(MKPROTO) $(ADTSRC) | $(CLPROTO) > $@
+		$(MKPROTO) $(ADTSRC) > $@
 
 ################################################################
 # ARI 		--- Arithmetic Operations
@@ -360,7 +359,7 @@ ARIOBJS=	equation.o expression.o
 ARISRC=		$(addprefix $(srcdir)/ari/, $(ARIOBJS:.o=.c))
 
 $(srcdir)/ari/proto.h:	$(ARISRC)
-		$(MKPROTO) $(ARISRC) | $(CLPROTO) > $@
+		$(MKPROTO) $(ARISRC) > $@
 
 ################################################################
 # EVT 		--- Event Handling Primitives
@@ -375,7 +374,7 @@ EVTOBJS=	clickgesture.o conngesture.o event.o \
 EVTSRC=		$(addprefix $(srcdir)/evt/, $(EVTOBJS:.o=.c))
 
 $(srcdir)/evt/proto.h:	$(EVTSRC)
-		$(MKPROTO) $(EVTSRC) | $(CLPROTO) > $@
+		$(MKPROTO) $(EVTSRC) > $@
 
 ################################################################
 # GNU 		--- GNU-Project Libraries
@@ -394,7 +393,7 @@ $(srcdir)/gnu/getdate.c:	gnu/getdate.y
 		mv -f y.tab.c $@
 
 $(srcdir)/gnu/proto.h:	$(GNUSRC)
-		$(MKPROTO) $(GNUSRC) | $(CLPROTO) > $@
+		$(MKPROTO) $(GNUSRC) > $@
 
 ################################################################
 # GRA 		--- Graphics Classes
@@ -410,7 +409,7 @@ GRAOBJS=	arc.o arrow.o bitmap.o box.o circle.o colour.o \
 GRASRC=		$(addprefix $(srcdir)/gra/, $(GRAOBJS:.o=.c))
 
 $(srcdir)/gra/proto.h:	$(GRASRC)
-		$(MKPROTO) $(GRASRC) | $(CLPROTO) > $@
+		$(MKPROTO) $(GRASRC) > $@
 
 ################################################################
 # ITF 		--- Host Interface Layer
@@ -423,7 +422,7 @@ ITFOBJS=	$(ITF1OBJS) $(ITF2OBJS)
 ITFSRC=		$(addprefix $(srcdir)/itf/, $(ITF1OBJS:.o=.c) $(ITF2OBJS:.o=.cxx))
 
 $(srcdir)/itf/proto.h:	$(ITFSRC)
-		$(MKPROTO) $(ITFSRC) | $(CLPROTO) > $@
+		$(MKPROTO) $(ITFSRC) > $@
 
 itf/cpp.o:	itf/cpp.cxx
 		$(CXX) -c -I../include $(CFLAGS) $< -o $@
@@ -443,7 +442,7 @@ KEROBJS=	$(KER1OBJS) $(KER2OBJS)
 KER1SRC=	$(addprefix $(srcdir)/ker/, $(KER1OBJS:.o=.c))
 
 $(srcdir)/ker/proto.h:	$(KER1SRC)
-		$(MKPROTO) $(KER1SRC) | $(CLPROTO) | grep -v PceGoal | grep -v PceType > $@
+		$(MKPROTO) $(KER1SRC) | grep -v PceGoal | grep -v PceType > $@
 
 version.h:	Makefile
 		@echo "#define MACHINE \"$(ARCH)\"" > $@%
@@ -472,7 +471,7 @@ MENOBJS=	button.o dialogitem.o label.o menu.o menubar.o \
 MENSRC=		$(addprefix $(srcdir)/men/, $(MENOBJS:.o=.c))
 
 $(srcdir)/men/proto.h:	$(MENSRC)
-		$(MKPROTO) $(MENSRC) | $(CLPROTO) > $@
+		$(MKPROTO) $(MENSRC) > $@
 
 
 ################################################################
@@ -484,7 +483,7 @@ FMTOBJS=	layoutmgr.o layoutitf.o \
 FMTSRC=		$(addprefix $(srcdir)/fmt/, $(FMTOBJS:.o=.c))
 
 $(srcdir)/fmt/proto.h:	$(FMTSRC)
-		$(MKPROTO) $(FMTSRC) | $(CLPROTO) > $@
+		$(MKPROTO) $(FMTSRC) > $@
 
 
 ################################################################
@@ -496,7 +495,7 @@ BOXOBJS=	boxes.o hbox.o tbox.o parbox.o grbox.o rubber.o \
 BOXSRC=		$(addprefix $(srcdir)/box/, $(BOXOBJS:.o=.c))
 
 $(srcdir)/box/proto.h:	$(BOXSRC)
-		$(MKPROTO) $(BOXSRC) | $(CLPROTO) > $@
+		$(MKPROTO) $(BOXSRC) > $@
 
 
 ################################################################
@@ -510,7 +509,7 @@ MSGOBJS=	and.o assign.o binding.o block.o code.o create.o \
 MSGSRC=		$(addprefix $(srcdir)/msg/, $(MSGOBJS:.o=.c))
 
 $(srcdir)/msg/proto.h:	$(MSGSRC)
-		$(MKPROTO) $(MSGSRC) | $(CLPROTO) > $@
+		$(MKPROTO) $(MSGSRC) > $@
 
 ################################################################
 # PRG 		--- Language Definition Classes
@@ -520,7 +519,7 @@ PRGOBJS=	operator.o parser.o tokeniser.o
 PRGSRC=		$(addprefix $(srcdir)/prg/, $(PRGOBJS:.o=.c))
 
 $(srcdir)/prg/proto.h:	$(PRGSRC)
-		$(MKPROTO) $(PRGSRC) | $(CLPROTO) > $@
+		$(MKPROTO) $(PRGSRC) > $@
 
 ################################################################
 # REL 		--- Relation Classes
@@ -531,7 +530,7 @@ RELOBJS=	constraint.o hyper.o identity.o relation.o \
 RELSRC=		$(addprefix $(srcdir)/rel/, $(RELOBJS:.o=.c))
 
 $(srcdir)/rel/proto.h:	$(RELSRC)
-		$(MKPROTO) $(RELSRC) | $(CLPROTO) > $@
+		$(MKPROTO) $(RELSRC) > $@
 
 ################################################################
 # TXT 		--- Text Representation and Manipulation Classes
@@ -544,7 +543,7 @@ TXTOBJS=	chararray.o editor.o fragment.o keybinding.o \
 TXTSRC=		$(addprefix $(srcdir)/txt/, $(TXTOBJS:.o=.c))
 
 $(srcdir)/txt/proto.h:	$(TXTSRC)
-		$(MKPROTO) $(TXTSRC) | $(CLPROTO) > $@
+		$(MKPROTO) $(TXTSRC) > $@
 
 ################################################################
 # UNX 		--- Unix File, Process and Network Classes
@@ -554,7 +553,7 @@ UNXOBJS=	directory.o file.o process.o socket.o stream.o
 UNXSRC=		$(addprefix $(srcdir)/unx/, $(UNXOBJS:.o=.c))
 
 $(srcdir)/unx/proto.h:	$(UNXSRC)
-		$(MKPROTO) $(UNXSRC) | $(CLPROTO) > $@
+		$(MKPROTO) $(UNXSRC) > $@
 
 xpce-client:	unx/client.c
 		$(CC) -c $(CFLAGS) $< -o client.o
@@ -572,7 +571,7 @@ WINOBJS=	browser.o decorate.o dialog.o display.o \
 WINSRC=		$(addprefix $(srcdir)/win/, $(WINOBJS:.o=.c))
 
 $(srcdir)/win/proto.h:	$(WINSRC)
-		$(MKPROTO) $(WINSRC) | $(CLPROTO) > $@
+		$(MKPROTO) $(WINSRC) > $@
 
 
 ################################################################
@@ -584,7 +583,7 @@ IMGOBJS=	jdatasrc.o jdatadst.o jpegtoxpm.o gifread.o giftoxpm.o \
 IMGSRC=		$(addprefix $(srcdir)/img/, $(IMGOBJS:.o=.c))
 
 $(srcdir)/img/proto.h:	$(IMGSRC)
-		$(MKPROTO) $(IMGSRC) | $(CLPROTO) > $@
+		$(MKPROTO) $(IMGSRC) > $@
 
 ################################################################
 # X11 		--- X11 implementation of the XPCE Virtual Window Interface
@@ -601,10 +600,10 @@ WSTSRC=		$(addprefix $(srcdir)/x11/, $(WSTOBJS:.o=.c)) \
 		$(srcdir)/gra/graphstate.c
 
 $(srcdir)/x11/wstproto.h: $(WSTSRC)
-		$(MKPROTO) $(WSTSRC) | $(CLPROTO) | grep -v '^XImage' > $@
+		$(MKPROTO) $(WSTSRC) | grep -v '^XImage' > $@
 
 $(srcdir)/x11/proto.h:	$(XCOMMSRC)
-		$(MKPROTO) $(XCOMMSRC) | $(CLPROTO) > $@
+		$(MKPROTO) $(XCOMMSRC) > $@
 
 ################################################################
 # MSW 		--- MS-Windows implementation of the
@@ -686,11 +685,11 @@ rt-install:	$(INSTALL) rt-home rt-misc rt-bitmaps rt-bins rt-link
 
 dv-install:	rt-install dv-home dv-lib dv-boot dv-help \
 	        dv-link dv-pl-files dv-manual dv-man \
-		dv-misc cxx-install dv-qlf dv-bins dv-online
+		dv-misc cxx-install dv-qlf dv-bins dv-online dv-classindex
 
 rpm-install:	rt-home rt-misc rt-bitmaps rt-bins rpm-link \
 		dv-lib dv-boot dv-help dv-link dv-pl-files dv-manual dv-man \
-		dv-misc cxx-install dv-bins dv-online
+		dv-misc cxx-install dv-bins dv-online dv-classindex
 
 manindex:	$(MANINDEX)
 
@@ -777,6 +776,10 @@ dv-lib:
 				$(DVHOME)/prolog/lib/man
 		$(INSTALL_DATA) ../prolog/lib/Makefile $(DVHOME)/prolog/lib
 
+dv-classindex::
+		$(PLEXE) -f none -F xpce -g true \
+			-t "pce_make_library_index('$(DVHOME)/prolog/lib')"
+
 dv-boot:	
 		@for d in $(DVBOOTDIRS); do \
 		    if [ ! -d $(DVHOME)/prolog/$$d ]; then \
@@ -859,6 +862,13 @@ cxx-demos:
 cxx-misc:
 		$(INSTALL_DATA) -C .. README.CXX $(DVHOME)
 		$(INSTALL_DATA) -p1 ../src/itf/main.cxx $(DVHOME)
+
+################################################################
+# CHECK
+################################################################
+
+check::
+
 
 ################################################################
 # CLEANUP

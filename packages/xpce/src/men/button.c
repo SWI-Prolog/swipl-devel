@@ -474,10 +474,10 @@ executeButton(Button b)
 { if ( notNil(b->message) )
   { DisplayObj d = getDisplayGraphical((Graphical) b);
 
-    statusButton(b, NAME_execute);
-    flushGraphical(b);
     if ( d )
       busyCursorDisplay(d, DEFAULT, DEFAULT);
+    statusButton(b, NAME_execute);
+    flushGraphical(b);
     send(b, NAME_forward, EAV);
     if ( d )
       busyCursorDisplay(d, NIL, DEFAULT);

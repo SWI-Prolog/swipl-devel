@@ -23,7 +23,7 @@
 :- asserta(user:file_search_path(library, '.')).
 
 :- use_module(rdf).			% our RDF parser
-:- use_module(rdf_nt).			% read .nt files
+:- use_module(rdf_ntriples).			% read .nt files
 :- load_files([ library(pce),
 		library(toolbar),
 		library(pce_report),
@@ -111,14 +111,14 @@ run_test(Test) :-
 					% documents
 	(   rdf(Test, test:outputDocument, Out),
 	    local_file(Out, NTFile),
-	    load_rdf_nt(NTFile, NT),
+	    load_rdf_ntriples(NTFile, NT),
 	    feedback('Comparing to ~w~n', [NTFile]),
 	    compare_triples(RDF, NT, Substitions)
 	->  test_result(pass, Test, Data)
 					% if all fails, display the first
 	;   rdf(Test, test:outputDocument, Out),
 	    local_file(Out, NTFile),
-	    load_rdf_nt(NTFile, NT),
+	    load_rdf_ntriples(NTFile, NT),
 	    Substitions = [],
 	    test_result(fail, Test, Data)
 	).

@@ -8,11 +8,9 @@ To build these packages, first build  and install SWI-Prolog itself This
 creates Makefile, copying some of the   configuration  settings from the
 SWI-Prolog configuration options.
 
-Now edit the PKG variable  in  Makefile   to  reflect  the  packages and
-options preferred. If you install XPCE  (strongly recommended for better
-online help, graphical  tracer,  integrated   editor  and  powerful  GUI
-toolkit), make sure to have  the   following  installed  in a searchable
-place:
+If you plan to install  XPCE   (strongly  recommended  for better online
+help, graphical tracer, integrated  editor   and  powerful GUI toolkit),
+make sure to have the following installed in a searchable place:
 
 	* libjpeg  (http://www.ijg.org/)
 	* libXPM   (http://www-sop.inria.fr/koala/lehors/xpm.html)
@@ -33,16 +31,29 @@ jan@swi.psy.uva.nl
 	SuSE-6.4	xdevel-3.3   libjpeg-6.2.0 xpm-3.4k
 	SuSE-7.0	xdevel-4.0   libjpeg-6.2.0 
 	SuSE-7.1	xdevel-4.0.2 libjpeg-6.2.0 
+	SuSE-9.0	XPCE: XFree86-devel-4.3.0 libjpeg-6.2.0
+			odbc: unixODBC
+			ssl:  openssl-devel
+			db:   db-devel
 	================================================================
 
-Now run
+The packages to be build are specified in the configure script, variable
+PKG. You can specify this list on the commandline using -for example-
+
+	env PKG="clib sgml" ./configure
+
+or you can modify the  default   list  using --with-PKG or --without-PKG
+options. Most of the packages  are  designed   not  to  build or install
+anything if they discover that  the   build  environment  lacks features
+requirted by the package.
 
 	./configure
 	make
 	make install
 
-And   optional   one   of   the   HTML     or   PDF   documentation   in
-$(PLBASE)/doc/packages using:
+Each package comes with its own documentation. This documentation may be
+installed in the directory $(PLBASE)/doc/packages in  either HTML or PDF
+format using one of the commands:
 
 	make html-install
 	make pdf-install
@@ -51,6 +62,9 @@ Provided packages
 -----------------
 
 (*) flagged packages are installed by default
+
+	# chr (*)
+	Constraint Handling Rules compiler and runtime environment.
 
 	# clib (*)
 	Consists of various sub-packages.  Currently defined:
@@ -80,6 +94,12 @@ Provided packages
 
 	# sgml and sgml/RDF (*)
 	XML, SGML and RDF parsers
+
+	# semweb (*)
+	Semantic Web (RDF) storage and inference layer
+
+	# http (*)
+	HTTP server and client libraries
 
 	# table (*)
 	Quick access to tabled information.  Can be used to access

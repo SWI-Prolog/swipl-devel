@@ -43,13 +43,17 @@ Prolog terms in the database.
 
 <UL>
 <LI><A HREF="#sec:1"><B>1 Introduction</B></A>
+<UL>
+<LI><A HREF="#sec:1.1">1.1 About this manual</A>
+</UL>
 <LI><A HREF="#sec:2"><B>2 The DB interface</B></A>
 <UL>
-<LI><A HREF="#sec:2.1">2.1 Opening a database</A>
-<LI><A HREF="#sec:2.2">2.2 Accessing a database</A>
-<LI><A HREF="#sec:2.3">2.3 Transactions</A>
-<LI><A HREF="#sec:2.4">2.4 Notes on signals and other interrupts</A>
-<LI><A HREF="#sec:2.5">2.5 Initialisation</A>
+<LI><A HREF="#sec:2.1">2.1 The overall picture</A>
+<LI><A HREF="#sec:2.2">2.2 Opening a database</A>
+<LI><A HREF="#sec:2.3">2.3 Accessing a database</A>
+<LI><A HREF="#sec:2.4">2.4 Transactions</A>
+<LI><A HREF="#sec:2.5">2.5 Notes on signals and other interrupts</A>
+<LI><A HREF="#sec:2.6">2.6 Initialisation</A>
 </UL>
 <LI><A HREF="#sec:3"><B>3 Installation</B></A>
 <UL>
@@ -80,15 +84,45 @@ objects.
 
 <P>This package stores arbitrary Prolog terms, using 
 PL_record_external() introduced in SWI-Prolog 3.3.7, in the database. It 
-provides an interface similar to the recorded-database (<A NAME="idx:recorda3:1"></A><B>recorda/3</B>). 
-In the future we plan to link this interface transparently to a 
-predicate.
+provides an interface similar to the recorded-database (recorda/3). In 
+the future we plan to link this interface transparently to a predicate.
+
+<H3><A NAME="sec:1.1">1.1 About this manual</A></H3>
+
+<P>This manual is by no means complete. The Berkeley DB documentation 
+should be consulted directly to resolve details on security, resource 
+usage, formats, configuration options etc. This interface passed default 
+values for most DB API calls. Supported options hint to the 
+corresponding DB API calls, which should be consulted for details.
 
 <H2><A NAME="sec:2">2 The DB interface</A></H2>
 
-<H3><A NAME="sec:2.1">2.1 Opening a database</A></H3>
+<H3><A NAME="sec:2.1">2.1 The overall picture</A></H3>
+
+<P>Berkeley DB is an <EM>embedded database</EM>. This implies the 
+library provides access to a file containing one or more database 
+tables. The Berkeley DB database tables are always binary, mapping a <EM>key</EM> 
+to a <EM>value</EM>.
+
+<P>Accessing a database consists of four steps:
+
+<P><OL>
+<LI>Initialise the DB environment using <A NAME="idx:dbinit1:1"></A><A HREF="#db_init/1">db_init/1</A>. 
+This step is optional, providing simple non-transactional file access 
+when omitted.
+<LI>Open a database using <A NAME="idx:dbopen4:2"></A><A HREF="#db_open/4">db_open/4</A>, 
+returning a handle to the database.
+<LI>Accessing the data using <A NAME="idx:dbput3:3"></A><A HREF="#db_put/3">db_put/3</A>, <A NAME="idx:dbget3:4"></A><A HREF="#db_get/3">db_get/3</A>, 
+etc.
+<LI>Closing a database using <A NAME="idx:dbclose1:5"></A><B>db_close/1</B>. 
+When omitted, all open databases are closed on program halt (see <A NAME="idx:athalt1:6"></A><B>at_halt/1</B>).
+</OL>
+
+<H3><A NAME="sec:2.2">2.2 Opening a database</A></H3>
 
 <DL>
+
+<P>
 <DT><A NAME="db_open/4"><STRONG>db_open</STRONG>(<VAR>+File, +Mode, -DB, 
 +Options</VAR>)</A><DD>
 Open a file holding a database. <VAR>Mode</VAR> is one of <CODE>read</CODE>, 
@@ -97,19 +131,27 @@ access. <VAR>Options</VAR> is a list of options. Currently supported
 options are:
 
 <DL>
+
+<P>
 <DT><STRONG>duplicates</STRONG>(<VAR>bool</VAR>)<DD>
 Do/do not allow for duplicate values on the same key. Default is not to 
 allow for duplicates.
+
+<P>
 <DT><STRONG>database</STRONG>(<VAR>Name</VAR>)<DD>
 If <VAR>File</VAR> contains multiple databases, address the named 
 database in the file. A DB file can only consist of multiple databases 
-if the <A NAME="idx:dbopen4:2"></A><A HREF="#db_open/4">db_open/4</A> 
+if the <A NAME="idx:dbopen4:7"></A><A HREF="#db_open/4">db_open/4</A> 
 call that created it specified this argument. Each database in the file 
 has its own characteristics.
+
+<P>
 <DT><STRONG>key</STRONG>(<VAR>Type</VAR>)<DD>
 Specify the type of the key. Allowed values are:
 
 <DL>
+
+<P>
 <DT><STRONG>term</STRONG><DD>
 Key is a Prolog term (default). This type allows for representing 
 arbitrary Prolog data in both keys and value. The representation is 
@@ -117,52 +159,85 @@ space-efficient, but Prolog specific. See PL_record_external() in the
 SWI-Prolog Reference Manual for details on the representation. The other 
 representations are more neutral. This implies they are more stable and 
 sharing the DB with other languages is feasible.
+
+<P>
 <DT><STRONG>atom</STRONG><DD>
 Key is an atom. The text is represented using the character data and its 
 length.
+
+<P>
 <DT><STRONG>c_string</STRONG><DD>
 Key is an atom. The text is represented as a C 0-terminated string.
+
+<P>
 <DT><STRONG>c_long</STRONG><DD>
 Key is an integer. The value is represented as a native C long in the 
 machines byte-order.
 </DL>
 
+<P>
 <DT><STRONG>value</STRONG>(<VAR>Type</VAR>)<DD>
 Specify the type of the value. See <CODE>key</CODE> for details.
 </DL>
 
 </DL>
 
-<H3><A NAME="sec:2.2">2.2 Accessing a database</A></H3>
+<H3><A NAME="sec:2.3">2.3 Accessing a database</A></H3>
+
+<P>The predicates in this section are used to read and write the 
+database. These predicate use a <VAR>Key</VAR> and a <VAR>Value</VAR>. 
+These should satisfy the key and value-types specified with <A NAME="idx:dbopen4:8"></A><A HREF="#db_open/4">db_open/4</A>. 
+If a value is declared using the type <CODE>term</CODE> (default), 
+arbitrary Prolog terms may be put in the database.
+
+<P>If a non-ground term is used as <VAR>Key</VAR>, it is matched using
+<EM>structural equivalence</EM>. See <B>=@=/2</B> in the SWI-Prolog 
+reference manual for details. For short, if a term <CODE>a(A,B)</CODE> 
+is used as key, it will only be found using a key of the same format: a 
+term with functor <CODE>a</CODE> and two unbound arguments that are not 
+shared.
 
 <DL>
+
+<P>
 <DT><A NAME="db_put/3"><STRONG>db_put</STRONG>(<VAR>+DB, +Key, +Value</VAR>)</A><DD>
 Add a new key-value pair to the database. If the database allows for 
 duplicates this will always succeed, unless a system error occurs.
-<DT><A NAME="db_del/2"><STRONG>db_del</STRONG>(<VAR>+DB, +Key</VAR>)</A><DD>
-Delete all key-value pairs with the named <VAR>Key</VAR> from the 
-database. Note that this is equivalent to <CODE>db_delall(DB, Key, _)</CODE>.
+
+<P>
 <DT><A NAME="db_del/3"><STRONG>db_del</STRONG>(<VAR>+DB, ?Key, ?Value</VAR>)</A><DD>
 Delete the first matching key-value pair from the database. If the 
 database allows for duplicates, this predicate is non-deterministic. The 
 enumeration performed by this predicate is the same as for
-<A NAME="idx:dbget3:3"></A><A HREF="#db_get/3">db_get/3</A>.
+<A NAME="idx:dbget3:9"></A><A HREF="#db_get/3">db_get/3</A>. See also <A NAME="idx:dbdelall3:10"></A><A HREF="#db_delall/3">db_delall/3</A>.
+
+<P>
 <DT><A NAME="db_delall/3"><STRONG>db_delall</STRONG>(<VAR>+DB, +Key, 
 ?Value</VAR>)</A><DD>
-Delete all matching key-value pairs from the database. With unbound key 
-this calls <A NAME="idx:dbdel2:4"></A><A HREF="#db_del/2">db_del/2</A>.
+Delete all matching key-value pairs from the database. With unbound
+<VAR>Value</VAR> the key and all values are removed efficiently.
+
+<P>
 <DT><A NAME="db_get/3"><STRONG>db_get</STRONG>(<VAR>+DB, ?Key, -Value</VAR>)</A><DD>
 Query the database. If the database allows for duplicates this predicate 
-is non-deterministic. If <VAR>Key</VAR> is unbound, all keys are 
-enumerated. This mode is especially useful to enumerating the entire 
-content of a database.
+is non-deterministic.
+
+<P>
+<DT><A NAME="db_enum/3"><STRONG>db_enum</STRONG>(<VAR>+DB, -Key, -Value</VAR>)</A><DD>
+Enumerate the whole database, unifying the key-value pairs to
+<VAR>Key</VAR> and <VAR>Value</VAR>. Though this predicate can be used 
+with an instantiated <VAR>Key</VAR> to enumerate only the keys unifying 
+with
+<VAR>Key</VAR>, no indexing is used by <A NAME="idx:dbenum3:11"></A><A HREF="#db_enum/3">db_enum/3</A>.
+
+<P>
 <DT><A NAME="db_getall/3"><STRONG>db_getall</STRONG>(<VAR>+DB, +Key, 
 -Value</VAR>)</A><DD>
 Get all values associated with <VAR>Key</VAR>. Fails if the key does not 
-exist (as <A NAME="idx:bagof3:5"></A><B>bagof/3</B>).
+exist (as <A NAME="idx:bagof3:12"></A><B>bagof/3</B>).
 </DL>
 
-<H3><A NAME="sec:2.3">2.3 Transactions</A></H3>
+<H3><A NAME="sec:2.4">2.4 Transactions</A></H3>
 
 <A NAME="sec:transactions"></A>
 
@@ -173,18 +248,20 @@ writers is provided.
 <P>Accessing a DB under transactions from Prolog is very simple. First 
 of all, the option <CODE>transactions(true)</CODE> needs to be provided 
 to
-<A NAME="idx:dbinit1:6"></A><A HREF="#db_init/1">db_init/1</A> to 
+<A NAME="idx:dbinit1:13"></A><A HREF="#db_init/1">db_init/1</A> to 
 initialise the transaction subsystem. Next, the predicate
-<A NAME="idx:dbtransaction1:7"></A><A HREF="#db_transaction/1">db_transaction/1</A> 
+<A NAME="idx:dbtransaction1:14"></A><A HREF="#db_transaction/1">db_transaction/1</A> 
 may be used to execute multiple updates inside a transaction.
 
 <DL>
+
+<P>
 <DT><A NAME="db_transaction/1"><STRONG>db_transaction</STRONG>(<VAR>:Goal</VAR>)</A><DD>
 Start a transaction, execute <VAR>Goal</VAR> and terminate the 
 transaction.
 <B>Only</B> if <VAR>Goal</VAR> succeeds, the transaction is <EM>commited</EM>. 
 If <VAR>Goal</VAR> fails or raises an exception, the transaction is
-<EM>aborted</EM> and <A NAME="idx:dbtransaction1:8"></A><A HREF="#db_transaction/1">db_transaction/1</A> 
+<EM>aborted</EM> and <A NAME="idx:dbtransaction1:15"></A><A HREF="#db_transaction/1">db_transaction/1</A> 
 either fails or rethrows the exception.
 
 <P>Of special interest is the exception
@@ -218,12 +295,12 @@ restart these automatically is a deadlock is raised:
 <P>
 </DL>
 
-<H3><A NAME="sec:2.4">2.4 Notes on signals and other interrupts</A></H3>
+<H3><A NAME="sec:2.5">2.5 Notes on signals and other interrupts</A></H3>
 
 <P>The Berkeley DB routines are not signal-safe. Without precaution, 
 this implies it is not possible to interrupt Prolog programs using the 
 DB routines in a safe manner. To improve convinience, interrupt signals 
-are blocked during the execution of the DB calls. As <A NAME="idx:dbtransaction1:9"></A><A HREF="#db_transaction/1">db_transaction/1</A> 
+are blocked during the execution of the DB calls. As <A NAME="idx:dbtransaction1:16"></A><A HREF="#db_transaction/1">db_transaction/1</A> 
 handles aborts gracefully, PrologDB applications can be interrupted and 
 aborted safely.
 
@@ -232,13 +309,22 @@ one of the DB interaction predicates may leave the DB in an inconsistent
 state. Fatal signals thrown by other Prolog or foreign language 
 facilities are handled gracefully.
 
-<H3><A NAME="sec:2.5">2.5 Initialisation</A></H3>
+<H3><A NAME="sec:2.6">2.6 Initialisation</A></H3>
+
+<P>Optionally, the DB environment may be initialised explicitely. 
+Without initialisation, the DB predicates may be used to access a 
+database file without transaction support and using default caching. 
+This is generally satisfactory for not-too-large databases that have no 
+strong security demands and are accessed by at most one application in 
+update mode.
 
 <DL>
+
+<P>
 <DT><A NAME="db_init/1"><STRONG>db_init</STRONG>(<VAR>+Options</VAR>)</A><DD>
-Initialise the DB package. This must be done before the first call to <A NAME="idx:dbopen4:10"></A><A HREF="#db_open/4">db_open/4</A> 
-and at maximum once. If <A NAME="idx:dbopen4:11"></A><A HREF="#db_open/4">db_open/4</A> 
-is called without calling <A NAME="idx:dbinit1:12"></A><A HREF="#db_init/1">db_init/1</A>, 
+Initialise the DB package. This must be done before the first call to <A NAME="idx:dbopen4:17"></A><A HREF="#db_open/4">db_open/4</A> 
+and at maximum once. If <A NAME="idx:dbopen4:18"></A><A HREF="#db_open/4">db_open/4</A> 
+is called without calling <A NAME="idx:dbinit1:19"></A><A HREF="#db_init/1">db_init/1</A>, 
 default initialisation is used, which is generally suitable for handling 
 small databases without support for advanced features.
 
@@ -246,28 +332,62 @@ small databases without support for advanced features.
 listed below. For details, please refer to the DB manual.
 
 <DL>
+
+<P>
 <DT><STRONG>home</STRONG>(<VAR>Home</VAR>)<DD>
 Specify the DB home directory, the directory holding the database files.
+
+<P>
 <DT><STRONG>config</STRONG>(<VAR>+ListOfConfig</VAR>)<DD>
 Specify a list of configuration options, each option is of the form <CODE><VAR>Name</VAR>(Value)</CODE>.
+
+<P>
 <DT><STRONG>mp_size</STRONG>(<VAR>+Integer</VAR>)<DD>
 Size of the memory-pool used for caching.
+
+<P>
 <DT><STRONG>mp_mmapsize</STRONG>(<VAR>+Integer</VAR>)<DD>
 Maximum size of a DB file mapped entirely into memory.
 </DL>
 
+<P>
 <DT><STRONG>create</STRONG>(<VAR>+Bool</VAR>)<DD>
 If <CODE>true</CODE>, create any underlying file as required. By 
 default, no new files are created. This option should be set for 
 prograns that create new databases.
+
+<P>
 <DT><STRONG>logging</STRONG>(<VAR>+Bool</VAR>)<DD>
 Enable logging the DB modifications. Logging enables recovery of 
 databases in case of system failure. Normally it is used in combination 
 with transactions.
+
+<P>
 <DT><STRONG>transactions</STRONG>(<VAR>+Bool</VAR>)<DD>
 Enable transactions, providing atomicy of changes and security. Implies <CODE>logging</CODE> 
 and <CODE>locking</CODE>. See
-<A HREF="#sec:transactions">section 2.3</A>.
+<A HREF="#sec:transactions">section 2.4</A>.
+
+<P>
+<DT><STRONG>server</STRONG>(<VAR>+Host, [+ServerOptions]</VAR>)<DD>
+Initialise the DB package for accessing a remote database.
+<VAR>Host</VAR> specifies the name of the machine running
+<B>berkeley_db_svc</B>. Optionally additional options may be specified:
+
+<DL>
+
+<P>
+<DT><STRONG>server_timeout</STRONG>(<VAR>+Seconds</VAR>)<DD>
+Specify the timeout time the server uses to determine that the client 
+has gone. This implies the server will terminate the connection to this 
+client if this client does not issue any requests for the indicated 
+time.
+
+<P>
+<DT><STRONG>client_timeout</STRONG>(<VAR>+Seconds</VAR>)<DD>
+Specify the time the client waits for the server to handle a request.
+</DL>
+
 </DL>
 
 <H2><A NAME="sec:3">3 Installation</A></H2>
@@ -306,9 +426,13 @@ and the Prolog library files in <CODE>$PLBASE/library</CODE>, where
 GNU configure options.
 
 <DL>
+
+<P>
 <DT><STRONG>--enable-mt</STRONG><DD>
 Enable thread-support for the multi-threaded version of SWI-Prolog. 
 Currently not supported.
+
+<P>
 <DT><STRONG>--with-db=<VAR>DIR</VAR></STRONG><DD>
 Point to the installation-directory of DB 3.x for finding include files 
 and the DB libraries. For example:

@@ -30,30 +30,54 @@
 */
 
 :- module(tcp_test,
-	  [ server/1,			% +Port
+	  [ tcp_test/0,
+	    server/1,			% +Port
 	    client/1			% +Address
 	  ]).
-:- use_module(library(socket)).
+
+:- asserta(user:file_search_path(foreign, '.')).
+
+:- use_module(socket).
 :- use_module(streampool).
 
+tcp_test :-
+	make_server(Port, Socket),
+	thread_create(run_server(Socket), Server, []),
+	client(localhost:Port),
+	thread_join(Server, true).
+
+
+
+
+		 /*******************************
+		 *	       SERVER		*
+		 *******************************/
+
 server(Port) :-
-	tcp_socket(Socket),
-	tcp_bind(Socket, Port),
-	tcp_listen(Socket, 5),
+	make_server(Port, Socket),
+	run_server(Socket).
+
+run_server(Socket) :-
 	tcp_open_socket(Socket, In, _Out),
 	add_stream_to_pool(In, accept(Socket)),
-	stream_pool_main_loop.
+	stream_pool_main_loop,
+	tcp_close_socket(Socket).
+
+make_server(Port, Socket) :-
+	tcp_socket(Socket),
+	tcp_bind(Socket, Port),
+	tcp_listen(Socket, 5).
 
 accept(Socket) :-
 	tcp_accept(Socket, Slave, Peer),
-	print_message(informational, connect(Peer)),
+	debug(connection, 'connect(~p)', [Peer]),
 	tcp_open_socket(Slave, In, Out),
 	add_stream_to_pool(In, client(In, Out, Peer)).
 
 client(In, Out, Peer) :-
 	read(In, Term),
 	(   Term == end_of_file
-	->  print_message(informational, close(Peer)),
+	->  debug(connection, 'close(~p)', [Peer]),
 	    close(In),
 	    close(Out)
 	;   (   catch(action(Term, In, Out), E, true)
@@ -75,9 +99,12 @@ action(wait(X), _In, Out) :-
 	sleep(X),
 	tcp_send(Out, yes).
 action(slow_read, In, Out) :-
-	sleep(5),
+	sleep(2),
 	read(In, Term),
 	tcp_send(Out, Term).
+action(quit, _In, Out) :-
+	close_stream_pool,
+	tcp_send(Out, quitted).
 	
 
 		 /*******************************
@@ -110,7 +137,7 @@ echo(echo-2) :-
 
 slow(slow-1) :-
 	client(In, Out),
-	tcp_send(Out, wait(5)),
+	tcp_send(Out, wait(2)),
 	tcp_reply(In, yes).
 slow(slow-1) :-
 	client(In, Out),
@@ -118,6 +145,11 @@ slow(slow-1) :-
 	findall(A, between(0, 100000, A), X),
 	tcp_send(Out, X),
 	tcp_reply(In, X).
+
+quit(quit-1) :-
+	client(In, Out),
+	tcp_send(Out, quit),
+	tcp_reply(In, quitted).
 
 
 		 /*******************************
@@ -142,6 +174,7 @@ reply(T, _, T).
 
 testset(echo).
 testset(slow).
+testset(quit).
 
 :- dynamic
 	failed/1,

@@ -28,7 +28,7 @@
 
 void
 ws_flush_display(DisplayObj d)
-{ 
+{ ws_synchronise_display(d);
 }
 
 
@@ -36,7 +36,7 @@ void
 ws_synchronise_display(DisplayObj d)
 { MSG msg;
 
-  if ( PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) )
+  while ( PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) )
   { TranslateMessage(&msg);
     DispatchMessage(&msg);
   }

@@ -252,7 +252,28 @@ loadFdImage(Image image, IOSTREAM *fd, ClassDef def)
 
 status
 XopenImage(Image image, DisplayObj d)
-{ return ws_open_image(image, d);
+{ if ( image->bits )			/* built-in.  See stdImage() */
+  { switch(image->bits->type)
+    { case XBM_DATA:
+	ws_create_image_from_x11_data(image,
+				      image->bits->bits.xbm,
+				      valInt(image->size->w),
+				      valInt(image->size->h));
+        break;
+      case XPM_DATA:
+	ws_create_image_from_xpm_data(image,
+				      image->bits->bits.xpm,
+				      d);
+	break;
+      default:
+	assert(0);
+    }
+			/* Windows already does the registration */
+    if ( getExistingXrefObject(image, d) )
+      succeed;
+  }
+
+  return ws_open_image(image, d);
 }
 
 
@@ -888,13 +909,41 @@ stdImage(Name name, Image *global, char *bits, int w, int h)
 { Image image = globalObject(name, ClassImage, name, toInt(w), toInt(h), EAV);
   
   assign(image, access, NAME_read);
-  if ( bits )
-    ws_create_image_from_x11_data(image, (unsigned char *)bits, w, h);
+  image->bits = alloc(sizeof(*image->bits));
+  image->bits->type = XBM_DATA;
+  image->bits->bits.xbm = (unsigned char *)bits;
   if ( global )
     *global = image;
 
   return image;
 }
+
+
+static void
+stdXPMImage(Name name, Image *global, char **bits)
+{ int w, h, colours;
+
+  if ( sscanf(bits[0], "%d %d %d", &w, &h, &colours) == 3 )
+  { Image image = globalObject(name, ClassImage, name, toInt(w), toInt(h), EAV);
+    
+    if ( colours == 2 )
+    { assign(image, depth, ONE);
+      assign(image, kind, NAME_bitmap);
+    } else
+    { assign(image, kind, NAME_pixmap);
+    }
+
+    assign(image, access, NAME_read);
+    image->bits = alloc(sizeof(*image->bits));
+    image->bits->type = XPM_DATA;
+    image->bits->bits.xpm = bits;
+    
+    if ( global )
+      *global = image;
+  } else
+    Cprintf("Failed to initialise image %s\n", pp(name));
+}
+
 
 #ifdef XPM_PCEIMAGE
 #include "bitmaps/pce16.xpm"
@@ -971,14 +1020,14 @@ standardImages(void)
   stdImage(NAME_intItemImage, &INT_ITEM_IMAGE,
 	   intarrows_bits, intarrows_width, intarrows_height);
 #ifdef XPM_PCEIMAGE
-  ws_std_xpm_image(NAME_pceImage,	  NULL,		       pce16_xpm);
-  ws_std_xpm_image(NAME_hadjustTileImage, NULL,		       hadjusttile_xpm);
-  ws_std_xpm_image(NAME_vadjustTileImage, NULL,		       vadjusttile_xpm);
-  ws_std_xpm_image(NAME_scrollUpImage,	  &SCROLL_UP_IMAGE,    up_xpm);
-  ws_std_xpm_image(NAME_scrollDownImage,  &SCROLL_DOWN_IMAGE,  down_xpm);
-  ws_std_xpm_image(NAME_scrollLeftImage,  &SCROLL_LEFT_IMAGE,  left_xpm);
-  ws_std_xpm_image(NAME_scrollRightImage, &SCROLL_RIGHT_IMAGE, right_xpm);
-  ws_std_xpm_image(NAME_exclamationImage, &EXCLAMATION_IMAGE,  exclamation_xpm);
+  stdXPMImage(NAME_pceImage,	     NULL,		  pce16_xpm);
+  stdXPMImage(NAME_hadjustTileImage, NULL,		  hadjusttile_xpm);
+  stdXPMImage(NAME_vadjustTileImage, NULL,		  vadjusttile_xpm);
+  stdXPMImage(NAME_scrollUpImage,    &SCROLL_UP_IMAGE,	  up_xpm);
+  stdXPMImage(NAME_scrollDownImage,  &SCROLL_DOWN_IMAGE,  down_xpm);
+  stdXPMImage(NAME_scrollLeftImage,  &SCROLL_LEFT_IMAGE,  left_xpm);
+  stdXPMImage(NAME_scrollRightImage, &SCROLL_RIGHT_IMAGE, right_xpm);
+  stdXPMImage(NAME_exclamationImage, &EXCLAMATION_IMAGE,  exclamation_xpm);
 #else
   stdImage(NAME_pceImage, NULL,
 	   pce_bm_bits, pce_bm_width, pce_bm_height);
@@ -1051,7 +1100,9 @@ static vardecl var_image[] =
   SV(NAME_mask, "image*", IV_GET|IV_STORE, maskImage,
      NAME_area, "Image for masked painting"),
   IV(NAME_wsRef, "alien:WsRef", IV_NONE,
-     NAME_storage, "Window System Reference")
+     NAME_storage, "Window System Reference"),
+  IV(NAME_bits, "alien:char*", IV_NONE,
+     NAME_storage, "Data for built-in images")
 };
 
 /* Send Methods */

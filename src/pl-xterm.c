@@ -27,7 +27,7 @@
 #endif
 
 #include "pl-incl.h"
-#if defined(HAVE_GRANTPT) && defined(O_PLMT)
+#if defined(HAVE_GRANTPT) && defined(HAVE_SYS_STROPTS_H) && defined(O_PLMT)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Open an alternative  xterm-console.  Used   to  support  multi-threading
@@ -37,7 +37,9 @@ multi-threading asks for a modern Unix   version  anyhow, this should be
 ok.
 
 In principle, asking for  HAVE_GRANTPT  should   do,  but  I  don't want
-portability problems for users of the single-threaded version.
+portability problems for users of   the  single-threaded version. Cygwin
+doesn't provide <sys/stropts.h> and as it is   of  little use for Cygwin
+anyway we use this as an alternative test.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #include <stdio.h>
@@ -45,7 +47,7 @@ portability problems for users of the single-threaded version.
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
-#include <sys/stropts.h>
+#include <sys/stropts.h>	/* needed for ioctl(fd, I_PUSH, "..") */
 #include <termios.h>
 #include <signal.h>
  
@@ -185,7 +187,7 @@ pl_open_xterm(term_t title, term_t in, term_t out, term_t err)
       break;
   }
   termio.c_lflag |= ECHO;
-  Sdprintf("%s: Erase = %d\n", slavename, termio.c_cc[VERASE]);
+  DEBUG(1, Sdprintf("%s: Erase = %d\n", slavename, termio.c_cc[VERASE]));
   if ( tcsetattr(slave, TCSADRAIN, &termio) == -1 )
     perror("tcsetattr");
  

@@ -7,19 +7,10 @@
 .EXPORT_ALL_VARIABLES:
 
 # Define the packages you wish to build.  Please note that xpce requires
-# libXPM and libjpeg to compile.  Note  that   xpce  is  in  front. Some
-# packages  install  additional  graphics  support  if  they  find  xpce
-# installed.
+# libXPM and libjpeg to compile.  This   variable  is normally overruled
+# from the configure script.
 
-PKG=	xpce \
-	clib \
-	cpp \
-	odbc \
-	table \
-	sgml \
-	sgml/RDF \
-	semweb \
-	http
+PKG=clib cpp odbc table sgml sgml/RDF semweb http chr xpce
 
 # Define additional config options.  If you wish to build the multi-threaded
 # version of SWI-Prolog and pl-mt to the same install-base, you must provide
@@ -44,7 +35,9 @@ PKGDOC=$(PLBASE)/doc/packages
 PLLIBS=@LIBS@
 PLARCH=@ARCH@
 PLLDFLAGS=@LDFLAGS@
-PLINCL=$(shell dirname `pwd`)/include
+PLDIR=$(shell dirname `pwd`)
+PLINCL=$(PLDIR)/include
+LIBDIR=$(PLDIR)/lib/$(PLARCH)
 PLSHARED=@PLSHARED@
 INSTALL=@INSTALL@
 INSTALL_DATA=@INSTALL_DATA@
@@ -69,6 +62,7 @@ CONFIG=	env PL="$(PL)" PLBASE="$(PLBASE)" PLARCH="$(PLARCH)" \
 	    PLLIBS="$(PLLIBS)" PLLDFLAGS="$(PLLDFLAGS)" \
 	    PLINCL="$(PLINCL)" PLSHARED="$(PLSHARED)" \
 	    PLSOEXT="$(SO)" BUILDDIR="$(BUILDDIR)" \
+	    LD_LIBRARY_PATH="$(LIBDIR):$$LD_LIBRARY_PATH" \
 	    MAKE="$(MAKE)" \
 	    ./configure $(CNFG) $(CNFGPASSED) --prefix=$(prefix)
 
@@ -126,6 +120,11 @@ distclean::
 	rm -f Makefile configure
 
 clean::
+	for p in $(PKG); do \
+	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ); fi; \
+        done
+
+check::
 	for p in $(PKG); do \
 	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ); fi; \
         done

@@ -1,3 +1,33 @@
+Sep 13, 2004
+
+  * ADDED: namespaces(-NameSpaces) option to load_rdf/3 and process_rdf/3
+    to query the document namespace declarations.
+
+Aug 13, 2004
+
+  * MODIFIED: load_rdf/3 no longer returns resources as Prefix:URI, but
+    instead returns the plain atoms.
+
+Jul 31, 2004
+
+  * ADDED: converted rdf_nt.pl into public rdf_ntriples.pl library for
+    loading data in the W3C ntriple format.
+
+Jun 29, 2004
+
+  * FIXED: sharing code for blank nodes.  Broken in recent cleanup.
+
+Jun 17, 2004
+
+  * CLEANUP: start/end of loading a file, use option/3 from library
+
+Apr 21, 2004
+
+  * ADDED: Support for xml:lang and rdf:dataType attributes.
+
+  * INTERNAL: Use global variables rather than assert/retract for
+    keeping track of the state for process_rdf/3.
+
 Nov 29, 2003
 
   * ADDED: warning for incorrect and multiple definitions of rdf:ID.

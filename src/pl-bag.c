@@ -90,14 +90,14 @@ PRED_IMPL("$record_bag", 1, record_bag, 0)
 { PRED_LD
   Assoc a = allocHeap(sizeof(*a));
 
-  if ( PL_is_atom(A1) )
+  if ( PL_is_atom(A1) )			/* mark */
   { a->record = 0;
   } else
     a->record = compileTermToHeap(A1, 0);
 
   DEBUG(1, { Sdprintf("Recorded %p: ", a->record);
-	     pl_write(A1);
-	     pl_nl();
+	     PL_write_term(Serror, A1, 1200, PL_WRT_ATTVAR_WRITE);
+	     Sdprintf("\n");
 	   });
 
   a->next    = alist;
@@ -134,6 +134,9 @@ PRED_IMPL("$collect_bag", 2, collect_bag, 0)
   PL_put_nil(list);
 					/* get variable term on global stack */
   copyRecordToGlobal(binding, a->record PASS_LD);
+  DEBUG(9, Sdprintf("First binding (%p): ", a->record);
+	   PL_write_term(Serror, binding, 1200, PL_WRT_ATTVAR_WRITE);
+	   Sdprintf("\n"));
   _PL_get_arg(1, binding, var_term);
   PL_unify(bindings, var_term);
   _PL_get_arg(2, binding, tmp);
@@ -174,15 +177,9 @@ findall/3, bagof/3 or setof/3. Reclaim  all   records  and  re-throw the
 exception.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-foreign_t
-pl_except_bag(term_t ex)
-{ GET_LD
-  Assoc a, next;
-
-  DEBUG(1,
-	{ Sdprintf("EXCEPTION:");
-	  pl_writeln(ex);
-	});
+static void
+discardBag(ARG1_LD)
+{ Assoc a, next;
 
   for( a=alist; a; a = next )
   { if ( a->record )
@@ -196,8 +193,16 @@ pl_except_bag(term_t ex)
 
     freeHeap(a, sizeof(*a));
   }
+}
 
-  return PL_raise_exception(ex);
+
+static
+PRED_IMPL("$discard_bag", 0, discard_bag, 0)
+{ PRED_LD
+
+  discardBag(PASS_LD1);
+
+  succeed;
 }
 
 
@@ -208,4 +213,5 @@ pl_except_bag(term_t ex)
 BeginPredDefs(bag)
   PRED_DEF("$record_bag", 1, record_bag, 0)
   PRED_DEF("$collect_bag", 2, collect_bag, 0)
+  PRED_DEF("$discard_bag", 0, discard_bag, 0)
 EndPredDefs

@@ -38,7 +38,7 @@ static time_t mktime(struct tm *);
 #endif
 
 #ifndef HAVE_TIMEGM
-time_t timegm(struct tm *tm);
+static time_t timegm(struct tm *tm);
 #endif
 
 static status	setDate(Date d, Int s, Int m, Int h, Int D, Int M, Int Y);
@@ -670,7 +670,7 @@ timegm() is provided by glibc and the inverse of gmtime().  The glibc
 library suggests using mktime with TZ=UTC as alternative.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-time_t
+static time_t
 timegm(struct tm *tm)
 { char *otz = getenv("TZ");
   time_t t;

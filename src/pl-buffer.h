@@ -79,6 +79,7 @@ void	growBuffer(Buffer, long);
 				  (b)->max = (b)->base + \
 				  sizeof((b)->static_buffer))
 #define emptyBuffer(b)           ((b)->top  = (b)->base)
+#define isEmptyBuffer(b)         ((b)->top == (b)->base)
 
 #ifdef BUFFER_USES_MALLOC
 #define discardBuffer(b) \

@@ -34,6 +34,9 @@
 :- use_module(library(pce)).
 :- use_module(library(emacs_extend)).
 :- use_module(library(pce_prolog_xref)).
+:- use_module(library(lists)).
+:- use_module(library(operators)).
+:- use_module(library(debug)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 User extension hooks.
@@ -41,6 +44,7 @@ User extension hooks.
 
 :- multifile
 	term_colours/2,
+	goal_colours/2,
 	goal_classification/2.
 
 :- emacs_extend_mode(prolog,
@@ -103,7 +107,7 @@ colourise_buffer(M) :->
 	send(M, setup_styles),
 	send(M, xref_buffer),
 	send(M, report, progress, 'Colourising buffer ...'),
-	do_colourise_buffer(M),
+	colourise_buffer(M),
 	send(M, colourise_comments),
 	statistics(runtime, [_,UsedMilliSeconds]),
 	Used is UsedMilliSeconds/1000,
@@ -146,53 +150,119 @@ xref_buffer(M, Always:[bool]) :->
 		 *	     PREDICATES		*
 		 *******************************/
 
-do_colourise_buffer(M) :-
+colourise_buffer(M) :-
 	get(M, text_buffer, TB),
 	pce_open(TB, read, Fd),
 	(   peek_char(Fd, #)		% skip #! script line
 	->  skip(Fd, 10)
 	;   true
 	),
-	'$style_check'(Old, Old),
+	save_settings(Fd, State),
+	call_cleanup(colourise_buffer(Fd, M),
+		     restore_settings(State)).
+
+colourise_buffer(Fd, M) :-
+	get(M, text_buffer, TB),
+	TB = @Src,
 	repeat,
+	    '$set_source_module'(SM, SM),
 	    catch(read_term(Fd, Term,
 			    [ subterm_positions(TermPos),
 			      singletons(Singletons),
-			      character_escapes(true)
+			      module(SM)
 			    ]),
-		  _E,
-		  (   %print_message(error, _E),
-		      fail
-		  )),
-	    fix_operators(Term),
+		  E,
+		  syntax_error(E)),
+	    fix_operators(Term, Src),
 	    (	colourise_term(Term, TB, TermPos),
 		send(M, mark_singletons, Term, Singletons, TermPos)
 	    ->	true
 	    ;	print_message(warning,
 			      format('Failed to colourise ~p~n', [Term]))
 	    ),
-	    Term == end_of_file, !,
-	'$style_check'(_, Old),
+	    Term == end_of_file, !.
+
+save_settings(Fd, state(Fd, Style, Esc)) :-
+	push_operators([]),
+	current_prolog_flag(character_escapes, Esc),
+	'$style_check'(Style, Style).
+
+restore_settings(state(Fd, Style, Esc)) :-
+	set_prolog_flag(character_escapes, Esc),
+	'$style_check'(_, Style),
+	pop_operators,
 	close(Fd).
 
-%	fix_operators(+Term)
+%	emacs_push_op(+Prec, +Type, :Name)
 %	
-%	Fix flags that affect the syntax, such as operators and some
-%	style checking options.
+%	Define operators into the default source module and register
+%	them to be undone by pop_operators/0.
 
-fix_operators((:-style_check(X))) :- !,
+emacs_push_op(P, T, N0) :-
+	(   N0 = _:_
+	->  N = N0
+	;   '$set_source_module'(M, M),
+	    N = M:N0
+	),
+	push_op(P, T, N),
+	debug(emacs, ':- ~w.', [op(P,T,N)]).
+
+%	syntax_error(+Error)
+%	
+%	Print syntax errors if the debugging topic emacs is active.
+
+syntax_error(E) :-
+	(   debugging(emacs)
+	->  print_message(error, E)
+	;   true
+	),
+	fail.
+
+%	fix_operators(+Term, +Src)
+%	
+%	Fix flags that affect the  syntax,   such  as operators and some
+%	style checking options. Src is the  canonical source as required
+%	by the cross-referencer.
+
+fix_operators('$:-'(_), _) :- !,	% deal with swi('boot/init.pl')
+	style_check(+dollar).
+fix_operators((:- Directive), Src) :- !,
+	process_directive(Directive, Src).
+fix_operators(_, _).
+
+process_directive(style_check(X), _) :- !,
 	style_check(X).
-fix_operators((:-module($(Name),_))) :-
+process_directive($(Name), _) :-
 	atom(Name),
 	style_check(+dollar),
 	fail.				% allow for other expansions
-fix_operators('$:-'(_)) :- !,		% deal with swi('boot/init.pl')
-	style_check(+dollar).
-fix_operators((:-Directive)) :- !,
+process_directive(op(P,T,N), _) :- !,
+	catch(emacs_push_op(P, T, N), _, true).
+process_directive(module(_Name, Export), _) :- !,
+	(   member(op(P,A,N), Export),
+	    catch(emacs_push_op(P,A,N), _, fail),
+	    fail
+	;   true
+	).
+process_directive(use_module(Spec), Src) :- !,
+	process_use_module(Spec, Src).
+process_directive(Directive, _) :-
 	asserta(user:message_hook(_,_,_), Ref),
-	ignore(xref_expand((:-Directive), _)),
+	ignore(xref_expand((:- Directive), _)),
 	erase(Ref).
-fix_operators(_).
+
+%	process_use_module(+Imports, +Src)
+%	
+%	Get the exported operators from the referenced files.
+
+process_use_module([], _).
+process_use_module([H|T], Src) :-
+	process_use_module(H, Src),
+	process_use_module(T, Src).
+process_use_module(File, Src) :-
+	xref_public_list(File, _Path, Public, Src),
+	forall(member(op(P,T,N), Public),
+	       emacs_push_op(P,T,N)).
 
 
 %	colourise(+TB, +Stream)
@@ -252,7 +322,9 @@ colourise_term((:- Directive), TB, Pos) :- !,
 	To is EOL+1,
 	colour_item(directive, TB, F-To),
 	arg(5, Pos, [ArgPos]),
-	colourise_body(Directive, TB, ArgPos).
+	colourise_directive(Directive, TB, ArgPos).
+colourise_term((?- Directive), TB, Pos) :- !,
+	colourise_term((:- Directive), TB, Pos).
 colourise_term(end_of_file, _, _) :- !.
 colourise_term(Fact, TB, Pos) :- !,
 	colour_item(clause, TB,	Pos),
@@ -310,6 +382,15 @@ functor_position(term_position(_,_,FF,FT,ArgPos), FF-FT, ArgPos) :- !.
 functor_position(list_position(F,_T,Elms,none), F-FT, Elms) :- !,
 	FT is F + 1.
 functor_position(Pos, Pos, []).
+
+
+%	colourise_directive(+Body, +TB, +Pos)
+%	
+%	Colourise the body of a directive.
+
+colourise_directive(Body, TB, Pos) :-
+	colourise_body(Body, TB, Pos).
+
 
 %	colourise_body(+Body, +TB, +Pos)
 %	
@@ -646,8 +727,10 @@ colourise_declaration(Module:Name/Arity, TB,
 	colour_item(module(M), TB, PM),
 	functor(Goal, Name, Arity),
 	colour_item(goal(extern(M), Goal), TB, PG).
+colourise_declaration(op(_,_,_), TB, Pos) :-
+	colour_item(exported_operator, TB, Pos).
 colourise_declaration(_, TB, Pos) :-
-	colour_item(type_error(name_arity), TB, Pos).
+	colour_item(type_error(export_declaration), TB, Pos).
 
 
 %	colour_item(+Class, +TB, +Pos)
@@ -694,8 +777,9 @@ make_fragment(Class, TB, F, L, Style) :-
 	send(Fragment, classification, Classification),
 	(   Arity == 1,
 	    arg(1, Class, Context),
-	    atomic(Context)
-	->  send(Fragment, context, Context)
+	    callable(Context),
+	    functor(Context, ContextName, _)
+	->  send(Fragment, context, ContextName)
 	;   true
 	).
 
@@ -716,7 +800,7 @@ body_compiled(\+_).
 %	goal_classification(+TB, +Goal, +Origin, -Class)
 %	
 %	Classify Goal appearing in TB and called from a clause with head
-%	Origin.
+%	Origin.  For directives Origin is [].
 
 goal_classification(_, Goal, _, meta) :-
 	var(Goal), !.
@@ -777,6 +861,7 @@ goal_colours(consult(_),	     built_in-[file]).
 goal_colours([_|_],		     built_in-file).
 goal_colours(include(_),	     built_in-[file]).
 goal_colours(ensure_loaded(_),	     built_in-[file]).
+goal_colours(load_files(_),	     built_in-[file]).
 goal_colours(load_files(_,_),	     built_in-[file,classify]).
 % Database access
 goal_colours(assert(_),		     built_in-[db]).
@@ -854,6 +939,7 @@ style(goal(extern(_),_),  style(colour	   := blue,
 style(goal(recursion,_),  style(underline  := @on)).
 style(goal(meta,_),	  style(colour	   := red4)). % same as var
 style(goal(local(_),_),	  @default).
+style(goal(constraint(_),_), style(colour := darkcyan)).
 
 style(head(exported),	  style(bold	   := @on, colour := blue)).
 style(head(extern(_)),	  style(bold	   := @on, colour := blue)).
@@ -862,6 +948,7 @@ style(head(multifile),	  style(bold	   := @on, colour := navy_blue)).
 style(head(unreferenced), style(bold	   := @on, colour := red)).
 style(head(hook),	  style(underline  := @on, colour := blue)).
 style(head(meta),	  @default).
+style(head(constraint(_)),style(bold	   := @on, colour := darkcyan)).
 style(head(_),	  	  style(bold	   := @on)).
 
 style(comment,		  style(colour	   := dark_green)).
@@ -889,6 +976,7 @@ style(prolog_data,	  style(colour	   := blue,
 				underline  := @on)).
 
 style(identifier,	  style(bold       := @on)).
+style(delimiter,	  style(bold       := @on)).
 style(expanded,		  style(colour	   := blue,
 				underline  := @on)).
 
@@ -909,11 +997,20 @@ style(Class, Name, Style) :-
 	term_to_atom(Copy, Name).
 
 
-%	term_colours(+Term, -FunctorColour, -ArgColours)
+%	term_colours(+Term, -FunctorColour - ArgColours)
 %
 %	Define colourisation for specific terms.
 
+term_colours((?- Directive), Colours) :-
+	term_colours((:- Directive), Colours).
 term_colours((prolog:message(_) --> _),
+	     expanded - [ expanded - [ expanded,
+				       expanded - [ identifier
+						  ]
+				     ],
+			  classify
+			]).
+term_colours((prolog:error_message(_) --> _),
 	     expanded - [ expanded - [ expanded,
 				       expanded - [ identifier
 						  ]
@@ -1223,6 +1320,8 @@ has_source(F) :->
 	get(F, head, Head),
 	(   xref_defined(TB, Head, local(_Line))
 	->  true
+	;   xref_defined(TB, Head, constraint(_Line))
+	->  true
 	;   xref_defined(TB, Head, imported(_From))
 	->  true
 	;   get(prolog_predicate(Head), source, _)
@@ -1321,6 +1420,8 @@ identify_pred(autoload, F, Summary) :-	% Autoloaded predicates
 	new(Summary, string('%N: autoload from %s', F, Source)).
 identify_pred(local(Line), F, Summary) :-	% Local predicates
 	new(Summary, string('%N: locally defined at line %d', F, Line)).
+identify_pred(constraint(Line), F, Summary) :-	% Local constraint
+	new(Summary, string('%N: constraint defined at line %d', F, Line)).
 identify_pred(imported(From), F, Summary) :-
 	new(Summary, string('%N: imported from %s', F, From)).
 identify_pred(recursion, _, 'Recursive reference') :- !.
@@ -1560,6 +1661,8 @@ identify_fragment(method(send), _, 'XPCE send method').
 identify_fragment(method(get), _, 'XPCE get method').
 identify_fragment(head(unreferenced), _, 'Unreferenced predicate (from this file)').
 identify_fragment(head(exported), _, 'Exported (Public) predicate').
+identify_fragment(head(multifile), _, 'Multifile predicate').
+identify_fragment(head(constraint), _, 'Constraint').
 identify_fragment(prolog_data, _, 'Pass Prolog term unmodified').
 identify_fragment(Class, _, Summary) :-
 	term_to_atom(Class, Summary).

@@ -243,7 +243,7 @@ process_raw((:- pce_end_class(Class))) :-
 	).
 process_raw(pce_ifhostproperty(_Cond, Terms)) :- !, % ???
 	(   is_list(Terms)
-	->  checklist(process_raw, Terms)
+	->  maplist(process_raw, Terms)
 	;   process_raw(Terms)
 	).
 process_raw((Head --> _Body)) :-

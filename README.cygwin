@@ -51,10 +51,10 @@ practically non-existent. Cygwin is big, so   if SWI-Prolog is your only
 cygwin application it isn't very interesting.   Cygwin  is slow, notably
 handling calls for which you really want it such as fork().
 
-So, it is useful if you boss says your application *must* run on Windows
-and the application uses lots of advanced  Unix primitives. In all other
-cases I would recomment using a real  Unix machine. They are cheaper and
-as easy to manage as windows machines these days.
+So, it is useful if  your  boss   says  your  application  *must* run on
+Windows and the application uses lots   of  advanced Unix primitives. In
+all other cases I would recomment using   a  real Unix machine. They are
+cheaper and as easy to manage as windows machines these days.
 
 
 Problems?

@@ -154,14 +154,20 @@ http_do_get(Parts, Data, Options) :-
 	),
 	memberchk(host(Host), Parts),
 	http_write_header(Write, 'GET', Location, Host, Options, ReplyOptions),
-	format(Write, '~n', []),
+	write(Write, '\r\n'),
 	flush_output(Write),
 	http_read_reply(Read, Data, ReplyOptions), !.
 http_do_get(Parts, _Data, _Options) :-
 	throw(error(failed(http_get, Parts), _)).
 
 http_read_reply(In, Data, Options) :-
-	http_read_reply_header(In, Fields),
+	between(0, 1, _),
+	    http_read_reply_header(In, Fields),
+	\+ memberchk(status(continue, _), Fields), !,
+	(   memberchk(reply_header(Fields), Options)
+	->  true
+	;   true
+	),
 	http_read_data(In, Fields, Data, Options),
 	(   memberchk(connection(Connection), Fields),
 	    downcase_atom(Connection, 'keep-alive')
@@ -170,7 +176,7 @@ http_read_reply(In, Data, Options) :-
 	    connection(Address, Self, In, _Out)
 	->  disconnect(Address)
 	;   true
-	), !.
+	).
 http_read_reply(In, _Data, _Options) :-
 	format(user_error, 'Get FAILED~n', []),
 	throw(error(failed(read_reply, In), _)).
@@ -184,6 +190,7 @@ http_read_reply(In, _Data, _Options) :-
 %		http_version(Major-Minor)
 %		connection(Connection)
 %		user_agent(Agent)
+%		request_header(Name=Value)
 %
 %	Remaining options are returned in RestOptions.
 
@@ -193,21 +200,37 @@ http_write_header(Out, Method, Location, Host, Options, RestOptions) :-
 	;   Major = 1, Minor = 1,
 	    Options1 = Options
 	),
-	format(Out, '~w ~w HTTP/~w.~w~n', [Method, Location, Major, Minor]),
-	format(Out, 'Host: ~w~n', [Host]),
+	format(Out, '~w ~w HTTP/~w.~w\r\n', [Method, Location, Major, Minor]),
+	format(Out, 'Host: ~w\r\n', [Host]),
 	(   select(connection(Connection), Options1, Options2)
 	->  true
 	;   Connection = 'Keep-Alive',
 	    Options2 = Options1
 	),
-	(   select(user_agent(Agent), Options2, RestOptions)
+	(   select(user_agent(Agent), Options2, Options3)
 	->  true
 	;   user_agent(Agent),
-	    RestOptions = Options2
+	    Options3 = Options2
 	),
-	format(Out, 'User-Agent: ~w~n\
-		     Connection: ~w~n', [Agent, Connection]).
+	format(Out, 'User-Agent: ~w\r\n\
+		     Connection: ~w\r\n', [Agent, Connection]),
+	x_headers(Options3, Out, RestOptions).
 
+
+%	x_headers(+Options, +Out, -RestOptions)
+%	
+%	Pass additional request options.  For example:
+%	
+%		request_header('Accept-Language' = 'nl, en')
+%		
+%	No checking is performed on the fieldname or value. Both are
+%	copied literally and in the order of appearance to the request.
+
+x_headers(Options0, Out, Options) :-
+	select(request_header(Name=Value), Options0, Options1), !,
+	format(Out, '~w: ~w\r\n', [Name, Value]),
+	x_headers(Options1, Out, Options).
+x_headers(Options, _, Options).
 
 %	http_read_data(+In, +Fields, +Data, -Options)
 %
@@ -358,6 +381,7 @@ write_post_header(Out, Location, Host, In, Options) :-
 post_option(connection(_)).
 post_option(http_version(_)).
 post_option(cache_control(_)).
+post_option(request_header(_)).
 
 split_options([], [], []).
 split_options([H|T], [H|P], R) :-

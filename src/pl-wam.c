@@ -292,6 +292,7 @@ open_foreign_frame(ARG1_LD)
   fr->size = 0;
   Mark(fr->mark);
   fr->parent = fli_context;
+  fr->magic = FLI_MAGIC;
   fli_context = fr;
 
   return consTermRef(fr);
@@ -302,6 +303,8 @@ static void
 close_foreign_frame(fid_t id ARG_LD)
 { FliFrame fr = (FliFrame) valTermRef(id);
 
+  assert(fr->magic == FLI_MAGIC);
+  fr->magic = FLI_MAGIC_CLOSED;
   fli_context = fr->parent;
   lTop = (LocalFrame) fr;
 }
@@ -331,6 +334,7 @@ PL_open_signal_foreign_frame()
 
   requireStack(local, sizeof(struct fliFrame));
   lTop = addPointer(lTop, sizeof(struct fliFrame));
+  fr->magic = FLI_MAGIC;
   fr->size = 0;
   Mark(fr->mark);
   fr->parent = fli_context;
@@ -518,6 +522,7 @@ retry:
 					/* open foreign frame */
   ffr  = (FliFrame)argFrameP(frame, argc);
   lTop = addPointer(ffr, sizeof(struct fliFrame));
+  ffr->magic = FLI_MAGIC;
   ffr->size = 0;
   Mark(ffr->mark);
   ffr->parent = fli_context;
@@ -778,7 +783,8 @@ frameFinished(LocalFrame fr, enum finished reason ARG_LD)
 #ifdef O_DESTRUCTIVE_ASSIGNMENT
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Trailing of destructive assignments.  This feature is used by setarg/3.
+Trailing of destructive assignments. This feature   is  used by setarg/3
+and put_attr/2.
 
 Such an assignment is trailed by first  pushing the assigned address (as
 normal) and then pushing a marked pointer to  a cell on the global stack
@@ -802,6 +808,7 @@ TrailAssignment(Word p)
 { GET_LD
   Word old = allocGlobal(1);
 
+  assert(!(*p & (MARK_MASK|FIRST_MASK)));
   *old = *p;				/* save the old value on the global */
   requireStack(trail, 2*sizeof(struct trail_entry));
   (tTop++)->address = p;
@@ -819,13 +826,20 @@ __do_undo(mark *m ARG_LD)
 
     if ( isTrailVal(p) )
     { DEBUG(2, Sdprintf("Undoing a trailed assignment\n"));
-      *(--tt)->address = trailVal(p);
+      tt--;
+      *tt->address = trailVal(p);
+      assert(!(*tt->address & (MARK_MASK|FIRST_MASK)));
     } else
       setVar(*p);
   }
 
   tTop = mt;
-  gTop = m->globaltop;
+  if ( LD->frozen_bar > m->globaltop )
+  { SECURE(assert(gTop >= LD->frozen_bar));
+    gTop = LD->frozen_bar;
+  } else
+  { gTop = m->globaltop;
+  }
 }
 
 
@@ -909,6 +923,81 @@ getProcDefinedDefinition(LocalFrame fr, Code PC, Procedure proc ARG_LD)
 #endif
 }
 
+		 /*******************************
+		 *	   CYCLIC TERMS		*
+		 *******************************/
+
+#if O_CYCLIC
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Cyclic term unification. The algorithm has been  described to me by Bart
+Demoen. Here it is (translated from dutch):
+
+I created my own variation. You only need it during general unification.
+Here is a short description:  suppose  you   unify  2  terms  f(...) and
+f(...), which are represented on the heap (=global stack) as:
+
+     +-----+          and     +-----+
+     | f/3 |                  | f/3 |
+     +-----+                  +-----+
+      args                     args'
+
+Before working on args and args', change  this into the structure below,
+using a reference pointer pointing from functor  of the one to the other
+term.
+
+     +-----+          and      +-----+
+     | ----+----------------->| f/3 |
+     +-----+                  +-----+
+      args                     args'
+
+If, during this unification you  find  a   compound  whose  functor is a
+reference to the term at the right hand you know you hit a cycle and the
+terms are the same.
+
+Of course functor_t must be different from ref. Overwritten functors are
+collected in a stack and  reset   regardless  of whether the unification
+succeeded or failed. In SWI-Prolog we use   the  argument stack for this
+purpose.
+
+Initial measurements show a performance degradation for deep unification
+of approx. 30%. On the other hand,  if subterms appear multiple times in
+a term unification can be much faster. As only a small percentage of the
+unifications of a realistic program are   covered by unify() and involve
+deep unification the overall impact of performance is small (< 3%).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+					/* also in pl-prims.c.  Should merge */
+static inline void
+linkTermsCyclic(Functor f1, Functor f2 ARG_LD)
+{ Word p1 = (Word)&f1->definition;
+  Word p2 = (Word)&f2->definition;
+
+  *p1 = makeRefG(p2);
+  requireStack(argument, sizeof(Word));
+  *aTop++ = p1;
+}
+
+
+static inline void
+exitCyclic(Word *base ARG_LD)
+{ Word *sp = aTop;
+
+  while(sp>base)
+  { Word p;
+
+    sp--;
+    p = *sp;
+    *p = *unRef(*p);
+  }
+
+  aTop = base;
+}
+
+#else /*O_CYCLIC*/
+static inline void exitCyclic(ARG1_LD) {}
+static inline void linkTermsCyclic(Functor f1, Functor f2 ARG_LD) {}
+#endif /*O_CYCLIC*/
 
 
 		/********************************
@@ -933,118 +1022,8 @@ are:
   - various builtin predicates. They should be flagged some way.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define NON_RECURSIVE_UNIFY 0
-#if NON_RECURSIVE_UNIFY
-typedef struct uchoice *UChoice;
-
-struct uchoice
-{ Word		alist1;
-  Word		alist2;
-  int		size;
-  UChoice	next;
-};
-
-#define deRefw(p, w) while(isRef(w=*p)) p = unRef(w)
-
 static bool
-unify(Word t1, Word t2 ARG_LD)
-{ Word p1, p2;
-  word w1, w2;
-  int todo = 1;
-  UChoice nextch = NULL, tailch = NULL;
-
-  for(;;)
-  { if ( !todo )
-    { if ( nextch )
-      { t1 = nextch->alist1;
-	t2 = nextch->alist2;
-	todo = nextch->size;
-	nextch = nextch->next;
-      } else
-	succeed;
-    }
-
-    todo--;
-    p1 = t1++; deRefw(p1, w1);
-    p2 = t2++; deRefw(p2, w2);
-    
-    if ( w1 == w2 )
-    { if ( isVar(w1) && p1 != p2 )
-      { if ( p1 < p2 )			/* always point downwards */
-	{ *p2 = makeRef(p1);
-	  Trail(p2);
-	} else
-	{ *p1 = makeRef(p2);
-	  Trail(p1);
-	}
-      }
-      continue;
-    } 
-
-    if ( tag(w1) != tag(w2) )
-    { if ( isVar(w1) )
-      { *p1 = w2;
-        Trail(p1);
-	continue;
-      }
-      if ( isVar(w2) )
-      { *p2 = w1;
-        Trail(p2);
-	continue;
-      }
-      fail;
-    }
-
-    switch(tag(w1))
-    { case TAG_ATOM:
-	fail;
-      case TAG_INTEGER:
-	if ( storage(w1) == STG_INLINE ||
-	     storage(w2) == STG_INLINE )
-	  fail;
-      case TAG_STRING:
-      case TAG_FLOAT:
-	if ( equalIndirect(w1, w2) )
-	  continue;
-        fail;
-      case TAG_COMPOUND:
-      { Functor f1, f2;
-	int arity;
-
-	f1 = valueTerm(w1);
-	f2 = valueTerm(w2);
-  
-	if ( f1->definition != f2->definition )
-	  fail;
-	arity = arityFunctor(f1->definition);
-
-	if ( todo == 0 )		/* right-most argument recursion */
-	{ todo = arity;
-	  t1 = f1->arguments;
-	  t2 = f2->arguments;
-	} else if ( arity > 0 )
-	{ UChoice next = alloca(sizeof(*next));
-
-	  next->size   = arity;
-	  next->alist1 = f1->arguments;
-	  next->alist2 = f2->arguments;
-	  next->next   = NULL;
-	  if ( !tailch )
-	    nextch = tailch = next;
-	  else
-	  { tailch->next = next;
-	    tailch = next;
-	  }
-	}
-      }
-    }
-  }
-}
-
-#else /*NON_RECURSIVE_UNIFY*/
-
-static bool
-unify(Word t1, Word t2 ARG_LD)
+do_unify(Word t1, Word t2 ARG_LD)
 { 
   word w1;
   word w2;
@@ -1075,15 +1054,31 @@ right_recursion:
       Trail(t1);
       succeed;
     }
+#ifdef O_ATTVAR
+    *t1 = isAttVar(w2) ? makeRef(t2) : w2;
+#else
     *t1 = w2;
+#endif
     Trail(t1);
     succeed;
   }
   if ( isVar(w2) )
-  { *t2 = w1;
+  {
+#ifdef O_ATTVAR
+    *t2 = isAttVar(w1) ? makeRef(t1) : w1;
+#else
+    *t2 = w1;
+#endif
     Trail(t2);
     succeed;
   }
+
+#ifdef O_ATTVAR
+  if ( isAttVar(w1) )
+    return assignAttVar(t1, t2 PASS_LD);
+  if ( isAttVar(w2) )
+    return assignAttVar(t2, t1 PASS_LD);
+#endif
 
   if ( w1 == w2 )
     succeed;
@@ -1105,15 +1100,25 @@ right_recursion:
       Functor f2 = valueTerm(w2);
       Word e;
 
+#if O_CYCLIC
+      while ( isRef(f1->definition) )
+	f1 = (Functor)unRef(f1->definition);
+      while ( isRef(f2->definition) )
+	f2 = (Functor)unRef(f2->definition);
+      if ( f1 == f2 )
+	succeed;
+#endif
+
       if ( f1->definition != f2->definition )
 	fail;
 
       t1 = f1->arguments;
       t2 = f2->arguments;
       e  = t1+arityFunctor(f1->definition)-1; /* right-recurse on last */
+      linkTermsCyclic(f1, f2 PASS_LD);
 
       for(; t1 < e; t1++, t2++)
-      { if ( !unify(t1, t2 PASS_LD) )
+      { if ( !do_unify(t1, t2 PASS_LD) )
 	  fail;
       }
       goto right_recursion;
@@ -1123,7 +1128,17 @@ right_recursion:
   succeed;
 }
 
-#endif /*NON_RECURSIVE_UNIFY*/
+
+static bool
+unify(Word t1, Word t2 ARG_LD)
+{ bool rc;
+  Word *m = aTop;
+
+  rc = do_unify(t1, t2 PASS_LD);
+  exitCyclic(m PASS_LD);
+
+  return rc;
+}
 
 
 static
@@ -1170,6 +1185,36 @@ unify_ptrs(Word t1, Word t2 ARG_LD)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+foreignWakeup() calls delayed goals while executing a foreign procedure.
+Note that the  choicepoints  of  the   awoken  code  are  destroyed  and
+therefore this code can only be used in places introducing an (implicit)
+cut such as \=/2 (implemented as A \= B :- ( A = B -> fail ; true )).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static bool
+foreignWakeup(ARG1_LD)
+{ if ( *valTermRef(LD->attvar.head) )
+  { fid_t fid = PL_open_foreign_frame();
+    int rval;
+    term_t a0 = PL_new_term_ref();
+
+    PL_put_term(a0, LD->attvar.head);
+    setVar(*valTermRef(LD->attvar.head));
+    setVar(*valTermRef(LD->attvar.tail));
+
+    rval = PL_call_predicate(NULL, PL_Q_NORMAL, PROCEDURE_dwakeup1,
+			     a0);
+
+    PL_close_foreign_frame(fid);
+
+    return rval;
+  }
+
+  succeed;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 can_unify(t1, t2) succeeds if  two  terms   *can*  be  unified,  without
 actually doing so. This  is  basically   a  stripped  version of unify()
 above. See this function for comments.
@@ -1182,7 +1227,8 @@ can_unify(Word t1, Word t2)
   bool rval;
 
   Mark(m);
-  rval = unify(t1, t2 PASS_LD);
+  if ( (rval = unify(t1, t2 PASS_LD)) )
+    rval = foreignWakeup(PASS_LD1);
   Undo(m);
 
   return rval;  
@@ -1360,13 +1406,15 @@ findStartChoice(LocalFrame fr, Choice ch)
     Within the same query, find the choice-point that was created at the
     start of this frame.  This is used for the debugger at the fail-port
     as well as for realising retry.
+
+    Note that older versions also considered the initial choicepoint a
+    choicepoint for the initial frame, but this is not correct as the
+    frame may be replaced due to last-call optimisation.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static Choice
 findStartChoice(LocalFrame fr, Choice ch)
-{ for( ;
-       (void *)ch > (void *)fr || (ch && ch->type == CHP_TOP);
-       ch = ch->parent )
+{ for( ; (void *)ch > (void *)fr; ch = ch->parent )
   { if ( ch->frame == fr )
     { switch ( ch->type )
       { case CHP_JUMP:
@@ -2281,13 +2329,12 @@ constant argument.
 
   common_hconst:
         deRef2(ARGP++, k);
-        if (isVar(*k))
-	{ *k = c;
-	  Trail(k);
+        if ( *k == c )
+	  NEXT_INSTRUCTION;
+        if ( canBind(*k) )
+	{ bindConst(k, c);
 	  NEXT_INSTRUCTION;
 	}
-        if (*k == c)
-	  NEXT_INSTRUCTION;
         CLAUSE_FAILED;
   }
 
@@ -2297,17 +2344,17 @@ variable, compare the numbers otherwise.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
     VMI(H_INTEGER) MARK(HINT)
-      { register Word k;
+      { Word k;
 
 	deRef2(ARGP++, k);
-	if (isVar(*k))
+	if ( canBind(*k) )
 	{ Word p = allocGlobal(3);
+	  word c = consPtr(p, TAG_INTEGER|STG_GLOBAL);
 
-	  *k   = consPtr(p, TAG_INTEGER|STG_GLOBAL);
-	  Trail(k);
-	  *p++ = mkIndHdr(1, TAG_INTEGER);
-	  *p++ = (long)*PC++;
-	  *p++ = mkIndHdr(1, TAG_INTEGER);
+	  p[0] = mkIndHdr(1, TAG_INTEGER);
+	  p[1] = (long)*PC++;
+	  p[2] = mkIndHdr(1, TAG_INTEGER);
+	  bindConst(k, c);
 	  NEXT_INSTRUCTION;
 	} else if ( isBignum(*k) && valBignum(*k) == (long)*PC++ )
 	  NEXT_INSTRUCTION;
@@ -2319,14 +2366,14 @@ variable, compare the numbers otherwise.
       { Word k;
 
 	deRef2(ARGP++, k);
-	if (isVar(*k))
+	if ( canBind(*k) )
 	{ Word p = allocGlobal(4);
+	  word c = consPtr(p, TAG_FLOAT|STG_GLOBAL);
 
-	  *k   = consPtr(p, TAG_FLOAT|STG_GLOBAL);
-	  Trail(k);
 	  *p++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
 	  cpDoubleData(p, PC);
 	  *p++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
+	  bindConst(k, c);
 	  NEXT_INSTRUCTION;
 	} else if ( isReal(*k) )
 	{ Word p = valIndirectP(*k);
@@ -2352,12 +2399,12 @@ General indirect in the head.  Used for strings only at the moment.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
     VMI(H_INDIRECT) MARK(HINDIR);
-      { register Word k;
+      { Word k;
 
 	deRef2(ARGP++, k);
-	if (isVar(*k))
-	{ *k = globalIndirectFromCode(&PC);
-	  Trail(k);
+	if ( canBind(*k) )
+	{ word c = globalIndirectFromCode(&PC);
+	  bindConst(k, c);
 	  NEXT_INSTRUCTION;
 	}
 	if ( isIndirect(*k) && equalIndirectFromCode(*k, &PC) )
@@ -2459,9 +2506,13 @@ ARGP is pointing into the term on the global stack we are creating.
 	    NEXT_INSTRUCTION;
 	  }
 	  *ARGP++ = makeRefG(k);	/* both on global stack! */
-	  NEXT_INSTRUCTION;	  
+#ifdef O_ATTVAR
+	} else if ( isAttVar(*k) )
+	{ *ARGP++ = makeRefG(k);
+#endif
+	} else
+	{ *ARGP++ = *k;
 	}
-	*ARGP++ = *k;
 
 	NEXT_INSTRUCTION;
       }
@@ -2484,7 +2535,7 @@ above the stack.
     VMI(B_VAR2)						MARK(BVAR2);
       n = VAROFFSET(2);
       goto common_bvar;
-    VMI(B_VAR)					MARK(BVARN);
+    VMI(B_VAR)						MARK(BVARN);
       n = (int)*PC++;
     common_bvar:
     { Word k = varFrameP(FR, n);
@@ -2504,7 +2555,7 @@ stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     VMI(H_FIRSTVAR)
       MARK(HFVAR);
-      { varFrame(FR, *PC++) = (isVar(*ARGP) ? makeRef(ARGP) : *ARGP);
+      { varFrame(FR, *PC++) = (needsRef(*ARGP) ? makeRef(ARGP) : *ARGP);
 	ARGP++;
 	NEXT_INSTRUCTION;
       }
@@ -2571,9 +2622,10 @@ the global stack (should we check?  Saves trail! How often?).
     VMI(H_RFUNCTOR)
 	f = (functor_t) *PC++;
         deRef(ARGP);
-	if ( isVar(*ARGP) )
+	if ( canBind(*ARGP) )
 	{ int arity = arityFunctor(f);
-	  Word ap;
+	  Word ap, ap0;
+	  word c;
 
 #ifdef O_SHIFT_STACKS
 	  if ( gTop + 1 + arity > gMax )
@@ -2583,14 +2635,15 @@ the global stack (should we check?  Saves trail! How often?).
 #endif
 
 	  ap = gTop;
-	  *ARGP = consPtr(ap, TAG_COMPOUND|STG_GLOBAL);
-	  Trail(ARGP);
+	  c = consPtr(ap, TAG_COMPOUND|STG_GLOBAL);
 	  *ap++ = f;
-	  ARGP = ap;
+	  ap0 = ap;
 	  while(arity-- > 0)
 	  { setVar(*ap++);
 	  }
 	  gTop = ap;
+	  bindConst(ARGP, c);
+	  ARGP = ap0;
 	  NEXT_INSTRUCTION;
 	}
 	if ( hasFunctor(*ARGP, f) )
@@ -2604,8 +2657,10 @@ the global stack (should we check?  Saves trail! How often?).
 	*aTop++ = ARGP + 1;
     VMI(H_RLIST) MARK(HRLIST);
 	deRef(ARGP);
-	if ( isVar(*ARGP) )
+	if ( canBind(*ARGP) )
 	{ Word ap = gTop;
+	  word c;
+
 #if O_SHIFT_STACKS
   	  if ( ap + 3 > gMax )
 	  { growStacks(FR, BFR, PC, FALSE, TRUE, FALSE);
@@ -2614,13 +2669,13 @@ the global stack (should we check?  Saves trail! How often?).
 #else
 	  requireStack(global, 3*sizeof(word));
 #endif
-	  *ARGP = consPtr(ap, TAG_COMPOUND|STG_GLOBAL);
-	  Trail(ARGP);
-	  *ap++ = FUNCTOR_dot2;
-	  ARGP = ap;
-	  setVar(*ap++);
-	  setVar(*ap++);
-	  gTop = ap;
+	  ap[0] = FUNCTOR_dot2;
+	  setVar(ap[1]);
+	  setVar(ap[2]);
+	  gTop = ap+3;
+	  c = consPtr(ap, TAG_COMPOUND|STG_GLOBAL);
+	  bindConst(ARGP, c);
+	  ARGP = ap+1;
 	  NEXT_INSTRUCTION;
 	}
 	if ( isList(*ARGP) )
@@ -2704,6 +2759,10 @@ backtrack without showing the fail ports explicitely.
 #endif /*O_DEBUGGER*/
 
 	ARGP = argFrameP(lTop, 0);
+#ifdef O_ATTVAR
+	if ( *valTermRef(LD->attvar.head) ) /* can be faster */
+	  goto wakeup;
+#endif
         NEXT_INSTRUCTION;
       }
 
@@ -2819,7 +2878,7 @@ the moment the code marked (**) handles this not very elegant
         catcher = valTermRef(exception_term);
 
 	SECURE(checkData(catcher));
-	DEBUG(0, { Sdprintf("Throwing ");
+	DEBUG(1, { Sdprintf("Throwing ");
 		   PL_write_term(Serror, wordToTermRef(catcher), 1200, 0);
 		   Sdprintf("\n");
 		 });
@@ -2828,6 +2887,7 @@ the moment the code marked (**) handles this not very elegant
         catchfr = findCatcher(FR, catcher PASS_LD);
 
 	SECURE(checkData(catcher));	/* verify all data on stacks stack */
+	SECURE(checkStacks(FR, LD->choicepoints));
 
 #if O_DEBUGGER
 	if ( !catchfr &&
@@ -2862,6 +2922,7 @@ the moment the code marked (**) handles this not very elegant
 
 					/* needed to avoid destruction */
 					/* in the undo */
+	      SECURE(checkStacks(FR, ch));
 	      dbg_discardChoicesAfter((LocalFrame)ch PASS_LD);
 	      undo_while_saving_term(&ch->mark, catcher);
 	      except = *catcher;
@@ -2950,7 +3011,6 @@ the moment the code marked (**) handles this not very elegant
 					/* TBD: needs a foreign frame? */
 	  QF->exception = consTermRef(p);
 	  *p = except;
-	  deRef(p);
 
 	  undo_while_saving_term(&QF->choice.mark, p);
 	  if ( false(QF, PL_Q_PASS_EXCEPTION) )
@@ -3496,15 +3556,22 @@ the result (a word) and the number holding the result.  For example:
 	if ( n->type == V_REAL && !trueFeature(ISO_FEATURE) )
 	  canoniseNumber(n);		/* whole real --> long */
 
-	if ( isVar(*k) )
-	{ Trail(k);
+	if ( canBind(*k) )
+	{ word c;
+
 	  if ( intNumber(n) )
 	  { if ( inTaggedNumRange(n->value.i) )
-	      *k = consInt(n->value.i);
+	      c = consInt(n->value.i);
 	    else
-	      *k = globalLong(n->value.i PASS_LD);
+	      c = globalLong(n->value.i PASS_LD);
 	  } else
-	    *k = globalReal(n->value.f);
+	    c = globalReal(n->value.f);
+
+	  bindConst(k, c);
+#ifdef O_ATTVAR
+	if ( *valTermRef(LD->attvar.head) ) /* can be faster */
+	  goto wakeup;
+#endif
 	  NEXT_INSTRUCTION;
 	} else
 	{ if ( isInteger(*k) && intNumber(n) && valInteger(*k) == n->value.i )
@@ -3569,7 +3636,7 @@ Note that compilation does not give contained   atoms a reference as the
 atom is referenced by the goal-term anyway.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-	if ( isAtom(goal = *a) )
+	if ( isTextAtom(goal = *a) )
 	{ /*if ( *a == ATOM_cut )		NOT ISO
 	    goto i_cut; */
 	  functor = lookupFunctorDef(goal, 0);
@@ -3637,7 +3704,7 @@ atom is referenced by the goal-term anyway.
 	module = NULL;
 	a = stripModule(a, &module PASS_LD);
 
-	if ( isAtom(goal = *a) )
+	if ( isTextAtom(goal = *a) )
 	{ arity   = 0;
 	  functor = lookupFunctorDef(goal, callargs);
 	  args    = NULL;
@@ -3853,7 +3920,7 @@ The VMI for these calls are ICALL_FVN, proc, var-index ...
       { fproc = (Procedure) *PC++;
 	nvars = 1;
 	v = varFrameP(FR, *PC++);
-	*ARGP++ = (isVar(*v) ? makeRefL(v) : *v);
+	*ARGP++ = (needsRef(*v) ? makeRefL(v) : *v);
 	goto common_call_fv;
       }
 
@@ -3861,9 +3928,9 @@ The VMI for these calls are ICALL_FVN, proc, var-index ...
       { fproc = (Procedure) *PC++;
 	nvars = 2;
 	v = varFrameP(FR, *PC++);
-	*ARGP++ = (isVar(*v) ? makeRefL(v) : *v);
+	*ARGP++ = (needsRef(*v) ? makeRefL(v) : *v);
 	v = varFrameP(FR, *PC++);
-	*ARGP++ = (isVar(*v) ? makeRefL(v) : *v);
+	*ARGP++ = (needsRef(*v) ? makeRefL(v) : *v);
 
       common_call_fv:
 	{ Definition def;
@@ -3978,6 +4045,11 @@ increase lTop too to prepare for asynchronous interrupts.
 	    if ( rval )
 	    { assert(rval == TRUE);
 	      Profile(profExit(FR->prof_node PASS_LD));
+
+#ifdef O_ATTVAR
+	      if ( *valTermRef(LD->attvar.head) ) /* can be faster */
+		goto wakeup;
+#endif
 	      NEXT_INSTRUCTION;
 	    }
 
@@ -4022,7 +4094,7 @@ the arguments of this term in the frame.
 
 	ARGP = argFrameP(next, 0);
 
-	if ( isAtom(goal) )
+	if ( isTextAtom(goal) )
 	{ functor = goal;
 	  arity = 0;
 	} else if ( isTerm(goal) )
@@ -4085,6 +4157,27 @@ program pointer and jump to the common part.
 
 	goto normal_call;
       }
+
+#ifdef O_ATTVAR
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Attributed variable handling
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+      wakeup:
+	DEBUG(1, Sdprintf("Activating wakeup\n"));
+	next = lTop;
+        DEF = getProcDefinedDefinition(lTop, PC,
+				       PROCEDURE_dwakeup1
+				       PASS_LD);
+	next->context = MODULE_system;
+        next->flags = FR->flags;
+        ARGP = argFrameP(next, 0);
+	ARGP[0] = *valTermRef(LD->attvar.head);
+	setVar(*valTermRef(LD->attvar.head));
+	setVar(*valTermRef(LD->attvar.tail));
+
+	goto normal_call;
+#endif
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 I_CALL and I_DEPART form the normal code generated by the  compiler  for
 calling  predicates.   The  arguments  are  already written in the frame
@@ -4242,7 +4335,7 @@ be able to access these!
 
 	if ( false(DEF, METAPRED) )
 	  FR->context = DEF->module;
-	if ( false(DEF, SYSTEM) )
+	if ( false(DEF, HIDE_CHILDS) )	/* was SYSTEM */
 	  clear(FR, FR_NODEBUG);
 
 #if O_DYNAMIC_STACKS
@@ -4336,7 +4429,7 @@ values found in the clause,  give  a   reference  to  the clause and set
 	if ( depth > depth_reached )
 	  depth_reached = depth;
 	if ( depth > depth_limit )
-	{ DEBUG(0, Sdprintf("depth-limit\n"));
+	{ DEBUG(2, Sdprintf("depth-limit\n"));
 
 	  if ( debugstatus.debugging )
 	    newChoice(CHP_DEBUG, FR PASS_LD);
@@ -4410,12 +4503,25 @@ Leave the clause:
   - restore machine registers from parent frame
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
       {				MARK(I_EXIT);
+    exit_builtin:
+#ifdef O_ATTVAR
+      if ( *valTermRef(LD->attvar.head) ) /* can be faster */
+      { static code exit;
+
+	exit = encode(I_EXIT);
+	PC = &exit;
+	goto wakeup;
+      }
+#endif
+      goto exit_builtin_cont;
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 i_exitfact is generated to close a fact. The reason for not generating a
 plain I_EXIT is first of all that the actual sequence should be I_ENTER,
 I_EXIT,  and  just  optimising   to    I_EXIT   looses   the  unify-port
 interception. Second, there should be some room for optimisation here.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
     VMI(I_EXITFACT) MARK(EXITFACT);
 #if O_DEBUGGER
 	if ( debugstatus.debugging )
@@ -4425,6 +4531,17 @@ interception. Second, there should be some room for optimisation here.
 	  }
 	}
 #endif /*O_DEBUGGER*/
+#ifdef O_ATTVAR
+	if ( *valTermRef(LD->attvar.head) ) /* can be faster */
+	{ static code exit;
+
+	  exit = encode(I_EXIT);
+	  PC = &exit;
+	  ARGP = argFrameP(lTop, 0);	    /* needed? */
+	  goto wakeup;
+	}
+#endif
+
         /* FALLTHROUGH*/
     VMI(I_EXIT) MARK(EXIT);
 
@@ -4450,7 +4567,7 @@ bit more careful.
 	}
 #endif /*O_DEBUGGER*/
 
-    exit_builtin:			/* tracer already by callForeign() */
+    exit_builtin_cont:			/* tracer already by callForeign() */
 	if ( (void *)BFR <= (void *)FR ) /* deterministic */
 	{ if ( false(DEF, FOREIGN) )
 	    leaveDefinition(DEF);

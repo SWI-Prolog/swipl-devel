@@ -40,7 +40,7 @@ ALLCSRC=	$(LIBOBJ:.o=.c) \
 		$(PLOBJ:.o=.c) $(SGMLOBJ:.o=.c) $(DTD2PLOBJ:.o=.c) \
 		$(HDRS)
 
-LIBPL=		sgml.pl
+LIBPL=		sgml.pl xsdp_types.pl iso_639.pl
 TARGETS=	sgml2pl.@SO@
 PROGRAMS=	dtd2pl sgml
 DTDFILES=	HTML4.dcl HTML4.dtd HTML4.soc \

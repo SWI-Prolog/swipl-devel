@@ -20,6 +20,7 @@
 :- meta_predicate(process_rdf(+, :, +)).
 
 :- use_module(library(sgml)).		% Basic XML loading
+:- use_module(library(option)).		% option/3
 :- use_module(rdf_parser).		% Basic parser
 :- use_module(rdf_triple).		% Generate triples
 
@@ -33,43 +34,46 @@
 %
 %	# expand_foreach(Bool)
 %	Apply each(Container, Pred, Object) on the members of Container
+%		
+%	# namespaces([NS=URL, ...])
+%	Return list of namespaces declared using xmlns:NS=URL in
+%	the document.  This can be used to update the namespace
+%	list with rdf_register_ns/2.
 
 load_rdf(File, Triples) :-
 	load_rdf(File, Triples, []).
 
-load_rdf(File, Triples, Options) :-
-	option(base_uri(BaseURI), Options, []),
+load_rdf(File, Triples, Options0) :-
+	meta_options(Options0, Options),
+	init_ns_collect(Options, NSList),
 	load_structure(File,
 		       [ RDFElement
 		       ],
 		       [ dialect(xmlns),
-			 space(sgml)
+			 space(sgml),
+			 call(xmlns, rdf:on_xmlns)
 		       ]),
-	set_anon_prefix(BaseURI, Refs),
-	rdf_start_file(Options),
-	call_cleanup(xml_to_rdf(RDFElement, BaseURI, Triples0),
-		     cleanup_load(Refs)),
+	rdf_start_file(Options, Cleanup),
+	call_cleanup(xml_to_rdf(RDFElement, Triples0, Options),
+		     rdf_end_file(Cleanup)),
+	exit_ns_collect(NSList),
 	post_process(Options, Triples0, Triples).
 	
-%	xml_to_rdf(+XML, +BaseURI, -Triples)
+%	xml_to_rdf(+XML, -Triples, +Options)
 
-xml_to_rdf(XML, BaseURI, Triples) :-
-	xml_to_plrdf(XML, BaseURI, RDF),
+xml_to_rdf(XML, Triples, Options) :-
+	is_list(Options), !,
+	xml_to_plrdf(XML, RDF, Options),
 	rdf_triples(RDF, Triples).
+xml_to_rdf(XML, BaseURI, Triples) :-
+	atom(BaseURI), !,
+	xml_to_rdf(XML, Triples, [base_uri(BaseURI)]).
+
 
 set_anon_prefix([], []) :- !.
 set_anon_prefix(BaseURI, [Ref]) :-
 	concat_atom(['__', BaseURI, '#'], AnonBase),
 	asserta(anon_prefix(AnonBase), Ref).
-
-cleanup_load(Refs) :-
-	rdf_end_file,
-	erase_refs(Refs).
-
-erase_refs([]).
-erase_refs([H|T]) :-
-	erase(H),
-	erase_refs(T).
 
 
 		 /*******************************
@@ -112,10 +116,6 @@ member_attribute(A) :-
 		 *	     BIG FILES		*
 		 *******************************/
 
-:- thread_local
-	in_rdf/1,			% BaseURI
-	object_handler/2.
-
 %	process_rdf(+Input, :OnObject, +Options)
 %	
 %	Process RDF from Input. Input is either an atom or a term of the
@@ -125,14 +125,30 @@ member_attribute(A) :-
 %	
 %		# base_uri(+URI)
 %		Determines the reference URI.
+%		
+%		# lang(LanguageID)
+%		Set initial language (as xml:lang)
+%		
+%		# convert_typed_literal(:Convertor)
+%		Call Convertor(+Type, +Content, -RDFObject) to create
+%		a triple rdf(S, P, RDFObject) instead of rdf(S, P,
+%		literal(type(Type, Content)).
+%		
+%		# namespaces([NS=URL, ...])
+%		Return list of namespaces declared using xmlns:NS=URL in
+%		the document.  This can be used to update the namespace
+%		list with rdf_register_ns/2.
 
-process_rdf(File, OnObject, Options) :-
-	is_list(Options), !,
+process_rdf(File, OnObject, Options0) :-
+	is_list(Options0), !,
+	meta_options(Options0, Options),
 	option(base_uri(BaseURI), Options, []),
-	retractall(rdf:in_rdf),
-	rdf_start_file(Options),
+	rdf_start_file(Options, Cleanup),
 	'$strip_module'(OnObject, Module, Pred),
-	asserta(rdf:object_handler(BaseURI, Module:Pred), Ref),
+	nb_setval(rdf_object_handler, Module:Pred),
+	nb_setval(rdf_options, Options),
+	nb_setval(rdf_state, -),
+	init_ns_collect(Options, NSList),
 	(   File = stream(In)
 	->  Source = BaseURI
 	;   File = '$stream'(_)
@@ -145,71 +161,122 @@ process_rdf(File, OnObject, Options) :-
 	new_sgml_parser(Parser, []),
 	set_sgml_parser(Parser, file(Source)),
 	set_sgml_parser(Parser, dialect(xmlns)),
-	set_sgml_parser(Parser, space(remove)),
-	set_anon_prefix(BaseURI, Refs),
-	call_cleanup(sgml_parse(Parser,
-				[ source(In),
-				  call(begin, rdf:on_begin),
-				  call(end, rdf:on_end)
-				]),
-		     rdf:cleanup_process(Close, [Ref|Refs])).
+	set_sgml_parser(Parser, space(sgml)),
+	do_process_rdf(Parser, In, NSList, Close, Cleanup).
 process_rdf(File, BaseURI, OnObject) :-
 %	print_message(warning,
 %		      format('process_rdf(): new argument order', [])),
 	process_rdf(File, OnObject, [base_uri(BaseURI)]).
 
 
-cleanup_process(In, Refs) :-
+do_process_rdf(Parser, In, NSList, Close, Cleanup) :-
+	call_cleanup((   sgml_parse(Parser,
+				    [ source(In),
+				      call(begin, rdf:on_begin),
+				      call(end,   rdf:on_end),
+				      call(xmlns, rdf:on_xmlns)
+				    ]),
+			 exit_ns_collect(NSList)
+		     ),
+		     cleanup_process(Close, Cleanup)).
+
+cleanup_process(In, Cleanup) :-
 	(   var(In)
 	->  true
 	;   close(In)
 	),
-	erase_refs(Refs),
-	rdf_end_file.
+	nb_delete(rdf_options),
+	nb_delete(rdf_object_handler),
+	nb_delete(rdf_state),
+	nb_delete(rdf_nslist),
+	rdf_end_file(Cleanup).
 
 on_end(NS:'RDF', _) :-
 	rdf_name_space(NS),
-	retractall(in_rdf(_)).
+	nb_setval(rdf_description_options, -).
 
 on_begin(NS:'RDF', Attr, _) :-
-	rdf_name_space(NS),
-	object_handler(Base0, _),
-	(   memberchk(xml:base = Base, Attr)
-	->  rdf_parser:canonical_uri(Base, Base0, TheBase),
-	    assert(in_rdf(TheBase))
-	;   assert(in_rdf(Base0))
-	).		   
+	rdf_name_space(NS), !,
+	nb_getval(rdf_options, Options0),
+	modify_state(Attr, Options0, Options),
+	nb_setval(rdf_state, Options).
 on_begin(Tag, Attr, Parser) :-
-	in_rdf(BaseURI), !,
+	nb_getval(rdf_state, Options),
+	Options \== (-), !,
 	get_sgml_parser(Parser, line(Start)),
 	get_sgml_parser(Parser, file(File)),
 	sgml_parse(Parser,
 		   [ document(Content),
 		     parse(content)
 		   ]),
-	object_handler(_, OnTriples),
-	element_to_plrdf(element(Tag, Attr, Content), BaseURI, Objects),
+	nb_getval(rdf_object_handler, OnTriples),
+	element_to_plrdf(element(Tag, Attr, Content), Objects, Options),
 	rdf_triples(Objects, Triples),
 	call(OnTriples, Triples, File:Start).
 
+%	on_xmlns(+NS, +URL, +Parser)
+%	
+%	Build up the list of   encountered xmlns:NS=URL declarations. We
+%	use  destructive  assignment  here   as    an   alternative   to
+%	assert/retract, ensuring thread-safety and better performance.
 
-		 /*******************************
-		 *	      UTIL		*
-		 *******************************/
+on_xmlns(NS, URL, _Parser) :-
+	(   nb_getval(rdf_nslist, List),
+	    List = list(L0)
+	->  nb_linkarg(1, List, [NS=URL|L0])
+	;   true
+	).
 
-%	option(Option(?Value), OptionList, Default)
+init_ns_collect(Options, NSList) :-
+	(   option(namespaces(NSList), Options, -),
+	    NSList \== (-)
+	->  nb_setval(rdf_nslist, list([]))
+	;   nb_setval(rdf_nslist, -),
+	    NSList = (-)
+	).
 
-option(Opt, Options) :-
-	memberchk(Opt, Options), !.
-option(Opt, Options) :-
-	functor(Opt, OptName, 1),
-	arg(1, Opt, OptVal),
-	memberchk(OptName=OptVal, Options), !.
+exit_ns_collect(NSList) :-
+	(   NSList == (-)
+	->  true
+	;   nb_getval(rdf_nslist, list(NSList))
+	).
 
-option(Opt, Options, _) :-
-	option(Opt, Options), !.
-option(Opt, _, Default) :-
-	arg(1, Opt, Default).
+modify_state([], Options, Options).
+modify_state([H|T], Options0, Options) :-
+	modify_state1(H, Options0, Options1),
+	modify_state(T, Options1, Options).
+
+modify_state1(xml:base = Base, Options0, Options) :- !,
+	set_option(base_uri(Base), Options0, Options).
+modify_state1(xml:lang = Lang, Options0, Options) :- !,
+	set_option(lang(Lang), Options0, Options).
+modify_state1(_, Options, Options).
+
+set_option(Opt, Options0, [Opt|Options]) :-
+	functor(Opt, F, A),
+	functor(VO, F, A),
+	delete(Options0, VO, Options).
+
+
+%	meta_options(+OptionsIn, -OptionsOut)
+%	
+%	Do module qualification for options that are module sensitive.
+
+:- module_transparent
+	meta_options/2.
+
+meta_options([], []).
+meta_options([Name=Value|T0], List) :-
+	atom(Name), !,
+	Opt =.. [Name, Value],
+	meta_options([Opt|T0], List).
+meta_options([H0|T0], [H|T]) :-
+	(   H0 = convert_typed_literal(Handler)
+	->  '$strip_module'(Handler, M, P),
+	    H = convert_typed_literal(M:P)
+	;   H = H0
+	),
+	meta_options(T0, T).
 
 
 		 /*******************************
@@ -225,14 +292,12 @@ prolog:message(rdf(unparsed(Data))) -->
 	{ phrase(unparse_xml(Data), XML)
 	},
 	[ 'RDF: Failed to interpret "~s"'-[XML] ].
-prolog:message(rdf(protege(id, Id))) -->
-	[ 'RDF: Fixed Protege 1.3 ID="~w" bug'-[Id] ].
 prolog:message(rdf(shared_blank_nodes(N))) -->
 	[ 'RDF: Shared ~D blank nodes'-[N] ].
 prolog:message(rdf(not_a_name(Name))) -->
 	[ 'RDF: argument to rdf:ID is not an XML name: ~p'-[Name] ].
 prolog:message(rdf(redefined_id(Id))) -->
-	[ 'RDF: rdf:IS ~p: multiple definitions'-[Id] ].
+	[ 'RDF: rdf:ID ~p: multiple definitions'-[Id] ].
 
 
 		 /*******************************

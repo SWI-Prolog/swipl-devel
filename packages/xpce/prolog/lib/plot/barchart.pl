@@ -415,7 +415,7 @@ update_position(BBG) :->
 
 variable(text, text, get, "Represented text object").
 
-initialise(BL, Bar:'bar|bar_stack') :->
+initialise(BL, Bar:'bar|bar_stack|graphical') :->
 	send_super(BL, initialise),
 	new(_, partof_hyper(Bar, BL, label, bar)),
 	new(T, text(Bar?name?label_name)),

@@ -34,8 +34,7 @@
 	  ]).
 :- use_module(library(pce)).
 :- use_module(library(pce_report)).
-:- require([ checklist/2
-	   , delete/3
+:- require([ delete/3
 	   , maplist/3
 	   , term_to_atom/2
 	   ]).
@@ -86,7 +85,7 @@ make_promper(P) :-
 prompter(Title, Attributes) :-
 	maplist(canonise_attribute, Attributes, CAtts),
 	send(@prompter, clear),
-	checklist(append_prompter(@prompter), CAtts),
+	maplist(append_prompter(@prompter), CAtts),
 	send(@prompter, append,
 	     new(Ok, button(ok, message(@prompter, return, ok))), next_row),
 	send(Ok, default_button, @on),
@@ -108,7 +107,7 @@ prompter(Title, Attributes) :-
 	    ;	get(@prompter, confirm, OK) % second time
 	    ),
 	    (   OK == ok
-	    ->  checklist(read_prompter(@prompter), CAtts), !,
+	    ->  maplist(read_prompter(@prompter), CAtts), !,
 	        send(@prompter, show, @off)
 	    ;   !,
 		send(@prompter, show, @off),

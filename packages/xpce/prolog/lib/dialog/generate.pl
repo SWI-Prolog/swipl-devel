@@ -35,7 +35,6 @@
 :- require([ append/3
 	   , between/3
 	   , chain_list/2
-	   , checklist/2
 	   , delete/3
 	   , forall/2
 	   , genarg/3
@@ -535,7 +534,7 @@ new_term(Object, Term) :-
 
 new_term(Class, Args, Term) :-
 	append(NonDef, Def, Args),
-	checklist(=(@default), Def), !,
+	maplist(=(@default), Def), !,
 	(   NonDef == []
 	->  Term = new(Class)
 	;   Term =.. [Class|NonDef]

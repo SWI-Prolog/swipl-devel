@@ -154,6 +154,7 @@ static functor_t FUNCTOR_context1;
 static functor_t FUNCTOR_defaults1;
 static functor_t FUNCTOR_shorttag1;
 static functor_t FUNCTOR_qualify_attributes1;
+static functor_t FUNCTOR_encoding1;
 
 static atom_t ATOM_true;
 static atom_t ATOM_false;
@@ -214,6 +215,7 @@ initConstants()
   FUNCTOR_defaults1	 = mkfunctor("defaults", 1);
   FUNCTOR_shorttag1	 = mkfunctor("shorttag", 1);
   FUNCTOR_qualify_attributes1 = mkfunctor("qualify_attributes", 1);
+  FUNCTOR_encoding1	 = mkfunctor("encoding", 1);
 
   ATOM_true = PL_new_atom("true");
   ATOM_false = PL_new_atom("false");
@@ -485,6 +487,15 @@ pl_set_sgml_parser(term_t parser, term_t option)
       p->dtd->number_mode = NU_INTEGER;
     else
       return sgml2pl_error(ERR_DOMAIN, "number", a);
+  } else if ( PL_is_functor(option, FUNCTOR_encoding1) )
+  { term_t a = PL_new_term_ref();
+    char *val;
+
+    PL_get_arg(1, option, a);
+    if ( !PL_get_atom_chars(a, &val) )
+      return sgml2pl_error(ERR_TYPE, "atom", a);
+    if ( !xml_set_encoding(p, val) )
+      return sgml2pl_error(ERR_DOMAIN, "encoding", a);
   } else if ( PL_is_functor(option, FUNCTOR_doctype1) )
   { term_t a = PL_new_term_ref();
     char *s;

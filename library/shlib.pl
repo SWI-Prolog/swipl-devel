@@ -33,10 +33,11 @@
 	  [ load_foreign_library/1,	% :LibFile
 	    load_foreign_library/2,	% :LibFile, +InstallFunc
 	    unload_foreign_library/1,	% +LibFile
-	    unload_foreign_library/1,	% +LibFile, +UninstallFunc
+	    unload_foreign_library/2,	% +LibFile, +UninstallFunc
 	    current_foreign_library/2,	% ?LibFile, ?Public
 	    reload_foreign_libraries/0
 	  ]).
+:- set_prolog_flag(generate_debug_info, false).
 
 :- module_transparent
 	load_foreign_library/1,
@@ -44,11 +45,13 @@
 
 :- dynamic
 	loading/1,			% Lib
+	error/2,			% File, Error
 	foreign_predicate/2,		% Lib, Pred
 	current_library/5.		% Lib, Entry, Path, Module, Handle
 
 :- volatile				% Do not store in state
 	loading/1,
+	error/2,
 	foreign_predicate/2,
 	current_library/5.
 
@@ -124,14 +127,21 @@ load_foreign_library(Library) :-
 
 load_foreign_library(LibFileSpec, Entry) :-
 	'$strip_module'(LibFileSpec, Module, LibFile),
-	load_foreign_library(LibFile, Module, Entry).
+	with_mutex('$foreign',
+		   shlib:load_foreign_library(LibFile, Module, Entry)).
 
 load_foreign_library(LibFile, _Module, _) :-
 	current_library(LibFile, _, _, _, _), !.
 load_foreign_library(LibFile, Module, DefEntry) :-
+	retractall(error(_, _)),
 	find_library(LibFile, Path),
 	asserta(loading(LibFile)),
-	catch(Module:open_shared_object(Path, Handle), _, fail), !,
+	catch(Module:open_shared_object(Path, Handle), E, true),
+	(   nonvar(E)
+	->  assert(error(Path, E)),
+	    fail
+	;   true
+	), !,
 	(   (	entry(LibFile, DefEntry, Entry),
 		Module:call_shared_object_function(Handle, Entry)
 	    ->	true
@@ -146,12 +156,19 @@ load_foreign_library(LibFile, Module, DefEntry) :-
 	).
 load_foreign_library(LibFile, _, _) :-
 	retractall(loading(LibFile)),
-	throw(error(existence_error(foreign_library, LibFile), _)).
+	(   error(_Path, E)
+	->  retractall(error(_, _)),
+	    throw(E)
+	;   throw(error(existence_error(foreign_library, LibFile), _))
+	).
 
 unload_foreign_library(LibFile) :-
 	unload_foreign_library(LibFile, default(uninstall)).
 
 unload_foreign_library(LibFile, DefUninstall) :-
+	with_mutex('$foreign', do_unload(LibFile, DefUninstall)).
+
+do_unload(LibFile, DefUninstall) :-
 	current_library(LibFile, _, _, Module, Handle),
 	retractall(current_library(LibFile, _, _, _, _)),
 	(   entry(LibFile, DefUninstall, Uninstall),

@@ -1,12 +1,13 @@
+#define COMMON(type) type SO_LOCAL
 
-/* ../src/prg/operator.c */
-status		makeClassOperator(Class class);
+/* /staff/jan/src/pl/packages/xpce/src/prg/operator.c */
+COMMON(status)	makeClassOperator(Class class);
 
-/* ../src/prg/parser.c */
-status		makeClassParser(Class class);
+/* /staff/jan/src/pl/packages/xpce/src/prg/parser.c */
+COMMON(status)	makeClassParser(Class class);
 
-/* ../src/prg/tokeniser.c */
-Tokeniser	getOpenTokeniser(Tokeniser t, Any source);
-Int		getPeekTokeniser(Tokeniser t);
-status		symbolTokeniser(Tokeniser t, Name symb);
-status		makeClassTokeniser(Class class);
+/* /staff/jan/src/pl/packages/xpce/src/prg/tokeniser.c */
+COMMON(Tokeniser) getOpenTokeniser(Tokeniser t, Any source);
+COMMON(Int)	getPeekTokeniser(Tokeniser t);
+COMMON(status)	symbolTokeniser(Tokeniser t, Name symb);
+COMMON(status)	makeClassTokeniser(Class class);

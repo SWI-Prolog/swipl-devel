@@ -1084,6 +1084,8 @@ cmd('$', nospace('$')).
 cmd('&', nospace('&')).
 cmd('{', nospace('{')).
 cmd('}', nospace('}')).
+cmd('[', nospace('[')).
+cmd(']', nospace(']')).
 cmd('"'({'\\i'}), html('&iuml;')).	% \"\i
 cmd('"'({C}), html(Cmd)) :-		% \"[ouey...]
 	concat_atom([&, C, 'uml;'], Cmd).

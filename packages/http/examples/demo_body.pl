@@ -41,6 +41,10 @@
 reply(_) :-
 	flag(request, N, N+1),
 	fail.
+
+%	POST
+%	Simply read the request and reply with the request data.
+
 reply(Request) :-
 	member(method(post), Request), !,
 	http_read_data(Request, Data, []),
@@ -51,14 +55,32 @@ reply(Request) :-
 	format('~nData~n'),
 	pp(Data).
 
+%	/quit
+%	
+%	Explicitely close the connection
+
 reply(Request) :-
 	member(path('/quit'), Request), !,
 	format('Connection: close~n', []),
 	format('Content-type: text/html~n~n', []),
 	format('Bye Bye~n').
+
+%	/xpce?class=box
+%	
+%	Make XPCE reply with a graphics image. The demo-body pce_reply/1
+%	is called embedded in a  message  to   XPCE  to  force  the XPCE
+%	incremental garbage collector to reclaim   objects created while
+%	serving the request. pce_reply/1 replies   to ?class=box using a
+%	blue box with rounded corners.
+
 reply(Request) :-
-	member(path('/box'), Request), !,
-	send(@prolog, call, pce_reply(Request)).
+	member(path('/xpce'), Request), !,
+	send(@prolog, call, demo_body:pce_reply(Request)).
+
+%	/env
+%	
+%	Reply with the output of printenv (Unix systems only).
+
 reply(Request) :-
 	member(path('/env'), Request), !,
 	expand_file_name(~, Home),
@@ -73,6 +95,11 @@ reply(Request) :-
 	close(Fd),
 	format('</pre>~n', []),
 	format('</htmp>~n', []).
+
+%	/xml
+%	
+%	Return a simple formatted XML message.
+
 reply(Request) :-
 	member(path('/xml'), Request), !,
 	format('Content-type: text/xml~n~n', []),
@@ -90,6 +117,12 @@ This is the first demo of the web-server serving an XML message
   </body>
 </message>
 ', []).
+
+%	/work
+%	
+%	Do a lot of work and then say 'ok'. Can be used to test
+%	concurrent access using the multi-threaded server.
+
 reply(Request) :-
 	member(path('/work'), Request),
 	format(user_error, 'Starting work ...', []),
@@ -97,6 +130,11 @@ reply(Request) :-
 	format(user_error, 'done!~n', []),
 	format('Content-type: text/plain~n~n', []),
 	format('ok~n').
+
+%	... Otherwise
+%	
+%	Print the request itself.
+
 reply(Request) :-
 	format('Content-type: text/html~n~n', []),
 	format('<html>~n', []),

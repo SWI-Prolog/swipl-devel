@@ -1,3 +1,31 @@
+Sep 13, 2004
+
+  * ENHANCED: load_html_file/2: add shorttag(false) to the load_structure/3
+    options for better parsing of common errornous HTML pages.
+
+Aug 26, 2004
+
+  * FIXED: Bug#177: catalog files from $SGML_CATALOG_FILES were not
+    honoured.  Simon Ambler.  Also made catalog management thread-safe.
+
+Jul 22, 2004
+
+  * MODIFIED: Updated XML-Schema (XSD) namespace in xsdp_types.pl
+
+Apr 28, 2004
+
+  * ADDED: iso_639.pl: ISO-639 language identifiers.
+
+Apr 27, 2004
+
+  * ADDED: first version of xsdp_types.pl, a module to do type checking
+    and type conversion for XSD (XML Schema DataTypes).
+
+Apr 26, 2004
+
+  * FIXED: Bug#149: Buffer overflow reading too long NAME, NMTOKEN, etc.
+    Fabien Todescato.
+
 Jan 17, 2004
 
   * FIXED: handling <?xml ...?> switching from SGML to XML mode.

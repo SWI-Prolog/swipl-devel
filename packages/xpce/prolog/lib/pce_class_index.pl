@@ -8,7 +8,7 @@
 	  [ pce_make_library_index/1,	% +Dir
 	    pce_update_library_index/0
 	  ]).
-:- use_module(library('pce_prolog_xref')).
+:- use_module(library(pce_prolog_xref)).
 :- use_module(library(lists)).
 
 index_file('CLASSINDEX.pl').

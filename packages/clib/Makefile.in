@@ -1,5 +1,12 @@
 ################################################################
+# Makefile template for SWI-Prolog CLIB package
 #
+# This template is used by configure to create Makefile.  See
+# the file INSTALL for further installation instructions.
+#
+# License: LGPL
+#
+# Author: Jan Wielemaker (jan@swi.psy.uva.nl)
 ################################################################
 
 .SUFFIXES: .tex .dvi .doc .pl
@@ -19,6 +26,8 @@ CIFLAGS=-I.
 CFLAGS=$(COFLAGS) $(CWFLAGS) $(CMFLAGS) $(CIFLAGS) @DEFS@
 LIBS=@LIBS@
 NETLIBS=@NETLIBS@
+CRYPTLIBS=@CRYPTLIBS@
+MIMELIBS=@MIMELIBS@
 
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
 PLTOTEX=$(PCEHOME)/bin/pl2tex
@@ -35,11 +44,11 @@ INSTALL=@INSTALL@
 INSTALL_PROGRAM=@INSTALL_PROGRAM@
 INSTALL_DATA=@INSTALL_DATA@
 
-LIBPL=		@PLTARGETS@
+LIBPL=		@PLTARGETS@ prolog_server.pl
 TARGETS=	@TARGETS@
 
 UNXOBJ=		error.o process.o
-SOCKOBJ=	error.o socket.o
+SOCKOBJ=	error.o socket.o nonblockio.o
 CGIOBJ=		error.o form.o cgi.o
 CRYPTOBJ=	error.o crypt.o
 MEMOBJ=		error.o memfile.o
@@ -57,11 +66,11 @@ socket.@SO@:	$(SOCKOBJ)
 cgi.@SO@:	$(CGIOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(CGIOBJ)
 crypt.@SO@:	$(CRYPTOBJ)
-		$(LD) $(LDFLAGS) -o $@ $(CRYPTOBJ) $(LIBS)
+		$(LD) $(LDFLAGS) -o $@ $(CRYPTOBJ) $(CRYPTLIBS)
 memfile.@SO@:	$(MEMOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(MEMOBJ) $(LIBS)
 mime.@SO@:	$(MIMEOBJ)
-		$(LD) $(LDFLAGS) -o $@ $(MIMEOBJ) $(LIBS)
+		$(LD) $(LDFLAGS) -o $@ $(MIMEOBJ) $(MIMELIBS)
 time.@SO@:	$(TIMEOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(TIMEOBJ) $(LIBS)
 files.@SO@:	$(FILESOBJ)
@@ -94,6 +103,20 @@ uninstall::
 		(cd $(PLBASE)/lib/$(PLARCH) && rm -f $(TARGETS))
 		(cd $(PLBASE)/library && rm -f $(LIBPL))
 		$(PL) -f none -g make -t halt
+
+################################################################
+# Testing
+################################################################
+
+check:		check-socket
+
+torture:	torture-socket
+
+check-socket::
+		$(PL) -q -f testsocket.pl -F none -g tcp_test,halt -t 'halt(1)'
+
+torture-socket::
+		$(PL) -q -f stresssocket.pl -F none -g test,halt -t 'halt(1)'
 
 ################################################################
 # Documentation

@@ -28,12 +28,21 @@
 #include "md5.h"
 #endif
 
+#define RDF_VERSION 20100		/* 2.1.0 */
+
 #define URL_subPropertyOf \
 	"http://www.w3.org/2000/01/rdf-schema#subPropertyOf"
 
 #define OBJ_UNTYPED	0x0		/* partial: don't know */
 #define	OBJ_RESOURCE	0x1
-#define OBJ_LITERAL	0x2
+#define OBJ_STRING	0x2
+#define OBJ_INTEGER	0x3
+#define OBJ_DOUBLE	0x4
+#define OBJ_TERM	0x5
+
+#define Q_NONE		0x0
+#define Q_LANG		0x1
+#define Q_TYPE		0x2
 
 #define BY_NONE	0x00			/* 0 */
 #define BY_S	0x01			/* 1 */
@@ -45,17 +54,20 @@
 #define BY_SPO	(BY_S|BY_P|BY_O)	/* 7 */
 
 #define INDEX_TABLES 		        7
-#define INITIAL_TABLE_SIZE   		1024*1024
+#define INITIAL_TABLE_SIZE   		8*1024
 #define INITIAL_PREDICATE_TABLE_SIZE	1024
 #define INITIAL_SOURCE_TABLE_SIZE	64
 
 #define NO_LINE	((unsigned long)-1L)
 
-#define MATCH_CASE	0x0		/* Default: perfect match */
-#define	MATCH_EXACT	0x1		/* case-insensitive */
-#define	MATCH_SUBSTRING	0x2		/* substring */
-#define	MATCH_WORD	0x3		/* whole word */
-#define	MATCH_PREFIX	0x4		/* prefix */
+#define MAX_LIKE_CHOICES	100	/* max *'s in like pattern */
+
+#define STR_MATCH_CASE		0x0	/* Default: perfect match */
+#define	STR_MATCH_EXACT		0x1	/* case-insensitive */
+#define	STR_MATCH_SUBSTRING	0x2	/* substring */
+#define	STR_MATCH_WORD		0x3	/* whole word */
+#define	STR_MATCH_PREFIX	0x4	/* prefix */
+#define STR_MATCH_LIKE		0x5	/* SeRQL *like* match */
 
 typedef struct cell
 { void *	value;			/* represented resource */
@@ -69,6 +81,9 @@ typedef struct list
 } list;
 
 
+#define DISTINCT_DIRECT 0		/* for ->distinct_subjects, etc */
+#define DISTINCT_SUB    1
+
 typedef struct predicate
 { atom_t	    name;		/* name of the predicate */
   list	            subPropertyOf;	/* the one I'm subPropertyOf */
@@ -79,6 +94,12 @@ typedef struct predicate
   int		    visited;		/* loop detection */
   struct predicate *inverse_of;		/* my inverse predicate */
   unsigned 	    transitive : 1;	/* P(a,b)&P(b,c) --> P(a,c) */
+  long		    triple_count;	/* # triples on this predicate */
+
+  long		    distinct_updated[2];/* Is count still valid? */
+  long		    distinct_count[2];  /* Triple count at last update */
+  long		    distinct_subjects[2];/* # distinct subject values */
+  long		    distinct_objects[2];/* # distinct object values */
 } predicate;
 
 
@@ -98,17 +119,28 @@ typedef struct source
 typedef struct triple
 { atom_t	subject;
   predicate*	predicate;
-  atom_t	object;
+  union
+  { atom_t	resource;
+    atom_t	string;
+    long	integer;
+    double	real;
+    struct
+    { record_t  record;
+      int       len;
+    } term;				/* external record */
+  } object;
+  atom_t	type_or_lang;		/* Type or language for literals */
   atom_t	source;			/* where it comes from */
   struct triple*next[INDEX_TABLES];	/* hash-table next links */
-  unsigned	objtype : 2;
+  unsigned	objtype : 3;
   unsigned	indexed : 3;		/* Partials: BY_* */
+  unsigned	qualifier : 2;		/* Lang/Type qualifier */
   unsigned	erased  : 1;		/* If TRUE, triple is erased */
   unsigned	first   : 1;		/* I'm the first on subject */
   unsigned	match   : 3;		/* How to match literals */
   unsigned	inversed : 1;		/* Partials: using inverse match */
   unsigned	is_duplicate : 1;	/* I'm a duplicate */
-  unsigned	duplicates : 20;	/* Duplicate count */
+  unsigned	duplicates : 18;	/* Duplicate count */
   unsigned long line;			/* source-line number */
 } triple;
 

@@ -1,19 +1,20 @@
+#define COMMON(type) type SO_LOCAL
 
-/* rel/constraint.c */
-status		lockConstraint(Constraint c, Any obj);
-status		unlockConstraint(Constraint c, Any obj);
-status		executeConstraint(Constraint c, Any obj);
-status		makeClassConstraint(Class class);
+/* /staff/jan/src/pl/packages/xpce/src/rel/constraint.c */
+COMMON(status)	lockConstraint(Constraint c, Any obj);
+COMMON(status)	unlockConstraint(Constraint c, Any obj);
+COMMON(status)	executeConstraint(Constraint c, Any obj);
+COMMON(status)	makeClassConstraint(Class class);
 
-/* rel/hyper.c */
-status		makeClassHyper(Class class);
-status		makeClassChainHyper(Class class);
+/* /staff/jan/src/pl/packages/xpce/src/rel/hyper.c */
+COMMON(status)	makeClassHyper(Class class);
+COMMON(status)	makeClassChainHyper(Class class);
 
-/* rel/identity.c */
-status		makeClassIdentity(Class class);
+/* /staff/jan/src/pl/packages/xpce/src/rel/identity.c */
+COMMON(status)	makeClassIdentity(Class class);
 
-/* rel/relation.c */
-status		makeClassRelation(Class class);
+/* /staff/jan/src/pl/packages/xpce/src/rel/relation.c */
+COMMON(status)	makeClassRelation(Class class);
 
-/* rel/spatial.c */
-status		makeClassSpatial(Class class);
+/* /staff/jan/src/pl/packages/xpce/src/rel/spatial.c */
+COMMON(status)	makeClassSpatial(Class class);

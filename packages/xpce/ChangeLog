@@ -1,8 +1,141 @@
 			   XPCE ChangeLog
 			   ==============
 
-VERSION 6.2.12, distributed with SWI-Prolog 5.2.12
+VERSION 6.4.0, distributed with SWI-Prolog 5.4.0
+================================================
+
+* Updated version number for consistency.
+
+
+VERSION 6.2.26, distributed with SWI-Prolog 5.3.20
 ==================================================
+
+* FIXED: Bug#176.  Caused by allowing redefinition of `window<-popup'.
+
+* ADDED: `window->update_scroll_bar_values' as a hook to intercept update
+  requests to the scrollbars.
+
+* ADDED: `tabbed_window->append': optional `expose' argument to make the
+  new tab the topmost one.
+
+* ENHANCED: Allow redefinition of `window<-popup' for associating popups
+  rather than using hardwired slot.
+
+* FIXED: Busy cursor handling for MS-Windows (Cursor was not properly
+  updated).  Holger Kanwischer.
+
+* FIXED: Class connect gesture to reset <-device in ->terminate.
+  Petter Egesund.
+
+VERSION 6.2.25, distributed with SWI-Prolog 5.3.18/5.3.19
+=========================================================
+
+* FIXED: Buffer overrun-by-one in menu->selection.  Caused crashes on Windows
+  version.  Christophe Costa Florencio.
+
+VERSION 6.2.24, distributed with SWI-Prolog 5.3.17
+==================================================
+
+* FIXED: Drawing arrow heads on bezier curves.  Christophe Costa Florencio.
+
+* FIXED: editor->transpose_characters to fail if the caret is at the
+  end of the buffer instead of importing a random character.
+
+* FIXED: Bug#154 Application modal frame handling.  Holger Kanwischer. 
+
+VERSION 6.2.23, distributed with SWI-Prolog 5.3.16
+==================================================
+
+* FIXED: cross-referencer: handle directives with conjunctions properly.
+
+VERSION 6.2.22, distributed with SWI-Prolog 5.3.15
+==================================================
+
+* FIXED: class tabbed_window destroying the window.  Steve Moyle.
+
+VERSION 6.2.21, distributed with SWI-Prolog 5.3.14
+==================================================
+
+* ADDED/FIXED: untab/retab of tabs in the class tabbed_window.
+
+* FIXED: Scrollbar update for windows used as graphicals (i.e. displayed
+  on other windows).
+
+
+VERSION 6.2.20, distributed with SWI-Prolog 5.3.13
+==================================================
+
+* FIXED: avoid trying to build GUI reporting for errors from user input.
+  Dmitry.
+
+* FIXED: Pass $(LDFLAGS) in generating Prolog interface.  Paulo Moura.
+
+
+VERSION 6.2.19, distributed with SWI-Prolog 5.3.12
+==================================================
+
+* ADDED: Create CLASSINDEX.pl in XPCE library insex file.
+
+* FIXED: PceEmacs: restore of syntax after processing a file.  Dmitry.
+
+* ENHANCED: Improve checking of arguments in pce_begin_class.  After
+  message from Joao Mariz.
+
+* FIXED: PceEmacs: handle exported operators in colouring.
+
+
+VERSION 6.2.18, distributed with SWI-Prolog 5.3.10
+==================================================
+
+* ENHANCED: Exploit GCC visibility("hidden") attribute.  Improves symbol
+  handling for embedded applications on ELF-based systems.
+
+
+VERSION 6.2.17, distributed with SWI-Prolog 5.3.9
+=================================================
+
+* ADDED: PceEmacs to determine mode from arbitrary patterns on the content.
+  See emacs_content_mode/3 in library('emacs/emacs.pl').
+
+* ADDED: CHR support in the cross-referencer and colours to the
+  PceEmacs chr mode.
+
+* FIXED: Bug#142: Buffer overflow on menus with > 1000 items.  Limit
+  has been removed.  Holger Kanwischer.
+
+* MODIFIED: class compiler operator issues to exploit the new
+  library(operators).
+
+
+VERSION 6.2.16, distributed with SWI-Prolog 5.3.7
+=================================================
+
+* FIXED: PceEmacs: make matching bracket highlighting work after
+  text-modifying commands.
+
+* FIXED: cross-referencer to handle #! script file.
+
+
+VERSION 6.2.15, distributed with SWI-Prolog 5.3.6
+=================================================
+
+* ADDED: PceEmacs: Highlight of matching bracket in language mode. 
+  Suggested by Maurizio Colucci.
+
+* ENHANCED: make view->colour and editor->colour all set the foreground
+  colour of the text.
+
+
+VERSION 6.2.14, distributed with SWI-Prolog 5.3.3
+=================================================
+
+* INSTALL: Avoid accessing the X11 display when building the online
+  manual index to facilitate building in environments that do not
+  support X11.
+
+
+VERSION 6.2.13, distributed with SWI-Prolog 5.2.13/5.3.2
+========================================================
 
 * FIXED: Avoid excessive amount amount of ->report: status, '' from
   keybinding (Laurens van der Meij).

@@ -37,7 +37,6 @@
 	  pce_begin_recording/1,	% +- source|documentation
 	  pce_end_recording/0
 	]).
-:- use_module(pce_boot(pce_operator)).
 :- use_module(pce_boot(pce_principal)).
 :- require([ pce_error/1
 	   , pce_info/1
@@ -56,6 +55,8 @@
 	   , genarg/3
 	   , maplist/3
 	   , sub_atom/5
+	   , push_operators/1
+	   , pop_operators/0
 	   ]).
 
 :- dynamic
@@ -71,10 +72,19 @@ pce_ifhostproperty(prolog(swi), (:- index(attribute(1,1,0)))).
 		 *******************************/
 
 %	push_compile_operators.
-%	Push the current 
+%	
+%	Push operator definitions  that  are   specific  to  XPCE  class
+%	definitions.
+
+:- module_transparent
+	push_compile_operators/0.
 
 push_compile_operators :-
-	push_operators(
+	context_module(M),
+	push_compile_operators(M).
+
+push_compile_operators(M) :-
+	push_operators(M:
 		[ op(1200, xfx, :->)
 		, op(1200, xfx, :<-)
 		, op(910,  xfy, ::)	% above \+
@@ -632,7 +642,8 @@ push_class(ClassName) :-
 	pce_error(recursive_loading_class(ClassName)),
 	fail.
 push_class(ClassName) :-
-	push_compile_operators,
+	prolog_load_context(module, M),
+	push_compile_operators(M),
 	(   source_location(Path, _Line)
 	->  true
 	;   Path = []
@@ -745,9 +756,20 @@ pce_summary(List, string(List)).
 
 term_names(_, []) :- !.
 term_names(Class, Selectors) :-
+	check_term_selectors(Selectors),
 	VectorTerm =.. [vector|Selectors],
 	add_attribute(Class, directive,
 		      send(@class, term_names, new(VectorTerm))).
+
+
+check_term_selectors([]).
+check_term_selectors([H|T]) :-
+	(   atom(H)
+	->  true
+	;   pce_error(bad_term_argument(H)),
+	    fail
+	),
+	check_term_selectors(T).
 
 
 		 /*******************************

@@ -34,7 +34,6 @@
 	  ]).
 :- use_module(library(pce)).
 :- require([ append/3
-	   , checklist/2
 	   , delete/3
 	   , forall/2
 	   , get_chain/3
@@ -161,8 +160,8 @@ make_alignments(Rows) :-
 	       ;   true
 	       )),
 	make_column_alignments(Rows),
-	checklist(make_row_alignment, Rows),
-	checklist(make_y_references, Rows).
+	maplist(make_row_alignment, Rows),
+	maplist(make_y_references, Rows).
 
 make_column_alignments([]).
 make_column_alignments([_]).
@@ -227,7 +226,7 @@ make_row_alignment(Row) :-
 %format('~p~n', [Alignments]),
 	delete_sub_alignments(Alignments, Alignments, Cleaned),
 %format('~p~n', [Cleaned]),
-	checklist(call, Cleaned).
+	maplist(call, Cleaned).
 
 
 delete_sub_alignments([], _, []).

@@ -56,6 +56,8 @@
 #define ERR_SHARED_OBJECT_OP   31	/* op, error */
 #define ERR_TIMEOUT	       32	/* op, object */
 #define ERR_NOT_IMPLEMENTED_PROC 33	/* name, arity */
+#define ERR_FORMAT	       34	/* message */
+#define ERR_FORMAT_ARG	       35	/* seq, term */
 
 #define MSG_ERRNO		((char *)(-1))
 

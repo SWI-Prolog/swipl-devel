@@ -91,7 +91,7 @@ _PL_arg(term_t t, int n)
   Word p = argTermP(w, n-1);
 
   deRef(p);
-  setHandle(a, isVar(*p) ? makeRef(p) : *p);
+  setHandle(a, needsRef(*p) ? makeRef(p) : *p);
 
   return a;
 }

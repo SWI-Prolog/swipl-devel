@@ -1,17 +1,98 @@
 #!/bin/sh
 
-# This program is used to generate the configure script from
-# pl/src/configure.  This script also generates Makefile
-# 
-# To use it, first edit the PKG variable in Makefile.in 
-# defining the packages to build.  Then run
+# This  program  is  used  to  build    the  SWI-Prolog  packages.  Both
+# configure.in  and  Makefile.in  receive  info  from  the  main  Prolog
+# configure run.   Typically the packages are build using
 #
 #	./configure
 #	make
 #	make install
 #
-# If you also plan to use pl-mt (the multi-threaded version of SWI-Prolog),
-# you should pass the option --enable-mt to configure.  The resulting
-# packages work both with the single-threaded and multi-treaded SWI-Prolog.
+# If  you  also  plan  to  share  the  packages  for  both  single-  and
+# multi-threaded SWI-Prolog they must be built for multi-threading.
 
-@MAKE@ CNFGPASSED="$*" configure
+MAKE=@MAKE@
+export MAKE
+
+findexe()
+{ oldifs="$IFS"
+  IFS=:
+  for d in $PATH; do
+    if [ -x $d/$1 ]; then
+       IFS="$oldifs"
+       return 0
+    fi
+  done
+  IFS="$oldifs"
+  return 1
+}
+
+
+delpkg()
+{ tmp=""
+  found=no
+
+  for p in $PKG; do
+    if [ $p == $1 ]; then
+      found=yes
+      echo "Dropped package $p on user request"
+    else
+      tmp="$tmp $p"
+    fi
+  done
+
+  if [ found = "no" ]; then
+    return 1
+  fi
+}
+
+
+if [ -z "$PKG" ]; then
+  PKG="clib cpp odbc table sgml sgml/RDF semweb http chr xpce ssl"
+fi
+
+configoptions=""
+
+while [ "$1" != "" ]; do
+  case "$1" in
+	--without-jpl)	withjpl=no
+			shift
+			;;
+	--without-*)	pkg=`echo "$1" | sed 's/--without-//'`
+			if ! delpkg $pkg; then
+			  configoptions="$configoptions $1"
+			fi
+			shift;
+			;;
+	--with-*)	pkg=`echo "$1" | sed 's/--with-//'`
+			delpkg $pkg
+			PKG="$PKG $pkg"
+			shift;
+			;;
+	*)		configoptions="$configoptions $1"
+			shift
+			;;
+  esac
+done
+
+if [ -z "$withjpl" ]; then
+  if findexe javac; then
+     echo "Found javac.  Including JPL in target packages"
+     withjpl=yes
+  else
+     withjpl=no
+  fi
+fi
+
+if [ "$withjpl" = yes ]; then
+  PKG="$PKG jpl"
+fi
+
+sed "s@^PKG=.*@PKG=$PKG@" Makefile > Makefile.pkg
+if cmp -s Makefile Makefile.pkg; then
+   rm Makefile.pkg
+else
+   mv Makefile.pkg Makefile
+fi
+
+$MAKE CNFGPASSED="$configoptions" configure

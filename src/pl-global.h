@@ -59,6 +59,7 @@ typedef struct
 typedef struct
 { atom_t	file;			/* current source file */
   int	  	line;			/* current line */
+  int		linepos;		/* position in the line */
   long		character;		/* current character location */
 } source_location;
 
@@ -154,6 +155,7 @@ typedef struct
     PL_agc_hook_t gc_hook;		/* Current hook */
 #endif
     atom_t	for_code[256];		/* code --> one-char-atom */
+    PL_blob_t  *types;			/* registered atom types */
   } atoms;
 
 #ifdef O_PLMT
@@ -224,6 +226,10 @@ typedef struct
     Procedure   dcall1;			/* $call/1 */
     Procedure	call_cleanup3;		/* call_cleanup/2 */
     Procedure	undefinterc4;		/* $undefined_procedure/4 */
+#ifdef O_ATTVAR
+    Procedure	dwakeup1;		/* system:$wakeup/1 */
+    Procedure	portray_attvar1;	/* $attvar:portray_attvar/1 */
+#endif
 
     SourceFile  reloading;		/* source file we are re-loading */
     int		active_marked;		/* #prodedures marked active */
@@ -280,6 +286,9 @@ typedef struct PL_local_data
   Choice	choicepoints;		/* Choice-point chain */
   FliFrame      foreign_environment;	/* Current foreign context */
   Word		mark_bar;		/* Mark globals > this one */
+#ifdef O_GVAR
+  Word		frozen_bar;		/* Frozen part of the global stack */
+#endif
   pl_stacks_t   stacks;			/* Prolog runtime stacks */
   ulong		bases[STG_MASK+1];	/* area base addresses */
 #ifdef O_PLMT
@@ -322,6 +331,20 @@ typedef struct PL_local_data
     term_t	tmp;			/* tmp for errors */
     term_t	pending;		/* used by the debugger */
   } exception;
+
+#ifdef O_ATTVAR
+  struct
+  { term_t	head;			/* Head of wakeup list */
+    term_t	tail;			/* Tail of this list */
+  } attvar;
+#endif
+
+#ifdef O_GVAR
+  struct
+  { term_t	b_vars;			/* backtrackable global variables */
+    Table	nb_vars;		/* atom --> global stack */
+  } gvar;
+#endif
 
   struct
   { ulong	inferences;		/* inferences in this thread */
@@ -377,6 +400,7 @@ typedef struct PL_local_data
   struct
   { Table	  table;		/* Feature table */
     pl_features_t mask;			/* Masked access to booleans */
+    int		  write_attributes;	/* how to write attvars? */
   } feature;
 
   struct
@@ -496,6 +520,7 @@ GLOBAL PL_local_data_t *PL_current_engine_ptr;
 #define fli_context	  	(LD->foreign_environment)
 #define source_file_name	(LD->read_source.file)
 #define source_line_no		(LD->read_source.line)
+#define source_line_pos		(LD->read_source.linepos)
 #define source_char_no		(LD->read_source.character)
 #define exception_term		(LD->exception.term)
 #define exception_bin		(LD->exception.bin)

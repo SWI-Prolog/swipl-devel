@@ -261,7 +261,6 @@ lookupXrId(long id)
 
   SECURE(assert(array));
   value = array[id%SUBENTRIES];
-  SECURE(assert(value));
 
   return value;
 }
@@ -951,28 +950,9 @@ loadPredicate(IOSTREAM *fd, int skip ARG_LD)
 static bool
 loadImport(IOSTREAM *fd, int skip ARG_LD)
 { Procedure proc = (Procedure) loadXR(fd);
-  functor_t functor = proc->definition->functor->functor;
-  Procedure old;
 
   if ( !skip )
-  { DEBUG(3, Sdprintf("loadImport(): %s into %s\n",
-		      procedureName(proc), stringAtom(LD->modules.source->name)));
-
-    if ( (old = isCurrentProcedure(functor, LD->modules.source)) )
-    { if ( old->definition == proc->definition )
-	succeed;			/* already done this! */
-      
-      if ( !isDefinedProcedure(old) )
-      { old->definition = proc->definition;
-	succeed;
-      }
-
-      return warning("Failed to import %s into %s", 
-		     procedureName(proc), 
-		     stringAtom(LD->modules.source->name) );
-    }
-    addHTable(LD->modules.source->procedures, (void *)functor, proc);
-  }
+    return importDefinitionModule(LD->modules.source, proc->definition);
 
   succeed;
 }
@@ -1207,7 +1187,7 @@ First byte:  bits 8&7  bits 1-6 (low order)
 		3      number of bytes following
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define PLMINLONG   ((long)(1L<<(LONGBITSIZE-1)))
+#define PLMINLONG   ((long)(-1L<<(LONGBITSIZE-1)))
 
 static void
 putNum(long n, IOSTREAM *fd)
@@ -1455,7 +1435,7 @@ saveQlfTerm(term_t t, IOSTREAM *fd ARG_LD)
 	Sdprintf("Saving ");
 	PL_write_term(Serror, t, 1200, 0);
 	Sdprintf(" from %d ... ", Stell(fd)));
-  nvars = numberVars(t, FUNCTOR_var1, 0 PASS_LD);
+  nvars = numberVars(t, FUNCTOR_var1, AV_SKIP, 0 PASS_LD);
   putNum(nvars, fd);
   do_save_qlf_term(valTermRef(t), fd PASS_LD);	/* TBD */
   DEBUG(3, Sdprintf("to %d\n", Stell(fd)));

@@ -64,7 +64,11 @@ approaches.
 
 print_canvas(Canvas) :-			% MS-Windows
 	get(@pce, convert, win_printer, class, _), !,
-	get(Canvas, default_file, Job),
+	(   send(Canvas, has_get_method, default_file),
+	    get(Canvas, default_file, Job)
+	->  true
+	;   Job = '<unknown job>'
+	),
 	new(Prt, win_printer(Job)),
 	send(Prt, setup, Canvas),
 	send(Prt, open),

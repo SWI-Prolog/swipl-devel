@@ -252,10 +252,10 @@ public(_).
 
 subsumes_chk(X,Y) :-
   \+ \+ (copy_term(Y,Y2),
-         free_variables(Y,YFVs),
-         free_variables(Y2,Y2FVs),
+         term_variables(Y,YFVs),
+         term_variables(Y2,Y2FVs),
          X = Y2,
-         numbervars(YFVs,'$VAR',0,_),   % don't use '$VAR' in a_ atoms!
+         numbervars(YFVs,0,_),   % don't use '$VAR' in a_ atoms!
          YFVs = Y2FVs).
 
 

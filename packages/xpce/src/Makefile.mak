@@ -334,7 +334,8 @@ ITRG=	xpce-install.exe \
 	ibindir idll ixpce-stub
 !ELSE
 ITRG=	xpce-install.exe \
-	ibindir idirs idll ilib irc iindex imanidx ireadme ixpce-stub
+	ibindir idirs idll ilib irc iindex imanidx ireadme ixpce-stub \
+	classindex
 !ENDIF
 
 install:	$(ITRG)
@@ -370,6 +371,12 @@ iindex::
 			-g make_library_index('.') \
 			-t halt
 
+classindex::
+		chdir "$(IBASE)\prolog\lib" & \
+		  "$(PLBASE)\bin\plwin.exe" \
+			-f none \
+			-g pce_make_library_index('.') \
+			-t halt
 irc::
 		$(INSTALL) ..\pl\src\plrc "$(PLBASE)\plwin.rc"
 

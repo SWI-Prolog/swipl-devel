@@ -534,7 +534,10 @@ expand_entities(dtd_parser *p, const ichar *in, ochar *out, int len)
 	const ichar *eval;
 	int l;
 	
-	in = itake_name(dtd, in+1, &id);
+	if ( !(in = itake_name(dtd, in+1, &id)) )
+	{ in = estart;
+	  goto recover;
+	}
 	if ( isee_func(dtd, in, CF_ERC) || *in == '\n' )
 	  in++;
   
@@ -800,17 +803,25 @@ static const ichar *
 itake_name(dtd *dtd, const ichar *in, dtd_symbol **id)
 { ichar buf[MAXNMLEN];
   ichar *o = buf;
+  ichar *e = &buf[MAXNMLEN]-1;
 
   in = iskip_layout(dtd, in);
   if ( !HasClass(dtd, *in, CH_NMSTART) )
     return NULL;
+
   if ( dtd->case_sensitive )
-  { while( HasClass(dtd, *in, CH_NAME) )
+  { while( HasClass(dtd, *in, CH_NAME) && o < e )
       *o++ = *in++;
   } else
-  { while( HasClass(dtd, *in, CH_NAME) )
+  { while( HasClass(dtd, *in, CH_NAME) && o < e )
       *o++ = tolower(*in++);
   }
+
+  if ( o == e )
+  { gripe(ERC_REPRESENTATION, "NAME too long");
+    return NULL;
+  }
+
   *o++ = '\0';
 
   *id = dtd_add_symbol(dtd, buf);
@@ -823,17 +834,24 @@ static const ichar *
 itake_entity_name(dtd *dtd, const ichar *in, dtd_symbol **id)
 { ichar buf[MAXNMLEN];
   ichar *o = buf;
+  ichar *e = &buf[MAXNMLEN]-1;
 
   in = iskip_layout(dtd, in);
   if ( !HasClass(dtd, *in, CH_NMSTART) )
     return NULL;
+
   if ( dtd->ent_case_sensitive )
-  { while( HasClass(dtd, *in, CH_NAME) )
+  { while( HasClass(dtd, *in, CH_NAME) && o < e )
       *o++ = *in++;
   } else
-  { while( HasClass(dtd, *in, CH_NAME) )
+  { while( HasClass(dtd, *in, CH_NAME) && o < e )
       *o++ = tolower(*in++);
   }
+  if ( o == e )
+  { gripe(ERC_REPRESENTATION, "Entity NAME too long");
+    return NULL;
+  }
+
   *o++ = '\0';
 
   *id = dtd_add_symbol(dtd, buf);
@@ -846,17 +864,23 @@ static const ichar *
 itake_nmtoken(dtd *dtd, const ichar *in, dtd_symbol **id)
 { ichar buf[MAXNMLEN];
   ichar *o = buf;
+  ichar *e = &buf[MAXNMLEN]-1;
 
   in = iskip_layout(dtd, in);
   if ( !HasClass(dtd, *in, CH_NAME) )
     return NULL;
   if ( dtd->case_sensitive )
-  { while( HasClass(dtd, *in, CH_NAME) )
+  { while( HasClass(dtd, *in, CH_NAME) && o < e )
       *o++ = *in++;
   } else
-  { while( HasClass(dtd, *in, CH_NAME) )
+  { while( HasClass(dtd, *in, CH_NAME) && o < e )
       *o++ = tolower(*in++);
   }
+  if ( o == e )
+  { gripe(ERC_REPRESENTATION, "NMTOKEN too long");
+    return NULL;
+  }
+
   *o = '\0';
 
   *id = dtd_add_symbol(dtd, buf);
@@ -869,17 +893,25 @@ static const ichar *
 itake_nutoken(dtd *dtd, const ichar *in, dtd_symbol **id)
 { ichar buf[MAXNMLEN];
   ichar *o = buf;
+  ichar *e = &buf[MAXNMLEN]-1;
 
   in = iskip_layout(dtd, in);
   if ( !HasClass(dtd, *in, CH_DIGIT) )
     return NULL;
+
   if ( dtd->case_sensitive )
-  { while( HasClass(dtd, *in, CH_NAME) )
+  { while( HasClass(dtd, *in, CH_NAME) && o < e )
       *o++ = *in++;
   } else
-  { while( HasClass(dtd, *in, CH_NAME) )
+  { while( HasClass(dtd, *in, CH_NAME) && o < e )
       *o++ = tolower(*in++);
   }
+
+  if ( o == e )
+  { gripe(ERC_REPRESENTATION, "NUTOKEN too long");
+    return NULL;
+  }
+
   *o = '\0';
   if ( o - buf > 8 )
     gripe(ERC_LIMIT, "nutoken length");
@@ -3531,8 +3563,8 @@ init_decoding(dtd_parser *p)
 }
 
 
-static void
-set_encoding(dtd_parser *p, const ichar *enc)
+int
+xml_set_encoding(dtd_parser *p, const char *enc)
 { dtd *dtd = p->dtd;
 
   if ( istrcaseeq(enc, "iso-8859-1") )
@@ -3540,9 +3572,17 @@ set_encoding(dtd_parser *p, const ichar *enc)
   } else if ( istrcaseeq(enc, "utf-8") )
   { dtd->encoding = ENC_UTF8;
   } else
-    gripe(ERC_EXISTENCE, "character encoding", enc);
+    return FALSE;
 
   init_decoding(p);
+  return TRUE;
+}
+
+
+static void
+set_encoding(dtd_parser *p, const ichar *enc)
+{ if ( !xml_set_encoding(p, enc) )
+    gripe(ERC_EXISTENCE, "character encoding", enc);
 }
 
 

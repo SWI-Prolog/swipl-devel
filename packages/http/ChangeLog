@@ -1,9 +1,83 @@
+Aug 30, 2004
+
+  * FIXED: Bug#179: Avoid XPCE dependency on strip_module/3.  Sandro Hawke.
+
+Aug 16, 2004
+
+  * FIXED: Remove " from boundary=... HTTP-POST requests.  Appears necessary
+    for posting to Tomcat servers.  Also added explicit MIME-Version: 1.0
+    to the header.
+
+Aug 12, 2004
+
+  * ADDED: form_data(+List) alternative to http_post/4.
+
+  * ADDED: option reply_header(-Header) to get the full replied header for
+    GET and POST methods.  Also added decoding of the SetCookie field.
+
+Aug 5, 2004
+
+  * ADDED: request_header(Name=Value) to http_open/3
+
+Aug 3, 2004
+
+  * ADDED: keep_alive_timeout(Seconds) for multi-threaded server.
+
+  * FIXED: remove choicepoints in http_open/3
+
+Jul 31, 2004
+
+  * ADDED: http_current_worker/2
+
+Jul 30, 2004
+
+  * ADDED: Allow explicit head and body in page//1 and page//2
+
+Jul 21, 2004
+
+  * FIXED: Bug#166: Allow alternative responses (Sandro Hawke).
+
+  * FIXED: Bug#168: Close connection on timeout (Sandro Hawke).
+
+  * FIXED: Bug#165: Added reuseaddr (Sandro Hawke).
+
+Jul 18, 2004
+
+  * ENHANCED: handle `normal' errors silent (David Reitter)
+
+Jun 28, 2004
+	
+  * ENHANCED: print server errors and continue
+
+  * ADDED: SSL interface to threaded HTTP server
+
+Jun 21, 2004
+
+  * FIXED: Handling continue header required for POST to MS IIS servers.
+    Also more patches sending \r\n where required.  With patches from
+    Mike Elston.
+
+Jun 16, 2004
+
+  * FIXED: make HTTP client library write header line terminate with
+    \r\n.  Mike Elston.
+
+Jun 15, 2004
+
+  * FIXED: Undefined predicate strip_module/2 in thread_httpd.pl when
+    there is no access to XPCE.  Dmitry.
+
+  * ADDED: request_header(Name=Value) option to the option list of
+    http_get/3 and http_post/4 for adding user request fields.
+
+  * ADDED: Map body throw(status(not_modified)) onto a "304 Not Modified"
+    page.  Mike Elston.
+
 May 20, 2003
 
   * DOCS: Documented http_post_data/3
 
   * ADDED: form([Name=Value, ...]) input type to http_post_data/3
-
 
 May 12, 2003
 
