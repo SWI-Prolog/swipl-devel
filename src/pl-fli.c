@@ -353,10 +353,11 @@ PL_unify_wchars(term_t t, int flags, unsigned int len, const pl_wchar_t *s)
 { PL_chars_t text;
   int rc;
 
-  text.text.w   = (pl_wchar_t *)s;
-  text.encoding = ENC_WCHAR;
-  text.storage  = PL_CHARS_HEAP;
-  text.length   = len;
+  text.text.w    = (pl_wchar_t *)s;
+  text.encoding  = ENC_WCHAR;
+  text.storage   = PL_CHARS_HEAP;
+  text.length    = len;
+  text.canonical = FALSE;
 
   rc = PL_unify_text(t, &text, flags);
   PL_free_text(&text);

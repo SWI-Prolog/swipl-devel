@@ -2201,9 +2201,9 @@ concat(const char *pred,
   }    
 
 out:
-  PL_free_text(&t1);
-  PL_free_text(&t2);
-  PL_free_text(&t3);
+  if ( t1.text.t ) PL_free_text(&t1);
+  if ( t2.text.t ) PL_free_text(&t2);
+  if ( t3.text.t ) PL_free_text(&t3);
 
 #undef L1
 #undef L2
@@ -2411,19 +2411,20 @@ sub_text(term_t atom,
 	 term_t before, term_t len, term_t after,
 	 term_t sub,
 	 control_t h,
-	 int (*out)(term_t h, unsigned int len, const char *s))
-{ char *aa, *s = NULL;			/* the string */
+	 int type)			/* PL_ATOM or PL_STRING */
+{ PL_chars_t ta, ts;			/* the strings */
   int b = -1, l = -1, a = -1;		/* the integers */
-  unsigned int la;			/* length of `atom' */
-  unsigned int ls;			/* length of `sub' */
   sub_state *state;			/* non-deterministic state */
-  atom_t expected = (out == PL_unify_string_nchars ? ATOM_string : ATOM_atom);
+  atom_t expected = (type == PL_STRING ? ATOM_string : ATOM_atom);
   int match;
   mark mrk;
 
+#define la ta.length
+#define ls ts.length
+
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
-    { if ( !PL_get_nchars(atom, &la, &aa, CVT_ATOMIC) )
+    { if ( !PL_get_text(atom, &ta, CVT_ATOMIC) )
 	return PL_error(NULL, 0, NULL, ERR_TYPE, expected, atom);
 
       if ( !get_positive_integer_or_unbound(before, &b) ||
@@ -2431,23 +2432,24 @@ sub_text(term_t atom,
 	   !get_positive_integer_or_unbound(after, &a) )
 	fail;
 
-      if ( !PL_get_nchars(sub, &ls, &s, CVT_ATOMIC) )
+      if ( !PL_get_text(sub, &ts, CVT_ATOMIC) )
       { if ( !PL_is_variable(sub) )
 	  return PL_error(NULL, 0, NULL, ERR_TYPE, expected, sub);
+	ts.text.t = NULL;
       }
 
-      if ( s )				/* `sub' given */
+      if ( ts.text.t )			/* `sub' given */
       { if ( l >= 0 && (int)ls != l )	/* len conflict */
 	  fail;
 	if ( b >= 0 )			/* before given: test */
-	{ if ( memcmp(aa+b, s, ls) == 0 )
+	{ if ( PL_cmp_text(&ta, b, &ts, 0, ls) == 0 )
 	  { return (PL_unify_integer(len, ls) &&
 		    PL_unify_integer(after, la-ls-b)) ? TRUE : FALSE;
 	  }
 	  fail;
 	}
 	if ( a >= 0 )			/* after given: test */
-	{ if ( memcmp(aa+la-a-ls, s, ls) == 0 )
+	{ if ( PL_cmp_text(&ta, la-a-ls, &ts, 0, ls) == 0 )
 	  { return (PL_unify_integer(len, ls) &&
 		    PL_unify_integer(before, la-ls-a)) ? TRUE : FALSE;
 	  }
@@ -2468,7 +2470,7 @@ sub_text(term_t atom,
 	if ( l >= 0 )			/* len given */
 	{ if ( b+l <= (int)la )		/* deterministic fit */
 	  { if ( PL_unify_integer(after, la-b-l) &&
-		 (*out)(sub, l, aa+b) )
+		 PL_unify_text_range(sub, &ta, b, l, type) )
 	      succeed;
 	  }
 	  fail;
@@ -2476,7 +2478,7 @@ sub_text(term_t atom,
 	if ( a >= 0 )			/* after given */
 	{ if ( (l = la-a-b) >= 0 )
 	  { if ( PL_unify_integer(len, l) &&
-		 (*out)(sub, l, aa+b) )
+		 PL_unify_text_range(sub, &ta, b, l, type) )
 	      succeed;
 	  }
 
@@ -2497,7 +2499,7 @@ sub_text(term_t atom,
 	if ( a >= 0 )			/* len and after */
 	{ if ( (b = la-a-l) >= 0 )
 	  { if ( PL_unify_integer(before, b) &&
-		 (*out)(sub, l, aa+b) )
+		 PL_unify_text_range(sub, &ta, b, l, type) )
 	      succeed;
 	  }
 
@@ -2532,7 +2534,7 @@ sub_text(term_t atom,
     }
     case FRG_REDO:
       state = ForeignContextPtr(h);
-      PL_get_chars(atom, &aa, CVT_ATOMIC);
+      PL_get_text(atom, &ta, CVT_ATOMIC);
       break;
     case FRG_CUTTED:
     exit_succeed:
@@ -2549,12 +2551,12 @@ sub_text(term_t atom,
 again:
   switch(state->type)
   { case SUB_SEARCH:
-    { PL_get_chars(sub,  &s,  CVT_ATOMIC);
+    { PL_get_text(sub, &ts, CVT_ATOMIC);
       la = state->n2;
       ls = state->n3;
 
       for( ; state->n1+ls <= la; state->n1++ )
-      { if ( memcmp(aa+state->n1, s, ls) == 0 )
+      { if ( PL_cmp_text(&ta, state->n1, &ts, 0, ls) == 0 )
 	{ match = (PL_unify_integer(before, state->n1) &&
 		   PL_unify_integer(len,    ls) &&
 		   PL_unify_integer(after,  la-ls-state->n1));
@@ -2573,7 +2575,7 @@ again:
       match = (PL_unify_integer(len, l) &&
 	       PL_unify_integer(after, la-b-l));
     out:
-      match = (match && (*out)(sub, l, aa+b));
+      match = (match && PL_unify_text_range(sub, &ta, b, l, type));
       if ( b+l < (int)la )
 	goto next;
       else if ( match )
@@ -2598,7 +2600,7 @@ again:
 
       match = (PL_unify_integer(before, b) &&
 	       PL_unify_integer(len, l) &&
-	       (*out)(sub, l, aa+b));
+	       PL_unify_text_range(sub, &ta, b, l, type));
       if ( l > 0 )
 	goto next;
       else if ( match )
@@ -2615,7 +2617,7 @@ again:
       match = (PL_unify_integer(before, b) &&
 	       PL_unify_integer(len, l) &&
 	       PL_unify_integer(after, a) &&
-	       (*out)(sub, l, aa+b));
+	       PL_unify_text_range(sub, &ta, b, l, type));
       if ( a == 0 )
       { if ( b == (int)la )
 	{ if ( match )
@@ -2641,6 +2643,9 @@ next:
   { Undo(mrk);
     goto again;
   }
+
+#undef la
+#undef ls
 }
 
 
@@ -2649,7 +2654,7 @@ pl_sub_atom(term_t atom,
 	    term_t before, term_t len, term_t after,
 	    term_t sub,
 	    control_t h)
-{ return sub_text(atom, before, len, after, sub, h, PL_unify_atom_nchars);
+{ return sub_text(atom, before, len, after, sub, h, PL_ATOM);
 }
 
 
@@ -2712,7 +2717,7 @@ pl_sub_string(term_t atom,
 	      term_t before, term_t len, term_t after,
 	      term_t sub,
 	      control_t h)
-{ return sub_text(atom, before, len, after, sub, h, PL_unify_string_nchars);
+{ return sub_text(atom, before, len, after, sub, h, PL_STRING);
 }
 
 #endif /* O_STRING */

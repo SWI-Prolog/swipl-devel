@@ -345,9 +345,11 @@ PL_unify_text_range(term_t term, PL_chars_t *text,
     if ( text->encoding == ENC_ISO_LATIN_1 )
     { sub.text.t   = text->text.t+offset;
       sub.encoding = ENC_ISO_LATIN_1;
+      sub.canonical = TRUE;
     } else
     { sub.text.w   = text->text.w+offset;
       sub.encoding = ENC_WCHAR;
+      sub.canonical = FALSE;
     }
 
     rc = PL_unify_text(term, &sub, type);
@@ -736,6 +738,7 @@ PL_concat_text(int n, PL_chars_t **text, PL_chars_t *result)
     total_length += text[i]->length;
   }
 
+  result->canonical = TRUE;
   result->length = total_length;
 
   if ( latin )
@@ -770,6 +773,7 @@ PL_concat_text(int n, PL_chars_t **text, PL_chars_t *result)
     for(to=result->text.w, i=0; i<n; i++)
     { if ( text[i]->encoding == ENC_WCHAR )
       { memcpy(to, text[i]->text.w, text[i]->length*sizeof(pl_wchar_t));
+	to += text[i]->length;
       } else
       { const unsigned char *f = text[i]->text.t;
 	const unsigned char *e = &f[text[i]->length];
@@ -777,8 +781,8 @@ PL_concat_text(int n, PL_chars_t **text, PL_chars_t *result)
 	while(f<e)
 	  *to++ = *f++;
       }
-      to += text[i]->length;
     }
+    assert(to-result->text.w == total_length);
     *to = EOS;
   }
 
