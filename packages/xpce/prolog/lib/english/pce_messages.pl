@@ -126,6 +126,10 @@ pce_message(compatibility(resource(Value, NewVal))) -->
 	 '    Into: ~q'-[NewVal], nl
 	].
 
+pce_message(pce(no_threads)) -->
+	[ 'This version of XPCE does not support multi-threading'
+	].
+
 		 /*******************************
 		 *	     CONTEXT		*
 		 *******************************/
