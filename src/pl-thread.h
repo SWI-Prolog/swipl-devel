@@ -231,12 +231,11 @@ void			PL_atomic_dec(int *addr);
 
 #define allocGlobal(n)		allocGlobal__LD(n PASS_LD)
 
-#ifdef O_PLMT
 #define _PL_get_arg(n, t, a)	_PL_get_arg__LD(n, t, a PASS_LD)
 #define PL_new_term_ref()	PL_new_term_ref__LD(PASS_LD1)
 #define PL_new_term_refs(n)	PL_new_term_refs__LD(n PASS_LD)
 #define PL_unify(t1, t2)	PL_unify__LD(t1, t2 PASS_LD)
 #define PL_unify_integer(t, i)	PL_unify_integer__LD(t, i PASS_LD)
-#endif /*O_PLMT*/
+#define PL_get_atom(t, a)	PL_get_atom__LD(t, a PASS_LD)
 
 #endif /*PL_THREAD_H_DEFINED*/

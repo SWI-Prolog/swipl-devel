@@ -341,7 +341,8 @@ PL_cvt_i_string(term_t p, char **c)
 
 bool
 PL_cvt_i_atom(term_t p, atom_t *c)
-{ return PL_get_atom(p, c);
+{ GET_LD
+  return PL_get_atom(p, c);
 }
 
 
@@ -604,9 +605,8 @@ PL_get_bool(term_t t, int *b)
 
 
 int
-PL_get_atom(term_t t, atom_t *a)
-{ GET_LD
-  word w = valHandle(t);
+PL_get_atom__LD(term_t t, atom_t *a ARG_LD)
+{ word w = valHandle(t);
 
   if ( isAtom(w) )
   { *a = (atom_t) w;
@@ -614,6 +614,15 @@ PL_get_atom(term_t t, atom_t *a)
   }
   fail;
 }
+
+
+#undef PL_get_atom
+int
+PL_get_atom(term_t t, atom_t *a)
+{ GET_LD
+  return PL_get_atom__LD(t, a PASS_LD);
+}
+#define PL_get_atom(t, a) PL_get_atom__LD(t, a PASS_LD)
 
 
 int
@@ -1079,7 +1088,8 @@ PL_get_functor(term_t t, functor_t *f)
 
 int
 PL_get_module(term_t t, module_t *m)
-{ atom_t a;
+{ GET_LD
+  atom_t a;
 
   if ( PL_get_atom(t, &a) )
   { *m = lookupModule(a);

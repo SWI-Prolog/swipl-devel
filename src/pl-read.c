@@ -27,6 +27,9 @@
 #include "pl-incl.h"
 #include "pl-ctype.h"
 
+#undef LD
+#define LD LOCAL_LD
+
 		 /*******************************
 		 *	   CHAR-CONVERSION	*
 		 *******************************/
@@ -61,6 +64,7 @@ foreign_t
 pl_current_char_conversion(term_t in, term_t out, word h)
 { int ctx;
   mark m;
+  GET_LD
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
@@ -190,6 +194,7 @@ typedef struct
 
   Module	module;			/* Current source module */
   unsigned int	flags;			/* Module syntax flags */
+  int		styleCheck;		/* style-checking mask */
 
   atom_t	on_error;		/* Handling of syntax errors */
   int		has_exception;		/* exception is raised */
@@ -212,7 +217,7 @@ typedef struct
 #define var_buffer	  (_PL_rd->vt._var_buffer)
 
 static void
-init_read_data(ReadData _PL_rd, IOSTREAM *in)
+init_read_data(ReadData _PL_rd, IOSTREAM *in ARG_LD) 
 { memset(_PL_rd, 0, sizeof(*_PL_rd));	/* optimise! */
 
   initBuffer(&var_name_buffer);
@@ -221,6 +226,7 @@ init_read_data(ReadData _PL_rd, IOSTREAM *in)
   rb.stream = in;
   _PL_rd->module = MODULE_parse;
   _PL_rd->flags  = _PL_rd->module->flags; /* change for options! */
+  _PL_rd->styleCheck = debugstatus.styleCheck;
   _PL_rd->on_error = ATOM_error;
 }
 
@@ -278,7 +284,8 @@ isStringStream(IOSTREAM *s)
 
 static bool
 errorWarning(const char *id_str, term_t id_term, ReadData _PL_rd)
-{ term_t ex = PL_new_term_ref();
+{ GET_LD
+  term_t ex = PL_new_term_ref();
   term_t loc = PL_new_term_ref();
 
   if ( !id_term )
@@ -325,7 +332,8 @@ errorWarning(const char *id_str, term_t id_term, ReadData _PL_rd)
 
 static void
 singletonWarning(atom_t *vars, int nvars)
-{ fid_t cid = PL_open_foreign_frame();
+{ GET_LD
+  fid_t cid = PL_open_foreign_frame();
   term_t l = PL_new_term_ref();
   term_t a = PL_copy_term_ref(l);
   term_t h = PL_new_term_ref();
@@ -417,7 +425,7 @@ growToBuffer(int c, ReadData _PL_rd)
 
 
 static void
-setCurrentSourceLocation(IOSTREAM *s)
+setCurrentSourceLocation(IOSTREAM *s ARG_LD)
 { atom_t a;
 
   if ( s->position )
@@ -443,7 +451,7 @@ setCurrentSourceLocation(IOSTREAM *s)
 			   addToBuffer(c, _PL_rd); \
 		        }
 #define set_start_line { if ( !something_read ) \
-			 { setCurrentSourceLocation(rb.stream); \
+			 { setCurrentSourceLocation(rb.stream PASS_LD); \
 			   something_read++; \
 			 } \
 		       }
@@ -496,7 +504,7 @@ raw_read_quoted(int q, ReadData _PL_rd)
       }
     } else if (c == '\n' &&
 	       newlines++ > MAXNEWLINES &&
-	       (debugstatus.styleCheck & LONGATOM_CHECK))
+	       (_PL_rd->styleCheck & LONGATOM_CHECK))
     { rawSyntaxError("long_string");
     }
     addToBuffer(c, _PL_rd);
@@ -513,7 +521,7 @@ raw_read_quoted(int q, ReadData _PL_rd)
 
 
 static unsigned char *
-raw_read2(ReadData _PL_rd)
+raw_read2(ReadData _PL_rd ARG_LD)
 { int c;
   bool something_read = FALSE;
   bool dotseen = FALSE;
@@ -694,19 +702,19 @@ raw_read2(ReadData _PL_rd)
 
 
 static unsigned char *
-raw_read(ReadData _PL_rd)
+raw_read(ReadData _PL_rd ARG_LD)
 { if ( rb.stream->flags & SIO_ISATTY )
   { unsigned char *s;
     ttybuf tab;
     
     PushTty(rb.stream, &tab, TTY_SAVE);		/* make sure tty is sane */
     PopTty(rb.stream, &ttytab);
-    s = raw_read2(_PL_rd);
+    s = raw_read2(_PL_rd PASS_LD);
     PopTty(rb.stream, &tab);
 
     return s;
   } else
-    return raw_read2(_PL_rd);
+    return raw_read2(_PL_rd PASS_LD);
 }
 
 
@@ -791,7 +799,7 @@ lookupVariable(const char *name, ReadData _PL_rd)
 
 
 static bool
-check_singletons(ReadData _PL_rd)
+check_singletons(ReadData _PL_rd ARG_LD)
 { if ( _PL_rd->singles != TRUE )	/* returns <name> = var bindings */
   { term_t list = PL_copy_term_ref(_PL_rd->singles);
     term_t head = PL_new_term_ref();
@@ -826,7 +834,7 @@ check_singletons(ReadData _PL_rd)
 
 
 static bool
-bind_variable_names(ReadData _PL_rd)
+bind_variable_names(ReadData _PL_rd ARG_LD)
 { term_t list = PL_copy_term_ref(_PL_rd->varnames);
   term_t head = PL_new_term_ref();
   term_t a    = PL_new_term_ref();
@@ -847,7 +855,7 @@ bind_variable_names(ReadData _PL_rd)
 
 
 static bool
-bind_variables(ReadData _PL_rd)
+bind_variables(ReadData _PL_rd ARG_LD)
 { term_t list = PL_copy_term_ref(_PL_rd->variables);
   term_t head = PL_new_term_ref();
 
@@ -868,7 +876,6 @@ bind_variables(ReadData _PL_rd)
 #define skipSpaces	{ while(isBlank(*rdhere) ) rdhere++; c = *rdhere++; }
 #define unget_token()	{ unget = TRUE; }
 
-forwards Token	get_token(bool, ReadData _PL_rd);
 typedef const unsigned char * cucharp;
 typedef       unsigned char * ucharp;
 
@@ -1133,7 +1140,7 @@ get_number(cucharp in, ucharp *end, Number value)
 
 
 static Token
-get_token(bool must_be_op, ReadData _PL_rd)
+get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 { unsigned int c;
   unsigned char *start;
   int end;
@@ -1322,6 +1329,8 @@ out:
   return &cur_token;
 }
 
+#define get_token(must_be_op, rd) get_token__LD(must_be_op, rd PASS_LD)
+
 		 /*******************************
 		 *	   TERM-BUILDING	*
 		 *******************************/
@@ -1338,7 +1347,7 @@ statically allocated and thus unique.
 #define setHandle(h, w)		(*valTermRef(h) = (w))
 
 static inline void
-readValHandle(term_t term, Word argp, ReadData _PL_rd)
+readValHandle(term_t term, Word argp, ReadData _PL_rd ARG_LD)
 { word w = *valTermRef(term);
   Variable var;
 
@@ -1358,7 +1367,8 @@ readValHandle(term_t term, Word argp, ReadData _PL_rd)
 
 
 static void
-build_term(term_t term, atom_t atom, int arity, term_t *argv, ReadData _PL_rd)
+build_term(term_t term, atom_t atom, int arity, term_t *argv,
+	   ReadData _PL_rd ARG_LD)
 { functor_t functor = lookupFunctorDef(atom, arity);
   Word argp = allocGlobal(arity+1);
 
@@ -1367,14 +1377,14 @@ build_term(term_t term, atom_t atom, int arity, term_t *argv, ReadData _PL_rd)
   *argp++ = functor;
 
   for( ; arity-- > 0; argv++, argp++)
-    readValHandle(*argv, argp, _PL_rd);
+    readValHandle(*argv, argp, _PL_rd PASS_LD);
 
   DEBUG(9, Sdprintf("result: "); pl_write(term); Sdprintf("\n") );
 }
 
 
 static void
-PL_assign_term(term_t to, term_t from)
+PL_assign_term(term_t to, term_t from ARG_LD)
 { *valTermRef(to) = *valTermRef(from);
 }
 
@@ -1396,7 +1406,7 @@ simple_term() which reads everything, except for operators.
 static bool
 simple_term(bool must_be_op, term_t term, bool *name,
 	    term_t positions,
-	    ReadData _PL_rd);
+	    ReadData _PL_rd ARG_LD);
 
 typedef struct
 { atom_t op;				/* Name of the operator */
@@ -1444,12 +1454,12 @@ isOp(atom_t atom, int kind, op_entry *e, ReadData _PL_rd)
 static void
 build_op_term(term_t term,
 	      atom_t atom, int arity, out_entry *argv,
-	      ReadData _PL_rd)
+	      ReadData _PL_rd ARG_LD)
 { term_t av[2];
 
   av[0] = argv[0].term;
   av[1] = argv[1].term;
-  build_term(term, atom, arity, av, _PL_rd);
+  build_term(term, atom, arity, av, _PL_rd PASS_LD);
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1498,11 +1508,11 @@ the values.
 			      stringAtom(side[side_p].op))); \
 	    rmo++; \
 	    tmp = PL_new_term_ref(); \
-	    build_op_term(tmp, side[side_p].op, 1, &out[out_n-1], _PL_rd); \
+	    build_op_term(tmp, side[side_p].op, 1, &out[out_n-1], _PL_rd PASS_LD); \
 	    out[out_n-1].pri  = side[side_p].op_pri; \
 	    out[out_n-1].term = tmp; \
 	    side[side_p].kind = OP_POSTFIX; \
-	    out[out_n-1].tpos = opPos(&side[side_p], &out[out_n-1]); \
+	    out[out_n-1].tpos = opPos(&side[side_p], &out[out_n-1] PASS_LD); \
 	    side_n--; \
 	    side_p = (side_n == 0 ? -1 : side_p-1); \
 	  } \
@@ -1510,7 +1520,7 @@ the values.
 
 
 static int
-get_int_arg(term_t t, int n)
+get_int_arg(term_t t, int n ARG_LD)
 { Word p = valTermRef(t);
 
   deRef(p);
@@ -1520,15 +1530,15 @@ get_int_arg(term_t t, int n)
 
 
 static term_t
-opPos(op_entry *op, out_entry *args)
+opPos(op_entry *op, out_entry *args ARG_LD)
 { if ( op->tpos )
-  { int fs = get_int_arg(op->tpos, 1);
-    int fe = get_int_arg(op->tpos, 2);
+  { int fs = get_int_arg(op->tpos, 1 PASS_LD);
+    int fe = get_int_arg(op->tpos, 2 PASS_LD);
     term_t r = PL_new_term_ref();
 
     if ( op->kind == OP_INFIX )
-    { int s = get_int_arg(args[0].tpos, 1);
-      int e = get_int_arg(args[1].tpos, 2);
+    { int s = get_int_arg(args[0].tpos, 1 PASS_LD);
+      int e = get_int_arg(args[1].tpos, 2 PASS_LD);
 
       PL_unify_term(r,
 		    PL_FUNCTOR,	FUNCTOR_term_position5,
@@ -1543,9 +1553,9 @@ opPos(op_entry *op, out_entry *args)
       
       if ( op->kind == OP_PREFIX )
       { s = fs;
-	e = get_int_arg(args[0].tpos, 2);
+	e = get_int_arg(args[0].tpos, 2 PASS_LD);
       } else
-      { s = get_int_arg(args[0].tpos, 1);
+      { s = get_int_arg(args[0].tpos, 1 PASS_LD);
 	e = fe;
       }
 
@@ -1637,10 +1647,10 @@ bad_operator(out_entry *out, op_entry *op, ReadData _PL_rd)
 			    stringAtom(side[side_p].op), arity));\
 	  tmp = PL_new_term_ref(); \
 	  out_n -= arity; \
-	  build_op_term(tmp, side[side_p].op, arity, &out[out_n], _PL_rd); \
+	  build_op_term(tmp, side[side_p].op, arity, &out[out_n], _PL_rd PASS_LD); \
 	  out[out_n].pri  = side[side_p].op_pri; \
 	  out[out_n].term = tmp; \
-	  out[out_n].tpos = opPos(&side[side_p], &out[out_n]); \
+	  out[out_n].tpos = opPos(&side[side_p], &out[out_n] PASS_LD); \
 	  out_n ++; \
 	  side_n--; \
 	  side_p = (side_n == 0 ? -1 : side_p-1); \
@@ -1648,7 +1658,8 @@ bad_operator(out_entry *out, op_entry *op, ReadData _PL_rd)
 
 
 static bool
-complex_term(const char *stop, term_t term, term_t positions, ReadData _PL_rd)
+complex_term(const char *stop, term_t term, term_t positions,
+	     ReadData _PL_rd ARG_LD)
 { out_entry *out  = NULL;
   op_entry  *side = NULL;
   op_entry  in_op;
@@ -1690,7 +1701,7 @@ complex_term(const char *stop, term_t term, term_t positions, ReadData _PL_rd)
     }
 
 					/* Read `simple' term */
-    TRY( simple_term(rmo == 1, in, &isname, pin, _PL_rd) );
+    TRY( simple_term(rmo == 1, in, &isname, pin, _PL_rd PASS_LD) );
 
     if ( isname )			/* Check for operators */
     { atom_t name;
@@ -1747,7 +1758,7 @@ exit:
   Reduce(OP_MAXPRIORITY+1);
 
   if ( out_n == 1 && side_n == 0 )	/* simple term */
-  { PL_assign_term(term, out[0].term);
+  { PL_assign_term(term, out[0].term PASS_LD);
     if ( positions )
       PL_unify(positions, out[0].tpos);
     succeed;
@@ -1783,11 +1794,8 @@ exit:
 
 static bool
 simple_term(bool must_be_op, term_t term, bool *name,
-	    term_t positions, ReadData _PL_rd)
-{ GET_LD
-#undef LD
-#define LD LOCAL_LD
-  Token token;
+	    term_t positions, ReadData _PL_rd ARG_LD)
+{ Token token;
 
   *name = FALSE;
 
@@ -1872,7 +1880,7 @@ simple_term(bool must_be_op, term_t term, bool *name,
 	    if ( positions )
 	    { PL_unify_list(pa, ph, pa);
 	    }
-	    TRY( complex_term(",)", argv[argc], ph, _PL_rd) );
+	    TRY( complex_term(",)", argv[argc], ph, _PL_rd PASS_LD) );
 	    argc++;
 	    token = get_token(must_be_op, _PL_rd); /* `,' or `)' */
 	  } while(token->value.character == ',');
@@ -1882,7 +1890,7 @@ simple_term(bool must_be_op, term_t term, bool *name,
 	    PL_unify_nil(pa);
 	  }
 
-	  build_term(term, functor, argc, argv, _PL_rd);
+	  build_term(term, functor, argc, argv, _PL_rd PASS_LD);
 	  PL_unregister_atom(functor);
 	}
 	succeed;
@@ -1892,7 +1900,7 @@ simple_term(bool must_be_op, term_t term, bool *name,
 	{ case '(':
 	    { int start = token->start;
 
-	      TRY( complex_term(")", term, positions, _PL_rd) );
+	      TRY( complex_term(")", term, positions, _PL_rd PASS_LD) );
 	      token = get_token(must_be_op, _PL_rd);	/* skip ')' */
 
 	      if ( positions )
@@ -1920,11 +1928,11 @@ simple_term(bool must_be_op, term_t term, bool *name,
 	      } else
 		pe = pa = 0;
 
-	      TRY( complex_term("}", arg, pa, _PL_rd) );
+	      TRY( complex_term("}", arg, pa, _PL_rd PASS_LD) );
 	      token = get_token(must_be_op, _PL_rd);
 	      if ( positions )
 		PL_unify_integer(pe, token->end);
-	      build_term(term, ATOM_curl, 1, &arg, _PL_rd);
+	      build_term(term, ATOM_curl, 1, &arg, _PL_rd PASS_LD);
 
 	      succeed;
 	    }
@@ -1961,12 +1969,12 @@ term is to be written.
 
 		if ( positions )
 		  PL_unify_list(pa, p2, pa);
-		TRY( complex_term(",|]", tmp, p2, _PL_rd) );
+		TRY( complex_term(",|]", tmp, p2, _PL_rd PASS_LD) );
 		argp = allocGlobal(3);
 		*unRef(*valTermRef(tail)) = consPtr(argp,
 						    TAG_COMPOUND|STG_GLOBAL);
 		*argp++ = FUNCTOR_dot2;
-		readValHandle(tmp, argp++, _PL_rd);
+		readValHandle(tmp, argp++, _PL_rd PASS_LD);
 		setVar(*argp);
 		setHandle(tail, makeRef(argp));
 		
@@ -1982,9 +1990,9 @@ term is to be written.
 		      return PL_unify_nil(tail);
 		    }
 		  case '|':
-		    { TRY( complex_term("]", tmp, pt, _PL_rd) );
+		    { TRY( complex_term("]", tmp, pt, _PL_rd PASS_LD) );
 		      argp = unRef(*valTermRef(tail));
-		      readValHandle(tmp, argp, _PL_rd);
+		      readValHandle(tmp, argp, _PL_rd PASS_LD);
 		      token = get_token(must_be_op, _PL_rd); /* discard ']' */
 		      if ( positions )
 		      { PL_unify_nil(pa);
@@ -2018,8 +2026,6 @@ term is to be written.
       /*NOTREACHED*/
       fail;
   }
-#undef LD
-#define LD GLOBAL_LD
 }
 
 
@@ -2041,23 +2047,23 @@ read_term(?term, ReadData rd)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static bool
-read_term(term_t term, ReadData rd)
+read_term(term_t term, ReadData rd ARG_LD)
 { Token token;
   term_t result;
   Word p;
 
-  if ( !(rd->base = raw_read(rd)) )
+  if ( !(rd->base = raw_read(rd PASS_LD)) )
     fail;
 
   rd->here = rd->base;
 
   result = PL_new_term_ref();
   blockGC();
-  if ( !complex_term(NULL, result, rd->subtpos, rd) )
+  if ( !complex_term(NULL, result, rd->subtpos, rd PASS_LD) )
     goto failed;
   p = valTermRef(result);
   if ( isVarAtom(*p, rd) )		/* reading a single variable */
-    readValHandle(result, p, rd);
+    readValHandle(result, p, rd PASS_LD);
 
   if ( !(token = get_token(FALSE, rd)) )
     goto failed;
@@ -2068,11 +2074,11 @@ read_term(term_t term, ReadData rd)
 
   if ( !PL_unify(term, result) )
     goto failed;
-  if ( rd->varnames && !bind_variable_names(rd) )
+  if ( rd->varnames && !bind_variable_names(rd PASS_LD) )
     goto failed;
-  if ( rd->variables && !bind_variables(rd) )
+  if ( rd->variables && !bind_variables(rd PASS_LD) )
     goto failed;
-  if ( rd->singles && !check_singletons(rd) )
+  if ( rd->singles && !check_singletons(rd PASS_LD) )
     goto failed;
 
   resetTermRefs(result);
@@ -2091,7 +2097,8 @@ failed:
 
 word
 pl_raw_read2(term_t from, term_t term)
-{ unsigned char *s, *top;
+{ GET_LD
+  unsigned char *s, *top;
   read_data rd;
   word rval;
   IOSTREAM *in;
@@ -2099,8 +2106,8 @@ pl_raw_read2(term_t from, term_t term)
   if ( !getInputStream(from, &in) )
     fail;
 
-  init_read_data(&rd, in);
-  if ( !(s = raw_read(&rd)) )
+  init_read_data(&rd, in PASS_LD);
+  if ( !(s = raw_read(&rd PASS_LD)) )
   { rval = PL_raise_exception(rd.exception);
     goto out;
   }
@@ -2134,15 +2141,16 @@ pl_raw_read(term_t term)
 
 word
 pl_read2(term_t from, term_t term)
-{ read_data rd;
+{ GET_LD
+  read_data rd;
   int rval;
   IOSTREAM *s;
 
   if ( !getInputStream(from, &s) )
     fail;
 
-  init_read_data(&rd, s);
-  rval = read_term(term, &rd);
+  init_read_data(&rd, s PASS_LD);
+  rval = read_term(term, &rd PASS_LD);
   if ( rd.has_exception )
     rval = PL_raise_exception(rd.exception);
   free_read_data(&rd);
@@ -2160,7 +2168,8 @@ pl_read(term_t term)
 
 word
 pl_read_clause2(term_t from, term_t term)
-{ read_data rd;
+{ GET_LD
+  read_data rd;
   int rval;
   IOSTREAM *s;
   mark m;
@@ -2171,10 +2180,10 @@ retry:
   if ( !getInputStream(from, &s) )
     fail;
 
-  init_read_data(&rd, s);
+  init_read_data(&rd, s PASS_LD);
   rd.on_error = ATOM_dec10;
-  rd.singles = debugstatus.styleCheck & SINGLETON_CHECK ? TRUE : FALSE;
-  if ( !(rval = read_term(term, &rd)) && rd.has_exception )
+  rd.singles = rd.styleCheck & SINGLETON_CHECK ? TRUE : FALSE;
+  if ( !(rval = read_term(term, &rd PASS_LD)) && rd.has_exception )
   { if ( reportReadError(&rd) )
     { Undo(m);
       free_read_data(&rd);
@@ -2207,7 +2216,8 @@ static const opt_spec read_term_options[] =
 
 word
 pl_read_term3(term_t from, term_t term, term_t options)
-{ term_t tpos = 0;
+{ GET_LD
+  term_t tpos = 0;
   int rval;
   atom_t w;
   read_data rd;
@@ -2222,7 +2232,7 @@ retry:
 
   if ( !getInputStream(from, &s) )
     fail;
-  init_read_data(&rd, s);
+  init_read_data(&rd, s PASS_LD);
 
   if ( !scan_options(options, 0, ATOM_read_option, read_term_options,
 		     &rd.varnames,
@@ -2258,7 +2268,7 @@ retry:
   if ( rd.singles && PL_get_atom(rd.singles, &w) && w == ATOM_warning )
     rd.singles = TRUE;
 
-  rval = read_term(term, &rd);
+  rval = read_term(term, &rd PASS_LD);
   PL_release_stream(s);
 
   if ( rval )
@@ -2312,16 +2322,17 @@ pl_atom_to_term(term_t atom, term_t term, term_t bindings)
   }
 
   if ( PL_get_chars(atom, &s, CVT_ALL) )
-  { read_data rd;
+  { GET_LD
+    read_data rd;
     word rval;
     IOSTREAM *stream = Sopen_string(NULL, (char *)s, -1, "r");
     source_location oldsrc = LD->read_source;
 
-    init_read_data(&rd, stream);
+    init_read_data(&rd, stream PASS_LD);
     if ( PL_is_variable(bindings) || PL_is_list(bindings) )
       rd.varnames = bindings;
 
-    if ( !(rval = read_term(term, &rd)) && rd.has_exception )
+    if ( !(rval = read_term(term, &rd PASS_LD)) && rd.has_exception )
       rval = PL_raise_exception(rd.exception);
     free_read_data(&rd);
     Sclose(stream);
@@ -2336,14 +2347,15 @@ pl_atom_to_term(term_t atom, term_t term, term_t bindings)
 
 int
 PL_chars_to_term(const char *s, term_t t)
-{ read_data rd;
+{ GET_LD
+  read_data rd;
   int rval;
   IOSTREAM *stream = Sopen_string(NULL, (char *)s, -1, "r");
   source_location oldsrc = LD->read_source;
     
-  init_read_data(&rd, stream);
+  init_read_data(&rd, stream PASS_LD);
   PL_put_variable(t);
-  if ( !(rval = read_term(t, &rd)) && rd.has_exception )
+  if ( !(rval = read_term(t, &rd PASS_LD)) && rd.has_exception )
     PL_put_term(t, rd.exception);
   free_read_data(&rd);
   Sclose(stream);

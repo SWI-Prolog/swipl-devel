@@ -353,7 +353,7 @@ that has no clauses. The predicate would fail anyhow.
 
 static word
 expansion_module(term_t name, functor_t func, word h)
-{ Module m = LD->modules.source;
+{ Module m;
   Procedure proc;
 
   switch(ForeignControl(h))

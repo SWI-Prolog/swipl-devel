@@ -357,6 +357,7 @@ term_t		PL_new_term_ref__LD(ARG1_LD);
 term_t		PL_new_term_refs__LD(int n ARG_LD);
 int		PL_unify__LD(term_t t1, term_t t2 ARG_LD);
 int		PL_unify_integer__LD(term_t t1, long i ARG_LD);
+int		PL_get_atom__LD(term_t t1, atom_t *a ARG_LD);
 void		registerForeignLicenses(void);
 
 /* pl-fmt.c */
