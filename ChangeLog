@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Improve error message if a user-arithmetic function fails.
+
   * FIXED: module-transparency of is/2, etc to make arithmetic function
     declarations work again.  Steve Moyle.
 

@@ -350,10 +350,10 @@ prolog_load_context(term_position, '$stream_position'(0,L,0,0,0)) :-
 
 call_with_depth_limit(G, Limit, Result) :-
 	$depth_limit(Limit, OLimit, OReached),
-	(   G,
-	    $depth_limit_true(Limit, OLimit, OReached, Result, Cut),
-	    Cut
-	;   $depth_limit_false(Limit, OLimit, OReached, Result)
+	(   catch(G, E, $depth_limit_except(OLimit, OReached, E)),
+	    $depth_limit_true(Limit, OLimit, OReached, Result, Det),
+	    ( Det == ! -> ! ; true )
+	;   $depth_limit_false(OLimit, OReached, Result)
 	).
 
 
