@@ -55,16 +55,18 @@ locate(Path, file(Path), [file(Path)]) :-
 locate(FileBase, file(File), [file(File)]) :-
 	atom(FileBase),
 	absolute_file_name(FileBase,
-			   [ extensions([pl]),
-			     access(read)
+			   [ file_type(prolog),
+			     access(read),
+			     file_errors(fail)
 			   ],
 			   File),
 	\+ exists_directory(File).
 locate(FileSpec, file(File), [file(File)]) :-
 	ground(FileSpec),
 	absolute_file_name(FileSpec,
-			   [ extensions([pl]),
-			     access(read)
+			   [ file_type(prolog),
+			     access(read),
+			     file_errors(fail)
 			   ],
 			   File).
 locate(FileBase, source_file(Path), [file(Path)]) :-
@@ -305,7 +307,10 @@ short_filename(Path, Spec) :-
 	setof(Id, Spec^file_search_path(Id, Spec), Ids),
 	member(Id, Ids),
 	Term =.. [Id, '.'],
-	absolute_file_name(Term, [file_type(directory)], Prefix),
+	absolute_file_name(Term,
+			   [ file_type(directory),
+			     file_errors(fail)
+			   ], Prefix),
 	concat(Prefix, Local0, Path), !,
 	remove_leading_slash(Local0, Local),
 	Spec =.. [Id, Local].
