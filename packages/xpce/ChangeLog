@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Bug#26: make accelerators in menus work.  Holger Kanwischer.
+
+
 VERSION 6.5.11, distributed with SWI-Prolog 5.5.11
 ==================================================
 

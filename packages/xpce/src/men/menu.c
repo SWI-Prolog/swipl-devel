@@ -1087,28 +1087,8 @@ openComboBoxMenu(Menu m)
 
 
 static status
-executeMenu(Menu m, EventObj ev)
-{ MenuItem mi;
-
-  if ( m->feedback == NAME_showSelectionOnly )
-  { Any img = getClassVariableValueObject(m, NAME_cycleIndicator); /* TBD */
-
-    if ( img == NAME_comboBox )
-      return openComboBoxMenu(m);
-    else
-    { nextMenu(m);
-      flushGraphical(m);
-      if ( !send(m->device, NAME_modifiedItem, m, ON, EAV) )
-	forwardMenu(m, m->message, ev);
-      succeed;
-    }
-  }
-
-  if ( isDefault(ev) )
-    ev = EVENT->value;			/* @event */
-  TRY((mi = getItemFromEventMenu(m, ev)) && mi->active == ON);
-    
-  if ( m->multiple_selection == ON )
+executeMenuItem(Menu m, MenuItem mi, EventObj ev)
+{ if ( m->multiple_selection == ON )
   { toggleMenu(m, mi);
     flushGraphical(m);
     send(m->device, NAME_modifiedItem, m, ON, EAV);
@@ -1137,6 +1117,32 @@ executeMenu(Menu m, EventObj ev)
   }
 
   succeed;
+}
+
+
+static status
+executeMenu(Menu m, EventObj ev)
+{ MenuItem mi;
+
+  if ( m->feedback == NAME_showSelectionOnly )
+  { Any img = getClassVariableValueObject(m, NAME_cycleIndicator); /* TBD */
+
+    if ( img == NAME_comboBox )
+      return openComboBoxMenu(m);
+    else
+    { nextMenu(m);
+      flushGraphical(m);
+      if ( !send(m->device, NAME_modifiedItem, m, ON, EAV) )
+	forwardMenu(m, m->message, ev);
+      succeed;
+    }
+  }
+
+  if ( isDefault(ev) )
+    ev = EVENT->value;			/* @event */
+  TRY((mi = getItemFromEventMenu(m, ev)) && mi->active == ON);
+    
+  return executeMenuItem(m, mi, ev);
 }
 
 
@@ -2021,7 +2027,23 @@ applyMenu(Menu m, Bool always)
 
 static status
 assignAcceletatorsMenu(Menu m)
-{ return assignAccelerators(m->members, NAME_, NAME_label);
+{ return assignAccelerators(m->members, CtoName("\\e"), NAME_label);
+}
+
+
+static status
+keyMenu(Menu m, Name key)
+{ Cell cell;
+
+  for_cell(cell, m->members)
+  { MenuItem mi = cell->value;
+
+    if ( mi->accelerator == key )
+    { return executeMenuItem(m, mi, EVENT->value);
+    }
+  }
+
+  fail;
 }
 
 
@@ -2114,6 +2136,8 @@ static senddecl send_menu[] =
      DEFAULT, "Unlink from menu-items"),
   SM(NAME_assignAccelerators, 0, NULL, assignAcceletatorsMenu,
      NAME_accelerator, "Assign accelerators for the items"),
+  SM(NAME_key, 1, "key=name", keyMenu,
+     NAME_accelerator, "Handle accelerator key `name'"),
   SM(NAME_activeAllItems, 1, "active=bool", activeAllItemsMenu,
      NAME_active, "(De)activate all items in the menu"),
   SM(NAME_activeItem, 2, T_activeItem, activeItemMenu,
