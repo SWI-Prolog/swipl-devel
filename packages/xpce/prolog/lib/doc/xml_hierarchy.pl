@@ -49,6 +49,7 @@ xml(H, XML:prolog) :->			% list of elements
 content(document(_Type, [Content]), Content).
 content([Content], Content).
 content(element(A,B,C), element(A,B,C)).
+content([pi(_XML), Content], Content).	% bit of a hack to handle XML files
 
 expand_node(H, Node:xml_node) :->
 	"Expand clicked node"::

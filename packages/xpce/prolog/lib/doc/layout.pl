@@ -268,6 +268,8 @@ variable(ignore_blanks,	[name],	  both,	"How to handle blanks").
 variable(space_mode,    {preserve,canonical}, both, "How to handle blanks").
 variable(link_colour,	colour,	  both, "Colour for hyperlinks").
 
+class_variable(alignment, name, justify).
+
 initialise(M) :->
 	send_super(M, initialise),
 	send(M, slot, vfont, new(VFont, vfont)),
@@ -277,7 +279,6 @@ initialise(M) :->
 	send(M, set_font, family, helvetica),
 	send(M, slot, parsep, hbox(0,8)), 	% vertical skip
 	send(M, slot, parindent, hbox(0,0)),	% horizontal skip
-	send(M, alignment, justify),
 	send(M, space_mode, canonical).
 
 set_font(M, Att:name, Val:any) :->
