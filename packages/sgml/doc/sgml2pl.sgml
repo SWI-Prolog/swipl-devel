@@ -1124,7 +1124,7 @@ resources can be used to store external entities.
 
 <s1>Writing markup</title>
 
-<s2>Writing documents</s2>
+<s2>Writing documents</title>
 
 <p>
 The library <ref lib/sgml_write/ provides the inverse of the parser,
@@ -1169,7 +1169,7 @@ from <pref>dtd/2</pref>. The <aref/Options/ are described with
 </definitions>
 
 
-<s2>Simplify quoting</s2>
+<s2>Simplify quoting</title>
 
 <p>
 The <ref pkg/sgml2pl/ package is a parser.  Output is generally much easier

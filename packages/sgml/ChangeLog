@@ -1,3 +1,7 @@
+Jan 6, 2005
+
+  * FIXED: Documentation
+
 Dec 21, 2004
 
   * ADDED: library(sgml_write), providing conversion of parsed data to
