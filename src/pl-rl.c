@@ -7,6 +7,9 @@
     Purpose: Binding to the GNU readline library
 */
 
+#ifndef __WIN32__
+#include "pl-incl.h"
+#endif
 #include <string.h>
 #include <stdlib.h>
 #include "pl-stream.h"
@@ -214,7 +217,7 @@ PL_install_readline()
 { static IOFUNCTIONS funcs;
 
 #ifndef __WIN32__
-  if ( !isatty(0) )
+  if ( status.notty || !isatty(0) )
     return;
 #endif
 

@@ -1,6 +1,15 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.7.10
+==============
+
+  * PORT: More changes to PL_unify_term() by Franklin Chen.  Now really
+    compiles on MkLinux.
+
+  * FIXED: retract/1 once more.  Now tested on all combinations of
+    (non-)unit-clause and with(out) module specifier.
+
 Version 2.7.9
 =============
 
