@@ -167,10 +167,8 @@ Halt(int rval)
   pl_notrace();				/* avoid recursive tracing */
   Output = 1;				/* reset output stream to user */
 
-  if ( !GD->os.halting )
-  { GD->os.halting++;			/* avoid recursion */
-
-    for(h = GD->os.on_halt_list; h; h = h->next)
+  if ( !GD->os.halting++ )
+  { for(h = GD->os.on_halt_list; h; h = h->next)
       (*h->function)(rval, h->argument);
 
     if ( GD->initialised )
@@ -181,7 +179,7 @@ Halt(int rval)
     }
 
 #if defined(__WINDOWS__) || defined(__WIN32__)
-    if ( rval != 0 )
+    if ( rval != 0 && !hasConsole() )
       PlMessage("Exit status is %d", rval);
 #endif
 
@@ -1690,7 +1688,16 @@ ChDir(const char *path)
   fail;
 }
 
+		 /*******************************
+		 *	      CONSOLE		*
+		 *******************************/
 
+#if unix				/* windows definition is in pl-nt.c */
+int
+hasConsole(void)
+{ succeed;
+}
+#endif
 
 		/********************************
 		*        TIME CONVERSION        *

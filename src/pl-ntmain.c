@@ -389,6 +389,7 @@ console.c for further details.
 int PASCAL
 WinMain(HANDLE hInstance, HANDLE hPrevInstance,
 	LPSTR lpszCmdLine, int nCmdShow)
-{ return rlc_main(hInstance, hPrevInstance, lpszCmdLine, nCmdShow,
+{
+  return rlc_main(hInstance, hPrevInstance, lpszCmdLine, nCmdShow,
 		  win32main, LoadIcon(hInstance, "SWI_Icon"));
 }

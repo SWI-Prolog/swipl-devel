@@ -10,9 +10,29 @@
 #include <windows.h>
 #include "pl-itf.h"
 
+#if 0
+#include <signal.h>
+
+static BOOL
+consoleHandlerRoutine(DWORD id)
+{ switch(id)
+  { case CTRL_C_EVENT:
+      raise(SIGINT);
+      return TRUE;
+  }
+  
+  return FALSE;
+}
+#endif
+
 int
 main(int argc, char **argv)
-{ if ( !PL_initialise(argc, argv) )
+{
+#if 0
+  SetConsoleCtrlHandler((PHANDLER_ROUTINE)consoleHandlerRoutine, TRUE);
+#endif
+
+  if ( !PL_initialise(argc, argv) )
     PL_halt(1);
   
   PL_halt(PL_toplevel() ? 0 : 1);

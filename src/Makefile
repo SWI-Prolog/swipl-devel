@@ -1,6 +1,6 @@
 # Generated automatically from Makefile.in by configure.
 ################################################################
-# Makefile for SWI-Prolog 2.9
+# Makefile for SWI-Prolog 3.x
 # $Id$
 #
 # Author:	Jan Wielemaker
@@ -19,7 +19,7 @@
 #	* make install-arch	Install machine dependent files
 #	* make install-libs	Install machine independent files
 #
-# Copyright (c) University of Amsterdam, all rights reserved
+# Copyright (C) University of Amsterdam, all rights reserved
 # 
 # Copyright policy:
 #	
@@ -29,7 +29,7 @@
 #	  based on SWI-Prolog.  Contact prolog-request@swi.psy.uva.nl.
 ################################################################
 
-PLVERSION=3.1.2
+PLVERSION=3.2.0
 
 PL=pl
 prefix=/usr/local
@@ -56,6 +56,7 @@ ARCH=i686-linux
 INSTALL=/usr/bin/install -c
 INSTALL_PROGRAM=${INSTALL}
 INSTALL_DATA=${INSTALL} -m 644
+MKDIR=mkdir -p
 
 COFLAGS=-O2
 CWFLAGS=-Wall
@@ -137,8 +138,8 @@ $(STARTUPPATH):	$(PLINIT) $(PLSRC) pl-wam.o pl-wic.o
 
 
 $(RUNTIME):	$(OBJ) $(RCOBJ) $(DEPOBJ)
-		if [ ! -d ../runtime ]; then mkdir ../runtime; fi
-		if [ ! -d $(RUNTIMEDIR) ]; then mkdir $(RUNTIMEDIR); fi
+		if [ ! -d ../runtime ]; then $(MKDIR) ../runtime; fi
+		if [ ! -d $(RUNTIMEDIR) ]; then $(MKDIR) $(RUNTIMEDIR); fi
 		rm -f $@
 		$(AR) r $@ $(OBJ) $(RCOBJ) $(DEPOBJ)
 		$(RANLIB) $@
@@ -153,7 +154,7 @@ index:
 			-t halt
 
 $(INCLUDEDIR):
-		if [ ! -d $@ ]; then mkdir $@; fi
+		if [ ! -d $@ ]; then $(MKDIR) $@; fi
 
 $(EXPORTS):	Makefile $(srcdir)/pl-itf.h $(INCLUDEDIR)
 		echo \#\!$(bindir)/$(PL) > $(EXPORTS)
@@ -219,7 +220,7 @@ install:	dv-install
 dv-install:	install-arch install-libs install-bins
 
 install-bins:	install-arch
-		-if [ ! -d $(bindir)  ];    then mkdir $(bindir);     fi
+		-if [ ! -d $(bindir)  ];    then $(MKDIR) $(bindir);     fi
 		if [ -r $(bindir)/$(PL) ]; then \
 		    mv -f $(bindir)/$(PL) $(bindir)/$(PL).old; \
 		fi
@@ -250,18 +251,18 @@ installdirs=	bin bin/$(ARCH) lib lib/$(ARCH) man boot library \
 
 iruntime:
 		if [ ! -d $(PLBASE)/runtime/$(ARCH) ]; then \
-			mkdir $(PLBASE)/runtime/$(ARCH); \
+			$(MKDIR) $(PLBASE)/runtime/$(ARCH); \
 		fi
 		if [ -f $(RUNTIME) ]; then \
 			$(INSTALL_DATA) $(RUNTIME) $(PLBASE)/runtime/$(ARCH); \
 		fi
 
 idirs:
-		-if [ ! -d $(prefix)/lib  ];    then mkdir $(prefix)/lib;     fi
-		-if [ ! -d $(PLBASE)  ];    then mkdir $(PLBASE); 	fi
+		-if [ ! -d $(prefix)/lib  ];    then $(MKDIR) $(prefix)/lib;     fi
+		-if [ ! -d $(PLBASE)  ];    then $(MKDIR) $(PLBASE); 	fi
 		for d in $(installdirs); do \
 			if [ ! -d $(PLBASE)/$$d ]; then \
-				mkdir $(PLBASE)/$$d; \
+				$(MKDIR) $(PLBASE)/$$d; \
 			fi; \
 		done
 
@@ -291,14 +292,14 @@ iman:
 		$(INSTALL_DATA) $(srcdir)/plrc.1 $(plmandir)/plrc.$(mansec)
 		$(INSTALL_DATA) $(srcdir)/plld.1 $(plmandir)/plld.$(mansec)
 		$(INSTALL_DATA) $(srcdir)/readline.3 $(plmandir)/readline.$(lmansec)
-		-if [ ! -d $(man_prefix) ]; then mkdir $(man_prefix); fi
-		-if [ ! -d $(mandir)  ];    then mkdir $(mandir);     fi
+		-if [ ! -d $(man_prefix) ]; then $(MKDIR) $(man_prefix); fi
+		-if [ ! -d $(mandir)  ];    then $(MKDIR) $(mandir);     fi
 		-$(INSTALL_DATA) $(plmandir)/$(PL).$(mansec) $(mandir)
 		-$(INSTALL_DATA) $(plmandir)/plrc.$(mansec) $(mandir)
 		-$(INSTALL_DATA) $(plmandir)/plld.$(mansec) $(mandir)
 
 install_rlman:
-		-if [ ! -d $(lmandir) ]; then mkdir $(lmandir); fi
+		-if [ ! -d $(lmandir) ]; then $(MKDIR) $(lmandir); fi
 		-if [ ! -r $(lmandir)/readline.$(lmansec) ]; then \
 		  $(INSTALL_DATA) $(srcdir)/readline.3 $(lmandir)/readline.$(lmansec); \
 		fi
@@ -317,8 +318,8 @@ rt-install:
 		@echo "****************"
 		@for d in $(RTDIRS); do \
 		    if [ ! -d $$d ]; then \
-			echo mkdir $$d; \
-			mkdir $$d; \
+			echo $(MKDIR) $$d; \
+			$(MKDIR) $$d; \
 		    fi; \
 		done
 		$(INSTALL_PROGRAM) $(PL) $(RTHOME)/bin/$(ARCH)/pl

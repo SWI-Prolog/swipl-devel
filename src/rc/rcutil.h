@@ -20,4 +20,9 @@
 RcMember	rc_register_member(RcArchive archive, RcMember member);
 RcMember	rc_find_member(RcArchive rca, const char *name, const char *cl);
 
+#if !defined(HAVE_STRCASECMP) && defined(HAVE_STRICMP) 
+#define strcasecmp stricmp
+#define strncasecmp strnicmp
+#endif
+
 #endif /*RCUTIL_H_INCLUDED*/

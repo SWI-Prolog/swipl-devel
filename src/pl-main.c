@@ -503,6 +503,11 @@ PL_initialise(int argc, char **argv)
   bool compile = FALSE;
   const char *rcpath = "<none>";
 
+#if defined(_DEBUG) && defined(WIN32)
+  extern void initHeapDebug(void);
+  initHeapDebug();
+#endif
+
   GD->cmdline.argc = argc;
   GD->cmdline.argv = argv;
   GD->debug_level  = 0;			/* 1-9: debug, also -d <level> */

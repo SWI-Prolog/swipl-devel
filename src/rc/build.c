@@ -27,6 +27,7 @@
 #endif
 #ifdef WIN32
 #include <io.h>
+#include <process.h>
 #endif
 
 int

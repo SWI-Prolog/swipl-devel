@@ -27,9 +27,6 @@ handling times must be cleaned, but that not only holds for this module.
 
 #include "pl-incl.h"
 #include "pl-ctype.h"
-#ifdef __WIN32__
-#include <console.h>
-#endif
 
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>

@@ -18,6 +18,11 @@
 #include "html.h"
 #include <stdlib.h>
 
+#if !defined(HAVE_STRCASECMP) && defined(HAVE_STRICMP) 
+#define strcasecmp stricmp
+#define strncasecmp strnicmp
+#endif
+
 #ifndef EOS
 #define EOS '\0'
 #endif

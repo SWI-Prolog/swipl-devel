@@ -10,41 +10,52 @@
 #if defined(__WINDOWS__) || defined(__WIN32__)
 
 #include <windows.h>
+#include <crtdbg.h>
 #include <process.h>
 #include "pl-incl.h"
 #include "pl-ctype.h"
 #include <stdio.h>
 #include <stdarg.h>
 #include "pl-stream.h"
-#include <console.h>
 #include <process.h>
-
-
-		 /*******************************
-		 *	  DUMMY EXTENSION	*
-		 *******************************/
-
-PL_extension PL_extensions [] =
-{
-/*{ "name",	arity,  function,	PL_FA_<flags> },*/
-
-  { NULL,	0, 	NULL,		0 }	/* terminating line */
-};
 
 		 /*******************************
 		 *	    MESSAGE BOX		*
 		 *******************************/
 
+int
+hasConsole(void)
+{ HANDLE h;
+
+  if ( (h = GetStdHandle(STD_OUTPUT_HANDLE)) != INVALID_HANDLE_VALUE )
+  { DWORD mode;
+
+    return GetConsoleMode(h, &mode);
+					/* CloseHandle() closes stdout! */
+  }
+
+  fail;
+}
+
+
 void
 PlMessage(const char *fm, ...)
 { va_list(args);
-  char buf[1024];
 
   va_start(args, fm);
-  vsprintf(buf, fm, args);
-  va_end(args);
+  
+  if ( hasConsole() )
+  { Sfprintf(Serror, "SWI-Prolog: ");
+    Svfprintf(Serror, fm, args);
+    Sfprintf(Serror, "\n");
+  } else
+  { char buf[1024];
 
-  MessageBox(NULL, buf, "SWI-Prolog", MB_OK|MB_TASKMODAL);
+    vsprintf(buf, fm, args);
+    MessageBox(NULL, buf, "SWI-Prolog", MB_OK|MB_TASKMODAL);
+  }
+
+  va_end(args);
 }
 
 		 /*******************************
@@ -278,6 +289,20 @@ int
 getenvl(const char *name)
 { return GetEnvironmentVariable(name, NULL, 0);
 }
+
+#if _DEBUG
+void
+initHeapDebug(void)
+{ int tmpFlag = _CrtSetDbgFlag( _CRTDBG_REPORT_FLAG );
+
+  if ( !(tmpFlag & _CRTDBG_CHECK_ALWAYS_DF) )
+  { PlMessage("Setting malloc() debugging");
+    tmpFlag |= _CRTDBG_CHECK_ALWAYS_DF;
+    _CrtSetDbgFlag(tmpFlag);
+  } else
+    PlMessage("Malloc debugging already set");
+}
+#endif
 
 #endif /*__WINDOWS__*/
 

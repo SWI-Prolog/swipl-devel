@@ -389,6 +389,7 @@ char *		ReadLink(const char *f, char *buf);
 char *		DeRefLink(const char *link, char *buf);
 bool		ChDir(const char *path);
 atom_t		TemporaryFile(const char *id);
+int		hasConsole(void);
 struct tm *	LocalTime(long int *t);
 Char		GetChar(void);
 void		ResetTty(void);
