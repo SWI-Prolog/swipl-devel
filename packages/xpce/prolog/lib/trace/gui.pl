@@ -51,6 +51,11 @@ register_directories :-
 
 version('1.1.0').
 
+		 /*******************************
+		 *	      RESOURCES		*
+		 *******************************/
+
+resource(debug,	image,	image('debug.xpm')).
 
 		 /*******************************
 		 *	     TOPLEVEL		*
@@ -148,6 +153,7 @@ initialise(F) :->
 	send(F, send_super, initialise,
 	     string('SWI-Prolog tracer version %s', Version),
 	     application := @prolog_gui),
+	send(F, icon, resource(debug)),
 	send(F, append, new(MBD, dialog)),
 	send(MBD, gap, size(0, 2)),
 	send(MBD, pen, 0),
