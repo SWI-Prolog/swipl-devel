@@ -1097,13 +1097,14 @@ PL_cleanup(int rval)
   cleanupExtensions();
   cleanupOs();
   Scleanup();
-
-  memset(GD, 0, sizeof(*GD));
-#ifndef O_PLMT					/* TBD: is this correct? */
-  memset(LD, 0, sizeof(*LD));
+#ifdef O_PLMT
+  cleanupThreads();
 #endif
 
-  UNLOCK();
+  UNLOCK();				/* requires GD->thread.enabled */
+
+  memset(&PL_global_data, 0, sizeof(PL_global_data));
+  memset(&PL_local_data,  0, sizeof(PL_local_data));
 
   return TRUE;
 }

@@ -444,6 +444,17 @@ initPrologThreads()
 }
 
 
+void
+cleanupThreads()
+{ TLD_free(PL_ldata);
+  threadTable = NULL;
+  queueTable = NULL;
+  memset(&threads, 0, sizeof(threads));
+  threads_ready = FALSE;
+  queue_id = 0;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 A first step towards clean destruction of the system.  Ideally, we would
 like the following to happen:

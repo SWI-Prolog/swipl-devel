@@ -223,6 +223,7 @@ typedef struct
     Procedure	portray;		/* portray/1 */
     Procedure   dcall1;			/* $call/1 */
     Procedure	call_cleanup3;		/* call_cleanup/2 */
+    Procedure	undefinterc4;		/* $undefined_procedure/4 */
 
     SourceFile  reloading;		/* source file we are re-loading */
     int		active_marked;		/* #prodedures marked active */

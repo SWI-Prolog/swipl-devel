@@ -167,6 +167,7 @@ typedef DWORD	TLD_KEY;
 #define TLD_alloc(p)	(*(p) = TlsAlloc())
 #define TLD_get(p)	TlsGetValue((p))
 #define TLD_set(p, v)	TlsSetValue((p), (v))
+#define TLD_free(p)	TlsFree(p);
 
 #else
 typedef pthread_key_t TLD_KEY;
@@ -174,6 +175,7 @@ typedef pthread_key_t TLD_KEY;
 #define TLD_alloc(p)	pthread_key_create(p, NULL)
 #define TLD_get(p)	pthread_getspecific(p)
 #define TLD_set(p, v)	pthread_setspecific((p), (v))
+#define TLD_free(p)	pthread_key_delete(p)
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -243,6 +245,7 @@ Definition		localiseDefinition(Definition def);
 int			PL_mutex_lock(struct pl_mutex *m);
 int			PL_mutex_unlock(struct pl_mutex *m);
 int			PL_thread_raise(int tid, int sig);
+void			cleanupThreads();
 
 
 		 /*******************************

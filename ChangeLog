@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Many PL_cleanup() problems, notably related to thread-management.
+
   * FIXED: compiling pl-atom.c for single-threaded operatation (Barry J Evans).
 
   * FIXED: exitPrologThreads() counting problem.

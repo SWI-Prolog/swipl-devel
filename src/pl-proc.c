@@ -1368,21 +1368,22 @@ autoLoader(atom_t name, int arity, atom_t mname)
 { GET_LD
   fid_t  cid  = PL_open_foreign_frame();
   term_t argv = PL_new_term_refs(4);
-  static predicate_t MTOK_pred;
   qid_t qid;
   atom_t sfn = source_file_name;	/* needs better solution! */
   int  sln = source_line_no;
   atom_t answer = ATOM_nil;
 
-  if ( !MTOK_pred )
-    MTOK_pred = PL_pred(FUNCTOR_undefinterc4, MODULE_system);
+  if ( !GD->procedures.undefinterc4 )
+    GD->procedures.undefinterc4 = PL_pred(FUNCTOR_undefinterc4,
+					  MODULE_system);
 
   PL_put_atom(    argv+0, mname);
   PL_put_atom(    argv+1, name);
   PL_put_integer( argv+2, arity);
   
   LD->autoload_nesting++;
-  qid = PL_open_query(MODULE_system, PL_Q_NODEBUG, MTOK_pred, argv);
+  qid = PL_open_query(MODULE_system, PL_Q_NODEBUG,
+		      GD->procedures.undefinterc4, argv);
   if ( PL_next_solution(qid) )
     PL_get_atom(argv+3, &answer);
   PL_close_query(qid);
