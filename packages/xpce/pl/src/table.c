@@ -70,14 +70,17 @@ atomToName(Atom a)
 { int k = AtomKey(&atom_to_name, a);
   ASymbol s = atom_to_name.symbols[k];
   PceName name;
-
+  unsigned int len;
+  const char *text;
+  
   for( ; s; s = s->next )
   { if ( s->atom == a )
       return s->name;
   }
        
   PL_register_atom(a);
-  name = cToPceName(AtomCharp(a));
+  text = PL_atom_nchars(a, &len);
+  name = cToPceName_n(text, len);
   s = pceAlloc(sizeof(struct asymbol));
   s->atom = a;
   s->name = name;
@@ -95,13 +98,16 @@ CachedNameToAtom(PceName name)
 { int k = NameKey(&name_to_atom, name);
   ASymbol s = name_to_atom.symbols[k];
   Atom a;
+  unsigned int len;
+  char *text;
 
   for( ; s; s = s->next )
   { if ( s->name == name )
       return s->atom;
   }
        
-  a = AtomFromString(pceCharArrayToC(name));
+  text = pceCharArrayToC(name, &len);
+  a = PL_new_atom_nchars(len, text);
   s = pceAlloc(sizeof(struct asymbol));
   s->atom = a;
   s->name = name;

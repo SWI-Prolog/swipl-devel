@@ -75,7 +75,7 @@ void		pceGetMethod(PceClass class, const char *name, const char *group, const ch
 int		pceToCReference(Any obj, PceCValue *rval);
 int		pceToC(Any obj, PceCValue *rval);
 char *		pceStringToC(Any val);
-char *		pceCharArrayToC(Any val);
+char *		pceCharArrayToC(Any val, unsigned int *len);
 int		pceObject(Any obj);
 int		pceGetMethodInfo(PceMethod m, pce_method_info *info);
 PceITFSymbol	getITFSymbolName(Name name);

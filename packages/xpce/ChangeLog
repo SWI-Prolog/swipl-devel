@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: Provide support for exchanging atoms and strings holding 0-bytes
+  between Prolog and XPCE, facilitating better handling of binary objects.
+
 * ADDED: `window<->buffered_update': switch on/off double buffering on
   window-basis.
 

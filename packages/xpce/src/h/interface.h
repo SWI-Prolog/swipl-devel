@@ -167,7 +167,7 @@ typedef union
 
 __pce_export int    pceToC(PceObject datum, PceCValue *rval);
 __pce_export int    pceToCReference(PceObject datum, PceCValue *rval);
-__pce_export char * pceCharArrayToC(PceObject datum);
+__pce_export char * pceCharArrayToC(PceObject datum, unsigned int *len);
 __pce_export char * pceStringToC(PceObject datum);
 __pce_export void * pcePointerToC(PceObject datum);
 __pce_export PceHostData  CtoHostData(PceClass class, void *handle, int flags);
@@ -379,9 +379,12 @@ __pce_export int pceInitialise(int handles, const char *home,
 		********************************/
 
 __pce_export PceObject	cToPceName(const char *);
+__pce_export PceObject	cToPceName_n(const char *, unsigned int len);
 __pce_export PceObject	cToPceInteger(long);
 __pce_export PceObject	cToPceReal(double);
-__pce_export PceObject	cToPceString(PceName assoc, char *, int translate);
+__pce_export PceObject	cToPceString(PceName assoc,
+				     const char *text, unsigned int len,
+				     int translate);
 __pce_export PceObject	cToPceAssoc(const char *);
 __pce_export PceObject	cToPceReference(unsigned long);
 __pce_export PceObject	cToPcePointer(void *ptr);

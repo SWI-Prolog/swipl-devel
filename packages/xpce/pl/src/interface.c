@@ -349,11 +349,13 @@ initPceConstants()
 				{ SP_set_reinit_hook(f); }
 
 static int
-GetChars(Term t, char **s)
+GetChars(Term t, char **s, unsigned int *len)
 { if ( SP_get_string(t, s) ||
        SP_get_list_chars(t, s) ||
        SP_get_number_chars(t, s) )
+  { *len = strlen(*s);
     return TRUE;
+  }
 
   return FALSE;
 }
@@ -526,8 +528,8 @@ initHostConstants()
 
 
 static int
-GetChars(Term t, char **s)
-{ return PL_get_chars(t, s, CVT_ALL|BUF_RING);
+GetChars(Term t, char **s, unsigned int *len)
+{ return PL_get_nchars(t, len, s, CVT_ALL|BUF_RING);
 }
 
 
@@ -830,10 +832,11 @@ PceObject referenceToObject(Term a)
 
 static Atom
 nameToAtom(PceName name)
-{ char *s = pceCharArrayToC(name);
+{ unsigned int len;
+  char *s = pceCharArrayToC(name, &len);
 
   if ( s )
-    return PL_new_atom(s);
+    return PL_new_atom_nchars(len, s);
 
   return (Atom)0;
 }
@@ -1237,7 +1240,7 @@ getPrintNameProlog(PceObject hd)
   PL_write_term(s, getTermHandle(hd), 1200, 0);
   Sputc('\0', s);
   Sflush(s);
-  rval = cToPceString(NIL, buffer, FALSE);
+  rval = cToPceString(NIL, buffer, size-1, FALSE);
   Sclose(s);
 
   return rval;
@@ -1372,12 +1375,13 @@ termToObject(Term t, PceType type, Atom assoc, int new)
 					/* string(hello) */
     if ( functor == ATOM_string && arity == 1 )
     { char *s;
+      unsigned int len;
       Term a = NewTerm();
       PceName pceassoc = atomToAssoc(assoc);
 
       QGetArg(1, t, a);
-      if ( GetChars(a, &s) )
-	return cToPceString(pceassoc, s, TRUE);
+      if ( GetChars(a, &s, &len) )
+	return cToPceString(pceassoc, s, len, TRUE);
 
       ThrowException(EX_TYPE, ATOM_string, t);
       return PCE_FAIL;
@@ -1469,7 +1473,7 @@ termToObject(Term t, PceType type, Atom assoc, int new)
   { char *s;
     int len;
     if ( GetString(t, &s, &len) )	/* string object (if supported) */
-      return cToPceString(atomToAssoc(assoc), s, FALSE);
+      return cToPceString(atomToAssoc(assoc), s, len, FALSE);
   }
 #endif
 
@@ -1500,9 +1504,10 @@ unifyObject(Term t, PceObject obj, int top)
     case PCE_REAL:			/* float (real object) */
       return UnifyFloat(t, value.real);
     case PCE_NAME:			/* name */
-    { char *s = pceCharArrayToC(obj);
+    { unsigned int len;
+      char *s = pceCharArrayToC(obj, &len);
 
-      return PL_unify_atom_chars(t, s);
+      return PL_unify_atom_nchars(t, len, s);
     }
     case PCE_HOSTDATA:
       return Unify(t, getTermHandle(obj)); /* TBD: avoid redoing this */

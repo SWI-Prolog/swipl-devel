@@ -64,9 +64,16 @@ cToPceReal(double f)
 
 
 Any
-cToPceString(Name assoc, char *s, int translate)
+cToPceString(Name assoc, const char *s, unsigned int len, int translate)
 { Any str;
-  Any c = CtoScratchCharArray(s);
+  string ss;
+  Any c;
+
+  str_inithdr(&ss, ENC_ASCII);
+  ss.size = len;
+  ss.s_text8 = (char8 *)s;
+  c = StringToScratchCharArray(&ss);
+
   if ( translate )
     str = pceNew(assoc, ClassString, 1, &c);
   else
@@ -89,6 +96,21 @@ cToPceName(const char *text)
 
     str_inithdr(&s, ENC_ASCII);
     s.size = strlen(text);
+    s.s_text8 = (char8 *)text;
+
+    return StringToName(&s);
+  } else
+    fail;
+}
+
+
+Any
+cToPceName_n(const char *text, unsigned int len)
+{ if ( text )
+  { string s;
+
+    str_inithdr(&s, ENC_ASCII);
+    s.size = len;
     s.s_text8 = (char8 *)text;
 
     return StringToName(&s);
@@ -365,9 +387,12 @@ pceStringToC(Any val)
 
 
 char *
-pceCharArrayToC(Any val)
+pceCharArrayToC(Any val, unsigned int *len)
 { if ( instanceOfObject(val, ClassCharArray) )
   { CharArray ca = val;
+
+    if ( *len )
+      *len = (unsigned int)str_datasize(&ca->data);
 
     return strName(ca);
   }

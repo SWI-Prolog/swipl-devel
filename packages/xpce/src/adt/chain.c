@@ -188,7 +188,36 @@ clearChain(Chain ch)
   }
   ch->head = ch->tail = ch->current = NIL;
   assign(ch, size, ZERO);
-  ChangedChain(ch, NAME_clear, 0);
+  ChangedChain(ch, NAME_clear, EAV);
+
+  succeed;
+}
+
+
+static status
+truncateChain(Chain ch, Int to)
+{ int n = valInt(to);
+  int i = 0;
+  Cell p, q;
+
+  if ( n <= 0 )
+    return clearChain(ch);
+
+  for_cell_save(p, q, ch)
+  { if ( i == n-1 )
+    { p->next = NIL;
+      ch->tail = p;
+      assign(ch, size, to);
+      ChangedChain(ch, NAME_truncate, to);
+    } else if ( i >= n )
+    { if ( ch->current == p )
+	ch->current = NIL;
+
+      freeCell(ch, p);
+    }
+      
+    i++;
+  }
 
   succeed;
 }
@@ -401,7 +430,7 @@ deleteChain(Chain ch, register Any obj)
     ch->head = ch->tail = NIL;
     freeCell(ch, head);
     assign(ch, size, ZERO);
-    ChangedChain(ch, NAME_clear, 0);
+    ChangedChain(ch, NAME_clear, EAV);
     succeed;
   }
 
@@ -452,7 +481,7 @@ deleteCellChain(Chain ch, Cell cell)
 
     ch->head = ch->tail = ch->current = NIL;
     freeCell(ch, head);
-    ChangedChain(ch, NAME_clear, 0);
+    ChangedChain(ch, NAME_clear, EAV);
     assign(ch, size, ZERO);
 
     succeed;
@@ -1538,6 +1567,8 @@ static senddecl send_chain[] =
      NAME_list, "Append argument to chain"),
   SM(NAME_clear, 0, NULL, clearChain,
      NAME_list, "Remove all elements from chain"),
+  SM(NAME_truncate, 1, "keep=0..", truncateChain,
+     NAME_list, "Keep the first N elements"),
   SM(NAME_delete, 1, "value=any", deleteChain,
      NAME_list, "Delete first occurrence of argument"),
   SM(NAME_deleteAll, 1, "value=any", deleteAllChain,
