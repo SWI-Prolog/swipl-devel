@@ -38,7 +38,7 @@
 :- use_module(library('trace/util')).
 :- use_module(browse_xref).
 :- use_module(library(persistent_frame)).
-:- require([ '$qlf_info'/4
+:- require([ '$qlf_info'/5
 	   , append/3
 	   , concat_atom/2
 	   , concat_atom/3
@@ -930,7 +930,7 @@ user:message_hook(load_file(What), _Kind, _Lines) :-
 	prolog_overview_window(Win),
 	(   file_name_extension(_, qlf, File)
 	->  debug('Looking for ~q~n', [File]),
-	    '$qlf_info'(File, V, V, Sources),
+	    '$qlf_info'(File, V, V, _WordSize, Sources),
 	    debug('Contains ~q~n', [Sources]),
 	    member(TheFile, Sources)
 	;   TheFile = File
