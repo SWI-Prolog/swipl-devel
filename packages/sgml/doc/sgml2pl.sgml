@@ -2,8 +2,8 @@
 
 <pldoc>
 <head>
-<version>1.0.6
-<release-date>July 19 2000
+<version>1.0.8
+<release-date>August 2000
 <package>sgml2pl
 </head>
 
@@ -176,7 +176,7 @@ conversion process.
 A proper XML document contains only a single toplevel element whose name
 matches the document type. Nevertheless, a list is returned for 
 consistency with the representation of element content. The <aref/
-ListOfContent/ consists of three types:
+ListOfContent/ consists of the following types:
 <argdef>
     <termitem><var/Atom/ Atoms are used to represent <c/CDATA/. Note 
 this is possible in SWI-Prolog, as there is no length-limit on atoms and
@@ -272,7 +272,7 @@ exception of the format below is raised. The default is 50.
 </argdef>
 </definitions>
 
-<s2 name="sec:space">Handling white-space</title>
+<s2 name="space">Handling white-space</title>
 
 <p>
 SGPL2PL has four modes for handling white-space. The initial mode can be
@@ -311,7 +311,7 @@ Consider adjecent <b>bold</b> <ul>and</ul> <it>italic</it> words.
 </code>
 </valdef>
 
-<s2 name="sec:xml">XML documents</title>
+<s2 name="xml">XML documents</title>
 
 <p>
 The parser can operate in two modes: <c/sgml/ mode and <c/xml/ mode, as 
@@ -354,7 +354,7 @@ preserves space, regardless of the default processing mode.
 </ul>
 
 
-<s3 name="sec:xmlns">XML Namespaces</title>
+<s3 name="xmlns">XML Namespaces</title>
 
 <p>
 Using the <jargon/dialect/ <c/xmlns/, the parser will interpret XML 
@@ -554,7 +554,7 @@ holding all elements and CDATA found. If the document has a DOCTYPE
 declaraction, the parser will open the element defined in the DOCTYPE as
 soon as the first real data is encountered.
 
-<s2 name="sec:implicitdtd">Extracting a DTD</title>
+<s2 name="implicitdtd">Extracting a DTD</title>
 
 <p>
 Some documents have no DTD. One of the neat facilities of this library 
@@ -609,6 +609,7 @@ document's content.
     <summary>Destroy a parser
 Destroy all resources related to the parser. This does not destroy the 
 DTD if the parser was created using the <term>dtd(DTD)</term> option.
+
     <pred>set_sgml_parser(+Parser, +Option)
     <summary>Set parser options (dialect, source, etc.)
 Sets attributes to the parser. Currently defined attributes: 
@@ -619,6 +620,9 @@ Sets the file for reporting errors and warnings. Sets the line to 1.
     <termitem>line(Line)
 Sets the current line. Useful if the stream is not at the start of the 
 (file) object for generating proper line-numbers. 
+    <termitem>charpos(Offset)
+Sets the current character location.  See also the <term>file(File)</term>
+option.
     <termitem>dialect(Dialect)
 Set the markup dialect. Known dialects: 
 <argdef>
@@ -633,7 +637,23 @@ is encountered. See <ref sec/xml/ for details.
 Process file as XML file with namespace support. See <ref sec/xmlns/ for
 details. 
 </argdef>
+    <termitem>space(SpaceMode)
+Define the initial handling of white-space in PCDATA.  This attribute is
+described in <ref sec/space/.
+    <termitem>number(NumberMode)
+If <c/token/ (default), attributes of type number are passed as a Prolog atom.
+If <c/integer/, such attributes are translated into Prolog integers.  If
+the conversion fails (e.g. due to overflow) a warning is issued and the
+value is passed as an atom.
+    <termitem>first_element(Element)
+Defines the toplevel element expected. If a <verb><!DOCTYPE</verb>
+declaration has been parsed, the default is the defined doctype. The
+parser can be instructed to accept the first element encountered as the
+toplevel element using <xmp>first_element(_)</xmp>. This feature is
+useful when parsing part of a document (see the <c/parse/ option to
+<pref>sgml_parse/2</pref>.
 </argdef>
+
     <pred>get_sgml_parser(+Parser, -Option)
     <summary>Get parser options
 Retrieve infomation on the current status of the parser. Notably useful 
@@ -645,13 +665,36 @@ file if an external entity is being loaded.
     <termitem>charpos(-CharPos)
 Offset from where the parser started its processing in the file-object. 
 See <ref sec/indexaccess/. 
+    <termitem>charpos(-Start, -End)
+Character offsets of the start and end of the source processed causing the
+current call-back.  Used in <ref exe/PceEmacs/ to for colouring text in
+SGML and XML modes.
     <termitem>source(-Stream)
 Prolog stream being processed. May be used in the <c/on_begin/, etc. 
 callbacks from <pref>sgml_parse/2</pref>. 
     <termitem>dialect(-Dialect)
 Return the current dialect used by the parser (<c/sgml/, <c/xml/ or <c/xmlns/).
+    <termitem>event_class(-Class)
+The <jargon/event class/ can be requested in call-back events. It
+denotes the cause of the event, providing useful information for syntax
+highlighting.  Defined values are:
+    <argdef>
+    <termitem><c/explicit/
+        The code generating this event is explicitely present in the
+        document.
+    <termitem><c/omitted/
+	The current event is caused by the insertion of an omitted tag.
+	This may be a normal event in SGML mode or an error in XML mode.
+    <termitem><c/shorttag/
+	The current event (<c/begin/ or <c/end/) is caused by an
+	element written down using the <jargon/shorttag/ notation
+	(<verb><tag/value></verb>.
+    <termitem><c/shortref/
+	The current event is caused by the expansion of a
+	<jargon/shortref/. This allows for highlighting shortref strings
+	in the source-text.
+    </argdef>
 </argdef>
-
 
 <p>
     <pred>sgml_parse(+Parser, +Options)
@@ -697,7 +740,7 @@ provide_atom(Atom, ParserStream) :-
 For example:
 
 <code>
-?- parse_atom('<h1>hello world</title>', X).
+?- parse_atom('<h1>hello world</h1>', X).
 
 X = [element(h1, [], ['hello world'])] 
 </code>
@@ -709,10 +752,13 @@ If <c/file/ (default), parse everything upto the end of the input. If
 the element is complete, and another call may be issued on the same
 stream to read the next element. Using <term>goal(Goal)</term> as input,
 the stream reports an I/O error after completing the first element. This
-exception destroyes the built <term>dcoument(Term)</term>, making this
+exception destroyes the built <term>document(Term)</term>, making this
 option useless using `Goal' driven input. The value <c/content/ may be
 used in a call-back from <term>call(<c/on_begin/, Pred)</term> to parse
-individual elements after validating their headers. 
+individual elements after validating their headers.  Finally, the value
+<c/declaration/ may be used to stop the parser after reading the first
+declaration.  This is especially useful to parse only the <xmp/doctype/
+declaration.
 
     <termitem>max_errors(+MaxErrors)
 Set the maximum number of errors. If this number is exceeded further 
@@ -747,22 +793,40 @@ handler is called with two arguments: <term><aref/Handler/(+NameOrCode,
 +Parser)</term>. 
     <termitem>pi
 A processing instruction has been parsed. The named handler is called 
-with two arguments: <term><aref/Handler/(+Text, +Parser)</term>, where <aref/
-Text/ is the text of the processing instruction. 
+with two arguments: <term><aref/Handler/(+Text, +Parser)</term>, where
+<aref/Text/ is the text of the processing instruction. 
+    <termitem>decl
+A declaration (<verb><!...></verb>) has been read. The named handler is
+called with two arguments: <term><aref/Handler/(+Text, +Parser)</term>,
+where <aref/Text/ is the text of the declaration stripped from comments. 
+
+<p>
+This option is expecially useful for highlighting declarations and comments in
+editor support, where the location of the declaration is extracted using
+<pref>get_sgml_parser/2</pref>.
+    <termitem>error
+An error has been encountered.  the named handler is called with three
+arguments: <term><aref/Handler/(+Severity, +Message, +Parser)</term>, where
+<aref/Severity/ is one of <c/warning/ or <c/error/ and <aref/Message/ is
+an atom representing the diagnostic message.  The location of the error
+can be determined using <pref>get_sgml_parser/2</pref>
+
+<p>
+If this option is present, errors and warnings are not reported using
+<pref builtin>print_message/3</pref>
     <termitem>xmlns
 When parsing an in <c/xmlns/ mode, a new namespace declaraction is 
 pushed on the environment. The named handler is called with three 
-arguments: <term><aref/Handler/(+NameSpace, +URL, +Parser)</term>. See <ref sec/xmlns/
-for details. 
+arguments: <term><aref/Handler/(+NameSpace, +URL, +Parser)</term>.
+See <ref sec/xmlns/ for details. 
     <termitem>urlns
 When parsing an in <c/xmlns/ mode, this predicate can be used to map a 
 url into either a canonical URL for this namespace or another internal 
 identifier. See <ref sec/xmlns/ for details. 
 </argdef>
-
 </argdef>
-
 </definitions>
+
 
 <s3>Partial Parsing</title>
 
@@ -814,7 +878,7 @@ on_begin(Tag, Attr, Parser) :-
 </code>
 
 
-<s1 name="sec:indexaccess">Processing Indexed Files</title>
+<s1 name="indexaccess">Processing Indexed Files</title>
 
 <p>
 In some cases applications which to process small portions of large 

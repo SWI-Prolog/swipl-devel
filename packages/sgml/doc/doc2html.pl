@@ -388,7 +388,8 @@ html(S, A, Content) -->
 	},
 	\p(&nbsp),
 	starttag(H, SA),
-	(   { member(name=Ref, A)
+	(   { member(name=Name, A),
+	      atom_concat('sec:', Name, Ref)
 	    }
 	->  \a([name=Ref], Title)
 	;   content(Title)
@@ -418,6 +419,11 @@ html(quote, _, Content) -->
 		 *	       PROLOG		*
 		 *******************************/
 
+html(ref, A, [Name]) -->
+	{ memberchk(type=sec, A),
+	  atom_concat('#sec:', Name, Ref)
+	},
+	\a([href=Ref], Name).
 html(ref, _, Ref) -->
 	\b(Ref).
 html(c, A, Content) -->

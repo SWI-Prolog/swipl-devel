@@ -10,7 +10,7 @@
 <center>
 
 <h1>SWI-Prolog SGML/XML parser<br>
-<font size="+0"><em>Version 1.0.6, July 19 2000</em></font></h1>
+<font size="+0"><em>Version 1.0.8, August 2000</em></font></h1>
 
 <br>
 <a href="mailto:jan@swi.psy.uva.nl"><em>Jan Wielemaker</em></a><br>
@@ -43,22 +43,22 @@ DTD. The parser is designed to be small, fast and flexible.
 <li><a href="#sec-3">Predicate Reference</a>
 <ul>
 <li><a href="#sec-3.1">Loading Structured Documents</a>
-<li><a href="#sec:space">Handling white-space</a>
-<li><a href="#sec:xml">XML documents</a>
+<li><a href="#space">Handling white-space</a>
+<li><a href="#xml">XML documents</a>
 <ul>
-<li><a href="#sec:xmlns">XML Namespaces</a>
+<li><a href="#xmlns">XML Namespaces</a>
 </ul>
 <li><a href="#sec-3.4">DTD-Handling</a>
 <ul>
 <li><a href="#sec-3.4.1">The DOCTYPE declaration</a>
 </ul>
-<li><a href="#sec:implicitdtd">Extracting a DTD</a>
+<li><a href="#implicitdtd">Extracting a DTD</a>
 <li><a href="#sec-3.6">Parsing Primitives</a>
 <ul>
 <li><a href="#sec-3.6.1">Partial Parsing</a>
 </ul>
 </ul>
-<li><a href="#sec:indexaccess">Processing Indexed Files</a>
+<li><a href="#indexaccess">Processing Indexed Files</a>
 <li><a href="#sec-5">External entities</a>
 <li><a href="#sec-6">Missing functionality</a>
 <li><a href="#sec-7">Installation</a>
@@ -71,7 +71,7 @@ DTD. The parser is designed to be small, fast and flexible.
 <p>
 &nbsp;
 
-<h1><a name="sec-1">Introduction</a></h1>
+<h1><a name="sec:sec-1">Introduction</a></h1>
 
 <p>
 Markup languages have recently regained popularity for two reasons. One 
@@ -104,7 +104,7 @@ an SP interface to SWI-Prolog written by Anjo Anjewierden.
 <p>
 &nbsp;
 
-<h1><a name="sec-2">Bluffers Guide</a></h1>
+<h1><a name="sec:sec-2">Bluffers Guide</a></h1>
 
 <p>
 This package allows you to parse SGML, XML and HTML data into a Prolog 
@@ -190,7 +190,7 @@ details.
 <p>
 &nbsp;
 
-<h2><a name="sec-2.1">`Goodies' Predicates</a></h2>
+<h2><a name="sec:sec-2.1">`Goodies' Predicates</a></h2>
 
 <p>
 These predicates are for basic usage of the library, converting entire 
@@ -230,12 +230,12 @@ load_html_file(File, Term) :-
 <p>
 &nbsp;
 
-<h1><a name="sec-3">Predicate Reference</a></h1>
+<h1><a name="sec:sec-3">Predicate Reference</a></h1>
 
 <p>
 &nbsp;
 
-<h2><a name="sec-3.1">Loading Structured Documents</a></h2>
+<h2><a name="sec:sec-3.1">Loading Structured Documents</a></h2>
 
 <p>
 SGML or XML files are loaded through the common predicate
@@ -254,7 +254,7 @@ conversion process.
 <p>
 A proper XML document contains only a single toplevel element whose name
 matches the document type. Nevertheless, a list is returned for 
-consistency with the representation of element content. The <var>ListOfContent</var> consists of three types:
+consistency with the representation of element content. The <var>ListOfContent</var> consists of the following types:
 <dl>
 <dt>&nbsp;<br>
 <b><var>Atom</var></b><dd>
@@ -347,17 +347,17 @@ defined options are:
 Reference to a DTD object. If specified, the <code>&lt;!DOCTYPE ...&gt;</code>
 declaration is ignored and the document is parsed and validated against 
 the provided DTD. If provided as a variable, the implicitly created DTD 
-is returned. See <b>implicitdtd</b>.
+is returned. See <a href="#sec:implicitdtd">implicitdtd</a>.
     
 <dt>&nbsp;<br>
 <b>dialect(<var>+Dialect</var>)</b><dd>
 Specify the parsing dialect. Supported are <a name="const:sgml"><b><tt>sgml</tt></b></a> (default), <a name="const:xml"><b><tt>xml</tt></b></a> 
-and <a name="const:xmlns"><b><tt>xmlns</tt></b></a>. See <b>xml</b> for details on the differences.
+and <a name="const:xmlns"><b><tt>xmlns</tt></b></a>. See <a href="#sec:xml">xml</a> for details on the differences.
     
 <dt>&nbsp;<br>
 <b>space(<var>+SpaceMode</var>)</b><dd>
 Sets the `space-handling-mode' for the initial environment. This mode is
-inherited by the other environments and subject to the XML reserved tag <b><tt>xml:space</tt></b>. See <b>space</b>.
+inherited by the other environments and subject to the XML reserved tag <b><tt>xml:space</tt></b>. See <a href="#sec:space">space</a>.
     
 <dt>&nbsp;<br>
 <b>number(<var>+NumberMode</var>)</b><dd>
@@ -581,7 +581,7 @@ load_rdf_xml(File, Term) :-
 <p>
 &nbsp;
 
-<h2><a name="sec-3.4">DTD-Handling</a></h2>
+<h2><a name="sec:sec-3.4">DTD-Handling</a></h2>
 
 <p>
 The DTD (<b>D</b>ocument <b>T</b>ype <b>D</b>efinition) is a separate 
@@ -785,7 +785,7 @@ Yields the declared file for from a <a name="const:NOTATION%2"><b><tt>NOTATION</
 <p>
 &nbsp;
 
-<h3><a name="sec-3.4.1">The DOCTYPE declaration</a></h3>
+<h3><a name="sec:sec-3.4.1">The DOCTYPE declaration</a></h3>
 
 <p>
 As this parser allows for processing partial documents and process the 
@@ -849,7 +849,7 @@ elements_in_xml_document(File, Elements) :-
 <p>
 &nbsp;
 
-<h2><a name="sec-3.6">Parsing Primitives</a></h2>
+<h2><a name="sec:sec-3.6">Parsing Primitives</a></h2>
 
 <dl>
 <dt>&nbsp;<br>
@@ -875,6 +875,7 @@ document's content.
 <b><a name="free_sgml_parser/1">free_sgml_parser(<var>+Parser</var>)</a></b><dd>
 Destroy all resources related to the parser. This does not destroy the 
 DTD if the parser was created using the <code>dtd(DTD)</code> option.
+
     
 <dt>&nbsp;<br>
 <b><a name="set_sgml_parser/2">set_sgml_parser(<var>+Parser, +Option</var>)</a></b><dd>
@@ -892,6 +893,11 @@ Sets the current line. Useful if the stream is not at the start of the
 (file) object for generating proper line-numbers. 
     
 <dt>&nbsp;<br>
+<b>charpos(<var>Offset</var>)</b><dd>
+Sets the current character location.  See also the <code>file(File)</code>
+option.
+    
+<dt>&nbsp;<br>
 <b>dialect(<var>Dialect</var>)</b><dd>
 Set the markup dialect. Known dialects: 
 
@@ -905,14 +911,37 @@ attributes and omitted tags).
 <dt>&nbsp;<br>
 <b><a name="const:xml%3"><b><tt>xml</tt></b></a></b><dd>
 This dialect is selected automatically if the processing instruction <code>&lt;?xml ...&gt;</code>
-is encountered. See <b>xml</b> for details. 
+is encountered. See <a href="#sec:xml">xml</a> for details. 
     
 <dt>&nbsp;<br>
 <b><a name="const:xmlns%5"><b><tt>xmlns</tt></b></a></b><dd>
-Process file as XML file with namespace support. See <b>xmlns</b> for
+Process file as XML file with namespace support. See <a href="#sec:xmlns">xmlns</a> for
 details. 
 </dl>
+
+    
+<dt>&nbsp;<br>
+<b>space(<var>SpaceMode</var>)</b><dd>
+Define the initial handling of white-space in PCDATA.  This attribute is
+described in <a href="#sec:space">space</a>.
+    
+<dt>&nbsp;<br>
+<b>number(<var>NumberMode</var>)</b><dd>
+If <a name="const:token%2"><b><tt>token</tt></b></a> (default), attributes of type number are passed as a Prolog atom.
+If <a name="const:integer%2"><b><tt>integer</tt></b></a>, such attributes are translated into Prolog integers.  If
+the conversion fails (e.g. due to overflow) a warning is issued and the
+value is passed as an atom.
+    
+<dt>&nbsp;<br>
+<b>first_element(<var>Element</var>)</b><dd>
+Defines the toplevel element expected. If a <code>&lt;!DOCTYPE</code>
+declaration has been parsed, the default is the defined doctype. The
+parser can be instructed to accept the first element encountered as the
+toplevel element using <code>first_element(_)</code>. This feature is
+useful when parsing part of a document (see the <a name="const:parse"><b><tt>parse</tt></b></a> option to
+<a href="#sgml_parse/2"><b>sgml_parse/2</b></a>.
 </dl>
+
 
     
 <dt>&nbsp;<br>
@@ -929,7 +958,13 @@ file if an external entity is being loaded.
 <dt>&nbsp;<br>
 <b>charpos(<var>-CharPos</var>)</b><dd>
 Offset from where the parser started its processing in the file-object. 
-See <b>indexaccess</b>. 
+See <a href="#sec:indexaccess">indexaccess</a>. 
+    
+<dt>&nbsp;<br>
+<b>charpos(<var>-Start, -End</var>)</b><dd>
+Character offsets of the start and end of the source processed causing the
+current call-back.  Used in <b>PceEmacs</b> to for colouring text in
+SGML and XML modes.
     
 <dt>&nbsp;<br>
 <b>source(<var>-Stream</var>)</b><dd>
@@ -939,8 +974,38 @@ callbacks from <a href="#sgml_parse/2"><b>sgml_parse/2</b></a>.
 <dt>&nbsp;<br>
 <b>dialect(<var>-Dialect</var>)</b><dd>
 Return the current dialect used by the parser (<a name="const:sgml%5"><b><tt>sgml</tt></b></a>, <a name="const:xml%4"><b><tt>xml</tt></b></a> or <a name="const:xmlns%6"><b><tt>xmlns</tt></b></a>).
+    
+<dt>&nbsp;<br>
+<b>event_class(<var>-Class</var>)</b><dd>
+The <b><em>event class</em></b> can be requested in call-back events. It
+denotes the cause of the event, providing useful information for syntax
+highlighting.  Defined values are:
+    
+<dl>
+<dt>&nbsp;<br>
+<b><a name="const:explicit"><b><tt>explicit</tt></b></a></b><dd>
+The code generating this event is explicitely present in the
+        document.
+    
+<dt>&nbsp;<br>
+<b><a name="const:omitted"><b><tt>omitted</tt></b></a></b><dd>
+The current event is caused by the insertion of an omitted tag.
+	This may be a normal event in SGML mode or an error in XML mode.
+    
+<dt>&nbsp;<br>
+<b><a name="const:shorttag"><b><tt>shorttag</tt></b></a></b><dd>
+The current event (<a name="const:begin"><b><tt>begin</tt></b></a> or <a name="const:end"><b><tt>end</tt></b></a>) is caused by an
+	element written down using the <b><em>shorttag</em></b> notation
+	(<code>&lt;tag/value&gt;</code>.
+    
+<dt>&nbsp;<br>
+<b><a name="const:shortref"><b><tt>shortref</tt></b></a></b><dd>
+The current event is caused by the expansion of a
+	<b><em>shortref</em></b>. This allows for highlighting shortref strings
+	in the source-text.
+    
 </dl>
-
+</dl>
 
 
 
@@ -1011,7 +1076,7 @@ For example:
 <table width="90%" align="center" border="2" bgcolor="#f0f0f0">
 <tr><td>
 <pre>
-?- parse_atom('&lt;h1&gt;hello world&lt;/title&gt;', X).
+?- parse_atom('&lt;h1&gt;hello world&lt;/h1&gt;', X).
 
 X = [element(h1, [], ['hello world'])] 
 </pre>
@@ -1028,10 +1093,13 @@ If <a name="const:file"><b><tt>file</tt></b></a> (default), parse everything upt
 the element is complete, and another call may be issued on the same
 stream to read the next element. Using <code>goal(Goal)</code> as input,
 the stream reports an I/O error after completing the first element. This
-exception destroyes the built <code>dcoument(Term)</code>, making this
+exception destroyes the built <code>document(Term)</code>, making this
 option useless using `Goal' driven input. The value <a name="const:content"><b><tt>content</tt></b></a> may be
 used in a call-back from <code>call(<a name="const:on_begin%2"><b><tt>on_begin</tt></b></a>, Pred)</code> to parse
-individual elements after validating their headers. 
+individual elements after validating their headers.  Finally, the value
+<a name="const:declaration"><b><tt>declaration</tt></b></a> may be used to stop the parser after reading the first
+declaration.  This is especially useful to parse only the <code>doctype</code>
+declaration.
 
     
 <dt>&nbsp;<br>
@@ -1087,32 +1155,56 @@ handler is called with two arguments: <code><var>Handler</var>(+NameOrCode,
 <dt>&nbsp;<br>
 <b>pi</b><dd>
 A processing instruction has been parsed. The named handler is called 
-with two arguments: <code><var>Handler</var>(+Text, +Parser)</code>, where <var>Text</var> is the text of the processing instruction. 
+with two arguments: <code><var>Handler</var>(+Text, +Parser)</code>, where
+<var>Text</var> is the text of the processing instruction. 
+    
+<dt>&nbsp;<br>
+<b>decl</b><dd>
+A declaration (<code>&lt;!...&gt;</code>) has been read. The named handler is
+called with two arguments: <code><var>Handler</var>(+Text, +Parser)</code>,
+where <var>Text</var> is the text of the declaration stripped from comments. 
+
+
+
+<p>
+This option is expecially useful for highlighting declarations and comments in
+editor support, where the location of the declaration is extracted using
+<a href="#get_sgml_parser/2"><b>get_sgml_parser/2</b></a>.
+    
+<dt>&nbsp;<br>
+<b>error</b><dd>
+An error has been encountered.  the named handler is called with three
+arguments: <code><var>Handler</var>(+Severity, +Message, +Parser)</code>, where
+<var>Severity</var> is one of <a name="const:warning"><b><tt>warning</tt></b></a> or <a name="const:error"><b><tt>error</tt></b></a> and <var>Message</var> is
+an atom representing the diagnostic message.  The location of the error
+can be determined using <a href="#get_sgml_parser/2"><b>get_sgml_parser/2</b></a>
+
+
+
+<p>
+If this option is present, errors and warnings are not reported using
+<b>print_message/3</b>
     
 <dt>&nbsp;<br>
 <b>xmlns</b><dd>
 When parsing an in <a name="const:xmlns%7"><b><tt>xmlns</tt></b></a> mode, a new namespace declaraction is 
 pushed on the environment. The named handler is called with three 
-arguments: <code><var>Handler</var>(+NameSpace, +URL, +Parser)</code>. See <b>xmlns</b>
-for details. 
+arguments: <code><var>Handler</var>(+NameSpace, +URL, +Parser)</code>.
+See <a href="#sec:xmlns">xmlns</a> for details. 
     
 <dt>&nbsp;<br>
 <b>urlns</b><dd>
 When parsing an in <a name="const:xmlns%8"><b><tt>xmlns</tt></b></a> mode, this predicate can be used to map a 
 url into either a canonical URL for this namespace or another internal 
-identifier. See <b>xmlns</b> for details. 
+identifier. See <a href="#sec:xmlns">xmlns</a> for details. 
 </dl>
-
-
 </dl>
-
-
 </dl>
 
 <p>
 &nbsp;
 
-<h3><a name="sec-3.6.1">Partial Parsing</a></h3>
+<h3><a name="sec:sec-3.6.1">Partial Parsing</a></h3>
 
 <p>
 In some cases, part of a document needs to be parsed. One option is to 
@@ -1250,7 +1342,7 @@ rdf_element(Id, Term) :-
 <p>
 &nbsp;
 
-<h1><a name="sec-5">External entities</a></h1>
+<h1><a name="sec:sec-5">External entities</a></h1>
 
 <p>
 While processing an SGML document the document may refer to external 
@@ -1268,7 +1360,7 @@ Catalog files can be specified using two primitives: the predicate <a href="#sgm
 <dt>&nbsp;<br>
 <b><a name="sgml_register_catalog_file/2">sgml_register_catalog_file(<var>+File, +Location</var>)</a></b><dd>
 Register the indicated <var>File</var> as a catalog file. <var>Location</var> is
-either <a name="const:start"><b><tt>start</tt></b></a> or <a name="const:end"><b><tt>end</tt></b></a> and defines whether the catalog is 
+either <a name="const:start"><b><tt>start</tt></b></a> or <a name="const:end%2"><b><tt>end</tt></b></a> and defines whether the catalog is 
 considered first or last. This predicate has no effect if <var>File</var> is
 already part of the catalog.
 
@@ -1311,7 +1403,7 @@ resources can be used to store external entities.
 <p>
 &nbsp;
 
-<h1><a name="sec-6">Missing functionality</a></h1>
+<h1><a name="sec:sec-6">Missing functionality</a></h1>
 
 <p>
 The current parser is rather limited. Though suitable to deal with many 
@@ -1345,12 +1437,12 @@ in XML. Also various extensions of XML over SGML are not yet realised.
 <p>
 &nbsp;
 
-<h1><a name="sec-7">Installation</a></h1>
+<h1><a name="sec:sec-7">Installation</a></h1>
 
 <p>
 &nbsp;
 
-<h2><a name="sec-7.1">Unix systems</a></h2>
+<h2><a name="sec:sec-7.1">Unix systems</a></h2>
 
 <p>
 Installation on Unix system uses the commonly found <code>configure</code>,
@@ -1381,7 +1473,7 @@ the Prolog library files in <b>$PLBASE/library</b>, where
 <p>
 &nbsp;
 
-<h1><a name="sec-8">Acknowledgements</a></h1>
+<h1><a name="sec:sec-8">Acknowledgements</a></h1>
 
 <p>
 The Prolog representation for parsed documents is based on the 
@@ -1444,15 +1536,19 @@ deleted. This is not yet implemented.
 <li><a href="#const:amp"><b><tt>amp</tt></b></a>
 <li><a href="#const:any"><b><tt>any</tt></b></a>
 <li><a href="#const:apos"><b><tt>apos</tt></b></a>
+<li><a href="#const:begin"><b><tt>begin</tt></b></a>
 <li><a href="#const:cdata"><b><tt>cdata</tt></b></a> [ <a href="#const:cdata%2">2</a>]
 <li><a href="#const:content"><b><tt>content</tt></b></a>
+<li><a href="#const:declaration"><b><tt>declaration</tt></b></a>
 <li><a href="#const:default"><b><tt>default</tt></b></a> [ <a href="#const:default%2">2</a>]
 <li><a href="#dtd/2"><b>dtd/2</b></a>
 <li><a href="#dtd_property/2"><b>dtd_property/2</b></a>
 <li><a href="#const:element"><b><tt>element</tt></b></a>
 <li><a href="#const:empty"><b><tt>empty</tt></b></a>
-<li><a href="#const:end"><b><tt>end</tt></b></a>
+<li><a href="#const:end"><b><tt>end</tt></b></a> [ <a href="#const:end%2">2</a>]
 <li><a href="#const:entity"><b><tt>entity</tt></b></a>
+<li><a href="#const:error"><b><tt>error</tt></b></a>
+<li><a href="#const:explicit"><b><tt>explicit</tt></b></a>
 <li><a href="#const:false"><b><tt>false</tt></b></a>
 <li><a href="#const:file"><b><tt>file</tt></b></a>
 <li><a href="#const:fixed"><b><tt>fixed</tt></b></a>
@@ -1462,7 +1558,7 @@ deleted. This is not yet implemented.
 <li><a href="#const:gt"><b><tt>gt</tt></b></a>
 <li><a href="#const:id"><b><tt>id</tt></b></a>
 <li><a href="#const:idref"><b><tt>idref</tt></b></a>
-<li><a href="#const:integer"><b><tt>integer</tt></b></a>
+<li><a href="#const:integer"><b><tt>integer</tt></b></a> [ <a href="#const:integer%2">2</a>]
 <li><a href="#load_dtd/2"><b>load_dtd/2</b></a>
 <li><a href="#load_html_file/2"><b>load_html_file/2</b></a>
 <li><a href="#load_sgml_file/2"><b>load_sgml_file/2</b></a>
@@ -1476,8 +1572,10 @@ deleted. This is not yet implemented.
 <li><a href="#const:notation"><b><tt>notation</tt></b></a>
 <li><a href="#const:number"><b><tt>number</tt></b></a>
 <li><a href="#const:nutoken"><b><tt>nutoken</tt></b></a>
+<li><a href="#const:omitted"><b><tt>omitted</tt></b></a>
 <li><a href="#const:on_begin"><b><tt>on_begin</tt></b></a> [ <a href="#const:on_begin%2">2</a>]
 <li><a href="#open_dtd/3"><b>open_dtd/3</b></a>
+<li><a href="#const:parse"><b><tt>parse</tt></b></a>
 <li><a href="#const:preserve"><b><tt>preserve</tt></b></a>
 <li><a href="#const:quot"><b><tt>quot</tt></b></a>
 <li><a href="#const:rdf"><b><tt>rdf</tt></b></a> [ <a href="#const:rdf%2">2</a>]
@@ -1487,10 +1585,13 @@ deleted. This is not yet implemented.
 <li><a href="#const:sgml"><b><tt>sgml</tt></b></a> [ <a href="#const:sgml%2">2</a> <a href="#const:sgml%3">3</a> <a href="#const:sgml%4">4</a> <a href="#const:sgml%5">5</a>]
 <li><a href="#sgml_parse/2"><b>sgml_parse/2</b></a>
 <li><a href="#sgml_register_catalog_file/2"><b>sgml_register_catalog_file/2</b></a>
+<li><a href="#const:shortref"><b><tt>shortref</tt></b></a>
+<li><a href="#const:shorttag"><b><tt>shorttag</tt></b></a>
 <li><a href="#const:start"><b><tt>start</tt></b></a>
-<li><a href="#const:token"><b><tt>token</tt></b></a>
+<li><a href="#const:token"><b><tt>token</tt></b></a> [ <a href="#const:token%2">2</a>]
 <li><a href="#const:true"><b><tt>true</tt></b></a>
 <li><a href="#const:urlns"><b><tt>urlns</tt></b></a>
+<li><a href="#const:warning"><b><tt>warning</tt></b></a>
 <li><a href="#const:xml"><b><tt>xml</tt></b></a> [ <a href="#const:xml%2">2</a> <a href="#const:xml%3">3</a> <a href="#const:xml%4">4</a>]
 <li><a href="#const:xmlns"><b><tt>xmlns</tt></b></a> [ <a href="#const:xmlns%2">2</a> <a href="#const:xmlns%3">3</a> <a href="#const:xmlns%4">4</a> <a href="#const:xmlns%5">5</a> <a href="#const:xmlns%6">6</a> <a href="#const:xmlns%7">7</a> <a href="#const:xmlns%8">8</a>]
 </ul>
