@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+VERSION 5.5.12 (April 04, 2005)
+===============================
+
   * MODIFIED: write(1.0) --> 1.0.  I.e. floats are always written with
     either a . or an 'e' inside them.  Paulo Moura.
 
