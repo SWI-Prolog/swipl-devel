@@ -785,14 +785,18 @@ ws_attach_wm_prototols_frame(FrameObj fr)
 
 status
 ws_frame_bb(FrameObj fr, int *x, int *y, int *w, int *h)
-{ if ( getHwndFrame(fr) )
+{ HWND hwnd;
+
+  if ( (hwnd=getHwndFrame(fr)) )
   { RECT rect;
 
-    GetWindowRect(getHwndFrame(fr), &rect);
+    GetWindowRect(hwnd, &rect);
     *x = rect.left;
     *y = rect.top;
     *w = rect.right - rect.left;
     *h = rect.bottom - rect.top;
+    DEBUG(NAME_geometry, Cprintf("Got bb=%d %d %d %d from %p\n",
+				 *x, *y, *w, *h, hwnd));
 
     succeed;
   }

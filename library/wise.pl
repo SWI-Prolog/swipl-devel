@@ -31,7 +31,8 @@
 
 :- module(wise_install,
 	  [ wise_install/0,
-	    wise_install_xpce/0
+	    wise_install_xpce/0,
+	    unwise_install/0
 	  ]).
 :- use_module(library(progman)).
 :- use_module(library(registry)).
@@ -42,6 +43,44 @@ Wise installation shield. This module is  *not* for end-users (but might
 be useful as an example for handling some Windows infra-structure).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+:- dynamic
+	variable/2.
+
+unwise_install :-
+	prompt_values,
+	wise_install.
+
+prompt_values :-
+	new(D, dialog('Settings')),
+	send(D, append, new(Reg, menu(register, choice))),
+	send_list(Reg, append, [yes, no]),
+	send(D, append, new(Ext, text_item(extension, pl))),
+	send(D, append, new(Grp, text_item(group, 'SWI'))),
+	expand_file_name(~, [Home]),
+	send(D, append, new(Dir, text_item(directory, Home))),
+	send(D, append, button(ok, message(D, return, ok))),
+	send(D, append, button(cancel, message(D, destroy))),
+	get(D, confirm_centered, _),
+	(   get(Reg, selection, yes)
+	->  assert(variable('REGISTER', true))
+	;   assert(variable('REGISTER', false))
+	),
+	get(Ext, selection, ExtVal),
+	assert(variable('EXT', ExtVal)),
+	get(Grp, selection, GrpVal),
+	assert(variable('GROUP', GrpVal)),
+	get(Dir, selection, DirVal),
+	assert(variable('PLCWD', DirVal)),
+	send(D, destroy).
+
+
+		 /*******************************
+		 *	    COMMON PART		*
+		 *******************************/
+
+get_wise_variable(Name, Value) :-
+	variable(Name, X), !,
+	X = Value.
 get_wise_variable(Name, Value) :-
 	open_dde_conversation('WiseInst', Name, Handle),
 	dde_request(Handle, -, RawVal),

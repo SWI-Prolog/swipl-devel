@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: unwise_install to wise.pl to do the registration after running
+    Wise.
+
   * FIXED: qsave_program handling of loaded foreign libraries.  Reported
     by Fabien Todescato.
 
