@@ -20,7 +20,7 @@ AC_SUBST(TARGETS)
 AC_SUBST(PLTARGETS)
 
 if test -z "$PLINCL"; then
-plcandidates="pl swipl swi-prolog"
+plcandidates="swi-prolog swipl pl"
 AC_CHECK_PROGS(PL, $plcandidates, "none")
 AC_CHECK_PROGS(PLLD, plld, "none")
 if test $PLLD = "none"; then

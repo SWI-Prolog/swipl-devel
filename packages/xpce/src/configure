@@ -2388,7 +2388,7 @@ echo "${ECHO_T}\"No $plprefix/lib/rt-pl-*/bin/$ARCH-$OS/pl\"" >&6;
     fi
     plcandidates="plrt"
   else
-    plcandidates="swipl swi-prolog pl"
+    plcandidates="swi-prolog swipl pl"
   fi
   for ac_prog in $plcandidates
 do

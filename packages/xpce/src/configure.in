@@ -153,7 +153,7 @@ if test "$swipl" != "no"; then
     fi
     plcandidates="plrt"
   else
-    plcandidates="swipl swi-prolog pl"
+    plcandidates="swi-prolog swipl pl"
   fi
   AC_CHECK_PROGS(PL, $plcandidates, "none")
   if test $PL = "none"; then

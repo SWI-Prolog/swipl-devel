@@ -6,7 +6,7 @@ AC_SUBST(PL)
 AC_SUBST(PLBASE)
 
 if test -z "$PLBASE"; then
-plcandidates="pl swipl swi-prolog"
+plcandidates="swi-prolog swipl pl"
 AC_CHECK_PROGS(PL, $plcandidates, "none")
 if test $PL = "none"; then
    AC_ERROR("Cannot find SWI-Prolog. SWI-Prolog must be installed first")

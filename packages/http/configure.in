@@ -10,7 +10,7 @@ AC_SUBST(PLARCH)
 unset ac_cv_prog_PL
 
 if test -z "$PLINCL"; then
-plcandidates="pl swipl swi-prolog"
+plcandidates="swi-prolog swipl pl"
 AC_CHECK_PROGS(PL, $plcandidates, "none")
 if test $PL = "none"; then
    AC_ERROR("Cannot find SWI-Prolog. SWI-Prolog must be installed first")

@@ -35,7 +35,7 @@ LD=$CC
 unset ac_cv_prog_PL
 
 if test -z "$PLINCL"; then
-plcandidates="$with_prolog swipl swi-prolog pl"
+plcandidates="$with_prolog swi-prolog swipl pl"
 AC_CHECK_PROGS(PL, $plcandidates, "none")
 AC_CHECK_PROGS(PLLD, plld, "none")
 if test $PLLD = "none"; then
