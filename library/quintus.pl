@@ -27,12 +27,14 @@
 		*      SYSTEM INTERACTION       *
 		*********************************/
 
-%	unix( +Action )
-%	interface to  Unix.   Currently  only  `system(  Command  )'  is
+%	unix(+Action)
+%	interface to  Unix.   Currently  only  `system( Command)'  is
 %	available as `Action'.
 
-unix( system(Command) ) :-
-	shell( Command ).
+unix(system(Command)) :-
+	shell(Command).
+unix(access(File, 0)) :-
+	access_file(File, read).
 
 %	file_exists( +File )
 %	Succeeds if `File' exists as a file or directory in the Unix file
