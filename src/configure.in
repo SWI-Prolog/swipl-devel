@@ -819,5 +819,16 @@ fi
 
 AC_OUTPUT($OutputFiles)
 
+cat << _EOM_
+****************************************************************
+* Now type the following to make and install the basic environment
+*
+*	% make
+*	% make install
+*
+* To complete the environment, goto the packages directory and check
+* the README file for further instructions.
+****************************************************************
 
+_EOM_
 

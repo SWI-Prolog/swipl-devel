@@ -22,6 +22,15 @@ mailinglist archive, various additional packages, etc.
 	http://www.swi.psy.uva.nl/projects/SWI-Prolog/
 
 
+DOCUMENTATION
+=============
+
+Documentation is available  on-line  using   the  help/1  and  apropos/1
+commands. HTML and PDF versions of  the   manual  are available from the
+SWI-Prolog  home  page.  The  add-on  packages  are  documented  in  the
+doc/packages directory of the installed system.
+
+
 DIRECTORIES
 ===========
 
@@ -66,6 +75,22 @@ management.
 	./configure --disable-mapped-stacks
 
 Run `make clean && make' to recompile after reconfiguration.
+
+After installing the basic system (SWI-Prolog/lite)  you can install the
+add-ons. To do this, go to the  packages directory. Edit in Makefile the
+PKG macro to define the packages you wish to install. Make sure you have
+all required software around. Notably the XPCE toolkit requires
+
+	* libjpeg  (http://www.ijg.org/)
+	* libXPM   (http://www-sop.inria.fr/koala/lehors/xpm.html)
+	* The X11 development headers and libraries
+
+Now run
+
+	./configure
+	make
+	make install
+
 
 MS-Windows
 ----------

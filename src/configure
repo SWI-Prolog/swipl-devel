@@ -5416,5 +5416,16 @@ rm -fr confdefs* $ac_clean_files
 test "$no_create" = yes || ${CONFIG_SHELL-/bin/sh} $CONFIG_STATUS || exit 1
 
 
+cat << _EOM_
+****************************************************************
+* Now type the following to make and install the basic environment
+*
+*	% make
+*	% make install
+*
+* To complete the environment, goto the packages directory and check
+* the README file for further instructions.
+****************************************************************
 
+_EOM_
 

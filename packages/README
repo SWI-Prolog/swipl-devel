@@ -9,11 +9,26 @@ creates Makefile, copying some of the   configuration  settings from the
 SWI-Prolog configuration options.
 
 Now edit the PKG variable  in  Makefile   to  reflect  the  packages and
-options preferred. Then run
+options preferred. If you install XPCE  (strongly recommended for better
+online help, graphical  tracer,  integrated   editor  and  powerful  GUI
+toolkit), make sture to have  the   following  installed in a searchable
+place:
+
+	* libjpeg  (http://www.ijg.org/)
+	* libXPM   (http://www-sop.inria.fr/koala/lehors/xpm.html)
+	* The X11 development headers and libraries
+
+Now run
 
 	./configure
 	./make
 	./make install
+
+And   optional   one   of   the   HTML     or   PDF   documentation   in
+$(PLBASE)/doc/packages using:
+
+	./make html-install
+	./make pdf-install
 
 Provided packages
 -----------------

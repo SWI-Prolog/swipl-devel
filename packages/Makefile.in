@@ -18,11 +18,14 @@ prefix=@prefix@
 PL=@PL@@RT@
 PLVERSION=@PLVERSION@
 PLBASE=$(prefix)/lib/@PL@-$(PLVERSION)
+PKGDOC=$(PLBASE)/doc/packages
 PLLIBS=@LIBS@
 PLARCH=@ARCH@
 PLLDFLAGS=@LDFLAGS@
 PLINCL=$(shell dirname `pwd`)/include
 PLSHARED=@PLSHARED@
+INSTALL=@INSTALL@
+INSTALL_DATA=@INSTALL_DATA@
 
 # How to run configure.  We pass the information required from SWI-Prolog
 # in the environment.  All configure scripts in the packages are designed
@@ -60,6 +63,7 @@ html-install:
 	for p in $(PKG); do \
 	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ); fi; \
         done
+	$(INSTALL_DATA) index.html $(PKGDOC)
 	
 configure::
 	@echo "**********************"

@@ -329,6 +329,9 @@ SWI-Prolog user libraries.
 SWI-Prolog kernel parts written in Prolog.  The startup file
 @prefix@/lib/@PL@-@PLVERSION@/boot32.prc may be recreated using
 the command from the directory @prefix@/lib/@PL@-@PLVERSION@:
+.TP
+.I @prefix@/lib/@PL@-@PLVERSION@/doc/packages
+HTML and/or PDF documentation on the installed add-ons.
 .RS
 .TP
 bin/@ARCH@/@PL@ -O -o boot32.prc -b boot/init.pl
@@ -349,8 +352,11 @@ The SWI-Prolog web-home at
 .I http://www.swi.psy.uva.nl/projects/SWI-Prolog/ 
 .PP
 Jan\ Wielemaker
-.IR "SWI-Prolog 4.0 Reference Manual" ,
-University of Amsterdam, Dept. of Social Science and Informatics (SWI).
+.IR "SWI-Prolog 4.0 Reference Manual" at
+.I http://www.swi.psy.uva.nl/projects/SWI-Prolog/Manual/
+.PP
+Documentation on the add-on packages in
+.I @prefix@/lib/@PL@-@PLVERSION@/boot/doc
 .PP
 William\ F.\ Clocksin & Christopher\ S.\ Mellish,
 .IR "Programming in Prolog" ,
