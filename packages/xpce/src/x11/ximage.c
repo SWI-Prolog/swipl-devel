@@ -218,6 +218,7 @@ ws_load_image_file(Image image)
     openDisplay(image->display);
 
     r = image->display->ws_ref;
+
     d = r->display_xref;
 
     i = read_ppm_file(d, 0, 0, fd);
@@ -575,9 +576,14 @@ static XImage *
 MakeXImage(Display *dpy, XImage *oimage, int w, int h)
 { XImage *I;
   char *data;
-  int bytes_per_line = ROUNDUP((w * oimage->depth + 7)/8,
+  int bytes_per_line = ROUNDUP((w * oimage->bits_per_pixel + 7)/8,
 			       oimage->bitmap_pad/8);
     
+  DEBUG(NAME_image,
+	if ( oimage->depth != oimage->bits_per_pixel )
+	  Cprintf("depth = %d, bits_per_pixel = %d\n",
+		  oimage->depth, oimage->bits_per_pixel));
+
   /* reserve memory for image */
   data = malloc(bytes_per_line * h);
   if ( data == NULL )
