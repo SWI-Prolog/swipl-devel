@@ -403,8 +403,8 @@ if the parameter is specified as
 atom > date
 \end{code}
 
-The use must supply an atom of format \exam{YYYY-MM-DD} rather than a
-term \term{date}{Year,Month,Day}.  This construct enhances flexibility
+The use must supply an atom of the format \exam{YYYY-MM-DD} rather than
+a term \term{date}{Year,Month,Day}. This construct enhances flexibility
 and allows for passing values that have no proper representation in
 Prolog.
 \end{description}

@@ -89,8 +89,12 @@ type(decimal(10,2),
      atom = ['3.43', '4.50', '5.00', '$null$'],
      [
      ]).
-type(decimal(6,2),
+type(decimal(6,2),			% truncating test
      atom = ['1000.00'],
+     [
+     ]).
+type(decimal(14,2),			% truncating test
+     atom = ['17.45'],
      [
      ]).
 type(numeric(10),
@@ -145,9 +149,7 @@ test_type(Type) :-
 	Type =.. [ODBCName|_Args],
 	(   odbc_type(test, ODBCName, name(_DbName))
 	->  progress('Type ~w:', [Type]),
-	    catch(odbc_query(test, 'drop table test'), _, true),
-	    odbc_query(test,
-		       'create table ~w (testval ~w)'-[test, Type]),
+	    create_test_table(Type),
 	    progress(' (w)', []),
 	    insert_values(test, Type, PlType, Values),
 	    progress(' (r)', []),
@@ -349,6 +351,32 @@ prepfoo :-
 		     S,
 		     []),
 	writeln(S).
+
+
+		 /*******************************
+		 *	 GENERIC ACTIONS	*
+		 *******************************/
+
+create_test_table(Type) :-
+	catch(odbc_query(test, 'drop table test'), _, true),
+	odbc_query(test,
+		   'create table ~w (testval ~w)'-[test, Type]).
+
+
+		 /*******************************
+		 *	   SPECIAL TESTS	*
+		 *******************************/
+
+test(decimal) :-
+	create_test_table(decimal(14,2)),
+	odbc_prepare(test,
+		     'insert into test (testval) values (?)',
+		     [ decimal(14,2) ],
+		     Statement),
+	odbc_execute(Statement, ['17.45'], affected(Affected)),
+	progress('Affected ~w rows', [Affected]),
+	odbc_query(test, 'select * from test', row('17.45')),
+	progress(' OK!~n', []).
 
 
 		 /*******************************
