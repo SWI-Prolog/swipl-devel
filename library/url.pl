@@ -5,12 +5,19 @@
     E-mail: jan@swi.psy.uva.nl
 
     Copyright (C) 2000 University of Amsterdam.
+
+    Extended (handling of URL fragments)
+    and modified (search as parameter list)
+    by Lukas Faulstich 
+    E-mail: faulstic@inf.fu-berlin.de
+
     Licence: GPL
 */
 
 :- module(url,
-	  [ parse_url/2,		% +URL, -Parts
-	    parse_url/3,		% +BaseURL, +URL|URI, -Parts
+	  [ parse_url/2,		% +URL, -Parts | -URL +Parts
+	    parse_url/3,		% +URL|URI, +BaseURL, -Parts
+	    				% -URL, +BaseURL, +Parts
 	    global_url/3,		% +Local, +Base, -Global
 	    http_location/2,		% +Parts, -Location
 	    www_form_encode/2		% Value <-> Encoded
@@ -37,22 +44,30 @@ parse_url(+URL, -Parts)
 	port		Network based protocols
 	path		file,http,ftp
 	search		http
+        fragment	http
 
     For example:
 
-    ?- parse_url('http://swi.psy.uva.nl/hello?world', P).
+    ?- parse_url('http://swi.psy.uva.nl/message.cgi?msg=Hello+World%21', P).
 
-    P = [ protocol(http),
-	  search(world),
-	  path('/hello'),
+    P = [ protocol(http), 
+	  search([msg='Hello World!']), 
+	  path('/message.cgi'), 
 	  host('swi.psy.uva.nl')
-	] 
+        ] 
+
+parse_url(-URL, +Parts)
+    Create a URL from its parts (see above). 	
 
 parse_url(+URL, +BaseURL, -Parts)
     As above, but `URL' may be relative to some base url.  If URL is
     absolute, BaseURL is ignored.
 
-global_url(+URL, +BaseURL, +AbsoluteUrl)
+parse_url(-URL, +BaseURL, +Parts)
+    Construct absolute URL from its parts and a base url, with default
+    parts taken from BaseURL. 
+
+global_url(+URL, +BaseURL, -AbsoluteUrl)
     Transform a possible local URL into a global one.
 
 http_location(+Parts, -Location)
@@ -111,11 +126,12 @@ curl(http, A) -->
 	cpart(host, "", A),
 	cpart(port, ":", A),
 	cpart(path, "", A),
-	cpart(search, "?", A).
+	csearch(A),
+	cpart(fragment, "#", A).
 
 curi(A) -->
 	cpart(path, "", A),
-	cpart(search, "?", A).
+	csearch(A).
 
 cpart(Field, Sep, A) -->
 	{ Term =.. [Field, Value],
@@ -129,6 +145,31 @@ cpart(_,_,_) -->
 catomic(A, In, Out) :-
 	atom_codes(A, Codes),
 	append(Codes, Out, In).
+
+csearch(A)--> 
+	{ memberchk(search(Parameters), A) } -> 
+	csearch(Parameters, "?")
+    ;   []. 
+
+csearch([], _) --> 
+	[].
+csearch([Parameter|Parameters], Sep) --> !, 
+	Sep, 
+	cparam(Parameter), 
+	csearch(Parameters, "&"). 
+
+cparam(Name=Value) --> !, 
+	cform(Name), 
+	"=", 
+	cform(Value). 
+cparam(Name)--> 
+	cform(Name). 
+	
+
+cform(Atom) --> 
+	{ www_form_encode(Atom, Encoded) }, 
+	catomic(Encoded). 
+
 		
 		 /*******************************
 		 *	      PARSING		*
@@ -156,19 +197,35 @@ parse_url(URL, Attributes) :-
 	atom_codes(URL, Codes).
 
 
+
 parse_url(URL, BaseURL, Attributes) :-
+	nonvar(URL), !, 
 	atom_codes(URL, Codes),
 	(   phrase(absolute_url, Codes, _)
 	->  phrase(url(Attributes), Codes)
 	;   parse_url(BaseURL, BaseA0),
 	    memberchk(protocol(Protocol), BaseA0),
 	    select(path(BasePath), BaseA0, BaseA1),
-	    delete(BaseA1, search(_), BaseA),
+	    delete(BaseA1, search(_), BaseA2),
+	    delete(BaseA2, fragment(_), BaseA3),
 	    phrase(uri(Protocol, URIA0), Codes),
 	    select(path(LocalPath), URIA0, URIA1),
 	    globalise_path(LocalPath, BasePath, Path),
-	    append(BaseA, [path(Path)|URIA1], Attributes)
+	    append(BaseA3, [path(Path)|URIA1], Attributes)
 	).
+
+parse_url(URL, BaseURL, Attributes) :-
+	parse_url(BaseURL, BaseAttributes), 
+	memberchk(path(BasePath), BaseAttributes), 
+	(memberchk(path(LocalPath), Attributes) ->
+	    globalise_path(LocalPath, BasePath, Path)
+	; 
+	    Path= BasePath
+	), 	 
+	append([path(Path)|Attributes], BaseAttributes, GlobalAttributes), 
+	phrase(curl(GlobalAttributes), Chars), 
+	atom_codes(URL, Chars).
+
 	
 globalise_path(LocalPath, _, LocalPath) :-
 	is_absolute_file_name(LocalPath), !. % make file:drive:path work on MS
@@ -233,24 +290,45 @@ implicit_http(Attributes) -->
 	;   { A2 = A1
 	    }
 	),
-	{ Attributes = A2
+	(   "#"
+	->  fragment(Fragment),
+	    { A3 = [fragment(Fragment)|A2]
+	    }
+	;   { A3 = A2
+	    }
+	),
+	{ Attributes = A3
 	}.
 
 %	uri(+Protocol, -Attributes)
 %
 %	resolve attributes of local URL
 
-uri(http, [path(Path)|A]) -->
+uri(http, [path(Path)|A1]) -->
 	path(Path),
 	(   "?"
 	->  search(Search),
-	    { A = [search(Search)]
+	    { A1 = [search(Search)|A2]
 	    }
-	;   { A = []
+	;   { A1 = A2
+	    }
+	),
+	(   "#"
+	->  fragment(Fragment),
+	    { A2 = [fragment(Fragment)]
+	    }
+	;   { A2 = []
 	    }
 	).
-uri(file, [path(Path)]) -->
-	path(Path).
+uri(file, [path(Path)|A2]) -->
+	path(Path),
+	(   "#"
+	->  fragment(Fragment),
+	    { A2 = [fragment(Fragment)]
+	    }
+	;   { A2 = []
+	    }
+	).
 
 
 		 /*******************************
@@ -318,17 +396,45 @@ segment(Segment) -->
 	{ atom_codes(Segment, Chars)
 	}.
 
-search(Search) -->
-	xalphas(Part1Chars),
-	{ atom_codes(Part1, Part1Chars)
-	},
-	(   "+"
-	->  search(Rest),
-	    { concat_atom([Part1, +, Rest], Search)
-	    }
-	;   { Search = Part1
-	    }
-	).
+% search(Search) -->
+% 	xalphas(Part1Chars),
+% 	{ atom_codes(Part1, Part1Chars)
+% 	},
+% 	(   "+"
+% 	->  search(Rest),
+% 	    { concat_atom([Part1, +, Rest], Search)
+% 	    }
+% 	;   { Search = Part1
+% 	    }
+% 	).
+
+search([Parameter|Parameters])--> 
+	parameter(Parameter), !,  
+	(   "&"
+        ->  search(Parameters)
+        ;   { Parameters = [] }
+        ). 
+search([]) --> 
+	[].
+
+parameter(Param)--> !, 
+	parameter_component(Name), 
+	(   "="
+        ->  parameter_component(Value), 
+	    { Param = (Name = Value) }
+        ;   { Param = Name }
+        ).
+
+
+parameter_component(Component)-->
+	search_chars(String), 
+	{ atom_codes(Component, String) }. 
+
+
+fragment(Fragment) --> 
+	fragment_chars(FragmentChars), 
+	{ atom_codes(Fragment, FragmentChars) }. 
+
 
 		 /*******************************
 		 *	       BASICS		*
@@ -356,6 +462,24 @@ xalphas([C|T]) -->
 xalphas([]) -->
 	[].
 
+search_chars([0' | T]) --> 
+	"+", !, 
+	search_chars(T). 
+	
+search_chars([C|T]) -->
+	search_char(C), !, 
+	search_chars(T).
+search_chars([]) -->
+	[].
+
+fragment_chars([C|T]) -->
+	fragment_char(C), !, 
+	fragment_chars(T).
+fragment_chars([]) -->
+	[].
+
+
+
 ialpha(Atom) -->
 	alpha(C0),
 	xalphas(S),
@@ -382,6 +506,8 @@ escape(C) -->
 	  C is 16*D1 + D2
 	}.
 
+
+
 xalpha(C, [C|T], T) :-
 	(   code_type(C, alnum)		% alpha | digit
 	;   safe(C)
@@ -389,6 +515,26 @@ xalpha(C, [C|T], T) :-
 	), !.
 xalpha(C) -->
 	escape(C).
+
+search_char(C, [C|T], T) :-
+	(   code_type(C, alnum)		% alpha | digit
+	;   search_char(C)
+	;   extra(C)
+	), !.
+search_char(C) -->
+	escape(C). 
+
+
+fragment_char(C, [C|T], T):- 
+	(   code_type(C, alnum)		% alpha | digit
+	;   safe(C)
+	;   extra(C)
+        ;   reserved(C)
+	), !.
+fragment_char(C) --> 
+	escape(C). 
+
+
 
 safe(0'$).
 safe(0'-).
@@ -398,6 +544,20 @@ safe(0'.).
 safe(0'&).
 safe(0'+).
 safe(0'~).				% JW: not official URL
+safe(0'=).				% LCF: not official URL
+
+
+search_char(0'$).
+search_char(0'-).
+search_char(0'_).
+search_char(0'@).
+search_char(0'.).
+search_char(0'+).
+search_char(0'~).			% JW: not official URL
+search_char(0'/).
+search_char(0';).
+search_char(0':).
+
 
 extra(0'!).
 extra(0'*).
@@ -551,7 +711,8 @@ www_decode([C|T]) -->
 	),
 	www_decode(T).
 www_decode([C|T]) -->
-	[C],
+	[C], !,
 	www_decode(T).
 www_decode([]) -->
 	[].
+
