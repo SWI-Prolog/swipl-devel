@@ -92,8 +92,6 @@ typedef sema_t sem_t;
 
 #endif /*HAVE_SEMA_INIT*/
 
-#define USE_SEM_OPEN 1
-
 #ifdef USE_SEM_OPEN
 static sem_t *sem_canceled_ptr;
 #else

@@ -165,3 +165,6 @@
 
 /* Define if SGI-style mmap() is provided: MAP_AUTOGROW|MAP_AUTORESRV */
 #undef SGIMMAP
+
+/* Define if we must use sem_open() instead of the preferred sem_init() */
+#undef USE_SEM_OPEN

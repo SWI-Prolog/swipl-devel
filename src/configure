@@ -11658,6 +11658,10 @@ fi
 	PL=swipl
 	SO_pic="-fPIC"
 	cat >>confdefs.h <<\_ACEOF
+#define USE_SEM_OPEN 1
+_ACEOF
+
+	cat >>confdefs.h <<\_ACEOF
 #define LD_SYMBOL_PREFIX "_"
 _ACEOF
 
