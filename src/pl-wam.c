@@ -3495,6 +3495,7 @@ increase lTop too to prepare for asynchronous interrupts.
 	    next->programPointer = PC;
 	    next->parent         = FR;
 	    next->flags		 = FR->flags;
+  	    next->clause	 = NULL; /* for handling exceptions */
 #ifdef O_LOGICAL_UPDATE
 	    next->generation     = GD->generation;
 #endif

@@ -1389,12 +1389,21 @@ collect_phase(LocalFrame fr, Choice ch)
 void
 considerGarbageCollect(Stack s)
 { GET_LD
-  if ( s->gc && trueFeature(GC_FEATURE) )
-  { if ( (char *)s->top - (char *)s->base > (long)(s->factor*s->gced_size + s->small) )
-    { DEBUG(1, Sdprintf("%s overflow: Posted garbage collect request\n",
-			s->name));
-      gc_status.requested = TRUE;
+  if ( s->gc && trueFeature(GC_FEATURE) && !gc_status.requested )
+  { long used  = (char *)s->top   - (char *)s->base;
+    long free  = (char *)s->limit - (char *)s->top;
+    long limit = (char *)s->limit - (char *)s->base;
+
+    if ( used > s->factor*s->gced_size + s->small )
+    { gc_status.requested = TRUE;
+    } else if ( free < limit/8 && used > s->gced_size + limit/32 ) 
+    { gc_status.requested = TRUE;
     }
+
+    DEBUG(1, if ( gc_status.requested)
+	     { Sdprintf("%s overflow: Posted garbage collect request\n",
+			s->name);
+	     });
   }
 }
 #endif /* O_DYNAMIC_STACKS */

@@ -1,6 +1,13 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: abort to enable tail-recursion optimisation.
+
+  * FIXED: Handling PL_throw() exceptions during inlined foreign calls.
+
+  * MODIFIED: expand_term/2 doesn't call rules anymore if the argument is
+    unbound.  This should make error recovery a bit more elegant.
+
   * FIXED: MT-version: do not handle keyboard interrupt except for the
     main thread.
 

@@ -1435,8 +1435,8 @@ this to enlarge the runtime stacks.  Otherwise use the stack-shifter.
 	  type		limit;		/* top the the range (base+limit) */\
 	  long		minfree;	/* minimum amount of free space */  \
 	  bool		gc;		/* Can be GC'ed? */		    \
-	  unsigned long	gced_size;	/* size after last GC */	    \
-	  unsigned long	small;		/* Donot GC below this size */	    \
+	  long		gced_size;	/* size after last GC */	    \
+	  long		small;		/* Donot GC below this size */	    \
 	  unsigned int	factor;		/* How eager we are */		    \
 	  int		policy;		/* Time, memory optimization */	    \
 	  char		*name;		/* Symbolic name of the stack */    \

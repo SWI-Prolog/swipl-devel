@@ -1068,6 +1068,8 @@ resetTracer(void)
   debugstatus.suspendTrace = FALSE;
   debugstatus.skiplevel    = 0;
   debugstatus.retryFrame   = NULL;
+
+  setFeatureMask(TAILRECURSION_FEATURE);
 }
 
 
@@ -1205,10 +1207,11 @@ debugmode(int doit, int *old)
 
   if ( debugstatus.debugging != doit )
   { if ( doit )
-      debugstatus.skiplevel = VERY_DEEP;
-    defFeature("tail_recursion_optimisation", FT_BOOL,
-	       doit ? FALSE : TRUE,
-	       TAILRECURSION_FEATURE);
+    { debugstatus.skiplevel = VERY_DEEP;
+      clearFeatureMask(TAILRECURSION_FEATURE);
+    } else
+    { setFeatureMask(TAILRECURSION_FEATURE);
+    }
     debugstatus.debugging = doit;
     printMessage(ATOM_silent,
 		 PL_FUNCTOR_CHARS, "debug_mode", 1,
