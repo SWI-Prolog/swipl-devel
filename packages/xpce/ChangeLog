@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Bug#117: PceEmacs to confirm overwrite when writing to	a `save_file'.
+  Extended `file_item->exists' for this purpose (Hugo Ferreira).
+
 * FIXED: Bug#111: date(0,0,0,1,1,1970).  Fabien Todescato.  See documentation
   of date->set for details.
 

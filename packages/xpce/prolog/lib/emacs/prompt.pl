@@ -78,10 +78,10 @@ make_item(Mode, Label, Default, Type, _History, Item) :-
 	->  new(Item, emacs_file_or_directory_item(Label, DefPath))
 	;   send(Type, includes, file)
 	->  new(Item, file_item(Label, DefPath)),
-	    send(Item, exists, @on)
+	    send(Item, exists, open)
 	;   send(Type, includes, save_file)
 	->  new(Item, file_item(Label, DefPath)),
-	    send(Item, exists, @off)
+	    send(Item, exists, save)
 	;   new(Item, directory_item(Label, DefPath))
 	),
 	send(Item, length, 40).

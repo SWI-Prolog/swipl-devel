@@ -56,8 +56,8 @@ convert(_, Name:name, SaveFile:save_file) :<-
 :- pce_begin_class(file_item, text_item,
 		   "text_item with file-name completion").
 
-variable(exists,	bool := @off,	both, "File must exist").
-variable(directory,	directory*,	both, "Relative to").
+variable(exists,    'bool|{open,save}' := @off,	both, "File must exist").
+variable(directory, directory*,			both, "Relative to").
 
 initialise(FI, Name:[name], Def:[any|function], Msg:[code]*) :->
 	clean_file_name(Def, Clean),
@@ -74,7 +74,7 @@ activate(FI, Val:bool) :->
 
 selected_completion(FI, Component:char_array, _Apply:[bool]) :->
 	send(FI, send_super, selected_completion, Component, @off),
-	get(FI, selection, Selection),
+	get(FI, selection, @off, Selection),
 	(   send(directory(Selection), exists)
 	->  send(FI, append, '/'),
 	    send(FI, caret, @default)
@@ -148,8 +148,9 @@ indicate_directory(_FI, Dir:string) :->
 	).
 
 
-selection(FI, FileName:name) :<-
+selection(FI, Warn:[bool], FileName:name) :<-
 	"Get the current selection"::
+	get(FI, modified, Modified),
 	get_super(FI, selection, RawName),
 	get(RawName, size, L),
 	(   get(regex('//\\|/~'), search, RawName, L, 0, Start)
@@ -163,13 +164,27 @@ selection(FI, FileName:name) :<-
 	;   get(RawName, value, FileName0)
 	),
 	get(FI, local_path, FileName0, FileName),
-	(   get(FI, exists, @on)
-	->  (   send(file(FileName), exists)
-	    ->	true
-	    ;	send(FI, report, warning, 'File %s does not exist', FileName),
-	        fail
+	(   (   Warn == @off
+	    ;	Modified == @off
 	    )
-	;   true
+	->  true
+	;   get(FI, exists, Exists),
+	    (   (   Exists == @on
+		;   Exists == open
+		)
+	    ->  (   send(file(FileName), exists)
+		->  true
+		;   send(FI, report, warning,
+			 'File %s does not exist', FileName),
+		    fail
+		)
+	    ;   Exists == save
+	    ->  (   send(file(FileName), exists)
+		->  send(FI?display, confirm, 'Overwrite file %s?', FileName)
+		;   true
+		)
+	    ;   true
+	    )
 	).
 
 
