@@ -635,3 +635,4 @@ F assert		1
 F shared_object		2
 F buffer		1
 F close_on_abort	1
+F punct			2

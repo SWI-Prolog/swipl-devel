@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ENHANCED: Better error message on common syntax-error leaving an
+    extra `,' or `;' before ) or end-of-clause.
+
   * PORT: Improved configure check for non-aligned access on long values.
     On the ARM processor such access doesn't result in a crash, but in
     incorrect result.  With help of Sergio Martinez.

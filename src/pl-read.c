@@ -254,7 +254,7 @@ Error term:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
-#define syntaxError(what, rd) { errorWarning(what, rd); fail; }
+#define syntaxError(what, rd) { errorWarning(what, 0, rd); fail; }
 
 extern IOFUNCTIONS Sstringfunctions;
 
@@ -264,15 +264,20 @@ isStringStream(IOSTREAM *s)
 }
 
 
-static void
-errorWarning(const char *id_str, ReadData _PL_rd)
+static bool
+errorWarning(const char *id_str, term_t id_term, ReadData _PL_rd)
 { term_t ex = PL_new_term_ref();
   term_t loc = PL_new_term_ref();
+
+  if ( !id_term )
+  { id_term = PL_new_term_ref();
+    PL_put_atom_chars(id_term, id_str);
+  }
 
   PL_unify_term(ex,
 		PL_FUNCTOR, FUNCTOR_error2,
 		  PL_FUNCTOR, FUNCTOR_syntax_error1,
-		    PL_CHARS, id_str,
+		    PL_TERM, id_term,
 		  PL_TERM, loc);
 
   source_char_no += last_token_start - rdbase;
@@ -301,6 +306,8 @@ errorWarning(const char *id_str, ReadData _PL_rd)
 
   _PL_rd->has_exception = TRUE;
   PL_put_term(_PL_rd->exception, ex);
+
+  fail;
 }
 
 
@@ -1612,6 +1619,7 @@ complex_term(const char *stop, term_t term, term_t positions, ReadData _PL_rd)
   int rmo = 0;				/* Rands more than operators */
   int side_p = -1;
   term_t pin;
+  int thestop;				/* encountered stop-character */
 
   for(;;)
   { bool isname;
@@ -1631,11 +1639,15 @@ complex_term(const char *stop, term_t term, term_t positions, ReadData _PL_rd)
       switch(token->type)
       { case T_FULLSTOP:
 	  if ( stop == NULL )
+	  { thestop = '.';
 	    goto exit;
+	  }
 	  break;
 	case T_PUNCTUATION:
 	{ if ( stop != NULL && strchr(stop, token->value.character) )
+	  { thestop = token->value.character;
 	    goto exit;
+	  }
 	}
       }
     }
@@ -1709,6 +1721,23 @@ exit:
     if ( positions )
       PL_unify(positions, side[0].tpos);
     succeed;
+  }
+
+  if ( side_n == 1 &&
+       ( side[0].op == ATOM_comma ||
+	 side[0].op == ATOM_semicolon
+       ))
+  { term_t ex = PL_new_term_ref();
+    char tmp[2];
+
+    tmp[0] = thestop;
+    tmp[1] = EOS;
+    PL_unify_term(ex,
+		  PL_FUNCTOR, FUNCTOR_punct2,
+		    PL_ATOM, side[0].op,
+		    PL_CHARS, tmp);
+
+    return errorWarning(NULL, ex, _PL_rd);
   }
 
   syntaxError("operator_balance", _PL_rd);
@@ -1996,7 +2025,7 @@ read_term(term_t term, ReadData rd)
   if ( !(token = get_token(FALSE, rd)) )
     goto failed;
   if ( token->type != T_FULLSTOP )
-  { errorWarning("end_of_clause_expected", rd);
+  { errorWarning("end_of_clause_expected", 0, rd);
     goto failed;
   }
 

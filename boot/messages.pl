@@ -124,6 +124,8 @@ syntax_error(operator_balance) -->
 	[ 'Unbalanced operator' ].
 syntax_error(cannot_start_term) -->
 	[ 'Illegal start of term' ].
+syntax_error(punct(Punct, End)) -->
+	[ 'Unexpected `~w\' before `~w\''-[Punct, End] ].
 
 
 dwim_predicates(Module:Name/_Arity, Dwims) :- !,
