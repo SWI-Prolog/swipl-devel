@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * PORT: pl.spec (building RPMS) to follow current standards.
+    By Michel Alexandre Salim
+
   * FIXED: Choicepoint-view of GUI tracer.
 
   * PORT: Added -fno-strict-aliasing when compiling using gcc, needed for
