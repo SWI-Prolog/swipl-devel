@@ -363,6 +363,30 @@ ws_save_image_file(Image image, SourceSink into, Name fmt)
 #else
     return errorPce(image, NAME_noImageFormat, NAME_jpeg);
 #endif /*HAVE_LIBJPEG*/
+  } else if ( fmt == NAME_gif )
+  {
+#ifdef O_GIFWRITE
+    XImage *i;
+    status rval;
+    IOSTREAM *fd;
+      
+    if ( !(i=getXImageImage(image)) )
+    { getXImageImageFromScreen(image);
+      if ( !(i=getXImageImage(image)) )
+	fail;
+    }
+  
+    if ( !(fd=Sopen_object(into, "wbr")) )
+      fail;
+    if ( write_gif_file(fd, i, r->display_xref, 0) < 0 )
+      rval = errorPce(image, NAME_xError);
+    else
+      rval = SUCCEED;
+    Sclose(fd);
+    return rval;
+#else
+    return errorPce(image, NAME_noImageFormat, NAME_gif);
+#endif /*O_GIFWRITE*/
   } else
   { int pnm_fmt;
     XImage *i;

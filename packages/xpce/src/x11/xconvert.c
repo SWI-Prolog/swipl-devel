@@ -505,6 +505,8 @@ readJPEGFile(Image image, IOSTREAM *fd)
 #endif /*HAVE_LIBJPEG*/
 #endif /*HAVE_LIBXPM*/
 
+#define rescale(v) ((v)>>8)
+
 #ifdef HAVE_LIBJPEG
 #undef GLOBAL				/* conflict */
 #include <jpeglib.h>
@@ -531,8 +533,6 @@ be slow, and still require  a  lot  of   memory  if  there  are a lot of
 colours. It appears hinted that the pixel  is simply an 8-bit packed RGB
 value in this case. Is that true?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#define rescale(v) ((v)>>8)
 
 int
 write_jpeg_file(IOSTREAM *fd, XImage *img, Display *disp, Colormap cmap)
@@ -611,5 +611,74 @@ write_jpeg_file(IOSTREAM *fd, XImage *img, Display *disp, Colormap cmap)
 
 
 #endif /*HAVE_LIBJPEG*/
+
+
+#ifdef O_GIFWRITE
+#include <img/gifwrite.h>
+
+		 /*******************************
+		 *	     WRITE GIF		*
+		 *******************************/
+
+typedef unsigned char GSAMPLE;
+
+int
+write_gif_file(IOSTREAM *fd, XImage *img, Display *disp, Colormap cmap)
+{ int width  = img->width;
+  int height = img->height;
+  int depth  = img->depth;
+  int colours;
+  XColor **colorinfo = NULL;
+  GSAMPLE *data, *s;
+  int y;
+
+  if ( !cmap )
+    cmap = DefaultColormap(disp, DefaultScreen(disp));
+
+  if ( depth <= 16 )
+  { if ( !(colorinfo = makeSparceCInfo(disp, cmap, img, &colours)) )
+      return -1;
+  } else if ( img->bits_per_pixel != 32 )
+  { Cprintf("Cannot write JPEG for this color format\n");
+    return -1;
+  }
+
+  data = pceMalloc(sizeof(GSAMPLE)*3*width*height);
+  s = data;
+
+  for(y=0; y<height; y++)
+  { int x;
+
+    if ( colorinfo )
+    { for(x=0; x<width; x++)
+      { XColor *c;
+  
+	c = colorinfo[XGetPixel(img, x, y)];
+	*s++ = rescale(c->red);
+	*s++ = rescale(c->green);
+	*s++ = rescale(c->blue);
+      }
+    } else				/* 24 and 32-bit displays */
+    { unsigned char *line;
+
+      line = &((unsigned char *)img->data)[y * img->bytes_per_line];
+
+      for(x=0; x<width; x++)
+      { *s++ = *line++;
+	*s++ = *line++;
+	*s++ = *line++;
+        line++;				/* the alignment */
+      }
+    }
+  }
+
+  gifwrite_rgb(fd, data, width, height);
+  pceFree(data);
+
+  return 0;
+}
+
+#endif /*O_GIFWRITE*/
+
 
 

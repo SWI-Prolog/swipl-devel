@@ -793,7 +793,31 @@ ws_save_image_file(Image image, SourceSink into, Name fmt)
 
     fail;
 #else
-    return errorPce(image, NAME_noImageFormat, NAME_xpm);
+    return errorPce(image, NAME_noImageFormat, NAME_jpeg);
+#endif
+  } else if ( fmt == NAME_gif )
+  {
+#ifdef O_GIFWRITE
+    HBITMAP bm;
+    IOSTREAM *fd;
+    status rval;
+
+    if ( !(bm = getXrefObject(image, d)) )
+      fail;
+
+    if ( (fd = Sopen_object(into, "wbr")) )
+    { if ( write_gif_file(fd, image, bm) < 0 )
+	rval = errorPce(image, NAME_xError);
+      else
+	rval = SUCCEED;
+
+      Sclose(fd);
+      return rval;
+    }
+
+    fail;
+#else
+    return errorPce(image, NAME_noImageFormat, NAME_gif);
 #endif
   } else
   { int pnm_fmt;

@@ -27,7 +27,7 @@
 #define PNM_RUNLEN  6
 #endif
 
-
+#define O_GIFWRITE 1
 
 #define String XString
 #include <X11/Intrinsic.h>
@@ -166,6 +166,8 @@ int		write_pnm_file(IOSTREAM *fd, XImage *img,
 			       int scale, int fmt, int asascii);
 int		write_jpeg_file(IOSTREAM *fd, XImage *img,
 				Display *disp, Colormap cmap);
+int		write_gif_file(IOSTREAM *fd, XImage *img,
+			       Display *disp, Colormap cmap);
 
 /* xcolour.c */
 status		allocNearestColour(Display *display, Colormap map,
