@@ -355,11 +355,6 @@ pl_set_feature(term_t key, term_t value)
 	}
       } else if ( k == ATOM_debugger_show_context )
       { debugstatus.showContext = val;
-      } else if ( k == ATOM_backquoted_string )
-      { if ( val )
-	  _PL_char_types[(int)'`'] = BQ;
-	else
-	  _PL_char_types[(int)'`'] = SY;
 #ifdef O_PLMT
       } else if ( k == ATOM_threads )
       { if ( !(rval = enableThreads(val)) )

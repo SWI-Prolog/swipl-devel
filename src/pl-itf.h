@@ -540,6 +540,7 @@ PL_EXPORT(IOSTREAM *)*_PL_streams(void);	/* base of streams */
 #define PL_WRT_NUMBERVARS	0x04	/* print $VAR(N) as a variable */
 #define PL_WRT_PORTRAY		0x08	/* call portray */
 #define PL_WRT_CHARESCAPES	0x10	/* Output ISO escape sequences */
+#define PL_WRT_BACKQUOTED_STRING 0x20	/* Write strings as `...` */
 
 PL_EXPORT(int) PL_write_term(IOSTREAM *s,
 			      term_t term,

@@ -196,6 +196,7 @@ typedef struct
   Module	module;			/* Current source module */
   unsigned int	flags;			/* Module syntax flags */
   int		styleCheck;		/* style-checking mask */
+  bool		backquoted_string;	/* Read `hello` as string */
 
   atom_t	on_error;		/* Handling of syntax errors */
   int		has_exception;		/* exception is raised */
@@ -232,6 +233,7 @@ init_read_data(ReadData _PL_rd, IOSTREAM *in ARG_LD)
   _PL_rd->flags  = _PL_rd->module->flags; /* change for options! */
   _PL_rd->styleCheck = debugstatus.styleCheck;
   _PL_rd->on_error = ATOM_error;
+  _PL_rd->backquoted_string = trueFeature(BACKQUOTED_STRING_FEATURE);
 }
 
 static void
@@ -652,7 +654,7 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		  dotseen = FALSE;
 		}
 		goto handle_c;
-      case '`': if ( trueFeature(BACKQUOTED_STRING_FEATURE) )
+      case '`': if ( _PL_rd->backquoted_string )
 		{ set_start_line;
 		  if ( !raw_read_quoted(c, _PL_rd) )
 		    fail;
@@ -1260,7 +1262,10 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 
 		  break;
 		}
-    case SY:	{ start = rdhere - 1;
+    case SY:	if ( c == '`' && _PL_rd->backquoted_string )
+		  goto case_bq;
+
+                { start = rdhere - 1;
 		  while( isSymbol(*rdhere) )
 		    rdhere++;
 		  end = *rdhere;
@@ -1346,7 +1351,8 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  break;
 		}
 #ifdef O_STRING
-    case BQ:    { tmp_buffer b;
+    case BQ:
+    case_bq:    { tmp_buffer b;
 		  term_t t = PL_new_term_ref();
 		  char *s;
 		  int len;
@@ -2292,6 +2298,7 @@ static const opt_spec read_term_options[] =
   { ATOM_double_quotes,	    OPT_ATOM },
   { ATOM_module,	    OPT_ATOM },
   { ATOM_syntax_errors,     OPT_ATOM },
+  { ATOM_backquoted_string, OPT_BOOL },
   { NULL_ATOM,	     	    0 }
 };
 
@@ -2324,7 +2331,8 @@ retry:
 		     &charescapes,
 		     &dq,
 		     &mname,
-		     &rd.on_error) )
+		     &rd.on_error,
+		     &rd.backquoted_string) )
   { PL_release_stream(s);
     fail;
   }

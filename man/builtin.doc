@@ -2460,31 +2460,42 @@ The predicate write_term/2 is the generic form of all Prolog term-write
 predicates.  Valid options are:
 
 \begin{description}
-    \termitem{quoted}{\const{true} or \const{false}}
+    \termitem{quoted}{Bool}
 If \const{true}, atoms and functors that needs quotes will be quoted.
 The default is \const{false}.
-    \termitem{character_escapes}{\const{true} or \const{false}}
+
+    \termitem{backquoted_string}{Bool}
+If \const{true}, write a string object (see \secref{strings}) as
+\verb$`$\ldots\verb$`$. The default depends on the prolog flag with the
+same name.
+
+    \termitem{character_escapes}{Bool}
 If \const{true}, and \term{quoted}{true} is active, special characters
 in quoted atoms and strings are emitted as ISO escape-sequences.
 Default is taken from the reference module (see below).
-    \termitem{ignore_ops}{\const{true} or \const{false}}
+
+    \termitem{ignore_ops}{Bool}
 If \const{true}, the generic term-representation (<functor>(<args>
 \ldots)) will be used for all terms,  Otherwise (default), operators,
 list-notation and \verb${}$/1 will be written using their special
 syntax.
+
     \termitem{module}{Module}
 Define the reference module (default \const{user}).  This defines
 the default value for the \const{character_escapes} option as well
 as the operator definitions to use.  See also op/3.
-    \termitem{numbervars}{\const{true} or \const{false}}
+
+    \termitem{numbervars}{Bool}
 If \const{true}, terms of the format \verb|$VAR(N)|, where <N> is a
 positive integer, will be written as a variable name. The default is
 \const{false}.
-    \termitem{portray}{\const{true} or \const{false}}
+
+    \termitem{portray}{Bool}
 If \const{true}, the hook portray/1 is called before printing a term
 that is not a variable.  If portray/1 succeeds, the term is considered
 printed.  See also print/1.  The default is \const{false}.  This option
 is an extension to the ISO write_term options.
+
     \termitem{max_depth}{Integer}
 If the term is nested deeper than \arg{Integer}, print the remainder
 as eclipse (\ldots).  A 0 (zero) value (default) imposes no depth limit.
@@ -2601,6 +2612,11 @@ See the prolog-flags \const{character_escapes}, current_prolog_flag/2.
     \termitem{double_quotes}{Bool}
 Defines how to read "\ldots" strings. See the prolog-flags
 \const{double_quotes}, current_prolog_flag/2.  (SWI-Prolog).
+
+    \termitem{backquoted_string}{Bool}
+If \const{true}, read \verb$`$\ldots\verb$`$ to a string object (see
+\secref{strings}).  The default depends on the prolog flag with the
+same name.
 
     \termitem{term_position}{Pos}
 Unifies \arg{Pos} with the starting position of the term read.  \arg{Pos}

@@ -353,7 +353,7 @@ writePrimitive(term_t t, write_options *options)
   { if ( true(options, PL_WRT_QUOTED) )
     { int q;
 
-      if ( trueFeature(BACKQUOTED_STRING_FEATURE) )
+      if ( true(options, PL_WRT_BACKQUOTED_STRING) )
 	q = '`';
       else
 	q = '"';
@@ -620,6 +620,7 @@ static const opt_spec write_term_options[] =
   { ATOM_character_escapes, OPT_BOOL },
   { ATOM_max_depth,	    OPT_INT  },
   { ATOM_module,	    OPT_ATOM },
+  { ATOM_backquoted_string, OPT_BOOL },
   { NULL_ATOM,	     	    0 }
 };
 
@@ -629,6 +630,7 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   bool ignore_ops = FALSE;
   bool numbervars = FALSE;
   bool portray    = FALSE;
+  bool bqstring   = trueFeature(BACKQUOTED_STRING_FEATURE);
   bool charescape = -1;			/* not set */
   atom_t mname    = ATOM_user;
   IOSTREAM *s;
@@ -640,7 +642,8 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
 
   if ( !scan_options(opts, 0, ATOM_write_option, write_term_options,
 		     &quoted, &ignore_ops, &numbervars, &portray,
-		     &charescape, &options.max_depth, &mname) )
+		     &charescape, &options.max_depth, &mname,
+		     &bqstring) )
     fail;
 
   if ( !getOutputStream(stream, &s) )
@@ -655,6 +658,7 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   if ( ignore_ops ) options.flags |= PL_WRT_IGNOREOPS;
   if ( numbervars ) options.flags |= PL_WRT_NUMBERVARS;
   if ( portray )    options.flags |= PL_WRT_PORTRAY;
+  if ( bqstring )   options.flags |= PL_WRT_BACKQUOTED_STRING;
 
   options.out = s;
   PutOpenToken(EOF, s);			/* reset this */

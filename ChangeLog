@@ -2,6 +2,9 @@
 			====================
 
 
+  * ADDED: backquoted_string(Bool) option to read_term and write_term
+    (Holger Kanwischer).
+
   * FIXED: More graceful handling if a thread cannot be created due to
     lack of virtual memory (Wouter Jansweijer).
 
