@@ -17,7 +17,8 @@ if [ -z "$BUILDARCH" ]; then
 else
   if [ ! -d "$BUILDARCH" ]; then mkdir "$BUILDARCH"; fi
 fi
+if [ -z "$MAKE" ]; then MAKE=make; fi
 
-sed "s/@BUILDARCH@/$BUILDARCH/" Makefile.in > Makefile
+sed -e "s/@BUILDARCH@/$BUILDARCH/" -e "s/@MAKE@/$MAKE/" Makefile.in > Makefile
 
 cd $BUILDARCH && ../src/configure "$@"

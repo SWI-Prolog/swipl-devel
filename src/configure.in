@@ -91,6 +91,7 @@ AC_ARG_ENABLE(mt, [  --enable-mt		  Enable Multi-threading],
 		   *)  ;;
 	       esac])
 
+readline_ok=no
 AC_ARG_ENABLE(readline, [  --disable-readline	  Do NOT include GNU readline],
 	      configreadline="$enableval",
 	      configreadline=yes)
@@ -108,7 +109,7 @@ dnl ****************************************************************
 dnl Checking for GNU make vpath construct
 dnl ****************************************************************
 
-AC_CHECK_PROGS(MAKE, make gmake, "make")
+AC_CHECK_PROGS(MAKE, gmake make, "make")
 AC_MSG_CHECKING("whether make is GNU-make")
 if ($MAKE -v 2>&1) | grep GNU > /dev/null; then
     AC_MSG_RESULT(yes)
@@ -137,7 +138,7 @@ dnl Finding various programs
 dnl ****************************************************************
 
 AC_CHECK_PROG(AR, ar, ar, ar)
-AC_CHECK_PROGS(ETAGS, etags ctags, ":")
+AC_CHECK_PROGS(ETAGS, emacs-etags etags ctags, ":")
 AC_PROG_AWK
 AC_PROG_INSTALL
 case "$INSTALL" in
@@ -307,24 +308,29 @@ if test ! "$runtime" = "yes" -a "$configreadline" = "yes"; then
   if test "$ac_cv_lib_readline_main" = "yes"; then
     dnl rl_readline_state and rl_done are a variables!
     AC_CHECK_HEADERS(readline/history.h)
-    AC_CHECK_FUNCS(rl_completion_matches rl_insert_close rl_readline_state)
-    AC_CHECK_FUNCS(rl_set_prompt rl_clear_pending_input rl_done)
-    AC_CHECK_FUNCS(rl_event_hook rl_cleanup_after_signal)
-    AC_CHECK_FUNCS(rl_filename_completion_function)
-    AC_MSG_CHECKING(whether to install readline.3)
-    INSTALLRLMAN=install_rlman
-    if test -z "$MANPATH"; then MANPATH=/usr/man; fi
-    for d in `echo $MANPATH | sed 's/:/ /g'`; do
-      if test -r $d/man3/readline.3; then
-        INSTALLRLMAN=""
+    if test "$ac_cv_header_readline_history_h" = yes; then
+      readline_ok=yes
+      AC_CHECK_FUNCS(rl_completion_matches rl_insert_close rl_readline_state)
+      AC_CHECK_FUNCS(rl_set_prompt rl_clear_pending_input rl_done)
+      AC_CHECK_FUNCS(rl_event_hook rl_cleanup_after_signal)
+      AC_CHECK_FUNCS(rl_filename_completion_function)
+      AC_MSG_CHECKING(whether to install readline.3)
+      INSTALLRLMAN=install_rlman
+      if test -z "$MANPATH"; then MANPATH=/usr/man; fi
+      for d in `echo $MANPATH | sed 's/:/ /g'`; do
+	if test -r $d/man3/readline.3; then
+	  INSTALLRLMAN=""
+	fi
+      done
+      if test -z "$INSTALLRLMAN"; then
+	AC_MSG_RESULT(Already present)
+      else
+	AC_MSG_RESULT(yes)
       fi
-    done
-    if test -z "$INSTALLRLMAN"; then
-      AC_MSG_RESULT(Already present)
-    else
-      AC_MSG_RESULT(yes)
     fi
   fi
+else
+  readline_ok=yes			# specified absent
 fi
 
 AC_ARG_ENABLE(shared, [  --disable-shared	  No shared-lib interface],
@@ -928,7 +934,30 @@ if test -r ../packages/Makefile.in; then
   OutputFiles="$OutputFiles ../packages/Makefile"
 fi
 
+if test -r ../packages/configure.in; then
+  OutputFiles="$OutputFiles ../packages/configure"
+fi
+
 AC_OUTPUT($OutputFiles)
+
+if test -r ../packages/configure; then
+  chmod +x ../packages/configure
+fi
+
+
+if test "$readline_ok" = no; then
+cat << _EOM_
+****************************************************************
+* Could not find a working readline library.  Without this library
+* command-line editing is not supported.  You can continue building
+* SWI-Prolog or first install readline.  After installing
+* readline do `make distclean' and re-configure SWI-Prolog.
+*
+* On SuSE Linux, readline is in the RPM package readline-devel
+****************************************************************
+
+_EOM_
+fi
 
 cat << _EOM_
 ****************************************************************

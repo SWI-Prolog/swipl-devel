@@ -30,6 +30,7 @@ bindir=$(prefix)/bin
 mansec=1
 mandir=$(prefix)/man/man$(mansec)
 
+MAKE=@MAKE@
 PL=pl
 XPCE=xpce
 CLIENT=xpce-client
@@ -57,8 +58,8 @@ $(STARTUP):	$(BOOTPLS)
 xpce-qlfs:	
 		@PLBASE=$(PWD); \
 		if [ -d xpce ]; then \
-		   echo make PL=$$PLBASE/$(BPL); \
-                   (cd xpce/prolog/lib; make PL=$$PLBASE/$(BPL)); \
+		   echo $(MAKE) PL=$$PLBASE/$(BPL); \
+                   (cd xpce/prolog/lib; $(MAKE) PL=$$PLBASE/$(BPL)); \
 		fi
 
 install:	all

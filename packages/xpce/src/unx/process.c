@@ -1028,10 +1028,12 @@ copyTty(Process p, char *pty, int fd)
   } 
 
 #ifndef TCSETS
-#if defined(TCSETATTR)
+#ifdef TCSETATTR
 #define TCSETS TCSETATTR
-#elif defined(TCSETA)
+#else
+#ifdef TCSETA
 #define TCSETS TCSETA
+#endif
 #endif
 #endif
 

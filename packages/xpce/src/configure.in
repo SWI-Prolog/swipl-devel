@@ -42,7 +42,6 @@ AC_SUBST(VPATCH)
 AC_SUBST(LDCONFIG)
 AC_SUBST(AR)
 AC_SUBST(MAKESHELL)
-AC_SUBST(MAKE)
 AC_SUBST(RSYNC)
 AC_SUBST(QPENTRIES)
 AC_SUBST(QPBIN)
@@ -469,7 +468,7 @@ fi
 
 AC_CHECK_PROGS(MAKESHELL, bash sh, "/bin/sh")
 AC_CHECK_PROGS(MAKE, gmake make, "make")
-AC_CHECK_PROGS(ETAGS, etags ctags, ":")
+AC_CHECK_PROGS(ETAGS, emacs-etags etags ctags, ":")
 AC_CHECK_PROGS(RSYNC, rsync ./rsync.sh)
 if test "$CONFIG_CXX" = "yes"; then
   AC_CHECK_PROGS(GXX, g++, "NONE")

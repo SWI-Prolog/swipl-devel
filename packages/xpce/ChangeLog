@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* PORT: make FN (required for building XPCE) not depend on bash extensions
+  to sh (Lourens van der Meij).
+
 * FIXED: load .ICO files.  Possibly caused by recent delay in opening the
   display. (Spotted by Fabien Todescato).
 

@@ -27,6 +27,7 @@ PKG=	clib \
 
 # Values filled from the main SWI-Prolog configure
 
+MAKE=@MAKE@
 prefix=@prefix@
 PL=@PL@@RT@
 PLVERSION=@PLVERSION@
@@ -55,6 +56,7 @@ CONFIG=	env PL="$(PL)" PLBASE="$(PLBASE)" PLARCH="$(PLARCH)" \
 	    PLLIBS="$(PLLIBS)" PLLDFLAGS="$(PLLDFLAGS)" \
 	    PLINCL="$(PLINCL)" PLSHARED="$(PLSHARED)" \
 	    PLSOEXT="$(SO)" BUILDDIR="$(BUILDDIR)" \
+	    MAKE="$(MAKE)" \
 	    ./configure $(CNFG) --prefix=$(prefix)
 
 all:	objects

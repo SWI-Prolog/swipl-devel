@@ -4,6 +4,7 @@
 # See also ./configure
 ################################################################
 
+MAKE=@MAKE@
 BUILDARCH=@BUILDARCH@
 
 all:
