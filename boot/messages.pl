@@ -553,6 +553,7 @@ prolog_message(frame(Frame, backtrace, _PC)) --> !,
 	frame_goal(Frame).
 prolog_message(frame(Frame, choice, PC)) --> !,
 	prolog_message(frame(Frame, backtrace, PC)).
+prolog_message(frame(_, cut_call, _)) --> !, [].
 prolog_message(frame(Frame, trace(Port), _PC)) --> !,
 	[ ' T ' ],
 	port(Port),
@@ -631,6 +632,7 @@ clean_goal(Goal, Goal).
 print_message(Level, Term) :-
 	translate_message(Term, Lines, []), !,
 	(   $c_current_predicate(_, user:message_hook(_,_,_)),
+	    nonvar(Term),
 	    notrace(user:message_hook(Term, Level, Lines))
 	->  true
 	;   print_system_message(Term, Level, Lines)
