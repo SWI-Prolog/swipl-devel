@@ -231,6 +231,9 @@ AC_TRY_LINK([
 	    [ static pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
 	      pthread_mutex_lock(&m);
 	      pthread_mutex_unlock(&m);
+#ifndef _REENTRANT
+  this should not be compiled
+#endif
 	    ],
 	    pthread_ok=true
 	    CMFLAGS="$CMFLAGS -pthread"
