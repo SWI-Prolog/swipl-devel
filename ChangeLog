@@ -1,6 +1,14 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 3.3.4
+=============
+
+  * LICENSE: Announce GPL'ed status in banner.
+
+  * FIXED: Path problems in RPM-file (actually in path-canonisation).
+    Thanks to Michael Rohr.
+
   * ADDED: pl.lsm (Linux Software Map Entry) to the source distribution
 
   * INSTALL: Fixed `make install-version'.  Thanks to Joachim Katzer. 

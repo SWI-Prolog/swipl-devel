@@ -1031,6 +1031,44 @@ initExpand(void)
 
 #ifdef O_CANONISE_DIRS
 
+static void
+registerParentDirs(const char *path)
+{ const char *e = path + strlen(path);
+
+  while(e>path)
+  { char dirname[MAXPATHLEN];
+    char tmp[MAXPATHLEN];
+    CanonicalDir d;
+    struct stat buf;
+
+    for(e--; *e != '/' && e > path + 1; e-- )
+      ;
+
+    strncpy(dirname, path, e-path);
+    dirname[e-path] = EOS;
+
+    for(d = canonical_dirlist; d; d = d->next)
+    { if ( streq(d->name, dirname) )
+	return;
+    }
+	
+    if ( statfunc(OsPath(dirname, tmp), &buf) == 0 )
+    { CanonicalDir dn = malloc(sizeof(struct canonical_dir));
+    
+      dn->next		= canonical_dirlist;
+      dn->name		= store_string(dirname);
+      dn->inode		= buf.st_ino;
+      dn->device	= buf.st_dev;
+      dn->canonical	= dn->name;
+      canonical_dirlist	= dn;
+
+      DEBUG(1, Sdprintf("Registered canonical dir %s\n", dirname));
+    } else
+      return;
+  }
+}
+
+
 static char *
 canoniseDir(char *path)
 { CanonicalDir d;
@@ -1086,19 +1124,20 @@ canoniseDir(char *path)
 	  dn->canonical = store_string(path);
 	  canonical_dirlist = dn;
 	  DEBUG(1, Sdprintf("(replace) %s\n", path));
+	  registerParentDirs(path);
 	  return path;
 	}
       }
 
       for(e--; *e != '/' && e > path + 1; e-- )
 	;
-
     } while( e > path );
 
     dn->canonical = dn->name;
     canonical_dirlist = dn;
 
     DEBUG(1, Sdprintf("(new, existing) %s\n", path));
+    registerParentDirs(path);
     return path;
   }
 
