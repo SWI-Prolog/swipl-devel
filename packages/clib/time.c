@@ -331,7 +331,7 @@ on_alarm(int sig)
     ev->flags |= EV_DONE;
     
     PL_recorded(ev->goal, goal);
-    PL_call_predicate(NULL,
+    PL_call_predicate(ev->module,
 		      PL_Q_PASS_EXCEPTION,
 		      PREDICATE_call1,
 		      goal);

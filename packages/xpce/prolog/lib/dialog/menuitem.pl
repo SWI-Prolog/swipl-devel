@@ -91,8 +91,8 @@ fill_attribute_dialog(D, Attributes, Mode) :-
 	     dia_label_item(label,
 			    when(MI, MI?label, ''),
 			    if(@arg1 \== '', message(MI, label, @arg1)))),
-	send(Attributes, for_all,
-	     message(@prolog, append_attribute, D, @arg1)),
+	forall(member(A, Attributes),
+	       append_attribute(D, A)),
 
 	send(D, send_method,
 	     send_method(modified_item, vector(graphical, bool),
