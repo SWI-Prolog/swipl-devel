@@ -2091,6 +2091,7 @@ decrease).
 #include "pl-thread.h"			/* thread manipulation */
 #include "pl-global.h"			/* global data */
 #include "pl-funcs.h"			/* global functions */
+#include "pl-text.h"			/* text manipulation */
 
 #ifdef __DECC				/* Dec C-compiler: avoid conflicts */
 #undef leave

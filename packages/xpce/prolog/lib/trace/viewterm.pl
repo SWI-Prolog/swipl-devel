@@ -33,6 +33,8 @@
 	  [ view_term/1,		% +Term
 	    view_term/2			% +Term, +Attributes
 	  ]).
+:- use_module(library(pce)).
+:- use_module(library(lists)).
 :- use_module(pprint).
 
 view_term(Term) :-

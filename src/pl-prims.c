@@ -2109,44 +2109,63 @@ static word
 concat(const char *pred,
        term_t a1, term_t a2, term_t a3, 
        control_t ctx,
-       int (*out)(term_t, unsigned int len, const char *))
-{ char *s1 = NULL, *s2 = NULL, *s3 = NULL;
-  unsigned int l1, l2, l3;
-  char *tmp;
+       int otype)			/* PL_ATOM or PL_STRING */
+{ PL_chars_t t1, t2, t3;
+  int rc;
+
+#define L1 t1.length
+#define L2 t2.length
+#define L3 t3.length
 
   if ( ForeignControl(ctx) == FRG_CUTTED )
     succeed;
 
-  PL_get_nchars(a1, &l1, &s1, CVT_ATOMIC|BUF_RING);
-  PL_get_nchars(a2, &l2, &s2, CVT_ATOMIC|BUF_RING);
-  PL_get_nchars(a3, &l3, &s3, CVT_ATOMIC|BUF_RING);
+  t1.text.t = t2.text.t = t3.text.t = NULL;
+  t1.flags  = t2.flags  = t3.flags = 0;
 
-  if ( !s1 && !PL_is_variable(a1) )
-    return PL_error(pred, 3, NULL, ERR_TYPE, ATOM_atomic, a1);
-  if ( !s2 && !PL_is_variable(a2) )
-    return PL_error(pred, 3, NULL, ERR_TYPE, ATOM_atomic, a2);
-  if ( !s3 && !PL_is_variable(a3) )
+  PL_get_text(a1, &t1, CVT_ATOMIC);
+  PL_get_text(a2, &t2, CVT_ATOMIC);
+  PL_get_text(a3, &t3, CVT_ATOMIC);
+
+  if ( !t1.text.t && !PL_is_variable(a1) )
+  { rc = PL_error(pred, 3, NULL, ERR_TYPE, ATOM_atomic, a1);
+    goto out;
+  }
+  if ( !t2.text.t && !PL_is_variable(a2) )
+  { rc = PL_error(pred, 3, NULL, ERR_TYPE, ATOM_atomic, a2);
+    goto out;
+  }
+  if ( !t3.text.t && !PL_is_variable(a3) )
   { err3:
-    return PL_error(pred, 3, NULL, ERR_TYPE, ATOM_atomic, a3);
+    rc = PL_error(pred, 3, NULL, ERR_TYPE, ATOM_atomic, a3);
+    goto out;
   }
 
-  if (s1 && s2)
-  { tmp = alloca(l1 + l2 + 1);
-    memcpy(tmp,    s1, l1);
-    memcpy(tmp+l1, s2, l2);
-    return (*out)(a3, l1+l2, tmp);
+  if (t1.text.t && t2.text.t)
+  { PL_chars_t c;
+    PL_chars_t *v[2];
+
+    v[0] = &t1;
+    v[1] = &t2;
+
+    PL_concat_text(2, v, &c);
+
+    rc = PL_unify_text(a3, &c, otype);
+    goto out;
   }
 
-  if ( !s3 ) 
+  if ( !t3.flags ) 
     goto err3;
 
-  if ( s1 )				/* +, -, + */
-  { if ( l1 <= l3 && memcmp(s1, s3, l1) == 0 )
-      return (*out)(a2, l3-l1, s3+l1);
+  if ( t1.flags )			/* +, -, + */
+  { if ( L1 <= L3 &&
+	 PL_cmp_text(&t1, 0, &t3, 0, L1) == 0 )
+      return PL_unify_text_range(a2, &t3, L1, L3-L1, otype);
     fail;
-  } else if ( s2 )			/* -, +, + */
-  { if ( l2 <= l3 && memcmp(s2, s3+l3-l2, l2) == 0 )
-      return (*out)(a1, l3-l2, s3);
+  } else if ( t2.flags )		/* -, +, + */
+  { if ( L2 < L3 &&
+	 PL_cmp_text(&t2, 0, &t3, L3-L2, L2) == 0 )
+      return PL_unify_text_range(a1, &t3, 0, L3-L2, otype);
     fail;
   } else				/* -, -, + */
   { unsigned int at_n;
@@ -2154,8 +2173,10 @@ concat(const char *pred,
 
     switch ( ForeignControl(ctx) )
     { case FRG_FIRST_CALL:
-        if ( l3 == 0 )
-	  fail;				/* empty string */
+        if ( L3 == 0 )
+	{ rc = FALSE;
+	  goto out;
+	}
 	at_n = 0;
         break;
       case FRG_REDO:
@@ -2166,24 +2187,37 @@ concat(const char *pred,
     }
 
     Mark(m);
-    for(; at_n < l3; at_n++)
-    { if ( (*out)(a2, l3-at_n, s3+at_n) &&
-	   (*out)(a1, at_n,    s3) )
-      { ForeignRedoInt(at_n+1);
+    for(; at_n <= L3; at_n++)
+    { if ( PL_unify_text_range(a2, &t3, at_n, L3-at_n, otype) &&
+	   PL_unify_text_range(a1, &t3, 0,    at_n, otype) )
+      { if ( at_n < L3 )
+	  ForeignRedoInt(at_n+1);
+	else
+	{ rc = TRUE;
+	  goto out;
+	}
       }
-
-      Undo(m);
     }
-    if ( (*out)(a1, l3, s3) && (*out)(a2, 0, "") )
-      succeed;
-    fail;
+    rc = FALSE;
+    goto out;
   }    
+
+out:
+  PL_free_text(&t1);
+  PL_free_text(&t2);
+  PL_free_text(&t3);
+
+#undef L1
+#undef L2
+#undef L3
+
+  return rc;
 }
 
 
 word
 pl_atom_concat(term_t a1, term_t a2, term_t a3, control_t ctx)
-{ return concat("atom_concat", a1, a2, a3, ctx, PL_unify_atom_nchars);
+{ return concat("atom_concat", a1, a2, a3, ctx, PL_ATOM);
 }
 
 
@@ -2641,7 +2675,7 @@ pl_string_length(term_t str, term_t l)
 
 word
 pl_string_concat(term_t a1, term_t a2, term_t a3, control_t h)
-{ return concat("string_concat", a1, a2, a3, h, PL_unify_string_nchars);
+{ return concat("string_concat", a1, a2, a3, h, PL_STRING);
 }
 
 

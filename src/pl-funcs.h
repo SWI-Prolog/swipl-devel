@@ -385,6 +385,11 @@ COMMON(int) 		PL_unify_list__LD(term_t l, term_t h, term_t t ARG_LD);
 COMMON(void) 		PL_cons_list__LD(term_t l, term_t head, term_t tail
 					 ARG_LD);
 COMMON(int)		PL_is_inf(term_t t);
+COMMON(int)		isUCSAtom(Atom a);
+COMMON(Buffer)		codes_or_chars_to_buffer(term_t l, unsigned int flags,
+						 int wide);
+COMMON(Buffer)		findBuffer(int flags);
+COMMON(int)		unfindBuffer(int flags);
 
 COMMON(void) 		registerForeignLicenses(void);
 

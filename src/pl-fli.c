@@ -333,102 +333,26 @@ static PL_blob_t ucs_atom =
 };
 
 
-#define TEXT_REPRESENTATION_MASK 0xff
-
 int
-PL_unify_wchars(term_t t, int flags, unsigned int len, const pl_wchar_t *text)
-{ const pl_wchar_t *p = text, *end = &text[len];
-  char *small, *s;
-  int malloced;
-
-  if ( len < 4096 )
-  { small = alloca(len);
-    malloced = FALSE;
-  } else
-  { small = PL_malloc(len);
-    malloced = TRUE;
-  }
-
-  for(s=small; p<end && *p <= 0xff; p++)
-    *s++ = *p;
-
-  if ( p == end )
-  { int rval;
-
-    switch(flags&TEXT_REPRESENTATION_MASK)
-    { case PL_ATOM:
-	rval = PL_unify_atom_nchars(t, len, small);
-        break;
-      case PL_STRING:
-	rval = PL_unify_string_nchars(t, len, small);
-        break;
-      case PL_CODE_LIST:
-	rval = PL_unify_list_ncodes(t, len, small);
-        break;
-      case PL_CHAR_LIST:
-	rval = PL_unify_list_nchars(t, len, small);
-        break;
-      default:
-	rval = PL_warning("PL_unify_wchars(): bad flags");
-    }
-
-    if ( malloced )
-      PL_free(small);
-
-    return rval;
-  } else				/* wide character version */
-  { GET_LD
-    if ( malloced )
-      PL_free(small);
-
-    flags &= TEXT_REPRESENTATION_MASK;
-
-    switch(flags)
-    { case PL_ATOM:
-      { atom_t a;
-	int rval, new;
-
-	a = lookupBlob((const char *)text, len*sizeof(pl_wchar_t),
-		       &ucs_atom, &new);
-	rval = unifyAtomic(t, a PASS_LD);
-	PL_unregister_atom(a);
-	return rval;
-      }
-      case PL_STRING:
-      { word str = globalWString(len, text);
-
-	return unifyAtomic(t, str PASS_LD);
-      }
-      case PL_CODE_LIST:
-      case PL_CHAR_LIST:
-      { term_t l = PL_new_term_ref();
-
-	if ( len == 0 )
-	{ setHandle(l, ATOM_nil);
-	} else
-	{ Word p = allocGlobal(len*3);
-
-	  setHandle(l, consPtr(p, TAG_COMPOUND|STG_GLOBAL));
-	  for( ; len-- != 0; text++)
-	  { *p++ = FUNCTOR_dot2;
-	    if ( flags == PL_CODE_LIST )
-	      *p++ = consInt(*text);
-	    else
-	      *p++ = codeToAtom(*text);
-	    *p = consPtr(p+1, TAG_COMPOUND|STG_GLOBAL);
-	    p++;
-	  }
-	  p[-1] = ATOM_nil;
-	}
-
-	return PL_unify(l, t);
-      }
-      default:
-	return PL_warning("PL_unify_wchars(): bad flags");
-    }
-  }
+isUCSAtom(Atom a)
+{ return a->type == &ucs_atom;
 }
 
+
+int
+PL_unify_wchars(term_t t, int flags, unsigned int len, const pl_wchar_t *s)
+{ PL_chars_t text;
+  int rc;
+
+  text.text.w = (pl_wchar_t *)s;
+  text.flags  = PL_CHARS_UCS|PL_CHARS_HEAP;
+  text.length = len;
+
+  rc = PL_unify_text(t, &text, flags);
+  PL_free_text(&text);
+
+  return rc;
+}
 
 
 		 /*******************************
@@ -821,7 +745,7 @@ PL_get_string(term_t t, char **s, unsigned int *len)
 #define buffer_ring		(LD->fli._buffer_ring)
 #define current_buffer_id	(LD->fli._current_buffer_id)
 
-static Buffer
+Buffer
 findBuffer(int flags)
 { GET_LD
   Buffer b;
@@ -852,7 +776,7 @@ buffer_string(const char *s, int flags)
 }
 
 
-static int
+int
 unfindBuffer(int flags)
 { GET_LD
   if ( flags & BUF_RING )
@@ -865,7 +789,7 @@ unfindBuffer(int flags)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-get_code_list(term_t l, unsigned flags, int wide)
+codes_or_chars_to_buffer(term_t l, unsigned flags, int wide)
 
 If l represents a list of codes   or characters, return a buffer holding
 the characters. If wide == TRUE  the   buffer  contains  objects of type
@@ -890,8 +814,8 @@ charCode(word w)
 }
 
 
-static Buffer
-get_code_list(term_t l, unsigned int flags, int wide)
+Buffer
+codes_or_chars_to_buffer(term_t l, unsigned int flags, int wide)
 { GET_LD
   Buffer b;
   word list = valHandle(l);
@@ -965,7 +889,7 @@ PL_get_list_nchars(term_t l,
 		   unsigned int *length, char **s, unsigned int flags)
 { Buffer b;
 
-  if ( (b = get_code_list(l, flags, FALSE)) )
+  if ( (b = codes_or_chars_to_buffer(l, flags, FALSE)) )
   { char *r;
     int len = entriesBuffer(b, char);
 
@@ -991,298 +915,6 @@ PL_get_list_nchars(term_t l,
 int
 PL_get_list_chars(term_t l, char **s, unsigned flags)
 { return PL_get_list_nchars(l, NULL, s, flags);
-}
-
-
-		 /*******************************
-		 *	UNIFIED TEXT STUFF	*
-		 *******************************/
-
-static inline int
-bufsize_text(PL_chars_t *text)
-{ int unit;
-
-  if ( true(text, PL_CHARS_LATIN) )
-    unit = sizeof(char);
-  else if ( true(text, PL_CHARS_UCS) )
-    unit = sizeof(pl_wchar_t);
-  else
-    assert(0);
-
-  return (text->length+1)*unit;
-}
-
-
-int
-PL_get_text(term_t l, PL_chars_t *text, int flags)
-{ GET_LD
-  word w = valHandle(l);
-
-  if ( (flags & CVT_ATOM) && isAtom(w) )
-  { Atom a = atomValue(w);
-    if ( false(a->type, PL_BLOB_TEXT) )
-      fail;				/* non-textual atom */
-    if ( a->type == &ucs_atom )
-    { text->text.w = (pl_wchar_t *) a->name;
-      text->length = a->length / sizeof(pl_wchar_t);
-      text->flags = PL_CHARS_UCS|PL_CHARS_HEAP;
-    } else
-    { text->text.t = a->name;
-      text->length = a->length;
-      text->flags = PL_CHARS_LATIN|PL_CHARS_HEAP;
-    }
-  } else if ( (flags & CVT_INTEGER) && isInteger(w) )
-  { Ssprintf(text->buf, "%ld", valInteger(w) );
-    text->text.t = text->buf;
-    text->length = strlen(text->text.t);
-    text->flags = PL_CHARS_LATIN|PL_CHARS_LOCAL;
-  } else if ( (flags & CVT_FLOAT) && isReal(w) )
-  { char *q;
-
-    Ssprintf(text->buf, LD->float_format, valReal(w) );
-    text->text.t = text->buf;
-
-    q = text->buf;			/* See also writePrimitive() */
-    if ( *q == L'-' )
-      q++;
-    for(; *q; q++)
-    { if ( !isDigit(*q) )
-	break;
-    }
-    if ( !*q )
-    { *q++ = '.';
-      *q++ = '0';
-      *q = EOS;
-    }
-    text->length = strlen(text->text.t);
-    text->flags = PL_CHARS_LATIN|PL_CHARS_LOCAL;
-  } else if ( (flags & CVT_STRING) && isString(w) )
-  { if ( isBString(w) )
-    { text->text.t = getCharsString(w, &text->length);
-      text->flags = PL_CHARS_LATIN|PL_CHARS_STACK;
-    } else
-    { text->text.w = getCharsWString(w, &text->length);
-      text->flags = PL_CHARS_UCS|PL_CHARS_STACK;
-    }
-  } else if ( (flags & CVT_LIST) &&
-	      (isList(w) || isNil(w)) )
-  { Buffer b;
-
-    if ( (b = get_code_list(l, BUF_RING, FALSE)) )
-    { text->length = entriesBuffer(b, char);
-      addBuffer(b, EOS, char);
-      text->text.t = baseBuffer(b, char);
-      text->flags = PL_CHARS_LATIN|PL_CHARS_RING;
-    } else if ( (b = get_code_list(l, BUF_RING, TRUE)) )
-    { text->length = entriesBuffer(b, pl_wchar_t);
-      addBuffer(b, EOS, pl_wchar_t);
-      text->text.w = baseBuffer(b, pl_wchar_t);
-      text->flags = PL_CHARS_UCS|PL_CHARS_RING;
-    } else
-      fail;
-  } else if ( (flags & CVT_VARIABLE) && isVar(w) )
-  { text->text.t = varName(l, text->buf);
-    text->length = strlen(text->text.t);
-    text->flags = PL_CHARS_LATIN|PL_CHARS_LOCAL;
-  } else if ( (flags & CVT_WRITE) )
-  { IOENC encodings[] = { ENC_ISO_LATIN_1, ENC_WCHAR, ENC_NONE };
-    IOENC *enc;
-    char *r;
-
-    for(enc = encodings; *enc != ENC_NONE; enc++)
-    { int size;
-      IOSTREAM *fd;
-    
-      r = text->buf;
-      size = sizeof(text->buf);
-      fd = Sopenmem(&r, &size, "w");
-      fd->encoding = *enc;
-      if ( PL_write_term(fd, l, 1200, 0) &&
-	   Sputcode(EOS, fd) >= 0 &&
-	   Sflush(fd) >= 0 )
-      { text->length = (size/sizeof(pl_wchar_t))-1;
-	text->text.w = (pl_wchar_t *)r;
-	Sclose(fd);
-	break;
-      } else
-      { Sclose(fd);
-	if ( r != text->buf )
-	  Sfree(r);
-      }
-    }
-
-    if ( *enc != ENC_NONE )
-    { if ( r != text->buf )
-	text->flags = *enc|PL_CHARS_MALLOC;
-      else
-	text->flags = *enc|PL_CHARS_LOCAL;
-
-      text->text.t = r;
-    } else
-    { return FALSE;
-    }
-  } else
-  { fail;
-  }
-
-  succeed;
-}
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-int PL_promote_text(PL_chars_t *text)
-
-Promote a text to USC if it is currently 8-bit text.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-int
-PL_promote_text(PL_chars_t *text)
-{ if ( false(text, PL_CHARS_UCS) )
-  { if ( true(text, PL_CHARS_MALLOC) )
-    { pl_wchar_t *new = PL_malloc(sizeof(pl_wchar_t)*(text->length+1));
-      pl_wchar_t *t = new;
-      const unsigned char *s = (const unsigned char *)text->text.t;
-      const unsigned char *e = &s[text->length];
-
-      while(s<e)
-      { *t++ = *s++;
-      }
-      *t = EOS;
-
-      PL_free(text->text.t);
-      text->text.w = new;
-      
-      text->flags = (PL_CHARS_UCS|PL_CHARS_MALLOC);
-    } else if ( true(text, PL_CHARS_LOCAL) &&
-	        (text->length+1)*sizeof(pl_wchar_t) < sizeof(text->buf) )
-    { unsigned char buf[sizeof(text->buf)];
-      unsigned char *f = buf;
-      unsigned char *e = &buf[text->length];
-      pl_wchar_t *t = (pl_wchar_t*)text->buf;
-
-      memcpy(buf, text->buf, text->length*sizeof(char));
-      while(f<e)
-      { *t++ = *f++;
-      }
-      *t = EOS;
-      text->flags = (PL_CHARS_UCS|PL_CHARS_LOCAL);
-    } else if ( true(text, PL_CHARS_RING|PL_CHARS_HEAP|PL_CHARS_STACK) )
-    { Buffer b = findBuffer(BUF_RING);
-      const unsigned char *s = (const unsigned char *)text->text.t;
-      const unsigned char *e = &s[text->length];
-
-      for( ; s<e; s++)
-	addBuffer(b, *s, pl_wchar_t);
-      addBuffer(b, EOS, pl_wchar_t);
-
-      text->text.w = baseBuffer(b, pl_wchar_t);
-      text->flags = (PL_CHARS_UCS|PL_CHARS_RING);
-    } else
-    { assert(0);
-    }
-  }
-
-  succeed;
-}
-
-
-int
-PL_demote_text(PL_chars_t *text)
-{ if ( false(text, PL_CHARS_LATIN) )
-  { if ( true(text, PL_CHARS_MALLOC) )
-    { char *new = PL_malloc(sizeof(char)*(text->length+1));
-      char *t = new;
-      const pl_wchar_t *s = (const pl_wchar_t *)text->text.t;
-      const pl_wchar_t *e = &s[text->length];
-
-      while(s<e)
-      { if ( *s > 0xff )
-	{ PL_free(new);
-	  return FALSE;
-	}
-	*t++ = *s++;
-      }
-      *t = EOS;
-
-      PL_free(text->text.t);
-      text->text.t = new;
-      
-      text->flags = (PL_CHARS_LATIN|PL_CHARS_MALLOC);
-    } else if ( true(text, PL_CHARS_LOCAL) )
-    { pl_wchar_t buf[sizeof(text->buf)/sizeof(pl_wchar_t)];
-      pl_wchar_t *f = buf;
-      pl_wchar_t *e = &buf[text->length];
-      char *t = text->buf;
-
-      memcpy(buf, text->buf, text->length*sizeof(pl_wchar_t));
-      while(f<e)
-      { if ( *f > 0xff )
-	  return FALSE;
-	*t++ = *f++;
-      }
-      *t = EOS;
-      text->flags = (PL_CHARS_LATIN|PL_CHARS_LOCAL);
-    } else if ( true(text, PL_CHARS_RING|PL_CHARS_HEAP|PL_CHARS_STACK) )
-    { Buffer b = findBuffer(BUF_RING);
-      const pl_wchar_t *s = (const pl_wchar_t*)text->text.w;
-      const pl_wchar_t *e = &s[text->length];
-
-      for( ; s<e; s++)
-      { if ( *s > 0xff )
-	{ unfindBuffer(BUF_RING);
-	  return FALSE;
-	}
-	addBuffer(b, *s, char);
-      }
-      addBuffer(b, EOS, char);
-
-      text->text.t = baseBuffer(b, char);
-      text->flags = (PL_CHARS_LATIN|PL_CHARS_RING);
-    } else
-    { assert(0);
-    }
-  }
-
-  succeed;
-}
-
-
-int
-PL_canonise_text(PL_chars_t *text)
-{ if ( false(text, PL_CHARS_LATIN) )
-  { const pl_wchar_t *w = (const pl_wchar_t*)text->text.w;
-    const pl_wchar_t *e = &w[text->length];
-
-    for(; w<e; w++)
-    { if ( *w > 0xff )
-	return FALSE;
-    }
-
-    return PL_demote_text(text);
-  }
-
-  succeed;
-}
-
-
-static void
-PL_save_text(PL_chars_t *text, int flags)
-{ if ( false(text, BUF_MALLOC) && false(text, PL_CHARS_MALLOC) )
-  { int bl = bufsize_text(text);
-    void *new = PL_malloc(bl);
-
-    memcpy(new, text->text.t, bl);
-    text->text.w = new;
-    text->flags &= ~PL_CHARS_ALLOC_MASK;
-    text->flags |= PL_CHARS_MALLOC;
-  }  
-}
-
-
-void
-PL_free_text(PL_chars_t *text)
-{ if ( true(text, PL_CHARS_MALLOC) )
-    PL_free(text->text.t);
 }
 
 
