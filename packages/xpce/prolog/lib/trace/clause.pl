@@ -67,8 +67,10 @@ clear_clause_info_cache :-
 %	Fetches source information for the given clause.
 
 clause_info(ClauseRef, File, TermPos, NameOffset) :-
-	clause_info_cache(ClauseRef, File, TermPos, NameOffset), !.
+	clause_info_cache(ClauseRef, File, TermPos, NameOffset), !,
+	debug('clause_info(~w): from cache~n', [ClauseRef]).
 clause_info(ClauseRef, File, TermPos, NameOffset) :-
+	debug('clause_info(~w)... ', [ClauseRef]),
 	clause_property(ClauseRef, file(File)),
 	'$clause'(Head, Body, ClauseRef, VarOffset),
 	(   Body == true
@@ -81,7 +83,7 @@ clause_info(ClauseRef, File, TermPos, NameOffset) :-
 	->  true
 	;   strip_module(user:Head, Module, _)
 	),
-	debug('Clause ~w from ~w:~d ...', [ClauseRef, File, LineNo]),
+	debug('from ~w:~d ... ', [File, LineNo]),
 	read_term_at_line(File, LineNo, Module, Clause, TermPos0, VarNames),
 	debug('read ...', []),
 	unify_clause(Clause, DecompiledClause, TermPos0, TermPos),
@@ -91,6 +93,7 @@ clause_info(ClauseRef, File, TermPos, NameOffset) :-
 	asserta(clause_info_cache(ClauseRef, File, TermPos, NameOffset)),
 	debug('Added to info-cache~n', []).
 clause_info(ClauseRef, S, TermPos, NameOffset) :-
+	debug('Listing for clause ~w~n', [ClauseRef]),
 	'$clause'(Head, Body, ClauseRef, VarOffset),
 	(   Body == true
 	->  Clause = Head
@@ -109,14 +112,42 @@ clause_info(ClauseRef, S, TermPos, NameOffset) :-
 	close(Fd),
 	debug('ok, reading ... ', []),
 	pce_open(S, read, Handle),
-	read(Handle, user, Clause, TermPos, VarNames),
-	close(Handle),
+	call_cleanup(read(Handle, user, ReadClause, TermPos, VarNames),
+		     close(Handle)),
+	unify_term(Clause, ReadClause),
 	debug('ok ...', []),
 	make_varnames(Clause, VarOffset, VarNames, NameOffset),
 	debug('got names~n', []), !.
 clause_info(_, _, _, _) :-
 	debug('FAILED~n', []),
 	fail.
+
+
+%	unify_term(+T1, +T2)
+%	
+%	Unify the two terms, but be aware that rounding problems may
+%	cause floating point numbers not to unify.
+
+unify_term(X, X) :- !.
+unify_term(X1, X2) :-
+	compound(X1),
+	compound(X2),
+	functor(X1, F, Arity),
+	functor(X2, F, Arity), !,
+	unify_args(0, Arity, X1, X2).
+unify_term(X, Y) :-
+	float(X), float(Y), !.
+unify_term(X, Y) :-
+	format('[INTERNAL ERROR: Diff: ~q <-> ~q]~n', [X, Y]),
+	break.
+
+unify_args(N, N, _, _) :- !.
+unify_args(I, Arity, T1, T2) :-
+	A is I + 1,
+	arg(A, T1, A1),
+	arg(A, T2, A2),
+	unify_term(A1, A2),
+	unify_args(A, Arity, T1, T2).
 
 
 %	Must be a user-programmable hook!

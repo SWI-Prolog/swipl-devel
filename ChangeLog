@@ -1,6 +1,13 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Source-level debugger: be aware that clauses holding floats
+    that are written and read-back may not unify exactly due to float
+    rounding errors.
+
+  * FIXED: quoted write to write floats using decimal dot or exponent,
+    regardless of the float-format in effect.
+
   * ENHANCED: Skip intermediate system-predicates when walking `up' in
     the source-level debugger.
 

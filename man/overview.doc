@@ -989,12 +989,15 @@ a copy requires only 4 additional bytes).
 Start of the tagged-integer value range.
 
     \prologflagitem{float_format}{atom}{rw}
-C {\tt printf()} format specification used by write/1 and friends to
+C-library printf() format specification used by write/1 and friends to
 determine how floating point numbers are printed. The default is {\tt
 \%g}. The specified value is passed to printf() without further
 checking. For example, if you want more digits printed, {\tt \%.12g}
-will print all floats using 12 digits instead of the default 6. See also
-format/[1,2], write/1, print/1 and portray/1.
+will print all floats using 12 digits instead of the default 6.
+
+When using quoted-write, the output is guaranteed to contain a decimal
+dot or exponent, so read/1 reads a floating point number. See also
+format/[1,2], write_term/[2,3].
 
     \prologflagitem{toplevel_print_options}{term}{rw}
 This argument is given as option-list to write_term/2 for printing results

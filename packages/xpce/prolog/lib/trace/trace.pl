@@ -99,8 +99,10 @@ intercept(_, _, _, _) :-
 	fail.
 intercept(Port, Frame, CHP, Action) :-
 	send_tracer(current_break(@nil)),
+	debug('*** do_intercept(~w, ~w, ~w, _) ...~n', [Port, Frame, CHP]), 
 	do_intercept(Port, Frame, CHP, Action0),
 	fix_action(Port, Action0, Action),
+	debug('*** ---> Action = ~w~n', [Action]),
 	send_if_tracer(report(status, '%s ...', Action)),
 	retractall(last_action(_)),
 	asserta(last_action(Action)).
@@ -524,9 +526,11 @@ show_bindings(Frame, Attributes) :-
 	;   send(Browser, label, 'Bindings'),
 	    prolog_frame_attribute(Frame, clause, ClauseRef),
 	    debug('(clause ~w) ', [ClauseRef]),
-	    clause_info(ClauseRef, _, _, VarNames),
+	    catch(clause_info(ClauseRef, _, _, VarNames), E,
+		  (print_message(error, E), fail)),
 	    frame_bindings(Frame, VarNames, Bindings),
-	    send(Browser, bindings, Bindings)
+	    send(Browser, bindings, Bindings),
+	    debug('(ok) ', [])
 	).
 show_bindings(_, _).
 

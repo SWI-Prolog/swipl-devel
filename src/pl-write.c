@@ -322,8 +322,23 @@ writePrimitive(term_t t, write_options *options)
       return PutToken(s, out);
     else
     { char buf[100];
+      char *q;
 
       sprintf(buf, LD->float_format, f);
+					/* make sure to write float */
+					/* such that it reads as a float */
+      if ( true(options, PL_WRT_QUOTED) )
+      { for(q=buf; *q; q++)
+	{ if ( !isDigit(*q) )
+	    break;
+	}
+        if ( !*q )
+	{ *q++ = '.';
+	  *q++ = '0';
+	  *q = EOS;
+	}
+      }
+
       return PutToken(buf, out);
     }
 
