@@ -2,6 +2,9 @@
 			   ==============
 
 
+VERSION 6.5.4, distributed with SWI-Prolog 5.5.4
+================================================
+
 * ENHANCED: some cleanup and more robustness in library(Xserver) to create
   a head-less server for XPCE.
 

@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+VERSION 5.5.4 (Januari 26, 2005)
+================================
+
   * PORT: Enhanced support for MacOS.  Put the Prolog kernel in a shared
     object, support JPL in the MacOS version.
 
@@ -292,7 +295,7 @@ VERSION 5.3.15 (July 16, 2004)
   * FIXED: portability issue in Makefile (Solaris).  Bill McEnaney.
 
   * FIXED: possibility to crash the debugger on exceptions in callback
-    from C.  Salvador Fandi�o.
+    from C.  Salvador Fandio.
 
 
 VERSION 5.3.14 (July 1, 2004)
