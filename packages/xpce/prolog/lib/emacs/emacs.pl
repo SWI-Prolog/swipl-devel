@@ -178,6 +178,7 @@ default_emacs_mode('.*\\.C$',				cpp).
 default_emacs_mode('.*\\.cc$',				cpp).
 default_emacs_mode('.*\\.cpp$',				cpp).
 default_emacs_mode('.*\\.idl$',				cpp).
+default_emacs_mode('.*\\.txt~?$',			text).
 default_emacs_mode('[Cc]ompose\\|README',		text).
 default_emacs_mode(Pattern, prolog) :-
 	current_prolog_flag(associate, Ext),

@@ -811,9 +811,11 @@ drop(E, Obj:object) :->
 
 auto_fill(E, Caret:[int]) :->
 	"Delegate to mode"::
-	get(E, mode, Mode),
-	get(Mode?class, send_method, auto_fill, _), 	% avoid delegation
-	send(Mode, auto_fill, Caret).
+	(   get(E, mode, Mode),
+	    get(Mode?class, send_method, auto_fill, _)
+	->  send(Mode, auto_fill, Caret)
+	;   send_super(E, auto_fill)
+	).
 
 
 import_selection(E) :->
