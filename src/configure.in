@@ -217,13 +217,40 @@ dnl Finding libraries
 dnl ****************************************************************
 
 if test "$MT" = "yes"; then
+pthread_ok=false
   PLLIB=libplmt.a
 
+  if test "$GCC" = "yes"; then
+AC_MSG_CHECKING("whether gcc supports -pthread")
+ocflags=CFLAGS
+CFLAGS="$CFLAGS -pthread"
+AC_TRY_LINK([
+#include <pthread.h>
+	    ],
+	    [ static pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
+	      pthread_mutex_lock(&m);
+	      pthread_mutex_unlock(&m);
+	    ],
+	    pthread_ok=true
+	    CMFLAGS="$CMFLAGS -pthread"
+	    LDFLAGS="$LDFLAGS -pthread"
+	    AC_MSG_RESULT(yes),
+	    CFLAGS=ocflags
+	    AC_MSG_RESULT(no))
+  fi
+
+  if test "$pthread_ok" = "false"; then
   AC_CHECK_LIB(pthread, main)
-  if test "$ac_cv_lib_pthread_main" = "yes"; then
+    if test "$ac_cv_lib_pthread_main" = "yes"; then
+      pthread_ok=true
+    fi
+  fi
+
+  if test "$pthread_ok" = "true"; then
     AC_DEFINE(O_PLMT)
     CNFG="--enable-mt"
   fi
+
   AC_CHECK_LIB(rt, sem_init)
   AC_CHECK_FUNCS(sem_init)
   if test ! "$ac_cv_lib_rt_sem_init" = "yes"; then
