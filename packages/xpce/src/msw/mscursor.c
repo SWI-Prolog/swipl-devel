@@ -210,7 +210,8 @@ ws_init_cursor_font()
   cursor_width  = GetSystemMetrics(SM_CXCURSOR);
   cursor_height = GetSystemMetrics(SM_CYCURSOR);
 
-  
+  DEBUG(NAME_cursor,
+	Cprintf("Cursor size is %dx%d\n", cursor_width, cursor_height));
 }
 
 
@@ -567,6 +568,13 @@ print_bits(CursorGlyphSet set, CursorBits bits, int hx, int hy, char show)
 		 /*******************************
 		 *	  CREATE/DESTROY	*
 		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Note: cursors are limited  in   size  to GetSystemMetrics(SM_CXCURSOR) x
+GetSystemMetrics(SM_CYCURSOR). If the system  finds   larger  cursors it
+will not create the cursor.  See   ws_window_cursor()  in mswindow.c for
+details.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 status
 ws_create_cursor(CursorObj c, DisplayObj d)

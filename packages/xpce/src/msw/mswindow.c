@@ -739,6 +739,13 @@ void
 ws_window_cursor(PceWindow sw, CursorObj c)
 { if ( ws_created_window(sw) )
   { WsWindow w = sw->ws_ref;
+    static int cursor_width = 0;
+    static int cursor_height = 0;
+
+    if ( !cursor_width )
+    { cursor_width  = GetSystemMetrics(SM_CXCURSOR);
+      cursor_height = GetSystemMetrics(SM_CYCURSOR);
+    }
 
     exit_big_cursor();			/* should there be one */
 
@@ -746,7 +753,8 @@ ws_window_cursor(PceWindow sw, CursorObj c)
       c = getClassVariableValueObject(sw, NAME_cursor);
 
     if ( notNil(c->image) &&
-	 (valInt(c->image->size->w) > 32 || valInt(c->image->size->h) > 32) &&
+	 (valInt(c->image->size->w) > cursor_width ||
+	  valInt(c->image->size->h) > cursor_height) &&
 	 sw->focus_cursor == c )
     { start_big_cursor(c);
       w->hcursor = NULL;
