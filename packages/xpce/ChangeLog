@@ -1,6 +1,11 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: `file<-read_line' no longer has a limit on the line-length and
+  reads lines holding 0-bytes.  Anjo Anjewierden.
+
+* PORT: Make the windows version thread-safe.
+
 * CLEANUP: Deleted death code accessing plterm.dll functions.
 
 * ENHANCED: Various issues around the diagramming class plot_axis.  Fully
