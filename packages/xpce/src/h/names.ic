@@ -1744,6 +1744,8 @@
   BUILTIN_NAME("redefined_assoc")
   BUILTIN_NAME("redo")
   BUILTIN_NAME("redraw")
+  BUILTIN_NAME("redraw_background")
+  BUILTIN_NAME("redraw_foreground")
   BUILTIN_NAME("redraw_function")
   BUILTIN_NAME("reduce")
   BUILTIN_NAME("reduce_factor")

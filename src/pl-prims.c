@@ -237,8 +237,9 @@ PRED_IMPL("hash_term", 2, hash_term, 0)
 
 static word
 _pl_equal(register Word t1, register Word t2 ARG_LD)
-{ int arity, n;
+{ int arity;
 
+right_recursive:
   deRef(t1);
   deRef(t2);
 
@@ -264,8 +265,11 @@ _pl_equal(register Word t1, register Word t2 ARG_LD)
   arity = arityFunctor(functorTerm(*t1));
   t1 = argTermP(*t1, 0);
   t2 = argTermP(*t2, 0);
-  for(n=0; n<arity; n++, t1++, t2++)
+  if ( arity == 0 )
+    succeed;
+  for(; --arity > 0; t1++, t2++)
     TRY(_pl_equal(t1, t2 PASS_LD));
+  goto right_recursive;
 
   succeed;
 }

@@ -1584,12 +1584,8 @@ RedrawRulesTableCell(TableCell cell, Name style, int b)
 { Table tab = (Table)cell->layout_manager;
   table_cell_dimensions d;
   int sides = NOSIDES;
-  Any bg;
 
   dims_table_cell(cell, &d);
-  if ( (bg=getBackgroundTableCell(cell)) )
-    r_fill(d.x, d.y, d.w, d.h, bg);
-
   if ( getSelectedTableCell(cell) == ON )
   { r_thickness(b+1);
     r_box(d.x, d.y, d.w, d.h, 0, NIL);
@@ -1715,8 +1711,38 @@ RedrawRulesTable(Table tab, Area a)
 }
 
 
+static void
+RedrawBackgroundTableCell(TableCell cell)
+{ table_cell_dimensions d;
+  Any bg;
+
+  dims_table_cell(cell, &d);
+  if ( (bg=getBackgroundTableCell(cell)) )
+    r_fill(d.x, d.y, d.w, d.h, bg);
+}
+
+
+static status 
+RedrawBackgroundTable(Table tab, Area a)
+{ for_displayed_cells_table(tab, cell,
+			    RedrawBackgroundTableCell(cell), ;);
+
+  succeed;
+}
+
+
 static status
-RedrawAreaTable(Table tab, Area a)
+redrawBackgroundTable(Table tab, Area a)
+{ if ( overlapArea(a, tab->area) )
+  { RedrawBackgroundTable(tab, a);
+  }
+
+  succeed;
+}
+		      
+
+static status
+redrawForegroundTable(Table tab, Area a)
 { if ( overlapArea(a, tab->area) )
   { RedrawFrameTable(tab, a);
     RedrawRulesTable(tab, a);
@@ -1724,6 +1750,7 @@ RedrawAreaTable(Table tab, Area a)
 
   succeed;
 }
+
 		      
 		 /*******************************
 		 *	    ATTRIBUTES		*
@@ -1889,8 +1916,10 @@ static senddecl send_table[] =
      NAME_compute, "Compute the bounding box"),
   SM(NAME_placeCells, 0, NULL, placeCellsTable,
      NAME_compute, "Place all cells"),
-  SM(NAME_RedrawArea, 1, "area", RedrawAreaTable,
-     NAME_redraw, "Draw lines"),
+  SM(NAME_redrawBackground, 1, "area", redrawBackgroundTable,
+     NAME_redraw, "Redraw the background (no-op)"),
+  SM(NAME_redrawForeground, 1, "area", redrawForegroundTable,
+     NAME_redraw, "Redraw the foreground (lines and marks)"),
 
   SM(NAME_selection, 1, "table_cell|chain*", selectionTable,
      NAME_selection, "Specify the selection"),

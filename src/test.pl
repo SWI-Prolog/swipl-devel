@@ -390,6 +390,16 @@ list(memberchk-2) :-
 list(memberchk-3) :-
 	memberchk(a, L), memberchk(b, L), L =@= [a,b|_].
 list(sort-1) :-
+	sort([], []).
+list(sort-2) :-
+	sort([x], [x]).
+list(sort-3) :-
+	sort([e,b,c,e], [b,c,e]).
+list(sort-4) :-
+	msort([e,b,c,e], [b,c,e,e]).
+list(sort-5) :-
+	keysort([e-2,b-5,c-6,e-1], [b-5,c-6,e-2,e-1]).
+list(sort-5) :-
 	sort([a,g,b], [a,b|G]), G == [g].
 
 		 /*******************************

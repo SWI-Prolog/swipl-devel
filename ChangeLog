@@ -7,6 +7,13 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ENHANCED: Use Richard O'Keefe's natural merge-sort for sort/2, msort/2
+    and keysort/2.  More space efficient.  As good as the best qsort()
+    from libc and replaces old slow keysort with an efficient alternative.
+
+  * ENHANCED: make == and \== last-argument-tail-recursive, so they apply
+    to arbitrary long lists.
+
   * FIXED: Bug#32: A number of issues around unloading shared objects.
     Mike Elston.
 

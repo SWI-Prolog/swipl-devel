@@ -66,7 +66,7 @@
 :- pce_global(@manual, new(man_manual)).
 
 manpce :-
-	send(@manual, open).
+	send(@manual, expose).
 
 
 manpce(Spec) :-

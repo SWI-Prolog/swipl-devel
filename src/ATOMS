@@ -521,6 +521,7 @@ A yfx			"yfx"
 A yfy			"yfy"
 A zero_divisor		"zero_divisor"
 A halt			"halt"
+A key_value_pair	"key_value_pair"
 
 F abs			1
 F access		1

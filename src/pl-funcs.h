@@ -412,8 +412,6 @@ void		resetForeign(void);
 /* pl-list.c */
 word		pl_length(term_t list, term_t l);
 word		pl_memberchk(term_t e, term_t list);
-word		pl_msort(term_t list, term_t sorted);
-word		pl_sort(term_t list, term_t sorted);
 
 /* pl-load.c */
 word		pl_open_shared_object(term_t file, term_t h, term_t flags);

@@ -701,10 +701,13 @@ RedrawAreaDevice(Device dev, Area a)
   { Cell cell;
 
     if ( notNil(dev->layout_manager) )
-      qadSendv(dev->layout_manager, NAME_RedrawArea, 1, (Any*)&a);
+      qadSendv(dev->layout_manager, NAME_redrawBackground, 1, (Any*)&a);
 
     for_cell(cell, dev->graphicals)
       RedrawArea(cell->value, a);
+
+    if ( notNil(dev->layout_manager) )
+      qadSendv(dev->layout_manager, NAME_redrawForeground, 1, (Any*)&a);
 
     ExitRedrawAreaDevice(dev, a, &ctx);
   }

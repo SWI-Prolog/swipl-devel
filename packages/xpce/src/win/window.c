@@ -1184,10 +1184,13 @@ redrawAreaWindow(PceWindow sw, Area a)
 { Cell cell;
 
   if ( notNil(sw->layout_manager) )
-      qadSendv(sw->layout_manager, NAME_RedrawArea, 1, (Any*)&a);
+      qadSendv(sw->layout_manager, NAME_redrawBackground, 1, (Any*)&a);
 
   for_cell(cell, sw->graphicals)
     RedrawArea(cell->value, a);
+
+  if ( notNil(sw->layout_manager) )
+      qadSendv(sw->layout_manager, NAME_redrawForeground, 1, (Any*)&a);
 
   succeed;
 }
