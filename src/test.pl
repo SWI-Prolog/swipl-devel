@@ -1622,6 +1622,9 @@ ctype(code_type-4) :-
 ctype(code_type-5) :-
 	code_type(48, digit(W)),
 	W == 0.
+ctype(code_type-6) :-
+	char_code(X, 1080), code_type(X, alnum).
+
 
 		 /*******************************
 		 *	      CONSULT		*

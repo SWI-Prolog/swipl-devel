@@ -1499,9 +1499,8 @@ int
 PL_get_char(term_t c, int *p, int eof)
 { GET_LD
   int chr;
-  char *s;
-  unsigned len;
   atom_t name;
+  PL_chars_t text;
 
   if ( PL_get_integer(c, &chr) )
   { if ( chr >= 0 )
@@ -1512,9 +1511,10 @@ PL_get_char(term_t c, int *p, int eof)
     { *p = chr;
       return TRUE;
     }
-  } else if ( PL_get_nchars(c, &len, &s, CVT_ATOM|CVT_STRING|CVT_LIST) &&
-	      len == 1 )
-  { *p = s[0]&0xff;
+  } else if ( PL_get_text(c, &text, CVT_ATOM|CVT_STRING|CVT_LIST) &&
+	      text.length == 1 )
+  { *p = text.encoding == ENC_ISO_LATIN_1 ? text.text.t[0]&0xff
+					  : text.text.w[0];
     return TRUE;
   } else if ( eof && PL_get_atom(c, &name) && name == ATOM_end_of_file )
   { *p = -1;

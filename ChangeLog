@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: getting character code value for characters with code > 255.
+    Anjo Anjewierden.
+
   * FIXED: negative random numbers on MS-Windows.  Upgraded random/1 to
     return 64-bit random numbers.  Jocelyn Paine.
 
