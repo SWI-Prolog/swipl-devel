@@ -44,6 +44,7 @@ all:
 install:	$(LIBPL)
 		mkdir -p $(LIBDIR)
 		$(INSTALL_DATA) $(LIBPL) $(LIBDIR)
+		$(INSTALL_DATA) README $(LIBDIR)
 		$(PL) -f none -g make -t halt
 
 rpm-install:	install

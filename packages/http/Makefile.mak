@@ -31,6 +31,7 @@ install::
 		if not exist "$(LIBDIR)/$(NULL)" $(MKDIR) "$(LIBDIR)"
 		@echo Copying $(LIBPL)
 		@for %f in ($(LIBPL)) do @copy %f "$(LIBDIR)"
+		copy README "$(LIBDIR)\README.TXT"
 		$(MAKEINDEX)
 !ENDIF
 
@@ -49,7 +50,7 @@ install-examples::
 xpce-install::
 
 uninstall::
-		cd $(LIBDIR) & del $(LIBPL)
+		cd $(LIBDIR) & del $(LIBPL) README.TXT
 		$(MAKEINDEX)
 
 clean::
