@@ -111,7 +111,7 @@ Marking, testing marks and extracting values from GC masked words.
 
 #if O_SECURE
 char tmp[256];				/* for calling print_val(), etc. */
-#define check_relocation(p) do_check_relocation(p, __FILE__, __LINE__)
+#define check_relocation(p) do_check_relocation(p, __FILE__, __LINE__ PASS_LD)
 #define recordMark(p)   { if ( (p) < gTop ) *mark_top++ = (p); }
 #else
 #define recordMark(p)
@@ -178,7 +178,7 @@ forwards void		compact_global(void);
 
 #if O_SECURE
 forwards int		cmp_address(const void *, const void *);
-forwards void		do_check_relocation(Word, char *file, int line);
+forwards void		do_check_relocation(Word, char *file, int line ARG_LD);
 forwards void		needsRelocation(void *);
 forwards bool		scan_global(int marked);
 forwards void		check_mark(mark *m);
@@ -201,10 +201,10 @@ forwards void		check_mark(mark *m);
 #define local_frames	   (LD->gc._local_frames)
 #define choice_count	   (LD->gc._choice_count)
 #if O_SECURE
-static long trailtops_marked;		/* # marked trailtops */
-static Word *mark_base;			/* Array of marked cells addresses */
-static Word *mark_top;			/* Top of this array */
-static Table check_table = NULL;	/* relocation address table */
+#define trailtops_marked   (LD->gc._trailtops_marked)
+#define mark_base	   (LD->gc._mark_base)
+#define mark_top	   (LD->gc._mark_top)
+#define check_table	   (LD->gc._check_table)
 #endif
 
 #undef LD
@@ -269,7 +269,7 @@ print_val(word val, char *buf)
 }
 
 static void
-do_check_relocation(Word addr, char *file, int line)
+do_check_relocation(Word addr, char *file, int line ARG_LD)
 { Symbol s;
 
   if ( !(s=lookupHTable(check_table, addr)) )

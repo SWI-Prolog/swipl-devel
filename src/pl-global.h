@@ -431,6 +431,12 @@ typedef struct PL_local_data
     long _alien_relocations;		/* # alien_into_relocation_chain() */
     long _local_frames;			/* frame count for debugging */
     long _choice_count;			/* choice-point count for debugging */
+#if defined(O_SECURE) || defined(SECURE_GC)
+    long _trailtops_marked;		/* # marked trailtops */
+    Word *_mark_base;			/* Array of marked cells addresses */
+    Word *_mark_top;			/* Top of this array */
+    Table _check_table;			/* relocation address table */
+#endif
 
     pl_gc_status_t	status;		/* Garbage collection status */
   } gc;
