@@ -165,7 +165,11 @@ make_library_index2(Dir, Patterns, Modified) :-
 	expand_index_file_patterns(Patterns, Files),
 	(   library_index_out_of_date(Index, Files)
 	->  print_message(informational, make(library_index(Dir))),
-	    do_make_library_index(Index, Files),
+	    catch(do_make_library_index(Index, Files),
+		  E,
+		  (   chdir(OldDir),
+		      throw(E)
+		  )),
 	    Modified = true
 	;   Modified = false
 	),
