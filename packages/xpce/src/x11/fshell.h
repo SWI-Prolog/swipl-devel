@@ -29,6 +29,7 @@
 /* define any special resource names here that are not in <X11/StringDefs.h> */
 
 #define XtNeventCallback	"eventCallback"
+#define XtNexposeCallback	"exposeCallback"
 
 /* declare specific FrameWidget class and instance datatypes */
 

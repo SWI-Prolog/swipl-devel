@@ -20,6 +20,8 @@ static XtResource top_level_resources[] = {
     /* {name, class, type, size, offset, default_type, default_addr}, */
  { XtNeventCallback,  XtCCallback, XtRCallback, sizeof(XtCallbackList),
 	offset(event_callback),  XtRCallback, NULL },
+ { XtNexposeCallback, XtCCallback, XtRCallback, sizeof(XtCallbackList),
+	offset(expose_callback), XtRCallback, NULL },
 #undef offset
 };
 
@@ -29,6 +31,8 @@ static XtResource override_resources[] = {
     /* {name, class, type, size, offset, default_type, default_addr}, */
  { XtNeventCallback,  XtCCallback, XtRCallback, sizeof(XtCallbackList),
 	offset(event_callback),  XtRCallback, NULL },
+ { XtNexposeCallback, XtCCallback, XtRCallback, sizeof(XtCallbackList),
+	offset(expose_callback), XtRCallback, NULL },
 #undef offset
 };
 
@@ -38,6 +42,8 @@ static XtResource transient_resources[] = {
     /* {name, class, type, size, offset, default_type, default_addr}, */
  { XtNeventCallback,  XtCCallback, XtRCallback, sizeof(XtCallbackList),
 	offset(event_callback),  XtRCallback, NULL },
+ { XtNexposeCallback, XtCCallback, XtRCallback, sizeof(XtCallbackList),
+	offset(expose_callback), XtRCallback, NULL },
 #undef offset
 };
 
@@ -114,6 +120,14 @@ xpce_change_managed(Widget w)
 { /* don't do anything, this is done by XPCE itself */
 }
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Redefined standard method (expose)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+exposeFrame(Widget w, XEvent *event, Region region)
+{ XtCallCallbacks(w, XtNexposeCallback, (caddr_t) region);
+}
 
 TopLevelFrameClassRec topLevelFrameClassRec = {
   {
@@ -137,7 +151,7 @@ TopLevelFrameClassRec topLevelFrameClassRec = {
     /* visible_interest   */    FALSE,
     /* destroy            */    NULL,
     /* resize             */    NULL,
-    /* expose             */    NULL,
+    /* expose             */    exposeFrame,
     /* set_values         */    NULL,
     /* set_values_hook    */	NULL,			
     /* set_values_almost  */	XtInheritSetValuesAlmost,  
@@ -192,7 +206,7 @@ OverrideFrameClassRec overrideFrameClassRec = {
     /* visible_interest   */    FALSE,
     /* destroy            */    NULL,
     /* resize             */    NULL,
-    /* expose             */    NULL,
+    /* expose             */    exposeFrame,
     /* set_values         */    NULL,
     /* set_values_hook    */	NULL,			
     /* set_values_almost  */	XtInheritSetValuesAlmost,  
@@ -243,7 +257,7 @@ TransientFrameClassRec transientFrameClassRec = {
     /* visible_interest   */    FALSE,
     /* destroy            */    NULL,
     /* resize             */    NULL,
-    /* expose             */    NULL,
+    /* expose             */    exposeFrame,
     /* set_values         */    NULL,
     /* set_values_hook    */	NULL,			
     /* set_values_almost  */	XtInheritSetValuesAlmost,  

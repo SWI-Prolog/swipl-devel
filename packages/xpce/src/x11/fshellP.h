@@ -44,6 +44,7 @@ extern TopLevelFrameClassRec topLevelFrameClassRec;
 typedef struct
 {   /* resources */
   XtCallbackList		event_callback;
+  XtCallbackList		expose_callback;
     /* private state */
     /* (none) */
 } TopLevelFramePart;
@@ -79,6 +80,7 @@ extern OverrideFrameClassRec overrideFrameClassRec;
 typedef struct
 {   /* resources */
   XtCallbackList		event_callback;
+  XtCallbackList		expose_callback;
     /* private state */
     /* (none) */
 } OverrideFramePart;
@@ -115,6 +117,7 @@ extern TransientFrameClassRec transientFrameClassRec;
 typedef struct
 {   /* resources */
   XtCallbackList		event_callback;
+  XtCallbackList		expose_callback;
     /* private state */
     /* (none) */
 } TransientFramePart;

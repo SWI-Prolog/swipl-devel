@@ -21,6 +21,7 @@
 #endif
 
 static void	xEventFrame(Widget, FrameObj, XEvent *);
+static void	expose_frame(Widget w, FrameObj fr, Region xregion);
 static void	destroyFrame(Widget, FrameObj, XtPointer);
 static status   updateAreaFrame(FrameObj fr, Int border);
 
@@ -159,6 +160,8 @@ ws_create_frame(FrameObj fr)
 
   XtAddCallback(w, XtNeventCallback,
 		(XtCallbackProc) xEventFrame, (caddr_t) fr);
+  XtAddCallback(w, XtNexposeCallback,
+		(XtCallbackProc) expose_frame, (caddr_t) fr);
   XtAddCallback(w, XtNdestroyCallback,
 		(XtCallbackProc) destroyFrame, (caddr_t) fr);
 
@@ -679,6 +682,16 @@ static void
 xEventFrame(Widget w, FrameObj fr, XEvent *event)
 { ServiceMode(service_frame(fr),
 	      x_event_frame(w, fr, event));
+}
+
+
+static void
+expose_frame(Widget w, FrameObj fr, Region region)
+{ XRectangle rect;
+
+  XClipBox(region, &rect);
+  DEBUG(NAME_frame, Cprintf("expose_frame(%s, %d,%d,%d,%d)\n",
+			    pp(fr), rect.x, rect.y, rect.width, rect.height));
 }
 
 
