@@ -121,7 +121,8 @@ read_stream_to_terms(C, Fd, [C|T], Tail) :-
 read_file_to_codes(Spec, Codes, Options) :-
 	(   select(tail(Tail), Options, Options1)
 	->  true
-	;   Tail = []
+	;   Tail = [],
+	    Options1 = Options
 	),
 	split_options(Options1, FileOptions, OpenOptions),
 	absolute_file_name(Spec,
