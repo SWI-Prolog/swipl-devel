@@ -1,0 +1,90 @@
+Purpose
+=======
+
+This module defines a C-library to  be   used  with  SICStus Prolog that
+allows you to use foreign  code   designed  for  SWI-Prolog with minimal
+effort in SICStus.
+
+Installation
+============
+
+The usual ./configure, make, make install   will install the library and
+header files in /usr/local/lib and   /usr/local/include. Use ./configure
+--help for options.
+
+License/Copying
+===============
+
+This  library  is  distributed  under  the  LGPL-2  (Lesser  GNU  Public
+License). For details,  please  visit   www.gnu.org.  Very  briefly  you
+violate this license is you do not   provide  the source of this library
+with executables that include it, but it doesn't   act as a virus on the
+licence terms on the rest of your code.
+
+Use
+===
+
+Given  a  C-source  holding  C-functions   that  define  predicates  for
+SWI-Prolog you can make it  suitable  for   use  with  SICStus using the
+following steps:
+
+	# Replace #include <SWI-Prolog.h> with #include <swi.h>
+
+	# Remove the install/uninstall functions
+
+	# Declare the foreign function and write the wrapper
+	SWI-Prolog foreign functions can fail, succeed or be succeed
+	non-deterministically. They do that by returning 0, 1 or
+	something else. They accept a list of arguments of the SICStus
+	form +term.
+
+	So, if we have a function foo(), implementing foo/2, we have
+	to write:
+
+	foreign(c_foo, foo(+term, +term, [-integer])).
+	foreign_resource(mylib, [c_foo]).
+	:- load_foreign_resource(mylib).
+
+	foo(A, B) :-
+		c_foo(A, B, 1).
+
+	Non-deterministic (PL_FA_NONDETERMINISTIC) cannot be handled
+	this way (see `Restrictions' below).
+
+	Meta-predicates (PL_FA_TRANSPARENT) should be declared using
+	:- meta_predicate foo/2. If the foreign code using
+	PL_strip_module() this should work as expected.
+
+
+Restrictions
+============
+
+	# No context module handling (PL_context())
+
+	# No non-debugging call-back support (PL_Q_NODEBUG and friends)
+
+	# Small differences in exception handling
+
+	# Poor stream emulation
+	This is the hardest bit.  We need a record oriented model
+	for SWI-Prolog, where SICStus provides a character oriented
+	model.
+
+	Actually the emulated IOSTREAM should be an SP_stream,
+	so we can deal with SICStus streams.  But then, there is
+	a lot more high-level functionality to SWI-Prolog
+	streams, which we would have to emulate on top of the
+	SICStus streams.
+
+	For now, we can create a stream and pass it to Prolog,
+	or play with it in C.  Don't do both with the same
+	stream!
+
+	# No non-deterministic foreign predicates.
+	Though not used very frequently, nothing similar exists
+	in SICStus.  You need help on the Prolog site.  Either by
+	making the foreign routine return a list with all answers
+	and use member/2 to select the non-deterministically or
+	by storing the state somehow and provide a choicepoint in
+	Prolog.
+

@@ -1,0 +1,52 @@
+################################################################
+# Emulate SWI-Prolog C-interface on top of SICStus Prolog
+#
+# Author:  Jan Wielemaker. jan@swi.psy.uva.nl
+# Copying: LGPL-2
+################################################################
+
+prefix=@prefix@
+SP_PATH=@SP_PATH@
+RANLIB=@RANLIB@
+AR=@AR@
+LIBDIR=$(prefix)/lib
+INCLDIR=$(prefix)/include
+
+CC=@CC@
+COFLAGS=@COFLAGS@
+CWFLAGS=@CWFLAGS@
+CMFLAGS=@CMFLAGS@
+CIFLAGS=-I. -I$(SP_PATH)/include
+CFLAGS=$(COFLAGS) $(CWFLAGS) $(CMFLAGS) $(CIFLAGS) @DEFS@
+
+INSTALL=@INSTALL@
+INSTALL_PROGRAM=@INSTALL_PROGRAM@
+INSTALL_DATA=@INSTALL_DATA@
+
+OBJ=		swi-stream.o swi.o
+TARGET=		libswi.a
+
+all:		$(TARGET)
+
+libswi.a:	$(OBJ)
+		rm -f $@
+		ar cq $@ $(OBJ)
+		$(RANLIB) $@
+
+install:	$(TARGET)
+		mkdir -p $(LIBDIR) $(INCLDIR)
+		$(INSTALL_DATA) libswi.a $(LIBDIR)
+		$(INSTALL_DATA) swi.h $(INCLDIR)
+		$(INSTALL_DATA) SWI-Stream.h $(INCLDIR)
+
+uninstall:
+		rm -f $(LIBDIR)/libswi.a
+		rm -f $(INCLDIR)/swi.h
+		rm -f $(INCLDIR)/SWI-Stream.h
+
+clean:		
+		rm -f $(OBJ) *~ a.out core
+
+distclean:	clean
+		rm -f $(TARGET)
+		rm -f config.log config.cache config.status config.h Makefile
