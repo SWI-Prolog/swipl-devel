@@ -621,8 +621,31 @@ is_sql_null(term_t t, nulldef *nd)
 }
 
 		 /*******************************
-		 *     ALL(Term, row(X,...))	*
+		 *   FINDALL(Term, row(X,...))	*
 		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This section deals with  the  implementation   of  the  statement option
+findall(Template, row(Column,...)), returning a  list   of  instances of
+Template for each row.
+
+Ideally, we should unify the row with   the  second argument and add the
+first to the list. Unfortunately, we have   to  make fresh copies of the
+findall/2 term for this to work, or we must protect the Template using a
+record. Both approaches are slow and largely  discard the purpose of the
+option, which is to avoid findall/3 and its associated costs in terms of
+copying and memory fragmentation.
+
+The current implementation is incomplete. It does not allow arguments of
+row(...) to be instantiated. Plain instantiation   can always be avoided
+using a proper SELECT statement. Potentionally   useful however would be
+the  translation  of   compound   terms,    especially   to   translates
+date/time/timestamp structures to a format for use by the application. 
+
+The  statement  is  compiled  into  a    findall  statement,  a  set  of
+instructions that builds the target structure   from the row returned by
+the current statement.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define MAXCODES 256
 #define ROW_ARG  1024			/* way above Prolog types */
