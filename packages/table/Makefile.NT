@@ -1,0 +1,36 @@
+################################################################
+#
+#
+################################################################
+
+.SUFFIXES: .obj .c
+
+PLBASE=G:/jan/pl
+
+CC=cl.exe
+COFLAGS=-Ic:\msdev\include
+CFLAGS=/MD $(COFLAGS) -I$(PLBASE)/include /W3 /DWIN32 /nologo
+LDFLAGS=/DLL /nologo
+LIBS=libpl.lib c:\msdev\lib\msvcrt.lib c:\msdev\lib\oldnames.lib c:\msdev\lib\kernel32.lib
+LD=link.exe
+DOC2TEX=$$HOME/src/xpce/bin/doc2tex
+LATEX=latex
+RANLIB=ranlib
+RM=del
+
+OBJ=		table.obj order.obj error.obj
+
+all:		table.dll
+
+table.dll:	$(OBJ)
+		$(LD) /out:$@ $(LDFLAGS) $(OBJ) $(LIBS)
+
+.c.obj:
+		$(CC) -c $(CFLAGS) $*.c
+
+clean:
+		$(RM) $(OBJ) *.c~ *.h~ table.ncb table.vcp *.dll
+
+distclean:	clean
+		$(RM) table.dll
+

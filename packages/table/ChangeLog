@@ -1,0 +1,6 @@
+* Mon Apr 20 14:36:08 1998
+  Added standard order tables iso_latin_1 and iso_latin_1_case_insensitive
+
+* Mon Feb 16 21:16:38 1998
+  Fixed order package to deal with characters above 128 (signed/unsigned
+  problem).

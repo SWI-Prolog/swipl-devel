@@ -1,0 +1,1 @@
+handle SIGWINCH noprint nostop
