@@ -2,6 +2,10 @@
 			   ==============
 
 
+* FIXED: Added type-checking if an instance-variable is initialised to
+  a constant (Lourens van der Meij).
+
+
 VERSION 6.1.4, distributed with SWI-Prolog 5.1.4
 ================================================
 

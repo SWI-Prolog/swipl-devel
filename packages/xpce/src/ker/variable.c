@@ -239,7 +239,12 @@ initialValueVariable(Variable var, Any value)
 { if ( instanceOfObject(value, ClassConstant) ||
        instanceOfObject(value, ClassName) ||
        isInteger(value) )
-  { allocValueVariable(var, value);
+  { Any val = checkType(value, var->type, NIL);
+
+    if ( !val )
+      return errorPce(value, NAME_unexpectedType, var->type);
+
+    allocValueVariable(var, val);
     initFunctionVariable(var, NIL);
   } else
   { allocValueVariable(var, NIL);

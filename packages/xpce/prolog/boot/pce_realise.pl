@@ -181,7 +181,8 @@ create_class(ClassName, MetaClassName, SuperName, Class) :-
 
 attach_variables([], _).
 attach_variables([V|T], Class) :-
-	send(Class, instance_variable, V),
+	catch(send(Class, instance_variable, V), E,
+	      pce_error(E)),
 	attach_variables(T, Class).
 
 %	attach_class_variables(+ClassVarList, +Class)
