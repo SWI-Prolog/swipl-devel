@@ -23,7 +23,7 @@
 
 checklist(_, []).
 checklist(Goal, [Elem|Tail]) :-
-	$apply(Goal, [Elem]), 
+	call(Goal, Elem), 
 	checklist(Goal, Tail).
 
 %	maplist(+Goal, +List1, ?List2)
@@ -32,7 +32,7 @@ checklist(Goal, [Elem|Tail]) :-
 
 maplist(_, [], []).
 maplist(Goal, [Elem1|Tail1], [Elem2|Tail2]) :-
-	$apply(Goal, [Elem1, Elem2]), 
+	call(Goal, Elem1, Elem2), 
 	maplist(Goal, Tail1, Tail2).
 
 %	sublist(+Goal, +List1, ?List2)
@@ -41,7 +41,7 @@ maplist(Goal, [Elem1|Tail1], [Elem2|Tail2]) :-
 
 sublist(_, [], []) :- !.
 sublist(Goal, [H|T], Sub) :-
-	$apply(Goal, [H]), !, 
+	call(Goal, H), !, 
 	Sub = [H|R], 
 	sublist(Goal, T, R).
 sublist(Goal, [_|T], R) :-

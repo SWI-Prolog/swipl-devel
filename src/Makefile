@@ -15,7 +15,7 @@
 #
 ################################################################
 
-PLVERSION=2.1.0
+PLVERSION=2.1.1
 
 PL=pl
 prefix=/staff/jan
@@ -26,7 +26,7 @@ mansec=1
 mandir=$(prefix)/man/man$(mansec)
 
 CC=gcc
-LIBS= -lreadline -ltermcap -lm -ldl
+LIBS=-ldl -lreadline -ltermcap -lm 
 STATICLIBS=/usr/lib/libc.a
 AWK=nawk
 SED=sed

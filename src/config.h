@@ -83,7 +83,7 @@
 /* Define if (type)var = value is allowed */
 #define TAGGED_LVALUE 1
 
-/* Define as 0 if it gives problems (shouldn't do anymore) */
+/* Define as 0 if text addresses start above 40K */
 /* #undef VMCODE_IS_ADDRESS */
 
 /* Define if first data symbol not is environ */
@@ -128,7 +128,7 @@
 /* Define to make runtime version */
 /* #undef O_RUNTIME */
 
-/* Define if you don't have termio(s), but struct sgttyb */
+/* Define if your tty library defines struct sgttyb */
 /* #undef HAVE_SGTTYB */
 
 /* Define if you have the access function.  */

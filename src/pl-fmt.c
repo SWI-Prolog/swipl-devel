@@ -272,11 +272,14 @@ do_format(char *fmt, int argc, Word argv)
 		{ NEED_ARG;
 		  if ( isInteger(*a) )
 		  { Char c = (int)valNum(*a);
+		    int times = (arg == DEFAULT ? 1 : arg);
 
 		    if ( c < 0 || c > 255 )
 		      ERROR("illegal argument to ~c");
-		    OUTCHR(c);
 		    SHIFT;
+		    while(times-- > 0)
+		    { OUTCHR(c);
+		    }
 		  } else
 		    ERROR("illegal argument to ~c");
 		  fmt++;

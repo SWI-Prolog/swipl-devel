@@ -488,6 +488,7 @@ parse_summary(Name, Arity, Summary) -->
 name_arity(Name, Arity) -->
 	string(S),
 	char(0'/),
+	optional(0'[),
 	number(Arity), !,
 	{ name(Name, S) }.
 

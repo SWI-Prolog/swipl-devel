@@ -1102,7 +1102,7 @@ pl_tab(Word n)
 
 char *
 PrologPrompt()
-{ if ( !first_prompt_used )
+{ if ( !first_prompt_used && first_prompt )
   { first_prompt_used = TRUE;
 
     return first_prompt;

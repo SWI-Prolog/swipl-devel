@@ -403,6 +403,8 @@ initBuildIns(void)
   PROCEDURE_garbage_collect0 = lookupProcedure(FUNCTOR_garbage_collect0,
 					       MODULE_system);
   PROCEDURE_block3 = lookupProcedure(FUNCTOR_block3, MODULE_system);
+  PROCEDURE_true0  = lookupProcedure(FUNCTOR_true0, MODULE_system);
+  PROCEDURE_fail0  = lookupProcedure(FUNCTOR_fail0, MODULE_system);
 
   for(e = &PL_extensions[0]; e->predicate_name; e++)
   { short flags = TRACE_ME;

@@ -1,6 +1,33 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.1.1
+=============
+
+  * MODIFIED: keysort/2 is now stable with regard to multiple values on
+    the same key.  Makes this predicate compatible with SICStus and
+    Quintus.
+
+  * FIXED: :- dynamic, :- multifile, :- module_transparent and
+    :- discontiguous to accept Module:Name/Arity, ...
+
+  * Moved call/[1..] into the compiler.  call/[1..6] is removed from
+    library(quintus) as it is now part of the base system. Also fail/0
+    and true/0 are now handled by virtual machine instructions.
+
+  * Upgrade to autoconf 2.3, fixed usage of `tr' for Solaris 2.x and
+    with that the configuration of --enable-shared.
+
+  * FIXED: number_chars/2 and name/2 now handle floating point numbers.
+
+  * FIXED: interaction between chdir/1 and absolute_file_name/2.
+
+  * FIXED: format('~*c', [10,45]) (or more in general, providing an argument
+    to ~c to print the character multiple times).  Thanks to Michael Boehlen.
+
+  * FIXED: PrologPrompt() to allow reading standard input from the -g and/or
+    -t goal options.
+
 Version 2.1.0
 ==============
 

@@ -64,13 +64,13 @@ $map_bits(Pred, [H|T], Old, New) :-
 	$map_bits(Pred, H, Old, New0),
 	$map_bits(Pred, T, New0, New).
 $map_bits(Pred, +Name, Old, New) :- !, 		% set a bit
-	$apply(Pred, [Name, Bits]), !,
+	call(Pred, Name, Bits), !,
 	New is Old \/ Bits.
 $map_bits(Pred, -Name, Old, New) :- !, 		% clear a bit
-	$apply(Pred, [Name, Bits]), !,
+	call(Pred, Name, Bits), !,
 	New is Old /\ (\Bits).
 $map_bits(Pred, ?Name, Old, Old) :-		% ask a bit
-	$apply(Pred, [Name, Bits]),
+	call(Pred, Name, Bits),
 	Old /\ Bits > 0.
 
 $port_bit(  call, 2'00001).

@@ -74,3 +74,5 @@
 { (FunctorDef)NULL, FUNCTOR_TYPE, ATOM_dcut, 1 },
 { (FunctorDef)NULL, FUNCTOR_TYPE, ATOM_dexit, 2 },
 { (FunctorDef)NULL, FUNCTOR_TYPE, ATOM_dforeign_registered, 2 },
+{ (FunctorDef)NULL, FUNCTOR_TYPE, ATOM_true, 0 },
+{ (FunctorDef)NULL, FUNCTOR_TYPE, ATOM_fail, 0 },

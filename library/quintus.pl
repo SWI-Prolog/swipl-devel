@@ -9,10 +9,6 @@
 :- module(quintus, 
 	[ unix/1
 %	, file_exists/1
-	, call/2
-	, call/3
-	, call/4
-	, call/5
 
 	, abs/2
 	, sin/2
@@ -101,25 +97,6 @@ ensure_extension_(Base, Ext, Name) :-
 		/********************************
 		*        META PREDICATES        *
 		*********************************/
-
-:- module_transparent
-	call/2, 
-	call/3, 
-	call/4, 
-	call/5.
-
-%	call(+Pred, +Argument, ...)
-%	call `Pred', appending the additional arguments to the goal
-
-call(Pred, A0) :-
-	apply(Pred, [A0]).
-call(Pred, A0, A1) :-
-	apply(Pred, [A0, A1]).
-call(Pred, A0, A1, A2) :-
-	apply(Pred, [A0, A1, A2]).
-call(Pred, A0, A1, A2, A3) :-
-	apply(Pred, [A0, A1, A2, A3]).
-
 
 %	otherwise/0
 %	For (A -> B ; otherwise -> C)

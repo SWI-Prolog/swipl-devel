@@ -1662,11 +1662,13 @@ that the cut has no effect when called via one of these predicates (see
 
 
 fail
-    Always fail.
+    Always fail.  The predicate fail/0 is translated into a single
+    virtual machine instruction.
 
 
 true
-    Always succeed.
+    Always succeed.  The predicate fail/0 is translated into a single
+    virtual machine instruction.
 
 
 repeat
@@ -1737,7 +1739,15 @@ search is done at compile time.
 call(+Goal)
     Invoke Goal as a goal.  Note that clauses may have variables as
     subclauses, which is identical to call/1, except when the argument is
-    bound to the cut.  See !/0.
+    bound to the cut.  See !/0.  .C call [2..]  +Goal, +ExtraArg1, ...
+    Append ExtraArg1, ExtraArg2, ...  to the argument list of Goal and
+    call the result.  For example, call(plus(1), 2, X)will call plus/3,
+    binding X to 3.
+
+    The call/[2..]  construct is handled by the compiler, which implies
+    that redefinition as a predicate has no effect.  The predicates
+    call/[2-6] are defined as true predicates, so they can be handled by
+    interpreted code.
 
 
 apply(+Term, +List)
@@ -6493,6 +6503,7 @@ between/3                   Integer range checking/generating
 block/3                     Start a block (`catch'/`throw')
 break/0                     Start interactive toplevel
 call/1                      Call a goal
+call/[2..]                  Call goal with additional arguments
 call_shared_object_function/2 Call C-function in shared (.so) file
 ceil/1                      Arithmetic:  smallest integer larger than argument
 character_count/2            Get character index on a stream

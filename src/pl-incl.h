@@ -14,7 +14,7 @@
 #define MD "config/win32.h"
 #define PLHOME       "c:/pl"
 #define DEFSTARTUP   ".plrc"
-#define PLVERSION    "2.0.7"
+#define PLVERSION    "2.1.0"
 #define ARCH	     "i386-win32"
 #define C_LIBS	     "-lreadline -lconsole -luxnt"
 #define C_STATICLIBS ""
@@ -389,51 +389,55 @@ codes.
 #define B_VAR1		((code)24)		/* B_VAR 1 */
 #define B_VAR2		((code)25)		/* B_VAR 2 */
 
-#define I_USERCALL	((code)26)		/* variable in body (call/1) */
-#define I_CUT		((code)27)		/* ! */
-#define I_APPLY		((code)28)		/* apply/2 */
+#define I_USERCALL0	((code)26)		/* variable in body (call/1) */
+#define I_USERCALLN	((code)27)		/* call/[2...] */
+#define I_CUT		((code)28)		/* ! */
+#define I_APPLY		((code)29)		/* apply/2 */
 
 #if O_COMPILE_ARITH
-#define A_FUNC0		((code)29)		/* nullary arithmic function */
-#define A_FUNC1		((code)30)		/* unary arithmic function */
-#define A_FUNC2		((code)31)		/* binary arithmic function */
-#define A_FUNC		((code)32)		/* n-ary arithmic function */
-#define A_LT		((code)33)		/* < */
-#define A_GT		((code)34)		/* > */
-#define A_LE		((code)35)		/* =< */
-#define A_GE		((code)36)		/* >= */
-#define A_EQ		((code)37)		/* =:= */
-#define A_NE		((code)38)		/* =\= */
-#define A_IS		((code)39)		/* is */
+#define A_FUNC0		((code)30)		/* nullary arithmic function */
+#define A_FUNC1		((code)31)		/* unary arithmic function */
+#define A_FUNC2		((code)32)		/* binary arithmic function */
+#define A_FUNC		((code)33)		/* n-ary arithmic function */
+#define A_LT		((code)34)		/* < */
+#define A_GT		((code)35)		/* > */
+#define A_LE		((code)36)		/* =< */
+#define A_GE		((code)37)		/* >= */
+#define A_EQ		((code)38)		/* =:= */
+#define A_NE		((code)39)		/* =\= */
+#define A_IS		((code)40)		/* is */
 #endif /* O_COMPILE_ARITH */
 
 #if O_COMPILE_OR
-#define C_OR		((code)40)		/* In-clause backtract point */
-#define C_JMP		((code)41)		/* Jump over code */
-#define C_MARK		((code)42)		/* Sub-clause cut mark */
-#define C_CUT		((code)43)		/* cut to corresponding mark */
-#define C_IFTHENELSE	((code)44)		/* if-then-else start */
-#define C_VAR		((code)45)		/* make a variable */
-#define C_END		((code)46)		/* dummy to help decompiler */
-#define C_NOT		((code)47)		/* same as C_IFTHENELSE */
-#define C_FAIL		((code)48)		/* fail */
+#define C_OR		((code)41)		/* In-clause backtract point */
+#define C_JMP		((code)42)		/* Jump over code */
+#define C_MARK		((code)43)		/* Sub-clause cut mark */
+#define C_CUT		((code)44)		/* cut to corresponding mark */
+#define C_IFTHENELSE	((code)45)		/* if-then-else start */
+#define C_VAR		((code)46)		/* make a variable */
+#define C_END		((code)47)		/* dummy to help decompiler */
+#define C_NOT		((code)48)		/* same as C_IFTHENELSE */
+#define C_FAIL		((code)49)		/* fail */
 #endif /* O_COMPILE_OR */
 
-#define B_REAL		((code)49)		/* REAL in body */
-#define B_STRING	((code)50)		/* STRING in body */
+#define B_REAL		((code)50)		/* REAL in body */
+#define B_STRING	((code)51)		/* STRING in body */
 
 #if O_BLOCK
-#define I_CUT_BLOCK	((code)51)		/* !(block) */
-#define B_EXIT		((code)52)		/* exit(block, rval) */
+#define I_CUT_BLOCK	((code)52)		/* !(block) */
+#define B_EXIT		((code)53)		/* exit(block, rval) */
 #endif /*O_BLOCK*/
 
 #if O_INLINE_FOREIGNS
-#define I_CALL_FV0	((code)53)		/* call foreign, no args */
-#define I_CALL_FV1	((code)54)		/* call foreign, 1 var arg */
-#define I_CALL_FV2	((code)55)		/* call foreign, 2 var args */
+#define I_CALL_FV0	((code)54)		/* call foreign, no args */
+#define I_CALL_FV1	((code)55)		/* call foreign, 1 var arg */
+#define I_CALL_FV2	((code)56)		/* call foreign, 2 var args */
 #endif /*O_INLINE_FOREIGNS*/
 
-#define I_HIGHEST	((code)55)		/* largest WAM code !!! */
+#define I_FAIL		((code)57)		/* fail */
+#define I_TRUE		((code)58)		/* true */
+
+#define I_HIGHEST	((code)58)		/* largest WAM code !!! */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Arithmetic comparison
@@ -1415,6 +1419,8 @@ GLOBAL Table	moduleTable;		/* hash table of available modules */
 GLOBAL Procedure	PROCEDURE_alt1;	/* $alt/1, see C_OR */
 GLOBAL Procedure	PROCEDURE_garbage_collect0;
 GLOBAL Procedure	PROCEDURE_block3;
+GLOBAL Procedure	PROCEDURE_true0;
+GLOBAL Procedure	PROCEDURE_fail0;
 
 extern struct code_info	codeTable[];
 

@@ -96,3 +96,6 @@
 
 /* Define to make runtime version */
 #undef O_RUNTIME
+
+/* Define if your tty library defines struct sgttyb */
+#undef HAVE_SGTTYB

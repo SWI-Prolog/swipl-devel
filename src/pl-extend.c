@@ -52,6 +52,8 @@ main(int argc, char **argv, char **env)
     PL_halt(1);
 
   PL_halt(PL_toplevel() ? 0 : 1);
+
+  return 0;
 }
 
 

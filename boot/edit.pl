@@ -63,7 +63,7 @@ ed :-
 	$confirm('Edit predicate `~w:~w/~w''', [Module, Name, Arity]), !, 
 	ed(Module:Name/Arity).
 ed :-
-	$break($warning('ed/0: You can only use ed/0 after ed/1!')).
+	$warning('ed/0: You can only use ed/0 after ed/1!').
 
 qlf_file(Path) :-
 	concat(_, '.qlf', Path), !.
@@ -85,7 +85,6 @@ $edit_load(File) :-
 	    \+ qlf_file(Path)
 	->  $edit(Path), !
 	).
-$edit_load(_, _).
 
 $edit(Spec) :-
 	user:edit_source(Spec), !.

@@ -1479,14 +1479,17 @@ DeRefLink(char *link)
 bool
 ChDir(char *path)
 { char *ospath = OsPath(path);
+  char *npath;
 
   if ( path[0] == EOS ||
        streq(path, CWDdir) ||
        streq(path, ".") )		/* Same directory */
     succeed;
 
+  npath = AbsoluteFile(path);
+
   if ( chdir(ospath) == 0 )
-  { strcpy(CWDdir, AbsoluteFile(path));
+  { strcpy(CWDdir, npath);
     CWDlen = strlen(CWDdir);
     if ( CWDlen == 0 || CWDdir[CWDlen-1] != '/' )
     { CWDdir[CWDlen++] = '/';

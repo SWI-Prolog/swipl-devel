@@ -40,7 +40,8 @@ struct code_info codeTable[] = {
   CODE(B_VAR0,		"b_var0",	0, 0),
   CODE(B_VAR1,		"b_var1",	0, 0),
   CODE(B_VAR2,		"b_var2",	0, 0),
-  CODE(I_USERCALL,	"i_usercall",	0, 0),
+  CODE(I_USERCALL0,	"i_usercall0",	0, 0),
+  CODE(I_USERCALLN,	"i_usercalln",	1, 0),
   CODE(I_CUT,		"i_cut",	0, 0),
   CODE(I_APPLY,		"i_apply",	0, 0),
   CODE(A_FUNC0,		"a_func0",	1, 0),
@@ -74,6 +75,9 @@ struct code_info codeTable[] = {
   CODE(I_CALL_FV1,	"i_call_fv1",	2, 1),
   CODE(I_CALL_FV2,	"i_call_fv2",	3, 1),
 #endif
+  CODE(I_FAIL,		"i_fail",	0, 0),
+  CODE(I_TRUE,		"i_true",	0, 0),
+/*List terminator */
   CODE(0,		NULL,		0, 0)
 };
 
@@ -919,11 +923,11 @@ compileSubClause(register Word arg, code call, compileInfo *ci)
   if ( isTerm(*arg) )
   {
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-A non-void variable. Create a I_USERCALL instruction for it.
+A non-void variable. Create a I_USERCALL0 instruction for it.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     if ( isIndexedVarTerm(*arg) >= 0 )
     { compileArgument(arg, BODY, ci);
-      Output_0(ci, I_USERCALL);
+      Output_0(ci, I_USERCALL0);
       succeed;
     }
 
@@ -956,7 +960,7 @@ will use the meta-call mechanism for all these types of calls.
   */
 
       compileArgument(arg, BODY, ci);
-      Output_0(ci, I_USERCALL);
+      Output_0(ci, I_USERCALL0);
       succeed;
     }
 /*  cont: */
@@ -1012,7 +1016,10 @@ operator.
 
       for(arg = argTermP(*arg, 0); ar > 0; ar--, arg++)
 	compileArgument(arg, BODY, ci);
-      if ( proc->functor == FUNCTOR_apply2 )
+      if ( proc->functor->name == ATOM_call )
+      { Output_1(ci, I_USERCALLN, (code)(proc->functor->arity - 1));
+	succeed;
+      } else if ( proc->functor == FUNCTOR_apply2 )
       { Output_0(ci, I_APPLY);
 	succeed;
 #if O_BLOCK
@@ -1033,6 +1040,10 @@ operator.
   if ( isAtom(*arg) )
   { if ( *arg == (word) ATOM_cut )
     { Output_0(ci, I_CUT);
+    } else if ( *arg == (word) ATOM_true )
+    { Output_0(ci, I_TRUE);
+    } else if ( *arg == (word) ATOM_fail )
+    { Output_0(ci, I_FAIL);
     } else
     { FunctorDef fdef = lookupFunctorDef((Atom)*arg, 0);
       code cproc = (code) lookupProcedure(fdef, tm);
@@ -1715,11 +1726,19 @@ decompileBody(register decompileInfo *di, code end, Code until)
 	case I_CUT_BLOCK:   f = FUNCTOR_dcut1;		goto f_common;
 	case B_EXIT:	    f = FUNCTOR_dexit2;		goto f_common;
 #endif
+        case I_USERCALLN:   f = lookupFunctorDef(ATOM_call, *PC++ + 1);
+							goto f_common;
 	case I_APPLY:	    f = FUNCTOR_apply2;		f_common:
 			    build_term(f, di);
 			    pushed++;
 			    continue;
       }
+      case I_FAIL:	    *ARGP++ = (word) ATOM_fail;
+			    pushed++;
+			    continue;
+      case I_TRUE:	    *ARGP++ = (word) ATOM_true;
+			    pushed++;
+			    continue;
       case I_CUT:	    *ARGP++ = (word) ATOM_cut;
 			    pushed++;
 			    continue;
@@ -1728,7 +1747,7 @@ decompileBody(register decompileInfo *di, code end, Code until)
 			    build_term(((Procedure)XR(*PC++))->functor, di);
 			    pushed++;
 			    continue;
-      case I_USERCALL:
+      case I_USERCALL0:
 			    pushed++;
 			    continue;
 #if O_INLINE_FOREIGNS

@@ -40,37 +40,37 @@ op(Priority, Type, [Name|Rest]) :- !,
 op(Priority, Type, Name) :-
 	$op(Priority, Type, Name).
 
-dynamic((Pred/Arity, More)) :- !,
-	functor(Term, Pred, Arity),
-	$set_predicate_attribute(Term, (dynamic), 1),
+dynamic((Spec, More)) :- !,
+	dynamic(Spec),
 	dynamic(More).
-dynamic(Pred/Arity) :-
-	functor(Term, Pred, Arity),
-	$set_predicate_attribute(Term, (dynamic), 1).
+dynamic(Spec) :-
+	$strip_module(Spec, Module, Name/Arity),
+	functor(Term, Name, Arity),
+	$set_predicate_attribute(Module:Term, (dynamic), 1).
 
-multifile((Pred/Arity, More)) :- !,
-	functor(Term, Pred, Arity),
-	$set_predicate_attribute(Term, (multifile), 1),
+multifile((Spec, More)) :- !,
+	multifile(Spec),
 	multifile(More).
-multifile(Pred/Arity) :-
-	functor(Term, Pred, Arity),
-	$set_predicate_attribute(Term, (multifile), 1).
+multifile(Spec) :-
+	$strip_module(Spec, Module, Name/Arity),
+	functor(Term, Name, Arity),
+	$set_predicate_attribute(Module:Term, (multifile), 1).
 
-module_transparent((Pred/Arity, More)) :- !,
-	functor(Term, Pred, Arity),
-	$set_predicate_attribute(Term, transparent, 1),
+module_transparent((Spec, More)) :- !,
+	module_transparent(Spec),
 	module_transparent(More).
-module_transparent(Pred/Arity) :-
-	functor(Term, Pred, Arity),
-	$set_predicate_attribute(Term, transparent, 1).
+module_transparent(Spec) :-
+	$strip_module(Spec, Module, Name/Arity),
+	functor(Term, Name, Arity),
+	$set_predicate_attribute(Module:Term, transparent, 1).
 
-discontiguous((Pred/Arity, More)) :- !,
-	functor(Term, Pred, Arity),
-	$set_predicate_attribute(Term, (discontiguous), 1),
+discontiguous((Spec, More)) :- !,
+	discontiguous(Spec),
 	discontiguous(More).
-discontiguous(Pred/Arity) :-
-	functor(Term, Pred, Arity),
-	$set_predicate_attribute(Term, (discontiguous), 1).
+discontiguous(Spec) :-
+	$strip_module(Spec, Module, Name/Arity),
+	functor(Term, Name, Arity),
+	$set_predicate_attribute(Module:Term, (discontiguous), 1).
 
 :- module_transparent
 	(dynamic)/1,
@@ -109,6 +109,11 @@ $show_childs(Name, Arity) :-
 	'|'/2,
 	','/2,
 	call/1,
+	call/2,
+	call/3,
+	call/4,
+	call/5,
+	call/6,
 	(^)/2,
 	(not)/1,
 	(\+)/1,
@@ -137,8 +142,18 @@ $show_childs(Name, Arity) :-
 	Goal1,
 	Goal2.
 
-call(Goal) :-
+call(Goal) :-				% make these available as predicates
 	Goal.
+call(G, A) :-
+	call(G, A).
+call(G, A, B) :-
+	call(G, A, B).
+call(G, A, B, C) :-
+	call(G, A, B, C).
+call(G, A, B, C, D) :-
+	call(G, A, B, C, D).
+call(G, A, B, C, D, E) :-
+	call(G, A, B, C, D, E).
 
 not(Goal) :-
 	\+ Goal.
@@ -190,6 +205,11 @@ fail(Label) :-
 	$hide((->), 2),
 	$show_childs(^, 2),
 	$show_childs(call, 1),
+	$show_childs(call, 2),
+	$show_childs(call, 3),
+	$show_childs(call, 4),
+	$show_childs(call, 5),
+	$show_childs(call, 6),
 	$show_childs(not, 1),
 	$show_childs(\+, 1),
 	$show_childs(once, 1),
@@ -1030,7 +1050,7 @@ $char([X|S], X, S).
 phrase(RuleSet, Input) :-
 	phrase(RuleSet, Input, []).
 phrase(RuleSet, Input, Rest) :-
-	$apply(RuleSet, [Input, Rest]).
+	call(RuleSet, Input, Rest).
 
 
 		/********************************

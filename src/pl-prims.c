@@ -1011,12 +1011,55 @@ isPrefix(register char *s, register char *q)
   return *s == EOS;
 }
 
+
+static word
+toNumber(char *s)
+{ char *q = s;
+
+  if ( *s == '+' || *s == '-' )
+    s++;
+/*if ( *s == '.' )		.33 is not valid Prolog syntax!
+    goto dotreal;*/
+  if ( !isDigit(*s) )
+    fail;
+  do { s++; } while (isDigit(*s));
+  if ( *s == '.' )
+  {
+/*dotreal:*/
+    s++;
+    if ( !isDigit(*s) )
+      fail;
+    do { s++; } while (isDigit(*s));
+    if ( *s == 'e' || *s == 'E' )
+    { s++;
+      if ( !isDigit(*s) )
+	fail;
+      do { s++; } while (isDigit(*s));
+    }
+  }
+
+  if ( *s == EOS )
+  { bool rval;
+    word n;
+
+    setVar(n);
+    seeString(q);
+    rval = pl_read(&n);
+    seenString();
+
+    return rval ? n : FALSE;
+  }
+
+  fail;
+}
+
+
 #define X_AUTO   0
 #define X_ATOM   1
 #define X_NUMBER 2
 
 static word
-x_chars(Word atom, Word string, int how)
+x_chars(char *pred, Word atom, Word string, int how)
 { register char *s;
 
   if ((s = primitiveToString(*atom, FALSE)) != (char *)NULL)
@@ -1032,7 +1075,7 @@ x_chars(Word atom, Word string, int how)
     { case X_ATOM:
 	return unifyAtomic(atom, lookupAtom(s));
       case X_NUMBER:
-      { word n = charpToNumber(s);
+      { word n = toNumber(s);
 
 	if ( n )
 	  return unifyAtomic(atom, n);
@@ -1045,32 +1088,32 @@ x_chars(Word atom, Word string, int how)
 	{ word n;
 
 	  for(q=s; *q && isDigit(*q); q++) ;
-	  if ( *q == EOS && (n = charpToNumber(s)) )
+	  if ( *q == EOS && (n = toNumber(s)) )
 	    return unifyAtomic(atom, n);
 	}
         return unifyAtomic(atom, lookupAtom(s) );
     }
   }
 
-  return warning("name/2: instantiation fault");
+  return warning("%s/2: instantiation fault");
 }
 
 
 word
 pl_name(Word atom, Word string)
-{ return x_chars(atom, string, X_AUTO);
+{ return x_chars("name", atom, string, X_AUTO);
 }
 
 
 word
 pl_atom_chars(Word atom, Word string)
-{ return x_chars(atom, string, X_ATOM);
+{ return x_chars("atom_chars", atom, string, X_ATOM);
 }
 
 
 word
 pl_number_chars(Word atom, Word string)
-{ return x_chars(atom, string, X_NUMBER);
+{ return x_chars("number_chars", atom, string, X_NUMBER);
 }
 
 

@@ -74,3 +74,5 @@
 #define FUNCTOR_dcut1        (&functors[73])
 #define FUNCTOR_dexit2       (&functors[74])
 #define FUNCTOR_dforeign_registered2 (&functors[75])
+#define FUNCTOR_true0        (&functors[76])
+#define FUNCTOR_fail0        (&functors[77])
