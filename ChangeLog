@@ -1,6 +1,20 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: open_null_stream/1 to register the stream open for writing
+    (resulted in permission error).
+
+  * FIXED: tracer to disable tail-recursion optimisation again (resulted
+    in poorly readable trace output).
+
+  * FIXED: clause/[2,3] not resetting predicate-reference properly.
+
+  * PERFORMANCE: Exploit hashed first-argument indexing by retract/1.
+    Schedule predicate clause collection to avoid quadratic behaviour
+    of retract/1.
+
+  * ADDED: code_type/2: type `xdigit' for hexadecimal digits.
+
   * ADDED: Support for deeply nested right-recursive terms to the
     compiler.  Limit (stack-overflow) spotted by Bob Wielinga.
 
