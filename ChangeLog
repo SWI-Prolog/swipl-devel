@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Actually look for pl.ini in the Prolog home directory (Windows
+    version).
+
   * FIXED: Bug in PL_unify_term(), causing incorrect `format error' messages.
 
   * FIXED: MT-version: deadlock in stream-handling.
