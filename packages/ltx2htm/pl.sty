@@ -59,6 +59,15 @@
 \def\@cmdoptitem#1#2{\definition{#1 \var{#2}}}
 \makeatother
 
+\newcommand{\longoptionitem}[2]{%
+	\ifthenelse{\equal{}{#2}}{%
+	    \definition{--#1}}{%
+	    \definition{--#1={\it #2}}}\ignorespaces}
+\newcommand{\longoption}[2]{%
+	\ifthenelse{\equal{}{#2}}{%
+	    \mbox{\bf --#1}}{%
+	    \mbox{\bf --#1={\it #2}}}}
+
 \newcommand{\traceoption}[3]{%
 	\definition{{\tt #1} (#2)}#3%
 	\ignorespaces}
@@ -132,7 +141,6 @@
 \newcommand{\option}[1]{\mbox{\tt #1}}
 \newcommand{\cmdlineoption}[1]{\mbox{\tt #1}}
 \newcommand{\argoption}[2]{\mbox{\tt #1 \em #2}}
-\newcommand{\longoption}[2]{\mbox{{\bf --#1=}\em #2}}
 \newcommand{\ctype}[1]{{\tt #1}}
 \newcommand{\op}[1]{{\tt #1}}
 \newcommand{\program}[1]{{\tt #1}}

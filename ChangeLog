@@ -1,11 +1,15 @@
 			SWI-Prolog ChangeLog
 			====================
 
-  * FIXED: (Hopefully at least) include __register_frame_info and friends
-    into the executable (egcs 1.1.1 exception handling stuff).  Should
-    make SWI-Prolog binaries work on other platforms.
+  * FIXED: Save unknown/2 status with qsave_program/2.  Reported
+    by Robert van Engelen.
 
-  * FIXED: Exception generation for optimized arithmetic code.  Reported
+  * FIXED: include __register_frame_info and friends into the executable
+    (egcs 1.1.1 exception handling stuff). Should make SWI-Prolog
+    binaries portable between installations with different
+    egcs/gcc/glibc versions.
+
+  * FIXED: Exception generation for optimized arithmetic.  Reported
     by Robert van Engelen.  Thanks.
 
   * FIXED: qload/1 to check for predicate redefinition just as normal

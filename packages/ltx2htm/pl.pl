@@ -44,7 +44,9 @@ cmd(const(		{A1}), #code(+A1)).
 cmd(module(		{A1}), #code(+A1)).
 cmd(op(			{A1}), #strong(+A1)).
 cmd(cmdlineoption(	{A1}), #strong(+A1)).
-cmd(longoption(	   {A1},{A2}), [#strong([nospace(--), +A1, nospace(=)]), #var(+A2)]).
+cmd(longoption(	   {A1},{[]}), [#strong([nospace(--), +A1])]).
+cmd(longoption(	   {A1},{A2}), [#strong([nospace(--), +A1,
+					 nospace(=)]), #var(+A2)]).
 cmd(fmtseq(		{A1}), #code(A1)).
 cmd(versionshort,	    _, nospace(Version)) :-
 	feature(version, V),
@@ -132,6 +134,10 @@ cmd(cmdlineoptionitem(M, {Option}, {Arg}),
 	->  Sep = []
 	;   Sep = [' ']
 	).
+cmd(longoptionitem({Name}, {[]}), #defitem(#strong([nospace(--), +Name]))).
+cmd(longoptionitem({Name}, {Arg}), #defitem(#strong([nospace(--), +Name,
+						     nospace(=),
+						     #var(+arg)]))).
 cmd(optionarg({Option}, {Arg}),
     #defitem([#strong(Option), #var(Arg)])).
 cmd(traceoption({Char}, {Name}, {Description}),

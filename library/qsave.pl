@@ -241,6 +241,7 @@ save_autoload :-
 save_module(M, SaveClass) :-
 	$qlf_start_module(M),
 	feedback('~n~nMODULE ~w~n', [M]),
+	save_unknown(M),
 	(   P = (M:H),
 	    current_predicate(_, P),
 	    \+ predicate_property(P, imported_from(_)),
@@ -299,6 +300,14 @@ save_attributes(P) :-
 	;   true
 	).
 	    
+%	Save status of the unknown/2 flag
+
+save_unknown(M) :-
+	M:unknown(Status, Status),
+	(   Status == trace
+	->  true
+	;   $add_directive_wic(M:unknown(_, Status))
+	).
 
 		 /*******************************
 		 *	      RECORDS		*

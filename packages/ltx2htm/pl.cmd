@@ -22,6 +22,7 @@
 \cmdlineoptionitem*{+}{+}=item	1 0
 \cmdlineoption{+}
 \longoption{+}{+}
+\longoption{+}{+}=item		1 0
 \termitem{+}{+}=item		1 0
 \term{+}{+}
 \errorterm{+}{+}
