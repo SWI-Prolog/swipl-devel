@@ -87,6 +87,8 @@ embedded application.
 #else
 #define strfeq(s, q)	streq(s, q)
 #endif
+#undef oserror				/* Irix name-clash */
+#define oserror xoserror
 #define strdup xstrdup
 #define xmalloc plld_xmalloc
 #define xrealloc plld_xrealloc
@@ -576,7 +578,7 @@ tmpPath(char **store, const char *base)
 { if ( !*store )
   { char tmp[MAXPATHLEN];
 
-    sprintf(tmp, "%s%d", base, getpid());
+    sprintf(tmp, "%s%d", base, (int)getpid());
     *store = strdup(tmp);
   }
 }

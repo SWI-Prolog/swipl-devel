@@ -1411,10 +1411,10 @@ initStacks(long local, long global, long trail, long arg)
   tBase = (TrailEntry)	MALLOC(tBase, itrail);
   aBase = (Word *)	MALLOC(aBase, arg);
 
-  init_stack((Stack)&LD->stacks.global,	"global", iglobal, global, 100 K);
-  init_stack((Stack)&LD->stacks.local,  "local",  ilocal,   local,  16 K);
-  init_stack((Stack)&LD->stacks.trail,  "trail",  itrail,   trail,   8 K);
-  init_stack((Stack)&LD->stacks.arg,    "argument",  arg,     arg,   0 K);
+  init_stack((Stack)&LD->stacks.global,	  "global",   iglobal, global, 100 K);
+  init_stack((Stack)&LD->stacks.local,    "local",    ilocal,  local,   16 K);
+  init_stack((Stack)&LD->stacks.trail,    "trail",    itrail,  trail,    8 K);
+  init_stack((Stack)&LD->stacks.argument, "argument", arg,     arg,      0 K);
 
   GD->statistics.heap = old_heap;
 }

@@ -126,11 +126,11 @@ Marking, testing marks and extracting values from GC masked words.
 #define val_ptr(w)	val_ptr2((w), storage(w))
 
 #define inShiftedArea(area, shift, ptr) \
-	((char *)ptr >= (char *)stacks.area.base + shift && \
-	 (char *)ptr <  (char *)stacks.area.max + shift )
+	((char *)ptr >= (char *)LD->stacks.area.base + shift && \
+	 (char *)ptr <  (char *)LD->stacks.area.max + shift )
 #define topPointerOnStack(name, addr) \
-	((char *)(addr) >= (char *)stacks.name.base && \
-	 (char *)(addr) <  (char *)stacks.name.max)
+	((char *)(addr) >= (char *)LD->stacks.name.base && \
+	 (char *)(addr) <  (char *)LD->stacks.name.max)
 
 #define onGlobal(p)	onStackArea(global, p) /* onStack()? */
 #define onLocal(p)	onStackArea(local, p)
@@ -1676,10 +1676,10 @@ way to reach at dynamic stacks.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define updateStackHeader(name, offset) \
-	{ stacks.name.base  = addPointer(stacks.name.base,  offset); \
-	  stacks.name.top   = addPointer(stacks.name.top,   offset); \
-	  stacks.name.max   = addPointer(stacks.name.max,   offset); \
-	  stacks.name.limit = addPointer(stacks.name.limit, offset); \
+	{ LD->stacks.name.base  = addPointer(LD->stacks.name.base,  offset); \
+	  LD->stacks.name.top   = addPointer(LD->stacks.name.top,   offset); \
+	  LD->stacks.name.max   = addPointer(LD->stacks.name.max,   offset); \
+	  LD->stacks.name.limit = addPointer(LD->stacks.name.limit, offset); \
 	}
 
 
@@ -1796,7 +1796,7 @@ growStacks(LocalFrame fr, Code PC, int l, int g, int t)
     SECURE(key = checkStacks(fr));
 
     if ( t )
-    { tsize = nextStackSize((Stack) &stacks.trail);
+    { tsize = nextStackSize((Stack) &LD->stacks.trail);
       tb = xrealloc(tb, tsize);
       shift_status.trail_shifts++;
     }
@@ -1806,11 +1806,11 @@ growStacks(LocalFrame fr, Code PC, int l, int g, int t)
       assert(lb == addPointer(gb, loffset));	
 
       if ( g )
-      { gsize = nextStackSize((Stack) &stacks.global);
+      { gsize = nextStackSize((Stack) &LD->stacks.global);
 	shift_status.global_shifts++;
       }
       if ( l )
-      { lsize = nextStackSize((Stack) &stacks.local);
+      { lsize = nextStackSize((Stack) &LD->stacks.local);
 	shift_status.local_shifts++;
       }
 
@@ -1832,8 +1832,8 @@ growStacks(LocalFrame fr, Code PC, int l, int g, int t)
 #define PrintStackParms(stack, name, newbase, newsize) \
 	{ Sdprintf("%6s: 0x%08lx ... 0x%08lx --> 0x%08lx ... 0x%08lx\n", \
 		 name, \
-		 (unsigned long) stacks.stack.base, \
-		 (unsigned long) stacks.stack.max, \
+		 (unsigned long) LD->stacks.stack.base, \
+		 (unsigned long) LD->stacks.stack.max, \
 		 (unsigned long) newbase, \
 		 (unsigned long) addPointer(newbase, newsize)); \
 	}
@@ -1848,12 +1848,12 @@ growStacks(LocalFrame fr, Code PC, int l, int g, int t)
     DEBUG(1, Sdprintf("Updating stacks ..."));
     fr = updateStacks(fr, PC, lb, gb, tb);
 
-    stacks.local.max  = addPointer(stacks.local.base,  lsize);
-    stacks.global.max = addPointer(stacks.global.base, gsize);
-    stacks.trail.max  = addPointer(stacks.trail.base,  tsize);
+    LD->stacks.local.max  = addPointer(LD->stacks.local.base,  lsize);
+    LD->stacks.global.max = addPointer(LD->stacks.global.base, gsize);
+    LD->stacks.trail.max  = addPointer(LD->stacks.trail.base,  tsize);
 
-    SetHTop(stacks.local.max);
-    SetHTop(stacks.trail.max);
+    SetHTop(LD->stacks.local.max);
+    SetHTop(LD->stacks.trail.max);
 
     time = CpuTime() - time;
     shift_status.time += time;

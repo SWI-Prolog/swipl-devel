@@ -284,7 +284,7 @@ alloc_global(int n)
   { growStacks(NULL, NULL, FALSE, TRUE, FALSE);
 
     if ( roomStack(global)/sizeof(word) < (long) n )
-      outOf((Stack) &stacks.global);
+      outOf((Stack) &LD->stacks.global);
   }
 
   result = gTop;

@@ -1,6 +1,18 @@
 
 			SWI-Prolog ChangeLog
 			====================
+VERSION 2.9.4
+=============
+
+  * FIXED: Various references to the variable stacks for systems requiring
+    the shack-shifter.  Thanks to Michirou Yabuki for reporting.
+
+  * FIXED: recorded database (and findall/3, bagof/3, setof/3 store) 
+    handling of strings.  After retrieval, the string's indirect header
+    was incorrect, making unification and equivalence fail.  Thanks to
+    Andrew Dadakow for providing me with a simple program illustrating
+    the problem.
+
 VERSION 2.9.3
 =============
 

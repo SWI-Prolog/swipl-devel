@@ -134,12 +134,14 @@ right_recursion:
       return;
     }
     case TAG_STRING:
-    { Word f = addressIndirect(w);
-      int n = wsizeofInd(*f);
+    { Word f  = addressIndirect(w);
+      int n   = wsizeofInd(*f);
+      int pad = padHdr(*f);		/* see also sizeString() */
+      int l   = n*sizeof(word)-pad;
 
       info->size += n+2;
       addBuffer(&info->code, PL_TYPE_STRING, char);
-      addUnalignedBuffer(&info->code, n, int);
+      addUnalignedBuffer(&info->code, l, int);
       addMultipleBuffer(&info->code, f+1, n, word);
       
       return;
@@ -293,15 +295,18 @@ right_recursion:
       return;
     }
     case PL_TYPE_STRING:
-    { int len;
+    { int len, lw, pad;
+      word hdr;
 
       fetchUnalignedBuf(b, &len, int);
+      lw = (len+sizeof(word))/sizeof(word); /* see globalNString() */
+      pad = (lw*sizeof(word) - len);
       *p = consPtr(b->gstore, TAG_STRING|STG_GLOBAL);
-      *b->gstore++ = mkIndHdr(len, TAG_STRING);
-      memcpy(b->gstore, b->data, len * sizeof(word));
-      b->gstore += len;
-      *b->gstore++ = mkIndHdr(len, TAG_STRING);
-      b->data += len * sizeof(word);
+      *b->gstore++ = hdr = mkStrHdr(lw, pad);
+      memcpy(b->gstore, b->data, lw * sizeof(word));
+      b->gstore += lw;
+      *b->gstore++ = hdr;
+      b->data += lw * sizeof(word);
 
       return;
     }
