@@ -1,4 +1,4 @@
-\section{Dialog support libraries}
+\section{Dialog support libraries}		\label{sec:libdia}
 
 This section deals with a number of classes from the library to simplify the
 creation of dialog windows.
@@ -9,7 +9,7 @@ creation of dialog windows.
 \index{messages,reporting}\index{errors,reporting}\index{reporting}%
 Error, and warning and informational messages are raised using the
 ->report or ->error method defined on all \product{} objects.  Basic
-error and message handling is described in \secref{error}.  The library
+error and message handling is described in \secref{errors}.  The library
 \pllib{pce_report} defines the classes \class{reporter} and
 \class{report_dialog}.
 
@@ -79,7 +79,7 @@ normal state on each click.  If it has an atomic <-action it will
 send \var{action}: @on to the client when going to depressed state
 and \var{action}:@off when returning to normal state.  If the <-action
 is a code object this boolean will for forwarded over the code object.
-See \secref{code}.
+See \secref{exeobjects}.
 
 
 \subsection{Example}

@@ -22,7 +22,7 @@ hierachy inside a window.  This library is used for displaying the
 VisualHierachy and ClassHierarchy tools of the \product{} manual
 toolkit.  See \chapref{online}.
 
-    \secoverview{multi-lingual}{Multi-lingual applications}
+    \secoverview{mlingual}{Multi-lingual applications}
 Discusses support for multi-lingual applications.
 
     \secoverview{dragdrop}{Drag and Drop Interface}

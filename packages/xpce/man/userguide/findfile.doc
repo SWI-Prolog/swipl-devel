@@ -1,4 +1,4 @@
-\subsection{Library ``find_file''}
+\subsection{Library ``find_file''}		\label{sec:findfile}
 
 \index{file,prompting for}
 This library file describes the class \class{finder}, representing

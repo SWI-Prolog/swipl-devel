@@ -1,4 +1,4 @@
-\section{Multi-lingual applications}		\label{sec:multi-lingual}
+\section{Multi-lingual applications}		\label{sec:mlingual}
 
 \product{} provides some support for building multi-lingual applications
 without explicitly mapping terms all the time.  This section provides

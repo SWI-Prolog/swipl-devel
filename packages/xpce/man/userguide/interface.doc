@@ -412,8 +412,8 @@ See comments with chain_list/2.
 \subsection{Library ``pce_debug''}
 
 The predicates in this section provide shorthands for common
-commands for debugging \product{} programs. See \secref{debug} for more
-information on debugging \productpl{} programs.
+commands for debugging \product{} programs. See \secref{debugging} for
+more information on debugging \productpl{} programs.
 
 \begin{description}
     \predicate{tracepce}{1}{+Class {\tt \string<-|->|-} Selector}

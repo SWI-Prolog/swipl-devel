@@ -33,7 +33,7 @@ through the available material from different view-points.
 The `Class Hierarchy' tool allows the user to examine \product{}'s class
 hierarchy.  This tool reads the inheritance relations from the class
 objects and thus also visualises application or library classes.
-\Figref{classhierarchy} is created using this tool.
+\Figref{pceclasshierarchy} is created using this tool.
     \manualtool{The structure of a class}{Browsers/Class Browser}
 \index{class,structure}%
 The most important tool is the `Class Browser'.  It provides the
@@ -387,7 +387,7 @@ documentation originates will have an underlined type-indicator.
 
 The {\bf Goto} field allows for switching to a new card.  The syntax for
 this field is similar to manpce/1, tracepce/1 and editpce/1 predicates
-description in \secref{miscpreds}.  It consists of a classname, followed
+description in \secref{debugging}.  It consists of a classname, followed
 by \verb$->$ to indicate a send-method, \verb$<-$ for a get-method and
 \verb$-$ to specify an instance-variable without considering associated
 methods.

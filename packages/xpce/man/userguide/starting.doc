@@ -441,7 +441,7 @@ a window specialised in handling the layout of controllers, or
 Line 5 adds a \class{button} to the dialog. `view' specifies the {\em
 name} of the button. \product{} defines a central mapping from `dialog_item
 <->name' to the label displayed. The default mapping capitalises the
-name and replaces underscores with spaces. In \secref{multi-lingual}, we
+name and replaces underscores with spaces. In \secref{mlingual}, we
 describe how this can be used to realise multi-lingual applications. The
 second argument of the button specifies the {\em action} associated with
 the button. A \class{message} is a dormant send-operation. When pressed,

@@ -72,7 +72,7 @@ hierarchy.%
 	      explained in \secref{delegation} and
 	      \secref{template}.}
 The root of this hierarchy is class {\em object}.  Class object is the
-only class without a super-class.  \Figref{classhierarchy} gives
+only class without a super-class.  \Figref{pceclasshierarchy} gives
 the complete hierarchy of \product{} built-in classes.
 
 \postscriptfig[height=8in]{pceclasshierarchy}{\product{}'s Class hierarchy}
