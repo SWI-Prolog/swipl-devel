@@ -219,6 +219,7 @@ check_files :-
 	New == 0.
 
 ignore_file('INDEX.pl').
+ignore_file('plwin.opt').
 
 		 /*******************************
 		 *	       RUN IT		*

@@ -120,6 +120,10 @@ Section "Base system (required)"
   File pl\library\streampool.pl
   File pl\library\option.pl
 
+; UNICODE
+  SetOutPath $INSTDIR\library\unicode
+  File pl\library\unicode\blocks.pl
+
   SetOutPath $INSTDIR\doc
   File pl\doc\windows.html
   SetOutPath $INSTDIR\doc\packages
