@@ -947,6 +947,9 @@ eventTextItem(TextItem ti, EventObj ev)
     return postEvent(ev, (Graphical)c, DEFAULT);
   }
 
+  if ( eventGraphical(ti, ev) )		/* recognisers */
+    succeed;
+
   if ( ti->status != NAME_inactive )
   { if ( isAEvent(ev, NAME_keyboard) )
     { return send(ti, NAME_typed, ev, EAV);
@@ -956,7 +959,7 @@ eventTextItem(TextItem ti, EventObj ev)
     }
   }
 
-  if ( eventDialogItem(ti, ev) )
+  if ( eventDialogItem(ti, ev) )	/* TBD: does recognisers again */
     succeed;
 
   if ( ti->active == OFF )
