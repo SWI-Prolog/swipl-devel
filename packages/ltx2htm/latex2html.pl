@@ -32,7 +32,7 @@
 	  ]).
 :- use_module(library(quintus)).
 
-version('0.9').
+version('0.10').
 
 :- dynamic			
 	html_output_dir/1,		% output relative to this dir
@@ -1790,8 +1790,8 @@ table_columns([0'p|T0], NC0,   NC,   [Col|TH]) :-
 */
 	NC1 is NC0 + 1,
 	table_columns(T, NC1, NC, TH).
-table_columns([0'D|T0], NC0,   NC,   [['ALIGN'=right]|TH]) :-
-	phrase(align_char(_W), T0, T),
+table_columns([0'D|T0], NC0,   NC,   [['ALIGN'=char, 'CHAR'=Chr]|TH]) :-
+	phrase(align_char(Chr), T0, T),
 	NC1 is NC0 + 1,
 	table_columns(T, NC1, NC, TH).
 table_columns([0'||T], NC0,  NC,     TH) :-
@@ -1808,14 +1808,16 @@ parbox_width(-) -->
 	string_without("{}", _),
 	"}", !.
 
-align_char(W) -->		% D{inputsep}{outputsep}{decimal places}
+align_char(Chr) -->		% D{inputsep}{outputsep}{decimal places}
 	"{",
 	string_without("{}", W),
 	"}{",
 	string_without("{}", _),
 	"}{",
 	number(_),
-	"}".
+	"}",
+	{ atom_char(Chr, W)
+	}.
 
 string_without(L, [C|T]) -->
 	[C],

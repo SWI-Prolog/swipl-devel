@@ -10,6 +10,8 @@
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
 #include "pl-ctype.h"
+#undef ulong
+#define ulong unsigned long
 
 forwards char 	*prependBase(int, char *);
 

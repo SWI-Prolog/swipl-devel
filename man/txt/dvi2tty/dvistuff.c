@@ -111,10 +111,10 @@ int         firstcolumn;        /* 1st column with something to print        */
 stackitem * stack;              /* stack for dvi-pushes                      */
 int         sptr;               /* stack pointer                             */
 
-font * fonts = NULL;            /* List of fontnames defined                 */
+font * fonts    = NULL;         /* List of fontnames defined                 */
 bool symbolfont = FALSE;        /* true if font is a symbol font             */
-bool ttfont = FALSE;
-char fontattr = ATT_NORM;	/* ATT_* */
+bool ttfont     = FALSE;
+char fontattr   = ATT_NORM;	/* ATT_* */
 
 /*---------------------------------------------------------------------------*/
 

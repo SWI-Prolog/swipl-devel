@@ -7,7 +7,7 @@
     Purpose: Initialise the system
 */
 
-#define O_DEBUG 1
+/*#define O_DEBUG 1*/
 
 #define GLOBAL				/* allocate global variables here */
 #include "pl-incl.h"
