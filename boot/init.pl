@@ -427,6 +427,10 @@ $make_path(Dir, File, Path) :-
 %	absolute_file_name(+Term, +Args, -AbsoluteFile)
 
 absolute_file_name(Spec, Args, Path) :-
+	(   is_list(Args)
+	->  true
+	;   throw(error(type_error(list, Args), _))
+	),
 	(   select(extensions(Exts), Args, Conditions)
 	->  true
 	;   select(file_type(Type), Args, Conditions)
@@ -444,7 +448,14 @@ absolute_file_name(Spec, Args, Path) :-
 	;   FileErrors = error,
 	    C2 = C1
 	),
-	(   $chk_file(Spec, Exts, C2, Path)
+	(   atomic(Spec),
+	    select(expand(true), C2, C3)
+	->  expand_file_name(Spec, List),
+	    member(Spec1, List)
+	;   Spec1 = Spec,
+	    C3 = C2
+	),
+	(   $chk_file(Spec1, Exts, C3, Path)
 	*-> (   Sols == first
 	    ->  !
 	    ;   true

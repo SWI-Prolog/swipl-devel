@@ -33,6 +33,7 @@
 	  [ prompter/2
 	  ]).
 :- use_module(library(pce)).
+:- use_module(library(pce_report)).
 :- require([ checklist/2
 	   , delete/3
 	   , maplist/3
@@ -52,17 +53,23 @@ where each attribute is a term of the form
 Examples:
 
 ?- prompter('Create class',
-	    [ name:name = Name
-	    , super:name = Super
+	    [ name:name = Name,
+	      super:name = Super
 	    ]).
 
 Last updated:	Wed Sep 13 1995 by Jan Wielemaker
 		- Added menu/browser for multiple values.
 		- Added automatic stretching of dialog items on resize
 		- Improved type and error handling
+
 		Thu Aug  1 1996 by Jan Wielemaker
 		- Fixed passing quoted types such as '0..100'
 		- Added support for sliders for int- and real-ranges.
+
+		Sat May 18 2002 by Jan Wielemaker
+		- Use report-dialog for messages
+		- Properly handle clicking away to window
+		- Make it a transient window
 
 NOTE:	Package is under development.  Needs support for more types;
 	optional/obligatory fields and better error-messages.
@@ -72,24 +79,28 @@ NOTE:	Package is under development.  Needs support for more types;
 
 make_promper(P) :-
 	new(P, dialog),
-	send(P, resize_message, message(@prolog, stretch_items, P)).
-
+	send(P, resize_message, message(@prolog, stretch_items, P)),
+	send(new(report_dialog), below, P),
+	send(P, done_message, message(P, return, cancel)).
 
 prompter(Title, Attributes) :-
 	maplist(canonise_attribute, Attributes, CAtts),
 	send(@prompter, clear),
-	send(@prompter, append, label(reporter)),
 	checklist(append_prompter(@prompter), CAtts),
 	send(@prompter, append,
 	     new(Ok, button(ok, message(@prompter, return, ok))), next_row),
 	send(Ok, default_button, @on),
 	send(@prompter, append,
 	     button(cancel, message(@prompter, return, cancel))),
-	send(@prompter?frame, label, Title),
+	get(@prompter, frame, Frame),
+	send(Frame, label, Title),
 	send(@prompter, fit),
 	stretch_items(@prompter),
 	(   send(@event, instance_of, event)
-	->  get(@event, position, @display, Pos)
+	->  get(@event, position, @display, Pos),
+	    get(@event?receiver, frame, MainFrame),
+	    send(Frame, transient_for, MainFrame),
+	    send(Frame, modal, transient)
 	;   Pos = @default
 	),
 	repeat,
@@ -216,10 +227,7 @@ read_prompter(P, Label:Type = Value) :-
 
 canonise(DI, A, B) :-
 	send(DI, instance_of, text_item), !,
-	new(S, string(A)),
-	send(S, strip),
-	get(S, value, B),
-	send(S, done).
+	get(A, strip, B).
 canonise(DI, A, B) :-
 	send(DI, instance_of, list_browser), !,
 	get(A, key, B).

@@ -4,6 +4,9 @@
 VERSION 5.0.6 (May 15, 2002)
 ============================
 
+  * ADDED: type-check on 2nd argument of absolute_file_name/2 as well as
+    a new option expand(Boolean) to control expanding meta-characters.
+
   * FIXED: MT: At halt/0, joint threads that are already terminated rather
     than canceling them.
 
