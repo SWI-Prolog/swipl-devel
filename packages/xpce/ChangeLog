@@ -1,6 +1,10 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: `frame->geometry' on Windows with negative X and Y.  ->geometry now
+  ensures part of the title-bar of the window is visible, so you can move and
+  resize the window.
+
 * ADDED: `list_browser->selection_style' as a method.
 
 * FIXED: Help-balloons on loc-still

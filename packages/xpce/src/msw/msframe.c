@@ -810,6 +810,8 @@ ws_x_geometry_frame(FrameObj fr, Name spec)
   int ok=0;
   WsFrame f = fr->ws_ref;
   int ew, eh;
+  int dw = valInt(getWidthDisplay(fr->display));
+  int dh = valInt(getHeightDisplay(fr->display));
 
   if ( !ws_frame_bb(fr, &x, &y, &w0, &h0) )
     return;
@@ -828,10 +830,14 @@ ws_x_geometry_frame(FrameObj fr, Name spec)
     case 6:
       w += ew;
       h += eh;
+      if ( signx[1] == '-' )
+	x = -x;
+      if ( signy[1] == '-' )
+	y = -y;
       if ( signx[0] == '-' )
-	x = valInt(getWidthDisplay(fr->display)) - x - w;
+	x = dw - x - w;
       if ( signy[0] == '-' )
-	y = valInt(getHeightDisplay(fr->display)) - y - h;
+	y = dh - y - h;
       ok++;
       break;
     default:				/* [<Sign>]X<Sign>Y */
@@ -847,18 +853,31 @@ ws_x_geometry_frame(FrameObj fr, Name spec)
 		    signx, x, signy, y, w0, h0));
 
       flags |= SWP_NOSIZE;
+      if ( signx[1] == '-' )
+	x = -x;
+      if ( signy[1] == '-' )
+	y = -y;
       if ( signx[0] == '-' )
-	x = valInt(getWidthDisplay(fr->display)) - x - w0;
+	x = dw - x - w0;
       if ( signy[0] == '-' )
-	y = valInt(getHeightDisplay(fr->display)) - y - h0;
+	y = dh - y - h0;
       ok++;
       break;
   }
   
   if ( f && ok )
-  { SetWindowPos(f->hwnd,
-		 HWND_TOP,		/* ignored */
-		 x, y, w, h,
+  { if ( y < 0 )			/* above the screen */
+      y = 0;
+    if ( y > dh-40 )			/* below the screen */
+      y = dh - 40;
+    if ( x+w < 20 )			/* left of the screen */
+      x = 40-w;
+    if ( x > dw-20 )			/* right of the screen */
+      x = dw - 40;
+    
+    SetWindowPos(f->hwnd,
+		 HWND_TOP,	/* ignored */
+		 x, y, w, h,	/* Specifies outer area (with border) */
 		 flags);
     f->placed = TRUE;
   }
