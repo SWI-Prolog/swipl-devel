@@ -1,11 +1,31 @@
 #!/bin/sh
 
+exclude=cat
+quick=false
 version=`cat VERSION`
 out=pl-$version.tar.gz
 compress=gzip
 
+
+while [ ! -z "$1" ]; do
+    case "$1" in
+	-lite)
+		exclude="grep -v ^./packages/"
+		out="pl-lite-$version.tar.gz"
+		shift
+		;;
+	-q)	quick=true
+	        shift
+		;;
+	*)
+		echo "Usage: `basename $0`: [-lite]"
+		exit 1
+		;;
+    esac
+done
+
 rm -f pl-$version
-if [ ! "o$1" = "o-q" ]; then
+if [ "$quick" = false ]; then
   cp /dev/null cvsfiles
   echo -n "Collecting distribution files "
   for d in `find . -name CVS -type d -print`; do
@@ -15,14 +35,14 @@ if [ ! "o$1" = "o-q" ]; then
           awk -F/ '{printf("%s/%s\n", "'$dir'", $2)}' >> cvsfiles
   done
   echo "done"
-fi
 
 cat >> cvsfiles << _EOM_
 ./pl.spec
 _EOM_
+fi
 
 cat cvsfiles | \
-	  grep -v '^./packages/' | \
+	  $exclude | \
 	  sed "s@^\./@pl-$version/@" > tapefiles
 
 cd ..
