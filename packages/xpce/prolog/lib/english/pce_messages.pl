@@ -85,6 +85,8 @@ pce_message(expand_send(ClassName,Selector)) -->
 	['~t~8|~w :->~w ... ok'-[ClassName,Selector],nl].
 pce_message(expand_get(ClassName,Selector)) -->
 	['~t~8|~w :<-~w ... ok'-[ClassName,Selector],nl].
+pce_message(recursive_loading_class(ClassName)) -->
+	['Trying to load class ~w recursively'-[ClassName], nl].
 
 pce_message(renamed_reference(Ref,NewRef)) -->
 	[':- pce_global: Renamed @~w into @~w'-[Ref,NewRef],nl].
