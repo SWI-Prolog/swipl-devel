@@ -83,7 +83,7 @@ NewClass(fileobj)
   Name		kind;			/* {text,binary} */
   Name		status;			/* current open mode */
   Name		filter;			/* I/O filter used */
-  FILE		*fd;			/* file descriptor */
+  IOSTREAM     *fd;			/* file descriptor */
 End;
 
 

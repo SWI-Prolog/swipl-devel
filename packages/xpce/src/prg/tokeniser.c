@@ -141,7 +141,7 @@ GETC(Tokeniser t)
   switch(t->access)
   { case A_FILE:
     { FileObj f = t->source;
-      c = getc(f->fd);
+      c = Sgetcode(f->fd);
       break;
     }
     case A_CHAR_ARRAY:
@@ -174,7 +174,7 @@ UNGETC(Tokeniser t, int c)
     { case A_FILE:
       { FileObj f = t->source;
 
-	ungetc(c, f->fd);
+	Sungetcode(c, f->fd);
       }
     }
 

@@ -122,14 +122,14 @@ storeTextBuffer(TextBuffer tb, FileObj file)
   TRY(storeSlotsObject(tb, file));
   storeIntFile(file, toInt(tb->size));
 
-  fwrite(Address(tb, 0),
-	 unitsize,
-	 tb->gap_start,
-	 file->fd);
-  fwrite(Address(tb, tb->gap_end+1),
-	 unitsize,
-	 tb->size - tb->gap_start,
-	 file->fd);
+  Sfwrite(Address(tb, 0),
+	  unitsize,
+	  tb->gap_start,
+	  file->fd);
+  Sfwrite(Address(tb, tb->gap_end+1),
+	  unitsize,
+	  tb->size - tb->gap_start,
+	  file->fd);
 
   return checkErrorFile(file);
 }

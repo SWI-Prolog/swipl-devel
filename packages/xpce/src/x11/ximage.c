@@ -120,25 +120,22 @@ ws_store_image(Image image, FileObj file)
   if ( i )
   { DisplayObj d = image->display;
     DisplayWsXref r;
-    IOSTREAM *fd = Sopen_FILE(file->fd, SIO_OUTPUT); /* HACK */
 
     if ( isNil(d) )
       d = CurrentDisplay(image);
     
     r = d->ws_ref;
 
-    Sputc('P', fd);
-    DEBUG(NAME_ppm, Cprintf("Saving PNM image from index %d\n", Stell(fd)));
-    if ( write_pnm_file(fd, i, r->display_xref, 0, 0, 0, PNM_RUNLEN) < 0 )
-    { Sclose(fd);
+    Sputc('P', file->fd);
+    DEBUG(NAME_ppm, Cprintf("Saving PNM image from index %d\n",
+			    Stell(file->fd)));
+    if ( write_pnm_file(file->fd, i, r->display_xref, 0, 0, 0, PNM_RUNLEN) < 0 )
       fail;
-    }
 
     if ( dofree )
       XDestroyImage(i);
 
-    Sclose(fd);
-    DEBUG(NAME_ppm, Cprintf("Saved PNM image to index %d\n", Stell(fd)));
+    DEBUG(NAME_ppm, Cprintf("Saved PNM image to index %d\n", Stell(file->fd)));
   } else
     return errorPce(image, NAME_cannotSaveObject, NAME_noImage);
 

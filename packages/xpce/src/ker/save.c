@@ -298,7 +298,7 @@ storeObject(Any obj, FileObj file)
     }
 
     DEBUG(NAME_save, Cprintf(" [%3d] Storing %s from %ld\n",
-			     save_nesting, pp(obj), ftell(file->fd)));
+			     save_nesting, pp(obj), Stell(file->fd)));
 
     if ( class->saveStyle == NAME_nil )
     { return storeCharFile(file, 'n');

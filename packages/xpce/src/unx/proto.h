@@ -24,7 +24,7 @@ COMMON(Name)	getBaseNameFile(FileObj f);
 COMMON(status)	reportErrorFile(FileObj f);
 COMMON(status)	checkErrorFile(FileObj f);
 COMMON(status)	storeCharFile(FileObj f, int c);
-COMMON(void)	putstdw(unsigned long w, FILE *fd);
+COMMON(void)	putstdw(unsigned long w, IOSTREAM *fd);
 COMMON(status)	storeWordFile(FileObj f, Any w);
 COMMON(status)	storeCharpFile(FileObj f, char *s);
 COMMON(status)	storeNameFile(FileObj f, Name n);

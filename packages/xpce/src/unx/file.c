@@ -88,7 +88,7 @@ initialiseFile(FileObj f, Name name, Name encoding)
 
     if ( (fileno = mkstemp(namebuf)) < 0 )
       return errorPce(f, NAME_openFile, NAME_write, getOsErrorPce(PCE));
-    if ( (f->fd = fdopen(fileno, "w")) == NULL )
+    if ( (f->fd = Sfdopen(fileno, "w")) == NULL )
     { close(fileno);
       return errorPce(f, NAME_openFile, NAME_write, getOsErrorPce(PCE));
     }
@@ -203,12 +203,7 @@ closeFile(FileObj f)
 { if ( f->status != NAME_closed )
   { status rval = checkErrorFile(f);
 
-#ifdef HAVE_POPEN
-    if ( notNil(f->filter) )
-      pclose(f->fd);
-    else
-#endif
-      fclose(f->fd);
+    Sclose(f->fd);
     f->fd = NULL;
     assign(f, status, NAME_closed);
 
@@ -650,11 +645,7 @@ openFile(FileObj f, Name mode, Name filter, CharArray extension)
     fdmode[0] = 'r';
 
   if ( f->kind == NAME_text )
-#ifdef __WATCOMC__
-    fdmode[1] = 't';
-#else
     fdmode[1] = '\0';
-#endif
   else
     fdmode[1] = 'b';
 
@@ -663,7 +654,7 @@ openFile(FileObj f, Name mode, Name filter, CharArray extension)
   if ( isNil(filter) )
   { DEBUG(NAME_file, Cprintf("Opening %s (%s) using mode %s\n",
 			     pp(f->name), pp(f), fdmode));
-    f->fd = fopen(strName(path), fdmode);
+    f->fd = Sopen_file(strName(path), fdmode);
   } else
 #ifndef HAVE_POPEN
   { return errorPce(f, NAME_noPopen);
@@ -678,7 +669,7 @@ openFile(FileObj f, Name mode, Name filter, CharArray extension)
 	    strName(filter), 
 	    mode == NAME_read ? "<" : mode == NAME_write ? ">" : ">>",
 	    strName(path));
-    f->fd = popen(cmd, fdmode);
+    f->fd = Sopen_pipe(cmd, fdmode);
   }
 #endif /*HAVE_POPEN*/
 
@@ -694,6 +685,11 @@ openFile(FileObj f, Name mode, Name filter, CharArray extension)
     }
 
     return errorPce(f, NAME_openFile, mode, getOsErrorPce(PCE));
+  }
+
+  if ( !setStreamEncodingSourceSink((SourceSink)f, f->fd) )
+  { closeFile(f);
+    fail;
   }
 
   assign(f, filter, filter);
@@ -772,7 +768,7 @@ static Int
 getIndexFile(FileObj f)
 { TRY( check_file(f, NAME_open) );
 
-  answer(toInt(ftell(f->fd)));
+  answer(toInt(Stell(f->fd)));
 }
 
 
@@ -785,7 +781,7 @@ seekFile(FileObj f, Int index, Name whence)
   if ( isDefault(whence) )
     whence = NAME_start;
 
-  if ( fseek(f->fd, valInt(index), whence == NAME_start ? 0 :
+  if ( Sseek(f->fd, valInt(index), whence == NAME_start ? 0 :
 				   whence == NAME_here ? 1 :
 				   2 ) == -1 )
     return errorPce(f, NAME_seekFile, index, whence, getOsErrorPce(PCE));
@@ -797,10 +793,32 @@ seekFile(FileObj f, Int index, Name whence)
 static status
 append_file(FileObj f, String str)
 { TRY( check_file(f, NAME_write) );
-  fwrite(str->s_text,
-	 isstrA(str) ? sizeof(charA) : sizeof(charW),
-	 str->size, 
-	 f->fd);
+
+  if ( f->encoding == NAME_binary )
+  { if ( Sfwrite(str->s_text,
+		 isstrA(str) ? sizeof(charA) : sizeof(charW),
+		 str->size, 
+		 f->fd) != str->size )
+      return reportErrorFile(f);
+  } else
+  { if ( isstrA(str) )
+    { const charA *s = str->s_textA;
+      const charA *e = &s[str->size];
+  
+      while(s<e)
+      { if ( Sputcode(*s, f->fd) < 0 )
+	  return reportErrorFile(f);
+      }
+    } else
+    { const charW *s = str->s_textW;
+      const charW *e = &s[str->size];
+  
+      while(s<e)
+      { if ( Sputcode(*s, f->fd) < 0 )
+	  return reportErrorFile(f);
+      }
+    }
+  }  
 
   succeed;
 }
@@ -833,28 +851,37 @@ formatFile(FileObj f, CharArray fmt, int argc, Any *argv)
 static status
 flushFile(FileObj f)
 { if ( f->fd )
-    fflush(f->fd);
+    Sflush(f->fd);
 
   succeed;
 }
 
 
-static Int
-getSizeFile(FileObj f)
-{ struct stat buf;
-  int rval;
+static int
+statFile(FileObj f, struct stat *buf)
+{ int fno;
 
-  if ( f->fd != NULL )
-    rval = fstat(fileno(f->fd), &buf);
-  else
+  if ( f->fd != NULL && (fno = Sfileno(f->fd)) )
+  { return fstat(fno, buf);
+  } else
   { Name name = getOsNameFile(f);
 
     if ( !name )
-      fail;
-    rval = stat(strName(name), &buf);
-  }
+    { errno = EINVAL;
+      return -1;
+    }
 
-  if ( rval == -1 )
+    return stat(strName(name), buf);
+  }
+}
+
+
+
+static Int
+getSizeFile(FileObj f)
+{ struct stat buf;
+
+  if ( statFile(f, &buf) == -1 )
   { errorPce(f, NAME_cannotStat, getOsErrorPce(PCE));
     fail;
   }
@@ -866,20 +893,16 @@ getSizeFile(FileObj f)
 static Date
 getTimeFile(FileObj f, Name which)
 { struct stat buf;
-  Name name = getOsNameFile(f);
-
-  if ( !name )
-    fail;
 
   if ( isDefault(which) )
     which = NAME_modified;
 
-  if ( stat(strName(name), &buf) < 0 )
+  if ( statFile(f, &buf) < 0 )
   { errorPce(f, NAME_cannotStat, getOsErrorPce(PCE));
     fail;
   }
   
-  if ( equalName(which, NAME_modified) )
+  if ( which == NAME_modified )
     answer(CtoDate(buf.st_mtime));
   else
     answer(CtoDate(buf.st_atime));
@@ -904,42 +927,29 @@ getDirectoryNameFile(FileObj f)
 
 static StringObj
 getReadLineFile(FileObj f)
-{ char tmp[1024];
-  char *s = tmp;
-  int allocated = sizeof(tmp);
-  int len = 0;
-  string str;
+{ tmp_string tmp;
   StringObj rval;
 
   TRY( check_file(f, NAME_read) );
 
+  str_tmp_init(&tmp);
+
   for(;;)
-  { int c = getc(f->fd);
+  { wint_t c = Sgetcode(f->fd);
 
     if ( c == EOF )
-    { if ( len == 0 )
+    { if ( tmp.s.size == 0 )
 	fail;
       break;
     }
-    if ( len >= allocated )
-    { allocated *= 2;
 
-      if ( s == tmp )
-      { s = pceMalloc(allocated);
-	memcpy(s, tmp, sizeof(tmp));
-      } else
-      { s = pceRealloc(s, allocated);
-      }
-    }
-    s[len++] = c;
+    str_tmp_put(&tmp, c);
     if ( c == '\n' )
       break;
   }
       
-  str_set_n_ascii(&str, len, s);
-  rval = StringToString(&str);
-  if ( s != tmp )
-    pceFree(s);
+  rval = StringToString(&tmp.s);
+  str_tmp_done(&tmp);
 
   return rval;
 }
@@ -967,19 +977,35 @@ getReadFile(FileObj f, Int n)
     fail;
   }
 
-  s = answerObject(ClassString, EAV);
-  str_unalloc(&s->data);
-  str_inithdr(&s->data, ENC_ISOL1);
-  s->data.size = size;
-  str_alloc(&s->data);
+  if ( f->encoding == NAME_binary )
+  { s = answerObject(ClassString, EAV);
+    str_unalloc(&s->data);
+    str_inithdr(&s->data, ENC_ISOL1);
+    s->data.size = size;
+    str_alloc(&s->data);
 
-  if ( (m = fread(s->data.s_textA, 1, size, f->fd)) != size )
-  { if ( m >= 0 )
-      deleteString(s, toInt(m), DEFAULT);
-    else
-    { errorPce(f, NAME_ioError, getOsErrorPce(PCE), 0);
+    if ( (m = Sfread(s->data.s_textA, 1, size, f->fd)) != size )
+    { if ( m >= 0 )
+	deleteString(s, toInt(m), DEFAULT);
+      else
+      { errorPce(f, NAME_ioError, getOsErrorPce(PCE), 0);
+	fail;
+      }
+    }
+  } else
+  { tmp_string tmp;
+    wint_t c;
+
+    str_tmp_init(&tmp);
+    while(tmp.s.size < size && (c = Sgetcode(f->fd)) != EOF )
+    { str_tmp_put(&tmp, c);
+    }
+    if ( !checkErrorFile(f) )
+    { str_tmp_done(&tmp);
       fail;
     }
+    s = StringToString(&tmp.s);
+    str_tmp_done(&tmp);
   }
 
   answer(s);
@@ -988,13 +1014,13 @@ getReadFile(FileObj f, Int n)
 
 static Int
 getCharacterFile(FileObj f)
-{ int chr;
+{ wint_t chr;
 
   TRY( check_file(f, NAME_read) );
-  if ( feof(f->fd) )
+  if ( Sfeof(f->fd) )
     fail;
 
-  chr = getc(f->fd);
+  chr = Sgetcode(f->fd);
   
   answer(toInt(chr));
 }
@@ -1016,7 +1042,7 @@ checkErrorFile(FileObj f)
 { if ( f->fd == NULL )
     succeed;
 
-  if ( ferror(f->fd) )
+  if ( Sferror(f->fd) )
     return reportErrorFile(f);
 
   succeed;
@@ -1025,18 +1051,21 @@ checkErrorFile(FileObj f)
 
 status
 storeCharFile(FileObj f, int c)
-{ putc(c, f->fd);
+{ if ( f->encoding == NAME_binary )
+    Sputc(c, f->fd);
+  else
+    Sputcode(c, f->fd);
 
   return checkErrorFile(f);
 }
 
 
 void
-putstdw(unsigned long w, FILE *fd)
+putstdw(unsigned long w, IOSTREAM *fd)
 {
 #ifndef WORDS_BIGENDIAN
   union
-  { unsigned long         l;
+  { unsigned long l;
     unsigned char c[4];
   } cvrt;
   unsigned long rval;
@@ -1046,9 +1075,9 @@ putstdw(unsigned long w, FILE *fd)
          (cvrt.c[1] << 16) |
 	 (cvrt.c[2] << 8) |
 	  cvrt.c[3];
-  putw(rval, fd);
+  Sputw(rval, fd);
 #else /*WORDS_BIGENDIAN*/
-  putw(w, fd);
+  Sputw(w, fd);
 #endif /*WORDS_BIGENDIAN*/
 }
 
@@ -1066,7 +1095,7 @@ storeCharpFile(FileObj f, char *s)
 { int l = strlen(s);
 
   TRY(storeWordFile(f, (Any) (long)l));
-  fwrite(s, sizeof(char), l, f->fd);
+  Sfwrite(s, sizeof(char), l, f->fd);
   
   return checkErrorFile(f);
 }

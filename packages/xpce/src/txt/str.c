@@ -834,3 +834,94 @@ str_icase_common_length(String s1, String s2)
   return i;
 }
       
+
+		 /*******************************
+		 *	 TEMPORARY STRINGS	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Temporary strings are  designed  to   get  character  data  code-by-code
+without knowing the size in advance or wether or not the data fits in an
+ISO Latin-1 string or not.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+tmp_string *
+str_tmp_init(tmp_string *tmp)
+{ str_inithdr(&tmp->s, FALSE);
+  tmp->s.s_textA = tmp->buffer;
+  tmp->allocated = sizeof(tmp->buffer);
+
+  return tmp;
+}
+
+
+wint_t
+str_tmp_put(tmp_string *tmp, wint_t c)
+{ String s = &tmp->s;
+
+  if ( c > 0xff && !s->iswide )
+  { if ( s->s_textA == tmp->buffer &&
+	 s->size*sizeof(charW) < sizeof(tmp->buffer) )
+    { charA b2[sizeof(tmp->buffer)];
+      const charA *f = b2;
+      const charA *e = &f[s->size];
+      charW *t = s->s_textW;
+
+      memcpy(b2, tmp->buffer, s->size);
+      while(f<e)
+	*t++ = *f++;
+      tmp->allocated /= sizeof(charW);
+    } else
+    { charW *new = pceMalloc(tmp->allocated * sizeof(charW));
+      const charA *f = tmp->buffer;
+      const charA *e = &f[s->size];
+      charW *t = new;
+      
+      while(f<e)
+	*t++ = *f++;
+      
+      if ( s->s_textA != tmp->buffer )
+	pceFree(s->s_textA);
+      s->s_textW = new;
+    }
+    s->iswide = TRUE;
+  }
+  if ( s->size >= tmp->allocated )
+  { if ( s->s_textA == tmp->buffer )
+    { long len = tmp->allocated*2;
+
+      if ( isstrA(s) )
+      { s->s_textA = pceMalloc(len);
+	
+	memcpy(s->s_textA, tmp->buffer, sizeof(tmp->buffer));
+      } else
+      { s->s_textW = pceMalloc(len*sizeof(charW));
+
+	memcpy(s->s_textA, tmp->buffer, sizeof(tmp->buffer));
+      }
+	   
+      tmp->allocated = len;
+    } else
+    { tmp->allocated *= 2;
+
+      if ( isstrA(s) )
+	s->s_textA = pceRealloc(s->s_textA, tmp->allocated);
+      else
+	s->s_textW = pceRealloc(s->s_textW, tmp->allocated*sizeof(charW));
+    }
+  }
+
+  if ( !s->iswide )
+    s->s_textA[s->size++] = c;
+  else
+    s->s_textW[s->size++] = c;
+
+  return c;
+}
+
+
+void
+str_tmp_done(tmp_string *tmp)
+{ if ( tmp->s.s_textA != tmp->buffer )
+    pceFree(tmp->s.s_textA);
+}

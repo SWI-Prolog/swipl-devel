@@ -1159,15 +1159,15 @@ typedef struct
 { char *start;
   char *end;
   char text[LINESIZE];
-} tmp_string, *TmpString;
+} str_part, *StrPart;
 
 
-forwards void	strip_string(TmpString);
-forwards void	init_string(TmpString, String);
-forwards int	suffix_string(TmpString, char *);
+forwards void	strip_string(StrPart);
+forwards void	init_string(StrPart, String);
+forwards int	suffix_string(StrPart, char *);
 
 static void
-strip_string(TmpString s)
+strip_string(StrPart s)
 { while(*s->start == ' ')
     s->start++;
   while(*s->end == ' ' && s->end >= s->start)
@@ -1176,7 +1176,7 @@ strip_string(TmpString s)
 
 
 static void
-init_string(TmpString s, String t)
+init_string(StrPart s, String t)
 { assert(isstrA(t));
   strcpy(s->text, (char *)t->s_text);
   s->start = s->text;
@@ -1191,7 +1191,7 @@ suffix.  If so, delete the suffix and trailing blanks.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-suffix_string(TmpString s, char *suff)
+suffix_string(StrPart s, char *suff)
 { char *ts = suff + strlen(suff) - 1;
   char *es = s->end;
 
@@ -1216,7 +1216,7 @@ suffix_string(TmpString s, char *suff)
 
 
 static int
-prefix_string(TmpString s, char *pref)
+prefix_string(StrPart s, char *pref)
 { char *q = s->start;
 
   while(*pref && *pref == *q)
@@ -1234,7 +1234,7 @@ prefix_string(TmpString s, char *pref)
 
 
 static Type
-name_of_type(TmpString str)
+name_of_type(StrPart str)
 { if ( *str->start == '{' && *str->end == '}' )
   { Type type = newObject(ClassType, CtoName(str->start),
 			  NAME_nameOf, newObject(ClassChain, EAV), EAV);
@@ -1261,7 +1261,7 @@ name_of_type(TmpString str)
 
 
 static Type
-int_range_type(TmpString str)
+int_range_type(StrPart str)
 { char *e, *e2;
   long low, high;
   Type type;
@@ -1296,7 +1296,7 @@ int_range_type(TmpString str)
 
 
 static Type
-real_range_type(TmpString str)
+real_range_type(StrPart str)
 { char *e0, *e, *e2;
   double low, high;
   Type type;
@@ -1326,7 +1326,7 @@ real_range_type(TmpString str)
 
 
 static Type
-disjunctive_type(TmpString str)
+disjunctive_type(StrPart str)
 { char *s;
 
   if ( (s = strchr(str->start, '|')) != NULL )
@@ -1354,7 +1354,7 @@ disjunctive_type(TmpString str)
 
 
 static Type
-kind_type(TmpString str)
+kind_type(StrPart str)
 { char *s;
   char *e;
   Name name, kind;
@@ -1391,7 +1391,7 @@ kind_type(TmpString str)
 
 
 static Type
-named_type(TmpString str)
+named_type(StrPart str)
 { char *s;
   char *e;
   Name name, argname;
@@ -1425,7 +1425,7 @@ named_type(TmpString str)
 Type
 nameToType(Name name)
 { Type type;
-  tmp_string str;
+  str_part str;
 
   if ( (type = getMemberHashTable(TypeTable, name)) )
     return type;

@@ -99,6 +99,9 @@ COMMON(String)	str_tab(String proto);
 COMMON(void)	str_strip(String s);
 COMMON(int)	str_common_length(String s1, String s2);
 COMMON(int)	str_icase_common_length(String s1, String s2);
+COMMON(tmp_string *)	str_tmp_init(tmp_string *tmp);
+COMMON(wint_t)		str_tmp_put(tmp_string *tmp, wint_t c);
+COMMON(void)		str_tmp_done(tmp_string *tmp);
 
 /* /staff/jan/src/pl/packages/xpce/src/txt/string.c */
 COMMON(StringObj) StringToString(String s);

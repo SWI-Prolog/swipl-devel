@@ -146,7 +146,7 @@ wstring(split-1) :-
 		 *	     SOURCE SINK	*
 		 *******************************/
 
-srcsink(utf8-1) :-
+srcsink(contents-1) :-
 	numlist(32, 1000, L),
 	tmp_file(test, Tmp),
 	open(Tmp, write, Out, [encoding(utf8)]),
@@ -154,6 +154,19 @@ srcsink(utf8-1) :-
 	close(Out),
 	new(File, file(Tmp, utf8)),
 	get(File, contents, String),
+	delete_file(Tmp),
+	get(String, value, Atom),
+	atom_codes(Atom, L).
+srcsink(read-1) :-
+	numlist(32, 1000, L),
+	tmp_file(test, Tmp),
+	open(Tmp, write, Out, [encoding(utf8)]),
+	checklist(put_code(Out), L),
+	close(Out),
+	new(File, file(Tmp, utf8)),
+	send(File, open, read),
+	get(File, read, String),
+	send(File, close),
 	delete_file(Tmp),
 	get(String, value, Atom),
 	atom_codes(Atom, L).

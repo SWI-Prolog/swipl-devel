@@ -151,6 +151,7 @@ COMMON(IOSTREAM *) Sopen_object(Any obj, const char *mode);
 COMMON(status)	initialiseSourceSink(SourceSink ss);
 COMMON(status)	checkErrorSourceSink(SourceSink ss, IOSTREAM *fd);
 COMMON(status)	makeClassSourceSink(Class class);
+COMMON(status)  setStreamEncodingSourceSink(SourceSink ss, IOSTREAM *fd);
 
 /* /staff/jan/src/pl/packages/xpce/src/itf/rc.c */
 COMMON(status)	makeClassRC(Class class);

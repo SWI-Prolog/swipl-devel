@@ -79,6 +79,18 @@ typedef struct _string
 #define TRUE 1
 #endif
 
+
+		 /*******************************
+		 *	    TMP STRINGS		*
+		 *******************************/
+
+typedef struct tmp_string
+{ string s;				/* string itself */
+  long   allocated;			/* allocated size */
+  charA  buffer[1024];			/* initial buffer */
+} tmp_string;
+
+
 		 /*******************************
 		 *	      ENCODING		*
 		 *******************************/

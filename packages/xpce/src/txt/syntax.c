@@ -89,9 +89,9 @@ static status
 storeSyntaxTable(SyntaxTable t, FileObj file)
 { TRY(storeSlotsObject(t, file));
   swapBytesTable(t);
-  fwrite(t->table,   sizeof(char), FLAGS_SIZE(t), file->fd);
+  Sfwrite(t->table,   sizeof(char), FLAGS_SIZE(t), file->fd);
   swapBytesTable(t);
-  fwrite(t->context, sizeof(char), CONTEXT_SIZE(t), file->fd);
+  Sfwrite(t->context, sizeof(char), CONTEXT_SIZE(t), file->fd);
 
   succeed;
 }

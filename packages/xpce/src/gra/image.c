@@ -211,7 +211,7 @@ storeImage(Image image, FileObj file)
   if ( isNil(image->file) )
     return ws_store_image(image, file);
   else
-  { putc('O', file->fd);
+  { Sputc('O', file->fd);
     succeed;
   }
 }
