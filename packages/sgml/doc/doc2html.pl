@@ -219,21 +219,21 @@ mkindex([H|T0], [H|T]) -->
 
 html(index, _, Index) -->
 	\h1('Index'),
-	starttag(dl),
+	starttag(ul),
 	print_index(Index),
-	endtag(dl).
+	endtag(ul).
 	
 print_index([]) -->
 	"".
 print_index([H|T0]) -->
 	{ H = element(index_entry, A, Label)
 	},
-	\dt(\a(A, Label)),
+	\li(\a(A, Label)),
 	(   { T0 = [element(_,_,Label)|_]
 	    }
-	->  starttag(dd),
+	->  " [",
 	    ct_index(Label, 2, T0, T),
-	    endtag(dd),
+	    "]",
 	    print_index(T)
 	;   print_index(T0)
 	).
@@ -473,8 +473,7 @@ html(definitions, _, Content) -->
 html(definition, _, [Head|Rest]) -->
 	{ xml_select(Rest, element(desc), Body)
 	},
-	\p,				% None-HTML!
-	\dt(\b(Head)),
+	\dt([&nbsp, \br, \b(Head)]),
 	\dd(Body).
 html(argdef, _, Content) -->
 	\dl(Content).
@@ -520,8 +519,7 @@ html(name, _, Name) -->
 %	Arguments
 
 html(argval, _, [Head, Body]) -->
-	\p,				% Non-HTML!
-	\dt(\b(Head)),
+	\dt([&nbsp, \br,\b(Head)]),
 	\dd(Body).
 html(termitem, _, [element(name, _, Name), Arglist]) -->
 	content([*Name, '(', \var(Arglist), ')']).
@@ -589,12 +587,16 @@ endtag(Name) -->
 
 args([]) -->
 	"".
-args([Name=Value|T]) -->
+args([Name=Value|T]) --> !,
 	" ",
 	atom(Name),
 	"=\"",
 	content(Value),
 	"\"",
+	args(T).
+args([Name|T]) -->
+	" ",
+	atom(Name),
 	args(T).
 
 atom(Name) -->
