@@ -241,7 +241,7 @@ EOF
 				fi
     				;;
     *sunos*)			LD=ld
-				LDSOFLAGS=""
+				LDSOFLAGS="-assert nodefinitions"
 				SOWHOLEARCHIVE="-u _pceSend -u _pceOpen"
 				SONAMEFLAG=""
 				SOEXTRAOBJ=Initialize.o

@@ -1,5 +1,14 @@
 [VERSION 4.9.7]
 
+* FIXED: CtoNumber(), which could raise the error `number->initialise has
+  1 argument'.  This function was incorrectly called on evaluation of
+  expressions in the Windows version.  The error lead to performance
+  degradation and sometimes crashes when using (for example) expressions
+  on places where an integer was expected (send(Box, width, Box?height*2)).
+
+* ADDED: -assert nodefinitions to the LDSO flags for SunOs 4.1.x, which
+  sometimes incorrectly reports unresolved symbols when linking pl2xpce.so
+
 * ADDED: Big warning in configure if -lXpm cannot be found.
 
 * FIXED: SunOs 4.1.x/X11R4 detection of -lXpm and -ljpeg libraries failed

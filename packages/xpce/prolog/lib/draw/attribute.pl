@@ -340,11 +340,16 @@ NOTE:	We should make a subclass to allow for entering integers only.
 
 make_coordinate_menu(Menu, Selector) :-
 	attribute(Label, Selector),
-	new(Menu, text_item(Label, 0,
-			    message(@receiver?frame, client_attribute,
-				    Selector, @arg1))),
+	coordinate_range(Selector, Low, High),
+	new(Menu, int_item(Label, 0,
+			   message(@receiver?frame, client_attribute,
+				   Selector, @arg1), Low, High)),
 	send(Menu, length, 5).
 
+coordinate_range(x,      -9999, 9999).
+coordinate_range(y,      -9999, 9999).
+coordinate_range(width,  -9999, 9999).
+coordinate_range(height, -9999, 9999).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The radius of a box is  the radius of  the circle sections (arcs) used

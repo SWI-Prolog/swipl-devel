@@ -12,7 +12,7 @@
 
 Number
 CtoNumber(long i)
-{ Number n = answerObject(ClassNumber, ZERO);
+{ Number n = answerObject(ClassNumber, ZERO, 0);
   
   n->value = i;
   answer(n);

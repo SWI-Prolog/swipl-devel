@@ -165,10 +165,7 @@ addIntItem(IntItem ii, Int change)
   displayedValueTextItem((TextItem)ii, ctmp);
   doneScratchCharArray(ctmp);
 
-  if ( applyTextItem((TextItem)ii, OFF) && !isFreedObj(ii) )
-  { if ( ii->advance == NAME_next )
-      send(ii->device, NAME_advance, ii, 0);
-  }
+  applyTextItem((TextItem)ii, OFF);
 
   succeed;
 }

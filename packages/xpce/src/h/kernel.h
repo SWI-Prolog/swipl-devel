@@ -86,8 +86,8 @@ generate warnings on accidental use of them.
 #define METHOD_MAX_ARGS		16	/* maximum # args for C-method */
 #define FWD_PCE_MAX_ARGS	10	/* @arg1 ... @arg10 */
 #define SCAN_MAX_ARGS 		32	/* scanstr maximum arguments */
-#define PCE_MAX_INT		((1L<<(sizeof(Any)*8 - TAG_BITS-1))-1)
-#define PCE_MIN_INT		(-(long)PCE_MAX_INT - 1)
+#define PCE_MAX_INT		((long)((1L<<(sizeof(Any)*8 - TAG_BITS-1))-1))
+#define PCE_MIN_INT		(-(PCE_MAX_INT-1))
 
 #define LINESIZE		2048	/* maximum length of a line */
 #define FORMATSIZE		10000	/* maximum length of a ->format */
