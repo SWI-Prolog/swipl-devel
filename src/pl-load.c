@@ -249,8 +249,8 @@ Word file, entry, options, libraries, size;
 Create an a.out file from a .o file.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifndef LD
-#define LD		"ld"		/* Unix loader command name */
+#ifndef LD_COMMAND
+#define LD_COMMAND	"ld"		/* Unix loader command name */
 #endif
 #ifndef LD_OPT_OPTIONS
 #define LD_OPT_OPTIONS	"-N"		/* General options */
@@ -271,8 +271,7 @@ Create an a.out file from a .o file.
 #define LD_OPT_LIBS	"-lc"		/* standard libraries */
 #endif
 
-static
-bool
+static bool
 create_a_out(files, entry, options, libraries, base, outfile)
 char *entry;
 char *files;
@@ -285,8 +284,8 @@ char *outfile;
 
 #define next(str) { (str) += strlen(str); *(str)++ = ' '; };
 
-  sprintf(s, "%s ", LD);					 next(s);
-  sprintf(s, "%s ", LD_OPT_OPTIONS);				 next(s);
+  sprintf(s, "%s", LD_COMMAND);					 next(s);
+  sprintf(s, "%s", LD_OPT_OPTIONS);				 next(s);
   sprintf(s, LD_OPT_SFILE, stringAtom(loaderstatus.symbolfile)); next(s);
   sprintf(s, LD_OPT_ADDR, base);				 next(s);
 #if !O_NOENTRY

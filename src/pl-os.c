@@ -960,8 +960,8 @@ forwards char	*canonisePath P((char *)); /* canonise a path-name */
 forwards char   *canoniseDir P((char *));
 #endif
 
-static  char    CWDdir[MAXPATHLEN];	   /* current directory */
-
+static  char    CWDdir[MAXPATHLEN];	/* current directory */
+static  int     CWDlen;			/* Length of CWDdir */
 
 static void
 initExpand()
@@ -972,6 +972,7 @@ initExpand()
 #endif
 
   CWDdir[0] = EOS;
+  CWDlen = 0;
 
 #if unix
   if ( (cpaths = getenv("CANONICAL_PATHS")) )
@@ -1353,6 +1354,7 @@ char *spec;
 
     return canonisePath(path);
   }
+
 #if OS2 && EMX
   if (isDriveRelativePath(file))
   {
@@ -1368,9 +1370,15 @@ char *spec;
     return canonisePath(path);
   }
 #endif /* OS2 */
-  if ( CWDdir[0] == EOS )
-  {
-    getwd(CWDdir);
+
+  if ( CWDlen == 0 )
+  { char buf[MAXPATHLEN];
+
+    getwd(buf);
+    strcpy(CWDdir, canonisePath(buf));
+    CWDlen = strlen(CWDdir);
+    CWDdir[CWDlen++] = '/';
+    CWDdir[CWDlen] = EOS;
   }
 
 #if OS2 && EMX
@@ -1387,16 +1395,17 @@ char *spec;
     return canonisePath(path);
   }
 #endif /* OS2 */
-  if ( (strlen(CWDdir) + strlen(file) + 2) >= MAXPATHLEN )
+  if ( (CWDlen + strlen(file) + 1) >= MAXPATHLEN )
   { warning("path name too long");
     return (char *) NULL;
   }
   
   strcpy(path, CWDdir);
-  strcat(path, "/");
-  strcat(path, file);
-
-  return canonisePath(path);
+  strcpy(&path[CWDlen], file);
+  if ( strchr(file, '.') || strchr(file, '/') )
+    return canonisePath(path);
+  else
+    return path;
 }
 
 
@@ -1420,7 +1429,7 @@ char *f;
 
   for(base = p = f; *p; p++)
     if (*p == '/' && p[1] != EOS )
-      base = p;
+      base = p+1;
   strncpy(dir, f, base-f);
   dir[base-f] = EOS;
   
@@ -1440,14 +1449,20 @@ ChDir(path)
 char *path;
 { extern int chdir(/*char**/);
   char *ospath = OsPath(path);
+  char buf[MAXPATHLEN];
 
-  if ( ospath[0] == EOS ||
-       streq(ospath, CWDdir) ||
-       streq(ospath, ".") )		/* Same directory */
+  if ( path[0] == EOS ||
+       streq(path, CWDdir) ||
+       streq(path, ".") )		/* Same directory */
     succeed;
 
+  strcpy(buf, AbsoluteFile(path));
+
   if ( chdir(ospath) == 0 )
-  { CWDdir[0] = EOS;
+  { strcpy(CWDdir, buf);
+    CWDlen = strlen(CWDdir);
+    CWDdir[CWDlen++] = '/';
+    CWDdir[CWDlen] = EOS;
     succeed;
   }
 
