@@ -1,0 +1,14 @@
+#!/bin/sh
+
+arch="$1"
+
+if [ ! -d ../../$arch ]; then
+   echo "Usage: `basename $0`: architecture"
+fi
+
+gcc -I../../$arch $CFLAGS -DHAVE_CONFIG_H -DVERBOSE -o mmap mmap.c
+
+if [ -x mmap ]; then
+  echo "Running mmap test"
+  ./mmap
+fi
