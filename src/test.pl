@@ -816,31 +816,42 @@ record(erase-2) :-
 		 *	    ASSERT/RETRACT	*
 		 *******************************/
 
+%	compiler
+%	
+%	This suite tests whether all data-types can be compiled properly
+%	and handled by the decompiler.
+
 :- dynamic
 	compiler_test/1.
 
 compiler(assert-1) :-
-	mkterm(T0),
+	mkterm(T0),			% verify head compile mode
 	assert(compiler_test(T0)),
 	compiler_test(T),
 	T0 =@= T,
 	retractall(compiler_test(_)).
 compiler(assert-2) :-
+	mkterm(T0),			% verify head compile mode
+	assert(compiler_test(T0)),
+	compiler_test(T0),
+	retractall(compiler_test(_)).
+compiler(assert-3) :-			% verify body compile mode
 	mkterm(T0),
-	assert((compiler_test(X) :- X = T0)),
+	assert((compiler_test(X) :- unify(X, T0))),
 	compiler_test(T),
 	T0 =@= T,
 	retractall(compiler_test(_)).
-compiler(assert-3) :-
+compiler(assert-4) :-
 	mkterm(T0),
 	assert(compiler_test(T0)),
 	retract(compiler_test(T)),
 	T0 =@= T.
-compiler(assert-4) :-
+compiler(assert-5) :-
 	mkterm(T0),
 	assert(compiler_test(T0)),
 	retract(compiler_test(T0)).
 
+unify(X, X).
 
 		 /*******************************
 		 *	       FLAGS		*

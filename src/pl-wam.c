@@ -2382,8 +2382,16 @@ variable, compare the numbers otherwise.
 	  *p = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
 	  bindConst(k, c);
 	  NEXT_INSTRUCTION;
-	} else if ( isBignum(*k) && valBignum(*k) == (int64_t)*PC++ )
+	} else if ( isBignum(*k) )
+	{ Word vk = valIndirectP(*k);
+	  int i;
+
+	  for(i=0; i<WORDS_PER_INT64; i++)
+	  { if ( *vk++ != (word)*PC++ )
+	      CLAUSE_FAILED;
+	  }  
 	  NEXT_INSTRUCTION;
+	}
 
       	CLAUSE_FAILED;
       }
