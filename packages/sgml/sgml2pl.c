@@ -138,6 +138,7 @@ static functor_t FUNCTOR_positions1;
 static functor_t FUNCTOR_event_class1;
 static functor_t FUNCTOR_doctype1;
 static functor_t FUNCTOR_allowed1;
+static functor_t FUNCTOR_context1;
 
 static atom_t ATOM_sgml;
 static atom_t ATOM_dtd;
@@ -197,6 +198,7 @@ initConstants()
   FUNCTOR_event_class1 	 = mkfunctor("event_class", 1);
   FUNCTOR_doctype1       = mkfunctor("doctype", 1);
   FUNCTOR_allowed1       = mkfunctor("allowed", 1);
+  FUNCTOR_context1       = mkfunctor("context", 1);
 
   ATOM_dtd  = PL_new_atom("dtd");
   ATOM_sgml = PL_new_atom("sgml");
@@ -577,6 +579,23 @@ pl_get_sgml_parser(term_t parser, term_t option)
       if ( !PL_unify_list(tail, head, tail) ||
 	       !PL_unify(head, tmp) )
 	    return FALSE;
+    }
+
+    return PL_unify_nil(tail);
+  } else if ( PL_is_functor(option, FUNCTOR_context1) )
+  { term_t tail = PL_new_term_ref();
+    term_t head = PL_new_term_ref();
+    term_t tmp = PL_new_term_ref();
+    sgml_environment *env = p->environments;
+      
+    PL_get_arg(1, option, tail);
+
+    for( ; env; env = env->parent)
+    { PL_put_atom_chars(tmp, env->element->name->name);
+
+      if ( !PL_unify_list(tail, head, tail) ||
+	   !PL_unify(head, tmp) )
+	return FALSE;
     }
 
     return PL_unify_nil(tail);

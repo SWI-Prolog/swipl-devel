@@ -716,6 +716,12 @@ Return the defined document-type (= toplevel element).  See also
 Return the currently used DTD.  See dtd_property/2 for obtaining information
 on the DTD such as element and attribute properties.
 
+    <termitem>context(-StackOfElements)
+Returns the stack of currently open elements as a list. The head of this
+list is the current element. This can be used to determine the context
+of, for example, CDATA events in call-back mode. The elements
+are passed as atoms.  Currently no access to the attributes is provided.
+
     <termitem>allowed(-Elements)
 Determines which elements may be inserted at the current location.  This
 information is returned as a list of element-names. If character data is
@@ -761,6 +767,7 @@ documents.
 <p>
 Input is either a stream or an goal that pushes characters into the 
 parser. A full description of the option-list is below.
+
 <argdef>
     <termitem>document(+Term)
 A variable that will be unified with a list describing the content of 
@@ -770,10 +777,11 @@ An input stream that is read. Either this option or the <term>goal(Goal)</term>
 option must be provided. 
     <termitem>goal(+Goal)
 <aref/Goal/ is a callable term. The predicate <pref>sgml_parse/2</pref> 
-opens an output stream to the parser and invokes <term>call(Goal, Stream)</term>,
-where <aref/Goal/ should write the data to be parsed to <aref/Stream/. 
-This option is not compatible to <term>parse(element)</term>. This 
-option can be used for example to parse a Prolog atom:
+opens an output stream to the parser and invokes <term>call(Goal,
+Stream)</term>, where <aref/Goal/ should write the data to be parsed to
+<aref/Stream/. This option is not compatible to
+<term>parse(element)</term>. This option can be used for example to
+parse a Prolog atom:
 
 <code>
 parse_atom(Atom, Term) :-
