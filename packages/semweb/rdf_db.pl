@@ -98,6 +98,7 @@
 :- use_module(library(lists)).
 :- use_module(library(shlib)).
 :- use_module(library(gensym)).
+:- use_module(library(sgml)).
 
 :- initialization
    load_foreign_library(foreign(rdf_db)).
@@ -1133,7 +1134,8 @@ rdf_value(V, Text) :-
 	atom_concat(Full, Local, V), !,
 	xml_quote_attribute(Local, QLocal),
 	concat_atom(['&', NS, (';'), QLocal], Text).
-rdf_value(V, V).
+rdf_value(V, Q) :-
+	xml_quote_attribute(V, Q).
 
 
 		 /*******************************
