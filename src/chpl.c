@@ -15,6 +15,7 @@
 #endif
 #include <stdlib.h>
 #include <sys/stat.h>
+#include <errno.h>
 
 #define closeFiles chplCloseFiles
 #define warning chplWarning
