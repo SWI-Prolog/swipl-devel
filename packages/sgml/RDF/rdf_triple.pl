@@ -77,7 +77,7 @@ rdf_triples(RDF, Tripples) :-
 rdf_triples([]) --> !,
 	[].
 rdf_triples([H|T]) --> !,
-	triples(H, _),
+	rdf_triples(H),
 	rdf_triples(T).
 rdf_triples(Term) -->
 	triples(Term, _).
@@ -115,6 +115,7 @@ triples(unparsed(Data), Id) -->
 	  print_message(error, rdf(unparsed(Data)))
 	},
 	[].
+
 
 name_to_type_uri(NS:Local, URI) :- !,
 	atom_concat(NS, Local, URI).
@@ -172,10 +173,17 @@ properties([H0|T0], N, Subject) -->
 	property(H0, N, NN, Subject),
 	properties(T0, NN, Subject).
 
+%	property(Pred = Object, N, NN, Subject)
+%	property(id(Id, Pred = Object), N, NN, Subject)
+%	
+%	Generate triples for {Subject, Pred, Object}. In the second
+%	form, reinify the statement.  Also generates triples for Object
+%	if necessary.
+
 property(Pred0 = Object, N, NN, Subject) --> % inlined object
+	triples(Object, Id), !,
 	{ li_pred(Pred0, Pred, N, NN)
 	},
-	triples(Object, Id), !,
 	[ rdf(Subject, Pred, Id)
 	].
 property(Pred0 = Object, N, NN, Subject) --> !,
@@ -183,15 +191,25 @@ property(Pred0 = Object, N, NN, Subject) --> !,
 	},
 	[ rdf(Subject, Pred, Object)
 	].
+%property(id(Id, Pred0 = Object), N, NN, Subject) -->
+%	{ phrase(triples(Object, ObjectId), ObjectTriples), !,
+%	  li_pred(Pred0, Pred, N, NN)
+%	},
+%	list(ObjectTriples),
+%	[ rdf(Subject, Pred, ObjectId)
+%	],
+%	reinify(ObjectTriples, Id),
+%	[ rdf(Subject, Pred, Id)
+%	].
 property(id(Id, Pred0 = Object), N, NN, Subject) -->
-	{ phrase(triples(Object, ObjectId), ObjectTriples), !,
-	  li_pred(Pred0, Pred, N, NN)
+	triples(Object, ObjectId), !,
+	{ li_pred(Pred0, Pred, N, NN)
 	},
-	list(ObjectTriples),
-	[ rdf(Subject, Pred, ObjectId)
-	],
-	reinify(ObjectTriples, Id),
-	[ rdf(Subject, Pred, Id)
+	[ rdf(Subject, Pred, ObjectId),
+	  rdf(Id, rdf:type, rdf:'Statement'),
+	  rdf(Id, rdf:subject, Subject),
+	  rdf(Id, rdf:predicate, Pred),
+	  rdf(Id, rdf:object, ObjectId)
 	].
 property(id(Id, Pred0 = Object), N, NN, Subject) -->
 	{ li_pred(Pred0, Pred, N, NN)

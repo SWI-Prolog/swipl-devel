@@ -62,8 +62,16 @@ match(Rule, M, From) :-
 
 translate(Var, Var, true) :-
 	var(Var), !.
+translate((\Command, !), Var, (Goal, !)) :- !,
+	(   callable(Command),
+	    Command =.. List
+	->  append(List, [Var], L2),
+	    Goal =.. L2
+	;   Goal = rewrite(\Command, Var)
+	).
 translate(\Command, Var, Goal) :- !,
-	(   catch(Command =.. List, _, fail)
+	(   callable(Command),
+	    Command =.. List
 	->  append(List, [Var], L2),
 	    Goal =.. L2
 	;   Goal = rewrite(\Command, Var)

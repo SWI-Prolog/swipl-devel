@@ -109,9 +109,14 @@ http_location(?Parts, ?Location)
 		 *******************************/
 
 global_url(URL, BaseURL, Global) :-
-	parse_url(URL, BaseURL, Attributes),
-	phrase(curl(Attributes), Chars),
-	atom_codes(Global, Chars).
+	(   sub_atom(URL, 0, _, _, 'http://') % speed up common cases
+	->  Global = URL
+	;   sub_atom(URL, 0, _, _, 'ftp://')
+	->  Global = URL
+	;   parse_url(URL, BaseURL, Attributes),
+	    phrase(curl(Attributes), Chars),
+	    atom_codes(Global, Chars)
+	).
 
 
 		 /*******************************
@@ -257,13 +262,26 @@ parse_url(URL, BaseURL, Attributes) :-
 	
 globalise_path(LocalPath, _, LocalPath) :-
 	is_absolute_file_name(LocalPath), !. % make file:drive:path work on MS
-globalise_path(LocalPath, BasePath, Path) :-
-	(   sub_atom(BasePath, _, _, 0, /)
-	->  BaseDir = BasePath
-	;   file_directory_name(BasePath, BaseDir0),
-	    atom_concat(BaseDir0, /, BaseDir)
-	),
-	atom_concat(BaseDir, LocalPath, Path).
+globalise_path(Local, Base, Path) :-
+	base_dir(Base, BaseDir),
+	make_path(BaseDir, Local, Path).
+
+base_dir(BasePath, BaseDir) :-
+	(   atom_concat(BaseDir, /, BasePath)
+	->  true
+	;   file_directory_name(BasePath, BaseDir)
+	).
+
+make_path(Dir, Local, Path) :-
+	atom_concat('../', L2, Local),
+	file_directory_name(Dir, Parent),
+	Parent \== Dir, !,
+	make_path(Parent, L2, Path).
+make_path(/, Local, Path) :- !,
+	atom_concat(/, Local, Path).
+make_path(Dir, Local, Path) :-
+	concat_atom([Dir, /, Local], Path).
+
 
 absolute_url -->
 	identifier(_),

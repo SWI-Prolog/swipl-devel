@@ -18,12 +18,17 @@
 %
 %	Turn URI into a global URI.  Rather crude as it stands.
 
+canonical_uri('', Base, Base) :- !.
 canonical_uri(URI, _, CanonicalURI) :-
 	is_global_uri(URI), !,
 	CanonicalURI = URI.
 canonical_uri(URI, BaseURI, CanonicalURI) :-
 	sub_atom(URI, 0, _, _, #), !,
 	atom_concat(BaseURI, URI, CanonicalURI).
+canonical_uri(URI, BaseURI, CanonicalURI) :-
+	atom_concat('../', Rest, URI), !,
+	file_directory_name(BaseURI, BaseDir),
+	canonical_uri(Rest, BaseDir, CanonicalURI).
 canonical_uri(URI, BaseURI, CanonicalURI) :-
 	file_directory_name(BaseURI, BaseDir),
 	concat_atom([BaseDir, URI], /, CanonicalURI).

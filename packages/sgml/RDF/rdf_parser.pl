@@ -14,7 +14,6 @@
 	  [ xml_to_plrdf/3,		% +XMLTerm, +BaseURI, -RDFTerm
 	    rdf_name_space/1
 	  ]).
-:- use_module(uri).
 :- use_module(rewrite).
 
 :- op(500, fx, \?).			% Optional (attrs)
@@ -37,16 +36,32 @@ rdf_name_space('http://www.w3.org/TR/REC-rdf-syntax').
 %	if `BaseURI' == [], local URI's are not globalised.
 
 
-xml_to_plrdf(Element, Base0, RDF) :-
-	set_base_uri(Element, Base0, E, Base), !,
-	xml_to_plrdf(E, Base, RDF).
-xml_to_plrdf(element(_:'RDF', _, Objects), BaseURI, RDF) :- !,
-	rewrite(\rdf_objects(RDF, BaseURI), Objects).
-xml_to_plrdf(Objects, BaseURI, RDF) :-
-	(   is_list(Objects)
-	->  rewrite(\rdf_objects(RDF, BaseURI), Objects)
-	;   rewrite(\rdf_object(RDF, BaseURI), Objects)
-	).
+xml_to_plrdf(Element, Base, RDF) :-
+	is_list(Element), !,
+	rewrite(\xml_content_objects(RDF, Base), Element).
+xml_to_plrdf(Element, Base, RDF) :-
+	rewrite(\xml_objects(RDF, Base), Element).
+
+xml_objects(Objects, Base0) ::=
+	E0,
+	{ set_base_uri(E0, Base0, E, Base), !,
+	  rewrite(\xml_objects(Objects, Base), E)
+	}.
+xml_objects(Objects, Base) ::=
+	element((\rdf('RDF'), !),
+		_,
+		\rdf_objects(Objects, Base)),
+	!.
+xml_objects(Objects, Base) ::=
+	element(_, _, \xml_content_objects(Objects, Base)).
+
+xml_content_objects([], _) ::=
+	[].
+xml_content_objects([H|T], Base) ::=
+	[ \xml_objects(H, Base)
+	| \xml_content_objects(T, Base)
+	].
+
 
 rdf_objects([], _Base) ::=
 	[], !.
@@ -60,8 +75,8 @@ rdf_object_or_error(H, Base) ::=
 rdf_object_or_error(_, unparsed(Data)) ::=
 	Data.
 
-rdf_object(container(Type, Id, Elements), Base) ::=
-	\container(Type, Id, Elements, Base), !.
+%rdf_object(container(Type, Id, Elements), Base) ::=
+%	\container(Type, Id, Elements, Base), !.
 rdf_object(description(Type, About, BagID, Properties), Base) ::=
 	\description(Type, About, BagID, Properties, Base).
 
@@ -108,14 +123,21 @@ propAttr(Name = literal(Value), _) ::=
 
 propertyElts([], _) ::=
 	[], !.
+propertyElts(Elts, Base) ::=
+	[ (\blank, !)
+	| \propertyElts(Elts, Base)
+	].
 propertyElts([H|T], Base) ::=
-	[ \propertyElt(Id, Name, Value, Base)
+	[ \propertyElt(H, Base)
 	| \propertyElts(T, Base)
-	],
+	].
+
+propertyElt(E, Base) ::=
+	\propertyElt(Id, Name, Value, Base),
 	{ mkprop(Name, Value, Prop),
 	  (   var(Id)
-	  ->  H = Prop
-	  ;   H = id(Id, Prop)
+	  ->  E = Prop
+	  ;   E = id(Id, Prop)
 	  )
 	}.
 
@@ -129,6 +151,37 @@ propertyElt(Id, Name, Value, Base0) ::=
 	{ set_base_uri(E0, Base0, E, Base), !,
 	  rewrite(\propertyElt(Id, Name, Value, Base), E)
 	}.
+					% 5.14 emptyPropertyElt
+propertyElt(Id, Name, literal(''), Base) ::=
+	element(Name,
+		\attrs([ \?idAttr(Id, Base),
+			 \?parseLiteral
+		       | \noMoreAttrs
+		       ]),
+		[]), !.
+propertyElt(Id, Name,
+	    description(description, About, BagID, Properties),
+	    Base) ::=
+	element(Name,
+		\attrs([ \?idAttr(Id, Base),
+			 \?aboutResourceEmptyElt(About, Base),
+			 \?bagIdAttr(BagID, Base),
+			 \?parseResource
+		       | \propAttrs(Properties, Base)
+		       ]),
+		[]),
+	{ !,
+	  writeln(rule-3)
+	}.
+propertyElt(_, Name, description(description, Id, _, Properties), Base) ::=
+	element(Name,
+		\attrs([ \parseResource,
+			 \?idAboutAttr(Id, Base)
+		       ]),
+		\propertyElts(Properties, Base)),
+	{ !,
+	  writeln(rule-4)
+	}.
 propertyElt(Id, Name, literal(Value), Base) ::=
 	element(Name,
 		\attrs([ \parseLiteral,
@@ -137,12 +190,6 @@ propertyElt(Id, Name, literal(Value), Base) ::=
 		Content), !,
 	{ literal_value(Content, Value)
 	}.
-propertyElt(_, Name, description(description, Id, _, Properties), Base) ::=
-	element(Name,
-		\attrs([ \parseResource,
-			 \?idTermAttr(Id, Base)
-		       ]),
-		\propertyElts(Properties, Base)), !.
 propertyElt(Id, Name, literal(Value), Base) ::=
 	element(Name,
 		\attrs([ \?idAttr(Id, Base)
@@ -155,28 +202,15 @@ propertyElt(Id, Name, Value, Base) ::=
 		\attrs([ \?idAttr(Id, Base)
 		       ]),
 		\an_rdf_object(Value, Base)), !.
-					% 5.14 emptyPropertyElt
-propertyElt(Id, Name, literal(''), Base) ::=
-	element(Name,
-		\attrs([ \?idAttr(Id, Base),
-			 \?parseLiteral
-		       | \noMoreAttrs
-		       ]),
-		[]), !.
-propertyElt(_Id, Name,
-	    description(description, About, BagID, Properties),
-	    Base) ::=
-	element(Name,
-		\attrs([ \?idRefAttr(About, Base),
-			 \?bagIdAttr(BagID, Base)
-		       | \propAttrs(Properties, Base)
-		       ]),
-		[]), !.
 propertyElt(Id, Name, unparsed(Value), Base) ::=
 	element(Name,
 		\attrs([ \?idAttr(Id, Base)
 		       ]),
 		Value).
+
+aboutResourceEmptyElt(about(URI), Base) ::=
+	\resourceAttr(URI, Base).
+
 
 %	literal_value(+In, -Value)
 %	
@@ -278,11 +312,22 @@ globalid(Id, Base) ::=
 	}.
 
 
+%	canonical_uri(+In, +Base, -Absolute)
+
+canonical_uri('', Base, Base) :- !.	% '' expands to xml:base
+canonical_uri(URI, [], URI) :- !.	% do not use one
+canonical_uri(URI, Base, Global) :-	% use our generic library
+	global_url(URI, Base, Global).
 
 
 		 /*******************************
 		 *	     CONTAINERS		*
 		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Note that containers are no longer part   of  the definition. We'll keep
+the code and call it conditionally if we must.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 container(Type, Id, Elements, Base0) ::=
 	E0,
@@ -429,7 +474,18 @@ noMoreAttrs ::=
 set_base_uri(element(Name, Attrs0, Content), Base0,
 	     element(Name, Attrs, Content),  Base) :-
 	select(xml:base=Base1, Attrs0, Attrs), !,
-	canonical_uri(Base1, Base0, Base).
+	remove_fragment(Base1, Base2),
+	canonical_uri(Base2, Base0, Base).
+
+%	remove_fragment(+URI, -WithoutFragment)
+%	
+%	When handling xml:base, we must delete the possible fragment.
+
+remove_fragment(URI, Plain) :-
+	sub_atom(URI, B, _, _, #), !,
+	sub_atom(URI, 0, B, _, Plain).
+remove_fragment(URI, URI).
+	
 
 		 /*******************************
 		 *     HELP PCE-EMACS A BIT	*

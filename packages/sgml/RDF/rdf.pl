@@ -26,7 +26,13 @@
 %	load_rdf(+File, -Triples[, +Options])
 %
 %	Parse an XML file holding an RDF term into a list of RDF triples.
-%	see rdf_triple.pl for a definition of the output format.
+%	see rdf_triple.pl for a definition of the output format. Options:
+%
+%	# base_uri(URI)
+%	URI to use as base
+%
+%	# expand_foreach(Bool)
+%	Apply each(Container, Pred, Object) on the members of Container
 
 load_rdf(File, Triples) :-
 	load_rdf(File, Triples, []).
@@ -39,7 +45,8 @@ load_rdf(File, Triples, Options) :-
 		       [ dialect(xmlns),
 			 space(sgml)
 		       ]),
-	xml_to_rdf(RDFElement, BaseURI, Triples).
+	xml_to_rdf(RDFElement, BaseURI, Triples0),
+	post_process(Options, Triples0, Triples).
 
 	
 %	xml_to_rdf(+XML, +BaseURI, -Triples)
@@ -47,6 +54,42 @@ load_rdf(File, Triples, Options) :-
 xml_to_rdf(XML, BaseURI, Triples) :-
 	xml_to_plrdf(XML, BaseURI, RDF),
 	rdf_triples(RDF, Triples).
+
+
+		 /*******************************
+		 *	 POST-PROCESSING	*
+		 *******************************/
+
+post_process([], Triples, Triples).
+post_process([expand_foreach(true)|T], Triples0, Triples) :- !,
+	expand_each(Triples0, Triples1),
+	post_process(T, Triples1, Triples).
+post_process([_|T], Triples0, Triples) :- !,
+	post_process(T, Triples0, Triples).
+
+
+		 /*******************************
+		 *	      EXPAND		*
+		 *******************************/
+
+expand_each(Triples0, Triples) :-
+	select(rdf(each(Container), Pred, Object),
+	       Triples0, Triples1), !,
+	each_triples(Triples1, Container, Pred, Object, Triples2),
+	expand_each(Triples2, Triples).
+expand_each(Triples, Triples).
+
+each_triples([], _, _, _, []).
+each_triples([H0|T0], Container, P, O,
+	     [H0, rdf(S,P,O)|T]) :-
+	H0 = rdf(Container, rdf:A, S),
+	member_attribute(A), !,
+	each_triples(T0, Container, P, O, T).
+each_triples([H|T0], Container, P, O, [H|T]) :-
+	each_triples(T0, Container, P, O, T).
+
+member_attribute(A) :-
+	sub_atom(A, 0, _, _, '_').	% must check number?
 
 
 		 /*******************************

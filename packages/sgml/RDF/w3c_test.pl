@@ -13,7 +13,9 @@
 :- module(rdf_w3c_test,
 	  [ process_manifest/0,
 	    process_manifest/1,
-	    run_tests/0
+	    run_tests/0,		% run all tests
+	    run/0,			% run selected test
+	    show/1			% +File
 	  ]).
 :- use_module(rdf).			% our RDF parser
 :- use_module(rdf_nt).			% read .nt files
@@ -74,7 +76,10 @@ run_test(Test) :-
 	exists_file(InFile),
 	rdf(Test, test:outputDocument, Out),
 	local_file(Out, NTFile),
-	load_rdf(InFile, RDF, [base_uri(In)]),
+	load_rdf(InFile, RDF,
+		 [ base_uri(In),
+		   expand_foreach(true)
+		 ]),
 	load_rdf_nt(NTFile, NT),
 	(   compare_triples(RDF, NT)
 	->  test_result(pass, Test, RDF, NT)
@@ -248,6 +253,34 @@ start_tests :-
 report_results :-
 	send(@rdf_test_gui, summarise).
 
+run :-
+	get(@rdf_test_gui, member, browser, B),
+	get(B, selection, DI),
+	get(DI, key, Test),
+	run_test(Test).
+
+
+		 /*******************************
+		 *	     SHOW A FILE	*
+		 *******************************/
+
+
+show(File) :-
+	absolute_file_name(File,
+			   [ access(read),
+			     extensions([rdf,rdfs,owl,''])
+			   ], AbsFile),
+	load_rdf(AbsFile, Triples,
+		 [ expand_foreach(true)
+		 ]),
+	new(D, rdf_diagram(string('RDF diagram for %s', File))),
+	send(new(report_dialog), below, D),
+	forall(member(T, Triples),
+	       send(D, append, T)),
+	send(D, layout),
+	send(D, open).
+
+	
 
 		 /*******************************
 		 *	     COMPARING		*
