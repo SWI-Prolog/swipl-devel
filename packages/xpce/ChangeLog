@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Bug#111: date(0,0,0,1,1,1970).  Fabien Todescato.  See documentation
+  of date->set for details.
+
 VERSION 6.2.11, distributed with SWI-Prolog 5.2.11
 ==================================================
 

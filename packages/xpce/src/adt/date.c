@@ -191,6 +191,7 @@ equalDate(Date d1, Date d2)
 static status
 setDate(Date d, Int s, Int m, Int h, Int D, Int M, Int Y)
 { struct tm *tm;
+  time_t t;
   int v;
 
   tm = localtime(&d->unix_date);
@@ -200,9 +201,10 @@ setDate(Date d, Int s, Int m, Int h, Int D, Int M, Int Y)
   if ( notDefault(D) && (v=valInt(D)) >= 1    && v <= 31   ) tm->tm_mday = v;
   if ( notDefault(M) && (v=valInt(M)-1) >= 0  && v <= 11   ) tm->tm_mon  = v;
   if ( notDefault(Y) && (v=valInt(Y)-1900) >= 70 && v <= 1050 ) tm->tm_year = v;
-  if ( (d->unix_date = mktime(tm)) == (time_t)-1 )
+  if ( (t = mktime(tm)) == (time_t)-1 )
     return errorPce(d->class, NAME_representation,
 		    CtoName("POSIX timestamp representation"));
+  d->unix_date = t;
 
   succeed;
 }
