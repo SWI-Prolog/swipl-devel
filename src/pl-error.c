@@ -350,12 +350,14 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
 		    PL_ATOM, ATOM_stream,
 		    PL_POINTER, s);
       do_throw = TRUE;
+      break;
     }
     case ERR_BUSY:
     { atom_t type  = va_arg(args, atom_t);
       term_t mutex = va_arg(args, term_t);
 
       PL_unify_term(formal, PL_FUNCTOR, FUNCTOR_busy2, type, mutex);
+      break;
     }
     default:
       assert(0);

@@ -769,7 +769,17 @@ warning(const char *fm, ...)
 
 static bool
 vsysError(const char *fm, va_list args)
-{ Sfprintf(Serror, "[PROLOG INTERNAL ERROR:\n\t");
+{ static int active = 0;
+
+  if ( active++ )
+    Halt(3);
+
+#ifdef O_PLMT
+  Sfprintf(Serror, "[PROLOG SYSTEM ERROR:  Thread %d\n\t",
+	   PL_thread_self());
+#else
+  Sfprintf(Serror, "[PROLOG SYSTEM ERROR:\n\t");
+#endif
   Svfprintf(Serror, fm, args);
   if ( gc_status.active )
   { Sfprintf(Serror,
@@ -777,18 +787,9 @@ vsysError(const char *fm, va_list args)
 	    gc_status.collections);
   }
 
-#if 0
-  if ( /*GD->bootsession ||*/ !GD->initialised )
-  { Sfprintf(Serror,
-	     "\n[While initialising; quitting]\n");
-
-    Halt(1);
-  }
-#endif
-
 #if defined(O_DEBUGGER)
   if ( !gc_status.active )
-  { debugstatus.styleCheck |= DOLLAR_STYLE;
+  { systemMode(TRUE);
     Sfprintf(Serror, "\n\nPROLOG STACK:\n");
     backTrace(NULL, 10);
     Sfprintf(Serror, "]\n");

@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Stack problem in asynchronous signal handling, also influencing
+    thread_signal/2. 
+
   * FIXED: assertion-error in get_stream_handle() if a stream is set to
     be the alias for multiple of the `standard' stream and the stream is
     closed.

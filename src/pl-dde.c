@@ -469,7 +469,7 @@ pl_dde_request(term_t handle, term_t item,
     free(valuebuf);
     return rval;
   } else
-  { char * errmsg = dde_error_message(ddeErr);
+  { const char * errmsg = dde_error_message(ddeErr);
 
     return PL_unify_term(value,
 			 PL_FUNCTOR, FUNCTOR_error1, /* error(Message) */

@@ -59,7 +59,7 @@ word		pl_atom_completions(term_t prefix, term_t alts);
 void		markAtom(atom_t a);
 foreign_t	pl_garbage_collect_atoms(void);
 #ifdef O_DEBUG_ATOMGC
-word		pl_track_atom(term_t which);
+word		pl_track_atom(term_t which, term_t stream);
 void		_PL_debug_register_atom(atom_t a,
 					const char *file, int line,
 					const char *func);
@@ -660,6 +660,7 @@ word		pl_convert_time(term_t time, term_t year,
 word		pl_convert_time2(term_t time, term_t string);
 word		pl_get_time(term_t t);
 word		pl_sleep(term_t time);
+word		pl_get_pid(term_t pid);
 
 /* pl-table.c */
 void		initTables();

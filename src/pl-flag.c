@@ -46,6 +46,8 @@ lookupFlag(word key)
 
   f = (Flag) allocHeap(sizeof(struct flag));
   f->key = key;
+  if ( isAtom(key) )
+    PL_register_atom(key);
   f->type = FLG_INTEGER;
   f->value.i = 0;
   addHTable(flagTable, (void *)key, f);
@@ -70,7 +72,7 @@ pl_flag(term_t name, term_t old, term_t new)
   word rval;
 
   if ( !(key = getKey(name)) )
-    return PL_error("flag", 3, NULL, ERR_TYPE, ATOM_key, key);
+    return PL_error("flag", 3, NULL, ERR_TYPE, ATOM_key, name);
   rval = FALSE;
 
   LOCK();

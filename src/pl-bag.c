@@ -57,7 +57,7 @@ pl_record_bag(term_t t)
   else
     a->binding = compileTermToHeap(t);
   a->next    = alist;
-  alist       = a;
+  alist      = a;
 
   succeed;
 }
@@ -117,5 +117,6 @@ pl_collect_bag(term_t bindings, term_t bag)
 
   return PL_unify(bag, list);
 }
+
 
 

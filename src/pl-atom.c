@@ -236,7 +236,7 @@ lookupAtom(const char *s, unsigned int length)
 #ifdef O_ATOMGC
   if ( GD->atoms.margin > 0 &&
        GD->statistics.atoms == GD->atoms.non_garbage + GD->atoms.margin )
-    LD->pending_signals |= (1L << (SIG_ATOM_GC-1));
+    PL_raise(SIG_ATOM_GC);
 #endif
     
   if ( atom_buckets * 2 < GD->statistics.atoms )
@@ -254,6 +254,7 @@ lookupAtom(const char *s, unsigned int length)
 
 #ifdef O_DEBUG_ATOMGC
 static char *tracking;
+IOSTREAM *atomLogFd;
 
 void
 _PL_debug_register_atom(atom_t a,
@@ -266,9 +267,9 @@ _PL_debug_register_atom(atom_t a,
   atom = fetchBuffer(&atom_array, i, Atom);
 
   atom->references++;
-  if ( tracking && streq(tracking, atom->name) )
-    Sdprintf("%s:%d: %s(): ++ (%d) for `%s'\n",
-	     file, line, func, atom->references, atom->name);
+  if ( atomLogFd && strprefix(atom->name, tracking) )
+    Sfprintf(atomLogFd, "%s:%d: %s(): ++ (%d) for `%s' (#%d)\n",
+	     file, line, func, atom->references, atom->name, i);
 }
 
 
@@ -284,21 +285,50 @@ _PL_debug_unregister_atom(atom_t a,
 
   assert(atom->references >= 1);
   atom->references--;
-  if ( tracking && streq(tracking, atom->name) )
-    Sdprintf("%s:%d: %s(): -- (%d) for `%s'\n",
-	     file, line, func, atom->references, atom->name);
+  if ( atomLogFd && strprefix(atom->name, tracking) )
+    Sfprintf(atomLogFd, "%s:%d: %s(): -- (%d) for `%s' (#%d)\n",
+	     file, line, func, atom->references, atom->name, i);
+}
+
+
+Atom
+_PL_debug_atom_value(atom_t a)
+{ int i = indexAtom(a);
+  Atom atom = fetchBuffer(&atom_array, i, Atom);
+
+  if ( !atom )
+  { char buf[32];
+
+    Sdprintf("*** No atom at index (#%d) ***", i);
+    trap_gdb();
+
+    atom = allocHeap(sizeof(*atom));
+    Ssprintf(buf, "***(#%d)***", i);
+    atom->name = store_string(buf);
+    atom->length = strlen(atom->name);
+  }
+
+  return atom;
 }
 
 
 word
-pl_track_atom(term_t which)
+pl_track_atom(term_t which, term_t stream)
 { char *s;
-
-  if ( !PL_get_chars(which, &s, CVT_LIST) )
-    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, which);
 
   if ( tracking )
     remove_string(tracking);
+  tracking = NULL;
+  atomLogFd = NULL;
+
+  if ( PL_get_nil(stream) )
+    succeed;
+
+  if ( !PL_get_chars(which, &s, CVT_LIST) )
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, which);
+  if ( !PL_get_stream_handle(stream, &atomLogFd) )
+    fail;
+
   tracking = store_string(s);
 
   succeed;
@@ -324,16 +354,20 @@ Mark an atom from the stacks.  We must be prepared to handle fake-atoms!
 
 void
 markAtom(atom_t a)
-{ int i = indexAtom(a);
+{ unsigned int i = indexAtom(a);
   Atom ap;
 
-  if ( i < 0 || i >= entriesBuffer(&atom_array, Atom) )
+  if ( i >= entriesBuffer(&atom_array, Atom) )
     return;				/* not an atom */
 
   ap = fetchBuffer(&atom_array, i, Atom);
 
   if ( ap )
-  { DEBUG(1, Sdprintf("Marked `%s'\n", ap->name));
+  {
+#ifdef O_DEBUG_ATOMGC
+    if ( atomLogFd )
+      Sfprintf(atomLogFd, "Marked `%s' at (#%d)\n", ap->name, i);
+#endif
     ap->references |= ATOM_MARKED_REFERENCE;
   }
 }
@@ -373,8 +407,11 @@ collectAtoms()
       GD->statistics.atoms--;
       if ( holes++ == 0 )
 	GD->atoms.no_hole_before = n;
-      DEBUG(1, Sdprintf("atom-gc: deleted `%s'\n", a->name));
-      freeHeap(a->name, a->length);
+#ifdef O_DEBUG_ATOMGC
+      if ( atomLogFd )
+	Sfprintf(atomLogFd, "Deleted `%s' at (#%d)\n", a->name, n);
+#endif
+      freeHeap(a->name, a->length+1);
       freeHeap(a, sizeof(*a));
     }
 
@@ -390,9 +427,20 @@ pl_garbage_collect_atoms()
   real t;
 
   if ( verbose )
+  {
+#ifdef O_DEBUG_ATOMGC
+/*
+    Sdprintf("Starting ATOM-GC.  Stack:\n");
+    systemMode(TRUE);
+    backTrace(NULL, 5);
+    systemMode(FALSE);
+*/
+#endif
     printMessage(ATOM_informational,
 		 PL_FUNCTOR_CHARS, "agc", 1,
 		   PL_CHARS, "start");
+  }
+
   LOCK();
   t = CpuTime();
   markAtomsOnStacks(LD);
@@ -428,7 +476,9 @@ void
 PL_register_atom(atom_t a)
 {
 #ifdef O_ATOMGC
+  LOCK();
   atomValue(a)->references++;
+  UNLOCK();
 #endif
 }
 
@@ -439,8 +489,10 @@ PL_unregister_atom(atom_t a)
 #ifdef O_ATOMGC
   Atom p = atomValue(a);
 
+  LOCK();
   assert(p->references > 0);
   p->references--;
+  UNLOCK();
 #endif
 }
 

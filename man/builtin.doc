@@ -2446,13 +2446,12 @@ $\arg{Name} = \arg{Var}$ couples, thus providing access to the actual
 variable names. See also read_term/2. If \arg{Atom} has no valid syntax,
 a \except{syntax_error} exception is raised.
     \predicate{atom_concat}{3}{?Atom1, ?Atom2, ?Atom3}
-\arg{Atom3} forms the concatenation of \arg{Atom1} and \arg{Atom2}.  At
+\arg{Atom3} forms the concatenation of \arg{Atom1} and \arg{Atom2}. At
 least two of the arguments must be instantiated to atoms, integers or
-floating point numbers.  For ISO compliance, the instantiation-pattern
+floating point numbers. For ISO compliance, the instantiation-pattern
 \mbox{-, -, +} is allowed too, non-deterministically splitting the 3-th
-argument into two parts (as append/3 does for lists).  Note that, as
-SWI-Prolog does not yet have an atom-garbage collector, using this
-polutes the atom-database.  See also string_concat/3.
+argument into two parts (as append/3 does for lists). See also
+string_concat/3.
     \predicate{concat_atom}{2}{+List, -Atom}
 \arg{List} is a list of atoms, integers or floating point numbers. Succeeds
 if \arg{Atom} can be unified with the concatenated elements of \arg{List}. If
@@ -2487,9 +2486,7 @@ A = 1, S = b
 
 The implementation minimalises non-determinism and creation of atoms.
 This is a very flexible predicate that can do search, prefix- and
-suffix-matching, etc.  Please note however that SWI-Prolog does not
-provide atom garbage-collection. Non-deterministic usage with unbound
-\arg{Sub} on long atoms polutes the atom-space considerably!
+suffix-matching, etc.
 \end{description}
 
 
@@ -2590,12 +2587,33 @@ space efficient mechanism to handle text text in Prolog. Strings are
 stores as a byte array on the global (term) stack and thus destroyed on
 backtracking and reclaimed by the garbage collector.
 
-Strings as defined here will be made obsolete if SWI-Prolog gets an atom
-garbage collector. Atoms are equally space-efficient and if garbage
-collection is defined they can be used to for storing temporary data.
+Strings were added to SWI-Prolog based on an early draft of the ISO
+standard, offerring a mechanism to represent temporary character data
+efficiently. As SWI-Prolog strings can handle 0-bytes, they
+are frequently used through the foreign language interface
+(\secref{foreign}) for storing arbitrary byte-sequences.
+
+Starting with version 3.3, SWI-Prolog offers garbage collection on the
+atom-space as well as representing 0-bytes in atoms.  Although strings
+and atoms still have different features, new code should consider using
+atoms to avoid too many representations for text as well as for
+compatibility to other Prolog systems.  Below are some of the
+differences:
+
+\begin{itemlist}
+    \item [creation]
+Creating strings is fast, as the data is simply copied to the global
+stack.  Atoms are unique and therefore more expensive in terms of
+memory and time to create.  On the other hand, if the same text has
+to be represented multiple times, atoms are more efficient.
+    \item [destruction]
+Backtracking destroys atoms at no cost.  They cheap to handle by the
+garbage collector, but it should be noted that extensive use of strings
+will cause many garbage collections. Atom garbage collection is
+generally faster.
+\end{itemlist}
 
 See also the prolog-flag \const{double_quotes}.
-
 
 \begin{description}
     \predicate{string_to_atom}{2}{?String, ?Atom}
@@ -3481,7 +3499,13 @@ On \arg{Win32} systems, shell/[1,2] executes the command using the
 CreateProcess() API and waits for the command to terminate. If the
 command ends with a \chr{\&} sign, the command is handed to the
 WinExec() API, which does not wait for the new task to terminate. See
-also win_exec/2.
+also win_exec/2. Please note that the CreateProcess() API does {\bf not}
+imply the Windows command interpreter (\program{command.exe} on Windows
+95/98 and \program{cmd.exe} on Windows-NT) and therefore commands
+built-in to the command-interpreter can only be activated using the
+command interpreter. For example: \exam{'command.exe /C copy file1.txt
+file2.txt'}
+
     \predicate{shell}{1}{+Command}
 Equivalent to `\exam{shell(Command, 0)}'.
     \predicate{shell}{0}{}

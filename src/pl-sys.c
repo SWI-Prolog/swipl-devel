@@ -154,3 +154,9 @@ pl_sleep(term_t time)
   
   succeed;
 }
+
+
+word
+pl_get_pid(term_t pid)
+{ return PL_unify_integer(pid, getpid());
+}

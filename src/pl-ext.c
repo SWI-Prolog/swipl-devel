@@ -359,12 +359,6 @@ static const struct foreign {
   FRG("$dde_register_service",	2, pl_dde_register_service,	TRACE_ME),
 #endif /*O_DDE*/
 
-#ifdef O_DLL
-  FRG("open_dll",		2, pl_open_dll,			TRACE_ME),
-  FRG("close_dll",		1, pl_close_dll,		TRACE_ME),
-  FRG("call_dll_function",	2, pl_call_dll_function,   META|TRACE_ME),
-#endif /*O_DLL*/
-
 #if O_STRING
   FRG("string",			1, pl_string,			TRACE_ME),
   FRG("string_concat",		3, pl_string_concat,	   NDET|TRACE_ME),
@@ -403,7 +397,7 @@ static const struct foreign {
   FRG("garbage_collect_atoms",	0, pl_garbage_collect_atoms,	TRACE_ME),
   FRG("current_atom",		2, pl_current_atom2,	   NDET|TRACE_ME),
 #ifdef O_DEBUG_ATOMGC
-  FRG("track_atom",		1, pl_track_atom,		TRACE_ME),
+  FRG("track_atom",		2, pl_track_atom,		TRACE_ME),
 #endif
 #endif
   FRG("copy_term",		2, pl_copy_term,		TRACE_ME),
@@ -497,6 +491,7 @@ static const struct foreign {
 #endif
 
   FRG("with_mutex",		2, pl_with_mutex,	   META|TRACE_ME),
+  FRG("$get_pid",		1, pl_get_pid,			TRACE_ME),
 
   /* DO NOT ADD ENTRIES BELOW THIS ONE */
   FRG((char *)NULL,		0, (Func)NULL,			0)

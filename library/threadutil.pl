@@ -65,8 +65,9 @@ attach_console :-
 	has_console(Id), !.
 attach_console :-
 	thread_self(Id),
+	'$get_pid'(Pid),
 	assert(has_console(Id)),
-	sformat(Title, 'SWI-Prolog Thread ~w interactor', [Id]),
+	sformat(Title, 'SWI-Prolog Thread ~w (pid ~d) interactor', [Id, Pid]),
 	open_xterm(Title, In, Out),
 	set_stream(In,  alias(user_input)),
 	set_stream(Out, alias(user_output)),

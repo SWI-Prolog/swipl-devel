@@ -1588,7 +1588,7 @@ concat(const char *pred,
       return (*out)(a1, l3-l2, s3);
     fail;
   } else				/* -, -, + */
-  { int at_n;
+  { unsigned int at_n;
     mark m;
 
     switch ( ForeignControl(ctx) )

@@ -96,8 +96,10 @@ PutString(const char *str, IOSTREAM *s)
 
 
 static bool
-PutStringN(const char *str, unsigned int len, IOSTREAM *s)
-{ return Sfwrite(str, 1, len, s) == len ? TRUE : FALSE;
+PutStringN(const char *str, unsigned int length, IOSTREAM *s)
+{ int len = (int)length;
+
+  return Sfwrite(str, 1, len, s) == len ? TRUE : FALSE;
 }
 
 

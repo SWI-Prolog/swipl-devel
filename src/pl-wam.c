@@ -3114,12 +3114,6 @@ The VMI for these calls are ICALL_FVN, proc, var-index ...
 	*ARGP++ = (isVar(*v) ? makeRefL(v) : *v);
 
       common_call_fv:
-	if ( is_signalled() )
-	{ PL_handle_signals();
-	  if ( exception_term )
-	    goto b_throw;
-	}
-
 	{ Definition def = fproc->definition;
 	  Func f = def->definition.function;
 	  int rval;
@@ -3182,6 +3176,11 @@ increase lTop too to prepare for asynchronous interrupts.
 	    exception_term = 0;
 	    SAVE_REGISTERS(qid);
 	    fid = PL_open_foreign_frame();
+	    if ( is_signalled() )
+	    { PL_handle_signals();
+	      if ( exception_term )
+		goto b_throw;
+	    }
 	    switch(nvars)
 	    { case 0:
 		rval = (*f)();
@@ -3377,7 +3376,8 @@ delaying these initialisations till they are really  needed  or  because
 the information they are calculated from is destroyed.  This probably is
 not worthwile.
 
-Note: we are working above `lTop' here!
+Note: we are working above `lTop' here!!   We restore this as quickly as
+possible to be able to call-back to Prolog.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 	next->backtrackFrame = BFR;
 	next->parent         = FR;
@@ -3387,6 +3387,7 @@ Note: we are working above `lTop' here!
 	environment_frame = FR = next;		/* open the frame */
 
       depart_continue:
+        lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
 
 #ifdef O_DEBUGLOCAL
       {	Word ap = argFrameP(FR, DEF->functor->arity);
@@ -3440,9 +3441,7 @@ be able to access these!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 	if ( !DEF->definition.clauses && false(DEF, PROC_DEFINED) )	
-	{ lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
-
-	  FR->predicate = DEF = trapUndefined(DEF);
+	{ FR->predicate = DEF = trapUndefined(DEF);
 #ifdef O_LOGICAL_UPDATE
 	  FR->generation = GD->generation;
 #endif
@@ -3463,8 +3462,7 @@ be able to access these!
 
 #if O_DYNAMIC_STACKS
 	if ( gc_status.requested )
-	{ lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
-	  garbageCollect(FR);
+	{ garbageCollect(FR);
 	}
 #else /*O_DYNAMIC_STACKS*/
 #if O_SHIFT_STACKS
@@ -3473,9 +3471,7 @@ be able to access these!
 	int tshift = narrowStack(trail);
 
 	if ( gshift || lshift || tshift )
-	{ lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
-
-	  if ( gshift || tshift )
+	{ if ( gshift || tshift )
 	  { long gused = usedStack(global);
 	    long tused = usedStack(trail);
 
@@ -3498,21 +3494,16 @@ be able to access these!
       }
 #else /*O_SHIFT_STACKS*/
 	if ( narrowStack(global) || narrowStack(trail) )
-	{ lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
 	  garbageCollect(FR);
-	}
 #endif /*O_SHIFT_STACKS*/
 #endif /*O_DYNAMIC_STACKS*/
 
 	if ( LD->outofstack )
-	{ lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
 	  outOfStack(LD->outofstack, STACK_OVERFLOW_SIGNAL_IMMEDIATELY);
-	}
 
 #if O_DEBUGGER
 	if ( debugstatus.debugging )
-	{ lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
-	  CL = DEF->definition.clauses;
+	{ CL = DEF->definition.clauses;
 	  switch(tracePort(FR, BFR, CALL_PORT, NULL))
 	  { case ACTION_FAIL:	goto frame_failed;
 	    case ACTION_IGNORE: goto exit_builtin;

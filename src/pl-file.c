@@ -470,11 +470,33 @@ getInputStream(term_t t, IOSTREAM **s)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+In windows GUI applications, the IO-streams  are   not  bound. We do not
+wish to generate an error on the  stream   errors  that may be caused by
+this. It is a bit of a hack, but   the alternative is to define a stream
+that ignores the error. This might get hairy if the user is playing with
+these streams too.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifdef __WIN32__
+static int
+isConsoleStream(IOSTREAM *s)
+{ int i = standardStreamIndexFromStream(s);
+
+  return i >= 0 && i < 3;
+}
+#endif
+
+
 bool
 streamStatus(IOSTREAM *s)
 { int rval;
 
-  if ( Sferror(s) )
+  if ( Sferror(s)
+#ifdef __WIN32__
+       && !isConsoleStream(s)
+#endif
+     )
   { atom_t op;
     term_t stream = PL_new_term_ref();
 

@@ -308,10 +308,18 @@ There are a few possible problems:
 
 static void
 pl_signal_handler(int sig)
-{ SigHandler sh = &LD->sig_handlers[sig];
+{ SigHandler sh = &GD->sig_handlers[sig];
   fid_t fid;
   LocalFrame lTopSave = lTop;
   int saved_current_signal = LD->current_signal;
+
+  switch(sig)
+  { case SIGFPE:
+    case SIGSEGV:
+    case SIGBUS:
+      if ( sig == LD->current_signal )
+	sysError("Recursively received fatal signal %d", sig);
+  }
 
   if ( gc_status.active )
   { fatalError("Received signal %d (%s) while in %ld-th garbage collection",
@@ -405,7 +413,7 @@ set_sighandler(int sig, handler_t func)
 
 static SigHandler
 prepareSignal(int sig)
-{ SigHandler sh = &LD->sig_handlers[sig];
+{ SigHandler sh = &GD->sig_handlers[sig];
 
   if ( false(sh, PLSIG_PREPARED) )
   { set(sh, PLSIG_PREPARED);
@@ -418,7 +426,7 @@ prepareSignal(int sig)
 
 static void
 unprepareSignal(int sig)
-{ SigHandler sh = &LD->sig_handlers[sig];
+{ SigHandler sh = &GD->sig_handlers[sig];
 
   if ( true(sh, PLSIG_PREPARED) )
   { set_sighandler(sig, sh->saved_handler);
@@ -508,7 +516,7 @@ PL_signal(int sig, handler_t func)
       return SIG_DFL;
     }
 
-    sh = &LD->sig_handlers[sig];
+    sh = &GD->sig_handlers[sig];
     if ( true(sh, PLSIG_PREPARED) )
     { old = sh->handler;
       if ( func == sh->saved_handler )
@@ -578,7 +586,7 @@ pl_on_signal(term_t sig, term_t name, term_t old, term_t new)
   } else
     return PL_error("signal", 4, NULL, ERR_TYPE, ATOM_signal, sig);
 
-  sh = &LD->sig_handlers[sign];
+  sh = &GD->sig_handlers[sign];
 
   if ( false(sh, PLSIG_PREPARED) )		/* not handled */
   { TRY(PL_unify_atom(old, ATOM_default));

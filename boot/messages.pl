@@ -166,11 +166,8 @@ swi_extra(context(_, Msg)) -->
 	}, !,
 	[ ' (~w)'-[Msg] ].
 swi_extra(string(String, CharPos)) -->
-	{ From is CharPos+1,
-	  string_length(String, Len),
-	  AfterLen is Len - From,
-	  substring(String, 1, CharPos, Before),
-	  substring(String, From, AfterLen, After)
+	{ sub_string(String, 0, CharPos, _, Before),
+	  sub_string(String, CharPos, _, 0, After)
 	},
 	[ nl, Before, nl, '** here **', nl, After ].
 swi_extra(_) -->

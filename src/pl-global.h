@@ -65,6 +65,9 @@ typedef struct
   int		debug_level;		/* Maintenance debugging: 0..9 */
   void *	resourceDB;		/* program resource database */
 
+#ifdef HAVE_SIGNAL
+  sig_handler sig_handlers[MAXSIGNAL];	/* How Prolog preceives signals */
+#endif  
 #ifdef O_LOGICAL_UPDATE
   unsigned long generation;		/* generation of the database */
 #endif
@@ -204,9 +207,6 @@ typedef struct
   FliFrame   foreign_environment;	/* Current foreign context */
   pl_stacks_t stacks;			/* Prolog runtime stacks */
   ulong		bases[STG_MASK+1];	/* area base addresses */
-#ifdef HAVE_SIGNAL
-  sig_handler sig_handlers[MAXSIGNAL];	/* How Prolog preceives signals */
-#endif  
   ulong		pending_signals;	/* PL_raise() pending signals */
   int		current_signal;		/* Currently handled signal */
   int		aborted;		/* thread asked for abort */
@@ -377,7 +377,6 @@ GLOBAL PL_local_data_t  PL_local_data;
 #define source_file_name	(LD->read_source.file)
 #define source_line_no		(LD->read_source.line)
 #define source_char_no		(LD->read_source.character)
-#define LD_sig_handler(n)	(LD->sig_handlers[(n)])
 #define signalled		(LD->pending_signals)
 #define exception_term		(LD->exception.term)
 #define exception_bin		(LD->exception.bin)

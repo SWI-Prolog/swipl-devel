@@ -87,4 +87,5 @@ atom_char(Char, Code) :-
 %	substring(+String, +Offset, +Length, -Sub)
 
 substring(String, Offset, Length, Sub) :-
-	sub_string(String, Offset, Length, _After, Sub).
+	Offset0 is Offset - 1,
+	sub_string(String, Offset0, Length, _After, Sub).

@@ -2104,6 +2104,10 @@ checkStacks(), a simple routine for  checking stack-consistency that has
 to walk along all reachable data as well.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifdef O_DEBUG_ATOMGC
+extern IOSTREAM * atomLogFd;		/* for error messages */
+#endif
+
 static void
 markAtomsOnGlobalStack(PL_local_data_t *ld)
 { Word gbase = ld->stacks.global.base;
@@ -2139,9 +2143,13 @@ mark_atoms_in_environments(LocalFrame fr)
     if ( true(fr, FR_MARKED) )
       return NULL;			/* from choicepoints only */
     set(fr, FR_MARKED);
-    DEBUG(2, Sdprintf("Marking atoms from [%d] %s\n",
-		      levelFrame(fr),
-		      predicateName(fr->predicate)));
+#ifdef O_DEBUG_ATOMGC
+    if ( atomLogFd )
+      Sfprintf(atomLogFd,
+	       "Marking atoms from [%d] %s\n",
+	       levelFrame(fr),
+	       predicateName(fr->predicate));
+#endif
     local_frames++;
     clearUninitialisedVarsFrame(fr, PC);
 
@@ -2206,7 +2214,14 @@ markAtomsInEnvironments(LocalFrame frame)
     assert(qf->magic == QID_MAGIC);
 
     for(bfr = fr->backtrackFrame; bfr; bfr = bfr->backtrackFrame)
+    {
+#ifdef O_DEBUG_ATOMGC
+      if ( atomLogFd )
+	Sfprintf(atomLogFd, "Marking atom from choicepoint [%ld] %s\n",
+		 levelFrame(bfr), predicateName(bfr->predicate));
+#endif
       mark_atoms_in_environments(bfr);
+    }
   }
 
   for( fr = frame; fr; fr = fr2 )
