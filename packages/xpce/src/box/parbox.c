@@ -1154,6 +1154,11 @@ geometryParBox(ParBox pb, Int x, Int y, Int w, Int h)
     CHANGING_GRAPHICAL(pb,
 		       { int lw = valInt(x)+valInt(w)-valInt(o->x);
 
+			 if ( lw < 0 )
+			 { w = toInt(valInt(w)-lw);
+			   lw = 0;
+			 }
+
 			 assign(o, x, add(o->x, dx));
 			 assign(o, y, add(o->y, dy));
 
@@ -1181,7 +1186,10 @@ alignmentParBox(ParBox pb, Name alignment)
 
 static status
 lineWidthParBox(ParBox pb, Int w)
-{ if ( pb->line_width != w )
+{ if ( valInt(w) < 0 )
+    w = ZERO;
+
+  if ( pb->line_width != w )
   { assign(pb, line_width, w);
     
     requestComputeGraphical(pb, NAME_lineWidth);
@@ -1220,7 +1228,7 @@ static char *T_cdata[] =
 /* Instance Variables */
 
 static vardecl var_parbox[] =
-{ SV(NAME_lineWidth, "0..", IV_GET|IV_STORE,
+{ SV(NAME_lineWidth, "int", IV_GET|IV_STORE,
      lineWidthParBox, NAME_area, "Maximum width of a textline"),
   IV(NAME_content, "vector", IV_GET, 
      NAME_content, "Contained hbox objects"),
