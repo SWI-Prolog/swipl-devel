@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * MODIFIED: Prolog Navigator now calls default edit/1 interface (suggested
+    by Tolga Konik).
+
   * ADDED: EWOULDBLOCK handling in pl-stream.h, so we can use this interface
     on machines that do not support this error (Windows).
 
