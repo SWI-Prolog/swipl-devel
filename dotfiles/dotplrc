@@ -18,7 +18,7 @@ preferences.
 Installation:
 
 	Unix:			~/.plrc
-	Windows-NT/2000:	%USERPROFILE%/pl.ini
+	Windows-NT/2000/XP:	%USERPROFILE%/pl.ini
 	Windows-95/98/ME:	C:\Program Files\pl\pl.ini
 				(or whereever you installed SWI-Prolog)
 
@@ -64,12 +64,14 @@ hooks, file_search_path/2, set_prolog_flag/2 and portray/1.
 
 %	When using XPCE, you can also opt for the built-in editor PceEmacs.
 %	This can be started using ?- emacs(File). ?- emacs. or automatically
-%	through the edit interface by uncommenting this.
+%	through the edit interface by uncommenting this. The flag `gui'
+%	is true when using plwin.exe on Windows or have $DISPLAY set on
+%	Unix.
 
-% :- (current_prolog_flag(xpce, true) ->
+% :- (current_prolog_flag(gui, true) ->
 %     use_module(library('emacs/swi_prolog.pl')) ; true).
 
 %	If you prefer graphical tracing, add the line below.
 
-% :- (current_prolog_flag(xpce, true) -> guitracer ; true).
+% :- (current_prolog_flag(gui, true) -> guitracer ; true).
 
