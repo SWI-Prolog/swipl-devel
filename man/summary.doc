@@ -260,6 +260,8 @@ suggest predicates from a keyword.
 \predicatesummary{merge}{3}{Merge two sorted lists}
 \predicatesummary{merge_set}{3}{Merge two sorted sets}
 \predicatesummary{message_hook}{3}{Intercept print_message/2}
+\predicatesummary{message_queue_create}{1}{Create queue for thread communication}
+\predicatesummary{message_queue_destroy}{1}{Destroy queue for thread communication}
 \predicatesummary{message_to_string}{2}{Translate message-term to string}
 \predicatesummary{meta_predicate}{1}{Quintus compatibility}
 \predicatesummary{module}{1}{Query/set current type-in module}
@@ -440,8 +442,10 @@ suggest predicates from a keyword.
 \predicatesummary{thread_create}{3}{Create a new Prolog task}
 \predicatesummary{thread_exit}{1}{Terminate Prolog task with value}
 \predicatesummary{thread_get_message}{1}{Wait for message}
+\predicatesummary{thread_get_message}{2}{Wait for message in a queue}
 \predicatesummary{thread_join}{2}{Wait for Prolog task-completion}
-\predicatesummary{thread_peek_message}{1}{Test for message in queue}
+\predicatesummary{thread_peek_message}{1}{Test for message}
+\predicatesummary{thread_peek_message}{2}{Test for message in a queue}
 \predicatesummary{thread_self}{1}{Get identifier of current thread}
 \predicatesummary{thread_send_message}{2}{Send message to another thread}
 \predicatesummary{thread_signal}{2}{Execute goal in another thread}

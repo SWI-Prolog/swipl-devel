@@ -1,10 +1,13 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: turning thread message queues into explicit objects.
+
   * IMPL: Cleanup of thread-message queue, preparing for stand-alone
     object.
 
   * FIXED: Lost mutex and condition variable after destroying a thread.
+    (Mike Elston).
 
   * FIXED: text-buffering rules for strings (Sebastian Sardina).
 

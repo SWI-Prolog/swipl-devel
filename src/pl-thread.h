@@ -58,12 +58,13 @@ typedef struct _PL_thread_info_t
   atom_t	    name;		/* Name of the thread */
 } PL_thread_info_t;
 
-typedef struct thread_message_queue
+typedef struct message_queue
 { pthread_mutex_t      mutex;		/* Message queue mutex */
   pthread_cond_t       cond_var;	/* condition variable of queue */
   struct _thread_msg   *head;		/* Head of message queue */
   struct _thread_msg   *tail;		/* Tail of message queue */
-} thread_message_queue;
+  word		       id;		/* Id of the queue */
+} message_queue;
 
 
 #define PL_THREAD_MAGIC 0x2737234f

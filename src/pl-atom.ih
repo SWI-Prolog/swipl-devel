@@ -501,3 +501,6 @@
 #define ATOM_infinite     MK_ATOM(500)
 #define ATOM_timeout      MK_ATOM(501)
 #define ATOM_timeout_error MK_ATOM(502)
+#define ATOM_join         MK_ATOM(503)
+#define ATOM_message_queue MK_ATOM(504)
+#define ATOM_dmessage_queue MK_ATOM(505)

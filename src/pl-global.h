@@ -418,7 +418,7 @@ typedef struct PL_local_data
     struct _PL_thread_info_t *info;	/* info structure */
     unsigned forall_flags;		/* forThreadLocalData() flags */
 					/* Communication */
-    thread_message_queue messages;	/* Message queue */
+    message_queue messages;		/* Message queue */
     struct _thread_sig   *sig_head;	/* Head of signal queue */
     struct _thread_sig   *sig_tail;	/* Tail of signal queue */
     struct _at_exit_goal *exit_goals;	/* thread_at_exit/1 goals */

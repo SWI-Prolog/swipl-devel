@@ -1,4 +1,4 @@
-\chapter{Multi-threading applications}		\label{sec:threads}
+\chapter{Multi-threaded applications} \label{sec:threads}
 
 SWI-Prolog multithreading is based on standard C-language multithreading
 support. It is not like {\em ParLog} or other paralel implementations of
@@ -123,8 +123,14 @@ thread-identifier.
 \section{Monitoring threads}		\label{sec:thmonitor}
 
 Normal multi-threaded applications should not need these the predicates
-from this section. They are provided for diagnosis and monitoring tasks.
-See also \secref{thutil}, describing more high-level primitives.
+from this section because almost any usage of these predicates is
+unsafe. For example checking the existence of a thread before signalling
+it is of no use as it may vanish between the two calls. Catching
+exceptions using catch/3 is the only safe way to deal with
+thread-existence errors.
+
+These predicates are provided for diagnosis and monitoring tasks. See
+also \secref{thutil}, describing more high-level primitives.
 
 
 \begin{description}
@@ -169,23 +175,27 @@ stacks and CPU time yield different values for each thread.%
 \end{description}
 
 
-\section{Thread communication}
+\section{Thread communication}			\label{sec:threadcom}
+
+\subsection{Message queues}			\label{sec:msgqueue}
 
 Prolog threads can exchange data using dynamic predicates, database
-records, and other globally shared data.  In addition, they can send
-messages to each other.  If a threads needs to wait for another thread
-until that thread has produced some data, using only the database forces
-the waiting thread to poll the database continuously.  Waiting for a
-message suspends the thread execution until the message has arrived
-in its message queue.
+records, and other globally shared data. These provide no suitable means
+to wait for data or a condition as they can only be checked in an
+expensive polling loop. \jargon{Message queues} provide a means for
+threads to wait for data or conditions without using the CPU.
+
+Each thread has a message-queue attached to itself that is identified
+by the thread. Additional queues are created using
+message_queue_create/2.
 
 \begin{description}
-    \predicate{thread_send_message}{2}{+ThreadId, +Term}
-Place \arg{Term} in the message queue of the indicated thread (which can
-even be the message queue of itself (see thread_self/1).  Any term can
-be placed in a message queue, but note that the term is copied to the
-receiving thread and variable-bindings are thus lost.  This call returns
-immediately.
+    \predicate{thread_send_message}{2}{+QueueOrThreadId, +Term}
+Place \arg{Term} in the given queue or default queue of the indicated
+thread (which can even be the message queue of itself (see
+thread_self/1). Any term can be placed in a message queue, but note that
+the term is copied to the receiving thread and variable-bindings are
+thus lost. This call returns immediately.
 
     \predicate{thread_get_message}{1}{?Term}
 Examines the thread message-queue and if necessary blocks execution
@@ -214,6 +224,75 @@ with \arg{Term} until one unifies or the end of the queue has been
 reached.  In the first case the call succeeds (possibly instantiating
 \arg{Term}.  If no term from the queue unifies this call fails.
 
+    \predicate{message_queue_create}{1}{?Queue}
+If \arg{Queue} is an atom, create a named queue.  To avoid ambiguity
+of thread_send_message/2, the name of a queue may not be in use as a
+thread-name.  If \arg{Queue} is unbound an anonymous queue is created
+and \arg{Queue} is unified to its identifier.
+
+    \predicate{message_queue_destroy}{1}{+Queue}
+Destroy a message queue created with message_queue_create/1.  It is
+\emph{not} allows to destroy the queue of a thread.
+
+    \predicate{thread_get_message}{2}{+Queue, ?Term}
+As thread_get_message/1, operating on a given queue. It is allowed (but
+not adviced) to get messages from the queue of other threads.
+
+    \predicate{thread_get_message}{2}{+Queue, ?Term}
+As thread_get_message/1, operating on a given queue. It is allowed to
+peek into another thread's message queue, an operation that can be used
+to check whether a thread has swallowed a message sent to it.
+\end{description}
+
+
+Explicit message queues are designed with the \jargon{worker-pool} model
+in mind, where multiple threads wait on a single queue and pick up the
+first goal to execute.  Below is a simple implementation where the
+workers execute arbitrary Prolog goals.  Note that this example provides
+no means to tell when all work is done. This must be realised using
+additional synchronisation.
+
+\begin{code}
+%	create_workers(+Id, +N)
+%	
+%	Create a pool with given Id and number of workers.
+
+create_workers(Id, N) :-
+	thread_message_queue_create(Id),
+	forall(between(1, N, _),
+	       thread_create(do_work(Id), _, [])).
+
+do_work(Id) :-
+	repeat,
+	  thread_get_message(Id, Goal),
+	  (   catch(Goal, E, print_message(error, E))
+	  ->  true
+	  ;   print_message(error, goal_failed(Goal, worker(Id)))
+	  ),
+	fail.
+
+%	work(+Id, +Goal)
+%	
+%	Post work to be done by the pool
+
+work(Id, Goal) :-
+	thread_send_message(Id, Goal).
+\end{code}
+
+
+\subsection{Signalling threads}
+
+These predicates provide a mechanism to make another thread execute some
+goal as an \jargon{interrupt}.  Signalling threads is safe as these
+interrupts are only checked at safe points in the virtual machine.
+Nevertheless, signalling in multi-threaded environments should be
+handled with care as the receiving thread may hold a \jargon{mutex}
+(see with_mutex).  Signalling is probably only makes sense to start
+debugging threads and to cancel no-longer-needed threads with throw/1,
+where the receiving thread should be designed carefully do handle
+exceptions at any point.
+
+\begin{description}
     \predicate{thread_signal}{2}{+ThreadId, :Goal}
 Make thread \arg{ThreadId} execute \arg{Goal} at the first
 opportunity.  In the current implementation, this implies at the first
@@ -235,7 +314,8 @@ the signal if it reaches a Windows GetMessage() call, which generally
 happens of the thread is waiting for (user-)input.
 \end{description}
 
-\section{Thread synchronisation}
+
+\section{Thread synchronisation}		\label{sec:threadsync}
 
 All internal Prolog operations are thread-safe. This implies two Prolog
 threads can operate on the same dynamic predicate without corrupting the

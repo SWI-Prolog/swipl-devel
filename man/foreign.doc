@@ -1937,7 +1937,7 @@ are listed in \tabref{action}.
 			      current output stream. \\
 \const{PL_ACTION_FLUSH}	    & Flush the current output stream.
 			      Requires no arguments. \\
-\const{PL_ACTION_ATTACH_CONSOLE &
+\const{PL_ACTION_ATTACH_CONSOLE} &
 			      Attach a console to a thread if it does
 			      not have one.  See attach_console/0. \\
 \hline

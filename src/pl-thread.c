@@ -110,9 +110,12 @@ static sem_t sem_mark;			/* used for atom-gc */
 		 *	    GLOBAL DATA		*
 		 *******************************/
 
-static Table threadAliases;		/* name --> integer-id */
+static Table threadTable;		/* name --> integer-id */
 static PL_thread_info_t threads[MAX_THREADS];
 static int threads_ready = FALSE;	/* Prolog threads available */
+static Table queueTable;		/* name --> queue */
+static int queue_id;			/* next generated id */
+
 
 TLD_KEY PL_ldata;			/* key for thread PL_local_data */
 
@@ -201,13 +204,15 @@ DllMain(HINSTANCE hinstDll, DWORD fdwReason, LPVOID lpvReserved)
 		 *******************************/
 
 static PL_thread_info_t *alloc_thread(void);
-static void	destroy_message_queue(thread_message_queue *queue);
-static void	init_message_queue(thread_message_queue *queue);
+static void	destroy_message_queue(message_queue *queue);
+static void	init_message_queue(message_queue *queue);
 static void	freeThreadSignals(PL_local_data_t *ld);
 static void	unaliasThread(atom_t name);
 static void	run_thread_exit_hooks();
 static void	free_thread_info(PL_thread_info_t *info);
 static void	set_system_thread_id(PL_thread_info_t *info);
+static int	get_message_queue(term_t t, message_queue **queue,
+				  int create);
 
 #ifdef WIN32
 static void	attachThreadWindow(PL_local_data_t *ld);
@@ -535,10 +540,15 @@ aliasThread(int tid, atom_t name)
 { int rval;
 
   LOCK();
-  if ( !threadAliases )
-    threadAliases = newHTable(16);
+  if ( !threadTable )
+    threadTable = newHTable(16);
 
-  if ( (rval = addHTable(threadAliases, (void *)name, (void *)tid)) )
+  if ( (threadTable && lookupHTable(threadTable, (void *)name)) ||
+       (queueTable &&    lookupHTable(queueTable,    (void *)name)) )
+    return PL_error("thread_create", 1, NULL, ERR_PERMISSION,
+		    ATOM_thread, ATOM_create, name);
+
+  if ( (rval = addHTable(threadTable, (void *)name, (void *)tid)) )
   { PL_register_atom(name);
     threads[tid].name = name;
   }
@@ -549,13 +559,13 @@ aliasThread(int tid, atom_t name)
 
 static void
 unaliasThread(atom_t name)
-{ if ( threadAliases )
+{ if ( threadTable )
   { Symbol s;
 
     LOCK();
-    if ( (s = lookupHTable(threadAliases, (void *)name)) )
+    if ( (s = lookupHTable(threadTable, (void *)name)) )
     { PL_unregister_atom(name);
-      deleteSymbolHTable(threadAliases, s);
+      deleteSymbolHTable(threadTable, s);
     }
     UNLOCK();
   }
@@ -833,10 +843,10 @@ get_thread(term_t t, PL_thread_info_t **info, int warn)
 
     if ( !PL_get_atom(t, &name) )
       return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_thread, t);
-    if ( threadAliases )
+    if ( threadTable )
     { Symbol s;
 
-      if ( (s = lookupHTable(threadAliases, (void *)name)) )
+      if ( (s = lookupHTable(threadTable, (void *)name)) )
 	i = (int)s->value;
     }
   }
@@ -933,7 +943,7 @@ pl_thread_join(term_t thread, term_t retcode)
     fail;
   if ( info == LD->thread.info )	/* joining myself */
     return PL_error("thread_join", 2, "Cannot join self",
-		    ERR_PERMISSION, PL_new_atom("join"), ATOM_thread, thread);
+		    ERR_PERMISSION, ATOM_join, ATOM_thread, thread);
 
   if ( pthread_join(info->tid, &r) )
     return PL_error("thread_join", 2, MSG_ERRNO, ERR_SYSCALL, "pthread_join");
@@ -1363,7 +1373,7 @@ typedef struct _thread_msg
 
 
 static void
-queue_message(thread_message_queue *queue, term_t msg)
+queue_message(message_queue *queue, term_t msg)
 { thread_message *msgp;
 
   msgp = allocHeap(sizeof(*msgp));
@@ -1383,7 +1393,7 @@ queue_message(thread_message_queue *queue, term_t msg)
 
 
 static int
-get_message(thread_message_queue *queue, term_t msg)
+get_message(message_queue *queue, term_t msg)
 { thread_message *msgp;
   thread_message *prev = NULL;
   term_t tmp = PL_new_term_ref();
@@ -1421,7 +1431,7 @@ get_message(thread_message_queue *queue, term_t msg)
 
 
 static int
-peek_message(thread_message_queue *queue, term_t msg)
+peek_message(message_queue *queue, term_t msg)
 { thread_message *msgp;
   term_t tmp = PL_new_term_ref();
   mark m;
@@ -1452,7 +1462,7 @@ Deletes the contents of the message-queue as well as the queue itself.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-destroy_message_queue(thread_message_queue *queue)
+destroy_message_queue(message_queue *queue)
 { thread_message *msgp;
   thread_message *next;
 
@@ -1469,7 +1479,7 @@ destroy_message_queue(thread_message_queue *queue)
 
 
 static void
-init_message_queue(thread_message_queue *queue)
+init_message_queue(message_queue *queue)
 { memset(queue, 0, sizeof(*queue));
   pthread_mutex_init(&queue->mutex, NULL);
   pthread_cond_init(&queue->cond_var, NULL);
@@ -1479,16 +1489,16 @@ init_message_queue(thread_message_queue *queue)
 					/* Prolog predicates */
 
 word
-pl_thread_send_message(term_t thread, term_t msg)
-{ PL_thread_info_t *info;
+pl_thread_send_message(term_t queue, term_t msg)
+{ message_queue *q;
 
   LOCK();
-  if ( !get_thread(thread, &info, TRUE) )
+  if ( !get_message_queue(queue, &q, TRUE) )
   { UNLOCK();
     fail;
   }
 
-  queue_message(&info->thread_data->thread.messages, msg);
+  queue_message(q, msg);
   UNLOCK();
 
   succeed;
@@ -1504,6 +1514,181 @@ pl_thread_get_message(term_t msg)
 word
 pl_thread_peek_message(term_t msg)
 { return peek_message(&LD->thread.messages, msg);
+}
+
+
+		 /*******************************
+		 *     USER MESSAGE QUEUES	*
+		 *******************************/
+
+static int
+unify_queue(term_t t, message_queue *q)
+{ if ( isAtom(q->id) )
+    return PL_unify_atom(t, q->id);
+  else
+    return PL_unify_term(t,
+			 PL_FUNCTOR, FUNCTOR_dmessage_queue1,
+			 PL_INTEGER, valInt(q->id));
+}
+
+
+static message_queue *
+unlocked_message_queue_create(term_t queue)
+{ Symbol s;
+  atom_t name = NULL_ATOM;
+  message_queue *q;
+  word id;
+
+  if ( !queueTable )
+    queueTable = newHTable(16);
+  
+  if ( PL_get_atom(queue, &name) )
+  { if ( (s = lookupHTable(queueTable, (void *)name)) ||
+	 (s = lookupHTable(threadTable, (void *)name)) )
+    { PL_error("message_queue_create", 1, NULL, ERR_PERMISSION,
+	       ATOM_message_queue, ATOM_create, queue);
+      return NULL;
+    }
+    id = name;
+  } else if ( PL_is_variable(queue) )
+  { id = consInt(queue_id++);
+  } else
+  { PL_error("message_queue_create", 1, NULL,
+	     ERR_TYPE, ATOM_message_queue, queue);
+    return NULL;
+  }
+
+  q = allocHeap(sizeof(*q));
+  init_message_queue(q);
+  q->id    = id;
+  addHTable(queueTable, (void *)id, q);
+
+  if ( unify_queue(queue, q) )
+    return q;
+
+  return NULL;
+}
+
+
+/* MT: Caller must hold the L_THREAD mutex
+*/
+
+static int
+get_message_queue(term_t t, message_queue **queue, int create)
+{ atom_t name;
+  word id = 0;
+  int tid;
+
+  if ( PL_get_atom(t, &name) )
+  { id = name;
+  } else if ( PL_is_functor(t, FUNCTOR_dmessage_queue1) )
+  { term_t a = PL_new_term_ref();
+    long i;
+
+    PL_get_arg(1, t, a);
+    if ( PL_get_long(a, &i) )
+      id = consInt(i);
+  } else if ( PL_get_integer(t, &tid) )
+  { thread_queue:
+    if ( tid < 0 || tid >= MAX_THREADS ||
+	 threads[tid].status == PL_THREAD_UNUSED )
+      return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_thread, t);
+
+    *queue = &threads[tid].thread_data->thread.messages;
+    return TRUE;
+  }
+  if ( !id )
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_message_queue, t);
+
+  if ( queueTable )
+  { Symbol s = lookupHTable(queueTable, (void *)id);
+
+    if ( s )
+    { *queue = s->value;
+      return TRUE;
+    }
+  }
+  if ( threadTable )
+  { Symbol s = lookupHTable(threadTable, (void *)id);
+
+    if ( s )
+    { tid = (int)s->value;
+      goto thread_queue;
+    }
+  }
+
+  if ( create && isAtom(id) )
+  { message_queue *new;
+
+    if ( (new = unlocked_message_queue_create(t)) )
+    { *queue = new;
+      return TRUE;
+    }
+  }
+
+  return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_message_queue, t);
+}
+
+
+static
+PRED_IMPL("message_queue_create", 1, message_queue_create, 0)
+{ int rval;
+
+  LOCK();
+  rval = (unlocked_message_queue_create(A1) ? TRUE : FALSE);
+  UNLOCK();
+
+  return rval;
+}
+
+
+static
+PRED_IMPL("message_queue_destroy", 1, message_queue_destroy, 0)
+{ message_queue *q;
+  Symbol s;
+
+  LOCK();
+  if ( !get_message_queue(A1, &q, FALSE) )
+  { UNLOCK();
+    fail;
+  }
+
+  destroy_message_queue(q);
+  s = lookupHTable(queueTable, (void *)q->id);
+  deleteSymbolHTable(queueTable, s);
+  freeHeap(q, sizeof(*q));
+  UNLOCK();
+
+  succeed;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+thread_get_message(+Queue, -Message)
+thread_get_message(-Message)
+    Get a message from a message queue. If the queue is not provided get
+    a message from the queue implicitly associated to the thread.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static
+PRED_IMPL("thread_get_message", 2, thread_get_message, 0)
+{ message_queue *q;
+
+  if ( !get_message_queue(A1, &q, TRUE) )
+    fail;
+  
+  return get_message(q, A2);
+}
+
+
+static
+PRED_IMPL("thread_peek_message", 2, thread_peek_message, 0)
+{ message_queue *q;
+
+  if ( !get_message_queue(A1, &q, TRUE) )
+    fail;
+  
+  return peek_message(q, A2);
 }
 
 
@@ -1842,20 +2027,20 @@ pl_mutex_destroy(term_t mutex)
 { pl_mutex *m;
   Symbol s;
 
+  LOCK();
   if ( !get_mutex(mutex, &m, FALSE) )
     fail;
 
   if ( m->owner )
   { char msg[100];
     
+    UNLOCK();
     Ssprintf(msg, "Owned by thread %d", m->owner); /* TBD: named threads */
     return PL_error("mutex_destroy", 1, msg,
 		    ERR_PERMISSION, ATOM_mutex, ATOM_destroy, mutex);
   }
 
   pthread_mutex_destroy(&m->mutex);
-
-  LOCK();
   s = lookupHTable(mutexTable, (void *)m->id);
   deleteSymbolHTable(mutexTable, s);
   freeHeap(m, sizeof(*m));
@@ -2477,5 +2662,9 @@ pl_with_mutex(term_t mutex, term_t goal)
 BeginPredDefs(thread)
 #ifdef O_PLMT
   PRED_DEF("thread_statistics", 3, thread_statistics, 0)
+  PRED_DEF("message_queue_create", 1, message_queue_create, 0)
+  PRED_DEF("thread_get_message", 2, thread_get_message, 0)
+  PRED_DEF("thread_peek_message", 2, thread_peek_message, 0)
+  PRED_DEF("message_queue_destroy", 1, message_queue_destroy, 0)
 #endif
 EndPredDefs
