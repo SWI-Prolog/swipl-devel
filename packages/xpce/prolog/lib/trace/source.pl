@@ -248,6 +248,9 @@ listing(V, Module:name, Predicate:name, Arity:int) :->
 		 *      BUFFER MANAGEMENT	*
 		 *******************************/
 
+current_source_buffer(Buffer, Buffer) :-
+	object(Buffer),
+	send(Buffer, instance_of, emacs_buffer), !.
 current_source_buffer(File, Buffer) :-
 	get(@emacs, file_buffer, File, Buffer).
 
