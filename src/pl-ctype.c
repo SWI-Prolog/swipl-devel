@@ -153,6 +153,28 @@ rdigit(int d)
 }
 
 
+static int
+fxdigit(int chr)
+{ if ( isdigit(chr) )
+    return chr - '0';
+  if ( chr >= 'a' && chr <= 'f' )
+    return chr - 'a' + 10;
+  if ( chr >= 'A' && chr <= 'F' )
+    return chr - 'A' + 10;
+  return -1;
+}
+
+
+static int
+rxdigit(int d)
+{ if ( d >= 0 && d <= 9 )
+    return d+'0';
+  if ( d >= 10 && d <= 15 )
+    return d-10+'a';
+  return -1;
+}
+
+
 
 #define mkfunction(name) \
 	static int f ## name(int chr) { return name(chr); }
@@ -193,6 +215,7 @@ const static char_type char_types[] =
   { ATOM_to_upper,	ftolower,	ftoupper, 1, CTX_CHAR },
   { ATOM_paren,		fparen,		rparen,   1, CTX_CHAR },
   { ATOM_digit,		fdigit,		rdigit,   1, CTX_INT  },
+  { ATOM_xdigit,	fxdigit,	rxdigit,  1, CTX_INT  },
   { NULL_ATOM,		NULL }
 };
 

@@ -1647,7 +1647,7 @@ static const IOFUNCTIONS nullFunctions =
 
 word
 pl_open_null_stream(term_t stream)
-{ int sflags = SIO_NBUF|SIO_RECORDPOS;
+{ int sflags = SIO_NBUF|SIO_RECORDPOS|SIO_OUTPUT;
   IOSTREAM *s = Snew((void *)NULL, sflags, (IOFUNCTIONS *)&nullFunctions);
 
   return PL_unify_stream_or_alias(stream, s);

@@ -463,6 +463,7 @@ A backtrace		"backtrace"
 A choice		"choice"
 A debugger_show_context "debugger_show_context"
 A dec10			"dec10"
+A xdigit		"xdigit"
 
 F abs			1
 F acos			1

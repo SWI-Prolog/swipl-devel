@@ -2946,7 +2946,8 @@ erasure as soon as the clause finishes executing.
 	    *ARGP = ht[1];		/* copy the head here */
 	    lTop = (LocalFrame)(ARGP + cl->variables);
  	    set(cl, ERASED);
-	    set(DEF, NEEDSCLAUSEGC);
+	    DEF->erased_clauses++;
+	    set(DEF, NEEDSCLAUSEGC);	/* only `now and then'? */
 
 	    NEXT_INSTRUCTION;
 	  }

@@ -1102,6 +1102,7 @@ struct definition
   int		profile_redos;		/* profiler: number of redos */
   int		profile_fails;		/* profiler: number of fails */
 #endif /* O_PROFILE */
+  unsigned int  erased_clauses;		/* #erased byt not reclaimed clauses */
   ClauseIndex 	hash_info;		/* clause hash-tables */
   unsigned long indexPattern;		/* indexed argument pattern */
   unsigned long	flags;			/* booleans: */

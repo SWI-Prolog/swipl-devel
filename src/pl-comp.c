@@ -2454,10 +2454,7 @@ pl_clause4(term_t head, term_t body, term_t ref, term_t bindings, word ctx)
   { bool det;
 
     if ( !(cref = findClause(cref, argv, environment_frame, def, &det)) )
-    { leaveDefinition(def);
-      fail;
-    }
-
+      break;
     if ( !decompile(cref->clause, term, bindings) )
       continue;
     get_head_and_body_clause(term, h, b, NULL);
@@ -2475,6 +2472,7 @@ pl_clause4(term_t head, term_t body, term_t ref, term_t bindings, word ctx)
     ForeignRedoPtr(cref->next);
   }
 
+  leaveDefinition(def);
   fail;
 }
 

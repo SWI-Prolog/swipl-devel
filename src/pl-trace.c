@@ -229,20 +229,22 @@ tracePort(LocalFrame frame, LocalFrame bfr, int port, Code PC)
       writeFrameGoal(frame, PC, port|WFG_TRACE);
   }
 
-  if ( (port != BREAK_PORT) &&
-       /*(port != EXCEPTION_PORT) &&*/
-       ((!debugstatus.tracing &&
-	 (false(def, SPY_ME) || (port & CUT_PORT)))	|| /* non-tracing */
-	debugstatus.skiplevel < levelFrame(frame)	|| /* skipped */
-	((port & (BREAK_PORT|CUT_PORT)) &&
-	 ((debugstatus.skiplevel == levelFrame(frame)) ||
-	  true(def, HIDE_CHILDS)))			|| /* also skipped */
-	false(def, TRACE_ME)				|| /* non-tracing */
-	(!(debugstatus.visible & port))			|| /* wrong port */
-	(port == REDO_PORT && (debugstatus.skiplevel == levelFrame(frame) ||
-			       (true(def, SYSTEM) && !SYSTEM_MODE)
-			      ))) )				   /* redos */
-    return ACTION_CONTINUE;
+  if ( port & BREAK_PORT )
+    goto ok;				/* always do break-points */
+
+  if ( !debugstatus.tracing &&
+       (false(def, SPY_ME) || (port & CUT_PORT)) )
+    return ACTION_CONTINUE;		/* not tracing and no spy-point */
+  if ( debugstatus.skiplevel < levelFrame(frame) )
+    return ACTION_CONTINUE;		/* skipped */
+  if ( false(def, TRACE_ME) )
+    return ACTION_CONTINUE;		/* non-traced predicate */
+  if ( (!(debugstatus.visible & port)) )
+    return ACTION_CONTINUE;		/* wrong port */
+  if ( port == REDO_PORT &&
+       (true(def, HIDE_CHILDS) && !SYSTEM_MODE) )
+    return ACTION_CONTINUE;		/* redo's in system predicates */
+ok:
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Give a trace on the skipped goal for a redo.
@@ -1078,15 +1080,16 @@ initTracer(void)
 int
 tracemode(int doit, int *old)
 { if ( doit )
+  { debugmode(TRUE, NULL);
     doit = TRUE;
+  }
 
   if ( old )
     *old = debugstatus.tracing;
 
   if ( debugstatus.tracing != doit )
   { if ( doit )
-    { debugstatus.debugging = TRUE;
-      debugstatus.skiplevel = VERY_DEEP;
+    { debugstatus.skiplevel = VERY_DEEP;
       if ( LD->trace.find )
 	LD->trace.find->searching = FALSE;
     }

@@ -334,7 +334,7 @@ nextClause(ClauseRef cref, unsigned long generation, bool *det, Index ctx)
 }
 
 
-static ClauseRef
+ClauseRef
 firstClause(Word argv, LocalFrame fr, Definition def, bool *det ARG_LD)
 { ClauseRef cref;
   struct index buf;

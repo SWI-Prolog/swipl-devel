@@ -56,6 +56,7 @@ lookupProcedure(functor_t f, Module m)
 #endif /* O_PROFILE */
   clearFlags(def);
   def->references = 0;
+  def->erased_clauses = 0;
   resetProcedure(proc);
   UNLOCK();
 
@@ -117,7 +118,7 @@ hasClausesDefinition(Definition def)
 #define generation (0)
 #endif
 
-    if ( false(def, NEEDSCLAUSEGC) )
+    if ( def->erased_clauses == 0 )
       succeed;
     
     for(c = def->definition.clauses; c; c = c->next)
@@ -758,6 +759,7 @@ removeClausesProcedure(Procedure proc, int sfindex)
       cl->generation.erased = GD->generation;
 #endif
       def->number_of_clauses--;
+      def->erased_clauses++;
     } 
   }
   if ( def->hash_info )
@@ -785,10 +787,13 @@ retractClauseProcedure(Procedure proc, Clause clause)
   LOCK();
   if ( def->references )
   { set(clause, ERASED);
-    set(def, NEEDSCLAUSEGC);
     if ( def->hash_info )
       markDirtyClauseIndex(def->hash_info, clause);
     def->number_of_clauses--;
+    def->erased_clauses++;
+    if ( false(def, DYNAMIC) ||
+	 def->erased_clauses > (def->number_of_clauses<<5) )
+      set(def, NEEDSCLAUSEGC);
 #ifdef O_LOGICAL_UPDATE
     clause->generation.erased = ++GD->generation;
 #endif
@@ -883,7 +888,7 @@ gcClausesDefinition(Definition def)
     }
   }
 
-  while( cref )
+  while( cref && def->erased_clauses )
   { if ( true(cref->clause, ERASED) )
     { ClauseRef c = cref;
       
@@ -906,6 +911,7 @@ gcClausesDefinition(Definition def)
 	def->references--;
       }
 #endif
+      def->erased_clauses--;
       freeClause(c->clause);
       freeClauseRef(c);
     } else
@@ -914,6 +920,7 @@ gcClausesDefinition(Definition def)
       DEBUG(0, left++);
     }
   }
+  assert(def->erased_clauses == 0);
 
   DEBUG(1, Sdprintf("removed %d, left %d\n", removed, left));
 
@@ -965,6 +972,7 @@ pl_check_definition(term_t spec)
 { Procedure proc;
   Definition def;
   int nclauses = 0;
+  int nerased = 0;
   int nindexable = 0;
 
   ClauseRef cref;
@@ -975,6 +983,7 @@ pl_check_definition(term_t spec)
 
   if ( true(def, FOREIGN) )
     succeed;
+
   for(cref = def->definition.clauses; cref; cref = cref->next)
   { Clause clause = cref->clause;
 
@@ -984,11 +993,12 @@ pl_check_definition(term_t spec)
     if ( false(clause, ERASED) )
       nclauses++;
     else
-    { if ( false(def, NEEDSCLAUSEGC) )
-	Sdprintf("%s contains erased clauses and has no NEEDSCLAUSEGC",
-		 predicateName(def));
-    }
+      nerased++;
   }
+
+  if ( nerased != def->erased_clauses )
+    Sdprintf("%s has %d erased clauses, claims %d\n",
+	     predicateName(def), nerased, def->erased_clauses);
 
   if ( def->hash_info )
   { if ( def->hash_info->size != nindexable )
@@ -1193,9 +1203,14 @@ pl_require(term_t pred)
 		*            RETRACT            *
 		*********************************/
 
+#undef LD
+#define LD LOCAL_LD
+
 word
 pl_retract(term_t term, word h)
-{ if ( ForeignControl(h) == FRG_CUTTED )
+{ GET_LD
+
+  if ( ForeignControl(h) == FRG_CUTTED )
   { ClauseRef cref = ForeignContextPtr(h);
 
     if ( cref )
@@ -1210,12 +1225,22 @@ pl_retract(term_t term, word h)
     term_t cl = PL_new_term_ref();
     term_t head = PL_new_term_ref();
     term_t body = PL_new_term_ref();
+    Word argv;
+    bool det;
     atom_t b;
+    mark mrk;
 
     PL_strip_module(term, &m, cl);
     get_head_and_body_clause(cl, head, body, NULL);
     if ( PL_get_atom(body, &b) && b == ATOM_true )
       PL_put_term(cl, head);
+
+    argv = valTermRef(head);
+    deRef(argv);
+    if ( isTerm(*argv) )		/* retract(foobar(a1, ...)) */
+      argv = argTermP(*argv, 0);
+    else
+      argv = NULL;			/* retract(foobar) */
 
     if ( ForeignControl(h) == FRG_FIRST_CALL )
     { functor_t fd;
@@ -1244,47 +1269,37 @@ pl_retract(term_t term, word h)
 		       PL_CHARS, "retract",
 		       _PL_PREDICATE_INDICATOR, proc);
 
-      cref = def->definition.clauses;
       enterDefinition(def);			/* reference the predicate */
+      cref = firstClause(argv, environment_frame, def, &det PASS_LD);
+      if ( !cref )
+      { leaveDefinition(def);
+	fail;
+      }
     } else
     { cref = ForeignContextPtr(h);
       proc = cref->clause->procedure;
       def  = proc->definition;
+      cref = findClause(cref, argv, environment_frame, def, &det);
     }
 
-    for(; cref; cref = cref->next)
-    { bool det;
-      Word argv;
+    Mark(mrk);
+    while( cref )
+    { term_t r0 = PL_new_term_ref();
 
-      if ( PL_is_compound(head) )
-      { argv = valTermRef(head);
-	deRef(argv);
-	argv = argTermP(*argv, 0);
-      } else
-	argv = NULL;
-
-      if ( !(cref = findClause(cref, argv, environment_frame, def, &det)) )
-      { leaveDefinition(def);
-	fail;
-      }
-
-      { fid_t cid = PL_open_foreign_frame();
-
-	if ( decompile(cref->clause, cl, 0) )
-	{ retractClauseProcedure(proc, cref->clause);
-	  PL_close_foreign_frame(cid);	/* necessary? */
-	  if ( det == TRUE )
-	  { leaveDefinition(def);
-	    succeed;
-	  }
-
-	  ForeignRedoPtr(cref->next);
+      if ( decompile(cref->clause, cl, 0) )
+      { retractClauseProcedure(proc, cref->clause);
+	if ( det == TRUE )
+	{ leaveDefinition(def);
+	  succeed;
 	}
 
-	PL_discard_foreign_frame(cid);
+	ForeignRedoPtr(cref->next);
       }
 
-      continue;
+      PL_reset_term_refs(r0);
+      Undo(mrk);
+
+      cref = findClause(cref->next, argv, environment_frame, def, &det);
     }
 
     leaveDefinition(def);
@@ -1295,61 +1310,75 @@ pl_retract(term_t term, word h)
 
 word
 pl_retractall(term_t head)
-{ term_t thehead = PL_new_term_ref();
+{ GET_LD
+  term_t thehead = PL_new_term_ref();
   Procedure proc;
   Definition def;
   ClauseRef cref;
+  bool det;
+  Word argv;
+  LocalFrame fr = environment_frame;
+  mark m;
 
   if ( !get_procedure(head, &proc, thehead, GP_FINDHERE) )
     succeed;
 
   def = proc->definition;
   if ( true(def, FOREIGN) )
-    return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
-		    ATOM_modify, PL_new_atom("foreign_procedure"), def);
+    return PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PROC, proc);
   if ( false(def, DYNAMIC) )
   { if ( isDefinedProcedure(proc) )
-      return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
-		      ATOM_modify, PL_new_atom("static_procedure"), def);
+      return PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PROC, proc);
     set(def, DYNAMIC);			/* implicit.  Warn? */
     succeed;				/* nothing to retract */
   }
 
+  argv = valTermRef(thehead);
+  deRef(argv);
+  if ( isTerm(*argv) )			/* retract(foobar(a1, ...)) */
+    argv = argTermP(*argv, 0);
+  else
+    argv = NULL;			/* retract(foobar) */
+
+  Mark(m);
   enterDefinition(def);
-  for(cref = def->definition.clauses; cref; cref = cref->next)
-  { bool det;
-    Word argv;
 
-    if ( PL_is_compound(thehead) )
-    { argv = valTermRef(thehead);
-      deRef(argv);
-      argv = argTermP(*argv, 0);
-    } else
-      argv = NULL;
+#if 1
+  if ( !(cref = firstClause(argv, fr, def, &det PASS_LD)) )
+#else					/* debugging (HACK) */
+  if ( !(cref = findClause(def->definition.clauses,
+			   argv, fr, def, &det)) )
+#endif
+  { leaveDefinition(def);
+    succeed;
+  }
 
-    cref = findClause(cref, argv, environment_frame, def, &det);
-
-    if ( cref )
-    { fid_t cid = PL_open_foreign_frame();
+  while( cref )
+  { term_t r0 = PL_new_term_ref();
     
-      if ( det )
-	leaveDefinition(def);
+    if ( det )
+      leaveDefinition(def);
 
-      if ( decompileHead(cref->clause, thehead) )
-	retractClauseProcedure(proc, cref->clause);
+    if ( decompileHead(cref->clause, thehead) )
+      retractClauseProcedure(proc, cref->clause);
 
-      PL_discard_foreign_frame(cid);
+    if ( det )
+    { Undo(m);
+      succeed;
+    }
 
-      if ( det )
-	succeed;
-    } else
-      break;
+    PL_reset_term_refs(r0);
+    Undo(m);
+
+    cref = findClause(cref->next, argv, fr, def, &det);
   }
   leaveDefinition(def);
 
   succeed;
 }
 
+#undef LD
+#define LD GLOBAL_LD
 
 		/********************************
 		*       PROLOG PREDICATES       *

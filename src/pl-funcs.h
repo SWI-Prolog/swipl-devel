@@ -147,6 +147,8 @@ int		cardinalityPattern(unsigned long pattern);
 void		getIndex(Word argv, unsigned long pattern, int card,
 			 struct index *
 			 ARG_LD);
+ClauseRef	firstClause(Word argv, LocalFrame fr, Definition def,
+			    bool *det ARG_LD);
 ClauseRef	findClause(ClauseRef cl, Word argv,
 			   LocalFrame fr, Definition def, bool *deterministic);
 bool		reindexClause(Clause clause);
