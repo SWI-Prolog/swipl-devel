@@ -278,6 +278,12 @@ using a term of the format \term{ip}{Byte1, Byte2, Byte3, Byte4}.
 Otherwise, if \arg{Address} is bound to a \functor{ip}{4} term, it
 is resolved by \funcref{gethostbyaddr}{} and the canonical hostname
 is unified with \arg{HostName}.
+
+    \predicate{gethostname}{1}{-Hostname}
+Return the official fully qualified name of this host.  This is achieved
+by calling gethostname() followed by gethostbyname() and return the 
+official name of the host (\const{h_name}) of the structure returned
+by the latter function.
 \end{description}
 
 

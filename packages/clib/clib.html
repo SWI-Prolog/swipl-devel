@@ -343,6 +343,13 @@ Translate between a machines host-name and it's (IP-)address. If
 using a term of the format <CODE>ip(Byte1, Byte2, Byte3, Byte4)</CODE>. 
 Otherwise, if <VAR>Address</VAR> is bound to a ip/4 term, it is resolved 
 by <B>gethostbyaddr()</B> and the canonical hostname is unified with <VAR>HostName</VAR>.
+
+<P>
+<DT><A NAME="gethostname/1"><STRONG>gethostname</STRONG>(<VAR>-Hostname</VAR>)</A><DD>
+Return the official fully qualified name of this host. This is achieved 
+by calling gethostname() followed by gethostbyname() and return the 
+official name of the host (<CODE>h_name</CODE>) of the structure 
+returned by the latter function.
 </DL>
 
 <H3><A NAME="sec:3.1">3.1 Server applications</A></H3>
