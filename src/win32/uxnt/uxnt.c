@@ -108,6 +108,21 @@ _xos_errno()
 		 *	       HOME		*
 		 *******************************/
 
+static int
+existsAndWriteableDir(const char *name)
+{ DWORD a;
+
+  if ( (a=GetFileAttributes(name)) != 0xFFFFFFFF )
+  { if ( a & FILE_ATTRIBUTE_DIRECTORY )
+    { if ( !(a & FILE_ATTRIBUTE_READONLY) )
+	return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
+
 char *
 _xos_home()				/* expansion of ~ */
 { static char home[MAXPATHLEN];
@@ -117,7 +132,11 @@ _xos_home()				/* expansion of ~ */
   { char h[MAXPATHLEN];
 
 					/* Unix, set by user */
-    if ( GetEnvironmentVariable("HOME", h, sizeof(h)) )
+    if ( GetEnvironmentVariable("HOME", h, sizeof(h)) &&
+	 existsAndWriteableDir(h) )
+    { _xos_canonical_filename(h, home);
+    } else if ( GetEnvironmentVariable("USERPROFILE", h, sizeof(h)) &&
+		existsAndWriteableDir(h) )
     { _xos_canonical_filename(h, home);
     } else
     { char d[100];
@@ -128,23 +147,34 @@ _xos_home()				/* expansion of ~ */
       haved = GetEnvironmentVariable("HOMEDRIVE", d, sizeof(d));
       havep = GetEnvironmentVariable("HOMEPATH",  p, sizeof(p));
 
+      tmp[0] = '\0';
       if ( haved && havep )		/* Windows-NT */
       { strcpy(tmp, d);
 	strcat(tmp, p);
-	_xos_canonical_filename(tmp, home);
       } else if ( haved )
       { strcpy(tmp, d);
 	strcat(tmp, "\\");
-	_xos_canonical_filename(tmp, home);
       } else if ( havep )
-      { _xos_canonical_filename(p, home);
-      } else if ( GetEnvironmentVariable("USERPROFILE", h, sizeof(h)) )
-      { _xos_canonical_filename(h, home);
+      { strcpy(tmp, p);
       } else
       { int drv = _getdrive();		/* A=1 */
 
 	home[0] = drv-1+'a';
-	strcpy(home+1, ":/");
+	strcpy(home+1, ":\\");
+      }
+
+      _xos_canonical_filename(tmp, home);
+
+      if ( !existsAndWriteableDir(tmp) )
+      { MessageBox(NULL,
+		   "Could not find suitable folder for storing profile information\n"
+		   "Tried the following paths:\n\n"
+		   "\t%HOME%\n"
+		   "\t%USERPROFILE%\n"
+		   "\t%HOMEDRIVE%\\%HOMEPATH%\n"
+		   "\tThe top of the current drive",
+		   "SWI-Prolog: no home (~)",
+		   MB_ICONWARNING);
       }
     }
 
