@@ -1108,7 +1108,7 @@ pl_thread_send_message(term_t thread, term_t msg)
   msgp->next    = NULL;
   msgp->message = PL_record(msg);
 
-  LOCK();
+  pthread_mutex_lock(&info->thread_data->thread.queue_mutex);
   ld = info->thread_data;
   if ( !ld->thread.msg_head )
     ld->thread.msg_head = ld->thread.msg_tail = msgp;
@@ -1117,7 +1117,7 @@ pl_thread_send_message(term_t thread, term_t msg)
     ld->thread.msg_tail = msgp;
   }
   pthread_cond_signal(&ld->thread.cond_var);
-  UNLOCK();
+  pthread_mutex_unlock(&ld->thread.queue_mutex);
 
   succeed;
 }
@@ -1133,7 +1133,7 @@ pl_thread_get_message(term_t msg)
 
   Mark(m);
 
-  LOCK();
+  pthread_mutex_lock(&ld->thread.queue_mutex);
   msgp = ld->thread.msg_head;
 
   for(;;)
@@ -1150,16 +1150,12 @@ pl_thread_get_message(term_t msg)
 	}
 	PL_erase(msgp->message);
 	freeHeap(msgp, sizeof(*msgp));
-	UNLOCK();
+	pthread_mutex_unlock(&ld->thread.queue_mutex);
 	succeed;
       }
       Undo(m);				/* reclaim term */
     }
-    pthread_mutex_lock(&ld->thread.queue_mutex);
-    UNLOCK();
     pthread_cond_wait(&ld->thread.cond_var, &ld->thread.queue_mutex);
-    LOCK();
-    pthread_mutex_unlock(&ld->thread.queue_mutex);
 
     msgp = (prev ? prev->next : ld->thread.msg_head);
   }
@@ -1175,21 +1171,21 @@ pl_thread_peek_message(term_t msg)
 
   Mark(m);
 
-  LOCK();
+  pthread_mutex_lock(&ld->thread.queue_mutex);
   msgp = ld->thread.msg_head;
 
   for( msgp = ld->thread.msg_head; msgp; msgp = msgp->next )
   { PL_recorded(msgp->message, tmp);
 
     if ( PL_unify(msg, tmp) )
-    { UNLOCK();
+    { pthread_mutex_unlock(&ld->thread.queue_mutex);
       succeed;
     }
 
     Undo(m);
   }
      
-  UNLOCK();
+  pthread_mutex_unlock(&ld->thread.queue_mutex);
   fail;
 }
 
