@@ -77,7 +77,7 @@ http_location(+Parts, -Location)
 		 *******************************/
 
 global_url(URL, BaseURL, Global) :-
-	parse_url(BaseURL, URL, Attributes),
+	parse_url(URL, BaseURL, Attributes),
 	phrase(curl(Attributes), Chars),
 	atom_codes(Global, Chars).
 
