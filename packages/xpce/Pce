@@ -2,6 +2,8 @@
 ! Author: Jan Wielemaker, University of Amsterdam
 ! Last Modified: Fri Sep 30 15:44:29 1994
 
+! See README.customise before changing this file.
+
 ! This resource should define a PCE executable object.  It is ran when
 ! the display is first opened.  We use it to define various global objects
 ! used in the resources below.

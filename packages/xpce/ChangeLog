@@ -1,3 +1,34 @@
+[VERSION 4.8.1]
+
+* ADDED: auto_call/1 to simulate an autoload call on standard Prolog
+  systems.
+
+* CHANGED: PceDraw and PceEmacs now uses @helper to display help.
+
+* CHANGED: Many changes the the online-help library: automitic generation
+  of table of contents and concept index, menus, automatic recognition
+  of @colour_display, etc.  File format and programmatic access is
+  compatible.
+
+* FIXED: `Ispell' demo now works with both Ispell version 3 and 4 (change
+  in communication syntax from ispell).  Also, ispell is now more careful
+  in using fragments, so text_buffers using fragments may be `ispelled'.
+
+* FIXED: `menu ->_redraw_area' deferences an invalid pointer.  Crashed
+  on Irix machines.  Also fix to instantiation of X11-counterpart for
+  images.  Thanks to Jan van der Steen (jansteen@cwi.nl), who also created
+  new up-to-date Irix machine description files. 
+
+* ADDED: optional `ignore_case' argument to `char_array <-compare'.
+
+* ADDED to show_key_bindings/1 window: popup menu for switching to the
+  documentation as well as the source for some method.
+
+* Implemented: `@pce ->console_label: label'.  This method was already present
+  in the MS-Windows version.  The Unix version will issue the proper escape
+  sequence of an xterm(1) window if $TERM equals xterm (\033]2;label\007).
+
+
 [VERSION 4.8.0]
 
 * Changed location of the X11 resource-file Pce.  XPCE now adds PCE's

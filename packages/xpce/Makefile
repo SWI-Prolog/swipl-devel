@@ -63,17 +63,17 @@ XBASE=/usr
 
 ARCH=sparc-sunos-4
 #(solaris)# ARCH=sparc-sunos-5
-#(linux)# ARCH=i486-linux
+#(linux)#ARCH=i486-linux
 
 PLBASE=/staff/jan/src/pl
 
 PLARCH=sun4
 #(solaris)# PLARCH=solaris
-#(linux)# PLARCH=i386
+#(linux)#PLARCH=i386
 
 LDFLAGS=-L$(XLIB) -static $(COFLAGS)
 #(solaris)# LDFLAGS=-L$(XLIB) -lsocket -ldl -lnsl -lelf
-#(linux)# LDFLAGS=-L$(XLIB)
+#(linux)#LDFLAGS=-L$(XLIB)
 
 STATICLIBS=/usr/lib/libc.a
 PLLIBS=-ltermcap -lreadline
@@ -113,7 +113,7 @@ SED=sed
 XINCLUDES=$(XBASE)/include
 XLIB=$(XBASE)/lib
 
-VERSION=4.8.0, October 1994
+VERSION=4.8.1, October 1994
 RESOURCE_CLASS=Pce
 
 PLRUNTIME=$(PLBASE)/runtime/$(PLARCH)
