@@ -181,7 +181,7 @@ main(int argc, char **argv)
     else if ( (low & 0xf0000000L) == 0x20000000L )
       seghigh = 0x40000000L;
     else if ( (low & 0xf0000000L) == 0x40000000L )
-      seghigh = 0x80000000L;
+      seghigh = 0x50000000L;
   } else
     seghigh = 0x20000000L;
 
