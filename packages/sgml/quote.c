@@ -23,59 +23,125 @@
 
 #define CHARSET 256
 
+typedef struct charbuf
+{ char     buffer[1024];
+  char    *bufp;
+  char    *end;
+  int      size;
+} charbuf;
+
+
+static void
+init_buf(charbuf *b)
+{ b->bufp = b->end = b->buffer;
+  b->size = sizeof(b->buffer);
+}
+
+
+static void
+free_buf(charbuf *b)
+{ if ( b->bufp != b->buffer )
+    free(b->bufp);
+}
+
+
+static int
+room_buf(charbuf *b, int room)
+{ int used = b->end - b->bufp;
+
+  if ( room + used > b->size )
+  { if ( b->bufp == b->buffer )
+    { b->size = sizeof(b->buffer)*2;
+      if ( !(b->bufp = malloc(b->size)) )
+	return sgml2pl_error(ERR_ERRNO);
+
+      memcpy(b->bufp, b->buffer, used);
+    } else
+    { char *ptr;
+
+      b->size *= 2;
+      if ( !(ptr = realloc(b->bufp, b->size)) )
+	return sgml2pl_error(ERR_ERRNO);
+      b->bufp = ptr;
+    }
+    b->end = b->bufp + used;
+  }
+
+  return TRUE;    
+}
+
+
+static unsigned int
+used_buf(const charbuf *b)
+{ return b->end - b->bufp;
+}
+
+
+static int
+add_char_buf(charbuf *b, int chr)
+{ if ( room_buf(b, 1) )
+  { *b->end++ = chr;
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
+static int
+add_str_buf(charbuf *b, const char *s)
+{ int len = strlen(s);
+
+  if ( room_buf(b, len+1) )
+  { memcpy(b->end, s, len+1);
+    b->end += len;
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
+
 static foreign_t
 do_quote(term_t in, term_t quoted, char **map)
 { char *ins;
   unsigned len;
-  unsigned  char *s;
-  char outbuf[1024];
-  char *out = outbuf;
-  int outlen = sizeof(outbuf);
-  int o = 0;
+  const unsigned  char *s;
+  charbuf buffer;
   int changes = 0;
+  int rc;
 
   if ( !PL_get_nchars(in, &len, &ins, CVT_ATOMIC) )
     return sgml2pl_error(ERR_TYPE, "atom", in);
   if ( len == 0 )
     return PL_unify(in, quoted);
 
+  init_buf(&buffer);
+
   for(s = (unsigned char*)ins ; len-- > 0; s++ )
   { int c = *s;
     
     if ( map[c] )
-    { int l = strlen(map[c]);
-      if ( o+l >= outlen )
-      { outlen *= 2;
-	  
-	if ( out == outbuf )
-	{ out = malloc(outlen);
-	  memcpy(out, outbuf, sizeof(outbuf));
-	} else
-	{ out = realloc(out, outlen);
-	}
-      }
-      memcpy(&out[o], map[c], l);
-      o += l;
+    { if ( !add_str_buf(&buffer, map[c]) )
+	return FALSE;
+
       changes++;
     } else
-    { if ( o >= outlen-1 )
-      { outlen *= 2;
-	  
-	if ( out == outbuf )
-	{ out = malloc(outlen);
-	  memcpy(out, outbuf, sizeof(outbuf));
-	} else
-	{ out = realloc(out, outlen);
-	}
-      }
-      out[o++] = c;
+    { add_char_buf(&buffer, c);
     }
   }
   
   if ( changes > 0 )
-    return PL_unify_atom_nchars(quoted, o, out);
+    rc = PL_unify_atom_nchars(quoted, used_buf(&buffer), buffer.bufp);
   else
-    return PL_unify(in, quoted);
+    rc = PL_unify(in, quoted);
+
+  free_buf(&buffer);
+
+  return rc;
 }
 
 
