@@ -1691,6 +1691,9 @@ times PL_thread_attach_engine() has been called.
 \cfunction{int}{PL_compare}{term_t t1, term_t t2}
     Compares two terms using the standard order of terms and returns -1,
     0 or 1. See also compare/3.
+\cfunction{int}{PL_same_compound}{term_t t1, term_t t2}
+    Yields \const{TRUE} if \arg{t1} and \arg{t2} refer to physically
+    the same compound term and \const{FALSE} otherwise.
 \end{description}
 
 \subsubsection{Recorded database}
