@@ -139,6 +139,29 @@ compile-time
 #define PL_UNLOCK(id) IFMT(id, simpleMutexUnlock(&_PL_mutexes[id]))
 #endif
 
+#define LOCKDEF(def) \
+	if ( GD->thread.enabled ) \
+	{ if ( def->mutex ) \
+	  { simpleMutexLock(def->mutex); \
+	  } else \
+	  { simpleMutexLock(&_PL_mutexes[L_PREDICATE]); \
+	  } \
+	}
+
+#define UNLOCKDEF(def) \
+	if ( GD->thread.enabled ) \
+	{ if ( def->mutex ) \
+	  { simpleMutexUnlock(def->mutex); \
+	  } else \
+	  { simpleMutexUnlock(&_PL_mutexes[L_PREDICATE]); \
+	  } \
+	}
+
+#define LOCKDYNDEF(def) \
+	if ( GD->thread.enabled && def->mutex ) simpleMutexLock(def->mutex)
+#define UNLOCKDYNDEF(def) \
+	if ( GD->thread.enabled && def->mutex ) simpleMutexUnlock(def->mutex)
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 				Thread-local data
 
@@ -288,6 +311,11 @@ void			PL_atomic_dec(int *addr);
 
 #define PL_LOCK(id)
 #define PL_UNLOCK(id)
+
+#define LOCKDEF(def)
+#define UNLOCKDEF(def)
+#define LOCKDYNDEF(def)
+#define UNLOCKDYNDEF(def)
 
 #endif /*O_PLMT*/
 

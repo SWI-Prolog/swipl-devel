@@ -1952,6 +1952,23 @@ recursiveMutexUnlock(recursiveMutex *m)
 
 #endif /*RECURSIVE_MUTEXES*/
 
+
+simpleMutex *
+allocSimpleMutex()
+{ simpleMutex *m = alignedAllocHeap(sizeof(*m));
+
+  simpleMutexInit(m);
+  return m;
+}
+
+
+void
+freeSimpleMutex(simpleMutex *m)
+{ simpleMutexDelete(m);
+  freeHeap(m, sizeof(*m));
+}
+
+
 		 /*******************************
 		 *	    USER MUTEXES	*
 		 *******************************/
@@ -2874,7 +2891,8 @@ localiseDefinition(Definition def)
   int id = LD->thread.info->pl_tid;
 
   *local = *def;
-  clear(local, P_THREAD_LOCAL);
+  local->mutex = NULL;
+  clear(local, P_THREAD_LOCAL);		/* remains DYNAMIC */
   local->definition.clauses = NULL;
   local->hash_info = NULL;
   
@@ -2923,10 +2941,10 @@ cleanupLocalDefinitions(PL_local_data_t *ld)
     next = ch->next;
     
     assert(true(def, P_THREAD_LOCAL));
-    PL_LOCK(L_PREDICATE);
+    LOCKDEF(def);
     local = def->definition.local->thread[id];
     def->definition.local->thread[id] = NULL;
-    PL_UNLOCK(L_PREDICATE);
+    UNLOCKDEF(def);
 
     destroyDefinition(local);
 

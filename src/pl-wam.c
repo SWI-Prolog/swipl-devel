@@ -871,12 +871,12 @@ pl__getProcDefinition(Procedure proc ARG_LD)
   { int i = LD->thread.info->pl_tid;
     Definition local;
 
-    PL_LOCK(L_PREDICATE);
+    LOCKDEF(def);
     if ( !def->definition.local ||
 	 i >= def->definition.local->size ||
 	 !(local=def->definition.local->thread[i]) )
       local = localiseDefinition(def);
-    PL_UNLOCK(L_PREDICATE);
+    UNLOCKDEF(def);
 
     return local;
   }

@@ -24,9 +24,6 @@
 
 #include "pl-incl.h"
 
-#define LOCK()   PL_LOCK(L_PREDICATE)
-#define UNLOCK() PL_UNLOCK(L_PREDICATE)
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Clause indexing.  Clauses store an  `index  structure',  which  provides
 summary information on the unification behaviour of the clause (e.i. its
@@ -573,7 +570,7 @@ markDirtyClauseIndex(ClauseIndex ci, Clause cl)
 }
 
 
-/* MT: caller must hold L_PREDICATE */
+/* MT: caller must have predicate locked */
 
 void
 addClauseToIndex(Definition def, Clause cl, int where ARG_LD)
@@ -622,7 +619,7 @@ delClauseFromIndex(ClauseIndex ci, Clause cl)
 }
 
 
-/* MT: Calls must be locked on L_PREDICATE
+/* MT: Caller must have predicate locked
 */
 
 bool
@@ -660,11 +657,11 @@ pl_hash(term_t pred)
       return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
 		      ATOM_hash, ATOM_foreign, def);
 
-    LOCK();
+    LOCKDEF(def);
     if ( def->indexPattern & NEED_REINDEX )
       reindexDefinition(def);
     rval = hashDefinition(def, 256);
-    UNLOCK();
+    UNLOCKDEF(def);
   }
 
   return rval;

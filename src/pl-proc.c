@@ -69,6 +69,9 @@ lookupProcedure(functor_t f, Module m)
     clearFlags(def);
     def->references = 0;
     def->erased_clauses = 0;
+#ifdef O_PLMT
+    def->mutex = NULL;
+#endif
     resetProcedure(proc, TRUE);
     DEBUG(3, Sdprintf("Created %s\n", procedureName(proc)));
   }
@@ -724,7 +727,7 @@ assertProcedure(Procedure proc, Clause clause, int where ARG_LD)
 		   PL_CHARS, "assert",
 		   _PL_PREDICATE_INDICATOR, proc);
 
-  LOCK();
+  LOCKDEF(def);
   if ( !def->lastClause )
   { def->definition.clauses = def->lastClause = cref;
   } else if ( where == CL_START )
@@ -755,7 +758,7 @@ assertProcedure(Procedure proc, Clause clause, int where ARG_LD)
     if ( def->hash_info->size /2 > def->hash_info->buckets )
     { set(def, NEEDSREHASH);
       if ( true(def, DYNAMIC) && def->references == 0 )
-      { gcClausesDefinitionAndUnlock(def); /* does UNLOCK() */
+      { gcClausesDefinitionAndUnlock(def); /* does UNLOCKDEF() */
 	return cref;
       }
     }
@@ -764,7 +767,7 @@ assertProcedure(Procedure proc, Clause clause, int where ARG_LD)
 	 true(def, AUTOINDEX) )
       def->indexPattern |= NEED_REINDEX;
   }
-  UNLOCK();
+  UNLOCKDEF(def);
 
   return cref;
 }
@@ -782,7 +785,7 @@ bool
 abolishProcedure(Procedure proc, Module module)
 { Definition def = proc->definition;
 
-  LOCK();
+  LOCKDEF(def);
   if ( def->module != module )		/* imported predicate; remove link */
   { GET_LD
     Definition ndef	     = allocHeap(sizeof(struct definition));
@@ -800,7 +803,7 @@ abolishProcedure(Procedure proc, Module module)
   { def->definition.clauses = def->lastClause = NULL;
     resetProcedure(proc, TRUE);
   } else if ( true(def, P_THREAD_LOCAL) )
-  { UNLOCK();
+  { UNLOCKDEF(def);
     return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
 		    ATOM_modify, ATOM_thread_local_procedure, def);
   } else				/* normal Prolog procedure */
@@ -822,7 +825,7 @@ abolishProcedure(Procedure proc, Module module)
 
     resetProcedure(proc, FALSE);
   }
-  UNLOCK();
+  UNLOCKDEF(def);
 
   succeed;
 }
@@ -916,9 +919,9 @@ bool
 retractClauseProcedure(Procedure proc, Clause clause ARG_LD)
 { Definition def = getProcDefinition(proc);
 
-  LOCK();
+  LOCKDEF(def);
   if ( true(clause, ERASED) )
-  { UNLOCK();
+  { UNLOCKDEF(def);
     succeed;
   }
 
@@ -939,13 +942,13 @@ retractClauseProcedure(Procedure proc, Clause clause ARG_LD)
 #ifdef O_LOGICAL_UPDATE
     clause->generation.erased = ++GD->generation;
 #endif
-    UNLOCK();
+    UNLOCKDEF(def);
 
     succeed;
   }
 
   unlinkClause(def, clause PASS_LD);
-  UNLOCK();
+  UNLOCKDEF(def);
 
 					/* as we do a call-back, we cannot */
 					/* hold the L_PREDICATE mutex */
@@ -1095,7 +1098,7 @@ void
 gcClausesDefinitionAndUnlock(Definition def)
 { ClauseRef cref = cleanDefinition(def, NULL);
 
-  UNLOCK();
+  UNLOCKDEF(def);
   if ( cref )
     freeClauseList(cref);
 }
@@ -1829,39 +1832,74 @@ pl_get_predicate_attribute(term_t pred,
 Toggle dynamic/static. With clause-gc this  has become harder. Basically
 we can't easily make a predicate dynamic   if  it has clauses, unless we
 scan the system to initialise the reference-count properly.
+
+Static predicates are  managed  on  a   combined  mutex,  while  dynamic
+predicates are locked on their own  mutex. This procedure must carefully
+attach or detach the mutex.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifdef O_PLMT
+static void
+attachMutexAndUnlock(Definition def)
+{ if ( !def->mutex )
+  { def->mutex = allocSimpleMutex();
+    PL_UNLOCK(L_PREDICATE);
+  } else
+    simpleMutexUnlock(def->mutex);
+}
+
+static void
+detachMutexAndUnlock(Definition def)
+{ if ( def->mutex )
+  { simpleMutex *m = def->mutex;
+    def->mutex = NULL;
+    simpleMutexUnlock(m);
+    freeSimpleMutex(m);
+  } else
+    PL_UNLOCK(L_PREDICATE);
+}
+
+#else /*O_PLMT*/
+
+#define attachMutexAndUnlock(def)
+#define detachMutexAndUnlock(def)
+
+#endif /*O_PLMT*/
+
 
 static int
 set_dynamic_procedure(Procedure proc, bool isdyn)
-{ Definition def;
+{ Definition def = proc->definition;
 
-  LOCK();
-  def = proc->definition;
+  LOCKDEF(def);
   
   if ( (isdyn && true(def, DYNAMIC)) ||
        (!isdyn && false(def, DYNAMIC)) )
-  { UNLOCK();
+  { UNLOCKDEF(def);
     succeed;
   }
 
   if ( isdyn )				/* static --> dynamic */
   { GET_LD
     if ( def->definition.clauses )
-    { UNLOCK();
+    { UNLOCKDEF(def);
       return PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PROC, proc);
     }
     set(def, DYNAMIC);
     if ( SYSTEM_MODE )
       set(def, SYSTEM|HIDE_CHILDS);
+
+    attachMutexAndUnlock(def);
   } else				/* dynamic --> static */
   { clear(def, DYNAMIC);
     if ( def->references && true(def, NEEDSCLAUSEGC|NEEDSREHASH) )
     { registerDirtyDefinition(def);
       def->references = 0;
     }
+
+    detachMutexAndUnlock(def);
   }
 
-  UNLOCK();
   succeed;
 }
 
@@ -1870,30 +1908,30 @@ static int
 set_thread_local_procedure(Procedure proc, bool val)
 {
 #ifdef O_PLMT
-  Definition def;
+  Definition def = proc->definition;
 
-  LOCK();
-  def = proc->definition;
+  LOCKDEF(def);
 
   if ( (val && true(def, P_THREAD_LOCAL)) ||
        (!val && false(def, P_THREAD_LOCAL)) )
-  { UNLOCK();
+  { UNLOCKDEF(def);
     succeed;
   }
 
   if ( val )				/* static --> local */
   { if ( def->definition.clauses )
-    { UNLOCK();
+    { UNLOCKDEF(def);
       return PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PROC, proc);
     }
     set(def, DYNAMIC|VOLATILE|P_THREAD_LOCAL);
+
+    attachMutexAndUnlock(def);
+    succeed;
   } else				/* local --> static */
-  { return PL_error(NULL, 0, "TBD: better message",
+  { UNLOCKDEF(def);
+    return PL_error(NULL, 0, "TBD: better message",
 		    ERR_MODIFY_STATIC_PROC, proc);
   }
-
-  UNLOCK();
-  succeed;
 #else
   set_dynamic_procedure(proc, val);
 

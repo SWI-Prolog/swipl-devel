@@ -119,5 +119,8 @@ extern int recursiveMutexUnlock(recursiveMutex *m);
 
 #endif /*RECURSIVE_MUTEXES*/
 
+extern simpleMutex     *allocSimpleMutex(void);
+extern void		freeSimpleMutex(simpleMutex *m);
+
 #endif /*O_PLMT*/
 #endif /*PL_MUTEX_H_DEFINED*/

@@ -992,18 +992,18 @@ introduce a garbage collector (TBD).
 
 #define enterDefinition(def) \
 	if ( true(def, DYNAMIC) ) \
-	{ PL_LOCK(L_PREDICATE); \
+	{ LOCKDYNDEF(def); \
 	  def->references++; \
-	  PL_UNLOCK(L_PREDICATE); \
+	  UNLOCKDYNDEF(def); \
 	}
 #define leaveDefinition(def) \
 	if ( true(def, DYNAMIC) ) \
-	{ PL_LOCK(L_PREDICATE); \
+	{ LOCKDYNDEF(def); \
 	  if ( --def->references == 0 && \
 	       true(def, NEEDSCLAUSEGC|NEEDSREHASH) ) \
 	  { gcClausesDefinitionAndUnlock(def); \
 	  } else \
-	  { PL_UNLOCK(L_PREDICATE); \
+	  { UNLOCKDYNDEF(def); \
 	  } \
 	}
 
@@ -1226,6 +1226,9 @@ struct definition
   Module	module;			/* module of the predicate */
   int		references;		/* reference count */
   unsigned int  erased_clauses;		/* #erased but not reclaimed clauses */
+#ifdef O_PLMT
+  simpleMutex  *mutex;			/* serialize access to dynamic pred */
+#endif
   ClauseIndex 	hash_info;		/* clause hash-tables */
   unsigned long indexPattern;		/* indexed argument pattern */
   unsigned long	flags;			/* booleans: */
