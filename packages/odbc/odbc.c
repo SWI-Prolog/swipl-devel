@@ -73,8 +73,6 @@ typedef DWORD SQLLEN;
 #ifndef NULL
 #define NULL 0
 #endif
-#define MAX_NAME_LEN 50
-#define MAX_STMT_LEN 100
 #define MAX_NOGETDATA 1024		/* use SQLGetData() on wider columns */
 #define STRICT
 
@@ -356,6 +354,10 @@ odbc_report(HENV henv, HDBC hdbc, HSTMT hstmt, RETCODE rc)
 	  if ( !report_status(ctxt) ) \
 	    return FALSE; \
 	}
+
+/* NOTE: if an error is reported report_status() returns FALSE and
+   the context is closed
+*/
 
 static int
 report_status(context *ctxt)
@@ -1833,7 +1835,8 @@ prepare_result(context *ctxt)
 				      &ival)) == SQL_SUCCESS )
       { ptr_result->source.table = PL_new_atom_nchars(nameLength, nameBuffer);
       } else
-      { report_status(ctxt);
+      { if ( !report_status(ctxt) )		/* TBD: May close ctxt */
+	  return FALSE;
 	ptr_result->source.table = ATOM_;
 	PL_register_atom(ATOM_);
       }
@@ -1846,10 +1849,11 @@ prepare_result(context *ctxt)
       return PL_warning("odbc_query/2: column type not managed");
     }
 
-    DEBUG(1, Sdprintf("prepare_result(): column %d, \
-		   sqlTypeID = %d, cTypeID = %d, \
-		   columnSize = %d\n",
-		   i, ptr_result->sqlTypeID, ptr_result->cTypeID, columnSize));
+    DEBUG(1, Sdprintf("prepare_result(): column %d, "
+		      "sqlTypeID = %d, cTypeID = %d, "
+		      "columnSize = %d\n",
+		      i, ptr_result->sqlTypeID, ptr_result->cTypeID,
+		      columnSize));
 
     if ( true(ctxt, CTX_TABLES) )
     { switch (ptr_result->sqlTypeID)
@@ -1871,7 +1875,10 @@ prepare_result(context *ctxt)
     { case SQL_LONGVARCHAR:
       case SQL_LONGVARBINARY:
       { if ( (int)columnSize > ctxt->max_nogetdata )
-	{ ptr_result->ptr_value = NULL;	/* handle using SQLGetData() */
+	{ DEBUG(2,
+		Sdprintf("Wide SQL_LONGVAR* column %d: using SQLGetData()\n",
+			 i));
+	  ptr_result->ptr_value = NULL;	/* handle using SQLGetData() */
 	  continue;
 	}
 	ptr_result->len_value = sizeof(char)*columnSize+1;
@@ -1885,7 +1892,10 @@ prepare_result(context *ctxt)
         /*FALLTHROUGH*/
       case SQL_C_BINARY:
 	if ( (int)columnSize > ctxt->max_nogetdata )
-	{ ptr_result->ptr_value = NULL;	/* handle using SQLGetData() */
+	{ DEBUG(2,
+		Sdprintf("Wide SQL_C_BINARY column %d: using SQLGetData()\n",
+			 i));
+	  ptr_result->ptr_value = NULL;	/* handle using SQLGetData() */
 	  continue;
 	}
         ptr_result->len_value = sizeof(char)*columnSize+1;
@@ -1974,9 +1984,7 @@ odbc_row(context *ctxt, term_t trow)
 	  break;
 	default:
 	  if ( !report_status(ctxt) )
-	  { close_context(ctxt);
 	    return FALSE;
-	  }
       }
       
       if ( !PL_unify_list(tail, head, tail) ||
@@ -1998,9 +2006,7 @@ odbc_row(context *ctxt, term_t trow)
       TRY(ctxt, SQLFetch(ctxt->hstmt));
 
     if ( !pl_put_row(local_trow, ctxt) )
-    { close_context(ctxt);
       return FALSE;			/* with pending exception */
-    }
       
     if ( !PL_unify(trow, local_trow) )
     { PL_rewind_foreign_frame(fid);
@@ -2015,7 +2021,7 @@ odbc_row(context *ctxt, term_t trow)
 	close_context(ctxt);
 	return TRUE;
       case SQL_SUCCESS_WITH_INFO:
-	report_status(ctxt);
+	report_status(ctxt);		/* Always returns TRUE */
         /*FALLTHROUGH*/
       case SQL_SUCCESS:
 	set(ctxt, CTX_PREFETCHED);
@@ -3003,9 +3009,7 @@ odbc_fetch(term_t qid, term_t row, term_t options)
       /*FALLTHROUGH*/
     case SQL_SUCCESS:
       if ( !pl_put_row(local_trow, ctxt) )
-      { close_context(ctxt);
 	return FALSE;			/* with pending exception */
-      }
 
       return PL_unify(local_trow, row);
     default:
@@ -3337,7 +3341,7 @@ pl_put_column(context *c, int nth, term_t col)
     SDWORD len;
 
     DEBUG(2, Sdprintf("Fetching value for column %d using SQLGetData()\n",
-		   nth+1));
+		      nth+1));
 
     c->rc = SQLGetData(c->hstmt, (UWORD)(nth+1), p->cTypeID,
 		       buf, sizeof(buf), &len);
@@ -3386,14 +3390,15 @@ pl_put_column(context *c, int nth, term_t col)
 	    default:
 	    { Sdprintf("ERROR: %d\n", c->rc);
 	      free(data);
-	      report_status(c);
-	      return FALSE;
+	      return report_status(c);
 	    }
 	  }
 	}
       }
-    } else if ( !report_status(c) )
-      return FALSE;
+    } else
+    { DEBUG(1, Sdprintf("SQLGetData() returned %d\n", c->rc));
+      return report_status(c);
+    }
 
   got_all_data:
     put_chars(val, p->plTypeID, len, data);
@@ -3523,7 +3528,7 @@ pl_put_row(term_t row, context *c)
    
   for (i=0; i<c->NumCols; i++)
   { if ( !pl_put_column(c, i, columns+i) )
-      return FALSE;
+      return FALSE;			/* with exception */
   }
 
   PL_cons_functor_v(row, c->db_row, columns);
