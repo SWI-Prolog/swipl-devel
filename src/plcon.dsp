@@ -52,7 +52,7 @@ LINK32=link.exe
 # Begin Special Build Tool
 SOURCE=$(InputPath)
 PostBuild_Cmds=..\bin\plcon.exe -O -o ../boot.prc -b ../boot/init.pl\
-	..\bin\plcon.exe -g "make_library_index('../library')" -t halt
+ 	..\bin\plcon.exe -g "make_library_index('../library')" -t halt
 # End Special Build Tool
 
 !ELSEIF  "$(CFG)" == "plcon - Win32 Debug"
@@ -78,6 +78,11 @@ LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /debug /machine:I386
 # ADD LINK32 ..\lib\libplD.lib user32.lib /nologo /subsystem:console /debug /machine:I386 /out:"..\bin/plconD.exe"
 # SUBTRACT LINK32 /pdb:none
+# Begin Special Build Tool
+SOURCE=$(InputPath)
+PostBuild_Cmds=..\bin\plconD.exe -O -o ../boot.prc -b ../boot/init.pl\
+ 	..\bin\plconD.exe -g "make_library_index('../library')" -t halt
+# End Special Build Tool
 
 !ENDIF 
 

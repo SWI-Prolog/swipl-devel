@@ -31,6 +31,7 @@ embedded application.
 
 #define PROG_PL "plcon.exe"
 #define PROG_LD "link.exe"
+#define PROG_CC "cl.exe"
 #define PROG_OUT "plout.exe"
 #define LIB_PL	 "libpl.lib"
 #define LIB_PL_DEBUG "libplD.lib"
@@ -40,6 +41,7 @@ embedded application.
 #include "pl-incl.h"
 
 #define PROG_PL "pl"
+#define PROG_CC "cc"
 #define PROG_LD cc
 #define PROG_OUT "a.out"
 #define LIB_PL	"-lpl"
@@ -662,7 +664,7 @@ fillDefaultOptions()
 { char tmp[1024];
   char *defcxx = "c++";
 
-  defaultProgram(&cc,  "cc");
+  defaultProgram(&cc,  PROG_CC);
   if ( streq(cc, "gcc") )
     defcxx = "g++";
   defaultProgram(&cxx, defcxx);
@@ -678,6 +680,12 @@ fillDefaultOptions()
 
   tmpPath(&ctmp,   "ctmp-");
   tmpPath(&pltmp,  "pltmp-");
+#ifdef WIN32
+/* Saved states have the .exe extension under Windows */
+  replaceExtension(pltmp, "exe", (char*) tmp);
+  free(pltmp);
+  pltmp = strdup(tmp);
+#endif
   defaultPath(&out, PROG_OUT);
 
   defaultProgram(&plgoal,     "$welcome");
@@ -1014,8 +1022,7 @@ createSavedState()
   appendArgList(&ploptions, "true");
   appendArgList(&ploptions, "-t");
   appendArgList(&ploptions, buf);
-
-  appendArgList(&tmpfiles, pltmp);		/* register for deletion */
+  appendArgList(&tmpfiles, pltmp);
 
   callprog(pl, &ploptions);
 }
@@ -1166,4 +1173,3 @@ main(int argc, char **argv)
 
   return 0;
 }
-

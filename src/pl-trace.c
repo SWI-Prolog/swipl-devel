@@ -100,6 +100,7 @@ forwards void		helpInterrupt(void);
 #endif
 forwards bool		hasAlternativesFrame(LocalFrame);
 forwards void		alternatives(LocalFrame);
+static void		exceptionDetails(void);
 forwards void		listGoal(LocalFrame frame);
 forwards int		traceInterception(LocalFrame, LocalFrame, int, Code);
 forwards void		writeFrameGoal(LocalFrame frame, int how);
@@ -540,6 +541,12 @@ traceAction(char *cmd, int port, LocalFrame frame, bool interactive)
 		{ FeedBack("No show context\n");
 		}
 		return ACTION_AGAIN;
+    case 'm':	FeedBack("Exception details");
+    	        if ( port & EXCEPTION_PORT )
+		{ exceptionDetails();
+		} else
+		   Warn("No exception\n");
+		return ACTION_AGAIN;
     case 'L':	FeedBack("Listing");
 		listGoal(frame);
 		return ACTION_AGAIN;
@@ -564,16 +571,17 @@ static void
 helpTrace(void)
 { Putf("Options:\n");
   Putf("+:                  spy        -:                 no spy\n");
-  Putf("/c|e|r|f|u|a} goal: find       .:                 repeat find\n");
+  Putf("/c|e|r|f|u|a goal:  find       .:                 repeat find\n");
   Putf("a:                  abort      A:                 alternatives\n");
   Putf("b:                  break      c (return, space): creep\n");
   Putf("d:                  display    e:                 exit\n");
-  Putf("f:                  fail       [depth] g:         goals\n");
+  Putf("f:                  fail       [depth] g:         goals (backtrace)\n");
   Putf("h (?):              help       i:                 ignore\n");
   Putf("l:                  leap       L:                 listing\n");
   Putf("n:                  no debug   p:                 print\n");
   Putf("r:                  retry      s:                 skip\n");
   Putf("u:                  up         w:                 write\n");
+  Putf("m:		    exception details\n");
   Putf("C:                  toggle show context\n");
 #if O_DEBUG
   Putf("[level] D:	    set system debug level\n");
@@ -685,6 +693,30 @@ alternatives(LocalFrame frame)
 
 
 static void
+exceptionDetails()
+{ term_t except = LD->exception.pending;
+  fid_t cid = PL_open_foreign_frame();
+  term_t av = PL_new_term_refs(2);
+  predicate_t pred = PL_predicate("print_message", 2, "system");
+  extern int Output;
+  int OldOut = Output;
+
+  pl_flush();
+  Output = 2;
+  Putf("\n\n\tException term: ");
+  pl_write(except);
+  Putf("\n\t       Message: ");
+  PL_put_atom(av+0, ATOM_error);
+  PL_put_term(av+1, except);
+  PL_call_predicate(MODULE_system, PL_Q_NODEBUG, pred, av);
+  Output = OldOut;
+  Putf("\n");
+
+  PL_discard_foreign_frame(cid);
+}
+
+
+static void
 listGoal(LocalFrame frame)
 { fid_t cid = PL_open_foreign_frame();
   term_t goal = PL_new_term_ref();
@@ -692,6 +724,7 @@ listGoal(LocalFrame frame)
   extern int Output;
   int OldOut = Output;
 
+  Output = 1;
   put_frame_goal(goal, frame);
   PL_call_predicate(MODULE_system, PL_Q_NODEBUG, pred, goal);
   Output = OldOut;

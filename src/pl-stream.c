@@ -210,16 +210,16 @@ S__fillbuf(IOSTREAM *s)
       s->limitp = &s->buffer[n];
       return char_to_int(*s->bufp++);
     } else
-    {
-#if 0
-      s->bufp = s->buffer;		/* empty the buffer */
-      s->limitp = s->buffer;
-#endif
-
-      if ( n == 0 )
+    { if ( n == 0 )
       { if ( !(s->flags & SIO_NOFEOF) )
 	  s->flags |= SIO_FEOF;
 	return EOF;
+#ifdef EWOULDBLOCK
+      } else if ( errno == EWOULDBLOCK )
+      { s->bufp = s->buffer;
+	s->limitp = s->buffer;
+	return -1;
+#endif
       } else
       { s->flags |= SIO_FERR;
 	return -1;

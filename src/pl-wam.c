@@ -1937,11 +1937,15 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 
 #if O_DEBUGGER
 	  if ( debugstatus.debugging )
-	  { switch(tracePort(FR, NULL, EXCEPTION_PORT, PC))
+	  { *valTermRef(LD->exception.pending) = except;
+
+	    switch(tracePort(FR, NULL, EXCEPTION_PORT, PC))
 	    { case ACTION_RETRY:
 		*valTermRef(exception_printed) = 0;
 		goto retry;
 	    }
+
+	    *valTermRef(LD->exception.pending) = 0;
 	  }
 #endif
 	  leaveFrame(FR);

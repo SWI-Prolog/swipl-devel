@@ -734,9 +734,10 @@ emptyStacks()
   emptyStack((Stack)&LD->stacks.argument);
 
   PL_open_foreign_frame();
-  exception_bin        = PL_new_term_ref();
-  exception_printed    = PL_new_term_ref();
-  LD->exception.tmp    = PL_new_term_ref();
+  exception_bin         = PL_new_term_ref();
+  exception_printed     = PL_new_term_ref();
+  LD->exception.tmp     = PL_new_term_ref();
+  LD->exception.pending = PL_new_term_ref();
 }
 
 

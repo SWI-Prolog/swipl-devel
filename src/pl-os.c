@@ -37,9 +37,6 @@
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
-#ifdef HAVE_SYS_PARAM_H
-#include <sys/param.h>
-#endif
 #ifdef HAVE_SYS_FILE_H
 #include <sys/file.h>
 #endif
@@ -2643,7 +2640,7 @@ Which(const char *program, char *fullname)
     point,  expressing  the  time  to sleep in seconds.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifdef HAVE_SELECT
+#if defined(HAVE_SELECT) && !defined(WIN32)
 
 void
 Pause(real time)

@@ -17,6 +17,9 @@
 #  include <time.h>
 # endif
 #endif
+#ifdef HAVE_SYS_PARAM_H			/* get MAXPATHLEN */
+#include <sys/param.h>
+#endif
 
 
 		/********************************
@@ -63,8 +66,14 @@ extern long Random(void);
 #define Pclose(fd)	pclose(fd)
 #endif
 
-#if tos
-#define MAXPATHLEN	PATH_MAX
+#ifndef MAXPATHLEN
+#ifdef PATH_MAX
+#define MAXPATHLEN PATH_MAX
+#else
+#ifdef PATHSIZE
+#define MAXPATHLEN PATHSIZE
+#endif
+#endif
 #endif
 
 

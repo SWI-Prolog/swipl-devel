@@ -18,11 +18,8 @@ If time is there I will have a look at all this to  clean  it.   Notably
 handling times must be cleaned, but that not only holds for this module.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if defined(__WINDOWS__) || defined(__NT__)
+#ifdef WIN32
 #include "windows.h"
-#undef FD_SET
-#undef FD_ISSET
-#undef FD_ZERO
 #endif
 
 #include "pl-incl.h"
@@ -1074,7 +1071,8 @@ pl_wait_for_input(term_t Streams, term_t Available,
     if ( (n = streamNo(head, F_READ)) < 0 )
       fail;
     if ( !(s = fileTable[n].stream) || (fd=Sfileno(s)) < 0 )
-      fail;
+      return PL_error("wait_for_input", 3, NULL, ERR_TYPE,
+		      PL_new_atom("file_stream"), head);
     fdmap[fd] = n;
 
     FD_SET(fd, &fds);
@@ -1102,7 +1100,7 @@ pl_wait_for_input(term_t Streams, term_t Available,
   for(n=0; n <= max; n++)
   { if ( FD_ISSET(n, &fds) )
     { if ( !PL_unify_list(available, head, available) ||
-	   !unifyStreamName(head, fdmap[n]) )
+	   !unifyStreamNo(head, fdmap[n]) )
 	fail;
     }
   }

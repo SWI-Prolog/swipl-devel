@@ -207,6 +207,7 @@ typedef struct
     term_t	bin;			/* temporary handle for exception */
     term_t	printed;		/* already printed exception */
     term_t	tmp;			/* tmp for errors */
+    term_t	pending;		/* used by the debugger */
   } exception;
 
   struct
