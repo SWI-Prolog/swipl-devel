@@ -1,14 +1,89 @@
 \chapter{Overview}
 
-\section{Starting SWI-Prolog from the Unix Shell}
+\section{Getting started quickly}
 
-It is advised to install SWI-Prolog as `pl' in the local binary
-directory. SWI-Prolog can then be started from the Unix shell by typing
-`\file{pl}'. The system will boot from the system's default boot
-file, perform the necessary initialisations and then enter the
-interactive top level.
+\subsection{Starting SWI-Prolog}
 
-\subsection{The user's initialisation file}	\label{sec:initfile}
+\subsubsection{Starting SWI-Prolog on Unix} \label{sec:startunix}
+
+By default, SWI-Prolog is installed as `pl', though some administrators
+call it `swipl' or `swi-prolog'. The commandline arguments of SWI-Prolog
+itself and its utility programs are documented using standard Unix
+\program{man} pages. SWI-Prolog is normally operated as an interactive
+application simply by starting the program:
+
+\begin{code}
+% pl
+/staff/jan/.plrc compiled, 0.00 sec, 1,016 bytes.
+Welcome to SWI-Prolog (Version 3.2.9)
+Copyright (c) 1993-1998 University of Amsterdam.  All rights reserved.
+
+For help, use ?- help(Topic). or ?- apropos(Word).
+
+?- 
+\end{code}
+
+After starting Prolog, one normally loads a program into it using 
+consult/1, which---for historical reasons---may be abbreviated by
+putting the name of the program file between square brackets.  The
+following goal loads the file \file{likes.pl} containing clauses for
+the predicates likes/2:
+
+\begin{code}
+?- [likes].
+likes compiled, 0.00 sec, 596 bytes.
+
+Yes
+?- 
+\end{code}
+
+After this point, Unix and Windows users are united again.
+
+\subsubsection{Starting SWI-Prolog on Windows}
+
+After SWI-Prolog has been installed on a Windows system, the following
+important new things are available to the user:
+
+\begin{itemize}
+    \item A folder (called {\em directory} in the remainder of this
+	  document) called \file{pl} containing the executables,
+	  libraries, etc. of the system.  No files are installed
+	  outside this directory.  
+    \item A program \program{plwin.exe}, providing a window for interaction
+          with Prolog. The program \program{plcon.exe} is a version of
+	  SWI-Prolog that runs in a DOS-box.
+    \item The file-extension \fileext{pl} is associated with the program
+          \program{plwin.exe}.  Opening a \fileext{pl} file will cause
+	  \program{plwin.exe} to start, change directory to the
+	  directory in which the file-to-open resides and load this
+	  file.
+\end{itemize}
+
+The normal way to start with the \file{likes.pl} file mentioned in 
+\secref{startunix} is by simply double-clicking this file in the Windows
+explorer.
+
+
+\subsection{Executing a query}
+
+After loading a program, one can ask Prolog queries about the program.
+The query below asks Prolog to prove whether `john' likes someone and
+who is liked by `john'.  The system responds with \mbox{\tt X = <value>}
+if it can prove the goal for a certain \arg{X}.  The user can type
+the semi-colon (;) if (s)he wants another solution, or {\sc return} if
+(s)he is satisfied, after which Prolog will say {\bf Yes}.  If Prolog
+answers {\bf No}, it indicates it cannot find any more answers to the
+query.  Finally, Prolog can answer using an error message to indicate
+the query or program contains an error.
+
+\begin{code}
+?- likes(john, X).
+
+X = mary
+\end{code}
+
+
+\section{The user's initialisation file}	\label{sec:initfile}
 
 \index{startup file}%
 \index{user profile file}%
@@ -38,12 +113,12 @@ global		& 		& SWI-Home directory or
 After the first startup file is found it is loaded and Prolog
 stops looking for further startup files. The name of the
 startup file can be changed with the `\argoption{-f}{file}'
-option.  If \arg{File} denotes an abolute path, this file is loaded,
+option.  If \arg{File} denotes an absolute path, this file is loaded,
 otherwise the file is searched for using the same conventions as for
 the default startup file. Finally, if \arg{file} is
 \const{none}, no file is loaded.
 
-\subsection{Initialisation goals}		\label{sec:initgoal}
+\section{Initialisation goals}		\label{sec:initgoal}
 
 After loading the startup file SWI-Prolog executes a user
 initialisation goal. The default goal is a system predicate that prints
@@ -52,7 +127,7 @@ the banner message. The default can be modified with the
 Default is the interactive Prolog loop (see prolog/0). The user can
 overwrite this default with the `\argoption{-t}{toplevel}' option.
 
-\subsection{Command Line Options}
+\section{Command Line Options}
 
 The full set of command line options is given below:
 
@@ -579,7 +654,7 @@ switched off.%
 \subsection{During program development}
 
 During program development, programs are normally loaded using
-consult/1, or the list abreviation. It is common practice to organise a
+consult/1, or the list abbreviation. It is common practice to organise a
 project as a collection of source-files and a \jargon{load-file}, a
 Prolog file containing only use_module/[1,2] or ensure_loaded/1
 directives, possibly with a definition of the \jargon{entry-point} of
@@ -886,7 +961,7 @@ If \const{true} (default \const{false}), expand \file{\$\arg{varname}}
 and \file{~} in arguments of builtin-predicates that accept a file name
 (open/3, exists_file/1, access_file/2, etc.).   The predicate
 expand_file_name/2 should be used to expand environment variables
-and wildchard patterns. This feature is intended for backward
+and wildcard patterns. This feature is intended for backward
 compatibility with older versions of SWI-Prolog.
     \featureoption{unix}{bool}
 \index{unix}%
@@ -969,14 +1044,8 @@ directory does not exist or is write protected.
 \section{Garbage Collection}
 
 SWI-Prolog version 1.4 was the first release to support garbage
-collection.  Together with tail-recursion optimisation this guaranties
-forward chaining programs do not waste indefinite amounts of memory.
-Previous releases of this manual stressed on using failure-driven
-loops in those cases that no information needed to be passed to the
-next iteration via arguments.  This to avoid large amounts of garbage.
-This is no longer strictly necessary, but it should be noticed that
-garbage collection is a time consuming activity.  Failure driven loops
-tend to be faster for this reason.
+collection. Together with last-call optimisation this guarantees forward
+chaining programs do not waste infinite amounts of memory.
 
 
 \section{Syntax Notes}
@@ -1094,8 +1163,8 @@ option character is immediately followed by a number and optionally by a
 is interpreted in Kbytes (1024 bytes), with \const{m}, the value is
 interpreted in Mbytes ($1024 \times 1024$ bytes).
 
-The local-, global- and trail-stack are limited to 64 Mbytes on 32 bit
-processors, or more in general to $\pow{2}{\mbox{bits-per-long} - 6}$
+The local-, global- and trail-stack are limited to 128 Mbytes on 32 bit
+processors, or more in general to $\pow{2}{\mbox{bits-per-long} - 5}$
 bytes.
 
 \begin{table}
@@ -1152,32 +1221,7 @@ On some machines, the runtime stacks described above are allocated using
 `sparse allocation'. Virtual space upto the limit is claimed at startup
 and committed and released while the area grows and shrinks.  On Win32
 platform this is realised using \funcref{VirtualAlloc}{} and friends.
-On Unix systems this is realised using \funcref{mmap}{}, either mapping
-\file{/dev/zero} or a temporary file created in \file{/tmp}.
-
-As Unix provides no way to reserve part of the address space, this
-process may lead to conflicts. By default, SWI-Prolog computes the
-required virtual address space for the runtime stacks. If available, it
-uses \funcref{getrlimit}{} to determine the top of the virtual space
-reserved for \funcref{malloc}{} usage and locates the stacks in the top
-of this area. It assumes no other \funcref{mmap}{} activity such as
-mapping shared libraries or \funcref{mmap}{} by foreign modules will use
-the area reserved for the heap and \funcref{malloc}{},
-\funcref{malloc}{} will grow the heap from low to high addresses and
-will notice the existence of the Prolog stacks.
-
-These assumptions appear to hold. The user may using the
-\cmdlineoption{-H} to specify the maximum heap-size.  In this case,
-the Prolog stacks will be allocated at the indicated size from the
-current top of the heap.  On these system, statistics/[0,2] reports
-\idx{heaplimit} and \idx{heap}.  The \idx{heaplimit} value is the
-distance between the {\em break} and the first Prolog stack. 
-The \idx{heap} value is the distance between what Prolog assumes to
-be the base of the heap%
-	\footnote{There is no portable and reliable way to find the real
-		  base.}
-and the current location of the break.
-
+On Unix systems this is realised using \funcref{mmap}{}.
 
 \subsection{Other Limits}
 
@@ -1194,12 +1238,11 @@ switched off with style_check/1.
     \item[Address space]
 SWI-Prolog data is packed in a 32-bit word, which contains both type
 and value information.  The size of the various memory areas is limited
-to 128 Mb for each of the areas.  With some redesign, the program area
-could be split into data that should be within this range and the rest
-of the data, virtually unlimiting the program size.
+to 128 Mb for each of the areas, except for the program heap, which is
+not limited.
     \item[Integers]
 Integers are 32-bit to the user, but integers upto the value of the
-{\tt max_tagged_integer} feature are represented more efficiently.
+\const{max_tagged_integer} feature are represented more efficiently.
     \item[Floats]
 Floating point numbers are represented as native double precision
 floats, 64 bit IEEE on most machines.
@@ -1208,7 +1251,7 @@ floats, 64 bit IEEE on most machines.
 \subsection{Reserved Names}
 
 The boot compiler (see \cmdlineoption{-b} option) does not support the module
-system (yet).  As large parts of the system are written in Prolog itself
+system.  As large parts of the system are written in Prolog itself
 we need some way to avoid name clashes with the user's predicates, 
 database keys, etc.  Like Edinburgh C-Prolog \cite{CPROLOG:manual} all
 predicates, database keys, etc.\ that should be hidden from the user

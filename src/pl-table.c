@@ -100,6 +100,25 @@ lookupHTable(Table ht, void *name)
   return NULL;
 }
 
+#ifdef O_DEBUG
+void
+checkHTable(Table ht)
+{ int i;
+  int n = 0;
+
+  for(i=0; i<ht->buckets; i++)
+  { Symbol s;
+
+    for(s=ht->entries[i]; s; s=s->next)
+    { assert(lookupHTable(ht, s->name) == s);
+      n++;
+    }
+  }
+
+  assert(n == ht->size);
+}
+#endif
+
 /* MT: Locked by calling addHTable()
 */
 
@@ -124,12 +143,12 @@ rehashHTable(Table ht)
 
       n = s->next;
       s->next = ht->entries[v];
-      s->next = ht->entries[v];
       ht->entries[v] = s;
     }
   }
 
   freeHeap(oldtab, oldbucks * sizeof(Symbol));
+  DEBUG(0, checkHTable(ht));
 }
 
 
@@ -157,6 +176,7 @@ addHTable(Table ht, void *name, void *value)
     rehashHTable(ht);
   UNLOCK();
 
+  DEBUG(1, checkHTable(ht));
   succeed;
 }  
 

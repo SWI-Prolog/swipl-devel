@@ -2356,8 +2356,20 @@ $\arg{Result} = \arg{Expr1} \times \arg{Expr2}$
 $\arg{Result} = \frac{\arg{Expr1}}{\arg{Expr2}}$
 \infixop{mod}{+IntExpr1}{+IntExpr2}
 Modulo:
-\arg{Result} = \arg{IntExpr1} - (\arg{IntExpr1} // \arg{IntExpr2})
-$\times$ \arg{IntExpr1}
+\mbox{\arg{Result} = \arg{IntExpr1} - (\arg{IntExpr1} // \arg{IntExpr2})
+$\times$ \arg{IntExpr2}}
+The function mod/2 is implemented using the C \verb$%$ operator.  It's
+behaviour with negtive values is illustrated in the table below.
+
+\begin{center}
+\begin{tabular}{rcrcr}
+2  &=& 17  &mod& 5 \\
+2  &=& 17  &mod& -5 \\
+-2 &=& -17 &mod& 5 \\
+-2 &=& -17 &mod& 5 \\
+\end{tabular}
+\end{center}
+
 \infixop{rem}{+IntExpr1}{+IntExpr2}
 Remainder of division:
 \mbox{\arg{Result} = float_fractional_part(\arg{IntExpr1}/\arg{IntExpr2})}
@@ -2679,8 +2691,8 @@ list of alternatives without duplicates.
 
 All the predicates in this section call a predicate on all members of a
 list or until the predicate called fails.  The predicate is called via
-apply/2, which implies common arguments can be put in front of the
-arguments obtained from the list(s). For example:
+call/[2..], which implies common arguments can be put in
+front of the arguments obtained from the list(s). For example:
 
 \begin{code}
 ?- maplist(plus(1), [0, 1, 2], X).
@@ -2963,8 +2975,9 @@ dos_newline(Arg) :-
 \section{Terminal Control}
 
 The following predicates form a simple access mechanism to the Unix termcap
-library to provide terminal independent I/O for screen terminals.  The
-library package \file{library(tty)} builds on top of these predicates.
+library to provide terminal independent I/O for screen terminals. These
+predicates are only available on Unix machines.  The SWI-Prolog Windows 
+consoles accepts the ANSI escape sequences.
 
 \begin{description}
 \predicate{tty_get_capability}{3}{+Name, +Type, -Result}
@@ -3016,18 +3029,20 @@ completion.  \arg{Show} is either \const{iconic} or \const{normal} and
 dictates the initial status of the window.  The \const{iconic} option
 is notably handy to start (DDE) servers.
 \predicate{getenv}{2}{+Name, -Value}
-Get Unix environment variable (see csh(1) and sh(1)). Fails if the
-variable does not exist.
+Get environment variable. Fails silently if the variable does not exist.
+Please note that environment variable names are case-sensitive on Unix
+systems and case-insensitive on Windows.
 \predicate{setenv}{2}{+Name, +Value}
-Set Unix environment variable.  \arg{Name} and \arg{Value} should be
+Set environment variable.  \arg{Name} and \arg{Value} should be
 instantiated to atoms or integers.  The environment variable will be
-passed to shell/[0-2] and can be requested using getenv/2.
+passed to shell/[0-2] and can be requested using getenv/2.  They also
+influence expand_file_name/2.
 \predicate{unsetenv}{1}{+Name}
-Remove Unix environment variable from the environment.
+Remove environment variable from the environment.
     \predicate{unix}{1}{+Command}
 This predicate comes from the Quintus compatibility library and provides
 a partial implementation thereof.  It provides access to some operating
-system features and unlike the name suggests, is no operating system
+system features and unlike the name suggests, is not operating system
 specific. Currently it is the only way to fetch the Prolog command-line
 arguments. Defined \arg{Command}'s are below.
 

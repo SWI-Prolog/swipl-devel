@@ -14,7 +14,7 @@
 
                          RReeffeerreennccee MMaannuuaall
 
-               _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _3_._2_._9_, _J_u_n_e _1_9_9_9
+               _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _3_._2_._9_, _J_u_l_y _1_9_9_9
 
                           _J_a_n _W_i_e_l_e_m_a_k_e_r
 
@@ -216,22 +216,19 @@ list(Self, From:name) :->
 
 test :- send(new(prolog_lister), open).
 
-The  165  built-in   classes  deal  with  the  meta-environment,   data-
+Its  165  built-in   classes  deal  with  the  meta-environment,   data-
 representation  and---of  course---graphics.     The   graphics  classes
 concentrate on direct-manipulation of diagrammatic representations.
 
-AAvvaaiillaabbiilliittyy.. XPCE  runs  on  most  Unixtm  platforms,  Windows  95  and
+AAvvaaiillaabbiilliittyy.. XPCE runs  on most  Unixtm platforms, Windows  95, 98  and
 Windows NT. It has been connected to SWI-Prolog, SICStustm and Quintustm
 Prolog as well  as some Lisp dialects and  C++.  The Quintus version  is
 commercially distributed and supported as ProWindows-3tm.
 
 IInnffoo.. further        information        is         available        from
 http://www.swi.psy.uva.nl/projects/xpce/home.html   or  by   E-mail   to
-xpce-request@swi.psy.uva.nl.   There is  a demo  version for Windows  95
-and  NT  in  ftp://swi.psy.uva.nl/pub/xpce/Windows/bin/,   and  one  for
-the  i386/Linux  system in  ftp://swi.psy.uva.nl/pub/xpce/linux.     For
-information  on  ProWindows-3,  please  see  http://www.aiil.co.uk,   or
-contact sales@aiil.co.uk.
+xpce-request@swi.psy.uva.nl.   There are demo  versions for Windows  95,
+98, NT and i386/Linux available from the XPCE download page.
 
 
 11..55 VVeerrssiioonn 11..55 RReelleeaassee NNootteess
@@ -295,7 +292,7 @@ version.  Changes to the Prolog system include:
   o _`_A_n_s_w_e_r_' _r_e_u_s_e
     The  toplevel maintains  a table  of bindings  returned by  toplevel
     goals  and  allows for  reuse  of these  bindings by  prefixing  the
-    variables with the $ sign.  See section 2.5.
+    variables with the $ sign.  See section 2.8.
 
   o _B_e_t_t_e_r _s_o_u_r_c_e _c_o_d_e _a_d_m_i_n_i_s_t_r_a_t_i_o_n
     Allows  for proper updating of multifile predicates and  finding the
@@ -519,7 +516,21 @@ the resource_error  exception and thus  can be handled  in Prolog  using
 catch/3.
 
 
-11..1199 AAcckknnoowwlleeddggeemmeennttss
+11..1199 VVeerrssiioonn 33..22 RReelleeaassee NNootteess
+
+Many small  patches and improvements.   Support  for XPCE 5.0  (improved
+exception-handling from  foreign code, recorded-database interface  from
+C).  Moved compiler  to  MSVC 5.0  on  Windows, repackaged  sources  and
+projects  to make  building on  Windows from  the  sources feasible  for
+normal users.    Support for  non-blocking Input  streams.   Better  and
+portable support for mmap()-based stacks on Unix.   Raised maximum stack
+size to 128 MB, etc.
+
+As  of 3.2.9,  first  steps  in supporting  multi-threaded  applications
+(Unix, developers only).
+
+
+11..2200 AAcckknnoowwlleeddggeemmeennttss
 
 Some  small  parts  of  the  Prolog  code  of  SWI-Prolog  are  modified
 versions of  the corresponding  Edinburgh C-Prolog code:   grammar  rule
@@ -545,16 +556,85 @@ manual.  Thanks!
 CChhaapptteerr 22..  OOVVEERRVVIIEEWW
 
 
-22..11 SSttaarrttiinngg SSWWII--PPrroolloogg ffrroomm tthhee UUnniixx SShheellll
-
-It  is  advised to  install  SWI-Prolog  as  `pl' in  the  local  binary
-directory.    SWI-Prolog can  then be  started from  the  Unix shell  by
-typing `pl'.  The system will boot from the  system's default boot file,
-perform the  necessary initialisations  and then  enter the  interactive
-top level.
+22..11 GGeettttiinngg ssttaarrtteedd qquuiicckkllyy
 
 
-22..11..11 TThhee uusseerr''ss iinniittiiaalliissaattiioonn ffiillee
+22..11..11 SSttaarrttiinngg SSWWII--PPrroolloogg
+
+
+22..11..11..11 SSttaarrttiinngg SSWWII--PPrroolloogg oonn UUnniixx
+
+By default, SWI-Prolog is installed as `pl',  though some administrators
+call  it  `swipl'  or  `swi-prolog'.     The  commandline  arguments  of
+SWI-Prolog  itself  and  its  utility  programs   are  documented  using
+standard  Unix  man pages.     SWI-Prolog  is normally  operated  as  an
+interactive application simply by starting the program:
+
+% pl
+/staff/jan/.plrc compiled, 0.00 sec, 1,016 bytes.
+Welcome to SWI-Prolog (Version 3.2.9)
+Copyright (c) 1993-1998 University of Amsterdam.  All rights reserved.
+
+For help, use ?- help(Topic). or ?- apropos(Word).
+
+?-
+
+After  starting Prolog,  one  normally loads  a  program into  it  using
+consult/1,  which---for  historical  reasons---may   be  abbreviated  by
+putting the  name of  the program  file between  square brackets.    The
+following  goal loads  the  file  likes.pl containing  clauses  for  the
+predicates likes/2:
+
+?- [likes].
+likes compiled, 0.00 sec, 596 bytes.
+
+Yes
+?-
+
+After this point, Unix and Windows users are united again.
+
+
+22..11..11..22 SSttaarrttiinngg SSWWII--PPrroolloogg oonn WWiinnddoowwss
+
+After SWI-Prolog has been  installed on a Windows system,  the following
+important new things are available to the user:
+
+  o A  folder  (called  _d_i_r_e_c_t_o_r_y in  the  remainder of  this  document)
+    called  pl  containing the  executables,  libraries, etc.    of  the
+    system.  No files are installed outside this directory.
+
+  o A  program  plwin.exe,  providing  a  window  for  interaction  with
+    Prolog.  The  program plcon.exe is a version of SWI-Prolog that runs
+    in a DOS-box.
+
+  o The  file-extension .pl  is associated with  the program  plwin.exe.
+    Opening  a .pl file will cause plwin.exe to start,  change directory
+    to  the directory in  which the file-to-open  resides and load  this
+    file.
+
+The  normal   way  to  start  with   the  likes.pl  file  mentioned   in
+section 2.1.1.1  is by simply double-clicking  this file in the  Windows
+explorer.
+
+
+22..11..22 EExxeeccuuttiinngg aa qquueerryy
+
+After loading a program,  one can ask Prolog queries about  the program.
+The query below  asks Prolog to prove  whether `john' likes someone  and
+who is  liked by  `john'.   The system  responds with X = <_v_a_l_u_e> if  it
+can prove  the goal for a  certain _X. The  user can type the  semi-colon
+(;) if  (s)he wants another solution,  or return if (s)he is  satisfied,
+after which Prolog will say YYeess.  If Prolog answers  NNoo, it indicates it
+cannot find any more  answers to the query.  Finally, Prolog  can answer
+using an  error message  to indicate  the query or  program contains  an
+error.
+
+?- likes(john, X).
+
+X = mary
+
+
+22..22 TThhee uusseerr''ss iinniittiiaalliissaattiioonn ffiillee
 
 After  the necessary  system  initialisation  the system  consults  (see
 consult/1) the user's startup file.  The base-name  of this file follows
@@ -572,13 +652,13 @@ default value for this search-path.
 
 After the  first startup  file is found  it is  loaded and Prolog  stops
 looking for further startup files.  The name of the  startup file can be
-changed with  the `-f file' option.   If _F_i_l_e  denotes an abolute  path,
+changed with the  `-f file' option.   If _F_i_l_e denotes an absolute  path,
 this file is loaded,  otherwise the file is searched for using  the same
 conventions as for the default startup file.  Finally,  if _f_i_l_e is none,
 no file is loaded.
 
 
-22..11..22 IInniittiiaalliissaattiioonn ggooaallss
+22..33 IInniittiiaalliissaattiioonn ggooaallss
 
 After   loading   the   startup  file   SWI-Prolog   executes   a   user
 initialisation  goal.   The  default  goal is  a system  predicate  that
@@ -588,7 +668,7 @@ interactive Prolog  loop (see prolog/0).   The  user can overwrite  this
 default with the `-t toplevel' option.
 
 
-22..11..33 CCoommmmaanndd LLiinnee OOppttiioonnss
+22..44 CCoommmmaanndd LLiinnee OOppttiioonnss
 
 The full set of command line options is given below:
 
@@ -639,7 +719,7 @@ The full set of command line options is given below:
     details.
 
 --cc _f_i_l_e _._._.
-    Compile files into an `intermediate code file'.  See section 2.7.
+    Compile files into an `intermediate code file'.  See section 2.10.
 
 --oo _o_u_t_p_u_t
     Used  in combination  with -c  or -b  to determine  output file  for
@@ -650,7 +730,7 @@ The full set of command line options is given below:
 
 --ff _f_i_l_e
     Use  _f_i_l_e as startup file instead  of the default.  `-f none'  stops
-    SWI-Prolog from searching for a startup file.  See section 2.1.1.
+    SWI-Prolog from searching for a startup file.  See section 2.2.
 
 --FF _s_c_r_i_p_t
     Selects  a startup-script from the  SWI-Prolog home directory.   The
@@ -716,7 +796,7 @@ reference only.
     compiled with the -DO_DEBUG flag.  System maintenance only.
 
 
-22..22 GGNNUU EEmmaaccss IInntteerrffaaccee
+22..55 GGNNUU EEmmaaccss IInntteerrffaaccee
 
 A provisional  interface to emacs  has been  included since version  1.6
 of  SWI-Prolog.    The interface  is  based  on the  freely  distributed
@@ -727,7 +807,7 @@ compilation-warnings  and  many  more.    For  details,  see  the  files
 pl/lisp/README and pl/lisp/swi-prolog.el.
 
 
-22..33 OOnnlliinnee HHeellpp
+22..66 OOnnlliinnee HHeellpp
 
 Online  help  provides a  fast  lookup  and browsing  facility  to  this
 manual.   The online  manual can show predicate  definitions as well  as
@@ -744,7 +824,7 @@ output using  overstrike to realise bold  and underlined output or  not.
 If this  feature is not  set it  is initialised by  the help library  to
 true if  the TERM variable equals  xterm and false  otherwise.  If  this
 default does not  satisfy you, add the  following line to your  personal
-startup file (see section 2.1.1):
+startup file (see section 2.2):
 
 :- set_feature(write_help_with_overstrike, true).
 
@@ -797,14 +877,14 @@ eexxppllaaiinn((_+_T_o_E_x_p_l_a_i_n_, _-_E_x_p_l_a_n_
     yields further explanations.
 
 
-22..44 QQuueerryy SSuubbssttiittuuttiioonnss
+22..77 QQuueerryy SSuubbssttiittuuttiioonnss
 
 SWI-Prolog  offers a  query substitution  mechanism similar  to that  of
 Unix csh (csh(1)), called  `history'.  The availability of  this feature
 is controlled by set_feature/2, using the history feature.   By default,
 history is available if  the feature readline is false.  To  enable this
 feature, remembering the  last 50 commands, put the following  into your
-startup file (see section 2.1.1:
+startup file (see section 2.2:
 
 :- set_feature(history, 50).
 
@@ -882,7 +962,7 @@ Yes
            Figure 2.1:  Some examples of the history facility
 
 
-22..44..11 LLiimmiittaattiioonnss ooff tthhee HHiissttoorryy SSyysstteemm
+22..77..11 LLiimmiittaattiioonnss ooff tthhee HHiissttoorryy SSyysstteemm
 
 When  in   top  level   SWI-Prolog  reads  the   user's  queries   using
 read_history/6 rather  than  read/1.   This  predicate first  reads  the
@@ -905,7 +985,7 @@ From the  above it  follows that  it is  hard or  impossible to  correct
 quotation with single or double quotes, comment delimiters and spacing.
 
 
-22..55 RReeuussee ooff ttoopplleevveell bbiinnddiinnggss
+22..88 RReeuussee ooff ttoopplleevveell bbiinnddiinnggss
 
 Bindings resulting from the successful execution of a  toplevel goal are
 asserted in a database.  These values may be  reused in further toplevel
@@ -943,7 +1023,7 @@ Trail  stack :    4,096,000        8,192          432 Bytes
 Yes
 
 
-22..66 OOvveerrvviieeww ooff tthhee DDeebbuuggggeerr
+22..99 OOvveerrvviieeww ooff tthhee DDeebbuuggggeerr
 
 SWI-Prolog has  a 6-port  tracer, extending the  standard 4-port  tracer
 [Clocksin & Melish, 1987]  with two  additional  ports.    The  optional
@@ -1093,13 +1173,13 @@ removed by  the cut.    In debug  mode, tail  recursion optimisation  is
 switched off.
 
 
-22..77 CCoommppiillaattiioonn
+22..1100 CCoommppiillaattiioonn
 
 
-22..77..11 DDuurriinngg pprrooggrraamm ddeevveellooppmmeenntt
+22..1100..11 DDuurriinngg pprrooggrraamm ddeevveellooppmmeenntt
 
 During  program   development,  programs   are  normally  loaded   using
-consult/1, or the list  abreviation.  It is common practice  to organise
+consult/1, or the list abbreviation.  It is  common practice to organise
 a project  as a  collection of source-files  and a  _l_o_a_d_-_f_i_l_e, a  Prolog
 file  containing only  use_module/[1,2]  or ensure_loaded/1  directives,
 possibly  with a  definition  of the  _e_n_t_r_y_-_p_o_i_n_t  of the  program,  the
@@ -1122,7 +1202,7 @@ explorer,  which will cause  plwin.exe to  be started  in the  directory
 holding load.pl.  Prolog loads load.pl before entering the toplevel.
 
 
-22..77..22 FFoorr rruunnnniinngg tthhee rreessuulltt
+22..1100..22 FFoorr rruunnnniinngg tthhee rreessuulltt
 
 There are  various options if  you want to make  your program ready  for
 real usage.   The best  choice depends on whether  the program is to  be
@@ -1130,7 +1210,7 @@ used only  on machines  holding the SWI-Prolog  development system,  the
 size of the program and the operating system (Unix vs. Windows).
 
 
-22..77..22..11 CCrreeaattiinngg aa sshheellll--ssccrriipptt
+22..1100..22..11 CCrreeaattiinngg aa sshheellll--ssccrriipptt
 
 Especially  on  Unix systems  and  not-too-large  applications,  writing
 a  shell-script  that  simply  loads  your  application  and  calls  the
@@ -1157,7 +1237,7 @@ On Windows  systems, similar  behaviour can  be achieved  by creating  a
 shortcut to Prolog, passing the proper options or writing a .bat file.
 
 
-22..77..22..22 CCrreeaattiinngg aa ssaavveedd--ssttaattee
+22..1100..22..22 CCrreeaattiinngg aa ssaavveedd--ssttaattee
 
 For larger programs,  as well as for  programs that are required run  on
 systems that  do not have the  SWI-Prolog development system  installed,
@@ -1169,7 +1249,7 @@ in  the saved  state,  creating  a single-file,  but  machine-dependent,
 executable.  This process is described in chapter 6.
 
 
-22..77..22..33 CCoommppiillaattiioonn uussiinngg tthhee --cc ccoommmmaannddlliinnee ooppttiioonn
+22..1100..22..33 CCoommppiillaattiioonn uussiinngg tthhee --cc ccoommmmaannddlliinnee ooppttiioonn
 
 This mechanism loads a series of Prolog source files  and then creates a
 saved-state as qsave_program/2 does.  The command syntax is:
@@ -1202,7 +1282,7 @@ This performs exactly the same as executing
 See also unix/1.
 
 
-22..88 EEnnvviirroonnmmeenntt CCoonnttrrooll
+22..1111 EEnnvviirroonnmmeenntt CCoonnttrrooll
 
 The current  system defines 2 different  mechanisms to query and/or  set
 properties  of the  environment:   flag/3  and feature/2  as well  as  a
@@ -1362,7 +1442,7 @@ ffeeaattuurree((_?_K_e_y_, _-_V_a_l_u_e))
 
     hhiissttoorryy ((_i_n_t_e_g_e_r))
          If _i_n_t_e_g_e_r >0,  support Unix csh(1)  like history as described
-         in section  2.4.    Otherwise,  only support  reusing  commands
+         in section  2.7.    Otherwise,  only support  reusing  commands
          through the  commandline editor.   The default  is to set  this
          feature to 0 if  a commandline editor is provided  (see feature
          readline) and 15 otherwise.
@@ -1400,7 +1480,7 @@ ffeeaattuurree((_?_K_e_y_, _-_V_a_l_u_e))
 
     aauuttoollooaadd ((_b_o_o_l))
          If true (default) autoloading of library functions  is enabled.
-         See section 2.9.
+         See section 2.12.
 
     vveerrbboossee__aauuttoollooaadd ((_b_o_o_l))
          If  true the  normal  consult  message  will be  printed  if  a
@@ -1446,8 +1526,8 @@ ffeeaattuurree((_?_K_e_y_, _-_V_a_l_u_e))
          arguments  of  builtin-predicates  that  accept  a   file  name
          (open/3, exists_file/1,  access_file/2,  etc.).   The  predicate
          expand_file_name/2  should  be  used   to  expand   environment
-         variables and  wildchard patterns.   This  feature is  intended
-         for backward compatibility with older versions of SWI-Prolog.
+         variables and wildcard patterns.  This feature  is intended for
+         backward compatibility with older versions of SWI-Prolog.
 
     uunniixx ((_b_o_o_l))
          If  true,  the  operating  system  is  some  version  of  Unix.
@@ -1464,7 +1544,7 @@ sseett__ffeeaattuurree((_+_K_e_y_, _+_V_a_l_u_e))
     an atom or number.
 
 
-22..99 AAuuttoommaattiicc llooaaddiinngg ooff lliibbrraarriieess
+22..1122 AAuuttoommaattiicc llooaaddiinngg ooff lliibbrraarriieess
 
 If ---at  runtime--- an undefined predicate  is trapped the system  will
 first try to import the predicate from the module's default  module.  If
@@ -1519,20 +1599,14 @@ mmaakkee__lliibbrraarryy__iinnddeexx((_+_D_i_r_e_c_t_
     if the directory does not exist or is write protected.
 
 
-22..1100 GGaarrbbaaggee CCoolllleeccttiioonn
+22..1133 GGaarrbbaaggee CCoolllleeccttiioonn
 
 SWI-Prolog  version  1.4  was  the  first  release  to  support  garbage
-collection.   Together with tail-recursion optimisation this  guaranties
-forward chaining  programs do  not waste indefinite  amounts of  memory.
-Previous releases of this manual stressed on  using failure-driven loops
-in those  cases that  no information  needed to  be passed  to the  next
-iteration via arguments.  This to avoid large amounts of  garbage.  This
-is no longer strictly  necessary, but it should be noticed  that garbage
-collection is a time  consuming activity.  Failure driven loops  tend to
-be faster for this reason.
+collection.     Together with  last-call  optimisation  this  guarantees
+forward chaining programs do not waste infinite amounts of memory.
 
 
-22..1111 SSyynnttaaxx NNootteess
+22..1144 SSyynnttaaxx NNootteess
 
 SWI-Prolog uses  standard `Edinburgh'  syntax.   A  description of  this
 syntax can be found in the Prolog books referenced  in the introduction.
@@ -1551,12 +1625,12 @@ by SWI-Prolog:
     commented out.
 
 
-22..1111..11 IISSOO SSyynnttaaxx SSuuppppoorrtt
+22..1144..11 IISSOO SSyynnttaaxx SSuuppppoorrtt
 
 SWI-Prolog offers ISO compatible extensions to the Edinburgh syntax.
 
 
-22..1111..11..11 CChhaarraacctteerr EEssccaappee SSyynnttaaxx
+22..1144..11..11 CChhaarraacctteerr EEssccaappee SSyynnttaaxx
 
 Within quoted  atoms (using single quotes:   '<_a_t_o_m>'special  characters
 are represented  using escape-sequences.    An escape  sequence is  lead
@@ -1631,7 +1705,7 @@ either  switch character_escapes  to false,  or  use  double \\,  as  in
 writef('\\l').
 
 
-22..1111..11..22 SSyynnttaaxx ffoorr NNoonn--DDeecciimmaall NNuummbbeerrss
+22..1144..11..22 SSyynnttaaxx ffoorr NNoonn--DDeecciimmaall NNuummbbeerrss
 
 SWI-Prolog  implements  both  Edinburgh  and  ISO   representations  for
 non-decimal numbers.   According to  Edinburgh syntax, such numbers  are
@@ -1641,10 +1715,10 @@ For example:  A is 0b100 \/ 0xf00  is a valid expression.   Such numbers
 are always unsigned.
 
 
-22..1122 SSyysstteemm LLiimmiittss
+22..1155 SSyysstteemm LLiimmiittss
 
 
-22..1122..11 LLiimmiittss oonn MMeemmoorryy AArreeaass
+22..1155..11 LLiimmiittss oonn MMeemmoorryy AArreeaass
 
 SWI-Prolog has  a number of  memory areas which are  only enlarged to  a
 certain limit.   The  default sizes for these  areas should suffice  for
@@ -1656,8 +1730,8 @@ optionally by  a k or  m.   With k or  no unit  indicator, the value  is
 interpreted in Kbytes (1024 bytes), with m, the  value is interpreted in
 Mbytes (10241* 024 bytes).
 
-The  local-, global-  and trail-stack  are limited  to 64  Mbytes on  32
-bit processors,  or more in general to  2 to the power bits-per-long - 6
+The local-,  global- and  trail-stack are  limited to 128  Mbytes on  32
+bit processors,  or more in general to  2 to the power bits-per-long - 5
 bytes.
        ___________________________________________________________
        |_Option_|Default_|Area_name______|Description____________|_||-L||2Mllooccaa||llTssttaacckkhe|l||||ocal|stack is used
@@ -1724,7 +1798,7 @@ bytes.
                         Table 2.2:  Memory areas
 
 
-22..1122..11..11 TThhee hheeaapp
+22..1155..11..11 TThhee hheeaapp
 
 With  the heap,  we  refer  to the  memory  area  used by  malloc()  and
 friends.  SWI-Prolog uses the area to store  atoms, functors, predicates
@@ -1736,29 +1810,10 @@ On  some machines,  the  runtime stacks  described above  are  allocated
 using `sparse allocation'.   Virtual space upto the limit is  claimed at
 startup and  committed and released  while the  area grows and  shrinks.
 On Win32  platform this  is realised using  VirtualAlloc() and  friends.
-On Unix systems this is realised using mmap(),  either mapping /dev/zero
-or a temporary file created in /tmp.
-
-As Unix  provides no  way to  reserve part  of the  address space,  this
-process may  lead to  conflicts.   By default,  SWI-Prolog computes  the
-required virtual address  space for the runtime  stacks.  If  available,
-it uses getrlimit() to  determine the top of the virtual  space reserved
-for malloc() usage and locates  the stacks in the top of this area.   It
-assumes no  other mmap() activity  such as  mapping shared libraries  or
-mmap() by foreign  modules will use the  area reserved for the heap  and
-malloc(), malloc()  will grow the  heap from low  to high addresses  and
-will notice the existence of the Prolog stacks.
-
-These  assumptions appear  to  hold.    The user  may  using the  -H  to
-specify the  maximum heap-size.   In this case,  the Prolog stacks  will
-be allocated  at the indicated  size from the current  top of the  heap.
-On  these system,  statistics/[0,2] reports  heaplimit and  heap.    The
-heaplimit value is the  distance between the _b_r_e_a_k and the  first Prolog
-stack.   The heap value is the  distance between what Prolog assumes  to
-be the base of the heap and the current location of the break.
+On Unix systems this is realised using mmap().
 
 
-22..1122..22 OOtthheerr LLiimmiittss
+22..1155..22 OOtthheerr LLiimmiittss
 
 CCllaauusseess  Currently the  following limitations  apply to  clauses.    The
     arity  may not be more than 1024 and the number of  variables should
@@ -1772,10 +1827,8 @@ AAttoommss aanndd SSttrriinnggss  SWI-Prolog  has no  limits  on 
 
 AAddddrreessss ssppaaccee  SWI-Prolog  data  is  packed  in  a 32-bit  word,   which
     contains  both type and value information.  The size of  the various
-    memory areas is limited  to 128 Mb for each of the areas.  With some
-    redesign,  the program area could be split into data that  should be
-    within  this range and  the rest of  the data, virtually  unlimiting
-    the program size.
+    memory areas is limited  to 128 Mb for each of the areas, except for
+    the program heap, which is not limited.
 
 IInntteeggeerrss  Integers are 32-bit to the  user, but integers upto the  value
     of the max_tagged_integer feature are represented more efficiently.
@@ -1784,14 +1837,14 @@ FFllooaattss  Floating  point  numbers   are  represented  as  native   do
     precision floats, 64 bit IEEE on most machines.
 
 
-22..1122..33 RReesseerrvveedd NNaammeess
+22..1155..33 RReesseerrvveedd NNaammeess
 
-The boot  compiler (see -b  option) does not  support the module  system
-(yet).    As large  parts of  the system  are written  in Prolog  itself
-we  need some  way to  avoid name  clashes with  the user's  predicates,
-database  keys,  etc.    Like  Edinburgh  C-Prolog  [Pereira, 1986]  all
-predicates,  database keys,  etc. that should  be hidden  from the  user
-start with a dollar ($) sign (see style_check/1).
+The boot compiler  (see -b option) does  not support the module  system.
+As large parts of  the system are written in Prolog itself we  need some
+way to  avoid name clashes  with the  user's predicates, database  keys,
+etc.   Like Edinburgh C-Prolog [Pereira, 1986] all predicates,  database
+keys, etc. that should  be hidden from the user start with a  dollar ($)
+sign (see style_check/1).
 
 The  compiler uses  the  special  functor $VAR$/1  while  analysing  the
 clause  to  compile.      Using  this   functor  in  a  program   causes
@@ -2143,7 +2196,7 @@ As of  version 2.0.0, SWI-Prolog  supports compilation of individual  or
 multiple Prolog  sourcefiles into  `Quick Load  Files'.   A `Quick  Load
 Files' (.qlf  file) stores  the contents  of the file  in a  precompiled
 format very similar to compiled files created using the  -b and -c flags
-(see section 2.7).
+(see section 2.10).
 
 These files load  considerably faster than sourcefiles and are  normally
 more compact.    They are  machine independent  and may  thus be  loaded
@@ -2171,7 +2224,7 @@ qqccoommppiillee((_+_F_i_l_e))
     file.    Other  directives  will  be stored  in  the .qlf  file  and
     executed in the same fashion as when loading the .pl file.
 
-    For  term_expansion/2, the same  rules as  described in section  2.7
+    For  term_expansion/2,  the same rules  as described in section  2.10
     apply.
 
     Source  references (source_file/2) in the  Quick Load File refer  to
@@ -3984,7 +4037,7 @@ rreeaadd__hhiissttoorryy((_+_S_h_o_w_, _+_H_e_l_p_, _+
     _S_p_e_c_i_a_l  is a list  of commands that are  not saved in the  history.
     _P_r_o_m_p_t  is  the  first  prompt  given.    Continuation  prompts  for
     more  lines are  determined by  prompt/2.   A  %w in  the prompt  is
-    substituted  by the  event number.   See  section 2.4 for  available
+    substituted  by the  event number.   See  section 2.7 for  available
     substitutions.
 
     SWI-Prolog calls read_history/6 as follows:
@@ -4435,7 +4488,14 @@ _+_E_x_p_r_1 / _+_E_x_p_r_2
 
 
 _+_I_n_t_E_x_p_r_1 mmoodd _+_I_n_t_E_x_p_r_2
-    Modulo:  _R_e_s_u_l_t = _I_n_t_E_x_p_r_1 - (_I_n_t_E_x_p_r_1 // _I_n_t_E_x_p_r_2)  * _I_n_t_E_x_p_r_1
+    Modulo:   _R_e_s_u_l_t = _I_n_t_E_x_p_r_1 - (_I_n_t_E_x_p_r_1 // _I_n_t_E_x_p_r_2)  * _I_n_t_E_x_p_r_2 The
+    function  mod/2  is  implemented using  the  C  % operator.     It's
+    behaviour with negtive values is illustrated in the table below.
+
+                              2  =   17  mod   5
+                              2  =   17  mod  -5
+                             -2  =  -17  mod   5
+                             -2  =  -17  mod   5
 
 
 _+_I_n_t_E_x_p_r_1 rreemm _+_I_n_t_E_x_p_r_2
@@ -4874,9 +4934,9 @@ sseettooff((_+_V_a_r_, _+_G_o_a_l_, _-_S_e_t))
 
 33..3300 IInnvvookkiinngg PPrreeddiiccaatteess oonn aallll MMeemmbbeerrss ooff aa LLiisstt
 
-All the predicates  in this section call  a predicate on all members  of
-a list  or until the predicate  called fails.   The predicate is  called
-via apply/2, which implies  common arguments can be put in front  of the
+All the predicates in this section call a predicate on  all members of a
+list or until the  predicate called fails.  The predicate is  called via
+call/[2..], which  implies common arguments can be  put in front of  the
 arguments obtained from the list(s).  For example:
 
 ?- maplist(plus(1), [0, 1, 2], X).
@@ -4962,7 +5022,7 @@ wwrriitteeff((_+_F_o_r_m_a_t_, _+_A_r_g_u_m_e_n_t_s))
              |______|output_(NB_:_<_n_n_n>_is_read_as_ddeecciimmaall)____|
 
     Note  that  \l,   \nnn  and  \\  are  interpreted  differently  when
-    character-escapes are in effect.  See section 2.11.1.1.
+    character-escapes are in effect.  See section 2.14.1.1.
 
     Escape  sequences to include  arguments from _A_r_g_u_m_e_n_t_s.   Each  time
     a  %  escape sequence  is found  in _F_o_r_m_a_t  the  next argument  from
@@ -5179,8 +5239,8 @@ ccuurrrreenntt__ffoorrmmaatt__pprreeddiiccaattee((_?_
 
 The  following  predicates  form  a  simple  access   mechanism  to  the
 Unix  termcap library  to provide  terminal independent  I/O for  screen
-terminals.   The  library package  library(tty) builds on  top of  these
-predicates.
+terminals.  These  predicates are only available on Unix machines.   The
+SWI-Prolog Windows consoles accepts the ANSI escape sequences.
 
 
 ttttyy__ggeett__ccaappaabbiilliittyy((_+_N_a_m_e_, _+_T_y_p_e_, _-_R_e_s_u_l_t))
@@ -5245,24 +5305,26 @@ wwiinn__eexxeecc((_+_C_o_m_m_a_n_d_, _+_S_h_o_w))
 
 
 ggeetteennvv((_+_N_a_m_e_, _-_V_a_l_u_e))
-    Get Unix environment variable  (see csh(1) and sh(1)).  Fails if the
-    variable does not exist.
+    Get  environment variable.    Fails  silently if  the variable  does
+    not  exist.     Please  note that  environment  variable  names  are
+    case-sensitive on Unix systems and case-insensitive on Windows.
 
 
 sseetteennvv((_+_N_a_m_e_, _+_V_a_l_u_e))
-    Set   Unix  environment  variable.     _N_a_m_e  and  _V_a_l_u_e   should  be
-    instantiated  to atoms or integers.   The environment variable  will
-    be passed to shell/[0-2] and can be requested using getenv/2.
+    Set  environment variable.   _N_a_m_e and  _V_a_l_u_e should be  instantiated
+    to  atoms or  integers.   The  environment variable  will be  passed
+    to  shell/[0-2] and  can be  requested using  getenv/2.   They  also
+    influence expand_file_name/2.
 
 
 uunnsseetteennvv((_+_N_a_m_e))
-    Remove Unix environment variable from the environment.
+    Remove environment variable from the environment.
 
 
 uunniixx((_+_C_o_m_m_a_n_d))
     This  predicate comes  from  the Quintus  compatibility library  and
     provides  a partial implementation thereof.   It provides access  to
-    some  operating system features and unlike the name suggests,  is no
+    some operating system  features and unlike the name suggests, is not
     operating  system specific.  Currently  it is the only way to  fetch
     the Prolog command-line arguments.  Defined _C_o_m_m_a_n_d's are below.
 
@@ -5291,7 +5353,7 @@ uunniixx((_+_C_o_m_m_a_n_d))
          atoms.
 
          A  stand-alone program  could  use  the following  skeleton  to
-         handle command-line arguments.  See also section 2.7.2.3.
+         handle command-line arguments.  See also section 2.10.2.3.
 
          main :-
                  unix(argv(Argv)),
@@ -5649,7 +5711,7 @@ pprroolloogg
 
 The following  two hooks allow  for expanding  queries and handling  the
 result  of a  query.   These  hooks are  used by  the toplevel  variable
-expansion mechanism described in section 2.5.
+expansion mechanism described in section 2.8.
 
 
 eexxppaanndd__qquueerryy((_+_Q_u_e_r_y_, _-_E_x_p_a_n_d_e_d_, _+_B_i_n_d_i_n_g_s_, _-_E_x_p_a_n_d_e_d_B_i_n_d_i_n_g_s))
@@ -5856,10 +5918,10 @@ ssttaattiissttiiccss((_+_K_e_y_, _-_V_a_l_u_e))
      |             |ports since Prolog was started.                |
      | heap        |Estimated   total  size   of   the  heap   (see|
 
-     |             |section 2.12.1.1)                              |
+     |             |section 2.15.1.1)                              |
      | heapused    |Bytes heap in use by Prolog.                   |
      | heaplimit   |Maximum   size   of   the    heap   (see   sec-|
-     |             |tion 2.12.1.1)                                 |
+     |             |tion 2.15.1.1)                                 |
      | local       |Allocated size of the local stack in bytes.    |
      | localused   |Number of bytes in use on the local stack.     |
      | locallimit  |Size to  which the  local stack  is allowed  to|
@@ -9246,7 +9308,7 @@ _________________________________________________________________________
     the  resulting executable is  completely independent of the  runtime
     environment or location where it was build.
 
-    See also section 2.7.2.3.
+    See also section 2.10.2.3.
 
 
 qqssaavvee__pprrooggrraamm((_+_F_i_l_e))
@@ -10466,4 +10528,4 @@ Bibliography
                                   New York, 1983.  Major revision  March
                                   1984.
 
-                                  755
+                                  760

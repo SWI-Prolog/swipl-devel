@@ -58,12 +58,13 @@ lookupFunctorDef(atom_t atom, int arity)
     }
   }
   f = (FunctorDef) allocHeap(sizeof(struct functorDef));
-  f->next    = functorDefTable[v];
   f->functor = 0L;
   f->name    = atom;
   f->arity   = arity;
   f->flags   = 0;
+  f->next    = functorDefTable[v];
   functorDefTable[v] = f;
+  registerFunctor(f);
   GD->statistics.functors++;
 
   DEBUG(9, Sdprintf("%p (new)\n", f));
@@ -71,7 +72,6 @@ lookupFunctorDef(atom_t atom, int arity)
   if ( functor_buckets * 2 < GD->statistics.functors )
     rehashFunctors();
 
-  registerFunctor(f);
   UNLOCK();
 
   return f->functor;

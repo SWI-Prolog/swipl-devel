@@ -203,7 +203,7 @@ meta_predicate(M, Head) :-
 	module_expansion_argument(Arg), !, 
 	functor(Head, Name, Arity), 
 	module_transparent(M:Name/Arity).
-meta_predicate1(_, _).		% just a mode declaration
+meta_predicate(_, _).		% just a mode declaration
 
 module_expansion_argument(:).
 module_expansion_argument(N) :- integer(N).

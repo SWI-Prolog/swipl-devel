@@ -26,12 +26,13 @@ static void	removeClausesProcedure(Procedure proc, int sfindex);
 Procedure
 lookupProcedure(functor_t f, Module m)
 { Procedure proc;
-  register Definition def;
+  Definition def;
   Symbol s;
   
   LOCK();
   if ( (s = lookupHTable(m->procedures, (void *)f)) )
   { UNLOCK();
+    DEBUG(1, Sdprintf("lookupProcedure() --> %s\n", procedureName(s->value)));
     return (Procedure) s->value;
   }
 
@@ -58,6 +59,7 @@ lookupProcedure(functor_t f, Module m)
   resetProcedure(proc);
   UNLOCK();
 
+  DEBUG(1, Sdprintf("Created %s\n", procedureName(proc)));
   return proc;
 }
 

@@ -396,6 +396,20 @@ the \const{resource_error} exception and thus can be handled in
 Prolog using catch/3.
 
 
+\section{Version 3.2 Release Notes}
+
+Many small patches and improvements.  Support for XPCE 5.0 (improved
+exception-handling from foreign code, recorded-database interface from
+C).  Moved compiler to MSVC 5.0 on Windows, repackaged sources and
+projects to make building on Windows from the sources feasible for
+normal users.  Support for non-blocking Input streams.  Better and
+portable support for mmap()-based stacks on Unix.  Raised maximum
+stack size to 128 MB, etc.
+
+As of 3.2.9, first steps in supporting multi-threaded applications
+(Unix, developers only).
+
+
 \section{Acknowledgements}
 
 Some small parts of the Prolog code of SWI-Prolog are modified
