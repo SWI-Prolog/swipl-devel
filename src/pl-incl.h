@@ -1362,4 +1362,4 @@ extern struct functorDef functors[];
 #include "pl-atom.ih"
 #include "pl-funct.ih"
 
-#endif _PL_INCLUDE_H
+#endif /*_PL_INCLUDE_H*/

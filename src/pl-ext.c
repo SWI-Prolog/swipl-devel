@@ -98,7 +98,7 @@ static struct foreign {
 
   ADD("!",			0, pl_metacut,			TRACE_ME),
   ADD("functor",		3, pl_functor,			TRACE_ME),
-  ADD("arg",			3, pl_arg,			TRACE_ME),
+  ADD("arg",			3, pl_arg,     NONDETERMINISTIC|TRACE_ME),
   ADD("=..",			2, pl_univ,			TRACE_ME),
   ADD("name",			2, pl_name,			TRACE_ME),
   ADD("int_to_atom",		3, pl_int_to_atom,		TRACE_ME),

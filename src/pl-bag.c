@@ -70,6 +70,7 @@ checkBags()
 }
 #endif
 
+#if ANSI
 word
 globalTerm(FunctorDef fdef, ...)
 { va_list args;
@@ -83,6 +84,27 @@ globalTerm(FunctorDef fdef, ...)
 
   return rval;
 }
+
+#else
+
+word
+globalTerm(va_alist)
+	va_dcl
+{ va_list args;
+  word rval;
+  FunctorDef fdef;
+  int n;
+  
+  va_start(args);
+  fdef = va_arg(args, FunctorDef);
+  rval = globalFunctor(fdef);
+  for(n=0; n<fdef->arity; n++)
+    argTerm(rval, n) = va_arg(args, word);
+  va_end(args);
+
+  return rval;
+}
+#endif
 
 word
 pl_collect_bag(bindings, bag)

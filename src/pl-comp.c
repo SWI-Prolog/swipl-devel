@@ -1224,6 +1224,11 @@ register compileInfo *ci;
     succeed;
   }
 
+  if ( isVar(*arg) )			/* void variable */
+  { Output_0(ci, B_VOID);
+    succeed;
+  }
+
   { FunctorDef fdef;
     int ar;
     Word a;
@@ -1309,7 +1314,7 @@ care of reconsult, redefinition, etc.
     sf = lookupSourceFile(file);
 
     if ( true(def, MULTIFILE) )
-    { if (sf->count != 1)
+    { if ( sf->count != 1 )
       { warning("Multifile predicate %s not updated", procedureName(proc) );
 	freeClause(clause);
 	return (Clause) NULL;

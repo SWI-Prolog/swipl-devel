@@ -108,7 +108,7 @@ PARMS=	-DSYSTEMHOME=\"$(SYSTEMHOME)\" \
 	-DDEFSTARTUP=\"$(DEFSTARTUP)\"
 #endif
 
-TARGETS=	$(EXPORTS) $(CINCLUDE) system startup index pl-bite
+TARGETS=	headers system startup index pl-bite
 
 all:		xmakefile
 		make -f xmakefile ${TARGETS}
@@ -119,6 +119,8 @@ startup:	$(SYSTEMHOME) $(STARTUPDIR) $(STARTUPPATH)
 startup:	$(SYSTEMDIR) $(OS-STARTUPDIR) $(OS-STARTUPPATH)
 #endif
 system:		$(SYS)
+
+headers:	$(EXPORTS) $(CINCLUDE)
 
 runtime:	all
 		make -f xmakefile xruntime

@@ -395,7 +395,7 @@ Buffer buf;
 
   if ( isVar(*t1) )
   { if ( isVar(*t2) )
-    { word id = (word) topBuffer(buf, reset);
+    { word id = consNum(sizeOfBuffer(buf))|MARK_MASK;
       reset r;
 
       r.v1 = t1;
@@ -410,7 +410,7 @@ Buffer buf;
 
   if (*t1 == *t2)
     succeed;
-  if ( inBuffer(buf, *t1) || inBuffer(buf, *t2) )
+  if ( *t1 & MARK_MASK || *t2 & MARK_MASK )
     fail;
 
   if (isIndirect(*t1) )
@@ -499,20 +499,52 @@ Word t, f, a;
 }
 
 word
-pl_arg(n, term, arg)
+pl_arg(n, term, arg, b)
 register Word n, term, arg;
-{ int argn;
+word b;
+{ switch( ForeignControl(b) )
+  { case FRG_FIRST_CALL:
+      if ( !isTerm(*term) )
+      { if ( !isAtom(*term) )
+	  warning("arg/3: second argument in not a term");
+	fail;
+      }
 
-  if (!isInteger(*n))
-    return warning("arg/3: first argument in not an integer");
-  if (!isTerm(*term))
-    return warning("arg/3: second argument in not a term");
-  argn = (int) valNum(*n);
-  if (argn < 1 || argn > functorTerm(*term)->arity)
-    fail;
+      if ( isInteger(*n) )
+      { int argn = (int) valNum(*n);
 
-  return pl_unify(argTermP(*term, argn-1), arg);
+	if (argn < 1 || argn > functorTerm(*term)->arity)
+	  fail;
+
+	return pl_unify(argTermP(*term, argn-1), arg);
+      } else if ( isVar(*n) )
+      { int argn = 1;
+	int arity = functorTerm(*term)->arity;
+
+	for(argn=1; argn <= arity; argn++)
+	  if ( pl_unify(argTermP(*term, argn-1), arg) &&
+	       unifyAtomic(n, consNum(argn)) )
+	    ForeignRedo(argn);
+
+	fail;
+      } else
+	return warning("arg/3: first argument in not an integer or unbound");
+    case FRG_REDO:
+      { int argn = ForeignContext(b) + 1;
+	int arity = functorTerm(*term)->arity;
+
+	for(; argn <= arity; argn++)
+	  if ( pl_unify(argTermP(*term, argn-1), arg) &&
+	       unifyAtomic(n, consNum(argn)) )
+	    ForeignRedo(argn);
+
+	fail;
+      }
+    default:
+      succeed;
+  }
 }
+	
 
 /*  Determine the length of a list. If the list is not proper (or not
     a list at all) -1 is returned.
