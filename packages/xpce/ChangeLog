@@ -1,6 +1,10 @@
 			   XPCE ChangeLog
 			   ==============
 
+* UI: PceEmacs: swapped ok/cancel buttons in M-x argument prompter.
+
+* PORT: By default disabled non-functioning C++ interface.
+
 * FIXED: httpd: do www_form_encode/2 on the <-path of the request to
   decode it.  This fixes the hierarchy window of the online XPCE
   maual for Mozilla (Netscape 6).

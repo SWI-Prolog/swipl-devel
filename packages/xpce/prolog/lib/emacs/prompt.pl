@@ -149,8 +149,8 @@ append_buttons(D) :->
 	(   get(Impl, attribute, emacs_history, History),
 	    \+ send(History, empty)
 	->  send(D, append, new(B, button(backwards)), next_row),
-	    send(D, append, new(C, button(cancel))),
 	    send(D, append, new(O, button(ok))),
+	    send(D, append, new(C, button(cancel))),
 	    send(D, append, new(F, button(forwards))),
 	    send(B, alignment, left),
 	    send(F, alignment, right),
