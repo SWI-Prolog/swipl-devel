@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* CLEANUP: Deleted death code accessing plterm.dll functions.
+
 * ENHANCED: Various issues around the diagramming class plot_axis.  Fully
   compatible.
 
