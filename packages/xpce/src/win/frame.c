@@ -126,7 +126,7 @@ loadFrame(FrameObj fr, FILE *fd, ClassDef def)
   assign(fr, wm_protocols_attached, OFF);
   assign(fr, input_focus, OFF);
 
-  if ( fr->status == NAME_open )
+  if ( isOpenFrameStatus(fr->status) )
   { assign(fr, status, NAME_unmapped);
     restoreMessage(newObject(ClassMessage, fr, NAME_open,
 			     get(fr->area, NAME_position, 0), 0));
@@ -337,7 +337,7 @@ saveMessageFrame(FrameObj fr, Code msg)
 
 static status
 mappedFrame(FrameObj fr, Bool val)
-{ Any stat = (val == ON ? NAME_open : NAME_hidden);
+{ Any stat = (val == ON ? NAME_window : NAME_hidden);
   informTransientsFramev(fr, NAME_status, 1, &stat);
 
   succeed;
@@ -1327,7 +1327,7 @@ blockedByModalFrame(FrameObj fr, EventObj ev)
 
   if ( notNil(fr->application) &&
        notNil(fr->application->modal) &&
-       fr->application->modal->status == NAME_open &&
+       isOpenFrameStatus(fr->application->modal->status) &&
        fr->application->modal != fr )
   { bfr = fr->application->modal;
     goto blocked;
@@ -1338,7 +1338,8 @@ blockedByModalFrame(FrameObj fr, EventObj ev)
       for_cell(cell, fr->transients)
       { FrameObj fr2 = cell->value;
       
-	if ( fr2->modal == NAME_transient && fr2->status == NAME_open )
+	if ( fr2->modal == NAME_transient &&
+	     isOpenFrameStatus(fr2->status) )
 	{ bfr = fr2;
 	  goto blocked;
 	}
