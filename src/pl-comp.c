@@ -652,16 +652,11 @@ orVars(VarTable valt1, VarTable valt2)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-setVars() marks all variables that appear   in the argument term, except
-for variables appearing inside the  \+   control  structure  as \+ never
-binds any variables. isctrl is TRUE  as   long  as  we are unfolding the
-control-structure and FALSE when we  are   in  the arguments to control-
-structures, so the arguments of  a  \+/1   term  inside  an  argument is
-counted normally.  See also the comments on \+ above compileBody().
+setVars() marks all variables that appear in the argument term.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-setVars(Word t, VarTable vt, int isctrl ARG_LD)
+setVars(Word t, VarTable vt ARG_LD)
 { int index;
 
 last_arg:
@@ -675,22 +670,10 @@ last_arg:
   if ( isTerm(*t) )
   { int arity;
 
-    if ( isctrl )
-    { functor_t fd = functorTerm(*t);
-      FunctorDef fdef = valueFunctor(fd);
-
-      if ( true(fdef, CONTROL_F) )
-      { if ( fd == FUNCTOR_not_provable1 )
-	  return;
-      } else
-	isctrl = FALSE;
-
-      arity = fdef->arity;
-    } else
-      arity = arityTerm(*t);
+    arity = arityTerm(*t);
 
     for(t = argTermP(*t, 0); --arity > 0; t++)
-      setVars(t, vt, isctrl PASS_LD);
+      setVars(t, vt PASS_LD);
     goto last_arg;
   }
 }
@@ -984,6 +967,17 @@ A ; B, A -> B, A -> B ; C, \+ A
     considered initialised at the end of the ;/2 while they are not.
     For this reason, setVars() does not count variables inside \+/1
     when encounted as a control-structure.
+
+    After 5.2.7: Still more tricky than anticipated.  Consider the clause
+
+	foo :- garbage_collect, (a ; \+ foo(A,A)).
+
+    Here the variable A is allocated, clearUninitialisedVarsFrame() takes
+    the first (a) branch and doesn't see it, handling an uninitialised
+    slot in the frame to GC.  For the moment we consider \+ the same as
+    G->fail;true.  This leads to a bit longer and slower code in some
+    cases, but at least it works.  Time to rethink the entire issue around
+    uninitialised variables ...  
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -1013,8 +1007,8 @@ compileBody(Word body, code call, compileInfo *ci ARG_LD)
 	  valt1 = mkCopiedVarTable(ci->used_var);
 	  valt2 = mkCopiedVarTable(ci->used_var);
 	
-	  setVars(argTermP(*body, 0), valt1, TRUE PASS_LD);
-	  setVars(argTermP(*body, 1), valt2, TRUE PASS_LD);
+	  setVars(argTermP(*body, 0), valt1 PASS_LD);
+	  setVars(argTermP(*body, 1), valt2 PASS_LD);
 	} else
 	  vsave = valt1 = valt2 = NULL;
 
@@ -1126,7 +1120,7 @@ compileBody(Word body, code call, compileInfo *ci ARG_LD)
 	  tc_jmp = PC(ci);
 	  OpCode(ci, tc_or-1) = (code)(PC(ci) - tc_or);
 	  if ( balanceVars(vsave, ci->used_var, ci) > 0 )
-	  { copyVarTable(ci->used_var, vsave);     /* \+ never binds any */
+	  { /*copyVarTable(ci->used_var, vsave);   see comment above */
 	    OpCode(ci, tc_jmp-1) = (code)(PC(ci) - tc_jmp);
 	  } else			/* delete the jmp */
 	  { seekBuffer(&ci->codes, tc_jmp-2, code);

@@ -776,6 +776,14 @@ control(cut-1) :-
 	\+ c2.
 control(not-1) :-			% 2-nd call must generate FIRSTVAR
 	( fail ; \+ \+ p(f(X,Y)) ), p(f(X,Y)).
+control(not-2) :-			% see comments with compileBody()
+	garbage_collect,		% may crash if wrong
+	prolog_current_frame(F),
+	prolog_frame_attribute(F, argument(4), Y),
+	var(Y),				% additional test whether it is reset
+	(   fail
+	;   \+ A\=A
+	).
 control(ifthen-1) :-			% Must be the same
 	( fail
 	; ((p(f(X,Y))->fail;true)->fail;true)
