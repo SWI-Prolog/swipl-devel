@@ -1056,7 +1056,7 @@ waccess(const wchar_t *name, int m)
   str_set_n_wchar(&s, wcslen(name), (wchar_t *)name);
   ufn = stringToFN(&s);
   
-  DEBUG(NAME_find, Cprintf("find: trying %s\n", name));
+  DEBUG(NAME_find, Cprintf("find: trying \"%s\"\n", ufn));
 
   return access(ufn, m);
 }
@@ -1069,16 +1069,18 @@ waccess(const wchar_t *name, int m)
 status
 findFile(FileObj f, CharArray path, Name mode)
 { wchar_t *base;
+  wchar_t basebuf[MAXPATHLEN];
   const wchar_t *pathstr;
+  size_t bl;
   int m;
 
   if ( isAbsolutePath(nameToUTF8(f->name)) )
     succeed;
 
-  base = charArrayToWC((CharArray)f->name, NULL);
+  base = charArrayToWC((CharArray)f->name, &bl);
   if ( base[0] == '.' )
     succeed;
-
+  
   if ( isDefault(mode) || mode == NAME_read )
     m = R_OK;
   else if ( mode == NAME_write || mode == NAME_append )
@@ -1088,6 +1090,11 @@ findFile(FileObj f, CharArray path, Name mode)
 
   if ( notDefault(f->path) && access(nameToFN(f->path), m) == 0 )
     succeed;
+
+  if ( bl+1 > MAXPATHLEN )
+    return errorPce(f, NAME_representation, NAME_nameTooLong);
+  wcscpy(basebuf, base);
+  base = basebuf;
 
   if ( isDefault(path) )
     pathstr = L".";
@@ -1113,13 +1120,18 @@ findFile(FileObj f, CharArray path, Name mode)
       name[end-pathstr] = EOS;
       pathstr = &end[1];
     }
-    if ( (l=expandFileNameW(name, bin, MAXPATHLEN)) > 0 )
-      wcsncpy(name, bin, l);
-    else
-      continue;
+
+    if ( wcschr(name, L'$') || name[0] == L'~' )
+    { if ( (l=expandFileNameW(name, bin, MAXPATHLEN)) > 0 )
+	wcsncpy(name, bin, l);
+      else
+	continue;
+    } else
+    { l = wcslen(name);
+    }
 
     name[l] = '/';
-    wcscat(&name[l+1], base);
+    wcscpy(&name[l+1], base);
 
     if ( waccess(name, m) == 0 )
     { assign(f, path, WCToName(name, wcslen(name)));
