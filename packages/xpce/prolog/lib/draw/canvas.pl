@@ -179,7 +179,10 @@ make_draw_canvas_keybinding(B) :-
 
 make_draw_canvas_recogniser(G) :-
 	new(KBFocus, @event?window?keyboard_focus),
-	new(ST, handler(keyboard, message(@receiver, start_typing, @event))),
+	new(ST, handler(keyboard,
+			message(@receiver, start_typing, @event))),
+	new(EX, handler(area_exit,
+			message(@event?window, keyboard_focus, @nil))),
 	new(G, handler_group(@draw_create_resize_gesture,
 			     @draw_create_line_gesture,
 			     @draw_create_bezier_gesture,
@@ -191,7 +194,7 @@ make_draw_canvas_recogniser(G) :-
 			     new(P, click_gesture(middle, '', single,
 						  message(KBFocus, paste))),
 			     popup_gesture(@draw_canvas_popup),
-			     ST)),
+			     ST, EX)),
 	send(P, condition, KBFocus \== @nil).
 
 
@@ -265,6 +268,10 @@ close_undo_group(C) :->
 undo_action(C, Action:code) :->
 	"Record an action for undo"::
 	send(C?undo_buffer, undo_action, Action).
+
+clear_undo_group(C) :->
+	"Empty the current undo-group"::
+	send(C?undo_buffer, clear_group).
 
 simple_undo(C) :->
 	"Just undo the last action"::

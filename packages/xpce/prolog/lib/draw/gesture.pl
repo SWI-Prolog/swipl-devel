@@ -303,10 +303,12 @@ make_create_proto_recogniser(R) :-
 	
 
 create_prototype(Canvas, Pos) :-
+	send(Canvas, keyboard_focus, @nil), % ensure closing open text
 	get(Canvas?proto, clone, Clone),
 	send(Canvas, open_undo_group),
 	send(Canvas, display, Clone),
 	send(Clone, center, Pos),
+	send(Canvas, clear_undo_group),
 	(   send(Clone, has_send_method, start_text)
 	->  send(Clone, start_text)
 	;   true

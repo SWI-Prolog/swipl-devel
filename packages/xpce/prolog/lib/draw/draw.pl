@@ -130,7 +130,8 @@ builds  the  entire  tool and the  resulting instance provide means of
 communication between the various parts.  The call
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-:- pce_begin_class(draw, frame).
+:- pce_begin_class(draw, frame,
+		   "The PceDraw application class").
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 starts  the definition of  a new class  `draw' that  is a subclass  of
@@ -695,8 +696,18 @@ load_recent_file(Draw, File:file) :->
 	get(Draw, canvas, Canvas),
 	(   send(File, exists)
 	->  send(Canvas, load, File, @on)
-	;   send(Draw, report, error, 'No such file')
+	;   send(Draw, report, error, 'No such file'),
+	    get(File, name, Path),
+	    delete_recent_file(Path)
 	).
+
+delete_recent_file(Path) :-
+	Key = draw_config:history/recent_files,
+	(   get_config(Key, Set0)
+	;   Set0 = []
+	),
+	delete(Set0, Path, Set),
+	set_config(Key, Set).
 
 
 		/********************************

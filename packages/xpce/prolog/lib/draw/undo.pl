@@ -102,10 +102,15 @@ is smaller then the minimal size. The second clause checks for this.
 discardable_undo(And) :-
 	send(And, empty), !.
 discardable_undo(And) :-
-	get(And, head, H),
 	get(And, tail, T),
 	classify_message(T, cut(Gr)),
-	classify_message(H, un_cut(Gr)).
+	get(And?members, find,
+	    message(@prolog, classify_message, @arg1, un_cut, Gr),
+	    _).
+
+classify_message(Msg, Action, Object) :-
+	Term =.. [Action, Object],
+	classify_message(Msg, Term).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ->close_undo_group closes the group opened  by ->open_undo_group. If the
@@ -211,6 +216,19 @@ undo_action(UB, M:code) :->
 	object(M, Term),
 	debug('~t~8|Added to group: ~w~n', [Term]).
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This message may be used by toplevel undo-group if the last added action
+undos all relevant operations.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+clear_group(UB) :->
+	"Empty the current action group"::
+	(   get(UB, open_count, 1)	% can only clear on outer
+	->  get(UB, slot, action, And),
+	    send(And?members, clear)
+	;   true
+	).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ->undo basically just picks the current undo message and executes it. It

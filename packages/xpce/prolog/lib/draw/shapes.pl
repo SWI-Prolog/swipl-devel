@@ -780,8 +780,8 @@ geometry(C, X:[int], Y:[int], W:[int], H:[int]) :->
 	(   get(C, window, Window)
 	->  send(Window, open_undo_group),
 	    get(C, area, area(OX, OY, OW, OH)),
-	    Msg =.. [message, C, do_set, OX, OY, OW, OH],
-	    send(Window, undo_action, Msg)
+	    send(Window, undo_action, 
+		 message(C, do_set, OX, OY, OW, OH))
 	;   true
 	),
 	resize_factor(W, C, width,  Xfactor),
