@@ -55,7 +55,7 @@ __utf8_get_char(const char *in, int *chr)
     return (char *)in+5;
   }
 					/* 6-byte, 0x400000-0x7FFFFFF */
-  if ( (in[0]&0xf8) == 0xf0 && CONT(1) && CONT(2) && CONT(3) && CONT(4) && CONT(5) )
+  if ( (in[0]&0xfe) == 0xfc && CONT(1) && CONT(2) && CONT(3) && CONT(4) && CONT(5) )
   { *chr = ((in[0]&0x1) << 30)|VAL(1,24)|VAL(2,18)|VAL(3,12)|VAL(4,6)|VAL(5,0);
     return (char *)in+4;
   }

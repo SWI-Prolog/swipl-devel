@@ -549,6 +549,12 @@ A yf			"yf"
 A yfx			"yfx"
 A yfy			"yfy"
 A zero_divisor		"zero_divisor"
+A encoding		"encoding"
+A iso_latin_1		"iso_latin_1"
+A utf8			"utf8"
+A unicode_be		"unicode_be"
+A unicode_le		"unicode_le"
+A byte			"byte"
 
 F abs			1
 F access		1
@@ -717,3 +723,4 @@ F warning		3
 F xor			2
 F xpceref		1
 F tty			1
+F encoding		1

@@ -121,6 +121,16 @@ typedef struct io_position
   int			linepos;	/* position in line */
 } IOPOS;
 
+typedef enum
+{ ENC_UNKNOWN = 0,			/* invalid/unknown */
+  ENC_NONE,				/* raw 8 bit input */
+  ENC_ASCII,
+  ENC_ISO_LATIN_1,
+  ENC_UTF8,
+  ENC_UNICODE_BE,			/* big endian unicode file */
+  ENC_UNICODE_LE			/* little endian unicode file */
+} IOENC;
+
 typedef struct io_stream
 { char		       *bufp;		/* `here' */
   char		       *limitp;		/* read/write limit */
@@ -141,7 +151,12 @@ typedef struct io_stream
   void *		closure;
 					/* SWI-Prolog 5.1.3 */
   int			timeout;	/* timeout (milliseconds) */
+					/* SWI-Prolog 5.4.4 */
+  char *		message;	/* error/warning message */
+  IOENC			encoding;	/* character encoding used */
+  long			reserved[8];	/* reserved for extension */
 } IOSTREAM;
+
 
 #define SmakeFlag(n)	(1<<(n-1))
 
@@ -171,6 +186,8 @@ typedef struct io_stream
 #define SIO_TIMEOUT	SmakeFlag(24)	/* We had a timeout */
 #define SIO_NOMUTEX	SmakeFlag(25)	/* Do not allow multi-thread access */
 #define SIO_ADVLOCK	SmakeFlag(26)	/* File locked with advisory lock */
+#define SIO_WARN	SmakeFlag(27)	/* Pending warning */
+#define SIO_CLEARERR	SmakeFlag(28)	/* Clear error after reporting */
 
 #define	SIO_SEEK_SET	0	/* From beginning of file.  */
 #define	SIO_SEEK_CUR	1	/* From current position.  */
@@ -271,9 +288,15 @@ PL_EXPORT(void)		SinitStreams();
 PL_EXPORT(void)		Scleanup(void);
 PL_EXPORT(int)		S__fupdatefilepos(IOSTREAM *s, int c);
 PL_EXPORT(int)		S__fillbuf(IOSTREAM *s);
+					/* byte I/O */
 PL_EXPORT(int)		Sputc(int c, IOSTREAM *s);
 PL_EXPORT(int)		Sfgetc(IOSTREAM *s);
 PL_EXPORT(int)		Sungetc(int c, IOSTREAM *s);
+					/* multibyte I/O */
+PL_EXPORT(int)		Sputcode(int c, IOSTREAM *s);
+PL_EXPORT(int)		Sgetcode(IOSTREAM *s);
+PL_EXPORT(int)		Sungetcode(int c, IOSTREAM *s);
+					/* word I/O */
 PL_EXPORT(int)		Sputw(int w, IOSTREAM *s);
 PL_EXPORT(int)		Sgetw(IOSTREAM *s);
 PL_EXPORT(int)		Sfread(void *data, int size, int elems, IOSTREAM *s);
@@ -283,6 +306,7 @@ PL_EXPORT(int)		Sfeof(IOSTREAM *s);
 PL_EXPORT(int)		Sfpasteof(IOSTREAM *s);
 PL_EXPORT(int)		Sferror(IOSTREAM *s);
 PL_EXPORT(void)		Sclearerr(IOSTREAM *s);
+PL_EXPORT(void)		Sseterr(IOSTREAM *s, int which, const char *message);
 PL_EXPORT(int)		Sflush(IOSTREAM *s);
 PL_EXPORT(long)		Ssize(IOSTREAM *s);
 PL_EXPORT(long)		Sseek(IOSTREAM *s, long pos, int whence);

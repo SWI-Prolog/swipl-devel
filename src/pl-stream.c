@@ -56,6 +56,7 @@ locking is required.
 
 #define PL_KERNEL 1
 #include "pl-stream.h"
+#include "pl-utf8.h"
 #include <sys/types.h>
 #ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
@@ -487,18 +488,29 @@ S___fupdatefilepos(IOSTREAM *s, int c)
   return c;
 }
 
-int
-Sputc(int c, IOSTREAM *s)
+
+static int
+put_byte(int c, IOSTREAM *s)
 { c &= 0xff;
 
   if ( s->bufp < s->limitp )
-    *s->bufp++ = (char)c;
-  else
+  { *s->bufp++ = c;
+  } else
   { if ( S__flushbufc(c, s) < 0 )
     { s->lastc = EOF;
       return -1;
     }
   }
+
+  return c;
+}
+
+
+int
+Sputc(int c, IOSTREAM *s)
+{ if ( put_byte(c, s) < 0 )
+    return -1;
+
   s->lastc = c;
 
   if ( c == '\n' && (s->flags & SIO_LBUF) )
@@ -512,14 +524,7 @@ Sputc(int c, IOSTREAM *s)
 
 int
 Sfgetc(IOSTREAM *s)
-{ int c;
-
-  if ( s->bufp < s->limitp )
-    c = (int) *s->bufp++ & 0xff;
-  else
-    c = S__fillbuf(s);
-
-  return S__updatefilepos(s, c);
+{ return Sgetc(s);
 }
 
 
@@ -530,7 +535,219 @@ Sungetc(int c, IOSTREAM *s)
     return c;
   }
 
-  return -1;				/* no room */
+  return -1;
+}
+
+
+int
+Sputcode(int c, IOSTREAM *s)
+{ if ( c < 0 )
+  { err:
+    Sseterr(s, SIO_FERR|SIO_CLEARERR, "Encoding cannot represent character");
+    return -1;
+  }
+
+  switch(s->encoding)
+  { case ENC_NONE:
+    case ENC_ISO_LATIN_1:
+      if ( c >= 256 )
+	goto err;
+    simple:
+      if ( s->bufp < s->limitp )
+      { *s->bufp++ = (char)c;
+      } else
+      { if ( S__flushbufc(c, s) < 0 )
+	{ s->lastc = EOF;
+	  return -1;
+	}
+      }
+      break;
+    case ENC_ASCII:
+      if ( c >= 128 )
+	goto err;
+      goto simple;
+    case ENC_UTF8:
+    { char buf[6];
+      char *p, *end;
+      
+      if ( c < 128 )
+	goto simple;
+
+      end = utf8_put_char(buf, c);
+      for(p=buf; p<end; p++)
+      { if ( put_byte(*p&0xff, s) < 0 )
+	  return -1;
+      }
+
+      break;
+    }
+    case ENC_UNICODE_BE:
+      if ( put_byte(c>>8, s) < 0 )
+	return -1;
+      if ( put_byte(c&0xff, s) < 0 )
+	return -1;
+      break;
+    case ENC_UNICODE_LE:
+      if ( put_byte(c&0xff, s) < 0 )
+	return -1;
+      if ( put_byte(c>>8, s) < 0 )
+	return -1;
+    case ENC_UNKNOWN:
+      return -1;
+  }
+
+
+  s->lastc = c;
+
+  if ( c == '\n' && (s->flags & SIO_LBUF) )
+  { if ( S__flushbuf(s) < 0 )
+      return -1;
+  }
+
+  return S__updatefilepos(s, c);
+}
+
+
+int
+Sgetcode(IOSTREAM *s)
+{ int c;
+
+  switch(s->encoding)
+  { case ENC_NONE:
+    case ENC_ISO_LATIN_1:
+      c = Snpgetc(s);
+      break;
+    case ENC_ASCII:
+    { c = Snpgetc(s);
+      if ( c > 128 )
+	Sseterr(s, SIO_WARN, "non-ASCII character");
+      break;
+    }
+    case ENC_UTF8:
+    { c = Snpgetc(s);
+      if ( c == EOF )
+	break;
+
+      if ( c & 0x80 )
+      { int extra = UTF8_FBN(c);
+	int code;
+
+	code = UTF8_FBV(c,extra);
+	for( ; extra > 0; extra-- )
+	{ int c2 = Snpgetc(s);
+	  
+	  if ( !ISUTF8_CB(c2) )
+	  { Sseterr(s, SIO_WARN, "Illegal UTF-8 Sequence");
+	    c = UTF8_MALFORMED_REPLACEMENT;
+	    Sungetc(c2, s);
+	    goto out;
+	  }
+	  code = (code<<6)+c2;
+	}
+	c = code;
+      }
+      break;
+    }
+    case ENC_UNICODE_BE:
+    case ENC_UNICODE_LE:
+    { int c1, c2;
+
+      c1 = Snpgetc(s);
+      c2 = Snpgetc(s);
+      if ( c1 == EOF )
+	return EOF;
+
+      if ( c2 == EOF )
+      { Sseterr(s, SIO_WARN, "EOF in unicode character");
+	c = UTF8_MALFORMED_REPLACEMENT;
+      } else
+      { if ( s->encoding == ENC_UNICODE_BE )
+	  c = (c1<<8)+c2;
+	else
+	  c = (c2<<8)+c1;
+      }
+
+      break;
+    }
+    default:
+      assert(0);
+      c = -1;
+  }
+
+out:
+  return S__updatefilepos(s, c);
+}
+
+
+int
+Sungetcode(int c, IOSTREAM *s)
+{ switch(s->encoding)
+  { case ENC_NONE:
+    case ENC_ISO_LATIN_1:
+      if ( c >= 256 )
+	return -1;			/* illegal */
+    simple:
+      if ( s->bufp > s->unbuffer )
+      { *--s->bufp = c;
+        return c;
+      }
+      return -1;			/* no room */
+    case ENC_ASCII:
+      if ( c >= 128 )
+	return -1;			/* illegal */
+      goto simple;
+    case ENC_UTF8:
+    { if ( (unsigned)c >= 0x8000000 )
+	return -1;
+
+      if ( c < 0x80 )
+      { goto simple;
+      } else
+      { char buf[6];
+	char *p, *end;
+
+	end = utf8_put_char(buf, c);
+	if ( s->bufp - s->unbuffer >= end-buf )
+	{ for(p=end-1; p>=buf; p--)
+	  { *--s->bufp = *p;
+	  }
+
+          return c;
+	}
+
+	return -1;
+      }
+    }
+    case ENC_UNICODE_BE:
+    { if ( c >= 0x10000 )
+	return -1;
+
+      if ( s->bufp-1 > s->unbuffer )
+      { *--s->bufp = c&0xff;
+        *--s->bufp = (c>>8)&0xff;
+
+        return c;
+      }
+      return -1;
+    }
+    case ENC_UNICODE_LE:
+    { if ( c >= 0x10000 )
+	return -1;
+
+      if ( s->bufp-1 > s->unbuffer )
+      { *--s->bufp = (c>>8)&0xff;
+        *--s->bufp = c&0xff;
+
+        return c;
+      }
+      return -1;
+    }
+    case ENC_UNKNOWN:
+      return -1;
+  }
+
+  assert(0);
+  return -1;
 }
 
 		 /*******************************
@@ -674,7 +891,24 @@ Sfpasteof(IOSTREAM *s)
 
 void
 Sclearerr(IOSTREAM *s)
-{ s->flags &= ~(SIO_FEOF|SIO_FERR|SIO_FEOF2|SIO_TIMEOUT);
+{ s->flags &= ~(SIO_FEOF|SIO_WARN|SIO_FERR|SIO_FEOF2|SIO_TIMEOUT|SIO_CLEARERR);
+  Sseterr(s, 0, NULL);
+}
+
+
+void
+Sseterr(IOSTREAM *s, int flag, const char *message)
+{ if ( s->message )
+  { free(s->message);
+    s->message = NULL;
+    s->flags &= ~SIO_CLEARERR;
+  }
+  if ( message )
+  { s->flags |= flag;
+    s->message = strdup(message);
+  } else
+  { s->flags &= ~flag;
+  }
 }
 
 
@@ -1628,6 +1862,7 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
   s->functions     = functions;
   s->timeout       = -1;		/* infinite */
   s->posbuf.lineno = 1;
+  s->encoding      = ENC_ISO_LATIN_1;
   if ( flags & SIO_RECORDPOS )
     s->position = &s->posbuf;
 #ifdef O_PLMT
@@ -1816,7 +2051,9 @@ Sfileno(IOSTREAM *s)
 		      ((void *)(n)), &Sfilefunctions, \
 		      0, NULL, \
 		      (void (*)(void *))0, NULL, \
-		      -1 \
+		      -1, \
+		      0, \
+		      ENC_ISO_LATIN_1 \
 		    }
 
 #define SIO_STDIO (SIO_FILE|SIO_STATIC|SIO_NOCLOSE|SIO_ISATTY)

@@ -28,7 +28,7 @@
 UTF-8 Decoding, based on http://www.cl.cam.ac.uk/~mgk25/unicode.html
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define CONT(i) ((in[i]&0xc0) == 0x80)
+#define CONT(i)   ISUTF8_CB(in[1])
 #define VAL(i, s) ((in[i]&0x3f) << s)
 
 char *
@@ -54,7 +54,7 @@ __utf8_get_char(const char *in, int *chr)
     return (char *)in+5;
   }
 					/* 6-byte, 0x400000-0x7FFFFFF */
-  if ( (in[0]&0xf8) == 0xf0 && CONT(1) && CONT(2) && CONT(3) && CONT(4) && CONT(5) )
+  if ( (in[0]&0xfe) == 0xfc && CONT(1) && CONT(2) && CONT(3) && CONT(4) && CONT(5) )
   { *chr = ((in[0]&0x1) << 30)|VAL(1,24)|VAL(2,18)|VAL(3,12)|VAL(4,6)|VAL(5,0);
     return (char *)in+4;
   }
@@ -64,3 +64,37 @@ __utf8_get_char(const char *in, int *chr)
   return (char *)in+1;
 }
 
+
+char *
+__utf8_put_char(char *out, int chr)
+{ if ( chr < 0x80 )
+  { *out++ = chr;
+  } else if ( chr < 0x800 )
+  { *out++ = 0xc0|((chr>>6)&0x1f);
+    *out++ = 0x80|(chr&0x3f);
+  } else if ( chr < 0x10000 )
+  { *out++ = 0xe0|((chr>>12)&0x0f);
+    *out++ = 0x80|((chr>>6)&0x3f);
+    *out++ = 0x80|(chr&0x3f);
+  } else if ( chr < 0x200000 )
+  { *out++ = 0xf0|((chr>>18)&0x07);
+    *out++ = 0x80|((chr>>12)&0x3f);
+    *out++ = 0x80|((chr>>6)&0x3f);
+    *out++ = 0x80|(chr&0x3f);
+  } else if ( chr < 0x4000000 )
+  { *out++ = 0xf8|((chr>>24)&0x03);
+    *out++ = 0x80|((chr>>18)&0x3f);
+    *out++ = 0x80|((chr>>12)&0x3f);
+    *out++ = 0x80|((chr>>6)&0x3f);
+    *out++ = 0x80|(chr&0x3f);
+  } else if ( chr < 0x80000000 )
+  { *out++ = 0xfc|((chr>>30)&0x01);
+    *out++ = 0x80|((chr>>24)&0x3f);
+    *out++ = 0x80|((chr>>18)&0x3f);
+    *out++ = 0x80|((chr>>12)&0x3f);
+    *out++ = 0x80|((chr>>6)&0x3f);
+    *out++ = 0x80|(chr&0x3f);
+  }
+
+  return out;
+}

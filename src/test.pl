@@ -1662,6 +1662,7 @@ testset(resource).
 %	Enumerate directories holding tests.
 
 testdir('Tests/attvar').
+testdir('Tests/charset').
 testdir('Tests/thread') :-
 	current_prolog_flag(threads, true).
 

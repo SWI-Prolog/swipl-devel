@@ -267,6 +267,15 @@ prolog_message(profile_no_cpu_time) -->
 	[ 'No CPU-time info.  Check the SWI-Prolog manual for details' ].
 prolog_message(non_ascii(Text, Type)) -->
 	[ 'Unquoted ~w with non-portable characters: ~w'-[Type, Text] ].
+prolog_message(io_warning(Stream, Message)) -->
+	{ stream_property(Stream,
+			  position('$stream_position'(_, LineNo, LinePos))),
+	  (   stream_property(Stream, file_name(File))
+	  ->  Obj = File
+	  ;   Obj = Stream
+	  )
+	},
+	[ '~p:~d:~d: ~w'-[Obj, LineNo, LinePos, Message] ].
 
 
 		 /*******************************

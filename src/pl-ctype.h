@@ -54,3 +54,28 @@ extern char _PL_char_types[];	/* array of character types */
 				        '{' ? '}' :\
 				        '(' ? ')' : EOS)
 #define Control(c)		((c) == '?' ? 127 : (c) - '@')
+
+
+		 /*******************************
+		 *    WIDE CHARACTER SUPPORT	*
+		 *******************************/
+
+#include <wctype.h>
+
+#define PlCharType(c, t, w) \
+	((unsigned)(c) <= 0xff ? (_PL_char_types[(unsigned)(c)] t) : w)
+
+#define isControlW(c)	PlCharType(c, == CT, iswcntrl(c))
+#define isBlankW(c)	PlCharType(c, <= SP, iswspace(c))
+#define isDigitW(c)	PlCharType(c, == DI, FALSE)
+#define isLowerW(c)	PlCharType(c, == LC, iswlower(c))
+#define isUpperW(c)	PlCharType(c, == UC, iswupper(c))
+#define isSymbolW(c)	PlCharType(c, == SY, FALSE)
+#define isPunctW(c)	PlCharType(c, == PU, FALSE)
+#define isSoloW(c)	PlCharType(c, == SO, FALSE)
+#define isAlphaW(c)	PlCharType(c, >= UC, iswalnum(c))
+#define isLetterW(c)	(PlCharType(c, == LC, iswalpha(c)) || \
+			 PlCharType(c, == UC, FALSE))
+
+#define toLowerW(c)	((unsigned)(c) <= 'Z' ? (c) + 'a' - 'A' : towlower(c))
+#define makeLowerW(c)	((c) >= 'A' && (c) <= 'Z' ? toLower(c) : towlower(c))

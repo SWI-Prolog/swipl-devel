@@ -8,6 +8,9 @@
 					--------------------------------------
 
 
+  * ADDED: wide character encoding/decoding support for character I/O.
+    See open/4 and set_stream/2.
+
   * MODIFIED: toplevel does not prompt if the user_input stream is not
     connected to a terminal.  Using set_stream(user_input, tty(true))
     the system can be forced to think input comes from a terminal.
