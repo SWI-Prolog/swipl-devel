@@ -2640,16 +2640,6 @@ PL_record(term_t t)
 }
 
 
-record_t
-PL_record_external(term_t t, unsigned int *size)
-{ Record r = compileTermToHeap(t, R_EXTERNAL);
-
-  *size = r->size;
-
-  return r;
-}
-
-
 void
 PL_recorded(record_t r, term_t t)
 { GET_LD

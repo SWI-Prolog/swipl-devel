@@ -155,9 +155,9 @@ independent.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static inline void
-addSizeInt(CompileInfo info, uint val)
+addUintBuffer(Buffer b, uint val)
 { if ( !(val & ~0x7f) )
-    addBuffer(&info->code, val, uchar);
+    addBuffer(b, val, uchar);
   else
   { int zips = ((sizeof(val))*8+7-1)/7 - 1;
     int leading = TRUE;
@@ -168,11 +168,17 @@ addSizeInt(CompileInfo info, uint val)
       if ( d || !leading )
       { if ( zips != 0 )
 	  d |= 0x80;
-	addBuffer(&info->code, d, uchar);
+	addBuffer(b, d, uchar);
 	leading = FALSE;
       }
     }
   }
+}
+
+
+static inline void
+addSizeInt(CompileInfo info, uint val)
+{ return addUintBuffer((Buffer)&info->code, val);
 }
 
 
@@ -181,26 +187,36 @@ Add a signed long value. First byte   is  number of bytes, remaining are
 value-bytes, starting at most-significant.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define PLMINLONG   ((long)(1L<<(LONGBITSIZE-1)))
+
 static void
 addLong(CompileInfo info, long v)
 { int i = sizeof(v);
 
-  for(i = sizeof(v); i>1; i--)
-  { int b = (v>>((i-1)*8)) & 0xff;
+  if ( v != PLMINLONG )
+  { long absn = (v >= 0 ? v : -v);
+    long mask = 0x1ff << (LONGBITSIZE-9);
 
-    if ( !(b == 0x00 || b == 0xff) )
-      break;
+    for(; i>1; i--, mask >>= 8)
+    { if ( absn & mask )
+	break;
+    }
   }
 
   addBuffer(&info->code, i, uchar);
   
-  for( ; i>0; i-- )
-  { int b = (v>>((i-1)*8)) & 0xff;
+  while( --i >= 0 )
+  { int b = (v>>(i*8)) & 0xff;
     
     addBuffer(&info->code, b, uchar);
   }
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Floats. If we are adding floats for external  use they will be stored in
+normalised byte-order. Otherwise they are stored verbatim.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifdef WORDS_BIGENDIAN
 static const int double_byte_order[] = { 7,6,5,4,3,2,1,0 };
@@ -419,6 +435,70 @@ compileTermToHeap(term_t t, int flags)
   return record;
 }
 
+		 /*******************************
+		 *	 EXTERNAL RECORDS	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+TBD: Encode terms holding just an atom or int more efficiently:
+
+	Code Long
+	Code AtomChars
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+
+#define VERSION 0x10			/* generic version ID */
+#define MAGIC   (VERSION|sizeof(long))	/* first byte */
+
+char *
+PL_record_external(term_t t, unsigned int *len)
+{ GET_LD
+  compile_info info;
+  Word *p;
+  int n;
+  tmp_buffer hdr;
+  int scode, shdr;
+  char *rec;
+
+  SECURE(checkData(valTermRef(t)));
+
+  initBuffer(&info.code);
+  initBuffer(&info.vars);
+  info.size = 0;
+  info.nvars = 0;
+  info.external = TRUE;
+
+  compile_term_to_heap(valTermRef(t), &info);
+  n = info.nvars;
+  p = (Word *)info.vars.base;
+  while(--n >= 0)
+    setVar(**p++);
+  discardBuffer(&info.vars);
+  scode = sizeOfBuffer(&info.code);
+
+  initBuffer(&hdr);
+  addBuffer(&hdr, MAGIC, uchar);		/* magic code */
+  addUintBuffer((Buffer)&hdr, scode);		/* code size */
+  addUintBuffer((Buffer)&hdr, info.size);	/* size on stack */
+  addUintBuffer((Buffer)&hdr, info.nvars);	/* Number of variables */
+  shdr = sizeOfBuffer(&hdr);
+  
+  rec = allocHeap(shdr + scode);
+  memcpy(rec, hdr.base, shdr);
+  memcpy(rec+shdr, info.code.base, scode);
+
+  discardBuffer(&info.code);
+  discardBuffer(&hdr);
+
+  *len = shdr + scode;
+
+  return rec;
+}
+
+
+		 /*******************************
+		 *	   HEAP --> STACK	*
+		 *******************************/
 
 typedef struct
 { const char *data;
@@ -978,6 +1058,64 @@ freeRecord(Record record)
 
   succeed;
 }
+
+		 /*******************************
+		 *	 EXTERNAL RECORDS	*
+		 *******************************/
+
+int
+PL_recorded_external(const char *rec, term_t t)
+{ GET_LD
+  copy_info b;
+  uint gsize;
+  uint nvars;
+  Word *p;
+  int n;
+  uchar m;
+
+  b.base = b.data = rec;
+  fetchBuf(&b, &m, uchar);
+  if ( m != MAGIC )
+    return FALSE;
+  skipSizeInt(&b);			/* code-size */
+  gsize = fetchSizeInt(&b);
+  nvars = fetchSizeInt(&b);
+
+  if ( nvars > 0 )
+  { if ( !(b.vars = alloca(sizeof(Word) * nvars)) )
+      fatalError("alloca() failed");
+    for(p = b.vars, n=nvars; --n >= 0;)
+      *p++ = 0;
+  }
+  b.gstore = allocGlobal(gsize);
+  copy_record(valTermRef(t), &b);
+  assert(b.gstore == gTop);
+
+  SECURE(checkData(valTermRef(copy)));
+  
+  return TRUE;
+}
+
+
+int
+PL_erase_external(char *rec)
+{ copy_info b;
+  uint scode;
+  uchar m;
+
+  b.base = b.data = rec;
+  fetchBuf(&b, &m, uchar);
+  if ( m != MAGIC )
+    return FALSE;
+  scode = fetchSizeInt(&b);
+  skipSizeInt(&b);			/* gsize */
+  skipSizeInt(&b);			/* nvars */
+  b.data += scode;
+
+  freeHeap(rec, b.data-b.base);
+  return TRUE;
+}
+
 
 		/********************************
 		*       PROLOG CONNECTION       *
