@@ -94,6 +94,16 @@ handy for it someone wants to add a data type to the system.
 #endif
 #endif
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+On the MIPS, whether or not alignment can   be used appears to depend on
+the compilation flags. We play safe for   the  case the user changes the
+flags after running configure.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#if !defined(DOUBLE_ALIGNMENT) && defined(__mips__)
+#define DOUBLE_ALIGNMENT sizeof(double)
+#endif
+
 #if MMAP_STACK || O_SHARED_MEMORY || HAVE_VIRTUAL_ALLOC
 #define O_DYNAMIC_STACKS 1		/* sparse memory management */
 #else

@@ -21,6 +21,7 @@
 #include "pl-incl.h"
 #include "pl-ctype.h"
 
+#include <math.h>
 #if HAVE_SYS_STAT_H
 #include <sys/stat.h>
 #endif

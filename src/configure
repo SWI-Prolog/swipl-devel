@@ -2250,7 +2250,7 @@ else
 fi
 done
 
-for ac_hdr in sys/termios.h sys/termio.h
+for ac_hdr in sys/termios.h sys/termio.h bstring.h
 do
 ac_safe=`echo "$ac_hdr" | tr './\055' '___'`
 echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6

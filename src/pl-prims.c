@@ -1704,23 +1704,31 @@ pl_substring(term_t str, term_t offset,
 
 static word
 write_on(term_t goal, int how, term_t target)
-{ char string[10240];
+{ char buf[1024];
+  char *string = buf;
   bool rval;
 
-  tellString(string, 10240);
+  tellString(&string, 10240);
   rval = callProlog(MODULE_user, goal, FALSE);
   toldString();
   TRY(rval);
 
   switch(how)
   { case WR_ATOM:
-      return PL_unify_atom_chars(target, string);
+      rval = PL_unify_atom_chars(target, string);
+      break;
     case WR_STRING:
-      return PL_unify_string_chars(target, string);
+      rval = PL_unify_string_chars(target, string);
+      break;
     case WR_LIST:
       default:
-      return PL_unify_list_chars(target, string);
+      rval = PL_unify_list_chars(target, string);
   }
+
+  if ( string != buf )
+    free(string);
+
+  return rval;
 }
 
 
@@ -1750,16 +1758,19 @@ pl_term_to_atom(term_t term, term_t atom,
 { char *s;
 
   if ( PL_is_variable(atom) )
-  { s = (char *) gTop;
-#if O_DYNAMIC_STACKS
-    tellString(s, 10000000L);
-#else
-    tellString(s, (char *)gMax - (char *)gTop);
-#endif
+  { char buf[1024];
+    word rval;
+
+    s = buf;
+    tellString(&s, sizeof(buf));
     pl_writeq(term);
     toldString();
 
-    return PL_unify_atom_chars(atom, s);
+    rval = PL_unify_atom_chars(atom, s);
+    if ( s != buf )
+      free(s);
+
+    return rval;
   }
 
   if ( PL_get_chars(atom, &s, CVT_ALL) )

@@ -270,8 +270,8 @@ term_to_atom(Term, Atom) :-
 	$term_to_atom(Term, Atom, 0, 0).
 
 atom_to_term(Atom, Term, Bindings) :-
-	var(Bindings),
-	$term_to_atom(Term, Atom, Bindings, 0).
+	$term_to_atom(Term, Atom, B0, 0),
+	Bindings = B0.
 
 int_to_atom(Int, Atom) :-
 	int_to_atom(Int, 10, Atom).

@@ -260,6 +260,9 @@
 /* Define if you have the times function.  */
 #undef HAVE_TIMES
 
+/* Define if you have the <bstring.h> header file.  */
+#undef HAVE_BSTRING_H
+
 /* Define if you have the <dirent.h> header file.  */
 #undef HAVE_DIRENT_H
 

@@ -14,10 +14,10 @@
 	, make/0
 	]).
 
-:- user:dynamic
-	edit_source/1.
-:- user:multifile
-	edit_source/1.
+:- dynamic
+	user:edit_source/1.
+:- multifile
+	user:edit_source/1.
 
 :- module_transparent
 	edit/1, 

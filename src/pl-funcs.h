@@ -185,7 +185,7 @@ word		pl_noprotocol(void);
 bool		seeString(char *s);
 bool		seeingString(void);
 bool		seenString(void);
-bool		tellString(char *s, int size);
+bool		tellString(char **s, int size);
 bool		toldString(void);
 atom_t		currentStreamName(void);
 word		pl_wait_for_input(term_t streams, term_t avail, term_t tmo);

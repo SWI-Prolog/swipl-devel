@@ -195,7 +195,7 @@ echo "	LIBS=$LIBS"
 
 AC_CHECK_HEADERS(unistd.h string.h memory.h sys/time.h sys/stat.h pwd.h)
 AC_CHECK_HEADERS(sys/select.h sys/param.h sys/file.h sys/resource.h malloc.h)
-AC_CHECK_HEADERS(sys/termios.h sys/termio.h)
+AC_CHECK_HEADERS(sys/termios.h sys/termio.h bstring.h)
 AC_CHECK_HEADERS(mach-o/rld.h)
 
 AC_CHECK_FUNCS(access chmod dossleep fstat readlink getwd getcwd getdtablesize)

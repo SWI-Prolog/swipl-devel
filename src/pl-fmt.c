@@ -208,6 +208,7 @@ do_format(const char *fmt, int argc, term_t argv)
 	    FunctorDef fdef = proc->definition->functor;
 	    term_t av = PL_new_term_refs(fdef->arity);
 	    char buf[BUFSIZE];
+	    char *str = buf;
 	    int i;
 	    qid_t qid;
 
@@ -223,14 +224,16 @@ do_format(const char *fmt, int argc, term_t argv)
 	      PL_put_term(av+i, argv+i-1);
 	    argv += fdef->arity;
 
-	    tellString(buf, BUFSIZE);
+	    tellString(&str, BUFSIZE);
 	    debugstatus.suspendTrace++;
 	    qid = PL_open_query(proc->definition->module, FALSE, proc, av);
 	    PL_next_solution(qid);
 	    PL_close_query(qid);
 	    debugstatus.suspendTrace--;
 	    toldString();
-	    OUTSTRING(buf);
+	    OUTSTRING(str);
+	    if ( str != buf )
+	      free(str);
 
 	    fmt++;
 	  } else
@@ -321,6 +324,7 @@ do_format(const char *fmt, int argc, term_t argv)
 		}
 		{ Func f;
 		  char buf[BUFSIZE];
+		  char *str;
 
 	      case 'k':			/* displayq */
 		  f = pl_displayq;	goto pl_common;
@@ -334,20 +338,26 @@ do_format(const char *fmt, int argc, term_t argv)
 
 		  NEED_ARG;
 		  if ( pending_rubber )
-		  { tellString(buf, BUFSIZE);
+		  { str = buf;
+		    tellString(&str, BUFSIZE);
 		    (*f)(argv);
 		    toldString();
-		    OUTSTRING(buf);
+		    OUTSTRING(str);
+		    if ( str != buf )
+		      free(str);
 		  } else
 		  { IOSTREAM *s = PL_current_output();
 		    if ( s->position && s->position->linepos == column )
 		    { (*f)(argv);
 		      column = s->position->linepos;
 		    } else
-		    { tellString(buf, BUFSIZE);
+		    { str = buf;
+		      tellString(&str, BUFSIZE);
 		      (*f)(argv);
 		      toldString();
-		      OUTSTRING(buf);
+		      OUTSTRING(str);
+		      if ( str != buf )
+			free(str);
 		    }
 		  }
 		  SHIFT;

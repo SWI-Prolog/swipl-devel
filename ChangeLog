@@ -2,6 +2,26 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.7.17
+==============
+
+  * FIXED: Better operator priority checking, making a :- b :- c illegal
+    syntax, as it should be.  Also improved the warning issued.
+
+  * FIXED:  Removes MAX_TERM_NESTING from read.pl, previously limiting
+    the complexity of terms that could be read.  The new version of
+    read requires significantly less (C-) stack and can handle
+    much more deeply nested terms.
+
+  * FIXED: term_to_atom(+Term, -Atom) on machines with dynamic stacks,
+    but no exception based expansion (PC version).
+
+  * FIXED: Sopenmen() stream functions (was not used before).  This
+    is now used by tellString() and toldString(), who now have a
+    different interface.  These functions are used by term_to_atom/2,
+    and format/[1-3].
+
+
 Version 2.7.16
 ==============
 

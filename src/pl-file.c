@@ -41,6 +41,9 @@ handling times must be cleaned, but that not only holds for this module.
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
+#ifdef HAVE_BSTRING_H
+#include <bstring.h>
+#endif
 
 #define ST_TERMINAL 0			/* terminal based stream */
 #define ST_FILE	    1			/* File bound stream */
@@ -844,11 +847,15 @@ seenString()
 
 
 bool
-tellString(char *s, int size)
-{ IOSTREAM *stream = Sopen_string(NULL, s, size, "w");
+tellString(char **s, int size)
+{ static int sbuf;
+  IOSTREAM *stream;
   PlFile f;
   int n;
   
+  sbuf = size;
+  stream = Sopenmem(s, &sbuf, "w");
+ 
   for(n=3, f=&fileTable[n]; n<maxfiles; n++, f++)
   { if ( !f->stream )
     { f->stream = stream;
@@ -871,7 +878,8 @@ toldString()
 { PlFile f = &fileTable[Output];
 
   if ( f->type == ST_STRING && f->stream )
-  { Sclose(f->stream);
+  { Sputc(EOS, f->stream);
+    Sclose(f->stream);
     f->stream = NULL;
     f->status = F_CLOSED;
     popOutputContext();
@@ -882,7 +890,7 @@ toldString()
 
 
 		/********************************
-		*        INPUT IOSTREAM NAME        *
+		*        INPUT IOSTREAM NAME    *
 		*********************************/
 
 atom_t
