@@ -1,6 +1,12 @@
 			   XPCE ChangeLog
 			   ==============
 
+* MODIFIED/FIXED: `frame<-bounding_box' to return the true position of the
+  frame rather then just the size, making this method more suitable for
+  screen layout arithmetic.  Related and improved documentation of frame
+  geometry-management methods.  Fixed PostScript code to deal with the
+  changed interface.
+
 * FIXED: If there is a default button in a dialog, give it the keyboard
   focus instead of giving it to another button (Christophe Costa Florencio).
 

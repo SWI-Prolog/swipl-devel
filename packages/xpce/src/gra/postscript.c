@@ -455,6 +455,13 @@ header(Any gr, Area area, Bool ls)
   ps_output("%%DocumentFonts: (atend)\n");
 
   { Area bb = get(gr, NAME_boundingBox, EAV);
+    
+					/* Hack */
+    if ( instanceOfObject(gr, ClassFrame) )
+    { assign(bb, x, ZERO);
+      assign(bb, y, ZERO);
+    }
+
     xgr = valInt(bb->x);
     ygr = valInt(bb->y);
     wgr = valInt(bb->w);

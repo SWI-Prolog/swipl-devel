@@ -634,7 +634,9 @@ getBoundingBoxFrame(FrameObj fr)
 { int x, y, w, h;
 
   if ( ws_frame_bb(fr, &x, &y, &w, &h) )
-    answer(answerObject(ClassArea, ZERO, ZERO, toInt(w), toInt(h), EAV));
+    answer(answerObject(ClassArea,
+			toInt(x), toInt(y), toInt(w), toInt(h),
+			EAV));
 
   fail;
 }
