@@ -582,7 +582,6 @@ inspectWindow(PceWindow sw, EventObj ev)
 }
 
 
-
 static status
 eventWindow(PceWindow sw, EventObj ev)
 { int rval = FAIL;

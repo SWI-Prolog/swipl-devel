@@ -265,7 +265,7 @@ status		changedFieldObject(Any obj, Any *field);
 Any		getClassVariableValueObject(Any obj, Name name);
 status		obtainClassVariablesObject(Any obj);
 status		convertLoadedObjectObject(Any obj, Int oldversion, Int currentversion);
-Any		getConvertObject(Class class, Any x);
+Any		getConvertObject(Any ctx, Any x);
 status		CheckObject(Any obj, Bool recursive);
 status		errorObjectv(Any obj, Error e, int argc, Any *argv);
 Name		getManIdObject(Any obj);

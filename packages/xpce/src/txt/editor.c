@@ -56,6 +56,7 @@ static Int		countLinesEditor(Editor e, Int from, Int to);
 static status		deleteEditor(Editor e, Int from, Int to);
 static status		deleteSelectionEditor(Editor e);
 static status		abortIsearchEditor(Editor e);
+static status		scrollUpEditor(Editor e, Int arg);
 
 static Timer	ElectricTimer;
 
@@ -1797,6 +1798,165 @@ pasteEditor(Editor e)
   fail;
 }
 
+		 /*******************************
+		 *	    CURSOR KEYS		*
+		 *******************************/
+
+static int
+buttons()
+{ if ( instanceOfObject(EVENT->value, ClassEvent) )
+  { EventObj ev = EVENT->value;
+    
+    return valInt(ev->buttons);
+  }
+
+  return 0;
+}
+
+
+static status
+caretMoveExtendSelectionEditor(Editor e, Int oldcaret)
+{ if ( e->selection_start == e->selection_end )
+  { assign(e, selection_unit, NAME_character);
+    selectionOriginEditor(e, oldcaret);
+  }
+
+  selectionExtendEditor(e, e->caret);
+  if ( getClassVariableValueObject(e, NAME_autoCopy) == ON )
+    copyEditor(e);
+
+  succeed;
+}
+
+
+static status
+cursorUpEditor(Editor e, Int arg, Int column)
+{ int bts = buttons();
+  Int caret = e->caret;
+
+  if ( bts & BUTTON_control )
+    backwardParagraphEditor(e, arg);
+  else
+    previousLineEditor(e, arg, column);
+
+  if ( bts & BUTTON_shift )
+    caretMoveExtendSelectionEditor(e, caret);
+
+  succeed;
+}
+
+
+static status
+cursorDownEditor(Editor e, Int arg, Int column)
+{ int bts = buttons();
+  Int caret = e->caret;
+
+  if ( bts & BUTTON_control )
+    forwardParagraphEditor(e, arg);
+  else
+    nextLineEditor(e, arg, column);
+
+  if ( bts & BUTTON_shift )
+    caretMoveExtendSelectionEditor(e, caret);
+
+  succeed;
+}
+
+
+static status
+cursorLeftEditor(Editor e, Int arg)
+{ int bts = buttons();
+  Int caret = e->caret;
+
+  if ( bts & BUTTON_control )
+    backwardWordEditor(e, arg);
+  else
+    backwardCharEditor(e, arg);
+
+  if ( bts & BUTTON_shift )
+    caretMoveExtendSelectionEditor(e, caret);
+
+  succeed;
+}
+
+
+static status
+cursorRightEditor(Editor e, Int arg)
+{ int bts = buttons();
+  Int caret = e->caret;
+
+  if ( bts & BUTTON_control )
+    forwardWordEditor(e, arg);
+  else
+    forwardCharEditor(e, arg);
+
+  if ( bts & BUTTON_shift )
+    caretMoveExtendSelectionEditor(e, caret);
+
+  succeed;
+}
+
+
+static status
+cursorEndEditor(Editor e, Int arg)
+{ int bts = buttons();
+  Int caret = e->caret;
+
+  if ( bts & BUTTON_control )
+    pointToBottomOfFileEditor(e, arg);
+  else
+    endOfLineEditor(e, arg);
+
+  if ( bts & BUTTON_shift )
+    caretMoveExtendSelectionEditor(e, caret);
+
+  succeed;
+}
+
+
+static status
+cursorHomeEditor(Editor e, Int arg)
+{ int bts = buttons();
+  Int caret = e->caret;
+
+  if ( bts & BUTTON_control )
+    pointToTopOfFileEditor(e, arg);
+  else
+    beginningOfLineEditor(e, arg);
+
+  if ( bts & BUTTON_shift )
+    caretMoveExtendSelectionEditor(e, caret);
+
+  succeed;
+}
+
+
+static status
+cursorPageUpEditor(Editor e, Int arg)
+{ int bts = buttons();
+  Int caret = e->caret;
+
+  scrollDownEditor(e, arg);
+
+  if ( bts & BUTTON_shift )
+    caretMoveExtendSelectionEditor(e, caret);
+
+  succeed;
+}
+
+
+static status
+cursorPageDownEditor(Editor e, Int arg)
+{ int bts = buttons();
+  Int caret = e->caret;
+
+  scrollUpEditor(e, arg);
+
+  if ( bts & BUTTON_shift )
+    caretMoveExtendSelectionEditor(e, caret);
+
+  succeed;
+}
 
 		/********************************
 		*        KILLING/YANKING	*
@@ -3064,7 +3224,8 @@ IsearchEditor(Editor e, EventId id)
       fail;
   }
 
-  if ( tisprint(e->text_buffer->syntax, valInt(chr)) )
+  if ( valInt(chr) < Meta(0) &&
+       tisprint(e->text_buffer->syntax, valInt(chr)) )
     return executeSearchEditor(e, chr);
 
   endIsearchEditor(e);
@@ -4522,7 +4683,24 @@ static senddecl send_editor[] =
   SM(NAME_undo, 0, NULL, undoEditor,
      NAME_undo, "Undo last interactive command"),
   SM(NAME_marginWidth, 1, "pixels=int", marginWidthEditor,
-     NAME_visualisation, "Set width of annotation margin")
+     NAME_visualisation, "Set width of annotation margin"),
+
+  SM(NAME_cursorUp, 2, T_linesADintD_columnADintD, cursorUpEditor,
+     NAME_event, "Handle cursor up-arrow"),
+  SM(NAME_cursorDown, 2, T_linesADintD_columnADintD, cursorDownEditor,
+     NAME_event, "Handle cursor down-arrow"),
+  SM(NAME_cursorLeft, 1, "[int]", cursorLeftEditor,
+     NAME_event, "Handle cursor left-arrow"),
+  SM(NAME_cursorRight, 1, "[int]", cursorRightEditor,
+     NAME_event, "Handle cursor right-arrow"),
+  SM(NAME_cursorEnd, 1, "[int]", cursorEndEditor,
+     NAME_event, "Handle 'end'-key"),
+  SM(NAME_cursorHome, 1, "[int]", cursorHomeEditor,
+     NAME_event, "Handle 'home'-key"),
+  SM(NAME_cursorPageUp, 1, "[int]", cursorPageUpEditor,
+     NAME_event, "Handle 'page-up'-key"),
+  SM(NAME_cursorPageDown, 1, "[int]", cursorPageDownEditor,
+     NAME_event, "Handle 'page-down'-key")
 };
 
 /* Get Methods */

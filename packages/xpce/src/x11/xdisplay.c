@@ -230,6 +230,7 @@ new_draw_context(DisplayObj d, Drawable drawable, Name kind)
   Display *display = r->display_xref;
   XGCValues values;
   ulong black, white;
+  Name vclass = ws_get_visual_type_display(d);
 
 # define GCALL (GCFunction|GCForeground|GCBackground|GCGraphicsExposures)
 
@@ -251,8 +252,12 @@ new_draw_context(DisplayObj d, Drawable drawable, Name kind)
 
   values.graphics_exposures = False;
 
-  values.function   = GXinvert;
-  values.plane_mask = 1;
+  values.function   = GXinvert;			/* On true- and direct-color */
+  if ( vclass == NAME_trueColour ||		/* displays, invert value */
+       vclass == NAME_directColour )		/* On mapped displays */
+    values.plane_mask = ~0L;			/* 0 and 1 are normally  */
+  else						/* blank and white */
+    values.plane_mask = 1;
   ctx->complementGC = XCreateGC(display, drawable, GCALL|GCPlaneMask, &values);
 
   values.function   = GXcopy;

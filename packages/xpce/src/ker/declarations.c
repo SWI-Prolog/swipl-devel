@@ -73,6 +73,9 @@ static struct class_definition classdefs[] =
   { NAME_browser, NAME_window, makeClassBrowser,
     &ClassBrowser, "Window version of list_browser" },
 
+  { NAME_browserSelectGesture, NAME_gesture, makeClassBrowserSelectGesture,
+    &ClassBrowserSelectGesture, "Selection management of a (list-)browser" },
+
   { NAME_button, NAME_dialogItem, makeClassButton,
     &ClassButton, "Push button to invoke a command" },
 

@@ -701,6 +701,15 @@ static kbDef editor[] =
 { { SUPER,		NAME_emacsBasics },
   { SUPER,		NAME_emacsPage },
 
+  { "cursor_up",	NAME_cursorUp },
+  { "cursor_down",	NAME_cursorDown },
+  { "cursor_right",	NAME_cursorRight },
+  { "cursor_left",	NAME_cursorLeft },
+  { "end",		NAME_cursorEnd },
+  { "cursor_home",	NAME_cursorHome },
+  { "page_up",		NAME_cursorPageUp },
+  { "page_down",	NAME_cursorPageDown },
+
   { "\\C-@",		NAME_setMark },
   { "LFD", 		NAME_newlineAndIndent },
   { "\\C-r", 		NAME_isearchBackward },
@@ -727,9 +736,7 @@ static kbDef editor[] =
   { "\\e[",		NAME_backwardParagraph },
   { "\\e]",		NAME_forwardParagraph },
   { "\\e<",		NAME_pointToTopOfFile },
-  { "cursor_home",	NAME_pointToTopOfFile },
   { "\\e>",		NAME_pointToBottomOfFile },
-  { "end",		NAME_pointToBottomOfFile },
   { "\\e/",		NAME_dabbrevExpand },
   { "\\eDEL",		NAME_backwardKillWord },
 

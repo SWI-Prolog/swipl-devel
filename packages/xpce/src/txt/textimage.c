@@ -70,6 +70,7 @@ been changed, so we can forward this to the device's update algorithm.
 #define END_EOF  (4)			/* Line ends due to end-of-buffer */
 #define END_NL	 (8)			/* Line ends due to newline */
 
+#define X_RIGHT	 (-1)			/* extend to right margin */
 
 forwards long	do_fill_line(TextImage, TextLine, long);
 static TextLine line_from_y(TextImage ti, int y);
@@ -436,7 +437,7 @@ do_fill_line(TextImage ti, TextLine l, long int index)
 	switch(tc->value.c)
 	{ case EOB:
 	  case '\n':
-	    x = ti->w - TXT_X_MARGIN;
+	    x = right_margin;
 	    l->ends_because |= END_NL;
 	    l->length = ++i;
 	    l->end = index;
@@ -486,7 +487,7 @@ do_fill_line(TextImage ti, TextLine l, long int index)
 
 	l->ends_because |= END_CUT;
 	l->length = i;
-	l->w = tc->x = ti->w - TXT_X_MARGIN;
+	l->w = tc->x = right_margin;
 
 	index = (*ti->scan)(ti->text, index, 1, TEXT_SCAN_FOR, EL, &eof) + 1;
 	l->end = index;
@@ -594,6 +595,15 @@ fill_line(TextImage ti, int line, long int index, short int y)
       if ( tmp.length < l->length )
 	l->changed = tmp.length;
       l->length = tmp.length;
+
+      if ( l->w != tmp.w )
+      { /*Cprintf("Line changed width, ->changed = %d\n", l->changed);*/
+
+	if ( l->chars[l->length].x == l->w )
+	  l->chars[l->length].x = tmp.w;
+	l->w = tmp.w;
+	l->changed = l->length-1;
+      } 
 
       return idx;
     }
@@ -881,12 +891,13 @@ paint_line(TextImage ti, Area a, TextLine l, int from, int to)
   unsigned char atts;
   int cx, cw;
   int pen = valInt(ti->pen);
+  int rmargin = ti->w - TXT_X_MARGIN;
 
   DEBUG(NAME_text, Cprintf("painting line 0x%lx from %d to %d\n",
 			   (ulong)l, from, to));
 
   cx = (from == 0 ? pen : l->chars[from].x);
-  cw = (to >= l->length ? ti->w - pen : l->chars[to].x) - cx;
+  cw = (to >= l->length ? rmargin : l->chars[to].x) - cx;
   r_clear(cx, l->y, cw, l->h);
 
   { TextChar last = &l->chars[to-1];
@@ -1049,6 +1060,8 @@ paint_area(TextImage ti, Area a, int x, int y, int w, int h)
 
   if ( y < TXT_Y_MARGIN )
     r_clear(p, p, ti->w-2*p, TXT_Y_MARGIN-p);
+  if ( x+w >= ti->w - TXT_X_MARGIN )
+    r_clear(ti->w - TXT_X_MARGIN, p, TXT_X_MARGIN-p, ti->h-2*p);
 }
 
 
@@ -1262,7 +1275,7 @@ getIndexTextImage(TextImage ti, EventObj ev)
   x = valInt(X);
   y = valInt(Y);
 
-  if ( x < 0 || x > ti->w || y < 0 || y > ti->h )
+  if ( x < 0 || x > ti->w )
     fail;
 
   answer(toInt(get_index_text_image(ti, x, y)));

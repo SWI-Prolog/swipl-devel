@@ -503,6 +503,28 @@ answerObject(Class class, ...)
 }
 
 
+static inline void
+unlinkHypersObject(Any obj)
+{ if ( onFlag(obj, F_HYPER) )
+  { Chain ch = getAllHypersObject(obj, ON);
+    Hyper h;
+
+    clearFlag(obj, F_HYPER);
+    for_chain(ch, h,
+	      { if ( !onFlag(h, F_FREED|F_FREEING) )
+		{ if ( h->from == obj )
+		    sendv(h, NAME_unlinkFrom, 0, NULL);
+		  else
+		    sendv(h, NAME_unlinkTo, 0, NULL);
+
+		  if ( !isFreedObj(h) )	/* ensure it has gone! */
+		    freeObject(h);
+		}
+	      });
+    deleteHashTable(ObjectHyperTable, obj);
+  }
+}
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 unlinkObject()
 
@@ -533,7 +555,7 @@ unlinkObject(Any obj)
   }
 
   if ( onFlag(obj, F_ATTRIBUTE|F_CONSTRAINT|F_SENDMETHOD|
-	           F_GETMETHOD|F_RECOGNISER|F_HYPER) )
+	           F_GETMETHOD|F_RECOGNISER) )
   { if ( onFlag(obj, F_CONSTRAINT) )
     { Chain ch = getAllConstraintsObject(obj, ON);
       Constraint c;
@@ -541,21 +563,6 @@ unlinkObject(Any obj)
       clearFlag(obj, F_CONSTRAINT);
       for_chain(ch, c, freeObject(c));
       deleteHashTable(ObjectConstraintTable, obj);
-    }
-    if ( onFlag(obj, F_HYPER) )
-    { Chain ch = getAllHypersObject(obj, ON);
-      Hyper h;
-
-      clearFlag(obj, F_HYPER);
-      for_chain(ch, h,
-		{ if ( !onFlag(h, F_FREED|F_FREEING) )
-		  { if ( h->from == obj )
-		      sendv(h, NAME_unlinkFrom, 0, NULL);
-		    else
-		      sendv(h, NAME_unlinkTo, 0, NULL);
-		  }
-		});
-      deleteHashTable(ObjectHyperTable, obj);
     }
     if ( onFlag(obj, F_ATTRIBUTE) )
     { clearFlag(obj, F_ATTRIBUTE);
@@ -595,6 +602,8 @@ freeObject(Any obj)
   setFreeingObj(inst);			/* mark */
   if ( onFlag(obj, F_ASSOC) )
     deleteAssoc(inst);			/* delete name association */
+
+  unlinkHypersObject(inst);
 
   if ( !qadSendv(inst, NAME_unlink, 0, NULL) )
     errorPce(inst, NAME_unlinkFailed);
@@ -2059,11 +2068,12 @@ Translates text of the form
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Any
-getConvertObject(Class class, Any x)
+getConvertObject(Any ctx, Any x)
 { char *s;
+  Any rval = FAIL;
 
   if ( isInteger(x) )
-    answer(answerObject(ClassNumber, x, 0));
+    rval = answerObject(ClassNumber, x, 0);
 
   if ( (s = toCharp(x)) )
   { char *start;
@@ -2080,16 +2090,17 @@ getConvertObject(Class class, Any x)
     for( ; isdigit(*s); s++ )
       ;
     if ( *s == EOS )
-      answer(getObjectFromReferencePce(PCE, toInt(atol(start))));
-
-					/* check for @name (exception?) */
-    for( s=start; isalnum(*s); s++ )
-      ;
-    if ( *s == EOS )
-      answer(getObjectAssoc(CtoKeyword(start)));
+      rval = getObjectFromReferencePce(PCE, toInt(atol(start)));
+    else
+    {					/* check for @name (exception?) */
+      for( s=start; isalnum(*s); s++ )
+	;
+      if ( *s == EOS )
+	rval = getObjectAssoc(CtoKeyword(start));
+    }
   }
 
-  fail;
+  answer(rval);
 }
 
 

@@ -1,3 +1,67 @@
+VERSION 5.0.4
+=============
+
+* MODIFIED: If an object is freed, all hypers are sent ->unlink_to or
+  unlink_from methods before calling the class's ->unlink method.
+
+* ADDED: New bookmark utility to PceEmacs, preserving your bookmarks over
+  multiple sessions.  Pretty alpha, but as it is at least as good as the
+  old and doesn't affect the overall stability it has been put into this
+  version.
+
+* ADDED: `date <->posix_value' to access a date object as a POSIX time-stamp.
+
+* ADDED: `node->sort_sons' to sort the sons of a node in a hierarchy
+  according to user-defined comparison code.
+
+* ADDED: `toc_tree <-selection' to return chain of selected nodes.
+
+* FIXED: toc_image<->image was defined twice as a send-method.
+
+* FIXED: Redraw of selected lines in editor/browser if width changed (notably
+  if a scrollbar is attached/detached.
+
+* ADDED: library(toolbar) to deal with toolbars and buttons displayed on them.
+  This library has been in use with in-house applications for quite some
+  time.
+
+* FIXED: Use TIOCSCTTY to set the controlling terminal if available.  This
+  fixes job-control when running (for example) an interactive shell under
+  class process.  Unix, bug discovered under Linux 2.2 using glibc 2.0.
+
+* FIXED: `graphical ->flash' (X11 version) for truecolor and directcolor
+  displays.
+
+* FIXED: `type<-convert': validate the return-value of the class' <-convert
+  method.  Notably avoids illegal conversions by `object <-convert'.
+
+* FIXED: In XPCE version 4, methods could be redefined using
+  pce_extend_class/1.  Method from templates could also be redefined.  This
+  possibility was lost in version 5 due to the modified class compiler.  It
+  is back again in the above described situations.  Redefinition will fail
+  in all other situations, which are reported by running checkpce/0 after
+  loading your program.
+
+* MODIFIED: General cleanup and UI improvement of (list-)browser:
+	DELETED:  list_broswer->select_middle_message
+	MODIFIED: Argument forwarding.  Both ->open_message and 
+		  ->select_message now forward the current selection.
+	ADDED:	  multiple-selection using shift cursor up/down.
+		  multiple-selection using shift-drag
+		  more conforming selection handling.
+
+* ADDED: `gesture->drag_scroll' to make a gesture scroll the window if
+  the pointer is dragged outside the window.
+
+* FIXED: Detection of double-clicks using WM_?BUTTONDBLCLK rather then
+  internal timing.  Provides better compatibility and makes XPCE compatible
+  to the ICA client protocol for use with Citrix MetaFrame.  After a couple
+  of days testing, XPCE/SWI-Prolog appears to be fully functional.  Tested
+  using Windows NT 4.0 Terminal Server (SP3)/Critrix MetaFrame 1.8, clients
+  under Windows NT 4.0 and SuSE Linux 6.0.
+
+* FIXED: `event <-clone': do not clone <-receiver and <-window.
+
 * FIXED: Recursive calling of the readline interrupt handler, usually
   if an interrupt is generated while an XPCE confirmer is active.
 

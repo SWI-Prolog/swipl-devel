@@ -842,7 +842,15 @@ getClassType(const Type t, const Any val, const Any ctx)
   }
 
   if ( notNil(class->convert_method) )
-    return getGetGetMethod(class->convert_method, ctx, 1, &val);
+  { Any rval = getGetGetMethod(class->convert_method, ctx, 1, &val);
+
+    if ( rval )
+    { if ( instanceOfObject(rval, class) )
+	answer(rval);
+
+      return checkType(rval, nameToType(class->name), NIL);
+    }
+  }
 
   fail;
 }

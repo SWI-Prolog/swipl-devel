@@ -954,9 +954,16 @@ getItemFromEventMenu(Menu m, EventObj ev)
 
 static status
 eventMenu(Menu m, EventObj ev)
-{ if ( completerShownDialogItem(m) &&
-       postEvent(ev, (Graphical) CompletionBrowser(), DEFAULT) )
+{ if ( completerShownDialogItem(m) )
+  { Browser c = CompletionBrowser();
+    ListBrowser lb = c->list_browser;
+
+    if ( forwardCompletionEvent(ev) )
+      succeed;
+
+    postEvent(ev, (Graphical)lb, DEFAULT);
     succeed;
+  }
 
   if ( eventDialogItem(m, ev) )
     succeed;

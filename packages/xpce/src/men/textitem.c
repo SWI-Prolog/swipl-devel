@@ -314,7 +314,7 @@ Browser
 CompletionBrowser()
 { if ( !Completer )
   { KeyBinding kb;
-    Any client, lb;
+    Any client;
     Any quit;
 
     Completer = globalObject(NAME_completer, ClassBrowser, 0);
@@ -332,6 +332,7 @@ CompletionBrowser()
 			     0),
 		   0),
 	 0);
+    send(Completer, NAME_cancelMessage, quit, 0);
     send(get(Completer, NAME_tile, 0), NAME_border, ZERO, 0);
     send(Completer, NAME_kind, NAME_popup, 0);
     send(Completer, NAME_create, 0);
@@ -341,21 +342,6 @@ CompletionBrowser()
     functionKeyBinding(kb, CtoName("\\C-g"), quit);
     functionKeyBinding(kb, CtoName("\\e"),   quit);
     functionKeyBinding(kb, CtoName("SPC"),   NAME_extendPrefix);
-
-    if ( (lb = get(Completer, NAME_listBrowser, 0)) )
-    { send(lb, NAME_recogniser,
-	   newObject(ClassHandler, NAME_locMove,
-		     newObject(ClassMessage, lb, NAME_selection,
-			       newObject(ClassObtain, lb, NAME_dictItem,
-					 Arg(1), 0), 0), 0), 0);
-      send(Completer, NAME_recogniser,
-	   newObject(ClassHandler, NAME_msLeftDown,
-		     newObject(ClassIf,
-			       newObject(ClassObtain, lb, NAME_dictItem,
-					 EVENT, 0),
-			       newObject(ClassMessage, Arg(1), NAME_post, lb, 0),
-			       quit, 0), 0), 0);
-    }
   }
 
   return Completer;
@@ -458,6 +444,35 @@ selectCompletionDialogItem(Any item, Chain matches,
   }
 
   succeed;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Forward an event to the completer  to   initiate  preview  of the object
+below the pointer  as  well  as   `drag-scrolling'.  After  sending  the
+left-down, the completer will obtain focus and process further events.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+status
+forwardCompletionEvent(EventObj ev)
+{ if ( Completer )
+  { ListBrowser lb = Completer->list_browser;
+
+    if ( insideEvent(ev, (Graphical)lb->image) )
+    { if ( isAEvent(ev, NAME_msLeftDrag) ||
+	   isAEvent(ev, NAME_locMove) )
+      { EventObj ev2 = answerObject(ClassEvent, NAME_msLeftDown, 0);
+	PceWindow sw = ev2->window;
+
+	postEvent(ev2, (Graphical) Completer, DEFAULT);
+	if ( notNil(sw) )
+	  assign(sw, focus_button, NIL); /* Hack to keep the focus */
+	succeed;
+      }
+    }
+  }
+
+  fail;
 }
 
 
@@ -862,6 +877,7 @@ eventTextItem(TextItem ti, EventObj ev)
 
   if ( completerShownDialogItem(ti) )
   { Browser c = CompletionBrowser();
+    ListBrowser lb = c->list_browser;
 
     if ( isAEvent(ev, NAME_keyboard) )
     { KeyBinding kb = (ti->editable == ON ? KeyBindingTextItem()
@@ -870,14 +886,14 @@ eventTextItem(TextItem ti, EventObj ev)
       Name f = getFunctionKeyBinding(kb, id);
 
       if ( f != NAME_complete && f != NAME_keyboardQuit )
-      { postEvent(ev, (Graphical)c, DEFAULT);
+      { postEvent(ev, (Graphical)lb, DEFAULT);
 
-	f = getFunctionKeyBinding(c->list_browser->key_binding, id);
+	f = getFunctionKeyBinding(lb->key_binding, id);
 	if ( f == NAME_backwardDeleteChar )
-	{ Int autohide = getAttributeObject(c, NAME_autoHide);
+	{ Int autohide = getAttributeObject(lb->device, NAME_autoHide);
 	
 	  if ( autohide != ZERO )
-	  { StringObj ss = c->list_browser->search_string;
+	  { StringObj ss = lb->search_string;
 	    if ( isNil(ss) || valInt(autohide) > valInt(getSizeCharArray(ss)) )
 	    quitCompleterDialogItem(ti);
 	  }
@@ -889,8 +905,11 @@ eventTextItem(TextItem ti, EventObj ev)
       return send(ti, NAME_typed, id, 0);
     }	 
     
+    if ( forwardCompletionEvent(ev) )
+      succeed;
+
     if ( isAEvent(ev, NAME_msLeftDown) &&
-	 !insideEvent(ev, (Graphical)c) )
+	 !insideEvent(ev, (Graphical)lb) )
       return quitCompleterDialogItem(ti);
 
     return postEvent(ev, (Graphical)c, DEFAULT);

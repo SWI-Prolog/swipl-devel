@@ -59,6 +59,7 @@ Browser		CompletionBrowser(void);
 status		completerShownDialogItem(Any di);
 status		quitCompleterDialogItem(Any di);
 status		selectCompletionDialogItem(Any item, Chain matches, CharArray searchstring, Int autohide);
+status		forwardCompletionEvent(EventObj ev);
 status		styleTextItem(TextItem ti, Name style);
 int		text_item_combo_width(TextItem ti);
 status		typedTextItem(TextItem ti, EventId id);
