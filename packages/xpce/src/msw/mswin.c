@@ -285,7 +285,11 @@ WinStrError(int error, ...)
 		      GetUserDefaultLangID(),
 		      msg,
 		      sizeof(msg),
-		      args) )
+#ifdef __CYGWIN32__
+		      args) )		/* Cygwin is according to docs ... */
+#else
+		      (char **)args) )
+#endif
   { sprintf(msg, "Unknown WINAPI error %d", error);
   }
   va_end(args);
@@ -410,6 +414,9 @@ getWinFileNameDisplay(DisplayObj d,
   if ( notDefault(dir) )
   { 
 #ifdef O_XOS				/* should always be true */
+    char tmp[MAXPATHLEN];
+    char *s;
+  
     if ( (s = expandFileName(strName(dir->path), tmp)) )
       ofn.lpstrInitialDir =_xos_os_filename(s, cwdbin);
 #else

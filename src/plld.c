@@ -35,6 +35,7 @@ embedded application.
 #define PROG_CC "cl.exe"
 #define PROG_CXX "cl.exe"
 #define PROG_OUT "plout.exe"
+#define PROG_CPP "cl.exe -P"
 #define LIB_PL	 "libpl.lib"
 #define LIB_PLMT "libplmt.lib"
 #define LIB_PL_DEBUG "libplD.lib"
