@@ -524,7 +524,7 @@ Number r;
   name(n1, r) \
   Word n1; \
   Number r; \
-  { extern double op(); \
+  { /*extern double op(); normally defined in <math.h> */ \
     number arg; \
     switch( valueExpression(n1, &arg) ) \
     { case V_INTEGER:	r->f = op((real)arg.i); \

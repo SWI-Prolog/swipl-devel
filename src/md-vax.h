@@ -18,7 +18,7 @@ of 1.5 is a bit different this md-file is not guarantied to work.
 #define M_CFLAGS		
 #define M_LIBS			-lm -ltermcap
 
-#define MACHINE			"vaxp"
+#define MACHINE			"vax"
 #define OPERATING_SYSTEM	"ultrix"
 
 			/* Compiler */

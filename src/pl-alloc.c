@@ -233,6 +233,8 @@ doubles', increasing arithmetic accuracy.
 This code is very hacky and needs to be rewritten for  systems  that  do
 not  have  IEEE  floating  point format.  Luckily almost all systems use
 IEEE these days.
+
+Fixed for GCC 2.2 with the help of Giovanni Malnati.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 typedef union
@@ -267,13 +269,15 @@ register fconvert *r;
   b.bits.f |= REAL_MASK;
   b.bits.e |= REAL_MASK;
 
-  *r = b;
+  (*r).bits = b.bits;
 }
 
 double
 unpack_real(p)
 Word p;
-{ fconvert b = *((fconvert *)p);
+{ fconvert b;
+
+  b.bits = ((fconvert *)p)->bits;
 
 #if O_16_BITS
   b.bits.e <<= 1;

@@ -47,6 +47,7 @@
         , default_module/2
 	, save_program/1
 	, save_program/2
+	, save/1
 	]).	
 
 		/********************************
@@ -200,7 +201,10 @@ source_file(Pred, File) :-
 
 source_file(File) :-
 	$time_source_file(File, _).
-
+source_file(File) :-
+	atom(File),
+	$time_source_file(LoadedFile, _),
+	same_file(LoadedFile, File), !.
 
 		/********************************
 		*           DATA BASE           *
@@ -457,6 +461,11 @@ save_program(Name, Options) :-
 	$autoload:clear_library_index,
 	$save_program(Name, Options).
 
+%	save(+File)
+%	Create saved-state in file
+
+save(File) :-
+	save(File, _).
 
 %	arithmetic_function(Spec)
 %	Register a predicate as an arithmetic function.  Takes Name/Arity

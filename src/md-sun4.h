@@ -16,14 +16,14 @@ the terminal interface does not operate properly.
 
 #define M_CC			gcc
 /*#define M_OPTIMIZE		-g -DO_DEBUG*/
-#define M_OPTIMIZE	        -O -finline-functions
+#define M_OPTIMIZE	        -O2
+/*#define M_OPTIMIZE	        -O -finline-functions*/
 #define M_LDFLAGS		-static
 #define M_CFLAGS		-Wall
 #define M_LIBS			-lm -ltermcap
 
 			/* compiler */
-#define ANSI			0
-#define PROTO			0
+#define ANSI			__GNUC__
 #define O_NO_LEFT_CAST		0
 #define O_NO_VOID_POINTER	0
 #define O_SHORT_SYMBOLS		0
@@ -36,7 +36,7 @@ the terminal interface does not operate properly.
 #define O_NO_SEGV_ADDRESS	0
 #define MAX_VIRTUAL_ADDRESS	(512 * 1024 *1024)
 #define O_FOREIGN		1
-#define O_STORE_PROGRAM		1
+#define O_SAVE			1
 #define DEFAULT_PATH		":.:/usr/ucb:/bin:/usr/bin:";
 
 			/* terminal driver */

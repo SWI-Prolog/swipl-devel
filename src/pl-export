@@ -13,6 +13,12 @@ PL_functor
 PL_functor_arity
 PL_functor_name
 PL_integer_value
+PL_is_atom
+PL_is_float
+PL_is_int
+PL_is_string 
+PL_is_term
+PL_is_var
 PL_list_string_value
 PL_mark
 PL_module_name
@@ -33,4 +39,4 @@ PL_unify
 PL_unify_atomic
 PL_unify_functor
 PL_warning
-notify_status
+

@@ -30,7 +30,6 @@ extern int link(/*char **/);
 extern int select(/*int *, int*, int*, struct timeval **/);
 #if !minix && !LINUX
 extern int ioctl(/*int, int, Void*/);
-extern char *sbrk();
 extern int execl(/*char *, ... */);
 #endif
 #endif unix
@@ -88,6 +87,7 @@ int status;
   RemoveTemporaryFiles();
 
   exit(status);
+  /*NOTREACHED*/
 }
 
 		/********************************
@@ -197,25 +197,6 @@ getpagesize()
 
 #if hpux || tos
 void
-bcopy(from, to, n)
-Void from; 
-Void to;
-register size_t n;
-{ register char *f = from;
-  register char *t = to;
-
-  if ( f > t )
-  { while( n-- > 0 )
-      *t++ = *f++;
-  } else
-  { f += n-1;
-    t += n-1;
-    while( n-- > 0 )
-      *t-- = *f--;
-  }
-}
-
-void
 bzero(p, n)
 Void p;
 register size_t n;
@@ -226,19 +207,6 @@ register size_t n;
 }
 #endif hpux
 
-#if sparc
-int
-strcmp(s1, s2)				/* strcmp() appears broken on sparc! */
-register char *s1, *s2;
-{ for( ; *s1; s1++, s2++ )
-  { if ( *s1 == *s2 )
-      continue;
-    return *s1 < *s2 ? -1 : 1;
-  }
-
-  return *s2 ? -1 : 0;
-}
-#endif
 
 		/********************************
 		*             PRINT             *
@@ -455,7 +423,16 @@ GetDTableSize()
 #ifdef DESCRIPTOR_TABLE_SIZE
   return DESCRIPTOR_TABLE_SIZE;
 #else
-  return getdtablesize();
+#  if hpux
+#    include <sys/resource.h>
+     struct rlimit rlp;
+     (void) getrlimit(RLIMIT_NOFILE,&rlp);
+     return (rlp.rlim_cur);
+#  else
+     extern int getdtablesize P((void));
+
+     return getdtablesize();
+#  endif
 #endif
 }
 
@@ -697,6 +674,28 @@ char *old, *new;
 
 
 bool
+SameFile(f1, f2)
+char *f1, *f2;
+{ if ( streq(f1, f2) == FALSE )
+  { 
+#if unix
+    struct stat buf1;
+    struct stat buf2;
+
+    if ( stat(f1, &buf1) != 0 || stat(f2, &buf2) != 0 )
+      fail;
+    if ( buf1.st_ino == buf2.st_ino && buf1.st_dev == buf2.st_dev )
+      succeed;
+#endif
+
+    fail;
+  }
+
+  succeed;
+}
+
+
+bool
 OpenStream(fd)
 int fd;
 {
@@ -762,12 +761,106 @@ char *name;
     Return the directory name for a file having path `path'.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#if unix
+typedef struct canonical_dir *CanonicalDir;
+
+static struct canonical_dir
+{ char *	name;			/* name of directory */
+  char *	canonical;		/* canonical name of directory */
+  dev_t		device;			/* device number */
+  ino_t		inode;			/* inode number */
+  CanonicalDir  next;			/* next in chain */
+} *canonical_dirlist;
+
+forwards char	*canonisePath P((char *)); /* canonise a path-name */
+forwards char   *canoniseDir P((char *));
+#endif
+
 static  char    CWDdir[MAXPATHLEN];	   /* current directory */
+
 
 static void
 initExpand()
-{ CWDdir[0] = EOS;
+{ char *dir;
+
+  CWDdir[0] = EOS;
+
+#if unix
+  if ( dir = getenv("HOME") ) canoniseDir(dir);
+  if ( dir = getenv("PWD")  ) canoniseDir(dir);
+#endif
 }
+
+#if unix
+
+static char *
+canoniseDir(path)
+char *path;
+{ CanonicalDir d;
+  struct stat buf;
+
+  DEBUG(1, printf("canoniseDir(%s) --> ", path); fflush(stdout));
+
+  for(d = canonical_dirlist; d; d = d->next)
+  { if ( streq(d->name, path) )
+    { if ( d->name != d->canonical )
+	strcpy(path, d->canonical);
+
+      DEBUG(1, printf("(lookup) %s\n", path));
+      return path;
+    }
+  }
+
+  if ( stat(path, &buf) == 0 )
+  { CanonicalDir dn = allocHeap(sizeof(struct canonical_dir));
+    char dirname[MAXPATHLEN];
+    char *e = path + strlen(path);
+
+    dn->next   = canonical_dirlist;
+    dn->name   = store_string(path);
+    dn->inode  = buf.st_ino;
+    dn->device = buf.st_dev;
+
+    do
+    { strncpy(dirname, path, e-path);
+      dirname[e-path] = EOS;
+      if ( stat(dirname, &buf) < 0 )
+	break;
+
+      for(d = canonical_dirlist; d; d = d->next)
+      { if ( d->inode == buf.st_ino && d->device == buf.st_dev )
+	{ canonical_dirlist = dn;
+
+	  strcpy(dirname, d->canonical);
+	  strcat(dirname, e);
+	  strcpy(path, dirname);
+	  dn->canonical = store_string(path);
+	  DEBUG(1, printf("(replace) %s\n", path));
+	  return path;
+	}
+      }
+
+      for(e--; *e != '/' && e > path + 1; e-- )
+	;
+
+    } while( e > path );
+
+    dn->canonical = dn->name;
+    canonical_dirlist = dn;
+
+    DEBUG(1, printf("(new, existing) %s\n", path));
+    return path;
+  }
+
+  DEBUG(1, printf("(nonexisting) %s\n", path));
+  return path;
+}
+
+#else
+
+#define canoniseDir(d)
+
+#endif
 
 
 static char *
@@ -799,6 +892,21 @@ register char *path;
   }
   *out++ = *path++;
 
+#if unix
+{ char *e;
+  char dirname[MAXPATHLEN];
+
+  e = bsave + strlen(bsave) - 1;
+  for( ; *e != '/' && e > bsave; e-- )
+    ;
+  strncpy(dirname, bsave, e-bsave);
+  dirname[e-bsave] = EOS;
+  canoniseDir(dirname);
+  strcat(dirname, e);
+  strcpy(bsave, dirname);
+}
+#endif
+
   return bsave;
 }
 
@@ -806,7 +914,6 @@ register char *path;
 
 forwards char	*takeWord P((char **));
 forwards int	ExpandFile P((char *, char **));
-forwards char	*canonisePath P((char *));
 
 static char *
 takeWord(string)
@@ -1043,7 +1150,7 @@ char *f;
   char *base, *p;
 
   for(base = p = f; *p; p++)
-    if (*p == '/')
+    if (*p == '/' && p[1] != EOS )
       base = p;
   strncpy(dir, f, base-f);
   dir[base-f] = EOS;
@@ -1788,18 +1895,15 @@ do_get_char()
   if ( PL_dispatch_events != NULL )
   { DEBUG(3, printf("do_get_char() --> "));
     for(;;)
-    { mayNotify();
-      if ( (*PL_dispatch_events)() == PL_DISPATCH_INPUT )
+    { if ( (*PL_dispatch_events)() == PL_DISPATCH_INPUT )
       { char chr;
 
 	if (read(0, &chr, 1) == 0)
 	  c = EOF;
 	else
 	  c = (Char) chr;
-	hasNotified();
 	break;
       }
-      hasNotified();
     }
 
     DEBUG(3, printf("%d (%c) --> ", c, c));
@@ -2036,10 +2140,6 @@ char *cmd;
   PushTty(&buf, TTY_SAVE);
   PopTty(&ttytab);			/* restore cooked mode */
 
-#if AIX || minix || LINUX
-#define vfork() fork()
-#endif
-
   if ( (pid = vfork()) == -1 )
   { return warning("Fork failed: %s\n", OsError());
   } else if ( pid == 0 )		/* The child */
@@ -2261,17 +2361,29 @@ char *program;
   char *path, *dir;
   char *e;
 
+  if ( isAbsolutePath(program) ||
+       isRelativePath(program) ||
+       index(program, '/') )
+  { if ( (e = okToExec(program)) != NULL )
+    { strcpy(fullname, e);
+      
+      return fullname;
+    }
+
+    return NULL;
+  }
+
   if  ((path = getenv("PATH") ) == 0)
     path = DEFAULT_PATH;
 
   while(*path)
-  { if (*path == PATHSEP || isAbsolutePath(program) || isRelativePath(program) )
+  { if ( *path == PATHSEP )
     { if ( (e = okToExec(program)) != NULL)
       { strcpy(fullname, e);
 
         return fullname;
       } else
-        return (char *) NULL;
+        return NULL;
     } else
     { for(dir = fullname; *path && *path != PATHSEP; *dir++ = *path++)
 	;
@@ -2287,7 +2399,7 @@ char *program;
     }
   }
 
-  return (char *) NULL;
+  return NULL;
 }
 
 

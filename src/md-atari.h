@@ -55,7 +55,6 @@ NOTE:  This port is not yet complete.  Known problems:
 #include <ext.h>
 
 #define SYSTEMHOME		"c:/pl"
-#define SYSTEMSTATE		"pl.wic"
 #define DEFSTARTUP		"pl.rc"
 #define DEFLOCAL		200
 #define DEFGLOBAL		100

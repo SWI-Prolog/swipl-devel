@@ -26,6 +26,42 @@ is linked this way.
 		*********************************/
 
 int
+PL_is_var(t)
+register Word t;
+{ return isVar(*t);
+}
+
+int
+PL_is_int(t)
+register Word t;
+{ return isInteger(*t);
+}
+
+int
+PL_is_atom(t)
+register Word t;
+{ return isAtom(*t);
+}
+
+int
+PL_is_float(t)
+register Word t;
+{ return isReal(*t);
+}
+
+int
+PL_is_string(t)
+register Word t;
+{ return isReal(*t);
+}
+
+int
+PL_is_term(t)
+register Word t;
+{ return isTerm(*t);
+}
+
+int
 PL_type(t)
 register Word t;
 { if ( isVar(*t) )		return PL_VARIABLE;
@@ -76,7 +112,7 @@ register word t;
 functor
 PL_functor(t)
 register Word t;
-{ return (functor) functorTerm(*t);
+{ return isTerm(*t) ? (functor) functorTerm(*t) : (functor) NULL;
 }
 
 atomic
@@ -471,7 +507,7 @@ void * arg;
 { switch(action)
   { case PL_ACTION_TRACE:	return (bool) pl_trace();
     case PL_ACTION_DEBUG:	return (bool) pl_debug();
-    case PL_ACTION_BACKTRACE:	backTrace(environment_frame); succeed;
+    case PL_ACTION_BACKTRACE:	backTrace(environment_frame, 20); succeed;
     case PL_ACTION_BREAK:	return (bool) pl_break();
     case PL_ACTION_HALT:	return (bool) pl_halt();
     case PL_ACTION_ABORT:	return (bool) pl_abort();

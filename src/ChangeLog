@@ -1,3 +1,14 @@
+Fri Jun 19 17:34:44 1992  Jan Wielemaker  (jan at swi)
+
+* Added support for static linking with C-code: see pl-extend.c
+* Added pl-save.[ch]: new save_program/[1,2], save/[1,2] and restore/1.
+  Probably much more portable.  Makes unexec() redundant.  Once portability
+  and proper operation is proven, this will be removed.
+* Various minor things in the instalation have been changed.
+* Fixed a bug in dynamic stack allocation.
+
+VERSION 1.6.1
+
 Thu Apr 30 15:56:46 1992  Jan Wielemaker  (jan at swi)
 
 * Fixed decompilation-bug for (If->Then->Else), introduced with the
