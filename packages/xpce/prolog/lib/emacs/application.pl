@@ -283,13 +283,19 @@ load_user_extension(_Emacs, Base:name) :->
 
 
 load_user_init_file(_Emacs) :->
-	"Load ~/.pceemacsrc: user extensions"::
-	new(F, file('~/.pceemacsrc')),
-	(   send(F, access, read)
-	->  get(F, absolute_path, Path),
-            ignore(consult(user:Path))
+	"Load user_profile('.pceemacsrc') or user_profile('pceemacs.ini')"::
+	(   get(@pce, operating_system, win32)
+	->  Base = 'pceemacs.ini'
+	;   Base = '.pceemacsrc'
+	),
+	(   absolute_file_name(user_profile(Base),
+			       [ access(read),
+				 file_errors(fail)
+			       ],
+			       Profile)
+	->  ignore(consult(user:Profile))
 	;   true
 	).
 
-:- pce_end_class.
+:- pce_end_class(emacs).
 	  
