@@ -840,6 +840,30 @@ collect_data(C, Fd, [C|T]) :-
 
 
 		 /*******************************
+		 *	      FILES		*
+		 *******************************/
+
+:- dynamic
+	testfile/1.
+:- initialization
+	prolog_load_context(file, File),
+	assert(testfile(File)).
+
+file(exists-1) :-
+	\+ exists_file(foobar26).
+file(exists-2) :-
+	testfile(File),
+	exists_file(File).
+file(exists-3) :-
+	\+ exists_file('.').
+file(dir-1) :-
+	exists_directory('.').
+file(dir-2) :-
+	testfile(File),
+	\+ exists_directory(File).
+
+
+		 /*******************************
 		 *	   CODE/CHAR-TYPE	*
 		 *******************************/
 
@@ -885,6 +909,7 @@ testset(term_atom).
 testset(io).
 testset(popen) :-
 	current_prolog_flag(pipe, true).
+testset(file).
 testset(ctype).
 testset(resource).
 
@@ -945,7 +970,7 @@ test_failed(R, Except) :-
 	arg(1, Head, TestName),
 	clause_property(R, line_count(Line)),
 	clause_property(R, file(File)),
-	(   Except == failed
+	(   Except == fail
 	->  format('~N~w:~d: Test ~w(~w) failed~n',
 		   [File, Line, Name, TestName])
 	;   message_to_string(Except, Error),
