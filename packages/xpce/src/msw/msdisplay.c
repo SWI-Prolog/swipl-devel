@@ -287,8 +287,8 @@ ws_events_queued_display(DisplayObj d)
 static HGLOBAL
 ws_string_to_global_mem(String s)
 { int size  = s->size;
-  int extra = size + str_count_chr(s, 0, s->size, '\n');
-  HGLOBAL mem = GlobalAlloc(GMEM_MOVEABLE, bytes + 1);
+  int extra = str_count_chr(s, 0, s->size, '\n');
+  HGLOBAL mem;
   wchar_t *data;
   int i;
 
@@ -301,11 +301,6 @@ ws_string_to_global_mem(String s)
 
   if ( isstrA(s) )
   { charA *q;
-
-    if ( !(mem = GlobalAlloc(GMEM_MOVEABLE, size+extra+1)) )
-    { Cprintf("Cannot allocate\n");
-      return 0;
-    }
 
     for(q=s->s_textA,i=0; i<size; i++)
     { if ( *q == '\n' )
@@ -481,7 +476,7 @@ ws_provide_selection(int format)
       	HGLOBAL mem = ws_string_to_global_mem(s);
 
 	if ( mem )
-	  SetClipboardData(CF_TEXT, mem);
+	  SetClipboardData(CF_UNICODETEXT, mem);
 
 	return TRUE;
       }
@@ -510,7 +505,7 @@ ws_own_selection(DisplayObj d, Name selection, Name type)
   else if ( type == NAME_wmf )
     format = CF_METAFILEPICT;
   else if ( type == NAME_text) 
-    format = CF_TEXT;
+    format = CF_UNICODETEXT;
   else
     return errorPce(d, NAME_noSelectionType, type);
 
