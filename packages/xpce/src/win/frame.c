@@ -1073,8 +1073,8 @@ DeleteFrame(FrameObj fr, PceWindow sw)
 
 static status
 deleteFrame(FrameObj fr, PceWindow sw)
-{ if ( valInt(fr->members->size) <= 1 )
-    fail;				/* cannot delete last (yet) */
+{ /*if ( valInt(fr->members->size) <= 1 )
+    fail;*/				/* cannot delete last (yet) */
 
   return DeleteFrame(fr, sw);
 }

@@ -137,11 +137,19 @@ initialise(T, Window:window=[window], Name:name=[name]) :->
 	->  get(P, name, TheName)
 	;   TheName = Name
 	),
+	(   get(Window, slot, frame, Frame),
+	    Frame \== @nil
+	->  send(Window, lock_object, @on),
+	    send(Frame, delete, Window),
+	    get(Window, unlock, _)
+	;   true
+	),
 	send_super(T, initialise, TheName),
 	send(T, border, size(0,0)),
 	send_super(T, display, P),
 	send(T, slot, window, P),
 	new(_, mutual_dependency_hyper(T, P)).
+
 
 :- pce_group(resize).
 
