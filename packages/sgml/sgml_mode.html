@@ -1,0 +1,115 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+
+<html>
+<head>
+<title>PceEmacs SGML mode</title>
+</head>
+
+<body>
+<h1>PceEmacs SGML mode</h1>
+
+<p>
+This page describes the <em>PceEmacs</em> modes <b>SGML</b>, <b>HTML</b> and
+<b>XML</b>. These modes are based on the
+<a href="http://www.swi.psy.uva.nl/projects/SWI-Prolog">SWI-Prolog</a>
+package sgml2pl, an SGML/XML parser for Prolog. It exploits this parser
+to achieve both colouring syntax elements and errors as well as to
+provided menu-driven editing of SGML, HTML and XML documents.
+
+
+<h2>Syntax highlighting</h2>
+
+<p>
+These PceEmacs modes are designed to be simple. Colouring uses the
+following colours
+
+<p>
+<table align=center border="2">
+<tr><td><font color="#0000ff"><tt><b>bold blue</b></tt></font>	
+    <td>begin tag
+<tr><td bgcolor="#e7e7e7"><font color="#0000ff">
+			    <tt><b>bold blue onlight-grey</b></tt>
+			  </font>
+    <td>SGML SHORTREF expansion
+<tr><td><font color="#0000ff"><tt>blue</tt></font> 
+    <td>end tag
+<tr><td><font color="#288a51">sea-green</font>			
+    <td>CDATA declared content element
+<tr><td bgcolor="#ffa600"><tt>orange</tt>
+    <td>warning
+<tr><td bgcolor="#ff0000"><tt>red</tt>
+    <td>error
+</table>
+
+<p>
+Colouring the whole buffer is the only really safe colouring method, but
+unfortunately doesn't scale with large files. Therefore, this mode is
+only initiated after loading a file in this mode, after typing
+<b>Control-L</b> (<b>recenter</b>) or after an explicit
+<b>colourise_buffer</b> command.
+
+<p>
+The more error-prone <b>colourise_element</b> is activated after many
+commands as well as after an idle-period of 2 seconds. This command
+searches backward to the first element that encloses the caret and then
+colourises this element.  It is errorprone for two reasons.  First of
+all, it does not validate whether the checked element itself is at a
+valid location.  Second, it does not see elements allowed throught the
+DTD's <b>+(<i>Model</i>)</b> construct.
+
+
+<h2>Errors and warnings</h2>
+
+<p>
+Errors and warning encountered during parsing cause the suspect region
+to be coloured <font color="#ffa600">orange</font> (warning) or <font
+color="#ff0000">red</font> (error).  Moving the caret in the suspect
+area causes the error to be printed in the status line at the bottom
+of the editor.
+
+
+<h2>Syntax-guided editing</h2>
+
+<p>
+Most syntax-guided editing is supported using a context-sensitive
+popup-menu associated with the right mouse button.  To create an
+<b>new element</b>, press the right mouse-button at the desired location
+and select the desired element.  The modifier buttons define how
+the element is inserted:
+
+<p>
+<table align="center" border="2">
+<tr><td>control	<td>Insert adjacent begin- and end-tag.
+<tr><td>shift	<td>Place begin- and end-tag each on their own line
+<tr><td>alt	<td>(SGML only) create a <b>SHORTTAG</b> element
+</table>
+
+<p>
+To <b>tag the current selection</b> with a tag, first make a selection and
+then press the right mouse-button inside the selection.  The same
+modifiers as above apply.  If no modifier is given, the default
+is to place the tag at their own line of the selection contains
+complete lines and `in-line' otherwise.
+
+<p>
+To <b>add attributes</b> to an element, press the right-button inside the
+elements begin-tag and select the desired elements.
+
+
+<h2>Bugs and TODO</h2>
+
+<ul>
+<li>Cache the parsed DTD
+<li>Deal with included +(Group) elements properly
+<li>Display total number of encountered errors and provide navigation
+    on large files
+<li>Personalise layout: style to use for certain tags, syntax
+    highlighting, etc.
+<li>Take are of already present attributes and elements.
+</ul>
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,51 @@
+.TH SWI 1 "March 8, 2000"
+.SH NAME
+dtd2pl \- Convert SGML DTD files to Prolog
+.SH SYNOPSIS
+.BR dtd2pl
+.I "dtd-file"
+.br
+.SH DESCRIPTION
+The Program
+.BI dtd2pl
+Provides a crude translation of an SGML DTD files into a Prolog database.
+Curently a DTD is translated into a Prolog
+.B module
+named
+.IR "<doctype>_dtd" "."
+This module does no export any predicates.  The DTD is represented using
+the following predicates.
+
+.SH Predicates
+.TP
+.BI "element(" "Name," " omit(" "Open, Close" ")," " Content" ")"
+.TP
+.BI "include(" "Element, Included" ")"
+.TP
+.BI "exclude(" "Element, Excluded" ")"
+.TP
+.BI "attribute(" "Element, Name, Type, Default" ")"
+
+.SH ENVIRONMENT
+
+.TP
+.BI "SGML_CATALOG_FILES " "file" ":" "file ..."
+Catalog files are used to resolve
+.B PUBLIC
+identifiers of external
+.B entities.
+
+.SH BUGS
+Lacks many options to taylor the output to a specific needs.
+
+.SH AUTHOR
+Jan Wielemaker, SWI, University of Amsterdam
+
+.SH "SEE ALSO"
+.I pl(1) plld(1)
+.I SWI-Prolog 3.1 Reference Manual,
+University of Amsterdam, Dept. of Social Science and Informatics (SWI).
+.SH COPYRIGHT
+Copyright (C) 1991-1998, Jan Wielemaker
+.SH AUTHOR
+Jan Wielemaker
