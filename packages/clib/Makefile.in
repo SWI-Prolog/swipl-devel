@@ -66,11 +66,11 @@ install:	$(TARGETS) $(LIBPL)
 rpm-install:	install
 
 html-install::
-		mkdir -p $(PKGDOC)/clib
+		mkdir -p $(PKGDOC)
 		$(INSTALL) -m 644 clib.html $(PKGDOC)
 
 pdf-install::
-		mkdir -p $(PKGDOC)/clib
+		mkdir -p $(PKGDOC)
 		$(INSTALL) -m 644 clib.pdf $(PKGDOC)
 
 uninstall::
