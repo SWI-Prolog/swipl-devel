@@ -1356,7 +1356,7 @@ showLabelTextItem(TextItem ti, Bool val)
 
 static status
 valueFontTextItem(TextItem ti, FontObj font)
-{ if ( ti->value_text->font != font )
+{ if ( ti->value_font != font )
   { assign(ti, value_font, font);
     requestComputeGraphical(ti, DEFAULT);
   }

@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: `text_item ->value_font' fails to update font in some rare
+  situations.
+
 * MODIFIED: object-term of window and it subclasses now provide one
   argument: the <-name of the window.  Used to be inconsistent and
   often refering to failing methods, making object/2 fail on window
