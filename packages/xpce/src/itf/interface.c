@@ -29,6 +29,9 @@
 #include <h/graphics.h>
 #include <h/unix.h>
 #include "stub.h"
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
 
 #if !defined(FD_ZERO) && HAVE_SELECT
 #include <sys/select.h>
