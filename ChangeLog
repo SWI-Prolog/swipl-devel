@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: menu to PLWIN.EXE (the windows normal executable).  These menus
+    can be programmed from Prolog. 
+
   * FIXED: make/0 detection of directories to update when using MKINDEX.pl
     (reported by Holger Kanwischer).
 

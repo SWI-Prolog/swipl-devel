@@ -1148,6 +1148,10 @@ If {\tt true}, the operating system is an implementation of Microsoft
 Windows (3.1, 95, NT, etc.).
 \end{description}
 
+    \prologflagitem{hwnd}{integer}{r}
+In \program{plwin.exe}, this refers to the MS-Windows window-handle of
+the console window.
+
     \predicate{set_prolog_flag}{2}{+Key, +Value}
 Define a new prolog-flag or change its value.  \arg{Key} is an atom.
 If the flag is a system-defined flag that is not marked

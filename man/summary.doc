@@ -469,6 +469,8 @@ suggest predicates from a keyword.
 \predicatesummary{wait_for_input}{3}{Wait for input with optional timeout}
 \predicatesummary{wildcard_match}{2}{Csh(1) style wildcard match}
 \predicatesummary{win_exec}{2}{Win32: spawn Windows task}
+\predicatesummary{win_insert_menu}{2}{plwin.exe: add menu}
+\predicatesummary{win_insert_menu_item}{4}{plwin.exe: add item to menu}
 \predicatesummary{win_shell}{2}{Win32: open document through Shell}
 \predicatesummary{win_registry_get_value}{3}{Win32: get registry value}
 \predicatesummary{with_mutex}{2}{Run goal while holding mutex}

@@ -3793,17 +3793,21 @@ for Prolog files (see \file{README.TXT} on the Windows version):
 
 Ext = pl
 \end{code}
+
     \predicate{getenv}{2}{+Name, -Value}
 Get environment variable. Fails silently if the variable does not exist.
 Please note that environment variable names are case-sensitive on Unix
 systems and case-insensitive on Windows.
+
     \predicate{setenv}{2}{+Name, +Value}
 Set environment variable.  \arg{Name} and \arg{Value} should be
 instantiated to atoms or integers.  The environment variable will be
 passed to shell/[0-2] and can be requested using getenv/2.  They also
 influence expand_file_name/2.
+
     \predicate{unsetenv}{1}{+Name}
 Remove environment variable from the environment.
+
     \predicate{unix}{1}{+Command}
 This predicate comes from the Quintus compatibility library and provides
 a partial implementation thereof.  It provides access to some operating
@@ -3823,7 +3827,7 @@ Equivalent to calling shell/0.  Use for compatibility only.
 
     \termitem{cd}{}
 Equivalent to calling working_directory/2 to the expansion (see
-expand_file_name/2) of \chr{~}.  for compatibility only.
+expand_file_name/2) of \chr{~}.  For compatibility only.
 
     \termitem{cd}{+Directory}
 Equivalent to calling working_directory/2. Use for compatibility
@@ -3847,11 +3851,23 @@ main :-
 	main(AppArgs).
 \end{code}
 \end{description}
+\end{description}
 
+
+\subsection{Dealing with time and date}		\label{sec:timedate}
+
+There is no standard for time-representation in the Prolog community.
+SWI-Prolog represents it as a floating-point number using the same
+basic representation as the POSIX standard, seconds elapsed since the
+January 1970, 0 hours.  This format is also used for predicates
+accessing time-information from files (see time_file/2).
+
+\begin{description}
     \predicate{get_time}{1}{-Time}
 Return the number of seconds that elapsed since the epoch of the POSIX,
 tim representation: January 1970, 0 hours. \arg{Time} is a floating
 point number.  The granularity is system dependent.
+
     \predicate{convert_time}{8}{+Time, -Year, -Month, -Day,
 				-Hour, -Minute, -Second, -MilliSeconds}
 Convert a time stamp, provided by get_time/1, time_file/2, etc.  \arg{Year} is unified with the year, \arg{Month} with the month number
@@ -3860,12 +3876,44 @@ Convert a time stamp, provided by get_time/1, time_file/2, etc.  \arg{Year} is u
 minute (0--59). \arg{Second} with the second (0--59) and \arg{MilliSecond} with the milliseconds (0--999).  Note that the latter
 might not be accurate or might always be 0, depending on the timing
 capabilities of the system.  See also convert_time/2.
+
     \predicate{convert_time}{2}{+Time, -String}
 Convert a time-stamp as obtained though get_time/1 into a textual
 representation using the C-library function \funcref{ctime}{}.  The
 value is returned as a SWI-Prolog string object (see \secref{strings}).
 See also convert_time/8.
 \end{description}
+
+
+\subsection{Handling the menu in program{PLWIN.EXE}}
+
+The Windows executable \program{PLWIN.EXE} has a menu-bar displayed at
+the top that can be programmed from Prolog.  Being totally non-portable,
+we do not advice using it for your own application, but use XPCE or
+another portable GUI platform instead.  We give the predicates for
+reference here.
+
+\begin{description}
+    \predicate{win_insert_menu}{2}{+Label, +Before}
+Insert a new entry (pulldown) in the menu.  If the menu already contains
+this entry, nothing is done.  The \arg{Label} is the label and using the
+Windows conventions, a letter prefixed with \const{\&} is underlined and
+defines the associated accelerator key. \arg{Before} is the label before
+which this one must be inserted. Using \chr{-} adds the new entry at the
+end (right).  For example, the call below adds a {\sf Application}
+entry just before the {\sf Help} menu.
+
+\begin{code}
+win_insert_menu('&Application', '&Help')
+\end{code}
+
+    \predicate{win_insert_menu_item}{4}{+Pulldown, +Label, +Before, :Goal}
+Add an item to the named \arg{Pulldown} menu. \arg{Label} and
+\arg{Before} are handled as in win_insert_menu/2, but the label \chr{-}
+inserts a \jargon{separator}.  \arg{Goal} is called if the user selects
+the item.  
+\end{description}
+
 
 \section{File System Interaction}	\label{sec:files}
 
