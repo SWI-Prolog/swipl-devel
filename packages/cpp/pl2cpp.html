@@ -103,6 +103,12 @@ exceptions and interface conversion errors to C++ exceptions, which are
 automatically mapped to Prolog exceptions as control is turned back to 
 Prolog.
 
+<H3>Competing interfaces</H3>
+
+<P>Volker Wysk has defined an alternative C++ mapping based on templates 
+and compatible to the STL framework. See
+<A HREF="http://www.volker-wysk.de/swiprolog-c++/index.html">http://www.volker-wysk.de/swiprolog-c++/index.html</A>.
+
 <H3>Acknowledgements</H3>
 
 <P>I would like to thank Anjo Anjewierden for comments on the 
@@ -281,7 +287,7 @@ depending on the result.
 
 X = 3.
 ?- add(a, 2, X).
-[WARNING: Type error: `integer' expected, found `a']
+[ERROR: Type error: `integer' expected, found `a']
    Exception: (  7) add(a, 2, _G197) ?
 </PRE>
 </TABLE>
@@ -1309,9 +1315,8 @@ expected basic Prolog type.
 
 <P>
 <DT><STRONG>PlTypeError :: PlTypeError</STRONG>(<VAR>const char 
-*expected</VAR>)<DD>
-const PlTerm &amp;actual Creates an ISO standard Prolog error term 
-expressing the
+*expected, const PlTerm &amp;actual</VAR>)<DD>
+Creates an ISO standard Prolog error term expressing the
 <VAR>expected</VAR> type and <VAR>actual</VAR> term that does not 
 satisfy this type.
 </DL>
@@ -1329,9 +1334,8 @@ than one of the defined io-modes is provided it is a <EM>domain error</EM>.
 
 <P>
 <DT><STRONG>PlDomainError :: PlDomainError</STRONG>(<VAR>const char 
-*expected</VAR>)<DD>
-const PlTerm &amp;actual Creates an ISO standard Prolog error term 
-expressing a the
+*expected, const PlTerm &amp;actual</VAR>)<DD>
+Creates an ISO standard Prolog error term expressing a the
 <VAR>expected</VAR> domain and the <VAR>actual</VAR> term found.
 </DL>
 

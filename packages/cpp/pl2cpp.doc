@@ -3,6 +3,7 @@
 \sloppy
 
 \usepackage{pl}
+\newcommand{\chaptermark}{}
 \usepackage{xpce}
 \usepackage{html}
 
@@ -58,6 +59,13 @@ cleanup required and C++ exception handling can be used to map Prolog
 exceptions and interface conversion errors to C++ exceptions, which are
 automatically mapped to Prolog exceptions as control is turned back to
 Prolog.
+
+\subsection*{Competing interfaces}
+
+Volker Wysk has defined an alternative C++ mapping based on templates
+and compatible to the STL framework.  See
+\url{http://www.volker-wysk.de/swiprolog-c++/index.html}.
+
 
 \subsection*{Acknowledgements}
 
@@ -189,7 +197,7 @@ and returns \const{TRUE} or \const{FALSE} depending on the result.
 
 X = 3.
 ?- add(a, 2, X).
-[WARNING: Type error: `integer' expected, found `a']
+[ERROR: Type error: `integer' expected, found `a']
    Exception: (  7) add(a, 2, _G197) ?
 \end{code}
 
@@ -987,7 +995,7 @@ A \jargon{type error} expresses that a term does not satisfy the
 expected basic Prolog type.
 
 \begin{description}
-    \constructor{PlTypeError}{const char *expected}{const PlTerm \&actual}
+    \constructor{PlTypeError}{const char *expected, const PlTerm \&actual}
 Creates an ISO standard Prolog error term expressing the
 \arg{expected} type and \arg{actual} term that does not satisfy this
 type.
@@ -1004,7 +1012,7 @@ is provided, this is a \jargon{type error}, if an atom other than one
 of the defined io-modes is provided it is a \jargon{domain error}.
 
 \begin{description}
-    \constructor{PlDomainError}{const char *expected}{const PlTerm \&actual}
+    \constructor{PlDomainError}{const char *expected, const PlTerm \&actual}
 Creates an ISO standard Prolog error term expressing a the
 \arg{expected} domain and the \arg{actual} term found.
 \end{description}

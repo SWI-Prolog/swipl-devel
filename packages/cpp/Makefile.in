@@ -20,7 +20,7 @@ TEX=$(DOC).tex
 DVI=$(DOC).dvi
 PDF=$(DOC).pdf
 HTML=$(DOC).html
-RUNTEX=../../man/runtex
+RUNTEX=env TEXINPUTS="$(PCEHOME)/TeX::" ../../man/runtex
 
 INSTALL=@INSTALL@
 INSTALL_PROGRAM=@INSTALL_PROGRAM@
