@@ -94,17 +94,27 @@ verifyResizeTableSliceGesture(ResizeTableSliceGesture g, EventObj ev)
 
   if ( g->mode == NAME_column )
   { if ( ex < x+w/frac && ex < x+mx )	/* determine horizontal-mode */
+    { int cmin, cmax;
+
+      table_column_range(tab, &cmin, &cmax);
+      if ( cn <= cmin )
+	fail;
       assign(g, column, toInt(cn-1));
-    else if ( ex > x+((frac-1) * w)/frac && ex > x + w - mx )
-      assign(g, column, toInt(cn));
-    else
+    } else if ( ex > x+((frac-1) * w)/frac && ex > x + w - mx )
+    { assign(g, column, toInt(cn));
+    } else
       fail;
   } else /* if ( g->mode == NAME_row ) */
   { if ( ey < y+h/frac && ey < y+mx )	/* determine vertical-mode */
+    { int rmin, rmax;
+
+      table_row_range(tab, &rmin, &rmax);
+      if ( rn <= rmin )
+	fail;
       assign(g, row, toInt(rn-1));
-    else if ( ey > y+((frac-1) * h)/frac && ey > y + h - mx )
-      assign(g, row, toInt(rn));
-    else
+    } else if ( ey > y+((frac-1) * h)/frac && ey > y + h - mx )
+    { assign(g, row, toInt(rn));
+    } else
       fail;
   }
 
@@ -185,13 +195,13 @@ dragResizeTableSliceGesture(ResizeTableSliceGesture g, EventObj ev)
       int nw = valInt(cx) - valInt(col->position);
 
       nw = max(0, nw);
-      send(col, NAME_width, toInt(nw), 0);
+      send(tab, NAME_userResizeSlice, col, toInt(nw), 0);
     } else
     { TableRow row = getRowTable(tab, g->row, ON);
       int nh = valInt(cy) - valInt(row->position);
 
       nh = max(0, nh);
-      send(row, NAME_height, toInt(nh), 0);
+      send(tab, NAME_userResizeSlice, row, toInt(nh), 0);
     }
 
     succeed;
