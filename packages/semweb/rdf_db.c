@@ -3041,6 +3041,7 @@ get_existing_predicate(rdf_db *db, term_t t, predicate **p)
   if ( (*p = existing_predicate(db, name)) )
     return TRUE;
 
+  DEBUG(5, Sdprintf("No predicate %s\n", PL_atom_chars(name)));
   return FALSE;				/* but no exception! */
 }
 
@@ -4579,7 +4580,20 @@ rdf_reachable(-Subject, +Predicate, ?Object)
     Examine transitive relations, reporting all `Object' that can be
     reached from `Subject' using Predicate without going into a loop
     if the relation is cyclic.
+
+directly_attached() deals with the posibility that  the predicate is not
+defined and Subject and Object are  the   same.  Should  use clean error
+handling, but that means a lot of changes. For now this will do.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+directly_attached(term_t pred, term_t from, term_t to)
+{ if ( PL_is_atom(pred) && PL_is_atom(from) )
+    return PL_unify(to, from);
+
+  return FALSE;
+}
+
 
 static foreign_t
 rdf_reachable(term_t subj, term_t pred, term_t obj, control_t h)
@@ -4597,12 +4611,12 @@ rdf_reachable(term_t subj, term_t pred, term_t obj, control_t h)
       memset(&a, 0, sizeof(a));
       if ( !PL_is_variable(subj) )		/* subj .... obj */
       { if ( !get_partial_triple(db, subj, pred, 0, 0, &a.pattern) )
-	  return FALSE;
+	  return directly_attached(pred, subj, obj);
 	a.target = a.pattern.object.resource;
 	target_term = obj;
       } else if ( !PL_is_variable(obj) ) 	/* obj .... subj */
       {	if ( !get_partial_triple(db, 0, pred, obj, 0, &a.pattern) )
-	  return FALSE;
+	  return directly_attached(pred, obj, subj);
 	a.target = a.pattern.subject;
 	target_term = subj;
       } else
