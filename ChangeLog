@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Avoid tracing the $aborted exception.
+
   * FIXED: Call stack-shifter when low on stack in built-in sort/1.
     Only applies to systems where mmap() doesn't work or isn't detected
     properly. Richard O'Keefe.  

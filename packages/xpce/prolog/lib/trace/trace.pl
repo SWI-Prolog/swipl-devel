@@ -58,6 +58,7 @@ user:prolog_trace_interception(Port, Frame, CHP, Action) :-
 	notrace(intercept(Port, Frame, CHP, GuiAction)),
 	map_action(GuiAction, Frame, Action).
 
+
 map_action(creep, _, continue) :-
 	traceall.
 map_action(skip, _, continue) :-

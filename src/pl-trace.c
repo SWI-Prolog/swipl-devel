@@ -281,6 +281,13 @@ tracePort(LocalFrame frame, Choice bfr, int port, Code PC)
        debugstatus.suspendTrace )		      /* called back */
     return ACTION_CONTINUE;
 
+  if ( port == EXCEPTION_PORT )		/* do not trace abort */
+  { Word p = valTermRef(LD->exception.pending);
+
+    deRef(p);
+    if ( *p == ATOM_aborted )
+      return ACTION_CONTINUE;
+  }
 					/* trace/[1,2] */
   if ( true(def, TRACE_CALL|TRACE_REDO|TRACE_EXIT|TRACE_FAIL) )
   { int doit = FALSE;
