@@ -1314,7 +1314,7 @@ expandVars(const char *pattern, char *expanded)
 #ifdef HAVE_GETPWNAM
     { struct passwd *pwent;
 
-      if ( GD->os.fred && !streq(GD->os.fred, user) )
+      if ( GD->os.fred && streq(GD->os.fred, user) )
       { value = GD->os.fredshome;
       } else
       { if ( !(pwent = getpwnam(user)) )

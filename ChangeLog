@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: expand_file_name/2 handling of ~fred (Ørjan Johansen).
+
   * DEBUGGER: Modified the trace-hooks to examine choice-points as first
     class objects.  Adjusted the GUI tracer to use the new code.  This
     opens the route for better handling of choice-points in the debugger.

@@ -864,6 +864,11 @@ expandFileName(char *pattern, char *bin)
 #ifdef HAVE_GETPWNAM
     { struct passwd *pwent;
 
+      if ( strlen(user)+1 > sizeof(fred) )
+      { ExpandProblem = CtoName("User name too long");
+	return NULL;
+      }
+
       if ( !streq(fred, user) )
       { if ( (pwent = getpwnam(user)) == (struct passwd *) NULL )
 	{ ExpandProblem = CtoName("Unknown user");
