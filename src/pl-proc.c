@@ -824,6 +824,8 @@ abolishProcedure(Procedure proc, Module module)
 	  def->references = 0;
 	}
       }
+    } else if ( true(def, NEEDSCLAUSEGC) )
+    { registerDirtyDefinition(def);
     }
 
     resetProcedure(proc, FALSE);
@@ -1178,6 +1180,8 @@ pl_garbage_collect_clauses(void)
   if ( GD->procedures.dirty && !gc_status.blocked )
   { DefinitionChain c, *cell;
     sigset_t set;
+
+    DEBUG(2, Sdprintf("pl_garbage_collect_clauses()\n"));
 
     PL_LOCK(L_THREAD);
     LOCK();
@@ -1660,7 +1664,8 @@ pl_retractall(term_t head)
   if ( false(def, DYNAMIC) )
   { if ( isDefinedProcedure(proc) )
       return PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PROC, proc);
-    set(def, DYNAMIC);			/* implicit.  Warn? */
+    if ( !setDynamicProcedure(proc, TRUE) )
+      fail;
     succeed;				/* nothing to retract */
   }
 
@@ -1897,6 +1902,14 @@ detachMutexAndUnlock(Definition def)
 #endif /*O_PLMT*/
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Changing a static  procedure  to  dynamic   is  very  difficult.  If the
+definition has clauses, these may be dead   clauses, so we must call the
+clause garbage collector to find  out.  A   common  case  where this may
+happen is abolish, followed by  dynamic.   Unfortunately  it  makes this
+sequence hazardous and slow in multi-threaded environment.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 int
 setDynamicProcedure(Procedure proc, bool isdyn)
 { Definition def = proc->definition;
@@ -1913,8 +1926,16 @@ setDynamicProcedure(Procedure proc, bool isdyn)
   { GET_LD
     if ( def->definition.clauses )
     { UNLOCKDEF(def);
+      if ( true(def, NEEDSCLAUSEGC) )
+      { pl_garbage_collect_clauses();
+	LOCKDEF(def);
+	if ( !def->definition.clauses )
+	  goto ok;
+	UNLOCKDEF(def);
+      }
       return PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PROC, proc);
     }
+  ok:
     set(def, DYNAMIC);
     if ( SYSTEM_MODE )
       set(def, SYSTEM|HIDE_CHILDS);

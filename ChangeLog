@@ -7,6 +7,11 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: retractall/1 to call setDynamicProcedure() instead of simply
+    modifying the predicate.  setDynamicProcedure() to call the clause
+    garbage collector before deciding it cannot turn static predicate
+    with clauses into a dynamic one.  Anders Bouwer.
+
   * FIXED: Deadlock in thread_statistics on `self'.  Sergey Tikhonov.
 
   * FIXED: plwin.exe menu link to the XPCE documentation.  Robert Shiplett.
