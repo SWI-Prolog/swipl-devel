@@ -1074,6 +1074,8 @@ ws_resize_image(Image image, Int w, Int h)
 }
 
 
+#define USE_MS_ZOOM 1
+
 #ifdef USE_MS_ZOOM
 
 Image
