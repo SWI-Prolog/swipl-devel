@@ -45,7 +45,7 @@
 www_open_url(Spec) :-
 	current_prolog_flag(windows, true), !,
 	expand_url_path(Spec, URL),
-	win_shell(open, URL).
+	call(win_shell(open, URL)).	% fool xref
 www_open_url(Spec) :-
 	(   getenv('BROWSER', Browser)
 	->  true
