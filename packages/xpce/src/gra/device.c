@@ -1166,8 +1166,18 @@ placeDialogItem(Device d, Matrix m, Graphical i,
 		int x, int y, int *max_x, int *max_y)
 { Graphical gr;
 
-  if ( IsPlaced(i) || get(i, NAME_autoAlign, 0) != ON )
+  if ( IsPlaced(i) ||
+       get(i, NAME_autoAlign, 0) != ON  )
     succeed;
+
+  if ( isNil(i->device) )
+    displayDevice(d, i, DEFAULT);
+
+/*
+  if ( i->displayed == OFF )
+    succeed;
+*/
+
   SetPlaced(i);
 
   DEBUG(NAME_layout, Cprintf("placing %s\n", pp(i)));
@@ -1176,9 +1186,6 @@ placeDialogItem(Device d, Matrix m, Graphical i,
   while( y < 0 ) { shift_y_matrix(m, max_x, max_y); y++; }
   while( x >= *max_x ) expand_x_matrix(m, max_x, max_y); 
   while( y >= *max_y ) expand_y_matrix(m, max_x, max_y); 
-
-  if ( isNil(i->device) )
-    displayDevice(d, i, DEFAULT);
 
   m->units[x][y].item = i;
   m->units[x][y].alignment = get(i, NAME_alignment, 0);
@@ -1285,10 +1292,12 @@ stretchRows(Matrix m, int bbh)
 { int x, y;
   Stretch s = alloca(sizeof(stretch) * m->rows);
   Stretch sp;
-  int ndist = m->rows;
 
-  for(sp = s, y=0; y<m->rows; y++, sp++)
+  for(sp = s, y=0; y<m->rows; y++)
   { int stretch = 0, noshrink=FALSE;
+
+    if ( m->units[0][y].height == 0 && m->units[0][y].depth == 0 )
+      continue;
 
     sp->ideal  = m->units[0][y].height + m->units[0][y].depth;
     sp->minimum = 0;
@@ -1308,16 +1317,23 @@ stretchRows(Matrix m, int bbh)
 
     if ( stretch == 0 && y < m->rows - 1 )
       sp->stretch = 1;
+
+    sp++;
   }
 
-  distribute_stretches(s, ndist, bbh);
+  distribute_stretches(s, sp-s, bbh);
 
-  for(sp=s, x=0; x<m->cols; x++, sp++)
-  { for(y=0; y<ndist; y++)
+  for(sp=s, y=0; y<m->rows; y++)
+  { if ( m->units[0][y].height == 0 && m->units[0][y].depth == 0 )
+      continue;
+
+    for(x=0; x<m->cols; x++)
     { if ( !(sp->shrink == 0 &&
 	     sp->size < m->units[x][y].depth + m->units[x][y].height) )
 	m->units[x][y].depth = sp->size - m->units[x][y].height;
     } 
+
+    sp++;
   }
 }
 
@@ -1551,6 +1567,11 @@ layoutDialogDevice(Device d, Size gap, Size bb, Size border)
       int lx = px;			/* x for left aligned items */
       int gapw = valInt(gap->w);
       
+      if ( m.units[0][y].depth == 0 && m.units[0][y].height == 0 )
+      { DEBUG(NAME_layout, Cprintf("Skipping empty row %d\n", y+1));
+	continue;			/* empty row (not displayed) */
+      }
+
       for(x = 0; x < max_x; x++)
       { if ( notNil(gr = m.units[x][y].item) &&
 	     gr->displayed == ON )
@@ -1561,6 +1582,9 @@ layoutDialogDevice(Device d, Size gap, Size bb, Size border)
 	  Int iw = DEFAULT;
 	  Int ih = DEFAULT;
 	  
+	  DEBUG(NAME_layout,
+		Cprintf("Placing %s at %d,%d\n", pp(gr), x+1,y+1));
+
 	  if ( m.units[x][y].alignment == NAME_column )
 	    ix = m.units[x][y].x;
 	  else
@@ -1615,6 +1639,8 @@ layoutDialogDevice(Device d, Size gap, Size bb, Size border)
       }
 
       py += m.units[0][y].depth + m.units[0][y].height + gaph; 
+      DEBUG(NAME_layout, Cprintf("Moving to row %d at %d\n",
+				 y+1, py));
     }
   }
 
