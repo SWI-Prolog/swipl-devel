@@ -46,10 +46,26 @@
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 These predicates are documented in the source-distribution of the package
-`clib'.  See also the SWI-Prolog home-page at
-
-	http://www.swi.psy.uva.nl/projects/SWI-Prolog/
+`clib'.  See also the SWI-Prolog home-page at http://www.swi-prolog.org
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 :- initialization
    load_foreign_library(foreign(socket), install_socket).
+
+		 /*******************************
+		 *	  HANDLE MESSAGES	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The C-layer generates exceptions of the  following format, where Message
+is extracted from the operating system.
+
+	error(socket_error(Message), _)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+
+:- multifile
+	prolog:message/3.
+
+prolog:message(error(socket_error(Message), _)) -->
+	[ 'Socket error: ~W'-[Message] ].

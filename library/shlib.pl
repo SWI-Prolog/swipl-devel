@@ -198,7 +198,7 @@ reload_foreign_libraries :-
 	forall(retract(current_library(File, Entry, _, Module, _, _)),
 	       (   load_foreign_library(File, Module, Entry)
 	       ->  true
-	       ;   print_message(shlib(File, load_failed))
+	       ;   print_message(error, shlib(File, load_failed))
 	       )).
 
 
