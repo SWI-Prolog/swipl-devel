@@ -79,6 +79,7 @@ typedef struct counting_mutex
 { simpleMutex mutex;			/* mutex itself */
   const char *name;			/* name of the mutex */
   unsigned long count;			/* # times locked */
+  unsigned long unlocked;		/* # times unlocked */
 } counting_mutex;
 
 #define PL_THREAD_MAGIC 0x2737234f
@@ -133,7 +134,11 @@ compile-time
 	  (cm)->count++; \
 	} while(0)
 #define countingMutexUnlock(cm) \
-	simpleMutexUnlock(&(cm)->mutex)
+	do \
+	{ (cm)->unlocked++; \
+	  assert((cm)->unlocked <= (cm)->count); \
+	  simpleMutexUnlock(&(cm)->mutex); \
+	} while(0)
 
 
 #ifdef O_DEBUG_MT

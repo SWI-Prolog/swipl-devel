@@ -815,7 +815,7 @@ abolishProcedure(Procedure proc, Module module)
 	gcClausesDefinitionAndUnlock(def);
 	succeed;
       } else				/* dynamic --> static */
-      { clear(def, DYNAMIC);
+      { setDynamicProcedure(proc, FALSE);
 	if ( true(def, NEEDSCLAUSEGC|NEEDSREHASH) )
 	{ registerDirtyDefinition(def);
 	  def->references = 0;
@@ -934,9 +934,7 @@ retractClauseProcedure(Procedure proc, Clause clause ARG_LD)
     def->number_of_clauses--;
     def->erased_clauses++;
     if ( def->erased_clauses > (def->number_of_clauses>>4) )
-    { if ( false(def, NEEDSCLAUSEGC) )
-	registerDirtyDefinition(def);
-      set(def, NEEDSCLAUSEGC);
+    { set(def, NEEDSCLAUSEGC);
     }
 #ifdef O_LOGICAL_UPDATE
     clause->generation.erased = ++GD->generation;
@@ -1563,7 +1561,7 @@ pl_retract(term_t term, control_t h)
       if ( false(def, DYNAMIC) )
       { if ( isDefinedProcedure(proc) )
 	  return PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PROC, proc);
-	setDynamicProcedure(def, TRUE); /* implicit */
+	setDynamicProcedure(proc, TRUE); /* implicit */
 	fail;				/* no clauses */
       }
 

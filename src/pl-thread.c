@@ -217,7 +217,11 @@ PRED_IMPL("$mutex_statistics", 0, mutex_statistics, 0)
 
   Sdprintf("        Name   locked\n");
   for(i=0; i<= L_FOREIGN; i++, cm++)
-  { Sdprintf("%12s %8d\n", cm->name, cm->count);
+  { Sdprintf("%12s %8d", cm->name, cm->count);
+    if ( cm->unlocked != cm->count )
+      Sdprintf(" LOCKS: %d\n", cm->count - cm->unlocked);
+    else
+      Sdprintf("\n");
   }
 
   succeed;
