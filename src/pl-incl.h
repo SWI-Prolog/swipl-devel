@@ -1099,12 +1099,14 @@ struct procedure
 struct clause_index
 { int		buckets;		/* # entries */
   int		size;			/* # elements (clauses) */
+  int		alldirty;		/* all chains need checked */
   ClauseChain 	entries;		/* chains holding the clauses */
 };
 
 struct clause_chain
 { ClauseRef	head;
   ClauseRef	tail;
+  int		dirty;			/* # of garbage clauses */
 };
 
 struct definition

@@ -2287,6 +2287,16 @@ Note: we are working above `lTop' here!
 	environment_frame = FR = next;		/* open the frame */
 
       depart_continue:
+
+#ifdef O_DEBUGLOCAL
+      {	Word ap = argFrameP(FR, DEF->functor->arity);
+	int n;
+	
+	for(n=50; --n; )
+	  *ap++ = (word)(((char*)ATOM_nil) + 1);
+      }
+#endif
+
 #if tos
 	{ static int tick;
 

@@ -45,13 +45,11 @@ online:		$(ONLINE) $(ONLINE_INDEX)
 
 dvi2tty:	$(DVI2TTY)
 
-clean:		
+clean:	
 		rm -f tmp.* *.aux *.idx *.log *.toc
-
-cleaner:	clean
 		rm -f {doc,online}.* *.tex
 
-distclean:	cleaner
+distclean:	clean
 		rm -f $(MANUAL) $(DVITOTTY)
 		make -C$(DVITOTTY-HOME) distclean
 

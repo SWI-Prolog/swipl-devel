@@ -322,6 +322,7 @@ static struct foreign {
   ADD("$collect_bag",		2, pl_collect_bag,	GC_SAFE|TRACE_ME),
   ADD("$record_bag",		2, pl_record_bag,		TRACE_ME),
   ADD("$please",		3, pl_please,			TRACE_ME),
+  ADD("$check_definition",	1, pl_check_definition, TRANSPARENT|TRACE_ME),
 
 #if O_COMPILE_OR
   ADD("$alt",			1, pl_alt,		NONDETERMINISTIC),

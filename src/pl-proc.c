@@ -295,10 +295,12 @@ assertProcedure(Procedure proc, Clause clause, int where)
     def->lastClause = cref;
   }
 
+  def->number_of_clauses++;
+
   if ( def->hash_info )
     addClauseToIndex(def, clause, where);
   else
-  { if ( ++def->number_of_clauses == 25 && true(def, AUTOINDEX) )
+  { if ( def->number_of_clauses == 25 && true(def, AUTOINDEX) )
       def->indexPattern |= NEED_REINDEX;
   }
 
@@ -363,12 +365,14 @@ removeClausesProcedure(Procedure proc, int sfindex)
   for(c = def->definition.clauses; c; c = c->next)
   { Clause cl = c->clause;
 
-    if ( sfindex == 0 || sfindex == cl->source_no )
+    if ( (sfindex == 0 || sfindex == cl->source_no) && false(cl, ERASED) )
     { set(cl, ERASED);
       set(def, NEEDSCLAUSEGC);
       def->number_of_clauses--;
     } 
   }
+  if ( def->hash_info )
+    def->hash_info->alldirty = TRUE;
 
   leaveDefinition(def);
 }
@@ -385,10 +389,14 @@ bool
 retractClauseProcedure(Procedure proc, Clause clause)
 { Definition def = proc->definition;
 
+  if ( true(clause, ERASED) )
+    succeed;
 
   if ( def->references )
   { set(clause, ERASED);
     set(def, NEEDSCLAUSEGC);
+    if ( def->hash_info )
+      markDirtyClauseIndex(def->hash_info, clause);
     def->number_of_clauses--;
     succeed;
   } else
@@ -522,6 +530,54 @@ resetReferences(void)
   for_table(s, moduleTable)
     resetReferencesModule((Module) s->value);
 }
+
+		 /*******************************
+		 *	    CHECKING		*
+		 *******************************/
+
+word
+pl_check_definition(Word spec)
+{ Procedure proc;
+  Definition def;
+  int nclauses = 0;
+  int nindexable = 0;
+
+  ClauseRef cref;
+
+  if ( !(proc = findProcedure(spec)) )
+    return warning("$check_definition/1: can't find definition");
+  def = proc->definition;
+
+  if ( true(def, FOREIGN) )
+    succeed;
+  for(cref = def->definition.clauses; cref; cref = cref->next)
+  { Clause clause = cref->clause;
+
+    if ( clause->index.varmask != 0 )
+      nindexable++;
+
+    if ( false(clause, ERASED) )
+      nclauses++;
+    else
+    { if ( false(def, NEEDSCLAUSEGC) )
+	warning("%s contains erased clauses and has no NEEDSCLAUSEGC",
+		predicateName(def));
+    }
+  }
+
+  if ( def->hash_info )
+  { if ( def->hash_info->size != nindexable )
+      warning("%s has inconsistent def->hash_info->size",
+	      predicateName(def));
+  }
+
+  if ( def->number_of_clauses != nclauses )
+    warning("%s has inconsistent number_of_clauses (%d, should be %d)",
+	    predicateName(def), def->number_of_clauses, nclauses);
+
+  succeed;
+}
+
 
 		/********************************
 		*     UNDEFINED PROCEDURES      *

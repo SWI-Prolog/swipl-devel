@@ -378,12 +378,15 @@ newClauseIndexTable(int buckets)
     m *= 2;
   buckets = m;
 
-  ci->buckets = buckets;
-  ci->size    = 0;
-  ci->entries = allocHeap(sizeof(struct clause_chain) * buckets);
+  ci->buckets  = buckets;
+  ci->size     = 0;
+  ci->alldirty = FALSE;
+  ci->entries  = allocHeap(sizeof(struct clause_chain) * buckets);
   
   for(ch = ci->entries; buckets; buckets--, ch++)
-    ch->head = ch->tail = NULL;
+  { ch->head = ch->tail = NULL;
+    ch->dirty = 0;
+  }
 
   return ci;
 }
@@ -447,14 +450,19 @@ deleteClauseChain(ClauseChain ch, Clause clause)
 }
 
 
-static void
-gcClauseChain(ClauseChain ch)
+static int
+gcClauseChain(ClauseChain ch, int dirty)
 { ClauseRef cref = ch->head, prev = NULL;
+  int deleted = 0;
 
-  while( cref )
+  while( cref && dirty )
   { if ( true(cref->clause, ERASED) )
     { ClauseRef c = cref;
       
+      if ( c->clause->index.varmask != 0 ) /* indexed and only in this */
+	deleted++;			   /* chain */
+      dirty--;
+
       cref = cref->next;
       if ( !prev )
       { ch->head = c->next;
@@ -472,6 +480,10 @@ gcClauseChain(ClauseChain ch)
       cref = cref->next;
     }
   }
+
+  ch->dirty = 0;
+
+  return deleted;
 }
 
 
@@ -480,8 +492,26 @@ gcClauseIndex(ClauseIndex ci)
 { ClauseChain ch = ci->entries;
   int n = ci->buckets;
     
-  for(; n; n--, ch++)
-    gcClauseChain(ch);
+  if ( ci->alldirty )
+  { for(; n; n--, ch++)
+      ci->size -= gcClauseChain(ch, PLMAXINT);
+  } else
+  { for(; n; n--, ch++)
+    { if ( ch->dirty )
+	ci->size -= gcClauseChain(ch, ch->dirty);
+    }
+  }
+}
+
+
+void
+markDirtyClauseIndex(ClauseIndex ci, Clause cl)
+{ if ( cl->index.varmask == 0 )
+    ci->alldirty = TRUE;
+  else
+  { int hi = cl->index.key & (ci->buckets-1);
+    ci->entries[hi].dirty++;
+  }
 }
 
 

@@ -126,7 +126,7 @@ void		addClauseToIndex(Definition def, Clause cl, int where);
 void		delClauseFromIndex(ClauseIndex ci, Clause cl);
 void		gcClauseIndex(ClauseIndex ci);
 void		unallocClauseIndexTable(ClauseIndex ci);
-
+void		markDirtyClauseIndex(ClauseIndex ci, Clause cl);
 
 /* pl-dwim.c */
 word		pl_dwim_match(Word a1, Word a2, Word mm);
@@ -486,6 +486,7 @@ Definition	findDefinition(FunctorDef f, Module m);
 word		pl_default_predicate(Word d1, Word d2);
 Definition	autoImport(FunctorDef f, Module m);
 word		pl_require(Word pred);
+word		pl_check_definition(Word spec);
 
 /* pl-prof.c */
 void		stopItimer(void);

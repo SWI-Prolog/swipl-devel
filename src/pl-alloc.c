@@ -9,7 +9,9 @@
 
 #include "pl-incl.h"
 
+#ifndef ALLOC_DEBUG
 #define ALLOC_DEBUG 0
+#endif
 #define ALLOC_MAGIC 0xbf
 #define ALLOC_FREE_MAGIC 0x5f
 
@@ -114,7 +116,7 @@ free_heap(register Void mem, register size_t n)
 #endif
   statistics.heap -= n;
   DEBUG(9, Sdprintf("freed %ld bytes at %ld\n",
-		  (unsigned long)n, (unsigned long)p));
+		    (unsigned long)n, (unsigned long)p));
 
   if (n <= ALLOCFAST)
   { n /= sizeof(align_type);

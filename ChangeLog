@@ -4,6 +4,12 @@
 Version 2.1.7
 =============
 
+  * FIXED: management of clause index-table.  Old code lead to indefinite
+    growing of these tables with repetative assert/retract
+
+  * ADDED: Improved dirty-management on clause indexing system to improve
+    the performance on retract from hashed dynamic predicates.
+
   * ADDED: absolute_file_name/3: options file_type, file_errors and
     solutions for compatibility.
 
