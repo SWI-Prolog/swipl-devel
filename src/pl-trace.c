@@ -227,6 +227,9 @@ tracePort(LocalFrame frame, Choice bfr, int port, Code PC)
   Definition def = frame->predicate;
   LocalFrame fr;
 
+  if ( !bfr )
+    bfr = LD->choicepoints;
+
   if ( (true(frame, FR_NODEBUG) && !(SYSTEM_MODE)) || /* hidden */
        debugstatus.suspendTrace )		      /* called back */
     return ACTION_CONTINUE;
