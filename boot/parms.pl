@@ -56,6 +56,11 @@ user:library_directory(Dir) :-
 				 absolute_file_name(swi(library), Dir0),
 				 Dir0),
 	Dir = Dir0.
+user:library_directory(Dir) :-
+	cached_library_directory(clp,
+				 absolute_file_name(swi('library/clp'), Dir0),
+				 Dir0),
+	Dir = Dir0.
 
 cached_library_directory(CacheName, _, Dir) :-
 	library_directory_cache(CacheName, Dir), !,

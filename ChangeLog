@@ -8,6 +8,9 @@
 					--------------------------------------
 
 
+  * ADDED: clp(r): Constraint Logic Programming over Reals.  Leslie De
+    Koninck, K.U. Leuven supervised by Tom Schrijvers and Bart Demoen.
+
   * FIXED: error handling issues when running out of virtual memory due
     to creating too many threads.  Steve Moyle.
 
