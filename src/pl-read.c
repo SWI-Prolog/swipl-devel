@@ -685,6 +685,8 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		    do
 		    { addToBuffer(c, _PL_rd);
 		      c = getchr();
+		      if ( c == '`' && _PL_rd->backquoted_string )
+			break;
 		    } while( c != EOF && isSymbol(c) == SY );
 		    dotseen = FALSE;
 		    goto handle_c;
@@ -1265,7 +1267,8 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  goto case_bq;
 
                 { start = rdhere - 1;
-		  while( isSymbol(*rdhere) )
+		  while( isSymbol(*rdhere) &&
+			 !(*rdhere == '`' && _PL_rd->backquoted_string) )
 		    rdhere++;
 		  end = *rdhere;
 

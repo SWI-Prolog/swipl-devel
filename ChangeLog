@@ -7,6 +7,10 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#41: Syntax error with backquoted strings and no
+    space after operator =/2.  Holger Kanwischer.
+
+
 VERSION 5.1.11 (April 1, 2003)
 ==============================
 
