@@ -267,10 +267,9 @@ appendMenuBar(MenuBar mb, PopupObj p)
     appendChain(mb->members, p);
     appendChain(mb->buttons, b=newObject(ClassButton, p->label, NIL, 0));
     assign(b, popup, p);
+    obtainResourcesObject(mb);
     if ( mb->look != NAME_openLook )
-    { obtainResourcesObject(mb);
-
-      assign(b, label_font, mb->label_font);
+    { assign(b, label_font, mb->label_font);
       assign(b, pen, mb->pen);
       assign(b, radius, mb->radius);
     }
