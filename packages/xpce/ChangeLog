@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Visual hierarchy tool to find windows displayed in windows.
+
 * ENHANCED: reset the display after an abort.
 
 * FIXED/ENHANCED: Various issues and expensions with PceEmacs bookmark

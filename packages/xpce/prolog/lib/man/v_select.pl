@@ -131,13 +131,25 @@ target(D, Ev:event, Target:visual) :<-
 	get(Ev, inside_sub_window, Frame, Window),
 	(   Window == D
 	->  !, fail
-	;   get(Window, find, Ev, Cond, Target)
+	;   get(Window, find, Ev, Cond, Target0),
+	    target(Target0, Ev, Cond, Target)
 	->  true
 	;   (   Cond == @default
 	    ;	send(Cond, forward, Frame)
 	    )
 	->  Target = Frame
 	).
+
+%	Deal with windows displayed on windows
+
+target(Here, Ev, Cond, Target) :-
+	send(Here, instance_of, window),
+	get(Here, find, Ev, Cond, Target0),
+	Target0 \== Here, !,
+	target(Target0, Ev, Cond, Target).
+target(Here, _, @default, Here) :- !.
+target(Here, _, Cond, Here) :-
+	send(Cond, forward, Here).
 
 :- pce_end_class.
 

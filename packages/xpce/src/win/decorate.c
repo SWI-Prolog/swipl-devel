@@ -441,12 +441,12 @@ static classvardecl rc_windowDecorator[] =
 /* Class Declaration */
 
 static Name windowDecorator_termnames[] =
-	{ NAME_window, NAME_scrollbars, NAME_label };
+	{ NAME_window };
 
 ClassDecl(windowDecorator_decls,
           var_windowDecorator, send_windowDecorator,
 	  get_windowDecorator, rc_windowDecorator,
-          3, windowDecorator_termnames,
+          1, windowDecorator_termnames,
           "$Rev$");
 
 
