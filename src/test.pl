@@ -505,6 +505,15 @@ bb(a) :-
 	!(myblock).
 bb(b).
 
+c1 :-
+	\+ ( true, !, fail ).
+c2 :-
+	(   true
+	->  !, fail
+	;   true
+	).
+c2.
+
 control(softcut-1) :-
 	findall(A, softcut1(A), [1,2]).
 control(softcut-2) :-
@@ -519,6 +528,11 @@ control(block-3) :-
 	\+ (   block(myblock, bb(X), _),
 	       X == b
 	   ).
+control(cut-1) :-
+	c1.
+control(cut-1) :-
+	\+ c2.
+
 
 		 /*******************************
 		 *	     EXCEPTIONS		*

@@ -2753,24 +2753,32 @@ and older than this frame.
 
 All frames created since what becomes now the  backtrack  point  can  be
 discarded.
+
+C_LCUT  results  from  !'s  encountered  in    the   condition  part  of
+if->then;else and \+ (which  is  (g->fail;true)).   It  should  cut  all
+choices created since the mark, but not   the mark itself. The test-case
+is  a  :-  \+  (b,  !,  fail),    which   should  succeed.  The  current
+implementation  walks  twice  over  the    choice-points,  but  cuts  in
+conditions should be rare (I hope :-).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    VMI(C_LCUT)						MARK(C_LCUT);
-#if VMCODE_IS_ADDRESS
-#ifdef ASM_NOP
-      ASM_NOP;
-#else
-      asm("nop");
-#endif
-#endif
-    VMI(C_CUT) MARK(C_CUT);
-      { Choice och = (Choice) varFrame(FR, *PC);
+      { Choice och;
 	LocalFrame fr;
 	Choice ch;
+    VMI(C_LCUT)						MARK(C_LCUT);
+	och = (Choice) varFrame(FR, *PC);
+	PC++;
 
+	for(ch=BFR; ch; ch = ch->parent)
+	{ if ( ch->parent == och )
+	  { och = ch;
+	    goto c_cut;
+	  }
+	}
+	assert(0);
+    VMI(C_CUT) 						MARK(C_CUT);
+	och = (Choice) varFrame(FR, *PC);
 	PC++;				/* cannot be in macro! */
-	if ( BFR <= och )		/* already done this */
-	  NEXT_INSTRUCTION;		/* (a, ! -> b)  */
-
+      c_cut:
 	if ( !och || FR > och->frame )	/* most recent frame to keep */
 	  fr = FR;
 	else

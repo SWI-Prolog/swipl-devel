@@ -107,7 +107,7 @@ const code_info codeTable[] = {
   CODE(B_THROW,		"b_throw",	0, 0),
 #endif
   CODE(I_CONTEXT,	"i_context",	1, CA1_MODULE),
-  CODE(C_LCUT,		"c_lcut",	1, 0),
+  CODE(C_LCUT,		"c_lcut",	1, CA1_VAR),
 /*List terminator */
   CODE(0,		NULL,		0, 0)
 };
@@ -2853,6 +2853,7 @@ wamListInstruction(IOSTREAM *out, Clause clause, Code bp)
     case C_MARK:
     case C_SOFTCUT:
     case C_CUT:			/* var */
+    case C_LCUT:
       assert(ci->arguments == 1);
       Sfprintf(out, " var(%d)", VARNUM(*bp++));
       break;
