@@ -87,6 +87,8 @@ static atom_t	 ATOM_timestamp;
 static atom_t	 ATOM_all_types;
 static atom_t	 ATOM_null;		/* default null atom */
 static atom_t	 ATOM_;			/* "" */
+static atom_t	 ATOM_read;
+static atom_t	 ATOM_update;
 
 static functor_t FUNCTOR_timestamp7;	/* timestamp/7 */
 static functor_t FUNCTOR_time3;		/* time/7 */
@@ -113,7 +115,7 @@ static functor_t FUNCTOR_data_source2;
 static functor_t FUNCTOR_null1;
 static functor_t FUNCTOR_source1;
 static functor_t FUNCTOR_column3;
-static functor_t FUNCTOR_dbms_name1;
+static functor_t FUNCTOR_access_mode1;
 
 #define SQL_PL_DEFAULT  0		/* don't change! */
 #define SQL_PL_ATOM	1		/* return as atom */
@@ -891,6 +893,18 @@ odbc_set_connection(term_t con, term_t option)
       return FALSE;
     opt = SQL_AUTOCOMMIT;
     optval = (val ? SQL_AUTOCOMMIT_ON : SQL_AUTOCOMMIT_OFF);
+  } else if ( PL_is_functor(option, FUNCTOR_access_mode1) )
+  { atom_t val;
+
+    if ( !get_atom_arg_ex(1, option, &val) )
+      return FALSE;
+	      
+    if ( val == ATOM_read )
+      optval = SQL_MODE_READ_ONLY;
+    else if ( val == ATOM_update )
+      optval = SQL_MODE_READ_WRITE;
+    else
+      return domain_error(val, "access_mode");
   } else if ( PL_is_functor(option, FUNCTOR_null1) )
   { term_t a = PL_new_term_ref();
 
@@ -931,7 +945,6 @@ static conn_option conn_option_list[] =
 static foreign_t
 odbc_get_connection(term_t conn, term_t option, control_t h)
 { connection *cn;
-  UWORD infoid;
   conn_option *opt;
   functor_t f;
   term_t a;
@@ -976,7 +989,7 @@ find:
       SWORD len;
       RETCODE rc;
 
-      if ( (rc=SQLGetInfo(cn->hdbc, infoid,
+      if ( (rc=SQLGetInfo(cn->hdbc, opt->id,
 			  buf, sizeof(buf), &len)) != SQL_SUCCESS )
       { if ( f )
 	  return odbc_report(henv, cn->hdbc, NULL, rc);
@@ -986,8 +999,14 @@ find:
 
       if ( f )
 	return PL_unify_atom_nchars(a, len, buf);
-      else if ( PL_unify_atom_nchars(a, len, buf) )
+
+      PL_unify_term(option, PL_FUNCTOR, opt->functor,
+		    PL_NCHARS, len, buf);
+
+      if ( opt[1].name )
 	PL_retry_address(opt+1);
+      else
+	return TRUE;
     }
   }
 
@@ -2202,6 +2221,8 @@ install_odbc4pl()
    ATOM_all_types     = PL_new_atom("all_types");
    ATOM_null          = PL_new_atom("$null$");
    ATOM_	      = PL_new_atom("");
+   ATOM_read	      = PL_new_atom("read");
+   ATOM_update	      = PL_new_atom("update");
 
    FUNCTOR_timestamp7		 = MKFUNCTOR("timestamp", 7);
    FUNCTOR_time3		 = MKFUNCTOR("time", 3);
@@ -2229,7 +2250,7 @@ install_odbc4pl()
    FUNCTOR_null1		 = MKFUNCTOR("null", 1);
    FUNCTOR_source1		 = MKFUNCTOR("source", 1);
    FUNCTOR_column3		 = MKFUNCTOR("column", 3);
-   FUNCTOR_dbms_name1		 = MKFUNCTOR("dbms_name", 1);
+   FUNCTOR_access_mode1		 = MKFUNCTOR("access_mode", 1);
 
    DET("odbc_connect",		   3, pl_odbc_connect);
    DET("odbc_disconnect",	   1, pl_odbc_disconnect);
