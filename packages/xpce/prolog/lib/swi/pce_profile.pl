@@ -44,8 +44,13 @@ fill_dialog(F, TD:tool_dialog) :->
 	send(TD, append, new(File, popup(file))),
 	send(TD, append, new(Sort, popup(sort))),
 	send(TD, append, new(Time, popup(time))),
+	send(TD, append, new(Help, popup(help))),
 	send_list(File, append,
-		  [ menu_item(exit, message(F, destroy))
+		  [ menu_item(statistics,
+			      message(F, show_statistics)),
+		    gap,
+		    menu_item(exit,
+			      message(F, destroy))
 		  ]),
 	forall(sort_by(Label, Field, Order),
 	       send(Sort, append,
@@ -55,8 +60,14 @@ fill_dialog(F, TD:tool_dialog) :->
 	get_chain(Type, value_set, Values),
 	forall(member(TimeView, Values),
 	       send(Time, append,
-		    menu_item(TimeView, message(F, time_view, TimeView)))).
-
+		    menu_item(TimeView, message(F, time_view, TimeView)))),
+	send_list(Help, append,
+		  [ menu_item(about,
+			      message(F, about)),
+		    menu_item(help,
+			      message(F, help))
+		  ]).
+			      
 
 load_profile(F) :->
 	"Load stored profile from the Prolog database"::
@@ -68,15 +79,28 @@ load_profile(F) :->
 	get(F, member, prof_browser, B),
 	send(F, report, progress, 'Loading profile data ...'),
 	send(B, load_profile),
+	send(F, report, done),
+	send(F, show_statistics),
+	reset_profiler.			% Cleanup loaded data from the Prolog database
+
+
+show_statistics(F) :->
+	"Show basic statistics on profile"::
+	get(F, ticks, Ticks),
+	get(F, accounting_ticks, Account),
+	get(F, time, Time),
+	get(F, slot, nodes, Nodes),
+	get(F, member, prof_browser, B),
 	get(B?dict?members, size, Predicates),
 	(   Ticks == 0
 	->  Distortion = 0.0
 	;   Distortion is 100*(Account/Ticks)
 	),
-	send(F, report, done,
+	send(F, report, inform,
 	     '%d samples in %.2f sec; %d predicates; \
 	      %d nodes in call-graph; distortion %.0f%%',
 	     Ticks, Time, Predicates, Nodes, Distortion).
+
 
 details(F, From:prolog) :->
 	"Show details on node or predicate"::
@@ -125,6 +149,15 @@ render_time(F, Ticks:int, Rendered:any) :<-
 		new(Rendered, string('%.2f s.', Time))
 	    )
 	).
+
+about(_F) :->
+	send(@display, inform,
+	     'SWI-Prolog execution profile viewer\n\
+	     By Jan Wielemaker').
+
+help(_F) :->
+	send(@display, inform,
+	     'No help yet').
 
 :- pce_end_class(prof_frame).
 
@@ -287,8 +320,11 @@ title(W) :->
 
 refresh(W) :->
 	"Refresh to accomodate visualisation change"::
-	get(W, node, Data),
-	send(W, node, Data).
+	(   get(W, node, Data),
+	    Data \== @nil
+	->  send(W, node, Data)
+	;   true
+	).
 
 node(W, Data:prolog) :->
 	"Visualise a node"::
@@ -369,7 +405,10 @@ show_relative(W, Caller:prolog, Role:name) :->
 	send(T, append, Siblings, halign := right),
 	send(T, append, Calls, halign := right),
 	send(T, append, Redos, halign := right),
-	send(T, append, prof_predicate_text(Pred, Role)),
+	(   Pred == '<spontaneous>'
+	->  send(T, append, Pred, italic)
+	;   send(T, append, prof_predicate_text(Pred, Role))
+	),
 	send(T, next_row).
 
 
