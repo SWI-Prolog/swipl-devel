@@ -321,7 +321,9 @@ initialisation arguments of class menu_item are:
 
 fill_dialog(Draw, D:dialog) :->
 	"Fill the top-dialog window"::
-	send(D, gap, size(10, 5)),
+	send(D, border, size(0, 2)),
+	send(D, gap, size(10, 3)),
+	send(D, pen, 0),
 	new(Canvas, Draw?canvas),
 	new(Menu, Draw?menu),
 	new(Selection, Canvas?selection),
@@ -340,17 +342,13 @@ fill_dialog(Draw, D:dialog) :->
 	send(MB, append, new(E, popup(edit))),
 	send(MB, append, new(P, popup(proto))),
 	send(MB, append, new(S, popup(settings))),
+	send(MB, append, new(H, popup(help))),
 
 	new(UM, message(@arg1?frame, select_mode)),
 	send_list([F, E, S], update_message, UM),
 
 	send_list(F, append,
-		  [ menu_item(about,
-			      message(Draw, about))
-		  , menu_item(help,
-			      message(Draw, help),
-			      @default, @on)
-		  , menu_item(load,
+		  [ menu_item(load,
 			      message(Canvas, load_from))
 		  , menu_item(import,
 			      message(Canvas, import),
@@ -510,6 +508,13 @@ fill_dialog(Draw, D:dialog) :->
 			      and(message(Draw, preferences),
 				  message(S, selected, preferences, @off)),
 			      'Preferences ...')
+		  ]),
+	send_list(H, append,
+		  [ menu_item(about,
+			      message(Draw, about))
+		  , menu_item(help,
+			      message(Draw, help),
+			      @default, @on)
 		  ]),
 
 	(   get_config(draw_config:edit/auto_align, @on)
