@@ -1113,6 +1113,7 @@ make_prolog_mode_goal_popup(G) :-
 	new(G, popup(goal_actions)),
 	Fragment = @arg1,
 	new(HasSource, message(Fragment, has_source)),
+	new(HasListing, message(Fragment, has_listing)),
 	send_list(G, append,
 		  [ menu_item(edit,
 			      message(Fragment, edit),
@@ -1120,6 +1121,10 @@ make_prolog_mode_goal_popup(G) :-
 		    menu_item(edit_other_window,
 			      message(Fragment, edit, @on),
 			      condition := HasSource),
+		    gap,
+		    menu_item(listing,
+			      message(Fragment, listing),
+			      condition := HasListing),
 		    gap,
 		    menu_item(documentation,
 			      message(Fragment, documentation))
@@ -1152,6 +1157,18 @@ head(F, Head:prolog) :<-
 	;   Head = Head0
 	).
 
+loaded_specifier(F, TheHead:prolog) :<-
+	"Get predicate specifier for loaded predicate"::
+	get(F, head, Head),
+	(   Head = _:_
+	->  TheHead = Head
+	;   get(F, text_buffer, TB),
+	    xref_module(TB, M)
+	->  TheHead = M:Head
+	;   TheHead = _:Head
+	),
+	current_predicate(_, TheHead).
+
 has_source(F) :->
 	"Test if there is source available"::
 	get(F, text_buffer, TB),
@@ -1173,6 +1190,31 @@ edit(F, NewWindow:[bool]) :->
 	"Open Prolog predicate [in new window]"::
 	get(F, predicate, Pred),
 	send(@emacs_mode, find_definition, Pred, NewWindow).
+
+
+%	->listing
+%	
+%	List the predicate in an XPCE buffer
+
+listing(F) :->
+	"Generate a listing"::
+	get(F, loaded_specifier, Spec),
+	new(Tmp, emacs_buffer(@nil, string('*Listing for %N*', F))),
+	pce_open(Tmp, write, Out),
+	telling(Old), set_output(Out),
+	ignore(listing(Spec)),
+	tell(Old),
+	close(Out),
+	send(Tmp, modified, @off),
+%	send(Tmp, mode, prolog),
+	send(Tmp, open).
+
+
+has_listing(F) :->
+	"Test if we can make a listing"::
+	get(F, loaded_specifier, Spec),
+	predicate_property(Spec, number_of_clauses(N)),
+	N > 0.
 
 
 documentation(F) :->
@@ -1235,17 +1277,10 @@ identify_pred(imported(From), F, Summary) :-
 	new(Summary, string('%N: imported from %s', F, From)).
 identify_pred(recursion, _, 'Recursive reference') :- !.
 identify_pred(dynamic, F, Summary) :-
-	get(F, head, Head),
-	(   Head = _:_
-	->  TheHead = Head
-	;   get(F, text_buffer, TB),
-	    xref_module(TB, M)
-	->  TheHead = M:Head
-	;   TheHead = _:Head
-	),
-	(   predicate_property(TheHead, number_of_clauses(N))
+	get(F, loaded_specifier, Spec),
+	(   predicate_property(Spec, number_of_clauses(N))
 	->  new(Summary, string('%N: dynamic predicate with %d clauses',
-				prolog_predicate(TheHead),
+				prolog_predicate(Spec),
 				N))
 	;   new(Summary, string('%N: dynamic predicate', F))
 	).
