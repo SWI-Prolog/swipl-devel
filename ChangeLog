@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Updated pl-term.c to fit with multi-threaded code as well as
+    behave properly on PL_cleanup() followed by re-initialisation.
+
   * ENHANCED: Change errors in pl-term.c predicates to raise exceptions
     rather then just warning messages.
 

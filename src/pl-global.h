@@ -203,6 +203,15 @@ typedef struct
     int		_source_index;		/* current index */
     Table	_source_table;		/* file --> index */
   } files;
+
+#ifdef HAVE_TGETENT
+  struct
+  { int    initialised;			/* initialisation status */
+    char  *_string_area;		/* static area for tgetent */
+    char  *_buf_area;			/* another one */
+    Table  _capabilities;		/* User-level capability table */
+  } terminal;
+#endif
 } PL_global_data_t;
 
 

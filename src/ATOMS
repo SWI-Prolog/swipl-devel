@@ -480,6 +480,7 @@ A hash			"hash"
 A matches		"matches"
 A shared		"shared"
 A exclusive		"exclusive"
+A terminal		"terminal"
 A terminal_capability	"terminal_capability"
 A environment		"environment"
 

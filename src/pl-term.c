@@ -12,6 +12,9 @@
 
 #include "pl-incl.h"
 
+#define LOCK()   PL_LOCK(L_TERM)
+#define UNLOCK() PL_UNLOCK(L_TERM)
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module defines some hacks to get to the unix  termcap  library.   I
 realise this is not a proper answer to terminal control from Prolog, but
@@ -46,9 +49,10 @@ char   *UP;
 short	ospeed;
 #endif
 
-static int	term_initialised;	/* Extracted term info? */
-static char     *string_area_pointer;	/* Current location */
-static Table	capabilities;		/* Terminal capabilities */
+#define term_initialised    (GD->terminal.initialised)
+#define string_area	    (GD->terminal._string_area)
+#define buf_area	    (GD->terminal._buf_area)
+#define capabilities        (GD->terminal._capabilities)
 
 typedef struct
 { atom_t type;				/* type of the entry */
@@ -56,11 +60,10 @@ typedef struct
   word  value;				/* Value of the entry */
 } entry, *Entry;
 
-forwards bool	initTerm(void);
-
 void
 resetTerm()
-{ if ( capabilities == NULL )
+{ LOCK();
+  if ( capabilities == NULL )
   { capabilities = newHTable(16);
   } else
   { term_initialised = STAT_START;
@@ -68,14 +71,28 @@ resetTerm()
 	      freeHeap(s->value, sizeof(entry)));
     clearHTable(capabilities);
   }
+  UNLOCK();
 }
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Actually nothing to do as all   memory  is allocated through allocHeap()
+and the global pointers are now (4.0.12)  part of the GD structure which
+is cleared by PL_cleanup() anyway.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+cleanupTerm()
+{ 
+}
+
+
+/* MT: Locked by calling lookupEntry()
+*/
 
 static bool
 initTerm(void)
-{ static char *buf = NULL;
-  static char *string_area = NULL;
-
-  if ( term_initialised == STAT_START )
+{ if ( term_initialised == STAT_START )
   { char term[100];
 
     term_initialised = STAT_ERROR;
@@ -83,35 +100,58 @@ initTerm(void)
     { term_t env = PL_new_term_ref();
 
       PL_put_atom_chars(env, "TERM");
-      return PL_error(NULL, 0, NULL, ERR_EXISTENCE,
-		      ATOM_environment, env);
+      PL_error(NULL, 0, NULL, ERR_EXISTENCE,
+	       ATOM_environment, env);
+      goto out;
     }
 
-    if ( buf == NULL )         buf         = allocHeap(MAX_TERMBUF);
-    if ( string_area == NULL ) string_area = allocHeap(MAX_TERMBUF);
-    string_area_pointer = string_area;
+    if ( buf_area == NULL )
+      buf_area = allocHeap(MAX_TERMBUF);
+    if ( string_area == NULL )
+      string_area = allocHeap(MAX_TERMBUF);
 
-    switch( tgetent(buf, term) )
-    { case -1:	return warning("Cannot open termcap file");
-      case  1:	break;
+    switch( tgetent(buf_area, term) )
+    { case -1:
+      { term_t t = PL_new_term_ref();
+	
+	PL_put_atom_chars(t, "termcap");
+	PL_error(NULL, 0, "tgetent() cannot read database",
+		 ERR_PERMISSION,
+		 ATOM_file, ATOM_read, t);
+	goto out;
+      }
+      case  1:
+	break;
       default:
-      case  0:	return warning("Unknown terminal: %s", term);
+      case  0:
+      { term_t t = PL_new_term_ref();
+
+	PL_put_atom_chars(t, term);
+	PL_error(NULL, 0, NULL, ERR_EXISTENCE,
+		 ATOM_terminal, t);
+	goto out;
+      }
     }
 
     term_initialised = STAT_OK;
   }
 
+out:
   return term_initialised == STAT_OK;
 }
+
 
 static Entry
 lookupEntry(atom_t name, atom_t type)
 { Symbol s;
   Entry e;
 
+  LOCK();
   if ( (s = lookupHTable(capabilities, (void*)name)) == NULL )
   { if ( initTerm() == FALSE )
-      return NULL;
+    { e = NULL;
+      goto out;
+    }
 
     e = (Entry) allocHeap(sizeof(entry));
     e->name = name;
@@ -131,20 +171,25 @@ lookupEntry(atom_t name, atom_t type)
     } else if ( type == ATOM_string )
     { char *s;
     
-      if ( (s = tgetstr(stringAtom(name), &string_area_pointer)) != NULL )
+      if ( (s = tgetstr(stringAtom(name), &string_area)) != NULL )
         e->value  = PL_new_atom(s);	/* locked: ok */
     } else
     { warning("tgetent/3: Illegal type");
       freeHeap(e, sizeof(entry));
-      return NULL;
+      e = NULL;
+      goto out;
     }
 
     addHTable(capabilities, (void *)name, e);
-    return e;
   } else
-    return (Entry) s->value;
+    e = (Entry)s->value;
+    
+out:
+  UNLOCK();
+  return e;
 }
       
+
 word
 pl_tty_get_capability(term_t name, term_t type, term_t value)
 { Entry e;
@@ -194,6 +239,7 @@ pl_tty_goto(term_t x, term_t y)
   tputs(s, 1, tputc);
   succeed;
 }
+
 
 word
 pl_tty_put(term_t a, term_t affcnt)
