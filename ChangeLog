@@ -1,6 +1,10 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * PORT: No longer print a message if the locale cannot be initialised.
+    A bit dubious, but some installations appear to have a broken locale
+    subsystem.
+
   * FIXED: Non-portable test in config.guess (Kenneth Pronovici).
 
   * FIXED: reported undefined predicate by check/0 on plcon.exe (Mike Elston).

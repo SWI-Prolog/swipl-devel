@@ -437,10 +437,18 @@ pl_code_type(term_t chr, term_t class, word h)
 #if defined(HAVE_LOCALE_H) && defined(HAVE_SETLOCALE)
 #include <locale.h>
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Note: on some installations, locale doesn't   work correctly. Printing a
+message isn't really cute. It would be better to use printMessage(), but
+the system isn't yet initialised far enough.   Maybe we should store the
+failure and print a message at the end of the initialisation?
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static void
 initLocale()
 { if ( !setlocale(LC_CTYPE, "") )	/* this is all we use */
-    Sdprintf("Failed to set locale\n");
+  { DEBUG(0, Sdprintf("Failed to set locale\n"));
+  }
 }
 
 #else
