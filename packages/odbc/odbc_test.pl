@@ -140,7 +140,8 @@ type(varchar(2000),				% can we access as integers?
 	    ],
      [ 
      ],
-     []) :-
+     [ \+ dbms_name('MySQL')
+     ]) :-
 	findall(a, between(1, 1500, _), LongChars),
 	atom_chars(Long, LongChars).
 type(binary(20),
@@ -161,27 +162,41 @@ type(blob,			% mySql blob
      [ odbc_type(longvarbinary),
        dbms_name('MySQL')		% MySQL specific test
      ]).
-type(date,
-     date = [ date(1960,3,19), '$null$' ],
+type(date - 'Type date',
+     date = [ date(1960,3,19) ],
      [
      ],
      []).
-type(time,
-     time = [ time(18,23,19), '$null$' ],
+type(date - 'Type date: NULL',
+     date = [ '$null$' ],
+     [
+     ],
+     [ \+ dbms_name('MySQL')
+     ]).
+type(time - 'Type time',
+     time = [ time(18,23,19) ],
      [
      ],
      []).
+type(time - 'Type time: NULL',
+     time = [ '$null$' ],
+     [
+     ],
+     [ \+ dbms_name('MySQL')
+     ]).
 type(timestamp,				% MySQL uses POSIX stamps
-     timestamp = [ timestamp(1990,5,18,18,23,19,0), '$null$' ],
+     timestamp = [ timestamp(1990,5,18,18,23,19,0) ],
      [ integer = timestamp_to_integer
      ],
-     []).
+     [ dbms_name('MySQL')
+     ]).
 
-test_type(Type) :-
+test_type(TypeSpec) :-
 	open_db,
-	type(Type, PlType=Values, AltAccess, Options),
-	(   applicable(Type, Options)
-	->  progress('Type ~w:', [Type]),
+	type(TypeSpec, PlType=Values, AltAccess, Options),
+	db_type(TypeSpec, Type, Comment),
+	(   applicable(Options, Type)
+	->  progress('~w:', [Comment]),
 	    create_test_table(Type),
 	    progress(' (w)', []),
 	    (	memberchk(odbc_type(ODBCType), Options)
@@ -195,15 +210,25 @@ test_type(Type) :-
 	    read_test_alt_types(AltAccess, test, Values),
 	    write_test_alt_types(AltAccess, Type, test),
 	    progress(' (OK!)~n', [])
-	;   progress('Skipped ~w: not supported~n', [Type])
+	;   true
+	    % progress('Skipped ~w: not supported~n', [Comment])
 	).
 
-%	applicable(+Type, +Options)
+db_type(Type-Comment, Type, Comment).
+db_type(Type,         Type, Comment) :-
+	sformat(Comment, 'Type ~w', [Type]).
+
+%	applicable(+Options, +Type)
 %	
 %	See whether we can run this test on this connection.
 
-applicable(_, Options) :-
-	memberchk(dbms_name(DB), Options), !,
+applicable([], _) :- !.
+applicable([H|T], Type) :- !,
+	applicable(H, Type),
+	applicable(T, Type).
+applicable(\+ Option, Type) :- !,
+	\+ applicable(Option, Type).
+applicable(dbms_name(DB), _) :- !,
 	odbc_get_connection(test, dbms_name(DB)).
 applicable(_, _).
 

@@ -2590,9 +2590,9 @@ get_timestamp(term_t t, SQL_TIMESTAMP_STRUCT* stamp)
   { time_t t = (time_t) tf;
     long  us = (long)((tf - (double) t) * 1000.0);
 #ifdef HAVE_GMTIME
-    struct tm *tm = localtime(&t);
-#else
     struct tm *tm = gmtime(&t);
+#else
+    struct tm *tm = localtime(&t);
 #endif
 
     stamp->year	    = tm->tm_year + 1900;
