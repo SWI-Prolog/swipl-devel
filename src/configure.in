@@ -438,6 +438,10 @@ AC_TRY_RUN(
     double *p;
     unsigned long x = (unsigned long) l;
 
+#if defined(__alpha__) || defined(__alpha)
+    exit(1);
+#endif
+
     if ( x % sizeof(double) == 0 )
       x += sizeof(long);
     p = (double  *) x;
@@ -458,6 +462,10 @@ AC_TRY_RUN(
   { char l[sizeof(long)*2];
     long *p;
     int i;
+
+#if defined(__alpha__) || defined(__alpha)
+    exit(1);
+#endif
 
     for(i=0; i<sizeof(long); i++)
     { p = (long *)(l+i);
