@@ -1,3 +1,8 @@
+Jul 16, 2002
+
+* Fixed problem with pre-fetching if rows are partially instantiated.
+  Petter Egesund.
+
 Jul 13, 2002
 
 * Fixed handling default in types(Types) option of odbc_query.

@@ -331,6 +331,12 @@ with_mark(Mark, L) :-			% doesn't work yet
 		   [ findall(Name, row(Name, Mark))
 		   ]).
 
+tmark :-
+	open_db,
+	odbc_query(test, 'SELECT * from marks', row(X, 6)),
+	write(X),
+	fail.
+
 		 /*******************************
 		 *	     FEEDBACK		*
 		 *******************************/

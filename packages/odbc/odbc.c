@@ -1723,8 +1723,8 @@ prepare_result(context *ctxt)
 
 static foreign_t
 odbc_row(context *ctxt, term_t trow)
-{ term_t local_trow = PL_new_term_ref();
-  fid_t fid = PL_open_foreign_frame();
+{ term_t local_trow;
+  fid_t fid;
 
   if ( !true(ctxt, CTX_BOUND) )
   { if ( !prepare_result(ctxt) )
@@ -1775,11 +1775,14 @@ odbc_row(context *ctxt, term_t trow)
     }      
   }
 
+  local_trow = PL_new_term_ref();
+  fid = PL_open_foreign_frame();
+
   for(;;)				/* normal non-deterministic access */
-  { if ( !true(ctxt, CTX_PREFETCHED) )
-    { TRY(ctxt, SQLFetch(ctxt->hstmt));
+  { if ( true(ctxt, CTX_PREFETCHED) )
       clear(ctxt, CTX_PREFETCHED);
-    }
+    else
+      TRY(ctxt, SQLFetch(ctxt->hstmt));
 
     if ( !pl_put_row(local_trow, ctxt) )
     { close_context(ctxt);
@@ -1790,7 +1793,7 @@ odbc_row(context *ctxt, term_t trow)
     { PL_rewind_foreign_frame(fid);
       continue;
     }
-      
+     
 					/* success! */
 					/* pre-fetch to get determinism */
     ctxt->rc = SQLFetch(ctxt->hstmt);
