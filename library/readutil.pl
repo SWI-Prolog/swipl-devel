@@ -52,7 +52,7 @@ read_line_to_codes(Fd, Codes) :-
 	read_1line_to_codes(C0, Fd, Codes0),
 	Codes = Codes0.
 
-read_1line_to_codes(-1, _, []) :- !.
+read_1line_to_codes(-1, _, end_of_file) :- !.
 read_1line_to_codes(10, _, []) :- !.
 read_1line_to_codes(13, Fd, L) :- !,
 	get_code(Fd, C2),

@@ -795,6 +795,7 @@ head_colours(message_hook(_,_,_),   hook-[classify,classify,classify]).
 head_colours(portray(_),	    hook-[classify]).
 head_colours(resource(_,_,_),	    hook-[identifier,classify,file]).
 head_colours(term_expansion(_,_),   hook-[classify,classify]).
+head_colours(goal_expansion(_,_),   hook-[classify,classify]).
 head_colours(prolog_trace_interception(_,_,_,_),
 				    hook-classify).
 head_colours(M:H, Colours) :-

@@ -10,6 +10,9 @@ Read the next line of input from \arg{Stream} and unify the result with
 a newline character or end-of-file. Unlike read_line_to_codes/3, this
 predicate removes trailing newline character.
 
+On end-of-file the atom \const{end_of_file} is returned.  See also
+at_end_of_stream/[0,1].
+
     \predicate{read_line_to_codes}{3}{+Stream, -Codes, ?Tail}
 Diference-list version to read an input line to a list of character
 codes.  Reading stops at the newline or end-of-file character, but

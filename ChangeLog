@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * LIBRARY: make read_line_to_codes return the atom end_of_file upon reaching
+    the end of file.
+
   * PORT: improve portability of SWI-Prolog.h and SWI-cpp.h after comments
     from Silvio Malisani concerning Borland's C++ Builder 5.I.
 
