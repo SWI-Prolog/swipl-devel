@@ -407,6 +407,7 @@ promote_ocharbuf(ocharbuf *buf)
       *t++ = *f++;
     buf->data.w = (wchar_t*)buf->localbuf;
     buf->encoding = SGML_ENC_UCS;
+    buf->allocated /= sizeof(wchar_t);
   } else
   { wchar_t *new;
     const unsigned char *f = buf->data.t;
@@ -418,6 +419,9 @@ promote_ocharbuf(ocharbuf *buf)
 
     while(f<e)
       *t++ = *f++;
+
+    if ( buf->data.t != buf->localbuf )
+      sgml_free(buf->data.t);
 
     buf->data.w = new;
     buf->encoding = SGML_ENC_UCS;
@@ -455,9 +459,8 @@ add_ocharbuf(ocharbuf *buf, int chr)
     { buf->data.w = sgml_malloc(buf->allocated*sizeof(wchar_t));
       memcpy(buf->data.w, buf->localbuf, sizeof(buf->localbuf));
     }
-
-    buf->data.w[buf->size++] = chr;
   }
+  buf->data.w[buf->size++] = chr;
 }
 
 
@@ -486,14 +489,16 @@ empty_ocharbuf(ocharbuf *buf)
 { buf->size = 0;
 
   if ( buf->allocated > 8192 )
-  { sgml_free(buf->data.t);
+  { assert(buf->data.t != buf->localbuf);
+    sgml_free(buf->data.t);
 
     buf->encoding = SGML_ENC_ISO;
     buf->allocated = sizeof(buf->localbuf);
     buf->data.t = buf->localbuf;
   } else if ( buf->encoding == SGML_ENC_UCS )
-  { buf->allocated *= sizeof(wchar_t);
-}
+  { buf->encoding = SGML_ENC_ISO;
+    buf->allocated *= sizeof(wchar_t);
+  }
 }
 
 

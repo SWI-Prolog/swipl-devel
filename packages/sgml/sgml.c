@@ -94,7 +94,7 @@ print_escaped(char c, ochar const *s)
     } else if (x == '\n')
     { printf("\\n");
     } else
-    { printf("\\%3o", x);
+    { printf("\\%03o", x);
     }
   }
   putc('\n', f);
@@ -106,10 +106,12 @@ wprint_escaped(FILE *f, const wchar_t *s, int len)
 { const wchar_t *e = &s[len];
 
   while ( s < e )
-  { wint_t x = *s;
+  { wint_t x = *s++;
       
-    if ( x > 0xff )
-    { printf("\\u%4x\\", x);		/* \uXXXX */
+    if ( x > 0xffff )
+    { printf("\\U%08x", x);		/* \UXXXXXXXX */
+    } else if ( x > 0xff )
+    { printf("\\u%04x", x);		/* \uXXXX */
     } else if (x >= ' ')
     { if (x == '\\')
 	putc(x, f);
@@ -119,7 +121,7 @@ wprint_escaped(FILE *f, const wchar_t *s, int len)
     } else if (x == '\n')
     { printf("\\n");
     } else
-    { printf("\\%3o", x);
+    { printf("\\%03o", x);
     }
   }
 }

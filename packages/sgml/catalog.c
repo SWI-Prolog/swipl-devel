@@ -417,7 +417,7 @@ load_one_catalogue(catalog_file * file)
   catalogue_item_ptr this_item;
   int override = 0;
 
-  if ( src == 0 )
+  if ( !src )
   { gripe(ERC_NO_CATALOGUE, file->file);
     return;
   }
@@ -481,6 +481,8 @@ load_one_catalogue(catalog_file * file)
     }
     break;
   }
+
+  fclose(src);
 }
 
 

@@ -557,12 +557,9 @@ expand_entities(dtd_parser *p, const ichar *in, int len, ocharbuf *out)
       int chr;
 
       if ( (s=isee_character_entity(dtd, in, &chr)) )
-      { if ( chr <= 0 || chr >= OUTPUT_CHARSET_SIZE )
-	{ if ( chr == 0 )
-	    gripe(ERC_SYNTAX_ERROR, "Illegal character entity", in);
-	  else
-	    gripe(ERC_REPRESENTATION, "character");
-	}
+      { if ( chr == 0 )
+	  gripe(ERC_SYNTAX_ERROR, "Illegal character entity", in);
+
 	add_ocharbuf(out, chr);
 	in = s;
 	continue;
@@ -2633,7 +2630,8 @@ validate_completeness(sgml_environment *env)
 { if ( !complete(env) )
   { char buf[256];
 
-    sprintf(buf, "Incomplete <%s> element", env->element->name->name);
+    snprintf(buf, sizeof(buf), "Incomplete element: <%s>",
+	     env->element->name->name);
 
     gripe(ERC_VALIDATE, buf);		/* TBD: expected */
   }
@@ -4250,14 +4248,7 @@ process_entity(dtd_parser *p, const ichar *name)
     if ( v <= 0 )
       return gripe(ERC_SYNTAX_ERROR, "Bad character entity", name);
 
-    if ( v >= OUTPUT_CHARSET_SIZE )
-    { if ( p->on_entity )
-      { process_cdata(p, FALSE);
-	(*p->on_entity)(p, NULL, v);
-      } else
-	return gripe(ERC_REPRESENTATION, "character");
-    } else
-      add_ocharbuf(p->cdata, v);
+    add_ocharbuf(p->cdata, v);
   } else
   { dtd_symbol *id;
     dtd_entity *e;
@@ -4299,17 +4290,8 @@ process_entity(dtd_parser *p, const ichar *name)
 	    p->blank_cdata = FALSE;
 	  }
 	    
-	  if ( chr > 0 && chr < OUTPUT_CHARSET_SIZE )
-	  { add_ocharbuf(p->cdata, chr);
-	    return TRUE;
-	  } else
-	  { if ( p->on_entity )
-	    { process_cdata(p, FALSE);
-	      (*p->on_entity)(p, e, chr);
-	    } else
-	      return gripe(ERC_REPRESENTATION, "character");
-	  }
-	  break;
+	  add_ocharbuf(p->cdata, chr);
+	  return TRUE;
 	}
 	if ( e->content == EC_SGML )
 	{ locbuf oldloc;
@@ -5046,17 +5028,7 @@ reprocess:
       p->utf8_char <<= 6;
       p->utf8_char |= (chr & ~0xc0);
       if ( --p->utf8_left == 0 )
-      { if ( p->utf8_char >= OUTPUT_CHARSET_SIZE &&
-	     p->mark_state == MS_INCLUDE )
-	{ if ( p->on_entity )
-	  { process_cdata(p, FALSE);
-	    (*p->on_entity)(p, NULL, p->utf8_char);
-	    goto utf8_done;
-	  } else
-	    gripe(ERC_REPRESENTATION, "character");
-	}
-	add_cdata(p, p->utf8_char);	/* verbatim? */
-      utf8_done:
+      { add_cdata(p, p->utf8_char);	/* verbatim? */
 	p->state = p->utf8_saved_state;
       }
 
@@ -5182,8 +5154,9 @@ sgml_process_file(dtd_parser *p, const char *file, unsigned flags)
     set_mode_dtd_parser(p, DM_DATA);
 
   if ( (fd = fopen(file, "rb")) )
-    rval = sgml_process_stream(p, fd, flags);
-  else
+  { rval = sgml_process_stream(p, fd, flags);
+    fclose(fd);
+  } else
     rval = FALSE;
 
   pop_location(p, &oldloc);
