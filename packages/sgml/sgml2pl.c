@@ -14,6 +14,8 @@
 #include <windows.h>
 #endif
 
+#define DTD_MINOR_ERRORS 1		/* get detailed errors */
+
 #include "dtd.h"
 #include "catalog.h"
 #include <SWI-Stream.h>
@@ -24,6 +26,7 @@
 #include <assert.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdio.h>
 
 #define streq(s1, s2) (strcmp(s1, s2) == 0)
 
@@ -39,7 +42,8 @@
 typedef enum
 { SA_FILE = 0,				/* Stop at end-of-file */
   SA_ELEMENT,				/* Stop after first element */
-  SA_CONTENT				/* Stop after close */
+  SA_CONTENT,				/* Stop after close */
+  SA_DECL				/* Stop after declaration */
 } stopat;
 
 typedef enum
@@ -62,6 +66,7 @@ typedef struct _parser_data
   int	      max_errors;		/* error limit */
   int	      max_warnings;		/* warning limit */
   errormode   error_mode;		/* how to handle errors */
+  int	      positions;		/* report file-positions */
 
   predicate_t on_begin;			/* begin element */
   predicate_t on_end;			/* end element */
@@ -70,6 +75,8 @@ typedef struct _parser_data
   predicate_t on_pi;			/* processing instruction */
   predicate_t on_xmlns;			/* xmlns */
   predicate_t on_urlns;			/* url --> namespace */
+  predicate_t on_error;			/* errors */
+  predicate_t on_decl;			/* declarations */
 
   stopat      stopat;			/* Where to stop */
   int	      stopped;			/* Environment is complete */
@@ -116,6 +123,7 @@ static functor_t FUNCTOR_parse1;
 static functor_t FUNCTOR_source1;
 static functor_t FUNCTOR_call2;
 static functor_t FUNCTOR_charpos1;
+static functor_t FUNCTOR_charpos2;
 static functor_t FUNCTOR_ns2;		/* :/2 */
 static functor_t FUNCTOR_space1;
 static functor_t FUNCTOR_pi1;
@@ -123,6 +131,10 @@ static functor_t FUNCTOR_sdata1;
 static functor_t FUNCTOR_ndata1;
 static functor_t FUNCTOR_number1;
 static functor_t FUNCTOR_syntax_errors1;
+static functor_t FUNCTOR_minus2;
+static functor_t FUNCTOR_positions1;
+static functor_t FUNCTOR_event_class1;
+static functor_t FUNCTOR_first_element1;
 
 static atom_t ATOM_sgml;
 static atom_t ATOM_dtd;
@@ -132,6 +144,7 @@ static atom_t ATOM_cdata;
 static atom_t ATOM_pcdata;
 static atom_t ATOM_empty;
 static atom_t ATOM_any;
+static atom_t ATOM_position;
 
 #define mkfunctor(n, a) PL_new_functor(PL_new_atom(n), a)
 
@@ -167,6 +180,7 @@ initConstants()
   FUNCTOR_source1	 = mkfunctor("source", 1);
   FUNCTOR_call2		 = mkfunctor("call", 2);
   FUNCTOR_charpos1	 = mkfunctor("charpos", 1);
+  FUNCTOR_charpos2	 = mkfunctor("charpos", 2);
   FUNCTOR_ns2		 = mkfunctor(":", 2);
   FUNCTOR_space1	 = mkfunctor("space", 1);
   FUNCTOR_pi1		 = mkfunctor("pi", 1);
@@ -174,6 +188,10 @@ initConstants()
   FUNCTOR_ndata1	 = mkfunctor("ndata", 1);
   FUNCTOR_number1	 = mkfunctor("number", 1);
   FUNCTOR_syntax_errors1 = mkfunctor("syntax_errors", 1);
+  FUNCTOR_minus2 	 = mkfunctor("-", 2);
+  FUNCTOR_positions1 	 = mkfunctor("positions", 1);
+  FUNCTOR_event_class1 	 = mkfunctor("event_class", 1);
+  FUNCTOR_first_element1 = mkfunctor("first_element", 1);
 
   ATOM_dtd  = PL_new_atom("dtd");
   ATOM_sgml = PL_new_atom("sgml");
@@ -183,6 +201,7 @@ initConstants()
   ATOM_pcdata = PL_new_atom("#pcdata");
   ATOM_empty = PL_new_atom("empty");
   ATOM_any = PL_new_atom("any");
+  ATOM_position = PL_new_atom("#position");
 }
 
 		 /*******************************
@@ -353,6 +372,12 @@ pl_set_sgml_parser(term_t parser, term_t option)
     PL_get_arg(1, option, a);
     if ( !PL_get_integer(a, &p->location.line) )
       return sgml2pl_error(ERR_TYPE, "integer", a);
+  } else if ( PL_is_functor(option, FUNCTOR_charpos1) )
+  { term_t a = PL_new_term_ref();
+
+    PL_get_arg(1, option, a);
+    if ( !PL_get_integer(a, &p->location.charpos) )
+      return sgml2pl_error(ERR_TYPE, "integer", a);
   } else if ( PL_is_functor(option, FUNCTOR_dialect1) )
   { term_t a = PL_new_term_ref();
     char *s;
@@ -400,6 +425,19 @@ pl_set_sgml_parser(term_t parser, term_t option)
       p->dtd->number_mode = NU_INTEGER;
     else
       return sgml2pl_error(ERR_DOMAIN, "number", a);
+  } else if ( PL_is_functor(option, FUNCTOR_first_element1) )
+  { term_t a = PL_new_term_ref();
+    char *s;
+
+    PL_get_arg(1, option, a);
+    if ( PL_is_variable(a) )
+    { p->enforce_outer_element = NULL;
+    } else
+    { if ( !PL_get_atom_chars(a, &s) )
+	return sgml2pl_error(ERR_TYPE, "atom_or_variable", a);
+    
+      p->enforce_outer_element = dtd_add_symbol(p->dtd, s);
+    }
   } else
     return sgml2pl_error(ERR_DOMAIN, "sgml_parser_option", option);
 
@@ -408,10 +446,8 @@ pl_set_sgml_parser(term_t parser, term_t option)
 
 
 static dtd_srcloc *
-file_location(dtd_parser *p)
-{ dtd_srcloc *l = &p->location;
-
-  while(l->parent && l->type != IN_FILE)
+file_location(dtd_parser *p, dtd_srcloc *l)
+{ while(l->parent && l->type != IN_FILE)
     l = l->parent;
 
   return l;
@@ -429,9 +465,19 @@ pl_get_sgml_parser(term_t parser, term_t option)
   { term_t a = PL_new_term_ref();
 
     PL_get_arg(1, option, a);
-    return PL_unify_integer(a, p->startloc.charpos);
+    return PL_unify_integer(a, file_location(p, &p->startloc)->charpos);
+  } else if ( PL_is_functor(option, FUNCTOR_charpos2) )
+  { term_t a = PL_new_term_ref();
+
+    if ( PL_get_arg(1, option, a) &&
+	 PL_unify_integer(a, file_location(p, &p->startloc)->charpos) &&
+	 PL_get_arg(2, option, a) &&
+	 PL_unify_integer(a, file_location(p, &p->location)->charpos) )
+      return TRUE;
+    else
+      return FALSE;
   } else if ( PL_is_functor(option, FUNCTOR_file1) )
-  { dtd_srcloc *l = file_location(p);
+  { dtd_srcloc *l = file_location(p, &p->location);
 
     if ( l->type == IN_FILE && l->name )
     { term_t a = PL_new_term_ref();
@@ -459,6 +505,20 @@ pl_get_sgml_parser(term_t parser, term_t option)
 	return PL_unify_atom_chars(a, "xml");
       case DL_XMLNS:
 	return PL_unify_atom_chars(a, "xmlns");
+    }
+  } else if ( PL_is_functor(option, FUNCTOR_event_class1) )
+  { term_t a = PL_new_term_ref();
+
+    PL_get_arg(1, option, a);
+    switch(p->event_class)
+    { case EV_EXPLICIT:
+	return PL_unify_atom_chars(a, "explicit");
+      case EV_OMITTED:
+	return PL_unify_atom_chars(a, "omitted");
+      case EV_SHORTTAG:
+	return PL_unify_atom_chars(a, "shorttag");
+      case EV_SHORTREF:
+	return PL_unify_atom_chars(a, "shortref");
     }
   } else
     return sgml2pl_error(ERR_DOMAIN, "parser_option", option);
@@ -658,6 +718,33 @@ put_attribute_value(dtd_parser *p, term_t t, sgml_attribute *a)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Produce a tag-location in the format
+
+	start_location=file:char-char	
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+put_tag_position(dtd_parser *p, term_t pos)
+{ dtd_srcloc *l = &p->startloc;
+
+  if ( l->name && l->type == IN_FILE )
+  { PL_put_variable(pos);
+    PL_unify_term(pos,
+		  PL_FUNCTOR, FUNCTOR_ns2,
+		    PL_CHARS, l->name,
+		    PL_FUNCTOR, FUNCTOR_minus2,
+		      PL_INTEGER, l->charpos,
+		      PL_INTEGER, p->location.charpos);
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
+
 static int
 unify_attribute_list(dtd_parser *p, term_t alist,
 		     int argc, sgml_attribute *argv)
@@ -665,6 +752,7 @@ unify_attribute_list(dtd_parser *p, term_t alist,
   term_t tail = PL_copy_term_ref(alist);
   term_t h    = PL_new_term_ref();
   term_t a    = PL_new_term_refs(2);
+  parser_data *pd = p->closure;
 
   for(i=0; i<argc; i++)
   { put_name(p, a+0, argv[i].definition->name);
@@ -674,6 +762,15 @@ unify_attribute_list(dtd_parser *p, term_t alist,
 	 !PL_unify(h, a) )
       return FALSE;
   }
+
+  if ( pd->positions && put_tag_position(p, a+1) )
+  { PL_put_atom(a, ATOM_position);
+    
+    PL_cons_functor_v(a, FUNCTOR_equal2, a);
+    if ( !PL_unify_list(tail, h, tail) ||
+	 !PL_unify(h, a) )
+      return FALSE;
+  } 
 
   if ( PL_unify_nil(tail) )
   { PL_reset_term_refs(tail);
@@ -740,6 +837,9 @@ static int
 on_end(dtd_parser *p, dtd_element *e)
 { parser_data *pd = p->closure;
 
+  if ( pd->stopped )
+    return TRUE;
+
   if ( pd->on_end )
   { fid_t fid = PL_open_foreign_frame();
     term_t av = PL_new_term_refs(2);
@@ -761,14 +861,14 @@ on_end(dtd_parser *p, dtd_element *e)
       pd->tail = pd->stack->tail;
       sgml_free(pd->stack);
       pd->stack = parent;
-
-      if ( !parent && pd->stopat == SA_ELEMENT )
-	pd->stopped = TRUE;
     } else
     { if ( pd->stopat == SA_CONTENT )
 	pd->stopped = TRUE;
     }
   }
+
+  if ( pd->stopat == SA_ELEMENT && !p->environments->parent )
+    pd->stopped = TRUE;
 
   return TRUE;
 }
@@ -874,12 +974,36 @@ on_cdata(dtd_parser *p, data_type type, int len, const ochar *data)
 
 
 static int
+can_end_omitted(dtd_parser *p)
+{ sgml_environment *env;
+
+  for(env=p->environments; env; env = env->parent)
+  { dtd_element *e = env->element;
+
+    if ( !(e->structure && e->structure->omit_close) )
+      return FALSE;
+  }
+
+  return TRUE;
+}
+
+
+static int
 on_error(dtd_parser *p, dtd_error *error)
 { parser_data *pd = p->closure;
   const char *severity;
 
   if ( pd->stopped )
     return TRUE;
+
+  if ( pd->stopat == SA_ELEMENT &&
+       (error->minor == ERC_NOT_OPEN || error->minor == ERC_NOT_ALLOWED) &&
+       can_end_omitted(p) )
+  { end_document_dtd_parser(p);
+    sgml_cplocation(&p->location, &p->startloc);
+    pd->stopped = TRUE;
+    return TRUE;
+  }
 
   switch(error->severity)
   { case ERS_WARNING:
@@ -893,12 +1017,22 @@ on_error(dtd_parser *p, dtd_error *error)
       break;
   }
 
-  if ( pd->error_mode == EM_PRINT )
+  if ( pd->on_error )			/* msg, parser */
+  { fid_t fid = PL_open_foreign_frame();
+    term_t av = PL_new_term_refs(3);
+    
+    PL_put_atom_chars(av+0, severity);
+    PL_put_atom_chars(av+1, error->plain_message);
+    unify_parser(av+2, p);
+
+    PL_call_predicate(NULL, PL_Q_NORMAL, pd->on_error, av);
+    PL_discard_foreign_frame(fid);
+  } else if ( pd->error_mode == EM_PRINT )
   { fid_t fid = PL_open_foreign_frame();
     predicate_t pred = PL_predicate("print_message", 2, "user");
     term_t av = PL_new_term_refs(2);
     term_t parser = PL_new_term_ref();
-    dtd_srcloc *l = file_location(p);
+    dtd_srcloc *l = file_location(p, &p->startloc);
 
     unify_parser(parser, p);
     PL_put_atom_chars(av+0, severity);
@@ -975,6 +1109,31 @@ on_pi(dtd_parser *p, const ichar *pi)
 			 
     PL_reset_term_refs(h);
   }
+
+  return TRUE;
+}
+
+
+static int
+on_decl(dtd_parser *p, const ichar *decl)
+{ parser_data *pd = p->closure;
+
+  if ( pd->stopped )
+    return TRUE;
+
+  if ( pd->on_decl )
+  { fid_t fid = PL_open_foreign_frame();
+    term_t av = PL_new_term_refs(2);
+
+    PL_put_atom_chars(av+0, decl);
+    unify_parser(av+1, p);
+
+    PL_call_predicate(NULL, PL_Q_NORMAL, pd->on_decl, av);
+    PL_discard_foreign_frame(fid);
+  }
+
+  if ( pd->stopat == SA_DECL )
+    pd->stopped = TRUE;
 
   return TRUE;
 }
@@ -1105,6 +1264,12 @@ set_callback_predicates(parser_data *pd, term_t option)
   } else if ( streq(fname, "urlns") )
   { pp = &pd->on_urlns;			/* url, ns, parser */
     arity = 3;
+  } else if ( streq(fname, "error") )
+  { pp = &pd->on_error;			/* severity, message, parser */
+    arity = 3;
+  } else if ( streq(fname, "decl") )
+  { pp = &pd->on_decl;			/* decl, parser */
+    arity = 2;
   } else
     return sgml2pl_error(ERR_DOMAIN, "sgml_callback", a);
 
@@ -1152,6 +1317,7 @@ pl_sgml_parse(term_t parser, term_t options)
     p->on_data          = on_cdata;
     p->on_error	        = on_error;
     p->on_xmlns		= on_xmlns;
+    p->on_decl		= on_decl;
   
     pd = sgml_calloc(1, sizeof(*pd));
     pd->magic = PD_MAGIC;
@@ -1193,6 +1359,8 @@ pl_sgml_parse(term_t parser, term_t options)
 	pd->stopat = SA_CONTENT;
       else if ( streq(s, "file") )
 	pd->stopat = SA_FILE;
+      else if ( streq(s, "declaration") )
+	pd->stopat = SA_DECL;
       else
 	return sgml2pl_error(ERR_DOMAIN, "parse", a);
     } else if ( PL_is_functor(head, FUNCTOR_max_errors1) )
@@ -1215,6 +1383,20 @@ pl_sgml_parse(term_t parser, term_t options)
 	pd->error_mode = EM_PRINT;
       else
 	return sgml2pl_error(ERR_DOMAIN, "syntax_error", a);
+    } else if ( PL_is_functor(head, FUNCTOR_positions1) )
+    { term_t a = PL_new_term_ref();
+      char *s;
+
+      PL_get_arg(1, head, a);
+      if ( !PL_get_atom_chars(a, &s) )
+	return sgml2pl_error(ERR_TYPE, "atom", a);
+
+      if ( streq(s, "true") )
+	pd->positions = TRUE;
+      else if ( streq(s, "false") )
+	pd->positions = FALSE;
+      else
+	return sgml2pl_error(ERR_DOMAIN, "positions", a);
     } else
       return sgml2pl_error(ERR_DOMAIN, "sgml_option", head);
   }
@@ -1236,6 +1418,7 @@ pl_sgml_parse(term_t parser, term_t options)
 	return sgml2pl_error(ERR_LIMIT, "max_errors", (long)pd->max_errors);
       if ( pd->stopped )
       { pd->stopped = FALSE;
+	reset_document_dtd_parser(p);	/* ensure a clean start */
 	goto out;
       }
     }

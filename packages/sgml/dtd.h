@@ -168,6 +168,10 @@ typedef enum
 		 *	      ERRORS		*
 		 *******************************/
 
+#ifdef DTD_IMPLEMENTATION
+#define DTD_MINOR_ERRORS 1
+#endif
+
 typedef enum
 { ERS_WARNING,
   ERS_ERROR
@@ -189,7 +193,7 @@ typedef enum
 	/* Type, name */
   ERC_REDEFINED				/* Redefined object */
 	/* Type, name */
-#ifdef DTD_IMPLEMENTATION
+#ifdef DTD_MINOR_ERRORS
   ,					/* reopen list */
   ERC_SYNTAX_WARNING,			/* Syntax warning (i.e. fixed) */
 	/* Message, found */
@@ -234,6 +238,7 @@ typedef struct _dtd_srcloc
 
 typedef struct _dtd_error
 { dtd_error_id id;			/* ERC_* identifier */
+  dtd_error_id minor;			/* Minor code */
   dtd_error_severity severity;		/* ERS_* severity */
   dtd_srcloc *location;			/* location of the error */
   char *plain_message;			/* Clean message */
@@ -418,12 +423,7 @@ extern dtd_symbol*	dtd_add_symbol(dtd *dtd, const ichar *name);
 		 *	       PUBLIC		*
 		 *******************************/
 
-#ifndef DTD_IMPLEMENTATION
-#if 0
-typedef void *	dtd_parser;		/* abstract parser handle */
-#else
 #include "parser.h"
-#endif
 
 dtd *		file_to_dtd(const char *file, const char *doctype,
 			    dtd_dialect dialect);
@@ -440,11 +440,11 @@ int		set_dialect_dtd(dtd *dtd, dtd_dialect dialect);
 void		putchar_dtd_parser(dtd_parser *p, int chr);
 int		begin_document_dtd_parser(dtd_parser *p);
 int		end_document_dtd_parser(dtd_parser *p);
+void		reset_document_dtd_parser(dtd_parser *p);
 void		set_src_dtd_parser(dtd_parser *p,
 				   input_type in, const char *file);
 void		set_mode_dtd_parser(dtd_parser *p, data_mode mode);
-#endif /*DTD_IMPLEMENTATION*/
-
+void		sgml_cplocation(dtd_srcloc *dst, dtd_srcloc *src);
 
 #endif /*DTD_H_INCLUDED*/
 

@@ -1,3 +1,15 @@
+* ADDED: Parse not-quoted attribute values that require quotes by parsing
+  upto the next layout character.  Give a warning.  For example:
+  <hr width=50%> is parsed as <hr width="50%">, but a warning is displayed.
+
+* FIXED: Crash if start of file is not a declaration but ordinary non-blank
+  text.
+
+* ADDED: Improved source-location handling and some additional call-backs
+  to the call-back interface, preparing the parser for supporting SGML
+  syntax highlighting and checking editors.  See get_sgml_parser/2 and
+  sgml_parse/2 predicates.
+
 VERSION 1.0.7
 =============
 

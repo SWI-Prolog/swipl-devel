@@ -43,6 +43,7 @@ typedef int (*sgml_entity_f)(dtd_parser_p parser,
 typedef int (*sgml_pi_f)(dtd_parser_p parser, const ichar *pi);
 typedef int (*sgml_error_f)(dtd_parser_p parser,
 			    dtd_error *error);
+typedef int (*sgml_decl_f)(dtd_parser_p parser, const ichar *decl);
 #ifdef XMLNS
 typedef int (*xmlns_f)(dtd_parser_p parser,
 		       dtd_symbol *ns, dtd_symbol *url);
@@ -88,6 +89,14 @@ typedef enum
   MS_CDATA,				/* pass literally */
   MS_RCDATA				/* replace entities */
 } marktype;
+
+
+typedef enum
+{ EV_EXPLICIT,				/* Explicit event */
+  EV_OMITTED,				/* Omitted tag event */
+  EV_SHORTTAG,				/* SHORTTAG event: <tag/value/ */
+  EV_SHORTREF				/* SHORTREF event */
+} sgml_event_class;
 
 
 typedef struct _dtd_marked
@@ -143,8 +152,10 @@ typedef struct _dtd_parser
   dtdstate saved_state;			/* state from which we come */
 #endif
   dtd_srcloc	location;		/* Current location */
-  dtd_srcloc	startloc;		/* Start of last point */
+  dtd_srcloc	startloc;		/* Start of last markup */
+  dtd_srcloc	startcdata;		/* Start of last cdata */
   dtd_symbol   *enforce_outer_element;	/* Outer element to look for */
+  sgml_event_class event_class;		/* EV_* */
 
   void *closure;			/* client handle */
   sgml_begin_element_f	on_begin_element; /* start an element */
@@ -153,6 +164,7 @@ typedef struct _dtd_parser
   sgml_entity_f		on_entity;	/* unprocessed entity */
   sgml_pi_f		on_pi;		/* processing instruction */
   sgml_error_f		on_error;	/* handle error */
+  sgml_decl_f		on_decl;	/* handle declarations */
 #ifdef XMLNS
   xmlns_f		on_xmlns;	/* handle new namespace */
 #endif
@@ -166,3 +178,4 @@ typedef struct _dtd_parser
 extern int		gripe(dtd_error_id e, ...);
 
 #endif /*SGML_PARSER_H_INCLUDED*/
+

@@ -27,6 +27,20 @@
 
 #define DEBUG(g) ((void)0)
 
+		 /*******************************
+		 *	    LOCAL TYPES		*
+		 *******************************/
+
+typedef struct locbuf
+{ dtd_srcloc start;			/* p->startloc */
+  dtd_srcloc here;			/* p->location */
+} locbuf;
+
+
+		 /*******************************
+		 *	      PROTOYPES		*
+		 *******************************/
+
 static const ichar *	itake_name(dtd *dtd, const ichar *in, dtd_symbol **id);
 static const ichar *	itake_entity_name(dtd *dtd, const ichar *in,
 					  dtd_symbol **id);
@@ -60,11 +74,86 @@ void			free_dtd_parser(dtd_parser *p);
 
 
 		 /*******************************
-		 *	   CHARACTER CLASS	*
+		 *	      MACROS		*
 		 *******************************/
 
 #define HasClass(dtd, chr, mask) \
 	(dtd->charclass->class[(chr)] & (mask))
+
+#define WITH_CLASS(p, c, g) \
+	{ sgml_event_class _oc = p->event_class; \
+	  p->event_class = c; \
+	  g; \
+	  p->event_class = _oc; \
+	}
+
+#define WITH_PARSER(p, g) \
+	{ dtd_parser *_old = p; \
+	  current_parser = p; \
+	  g; \
+	  current_parser = _old; \
+	}
+
+		 /*******************************
+		 *	   SRC LOCATION		*
+		 *******************************/
+
+
+static void				/* TBD: also handle startloc */
+push_location(dtd_parser *p, locbuf *save)
+{ save->here  = p->location;
+  save->start = p->startloc;
+
+  p->location.parent = &save->here;
+  p->startloc.parent = &save->start;
+}
+
+
+static void
+pop_location(dtd_parser *p, locbuf *saved)
+{ if ( saved )
+  { p->location = saved->here;
+    p->startloc = saved->start;
+  } else
+  { p->location = *p->location.parent;
+    p->startloc = *p->startloc.parent;
+  }
+}
+
+
+inline void
+sgml_cplocation(dtd_srcloc *d, dtd_srcloc *loc)
+{ d->line    = loc->line;
+  d->linepos = loc->linepos;
+  d->charpos = loc->charpos;
+  d->type    = loc->type;
+  d->name    = loc->name;
+}
+
+
+static void
+inc_location(dtd_srcloc *l, int chr)
+{ if ( chr == '\n' )
+  { l->linepos = 0;
+    l->line++;
+  } else
+  { l->linepos++;
+  }
+  l->charpos++;
+}
+
+
+static void
+dec_location(dtd_srcloc *l, int chr)
+{ if ( chr == '\n' )
+  { l->linepos = 0;			/* not good! */
+    l->line--;
+  } else
+  { l->linepos--;
+  }
+  l->charpos--;
+}
+
 
 		 /*******************************
 		 *	      SYMBOLS		*
@@ -856,6 +945,21 @@ itake_nmtoken_chars(dtd *dtd, const ichar *in, ichar *out, int len)
 }
 
 
+static const ichar *
+itake_nonblank_chars(dtd *dtd, const ichar *in, ichar *out, int len)
+{ in = iskip_layout(dtd, in);
+
+  while( *in && !HasClass(dtd, *in, CH_BLANK) )
+  { if ( --len <= 0 )
+      gripe(ERC_REPRESENTATION, "Attribute too long");
+    *out++ = (dtd->case_sensitive ? *in++ : tolower(*in++)); /* ?? */
+  }
+  *out++ = '\0';
+
+  return iskip_layout(dtd, in);
+}
+
+
 static const char *
 isee_func(dtd *dtd, const ichar *in, charfunc func)
 { if ( dtd->charfunc->func[func] == *in )
@@ -1370,7 +1474,7 @@ match_map(dtd *dtd, dtd_map *map, int len, ichar *data)
 
   while( m >= map->from )
   { if ( e < data )
-      return FALSE;
+      return 0;
 
     if ( *m == *e )
     { m--;
@@ -1396,10 +1500,10 @@ match_map(dtd *dtd, dtd_map *map, int len, ichar *data)
       m--;
       continue;
     }
-    return FALSE;
+    return 0;
   }
 
-  return TRUE;
+  return data+len-1-e;
 }
 
 
@@ -1430,7 +1534,21 @@ match_shortref(dtd_parser *p)
 	  p->blank_cdata = blank;
 	}
 
-	process_entity(p, map->to->name); /* TBD: optimise */
+	WITH_CLASS(p, EV_SHORTREF,
+		   { sgml_cplocation(&p->startloc, &p->location);
+		     p->startloc.charpos -= len;
+		     p->startloc.linepos -= len;
+		     if ( p->startloc.linepos < 0 )
+		     { p->startloc.line--;
+		       p->startloc.linepos = 0; /* not correct! */
+		     }
+		     DEBUG(printf("%d-%d: Matched map '%s' --> %s, len = %d\n",
+				  p->startloc.charpos,
+				  p->location.charpos,
+				  map->from, map->to->name, len));
+
+		     process_entity(p, map->to->name);
+		   })			/* TBD: optimise */
 	break;
       }
     }
@@ -2154,6 +2272,7 @@ push_element(dtd_parser *p, dtd_element *e, int callback)
     { p->state = S_CDATA;
       p->etag = e->name->name;
       p->etaglen = istrlen(p->etag);
+      sgml_cplocation(&p->startcdata, &p->location);
     }
   }
 
@@ -2194,8 +2313,10 @@ pop_to(dtd_parser *p, sgml_environment *to, dtd_element *e0)
     if ( e0 != CDATA_ELEMENT )
       emit_cdata(p, TRUE);
     p->first = FALSE;
-    if ( p->on_end_element )
-      (*p->on_end_element)(p, e);
+    p->environments = env;
+    WITH_CLASS(p, EV_OMITTED,
+	       if ( p->on_end_element )
+	         (*p->on_end_element)(p, e));
     free_environment(env);
   }
   p->environments = to;
@@ -2258,14 +2379,16 @@ open_element(dtd_parser *p, dtd_element *e, int warn)
 	   !f->structure->omit_open )
 	gripe(ERC_OMITTED_OPEN, f->name->name);
 
-      open_element(p, f, TRUE);
-      if ( p->on_begin_element )
-	(*p->on_begin_element)(p, f, 0, NULL);
+      WITH_CLASS(p, EV_OMITTED,
+		 { open_element(p, f, TRUE);
+		   if ( p->on_begin_element )
+		     (*p->on_begin_element)(p, f, 0, NULL);
+		 });
     }
   }
 
 					/* no DTD available yet */
-  if ( !p->environments && !p->dtd->doctype )
+  if ( !p->environments && !p->dtd->doctype && e != CDATA_ELEMENT )
   { const char *file;
 
     if ( (file=find_in_catalog("DOCTYPE", e->name->name)) )
@@ -2285,7 +2408,7 @@ open_element(dtd_parser *p, dtd_element *e, int warn)
   { sgml_environment *env = p->environments;
 
     if ( env->element->undefined )
-    { allow_for(env->element, e);
+    { allow_for(env->element, e);	/* <!ELEMENT x - - (model) +(y)> */
       push_element(p, e, FALSE);
       return TRUE;
     }
@@ -2320,10 +2443,11 @@ open_element(dtd_parser *p, dtd_element *e, int warn)
     
 	    if ( (olen=find_omitted_path(env->state, e, oe)) > 0 )
 	    { pop_to(p, env, e);
+	      WITH_CLASS(p, EV_OMITTED,
 	      for(i=0; i<olen; i++)
 	      { env->state = make_dtd_transition(env->state, oe[i]);
 		env = push_element(p, oe[i], TRUE);
-	      }
+	      })
 	      env->state = make_dtd_transition(env->state, e);
 	      push_element(p, e, FALSE);
 	      return TRUE;
@@ -2357,7 +2481,7 @@ close_element(dtd_parser *p, dtd_element *e)
 { sgml_environment *env;
 
   for(env = p->environments; env; env=env->parent)
-  { if ( env->element == e )
+  { if ( env->element == e )		/* element is open */
     { sgml_environment *parent;
 
       for(env = p->environments; ; env=parent)
@@ -2370,11 +2494,12 @@ close_element(dtd_parser *p, dtd_element *e)
 	if ( p->on_end_element )
 	  (*p->on_end_element)(p, env->element);
 	free_environment(env);
-	if ( ce == e )
-	{ p->environments = parent;
-	  p->map = (parent ? parent->map : NULL);
+	p->environments = parent;
+
+	if ( ce == e )			/* closing current element */
+	{ p->map = (parent ? parent->map : NULL);
 	  return TRUE;
-	} else
+	} else				/* omited close */
 	{ if ( ce->structure && !ce->structure->omit_close )
 	    gripe(ERC_OMITTED_CLOSE, ce->name->name);
 	}
@@ -2407,9 +2532,18 @@ get_attribute_value(dtd_parser *p, const ichar *decl, sgml_attribute *att)
   const ichar *end;
 
   if ( !(end=itake_string(dtd, decl, buf, sizeof(buf))) )
-    end=itake_nmtoken_chars(dtd, decl, buf, sizeof(buf));
-  if ( !end )
-    return NULL;
+  { const ichar *s;
+
+    if ( !(end=itake_nonblank_chars(dtd, decl, buf, sizeof(buf))) )
+      return NULL;
+
+    for(s=buf; *s; s++)
+    { if ( !HasClass(dtd, *s, CH_NAME) )
+      { gripe(ERC_SYNTAX_WARNING, "Attribute value requires quotes", buf);
+	break;
+      }
+    }
+  }
 
   att->value.cdata  = NULL;
   att->value.text   = NULL;
@@ -2661,21 +2795,6 @@ process_end_element(dtd_parser *p, const ichar *decl)
 }
 
 
-static void
-push_location(dtd_parser *p, dtd_srcloc *save)
-{ *save = p->location;
-
-  p->location.parent = save;
-}
-
-
-static void
-pop_location(dtd_parser *p, dtd_srcloc *saved)
-{ if ( saved )
-    p->location = *saved;
-  else
-    p->location = *p->location.parent;
-}
 
 
 static int				/* <!DOCTYPE ...> */
@@ -2725,7 +2844,7 @@ local:
   { int grouplevel = 1;
     data_mode oldmode  = p->dmode;
     dtdstate  oldstate = p->state;
-    dtd_srcloc oldloc;
+    locbuf oldloc;
 
     push_location(p, &oldloc);
     p->location = p->startloc;		/* not really accurate */
@@ -2849,6 +2968,9 @@ process_declaration(dtd_parser *p, const ichar *decl)
   if ( (s=isee_func(dtd, decl, CF_MDO2)) ) /* <! ... >*/
   { decl = s;
 
+    if ( p->on_decl )
+      (*p->on_decl)(p, decl);
+
     if ( (s = isee_identifier(dtd, decl, "entity")) )
       process_entity_declaraction(p, s);
     else if ( (s = isee_identifier(dtd, decl, "element")) )
@@ -2901,13 +3023,11 @@ set_src_dtd_parser(dtd_parser *p, input_type type, const char *name)
 }
 
 
-int
+void
 set_mode_dtd_parser(dtd_parser *p, data_mode m)
 { p->dmode = m;				/* DM_DTD or DM_DATA */
   p->state = S_PCDATA;
   p->blank_cdata = TRUE;
-
-  return TRUE;
 }
 
 
@@ -2919,14 +3039,15 @@ new_dtd_parser(dtd *dtd)
     dtd = new_dtd(NULL);
   dtd->references++;
 
-  p->magic      = SGML_PARSER_MAGIC;
-  p->dtd	= dtd;
-  p->state	= S_PCDATA;
-  p->mark_state	= MS_INCLUDE;
-  p->dmode      = DM_DTD;
-  p->encoding	= ENC_ISO_LATIN1;
-  p->buffer	= new_icharbuf();
-  p->cdata	= new_ocharbuf();
+  p->magic       = SGML_PARSER_MAGIC;
+  p->dtd	 = dtd;
+  p->state	 = S_PCDATA;
+  p->mark_state	 = MS_INCLUDE;
+  p->dmode       = DM_DTD;
+  p->encoding	 = ENC_ISO_LATIN1;
+  p->buffer	 = new_icharbuf();
+  p->cdata	 = new_ocharbuf();
+  p->event_class = EV_EXPLICIT;
   set_src_dtd_parser(p, IN_NONE, NULL);
 
   return p;
@@ -2966,7 +3087,7 @@ free_dtd_parser(dtd_parser *p)
 
 static int
 process_chars(dtd_parser *p, input_type in, const ichar *name, const ichar *s)
-{ dtd_srcloc old;
+{ locbuf old;
   
   push_location(p, &old);
   set_src_dtd_parser(p, in, (char *)name);
@@ -3131,9 +3252,14 @@ static int
 emit_cdata(dtd_parser *p, int last)
 { dtd *dtd = p->dtd;
   ichar *s, *data = p->cdata->data;
+  locbuf locsafe;
   
   if ( p->cdata->size == 0 )
     return TRUE;			/* empty or done */
+
+  push_location(p, &locsafe);
+  sgml_cplocation(&p->location, &p->startloc); 	/* start of markup */
+  sgml_cplocation(&p->startloc, &p->startcdata); 	/* real start of CDATA */
 
   if ( p->environments )
   { switch(p->environments->space_mode)
@@ -3141,11 +3267,13 @@ emit_cdata(dtd_parser *p, int last)
       case SP_DEFAULT:
 	if ( p->first )
 	{ if ( HasClass(dtd, *data, CH_RE) )
-	  { data++;
+	  { inc_location(&p->startloc, *data);
+	    data++;
 	    p->cdata->size--;
 	  }
 	  if ( HasClass(dtd, *data, CH_RS) )
-	  { data++;
+	  { inc_location(&p->startloc, *data);
+	    data++;
 	    p->cdata->size--;
 	  }
 	}
@@ -3153,11 +3281,13 @@ emit_cdata(dtd_parser *p, int last)
 	{ ichar *e = data + p->cdata->size;
 
 	  if ( e > data && HasClass(dtd, e[-1], CH_RS) )
-	  { *--e = '\0';
+	  { dec_location(&p->location, e[-1]);
+	    *--e = '\0';
 	    p->cdata->size--;
 	  }
 	  if ( e>data && HasClass(dtd, e[-1], CH_RE) )
-	  { *--e = '\0';
+	  { dec_location(&p->location, e[-1]);
+	    *--e = '\0';
 	    p->cdata->size--;
 	  }
 	}
@@ -3181,8 +3311,9 @@ emit_cdata(dtd_parser *p, int last)
       { ichar *o = data;
 	ichar *end = data;
 
-	for(s=data; *s && HasClass(dtd, *s, CH_BLANK); s++)
-	  ;
+	for(s=data; *s && HasClass(dtd, *s, CH_BLANK); )
+	  inc_location(&p->startloc, *s++);
+
 	if ( *s )
 	{ for(; *s; s++)
 	  { if ( HasClass(dtd, *s, CH_BLANK) )
@@ -3195,6 +3326,7 @@ emit_cdata(dtd_parser *p, int last)
 	    end = o;
 	  }
 	}
+					/* TBD: adjust end */
 	*end = '\0';
 	p->cdata->size = end-data;
 	break;
@@ -3208,7 +3340,9 @@ emit_cdata(dtd_parser *p, int last)
   }
 
   if ( p->cdata->size == 0 )
+  { pop_location(p, &locsafe);
     return TRUE;
+  }
 
   if ( !p->blank_cdata )
   { if ( p->cdata_must_be_empty )
@@ -3226,6 +3360,8 @@ emit_cdata(dtd_parser *p, int last)
     }
   }
   
+  pop_location(p, &locsafe);
+
   empty_cdata(p);
 
   return TRUE;
@@ -3335,7 +3471,7 @@ process_entity(dtd_parser *p, const ichar *name)
 	    break;
 	  }
 	  if ( e->content == EC_SGML )
-	  { dtd_srcloc oldloc;
+	  { locbuf oldloc;
 
 	    push_location(p, &oldloc);
 	    set_src_dtd_parser(p, IN_ENTITY, e->name->name);
@@ -3457,6 +3593,39 @@ begin_document_dtd_parser(dtd_parser *p)
 }
 
 
+void
+reset_document_dtd_parser(dtd_parser *p)
+{ if ( p->environments )
+  { sgml_environment *env, *parent;
+
+    for(env = p->environments; env; env=parent)
+    { parent = env->parent;
+
+      free_environment(env);
+    }
+
+    p->environments = NULL;
+  }
+
+  while(p->marked)
+    pop_marked_section(p);
+
+  empty_icharbuf(p->buffer);
+  empty_ocharbuf(p->cdata);
+
+  p->mark_state	   = MS_INCLUDE;
+  p->state	   = S_PCDATA;
+  p->previous_char = EOF;
+  p->grouplevel	   = 0;
+  p->blank_cdata   = TRUE;
+  p->event_class   = EV_EXPLICIT;
+  p->dmode	   = DM_DATA;
+
+  begin_document_dtd_parser(p);
+}
+
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Set the UTF-8 state
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -3523,13 +3692,6 @@ recover_parser(dtd_parser *p)
 }
 
 
-#define WITH_PUBLIC_PARSER(p, g) \
-	{ dtd_parser *_old = p; \
-	  current_parser = p; \
-	  g; \
-	  current_parser = _old; \
-	}
-
 void
 putchar_dtd_parser(dtd_parser *p, int chr)
 { dtd *dtd = p->dtd;
@@ -3549,20 +3711,20 @@ putchar_dtd_parser(dtd_parser *p, int chr)
   switch(p->state)
   { case S_PCDATA:
     { if ( f[CF_MDO1] == chr )		/* < */
-      { p->startloc = old;
+      { sgml_cplocation(&p->startloc, &old);
 	p->state = S_DECL;
 	empty_icharbuf(p->buffer);	/* make sure */
 	return;
       }
       if ( p->dmode == DM_DTD )
       { if ( f[CF_PERO] == chr )	/* % */
-	{ p->startloc = old;
+	{ sgml_cplocation(&p->startloc, &old);
 	  p->state = S_PENT;
 	  return;
 	}
       } else
       { if ( f[CF_ERO] == chr )		/* & */
-	{ p->startloc = old;
+	{ sgml_cplocation(&p->startloc, &old);
 	  p->state = S_ENT;
 	  p->saved = chr;		/* for recovery */
 	  return;
@@ -3586,6 +3748,8 @@ putchar_dtd_parser(dtd_parser *p, int chr)
 	return;
       }
 #endif
+      if ( p->cdata->size == 0 )
+        sgml_cplocation(&p->startcdata, &old);
       add_cdata(p, dtd->charmap->map[chr], FALSE);
       return;
     }
@@ -3597,7 +3761,7 @@ putchar_dtd_parser(dtd_parser *p, int chr)
 	terminate_ocharbuf(p->cdata);
 	terminate_icharbuf(p->buffer);
 	if ( p->mark_state == MS_INCLUDE )
-	{ WITH_PUBLIC_PARSER(p,
+	{ WITH_PARSER(p,
 			     process_cdata(p, TRUE);
 			     process_end_element(p, p->buffer->data));
 	  empty_cdata(p);
@@ -3626,7 +3790,9 @@ putchar_dtd_parser(dtd_parser *p, int chr)
     case S_CDATA:
     { add_cdata(p, dtd->charmap->map[chr], TRUE);
       if ( f[CF_MDO1] == chr )		/* < */
+      { sgml_cplocation(&p->startloc, &old);
 	p->state = S_ECDATA1;
+      }
       return;
     }
     case S_MSCDATA:
@@ -3679,7 +3845,7 @@ putchar_dtd_parser(dtd_parser *p, int chr)
       { p->state = S_PCDATA;
 	terminate_icharbuf(p->buffer);
 	if ( p->mark_state == MS_INCLUDE )
-	{ WITH_PUBLIC_PARSER(p, process_include(p, p->buffer->data));
+	{ WITH_PARSER(p, process_include(p, p->buffer->data));
 	}
 	empty_icharbuf(p->buffer);
 	return;
@@ -3698,7 +3864,7 @@ putchar_dtd_parser(dtd_parser *p, int chr)
       { p->state = S_PCDATA;
 	terminate_icharbuf(p->buffer);
 	if ( p->mark_state == MS_INCLUDE )
-	{ WITH_PUBLIC_PARSER(p, process_entity(p, p->buffer->data));
+	{ WITH_PARSER(p, process_entity(p, p->buffer->data));
 	}
 	empty_icharbuf(p->buffer);
 	return;
@@ -3720,7 +3886,7 @@ putchar_dtd_parser(dtd_parser *p, int chr)
 	p->state = S_PCDATA;
 	terminate_icharbuf(p->buffer);
 	if ( p->mark_state == MS_INCLUDE )
-	{ WITH_PUBLIC_PARSER(p, process_declaration(p, p->buffer->data));
+	{ WITH_PARSER(p, process_declaration(p, p->buffer->data));
 	}
 	empty_icharbuf(p->buffer);
 	return;
@@ -3729,9 +3895,11 @@ putchar_dtd_parser(dtd_parser *p, int chr)
       { prepare_cdata(p);
 	terminate_icharbuf(p->buffer);
 	if ( p->mark_state == MS_INCLUDE )
-	{ WITH_PUBLIC_PARSER(p, process_declaration(p, p->buffer->data));
+	{ WITH_CLASS(p, EV_SHORTTAG,
+		     WITH_PARSER(p, process_declaration(p, p->buffer->data)));
 	}
 	empty_icharbuf(p->buffer);
+	sgml_cplocation(&p->startcdata, &p->location);
 	p->state = S_SHORTTAG_CDATA;
 	return;
       }
@@ -3775,9 +3943,10 @@ putchar_dtd_parser(dtd_parser *p, int chr)
     }
     case S_SHORTTAG_CDATA:
     { if ( f[CF_ETAGO2] == chr )	/* / */
-      { process_cdata(p, TRUE);
+      { sgml_cplocation(&p->startloc, &old);
+	process_cdata(p, TRUE);
 	p->state = S_PCDATA;
-	close_current_element(p);
+	WITH_CLASS(p, EV_SHORTTAG, close_current_element(p));
       } else
 	add_cdata(p, dtd->charmap->map[chr], FALSE);
 
@@ -3799,7 +3968,7 @@ putchar_dtd_parser(dtd_parser *p, int chr)
 	p->buffer->size--;
 	terminate_icharbuf(p->buffer);
 	if ( p->mark_state == MS_INCLUDE )
-	{ WITH_PUBLIC_PARSER(p, process_pi(p, p->buffer->data));
+	{ WITH_PARSER(p, process_pi(p, p->buffer->data));
 	}
 	empty_icharbuf(p->buffer);
 	return;
@@ -3826,8 +3995,10 @@ putchar_dtd_parser(dtd_parser *p, int chr)
     }
     case S_COMMENTDECL1:		/* <!--...-- seen */
     { if ( f[CF_MDC] == chr )
+      { if ( p->on_decl )
+	  (*p->on_decl)(p, "");
 	p->state = S_PCDATA;
-      else if ( !HasClass(dtd, chr, CH_BLANK) )
+      } else if ( !HasClass(dtd, chr, CH_BLANK) )
       { gripe(ERC_SYNTAX_WARNING, "Illegal comment", "");
 	p->state = S_COMMENTDECL;
       }
@@ -3869,7 +4040,7 @@ load_dtd_from_file(dtd_parser *p, const char *file)
   int rval;
   data_mode   oldmode  = p->dmode;
   dtdstate    oldstate = p->state;
-  dtd_srcloc  oldloc;
+  locbuf      oldloc;
 
   push_location(p, &oldloc);
   p->dmode = DM_DTD;
@@ -3920,7 +4091,7 @@ int
 sgml_process_file(dtd_parser *p, const char *file)
 { FILE *fd;
   int rval;
-  dtd_srcloc oldloc;
+  locbuf oldloc;
 
   push_location(p, &oldloc);
   set_src_dtd_parser(p, IN_FILE, file);
@@ -4047,6 +4218,7 @@ gripe(dtd_error_id e, ...)
   va_start(args, e);
 
   memset(&error, 0, sizeof(error));
+  error.minor = e;			/* detailed error code */
 
   if ( current_parser )
   { error.location = &current_parser->location;
