@@ -1807,6 +1807,11 @@ Sread_terminal(void *handle, char *buf, int size)
   source_line_no   = sln;
   source_file_name = sfn;
 
+#ifdef WIN32
+  if ( size > 0 )			/* Why needed only here? */
+    protocol(buf, size);		/* and what is the correct condition */
+#endif
+
   return size;
 }
 
