@@ -88,6 +88,7 @@ STRYLOCK(IOSTREAM *s)
 #else
 #define SLOCK(s)
 #define SUNLOCK(s)
+#define STRYLOCK(s) (TRUE)
 #endif
 
 #include "pl-error.h"

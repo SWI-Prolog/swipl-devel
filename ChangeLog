@@ -1,6 +1,12 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: MT-version: do not handle keyboard interrupt except for the
+    main thread.
+
+  * FIXED: Garbage collection to restore signal mask properly if foreign
+    code plays around with the signal mask.
+
   * FIXED: MT-version: Avoid assertion failure in running subthreads
     on halt.
 

@@ -1609,6 +1609,7 @@ garbageCollect(LocalFrame fr, Choice ch)
   long tgar, ggar;
   real t = CpuTime();
   int verbose = trueFeature(TRACE_GC_FEATURE);
+  sigset_t mask;
 
   DEBUG(0, verbose = TRUE);
 
@@ -1624,7 +1625,7 @@ garbageCollect(LocalFrame fr, Choice ch)
 		 PL_FUNCTOR_CHARS, "gc", 1,
 		   PL_CHARS, "start");
 
-  blockSignals();
+  blockSignals(&mask);
 
 #ifdef O_PROFILE
   PROCEDURE_garbage_collect0->definition->profile_calls++;
@@ -1680,7 +1681,7 @@ garbageCollect(LocalFrame fr, Choice ch)
   LD->stacks.global.gced_size = usedStack(global);
   LD->stacks.trail.gced_size  = usedStack(trail);
   gc_status.active = FALSE;
-  unblockSignals();
+  unblockSignals(&mask);
 
   SECURE(if ( checkStacks(fr, ch) != key )
 	 { Sdprintf("Stack checksum failure\n");

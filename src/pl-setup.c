@@ -542,24 +542,29 @@ listBlocked()
 #endif
 
 void
-blockSignals()
+blockSignals(sigset_t *old)
 { sigset_t set;
 
   allSignalMask(&set);
 
-  sigprocmask(SIG_BLOCK, &set, NULL);
+  sigprocmask(SIG_BLOCK, &set, old);
   DEBUG(1, Sdprintf("Blocked all signals\n"));
 }
 
 
 void
-unblockSignals()
-{ sigset_t set;
+unblockSignals(sigset_t *old)
+{ if ( old )
+  { sigprocmask(SIG_SETMASK, old, NULL);
+    DEBUG(1, Sdprintf("Restored signal mask\n"));
+  } else
+  { sigset_t set;
 
-  allSignalMask(&set);
+    allSignalMask(&set);
   
-  sigprocmask(SIG_UNBLOCK, &set, NULL);
-  DEBUG(1, Sdprintf("UnBlocked all signals\n"));
+    sigprocmask(SIG_UNBLOCK, &set, NULL);
+    DEBUG(1, Sdprintf("UnBlocked all signals\n"));
+  }
 }
 
 
@@ -574,11 +579,23 @@ unblockSignal(int sig)
   DEBUG(1, Sdprintf("Unblocked signal %d\n", sig));
 }
 
+void
+blockSignal(int sig)
+{ sigset_t set;
+
+  sigemptyset(&set);
+  sigaddset(&set, sig);
+
+  sigprocmask(SIG_BLOCK, &set, NULL);
+  DEBUG(1, Sdprintf("signal %d\n", sig));
+}
+
 #else /*HAVE_SIGPROCMASK*/
 
-void blockSignals() {}
-void unblockSignals() {}
+void blockSignals(sigset_t *old) {}
+void unblockSignals(sigset_t *old) {}
 void unblockSignal(int sig) {}
+void blockSignal(int sig) {}
 
 #endif
 

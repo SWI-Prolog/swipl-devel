@@ -405,6 +405,9 @@ start_thread(void *closure)
   term_t ex, goal;
   int rval;
 
+  blockSignal(SIGINT);			/* only the main thread processes */
+					/* Control-C */
+
 #ifdef __linux__
   info->pid = getpid();
 #endif

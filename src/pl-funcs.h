@@ -662,9 +662,10 @@ void		install_rl(void);
 void		setupProlog(void);
 foreign_t	pl_on_signal(term_t sig, term_t name, term_t old, term_t new);
 handler_t	set_sighandler(int sig, handler_t func);
-void		blockSignals(void);
-void		unblockSignals(void);
+void		blockSignals(sigset_t *mask);
+void		unblockSignals(sigset_t *mask);
 void		unblockSignal(int sig);
+void		blockSignal(int sig);
 void		resetSignals(void);
 int		initPrologStacks(long local,
 				 long global,
