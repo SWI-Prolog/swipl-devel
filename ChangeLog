@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Bug in `retry' at an exception port, sometimes throwing an
+    assertion failure.
+
 VERSION 3.4.0
 =============
 

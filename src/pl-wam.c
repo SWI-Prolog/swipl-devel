@@ -2494,6 +2494,7 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 	      if ( printed )
 		*valTermRef(exception_printed) = except;
 
+	      environment_frame = FR;
 	      switch(tracePort(FR, ch, EXCEPTION_PORT, PC))
 	      { case ACTION_RETRY:
 		  *valTermRef(exception_printed) = 0;
