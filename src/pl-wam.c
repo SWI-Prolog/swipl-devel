@@ -738,7 +738,9 @@ frameFinished(LocalFrame fr, enum finished reason)
     }
   }
 
+#ifdef O_DEBUGGER
   callEventHook(PLEV_FRAMEFINISHED, fr);
+#endif
 
   PL_discard_foreign_frame(cid);
 }

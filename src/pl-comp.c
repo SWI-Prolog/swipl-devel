@@ -2934,6 +2934,20 @@ pl_nth_clause(term_t p, term_t n, term_t ref, word h)
   succeed;
 }
 
+
+int
+get_clause_ptr_ex(term_t ref, Clause *cl)
+{ Clause clause;
+
+  if ( !PL_get_pointer(ref, (void **)&clause) )
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_clause_reference, ref);
+  if ( !isClause(clause) )
+    return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_clause_reference, ref);
+
+  *cl = clause;
+  succeed;
+}
+
 #if O_DEBUGGER				/* to the end of the file */
 
 static Code
@@ -2976,20 +2990,6 @@ wouldBindToDefinition(Definition from, Definition to)
   }
 
   fail;
-}
-
-
-int
-get_clause_ptr_ex(term_t ref, Clause *cl)
-{ Clause clause;
-
-  if ( !PL_get_pointer(ref, (void **)&clause) )
-    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_clause_reference, ref);
-  if ( !isClause(clause) )
-    return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_clause_reference, ref);
-
-  *cl = clause;
-  succeed;
 }
 
 
