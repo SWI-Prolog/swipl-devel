@@ -221,8 +221,10 @@ prolog_print_content(dtd_element *e)
       break;
     default:
       if ( def->content )
+      { printf("model(");
 	prolog_print_model(def->content);
-      else
+	printf(")");
+      } else
       { printf("[]");
 	fprintf(stderr,
 		"Warning: element %s has no content model\n",

@@ -1,3 +1,6 @@
+* FIXED: dtd2pl to use model(Model) to avoid amibity between CDATA and
+  (CDATA) model.  Richard O'Keefe.
+
 * FIXED: Various output aspects of the sgml driver program, notably case and
   character escaping problems.  By Richard O'Keefe.
 
