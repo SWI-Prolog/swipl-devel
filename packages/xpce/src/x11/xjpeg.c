@@ -126,11 +126,13 @@ saves about 10% on the whole process.  This   will  get a lot more if we
 improve XPutPixel()
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static XImage *current_img;		/* Img we are initialised for */
 static int r_b, g_b, b_b;		/* map parameters */
 
 static unsigned long r_map[256];	/* the maps themselves */
 static unsigned long g_map[256];
 static unsigned long b_map[256];
+
 
 static void
 init_map(unsigned long *map, int bright, int shift)
@@ -140,17 +142,28 @@ init_map(unsigned long *map, int bright, int shift)
     map[i] = (RESCALE(i, 255, bright) << shift);
 }
 
-static void
-init_maps(int r_bright, int g_bright, int b_bright,
-	  int r_shift,  int g_shift,  int b_shift)
-{ if ( !(r_bright==r_b && g_bright==g_b && b_bright == b_b) )
-  { init_map(r_map, r_bright, r_shift);
-    init_map(g_map, g_bright, g_shift);
-    init_map(b_map, b_bright, b_shift);
 
-    r_b = r_bright;
-    g_b = g_bright;
-    b_b = b_bright;
+static void
+init_maps(XImage *img)
+{ if ( img != current_img )
+  { int r_shift  = shift_for_mask(img->red_mask);
+    int g_shift  = shift_for_mask(img->green_mask);
+    int b_shift  = shift_for_mask(img->blue_mask);
+    int r_bright = img->red_mask   >> r_shift;
+    int g_bright = img->green_mask >> g_shift;
+    int b_bright = img->blue_mask  >> b_shift;
+
+    if ( !(r_bright==r_b && g_bright==g_b && b_bright == b_b) )
+    { init_map(r_map, r_bright, r_shift);
+      init_map(g_map, g_bright, g_shift);
+      init_map(b_map, b_bright, b_shift);
+      
+      r_b = r_bright;
+      g_b = g_bright;
+      b_b = b_bright;
+    }
+
+    current_img = img;
   }
 }
 
@@ -172,6 +185,8 @@ static void
 writeRGBScanLine(JSAMPLE *line, int width, int y, XImage *img)
 { int x;
   JSAMPLE *i;
+
+  init_maps(img);
 
   if ( img->bits_per_pixel > 16 )
   { char *data = img->data + y * img->bytes_per_line;
@@ -230,6 +245,25 @@ writeRGBScanLine(JSAMPLE *line, int width, int y, XImage *img)
 }
 
 
+static void
+writeGrayScanLine(JSAMPLE *line, int width, int y, XImage *img)
+{ int x;
+  JSAMPLE *i;
+
+  init_maps(img);
+
+  for(x=0, i=line; x<width; x++)
+  { unsigned long pixel;
+    int g = *i++;
+	  
+    pixel = MKPIXEL(g, g, g);
+      
+    XPutPixel(img, x, y, pixel);
+  }
+}
+
+
+
 		 /*******************************
 		 *	     READ JPEG		*
 		 *******************************/
@@ -245,7 +279,6 @@ staticColourReadJPEGFile(Image image, IOSTREAM *fd, XImage **return_image)
   long here = Stell(fd);
   XImage *img = NULL;
   JSAMPLE *line = NULL;
-  int r_shift, g_shift, b_shift, r_bright, g_bright, b_bright;
   int y;
   DisplayObj d = image->display;
   DisplayWsXref r;
@@ -308,33 +341,12 @@ staticColourReadJPEGFile(Image image, IOSTREAM *fd, XImage **return_image)
     goto out;
   }
 
-  r_shift  = shift_for_mask(img->red_mask);
-  g_shift  = shift_for_mask(img->green_mask);
-  b_shift  = shift_for_mask(img->blue_mask);
-  r_bright = img->red_mask   >> r_shift;
-  g_bright = img->green_mask >> g_shift;
-  b_bright = img->blue_mask  >> b_shift;
-
-  init_maps(r_bright, g_bright, b_bright,
-	    r_shift,  g_shift,  b_shift);
-
   for( y=0; cinfo.output_scanline < cinfo.output_height; y++ )
-  { JSAMPLE *i;
-    int x;
-
-    jpeg_read_scanlines(&cinfo, &line, 1);
-
+  { jpeg_read_scanlines(&cinfo, &line, 1);
 
     switch(cinfo.output_components)
     { case 1:
-	for(x=0, i=line; x<cinfo.output_width; x++)
-	{ unsigned long pixel;
-	  int g = *i++;
-	  
-	  pixel = MKPIXEL(g, g, g);
-      
-	  XPutPixel(img, x, y, pixel);
-	}
+	writeGrayScanLine(line, cinfo.output_width, y, img);
 	break;
       case 3:
 	writeRGBScanLine(line, cinfo.output_width, y, img);
