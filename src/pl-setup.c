@@ -68,14 +68,11 @@ setupProlog(void)
 	     GD->options.trailSize, 
 	     GD->options.argumentSize);
 
-  lTop = lBase;
-  tTop = tBase;
-  gTop = gBase;
-  aTop = aBase;
-
   base_addresses[STG_LOCAL]  = (unsigned long)lBase;
   base_addresses[STG_GLOBAL] = (unsigned long)gBase;
   base_addresses[STG_TRAIL]  = (unsigned long)tBase;
+  emptyStacks();
+
   DEBUG(1, Sdprintf("base_addresses[STG_LOCAL] = %p\n",
 		    base_addresses[STG_LOCAL]));
   DEBUG(1, Sdprintf("base_addresses[STG_GLOBAL] = %p\n",
@@ -88,7 +85,6 @@ setupProlog(void)
   depth_reached = 0;
 #endif
 
-  emptyStacks();
   DEBUG(1, Sdprintf("Atoms ...\n"));
   initAtoms();
   DEBUG(1, Sdprintf("Features ...\n"));
@@ -131,11 +127,6 @@ setupProlog(void)
   GD->cannot_save_program = NULL;
 #else
   GD->cannot_save_program = "Not supported on this machine";
-#endif
-
-#if O_XWINDOWS
-  DEBUG(1, Sdprintf("XWindows ...\n");
-  initXWindows();
 #endif
 
   DEBUG(1, Sdprintf("Heap Initialised\n"));
@@ -221,6 +212,7 @@ initFeatures()
   CSetFeature("tty_control", GD->cmdline.notty ? "false" : "true");
   CSetFeature("allow_variable_name_as_functor", "false");
   CSetIntFeature("toplevel_var_size", 1000);
+  CSetFeature("file_name_variables", "false");
 #if defined(__unix__) || defined(unix)
   CSetFeature("unix", "true");
 #endif
@@ -962,6 +954,7 @@ initStacks(long local, long global, long trail, long argument)
 { caddress lbase, gbase, tbase, abase;
   long glsize;
   long lsep, tsep;
+  ulong maxarea;
 
   size_alignment = getpagesize();
   base_alignment = size_alignment;
@@ -974,9 +967,11 @@ initStacks(long local, long global, long trail, long argument)
   tsep = size_alignment;
 #endif
 
-  if ( local	== 0 ) local	= 64 MB; /* TBD: 64-bit machines? */
-  if ( global	== 0 ) global	= 64 MB;
-  if ( trail	== 0 ) trail	= 64 MB;
+  maxarea = (MAXTAGGEDPTR < 512 MB ? MAXTAGGEDPTR : 512 MB);
+
+  if ( local	== 0 ) local	= maxarea;
+  if ( global	== 0 ) global	= maxarea;
+  if ( trail	== 0 ) trail	= maxarea;
   if ( argument	== 0 ) argument	= 16 MB;
 
   local    = (long) align_size(local);	/* Round up to page boundary */

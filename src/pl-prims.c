@@ -2087,6 +2087,7 @@ static const builtin_boolean_feature builtin_boolean_features[] =
   { ATOM_allow_variable_name_as_functor, ALLOW_VARNAME_FUNCTOR },
   { ATOM_iso, 			 	 ISO_FEATURE },
   { ATOM_optimise,		 	 OPTIMISE_FEATURE },
+  { ATOM_file_name_variables,		 FILEVARS_FEATURE },
   { NULL_ATOM,			         0L }
 };
 

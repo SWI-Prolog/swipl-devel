@@ -12,8 +12,8 @@
 
 #ifdef __WIN32__
 #define MD	     "config/win32.h"
-#define PLHOME       "c:/pl"
-#define DEFSTARTUP   ".plrc"
+#define PLHOME       "c:/Program Files/pl"
+#define DEFSTARTUP   "pl.ini"
 #define ARCH	     "i386-win32"
 #define C_LIBS	     ""
 #define C_STATICLIBS ""
@@ -1551,6 +1551,7 @@ typedef struct debuginfo
 #define ALLOW_VARNAME_FUNCTOR	0x0400	/* Read Foo(x) as 'Foo'(x) */
 #define ISO_FEATURE		0x0800	/* Strict ISO compliance */
 #define OPTIMISE_FEATURE	0x1000	/* -O: optimised compilation */
+#define FILEVARS_FEATURE	0x2000	/* Expand $var and ~ in filename */
 
 typedef struct
 { unsigned long flags;			/* the feature flags */

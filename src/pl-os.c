@@ -1474,11 +1474,12 @@ char *
 AbsoluteFile(const char *spec, char *path)
 { char tmp[MAXPATHLEN];
   char buf[MAXPATHLEN];
-  char *file;  
-
-  PrologPath(spec, buf);
-  if ( !(file = ExpandOneFile(buf, tmp)) )
-    return (char *) NULL;
+  char *file = PrologPath(spec, buf);
+  
+  if ( trueFeature(FILEVARS_FEATURE) )
+  { if ( !(file = ExpandOneFile(buf, tmp)) )
+      return (char *) NULL;
+  }
 
   if ( IsAbsolutePath(file) )
   { strcpy(path, file);

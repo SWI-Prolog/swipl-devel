@@ -283,7 +283,10 @@ concatArgList(arglist *to, const char *prefix, arglist *from)
   for(n=0; n<from->size; n++)
   { char buf[1024];
 
-    sprintf(buf, "%s%s", prefix, from->list[n]);
+    if ( strchr(from->list[n], ' ') )
+      sprintf(buf, "%s\"%s\"", prefix, from->list[n]);
+    else
+      sprintf(buf, "%s%s", prefix, from->list[n]);
     appendArgList(to, buf);
   }
 }

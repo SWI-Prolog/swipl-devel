@@ -478,7 +478,7 @@ leaveForeignFrame(LocalFrame fr)
 #define F	(*function)
 #define A(n)	((Word)NULL)
 
-  DEBUG(5, Sdprintf("Cut %s, context = 0x%lx\n",
+  DEBUG(5, Sdprintf("\tCut %s, context = 0x%lx\n",
 		    predicateName(def), context));
 
   CALLNDETFN(result, argc, context);
@@ -2152,9 +2152,13 @@ backtrack that makes it difficult to understand the tracer's output.
 #endif
 
 	set(FR, FR_CUT);
+	DEBUG(3, Sdprintf("Cutting [%ld] %s\n",
+			  levelFrame(FR),
+			  predicateName(FR->predicate)));
 	for(fr = BFR; fr > FR; fr = fr->backtrackFrame)
 	{ for(fr2 = fr; fr2->clause && fr2 > FR; fr2 = fr2->parent)
-	  { DEBUG(3, Sdprintf("discard frame of %s\n",
+	  { DEBUG(3, Sdprintf("    Discard [%ld] %s\n",
+			      levelFrame(fr2),
 			      predicateName(fr2->predicate)));
 	    leaveFrame(fr2);
 	    fr2->clause = NULL;
@@ -2169,7 +2173,16 @@ backtrack that makes it difficult to understand the tracer's output.
         { SetBfr(FR->backtrackFrame);
 	}
 
-	DEBUG(3, Sdprintf("BFR = %d\n", (Word)BFR - (Word)lBase) );
+	DEBUG(3,
+	      if ( BFR )
+	      { Sdprintf("  BFR at [%ld] %s\n",
+			 levelFrame(BFR),
+			 predicateName(BFR->predicate));
+		assert(BFR->clause);
+	      } else
+	      { Sdprintf("  No BFR\n");
+	      });
+	  
 	lTop = (LocalFrame) argFrameP(FR, CL->clause->variables);
 	ARGP = argFrameP(lTop, 0);
 
@@ -2248,6 +2261,8 @@ discarded.
 	register LocalFrame fr2;
 
 	PC++;				/* cannot be in macro! */
+	if ( BFR <= cbfr )		/* already done this */
+	  NEXT_INSTRUCTION;
 	if ( cbfr < FR )
 	  cbfr = FR;
 
@@ -2794,16 +2809,18 @@ Note that this one is enclosed in the compound statement of I_USERCALL0,
 I_APPLY, I_CALL and I_DEPART to allow   sharing of the register variable
 `next' with them and thus make the `goto common_call' valid.
 
-NOTE: as of SWI-Prolog 2.0.2, the call  to $alt/1 is `inlined'.  We just
-build the frame for $alt/1 and then   continue execution.  This is ok as
-the first call of $alt/1 simply succeeds.
+NOTE: as of SWI-Prolog 2.0.2, the  call   to  $alt/1  is `inlined'. As a
+consequence it has lost its argument and   is  now $alt/0. We just build
+the frame for $alt/1 and then  continue   execution.  This  is ok as the
+first call of $alt/1 simply succeeds.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     VMI(C_OR, COUNT_N(c_or), ("c_or %d\n", *PC)) MARK(C_OR);
     c_or:
       { int skip = *PC++;
 
-	*ARGP++ = consInt(skip);	/* push amount to skip (as B_CONST) */
-	DEBUG(9, Sdprintf("$alt(%d)\n", skip));
+	DEBUG(9, Sdprintf("$alt to %d in [%ld] %s\n",
+			  PC-CL->clause->codes + skip,
+			  levelFrame(FR), predicateName(FR->predicate)));
 	next = lTop;
 	next->flags = FR->flags;
 	next->predicate = PROCEDURE_alt0->definition;
@@ -3060,7 +3077,10 @@ frame,  fill  the next frame and initialise the machine registers.  Then
 execution can continue at `next_instruction'
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 #define TAILRECURSION 1
-      VMI(I_DEPART, COUNT(i_depart), ("depart %d\n", *PC)) MARK(DEPART);
+      VMI(I_DEPART,
+	  COUNT(i_depart),
+	  ("depart %s\n", procedureName((Procedure)*PC)))
+							 MARK(DEPART);
 #if TAILRECURSION
 	if ( true(FR, FR_CUT) && BFR <= FR
 #if O_DEBUGGER
@@ -3731,6 +3751,9 @@ pl_alt(word h)
 
     case FRG_FIRST_CALL:
     default:
+      DEBUG(0, Sdprintf("*** [%ld] $alt/0: control = %d, context = %d\n",
+			levelFrame(environment_frame),
+			ForeignControl(h), ForeignContextInt(h)));
       assert(0);
       fail;
   }

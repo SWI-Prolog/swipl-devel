@@ -731,11 +731,13 @@ openStream(term_t file, int mode, int flags)
       goto err;
   } else
 #endif /*HAVE_POPEN*/
-  { char *fn;
+  { char *fn = stringAtom(name);
     char tmp[MAXPATHLEN];
 
-    if ( !(fn = ExpandOneFile(stringAtom(name), tmp)) )
-      fail;
+    if ( trueFeature(FILEVARS_FEATURE) )
+    { if ( !(fn = ExpandOneFile(fn, tmp)) )
+	fail;
+    }
 
     if ( !(stream=Sopen_file(fn, cmode)) )
     {
@@ -1916,8 +1918,10 @@ PL_get_filename(term_t n, char *buf, unsigned int size)
   { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, n);
     return NULL;
   }
-  if ( !(name = ExpandOneFile(name, tmp)) )
-    return NULL;
+  if ( trueFeature(FILEVARS_FEATURE) )
+  { if ( !(name = ExpandOneFile(name, tmp)) )
+      return NULL;
+  }
 
   if ( buf )
   { if ( strlen(name) < size )

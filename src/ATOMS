@@ -362,6 +362,7 @@ A yf			"yf"
 A yfx			"yfx"
 A yfy			"yfy"
 A zero_divisor		"zero_divisor"
+A file_name_variables	"file_name_variables"
 
 F abs			1
 F acos			1

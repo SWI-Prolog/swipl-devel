@@ -23,6 +23,10 @@ AC_SUBST(INSTALLTARGET)
 AC_SUBST(INSTALLRLMAN)
 AC_SUBST(EXTRAOBJ)
 
+if test ! -z "$CIFLAGS"; then
+    CFLAGS="$CFLAGS $CIFLAGS"
+fi
+
 EXTRAOBJ=""
 INSTALLTARGET=dv-install
 PL=pl
@@ -138,20 +142,21 @@ dnl provide for dlopen() and friends.  With help from Tamas Laufer!
 dnl ****************************************************************
 
 case "$ARCH" in
-    *sco*|*SCO*|*)
+    *sco*|*SCO*)
 	AC_MSG_CHECKING("SCO-Unix.  See if we need -belf")
-	CFLAGS="$CMFLAGS -belf"
+	old_cflags="$CFLAGS"
+	CFLAGS="$CFLAGS -belf"
 	AC_TRY_COMPILE(
 	[
 	],
 	[
 	],
-	CMFLAGS="$CFLAGS"
+	CMFLAGS="$CMFLAGS -belf"
 	AC_MSG_RESULT(yes),
-	AC_MSG_RESULT(no))
+	AC_MSG_RESULT(no)
+	CFLAGS="$old_cflags")
 	;;
 esac
-CFLAGS="$CMFLAGS"
 
 AC_C_INLINE
 AC_FUNC_ALLOCA
@@ -202,7 +207,7 @@ if test ! "$runtime" = "yes" -a "$configreadline" = "yes"; then
       CFLAGS="$CFLAGS -I/usr/local/include"
       AC_CHECK_HEADERS(readline/readline.h)
       if test "$ac_cv_header_readline_readline_h" = yes; then
-          CIFLAFS="$CIFLAGS -I/usr/local/include"
+          CIFLAGS="$CIFLAGS -I/usr/local/include"
       else
 	  LIBS="$oldlibs"
       fi

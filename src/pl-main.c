@@ -352,6 +352,8 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
 
     if ( streq(s, "-" ) )		/* pl <plargs> -- <app-args> */
       break;
+    if ( *s == '-' )
+      continue;				/* don't handle --long=value */
 
     if ( streq(s, "tty") )	/* +/-tty */
     { GD->cmdline.notty = (s[-1] == '-');
@@ -531,7 +533,6 @@ properly on Linux. Don't bother with it.
   initPaths();				/* fetch some useful paths */
   setupGNUEmacsInferiorMode();		/* Detect running under EMACS */
 
-  
   if ( (GD->resourceDB = rc_open_archive(GD->paths.executable, RC_RDONLY)) )
   { rcpath = ((RcArchive)GD->resourceDB)->path;
     initDefaultOptions();

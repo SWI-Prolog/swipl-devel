@@ -232,7 +232,7 @@ extern const unsigned int tagtypeex[];
 		 *	   CREATING WORDS	*
 		 *******************************/
 
-#define MAXTAGGEDPTR	((1L<<((8*sizeof(word))-5-1)) - 1)
+#define MAXTAGGEDPTR	((1L<<((8*sizeof(word))-5)) - 1)
 
 #define consInt(n)	(((word)(n)<<7) | TAG_INTEGER)
 #if !O_DEBUG

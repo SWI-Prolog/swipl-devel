@@ -351,3 +351,4 @@
 #define ATOM_yfx          MK_ATOM(350)
 #define ATOM_yfy          MK_ATOM(351)
 #define ATOM_zero_divisor MK_ATOM(352)
+#define ATOM_file_name_variables MK_ATOM(353)
