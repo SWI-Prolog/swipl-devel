@@ -104,16 +104,8 @@ connect(F, Pred:name, Object:graphical) :->
 event(F, Ev:event) :->
 	(   send_super(F, event, Ev)
 	->  true
-	;   send(Ev, is_a, area_enter)
-	->  send(F, identify)
-	;   send(Ev, is_a, area_exit)
-	->  send(F, report, status, '')
 	;   send(@rdf_any_recogniser, event, Ev)
 	).
-
-identify(_F) :->
-	"Virtual: tell who you are"::
-	true.
 
 :- pce_end_class(rdf_any).
 
