@@ -77,7 +77,7 @@ push_compile_operators :-
 	push_operators(
 		[ op(1200, xfx, :->)
 		, op(1200, xfx, :<-)
-		, op(1190, xfx, ::)
+		, op(910,  xfy, ::)	% above \+
 		, op(100,  xf,  *)
 		, op(125,  xf,  ?)
 		, op(150,  xf,  ...)
@@ -128,8 +128,8 @@ do_term_expand(In0, Out) :-
 	), !.
 do_term_expand((Head :- Body), _) :-	% check for :- instead of :-> or :<-
 	pce_compiling,
-	(   Body = ::([A|B], _Body),
-	    is_string([A|B])
+	(   Body = ::(Doc, _Body),	% TBD
+	    is_string(Doc)
 	;   typed_head(Head)
 	),
 	pce_error(context_error((Head :- Body), nomethod, clause)),
@@ -803,14 +803,20 @@ var_type(Type, PceType, @default) :-
 		 *	  METHOD SUPPORT	*
 		 *******************************/
 
-extract_documentation((DocText::Body), Summary, Body) :- !,
-	pce_summary(DocText, Summary).
-extract_documentation((DocText,Body), Summary, Body) :-
-	is_string(DocText), !,
-	pce_summary(DocText, Summary),
-	pce_warn(summary_not_closed(DocText)).
+extract_documentation(Body0, Summary, Body) :-
+	ex_documentation(Body0, Summary, Body), !.
 extract_documentation(Body, @default, Body).
 
+ex_documentation(::(DocText, Body), Summary, Body) :- !,
+	pce_summary(DocText, Summary).
+ex_documentation((::(DocText, A), B), Summary, (A,B)) :- !,
+	pce_summary(DocText, Summary).
+ex_documentation((::(DocText, A); B), Summary, (A;B)) :- !,
+	pce_summary(DocText, Summary).
+ex_documentation((::(DocText, A)->B), Summary, (A->B)) :- !,
+	pce_summary(DocText, Summary).
+ex_documentation((::(DocText, A)*->B), Summary, (A*->B)) :- !,
+	pce_summary(DocText, Summary).
 
 return_type(Term, RType) :-
 	functor(Term, _, Arity),

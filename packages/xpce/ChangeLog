@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* MODIFIED: Changed priority of :: using in "comment"::<Body> from 1150 xfx
+  to 910 xfy.  Must be above \+ (900) to avoid a conflict.
+
 * FIXED: Visual hierarchy tool to find windows displayed in windows.
 
 * ENHANCED: reset the display after an abort.

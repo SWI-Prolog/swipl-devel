@@ -451,6 +451,32 @@ pce_method_body(::(_,A0), A, TermPos0, TermPos) :- !,
 				 ]),
 	expand_goal(A0, A, BodyPos0, BodyPos).
 pce_method_body(A0, A, TermPos0, TermPos) :-
+	A0 =.. [Func,::(_,B0),C0],
+	control_op(Func), !,
+	A =.. [Func,B,C],
+	TermPos0 = term_position(F, T, FF, FT,
+				 [ HeadPos,
+				   term_position(F1,T1,FF1,FT1,
+						 [ term_position(_,_,_,_,
+								 [ _,
+								   BP0
+								 ]),
+						   CP0
+						 ])
+				 ]),
+	TermPos  = term_position(F, T, FF, FT,
+				 [ HeadPos,
+				   term_position(0,0,0,0,
+						 [ 0-0,
+						   term_position(F1,T1,FF1,FT1,
+								 [ BP,
+								   CP
+								 ])
+						 ])
+				 ]),
+	expand_goal(B0, B, BP0, BP),
+	expand_goal(C0, C, CP0, CP).
+pce_method_body(A0, A, TermPos0, TermPos) :-
 	TermPos0 = term_position(F, T, FF, FT,
 				 [ HeadPos,
 				   BodyPos0
@@ -461,6 +487,10 @@ pce_method_body(A0, A, TermPos0, TermPos) :-
 				 ]),
 	expand_goal(A0, A, BodyPos0, BodyPos).
 
+control_op((,)).
+control_op((;)).
+control_op((->)).
+control_op((*->)).
 
 		 /*******************************
 		 *     EXPAND_GOAL SUPPORT	*
