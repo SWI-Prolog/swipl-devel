@@ -369,7 +369,7 @@ eventMenuBar(MenuBar mb, EventObj ev)
 
 static Int
 getHorStretchMenuBar(MenuBar mb)
-{ answer(ONE);
+{ answer(mb->look == NAME_motif ? ONE : ZERO);
 }
 
 
@@ -461,6 +461,8 @@ appendMenuBar(MenuBar mb, PopupObj p, Name alignment)
     if ( mb->look != NAME_openLook )
     { if ( mb->look == NAME_win )
 	assign(b, look, NAME_winMenuBar);
+      else if ( mb->look == NAME_gtk )
+	assign(b, look, NAME_gtkMenuBar);
 
       assign(b, label_font, mb->label_font);
       assign(b, pen,        mb->pen);
@@ -699,6 +701,8 @@ static classvardecl rc_menuBar[] =
      "Format items {left,center,right}"),
   RC(NAME_gap, "int", UXWIN("10", "5"),
      "Distance between buttons"),
+  RC(NAME_look, "name", UXWIN("gtk", "win"),
+     NULL),
   RC(NAME_labelFont, "font", "normal",
      "Default font for labels"),
   RC(NAME_pen, "int", "1",

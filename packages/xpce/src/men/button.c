@@ -42,8 +42,35 @@ accelerator_code(Name a)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Get a highlighted elevation for the background.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static Elevation
+getGtkButtonElevation(Button b)
+{ Any bg = r_background(DEFAULT);
+  static Any cbg = NIL;
+  static Elevation ce  = NULL;
+  
+  if ( bg == cbg )
+    return ce;
+
+  if ( instanceOfObject(bg, ClassColour) )
+  { Colour face = getHiliteColour(bg);
+
+    if ( ce )
+      freeObject(ce);
+
+    ce = newObject(ClassElevation, NIL, ONE, face, EAV);
+    answer(ce);
+  }
+  
+  fail;
+}
+
+
 static status
-RedrawWinMenuBarButton(Button b, Area a)
+RedrawMenuBarButton(Button b, Area a)
 { int x, y, w, h;
   Any ofg = NIL;
   int flags = 0;
@@ -52,13 +79,20 @@ RedrawWinMenuBarButton(Button b, Area a)
   NormaliseArea(x, y, w, h);
   
   if ( b->status == NAME_preview )
-  { Any fg = getClassVariableValueObject(b, NAME_selectedForeground);
-    Any bg = getClassVariableValueObject(b, NAME_selectedBackground);
+  { Elevation e;
 
-    if ( !fg ) fg = WHITE_COLOUR;
-    if ( !bg ) bg = BLACK_COLOUR;
-    r_fill(x, y, w, h, bg);
-    ofg = r_colour(fg);
+    if ( b->look == NAME_gtkMenuBar &&
+	 (e = getGtkButtonElevation(b)) )
+    { r_3d_box(x, y, w, h, 0, e, TRUE);
+    } else /* if ( b->look == NAME_winMenuBar ) */
+    { Any fg = getClassVariableValueObject(b, NAME_selectedForeground);
+      Any bg = getClassVariableValueObject(b, NAME_selectedBackground);
+
+      if ( !fg ) fg = WHITE_COLOUR;
+      if ( !bg ) bg = BLACK_COLOUR;
+      r_fill(x, y, w, h, bg);
+      ofg = r_colour(fg);
+    }
   }
 
   if ( b->active == OFF )
@@ -208,8 +242,9 @@ RedrawAreaButton(Button b, Area a)
   int flags = 0;
   Elevation z;
 
-  if ( b->look == NAME_winMenuBar )
-    return RedrawWinMenuBarButton(b, a);
+  if ( b->look == NAME_winMenuBar ||
+       b->look == NAME_gtkMenuBar )
+    return RedrawMenuBarButton(b, a);
 
   if ( b->active == OFF )
     flags |= LABEL_INACTIVE;
@@ -260,10 +295,14 @@ computeButton(Button b)
 
     dia_label_size(b, &w, &h, &isimage);
 
-    if ( b->look == NAME_winMenuBar )
+    if ( b->look == NAME_winMenuBar ||
+         b->look == NAME_gtkMenuBar )
     { if ( !isimage )
-	w += valInt(getExFont(b->label_font)) * 2;
-      else
+      { w += valInt(getExFont(b->label_font)) * 2;
+	
+	if ( b->look == NAME_gtkMenuBar )
+	  h += 4;
+      } else
       { w += 4;
 	h += 4;
       }
@@ -312,7 +351,8 @@ getReferenceButton(Button b)
     ascent = valInt(getAscentFont(b->label_font));
     h      = valInt(b->area->h);
 
-    if ( b->look == NAME_winMenuBar )
+    if ( b->look == NAME_winMenuBar ||
+	 b->look == NAME_gtkMenuBar )
       rx = valInt(getExFont(b->label_font));
 
     ref = answerObject(ClassPoint, toInt(rx), toInt((h - fh)/2 + ascent), EAV);

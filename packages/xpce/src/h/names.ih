@@ -2349,3 +2349,5 @@
 #define NAME_yref (&builtin_names[2348])
 #define NAME_yrefVar (&builtin_names[2349])
 #define NAME_zoom (&builtin_names[2350])
+#define NAME_gtk (&builtin_names[2351])
+#define NAME_gtkMenuBar (&builtin_names[2352])
