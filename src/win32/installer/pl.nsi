@@ -123,6 +123,7 @@ Section "Base system (required)"
 ; UNICODE
   SetOutPath $INSTDIR\library\unicode
   File pl\library\unicode\blocks.pl
+  File pl\library\unicode\unicode_data.pl
 
   SetOutPath $INSTDIR\doc
   File pl\doc\windows.html
