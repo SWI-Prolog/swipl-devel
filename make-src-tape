@@ -1,0 +1,34 @@
+#!/bin/sh
+
+version=`cat VERSION`
+out=pl-$version.tar.gz
+compress=gzip
+
+rm -f pl-$version
+if [ ! "o$1" = "o-q" ]; then
+  cp /dev/null cvsfiles
+  echo -n "Collecting distribution files "
+  for d in `find . -name CVS -type d -print`; do
+      echo -n "."
+      dir=`dirname $d`
+      grep '^/' $dir/CVS/Entries | \
+          awk -F/ '{printf("%s/%s\n", "'$dir'", $2)}' >> cvsfiles
+  done
+  echo "done"
+fi
+
+cat >> cvsfiles << _EOM_
+./pl.spec
+_EOM_
+
+cat cvsfiles | \
+	  grep -v '^./packages/' | \
+	  sed "s@^\./@pl-$version/@" > tapefiles
+
+cd ..
+rm -f pl-$version
+ln -s pl pl-$version
+tar cvfT - pl/tapefiles | $compress > $out
+rm -f pl-$version
+
+
