@@ -38,8 +38,8 @@ doc:emit([element(p, A, C)|T0], PB, Mode) :- !,
 	phrase(P, T1, T),
 	emit(T1, PB, Mode).
 doc:emit([element(Tag, Attributes, Content)|T], PB, Mode) :-
-	(   phrase(element(Tag, Attributes, Content), T1, T)
-	;   phrase(element(Tag, Attributes, Content, Mode), T1, T)
+	(   phrase(element(Tag, Attributes, Content, Mode), T1, T)
+	;   phrase(element(Tag, Attributes, Content), T1, T)
 	), !,
 	emit(T1, PB, Mode).
 
