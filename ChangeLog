@@ -1,6 +1,13 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: make/0 detection of directories to update when using MKINDEX.pl
+    (reported by Holger Kanwischer).
+
+  * ADDED: autoload(Bool) option to load_files/2 to allow external packages
+    to use the verbose/silent loading of demand-loaded files.  Now used for
+    the pce_autoload/2 declaration.
+
   * FIXED: random/3 in library(quintus).  Thanks to Peng Te.
 
   * FIXED: improved type-checking converting code-lists or character-lists

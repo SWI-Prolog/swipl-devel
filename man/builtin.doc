@@ -152,18 +152,28 @@ Load the file only if the specified condition is satisfied. The value
 file if it was not loaded before, or has been modified since it was
 loaded the last time, \const{not_loaded} loads the file if it was not
 loaded before.
+
     \termitem{must_be_module}{Bool}
 If \const{true}, raise an error if the file is not a module file.  Used by
 use_module/[1,2].
+
     \termitem{imports}{ListOrAll}
 If \const{all} and the file is a module file, import all public
 predicates. Otherwise import only the named predicates. Each predicate
 is refered to as <name>/<arity>. This option has no effect if the file
 is not a module file.
+
     \termitem{silent}{Bool}
 If \const{true}, load the file without printing a message. The specified
 value is the default for all files loaded as a result of loading the
 specified files.
+
+    \termitem{autoload}{Bool}
+If \const{true} (default \const{false}), indicate this load is a
+\jargon{demand} load. This implies that, depending on the setting of the
+prolog-flag \const{verbose_autoload} the load-action is printed at
+level \const{informational} or \const{silent}.  See also print_message/2
+and current_prolog_flag/2.
 \end{description}
 
     \predicate{consult}{1}{+File}

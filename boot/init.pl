@@ -818,6 +818,12 @@ $load_file(Spec, Options) :-
 	$get_option(silent(Silent), Options, DefSilent),
 	flag($load_silent, _, Silent),
 	$get_option(if(If), Options, true),
+	$get_option(autoload(Autoload), Options, false),
+
+	(   Autoload == false
+	->  flag($autoloading, AutoLevel, AutoLevel)
+	;   flag($autoloading, AutoLevel, AutoLevel+1)
+	),
 
 	(   $noload(If, FullFile)
 	->  (   $current_module(LoadModule, FullFile)
@@ -861,6 +867,7 @@ $load_file(Spec, Options) :-
 					  TimeUsed,
 					  HeapUsed)))
 	),
+	flag($autoloading, _, AutoLevel),
 	flag($load_silent, _, DefSilent).
 
 

@@ -272,18 +272,20 @@ server_start(Emacs, Force:[bool]) :->
 
 :- pce_group(customise).
 
+
 		 /*******************************
 		 *	 USER EXTENSIONS	*
 		 *******************************/
 
 load_user_extension(_Emacs, Base:name) :->
 	"Load Prolog user file with this base-name"::
-	new(Name, string('~/lib/xpce/emacs/%s', Base)),
-	send(Name, ensure_suffix, '.pl'),
-	new(F, file(Name)),
-	(   send(file(Name), exists)
-	->  get(F, absolute_path, Path),
-	    ensure_loaded(Path)
+	(   absolute_file_name(emacs_user_library(Base),
+			       [ access(read),
+				 file_type(prolog),
+				 file_errors(fail)
+			       ],
+			       Extension)
+	->  ignore(load_files(user:Extension, [autoload(true)]))
 	;   true
 	).
 
@@ -299,7 +301,7 @@ load_user_init_file(_Emacs) :->
 				 file_errors(fail)
 			       ],
 			       Profile)
-	->  ignore(consult(user:Profile))
+	->  ignore(load_files(user:Profile, [autoload(true)]))
 	;   true
 	).
 

@@ -19,6 +19,17 @@
 
 :- multifile
 	no_backup/1.
+:- multifile
+	user:file_search_path/2.
+
+
+		 /*******************************
+		 *   PUT USER EXTENSIONS HERE	*
+		 *******************************/
+
+user:file_search_path(emacs_user_library,
+		      user_profile('/lib/xpce/emacs')).
+
 
 		/********************************
 		*         DECLARE MODES		*

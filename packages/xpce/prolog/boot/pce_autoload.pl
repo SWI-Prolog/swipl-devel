@@ -68,7 +68,7 @@ pce_autoload_all :-
 	autoload(Class, File),
 	\+ get(@classes, member, Class, _),
 	\+ pce_prolog_class(Class),
-	user:ensure_loaded(File),
+	ensure_loaded(user:File),
 	fail.
 pce_autoload_all.
 
@@ -92,5 +92,7 @@ do_trap_autoload(Class) :-
 	pce_realise_class(Class), !.
 do_trap_autoload(Class) :-
 	autoload(Class, File),
-	user:ensure_loaded(File),
+	load_files(user:File,
+		   [ autoload(true)
+		   ]),
 	pce_realise_class(Class).

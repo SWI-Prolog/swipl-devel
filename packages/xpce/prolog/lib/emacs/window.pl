@@ -893,14 +893,11 @@ load_user_extensions(C) :->
 	(   get(C, user_extensions_loaded, @on)
 	->  true
 	;   get(C, name, Name),
-	    (   concat(emacs_, Base, Name),
-		concat(Base, '.pl', FileName),
-		get(directory('~/lib/xpce/emacs'), file, FileName, File),
-		send(File, access, read)
-	    ->  get(File, absolute_path, Path),
-		ensure_loaded(Path)
-	    ;   true
+	    (   concat(emacs_, Base, Name)
+	    ->	true
+	    ;	Base = Name
 	    ),
+	    send(@emacs, load_user_extension, Base),
 	    send(C, slot, user_extensions_loaded, @on),
 	    get(C, super_class, Super),
 	    (	send(Super, has_send_method, load_user_extensions)
@@ -909,7 +906,7 @@ load_user_extensions(C) :->
 	    )
 	).
 
-:- pce_end_class.
+:- pce_end_class(emacs_mode_class).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Finally, we have to tell pce_begin_class/3 the  meta-class we want to be
