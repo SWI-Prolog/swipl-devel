@@ -2701,12 +2701,12 @@ char *program;
 
         return fullname;
       } else
-        return NULL;
+        path++;				/* fix by Ron Hess (hess@sco.com) */
     } else
     { for(dir = fullname; *path && *path != PATHSEP; *dir++ = *path++)
 	;
       if (*path)
-	path++;						/* skip : */
+	path++;				/* skip : */
       if (strlen(fullname) + strlen(program)+2 > MAXPATHLEN)
         continue;
       *dir++ = '/';

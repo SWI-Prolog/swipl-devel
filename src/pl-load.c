@@ -29,7 +29,7 @@ getSymbols()
     succeed;
   
   if ( (symbols = Symbols()) == (char *)NULL )
-  { warning("Failed to find symbol table. Trying %s\n", mainArgv[0]);
+  { Putf("[WARNING: Failed to find symbol table. Trying %s]\n", mainArgv[0]);
     symbols = mainArgv[0];
   }
   DEBUG(2, printf("Symbol file = %s\n", symbols));

@@ -7,7 +7,7 @@
     Purpose: Support for virtual machine
 */
 
-#define O_SECURE 1
+/*#define O_SECURE 1*/
 #include "pl-incl.h"
 
 		/********************************
@@ -227,7 +227,8 @@ int on_heap;
     } else if ( !onHeap(p2) )
       printk("Illegal reference pointer at 0x%x --> 0x%x", p, p2);
 
-    return checkData(p2, on_heap);
+    checkData(p2, on_heap);
+    return;
   }
 
   if ( isVar(*p) )

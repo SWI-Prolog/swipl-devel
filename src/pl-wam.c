@@ -196,7 +196,8 @@ Procedure proc;
 register LocalFrame frame;
 { int argc = proc->functor->arity;
   word result;
-  Word argv[10];
+  Word argv[20]; /* this must be as big as the number args we stuff in it 
+	          * (switch() below can handle upto case : 15) */
   Func function;
   Lock top = pTop;
 
@@ -744,6 +745,7 @@ registers.
     if ( (CL = DEF->definition.clauses) == (Clause) NULL )
     { trapUndefined(PROC);
       DEF = PROC->definition;		/* may have changed! */
+      CL = DEF->definition.clauses;
     }
 
     if ( debugstatus.debugging )

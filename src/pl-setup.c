@@ -774,10 +774,11 @@ long local, global, trail, argument, lock;
   base = align_base(base);
 #define K * 1024
 
+  /*	     struct	name 	   minimum size */
   INIT_STACK(global,   "global",   16 K);
   INIT_STACK(local,    "local",    8 K);
   INIT_STACK(trail,    "trail",    8 K);
-  INIT_STACK(lock,     "lock",     0 K);
+  INIT_STACK(lock,     "lock",     1 K);
   INIT_STACK(argument, "argument", 1 K);
 
   pl_signal(SIGSEGV, segv_handler);

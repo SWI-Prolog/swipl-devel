@@ -36,6 +36,8 @@ and libraries.  If you are not sure, run `which cc' which should yield
 
 #define M_LIBS			-lm -ltermcap
 
+/* #define O_VMCODE_IS_ADDRESS	0	/* temporary */
+
 			/* compiler */
 #define ANSI			__GNUC__
 #define O_NO_LEFT_CAST		0

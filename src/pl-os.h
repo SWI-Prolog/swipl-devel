@@ -225,7 +225,8 @@ typedef struct
 } ttybuf;
 #endif /* O_TERMIOS */
 
-#elif OS2 && EMX
+#else
+#if OS2 && EMX
 #if O_TERMIOS
 #include <sys/termio.h>
 #include <sys/kbdscan.h>
@@ -248,6 +249,7 @@ typedef struct
 #endif /* O_TERMIOS */
 
 #else /* OS2 */
+#endif
 typedef struct
 { int		mode;		/* Prolog's view on mode */
 } ttybuf;
