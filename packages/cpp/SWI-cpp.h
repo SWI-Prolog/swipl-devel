@@ -127,19 +127,19 @@ public:
   operator term_t(void)
   { return ref;
   }
-  operator char *(void);
-  operator long(void);
-  operator int(void);
-  operator double(void);
-  operator PlAtom(void);
-  operator void *(void);
+  operator char *(void) const;
+  operator long(void) const;
+  operator int(void) const;
+  operator double(void) const;
+  operator PlAtom(void) const;
+  operator void *(void) const;
 
   int type()
   { return PL_term_type(ref);
   }
 
 					/* Compounds */
-  PlTerm operator [](int index);
+  PlTerm operator [](int index) const;
   int arity();
   const char *name();
 
@@ -225,7 +225,7 @@ public:
   PlTermv(PlTerm m0, PlTerm m1, PlTerm m2, PlTerm m3);
   PlTermv(PlTerm m0, PlTerm m1, PlTerm m2, PlTerm m3, PlTerm m4);
 
-  PlTerm operator [](int n);
+  PlTerm operator [](int n) const;
 };
 
 		 /*******************************
@@ -501,7 +501,7 @@ PlAtom::PlAtom(const PlTerm &t)
 
 					/* PlTerm --> C */
 
-__inline PlTerm::operator char *(void)
+__inline PlTerm::operator char *(void) const
 { char *s;
 
   if ( PL_get_chars(ref, &s, CVT_ALL|CVT_WRITE|BUF_RING) )
@@ -511,7 +511,7 @@ __inline PlTerm::operator char *(void)
   PL_THROWN(NULL);
 }
 
-__inline PlTerm::operator long(void)
+__inline PlTerm::operator long(void) const
 { long v;
   
   if ( PL_get_long(ref, &v) )
@@ -521,7 +521,7 @@ __inline PlTerm::operator long(void)
   PL_THROWN(0L);
 }
 
-__inline PlTerm::operator int(void)
+__inline PlTerm::operator int(void) const
 { int v;
   
   if ( PL_get_integer(ref, &v) )
@@ -531,7 +531,7 @@ __inline PlTerm::operator int(void)
   PL_THROWN(0);
 }
 
-__inline PlTerm::operator double(void)
+__inline PlTerm::operator double(void) const
 { double v;
   
   if ( PL_get_float(ref, &v) )
@@ -541,7 +541,7 @@ __inline PlTerm::operator double(void)
   PL_THROWN(0.0);
 }
 
-__inline PlTerm::operator PlAtom(void)
+__inline PlTerm::operator PlAtom(void) const
 { atom_t v;
   
   if ( PL_get_atom(ref, &v) )
@@ -551,7 +551,7 @@ __inline PlTerm::operator PlAtom(void)
   PL_THROWN((atom_t)0);
 }
 
-__inline PlTerm::operator void *(void)
+__inline PlTerm::operator void *(void) const
 { void *ptr;
 
   if ( PL_get_pointer(ref, &ptr) )
@@ -564,7 +564,7 @@ __inline PlTerm::operator void *(void)
 					/* compounds */
 
 __inline PlTerm
-PlTerm::operator [](int index)
+PlTerm::operator [](int index) const
 { PlTerm t;
 
   if ( PL_get_arg(index, ref, t.ref) )
@@ -766,7 +766,7 @@ __inline PlTermv::PlTermv(PlTerm m0, PlTerm m1, PlTerm m2,
 
 
 __inline PlTerm
-PlTermv::operator [](int n)
+PlTermv::operator [](int n) const
 { if ( n < 0 || n >= size )
     throw PlTermvDomainError(size, n);
 
