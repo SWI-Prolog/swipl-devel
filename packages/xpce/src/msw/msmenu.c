@@ -267,7 +267,9 @@ init_entry_resources()
 { static int done = FALSE;
 
   if ( !done )
-  { init_button_colours();
+  { done = TRUE;
+
+    init_button_colours();
     elevation1    = globalObject(NIL, ClassElevation, ONE, EAV);
     WinBackground = newObject(ClassColour, CtoKeyword("win_window"), EAV);
     WinCombo      = newObject(ClassImage, CtoKeyword("win_combo"), EAV);
