@@ -1,0 +1,55 @@
+/*  $Id$
+
+    Part of SWI-Prolog
+
+    Author:  Jan Wielemaker
+    E-mail:  jan@swi.psy.uva.nl
+    WWW:     http://www.swi.psy.uva.nl/projects/SWI-Prolog/
+    Copying: GPL-2.  See the file COPYING or http://www.gnu.org
+
+    Copyright (C) 1990-2001 SWI, University of Amsterdam. All rights reserved.
+*/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Loaded from .plrc (pl.ini on MS-Windows) for additional initialisation on
+XPCE.  It should be installed in one of the following places:
+
+	Unix:			~/.xpcerc
+	Windows-NT/2000:	%USERPROFILE%/xpce.ini
+	Windows-95/98/ME:	C:\Program Files\pl\xpce.ini
+				(or whereever you installed SWI-Prolog)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+%	Make PceEmacs your default editor.  Can also be done from the
+%	Prolog initialisation
+
+%pce_ifhostproperty(prolog(swi),
+%		   (:- ensure_loaded(library('emacs/swi_prolog')))).
+
+%	Print object-references as @reference/class, making debugging
+%	a bit easier.
+
+:- multifile
+	portray/1.
+
+portray(Obj) :-
+	object(Obj),
+	Obj = @Ref, !,
+	(   send(Obj, '_instance_of', var)
+	->  get(Obj, '_value', Value),
+	    format('@~w(= ~p)', [Ref, Value])
+	;   get(Obj, '_class_name', CN),
+	    format('@~w/~w', [Ref, CN])
+	).
+
+%	Allow for ?- manpce(device<-graphicals).
+
+:- initialization op(100, xfx, <-).
+
+%	Handle unbound recursion gracefully.
+
+:- send(@pce, max_goal_depth, 1000).
+
+%	Start the manual toplevel as you start the system
+
+% :- manpce.

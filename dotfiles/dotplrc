@@ -1,0 +1,75 @@
+/*  $Id$
+
+    Part of SWI-Prolog
+
+    Author:  Jan Wielemaker
+    E-mail:  jan@swi.psy.uva.nl
+    WWW:     http://www.swi.psy.uva.nl/projects/SWI-Prolog/
+    Copying: GPL-2.  See the file COPYING or http://www.gnu.org
+
+    Copyright (C) 1990-2001 SWI, University of Amsterdam. All rights reserved.
+*/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This is a sample user-initialisation file for SWI-Prolog. If you wish to
+customise prolog, make  a  copy  of  this   file  and  edit  it  to your
+preferences.
+
+Installation:
+
+	Unix:			~/.plrc
+	Windows-NT/2000:	%USERPROFILE%/pl.ini
+	Windows-95/98/ME:	C:\Program Files\pl\pl.ini
+				(or whereever you installed SWI-Prolog)
+
+More hints on useful things you  can  put   into  this  file  are in the
+SWI-Prolog reference manual. Notably look   at debugger settings, editor
+hooks, file_search_path/2, set_prolog_flag/2 and portray/1.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+		/********************************
+		*            XPCE            *
+		********************************/
+
+%	If we are running XPCE, load the user XPCE stuff if it exists
+
+:-	(   current_prolog_flag(xpce, true),
+	    (	current_prolog_flag(windows, true)
+	    ->	Base = 'xpce.ini'
+	    ;	Base = '.xpcerc'
+	    ),
+	    absolute_file_name(user_profile(Base),
+			       [ file_errors(fail),
+				 access(read)
+			       ],
+			       XpceRC)
+	->  ensure_loaded(XpceRC)
+	;   true
+	).
+
+		 /*******************************
+		 *	   MISC SETTINGS	*
+		 *******************************/
+
+%	If you want to access the command-history like a Unix shell,
+%	set this to the number of commands to remember.
+
+% :- set_prolog_flag(history, 50).
+
+%	Define the editor to use.  Note that more advanced maniluation
+%	of this is defined in the SWI-Prolog reference manual, section
+%	"Listing and Editor Interface"
+
+% :- setenv('EDITOR', emacs).
+
+%	When using XPCE, you can also opt for the built-in editor PceEmacs.
+%	This can be started using ?- emacs(File). ?- emacs. or automatically
+%	through the edit interface by uncommenting this.
+
+% :- (current_prolog_flag(xpce, true) ->
+%     use_module(library('emacs/swi_prolog.pl')) ; true).
+
+%	If you prefer graphical tracing, add the line below.
+
+% :- (current_prolog_flag(xpce, true) -> guitracer ; true).
+
