@@ -336,7 +336,7 @@ LOCKOUT_READERS(rdf_db *db)
 static int
 UNLOCK(rdf_db *db, int rd)
 { int self = PL_thread_self();
-  enum { NONE, READ, WRITE } waiting;
+  int signal;
 
   if ( db->writer == self && db->lock_level > 1 )
   { db->lock_level--;
