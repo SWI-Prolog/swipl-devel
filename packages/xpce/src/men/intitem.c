@@ -192,6 +192,23 @@ decrementIntItem(IntItem ii)
 }
 
 
+static status
+typeIntItem(IntItem ii, Type type)
+{ assign(ii, type, type);
+
+  while(type->kind == NAME_alias)
+    type = type->context;
+
+  if ( type->kind == NAME_intRange )
+  { Tuple t = type->context;
+    rangeIntItem(ii, t->first, t->second);
+  } else if ( type->kind == NAME_int )
+    rangeIntItem(ii, DEFAULT, DEFAULT);
+  
+  succeed;
+}
+
+
 		 /*******************************
 		 *	 CLASS DECLARATION	*
 		 *******************************/
@@ -225,7 +242,9 @@ static senddecl send_int_item[] =
   SM(NAME_increment, 0, NULL, incrementIntItem,
      NAME_selection, "Increment the selection"),
   SM(NAME_decrement, 0, NULL, decrementIntItem,
-     NAME_selection, "Decrement the selection")
+     NAME_selection, "Decrement the selection"),
+  SM(NAME_type, 1, "type", typeIntItem,
+     NAME_type, "Adjust ->low and ->high")
 };
 
 /* Get Methods */
