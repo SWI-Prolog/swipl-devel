@@ -33,6 +33,7 @@
 :- use_module(library(pce)).
 :- use_module(library('doc/load')).
 :- use_module(library('doc/xml_hierarchy')).
+:- use_module(library('trace/pprint')).
 
 :- multifile
 	doc:caption/2.
@@ -80,7 +81,10 @@ view_dom(B) :->
 	pce_open(V, write, Fd),
 	forall(member(Node, Selection),
 	       (   get(Node, xml, DOM),
-		   pretty_print(Fd, DOM)
+		   print_term(DOM,
+			      [ output(Fd),
+				right_margin(78)
+			      ])
 	       )),
 	close(Fd),
 	send(V, caret, 0),
