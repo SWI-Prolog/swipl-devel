@@ -1,6 +1,21 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: Glossary of terms to the manual.
+
+  * ISO: Use exceptions for errors on length/2 and sort/2.
+
+  * FIXED: hash_term/2 for floating point numbers on machines where
+    sizeof(double) != sizeof(long)*2;
+
+  * ADDED: Prolog flag `abort_with_exception' to choose between abort
+    using exceptions and forced abort.
+
+  * FIXED: Configure to disallow non-aligned memory access on the alpha,
+    (OSF/1), even as this just causes a message being printed.  Thanks
+    to Gernot Salzer.
+
+
 VERSION 3.3.8
 =============
 
@@ -19,6 +34,7 @@ VERSION 3.3.8
 
   * FIXED: Memory leaking in $write_on_string, used by swritef and sformat.
     With help from Paul Sephton, who pointed the exact problem in the C-code.
+
 
 VERSION 3.3.7
 =============
