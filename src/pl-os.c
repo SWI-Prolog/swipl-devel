@@ -2719,8 +2719,8 @@ Pause(real time)
     return;
 
   if ( time < 60.0 )		/* select() is expensive. Does it make sense */
-  { timeout.tv_sec = (int) time;
-    timeout.tv_usec = (int)(time * 1000000) % 1000000;
+  { timeout.tv_sec = (long) time;
+    timeout.tv_usec = (long)(time * 1000000) % 1000000;
     select(32, NULL, NULL, NULL, &timeout);
   } else
     sleep( (int)(time+0.5) );
