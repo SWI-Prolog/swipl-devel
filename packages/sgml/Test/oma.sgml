@@ -1,0 +1,8 @@
+<!DOCTYPE oma [ <!ELEMENT oma O O (obo)>
+<!ATTLIST oma foo CDATA #FIXED "foo">
+<!ELEMENT obo O O (p+)>
+<!ATTLIST obo bar CDATA #FIXED "bar">
+<!ELEMENT p - O (#PCDATA)>
+]>
+<p>Hello world.
+<p>Where did the attributes go?

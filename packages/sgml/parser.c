@@ -72,6 +72,9 @@ int			load_dtd_from_file(dtd_parser *p, const char *file);
 void			free_dtd_parser(dtd_parser *p);
 static const ichar *	isee_character_entity(dtd *dtd, const ichar *in,
 					      int *chr);
+static int		add_default_attributes(dtd_parser *p, dtd_element *e,
+					       int natts,
+					       sgml_attribute *atts);
 
 
 		 /*******************************
@@ -2489,7 +2492,14 @@ push_element(dtd_parser *p, dtd_element *e, int callback)
 
     p->first = TRUE;
     if ( callback && p->on_begin_element )
-      (*p->on_begin_element)(p, e, 0, NULL);
+    { sgml_attribute atts[MAXATTRIBUTES];
+      int natts = 0;
+
+      if ( !(p->flags & SGML_PARSER_NODEFS) )
+	natts = add_default_attributes(p, e, natts, atts);
+
+      (*p->on_begin_element)(p, e, natts, atts);
+    }
 
     if ( e->structure )
     { if ( e->structure->type == C_CDATA ||
@@ -2610,7 +2620,14 @@ open_element(dtd_parser *p, dtd_element *e, int warn)
       WITH_CLASS(p, EV_OMITTED,
 		 { open_element(p, f, TRUE);
 		   if ( p->on_begin_element )
-		     (*p->on_begin_element)(p, f, 0, NULL);
+		   { sgml_attribute atts[MAXATTRIBUTES];
+		     int natts = 0;
+		     
+		     if ( !(p->flags & SGML_PARSER_NODEFS) )
+		       natts = add_default_attributes(p, f, natts, atts);
+
+		     (*p->on_begin_element)(p, f, natts, atts);
+		   }
 		 });
     }
   }
@@ -3065,6 +3082,9 @@ add_default_attributes(dtd_parser *p, dtd_element *e,
 		       int natts, sgml_attribute *atts)
 { dtd_attr_list *al;
 
+  if ( e == CDATA_ELEMENT )
+    return natts;
+
   for(al=e->attributes; al; al=al->next)
   { dtd_attr *a = al->attribute;
 
@@ -3239,14 +3259,17 @@ process_doctype(dtd_parser *p, const ichar *decl, const ichar *decl0)
   if ( (s=isee_identifier(dtd, decl, "system")) )
   { et = sgml_calloc(1, sizeof(*et));
     et->type = ET_SYSTEM;
+    decl = s;
   } else if ( (s=isee_identifier(dtd, decl, "public")) )
   { et = sgml_calloc(1, sizeof(*et));
     et->type = ET_PUBLIC;
-  }
+    decl = s;
+  } else if ( isee_func(dtd, decl, CF_DSO) )
+    goto local;
 
   if ( et )
   { et->name = id;
-    if ( !(s=process_entity_value_declaration(p, s, et)) )
+    if ( !(s=process_entity_value_declaration(p, decl, et)) )
       return FALSE;
     decl = s;
   }
@@ -3270,6 +3293,7 @@ process_doctype(dtd_parser *p, const ichar *decl, const ichar *decl0)
   if ( et )
     free_entity_list(et);
 
+local:
   if ( (s=isee_func(dtd, decl, CF_DSO)) ) /* [...] */
   { int grouplevel = 1;
     data_mode oldmode  = p->dmode;

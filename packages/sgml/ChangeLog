@@ -1,4 +1,8 @@
-* FIXED: Proper handling of plain <!DOCTYPE doc>
+* FIXED: Include #FIXED and defaulted arguments for omitted tags
+  (reported by Richard O'Keefe).
+
+* ADDED: handle plain <!DOCTYPE doc> silently if the catalog contains
+  a DOCTYPE doc file.dtd entry.
 
 * FIXED: Various issues in attribute handling with new routines supplied
   by Richard O'Keefe.  Added shorttag(Bool) to options you can set.
