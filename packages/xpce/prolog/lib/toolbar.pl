@@ -56,10 +56,11 @@ print(MyApp) :->
 variable(orientation, 	{horizontal,vertical},	get,  "Stacking direction").
 variable(client,	object*,		both, "Receiving object").
 
-initialise(BG, Client:object*, Orientation:[{horizontal,vertical}]) :->
+initialise(BG, Client:[object]*, Orientation:[{horizontal,vertical}]) :->
+	default(C, @nil, Client),
 	default(Orientation, horizontal, O),
 	send(BG, send_super, initialise, @default, group),
-	send(BG, slot, client, Client),
+	send(BG, slot, client, C),
 	send(BG, slot, orientation, O),
 	send(BG, gap, size(0,0)).
 	
