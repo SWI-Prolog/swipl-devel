@@ -32,6 +32,7 @@ typedef enum
   CF_ETAGO1,				/* < */
   CF_ETAGO2,				/* / */
   CF_VI,				/* = */
+  CF_NS,				/* : (XMLNS) */
   CF_LIT,				/* " */
   CF_LITA,				/* ' */
   CF_PERO,				/* % */

@@ -51,6 +51,7 @@ new_charfunc()
   cf[CF_ETAGO1]	= '<';
   cf[CF_ETAGO2]	= '/';
   cf[CF_VI]	= '=';
+  cf[CF_NS]     = ':';
   cf[CF_LIT]	= '"';
   cf[CF_LITA]	= '\'';
   cf[CF_PERO]	= '%';

@@ -1634,6 +1634,42 @@ process_attributes(dtd_parser *p, dtd_element *e, const ichar *decl,
     if ( (s=itake_name(dtd, decl, &nm)) )
     { decl = s;
 
+#ifdef XMLNS
+					/* XMLNS declarations */
+      if ( dtd->dialect == DL_XML )
+      { dtd_symbol *snm;		/* scoped name */
+	xmlns *ns;
+
+	if ( streq(s->name, "xmlns") )	/* xmlns[:ns]=url */
+	{ if ( (s=isee_func(dtd, s. CF_NS)) )
+	  { dtd_symbol *ns;
+	    ichar url[MAXSTRINGLEN];
+
+	    if ( (s=itake_name(dtd, s, &ns)) &&
+		 (s=isee_func(dtd, decl, CF_VI)) &&
+		 (s=itake_string(dtd, s, url, sizeof(url))) )
+	    { decl = s;
+
+	      xmlns_push(p, ns, add_symbol(dtd->symbols, url));
+	      continue;
+	    } else if ( (s=isee_func(dtd, decl, CF_VI)) &&
+			(s=itake_string(dtd, s, url, sizeof(url))) )
+	    { decl = s;
+
+	      xmlns_push(p, NULL, add_symbol(dtd->symbols, url));
+	      continue;
+	    }
+	  }
+	}
+	
+	if ( (s=isee_func(dtd, s, CF_NS)) &&
+	     (s=itake_name(dtd, s, &snm)) &&
+	     (ns = xmlns_find(p->environments, nm))
+	{ decl = s;
+	}
+      }
+#endif
+
       if ( (s=isee_func(dtd, decl, CF_VI)) ) /* name= */
       { dtd_attr *a;
 

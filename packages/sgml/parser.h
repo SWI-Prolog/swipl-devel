@@ -95,6 +95,9 @@ typedef enum
 typedef struct _sgml_environment
 { dtd_element *element;			/* element that opened the env */
   struct _dtd_state *state;		/* State we are in */
+#ifdef XMLNS
+  xmlns *namespace;			/* XML namespace */
+#endif
   struct _sgml_environment *parent;	/* Parent environment */
 } sgml_environment;
 
