@@ -307,7 +307,7 @@ do_char_type(term_t chr, term_t class, control_t h, int how)
 	return PL_error("char_type", 2, NULL, ERR_INSTANTIATION);
 
       if ( !(do_enum & ENUM_CHAR) &&
-	   !PL_get_char(chr, &c) )
+	   !PL_get_char(chr, &c, FALSE) )
 	fail;
       if ( !(do_enum & ENUM_CLASS) )
       { if ( !PL_get_name_arity(class, &cn, &arity) ||
@@ -348,7 +348,7 @@ do_char_type(term_t chr, term_t class, control_t h, int how)
 
 	_PL_get_arg(1, class, a);
 	if ( !PL_is_variable(a) )
-	{ if ( PL_get_char(a, &ca) )
+	{ if ( PL_get_char(a, &ca, FALSE) )
 	  { int c = (*cc->reverse)(ca);
 
 	    if ( c < 0 )

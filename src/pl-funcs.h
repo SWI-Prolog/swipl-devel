@@ -317,7 +317,7 @@ word		pl_make_fat_filemap(term_t dir);
 #endif
 word		pl_copy_stream_data3(term_t in, term_t out, term_t len);
 word		pl_copy_stream_data2(term_t in, term_t out);
-int		PL_get_char(term_t c, int *p);
+int		PL_get_char(term_t c, int *p, int eof);
 int		PL_unify_char(term_t chr, int c, int mode);
 int		PL_unify_stream_or_alias(term_t t, IOSTREAM *s);
 void		pushOutputContext(void);

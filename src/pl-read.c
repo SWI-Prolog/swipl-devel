@@ -50,8 +50,8 @@ foreign_t
 pl_char_conversion(term_t in, term_t out)
 { int cin, cout;
 
-  if ( !PL_get_char(in, &cin) ||
-       !PL_get_char(out, &cout) )
+  if ( !PL_get_char(in, &cin, FALSE) ||
+       !PL_get_char(out, &cout, FALSE) )
     fail;
 
   char_conversion_table[cin] = cout;
@@ -71,7 +71,7 @@ pl_current_char_conversion(term_t in, term_t out, control_t h)
     { int cin;
 
       if ( !PL_is_variable(in) )
-      { if ( PL_get_char(in, &cin) )
+      { if ( PL_get_char(in, &cin, FALSE) )
 	  return PL_unify_char(out, char_conversion_table[cin], CHAR_MODE);
 	fail;
       }

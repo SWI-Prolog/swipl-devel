@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: allow for peek_byte(-1), etc.  Michael A. Covington.
+
+
 VERSION 5.2.13 (Jan 29, 2004)
 =============================
 	

@@ -1378,20 +1378,28 @@ pl_wait_for_input(term_t Streams, term_t Available,
 		*********************************/
 
 int
-PL_get_char(term_t c, int *p)
+PL_get_char(term_t c, int *p, int eof)
 { GET_LD
   int chr;
   char *s;
   unsigned len;
+  atom_t name;
 
   if ( PL_get_integer(c, &chr) )
   { if ( chr >= 0 && chr <= 255 )
     { *p = chr;
       return TRUE;
     }
+    if ( eof && chr == -1 )
+    { *p = chr;
+      return TRUE;
+    }
   } else if ( PL_get_nchars(c, &len, &s, CVT_ATOM|CVT_STRING|CVT_LIST) &&
 	      len == 1 )
   { *p = s[0]&0xff;
+    return TRUE;
+  } else if ( eof && PL_get_atom(c, &name) && name == ATOM_end_of_file )
+  { *p = -1;
     return TRUE;
   }
 
@@ -1422,7 +1430,7 @@ PL_unify_char(term_t chr, int c, int how)
       default:
 	return PL_unify_integer(chr, c);
     }
-  } else if ( PL_get_char(chr, &c2) )
+  } else if ( PL_get_char(chr, &c2, TRUE) )
     return c == c2;
 
   fail;
@@ -1434,7 +1442,7 @@ pl_put2(term_t stream, term_t chr)
 { IOSTREAM *s;
   int c;
 
-  if ( !PL_get_char(chr, &c) )
+  if ( !PL_get_char(chr, &c, FALSE) )
     fail;
   if ( !getOutputStream(stream, &s) )
     fail;
@@ -1491,7 +1499,7 @@ pl_skip2(term_t in, term_t chr)
   int r;
   IOSTREAM *s;
 
-  if ( !PL_get_char(chr, &c) )
+  if ( !PL_get_char(chr, &c, FALSE) )
     fail;
   if ( !getInputStream(in, &s) )
     fail;
@@ -1539,7 +1547,7 @@ pl_get_byte2(term_t in, term_t chr)
     if ( Sferror(s) )
       return streamStatus(s);
 
-    PL_get_char(chr, &c);		/* set type-error */
+    PL_get_char(chr, &c, TRUE);		/* set type-error */
   }
 
   fail;
@@ -1566,7 +1574,7 @@ pl_get_char2(term_t in, term_t chr)
     if ( Sferror(s) )
       return streamStatus(s);
 
-    PL_get_char(chr, &c);		/* set type-error */
+    PL_get_char(chr, &c, TRUE);		/* set type-error */
   }
 
   fail;
