@@ -199,9 +199,11 @@ layoutDialogLabelBox(LabelBox lb)
   obtainClassVariablesObject(lb);
   compute_label(lb, &lw, &lh, NULL);
 
-  lb->size->w = toInt(valInt(lb->size->w) - lw);
+  if ( notDefault(lb->size) )
+    lb->size->w = toInt(valInt(lb->size->w) - lw);
   layoutDialogDevice((Device)lb, lb->gap, lb->size, lb->border);
-  lb->size->w = toInt(valInt(lb->size->w) + lw);
+  if ( notDefault(lb->size) )
+    lb->size->w = toInt(valInt(lb->size->w) + lw);
 
   succeed;
 }
