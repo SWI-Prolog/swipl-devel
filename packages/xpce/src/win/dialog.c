@@ -29,12 +29,20 @@
 static status
 initialiseDialog(Dialog d, Name name, Size size, DisplayObj display)
 { TileObj t;
+  Any border;
 
   initialiseWindow((PceWindow) d, name, size, display);
 
   assign(d, gap, newObject(ClassSize, EAV));
   copySize(d->gap, getClassVariableValueObject(d, NAME_gap));
   assign(d, size_given, NAME_none);
+
+  if ( instanceOfObject((border=getClassVariableValueObject(d, NAME_border)),
+			ClassSize) )
+  { assign(d, border, newObject(ClassSize, EAV));
+    copySize(d->border, border);
+  } else
+    assign(d, border, DEFAULT);
 
   t = getTileWindow((PceWindow) d);
   assign(t, horShrink,  ZERO);
@@ -69,7 +77,7 @@ appendDialog(Dialog d, Graphical item, Name where)
 
 static status
 layoutDialog(Dialog d, Size size)
-{ return layoutDialogDevice((Device) d, d->gap, size, DEFAULT);
+{ return layoutDialogDevice((Device) d, d->gap, size, d->border);
 }
 
 
@@ -319,6 +327,8 @@ static char *T_initialise[] =
 static vardecl var_dialog[] =
 { IV(NAME_gap, "size", IV_BOTH,
      NAME_layout, "Distance in X and Y direction between items"),
+  IV(NAME_border, "[size]", IV_BOTH,
+     NAME_layout, "Free area around contents"),
   IV(NAME_sizeGiven, "{none,width,height,both}", IV_NONE,
      NAME_layout, "User specified explicit width/height")
 };
@@ -380,6 +390,8 @@ static getdecl get_dialog[] =
 static classvardecl rc_dialog[] =
 { RC(NAME_gap, "size", "size(15,8)",
      "Distance between items in X and Y"),
+  RC(NAME_border, "[size]", "@default",
+     "Distance between contents and edge"),
   RC(NAME_background, RC_REFINE, "@_dialog_bg", NULL)
 };
 

@@ -190,6 +190,7 @@ static const struct foreign {
   FRG("char_code",		2, pl_char_code,		TRACE_ME),
   FRG("char_type",		2, pl_char_type,	   NDET|TRACE_ME),
   FRG("code_type",		2, pl_code_type,	   NDET|TRACE_ME),
+  FRG("downcase_atom",		2, pl_downcase_atom,		TRACE_ME),
   FRG("int_to_atom",		3, pl_int_to_atom,		TRACE_ME),
   FRG("$format_number",		3, pl_format_number,		TRACE_ME),
   FRG("atom_prefix",		2, pl_atom_prefix,		TRACE_ME),

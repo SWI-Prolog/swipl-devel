@@ -434,6 +434,27 @@ pl_code_type(term_t chr, term_t class, word h)
 { return do_char_type(chr, class, h, CODE_MODE);
 }
 
+
+foreign_t
+pl_downcase_atom(term_t in, term_t out)
+{ char *s;
+  unsigned int len;
+
+  if ( PL_get_nchars_ex(in, &len, &s, CVT_ATOMIC) )
+  { char *tmp = alloca(len);
+    char *i, *o;
+    int n;
+
+    for(i=s, o=tmp, n=len; n-- > 0; o++, i++)
+      *o = tolower(*i);
+
+    return PL_unify_atom_nchars(out, len, tmp);
+  }
+
+  fail;
+}
+
+
 #if defined(HAVE_LOCALE_H) && defined(HAVE_SETLOCALE)
 #include <locale.h>
 

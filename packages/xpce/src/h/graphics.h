@@ -859,6 +859,7 @@ End;
 NewClass(dialog)
   ABSTRACT_WINDOW
   Size		gap;			/* X-Y gap between items */
+  Size		border;			/* border around objects */
   Name		size_given;		/* Size given by user: no recompute */
 End;
 
