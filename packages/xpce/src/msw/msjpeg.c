@@ -419,7 +419,7 @@ read_jpeg_file(IOSTREAM *fd, Image image)
 typedef unsigned char GSAMPLE;
 
 int
-write_gif_file(IOSTREAM *fd, Image image, HBITMAP bm)
+write_gif_file(IOSTREAM *fd, Image image, HBITMAP bm, HBITMAP mask)
 { BITMAP bitmap;
   int width, height, depth;
   int y, rval;

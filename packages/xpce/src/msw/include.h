@@ -180,7 +180,8 @@ HPALETTE	window_palette(PceWindow sw);
 HPALETTE	frame_palette(FrameObj fr);
 int		write_jpeg_file(IOSTREAM *fd, Image image, HBITMAP bm);
 status		read_jpeg_file(IOSTREAM *fd, Image image);
-int		write_gif_file(IOSTREAM *fd, Image image, HBITMAP bm);
+int		write_gif_file(IOSTREAM *fd, Image image,
+			       HBITMAP bm, HBITMAP msk);
 HWND		HostConsoleHWND();
 Name		getWinFileNameDisplay(DisplayObj d,
 				      Name mode,

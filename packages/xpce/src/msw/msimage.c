@@ -818,15 +818,17 @@ ws_save_image_file(Image image, SourceSink into, Name fmt)
   } else if ( fmt == NAME_gif )
   {
 #ifdef O_GIFWRITE
-    HBITMAP bm;
+    HBITMAP bm, msk = NULL;
     IOSTREAM *fd;
     status rval;
 
     if ( !(bm = getXrefObject(image, d)) )
       fail;
+    if ( notNil(image->mask) )
+      msk = getXrefObject(image->mask, d);
 
     if ( (fd = Sopen_object(into, "wbr")) )
-    { if ( write_gif_file(fd, image, bm) < 0 )
+    { if ( write_gif_file(fd, image, bm, msk) < 0 )
 	rval = errorPce(image, NAME_xError);
       else
 	rval = SUCCEED;
