@@ -67,7 +67,8 @@ resource(mode_pl_icon, image, image('32x32/doc_pl.xpm')).
 	  spypce		       = button(pce),
 	  what_class		       = key('\\C-cw') + button(pce),
 	  pce_insert_require_directive = key('\\C-c\\C-r') + button(pce),
-	  pce_check_require_directives = button(pce)
+	  pce_check_require_directives = button(pce),
+	  prolog_navigator	       = button(browse)
 	],
 					% SYNTAX TABLE
 	[ '"'  = string_quote('"'),
@@ -460,6 +461,26 @@ what_module(M) :->
 	  ;   send(M, report, status,
 		   'Not a module file')
 	  ).
+
+
+		 /*******************************
+		 *	   BROWSE STUFF		*
+		 *******************************/
+
+:- pce_autoload(prolog_source_browser, library('trace/browse')).
+
+prolog_navigator(M) :->
+	Browser = @emacs_prolog_source_browser,
+	get(M, file, File), File \== @nil,
+	get(File, absolute_path, Path),
+	get(M, line_number, Line),
+	(   object(Browser)
+	->  send(Browser, expose)
+	;   file_directory_name(Path, Dir),
+	    send(new(Browser, prolog_source_browser(Dir)), open),
+	    send(Browser, wait)
+	),
+	send(Browser, goto, Path, Line).
 
 
 		 /*******************************

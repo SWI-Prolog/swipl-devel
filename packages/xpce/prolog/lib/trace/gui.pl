@@ -313,11 +313,18 @@ spy(F) :->
 	term_to_atom(Term, Answer),
 	user:spy(Term).
 
+goal(F, Goal:prolog) :<-
+	"Return qualitied term for selected frame"::
+	get(F, selected_frame, Frame),
+	prolog_frame_attribute(Frame, goal, Goal0),
+	(   Goal0 = _:_
+	->  Goal = Goal0
+	;   Goal = user:Goal0
+	).
+
 nospy(F) :->
 	"Clear spy-point"::
-	get(F, member, stack, Stack),
-	get(Stack, selection, Frame),
-	prolog_frame_attribute(Frame, goal, Goal),
+	get(F, goal, Goal),
 	nospy(Goal).
 
 browse(F) :->
@@ -336,8 +343,12 @@ stop_at(F) :->
 
 nostop(F) :->
 	"Delete selected stop"::
-	get(F, source, SourceWindow),
-	send(SourceWindow, nostop).
+	(   get(F, goal, Goal),
+	    '$get_predicate_attribute'(Goal, spy, 1)
+	->  nospy(Goal)
+	;   get(F, source, SourceWindow),
+	    send(SourceWindow, nostop)
+	).
 
 up(F) :->
 	"Select child frame"::

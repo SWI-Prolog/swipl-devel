@@ -707,7 +707,7 @@ head(P, Qualify:[bool], Head:prolog) :<-
 	        get(P, file_node, SbPrologFile),
 		get(SbPrologFile, module, Module)
 	    ->	Head = Module:Head0
-	    ;	Head = Head0
+	    ;	Head = user:Head0
 	    )
 	;   Head = M:Head0
 	).
