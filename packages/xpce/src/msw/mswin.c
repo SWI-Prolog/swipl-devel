@@ -36,11 +36,11 @@ HINSTANCE ThePceHInstance;		/* Global handle */
 #define initHinstance(argc, argv)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This is a mistery. Earlier versions of this used rlc_hinstance() to find
-the HInstance parameter to  pass  to   the  various  Win32 API functions
-requesting one. As we want  to   disconnect  from console.dll, I changed
-this to make a DLL entry-point. First   of  all, this yields the symbold
-_main() as undefined. See below.
+This is a mistery. Earlier versions of  this used the SWI-Prolog console
+functions to find the HInstance parameter to   pass to the various Win32
+API functions requesting one. As we  want to disconnect from plterm.dll,
+I changed this to make a DLL entry-point.  First of all, this yields the
+symbold _main() as undefined. See below.
 
 I then tested without this function, and   guess what: it doesn't appear
 to matter what you use for PceHInstance. I tried 0 and 42 and the system
@@ -178,11 +178,6 @@ ws_os(void)
   }
 }
 
-#ifdef USE_RLC_FUNCTIONS
-
-#define HostConsoleHWND() rlc_hwnd()
-
-#else /*USE_RLC_FUNCTIONS*/
 
 HWND
 HostConsoleHWND()
@@ -194,7 +189,6 @@ HostConsoleHWND()
   return NULL;
 }
 
-#endif /*USE_RLC_FUNCTIONS*/
 
 status
 ws_show_console(Name how)
@@ -246,9 +240,6 @@ ws_msleep(int time)
 int
 ws_getpid()
 { DEBUG(NAME_instance, Cprintf("HINSTANCE is %d\n", PceHInstance));
-/*DEBUG(NAME_instance, Cprintf("CONSOLE's HINSTANCE is %d\n",
-			       rlc_hinstance()));
-*/
 
   return (int) GetCurrentProcessId();
 } 

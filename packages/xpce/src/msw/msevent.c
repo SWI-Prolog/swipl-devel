@@ -29,27 +29,6 @@ resetDispatch()
 {
 }
 
-#ifdef USE_RLC_FUNCTIONS
-
-status
-ws_dispatch(Int FD, Int timeout)
-{ static RlcQueue discard_queue = NULL;
-
-  if ( !discard_queue )
-    discard_queue = rlc_make_queue(100);
-
-  rlc_dispatch(discard_queue);
-  if ( !rlc_is_empty_queue(discard_queue) )
-  { rlc_empty_queue(discard_queue);
-    Cprintf("Confirmer running (dicarding input)\n");
-  }
-
-  fail;					/* signal no input */
-}
-
-
-#else /*USE_RLC_FUNCTIONS*/
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 There is little reason for timeout here. This function returns everytime
 the loc_still timer expires (250 milliseconds).
@@ -69,8 +48,6 @@ ws_dispatch(Int FD, Any timeout)
   ExitProcess(0);			/* WM_QUIT received */
   fail;					/* make compiler happy */
 }
-
-#endif /*USE_RLC_FUNCTIONS*/
 
 
 Any

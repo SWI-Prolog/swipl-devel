@@ -26,12 +26,6 @@
 #include <h/interface.h>
 #include <h/unix.h>
 
-#ifdef USE_RLC_FUNCTIONS
-static void init_render_hooks(void);
-#else
-#define init_render_hooks()
-#endif
-
 void
 ws_flush_display(DisplayObj d)
 { 
@@ -215,24 +209,9 @@ init_area_enter_exit_handling(DisplayObj d)
 }
 
 
-#ifdef USE_RLC_FUNCTIONS
-static RlcUpdateHook system_update_hook;
-
-static void
-exit_update_hook(void)
-{ rlc_update_hook(system_update_hook);
-}
-#endif /*USE_RLC_FUNCTIONS*/
-
-
 status
 ws_init_graphics_display(DisplayObj d)
-{
-#ifdef USE_RLC_FUNCTIONS
-  system_update_hook = rlc_update_hook(pceRedraw);
-  at_pce_exit(exit_update_hook, ATEXIT_FILO);
-#endif
-  initDraw();
+{ initDraw();
 
   init_area_enter_exit_handling(d);
 
@@ -291,11 +270,7 @@ ws_events_queued_display(DisplayObj d)
 		 *     SELECTION HANDLING	*
 		 *******************************/
 
-#ifdef USE_RLC_FUNCTIONS
-#define CLIPBOARDWIN	rlc_hwnd()
-#else
 #define CLIPBOARDWIN	PceHiddenWindow()
-#endif
 
 static HGLOBAL
 ws_string_to_global_mem(String s)
@@ -329,7 +304,7 @@ ws_set_cutbuffer(DisplayObj d, int n, String s)
 { if ( n == 0 )
   { HGLOBAL mem = ws_string_to_global_mem(s);
 
-    OpenClipboard(CLIPBOARDWIN);
+    OpenClipboard(PceHiddenWindow());
     EmptyClipboard();
     SetClipboardData(CF_TEXT, mem);
     CloseClipboard();
@@ -501,39 +476,9 @@ ws_own_selection(DisplayObj d, Name selection, Name type)
   EmptyClipboard();
   SetClipboardData(format, NULL);
   CloseClipboard();
-  init_render_hooks();
 
   succeed;
 }
-
-
-#ifdef USE_RLC_FUNCTIONS
-static RlcRenderHook	system_render_hook;
-static RlcRenderAllHook system_render_all_hook;
-static int 		render_hooks_initialised;
-
-static void
-exit_render_hooks(void)
-{ if ( render_hooks_initialised )
-  { rlc_render_hook(system_render_hook);
-    rlc_render_all_hook(system_render_all_hook);
-
-    render_hooks_initialised = FALSE;
-  }
-}
-
-
-static void
-init_render_hooks(void)
-{ if ( !render_hooks_initialised )
-  { system_render_hook     = rlc_render_hook(ws_provide_selection);
-    system_render_all_hook = rlc_render_all_hook(ws_renderall);
-    render_hooks_initialised++;
-
-    at_pce_exit(exit_render_hooks, ATEXIT_FIFO);
-  }
-}
-#endif
 
 
 Name
@@ -542,28 +487,15 @@ ws_window_manager(DisplayObj d)
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-These    may    be    useful    to    debug    the    graphics    stuff.
-rlc_copy_output_to_debug_output() inplies that all output to the console
-is also written to the debugger output,   making the relation with debug
-output clear.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
 void
 ws_synchronous(DisplayObj d)
 { 
-#ifdef USE_RLC_FUNCTIONS
-  rlc_copy_output_to_debug_output(TRUE);
-#endif
 }
 
 
 void
 ws_asynchronous(DisplayObj d)
 {
-#ifdef USE_RLC_FUNCTIONS
-  rlc_copy_output_to_debug_output(FALSE);
-#endif
 }
 
 
