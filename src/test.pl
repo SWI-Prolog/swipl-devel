@@ -73,6 +73,9 @@ arithmetic(between-2) :-
 arithmetic(between-3) :-
 	findall(X, between(1, 6, X), Xs),
 	Xs == [1, 2, 3, 4, 5, 6].
+arithmetic(between-4) :-
+	findall(X, between(-4, -1, X), Xs),
+	Xs == [-4, -3, -2, -1].
 arithmetic(succ-1) :-
 	succ(0, X), X == 1.
 arithmetic(succ-2) :-
