@@ -552,6 +552,60 @@ getMinimumWidthParBox(ParBox pb)
 }
 
 
+#if 0
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Determine the width if there is  no   limit  on  the line-width. This is
+mainly used to calculate rubber for parbox objects used in tables.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static Int
+getNaturalWidthParBox(ParBox pb, Int maxwidth)
+{ int w = isDefault(maxwidth) ? 2000 : valInt(maxwidth);
+  int y = 0;
+  int mw = 0;
+  int lm = 0;				/* left margin */
+  int here = valInt(getLowIndexVector(pb->content));
+  int hi   = valInt(getHighIndexVector(pb->content));
+  parshape shape;
+
+  init_shape(&shape, pb, w);
+
+  while(here <= hi)
+  { parline l;
+
+    l.x = 0;
+    l.y = y;
+    l.w = w;
+    l.size = MAXHBOXES;
+
+    here = fill_line(pb, here, &l, &shape, TRUE);
+
+    y += l.ascent + l.descent;
+    mw = max(mw, l.maxx);
+    lm = min(lm, l.minx);
+
+    if ( l.shape_graphicals )
+    { parcell *pc = l.hbox, *epc = pc+l.size;
+
+      for( ; pc < epc; pc++ )
+      { if ( (pc->flags & PC_ALIGNED_GR) && !(pc->flags & PC_PLACED) )
+	{ GrBox grb = (GrBox)pc->box;
+
+	  PlaceAlignedGr(grb, &l, &shape, TRUE);
+	}
+      }
+    }
+  }
+  
+  requestComputeGraphical(pb, DEFAULT);
+
+  answer(toInt(mw-lm));
+}
+
+#endif
+
+
 		 /*******************************
 		 *	 PARAGRAPH-SHAPE	*
 		 *******************************/
@@ -1270,6 +1324,10 @@ static getdecl get_parbox[] =
      NAME_iterate, "Return tuple(parbox, index) of matching hbox"),
   GM(NAME_minimumWidth, 0, "int", NULL, getMinimumWidthParBox,
      NAME_dimension, "Return width of largest hbox in paragraph")
+#if 0
+  GM(NAME_naturalWidth, 1, "int", "max=[0..]", getNaturalWidthParBox,
+     NAME_dimension, "Width if no ->line_width limit is imposed")
+#endif
 };
 
 
