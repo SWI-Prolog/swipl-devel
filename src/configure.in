@@ -720,7 +720,36 @@ AC_TRY_RUN([
 #include <signal.h>
 int n; /*global to avoid optimizing too much */
 int done;
-static RETSIGTYPE prof(s) int s; { done++; }
+typedef RETSIGTYPE (*handler_t)(int);
+
+static RETSIGTYPE
+prof(int s)
+{ done++;
+
+#if !defined(BSD_SIGNALS) && !defined(HAVE_SIGACTION)
+  signal(SIGPROF, prof);
+#endif
+}
+
+handler_t
+set_sighandler(int sig, handler_t func)
+{
+#ifdef HAVE_SIGACTION
+  struct sigaction old;
+  struct sigaction new;
+
+  memset(&new, 0, sizeof(new));	/* deal with other fields */
+  new.sa_handler = func;
+
+  if ( sigaction(sig, &new, &old) == 0 )
+    return old.sa_handler;
+  else
+    return SIG_DFL;
+#else
+  return signal(sig, func);
+#endif
+} 
+
 main()
 { struct itimerval value, ovalue;
   value.it_interval.tv_sec  = 0;
@@ -728,7 +757,7 @@ main()
   value.it_value.tv_sec  = 0;
   value.it_value.tv_usec = 1;
   
-  signal(SIGPROF, prof);
+  set_sighandler(SIGPROF, prof);
 
   if (setitimer(ITIMER_PROF, &value, &ovalue) != 0)
     exit(1);

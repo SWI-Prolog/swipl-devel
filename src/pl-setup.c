@@ -456,7 +456,7 @@ set_sighandler(int sig, handler_t func)
 
   memset(&new, 0, sizeof(new));	/* deal with other fields */
   new.sa_handler = func;
-//new.sa_flags   = SA_RESTART;
+/*new.sa_flags   = SA_RESTART;  all blocking functions are restarted */
 
   if ( sigaction(sig, &new, &old) == 0 )
     return old.sa_handler;

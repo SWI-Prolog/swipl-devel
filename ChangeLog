@@ -10,6 +10,9 @@
 VERSION 5.2.5 (Jul 23, 2003)
 ============================
 
+  * FIXED: configure for profiler on systems with non-BSD signal semantics
+    (e.g. Solaris).  With help from Lourens van der Meij.
+
   * FIXED: Error handling complex meta-calls in the stack-shifter (only
     affects operating systems that have nothing better than malloc() for
     allocating the Prolog stacks).
