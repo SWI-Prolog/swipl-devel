@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#29: PLWIN.EXE console scrinks one row each invocation.
+    Holger Kanwischer.
+
   * ADDED: PLWIN.EXE: make tty_size/2 return the window size in rows and
     columns.
 

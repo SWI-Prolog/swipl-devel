@@ -434,23 +434,31 @@ static void
 rlc_create_window(RlcData b)
 { HWND hwnd;
   rlc_console_attr *a = b->create_attributes;
+  RECT rect;
+  DWORD style = (WS_OVERLAPPEDWINDOW|WS_VSCROLL);
 
-  int xwidth  = GetSystemMetrics(SM_CXVSCROLL) +
-		2 * GetSystemMetrics(SM_CXBORDER);
-  int xheight = GetSystemMetrics(SM_CYCAPTION) +
-		2 * GetSystemMetrics(SM_CYBORDER);
+/* One would assume AdjustWindowRect() uses WS_VSCROLL to add the width of
+   the scrollbar.  I think this isn't true, but maybe there is another reason
+   for getting 2 characters shorter each invocation ...
+*/
 
+  rect.left   = a->x;
+  rect.top    = a->y;
+  rect.right  = a->x + (a->width+2) * b->cw + GetSystemMetrics(SM_CXVSCROLL);
+  rect.bottom = a->y + a->height * b->ch;
+
+  AdjustWindowRect(&rect, style, TRUE);
   hwnd = CreateWindow(rlc_window_class(_rlc_hicon), b->current_title,
-		      WS_OVERLAPPEDWINDOW|WS_VSCROLL,
-		      a->x, a->y, 
-		      (a->width+3) * b->cw + xwidth,
-		      (a->height+1) * b->ch + xheight,
+		      style,
+		      a->x, a->y,
+		      rect.right - rect.left,
+		      rect.bottom - rect.top,
 		      NULL, NULL, _rlc_hinstance, NULL);
 
   b->window = hwnd;
   SetWindowLong(hwnd, GWL_DATA, (LONG) b);
   SetScrollRange(hwnd, SB_VERT, 0, b->sb_lines, FALSE);
-  SetScrollPos  (hwnd, SB_VERT, b->sb_start, TRUE);
+  SetScrollPos(hwnd, SB_VERT, b->sb_start, TRUE);
 
   b->queue    = rlc_make_queue(256);
   b->sb_lines = rlc_count_lines(b, b->first, b->last); 
@@ -1913,9 +1921,12 @@ rlc_normalise(RlcData b)
 
 static void
 rlc_resize_pixel_units(RlcData b, int w, int h)
-{ int nw = max(20, w/b->cw)-2;
+{ int nw = max(20, w/b->cw)-2;		/* 1 character space for margins */
   int nh = max(1, h/b->ch);
   
+  DEBUG(Dprintf("rlc_resize_pixel_units(%p, %d, %d) (%dx%d)\n",
+		b, w, h, nw, nh));
+
   if ( b->width == nw && b->window_size == nh )
     return;				/* no real change */
 
