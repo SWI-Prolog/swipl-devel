@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Avoid re-loading the initial file after qsave_program/2 from
+    PLWIN.EXE (Ron Sele).
+
   * MODIFIED: Improved tell/1 and see/1 compatibility with Edinburgh
     `standard', allowing for `interleaved I/O'.  After a couple of
     complaints that text-book code was broken.
@@ -15,7 +18,7 @@
     for now it just avoids a crash of the GUI tracer on particular code
     where the old view didn't work.
 
-  * PORT: Allow for compiling using Compac compilers (__DECC) on Tru64
+  * PORT: Allow for compiling using Compaq compilers (__DECC) on Tru64
     Linux/Alpha (Sergey Tikhonov).
 
   * ADDED: Read `hello world` as a string if the Prolog flag backquoted_string
