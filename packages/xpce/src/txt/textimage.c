@@ -1461,6 +1461,8 @@ RedrawAreaTextImage(TextImage ti, Area a)
     }
   }
   r_offset(ox, oy);
+  r_thickness(1);			/* default for underlining */
+  r_dash(NAME_none);
   paint_area(ti, a, sx, sy, w, h);
   r_offset(-ox, -oy);
   r_background(obg);
