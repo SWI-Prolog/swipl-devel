@@ -153,8 +153,12 @@ user:goal_expansion((debugging(Topic) -> _ ; true), true) :-
 	;   debug_topic(Topic),
 	    fail
 	).
-user:goal_expansion(assume(_), true) :-
-	current_prolog_flag(optimise, true).
+user:goal_expansion(assume(G), Goal) :-
+	(   current_prolog_flag(optimise, true)
+	->  Goal = true
+	;   expand_goal(G, G2),
+	    Goal = assume(G2)
+	).
 
 
 		 /*******************************
