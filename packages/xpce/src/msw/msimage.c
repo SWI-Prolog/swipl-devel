@@ -90,10 +90,12 @@ ws_destroy_image(Image image)
     image->ws_ref = NULL;
   }
 
+/* Done by ws_close_image()
   while((xref = unregisterXrefObject(image, DEFAULT)))
   { HBITMAP bm = (HBITMAP) xref->xref;
     ZDeleteObject(bm);
   }
+*/
 }
 
 
@@ -430,7 +432,7 @@ readXpmImage(Image image, XpmImage *img, XpmInfo *info)
     int size;
 
 #ifdef HAVE_LIBJPEG
-    if ( (rval=readJPEGtoXpmImage(fd, img)) == XpmSuccess )
+    if ( (rval=readJPEGtoXpmImage(fd, img, image)) == XpmSuccess )
       goto out;
 #endif
 #ifdef O_GIF

@@ -107,7 +107,7 @@ my_exit(j_common_ptr cl)
 
 
 int
-readJPEGtoXpmImage(IOSTREAM *fd, XpmImage *img)
+readJPEGtoXpmImage(IOSTREAM *fd, XpmImage *img, Image image)
 { struct jpeg_decompress_struct cinfo;
   struct my_jpeg_error_mgr jerr;
   long row_stride;
@@ -150,6 +150,7 @@ readJPEGtoXpmImage(IOSTREAM *fd, XpmImage *img)
   jpeg_create_decompress(&cinfo);
   jpeg_iostream_src(&cinfo, fd);
 
+  jpeg_save_markers(&cinfo, JPEG_COM, 0xffff);
   jpeg_read_header(&cinfo, TRUE);
   cinfo.quantize_colors = TRUE;
   jpeg_start_decompress(&cinfo);
@@ -184,6 +185,25 @@ readJPEGtoXpmImage(IOSTREAM *fd, XpmImage *img)
 
     while(--x >= 0)
       *o++ = *i++;
+  }
+
+  if ( cinfo.marker_list )
+  { jpeg_saved_marker_ptr m;
+    Chain ch;
+
+    attributeObject(image, NAME_comment, (ch=newObject(ClassChain, EAV)));
+
+    for(m = cinfo.marker_list; m; m = m->next )
+    { if ( m->marker == JPEG_COM )
+      { string s;
+
+	str_inithdr(&s, ENC_ASCII);
+	s.size = m->data_length;
+	s.s_text8 = m->data;
+
+	appendChain(ch, StringToString(&s));
+      }
+    }
   }
 
   jpeg_finish_decompress(&cinfo);

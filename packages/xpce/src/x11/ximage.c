@@ -57,9 +57,9 @@ ws_destroy_image(Image image)
 
 #define DataSize(Image) ((Image)->bytes_per_line * (Image)->height)
 
-static void
+static XImage *
 getXImageImageFromScreen(Image image)
-{ if ( notNil(image->display) /* && image->kind == NAME_bitmap */ )
+{ if ( notNil(image->display) )
   { DisplayWsXref r = image->display->ws_ref;
     XImage *i;
 
@@ -69,18 +69,21 @@ getXImageImageFromScreen(Image image)
 		  valInt(image->size->w), valInt(image->size->h),
 		  AllPlanes, ZPixmap);
 
-    setXImageImage(image, i);
+    return i;
   }
+
+  return NULL;
 }
 
 
 status
 ws_store_image(Image image, FileObj file)
 { XImage *i;
+  int dofree=FALSE;
 
   if ( !(i=getXImageImage(image)) )
-  { getXImageImageFromScreen(image);
-    i=getXImageImage(image);
+  { if ( (i = getXImageImageFromScreen(image)) )
+      dofree = TRUE;
   }
 
   if ( i )
@@ -99,6 +102,9 @@ ws_store_image(Image image, FileObj file)
     { Sclose(fd);
       fail;
     }
+
+    if ( dofree )
+      XDestroyImage(i);
 
     Sclose(fd);
     DEBUG(NAME_ppm, Cprintf("Saved PNM image to index %d\n", Stell(fd)));
@@ -347,23 +353,34 @@ ws_save_image_file(Image image, SourceSink into, Name fmt)
   {
 #ifdef HAVE_LIBJPEG
     XImage *i;
-    status rval;
-    IOSTREAM *fd;
+    int dofree = FALSE;
       
     if ( !(i=getXImageImage(image)) )
-    { getXImageImageFromScreen(image);
-      if ( !(i=getXImageImage(image)) )
-	fail;
+    { if ( (i=getXImageImageFromScreen(image)) )
+	dofree = TRUE;
     }
   
-    if ( !(fd=Sopen_object(into, "wbr")) )
+    if ( i )
+    { status rval;
+      IOSTREAM *fd;
+    
+      if ( !(fd=Sopen_object(into, "wbr")) )
+	fail;
+
+      if ( write_jpeg_file(fd, i, r->display_xref, 0, image) < 0 )
+	rval = errorPce(image, NAME_xError);
+      else
+	rval = SUCCEED;
+
+      if ( dofree )
+	XDestroyImage(i);
+
+      if ( Sclose(fd) != 0 )
+	rval = FAIL;
+
+      return rval;
+    } else
       fail;
-    if ( write_jpeg_file(fd, i, r->display_xref, 0) < 0 )
-      rval = errorPce(image, NAME_xError);
-    else
-      rval = SUCCEED;
-    Sclose(fd);
-    return rval;
 #else
     return errorPce(image, NAME_noImageFormat, NAME_jpeg);
 #endif /*HAVE_LIBJPEG*/
@@ -371,30 +388,40 @@ ws_save_image_file(Image image, SourceSink into, Name fmt)
   {
 #ifdef O_GIFWRITE
     XImage *i;
-    status rval;
-    IOSTREAM *fd;
+    int dofree = FALSE;
       
     if ( !(i=getXImageImage(image)) )
-    { getXImageImageFromScreen(image);
-      if ( !(i=getXImageImage(image)) )
-	fail;
+    { if ( (i=getXImageImageFromScreen(image)) )
+	dofree = TRUE;
     }
   
-    if ( !(fd=Sopen_object(into, "wbr")) )
-      fail;
-    if ( write_gif_file(fd, i, r->display_xref, 0) < 0 )
-      rval = errorPce(image, NAME_xError);
-    else
-      rval = SUCCEED;
-    Sclose(fd);
-    return rval;
+    if ( i )
+    { status rval;
+      IOSTREAM *fd;
+
+      if ( !(fd=Sopen_object(into, "wbr")) )
+	fail;
+
+      if ( write_gif_file(fd, i, r->display_xref, 0) < 0 )
+	rval = errorPce(image, NAME_xError);
+      else
+	rval = SUCCEED;
+
+      if ( dofree )
+	XDestroyImage(i);
+
+      if ( Sclose(fd) != 0 )
+	rval = FAIL;
+
+      return rval;
+    }
 #else
     return errorPce(image, NAME_noImageFormat, NAME_gif);
 #endif /*O_GIFWRITE*/
   } else
   { int pnm_fmt;
     XImage *i;
-    status rval;
+    int dofree = FALSE;
 
     if ( fmt == NAME_pnm )	pnm_fmt = PNM_PNM;
     else if ( fmt == NAME_pbm )	pnm_fmt = PNM_PBM;
@@ -403,12 +430,13 @@ ws_save_image_file(Image image, SourceSink into, Name fmt)
     else fail;
     
     if ( !(i=getXImageImage(image)) )
-    { getXImageImageFromScreen(image);
-      i=getXImageImage(image);
+    { if ( (i=getXImageImageFromScreen(image)) )
+	dofree = TRUE;
     }
   
     if ( i )
     { IOSTREAM *fd;
+      status rval;
 
       if ( !(fd=Sopen_object(into, "wbr")) )
 	fail;
@@ -418,11 +446,15 @@ ws_save_image_file(Image image, SourceSink into, Name fmt)
       else
 	rval = SUCCEED;
 
-      Sclose(fd);
-    } else
-      rval = FAIL;
+      if ( dofree )
+	XDestroyImage(i);
 
-    return rval;
+      if ( Sclose(fd) != 0 )
+	rval = FAIL;
+
+      return rval;
+    } else
+      fail;
   }
   
   succeed;
@@ -694,14 +726,15 @@ ws_scale_image(Image image, int w, int h)
   XImage *i;
   DisplayObj d = image->display;
   DisplayWsXref r;
+  int dofree = FALSE;
 
   if ( isNil(d) )
     d = CurrentDisplay(image);
   r = d->ws_ref;
 
   if ( !(i=getXImageImage(image)) )
-  { getXImageImageFromScreen(image);
-    i=getXImageImage(image);
+  { if ( (i=getXImageImageFromScreen(image)) )
+      dofree = TRUE;
   }
 
   if ( i )
@@ -712,6 +745,9 @@ ws_scale_image(Image image, int w, int h)
 
     setXImageImage(copy, ic);
     assign(copy, depth, toInt(ic->depth));
+
+    if ( dofree )
+      XDestroyImage(i);
   }
 
   answer(copy);
@@ -854,14 +890,15 @@ ws_rotate_image(Image image, int angle)	/* 0<angle<360 */
 { XImage *i;
   DisplayObj d = image->display;
   DisplayWsXref r;
+  int dofree = FALSE;
 
   if ( isNil(d) )
     d = CurrentDisplay(image);
   r = d->ws_ref;
 
   if ( !(i=getXImageImage(image)) )
-  { getXImageImageFromScreen(image);
-    i=getXImageImage(image);
+  { if ( (i=getXImageImageFromScreen(image)) )
+      dofree = TRUE;
   }
 
   if ( i )
@@ -888,6 +925,9 @@ ws_rotate_image(Image image, int angle)	/* 0<angle<360 */
     assign(copy, foreground, image->foreground);
     setXImageImage(copy, ic);
     assign(copy, depth, toInt(ic->depth));
+
+    if ( dofree )
+      XDestroyImage(i);
 
     return(copy);
   }
@@ -930,14 +970,15 @@ void
 ws_postscript_image(Image image, Int depth)
 { int w = valInt(image->size->w);
   int h = valInt(image->size->h);
-  XImage *im;
+  XImage *i;
+  int dofree = FALSE;
 
-  if ( !(im=getXImageImage(image)) )
-  { getXImageImageFromScreen(image);
-    im=getXImageImage(image);
+  if ( !(i=getXImageImage(image)) )
+  { if ( (i=getXImageImageFromScreen(image)) )
+      dofree = TRUE;
   }
 
-  if ( im && im->f.get_pixel )
+  if ( i && i->f.get_pixel )
   { DisplayObj d = image->display;
     DisplayWsXref r;
 
@@ -946,8 +987,8 @@ ws_postscript_image(Image image, Int depth)
     openDisplay(d);
     r = d->ws_ref;
 
-    postscriptXImage(im,
-		     0, 0, im->width, im->height,
+    postscriptXImage(i,
+		     0, 0, i->width, i->height,
 		     r->display_xref,
 		     r->colour_map, isDefault(depth) ? 0 : valInt(depth));
   } else
@@ -955,6 +996,9 @@ ws_postscript_image(Image image, Int depth)
     postscriptDrawable(0, 0, w, h);	/* to be done */
     d_done();
   }
+
+  if ( dofree )
+    XDestroyImage(i);
 }
 
 		 /*******************************

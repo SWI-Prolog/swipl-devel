@@ -9,7 +9,7 @@
 
 if [ ! -z "$1" ]; then win="$1"; else win=x11; fi
 
-modules="adt ari evt gnu gra itf ker men msg prg rel txt unx win fmt box"
+modules="adt ari evt gnu gra img itf ker men msg prg rel txt unx win fmt box"
 
 files=""
 

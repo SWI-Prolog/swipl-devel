@@ -85,7 +85,11 @@ unlinkImage(Image image)
   ws_destroy_image(image);
 
   if ( notNil(image->bitmap) && image->bitmap->image == image )
-    assign(image->bitmap, image, NIL);
+  { BitmapObj bm = image->bitmap;
+
+    assign(image, bitmap, NIL);
+    freeObject(bm);
+  }
 
   if ( notNil(image->name) )
     deleteHashTable(ImageTable, image->name);
@@ -335,6 +339,8 @@ changedEntireImageImage(Image image)
 { if ( notNil(image->bitmap))
     return changedImageGraphical(image->bitmap, ZERO, ZERO,
 				 image->size->w, image->size->h);
+
+  ws_destroy_image(image);		/* remove memory copy */
 
   succeed;
 }

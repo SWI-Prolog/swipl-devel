@@ -182,7 +182,7 @@ int		write_pnm_file(IOSTREAM *fd, XImage *img,
 			       Display *disp, Colormap cmap,
 			       int scale, int fmt, int asascii);
 int		write_jpeg_file(IOSTREAM *fd, XImage *img,
-				Display *disp, Colormap cmap);
+				Display *disp, Colormap cmap, Image image);
 int		write_gif_file(IOSTREAM *fd, XImage *img,
 			       Display *disp, Colormap cmap);
 

@@ -494,7 +494,7 @@ static XImage *
 readJPEGFile(Image image, IOSTREAM *fd)
 { XpmImage img;
 
-  switch( readJPEGtoXpmImage(fd, &img) )
+  switch( readJPEGtoXpmImage(fd, &img, image) )
   { case GIF_OK:
     { XImage *i = attachXpmImageImage(image, &img);
       XpmFreeXpmImage(&img);
@@ -540,7 +540,9 @@ value in this case. Is that true?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-write_jpeg_file(IOSTREAM *fd, XImage *img, Display *disp, Colormap cmap)
+write_jpeg_file(IOSTREAM *fd,
+		XImage *img, Display *disp, Colormap cmap,
+		Image image)
 { int width  = img->width;
   int height = img->height;
   int depth  = img->depth;
@@ -550,6 +552,7 @@ write_jpeg_file(IOSTREAM *fd, XImage *img, Display *disp, Colormap cmap)
   struct jpeg_compress_struct cinfo;
   struct jpeg_error_mgr jerr;
   JSAMPLE *row;
+  Any comment;
 
   if ( !cmap )
     cmap = DefaultColormap(disp, DefaultScreen(disp));
@@ -574,6 +577,31 @@ write_jpeg_file(IOSTREAM *fd, XImage *img, Display *disp, Colormap cmap)
   jpeg_set_defaults(&cinfo);
 
   jpeg_start_compress(&cinfo, TRUE);
+  if ( image &&
+       hasGetMethodObject(image, NAME_comment) &&
+       (comment=get(image, NAME_comment, EAV)) )
+  { if ( instanceOfObject(comment, ClassCharArray) )
+    { CharArray v = comment;
+      String s = &v->data;
+
+      jpeg_write_marker(&cinfo, JPEG_COM, s->s_text8, s->size);
+    } else if ( instanceOfObject(comment, ClassChain) )
+    { Chain ch = comment;
+      Cell cell;
+
+      for_cell(cell, ch) 
+      { if ( instanceOfObject(cell->value, ClassCharArray) )
+	{ CharArray v = cell->value;
+	  String s= &v->data;
+	
+	  jpeg_write_marker(&cinfo, JPEG_COM, s->s_text8, s->size);
+	} else
+	  errorPce(comment, NAME_unexpectedType, TypeCharArray);
+      }
+    } else
+    { errorPce(comment, NAME_unexpectedType, CtoType("char_array|chain"));
+    }
+  }
 
   for(y=0; y<height; y++)
   { int x;

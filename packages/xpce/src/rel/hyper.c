@@ -20,6 +20,8 @@ initialiseHyper(Hyper h, Any from, Any to, Name fname, Name bname)
 
   initialiseProgramObject(h);
   
+  if ( isDefault(fname) )
+    fname = NAME_hypered;
   if ( isDefault(bname) )
     bname = fname;
   
@@ -94,7 +96,7 @@ loadHyper(Hyper h, IOSTREAM *fd, ClassDef def)
 /* Type declarations */
 
 static char *T_initialise[] =
-        { "from=object", "to=object", "forward=name", "backward=[name]" };
+        { "from=object", "to=object", "forward=[name]", "backward=[name]" };
 
 /* Instance Variables */
 

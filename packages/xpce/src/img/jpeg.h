@@ -10,4 +10,4 @@
     Copyright (C) 1990-2001 SWI, University of Amsterdam. All rights reserved.
 */
 
-extern int	readJPEGtoXpmImage(IOSTREAM *fd, XpmImage *image);
+extern int	readJPEGtoXpmImage(IOSTREAM *fd, XpmImage *img, Image image);

@@ -98,7 +98,8 @@ ws_dispatch(Int FD, Int timeout)
   else
     tid = 0;
 
-  DEBUG(NAME_dispatch, Cprintf("Dispatch: tid = %d\n", tid));
+  DEBUG(NAME_dispatch, Cprintf("Dispatch: timeout = %s, tid = %d\n",
+			       pp(timeout), tid));
 
   pceMTLock(LOCK_PCE);
   RedrawDisplayManager(TheDisplayManager());

@@ -134,7 +134,7 @@ initialiseEvent(EventObj e, Name id, Any window,
 
 void
 considerLocStillEvent()
-{ if ( !loc_still_posted	)
+{ if ( !loc_still_posted )
   { unsigned long now = mclock();
 
     if ( now - host_last_time > 700 &&
