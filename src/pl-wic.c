@@ -2053,9 +2053,8 @@ pl_close_wic()
 
   if ( fd )
   { writeWicTrailer(fd);
-    Sclose(fd);
-
     wicFd = NULL;
+
     succeed;
   }
 

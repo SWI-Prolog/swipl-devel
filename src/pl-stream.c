@@ -559,6 +559,11 @@ int
 Sclose(IOSTREAM *s)
 { int rval = 0;
 
+  if ( s->magic != SIO_MAGIC )		/* already closed!? */
+  { errno = EINVAL;
+    return -1;
+  }
+
   if ( s->buffer )
   { if ( (s->flags & SIO_OUTPUT) && S__flushbuf(s) < 0 )
       rval = -1;
