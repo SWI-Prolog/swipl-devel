@@ -6,6 +6,10 @@
     Copyright (C) 1996 University of Amsterdam. All rights reserved.
 */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <SWI-Prolog.h>
 #include <stdio.h>
 #include "error.h"
@@ -58,6 +62,16 @@ again:
 		 *            ERRORS		*
 		 *******************************/
 
+#if !defined(HAVE_STRERROR) && !defined(WIN32)
+static char *
+strerror(int err)
+{ extern char *sys_errlist[];
+  
+  return sys_errlist[err];
+}
+#endif
+
+
 int
 error_func(int type, const char *pred, int argi, long argl)
 { switch(type)
@@ -83,15 +97,8 @@ error_func(int type, const char *pred, int argi, long argl)
       char *msg = winerror(argi);
       sprintf(buf, "%s: IO error %s", pred, msg);
       free(msg);
-#endif
-#ifdef __unix__
-#ifdef SUNOS4
-{     extern char *sys_errlist[];
-      sprintf(buf, "%s: IO error %s", pred, sys_errlist[argi]);
-}
 #else
       sprintf(buf, "%s: IO error %s", pred, strerror(argi));
-#endif
 #endif
 
       return PL_warning(buf);

@@ -1,0 +1,106 @@
+################################################################
+# SWI-Prolog `table' package
+# Author:    Jan Wielemaker. jan@swi.psy.uva.nl
+# Copyright: Same as SWI-Prolog
+################################################################
+
+################################################################
+#
+################################################################
+
+.SUFFIXES: .tex .dvi .doc .pl
+
+PL=@PL@
+PLBASE=@PLBASE@
+PLARCH=@PLARCH@
+PCEHOME=/oorlam/jan/src/xpce
+
+CC=@CC@
+COFLAGS=@COFLAGS@
+CWFLAGS=@CWFLAGS@
+CMFLAGS=@CMFLAGS@
+CIFLAGS=-I. -I$(PLBASE)/include
+CFLAGS=$(COFLAGS) $(CWFLAGS) $(CMFLAGS) $(CIFLAGS) @DEFS@
+
+DOCTOTEX=$(PCEHOME)/bin/doc2tex
+PLTOTEX=$(PCEHOME)/bin/pl2tex
+LATEX=latex
+DOC=table
+TEX=$(DOC).tex
+DVI=$(DOC).dvi
+LOG=$(DOC).log
+RERUNMSG="Rerun to get cross-references right"
+RERUN=test ! -e $(DVI) -o ! -e $(LOG) || grep -q $(RERUNMSG) $(LOG)
+
+LD=@LD@
+LDFLAGS=@LDSOFLAGS@
+
+INSTALL=@INSTALL@
+INSTALL_PROGRAM=@INSTALL_PROGRAM@
+INSTALL_DATA=@INSTALL_DATA@
+
+LIBPL=		table.pl table_util.pl
+TARGETS=	table.so
+
+OBJ=		table.o order.o error.o
+
+all:		$(TARGETS)
+
+table.so:	$(OBJ)
+		$(LD) $(LDFLAGS) -o $@ $(OBJ)
+
+install:	$(TARGETS) $(LIBPL)
+		mkdir -p $(PLBASE)/lib/$(PLARCH)
+		$(INSTALL) -m 755 $(TARGETS) $(PLBASE)/lib/$(PLARCH)
+		$(INSTALL) -m 644 $(LIBPL) $(PLBASE)/library
+		$(PL) -f none -g make -t halt
+
+uninstall:
+		(cd $(PLBASE)/lib/$(PLARCH) && rm -f $(TARGETS))
+		(cd $(PLBASE)/library && rm -f $(LIBPL))
+		$(PL) -f none -g make -t halt
+
+################################################################
+# Documentation
+################################################################
+
+$(DVI):		$(TEX)
+		@TEXINPUTS=.:$(PCEHOME)/TeX:$$TEXINPUTS; \
+		echo "*************************************************"; \
+		echo "* Running latex $(DOC)"; \
+		echo "*************************************************"; \
+		export TEXINPUTS; \
+		rm -f $(LOG); \
+		while $(RERUN); do \
+		    $(CORRECTINDEX) $(DOC).idx; \
+		    $(MAKEINDEX) $(DOC).idx; \
+		    touch $(DOC).ind; \
+		    latex $(DOC) || exit 1; \
+		done
+
+html:		$(TEX)
+		latex2html $(DOC)
+
+$(PS):		$(DVI)
+		dvips -o $@ $(DVI)
+
+$(PDF):		$(PS)
+		pstill -cgipt -o $@ $(PS)
+
+$(TEX):		$(DOCTOTEX)
+
+.doc.tex:
+		$(DOCTOTEX) $*.doc > $*.tex
+.pl.tex:
+		$(PLTOTEX) $*.pl > $*.tex
+
+################################################################
+# Clean
+################################################################
+
+clean:
+		rm -f $(OBJ) *~ *.o *% a.out core config.log
+
+distclean:	clean
+		rm -f $(TARGETS) config.cache config.h config.status Makefile
+

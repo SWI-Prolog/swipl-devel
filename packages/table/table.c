@@ -6,6 +6,10 @@
     Copyright (C) 1996 University of Amsterdam. All rights reserved.
 */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #define O_ORDER				/* include order.c package */
 
 #include "table.h"
@@ -28,16 +32,8 @@
 #include <ctype.h>
 #endif
 
-#ifdef SUNOS4
+#ifdef HAVE_FLOATINGPOINT_H
 #include <floatingpoint.h>		/* strtod() prototype */
-#endif
-
-#ifdef __LCC__
-table_entry()
-{
-}
-#else
-#define HAVE_ALLOCA 1
 #endif
 
 #ifndef HAVE_ALLOCA

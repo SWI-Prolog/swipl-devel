@@ -509,14 +509,15 @@ pl_prefix_string(term_t ord, term_t pre, term_t t2)
 static foreign_t
 pl_prefix_string4(term_t ord, term_t pre, term_t post, term_t t2)
 { OrdTable ot;
-  char *s1, *s2;
+  char *s1;
+  const char *s2;
   unsigned int l1;
 
   if ( !get_order_table(ord, &ot) )
     return error(ERR_INSTANTIATION, "prefix_string/4", 1, ord);
   if ( !PL_get_chars(pre, &s1, CVT_ATOM|CVT_STRING|CVT_LIST|BUF_RING) )
     return error(ERR_INSTANTIATION, "prefix_string/4", 2, pre);
-  if ( !PL_get_chars(t2, &s2, CVT_ATOM|CVT_STRING|CVT_LIST|BUF_RING) )
+  if ( !PL_get_chars(t2, (char **)&s2, CVT_ATOM|CVT_STRING|CVT_LIST|BUF_RING) )
     return error(ERR_INSTANTIATION, "prefix_string/4", 4, t2);
 
   if ( (l1=strlen(s1)) <= strlen(s2) &&
