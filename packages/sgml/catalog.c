@@ -85,18 +85,25 @@ see_string(const char *in, const char *s)
   return NULL;
 }
 
+#ifdef WIN32
+#define isDirSep(c) ((c) == '/' || (c) == '\\')
+#define DIRSEPSTR "\\"
+#else
+#define isDirSep(c) ((c) == '/')
+#define DIRSEPSTR "/"
+#endif
 
 static char *
 DirName(const char *f, char *dir)
 { const char *base, *p;
 
   for(base = p = f; *p; p++)
-  { if (*p == '/' && p[1] != EOS )
+  { if ( isDirSep(*p) && p[1] != EOS )
       base = p;
   }
   if ( base == f )
-  { if ( *f == '/' )
-      strcpy(dir, "/");
+  { if ( isDirSep(*f) )
+      strcpy(dir, DIRSEPSTR);
     else
       strcpy(dir, ".");
   } else
@@ -110,10 +117,9 @@ DirName(const char *f, char *dir)
 
 int
 is_absolute_path(const char *name)
-{ if ( name[0] == '/'
+{ if ( isDirSep(name[0])
 #ifdef WIN32
        || (isalpha(uc(name)) && name[1] == ':')
-       || name[0] == '\\'
 #endif
      )
     return TRUE;
@@ -129,7 +135,7 @@ localpath(const char *ref, const char *name)
   { char buf[MAXPATHLEN];
 
     DirName(ref, buf);
-    strcat(buf, "/");
+    strcat(buf, DIRSEPSTR);
     strcat(buf, name);
 
     return strdup(buf);

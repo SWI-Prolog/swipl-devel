@@ -407,9 +407,6 @@ load_file_to_charp(const char *file, int *length)
       if ( r )
       { char *s = r;
 	
-	if ( length )
-	  *length = len;
-
 	while(len>0)
 	{ int n;
 
@@ -417,10 +414,14 @@ load_file_to_charp(const char *file, int *length)
 	  { close(fd);			/* I/O error */
 	    sgml_free(r);
 	    return NULL;
-	  }
+	  } else if ( n == 0 )
+	    break;
 	  len -= n;
 	  s += n;
 	}
+
+	if ( length )
+	  *length = s-r;
 
 	*s = '\0';			/* ensure closing EOS */
 	close(fd);
