@@ -512,7 +512,9 @@ put_byte(int c, IOSTREAM *s)
 
 int
 Sputc(int c, IOSTREAM *s)
-{ if ( put_byte(c, s) < 0 )
+{ c &= 0xff;
+
+  if ( put_byte(c, s) < 0 )
     return -1;
 
   s->lastc = c;
@@ -2470,6 +2472,7 @@ Sopen_string(IOSTREAM *s, char *buf, int size, const char *mode)
   s->unbuffer  = buf;
   s->handle    = s;			/* for Sclose_string() */
   s->functions = &Sstringfunctions;
+  s->encoding  = ENC_ISO_LATIN_1;
 
   switch(*mode)
   { case 'r':

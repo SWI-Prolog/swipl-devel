@@ -478,8 +478,19 @@ setCurrentSourceLocation(IOSTREAM *s ARG_LD)
 }
 
 
-#define getchr()  char_conversion_table[Sgetc(rb.stream)]
-#define getchrq() Sgetc(rb.stream)
+static inline int
+getchr__(IOSTREAM *in)
+{ int c = Sgetcode(in);
+
+  if ( c < 0 || c >= 256 )
+    return c;
+
+  return char_conversion_table[c];
+}
+
+
+#define getchr()  getchr__(rb.stream)
+#define getchrq() Sgetcode(rb.stream)
 
 #define ensure_space(c) { if ( something_read && \
 			       (c == '\n'|| !isBlank(rb.here[-1])) ) \

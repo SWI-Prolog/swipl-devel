@@ -151,8 +151,10 @@ Putc(int c, IOSTREAM *s)
 
 static bool
 PutString(const char *str, IOSTREAM *s)
-{ for( ; *str != EOS; str++ )
-  { if ( Sputcode(*str, s) == EOF )
+{ const unsigned char *q = (const unsigned char *)str;
+
+  for( ; *q != EOS; q++ )
+  { if ( Sputcode(*q, s) == EOF )
       return FALSE;
   }
 
@@ -163,9 +165,10 @@ PutString(const char *str, IOSTREAM *s)
 static bool
 PutStringN(const char *str, unsigned int length, IOSTREAM *s)
 { unsigned int i;
+  const unsigned char *q = (const unsigned char *)str;
 
-  for(i=0; i<length; i++, str++)
-  { if ( Sputcode(*str, s) == EOF )
+  for(i=0; i<length; i++, q++)
+  { if ( Sputcode(*q, s) == EOF )
       return FALSE;
   } 
 
