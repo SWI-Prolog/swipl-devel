@@ -232,11 +232,6 @@ option(Opt, Options) :-
 	arg(1, Opt, OptVal),
 	memberchk(OptName=OptVal, Options), !.
 
-option(Opt, Options, _) :-
-	option(Opt, Options), !.
-option(Opt, _, Default) :-
-	arg(1, Opt, Default).
-
 select_option(Opt, Options, Rest) :-
 	select(Options, Opt, Rest), !.
 select_option(Opt, Options, Rest) :-

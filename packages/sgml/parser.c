@@ -3437,6 +3437,7 @@ emit_cdata(dtd_parser *p, int last)
     return TRUE;
   }
 
+  assert(p->cdata->size > 0);
   if ( !p->blank_cdata )
   { if ( p->cdata_must_be_empty )
       gripe(ERC_VALIDATE, "#PCDATA not allowed here");
@@ -3788,7 +3789,7 @@ add_cdata(dtd_parser *p, int chr)
 
 static void
 add_verbatim_cdata(dtd_parser *p, int chr)
-{ if ( p->mark_state == MS_INCLUDE )
+{ if ( p->mark_state != MS_IGNORE )
   { ocharbuf *buf = p->cdata;
 
     if ( p->blank_cdata == TRUE && !HasClass(p->dtd, chr, CH_BLANK) )
