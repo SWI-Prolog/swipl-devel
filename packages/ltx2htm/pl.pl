@@ -413,6 +413,7 @@ special('Smodule', :).
 special('Sneck',  (:-)).
 special('Sdirective',  (?-)).
 special('Sdcg',  (-->)).
+special('Scurl',  ({})).
 special('Bc', '\\c').
 special('Bn', '\\n').
 special('Br', '\\r').

@@ -191,6 +191,7 @@
 \Sneck
 \Sdirective
 \Sdcg
+\Scurl
 \Bc
 \Bn
 \Br
