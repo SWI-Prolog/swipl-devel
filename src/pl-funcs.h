@@ -313,9 +313,6 @@ int		main P((int argc , char **argv , char **env ));
 bool		sysError P((char *fm , ...)),
 		fatalError P((char *fm , ...)),
 		warning P((char *fm , ...)),
-		sysError P((int va_alist )),
-		fatalError P((int va_alist )),
-		warning P((int va_alist )),
 		vsysError P((char *fm , va_list args )),
 		vfatalError P((char *fm , va_list args )),
 		vwarning P((char *fm , va_list args ));

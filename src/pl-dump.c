@@ -7,6 +7,11 @@
     Purpose: Create a saved state (stand alone executable)
 */
 
+/*
+** This file contains changes which are part of a port to HPUX 8.0
+** T. Kielmann, 01 Jun 92
+*/
+
 #include "pl-incl.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -203,13 +208,15 @@ start_of_data ()
 {
 #ifdef DATA_START
   return ((char *) DATA_START);
-#elif hpux
-{ extern etext;
-  return (char *) &etext + EXEC_PAGESIZE; /* Rounded down by unexec() */
-}
 #else
-  extern char **environ;
-  return ((char *)&environ);
+#  if hpux
+{     extern etext;
+      return (char *) &etext + EXEC_PAGESIZE; /* Rounded down by unexec() */
+}
+#  else
+      extern char **environ;
+      return ((char *)&environ);
+#  endif
 #endif
 }
 

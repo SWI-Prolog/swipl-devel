@@ -85,6 +85,14 @@ char *base;
 #define main	PL_start
 #endif
 
+#if O_LINK_PCE
+foreign_t
+pl_pce_init()
+{ prolog_pce_init(mainArgc, mainArgv);
+
+  succeed;
+}
+#endif
 
 int
 main(argc, argv, env)
@@ -242,10 +250,6 @@ char **env;
 
   setupProlog();
 
-#if O_LINK_PCE
-  prolog_pce_init(mainArgc, mainArgv);
-#endif
-
 #if LINK_THIEF
   { extern long pl_thief();
 
@@ -276,6 +280,10 @@ char **env;
   systemMode(FALSE);
   status.dumped = TRUE;
   status.initialised = TRUE;
+
+#if O_LINK_PCE
+  PL_register_foreign("$pce_init", 0, pl_pce_init, PL_FA_TRANSPARENT, 0);
+#endif
 
   DEBUG(1, printf("Starting Prolog Engine\n"));
 

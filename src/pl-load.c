@@ -7,8 +7,12 @@
     Purpose: load foreign files
 */
 
-#include "pl-incl.h"
+/*
+** This file contains changes which are part of a port to HPUX 8.0
+** T. Kielmann, 01 Jun 92
+*/
 
+#include "pl-incl.h"
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Make sure the symbolfile and  orgsymbolfile  attributes  of  the  global
 structure status are filled properly.
@@ -46,7 +50,9 @@ forwards char *symbolString();
 #include <sys/file.h>
 #include <a.out.h>
 
+#if !hpux
 extern char *sbrk(/*int*/);
+#endif
 extern int system(/*char **/);
 extern int unlink(/*char **/);
 extern int lseek(/*int, long, int*/);
@@ -131,7 +137,10 @@ not.
 long
 allocText(size)
 long size;
-{ extern char *valloc();
+{
+#if !hpux
+    extern char *valloc();
+#endif
   long base;
 
   if ( size < sizeof(word) )
@@ -448,7 +457,8 @@ long n;
 
 #endif NOENTRY
 
-#elif O_AIX_FOREIGN
+#else
+#if O_AIX_FOREIGN
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The AIX foreign interface  is completely different to the SUN/VAX/HPUX
@@ -557,4 +567,5 @@ Word file, entry, options, libraries, size;
   fail;
 }
 
+#endif O_AIX_FOREIGN
 #endif O_FOREIGN

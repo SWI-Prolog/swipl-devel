@@ -7,6 +7,11 @@
     Purpose: Describe your OS here
 */
 
+/*
+** This file contains changes which are part of a port to HPUX 8.0
+** T. Kielmann, 01 Jun 92
+*/
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Declarations of OS functions (should be provided by header files of  the
 machines),  macros needed to get a common basis under OS's and types and
@@ -21,7 +26,7 @@ extern void	bcopy P((Void, Void, size_t));
 extern void	bzero P((Void, size_t));
 #endif
 
-#if !minix && !ANSI && !LINUX
+#if !minix && !ANSI && !LINUX && !hpux
 extern long	putw P((long, FILE *));
 extern long	getw P((FILE *));
 extern Void	malloc P((malloc_t));

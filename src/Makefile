@@ -11,6 +11,11 @@
 #   Copyright (c) 1989, University of Amsterdam
 #
 
+#
+# This file contains changes which are part of a port to HPUX 8.0
+# T. Kielmann, 01 Jun 92
+#
+
 #include "md.h"
 
 # The following parameters are loaded from md.h (using cpp)

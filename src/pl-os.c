@@ -7,6 +7,11 @@
     Purpose: Operating System Dependencies
 */
 
+/*
+** This file contains changes which are part of a port to HPUX 8.0
+** T. Kielmann, 01 Jun 92
+*/
+
 #if __TOS__
 #include <tos.h>		/* before pl-os.h due to Fopen, ... */
 static long	wait_ticks;	/* clock ticks not CPU time */
@@ -30,7 +35,9 @@ extern int link(/*char **/);
 extern int select(/*int *, int*, int*, struct timeval **/);
 #if !minix && !LINUX
 extern int ioctl(/*int, int, Void*/);
+#if !hpux
 extern char *sbrk();
+#endif
 extern int execl(/*char *, ... */);
 #endif
 #endif unix
@@ -455,7 +462,14 @@ GetDTableSize()
 #ifdef DESCRIPTOR_TABLE_SIZE
   return DESCRIPTOR_TABLE_SIZE;
 #else
-  return getdtablesize();
+#  if hpux
+#    include <sys/resource.h>
+     struct rlimit rlp;
+     (void) getrlimit(RLIMIT_NOFILE,&rlp);
+     return (rlp.rlim_cur);
+#  else
+      return getdtablesize();
+#  endif
 #endif
 }
 

@@ -7,6 +7,11 @@
     Purpose: SWI-Prolog general include file
 */
 
+/*
+** This file contains changes which are part of a port to HPUX 8.0
+** T. Kielmann, 01 Jun 92
+*/
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Include Machine Desciption (md-*) file.  If -DMD=md-sun.h  or  something
 similar  is  passed  as  cpp  flag,  this  machine  description is used.
@@ -676,14 +681,16 @@ integers to pointers.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #if O_DATA_AT_0X2
-#define pointerToNum(p)		consNum(((long)(p)-0x20000000)/sizeof(int))
-#define numToPointer(n)		((Word)(valNum(n)*sizeof(int)+0x20000000))
-#elif O_DATA_AT_OX1
-#define pointerToNum(p)		consNum(((long)(p)-0x10000000)/sizeof(int))
-#define numToPointer(n)		((Word)(valNum(n)*sizeof(int)+0x10000000))
+#  define pointerToNum(p)	consNum(((long)(p)-0x20000000)/sizeof(int))
+#  define numToPointer(n)	((Word)(valNum(n)*sizeof(int)+0x20000000))
 #else
-#define pointerToNum(p)		consNum((long)(p)/sizeof(int))
-#define numToPointer(n)		((Word)(valNum(n)*sizeof(int)))
+#  if O_DATA_AT_OX1
+#    define pointerToNum(p)	consNum(((long)(p)-0x10000000)/sizeof(int))
+#    define numToPointer(n)	((Word)(valNum(n)*sizeof(int)+0x10000000))
+#  else
+#    define pointerToNum(p)	consNum((long)(p)/sizeof(int))
+#    define numToPointer(n)	((Word)(valNum(n)*sizeof(int)))
+#  endif
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

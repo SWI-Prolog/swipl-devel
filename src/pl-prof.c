@@ -7,16 +7,22 @@
     Purpose: program profiler
 */
 
+/*
+** This file contains changes which are part of a port to HPUX 8.0
+** T. Kielmann, 01 Jun 92
+*/
+
 #include "pl-incl.h"
 
 #if O_PROFILE
 
 #include <sys/time.h>
 
-#if !ANSI
+#if !ANSI && !hpux
 extern int setitimer P((int, struct itimerval *,struct itimerval *));
 extern int perror P((char *));
 #endif
+
 forwards void profile P((void));
 
 struct itimerval value, ovalue;		/* itmer controlling structures */
