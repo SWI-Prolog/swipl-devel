@@ -10,6 +10,7 @@
     Copyright (C) 1990-2000 SWI, University of Amsterdam. All rights reserved.
 */
 
+/*#define O_DEBUG 1*/
 #if defined(__WINDOWS__) || defined(__WIN32__)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -148,13 +149,16 @@ unify_hdata(term_t t, HDDEDATA data)
   if ( !(len=DdeGetData(data, buf, sizeof(buf)-1, 0)) )
     return dde_warning("data handle");
 
+  DEBUG(0, Sdprintf("DdeGetData() returned %d bytes\n", len));
+
   if ( len == sizeof(buf)-1 )
   { if ( (len=DdeGetData(data, NULL, 0, 0)) > 0 )
     { char *b2 = malloc(len+1);
       int rval;
       
       DdeGetData(data, b2, len, 0);
-      rval = PL_unify_list_ncodes(t, len, b2);
+      b2[len] = 0;
+      rval = PL_unify_atom_chars(t, b2);
       free(b2);
 
       return rval;
@@ -163,7 +167,8 @@ unify_hdata(term_t t, HDDEDATA data)
     return dde_warning("data handle");
   }
 
-  return PL_unify_list_ncodes(t, len, buf);
+  buf[len] = 0;
+  return PL_unify_atom_chars(t, buf);
 }
 
 
@@ -274,6 +279,8 @@ DdeCallback(UINT type, UINT fmt, HCONV hconv, HSZ hsz1, HSZ hsz2,
        fid_t cid = PL_open_foreign_frame();
        term_t argv = PL_new_term_refs(3);
        predicate_t pred = PL_pred(FUNCTOR_dde_execute3, MODULE_dde);
+
+       DEBUG(0, Sdprintf("Got XTYP_EXECUTE request\n"));
 
        PL_put_integer(argv+0, plhandle);
        PL_put_atom(   argv+1, hszToAtom(hsz1));
