@@ -199,6 +199,7 @@ meta_goal(initialization(G),	[G]).
 meta_goal(phrase(G, _A),	[G+2]).
 meta_goal(phrase(G, _A, _R),	[G+2]).
 meta_goal(catch(A, _, B),	[A, B]).
+meta_goal(thread_create(A,_,_), [A]).
 					% XPCE meta-predicates
 meta_goal(pce_global(_, new(_)), _) :- !, fail.
 meta_goal(pce_global(_, B),     [B+1]).
