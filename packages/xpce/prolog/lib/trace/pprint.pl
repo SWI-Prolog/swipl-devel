@@ -61,8 +61,14 @@ Options:
 
 print_term(Term, Options0) :-
 	defaults(Defs),
-	append(Options0, Defs, Options),
-	pp(Term, ctx(0,0,1200), Options).
+	append(Options0, Defs, Options1),
+	select(write_options(WrtOpts0), Options1, Options2),
+	(   select(max_depth(MaxDepth), WrtOpts0, WrtOpts)
+	->  Options = [write_options(WrtOpts)|Options2]
+	;   MaxDepth = inf,
+	    Options = Options1
+	),
+	pp(Term, ctx(0,0,1200,MaxDepth), Options).
 
 defaults([ output(user_output),
 	   right_margin(72),
@@ -89,6 +95,7 @@ option(Options, A) :-
 context_attribute(indent,     1).
 context_attribute(depth,      2).
 context_attribute(precedence, 3).
+context_attribute(max_depth,  4).
 
 context(Ctx, Name, Value) :-
 	context_attribute(Name, Arg),
@@ -111,18 +118,21 @@ modify_context(I, Arity, Ctx0, Mapping, Ctx) :-
 	modify_context(N, Arity, Ctx0, Mapping, Ctx).
 
 
+dec_depth(Ctx, Ctx) :-
+	context(Ctx, max_depth, inf), !.
+dec_depth(ctx(I,D,P,MD0), ctx(I,D,P,MD)) :-
+	MD is MD0 - 1.
+	
+
 		 /*******************************
 		 *	        PP		*
 		 *******************************/
 
-pp(Atom, _Ctx, Options) :-
-	atomic(Atom), !,
-	option(Options, output(Out)),
-	write_term(Out, Atom, [quoted(true)]).
-pp(Var, _Ctx, Options) :-
-	var(Var), !,
-	option(Options, output(Out)),
-	write_term(Out, Var, [numbervars(true)]).
+pp(Primitive, Ctx, Options) :-
+	(   atomic(Primitive)
+	;   var(Primitive)
+	), !,
+	pprint(Primitive, Ctx, Options).
 pp(List, Ctx, Options) :-
 	List = [_|_], !,
 	context(Ctx, indent, Indent),
@@ -132,7 +142,7 @@ pp(List, Ctx, Options) :-
 	(   (   IndentStyle == false
 	    ->	true
 	    ;	IndentStyle == auto,
-		print_width(List, Options, Width),
+		print_width(List, Ctx, Options, Width),
 		option(Options, right_margin(RM)),
 		Indent + Width < RM
 	    )
@@ -155,7 +165,8 @@ pp(Term, Ctx, Options) :-		% handle operators
 	context(Ctx, depth, Depth),
 	context(Ctx, precedence, CPrec),
 	NDepth is Depth + 1,
-	modify_context(Ctx, [depth=NDepth], Ctx2),
+	modify_context(Ctx, [depth=NDepth], Ctx1),
+	dec_depth(Ctx1, Ctx2),
 	(   Kind == prefix
 	->  arg(1, Term, Arg),
 	    (   CPrec >= Prec
@@ -210,7 +221,7 @@ pp(Term, Ctx, Options) :-		% compound
 	(   IndentStyle == false
 	->  pprint(Term, Ctx, Options)
 	;   IndentStyle == auto,
-	    print_width(Term, Options, Width),
+	    print_width(Term, Ctx, Options, Width),
 	    option(Options, right_margin(RM)),
 	    Indent + Width < RM		% fits on a line, simply write
 	->  pprint(Term, Ctx, Options)
@@ -228,13 +239,19 @@ pp(Term, Ctx, Options) :-		% compound
 	    ),
 	    context(Ctx, depth, Depth),
 	    NDepth is Depth + 1,
-	    modify_context(Ctx, [indent=Nindent, depth=NDepth], NCtx),
-	    pp_list_elements(Args, NCtx, Options),
+	    modify_context(Ctx, [indent=Nindent, depth=NDepth], NCtx0),
+	    dec_depth(NCtx0, NCtx),
+	    pp_compound_args(Args, NCtx, Options),
 	    write(Out, ')')
 	).
 	    
 
-pp_list_elements([H|T], Ctx, Options) :-
+pp_list_elements(_, Ctx, Options) :-
+	context(Ctx, max_depth, 0), !,
+	option(Options, output(Out)),
+	write(Out, '...').
+pp_list_elements([H|T], Ctx0, Options) :-
+	dec_depth(Ctx0, Ctx),
 	pp(H, Ctx, Options),
 	(   T == []
 	->  true
@@ -244,6 +261,24 @@ pp_list_elements([H|T], Ctx, Options) :-
 	    context(Ctx, indent, Indent),
 	    indent(Out, Indent),
 	    pp_list_elements(T, Ctx, Options)
+	;   option(Options, output(Out)),
+	    context(Ctx, indent, Indent),
+	    indent(Out, Indent-2),
+	    write(Out, '| '),
+	    pp(T, Ctx, Options)
+	).
+
+
+pp_compound_args([H|T], Ctx, Options) :-
+	pp(H, Ctx, Options),
+	(   T == []
+	->  true
+	;   T = [_|_]
+	->  option(Options, output(Out)),
+	    write(Out, ','),
+	    context(Ctx, indent, Indent),
+	    indent(Out, Indent),
+	    pp_compound_args(T, Ctx, Options)
 	;   option(Options, output(Out)),
 	    context(Ctx, indent, Indent),
 	    indent(Out, Indent-2),
@@ -275,22 +310,32 @@ indent(Out, Indent) :-
 	tab(Out, Spaces).
 	
 
-%	print_width(+Term, +Options, -W)
+%	print_width(+Term, +Context, +Options, -W)
 %	
 %	Width required when printing `normally' left-to-right.
 
-print_width(Term, Options, W) :-
-	option(Options, write_options(WriteOptions)),
+print_width(Term, Ctx, Options, W) :-
 	open_null_stream(Out),
-	write_term(Out, Term, WriteOptions),
-	line_position(Out, W),
+	pprint(Out, Term, Ctx, Options),
+%	line_position(Out, W),
+	character_count(Out, W),	
 	close(Out).
+
 
 %	pprint(+Term, +Context, +Options)
 %	
 %	The bottom-line print-routine.
 
-pprint(Term, _Ctx, Options) :-
+pprint(Term, Ctx, Options) :-
 	option(Options, output(Out)),
+	pprint(Out, Term, Ctx, Options).
+
+pprint(Out, Term, Ctx, Options) :-
 	option(Options, write_options(WriteOptions)),
-	write_term(Out, Term, WriteOptions).
+	context(Ctx, max_depth, MaxDepth),
+	(   MaxDepth == inf
+	->  write_term(Out, Term, WriteOptions)
+	;   MaxDepth =< 0
+	->  format(Out, '...', [])
+	;   write_term(Out, Term, [max_depth(MaxDepth)|WriteOptions])
+	).

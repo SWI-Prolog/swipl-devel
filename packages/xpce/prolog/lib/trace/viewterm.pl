@@ -49,7 +49,11 @@ view_term(Term, Attributes0) :-
 
 defaults([ view(@view_term),
 	   clear(true),
-	   open(true)
+	   open(true),
+	   write_options([ quoted(true),
+			   portray(true),
+			   numbervars(true)
+			 ])
 	 ]).
 
 tv(Term, Attributes) :-
@@ -64,7 +68,7 @@ tv(Term, Attributes) :-
 	close(Fd),
 	send(V, caret, 0),
 	send(V, editable, @off),
-	send(V, show_options, Attributes).
+	if(Attributes, write_options(WrtOpts), send(V, show_options, WrtOpts)).
 
 
 attribute(Attributes, A) :-
@@ -86,13 +90,16 @@ initialise(TV) :->
 	send(new(view), below, TD),
 	send(TD, border, size(0,2)),
 	send(TD, append, new(M, menu(options, toggle,
-				     message(TV, update,
-					     @receiver?selection)))),
+				     message(TV, update)))),
 	send(M, layout, horizontal),
 	send_list(M, append,
 		  [ portray,
-		    quoted
-		  ]).
+		    quoted,
+		    max_depth
+		  ]),
+	send(TD, append, int_item(max_depth, 10,
+				  message(TV, update), 1),
+	     right).
 
 clear(TV) :->
 	get(TV, member, view, View),
@@ -114,20 +121,30 @@ source_object(TV, Obj:object) :->
 	send(TV, delete_hypers, source),
 	new(_, hyper(TV, Obj, source, view)).
 
-update(TV, Options:chain) :->
+update(TV) :->
+	get(TV, member, dialog, D),
+	get(D, member, options, Menu),
+	get(Menu, selection, Options),
 	make_options([ portray,
 		       quoted
-		     ], Options, OptionList),
-	pp(OptionList),
+		     ], Options, OptionList0),
+	get(D, member, max_depth, DepthItem),
+	(   send(Options, member, max_depth),
+	    send(DepthItem, active, @on),
+	    get(DepthItem, selection, MaxDepth)
+	->  OptionList = [max_depth(MaxDepth)|OptionList0]
+	;   send(DepthItem, active, @off),
+	    OptionList = OptionList0
+	),
 	get(TV, hypered, source, Source),
 	get(Source, value, Term),
 	tv(Term,
 	   [ view(TV),
-	     clear(true)
-	   | OptionList
+	     clear(true),
+	     write_options(OptionList)
 	   ]).
 	
-make_options([], _, []).
+make_options([], _, [ numbervars(true) ]).
 make_options([H0|T0], Selection, [H|T]) :-
 	(   send(Selection, member, H0)
 	->  V = true
@@ -137,13 +154,22 @@ make_options([H0|T0], Selection, [H|T]) :-
 	make_options(T0, Selection, T).
 
 show_options(V, Options:prolog) :->
+	"Show current option values"::
 	get(V, member, dialog, D),
 	get(D, member, options, Menu),
+	send(Menu, selected, max_depth, @off),
+	get(D, member, max_depth, DepthItem),
+	send(DepthItem, active, @off),
 	(   member(Option, Options),
 	    functor(Option, Name, 1),
 	    get(Menu, member, Name, Item),
 	    arg(1, Option, Value),
-	    send(Item, selected, Value),
+	    (	Name == max_depth
+	    ->	send(Item, selected, @on),
+		send(DepthItem, active, @on),
+		send(DepthItem, selection, Value)
+	    ;	send(Item, selected, Value)
+	    ),
 	    fail
 	;   true
 	).
