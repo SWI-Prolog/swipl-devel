@@ -937,14 +937,38 @@ slice_stretchability(TableSlice slice, stretch *s)
     s->shrink  = valInt(r->shrink);
   } else
   { s->ideal   = valInt(slice->width);
-    s->minimum = 0;
+    s->minimum = s->ideal;
     s->maximum = INT_MAX;
     s->stretch = 100;
-    s->shrink  = 100;
+    s->shrink  = 0;
   }
 
   if ( slice->fixed == ON )		/* how to interact with <-rubber */
-  { s->stretch = s->shrink = 0;
+    s->stretch = s->shrink = 0;
+}
+
+
+static void
+cell_h_stretchability(TableCell cell, stretch *s)
+{ if ( notNil(cell->image) )
+  { s->ideal   = valInt(cell->image->area->w);
+    s->minimum = s->ideal;
+    s->maximum = INT_MAX;
+    s->stretch = 100;
+    s->shrink  = 0;
+  }
+
+  if ( notNil(cell->hrubber) )
+  { Rubber r = cell->hrubber;
+
+    if ( notDefault(r->natural) )
+      s->ideal = valInt(r->natural);
+    if ( notDefault(r->minimum) )
+      s->minimum = valInt(r->minimum);
+    if ( notDefault(r->maximum) )
+      s->maximum = valInt(r->maximum);
+    s->stretch = valInt(r->stretch);
+    s->shrink  = valInt(r->shrink);
   }
 }
 
@@ -957,9 +981,8 @@ stretch_table_slices(Table tab, Vector v,
   stretch *stretches = alloca(span * sizeof(stretch));
   int tw = 0;
   int ngaps, nslices = 0;
+  stretch sum;
   
-  memset(stretches, 0, span * sizeof(stretch)); /* not needed? */
-
   for(i=from; i<to; i++)
   { TableSlice slice = getElementVector(v, toInt(i));
 
@@ -970,11 +993,17 @@ stretch_table_slices(Table tab, Vector v,
     }
   }
 
-  ngaps = nslices <= 1 ? 0 : nslices-1;
+  if ( nslices == 0 )
+    return;
+
+  sum_stretches(stretches, nslices, &sum);
+  /*TBD*/
+
+  ngaps = nslices-1;
   width -= ngaps*spacing;
 
   if ( tw < width || always )
-  { distribute_stretches(stretches, span, width);
+  { distribute_stretches(stretches, nslices, width);
 
     for(i=from; i<to; i++)
     { TableSlice slice = getElementVector(v, toInt(i));

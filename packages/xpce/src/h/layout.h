@@ -68,6 +68,8 @@ NewClass(table_cell)
     Int		row;			/* Y-location in table */
     Name	halign;			/* left, right, center, ref, stretch */
     Name	valign;			/* top, bottom, center, ref, stretch */
+    Rubber	hrubber;		/* Horizonal stretchability */
+    Rubber	vrubber;		/* Vertical stretchability */
     Int		col_span;		/* number of columns spanned */
     Int		row_span;		/* number of rows spanned */
     Size	cell_padding;		/* Padding for this cell (default) */

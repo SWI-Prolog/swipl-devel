@@ -39,6 +39,9 @@ initialiseTableCell(TableCell c, Graphical image)
   assign(c, cell_padding, DEFAULT);
   assign(c, selected,     OFF);
   assign(c, background,	  DEFAULT);
+/*assign(c, hrubber,      NIL);
+  assign(c, vrubber,      NIL);
+*/
 
   succeed;
 }
@@ -135,6 +138,30 @@ static status
 valignTableCell(TableCell c, Name align)
 { if ( c->valign != align )
   { assign(c, valign, align);
+
+    requestComputeLayoutManager(c->layout_manager, DEFAULT);
+  }
+
+  succeed;
+}
+
+
+static status
+hrubberTableCell(TableCell c, Rubber r)
+{ if ( c->hrubber != r )
+  { assign(c, hrubber, r);
+
+    requestComputeLayoutManager(c->layout_manager, DEFAULT);
+  }
+
+  succeed;
+}
+
+
+static status
+vrubberTableCell(TableCell c, Rubber r)
+{ if ( c->vrubber != r )
+  { assign(c, vrubber, r);
 
     requestComputeLayoutManager(c->layout_manager, DEFAULT);
   }
@@ -460,6 +487,10 @@ static vardecl var_table_cell[] =
   SV(NAME_valign, "[{top,center,bottom,reference,stretch}]", IV_NONE|IV_STORE,
      valignTableCell,
      NAME_layout, "Vertical alignment of <-image in cell"),
+  SV(NAME_hrubber, "rubber*", IV_GET|IV_STORE, hrubberTableCell,
+     NAME_layout, "Horizontal stretchability"),
+  SV(NAME_vrubber, "rubber*", IV_GET|IV_STORE, vrubberTableCell,
+     NAME_layout, "Vertical stretchability"),
   SV(NAME_colSpan, "1..", IV_GET|IV_STORE, colSpanTableCell,
      NAME_layout, "Number of columns spanned"),
   SV(NAME_rowSpan, "1..", IV_GET|IV_STORE, rowSpanTableCell,
