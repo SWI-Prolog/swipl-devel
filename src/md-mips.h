@@ -1,4 +1,4 @@
-/*  $Id$
+/*  md-mips.h,v 1.4 1993/04/28 15:25:04 jan Exp
 
     Copyright (c) 1990 Jan Wielemaker. All rights reserved.
     See ../LICENCE to find out about your rights.
@@ -8,22 +8,23 @@
 */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-DEC MIPS station using the native compiler.  GCC does varargs code does not
-cooperate does not allow calling of vsprintf(), etc.
+Received this updated version 2/7/93 from David Morley <morley@aaii.oz.au>
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define M_CC			cc
-#define M_OPTIMIZE	        -O
+#define M_CC			gcc
+#define M_OPTIMIZE	        -O2
 #define M_LDFLAGS		
-#define M_CFLAGS		
+#define M_CFLAGS		-funsigned-char
 #define M_LIBS			-lm -ltermcap
 
-#define ANSI			0
-#define PROTO			0
-#define O_NO_LEFT_CAST		1
-#define O_NO_VOID_POINTER	1
+			/* compiler */
+#define ANSI			__GNUC__
+#define O_NO_LEFT_CAST		0
+#define O_NO_VOID_POINTER	0
 #define O_SHORT_SYMBOLS		0
+
 			/* Operating system */
+#define O_SAVE			0
 #define O_PROFILE		1
 #define O_SIG_AUTO_RESET	1
 #define O_SHARED_MEMORY		0
@@ -32,7 +33,7 @@ cooperate does not allow calling of vsprintf(), etc.
 #define O_NO_SEGV_ADDRESS	1
 #define MAX_VIRTUAL_ADDRESS	(0x10000000 + 100 * 1024 * 1024)
 #define O_FOREIGN		0
-#define O_STORE_PROGRAM		1
+#define O_STORE_PROGRAM		0
 #define DEFAULT_PATH		":/usr/ucb:/bin:/usr/bin:/usr/local:.:";
 #define STREAM_OPEN_BIN_READ	"r"
 #define STREAM_OPEN_BIN_WRITE	"w"
@@ -40,6 +41,7 @@ cooperate does not allow calling of vsprintf(), etc.
 #define TEXT_START		0x400000
 #define DATA_START		0x10000000
 #define O_DATA_AT_OX1		1
+#define O_VMCODE_IS_ADDRESS	0
 
 			/* terminal driver */
 #define O_READLINE		1
@@ -51,3 +53,4 @@ cooperate does not allow calling of vsprintf(), etc.
 
 #define MACHINE			"mips"
 #define OPERATING_SYSTEM	"ultrix"
+

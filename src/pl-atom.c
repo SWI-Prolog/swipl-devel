@@ -272,6 +272,19 @@ Word prefix, alts;
 
 #if O_READLINE
 
+static char *
+xmalloc(size)
+int size;
+{ char *result = malloc(size);
+
+  if ( !result )
+    fatalError("Not enough core");
+
+  return result;
+}
+
+#define savestring(x) strcpy(xmalloc(1 + strlen(x)), (x))
+
 char *
 atom_generator(prefix, state)
 char *prefix;
@@ -299,7 +312,7 @@ int state;
 	 allAlpha(as) &&
 	 (l = strlen(as)) < ALT_SIZ )
     { a = a->next;
-      return as;
+      return savestring(as);
     }
   }
 

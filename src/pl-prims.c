@@ -899,12 +899,11 @@ Word number, base, atom;
 
   if (n == 0)
   { *s-- = '0';
-    s = prependBase((int)b, s);
-    return unifyAtomic(atom, lookupAtom(s+1));
-  }
-  while(n > 0)
-  { *s-- = digitName((int)(n % b), TRUE);
-    n /= b;
+  } else
+  { while(n > 0)
+    { *s-- = digitName((int)(n % b), TRUE);
+      n /= b;
+    }
   }
   if (b != 10)
     s = prependBase((int)b, s);

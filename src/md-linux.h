@@ -25,11 +25,19 @@ save_program/1 and included dynamic stacks.  Versions:
 
 Fixed load_foreign/[1,2] and dropped -static from the LDFLAGS and this
 appears not to be necessary with linux.
+
+Wed Jun 30 22:03:41 1993
+    Updated version 1.7.0.  Now requires the readline library available
+    from various ftp sites.  SWI-Prolog uses both termcap and readline.
+    The current version (libc 4.4, libreadline.so.1.1) has a bug that
+    results in multiple symbol declaration when SWI-Prolog is linked.
+    As a temporary fix remove /usr/lib/libtermcap.sa while linking
+    SWI-Prolog.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define M_CC			gcc
-/*#define M_OPTIMIZE	        -O6*/
-#define M_OPTIMIZE		-g
+#define M_OPTIMIZE	        -O6
+/*#define M_OPTIMIZE		-g*/
 #define M_LDFLAGS		
 #define M_CFLAGS		-funsigned-char
 #define M_LIBS			-lm -ltermcap -lreadline
@@ -65,7 +73,7 @@ appears not to be necessary with linux.
 #define O_GETCWD		1
 
 			/* terminal driver */
-#define O_READLINE		1
+#define O_READLINE		0
 #define O_TERMIOS 		1
 #define O_FOLD 			0
 

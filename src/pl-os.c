@@ -1521,12 +1521,13 @@ void *p;
 }
 #endif
 
+int (*PL_dispatch_events)() = NULL;	/* event-dIspatching */
+
 #if O_READLINE
 
 #undef ESC				/* will be redefined ... */
 #include <readline/readline.h>
-
-int (*PL_dispatch_events)() = NULL;	/* event-dIspatching */
+#undef savestring
 
 static int
 event_hook()
@@ -1540,6 +1541,19 @@ event_hook()
   return rval;
 }
 
+
+static char *
+xmalloc(size)
+int size;
+{ char *result = malloc(size);
+
+  if ( !result )
+    fatalError("Not enough core");
+
+  return result;
+}
+
+#define savestring(x) strcpy(xmalloc(1 + strlen(x)), (x))
 
 Char
 GetChar()
@@ -1576,7 +1590,7 @@ GetChar()
 	  
 	for(s = line; *s; s++)
 	{ if ( !isBlank(*s) )
-	  { add_history(line);
+	  { add_history(savestring(line));
 	    break;
 	  }
 	}
@@ -1620,17 +1634,16 @@ prolog_completion(text, start, end)
 char *text;
 int start, end;
 { extern char *filename_completion_function P((char *, int));
-  extern char *rindex P((char *, char));
   char **matches = NULL;
 
-  if ( (start == 0 && text[0] == '[') )	/* [file */
-    matches = completion_matches(&text[1],
+  if ( (start == 1 && rl_line_buffer[0] == '[') )	/* [file */
+    matches = completion_matches(text,
 				 (Function *) filename_completion_function);
-  else if (start == 2 && strncmp(text, "['", 2))
-    matches = completion_matches(&text[2],
+  else if (start == 2 && strncmp(rl_line_buffer, "['", 2))
+    matches = completion_matches(text,
 				 (Function *) filename_completion_function);
   else
-    matches = completion_matches(&text[start], atom_generator);
+    matches = completion_matches(text, atom_generator);
 
   return matches;
 }
@@ -1640,10 +1653,57 @@ void
 ResetTty()				/* used to initialise readline */
 { rl_readline_name = "Prolog";
   rl_attempted_completion_function = (Function *)prolog_completion;
-  rl_basic_word_break_characters = "\t\n\"\\'`@$><= [](){}+*/!";
-  rl_special_prefixes = "[";
+  rl_basic_word_break_characters = "\t\n\"\\'`@$><= [](){}+*!";
   rl_add_defun("prolog-complete", prolog_complete, '\t');
 }
+
+#else /*!O_READLINE*/
+
+static int prompt_next;
+
+Char
+GetChar()
+{ Char c;
+  Atom sfn = source_file_name;		/* save over call-back */
+  int  sln = source_line_no;
+
+  if ( prompt_next )
+  { Putf("%s", PrologPrompt());
+    pl_ttyflush();
+    
+    prompt_next = FALSE;
+  }
+
+  if ( PL_dispatch_events )
+  { for(;;)
+    { if ( (*PL_dispatch_events)() == PL_DISPATCH_INPUT )
+      { char chr;
+	
+	if (read(0, &chr, 1) == 0)
+	  c = EOF;
+	else
+	  c = (Char) chr;
+	break;
+      }
+    }
+  } else
+    c = getchar();
+
+  if ( c == '\n' )
+    prompt_next = TRUE;
+
+  source_line_no   = sln;
+  source_file_name = sfn;
+
+  return c;
+}
+
+void
+ResetTty()
+{ prompt_next = TRUE;
+}
+
+#endif /*O_READLINE*/
 
 #if O_TERMIOS				/* System V/POSIX termio system */
 
@@ -1700,43 +1760,22 @@ ttybuf *buf;
 
 #else					/* Use Readline's functions */
 
-
 bool
 PushTty(buf, mode)
 ttybuf *buf;
 int mode;
-{ switch(mode)
-  { case TTY_RAW:
-      rl_prep_terminal();
-      break;
-    case TTY_COOKED:
-      rl_deprep_terminal();
-      break;
-  }
-    
-  if ( buf )
-    buf->mode = mode;
-  ttymode = mode;
-
-  succeed;
+{ fail;
 }
 
 
 bool
 PopTty(buf)
 ttybuf *buf;
-{ return PushTty(NULL, buf->mode);
+{ fail;
 }
 
 #endif O_TERMIOS
-#else /*!O_READLINE*/
 
-Char
-GetChar()
-{ return getchar();
-}
-
-#endif /*O_READLINE*/
 
 		/********************************
 		*      ENVIRONMENT CONTROL      *
