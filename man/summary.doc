@@ -330,10 +330,10 @@ suggest predicates from a keyword.
 \predicatesummary{prolog_edit:load}{0}{Load edit/1 extensions}
 \predicatesummary{prolog_file_type}{2}{Define meaning of file extension}
 \predicatesummary{prolog_frame_attribute}{3}{Obtain information on a goal environment}
+\predicatesummary{prolog_ide}{1}{Program access to the development enviroment}
 \predicatesummary{prolog_list_goal}{1}{\hook{user} Intercept tracer 'L' command}
 \predicatesummary{prolog_load_context}{2}{Context information for directives}
 \predicatesummary{prolog_load_file}{2}{\hook{user} Program load_files/2}
-\predicatesummary{prolog_navigator}{1}{Graphical overview of project}
 \predicatesummary{prolog_skip_level}{2}{Indicate deepest recursion to trace}
 \predicatesummary{prolog_to_os_filename}{2}{Convert between Prolog and OS filenames}
 \predicatesummary{prolog_trace_interception}{4}{\pllib{user} Intercept the Prolog tracer}

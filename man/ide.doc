@@ -196,17 +196,18 @@ a module is required.  Here is a typical example from \pllib{readutil}.
 \section{The test-edit-reload cycle}		\label{sec:editreload}
 
 SWI-Prolog does not enforce the use of a particular editor for writing
-down Prolog source code.  Editors are complicated programs that must be
+down Prolog source code. Editors are complicated programs that must be
 mastered in detail for real productive programming and if you are
-familiar with a specific editor you should not be forced to change.  You
-may specify your favourite editor using the environment variable
-\env{EDITOR} or by defining rules for prolog_edit:edit_source/1 (see
-\secref{listing}).
+familiar with a specific editor you should not be forced to change. You
+may specify your favourite editor using the prolog flag \const{editor},
+the environment variable \env{EDITOR} or by defining rules for
+prolog_edit:edit_source/1 (see \secref{listing}).
 
-The use of a built-in editor however has advantages. The XPCE
-\class{editor} object around which the built-in PceEmacs is built
-can be opened as a Prolog stream allowing analysis of your source
-by the real Prolog system.
+The use of a built-in editor, which is selected by setting the
+prolog-flag \const{editor} to \const{pce_emacs}, has advantages. The
+XPCE \class{editor} object around which the built-in PceEmacs is built
+can be opened as a Prolog stream allowing analysis of your source by the
+real Prolog system.
 
 \subsection{Locating things to edit}
 
@@ -270,18 +271,10 @@ the toplevel and watch the files being reloaded.%
 \subsection{Activating PceEmacs}
 
 Initially edit/1 uses the editor specified in the \env{EDITOR}
-environment variable.  There are two ways to force it to use
-the built-in editor.  One is by loading \pllib{emacs/swi_prolog},
-a source-file from the PceEmacs library that installs hooks which
-
-\begin{itemize}
-    \item Cause edit/1 to use the built-in PceEmacs
-    \item Intercept error and warning messages while loading
-          sources, providing these messages in a window from
-	  which the related source can be found by double-clicking
-	  the message.
-\end{itemize}
-
+environment variable. There are two ways to force it to use the built-in
+editor. One is to set the prolog-flag \const{editor} to
+\const{pce_emacs} and the other is by starting the editor explictely
+using the emacs/[0,1] predicates.
 
 \subsection{Bluffing through PceEmacs} 	\label{sec:emacsbluff}
 
@@ -593,13 +586,37 @@ text-console based tracing.
 
 Another tool is the \jargon{Prolog Navigator}.  This tool can be started
 from PceEmacs using the command \menu{Browse/Prolog navigator}{}, from
-the GUI debugger or using the predicate prolog_navigator/1.
+the GUI debugger or using the programmatic IDE interface described in
+\secref{idepreds}.
+
+
+\section{Accessing the IDE from your program}	\label{sec:idepreds}
+
+Over the years a collection of IDE components have been developed,
+each with their own interface.  In addition, some of these components
+require each other and loading IDE components must be on demand to
+avoid the IDE being part of a saved-state (see qsave_program/2).
+For this reason, access to the IDE will be concentrated on a
+single interface called prolog_ide/1:
 
 \begin{description}
-    \predicate{prolog_navigator}{1}{+DirOrLocation}
-Ensure the navigator exists and the indicated location is shown.
-\arg{DirOrLocation} is either the name of a directory or
-\arg{File}:\arg{Line} to open and select the given location.
+    \predicate{prolog_ide}{1}{+Action}
+This predicate ensures the IDE enabling XPCE component is loaded,
+creates the XPCE class \class{prolog_ide} and sends \arg{Ation}
+to its one and only instance \verb$@prolog_ide$.  \arg{Action} is one
+of the following:
+
+\begin{description}
+    \termitem{open_navigator}{+Directory}
+Open the Prolog Navigator (see \secref{navigator}) in the given
+\arg{Directory}.
+
+    \termitem{open_debug_status}{}
+Open a window to edit spy- and trace-points.
+
+    \termitem{open_query_window}{}
+Opens a little window to run Prolog queries from a GUI component.
+\end{description}
 \end{description}
 
 
@@ -625,9 +642,8 @@ editor at the right location.
 
     \item [Select editor]
 External editors are selected using the \env{EDITOR} environment
-variable or by defining the hook prolog_edit:edit_source/1.  The
-\pllib{emacs/swi_prolog} library may be loaded from the personal
-initialisation-file to pre-select the usage of the built-in editor.
+variable, by setting the prolog flag \const{editor} or by defining the
+hook prolog_edit:edit_source/1.
 
     \item [Update Prolog after editing]
 Using make/0, all files you have edited are re-loaded.
