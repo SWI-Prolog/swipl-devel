@@ -3573,24 +3573,36 @@ On \arg{Win32} systems, shell/[1,2] executes the command using the
 CreateProcess() API and waits for the command to terminate. If the
 command ends with a \chr{\&} sign, the command is handed to the
 WinExec() API, which does not wait for the new task to terminate. See
-also win_exec/2. Please note that the CreateProcess() API does {\bf not}
-imply the Windows command interpreter (\program{command.exe} on Windows
-95/98 and \program{cmd.exe} on Windows-NT) and therefore commands
-built-in to the command-interpreter can only be activated using the
-command interpreter. For example: \exam{'command.exe /C copy file1.txt
-file2.txt'}
+also win_exec/2 and win_shell/2. Please note that the CreateProcess()
+API does {\bf not} imply the Windows command interpreter
+(\program{command.exe} on Windows 95/98 and \program{cmd.exe} on
+Windows-NT) and therefore commands built-in to the command-interpreter
+can only be activated using the command interpreter. For example:
+\exam{'command.exe /C copy file1.txt file2.txt'}
 
     \predicate{shell}{1}{+Command}
 Equivalent to `\exam{shell(Command, 0)}'.
+
     \predicate{shell}{0}{}
 Start an interactive Unix shell.  Default is \file{/bin/sh}, the
 environment variable \env{SHELL} overrides this default.  Not available
 for Win32 platforms.
+
     \predicate{win_exec}{2}{+Command, +Show}
 Win32 systems only. Spawns a Windows task without waiting for its
 completion.  \arg{Show} is either \const{iconic} or \const{normal} and
 dictates the initial status of the window.  The \const{iconic} option
 is notably handy to start (DDE) servers.
+
+    \predicate{win_shell}{2}{+Operation, +File}
+Win32 systems only. Opens the document \arg{File} using the windows
+shell-rules for doing so. \arg{Operation} is one of \const{open},
+\const{print} or \const{explore} or another operation registered with
+the shell for the given document-type.  On modern systems it is also
+possible to pass a \index{URL}URL as \arg{File}, opening the URL in
+Windows default browser. This call interfaces to the Win32 API
+ShellExecute(). 
+
     \predicate{win_registry_get_value}{3}{+Key, +Name, -Value}
 Win32 systems only. Fetches the value of a Win32 registry key.
 \arg{Key} is an atom formed as a path-name describing the desired
