@@ -102,13 +102,15 @@ initialise(F) :->
 
 	send(ButtonDialog, name, button_dialog),
 	send(ButtonDialog, append,
-	     button(up, message(F, up))),
+	     new(Up, button(up, message(F, up)))),
 	send(ButtonDialog, append,
 	     new(OK, button(ok, message(F, ok))), next_row),
 	send(ButtonDialog, append,
-	     button(cancel, message(F, cancel)), next_row),
+	     new(Cancel, button(cancel, message(F, cancel))), next_row),
 	send(OK, default_button, @on),
 	new(DoOK, message(OK, execute)),
+	send(Up, show_focus_border, @off), 	% Never show gtk/motif border
+	send(Cancel, show_focus_border, @off),
 
 	send(ItemDialog, append,
 	     new(DI, finder_directory_item(directory, '',
