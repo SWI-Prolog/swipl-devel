@@ -1,3 +1,5 @@
+* FIXED: entity_file() to avoid a crash if the entity is not in the catalog.
+
 * ADDED: Parse not-quoted attribute values that require quotes by parsing
   upto the next layout character.  Give a warning.  For example:
   <hr width=50%> is parsed as <hr width="50%">, but a warning is displayed.
