@@ -1,3 +1,7 @@
+* FIXED: Set CVS binary mode on documentation of classes lbox and
+  resize_table_slice_gesture (crashed manual tool on Windows due to
+  corrupted file).
+
 * FIXED: `label_box->layout_dialog' corruption of @default<-name.  Mostly
   harmless but unelligant bug.
 
