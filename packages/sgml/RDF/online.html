@@ -9,26 +9,33 @@
 <h1 align=center>Online SWI-Prolog RDF parser demo</h1>
 
 <p>
-This page provides an online demonstration of an RDF parser written in
-<a href="http://www.swi-prolog.org">SWI-Prolog</a>. This RDF parser has
-a couple of attractive properties:
+This page provides an online demonstration of an RDF parser written in <a
+href="http://www.swi-prolog.org">SWI-Prolog</a> and distributed as part of the
+normal SWI-Prolog distribution. This RDF parser has a couple of attractive
+properties:
 
 <dl>
     <dt><b>Small</b><dd>
-Both in terms of source-code (&lt; 700 lines) and executable.
+Both in terms of source-code (&lt; 1200 lines) and executable.
+
     <dt><b>Fast</b><dd>
 Parses about 400 Kbytes/sec on a Pentium-II/450.
+
     <dt><b>Conforming</b><dd>
-This parser conforms to <a href="http://www.w3.org/TR/REC-rdf-syntax">
-http://www.w3.org/TR/REC-rdf-syntax</a>.
+This parser conforms to http://www.w3.org/TR/rdf-syntax-grammar/,
+W3C Working Draft 8 November 2002.  It includes the revised bag
+syntax, <code>xml:base</code>, and <code>parseType="Collection"</code>.
+
     <dt><b>Prolog based</b><dd>
 Many people regard the Prolog programming language a good vehicle to
 reason about RDF statements. Having a simple and fast Prolog-based RDF
 parser makes life easier.
+
     <dt><b>Portability</b><dd>
 The RDF parser itself is written in ISO Prolog.  The XML parser is
 written in ANSI-C.  There is no standard for interfacing Prolog and C,
 but the interface is relatively small.
+
     <dt><b>Discussion Page</b><dd>
 There is a
 <a href="http://gollem.swi.psy.uva.nl/twiki/pl/bin/view/Library/RdfParse">
@@ -70,6 +77,7 @@ attaching a comment to the stored RDF statement.
       <input type=button value='Example 1' onClick="ex1()">
       <input type=button value='Example 2' onClick="ex2()">
       <input type=button value='Example 3' onClick="ex3()">
+      <input type=button value='Example 19' onClick="ex19()">
 <tr><td align=left><input type=reset value="Clear Text">
     <td align=right><input type=submit value="Parse RDF">
 </table>
@@ -99,56 +107,69 @@ statement below is not interpreted as a <b>propertyElt</b> with value
 <script language="JavaScript">
 
 function ex1()
-{ document.rdf.rdf.value='<?xml version="1.0"?>\
-\
-<!-- Example from REC-rdf-syntax -->\
-\
-<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"\
-         xmlns:s="http://description.org/schema/">\
-  <rdf:Description about="http://www.w3.org/Home/Lassila">\
-     <s:Creator>Ora Lassila</s:Creator>\
-  </rdf:Description>\
+{ document.rdf.rdf.value='<?xml version="1.0"?>\n\
+\n\
+<!-- Example from REC-rdf-syntax -->\n\
+\n\
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"\n\
+         xmlns:s="http://description.org/schema/">\n\
+  <rdf:Description about="http://www.w3.org/Home/Lassila">\n\
+     <s:Creator>Ora Lassila</s:Creator>\n\
+  </rdf:Description>\n\
 </rdf:RDF>';
 }
 
 function ex2()
-{ document.rdf.rdf.value='<?xml version="1.0"?>\
-\
-<!-- Example from REC-rdf-syntax, demonstrating reification -->\
-\
-<rdf:RDF\
-  xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"\
-  xmlns:s="http://description.org/schema/">\
-  <rdf:Description about="http://www.w3.org/Home/Lassila" bagID="D_001">\
-    <s:Creator>Ora Lassila</s:Creator>\
-    <s:Title>Ora\'s Home Page</s:Title>\
-  </rdf:Description>\
+{ document.rdf.rdf.value='<?xml version="1.0"?>\n\
+\n\
+<!-- Example from REC-rdf-syntax, demonstrating reification -->\n\
+\n\
+<rdf:RDF\n\
+  xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"\n\
+  xmlns:s="http://description.org/schema/">\n\
+  <rdf:Description about="http://www.w3.org/Home/Lassila" bagID="D_001">\n\
+    <s:Creator>Ora Lassila</s:Creator>\n\
+    <s:Title>Ora\'s Home Page</s:Title>\n\
+  </rdf:Description>\n\
 </rdf:RDF>';
 }
 
 function ex3()
-{ document.rdf.rdf.value='<?xml version="1.0"?>\
-\
-<!-- Example from REC-rdf-syntax, non-binary relations -->\
-\
-<RDF\
-  xmlns="http://www.w3.org/1999/02/22-rdf-syntax-ns#"\
-  xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"\
-  xmlns:n="http://www.nist.gov/units/">\
-  <Description about="John_Smith">\
-    <n:weight rdf:parseType="Resource">\
-      <rdf:value>200</rdf:value>\
-      <n:units rdf:resource="http://www.nist.gov/units/Pounds"/>\
-    </n:weight>\
-  </Description>\
-</RDF>';
+{ document.rdf.rdf.value='<?xml version="1.0"?>\n\
+\n\
+<!-- Example from REC-rdf-syntax, non-binary relations -->\n\
+\n\
+<rdf:RDF\n\
+  xmlns="http://www.w3.org/1999/02/22-rdf-syntax-ns#"\n\
+  xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"\n\
+  xmlns:n="http://www.nist.gov/units/">\n\
+  <Description about="John_Smith">\n\
+    <n:weight rdf:parseType="Resource">\n\
+      <rdf:value>200</rdf:value>\n\
+      <n:units rdf:resource="http://www.nist.gov/units/Pounds"/>\n\
+    </n:weight>\n\
+  </Description>\n\
+</rdf:RDF>';
 }
+
+function ex19()
+{ document.rdf.rdf.value='<?xml version="1.0"?>\n\
+\n\
+<!-- Example 19: Complete example of a RDF collection of nodes\n\
+     using rdf:parseType="Collection" -->\n\
+\n\
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"\n\
+         xmlns:ex="http://example.org/stuff/1.0/">\n\
+  <rdf:Description rdf:about="http://example.org/basket">\n\
+    <ex:hasFruit rdf:parseType="Collection">\n\
+      <rdf:Description rdf:about="http://example.org/banana"/>\n\
+      <rdf:Description rdf:about="http://example.org/apple"/>\n\
+      <rdf:Description rdf:about="http://example.org/pear"/>\n\
+    </ex:hasFruit>\n\
+  </rdf:Description>\n\
+</rdf:RDF>';
+}
+
 </script>
 </body>
 </html>
-
-
-
-
-
-
