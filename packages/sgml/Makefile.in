@@ -9,6 +9,7 @@ PLLD=@PLLD@
 PLBASE=@PLBASE@
 PLARCH=@PLARCH@
 PKGDOC=$(PLBASE)/doc/packages
+SO=@SO@
 
 CC=@CC@
 COFLAGS=@COFLAGS@
@@ -38,7 +39,7 @@ ALLCSRC=	$(LIBOBJ:.o=.c) \
 		$(HDRS)
 
 LIBPL=		sgml.pl
-TARGETS=	sgml2pl.so
+TARGETS=	sgml2pl.@SO@
 PROGRAMS=	dtd2pl sgml
 DTDFILES=	HTML4.dcl HTML4.dtd HTML4.soc \
 		HTMLlat1.ent HTMLspec.ent HTMLsym.ent
@@ -48,7 +49,7 @@ all:		coflags $(TARGETS) $(PROGRAMS)
 coflags:
 		@echo $(COFLAGS) > .coflags
 
-sgml2pl.so:	$(PLOBJ)
+sgml2pl.@SO@:	$(PLOBJ)
 		$(PLLD) -shared -o $@ $(PLOBJ)
 
 install:	$(TARGETS) $(LIBPL) install-dtd

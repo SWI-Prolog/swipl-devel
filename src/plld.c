@@ -783,9 +783,15 @@ fillDefaultOptions()
 
   tmpPath(&ctmp,   "ctmp-");
   tmpPath(&pltmp,  "pltmp-");
-#ifdef WIN32
+#if defined(__CYGWIN32__)
+/* Compile generates .exe files on CygWin */
+  replaceExtension(ctmp, "exe", tmp);
+  free(ctmp);
+  ctmp = strdup(tmp);
+#endif
+#if defined(WIN32) || defined(__CYGWIN32__)
 /* Saved states have the .exe extension under Windows */
-  replaceExtension(pltmp, "exe", (char*) tmp);
+  replaceExtension(pltmp, "exe", tmp);
   free(pltmp);
   pltmp = strdup(tmp);
 #endif
@@ -1281,9 +1287,10 @@ removeTempFiles()
 { int n;
 
   for(n = 0; n < tmpfiles.size; n++)
-  { if ( verbose )
-      printf("\trm -f %s\n", tmpfiles.list[n]);
-    remove(tmpfiles.list[n]);
+  { if ( remove(tmpfiles.list[n]) == 0 )
+    { if ( verbose )
+	printf("\trm %s\n", tmpfiles.list[n]);
+    }
   }
 }
 

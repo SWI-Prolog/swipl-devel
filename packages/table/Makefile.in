@@ -11,6 +11,7 @@ PLBASE=@PLBASE@
 PLARCH=@PLARCH@
 PKGDOC=$(PLBASE)/doc/packages
 PCEHOME=../../xpce
+SO=@SO@
 
 CC=@CC@
 COFLAGS=@COFLAGS@
@@ -35,13 +36,13 @@ INSTALL_PROGRAM=@INSTALL_PROGRAM@
 INSTALL_DATA=@INSTALL_DATA@
 
 LIBPL=		table.pl table_util.pl
-TARGETS=	table.so
+TARGETS=	table.@SO@
 
 OBJ=		table.o order.o error.o
 
 all:		$(TARGETS)
 
-table.so:	$(OBJ)
+table.@SO@:	$(OBJ)
 		$(LD) $(LDFLAGS) -o $@ $(OBJ)
 
 install:	$(TARGETS) $(LIBPL)

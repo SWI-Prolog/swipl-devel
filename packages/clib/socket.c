@@ -26,6 +26,13 @@ wait_for_input/3.
 #include <config.h>
 #endif
 
+/* You can use it in normal executable, but not in dll???
+*/
+
+#ifdef __CYGWIN__
+#undef HAVE_H_ERRNO
+#endif
+
 #include <SWI-Stream.h>
 #include "clib.h"
 
