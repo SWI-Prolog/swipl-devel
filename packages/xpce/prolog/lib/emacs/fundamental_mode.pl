@@ -112,6 +112,7 @@ idle(M) :->
 
 new_buffer(M) :->
 	"A new buffer is attached"::
+	send_super(M, new_buffer),
 	send(M, auto_colourise_buffer).
 
 

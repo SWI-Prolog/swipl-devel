@@ -37,10 +37,12 @@
 
 
 variable(comment_column,	int,	both, "Column for line comment").
+variable(show_line_numbers,	[bool], get,  "Show line numbers?").
 
 initialise(M) :->
 	"Inititialise comment_column"::
 	send(M, send_super, initialise),
+	send(M, slot, show_line_numbers, @default),
 	send(M, comment_column, @emacs_comment_column).
 
 
@@ -425,6 +427,32 @@ beginning_of_text_on_line(E) :->
 	get(E, scan, Caret, line, 0, end,   EOL),
 	get(E, skip_comment, SOL, EOL, P0),
 	send(E, caret, P0).
+
+
+new_caret_position(M, Caret:int) :->
+	"Update line number"::
+	send_super(M, new_caret_position, Caret),
+	(   get(M, frame, Frame),
+	    send(Frame, has_send_method, show_line_number),
+	    (	get(M, show_line_numbers, @off)
+	    ->	send(Frame, show_line_number, @nil)
+	    ;   (   (   get(M, show_line_numbers, @default)
+		    ->  Caret < 50000
+		    ;   get(M, show_line_numbers, @on)
+		    )
+		->  get(M, line_number, Line),
+		    send(Frame, show_line_number, Line)
+		;   send(Frame, show_line_number, too_expensive)
+		)
+	    ;	true
+	    )
+	;   true
+	).
+
+show_line_numbers(M, Show:bool) :->
+	"Show/do not show line numbers"::
+	send(M, slot, show_line_numbers, Show),
+	send(M, new_caret_position, M?caret).
 
 
 		 /*******************************

@@ -1176,15 +1176,15 @@ ensureCaretInWindowEditor(Editor e)
   ComputeGraphical(e->image);
 
   if ( valInt(e->caret) < valInt(start = getStartTextImage(e->image, ONE)) )
-    assign(e, caret, start);
+    CaretEditor(e, start);
   else
   { if ( valInt(e->caret) >= valInt(e->image->end) )
     { if ( e->image->eof_in_window == ON )
-    	assign(e, caret, e->image->end);
+	CaretEditor(e, e->image->end);
       else
       { long ie = max(0, valInt(e->image->end) - 1);
 	
-	assign(e, caret, toInt(ie));
+	CaretEditor(e, toInt(ie));
       }
     }
   }

@@ -219,6 +219,11 @@ reset(F) :->
 	get(Dialog, member, menu_bar, MB),
 	send(MB, active, @on).
 
+show_line_number(F, Line:'int|{too_expensive}*') :->
+	"Show current line in mini-window"::
+	get(F, member, mini_window, W),
+	send(W, show_line_number, Line).
+
 :- pce_end_class(emacs_frame).
 
 :- pce_begin_class(emacs_command_item, text_item,
@@ -259,9 +264,17 @@ initialise(D) :->
 	     click_gesture(left, '', single,
 			   message(@receiver?frame, sticky_window))),
 	send(D, display, label(reporter), point(25, 2)),
+	send(D, display, new(T, text('', right, normal)), point(100, 2)),
+	send(T, name, line),
 	get(text_item(''), height, MH),
 	send(D, height, MH),
 	send(D, name, mini_window).
+
+resize(D) :->
+	get(D, member, line, Text),
+	get(D?area, width, W),
+	get(Text, width, TW),
+	send(Text, x, W-TW-2).
 
 '_compute_desired_size'(_) :->
 	"We have fixed size"::
@@ -274,6 +287,17 @@ client(D, Client:emacs_view) :->
 client(D, Client:emacs_view) :<-
 	"Get client emacs_view"::
 	get(D, hypered, client, Client).
+
+
+show_line_number(D, Line:'int|{too_expensive}*') :->
+	"Show number of current line"::
+	get(D, member, line, Text),
+	(   Line == @nil
+	->  send(Text, string, '')
+	;   Line == too_expensive
+	->  send(Text, string, 'Line: ?')
+	;   send(Text, string, string('Line: %d', Line))
+	).
 
 
 report(D, Type:name, Fmt:[char_array], Args:any ...) :->
@@ -605,6 +629,7 @@ typed(E, Id:'event|event_id') :->
 
 
 caret(E, Caret:[int]) :->
+	"Deal with idle-timing and ->new_caret_position"::
 	send(E, send_super, caret, Caret),
 	send(E, start_idle_timer),
 	get(E, mode, Mode),
@@ -830,9 +855,15 @@ mode_name(Mode, Name) :-
 table_name(ClassName, TableName) :-
 	concat(TableName, '_mode', ClassName).
 
-new_buffer(_) :->
-	"[Virtual] Called if a new buffer is attached to this mode"::
-	true.
+new_buffer(M) :->
+	"Called if a new buffer is attached to this mode"::
+	(   get(M, frame, Frame),
+	    send(Frame, has_send_method, show_line_number)
+	->  send(Frame, show_line_number, @nil)
+	;   true
+	),
+	send(M, new_caret_position, M?caret).
+
 
 new_caret_position(M, Caret:int) :->
 	"Called after any caret movement"::

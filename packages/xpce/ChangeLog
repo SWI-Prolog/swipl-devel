@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: PceEmacs: show current line-number in status window.
+
 * FIXED: PceEmacs: various dangling issues around using GNU emacs tag-tables.
 
 * ADDED: library(pce_type) providing pce_define_type/2 for defining your own
