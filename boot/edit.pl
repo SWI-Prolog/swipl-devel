@@ -45,10 +45,11 @@ ed(Spec) :-
 	    $confirm('Edit predicate `~w''', [PredName])
 	), !, 
 	source_file(Head, File), 
+	predicate_property(Head, line_count(LineNo)),
 	$strip_module(Head, Module, Term), 
 	functor(Term, Name, Arity), 
 	$record_last($edit_predicate, Module:Name/Arity), 
-	$edit_load(File:Name/Arity).
+	$edit_load(File:LineNo:Name/Arity).
 
 ed :-
 	$module(TypeIn, TypeIn), 
@@ -79,45 +80,70 @@ $edit_load(_, _).
 
 $edit(Spec) :-
 	user:edit_source(Spec), !.
-$edit(File:Name/_Arity) :- !,
-	(   getenv('EDITOR', Editor)
-	;   $default_editor(Editor)
-	) ->
-	edit_command(Editor, File, Name, Command), !, 
-	shell(Command),
-	make.
+$edit(File:LineNo:Name/_Arity) :- !,
+	(   (   getenv('EDITOR', Editor)
+	    ;   $default_editor(Editor)
+	    )
+	->  (	(   edit_command(Editor, File, LineNo, Name, Command)
+		;   edit_command(Editor, File, LineNo, $nopredicate, Command)
+		)
+	    ->  shell(Command),
+		make
+	    )
+	).
 $edit(File) :-
-	(   getenv('EDITOR', Editor)
-	;   $default_editor(Editor)
-	) ->
-	edit_command(Editor, File, $nopredicate, Command), !, 
-	shell(Command),
-	make.
+	(   (   getenv('EDITOR', Editor)
+	    ;   $default_editor(Editor)
+	    )
+	->  edit_command(Editor, File, 1, $nopredicate, Command),
+	    shell(Command),
+	    make
+	).
 
-edit_command(Editor, File, $nopredicate, Command) :-
+edit_command(Editor, File, _Line, $nopredicate, Command) :- !,
 	$file_base_name(Editor, Base),
 	(   edit_command(Base, nosearch, Cmd)
 	->  name(Cmd, S0),
 	    substitute("%e", Editor, S0, S1),
-	    substitute("%f", File, S1, S2),
-	    name(Command, S2)
+	    substitute("%f", File, S1, S),
+	    name(Command, S)
 	;   $warning('Don''t know how to use editor `~w''', [Editor])
 	).
-edit_command(Editor, File, Pred, Command) :-
+edit_command(Editor, File, Line, Pred, Command) :-
 	$file_base_name(Editor, Base),
 	(   edit_command(Base, search, Cmd)
 	->  name(Cmd, S0),
 	    substitute("%e", Editor, S0, S1),
 	    substitute("%f", File, S1, S2),
 	    substitute("%s", Pred, S2, S3),
-	    name(Command, S3)
-	;   $warning('Don''t know how to use editor `~w''', [Editor])
+	    substitute("%d", Line, S3, S),
+	    name(Command, S)
 	).
 
-edit_command(top, search,   '%e ''%f'' ''-^%s''').
-edit_command(top, nosearch, '%e ''%f''').
-edit_command(vi,  search,   '%e ''+/^%s'' ''%f''').
-edit_command(vi,  nosearch, '%e ''%f''').
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+edit_command(+Editor, +search, -Command)
+
+This predicate should specify the  shell-command   called  to invoke the
+user's editor.  The following substitutions will be made:
+
+	%e		Path name of the editor
+	%f		Path name of the file to be edited
+	%s		Name of the predicate (only for `search')
+	%d		Line number of the predicate (only for `search')
+
+To locate a predicate in  a   source-file,  two mechanisms are provided.
+The first will *search* for the   predicate definition, while the second
+uses the *line-number* info from the Prolog system.  Searching generally
+only handles finding the  definition  of   the  first  occurrence of the
+predicate, disregarding the arity information.    Using  line-numbers is
+not sensitive to changes.  Smart editors  may pass both informations and
+search nearby the given line number.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+edit_command(top,   search,   '%e ''%f'' ''-^%s''').
+edit_command(vi,    search,   '%e ''+/^%s'' ''%f''').
+edit_command(emacs, search,   '%e +%d ''%f''').
+edit_command(_,     nosearch, '%e ''%f''').
 
 substitute(From, ToAtom, Old, New) :-
 	name(ToAtom, To),
@@ -125,6 +151,7 @@ substitute(From, ToAtom, Old, New) :-
 	append(From, Post, S0) ->
 	append(Pre, To, S1),
 	append(S1, Post, New), !.
+substitute(_, _, Old, Old).
 
 
 		/********************************
