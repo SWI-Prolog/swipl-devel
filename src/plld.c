@@ -31,7 +31,7 @@ embedded application.
 
 #define PROG_PL "plcon.exe"
 #define PROG_LD "link.exe"
-#define PROG_LDSO = "link.exe"
+#define PROG_LDSO "link.exe"
 #define PROG_CC "cl.exe"
 #define PROG_CXX "cl.exe"
 #define PROG_OUT "plout.exe"

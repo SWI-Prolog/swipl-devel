@@ -16,7 +16,6 @@
 #undef send
 #include <winsock.h>
 #define send sendPCE
-#include "pcewh.h"			/* TBD */
 #include <process.h>
 
 #define USE_API_THREAD 1

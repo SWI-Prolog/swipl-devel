@@ -45,6 +45,8 @@
 
 #define APIError() WinStrError(GetLastError())
 
+#include "xpcemh.h"
+
 typedef struct win_mf *WinMF;		/* win_metafile pointer type */
 
 extern HINSTANCE ThePceHInstance;	/* HINSTANCE from pceDLLEntry() */

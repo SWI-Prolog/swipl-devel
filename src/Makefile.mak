@@ -279,16 +279,11 @@ clean:		clean_packages
 distclean:	clean distclean_packages
 		@cd rc & $(MAKE) distclean
 		chdir win32\foreign & $(MAKE) distclean
-		rm -rf $(INCLUDEDIR) $(RUNTIMEDIR)
-		rm -f ../library/INDEX.pl
-		rm -f swipl swiplbin pl.prc
-		rm -f pl plld pl.1
-		rm -f config.log config.cache
+		del ..\library\INDEX.pl
+		del swipl swiplbin
 
 realclean:	clean
-		rm -f $(STARTUPPATH)
-		rm -f config.log config.cache
-		rm -rf $(PL) ../startup ../include ../runtime
+		del $(STARTUPPATH)
 
 uninstall:
 		rmdir /s /q $(PLBASE)
