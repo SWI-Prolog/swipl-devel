@@ -7,6 +7,11 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+
+  * Fixed: avoid deletion of clauses for dynamoc predicates on reload.
+    Hugo Ferreira.
+
+
 VERSION 5.4.2 (October 02, 2004)
 ================================
 

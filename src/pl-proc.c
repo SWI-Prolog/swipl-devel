@@ -37,7 +37,7 @@ finding source files, etc.
 
 static void	resetReferencesModule(Module);
 static void	resetProcedure(Procedure proc, bool isnew);
-static void	removeClausesProcedure(Procedure proc, int sfindex);
+static void	removeClausesProcedure(Procedure proc, int sfindex, int file);
 static atom_t	autoLoader(LocalFrame fr, Code PC, Definition def);
 static void	registerDirtyDefinition(Definition def);
 static Procedure visibleProcedure(functor_t f, Module m);
@@ -859,7 +859,7 @@ abolishProcedure(Procedure proc, Module module)
     return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
 		    ATOM_modify, ATOM_thread_local_procedure, def);
   } else				/* normal Prolog procedure */
-  { removeClausesProcedure(proc, 0);
+  { removeClausesProcedure(proc, 0, FALSE);
 
     if ( true(def, DYNAMIC) )
     { if ( def->references == 0 )
@@ -896,7 +896,7 @@ MT: Caller must hold L_PREDICATE
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-removeClausesProcedure(Procedure proc, int sfindex)
+removeClausesProcedure(Procedure proc, int sfindex, int fromfile)
 { Definition def = proc->definition;
   ClauseRef c;
 
@@ -910,9 +910,8 @@ removeClausesProcedure(Procedure proc, int sfindex)
   for(c = def->definition.clauses; c; c = c->next)
   { Clause cl = c->clause;
 
-    if ( (sfindex == 0 ||
-	   (sfindex == cl->source_no &&
-	    cl->line_no > 0)) &&	/* == 0: dynamic clauses */
+    if ( (sfindex == 0 || sfindex == cl->source_no) &&
+	 (!fromfile || cl->line_no > 0) &&
 	 false(cl, ERASED) )
     { set(cl, ERASED);
       set(def, NEEDSCLAUSEGC);		/* only on first */
@@ -2653,7 +2652,8 @@ startConsult(SourceFile f)
 			  predicateName(def), def->references));
 
 	removeClausesProcedure(proc,
-			       true(def, MULTIFILE) ? f->index : 0);
+			       true(def, MULTIFILE) ? f->index : 0,
+			       TRUE);
 
 	if ( true(def, NEEDSCLAUSEGC) )
 	{ if ( def->references == 0 )
