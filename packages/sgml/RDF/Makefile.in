@@ -48,7 +48,7 @@ xpce-install:	$(XPCEPL)
 		   $(INSTALL) -m 644 $(XPCEPL) $(XPCEBASE)/prolog/lib; \
 		fi
 
-rpm-install:	install xpce-install
+rpm-install:	install
 
 pdf-install::
 		$(INSTALL_DATA) $(DOC).pdf $(PKGDOC)

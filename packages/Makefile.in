@@ -7,17 +7,19 @@
 .EXPORT_ALL_VARIABLES:
 
 # Define the packages you wish to build.  Please note that xpce requires
-# libXPM and libjpeg to compile
+# libXPM and libjpeg to compile.  Note  that   xpce  is  in  front. Some
+# packages  install  additional  graphics  support  if  they  find  xpce
+# installed.
 
-PKG=	clib \
+PKG=	xpce \
+	clib \
 	cpp \
 	odbc \
 	table \
 	sgml \
 	sgml/RDF \
 	semweb \
-	http \
-	xpce
+	http
 
 # Define additional config options.  If you wish to build the multi-threaded
 # version of SWI-Prolog and pl-mt to the same install-base, you must provide
