@@ -1124,7 +1124,8 @@ NewClass(minus)
   ABSTRACT_BINARY_EXPRESSION
 End;
 
-#define ABSTRACT_SOURCE_SINK
+#define ABSTRACT_SOURCE_SINK \
+  Name		encoding;		/* used encoding */
 
 #define ABSTRACT_CHAR_ARRAY \
   string	data;			/* the represented data */

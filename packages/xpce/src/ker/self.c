@@ -90,6 +90,7 @@ initialisePce(Pce pce)
   assign(pce, home,		      DEFAULT);
   assign(pce, defaults,		      newObject(ClassFile,
 						CtoString("$PCEHOME/Defaults"),
+						NAME_utf8,
 						EAV));
 
   assign(pce, version,                CtoName(PCE_VERSION));

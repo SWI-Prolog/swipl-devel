@@ -52,15 +52,25 @@
 static Sheet FileFilters;
 
 static status
-initialiseFile(FileObj f, Name name, Name kind)
+initialiseFile(FileObj f, Name name, Name encoding)
 { initialiseSourceSink((SourceSink)f);
 
-  if ( isDefault(kind) )
-    kind = NAME_text;
+  if ( isDefault(encoding) )
+    encoding = NAME_text;
+
+  if ( encoding == NAME_text )
+  { assign(f, encoding, getClassVariableValueObject(f, NAME_encoding));
+    assign(f, kind, NAME_text);
+  } else if ( encoding == NAME_binary )
+  { assign(f, kind, NAME_binary);
+    assign(f, encoding, NAME_binary);
+  } else
+  { assign(f, encoding, encoding);
+    assign(f, kind, NAME_text);
+  }
 
   assign(f, status, NAME_closed);
   assign(f, path, DEFAULT);
-  assign(f, kind, kind);
   f->fd = NULL;
 
   if ( isDefault(name) )
@@ -1174,7 +1184,9 @@ static char *T_open[] =
 static char *T_find[] =
         { "path=[char_array]", "access=[{read,write,append,execute}]" };
 static char *T_initialise[] =
-        { "path=[name]", "kind=[{text,binary}]" };
+        { "path=[name]",
+	  "encoding=[{text,binary,iso_latin_1,utf8,unicode_be,unicode_le}]"
+	};
 
 /* Instance Variables */
 

@@ -51,19 +51,24 @@ stuff.
 #endif
 
 #ifdef HAVE_DECLSPEC
-#ifdef PL_KERNEL
-#define __pl_export	 __declspec(dllexport)
-#define __pl_export_data __declspec(dllexport)
-#define install_t	 void
-#else
-#define __pl_export	 extern
-#define __pl_export_data __declspec(dllimport)
-#define install_t	 __declspec(dllexport) void
-#endif
+# ifdef PL_KERNEL
+#define PL_EXPORT(type)		__declspec(dllexport) type
+#define PL_EXPORT_DATA(type)	__declspec(dllexport) type
+#define install_t	 	void
+# else
+#  ifdef __BORLANDC__
+#define PL_EXPORT(type)	 	type _stdcall
+#define PL_EXPORT_DATA(type)	extern type
+#  else
+#define PL_EXPORT(type)	 	extern type
+#define PL_EXPORT_DATA(type)	__declspec(dllimport) type
+#  endif
+#define install_t	 	__declspec(dllexport) void
+# endif
 #else /*HAVE_DECLSPEC*/
-#define __pl_export	 extern
-#define __pl_export_data extern
-#define install_t	 void
+#define PL_EXPORT(type)	 	extern type
+#define PL_EXPORT_DATA(type)	extern type
+#define install_t	 	void
 #endif /*HAVE_DECLSPEC*/
 #endif /*_PL_EXPORT_DONE*/
 
@@ -82,6 +87,7 @@ stuff.
 #if defined(__WIN32__) && !defined(EWOULDBLOCK)
 #define EWOULDBLOCK	1000		/* Needed for socket handling */
 #endif
+#define EPLEXCEPTION	1001		/* errno: pending Prolog exception */
 
 #define SIO_BUFSIZE	(4096)		/* buffering buffer-size */
 #define SIO_LINESIZE	(1024)		/* Sgets() default buffer size */
@@ -115,6 +121,19 @@ typedef struct io_position
   int			linepos;	/* position in line */
 } IOPOS;
 
+					/* NOTE: check with encoding_names */
+					/* in pl-file.c */
+typedef enum
+{ ENC_UNKNOWN = 0,			/* invalid/unknown */
+  ENC_NONE,				/* raw 8 bit input */
+  ENC_ASCII,
+  ENC_ISO_LATIN_1,
+  ENC_UTF8,
+  ENC_UNICODE_BE,			/* big endian unicode file */
+  ENC_UNICODE_LE,			/* little endian unicode file */
+  ENC_WCHAR				/* pl_wchar_t */
+} IOENC;
+
 typedef struct io_stream
 { char		       *bufp;		/* `here' */
   char		       *limitp;		/* read/write limit */
@@ -133,7 +152,15 @@ typedef struct io_stream
 					/* SWI-Prolog 4.0.7 */
   void			(*close_hook)(void* closure);
   void *		closure;
+					/* SWI-Prolog 5.1.3 */
+  int			timeout;	/* timeout (milliseconds) */
+					/* SWI-Prolog 5.4.4 */
+  char *		message;	/* error/warning message */
+  IOENC			encoding;	/* character encoding used */
+  struct io_stream *	tee;		/* copy data to this stream */
+  long			reserved[7];	/* reserved for extension */
 } IOSTREAM;
+
 
 #define SmakeFlag(n)	(1<<(n-1))
 
@@ -160,19 +187,24 @@ typedef struct io_stream
 #define SIO_UPDATE	SmakeFlag(21)	/* opened in update-mode */
 #define SIO_ISATTY	SmakeFlag(22)	/* Stream is a tty */
 #define SIO_CLOSING	SmakeFlag(23)	/* We are closing the stream */
+#define SIO_TIMEOUT	SmakeFlag(24)	/* We had a timeout */
+#define SIO_NOMUTEX	SmakeFlag(25)	/* Do not allow multi-thread access */
+#define SIO_ADVLOCK	SmakeFlag(26)	/* File locked with advisory lock */
+#define SIO_WARN	SmakeFlag(27)	/* Pending warning */
+#define SIO_CLEARERR	SmakeFlag(28)	/* Clear error after reporting */
 
 #define	SIO_SEEK_SET	0	/* From beginning of file.  */
 #define	SIO_SEEK_CUR	1	/* From current position.  */
 #define	SIO_SEEK_END	2	/* From end of file.  */
 
-__pl_export IOSTREAM *S__getiob(void);	/* get DLL's __iob[] address */
+PL_EXPORT(IOSTREAM *)	S__getiob(void);	/* get DLL's __iob[] address */
 
-__pl_export_data IOFUNCTIONS Sfilefunctions;	/* OS file functions */
-__pl_export_data int	     Slinesize;		/* Sgets() linesize */
+PL_EXPORT_DATA(IOFUNCTIONS)  Sfilefunctions;	/* OS file functions */
+PL_EXPORT_DATA(int)	     Slinesize;		/* Sgets() linesize */
 #if defined(__CYGWIN32__) && !defined(PL_KERNEL)
 #define S__iob S__getiob()
 #else
-__pl_export_data IOSTREAM    S__iob[3];		/* Libs standard streams */
+PL_EXPORT_DATA(IOSTREAM)    S__iob[3];		/* Libs standard streams */
 #endif
 
 #define Sinput  (&S__iob[0])		/* Stream Sinput */
@@ -193,6 +225,9 @@ __pl_export_data IOSTREAM    S__iob[3];		/* Libs standard streams */
 /* Control-operations */
 #define SIO_GETSIZE	(1)		/* get size of underlying object */
 #define SIO_GETFILENO	(2)		/* get underlying file (if any) */
+
+/* Sread_pending() */
+#define SIO_RP_BLOCK 0x1		/* wait for new input */
 
 #if IOSTREAM_REPLACES_STDIO
 
@@ -253,50 +288,60 @@ __pl_export_data IOSTREAM    S__iob[3];		/* Libs standard streams */
 		 *	    PROTOTYPES		*
 		 *******************************/
 
-__pl_export void	SinitStreams();
-__pl_export void	Scleanup(void);
-__pl_export int		S__fupdatefilepos(IOSTREAM *s, int c);
-__pl_export int		S__fillbuf(IOSTREAM *s);
-__pl_export int		Sputc(int c, IOSTREAM *s);
-__pl_export int		Sfgetc(IOSTREAM *s);
-__pl_export int		Sungetc(int c, IOSTREAM *s);
-__pl_export int		Sputw(int w, IOSTREAM *s);
-__pl_export int		Sgetw(IOSTREAM *s);
-__pl_export int		Sfread(void *data, int size, int elems, IOSTREAM *s);
-__pl_export int		Sfwrite(const void *data, int size, int elems,
+PL_EXPORT(void)		SinitStreams();
+PL_EXPORT(void)		Scleanup(void);
+PL_EXPORT(int)		S__fupdatefilepos(IOSTREAM *s, int c);
+PL_EXPORT(int)		S__fillbuf(IOSTREAM *s);
+					/* byte I/O */
+PL_EXPORT(int)		Sputc(int c, IOSTREAM *s);
+PL_EXPORT(int)		Sfgetc(IOSTREAM *s);
+PL_EXPORT(int)		Sungetc(int c, IOSTREAM *s);
+					/* multibyte I/O */
+PL_EXPORT(int)		Sputcode(int c, IOSTREAM *s);
+PL_EXPORT(int)		Sgetcode(IOSTREAM *s);
+PL_EXPORT(int)		Sungetcode(int c, IOSTREAM *s);
+					/* word I/O */
+PL_EXPORT(int)		Sputw(int w, IOSTREAM *s);
+PL_EXPORT(int)		Sgetw(IOSTREAM *s);
+PL_EXPORT(int)		Sfread(void *data, int size, int elems, IOSTREAM *s);
+PL_EXPORT(int)		Sfwrite(const void *data, int size, int elems,
 				IOSTREAM *s);
-__pl_export int		Sfeof(IOSTREAM *s);
-__pl_export int		Sfpasteof(IOSTREAM *s);
-__pl_export int		Sferror(IOSTREAM *s);
-__pl_export void	Sclearerr(IOSTREAM *s);
-__pl_export int		Sflush(IOSTREAM *s);
-__pl_export long	Ssize(IOSTREAM *s);
-__pl_export long	Sseek(IOSTREAM *s, long pos, int whence);
-__pl_export long	Stell(IOSTREAM *s);
-__pl_export int		Sclose(IOSTREAM *s);
-__pl_export char *	Sfgets(char *buf, int n, IOSTREAM *s);
-__pl_export char *	Sgets(char *buf);
-__pl_export int		Sfputs(const char *q, IOSTREAM *s);
-__pl_export int		Sputs(const char *q);
-__pl_export int		Sfprintf(IOSTREAM *s, const char *fm, ...);
-__pl_export int		Sprintf(const char *fm, ...);
-__pl_export int		Svprintf(const char *fm, va_list args);
-__pl_export int		Svfprintf(IOSTREAM *s, const char *fm, va_list args);
-__pl_export int		Ssprintf(char *buf, const char *fm, ...);
-__pl_export int		Svsprintf(char *buf, const char *fm, va_list args);
-__pl_export int		Svdprintf(const char *fm, va_list args);
-__pl_export int		Sdprintf(const char *fm, ...);
-__pl_export int		Slock(IOSTREAM *s);
-__pl_export int		StryLock(IOSTREAM *s);
-__pl_export int		Sunlock(IOSTREAM *s);
-__pl_export IOSTREAM *	Snew(void *handle, int flags, IOFUNCTIONS *functions);
-__pl_export IOSTREAM *	Sopen_file(const char *path, const char *how);
-__pl_export IOSTREAM *	Sfdopen(int fd, const char *type);
-__pl_export int	   	Sfileno(IOSTREAM *s);
-__pl_export IOSTREAM *	Sopen_pipe(const char *command, const char *type);
-__pl_export IOSTREAM *	Sopenmem(char **buffer, int *sizep, const char *mode);
-__pl_export IOSTREAM *	Sopen_string(IOSTREAM *s, char *buf, int sz, const char *m);
-__pl_export int		Sclosehook(void (*hook)(IOSTREAM *s));
+PL_EXPORT(int)		Sfeof(IOSTREAM *s);
+PL_EXPORT(int)		Sfpasteof(IOSTREAM *s);
+PL_EXPORT(int)		Sferror(IOSTREAM *s);
+PL_EXPORT(void)		Sclearerr(IOSTREAM *s);
+PL_EXPORT(void)		Sseterr(IOSTREAM *s, int which, const char *message);
+PL_EXPORT(int)		Sflush(IOSTREAM *s);
+PL_EXPORT(long)		Ssize(IOSTREAM *s);
+PL_EXPORT(long)		Sseek(IOSTREAM *s, long pos, int whence);
+PL_EXPORT(long)		Stell(IOSTREAM *s);
+PL_EXPORT(int)		Sclose(IOSTREAM *s);
+PL_EXPORT(char *)	Sfgets(char *buf, int n, IOSTREAM *s);
+PL_EXPORT(char *)	Sgets(char *buf);
+PL_EXPORT(int)		Sread_pending(IOSTREAM *s,
+				      char *buf, int limit, int flags);
+PL_EXPORT(int)		Sfputs(const char *q, IOSTREAM *s);
+PL_EXPORT(int)		Sputs(const char *q);
+PL_EXPORT(int)		Sfprintf(IOSTREAM *s, const char *fm, ...);
+PL_EXPORT(int)		Sprintf(const char *fm, ...);
+PL_EXPORT(int)		Svprintf(const char *fm, va_list args);
+PL_EXPORT(int)		Svfprintf(IOSTREAM *s, const char *fm, va_list args);
+PL_EXPORT(int)		Ssprintf(char *buf, const char *fm, ...);
+PL_EXPORT(int)		Svsprintf(char *buf, const char *fm, va_list args);
+PL_EXPORT(int)		Svdprintf(const char *fm, va_list args);
+PL_EXPORT(int)		Sdprintf(const char *fm, ...);
+PL_EXPORT(int)		Slock(IOSTREAM *s);
+PL_EXPORT(int)		StryLock(IOSTREAM *s);
+PL_EXPORT(int)		Sunlock(IOSTREAM *s);
+PL_EXPORT(IOSTREAM *)	Snew(void *handle, int flags, IOFUNCTIONS *functions);
+PL_EXPORT(IOSTREAM *)	Sopen_file(const char *path, const char *how);
+PL_EXPORT(IOSTREAM *)	Sfdopen(int fd, const char *type);
+PL_EXPORT(int)	   	Sfileno(IOSTREAM *s);
+PL_EXPORT(IOSTREAM *)	Sopen_pipe(const char *command, const char *type);
+PL_EXPORT(IOSTREAM *)	Sopenmem(char **buffer, int *sizep, const char *mode);
+PL_EXPORT(IOSTREAM *)	Sopen_string(IOSTREAM *s, char *buf, int sz, const char *m);
+PL_EXPORT(int)		Sclosehook(void (*hook)(IOSTREAM *s));
+PL_EXPORT(void)		Sfree(void *ptr);
 
 #ifdef __cplusplus
 }

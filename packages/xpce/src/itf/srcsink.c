@@ -35,6 +35,37 @@ getConvertSourceSink(Class class, Name name)
 { answer(answerObject(ClassFile, name, EAV));
 }
 
+
+static status
+encodingSourceSink(SourceSink ss, Name encoding)
+{ ss->encoding = encoding;
+
+  succeed;
+}
+
+
+status
+setStreamEncodingSourceSink(SourceSink ss, IOSTREAM *fd)
+{ if ( ss->encoding == NAME_binary )
+    fd->encoding = ENC_NONE;
+  else if ( ss->encoding == NAME_iso_latin_1 )
+    fd->encoding = ENC_ISO_LATIN_1;
+  else if ( ss->encoding == NAME_utf8 )
+    fd->encoding = ENC_UTF8;
+  else if ( ss->encoding == NAME_unicodeBe )
+    fd->encoding = ENC_UNICODE_BE;
+  else if ( ss->encoding == NAME_unicodeLe )
+    fd->encoding = ENC_UNICODE_LE;
+  else if ( ss->encoding == NAME_wchar )
+    fd->encoding = ENC_WCHAR;
+  else
+    fail;
+
+  succeed;
+}
+
+
+
 		 /*******************************
 		 *	  GENERIC ACTIONS	*
 		 *******************************/
@@ -66,21 +97,78 @@ getContentsSourceSink(SourceSink ss, Int from, Int len)
       fail;
     }
 
-    str_inithdr(&s, ENC_ISOL1);
-    s.size = size;
-    str_alloc(&s);
+    if ( ss->encoding == NAME_binary ||
+	 ss->encoding == NAME_iso_latin_1 )
+    { str_inithdr(&s, ENC_ISOL1);
+      s.size = size;
+      str_alloc(&s);
 
-    Sfread(s.s_textA, sizeof(char), size, fd);
-    ok = checkErrorSourceSink(ss, fd);
-    Sclose(fd);
+      Sfread(s.s_textA, sizeof(char), size, fd);
+      ok = checkErrorSourceSink(ss, fd);
+      Sclose(fd);
 
-    if ( ok )
-    { StringObj str = answerObject(ClassString, EAV);
+      if ( ok )
+      { StringObj str = answerObject(ClassString, EAV);
+	
+	str_unalloc(&str->data);
+	str->data = s;
 
-      str_unalloc(&str->data);
-      str->data = s;
+	answer(str);
+      } else
+      { str_unalloc(&s);
+	fail;
+      }
+    } else
+    { wint_t c;
+      long n = 0;
 
-      answer(str);
+      str_inithdr(&s, ENC_ISOL1);
+      s.size = 256;
+      s.s_textA = pceMalloc(s.size);
+
+      setStreamEncodingSourceSink(ss, fd);
+
+      while( n < valInt(len) && (c=Sgetcode(fd)) != EOF )
+      { if ( c > 0xff && !s.iswide )
+	{ charW *w = pceMalloc(s.size*sizeof(charW));
+	  charW *t = w;
+	  const charA *f = s.s_textA;
+	  const charA *e = &f[n];
+
+	  while(f<e)
+	    *t++ = *f++;
+
+	  pceFree(s.s_textA);
+	  s.s_textW = w;
+	  s.iswide = TRUE;
+	}
+	if ( n >= s.size )
+	{ s.size *= 2;
+
+	  if ( isstrA(&s) )
+	    s.s_textA = pceRealloc(s.s_textA, s.size);
+	  else
+	    s.s_textA = pceRealloc(s.s_textW, s.size*sizeof(charW));
+	}
+	if ( isstrA(&s) )
+	  s.s_textA[n++] = c;
+	else
+	  s.s_textW[n++] = c;
+      }
+
+      ok = checkErrorSourceSink(ss, fd);
+      Sclose(fd);
+      s.size = n;
+
+      if ( ok )
+      { StringObj str = StringToString(&s);
+
+	pceFree(s.s_textA);
+	answer(str);
+      } else
+      { pceFree(s.s_textA);
+	fail;
+      }
     }
   }
 
@@ -135,12 +223,11 @@ static char *T_contents[] =
 
 /* Instance Variables */
 
-#define var_source_sink NULL
-/*
 static vardecl var_source_sink[] =
-{ 
+{ SV(NAME_encoding, "{binary,iso_latin_1,utf8,unicode_be,unicode_le,wchar}",
+     IV_GET|IV_STORE, encodingSourceSink,
+     NAME_encoding, "Encoding of the data-source"),
 };
-*/
 
 /* Send Methods */
 
@@ -174,12 +261,9 @@ static getdecl get_source_sink[] =
 
 /* Resources */
 
-#define rc_source_sink NULL
-/*
 static classvardecl rc_source_sink[] =
-{ 
+{ RC(NAME_encoding, NULL, "iso_latin_1", NULL)
 };
-*/
 
 /* Class Declaration */
 

@@ -705,7 +705,7 @@ loadDefaultClassVariables(SourceSink f)
 	    s++;
 	  if ( s )
 	  { StringObj fn = getword(s, NULL);
-	    Any fincluded = newObject(ClassFile, fn, EAV);
+	    Any fincluded = newObject(ClassFile, fn, NAME_utf8, EAV);
 	    
 	    if ( send(fincluded, NAME_exists, EAV) )
 	      loadDefaultClassVariables(fincluded);

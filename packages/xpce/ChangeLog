@@ -3,7 +3,8 @@
 
 
 * ADDED: Ongoing work on wide-character support.  Currently dealing with
-  the XPCE <-> Prolog interface.
+  the XPCE <-> Prolog interface, elementary string handling, displaying
+  wide strings.
 
 
 VERSION 6.5.1, distributed with SWI-Prolog 5.5.2

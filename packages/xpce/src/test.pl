@@ -143,6 +143,26 @@ wstring(split-1) :-
 
 
 		 /*******************************
+		 *	     SOURCE SINK	*
+		 *******************************/
+
+srcsink(utf8-1) :-
+	numlist(32, 1000, L),
+	tmp_file(test, Tmp),
+	open(Tmp, write, Out, [encoding(utf8)]),
+	checklist(put_code(Out), L),
+	close(Out),
+	new(File, file(Tmp, utf8)),
+	get(File, contents, String),
+	delete_file(Tmp),
+	get(String, value, Atom),
+	atom_codes(Atom, L).
+
+
+
+
+
+		 /*******************************
 		 *	      SCRIPTS		*
 		 *******************************/
 
@@ -218,6 +238,7 @@ testset(name).				% XPCE names
 testset(wname).				% Names holding wide characters
 testset(wstring).			% Strings holding wide characters
 testset(fmt).				% Formatting actions
+testset(srcsink).			% Source/Sink operations
 
 %	testdir(Dir)
 %	
