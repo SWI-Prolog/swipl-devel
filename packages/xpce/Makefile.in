@@ -7,23 +7,23 @@
 MAKE=@MAKE@
 BUILDARCH=@BUILDARCH@
 
-all:
+all::
 	@cd $(BUILDARCH) && $(MAKE) $@
 
-install:
+install::
 	@cd $(BUILDARCH) && $(MAKE) $@
 
-rpm-install:
+rpm-install::
 	@cd $(BUILDARCH) && $(MAKE) $@
 
-html-install:
+html-install::
 	@cd $(BUILDARCH) && $(MAKE) $@
 
-pdf-install:
+pdf-install::
 	@cd $(BUILDARCH) && $(MAKE) $@
 
-clean:
+clean::
 	@cd $(BUILDARCH) && $(MAKE) $@
 
-distclean:
+distclean::
 	@cd $(BUILDARCH) && $(MAKE) $@
