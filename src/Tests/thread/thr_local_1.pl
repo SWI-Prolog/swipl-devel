@@ -53,16 +53,23 @@ thr_local_1(Threads, Asserts) :-
 			       global(1000),
 			       trail(1000)
 			     ])),
-	thread_join(Id, Ok),
-	(   Ok == true
-	;   format('Return = ~p~n', [Ok])
-	).
+	join_ok(Id).
 
 join(Times) :-
 	forall(between(1, Times, _),
 	       (   thread_get_message(done(Done)),
-		   thread_join(Done, true)
+		   join_ok(Done)
 	       )).
+
+join_ok(Id) :-
+	current_thread(Id, S),
+	thread_join(Id, Return),
+	(   Return == true
+	->  true
+	;   format('~N~p returned ~p~n', [Id, Return]),
+	    fail
+	).
+
 
 test_foo(N, Report) :-
 	forall(between(0, N, X),
