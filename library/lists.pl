@@ -126,19 +126,19 @@ nth1(Index, List, Elem) :-
         var(Index), !,
         nth_gen(List, Elem, 1, Index).  %% match
 
-%	last(?Elem, ?List)
+%	last(?List, ?Elem)
+%
 %	Succeeds if `Last' unifies with the last element of `List'.
-%	Modified after discussion on the comp.lang.prolog.  This version
-%	is a little faster and deterministic as well as logical.
 
-last(Elem, [H|T]) :-
-	last(T, H, Elem).
+last([X|Xs], Last) :-
+    last_(Xs, X, Last).
 
-last([], X, X).
-last([H|T], _, X) :-
-	last(T, H, X).
+last_([], Last, Last).
+last_([X|Xs], _, Last) :-
+    last_(Xs, X, Last).
 
 %	reverse(?List1, ?List2)
+%
 %	Is true when the elements of List2 are in reverse order compared to
 %	List1.
 

@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * MODIFIED: Argument order of last/2.  Compatibility to other Prolog
+    systems.  Please update your sources.
+
   * ADDED: time/1 and profile/1,3 to call expand_goal/2.  Time/1 to
     report elapsed time.
 
