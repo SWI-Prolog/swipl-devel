@@ -23,7 +23,8 @@ AC_SUBST(RUNTEX)
 
 AC_ARG_ENABLE(mt, [  --enable-mt		  Enable Multi-threading],
 	      [case "$enableval" in
-		   yes) AC_DEFINE(_REENTRANT)
+		   yes) AC_DEFINE([_REENTRANT], 1,
+				  [Define for multi-threaded version])
 			;;
 		   *)  ;;
 	       esac])
@@ -102,6 +103,6 @@ CFLAGS="$CMFLAGS"
 AC_C_BIGENDIAN
 
 AC_CHECK_HEADERS(malloc.h unistd.h sys/time.h fcntl.h floatingpoint.h)
-AC_CHECK_FUNCS(mmap strerror)
+AC_CHECK_FUNCS(snprintf strerror)
 
 AC_OUTPUT(Makefile)

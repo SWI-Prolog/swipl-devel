@@ -1290,7 +1290,8 @@ fi;
 if test "${enable_mt+set}" = set; then
   enableval="$enable_mt"
   case "$enableval" in
-		   yes) cat >>confdefs.h <<\_ACEOF
+		   yes)
+cat >>confdefs.h <<\_ACEOF
 #define _REENTRANT 1
 _ACEOF
 
@@ -3480,7 +3481,7 @@ done
 
 
 
-for ac_func in mmap strerror
+for ac_func in snprintf strerror
 do
 as_ac_var=`echo "ac_cv_func_$ac_func" | $as_tr_sh`
 echo "$as_me:$LINENO: checking for $ac_func" >&5
