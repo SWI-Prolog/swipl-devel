@@ -229,6 +229,7 @@ pushXrIdTable(ARG1_LD)
 
   if ( !(t->table = malloc(ALLOCSIZE)) )
     outOfCore();
+  SECURE(memset(t->table, 0, ALLOCSIZE));
   t->tablesize = 0;
   t->id = 0;
 
@@ -256,8 +257,13 @@ static word
 lookupXrId(long id)
 { XrTable t = loadedXrs;
   Word array = t->table[id/SUBENTRIES];
+  word value;
 
-  return array[id%SUBENTRIES];
+  SECURE(assert(array));
+  value = array[id%SUBENTRIES];
+  SECURE(assert(value));
+
+  return value;
 }
 
 
@@ -267,8 +273,13 @@ storeXrId(long id, word value)
   int i = id/SUBENTRIES;
 
   while ( i >= t->tablesize )
-  { if ( !(t->table[t->tablesize++] = malloc(ALLOCSIZE)) )
+  { Word a = malloc(ALLOCSIZE);
+
+    if ( !a )
       outOfCore();
+
+    SECURE(memset(a, 0, ALLOCSIZE));
+    t->table[t->tablesize++] = a;
   }
   
   t->table[i][id%SUBENTRIES] = value;
@@ -1260,6 +1271,17 @@ putLong(unsigned long v, IOSTREAM *fd)	/* always 4 bytes */
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+XR (External Reference)  table  handling.   The  table  contains  atoms,
+functors  and  various  types  of    pointers   (Module,  Procedure  and
+SourceFile). For savedXR()  to  work,  atom_t   and  functor_t  may  not
+conflict with pointers. We assume -as in  many other places in the code-
+that pointers are 4-byte aligned.
+
+savedXRConstant()  must  be  used  for    atom_t  and  functor_t,  while
+savedXRPointer must be used for the pointers.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
 savedXR(void *xr, IOSTREAM *fd)
 { Symbol s;
@@ -1277,6 +1299,23 @@ savedXR(void *xr, IOSTREAM *fd)
   }
 
   fail;
+}
+
+
+static inline int
+savedXRConstant(word w, IOSTREAM *fd)
+{ assert(tag(w) == TAG_ATOM);		/* Only functor_t and atom_t */
+  w |= 0x1;				/* Avoid conflict with pointer */
+  
+  return savedXR((void *)w, fd);
+}
+
+
+static inline int
+savedXRPointer(void *p, IOSTREAM *fd)
+{ assert(((word)p & 0x1) == 0);
+
+  return savedXR(p, fd);
 }
 
 
@@ -1302,7 +1341,7 @@ saveXR__LD(word xr, IOSTREAM *fd ARG_LD)
 #endif /* O_STRING */
   }
 
-  if ( savedXR((void *)xr, fd) )
+  if ( savedXRConstant(xr, fd) )
     return;
 
   if ( isAtom(xr) )
@@ -1319,7 +1358,7 @@ saveXR__LD(word xr, IOSTREAM *fd ARG_LD)
 
 static void
 saveXRModule(Module m, IOSTREAM *fd ARG_LD)
-{ if ( savedXR((void *)m, fd) )
+{ if ( savedXRPointer(m, fd) )
     return;
 
   Sputc(XR_MODULE, fd);
@@ -1332,7 +1371,7 @@ static void
 saveXRFunctor(functor_t f, IOSTREAM *fd ARG_LD)
 { FunctorDef fdef;
 
-  if ( savedXR((void *)f, fd) )
+  if ( savedXRConstant(f, fd) )
     return;
 
   fdef = valueFunctor(f);
@@ -1347,7 +1386,7 @@ saveXRFunctor(functor_t f, IOSTREAM *fd ARG_LD)
 
 static void
 saveXRProc(Procedure p, IOSTREAM *fd ARG_LD)
-{ if ( savedXR(p, fd) )
+{ if ( savedXRPointer(p, fd) )
     return;
 
   DEBUG(3, Sdprintf("XR(%d) = proc %s\n", savedXRTableId, procedureName(p)));
@@ -1359,7 +1398,7 @@ saveXRProc(Procedure p, IOSTREAM *fd ARG_LD)
 
 static void
 saveXRSourceFile(SourceFile f, IOSTREAM *fd ARG_LD)
-{ if ( savedXR(f, fd) )
+{ if ( savedXRPointer(f, fd) )
     return;
 
   Sputc(XR_FILE, fd);
