@@ -783,12 +783,15 @@ pl_recorded(term_t key, term_t term, term_t ref, word h)
     }
     case FRG_CUTTED:
     { record = ForeignContextPtr(h);
-      rl = record->list;
+      
+      if ( record )
+      { rl = record->list;
 
-      LOCK();
-      if ( --rl->references == 0 && true(rl, R_DIRTY) )
-	cleanRecordList(rl);
-      UNLOCK();
+	LOCK();
+	if ( --rl->references == 0 && true(rl, R_DIRTY) )
+	  cleanRecordList(rl);
+	UNLOCK();
+      }
     }
       /* FALLTHROUGH */
     default:

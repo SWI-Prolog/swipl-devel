@@ -2366,9 +2366,11 @@ pl_clause4(term_t p, term_t term, term_t ref, term_t bindings, word h)
     case FRG_CUTTED:
     default:
     { cref = ForeignContextPtr(h);
-      def  = cref->clause->procedure->definition;
 
-      leaveDefinition(def);
+      if ( cref )
+      { def  = cref->clause->procedure->definition;
+	leaveDefinition(def);
+      }
       succeed;
     }
   }
@@ -2433,9 +2435,12 @@ pl_nth_clause(term_t p, term_t n, term_t ref, word h)
 
   if ( ForeignControl(h) == FRG_CUTTED )
   { cr = ForeignContextPtr(h);
-    def = cr->clause->clause->procedure->definition;
-    leaveDefinition(def);
-    freeHeap(cr, sizeof(crref));
+
+    if ( cr )
+    { def = cr->clause->clause->procedure->definition;
+      leaveDefinition(def);
+      freeHeap(cr, sizeof(crref));
+    }
     succeed;
   }
 

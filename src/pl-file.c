@@ -1925,10 +1925,12 @@ pl_stream_property(term_t stream, term_t property, word h)
     case FRG_CUTTED:
     { pe = ForeignContextPtr(h);
 
-      if ( pe->e )
-	freeTableEnum(pe->e);
+      if ( pe )				/* 0 if exception on FRG_FIRST_CALL */
+      { if ( pe->e )
+	  freeTableEnum(pe->e);
 
-      freeHeap(pe, sizeof(*pe));
+	freeHeap(pe, sizeof(*pe));
+      }
       succeed;
     }
     default:

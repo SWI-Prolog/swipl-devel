@@ -492,8 +492,10 @@ pl_feature5(term_t key, term_t value,
       break;
     case FRG_CUTTED:
       e = ForeignContextPtr(h);
-      freeTableEnum(e->table_enum);
-      freeHeap(e, sizeof(*e));
+      if ( e )
+      { freeTableEnum(e->table_enum);
+	freeHeap(e, sizeof(*e));
+      }
     default:
       succeed;
   }

@@ -1,6 +1,12 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Problems with non-deterministic foreign predicates raising
+    exceptions on the first call for which the cleanup made assuptions
+    on the returned context.  Thanks to Frank Cornelissen.
+
+  * FIXED: Layout problem in the online manual
+
 VERSION 3.3.0 (release-5)
 =========================
 

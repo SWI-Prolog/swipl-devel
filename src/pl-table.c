@@ -329,6 +329,9 @@ freeTableEnum(TableEnum e)
 { TableEnum *ep;
   Table ht;
 
+  if ( !e )
+    return;
+
   LOCK();
 
   ht = e->table;

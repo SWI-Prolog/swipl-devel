@@ -941,7 +941,9 @@ word
 pl_retract(term_t term, word h)
 { if ( ForeignControl(h) == FRG_CUTTED )
   { ClauseRef cref = ForeignContextPtr(h);
-    leaveDefinition(cref->clause->procedure->definition);
+
+    if ( cref )
+      leaveDefinition(cref->clause->procedure->definition);
 
     succeed;
   } else

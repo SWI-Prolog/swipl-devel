@@ -428,8 +428,11 @@ current_op(Module m, int inherit,
     }
     case FRG_CUTTED:
     { e = ForeignContextPtr(h);
-      discardBuffer(&e->buffer);
-      freeHeap(e, sizeof(*e));
+
+      if ( e )
+      { discardBuffer(&e->buffer);
+	freeHeap(e, sizeof(*e));
+      }
 
       succeed;
     }

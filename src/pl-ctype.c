@@ -332,7 +332,8 @@ do_char_type(term_t chr, term_t class, word h, int how)
       break;
     case FRG_CUTTED:
       gen = ForeignContextPtr(h);
-      freeHeap(gen, sizeof(*gen));
+      if ( gen )
+	freeHeap(gen, sizeof(*gen));
     default:
       succeed;
   }

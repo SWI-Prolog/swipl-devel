@@ -1868,7 +1868,8 @@ sub_text(term_t atom,
     case FRG_CUTTED:
     exit_succeed:
       state = ForeignContextPtr(h);
-      freeHeap(state, sizeof(*state));
+      if ( state )
+	freeHeap(state, sizeof(*state));
       succeed;
     default:
       assert(0);
