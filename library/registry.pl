@@ -148,7 +148,7 @@ registry_get_key(Path, Value) :-
 	registry_get_key(Path, '', Value).
 registry_get_key(Path, Name, Value) :-
 	registry_lookup_key(Path, read, Key, Close),
-	(   reg_get_value(Key, Name, RawVal)
+	(   reg_value(Key, Name, RawVal)
 	->  Close,
 	    Value = RawVal
 	;   Close,
