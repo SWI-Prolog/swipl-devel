@@ -103,8 +103,7 @@ typedef enum
   S_PENT,				/* Seen % */
   S_ENT0,				/* Seen & */
   S_ENT,				/* Seen &(#|\w) */
-  S_ENTCR,				/* Seen &entity<CR> */
-  S_SHORTTAG_CDATA			/* Seen <tag/ */
+  S_ENTCR				/* Seen &entity<CR> */
 } dtdstate;
 
 
@@ -157,6 +156,8 @@ typedef struct _sgml_environment
   dtd_space_mode space_mode;		/* How to handle blanks */
   dtd_shortref *map;			/* SHORTREF map */
   struct _sgml_environment *parent;	/* Parent environment */
+  int	wants_net;			/* I want a net */
+  int	saved_waiting_for_net;		/* saved value of waiting for net */
 } sgml_environment;
 
 					/* parser->flags */
@@ -173,6 +174,7 @@ typedef struct _dtd_parser
   sgml_environment *environments;	/* Open environments */
   data_mode dmode;			/* How to handle characters */
   int	   first;			/* Just seen <tag> */
+  int	   waiting_for_net;		/* waiting for / in <shorttag/mode/ */
   icharbuf *buffer;			/* buffer for temp data */
   ocharbuf *cdata;			/* collected character data */
   int	   blank_cdata;			/* CDATA is all blank */

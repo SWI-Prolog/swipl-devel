@@ -87,6 +87,7 @@ static const ichar *	isee_character_entity(dtd *dtd, const ichar *in,
 static int		add_default_attributes(dtd_parser *p, dtd_element *e,
 					       int natts,
 					       sgml_attribute *atts);
+static int		prepare_cdata(dtd_parser *p);
 
 
 		 /*******************************
@@ -2545,6 +2546,19 @@ push_element(dtd_parser *p, dtd_element *e, int callback)
     env->parent = p->environments;
     p->environments = env;
 
+    if ( p->dtd->shorttag )
+    { env->saved_waiting_for_net = p->waiting_for_net;
+
+      if ( p->event_class == EV_SHORTTAG )
+      { p->waiting_for_net = TRUE;
+	env->wants_net = TRUE;
+      } else
+      { env->wants_net = FALSE;
+	if ( e->structure && e->structure->omit_close == FALSE )
+	  p->waiting_for_net = FALSE;
+      }
+    }
+
     if ( e->map )
       p->map = env->map = e->map;
     else if ( env->parent )
@@ -2610,8 +2624,12 @@ pop_to(dtd_parser *p, sgml_environment *to, dtd_element *e0)
 
     if ( e0 != CDATA_ELEMENT )
       emit_cdata(p, TRUE);
+
     p->first = FALSE;
     p->environments = env;
+    if ( p->dtd->shorttag )
+      p->waiting_for_net = env->saved_waiting_for_net;
+
     WITH_CLASS(p, EV_OMITTED,
 	       if ( p->on_end_element )
 	         (*p->on_end_element)(p, e));
@@ -3319,13 +3337,47 @@ process_end_element(dtd_parser *p, const ichar *decl)
   if ( (s=itake_name(dtd, decl, &id)) && *s == '\0' )
     return close_element(p, find_element(dtd, id), FALSE);
 
-  if ( p->dtd->shorttag && *decl == '\0' )
+  if ( p->dtd->shorttag && *decl == '\0' ) /* </>: close current element */
     return close_current_element(p);
 
   return gripe(ERC_SYNTAX_ERROR, "Bad close-element tag", decl);
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+process_net(dtd_parser *p)
+    We've seen a / of a shorttag element.  Close this one.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+process_net(dtd_parser *p)
+{ sgml_environment *env;
+
+  prepare_cdata(p);
+  for(env = p->environments; env; env=env->parent)
+  { if ( env->wants_net )
+    { sgml_environment *parent;
+
+      pop_to(p, env, NULL);		/* close parents */
+      validate_completeness(env);
+      parent = env->parent;
+
+      emit_cdata(p, TRUE);
+      p->first = FALSE;
+
+      if ( p->on_end_element )
+	(*p->on_end_element)(p, env->element);
+
+      free_environment(env);
+      p->environments = parent;
+      p->map = (parent ? parent->map : NULL);
+
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
 
 
 static int				/* <!DOCTYPE ...> */
@@ -4170,10 +4222,6 @@ end_document_dtd_parser_(dtd_parser *p)
       rval = gripe(ERC_SYNTAX_ERROR,
 		   "Unexpected end-of-file in processing instruction", "");
       break;
-    case S_SHORTTAG_CDATA:
-      rval = gripe(ERC_SYNTAX_ERROR,
-		   "Unexpected end-of-file in SHORTTAG element");
-      break;
     default:
       rval = gripe(ERC_SYNTAX_ERROR,
 		   "Unexpected end-of-file in ???");
@@ -4409,6 +4457,12 @@ reprocess:
 	p->saved = chr;			/* for recovery */
 	return;
       }
+
+      if ( p->waiting_for_net && f[CF_ETAGO2] == chr ) /* shorttag */
+      { WITH_PARSER(p,
+		    process_net(p));
+	return;
+      }
 					/* Real character data */
 #ifdef UTF8
       if ( p->utf8_decode && ISUTF8_MB(chr) )
@@ -4619,14 +4673,14 @@ reprocess:
       }
       if ( dtd->shorttag && f[CF_ETAGO2] == chr && p->buffer->size > 0 )
       { prepare_cdata(p);
+	p->state = S_PCDATA;
 	terminate_icharbuf(p->buffer);
 	if ( p->mark_state == MS_INCLUDE )
 	{ WITH_CLASS(p, EV_SHORTTAG,
 		     WITH_PARSER(p, process_declaration(p, p->buffer->data)));
 	}
 	empty_icharbuf(p->buffer);
-	sgml_cplocation(&p->startcdata, &p->location);
-	p->state = S_SHORTTAG_CDATA;
+	p->waiting_for_net = TRUE;
 	return;
       }
 
@@ -4670,17 +4724,6 @@ reprocess:
       else
 	p->state = S_DECLCMT;
       break;
-    }
-    case S_SHORTTAG_CDATA:
-    { if ( f[CF_ETAGO2] == chr )	/* / */
-      { setlocation(&p->startloc, &p->location, line, lpos);
-	process_cdata(p, TRUE);
-	p->state = S_PCDATA;
-	WITH_CLASS(p, EV_SHORTTAG, close_current_element(p));
-      } else
-	add_cdata(p, dtd->charmap->map[chr]);
-
-      return;
     }
     case S_PI:
     { add_icharbuf(p->buffer, chr);

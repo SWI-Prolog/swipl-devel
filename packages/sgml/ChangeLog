@@ -1,3 +1,9 @@
+* FIXED: Handle elements inside shorttag values.  Thanks Richard O'Keefe
+  for providing a clear description how to handle this.
+
+SWI-Prolog VERSION 5.0.9
+=========================
+
 * FIXED: correct handling of content_length(Len) option (was reading one
   character too many).  Oops, normal reading was broken.  Fixed.
 

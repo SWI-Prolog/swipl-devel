@@ -34,6 +34,7 @@
 
 char *program;
 int nerrors;
+int nwarnings;
 
 static void
 usage(void)
@@ -272,6 +273,7 @@ on_error(dtd_parser * p, dtd_error * error)
   switch (error->severity)
   { case ERS_WARNING:
       severity = "Warning";
+      nwarnings++;
       break;
     case ERS_ERROR:
     default:			/* make compiler happy */
@@ -382,7 +384,7 @@ main(int argc, char **argv)
       set_mode_dtd_parser(p, DM_DATA);
       sgml_process_stream(p, stdin, 0);
       free_dtd_parser(p);
-      if (output && nerrors == 0)
+      if (output && nerrors == 0 && nwarnings == 0)
 	printf("C\n");
       return 0;
     }
