@@ -1,0 +1,77 @@
+#!/bin/csh -f
+
+if ( x$1 == x-b ) set binonly
+
+set arch = `./machine`
+set version = `cat VERSION`
+set dir = ~xpce/$version
+set binout = $dir/xpcebin.$arch.tgz
+set kitout = $dir/xpcekit.$arch.tgz
+set libout = $dir/xpcelib.tgz
+set compress = "gzip -9"
+
+if ( ! -d $dir ) mkdir $dir
+if ( ! -d pl/library ) then
+    ( cd pl; ln -s ../../pl/library . )
+endif
+if ( ! -d pl/startup ) then
+    ( cd pl; ln -s ../../pl/startup . )
+endif
+if ( ! -d pl/runtime ) then
+    ( cd pl; ln -s ../../pl/runtime . )
+endif
+if ( ! -d pl/include ) then
+    ( cd pl; ln -s ../../pl/include . )
+endif
+
+if ( -f arch ) mv arch arch.save
+echo $arch > arch
+echo cd pl/$arch > link-$arch
+(cd pl/$arch; make MACHINE=$arch printcmd >> ../../link-$arch)
+chmod +x link-$arch
+
+cd ..
+tar cvhf - \
+	xpce/arch xpce/machine \
+	xpce/pl/$arch/xpce.base \
+	xpce/$arch/XPCE.a \
+	xpce/pl/$arch/pl-crt0.o \
+	xpce/pl/startup \
+	| $compress > $binout
+	
+tar cvhf - \
+	xpce/arch xpce/link-$arch xpce/machine \
+	xpce/src/Makefile* xpce/src/md-*.h \
+	xpce/$arch/XPCE.a \
+	xpce/pl/$arch/{interface,link}.o \
+	xpce/pl/$arch/pl-crt0.o \
+	xpce/pl/$arch/{mangle.c,Makefile} \
+	xpce/pl/runtime/$arch/pl.o \
+	xpce/pl/startup \
+	| $compress > $kitout
+
+if ( ! $?binonly ) then
+    tar cvhf - \
+	xpce/BININSTALL xpce/README.linux \
+	xpce/licence \
+	xpce/INFO xpce/INSTALL xpce/README \
+	xpce/install xpce/src/pl_pce.pl \
+	xpce/include xpce/C++/demo/{Makefile,README} \
+	xpce/C++/demo/*.C xpce/C++/demo/*.bm \
+	xpce/STAMP xpce/VERSION xpce/ChangeLog \
+	xpce/build \
+	xpce/src/{unx-client.c,itf-interface.h,make,dump} \
+	xpce/pl/src xpce/prolog/c \
+	xpce/Pce xpce/Pce.OpenLook xpce/bitmaps xpce/postscript \
+	xpce/prolog/boot xpce/prolog/lib \
+	xpce/pl/{library,include} \
+	xpce/man/reference xpce/release-notes \
+	xpce/man/info \
+	| $compress > $libout
+endif
+
+cp xpce/INFO xpce/README.* xpce/BININSTALL $dir
+
+rm -f xpce/pl/library xpce/pl/startup xpce/pl/runtime
+rm -f xpce/link-$arch
+if ( -f arch.save ) mv arch.save arch

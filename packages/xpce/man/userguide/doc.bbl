@@ -1,0 +1,91 @@
+\begin{thebibliography}{Wielemaker \& Anjewierden, 1994}
+
+\bibitem[Anjewierden, 1992]{PCE:lisp}
+A.~Anjewierden.
+\newblock {\em {PCE/Lisp}: {PCE Common Lisp} Interface}.
+\newblock {SWI}, University of Amsterdam, Roetersstraat 15, 1018 WB Amsterdam,
+  The Netherlands, 1992.
+\newblock E-mail: anjo@swi.psy.uva.nl.
+
+\bibitem[Anjewierden {\em et al.}, 1990]{Anjewierden:90b}
+A.~Anjewierden, J.~Wielemaker, and C.~Toussaint.
+\newblock Shelley --- computer aided knowledge engineering.
+\newblock In B.~Wielinga, J.~Boose, B.~Gaines, G.~Schreiber, and M.~van
+  Someren, editors, {\em {Current trends in knowledge acquisition}}, pages 41
+  -- 59, Amsterdam, May 1990. IOS Press.
+
+\bibitem[Carlsson {\em et al.}, 1991]{SICStus:manual}
+M.~Carlsson, J.~Wid{\'e}n, J.~Andersson, S.~Anderson, K.~Boortz, H.~Nilson, and
+  T.~Sj{\"o}land.
+\newblock {\em {SICStus Prolog} Users's Manual}.
+\newblock SICS, PO Box 1263, S-164 28 Kista, Sweden, 1991.
+
+\bibitem[Chambers {\em et al.}, 1989]{chambers:89}
+Craig Chambers, David Ungar, and Elgin Lee.
+\newblock An efficient implementation of {SELF}, a dynamic-typed
+  object-oriented language based on prototypes.
+\newblock {\em Sigplan Notices}, 24(10):49--70, Oct 1989.
+
+\bibitem[Goldberg \& Robson, 1983]{Goldberg:83a}
+A.~Goldberg and D.~Robson.
+\newblock {\em {Smalltalk--80: The Language and its Implementation}}.
+\newblock Addison-Wesley, 1983.
+
+\bibitem[Wielemaker \& Anjewierden, 1989]{Wielemaker:89}
+J.~Wielemaker and A.~Anjewierden.
+\newblock {Separating User Interface and Functionality Using a Frame Based Data
+  Model}.
+\newblock In {\em Proceedings Second Annual Symposium on User Interface
+  Software and Technology}, pages 25--33, Williamsburg, Virginia, November
+  1989. ACM Press.
+
+\bibitem[Wielemaker \& Anjewierden, 1992]{PCE:overview}
+J.~Wielemaker and A.~Anjewierden.
+\newblock {\em {PCE-4} Functional Overview}.
+\newblock {SWI}, University of Amsterdam, Roetersstraat 15, 1018 WB Amsterdam,
+  The Netherlands, 1992.
+\newblock E-mail: jan@swi.psy.uva.nl.
+
+\bibitem[Wielemaker \& Anjewierden, 1993]{PCE:reference}
+J.~Wielemaker and A.~Anjewierden.
+\newblock {\em {XPCE-4} Reference Manual}.
+\newblock {SWI}, University of Amsterdam, Roetersstraat 15, 1018 WB Amsterdam,
+  The Netherlands, 1993.
+\newblock Paper version of online manual.
+
+\bibitem[Wielemaker \& Anjewierden, 1994]{PCE:cpp}
+J.~Wielemaker and A.~Anjewierden.
+\newblock {\em A {C++} interface for {XPCE}}.
+\newblock {SWI}, University of Amsterdam, Roetersstraat 15, 1018 WB Amsterdam,
+  The Netherlands, 1994.
+\newblock E-mail: jan@swi.psy.uva.nl.
+
+\bibitem[Wielemaker, 1992a]{PCE:udc}
+J.~Wielemaker.
+\newblock {\em {PCE-4} User Defined Classes Manual}.
+\newblock {SWI}, University of Amsterdam, Roetersstraat 15, 1018 WB Amsterdam,
+  The Netherlands, 1992.
+\newblock E-mail: jan@swi.psy.uva.nl.
+
+\bibitem[Wielemaker, 1992b]{PCE:draw}
+J.~Wielemaker.
+\newblock {\em {PceDraw}: An example of using {PCE-4}}.
+\newblock {SWI}, University of Amsterdam, Roetersstraat 15, 1018 WB Amsterdam,
+  The Netherlands, 1992.
+\newblock E-mail: jan@swi.psy.uva.nl.
+
+\bibitem[Wielemaker, 1992c]{SWI-Prolog:manual}
+J.~Wielemaker.
+\newblock {\em {SWI-Prolog 1.6}: Reference Manual}.
+\newblock {SWI}, University of Amsterdam, Roetersstraat 15, 1018 WB Amsterdam,
+  The Netherlands, 1992.
+\newblock E-mail: jan@swi.psy.uva.nl.
+
+\bibitem[Wielemaker, 1994]{PCE:course}
+J.~Wielemaker.
+\newblock {\em {XPCE/Prolog} Course Notes}.
+\newblock {SWI}, University of Amsterdam, Roetersstraat 15, 1018 WB Amsterdam,
+  The Netherlands, 1994.
+\newblock E-mail: jan@swi.psy.uva.nl.
+
+\end{thebibliography}

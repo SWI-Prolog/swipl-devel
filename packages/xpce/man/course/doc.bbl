@@ -1,0 +1,38 @@
+\begin{thebibliography}{Wielemaker \& Anjewierden, 1992b}
+
+\bibitem[Anjewierden, 1992]{PCE:lisp}
+A.~Anjewierden.
+\newblock {\em {PCE/Lisp}: {PCE Common Lisp} Interface}.
+\newblock {SWI}, University of Amsterdam, Roetersstraat 15, 1018 WB Amsterdam,
+  The Netherlands, 1992.
+\newblock E-mail: anjo@swi.psy.uva.nl.
+
+\bibitem[Wielemaker \& Anjewierden, 1992a]{PCE:overview}
+J.~Wielemaker and A.~Anjewierden.
+\newblock {\em {PCE-4} Functional Overview}.
+\newblock {SWI}, University of Amsterdam, Roetersstraat 15, 1018 WB Amsterdam,
+  The Netherlands, 1992.
+\newblock E-mail: jan@swi.psy.uva.nl.
+
+\bibitem[Wielemaker \& Anjewierden, 1992b]{PCE:prolog}
+J.~Wielemaker and A.~Anjewierden.
+\newblock {\em Programming in {PCE/Prolog}}.
+\newblock {SWI}, University of Amsterdam, Roetersstraat 15, 1018 WB Amsterdam,
+  The Netherlands, 1992.
+\newblock E-mail: jan@swi.psy.uva.nl.
+
+\bibitem[Wielemaker, 1992a]{PCE:udc}
+J.~Wielemaker.
+\newblock {\em {PCE-4} User Defined Classes Manual}.
+\newblock {SWI}, University of Amsterdam, Roetersstraat 15, 1018 WB Amsterdam,
+  The Netherlands, 1992.
+\newblock E-mail: jan@swi.psy.uva.nl.
+
+\bibitem[Wielemaker, 1992b]{PCE:draw}
+J.~Wielemaker.
+\newblock {\em {PceDraw}: An example of using {PCE-4}}.
+\newblock {SWI}, University of Amsterdam, Roetersstraat 15, 1018 WB Amsterdam,
+  The Netherlands, 1992.
+\newblock E-mail: jan@swi.psy.uva.nl.
+
+\end{thebibliography}

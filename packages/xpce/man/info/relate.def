@@ -1,0 +1,51 @@
+#chapter Relations Between (Graphical) Objects
+
+The first part of this chapter discusses lines connecting two graphical
+objects implemented by the classes connection, link, handle and
+graphical.  The second part discusses general PCE maintained binary
+relations between objects.
+
+Besides the material described in this chapter, the following is
+relevant for handling relations between objects:
+
+	# class graphical
+	The section on relations discusses methods for handling
+	connection objects from the viewpoint of the connected
+	objects.
+
+	# class hyper
+	A hyper is a general binary relation object which facilates
+	communication (=passing messages) between the connected objects.
+
+The first cluster (connection/link/handle) describe a line that is
+automatically updated if either of the connected graphical objects'
+geometry or <-device changes.  The connection object describes the
+*instance*.  A link is a generic description for a group of connections,
+defining both the appearance and the association with handles.  A handle
+object is a named connection-point that may be attached to a graphical
+or a graphical's class.
+
+In the second cluster, a constraint is an instantiation of a relation
+object.  A relation describes the properties its individual constraints.
+#end chapter
+
+#class connection
+#end class
+
+#class link
+#end class
+
+#class handle
+#end class
+
+#class constraint
+#end class
+
+#class relation
+#end class
+
+#class identity
+#end class
+
+#class spatial
+#end class

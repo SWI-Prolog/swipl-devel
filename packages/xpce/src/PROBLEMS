@@ -1,0 +1,8 @@
+
+	* Make the window border-line an X-window border
+	* Merge displacements of windows with updateConnectionsGraphical()
+	* Find a solution for ->display: Picture: should display the
+	  <-decoration rather than the window itself.
+	* Make sure the move- and resize-gestures can be attached to
+	  windows.
+	* Update documentation

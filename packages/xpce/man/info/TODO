@@ -1,0 +1,5 @@
+* Generate resources (only for variables? --- no!)
+* Describe different interpretation of variables
+  with subclasses.  How?
+* Consider removing variables that have no access
+* Resource summary?

@@ -1,0 +1,829 @@
+\section{Introduction}
+
+XPCE has been developed as a GUI environment that can easily be
+connected to an arbitrary application language.
+
+It is a dynamically typed symbolic object-oriented system.
+(Graphical) objects may be manipulated using the generic operations
+new() to create an XPCE instance of an XPCE class, send() to invoke a
+`procedure' method on an instance, get() for a `function' method and
+free() to destroy an object.
+
+The interface between XPCE and an application language is responsible
+for:
+
+\begin{shortlist}
+    \tick{Conversion of application-language data to XPCE data}
+    \tick{Conversion of XPCE data to application-language data}
+    \tick{Calling the XPCE generic operations}
+    \tick{Allowing XPCE to call functionality in the application-language}
+\end{shortlist}
+
+XPCE has been successfully connected to various Prolog and Lisp
+systems.  These systems are symbolically typed and the runtime
+environment can map predicate/function-names onto the implementation
+(i.e. the runtime environment can call a predicate/function given the
+name and arguments).
+
+The C++ language has neither of these features: when a function is
+defined as untyped, there is no general way to find the type of the
+actual arguments at runtime.  Also (within the language), C++ can't
+map the {\em name} of a function onto the address of a function.
+
+The C++ {\em compiler} however can reason about types and the
+language allows for the definition of new types as well as the
+conversion between types.  The interface described in this document
+exploits these features to define an interface that is equally
+robust and practical to use as the Prolog and Lisp interfaces.%
+\footnote{We also considered a C-interface.  The C language both
+	  lacks runtime and compile-time type-detection.  As a
+	  consequence the user has to enter the appropriate type
+	  conversions explicitly.  This process error-prone.}
+
+
+\section{Motivation}
+
+Below are a number of issues to motivate an interface to C++:
+
+\begin{itemize}
+    \tick{XPCE may be used as a graphical library for C++}
+XPCE provides high-level support for dialog windows, but also for
+interactive graphics, text and Unix process interaction.  In this
+respect XPCE is an alternative for other C++ connected (GUI) libraries
+with its own strong and weak points.
+
+The learning-curve for GIU libraries is generally long due to the
+large number of functions and options provided by such libraries.  If
+XPCE can be connected to the language the application-programmer
+prefers for a particular application, s/he does not have to learn a
+new GUI library.
+
+    \tick{XPCE may be used as `glue' in a multi-language application}
+XPCE can not only be connected to various different languages, it can
+also be connected to various programming environments at the same time.
+
+Each of the programming environments can call XPCE behaviour without
+worrying on the language in which the behaviour is realised.  For
+example C++ can activate an XPCE class defined in Prolog and visa
+versa.
+
+Time-critical and stable parts of the application may be modeled as
+C++ defined XPCE classes, while the overall control of the application
+may be defined in Prolog or Lisp.
+
+    \tick{C++ may be used to implement efficient XPCE classes}
+When communicating with Prolog or Lisp, a considerable amount of time
+is lost in data-transformations and control-transfer between XPCE and
+the Prolog or Lisp environment.  With C++ this transformation is not
+necessary, making C++ the ideal language for defining performance
+critical XPCE classes.
+
+    \tick{Making other packages available to XPCE}
+Many systems and libraries provide an interface to C and/or C++.
+XPCE's C++ interface may be used as an efficient intermediate
+between XPCE and such an (operating-) system or library.
+\end{itemize}
+
+
+\section{Capabilities of the interface}
+
+The interface between XPCE and C++ is fully transparent.  It allows
+C++ code to create and manipulate (GUI-) objects. C++ functions can be
+packed into XPCE code objects so that the message of a button object can
+call a C++ function {\bf and} pass arguments to this function.
+Although. in principle, this interface suffices for defining XPCE
+classes in C++, a more friendly and efficient mechanism is provided
+for this.
+
+The interface is built around the C++ class {\em PceArg}.  An instance
+of this class represents an anonymous XPCE object.  Class PceArg defines
+member functions that allow the C++ programmer to activate PCE methods
+on the object.  Class PceArg also defines the type-conversion between
+raw C data-types and XPCE's dynamically typed data objects.
+
+\section{Argument-type conversion}
+
+The C++ class {\em PceArg} defines constructors for translating raw C
+data-types into dynamically-typed XPCE data objects.  The mapping
+defined by these constructors is given in table~\ref{tab:c2pce}.
+
+\begin{table}
+\begin{center}
+\begin{tabular}{|l|l|}
+\hline
+\bf C			& \bf XPCE \\
+\hline
+char, short, int, long	& int \\
+char *			& name object \\
+float, double		& real object \\
+\hline
+\end{tabular}
+\end{center}
+\caption{Conversion of C data into XPCE data objects}
+\label{tab:c2pce}
+\end{table}
+
+The C++ class PceArg defines cast operators to convert dynamically
+typed XPCE data objects into primitive C objects.  These cast operators
+define the mapping given in table~\ref{tab:pce2c}.  If the requested
+type is {\em char *}, the value should generally be copied away unless
+the converted object is {\em known} to be an XPCE name object.
+
+\begin{table}
+\begin{center}
+\begin{tabular}{|l|l|p{3in}|}
+\hline
+\bf requested C-type	& \bf XPCE 	& Remarks\\
+\hline
+int			& int, number  	& PCE int only has 30 bits \\
+int			& real	   	& rounded value \\
+int			& char_array	& value if convertible \\
+float, double		& real		& real is a float \\
+float, double		& int, number	& converted value \\
+float, double		& char_array	& value if convertible \\
+char *			& name		& pointer to const char * \\
+char *			& string	& pointer is valid as long as
+					  string lives \\
+char *			& int, number	& '\%d' formatted value in static
+					  area \\
+char *			& real		& '\%f' formatted value in static
+					  area \\
+\hline
+\end{tabular}
+\end{center}
+\caption{Conversion of XPCE data objects to C}
+\label{tab:pce2c}
+\end{table}
+
+C++ interface (member-) functions that pass control to XPCE
+generally accept arguments of the type {\em class PceArg}.  C++
+implicit type-conversion mechanism therefore ensures that the
+C-primitive types are passed correctly to XPCE.  The use should
+provide additional cast operators for application-types.
+
+Examples of using the type-conversion are given in the subsequent
+sections.
+
+\section{Invoking XPCE methods}
+
+Besides type-conversion, the C++ class {\em PceArg} defines the
+generic XPCE operations send(), get() and free() as member functions.
+The PCE send() and get() operations take a list of arguments.  Up to 10
+arguments may be specified using overloaded versions of the member
+functions send() and get() as defines on class {\em PceArg}.  More
+arguments may be specified using sendv() and getv() that accept an
+array of arguments.
+
+The following examples show how the x-coordinate of the {\em PceArg}
+object `point' is changed and how the selection of a text-item
+is changed:
+
+\begin{code}
+   PceArg point, text_item;
+   ...
+   point.send("x", 10);
+   text_item.send("selection", "gnat");
+   ...
+\end{code}
+
+\index{PceArg::send()}
+The member function PceArg::send() takes argument of the type {\em
+PceArg}.  The first argument of send() is interpreted as the selector,
+while the remaining arguments are interpreted as the arguments to the
+send-operation.  The argument \verb$10$ is converted into an XPCE {
+\em int} datum, while the \verb$"gnat"$ argument is converted into an
+XPCE name object.
+
+\index{PceStatus}\index{enum}\index{status information}
+The member function PceArg::send() returns a value of the {\em enum}
+type {\em PceStatus}:
+
+\begin{code}
+enum PceStatus { FAIL = 0, SUCCEED = 1 };
+\end{code}
+
+\index{PceArg::get()}
+The member function PceArg::get() invokes the XPCE generic operation
+get().  The return value is made available as a {\em PceArg} again.
+The global object \index{TheDisplay}TheDisplay refers to what is
+called @display for the Prolog and Lisp interfaces.  The following
+code fragment identifies XPCE:
+
+\begin{code}
+void
+identifyPce()
+{ TheDisplay.send("inform", "I am XPCE version %s",
+		  ThePce.get("version"));
+}
+\end{code}
+
+\index{PceArg:free()}
+Finally, the member function {\em PceArg::free()} invokes the generic
+XPCE operation free() to discard of the XPCE object.
+
+\section{Creating objects}
+
+\index{PceObject (class)}\index{new()}
+The C++ interface defines derived classes of class {\em PceArg} with
+different constructors for creating XPCE objects.  The most generic
+of this is the C++ class {\em PceObject}.  The first argument (of
+type {\em PceArg}) defines the name of the XPCE class from which
+an instance is to be created.  The remaining argument define the
+arguments given to the XPCE ->initialise method.  The following
+fragment defines a dialog windows saying hello to the world:
+
+\index{hello world}
+\begin{code}
+void
+hello()
+{ PceObject d("dialog");	// Create an instance of dialog
+
+  d.send("append", PceObject("label", "message", "Hello World"));
+  d.send("open");
+}
+\end{code}
+
+\index{header files,for classes}
+As this is a bit clumsy to write, there are C++ header files for each
+of the built-in XPCE classes that define a derived class
+Pce<CapitalisePceClassName>.  These classes define constructors for
+all possible arities ($<$ 10) of the class' initialisation method.  For
+example PcePoint (representing an XPCE point object) defines
+constructors with 0, 1, and 2 arguments as `point ->initialise'
+accepts two optional arguments.
+
+Below is a rewritten version of the hello world program that also
+allows the user to delete the window.
+
+\begin{code}
+#include <pce/Pce.h>
+#include <pce/Label.h>
+#include <pce/Button.h>
+#include <pce/Message.h>
+#include <pce/String.h>
+
+void
+hello2()
+{ PceDialog d;			// Create an instance of dialog
+
+  d.send("append", PceLabel("message", PceString("Hello World")));
+  d.send("append", PceButton("quit", PceMessage(d, "destroy")));
+  d.send("open");
+}
+\end{code}
+
+Some XPCE classes have names that cannot be represented as C++
+symbols.  Table~\ref{tab:cppclassnames} defines these names.
+
+\begin{table}
+\begin{center}
+\begin{tabular}{|l|l|l|}
+\hline
+\bf XPCE name	& \bf C++ Name	& \bf Summary \\
+\hline
+\verb$*$	& PceTimes	& Multiplication expression \\
+\verb$-$	& PceMinus	& Subtraction expression \\
+\verb$+$	& PcePlus	& Addition expression \\
+\verb$/$	& PceDivide	& Division expression \\
+\verb$:=$	& PceBinding	& Name-value pair for argument-list \\
+\verb$<$	& PceLess	& Compare expressions on less-then \\
+\verb$=$	& PceEquation	& Identity between two expressions \\
+\verb$=<$	& PceLessEqual	& Compare expressions on less-or-equal \\
+\verb$==$	& PceEqual	& Test equivalence of arguments \\
+\verb$>$	& PceGreater	& Test arithmetic $>$ \\
+\verb$>=$	& PceGreaterEqual & Compare expressions on greater-or-equal \\
+\verb$?$	& PceObtain	& Invoke a get method \\
+\verb$\\==$	& PceNonEqual	& Test non-equivalence of arguments \\
+\hline
+\end{tabular}
+\end{center}
+\caption{C++ classnames for XPCE classes with a `symbol' name}
+\label{tab:cppclassnames}
+\end{table}
+
+\subsection{Global (named) objects}
+
+\index{global objects}
+The C++ derived class {\em PceGlobal} allows access to existing named
+PCE objects (@display, @arg1, etc.) and allows for the definition of
+new named objects.  The constructor arguments are:
+
+\begin{code}
+PceGlobal::PceGlobal(PceArg name, [PceArg class, PceArg arg1 ...])
+\end{code}
+
+Some commonly used global objects are bound to globally defined
+instances of the C++ class {\em PceGlobal}.  They are listed in
+table~\ref{tab:globals}.
+
+\begin{table}
+\begin{center}
+\begin{tabular}{|l|l|l|}
+\hline
+\bf Prolog/lisp name	& C++ name 	& Remarks\\
+\hline
+@display		& TheDisplay	& Represents the X-display \\
+@pce			& ThePce	& Represents the environment \\
+@nil			& TheNil	& Nil, nothing \\
+@default		& TheDefault	& Default value \\
+@on			& TheOn		& Boolean true \\
+@off			& TheOff	& Boolean false \\
+@receiver		& TheReceiver	& Receiver of event/method \\
+@event			& TheEvent	& Current event \\
+@arg1 ... @arg10	& TheArg1 ... TheArg10 & Forwarded arguments \\
+\hline
+\end{tabular}
+\end{center}
+\caption{Global instances of PceGlobal}
+\label{tab:globals}
+\end{table}
+
+\section{Callback to a C++ function}
+
+In the sections above, we have discussed how the C++ class {\em
+PceArg} and its derived classes are used to create an access objects
+in the XPCE world from C++.  This section describes how a C++ function
+can be called from XPCE.  
+
+\index{PceCall (class)}\index{call-back (C++)}
+The C++ class {\em PceCall} is a derived class of {\em PceArg}.  It
+creates an XPCE code object that, when executed, calls a C++ function.
+{\em PceCall} `encapsulates' the C++ function in an object that may
+be activated from XPCE.  The following example illustrates this:
+
+\begin{code}
+#include <pce/Pce.h>
+#include <pce/Dialog.h>
+#include <pce/TextItem.h>
+
+PceStatus
+showInstances(PceArg cl)
+{ PceArg c;
+
+  if ( (c = ThePce.get("convert", cl, "class")) )
+  { TheDisplay.send("inform", "Class %s has %d instances",
+		    c.get("name"), c.get("no_created") -
+		    c.get("no_freed"));
+  }
+
+  return SUCCEED;
+}
+
+
+PceStatus
+pceInitApplication(int argc, char *argv[])
+{ PceDialog d("Show #Instances");
+
+  d.send("append", PceTextItem("class", "",
+			       PceCall(showInstances, TheArg1)));
+  return d.send("open");
+}
+
+\end{code}
+
+\index{PceFuncall (class)}
+The C++ class {\em PceFuncall} is similar to {\em PceCall}, but the
+return value of the C++ function is a {\em PceArg}.  The resulting code
+object is an XPCE function object.  Such an object may be used from
+another language (e.g.\ Prolog) or as part of other code objects for,
+for example, a button.  The following example defines @getenv as
+a function to fetch a Unix environment variable.%
+   \footnote{This may also be achieved using `@pce
+             <-environment_variable'}
+
+\label{getenv}
+\begin{code}
+#include <pce/Pce.h>
+#include <stdlib.h>
+
+PceArg
+PceGetenv(PceArg name)
+{ char *s = getenv(name);
+
+  if ( s )
+    return s;
+  else
+    return FAIL;
+}
+
+
+PceStatus
+pceInitApplication(int argc, char *argv[])
+{ PceFuncall f(PceGetenv, TheArg1);
+
+  f.send("_name_reference", "getenv");  // name the object @getenv
+
+  return SUCCEED;
+}
+\end{code}
+
+
+The fragment below shows how this code is made available to
+(SWI-)Prolog:
+
+\begin{code}
+1 ?- 'pceloadc++'(getenv).
+
+2 ?- get(@getenv, '_forward', 'USER', X).
+
+X = jan
+\end{code}
+
+\section{Callback to a C++ member function}	\label{sec:cppmethod}
+
+\index{member function,calling from XPCE}
+If an application is written in C++, it will often be necessary to call
+a C++ method with some arguments from XPCE.  Of course one could write
+a plain C-function and call this using {\em PceCall}.  The XPCE/C++
+interface however also defines class {\em PceMethodCall} that allows
+you to call a C++ member function directly.  The following fragment
+defines a C++ class together with a member function to edit some fields
+in an instance of this class.
+
+\begin{code}
+#include <pce/Pce.h>
+#include <pce/String.h>
+#include <pce/Dialog.h>
+#include <pce/TextItem.h>
+#include <pce/Button.h>
+#include <pce/Message.h>
+
+class person
+{ char *name;
+  int   age;
+
+public:
+  person(char *nm, int a)
+  { name = nm;
+    age = a;
+  }
+
+  PceStatus setName(PceArg a) { name = a; return SUCCEED; }
+  PceStatus setAge(PceArg a)  { age  = a; return SUCCEED; }
+
+  edit()
+  { PceDialog d("Edit person");
+
+    d.send("append",
+	   PceTextItem("name", name,
+		       PceMethodCall(this, &setName, TheArg1)));
+    d.send("append",
+	   PceTextItem("age", age,
+		       PceMethodCall(this, &setAge, TheArg1)));
+    d.send("append", PceButton("quit", PceMessage(d, "destroy")));
+
+    d.send("open");
+  }
+};
+
+
+PceStatus
+pceInitApplication(int argc, char *argv[])
+{ person *p = new person ("gnat", 527);
+
+  p->edit();
+
+  return SUCCEED;
+}
+\end{code}
+
+
+\index{PceMethodFuncall (class)}
+Similar to {\em PceFuncall}, the interface defines {\em
+PceMethodFuncall} as a wrapper for a C++ member function returning a
+({\em PceArg}) value.
+
+
+\section{Defining an XPCE class in C++}
+
+The previous sections illustrate how the XPCE library may be used from
+a C++ application.  Although C++ functionality can be made available to
+users of other languages using {\em PceCall} and friends, this is often
+not the desirable way (c.f.\ the clumsy way to define and call the
+@getenv function on page~\pageref{getenv}).
+
+A more natural way to make C++ functionality available to users of other
+languages is by defining a XPCE class from C++.  The definition of a
+XPCE class consists of C++ functions implementing the XPCE methods, a
+C++ function to build the XPCE class object and finally a call to XPCE
+to let XPCE know the class can be built by calling this function.
+
+\subsection{An XPCE-method function}
+
+\index{PceReceiver (class)}
+A C++ function that implements a method of a XPCE class returns a
+{\em PceStatus} for send-methods and an {\em PceArg} for get-methods.
+The first argument is a instance of the C++ class {\em PceReceiver}, a
+derivate of {\em PceArg}. 
+
+{\em PceReceiver} defines member-functions for fast access to
+instance-variables: PceReceiver::fetch() and PceReceiver::store().  The
+first arguments to these functions is a pointer to an instance of the
+C++ class {\em PceVariable} as returned by the method PceClass::defvar()
+discussed later.
+
+\index{PceReceiver::sendSuper()}\index{PceReceiver::getSuper()}
+\index{super (send)}
+The member functions PceReceiver::sendSuper() invokes a method using the
+defenition of the super-class of the class on which the currently invoked
+method is defined.  See `object ->send_super' for details.  The
+member function PceReceiver::getSuper() servers a similar purpose for
+get-methods.
+
+
+\subsection{Declaring the XPCE class}
+
+\index{PceClass (class)}
+The C++ class {\em PceClass} is a derivate of {\em PceArg} for defining
+new XPCE classes.  It defines the following member-functions:
+
+\begin{itemize}
+   \tick{PceVariable* PceClass::defvar(name, group, summary, type, access, initial)}
+All arguments are of the type {\em PceArg}.  See XPCE manual on class
+variable and `class ->instance_variable' for details.
+   \tick{PceStatus PceClass::defsendmethod(name, group, summary, function, type ...)}
+All arguments are of the type {\em PceArg}.  function is a pointer to a
+function that returns a {\em PceStatus}, which first argument is a {\em
+PceReceiver} and which has the same number of {\em PceArg} arguments as
+there are `types' provided (maximum 10).
+   \tick{PceStatus PceClass::defgetmethod(name, group, summary, rtype, function, type ...)}
+Similar to PceClass::defsendmethod().  The argument {\em rtype} is a
+type defining the return-type.  The return-type of the C++ function is
+{\em PceArg}.
+\end{itemize}
+
+Class {\em PceClass} defines two constructors: with a single argument it
+looks up an existing class object of the specified name.  With 4
+arguments it declares a C++ definition of a class.   The arguments are:
+name of the class, name of the super-class, summary description and
+pointer to a function to build the class.  This function returns {\em
+PceArg} and takes an (virgin) {\em PceClass} as argument.  See the
+example below.
+
+
+\subsection{Example: Binary Tree}
+
+The example below exploits all the mechanisms described above to define
+an XPCE class {\em b_node}: a node in a binary tree.
+
+\begin{code}
+#include <pce/Pce.h>
+
+// References to XPCE instance variables of the class.
+
+static PceVariable *bnode_left;
+static PceVariable *bnode_right;
+static PceVariable *bnode_key;
+static PceVariable *bnode_value;
+
+// Method to initialise the instance (like a C++ constructor)
+
+static PceStatus
+initialiseBNode(PceReceiver n, PceArg key, PceArg value)
+{ n.store(bnode_key, key);
+  n.store(bnode_value, value);
+
+  return SUCCEED;
+}
+
+
+// Send method to insert a new key/value pair into the tree
+
+PceStatus
+insertBNode(PceReceiver n, PceArg key, PceArg value)
+{ int c = strcmp(n.fetch(bnode_key), key);
+
+  if ( c == 0 )				/* replace value */
+    return n.store(bnode_value, value);
+
+  PceArg n2 = n.fetch(c > 0 ? bnode_right : bnode_left);
+  if ( n2 != TheNil )
+    return insertBNode(n2, key, value);
+
+  return n.store(c > 0 ?  bnode_right : bnode_left,
+		 PceObject("b_node", key, value));
+}
+
+
+// Method to find a node from a key.
+
+PceArg
+getNodeBNode(PceReceiver n, PceArg key)
+{ int c = strcmp(n.fetch(bnode_key), key);
+
+  if ( c == 0 )
+    return n;
+
+  PceArg n2 = n.fetch(c > 0 ? bnode_right : bnode_left);
+
+  if ( n2 != TheNil )
+    return getNodeBNode(n2, key);
+
+  return FAIL;
+}
+
+
+// C++ function to build the XPCE class definition
+
+PceStatus
+makeClassBNode(PceClass cl)
+{ bnode_left =
+    cl.defvar("left", "tree", "Node to my left",
+	      "b_node*", "get", TheNil);
+  bnode_right =
+    cl.defvar("right", "tree", "Node to my right",
+	      "b_node*", "get", TheNil);
+  bnode_key =
+    cl.defvar("key", "table", "Key-name of the node",
+	      "name", "get", TheNil);
+  bnode_value =
+    cl.defvar("value", "table", "Value of the node",
+	      "any", "get", TheNil);
+
+  cl.defsendmethod("initialise", "oms", "Create from key and value",
+		   initialiseBNode, "key=name", "value=any");
+  cl.defsendmethod("insert", "edit", "Add entry to the table",
+		   insertBNode, "key=name", "value=any");
+  
+  cl.defgetmethod("node", "lookup", "Lookup node from key",
+		   "b_node", getNodeBNode, "key=name");
+
+  return SUCCEED;
+}
+  
+	    
+// let a C++ global constructor declare the class
+
+PceClass ClassBNode("b_node", "object", "Node of a binary tree",
+		    makeClassBNode);
+\end{code}
+
+\section{Lifetime of C++ objects and XPCE objects}
+
+All C++ classes involved in defining the interface define a single
+member: the {\em void *} `self'.  They represent no more than a
+{\em reference} to the XPCE object.  Creation of a C++ {\em PceArg}
+instance does not automatically imply creation of an XPCE object and
+deleting the {\em PceArg} object has no consequences for the XPCE
+object.
+
+Using constructors and destructors of PceArg objects can possibly
+be used to help the incremental garbage collector of XPCE.  This is
+still subject of study.
+
+
+\section{Linking C++ code to XPCE}
+
+\subsection{Incremental linking to Prolog}
+
+\index{'pceloadc++'/1}\index{constructors,global}
+For Prolog systems that define incremental linking of object files,
+the Prolog system defines the predicate 'pceloadc++'/1.  The argument is
+the name of an object file (with or without the .o extension).  When
+loaded, the global C++ constructors are called, followed by the
+function PceStatus pceInitialiseApplication(int argc, char *argv[]).
+This function is passed the argument-vector given to the entry-point
+of the process (main()).
+
+
+\subsection{C++ stand-alone applications}
+
+Programs can be linked to a C++/XPCE stand-alone application by
+linking the .o files to the -lxpce library.  This library contains
+a stub main() function that initialises XPCE and calls the global
+C++ constructors of the program.  Next the stub main calls
+PceStatus pceInitialiseApplication(int argc, char *argv[]), passing
+the main arguments argc and argv.  Finally it enters an infinite loop
+waiting for user-events and dispatching them.
+
+
+\section{Goodies}
+
+This section defines some member functions and types for speeding
+up some operations and/or providing shorthands.
+
+
+\subsection{Arithmetic on class PceArg}
+
+Class {\em PceArg} defines integer arithmetic by overloading the
+operators +, -, *, /, ++, --, +=, -=, *= and /=.  These functions yield
+an error if one of the operands cannot be translated into an integer.
+The following example defines an XPCE callable function that draws an
+array of boxes.
+
+\begin{code}
+#include <pce/Pce.h>
+#include <pce/Box.h>
+#include <pce/Point.h>
+#include <pce/Picture.h>
+
+PceStatus
+drawBoxes(PceArg dev, PceArg x, PceArg y, PceArg w, PceArg h, PceArg n)
+{ while(n-- > 0)
+  { dev.send("display", PceBox(w, h), PcePoint(x, y));
+    x += w;
+  }
+  
+  return SUCCEED;
+}
+
+PceStatus
+pceInitApplication(int argc, char *argv[])
+{ PcePicture p;
+  
+  drawBoxes(p, 10, 10, 20, 50, 20);
+  p.send("open");
+
+  return SUCCEED;
+}
+\end{code}
+
+
+\subsection{Enumerating cells of a PCE chain}
+
+The following functions allow for enumerating the elements of a list
+similiar to `chain ->for_all' and friends.
+
+\begin{memberfunctions}
+\memberfunction{PceCell PceChain::head()}{
+Returns a reference to the first cell of the chain.  The C++ class
+{\em PceCell} is {\em no} derivate of {\em PceArg}.}
+\memberfunction{PceArg PceCell:value()}{
+Returns the value of the cell.}
+\memberfunction{PceArg PceCell::operator ++()}{
+Returns the next cell of the chain.}
+\end{memberfunctions}
+
+The following example writes all XPCE classes:
+
+\begin{code}
+#include <pce/Pce.h>
+#include <pce/Chain.h>
+#include <pce/Message.h>
+#include <iostream.h>
+
+void
+writeElements(PceChain ch)
+{ PceCell c = ch.head();
+  int i = 0;
+
+  for(; c; c++, i++)
+    cout << "Element " << i << ": " << (char *)c.value() << "\n";
+}
+
+
+PceStatus
+pceInitApplication(int argc, char *argv[])
+{ PceChain ch("gnat");
+
+  PceGlobal("classes").send("for_all", PceMessage(ch, "append", TheArg1));
+  ch.send("sort");
+  
+  writeElements(ch);
+
+  return SUCCEED;
+}
+\end{code}
+
+While {\em PceCell} references contain valid references to cells
+of XPCE chains, the contents of the chain may {\em not} be manipulated.
+
+\subsection{Debugging (pretty print)}
+
+\index{PceArg::pp()}\index{pretty printing}
+The member function char* PceArg::pp() returns a description of the
+argument in the same style as the the XPCE debugger.  The storage
+is provided by a ring of 20 buffers.  This implies that upto 20
+arguments may use pp() without overwriting each others output.  If
+information has to be kept it must be copied.
+
+
+\section{Status}
+
+The status of the XPCE/C++ interface should be regarded alpha.  The
+basic concept will probably not change, neither will the mechanisms
+for creating objects, sending messages, etc.  Various things are
+not yet provided for:
+
+\begin{itemize}
+    \tick{Incremental garbage collector interface}
+This can probably be integrated into the constructors and destructors
+of the various C++ classes.  As omitting this just leaves garbage around
+for a little too long there is no reason to hurry.
+    \tick{Access to low-level graphics}
+It might be desirable to provide access to the low-level graphics layer
+of XPCE so that the C++ user can define new graphical classes not only
+by combining existing ones, but also by directly accessing the X11
+drawing primitives.
+    \tick{More `goodies'}
+It may prove useful to define more `goodies', both to provide shorthands
+for commonly used operations and to provide low-level fast access to
+the XPCE virtual machinery.  An example may be PceArg:instanceOf(PceClass).
+\end{itemize}
+
+\section{Conclusions}
+
+In this document we motivate and describe version 0.1-alpha of an
+XPCE/C++ interface.  The interface both allows for the definition
+of high-performance XPCE class in C++ as well as for using XPCE
+as a library for an application written in C++.

@@ -1,0 +1,141 @@
+* INTRODUCTION
+
+PceDraw was originally developed for PCE version 3.  The version you're
+facing now is a complete redesign, both from the users point of view and
+from the software architecture point of view.  PceDraw has been written
+with the following goals in mind:
+
+	* Testing XPCE and validating its functionality
+
+	* Demonstration of the features of XPCE
+
+	* Its sources are intended to form a rich source of examples
+	  for users with a little experience in writing PCE programs.
+	  Its sources are probably too complex for entire novices.
+
+	* Provide a usable drawing tool.
+
+
+* USER INTERFACE
+
+** Windows
+
+PceDraw consists of a frame with three windows:
+
+	* Dialog for menu-options and feedback (at the top)
+	* Palet of icons
+	* The actual drawing area.
+
+Optionally, there is a fourth window for setting attributes such as pen,
+colour, etc.
+
+** Drawing Window
+
+Inside the drawing window, the following bindings of the mouse-buttons
+holds:
+
+	# LEFT
+	Mode dependant (see below)
+
+	# MIDDLE
+	Down NEAR THE EDGE of a graphical resizes it
+	Down in the middle moves it.
+
+	# RIGHT
+	Selects the object and pops-up a menu.
+
+
+Some graphical objects define special editing facilities:
+
+	# Class path
+
+	  - Dragging with the MIDDLE-BUTTON on a control-point will move
+	    the control-point.
+	  - LEFT-CLICK with the control-key down on a control-point will
+	    delete this point.
+	  - LEFT-CLICK with the control-key down between two
+	    control-points will insert a new control-point.
+
+	# Class text
+	
+	  - Control-L makes a multiple-line text LEFT-aligned
+	  - Control-C makes a multiple-line text centered
+	  - Control-R makes a multiple-line text RIGHT-aligned
+
+** The Palet
+
+The palet consists of icons that switch the tool into a certain mode.
+Except for the above two, the modes allow you to create graphics of some
+sort.  The standard options are:
+
+	* Select Mode
+
+	  LEFT-CLICK on an object sets the selection to this object
+	  SHIFT-LEFT-CLICK adds or removes the object to/from the
+	  selection
+	  LEFT-DRAG in the background selects all objects in the
+	  indicated area.
+
+	* Text Edit Mode
+	
+	   LEFT-CLICK on a text object or a compound object (see below)
+	   that holds text directs further keyboard input to the text
+	   clicked on.
+
+	* Text Create Mode
+
+	   LEFT-CLICK creates a new text object and directs further
+	   input to it.
+
+	* Box/Ellipse/Line Create Mode
+
+	  LEFT-DOWN creates such an object; subsequent DRAGGING
+	  resizes it to the appropriate size.
+
+	* Path Create Mode
+	  LEFT-CLICK starts a path.  Each subsequence LEFT-CLICK adds
+	  a point to the path.  MIDDLE-, RIGHT-CLICK or pressing
+	  the escape key (ESC) terminates the path.
+
+	* Create Link Mode (1)
+
+	  Creates a link between two objects that is maintained.  The
+	  link can only attach at predefined positions indicated while
+	  the LEFT-BUTTON is down.
+
+	* Create Link Mode (2)
+
+	  Same as above, but the link is created between the exact
+	  indicated positions instead of at predefined points.
+
+When user-defined prototypes exist.  They are shown below the standard
+options.  LEFT-CLICK creates an instance of the prototype.
+
+
+ALIGNMENT
+
+The SETTINGS options  AUTO-ALIGN switches automatic  alignment off/on.
+Its default value is @on, but may be switched off using the resource
+
+	Pce.Draw.auto_align: @off
+
+When auto-align  is switched  on,  PceDraw  will attempt to reposition
+and/or resize graphicals when they are created, resized  or moved.  It
+tries to identify standard  alignments:   centering, edges and  making
+connections between graphicals straight lines.  Conflicts are resolved
+using simple heuristics.
+
+Lines are currently  not   treated by  this mechanism.   They   should
+automatically correct  their  angle    and look for  edges   of  other
+graphicals.
+
+
+STATUS
+
+Various things still have to be done:
+
+	* Edit existing prototypes
+	* Modify handles of existing prototypes
+	* Menu for driving the printer
+	* Alignment options
+	* Complete the documentation

@@ -1,0 +1,4 @@
+%	Check that all classes that have <-creator: built_in are
+%	documented
+
+#call message(@prolog, check_documented_all_classes)

@@ -1,0 +1,223 @@
+#!/bin/sh
+
+binonly=false
+local=false
+
+if [ o$1 = "o-q" ]; then binonly=true; fi
+if [ o$1 = "o-l" ]; then local=true; fi
+
+PCEHOME=`pwd`; export PCEHOME
+version=`cat VERSION`
+arch=`./machine`
+BIN=/usr/local/bin/xpce-$version; export BIN
+echo -n "XPCE executable [$BIN] ? "
+read bin
+if [ $bin ]; then BIN=$bin; fi
+BINDIR=`dirname $BIN`
+
+if [ ! -d man/reference ]; then
+    echo "Please first unpack xpcelib.tgz first"
+    exit 1
+fi
+
+if [ -x pl/$arch/xpce.base ]; then
+    true
+else
+    sh -x link-$arch
+    (cd pl/$arch; make domangle)
+fi
+
+if [ $local = false ]; then
+    LIB=/usr/local/lib/xpce-$version; export LIB
+
+    echo -n "XPCE library directory [$LIB] ? "
+    read lib
+    if [ $lib ]; then LIB=$lib; fi
+
+    if [ ! -d `dirname $LIB` ]; then
+	echo "Directory `dirname $LIB` does not exists.  Giving up"
+	exit 1
+    fi
+
+    if [ ! -d `dirname $BIN` ]; then
+	echo "Directory `dirname $BIN` does not exists.  Giving up"
+	exit 1
+    fi
+    base=$LIB/bin.$arch/xpce.base
+else
+    LIB=$PCEHOME;
+    base=$LIB/pl/$arch/xpce.base
+fi
+
+# Installing defaults-file
+
+defaultsdir=${XAPPLRESDIR:-/usr/lib/X11/app-defaults}
+defaultsdir=`echo $defaultsdir | sed 's/:.*//'`
+
+cat << _EOM_
+
+RESOURCES AND LOOK AND FEEL DEFAULTS
+====================================
+
+By default, XPCE defines a look-and-feel that is based partly on the
+MIT X11 distribution and partly on an older version of PCE that used
+the SunView windowing environment.  This look-and-feel fits well
+with the TWM window manager and the xterm application.
+
+By changing X-resources, XPCE can emulate the OpenLook look-and-feel.
+These resources may be appended to the system resource file 
+$defaultsdir/Pce or to your private ~/.Xdefaults.
+
+_EOM_
+
+Pce=Pce
+
+echo -n "Install the OpenLook resources system-wide (y/n) [n] ? "
+read answer
+if [ "$answer" = "y" ] ; then
+    Pce=Pce.Tmp
+    cat Pce Pce.OpenLook > $Pce
+else
+    echo -n "Install the OpenLook resources in ~/.Xdefaults (y/n) [n] ? "
+    read answer
+    if [ "$answer" = "y" ] ; then
+        cat Pce.OpenLook >> ~/.Xdefaults
+    fi
+fi
+
+if [ -d $defaultsdir ]; then
+    if [ -f $defaultsdir/Pce ]; then
+	if cmp -s $Pce $defaultsdir/Pce; then
+	    true
+	else
+	    echo -n "Defaults database 'Pce' has changed; reinstall (y/n)? "
+	    read answer
+	    if [ "$answer" = "y" ]; then cp $Pce $defaultsdir/Pce; fi
+	fi
+    else
+	cp $Pce $defaultsdir/Pce
+    fi
+else
+    echo "WARNING: Failed to install Pce defaults file in $defaultsdir"
+    echo "Continuing the installation."
+fi
+
+
+if [ $binonly = false -a $local = false ]; then
+    dirs="man/reference prolog/boot prolog/lib bitmaps postscript"
+    dirs="$dirs release-notes include C++/demo $arch/XPCE.a"
+    dirs="$dirs pl/$arch/pl-crt0.o"
+
+    if [ -d pl/library ]; then dirs="$dirs pl/library"; fi
+    if [ -d pl/startup ]; then dirs="$dirs pl/startup"; fi
+
+    if [ -d $LIB ]; then
+	echo -n "Remove old installation library $LIB [n] ? "
+	read answer
+	if [ "$answer" = y ]; then
+	    echo -n "Removing $LIB ... "
+	    rm -rf $LIB
+	    echo "done."
+	fi
+    fi
+
+    if [ ! -d $LIB ]; then mkdir $LIB; fi
+
+    exclude=/tmp/pce-install-exclude$$
+
+    for d in $dirs; do
+        echo "Installing $LIB/$d ..."
+	# CVS: install from development dir
+	if [ -d CVS ]; then
+            find $d \( -name CVS -print -prune \) -o \
+	            -name '*~' -print > $exclude
+            tar cfX - $exclude $d | (cd $LIB; tar xfB -)
+	else
+	    tar cf - $d | (cd $LIB; tar xfB -)
+        fi
+    done
+
+    rm -f $exclude
+
+    cp ChangeLog $LIB
+
+    if [ `whoami` = root ]; then
+        echo "Changing owner to root ..."
+	chown -R root $LIB
+    fi
+    echo "Changing mode to 644 ..."
+    find $LIB -type f -exec chmod 644 {} \;
+    echo "Fixing other modes ..."
+    chmod 555 $LIB/man/reference
+    chmod 755 $LIB/include/cpp
+    echo "Patching $LIB/C++/demo/Makefile ..."
+    sed -e "s@^PCEHOME=.*@PCEHOME=	$LIB@" \
+        -e "s@^PCEARCH=.*@PCEARCH=	$arch@" \
+	$LIB/C++/demo/Makefile > /tmp/xpce-$$
+    mv /tmp/xpce-$$ $LIB/C++/demo/Makefile
+    echo "Installation of libraries completed"
+fi
+
+# Installing include files
+
+includedir=/usr/local/include
+plincl=pl/include/SWI-Prolog.h
+
+if [ -d $includedir -a -f $plincl ]; then
+    if cp $plincl $includedir; then
+	echo "Installed $plincl in $includedir"
+    else
+	echo "WARNING: Could not install $plincl in $includedir"
+	echo "Continuing the installation."
+    fi
+fi
+
+
+if [ -d $includedir ]; then
+    if (cd $includedir; rm -f pce; ln -s $LIB/include/pce .); then
+	echo "Installed $includedir/pce"
+    else
+	echo "WARNING: Could not install $includedir/pce"
+	echo "Continuing the installation."
+    fi
+fi
+
+
+if [ -f pl/$arch/pl-bite ]; then
+    echo -n "Installing pl-bite in $BINDIR ... "
+    cp pl/$arch/pl-bite $BINDIR/pl-bite
+    chmod 755 $BINDIR/pl-bite
+fi
+
+if [ $local = false ]; then
+    (cd $LIB ; if [ ! -d src ]; then ln -s $PCEHOME/src; fi)
+    if [ ! -d $LIB/bin.$arch ]; then mkdir $LIB/bin.$arch; fi
+    cp pl/$arch/xpce.base $LIB/bin.$arch
+    chmod 755 $LIB/bin.$arch $base
+fi
+
+		# Create saved state
+
+PCEHOME=$LIB; export PCEHOME
+if [ -d $LIB/pl/startup ]; then
+    SWI_HOME_DIR=$LIB/pl; export SWI_HOME_DIR
+fi
+cd src
+
+$base -f none << _EOS_
+[pl_pce].
+
+save_program('$BIN',
+	[ goal='pce_host:pce_reinitialise'
+	]).
+
+( exists_directory('$LIB/pl/library') ->
+  make_library_index('$LIB/pl/library') ;
+  true
+).
+make_library_index('$LIB/prolog/lib').		% XPCE-library
+
+halt.
+_EOS_
+
+chmod 755 $BIN

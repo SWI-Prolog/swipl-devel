@@ -1,0 +1,68 @@
+#chapter Primitive Data
+
+This chapter describes the elementary datatypes of XPCE:
+
+	constant	Constants (@nil, @default, ...)
+	bool		@on, @off
+	char_array	String of characters (superclass)
+	name		Constant char_array (identifier)
+	string		Editable char_array
+	number		Integer value
+	real		Floating point value
+	date		Point in time
+
+THE DATA TYPE INT
+
+Besides these, XPCE offers data of type `int'.  Int is the only datum
+not represented as a true object, mainly for efficiency and storage
+reasons.  A PCE int is a 30 bits signed integer ranging from `@pce
+<-min_integer' to `@pce <-max_integer' (-536870912 ..  536870911).
+
+NOTE:	Many symbolic languages use more tag bits than PCE and thus
+	?- get(@pce, min_integer, I) will not produce the required
+	result.  get(real(@pce?min_integer), value, I) will on most
+	systems return the requested value (be aware of rounding
+	problems though).
+
+When a message is sent to an `int' datum, PCE's message passing
+mechanism will create a number object with the same value and 
+invoke the method on this object.  Thus:
+
+	?- send(3, larger, 2).
+
+will succeed.  The following succeeds, but is a useless call (why?):
+
+	?- send(3, plus, 2).
+#end chapter
+
+#class constant
+#end class
+
+#class bool
+#end class
+
+#class char_array
+#description group content
+The manipulation methods of this section are designed to return an
+instance of the same class as the receiver of the method.  This is
+wired in for the class name and class string.  For any other class,
+<-modify is invoked on the receiver.  The argument is a char_array
+object holding the text to be returned.  See <-modify for the
+default definition.
+#end description
+#end class
+
+#class name
+#end class
+
+#class string
+#end class
+
+#class number
+#end class
+
+#class real
+#end class
+
+#class date
+#end class

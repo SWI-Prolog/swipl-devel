@@ -1,0 +1,111 @@
+#chapter Executable Objects
+
+This chapter deals with objects that can be executed.  As XPCE defines
+both send-operations and get-operations, code is divided into two major
+groups: *procedures*, as represented by class code and various subclasses,
+succeed or fail when executed and *functions* as represented by class
+function which yield a value.  Functions may be used as procedures.
+
+The table below gives a brief overview of the classes in this chapter:
+
+	code		Superclass.  General aspects of code objects.
+	message		Send operation
+	if		Branches
+	while		Loops
+	and		Compound procedure and logical operator
+	or, not		logical operator
+	=, <, >, =<, >=	Arithmetic comparison operators
+	block		Compound procedure
+	==, \==		Equality test
+	function	General aspects of functions
+	quote_function	As the LISP ' operator
+	?		Get operation
+	progn		Compound function
+	when		Conditional function
+	+, -, *, /	Arithmetic operators
+	var		Variables (chapter Variables)
+
+#end chapter
+
+#class code
+#end class
+
+#class message
+#end class
+
+#class if
+#end class
+
+#class while
+#end class
+
+#class and
+#end class
+
+#class or
+#end class
+
+#class not
+#end class
+
+#class binary_condition
+#end class
+
+#class =
+#end class
+
+#class <
+#end class
+
+#class >
+#end class
+
+#class =<
+#end class
+
+#class >=
+#end class
+
+#class block
+#end class
+
+#class ==
+#end class
+
+#class \==
+#end class
+
+
+#class function
+#end class
+
+#class quote_function
+#end class
+
+#class ?
+#end class
+
+#class progn
+#end class
+
+#class when
+#end class
+
+#class create
+#end class
+
+#class binary_expression
+#end class
+
+#class +
+#end class
+
+#class -
+#end class
+
+#class *
+#end class
+
+#class /
+#end class
+

@@ -1,0 +1,319 @@
+/*  language_mode.pl,v 1.5 1993/05/06 10:13:14 jan Exp
+
+    Part of XPCE
+    Designed and implemented by Anjo Anjewierden and Jan Wielemaker
+    E-mail: jan@swi.psy.uva.nl
+
+    Copyright (C) 1992 University of Amsterdam. All rights reserved.
+*/
+
+:- module(emacs_language_mode, []).
+:- use_module(library(pce)).
+:- require([ emacs_init_tags/1
+	   , emacs_tag/3
+	   , emacs_tag_file/1
+	   , member/2
+	   ]).
+
+
+:- initialization
+	new(KB, key_binding(language,	fundamental)),
+	send(KB, function, 'TAB',	indent_line),
+	send(KB, function, 'DEL',	backward_delete_char_untabify),
+	send(KB, function, ']',		align_close_bracket),
+	send(KB, function, '}',	   	align_close_bracket),
+	send(KB, function, ')',		align_close_bracket),
+	send(KB, function, '\e\C-h', 	insert_file_header),
+	send(KB, function, '\eh',	insert_section_header),
+	send(KB, function, '\C-c\C-q',	insert_comment_block),
+	send(KB, function, '\e;',	insert_line_comment),
+	send(KB, function, '\e.',	find_tag).
+
+:- initialization
+	new(X, syntax_table(language)),
+	send(X, syntax, '"',  string_quote, '"'),
+	send(X, syntax, '''', string_quote, '''').
+
+:- initialization
+	new(MM, emacs_mode_menu(language, fundamental)),
+	send(MM, append, browse, find_tag).
+
+
+:- pce_begin_class(emacs_language_mode, emacs_fundamental_mode).
+
+variable(comment_column,	int,	both, "Column for line comment").
+
+initialise(M) :->
+	"Inititialise comment_column"::
+	send(M, send_super, initialise),
+	send(M, comment_column, @emacs_comment_column).
+
+
+		 /*******************************
+		 *	COMMENT; HEADERS	*
+		 *******************************/
+
+insert_line_comment(E) :->
+	"Insert (line) comment"::
+	member(CSlen, [1, 2]),
+	get(E?syntax, comment_start, CSlen, CS), !,
+	get(E, caret, Caret),
+	get(E, text_buffer, TB),
+	get(TB, scan, Caret, line, 0, start, SOL),
+	get(TB, scan, Caret, line, 0, end,   EOL),
+	(   get(regex(?(regex(''), quote, CS)), search, TB, SOL, EOL, Start)
+	->  send(E, caret, Start),
+	    send(E, align, E?comment_column),
+	    send(E, forward_char, CSlen + 1)
+	;   send(E, end_of_line),
+	    send(E, just_one_space),
+	    send(E, align, E?comment_column),
+	    get(E?syntax, comment_end, CSlen, CE),
+	    (	send(CE, equal, string('\n'))
+	    ->  send(E, format, '%s ', CS)
+	    ;   send(E, format, '%s  %s', CS, CE),
+		send(E, backward_char, CSlen + 1)
+	    )
+	).
+
+
+insert_comment_block(E) :->
+	"Insert header/footer for long comment"::
+	send(E, insert,
+'/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+'),
+	send(E, previous_line, 2).
+
+
+insert_section_header(E) :->
+	"Insert Prolog/C section header"::
+	send(E, insert, 
+'		 /*******************************
+		 *               C		*
+		 *******************************/
+').
+
+
+insert_file_header(M) :->
+	"Insert standard C or Prolog file-header"::
+	send(M, format, '/*  $I'),		% avoid expansion by CVS
+	send(M, format, 'd$\n\n'),
+	send(M, format, '    Part of XPCE\n'),
+	send(M, format, '    Designed and implemented by Anjo Anjewierden and Jan Wielemaker\n'),
+	send(M, format, '    E-mail: jan@swi.psy.uva.nl\n\n'),
+	send(M, format, '    Copyright (C) %d University of Amsterdam. All rights reserved.\n', new(date)?year),
+	send(M, format, '*/\n\n').
+
+
+		 /*******************************
+		 *          INDENTATION		*
+		 *******************************/
+
+indent_line(E) :->
+	"Indent current line"::
+	send(E, beginning_of_text_on_line),
+	(   send(E, indent_close_bracket_line)
+	;   send(E, indent_expression_line)
+	;   send(E, align_with_previous_line)
+	).
+
+
+indent_close_bracket_line(E, Brackets:[name]) :->
+	"Indent a line holding a bracket"::
+	default(Brackets, ')}]', B1),
+	get(E, text_buffer, TB),
+	get(E, caret, Caret),
+	get(TB, character, Caret, Char),
+	get(B1, index, Char, _),
+	get(TB, matching_bracket, Caret, OpenPos),
+	get(E, column, OpenPos, Col),
+	send(E, align_line, Col).
+
+
+
+indent_expression_line(E, Brackets:[name]) :->
+	"Indent current line according to expression"::
+	default(Brackets, ')}]', B1),
+	name(B1, B2),
+	get(E, text_buffer, TB),
+	member(Bracket, B2),
+	    pce_catch_error(mismatched_bracket,
+			    get(TB, matching_bracket, E?caret,
+				Bracket, OpenPos)), !,
+	    get(TB, scan, OpenPos, line, 0, end, EOL),
+	    (	send(E, looking_at, '[,|]')
+	    ->	get(E, column, OpenPos, Col)
+	    ;   get(TB, skip_comment, OpenPos+1, EOL, P1),
+		get(E, column, P1, Col)
+	    ),
+	    send(E, align_line, Col), !.
+
+		
+		/********************************
+		*           ALIGNMENT		*
+		********************************/
+
+align_with_previous_line(E, Leading:[regex]) :->
+	"Align current_line with the one above"::
+	get(E, caret, Caret),
+	get(E, scan, Caret, line, -1, start, LineStart),
+	get(E, scan, Caret, term, -1, start, TermStart),
+	(   TermStart < LineStart
+	->  get(E, indentation, TermStart, Leading, Indent)
+	;   get(E, indentation, LineStart, Leading, Indent)
+	),
+	send(E, align_line, Indent).
+
+
+align_close_bracket(E, Times:[int], Id:[event_id]) :->
+	"Insert and align with matching open bracket"::
+	send(E, insert_self, Times, Id),
+	get(E, caret, Caret),
+	send(E, beginning_of_line),
+	(   send(E, looking_at, string('\\s *%c', Id))
+	->  get(E, matching_bracket, Caret-1, Open),
+	    get(E, column, Open, Col),
+	    send(E, caret, Caret),
+	    send(E, align, Col, Caret-1)
+	;   send(E, caret, Caret)
+	).
+
+
+		 /*******************************
+		 *           UNTABIFY		*
+		 *******************************/
+
+backward_delete_char_untabify(M, Times:[int]) :->
+	"Delete characters backward"::
+	get(M, caret, Caret),
+	get(M, character, Caret-1, Char),
+	(   send(M?syntax, has_syntax, Char, white_space)
+	->  get(M, column, Col),
+	    default(Times, 1, Tms),
+	    send(M, align, Col-Tms),
+	    (	get(M, column, Col)
+	    ->	send(M, backward_delete_char, Times)
+	    ;	true
+	    )
+	;   send(M, backward_delete_char, Times)
+	).
+
+
+		 /*******************************
+		 *	      TAGS		*
+		 *******************************/
+
+find_tag(M, Tag:[name], Editor:editor) :<-
+	"Jump to indicated tag entry"::
+	(   Tag == @default
+	->  get(M, word, DefTag),
+	    get(M, prompt, 'Find tag', DefTag, name, TheTag)
+	;   TheTag = Tag
+	),
+	(   emacs_tag_file(_)
+	->  true
+	;   get(M, directory, Dir),
+	    get(Dir, path, Path),
+	    emacs_init_tags(Path)
+	),
+	(   emacs_tag(TheTag, File, Line),
+	    new(B, emacs_buffer(File)),
+	    send(B, open),
+	    get(B?editors, head, Editor),
+	    send(Editor, line_number, Line),
+	    adjust_tag(Editor, TheTag)
+	;   send(M, report, warning, 'Cannot find tag %s', TheTag),
+	    fail
+	).
+
+
+find_tag(M, Tag:[name]) :->
+	"Jump to indicated tag entry"::
+	ignore(get(M, find_tag, Tag, _)). % avoid delegation to menu-bar
+
+
+adjust_tag(E, Tag) :-
+	get(E, text_buffer, TB),
+	get(E, caret, Here),
+	new(Re, regex('')),
+	get(Re, quote, Tag, QTag),
+	(   send(Re, pattern, string('\\b%s\\b', QTag))
+	;   send(Re, pattern, string('\\b%s', QTag))
+	),
+	closest(Re, TB, Here, Pos), !,
+	send(E, caret, Pos).
+
+
+closest(Re, TB, Here, Pos) :-
+	get(Re, search, TB, Here, P1), !,
+	(   get(Re, search, TB, Here, 0, P2)
+	->  closest_element(P1, P2, Here, Pos)
+	;   Pos = P1
+	).
+closest(Re, TB, Here, Pos) :-
+	get(Re, search, TB, Here, 0, Pos).
+
+closest_element(A, B, Here, A) :-
+	abs(A-Here) =< abs(B-Here), !.
+closest_element(A, B, Here, B) :-
+	abs(B-Here) < abs(A-Here).
+
+
+tag_list_from_file(M, File:file) :->
+	"Create browser from tag-list"::
+	send(File, open, read),
+	new(B, browser('Tags')),
+	send(new(D, dialog), below, B),
+	new(Next, and(message(M, send_hyper, editor, quit),
+		      message(@prolog, next, B))),
+	send(D, append, button(static,
+			       and(message(M, send_hyper, editor,
+					   insert_static),
+				   Next))),
+	send(D, append, button(static_status,
+			       and(message(M, send_hyper, editor,
+					   insert_static_status),
+				   Next))),
+	send(D, append, button(next,
+			       Next)),
+	send(B, select_message,
+	     and(assign(new(E, var), ?(M, find_tag, @arg1?key)),
+		 ?(@pce, instance, hyper, M, E, editor))),
+	send(B, open),
+	repeat,
+	     (	 get(File, read_line, Line)
+	     ->  send(Line, translate, 10, @nil),
+	         send(B, append, Line),
+		 fail
+	     ;	 !,
+	         send(File, close)
+	     ).
+	     
+
+next(B) :-
+	get(B, selection, DI),
+	get(B?dict, members, Ch),
+	get(Ch, index, DI, Index),
+	get(Ch, nth1, Index+1, DI2),
+	send(B, selection, DI2),
+	send(B, normalise, DI2),
+	send(B?select_message, forward, DI2),
+	send(B?frame, expose).
+
+
+		 /*******************************
+		 *         MISCELLANEOUS	*
+		 *******************************/
+
+beginning_of_text_on_line(E) :->
+	"Position caret at first non-white on line"::
+	get(E, caret, Caret),
+	get(E, scan, Caret, line, 0, start, SOL),
+	get(E, scan, Caret, line, 0, end,   EOL),
+	get(E, skip_comment, SOL, EOL, P0),
+	send(E, caret, P0).
+
+:- pce_end_class.
+

@@ -1,0 +1,33 @@
+This directory contains the software to generate  a paper version of the
+XPCE Reference manual from the PCE online manuals.
+
+PROCEDURE
+
+First, the predicate texi/0 defined in texinfo.pl  is used to generate a
+Texinfo description of the manual.  The   conversion process to generate
+the manual is driven by  the   file  "manual.def" which includes various
+other files.  The introduction and some `glue' is described in the *.def
+files.  The remainder of the material comes from XPCE itself.
+
+The output of texi is the file refman.texinfo.  This file may be typeset
+using:
+
+	% tex refman.texinfo
+	% texindex refman.??
+	% tex refman.texinfo
+	% texindex refman.??
+	% tex refman.texinfo
+
+[The extra phase is necessary because pages are shifted a bit due to all
+<undefined> references]
+
+REQUIRED SOFTWARE
+
+	# `TeX' with sufficient memory (I used TeX 3.141 with the
+	`poolsize' enlarged from 140KB to 240 KB).
+
+	# `texindex' is available from most gnu distributing ftp sites.
+	It is used to generate the indexes.
+
+	# XPCE/SWI-Prolog.  The conversion routines should be easily
+	ported to other Prolog systems.

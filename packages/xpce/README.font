@@ -1,0 +1,108 @@
+
+		Using XPCE/SWI-Prolog for languages with
+			non-US-ASCII characters
+
+
+STATUS
+======
+
+The current version (4.7.0) of XPCE   is  8-bit clean.  All text-classes
+(char_array,  text_buffer  and  their  visualisations)  can  handle  all
+characters in the range 1..255.   Translation   of  X11-events into XPCE
+events uses XLookupString (3) and passes any 8-bit character.
+
+The above should allow using non-US-ASCII keyboards as well as keyboards
+modified using xmodmap (1).  The first is not tested (I don't have such
+a keyboard), the latter is tested using the following xmodmap call:
+
+	xmodmap -e "keysym F3 = yen copyright"
+
+Which allows entring `yen' and `copyright'  signs in editor (view), text
+(text_item) and all other editable text-fields.
+
+
+DEFINING NEW FONTS
+==================
+
+Many languages have just a few additional   letters that are part of the
+standard XPCE font-set.  Suppose  however  that   you  want  to use math
+fonts.  The following entries  for  your   ~/.Xdefaults  will  install a
+(small)   base   of   mathematical   fonts.      You   can   also   edit
+/usr/X11/lib/app-defaults/Pce to make the additional  fonts available to
+any XPCE process running on your computer.
+
+----------------------------------------------------------------
+Pce.Display.font_families: \
+	screen_fonts \
+	courier_fonts \
+	helvetica_fonts \
+	times_fonts \
+	math_fonts
+
+Pce.Display.math_fonts : \
+	@math_roman_12 = \
+		"-*-*-medium-r-*-*-12-*-*-75-*-*-*-1_fmath" \
+	@math_roman_18 = \
+		"-*-*-medium-r-*-*-18-*-*-75-*-*-*-1_fmath" \
+	@math_bold_12 = \
+		"-*-*-bold-r-*-*-12-*-*-75-*-*-*-1_fmath" \
+	@math_bold_18 = \
+		"-*-*-bold-r-*-*-18-*-*-75-*-*-*-1_fmath"
+----------------------------------------------------------------
+
+
+SETTING DEFAULT FONTS
+=====================
+
+To  change  the  default  fonts,  add    xpce  font  resources  to  your
+~/.Xdefaults file.  The most commonly redefined font resources are (from
+Pce database):
+
+----------------------------------------------------------------
+Pce*font:			@screen_roman_13
+Pce*label_font:			@helvetica_bold_14
+Pce*value_font:			@helvetica_roman_14
+Pce.Label.font:			@helvetica_roman_14
+Pce.TextItem.font:		@helvetica_roman_14
+Pce.ListBrowser.font:		@helvetica_roman_14
+Pce.Button.font:		@helvetica_bold_14
+Pce.Popup.value_font:		@helvetica_bold_14
+Pce.Popup.label_font:		@helvetica_bold_14
+----------------------------------------------------------------
+
+To find all user-definable font resources, use the ClassBrowser from the
+manual   and   select   display=resource,    class=visual,   field=name,
+search=font, scope=sub.
+
+
+SPECIFYING 8-BIT TEXT FROM THE HOST-LANGUAGE
+============================================
+
+The XPCE host-language interface is 8-bit   transparent.   For how 8-bit
+characters  are  handled  in  the   host-language    we   refer  to  the
+host-language manual.
+
+
+SWI-PROLOG
+==========
+
+SWI-Prolog too is 8-bit  transparent.   All   characters  in  the  range
+128..255 are treated as lowercase letters and thus may appear as part of
+both an unquoted or quoted atom.
+
+**NOTE** When SWI-Prolog is reading  from   a  terminal connected to the
+standard input it uses the GNU  readline library (currently version 1.1)
+to allow for Emacs-like editing  of   the  command-line and browsing the
+history.  Readline treats characters of the   range 128..255 as commands
+instead  of  printable  characters.   There  are  two  alternatives  for
+entering such characters:
+
+	# xpce -tty
+	Tells SWI-Prolog to ignore the fact that the terminal is a tty
+	and not to use the readline library.
+
+	# Type Control-V following by your character
+	These characters will be reported as M-<ascii>, but are passed
+	correctly to the program.
+
+

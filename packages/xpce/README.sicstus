@@ -1,0 +1,20 @@
+Dear SICStus Prolog user
+
+XPCE Version 4.7.3 has been adapted to   run  with SICStus Prolog again.
+You'll need version 2.1#9 of  SICStus   for  this.   The installation if
+XPCE/SICStus is done using the build script:
+
+	% setenv SP_PATH <abs-path to sicstus home>
+	% setenv PCEBINDIR <abs-path where you like the executable>
+	% ./build sicstus
+
+Remarks:
+
+	# SICStus has no predicate autoloading.  For various commands
+	you'll have to load a library first.  Alternatively you can use
+	the require construct:
+	
+	?- require(emacs/0), emacs.
+
+	# :- initialization/1 has been redefined.  I don't know whether
+	this is still a way to access the original SICStus definition.

@@ -1,0 +1,168 @@
+\section{PCE Calling the Host Language}		\label{sec:callback}
+
+PCE can call the host language for two reasons.  The first is that the
+application programmer is sending messages to the host language.  For
+example (in PCE/Prolog):
+
+\begin{code}
+send(@prolog, write, 'Hello world!')
+\end{code}
+
+invokes the Prolog goal:
+
+\begin{code}
+write('Hello world!')
+\end{code}
+
+The second reason is that PCE asks the host language to start a
+tracer/debugger session, allowing the application programmer to trace
+and debug PCE programs.
+
+
+\subsection{Messages to the Host Language}
+
+The host language should make it possible PCE sends a message to it.
+The reverse of \cfunc{pceSend()} is \cfunc{hostSend()}.  The reverse of
+\cfunc{pceGet()} is \cfunc{hostGet()}.
+
+\begin{description}
+    \cfunction{int}{hostSend}{PceObject host, PceName function,
+			      int argc, PceObject *argv}
+This function must be defined by the host-language interface.  Any
+send-operation performed on @host (@prolog in Prolog system; @lisp
+is Lisp systems) will call this function.  \arg{Function} is the
+host-language function to be called.  The pair \arg{argc}, \arg
+{argv} is a vector of arguments to be passed to the function.  This
+vector contains PCE objects which should first be translated into
+host-language data objects.
+
+If this function returns \const{PCE_SUCCEED} the message to @host will
+succeed.  If it returns \const{PCE_FAIL} it will fail.  Any other
+return value is considered illegal.
+
+When connected to Prolog success or failure is related to success or
+failure of the called function.  When connected to Lisp
+\cfunc{hostSend()} fails if the Lisp function returns \const{NIL} and
+succeeds otherwise.
+    \cfunction{PceObject}{hostGet}{PceObject host, PceName function,
+			           int argc, PceObject *argv}
+
+This function must be defined by the host-language interface.  Any
+get-operation performed on @host will call this function.
+\arg{Function} is the host-language function to be called.  The
+pair \arg{argc}, \arg{argv} is a vector of arguments to be passed to
+the function.
+
+The return value of the host-function should be converted to a PCE
+object again.  Normally the translation rules are the same as for
+the arguments.  If the constant \const{PCE_FAIL} is returned, the
+get-operation on @host will signal failure to its caller.
+
+For the Prolog interface, a function is realised by adding an
+additional argument to the predicate.  This argument must be bound by
+the predicate.  If the predicate fails \const{PCE_FAIL} is
+returned.  In Lisp \const{PCE_FAIL} is returned if the Lisp function
+returns \const{NIL}. 
+\end{description}
+
+
+\subsection{HostAction() and HostQuery()}
+
+\newcommand{\action}[2]{\tick{\makebox[2.4in][l]{\const{#1}}\it #2}}
+
+The host language provides two functions allowing the programmer
+to trace, debug and exit programs written with PCE-3.
+
+\begin{description}
+    \cfunction{int}{hostAction}{int action, ...}
+Request the host-language to perform some action.  Most of the actions
+are related to the management of the interactive environment:
+\begin{itemize}
+    \action{HOST_TRACE}{void}
+Switch the tracer of the host-language on.  This call is used by the
+tracer option `t', which switches the host-tracer on and the PCE tracer
+off, allowing the user to trace the program from the host-language
+prospective after an error has trapped the PCE tracer.
+    \action{HOST_BACKTRACE}{int depth}
+Print the top \arg{depth} host-language stack frames.  Used by the PCE
+tracer option `gh'.  Useful to find the host-language context that
+caused a PCE error.
+    \action{HOST_HALT}{int status}
+Request the host to terminate the process.  Called by `pce->die' and
+the `e' option of the tracer.  It allows the host-language to remove
+temporary files and other house-keeping information.
+    \action{HOST_BREAK}{void}
+Request the host-language to start an interactive toplevel.  Used by
+the `b' option of the PCE tracer.  This option is useful to examine the
+context of a PCE error.  This call should return after the user
+exists from the interactive toplevel.
+    \action{HOST_ABORT}{void}
+Request the host-language to abort to the toplevel.  Called by the `a'
+option of the tracer.  Useful to abort from a goal after the cause of
+some error has been diagnosed.
+    \action{HOST_SIGNAL}{int signal, void (*funcion)()}
+Request the host to install a Unix signal handler.  If no special
+precautions are necessary this option can call the Unix library
+function \cfunc{signal()}.
+    \action{HOST_RECOVER_FROM_FATAL_ERROR}{void}
+PCE has trapped a fatal error and cannot continue execution (fatal
+signal; corrupted data-structure; etc.).  This call should abort back to
+the interactive toplevel or exit from the process.  The first enables
+the user to examine the context of the error and sometimes save an
+application's database.  In any case, this call may {\em not} return.
+    \action{HOST_WRITE}{char *string}
+Write a `\verb$\0$' terminated string to the host window.  Used by
+PCE ->write and derivates; output from the PCE tracer; etc.  When
+no special precautions are necessary this may call:
+\begin{code}
+printf("%s", string);
+\end{code}
+    \action{HOST_FLUSH}{void}
+Flush data written with \const{HOST_WRITE} if the line was not complete.
+Could be implemented as
+\begin{code}
+fflush(stdout);
+\end{code}
+    \action{HOST_ONEXIT}{void (*funcion)(), void *handle}
+Register the argument C-function as a function to be called (with
+the given argument) if the process is terminated.  This callback
+is used for two purposes: kill possible inferior processes of
+PCE (see class \class{process}) and call messages registered
+with `@pce ->exit_message'.
+
+On the \idx{SunOs}, this call may be implemented using \cfunc{on_exit()}.  
+\end{itemize}
+    \cfunction{int}{hostQuery}{int action, PceCValue *value}
+Requests a parameter from the host-language.  When implemented, this
+function should fill \arg{value} and return \const{PCE_SUCCEED}.  When
+not implemented it should return \const{PCE_FAIL}.
+\begin{itemize}
+    \action{HOST_GETC}{character}
+\index{tracer,reading input}
+Fill value->character with the next input character from the current
+input-stream.  On failure, PCE will perform the C-library function
+\cfunc{getchar()}.  PCE uses this function to read actions to be performed
+by the PCE tracer.
+    \action{HOST_SYMBOLFILE}{char *}
+\index{C-stack,printing}%
+Return the name of an a.out(5) format file that contains the symbols of
+PCE.  PCE uses this a.out file to print the C-stack on fatal errors or
+user-request from the tracer (the `gC' option; see also
+`@pce ->print_c_stack'.
+
+Currently PCE can only print the C-stack on {\sc SPARC} and {\sc MC680x0}
+processor based systems.  The symbol file must be in Berkeley-Unix a.out
+format (the commonly used {\sc COFF} format is not supported).
+
+Alternatively, PCE defines the global function pointer
+\var{getFunctionNameFromAddress}, which may be filled with a pointer
+to a function that takes two arguments: the address of the program-counter
+(a long) and a pointer to an int.  This function should fill
+the pointed-to int with the relative location of the program-counter
+in the function and return the name of the function as a char *.
+
+If neither of the symbolfile can be provided nor a function, PCE will
+print '???' as function-name.
+\end{itemize}
+\end{description}
+

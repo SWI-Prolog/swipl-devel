@@ -1,0 +1,71 @@
+\chapter{Commonly encountered problems}
+
+In this chapter we list a number of commonly encountered problems
+in using PCE/Prolog.  
+
+\newcommand{\problem}[1]{\tick{#1}}
+
+\begin{description}
+    \problem{Failed to start manpce/0}
+There are various common causes for this problem.  The first is that PCE
+failed to open the display.  This problem is described below.  Another
+possibility is that PCE cannot find its library or the help files.  You
+may verify the existence of the manual libraries by typing
+\begin{code}
+1 ?- [library('man/v_class')].
+/usr/local/lib/xpce/prolog/lib/man/v_class.pl compiled
+into man_class, 0.15 sec, 11,644 bytes.
+\end{code}
+If the manual appears, but the descriptions are empty PCE probably
+cannot find the help files.  These should be in $<$Home$>$/man/reference,
+where $<$Home$>$ is the result of \line{1 ?- get(@pce, home, Home).}  Check
+the existence and permissions of this directory and its member-files.
+
+Finally, PCE might not be able to read it's resource files.  The PCE
+resource file should be installed as \file{/usr/lib/X11/app-defaults/Pce}.
+Check its existence and access rights.  If you have no permission to
+create this file, you may copy <Home>/Pce to your home-directory.
+
+    \problem{Cannot open display}
+PCE tries to open the display from the address specified by the DISPLAY
+environment variable.  It ignores the `--display' command line option.  The
+display might also be specified explicitly using `display <->address'.
+PCE will open the display as soon as it needs X-resource values or it
+needs graphical operations.  This will fail if the specified address is
+not legal, there is no X-server at that address or the X-server denies
+the access.  Examine the error message carefully.  Make sure X-windows
+is running at the specified address.  Make sure you have access to this
+server.  See \idx{xauth} (when running \idx{MIT_MAGIC_COOKIE}) and \idx
+{xhost}.  If PCE still complains, validate the access rights by starting
+a normal X-application (e.g.\ xterm) in the same context.  Always restart
+PCE after a fatal or system error as the system might be corrupted.
+
+    \problem{Failed to convert resource value}
+This implies PCE could not translate a default specified in
+\file{~/.Xdefaults}, \file{/usr/lib/X11/app-defaults/Pce} or the PCE
+class resource specification (see `resource <-default') into a PCE
+object of the type of the resource.  PCE will first try the class
+defined default value and generate a fatal error if this fails as well.
+Try to locate the resource that causes the trouble and where it is
+defined.
+
+    \problem{Bad integer reference}
+This is a PCE/Prolog interface warning.  It implies the integer
+object reference given to send/[2-12], etc.\ is not valid.  The most
+common reason is that the object has already be freed, either explicitly
+or by PCE's incremental garbage collector.  See section~\ref{sec:memory}.
+
+    \problem{Unknown class}
+Attempt to create an instance of a non-existing class.  Apart from the
+common mistakes like mistyped class-names, etc.\ this might be caused by
+1) giving a list argument to a send- or get- operation (class `.')
+or 2) trying to pass a term through send/[2-12] or get/[3-13].  See
+section~\ref {sec:notprolog}.   
+
+    \problem{Illegal PCE object description}
+This implies a non-translatable Prolog datum was passed to the interface.
+Normally this will be a non-ground%
+    \footnote{A `ground' term is a Prolog term that has no
+	      unbound variables.}
+argument to new/2, send/[2-12] or get/[3-13].
+\end{description}

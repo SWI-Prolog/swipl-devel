@@ -1,0 +1,4 @@
+#define mark_handle_bm_width 8
+#define mark_handle_bm_height 8
+static char mark_handle_bm_bits[] = {
+   0xff, 0xc3, 0xbd, 0xbd, 0xbd, 0xbd, 0xc3, 0xff};

@@ -1,0 +1,102 @@
+#chapter General Purpose Graphics
+#end chapter
+
+#texinfo
+This chapter describes non-specialised graphics.  For more
+specialised graphics, see
+@ref{Dialogs and Menus},
+@ref{Lists, Dictionaries and Browsers},
+@ref{Text Processing}.
+
+Class graphical defines the most general graphical object.  Instances
+of class graphical may be displayed in instances of class device or
+class window (a subclass of device).  A device may be regarded as a
+collection of graphical objects.  Devices themselves are graphical
+objects too, allowing for a hierarchical organisation of diagrams.
+
+After the classes graphical and device this chapter continues with the
+primitive graphical building blocks of PCE (box, circle, text, etc.).
+#end texinfo
+
+
+#class picture
+#end class
+
+#class graphical
+#description group relation
+This section explains graphical `connections'.  A connection is a line
+between two graphicals that is automatically updated if either of the
+two connected graphicals is moved, resized, deleted, etc.  The primitives
+for handling connections are spread over a large number of classes:
+
+	graphical	The methods of this section
+	connection	The real connection
+	link		Prototype description for a connection
+	handle		Connection point on a graphical
+	expression	Formula to specify the location of a link
+
+The example below illustrates how two boxes may be given handles for
+input and output and related.  We assume input links at the top and
+left and output links at the bottom and right.
+
+	?- send(new(P, picture('Connection Demo')), open),
+	   send(P, display, new(B1, box(50,50)), point(25,25)),
+	   send(P, display, new(B2, box(100,50)), point(200, 25)),
+	   send_list([B1, B2], recogniser,
+		     [ new(resize_gesture),
+		       new(move_gesture)
+		     ]),
+	   send_list([B1, B2], handle,
+		     [ handle(0,   h/2, input, input_1),
+		       handle(w/2, 0,   input, input_2),
+		       handle(w,   h/2, output, output_1),
+		       handle(w/2, h,   output, output_2)
+		     ]),
+	   new(L, link(output, input, line(0,0,0,0,second))),
+	   send(B1, connect, B2, L).
+
+Note that neither the handles, nor the link has any direct reference to the
+involved graphical objects.  It is therefore allowed create these objects
+once for an application and reuse them for all instances of similar graphicals
+and connections.
+#end description
+#end class
+
+#class device
+#end class
+
+#class figure
+#end class
+
+#class format
+#end class
+
+#class box
+#end class
+
+#class ellipse
+#end class
+
+#class circle
+#end class
+
+#class text
+#end class
+
+#class bitmap
+#end class
+
+#class line
+#end class
+
+#class arc
+#end class
+
+#class path
+#end class
+
+#class joint
+#end class
+
+#class arrow
+#end class

@@ -1,0 +1,38 @@
+#!/bin/csh -f
+#
+# $Id$
+#
+# find names in files and produce appropriate .c and .h files
+#
+# find all names in the  argument files and  build appripriate include
+# files for h/names.ic and h/names.ih. Without an argument new names
+# are added to  the end of the  include files to  prevent the need for
+# recompilation of pce. With the -a flag a complete new (ordered) list
+# of names is build.
+# 
+# Jan Wielemaker, 27 Sept 1986
+# 
+
+if ( "$1" == -a ) then
+    set all
+    shift
+endif
+
+fgrep NAME_ $* | ./Names.X | sort -u > names/found
+
+if ( $?all ) then
+  cp names/found names/all
+  cp names/found names/sorted
+else
+  comm -23 names/found names/sorted > names/new
+  if ( ! -z names/new ) then
+    cat names/new >> names/all
+    sort -u names/sorted names/new > names/tmp
+    cp names/tmp names/sorted
+    rm names/tmp
+  endif
+endif
+
+if ( $?all || ! -z names/new ) then
+  ./Names.Gen h/names.ic h/names.ih < names/all
+endif

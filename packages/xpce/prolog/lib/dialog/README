@@ -1,0 +1,48 @@
+		XPCE Dialog Editor (README)
+
+
+This directory contains version 0.2 of a graphical dialog editor
+for XPCE.
+
+Required software:
+==================
+
+	* XPCE/SWI-Prolog version 4.6.12 or later
+
+
+Status
+======
+
+Alpha.  Please send suggestions and bug-reports to Jan Wielemaker,
+E-mail jan@swi.psy.uva.nl.  Thanks to Paul Holmes-Higgin for the
+first set of remarks.
+
+
+Starting the tool:
+==================
+
+The dialog editor is started using the Prolog predicate
+
+	?- dialog.
+
+from the main source directory.  To run it from another directory,
+turn the dialog editor main directory into a library.  Suppose you
+installed dialog in ~/xpce/dialog, add the following line to ~/.plrc:
+
+	:- assert(library_directory('~/xpce/dialog')).
+
+
+Help
+====
+
+Most popup menus have a (working :-) help entry.
+
+
+Demos
+=====
+
+The directory demo contains some demos.  You can load them using the 
+`File/load' option from the dialog editor.
+
+
+

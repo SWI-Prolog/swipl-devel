@@ -1,0 +1,8 @@
+This directory contains demos for the   XPCE/C++ interface.  These demos
+have been developed to test  and   illustrate  the  functionality of the
+interface; not to be pretty  looking   programs.   Please try the Prolog
+demos to get an overview of the functionality of XPCE.
+
+This  is  an  alpha   version   of    the   C++   interface.   See  also
+$PCEHOME/README.C++.
+

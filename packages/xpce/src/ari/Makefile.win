@@ -1,0 +1,11 @@
+# ARI 		--- Arithmetic Operations
+
+!include ..\makefile.def
+
+ARIOBJS=	equation.obj expression.obj
+
+objects:	$(ARIOBJS)
+		@%null
+
+clean:
+		rm -f *~ a.out core $(ARIOBJS) addlib

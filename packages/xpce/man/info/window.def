@@ -1,0 +1,124 @@
+#chapter Displays, Windows and Frames
+
+An X-window created by PCE consists of a `frame' and a collection of
+`tiled' (i.e.  non-overlapping) windows.  Class frame handles the
+communication with the X-window manager (twm, olwm, mmw, etc.).
+
+A PCE window is an X-subwindow of the X-mainwindow owned by the frame.
+PCE windows may not overlap.  The spatial relation between PCE windows
+is expressed in the terms as `above', `below', `left' and `right'.
+Their relative sizes are expressed in terms of an `ideal' size and
+a merit for stretching and shrinking.  The layout of windows in a 
+frame is maintained by tile objects.
+
+The general window defines the management of graphical objects.  Class
+picture is very similar to class window.  It is designed as a general
+purpose graphics window with scrollbars.  Class dialog is a window
+specialised for displaying dialog_item objects (menus, buttons,
+text-entry-fields, etc.), although dialog windows can also display
+normal graphical objects.  Class dialog and friends are described in a
+seperate chapter.  Class view and browser define window-versions of the
+classes editor (EMACS-like text editor) and list_browser (browser for a
+(long) list of objects).
+
+A window may be `decorated' using scroll-bars and/or a label.  In that
+case the window is wrapped in a window_decorator object.  The user
+seldomly needs to be aware of this object as class window delegates
+all messages concerning decorations to its <-decoration.
+
+Class display represents an X screen.  Normally there is only a single
+instance (@display) which represents the default display from the Unix
+DISPLAY environment variable.  Class display is seldomly used directly
+by the user.  It may be used to obtain information on the dimensions of
+the X-screen or the selection and the PCE frames on it.  PCE allows for
+multiple displays on different X-screen's.  The class display_manager
+with its single instance @display_manager represents the collection of
+available displays.  It also defines some methods for controlling
+low-level event handling.
+
+Although the classes tile and scroll_bar may be used outside the context
+of frames they are described here as they are so commonly used in the
+context of frames and windows.
+#end chapter
+
+#class frame
+#end class
+
+#class window
+#description group area
+The basic area management of a window is inherited from class graphical
+and class device (->set, ->geometry, etc.).  Manipulating the area in
+this sence is used by class tile to position the window on its <-frame.
+
+Only the methods ->size, ->height and ->width may be used to manipulate
+the area of the window.  These methods determine the actual drawing area
+of the window (i.e. the requested value is enlarged with the dimensions
+of the <-border and possible scrollbars).
+
+The method <-visible may be used to query the visible part (viewport)
+of the window.  The method <-area is inherited from class device and thus
+returns the bounding box of all displayed <-graphicals.
+#end description
+#end class
+
+#class window_decorator
+#end class
+
+#class display
+#end class
+
+#class display_manager
+#description group current
+The methods below deal with the notion of `current' display.  This idea
+is not well worked-out.  Application programmers should not realy on
+these methods.
+#end description
+#end class
+
+#class tile
+#description group layout
+
+A tiled layout of objects is constructed using the methods ->above,
+->below, ->left and right.  These methods are used to create lists
+of horizontally or vertically aligned tiles.  Such a layout is
+built inwards-out.  The order in which these messages are given
+is important.  Assume the following layout is desired:
+
+	aaaaa ccccccc
+	aaaaa ccccccc
+	      ccccccc
+	bbbbb ccccccc
+	bbbbb ccccccc
+	bbbbb ccccccc
+
+The proper way to arrive at this layout is:
+
+	?- send(A, above, B),
+	   send(C, right, B).	 % or send(C, left, A).
+
+Do not try
+
+	?- send(A, left, C),
+	   send(B, left, C).
+
+This sequence results in the following layout:
+
+	bbbbb aaaaa ccccccc
+	bbbbb aaaaa ccccccc
+#end description
+#end class
+
+#class scroll_bar
+#description group scroll
+These methods define the `bubble'.  The bubble provides feedback on the
+current location of the `viewport' in the total object and (depending
+on the look-and-feel) the relative size of the viewport compared to the
+total object.
+
+To avoid updating the scrollbar multiple times if the object or window
+is changed multiple times it is adviced that the scrolled object sends
+->request_compute to the scroll_bar instead of using ->bubble.  During
+PCE's repaint cycle this will make PCE invoke ->compute on the
+scroll_bar.
+#end description
+#end class

@@ -1,0 +1,45 @@
+#chapter Operating System Interaction
+
+This chapter defines classes to interact with the Unix filesystem, Unix
+process management and Unix networking features.  PCE is often
+advertised for UI development and therefore including classes to
+interact with the operating system on features that have nothing to do
+with UI may seems strange.  There are various reasons for integrating OS
+interaction into PCE:
+
+	* PCE's load and save facilities need to operate on files and
+	the most natural solution is to introduce a class file for this
+	purpose.
+
+	* Symbolic languages (and especially Prolog) have only very
+	limited OS interaction in the standard.  Doing the OS interaction
+	in PCE allows us to write PCE/Prolog libraries that are *portable*.
+
+	* Asynchronous interaction with processes and networking is
+	desired which should properly interact with the X11 interface.
+	Using host-language primitives may conflict with this schema.
+
+	* Proper interprocess, networking and sub-process interaction
+	allow for easy incorporation of external functionality.  This
+	makes PCE a suitable platform for integrating multiple applications
+	using a single front-end to the end-user.
+
+The classes file and directory allow for all the common operations on
+the Unix file-system
+
+
+
+#end chapter
+
+#class file
+#end class
+
+#class directory
+#end class
+
+#class process
+#end class
+
+#class socket
+#end class
+

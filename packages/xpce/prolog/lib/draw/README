@@ -1,0 +1,50 @@
+			XPCE-4 Drawing Package
+
+Author:		Jan Wielemaker
+		SWI
+		University of Amsterdam
+		Roetersstraat 15
+		1018 WB  Amsterdam
+		E-mail: jan@swi.psy.uva.nl
+
+Status:		Under development
+
+
+SYNOPSIS
+
+This  directory contains the  sources for  a  drawing tool written  in
+XPCE.  PceDraw is a written as a medium-sized demo program for PCE-4.
+
+
+
+STARTING PCEDRAW
+
+The library  directory  immediately  above   contains a  file   called
+`pcedraw.pl', which defines the toplevel goals:
+
+	pcedraw/0
+	pcedraw(+File)
+
+Using the autoload facilities of SWI-Prolog, PceDraw can be started by
+just typing:
+
+        1 ?- pcedraw.
+
+
+GENERATING DOCUMENTATION
+
+A LaTeX document can be generated from the files in this directory.
+To do so, one requires:
+
+	* LaTeX version 2.09, including the macro package psfig for
+	  including PostScript
+
+	* perl
+
+The generate the .dvi file for the documentation, type
+
+	% make
+	% make
+
+	
+	

@@ -1,0 +1,123 @@
+#chapter Making Graphicals Sensitive
+
+This chapter deals with classes and behaviour to make graphical objects
+sensitive to the mouse and keyboard.  For most things the user can do
+with the keyboard, pointer (mouse) or pointer-buttons, X11 generates
+X-events.  These events are converted by XPCE into XPCE event objects
+and distributed to the appropriate graphical object using the method
+`graphical ->event'.
+
+An event object contains information on the location, time and type of
+the event.  Event-types are organised in an is-a hierarchy.  See
+class event_tree, event_tree and @event_hierarchy.  The XPCE/Prolog
+demo program EventHierarchy visualises the hierarchy of event types.
+
+There three basic ways to make a specific graphical sensitive to
+events:
+
+	# Implement ->event
+	That is, write a method ->event for the class whose instances
+	need to be sensitive to event handling.  The method is
+	resposible for analysing the incomming events.  This is the
+	basic way of handling events.  Various subclasses of class
+	dialog_item implement event-handling this way.
+
+	# Associate a *recogniser* object to the graphical
+	A recogniser object may be viewed as a piece of code that
+	translated event(-sequences) into actions.  There are various
+	predefined recogniser classes (see below).  Instances may be
+	associated using `graphical ->recogniser'.  For example:
+
+		?- send(new(P, picture), open),
+		   send(P, display, new(B, box(100,100))),
+		   send(B, recogniser, new(move_gesture)).
+
+	# Associate a recogniser object using ->event
+	This the common way for programming events when using
+	user-defined classes:
+
+		:- pce_begin_class(movable_box, box).
+
+		:- pce_global(@movable_box_recogniser,
+			      new(move_gesture)).
+
+		event(B, Ev:event) :->
+			"Make the box movable"::
+			(   send(B, send_super, event, Ev)
+			->  true
+			;   send(@movable_box_recogniser, event, Ev)
+			).
+
+		:- pce_end_class.
+
+
+The latter two mechanisms are the common way to program event-handling
+in XPCE.  Event-handling that is not dealt with by the standard
+recognisers in this chapter is generally programmed by creating a 
+subclass of one of the predefined recogniser classes.
+
+
+OVERVIEW
+
+The first part of this chapter describes the standard recogniser
+classes.  The general protocol is described with the classes recogniser
+and gesture.  Subclasses thereof are for real event-handling.
+`Gestures' deal with button-events (clicking, dragging, etc.).  Class
+key_binding deals with keyboard events.
+
+Class event describes properties of events and methods for checking
+event-types, -locations, etc.  Class modifier deals with the `modifier'
+keys (SHIFT, CONTROL and META).  
+
+The classes event_tree and event_node describe the event-type hierarchy.
+
+Class handler maps single events into actions.  It's use should rarely
+be necessary.  Finally, class handler_group describes how individual
+recognisers may be combined.
+#end chapter
+
+
+#class recogniser
+#end class
+
+#class gesture
+#end class
+
+#class click_gesture
+#end class
+
+#class move_gesture
+#end class
+
+#class move_outline_gesture
+#end class
+
+#class resize_gesture
+#end class
+
+#class resize_outline_gesture
+#end class
+
+#class connect_gesture
+#end class
+
+#class popup_gesture
+#end class
+
+#class event
+#end class
+
+#class modifier
+#end class
+
+#class event_tree
+#end class
+
+#class event_node
+#end class
+
+#class handler
+#end class
+
+#class handler_group
+#end class

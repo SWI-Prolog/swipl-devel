@@ -1,0 +1,348 @@
+	      XPCE: An X-window interface for symbolic languages
+	      ==================================================
+
+(X)PCE
+======
+
+PCE is   an   object-oriented  library for   the  development  of user
+interfaces,   meant to be    connected   to symbolic  languages.   The
+development  of PCE started   in  1985.  Since  then,  various   major
+releases have been designed  and implemented.  New   functionality was
+guided by research into software architectures for complex interactive
+systems.   PCE has been used  in  various large (ESPRIT) projects  and
+projects at over 50 universities worldwide.
+
+PCE is written in C and based on the X-window environment.  PCE can be
+used interactively.   It  is, for example,  possible   to modify  user
+interfaces on-the-fly.  PCE provides a rich set of predefined classes,
+dealing with:
+
+    * Windows
+    * Graphical objects (boxes, lines, circles, bitmaps, text, ...)
+    * Menu's (buttons, radio-buttons, pulldown/popup menus, ...)
+    * Data representation (hash-tables, chains, name/value sheets, ...)
+    * Programming PCE (classes, methods, instance-variables, ...)
+
+It allows  for two complementary styles of  programming  UI's: one can
+either  use the existing set of  classes  and objects  as a library or
+refine  PCE's class hierarchy.   New PCE  classes  and  methods can be
+created at runtime.  Methods can  be implemented using  PCE objects or
+in  the symbolic  language    (Prolog  or  Lisp;  called  the   ``host
+language'').
+
+PCE  interfaces  to the host  language through a very small interface.
+It can normally  be connected in  a matter   of  days to  any symbolic
+programming environment, although access  to the sources/developers of
+the  environment is  desirable  for  proper  interaction  between  the
+debuggers of the host-language and PCE.
+
+
+EXAMPLE IN PCE/PROLOG
+=====================
+
+The object-oriented machinery  of PCE  is  made available  by means of
+four Prolog predicates: new/2 to create objects; send/[2-12] to modify
+objects,  get/[3-13] to get  information about  objects  and free/1 to
+remove objects.
+
+The  small  demo-program below  defines  a *very*  simple drawing tool
+consisting of a drawing-area in which you  may move and resize objects
+by dragging with the middle-mouse and  a panel  that lets you  add new
+boxes and ellipses to the drawing-area.
+
+demo :-
+	new(DA, picture),		% create drawing area
+	new(P, dialog),			% create dialog panel
+
+	send(P, below, DA),		% put panel below drawing-area
+	send(DA, label, 'Drawing Tool Demo'),
+
+					% append buttons with actions
+	send(P, append, button(box, message(@prolog, add_box, DA))),
+	send(P, append, button(ellipse, message(@prolog, add_ellipse, DA))),
+	send(P, append, button(quit, message(DA, destroy))),
+
+					% open on the screen
+	send(DA, open).
+
+%	Declare @shape_recogniser as a recogniser of events that allows
+%	the user to resize and move graphical objects.
+
+:- pce_global(@shape_recogniser,
+	      new(handler_group(new(resize_gesture),
+				new(move_gesture)))).
+
+%	Call-back from `message(@prolog, add_box, DA)': add a box to the
+%	drawing-area and attach move/resize event-recogniser to it.
+
+add_box(DA) :-
+	send(DA, display, new(B, box(100, 50))),
+	send(B, recogniser, @shape_recogniser).
+	
+add_ellipse(DA) :-
+	send(DA, display, new(E, ellipse(100, 50))),
+	send(E, recogniser, @shape_recogniser).
+	
+
+APPLICATION AREA
+================
+
+Many  UI-building     systems  offer   good    support   for  building
+dialog-windows  containing  buttons   and  various  kinds  of  menu's.
+Besides these, PCE offers high-level  support for interactive graphics
+and   an  EMACS  look-alike  editor   with   support  for   `buttons',
+annotations and multiple (proportional) fonts.
+
+These features make PCE suitable for:
+
+	* Interactive Graphics (direct manipulation of diagrams)
+	* Hyper-text systems
+	* Graphical visualisation of data
+	* Interactive UI building tools
+
+
+PORTABILITY OF PCE
+==================
+
+PCE is being developed on the SUN  SPARC architecture  using GNU-C and
+MIT X-windows version  X11R5 (Xlib   and Xt libraries).    It has been
+ported to the IBM RS6000 machines running  AIX and the IBM  version of
+XMotif  and the DEC  workstation running  Ultrix and  DecWindows.   An
+experienced C-programmer should be able to port it to any machine that
+fully implements X11 (R3 or later) and has 32 bits  word-length.   The
+interface to Unix is limited to simple file access  and should thus be
+easily portable.  The full list:
+
+   MACHINE	OS		WS		REMARKS
+   =======      ==		==		=======
+
+   * SUN SPARC  SunOs 4.1	MIT X11R4/5	Only using GNU-C 1.xx
+   				OpenWindows 2   or 2.1 or later
+				OpenWindows 3
+
+   * IBM RS6000 AIX 3.1/3.2	XMotif		Using native-C
+
+   * Silicon Graphics		MIT X11R4/5	GNU-C 2.1
+
+   * DEC	Ultrix 3.1	DecWindows	Tested version 4.1
+
+
+INTERFACES
+==========
+
+As  stated above, PCE can  easily be connected  to almost any symbolic
+language, provided a full integration with C-code is possible (calling
+C and be called from C).  Access to the sources is generally necessary
+to  get good debugging support.   Currently  the following  interfaces
+exists.
+
+    LANGUAGE		VERSION		REMARKS
+    ========    	=======		=======
+
+    * SWI-Prolog	1.6.6		Copy-left, obtainable through
+					ftp from swi.psy.uva.nl.
+					Used for our own development.
+
+    * SICStus Prolog	2.1#7		Interface implemented in cooperation
+					with SICS.  Requires patch-level #7.
+
+    * Lucid Common Lisp	3.0.5 and up
+			4.0.1 and up	Used for our own development.
+    
+    * LispWorks		3.1
+
+
+DOCUMENTATION
+=============
+
+	* Programming in PCE/Prolog
+	Introduction to the PCE/Prolog environment.
+
+	* PCE/Lisp: PCE Common Lisp Interface
+	Introduction to the PCE/CommonLisp environment.
+
+	* PCE-4 Functional Overview
+	Overview of funtionality provided.
+
+	* PCE-4 User Defined Classes Manual	(to appear shortly)
+	Creating PCE classes from Prolog
+
+	* PceDraw: An example of using PCE-4
+	Extensive example (User defined classes in PCE/Prolog).
+
+	* Hyper-text online reference manual: manpce/0
+
+All documentation  is available in  (TeX  generated) PostScript format
+using anonymous   ftp to  swi.psy.uva.nl    (192.42.96.1),   directory
+~ftp/pub/xpce
+
+
+DISTRIBUTION
+============
+
+PCE can be shipped after signing  a licence agreement (see below) with
+the University of Amsterdam.   Distribution  is in source-form, either
+by ftp or tape.  The sources  may not  be  redistributed and should be
+treated  as  confidential  material.  They  may  be modified,  but the
+copyright notices and information of origin and authors should be left
+in place.
+
+
+FEES
+====
+
+The  distribution  includes  C-sources of   XPCE;  Prolog-, Lisp-  and
+C-sources for   the  various  interfaces;   documentation;  SWI-Prolog
+sources.  The licence fee for academic institutions is 500 ECU (1 ECU=
+US$ 1.25   approx.).  For non-academic  institutions  2000  ECU.   For
+European institutions these prices exclude VAT.
+
+
+LICENCE/ORDERING
+================
+
+The licence  agreement  is  below.  It is  written  in  LaTeX.  If you
+cannot print it, you may  ftp a PostScript version from swi.psy.uva.nl
+or apply for a printed version at xpce-request@swi.psy.uva.nl.  Please
+fill out *two* copies and send them by surface-mail to:
+
+	Ms. L. Zandvliet,
+	SWI
+	Roetersstraat 15
+	1018 WB  Amsterdam
+	The Netherlands
+
+You will be sent an invoice.
+
+
+AUTHORS
+=======
+
+The development of XPCE was  started by Anjo Anjewierden.  The package
+was  then called PCE.  He designed  and implemented  version  1 and 2.
+Version 3 is the result of joint effort from  Anjo Anjewierden and Jan
+Wielemaker.   This was the last version  based  on SunView.  Version 4
+has  been designed and  implemented by  Jan  Wielemaker.  It makes the
+full object oriented mechanisms underlying PCE available to the Prolog
+or Lisp programmer and is based on X-windows rather than SunView.
+
+
+FURTHER INFORMATION
+===================
+
+Documentation:	In PostScript format using ftp from swi.psy.uva.nl
+		(192.42.96.1).  Directory ~ftp/pub/xpce.
+
+Information:	xpce-request@swi.psy.uva.nl
+
+Mailing-list:	xpce@swi.psy.uva.nl
+		(apply through xpce-request@swi.psy.uva.nl)
+
+
+================================================================
+\documentstyle[11pt]{article}
+\setlength{\parindent}{0in}
+\setlength{\parskip}{5pt}
+\nofiles
+\begin{document}
+\begin{center}
+    { \Large \bf Software Release Agreement } \\
+    \vspace{1cm}
+    { Licence No. ...... }
+    \vspace{1.5cm}
+\end{center}
+
+The undersigned, representing the institution identified below and
+hereafter referred to as the Licensee, accepts the software and
+associated documentation known under the name
+
+\vspace{5mm}
+\centerline{\Large \bf PCE version 4}
+\vspace{5mm}
+
+hereafter called the work, and agrees to the following conditions set
+out below and in Schedule A regarding its use and/or distribution. The
+department of Social Science Informatics (SWI) of the University of
+Amsterdam, hereafter referenced as the Licensor, grants to the Licensee
+a non-exclusive and non-transferrable licence to use the work only for
+internal educational, evaluation and research activities.
+
+The Licensee shall not distribute the work or any part thereof to
+others or sell products or services based on the work, including
+educational and research services, without the express permission of the
+Licensor.
+
+\newlength{\tag}
+\settowidth{\tag}{Authorised Signature: }
+\newlength{\rest}
+\setlength{\rest}{\textwidth}
+\addtolength{\rest}{-\tag}
+
+\newcommand{\fillin}{\dotfill\mbox{}}
+\newcommand{\onlydots}{\mbox{}\fillin}
+\newcommand{\next}{\\[7mm]}
+
+\vspace{1cm}
+\makebox[\tag][l]{Licensee:}\fillin \next
+\parbox[t]{\tag}{Name and address of \\ Institution:}%
+\parbox[t]{\rest}{\onlydots \next \onlydots \next \onlydots} \next
+\makebox[\tag][l]{Authorised Signature:}\fillin \next
+\makebox[\tag][l]{Date:}\fillin \next
+\vspace{0.5cm}
+
+For the department of Social Science Informatics~(SWI), University of
+Amsterdam, Roetersstraat 15, 1018 WB~~Amsterdam, The Netherlands. 
+\vspace{1cm}
+
+\makebox[\tag][l]{Authorised Signature:}\fillin \next
+\makebox[\tag][l]{Date:}\fillin
+\vspace{1cm}
+
+\begin{center}
+    \Large \bf Schedule A: \\
+    Conditions of the Software release Agreement
+\end{center}
+\begin{enumerate}
+    \item[Prerequisites]
+The licensee is responsible for obtaining any further licence that may
+be necessary to provide the computing environment required by the said
+work, such as for Unix\footnote{Unix is a trademark of AT\&T} and Prolog
+or Lisp.
+Rights implied by this Software Release Agreement shall never exceed the
+rights implied by such further licence(s) nor shall any rights implied
+by such further licence(s) exceed the rights implied by this Software
+Release Agreement.
+    \item[Limitations on use]
+This Software Release Agreement does not permit the Licensee to use the
+work or any part thereof for any commercial purposes.
+    \item[Non-disclosure]
+The licensee shall take all precaution to maintain the confidentiality
+of the work; these precautions shall be at least equivalent to those
+employed by the receiving organisation to protect its own confidential
+information. 
+    \item[Non-exclusivity]
+The Licensee recognises that the work is released on a non-exclusive
+basis and the Licensor shall have the exclusive right to grant licences
+to others or to make such other use of the work as it shall desire.
+    \item[Credits]
+All credits in the work, both in listings and/or documentation, whether
+names of individuals or organisations, will be retained in place by the
+Licensee. The Licensee will acknowledge in any published copy or in any
+other use of the work the authorship of the work and the fact that the
+work was developed at the Licensor.
+    \item[Product warranty]
+The work is released on an ``as is'' basis, and there is no warranty
+expressed or  implied as to the functioning, performance or effect on
+hardware or other software. The licensee recognises that the Licensor
+is not obliged to provide maintenance, consultation or revision of the
+work.
+    \item[Future releases]
+This licence does not entitle the Licensee to further releases of the
+work.
+    \item[Legality]
+All parties will not be bound by any statement other than those included
+in this copy of the Contract and its accompanying Schedule and this
+Contract shall be governed by the Dutch law.
+\end{enumerate}
+
+\end{document}

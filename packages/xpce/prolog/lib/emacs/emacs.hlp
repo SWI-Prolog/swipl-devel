@@ -1,0 +1,126 @@
+			PceEmacs Bluffers Guide
+			=======================
+
+STARTING PceEmacs
+=================
+
+PceEmacs  is  a  general  purpose   text-editor  largely  compatible  to
+GNU-Emacs.  It is fully defined in   and integrated with PCE/Prolog.  It
+can be started using the Prolog predicates
+
+    # emacs.
+    Start emacs, just opens the PceEmacs Buffer Menu and start the
+    server for accepting edit requests from other applications.
+
+    # emacs(+File).
+    Start PceEmacs on the specified file.
+
+When running with SWI-Prolog, you may wish to load the library file
+
+    ?- ensure_loaded(library('emacs/swi_prolog')).
+
+After which error messages from consulting  Prolog code are forwarded to
+PceEmacs and the SWI-Prolog predicates   ed(+Predicate)  and edit(+File)
+both call PceEmacs.
+
+
+FINDING COMMANDS
+================
+
+Below the HELP button, the  option   ``Show  Key Bindings'' displays the
+key-binding map for PceEmacs in the mode   you are currently using.  The
+Notation for keys is:
+
+	\C-<letter>	<Letter> with the control-key held down
+	\e<letter>	<Letter>, either with the meta-key held
+			down or prefixed by the ESCAPE key.
+	RET		The RETURN key
+	SPC		The SPACE bar
+	TAB		The TAB key
+
+Thus \C-x\C-f means ``hold the CONTROL key down while typing the letters
+`x' and `f'.
+
+
+THE MOST IMPORTANT COMMANDS
+===========================
+
+Some commands should not be forgotten:
+
+	# \C-g
+	(i.e.  CONTROL-g) aborts any ongoing command.  It is sometimes
+	necessary to hit this sequence multiple times to get back to the
+	real toplevel.
+
+	# \C-s
+	Start incremental search forwards.  Further typing expands the
+	search string and shows the current match inverted.  Hitting
+	anything else but a printable character aborts the search,
+	except for:
+
+		\C-s	Search for next
+		\C-w	Expand search pattern for full word
+		DEL	Delete one character from search pattern
+		ESC	Stop searching.  Put caret at end of match
+		\C-g	(abort). Stop searching, revert caret to start
+
+ 	# \C-r
+	Same as \C-s, but searches backwards to the start of the file.
+
+
+PROMPTING FOR ARGUMENTS
+=======================
+
+Any command that requires an argument prompts for them one-by-one in the
+``mini-window'' (little window at the  bottom).    While  the  prompt is
+there, all typing goes to the   prompted-for  value.  When all arguments
+are collected, the command is executed.    Again, \C-g aborts (entering)
+the command.
+
+If you don't know what to answer, type TAB to see possible alternatives.
+
+
+COMMANDS BY NAME
+================
+
+*All* commands may be entered  by  name   using  the  \ex  command (i.e.
+ESCAPE-x or META-x).  You will first  be   prompted  for the name of the
+command, followed by the required arguments.    This  way you can invoke
+*any* send-method defined on the current mode.
+
+You can use the PCE  manual  tools   to  find  applicable  methods.  For
+example  ``\ex  fill_mode  RET  on  RET''    switches  the  editor  into
+auto-fill-mode.
+
+
+MODES
+=====
+
+PceEmacs defines various ``modes''.  A mode is a specialised environment
+for editing certain types of  files.    The  modes are normally switched
+automatically on the file-extension, but  may   be  switched by hand too
+using ``\ex mode'' or the mode menu.
+
+
+SERVER (EDITING FOR OTHER APPLICATIONS)
+=======================================
+
+When PceEmacs is started, it creates a   Unix-domain  socket in the file
+$HOME/.xpce_emacs_server.  If you have  the   Unix  program  xpce-client
+installed, the following script will allow you   to  edit files from any
+application:
+
+================================================================
+#!/bin/csh -f
+
+set server = ~/.xpce_emacs_server
+
+if ( ! -e $server ) exec emacs $*
+
+set file = $1
+if ( $file !~ [~/]* ) set file = `pwd`/$file
+
+xpce-client ~/.xpce_emacs_server -bc "edit('$file')"
+
+if ( $status == 2 ) exec emacs $*
+================================================================

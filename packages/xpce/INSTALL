@@ -1,0 +1,44 @@
+			  INTALLING XPCE with
+		      SWI-prolog or SICStus Prolog
+
+			     Jan Wielemaker
+			          SWI
+			 University of Amsterdam
+			     Roetersstraat 15 
+			    1018 WB  Amsterdam
+			      The Netherlands
+			E-mail: jan@swi.psy.uva.nl
+
+
+INTRODUCTION
+
+This version of the INSTALL description  is completely rewritten for the
+new source organisation that comes  with   XPCE  4.8.0  and later.  This
+documentation describes installation from the  SOURCES.  For BINARY ONLY
+installation, see the file BININSTALL.
+
+The installation procedure for  a  large  part   relies  on  the  use of
+GNU-Project tools.  It is tested to work with the following tools:
+
+	make:		GNU-Make 3.62 and 3.70
+	C-compiler:	gcc/g++ 2.5.[78]
+
+
+GENERAL PROCEDURE
+
+1) Make sure to have the proper  tools and the hosting language (Prolog,
+Lisp, etc.) installed properly.
+
+2) Edit the main Makefile.  All variables   may be set in this Makefile.
+The variables are exported to  the   various  sub-makes  fired from this
+directory.
+
+3) Type `make' to build the XPCE  library   and  link it to the selected
+host language.
+
+4)  Test  the  executable  (which  is   normally  stored  in  the  `bin'
+subdirectory).
+
+5) [SWI-Prolog version only!!!] If all functions well, type ./install to
+install the libraries and binaries in   the selected directories.  After
+installation you may discard this distribution directory.

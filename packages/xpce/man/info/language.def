@@ -1,0 +1,39 @@
+#chapter Language Definition
+
+This chapter describes the classes that will be used in the future to
+support te definition of parsers.
+
+On the basis of these classes, future versions of PCE will define a
+syntax to create objects and send messages.  If one is able to create
+objects and send messages, it is possible to program PCE by creating
+classes, methods, etc.  The definition of such a language makes it
+possible to define library modules that are independant of the host
+language PCE is connected to.  It also makes it possible not to connect
+PCE to any host language.
+
+Overview:
+
+	syntax_table	Basic properties of characters
+	tokeniser	Tokenisation (programmable)
+	operator	Prolog-like operator declarations
+	parser		Parser building blocks
+
+The current version of this manual only describes class syntax_table
+as this class is also used by the classes regex and text_buffer to
+realise syntax directed editors (see PceEmacs).  The other classes
+are considered too immature for printing their documentation.
+#end chapter
+
+#class syntax_table
+#end class
+
+% #class tokeniser
+% #end class
+
+% #class operator
+% #end class
+
+% #class parser
+% #end class
+
+

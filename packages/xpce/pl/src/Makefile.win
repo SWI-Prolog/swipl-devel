@@ -1,0 +1,15 @@
+# PL 		--- SWI-Prolog interface
+
+!include ..\..\src\makefile.def
+
+CFLAGS += -I..\..\..\pl\include -I..\..\src
+
+PLOBJS=		interface.obj link.obj
+
+objects:	$(PLOBJS)
+		@%null
+
+interface.obj:	..\..\prolog\c\interface.c ..\..\prolog\c\interface.h
+
+clean:
+		rm -f *~ core a.out $(PLOBJS) addlib

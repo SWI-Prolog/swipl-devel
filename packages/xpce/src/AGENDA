@@ -1,0 +1,41 @@
+				XPCE Agenda
+
+
+TO DO:
+	*) Selection Service interaction (not only cut-buffers)
+	*) Editor/Text
+		1) Multi Kills backward: buggy
+		2) Handle non-printable characters correctly
+	*) Bitmaps:
+		1) Scaling
+		2) Stencils
+	*) `Resizer' object: inverted box to avoid redisplay
+		1) ->object: Graphical*
+		2) ->active: Boolean
+		3) ->execute: move attached object
+	*) Creating new expression classes?
+	*) NAME_forwards AND NAME_forward!!
+	*) Window ->grab_keyboard werkt niet zonder Window ->grab_pointer!
+	*) list_browser, editor: subclass of dialog_item?
+	*) Efficient constraint handling for spatials
+		1) Trap updates for spatials at class graphical?
+	*) Communicate with host on CWD (current directory)
+	*) Clone/save:
+		3) Relations (connection, constraint, hyper):
+			- Internal <-> external relations
+	*) Creation: exploit `variable <-initial_value' (also function)
+	   Integrate with resource system.  Part of `object ->initialise'?
+	*) Improve consistency of groups
+	*) Print \t as space for xwn-draw.c text functions
+	*) Add ->report: progress and ->report: done
+	 
+Multi-Screen access 
+
+	*) Resolve logical-font names.
+	*) Handling destruction of visual tool
+	*) Fix bitmaps
+	*) Resolve CurrentDisplay usage;
+	      1) Display of current-event?
+	      2) DisplayManager <- current
+	      3) Display of some graphical
+	*) Display <->class --> resource_class

@@ -1,0 +1,15 @@
+# ADT 		--- Abstract Data Types
+
+!include ..\makefile.def
+
+ADTOBJS=	area.obj atable.obj attribute.obj bool.obj chain.obj &
+		chaintable.obj constant.obj date.obj dict.obj &
+		dictitem.obj hashtable.obj number.obj point.obj &
+		real.obj region.obj sheet.obj size.obj tuple.obj &
+		vector.obj
+
+objects:	$(ADTOBJS)
+		@%null
+
+clean:
+		rm -f *~ core a.out $(ADTOBJS) addlib

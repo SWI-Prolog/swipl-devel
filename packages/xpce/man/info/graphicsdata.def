@@ -1,0 +1,37 @@
+#chapter Graphics Support Data
+
+This chapter describes datatypes to *support* graphics.  The datatypes
+of this chapter are designed to just support graphics.  PCE also defines
+a large collection of generally applicable primitive datatypes.
+
+The graphics support datatypes are organised into two groups:
+communication about geometry and communication about appearance (colour,
+font, cursor, etc.).
+
+#end chapter
+
+#class point
+#end class
+
+#class size
+#end class
+
+#class area
+#end class
+
+#class region
+#end class
+
+#class colour
+#end class
+
+#class cursor
+#end class
+
+#class font
+#end class
+
+#class image
+#end class
+
+

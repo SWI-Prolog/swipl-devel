@@ -1,0 +1,13 @@
+# Sun4/SPARC dependant part of the makefile.  Use GCC as CC is broken on
+# alloca.  The SWI-Prolog saved-state mechanism cannot deal with dynamic
+# linking, so make sure linking is done statically (-static for gcc).
+
+OPTIMIZE=-O2
+#OPTIMIZE=-g
+CC=gcc -W -Wunused
+
+#EXTRALIBS=	-lpixrect -lreadline
+EXTRALIBS=	-ltermcap
+LDFLAGS=	-static
+
+include ../src/Makefile

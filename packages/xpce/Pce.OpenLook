@@ -1,0 +1,35 @@
+# Make XPCE look like an OpenWindow application
+#
+# Append this file either to /usr/lib/X11/app-defaults/Pce or to ~/.Xdefaults
+# to make XPCE applications look like OpenLook applications.  Note that
+# XPCE ignores most of the OpenWindows resources, so you may have to add
+# appropriate XPCE resources for personal changes you made.
+#
+# If you are using a slow machine or slow X-server, consider using XPCE's
+# native look-and-feel or change resources such that as fewer rounded
+# corners are used.
+
+Pce.*.look:			open_look
+Pce.ScrollBar.distance:		1
+Pce.ScrollBar.placement:	bottom,right
+Pce.Button.shadow:		1
+Pce.Button.radius:		10
+Pce.Button.pen:			1
+Pce.Button.popup_image:		ol_pulldown.bm
+Pce.Button.font:		@helvetica_roman_12
+Pce.Button.size:		50x20
+Pce.Button.alignment:		center
+Pce.*.value_font:		@helvetica_roman_12
+Pce.*.label_font:		@helvetica_bold_12
+Pce.Popup.format:		left
+Pce.Popup.value_font:		@helvetica_roman_12
+Pce.Popup.border:		2
+Pce.Popup.preview_feedback:	inverted_rounded_box
+Pce.Popup.popup_image:		ol_pullright.bm
+Pce.Popup.margin:		5
+Pce.Popup.pen:			0
+Pce.MenuBar.label_font:		@helvetica_roman_12
+Pce.MenuBar.format:		left
+Pce.MenuBar.gap:		10
+Pce.Menu.cycle_image:		ol_cycle.bm
+Pce.*.label_format:		right

@@ -1,0 +1,121 @@
+Installation of binary XPCE/SWI-Prolog image
+
+=== SUN VERSION ================================================
+Image:		xpce.sparc-sunos-4.1.3.tgz
+Tested with:	SUN SPARC system running SunOS 4.1 and
+		OpenWindows or MIT X11 (tested with R5)
+=== IBM RS6000 VERSION =========================================
+Image:		xpce.rs6000-aix-3.2.tgz
+Tested with:	AIX-3.2.  Compiled with AIX/Motif.  X11
+		tested with the X11R5-server running on
+		a SUN workstation and the twm window manager
+=== LINUX VERSION ==============================================
+Image:		xpce.i386-linux-0.99.13.tgz
+Tested with:	SLS 1.03; kernel 99pl13 gcc libs 4.4.2; Xfree 1.3
+		Statically linked (no shared library dependencies)
+		Known *not* to work with the 99pl6 kernel.  Upgrade to
+		99pl7 or later!  You don't have to upgrade libraries
+		as xpce is statically linked.
+================================================================
+
+1) Get the images.  To install the binary distribution you need:
+
+	xpce.<machine>.tgz
+	xpcelib.tgz
+
+2) Unpack the images:
+
+	% gunzip < xpce.<machine>.tgz | tar xf -
+	% gunzip < xpcelib.tgz | tar xf -
+	
+Produces a directory ./xpce (about 7.5 MB)
+
+3) Installation
+
+NOTE: the specified paths should be absolute!!
+
+	% cd xpce
+	% ./install
+XPCE executable [/usr/local/bin/xpce-4.6.4] ? 
+XPCE library directory [/usr/local/lib/xpce-4.6.4] ? 
+
+RESOURCES AND LOOK AND FEEL DEFAULTS
+====================================
+
+By default, XPCE defines a look-and-feel that is based partly on the
+MIT X11 distribution and partly on an older version of PCE that used
+the SunView windowing environment.  This look-and-feel fits well
+with the TWM window manager and the xterm application.
+
+By changing X-resources, XPCE can emulate the OpenLook look-and-feel.
+These resources may be appended to the system resource file 
+/usr/lib/X11/app-defaults/Pce or to your private ~/.Xdefaults.
+
+Install the OpenLook resources system-wide (y/n) [n] ? 
+Install the OpenLook resources in ~/.Xdefaults (y/n) [n] ? 
+Installing /usr/local/lib/xpce-4.6.4/man/reference ...
+Installing /usr/local/lib/xpce-4.6.4/prolog/boot ...
+Installing /usr/local/lib/xpce-4.6.4/prolog/lib ...
+Installing /usr/local/lib/xpce-4.6.4/bitmaps ...
+Installing /usr/local/lib/xpce-4.6.4/postscript ...
+Installing /usr/local/lib/xpce-4.6.4/release-notes ...
+Installing /usr/local/lib/xpce-4.6.4/include ...
+Installing /usr/local/lib/xpce-4.6.4/C++/demo ...
+Installing /usr/local/lib/xpce-4.6.4/i386-linux-0.99.13/XPCE.a ...
+Installing /usr/local/lib/xpce-4.6.4/pl/i386-linux-0.99.13/pl-crt0.o ...
+Installing /usr/local/lib/xpce-4.6.4/pl/library ...
+Installing /usr/local/lib/xpce-4.6.4/pl/startup ...
+Changing owner to root ...
+Changing mode to 644 ...
+Fixing other modes ...
+Patching /usr/local/lib/xpce-4.6.4/C++/demo/Makefile ...
+Installation of libraries completed
+Installed pl/include/SWI-Prolog.h in /usr/local/include
+Installed /usr/local/include/pce
+Welcome to SWI-Prolog (Version 1.8.6 Decemer 1993)
+Copyright (c) 1993, University of Amsterdam.  All rights reserved.
+
+/staff/jan/src/pl/library/quintus.pl compiled into quintus, 0.04 sec, 5,608 bytes.
+/usr/local/lib/xpce-4.6.4/prolog/boot/pce_pl compiled into pce_host, 0.05 sec, 9,948 bytes.
+pce_principal compiled into pce_principal, 0.35 sec, 4,836 bytes.
+pce_error compiled into pce_error, 0.01 sec, 1,788 bytes.
+pce_autoload compiled into pce_autoload, 0.03 sec, 2,128 bytes.
+pce_global compiled into pce_global, 0.03 sec, 3,972 bytes.
+pce_operator compiled into pce_operator, 0.02 sec, 2,812 bytes.
+pce_compile compiled into pce_compile, 0.12 sec, 19,080 bytes.
+pce_editor compiled into pce_editor_buttons, 0.18 sec, 4,952 bytes.
+../boot/pce_boot compiled into pce_boot, 0.75 sec, 41,896 bytes.
+/usr/local/lib/xpce-4.6.4/prolog/lib/pce compiled into pce, 0.76 sec, 47,684 bytes.
+PCE home directory = /usr/local/lib/xpce-4.6.4
+util compiled into man_util, 0.12 sec, 13,788 bytes.
+man/p_card compiled into man_card, 0.43 sec, 29,092 bytes.
+man/p_data compiled into man_data, 0.85 sec, 33,340 bytes.
+man/v_manual compiled into man_manual, 0.50 sec, 31,964 bytes.
+/usr/local/lib/xpce-4.6.4/prolog/lib/pce_manual.pl compiled into pce_manual, 1.82 sec, 100,528 bytes.
+pl_pce compiled, 2.64 sec, 159,856 bytes.
+
+Yes
+Program saved in /usr/local/bin/xpce-4.6.4
+
+Yes
+
+Yes
+
+Yes
+
+
+After installation and testing you may remove the ./xpce directory and
+the image files.
+
+
+4) Pce resource file
+
+The file xpce/Pce is normally copied to the system direstory
+/usr/lib/X11/app-defaults.  If this is not possible, copy this file
+to your home directory.
+
+
+5) OpenLook mode
+
+The file Pce.OpenLook contains additional resources to make PCE more or
+less OpenLook compatible.

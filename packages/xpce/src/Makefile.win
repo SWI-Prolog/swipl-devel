@@ -1,0 +1,67 @@
+# $Id$
+#
+# Copyright (C) 1994, University of Amsterdam
+
+!include makefile.def
+
+MODULES=	adt ari evt gnu gra itf ker men msg prg rel txt unx win
+
+all:		xpce.exe
+		@%null
+
+objects:
+		@in adt $(MAKE) $@
+		@in ari $(MAKE) $@
+		@in evt $(MAKE) $@
+		@in gnu $(MAKE) $@
+		@in gra $(MAKE) $@
+		@in itf $(MAKE) $@
+		@in ker $(MAKE) $@
+		@in men $(MAKE) $@
+		@in msg $(MAKE) $@
+		@in prg $(MAKE) $@
+		@in rel $(MAKE) $@
+		@in txt $(MAKE) $@
+		@in unx $(MAKE) $@
+		@in win $(MAKE) $@
+		@in $(WST) $(MAKE) $@
+
+interface:
+		in ..\pl\src $(MAKE)
+
+xpce.exe:	objects interface
+		$(LD) name xpce @xpce.lnk
+		wbind xpce -n -q
+
+clean:
+		cd adt; $(MAKE) $@
+
+realclean:	clean
+		rm -f XPCE.a md.h
+		rm -f h/names.ic h/names.ih
+		rm -rf names Names.Gen Names.X
+
+##########################
+# Building the name tables
+##########################
+
+Names.Gen:	Names.Gen.c
+		$(CC) $(CFLAGS) -I. -o Names.Gen Names.Gen.c
+Names.X:	Names.X.c
+		$(CC) $(CFLAGS) -I. -o Names.X Names.X.c
+
+h/names.ic:	names/built
+h/names.ih:	names/built
+
+names/built:	Names.Gen Names.X
+		if [ ! -d names ]; then mkdir names; fi
+		./FN -a h/*.h ???/*.c
+		@touch names/built
+
+################
+# Tags
+################
+
+tags:		
+		$(ETAGS) h/*.h ???/*.c
+

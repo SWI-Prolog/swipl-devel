@@ -1,0 +1,82 @@
+		    Short overview of the XPCE library content
+
+INDEX.pl		SWI/SICStus Prolog library index
+
+**************** DIRECTORIES ****************
+
+compatibility/		Compatibility packages
+contrib/		User contributions
+demo/			Demo programs
+draw/			PceDraw sources (drawing tool)
+emacs/			PceEmacs (multi-window emacs editor)
+man/			PCE online manual sources
+xref/			Databases for pce_require.pl
+dialog/			Interactive dialog editor
+
+**************** APPLICATIONS ****************
+
+demo.pl			pcedemo/0 (demo program starter)
+emacs.pl		emacs/[0,1] (start PceEmacs)
+pcedraw.pl		pcedraw/[0,1]: PceDraw toplevel
+pce_manual.pl		manpce/[0,1]: entry-point for the manual
+dialog.pl		dialog/0: interactive dialog editor
+
+**************** DIALOG WINDOWS **************
+
+make_dialog.pl		make_dialog/2: Realise dialog built using dialog/0.
+
+**************** IMAGES **********************
+
+pce_image.pl		pce_image_directory/1: declare a new image directory.
+
+**************** HELP SYSTEM *****************
+
+pce_helper.pl		Application help-system.
+
+**************** DEBUGGING/DEVELOPMENT********
+
+pce_debug.pl		Debugging utility predicates (checkpce/0 and friends)
+pce_edit.pl		pce_edit/1: interface to PceEmacs
+pce_portray.pl		portray/1 clause to print objects as Ref/Class
+pce_renew.pl		pce_renew/1: how redefinition of objects is handled
+pce_require.pl		Generate :- require/1 directive
+emacs_tags.pl		library to handle GNU-Emacs TAG files
+portray_object.pl	Print the structure of objects
+pce_c++_headers.pl	Generates C++ .h files from class-description
+
+**************** POSTSCRIPT/SCREENDUMPS *****
+
+pce_postscript.pl	Generate PostScript from PCE objects
+stayup_popup.pl		Allows popups to be included in screendumps
+
+**************** PCE ITSELF (SYSTEM) ********
+
+pce.pl			PCE itself
+pce_common.pl		Get a common (Prolog) platform (Prolog compatibily)
+pce_util.pl		Various utility predicates (send_list/3, chain_list/2)
+
+**************** GUI LIBRARY ****************
+
+file_item.pl		Class file_item: enter filename with completion
+find_file.pl		Class finder: dialogue window for finding files
+keybinding.pl		show_keybindings/1: show keybindings of editors, etc.
+pce_drag_and_drop.pl	Class drag_and_drop_gesture
+pce_drag_and_drop_dict_item.pl
+			Class drag_and_drop_dict_item_gesture
+twm_geometry_box.pl	TWM-type of window resize-box painted on the display
+twm_resize_button.pl	TWM-type window-resizer
+subframe.pl		Class subframe: Manipulate windows in windows
+pce_font_item.pl	Font selector (as used in PceDraw).
+pce_tagged_connection.pl
+			Connection with a tag in the middle.
+
+**************** COMMUNICATION **************
+
+pce_server.pl		Interface for xpce-client: socket connections
+
+**************** MISCELENEOUS ***************
+
+area.pl			Utility for area comparison (`area <-near_sides')
+pce_objects.pl		Commonly usefull global objects
+scan_arguments.pl	scan_arguments/[2,3]: unpack argument lists
+

@@ -1,0 +1,14 @@
+# SGI/IRIX dependant part of the makefile.
+# Tested on IRIX 4.0.5F using gcc-2.4.5
+
+CC=gcc
+OPTIMIZE=-O2
+
+#       
+EXTRALIBS=
+
+#       Donot use dynamic libraries; this breaks SWI-Prolog load/save
+#       Add -L/path if your -lreadline is somewhere else
+LDFLAGS=-static
+
+include ../src/Makefile

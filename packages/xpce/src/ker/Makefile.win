@@ -1,0 +1,26 @@
+# KER 		--- Kernel modules
+
+!include ..\makefile.def
+
+KER1OBJS=	alloc.obj assoc.obj behaviour.obj class.obj conversion.obj &
+		csymbol.obj debug.obj declarations.obj error.obj gc.obj &
+		getmethod.obj glob.obj global.obj goodies.obj passing.obj &
+		method.obj name.obj object.obj programobject.obj save.obj &
+		self.obj sendmethod.obj sourcelocation.obj timer.obj &
+		trace.obj type.obj variable.obj vmi.obj xref.obj error.obj
+KER2OBJS=	inline.obj
+KEROBJS=	$(KER1OBJS) $(KER2OBJS)
+
+objects:	$(KEROBJS)
+		@%null
+
+version.h:	..\makefile.def
+		echo $#define MACHINE "$(ARCH)" > $@
+		echo $#define PCE_VERSION "$(VERSION)" >> $@
+
+name.obj:	..\h\names.ic name.c
+
+self.obj:	self.c version.h
+
+clean:
+		rm -f *~ a.out core $(KEROBJS) addlib

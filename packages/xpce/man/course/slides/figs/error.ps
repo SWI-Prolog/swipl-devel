@@ -1,0 +1,400 @@
+%!
+%%Creator: PCE 4.6.12, February 1994
+%%CreationDate: (Wed Feb 16 22:46:27 1994)
+%%Pages: 1
+%%DocumentFonts: (atend)
+%%BoundingBox: 70 70 491 487
+%%Object: @1274941/draw_canvas
+%%EndComments
+
+gsave
+
+%	$Id$
+%
+%	PostScript header file for PCE version 4.5
+%	Copyright Jan Wielemaker, Anjo Anjewierden
+%	Modified: Tue Mar 23 15:46:24 1993 (Added arcpath)
+
+%	PCE line attributes
+
+/dotted
+	{ [1 5] 0 setdash
+	} def
+/dashed
+	{ [5] 0 setdash
+	} def
+/dashdot
+	{ [5 2 1 2] 0 setdash
+	} def
+/dashdotted
+	{ [5 2 1 2 1 2 1 2] 0 setdash
+	} def
+/longdash
+	{ [8 5] 0 setdash
+	} def
+/nodash
+	{ [] 0 setdash
+	} def
+
+/pspen
+	{ 2 div
+	} def
+/pen
+	{ pspen
+	  setlinewidth
+	} def
+
+%	Draw a path according to the current  texture  and  pen.   Draws
+%	only  if  the  pen  is not 0.  If a dash pattern is provided the
+%	path is first cleared.
+
+/draw
+	{ 0 currentlinewidth ne
+	  { currentdash 0 eq exch [] eq and not
+	    { gsave nodash 1 setgray stroke grestore
+	    } if
+	    stroke
+	  } if
+	} def
+
+% Create a rectangular path from x, y, w, h in the current dict
+
+/region
+	{ newpath
+	    x y moveto
+	    w 0 rlineto
+	    0 h rlineto
+	    w neg 0 rlineto
+	  closepath
+	} def
+
+%	Paint inverted
+
+/invert
+	{ {1 exch sub} settransfer
+	} def
+
+%	Create a path for a PCE box without rounded corners. Stack:
+%	
+%	pen x y w h radius BOXPATH path
+
+/boxpath
+	{ /r exch def
+	  /h exch def
+	  /w exch def
+	  /y exch def
+	  /x exch def
+	  /p exch def
+	  
+	  r 0 eq
+	  { 2 setlinecap newpath
+	    x p pspen add y p pspen add moveto
+	    w p sub 0 rlineto
+	    0 h p sub rlineto
+	    w p sub neg 0 rlineto
+	    0 h p sub neg rlineto
+	  }
+	  { newpath
+	    /pr r p pspen add def
+	    x pr add y p pspen add moveto
+	    x w add pr sub	y pr add	r 270 360 arc
+	    x w add pr sub	y h add pr sub	r 0 90 arc
+	    x pr add		y h add pr sub  r 90 180 arc
+	    x pr add		y pr add	r 180 270 arc
+	  } ifelse
+	  
+	  p pen
+	} def
+
+%	Create a path for a PCE circle.
+%	pen x y radius CIRCLEPATH
+
+/circlepath
+	{ /r exch def
+	  /y exch def
+	  /x exch def
+	  /p exch def
+
+	  newpath
+	  x r add y r add r p pspen sub 0 360 arc
+	  
+	  p pen
+	} def
+
+%	Create a path for a PCE ellipse
+%	pen x y w h ELLIPSEPATH
+
+/ellipsepath
+	{ /h exch 2 div def
+	  /w exch 2 div def
+	  /y exch def
+	  /x exch def
+	  /p exch def
+
+	  matrix currentmatrix
+	  x w add y h add translate
+	  w p pspen sub h p pspen sub scale
+	  newpath
+	  0 0 1 0 360 arc
+	  setmatrix
+
+	  p pen
+	} def
+
+
+%	pen close x y w h start size ARCPATH
+
+/arcpath
+	{ /size exch neg def
+	  /start exch neg 360 add def
+	  /h exch def
+	  /w exch def
+	  /y exch def
+	  /x exch def
+	  /close exch def
+	  /p exch def
+
+	  matrix currentmatrix
+	  x y translate
+	  w p pspen sub h p pspen sub scale
+	  newpath
+
+	  close 2 eq { 0 0 moveto } if
+	  size 0 le
+	  { 0 0 1 start start size add arcn
+	  }
+	  { 0 0 1 start start size add arc
+	  } ifelse
+	  close 0 ne { closepath } if
+	  setmatrix
+
+	  p pen
+	} def
+
+
+%	pen x y STARTPATH
+
+/startpath
+	{ newpath moveto pen
+	} def
+
+
+%	Linepath: create a path for a pce line
+%	x y w h LINEPATH
+
+/linepath
+	{ /h exch def
+	  /w exch def
+
+	  newpath moveto w h rlineto
+	  pen
+	} def
+
+%	x y w h CLEAR
+%	Clear a region
+
+/clear
+	{ /h exch def
+	  /w exch def
+	  /y exch def
+	  /x exch def
+
+	  gsave
+	    region 1 setgray fill
+	  grestore
+	} def
+
+%	text. (x,y) is the xy coordinate of the baselinestart of the first
+%	character. w is the width to which the text is scaled.
+%	x y <invert> w string TEXT
+
+/text
+	{ /s exch def
+	  /w exch def
+	  
+	  gsave
+	    1 eq { invert } if
+	    moveto s stringwidth pop w exch div -1 scale s show
+	  grestore
+	} def
+
+
+%	x y w h BITMAP hexdata
+
+/bitmap
+	{ /h exch def
+	  /w exch def
+	  /y exch def
+	  /x exch def
+
+	  gsave
+	  {1 exch sub} settransfer
+%	  region clip
+	  x y h add translate
+	  /w8 w 7 add 8 idiv 8 mul def
+	  /picstr w8 8 idiv string def
+	  w8 h neg scale
+	  w8 h 1 [w 0 0 h neg 0 h]
+	  {currentfile picstr readhexstring pop} image
+	  grestore
+	} def
+	  
+
+%	x y w h pw ph pattern FILL
+%	Fill path with a repetitive pattern <pattern> which is sized (pw, ph).
+%	<x,y,w,h> discribe an area that encapsulates the path.
+
+/fillpath
+	{ /patternstring exch def
+	  /ph exch def
+	  /pw exch def
+	  /h exch def
+	  /w exch def
+	  /y exch def
+	  /x exch def
+	  
+	  /pw8 pw 7 add 8 idiv 8 mul def
+	  
+	  /putpattern
+	  { translate 1 -1 scale
+	    newpath 0 0 moveto 1 0 rlineto 0 1 rlineto -1 0 rlineto closepath
+	    clip
+	    pw8 ph 1 [pw 0 0 ph neg 0 ph] patternstring image
+	  } def
+
+	  gsave
+	  clip
+	  { 1.0 exch sub } settransfer
+	  x y translate pw ph scale
+
+	  0 1 w pw div ceiling 1 sub
+	  { 1 1 h ph div ceiling
+	    { gsave 2 copy putpattern pop grestore
+	    } for
+	  } for
+	  grestore
+	} def
+	      
+70 70 translate
+1.00 -1.00 scale
+-50 -420 translate
+%%EndProlog
+%%Page 0 1
+
+%%Object: @1274941/draw_canvas
+gsave 0 0 translate
+
+%%Object: @1282388/draw_ellipse
+gsave nodash 1 50 348 126 56 ellipsepath
+draw grestore
+
+%%Object: @1280351/draw_text
+/Helvetica findfont 14 scalefont setfont
+112 417 0 350 (->report: error, 'Cannot do this: %s', permission denied) text
+
+%%Object: @1286221/draw_box
+gsave nodash 1 110 246 110 56 0 boxpath
+draw grestore
+
+%%Object: @1286736/draw_connection
+nodash 1 113 348 52 -46 linepath draw
+nodash 1 pen newpath 160 312 moveto 165 302 lineto 156 306 lineto closepath
+gsave 0.00 setgray fill grestore
+
+%%Object: @1286861/draw_text
+/Helvetica-Bold findfont 14 scalefont setfont
+135 271 0 60 (Visual of) text
+139 287 0 52 (@event) text
+
+%%Object: @1286362/draw_box
+gsave nodash 1 195 169 71 32 0 boxpath
+draw grestore
+
+%%Object: @1298581/draw_connection
+nodash 1 165 246 65 -45 linepath draw
+nodash 1 pen newpath 224 210 moveto 230 201 lineto 220 204 lineto closepath
+gsave 0.00 setgray fill grestore
+
+%%Object: @1291296/draw_text
+158 218 82 16 clear
+/Helvetica findfont 14 scalefont setfont
+162 231 0 75 (<-report_to) text
+
+%%Object: @1298612/draw_text
+/Helvetica findfont 14 scalefont setfont
+
+%%Object: @1300708/draw_box
+gsave nodash 1 260 92 71 32 0 boxpath
+draw grestore
+
+%%Object: @1315241/draw_connection
+nodash 1 230 169 65 -45 linepath draw
+nodash 1 pen newpath 289 133 moveto 295 124 lineto 285 127 lineto closepath
+gsave 0.00 setgray fill grestore
+
+%%Object: @1315157/draw_text
+225 138 82 16 clear
+/Helvetica findfont 14 scalefont setfont
+229 151 0 75 (<-report_to) text
+
+%%Object: @1315103/draw_text
+/Helvetica-Bold findfont 14 scalefont setfont
+276 112 0 38 (frame) text
+
+%%Object: @1315275/draw_box
+gsave nodash 1 342 166 129 57 0 boxpath
+draw grestore
+
+%%Object: @1315429/draw_text
+/Helvetica-Bold findfont 14 scalefont setfont
+384 199 0 45 (Dialog) text
+
+%%Object: @1315409/draw_box
+gsave nodash 1 342 246 129 57 0 boxpath
+draw grestore
+
+%%Object: @1315492/draw_text
+/Helvetica-Bold findfont 14 scalefont setfont
+373 279 0 67 (`reporter') text
+
+%%Object: @1315472/draw_box
+gsave nodash 1 342 3 129 57 0 boxpath
+draw grestore
+
+%%Object: @1315521/draw_text
+/Helvetica-Bold findfont 14 scalefont setfont
+374 36 0 64 (@display) text
+
+%%Object: @1315299/draw_connection
+nodash 1 406 223 0 23 linepath draw
+nodash 1 pen newpath 403 236 moveto 406 246 lineto 409 236 lineto closepath
+gsave 0.00 setgray fill grestore
+
+%%Object: @1315626/draw_connection
+nodash 1 295 124 111 42 linepath draw
+nodash 1 pen newpath 396 165 moveto 406 166 lineto 398 159 lineto closepath
+gsave 0.00 setgray fill grestore
+
+%%Object: @1315652/draw_connection
+nodash 1 295 92 111 -32 linepath draw
+nodash 1 pen newpath 397 66 moveto 406 60 lineto 395 60 lineto closepath
+gsave 0.00 setgray fill grestore
+
+%%Object: @1316176/draw_text
+342 133 19 21 clear
+/Helvetica-Bold findfont 18 scalefont setfont
+346 149 0 10 (1) text
+
+%%Object: @1316597/draw_text
+336 67 19 21 clear
+/Helvetica-Bold findfont 18 scalefont setfont
+340 83 0 10 (2) text
+
+%%Object: @1320504/draw_text
+/Helvetica findfont 14 scalefont setfont
+224 190 0 12 (....) text
+grestore
+
+%%Trailer
+grestore
+%%DocumentFonts: Helvetica Helvetica-Bold

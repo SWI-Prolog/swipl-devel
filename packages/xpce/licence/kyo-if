@@ -1,0 +1,52 @@
+#!/bin/sh
+
+umask 066
+tmp=/tmp/kyo-$$
+path=/bin:/usr/local/lib/lpd:/usr/ucb:/usr/bin
+kyolib=/usr/local/lib/kyo
+
+echo "$0 $*" >> /var/adm/kyo1-errs
+
+set -- `getopt w:l:i:n:h: $*`
+          if [ $? != 0 ]
+          then
+               echo $USAGE
+               exit 2
+          fi
+          for i in $*
+          do
+               case $i in
+               -w) width=$2; shift 2;;
+               -l) lines=$2; shift 2;;
+	       -i) indent=$2; shift 2;;
+	       -n) user=$2; shift 2;;
+	       -h) host=$2; shift 2;;
+               --) shift; break;;
+               esac
+          done
+
+cat > $tmp
+
+filetype=`file $tmp`
+
+case $filetype in
+	*DVI*)	TEXPXL=/usr/local/lib/tex/fonts/pk; export TEXPXL
+		mv $tmp $tmp.dvi
+		(cd /tmp; /usr/local/lib/lpd/dvilj2p $tmp.dvi)
+		(echo $user; \
+		 echo put $kyolib/hplj3; \
+		 echo bin; \
+		 echo put $tmp.lj) | /usr/ucb/ftp swilaser1
+		exit 0
+		break;;
+	*\	data)
+		echo "Cannot print data file for user $user" > $tmp
+		break;;
+	*)	break;;
+esac
+
+(echo $user; echo put $kyolib/reset; \
+ echo "put $tmp"; \
+ echo put $kyolib/footer) | /usr/ucb/ftp swilaser1
+
+rm -f $tmp

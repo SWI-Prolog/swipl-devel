@@ -1,0 +1,13 @@
+%	Generate a summary of the functional groups
+
+#texinfo
+@appendix Summary of Functional Groups
+
+This appendix lists all `Functional Groups' and their members in
+alphabetical order.  A functional group is defined the be a group of
+behaviours that is related by function.  The members of a group are
+either related because they serve functionaly similar operations or they
+cooperate to realise some functional goal.
+#end texinfo
+
+#call message(@prolog, group_summary)

@@ -1,0 +1,12 @@
+# MEN 		--- Menu (Dialog) items
+
+!include ..\makefile.def
+
+MENOBJS=	button.obj dialogitem.obj label.obj menu.obj menubar.obj &
+		menuitem.obj popup.obj slider.obj textitem.obj
+
+objects:	$(MENOBJS)
+		@%null
+
+clean:
+		rm -f *~ a.out core $(MENOBJS) addlib

@@ -1,0 +1,1179 @@
+[VERSION 4.8.0]
+
+* Added `timer ->delay' to allow suspension of the XPCE process in a
+  host-independant fashion.
+
+* Redraw now maintains multiple update-areas.  This change has provides
+  an incredible speed-up for some applications.	 The infra-structure
+  has been set-up for further advanced redraw planning in the future.
+
+* Library naming.  The libraries pce_drag_and_drop.pl and
+  pce_drag_and_drop_dict_item.pl have been renamed in dragdrop.pl
+  and dragdict.pl to satisfy DOS naming conventions.
+
+* Frame OPEN/CLOSE/ICONISE issues.  The port to MS-Windows made it
+  desirable to clean-up the various interacting methods dealing with
+  opening, iconising, mapping, etc. of frames.  All is now handled
+  by the central method <->status.  `Frame <->show' and <->iconic
+  are mapped onto this new method for compatibility reasons.  
+  `Frame ->mapped', invoked from the X11 interface has gone.  The
+  most likely usage of this method is to wait for a frame to be
+  open.  This functionality is now realised by the new method
+  `frame ->wait'.
+
+* Implemented MS-Windows-3.1 version of the `Virtual Window System
+  Interface'.  See source directory msw.  Additional methods for the
+  MS-Windows implementation: `@pce ->console_label' and `@pce
+  ->expose_console' to manipulate the console window.
+
+* Complete reorganisation of C-source directory structure and Makefiles.
+  Aim: simplify installation, reduce Unix dependency and limit filename-
+  length requirements.
+
+* Definition of class stream as a superclass for socket and process to
+  share the details of asynchronic communication.  Will probably be
+  integrated further.
+
+* Virtual Window System Interface now includes the classes display and
+  cursor.  For class display, this implies that some old `hacks' are
+  no longer possible.  To determine the display is open, use
+  `display <-opened' instead of `display <-slot: display_xref'.  The
+  depth of the display is requested using `display <-depth'.  The old
+  hack `display <-slot: depth' no longer works as this slot has disappeared.
+
+  Vanished slots on class display are: display_xref, shell_xref, root_bitmap,
+  pixmap_context, bitmap_context, depth, white_pixel, black_pixel,
+  foreground_pixel, background_pixel and colour_map.  All this data is
+  not private to the X11 inplementation of the Virtual Window System
+  Interface.
+
+* Modified: `text_buffer <->character' now fails if the index is out of the
+  range of the text-buffer
+
+* 8/16 bit version of text-representation classes
+
+* Added: `string ->insert_character'
+
+
+[VERSION 4.7.2]
+
+* Added: overview of delegation to ClassBrowser.
+
+* Added: library('man/behaviour_item') for entering XPCE behaviour references
+  using completion.  Used by PceEmacs for M-x manpce and M-x editpce and
+  by the manual card-browser for a `goto' field.
+
+* Modified: `@emacs->server_start: Force:[bool]': Added `force' argument.
+  When not @on, the server will only be started if no server exists.
+
+* Fixed: ensured call to `window<-resize_message'
+
+* Fixed: removed errornous error-message from `node->son' to make this
+  method succeed without side-effects if the son-relation is already true.
+
+* Compatibility: Fixed initialisation of `style <-colour' when loading old
+  files.
+
+* Fixed: trees using multiple-inheritence (e.g. directed graphs with a single
+  source) did not handle `collapsed' nodes correctly.
+
+* PceEmacs: fixed using selection as default value when prompting for files.
+
+* More QP integration stuff: renamed emacs.pl and demo.pl into pce_emacs.pl
+  and pce_demo.pl.  Some more initialization directives.
+
+* Added: menu <->vertical_format to control the vertical alignment of items
+  in their box.
+
+* Fixed: unalloc() regex `fastmap' on ->unlink.  Fixes memory leak on
+  optimised (regex ->compile: @on) regular expression objects.
+
+* Added: `menu ->members' to set the <-members of a menu with one message.
+
+* Added: `editor ->styles' to associate a new style-sheet with an editor.
+
+* PceEmacs: make server windows `sticky', redefine \C-x# to mean `quit'
+  for non-server windows and kill-buffer-and-return-server for server
+  windows.
+
+[VERSION 4.7.1 (PW-3 1.1 == 4.7.1 including a few patches from 4.7.2)]
+
+* Modified Makefile to avoid the macro C++, which is refused by many
+  versions of make.
+
+* Added Makefile-i486-linux and friends for linking to Linux 1.0 (tested
+  using the Slackware 1.2.0 distribution).
+
+* (re)integration of SICStus interface: added prolog/boot/pce_expand.pl.
+  this file is supposed to be loaded *first*.  the module pce_host is
+  supposed to define property/1 describing some aspects of the Prolog
+  system.
+  
+  XPCE/SICStus still does not run due to a bug in SICStus 2.1#8.  An
+  fix has been promised by SICS for 2.1#9.
+
+* Added: PceEmacs `fundamental_mode ->goto_line'
+
+* Fixed: list_browser search as called by the text-item completion
+  function.  Caused a name-table inconsistency if completion was
+  requested without initial value, there was no common prefix to the
+  extensions and the user tried to search the list_browser ...
+
+* Fixed some minor problems in the reference-manual generation software
+  and some group-inconsistencies.  Minor updates to the reference manual.
+
+
+[VERSION 4.7.0]
+
+* Fixed: reporting of `unresolved' types by checkpce/0 for types which
+  context class has an autoload declaration.
+
+* Modified: Default font-set generation.  See Pce.Display.font_families
+  and `display ->load_fonts'.  See also README.font
+
+* Fixed: `event ->is_a' for 8-bit characters.
+
+* Fixed: Serious name-table hash-performance degradation, generally
+  occurring with more than about 7000 XPCE names.
+
+* Modified: Visual-hierarchy: added `dict' between `browser' and
+  `dict_item'.  This is both conceptually clearer and drastically improves
+  the speed of ->destroy'ing large browsers.  Browsers are now tested to
+  be really fast upto 25.000 items on a SPARC-II.  
+
+* Modified: graphical <->fill_pattern now also accepts a colour argument:
+  send(Box, fill_pattern, colour(green)) make the *interior* of the box
+  green.
+
+* Fixed: Various bugs in image objects of <-kind: pixmap, notably
+  colour handling: proper handling of <-background and <-foreground,
+  proper opening and association with a display, proper read and write
+  of individual pixels.
+
+* Added: `visual <-container: class|code': find enclosing visual that
+  satisfies condition.
+
+[VERSION 4.6.15]
+
+* Fixed: `window ->typed' when nested in a decorator (pictures).  This method
+  handles global menu-bar accelerators.
+
+* Added: `object ->unlinking': test if object is currently beeing unlinked
+  (freed).
+
+* Fixed: added global declaraction for @default_syntax_table.
+
+* Added: graphical ->_redraw_area.  Allows plain graphicals to be displayed.
+
+* Fixed: declaration of return-type of `regex <-register_value'.
+
+* Modified: `device ->compute' no longer clears the bad_format variable
+  if there is no attached format (internal).
+
+* Added `text ->margin: Width wrap_fixed_width' which is like `wrap',
+  but the <-width of the text (as a grapical) is fixed to margin value.
+
+* DELETED `text_item ->caret' and introduced `graphical ->keyboard_focus'.
+
+* Integration of keyboard-input for list_browser and editor: definition
+  for _wants_keyboard_focus, ->next and related methods.
+
+* MODIFIED: (list_)browser <-selection FAILS is there is no selection
+  AND the multiple_selection equals @off.  Earlier releases returned
+  @nil in this case.  Code written as
+
+	get(Browser, selection, Selection),
+	(   Selection == @nil
+	->  bla bla
+
+  Will have to REWRITTEN.  Most source will be unaffected however.
+
+* Manual Tools, History menu fixed for groups containing a class
+  (no-behaviour error).
+
+* Fixed: `file ->find' for `refinding' a file from a restored object.
+  Fixes bug in reloading image objects from files (file <-object) if
+  the absolute pathname has changed since the ->save_in_file.
+
+* Added: Prolog module pce_host (Prolog implementation binding):
+	- callable_predicate(+Module:Head)	True if can be called
+	- modified_since_last_loaded(+File)	True if file has been modified
+
+* Fixed: ClassHierarchy: error message when asking menu on a leaf-node.
+
+[VERSION 4.6.14]
+
+* Restructuring of Prolog libraries:
+	- Added dialog editor tool
+	- Calling of dialog editor and emacs from the manual-tool menu
+	- New Prolog libraries:
+	* make_dialog.pl: make_dialog/2: Realise dialog built using
+	  Dialog Editor.
+	* pce_image.pl: pce_image_directory/1: declare a new image directory
+	* pce_helper.pl: Application help-system.
+	* pce_tagged_connection.pl: Connection with a tag in the middle.
+
+* Added: `source_location <-convert' to allow editing files using
+  send(@emacs, edit, 'hello.pl').
+
+* Fixed: class <->resource if the class was not yet ->realised
+
+* Reorganisation to prepare ports:
+	- Converted to fully prototyped ANSI C.  Fixed some minor
+	  bugs in the course of doing this.
+	- Defined abstract window-system interface for the classes
+	  window and frame.  X11 implementation thereof.
+
+* Improved QP compatibility together with Mike Vines (AIIL): added
+  :- initialization where needed, autoload definition, various
+  misplaced :- meta_predicate declarations, etc.  Requires
+  SWI-Prolog 1.8.9 or later to run (improved quintus.pl library).
+
+* Fixed: drag_and_drop gestures under mwm Window-Manager
+
+* Solaris patches:
+	- Fixed starting inferior processes in PceEmacs
+	- Fixed M-x manual_entry for other sections (man -s)
+
+
+[VERSION 4.6.13]
+
+* Fixed: path->initialise_new_slot to call graphical->initialise_new_slot
+  (Fixes saved-object conversion for class path).
+
+* Changes library(pce_postscript) for Quintus compatibility.
+
+* Fixed: `key_binding->typed' when invoking a method accepting more than
+  2 arguments.
+
+* Avoid a number of useless messages to the completer of class text_item.
+
+* Fixed: `frame ->expose' to properly set <-show: @on.
+
+* PceEmacs: ensure that deletion of the window works (doesn't really
+  quit emacs; just ->show: @off it).  By default does not show the buffer
+  menu.  Added show_buffer_menu to the file menu.  Fixed `reload'
+  after trapping modified buffer.  Indicate modified buffer in title
+  bar of window.  Added more `window-pools', Added pool to ->identify,
+  etc.
+
+
+[VERSION 4.6.12]
+
+* PceDraw: fixed: clear modified on save.
+
+* Moved `dialog_item <->active' to the level of class graphical.  Graphicals
+  that are inactive are greyed-out and not sensitive to events (unless
+  the ->event method is redefined).
+
+* Fixed: `picture ->open' if the picture had been opened before, but was
+  closed using `frame ->show: @off'.
+
+* Changed: `dialog_item <->reference' handling.  Slot-value @default now
+  computes the <-reference when requested.  Otherwise the value is
+  returned.  Also improved alignment of class menu_bar.
+
+* Fixed: drawing a bitmap of <-kind: pixmap onto a bitmap with <-kind:
+  bitmap.  Maps all pixels in the source foreground to 1 and background
+  to 0.  All other colours yield an undefined result.
+
+* Added: optional `times' argument to `string->newline'.
+
+* Changed: handling of absolute paths for class file.  The aim is to
+  arrive at better portable load/save facilities.  The <-name attribute
+  remains in the original specification (i.e. including ~ and or $var).
+  ->absolute_path writes the <-path variable and leaves the <-name
+  unchanged.  See class file for details.
+
+  This fix should make file-related saved image objects portable to
+  machines on which xpce is installed in a different place.
+
+* Fixed: Class menu for <-on_image == @nil and <-off_image \== @nil
+  (crash).
+
+* Fixed: load/save of syntax_table objects on machine with different
+  byte order representation (PC/Linux).  Declared save_style of this
+  class `external'.
+
+
+[VERSION 4.6.11]
+
+* Tracer: when the tracer prompts for a value, possible pointer-grabs
+  are released first.  Avoids hanging, notably when the tracer traps
+  an error after a display ->inform
+
+* The method `frame->fit' is now always called using normal message
+  passing.  This allows for redefinition of this method in applications.
+
+* Fixed: replaced ln -sf in install by rm -f ; ln -s
+
+* Fixed: ranlib entry in makefile for systems lacking ranlib
+
+* Fixed: `fragment->overlap' if the argument is a fragment or point
+  (yielded incorrect results).
+
+* Fixed: Syntax error on unx-directory.c for solaris.
+
+* Fixed: C++ include files now define As... as `inline'.
+
+* Fixed: Realising the event-type hierarchy when the tracer is on.
+
+
+[VERSION 4.6.10]
+
+* Added: `fragment ->emptied' which is called by class text_buffer if
+  the fragment is emptied as a result of deleting text.
+
+* Added: `fragment ->delete' for compatibility with class string.
+
+* Fixed: regex->for_all: include type `fragment' (implementation could
+  already handle fragments).
+
+* Fixed: view, editor: copy obtained size resource!
+
+* Added: `graphical <-popup', complementing `graphical ->popup'.
+
+* Added: <-clone and ->save_in_file hooks for class editor.
+
+* PceEmacs: M-x manpce now handles descriptions such as class->method,
+  etc.
+
+* Fixed: `text_item ->enter' now invokes ->typed: id, @on on its <-device
+  in order to properly handle default buttons with nested dialogues.
+  
+* Fixed: delCodeReference() testing for freeing object.  This should FIX
+  CRASHES IN ALLOC() recently reported.
+
+* Added: `function ->convert_loaded_object' to allow objects to be loaded
+  in debug-mode that contain functions.
+
+* Added: `variable <-return_type' for consistency with class get_method.
+  Changed: `variable <-argument_type' fails if variable has no send
+  <-access.
+
+* Changed: `list_browser ->show_label: @on' default label is no longer
+  `Untitled', but <-label_name of `list_browser <-name'.
+
+* Fixed: Crash in redrawing list_browser.  It is unclear whether the
+  errornous status could only be reached on a reloaded (using `file <-object')
+  list_browser or that normally created list_browsers could be affected
+  by this bug too.
+
+* Added: `object <-clone' interface for the classes text_image and
+  list_browser.
+
+* Added `vector->append: value ...', store value(s) from <-high_index + 1
+
+* Added `dict->members', doing ->clear and ->append members of chain to
+  the dict.
+
+* Added: `directory <-directory: name': return (sub)direcectory.
+
+* Fixed: incompatibility in loading object-databases with hypers created
+  with version 4.6.7 or older.
+
+* Added: save/load (object ->save_in_file) facilities for class list_browser
+  and class text_image.
+
+* Added: AsChain(), etc. types to C++ interface (see C++/demo/dir.C).  Fixed
+  lazy creation of the host instance (for XPCE/C++ stand-alone programs).
+
+[VERSION 4.6.9]
+
+* Installation: replaced ln -sf by rm -f followed by ln -s for compatibility
+  with BSD ln versions.
+
+* Modified: PceEmacs: Paste while a prompter is active now pasts the
+  value in the minibuffer rather than at the caret in the window.
+
+* Added: `text ->insert' to insert text (by default at <-caret).
+
+* Fixed: stop flagging the online manual database to `modified' after
+  inspecting a user-defined class.
+
+* Fixed: ClassBrowser search with scope : `sub'. Bug was introduced by
+  the changed semantics of `class <-sub_classes' in 4.6.3.
+
+* Fixed: IMPORTANT: improper handling of reference-counting by local
+  variables.  Temporary code objects that include assign statements
+  could upset reference-counting.  This caused unpredictable crashes in
+  searching the online manual and after switching buffers in PceEmacs.
+
+  This fix is extremely important for the XPCE/Lisp interface as
+  !setq is translated into an assign object.
+
+* Fixed: PceEmacs refusing to switch modes under some conditions.
+
+* Changed: portray_object/2: types are 'portrayed' by their name.
+
+* Fixed: reference to freed object in PceEmacs miniwindow prompter.
+
+* Fixed: figure: redraw of outline/background on changes to the internals.
+
+* Fixed: spypce(Class <-Selector): avoid evaluation of the implementing
+  function.
+
+* Added: PceEmacs: ->drop and ->preview_drop to include sources from the
+  dialog editor.
+
+[VERSION 4.6.8]
+
+* Added: drag_and_drop_dict_item_gesture to the online manual list-browsers
+  that allow dropping methods to the (experimental) graphical activation
+  model of dialog windows.
+
+* Added: library file pce_drag_and_drop_dict_item.pl, defining the class
+  drag_and_drop_dict_item_gesture for drag-drop dict-items from a
+  list_browser.
+
+* Modified library file pce_drag_and_drop.pl for better extensibility.
+  New features: <-warp to switch between putting the cursor in the
+  center of the dragged object and not-moving the pointer.  Also,
+  ->get_source defines a function on the graphical to determine the
+  object dropped.  See library files and demo programs.
+
+* Added: `dict_item <-position' to compute the location of a dict-item
+  on the associated list_browser object.
+
+* Fixed: error reporting for incompatible slot-value in saved objects
+  (file <-object).
+
+* Errors: fixed error id redeclared_reference (called by
+  `object ->name_reference') to produce a sensible text.
+
+* Class-compiler: give warning on non-ground type-specifiers.
+
+* Fixed: SERIOUS BUG in class window_decorator.  Caused send(new(picture),
+  open) to crash on PC/Linux pl14 (any maybe other OS/compiler combinations).
+
+* Object save/load: added `variable <-save_style' (completeness).  Fixed
+  `variable <-save_style: nil' interpretation by `object ->save_in_file'.
+  This fixes a bug in storing cyclic structures containing attribute-links
+  with save_style `nil'.
+
+* Fixed: Positioning of popup-menu's on windows when the window is scrolled.
+
+* Fixed: PceEmacs: dangling `emacs_mode <-editor' references after
+  switching mode and deleting the window.
+
+* Changed: `connection ->indicate' now passes the event object instead
+  of the position as a point.  Fixes linking to specific handles when
+  using `cross-device' connections.
+
+* Added `key_binding <->condition': general condition to accept events
+  as for class gesture.
+
+* Added `event <-key' to get key-description from event as used by class
+  key_binding.
+
+* Object ->save_in_file: hyper-relations are only stored if both ends are
+  stored.  Based on new (rudimentary) support for save/clone using
+  `relation-semantics'.  This will be further extended in the future, but
+  for the moment it allows using hyper-objects to objects that are subject
+  to the save-mechanism.
+
+* Fixed: `type <-kind: member': translation now verifies argument-type before
+  calling <-member on the context.  Improves error-response on methods
+  with argument-type `member:<something>'.
+
+* Fixed: load library(pce_selection) in Inspector.  Avoids trapping
+  undefined method `display ->copy' and properly exports the selected
+  object to the X11-selection.
+
+* Added Pce.TextItem.search_ignore_case resource to make completion on
+  value-sets case-insensitive (default).
+
+* Added (simple) detection for creating cyclic structures in trees.  Cyclic
+  trees crash the layout algorithm.
+
+* Fixed: line (with <-arrows) PostScript generation if the <-pen of the
+  line is different from the pen of the arrow.
+
+* Type syntax: <int>.. and ..<int> are now accepted as ranges ``from
+  <int> to @pce <-max_integer'' and ``from @pce <-min_integer to <int>''.
+  Added to some slots, but should be added to many more.
+
+* Added: `function ->send_super' and `class ->install'.  Made
+  `code ->execute' and `function <-execute' accessible for user-defined
+  methods.  This together allows for user-defined executable (code) classes.
+
+* Class message and ? (obtain): execution now evaluates the receiver the
+  same as the arguments.  This implies that
+
+	message(XYZ?something, '_instance_of', class)
+
+  will evaluate the obtainer (once) before starting '_instance_of'.  This
+  only effects messages if the selector is defined on class function or
+  below and the receiver is a function.  As the previous definition was
+  rather useless it is unlikely to effect compatibility.
+
+* Fixed: redraw of menu-label with <->layout: vertical and <-label_format
+  is right or center.
+
+* Slider: grab focus on button-down.
+
+[VERSION 4.6.7]
+
+* Fixed: update menu layout on dynamically changing `menu_item <-label's.
+
+* Fixed: `menu->execute' for menu's that have no <-members.
+
+* Fixed: `menu ->clear' when menu is not displayed.
+
+* Fixed: `frame ->append' if the frame is already mapped.
+
+* VisualHierarchy tool: fixed typing integer references to the text_item.
+
+* `device ->layout_dialog' and `dialog ->layout' now discard dialog
+  items that have <-displayed: @off.
+
+* Added: `char_array <-delete_prefix'
+
+* Fixed drawing line of text_item 1 pixel outside the area.
+
+[VERSION 4.6.6]
+
+* Fixed generation of .../xpce/src/files to include pce-inline.o, itf-C.o
+  and gnu-getdate.o.  This should make the LispWorks installation work again.
+
+* checkpce/0: Added checking whether all forward declarations of types
+  are actually backup-up by a class-definition or an autoload definition
+  for the class.  Also, if this is not the case the system won't crash
+  anymore while accessing the unresolved type.
+
+* Fixed ClassHierarchy-tool `Expand Tree': recent class reorganisation
+  defines that `class <-sub_classes' either fails or returns a chain.
+  In older versions an empty chain was returned.
+
+* Made first argument of `text_item ->initialise' optional.  Allows for
+  show_key_bindings(text_item) to display the key-binding table for an
+  instance of class text_item.
+
+* Added `text ->prefix' to allow for multikey sequences in text_item and
+  other non-editor based editing.  ->prefix was delegated to the <-string.
+  Using the new meta-key encoding for 8-bit support this resulted in an
+  error when ESC was typed to a text_item.
+
+* Modified FontViewer demo to display all characters of a character-set.
+
+* Added quick hack to allow for handling 8-bit input (so we can handle
+  full ISO-Latin-1 character sets): Meta-key no longer generates event-codes
+  <value+128>, but event-codes <value+65536>.  They key_binding table
+  `insert' maps the entries 128..255 onto ->insert_self.
+
+  COMPATIBILITY: event-handlers using numeric values to specify
+  meta-<key> will no longer work.  Please replace such specifications
+  by symbolic ones:
+
+	  handler('M-c', message(...))
+
+  handles meta-c.  In most cases class key_binding provides a better
+  replacement of the out-dated handler class.  Code using key_binding
+  objects is fully compatible.
+
+* Added library-file prolog/lib/pce_font_item.pl implementing class
+  font_item: a compound-dialog-item for selecting fonts.  See comments
+  in the file.  Class font_item is now used by PceDraw too.
+
+* Fixed memory-leak in handling functions: executing functions left a
+  reference, protecting functions for the garbage-collector after they
+  had been evaluated.
+
+* Fixed button recompute when changing <->popup on a displayed button.
+
+* Added PostScript generation for class text when ->margin is active.
+
+* Added `menu->sort' to sort the list of menu-items and update the
+  menu afterwards.
+
+* Fixed rounding in `text ->length' to ensure the text can actually hold
+  the requested number of `ex'es.  This also fixes short text_items.
+
+* Fixed *serious* bug in `object <-clone'.  This bug appears on variables
+  that have a `named' type that represents a class.  The clone and original
+  will share the value of such slots and the reference-count will not be
+  maintained correctly.
+
+* GCC-2.5.x/SunOs-4.1.x: Fixed declarations for strtod().
+
+* Fixed: slider->redraw (OpenLook style): was drawing 1 pixel outside the
+  area.  Only a problem when moving sliders.  Also fixed sliders which
+  range includes negative values and ensured proper update on changing
+  various slider attributes.
+
+* Fixed: `device ->layout_dialog': offset problem if the left-side of the
+  device was not the origin of the window.
+
+* Added `menu_item ->value: value, [label]'.  Changes value *and* label,
+  just like ->initialise.  COMPATIBILITY: changing the value now also
+  changes the label!
+
+* Fixed superfluous redraw when displaying text_item objects.  Notably
+  speed-up of making dialog windows.  
+
+[VERSION 4.6.5]
+
+* Fixed area computation of class menu.  Only caused problems for
+  overlapping dialog-items.
+
+* Fixed: `menu->kind: cycle' with `menu <-look: open_look' now switches
+  the <-pen to 0.
+
+* Fixed: `button ->default_button' to force redraw on change.
+
+* Added: `figure ->{border,radius,shadow}' to manipulate the outline of
+  the figure.
+
+* Modified `device ->advance' (controlling the caret notably in dialog
+  windows) to exploit the device hierarchy.
+
+* Fix class list_browser default-size: the default size of a list-browser
+  depended on resizing other list-browsers.
+
+* PceEmacs: fixed trapping the `Browse' menu when trying to find a
+  non-existing tag (emacs_language_mode ->find_tag).
+
+* Added `dialog_item ->name' to update <-name and recompute the default
+  label.  This method calls `dialog_item <-label_name' to compute the
+  default label.
+
+* Modified object->send_vector and object <-get_vector: attempt to convert
+  vector argument (Allows for passing in functions).
+
+* Redesign of object-initialisation:
+
+	- Replaced `variable <-initial_value' by `variable <-alloc_value' and
+	  `variable <-init_function'.
+	- `object ->initialise' now initialises variables and resources
+	- Added type := initial_value syntax to Prolog class parser.
+
+  NOTE: the functionality of these things are still subject to further
+  changes.  The aim of these changes is to simplify object-creation and
+  to make initial and default values explicit (i.e. move them from the
+  code level to the meta-level).
+
+* Cloning: set clone_style of `behaviour <-context' to `reference' and from
+  class type to `none'.  This patch is necessary for the experiental
+  class-template stuff.
+
+* Fixed `event <-inside_subwindows' (X11 error when the pointer was not
+  over an XPCE window).  Fixed drap_and_drop_gesture error message.
+
+* `@pce ->syntax': realises all classes before modifying the syntax.
+  This patch is necessary for the LISP interfaces.
+
+[VERSION 4.6.4]
+
+* Allow list_browser <-dict to be @nil (i.e. have a browser without
+  an associated dict.  `Dict ->free' may now be invoked also if the
+  dict is displayed in a browser (used to crash). [sorry, this patch
+  didn't make it in the Linux version yet].
+
+* Added `Mailing List' option to the file menu of the online manuals
+  for (un)subscribing to the mailing list.
+
+* Added `chain ->nth0' and `chain ->nth1'.  Fixed description of
+  (outdated) `chain ->current' method.
+
+* Version 0.2beta release of the C++ interface:
+	- Added 'pceloadc++'/[1,2] in prolog/boot/pce_pl.pl
+	- Added pl/src/pl-crt0.c: incremental-linking `crt0.o'
+	- Added pl/src/mangle.c: mangle C++ __CTOR_LIST__ and friends to
+	  avoid multiple definition conflicts when linking C++ code with
+	  global constructors.
+	- Changed linker-flags for SWI-Prolog to drop -r -static (linux)
+	- Changed @pce<-machine to hold the complete machine description
+	- Added ..../xpce/include: C++ include files and friends
+	- Tested on: SunOs-4.1.3/g++-2.5.4/make/gnu-m4
+		     Linux-0.99.13/g++-2.4.5/gnu-make/gnu-m4
+ 	- Documentation: .../xpce/man/C++/*
+			 ftp.swi.psy.uva.nl:/pub/linux/doc/C++/*
+	- Demos: .../xpce/C++/demo
+	- Skeleton Makefile: .../xpce/C++/demo/Makefile
+
+* Added `function ->_name_reference' to allow for renaming functions
+  rather than the thing they point too.
+
+* Documented `chain ->move_before' and `->move_after'.
+
+* [INTERFACE].  Added pceReInitialise(int argc, char *argv[]).  Languages
+  that create a saved state should call pceInitialise() as before when
+  the state is created and pceReInitialise() after a saved-state is
+  reloaded.  Needed for interfacing to plain C++.
+
+* Fixed `@pce ->bench' for invokation-style `invoke'; did not actually
+  call the code n times ...
+
+* Fixed memory-leak when invoking a host-defined vararg method.  Also
+  realised speedup of this by added special-purpose creation/destruction
+  functions for the code_vector object used to pass the argument-vector.
+
+* Added `@pce <-method_calls' (statistics).
+
+* Changed `regex ->for_all' to accept (optional) `from' and `to' arguments
+  to substitute in range.
+
+* Fixed creating example cards in the online manual,
+
+* Added `directory <-file'.
+
+[VERSION 4.6.3]
+
+* Integrated SGI/IRIX-4.0.5F port (using gcc-2.4.5) from Fred Kwakkel:
+  Renamed the irix md and makefiles to conform the new naming schema,
+  added pl/src/Makefile-sgi-irix-4 and fixed ioctl() problem in
+  src/unx-process.c
+
+* Added `variable <->initial_value: any|function' to initialise slots
+  automatically.  This feature is currently only used by the C++ class
+  definition interface.
+
+* Added class `create' to create objects using functions (i.e. as part of
+  an (compound) PCE code object).
+
+* Fixed `device <->{position,x,y}' to ->compute the device first. 
+  Undisplayed devices (also class figure) yielded wrong results.
+
+* Fixed `window ->catch_all' to take care of frame-defined methods when
+  there is a <-window_decorator, but no frame yet.
+
+* Fixed type of `device ->resize'.
+
+* Fixed `expression <-value'.  Errors (failing functions) were not reported
+  and caused all subsequent calls to this method to fail.  For error-reporting
+  on functions, the method `function ->_error' is added.  Corresponding
+  changes to the internal function errorPce() and the arguments of
+  `error ->display'.
+
+* Implemented pre-alpha C++ interface.
+
+* Made creation of built-in classes dynamic.  See `class <->realised'.  As
+  a consequence the start-up time is reduced for host-languages that cannot
+  create a saved state *after* initialising xpce.  Initial memory consumption
+  is reduced from about 1 MB to 0.5 MB.
+
+
+* Added support for full 8-bit character sets: modified all char values to
+  be unsigned using gcc's -funsigned-char.  Fixed gnu-regex.c for proper
+  extending the sign.  Fixed dimension computations in xwn-draw.c for
+  incomplete fonts (also speedup of font stuff).
+
+
+[VERSION 4.6.2]
+
+* Switch off Prolog tracer (actually SWI-Prolog, but mostly relevant to XPCE)
+  before calling Prolog's on_halt() hooks to avoid recursive tracing while
+  trying to get out.
+
+* Fixed source-location registration so that for Prolog-defined classes
+  <-source now always works properly.
+
+* Fixed PceEmacs `emacs_buffer ->revert' and added revert to the file menu.
+
+* Moved geometry-management of the classes browser, view, editor and
+  list_browser to use the ->request_geometry mechanism.  This should
+  remove inconsistent handling of various geometry request methods.
+  These objects (like any other object) may be addressed in pixel
+  units using `graphical ->do_set'.
+
+  COMPATIBILITY: Old code that used broken methods may now result in
+  very large windows.  Width and height of these classes is now always
+  represented in character units!
+
+* Added `@display <->quick_and_dirty' to choose between speed and correct
+  drawing.
+
+* Fixed changing the busy_cursor on an existing frame.  See
+  `frame ->busy_cursor'.  Detected block_events=@off argument not to
+  work.  This may turn out to be practically impossible using X11.
+
+
+VERSION 4.6.1
+
+* Fixed `frame <-return' when the return value is an integer.
+
+* Added `class ->record_instances' and `class <-instances' to keep track
+  of created instances.
+
+* Added `frame ->busy_cursor' to switch the cursor temporary for all
+  subwindows of a frame and `display ->busy_cursor' to do the same for
+  all PCE frames in a display.  The latter is automatically used to switch
+  the cursor to a watch while clicks and popups are executed.  See
+  `click_gesture ->terminate' and `popup ->execute'.
+
+* Fixed `graphical <-postscript' for not-displayed graphical objects by
+  invoking `graphical ->compute' to the graphical before generating
+  PostScript.
+
+* Moved the automatic layout-system of class dialog to the
+  super-class device.  Effectively this adds `device ->append_dialog_item'
+  and `device ->layout_dialog' to the system, enabling `sub-dialogues'.
+
+* Added graphicals to the automatic layout system of dialog windows.
+  See `graphical ->above', etc.
+
+* Added `@pce <-save_version' to get the version number used to tag
+  saved-objects (was already documented but not implemented).
+
+VERSION 4.6.0
+
+* Fixed bug in tracer that causes a segmentation fault if XPCE is in
+  trace-mode and the selector of a method is a function object.  The
+  latter is used by the ClassBrowser tool, so running the classbrowser
+  when XPCE was is tracemode could cause a crash.
+
+* Fixed and documented `event <-inside_sub_window' to take care of
+  window_decorators properly.
+
+* Fixed undefined method (<-create_member) in PredicateBrowser.
+
+* Fixed `window ->event': if the window had a <-popup, this was shown
+  instead of posting the right_down event to the contents first.
+
+* Fixed `fragment <-sub'.
+
+* Fixed `window_decorator ->request_geometry' to take care of the <-tile.
+
+* Fixed `window ->create' to take care of the <-pen properly (causes problems
+  in the unlikely case that the window geometry is not changed while the
+  frame is created).
+
+* Changed printf()'s in `file <-object' into proper PCE errors:
+  failed_to_convert and bad_slot_value.   This allows for silent loading
+  of old (incompatible) object structures.
+
+* Added menu-bar to PceEmacs windows to make them usable for novice
+  users.
+
+* Fixed `window ->normalise' when argument was a chain of objects that
+  *can* be converted into graphicals (like node objects).
+
+* Changed VisualHierarchy to normalise on expanded fields.  This avoids a
+  lot of scrolling.
+
+* Fixed drawing boxes for pen = 0, radius > 0 and fill_pattern != @nil.
+
+* Added `list_browser ->reset' to restore the cursor after a crash.
+
+* Fixed `menu_item <-default_label' when a graphical object is supplied.
+  (not-closed argument list).
+
+* Fixed menu_bar <-member to check for the `popup<-name' instead of the
+  (translated) <-label of the popup menu.  This ensures the popup can
+  be requested with the same name as it was created.
+
+* Added `bitmap ->unlink' for proper unlinking of the <-image.  Fixes
+  (mostly harmless :-) dangling references from images.
+
+* Fixed error generated by exec() in class process to cannot_start_process.
+
+* `key_binding' now checks type of the return value of <-interactive
+  argument and generates a no_argument error in case of mismatch.  Avoids
+  trapping the PCE tracer when an incorrect argument is returned.
+
+* `text_item ->complete' now verifies the event_id to be a printable
+  character before calling ->insert_self on the object if completion
+  is not possible.  Avoids trapping the tracer when ->complete is
+  bound to an event that cannot be inserted in the text.
+
+* Implemented fully transparent interface to the X11 selection server.
+  See `display <-selection' and `display ->selection_owner' for details.
+  Modified class editor to use these (see prolog/boot/pce_editor.pl).
+  Also modified the Inspector and VisualHierarchy tools to publish
+  the selected object using the X-selection server.
+  This avoids the need to redefine selection handling in other X11
+  applications for proper interaction with XPCE.
+
+* Implemented OpenWindow compatible look-and-feel:
+
+	- Added Pce.OpenLook to the distribution.  This file may be
+	  appended to Pce or ~/.Xdefaults to use XPCE in OpenLook
+	  mode.
+	- Added `button <->popup_image' to indicate presence of popup
+	- `dialog_item <->alignment' replaces `dialog_item <->align_in_column'
+	- Added `dialog_item <->label_format' to align the labels
+	- Added DialogItem.label_suffix to ensure a label suffix (:)
+	- Added `dialog_item <->look' for general switches on look-and-feel
+	- Added `popup <->margin' to modify the popup layout.
+	- Redesign of class menu_bar to use buttons
+	- Changed class scroll_bar redraw and event handling.  Added
+	  scroll-unit `line', also to class window, editor and list_browser.
+	  Switches on the <-look attribute.
+	- Fixed pen != 0 in menus
+	- `menu ->kind: marked and choice' both map on feedback: box
+	  if <-look is open_look.
+
+* Added <->shadow to class box and class ellipse.  Added `graphical
+  ->initialise_new_slot' to initialise the shadow slot of the new
+  classes with 0.  Incremented SAVE_VERSION.  Added shadow to PceDraw
+  and the PostScript generation methods for box and ellipse.
+
+* Added `menu ->feedback' to switch the feedback style of existing
+  menus.
+
+* Fixed `real <-convert' for conversion from textual values.  Bug
+  (returning wrong value) probably only existed on SunOs 4.x.x due
+  to missing prototype.
+
+* Class timer now first executes the message before setting up the next
+  interval.  This avoids the system to `hang' due to to many timer events.
+
+* Added `pce <-answer_stack_size'.  Changed the implementation of the
+  answer-stack to reduce garbage on this stack.  Avoids quadradic
+  (time) behaviour on some types of loops.   Performance problem is
+  completely solved.  There is still a little garbage left on this stack.  
+
+* Added breakpce/1 and nobreakpce/1 to break on PCE methods like
+  tracepce/1 and notracepce/1.
+
+* Fixed `frame <-postscript' if the frame is partially outside the
+  screen.
+
+* Added in prolog/lib:
+	- Overview		Short overview of the library
+	- tmw_geometry_box.pl
+	- twm_resize_button.pl
+	- subframe.pl		Define frames-in-windows
+
+* Fixed new(X, real(0)) crash as reported by Ben Rabau (ISL).  For this
+  purpose I added the interface function pceToCReference() that is
+  similar to pceToC(), but only works on true PCE objects and always
+  returns a PCE_ASSOC or PCE_REFERENCE.  Fixed pl_new() to use this
+  function.
+
+* The geometry-changing gestures (move, resize, move_outline and
+  resize_outline) now use `graphical ->do_set' to bypass the new request
+  branch PCE's geometry management.
+
+* Added: display ->draw_in to draw directly on the root window of the
+  display and display ->grab_server to temporary grab the server. May
+  be used by dragging gestures who'se operation is not window-bound.
+
+* Added Pce.Window.cursor resource for specifying the default window
+  cursor (top_left_arrow).
+
+* Fixed size of help window in PceDraw.
+
+* Fixed `vector ->shift' garbage collection interaction.  This (internal)
+  method caused problems with `editor ->kill' and friends.
+
+* Added switch_to_buffer (\C-xb) to PceEmacs fundamental mode.
+
+* Added the `type <->kind: value_set'.  Allows a type to define a member
+  of a set of object.  The set may be generated by a function object.
+
+* Changed `key_binding <->receiver' relation to use hyper objects instead
+  of slot references.  This ensures proper behaviour on deleting the
+  receiver of the key_binding (keybindings are reusable and should thus
+  be preserved).  The inconsistency reported before by checkpce/0 was
+  harmless.
+
+* Fixed destruction of windows.
+
+* Fixed `Quit' in online manual, Visual Hierarchy Tool and Inspector Tool.
+  All tools can now freely be created/quited, recreated, etc.
+
+* The methods `graphical ->device' and `graphical ->displayed' are now
+  called internally as true methods, thus allowing the user to redefine
+  these methods.  See class graphical.  The message passing system has
+  been enhanced with a `Quick And Dirty' version of the send() operation,
+  that checks quickly whether a method has been redefined and bypasses
+  most checks if this is not the case.  QAD-send() has 1/3 of the
+  overhead of a normal send if nothing has been redefined.
+
+* Moved virtual method `window ->modified_item' to class device.  Fixes
+  displaying dialog items on generic devices.  Bug reported by Ben Rabau.
+
+* Modified send() not to report a freed object if the selector is `free'.
+
+* Major redesign of class window and cleanup of scrollbars.
+
+	- Introduction of class window_decoration: a window holding
+	  the scrollbars and window-level labels.  This turns these
+	  into ordinary graphical object, getting rid of a lot of
+	  specialised code and update bugs.  Allows redefinition
+	  of many things from the host language instead of only from C.
+
+	  *COMPATIBILITY*
+	  The code is as good as possible compatible.  However:
+
+	  `window <->radius' is gone as the drawing plane now uses
+	  the X11 window border and X11 does not support windows with
+	  rounded corner (at least not as I want to have them).
+
+	  `Window <->display_position' and `Window <->display_size'
+	  have gone.  These (rarely used) methods are replaced by the
+	  normal geometry-management.
+
+	  `Window <-area' now reflects the area of the window relative
+	  to the super-window or frame.  The new variable `window <-
+	  bounding_box' now reflects the bounding box of the displayed
+	  graphical objects.
+
+	  There are various subtle changes.  All my testing applications
+	  however run without modification.  Please report compatibility
+	  problems.
+
+	- Split geometry management for class graphical into a
+	  request and action branch to allow for negotiation with
+	  other objects.  See `graphical ->request_geometry' for
+	  details.  No compatibility issues.
+
+	- Cleaned the scroll_bar code, removing a lot of old and
+	  no-longer used stuff.  Fixed the update code to avoid
+	  calls to undefined behaviour and added a more efficient
+	  schema.  See `scroll_bar ->compute' and
+	  `window ->bubble_scrollbar'.
+
+	  Added resource `Pce.ScrollBar.placement: name' which allows
+	  the user to place the scrollbars right,left,top,bottom of the
+	  window.
+
+	  No compatibility issues.
+
+	- Turned class window into a true graphical class.  Now allows 
+	  for `windows on windows'.
+
+	  *COMPATIBILITY*
+	  `window <-area' now reflects the area of the window relative
+	  to the parent (window or frame).  `window <-bounding_box'
+	  reflects what the old `window <-area' did: the bouding box
+	  of the displayed graphicals in the window coordinate system.
+	  
+	  `Window <->display_size', `window <->display_position' and
+	  `Window <-display_area' have gone.  The normal methods
+	  to handle graphical geometry now work properly.  Old bugs
+	  like `window ->height' and other graphical window manipulations
+	  not working properly should be fixed now.
+
+
+* Fixed bug in trapping existing object references.  Added library
+  pce_renew which allows you to redefine the behaviour of new/2 on
+  an attempt to redefine an existing reference.  Fixed related exception
+  generation.  The predicate pce_renew/1 allows you to preset how 
+  existing references are handled: trace, free, rename, ask.
+
+* Fixed bug in PceDraw yielding undefined <-mode behaviour
+
+* Remove limit (100) of number of windows in a frame
+
+* Renamed text_item <-print_name into <-print_name_of_value.  Overriding
+  `object <-print_name' with different intention leads to poor error
+  reporting on text_item objects.  Applications	that redefine this method
+  should be changed.
+
+* Added resource Pce.DrawCanvas.size resource to PceDraw which allows
+  the user to specify the default size of the canvas (drawing area).
+
+* Changed type of 2nd argument of `dialog ->append' from [name] to
+  [{below,right,next_row}] and updated documentation.  No functional
+  changes.
+
+
+VERSION 4.5.12
+
+* Added: class regex (regular) expression now operates on fragment objects
+  too.	To support this, `fragment <-sub' is added.
+
+* Fixed memory leak in incremental garbage collector.
+
+* Added @editor_recogniser hook in `editor ->event', exploited by the
+  new button-bindings for PCE editors defined in prolog/boot/pce_editor.pl
+  Both selection and caret manipulation may now be used without modifiers.
+
+* Fixed multiple kill-commands in editors.
+
+* Fixed extending the selection to word boundaries in editors using double
+  click to be compatible to other X applications.
+
+* When switching to a non-existing file in PceEmacs, this file is no longer
+  flagged modified.  Avoids save for accidently created buffers.
+
+* Changed error no_x_server to `fatal' to avoid a loop in reporting the
+  error.  Fixes error reporting when contacting the X-server fails.
+
+* Improved saved-object compatibility: incremented save-version number,
+  changed message on incompatible versions to use the error object
+  new_save_version (default ignored), added `path ->initialise_new_slot'
+  to fix `path <-offset', changed text load function to insert wrap and
+  margin slots.  Fixed return type of `file <-object' to return functions
+  too.
+
+* Added `normalise' argument to `frame ->open', `window ->open',
+  `frame <-confirm' and `window <-confirm'.  When @on, the window
+  is repositioned to fit entirely on the screen.  Used by the
+  text_item completer object to ensure the browser with possible completions
+  is displayed entirely on the screen.
+
+* PceDraw: fixed resizing selections (dangling resize boxes problem).
+
+* Added: `text_buffer ->attach' and `text_buffer ->detach'.  These methods
+  are called to update the `text_buffer <-editors' chain and may be redefined
+  to monitor attach/delete of editors.
+
+* PceEmacs miniwindow now completes on TAB too.
+
+* Actually implemented the `sticky' indication at the bottom of PceEmacs
+  windows.  PceEmacs now will reuse any `non-sticky' window for displaying
+  a new file.  There are two pools of buffers: `file' and `other'.
+  Tell me whether you like it!
+  
+* Fixed `Class Hierarchy' tool for the added `device <-find': now class
+  tree inherits <-find from device instead of delegating to its <-root
+  node object.
+
+* Fixed xpce/make-bin-tape and xpce/install to properly handle the
+  SWI-Prolog startup and include file.
+
+* Added `kind' `progress' and `done' to the generic reporting mechanism
+  realised by `object ->report', `visual ->report' and various other
+  classes.  Provides a generic and easy interface to indicate actions
+  such as loading a file to the application user.  Updated the manual
+  tools to use this method.
+
+* Added Prolog library "pce_drag_and_drop.pl", which implements the
+  class drag_and_drop_gesture.
+
+* PCE now allows for having click- and `drag' (move, connect, resize)
+  gestures on the same button.  New methods for this:
+  `click_gesture ->cancel', `gesture ->cancel', `event <-distance',
+  `click_gesture <->max_drag_distance'.  Modified: `click_gesture ->drag'.
+  By default, a click_gesture cancels after the user dragged more than
+  5 pixels.
+
+* Fixed `type <-value_set' with `type <-kind: alias'.  Used by
+  `text_item ->complete'.
+
+* Fixed trapping X11 events by class window to garbage collect the
+  event after it has been processed.
+
+* Fixed `frame ->return' `frame <-confirm' couple for proper handling
+  of the return value by the incremental garbage collector.
+
+* Fixed `image ->draw_in' to properly restore the position of the 
+  graphical when a position was specified.  Now uses `graphical <->set'
+  rather than `graphical <->position' for moving the graphical.  Also
+  fixed when the graphical is currently displayed on a device with
+  a `device <-format' attached.
+
+* Added anonymous cursor objects that can be destroyed when `cursor <-name'
+  is @nil.
+
+* Changed `class ->clone_style_variable' and related class methods
+  to accept integer slot identifier too.
+
+* Added `device <-find' for locating graphicals similar to the
+  event dispatching system.
+
+* Added `event <-inside_sub_window' for locating events on frames and
+  windows in frames.    
+
+* Changed `graphical ->toggle_select' and `device ->selection' to
+  invoke `graphical ->selected' using a message, so this message may
+  be redefined.
+
+VERSION 4.5.11
+
+[Changelog before version 4.5.11 was not maintained carefully.  Changes
+that introduce major new functionality and/or incompatibilities may be
+found in the release-notes directory]

@@ -1,0 +1,12 @@
+#!/bin/sh
+
+arch=$1
+
+echo "[ERROR: No machine description file for ARCH=$arch]"
+
+arches=`ls md | sed 's/md-\(.*\)\.h/\1/'`
+
+echo ""
+echo "Please edit ARCH in Makefile to be one of:"
+for a in $arches; do echo "	$a"; done
+exit 1

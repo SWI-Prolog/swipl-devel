@@ -1,0 +1,28 @@
+# ITF 		--- Host Interface Layer
+
+!include ..\makefile.def
+
+ITF1OBJS=	c.obj host.obj interface.obj
+ITF2OBJS=	cpp.obj
+ITF3OBJS=	action.obj query.obj send.obj get.obj main.obj xmalloc.obj
+ITFOBJS=	$(ITF1OBJS) $(ITF2OBJS) $(ITF3OBJS)
+
+objects:	$(ITFOBJS)
+		@%null
+
+clean:
+		rm -f *~ a.out core $(ITFOBJS) addlib
+
+action.c:	stub.c
+		$(LN) stub.c action.c
+query.c:	stub.c
+	        $(LN) stub.c query.c
+send.c:		stub.c
+	        $(LN) stub.c send.c
+get.c:		stub.c
+	        $(LN) stub.c get.c
+main.c:		stub.c
+	        $(LN) stub.c main.c
+xmalloc.c:	stub.c
+	        $(LN) stub.c xmalloc.c
+

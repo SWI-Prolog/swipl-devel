@@ -1,0 +1,11 @@
+# PRG 		--- Language Definition Classes
+
+!include ..\makefile.def
+
+PRGOBJS=	operator.obj parser.obj tokeniser.obj
+
+objects:	$(PRGOBJS)
+		@%null
+
+clean:
+		rm -f *~ a.out core $(PRGOBJS) addlib

@@ -1,0 +1,14 @@
+# TXT 		--- Text Representation and Manipulation Classes
+
+!include ..\makefile.def
+
+TXTOBJS=	chararray.obj editor.obj fragment.obj keybinding.obj &
+		regex.obj str.obj string.obj style.obj syntax.obj &
+		textbuffer.obj textcursor.obj textimage.obj &
+		textmargin.obj undo.obj
+
+objects:	$(TXTOBJS)
+		@%null
+
+clean:
+		rm -f *~ a.out core $(TXTOBJS) addlib

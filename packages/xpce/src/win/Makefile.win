@@ -1,0 +1,13 @@
+# WIN 		--- Windows and Frames
+
+!include ..\makefile.def
+
+WINOBJS=	browser.obj decorate.obj dialog.obj display.obj &
+		displaymanager.obj frame.obj picture.obj resource.obj &
+		setup.obj tile.obj view.obj window.obj
+
+objects:	$(WINOBJS)
+		@%null
+
+clean:
+		rm -f *~ a.out core $(WINOBJS) addlib

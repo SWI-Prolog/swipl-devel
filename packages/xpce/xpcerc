@@ -1,0 +1,43 @@
+/*  $Id$
+
+    Part of XPCE
+    Designed and implemented by Anjo Anjewierden and Jan Wielemaker
+    E-mail: jan@swi.psy.uva.nl
+
+    Copyright (C) 1992 University of Amsterdam. All rights reserved.
+*/
+
+%	Remove the comment if you use the PceEmacs editor.  It will
+%	it will put hooks in SWI-Prolog that allow you to:
+%
+%	?- ed(Predicate [/Arity]).	Edit a predicate
+%	?- edit(File).			Edit file (adds .pl if necessary).
+%
+%	It also passes SWI-Prolog compilation errors to PceEmacs.
+
+%:- ensure_loaded(library('emacs/swi_prolog')).
+
+%	print/1 PCE objects as @reference/class.
+
+portray(Obj) :-
+	object(Obj),
+	Obj = @Ref, !,
+	get(Obj, '_class_name', CN),
+	format('@~w/~w', [Ref, CN]).
+
+
+%	Remove the comment if you want the C-stack to be dumped on a
+%	PCE crash.  This is currently only supported on SPARC.
+
+%:- send(@pce, print_c_stack, @on).
+
+%	Trap the tracer if a message is sent for which no behaviour
+%	is defined.  This allows for inspecting the Prolog and XPCE
+%	stacks.
+
+:- send(error(no_behaviour), kind, error).
+
+%	This one is to allow ?- manpce(graphical <-size).
+
+:- op(100, xfx, <-).
+

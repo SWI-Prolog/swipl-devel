@@ -1,0 +1,68 @@
+#texinfo
+
+\def\mbox#1{\leavevmode\hbox{#1}}
+\def\sloppy{\tolerance10000\hfuzz.5pt\vfuzz.5pt}
+\def\parbox#1#2{\vtop{\hsize #1\raggedright\sloppy #2}}
+\def\pageref#1{\pagerefX[#1,,,,,,,]}
+\def\pagerefX[#1,#2,#3,#4,#5,#6]{\begingroup%
+\turnoffactive\refx{#1-pg}{}%
+\endgroup}
+\def\thisclass{}
+\def\class#1{\gdef\thisclass{Class #1}}
+\def\startclasses{\edef\temp{{\realbackslash def%
+			      \realbackslash secentryfonts%
+			      {\realbackslash subsecfonts \realbackslash rm}}}%
+		  \write \contentsfile \temp}
+\def\endclasses{\gdef\thisclass{}%
+		\edef\temp{{\realbackslash def%
+			    \realbackslash secentryfonts%
+			    {\realbackslash textfonts \realbackslash rm}}}%
+		\write \contentsfile \temp}
+
+\def\sendarrow#1{$\rightarrow$#1}
+\def\getarrow#1{$\leftarrow$#1}
+\def\botharrow#1{$\leftrightarrow$#1}
+
+\input texinfo		@c -*-texinfo-*-
+
+@c %**start of header
+#end texinfo
+
+#call message(@prolog, texi_set_version)
+#call message(@prolog, texi_set_month)
+
+#texinfo
+@setfilename xpce.info
+@settitle XPCE Reference Manual
+@smallbook
+@afourpaper
+@paragraphindent 0
+@c Behaviour Index
+@defindex bi
+@c Group Index
+@defindex gi
+@c Class Index
+@defindex ci
+@c %**end of header
+
+@set edition 2
+
+@c Experiment with smaller amounts of whitespace between chapters
+@c and sections.
+@tex
+\global\chapheadingskip = 15pt plus 4pt minus 2pt 
+\global\secheadingskip = 12pt plus 3pt minus 2pt
+\global\subsecheadingskip = 9pt plus 2pt minus 2pt
+@end tex
+
+@c Experiment with smaller amounts of whitespace between paragraphs in
+@c the 8.5 by 11 inch format.
+@ifclear smallbook
+@tex
+\global\parskip 6pt plus 1pt
+@end tex
+@end ifclear
+
+@setchapternewpage odd
+
+#end texinfo
