@@ -169,7 +169,7 @@ selection(TI, Value:any) :<-
 	get(TI, value_text, Text),
 	get(Text, string, String),
 	get(TI, type, Type),
-	(   get(@pce, convert, String?value, Type, _)
+	(   send(TI, is_complete, String, Type)
 	->  get_super(TI, selection, Value)
 	;   get(TI, completions, String, Completions),
 	    (	object(Completions, chain(Value))
@@ -182,6 +182,15 @@ selection(TI, Value:any) :<-
 	    )
 	).
 	    
+
+is_complete(_TI, Name:name, Type:type) :->
+	"Test whether Name satisfies type"::
+	(   send(Type, includes, emacs_buffer)
+	->  get(@emacs, buffer, Name, _)
+	;   get(@pce, convert, Name, Type, _)
+	).
+
+
 completions(TI, From:char_array, Unique:chain) :<-
 	get(TI, value_set, Set),
 	(   Set == @nil

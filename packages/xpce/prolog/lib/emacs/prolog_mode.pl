@@ -746,7 +746,10 @@ check_clause(M, From:from=[int], Repair:repair=[bool], End:int) :<-
 	read_term_from_stream(Fd, Start, T, Error, S, P),
 	close(Fd),
 	(   Error == none
-	->  unmark_singletons(M, P),
+	->  (	send(M, has_send_method, colourise_term)
+	    ->	send(M, colourise_term, T, P)
+	    ;	unmark_singletons(M, P)
+	    ),
 	    (   S == []
 	    ->  (   Verbose
 		->  send(M, report, status, 'Clause checked')
@@ -757,10 +760,6 @@ check_clause(M, From:from=[int], Repair:repair=[bool], End:int) :<-
 		->  replace_singletons(M, P)
 		;   true
 		)
-	    ),
-	    (	send(M, has_send_method, colourise_term)
-	    ->	send(M, colourise_term, T, P)
-	    ;	true
 	    ),
 	    arg(2, P, E0),
 	    get(TB, find, E0, '.', 1, end, End)

@@ -440,9 +440,10 @@ show_buffer_menu(_M) :->
 	send(@emacs, show_buffer_menu).
 
 
-switch_to_buffer(M, Buffer:emacs_buffer) :->
+switch_to_buffer(_, Buffer:emacs_buffer) :->
 	"Switch this window to named buffer"::
-	send(M, text_buffer, Buffer).
+	send(Buffer, open).
+%	send(M, text_buffer, Buffer).		% Always in same window
 
 
 kill_buffer(M) :->

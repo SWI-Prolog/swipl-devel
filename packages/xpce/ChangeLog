@@ -1,6 +1,14 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: PceEmacs Prolog mode: avoid an XPCE crash when replacing
+  singletons.
+
+* FIXED/MODIFIED: PceEmacs ^X^B (switch_to_buffer): properly handle
+  complete but not unique buffernames and open the buffer in a
+  new window if the current window is sticky.
+
+
 VERSION 6.0.3, distributed with SWI-Prolog 5.0.3
 ================================================
 
