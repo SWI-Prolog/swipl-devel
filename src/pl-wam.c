@@ -584,9 +584,13 @@ retry:
 	if ( result )
 	{ port = EXIT_PORT;
 	} else
-	{ FliFrame ffr = (FliFrame)valTermRef(cid);
-	  port = FAIL_PORT;
-	  Undo(ffr->mark);
+	{ if ( exception_term )
+	    return FALSE;
+	  else
+	  { FliFrame ffr = (FliFrame)valTermRef(cid);
+	    port = FAIL_PORT;
+	    Undo(ffr->mark);
+	  }
 	}
 
 	switch( tracePort(frame, LD->choicepoints, port, NULL) )
