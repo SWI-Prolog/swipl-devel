@@ -126,7 +126,8 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl \
 	tty.pl readln.pl readutil.pl make.pl \
 	am_match.pl oset.pl ordsets.pl occurs.pl lists.pl \
 	netscape.pl url.pl main.pl \
-	threadutil.pl qpforeign.pl
+	threadutil.pl qpforeign.pl \
+	checklast.pl checkselect.pl
 PLWIN=	wise.pl dde.pl progman.pl registry.pl
 
 all:	banner \
