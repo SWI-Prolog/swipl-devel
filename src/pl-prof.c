@@ -124,7 +124,7 @@ startProfiler(void)
 
   if ( prof_new_ticks(mythread) < 0 )
   { printMessage(ATOM_informational,
-		 ATOM_profile_no_cpu_time);
+		 PL_ATOM, ATOM_profile_no_cpu_time);
   }
   virtual_events = 0;
   events = 0;

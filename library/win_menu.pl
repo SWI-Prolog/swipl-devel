@@ -32,7 +32,7 @@
 :- module(win_menu,
 	  [ init_win_menus/0
 	  ]).
-:- system_module.
+:- style_check(+dollar).
 :- op(100, fx, @).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -104,7 +104,7 @@ init_win_menus :-
 	    ->	win_insert_menu(Menu, BM)
 	    ;	true
 	    ),
-	    (   member(Item, Items),
+	    (   '$member'(Item, Items),
 		(   Item = (Label = Action)
 		->  true
 		;   Item == --

@@ -7,6 +7,10 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: dependency problem in library(win_menu).  Joseph Bush.
+
+  * FIXED: Windows 95/98/ME error running the profiler.
+
   * FIXED: PL_set_feature() when called before PL_initialise() on some
     versions of Windows.  Caused executable created with xpce-stub.exe
     to crash immediately.  Paco Gutierrez.
