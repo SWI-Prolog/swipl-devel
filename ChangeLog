@@ -1,6 +1,15 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: retractall/1 and retract/1 not to complain while accessing
+    undefined procedures.  The addressed procedures are flagged dynamic.
+
+  * FIXED: Multithreaded creation of new keys in recorda/2 and friends.
+
+  * PORT: Prolog threads to Solaris.  Tested using SPARC/Solaris 2.7, compiled
+    using egcs 1.1.  Not dealt (yet) with different cpu-time measurements
+    (Linux: per thread, Solaris: per process).
+
   * FIXED: Stack problem in asynchronous signal handling, also influencing
     thread_signal/2. 
 
