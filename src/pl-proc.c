@@ -1095,11 +1095,7 @@ void
 gcClausesDefinitionAndUnlock(Definition def)
 { ClauseRef cref = cleanDefinition(def, NULL);
 
-  if ( true(def, DYNAMIC) )
-  { UNLOCKDYNDEF(def);
-  } else
-  { UNLOCKDEF(def);
-  }
+  UNLOCKDEF(def);
 
   if ( cref )
     freeClauseList(cref);

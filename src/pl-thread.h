@@ -163,7 +163,7 @@ compile-time
 	if ( GD->thread.enabled ) \
 	{ if ( def->mutex ) \
 	  { simpleMutexLock(def->mutex); \
-	  } else \
+	  } else if ( false(def, DYNAMIC) ) \
 	  { countingMutexLock(&_PL_mutexes[L_PREDICATE]); \
 	  } \
 	}
@@ -172,7 +172,7 @@ compile-time
 	if ( GD->thread.enabled ) \
 	{ if ( def->mutex ) \
 	  { simpleMutexUnlock(def->mutex); \
-	  } else \
+	  } else if ( false(def, DYNAMIC) ) \
 	  { countingMutexUnlock(&_PL_mutexes[L_PREDICATE]); \
 	  } \
 	}
