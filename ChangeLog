@@ -1,6 +1,11 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 3.3.0 (release-14)
+==========================
+
+  * FIXED: apply/2. Lourens again!
+	
 VERSION 3.3.0 (release-13)
 ==========================
 
@@ -8,7 +13,8 @@ VERSION 3.3.0 (release-13)
 
   * FIXED: retractall/1: could crash.
 
-  * FIXED: apply/2 if the first argument is not an atom
+  * FIXED: apply/2 if the first argument is not an atom.  Thanks to
+    Lourens van der Meij.
 
   * FIXED: thread_get_message/1 (deleted all messages from queue if
     the first was extracted).

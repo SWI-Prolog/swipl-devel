@@ -3353,12 +3353,12 @@ the arguments of this term in the frame.
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Scan the list and add the elements to the argument vector of the frame.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-	while( isList(*lp) )
+	for( ;isList(*lp); ARGP++ )
 	{ args = argTermP(*lp, 0);	/* i.e. the head */
 	  if ( arity++ == 1 )
 	    a1 = linkVal(args);
 	  else
-	    *ARGP++ = linkVal(args);
+	    *ARGP = linkVal(args);
 	  if ( arity > MAXARITY )
 	  { PL_error("apply", 2, NULL, ERR_REPRESENTATION, ATOM_max_arity);
 	    goto b_throw;
