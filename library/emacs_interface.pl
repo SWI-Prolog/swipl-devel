@@ -16,6 +16,7 @@
 	  , emacs_next_command/0
 	  , call_emacs/1
 	  , call_emacs/2
+	  , running_under_emacs_interface/0
 	  ]).
 
 
@@ -61,28 +62,21 @@ tmp_file([_|T], File) :-
 %	problem with path-names: `File' is emacs notion of the absolute
 %	filename.  SWI-Prologs notion may be different due to symbolic
 %	links.  Finally: the region might be the entire file, in which
-%	case we need to know about the module info ...
+%	case we need to know about the module info ...`
+%
+%	(MA)   
+%	For the time being:
+%	"buffer" loads the entire file associated with the buffer.
+%	"predicate" and "region" load the tmp-file. Yes, module info is
+%	scrambled...      
+   
 
-'$editor_load_code'(_buffer, File) :- !,
-	format('Kind = ~w; File = ~w~n', [buffer, File]),
-	emacs_tmp_file(TmpFile),
-	concat('ls -l ', TmpFile, Cmd),
-	shell(Cmd).
-'$editor_load_code'(_Kind, File) :-
-	trace,
-	emacs_tmp_file(TmpFile),
-	'$load_context_module'(File, Module),
-	'$set_source_module'(OldModule, Module),
-	'$start_consult'(File),
-	'$style_check'(OldStyle, OldStyle),
-	seeing(Old), see(TmpFile),
-	repeat,
-	    '$read_clause'(Clause),
-	    '$consult_clause'(Clause, File), !,
-	seen, see(Old),
-	'$style_check'(_, OldStyle),
-	'$set_source_module'(_, OldModule).
 
+'$editor_load_code'(buffer, File) :- !,
+	consult(File).
+'$editor_load_code'(_Kind, _File) :-
+	emacs_tmp_file(TmpFile),
+	consult(TmpFile).
 
 		/********************************
 		*    TELL EMACS ABOUT ERRORS	*
@@ -127,10 +121,9 @@ exception(warning, warning(Path, Line, Message), _) :-
 
 
 emacs_start_compilation :-
-	absolute_file_name('', Pwd),
-	concat(Cwd, /, Pwd),
+	absolute_file_name('', Pwd),	
 	asserta(compilation_base_dir(Pwd)),
-	call_emacs('(prolog-compilation-start "~w")', [Cwd]).
+	call_emacs('(prolog-compilation-start "~w")', [Pwd]).
 
 	
 emacs_finish_compilation :-
@@ -159,12 +152,24 @@ find_predicate1(Name, Arity) :-
 	(   Preds == []
 	->  call_emacs('(@find "undefined" "nodebug")')
 	;   forall(member(Head, Preds),
-		   (source_file(Head, File),
-		    call_emacs('(@fd-in "\"~w\" ~w ~w")', [Name, Arity, File])
+		   ( source_file(Head, File1)
+		   , remove_double_slashes(File1, File)
+		   , call_emacs('(@fd-in "\"~w\" ~w ~w")', [Name, Arity, File])
 		   ))
 	->  call_emacs('(@find "ok" "nodebug")')
 	;   call_emacs('(@find "none" "nodebug")')
 	).
+
+remove_double_slashes(Atom, Atom1) :-
+	name(Atom, L),
+	remove_double_slashes_list(L, L1),
+	name(Atom1, L).
+
+remove_double_slashes_list([], []).
+remove_double_slashes_list([0'/, 0'/|T], L) :- !,
+	remove_double_slashes_list([0'/|T], L).
+remove_double_slashes_list([H|T], [H|T1]) :-
+	remove_double_slashes_list(T, T1).
 	
 
 find_predicate(Name, Arity, Preds) :-
