@@ -1110,7 +1110,12 @@ stretch_table_slices(Table tab, Vector v, /* table and <-rows or <-columns */
   { TableSlice slice = getElementVector(v, toInt(i));
 
     if ( slice && notNil(slice) && slice->displayed == ON )
-    { slice_stretchability(slice, &stretches[i-from]);
+    { Stretch s = &stretches[i-from];
+      slice_stretchability(slice, s);
+      if ( always )
+      { s->stretch = max(1, s->stretch);
+	s->shrink  = max(1, s->shrink);
+      }
       nslices++;
     }
   }
