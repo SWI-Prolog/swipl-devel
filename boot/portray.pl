@@ -19,6 +19,9 @@ $portray(Term) :-
 	user:portray(Term), !.
 
 
+$portray_variable($$VAR(Name)) :-
+	atom(Name), !,
+	format('~w', [Name]).
 $portray_variable($$VAR(N)) :-
 	$varname(N, Name), 
 	format('~s', [Name]).

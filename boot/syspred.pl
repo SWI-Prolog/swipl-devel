@@ -392,6 +392,8 @@ $predicate_property(Pred, transparent) :-
 	True == 1.
 $predicate_property(Pred, indexed(Pattern)) :-
 	$predicate_attribute(Pred, indexed, Pattern).
+$predicate_property(Pred, file(File)) :-
+	source_file(Pred, File).
 $predicate_property(Pred, line_count(LineNumber)) :-
 	$predicate_attribute(Pred, line_count, LineNumber).
 

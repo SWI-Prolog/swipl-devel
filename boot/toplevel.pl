@@ -27,7 +27,7 @@
 $welcome :-
 	$version(Version),
 	$ttyformat('Welcome to SWI-Prolog (Version ~w)~n', [Version]),
-	$ttyformat('Copyright (c) 1993, University of Amsterdam.  '),
+	$ttyformat('Copyright (c) 1993,1994 University of Amsterdam.  '),
 	$ttyformat('All rights reserved.~n~n').
 
 $load_init_file(none) :- !.
@@ -264,7 +264,7 @@ answer_respons(Char, redo) :-
 	trace,
 	$format_if_tty('; [trace]~n').
 answer_respons(Char, continue) :-
-	memberchk(Char, [0'c, 0' , 10, 0'y, 0'Y]), !.
+	memberchk(Char, [0'c, 0' , 10, 13, 0'y, 0'Y]), !.
 answer_respons(0'b, show_again) :- !,
 	break.
 answer_respons(Char, show_again) :-

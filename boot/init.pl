@@ -118,6 +118,7 @@ $show_childs(Name, Arity) :-
 	(->)/2,
 	once/1,
 	ignore/1,
+	block/3,
 	apply/2.
 
 true.					% this is easy!
@@ -172,6 +173,25 @@ apply(Pred, Arguments) :-
 _Var^Goal :-					% setof/3, bagof/3
 	Goal.
 
+%	block/3, !/1, exit/2, fail/1
+%	`longjmp' like control-structures.  See manual.  The predicate
+%	system:block/3 is used by the VMI's I_CUT_BLOCK and B_EXIT.
+%	$exit and $cut are interpreted by the compiler/decompiler,
+%	just like $apply/2.
+
+block(_Label, Goal, _RVal) :-
+	Goal.
+
+!(Label) :-
+	$cut(Label).				% handled by compiler
+
+exit(Label, RVal) :-
+	$exit(Label, RVal).			% handled by compiler
+
+fail(Label) :-
+	$cut(Label),				% handled by compiler
+	fail.
+
 :-
 	$hide((';'), 2),
 	$hide(('|'), 2),
@@ -186,6 +206,7 @@ _Var^Goal :-					% setof/3, bagof/3
 	$show_childs((','), 2), 	
 	$show_childs((';'), 2), 	
 	$show_childs(('|'), 2),
+	$show_childs(block, 3),
 	$show_childs((->), 2).
 
 
