@@ -21,7 +21,5 @@ void		regfree(regex_t *preg);
 
 /* ../src/gnu/getdate.c */
 YYPARSE_RETURN_TYPEyyparse(int YYPARSE_PARAM_ARG);
-int		yyerror(char *s);
-int		yylex(void);
-time_t		get_date(char *p, struct timeb *now);
-int 		main(int ac, char *av []);
+time_t		get_date(const char *p, const time_t *now);
+int		main(int ac, char *av []);
