@@ -164,7 +164,7 @@ swi_context(context(Name/Arity, _Msg)) -->
 	{ nonvar(Name)
 	}, !,
 	[ '~q/~w: '-[Name, Arity] ].
-swi_context(file(Path, Line)) -->
+swi_context(file(Path, Line, _CharNo)) -->
 	[ Path, ':', Line, ': ' ].
 swi_context(stream(Stream, Line, _CharNo)) -->
 	[ 'Stream ~w:~d: '-[Stream, Line] ].
