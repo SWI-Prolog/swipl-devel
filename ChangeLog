@@ -1,6 +1,15 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.7.2
+=============
+
+  * ADDED: features `debug_on_error' and `report_error'
+
+  * ISO: If a predicate has no clauses and is defined either dynamic,
+    multifile or discontiguous, it is considered defined.  This used to
+    hold only for dynamic predicates. 
+
 Version 2.7.1
 =============
 

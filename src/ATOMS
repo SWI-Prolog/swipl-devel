@@ -249,6 +249,8 @@ A float_format		"float_format"
 A stand_alone		"stand_alone"
 A tty_control		"tty_control"
 A readline		"readline"
+A debug_on_error	"debug_on_error"
+A report_error		"report_error"
 
 F abs			1
 F acos			1

@@ -330,17 +330,26 @@ $warning(Format) :-
 	$warning(Format, []).
 $warning(Format, Args) :-
 	source_location(File, Line), !,
-	sformat(Msg, Format, Args),
-	(   user:exception(warning, warning(File, Line, Msg), _)
-	->  true
-	;   format(user_error, '[WARNING: (~w:~d)~n~t~8|~w]~n',
-		   [File, Line, Msg])
+	(   feature(report_error, true)
+	->  sformat(Msg, Format, Args),
+	    (   user:exception(warning, warning(File, Line, Msg), _)
+	    ->  true
+	    ;   format(user_error, '[WARNING: (~w:~d)~n~t~8|~w]~n',
+		       [File, Line, Msg])
+	    )
+	;   true
 	).
 $warning(Format, Args) :-
-	format(user_error, '[WARNING: ', []), 
-	format(user_error, Format, Args), 
-	format(user_error, ']~n', []),
-	trace.
+	(   feature(report_error, true)
+	->  format(user_error, '[WARNING: ', []), 
+	    format(user_error, Format, Args), 
+	    format(user_error, ']~n', [])
+	;   true
+	),
+	(   feature(debug_on_error, true)
+	->  trace
+	;   true
+	).
 
 
 %	$warn_undefined(+Goal, +Dwims)

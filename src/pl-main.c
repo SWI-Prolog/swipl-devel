@@ -641,41 +641,44 @@ bool
 vwarning(const char *fm, va_list args)
 { toldString();
 
-  if ( ReadingSource && !status.boot && status.initialised )
-  { fid_t cid = PL_open_foreign_frame();
-    term_t argv = PL_new_term_refs(3);
-    predicate_t pred = PL_pred(FUNCTOR_exception3, MODULE_user);
-    term_t a = PL_new_term_ref();
-    char message[LINESIZ];
-    qid_t qid;
-    int rval;
-
-    Svsprintf(message, fm, args);
-
-    PL_put_atom(   argv+0, ATOM_warning);
-    PL_put_functor(argv+1, FUNCTOR_warning3);
-    PL_get_arg(1, argv+1, a); PL_unify_atom(a, source_file_name);
-    PL_get_arg(2, argv+1, a); PL_unify_integer(a, source_line_no);
-    PL_get_arg(3, argv+1, a); PL_unify_string_chars(a, message);
-    
-    qid = PL_open_query(MODULE_user, FALSE, pred, argv);
-    rval = PL_next_solution(qid);
-    PL_close_query(qid);
-    PL_discard_foreign_frame(cid);
-
-    if ( !rval )
-    { Sfprintf(Serror, "[WARNING: (%s:%d)\n\t%s]\n",
-	       stringAtom(source_file_name), source_line_no, message);
+  if ( trueFeature(REPORT_ERROR_FEATURE) )
+  { if ( ReadingSource && !status.boot && status.initialised )
+    { fid_t cid = PL_open_foreign_frame();
+      term_t argv = PL_new_term_refs(3);
+      predicate_t pred = PL_pred(FUNCTOR_exception3, MODULE_user);
+      term_t a = PL_new_term_ref();
+      char message[LINESIZ];
+      qid_t qid;
+      int rval;
+  
+      Svsprintf(message, fm, args);
+  
+      PL_put_atom(   argv+0, ATOM_warning);
+      PL_put_functor(argv+1, FUNCTOR_warning3);
+      PL_get_arg(1, argv+1, a); PL_unify_atom(a, source_file_name);
+      PL_get_arg(2, argv+1, a); PL_unify_integer(a, source_line_no);
+      PL_get_arg(3, argv+1, a); PL_unify_string_chars(a, message);
+      
+      qid = PL_open_query(MODULE_user, FALSE, pred, argv);
+      rval = PL_next_solution(qid);
+      PL_close_query(qid);
+      PL_discard_foreign_frame(cid);
+  
+      if ( !rval )
+      { Sfprintf(Serror, "[WARNING: (%s:%d)\n\t%s]\n",
+		 stringAtom(source_file_name), source_line_no, message);
+      }
+  
+      PL_fail;				/* handled */
     }
-
-    PL_fail;				/* handled */
+  
+    Sfprintf(Serror, "[WARNING: ");
+    Svfprintf(Serror, fm, args);
+    Sfprintf(Serror, "]\n");
   }
 
-  Sfprintf(Serror, "[WARNING: ");
-  Svfprintf(Serror, fm, args);
-  Sfprintf(Serror, "]\n");
-
-  pl_trace();
+  if ( trueFeature(DEBUG_ON_ERROR_FEATURE) )
+    pl_trace();
 
   PL_fail;
 }

@@ -1884,6 +1884,8 @@ builtin_boolean_feature builtin_boolean_features[] =
   { ATOM_trace_gc,		TRACE_GC_FEATURE },
   { ATOM_tty_control,		TTY_CONTROL_FEATURE },
   { ATOM_readline,		READLINE_FEATURE },
+  { ATOM_debug_on_error,	DEBUG_ON_ERROR_FEATURE },
+  { ATOM_report_error,		REPORT_ERROR_FEATURE },
   { NULL_ATOM,			0L }
 };
 

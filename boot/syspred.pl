@@ -373,8 +373,6 @@ generate_current_predicate(Name, Module, Head) :-
 
 $defined_predicate(Head) :-
 	$get_predicate_attribute(Head, defined, 1), !.
-$defined_predicate(Head) :-
-	$get_predicate_attribute(Head, (dynamic), 1).
 
 :- module_transparent
 	predicate_property/2,

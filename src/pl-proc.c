@@ -654,6 +654,11 @@ autoImport(FunctorDef f, Module m)
 
 static int undefined_nesting;
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+According to Paulo Moura, predicates defined either dynamic, multifile or
+discontiguous should not cause an undefined predicate warning.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 Definition
 trapUndefined(Definition def)
 { int retry_times = 0;
@@ -666,7 +671,7 @@ trapUndefined(Definition def)
   if ( (newdef = autoImport(functor, module)) )
     return newdef;
 					/* Pred/Module does not want to trap */
-  if ( true(def, DYNAMIC) || false(module, UNKNOWN) )
+  if ( true(def, DYNAMIC|MULTIFILE|DISCONTIGUOUS) || false(module, UNKNOWN) )
     return def;
 
   DEBUG(5, Sdprintf("trapUndefined(%s)\n", predicateName(def)));
@@ -971,8 +976,15 @@ pl_get_predicate_attribute(term_t pred,
   } else if ( key == ATOM_exported )
   { return PL_unify_integer(value, isPublicModule(module, proc));
   } else if ( key == ATOM_defined )
-  { return PL_unify_integer(value, (true(def, FOREIGN) ||
-				    def->definition.clauses) ? 1 : 0);
+  { int d;
+
+    if ( def->definition.clauses ||
+	 true(def, DYNAMIC|MULTIFILE|DISCONTIGUOUS) )
+      d = 1;
+    else
+      d = 0;
+      
+    return PL_unify_integer(value, d);
   } else if ( key == ATOM_line_count )
   { int line;
 

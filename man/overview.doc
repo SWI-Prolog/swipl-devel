@@ -672,6 +672,15 @@ ISO feature describing integer representation is bound by
 Tertermines whether the terminal is switched to raw mode for
 get_single_char/1, which also reads the user-actions for the trace.  May
 be set.  See also the \tty{+/-tty} command-line option.
+    \option{debug_on_error}{bool}
+If {\tt true}, start the tracer after an error is detected.  Otherwise
+just continue execution.  The goal that raised the error will normally
+fail.  See also fileerrors/2 and the feature {\tt report_error}.  May
+be changed.  Default is {\tt true}, except for the runtime version.
+    \option{report_error}{bool}
+If {\tt true}, print error messages, otherwise suppress them.  May be
+changed.  See also the {\tt debug_on_error} feature.  Default is {\tt
+true}, except for the runtime version.  
 \end{description}
 .C set_feature 2 +Key, +Value
 Define a new feature or change its value. Both arguments must be atoms.

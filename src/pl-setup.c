@@ -204,7 +204,11 @@ initFeatures()
 #endif
 #ifdef O_RUNTIME
   CSetFeature("runtime",	"true");
+  CSetFeature("debug_on_error",	"false");
+  CSetFeature("report_error",	"false");
 #endif
+  CSetFeature("debug_on_error",	"true");
+  CSetFeature("report_error",	"true");
 					/* ISO features */
   setFeature(lookupAtom("max_integer"), heapLong(PLMAXINT));
   setFeature(lookupAtom("min_integer"), heapLong(PLMININT));

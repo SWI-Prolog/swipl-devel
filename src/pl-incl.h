@@ -1466,6 +1466,8 @@ GLOBAL struct debuginfo
 #define TRACE_GC_FEATURE	0x04	/* verbose gc */
 #define TTY_CONTROL_FEATURE	0x08	/* allow for tty control */
 #define READLINE_FEATURE	0x10	/* readline is loaded */
+#define DEBUG_ON_ERROR_FEATURE	0x20	/* start tracer on error */
+#define REPORT_ERROR_FEATURE	0x40	/* print error message */
 
 GLOBAL struct _feature
 { unsigned long flags;			/* the feature flags */
