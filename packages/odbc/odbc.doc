@@ -600,7 +600,8 @@ odbc_query/4 and odbc_prepare/5 interfaces.
 \begin{description}
     \termitem{atom}{}
 Used as default for the SQL types \const{char}, \const{varchar},
-\const{longvarchar}, \const{decimal} and \const{numeric}. Can be used
+\const{longvarchar}, \const{binary}, \const{varbinary},
+\const{longvarbinary}, \const{decimal} and \const{numeric}. Can be used
 for all types.
 
     \termitem{string}{}

@@ -1,3 +1,8 @@
+Sep 25, 2002
+
+* FIXED: proper handling of BINARY data-types.  Spotted by
+  Wouter Jansweijer.
+
 Sep 19, 2002
 
 * FIXED: type-specifier use second argument as scale argument (i.e.

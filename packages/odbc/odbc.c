@@ -1711,6 +1711,9 @@ prepare_result(context *ctxt)
 	columnSize++;			/* one for decimal dot */
 	ptr_result->len_value = sizeof(char)*columnSize+1;
 	break;
+      case SQL_C_BINARY:
+	ptr_result->len_value = sizeof(char)*columnSize+1;
+	break;
       case SQL_C_SLONG:
 	ptr_result->len_value = sizeof(SQLINTEGER);
 	break;
@@ -2822,6 +2825,11 @@ CvtSqlToCType(context *ctxt, SQLSMALLINT fSqlType, SQLSMALLINT plTypeID)
 #endif
 	  return SQL_C_CHAR;
     
+	case SQL_BINARY:
+	case SQL_VARBINARY:
+	case SQL_LONGVARBINARY:
+	  return SQL_C_BINARY;
+
 	case SQL_DECIMAL:
 	case SQL_NUMERIC:
 	  return SQL_C_CHAR;
@@ -2839,6 +2847,7 @@ CvtSqlToCType(context *ctxt, SQLSMALLINT fSqlType, SQLSMALLINT plTypeID)
     
 	case SQL_TYPE_DATE:
 	  return SQL_C_TYPE_DATE;
+	case SQL_TIME:
 	case SQL_TYPE_TIME:
 	  return SQL_C_TYPE_TIME;
 	case SQL_TIMESTAMP:
@@ -2851,7 +2860,15 @@ CvtSqlToCType(context *ctxt, SQLSMALLINT fSqlType, SQLSMALLINT plTypeID)
     case SQL_PL_ATOM:
     case SQL_PL_STRING:
     case SQL_PL_CODES:
-      return SQL_C_CHAR;
+      switch (fSqlType)
+      { case SQL_BINARY:
+	case SQL_VARBINARY:
+	case SQL_LONGVARBINARY:
+	  return SQL_C_BINARY;
+
+	default:
+	  return SQL_C_CHAR;
+      }
     case SQL_PL_INTEGER:
       switch(fSqlType)
       { case SQL_TIMESTAMP:

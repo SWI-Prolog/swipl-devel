@@ -54,7 +54,7 @@ open_db :-
 		     ]).
 
 test :-
-	forall(type(Type, _, _),
+	forall(type(Type, _, _, _),
 	       test_type(Type)).
 
 
@@ -68,7 +68,7 @@ and read it back. If the type   can  be accessed with alternative Prolog
 types we test this too.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-%	type(SqlType, PlType=Values, [AltType=Map, ...])
+%	type(SqlType, PlType=Values, [AltType=Map, ...], Options)
 %	
 %	Define a test-set.  The first argument is the SQL type to test.
 %	PlType is the default Prolog type with a set of values.  AltType
@@ -80,27 +80,33 @@ type(integer,
      integer = [-1, 0, 42, '$null$' ],
      [ atom  = integer_to_atom,		% exchange as text
        float = integer_to_float		% exchange as float
-     ]).
+     ],
+     []).
 type(double,
      float   = [-1.0, 0.0, 42.0, 3.2747, '$null$' ],
      [ 
-     ]).
+     ],
+     []).
 type(decimal(10,2),
      atom = ['3.43', '4.50', '5.00', '$null$'],
      [
-     ]).
+     ],
+     []).
 type(decimal(6,2),			% truncating test
      atom = ['1000.00'],
      [
-     ]).
+     ],
+     []).
 type(decimal(14,2),			% truncating test
      atom = ['17.45'],
      [
-     ]).
+     ],
+     []).
 type(numeric(10),
      integer = [-1, 0, 42, '$null$'],
      [
-     ]).
+     ],
+     []).
 type(varchar(20),
      atom = [ 'foo',
 	      '',
@@ -109,12 +115,14 @@ type(varchar(20),
 	    ],
      [ codes   = sql_atom_codes,
        string  = atom_to_string
-     ]).
+     ],
+     []).
 type(varchar(10),				% can we access as integers?
      atom = [ '1', '2', '$null$'
 	    ],
      [ integer = atom_to_integer
-     ]).
+     ],
+     []).
 type(varchar(100),
      atom = [ foo,
 	      '',
@@ -122,36 +130,54 @@ type(varchar(100),
 	      '$null$'
 	    ],
      [ codes   = sql_atom_codes
-     ]).
+     ],
+     []).
 type(binary(20),
      atom = [ foo,
 	      '',
 	      'With a \0\ character'
 	    ],
      [
+     ],
+     []).
+type(blob,			% mySql blob
+     atom = [ foo,
+	      '',
+	      'With a \0\ character'
+	    ],
+     [
+     ],
+     [ odbc_type(longvarbinary),
+       dbms_name('MySQL')		% MySQL specific test
      ]).
 type(date,
      date = [ date(1960,3,19), '$null$' ],
      [
-     ]).
+     ],
+     []).
 type(time,
      time = [ time(18,23,19), '$null$' ],
      [
-     ]).
+     ],
+     []).
 type(timestamp,				% MySQL uses POSIX stamps
      timestamp = [ timestamp(1990,5,18,18,23,19,0), '$null$' ],
      [ integer = timestamp_to_integer
-     ]).
+     ],
+     []).
 
 test_type(Type) :-
 	open_db,
-	type(Type, PlType=Values, AltAccess),
-	Type =.. [ODBCName|_Args],
-	(   odbc_type(test, ODBCName, name(_DbName))
+	type(Type, PlType=Values, AltAccess, Options),
+	(   applicable(Type, Options)
 	->  progress('Type ~w:', [Type]),
 	    create_test_table(Type),
 	    progress(' (w)', []),
-	    insert_values(test, Type, PlType, Values),
+	    (	memberchk(odbc_type(ODBCType), Options)
+	    ->	true
+	    ;	ODBCType = Type
+	    ),
+	    insert_values(test, ODBCType, PlType, Values),
 	    progress(' (r)', []),
 	    read_values(test, PlType, ReadValues),
 	    compare_sets(Values, ReadValues),
@@ -160,6 +186,16 @@ test_type(Type) :-
 	    progress(' (OK!)~n', [])
 	;   progress('Skipped ~w: not supported~n', [Type])
 	).
+
+%	applicable(+Type, +Options)
+%	
+%	See whether we can run this test on this connection.
+
+applicable(_, Options) :-
+	memberchk(dbms_name(DB), Options), !,
+	odbc_get_connection(test, dbms_name(DB)).
+applicable(_, _).
+
 
 %	read_test_alt_types([Type=Map, ...], Table, Values)
 %	
@@ -187,14 +223,14 @@ write_test_alt_types([Type=Map|T], SqlType, Table) :-
 
 write_test_alt_type(Type, Map, SqlType, Table) :-
 	progress(' w(~w)', Type),
-	type(SqlType, PlType=NativeValues, _),
+	type(SqlType, PlType=NativeValues, _, _),
 	odbc_query(test, 'delete from ~w'-[Table]),
 	maplist(Map, NativeValues, Values),
 	insert_values(test, SqlType, Type, Values),
 	read_values(test, PlType, ReadValues),
 	compare_sets(NativeValues, ReadValues).
 
-%	insert_values(+Table, +SqlType, +Values)
+%	insert_values(+Table, +OdbcType, +PlType, +Values)
 %	
 %	Insert Prolog values into the table
 
