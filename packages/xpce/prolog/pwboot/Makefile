@@ -329,8 +329,9 @@ release_bin:	$(addprefix $(PCELIB)/$(BIN)/, $(BINFILES)) \
 release_makes:	$(PCEHOME)/Makefile $(PCELIB)/Makefile $(PCEDEMO)/Makefile
 
 release_misc:	$(PCEHOME)/Pce $(PCEHOME)/bitmaps $(PCELIB)/dialog/bitmaps \
-		$(PCEHOME)/include $(PCEHOME)/man $(PCEHOME)/postscript \
-		$(PCELIB)/xref/common.pl $(PCELIB)/xref/quintus.pl
+		$(PCEHOME)/man $(PCEHOME)/postscript \
+		$(PCELIB)/xref/common.pl $(PCELIB)/xref/quintus.pl \
+		$(PCEHOME)/include $(PCEHOME)/CXX
 
 pceshare:	$(PCESHARE) english
 
@@ -429,7 +430,12 @@ $(PCELIB)/dialog/bitmaps:
 $(PCEHOME)/include:
 	mkdir $@
 	$(CP) -r ../../include/* $@
-	rm -fr $@/pce/CVS
+	rm -fr $@/CVS $@/pce/CVS
+
+$(PCEHOME)/CXX:
+	mkdir $@
+	$(CP) -r ../../CXX/* $@
+	rm -fr $@/CVS $@/demo/CVS
 
 $(PCEHOME)/man:
 	mkdir $@
