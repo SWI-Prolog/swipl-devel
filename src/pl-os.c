@@ -163,6 +163,10 @@ Halt(int rval)
 { OnHalt h;
 
   pl_notrace();				/* avoid recursive tracing */
+#ifdef O_PLMT
+  exitPrologThreads();
+#endif
+
   Scurout = Soutput;			/* reset output stream to user */
 
   if ( !GD->os.halting++ )

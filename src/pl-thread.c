@@ -32,7 +32,7 @@ APPROACH
 	  This structure contains `code' data: data that is set up at
 	  initialisation time and never changed afterwards.
 	  PL_initialise() initialises this and no further precautions
-	  area needed.
+	  are needed.
 
 	+ PL_global_data
 	  This structure contains all global data required for the
@@ -48,10 +48,14 @@ APPROACH
 	  as an argument between all functions in the system.  We will
 	  locate it through the thread-id using a function.  Any function
 	  requiring frequent access can fetch this pointer once at
-	  start-up.  Coperating functions can pass this pointer.
+	  start-up.  Cooperating functions can pass this pointer.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #include <errno.h>
+#include <semaphore.h>
+
+static sem_t sem_mark;			/* used for atom-gc */
+static sem_t sem_canceled;		/* used on halt */
 
 		 /*******************************
 		 *	    GLOBAL DATA		*
@@ -141,6 +145,9 @@ PL_initialise_thread(PL_thread_info_t *info)
 free_prolog_thread()
     Called to free thread-specific data.  Please note that LD (obtained
     through pthread_getspecific() is no longer accessible! 
+
+    We try to call the exit hooks from here by temporary reinstalling
+    the thread local-data.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
@@ -149,6 +156,9 @@ free_prolog_thread(void *data)
   PL_thread_info_t *info = ld->thread.info;
   int i;
 
+  pthread_setspecific(PL_ldata, data);	/* put it back */
+  run_thread_exit_hooks();
+  
   freeStacks(ld);
 
   discardBuffer(&ld->fli._discardable_buffer);
@@ -162,10 +172,15 @@ free_prolog_thread(void *data)
   freeThreadMessages(ld);
   freeThreadSignals(ld);
 
+  pthread_setspecific(PL_ldata, NULL);	/* to NULL (avoid recursion) */
+
   LOCK();
   GD->statistics.threads_finished++;
   GD->statistics.thread_cputime += CpuTime();
   UNLOCK();
+
+  if ( info->status == PL_THREAD_CANCELED )
+    sem_post(&sem_canceled);
 
   if ( info->detached )
     free_thread_info(info);
@@ -183,6 +198,58 @@ initPrologThreads()
   GD->statistics.thread_cputime = 0.0;
   GD->statistics.threads_created = 1;
 }
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+A first step towards clean destruction of the system.  Ideally, we would
+like the following to happen:
+
+    * Close-down all threads except for the main one
+	+ Have all thread_at_exit/1 hooks called
+    * Run the at_halt/1 hooks in the main thread
+    * Exit from the main thread.
+
+There are a lot of problems however.
+
+    * Cancellation is not safe, as mutexes are not guarded by
+      pthread_cleanup_push()
+    * Somehow Halt() should always be called from the main thread
+      to have the process working properly.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+exitPrologThreads()
+{ int i;
+  int me = PL_thread_self();
+  int canceled = 0;
+
+  sem_init(&sem_canceled, 0, 0);
+
+  for(i=1; i<MAX_THREADS; i++)
+  { if ( threads[i].thread_data && i != me )
+    { if ( pthread_cancel(threads[i].tid) == 0 )
+      { threads[i].status = PL_THREAD_CANCELED;
+	canceled++;
+      } else
+      {	Sdprintf("Failed to cancel thread %d: %s\n", i, OsError());
+      }
+    }
+  }
+
+  while(canceled)
+  { int maxwait = 10;
+
+    while(maxwait--)
+    { if ( sem_trywait(&sem_canceled) == 0 )
+	break;
+      Pause(0.1);
+    }
+
+    canceled--;
+  }
+  sem_destroy(&sem_canceled);
+}
+
 
 		 /*******************************
 		 *	    ALIAS NAME		*
@@ -293,6 +360,9 @@ start_thread(void *closure)
 #endif
 
   PL_initialise_thread(info);
+  pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+  pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
+
   goal = PL_new_term_ref();
   
   PL_recorded(info->goal, goal);
@@ -422,7 +492,7 @@ unify_thread_status(term_t status, PL_thread_info_t *info)
 			   PL_FUNCTOR, FUNCTOR_exited1,
 			     PL_TERM, tmp);
     }
-   case PL_THREAD_SUCCEEDED:
+    case PL_THREAD_SUCCEEDED:
       return PL_unify_atom(status, ATOM_true);
     case PL_THREAD_FAILED:
       return PL_unify_atom(status, ATOM_false);
@@ -434,6 +504,8 @@ unify_thread_status(term_t status, PL_thread_info_t *info)
 			   PL_FUNCTOR, FUNCTOR_exception1,
 			     PL_TERM, tmp);
     }
+    case PL_THREAD_CANCELED:
+      return PL_unify_atom(status, ATOM_canceled);
     default:
       assert(0);
       fail;
@@ -1247,13 +1319,10 @@ PL_thread_destroy_engine()
 		 *******************************/
 
 #include <signal.h>
-#include <semaphore.h>
 
 #ifndef SA_RESTART
 #define SA_RESTART 0
 #endif
-
-static sem_t sem_mark;
 
 static void
 threadMarkAtoms(int sig)

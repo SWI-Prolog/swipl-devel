@@ -1,6 +1,13 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 3.3.0 (release-10)
+=========================
+
+  * FIXED: MT version: ensure calling thread_exit/1 gets the thread_at_exit
+    handlers called.  Improved handling of halt/[0,1] by cancelling the other
+    threads first (incomplete).
+
   * FIXED: open_null_stream/1 to register the stream open for writing
     (resulted in permission error).
 

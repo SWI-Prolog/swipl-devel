@@ -464,6 +464,7 @@ A choice		"choice"
 A debugger_show_context "debugger_show_context"
 A dec10			"dec10"
 A xdigit		"xdigit"
+A canceled		"canceled"
 
 F abs			1
 F acos			1

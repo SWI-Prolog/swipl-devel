@@ -40,6 +40,7 @@ typedef struct _PL_thread_info_t
 #define PL_THREAD_SUCCEEDED	3
 #define PL_THREAD_FAILED	4
 #define PL_THREAD_EXCEPTION	5
+#define PL_THREAD_CANCELED	6
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 				Thread-local data
@@ -114,6 +115,7 @@ extern PL_local_data_t *_LD(void) __attribute((const));
 
 extern PL_local_data_t *allocPrologLocalData(void);
 extern void		initPrologThreads(void);
+extern void		exitPrologThreads(void);
 extern bool		aliasThread(int tid, atom_t name);
 extern word		pl_thread_create(term_t goal, term_t id,
 					 term_t options);
