@@ -77,10 +77,10 @@ struct variable
 #define T_FULLSTOP	7	/* Prolog end of clause */
 
 extern int Input;		/* current input stream (from pl-file.c) */
-static char *here;		/* current character */
-static char *base;		/* base of clause */
-static char *token_start;	/* start of most recent read token */
-static char *last_syntax_error;	/* last syntax error */
+static unsigned char *here;		/* current character */
+static unsigned char *base;		/* base of clause */
+static unsigned char *token_start;	/* start of most recent read token */
+static unsigned char *last_syntax_error; /* last syntax error */
 static struct token token;	/* current token */
 static bool unget = FALSE;	/* unget_token() */
 
@@ -191,7 +191,7 @@ errorWarning(char *what)
   } else
   { predicate_t pred = PL_pred(FUNCTOR_exception3, MODULE_user);
     int rval;
-    char *s;
+    unsigned char *s;
 
     for(s = base; s < token_start; s++ )
     { if ( *s == '\n' )
@@ -803,7 +803,7 @@ scan_number(char **s, int b, Number n)
 		
 
 static char *
-get_string(char *in, char **end)
+get_string(unsigned char *in, unsigned char **end)
 { static char *buf;
   static int bufsize = 0;
   int n;
@@ -897,7 +897,7 @@ get_string(char *in, char **end)
 
 
 int
-get_number(const char *cin, char **end, Number value)
+get_number(const unsigned char *cin, unsigned char **end, Number value)
 { int negative = FALSE;
   unsigned int c;
   char *in = (char *)cin;		/* const hack */
@@ -1029,7 +1029,7 @@ get_number(const char *cin, char **end, Number value)
 static Token
 get_token(bool must_be_op)
 { unsigned int c;
-  char *start;
+  unsigned char *start;
   int end;
 
   if ( unget )

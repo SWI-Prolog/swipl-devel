@@ -1610,6 +1610,43 @@ options for the installation. These are:
                                  See also PL_retry(). \\
 \hline
 \end{tabular}
+\cfunction{void}{PL_register_extensions}{PL_extension *e}
+Register foreign predicates from a table of structures.	 The type
+\ctype{PL_extension} is defined as:
+
+\begin{code}
+typedef struct _PL_extension
+{ char 		*predicate_name;	/* Name of the predicate */
+  short		arity;			/* Arity of the predicate */
+  pl_function_t	function;		/* Implementing functions */
+  short		flags;			/* Or of PL_FA_... */
+} PL_extension;
+\end{code}
+
+Here is an example of its usage:
+
+\begin{code}
+static PL_extension predicates[] = {
+{ "foo",	1,	pl_foo, 0 },
+{ "bar",	2,	pl_bar, PL_FA_NONDETERMINISTIC },
+{ NULL,		0,	NULL,   0 }
+};
+
+main(int argc, char **argv)
+{ PL_register_extensions(predicates);
+
+  if ( !PL_initialise(argc, argv) )
+    PL_halt(1);
+
+  ...
+}
+\end{code}
+
+The function PL_register_extensions() is the only PL_* function that may
+be called \strong{before} PL_initialise().  The functions are registered
+after registration of the SWI-Prolog builtin foreign predicates and 
+before loading the initial saved state. This implies that
+initialization/1 directives can refer to them.
 \end{description}
 
 \subsection{Foreign Code Hooks}

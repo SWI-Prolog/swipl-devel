@@ -10,6 +10,10 @@
 #ifndef PL_GLOBAL_H_INCLUDED
 #define PL_GLOBAL_H_INCLUDED
 
+#ifndef ulong
+#define ulong unsigned long
+#endif
+
 #ifndef GLOBAL			/* global variables */
 #define GLOBAL extern
 #endif

@@ -105,7 +105,10 @@ PLSRC=	../boot/syspred.pl ../boot/toplevel.pl ../boot/listing.pl \
 	../boot/foreign.pl ../boot/parms.pl ../boot/autoload.pl \
 	../boot/qlf.pl ../boot/topvars.pl ../boot/messages.pl
 
-all:	banner headers system startup index runtime pl-bite chpl swipl swiplbin
+all:	banner \
+	headers system startup index runtime \
+	pl-bite chpl plld \
+	swipl swiplbin
 
 .c.o:
 	$(CC) -c -I. -I$(srcdir) $(CFLAGS) $< @COUTOPT@
@@ -195,6 +198,9 @@ pl-bite:	$(srcdir)/pl-bite.c
 chpl:		$(srcdir)/chpl.c
 		$(CC) -I. -I$(srcdir) $(CFLAGS) -o $@ $(srcdir)/chpl.c
 
+plld:		$(srcdir)/plld.c
+		$(CC) -I. -I$(srcdir) $(CFLAGS) -o $@ $(srcdir)/plld.c
+
 tags:		TAGS
 
 TAGS:		$(SRC)
@@ -223,10 +229,9 @@ install-bins:	install-arch
 
 
 install-arch:	idirs iruntime
-		for f in $(PL) pl-bite chpl; do \
+		for f in $(PL) pl-bite chpl plld; do \
 		    $(INSTALL_PROGRAM) $$f $(PLBASE)/bin/$(ARCH); \
 		done
-		$(INSTALL_PROGRAM) $(srcdir)/plld $(PLBASE)/bin/$(ARCH)
 
 install-libs:	idirs iboot ilib iruntime iinclude iman
 		$(INSTALL_DATA) $(STARTUPPATH) $(PLBASE)/startup/startup

@@ -1193,7 +1193,9 @@ int
 PL_unify_arg(int index, term_t t, term_t a)
 { word w = valHandle(t);
 
-  if ( isTerm(w) && index > 0 && index <= arityFunctor(functorTerm(w)) )
+  if ( isTerm(w) &&
+       index > 0 &&
+       index <= (int)arityFunctor(functorTerm(w)) )
   { Word p = argTermP(w, index-1);
     Word p2 = valHandleP(a);
 

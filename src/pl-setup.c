@@ -218,7 +218,7 @@ initFeatures()
   CSetFeature("debug_on_error",	"false");
   CSetFeature("report_error",	"false");
 #else
-  CSetFeature("debug_on_error",	"false"); /* ??? */
+  CSetFeature("debug_on_error",	"true");
   CSetFeature("report_error",	"true");
 #endif
 					/* ISO features */

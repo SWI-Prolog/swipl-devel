@@ -135,7 +135,7 @@ __pl_export_data IOSTREAM    S__iob[];		/* Libs standard streams */
 	((s)->position ? S__fupdatefilepos((s)->position, (c)) \
 		       : (c))
 
-#define Snpgetc(s) ((s)->bufp < (s)->limitp ? *(s)->bufp++&0xff \
+#define Snpgetc(s) ((s)->bufp < (s)->limitp ? (int)(*(s)->bufp++)&0xff \
 					    : S__fillbuf(s))
 #define Sgetc(s) S__updatefilepos((s), Snpgetc(s))
 

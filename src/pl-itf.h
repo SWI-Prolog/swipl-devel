@@ -28,7 +28,7 @@ before loading this file.  See end of this file.
 /* PLVERSION: 10000 * <Major> + 100 * <Minor> + <Patch> */
 
 #ifndef PLVERSION
-#define PLVERSION 20901
+#define PLVERSION 20903
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -79,7 +79,11 @@ typedef unsigned long	functor_t;	/* Name/arity pair */
 typedef unsigned long	atomic_t;	/* same a word */
 typedef unsigned long	control_t;	/* non-deterministic control arg */
 typedef unsigned long	foreign_t;	/* return type of foreign functions */
+#ifdef __cplusplus
+typedef void * 		pl_function_t;	/* can only pass function as void * */
+#else
 typedef foreign_t	(*pl_function_t)(); /* foreign language functions */
+#endif
 
 #define fid_t PL_fid_t			/* avoid AIX name-clash */
 

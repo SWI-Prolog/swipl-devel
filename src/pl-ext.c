@@ -505,6 +505,7 @@ void
 initBuildIns(void)
 { const struct foreign *f;
   Definition def;
+  ExtensionCell ecell;
 
   for(f = &foreigns[0]; f->name; f++)
   { functor_t fdef = lookupFunctorDef(lookupAtom(f->name), f->arity);
@@ -531,6 +532,8 @@ initBuildIns(void)
   PROCEDURE_print_message2   = lookupProcedure(FUNCTOR_print_message2,
 					       MODULE_system);
 
-  bindExtensions(PL_extensions);
+  for( ecell = ext_head; ecell; ecell = ecell->next )
+    bindExtensions(ecell->extensions);
+
   extensions_loaded = TRUE;
 }

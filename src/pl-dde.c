@@ -62,13 +62,13 @@ static HCONV conv_handle[MAX_CONVERSATIONS];
 static HCONV server_handle[MAX_CONVERSATIONS];
 static DWORD ddeInst;			/* Instance of this process */
 
-static Module	  MODULE_dde;		/* win_dde */
-static FunctorDef FUNCTOR_dde_connect3;
-static FunctorDef FUNCTOR_dde_connect_confirm3;
-static FunctorDef FUNCTOR_dde_disconnect1;
-static FunctorDef FUNCTOR_dde_request4;
-static FunctorDef FUNCTOR_dde_execute3;
-static FunctorDef FUNCTOR_error1;
+static Module	 MODULE_dde;		/* win_dde */
+static functor_t FUNCTOR_dde_connect3;
+static functor_t FUNCTOR_dde_connect_confirm3;
+static functor_t FUNCTOR_dde_disconnect1;
+static functor_t FUNCTOR_dde_request4;
+static functor_t FUNCTOR_dde_execute3;
+static functor_t FUNCTOR_error1;
 
 static char *
 dde_error_message(int errn)

@@ -1,6 +1,37 @@
 
 			SWI-Prolog ChangeLog
 			====================
+VERSION 2.9.3
+=============
+
+  * ADDED: (Simple) support for exceptions in the GUI-tracer.
+
+  * MODIFIED: PL_extensions array now needs to be explicitely registered
+    using PL_register_extensions() for compatibility with Win32.  Documented
+    PL_register_extensions().
+
+  * FIXED: print/1 to include the `quoted' option as it used to before
+    2.9.0.  Thanks to Sam Waugh for noting.
+
+  * NEW: plld is now written in C, and adapted for usage on Windows-NT
+    and Windows '95.  The latter is incomplete, but useful for creating
+    embedded Win32 console applications.  The old plld is available as
+    plld.sh in the source distribution.
+
+  * FIXED: PL_register_foreign() now declares the function-pointer as
+    a void * for C++ code, so it may be used with C++.
+
+  * MODIFIED: tmp_file/2 now returns the canonical filename on
+    Windows platforms (i.e. c:/temp/base<n>, rather then C:\TEMP\base<n>).
+    use prolog_to_os_filename/2 to convert between the two formats.
+
+  * FIXED: catch/3 for proper continuation if the recovery goal
+    succeeds.
+
+  * FIXED: definition of ulong on some platforms for the new pl-global.h
+    module.
+
+
 VERSION 2.9.2
 =============
 

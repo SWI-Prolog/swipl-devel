@@ -4741,7 +4741,8 @@ ffoorrmmaatt((+_F_o_r_m_a_t_,_ +_A_r_g_u_m_e_n_t_s_))
 
       R  Same as rr, but uses upper case letters for digits above 9.
 
-      s  Output a string of ASCII characters from the next argument.
+      s  Output a string of  ASCII characters or a string  (see ssttrriinngg//11
+         and section 3.20) from the next argument.
 
       t  All remaining space between 2 tabs tops  is distributed equally
          over ~t  statements  between the  tabs  tops.   This  space  is
@@ -6032,7 +6033,7 @@ Dynamic modules  can easily  be created.   Any  built-in predicate  that
 tries  to locate  a predicate  in  a specific  module will  create  this
 module as a side-effect if it did not yet exist.  Example:
 
-?- assert(world_a, consistent),
+?- assert(world_a:consistent),
    world_a:unknown(_, fail).
 
 These  calls  create  a  module  called  `world_a'  and  make  the  call
@@ -7884,6 +7885,43 @@ i_n_t_ PPLL__rreeggiisstteerr__ffoorreeiiggnn((n_a_m_e
     | PL_FA_TRANSPARENT      |Predicate is module transparent          |
     | PL_FA_NONDETERMINISTIC |Predicate  is  non-deterministic.     See|
     |________________________|also_PPLL__rreettrryy(())._________________________|
+
+
+v_o_i_d_ PPLL__rreeggiisstteerr__eexxtteennssiioonnss((P_L___e_x_t_e_n_s_i_o_n_ *_e_))
+    Register  foreign predicates from a table  of structures.  The  type
+    PL_extension is defined as:
+
+    typedef struct _PL_extension
+    { char          *predicate_name;        /* Name of the predicate */
+      short         arity;                  /* Arity of the predi-
+    cate */
+      pl_function_t function;               /* Implementing func-
+    tions */
+      short         flags;                  /* Or of PL_FA_... */
+    } PL_extension;
+
+    Here is an example of its usage:
+
+    static PL_extension predicates[] = {
+    { "foo",        1,      pl_foo, 0 },
+    { "bar",        2,      pl_bar, PL_FA_NONDETERMINISTIC },
+    { NULL,         0,      NULL,   0 }
+    };
+
+    main(int argc, char **argv)
+    { PL_register_extensions(predicates);
+
+      if ( !PL_initialise(argc, argv) )
+        PL_halt(1);
+
+      ...
+    }
+
+    The  function PPLL__rreeggiisstteerr__eexxtteennssiioonnss(())is the only PL_*  function that
+    may  be called bbeeffoorree PPLL__iinniittiiaalliissee(()).  The  functions are registered
+    after  registration  of the  SWI-Prolog builtin  foreign  predicates
+    and  before loading  the initial  saved state.    This implies  that
+    iinniittiiaalliizzaattiioonn//11 directives can refer to them.
 
 
 55..66..1166 FFoorreeiiggnn CCooddee HHooookkss

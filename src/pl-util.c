@@ -317,7 +317,7 @@ strlwr(char *s)
 
 
 bool
-stripostfix(char *s, char *e)
+stripostfix(const char *s, const char *e)
 { int ls = strlen(s);
   int le = strlen(e);
 

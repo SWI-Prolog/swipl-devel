@@ -469,7 +469,7 @@ pl_writeq(term_t term)
 
 word
 pl_print(term_t term)
-{ return writeTerm(term, 1200, WRT_PORTRAY);
+{ return writeTerm(term, 1200, WRT_PORTRAY|WRT_QUOTED);
 }
 
 

@@ -723,14 +723,15 @@ traceInterception(LocalFrame frame, LocalFrame bfr, int port, Code PC)
     int nodebug = FALSE;
 
     switch(port)
-    { case CALL_PORT:	  portname = ATOM_call;		break;
-      case REDO_PORT:	  portname = ATOM_redo;		break;
-      case EXIT_PORT:	  portname = ATOM_exit;		break;
-      case FAIL_PORT:	  portname = ATOM_fail;		break;
-      case UNIFY_PORT:	  portname = ATOM_unify;	break;
-      case BREAK_PORT:    portfunc = FUNCTOR_break1;	break;
-      case CUT_CALL_PORT: portfunc = FUNCTOR_cut_call1; break;
-      case CUT_EXIT_PORT: portfunc = FUNCTOR_cut_exit1; break;
+    { case CALL_PORT:	   portname = ATOM_call;         break;
+      case REDO_PORT:	   portname = ATOM_redo;         break;
+      case EXIT_PORT:	   portname = ATOM_exit;         break;
+      case FAIL_PORT:	   portname = ATOM_fail;         break;
+      case UNIFY_PORT:	   portname = ATOM_unify;	 break;
+      case EXCEPTION_PORT: portname = ATOM_exception; 	 break;
+      case BREAK_PORT:     portfunc = FUNCTOR_break1;	 break;
+      case CUT_CALL_PORT:  portfunc = FUNCTOR_cut_call1; break;
+      case CUT_EXIT_PORT:  portfunc = FUNCTOR_cut_exit1; break;
       default:
 	assert(0);
         return rval;

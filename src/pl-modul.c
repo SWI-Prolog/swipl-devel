@@ -73,7 +73,7 @@ isCurrentModule(atom_t name)
 
 void
 initModules(void)
-{ GD->tables.modules        = newHTable(MODULEHASHSIZE);
+{ GD->tables.modules = newHTable(MODULEHASHSIZE);
   GD->modules.system = lookupModule(ATOM_system);
   GD->modules.user   = lookupModule(ATOM_user);
   LD->modules.typein = MODULE_user;
@@ -336,8 +336,7 @@ declareModule(atom_t name, SourceFile sf)
   { Procedure proc = (Procedure) s->value;
     Definition def = proc->definition;
     if ( def->module == module &&
-	 false(def, DYNAMIC) &&
-	 false(def, MULTIFILE) )
+	 !true(def, DYNAMIC|MULTIFILE|FOREIGN) )
       abolishProcedure(proc, module);
   }
   clearHTable(module->public);

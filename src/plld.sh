@@ -13,6 +13,7 @@
 program="$0"
 
 PL=pl
+LD=
 clibs=
 clibdirs=
 ldflags=
@@ -24,13 +25,37 @@ cout="c.out$$"				# temporary file for emulator
 out="a.out"				# the real output file
 plgoal='$welcome'			# initial goal (banner)
 pltoplevel=prolog			# toplevel goal
-plinitfile=.plrc			# file to load at start
+plinitfile=none				# file to load at start
 makestate=true
 verbose=
 
+PLLD=true				# for sub-programs
+export PLLD
+
 usage()
-{ echo "usage:  $program -help"
-  echo "	$program [-o out] [-pl prolog] [-v] [cc flags] c-files ... pl-files ..."
+{ cat << _EOM_
+usage:  $program -help"
+	$program [options] c-files ... pl-files ..."
+
+options:
+	-o out		final output file (default = a.out)
+	-goal goal	use 'goal' as the (Prolog) entry-point
+	-toplevel goal	use 'goal' as the (Prolog) toplevel (default = prolog)
+	-pl prolog	SWI-Prolog executable (default = pl)
+	-ld linker	linker to be used (default = <CC used for prolog>)
+	-nostate	Do not create a saved state: just link the foreign
+			code to the Prolog kernel.
+	-initfile file	use 'file' as profile file (default = none)
+	-v		verbose: print commands executed
+
+Dispatching:
+	-g | -I* | -D* | -l* | -L* | *.o | *.c | *.C | *.cpp | *.cxx:
+			arguments matching these patterns are passed to
+			the C-compiler
+	*.pl | *.qlf:
+			arguments matching these patterns are passed to
+			Prolog
+_EOM_
 }
 
 
@@ -55,6 +80,9 @@ while [ -n "$1" ]; do
 	shift;;
     -pl)
 	PL="$2";
+	shift;;
+    -ld)
+	LD="$2";
 	shift;;
     -v)
         verbose=true;;
@@ -101,12 +129,11 @@ error()
 
 trap error 1 2 15
 
-if [ "$makestate" = false ]; then
-    cout="$out";
-fi
+if [ "$makestate" = false ]; then cout="$out"; fi
+if [ -z "$LD" ]; then LD="$CC"; fi
 
 LIBS="-L$pllibdir $clibdirs $clibs -lpl $PLLIBS"
-ccmd="$CC -o $cout -I$PLBASE/include $cflags $cfiles $ldflags $LIBS"
+ccmd="$LD -o $cout -I$PLBASE/include $cflags $cfiles $ldflags $LIBS"
 plflags="-O -f none -F none -g true"
 
 if [ "$verbose" = true ]; then echo "%% $ccmd"; fi

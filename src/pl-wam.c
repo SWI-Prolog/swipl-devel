@@ -1919,13 +1919,19 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 	}
 
 	if ( catchfr )
-	{ assert(catchfr == FR);
+	{ code exit_instruction;
+
+	  assert(catchfr == FR);
 	  SetBfr(FR->mark.trailtop != INVALID_TRAILTOP ?
 		 FR : FR->backtrackFrame);
 	  environment_frame = FR;
 	  lTop = (LocalFrame) argFrameP(FR, 3); /* above the catch/3 */
 	  argFrame(lTop, 0) = argFrame(FR, 2);  /* copy recover goal */
 	  *valTermRef(exception_printed) = 0;   /* consider it handled */
+
+	  exit_instruction = encode(I_EXIT);    /* we must continue with */
+	  PC = &exit_instruction;		/* an I_EXIT. Use catch? */
+
 	  goto i_usercall0;
 	} else
 	{ QF = QueryFromQid(qid);	/* may be shifted: recompute */

@@ -193,7 +193,7 @@ warnNoState()
 {
 #ifdef O_RUNTIME
   Sfprintf(Serror, "[FATAL ERROR: Runtime system: can not find a state to run\n");
-  Sfprintf(Serror, "\tUsage: %s -x state\n", mainArgv[0]);
+  Sfprintf(Serror, "\tUsage: %s -x state\n", GD->cmdline.argv[0]);
   Sfprintf(Serror, "\t\twhere <state> is created using qsave_program/[1,2]\n");
   Sfprintf(Serror, "\t\tin the development system]\n");
 #else
@@ -252,9 +252,9 @@ defaultSystemInitFile(char *a0)
 static unsigned long
 memarea_limit(const char *s)
 { number n;
-  char *q;
+  unsigned char *q;
 
-  if ( get_number(s, &q, &n) && intNumber(&n) )
+  if ( get_number((unsigned char *)s, &q, &n) && intNumber(&n) )
   { switch((int)*q)
     { case 'k':
       case 'K':

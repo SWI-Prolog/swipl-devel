@@ -540,7 +540,9 @@ word		pl_reset_profiler(void);
 void		resetRead(void);
 int		syntaxerrors(int new);
 word		pl_syntaxerrors(term_t old, term_t new);
-int		get_number(const char *string, char **end, Number value);
+int		get_number(const unsigned char *string,
+			   unsigned char **end,
+			   Number value);
 word		pl_raw_read(term_t term);
 word		pl_read_variables(term_t term, term_t variables);
 word		pl_read_variables3(term_t stream, term_t term,
@@ -646,7 +648,7 @@ word		setInteger(int *val, const char *name, term_t old, term_t new);
 word		setLong(long *val, const char *name, term_t old, term_t new);
 bool		strprefix(char *string, char *prefix);
 bool		strpostfix(char *string, char *postfix);
-bool		stripostfix(char *string, char *postfix);
+bool		stripostfix(const char *string, const char *postfix);
 void		systemMode(bool accept);
 bool		scan_options(term_t list, int flags, atom_t name,
 			     const opt_spec *specs, ...);

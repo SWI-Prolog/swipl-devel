@@ -15,9 +15,9 @@
 #define PLHOME       "c:/pl"
 #define DEFSTARTUP   ".plrc"
 #define ARCH	     "i386-win32"
-#define C_LIBS	     "-lreadline -lconsole"
+#define C_LIBS	     ""
 #define C_STATICLIBS ""
-#define C_CC	     "msvc++ 4.2"
+#define C_CC	     "cl"
 #define C_LDFLAGS    ""
 #else
 #include <parms.h>			/* pick from the working dir */

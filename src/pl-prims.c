@@ -1397,9 +1397,9 @@ x_chars(const char *pred, term_t atom, term_t string, int how)
       case X_NUMBER:
       default:
       { number n;
-	char *q;
+	unsigned char *q;
 
-	if ( get_number(s, &q, &n) && *q == EOS )
+	if ( get_number((unsigned char *)s, &q, &n) && *q == EOS )
 	{ if ( intNumber(&n) )
 	    return PL_unify_integer(atom, n.value.i);
 	  else

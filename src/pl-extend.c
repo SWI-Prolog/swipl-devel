@@ -35,7 +35,7 @@ In the latter case, proceed as follows:
      See main plld and/or the SWI-Prolog manuals for further details.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-PL_extension PL_extensions [] =
+PL_extension predicates[] =
 {
 /*{ "name",	arity,  function,	PL_FA_<flags> },*/
 
@@ -57,6 +57,12 @@ main(int argc, char **argv)
 #ifdef READLINE
   PL_initialise_hook(install_readline);
 #endif
+
+  PL_register_extensions(predicates);	/* This is the only PL_ call allowed */
+					/* before PL_initialise().  It */
+					/* ensures the foreign predicates */
+					/* are available before loading */
+					/* Prolog code */
 
   if ( !PL_initialise(argc, argv) )
     PL_halt(1);

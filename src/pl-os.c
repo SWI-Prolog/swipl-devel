@@ -108,9 +108,9 @@ initOs(void)
 
 #ifdef __WIN32__
   if ( iswin32s() )
-    set(&featured, DOS_FILE_NAMES_FEATURE);
+    set(&features, DOS_FILE_NAMES_FEATURE);
   else
-    set(&featured, FILE_CASE_PRESERVING_FEATURE);
+    set(&features, FILE_CASE_PRESERVING_FEATURE);
 #else
   set(&features, FILE_CASE_FEATURE);
   set(&features, FILE_CASE_PRESERVING_FEATURE);
@@ -465,8 +465,8 @@ TemporaryFile(const char *id)
   static int temp_counter = 0;
 
   if ( (tmp = _tempnam(tmpdir, id)) )
-    strcpy(temp, tmp);
-  else
+  { PrologPath(tmp, temp);
+  } else
     Ssprintf(temp, "%s/pl_%s_%d", tmpdir, id, temp_counter++);
 }
 #endif
@@ -2501,7 +2501,7 @@ okToExec(const char *s)
   DEBUG(2, Sdprintf("Checking %s\n", s));
   for(ext = extensions; *ext; ext++)
     if ( stripostfix(s, *ext) )
-      return ExistsFile(s) ? s : (char *) NULL;
+      return ExistsFile(s) ? (char *)s : (char *) NULL;
 
   for(ext = extensions; *ext; ext++)
   { static char path[MAXPATHLEN];
