@@ -7,6 +7,12 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+VERSION 5.1.10#2 (Mar 15, 2003)
+===============================
+
+  * FIXED: sort([X], [Y]), X == Y.  Paul Singleton.
+
+
 VERSION 5.1.10 (Mar 14, 2003)
 =============================
 

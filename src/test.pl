@@ -401,6 +401,11 @@ list(sort-5) :-
 	keysort([e-2,b-5,c-6,e-1], [b-5,c-6,e-2,e-1]).
 list(sort-5) :-
 	sort([a,g,b], [a,b|G]), G == [g].
+list(sort-6) :-
+	sort([X], [Y]), X == Y.
+list(sort-7) :-
+	sort([_X, _Y], [_,_]).
+
 
 		 /*******************************
 		 *	       SETS		*
