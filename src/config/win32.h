@@ -3,22 +3,28 @@
 
 #define __WIN32__ 1
 
+#define NOTTYCONTROL TRUE		/* default -tty */
 #define O_ASYNC_HOOK 1
 #define NO_SEGV_HANDLING 1		/* at least, when making a DLL */
-/*#define COPY_ATOMS_TO_HEAP 1*/	/* place in DLL isn't known */
+#define COPY_ATOMS_TO_HEAP 1		/* place in DLL isn't known */
 
 #define OPEN_MAX 32
 
 #define HAVE_UXNT_H 1
 #define HAVE_MALLOC_H 1
 #define HAVE_VIRTUAL_ALLOC 1
-#define AVOID_0X80000000_BIT 1
 #define HAVE_CLOCK 1			/* clock() timing function */
 #define inline __inline
 
 /* Define if you want to associate states */
 #define ASSOCIATE_STATE ".qlx"
 #define ASSOCIATE_SRC	".pl"
+
+#ifdef __LCC__
+#define NO_MS_EXTENSIONS 1
+#else
+#define HAVE___TRY 1
+#endif
 
 /* Define for the _xos_... functions */
 #define O_XOS 1
@@ -80,18 +86,6 @@
 /* Define if your processor stores words with the most significant
    byte first (like Motorola and SPARC, unlike Intel and VAX).  */
 /* #undef WORDS_BIGENDIAN */
-
-/* Define if malloc()'ed data is in 0x10000000L .. 0x20000000L */
-/* #undef DATA_AT_0X1 */
-
-/* Define if malloc()'ed data is in 0x20000000L .. 0x40000000L */
-/* #undef DATA_AT_0X2 */
-
-/* Define if malloc()'ed data is in 0x40000000L .. 0x80000000L */
-/* #undef DATA_AT_0X4 */
-
-/* Define if malloc()'ed data is in 0x80000000L .. */
-/* #undef DATA_AT_0X8 */
 
 /* Define if mmap() can be used to allocate stacks */
 #undef MMAP_STACK
@@ -316,7 +310,7 @@
 #define HAVE_LIBM 1
 
 /* Define if you have the readline library (-lreadline).  */
-#define HAVE_LIBREADLINE
+/* #define HAVE_LIBREADLINE */
 
 /* Define if you have the termcap library (-ltermcap).  */
 #undef HAVE_LIBTERMCAP
@@ -324,3 +318,9 @@
 /* Define if you have the ucb library (-lucb).  */
 /* #undef HAVE_LIBUCB */
 
+		 /*******************************
+		 *	     FUNCTIONS		*
+		 *******************************/
+
+#define strncasecmp(a, b, len) _strnicmp((a), (b), (len))
+#define getpid()	       (int)GetCurrentThreadId()

@@ -1,3 +1,4 @@
+# Generated automatically from Makefile.in by configure.
 ################################################################
 # Makefile for the SWI-Prolog based latex2html converter
 #
@@ -13,31 +14,46 @@
 # Copyright (c) 1996, SWI, University of Amsterdam, all rights reserved
 ################################################################
 
+prefix=/usr/local
+exec_prefix=${prefix}
+srcdir=.
+vpath %.c .
+bindir=$(exec_prefix)/bin
+PLBASE=$(prefix)/lib/pl-$(PLVERSION)
+man_prefix=$(prefix)/man
+mansec=1
+lmansec=3
+mandir=$(man_prefix)/man$(mansec)
+lmandir=$(man_prefix)/man$(lmansec)
+plmandir=$(PLBASE)/man
+
 CC=gcc
-LD=$(CC)
-LDSO=$(CC)
-LDSOFlAGS=-shared
 AR=ar
 RANLIB=ranlib
-COFLAGS=-g
+COFLAGS=-O2
 CWFLAGS=-Wall
-CDFLAGS=-I. -fpic
-CFLAGS=$(CWFLAGS) $(COFLAGS) $(CDFLAGS)
-INSTALL=install -c
-INSTALL_PROGRAM=$(INSTALL) -m 755
-INSTALL_DATA=$(INSTALL) -m 644
+CIFLAGS=
+CMFLAGS=
+CFLAGS=	$(CWFLAGS) $(COFLAGS) $(CIFLAGS) $(CMFLAGS)
+
+INSTALL=/usr/bin/install -c
+INSTALL_PROGRAM=${INSTALL}
+INSTALL_DATA=${INSTALL} -m 644
 
 LIBOBJ=	html.o access.o build.o util.o
 
-all:	rc
+all:	plrc
 
-rc:	librc.a rc.o
-	$(LD) -o $@ rc.o -L. -lrc
+plrc:	librc.a rc.o
+	$(CC) -o $@ rc.o -L. -lrc
 
 librc.a:	$(LIBOBJ)
 	rm -f $@
 	$(AR) cq $@ $(LIBOBJ)
 	$(RANLIB) $@
+
+.c.o:
+	$(CC) -c -I.. $(CFLAGS) $< -o $@
 
 ################################################################
 # Documentation

@@ -237,6 +237,13 @@ inline int
 S___fupdatefilepos(IOSTREAM *s, int c)
 { IOPOS *p;
 
+#if 1
+  extern int fatalError(const char *fm, ...);
+
+  if ( s->magic != SIO_MAGIC )
+    fatalError("Did you load a pre-3.1.2 foreign package?"); 
+#endif
+
   if ( (p = s->position) )
   { switch(c)
     { case '\n':
@@ -1372,7 +1379,7 @@ Sfileno(IOSTREAM *s)
 
 
 #define STDIO(n, f) { NULL, NULL, NULL, NULL, \
-		      SIO_MAGIC, EOF, 0, f, {0, 0, 0}, NULL, \
+		      EOF, SIO_MAGIC, 0, f, {0, 0, 0}, NULL, \
 		      ((void *)(n)), &Sfilefunctions \
 		    }
 

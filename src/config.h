@@ -35,9 +35,9 @@
 /* If using the C implementation of alloca, define if you know the
    direction of stack growth for your system; otherwise it will be
    automatically deduced at run-time.
-	STACK_DIRECTION > 0 => grows toward higher addresses
-	STACK_DIRECTION < 0 => grows toward lower addresses
-	STACK_DIRECTION = 0 => direction of growth unknown
+ STACK_DIRECTION > 0 => grows toward higher addresses
+ STACK_DIRECTION < 0 => grows toward lower addresses
+ STACK_DIRECTION = 0 => direction of growth unknown
  */
 #define STACK_DIRECTION -1
 
@@ -83,12 +83,6 @@
 
 /* Define if (type)var = value is allowed */
 #define TAGGED_LVALUE 1
-
-/* Define if first data symbol not is environ */
-/* #undef FIRST_DATA_SYMBOL */
-
-/* Define if pl-save.c works */
-/* #undef O_SAVE */
 
 /* Define if symbolic links are supported by the OS */
 #define HAVE_SYMLINKS 1
@@ -138,8 +132,14 @@
 /* Define max size of mmapp()ed stacks.  See test/mmap.c */
 /* #undef MMAP_STACKSIZE */
 
-/* Define if getrlimit() exists and the type rlim_t is defined */
+/* Define if the type rlim_t is defined by <sys/resource.h> */
 /* #undef HAVE_RLIM_T */
+
+/* Define to 1 if &&label and goto *var is supported (GCC-2) */
+#define O_LABEL_ADDRESSES 1
+
+/* Define to 1 not to use SIGSEGV for guarding stack-overflows */
+/* #undef NO_SEGV_HANDLING */ 
 
 /* Define if you have the access function.  */
 #define HAVE_ACCESS 1
@@ -195,6 +195,9 @@
 /* Define if you have the memmove function.  */
 #define HAVE_MEMMOVE 1
 
+/* Define if you have the mmap function.  */
+#define HAVE_MMAP 1
+
 /* Define if you have the opendir function.  */
 #define HAVE_OPENDIR 1
 
@@ -239,6 +242,12 @@
 
 /* Define if you have the signal function.  */
 #define HAVE_SIGNAL 1
+
+/* Define if you have the sigprocmask function.  */
+#define HAVE_SIGPROCMASK 1
+
+/* Define if you have the sigset function.  */
+/* #undef HAVE_SIGSET */
 
 /* Define if you have the sigsetmask function.  */
 #define HAVE_SIGSETMASK 1
@@ -306,6 +315,9 @@
 /* Define if you have the <sys/file.h> header file.  */
 #define HAVE_SYS_FILE_H 1
 
+/* Define if you have the <sys/mman.h> header file.  */
+#define HAVE_SYS_MMAN_H 1
+
 /* Define if you have the <sys/ndir.h> header file.  */
 /* #undef HAVE_SYS_NDIR_H */
 
@@ -342,20 +354,17 @@
 /* Define if you have the dld library (-ldld).  */
 /* #undef HAVE_LIBDLD */
 
-/* Define if you have the elf library (-lelf).  */
-/* #undef HAVE_LIBELF */
-
 /* Define if you have the m library (-lm).  */
 #define HAVE_LIBM 1
 
 /* Define if you have the ncurses library (-lncurses).  */
-/* #undef HAVE_LIBNCURSES */
+#define HAVE_LIBNCURSES 1
 
 /* Define if you have the readline library (-lreadline).  */
 #define HAVE_LIBREADLINE 1
 
 /* Define if you have the termcap library (-ltermcap).  */
-#define HAVE_LIBTERMCAP 1
+/* #undef HAVE_LIBTERMCAP */
 
 /* Define if you have the ucb library (-lucb).  */
 /* #undef HAVE_LIBUCB */
