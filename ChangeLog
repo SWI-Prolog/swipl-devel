@@ -7,8 +7,13 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+VERSION 5.2.13 (Jan 29, 2004)
+=============================
+	
   * FIXED: Bug#123: error in saved-state handling.  With help from
     Lourens van der Meij and Holger Kanwischer.
+
+  * FIXED: module handling in flag/3
 
   * FIXED: Hanging atom garbage collector in multi-threaded execution
     on Unix platforms.  With lots of help from Sergey Tikhonov.
