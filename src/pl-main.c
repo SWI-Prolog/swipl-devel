@@ -338,8 +338,11 @@ startProlog(int argc, char **argv)
   if ( GD->dumped == FALSE )
   { char plp[MAXPATHLEN];
 
-    if ( (symbols = Symbols(plp)) )
-      symbols = store_string(DeRefLink(symbols, plp));
+    if ( (symbols = Symbols(plp)) &&
+	 (symbols = DeRefLink(symbols, plp)) )
+      symbols = store_string(symbols);
+    else
+      symbols = argv[0];		/* may not be fatal */
 
     systemDefaults.arch        = ARCH;
     systemDefaults.home	       = findHome(symbols);

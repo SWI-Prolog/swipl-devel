@@ -1591,7 +1591,7 @@ DeRefLink1(const char *f, char *lbuf)
     { char *q;
 
       strcpy(lbuf, f);
-      q = &lbuf[strlen(buf)];
+      q = &lbuf[strlen(lbuf)];
       while(q>lbuf && q[-1] != '/')
 	q--;
       strcpy(q, l);
