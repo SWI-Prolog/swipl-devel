@@ -50,32 +50,21 @@ Compile this file using:
 
 int	global_var;
 
-char *
-sub()
-{ char buf[10];
-
-  return buf;
-}
-
 main(argc, argv)
 int argc;
 char *argv[];
 { char buf[10];
   unsigned long gva = (unsigned long) &global_var;
-  unsigned long gta = (unsigned long) sub;
   unsigned long mad = (unsigned long) malloc(2000);
-  int stack_up = (sub() > buf);
   char *decl[MAX_DECL];
   int ndecl = 0;
   
 
 #ifdef VERBOSE
   printf("Memory layout:\n\n");
-  printf("\tText at 0x%x\n", sub);
   printf("\tGlobal variable at 0x%x\n", gva);
   printf("\tLocal variable at 0x%x\n", buf);
   printf("\tmalloc() at 0x%x\n", mad);
-  printf("\tC-Stack grows %sward\n", stack_up ? "Up" : "Down");
 #endif
 	 
   if ( (gva & 0xfC000000L) )
@@ -90,11 +79,6 @@ char *argv[];
     }
   }
   
-  if ( stack_up )
-    decl[ndecl++] = "STACK_DIRECTION=1";
-  else
-    decl[ndecl++] = "STACK_DIRECTION=-1";
-
   if ( ndecl > 0 )
   { int n;
 

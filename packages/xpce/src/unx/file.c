@@ -58,12 +58,42 @@ initialiseFile(FileObj f, Name name, Name kind)
   if ( isDefault(kind) )
     kind = NAME_text;
 
+  assign(f, status, NAME_closed);
+  assign(f, path, DEFAULT);
+  assign(f, kind, kind);
+  f->fd = NULL;
+
   if ( isDefault(name) )
   {
+#ifdef HAVE_MKSTEMP
+    char namebuf[100];
+    int fileno;
+    char *s;
+
+    if ( (s=getenv("TMPDIR")) && strlen(s) < sizeof(namebuf)-13 )
+    { strcpy(namebuf, s);
+      strcat(namebuf, "/xpce-XXXXXX");
+    } else
+      strcpy(namebuf, "/tmp/xpce-XXXXXX");
+
+    if ( (fileno = mkstemp(namebuf)) < 0 )
+      return errorPce(f, NAME_openFile, NAME_write, getOsErrorPce(PCE));
+    if ( (f->fd = fdopen(fileno, "w")) == NULL )
+    { close(fileno);
+      return errorPce(f, NAME_openFile, NAME_write, getOsErrorPce(PCE));
+    }
+
+    name = CtoName(namebuf);
+    assign(f, status, NAME_tmpWrite);
+#else					/* use unsafe tmpnam */
 #ifdef HAVE_TMPNAM
     char namebuf[L_tmpnam];
 
     name = CtoName(tmpnam(namebuf));
+#else
+    Cprintf("No temporary files on this platform");
+    fail;
+#endif
 #endif
   }
 
@@ -76,10 +106,7 @@ initialiseFile(FileObj f, Name name, Name kind)
 #else
   assign(f, name, name);
 #endif
-  assign(f, path, DEFAULT);
-  assign(f, kind, kind);
-  assign(f, status, NAME_closed);
-  f->fd = NULL;
+
 
   succeed;
 }
@@ -563,6 +590,13 @@ openFile(FileObj f, Name mode, Name filter, CharArray extension)
   Name name = getOsNameFile(f);
   char fdmode[3];
   
+  if ( f->status == NAME_tmpWrite )
+  { if ( mode == NAME_write || mode == NAME_append )
+    { assign(f, status, NAME_write);
+      succeed;
+    }
+  }
+
   closeFile(f);
 
   if ( !name )
@@ -1096,8 +1130,8 @@ static vardecl var_file[] =
      NAME_path, "Full path-name of the file"),
   SV(NAME_kind, "{text,binary}", IV_GET|IV_STORE, kindFile,
      NAME_fileType, "Text or binary file"),
-  IV(NAME_status, "{closed,read,write}", IV_GET,
-     NAME_open, "One of {closed,read,write}"),
+  IV(NAME_status, "{closed,read,write,tmp_write}", IV_GET,
+     NAME_open, "(How) opened or closed?"),
   IV(NAME_filter, "command=name*", IV_BOTH,
      NAME_filter, "Name of input/output filter used"),
   IV(NAME_fd, "alien:FILE *", IV_NONE,

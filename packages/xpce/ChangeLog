@@ -4,6 +4,8 @@
 VERSION 6.0.0, distributed with SWI-Prolog 5.0.0
 ================================================
 
+* SECURITY: Use mkstemp for making temporary files.  See file->initialise.
+
 * LICENSE: The license conditions have been changed to allow for building
   non-free applications (LGPL and GPL+Exception)
 
