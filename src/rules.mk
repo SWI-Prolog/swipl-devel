@@ -10,7 +10,7 @@
 # copy the result to wherever you want.
 
 # prefix=C:\Program Files
-prefix=E:\jan\debug
+prefix=E:\jan\installed
 PLBASE=$(prefix)\pl
 BINDIR=$(PLBASE)\bin
 LIBDIR=$(PLBASE)\lib
