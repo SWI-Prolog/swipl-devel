@@ -306,7 +306,7 @@ consult_region(M, From:[int], To:[int]) :->
 	default(From, M?mark, F),
 	default(To, M?caret, T),
 	get(T-F, value, S),
-	(   S < 0
+	(   S >= 0
 	->  Start = F, Size = S
 	;   Start = T, Size is -S
 	),
@@ -316,8 +316,8 @@ consult_region(M, From:[int], To:[int]) :->
 	send(File, append, ?(M, contents, Start, Size)),
 	send(File, close),
 	consult(user:TmpNam),
-	send(M, report, status, 'Region consulted').
-%	send(File, remove).
+	send(M, report, status, 'Region consulted'),
+	send(File, remove).
 	
 
 consult_selection(M) :->
