@@ -216,10 +216,16 @@ set_associated_file :-
 set_associated_file.
 
 
-$load_associated_file :-
+%	load_associated_file/0
+%	
+%	Load the file-name set by set_associated_file/0 from the
+%	commandline arguments. Not the expand(false) to avoid expanding
+%	special characters in the filename.
+
+load_associated_file :-
 	current_prolog_flag(associated_file, File),
-	consult(user:File).
-$load_associated_file.
+	load_files(user:File, [expand(false)]).
+load_associated_file.
 
 
 hkey('HKEY_CURRENT_USER/Software/SWI/Prolog').
@@ -265,7 +271,7 @@ initialise_prolog :-
 	prolog_to_os_filename(File, OsFile),
 	$load_init_file(File), 
 	$load_script_file,
-	$load_associated_file,
+	load_associated_file,
 	$option(goal, GoalAtom, GoalAtom), 
 	term_to_atom(Goal, GoalAtom), 
 	(   Goal == $welcome
