@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: PceEmacs Prolog mode: avoid endless loop in indent_clause on a
+  fact near the end of the file.
+
 * ADDED: library(pce_image_browser): deduce name through method, allowing
   to override in subclass.
 

@@ -69,6 +69,8 @@ initialise(M) :->
 		 *	COMMENT; HEADERS	*
 		 *******************************/
 
+:- pce_group(comment).
+
 line_comment(E, CS:name) :<-
 	"Fetch the line-comment start sequence"::
 	get(E, syntax, Syntax),
@@ -127,6 +129,81 @@ comment_lines(TB, S0, End, Comment) :-
 	;   true
 	).
 	
+
+fill_comment_paragraph(M, Justify:justify=[bool]) :->
+	"Fill paragraph in (line) comment"::
+	(   get(M?syntax, comment_start, 1, CS)
+	->  true
+	;   send(M, report, warning, 'No line-comment character defined'),
+	    fail
+	),
+	new(Re, regex(string('^%s?\\\\s *$', CS))),
+	new(LeadRe, regex(string('%s\\\\s *', CS))),
+	get(M, caret, Caret),
+	get(M, text_buffer, TB),
+	(   get(Re, search, TB, Caret, 0, StartPar),
+	    get(TB, scan, StartPar, line, 1, start, Start)
+	->  true
+	;   Start = 0
+	),
+	(   get(Re, search, TB, Start, End)
+	->  true
+	;   get(TB, size, End)
+	),
+	free(Re),
+	send(M, fill_comment, Start, End, LeadRe, Justify),
+	free(LeadRe).
+
+%	->fill_comment
+%
+%	Fill a region using a regex that defines leading comment
+
+fill_comment(M,
+	     Start:from=int, End:to=int,
+	     Re:leading=regex, Justify:justify=[bool]) :->
+	"Fill paragraph given `leading' regex"::
+	get(M, text_buffer, TB),
+	get(M, caret, Caret),
+	new(CaretF, fragment(TB, Caret, 0)),
+	new(EndF, fragment(TB, End, 0)),
+	get(Re, match, TB, Start, LeadChars),
+	get(TB, contents, Start, LeadChars, Lead),
+	LeadEnd is Start + LeadChars,
+	get(M, column, LeadEnd, LeadCol),
+	uncomment(M, Re, LeadCol, Start, EndF),
+	get(M, right_margin, RM0),
+	RM is RM0 - LeadCol,
+	send(M, fill, Start, EndF?start, 0, RM, Justify),
+	comment(M, Start, EndF, Lead, LeadCol),
+	send(M, caret, CaretF?start),
+	free(EndF),
+	free(CaretF).
+	
+uncomment(_M, _Re, _LeadCol, Here, EndF) :-
+	get(EndF, start, End),
+	Here >= End, !.
+uncomment(M, Re, LeadCol, Here, EndF) :-
+	get(M, text_buffer, TB),
+	get(Re, match, TB, Here, Len),
+	send(M, caret, Here),
+	send(M, column, LeadCol),
+	get(M, caret, AtLeadCol),
+	DelLen is min(Len, AtLeadCol-Here),
+	send(TB, delete, Here, DelLen),
+	get(TB, scan, Here, line, 1, start, NextHere),
+	uncomment(M, Re, LeadCol, NextHere, EndF).
+
+comment(_, Here, EndF, _, _Col) :-
+	get(EndF, start, End),
+	Here >= End, !.
+comment(M, Here, EndF, Lead, Col) :-
+	get(M, text_buffer, TB),
+	send(TB, insert, Here, Lead),
+	get(Lead, size, Size),
+	send(M, align, Col, Here+Size),
+	get(TB, scan, Here, line, 1, start, NextHere),
+	comment(M, NextHere, EndF, Lead, Col).
+
 
 insert_comment_block(E) :->
 	"Insert header/footer for long comment"::
@@ -224,6 +301,8 @@ substitute(String, From, To) :-
 		 /*******************************
 		 *          INDENTATION		*
 		 *******************************/
+
+:- pce_group(indent).
 
 newline_and_indent(E, Arg:[int]) :->
 	"Insert newline and indent as TAB"::

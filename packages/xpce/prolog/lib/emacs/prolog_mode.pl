@@ -210,7 +210,11 @@ beginning_of_clause(E, Start:int, BOP:int) :<-
 		BOP =< Start,
 		get(TB, scan_syntax, 0, BOP, code)
 	    ).
-
+beginning_of_clause(E) :->
+	"Goto start of clause"::
+	get(E, caret, Caret),
+	get(E, beginning_of_clause, Caret, BOC),
+	send(E, caret, BOC).
 
 beginning_of_if_then_else(E, Pos:int) :<-
 	"Beginning of if-then-else construct"::
@@ -272,7 +276,8 @@ insert_if_then_else(E, Times:[int], Char:char) :->
 	    get(E, beginning_of_if_then_else, OpenPos)
 	->  get(E, text_buffer, TB),
 	    get(TB, scan, Caret, line, 0, start, SOL),
-	    (   (   send(regex('\\s *\\((\\|->\\|;\\)$'), match, TB, SOL, Caret)
+	    (   (   send(regex('\\s *\\((\\|->\\|;\\)$'), match,
+			 TB, SOL, Caret)
 		;   Caret =:= 1 + OpenPos
 		)
 	    ->  get(E, column, OpenPos, Col),
@@ -288,13 +293,18 @@ indent_clause(E) :->
 	get(E, text_buffer, TB),
 	get(E, beginning_of_clause, E?caret, Start),
 	send(E, caret, Start),
-	repeat,
-	    send(E, next_line),
+	between(0, 1000, _),		% avoid loops on errors
 	    send(E, indent_line),
 	    get(E, caret, Caret),
-	    get(regex('.*\\S.\\.'), match, TB, Caret, Size),
-	    End is Caret + Size,
-	    get(TB, scan_syntax, Start, End, code), !,
+	    (	get(regex('.*\\S.\\.'), match, TB, Caret, Size),
+		End is Caret + Size,
+		get(TB, scan_syntax, Start, End, code)
+	    ->	!
+	    ;	get(TB, size, Caret)
+	    ->	!
+	    ;   send(E, next_line),
+		fail
+	    ),
  	send(E, forward_char, Size),
 	send(E, electric_caret, Start).
 
