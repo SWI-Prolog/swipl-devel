@@ -18,7 +18,7 @@
 PLVERSION=2.0.8
 
 PL=pl
-prefix=/usr/local
+prefix=/staff/jan
 exec_prefix=${prefix}
 bindir=$(exec_prefix)/bin
 PLBASE=$(prefix)/lib/pl-$(PLVERSION)
@@ -27,7 +27,7 @@ mandir=$(prefix)/man/man$(mansec)
 
 CC=gcc
 LIBS= -lreadline -ltermcap -lm -ldl
-STATICLIBS=
+STATICLIBS=/usr/lib/libc.a
 AWK=nawk
 SED=sed
 LD_R=ld -r
@@ -77,7 +77,7 @@ SRC=	$(OBJ:.o=.c) $(DEPOBJ:.o=.c) $(EXT:.o=.c) pl-index.c pl-alloc.c
 HDR=	config.h parms.h pl-buffer.h pl-ctype.h pl-incl.h pl-itf.h pl-main.h \
 	pl-os.h pl-save.h
 
-all:	../VERSION banner headers system startup index runtime pl-bite
+all:	banner headers system startup index runtime pl-bite
 
 system:		$(PL)
 startup:	$(STARTUPPATH)
@@ -138,10 +138,6 @@ parms.h:	Makefile
 		@echo "#define C_LDFLAGS    \"$(LDFLAGS)\""    >> %$@%
 		@if cmp -s %$@% $@; then rm %$@%; else mv %$@% $@; fi
 
-../VERSION:	Makefile.in
-		@echo $(PLVERSION) > $@%
-		@if cmp -s $@% $@; then rm $@%; else mv $@% $@; fi
-
 pl-main.o:	parms.h
 pl-setup.o:	parms.h
 pl-funct.o:	pl-funct.ih
@@ -166,7 +162,11 @@ pl-funcs.h:	$(SRC)
 		mkproto -p $(SRC) > $@
 
 install:	idirs iboot ilib iinclude iruntime iman
-		$(INSTALL_DATA) $(STARTUPPATH) $(PLBASE)/startup/startup.$(ARCH)
+		$(INSTALL_DATA) $(STARTUPPATH) $(PLBASE)/startup/startup
+		echo "." > swipl
+		$(INSTALL_DATA) swipl $(PLBASE)
+		$(INSTALL_DATA) README.bin $(PLBASE)
+		$(INSTALL_DATA) ../LICENCE $(PLBASE)
 		if [ -r $(bindir)/$(PL) ]; then \
 			mv $(bindir)/$(PL) $(bindir)/$(PL).old; \
 		fi
