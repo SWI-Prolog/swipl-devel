@@ -77,7 +77,7 @@ pdf-install:	install-examples
 html-install:	install-examples
 
 install-examples::
-		mkdir -p $(EXDIR)
+		mkdir -p $(DESTDIR)/$(EXDIR)
 		(cd Examples && $(INSTALL_DATA) $(EXAMPLES) $(DESTDIR)/$(EXDIR))
 
 uninstall:
