@@ -513,6 +513,7 @@ NewClass(menu_item)
   Any        label;			/* Label of the item */
   FontObj    font;			/* Font of the label */
   Colour     colour;			/* Colour to use */
+  Colour     background;		/* Colour for the background */
   Bool	     selected;			/* Currently selected */
   Bool	     active;			/* Can be selected? */
   Code	     condition;			/* Determines <->active */

@@ -140,6 +140,17 @@ colourMenuItem(MenuItem mi, Colour colour)
 
 
 static status
+backgroundMenuItem(MenuItem mi, Colour colour)
+{ if ( mi->background != colour )
+  { assign(mi, background, colour);
+    changedMenuItem(mi);
+  }
+  
+  succeed;
+}
+
+
+static status
 activeMenuItem(MenuItem mi, Bool val)
 { if ( mi->active != val )
   { assign(mi, active, val);
@@ -301,6 +312,8 @@ static vardecl var_menuItem[] =
      NAME_appearance, "Font for label"),
   SV(NAME_colour, "[colour]", IV_GET|IV_STORE, colourMenuItem,
      NAME_appearance, "Colour for label"),
+  SV(NAME_background, "[colour]", IV_GET|IV_STORE, backgroundMenuItem,
+     NAME_appearance, "Background for label"),
   SV(NAME_selected, "bool", IV_GET|IV_STORE, selectedMenuItem,
      NAME_selection, "Member of menu-selection"),
   SV(NAME_active, "bool", IV_GET|IV_STORE, activeMenuItem,

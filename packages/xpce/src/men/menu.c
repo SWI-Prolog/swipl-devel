@@ -256,7 +256,7 @@ computeItemsMenu(Menu m)
   { Image ci = getClassVariableValueObject(m, NAME_cycleIndicator);
 
     if ( (Name)ci == NAME_comboBox )
-      rm = ws_combo_box_width();
+      rm = ws_combo_box_width()+2;	/* 2 for the margin */
   } else
   { if ( notNil(m->on_image) || notNil(m->off_image) )
     { int cw, ch;
@@ -713,13 +713,28 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h, Elevation iz)
 	      lblflags);
   }
 
-  ix = x + lm + b;
-  iw = w - (lm + 2*b + rm);
-  iy = y + b;
-  ih = h - 2*b;
+  ix = x + lm;
+  iw = w - (lm + rm);
+  iy = y;
+  ih = h;
 
   if ( notDefault(colour) )
     r_colour(colour);
+  if ( notDefault(mi->background) )
+  { int m;
+
+    if ( instanceOfObject(z, ClassElevation) )
+    { m = abs(valInt(z->height));
+    } else
+      m = 0;
+
+    r_fill(ix+m, iy+m, iw-2*m, ih-2*m, mi->background);
+  }
+
+  ix += b;
+  iy += b;
+  iw -= 2*b;
+  ih -= 2*b;
 
   if ( instanceOfObject(mi->label, ClassCharArray) )
   { FontObj f = getFontMenuItemMenu(m, mi);
@@ -799,6 +814,7 @@ RedrawAreaMenu(Menu m, Area a)
   if ( m->feedback == NAME_showSelectionOnly )
   { MenuItem mi = getItemSelectionMenu(m);
     Any ci = getClassVariableValueObject(m, NAME_cycleIndicator);
+    int fm = 0;
 
     iw = max(iw, valInt(m->value_width));
 
@@ -809,6 +825,7 @@ RedrawAreaMenu(Menu m, Area a)
 	flags |= TEXTFIELD_EDITABLE;
 
       ws_entry_field(cx, by, iw, ih, flags);
+      /*fm = ws_entry_field_margin();*/
     } else if ( instanceOfObject(ci, ClassElevation) )
     { int bw = CYCLE_DROP_WIDTH;
 
@@ -822,7 +839,7 @@ RedrawAreaMenu(Menu m, Area a)
     }
 
     if ( mi != FAIL )
-      RedrawMenuItem(m, mi, cx, cy, iw, ih, iz);
+      RedrawMenuItem(m, mi, cx+fm, cy+fm, iw-2*fm, ih-2*fm, iz);
   } else
   { int rows, cols;
     int n = 1;

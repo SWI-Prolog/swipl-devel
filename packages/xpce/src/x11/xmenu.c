@@ -122,6 +122,12 @@ ws_stepper_width()
 }
 
 
+int
+ws_entry_field_margin()
+{ return 1;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ws_entry_field() is used by classes  that   need  to  create an editable
 field of specified dimensions. If the field   happens to be not editable

@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: `menu_item->background'.
+
 * PORT: Define _THREAD_SAFE for FreeBSD if threaded code is requested.
 
 * FIXED: type := value declaration handling of instance variables.  Also
