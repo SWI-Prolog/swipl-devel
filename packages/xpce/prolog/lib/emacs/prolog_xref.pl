@@ -40,7 +40,7 @@
 	    xref_built_in/1,		% ?Callable
 	    xref_expand/2,		% +Term, -Expanded
 	    xref_source_file/3,		% +Spec, -Path, +Source
-	    xref_public_list/3,		% +Path, -Export, +Src
+	    xref_public_list/4,		% +Path, -Export, +Src
 	    xref_meta/2			% +Goal, -Called
 	  ]).
 :- use_module(library(pce)).
@@ -50,7 +50,7 @@
 	(dynamic)/2,			% Head, Src
 	(multifile)/2,			% Head, Src
 	defined/3,			% Head, Src, Line
-	imported/2,			% Head, Src
+	imported/3,			% Head, Src, From
 	exported/2,			% Head, Src
 	source/1.			% Src
 
@@ -180,8 +180,8 @@ xref_defined2((multifile), Src, Called) :-
 	multifile(Called, Src).
 xref_defined2(local(Line), Src, Called) :-
 	defined(Called, Src, Line).
-xref_defined2(imported, Src, Called) :-
-	imported(Called, Src).
+xref_defined2(imported(From), Src, Called) :-
+	imported(Called, Src, From).
 
 xref_exported(Source, Called) :-
 	canonical_source(Source, Src),
@@ -264,8 +264,9 @@ process(Head, Src) :-
 process_directive(List, Src) :-
 	is_list(List), !,
 	process_directive(consult(List), Src).
-process_directive(use_module(_Module, Import), Src) :-
-	assert_import(Src, Import).
+process_directive(use_module(Spec, Import), Src) :-
+	xref_source_file(Spec, Path, Src),
+	assert_import(Src, Import, Path).
 process_directive(use_module(Modules), Src) :-
 	process_use_module(Modules, Src).
 process_directive(consult(Modules), Src) :-
@@ -422,23 +423,30 @@ process_use_module([H|T], Src) :- !,
 	process_use_module(H, Src),
 	process_use_module(T, Src).
 process_use_module(library(pce), Src) :- !,	% bit special
-	xref_public_list(library(pce), Public, Src),
+	xref_public_list(library(pce), Path, Public, Src),
 	forall(member(Name/Arity, Public),
 	       (   functor(Term, Name, Arity),
 		   \+ system_predicate(Term),
 		   \+ Term = pce_error(_) 	% hack!?
-	       ->  assert_import(Src, Name/Arity)
+	       ->  assert_import(Src, Name/Arity, Path)
 	       ;   true
 	       )).
 process_use_module(File, Src) :-
-	(   xref_public_list(File, Public, Src)
-	->  assert_import(Src, Public)
+	(   xref_public_list(File, Path, Public, Src)
+	->  assert_import(Src, Public, Path)
 	;   true
 	).
 
-xref_public_list(File, Public, Src) :-
-	xref_source_file(File, Source, Src),
-	open(Source, read, Fd),
+%	xref_public_list(+File, -Path, -Public, +Src)
+%	
+%	Find File as referenced from Src. Unify Path with the an
+%	absolute path to the referenced source and Public with a
+%	Name/Arity list holding all the public predicates exported from
+%	that (module) file.
+
+xref_public_list(File, Path, Public, Src) :-
+	xref_source_file(File, Path, Src),
+	open(Path, read, Fd),
 	catch(read(Fd, ModuleDecl), _, fail),
 	close(Fd),
 	ModuleDecl = (:- module(_, Public)).
@@ -475,13 +483,13 @@ assert_defined(Src, Goal) :-
 	flag(xref_src_line, Line, Line),
 	assert(defined(Term, Src, Line)).
 
-assert_import(_, []) :- !.
-assert_import(Src, [H|T]) :-
-	assert_import(Src, H),
-	assert_import(Src, T).
-assert_import(Src, Name/Arity) :-
+assert_import(_, [], _) :- !.
+assert_import(Src, [H|T], From) :-
+	assert_import(Src, H, From),
+	assert_import(Src, T, From).
+assert_import(Src, Name/Arity, From) :-
 	functor(Term, Name, Arity),
-	assert(imported(Term, Src)).
+	assert(imported(Term, Src, From)).
 
 assert_export(_, []) :- !.
 assert_export(Src, [H|T]) :-

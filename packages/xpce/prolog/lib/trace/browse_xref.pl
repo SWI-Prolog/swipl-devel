@@ -413,7 +413,7 @@ process_use_module([H|T]) :- !,
 	process_use_module(T).
 process_use_module(File) :-
 	(   current_id(Src),
-	    xref_public_list(File, Public, Src)
+	    xref_public_list(File, _Path, Public, Src)
 	->  assert_import(Public)
 	;   true
 	).

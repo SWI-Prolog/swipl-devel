@@ -620,13 +620,13 @@ make_fragment(goal(Class, Goal), TB, F, L, Style) :-
 	functor(Goal, Name, Arity),
 	send(Fragment, name, Name),
 	send(Fragment, arity, Arity),
-	(   Class = extern(Module),
-	    atom(Module)
-	->  send(Fragment, module, Module)
-	;   true
-	),
-	functor(Class, ClassName, _),
-	send(Fragment, classification, ClassName).
+	(   Class =.. [ClassName,Context],
+	    atomic(Context)
+	->  send(Fragment, classification, ClassName),
+	    send(Fragment, context, Context)
+	;   functor(Class, ClassName, _),
+	    send(Fragment, classification, ClassName)
+	).
 make_fragment(Class, TB, F, L, Style) :-
 	new(Fragment, emacs_colour_fragment(TB, F, L, Style)),
 	message(Class, Fragment).
@@ -836,7 +836,7 @@ head_colours(M:_,		    meta-[module(M),extern(M)]).
 %	Define the style used for the given pattern.
 
 style(goal(built_in,_),	  style(colour	   := blue)).
-style(goal(imported,_),	  style(colour	   := blue)).
+style(goal(imported(_),_),style(colour	   := blue)).
 style(goal(autoload,_),	  style(colour	   := blue)).
 style(goal(global,_),	  style(colour	   := navy_blue)).
 style(goal(undefined,_),  style(colour	   := red)).
@@ -1113,8 +1113,8 @@ specified_argspec([P0|PT], Spec, N, T, TB) :-
 
 variable(name,		 name,	both, "Name of the predicate").
 variable(arity,		 int,	both, "Arity of the predicate").
-variable(module,	 name*,	both, "Module if Module:Head").
 variable(classification, name,	both, "XREF classification").
+variable(context,	 any*,	both, "Classification argument").
 
 :- pce_group(popup).
 
@@ -1147,12 +1147,17 @@ make_prolog_mode_goal_popup(G) :-
 		  ]).
 
 
+module(F, Module:name) :<-
+	"Module for Module:Goal references"::
+	get(F, classification, extern),
+	get(F, context, Module),
+	Module \== @nil.
+
 predicate(F, Pred:prolog_predicate) :<-
 	"Get referenced predicate"::
 	get(F, name, Name),
 	get(F, arity, Arity),
-	get(F, module, Module),
-	(   Module == @nil
+	(   get(F, module, Module)
 	->  Spec = Name/Arity
 	;   Spec = Module:Name/Arity
 	),
@@ -1163,8 +1168,7 @@ head(F, Head:prolog) :<-
 	get(F, name, Name),
 	get(F, arity, Arity),
 	functor(Head0, Name, Arity),
-	(   get(F, module, M),
-	    M \== @nil
+	(   get(F, module, M)
 	->  Head = M:Head0
 	;   Head = Head0
 	).
@@ -1190,11 +1194,26 @@ documentation(F) :->
 	send(F?predicate, help).
 
 
+print_name(F, PN:string) :<-
+	"Return [Module:]Name/Arity"::
+	get(F, name, Name),
+	get(F, arity, Arity),
+	(   get(F, module, Module)
+	->  new(PN, string('%s:%s/%d', Module, Name, Arity))
+	;   new(PN, string('%s/%d', Name, Arity))
+	).
+
+
 identify(F) :->
 	"Tell the user about the predicate"::
 	get(F, text_buffer, TB),
 	get(F, classification, Class),
-	identify_pred(Class, F, Report),
+	(   get(F, context, Context),
+	    Context \== @nil
+	->  Id =.. [Class, Context]
+	;   Id = Class
+	),
+	identify_pred(Id, F, Report),
 	send(TB, report, status, Report).
 
 %	identify_pred(+XrefClass, +Fragment, -Summary)
@@ -1215,17 +1234,14 @@ identify_pred(autoload, F, Summary) :-	% Autoloaded predicates
 			     file_errors(fail)
 			   ],
 			   Source),
-	new(Summary, string('%s/%d: autoload from %s',
-			    Name, Arity, Source)).
-identify_pred(local, F, Summary) :-	% Local predicates
-	get(F, text_buffer, TB),
-	get(F, head, Head),
-	xref_defined(TB, Head, local(Line)), !,
-	new(Summary, string('%N: locally defined at line %d',
-			    prolog_predicate(Head),
-			    Line)).
+	new(Summary, string('%N: autoload from %s', F, Source)).
+identify_pred(local(Line), F, Summary) :-	% Local predicates
+	new(Summary, string('%N: locally defined at line %d', F, Line)).
+identify_pred(imported(From), F, Summary) :-
+	new(Summary, string('%N: imported from %s', F, From)).
 identify_pred(recursion, _, 'Recursive reference') :- !.
-identify_pred(Class, _, Class).
+identify_pred(Class, _, ClassName) :-
+	term_to_atom(Class, ClassName).
 
 :- pce_end_class(emacs_goal_fragment).
 
