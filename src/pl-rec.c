@@ -552,6 +552,36 @@ typedef struct
   Word gstore;
 } copy_info, *CopyInfo;
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Handle temporary variable  pointers.  Upto   MAX_ALLOCA_VARS  these  are
+allocated using alloca() for speed  and avoiding fragmentation. alloca()
+for big chunks has problems on various   platforms,  so we'll use normal
+heep allocation in this case. We could   also  consider using one of the
+other stacks as scratch-area.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define MAX_ALLOCA_VARS 2048		/* most machines should to 8k */
+#define INITCOPYVARS(info, n) \
+{ if ( (n) > 0 ) \
+  { Word *p; \
+    uint i; \
+    if ( (n) > MAX_ALLOCA_VARS ) \
+      info.vars = allocHeap(sizeof(Word) * (n)); \
+    else \
+    { if ( !(info.vars = alloca(sizeof(Word) * (n))) ) \
+	fatalError("alloca() failed"); \
+    } \
+    for(p = info.vars, i=(n)+1; --i > 0;) \
+      *p++ = 0; \
+  } \
+}
+#define FREECOPYVARS(info, n) \
+{ if ( n > MAX_ALLOCA_VARS ) \
+    freeHeap(info.vars, sizeof(Word) * n); \
+}
+
+
 #define fetchBuf(b, var, type) \
 		do \
 		{ *var = *((type *)(b)->data); \
@@ -790,23 +820,17 @@ right_recursion:
 void
 copyRecordToGlobal(term_t copy, Record r ARG_LD)
 { copy_info b;
-  Word *p;
-  int n;
 
   DEBUG(3, Sdprintf("PL_recorded(%p)\n", r));
 
   b.base = b.data = dataRecord(r);
-  if ( r->nvars > 0 )
-  { if ( !(b.vars = alloca(sizeof(Word) * r->nvars)) )
-      fatalError("alloca() failed");
-    for(p = b.vars, n=r->nvars; --n >= 0;)
-      *p++ = 0;
-  }
   b.gstore = allocGlobal(r->gsize);
-  
-  copy_record(valTermRef(copy), &b);
-  assert(b.gstore == gTop);
 
+  INITCOPYVARS(b, r->nvars);
+  copy_record(valTermRef(copy), &b);
+  FREECOPYVARS(b, r->nvars);
+
+  assert(b.gstore == gTop);
   SECURE(checkData(valTermRef(copy)));
 }
 
@@ -1078,12 +1102,7 @@ structuralEqualArg1OfRecord(term_t t, Record r ARG_LD)
 
   info.base = info.data = dataRecord(r);
   info.nvars = 0;
-  if ( r->nvars > 0 )
-  { if ( !(info.vars = alloca(sizeof(Word) * r->nvars)) )
-      fatalError("alloca() failed");
-    for(p = info.vars, n=r->nvars; --n >= 0;)
-      *p++ = 0;
-  }
+  INITCOPYVARS(info, r->nvars);
 
 					/* skip PL_TYPE_COMPOUND <functor> */
   stag = fetchOpCode(&info);
@@ -1099,6 +1118,7 @@ structuralEqualArg1OfRecord(term_t t, Record r ARG_LD)
 
   for(p = info.vars, n=info.nvars; --n >= 0; p++)
     setVar(**p);
+  FREECOPYVARS(info, r->nvars);
 
   return rval;
 }
@@ -1166,20 +1186,15 @@ PL_recorded_external(const char *rec, term_t t)
 
   skipSizeInt(&b);			/* code-size */
   gsize = fetchSizeInt(&b);
+  b.gstore = allocGlobal(gsize);
   if ( !(m & REC_GROUND) )
   { uint nvars = fetchSizeInt(&b);
-    Word *p;
-    int n;
 
-    { if ( !(b.vars = alloca(sizeof(Word) * nvars)) )
-	fatalError("alloca() failed");
-      for(p = b.vars, n=nvars; --n >= 0;)
-	*p++ = 0;
-    }
-  }
-  b.gstore = allocGlobal(gsize);
-  copy_record(valTermRef(t), &b);
-  assert(b.gstore == gTop);
+    INITCOPYVARS(b, nvars);
+    copy_record(valTermRef(t), &b);
+    FREECOPYVARS(b, nvars);
+  } else
+    assert(b.gstore == gTop);
 
   SECURE(checkData(valTermRef(t)));
   
@@ -1596,14 +1611,10 @@ undo_while_saving_term(mark *m, Word term)
   Undo(*m);
   
   b.data = info.code.base;
-  if ( info.nvars > 0 )
-  { if ( !(b.vars = alloca(sizeof(Word) * info.nvars)) )
-      fatalError("alloca(%d) failed", info.nvars);
-    for(p = b.vars, n=info.nvars; n-- > 0;)
-      *p++ = 0;
-  }
   b.gstore = allocGlobal(info.size);
+  INITCOPYVARS(b, info.nvars);
   copy_record(term, &b);
+  FREECOPYVARS(b, info.nvars);
   assert(b.gstore == gTop);
   discardBuffer(&info.code);
 

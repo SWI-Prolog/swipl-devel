@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: avoid using alloca() in recorded terms with many variables.  Found
+    by Lyosha Ilyukhin.
+
   * MODIFIED: current_thread(id, X) to fail silently if id is of the right
     type, but the thread doesn't exist.  dima@solvo.ru.
 
