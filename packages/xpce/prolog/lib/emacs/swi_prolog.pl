@@ -12,7 +12,7 @@
 		 *       EDITOR INTERFACE	*
 		 *******************************/
 
-edit_source(File:Name/Arity) :-
+edit_source(File:_Line:Name/Arity) :-
 	start_emacs,
 	new(X, emacs_buffer(File)),
 	send(X, open),
