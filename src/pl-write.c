@@ -328,7 +328,10 @@ writePrimitive(term_t t, write_options *options)
 					/* make sure to write float */
 					/* such that it reads as a float */
       if ( true(options, PL_WRT_QUOTED) )
-      { for(q=buf; *q; q++)
+      { q = buf;
+	if ( *q == '-' )
+	  q++;
+	for(; *q; q++)
 	{ if ( !isDigit(*q) )
 	    break;
 	}
