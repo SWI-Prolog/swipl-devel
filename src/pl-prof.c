@@ -99,14 +99,37 @@ word
 pl_profile_count(head, calls, prom)
 Word head, calls, prom;
 { Procedure proc;
+  Definition def;
 
   if ((proc = findProcedure(head)) == (Procedure) NULL)
     return warning("profile_count/3: No such predicate");
+  def = proc->definition;
 
-  TRY(unifyAtomic(calls, consNum(proc->definition->profile_calls)) );
-  return unifyAtomic(prom, consNum((1000 * proc->definition->profile_ticks) /
-					    statistics.profile_ticks) );
+  TRY(unifyAtomic(calls, consNum(def->profile_calls+def->profile_redos)) );
+
+  return unifyAtomic(prom, consNum((1000 * def->profile_ticks) /
+				   statistics.profile_ticks) );
 }
+
+
+word
+pl_profile_box(head, calls, redos, exits, fails)
+Word head, calls, redos, exits, fails;
+{ Procedure proc;
+  Definition def;
+
+  if ((proc = findProcedure(head)) == (Procedure) NULL)
+    return warning("profile_box/5: No such predicate");
+  def = proc->definition;
+
+  TRY(unifyAtomic(calls,    consNum(def->profile_calls)));
+  TRY(unifyAtomic(redos,    consNum(def->profile_redos)));
+  TRY(unifyAtomic(exits,    consNum(def->profile_calls +
+				    def->profile_redos -
+				    def->profile_fails)));
+  return unifyAtomic(fails, consNum(def->profile_fails));
+}
+
 
 word
 pl_reset_profiler()
@@ -123,6 +146,8 @@ pl_reset_profiler()
     { proc = (Procedure) sp->value;
 
       proc->definition->profile_calls = 0;
+      proc->definition->profile_redos = 0;
+      proc->definition->profile_fails = 0;
       proc->definition->profile_ticks = 0;
       clear(proc->definition, PROFILE_TICKED);
     }

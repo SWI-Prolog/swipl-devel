@@ -202,6 +202,7 @@ static struct foreign {
   ADD("$profile",		2, pl_profile,			TRACE_ME),
   ADD("reset_profiler",		0, pl_reset_profiler,		TRACE_ME),
   ADD("profile_count",		3, pl_profile_count,	TRANSPARENT|TRACE_ME),
+  ADD("profile_box",		5, pl_profile_box,	TRANSPARENT|TRACE_ME),
 
   ADD("prolog_current_frame",	1, pl_prolog_current_frame,	TRACE_ME),
   ADD("prolog_frame_attribute",	3, pl_prolog_frame_attribute,	TRACE_ME),

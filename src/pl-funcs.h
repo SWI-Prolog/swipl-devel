@@ -289,6 +289,7 @@ void		unallocClause P((Clause)),
 		/* pl-prof.c */
 word		pl_profile P((Word, Word)),
 		pl_profile_count P((Word, Word, Word)),
+		pl_profile_box P((Word, Word, Word, Word, Word)),
 		pl_reset_profiler P((void));
 void		stopItimer P((void));
 

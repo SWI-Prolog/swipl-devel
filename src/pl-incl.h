@@ -894,6 +894,8 @@ struct definition
 #if O_PROFILE
   int		profile_ticks;		/* profiler: call times active */
   int		profile_calls;		/* profiler: number of calls */
+  int		profile_redos;		/* profiler: number of redos */
+  int		profile_fails;		/* profiler: number of fails */
 #endif O_PROFILE
   ulong		indexPattern;		/* indexed argument pattern */
   char		indexCardinality;	/* cardinality of index pattern */

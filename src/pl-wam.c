@@ -1823,7 +1823,13 @@ the alternative clause might be retracted).
 frame_failed:				MARK(FAIL);
 
   for(;;)
-  { if ( debugstatus.debugging )
+  { 
+#if O_PROFILE
+	if (statistics.profiling)
+	  FR->procedure->definition->profile_fails++;
+#endif O_PROFILE
+
+    if ( debugstatus.debugging )
     { switch( tracePort(FR, FAIL_PORT) )
       { case ACTION_RETRY:	PROC = FR->procedure;
 				DEF = PROC->definition;
@@ -1897,7 +1903,7 @@ resume_from_body:
     statistics.inferences++;
 #if O_PROFILE
     if ( statistics.profiling )
-      FR->procedure->definition->profile_calls++;
+      FR->procedure->definition->profile_redos++;
 #endif O_PROFILE
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

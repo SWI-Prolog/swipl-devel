@@ -47,6 +47,8 @@ Module m;
 #if O_PROFILE
   def->profile_ticks = 0;
   def->profile_calls = 0;
+  def->profile_redos = 0;
+  def->profile_fails = 0;
 #endif O_PROFILE
   clearFlags(def);
   resetProcedure(proc);
@@ -307,6 +309,8 @@ Module module;
 #if O_PROFILE
     def->profile_ticks = 0;
     def->profile_calls = 0;
+    def->profile_redos = 0;
+    def->profile_fails = 0;
 #endif O_PROFILE
     resetProcedure(proc);
 
