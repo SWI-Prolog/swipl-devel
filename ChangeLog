@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * MAINTAIN: Some improvements to manual generation (Serg Korolyov).
+
   * ADDED: option lock to open/4.
 
   * FIXED: expected type in sub_string/5 (Pierre.Nugues)

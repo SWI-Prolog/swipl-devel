@@ -61,8 +61,17 @@ all:
 		$(MAKE) html
 		$(MAKE) clean
 
-dvi:		$(TEXFILES)
-		$(LATEX) doc
+dvi:		doc.dvi
+
+doc.dvi:	$(TEXFILES)
+		env TEXINPUTS=lib:$$TEXINPUTS $(LATEX) doc
+		env TEXINPUTS=lib:$$TEXINPUTS $(LATEX) doc
+		env TEXINPUTS=lib:$$TEXINPUTS $(LATEX) doc
+
+ps:		doc.ps
+
+doc.ps:		doc.dvi
+		dvips $< -o $@
 
 html:		$(TEXFILES) $(STYFILES) doc.bbl
 		rm -rf Manual

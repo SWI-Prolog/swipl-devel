@@ -13,7 +13,7 @@
                           SSWWII--PPrroolloogg 44..00
 
                          RReeffeerreennccee MMaannuuaall
-               _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _4_._0_._6_, _M_a_y _2_0_0_1
+               _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _4_._0_._8_, _J_u_l_y _2_0_0_1
 
                           _J_a_n _W_i_e_l_e_m_a_k_e_r
 
@@ -3204,7 +3204,7 @@ mmeessssaaggee__hhooookk((_+_T_e_r_m_, _+_K_i_n_d_, _+
 
 
 mmeessssaaggee__ttoo__ssttrriinngg((_+_T_e_r_m_, _-_S_t_r_i_n_g))
-    Translates  a message-term  into a  string object  (see section  ????.
+    Translates  a message-term into a  string object (see section  3.23.
     Primarily  intended  to  write  messages to  Windows  in  XPCE  (see
     section 1.5) or other GUI environments.
 
@@ -4038,6 +4038,24 @@ ooppeenn((_+_S_r_c_D_e_s_t_, _+_M_o_d_e_, _-_S_t_r_e_a
          logfiles and if  the stream is  associated to a process  (using
          the pipe/1 construct).
 
+    lloocckk((_L_o_c_k_i_n_g_M_o_d_e))
+         Try to obtain a lock on the open file.  Default  is none, which
+         does not lock the file.   The value read or shared  means other
+         processes may  read the  file, but  not write  it.   The  value
+         write or  exclusive means no  other process  may read or  write
+         the file.
+
+         Locks are  acquired through  the POSIX  function fcntl()  using
+         the command F_SETLKW, which makes  a blocked call wait for  the
+         lock to  be  released.    Please note  that fcntl()  locks  are
+         _a_d_v_i_s_o_r_y and therefore  only other applications using the  same
+         advisory locks  honour your  lock.   As there  are many  issues
+         around locking  in  Unix, expecially  related  to NFS  (network
+         file  system), please  study  the  fcntl() manual  page  before
+         trusting your locks!
+
+         The lock option is a SWI-Prolog extension.
+
     The  option reposition is not supported in SWI-Prolog.   All streams
     connected to a file may be repositioned.
 
@@ -4167,6 +4185,13 @@ sseett__ssttrreeaamm((_+_S_t_r_e_a_m_, _+_A_t_t_r_i_b_
     bbuuffffeerr((_B_u_f_f_e_r_i_n_g))
          Set  the   buffering  mode  of   an  already  created   stream.
          Buffering is one of full, line or false.
+
+    eeooff__aaccttiioonn((_A_c_t_i_o_n))
+         Set end-of-file handling to one of eof_code, reset or error.
+
+    cclloossee__oonn__aabboorrtt((_B_o_o_l))
+         Determine whether or not the  stream is closed by abort/0.   By
+         default streams are closed.
 
 
 33..1166..33 SSwwiittcchhiinngg BBeettwweeeenn IImmpplliicciitt aanndd EExxpplliicciitt II//OO
@@ -12966,8 +12991,8 @@ abolish/1, 17, 175, 176                PL_record_external(),P784L_recorded(), 78
 abolish/2, 176, 634                    PL_recorded_external(), 785
 abolish/[1                             PL_register_atom(), 662
    2], 53                              PL_register_extensions(), 798
-abort/0,  33, 44,  53, 224,  519,      PL_register_foreign(), 796
-      529, 792, 801                    PL_reset_term_refs(), 642
+abort/0,  33, 44,  53, 224,  233,      PL_register_foreign(), 796
+      519, 529, 792, 801               PL_reset_term_refs(), 642
 abs/1, 365                             PL_retry(), 650
 absolute_file_name/2, 490              PL_retry_address(), 651
 absolute_file_name/3, 491              PL_rewind_foreign_frame(), 762

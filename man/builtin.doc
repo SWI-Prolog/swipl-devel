@@ -1843,6 +1843,8 @@ therefore only other applications using the same advisory locks
 honour your lock. As there are many issues around locking in Unix,
 expecially related to NFS (network file system), please study the
 fcntl() manual page before trusting your locks! 
+
+The \const{lock} option is a SWI-Prolog extension.
 \end{description}
 
 The option \const{reposition} is not supported in SWI-Prolog.  All streams
