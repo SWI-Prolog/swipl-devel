@@ -349,6 +349,7 @@ Clause		assert_term P((Word, char, Atom));
 word		pl_assertz P((Word)), pl_asserta P((Word)),
 		pl_assertz2 P((Word, Word)), pl_asserta2 P((Word, Word)),
 		pl_record_clause P((Word, Word)),
+		pl_nth_clause P((Word, Word, Word, word)),
 		pl_clause P((Word, Word, Word, word));
 bool		decompileHead P((Clause, Word)),
 		decompile P((Clause, Word)),

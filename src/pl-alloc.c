@@ -451,3 +451,36 @@ register int size;
 
   return value & (size-1);
 }
+
+		 /*******************************
+		 *	     GNU MALLOC		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+These functions are used by various GNU-libraries and -when not linked
+with the GNU C-library lead to undefined symbols.  Therefore we define
+them in SWI-Prolog so that we can also give consistent warnings.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void *
+xmalloc(size_t size)
+{ void *mem;
+
+  if ( (mem = malloc(size)) )
+    return mem;
+
+  fatalError("Not enough core");
+  return NULL;				/* NOTREACHED */
+}
+
+
+void *
+xrealloc(void *mem, size_t size)
+{ void *newmem;
+
+  if ( (newmem = realloc(mem, size)) )
+    return newmem;
+
+  fatalError("Not enough core");
+  return NULL;				/* NOTREACHED */
+}

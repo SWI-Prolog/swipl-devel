@@ -61,7 +61,7 @@ Wed Jun 30 22:03:41 1993
 #define MAX_VIRTUAL_ADDRESS     (220*1024*1024) /* not sure, but it will do */
 #define O_FOREIGN		1
 #define LD_COMMAND		"gcc"
-#define LD_OPT_OPTIONS		"-r -static"
+#define LD_OPT_OPTIONS		""
 #define LD_OPT_ADDR		"-T 0x%x"
 #define O_SAVE			1
 #define DATA_START		((long) &etext + sizeof(long))

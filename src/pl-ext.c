@@ -119,9 +119,11 @@ static struct foreign {
   ADD("$export_wic",		2, pl_export_wic,		TRACE_ME),
   ADD("$import_wic",		3, pl_import_wic,		TRACE_ME),
 
-  ADD("abolish",		2, pl_abolish,		TRANSPARENT|TRACE_ME),
-  ADD("$clause",		3, pl_clause,	NONDETERMINISTIC|TRANSPARENT|TRACE_ME),
-  ADD("retract",		1, pl_retract,	NONDETERMINISTIC|TRANSPARENT|TRACE_ME),
+  ADD("abolish",    2, pl_abolish,    TRANSPARENT|TRACE_ME),
+  ADD("$clause",    3, pl_clause,     NONDETERMINISTIC|TRANSPARENT|TRACE_ME),
+  ADD("nth_clause", 3, pl_nth_clause, NONDETERMINISTIC|TRANSPARENT|TRACE_ME),
+  ADD("retract",    1, pl_retract,    NONDETERMINISTIC|TRANSPARENT|TRACE_ME),
+
   ADD("flag",			3, pl_flag,			TRACE_ME),
   ADD("recorda",		3, pl_recorda,			TRACE_ME),
   ADD("recordz",		3, pl_recordz,			TRACE_ME),

@@ -1995,3 +1995,96 @@ word h;
 
   fail;
 }
+
+
+typedef struct
+{ Clause clause;			/* pointer to the clause */
+  int    index;				/* nth-1 index */
+} cref, *Cref;
+
+
+word
+pl_nth_clause(p, n, ref, h)
+Word p, n, ref;
+word h;
+{ Clause clause;
+  Procedure proc;
+  Cref cr;
+
+  if (!isVar(*ref))  
+  { Clause c;
+    int i;
+
+    if (!isInteger(*ref))
+      return warning("nth_clause/3: illegal reference");
+
+    clause = (Clause) numToPointer(*ref);
+    
+    if (!inCore(clause) || !isClause(clause))
+      return warning("nth_clause/3: Invalid integer reference");
+	
+    proc = clause->procedure;
+    for(c = proc->definition->definition.clauses, i=1; c; c = c->next, i++)
+    { if ( c == clause )
+      { TRY(unifyAtomic(n, consNum(i)));
+
+	if ( isVar(*p) )
+	{ if ( proc->definition->module != MODULE_user &&
+	       proc->definition->module != contextModule(environment_frame) )
+	  { unifyFunctor(p, FUNCTOR_module2);
+	    unifyAtomic(argTermP(*p, 0), proc->definition->module->name);
+	    p = argTermP(*p, 1);
+	  }
+	} else if ( isTerm(*p) && functorTerm(*p) == FUNCTOR_module2 )
+	{ p = argTermP(*p, 1);
+	  deRef(p);
+	}
+
+	return unifyFunctor(p, proc->functor);
+      }
+    }
+
+    fail;
+  }
+
+  if ( ForeignControl(h) == FRG_FIRST_CALL)
+  { if ( (proc = findProcedure(p)) == (Procedure) NULL ||
+         true(proc->definition, FOREIGN) )
+      fail;
+    clause = proc->definition->definition.clauses;
+
+    if ( isInteger(*n) )		/* proc and n specified */
+    { int i = valNum(*n);
+
+      while(i > 1 && clause)
+      { clause = clause->next;
+	i--;
+      }
+      if ( i == 1 )
+	return unifyAtomic(ref, pointerToNum(clause));
+      fail;
+    }
+
+    cr = allocHeap(sizeof(cref));
+    cr->clause = clause;
+    cr->index  = 1;
+  } else
+  { cr = (Cref) ForeignContextAddress(h);
+    proc = clause->procedure;
+  }
+
+  if ( ForeignControl(h) == FRG_CUTTED )
+  { freeHeap(cr, sizeof(cref));
+    succeed;
+  }
+
+  unifyAtomic(n, consNum(cr->index));
+  unifyAtomic(ref, pointerToNum(cr->clause));
+  if ( (cr->clause = cr->clause->next) )
+  { cr->index++;
+    ForeignRedo(cr);
+  }
+
+  freeHeap(cr, sizeof(cref));
+  succeed;
+}
