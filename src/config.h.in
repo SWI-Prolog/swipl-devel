@@ -121,9 +121,6 @@
 /* Define to 1 if you have the `grantpt' function. */
 #undef HAVE_GRANTPT
 
-/* Define if GCC visibility attribute is supported */
-#undef HAVE_HIDDEN_ATTRIBUTE
-
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
@@ -438,6 +435,9 @@
 /* On Cygwin we should use VirtualAlloc() */
 #undef HAVE_VIRTUALALLOC
 
+/* Define if __attribute__ visibility is supported */
+#undef HAVE_VISIBILITY_ATTRIBUTE
+
 /* Define to 1 if `fork' works. */
 #undef HAVE_WORKING_FORK
 
@@ -538,9 +538,9 @@
 /* If using the C implementation of alloca, define if you know the
    direction of stack growth for your system; otherwise it will be
    automatically deduced at run-time.
-        STACK_DIRECTION > 0 => grows toward higher addresses
-        STACK_DIRECTION < 0 => grows toward lower addresses
-        STACK_DIRECTION = 0 => direction of growth unknown */
+	STACK_DIRECTION > 0 => grows toward higher addresses
+	STACK_DIRECTION < 0 => grows toward lower addresses
+	STACK_DIRECTION = 0 => direction of growth unknown */
 #undef STACK_DIRECTION
 
 /* Define to 1 if you have the ANSI C header files. */
@@ -574,9 +574,11 @@
 /* Required in FreeBSD for compiling thread-safe code */
 #undef _THREAD_SAFE
 
-/* Define as `__inline' if that's what the C compiler calls it, or to nothing
-   if it is not supported. */
+/* Define to `__inline__' or `__inline' if that's what the C compiler
+   calls it, or to nothing if 'inline' is not supported under any name.  */
+#ifndef __cplusplus
 #undef inline
+#endif
 
 /* Define to `int' if <sys/types.h> does not define. */
 #undef pid_t

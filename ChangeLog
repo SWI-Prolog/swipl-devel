@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * PORT: Enhance detection of support for ELF visibility attributes.
+
 VERSION 5.5.3 (Januari 17, 2005)
 ================================
 
@@ -81,7 +83,7 @@ VERSION 5.5.0 (December 1, 2004)
   * FIXED: Bug#204: conflicting <sys/malloc.h> on FreeBSD.  Deleted
     test for this header.  Tuomo Latto.
 
-  * FIXED: PL_query(PL_QUERY_ARGC).  With patch from Salvador Fandi�o.
+  * FIXED: PL_query(PL_QUERY_ARGC).  With patch from Salvador Fandio.
 
   * MODIFIED: incremented external record version format.  Unfortunately this
     makes old BerkeleyDB databases loading Prolog terms unusable.  The only
