@@ -70,7 +70,9 @@ initialise(F, B:emacs_buffer) :->
 	send(F, keyboard_focus, V),
 
 	send(F, open),
-	send(F, pool, B?pool).
+	send(F, pool, B?pool),
+	get(E, mode, Mode),
+	send(Mode, new_buffer).
 
 
 input_focus(F, Val:bool) :->
@@ -84,12 +86,15 @@ input_focus(F, Val:bool) :->
 
 buffer(F, B:emacs_buffer) :->
 	"Switch to the given emacs buffer"::
-	send(F?editor, text_buffer, B),
+	get(F, editor, E),
+	send(E, text_buffer, B),
 	get(B, mode, ModeName),
 	send(F?view, mode, ModeName),
 	send(F, pool, B?pool),
 	send(B, update_label),
-	send(F, report, status, '').
+	send(F, report, status, ''),
+	get(E, mode, Mode),
+	send(Mode, new_buffer).
 
 
 view(F, View:view) :<-
@@ -475,15 +480,38 @@ unlink(E) :->
 	send(Modes, for_all, message(@arg1, free)),
 	send(E, send_super, unlink).
 
+:- pce_global(@emacs_idle_timer, make_idle_timer).
+
+make_idle_timer(T) :-
+	new(T, timer(2)),
+	send(T, message, message(T, send_hyper, editor, editor_idle_event)).
+
+editor_idle_event(E) :->
+	"Editor is idle"::
+	get(E, mode, Mode),
+	Mode \== @nil,
+	send(Mode, has_send_method, idle),
+	send(Mode, idle).
+
+start_idle_timer(E, Interval:[real]) :->
+	"Reset the idle timer to timeout after the specified time"::
+	default(Interval, 2, Time),
+	send(@emacs_idle_timer, interval, Time),
+	send(@emacs_idle_timer, status, once),
+	send(@emacs_idle_timer, delete_hypers),
+	new(_, hyper(@emacs_idle_timer, E, editor, idle_timer)).
+
 
 typed(E, Id:event_id) :->
 	"Handle typing via mode"::
+	send(E, start_idle_timer),
 	get(E, mode, Mode),
 	ignore(send(Mode, typed, Id, E)). % don't delegate to frame
 
 
 caret(E, Caret:[int]) :->
 	send(E, send_super, caret, Caret),
+	send(E, start_idle_timer),
 	get(E, mode, Mode),
 	(   send(Mode, has_send_method, new_caret_position)
 	->  (   Caret == @default
@@ -691,6 +719,10 @@ mode_name(Mode, Name) :-
 table_name(ClassName, TableName) :-
 	concat(TableName, '_mode', ClassName).
 
+new_buffer(_) :->
+	"[Virtual] Called if a new buffer is attached to this mode"::
+	true.
+
 new_caret_position(M, Caret:int) :->
 	"Called after any caret movement"::
 	get(M, text_buffer, TB),
@@ -705,10 +737,13 @@ new_caret_position(M, Caret:int) :->
 
 in_fragment(M, Fragment:fragment) :->
 	"Called after a caret movement brings the caret in fragment"::
-	(   get(Fragment, attribute, message, Message)
-	->  get(Fragment, style, StyleName),
-	    send(M, report, status, '%s: %s', StyleName, Message)
-	;   true
+	(   send(Fragment, has_send_method, identify)
+	->  send(Fragment, identify)
+	;   (   get(Fragment, attribute, message, Message)
+	    ->  get(Fragment, style, StyleName),
+		send(M, report, status, '%s: %s', StyleName, Message)
+	    ;   true
+	    )
 	).
 
 bindings(M) :->
@@ -1019,7 +1054,9 @@ interactive_argument(M, Implementation:any, Which:int, Value:any) :<-
 	->  get(History, nth1, Idx, HistArgv),
 	    get(HistArgv, element, Which, DefaultValue)
 	->  true
-	;   get(M, selected, Selection),
+	;   get(Implementation, name, ImplName),
+	    \+ send(ImplName, suffix, selection), % not on *_selection
+	    get(M, selected, Selection),
 	    get(Type, check, Selection, DefaultValue)
 	->  true
 	;   DefaultValue = @default
@@ -1065,6 +1102,15 @@ m_x_next(M, Value:any) :<-
 	get(ArgVector, element, M?m_x_argn, Value),
 	send(M, m_x_index, Nidx).
 	
+
+		 /*******************************
+		 *	       HELP		*
+		 *******************************/
+
+help_on_mode(M) :->
+	"Provide mode-specific help"::
+	send(M, report, warning, 'No help on mode %s', M?name).
+
 
 		 /*******************************
 		 *	      REPORT		*

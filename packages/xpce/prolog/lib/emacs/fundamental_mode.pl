@@ -70,6 +70,7 @@
 
 					% HELP menu
 	  help			   = button(help),
+	  help_on_mode		   = button(help),
 	  customise		   = button(help),
 	  show_key_bindings	   = button(help),
 	  manpce		   = button(help),
