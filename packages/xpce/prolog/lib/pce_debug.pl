@@ -165,6 +165,7 @@ checkpce :-
 	test(check_pce_database, Status),
 	test(check_pce_types, Status),
 	test(check_classes, Status),
+	test(check_redefined_methods, Status),
 	Status = yes.
 
 
@@ -177,6 +178,48 @@ check_classes :-
 	    fail
 	;   true
 	).
+
+check_redefined_methods :-
+	findall(S, redefined_send_method(S), SL),
+	checklist(report_redefined_method, SL),
+	findall(G, redefined_get_method(G), GL),
+	checklist(report_redefined_method, GL),
+	SL == [],
+	GL == [].
+	
+redefined_send_method(method(Class, Sel, B0, B1)) :-
+	pce_principal:pce_lazy_send_method(Sel, Class, B1),
+	(   pce_principal:pce_lazy_send_method(Sel, Class, B0)
+	->  B0 \== B1
+	;   fail
+	).
+redefined_get_method(method(Class, Sel, B0, B1)) :-
+	pce_principal:pce_lazy_get_method(Sel, Class, B1),
+	(   pce_principal:pce_lazy_get_method(Sel, Class, B0)
+	->  B0 \== B1
+	;   fail
+	).
+
+report_redefined_method(method(_, _, B0, B1)) :-
+	arg(1, B0, Id0),		% deliberate redefinition
+	arg(1, B1, Id1),
+	Id0 \== Id1, !.
+report_redefined_method(method(Class, Sel, B0, B1)) :-
+	describe_location(B0, Loc0),
+	describe_location(B1, Loc1),
+	(   functor(B0, bind_send, _)
+	->  Arrow = (->)
+	;   Arrow = (<-)
+	),
+	send(@pce, format,
+	     '%s: %s%s%s redefined\n\tFirst definition at %s\n',
+	     Loc1, Class, Arrow, Sel, Loc0).
+
+describe_location(Binder, Desc) :-
+	genarg(_, Binder, source_location(File, Line)), !,
+	concat_atom([File, Line], :, Desc).
+describe_location(_, '<no source>').
+
 
 check_pce_database :-
 	globals(All),

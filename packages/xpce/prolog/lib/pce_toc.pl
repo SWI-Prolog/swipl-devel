@@ -92,6 +92,12 @@ root(TW, Root:node) :<-
 	get(Tree, root, Root).
 
 
+selection(TW, Nodes:chain) :<-
+	"Return	new chain holding selected nodes"::
+	get(TW, member, toc_tree, Tree),
+	get(Tree, selection, Nodes).
+
+
 node(TW, Id:any, Node:toc_node) :<-
 	"Find node from identifier"::
 	get(TW, member, toc_tree, Tree),
@@ -389,7 +395,7 @@ image(TF, Image:image) :->
 	"Modify the icon"::
 	get(TF, member, bitmap, BM),
 	send(BM, image, Image).
-image(TF, Image:image) :->
+image(TF, Image:image) :<-
 	"Get the icon"::
 	get(TF, member, bitmap, BM),
 	get(BM, image, Image).

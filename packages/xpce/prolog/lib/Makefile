@@ -40,7 +40,8 @@ dialog/dialog.qlf:	.pwd dialog/dialog.pl dialog/proto.pl \
 emacs/emacs.qlf:	.pwd emacs/emacs.pl emacs/window.pl emacs/buffer.pl \
 			emacs/buffer_menu.pl emacs/server.pl \
 			emacs/fundamental_mode.pl emacs/language_mode.pl \
-			emacs/outline_mode.pl emacs/application.pl
+			emacs/outline_mode.pl emacs/application.pl \
+			emacs/bookmarks.pl
 
 INDEX.pl:	.
 	$(PL) -g "make_library_index('.')" -t halt
