@@ -818,6 +818,12 @@ scanstr(char *str, char *fmt, Any *r)
 status
 sysPce(char *fm, ...)
 { va_list args;
+  static int nth = 0;
+
+  if ( nth > 12 )
+    exit(1);				/* no delay, just go away */
+  if ( nth++ > 10 )			/* lets try decent way */
+    hostAction(HOST_HALT);
 
   va_start(args, fm);
   catchErrorSignalsPce(PCE, OFF);

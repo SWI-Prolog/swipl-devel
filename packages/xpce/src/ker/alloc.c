@@ -36,9 +36,9 @@ Debugging note: This module can run at three debugging levels:
     ALLOC_DEBUG = 1
 	Adds a word to each chunk that maintains the size.  Validates
 	that unalloc() is called with the same size as alloc() and that
-	unalloc() is not called twice on the same object.  Clears memory
-	to 0 that has been initially requested from the OS.  This mode
-	requires little runtime overhead.
+	unalloc() is not called twice on the same object.  Fills memory
+	with ALLOC_MAGIC_BYTE that has been initially requested from the OS.
+	This mode requires little runtime overhead.
 
     ALLOC_DEBUG = 2
 	In this mode all memory that is considered uninitialised is filled
@@ -102,10 +102,8 @@ allocate(int size)
 	    ALLOCSIZE);
     exit(1);
   }
-#if ALLOC_DEBUG > 1
+#if ALLOC_DEBUG
   memset(p, ALLOC_MAGIC_BYTE, ALLOCSIZE);
-#else
-  memset(p, 0, ALLOCSIZE);
 #endif
 
   top       = (long) p + ALLOCSIZE - 1;
@@ -173,7 +171,7 @@ alloc(register int n)
       }
 #else
 #if ALLOC_DEBUG
-      setdata(&z->start, 0, Zone, m);	/* should not be there */
+      setdata((Zone *)&z->start, 0, Zone, m);	/* should not be there */
 #endif
 #endif
 
