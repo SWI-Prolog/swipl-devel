@@ -1433,6 +1433,9 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 	     }
 	     Sdprintf(")\n");
 	   });
+
+  finish_foreign_frame(PASS_LD1);	/* adjust the size of the context */
+
 					/* should be struct alignment, */
 					/* but for now, I think this */
 					/* is always the same */
@@ -1449,8 +1452,6 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   SECURE(checkStacks(environment_frame, NULL));
   assert((ulong)fli_context > (ulong)environment_frame);
   assert((ulong)lTop >= (ulong)(fli_context+1));
-
-  finish_foreign_frame(PASS_LD1);	/* adjust the size of the context */
 
   if ( flags == TRUE )			/* compatibility */
     flags = PL_Q_NORMAL;
