@@ -898,6 +898,35 @@ getProcDefinition(Procedure proc)
 #define getProcDefinition(proc) pl__getProcDefinition(proc PASS_LD)
 
 
+static inline Definition
+getProcDefinedDefinition(LocalFrame fr, Procedure proc ARG_LD)
+{ Definition def = proc->definition;
+
+  if ( !def->definition.clauses && false(def, PROC_DEFINED) )
+    def = trapUndefined(fr, proc PASS_LD);
+
+#ifdef O_PLMT
+  if ( true(def, P_THREAD_LOCAL) )
+  { int i = LD->thread.info->pl_tid;
+    Definition local;
+
+    LOCKDEF(def);
+    if ( !def->definition.local ||
+	 i >= def->definition.local->size ||
+	 !(local=def->definition.local->thread[i]) )
+      local = localiseDefinition(def);
+    UNLOCKDEF(def);
+
+    return local;
+  }
+
+  return def;
+#else
+  return def;
+#endif
+}
+
+
 
 		/********************************
 		*          UNIFICATION          *
@@ -1709,7 +1738,6 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   Definition def;
   int arity;
   Word ap;
-  ClauseRef clause;
 
   DEBUG(2, { FunctorDef f = proc->definition->functor;
 	     int n;
@@ -1735,7 +1763,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 
   qf	= (QueryFrame) lTop;
   fr    = &qf->frame;
-  def   = getProcDefinition(proc);
+  def   = getProcDefinedDefinition(fr, proc PASS_LD);
   arity	= def->functor->arity;
 
   requireStack(local, sizeof(struct queryFrame)+arity*sizeof(word));
@@ -1805,15 +1833,10 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   LD->choicepoints  = &qf->choice;
   environment_frame = fr;
 
-					/* find definition and clause */
-  if ( !(clause = def->definition.clauses) && false(def, PROC_DEFINED) )
-  { fr->predicate = def = trapUndefined(def);
-    clause = def->definition.clauses;
-  }
   if ( true(def, FOREIGN) )
   { fr->clause = NULL;			/* initial context */
   } else
-  { fr->clause = clause;
+  { fr->clause = def->definition.clauses;
   }
 #ifdef O_LOGICAL_UPDATE
   fr->generation = GD->generation;
@@ -3610,7 +3633,9 @@ frame and write  the  module  name  just  below  the  frame.   See  also
 contextModule().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-	DEF = getProcDefinition(resolveProcedure(functor, module));
+	DEF = getProcDefinedDefinition(next,
+				       resolveProcedure(functor, module)
+				       PASS_LD);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Save the program counter (note  that   I_USERCALL0  has no argument) and
@@ -3765,14 +3790,13 @@ The VMI for these calls are ICALL_FVN, proc, var-index ...
 	*ARGP++ = (isVar(*v) ? makeRefL(v) : *v);
 
       common_call_fv:
-	{ Definition def = fproc->definition;
-	  Func f = def->definition.function;
+	{ Definition def;
+	  Func f;
 	  int rval;
 
-	  if ( !f )
-	  { def = trapUndefined(def);
-	    f = def->definition.function;
-	  }
+	  next = lTop;
+	  def = getProcDefinedDefinition(next, fproc PASS_LD);
+	  f = def->definition.function;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 If we are debugging, just build a normal  frame and do the normal thing,
@@ -3784,8 +3808,7 @@ so the inline call is expanded to a normal call and may be traced.
 	       debugstatus.debugging ||
 #endif
 	       false(def, FOREIGN) )
-	  { next = lTop;
-	    next->flags = FR->flags;
+	  { next->flags = FR->flags;
 	    if ( true(DEF, HIDE_CHILDS) ) /* parent has hide_childs */
 	      set(next, FR_NODEBUG);
 	    DEF = def;
@@ -3804,7 +3827,6 @@ increase lTop too to prepare for asynchronous interrupts.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 	    LD->statistics.inferences++;
-	    next = lTop;
 	    h0 = argFrameP(next, 0) - (Word)lBase;
 	    lTop = (LocalFrame) argFrameP(next, nvars);
 	    if ( true(def, METAPRED) )
@@ -3977,7 +3999,9 @@ program pointer and jump to the common part.
 	{ functor_t fdef;
 
 	  fdef = lookupFunctorDef(functor, arity);
-	  DEF = getProcDefinition(resolveProcedure(fdef, module));
+	  DEF = getProcDefinedDefinition(next,
+					 resolveProcedure(fdef, module)
+					 PASS_LD);
 	  next->context = module;
 	}
 
@@ -4002,7 +4026,9 @@ execution can continue at `next_instruction'
 	     && trueFeature(TAILRECURSION_FEATURE)
 #endif
 	   )
-	{ Definition ndef = getProcDefinition((Procedure) *PC++);
+	{ Definition ndef = getProcDefinedDefinition(lTop,
+						     (Procedure) *PC++
+						     PASS_LD);
 	  arity = ndef->functor->arity;
 
 	  if ( true(FR, FR_WATCHED) )
@@ -4030,7 +4056,7 @@ execution can continue at `next_instruction'
         next->flags = FR->flags;
 	if ( true(DEF, HIDE_CHILDS) ) /* parent has hide_childs */
 	  set(next, FR_NODEBUG);
-	DEF = getProcDefinition((Procedure) *PC++);
+	DEF = getProcDefinedDefinition(next, (Procedure) *PC++ PASS_LD);
 	next->context = FR->context;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -4118,24 +4144,12 @@ Logical-update: note that trapUndefined() may add  clauses and we should
 be able to access these!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-	if ( !DEF->definition.clauses && false(DEF, PROC_DEFINED) )	
-	{ 
-#ifdef O_PROFILE
-	  FR->prof_node = LD->profile.current;
-#endif
-	  FR->predicate = DEF = trapUndefined(DEF);
-#ifdef O_LOGICAL_UPDATE
-	  FR->generation = GD->generation;
-#endif
-
-	  if ( !DEF->definition.clauses &&
-	       false(DEF, PROC_DEFINED) &&
-	       true(DEF->module, UNKNOWN_ERROR) )
-	  { FR->clause = NULL;
-	    if ( exception_term )
-	    { enterDefinition(DEF);	/* will be left in exception code */
-	      goto b_throw;
-	    }
+	if ( !DEF->definition.clauses && false(DEF, PROC_DEFINED) &&
+	     true(DEF->module, UNKNOWN_ERROR) )
+	{ FR->clause = NULL;
+	  if ( exception_term )		/* left by trapUndefined() */
+	  { enterDefinition(DEF);	/* will be left in exception code */
+	    goto b_throw;
 	  }
 	}
 

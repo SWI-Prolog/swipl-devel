@@ -1322,6 +1322,10 @@ interpret()  picks up the new definition pointer, thus this should be ok
 as well.  Any other C-code that  does  nasty  things  (non-deterministic
 code  perhaps,  calls  indirect via C? (I do recall once conciously have
 decided its not save, but can't recall why ...)
+
+Its definitely not safe in MT context as   others  may be racing for the
+definition.  How  do  we  get   this    working   without   locking  the
+proc->definition fetch?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Definition
@@ -1341,8 +1345,16 @@ autoImport(functor_t f, Module m)
 
   if ( proc == NULL )			/* Create header if not there */
     proc = lookupProcedure(f, m);
-					/* safe? */
+					/* Safe? See above */
+					/* TBD: find something better! */
+#ifdef O_PLMT
+  PL_LOCK(L_THREAD);
+  if ( GD->statistics.threads_created > 1 )
+    freeHeap(proc->definition, sizeof(struct definition));
+  PL_UNLOCK(L_THREAD);
+#else
   freeHeap(proc->definition, sizeof(struct definition));
+#endif
   proc->definition = def;
 
   return def;
@@ -1388,10 +1400,10 @@ discontiguous should not cause an undefined predicate warning.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static Definition
-trapUndefined_unlocked(Definition def)
-{ GET_LD
-  int retry_times = 0;
+trapUndefined_unlocked(LocalFrame fr, Procedure proc ARG_LD)
+{ int retry_times = 0;
   Definition newdef;
+  Definition def = proc->definition;
   Module module = def->module;
   FunctorDef functor = def->functor;
 
@@ -1465,23 +1477,26 @@ This must be  executed  holding  the   Prolog  mutex  '$load'  to  avoid
 race-conditions between threads trapping undefined   code. At the moment
 there is no neat way to share   mutexes  between C and Prolog, something
 that should be considered.
-
-This implementation is slow as it  forces   us  to setup the entire term
-manipulation machinery just to take them apart at the other end.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Definition
-trapUndefined(Definition def)
-{ 
+trapUndefined(LocalFrame fr, Procedure proc ARG_LD)
+{ LocalFrame lSafe = lTop;
+  Definition def;
+
 #ifdef O_PLMT
   PL_mutex_lock(GD->thread.MUTEX_load);
-  def = trapUndefined_unlocked(def);
+  lTop = (LocalFrame)argFrameP(fr, proc->definition->functor->arity);
+  def = trapUndefined_unlocked(fr, proc PASS_LD);
+  lTop = lSafe;
   PL_mutex_unlock(GD->thread.MUTEX_load);
+#else
+  lTop = argFrameP(fr, proc->definition->functor->arity);
+  def = trapUndefined_unlocked(fr, proc PASS_LD);
+  lTop = lSafe;
+#endif
 
   return def;
-#else
-  return trapUndefined_unlocked(def);
-#endif
 }
 
 

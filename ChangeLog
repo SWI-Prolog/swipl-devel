@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: autoloader bug in multi-threaded code.
+
   * FIXED: Bug#41: Syntax error with backquoted strings and no
     space after operator =/2.  Holger Kanwischer.
 
