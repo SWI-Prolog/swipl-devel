@@ -623,4 +623,4 @@ fi
 rm -rf conftest*
 fi # configloadforeign
 
-AC_OUTPUT(Makefile README.bin)
+AC_OUTPUT(Makefile README.bin pl.1)

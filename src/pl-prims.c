@@ -1997,9 +1997,21 @@ pl_statistics(term_t k, term_t value)
     result = makeNum((long)lTop - (long)lBase);
   else if (key == ATOM_locallimit)
     result = makeNum(limitStack(local));
+  else if (key == ATOM_heaplimit)			/* heap */
 #ifdef MMAP_STACK
-  else if (key == ATOM_heap)				/* heap */
-    result = makeNum(options.heapSize);
+  { ulong heap = (ulong)gBase - heap_base;
+    result = makeNum(heap);
+  }
+#else
+    fail;
+#endif
+  else if (key == ATOM_heap)
+#ifdef MMAP_STACK
+  { ulong heap = (ulong)sbrk(0) - heap_base;
+    result = makeNum(heap);
+  }
+#else
+    fail;
 #endif
   else if (key == ATOM_heapused)			/* heap usage */
     result = makeNum(statistics.heap);

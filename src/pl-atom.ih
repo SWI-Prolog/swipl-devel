@@ -266,3 +266,4 @@
 #define ATOM_frame_finished MK_ATOM(265)
 #define ATOM_nodebug      MK_ATOM(266)
 #define ATOM_heap         MK_ATOM(267)
+#define ATOM_heaplimit    MK_ATOM(268)

@@ -4,6 +4,9 @@
 VERSION 2.8.5
 =============
 
+  * FIXED: Installation of the manual page for correct description of the
+    pl -dump-runtime-variables.
+
   * ADDED: For machines using memory-mapped stacks (Linux, SunOs, Solaris,
     OSF/1 for example), added heap-size switch: -H.  Default is 256Mbytes.
 

@@ -277,6 +277,7 @@ A depth_limit_exceeded	"depth_limit_exceeded"
 A frame_finished	"frame_finished"
 A nodebug		"nodebug"
 A heap			"heap"
+A heaplimit		"heaplimit"
 
 F abs			1
 F acos			1

@@ -85,7 +85,7 @@ GLOBAL struct
 #define DEF_DEFLOCAL	2000
 #define DEF_DEFGLOBAL	4000
 #define DEF_DEFTRAIL	4000
-#define DEF_DEFHEAP   256000
+#define DEF_DEFHEAP        0		/* unlimited */
 #if O_DYNAMIC_STACKS
 #define DEF_DEFARGUMENT 1000
 #else
@@ -95,8 +95,8 @@ GLOBAL struct
 #define DEF_DEFLOCAL	200
 #define DEF_DEFGLOBAL	400
 #define DEF_DEFTRAIL	200
-#define DEF_DEFARGUMENT 16
-#define DEF_DEFHEAP  256000
+#define DEF_DEFARGUMENT  16
+#define DEF_DEFHEAP       0		/* unlimited */
 #endif
 
 #ifndef DEFLOCAL

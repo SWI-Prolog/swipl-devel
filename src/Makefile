@@ -273,7 +273,7 @@ iinclude:
 		fi
 
 iman:
-		$(SED) 's/PL/$(PL)/' $(srcdir)/pl.1 > $(PLBASE)/man/$(PL).$(mansec)
+		$(SED) 's/@PL@/$(PL)/' $(srcdir)/pl.1 > $(PLBASE)/man/$(PL).$(mansec)
 		$(INSTALL_DATA) $(srcdir)/chpl.1 $(PLBASE)/man/chpl.$(mansec)
 		$(INSTALL_DATA) $(srcdir)/plld.1 $(PLBASE)/man/plld.$(mansec)
 		$(INSTALL_DATA) $(srcdir)/readline.3 $(PLBASE)/man/readline.$(lmansec)

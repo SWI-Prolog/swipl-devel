@@ -19,5 +19,7 @@ install:
 	cp dvi2tty $(prefix)/bin/dvi2tty
 	chmod 755 $(prefix)/bin/dvi2tty
 
+distclean:	clean
+
 clean:
 	rm *.o dvi2tty

@@ -552,20 +552,21 @@ statistics :-
 
 	format('~2f seconds cpu time for ~D inferences~n',
 				    [Cputime, Inferences]),
-	format('~D atoms, ~D functors, ~D predicates, ~D modules, ~D byte-codes~n~n',
+	format('~D atoms, ~D functors, ~D predicates, ~D modules, ~D VM-codes~n~n',
 				    [Atoms, Functors, Predicates, Modules, Codes]),
-	format('                      Limit    Allocated       In use~n'),
-	(   statistics(heap, Heap)
-	->  format('Heap         :~t~D~27|          ~t~D~53| Bytes~n',
-		   [Heap, Heapused])
-	;   format('Heap         :                  ~t~D~53| Bytes~n',
+	format('                       Limit    Allocated       In use~n'),
+	(   statistics(heap, Heap),
+	    statistics(heaplimit, HeapLimit)
+	->  format('Heap         :~t~D~28| ~t~D~41| ~t~D~54| Bytes~n',
+		   [HeapLimit, Heap, Heapused])
+	;   format('Heap         :                  ~t~D~54| Bytes~n',
 		   [Heapused])
 	),
-	format('Local  stack :~t~D~27| ~t~D~40| ~t~D~53| Bytes~n',
+	format('Local  stack :~t~D~28| ~t~D~41| ~t~D~54| Bytes~n',
 	       [LocalLimit, Local, LocalUsed]),
-	format('Global stack :~t~D~27| ~t~D~40| ~t~D~53| Bytes~n',
+	format('Global stack :~t~D~28| ~t~D~41| ~t~D~54| Bytes~n',
 	       [GlobalLimit, Global, GlobalUsed]),
-	format('Trail  stack :~t~D~27| ~t~D~40| ~t~D~53| Bytes~n',
+	format('Trail  stack :~t~D~28| ~t~D~41| ~t~D~54| Bytes~n',
 	       [TrailLimit, Trail, TrailUsed]),
 
 	gc_statistics,

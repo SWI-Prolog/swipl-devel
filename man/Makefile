@@ -79,7 +79,7 @@ doc.ind:	doc.idx
 $(ONLINE):	online.dvi $(DVITOTTY)
 		$(DVITOTTY) -w100 online | cat -s > $(ONLINE)
 
-online.dvi:	latex_if_needed online.tex tty.sty $(TEXFILES)
+online.dvi:	latex_if_needed online.tex $(TEXFILES)
 		./latex_if_needed $(LATEX) online
 
 online.doc:	main.doc

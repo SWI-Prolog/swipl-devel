@@ -1343,6 +1343,7 @@ GLOBAL struct
 #define aBase	(stacks.argument.base)
 #define aTop	(stacks.argument.top)
 #define aMax	(stacks.argument.max)
+#define aLimit	(stacks.argument.limit)
 
 GLOBAL char *	hTop;			/* highest allocated heap address */
 GLOBAL char *	hBase;			/* lowest allocated heap address */

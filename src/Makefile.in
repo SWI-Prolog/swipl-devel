@@ -1,5 +1,5 @@
 ################################################################
-# Makefile for SWI-Prolog 2.7
+# Makefile for SWI-Prolog 2.8
 # $Id$
 #
 # Author:	Jan Wielemaker
@@ -215,7 +215,7 @@ dv-install:	install-arch install-libs install-bins
 
 install-bins:	install-arch
 		if [ -r $(bindir)/$(PL) ]; then \
-		    mv $(bindir)/$(PL) $(bindir)/$(PL).old; \
+		    mv -f $(bindir)/$(PL) $(bindir)/$(PL).old; \
 		fi
 		for f in $(PL) pl-bite chpl plld; do \
 		    ( cd $(bindir); rm -f $$f; ln -s $(PLBASE)/bin/$(ARCH)/$$f . ); \
@@ -281,7 +281,7 @@ iinclude:
 		fi
 
 iman:
-		$(SED) 's/PL/$(PL)/' $(srcdir)/pl.1 > $(PLBASE)/man/$(PL).$(mansec)
+		$(INSTALL_DATA) pl.1 $(PLBASE)/man/$(PL).$(mansec)
 		$(INSTALL_DATA) $(srcdir)/chpl.1 $(PLBASE)/man/chpl.$(mansec)
 		$(INSTALL_DATA) $(srcdir)/plld.1 $(PLBASE)/man/plld.$(mansec)
 		$(INSTALL_DATA) $(srcdir)/readline.3 $(PLBASE)/man/readline.$(lmansec)

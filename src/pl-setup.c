@@ -7,7 +7,7 @@
     Purpose: Initialise the system
 */
 
-/*#define O_DEBUG 1*/
+#define O_DEBUG 1
 
 #define GLOBAL				/* allocate global variables here */
 #include "pl-incl.h"
@@ -62,6 +62,11 @@ setupProlog(void)
   { hBase = (char *)(~0L);
     hTop  = (char *)NULL;
   }
+  { void *hbase = allocHeap(sizeof(word));
+
+    heap_base = (ulong)hbase & ~0x007fffffL; /* 8MB */
+    freeHeap(hbase, sizeof(word));
+  }
   DEBUG(1, Sdprintf("Stacks ...\n"));
   initStacks(options.localSize, 
 	     options.globalSize, 
@@ -73,11 +78,6 @@ setupProlog(void)
   gTop = gBase;
   aTop = aBase;
 
-  { void *hbase = allocHeap(sizeof(word));
-
-    heap_base = (ulong)hbase & ~0x007fffffL; /* 8MB */
-    freeHeap(hbase, sizeof(word));
-  }
   base_addresses[STG_LOCAL]  = (unsigned long)lBase;
   base_addresses[STG_GLOBAL] = (unsigned long)gBase;
   base_addresses[STG_TRAIL]  = (unsigned long)tBase;
@@ -274,12 +274,14 @@ some day.
 #define HAVE_SIGNALS 1
 #endif
 
+#if !O_DEBUG
 static void
 fatal_signal_handler(int sig, int type, SignalContext scp, char *addr)
 { DEBUG(1, Sdprintf("Fatal signal %d\n", sig));
 
   deliverSignal(sig, type, scp, addr);
 }
+#endif
 
 
 #ifdef HAVE_SIGSETMASK
@@ -421,7 +423,7 @@ interesting  to  do  this  automatically  at  certain points to minimise
 memory requirements.  How?
 
 Currently this mechanism can use mmap() and munmap() of SunOs 4.0 or the
-system-V shared memory primitives (if they meet certain criteria.
+system-V shared memory primitives (if they meet certain criteria).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #include <errno.h>
@@ -441,6 +443,11 @@ align_size(long int x)
 static long
 align_base(long int x)
 { return x % base_alignment ? (x / base_alignment + 1) * base_alignment : x;
+}
+
+static long
+align_base_down(long int x)
+{ return (x / base_alignment) * base_alignment;
 }
 
 #ifdef MMAP_STACK
@@ -493,8 +500,9 @@ get_map_fd()
       for(n=1024, s = buf; n > 0; n--)
         *s++ = EOS;
       for(n=size_alignment/1024; n > 0; n--)
-        if ( write(fd, buf, 1024) != 1024 )
+      { if ( write(fd, buf, 1024) != 1024 )
           fatalError("Failed to create map file %s: %s\n", map, OsError());
+      }
 
       return fd;
     }
@@ -505,6 +513,37 @@ get_map_fd()
   return fd;
 }
 #endif /*HAVE_MAP_ANON*/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Estimate the top if the heap.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifdef HAVE_GETRLIMIT
+#ifdef HAVE_SYS_RESOURCE_H
+#include <sys/resource.h>
+#endif
+
+#ifdef RLIMIT_DATA
+ulong
+topOfHeap()
+{ struct rlimit limit;
+
+  if ( getrlimit(RLIMIT_DATA, &limit) == 0 )
+  { ulong top = limit.rlim_cur + heap_base;
+
+    DEBUG(1, Sdprintf("Heap: %p ... %p\n", (void *)heap_base, (void *)top));
+    return top;
+  }
+
+  return 0L;
+}
+#else
+#define topOfHeap() (0L)
+#endif /*RLIMIT_DATA*/
+#else
+#define topOfHeap() (0L)
+#endif /*HAVE_GETRLIMIT*/
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Expand stack `s' by one page.  This might not be  enough,  but  in  this
@@ -1101,31 +1140,50 @@ initStacks(long local, long global, long trail, long argument)
   if ( trail    == 0 ) large++;
   if ( argument == 0 ) large++;
 
-#ifdef MMAP_MIN_ADDRESS
-  base	= MMAP_MIN_ADDRESS;
-#else
-  base  = (ulong) align_base((ulong)sbrk(0) + options.heapSize);
-#endif
-  top   = (long) MMAP_MAX_ADDRESS;
-  DEBUG(1, Sdprintf("top = 0x%x, stack at 0x%x\n", top, (unsigned) &top));
-  space = top - base;
-  space -= align_base(local + STACK_SEPARATION) +
-	   align_base(global + STACK_SEPARATION) +
-	   align_base(trail + STACK_SEPARATION) +
-	   align_base(argument);
-  
-  if ( large > 0 )
-  { large_size = ((space / large) / base_alignment) * base_alignment;
-    if ( large_size > 64 MB )
-      large_size = 64 MB;
-    if ( large_size < STACK_MINIMUM )
-      fatalError("Can't fit requested stack sizes in address space");
-    DEBUG(1, Sdprintf("Large stacks are %ld\n", large_size));
+  if ( (top = topOfHeap()) > 0L && !options.heapSize )
+  { if ( large > 0 )			/* we have dynamic stacks */
+    { base = heap_base;
+      space = top - base;
+      space -= align_base(1) +
+	       align_base(local + STACK_SEPARATION) +
+	       align_base(global + STACK_SEPARATION) +
+	       align_base(trail + STACK_SEPARATION) +
+	       align_base(argument);
+      large_size = ((space / large+1) / base_alignment) * base_alignment;
+      if ( large_size > 64 MB )
+	large_size = 64 MB;
+      if ( large_size < STACK_MINIMUM )
+	fatalError("Can't fit requested stack sizes in address space");
+      DEBUG(1, Sdprintf("Large stacks are %ld\n", large_size));
 
-    if ( local    == 0 ) local    = large_size;
-    if ( global   == 0 ) global   = large_size;
-    if ( trail    == 0 ) trail    = large_size;
-    if ( argument == 0 ) argument = large_size;
+      if ( local    == 0 ) local    = large_size;
+      if ( global   == 0 ) global   = large_size;
+      if ( trail    == 0 ) trail    = large_size;
+      if ( argument == 0 ) argument = large_size;
+    }
+
+    base = top - (align_base(1) +
+		  align_base(local + STACK_SEPARATION) +
+		  align_base(global + STACK_SEPARATION) +
+		  align_base(trail + STACK_SEPARATION) +
+		  align_base(argument));
+    base = align_base_down(base);
+  } else				/* we don't know the top */
+  {
+#ifdef MMAP_MIN_ADDRESS
+    base = MMAP_MIN_ADDRESS;
+#else
+    base = (ulong) align_base((ulong)sbrk(0) + options.heapSize);
+#endif
+    if ( large > 0 )
+    { large_size = 64 MB;		/* what about the Alpha? */
+      DEBUG(1, Sdprintf("Large stacks are %ld\n", large_size));
+  
+      if ( local    == 0 ) local    = large_size;
+      if ( global   == 0 ) global   = large_size;
+      if ( trail    == 0 ) trail    = large_size;
+      if ( argument == 0 ) argument = large_size;
+    }
   }
 
 #define INIT_STACK(name, print, limit, minsize) \
@@ -1139,6 +1197,8 @@ initStacks(long local, long global, long trail, long argument)
   INIT_STACK(local,    "local",    local,    8 K);
   INIT_STACK(trail,    "trail",    trail,    8 K);
   INIT_STACK(argument, "argument", argument, 1 K);
+
+  assert(top == 0L || (ulong)aLimit <= top);
 
 #ifndef NO_SEGV_HANDLING
   pl_signal(SIGSEGV, (handler_t) segv_handler);

@@ -1790,6 +1790,10 @@ table_columns([0'p|T0], NC0,   NC,   [Col|TH]) :-
 */
 	NC1 is NC0 + 1,
 	table_columns(T, NC1, NC, TH).
+table_columns([0'D|T0], NC0,   NC,   [['ALIGN'=right]|TH]) :-
+	phrase(align_char(_W), T0, T),
+	NC1 is NC0 + 1,
+	table_columns(T, NC1, NC, TH).
 table_columns([0'||T], NC0,  NC,     TH) :-
 	table_columns(T, NC0, NC, TH).
 
@@ -1804,6 +1808,15 @@ parbox_width(-) -->
 	string_without("{}", _),
 	"}", !.
 
+align_char(W) -->		% D{inputsep}{outputsep}{decimal places}
+	"{",
+	string_without("{}", W),
+	"}{",
+	string_without("{}", _),
+	"}{",
+	number(_),
+	"}".
+
 string_without(L, [C|T]) -->
 	[C],
 	{\+ member(C, L)}, !,
@@ -1811,14 +1824,24 @@ string_without(L, [C|T]) -->
 string_without(_, []) --> [].
 
 number(N) -->
+	optional_sign(S),
 	digit(C0),
 	float_digits(C),
-	{number_chars(N, [C0|C])}.
+	{ append(S, [C0|C], Chars),
+	  number_chars(N, Chars)
+	}.
 
 integer(N) -->
+	optional_sign(S),
 	digit(C0),
 	digits(C),
-	{number_chars(N, [C0|C])}.
+	{ append(S, [C0|C], Chars),
+	  number_chars(N, Chars)
+	}.
+
+optional_sign("-") --> "-", !.
+optional_sign("+") --> "+", !.
+optional_sign("")  --> "".
 
 digit(C) -->
 	[C],

@@ -1,20 +1,20 @@
 .\" -*- nroff -*-
-.TH PL 1L "November 13, 1996" "SWI-Prolog 2.7"
+.TH @PL@ 1L "May 10, 1997" "SWI-Prolog 2.8"
 .SH NAME
-pl \- SWI-Prolog
+@PL@ \- SWI-Prolog
 .SH SYNOPSIS
-.B pl
+.B @PL@
 .RB [ \-help | \-v | \-arch | \-dump\-runtime\-variables ]
 .br
-.B pl
+.B @PL@
 [options]
 .br
-.B pl
+.B @PL@
 [options]
 .RB [ "\-o \fIoutput" ]
 .BI \-c " file ..."
 .br
-.B pl
+.B @PL@
 [options]
 .RB [ "\-o \fIoutput" ]
 .BI \-b " initfile ..."
@@ -68,7 +68,7 @@ a form compatible with the
 (bourne) shell.  This option is used by
 .B plld (1)
 to fetch necessary information about Prolog.  It is normally invoked as
-.I eval `pl -dump-runtime-variables`,
+.I eval `@PL@ -dump-runtime-variables`,
 which assigns the following shell variables:
 .RS
 .TP
@@ -109,24 +109,55 @@ and
 otherwise.
 .RE
 .TP
-.BI \-A size
+.BI \-A size [km]
 Sets the argument stack size to
-.I size
-K bytes. The default is 1024. See
+.I size.
+The default is 1 Mbytes.  The argument-size determines the maximum
+term-nesting of terms that can be compiled and executed.  Both the compiler
+and virtual machine use `last-argument optimisation', so -for example- long
+lists do not require the argument stack. See also the
 .B \-L
-for more details.
+option.
 .TP
-.BI \-G size
+.BI \-G size [km]
 Sets the global stack size to
-.I size
-K bytes. The default is 4096. See
+.I size.
+The default is 4 Mbytes.  The global stack is used to store compound
+terms, floating point numbers, big integers and strings. See also the
 .B \-L
-for more details.
+option.
 .TP
-.BI \-L size
+.BI \-H size [km]
+Determines the size reserved for the
+.I malloc()
+heap.  The heap is used to store atoms, functors, predicates and their
+clauses, records and flags.  The heap is also used for external packages
+using
+.B malloc().
+This flag is only relevant on machines where the stacks are
+allocated using the
+.I mmap()
+function.  Among these systems are
+.B Linux, SunOS/Solaris
+and
+.B OSF/1.
+By default, the Prolog stacks are allocated from the top of the
+heap downwards.  Using the
+.B \-H
+option allocates the Prolog stack at the indicated distance from
+the current top of the heap upwards.  See also
+.I statistics/0.
+.TP
+.BI \-L size [km]
 Sets the local stack size to
-.I size
-K bytes. This flag sets the maximum value to which the stack is
+.I size.
+The default unit is Kbytes.  The local stack is used to store environment
+frames, choicepoints and foreign-language term-references.  Note that
+SWI-Prolog does last-call optimisation to minimize the local stack
+requirements. If the argument ends in
+.B m ,
+the argument is interpreted in Mbytes.
+This flag sets the maximum value to which the stack is
 allowed to grow (default 2048). A maximum is useful to prevent buggy
 programs from claiming all the memory resources.
 .B \-L0
@@ -312,6 +343,40 @@ Personal initialisation files consulted by SWI-Prolog on startup.
 If both exist
 .I .plrc
 is used.
+.TP
+.I @prefix/lib/@PL@-@PLVERSION@/bin/@ARCH@/
+Location for the executables.
+.TP
+.I @prefix/lib/@PL@-@PLVERSION@/include/
+Location for the include files.  If writeable, SWI-Prolog.h is also
+copied to @prefix@/include/SWI-Prolog.h.
+.TP
+.I @prefix@/include/SWI-Prolog.h
+Include file for creating extensions in the
+.B C
+language and/or embedding SWI-Prolog.
+.TP
+.I @prefix/lib/@PL@-@PLVERSION@/library/
+SWI-Prolog user libraries.
+.TP
+.I @prefix/lib/@PL@-@PLVERSION@/boot/
+SWI-Prolog kernel parts written in Prolog.  The startup file
+@prefix/lib/@PL@-@PLVERSION@/startup/startup may be recreated using
+the command from the directory @prefix/lib/@PL@-@PLVERSION@:
+.RS
+.TP
+bin/@ARCH@/@PL@ -O -o startup/startup -b boot/init.pl
+.RE
+.TP
+.I @prefix/lib/@PL@-@PLVERSION@/startup/startup
+Default startup file.  This is a `intermediate code' file containing
+precompiled code from the boot directory.  The
+.BI \-x bootfile
+option may be used to select a different file.
+.TP
+.I @prefix/lib/@PL@-@PLVERSION@/runtime/@ARCH@/libpl.a
+SWI-Prolog library for embedding.  See also
+.I plld(1).
 .SH SEE ALSO
 Jan\ Wielemaker
 .IR "SWI-Prolog 2.7 Reference Manual" ,
