@@ -502,4 +502,7 @@ F var			1
 F warning		3
 F xor			2
 F xpceref		1
-
+F syntax_error		1
+F file			2
+F stream		3
+F string		2

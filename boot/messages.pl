@@ -59,6 +59,35 @@ iso_message(existence_error(procedure, Proc)) -->
 	).
 iso_message(existence_error(Type, Object)) -->
 	[ '~w `~p'' does not exist'-[Type, Object] ].
+iso_message(syntax_error(Id)) -->
+	[ 'Syntax error: ' ],
+	syntax_error(Id).
+
+syntax_error(end_of_clause) -->
+	[ 'Unexpected end of clause' ].
+syntax_error(end_of_clause_expected) -->
+	[ 'End of clause expected' ].
+syntax_error(end_of_file) -->
+	[ 'Unexpected end of file' ].
+syntax_error(end_of_file_in_atom) -->
+	[ 'End of file in quoted atom' ].
+syntax_error(end_of_file_in_block_comment) -->
+	[ 'End of file in /* ... */ comment' ].
+syntax_error(end_of_file_in_string) -->
+	[ 'End of file in quoted string' ].
+syntax_error(illegal_number) -->
+	[ 'Illegal number' ].
+syntax_error(long_atom) -->
+	[ 'Atom too long (see style_check/1)' ].
+syntax_error(long_string) -->
+	[ 'String too long (see style_check/1)' ].
+syntax_error(operator_clash) -->
+	[ 'Operator priority clash' ].
+syntax_error(operator_expected) -->
+	[ 'Operator expected' ].
+syntax_error(operator_balance) -->
+	[ 'Unbalanced operator' ].
+
 
 dwim_predicates(Module:Name/_Arity, Dwims) :- !,
 	findall(Dwim, dwim_predicate(Module:Name, Dwim), Dwims).
@@ -92,18 +121,38 @@ swi_message(signal(Name, Num)) -->
 	[ 'Caught signal ~d (~w)'-[Num, Name] ].
 
 
+swi_context(X) -->
+	{ var(X)
+	}, !,
+	[].
 swi_context(context(Name/Arity, _Msg)) -->
 	{ nonvar(Name)
 	}, !,
 	[ '~q/~w: '-[Name, Arity] ].
+swi_context(file(Path, Line)) -->
+	[ Path, ':', Line, ': ' ].
+swi_context(stream(Stream, Line, _CharNo)) -->
+	[ 'Line ', Line, ' of stream ', Stream ].
 swi_context(_) -->
 	[].
 
+swi_extra(X) -->
+	{ var(X)
+	}, !,
+	[].
 swi_extra(context(_, Msg)) -->
 	{ atomic(Msg),
 	  Msg \== ''
 	}, !,
 	[ ' (~w)'-[Msg] ].
+swi_extra(string(String, CharPos)) -->
+	{ From is CharPos+1,
+	  string_length(String, Len),
+	  AfterLen is Len - From,
+	  substring(String, 1, CharPos, Before),
+	  substring(String, From, AfterLen, After)
+	},
+	[ nl, Before, nl, '** here **', nl, After ].
 swi_extra(_) -->
 	[].
 

@@ -108,8 +108,6 @@
 #define pl_recorda		Sreca
 #define pl_recordz		Srecz
 #define pl_recorded		Sreced
-#define pl_read_variables	Srdvars
-#define pl_read_variables3	Srdvars3
 #define pl_read			Sread
 #define pl_read_clause		Srdcl
 #define pl_read_clause2		Srdcl2

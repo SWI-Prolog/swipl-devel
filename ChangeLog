@@ -1,6 +1,17 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: Allow PL_new_atom() to be called before PL_initialise()
+
+  * DELETED: read_variables/[2,3].  With ISO read_term, this predicate is
+    obsolete.  Put a backward-compatibility definition in library
+    backcomp.pl.
+
+  * COMPATIBILITY/ISO: All variations of read/1 and read_term/[2,3] now
+    generate an exception rather than printing a message to the terminal.
+    This also includes term_to_atom/2 and atom_to_term/3.  The option
+    syntax_errors from read_term/[2,3] has been deleted.
+
   * COMPATIBILITY/ISO: Introduced atom_codes/2 and modified atom_chars/2
     to return a list of one-char atoms rather than a list of codes.
     The atom-breaking routines now generate exceptions rather than

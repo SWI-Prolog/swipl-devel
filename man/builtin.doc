@@ -1867,38 +1867,15 @@ Used to read Prolog source files (see consult/1).  New code should
 use read_term/2 with the option \exam{singletons(warning)}.
 \predicate{read_clause}{2}{+Stream, -Term}
 Read a clause from \arg{Stream}.  See read_clause/1.
-\predicate{read_variables}{2}{-Term, -Bindings}
-Similar to read/1, but \arg{Bindings} is unified with a list of
-`$\arg{Name} = \arg{Var}$' tuples, thus providing access to the actual
-variable names.  New code should use read_term/2 using the option
-\exam{variables(X)}.
-\predicate{read_variables}{3}{+Stream, -Term, -Bindings}
-Read, returning term and bindings from \arg{Stream}. See
-read_variables/2.
 \predicate{read_term}{2}{-Term, +Options}
-Read a term from the current input stream and unify the term with \arg{Term}. The reading is controlled by options from the list of \arg{Options}.   If this list is empty, the behaviour is the same as for
-read/1.  The options are upward compatible to Quintus Prolog.  The
-argument order is according to the ISO standard.  Options:
+Read a term from the current input stream and unify the term with
+\arg{Term}. The reading is controlled by options from the list of
+\arg{Options}. If this list is empty, the behaviour is the same as for
+read/1. The options are upward compatible to Quintus Prolog. The
+argument order is according to the ISO standard.  Syntax-errors are
+always reported using exception-handling (see catch/3). Options:
 
 \begin{description}
-    \termitem{syntax_errors}{atom or variable}
-Define the behaviour for when a syntax error occurs.  The possible values
-are:
-    \begin{description}
-        \termitem{fail}{}
-    Default behaviour.  The error is reported as a warning and the predicate
-    fails.
-        \termitem{quiet}{}
-    Quietly fails if a syntax error has occurred.
-        \termitem{\arg{Variable}}{}
-    If no error occurs, the variable is unified with \const{none}, otherwise
-    \arg{Variable} is unified with a term of the form
-\begin{code}
-'$stream_position'(CharNo, LineNo, LinePos):Message
-\end{code}
-    This behaviour is a SWI-Prolog extension.
-    \end{description}
-
     \termitem{variable_names}{Vars}
 Unify \arg{Vars} with a list of `\arg{Name} = \arg{Var}', where \arg{Name} is an atom describing the variable name and \arg{Var} is a
 variable that shares with the corresponding variable in \arg{Term}.
@@ -1943,15 +1920,15 @@ with the term-position of the tail, otherwise with the atom \const{none}.
     \predicate{read_term}{3}{+Stream, -Term, +Options}
 Read term with options from \arg{Stream}.  See read_term/2.
     \predicate{read_history}{6}{+Show, +Help, +Special, +Prompt, -Term, -Bindings}
-Similar to read_variables/2, but allows for history substitutions.
-read_history/6 is used by the top level to read the user's actions.
-\arg{Show} is the command the user should type to show the saved events.
-\arg{Help} is the command to get an overview of the capabilities.
-\arg{Special} is a list of commands that are not saved in the history.
-\arg{Prompt} is the first prompt given. Continuation prompts for more
-lines are determined by prompt/2. A \const{\%w} in the prompt is
-substituted by the event number. See \secref{history} for available
-substitutions.
+Similar to read_term/2 using the option \const{variable_names}, but
+allows for history substitutions. read_history/6 is used by the top
+level to read the user's actions. \arg{Show} is the command the user
+should type to show the saved events. \arg{Help} is the command to get
+an overview of the capabilities. \arg{Special} is a list of commands
+that are not saved in the history. \arg{Prompt} is the first prompt
+given. Continuation prompts for more lines are determined by prompt/2. A
+\const{\%w} in the prompt is substituted by the event number. See
+\secref{history} for available substitutions.
 
 SWI-Prolog calls read_history/6 as follows:
 
@@ -2128,12 +2105,16 @@ Equivalent to \exam{int_to_atom(Int, 10, Atom)}.
 \predicate{term_to_atom}{2}{?Term, ?Atom}
 Succeeds if \arg{Atom} describes a term that unifies with \arg{Term}. When
 \arg{Atom} is instantiated \arg{Atom} is converted and then unified with
-\arg{Term}. Otherwise \arg{Term} is ``written'' on \arg{Atom} using write/1.
+\arg{Term}.  If \arg{Atom} has no valid syntax, a \except{syntax_error}
+exception is raised. Otherwise \arg{Term} is ``written'' on \arg{Atom}
+using write/1.
 \predicate{atom_to_term}{3}{+Atom, -Term, -Bindings}
-Use \arg{Atom} as input to read_variables/2 and return the read term in
-\arg{Term} and the variable bindings in \arg{Bindings}.  \arg{Bindings}
-is a list of $\arg{Name} = \arg{Var}$ couples, thus providing access to
-the actual variable names.  See also read_variables/2.
+Use \arg{Atom} as input to read_term/2 using the option
+\const{variable_names} and return the read term in \arg{Term} and the
+variable bindings in \arg{Bindings}. \arg{Bindings} is a list of
+$\arg{Name} = \arg{Var}$ couples, thus providing access to the actual
+variable names. See also read_term/2. If \arg{Atom} has no valid syntax,
+a \except{syntax_error} exception is raised.
     \predicate{atom_concat}{3}{?Atom1, ?Atom2, ?Atom3}
 \arg{Atom3} forms the concatenation of \arg{Atom1} and \arg{Atom2}.  At
 least two of the arguments must be instantiated to atoms, integers or

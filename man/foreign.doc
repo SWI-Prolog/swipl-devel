@@ -1148,6 +1148,8 @@ Parse the string \arg{chars} and put the resulting Prolog term into
 \arg{t}. \arg{chars} may or may not be closed using a Prolog full-stop
 (i.e.\ a dot followed by a blank). Returns \const{FALSE} if a syntax
 error was encountered and \const{TRUE} after successful completion.
+In addition to returning \const{FALSE}, the exception-term is
+returned in \arg{t} on a syntax error.
 See also term_to_atom/2.
 
 The following example build a goal-term from a string and calls it.

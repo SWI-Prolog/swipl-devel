@@ -868,7 +868,17 @@ $confirm_module(_, '').
 
 $read_clause(Clause) :-				% get the first non-syntax
 	repeat,					% error
-	    read_clause(Clause), !.
+	catch(read_clause(Clause), E, $compile_syntax_error(E)), !.
+
+$compile_syntax_error(E) :-
+	E = error(_, file(File, Line)),
+	'$messages':message_to_string(E, Str),
+	user:exception(warning,
+		       warning(File, Line, Str), _), !,
+	fail.
+$compile_syntax_error(E) :-
+	print_message(error, E),
+	fail.
 
 $consult_file(Absolute, Module, Import, IsModule, What, LM) :-
 	$set_source_module(Module, Module), !, % same module
@@ -940,7 +950,7 @@ $load_file(FirstClause, File, _, false, Module) :- !,
 	$ifcompiling($qlf_start_file(File)),
 	ignore($consult_clause(FirstClause, File)),
 	repeat,
-	    read_clause(Clause),
+	    $read_clause(Clause),
 	    $consult_clause(Clause, File), !,
 	$ifcompiling($qlf_end_part).
 

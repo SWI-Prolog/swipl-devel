@@ -125,3 +125,7 @@
 #define FUNCTOR_warning3     MK_FUNCTOR(124, 3)
 #define FUNCTOR_xor2         MK_FUNCTOR(125, 2)
 #define FUNCTOR_xpceref1     MK_FUNCTOR(126, 1)
+#define FUNCTOR_syntax_error1 MK_FUNCTOR(127, 1)
+#define FUNCTOR_file2        MK_FUNCTOR(128, 2)
+#define FUNCTOR_stream3      MK_FUNCTOR(129, 3)
+#define FUNCTOR_string2      MK_FUNCTOR(130, 2)

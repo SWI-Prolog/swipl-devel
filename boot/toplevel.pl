@@ -285,7 +285,10 @@ read_query(Prompt, Goal, Bindings) :-
 	    atom_codes(Line, LineChars),
 	    append(LineChars, ".", CompleteLine),
 	    catch(user:rl_add_history(CompleteLine), _, true),
-	    $term_to_atom(Goal, Line, Bindings, 1)
+	    catch(atom_to_term(Goal, Line, Bindings), E,
+		  (   print_message(error, E),
+		      fail
+		  ))
 	;   read_term(user_input, Goal, [variable_names(Bindings)])
 	), !.
 read_query(Prompt, Goal, Bindings) :-

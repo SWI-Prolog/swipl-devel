@@ -313,8 +313,6 @@ suggest predicates from a keyword.
 \predicatesummary{read_link}{3}{Read a symbolic link}
 \predicatesummary{read_term}{2}{Read term with options}
 \predicatesummary{read_term}{3}{Read term with options from stream}
-\predicatesummary{read_variables}{2}{Read clause including variable names}
-\predicatesummary{read_variables}{3}{Read clause including variable names from stream }
 \predicatesummary{recorda}{2}{Record term in the database (first)}
 \predicatesummary{recorda}{3}{Record term in the database (first)}
 \predicatesummary{recorded}{2}{Obtain term from the database}

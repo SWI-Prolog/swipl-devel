@@ -79,6 +79,10 @@ struct var_table
 #define T_PUNCTUATION	6	/* punctuation character */
 #define T_FULLSTOP	7	/* Prolog end of clause */
 
+#define E_SILENT	0	/* Silently fail */
+#define E_EXCEPTION	1	/* Generate an exception */
+#define E_PRINT		2	/* Print to Serror */
+
 #define Input (LD->IO.input)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -97,9 +101,7 @@ typedef struct
   struct read_buffer _rb;		/* keep read characters here */
   struct var_table vt;			/* Data about variables */
 
-  char *	syntax_error;		/* syntax error (if any) */
-  bool		report_syntax_errors;	/* if TRUE, print syntax errors */
-
+  term_t	exception;		/* raised exception */
   term_t	varnames;		/* Report variables */
   term_t	singles;		/* Report singleton variables */
   term_t	subtpos;		/* Report Subterm positions */
@@ -121,6 +123,7 @@ init_read_data(ReadData _PL_rd)
 
   initBuffer(&var_name_buffer);
   initBuffer(&var_buffer);
+  _PL_rd->exception = PL_new_term_ref();
 }
 
 static void
@@ -146,62 +149,68 @@ startRead(ReadData _PL_rd)
 		*         ERROR HANDLING        *
 		*********************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Syntax Error exceptions:
+
+	end_of_clause
+	end_of_clause_expected
+	end_of_file
+	end_of_file_in_atom
+	end_of_file_in_block_comment
+	end_of_file_in_string
+	illegal_number
+	long_atom
+	long_string
+	operator_clash
+	operator_expected
+	operator_balance
+
+Error term:
+
+	error(syntax_error(Id), file(Path, Line))
+	error(syntax_error(Id), string(String, CharNo))
+	error(syntax_error(Id), stream(Stream, Line, CharPos))
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+
 #define syntaxError(what, rd) { errorWarning(what, rd); fail; }
 
 static void
-errorWarning(char *what, ReadData _PL_rd)
-{ unsigned int c;
-  
-  if ( !_PL_rd->report_syntax_errors )
-  { source_char_no += last_token_start - rdbase;
-    _PL_rd->syntax_error = what;
-    return;
+errorWarning(const char *id_str, ReadData _PL_rd)
+{ term_t ex = PL_new_term_ref();
+  term_t loc = PL_new_term_ref();
+
+  PL_unify_term(ex,
+		PL_FUNCTOR, FUNCTOR_error2,
+		  PL_FUNCTOR, FUNCTOR_syntax_error1,
+		    PL_CHARS, id_str,
+		  PL_TERM, loc);
+
+  source_char_no += last_token_start - rdbase;
+
+  if ( ReadingSource )			/* reading a file */
+  { PL_unify_term(loc,
+		  PL_FUNCTOR, FUNCTOR_file2,
+		    PL_ATOM, source_file_name,
+		    PL_INTEGER, source_line_no);
+  } else if ( seeingString() )
+  { PL_unify_term(loc,
+		  PL_FUNCTOR, FUNCTOR_string2,
+		    PL_STRING, rdbase,
+		    PL_INTEGER, last_token_start-rdbase);
+  } else				/* any stream */
+  { term_t stream = PL_new_term_ref();
+
+    pl_seeing(stream);
+
+    PL_unify_term(loc,
+		  PL_FUNCTOR, FUNCTOR_stream3,
+		    PL_TERM, stream,
+		    PL_INTEGER, source_line_no,
+		    PL_INTEGER, source_char_no);
   }
 
-  c = *last_token_start;
-
-  if ( !ReadingSource )			/* not reading from a file */
-  { Sfprintf(Serror, "\n[WARNING: Syntax error: %s \n", what);
-    *last_token_start = EOS;
-    Sfprintf(Serror, "%s\n** here **\n", rdbase);  
-    if (c != EOS)
-    { *last_token_start = c;
-      Sfprintf(Serror, "%s]\n", last_token_start);
-    }
-  } else
-  { predicate_t pred = PL_pred(FUNCTOR_exception3, MODULE_user);
-    int rval;
-    unsigned char *s;
-
-    for(s = rdbase; s < last_token_start; s++ )
-    { if ( *s == '\n' )
-      	source_line_no++;
-    }
-	
-    if ( pred->definition->definition.clauses )
-    { fid_t cid = PL_open_foreign_frame();
-      qid_t qid;
-      term_t argv = PL_new_term_refs(3);
-      term_t a    = PL_new_term_ref();
-    
-      PL_put_atom(    argv+0, ATOM_syntax_error);
-      PL_put_functor( argv+1, FUNCTOR_syntax_error3);
-      PL_put_variable(argv+2);
-      PL_get_arg(1, argv+1, a); PL_unify_atom(a, source_file_name);
-      PL_get_arg(2, argv+1, a); PL_unify_integer(a, source_line_no);
-      PL_get_arg(3, argv+1, a); PL_unify_atom_chars(a, what);
-	       
-      qid = PL_open_query(MODULE_user, PL_Q_NODEBUG, pred, argv);
-      rval = PL_next_solution(qid);
-      PL_close_query(qid);
-      PL_discard_foreign_frame(cid);
-    } else
-      rval = FALSE;
-
-    if ( !rval )
-      warning("%s:%d: Syntax error: %s",
-	      stringAtom(source_file_name), source_line_no, what);
-  }
+  PL_put_term(_PL_rd->exception, ex);
 }
 
 
@@ -338,12 +347,12 @@ raw_read2(ReadData _PL_rd)
 		if (something_read)
 		{ if ( dotseen )		/* term.<EOF> */
 		  { if ( rb.here - rb.base == 1 )
-		      rawSyntaxError("Unexpected end of clause");
+		      rawSyntaxError("end_of_clause");
 		    ensure_space(' ');
 		    addToBuffer(EOS, _PL_rd);
 		    return rb.base;
 		  }
-		  rawSyntaxError("Unexpected end of file");
+		  rawSyntaxError("end_of_file");
 		}
 		if ( Sfpasteof(ioi) )
 		{ warning("Attempt to read past end-of-file");
@@ -358,7 +367,7 @@ raw_read2(ReadData _PL_rd)
 		  int level = 1;
 
 		  if ((last = getchr()) == EOF)
-		    rawSyntaxError("End of file in ``/* ... */'' comment");
+		    rawSyntaxError("end_of_file_in_block_comment");
 
 		  if ( something_read )
 		  { addToBuffer(' ', _PL_rd);	/* positions */
@@ -369,7 +378,7 @@ raw_read2(ReadData _PL_rd)
 		  for(;;)
 		  { switch(c = getchr())
 		    { case EOF:
-			rawSyntaxError("End of file in ``/* ... */'' comment");
+			rawSyntaxError("end_of_file_in_block_comment");
 		      case '*':
 			if ( last == '/' )
 			  level++;
@@ -412,7 +421,7 @@ raw_read2(ReadData _PL_rd)
 		    { addToBuffer(c, _PL_rd);
 		      break;
 		    }
-		    rawSyntaxError("Unexpected end of file");
+		    rawSyntaxError("end_of_file");
 		  }
 		  dotseen = FALSE;
 		  break;
@@ -429,13 +438,13 @@ raw_read2(ReadData _PL_rd)
 		  } else if (c == '\n' &&
 			     newlines++ > MAXNEWLINES &&
 			     (debugstatus.styleCheck & LONGATOM_CHECK))
-		    rawSyntaxError("Atom too long");
+		    rawSyntaxError("long_atom");
 
 		  addToBuffer(c, _PL_rd);
 		}
 		if (c == EOF)
 		{ eofinquoted:
-		  rawSyntaxError("End of file in quoted atom");
+		  rawSyntaxError("end_of_file_in_atom");
 		}
 		addToBuffer(c, _PL_rd);
 		dotseen = FALSE;
@@ -451,12 +460,12 @@ raw_read2(ReadData _PL_rd)
 		  } else if (c == '\n' &&
 			     newlines++ > MAXNEWLINES &&
 			     (debugstatus.styleCheck & LONGATOM_CHECK))
-		    rawSyntaxError("String too long");
+		    rawSyntaxError("long_string");
 		  addToBuffer(c, _PL_rd);
 		}
 		if (c == EOF)
 		{ eofinstr:
-		  rawSyntaxError("End of file in string");
+		  rawSyntaxError("end_of_file_in_string");
 		}
 		addToBuffer(c, _PL_rd);
 		dotseen = FALSE;
@@ -477,7 +486,7 @@ raw_read2(ReadData _PL_rd)
 		{ case SP:
 		    if ( dotseen )
 		    { if ( rb.here - rb.base == 1 )
-			rawSyntaxError("Unexpected end of file");
+			rawSyntaxError("end_of_file");
 		      ensure_space(c);
 		      addToBuffer(EOS, _PL_rd);
 		      return rb.base;
@@ -1003,7 +1012,7 @@ get_token(bool must_be_op, ReadData _PL_rd)
 		    cur_token.type = T_NUMBER;
 		    break;
 		  } else
-		    syntaxError("Illegal number", _PL_rd);
+		    syntaxError("illegal_number", _PL_rd);
 		}
     case SO:	{ char tmp[2];
 
@@ -1163,7 +1172,7 @@ PL_assign_term(term_t to, term_t from)
 		*             PARSER            *
 		*********************************/
 
-#define priorityClash { syntaxError("Operator priority clash"); }
+#define priorityClash { syntaxError("operator_clash"); }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This part of the parser actually constructs  the  term.   It  calls  the
@@ -1370,10 +1379,7 @@ can_reduce(out_entry *out, op_entry *op)
 
 static int
 bad_operator(out_entry *out, op_entry *op, ReadData _PL_rd)
-{ char buf[1024];
-  term_t t;
-  atom_t name;
-  int arity;
+{ term_t t;
   char *opname = stringAtom(op->op);
 
   last_token_start = op->token_start;
@@ -1394,14 +1400,14 @@ bad_operator(out_entry *out, op_entry *op, ReadData _PL_rd)
       t = out[0].term;
   }
 
+/* might use this to improve the error message!?
   if ( PL_get_name_arity(t, &name, &arity) )
   { Ssprintf(buf, "Operator `%s' conflicts with `%s'",
 	     opname, stringAtom(name));
-  } else
-  { Ssprintf(buf, "Unknown conflict with operator `%s'", opname);
   }
+*/
 
-  syntaxError(buf, _PL_rd);
+  syntaxError("operator_clash", _PL_rd);
 }
 
 #define Reduce(cpri) \
@@ -1510,7 +1516,7 @@ complex_term(const char *stop, term_t term, term_t positions, ReadData _PL_rd)
     }
 
     if ( rmo != 0 )
-      syntaxError("Operator expected", _PL_rd);
+      syntaxError("operator_expected", _PL_rd);
     rmo++;
     realloca(out, sizeof(*out), out_n+1);
     out[out_n].pri = 0;
@@ -1536,7 +1542,7 @@ exit:
     succeed;
   }
 
-  syntaxError("Unbalanced operators", _PL_rd);
+  syntaxError("operator_balance", _PL_rd);
 }
 
 
@@ -1555,7 +1561,7 @@ simple_term(bool must_be_op, term_t term, bool *name,
 
   switch(token->type)
   { case T_FULLSTOP:
-      syntaxError("Unexpected end of clause", _PL_rd);
+      syntaxError("end_of_clause", _PL_rd);
     case T_VOID:
       setHandle(term, 0L);		/* variable */
       goto atomic_out;
@@ -1811,7 +1817,7 @@ read_term(term_t term, ReadData rd)
   if ( !(token = get_token(FALSE, rd)) )
     goto failed;
   if ( token->type != T_FULLSTOP )
-  { errorWarning("End of clause expected", rd);
+  { errorWarning("end_of_clause_expected", rd);
     goto failed;
   }
 
@@ -1841,11 +1847,11 @@ pl_raw_read(term_t term)
   word rval;
 
   init_read_data(&rd);
-  s = raw_read(&rd);
+  if ( !(s = raw_read(&rd)) )
+  { rval = PL_raise_exception(rd.exception);
+    goto out;
+  }
 
-  if ( s == (char *) NULL )
-    fail;
-  
 					/* strip the input from blanks */
   for(top = s+strlen(s)-1; top > s && isBlank(*top); top--);
   if ( *top == '.' )
@@ -1859,6 +1865,7 @@ pl_raw_read(term_t term)
 
   rval = PL_unify_atom_chars(term, s);
 
+out:
   free_read_data(&rd);
 
   return rval;
@@ -1872,41 +1879,24 @@ pl_raw_read2(term_t stream, term_t term)
 
 
 word
-pl_read_variables(term_t term, term_t variables)
-{ read_data rd;
-  int rval;
-
-  init_read_data(&rd);
-  rd.varnames = variables;
-  rd.report_syntax_errors = TRUE;
-  rval = read_term(term, &rd);
-  free_read_data(&rd);
-
-  return rval;
-}
-
-word
-pl_read_variables3(term_t stream, term_t term, term_t variables)
-{ streamInput(stream, pl_read_variables(term, variables));
-}
-
-word
 pl_read(term_t term)
 { read_data rd;
   int rval;
 
   init_read_data(&rd);
-  rd.report_syntax_errors = TRUE;
-  rval = read_term(term, &rd);
+  if ( !(rval = read_term(term, &rd)) )
+    rval = PL_raise_exception(rd.exception);
   free_read_data(&rd);
 
   return rval;
 }
 
+
 word
 pl_read2(term_t stream, term_t term)
 { streamInput(stream, pl_read(term));
 }
+
 
 word
 pl_read_clause(term_t term)
@@ -1914,9 +1904,9 @@ pl_read_clause(term_t term)
   int rval;
 
   init_read_data(&rd);
-  rd.report_syntax_errors = TRUE;
   rd.singles = debugstatus.styleCheck & SINGLETON_CHECK ? TRUE : FALSE;
-  rval = read_term(term, &rd);
+  if ( !(rval = read_term(term, &rd)) )
+    rval = PL_raise_exception(rd.exception);
   free_read_data(&rd);
 
   return rval;
@@ -1928,8 +1918,7 @@ pl_read_clause2(term_t stream, term_t term)
 }
 
 static const opt_spec read_term_options[] = 
-{ { ATOM_syntax_errors,	    OPT_TERM },	/* quiet, fail, X */
-  { ATOM_variable_names,    OPT_TERM },
+{ { ATOM_variable_names,    OPT_TERM },
   { ATOM_singletons,        OPT_TERM },
   { ATOM_term_position,     OPT_TERM },
   { ATOM_subterm_positions, OPT_TERM },
@@ -1938,8 +1927,7 @@ static const opt_spec read_term_options[] =
 
 word
 pl_read_term(term_t term, term_t options)
-{ term_t syntax_errors = 0;		/* default */
-  term_t tpos	       = 0;
+{ term_t tpos	       = 0;
   int rval;
   atom_t w;
   read_data rd;
@@ -1947,18 +1935,11 @@ pl_read_term(term_t term, term_t options)
   init_read_data(&rd);
 
   if ( !scan_options(options, 0, ATOM_read_option, read_term_options,
-		     &syntax_errors,
 		     &rd.varnames,
 		     &rd.singles,
 		     &tpos,
 		     &rd.subtpos) )
     return warning("read_term/2: illegal option list");
-
-  if ( !syntax_errors ||
-       (PL_get_atom(syntax_errors, &w) && w != ATOM_quiet) )
-    rd.report_syntax_errors = TRUE;
-  else
-    rd.report_syntax_errors = FALSE;
 
   if ( rd.singles && PL_get_atom(rd.singles, &w) && w == ATOM_warning )
     rd.singles = TRUE;
@@ -1972,20 +1953,10 @@ pl_read_term(term_t term, term_t options)
 			   PL_INTEGER, source_char_no,
 			   PL_INTEGER, source_line_no,
 			   PL_INTEGER, 0); /* should be charpos! */
-    else
-    { if ( syntax_errors && PL_is_variable(syntax_errors) )
-	rval = PL_unify_atom(syntax_errors, ATOM_none);
-    }
   } else
-  { if ( syntax_errors && PL_is_variable(syntax_errors) )
-      rval = PL_unify_term(syntax_errors,
-			   PL_FUNCTOR, FUNCTOR_module2,
-			     PL_FUNCTOR, FUNCTOR_stream_position3,
-			       PL_INTEGER, source_char_no,
-			       PL_INTEGER, source_line_no,
-			       PL_INTEGER, 0, /* should be charpos! */
-			     PL_CHARS, rd.syntax_error);
-  }
+    rval = PL_raise_exception(rd.exception);
+
+  free_read_data(&rd);
 
   return rval;
 }
@@ -2000,8 +1971,7 @@ pl_read_term3(term_t stream, term_t term, term_t options)
 		 *******************************/
 
 word
-pl_term_to_atom(term_t term, term_t atom,
-		term_t bindings, term_t errors)
+pl_atom_to_term(term_t atom, term_t term, term_t bindings)
 { char *s;
 
   if ( PL_is_variable(atom) )
@@ -2024,16 +1994,14 @@ pl_term_to_atom(term_t term, term_t atom,
   if ( PL_get_chars(atom, &s, CVT_ALL) )
   { read_data rd;
     word rval;
-    int se;
 
     init_read_data(&rd);
-    if ( PL_get_integer(errors, &se) && se )
-      rd.report_syntax_errors = TRUE;
-    if ( PL_is_variable(bindings) )
+    if ( PL_is_variable(bindings) || PL_is_list(bindings) )
       rd.varnames = bindings;
 
     seeString(s);
-    rval = read_term(term, &rd);
+    if ( !(rval = read_term(term, &rd)) )
+      rval = PL_raise_exception(rd.exception);
     free_read_data(&rd);
     seenString();
 
@@ -2053,7 +2021,8 @@ PL_chars_to_term(const char *s, term_t t)
 
   seeString(s);
   PL_put_variable(t);
-  rval = read_term(t, &rd);
+  if ( !(rval = read_term(t, &rd)) )
+    PL_put_term(t, rd.exception);
   free_read_data(&rd);
   seenString();
 

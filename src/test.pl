@@ -31,20 +31,23 @@ syntax(op-1) :-
 syntax(op-2) :-
 	atom_to_term("1+2+3", +(+(1,2),3), []).
 syntax(op-3) :-
-	\+ atom_to_term("a:-b:-c", _, _).
+	catch(atom_to_term("a:-b:-c", _, _), E, true),
+	E = error(syntax_error(operator_clash), _).
 syntax(op-4) :-
 	op(600, fx, op1),
 	atom_to_term("op1 1+2", op1(+(1,2)), []).
 syntax(op-5) :-
 	op(600, fx, op1),
-	\+ atom_to_term("op1 op1 1", _, _).
+	catch(atom_to_term("op1 op1 1", _, _), E, true),
+	E = error(syntax_error(operator_clash), _).
 syntax(op-6) :-
 	op(600, fy, op1),
 	atom_to_term("op1 op1 1", op1(op1(1)), []).
 syntax(op-7) :-
 	op(600, fy, op1),
 	op(500, xf, op2),
-	atom_to_term("op1 a op2", op1(op2(a)), []).
+	catch(atom_to_term("op1 a op2", op1(op2(a)), []), E, true),
+	E = error(syntax_error(operator_clash), _).
 
 
 		 /*******************************

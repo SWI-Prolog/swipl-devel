@@ -558,17 +558,13 @@ int		get_number(const unsigned char *string,
 			   Number value);
 word		pl_raw_read(term_t term);
 word		pl_raw_read2(term_t stream, term_t term);
-word		pl_read_variables(term_t term, term_t variables);
-word		pl_read_variables3(term_t stream, term_t term,
-				   term_t variables);
 word		pl_read(term_t term);
 word		pl_read2(term_t stream, term_t term);
 word		pl_read_clause(term_t term);
 word		pl_read_clause2(term_t stream, term_t term);
 word		pl_read_term(term_t term, term_t pos);
 word		pl_read_term3(term_t stream, term_t term, term_t pos);
-word		pl_term_to_atom(term_t term, term_t atom,
-				term_t bindings, term_t e);
+word		pl_atom_to_term(term_t term, term_t atom, term_t bindings);
 
 /* pl-rec.c */
 void		initRecords(void);

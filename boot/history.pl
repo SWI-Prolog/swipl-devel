@@ -40,7 +40,11 @@ read_history_(Show, Help, _, Help, _, _) :-
 read_history_(History, Help, DontStore, Raw, Term, Bindings) :-
 	expand_history(Raw, Expanded, Changed), 
 	save_history_line(Expanded),
-	$term_to_atom(Term0, Expanded, Bindings0, 1),
+	catch(atom_to_term(Expanded, Term0, Bindings0),
+	      E,
+	      (	  print_message(error, E),
+		  fail
+	      )),
 	(   var(Term0)
 	->  Term = Term0,
 	    Bindings = Bindings0

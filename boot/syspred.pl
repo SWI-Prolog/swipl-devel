@@ -18,7 +18,6 @@
 	, debugging/0
 	, concat_atom/2
 	, term_to_atom/2
-	, atom_to_term/3
 	, int_to_atom/2
 	, gensym/2
 	, dwim_match/2
@@ -259,11 +258,7 @@ concat_atom(L, Atom) :-
 	$concat_atom(L, Atom).
 
 term_to_atom(Term, Atom) :-
-	$term_to_atom(Term, Atom, 0, 0).
-
-atom_to_term(Atom, Term, Bindings) :-
-	$term_to_atom(Term, Atom, B0, 0),
-	Bindings = B0.
+	atom_to_term(Atom, Term, 0).
 
 int_to_atom(Int, Atom) :-
 	int_to_atom(Int, 10, Atom).

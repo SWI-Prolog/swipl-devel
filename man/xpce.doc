@@ -35,7 +35,7 @@ initialise(Self) :->
 
 list(Self, From:name) :->
         "List predicates from specification"::
-        (   term_to_atom(Term, From)
+        (   catch(term_to_atom(Term, From), _, fail)
         ->  get(Self, member, view, V),
             pce_open(V, write, Fd),
             set_output(Fd),

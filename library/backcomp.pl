@@ -15,7 +15,9 @@
 	    displayq/1,
 	    displayq/2,
 	    (ed)/1,
-	    concat/3
+	    concat/3,
+	    read_variables/2,
+	    read_variables/3
 	  ]).
 
 '$arch'(Arch, unknown) :-
@@ -51,3 +53,11 @@ ed(Pred) :-
 
 concat(A, B, C) :-
 	atom_concat(A, B, C).
+
+%	Replaced by ISO read_term/[2,3].
+
+read_variables(Term, Vars) :-
+	read_term(Term, [variable_names(Vars)]).
+
+read_variables(Stream, Term, Vars) :-
+	read_term(Stream, Term, [variable_names(Vars)]).

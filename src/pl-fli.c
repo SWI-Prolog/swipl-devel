@@ -229,7 +229,10 @@ unifyAtomic(term_t t, word w)
 
 atom_t
 PL_new_atom(const char *s)
-{ return (atom_t) lookupAtom((char *)s); /* hack */
+{ if ( !GD->initialised )
+    initAtoms();
+
+  return (atom_t) lookupAtom(s);
 }
 
 
