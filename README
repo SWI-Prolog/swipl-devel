@@ -1,8 +1,9 @@
 		    SWI-Prolog Distribution Directory
 
-** Last update: Tue Apr 14 10:26:42 1992; version 1.5.9
+** Last update: Fri Dec 18 13:57:18 1992 (1.6.7)
 
-AUTHOR:
+AUTHOR
+======
 	Jan Wielemaker
 	SWI
 	University of Amsterdam
@@ -12,6 +13,7 @@ AUTHOR:
 	E-mail: jan@swi.psy.uva.nl
 
 DIRECTORIES
+===========
 
 The SWI-Prolog source tree consists of the following directories:
 
@@ -27,17 +29,18 @@ The SWI-Prolog source tree consists of the following directories:
 
 
 BUILDING SWI-Prolog
+===================
 
 Using gcc
 
 The C-compiler used for some architecture is defined in md-<machine.h>
 using the macro M_CC
 
-When available, please use the GNU-C compiler gcc.  SWI-Prolog has been
-developed with this compiler.  Do not use version 2.0, as this compiler
-crashes on pl-wam.c. Version 2.1 is ok.  SWI-Prolog makes use of GCC-2's
-facilities to deal with label addresses, improving performance with
-about 10%.
+When available, please use  the GNU-C  compiler gcc.    SWI-Prolog has
+been developed with this  compiler.  Do not use  version 2.0,  as this
+compiler crashes on pl-wam.c. Version 2.1 is ok.  SWI-Prolog makes use
+of  GCC-2's  facilities    to deal with   label   addresses, improving
+performance with about 10%.
 
 
 Building
@@ -58,15 +61,28 @@ Next:
 	1) cd ./MACHINE
 	2) make
 
-INSTALLATION:
+Installation:
 
 	1) cd ./MACHINE
 	2) make install
 
-CLEANUP
+Cleanup
 
 	1) cd ./MACHINE
 	2) make clean
+
+Automount filesystems; symbolic links
+
+When  the  installation directory is  on  an   automount filesystem or
+symbolic  links  provide     multiple  absolute  pathnames   for   the
+installation directory, the Unix  environment variable CANONICAL_PATHS
+may be set to a ':' separated list of `canonical paths.   For example,
+Prolog is installed   in /home/languages/pl.   Typing  'pwd'   in this
+directory yields /tmp_mnt/home/languages/pl.  Correct installation may
+be achieved by typing
+
+	% setenv CANONICAL_PATHS /home/languages/pl
+
 
 Prepare for static loading (runtime environment, PCE)
 
@@ -79,6 +95,7 @@ created.  After the installation, do
 
 
 GNU-EMACS INTERFACE
+===================
 
 In the directory ./lisp, you'll find  an interface to  GNU-EMACS.  The
 file README.SWI provides installation directives.  In  consists of the
@@ -87,14 +104,16 @@ swi-prolog.el that redefines and adds some things.
 
 
 NOTES
+=====
 
 SunOs 3.x
 
-Ancient users  of  SunOs  3.x  should  set  the  corresponding  flag  in
+Ancient  users of   SunOs 3.x  should set  the  corresponding  flag in
 md-sun3.h. Dynamic stacks are not provided under SunOs 3.x.
 
 
 DLD (Dynamic Link Editor)
+=========================
 
 The current distribution entails  a  limited interface to Wilson  Ho's
 dynamic link editor for C called dld.   Dld can be loaded via Prolog's
@@ -113,49 +132,58 @@ Which    creates    /usr/lib/libdld.a,     /usr/man/man3/dld.3     and
 
 
 PORTING/CHANGING SWI-PROLOG
+===========================
 
 Below  are some  notes meant for  those who decide  to modify  or port
 SWI-Prolog.  It is by no means complete.
 
 
 CODE USED ATOMS OR FUNCTORS
+===========================
 
-Atoms needed by the  C sources are addressed using  macros of the form
-ATOM_<name>.  Functors  have the  form FUNCTOR_<name><arity>.  See the
-file ATOMS.  The awk script defatoms is  invoked by make to create the
+Atoms needed by the C  sources are addressed using  macros of the form
+ATOM_<name>.  Functors have  the form FUNCTOR_<name><arity>.   See the
+file ATOMS.  The awk script defatoms is invoked by make  to create the
 necessary C source and header files.  These files are named *.i[ch].
 
 DEBUGGING SWI-Prolog ON A NEW MACHINE
+=====================================
 
 1. Machine Description file.
 
-Create a md- file for the new architecture.  You can use a  similar  one
-as  starting  point and look at md-gener.h for a full description of the
-options.  For the first port, I advice to set the following flags to 0:
+Create a md- file for the new architecture.  You can use a similar one
+as starting point and look at md-gener.h for a full description of the
+options.  For the first port,  I advice to  set the following flags to
+0:
 
-	- O_ASM_SWITCH
 	- O_FOREIGN
 	- O_PCE
 	- O_SHARED_MEMORY
 	- O_CAN_MAP
 
-During debugging, make sure to give -g and -DO_DEBUG to the C  compiler,
-so  you can debug the resulting prolog system using the -d level option.
--DO_DEBUG also includes some consistency checks.  For final installation
-use -O and drop -DO_DEBUG (which makes the system about 20% slower).
+During debugging, make   sure to give  -g   and  -DO_DEBUG  to  the  C
+compiler, so you can debug  the resulting prolog system  using  the -d
+level option.  -DO_DEBUG  also includes some consistency checks.   For
+final installation use  -O and drop  -DO_DEBUG (which makes the system
+about 20% slower).
 
-If you are very lucky the system will compile and perform the  bootstrap
-compilation  in one go.  Normally you are not.  On how to get it through
-the C compiler, you are on your own.  If the system does not want to  do
-the  bootstrap  compilation,  write  a  small prolog program that can be
-handled by the bootstrap compiler and work on that.  Normally, I use
+Various options define the memory layout of your machine.  The program
+m-model.c may be used to determine the  right  settings.  Compile this
+file with any C-compiler and run it.
+
+If  you are   very lucky  the   system will  compile and perform   the
+bootstrap compilation in one go.  Normally you are not.  On how to get
+it through the C compiler, you  are on your  own.  If  the system does
+not want to do the bootstrap compilation, write a small prolog program
+that  can   be handled by the   bootstrap  compiler and work  on that.
+Normally, I use
 
 :- write('Hello World!').
 :- nl.
 
-You can compile this using `pl -d level -b file'.  If this finally writes
-`Hello World' on your terminal you are getting close.  Next test program
-can be:
+You can  compile this using `pl -d   level -b file'.  If  this finally
+writes `Hello  World' on  your terminal you  are  getting close.  Next
+test program can be:
 
 			       test :-
 	write('Hello World'),
@@ -165,34 +193,37 @@ $init :-
 	test,
 	halt.
 
-If you can compile this and you can run the result by typing `a.out'  or
-`pl  -x  a.out  -d level' you can try to do the entire boot compilation.
-If you decide to write more elaborate test programs you  should  realise
-many  things  are  not  yet  defined.   Initially  you can only call the
-foreign language predicates, defined in pl-ext.c. Constructs handles  by
-the compiler (,/2, !, ->/2, ;/2, etc.)  cannot be called via metacall or
-directives (but can be used in program text).
+If you can compile this and you  can run the  result by typing `a.out'
+or `pl   -x  a.out -d level' you   can  try to  do   the   entire boot
+compilation.  If you decide to write  more elaborate test programs you
+should realise  many things are not yet   defined.  Initially  you can
+only call  the foreign language   predicates, defined   in   pl-ext.c.
+Constructs handles by the compiler  (,/2, !, ->/2,  ;/2, etc.)  cannot
+be called   via metacall or   directives (but can be used   in program
+text).
 
 MODIFYING SWI-Prolog
 
-You are free to modify SWI-Prolog under the licence terms  specified  in
-the  file  LICENCE.   You  may  wish  the  other  users  can  share your
-improvements.   For  code  to  be  accepted  as  part  of  the  official
-distribution,  it should be written in the same style as the rest of the
-SWI-Prolog sources.  I do not claim this style to be the best available,
-but I want the  entire  source  to  have  a  consistent  style.   Please
-document  the  modifications  and  if  reasonably possible indicate them
-using #if ... #endif.  Please do not send `diff' files to me, I probably
-do not have the same version of the sources, so complete files, with the
-changes indicated with #if ... #endif are easier to incorporate.
+You are free to modify SWI-Prolog under the licence terms specified in
+the  file LICENCE.  You  may  wish the  other    users can share  your
+improvements.  For code   to be  accepted   as part of  the   official
+distribution, it should be  written in the same  style as  the rest of
+the SWI-Prolog  sources.  I do  not claim  this style  to be  the best
+available, but I  want  the entire source to  have a consistent style.
+Please document the modifications and  if reasonably possible indicate
+them using #if ... #endif.  Please do  not send `diff' files  to me, I
+probably do  not have  the same version   of  the sources, so complete
+files, with the changes  indicated with #if ...  #endif are  easier to
+incorporate.
 
-If your change is accepted, you will be  appropriately  acknowledged  in
+If your change is accepted, you  will be appropriately acknowledged in
 the distribution.
 
 PROLOG PROGRAMS
 
-Additions to the library and other stand alone Prolog programs have less
-strick conditions.  Add comments such that other  users  can  understand
-the  program  or  library module and ensure the files provide sufficient
-documentation on its origin, waranty and distribution conditions.   Such
-contributions are copied verbatim and not maintained by me.
+Additions to the library and   other stand alone Prolog programs  have
+less strick   conditions.   Add  comments such  that   other users can
+understand the program or library module  and ensure the files provide
+sufficient  documentation on its   origin,  waranty and   distribution
+conditions.  Such contributions are copied verbatim and not maintained
+by me.
