@@ -142,6 +142,8 @@ global_url(URL, BaseURL, Global) :-
 is_absolute_url(URL) :-
 	sub_atom(URL, 0, _, _, 'http://'), !.
 is_absolute_url(URL) :-
+	sub_atom(URL, 0, _, _, 'https://'), !.
+is_absolute_url(URL) :-
 	sub_atom(URL, 0, _, _, 'ftp://'), !.
 is_absolute_url(URL) :-
 	sub_atom(URL, 0, _, _, 'file:'), !.
@@ -184,6 +186,8 @@ curl(file, A) -->
 	->  cpart(path, "", A)
 	;   cpart(path, "", A)
 	).
+curl(https, A) -->
+	curl(http, A).
 curl(http, A) -->
 	"//",
 	cpart(host, "", A),
