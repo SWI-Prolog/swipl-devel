@@ -324,10 +324,6 @@ suggest predicates from a keyword.
 \predicatesummary{retractall}{1}{Remove unifying clauses from the database}
 \predicatesummary{reverse}{2}{Inverse the order of the elements in a list}
 \predicatesummary{same_file}{2}{Succeeds if arguments refer to same file}
-\predicatesummary{save}{1}{Save program including current goal}
-\predicatesummary{save}{2}{Save program including current goal}
-\predicatesummary{save_program}{1}{Save the current program on a file}
-\predicatesummary{save_program}{2}{Save the current program on a file}
 \predicatesummary{see}{1}{Change the current input stream}
 \predicatesummary{seeing}{1}{Query the current input stream}
 \predicatesummary{seek}{4}{Modify the current position in a stream}

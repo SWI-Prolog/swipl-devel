@@ -898,9 +898,12 @@ cmd(bibliography({_}), HTML) :-			% \bibliography
 cmd(bibliographystyle(_), []).			% \bibliographystyle
 cmd(',', []).					% \,
 
+cmd(emph({Tex}), #em(+Tex)).			% \emph{text}
+
 cmd(year,	Year) :-			% \year
 	get_time(Time),
 	convert_time(Time, Year, _, _, _, _, _, _).
+cmd('LaTeX',	'LaTeX').			% \LaTeX
 
 cmd(index({Term}), #label(RefName, [])) :-	% \index
 	translate_index(Term, RefName).

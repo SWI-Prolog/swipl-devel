@@ -7,6 +7,7 @@ DVITOTTY-HOME=	txt/dvi2tty
 INDEX=  	makeindex
 LATEX=		latex
 MANUAL=		./MANUAL.dvi
+PDF=		MANUAL.pdf
 ONLINE=		../library/MANUAL
 ONLINE_INDEX=	../library/helpidx.pl
 PL=		../linux/pl
@@ -38,6 +39,8 @@ html:		$(TEXFILES) doc.bbl
 
 manual:		$(MANUAL)
 
+pdf:		$(PDF)
+
 online:		$(ONLINE) online_index
 online_index:	$(ONLINE_INDEX)
 
@@ -55,6 +58,10 @@ distclean:	clean
 $(MANUAL):	latex_if_needed doc.tex $(TEXFILES) doc.bbl doc.ind
 		./latex_if_needed $(LATEX) doc
 		mv doc.dvi $(MANUAL)
+
+$(PDF):		$(MANUAL)
+		dvips -o MANUAL.ps $(MANUAL)
+		pstill -cgipt -o $@ MANUAL.ps
 
 man:		doc.tex $(TEXFILES) doc.bbl doc.ind
 		$(LATEX) doc

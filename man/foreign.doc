@@ -89,10 +89,9 @@ relatively cumbersome and the libraries you need to pass to the linker
 may vary from system to system.
 
 Loading shared objects or DLL files provides sharing and protection and
-is generally the best choice. The old (and also badly portable)
-save/[1,2] and save_program/[1,2] do not cooperate with this mechanism,
-but the more recent qsave_program/[1,2] can be used to created programs
-that load the appropriate library at startup.
+is generally the best choice. If a saved-state is created using
+qsave_program/[1,2], an initialization/1 directive may be used to load
+the appropriate library at startup.
 
 Note that the definition of the foreign predicates is the same, regardless
 of the linking type used.
@@ -837,10 +836,12 @@ Succeeds if {\em} represents the atom \const{[]}.
 \end{description}
 
 
-\subsubsection{An example: defining display/1 in C}
+\subsubsection{An example: defining write/1 in C}
 
-\Figref{pl-display} shows a definition of display/1 to
-illustrate the described functions.
+\Figref{pl-display} shows a simplified definition of write/1 to
+illustrate the described functions.  This simplified version does not
+deal with operators.  It is called display/1, because it mimics closely
+the behaviour of this Edinburgh predicate.
 
 \begin{figure}
 \begin{code}
@@ -1508,8 +1509,7 @@ handlers if Prolog did not expect that signal.
 \cfunction{void (*)()}{PL_signal}{sig, func}
 This function should be used to install signal handlers rather than the
 Unix library function signal().  It ensures consistent signal handling
-between SWI-Prolog and the foreign code and reinstalls signal handlers
-if a state created with save_program/1 is restarted.
+between SWI-Prolog and the foreign code.
 \end{description}
 
 
@@ -1688,16 +1688,6 @@ typedef void (*PL_abort_hook_t)(void);
 \cfunction{int}{PL_abort_unhook}{PL_abort_hook_t}
 Remove a hook installed with PL_abort_hook(). Returns \const{FALSE} if no
 such hook is found, \const{TRUE} otherwise.
-\cfunction{void}{PL_reinit_hook}{PL_reinit_hook_t}
-Install a hook that is called when a saved program (using
-save_program/[1,2]) is restored. The hooks are called in reverse order.
-The type \ctype{PL_reinit_hook_t} is defined as:
-\begin{code}
-typedef void (*PL_reinit_hook_t)(int argc, char **argv);
-\end{code}
-\cfunction{int}{PL_reinit_unhook}{PL_reinit_hook_t}
-Remove a hook installed with PL_reinit_hook(). Returns \const{FALSE} if
-no such hook is found, \const{TRUE} otherwise.
 \end{description}
 
 

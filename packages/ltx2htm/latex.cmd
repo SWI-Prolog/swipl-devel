@@ -132,6 +132,8 @@
 \footnotesize
 \scriptsize
 
+\emph{+}
+
 % BibTeX support
 
 {thebibliography}{-}=list
@@ -173,6 +175,7 @@
 \#
 \copyright
 \year
+\LaTeX
 
 % Arithmetic (math mode)
 

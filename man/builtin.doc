@@ -1393,8 +1393,9 @@ If the seek modifies the current location, the line number and character
 position in the line are set to 0.
 
 If the stream cannot be repostioned, a \const{reposition} error is
-raised.  Seek/4 is compatible to Quintus Prolog, though the error
-conditions and signalling is ISO compliant. See also stream_position/3.
+raised. The predicate seek/4 is compatible to Quintus Prolog, though the
+error conditions and signalling is ISO compliant. See also
+stream_position/3.
 \end{description}
 
 \subsection{Switching Between Implicit and Explicit I/O}
@@ -2529,7 +2530,8 @@ Escape sequences to include arguments from \arg{Arguments}. Each time a
 \fmtseq{%t}  &  print/1 the next item (mnemonic: term) \\
 \fmtseq{%w}  &  write/1 the next item \\
 \fmtseq{%q}  &  writeq/1 the next item \\
-\fmtseq{%d}  &  display/1 the next item \\
+\fmtseq{%d}  &  Write the term, ignoring operators.  See also
+		write_term/2.  Mnemonic: old Edinburgh display/1. \\
 \fmtseq{%p}  &  print/1 the next item (identical to \fmtseq{%t}) \\
 \fmtseq{%n}  &  Put the next item as a character (i.e. it is
                 an ASCII value) \\

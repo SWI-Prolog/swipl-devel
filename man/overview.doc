@@ -422,8 +422,9 @@ command, when a spy point is reached and the system is in debugging mode
 The interactive toplevel goal trace/0 means ``trace the next query''.
 The tracer shows the port, displaying the port name, the current depth
 of the recursion and the goal. The goal is printed using the Prolog
-predicate print/1 (default), write/1 or display/1. An example using all
-ports is shown in \figref{tracer}.
+predicate write_term/2.  The style can be modified to include the
+\const{ignore_ops} and/or \const{portray} options using the \const{w},
+\const{p} or \const{d} command.
 
 \begin{figure}
 \begin{code}
@@ -494,7 +495,7 @@ Enter a Prolog break environment (see break/0).}
     \traceoption{c}{Creep}{
 Continue execution, stop at next port. (Also return, space).} 
     \traceoption{d}{Display}{
-Write goals using the Prolog predicate display/1.} 
+Write goals using \const{ignore_ops} option.}
     \traceoption{e}{Exit}{
 Terminate Prolog (see halt/0).} 
     \traceoption{f}{Fail}{
@@ -511,7 +512,7 @@ Continue execution, stop at next spy point.}
     \traceoption{n}{No debug}{
 Continue execution in `no debug' mode.} 
     \traceoption{p}{Print}{
-Write goals using the Prolog predicate print/1 (default).} 
+Write goals using the \const{portray} option (default).} 
     \traceoption{r}{Retry}{
 Undo all actions (except for database and i/o actions) back to the call
 port of the current goal and resume execution at the call port.} 
@@ -523,7 +524,7 @@ Continue execution, stop at the next port of {\bf the parent} goal (thus
 skipping this goal and all calls to children of this goal). This option
 is useful to stop tracing a failure driven loop.} 
     \traceoption{w}{Write}{
-Write goals using the Prolog predicate write/1.} 
+Write goals without using the \const{portray} option.} 
 \end{description}
 
 The ideal 4 port model as described in many Prolog books

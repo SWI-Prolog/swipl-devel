@@ -27,10 +27,10 @@
 \pagestyle{fancyplain}
 #endif
 
-\newcommand{\vmajor}{2}
-\newcommand{\vminor}{9}
-\newcommand{\vpatch}{9}
-\newcommand{\vmonth}{March}
+\newcommand{\vmajor}{3}
+\newcommand{\vminor}{0}
+\newcommand{\vpatch}{0}
+\newcommand{\vmonth}{July}
 \newcommand{\vyear}{1998}
 
 \newcommand{\versionshort}{\vmajor.\vminor}

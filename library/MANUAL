@@ -10,11 +10,11 @@
                         The Netherlands
                     Tel.  (+31) 20 5256121
 
-                         SSWWII--PPrroolloogg 22..99
+                         SSWWII--PPrroolloogg 33..00
 
                         RReeffeerreennccee MMaannuuaall
 
-             _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _2_._9_._9_, _M_a_r_c_h _1_9_9_8
+              _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _3_._0_._0_, _J_u_l_y _1_9_9_8
 
                          _J_a_n _W_i_e_l_e_m_a_k_e_r
 
@@ -93,7 +93,7 @@ ISO  compliant  predicates  are based  on  ``Prolog:    The  Standard'',
 
 11..22 SSttaattuuss
 
-This manual describes  version 2.9 of SWI-Prolog.   SWI-Prolog has  been
+This manual describes  version 3.0 of SWI-Prolog.   SWI-Prolog has  been
 used  now for  several years.    The application  range includes  Prolog
 course  material,  meta-interpreters,  simulation  of  parallel  Prolog,
 learning systems, natural language processing and  two large workbenches
@@ -919,8 +919,8 @@ exception is raised.
 The interactive  toplevel goal ttrraaccee//00 means  ``trace the next  query''.
 The tracer shows the  port, displaying the port name, the  current depth
 of the  recursion and the goal.   The goal  is printed using the  Prolog
-predicate pprriinntt//11  (default), wwrriittee//11  or ddiissppllaayy//11.   An example  using
-all ports is shown in figure 2.3.
+predicate  wwrriittee__tteerrmm//22.    The  style can  be  modified to  include  the
+ignore_ops and/or portray options using the w, p or d command.
 Yes
 2 ?- visible(+all), leash(-exit).
 
@@ -996,7 +996,7 @@ c ((CCrreeeepp))
     Continue execution, stop at next port.  (Also return, space).
 
 d ((DDiissppllaayy))
-    Write goals using the Prolog predicate ddiissppllaayy//11.
+    Write goals using ignore_ops option.
 
 e ((EExxiitt))
     Terminate Prolog (see hhaalltt//00).
@@ -1022,7 +1022,7 @@ n ((NNoo ddeebbuugg))
     Continue execution in `no debug' mode.
 
 p ((PPrriinntt))
-    Write goals using the Prolog predicate pprriinntt//11 (default).
+    Write goals using the portray option (default).
 
 r ((RReettrryy))
     Undo  all actions (except for database and i/o actions) back  to the
@@ -1039,7 +1039,7 @@ u ((UUpp))
     option is useful to stop tracing a failure driven loop.
 
 w ((WWrriittee))
-    Write goals using the Prolog predicate wwrriittee//11.
+    Write goals without using the portray option.
 
 The   ideal  4   port  model   as  described   in   many  Prolog   books
 [Clocksin & Melish, 1987] is not visible in many  Prolog implementations
@@ -3316,8 +3316,9 @@ sseeeekk((_+_S_t_r_e_a_m_, _+_O_f_f_s_e_t_, _+_M_e_t_h
     character position in the line are set to 0.
 
     If  the stream cannot be repostioned, a reposition error  is raised.
-    Seeeekk//44 is compatible  to Quintus Prolog, though the error conditions
-    and signalling is ISO compliant.  See also ssttrreeaamm__ppoossiittiioonn//33.
+    The  predicate sseeeekk//44 is  compatible to  Quintus Prolog, though  the
+    error  conditions  and  signalling  is  ISO compliant.     See  also
+    ssttrreeaamm__ppoossiittiioonn//33.
 
 
 33..1144..33 SSwwiittcchhiinngg BBeettwweeeenn IImmpplliicciitt aanndd EExxpplliicciitt II//OO
@@ -4720,24 +4721,25 @@ wwrriitteeff((_+_F_o_r_m_a_t_, _+_A_r_g_u_m_e_n_t_s))
 
               | %q  |wwrriittee//11the next item                     |
 
-              | %d  |wwrriitteeqq//11the next item                    |
-
-              | %p  |ddiissppllaayy//11the next item                   |
+              |     |wwrriitteeqq//11the next item                    |
+              | %d  |Write the term,  ignoring operators.  See|
+              |     |also  wwrriittee__tteerrmm//22.      Mnemonic:    old|
+              | %p  |Edinburgh ddiissppllaayy//11.                     |
 
               |     |pprriinntt//11the next item (identical to %t)   |
               | %n  |Put  the next item  as a  character (i.e.|
+
               |     |it is an ASCII value)                    |
               | %r  |Write the  next item  N times where  N is|
               |     |the second item (an integer)             |
-
               | %s  |Write the  next item  as a String  (so it|
               |     |must be a list of characters)            |
               | %f  |Perform a ttttyyfflluusshh//00 (no items used)     |
               | %Nc |Write  the   next  item  Centered  in  N |
+
               |     |columns.                                 |
               | %Nl |Write the next  item Left justified in N |
               |     |columns.                                 |
-
               | %Nr |Write the next item Right justified in N |
               |     |columns.   N is a decimal number with  at|
               |     |least  one digit.   The  item must  be an|
@@ -6400,10 +6402,9 @@ It is relatively  cumbersome and the libraries  you need to pass to  the
 linker may vary from system to system.
 
 Loading  shared objects  or DLL  files provides  sharing and  protection
-and is  generally the best choice.   The  old (and also badly  portable)
-ssaavvee//[[11,,22]] and ssaavvee__pprrooggrraamm//[[11,,22]] do not cooperate with  this mechanism,
-but the more recent  qqssaavvee__pprrooggrraamm//[[11,,22]]can be used to  created programs
-that load the appropriate library at startup.
+and is  generally the best choice.   If  a saved-state is created  using
+qqssaavvee__pprrooggrraamm//[[11,,22]],  an iinniittiiaalliizzaattiioonn//11 directive  may be used to  load
+the appropriate library at startup.
 
 Note  that  the  definition of  the  foreign  predicates  is  the  same,
 regardless of the linking type used.
@@ -7184,48 +7185,50 @@ _i_n_t PPLL__ggeett__nniill((_t_e_r_m___t _+_l))
     Succeeds if  represents the atom [].
 
 
-55..66..33..44 AAnn eexxaammppllee::  ddeeffiinniinngg ddiissppllaayy//11 iinn CC
+55..66..33..44 AAnn eexxaammppllee::  ddeeffiinniinngg wwrriittee//11 iinn CC
 
-Figure 5.3 shows  a definition of ddiissppllaayy//11 to illustrate  the described
-functions.
+Figure  5.3 shows  a  simplified  definition of  wwrriittee//11  to  illustrate
+the described  functions.   This simplified version  does not deal  with
+operators.    It is  called  ddiissppllaayy//11, because  it mimics  closely  the
+behaviour of this Edinburgh predicate.
 foreign_t
 pl_display(term_t t)
-{ functor_t functor;
 
+{ functor_t functor;
   int arity, len, n;
   char *s;
 
   switch( PL_term_type(t) )
   { case PL_VARIABLE:
     case PL_ATOM:
+
     case PL_INTEGER:
     case PL_FLOAT:
-
       PL_get_chars(t, &s, CVT_ALL);
       Sprintf("%s", s);
       break;
     case PL_STRING:
       PL_get_string_chars(t, &s, &len);
       Sprintf("\"%s\"", s);
-      break;
 
+      break;
     case PL_TERM:
     { term_t a = PL_new_term_ref();
 
       PL_get_name_arity(t, &name, &arity);
       Sprintf("%s(", PL_atom_chars(name));
       for(n=1; n<=arity; n++)
+
       { PL_get_arg(n, t, a);
         if ( n > 1 )
-
           Sprintf(", ");
         pl_display(a);
       }
       Sprintf(")");
       break;
     default:
-      PL_fail;                          /* should not happen */
 
+      PL_fail;                          /* should not happen */
   }
 
   PL_succeed;
@@ -7889,11 +7892,9 @@ handlers if Prolog did not expect that signal.
 
 
 _v_o_i_d _(_*_)_(_) PPLL__ssiiggnnaall((_s_i_g_, _f_u_n_c))
-    This  function  should be  used to  install  signal handlers  rather
-    than  the Unix  library function  signal().   It ensures  consistent
-    signal  handling  between   SWI-Prolog  and  the  foreign  code  and
-    reinstalls  signal handlers  if a state  created with ssaavvee__pprrooggrraamm//11
-    is restarted.
+    This function should  be used to install signal handlers rather than
+    the  Unix library function signal().   It ensures consistent  signal
+    handling between SWI-Prolog and the foreign code.
 
 
 55..66..1122 EErrrroorrss aanndd wwaarrnniinnggss
@@ -8061,19 +8062,6 @@ _v_o_i_d PPLL__aabboorrtt__hhooookk((_P_L___a_b_o_r_t_
 
 _i_n_t PPLL__aabboorrtt__uunnhhooookk((_P_L___a_b_o_r_t___h_o_o_k___t))
     Remove  a hook installed with  PPLL__aabboorrtt__hhooookk(()).   Returns FALSE if  no
-    such hook is found, TRUE otherwise.
-
-
-_v_o_i_d PPLL__rreeiinniitt__hhooookk((_P_L___r_e_i_n_i_t___h_o_o_k___t))
-    Install  a  hook   that  is  called  when  a  saved  program  (using
-    ssaavvee__pprrooggrraamm//[[11,,22]]) is restored.   The  hooks are called in  reverse
-    order.  The type PL_reinit_hook_t is defined as:
-
-    typedef void (*PL_reinit_hook_t)(int argc, char **argv);
-
-
-_i_n_t PPLL__rreeiinniitt__uunnhhooookk((_P_L___r_e_i_n_i_t___h_o_o_k___t))
-    Remove  a hook installed with PPLL__rreeiinniitt__hhooookk(()).  Returns FALSE  if no
     such hook is found, TRUE otherwise.
 
 
@@ -9491,108 +9479,103 @@ suggest predicates from a keyword.
  reverse/2                     Inverse the order of the elements in a list
  same_file/2                   Succeeds if arguments refer to same file
 
- save/1                        Save program including current goal
- save/2                        Save program including current goal
- save_program/1                Save the current program on a file
- save_program/2                Save the current program on a file
  see/1                         Change the current input stream
  seeing/1                      Query the current input stream
  seek/4                        Modify the current position in a stream
-
  seen/0                        Close the current input stream
  select/3                      Select element of a list
  set_feature/2                 Define a system feature
  set_input/1                   Set current input stream from a stream
+
  set_output/1                  Set current output stream from a stream
  set_tty/2                     Set `tty' stream
  setarg/3                      Destructive assignment on term
  setenv/2                      Set shell environment variable
-
  setof/3                       Find all unique solutions to a goal
  sformat/2                     Format on a string
  sformat/3                     Format on a string
  shell/0                       Execute interactive subshell
+
  shell/1                       Execute OS command
  shell/2                       Execute OS command
  show_profile/1                Show results of the profiler
-
  size_file/2                   Get size of a file in characters
  skip/1                        Skip to character in current input
  skip/2                        Skip to character on stream
  rl_add_history/1              Add line to readline(3) history
+
  rl_read_init_file/1           Read readline(3) init file
  sleep/1                       Suspend execution for specified time
  sort/2                        Sort elements in a list
  source_file/1                 Examine currently loaded source files
-
  source_file/2                 Obtain source file of predicate
  source_location/2             Location of last read term
  spy/1                         Force tracer on specified predicate
  stack_parameter/4             Some systems:  Query/Set runtime stack parameter
+
  statistics/0                  Show execution statistics
  statistics/2                  Obtain collected statistics
  stream_position/3             Get/seek to position in file
-
  string/1                      Type check for string
  string_concat/3               ccoonnccaatt//33 for strings (non-deterministic)
  string_length/2               Determine length of a string
  string_to_atom/2              Conversion between string and atom
+
  string_to_list/2              Conversion between string and list of ASCII
  style_check/1                 Change level of warnings
  sublist/3                     Determine elements that meet condition
  subset/2                      Generate/check subset relation
-
  substring/4                   Get part of a string
  subtract/3                    Delete elements that do not meet condition
  succ/2                        Logical integer successor relation
  swritef/2                     Formatted write on a string
+
  swritef/3                     Formatted write on a string
  tab/1                         Output number of spaces
  tab/2                         Output number of spaces on a stream
-
  tell/1                        Change current output stream
  telling/1                     Query current output stream
  term_expansion/2              (hook) Convert term before compilation
  term_to_atom/2                Convert between term and atom
+
  throw/1                       Raise an exception (see ccaattcchh//33)
  time/1                        Determine time needed to execute goal
  time_file/2                   Get last modification time of file
  tmp_file/2                    Create a temporary filename
-
  told/0                        Close current output
  trace/0                       Start the tracer
  trace/1                       Set trace-point on predicate
  trace/2                       Set/Clear trace-point on ports
+
  tracing/0                     Query status of the tracer
  trim_stacks/0                 Release unused memory resources
  true/0                        Succeed
-
  tty_get_capability/3          Get terminal parameter
  tty_goto/2                    Goto position on screen
  tty_put/2                     Write control string to terminal
  ttyflush/0                    Flush output on terminal
+
  union/3                       Union of two sets
  unknown/2                     Trap undefined predicates
  unload_foreign_library/1      library(shlib) Detach shared library (.so file)
  unsetenv/1                    Delete shell environment variable
-
  use_module/1                  Import a module
  use_module/2                  Import predicates from a module
  var/1                         Type check for unbound variable
  visible/1                     Ports that are visible in the tracer
+
  volatile/1                    Predicates that are not saved
  wait_for_input/3              Wait for input with optional timeout
  wildcard_match/2              Csh(1) style wildcard match
-
  win_exec/2                    Win32:  spawn Windows task
  write/1                       Write term
  write/2                       Write term to stream
  write_ln/1                    Write term, followed by a newline
+
  write_canonical/1             Write a term with quotes, ignore operators
  write_canonical/2             Write a term with quotes, ignore operators on a stream
  write_term/2                  Write term with options
  write_term/3                  Write term with options to stream
-
  writef/1                      Formatted write
  writef/2                      Formatted write on stream
  writeq/1                      Write term, insert quotes
@@ -9774,4 +9757,4 @@ Bibliography
                                   New York, 1983.  Major revision  March
                                   1984.
 
-                                  729
+                                  727
