@@ -950,6 +950,10 @@ getPrologOptions()
 	else if ( streq(name, "PLTHREADS") && streq(v, "yes") )
 	{ ensureOption(&coptions, "-D_REENTRANT");
 	  ensureOption(&cppoptions, "-D_REENTRANT");
+#ifdef _THREAD_SAFE			/* FreeBSD */
+          ensureOption(&coptions, "-D_THREAD_SAFE");
+	  ensureOption(&cppoptions, "-D_THREAD_SAFE");
+#endif
 	  pllib = LIB_PLMT;
 	} else
 	  continue;
