@@ -179,8 +179,8 @@ TXTOBJS=	txt\chararray.obj txt\editor.obj txt\fragment.obj \
 		txt\keybinding.obj txt\regex.obj txt\str.obj \
 		txt\string.obj txt\style.obj txt\syntax.obj \
 		txt\textbuffer.obj txt\textcursor.obj \
-		txt\textimage.obj txt\textmargin.obj txt\undo.obj
-		txt\i18n.obj
+		txt\textimage.obj txt\textmargin.obj txt\undo.obj \
+		txt\utf8.obj txt\i18n.obj
 
 ################################################################
 # UNX 		--- Unix File, Process and Network Classes

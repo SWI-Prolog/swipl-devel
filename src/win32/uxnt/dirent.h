@@ -34,16 +34,14 @@
 #define _export extern
 #endif
 
-#ifndef NAME_MAX
-#define NAME_MAX 255
-#endif
+#define DIRENT_MAX 512
 
 typedef struct dirent
 { void *      		data;		/* actually WIN32_FIND_DATA * */
   int			first;
   void *		handle;		/* actually HANDLE */
 					/* dirent */
-  char			d_name[NAME_MAX+1];
+  char			d_name[DIRENT_MAX+1];
 } DIR;
 
 _export DIR *		opendir(const char *path);

@@ -164,7 +164,7 @@ expandFileName(Name in)
 	  _xos_canonical_filenameW(lng, buf, sizeof(buf), 0) )
      { return UTF8ToName(buf);
      } else
-     { errorPce(f, NAME_representation, NAME_nameTooLong);
+     { errorPce(in, NAME_representation, NAME_nameTooLong);
        fail;
      }    
 #else
@@ -418,90 +418,29 @@ out:
 }
 
 
-#ifdef __WIN32__
-static status
-dos_backup_name(char *old, char *ext, char *bak)
-{ char base[100];
-  char dir[MAXPATHLEN];
-
-  strcpy(base, baseName(old));
-  strcpy(dir, dirName(old));
-
-  if ( ext[0] == '.' )
-  { char *s;
-
-    if ( (s = strchr(base, '.')) )
-      strcpy(s, ext);
-  } else
-  { char *s;
-
-    if ( (s = strchr(base, '.')) )
-    { int l, e;
-
-      s++;				/* skip the '.' */
-      l = strlen(s);
-      e = strlen(ext);
-      if ( (l + e) > 3 )
-      { l = 3-e;
-	if ( l < 0 )
-	  l = 0;
-	strncpy(&s[l], ext, 3);
-	s[3] = EOS;
-      } else
-	strcat(s, ext);
-    } else
-    { int l;
-
-      strcat(base, ext);
-      if ( (l=strlen(base)) > 8 )
-      { memmove(&base[9], &base[8], l-8);
-	base[8] = '.';
-	base[l+1] = EOS;
-      }
-    }
-  }
-
-  if ( dir[0] )
-    sprintf(bak, "%s/%s", dir, base);
-  else
-    strcpy(bak, base);
-
-  DEBUG(NAME_backup, Cprintf("Backup %s in %s\n", old, bak));
-
-  succeed;
-}
-
 status
-backup_name(char *old, char *ext, char *bak)
-{ if ( iswin32s() )
-    return dos_backup_name(old, ext, bak);
-  else
+backup_name(const char *old, const char *ext, char *bak)
+{ if ( strlen(old) + strlen(ext) + 1 <= MAXPATHLEN )
   { sprintf(bak, "%s%s", old, ext);
-
     succeed;
+  } else
+  { errno = ENAMETOOLONG;
+    fail;
   }
 }
 
-#else /*__WIN32__*/
-
-status
-backup_name(char *old, char *ext, char *bak)
-{ sprintf(bak, "%s%s", old, ext);
-
-  succeed;
-}
-
-#endif /*__WIN32__*/
 
 static Name
 getBackupFileNameFile(FileObj f, Name ext)
 { char bak[MAXPATHLEN];
 
-  backup_name(strName(getOsNameFile(f)),
-	      isDefault(ext) ? "~" : strName(ext),
-	      bak);
+  if ( backup_name(nameToUTF8(f->name),
+		   isDefault(ext) ? "~" : nameToUTF8(ext),
+		   bak) )
+    answer(CtoName(bak));
 
-  answer(CtoName(bak));
+  errorPce(f, NAME_representation, NAME_nameTooLong);
+  fail;
 }
 
 
@@ -509,13 +448,13 @@ static status
 backupFile(FileObj f, Name ext)
 { if ( existsFile(f, ON) )
   { Name newname = get(f, NAME_backupFileName, ext, EAV);
-    char *new;
-    char *old = strName(getOsNameFile(f));
+    const char *new;
+    const char *old = nameToFN(getOsNameFile(f));
     int fdfrom = -1, fdto = -1;
     status rval = FAIL;
 
     if ( newname )
-      new = strName(newname);
+      new = nameToFN(newname);
     else
       fail;				/* or succeed? */
 

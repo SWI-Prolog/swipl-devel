@@ -296,6 +296,8 @@ get_logical_drive_strings(int bufsize, char *buf)
 		 *      COMMON DIALOG STUFF	*
 		 *******************************/
 
+#define nameToFN(s) charArrayToFN((CharArray)(s))
+
 #include <h/unix.h>
 #ifndef _MAX_PATH
 #define _MAX_PATH 1024
@@ -306,8 +308,7 @@ get_logical_drive_strings(int bufsize, char *buf)
 #define strapp(s, q) \
 	{ int l = strlen(q); \
 	  if ( s+l+2 > filter+sizeof(filter) ) \
-	  { errorPce(filters, NAME_representation, \
-		     CtoString("filter too long")); \
+	  { errorPce(filters, NAME_representation, NAME_nameTooLong); \
 	    fail; \
 	  } \
 	  strcpy(s, q); \
@@ -337,7 +338,6 @@ getWinFileNameDisplay(DisplayObj d,
   EventObj ev = EVENT->value;
   char filter[1024], *ef = filter;
   char buffer[2048];
-  char cwdbin[MAXPATHLEN];
   BOOL tmpb;
 
   memset(&ofn, 0, sizeof(OPENFILENAME));
@@ -397,34 +397,19 @@ getWinFileNameDisplay(DisplayObj d,
   if ( isDefault(file) )
     buffer[0] = '\0';
   else
-  { if ( strlen(strName(file)) >= sizeof(buffer) )
+  { const char *fn = nameToFN(file);
+
+    if ( strlen(fn) >= sizeof(buffer) )
     { errorPce(file, NAME_representation, NAME_nameTooLong);
       fail;
     }
-    strcpy(buffer, strName(file));
+    strcpy(buffer, fn);
   }
 
   ofn.lpstrFile    = buffer;
   ofn.nMaxFile     = sizeof(buffer)-1;
   if ( notDefault(dir) )
-  { 
-#ifdef O_XOS				/* should always be true */
-    char tmp[MAXPATHLEN];
-    char *s;
-  
-    if ( (s = expandFileName(strName(dir->path), tmp)) )
-    { if ( !(_xos_os_filename(s, cwdbin, sizeof(cwdbin))) )
-      { errorPce(file, NAME_representation, NAME_nameTooLong);
-	fail;
-      }
-      ofn.lpstrInitialDir = cwdbin;
-    }
-#else
-    ofn.lpstrInitialDir = expandFileName(strName(dir->path), cwdbin);
-#endif
-
-/*  Cprintf("InitialDir = '%s'\n", ofn.lpstrInitialDir); */
-  }
+    ofn.lpstrInitialDir = nameToFN(dir->path);
   if ( notDefault(title) )
   ofn.lpstrTitle = strName(title);
 
