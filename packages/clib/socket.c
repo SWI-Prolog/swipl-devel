@@ -116,6 +116,10 @@ extern int h_errno;
 #define SD_BOTH    2
 #endif
 
+#ifndef SOCKET_ERROR
+#define SOCKET_ERROR (-1)
+#endif
+
 #ifdef _REENTRANT
 #include <pthread.h>
 
@@ -381,9 +385,10 @@ lookupSocket(int socket)
 }
 
 
-static void
+static int
 freeSocket(int socket)
 { plsocket **p;
+  int rval;
 
   DEBUG(Sdprintf("Closing %d\n", socket));
 
@@ -408,11 +413,16 @@ freeSocket(int socket)
   }
   UNLOCK();
 
-  if ( closesocket(socket) == SOCKET_ERROR )
-  { Sdprintf("closesocket(%d) failed: %s\n",
+  if ( (rval=closesocket(socket)) == SOCKET_ERROR )
+  {
+#ifdef WIN32
+    Sdprintf("closesocket(%d) failed: %s\n",
 	     socket,
 	     WinSockError(WSAGetLastError()));
+#endif
   }
+
+  return rval;
 }
 
 
@@ -1104,12 +1114,16 @@ tcp_close_input(void *handle)
 
   DEBUG(Sdprintf("tcp_close_input(%d)\n", socket));
   s->flags &= ~SOCK_INSTREAM;
+#ifdef WIN32
   if ( shutdown(socket, SD_RECEIVE) == SOCKET_ERROR )
     Sdprintf("shutdown(%d, SD_RECEIVE) failed: %s\n",
-		       socket, WinSockError(WSAGetLastError()));
+	     socket,
+	     WinSockError(WSAGetLastError()));
+#endif
+
 
   if ( !(s->flags & (SOCK_INSTREAM|SOCK_OUTSTREAM)) )
-    freeSocket(socket);
+    return freeSocket(socket);
 
   return 0;
 }
@@ -1124,10 +1138,15 @@ tcp_close_output(void *handle)
   s->flags &= ~SOCK_OUTSTREAM;
   if ( shutdown(socket, SD_SEND) == SOCKET_ERROR )
     Sdprintf("shutdown(%d, SD_SEND) failed: %s\n",
-	     socket, WinSockError(WSAGetLastError()));
+	     socket,
+#ifdef WIN32
+	     WinSockError(WSAGetLastError()));
+#else
+	     strerror(errno));
+#endif
 
   if ( !(s->flags & (SOCK_INSTREAM|SOCK_OUTSTREAM)) )
-    freeSocket(socket);
+    return freeSocket(socket);
 
   return 0;
 }
