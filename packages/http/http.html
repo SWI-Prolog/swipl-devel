@@ -29,7 +29,7 @@ E-mail: <A HREF="mailto:jan@swi.psy.uva.nl">jan@swi.psy.uva.nl</A></I>
 </BLOCKQUOTE>
 <CENTER><H3>Abstract</H3></Center>
 <TABLE WIDTH="90%" ALIGN=center BORDER=2 BGCOLOR="#f0f0f0"><TR><TD>
-This article documents the http-package, a series of libraries for 
+This article documents the package HTTP, a series of libraries for 
 accessing data on HTTP servers as well as provide HTTP server 
 capabilities from SWI-Prolog. Both server and client are modular 
 libraries. The server can be operated from the Unix <B>inetd</B> 
@@ -107,10 +107,10 @@ interactive applications, run the body from an <EM>inetd</EM>
 super-server or as a CGI script behind a generic web-server.
 
 <P>The design of this module is different from the competing XPCE-based 
-HTTP server located in <CODE>library(http/httpd.pl)</CODE>. This library 
-intensively uses XPCE functionality to reach its goals. This is not very 
-suitable for CGI or inetd-driven servers due to required X11 connection 
-and much larger footprint.
+HTTP server located in <CODE>library(http/httpd.pl)</CODE>, which 
+intensively uses XPCE functionality to reach its goals. Using XPCE is 
+not very suitable for CGI or inetd-driven servers due to required X11 
+connection and much larger footprint.
 
 <H3>Acknowledgements</H3>
 
@@ -261,7 +261,7 @@ header. Default is <CODE>SWI-Prolog (http://www.swi-prolog.org)</CODE>.
 -Reply, +Options</VAR>)</A><DD>
 Performs a HTTP POST request on the given URL. It is equivalent to
 <A NAME="idx:httpget3:5"></A><A HREF="#http_get/3">http_get/3</A>, 
-except for providing an <EM>input document</EM>, which is posted using <A NAME="idx:httppostdata3:6"></A><B>http_post_data/3</B>.
+except for providing an <EM>input document</EM>, which is posted using <A NAME="idx:httppostdata3:6"></A><A HREF="#http_post_data/3">http_post_data/3</A>.
 
 <P>
 <DT><A NAME="http_read_data/3"><STRONG>http_read_data</STRONG>(<VAR>+Header, 
@@ -320,6 +320,54 @@ terms.
 </DL>
 
 <P>Finally, if all else fails the content is returned as an atom.
+
+<P>
+<DT><A NAME="http_post_data/3"><STRONG>http_post_data</STRONG>(<VAR>+Data, 
++Stream, +ExtraHeader</VAR>)</A><DD>
+Write an HTTP POST request to <VAR>Stream</VAR> using data from <VAR>Data</VAR> 
+and passing the additional extra headers from <VAR>ExtraHeader</VAR>.
+<VAR>Data</VAR> is one of:
+
+<DL>
+
+<P>
+<DT><STRONG>html</STRONG>(<VAR>+HTMLTokens</VAR>)<DD>
+Send an HTML token string as produced by the library <CODE>library(html_write)</CODE> 
+described in section <A HREF="#sec:htmlwrite">section 3.5</A>.
+
+<P>
+<DT><STRONG>file</STRONG>(<VAR>+File</VAR>)<DD>
+Send the contents of <VAR>File</VAR>. The MIME type is derived from the 
+filename extension using <A NAME="idx:filemimetype2:9"></A><B>file_mime_type/2</B>.
+
+<P>
+<DT><STRONG>file</STRONG>(<VAR>+File, +Type</VAR>)<DD>
+Send the contents of <VAR>File</VAR> using the provided MIME type.
+
+<P>
+<DT><STRONG>cgi_stream</STRONG>(<VAR>+Stream, +Len</VAR>)<DD>
+Read the input from <VAR>Stream</VAR> which, like CGI data starts with a 
+partial HTTP header. The fields of this header are merged with the 
+provided <VAR>ExtraHeader</VAR> fields. The first <VAR>Len</VAR> 
+characters of <VAR>Stream</VAR> are used.
+
+<P>
+<DT><STRONG>form</STRONG>(<VAR>+ListOfParameter</VAR>)<DD>
+Send data of the MIME type <CODE>application/x-www-form-urlencoded</CODE> 
+as produced by browsers issuing a POST request from an HTML form.
+<VAR>ListOfParameter</VAR> is a list of <VAR>Name</VAR>=<VAR>Value</VAR> 
+or
+<CODE><VAR>Name</VAR>(Value)</CODE>.
+
+<P>
+<DT><STRONG>List</STRONG><DD>
+If the argument is a plain list, it is sent using the MIME type
+<CODE>multipart/mixed</CODE> and packed using <A NAME="idx:mimepack3:10"></A><B>mime_pack/3</B>. 
+See
+<A NAME="idx:mimepack3:11"></A><B>mime_pack/3</B> for details on the 
+argument format.
+</DL>
+
 </DL>
 
 <H4><A NAME="sec:2.2.1">2.2.1 The MIME client plug-in</A></H4>
@@ -349,20 +397,20 @@ mime-types are automatically handled by the SGML parser.
 <DT><STRONG>text/html</STRONG><DD>
 Handed to <CODE>library(sgml)</CODE> using W3C HTML 4.0 DTD, suppressing 
 and ignoring all HTML syntax errors. <VAR>Options</VAR> is passed to
-<A NAME="idx:loadstructure3:9"></A><B>load_structure/3</B>.
+<A NAME="idx:loadstructure3:12"></A><B>load_structure/3</B>.
 
 <P>
 <DT><STRONG>text/xml</STRONG><DD>
 Handed to <CODE>library(sgml)</CODE> using dialect <CODE>xmlns</CODE> 
 (XML + namespaces).
-<VAR>Options</VAR> is passed to <A NAME="idx:loadstructure3:10"></A><B>load_structure/3</B>. 
+<VAR>Options</VAR> is passed to <A NAME="idx:loadstructure3:13"></A><B>load_structure/3</B>. 
 In particular,
 <CODE>dialect(xml)</CODE> may be used to suppress namespace handling.
 
 <P>
 <DT><STRONG>text/x-sgml</STRONG><DD>
 Handled to <CODE>library(sgml)</CODE> using dialect <CODE>sgml</CODE>. <VAR>Options</VAR> 
-is passed to <A NAME="idx:loadstructure3:11"></A><B>load_structure/3</B>.
+is passed to <A NAME="idx:loadstructure3:14"></A><B>load_structure/3</B>.
 </DL>
 
 <H2><A NAME="sec:3">3 The HTTP server libraries</A></H2>
@@ -382,9 +430,8 @@ and encode the answer. This design is summarised in <A HREF="#fig:httpserver">fi
 </CENTER>
 
 <P>
-<CENTER>
-<B>Figure 1 : Design of the HTTP server</B>
-</CENTER>
+<TABLE ALIGN=center WIDTH="75%"><TR><TD>
+<B>Figure 1 : </B>Design of the HTTP server</TABLE>
 
 <P>The functional body of the user's code is independent from the 
 selected server-type, making it easy to switch between the supported 
@@ -399,7 +446,7 @@ of the server.
 
 <P>The server-body is the code that handles the request and formulates a 
 reply. To facilitate all mentioned setups, the body is driven by
-<A NAME="idx:httpwrapper3:12"></A><A HREF="#http_wrapper/3">http_wrapper/3</A>. 
+<A NAME="idx:httpwrapper3:15"></A><A HREF="#http_wrapper/3">http_wrapper/3</A>. 
 The goal is called with the parsed request (see
 <A HREF="#sec:request">section 3.2</A>) as argument and <CODE>current_output</CODE> 
 set to a temporary buffer. Its task is closely related to the task of a 
@@ -431,7 +478,7 @@ print_request([H|T]) :-
 <A NAME="sec:request"></A>
 
 <P>The body-code (see <A HREF="#sec:body">section 3.1</A>) is driven by 
-a <VAR>Request</VAR>. This request is generated from <A NAME="idx:httpreadrequest2:13"></A><A HREF="#http_read_request/2">http_read_request/2</A> 
+a <VAR>Request</VAR>. This request is generated from <A NAME="idx:httpreadrequest2:16"></A><A HREF="#http_read_request/2">http_read_request/2</A> 
 defined in
 <CODE>library(http/http_header)</CODE>.
 
@@ -479,7 +526,7 @@ Otherwise this field is not present.
 </DL>
 
 <P>If the first line of the request is tagged with
-<CODE>HTTP/</CODE><VAR>Major</VAR>.<VAR>Minor</VAR>, <A NAME="idx:httpreadrequest2:14"></A><A HREF="#http_read_request/2">http_read_request/2</A> 
+<CODE>HTTP/</CODE><VAR>Major</VAR>.<VAR>Minor</VAR>, <A NAME="idx:httpreadrequest2:17"></A><A HREF="#http_read_request/2">http_read_request/2</A> 
 reads all input upto the first blank line. This header consists of
 <VAR>Name</VAR>:<VAR>Value</VAR> fields. Each such field appears as a 
 term
@@ -520,10 +567,10 @@ potentially large amounts of data to the server for processing.
 <P>The <VAR>Request</VAR> parameter above contains the term <CODE>method(post)</CODE>. 
 The data posted is left on the input stream that is available through 
 the term <CODE>input(Stream)</CODE> from the <VAR>Request</VAR> header. 
-This data can be read using <A NAME="idx:httpreaddata3:15"></A><A HREF="#http_read_data/3">http_read_data/3</A> 
+This data can be read using <A NAME="idx:httpreaddata3:18"></A><A HREF="#http_read_data/3">http_read_data/3</A> 
 from the HTTP client library. Here is a demo implementation simply 
 returning the parsed pasted data as plain 
-http://db.cwi.nl/projecten/project.php4?prjnr=129text (assuming <A NAME="idx:pp1:16"></A><B>pp/1</B> 
+http://db.cwi.nl/projecten/project.php4?prjnr=129text (assuming <A NAME="idx:pp1:19"></A><B>pp/1</B> 
 pretty-prints the data).
 
 <P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
@@ -605,7 +652,7 @@ selected free port.
 <P>
 <DT><STRONG>after</STRONG>(<VAR>:Goal</VAR>)<DD>
 Specify a goal to be run on the query just like the first argument of
-<A NAME="idx:httpserver2:17"></A><A HREF="#http_server/2">http_server/2</A>. 
+<A NAME="idx:httpserver2:20"></A><A HREF="#http_server/2">http_server/2</A>. 
 This goal however is started <EM>after</EM> the request has been 
 answered. It is called using <CODE>call(Goal, Request)</CODE>. This 
 extension was added to support the FIPA-HTTP protocol, which issues HTTP 
@@ -652,7 +699,7 @@ only other option provided is the <CODE>after(:Goal)</CODE> option.
 </DL>
 
 <P>The file <CODE>demo_xpce</CODE> gives a typical example of this 
-wrapper, assuming <CODE>demo_body</CODE> defines the predicate <A NAME="idx:reply1:18"></A><B>reply/1</B>.
+wrapper, assuming <CODE>demo_body</CODE> defines the predicate <A NAME="idx:reply1:21"></A><B>reply/1</B>.
 
 <P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
 <PRE>
@@ -669,7 +716,7 @@ server(Port) :-
 waits for incoming connections. On each accepted connection it collects 
 input until an HTTP request is complete. Then it opens an input stream 
 on the collected data and using the output stream directed to the XPCE
-<B>socket</B> it calls <A NAME="idx:httpwrapper3:19"></A><A HREF="#http_wrapper/3">http_wrapper/3</A>. 
+<B>socket</B> it calls <A NAME="idx:httpwrapper3:22"></A><A HREF="#http_wrapper/3">http_wrapper/3</A>. 
 This approach is fundamentally different compared to the other 
 approaches:
 
@@ -731,7 +778,7 @@ how much resources are required for processing a request. Too high
 numbers makes your system switch too often between threads or even swap 
 if there is not enough memory to keep all threads in memory, while a too 
 low number causes clients to wait unnecessary for other clients to 
-complete. See also <A NAME="idx:httpworkers2:20"></A><A HREF="#http_workers/2">http_workers/2</A>.
+complete. See also <A NAME="idx:httpworkers2:23"></A><A HREF="#http_workers/2">http_workers/2</A>.
 
 <P>
 <DT><STRONG>timeout</STRONG>(<VAR>+SecondsOrInfinite</VAR>)<DD>
@@ -767,7 +814,7 @@ as argument.
 <P>
 <DT><A NAME="http_current_server/2"><STRONG>http_current_server</STRONG>(<VAR>?:Goal, 
 ?Port</VAR>)</A><DD>
-Query the running servers. Note that <A NAME="idx:httpserver3:21"></A><A HREF="#http_server/3">http_server/3</A> 
+Query the running servers. Note that <A NAME="idx:httpserver3:24"></A><A HREF="#http_server/3">http_server/3</A> 
 can be called multiple times to create multiple servers on different 
 ports.
 
@@ -815,14 +862,14 @@ specifications.
 </UL>
 
 <P>The very small generic script for handling inetd based connections is 
-in <CODE>inetd_httpd</CODE>, defining <A NAME="idx:httpserver1:22"></A><B>http_server/1</B>:
+in <CODE>inetd_httpd</CODE>, defining <A NAME="idx:httpserver1:25"></A><B>http_server/1</B>:
 
 <DL>
 
 <P>
 <DT><A NAME="http_server/2"><STRONG>http_server</STRONG>(<VAR>:Goal, 
 +Options</VAR>)</A><DD>
-Initialises and runs <A NAME="idx:httpwrapper3:23"></A><A HREF="#http_wrapper/3">http_wrapper/3</A> 
+Initialises and runs <A NAME="idx:httpwrapper3:26"></A><A HREF="#http_wrapper/3">http_wrapper/3</A> 
 in a loop until failure or end-of-file. This server does not support the <VAR>Port</VAR> 
 option as the port is specified with the <B>inetd</B> configuration. The 
 only supported option is <VAR>After</VAR>.
@@ -868,7 +915,7 @@ For more information, please check <STRONG>inetd.conf</STRONG>(5).
 <P>The body is called by the module <CODE>library(http/http_wrapper.pl)</CODE>. 
 This module realises the communication between the I/O streams and the 
 body described in <A HREF="#sec:body">section 3.1</A>. The interface is 
-realised by <A NAME="idx:httpwrapper3:24"></A><A HREF="#http_wrapper/3">http_wrapper/3</A>:
+realised by <A NAME="idx:httpwrapper3:27"></A><A HREF="#http_wrapper/3">http_wrapper/3</A>:
 
 <DL>
 
@@ -897,7 +944,7 @@ library</A></H3>
 <A NAME="sec:htmlwrite"></A>
 
 <P>Producing output for the web in the form of an HTML document is a 
-requirement for many Prolog programs. Just using <A NAME="idx:format2:25"></A><B>format/2</B> 
+requirement for many Prolog programs. Just using <A NAME="idx:format2:28"></A><B>format/2</B> 
 is satisfactory as it leads to poorly readable programs generating poor 
 HTML. This library is based on using DCG rules.
 
@@ -907,34 +954,34 @@ framework for generating legal HTML under (Prolog) program control. It
 is especially useful for the generation of structured pages (e.g. tables) 
 from Prolog data structures.
 
-<P>The normal way to use this library is through the DCG <A NAME="idx:html1:26"></A><A HREF="#html/1">html/1</A>. 
+<P>The normal way to use this library is through the DCG <A NAME="idx:html1:29"></A><A HREF="#html/1">html/1</A>. 
 This grammar-rule provides the central translation from a structured 
 term with embedded calls to additional translation rules to a list of 
-atoms that can then be printed using <A NAME="idx:printhtml12:27"></A><A HREF="#print_html/1">print_html/[1,2]</A>.
+atoms that can then be printed using <A NAME="idx:printhtml12:30"></A><A HREF="#print_html/1">print_html/[1,2]</A>.
 
 <DL>
 
 <P>
 <DT><A NAME="html/1"><STRONG>html</STRONG>(<VAR>:Spec</VAR>)</A><CODE>--&gt;</CODE><DD>
-http://db.cwi.nl/projecten/project.php4?prjnr=129The DCG rule <A NAME="idx:html1:28"></A><A HREF="#html/1">html/1</A> 
+http://db.cwi.nl/projecten/project.php4?prjnr=129The DCG rule <A NAME="idx:html1:31"></A><A HREF="#html/1">html/1</A> 
 is the main predicate of this library. It translates the specification 
 for an HTML page into a list of atoms that can be written to a stream 
-using <A NAME="idx:printhtml12:29"></A><A HREF="#print_html/1">print_html/[1,2]</A>. 
+using <A NAME="idx:printhtml12:32"></A><A HREF="#print_html/1">print_html/[1,2]</A>. 
 The expansion rules of this predicate may be extended by defining the 
-multifile DCG html_write:<A NAME="idx:expand1:30"></A><B>expand/1</B>. <VAR>Spec</VAR> 
-is either a single specification or a list of single specifications. 
-Using nested lists is not allowed to avoid ambiguity caused by the atom <CODE></CODE>
+multifile DCG html_write:expand/1. <VAR>Spec</VAR> is either a single 
+specification or a list of single specifications. Using nested lists is 
+not allowed to avoid ambiguity caused by the atom <CODE></CODE>
 
 <P>
 <UL>
 <LI><I>Atomic data</I><BR>
-Atomic data is quoted using the <A NAME="idx:htmlquoted1:31"></A><A HREF="#html_quoted/1">html_quoted/1</A> 
+Atomic data is quoted using the <A NAME="idx:htmlquoted1:33"></A><A HREF="#html_quoted/1">html_quoted/1</A> 
 DCG.
 
 <P>
 <LI><I><VAR>Fmt</VAR> - <VAR>Args</VAR></I><BR>
 <VAR>Fmt</VAR> and <VAR>Args</VAR> are used as format-specification and 
-argument list to <A NAME="idx:sformat3:32"></A><B>sformat/3</B>. The 
+argument list to <A NAME="idx:sformat3:34"></A><B>sformat/3</B>. The 
 result is quoted and added to the output list.
 
 <P>
@@ -963,7 +1010,7 @@ Emit <TT>&amp;&lt;<VAR>Entity</VAR>&gt;;</TT>.
 <LI><I><CODE>Tag(Content)</CODE></I><BR>
 Emit HTML element <VAR>Tag</VAR> using <VAR>Content</VAR> and no 
 attributes.
-<VAR>Content</VAR> is handled to <A NAME="idx:html1:33"></A><A HREF="#html/1">html/1</A>. 
+<VAR>Content</VAR> is handled to <A NAME="idx:html1:35"></A><A HREF="#html/1">html/1</A>. 
 See <A HREF="#sec:htmllayout">section 3.5.3</A> for details on the 
 automatically generated layout.
 
@@ -978,7 +1025,7 @@ attributes. Each attributes is of the format <CODE>Name(Value)</CODE> or
 <P>
 <DT><A NAME="page/2"><STRONG>page</STRONG>(<VAR>:HeadContent, 
 :BodyContent</VAR>)</A><CODE>--&gt;</CODE><DD>
-The DCG rule <A NAME="idx:page2:34"></A><A HREF="#page/2">page/2</A> 
+The DCG rule <A NAME="idx:page2:36"></A><A HREF="#page/2">page/2</A> 
 generated a complete page, including the SGML
 <CODE>DOCTYPE</CODE> declaration. <VAR>HeadContent</VAR> are elements to 
 be placed in the <CODE>head</CODE> element and <VAR>BodyContent</VAR> 
@@ -986,16 +1033,16 @@ are elements to be placed in the <CODE>body</CODE> element.
 
 <P>http://db.cwi.nl/projecten/project.php4?prjnr=129To achieve common 
 style (background, page header and footer), it is possible to define DCG 
-rules <A NAME="idx:head1:35"></A><B>head/1</B> and/or <A NAME="idx:body1:36"></A><B>body/1</B>. 
-The <A NAME="idx:page1:37"></A><A HREF="#page/1">page/1</A> rule checks 
+rules <A NAME="idx:head1:37"></A><B>head/1</B> and/or <A NAME="idx:body1:38"></A><B>body/1</B>. 
+The <A NAME="idx:page1:39"></A><A HREF="#page/1">page/1</A> rule checks 
 for the definition of these DCG rules in the module it is called from as 
 well as in the <CODE>user</CODE> module. If no definition is found, it 
 creates a head with only the <VAR>HeadContent</VAR> (note that the
 <CODE>title</CODE> is obligatory) and a <CODE>body</CODE> with <CODE>bgcolor</CODE> 
 set to <CODE>white</CODE> and the provided <VAR>BodyContent</VAR>.
 
-<P>Note that further customisation is easily achieved using <A NAME="idx:html1:38"></A><A HREF="#html/1">html/1</A> 
-directly as <A NAME="idx:page2:39"></A><A HREF="#page/2">page/2</A> is 
+<P>Note that further customisation is easily achieved using <A NAME="idx:html1:40"></A><A HREF="#html/1">html/1</A> 
+directly as <A NAME="idx:page2:41"></A><A HREF="#page/2">page/2</A> is 
 (besides handling the hooks) defined as:
 
 <P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
@@ -1012,7 +1059,7 @@ page(Head, Body) --&gt;
 
 <P>
 <DT><A NAME="page/1"><STRONG>page</STRONG>(<VAR>:Contents</VAR>)</A><CODE>--&gt;</CODE><DD>
-This version of the <A NAME="idx:page12:40"></A><A HREF="#page/1">page/[1,2]</A> 
+This version of the <A NAME="idx:page12:42"></A><A HREF="#page/1">page/[1,2]</A> 
 only gives you the SGML <CODE>DOCTYPE</CODE> and the <CODE>HTML</CODE> 
 element. <VAR>Contents</VAR> is used to generate both the head and body 
 of the page.
@@ -1032,7 +1079,7 @@ the begin-tag. Some examples:
 </TABLE>
 
 <P>This predicate provides an alternative to using the
-<CODE>\</CODE><VAR>Command</VAR> syntax in the <A NAME="idx:html1:41"></A><A HREF="#html/1">html/1</A> 
+<CODE>\</CODE><VAR>Command</VAR> syntax in the <A NAME="idx:html1:43"></A><A HREF="#html/1">html/1</A> 
 specification. The following two fragments are the same. The preferred 
 solution depends on your preferences as well as whether the 
 specification is generated or entered by the programmer.
@@ -1058,13 +1105,13 @@ table(Rows) --&gt;
 
 <P>
 <DT><A NAME="html_end/1"><STRONG>html_end</STRONG>(<VAR>+End</VAR>)</A><CODE>--&gt;</CODE><DD>
-End an element. See <A NAME="idx:htmlbegin1:42"></A><A HREF="#html_begin/1">html_begin/1</A> 
+End an element. See <A NAME="idx:htmlbegin1:44"></A><A HREF="#html_begin/1">html_begin/1</A> 
 for details.
 </DL>
 
 <H4><A NAME="sec:3.5.1">3.5.1 Emitting HTML documents</A></H4>
 
-<P>The <A NAME="idx:html1:43"></A><A HREF="#html/1">html/1</A> grammar 
+<P>The <A NAME="idx:html1:45"></A><A HREF="#html/1">html/1</A> grammar 
 rules translates a specification into a list of atoms and layout 
 instructions. Currently the layout instructions are terms of the format <CODE>nl(N)</CODE>, 
 requesting at least <VAR>N</VAR> newlines. Multiple consequtive <CODE>nl(1)</CODE> 
@@ -1088,7 +1135,7 @@ Print the token list to the specified output stream
 <P>
 <DT><A NAME="html_print_length/2"><STRONG>html_print_length</STRONG>(<VAR>+List, 
 -Length</VAR>)</A><DD>
-When calling <A NAME="idx:htmlprint12:44"></A><B>html_print/[1,2]</B> on <VAR>List</VAR>, <VAR>Length</VAR> 
+When calling <A NAME="idx:htmlprint12:46"></A><B>html_print/[1,2]</B> on <VAR>List</VAR>, <VAR>Length</VAR> 
 characters will be produced. Knowing the length is needed to provide the <CODE>Content-length</CODE> 
 field of an HTTP reply-header.
 </DL>
@@ -1096,21 +1143,21 @@ field of an HTTP reply-header.
 <H4><A NAME="sec:3.5.2">3.5.2 Adding rules for html/1</A></H4>
 
 <P>In some cases it is practical to extend the translations imposed by
-<A NAME="idx:html1:46"></A><A HREF="#html/1">html/1</A>. When using XPCE 
+<A NAME="idx:html1:48"></A><A HREF="#html/1">html/1</A>. When using XPCE 
 for example, it is comfortable to be able defining default translation 
 to HTML for objects. We also used this technique to define translation 
 rules for the output of the SWI-Prolog
 <CODE>library(sgml)</CODE> package.
 
-<P>The <A NAME="idx:html1:47"></A><A HREF="#html/1">html/1</A> rule 
-first calls the multifile ruleset html_write:<A NAME="idx:expand1:48"></A><B>expand/1</B>. 
-The other predicates contain commonly rules for defining new rules.
+<P>The <A NAME="idx:html1:49"></A><A HREF="#html/1">html/1</A> rule 
+first calls the multifile ruleset html_write:expand/1. The other 
+predicates contain commonly rules for defining new rules.
 
 <DL>
 
 <P>
 <DT><A NAME="html_write:expand/1"><STRONG>html_write:expand</STRONG>(<VAR>+Spec</VAR>)</A><CODE>--&gt;</CODE><DD>
-Hook to add additional translationrules for <A NAME="idx:html1:49"></A><A HREF="#html/1">html/1</A>.
+Hook to add additional translationrules for <A NAME="idx:html1:50"></A><A HREF="#html/1">html/1</A>.
 
 <P>
 <DT><A NAME="html_quoted/1"><STRONG>html_quoted</STRONG>(<VAR>+Atom</VAR>)</A><CODE>--&gt;</CODE><DD>
@@ -1130,7 +1177,7 @@ inserting entity-references for the SGML special characters <CODE>&lt;&amp;&gt;'
 <P>Though not strictly necessary, the library attempts to generate 
 reasonable layout in SGML output. It does this only by inserting 
 newlines before and after tags. It does this on the basis of the 
-multifile predicate html_write:<A NAME="idx:layout3:50"></A><B>layout/3</B>
+multifile predicate html_write:layout/3
 
 <DL>
 

@@ -1,6 +1,9 @@
 May 20, 2003
 
+  * DOCS: Documented http_post_data/3
+
   * ADDED: form([Name=Value, ...]) input type to http_post_data/3
+
 
 May 12, 2003
 

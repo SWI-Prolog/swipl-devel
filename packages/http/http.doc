@@ -1,4 +1,5 @@
 \documentclass[11pt]{article}
+\usepackage{times}
 \usepackage{pl}
 \usepackage{html}
 
@@ -22,7 +23,7 @@
 \maketitle
 
 \begin{abstract}
-This article documents the http-package, a series of libraries for
+This article documents the package HTTP, a series of libraries for
 accessing data on HTTP servers as well as provide HTTP server
 capabilities from SWI-Prolog. Both server and client are modular
 libraries. The server can be operated from the Unix \program{inetd}
@@ -61,10 +62,10 @@ interactive applications, run the body from an \emph{inetd} super-server
 or as a CGI script behind a generic web-server.
 
 The design of this module is different from the competing XPCE-based
-HTTP server located in \pllib{http/httpd.pl}.  This library intensively
-uses XPCE functionality to reach its goals.  This is not very suitable
-for CGI or inetd-driven servers due to required X11 connection and
-much larger footprint.
+HTTP server located in \pllib{http/httpd.pl}, which intensively
+uses XPCE functionality to reach its goals. Using XPCE is not very
+suitable for CGI or inetd-driven servers due to required X11 connection
+and much larger footprint.
 
 
 \subsection*{Acknowledgements}
@@ -231,6 +232,41 @@ terms.
 \end{description}
 
 Finally, if all else fails the content is returned as an atom.
+
+    \predicate{http_post_data}{3}{+Data, +Stream, +ExtraHeader}
+Write an HTTP POST request to \arg{Stream} using data from \arg{Data}
+and passing the additional extra headers from \arg{ExtraHeader}.
+\arg{Data} is one of:
+
+    \begin{description}
+	\termitem{html}{+HTMLTokens}
+Send an HTML token string as produced by the library \pllib{html_write}
+described in section \secref{htmlwrite}.
+
+	\termitem{file}{+File}
+Send the contents of \arg{File}.  The MIME type is derived from the
+filename extension using file_mime_type/2.
+
+	\termitem{file}{+File, +Type}
+Send the contents of \arg{File} using the provided MIME type.
+
+	\termitem{cgi_stream}{+Stream, +Len}
+Read the input from \arg{Stream} which, like CGI data starts with a
+partial HTTP header.  The fields of this header are merged with the
+provided \arg{ExtraHeader} fields.  The first \arg{Len} characters
+of \arg{Stream} are used.
+
+	\termitem{form}{+ListOfParameter}
+Send data of the MIME type \const{application/x-www-form-urlencoded}
+as produced by browsers issuing a POST request from an HTML form.
+\arg{ListOfParameter} is a list of \arg{Name}=\arg{Value} or
+\term{\arg{Name}}{Value}.
+
+	\termitem{List}{}
+If the argument is a plain list, it is sent using the MIME type
+\const{multipart/mixed} and packed using mime_pack/3.  See
+mime_pack/3 for details on the argument format.
+    \end{description}
 \end{description}
 
 
