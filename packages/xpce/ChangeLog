@@ -1,6 +1,11 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: type := value declaration handling of instance variables.  Also
+  updated documentation and added some value := new(Term) to the preprocessor.
+  Anders Bouwer.
+
+
 VERSION 6.2.2, distributed with SWI-Prolog 5.2.2
 ================================================
 		

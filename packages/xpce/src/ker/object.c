@@ -222,6 +222,7 @@ updateInstanceProtoClass(Class class)
   Variable *var = (Variable *) &class->instance_variables->elements[0];
   Any *field;
   Instance obj;
+  Name init_variables = NAME_static;
 
   class->proto = alloc(offset(instance_proto, proto) + size);
   class->proto->size = size;
@@ -232,16 +233,25 @@ updateInstanceProtoClass(Class class)
   for( ; --slots >= 0; var++, field++)
   { Variable v = *var;
 
-    if ( /*isNil(v->alloc_value) &&*/
-	 hasClassVariableVariable(v, class) )
+    if ( hasClassVariableVariable(v, class) )
     { *field = CLASSDEFAULT;
       setFlag(obj, F_OBTAIN_CLASSVARS);
       DEBUG(NAME_classVariable,
 	    Cprintf("Set %s-%s to @class_default\n",
 		    pp(class->name), pp(v->name)));
     } else
-      *field = v->alloc_value;
+    { *field = v->alloc_value;
+
+      if ( init_variables != NAME_function )
+      { if ( isFunction(v->init_function) )
+	  init_variables = NAME_function;
+	else if ( notNil(v->init_function) )
+	  init_variables = NAME_value;
+      }
+    }
   }
+
+  assign(class, init_variables, init_variables);
 }
 
 
@@ -305,24 +315,21 @@ init_slots(Instance obj, int slots, Variable *var, Any *field)
 
 
 status
-initialiseObject(Instance obj, int argc, const Any argv[])
+initialiseObject(Instance obj)
 { Class class = classOfObject(obj);
-  int slots = valInt(class->slots);
-  Variable *var = (Variable *) &class->instance_variables->elements[0];
-  Any *field = &obj->slots[0];
-  status rval;
+  status rval = SUCCEED;
 
-  if ( class->has_init_functions == ON )
-  { Any receiver_save = RECEIVER->value;
-    Any receiver_class_save = RECEIVER_CLASS->value;
+  if ( class->init_variables != NAME_static )
+  { int slots = valInt(class->slots);
+    Variable *var = (Variable *) &class->instance_variables->elements[0];
+    Any *field = &obj->slots[0];
 
-    RECEIVER->value = obj;
-    RECEIVER_CLASS->value = classOfObject(obj);
-    withArgs(argc, argv, rval = init_slots(obj, slots, var, field));
-    RECEIVER_CLASS->value = receiver_class_save;
-    RECEIVER->value = receiver_save;
-  } else
-    rval = init_slots(obj, slots, var, field);
+    if ( class->init_variables == NAME_function )
+    { withReceiver(obj, classOfObject(obj),
+		   rval = init_slots(obj, slots, var, field));
+    } else
+      rval = init_slots(obj, slots, var, field);
+  }
 
   return rval;
 }
@@ -375,10 +382,19 @@ createObjectv(Name assoc, Class class, int argc, const Any argv[])
   if ( notNil(assoc) )			/* Create name association */
     newAssoc(assoc, rval);
 
+  if ( class->init_variables != NAME_static )
+  { if ( !initialiseObject(rval) )
+      goto failed;
+  }
 					/* Initialise the object */
   if ( sendSendMethod(class->initialise_method, rval, argc, argv) )
   { createdClass(class, rval, NAME_new);
-  } else
+    delCodeReference(rval);
+
+    answer(rval);
+  }
+
+failed:
   { ArgVector(av, argc+1);
     int ac = 0, i = 0;
 
@@ -391,9 +407,6 @@ createObjectv(Name assoc, Class class, int argc, const Any argv[])
     unallocObject(rval);
     fail;
   }
-
-  delCodeReference(rval);
-  answer(rval);
 }
 
 
@@ -2661,8 +2674,8 @@ static senddecl send_object[] =
      NAME_oms, "Indicate I'm done with some answer"),
   SM(NAME_free, 0, NULL, freeObject,
      NAME_oms, "Delete object from the object-base"),
-  SM(NAME_initialise, 1, "unchecked ...", initialiseObject,
-     NAME_oms, "Initialise variables"),
+  SM(NAME_initialise, 0, NULL, succeedObject,
+     NAME_oms, "Initialise a new instance"),
   SM(NAME_lockObject, 1, "bool", lockObject,
      NAME_oms, "Lock object for incremental garbage collection"),
   SM(NAME_protect, 0, NULL, protectObject,

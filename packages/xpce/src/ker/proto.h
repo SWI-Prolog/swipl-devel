@@ -201,7 +201,7 @@ void		delRefObject(Any from, Any to);
 void		assignField(Instance instance, Any *field, Any value);
 void		unallocInstanceProtoClass(Class class);
 Any		allocObject(Class class, int funcs);
-status		initialiseObject(Instance obj, int argc, const Any argv []);
+status		initialiseObject(Instance obj);
 Any		createObjectv(Name assoc, Class class, int argc, const Any argv []);
 Any		newObjectv(Class class, int argc, const Any argv []);
 status		considerPreserveObject(Any obj);

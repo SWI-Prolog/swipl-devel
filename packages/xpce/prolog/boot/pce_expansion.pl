@@ -789,6 +789,10 @@ word_list(A) -->
 	pce_type_description(A).
 
 
+var_type(Type := new(Term), PceType, Initial) :- !,
+	pce_type(Type, PceType),
+	Term =.. L,
+	Initial =.. [create|L].
 var_type(Type := Initial, PceType, Initial) :- !,
 	pce_type(Type, PceType).
 var_type(Type, PceType, @default) :-

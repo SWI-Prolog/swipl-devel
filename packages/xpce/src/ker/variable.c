@@ -228,7 +228,7 @@ initFunctionVariable(Variable var, Any f)
 { assign(var, init_function, f);
 
   if ( instanceOfObject(var->context, ClassClass) )
-    prepareClass(var->context);		/* update class <-has_init_functions */
+    unallocInstanceProtoClass(var->context);
 
   succeed;
 }
@@ -512,7 +512,7 @@ static getdecl get_variable[] =
      NAME_meta, "Type of n-th1 argument if <-access includes `send'"),
   GM(NAME_returnType, 0, "type", NULL, getReturnTypeVariable,
      NAME_meta, "Return type if <-access includes `get'"),
-  GM(NAME_allocValue, 0, "any|function", NULL, getAllocValueVariable,
+  GM(NAME_allocValue, 0, "unchecked", NULL, getAllocValueVariable,
      NAME_oms, "Initial value when instantiated"),
   GM(NAME_printName, 0, "name", NULL, getPrintNameVariable,
      NAME_textual, "Class <->Name")

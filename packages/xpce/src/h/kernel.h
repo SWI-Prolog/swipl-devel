@@ -965,7 +965,7 @@ NewClass(class)
   HashTable	instances;		/* hash-table holding the instances */
 
   Bool		realised;		/* Class has been realised? */
-  Bool		has_init_functions;	/* instance variables use functions */
+  Name		init_variables;		/* How to initialise slots */
 
   InstanceProto	proto;			/* Prototype instance */
   int		tree_index;		/* Index in depth-first tree */

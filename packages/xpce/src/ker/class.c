@@ -321,7 +321,7 @@ fill_slots_class(Class class, Class super)
 
     if ( !class->boot )
     { assign(class, instance_size,	super->instance_size);
-      assign(class, has_init_functions, super->has_init_functions);
+      assign(class, init_variables,     super->init_variables);
     }
     assign(class, changed_messages,     getCopyChain(super->changed_messages));
     assign(class, created_messages,     getCopyChain(super->created_messages));
@@ -353,7 +353,7 @@ fill_slots_class(Class class, Class super)
     assign(class, changed_messages,	NIL);
     assign(class, resolve_method_message, NIL);
 
-    assign(class, has_init_functions,	OFF);
+    assign(class, init_variables,	NAME_static);
     assign(class, changed_messages,     NIL);
     assign(class, created_messages,     NIL);
     assign(class, freed_messages,       NIL);
@@ -425,7 +425,7 @@ _bootClass(Name name, Name super_name,
 	   createSendMethod(NAME_initialise, tv, NIL, initF));
     lockObj(cl->initialise_method);	/* avoid reclaim on sdcClass */
     assign(cl, lookup_method, NIL);
-    assign(cl, has_init_functions, OFF); /* not support for boot stuff */
+    assign(cl, init_variables, NAME_static); /* not support for boot stuff */
     assign(cl, resolve_method_message, NIL);
   }
 
@@ -568,22 +568,6 @@ initClass(Class class)
   return installClass(class);
 }
 
-
-status
-prepareClass(Class class)		/* prepare for making instances */
-{ Bool has_init_functions = OFF;
-
-  for_vector(class->instance_variables, Variable v,
-	     { if ( isFunction(v->init_function) )
-	       { has_init_functions = ON;
-		 break;
-	       }
-	     });
-
-  assign(class, has_init_functions, has_init_functions);
-
-  succeed;
-}
 
 		/********************************
 		*     USER-DEFINED CLASSES	*
@@ -2361,8 +2345,8 @@ makeClassClass(Class class)
 	     "Hash table holding existing instances");
   localClass(class, NAME_realised, NAME_realise, "bool", NAME_get,
 	     "@on if class is realised");
-  localClass(class, NAME_hasInitFunctions, NAME_cache, "bool", NAME_get,
-	     "@on if one or more variables use functions");
+  localClass(class, NAME_initVariables, NAME_cache, "{static,value,function}", NAME_get,
+	     "How variables must be initialised");
 
   localClass(class, NAME_proto, NAME_cache, "alien:InstanceProto", NAME_none,
 	     "Prototype instance + info for fast creation");
