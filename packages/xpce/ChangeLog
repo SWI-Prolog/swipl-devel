@@ -1,3 +1,6 @@
+* FIXED: Type-error in manual tools: man_button_fragment ->initialise:
+  Argument 4 (object): `object' expected.
+
 * FIXED: Honour colour of `text_item<-value_text'.
 
 * FIXED: Added *-> to meta-predicates for PceEmacs cross-referencer.

@@ -492,7 +492,8 @@ mark_example(E, Re:regex) :->
 mark_object(E, Re:regex) :->
 	get(Re, register_value, E, 1, name, Ref),
 	get(@pce, object_from_reference, Ref, _Target),
-	new(_, man_button_fragment(E, Re, 0, man_global(Ref))).
+	new(Global, man_global(Ref)),
+	new(_, man_button_fragment(E, Re, 0, Global)).
 
 
 mark_classvar(E, Re:regex) :->
