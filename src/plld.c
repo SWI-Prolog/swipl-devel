@@ -126,6 +126,8 @@ embedded application.
 #define oserror xoserror
 #undef strdup
 #define strdup plld_strdup
+#undef strndup
+#define strndup plld_strndup
 #ifdef HAVE_DMALLOC_H
 #undef xmalloc
 #undef xrealloc
