@@ -2108,6 +2108,7 @@ static const builtin_boolean_feature builtin_boolean_features[] =
   { ATOM_case_sensitive_file_names,      FILE_CASE_FEATURE },
   { ATOM_allow_variable_name_as_functor, ALLOW_VARNAME_FUNCTOR },
   { ATOM_iso, 			 	 ISO_FEATURE },
+  { ATOM_optimise,		 	 OPTIMISE_FEATURE },
   { NULL_ATOM,			         0L }
 };
 
@@ -2436,20 +2437,6 @@ set_pl_option(const char *name, const char *value)
   fail;
 }
 
-
-
-word
-pl_please(term_t key, term_t old, term_t new)
-{ atom_t k;
-
-  if ( !PL_get_atom(key, &k) )
-    fail;
-
-  if   ( k == ATOM_optimise )
-    return setBoolean(&GD->cmdline.optimise, "please", old, new);
-  else
-    return warning("please/3: unknown key: %s", stringAtom(k));
-}
 
 		/********************************
 		*         STYLE CHECK           *

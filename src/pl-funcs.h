@@ -482,7 +482,6 @@ word		pl_feature(term_t key, term_t value, word h);
 word		pl_set_feature(term_t key, term_t value);
 word		pl_option(term_t key, term_t old, term_t new, control_t h);
 int		set_pl_option(const char *name, const char *value);
-word		pl_please(term_t key, term_t old, term_t new);
 word		pl_style_check(term_t old, term_t new);
 word		pl_novice(term_t old, term_t new);
 

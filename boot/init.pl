@@ -256,15 +256,15 @@ $prefix_module(Module, _, Head, Module:Head).
 %	to give a DWIM warning. Otherwise fail. C will print an error
 %	message.
 
-:- flag($verbose_autoload, _, off).
-:- flag($enable_autoload, _, on).
+:- set_feature(autoload, true).
+:- set_feature(verbose_autoload, false).
 :- flag($autoloading, _, 0).
 
 $undefined_procedure(Module, Name, Arity, Action) :-
 	$prefix_module(Module, user, Name/Arity, Pred),
 	user:exception(undefined_predicate, Pred, Action), !.
 $undefined_procedure(Module, Name, Arity, retry) :-
-	flag($enable_autoload, on, on),
+	feature(autoload, true),
 	$find_library(Module, Name, Arity, LoadModule, Library),
 	functor(Head, Name, Arity),
 	flag($autoloading, Old, Old+1),
@@ -768,7 +768,9 @@ $load_file(Spec, Options) :-
 	    $calleventhook(load_file(Absolute, true)),
 
 	    (   Silent == false,
-		(flag($autoloading, 0, 0) ; flag($verbose_autoload, on, on))
+		(   flag($autoloading, 0, 0)
+		;   feature(verbose_autoload, true)
+		)
 	    ->  statistics(heapused, Heap),
 		statistics(cputime, Time),
 		HeapUsed is Heap - OldHeap,
@@ -1105,6 +1107,12 @@ $do_expand_body(A, B) :-
 	$do_expand_body(B0, B).
 $do_expand_body(A, A).
 
+%	Delete extraneous true's that result from goal_expansion(..., true)
+%
+%	Is the really necessary?  Should we only do it if -O is effective?
+
+$tidy_body(A, A) :-
+	feature(optimise, false), !.
 $tidy_body(A, A) :-
         var(A), !.
 $tidy_body((A,B), (A, TB)) :-

@@ -57,7 +57,7 @@ $define_predicate(Head) :-
 $define_predicate(Term) :-
 	$strip_module(Term, Module, Head),
 	functor(Head, Name, Arity),
-	flag($enable_autoload, on, on),
+	feature(autoload, true),
 	$find_library(Module, Name, Arity, LoadModule, Library),
 	flag($autoloading, Old, Old+1),
 	(   Module == LoadModule
@@ -201,21 +201,24 @@ autoload :-
 	autoload([]).
 
 autoload(Options) :-
-	option(Options, verbose/on, Verbose),
+	option(Options, verbose/true, Verbose),
 	$style_check(Old, Old), 
 	style_check(+dollar), 
-	please(autoload, OldAutoLoad, off),
+	feature(autoload, OldAutoLoad),
+	feature(verbose_autoload, OldVerbose),
+	set_feature(autoload, false),
 	findall(Pred, needs_autoloading(Pred), Preds),
-	please(autoload, _, OldAutoLoad),
+	set_feature(autoload, OldAutoLoad),
 	$style_check(_, Old),
 	(   Preds == []
 	->  true
-	;   please(verbose_autoload, OldVerbose, Verbose),
-	    please(autoload, OldAutoLoad2, on),
+	;   set_feature(autoload, true),
+	    set_feature(verbose_autoload, Verbose),
 	    checklist($define_predicate, Preds),
-	    please(autoload, _, OldAutoLoad2),
-	    please(verbose_autoload, _, OldVerbose),
-	    autoload(Verbose)
+	    set_feature(autoload, OldAutoLoad),
+	    set_feature(verbose_autoload, OldVerbose),
+	    autoload(Verbose)		% recurse for possible new
+					% unresolved links
 	).
 	
 needs_autoloading(Module:Head) :-

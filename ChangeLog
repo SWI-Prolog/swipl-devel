@@ -1,6 +1,14 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * MODIFIED: Deleted please/3 and added the functionality to feature/2.
+
+  * FIXED: Some compiler warning is plld.c and pl-stream.c.  Might have
+    caused problems when using characters > 128, but quite unlikely. Reported
+    by Peter Ludeman. 
+
+  * FIXED: 8-bit transparency of console window.
+
 VERSION 3.2.6
 =============
 
@@ -28,7 +36,7 @@ VERSION 3.2.6
     message if a target file does not exist.
 
   * FIXED: Initiate hash-based indexing for integers > max_tagged_integer.
-    Very important if your code uses large integers and relies in indexing!
+    Very important if your code uses large integers and relies on indexing!
 
   * FIXED: recognise -p option in pl -o state -c file.pl.  Reported by
     Lukas Faulstich.  Thanks.

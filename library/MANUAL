@@ -625,7 +625,7 @@ The full set of command line options is given below:
     compilation.
 
 --OO
-    Optimised compilation.  See please/3.
+    Optimised compilation.  See feature/2.
 
 --ff _f_i_l_e
     Use  _f_i_l_e as  initialisation  file instead  of `.plrc'.    `-f none'
@@ -1195,45 +1195,11 @@ loading the intermediate code file.
 
 22..88 EEnnvviirroonnmmeenntt CCoonnttrrooll
 
-The current  system defines 3 different  mechanisms to query and/or  set
-properties  of the  environment:    please/3,  flag/3 and  feature/2  as
-well  as a  number of  special purpose  predicates  of which  unknown/2,
-fileerrors/2 are examples.  The ISO standard defines prolog_flag.  It is
-likely that all  these global features will  be merged into a single  in
-the future.
-
-
-pplleeaassee((_+_K_e_y_, _-_O_l_d_, _+_N_e_w))
-    The  predicate please/3  is  a solution  to avoid  large numbers  of
-    environment  control  predicates.     Later  versions  will  support
-    other  environment  control  as  now  provided  via  the  predicates
-    style_check/1,  leash/1,  unknown/2,  the  tracer  predicates,  etc.
-    These  predicates  are  then  moved into  a  library  for  backwards
-    compatibility.  The currently available options are:
-
-    ooppttiimmiissee _o_n_/_o_f_f (default:  _o_f_f_)
-         Switch optimise  mode  for the  compiler on  or  off (see  also
-         the command line  option -O).   Currently optimise  compilation
-         only  implies  compilation  of  arithmetic,   making  it  fast,
-         but  invisible to  the  tracer.    Later versions  might  imply
-         various  other optimisations  such  as incorporating  a  number
-         of basic  predicates  in the  virtual machine  (var/1,  fail/0,
-         =/2,  etc.)    to  gain speed  at  the  cost of  crippling  the
-         debugger.  Also source level optimisations  such as integrating
-         small  predicates  into  their  callers,  eliminating  constant
-         expressions and  other  predictable constructs.    Source  code
-         optimisation is never  applied to predicates that are  declared
-         dynamic (see dynamic/1).
-
-    aauuttoollooaadd _o_n_/_o_f_f (default:  _o_n_)
-         If on  autoloading of  library functions is  enabled.   If  off
-         autoloading is disabled.  See section 2.9.
-
-    vveerrbboossee__aauuttoollooaadd _o_n_/_o_f_f (default:  _o_f_f_)
-         If on the normal  consult message will be printed if  a library
-         is  autoloaded.     By  default  this  message  is  suppressed.
-         Intended to  be used  for debugging purposes  (e.g. where  does
-         this predicate come from?).
+The current  system defines 2 different  mechanisms to query and/or  set
+properties  of the  environment:   flag/3  and feature/2  as well  as  a
+number of  special purpose predicates  of which unknown/2,  fileerrors/2
+are examples.  The ISO  standard defines prolog_flag.  It is  likely that
+all these global features will be merged into a single in the future.
 
 
 ffeeaattuurree((_?_K_e_y_, _-_V_a_l_u_e))
@@ -1409,6 +1375,29 @@ ffeeaattuurree((_?_K_e_y_, _-_V_a_l_u_e))
            o In  the standard order  of terms (see  section 3.5.1),  all
              floats are before all integers.
 
+    ooppttiimmiissee ((_b_o_o_l))
+         If true, compile in optimised mode.  The initial  value is true
+         if Prolog was started with the -O commandline option.
+
+         Currently   optimise   compilation   implies   compilation   of
+         arithmetic, and  deletion of redundant  true/0 that may  result
+         from expand_goal/2.
+
+         Later versions might imply various other optimisations  such as
+         integrating small  predicates into  their callers,  eliminating
+         constant expressions and other predictable constructs.   Source
+         code  optimisation is  never  applied  to predicates  that  are
+         declared dynamic (see dynamic/1).
+
+    aauuttoollooaadd ((_b_o_o_l))
+         If true (default) autoloading of library functions  is enabled.
+         See section 2.9.
+
+    vveerrbboossee__aauuttoollooaadd ((_b_o_o_l))
+         If  true the  normal  consult  message  will be  printed  if  a
+         library is autoloaded.  By default this  message is suppressed.
+         Intended to be used for debugging purposes.
+
     ttrraaccee__ggcc ((_b_o_o_l))
          If  true  (false  is  the  default),  garbage  collections  and
          stack-shifts  will  be  reported on  the  terminal.     May  be
@@ -1461,15 +1450,15 @@ sseett__ffeeaattuurree((_+_K_e_y_, _+_V_a_l_u_e))
 22..99 AAuuttoommaattiicc llooaaddiinngg ooff lliibbrraarriieess
 
 If ---at  runtime--- an undefined predicate  is trapped the system  will
-first try  to import  the predicate  from the  module's default  module.
-If this  fails the _a_u_t_o  _l_o_a_d_e_r is  activated.   On first activation  an
-index to all library files in all library directories  is loaded in core
-(see library_directory/1).   If the undefined  predicate can be  located
-in the one  of the libraries that  library file is automatically  loaded
-and the  call to the  (previously undefined) predicate is  resumed.   By
-default this  mechanism loads the  file silently.   The please/3  option
-verbose_autoload is provided to get verbose loading.   The please option
-autoload can be used to enable/disable the entire auto load system.
+first try to import the predicate from the module's default  module.  If
+this fails the _a_u_t_o  _l_o_a_d_e_r is activated.  On first activation  an index
+to all library files  in all library directories is loaded in  core (see
+library_directory/1).  If the undefined predicate can be  located in the
+one of the libraries  that library file is automatically loaded  and the
+call to  the (previously undefined)  predicate is resumed.   By  default
+this mechanism loads the file silently.   The feature/2 verbose_autoload
+is provided to  get verbose loading.   The feature autoload can be  used
+to enable/disable the entire auto load system.
 
 Autoloading  only handles  (library) source  files that  use the  module
 mechanism  described  in  chapter  4.     The  files   are  loaded  with
@@ -4293,10 +4282,11 @@ arithmetic as  appropriate.  The  integer predicates are as  ``logical''
 as possible.  Their usage is recommended  whenever applicable, resulting
 in faster and more ``logical'' programs.
 
-The  general arithmetic  predicates  are  optionally compiled  now  (see
-please/3 and the -O  command line option).  Compiled  arithmetic reduces
-global  stack requirements  and  improves  performance.    Unfortunately
-compiled arithmetic cannot be traced, which is why it is optional.
+The   general  arithmetic   predicates  are   optionally  compiled   now
+(see  set_feature/2  and  the  -O  command  line  option).      Compiled
+arithmetic reduces global  stack requirements and improves  performance.
+Unfortunately compiled arithmetic cannot  be traced, which is why  it is
+optional.
 
 The  general  arithmetic   predicates  all  handle  _e_x_p_r_e_s_s_i_o_n_s.      An
 expression is either a simple number or a _f_u_n_c_t_i_o_n.   The arguments of a
@@ -10292,4 +10282,4 @@ ________________________________________________________________________
                                   New York, 1983.  Major revision  March
                                   1984.
 
-SWI-Prolog 3.2
+                                                          SWI-Prolog 3.2

@@ -10,7 +10,6 @@
 	[ leash/1
 	, visible/1
 	, style_check/1
-	, please/3
 	, (spy)/1
 	, (nospy)/1
 	, trace/1
@@ -111,13 +110,6 @@ style_check(Spec) :-
 	$style_check(Old, Old),
 	$map_bits($map_style_check, Spec, Old, New),
 	$style_check(_, New).
-
-please(autoload, Old, New) :- !,
-	flag($enable_autoload, Old, New).
-please(verbose_autoload, Old, New) :- !,
-	flag($verbose_autoload, Old, New).
-please(Key, Old, New) :-
-	$please(Key, Old, New).
 
 :- module_transparent
 	trace/1,
@@ -378,7 +370,7 @@ current_predicate(Name, Term) :-
 	$c_current_predicate(Name, DefModule:Head),
 	$defined_predicate(DefModule:Head), !.
 current_predicate(Name, Term) :-
-	flag($enable_autoload, on, on),
+	feature(autoload, true),
 	$strip_module(Term, Module, Head),
 	functor(Head, Name, Arity),
 	$find_library(Module, Name, Arity, _LoadModule, _Library), !.

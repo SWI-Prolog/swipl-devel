@@ -166,6 +166,8 @@ initFeatures()
   CSetIntFeature("version",	PLVERSION);
   if ( systemDefaults.home )
     CSetFeature("home",		systemDefaults.home);
+  CSetFeature("optimise",	GD->cmdline.optimise == TRUE ? "true" 
+							     : "false");
   CSetFeature("c_libs",		C_LIBS);
   CSetFeature("c_cc",		C_CC);
   CSetFeature("c_ldflags",	C_LDFLAGS);

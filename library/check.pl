@@ -60,9 +60,10 @@ write_undefined(Module:Name/Arity) :-
 list_autoload :-
 	$style_check(Old, Old), 
 	style_check(+dollar), 
-	please(autoload, OldAutoLoad, off),
+	feature(autoload, OldAutoLoad),
+	set_feature(autoload, false),
 	list_autoload_, 
-	please(autoload, _, OldAutoLoad),
+	set_feature(autoload, OldAutoLoad),
 	$style_check(_, Old).
 	
 list_autoload_ :-

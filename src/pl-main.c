@@ -374,7 +374,7 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
 			}
 			argc--, argv++;
 			break;
-	case 'O':	GD->cmdline.optimise = TRUE;
+	case 'O':	GD->cmdline.optimise = TRUE; /* see initFeatures() */
 			break;
 	case 'x':
   	case 'o':	optionString(GD->options.compileOut);

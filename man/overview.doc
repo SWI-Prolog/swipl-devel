@@ -80,7 +80,7 @@ Used in combination with \cmdlineoption{-c} or \cmdlineoption{-b} to
 determine output file for compilation.
 
     \cmdlineoptionitem{-O}{}
-Optimised compilation. See please/3.
+Optimised compilation. See feature/2.
 
     \cmdlineoptionitem{-f}{file}
 Use \arg{file} as initialisation file instead of `\file{.plrc}'.
@@ -679,45 +679,13 @@ loading the intermediate code file.
 
 \section{Environment Control}
 
-The current system defines 3 different mechanisms to query and/or set
-properties of the environment: please/3, flag/3 and feature/2 as well as
-a number of special purpose predicates of which unknown/2, fileerrors/2
-are examples.  The ISO standard defines prolog_flag.  It is likely that
-all these global features will be merged into a single in the future.
+The current system defines 2 different mechanisms to query and/or set
+properties of the environment: flag/3 and feature/2 as well as a number
+of special purpose predicates of which unknown/2, fileerrors/2 are
+examples. The ISO standard defines prolog_flag. It is likely that all
+these global features will be merged into a single in the future.
 
 \begin{description}
-    \predicate{please}{3}{+Key, -Old, +New}
-The predicate please/3%
-    \footnote{The idea comes from BIM_Prolog. The options supported by
-              this predicate are not compatible with those for
-              BIM_Prolog however.}
-is a solution to avoid large numbers of environment control
-predicates. Later versions will support other environment control as
-now provided via the predicates style_check/1, leash/1, unknown/2, the
-tracer predicates, etc. These predicates are then moved into a library
-for backwards compatibility. The currently available options are:
-
-\begin{description}
-    \pleaseoption{optimise}{on/off}{off}
-Switch optimise mode for the compiler \const{on} or \const{off} (see also
-the command line option \cmdlineoption{-O}). Currently optimise compilation only
-implies compilation of arithmetic, making it fast, but invisible to the
-tracer.  Later versions might imply various other optimisations such as
-incorporating a number of basic predicates in the virtual machine
-(var/1, fail/0, =/2, etc.)  to gain speed at the cost of crippling the
-debugger.  Also source level optimisations such as integrating small
-predicates into their callers, eliminating constant expressions and
-other predictable constructs.  Source code optimisation is never
-applied to predicates that are declared dynamic (see dynamic/1).
-    \pleaseoption{autoload}{on/off}{on}
-If \const{on} autoloading of library functions is enabled. If
-\const{off} autoloading is disabled. See \secref{autoload}.
-    \pleaseoption{verbose_autoload}{on/off}{off}
-If \const{on} the normal consult message will be printed if a library is
-autoloaded.  By default this message is suppressed.  Intended to be used
-for debugging purposes (e.g.\ where does this predicate come from?).
-\end{description}
-
     \predicate{feature}{2}{?Key, -Value}
 The predicate feature/2 defines an interface to installation features:
 options compiled in, version, home, etc.  With both arguments unbound,
@@ -846,6 +814,26 @@ SWI-Prolog behaviour.  Currently it has the following effect:
     \item In the standard order of terms (see \secref{standardorder}),
           all floats are before all integers.
 \end{itemize}
+    \featureoption{optimise}{bool}
+If \const{true}, compile in optimised mode. The initial value is
+\const{true} if Prolog was started with the \cmdlineoption{-O}
+commandline option.
+
+Currently optimise compilation implies compilation of arithmetic,
+and deletion of redundant true/0 that may result from expand_goal/2.
+
+Later versions might imply various other optimisations such as
+integrating small predicates into their callers, eliminating constant
+expressions and other predictable constructs. Source code optimisation
+is never applied to predicates that are declared dynamic (see
+dynamic/1).
+    \featureoption{autoload}{bool}
+If \const{true} (default) autoloading of library functions is enabled.
+See \secref{autoload}.
+    \featureoption{verbose_autoload}{bool}
+If \const{true} the normal consult message will be printed if a library
+is autoloaded. By default this message is suppressed. Intended to be
+used for debugging purposes.
     \featureoption{trace_gc}{bool}
 If true (false is the default), garbage collections and stack-shifts
 will be reported on the terminal.  May be changed.
@@ -890,16 +878,16 @@ Define a new feature or change its value.  \arg{Key} is an atom,
 \section{Automatic loading of libraries}	\label{sec:autoload}
 
 If ---at runtime--- an undefined predicate is trapped the system will
-first try to import the predicate from the module's default module.
-If this fails the \jargon{auto loader} is activated.  On first activation
-an index to all library files in all library directories is loaded in
-core (see library_directory/1).  If the undefined predicate can be
-located in the one of the libraries that library file is automatically
-loaded and the call to the (previously undefined) predicate is
-resumed.  By default this mechanism loads the file silently.  The
-please/3 option \const{verbose_autoload} is provided to get verbose
-loading. The please option \const{autoload} can be used to
-enable/disable the entire auto load system.
+first try to import the predicate from the module's default module. If
+this fails the \jargon{auto loader} is activated. On first activation an
+index to all library files in all library directories is loaded in core
+(see library_directory/1). If the undefined predicate can be located in
+the one of the libraries that library file is automatically loaded and
+the call to the (previously undefined) predicate is resumed. By default
+this mechanism loads the file silently. The feature/2
+\const{verbose_autoload} is provided to get verbose loading. The feature
+\const{autoload} can be used to enable/disable the entire auto
+load system.
 
 Autoloading only handles (library) source files that use the module
 mechanism described in \chapref{modules}.  The files are loaded

@@ -734,12 +734,12 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	if ( *fm == '*' )
 	{ has_arg1++;
 	  arg1 = va_arg(args, int);
-	} else if ( isdigit(*fm) )
+	} else if ( isdigit(char_to_int(*fm)) )
 	{ if ( *fm == '0' )
 	    pad = '0';
 	  arg1 = valdigit(*fm);
 	  has_arg1++;
-	  for( fm++; isdigit(*fm); fm++)
+	  for( fm++; isdigit(char_to_int(*fm)); fm++)
 	    arg1 = arg1*10 + valdigit(*fm);
 	}
 	if ( *fm == '.' )
@@ -749,7 +749,7 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	  { arg2 = va_arg(args, int);
 	  } else
 	  { arg2 = 0;
-	    for( ; isdigit(*fm); fm++)
+	    for( ; isdigit(char_to_int(*fm)); fm++)
 	      arg2 = arg2*10 + valdigit(*fm);
 	  }
 	}

@@ -2233,10 +2233,10 @@ possible.  Their usage is recommended whenever applicable, resulting in
 faster and more ``logical'' programs.
 
 The general arithmetic predicates are optionally compiled now (see
-please/3 and the \cmdlineoption{-O} command line option).  Compiled arithmetic
-reduces global stack requirements and improves performance.
-Unfortunately compiled arithmetic cannot be traced, which is why it is
-optional.
+set_feature/2 and the \cmdlineoption{-O} command line option).
+Compiled arithmetic reduces global stack requirements and improves
+performance. Unfortunately compiled arithmetic cannot be traced, which
+is why it is optional.
 
 The general arithmetic predicates all handle \arg{expressions}.  An
 expression is either a simple number or a \arg{function}.  The arguments

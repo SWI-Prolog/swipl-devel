@@ -19,6 +19,7 @@
 typedef void (*function)(Line ln, int chr);	/* edit-function */
 
 static function dispatch_table[256];	/* general dispatch-table */
+static function dispatch_meta[256];	/* ESC-char dispatch */
 static RlcCompleteFunc _rlc_complete_function = rlc_complete_file_function;
 
 static void	init_line_package(void);
@@ -46,7 +47,8 @@ static void	bind_actions(void);
 #define COMPLETE_EOF	 2
 
 #define ctrl(c)	((c) - '@')
-#define meta(c) ((c) + 128)
+#define META_OFFSET 128
+#define meta(c) ((c) + META_OFFSET)
 
 		 /*******************************
 		 *	       BUFFER		*
@@ -564,6 +566,7 @@ read_line()
   while(!ln.complete)
   { int c;
     rlc_mark m0, m1;
+    function *table;
 
     rlc_get_mark(&m0);
     if ( (c = getch()) == IMODE_SWITCH_CHAR )
@@ -572,12 +575,13 @@ read_line()
     if ( c == ESC )
     { if ( (c = getch()) == IMODE_SWITCH_CHAR )
 	return RL_CANCELED_CHARP;
-      if ( c >= 0 && c < 128 )
-	c += 128;
-    }
+      table = dispatch_meta;
+    } else
+      table = dispatch_table;
+
     rlc_get_mark(&m1);
 
-    (*dispatch_table[c & 0xff])(&ln, c);
+    (*table[c & 0xff])(&ln, c);
     if ( m0.mark_x != m1.mark_x || m0.mark_y != m1.mark_y )
       ln.reprompt = TRUE;
     update_display(&ln);
@@ -602,6 +606,8 @@ init_dispatch_table()
     dispatch_table[n] = undefined;
   for(n=32; n<256; n++)
     dispatch_table[n] = insert_self;
+  for(n=0; n<256; n++)
+    dispatch_meta[n] = undefined;
       
   bind_actions();
 }
@@ -658,6 +664,26 @@ static action actions[] = {
   ACTION(NULL,			      NULL,			 "")
 };
 
+int
+rlc_bind(int chr, const char *fname)
+{ if ( chr >= 0 && chr <= 256 )
+  { Action a = actions;
+    
+    for( ; a->name; a++ )
+    { if ( strcmp(a->name, fname) == 0 )
+      { if ( chr > META_OFFSET )
+	  dispatch_meta[chr-META_OFFSET] = a->function;
+	else
+	  dispatch_table[chr] = a->function;
+
+	return TRUE;
+      }
+    }
+  }
+
+  return FALSE;
+}
+
 static void
 bind_actions()
 { Action a = actions;
@@ -666,24 +692,14 @@ bind_actions()
   { unsigned char *k = a->keys;
 
     for( ; *k; k++ )
-      dispatch_table[*k] = a->function;
-  }
-}
+    { int chr = *k & 0xff;
 
-
-int
-rlc_bind(int chr, const char *fname)
-{ if ( chr >= 0 && chr <= 256 )
-  { Action a = actions;
-    
-    for( ; a->name; a++ )
-    { if ( strcmp(a->name, fname) == 0 )
-      { dispatch_table[chr] = a->function;
-	return TRUE;
-      }
+      if ( chr > META_OFFSET )
+	dispatch_meta[chr-META_OFFSET] = a->function;
+      else
+	dispatch_table[chr] = a->function;
     }
   }
-
-  return FALSE;
 }
+
 

@@ -73,6 +73,8 @@ static void initHeapDebug(void);
 #define EOS 0
 #endif
 
+#define ESC 27				/* the escape character */
+
 #define RLC_FONT	1000		/* < F000 */
 #define WM_RLC_INPUT	WM_USER+10	/* Just somewhere ... */
 #define WM_RLC_WRITE	WM_USER+11	/* write data */
@@ -87,7 +89,6 @@ static void initHeapDebug(void);
 #define Bounds(v, mn, mx) ((v) < (mn) ? (mn) : (v) > (mx) ? (mx) : (v))
 
 #define Control(x) ((x) - '@')
-#define Meta(x)	   ((x) + 128)
 
 #define streq(s, q) (strcmp((s), (q)) == 0)
 
@@ -945,18 +946,19 @@ rlc_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 	  goto break2;
       }
       if ( chr > 0 )
-      { if ( IsDownKey(VK_SHIFT) || IsDownMeta(lParam) )
-	  chr = Meta(chr);
+      { if ( IsDownKey(VK_CONTROL) )
+	  typed_char(b, ESC);
 
-	goto out_chr;
+	typed_char(b, chr);
+
+	return 0;
       }
     break2:
       break;
     }
-    case WM_SYSCHAR:	chr = Meta(wParam);	goto out_chr;
+    case WM_SYSCHAR:	typed_char(b, ESC); /* Play escape-something */
     case WM_CHAR:	chr = wParam;
 
-  out_chr:
       typed_char(b, chr);
 
       return 0;

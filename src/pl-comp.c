@@ -1061,7 +1061,7 @@ will use the meta-call mechanism for all these types of calls.
 /*  cont: */
 
 #if O_COMPILE_ARITH
-    if ( GD->cmdline.optimise )
+    if ( trueFeature(OPTIMISE_FEATURE) )
     { switch( compileArith(arg, ci) )
       { case A_OK:	succeed;
 	case A_ERROR:	fail;

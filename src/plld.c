@@ -97,6 +97,7 @@ embedded application.
 #define xmalloc plld_xmalloc
 #define xrealloc plld_xrealloc
 #define xfree plld_xfree
+#define CTOI(c) ((c)&0xff)
 
 typedef struct
 { char **list;
@@ -294,10 +295,10 @@ addArgs(const char *s, arglist *list)
   char tmp[1024];
 
   while(*s)
-  { while(*s && isspace(*s))
+  { while(*s && isspace(CTOI(*s)))
       s++;
     f = s;
-    while(*s && !isspace(*s))
+    while(*s && !isspace(CTOI(*s)))
       s++;
     if ( s > f )
     { strncpy(tmp, f, s-f);
@@ -314,10 +315,10 @@ addLibs(const char *s, arglist *list)
   char tmp[1024];
 
   while(*s)
-  { while(*s && isspace(*s))
+  { while(*s && isspace(CTOI(*s)))
       s++;
     f = s;
-    while(*s && !isspace(*s))
+    while(*s && !isspace(CTOI(*s)))
       s++;
     if ( s > f )
     { if ( s > f+2 && strprefix(f, "-l") )
@@ -729,7 +730,7 @@ getPrologOptions()
 
 	  while(*e && *e != '"')
 	    e++;
-	  while(e>v && isspace(e[-1]))
+	  while(e>v && isspace(CTOI(e[-1])))
 	    e--;
 	  *e = '\0';
 	}
@@ -948,10 +949,10 @@ static void
 quoted_name(const char *name, char *plname)
 { int needquote = TRUE;
 
-  if ( islower(name[0]) )
+  if ( islower(CTOI(name[0])) )
   { const char *s = name+1;
 
-    for( ; *s && (isalnum(*s) || *s == '_'); s++)
+    for( ; *s && (isalnum(CTOI(*s)) || *s == '_'); s++)
       ;
     if ( *s == '\0' )
       needquote = FALSE;

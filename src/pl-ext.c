@@ -383,7 +383,6 @@ static const struct foreign {
   FRG("format",			2, pl_format,			TRACE_ME),
   FRG("$collect_bag",		2, pl_collect_bag,		TRACE_ME),
   FRG("$record_bag",		1, pl_record_bag,		TRACE_ME),
-  FRG("$please",		3, pl_please,			TRACE_ME),
   FRG("$check_definition",	1, pl_check_definition,    META|TRACE_ME),
 
 #if O_COMPILE_OR
