@@ -90,21 +90,119 @@ static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 #define UNLOCK()
 #endif
 
-static functor_t FUNCTOR_socket1;
-static functor_t FUNCTOR_module2;
-static functor_t FUNCTOR_ip4;
+		 /*******************************
+		 *	  COMPATIBILITY		*
+		 *******************************/
+
+#ifdef WIN32
+#define F_SETFL 0
+#define O_NONBLOCK 0
+
+#define WM_SOCKET (WM_USER+20)
+
+static int
+fcntl(int fd, int op, int arg)
+{ switch(op)
+  { case F_SETFL:
+      switch(arg)
+      { case O_NONBLOCK:
+	{ int rval;
+	  int non_block;
+
+	  non_block = 1;
+	  rval = ioctlsocket(fd, FIONBIO, &non_block);
+	  return rval ? -1 : 0;
+	}
+	default:
+	  return -1;
+      }
+    break;
+    default:
+      return -1;
+  }
+}
+
+static HINSTANCE hinstance;		/* hinstance */
+static HWND sock_hidden_window;		/* Our secret window */
+
+static int WINAPI
+socket_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
+{
+  return DefWindowProc(hwnd, message, wParam, lParam);
+}
+
+static char *
+HiddenFrameClass()
+{ static char *name;
+  static WNDCLASS wndClass;
+
+  if ( !name )
+  { char buf[50];
+
+    hinstance = GetModuleHandle("socket");
+    sprintf(buf, "PlSocketWin%d", (int)hinstance);
+    name = strdup(buf);
+
+    wndClass.style		= 0;
+    wndClass.lpfnWndProc	= (LPVOID) socket_wnd_proc;
+    wndClass.cbClsExtra		= 0;
+    wndClass.cbWndExtra		= 0;
+    wndClass.hInstance		= hinstance;
+    wndClass.hIcon		= NULL;
+    wndClass.hCursor		= NULL;
+    wndClass.hbrBackground	= GetStockObject(WHITE_BRUSH);
+    wndClass.lpszMenuName	= NULL;
+    wndClass.lpszClassName	= name;
+
+    RegisterClass(&wndClass);
+  }
+
+  return name;
+}
+
+
+static void
+destroyHiddenWindow(int rval, void *closure)
+{ if ( sock_hidden_window )
+  { DestroyWindow(sock_hidden_window);
+    sock_hidden_window = 0;
+  }
+}
+
+
+static HWND
+SocketHiddenWindow()
+{ if ( !sock_hidden_window )
+  { sock_hidden_window = CreateWindow(HiddenFrameClass(),
+				      "SWI-Prolog socket window",
+				      WS_POPUP,
+				      0, 0, 32, 32,
+				      NULL, NULL, hinstance, NULL);
+    PL_on_halt(destroyHiddenWindow, NULL);
+    assert(sock_hidden_window);
+  }
+
+  return sock_hidden_window;
+}
+
+#endif /*WIN32*/
 
 
 		 /*******************************
 		 *	 ADMINISTRATION		*
 		 *******************************/
 
+static functor_t FUNCTOR_socket1;
+static functor_t FUNCTOR_module2;
+static functor_t FUNCTOR_ip4;
+
 #define SOCK_INSTREAM	0x01
 #define SOCK_OUTSTREAM	0x02
 #define SOCK_BIND	0x04		/* What have we done? */
 #define SOCK_LISTEN	0x08
 #define SOCK_CONNECT	0x10
-#define SOCK_ACCEPT	0x20		/* set on accepted sockets */
+#define SOCK_ACCEPT	0x20		/* Set on accepted sockets */
+#define SOCK_NONBLOCK	0x40		/* Set to non-blocking mode */
 
 typedef struct _plsocket
 { struct _plsocket *next;		/* next in list */
@@ -435,6 +533,12 @@ tcp_socket(term_t Socket)
   if ( (sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     return tcp_error(errno, NULL);
 
+#ifdef WIN32
+  fcntl(sock, F_SETFL, O_NONBLOCK);
+  WSAAsyncSelect(sock, SocketHiddenWindow(), WM_SOCKET,
+		 FD_READ|FD_WRITE|FD_ACCEPT|FD_CONNECT);
+#endif
+
   if ( !lookupSocket(sock) )		/* register it */
   { closesocket(sock);
     return FALSE;
@@ -450,6 +554,10 @@ tcp_close_socket(term_t Socket)
 
   if ( !tcp_get_socket(Socket, &socket) )
     return FALSE;
+
+#ifdef WIN32
+  WSAAsyncSelect(socket, SocketHiddenWindow(), 0, 0);
+#endif
 
   closesocket(socket);
 
@@ -612,6 +720,21 @@ tcp_setopt(term_t Socket, term_t opt)
 }
 
 
+#ifdef WIN32
+static void
+waitMsg()
+{ MSG msg;
+
+  if ( GetMessage(&msg, NULL, 0, 0) )
+  { TranslateMessage(&msg);
+    DispatchMessage(&msg);
+  } else
+  { ExitProcess(0);			/* WM_QUIT received */
+  }
+}
+#endif
+
+
 foreign_t
 tcp_bind(term_t Socket, term_t Address)
 { struct sockaddr_in sockaddr;
@@ -640,9 +763,30 @@ tcp_connect(term_t Socket, term_t Address)
        !tcp_get_sockaddr(Address, &sockaddr) )
     return FALSE;
 	
+#ifdef WIN32
+again:
+#endif
   if ( connect(socket,
 	       (struct sockaddr*)&sockaddr, sizeof(sockaddr)))
+  {
+#ifdef WIN32
+    int e = WSAGetLastError();
+  
+    switch( e )
+    { case WSAEWOULDBLOCK:
+      case WSAEINVAL:
+      case WSAEALREADY:
+	waitMsg();
+        goto again;
+      case WSAEISCONN:
+	break;				/* ok, we're done */
+      default:
+        return tcp_error(errno, NULL);
+    }
+#else
     return tcp_error(errno, NULL);
+#endif  
+  }
 
   lookupSocket(socket)->flags |= SOCK_CONNECT;
 
@@ -699,25 +843,16 @@ tcp_listen(term_t Sock, term_t BackLog)
 
 #define fdFromHandle(p) ((int)((long)(p)))
 
-#ifdef WIN32
-static void
-waitMsg()
-{ MSG msg;
-
-  if ( GetMessage(&msg, NULL, 0, 0) )
-  { TranslateMessage(&msg);
-    DispatchMessage(&msg);
-  } else
-  { ExitProcess(0);			/* WM_QUIT received */
-  }
-}
-#endif
-
-
 static int
 tcp_read(void *handle, char *buf, int bufSize)
 { int socket = fdFromHandle(handle);
+  plsocket *s = lookupSocket(socket);
   int n;
+
+  if ( !s )
+  { errno = EINVAL;
+    return -1;
+  }
 
 #ifdef WIN32
 again:
@@ -727,7 +862,11 @@ again:
 
 #ifdef WIN32
   if ( n < 0 && WSAGetLastError() == WSAEWOULDBLOCK )
-  { waitMsg();
+  { if ( s->flags & SOCK_NONBLOCK )
+    { errno = EWOULDBLOCK;
+      return n;
+    }
+    waitMsg();
 
     goto again;
   }
@@ -843,32 +982,6 @@ tcp_streams(term_t Socket, term_t Read, term_t Write)
 		 /*******************************
 		 *	   BLOCKING IO		*
 		 *******************************/
-#ifdef WIN32
-#define F_SETFL 0
-#define O_NONBLOCK 0
-
-static int
-fcntl(int fd, int op, int arg)
-{ switch(op)
-  { case F_SETFL:
-      switch(arg)
-      { case O_NONBLOCK:
-	{ int rval;
-	  int non_block;
-
-	  non_block = 1;
-	  rval = ioctlsocket(fd, FIONBIO, &non_block);
-	  return rval ? -1 : 0;
-	}
-	default:
-	  return -1;
-      }
-    break;
-    default:
-      return -1;
-  }
-}
-#endif
 
 static foreign_t
 tcp_fcntl(term_t Socket, term_t Cmd, term_t Arg)
@@ -887,6 +1000,7 @@ tcp_fcntl(term_t Socket, term_t Cmd, term_t Arg)
       return pl_error(NULL, 0, NULL, ERR_ARGTYPE, 3, Arg, "flag");
     if ( strcmp(arg, "nonblock") == 0 )
     { fcntl(socket, F_SETFL, O_NONBLOCK);
+      lookupSocket(socket)->flags |= SOCK_NONBLOCK;
       return TRUE;
     }
 
