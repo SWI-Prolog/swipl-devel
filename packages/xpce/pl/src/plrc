@@ -10,7 +10,6 @@
 
 
 :- module(link_xpce, []).
-:- use_module(library(lists), [member/2]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This file is loaded  on  startup.  Use   it  for  local  (not  personal)
@@ -68,11 +67,11 @@ pce_setup_ :-
 	current_prolog_flag(xpce, true), !.
 pce_setup_ :-
 	current_prolog_flag(argv, [Argv0|Args]),
-	\+ member('-nopce', Args),	% explicitely no XPCE
+	\+ memberchk('-nopce', Args),	% explicitely no XPCE
 	pcehome_(PceHome),
 	exists_directory(PceHome),
 	gui_setup_,
-	(   member('-pce', Args)
+	(   memberchk('-pce', Args)
 	;   prolog_to_os_filename(Path, Argv0),
 	    file_base_name(Path, Base),
 	    '$apropos_match'(pce, Base)
