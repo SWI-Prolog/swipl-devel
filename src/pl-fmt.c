@@ -323,7 +323,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
 { format_state state;			/* complete state */
   int tab_stop = 0;			/* padded tab stop */
   Symbol s;
-  int here = 0;
+  unsigned int here = 0;
   int rc = TRUE;
 
   Slock(fd);				/* buffer locally */

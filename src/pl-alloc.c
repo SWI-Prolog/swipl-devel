@@ -867,13 +867,13 @@ globalWString(unsigned len, const pl_wchar_t *s)
   }
 
   if ( p == e )				/* 8-bit string */
-  { char *t;
+  { unsigned char *t;
 
     g = allocString(len+1 PASS_LD);
-    t = (char *)&g[1];
+    t = (unsigned char *)&g[1];
     *t++ = 'B';
     for(p=s; p<e; )
-      *t++ = *p++;
+      *t++ = *p++ & 0xff;
   } else				/* wide string */
   { char *t;
 

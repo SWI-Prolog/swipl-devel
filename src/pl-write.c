@@ -478,7 +478,7 @@ writeString(term_t t, write_options *options)
   
   if ( true(options, PL_WRT_QUOTED) )
   { int quote;
-    int i;
+    unsigned int i;
 
     if ( true(options, PL_WRT_BACKQUOTED_STRING) )
       quote = '`';
@@ -495,7 +495,7 @@ writeString(term_t t, write_options *options)
 
     return Putc(quote, options->out);
   } else
-  { int i;
+  { unsigned int i;
 
     for(i=0; i<txt.length; i++)
     { int chr = get_chr_from_text(&txt, i);

@@ -871,7 +871,7 @@ isVarAtom(word w, ReadData _PL_rd)
 
 
 static Variable
-lookupVariable(const char *name, int len, ReadData _PL_rd)
+lookupVariable(const char *name, unsigned int len, ReadData _PL_rd)
 { variable next;
   Variable var;
   int nv;

@@ -412,7 +412,7 @@ PL_demote_text(PL_chars_t *text)
 	{ PL_free(new);
 	  return FALSE;
 	}
-	*t++ = *s++;
+	*t++ = *s++ & 0xff;
       }
       *t = EOS;
 
@@ -430,7 +430,7 @@ PL_demote_text(PL_chars_t *text)
       while(f<e)
       { if ( *f > 0xff )
 	  return FALSE;
-	*t++ = *f++;
+	*t++ = *f++ & 0xff;
       }
       *t = EOS;
       text->encoding = ENC_ISO_LATIN_1;
@@ -444,7 +444,7 @@ PL_demote_text(PL_chars_t *text)
 	{ unfindBuffer(BUF_RING);
 	  return FALSE;
 	}
-	addBuffer(b, *s, char);
+	addBuffer(b, *s&0xff, char);
       }
       addBuffer(b, EOS, char);
 
@@ -606,13 +606,13 @@ PL_text_recode(PL_chars_t *text, IOENC encoding)
 
 	    for( ; s<e; s++)
 	    { if ( *s > 0x7f )
-	      { const char *end = utf8_put_char(tmp, *s);
+	      { const char *end = utf8_put_char(tmp, (int)*s);
 		const char *q = tmp;
 
 		for(q=tmp; q<end; q++)
-		  addBuffer(b, *q, char);
+		  addBuffer(b, *q&0xff, char);
 	      } else
-	      { addBuffer(b, *s, char);
+	      { addBuffer(b, *s&0xff, char);
 	      }
 	    }
 	    PL_free_text(text);
@@ -647,7 +647,7 @@ Compares two substrings of two text representations.
 int
 PL_cmp_text(PL_chars_t *t1, unsigned o1, PL_chars_t *t2, unsigned o2,
 	    unsigned len)
-{ int l = len;
+{ unsigned int l = len;
   int ifeq = 0;
 
   if ( l > t1->length - o1 )

@@ -43,8 +43,8 @@ See manual for details.
 
 typedef struct
 { atom_t	name;			/* name of the class */
-  int (*test)(int chr);			/* boolean */
-  int (*reverse)(int chr);		/* reverse mapping */
+  int (*test)(wint_t chr);		/* boolean */
+  int (*reverse)(wint_t chr);		/* reverse mapping */
   short		arity;			/* arity of class (i.e. lower('A')) */
   short		ctx_type;		/* CTX_* */
 } char_type;
@@ -62,69 +62,69 @@ typedef struct
 
 
 static int
-iswhite(int chr)
+iswhite(wint_t chr)
 { return chr == ' ' || chr == '\t';
 }
 
 
 static int
-fiscsym(int chr)
+fiscsym(wint_t chr)
 { return iswalnum(chr) || chr == '_';
 }
 
 
 static int
-fiscsymf(int chr)
+fiscsymf(wint_t chr)
 { return iswalpha(chr) || chr == '_';
 }
 
 static int
-iseof(int chr)
+iseof(wint_t chr)
 { return chr == -1;
 }
 
 static int
-iseol(int chr)
+iseol(wint_t chr)
 { return chr >= 10 && chr <= 13;
 }
 
 static int
-isnl(int chr)
+isnl(wint_t chr)
 { return chr == '\n';
 }
 
 static int
-isperiod(int chr)
+isperiod(wint_t chr)
 { return strchr(".?!", chr) != NULL;
 }
 
 static int
-isquote(int chr)
+isquote(wint_t chr)
 { return strchr("'`\"", chr) != NULL;
 }
 
 static int
-fupper(int chr)
+fupper(wint_t chr)
 { return iswlower(chr) ? towupper(chr) : -1;
 }
 
 static int
-flower(int chr)
+flower(wint_t chr)
 { return iswupper(chr) ? towlower(chr) : -1;
 }
 
 static int
-ftoupper(int chr)
+ftoupper(wint_t chr)
 { return towupper(chr);
 }
 
 static int
-ftolower(int chr)
+ftolower(wint_t chr)
 { return towlower(chr);
 }
 
 static int
-fparen(int chr)
+fparen(wint_t chr)
 { switch(chr)
   { case '(':
       return ')';
@@ -139,7 +139,7 @@ fparen(int chr)
 
 
 static int
-rparen(int chr)
+rparen(wint_t chr)
 { switch(chr)
   { case ')':
       return '(';
@@ -154,7 +154,7 @@ rparen(int chr)
 
 
 static int
-fdigit(int chr)
+fdigit(wint_t chr)
 { if ( chr <= 0xff && isdigit(chr) )
     return chr - '0';
   return -1;
@@ -162,7 +162,7 @@ fdigit(int chr)
 
 
 static int
-rdigit(int d)
+rdigit(wint_t d)
 { if ( d >= 0 && d <= 9 )
     return d+'0';
   return -1;
@@ -170,7 +170,7 @@ rdigit(int d)
 
 
 static int
-fxdigit(int chr)
+fxdigit(wint_t chr)
 { if ( chr > 0xff )
     return -1;
   if ( isdigit(chr) )
@@ -184,7 +184,7 @@ fxdigit(int chr)
 
 
 static int
-rxdigit(int d)
+rxdigit(wint_t d)
 { if ( d >= 0 && d <= 9 )
     return d+'0';
   if ( d >= 10 && d <= 15 )
@@ -195,7 +195,7 @@ rxdigit(int d)
 
 
 #define mkfunction(name) \
-	static int f ## name(int chr) { return name(chr); }
+	static int f ## name(wint_t chr) { return name(chr); }
 
 mkfunction(iswalnum)
 mkfunction(iswalpha)
@@ -320,9 +320,9 @@ do_char_type(term_t chr, term_t class, control_t h, int how)
 
       if ( do_enum == ENUM_NONE )
       { if ( arity == 0 )
-	  return (*cc->test)(c) ? TRUE : FALSE;
+	  return (*cc->test)((wint_t)c) ? TRUE : FALSE;
 	else
-	{ int rval = (*cc->test)(c);
+	{ int rval = (*cc->test)((wint_t)c);
 
 	  if ( rval >= 0 )
 	  { term_t a = PL_new_term_ref();
@@ -351,7 +351,7 @@ do_char_type(term_t chr, term_t class, control_t h, int how)
 	_PL_get_arg(1, class, a);
 	if ( !PL_is_variable(a) )
 	{ if ( PL_get_char(a, &ca, FALSE) )
-	  { int c = (*cc->reverse)(ca);
+	  { int c = (*cc->reverse)((wint_t)ca);
 
 	    if ( c < 0 )
 	      fail;
@@ -390,7 +390,7 @@ do_char_type(term_t chr, term_t class, control_t h, int how)
   for(;;)
   { int rval;
 
-    if ( (rval = (*gen->class->test)(gen->current)) )
+    if ( (rval = (*gen->class->test)((wint_t)gen->current)) )
     { if ( gen->do_enum & ENUM_CHAR )
       { if ( !PL_unify_char(chr, gen->current, how) )
 	  goto next;
@@ -437,7 +437,7 @@ pl_code_type(term_t chr, term_t class, control_t h)
 }
 
 
-static inline int
+static inline wint_t
 get_chr_from_text(const PL_chars_t *t, int index)
 { switch(t->encoding)
   { case ENC_ISO_LATIN_1:
@@ -458,14 +458,14 @@ modify_case_atom(term_t in, term_t out, int down)
     return FALSE;
 
   if ( PL_get_text(out, &tout, CVT_ATOMIC) )
-  { int i;
+  { unsigned int i;
 
     if ( tin.length != tout.length )
       fail;
 
     for(i=0; i<tin.length; i++)
-    { int ci = get_chr_from_text(&tin, i);
-      int co = get_chr_from_text(&tout, i);
+    { wint_t ci = get_chr_from_text(&tin, i);
+      wint_t co = get_chr_from_text(&tout, i);
 
       if ( down )
       { if ( co != towlower(ci) )
@@ -478,7 +478,7 @@ modify_case_atom(term_t in, term_t out, int down)
 
     succeed;
   } else if ( PL_is_variable(out) )
-  { int i;
+  { unsigned int i;
 
     tout.encoding  = tin.encoding;
     tout.length    = tin.length;
