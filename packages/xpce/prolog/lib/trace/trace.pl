@@ -414,6 +414,7 @@ show_stack(Frame, Attributes) :-
 	level_range(CallFrames, Range),
 	debug('Levels ~w, CHP = ~w~n', [Range, CHP]),
 	choice_frames(MaxChoice, CHP, Range, [], ChoiceFrames),
+	debug('Choicepoints: ~p~n', [ChoiceFrames]),
 	display_stack(StackBrowser, CallFrames, ChoiceFrames).
 show_stack(_, _).
 
@@ -441,12 +442,12 @@ choice_frames(Max, CHP, Range, Seen, [frame(Frame, choice)|Frames]) :-
 	Max > 0,
 	earlier_choice(CHP, CH),
 	visible_choice(CH),
-	prolog_choice_attribute(CHP, frame, Frame),
+	prolog_choice_attribute(CH, frame, Frame),
 	\+ memberchk(Frame, Seen),
 	prolog_frame_attribute(Frame, level, Flev),
 	in_range(Flev, Range), !,
 	NMax is Max - 1,
-	(   prolog_choice_attribute(CHP, parent, Prev)
+	(   prolog_choice_attribute(CH, parent, Prev)
 	->  choice_frames(NMax, Prev, Range, [Frame|Seen], Frames)
 	;   Frames = []
 	).
@@ -470,7 +471,9 @@ visible_choice(CHP) :-
 	prolog_choice_attribute(CHP, type, Type),
 	real_choice_type(Type),
 	prolog_choice_attribute(CHP, frame, Frame),
-	prolog_frame_attribute(Frame, hidden, false).
+	prolog_frame_attribute(Frame, hidden, false),
+	debug('Choice ~w of type ~w running frame ~w~n',
+	      [CHP, Type, Frame]).
 
 real_choice_type(clause).
 real_choice_type(foreign).
@@ -490,25 +493,6 @@ flevel(frame(Frame, _), L) :-
 in_range(Level, Low-_High) :-
 	Level >= Low.
 %	between(Low, High, Level).
-
-alternative_frame(Fr, Alt) :-
-	prolog_frame_attribute(Fr, alternative, F0),
-	(   setting(verbose, true)
-	->  prolog_frame_attribute(F0, goal, G),
-	    debug('Choice for #~w is #~w (running ~p)~n', [Fr, F0, G])
-	;   true
-	),
-	(   prolog_frame_attribute(F0, has_alternatives, true)
-	->  Alt0 = F0
-	;   debug('   Not a real choice, looking for next~n', []),
-	    alternative_frame(F0, Alt0)
-	),
-	(   prolog_frame_attribute(Alt0, hidden, true)
-	->  debug('   Hidden frame, looking for next~n', []),
-	    alternative_frame(Alt0, Alt)
-	;   Alt = Alt0
-	).
-
 
 show_stack_location(Frame, PC) :-
 	get_tracer(member(stack), StackBrowser),

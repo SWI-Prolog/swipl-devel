@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Choicepoint-view of GUI tracer.
+
   * PORT: Added -fno-strict-aliasing when compiling using gcc, needed for
     gcc-3 (Lourens van der Meij)
 
