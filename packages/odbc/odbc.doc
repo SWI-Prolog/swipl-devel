@@ -203,7 +203,7 @@ query extracts rows using Prolog integers:
 X = row(1, entity)
 \end{code}
 
-    \termitem{Null}{NullSpecifier}
+    \termitem{null}{NullSpecifier}
 Specify SQL NULL representation.  See odbc_set_connection/2 for details.
 \end{description}
 

@@ -143,15 +143,20 @@ column_facet(table_name(Q), T)	    :- arg(3, T, Q).
 %column_facet(column_name(Q), T)    :- arg(4, T, Q).
 column_facet(data_type(Q), T)	    :- arg(5, T, Q).
 column_facet(type_name(Q), T)	    :- arg(6, T, Q).
-column_facet(precision(Q), T)	    :- arg(7, T, Q).
-column_facet(length(Q), T)	    :- arg(8, T, Q).
-column_facet(scale(Q), T)	    :- arg(9, T, Q).
-column_facet(radix(Q), T)	    :- arg(10, T, Q).
-column_facet(nullable(Q), T)	    :- arg(11, T, Q).
-column_facet(remarks(Q), T)	    :- arg(12, T, Q).
+column_facet(precision(Q), T)	    :- non_null_arg(7, T, Q).
+column_facet(length(Q), T)	    :- non_null_arg(8, T, Q).
+column_facet(scale(Q), T)	    :- non_null_arg(9, T, Q).
+column_facet(radix(Q), T)	    :- non_null_arg(10, T, Q).
+column_facet(nullable(Q), T)	    :- non_null_arg(11, T, Q).
+column_facet(remarks(Q), T)	    :- non_null_arg(12, T, Q).
 column_facet(type(Type), T) :-
 	arg(6, T, TypeName),
 	sql_type(TypeName, T, Type).
+
+%	sql_type(+TypeName, +Row, -Type)
+%	
+%	Create a canonical Prolog representation for the type.  This
+%	is very incomplete code.
 
 sql_type(dec, T, Type) :- !,
 	sql_type(decimal, T, Type).
