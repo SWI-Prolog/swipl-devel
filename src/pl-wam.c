@@ -4690,6 +4690,12 @@ next_choice:
     case CHP_DEBUG:			/* Just for debugging purposes */
     case CHP_NONE:			/* used for C_SOFTCUT */
       BFR  = ch->parent;
+      for(; (void *)FR > (void *)ch; FR = FR->parent)
+      { /*Profile(FR->predicate->profile_fails++);*/
+	leaveFrame(FR PASS_LD);
+	if ( exception_term )
+	  goto b_throw;
+      }
       goto next_choice;
   }
 }

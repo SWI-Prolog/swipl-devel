@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: do not show FAIL from ports created by dummy choicepoints.
+    Alan Baljeu.
+
   * FIXED: Handling QLF file if their location has changed.  Various
     posters to the mailing list.
 
