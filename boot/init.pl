@@ -934,7 +934,7 @@ $char([X|S], X, S).
 phrase(RuleSet, Input) :-
 	phrase(RuleSet, Input, []).
 phrase(RuleSet, Input, Rest) :-
-	$apply(RuleSet, Input, Rest).
+	$apply(RuleSet, [Input, Rest]).
 
 
 		/********************************
