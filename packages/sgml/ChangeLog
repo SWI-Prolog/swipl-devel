@@ -1,3 +1,6 @@
+* FIXED: Allow for (a,b), etc. instead of just (a|b) where an element-list
+  is expected.
+
 * ADDED: Partial SHORTTAG support
 
 * ADDED: Prolog interface: map multi-valued attributes to a list.
