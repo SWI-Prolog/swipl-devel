@@ -218,8 +218,11 @@ typedef struct
   char		prompt[MAXPROMPT];	/* The prompt */
   int		promptlen;		/* length of the prompt */
   int		closing;		/* closing status */
+  int		modified_options;	/* OPT_ */
 } rlc_data, *RlcData;
 
+#define OPT_SIZE	0x01
+#define OPT_POSITION	0x02
 
 static RlcData  _rlc_stdio = NULL;	/* the main buffer */
 static RlcQueue	_rlc_queue;		/* Current Character Queue */
@@ -604,10 +607,14 @@ rlc_save_options(RlcData b)
     rlc_save_font_options(b->hfont);
 
     reg_save_int(key, "SaveLines",  rlc_savelines);
-    reg_save_int(key, "Width",      rlc_cols);
-    reg_save_int(key, "Height",     rlc_rows);
-    reg_save_int(key, "X",	    rlc_x);
-    reg_save_int(key, "Y",	    rlc_y);
+    if ( b->modified_options & OPT_SIZE )
+    { reg_save_int(key, "Width",      rlc_cols);
+      reg_save_int(key, "Height",     rlc_rows);
+    }
+    if ( b->modified_options & OPT_POSITION )
+    { reg_save_int(key, "X",	    rlc_x);
+      reg_save_int(key, "Y",	    rlc_y);
+    }
 
     if ( rlc_face_name )
     { reg_save_str(key, "FaceName",    rlc_face_name);
@@ -768,16 +775,18 @@ rlc_breakargs(char *program, char *line, char **argv)
   argv[0] = program;
 
   while(*line)
-  { while(*line && isspace(*line))
+  { int q;
+
+    while(*line && isspace(*line))
       line++;
 
-    if ( *line == '"' )			/* Windows-95 quoted arguments */
+    if ( (q = *line) == '"' || q == '\'' )	/* quoted arguments */
     { char *start = line+1;
       char *end = start;
 
-      while( *end && *end != '"' )
+      while( *end && *end != q )
 	end++;
-      if ( *end == '"' )
+      if ( *end == q )
       { *end = '\0';
         argv[argc++] = start;
 	line = end+1;
@@ -945,7 +954,9 @@ rlc_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 
     case WM_SIZE:
       if ( wParam != SIZE_MINIMIZED )
-	rlc_resize_pixel_units(b, LOWORD(lParam), HIWORD(lParam));
+      { rlc_resize_pixel_units(b, LOWORD(lParam), HIWORD(lParam));
+	b->modified_options |= OPT_SIZE;
+      }
       return 0;
 
     case WM_MOVE:
@@ -955,13 +966,10 @@ rlc_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       GetWindowPlacement(hwnd, &placement);
       
       if ( placement.showCmd == SW_SHOWNORMAL )
-      { POINTS pt = MAKEPOINTS(lParam);
-	int dx = GetSystemMetrics(SM_CXBORDER)+3;
-	int dy = GetSystemMetrics(SM_CYCAPTION) +
-		 GetSystemMetrics(SM_CYBORDER)+3;
+      { rlc_x = placement.rcNormalPosition.left;
+  	rlc_y = placement.rcNormalPosition.top;
 
-	rlc_x = pt.x-dx;
-	rlc_y = pt.y-dy;
+	b->modified_options |= OPT_POSITION;
       }
 
       return 0;
