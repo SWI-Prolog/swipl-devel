@@ -59,10 +59,6 @@ static struct foreign {
   FRG("flush",			0, pl_flush,			TRACE_ME),
   FRG("prompt",			2, pl_prompt,			TRACE_ME),
   FRG("prompt1",		1, pl_prompt1,			TRACE_ME),
-#ifdef HAVE_LIBREADLINE
-  FRG("rl_read_init_file",	1, pl_rl_read_init_file,	TRACE_ME),
-  FRG("rl_add_history",		1, pl_rl_add_history,		TRACE_ME),
-#endif
   FRG("expand_file_name",	2, pl_expand_file_name,		TRACE_ME),
   FRG("$absolute_file_name",	2, pl_absolute_file_name,	TRACE_ME),
   FRG("is_absolute_file_name",	1, pl_is_absolute_file_name,	TRACE_ME),

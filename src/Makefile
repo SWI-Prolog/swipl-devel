@@ -284,3 +284,6 @@ realclean:	clean
 		rm -f $(STARTUPPATH)
 		rm -f config.log config.cache
 		rm -rf $(PL) pl-bite ../startup ../include ../runtime
+
+rl.so:		pl-rl.o
+		ld -G -o $@ pl-rl.o -lreadline -lc

@@ -348,12 +348,10 @@ pl_atom_completions(term_t prefix, term_t alternatives)
 } 
 
 
-#ifdef HAVE_LIBREADLINE
-
 #define savestring(x) strcpy(xmalloc(1 + strlen(x)), (x))
 
 char *
-atom_generator(char *prefix, int state)
+PL_atom_generator(char *prefix, int state)
 { static Atom a;
 
   if ( !state )
@@ -384,4 +382,3 @@ atom_generator(char *prefix, int state)
   return NULL;
 }
 
-#endif /*HAVE_LIBREADLINE*/

@@ -167,6 +167,9 @@ without the Unix assumptions?
   Sinput->position  = &Sinput->posbuf;	/* position logging */
   Soutput->position = &Sinput->posbuf;
   Serror->position  = &Sinput->posbuf;
+#if defined(HAVE_LIBREADLINE)
+  install_rl();
+#endif
 
   ttymode = TTY_COOKED;
   PushTty(&ttytab, TTY_SAVE);
@@ -234,13 +237,14 @@ closeFiles(void)
 
 
 void
-protocol(int c)
+protocol(char *s, int n)
 { if ( protocolStream >= 0 )
   { int out;
   
     out = Output;
     Output = protocolStream;
-    Put(c);
+    for( ; n > 0; s++, n--)
+      Put((int)*s & 0xff);
     Output = out;
   }
 }
@@ -1633,7 +1637,7 @@ unifyTime(term_t t, long time)
 
 
 char *
-get_filename(term_t n, char *buf, unsigned int size)
+PL_get_filename(term_t n, char *buf, unsigned int size)
 { char *name;
 
   if ( PL_get_chars(n, &name, CVT_ALL) &&
@@ -1657,7 +1661,7 @@ word
 pl_time_file(term_t name, term_t t)
 { char *fn;
 
-  if ( (fn = get_filename(name, NULL, 0)) )
+  if ( (fn = PL_get_filename(name, NULL, 0)) )
   { long time;
 
     if ( (time = LastModifiedFile(fn)) == -1 )
@@ -1674,7 +1678,7 @@ word
 pl_size_file(term_t name, term_t len)
 { char *n;
 
-  if ( (n = get_filename(name, NULL, 0)) )
+  if ( (n = PL_get_filename(name, NULL, 0)) )
   { long size;
 
     if ( (size = SizeFile(n)) < 0 )
@@ -1694,7 +1698,7 @@ pl_access_file(term_t name, term_t mode)
   Atom m;
 
   if ( !PL_get_atom(mode, &m) ||
-       !(n=get_filename(name, NULL, 0)) )
+       !(n=PL_get_filename(name, NULL, 0)) )
     return warning("access_file/2: instantiation fault");
 
   if ( m == ATOM_none )
@@ -1731,7 +1735,7 @@ word
 pl_read_link(term_t file, term_t link, term_t to)
 { char *n, *l, *t;
 
-  if ( !(n = get_filename(file, NULL, 0)) )
+  if ( !(n = PL_get_filename(file, NULL, 0)) )
     return warning("read_link/2: instantiation fault");
 
   if ( (l = ReadLink(n)) &&
@@ -1748,7 +1752,7 @@ word
 pl_exists_file(term_t name)
 { char *n;
 
-  if ( !(n = get_filename(name, NULL, 0)) )
+  if ( !(n = PL_get_filename(name, NULL, 0)) )
     return warning("exists_file/1: instantiation fault");
   
   return ExistsFile(n);
@@ -1759,7 +1763,7 @@ word
 pl_exists_directory(term_t name)
 { char *n;
 
-  if ( !(n = get_filename(name, NULL, 0)) )
+  if ( !(n = PL_get_filename(name, NULL, 0)) )
     return warning("exists_directory/1: instantiation fault");
   
   return ExistsDirectory(n);
@@ -1781,7 +1785,7 @@ word
 pl_delete_file(term_t name)
 { char *n;
 
-  if ( !(n = get_filename(name, NULL, 0)) )
+  if ( !(n = PL_get_filename(name, NULL, 0)) )
     return warning("delete_file/1: instantiation fault");
   
   return RemoveFile(n);
@@ -1793,8 +1797,8 @@ pl_same_file(term_t file1, term_t file2)
 { char *n1, *n2;
   char name1[MAXPATHLEN];
 
-  if ( (n1 = get_filename(file1, name1, sizeof(name1))) &&
-       (n2 = get_filename(file2, NULL, 0)) )
+  if ( (n1 = PL_get_filename(file1, name1, sizeof(name1))) &&
+       (n2 = PL_get_filename(file2, NULL, 0)) )
     return SameFile(name1, n2);
 
   return warning("same_file/2: instantiation fault");
@@ -1806,8 +1810,8 @@ pl_rename_file(term_t old, term_t new)
 { char *o, *n;
   char ostore[MAXPATHLEN];
 
-  if ( (o = get_filename(old, ostore, sizeof(ostore))) &&
-       (n = get_filename(new, NULL, 0)) )
+  if ( (o = PL_get_filename(old, ostore, sizeof(ostore))) &&
+       (n = PL_get_filename(new, NULL, 0)) )
   { if ( RenameFile(ostore, n) )
       succeed;
 
@@ -1831,7 +1835,7 @@ word
 pl_absolute_file_name(term_t name, term_t expanded)
 { char *n;
 
-  if ( (n = get_filename(name, NULL, 0)) &&
+  if ( (n = PL_get_filename(name, NULL, 0)) &&
        (n = AbsoluteFile(n)) )
     return PL_unify_atom_chars(expanded, n);
 
@@ -1843,7 +1847,7 @@ word
 pl_is_absolute_file_name(term_t name)
 { char *n;
 
-  if ( (n = get_filename(name, NULL, 0)) &&
+  if ( (n = PL_get_filename(name, NULL, 0)) &&
        IsAbsolutePath(n) )
     succeed;
 
@@ -1855,7 +1859,7 @@ word
 pl_chdir(term_t dir)
 { char *n;
 
-  if ( (n = get_filename(dir, NULL, 0)) )
+  if ( (n = PL_get_filename(dir, NULL, 0)) )
   { if ( ChDir(n) )
       succeed;
 
@@ -1996,7 +2000,7 @@ word
 pl_make_fat_filemap(term_t dir)
 { char *n;
 
-  if ( (n = get_filename(dir, NULL, 0)) )
+  if ( (n = PL_get_filename(dir, NULL, 0)) )
   { if ( _xos_make_filemap(n) == 0 )
       succeed;
 

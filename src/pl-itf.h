@@ -22,7 +22,7 @@ before loading this file.  See end of this file.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifndef PLVERSION
-#define PLVERSION "2.5.2, Feb 1996"
+#define PLVERSION "2.5.6, March 1996"
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -253,6 +253,13 @@ __pl_export int		PL_unify_arg(int index, term_t t, term_t a);
 
 
 		 /*******************************
+		 *	  FILENAME SUPPORT	*
+		 *******************************/
+
+__pl_export char *	PL_get_filename(term_t n, char *buf, unsigned int sz);
+
+
+		 /*******************************
 		 *   QUINTUS WRAPPER SUPPORT	*
 		 *******************************/
 
@@ -279,6 +286,12 @@ __pl_export int		PL_compare(term_t t1, term_t t2);
 		 *******************************/
 
 __pl_export int		PL_warning(const char *fmt, ...);
+
+		 /*******************************
+		 *	      FEATURES		*
+		 *******************************/
+
+__pl_export int		PL_set_feature(const char *name, int type, ...);
 
 		 /*******************************
 		 *	INTERNAL FUNCTIONS	*
@@ -325,6 +338,36 @@ __pl_export int		PL_initialise(int argc, char **argv, char **env);
 __pl_export int		PL_toplevel(void);
 __pl_export void	PL_halt(int status);
 
+		 /*******************************
+		 *      INPUT/PROMPT/ETC	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+NOTE: the functions in this section are   not  documented, as as yet not
+adviced for public usage.  They  are   intended  to  provide an abstract
+interface for the GNU readline  interface   as  defined in pl-rl.c. This
+abstract interface is necessary to make an embeddable system without the
+readline overhead.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+					/* PL_dispatch() modes */
+#define PL_DISPATCH_NOWAIT 0		/* Dispatch only once */
+#define PL_DISPATCH_WAIT 1		/* Dispatch till input available */
+
+					/* PL_ttymode() results */
+#define PL_NOTTY	0		/* -tty in effect */
+#define PL_RAWTTY	1		/* get_single_char/1 */
+#define PL_COOKEDTTY	2		/* normal input */
+
+__pl_export int		PL_dispatch(int fd, int wait);
+__pl_export int		PL_ttymode(int fd);
+__pl_export void	PL_add_to_protocol(const char *buf, int count);
+__pl_export char *	PL_prompt_string(int fd);
+__pl_export void	PL_write_prompt(int fd, int dowrite);
+__pl_export void	PL_prompt_next(int fd);
+__pl_export char *	PL_atom_generator(char *prefix, int state);
+__pl_export void	PL_clock_wait_ticks(long waited);
+
+
 		/********************************
 		*             HOOKS		*
 		********************************/
@@ -335,12 +378,16 @@ __pl_export void	PL_halt(int status);
 typedef int  (*PL_dispatch_hook_t)(int fd);
 typedef void (*PL_abort_hook_t)(void);
 typedef void (*PL_reinit_hook_t)(int argc, char **argv);
+typedef void (*PL_async_hook_t)(void);	/* Win32 only (O_ASYNC_HOOK) */
+typedef int  (*PL_getkey_hook_t)(int fd);
 
 __pl_export PL_dispatch_hook_t PL_dispatch_hook(PL_dispatch_hook_t);
 __pl_export void	       PL_abort_hook(PL_abort_hook_t);
 __pl_export void	       PL_reinit_hook(PL_reinit_hook_t);
 __pl_export int		       PL_abort_unhook(PL_abort_hook_t);
 __pl_export int		       PL_reinit_unhook(PL_reinit_hook_t);
+__pl_export PL_async_hook_t    PL_async_hook(unsigned int, PL_async_hook_t);
+__pl_export PL_getkey_hook_t   PL_getkey_hook(PL_getkey_hook_t);
 
 
 		/********************************
@@ -348,7 +395,7 @@ __pl_export int		       PL_reinit_unhook(PL_reinit_hook_t);
 		*********************************/
 
 __pl_export void (*PL_signal(int sig, void (*func)(int)))(int);
-
+__pl_export void PL_interrupt(int sig);
 
 		/********************************
 		*      PROLOG ACTION/QUERY      *

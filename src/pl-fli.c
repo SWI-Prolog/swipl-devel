@@ -1545,9 +1545,123 @@ reinitForeign(int argc, char **argv)
 		 *	      PROMPT		*
 		 *******************************/
 
+extern int prompt_next;
+
 void
 PL_prompt1(const char *s)
 { prompt1((char *) s);
+}
+
+
+int
+PL_ttymode(int fd)
+{ if ( fd == 0 )
+  { if ( status.notty )			/* -tty in effect */
+      return PL_NOTTY;
+    if ( ttymode == TTY_RAW )		/* get_single_char/1 and friends */
+      return PL_RAWTTY;
+    return PL_COOKEDTTY;		/* cooked (readline) input */
+  } else
+    return PL_NOTTY;
+}
+
+
+void
+PL_write_prompt(int fd, int dowrite)
+{ if ( fd == 0 )
+  { if ( dowrite )
+    { extern int Output;
+      int old = Output;
+      Output = 1;
+      Putf("%s", PrologPrompt());
+      pl_flush();
+      Output = old;
+    }
+
+    pl_ttyflush();
+    prompt_next = FALSE;
+  }
+}
+
+
+void
+PL_prompt_next(int fd)
+{ if ( fd == 0 )
+    prompt_next = TRUE;
+}
+
+
+char *
+PL_prompt_string(int fd)
+{ if ( fd == 0 )
+    return PrologPrompt();
+
+  return "";
+}
+
+
+void
+PL_add_to_protocol(const char *buf, int n)
+{ protocol((char *)buf, n);
+}
+
+
+		 /*******************************
+		 *	   DISPATCHING		*
+		 *******************************/
+
+static PL_dispatch_hook_t dispatch_events = NULL;
+
+PL_dispatch_hook_t
+PL_dispatch_hook(PL_dispatch_hook_t hook)
+{ PL_dispatch_hook_t old = dispatch_events;
+
+  dispatch_events = hook;
+  return old;
+}
+
+int
+PL_dispatch(int fd, int wait)
+{ int rval;
+
+  if ( dispatch_events )
+  { do
+    { rval = (*dispatch_events)(fd);
+    } while( wait == PL_DISPATCH_WAIT && rval == PL_DISPATCH_TIMEOUT );
+  } else
+    rval = PL_DISPATCH_INPUT;
+
+  return rval;
+}
+
+
+		 /*******************************
+		 *	    FEATURES		*
+		 *******************************/
+
+int
+PL_set_feature(const char *name, int type, ...)
+{ va_list args;
+  int rval = TRUE;
+
+  va_start(args, type);
+  switch(type)
+  { case PL_ATOM:
+    { char *v = va_arg(args, char *);
+      setFeature(lookupAtom(name), (word)lookupAtom(v));
+      break;
+    }
+    case PL_INTEGER:
+    { int v = va_arg(args, int);
+      setFeature(lookupAtom(name), consNum(v));
+      break;
+    }
+    default:
+      rval = FALSE;
+  }
+
+  va_end(args);
+  return rval;
 }
 
 

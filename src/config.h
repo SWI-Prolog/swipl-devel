@@ -327,7 +327,7 @@
 #define HAVE_LIBM 1
 
 /* Define if you have the readline library (-lreadline).  */
-#define HAVE_LIBREADLINE 1
+/*#define HAVE_LIBREADLINE 1*/
 
 /* Define if you have the termcap library (-ltermcap).  */
 #define HAVE_LIBTERMCAP 1

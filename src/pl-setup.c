@@ -129,10 +129,6 @@ setupProlog(void)
 Feature interface
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifdef O_RLC
-#include <console.h>
-#endif
-
 static void
 CSetFeature(char *name, char *value)
 { setFeature(lookupAtom(name), (word) lookupAtom(value));
@@ -141,8 +137,8 @@ CSetFeature(char *name, char *value)
 static void
 initFeatures()
 { CSetFeature("arch",		ARCH);
-#ifdef O_RLC
-  if ( rlc_iswin32s() )
+#if __WIN32__
+  if ( iswin32s() )
     CSetFeature("win32s",	"true");
 #endif
   CSetFeature("version",	PLVERSION);
@@ -171,9 +167,6 @@ initFeatures()
 #endif
 #if O_DYNAMIC_STACKS
   CSetFeature("dynamic_stacks",	"true");
-#endif
-#if defined(HAVE_LIBREADLINE)
-  CSetFeature("readline",	"true");
 #endif
 #ifdef HAVE_POPEN
   CSetFeature("pipe",		"true");

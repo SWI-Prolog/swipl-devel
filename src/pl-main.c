@@ -19,9 +19,6 @@ option  parsing,  initialisation  and  handling  of errors and warnings.
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
 #endif
-#if O_RLC
-#include <console.h>
-#endif
 
 forwards void	usage(void);
 static void	version();
@@ -312,27 +309,6 @@ startProlog(int argc, char **argv, char **env)
 #endif /*ASSOCIATE_STATE*/
   }
   
-#if O_RLC				/* MS-Windows readline console */
-  { char title[256];
-
-    if ( explicit_state )
-    {
-#if O_XOS
-    { char buf[MAXPATHLEN];
-      _xos_canonical_filename(state, buf);
-      Ssprintf(title, "%s", BaseName(buf));
-    }
-#else
-      Ssprintf(title, "%s", BaseName(state));
-#endif
-    } else
-    { Ssprintf(title, "SWI-Prolog (version %s)", PLVERSION);
-    } 
-      
-    rlc_title(title, NULL, 0);
-  }
-#endif
-
   if ( argc >= 1 && streq(argv[0], "-help") )
     usage();
   if ( argc >= 1 && streq(argv[0], "-arch") )

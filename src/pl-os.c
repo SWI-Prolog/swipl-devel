@@ -40,10 +40,6 @@
 #include <sys/file.h>
 #endif
 
-#if O_RLC
-#include <console.h>
-#endif
-
 #include <fcntl.h>
 #ifndef __WATCOMC__			/* appears a conflict */
 #include <errno.h>
@@ -109,7 +105,7 @@ initOs(void)
   initEnviron();
 
 #ifdef __WIN32__
-{ int w32s = rlc_iswin32s();
+{ int w32s = iswin32s();
   status.case_sensitive_files = FALSE;
   status.case_preserving_files = (w32s ? FALSE : TRUE);
   status.dos_files = (w32s ? TRUE : FALSE);
@@ -296,6 +292,13 @@ CpuTime(void)
 }
 
 #endif /*__WIN32__*/
+
+#ifdef HAVE_CLOCK
+void
+PL_clock_wait_ticks(long waited)
+{ clock_wait_ticks += waited;
+}
+#endif
 
 		/********************************
 		*       MEMORY MANAGEMENT       *
@@ -1565,6 +1568,7 @@ ChDir(char *path)
 }
 
 
+
 		/********************************
 		*        TIME CONVERSION        *
 		*********************************/
@@ -1623,7 +1627,7 @@ PopTty()
     Restore the tty state.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int prompt_next = TRUE;		/* prompt on next GetChar() */
+int prompt_next = TRUE;			/* prompt on next GetChar() */
 static IOFUNCTIONS org_terminal;	/* original stdio functions */
 
 static void
@@ -1633,26 +1637,14 @@ ResetStdin()
     org_terminal = *Sinput->functions;
 }
 
-static PL_dispatch_hook_t PL_dispatch_events = NULL;
-
-PL_dispatch_hook_t
-PL_dispatch_hook(PL_dispatch_hook_t hook)
-{ PL_dispatch_hook_t old = PL_dispatch_events;
-
-  PL_dispatch_events = hook;
-  return old;
-}
-
-
 static int
 Swrite_protocol(void *handle, char *buf, int size)
-{ int n, rval;
+{ int rval;
 #ifdef HAVE_CLOCK
   long oldclock = clock();
 #endif
 
-  for(n=0; n<size; n++)
-    protocol(buf[n]);
+  protocol(buf, size);
 
   rval = (*org_terminal.write)(handle, buf, size);
 
@@ -1663,267 +1655,11 @@ Swrite_protocol(void *handle, char *buf, int size)
   return rval;
 }
 
-#ifdef HAVE_LIBREADLINE
-
-#ifdef HAVE_RL_INSERT_CLOSE
-#define PAREN_MATCHING 1
-extern rl_delete_text(int from, int to);
-#endif
-
-#undef ESC				/* will be redefined ... */
-#include <stdio.h>			/* readline needs it */
-#define savestring(x)			/* avoid definition there */
-#include <readline/readline.h>
-extern void add_history(char *);	/* should be in readline.h */
-extern rl_begin_undo_group(void);	/* delete when conflict arrises! */
-extern rl_end_undo_group(void);
-extern Function *rl_event_hook;
-extern char *filename_completion_function(char *, int);
-
-
-word
-pl_rl_read_init_file(term_t file)
-{ char *f;
-
-  if ( (f = get_filename(file, NULL, 0)) )
-  {
-#ifdef O_XOS
-    char buf[MAXPATHLEN];
-    rl_read_init_file(_xos_os_filename(f, buf));
-#else
-    rl_read_init_file(f);
-#endif
-
-    succeed;
-  }
-
-  fail;
-}
-
-
-word
-pl_rl_add_history(term_t text)
-{ char *s;
-
-  if ( PL_get_chars(text, &s, CVT_ALL) )
-  { add_history(s);
-
-    succeed;
-  }
-
-  return warning("rl_add_history/1: instantation fault");
-}
-
-
-static int
-event_hook(void)
-{ /*ttybuf tab;*/
-  int rval;
-
-/*PushTty(&tab, TTY_OUTPUT);*/
-  rval = (*PL_dispatch_events)(0);	/* hardcoded? */
-/*PopTty(&tab);*/
-
-  return rval;
-}
-
-
-static Char
-GetRawChar(void)
-{ if ( PL_dispatch_events )
-  { while((*PL_dispatch_events)(0) != PL_DISPATCH_INPUT)
-      ;
-  }
-
-#ifdef O_RLC				/* Windows console version */
-  { Char chr = getkey();
-
-    if ( chr == 04 )
-      chr = EOF;
-    return chr;
-  }
-#else /*O_RLC*/
-  { unsigned char chr;
-
-  if (read(0, &chr, 1) == 0)
-    return EOF;
-  else
-    return chr;
-  }
-#endif /*O_RLC*/
-}
-
-
-static int
-Sread_readline(void *handle, char *buf, int size)
-{ Atom sfn = source_file_name;		/* save over call-back */
-  int  sln = source_line_no;
-  int rval;
-#ifdef HAVE_CLOCK
-  long oldclock = clock();
-#endif
-
-  pl_ttyflush();
-
-  if ( ttymode == TTY_RAW )
-  { int c = GetRawChar();
-
-    if ( c == '\n' )
-      prompt_next = TRUE;
-
-    buf[0] = c & 0xff;
-    rval = 1;
-  } else if ( status.notty )		/* do not use readline */
-  { int n;
-
-#ifndef __unix__
-#define isatty(x) 1
-#endif
-    if ( prompt_next && isatty(1) )
-    { extern int Output;
-      int old = Output;
-      Output = 1;
-      Putf("%s", PrologPrompt());
-      pl_flush();
-      Output = old;
-
-      prompt_next = FALSE;
-    }
-
-    if ( PL_dispatch_events )
-    { while((*PL_dispatch_events)(0) != PL_DISPATCH_INPUT)
-	;
-    }
-    n = read((int)handle, buf, size);
-    if ( n > 0 && buf[n-1] == '\n' )
-      prompt_next = TRUE;
-
-    rval = n;
-  } else				/* use readline */
-  { ttybuf tbuf;
-    char *line;
-
-    rl_event_hook = (PL_dispatch_events ? (Function *) event_hook
-					: (Function *) NULL);
-
-    PushTty(&tbuf, TTY_SAVE);
-    line = readline(PrologPrompt());
-    PopTty(&tbuf);
-
-    if ( line )
-    { char *s;
-      int l = strlen(line);
-	  
-      if ( l > size )
-      { warning("Input line too long");	/* must be tested! */
-	l = size-1;
-      }
-      memcpy(buf, line, l);
-      buf[l++] = '\n';
-      rval = l;
-
-      for(s = line; *s; s++)
-      { if ( !isBlank(*s) )
-	{ /* add_history(line); */	/* done from Prolog */
-	  break;
-	}
-      }
-
-      if ( !*s )			/* blanks only! */
-	free(line);
-    } else
-      rval = 0;
-  }
-
-  if ( ttymode != TTY_RAW )
-  { int n;
-
-    for(n=0; n<rval; n++)
-      protocol(buf[n]);
-  }
-
-#ifdef HAVE_CLOCK
-  clock_wait_ticks += clock() - oldclock;
-#endif
-
-  source_line_no   = sln;
-  source_file_name = sfn;
-
-  return rval;
-}
-
-
-static void
-prolog_complete(int ignore, int key)
-{ if ( rl_point > 0 && rl_line_buffer[rl_point-1] != ' ' )
-  { rl_begin_undo_group();
-    rl_complete(ignore, key);
-    if ( rl_point > 0 && rl_line_buffer[rl_point-1] == ' ' )
-    {
-#ifdef HAVE_RL_INSERT_CLOSE		/* actually version >= 1.2 */
-      rl_delete_text(rl_point-1, rl_point);
-      rl_point -= 1;
-#else
-      rl_delete(-1);
-#endif
-    }
-    rl_end_undo_group();
-  } else
-    rl_complete(ignore, key);
-}
-
-
-static char **
-prolog_completion(char *text, int start, int end)
-{ char **matches = NULL;
-
-  if ( (start == 1 && rl_line_buffer[0] == '[') )	/* [file */
-    matches = completion_matches(text,
-				 (Function *) filename_completion_function);
-  else if (start == 2 && strncmp(rl_line_buffer, "['", 2))
-    matches = completion_matches(text,
-				 (Function *) filename_completion_function);
-  else
-    matches = completion_matches(text, atom_generator);
-
-  return matches;
-}
-
-
-void
-ResetTty(void)				/* used to initialise readline */
-{ static IOFUNCTIONS funcs;
-
-  ResetStdin();
-
-  rl_readline_name = "Prolog";
-  rl_attempted_completion_function = prolog_completion;
-#ifdef __WIN32__
-  rl_basic_word_break_characters = "\t\n\"\\'`@$><= [](){}+*!,|%&?";
-#else
-  rl_basic_word_break_characters = ":\t\n\"\\'`@$><= [](){}+*!,|%&?";
-#endif
-  rl_add_defun("prolog-complete", (Function *) prolog_complete, '\t');
-#if HAVE_RL_INSERT_CLOSE
-  rl_add_defun("insert-close", rl_insert_close, ')');
-#endif
-
-  funcs = *Sinput->functions;		/* structure copy */
-  funcs.read = Sread_readline;		/* read through readline */
-  funcs.write = Swrite_protocol;	/* protocol output */
-
-  Sinput->functions  = &funcs;
-  Soutput->functions = &funcs;
-  Serror->functions  = &funcs;
-}
-
-
-#else /*!HAVE_LIBREADLINE*/
-
 int
 Sread_terminal(void *handle, char *buf, int size)
 { Atom sfn = source_file_name;		/* save over call-back */
   int  sln = source_line_no;
+  int  fd  = (int)handle;
 
   if ( prompt_next && ttymode != TTY_RAW )
   { Putf("%s", PrologPrompt());
@@ -1932,45 +1668,10 @@ Sread_terminal(void *handle, char *buf, int size)
   }
 
   pl_ttyflush();
+  PL_dispatch(fd, PL_DISPATCH_WAIT);
+  size = (*org_terminal.read)(handle, buf, size);
 
-  if ( PL_dispatch_events )
-  { for(;;)
-    {					/* fixed by Stefan Mueller */
-      if ( (*PL_dispatch_events)(0) == PL_DISPATCH_INPUT )
-#ifdef __WATCOMC__
-      { int c = (ttymode == TTY_RAW) ? getch() : getche();
-
-	if ( c == EOF || c == '\04' )
-	  size = 0;
-	else
-	{ buf[0] = c & 0xff;
-	  size = 1;
-	}
-	break;
-      }
-#else	
-      { size = (*org_terminal.read)(handle, buf, size);
-	break;
-      }
-#endif /*__WATCOMC__*/
-    }
-  } else
-  {
-#if defined(__WATCOMC__)
-    int c = (ttymode == TTY_RAW) ? getch() : getche();
-
-    if ( c == EOF || c == '\04' )
-      size = 0;
-    else
-    { buf[0] = c & 0xff;
-      size = 1;
-    }
-#else
-    size = (*org_terminal.read)(handle, buf, size);
-#endif
-  }
-
-  if ( size == 0 )
+  if ( size == 0 )			/* end-of-file */
   { if ( (int) handle == 0 )
     { Sclearerr(Sinput);
       prompt_next = TRUE;
@@ -2000,9 +1701,6 @@ ResetTty()
 
   prompt_next = TRUE;
 }
-
-
-#endif /*HAVE_LIBREADLINE*/
 
 #ifdef O_TERMIO				/* sys/termios.h or sys/termio.h */
 
@@ -2395,16 +2093,8 @@ System(char *cmd)
   int rval;
   void (*old_int)();
   void (*old_stop)();
-#ifndef HAVE_LIBREADLINE
-  ttybuf buf;
-#endif
 
   Setenv("PROLOGCHILD", "yes");
-
-#ifndef HAVE_LIBREADLINE
-  PushTty(&buf, TTY_SAVE);
-  PopTty(&ttytab);			/* restore cooked mode */
-#endif
 
   if ( (pid = vfork()) == -1 )
   { return warning("Fork failed: %s\n", OsError());
@@ -2450,9 +2140,6 @@ System(char *cmd)
 #ifdef SIGTSTP
   signal(SIGTSTP, old_stop);
 #endif /* SIGTSTP */
-#ifndef HAVE_LIBREADLINE
-  PopTty(&buf);
-#endif
 
   return rval;
 }

@@ -170,6 +170,8 @@ S__flushbufc(int c, IOSTREAM *s)
 }
 
 
+#define ReadF(s) (s)->functions->read
+
 int
 S__fillbuf(IOSTREAM *s)
 { if ( s->flags & (SIO_FEOF|SIO_FERR) )
@@ -181,7 +183,7 @@ S__fillbuf(IOSTREAM *s)
   { char chr;
     int n;
 
-    if ( (n=(*s->functions->read)(s->handle, &chr, 1)) == 1 )
+    if ( (n=(*ReadF(s))(s->handle, &chr, 1)) == 1 )
     { return char_to_int(chr);
     } else if ( n == 0 )
     { if ( !(s->flags & SIO_NOFEOF) )
@@ -199,7 +201,7 @@ S__fillbuf(IOSTREAM *s)
 	return -1;
     }
 
-    if ( (n=(*s->functions->read)(s->handle, s->buffer, s->bufsize)) > 0 )
+    if ( (n=(*ReadF(s))(s->handle, s->buffer, s->bufsize)) > 0 )
     { s->bufp = s->buffer;
       s->limitp = &s->buffer[n];
       return char_to_int(*s->bufp++);

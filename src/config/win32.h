@@ -3,6 +3,8 @@
 
 #define __WIN32__ 1
 
+#define O_ASYNC_HOOK 1
+
 #define OPEN_MAX 32
 
 #define HAVE_UXNT_H 1
@@ -244,6 +246,9 @@
 
 /* Define if you have the strerror function.  */
 #define HAVE_STRERROR 1
+
+#define HAVE_CEIL  1
+#define HAVE_FLOOR 1
 
 /* Define if you have the tgetent function.  */
 #undef HAVE_TGETENT

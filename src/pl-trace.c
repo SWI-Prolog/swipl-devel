@@ -9,9 +9,6 @@
 
 #include "pl-incl.h"
 #include "pl-ctype.h"
-#ifdef O_RLC
-#include <console.h>
-#endif
 
 int trace_continuation;			/* how to continue? */
 
@@ -770,13 +767,11 @@ again:
   ResetTty();                           /* clear pending input -- atoenne -- */
   c = getSingleChar();
 
-#ifndef O_RLC
 #ifndef BSD_SIGNALS
 #ifdef SIG_ACK
   signal(SIGINT, SIG_ACK);
 #else
   signal(SIGINT, interruptHandler);	/* reinsert handler */
-#endif
 #endif
 #endif
 
@@ -820,6 +815,16 @@ again:
 
 #endif /*O_INTERRUPT*/
 
+
+void
+PL_interrupt(int sig)
+{
+#ifdef O_INTERRUPT
+   interruptHandler(sig);
+#endif
+}
+
+
 void
 resetTracer(void)
 {
@@ -832,12 +837,8 @@ resetTracer(void)
 void
 initTracer(void)
 { 
-#ifdef O_RLC
-  rlc_interrupt_hook(interruptHandler);
-#else
 #if defined(SIGINT) && defined(O_INTERRUPT)
   pl_signal(SIGINT, interruptHandler);
-#endif
 #endif
 
   debugstatus.visible  = CALL_PORT|FAIL_PORT|REDO_PORT|EXIT_PORT;
@@ -961,16 +962,21 @@ pl_debuglevel(term_t old, term_t new)
 word
 pl_unknown(term_t old, term_t new)
 { Module m = contextModule(environment_frame);
-  int val = true(m, UNKNOWN) ? TRUE : FALSE;
+  Atom a = (true(m, UNKNOWN) ? ATOM_trace : ATOM_fail);
 
-  if ( setBoolean(&val, "unknown", old, new) )
-  { if ( val )
-      set(m, UNKNOWN);
-    else
-      clear(m, UNKNOWN);
+  if ( !PL_unify_atom(old, a) )
+    fail;
+  if ( PL_get_atom(new, &a) )
+  { if ( a == ATOM_fail ) 
+    { clear(m, UNKNOWN);
+      succeed;
+    } else if ( a == ATOM_trace )
+    { set(m, UNKNOWN);
+      succeed;
+    }
   }
-
-  succeed;
+  
+  return warning("unknown/2: instantiation fault");
 }
 
 

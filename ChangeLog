@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: unknown/2 (reporting instantiation fault).
+
 Version 2.5.6
 =============
   

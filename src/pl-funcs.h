@@ -59,7 +59,6 @@ void		initAtoms(void);
 word		pl_current_atom(term_t a, word h);
 word		pl_complete_atom(term_t prefix, term_t common, term_t unique);
 word		pl_atom_completions(term_t prefix, term_t alts);
-char *		atom_generator(char *prefix, int state);
 
 /* pl-arith.c */
 
@@ -149,7 +148,7 @@ void		initBuildIns(void);
 void		initIO(void);
 void		dieIO(void);
 void		closeFiles(void);
-void		protocol(int c);
+void		protocol(char *s, int n);
 int		currentLinePosition(void);
 int		getSingleChar(void);
 bool		readLine(char *buffer);
@@ -219,7 +218,6 @@ word		pl_at_end_of_stream0();
 word		pl_peek_byte2(term_t stream, term_t chr);
 word		pl_peek_byte1(term_t chr);
 bool		unifyTime(term_t t, long time);
-char *		get_filename(term_t n, char *buf, unsigned int bufsize);
 word		pl_time_file(term_t name, term_t t);
 word		pl_size_file(term_t name, term_t len);
 word		pl_access_file(term_t name, term_t mode);
@@ -368,10 +366,9 @@ char *		Unsetenv(char *name);
 int		System(char *cmd);
 char *		Symbols(void);
 void		Pause(real time);
-#ifdef HAVE_LIBREADLINE
-word		pl_rl_read_init_file(term_t file);
-word		pl_rl_add_history(term_t text);
-#endif
+#if __WIN32__
+int		iswin32s(void);
+#endif /*__WIN32__*/
 
 /* pl-prims.c */
 word		pl_nonvar(term_t k);
@@ -534,6 +531,9 @@ word		pl_recorda(term_t key, term_t term, term_t ref);
 word		pl_recordz(term_t key, term_t term, term_t ref);
 word		pl_recorded(term_t key, term_t term, term_t ref, word h);
 word		pl_erase(term_t ref);
+
+/* pl-rl.c */
+void		install_rl(void);
 
 /* pl-setup.c */
 void		setupProlog(void);

@@ -1566,7 +1566,7 @@ pl_qlf_info(term_t file,
 { char *name;
   char buf[MAXPATHLEN];
 
-  if ( !(name = get_filename(file, buf, sizeof(buf))) )
+  if ( !(name = PL_get_filename(file, buf, sizeof(buf))) )
     return warning("qlf_info/3: instantiation fault");
 
    return qlfInfo(name, cversion, version, files);
@@ -1832,7 +1832,7 @@ pl_qlf_load(term_t file, term_t module)
 
   if ( !PL_strip_module(file, &m, name) )
     fail;
-  if ( !(fn = get_filename(name, fbuf, sizeof(fbuf))) )
+  if ( !(fn = PL_get_filename(name, fbuf, sizeof(fbuf))) )
     return warning("$qlf_load/2: instantiation fault");
 
   rval = qlfLoad(fn, &m);
@@ -1857,7 +1857,7 @@ pl_open_wic(term_t name, term_t options)
 { char *file;
   Atom fname;
 
-  if ( !(file = get_filename(name, NULL, 0)) )
+  if ( !(file = PL_get_filename(name, NULL, 0)) )
     fail;
   fname = lookupAtom(file);	/* ensure persistency */
 

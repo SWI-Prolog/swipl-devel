@@ -60,7 +60,7 @@ saveProgram(term_t new)
   char old_name[MAXPATHLEN];
   char buf[MAXPATHLEN];
   
-  if ( !(dest = get_filename(new, buf, sizeof(buf))) )
+  if ( !(dest = PL_get_filename(new, buf, sizeof(buf))) )
     return warning("save_program/1: instantiation fault");
 
   if ( cannot_save_program != NULL )
@@ -129,7 +129,7 @@ pl_save(term_t file, term_t restore)
   struct save_section sections[4];
 #endif
 
-  if ( !(state = get_filename(file, buf, sizeof(buf))) )
+  if ( !(state = PL_get_filename(file, buf, sizeof(buf))) )
     return warning("save/2: instantiation fault");
 
   TRY( getSymbols() );
@@ -193,7 +193,7 @@ pl_restore(term_t file)
 { char *state;
   char buf[MAXPATHLEN];
 
-  if ( !(state = get_filename(file, buf, sizeof(buf))) )
+  if ( !(state = PL_get_filename(file, buf, sizeof(buf))) )
     return warning("restore/1: instantiation fault");
   if ( !ExistsFile(state) )
     return warning("restore/1: no such file: %s", state);

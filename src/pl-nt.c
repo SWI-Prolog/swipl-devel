@@ -47,6 +47,19 @@ PlMessage(const char *fm, ...)
 }
 
 		 /*******************************
+		 *	       WIN32		*
+		 *******************************/
+
+int
+iswin32s()
+{ if( GetVersion() & 0x80000000 && (GetVersion() & 0xFF) ==3)
+    return TRUE;
+  else
+    return FALSE;
+}
+
+
+		 /*******************************
 		 *	WinAPI ERROR CODES	*
 		 *******************************/
 
@@ -183,50 +196,6 @@ System(char *command)
   }
 }
 
-		 /*******************************
-		 *	BIND STREAM STUFF	*
-		 *******************************/
-
-static int
-Srlc_read(void *handle, char *buffer, int size)
-{ return rlc_read(buffer, size);
-}
-
-
-static int
-Srlc_write(void *handle, char *buffer, int size)
-{ return rlc_write(buffer, size);
-}
-
-
-static void
-rlc_bind_terminal()
-{ static IOFUNCTIONS funcs;
-
-  funcs = *Sinput->functions;
-  funcs.read  = Srlc_read;
-  funcs.write = Srlc_write;
-
-  Sinput->functions  = &funcs;
-  Soutput->functions = &funcs;
-  Serror->functions  = &funcs;
-}
-
-
-		 /*******************************
-		 *	       MAIN		*
-		 *******************************/
-
-extern int main(int argc, char **argv);
-
-int PASCAL
-WinMain(HANDLE hInstance, HANDLE hPrevInstance,
-	LPSTR lpszCmdLine, int nCmdShow)
-{ rlc_bind_terminal();
-
-  return rlc_main(hInstance, hPrevInstance, lpszCmdLine, nCmdShow,
-		  main, LoadIcon(hInstance, "SWI_Icon"));
-}
 
 #endif /*__WINDOWS__*/
 

@@ -11,10 +11,6 @@
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
 
-#ifdef O_RLC
-#include <console.h>
-#endif
-
 #if sun
 #include <prof.h>			/* in-function profiling */
 #else
@@ -187,6 +183,35 @@ int i;
 
 #include "pl-index.c"
 #include "pl-alloc.c"
+
+		 /*******************************
+		 *	    ASYNC HOOKS		*
+		 *******************************/
+
+#if O_ASYNC_HOOK
+
+static struct
+{ PL_async_hook_t	hook;		/* the hook function */
+  unsigned int		mask;		/* the mask */
+} async;
+
+
+PL_async_hook_t
+PL_async_hook(unsigned int count, PL_async_hook_t hook)
+{ PL_async_hook_t old = async.hook;
+
+  async.hook = hook;
+  async.mask = 1;
+  while(async.mask < count)
+    async.mask <<= 1;
+  async.mask--;
+
+  return old;
+}
+
+
+#endif /*O_ASYNC_HOOK*/
+
 
 		 /*******************************
 		 *	   STACK-LAYOUT		*
@@ -2462,9 +2487,10 @@ Note: we are working above `lTop' here!
 	statistics.inferences++;
 	Mark(FR->mark);
 
-#if O_RLC				/* Windows readline console */
-	{ if ( (++statistics.inferences % 0x7ff) == 0 )
-	    rlc_check_intr();		/* check for interrupt (^C) */
+#if O_ASYNC_HOOK			/* Asynchronous hooks */
+	{ if ( async.hook &&
+	       !((++statistics.inferences & async.mask)) )
+	    (*async.hook)();		/* check the hook */
 	}
 #endif
 

@@ -348,11 +348,6 @@ raw_read2(void)
   for(;;)
   { c = getchr();
 
-#if !defined(HAVE_LIBREADLINE) && defined(O_TERMIO)
-    if ( c == ttytab.tab.c_cc[VEOF] )		/* little hack ... */
-      c = EOF;
-#endif
-
   handle_c:
     switch(c)
     { case EOF:
