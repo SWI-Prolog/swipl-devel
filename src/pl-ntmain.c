@@ -353,7 +353,8 @@ install_readline(int argc, char **argv)
   rlc_init_history(FALSE, 50);
   file_completer = rlc_complete_hook(do_complete);
 
-  PL_register_foreign("rl_add_history",    1, pl_rl_add_history,    0);
+  PL_register_foreign("rl_add_history",    1, pl_rl_add_history,
+		      PL_FA_NOTRACE);
   PL_register_foreign("rl_read_init_file", 1, pl_rl_read_init_file, 0);
 
   PL_set_feature("tty_control", PL_BOOL, TRUE);
