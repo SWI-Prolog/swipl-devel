@@ -732,8 +732,8 @@ loop.  \arg{Action} is one of:
     \termitem{assert}{Subject, Predicate, Object}
     \termitem{retract}{Subject, Predicate, Object}
     \termitem{update}{Subject, Predicate, Object, Action}
-    \termitem{file}{\term{load}{path}}
-    \termitem{file}{\term{unload}{path}}
+    \termitem{file}{load(Path)}
+    \termitem{file}{unload(Path)}
 \end{description}
 \end{description}
 
