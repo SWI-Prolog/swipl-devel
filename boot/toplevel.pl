@@ -89,8 +89,11 @@ $load_script_file :-
 	$option(script_file, OsFile, OsFile),
 	OsFile \== '',
 	prolog_to_os_filename(File, OsFile),
-	asserta(loaded_init_file(script)),
-	ensure_loaded(user:File).
+	(   exists_file(File)		% avoid expanding on extensions
+	->  asserta(loaded_init_file(script)),
+	    ensure_loaded(user:File)
+	;   throw(error(existence_error(script_file, File), _))
+	).
 $load_script_file.
 
 $load_gnu_emacs_interface :-
