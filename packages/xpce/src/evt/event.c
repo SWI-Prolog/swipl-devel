@@ -131,11 +131,8 @@ initialiseEvent(EventObj e, Name id, Any window,
   if ( !onFlag(window, F_FREED|F_FREEING) )
     last_window = window;
 
-#if 0
-  if ( e->id != NAME_locMove )
-    loc_still_posted = TRUE;
-  else
-#endif
+  if ( !(isAEvent(e, NAME_focus) ||
+	 isAEvent(e, NAME_user)) )
     loc_still_posted = FALSE;
 
   succeed;
@@ -158,7 +155,8 @@ considerLocStillEvent()
     if ( !pceMTTryLock(LOCK_PCE) )
       return;
     if ( instanceOfObject(last_window, ClassWindow) &&
-	 !onFlag(last_window, F_FREED|F_FREEING) )
+	 !onFlag(last_window, F_FREED|F_FREEING) &&
+	 last_x > 0 && last_y > 0 )
     { ServiceMode(is_service_window(last_window),
 		  { AnswerMark mark;
 		    EventObj e;
