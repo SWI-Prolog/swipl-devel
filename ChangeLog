@@ -1,6 +1,13 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Deal properly with 0-bytes in the format string for format/[2,3].
+    Still a bug: format('~t~w~72|~n', [ 'hello\0\world' ]) (write arguments
+    with `pending rubber' holding 0-bytes).
+
+  * FIXED: Deal properly with 0-characters in QLF files and saved-states.
+    Reported by Mike Elston.
+
   * FIXED: Doc says PL_get_string_chars(), Impl PL_get_string().  Fixed
     in the impl. using a macro.  Thanks to Nicos Angelopoulo.
 
