@@ -1048,13 +1048,13 @@ on success.
 \cfunction{int}{PL_unify_list_chars}{term_t ?t, const char *chars}
 Unify \arg{t} with a list of ASCII characters constructed from
 \arg{chars}.
-\cfunction{void}{PL_unisy_string_chars}{term_t ?t, const char *chars}
+\cfunction{void}{PL_unify_string_chars}{term_t ?t, const char *chars}
 Unify \arg{t} with a Prolog string object created from the
 zero-terminated string \arg{chars}. The data will be copied.
-See also PL_put_string_nchars().
-\cfunction{void}{PL_put_string_nchars}{term_t ?t,
-				       unsigned int len,
-				       const char *chars}
+See also PL_unify_string_nchars().
+\cfunction{void}{PL_unify_string_nchars}{term_t ?t,
+					 unsigned int len,
+					 const char *chars}
 Unify \arg{t} with a Prolog string object created from the string
 created from the \arg{len}/\arg{chars} pair. The data will be copied.
 This interface can deal with 0-bytes in the string. See also
