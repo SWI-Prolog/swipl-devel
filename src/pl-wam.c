@@ -1999,7 +1999,7 @@ variable, compare the numbers otherwise.
 	  *k   = consPtr(p, TAG_FLOAT|STG_GLOBAL);
 	  Trail(k);
 	  *p++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
-	  cpDoubleData(p, (Word)PC);
+	  cpDoubleData(p, PC);
 	  *p++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
 	  NEXT_INSTRUCTION;
 	} else if ( isReal(*k) )
@@ -2079,7 +2079,7 @@ globalReal().
 
 	*ARGP++ = consPtr(p, TAG_FLOAT|STG_GLOBAL);
 	*p++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
-	cpDoubleData(p, (Word)PC);
+	cpDoubleData(p, PC);
 	*p++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
 	NEXT_INSTRUCTION;
       }  
@@ -2895,7 +2895,7 @@ to give the compiler a hint to put ARGP not into a register.
       {	Number n = (Number)ARGP;
 	Word p = &n->value.w[0];
 
-	cpDoubleData(p, (Word)PC);
+	cpDoubleData(p, PC);
 	n->type       = V_REAL;
 	ARGP          = (Word)(n+1);
 	NEXT_INSTRUCTION;

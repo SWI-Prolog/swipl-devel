@@ -1885,7 +1885,7 @@ decompile_head(Clause clause, term_t head, decompileInfo *di)
 
 	  w = consPtr(p, TAG_FLOAT|STG_GLOBAL);
 	  *p++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
-	  cpDoubleData(p, (Word)PC);
+	  cpDoubleData(p, PC);
 	  *p   = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
 	  TRY(_PL_unify_atomic(argp, w));
 	  NEXTARG;
@@ -2099,7 +2099,7 @@ decompileBody(decompileInfo *di, code end, Code until)
 			    
 			    *ARGP++ = consPtr(p, TAG_FLOAT|STG_GLOBAL);
 			    *p++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
-			    cpDoubleData(p, (Word)PC);
+			    cpDoubleData(p, PC);
 			    *p   = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
 			    continue;
 			  }

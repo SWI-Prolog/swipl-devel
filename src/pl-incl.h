@@ -985,7 +985,7 @@ We assume the compiler will optimise this properly.
 	      *(to)++ = *_f++; \
 	    case 1: \
 	      *(to)++ = *_f++; \
-	      (from) = _f; \
+	      from = (void *)_f; \
 	      break; \
 	    default: \
 	      assert(0); \

@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: ANSI-C incompatibility, breaking compilation using AIX cc
+    (Sterling Smith).
+
   * FIXED: end_of_file issues in readln/[1,2,5] (library(readln)) and
     modernised the code a bit.
 
