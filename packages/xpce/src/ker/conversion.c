@@ -42,7 +42,7 @@ toString(Any obj, String s)
   { sprintf(tmp, "%g", valReal(obj));
     rval = SUCCEED;
   } else if ( instanceOfObject(obj, ClassNumber) )
-  { sprintf(tmp, "%ld", valInt(((Number)obj)->value));
+  { sprintf(tmp, "%ld", ((Number)obj)->value);
     rval = SUCCEED;
   }
 
