@@ -31,6 +31,9 @@ static int
 alloc_colortable(int ncolors, void *closure)
 { XpmImage *img = closure;
 
+  if ( ncolors < 0 || ncolors > 256 )
+    return GIF_INVALID;
+
   img->ncolors    = ncolors;
   img->colorTable = XpmMalloc(sizeof(XpmColor) * ncolors);
 
@@ -47,8 +50,12 @@ alloc_colortable(int ncolors, void *closure)
 static int
 alloc_color(int index, int r, int g, int b, void *closure)
 { XpmImage *img = closure;
-  XpmColor *c   = &img->colorTable[index];
+  XpmColor *c;
   
+  if ( index < 0 || index >= img->ncolors )
+    return GIF_INVALID;
+  c = &img->colorTable[index];
+
   if ( (c->c_color = XpmMalloc(8)) )
   { sprintf(c->c_color, "#%02x%02x%02x", r, g, b);
 
@@ -65,8 +72,13 @@ gif_extension(int ext, void *data, void *closure)
 
   switch(ext)
   { case GIFEXT_TRANSPARENT:
-    { XpmColor *c   = &img->colorTable[(long)data];
+    { XpmColor *c;
+      int i = (int)data;
 
+      if ( i < 0 || i >= img->ncolors )
+	return GIF_INVALID;
+
+      c = &img->colorTable[(long)data];
       strcpy(c->c_color, "None");	/* malloced 8 bytes, so ok. */
       break;
     }
