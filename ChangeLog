@@ -4,6 +4,8 @@
 Version 2.1.13
 ==============
 
+  * WIN32: Fixed error reporting of shell/1.
+
   * FIXED: added a flush() after completing the user-query.  This gives
     better output for ?- write(hello).
 

@@ -686,7 +686,7 @@ findBlock(LocalFrame fr, Word block)
 #define CLAUSE_FAILED		goto clause_failed
 #define BODY_FAILED		goto body_failed
 
-#ifdef O_SECURE
+#ifndef O_SECURE
 #define SetBfr(fr)		(BFR = (fr))
 #else
 #define SetBfr(fr) \
