@@ -1279,28 +1279,20 @@ makeClassDisplay(Class class)
 }
   
 
-#if defined(WIN32_GRAPHICS) || defined(USE_XFT)
-#define NO_XNAME 1
-#else
-#undef NO_XNAME
-#endif
-
-#ifdef NO_XNAME
-#define PFONT(n, p, x) { n, p }
-#define ENDFONTLIST    { NULL, 0 }
-#else
-#define PFONT(n, p, x) { n, p, x }
-#define ENDFONTLIST    { NULL, 0, NULL}
-#endif
+#define PFONT(n, p, x) { n, p, XNAME(x) }
+#define ENDFONTLIST    { NULL, 0, NULL }
 
 typedef struct
 { Name style;
   int  points;
-#ifndef NO_XNAME
   char *xname;
-#endif
 } fontdef, *FontDef;
 
+#ifdef WIN32_GRAPHICS
+#define XNAME(x) NULL
+#else
+#define XNAME(x) x
+#endif
 
 static fontdef screen_fonts[] =
 { PFONT(NAME_roman, 10,
@@ -1322,6 +1314,12 @@ static fontdef screen_fonts[] =
   ENDFONTLIST
 };
 
+#undef XNAME
+#if defined(WIN32_GRAPHICS) || defined(USE_XFT)
+#define XNAME(x) NULL
+#else
+#define XNAME(x) x
+#endif
 
 static fontdef courier_fonts[] =
 { PFONT(NAME_roman, 10,
@@ -1437,18 +1435,18 @@ default_font_list(Name fam, FontDef defs)
   
   while(defs->style)
   {
-#ifdef NO_XNAME
-    sprintf(s, "font(%s, %s, %d)",
-	    strName(fam),
-	    strName(defs->style),
-	    defs->points);
-#else
-    sprintf(s, "font(%s, %s, %d, \"%s\")",
-	    strName(fam),
-	    strName(defs->style),
-	    defs->points,
-	    defs->xname);
-#endif
+    if ( defs->xname )
+    { sprintf(s, "font(%s, %s, %d, \"%s\")",
+	      strName(fam),
+	      strName(defs->style),
+	      defs->points,
+	      defs->xname);
+    } else
+    { sprintf(s, "font(%s, %s, %d)",
+	      strName(fam),
+	      strName(defs->style),
+	      defs->points);
+    }
     s += strlen(s);
     defs++;
     if ( defs->style )

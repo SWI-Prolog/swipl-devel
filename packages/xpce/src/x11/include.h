@@ -27,7 +27,6 @@
 
 #define O_XDND 1			/* include Gnome/KDE drag-and-drop */
 #define USE_XFONTSET 1			/* Use Xwc* functions */
-#define USE_XFT 1			/* Use Xft library */
 
 #ifdef HAVE_XMISMOTIFWMRUNNING
 #define O_MOTIF 1

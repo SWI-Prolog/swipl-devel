@@ -35,14 +35,19 @@ ws_create_font(FontObj f, DisplayObj d)
   XftFont *xft;
 
   if ( !instanceOfObject(f->x_name, ClassCharArray) ||
-       !isstrA(&f->x_name->data) )
+       !isstrA(&f->x_name->data) )			/* HACK */
   { XftPattern *p = XftPatternCreate();
     XftPattern *match;
-    char buf[256];
+    char buf[1024];
+    FcResult fcrc;
+    int i;
 
-    if ( !XftPatternAddString(p, XFT_FAMILY, strName(f->family)) )
-      assert(0);
-    XftPatternAddInteger(p, XFT_PIXEL_SIZE, valInt(f->points));
+    if ( f->family == NAME_screen )
+    { XftPatternAddString(p, XFT_FAMILY,  "efont");
+      XftPatternAddInteger(p, XFT_SPACING, XFT_MONO);
+    } else
+      XftPatternAddString(p, XFT_FAMILY, strName(f->family));
+    XftPatternAddDouble(p, XFT_PIXEL_SIZE, (double)valInt(f->points));
     if ( f->style == NAME_italic )
       XftPatternAddInteger(p, XFT_SLANT, XFT_SLANT_ITALIC);
     else if ( f->style == NAME_roman )
@@ -50,21 +55,34 @@ ws_create_font(FontObj f, DisplayObj d)
     else if ( f->style == NAME_bold )
       XftPatternAddInteger(p, XFT_WEIGHT, XFT_WEIGHT_BOLD);
 
-    XftNameUnparse(p, buf, sizeof(buf));
-    Cprintf("Pattern = '%s'\n", buf);
-
-//  match = XftFontMatch(r->display_xref, r->screen, ???);
-
-    xft = XftFontOpenPattern(r->display_xref, p);
-    XftPatternDestroy(p);
-
-    if ( !xft )
-      xft = XftFontOpenName(r->display_xref, r->screen, buf);
-
-    if ( !xft )
-    { assert(0);
-      return replaceFont(f, d);
+    match = XftFontMatch(r->display_xref, r->screen, p, &fcrc);
+    XftNameUnparse(match, buf, sizeof(buf));
+    DEBUG(NAME_font, Cprintf("Match = '%s'\n", buf));
+    switch(fcrc)
+    { case FcResultMatch:
+	xft = XftFontOpenPattern(r->display_xref, match);
+             break;
+      case FcResultNoMatch:
+      case FcResultTypeMismatch:
+      case FcResultNoId:
+      case FcResultOutOfMemory:
+	return replaceFont(f, d);
     }
+
+    xft = XftFontOpenPattern(r->display_xref, match);
+    if ( FcPatternGetInteger(match, XFT_SPACING, 0, &i) == FcResultMatch )
+    { Cprintf("Setting fixed from property\n");
+      if ( i == XFT_MONO )
+	assign(f, fixed_width, ON);
+      else
+	assign(f, fixed_width, OFF);
+    }
+
+    XftPatternDestroy(p);
+    XftPatternDestroy(match);
+
+    if ( !xft )
+      return replaceFont(f, d);
   } else
   { const charA *xname = strName(f->x_name);
 

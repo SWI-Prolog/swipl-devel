@@ -286,7 +286,13 @@ getSizeFont(FontObj f)
 Bool
 getFixedWidthFont(FontObj f)
 { if ( isDefault(f->fixed_width) )
-    XopenFont(f, CurrentDisplay(NIL));
+  { getXrefObject(f, CurrentDisplay(NIL));
+
+    if ( c_width('x', f) == c_width('W', f) )
+      assign(f, fixed_width, ON);
+    else
+      assign(f, fixed_width, OFF);
+  }
 
   answer(f->fixed_width);
 }
