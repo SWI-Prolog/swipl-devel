@@ -1,0 +1,55 @@
+.TH SWI 1 "October 28 1998"
+.SH NAME
+plrc \- SWI-Prolog resource archiver
+.SH SYNOPSIS
+.BR plrc
+.I "command" "resource-file" "member ..." 
+.br
+.SH DESCRIPTION
+The utility
+.BI plrc
+allows for examining and modifying the SWI-Prolog resource data associated
+with a SWI-Prolog save-state or runtime executable as created using
+SWI-Prolog's predicate
+.BI qsave_program/[1,2].
+
+.SS Options
+.TP
+.BI l " archive" " " "[member ...]"
+List the contents of the resource archive.  If no members are specified,
+the entire content is listed.
+.TP
+.BI x " archive" " " "[member ...]"
+Extract members from the archive into the current directory. If no
+members are specified, the entire content is extracted.  Each member
+is extracted into a file with the same name as the archive member.
+.TP
+.BI a " archive" " " "[member ...]"
+Add files to the archive.  If the archive already contains a member
+with the same name, the contents is replaced.  Anywhere in the sequence
+of members, the options
+.BI "--class=" class
+and
+.BI "--encoding=" encoding
+may appear.  They affect the class and encoding of subsequent files.
+The initial class is
+.B data
+and encoding
+.B none.
+.TP
+.BI d " archive" " " "member ..."
+Delete members from the archive.
+
+
+.SH BUGS
+None sofar.
+
+.SH "SEE ALSO"
+Jan Wielemaker
+.I pl(1) plld(1)
+.I SWI-Prolog 3.1 Reference Manual,
+University of Amsterdam, Dept. of Social Science and Informatics (SWI).
+.SH COPYRIGHT
+Copyright (C) 1991-1998, Jan Wielemaker
+.SH AUTHOR
+Jan Wielemaker
