@@ -89,8 +89,7 @@ findHome(char *symbols)
     char parent[MAXPATHLEN];
     IOSTREAM *fd;
 
-    DirName(DirName(home, buf), buf);
-    AbsoluteFile(buf, parent);
+    AbsoluteFile(DirName(DirName(AbsoluteFile(home, buf), buf), parent));
     Ssprintf(buf, "%s/swipl", parent);
 
     if ( (fd = Sopen_file(buf, "r")) )
