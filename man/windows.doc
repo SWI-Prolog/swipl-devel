@@ -31,15 +31,60 @@ using SWI-Prolog on MS-Windows.
 
 \tableofcontents
 
-
-
 \section{Using SWI-Prolog}
 
+\subsection{Starting Prolog and loading a program}
+
 The SWI-Prolog executable \program{plwin.exe} can be started from the
-\emph{StartMenu} or by opening a \fileext{pl} file from the Windows
-explorer.%
-    \footnote{The .PL file extension can be changed during installation.
-	      See \secref{ext}.}
+\emph{StartMenu} or by opening a \fileext{pl} file holding Prolog
+program text from the Windows explorer.%
+	\footnote{The .PL file extension can be changed
+		  during installation. See \secref{ext}.}
+The installation folder (by default \file{C:\bsl{}Program~Files\bsl{}pl})
+contains a subfolder \file{demo} with the file \file{likes.pl}. This
+file can be opened in Prolog from the StartMenu, by opening \file{likes.pl}
+in the Windows explorer or using the following command in the Prolog
+application.  Be sure to get the quotes right and terminate the command
+with a full-stop (\chr{.}).
+
+\begin{code}
+?- [swi('demo/likes')].
+\end{code}
+
+\subsection{Executing a query}			\label{sec:execquery}
+
+After loading a program, one can ask Prolog queries about the program.
+The query below asks Prolog what food `sam' likes. The system responds
+with \mbox{\tt X = <value>} if it can prove the goal for a certain
+\arg{X}. The user can type the semi-colon (;)%
+	\footnote{On most installations, single-character commands are
+		  executed without waiting for the {\sc return} key.}
+if (s)he wants another solution, or {\sc return} if (s)he is satisfied,
+after which Prolog will say {\bf Yes}. If Prolog answers {\bf No}, it
+indicates it cannot find any (more) answers to the query. Finally,
+Prolog can answer using an error message to indicate the query or
+program contains an error.
+
+\begin{code}
+?- likes(sam, X).
+
+X = dahl ;
+
+X = tandoori ;
+
+...
+
+X = chips ;
+
+No
+?-
+\end{code}
+
+
+\subsection{Menu commands}
+
+The SWI-Prolog console provided by \program{plwin.exe} has a menu for
+accessing the most commonly used commands.
 
 
 
@@ -47,9 +92,53 @@ explorer.%
 
 
 
+\subsection{Useful commands}
 
 
-\section{Choosing the file-extension}		\label{sec:ext}
+\begin{description}
+    \predicate{consult}{1}{+File}
+Load a source-file. On Windows folders may be specified with the 
+DOS/Windows \chr{\}, which must be escaped or using the POSIX standard
+\chr{/}.  Especially when used in source-code \chr{/} is to be preferred
+as it is portable.  A Prolog list ([\ldots]) can be used to abbreviate 
+the consult command.  The file-extension (\fileext{pl} as well as the
+selected alternative) can be omitted.  Here are some examples:
+
+\begin{center}
+\begin{tabular}{ll}
+\tt ?- consult(likes). & Load \file{likes.pl} from the current folder
+			 (see pwd/0). \\
+\tt ?- ['C:/Program Files/pl/demo/likes'] & Load \file{likes.pl} using
+			absolute path. \\
+\tt ?-
+['C:\bsl{}\bsl{}Program~Files\bsl{}\bsl{}pl\bsl{}\bsl{}demo\bsl{}\bsl{}likes']
+& Same using Windows-style path-name \\
+\end{tabular}
+\end{center}
+
+    \predicate{pwd}{0}{}
+Print working directory (folder).
+
+    \predicate{ls}{0}{}
+List files in current directory.
+
+    \predicate{edit}{0}{}
+If Prolog is started by opening a \fileext{pl} file in the explorer,
+edit this file.  Also available from the menu.
+
+    \predicate{edit}{1}{+Spec}
+Edit file, predicate, module, etc.\ with the given name.  If multiple
+items are named \arg{Spec} it prompts for the desired alternative.
+
+    \predicate{make}{0}{}
+Reload all files that have been changed since they where last loaded.
+Normally used after editing one or more files.
+\end{description}
+
+
+\section{The installation}
+
+\subsection{Choosing the file-extension}		\label{sec:ext}
 
 By default, Prolog uses the \fileext{pl} extension to indicate Prolog
 source-files.  Unfortunately this extension conflicts with the Perl
@@ -62,7 +151,7 @@ the normal \fileext{pl} extension for libraries and files loaded from
 other files.
 
 
-\section{Installed programs}
+\subsection{Installed programs}
 
 The following tools and programs are installed:
 
@@ -149,6 +238,17 @@ The following registry keys are in use:
 \hline
 \end{tabular}
 \end{center}
+
+
+\section{The SWI-Prolog community and foundation}
+
+
+\subsection{Web-site and mailinglists}
+
+
+
+
+\subsection{License conditions}
 
 
 \end{document}
