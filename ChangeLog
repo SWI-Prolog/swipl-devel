@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: building on machines that do not support profiling.  Steve Moyle.
+
   * ENHANCED: Use a mutex per module for functor --> predicate lookup for
     better speed of threads doing meta-calls in different modules.
 

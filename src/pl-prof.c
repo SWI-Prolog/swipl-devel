@@ -908,12 +908,12 @@ PRED_IMPL("reset_profiler", 0, reset_profiler, 0)
 }
 
 static
-PRED_IMPL("profile_node", 7, profile_node, 0)
+PRED_IMPL("$prof_node", 7, prof_node, 0)
 { return notImplemented("profile_node", 7);
 }
 
 static
-PRED_IMPL("profile_sibling_of", 2, profile_sibling_of, PL_FA_NONDETERMINISTIC)
+PRED_IMPL("$prof_sibling_of", 2, prof_sibling_of, PL_FA_NONDETERMINISTIC)
 { return notImplemented("profile_sibling_of", 2);
 } 
 
@@ -925,6 +925,11 @@ PRED_IMPL("$profile", 1, profile, PL_FA_TRANSPARENT)
 static
 PRED_IMPL("$prof_procedure_data", 7, prof_procedure_data, PL_FA_TRANSPARENT)
 { return notImplemented("$prof_procedure_data", 7);
+}
+
+static
+PRED_IMPL("$prof_statistics", 4, prof_statistics, 0)
+{ return notImplemented("$prof_statistics", 4);
 }
 
 #endif /* O_PROFILE */
