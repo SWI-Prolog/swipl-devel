@@ -247,6 +247,8 @@ static const error_def errors[] =
     "%N: Cannot rename to %s: %s" },
   { NAME_ioError,		EF_REPORT,
     "%N: IO error: %s" },
+  { NAME_incompleteLine,	EF_REPORT,
+    "%N: Incomplete line" },
   { NAME_noLimit,		0,
     "%I%N: Failed to get system limit: %s" },
   { NAME_seekFile,		EF_REPORT,

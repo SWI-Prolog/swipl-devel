@@ -40,6 +40,7 @@
 #ifdef HAVE_SYS_SELECT_H
 #include <sys/select.h>
 #endif
+#include <errno.h>
 
 #define OsError() getOsErrorPce(PCE)
 
@@ -171,47 +172,41 @@ ws_write_stream_data(Stream s, void *data, int len)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+int ws_read_stream_data(Stream s, void *data, int len, Int timeout)
+    Read input from stream s into data, which is len bytes long.  If timeout
+    is not DEFAULT, the read waits at most timeout milliseconds before doing
+    the system read.
+
+Return values: -2: timeout
+	       -1: error
+	        0: end-of-file
+	       >0: bytes read
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+
 int
-ws_read_stream_data(Stream s, void *data, int len)
+ws_read_stream_data(Stream s, void *data, int len, Real timeout)
 { if ( s->rdfd < 0 )
+  { errno = EINVAL;
     return -1;
+  }
   
-  return read(s->rdfd, data, len);
-}
+  if ( notDefault(timeout) )
+  { fd_set readfds;
+    struct timeval to;
+    double v = valReal(timeout);
 
+    to.tv_sec  = (long)v;
+    to.tv_usec = (long)(v * 1000000.0) % 1000000;
 
-
-StringObj
-ws_read_line_stream(Stream s, Int timeout)
-{ if ( s->rdfd >= 0 )
-  { char buf[LINESIZE];
-
-    if ( !s->rdstream )
-      s->rdstream = fdopen(s->rdfd, "r");
-
-    if ( notDefault(timeout) )
-    { fd_set readfds;
-      struct timeval to;
-
-      to.tv_sec = valInt(timeout) / 1000;
-      to.tv_usec = (valInt(timeout) % 1000) * 1000;
-
-      FD_ZERO(&readfds);
-      FD_SET(fileno(s->rdstream), &readfds);
-      if ( select(32, &readfds, NULL, NULL, &to) == 0 )
-	fail;
-    }
-
-    if (fgets(buf, LINESIZE, s->rdstream) == NULL)	/* eof */
-    { closeInputStream(s);
-      fail;
-    }
-
-    answer(CtoString(buf));
+    FD_ZERO(&readfds);
+    FD_SET(s->rdfd, &readfds);
+    if ( select(s->rdfd+1, &readfds, NULL, NULL, &to) == 0 )
+      return -2;
   }
 
-  errorPce(s, NAME_notOpen);
-  fail;
+  return read(s->rdfd, data, len);
 }
 
 

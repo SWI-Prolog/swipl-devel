@@ -1030,6 +1030,7 @@
   BUILTIN_NAME("includes")
   BUILTIN_NAME("incompatible_class_variable")
   BUILTIN_NAME("incompatible_resource")
+  BUILTIN_NAME("incomplete_line")
   BUILTIN_NAME("inconsistent_arguments")
   BUILTIN_NAME("increase")
   BUILTIN_NAME("increment")

@@ -1,6 +1,10 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED/MODIFIED: `stream <-read_line': timeout argument is now a float
+  representing timeout in seconds for compatibility with other time
+  specifiers.  Return is now @nil on end-of-file, failure on timeout.
+
 * FIXED: `frame->geometry' on Windows with negative X and Y.  ->geometry now
   ensures part of the title-bar of the window is visible, so you can move and
   resize the window.

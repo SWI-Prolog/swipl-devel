@@ -32,18 +32,12 @@
 #define send sendPCE
 #include <process.h>
 
-#define USE_API_THREAD 1
-
 #define WM_SOCKET	 (WM_WINEXIT+1)
 #define WM_PROCESS_INPUT (WM_WINEXIT+2)
 #define WM_PROCESS_EXIT  (WM_WINEXIT+3)
 
-static int 	ws_read_process(Process p, char *buf, int size, Int timeout);
-#ifdef USE_API_THREAD
+static int 	ws_read_process(Process p, char *buf, int size, Real timeout);
 static DWORD	process_thread(void *context);
-#else
-static void	process_thread(void *context);
-#endif
 static void	eof_process(Process p, int status);
 extern Name	SockError(void);		/* TBD */
 
@@ -366,17 +360,34 @@ ws_write_stream_data(Stream s, void *data, int len)
 
 
 int
-ws_read_stream_data(Stream s, void *data, int len)
+ws_read_stream_data(Stream s, void *data, int len, Real timeout)
 { if ( instanceOfObject(s, ClassSocket) )
   { SOCKET sock = (SOCKET) s->ws_ref;
     int rval;
+
+    if ( notDefault(timeout) )
+    { fd_set readfds;
+      struct timeval to;
+      double v = valReal(timeout);
+
+      to.tv_sec  = (long)v;
+      to.tv_usec = (long)(v * 1000000.0) % 1000000;
+
+      FD_ZERO(&readfds);
+      FD_SET(sock, &readfds);
+      if ( select(0, &readfds, NULL, NULL, &to) == 0 )
+	return -2;
+    }
 
     if ( (rval = recv(sock, data, len, 0)) == SOCKET_ERROR )
       return -1;
 
     return rval;
-  } else				/* process */
-  { return ws_read_process((Process)s, data, len, toInt(1000));
+  } else if ( instanceOfObject(s, ClassProcess) )
+  { return ws_read_process((Process)s, data, len, timeout);
+  } else
+  { Cprintf("%s: ws_read_stream_data() only on socket and process\n", pp(s));
+    return -1;
   }
 }
 
@@ -385,11 +396,7 @@ ws_read_stream_data(Stream s, void *data, int len)
 		 *	PROCESS ASYNC INPUT	*
 		 *******************************/
 
-#ifdef USE_API_THREAD
 static DWORD
-#else
-static void
-#endif
 process_thread(void *context)
 { Process p = (Process) context;
   DWORD avail;
@@ -438,9 +445,7 @@ process_thread(void *context)
 
   DEBUG(NAME_thread, Cprintf("%s: Finished process input thread\n", pp(p)));
 
-#ifdef USE_API_THREAD
   return 0;
-#endif
 }
 
 
@@ -457,12 +462,17 @@ eof_process(Process p, int status)
 
 
 static int
-ws_read_process(Process p, char *buffer, int size, Int timeout)
+ws_read_process(Process p, char *buffer, int size, Real timeout)
 { if ( p->rdfd >= 0 )
   { DWORD avail;
     int peekok;
-    long endtime = (isDefault(timeout) ? 0 : mclock() + valInt(timeout));
+    long endtime;
       
+    if ( isDefault(timeout) )
+      endtime = 0;
+    else
+      endtime = mclock() + (long)(valReal(timeout)*1000.0);
+
     while( (peekok = PeekNamedPipe((HANDLE)p->rdfd, NULL, 0,
 				   NULL, &avail, NULL)) &&
 	   avail == 0 &&
@@ -505,50 +515,5 @@ ws_read_process(Process p, char *buffer, int size, Int timeout)
   } else
   { errorPce(p, NAME_notOpen);
     return -1;
-  }
-}
-
-
-#define BLOCKSIZE 256
-
-StringObj
-ws_read_line_stream(Stream s, Int timeout)
-{ if ( instanceOfObject(s, ClassProcess) )
-  { Process p = (Process) s;
-    char buf[BLOCKSIZE];
-    int done;
-
-    for(;;)
-    { if ( p->input_buffer )
-      { unsigned char *q;
-	int n;
-
-	DEBUG(NAME_process, Cprintf("Scanning %d chars\n", p->input_p));
-	for(n=p->input_p, q = p->input_buffer; n > 0; n--, q++)
-	{ if ( *q == '\n' )
-	  { string str;
-	    int len = (q-p->input_buffer)+1;
-	    StringObj rval;
-
-	    str_set_n_ascii(&str, len, p->input_buffer);
-	    rval = StringToString(&str);
-	    strncpy(s->input_buffer, &s->input_buffer[len], s->input_p - len);
-	    s->input_p -= len;
-
-	    return rval;
-	  }
-	}
-	DEBUG(NAME_process, Cprintf("No newline, reading\n"));
-      }
-
-      if ( (done = ws_read_process(p, buf, BLOCKSIZE, timeout)) > 0 )
-      { add_data_stream(s, buf, done);
-	DEBUG(NAME_process, Cprintf("Buffer has %d bytes\n", p->input_p));
-      } else
-	fail;
-    }
-  } else
-  { Cprintf("[PCE: %s: stream <-read_line only for class process]\n", pp(s));
-    fail;
   }
 }

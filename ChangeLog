@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * BUILD: Fixed missing references to `runtex' from various Makefiles
+    in the packages (Paulo Moura).
+
   * FIXED: File/Consult menu of plwin.exe to load the file into the
     user module rather then the win_menu module providing the menu
     interface.

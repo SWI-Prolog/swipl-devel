@@ -203,8 +203,7 @@ void		ws_input_stream(Stream s);
 void		ws_no_input_stream(Stream s);
 void		ws_listen_socket(Socket s);
 status		ws_write_stream_data(Stream s, void *data, int len);
-int		ws_read_stream_data(Stream s, void *data, int len);
-StringObj	ws_read_line_stream(Stream s, Int timeout);
+int		ws_read_stream_data(Stream s, void *data, int len, Real timeout);
 void		ws_done_process(Process p);
 
 /* ../src/x11/xtimer.c */

@@ -294,7 +294,7 @@ handleInputStream(Stream s)
   if ( onFlag(s, F_FREED|F_FREEING) )
     fail;
 
-  if ( (n = ws_read_stream_data(s, buf, BLOCKSIZE)) > 0 )
+  if ( (n = ws_read_stream_data(s, buf, BLOCKSIZE, DEFAULT)) > 0 )
   { if ( isNil(s->record_separator) && !s->input_buffer )
     { string q;
       Any str;
@@ -408,8 +408,50 @@ waitStream(Stream s)
 		 *******************************/
 
 static StringObj
-getReadLineStream(Stream s, Int timeout)
-{ return ws_read_line_stream(s, timeout);
+getReadLineStream(Stream s, Real timeout)
+{ for(;;)
+  { int done;
+    char buf[BLOCKSIZE];
+
+    if ( s->input_buffer )
+    { unsigned char *q;
+      int n;
+
+      DEBUG(NAME_stream, Cprintf("Scanning %d chars\n", s->input_p));
+      for(n=s->input_p, q = s->input_buffer; n > 0; n--, q++)
+      { if ( *q == '\n' )
+	{ string str;
+	  int len = (q-s->input_buffer)+1;
+	  StringObj rval;
+	  
+	  str_set_n_ascii(&str, len, s->input_buffer);
+	  rval = StringToString(&str);
+	  strncpy(s->input_buffer, &s->input_buffer[len], s->input_p - len);
+	  s->input_p -= len;
+
+	  return rval;
+	}
+      }
+      DEBUG(NAME_stream, Cprintf("No newline, reading\n"));
+    }
+
+    done = ws_read_stream_data(s, buf, sizeof(buf), timeout);
+    switch(done)
+    { case -2:				/* timeout */
+	fail;
+      case -1:				/* error */
+	errorPce(s, NAME_ioError, OsError());
+        fail;
+      case 0:				/* end-of-file */
+	if ( s->input_p == 0 )
+	  answer((StringObj)NIL);
+	errorPce(s, NAME_incompleteLine);
+        fail;
+      default:
+	add_data_stream(s, buf, done);
+        DEBUG(NAME_stream, Cprintf("Buffer has %d bytes\n", s->input_p));
+    }
+  }
 }
 
 
@@ -539,8 +581,8 @@ static senddecl send_stream[] =
 /* Get Methods */
 
 static getdecl get_stream[] =
-{ GM(NAME_readLine, 1, "string", "[int]", getReadLineStream,
-     NAME_input, "Read line with optional timeout (milliseconds)")
+{ GM(NAME_readLine, 1, "string*", "timeout=[real]", getReadLineStream,
+     NAME_input, "Read line with optional timeout (seconds)")
 };
 
 /* Resources */
