@@ -136,7 +136,7 @@ static vardecl var_application[] =
   IV(NAME_members, "chain", IV_GET,
      NAME_organisation, "Chain holding member frames"),
   IV(NAME_kind, "{user,service}", IV_BOTH,
-     NAME_debugging, "If @off, events cannot be debugged"),
+     NAME_debugging, "If service, events cannot be debugged"),
   SV(NAME_modal, "frame*", IV_GET, modalApplication,
      NAME_event, "Frame for modal operation")
 };

@@ -326,10 +326,13 @@ collapsed(Node, Val:bool*) :->
 		Normalise = true
 	    ;	true
 	    ),
-	    send(Node, send_super, collapsed, Val),
-	    send(Node, update_image),
-	    (	Normalise == true
-	    ->  send(TocWindow, normalise_tree, Node)
+	    (	object(Node)
+	    ->  send_super(Node, collapsed, Val),
+		send(Node, update_image),
+		(   Normalise == true
+		->  send(TocWindow, normalise_tree, Node)
+		;   true
+		)
 	    ;	true
 	    )
 	).
