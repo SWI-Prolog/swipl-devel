@@ -82,14 +82,16 @@ GLOBAL struct
 #define DEF_DEFLOCAL	2000
 #define DEF_DEFGLOBAL	4000
 #define DEF_DEFTRAIL	4000
-#define DEF_DEFARGUMENT 8
-#define DEF_DEFLOCK	100
+#if O_DYNAMIC_STACKS
+#define DEF_DEFARGUMENT 1000
+#else
+#define DEF_DEFARGUMENT 16
+#endif /*O_DYNAMIC_STACKS*/
 #else					/* static stack areas */
 #define DEF_DEFLOCAL	200
 #define DEF_DEFGLOBAL	400
 #define DEF_DEFTRAIL	200
-#define DEF_DEFARGUMENT 5
-#define DEF_DEFLOCK	25
+#define DEF_DEFARGUMENT 16
 #endif
 
 #ifndef DEFLOCAL
