@@ -7,8 +7,13 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
-VERSION 5.2.5 (Jul 23, 2003)
+VERSION 5.2.5 (Jul 31, 2003)
 ============================
+
+  * PORT: Bug#83 Added dummy foreign profiler interface on systems that
+    do not support the profiler.  This causes problems on Solaris 2.8
+    for compiling XPCE as the profiler was not detected correctly.
+    Lourens van der Meij.
 
   * FIXED: configure for profiler on systems with non-BSD signal semantics
     (e.g. Solaris).  With help from Lourens van der Meij.

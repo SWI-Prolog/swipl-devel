@@ -1084,6 +1084,24 @@ PRED_IMPL("$prof_statistics", 4, prof_statistics, 0)
 { return notImplemented("$prof_statistics", 4);
 }
 
+/* Foreign interface of the profiler
+*/
+
+int
+PL_register_profile_type(PL_prof_type_t *type)
+{ return FALSE;				/* not supported */
+}
+
+void *
+PL_prof_call(void *handle, PL_prof_type_t *type)
+{ return NULL;
+}
+
+void
+PL_prof_exit(void *node)
+{
+}
+
 #endif /* O_PROFILE */
 
 #ifdef O_PROF_PENTIUM
