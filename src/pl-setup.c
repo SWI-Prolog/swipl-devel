@@ -1424,14 +1424,17 @@ freeStack(Stack s)
 
 void
 freeStacks(PL_local_data_t *ld)
-{ freeStack((Stack)&ld->stacks.global);	/* must we do this? */
-  freeStack((Stack)&ld->stacks.local);
+{ DEBUG(1, Sdprintf("[%d]: freeStacks()\n", PL_thread_self()));
+
+  freeStack((Stack)&ld->stacks.global);	/* Region must be entirely committed */
+  freeStack((Stack)&ld->stacks.local);	/* or decommitted */
   freeStack((Stack)&ld->stacks.trail);
   freeStack((Stack)&ld->stacks.argument);
 
-  VirtualFree(ld->stacks.global.base, 0, MEM_RELEASE);
-  VirtualFree(ld->stacks.trail.base, 0, MEM_RELEASE);
-  VirtualFree(ld->stacks.argument.base, 0, MEM_RELEASE);
+  if ( !VirtualFree(ld->stacks.global.base, 0, MEM_RELEASE) ||
+       !VirtualFree(ld->stacks.trail.base, 0, MEM_RELEASE) ||
+       !VirtualFree(ld->stacks.argument.base, 0, MEM_RELEASE) )
+    Sdprintf("Failed to release stacks\n");
 }
 
 #endif /*HAVE_VIRTUALALLOC*/
