@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ENHANCED: Bug#64: make ground/1 do last-argument optimisation.
+    Mike Elston.
+
   * FIXED: Win32 version generation of the runtime kernel. Radoslaw Scislo.  
 
   * PORT: Updated MSVC project files (*.dsp and *.dsw) from MSVC 5 to
