@@ -25,6 +25,15 @@
 :- pce_begin_class(man_class_hierarchy, man_frame,
 		   "Display hiearchy of classes").
 
+resource(leaf_font,		font,	'@helvetica_roman_12',
+	 "Font for built-in classes without sub-classes").
+resource(non_leaf_font,		font,	'@helvetica_bold_12',
+	 "Font for built-in classes with sub-classes").
+resource(user_defined_leaf_font, font, '@times_roman_12',
+	 "Font for user defined classes with sub-classes").
+resource(user_defined_non_leaf_font, font, '@times_bold_12',
+	 "Font for user defined classes with sub-classes").
+
 variable(selection,		node*,		get,
 	 "Currently selected node").
 variable(create_message,	code,		get,
@@ -98,14 +107,14 @@ make_popup(P) :-
 			 message(CH, request_tool_focus, Class),
 			 @default, @on)
 	     , menu_item(expand,
-			 block(message(CH, expand_node, Node),
-			       message(CH, normalise_node, Node)),
+			 and(message(CH, expand_node, Node),
+			     message(CH, normalise_node, Node)),
 			 @default, @off,
 			 and(message(Node?sons, empty),
 			     HasSubClasses))
 	     , menu_item(expand_tree,
-			 block(message(CH, expand_tree, Node),
-			       message(CH, normalise_node, Node)),
+			 and(message(CH, expand_tree, Node),
+			     message(CH, normalise_node, Node)),
 			 @default, @off, HasSubClasses)
 	     , menu_item(collapse_node,
 			 message(CH, collapse_node, Node),
@@ -128,7 +137,8 @@ make_popup(P) :-
 
 
 fill_picture(P) :-
-	create_node(@object_class, Root),
+	get(P, frame, Tool),
+	create_node(Tool, @object_class, Root),
 	send(P, display, new(T, tree(Root))),
 
 	send_list(T, node_handler,
@@ -155,7 +165,7 @@ node(CH, Class, Node) :<-
 	"Node displaying class"::
 	get(CH, tree, Tree),
 	get(Class, name, Name),
-	get(Tree?root, find, Name == @arg1?image?string?value, Node).
+	get(Tree?root, find, message(Name, equal, @arg1?image?string), Node).
 
 
 		/********************************
@@ -217,15 +227,24 @@ expand_node(_CH, Node:node) :->
 
 
 add_subnode(Node, Class) :-
-	create_node(Class, Sub),
+	get(Node, frame, Tool),
+	create_node(Tool, Class, Sub),
 	send(Node, son, Sub).
 
 
-create_node(Class, Node) :-
-	(   get(Class?sub_classes, size, Size),
-	    Size > 0
-	->  Font = font(helvetica, bold, 12)
-	;   Font = font(helvetica, roman, 12)
+create_node(Tool, Class, Node) :-
+	get(Class, creator, Creator),
+	(   Creator == built_in
+	->  (   get(Class?sub_classes, size, Size),
+	        Size > 0
+	    ->  get(Tool, resource_value, non_leaf_font, Font)
+	    ;   get(Tool, resource_value, leaf_font, Font)
+	    )
+	;   (   get(Class?sub_classes, size, Size),
+	        Size > 0
+	    ->  get(Tool, resource_value, user_defined_non_leaf_font, Font)
+	    ;   get(Tool, resource_value, user_defined_leaf_font, Font)
+	    )
 	),
 	new(Node, node(text(Class?name, left, Font))),
 	send(Node, attribute, attribute(context, Class)).
