@@ -57,6 +57,8 @@ M_DEFSTARTUP	Personal startup file base-name
 M_BINDIR	Installation directory for executables
 M_PROLOG	Name of the resulting program
 
+Next, check src/md-MACHINE.h for things specific to your machine.
+
 Next:
 	1) cd ./MACHINE
 	2) make
