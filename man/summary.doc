@@ -187,7 +187,6 @@ suggest predicates from a keyword.
 \predicatesummary{fileerrors}{2}{Do/Don't warn on file errors}
 \predicatesummary{findall}{3}{Find all solutions to a goal}
 \predicatesummary{flag}{3}{Simple global variable system}
-\predicatesummary{flatten}{2}{Transform nested list into flat list}
 \predicatesummary{float}{1}{Type check for a floating point number}
 \predicatesummary{flush_output}{0}{Output pending characters on current stream}
 \predicatesummary{flush_output}{1}{Output pending characters on specified stream}
@@ -232,11 +231,9 @@ suggest predicates from a keyword.
 \predicatesummary{int_to_atom}{3}{Convert from integer to atom (non-decimal)}
 \predicatesummary{integer}{1}{Type check for integer}
 \predicatesummary{interactor}{0}{Start new thread with console and toplevel}
-\predicatesummary{intersection}{3}{Set intersection}
 \oppredsummary{is}{2}{xfx}{700}{Evaluate arithmetic expression}
 \predicatesummary{is_absolute_file_name}{1}{True if arg defines an absolute path}
 \predicatesummary{is_list}{1}{Type check for a list}
-\predicatesummary{is_set}{1}{Type check for a set}
 \predicatesummary{keysort}{2}{Sort, using a key}
 \predicatesummary{last}{2}{Last element of a list}
 \predicatesummary{leash}{1}{Change ports visited by the tracer}
@@ -247,7 +244,6 @@ suggest predicates from a keyword.
 \predicatesummary{limit_stack}{2}{Limit stack expansion}
 \predicatesummary{line_count}{2}{Line number on stream}
 \predicatesummary{line_position}{2}{Character position in line on stream}
-\predicatesummary{list_to_set}{2}{Remove duplicates}
 \predicatesummary{list_debug_topics}{0}{List registered topics for debugging}
 \predicatesummary{listing}{0}{List program in current module}
 \predicatesummary{listing}{1}{List predicate}
@@ -390,7 +386,6 @@ suggest predicates from a keyword.
 \predicatesummary{resource}{3}{Declare a program resource}
 \predicatesummary{retract}{1}{Remove clause from the database}
 \predicatesummary{retractall}{1}{Remove unifying clauses from the database}
-\predicatesummary{reverse}{2}{Inverse the order of the elements in a list}
 \predicatesummary{same_file}{2}{Succeeds if arguments refer to same file}
 \predicatesummary{see}{1}{Change the current input stream}
 \predicatesummary{seeing}{1}{Query the current input stream}
@@ -435,9 +430,7 @@ suggest predicates from a keyword.
 \predicatesummary{style_check}{1}{Change level of warnings}
 \predicatesummary{sub_atom}{5}{Take a substring from an atom}
 \predicatesummary{sublist}{3}{Determine elements that meet condition}
-\predicatesummary{subset}{2}{Check subset relation for unordered sets}
 \predicatesummary{sub_string}{5}{Take a substring from a string}
-\predicatesummary{subtract}{3}{Delete elements that do not meet condition}
 \predicatesummary{succ}{2}{Logical integer successor relation}
 \predicatesummary{swritef}{2}{Formatted write on a string}
 \predicatesummary{swritef}{3}{Formatted write on a string}
@@ -479,7 +472,6 @@ suggest predicates from a keyword.
 \predicatesummary{tty_put}{2}{Write control string to terminal}
 \predicatesummary{tty_size}{2}{Get row/column size of the terminal}
 \predicatesummary{ttyflush}{0}{Flush output on terminal}
-\predicatesummary{union}{3}{Union of two sets}
 \predicatesummary{unify_with_occurs_check}{2}{Logically sound unification}
 \predicatesummary{unix}{1}{OS interaction}
 \predicatesummary{unknown}{2}{Trap undefined predicates}
