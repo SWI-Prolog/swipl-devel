@@ -135,7 +135,7 @@ typedef struct xpce_font_info *XpceFontInfo;
 
 #ifdef USE_XFT
 struct xpce_font_info
-{ XftFont	 xft_font;		/* FontSet structure */
+{ XftFont	*xft_font;		/* FontSet structure */
 };
 
 #else /*USE_XFT*/
@@ -188,8 +188,8 @@ struct draw_context
   Image		and_pattern;		/* Current andpattern */
   FontObj	font;			/* Current font */
 #ifdef USE_XFT
-  XftDraw	xft_draw;		/* XFT drawable */
-  XftFont	xft_font;		/* XFT font representation */
+  XftDraw     * xft_draw;		/* XFT drawable */
+  XftFont     * xft_font;		/* XFT font representation */
 #else
 #ifdef USE_XFONTSET
   XFontSet      font_set;		/* font-set description */

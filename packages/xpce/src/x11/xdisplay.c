@@ -226,6 +226,8 @@ ws_open_display(DisplayObj d)
   } else
   { int screen = DefaultScreen(display);
 
+    XSynchronize(display, True);
+
     ref->display_xref = display;
     ref->colour_map   = DefaultColormap(display, screen);
     ref->white_pixel  = WhitePixel(display, screen);

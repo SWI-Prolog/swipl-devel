@@ -111,7 +111,7 @@ static struct d_context
   Display      *display;		/* Current drawing display */     
   Drawable	drawable;		/* X Object we are drawing on */  
 #ifdef USE_XFT
-  XftDraw	xft_draw;		/* XFT drawable */
+  XftDraw      *xft_draw;		/* XFT drawable */
 #endif
   Name		kind;			/* Drawable kind */               
   int		depth;			/* depth of drawable */           
@@ -2439,13 +2439,14 @@ r_get_pixel(int x, int y)
 static XftDraw *
 xftDraw()
 { if ( !context.xft_draw )
-  { if ( content.depth == 1 )
+  { if ( context.depth == 1 )
     { context.gcs->xft_draw = XftDrawCreateBitmap(context.display,
 						  (Pixmap)context.drawable);
     } else if ( !context.gcs->xft_draw )
     { Visual *v = XDefaultVisual(context.display,
 				 DefaultScreen(context.display));
-      Colormap cmap = DefaultColormap(disp, DefaultScreen(disp));
+      Colormap cmap = DefaultColormap(context.display,
+				      DefaultScreen(context.display));
       
       context.gcs->xft_draw = XftDrawCreate(context.display,
 					    context.drawable,
@@ -2456,6 +2457,8 @@ xftDraw()
       context.xft_draw = context.gcs->xft_draw;
     }
   }
+
+  return context.xft_draw;
 }
 
 static void
@@ -2519,7 +2522,7 @@ c_width(wint_t c, FontObj font)
   s_font(font);
   s[0] = c;
 
-  XftTextExtents32(context.display, context.gcs.xft_font, s, 1, &info);
+  XftTextExtents32(context.display, context.gcs->xft_font, s, 1, &info);
 
   return info.width;
 }
@@ -2534,14 +2537,14 @@ s_advance(String s, int from, int to)
     return 0;
 
   if ( isstrA(s) )
-  { XftTextExtents8(context.display. context.gcs->xft_font, 
+  { XftTextExtents8(context.display, context.gcs->xft_font, 
 		    s->s_textA, s->size, &info);
   } else if ( sizeof(charW) == 2 )
-  { XftTextExtents16(context.display. context.gcs->xft_font, 
-		    s->s_textW, s->size, &info);
+  { XftTextExtents16(context.display, context.gcs->xft_font, 
+		     (FcChar16*)s->s_textW, s->size, &info);
   } else if ( sizeof(charW) == 4 )
-  { XftTextExtents32(context.display. context.gcs->xft_font, 
-		     s->s_textW, s->size, &info);
+  { XftTextExtents32(context.display, context.gcs->xft_font, 
+		     (FcChar32*)s->s_textW, s->size, &info);
   }
 
   return info.width;			/* Xoff? */
@@ -2554,7 +2557,7 @@ lbearing(wint_t c)
   FcChar32 s[1];
 
   s[0] = c;
-  XftTextExtents32(context.display. context.gcs->xft_font, 
+  XftTextExtents32(context.display, context.gcs->xft_font, 
 		   s, 1, &info);
 
   return -info.x;
@@ -2567,15 +2570,21 @@ s_printA(charA *s, int l, int x, int y, FontObj f)
   { XftColor color;
 
     color.pixel = getPixelColour(context.gcs->colour, context.pceDisplay);
-    color.color.red   = valInt(context.gcs->colour->red);
-    color.color.green = valInt(context.gcs->colour->green);
-    color.color.blue  = valInt(context.gcs->colour->blue);
+    if ( instanceOfObject(context.gcs->colour, ClassColour) )
+    { Colour c = context.gcs->colour;
+      color.color.red   = valInt(c->red);
+      color.color.green = valInt(c->green);
+      color.color.blue  = valInt(c->blue);
+    } else
+    { color.color.red	= 0;
+      color.color.green = 0;
+      color.color.blue  = 0;
+    }
     color.color.alpha = 0;
 
     Translate(x, y);
     s_font(f);
-    XftDrawString8(&color, context.gcs->xft_font, x, y, 
-		   s->s_textA, l);
+    XftDrawString8(xftDraw(), &color, context.gcs->xft_font, x, y, s, l);
   }
 }
 
@@ -2586,20 +2595,27 @@ s_printW(charW *s, int l, int x, int y, FontObj f)
   { XftColor color;
 
     color.pixel = getPixelColour(context.gcs->colour, context.pceDisplay);
-    color.color.red   = valInt(context.gcs->colour->red);
-    color.color.green = valInt(context.gcs->colour->green);
-    color.color.blue  = valInt(context.gcs->colour->blue);
+    if ( instanceOfObject(context.gcs->colour, ClassColour) )
+    { Colour c = context.gcs->colour;
+      color.color.red   = valInt(c->red);
+      color.color.green = valInt(c->green);
+      color.color.blue  = valInt(c->blue);
+    } else
+    { color.color.red	= 0;
+      color.color.green = 0;
+      color.color.blue  = 0;
+    }
     color.color.alpha = 0;
 
     Translate(x, y);
     s_font(f);
     
     if ( sizeof(charW) == 2 )
-    { XftDrawString16(&color, context.gcs->xft_font, x, y, 
-		      s->s_textW, l);
+    { XftDrawString16(xftDraw(), &color, context.gcs->xft_font, x, y, 
+		      (FcChar16*)s, l);
     } else if ( sizeof(charW) == 4 )
-    { XftDrawString32(&color, context.gcs->xft_font, x, y, 
-		      s->s_textW, l);
+    { XftDrawString32(xftDraw(), &color, context.gcs->xft_font, x, y, 
+		      (FcChar32*)s, l);
     } else
     { assert(0);
     }

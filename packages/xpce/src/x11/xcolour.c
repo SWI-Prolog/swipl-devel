@@ -31,13 +31,11 @@
 static char *
 x_colour_name(Name name)
 { static char buf[200];
+  char *e = &buf[sizeof(buf)-1];
   char *s, *q;
 
-  for( s = strName(name), q = buf; *s; s++, q++ )
-  { if ( q-buf-1 >= sizeof(buf) )	/* truncate, but avoid overrun */
-      break;
-
-    if ( *s == '_' || *s == syntax.word_separator )
+  for( s = strName(name), q = buf; *s && q<e; s++, q++ )
+  { if ( *s == '_' || *s == syntax.word_separator )
       *q = ' ';
     else
       *q = tolower(*s);

@@ -32,7 +32,7 @@ status
 ws_create_font(FontObj f, DisplayObj d)
 { XpceFontInfo xref;
   DisplayWsXref r = d->ws_ref;
-  XftFont xft;
+  XftFont *xft;
   int screen = DefaultScreen(r->display_xref);
 
   if ( !instanceOfObject(f->x_name, ClassCharArray) )
@@ -52,10 +52,10 @@ ws_create_font(FontObj f, DisplayObj d)
 void
 ws_destroy_font(FontObj f, DisplayObj d)
 { XpceFontInfo xref = getExistingXrefObject(f, d);
-  DisplayWsXref r = d->ws_ref;
 
   if ( xref )
-  { /* TBD: cannot find the free function!? */
+  { /*DisplayWsXref r = d->ws_ref;*/
+    /* TBD: cannot find the free function!? */ 
 
     unregisterXrefObject(f, d);
     unalloc(sizeof(*xref), xref);
