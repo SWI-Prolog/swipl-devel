@@ -1,0 +1,39 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Common body of the XPCE/ProWindows documentation
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\pagestyle{fancyplain}
+\setupfancyplain
+
+{\parskip 0pt
+ \setcounter{page}{0}
+ \pagenumbering{roman}
+ \tableofcontents
+ \cleardoublepage
+}
+
+\setcounter{page}{0}
+\pagenumbering{arabic}
+
+\include{intro}
+\include{starting}
+\include{globalarch}
+\include{online}
+\include{dialog}
+\include{graphics}
+\include{diaedit}
+\include{pceprolog}
+\include{udc}
+\include{classvar}
+\include{techniques}
+\include{debug}
+\ifpw{}{\bibliographystyle{name}
+	\bibliography{pce}}
+\appendix
+\include{interface}
+\include{memory}
+\include{trouble}
+\include{glossary}
+\include{summary}
+
+\printindex
