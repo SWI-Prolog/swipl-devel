@@ -35,9 +35,7 @@ else
    AC_CHECKING("Running $PL -dump-runtime-variables")
    eval `$PL -dump-runtime-variables`
 fi
-if test "$PLSHARED" = "yes"; then
-   MAKE_SHARED_OBJECT=yes
-fi
+PLINCL="$PLBASE/include"
 AC_MSG_RESULT("		PLBASE=$PLBASE")
 AC_MSG_RESULT("		PLARCH=$PLARCH")
 AC_MSG_RESULT("		PLLIBS=$PLLIBS")
