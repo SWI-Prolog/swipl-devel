@@ -1377,6 +1377,8 @@ make_model(dtd *dtd, const ichar *decl, const ichar **end)
   dtd_model *m = calloc(1, sizeof(*m));
   dtd_symbol *id;
 
+  decl = iskip_layout(dtd, decl);
+
   if ( (s=isee_identifier(dtd, decl, "#pcdata")) )
   { m->type = MT_PCDATA;
     m->cardinality = MC_ONE;		/* actually don't care */
