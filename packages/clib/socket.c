@@ -435,7 +435,7 @@ freeSocket(int socket)
 
 #ifdef WIN32
   { plsocket *s = lookupSocket(socket);
-    if ( false(s, SOCK_CLOSE_SEEN) )
+    if ( false(s, (SOCK_LISTEN|SOCK_CLOSE_SEEN)) )
       waitMsg(s, FD_CLOSE);
   }
 #endif
@@ -1180,12 +1180,13 @@ tcp_close_input(void *handle)
   DEBUG(Sdprintf("tcp_close_input(%d)\n", socket));
   s->flags &= ~SOCK_INSTREAM;
 #ifdef WIN32
-  if ( shutdown(socket, SD_RECEIVE) == SOCKET_ERROR )
-    Sdprintf("shutdown(%d, SD_RECEIVE) failed: %s\n",
-	     socket,
-	     WinSockError(WSAGetLastError()));
+  if ( false(s, SOCK_LISTEN) )
+  { if ( shutdown(socket, SD_RECEIVE) == SOCKET_ERROR )
+      Sdprintf("shutdown(%d, SD_RECEIVE) failed: %s\n",
+	       socket,
+	       WinSockError(WSAGetLastError()));
+  }
 #endif
-
 
   if ( !(s->flags & (SOCK_INSTREAM|SOCK_OUTSTREAM)) )
     return freeSocket(socket);

@@ -311,6 +311,8 @@ distclean_packages:
 
 pce-dll:
 		$(CMD) /c "chdir $(PKGDIR)\xpce\src & $(MAKE) idll"
+clib-install:
+		$(CMD) /c "chdir $(PKGDIR)\clib & $(MAKE) install"
 
 ################################################################
 # Cleanup
