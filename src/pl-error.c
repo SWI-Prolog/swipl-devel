@@ -18,7 +18,8 @@ throw(error(<Formal>, <SWI-Prolog>))
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #include "pl-incl.h"
-#ifndef EACCES
+/* BeOS has EACCES defined elsewhere, but errno is here */
+#if !defined(EACCES) || defined(__BEOS__)
 #include <errno.h>
 #endif
 

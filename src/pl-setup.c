@@ -320,7 +320,7 @@ pl_signal_handler(int sig)
   switch(sig)
   { case SIGFPE:
     case SIGSEGV:
-#ifdef SIGBUS
+#if defined(SIGBUS) && SIGBUS != SIGSEGV
     case SIGBUS:
 #endif
       if ( sig == LD->current_signal )

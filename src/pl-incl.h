@@ -179,14 +179,13 @@ The macros below try to establish a common basis for various  compilers,
 so  we  can  write  most  of the real code without having to worry about
 compiler limits and differences.
 
-The  current  version  has  prototypes  defined   for   all   functions.
-Unfortunately  there  are  still a lot of old compilers around and it is
-hard to write and maintain code that runs on both old and new compilers.
-This has worked on TURBO_C not very long ago.
+The current version has prototypes  defined   for  all functions. If you
+have a very old compiler, try  the   unprotoize  program that comes with
+gcc.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifndef __unix__
-#if defined(_AIX) || defined(__APPLE__) || defined(__unix)
+#if defined(_AIX) || defined(__APPLE__) || defined(__unix) || defined(__BEOS__)
 #define __unix__ 1
 #endif
 #endif
@@ -255,6 +254,15 @@ void *alloca ();
 #include <process.h>
 #include <io.h>
 #endif /* OS2 */
+
+/* prepare including BeOS types */
+#ifdef __BEOS__
+#define bool BOOL
+#include <socket.h>			/* why do we need socket.h? */
+#undef true
+#undef false
+#undef bool
+#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 A common basis for C keywords.

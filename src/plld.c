@@ -50,9 +50,6 @@ embedded application.
 #define LIB_PLMT "-lplmt"
 #define EXT_OBJ "o"
 #define OPT_DEBUG "-g"
-#ifndef O_BINARY
-#define O_BINARY 0
-#endif
 #endif /*WIN32*/
 
 #include <stdio.h>
@@ -82,6 +79,10 @@ embedded application.
 #ifndef TRUE
 #define TRUE 1
 #define FALSE 0
+#endif
+
+#ifndef O_BINARY
+#define O_BINARY 0
 #endif
 
 #ifndef MAXPATHLEN
