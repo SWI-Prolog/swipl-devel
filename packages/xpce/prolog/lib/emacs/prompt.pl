@@ -157,8 +157,8 @@ append_buttons(D) :->
 	    send(B, label, image(resource(back))),
 	    send(F, label, image(resource(forw))),
 	    send_list([B,C,O,F], reference, point(0,0))
-	;   send(D, append, button(ok)),
-	    send(D, append, button(cancel), next_row)
+	;   send(D, append, button(ok), next_row),
+	    send(D, append, button(cancel))
 	),
 	send(D, default_button, ok).
 
