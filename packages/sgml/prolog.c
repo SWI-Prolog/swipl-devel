@@ -370,9 +370,9 @@ prolog_print_attribute(dtd_element *e, dtd_attr *at)
 	  printf("%ld", at->att_def.number);
 	  break;
 	case AT_NAME:
-	case AT_NAMEOF:
 	case AT_NUTOKEN:
-	  printf("%s(%s)", f, atom(at->att_def.name->name));
+	case AT_NMTOKEN:
+	  printf("%s", atom(at->att_def.name->name));
 	  break;
 	default:
 	  if ( at->islist )
