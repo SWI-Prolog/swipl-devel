@@ -188,8 +188,24 @@ apply_this_tile_layout(T, Size) :-
 	get(T, super, Super),
 	Super \== @nil, !,
 	(   get(Super, orientation, horizontal)
-	->  send(T, width, Size)
-	;   send(T, height, Size)
+	->  get(T?area, width, W0),
+	    (	Size > W0
+	    ->	get(T, hor_stretch, S)
+	    ;	get(T, hor_shrink, S)
+	    ),
+	    (	S > 0
+	    ->	send(T, width, Size)
+	    ;	true
+	    )
+	;   get(T?area, height, H0),
+	    (	Size > H0
+	    ->	get(T, ver_stretch, S)
+	    ;	get(T, ver_shrink, S)
+	    ),
+	    (	S > 0
+	    ->	send(T, height, Size)
+	    ;	true
+	    )
 	).
 apply_this_tile_layout(_, _).
 

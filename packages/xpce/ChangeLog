@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Class persistent_frame to be more careful about changed window
+  layout when restoring the layout.
+
 * ADDED: `bar_chart->sort' to sort the bars by <-value.
 
 * ADDED: window_tab->untab to transform a tabbed window into a toplevel
