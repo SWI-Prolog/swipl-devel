@@ -14,7 +14,7 @@
 ################################################################
 
 PL=pl
-prefix=/oorlam/jan
+prefix=/staff/jan
 LIBDIR=$(prefix)/lib/latex2html
 BINDIR=$(prefix)/bin
 
