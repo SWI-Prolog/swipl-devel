@@ -1226,6 +1226,7 @@ clearTextItem(TextItem ti)
 { int modified = (getSizeCharArray(ti->value_text->string) != ZERO);
   
   stringText(ti->value_text, (CharArray) NAME_);
+  valueString(ti->print_name, (CharArray) NAME_);
   if ( modified && hasSendMethodObject(ti->device, NAME_modifiedItem) )
     send(ti->device, NAME_modifiedItem, ti, ON, 0);
   
