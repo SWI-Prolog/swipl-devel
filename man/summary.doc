@@ -404,7 +404,7 @@ suggest predicates from a keyword.
 \predicatesummary{style_check}{1}{Change level of warnings}
 \predicatesummary{sub_atom}{5}{Take a substring from an atom}
 \predicatesummary{sublist}{3}{Determine elements that meet condition}
-\predicatesummary{subset}{2}{Generate/check subset relation}
+\predicatesummary{subset}{2}{Check subset relation for unordered sets}
 \predicatesummary{sub_string}{5}{Take a substring from a string}
 \predicatesummary{subtract}{3}{Delete elements that do not meet condition}
 \predicatesummary{succ}{2}{Logical integer successor relation}
