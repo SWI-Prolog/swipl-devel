@@ -834,10 +834,6 @@ start_thread(void *closure)
 
   blockSignal(SIGINT);			/* only the main thread processes */
 					/* Control-C */
-  LOCK();
-  info->status = PL_THREAD_RUNNING;
-  UNLOCK();
-
   if ( !initialise_thread(info) )
   { info->status = PL_THREAD_NOMEM;
     return (void *)TRUE;
@@ -849,6 +845,10 @@ start_thread(void *closure)
   pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
 
   pthread_cleanup_push(free_prolog_thread, info->thread_data);
+
+  LOCK();
+  info->status = PL_THREAD_RUNNING;
+  UNLOCK();
 
   goal = PL_new_term_ref();
   PL_recorded(info->goal, goal);
