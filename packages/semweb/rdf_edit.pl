@@ -901,7 +901,7 @@ journal(Term) :-
 	(   journal(_, _, Stream)
 	->  write_journal(Term, Stream),
 	    flush_output(Stream)
-	;   broadcast(rdf_journal(no_journal(Term)))
+	;   broadcast(rdf_no_journal(Term))
 	).
 
 write_journal(commit(TID, Time), Stream) :- !,
