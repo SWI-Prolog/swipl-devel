@@ -1,6 +1,12 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: `event<-key' to distinguish between RETURN and Control-M as well
+  as TAB and Control-I.
+
+* FIXED: Class editor to handle editors with very small height (notably
+  1 line or less) properly.  Reported by Paul Holmes-Higgin.
+
 * FIXED: PceEmacs: honour style-check options (notably -atom) appearing
   in the file being coloured.
 
