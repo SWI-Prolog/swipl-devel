@@ -82,6 +82,7 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl \
 	tty.pl readln.pl \
 	am_match.pl oset.pl \
 	netscape.pl url.pl \
+	qpforeign.pl \
 	$(PLWINLIBS)
 
 all:	banner \
