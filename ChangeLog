@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: call_cleanup/3 when called directly from PL_next_solution()
+    or tail-recursively from the initial goal.
+
   * ENHANCED: use per-message-queue mutex for synchronising the
     queue access in the MT version.  Sergey Tikhonov.
 
