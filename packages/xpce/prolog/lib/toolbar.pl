@@ -31,10 +31,7 @@ resource(floppy,	image,	image('16x16/save.xpm')).
 
 initialise(MyApp) :->
 	send_super(MyApp, initialise, 'My application'),
-	send(F, append, new(D, dialog)),
-	send(D, pen, 0),
-	send(D, gap, size(0, 5)),
-	send(D, append, new(TB, tool_bar(F))),
+	send(F, append, new(D, tool_dialog(MyApp))),
 	send_list(TB, append,
 		  [ tool_button(load,
 				resource(floppy),
@@ -43,7 +40,8 @@ initialise(MyApp) :->
 		    tool_button(print,
 				resource(printer),
 				print)
-		  ]).
+		  ]),
+	...
 				
 print(MyApp) :->
 	<Print the current document>
