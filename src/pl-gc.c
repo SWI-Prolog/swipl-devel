@@ -175,31 +175,28 @@ forwards void		check_mark(mark *m);
 		*           GLOBALS             *
 		*********************************/
 
-static long total_marked;	/* # marked global cells */
-static long trailcells_deleted;	/* # garbage trailcells */
-static long relocation_chains;	/* # relocation chains (debugging) */
-static long relocation_cells;	/* # relocation cells */
-static long relocated_cells;	/* # relocated cells */
-static long needs_relocation;	/* # cells that need relocation */
-static long local_marked;	/* # cells marked local -> global ptrs */
-static long marks_swept;	/* # marks swept */
-static long marks_unswept;	/* # marks swept */
-static long alien_relocations;	/* # alien_into_relocation_chain() */
-#if O_SHIFT_STACKS || O_SECURE || defined(O_MAINTENANCE) || defined(O_DEBUG)
-static long local_frames;	/* frame count for debugging */
-#endif
+#define	total_marked	   (LD->gc._total_marked)
+#define	trailcells_deleted (LD->gc._trailcells_deleted)
+#define	relocation_chains  (LD->gc._relocation_chains)
+#define	relocation_cells   (LD->gc._relocation_cells)
+#define	relocated_cells	   (LD->gc._relocated_cells)
+#define	needs_relocation   (LD->gc._needs_relocation)
+#define	local_marked	   (LD->gc._local_marked)
+#define	marks_swept	   (LD->gc._marks_swept)
+#define	marks_unswept	   (LD->gc._marks_unswept)
+#define	alien_relocations  (LD->gc._alien_relocations)
+#define local_frames	   (LD->gc._local_frames)
 #if O_SECURE
-static long trailtops_marked;
+static long trailtops_marked;		/* # marked trailtops */
+static Word *mark_base;			/* Array of marked cells addresses */
+static Word *mark_top;			/* Top of this array */
+static Table check_table = NULL;	/* relocation address table */
 #endif
 
 #if O_SECURE
 		/********************************
 		*           DEBUGGING           *
 		*********************************/
-
-static Word *mark_base;			/* Array of marked cells addresses */
-static Word *mark_top;			/* Top of this array */
-static Table check_table = NULL;	/* relocation address table */
 
 static void
 needsRelocation(void *addr)

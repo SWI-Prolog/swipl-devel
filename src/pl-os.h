@@ -26,11 +26,6 @@
 		*        MEMORY MANAGEMENT      *
 		*********************************/
 
-#define alloc_t		size_t		/* argument type of Prolog's alloc */
-
-#define allocHeap(n)	alloc_heap((alloc_t) (n))
-#define freeHeap(p, n)	free_heap((char *)(p), (alloc_t)(n))
-
 extern Void Allocate(long);
 
 		/********************************

@@ -86,7 +86,7 @@ OBJ=	pl-atom.o pl-wam.o pl-stream.o pl-error.o pl-arith.o pl-bag.o \
 	pl-load.o pl-modul.o pl-op.o pl-os.o pl-prims.o pl-pro.o \
 	pl-proc.o pl-prof.o pl-read.o pl-rec.o pl-rl.o pl-setup.o \
 	pl-sys.o pl-table.o pl-trace.o pl-util.o pl-wic.o pl-write.o \
-	pl-term.o pl-buffer.o @ALLOCA@ @EXTRAOBJ@
+	pl-term.o pl-buffer.o pl-thread.o @ALLOCA@ @EXTRAOBJ@
 RCOBJ=	rc/access.o rc/build.o rc/html.o rc/rc.o rc/util.o
 
 DEPOBJ=	pl-main.o
@@ -340,6 +340,7 @@ clean:
 
 distclean:	clean
 		@(cd rc && $(MAKE) distclean)
+		rm -f pl plld pl-bite pl.1
 		rm -f config.log config.cache
 
 realclean:	clean

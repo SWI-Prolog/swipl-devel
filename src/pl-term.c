@@ -62,7 +62,7 @@ resetTerm()
 
     term_initialised = STAT_START;
     for_table(s, capabilities)
-      freeHeap(s->value, sizeof(entry));
+      freeHeap((Entry)s->value, sizeof(entry));
     clearHTable(capabilities);
   }
 

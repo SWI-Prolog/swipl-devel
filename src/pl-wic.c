@@ -736,7 +736,7 @@ loadStatement(int c, IOSTREAM *fd, int skip)
 	       pl_write(goal);
 	       Sdprintf("\n"));
       if ( !skip )
-      { if ( !callProlog(MODULE_user, goal, FALSE) )
+      { if ( !callProlog(MODULE_user, goal, PL_Q_NODEBUG, NULL) )
 	{ Sfprintf(Serror,
 		   "[WARNING: %s:%d: (loading %s) directive failed: ",
 		   stringAtom(source_file_name), source_line_no, wicFile);
@@ -2209,10 +2209,10 @@ compileFile(char *file)
     if ( directiveClause(directive, t, ":-") )
     { DEBUG(1, Putf(":- "); pl_write(directive); Putf(".\n") );
       addDirectiveWic(directive, wicFd);
-      callProlog(MODULE_user, directive, FALSE);
+      callProlog(MODULE_user, directive, PL_Q_NODEBUG, NULL);
     } else if ( directiveClause(directive, t, "$:-") )
     { DEBUG(1, Putf("$:- "); pl_write(directive); Putf(".\n") );
-      callProlog(MODULE_user, directive, FALSE);
+      callProlog(MODULE_user, directive, PL_Q_NODEBUG, NULL);
     } else
       addClauseWic(t, nf);
 
@@ -2231,7 +2231,7 @@ compileFileList(IOSTREAM *fd, int argc, char **argv)
   TRY(writeWicHeader(fd));
   
   systemMode(TRUE);
-  LD->autoload = FALSE;
+  CSetFeature("autoload", "false");
 
   for(;argc > 0; argc--, argv++)
   { if ( streq(argv[0], "-c" ) )
@@ -2239,7 +2239,7 @@ compileFileList(IOSTREAM *fd, int argc, char **argv)
     compileFile(argv[0]);
   }
 
-  LD->autoload = TRUE;
+  CSetFeature("autoload", "true");
   systemMode(FALSE);
 
   { predicate_t pred = PL_predicate("$load_additional_boot_files", 0, "user");

@@ -59,7 +59,7 @@ pl_break1(term_t goal)
 
   { fid_t cid = PL_open_foreign_frame();
 
-    rval = callProlog(MODULE_user, goal, FALSE);
+    rval = callProlog(MODULE_user, goal, PL_Q_NODEBUG, NULL);
 
     PL_discard_foreign_frame(cid);
   }
@@ -83,7 +83,7 @@ pl_notrace1(term_t goal)
   long	     skipSave  = debugstatus.skiplevel;
   bool	     traceSave = debugstatus.tracing;
 
-  rval = callProlog(NULL, goal, FALSE);
+  rval = callProlog(NULL, goal, PL_Q_NODEBUG, NULL);
 
   debugstatus.skiplevel    = skipSave;
   debugstatus.tracing      = traceSave;
@@ -99,11 +99,10 @@ like for the Prolog predicate call/1.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-callProlog(Module module, term_t goal, int debug)
+callProlog(Module module, term_t goal, int flags, term_t *ex)
 { term_t g = PL_new_term_ref();
   functor_t fd;
   Procedure proc;
-  int flags = (debug ? PL_Q_NORMAL : PL_Q_NODEBUG);
 
   PL_strip_module(goal, &module, g);
   if ( !PL_get_functor(g, &fd) )
@@ -121,6 +120,8 @@ callProlog(Module module, term_t goal, int debug)
 
     qid  = PL_open_query(module, flags, proc, args);
     rval = PL_next_solution(qid);
+    if ( !rval && ex )
+      *ex = PL_exception(qid);
     PL_cut_query(qid);
 
     return rval;

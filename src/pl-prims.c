@@ -711,7 +711,10 @@ pl_setarg(term_t n, term_t term, term_t value)
 
 int
 lengthList(term_t list)
-{ int length = 0;
+{ GET_LD
+#undef LD
+#define LD LOCAL_LD
+  int length = 0;
   Word l = valTermRef(list);
 
   deRef(l);
@@ -727,6 +730,8 @@ lengthList(term_t list)
     return length;
 
   return -1;
+#undef LD
+#define LD GLOBAL_LD
 }
 
 word
@@ -1749,7 +1754,7 @@ write_on(term_t goal, int how, term_t target)
   bool rval;
 
   tellString(&string, &bufsize);
-  rval = callProlog(MODULE_user, goal, FALSE);
+  rval = callProlog(MODULE_user, goal, PL_Q_NODEBUG, NULL);
   toldString();
   TRY(rval);
 
@@ -2063,17 +2068,13 @@ struct feature
   Feature next;
 };
 
-#define feature_list (GD->_feature_list)
+#define feature_list (GD->feature.list)
 
 typedef struct
 { atom_t	name;
   unsigned long	mask;
 } builtin_boolean_feature;
 
-typedef struct
-{ atom_t	name;
-  atom_t       *address;
-} builtin_named_feature;
 
 static const builtin_boolean_feature builtin_boolean_features[] = 
 { { ATOM_character_escapes,	         CHARESCAPE_FEATURE },
@@ -2088,19 +2089,15 @@ static const builtin_boolean_feature builtin_boolean_features[] =
   { ATOM_iso, 			 	 ISO_FEATURE },
   { ATOM_optimise,		 	 OPTIMISE_FEATURE },
   { ATOM_file_name_variables,		 FILEVARS_FEATURE },
+  { ATOM_autoload,			 AUTOLOAD_FEATURE },
   { NULL_ATOM,			         0L }
 };
 
-static const builtin_named_feature builtin_named_features[] =
-{ { ATOM_float_format,		    &float_format },
-  { NULL_ATOM,			    NULL }
-};
 
 int
 setFeature(atom_t name, int type, ...)
 { Feature f;
   const builtin_boolean_feature *bf;
-  const builtin_named_feature   *nf;
   atom_t a = 0;
   long i = 0;
   va_list args;
@@ -2117,17 +2114,17 @@ setFeature(atom_t name, int type, ...)
       assert(0);
   }
 
-  for(nf = builtin_named_features; nf->name; nf++)
-  { if ( name == nf->name )
-    { if ( type == FT_ATOM )
-      { *nf->address = a;
-      } else
-      { warning("set_feature/2: %s feature is atom", stringAtom(name));
-	fail;
-      }
-      goto doset;
+					/* special features */
+  if ( name == ATOM_float_format )
+  { if ( type == FT_ATOM )
+    { float_format = a;
+    } else
+    { warning("set_feature/2: %s feature is atom", stringAtom(name));
+      fail;
     }
+    goto doset;
   }
+
   for(bf = builtin_boolean_features; bf->name; bf++ )
   { if ( name == bf->name )
     { if ( type == FT_ATOM )

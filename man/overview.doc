@@ -8,13 +8,44 @@ directory. SWI-Prolog can then be started from the Unix shell by typing
 file, perform the necessary initialisations and then enter the
 interactive top level.
 
+\subsection{The user's initialisation file}	\label{sec:initfile}
+
+\index{startup file}%
+\index{user profile file}%
+\index{profile file}%
 After the necessary system initialisation the system consults (see
-consult/1) the user's initialisation file. This initialisation file
-should be named `\file{.plrc}' and reside either in the current
-directory or in the user's home directory. If both exist the
-initialisation file from the current directory is loaded. The name of
-the initialisation file can be changed with the `\argoption{-f}{file}'
-option. After loading the initialisation file SWI-Prolog executes a user
+consult/1) the user's startup file. The base-name of this file follows
+conventions of the operating system. On MS-Windows, it is the file
+\file{pl.ini} and on Unix systems \file{.plrc}. The file is searched
+using the file_search_path/2 clauses for \const{user_profile}. The table
+below shows the default value for this search-path.
+
+\begin{center}
+\begin{tabular}{|l|l|l|}
+\hline
+		& \bf Unix 	& \bf Windows \\
+\hline
+\bf local	& \file{.} 	& \file{.} \\
+\bf home	& \file{~} 	& \file{\%HOME\%} or
+                        	  \file{\%HOMEDRIVE\%/\%HOMEPATH\%} \\
+global		& 		& SWI-Home directory or
+				  \file{\%WINDIR\%} or \file{\%SYSTEMROOT\%} \\
+\hline
+\end{tabular}
+\end{center}
+
+\noindent
+After the first startup file is found it is loaded and Prolog
+stops looking for further startup files. The name of the
+startup file can be changed with the `\argoption{-f}{file}'
+option.  If \arg{File} denotes an abolute path, this file is loaded,
+otherwise the file is searched for using the same conventions as for
+the default startup file. Finally, if \arg{file} is
+\const{none}, no file is loaded.
+
+\subsection{Initialisation goals}		\label{sec:initgoal}
+
+After loading the startup file SWI-Prolog executes a user
 initialisation goal. The default goal is a system predicate that prints
 the banner message. The default can be modified with the
 `\argoption{-g}{goal}' option. Next the toplevel goal is started.
@@ -61,7 +92,7 @@ because trail-stack overflows are not often caused program bugs. See
 
     \cmdlineoptionitem*{-A}{size[km]}
 Give argument stack limit (1 Mbytes default). The argument stack limits
-the maximum nesting of terms that can be compiled and executed. The
+the maximum nesting of terms that can be compiled and executed. 
 SWI-Prolog does `last-argument optimisation' to avoid many deeply nested
 structure using this stack. Enlarging this limit is only necessary in
 extreme cases. See \cmdlineoption{-L} for more details.
@@ -83,9 +114,9 @@ determine output file for compilation.
 Optimised compilation. See feature/2.
 
     \cmdlineoptionitem{-f}{file}
-Use \arg{file} as initialisation file instead of `\file{.plrc}'.
-`\argoption{-f}{none}' stops SWI-Prolog from searching for an
-initialisation file.
+Use \arg{file} as startup file instead of the default.
+`\argoption{-f}{none}' stops SWI-Prolog from searching for a
+startup file. See \secref{initfile}. 
 
     \cmdlineoptionitem{-F}{script}
 Selects a startup-script from the SWI-Prolog home directory. The
@@ -183,7 +214,8 @@ controls whether or not help/1 writes its output using overstrike to
 realise bold and underlined output or not. If this feature is not set it
 is initialised by the help library to \const{true} if the \const{TERM}
 variable equals \const{xterm} and \const{false} otherwise. If this
-default does not satisfy you, add the following line to \file{~/.plrc}.
+default does not satisfy you, add the following line to your personal
+startup file (see \secref{initfile}):
 
 \begin{code}
 :- set_feature(write_help_with_overstrike, true).
@@ -244,7 +276,7 @@ csh (csh(1)), called `history'. The availability of this feature is
 controlled by set_feature/2, using the \const{history} feature. By
 default, history is available if the feature \const{readline} is
 \const{false}. To enable this feature, remembering the last 50 commands,
-put the following into your \file{~/.plrc} file:
+put the following into your startup file (see \secref{initfile}:
 
 \begin{code}
 :- set_feature(history, 50).
@@ -626,56 +658,47 @@ in the saved state, creating a single-file, but machine-dependent,
 executable.  This process is described in \chapref{runtime}.
 
 
-\subsubsection{Compililation using the -c commandline option}
+\subsubsection{Compilation using the -c commandline option}
+\label{sec:cmdlinecomp}
 
-This mechanism is mostly for backward compatibility. It creates files in
-the same format as saved-states created using qsave_program/[1,2], but
-the resulting file is a translation of the source-files read, rather
-than a translation of the state of the machine.   Unlike saved states,
-programs created using \argoption{-c}{file} do not include the Prolog
-part of the development system.  The result is very dependent on the
-local SWI-Prolog installation.
-
-The command below is used to compile one or more source-files.
+This mechanism loads a series of Prolog source files and then creates
+a saved-state as qsave_program/2 does.  The command syntax is:
 
 \begin{code}
-pl [options] [-o output] -c file ...
+% pl [option ...] [-o output] -c file ...
 \end{code}
 
-The individual source files may include other files using the standard
-list notation, consult/1, ensure_loaded/1 and use_module/[1,2]. When the
-\argoption{-o}{file} option is omitted a file named \file{a.out} is
-created that holds the intermediate code file.
+The \arg{options} argument are options to qsave_program/2 written in
+the format below.  The option-names and their values are described with
+qsave_program/2.
 
-Intermediate code files start with the Unix magic code \const{#!}
-and are executable. This implies they can be started as a command:
+\begin{quote}
+\verb$--${\em option-name}\verb$=$\em{option-value}
+\end{quote}
+
+For example, to create a stan-alone executable that starts by executing
+main/0 and for which the source is loaded through \file{load.pl}, use
+the command
 
 \begin{code}
-% pl -o my_program -c ...
-...
-% my_program [options]
+% pl --goal=main --stand_alone=true -o myprog -c load.pl
 \end{code}
 
-Alternatively, {\tt my_program} can be started with
+This performs exactly the same as executing
+
 \begin{code}
-% pl -x my_program [options]
+% pl
+<banner>
+?- [load].
+?- qsave_program(myprog,
+		 [ goal(main),
+		   stand_alone(true)
+		 ]).
+?- halt.
 \end{code}
 
-The following restrictions apply to source files that are to be
-compiled with `\cmdlineoption{-c}':
+See also unix/1.
 
-\begin{itemize}
-    \item
-term_expansion/2 should not use assert/1 and or retract/1 other than
-for local computational purposes.
-    \item
-Files can only be included by the standard include directives: [...],
-consult/1, ensure_loaded/1 and use_module/[1,2].  User defined loading
-predicate invocations will not be compiled.
-\end{itemize}
-
-Directives are executed both when compiling the program and when
-loading the intermediate code file.
 
 \section{Environment Control}
 
@@ -858,6 +881,13 @@ be changed.  Default is {\tt true}, except for the runtime version.
 If {\tt true}, print error messages, otherwise suppress them.  May be
 changed.  See also the {\tt debug_on_error} feature.  Default is {\tt
 true}, except for the runtime version.  
+    \featureoption{file_name_variables}{bool}
+If \const{true} (default \const{false}), expand \file{$\arg{varname}}
+and \file{~} in arguments of builtin-predicates that accept a file name
+(open/3, exists_file/1, access_file/2, etc.).   The predicate
+expand_file_name/2 should be used to expand environment variables
+and wildchard patterns. This feature is intended for backward
+compatibility with older versions of SWI-Prolog.
     \featureoption{unix}{bool}
 \index{unix}%
 If {\tt true}, the operating system is some version of Unix.  Defined
@@ -874,7 +904,6 @@ Define a new feature or change its value.  \arg{Key} is an atom,
 \arg{Value} is an atom or number.
 \end{description}
 
-
 \section{Automatic loading of libraries}	\label{sec:autoload}
 
 If ---at runtime--- an undefined predicate is trapped the system will
@@ -888,6 +917,10 @@ this mechanism loads the file silently. The feature/2
 \const{verbose_autoload} is provided to get verbose loading. The feature
 \const{autoload} can be used to enable/disable the entire auto
 load system.
+
+The auto-loader only works if the unknown flag (see unknown/2) is set to
+\const{trace} (default).  A more appropriate interaction with this flag
+will be considered.
 
 Autoloading only handles (library) source files that use the module
 mechanism described in \chapref{modules}.  The files are loaded
@@ -931,23 +964,6 @@ Create an index for this directory.  The index is written to the file
 'INDEX.pl' in the specified directory.  Fails with a warning if the
 directory does not exist or is write protected.
 \end{description}
-
-
-\subsection{Notes on Automatic Loading}
-
-The auto-loader is a new feature to SWI-Prolog.  Its aim is to simplify
-program development and program management.  Common lisp has a similar
-feature, but here the user has to specify which library is to be
-loaded if a specific function is called which is not defined.  The
-advantage of the SWI-Prolog schema is that the user does not have to
-specify this.  The disadvantage however is that the user might be
-wondering ``where the hell this predicate comes from''.  Only
-experience can learn whether the functionality of the auto-loader is
-appropriate.  Comments are welcome.
-
-The auto-loader only works if the unknown flag (see unknown/2) is set to
-\const{trace} (default).  A more appropriate interaction with this flag
-will be considered.
 
 
 \section{Garbage Collection}

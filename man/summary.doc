@@ -119,6 +119,7 @@ suggest predicates from a keyword.
 \predicatesummary{current_predicate}{2}{Examine existing predicates}
 \predicatesummary{current_signal}{3}{Current software signal mapping}
 \predicatesummary{current_stream}{3}{Examine open streams}
+\predicatesummary{current_thread}{2}{Examine Prolog threads}
 \predicatesummary{dde_current_connection}{2}{Win32: Examine open DDE connections}
 \predicatesummary{dde_current_service}{2}{Win32: Examine DDE services provided}
 \predicatesummary{dde_execute}{2}{Win32: Execute command on DDE server}
@@ -384,6 +385,9 @@ suggest predicates from a keyword.
 \predicatesummary{telling}{1}{Query current output stream}
 \predicatesummary{term_expansion}{2}{\hook{user} Convert term before compilation}
 \predicatesummary{term_to_atom}{2}{Convert between term and atom}
+\predicatesummary{thread_create}{3}{Create a new Prolog task}
+\predicatesummary{thread_exit}{1}{Terminate Prolog task with value}
+\predicatesummary{thread_join{2}{Wait for Prolog task-completion}
 \predicatesummary{throw}{1}{Raise an exception (see catch/3)}
 \predicatesummary{time}{1}{Determine time needed to execute goal}
 \predicatesummary{time_file}{2}{Get last modification time of file}
@@ -400,6 +404,7 @@ suggest predicates from a keyword.
 \predicatesummary{tty_put}{2}{Write control string to terminal}
 \predicatesummary{ttyflush}{0}{Flush output on terminal}
 \predicatesummary{union}{3}{Union of two sets}
+\predicatesummary{unix}{1}{OS interaction (get command-line arguments)}
 \predicatesummary{unknown}{2}{Trap undefined predicates}
 \predicatesummary{unload_foreign_library}{1}{\pllib{shlib} Detach shared library (.so file)}
 \predicatesummary{unsetenv}{1}{Delete shell environment variable}

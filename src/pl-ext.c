@@ -454,6 +454,14 @@ static const struct foreign {
 						      NDET|META|TRACE_ME),
 #endif
 
+#ifdef O_PLMT
+  FRG("thread_create",		3, pl_thread_create,	   META|TRACE_ME),
+  FRG("thread_self",		1, pl_thread_self,	        TRACE_ME),
+  FRG("thread_join",		2, pl_thread_join,	        TRACE_ME),
+  FRG("thread_exit",		1, pl_thread_exit,		TRACE_ME),
+  FRG("current_thread",		2, pl_current_thread, NDET|META|TRACE_ME),
+#endif
+
   /* DO NOT ADD ENTRIES BELOW THIS ONE */
   FRG((char *)NULL,		0, (Func)NULL,			0)
 };

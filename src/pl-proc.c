@@ -816,7 +816,7 @@ trapUndefined(Definition def)
   DEBUG(5, Sdprintf("trapUndefined(%s)\n", predicateName(def)));
 
 					/* Trap via exception/3 */
-  if ( LD->autoload && !GD->bootsession )
+  if ( trueFeature(AUTOLOAD_FEATURE) && !GD->bootsession )
   { if ( undefined_nesting > 100 )
     { undefined_nesting = 1;
       sysError("trapUndefined(): undefined: %s", predicateName(def));
@@ -825,14 +825,14 @@ trapUndefined(Definition def)
     } else
     { fid_t  cid  = PL_open_foreign_frame();
       term_t argv = PL_new_term_refs(4);
-      static predicate_t pred;
+      static predicate_t MTOK_pred;
       qid_t qid;
       atom_t sfn = source_file_name;	/* needs better solution! */
       int  sln = source_line_no;
       atom_t answer = ATOM_nil;
 
-      if ( !pred )
-	pred = PL_pred(FUNCTOR_undefinterc4, MODULE_system);
+      if ( !MTOK_pred )
+	MTOK_pred = PL_pred(FUNCTOR_undefinterc4, MODULE_system);
 
       PL_put_atom(    argv+0, def->module->name);
       PL_put_atom(    argv+1, def->functor->name);
@@ -840,7 +840,7 @@ trapUndefined(Definition def)
       PL_put_variable(argv+3);
 
       undefined_nesting++;
-      qid = PL_open_query(MODULE_system, PL_Q_NODEBUG, pred, argv);
+      qid = PL_open_query(MODULE_system, PL_Q_NODEBUG, MTOK_pred, argv);
       if ( PL_next_solution(qid) )
 	PL_get_atom(argv+3, &answer);
       PL_close_query(qid);

@@ -820,6 +820,7 @@ rlc_kill()
 
     return TRUE;
   }
+  return FALSE;
 }
 
 

@@ -75,8 +75,8 @@ rc.tex:	rc.doc
 ################################################################
 
 clean:
-	rm -f *% *~ $(LIBOBJ) rc.o
+	rm -f *% *~ $(LIBOBJ)
 
 distclean:	clean
-	rm -f rc
+	rm -f plrc librc.a
 

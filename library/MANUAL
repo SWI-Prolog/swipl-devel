@@ -13,7 +13,7 @@
 
                          RReeffeerreennccee MMaannuuaall
 
-               _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _3_._2_._7_, _M_a_y _1_9_9_9
+               _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _3_._2_._9_, _J_u_n_e _1_9_9_9
 
                           _J_a_n _W_i_e_l_e_m_a_k_e_r
 
@@ -551,22 +551,43 @@ directory.    SWI-Prolog can  then be  started from  the  Unix shell  by
 typing `pl'.  The system will boot from the  system's default boot file,
 perform the  necessary initialisations  and then  enter the  interactive
 top level.
-
-After  the necessary  system  initialisation  the system  consults  (see
-consult/1) the  user's initialisation  file.   This initialisation  file
-should be named  `.plrc' and reside either  in the current directory  or
-in the  user's home directory.   If both  exist the initialisation  file
-from the current  directory is loaded.   The name of the  initialisation
-file  can be  changed with  the `-f file'  option.    After loading  the
-initialisation  file SWI-Prolog  executes  a user  initialisation  goal.
-The default goal is  a system predicate that prints the  banner message.
-The  default can  be  modified with  the `-g goal'  option.    Next  the
-toplevel goal is started.   Default is the interactive Prolog  loop (see
-prolog/0).  The  user can overwrite this default with  the `-t toplevel'
-option.
 
 
-22..11..11 CCoommmmaanndd LLiinnee OOppttiioonnss
+22..11..11 TThhee uusseerr''ss iinniittiiaalliissaattiioonn ffiillee
+
+After  the necessary  system  initialisation  the system  consults  (see
+consult/1) the user's startup file.  The base-name  of this file follows
+conventions of  the operating  system.   On MS-Windows,  it is the  file
+pl.ini  and on  Unix systems  .plrc.   The  file is  searched using  the
+file_search_path/2 clauses for user_profile.  The table below  shows the
+default value for this search-path.
+
+     _______________________________________________________________
+     |________________|UUnniixx__||WWiinnddoowwss________________________________________________________________________________||
+
+     || llooccaall  ||.   |.                                              |
+     | hhoommee   ||~   |%HOME% or %HOMEDRIVE%/%HOMEPATH%               |
+     |_global_|____|SWI-Home_directory_or_%WINDIR%_or_%SYSTEMROOT%_|_
+
+After the  first startup  file is found  it is  loaded and Prolog  stops
+looking for further startup files.  The name of the  startup file can be
+changed with  the `-f file' option.   If _F_i_l_e  denotes an abolute  path,
+this file is loaded,  otherwise the file is searched for using  the same
+conventions as for the default startup file.  Finally,  if _f_i_l_e is none,
+no file is loaded.
+
+
+22..11..22 IInniittiiaalliissaattiioonn ggooaallss
+
+After   loading   the   startup  file   SWI-Prolog   executes   a   user
+initialisation  goal.   The  default  goal is  a system  predicate  that
+prints  the banner  message.    The default  can  be modified  with  the
+`-g goal' option.   Next the toplevel goal  is started.  Default is  the
+interactive Prolog  loop (see prolog/0).   The  user can overwrite  this
+default with the `-t toplevel' option.
+
+
+22..11..33 CCoommmmaanndd LLiinnee OOppttiioonnss
 
 The full set of command line options is given below:
 
@@ -606,10 +627,9 @@ The full set of command line options is given below:
 --AA_s_i_z_e_[_k_m_]
     Give  argument stack limit (1 Mbytes  default).  The argument  stack
     limits  the  maximum  nesting of  terms  that  can be  compiled  and
-    executed.    The  SWI-Prolog  does `last-argument  optimisation'  to
-    avoid  many deeply  nested structure  using this stack.    Enlarging
-    this  limit is only  necessary in extreme  cases.   See -L for  more
-    details.
+    executed.    SWI-Prolog does `last-argument  optimisation' to  avoid
+    many  deeply nested  structure  using this  stack.   Enlarging  this
+    limit is only necessary in extreme cases.  See -L for more details.
 
 --HH_s_i_z_e_[_k_m_]
     Give  malloc() heap limit.   The  default is to  raise the limit  as
@@ -628,8 +648,8 @@ The full set of command line options is given below:
     Optimised compilation.  See feature/2.
 
 --ff _f_i_l_e
-    Use  _f_i_l_e as  initialisation  file instead  of `.plrc'.    `-f none'
-    stops SWI-Prolog from searching for an initialisation file.
+    Use  _f_i_l_e as startup file instead  of the default.  `-f none'  stops
+    SWI-Prolog from searching for a startup file.  See section 2.1.1.
 
 --FF _s_c_r_i_p_t
     Selects  a startup-script from the  SWI-Prolog home directory.   The
@@ -722,7 +742,8 @@ write_help_with_overstrike  controls whether  or  not help/1  writes  its
 output using  overstrike to realise bold  and underlined output or  not.
 If this  feature is not  set it  is initialised by  the help library  to
 true if  the TERM variable equals  xterm and false  otherwise.  If  this
-default does not satisfy you, add the following line to ~/.plrc.
+default does not  satisfy you, add the  following line to your  personal
+startup file (see section 2.1.1):
 
     :- set_feature(write_help_with_overstrike, true).
 
@@ -782,7 +803,7 @@ Unix csh (csh(1)), called  `history'.  The availability of  this feature
 is controlled by set_feature/2, using the history feature.   By default,
 history is available if  the feature readline is false.  To  enable this
 feature, remembering the  last 50 commands, put the following  into your
-~/.plrc file:
+startup file (see section 2.1.1:
 
     :- set_feature(history, 50).
 
@@ -1149,48 +1170,37 @@ in  the saved  state,  creating  a single-file,  but  machine-dependent,
 executable.  This process is described in chapter 6.
 
 
-22..77..22..33 CCoommppiilliillaattiioonn uussiinngg tthhee --cc ccoommmmaannddlliinnee ooppttiioonn
+22..77..22..33 CCoommppiillaattiioonn uussiinngg tthhee --cc ccoommmmaannddlliinnee ooppttiioonn
 
-This mechanism is mostly  for backward compatibility.  It  creates files
-in the  same format as  saved-states created  using qsave_program/[1,2],
-but  the resulting  file  is a  translation  of the  source-files  read,
-rather than  a translation of the  state of the  machine.  Unlike  saved
-states, programs  created using -c file do  not include the Prolog  part
-of the development  system.  The result  is very dependent on the  local
-SWI-Prolog installation.
+This mechanism loads a series of Prolog source files  and then creates a
+saved-state as qsave_program/2 does.  The command syntax is:
 
-The command below is used to compile one or more source-files.
+    % pl [option ...] [-o output] -c file ...
 
-    pl [options] [-o output] -c file ...
+The  _o_p_t_i_o_n_s argument  are  options to  qsave_program/2 written  in  the
+format below.    The option-names  and their values  are described  with
+qsave_program/2.
 
-The individual source  files may include other files using  the standard
-list notation,  consult/1, ensure_loaded/1 and  use_module/[1,2].   When
-the -o file option is  omitted a file named a.out is created  that holds
-the intermediate code file.
+    --_o_p_t_i_o_n_-_n_a_m_e=_o_p_t_i_o_n_-_v_a_l_u_e
 
-Intermediate  code files  start with  the  Unix magic  code #!  and  are
-executable.  This implies they can be started as a command:
+For example, to create a stan-alone executable that  starts by executing
+main/0  and for  which the  source is  loaded through  load.pl, use  the
+command
 
-    % pl -o my_program -c ...
-    ...
-    % my_program [options]
+    % pl --goal=main --stand_alone=true -o myprog -c load.pl
 
-Alternatively, my_program can be started with
+This performs exactly the same as executing
 
-    % pl -x my_program [options]
+    % pl
+    <banner>
+    ?- [load].
+    ?- qsave_program(myprog,
+                     [ goal(main),
+                       stand_alone(true)
+                     ]).
+    ?- halt.
 
-The  following  restrictions  apply to  source  files  that  are  to  be
-compiled with `-c':
-
-  o term_expansion/2  should not  use assert/1  and  or retract/1  other
-    than for local computational purposes.
-
-  o Files  can  only be  included by  the  standard include  directives:
-    [...],   consult/1,  ensure_loaded/1 and  use_module/[1,2].     User
-    defined loading predicate invocations will not be compiled.
-
-Directives  are  executed  both when  compiling  the  program  and  when
-loading the intermediate code file.
+See also unix/1.
 
 
 22..88 EEnnvviirroonnmmeenntt CCoonnttrrooll
@@ -1432,6 +1442,14 @@ ffeeaattuurree((_?_K_e_y_, _-_V_a_l_u_e))
          be changed.   See also the debug_on_error feature.  Default  is
          true, except for the runtime version.
 
+    ffiillee__nnaammee__vvaarriiaabblleess ((_b_o_o_l))
+         If   true  (default   false),   expand   $varname  and   ~   in
+         arguments  of  builtin-predicates  that  accept  a   file  name
+         (open/3, exists_file/1,  access_file/2,  etc.).   The  predicate
+         expand_file_name/2  should  be  used   to  expand   environment
+         variables and  wildchard patterns.   This  feature is  intended
+         for backward compatibility with older versions of SWI-Prolog.
+
     uunniixx ((_b_o_o_l))
          If  true,  the  operating  system  is  some  version  of  Unix.
          Defined  if the  C-compiler used  to  compile this  version  of
@@ -1459,6 +1477,10 @@ call to  the (previously undefined)  predicate is resumed.   By  default
 this mechanism loads the file silently.   The feature/2 verbose_autoload
 is provided to  get verbose loading.   The feature autoload can be  used
 to enable/disable the entire auto load system.
+
+The auto-loader only  works if the unknown  flag (see unknown/2) is  set
+to trace (default).  A more appropriate interaction  with this flag will
+be considered.
 
 Autoloading  only handles  (library) source  files that  use the  module
 mechanism  described  in  chapter  4.     The  files   are  loaded  with
@@ -1496,23 +1518,6 @@ mmaakkee__lliibbrraarryy__iinnddeexx((_+_D_i_r_e_c_t_
     Create  an index for this  directory.  The  index is written to  the
     file  'INDEX.pl' in the specified directory.   Fails with a  warning
     if the directory does not exist or is write protected.
-
-
-22..99..11 NNootteess oonn AAuuttoommaattiicc LLooaaddiinngg
-
-The auto-loader is a new feature to SWI-Prolog.  Its  aim is to simplify
-program development and program  management.  Common lisp has  a similar
-feature, but here the user has to specify which library  is to be loaded
-if a specific  function is called which is  not defined.  The  advantage
-of the  SWI-Prolog schema  is that  the user  does not  have to  specify
-this.   The  disadvantage however is  that the  user might be  wondering
-``where  the hell  this predicate  comes from''.    Only experience  can
-learn  whether the  functionality  of  the auto-loader  is  appropriate.
-Comments are welcome.
-
-The auto-loader only  works if the unknown  flag (see unknown/2) is  set
-to trace (default).  A more appropriate interaction  with this flag will
-be considered.
 
 
 22..1100 GGaarrbbaaggee CCoolllleeccttiioonn
@@ -5255,6 +5260,46 @@ uunnsseetteennvv((_+_N_a_m_e))
     Remove Unix environment variable from the environment.
 
 
+uunniixx((_+_C_o_m_m_a_n_d))
+    This  predicate comes  from  the Quintus  compatibility library  and
+    provides  a partial implementation thereof.   It provides access  to
+    some  operating system features and unlike the name suggests,  is no
+    operating  system specific.  Currently  it is the only way to  fetch
+    the Prolog command-line arguments.  Defined _C_o_m_m_a_n_d's are below.
+
+    ssyysstteemm((_+_C_o_m_m_a_n_d))
+         Equivalent to calling shell/1.  Use for compatibility only.
+
+    sshheellll((_+_C_o_m_m_a_n_d))
+         Equivalent to calling shell/1.  Use for compatibility only.
+
+    sshheellll
+         Equivalent to calling shell/0.  Use for compatibility only.
+
+    ccdd
+         Equivalent  to  calling   chdir/1  as  chdir(~).      Use   for
+         compatibility only.
+
+    ccdd((_+_D_i_r_e_c_t_o_r_y))
+         Equivalent to calling chdir/1.  Use for compatibility only.
+
+    aarrggvv((_-_A_r_g_v))
+         Unify _A_r_g_v with the  list of commandline arguments provides  to
+         this Prolog run.  Please note that  Prolog system-arguments and
+         application arguments are separated  by --.  Integer  arguments
+         are  passed as  Prolog  integers,  float arguments  and  Prolog
+         floating  point  numbers and  all  other  arguments  as  Prolog
+         atoms.
+
+         A  stand-alone program  could  use  the following  skeleton  to
+         handle command-line arguments.  See also section 2.7.2.3.
+
+             main :-
+                     unix(argv(Argv)),
+                     append(_PrologArgs, [--|AppArgs], Argv), !,
+                     main(AppArgs).
+
+
 ggeett__ttiimmee((_-_T_i_m_e))
     Return  the number of seconds that elapsed since the epoch  of Unix,
     1  January 1970, 0  hours.  _T_i_m_e  is a floating  point number.   Its
@@ -5411,6 +5456,10 @@ eexxppaanndd__ffiillee__nnaammee((_+_W_i_l_d_C_a_r_d_
     comma  separated  argument  can  be  arbitrary  patterns,  including
     `{...}'  patterns.   The empty  pattern is legal  as well:   `{.pl,}'
     matches either `.pl' or the empty string.
+
+    Before  expanding wildchards, the construct $var is expanded  to the
+    value  of the  environment  variable _v_a_r  and a  possible leading  ~
+    character is expanded to the user's home directory..
 
 
 pprroolloogg__ttoo__ooss__ffiilleennaammee((_?_P_r_o_l_o_g_P_a_t_h_, _?_O_s_P_a_t_h))
@@ -7696,13 +7745,13 @@ int PPLL__uunniiffyy__lliisstt__cchhaarrss(_t_e_r_m___t
     Unify _t with a list of ASCII characters constructed from _c_h_a_r_s.
 
 
-void PPLL__uunniissyy__ssttrriinngg__cchhaarrss(_t_e_r_m___t _?_t_, _c_o_n_s_t _c_h_a_r _*_c_h_a_r_s)
+void PPLL__uunniiffyy__ssttrriinngg__cchhaarrss(_t_e_r_m___t _?_t_, _c_o_n_s_t _c_h_a_r _*_c_h_a_r_s)
     Unify  _t  with  a  Prolog  string  object  created  from  the  zero-
     terminated  string  _c_h_a_r_s.   The  data will  be copied.    See  also
-    PL_put_string_nchars().
+    PL_unify_string_nchars().
 
 
-void PPLL__ppuutt__ssttrriinngg__nncchhaarrss(_t_e_r_m___t _?_t_, _u_n_s_i_g_n_e_d _i_n_t _l_e_n_, _c_o_n_s_t _c_h_a_r _*_c_h_a_r_s)
+void PPLL__uunniiffyy__ssttrriinngg__nncchhaarrss(_t_e_r_m___t _?_t_, _u_n_s_i_g_n_e_d _i_n_t _l_e_n_, _c_o_n_s_t _c_h_a_r _*_c_h_a_r_s)
 
     Unify   _t   with   a  Prolog   string   object  created   from   the
     string  created from the _l_e_n/_c_h_a_r_s pair.   The data will be  copied.
@@ -8272,33 +8321,47 @@ int PPLL__wwaarrnniinngg(_f_o_r_m_a_t_, _a_1_, _._._.)
 55..66..1133 EEnnvviirroonnmmeenntt CCoonnttrrooll ffrroomm FFoorreeiiggnn CCooddee
 
 
-int PPLL__aaccttiioonn(_i_n_t_, _C___t_y_p_e)
+int PPLL__aaccttiioonn(_i_n_t_, _._._.)
     Perform  some  action on  the  Prolog system.    _i_n_t  describes  the
-    action,  _C___t_y_p_e provides the argument if necessary.   The actions are
-    listed in table 5.1.
+    action,  Remaining arguments depend  on the requested  action.   The
+    actions are listed in table 5.1.
     ___________________________________________________________________
-    | PL_ACTION_TRACE        |Start Prolog tracer                      |
-    | PL_ACTION_DEBUG        |Switch on Prolog debug mode              |
+    | PL_ACTION_TRACE        |Start Prolog tracer (trace/0).   Requires|
+    |                        |no arguments.                            |
+    | PL_ACTION_DEBUG        |Switch  on Prolog  debug mode  (debug/0).|
+    |                        |Requires no arguments.                   |
     | PL_ACTION_BACKTRACE    |Print   backtrace   on   current   output|
+
     |                        |stream.   The  argument (an  int) is  the|
     |                        |number of frames printed.                |
-
     | PL_ACTION_HALT         |Halt  Prolog  execution.     This  action|
     |                        |should be called rather  than Unix exit()|
     |                        |to give  Prolog the opportunity  to clean|
-    |                        |up.  This call does not return.          |
-    | PL_ACTION_ABORT        |Generate a Prolog abort.   This call does|
-    |                        |not return.                              |
-    | PL_ACTION_BREAK        |Create a  standard Prolog  break environ-|
-    |                        |ment.     Returns after  the  user  types|
+    |                        |up.   This  call does  not return.    The|
+    |                        |argument (an int) is the  exit code.  See|
+    |                        |halt/1.                                  |
 
-    |                        |control-D.                               |
-    | PL_ACTION_SYMBOLFILE   |The  argument (a  char  *) is  considered|
-    |                        |to  be hold  the  symbolfile for  further|
-    |                        |incremental   loading.        Should   be|
-    |                        |called by user  applications that perform|
-    |                        |incremental loading  as well and  want to|
-    |________________________|inform_Prolog_of_the_new_symbol_table.___|
+    | PL_ACTION_ABORT        |Generate a Prolog abort  (abort/0).  This|
+    |                        |call  does  not  return.     Requires  no|
+    |                        |arguments.                               |
+    | PL_ACTION_BREAK        |Create  a  standard  Prolog  break  envi-|
+    |                        |ronment  (break/0).    Returns after  the|
+    |                        |user  types  the  end-of-file  character.|
+    ||                       |Requires|no arguments.                   ||
+
+    | PL_ACTION_GUIAPP       |Win32:  Used to  indicate the kernel that|
+    |                        |the application  is a GUI  application if|
+    |                        |the  argument  is  not 0  and  a  console|
+    |                        |application if  the argument  is 0.    If|
+    |                        |a  fatal error  occurs,  the system  uses|
+    |                        |a windows  messagebox to  report this  on|
+    |                        |a GUI  application and simply  prints the|
+    |                        |error and exits otherwise.               |
+
+    | PL_ACTION_WRITE        |Write  the  argument,  a  char *  to  the|
+    |                        |current output stream.                   |
+    | PL_ACTION_FLUSH        |Flush  the current  output stream.    Re-|
+    |________________________|quires_no_arguments._____________________|
 
                     Table 5.1:  PL_action() options
 
@@ -8318,18 +8381,10 @@ C_type PPLL__qquueerryy(_i_n_t)
 
     | PL_QUERY_SYMBOLFILE    |Return  a  char  *  holding  the  current|
     |                        |symbol file of the running process.      |
-    | PL_QUERY_ORGSYMBOLFILE |Return  the initial  symbol file  (before|
-    |                        |loading)  of  Prolog.    By  setting  the|
-    |                        |symbol  file   to  this  value   no  name|
-    |                        |clashes can occur  with previously loaded|
-    |                        |foreign  files  (but no  symbols  can  be|
-
-    |                        |shared  with  earlier loaded  modules  as|
-    |                        |well).                                   |
     | PL_MAX_INTEGER         |Return a  long, representing  the maximal|
-    |                        |integer  value  represented  by  Prolog's|
-    |                        |tagged integers.                         |
-    | PL_MIN_INTEGER         |Return  a long,  represented the  minimal|
+    |                        |integer  value  represented by  a  Prolog|
+    |                        |integer.                                 |
+    | PL_MIN_INTEGER         |Return a  long, representing  the minimal|
     |                        |integer value.                           |
 
     | PL_QUERY_VERSION       |Return a  long, representing  the version|
@@ -8804,17 +8859,10 @@ it.  The coder is in figure 5.5.
     #include <stdio.h>
     #include <SWI-Prolog.h>
 
-    PL_extension PL_extensions [] =
-    {
-    /*{ "name",     arity,  function,       PL_FA_<flags> },*/
-
-      { NULL,       0,      NULL,           0 }     /* terminat-
-    ing line */
-    };
-
     #define MAXLINE 1024
 
     int
+
     main(int argc, char **argv)
     { char expression[MAXLINE];
       char *e = expression;
@@ -8829,7 +8877,6 @@ it.  The coder is in figure 5.5.
           *e++ = ' ';
         strcpy(e, argv[n]);
         e += strlen(e);
-
       }
 
       /* make the argument vector for Prolog */
@@ -8845,15 +8892,14 @@ it.  The coder is in figure 5.5.
       /* Lookup calc/1 and make the arguments and call */
 
       { predicate_t pred = PL_predicate("calc", 1, "user");
-
         term_t h0 = PL_new_term_refs(1);
+
         int rval;
 
         PL_put_atom_chars(h0, expression);
         rval = PL_call_predicate(NULL, PL_Q_NORMAL, pred, h0);
 
         PL_halt(rval ? 0 : 1);
-
       }
 
       return 0;
@@ -9090,6 +9136,8 @@ _________________________________________________________________________
     this  state.   Provided  the application has  all libraries  loaded,
     the  resulting executable is  completely independent of the  runtime
     environment or location where it was build.
+
+    See also section 2.7.2.3.
 
 
 qqssaavvee__pprrooggrraamm((_+_F_i_l_e))
@@ -10103,12 +10151,13 @@ suggest predicates from a keyword.
 
  ttyflush/0                    Flush output on terminal
  union/3                       Union of two sets
+ unix/1                        OS interaction (get command-line arguments)
  unknown/2                     Trap undefined predicates
  unload_foreign_library/1      library(shlib) Detach shared library (.so file)
  unsetenv/1                    Delete shell environment variable
  use_module/1                  Import a module
- use_module/2                  Import predicates from a module
 
+ use_module/2                  Import predicates from a module
  var/1                         Type check for unbound variable
  visible/1                     Ports that are visible in the tracer
  volatile/1                    Predicates that are not saved
@@ -10116,16 +10165,16 @@ suggest predicates from a keyword.
  wildcard_match/2              Csh(1) style wildcard match
  win_exec/2                    Win32:  spawn Windows task
  write/1                       Write term
- write/2                       Write term to stream
 
+ write/2                       Write term to stream
  write_ln/1                    Write term, followed by a newline
  write_canonical/1             Write a term with quotes, ignore operators
  write_canonical/2             Write a term with quotes, ignore operators on a stream
  write_term/2                  Write term with options
  write_term/3                  Write term with options to stream
  writef/1                      Formatted write
- writef/2                      Formatted write on stream
 
+ writef/2                      Formatted write on stream
  writeq/1                      Write term, insert quotes
  writeq/2                      Write term, insert quotes on stream
 

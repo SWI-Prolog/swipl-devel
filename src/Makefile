@@ -29,7 +29,7 @@
 #	  based on SWI-Prolog.  Contact prolog-request@swi.psy.uva.nl.
 ################################################################
 
-PLVERSION=3.2.0
+PLVERSION=3.2.8
 
 PL=pl
 prefix=/usr/local
@@ -81,14 +81,13 @@ PLLIB=libpl.a
 RUNTIME=$(RUNTIMEDIR)/$(PLLIB)
 LIBRARYDIR=${PLBASE}/library
 
-
 OBJ=	pl-atom.o pl-wam.o pl-stream.o pl-error.o pl-arith.o pl-bag.o \
-	pl-comp.o pl-rc.o \
-	pl-dwim.o pl-ext.o pl-file.o pl-flag.o pl-fmt.o pl-funct.o \
-	pl-gc.o pl-glob.o pl-itf.o pl-list.o pl-load.o \
-	pl-modul.o pl-op.o pl-os.o pl-prims.o pl-pro.o pl-proc.o \
-	pl-prof.o pl-read.o pl-rec.o pl-rl.o pl-setup.o pl-sys.o pl-table.o \
-	pl-trace.o pl-util.o pl-wic.o pl-write.o pl-term.o pl-buffer.o
+	pl-comp.o pl-rc.o pl-dwim.o pl-ext.o pl-file.o pl-flag.o \
+	pl-fmt.o pl-funct.o pl-gc.o pl-glob.o pl-itf.o pl-list.o \
+	pl-load.o pl-modul.o pl-op.o pl-os.o pl-prims.o pl-pro.o \
+	pl-proc.o pl-prof.o pl-read.o pl-rec.o pl-rl.o pl-setup.o \
+	pl-sys.o pl-table.o pl-trace.o pl-util.o pl-wic.o pl-write.o \
+	pl-term.o pl-buffer.o pl-thread.o   frame.o
 RCOBJ=	rc/access.o rc/build.o rc/html.o rc/rc.o rc/util.o
 
 DEPOBJ=	pl-main.o
@@ -196,6 +195,12 @@ $(srcdir)/pl-funct.ih:	$(srcdir)/ATOMS
 $(srcdir)/pl-atom.ih:	$(srcdir)/ATOMS
 		cd $(srcdir) ; $(AWK) -f defatom.awk < ATOMS
 
+# Hack to deal with __register_frame problems in different glibc 2 versions
+# (Linux, compiled on SuSE 6.0, glibc 2.0.7, egcs 1.1.1)
+
+frame.o:
+		ar x `$(CC) -print-libgcc-file-name` $@
+
 pl-bite:	$(srcdir)/pl-bite.c
 		$(CC) -I. -I$(srcdir) $(CFLAGS) -o $@ $(srcdir)/pl-bite.c
 
@@ -220,10 +225,7 @@ install:	dv-install
 dv-install:	install-arch install-libs install-bins
 
 install-bins:	install-arch
-		-if [ ! -d $(bindir)  ];    then $(MKDIR) $(bindir);     fi
-		if [ -r $(bindir)/$(PL) ]; then \
-		    mv -f $(bindir)/$(PL) $(bindir)/$(PL).old; \
-		fi
+		-if [ ! -d $(bindir)  ]; then $(MKDIR) $(bindir); fi
 		for f in $(PL) pl-bite plld plrc; do \
 		    ( cd $(bindir); rm -f $$f; ln -s $(PLBASE)/bin/$(ARCH)/$$f . ); \
 		done
@@ -339,6 +341,7 @@ clean:
 
 distclean:	clean
 		@(cd rc && $(MAKE) distclean)
+		rm -f pl plld pl-bite pl.1
 		rm -f config.log config.cache
 
 realclean:	clean

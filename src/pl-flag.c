@@ -5,6 +5,7 @@
     jan@swi.psy.uva.nl
 
     Purpose: implement flag/3
+    MT-status: SAFE
 */
 
 #include "pl-incl.h"
@@ -26,8 +27,14 @@ struct flag
 };
 
 #define flagTable (GD->flags.table)
-
-forwards Flag lookupFlag(word);
+#if O_PLMT
+static pthread_mutex_t flag_mutex = PTHREAD_MUTEX_INITIALIZER;
+#define LOCK()   pthread_mutex_lock(&flag_mutex)
+#define UNLOCK() pthread_mutex_unlock(&flag_mutex)
+#else
+#define LOCK()
+#define UNLOCK()
+#endif
 
 void
 initFlags(void)
@@ -57,26 +64,33 @@ pl_flag(term_t name, term_t old, term_t new)
   word key;
   atom_t a;
   number n;
+  word rval;
 
   if ( !(key = getKey(name)) )
-    return warning("flag/2: illegal key");
+    return PL_error("flag", 3, NULL, ERR_TYPE, ATOM_key, key);
+  rval = FALSE;
 
+  LOCK();
   f = lookupFlag(key);
   switch(f->type)
   { case FLG_ATOM:
-      TRY(PL_unify_atom(old, f->value.a));
+      if ( !PL_unify_atom(old, f->value.a) )
+	goto out;
       break;
     case FLG_INTEGER:
-      TRY(PL_unify_integer(old, f->value.i));
+      if ( !PL_unify_integer(old, f->value.i) )
+	goto out;
       break;
     case FLG_REAL:
     { 
 #ifdef DOUBLE_ALIGNMENT
       double v;
       doublecpy(&v, &f->value.f);
-      TRY(PL_unify_float(old, v));
+      if ( !PL_unify_float(old, v) )
+	goto out;
 #else
-      TRY(PL_unify_float(old, f->value.f));
+      if ( !PL_unify_float(old, f->value.f) )
+	goto out;
 #endif
       break;
     }
@@ -84,11 +98,10 @@ pl_flag(term_t name, term_t old, term_t new)
       assert(0);
   }
 
+  rval = TRUE;
   if ( PL_get_atom(new, &a) )
   { f->type = FLG_ATOM;
     f->value.a = a;
-
-    succeed;
   } else if ( valueExpression(new, &n) )
   { canoniseNumber(&n);
 
@@ -104,11 +117,13 @@ pl_flag(term_t name, term_t old, term_t new)
       f->value.f = n.value.f;
 #endif
     }
+  } else
+    rval = PL_error("flag", 3, NULL, ERR_TYPE, ATOM_flag_value, new);
 
-    succeed;
-  }
+out:
+  UNLOCK();
 
-  return warning("flag/2: value should be an atom, integer or expression");
+  return rval;
 }
 
 word
@@ -128,7 +143,7 @@ pl_current_flag(term_t k, term_t h)
       {	symb = firstHTable(flagTable);
 	break;
       }
-      return warning("current_flag/2: illegal key");
+      return PL_error("current_flag", 2, NULL, ERR_TYPE, ATOM_key, key);
     }
     case FRG_REDO:
       symb = ForeignContextPtr(h);

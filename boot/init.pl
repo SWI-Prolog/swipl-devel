@@ -412,6 +412,12 @@ user:file_search_path(foreign, swi(ArchLib)) :-
 	feature(arch, Arch),
 	concat('lib/', Arch, ArchLib).
 user:file_search_path(foreign, swi(lib)).
+user:file_search_path(user_profile, '.').
+user:file_search_path(user_profile, UserHome) :-
+	catch(expand_file_name(~, [UserHome]), _, fail).
+user:file_search_path(user_profile, SwiHome) :-
+	feature(unix, false),
+	feature(home, SwiHome).
 
 expand_file_search_path(Spec, Expanded) :-
 	functor(Spec, Alias, 1),

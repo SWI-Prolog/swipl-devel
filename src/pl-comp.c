@@ -855,7 +855,10 @@ I_ENTER or I_POPF instructions.
 
 static int
 compileArgument(Word arg, int where, compileInfo *ci)
-{ int index;
+{ GET_LD
+#undef LD
+#define LD LOCAL_LD
+  int index;
   bool first;
 
   deRef(arg);
@@ -1000,6 +1003,8 @@ isvar:
 
     return NONVOID;
   }
+#undef LD
+#undef LD GLOBAL_LD
 }
 
 
@@ -1012,7 +1017,10 @@ will check for the subclause just beeing a variable or the cut.
 
 static bool
 compileSubClause(register Word arg, code call, compileInfo *ci)
-{ Module tm = ci->module;
+{ GET_LD
+#undef LD
+#define LD LOCAL_LD
+  Module tm = ci->module;
 
   deRef(arg);
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1163,6 +1171,8 @@ operator.
   }
     
   return warning("assert/1: illegal clause");
+#undef LD
+#define LD GLOBAL_LD
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1227,7 +1237,10 @@ compileArith(Word arg, compileInfo *ci)
 
 static bool
 compileArithArgument(Word arg, compileInfo *ci)
-{ int index;
+{ GET_LD
+#undef LD
+#define LD LOCAL_LD
+  int index;
 
   deRef(arg);
 
@@ -1301,6 +1314,8 @@ compileArithArgument(Word arg, compileInfo *ci)
 
     succeed;
   }
+#undef LD
+#define LD GLOBAL_LD
 }
 #endif /* O_COMPILE_ARITH */
 

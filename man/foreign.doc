@@ -2153,14 +2153,6 @@ it.  The coder is in \figref{calc}.
 #include <stdio.h>
 #include <SWI-Prolog.h>
 
-PL_extension PL_extensions [] =
-{
-/*{ "name",     arity,  function,       PL_FA_<flags> },*/
-
-  { NULL,       0,      NULL,           0 }     /* terminating line */
-};
-
-
 #define MAXLINE 1024
 
 int

@@ -420,7 +420,7 @@ pl_rawtty(term_t goal)
   pl_ttyflush();
   PushTty(&buf, TTY_RAW);
 
-  rval = callProlog(NULL, goal, FALSE);
+  rval = callProlog(NULL, goal, PL_Q_NODEBUG, NULL);
 
   PopTty(&buf);
   debugstatus.suspendTrace--;

@@ -265,9 +265,13 @@ Brief description of the local stack-layout.  This stack contains:
 		 *	    FOREIGN FRAME	*
 		 *******************************/
 
+#undef LD
+#define LD LOCAL_LD
+
 void
 finish_foreign_frame()
-{ if ( fli_context )
+{ GET_LD
+  if ( fli_context )
   { FliFrame fr = fli_context;
 
     if ( (unsigned long)environment_frame < (unsigned long) fr )
@@ -280,7 +284,8 @@ finish_foreign_frame()
 
 fid_t
 PL_open_foreign_frame()
-{ FliFrame fr = (FliFrame) lTop;
+{ GET_LD
+  FliFrame fr = (FliFrame) lTop;
 
   finish_foreign_frame();
   requireStack(local, sizeof(struct fliFrame));
@@ -296,7 +301,8 @@ PL_open_foreign_frame()
 
 void
 PL_close_foreign_frame(fid_t id)
-{ FliFrame fr = (FliFrame) valTermRef(id);
+{ GET_LD
+  FliFrame fr = (FliFrame) valTermRef(id);
 
   fli_context = fr->parent;
   lTop = (LocalFrame) fr;
@@ -305,13 +311,16 @@ PL_close_foreign_frame(fid_t id)
 
 void
 PL_discard_foreign_frame(fid_t id)
-{ FliFrame fr = (FliFrame) valTermRef(id);
+{ GET_LD
+  FliFrame fr = (FliFrame) valTermRef(id);
 
   Undo(fr->mark);
   fli_context = fr->parent;
   lTop = (LocalFrame) fr;
 }
 
+#undef LD
+#define LD GLOBAL_LD
 
 		/********************************
 		*         FOREIGN CALLS         *
@@ -422,7 +431,10 @@ given as `backtrack control'.
 
 static inline bool
 callForeign(const Definition def, LocalFrame frame)
-{ Func function = def->definition.function;
+{ GET_LD
+#undef LD
+#define LD LOCAL_LD
+  Func function = def->definition.function;
   int argc = def->functor->arity;
   word result;
   term_t h0 = argFrameP(frame, 0) - (Word)lBase;
@@ -464,6 +476,8 @@ callForeign(const Definition def, LocalFrame frame)
 	    predicateName(def), result);
     fail;
   }
+#undef LD
+#define LD GLOBAL_LD
 }
 
 
@@ -512,16 +526,11 @@ so much simpler because it is *known* that   p is either on the local or
 global stack and fr is available.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static inline void
-Trail(Word p, LocalFrame fr)
-{ if ( p >= (Word)lBase ||
-       !fr ||
-       p < fr->mark.globaltop )
-  { requireStack(trail, sizeof(struct trail_entry));
-    (tTop++)->address = p;
+#define Trail(p, fr) \
+  if ( p >= (Word)lBase || !fr || p < fr->mark.globaltop ) \
+  { requireStack(trail, sizeof(struct trail_entry)); \
+    (tTop++)->address = p; \
   }
-}
-
 
 void
 DoTrail(Word p)
@@ -616,7 +625,10 @@ are:
 
 bool
 unify(Word t1, Word t2, LocalFrame fr)
-{ word w1;
+{ GET_LD
+#undef LD
+#define LD LOCAL_LD
+  word w1;
   word w2;
 
 right_recursion:
@@ -691,6 +703,8 @@ right_recursion:
   }
 
   succeed;
+#undef LD
+#define LD GLOBAL_LD
 }
 
 
@@ -1148,7 +1162,10 @@ int _PL_nop_counter;
 
 int
 PL_next_solution(qid_t qid)
-{ QueryFrame QF;			/* Query frame */
+{ GET_LD
+#undef LD
+#define LD LOCAL_LD
+  QueryFrame QF;			/* Query frame */
   LocalFrame FR;			/* current frame */
   Word	     ARGP = NULL;		/* current argument pointer */
   Code	     PC;			/* program counter */
@@ -3735,7 +3752,9 @@ foreign frame we have to set BFR and do data backtracking.
 
     goto call_builtin;
   }
-} /* end of interpret() */
+#undef LD
+#define LD GLOBAL_LD
+} /* end of PL_next_solution() */
 
 #if O_COMPILE_OR
 word

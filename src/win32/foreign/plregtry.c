@@ -431,6 +431,7 @@ pl_reg_value(term_t h, term_t name, term_t value)
     }
   } else
     return PL_warning("reg_value/3: %s", APIError(rval));
+  return PL_warning("reg_value/3: reached dead end in C Code");
 }
 
 

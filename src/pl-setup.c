@@ -30,7 +30,7 @@ access.   Finally  it holds the code to handle signals transparently for
 foreign language code or packages with which Prolog was linked together.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-forwards void initStacks(long, long, long, long);
+static   void allocStacks(long local, long global, long trail, long argument);
 forwards void initFeatures(void);
 forwards void initSignals(void);
 
@@ -63,27 +63,11 @@ setupProlog(void)
   initSignals();
 #endif
   DEBUG(1, Sdprintf("Stacks ...\n"));
-  initStacks(GD->options.localSize, 
-	     GD->options.globalSize, 
-	     GD->options.trailSize, 
-	     GD->options.argumentSize);
-
-  base_addresses[STG_LOCAL]  = (unsigned long)lBase;
-  base_addresses[STG_GLOBAL] = (unsigned long)gBase;
-  base_addresses[STG_TRAIL]  = (unsigned long)tBase;
-  emptyStacks();
-
-  DEBUG(1, Sdprintf("base_addresses[STG_LOCAL] = %p\n",
-		    base_addresses[STG_LOCAL]));
-  DEBUG(1, Sdprintf("base_addresses[STG_GLOBAL] = %p\n",
-		    base_addresses[STG_GLOBAL]));
-  DEBUG(1, Sdprintf("base_addresses[STG_TRAIL] = %p\n",
-		    base_addresses[STG_TRAIL]));
-
-#ifdef O_LIMIT_DEPTH
-  depth_limit   = (unsigned long)DEPTH_NO_LIMIT;
-  depth_reached = 0;
-#endif
+  initPrologStacks(GD->options.localSize, 
+		   GD->options.globalSize, 
+		   GD->options.trailSize, 
+		   GD->options.argumentSize);
+  initPrologLocalData();
 
   DEBUG(1, Sdprintf("Atoms ...\n"));
   initAtoms();
@@ -121,16 +105,22 @@ setupProlog(void)
 
   endCritical;
 
-  environment_frame = (LocalFrame) NULL;
-  LD->statistics.inferences = 0;
-#if O_STORE_PROGRAM
-  GD->cannot_save_program = NULL;
-#else
-  GD->cannot_save_program = "Not supported on this machine";
-#endif
-
   DEBUG(1, Sdprintf("Heap Initialised\n"));
 }
+
+
+void
+initPrologLocalData(void)
+{
+#ifdef O_LIMIT_DEPTH
+  depth_limit   = (unsigned long)DEPTH_NO_LIMIT;
+  depth_reached = 0;
+#endif
+
+  environment_frame = (LocalFrame) NULL;
+  LD->statistics.inferences = 0;
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Feature interface
@@ -182,6 +172,9 @@ initFeatures()
 #ifdef HAVE_POPEN
   CSetFeature("pipe",		"true");
 #endif
+#ifdef O_PLMT
+  CSetFeature("threads",	"true");
+#endif
 #ifdef ASSOCIATE_SRC
   CSetFeature("associate",	ASSOCIATE_SRC);
 #endif
@@ -196,6 +189,7 @@ initFeatures()
   CSetFeature("debug_on_error",	"true");
   CSetFeature("report_error",	"true");
 #endif
+  CSetFeature("autoload",	"true");
 					/* ISO features */
   CSetIntFeature("max_integer", PLMAXINT);
   CSetIntFeature("min_integer", PLMININT);
@@ -702,6 +696,26 @@ pl_on_signal(term_t sig, term_t name, term_t old, term_t new)
 		 *	       STACKS		*
 		 *******************************/
 
+int
+initPrologStacks(long local, long global, long trail, long argument)
+{ allocStacks(local, global, trail, argument);
+
+  base_addresses[STG_LOCAL]  = (unsigned long)lBase;
+  base_addresses[STG_GLOBAL] = (unsigned long)gBase;
+  base_addresses[STG_TRAIL]  = (unsigned long)tBase;
+  emptyStacks();
+
+  DEBUG(1, Sdprintf("base_addresses[STG_LOCAL] = %p\n",
+		    base_addresses[STG_LOCAL]));
+  DEBUG(1, Sdprintf("base_addresses[STG_GLOBAL] = %p\n",
+		    base_addresses[STG_GLOBAL]));
+  DEBUG(1, Sdprintf("base_addresses[STG_TRAIL] = %p\n",
+		    base_addresses[STG_TRAIL]));
+
+  return TRUE;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Create nice empty stacks. exception_bin   and  exception_printed are two
 term-references that must be low on  the   stack  to  ensure they remain
@@ -731,7 +745,6 @@ emptyStacks()
   LD->exception.tmp     = PL_new_term_ref();
   LD->exception.pending = PL_new_term_ref();
 }
-
 
 #if O_DYNAMIC_STACKS
 
@@ -950,7 +963,7 @@ unmap(Stack s)
 
 
 static void
-initStacks(long local, long global, long trail, long argument)
+allocStacks(long local, long global, long trail, long argument)
 { caddress lbase, gbase, tbase, abase;
   long glsize;
   long lsep, tsep;
@@ -1002,6 +1015,31 @@ initStacks(long local, long global, long trail, long argument)
 #ifndef NO_SEGV_HANDLING
   set_sighandler(SIGSEGV, (handler_t) _PL_segv_handler);
 #endif
+}
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Free stacks for the current Prolog thread
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+freeStacks(PL_local_data_t *ld)
+{ long lsep, tsep;
+  long len;
+
+#ifdef NO_SEGV_HANDLING
+  lsep = tsep = 0;
+#else
+  lsep = STACK_SEPARATION;
+  tsep = size_alignment;
+#endif
+
+  len = (char *)ld->stacks.trail.limit - (char *)ld->stacks.trail.base;
+  munmap((char *)ld->stacks.trail.base, len+tsep);
+  len = (char *)ld->stacks.argument.limit - (char *)ld->stacks.argument.base;
+  munmap((char *)ld->stacks.argument.base, len+tsep);
+  len = ((char *)ld->stacks.global.limit - (char *)ld->stacks.global.base) +
+        ((char *)ld->stacks.local.limit - (char *)ld->stacks.local.base);
+  munmap((char *)ld->stacks.global.base, len+tsep+lsep);
 }
 
 #endif /* MMAP_STACK */
@@ -1083,7 +1121,7 @@ align_base(long int x)
 
 
 static void
-initStacks(long local, long global, long trail, long argument)
+allocStacks(long local, long global, long trail, long argument)
 { caddress lbase, gbase, tbase, abase;
   long glsize;
   long lsep, tsep;
@@ -1332,7 +1370,7 @@ init_stack(Stack s, char *name, long size, long limit, long minfree)
 }
 
 static void
-initStacks(long local, long global, long trail, long arg)
+allocStacks(long local, long global, long trail, long arg)
 { long old_heap = GD->statistics.heap;
 #if O_SHIFT_STACKS
   long itrail  = 32 K;

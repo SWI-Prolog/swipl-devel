@@ -258,7 +258,6 @@ initDefaults()
   GD->initialised	     = FALSE;
   GD->cmdline.notty	     = systemDefaults.notty;
   GD->bootsession	     = FALSE;
-  LD->autoload		     = TRUE;
 }
 
 
@@ -526,6 +525,10 @@ properly on Linux. Don't bother with it.
 #endif
 #if O_MALLOC_DEBUG
   malloc_debug(O_MALLOC_DEBUG);
+#endif
+
+#ifdef O_PLMT
+  initPrologThreads();			/* initialise thread system */
 #endif
 
   initOs();				/* Initialise OS bindings */

@@ -36,6 +36,10 @@ for -DMD="md-mswin.h"
 #endif
 #endif
 
+#if defined(O_PLMT) && !defined(_REENTRANT)
+#define _REENTRANT 1
+#endif
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 		      PROLOG SYSTEM OPTIONS
 
@@ -72,6 +76,9 @@ handy for it someone wants to add a data type to the system.
       compiled Prolog  code  rather than the  virtual-machine numbers.
       This speeds-up  the vm  instruction dispatching in  interpret().
       See also pl-comp.c
+  O_PLMT
+      Include support for multi-threaded Prolog application.  Currently
+      very incomplete and only for the POSIX thread library.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define PL_KERNEL		1
@@ -167,7 +174,6 @@ void *alloca ();
 #  endif
 # endif
 #endif
-
 
 #if HAVE_XOS_H
 #include <xos.h>
@@ -1552,6 +1558,7 @@ typedef struct debuginfo
 #define ISO_FEATURE		0x0800	/* Strict ISO compliance */
 #define OPTIMISE_FEATURE	0x1000	/* -O: optimised compilation */
 #define FILEVARS_FEATURE	0x2000	/* Expand $var and ~ in filename */
+#define AUTOLOAD_FEATURE	0x4000	/* do autoloading */
 
 typedef struct
 { unsigned long flags;			/* the feature flags */
@@ -1615,10 +1622,11 @@ decrease).
 #include SYSLIB_H
 #endif
 
-#include "pl-funcs.h"			/* global functions */
 #include "pl-main.h"			/* Declarations needed by pl-main.c */
 #include "pl-error.h"			/* Exception generation */
 #include "pl-global.h"			/* global data */
+#include "pl-thread.h"			/* thread manipulation */
+#include "pl-funcs.h"			/* global functions */
 
 #define NULL_ATOM ((atom_t)0)
 #define MK_ATOM(n)    		((n)<<7|TAG_ATOM|STG_STATIC)

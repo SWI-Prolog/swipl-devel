@@ -1546,7 +1546,10 @@ exit:
 static bool
 simple_term(bool must_be_op, term_t term, bool *name,
 	    term_t positions, ReadData _PL_rd)
-{ Token token;
+{ GET_LD
+#undef LD
+#define LD LOCAL_LD
+  Token token;
 
   *name = FALSE;
 
@@ -1770,6 +1773,8 @@ term is to be written.
       /*NOTREACHED*/
       fail;
   }
+#undef LD
+#define LD GLOBAL_LD
 }
 
 

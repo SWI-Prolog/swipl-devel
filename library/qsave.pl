@@ -30,17 +30,19 @@ qsave_program(FileSpec, Options0) :-
 	check_options(Options0),
 	'$strip_module'(FileSpec, Module, FileBase),
 	exe_file(FileBase, File),
-	option(Options0, autoload/true, Autoload,  Options1),
-	option(Options1, map/[],        Map,       Options2),
-	option(Options2, goal/[],       GoalTerm,  Options3),
-	option(Options3, op/save,	SaveOps,   Options4),
-	option(Options4, class/runtime, SaveClass, Options5),
+	option(Options0, autoload/true,	   Autoload,  Options1),
+	option(Options1, map/[],	   Map,	      Options2),
+	option(Options2, goal/[],	   GoalTerm,  Options3),
+	option(Options3, op/save,	   SaveOps,   Options4),
+	option(Options4, class/runtime,	   SaveClass, Options5),
+	option(Options5, initfile/DefInit, InitFile,  Options6),
+	default_init_file(SaveClass, DefInit),
 	(   GoalTerm == []
-	->  Options = Options5
+	->  Options = Options6
 	;   term_to_atom(Module:GoalTerm, GoalAtom),
 	    term_to_atom(GT, GoalAtom),
 	    define_predicate(user:GT),
-	    Options = [goal=GoalAtom|Options5]
+	    Options = [goal=GoalAtom|Options6]
 	),
 	(   Autoload == true
 	->  save_autoload
@@ -54,7 +56,10 @@ qsave_program(FileSpec, Options0) :-
 	),
 	$rc_open_archive(File, RC),
 	make_header(RC, SaveClass, Options),
-	save_options(RC, [class(SaveClass)|Options]),
+	save_options(RC, [ class(SaveClass),
+			   init_file(InitFile)
+			 | Options
+			 ]),
 	save_resources(RC, SaveClass),
 	$rc_open(RC, $state, $prolog, write, StateFd),
 	$open_wic(StateFd),
@@ -80,6 +85,10 @@ exe_file(Base, Exe) :-
 	file_name_extension(_, '', Base), !,
 	file_name_extension(Base, exe, Exe).
 exe_file(Exe, Exe).
+
+default_init_file(runtime, none) :- !.
+default_init_file(_,       InitFile) :-
+	$option(init_file, InitFile, InitFile).
 
 
 		 /*******************************

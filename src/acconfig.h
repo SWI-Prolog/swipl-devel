@@ -102,3 +102,6 @@
 
 /* Define if you have a working dlopen() */
 #undef HAVE_DLOPEN
+
+/* Define to include support for multi-threading */
+#undef O_PLMT

@@ -3020,6 +3020,45 @@ instantiated to atoms or integers.  The environment variable will be
 passed to shell/[0-2] and can be requested using getenv/2.
 \predicate{unsetenv}{1}{+Name}
 Remove Unix environment variable from the environment.
+    \predicate{unix}{1}{+Command}
+This predicate comes from the Quintus compatibility library and provides
+a partial implementation thereof.  It provides access to some operating
+system features and unlike the name suggests, is no operating system
+specific. Currently it is the only way to fetch the Prolog command-line
+arguments. Defined \arg{Command}'s are below.
+
+\begin{description}
+    \termitem{system}{+Command}
+Equivalent to calling shell/1.  Use for compatibility only.
+    \termitem{shell}{+Command}
+Equivalent to calling shell/1.  Use for compatibility only.
+    \termitem{shell}{}
+Equivalent to calling shell/0.  Use for compatibility only.
+    \termitem{cd}{}
+Equivalent to calling chdir/1 as \verb$chdir(~)$. Use for compatibility
+only.
+    \termitem{cd}{+Directory}
+Equivalent to calling chdir/1.  Use for compatibility only.
+    \termitem{argv}{-Argv}
+Unify \arg{Argv} with the list of commandline arguments provides to
+this Prolog run. Please note that Prolog system-arguments and
+application arguments are separated by \const{--}.  Integer arguments
+are passed as Prolog integers, float arguments and Prolog floating
+point numbers and all other arguments as Prolog atoms.
+
+A stand-alone program could use the following skeleton to handle
+command-line arguments. See also \secref{cmdlinecomp}.
+
+\begin{code}
+main :-
+	unix(argv(Argv)),
+	append(_PrologArgs, [--|AppArgs], Argv), !,
+	main(AppArgs).
+\end{code}
+
+
+\end{description}
+
 \predicate{get_time}{1}{-Time}
 Return the number of seconds that elapsed since the epoch of Unix,
 1 January 1970, 0 hours.  \arg{Time} is a floating point number. Its
@@ -3140,6 +3179,18 @@ arbitrary patterns, including `\const{\{\ldots\}}' patterns. The empty
 pattern is legal as well: `\file{\{.pl,\}}' matches either `\file{.pl}'
 or the empty string.
 
+Before expanding wildchards, the construct \file{$\arg{var}} is expanded
+to the value of the environment variable \var{var} and a possible
+leading \verb$~$ character is expanded to the user's home directory.%
+    \footnote{On Windows, the home directory is determined as follows:
+	      if the environment variable \env{HOME} exists, this is
+	      used.  If the variables \env{HOMEDRIVE} and \env{HOMEPATH}
+	      exist (Windows-NT), these are used.  At initialisation,
+	      the system will set the environment variable \env{HOME}
+	      to point to the SWI-Prolog home directory if neither
+	      \env{HOME} nor \env{HOMEPATH} and \env{HOMEDRIVE} are
+	      defined}.
+
     \predicate{prolog_to_os_filename}{2}{?PrologPath, ?OsPath}
 Converts between the internal Prolog pathname conventions and the
 operating-system pathname conventions.  The internal conventions are
@@ -3166,6 +3217,115 @@ Change working directory to \arg{Path}.%
 	     Using chdir/1 while file-bound streams are open causes
 	     wrong results on telling/1, seeing/1 and current_stream/3}
 
+\end{description}
+
+\section{Multi-threading (PRE-ALPHA: developers only!)}
+
+{\bf The features described in this section are only enabled on Unix
+systems providing POSIX threads and if the system is configured using
+the \longoption{enable-mt}{} option.  SWI-Prolog multi-theading support
+is very incomplete and for developers ONLY.  This section however does
+provide an overview of the forthcoming functionality.}
+
+SWI-Prolog multithreading is based on standard C-language multithreading
+support. It is not like {\em ParLog} or other paralel implementations of
+the Prolog language. Prolog threads have their own stacks and only share
+the Prolog {\em heap}: predicates, records, flags and other global
+non-backtrackable data.  SWI-Prolog thread support is designed with the
+following goals in mind.
+
+\begin{itemlist}
+    \item[Multi-threaded server applications]
+Todays computing services often focus on (internet) server applications.
+Such applications often have need for communication between services
+and/or fast non-blocking service to multiple concurrent clients.  The
+shared heap provides fast communication and thread creation is
+relatively cheap (A Pentium-II/450 can create and join approx. 10,000
+threads per second on Linux 2.2).
+    \item[Interactive applications]
+Interactive applications often need to perform extensive computation.
+If such computations are executed in a new thread, the main thread can
+process events and allow the user to cancel the ongoing computation.
+User interfaces can also use multiple threads, each thread dealing with
+input from a distinct group of windows.
+    \item[Natural integration with foreign code]
+Each Prolog thread runs in a C-thread, automatically making them
+cooperate with \jargon{MT-safe}	foreign-code.  In addition, any
+foreign thread can create its own Prolog engine for dealing with
+calling Prolog from C-code.
+\end{itemlist}
+
+Below is the tentative and incomplete API for dealing with multiple
+Prolog threads. Forthcoming: \idx{mutexes}, \idx{semaphores},
+thread-suspend and cancel, foreign-language interface and debugger
+interface.
+
+\begin{description}
+    \predicate{thread_create}{3}{:Goal, -Id, +Options}
+Create a new Prolog thread (and underlying C-thread) and start it
+by executing \arg{Goal}.  If the thread is created succesfully, the
+thread-identifier of the created thread is unified to \arg{Id}.
+\arg{Options} is a list of options.  Currently defined options are:
+
+\begin{description}
+    \termitem{local}{K-Bytes}
+Set the limit to which the local stack of this thread may grow.  If
+omited, the limit of the calling thread is used.  See also the
+\cmdlineoption{-L} commandline option.
+    \termitem{global}{K-Bytes}
+Set the limit to which the global stack of this thread may grow.  If
+omited, the limit of the calling thread is used. See also the
+\cmdlineoption{-G} commandline option.
+    \termitem{trail}{K-Bytes}
+Set the limit to which the trail stack of this thread may grow.  If
+omited, the limit of the calling thread is used. See also the
+\cmdlineoption{-T} commandline option.
+    \termitem{argument}{K-Bytes}
+Set the limit to which the argument stack of this thread may grow.  If
+omited, the limit of the calling thread is used. See also the
+\cmdlineoption{-A} commandline option.
+\end{description}
+
+The \arg{Goal} argument is {\em copied} to the new Prolog engine.  This
+implies further instantiation of this term in either thread does not
+have consequences for the other thread: Prolog thread do not share
+data from their stacks.
+
+    \predicate{current_thread}{2}{?Id, ?Status}
+Enumerates identifiers and status of all currently known threads.
+Calling current_thread/2 does not influence any thread.  See also
+thread_join/2. \arg{Status} is one of:
+
+\begin{description}
+    \termitem{running}{}
+The thread is running.  This is the initial status of a thread.  Please
+note that threats waiting for something are considered running too.
+    \termitem{false}{}
+The \arg{Goal} of the thread has been completed and failed.
+    \termitem{true}{}
+The \arg{Goal} of the thread has been completed and succeeded.
+    \termitem{exited}{Term}
+The \arg{Goal} of the thread has been terminated using thread_exit/1
+with \arg{Term} as argument.
+    \termitem{exception}{Term}
+The \arg{Goal} of the thread has been terminated due to an uncaught
+exception (see throw/1 and catch/3).
+\end{description}
+
+    \predicate{thread_join}{2}{+Id, -Status}
+Wait for the termination of thread with given \arg{Id}.  Then unify
+the resultp-status of the thread with \arg{Status}.  After this call,
+\arg{Id} becomes invalid and all resources associated with the thread
+are reclaimed.  See also current_thread/2.
+
+A thread that has been completed without thread_join/2 being called on
+it is partly reclaimed: the Prolog stacks are released and the C-thread
+is destroyed.  A small structure represening the exit-status of the
+thread is retained until thread_join/2 is called on the thread.
+
+    \predicate{thread_exit}{1}{+Term}
+Terminates the thread immediately, leaving \term{exited}{Term} as
+result-state.  The Prolog stacks and C-thread are reclaimed.
 \end{description}
 
 \section{User Toplevel Manipulation}

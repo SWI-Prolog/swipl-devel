@@ -161,6 +161,7 @@ do_complete(RlcCompleteData data)
 
   if ( file_completer )
     return (*file_completer)(data);
+  return FALSE;
 }
 
 
@@ -388,7 +389,7 @@ console.c for further details.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int PASCAL
-WinMain(HANDLE hInstance, HANDLE hPrevInstance,
+WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 	LPSTR lpszCmdLine, int nCmdShow)
 {
   return rlc_main(hInstance, hPrevInstance, lpszCmdLine, nCmdShow,

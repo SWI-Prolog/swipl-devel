@@ -87,6 +87,8 @@ state. Provided the application has all libraries loaded, the resulting
 executable is completely independent of the runtime environment or
 location where it was build.
 
+See also \secref{cmdlinecomp}.
+
     \predicate{qsave_program}{1}{+File}
 Equivalent to \exam{qsave_program(File, [])}.
 

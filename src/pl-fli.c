@@ -12,6 +12,9 @@
 #include "pl-incl.h"
 #include <errno.h>
 
+#undef LD
+#define LD LOCAL_LD
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 SWI-Prolog  new-style  foreign-language  interface.   This  new  foreign
 interface is a mix of the old  interface using the ideas on term-handles
@@ -54,14 +57,25 @@ Prolog int) is used by the garbage collector to update the stack frames.
 #undef ulong
 #define ulong unsigned long
 
+#ifdef O_PLMT
 static inline word
-valHandle(term_t r)
+__valHandle(term_t r, PL_local_data_t *__PL_ld)
 { Word p = valTermRef(r);
 
   deRef(p);
   return *p;
 }
+#define valHandle(r) __valHandle(r, __PL_ld)
+#else
+static inline word
+valHandle(term_t r)
+{ GET_LD
+  Word p = valTermRef(r);
 
+  deRef(p);
+  return *p;
+}
+#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Deduce the value to store a copy of the  contents of p. This is a *very*
@@ -76,7 +90,8 @@ variation, which is a bit longer, a function might actually be faster.
 
 static word
 linkVal(Word p)
-{ 
+{ GET_LD
+  
 #if 0
   deRef(p);
   return isVar(*p) ? makeRef(p) : *p;
@@ -120,7 +135,8 @@ linkVal(Word p)
 
 term_t
 PL_new_term_refs(int n)
-{ Word t = (Word)lTop;
+{ GET_LD
+  Word t = (Word)lTop;
   term_t r = consTermRef(t);
 
   lTop = (LocalFrame)(t+n);
@@ -135,7 +151,8 @@ PL_new_term_refs(int n)
 
 term_t
 PL_new_term_ref()
-{ Word t = (Word)lTop;
+{ GET_LD
+  Word t = (Word)lTop;
   term_t r = consTermRef(t);
 
   lTop = (LocalFrame)(t+1);
@@ -149,13 +166,15 @@ PL_new_term_ref()
 
 void
 PL_reset_term_refs(term_t r)
-{ lTop = (LocalFrame) valTermRef(r);
+{ GET_LD
+  lTop = (LocalFrame) valTermRef(r);
 }
 
 
 term_t
 PL_copy_term_ref(term_t from)
-{ Word t   = (Word)lTop;
+{ GET_LD
+  Word t   = (Word)lTop;
   term_t r = consTermRef(t);
   Word p2  = valHandleP(from);
 
@@ -177,7 +196,8 @@ an atomic value. It is intended for foreign language functions.
 
 static bool
 unifyAtomic(term_t t, word w)
-{ Word p = valHandleP(t);
+{ GET_LD
+  Word p = valHandleP(t);
 
   for(;;)
   { if ( isVar(*p) )
@@ -312,7 +332,8 @@ PL_cvt_o_atom(atom_t c, term_t p)
 
 int
 PL_compare(term_t t1, term_t t2)
-{ Word p1 = valHandleP(t1);
+{ GET_LD
+  Word p1 = valHandleP(t1);
   Word p2 = valHandleP(t2);
 
   return compareStandard(p1, p2);	/* -1, 0, 1 */
@@ -347,7 +368,8 @@ makeNum(long i)
 
 static inline void
 bindConsVal(Word to, Word p)
-{ if ( isVar(*p) )
+{ GET_LD
+  if ( isVar(*p) )
   { if ( to < p )
     { setVar(*to);
       *p = makeRefG(to);
@@ -360,7 +382,8 @@ bindConsVal(Word to, Word p)
 
 void
 PL_cons_functor(term_t h, functor_t fd, ...)
-{ int arity = arityFunctor(fd);
+{ GET_LD
+  int arity = arityFunctor(fd);
 
   if ( arity == 0 )
   { setHandle(h, nameFunctor(fd));
@@ -384,7 +407,8 @@ PL_cons_functor(term_t h, functor_t fd, ...)
 
 void
 PL_cons_functor_v(term_t h, functor_t fd, term_t a0)
-{ int arity = arityFunctor(fd);
+{ GET_LD
+  int arity = arityFunctor(fd);
 
   if ( arity == 0 )
   { setHandle(h, nameFunctor(fd));
@@ -403,7 +427,8 @@ PL_cons_functor_v(term_t h, functor_t fd, term_t a0)
 
 void
 PL_cons_list(term_t l, term_t head, term_t tail)
-{ Word a = allocGlobal(3);
+{ GET_LD
+  Word a = allocGlobal(3);
   
   a[0] = FUNCTOR_dot2;
   bindConsVal(&a[1], valHandleP(head));
@@ -465,7 +490,8 @@ static const int type_map[8] = { PL_VARIABLE,
 
 int
 PL_get_term_value(term_t t, term_value_t *val)
-{ word w = valHandle(t);
+{ GET_LD
+  word w = valHandle(t);
   int rval = type_map[tag(w)];
 
   switch(rval)
@@ -499,7 +525,8 @@ PL_get_term_value(term_t t, term_value_t *val)
 
 int
 PL_get_atom(term_t t, atom_t *a)
-{ word w = valHandle(t);
+{ GET_LD
+  word w = valHandle(t);
 
   if ( isAtom(w) )
   { *a = (atom_t) w;
@@ -511,7 +538,8 @@ PL_get_atom(term_t t, atom_t *a)
 
 int
 PL_get_atom_chars(term_t t, char **s)
-{ word w = valHandle(t);
+{ GET_LD
+  word w = valHandle(t);
 
   if ( isAtom(w) )
   { *s = stringAtom(w);
@@ -523,7 +551,8 @@ PL_get_atom_chars(term_t t, char **s)
 #ifdef O_STRING
 int
 PL_get_string(term_t t, char **s, int *len)
-{ word w = valHandle(t);
+{ GET_LD
+  word w = valHandle(t);
 
   if ( isString(w) )
   { *s = valString(w);
@@ -540,7 +569,8 @@ PL_get_string(term_t t, char **s, int *len)
 
 static Buffer
 findBuffer(int flags)
-{ Buffer b;
+{ GET_LD
+  Buffer b;
 
   if ( flags & BUF_RING )
   { if ( ++current_buffer_id == BUFFER_RING_SIZE )
@@ -570,7 +600,8 @@ buffer_string(const char *s, int flags)
 
 static int
 unfindBuffer(int flags)
-{ if ( flags & BUF_RING )
+{ GET_LD
+  if ( flags & BUF_RING )
   { if ( --current_buffer_id <= 0 )
       current_buffer_id = BUFFER_RING_SIZE-1;
   }
@@ -596,7 +627,8 @@ malloc_string(const char *s)
 
 int
 PL_get_list_chars(term_t l, char **s, unsigned flags)
-{ Buffer b = findBuffer(flags);
+{ GET_LD
+  Buffer b = findBuffer(flags);
   word list = valHandle(l);
   Word arg, tail;
   int c;
@@ -631,7 +663,8 @@ PL_get_list_chars(term_t l, char **s, unsigned flags)
 
 int
 PL_get_chars(term_t l, char **s, unsigned flags)
-{ word w = valHandle(l);
+{ GET_LD
+  word w = valHandle(l);
   char tmp[100];
   char *r;
   int type;
@@ -679,7 +712,8 @@ PL_get_chars(term_t l, char **s, unsigned flags)
 
 int
 PL_get_integer(term_t t, int *i)
-{ word w = valHandle(t);
+{ GET_LD
+  word w = valHandle(t);
   
   if ( isTaggedInt(w) )
   { *i = valInt(w);
@@ -710,7 +744,8 @@ PL_get_integer(term_t t, int *i)
 
 int
 PL_get_long(term_t t, long *i)
-{ word w = valHandle(t);
+{ GET_LD
+  word w = valHandle(t);
   
   if ( isTaggedInt(w) )
   { *i = valInt(w);
@@ -741,7 +776,8 @@ PL_get_long(term_t t, long *i)
 
 int
 PL_get_float(term_t t, double *f)
-{ word w = valHandle(t);
+{ GET_LD
+  word w = valHandle(t);
   
   if ( isReal(w) )
   { *f = valReal(w);
@@ -776,7 +812,8 @@ PL_get_pointer(term_t t, void **ptr)
 
 int
 PL_get_name_arity(term_t t, atom_t *name, int *arity)
-{ word w = valHandle(t);
+{ GET_LD
+  word w = valHandle(t);
 
   if ( isTerm(w) )
   { FunctorDef fd = valueFunctor(functorTerm(w));
@@ -797,7 +834,8 @@ PL_get_name_arity(term_t t, atom_t *name, int *arity)
 
 int
 _PL_get_name_arity(term_t t, atom_t *name, int *arity)
-{ word w = valHandle(t);
+{ GET_LD
+  word w = valHandle(t);
 
   if ( isTerm(w) )
   { FunctorDef fd = valueFunctor(functorTerm(w));
@@ -813,7 +851,8 @@ _PL_get_name_arity(term_t t, atom_t *name, int *arity)
 
 int
 PL_get_functor(term_t t, functor_t *f)
-{ word w = valHandle(t);
+{ GET_LD
+  word w = valHandle(t);
 
   if ( isTerm(w) )
   { *f = functorTerm(w);
@@ -843,7 +882,8 @@ PL_get_module(term_t t, module_t *m)
 
 void
 _PL_get_arg(int index, term_t t, term_t a)
-{ word w = valHandle(t);
+{ GET_LD
+  word w = valHandle(t);
   Functor f = (Functor)valPtr(w);
   Word p = &f->arguments[index-1];
 
@@ -853,7 +893,8 @@ _PL_get_arg(int index, term_t t, term_t a)
 
 int
 PL_get_arg(int index, term_t t, term_t a)
-{ word w = valHandle(t);
+{ GET_LD
+  word w = valHandle(t);
 
   if ( isTerm(w) && index > 0 )
   { Functor f = (Functor)valPtr(w);
@@ -873,7 +914,8 @@ PL_get_arg(int index, term_t t, term_t a)
 
 int
 PL_get_list(term_t l, term_t h, term_t t)
-{ word w = valHandle(l);
+{ GET_LD
+  word w = valHandle(l);
 
   if ( isList(w) )
   { Word a = argTermP(w, 0);
@@ -890,7 +932,8 @@ PL_get_list(term_t l, term_t h, term_t t)
 
 int
 PL_get_head(term_t l, term_t h)
-{ word w = valHandle(l);
+{ GET_LD
+  word w = valHandle(l);
 
   if ( isList(w) )
   { Word a = argTermP(w, 0);
@@ -904,7 +947,8 @@ PL_get_head(term_t l, term_t h)
 
 int
 PL_get_tail(term_t l, term_t t)
-{ word w = valHandle(l);
+{ GET_LD
+  word w = valHandle(l);
 
   if ( isList(w) )
   { Word a = argTermP(w, 1);
@@ -917,7 +961,8 @@ PL_get_tail(term_t l, term_t t)
 
 int
 PL_get_nil(term_t l)
-{ word w = valHandle(l);
+{ GET_LD
+  word w = valHandle(l);
 
   if ( isNil(w) )
     succeed;
@@ -928,7 +973,8 @@ PL_get_nil(term_t l)
 
 int
 _PL_get_xpce_reference(term_t t, xpceref_t *ref)
-{ word w = valHandle(t);
+{ GET_LD
+  word w = valHandle(t);
   functor_t fd;
 
   if ( !isTerm(w) )
@@ -975,7 +1021,8 @@ _PL_get_xpce_reference(term_t t, xpceref_t *ref)
 
 int
 PL_is_variable(term_t t)
-{ word w = valHandle(t);
+{ GET_LD
+  word w = valHandle(t);
 
   return isVar(w) ? TRUE : FALSE;
 }
@@ -983,7 +1030,8 @@ PL_is_variable(term_t t)
 
 int
 PL_is_atom(term_t t)
-{ word w = valHandle(t);
+{ GET_LD
+  word w = valHandle(t);
 
   return isAtom(w) ? TRUE : FALSE;
 }
@@ -991,7 +1039,8 @@ PL_is_atom(term_t t)
 
 int
 PL_is_integer(term_t t)
-{ word w = valHandle(t);
+{ GET_LD
+  word w = valHandle(t);
 
   return isInteger(w) ? TRUE : FALSE;
 }
@@ -999,7 +1048,8 @@ PL_is_integer(term_t t)
 
 int
 PL_is_float(term_t t)
-{ word w = valHandle(t);
+{ GET_LD
+  word w = valHandle(t);
 
   return isReal(w) ? TRUE : FALSE;
 }
@@ -1007,7 +1057,8 @@ PL_is_float(term_t t)
 
 int
 PL_is_compound(term_t t)
-{ word w = valHandle(t);
+{ GET_LD
+  word w = valHandle(t);
 
   return isTerm(w) ? TRUE : FALSE;
 }
@@ -1015,7 +1066,8 @@ PL_is_compound(term_t t)
 
 int
 PL_is_functor(term_t t, functor_t f)
-{ word w = valHandle(t);
+{ GET_LD
+  word w = valHandle(t);
 
   if ( hasFunctor(w, f) )
     succeed;
@@ -1026,7 +1078,8 @@ PL_is_functor(term_t t, functor_t f)
 
 int
 PL_is_list(term_t t)
-{ word w = valHandle(t);
+{ GET_LD
+  word w = valHandle(t);
 
   return (isList(w) || isNil(w)) ? TRUE : FALSE;
 }
@@ -1034,7 +1087,8 @@ PL_is_list(term_t t)
 
 int
 PL_is_atomic(term_t t)
-{ word w = valHandle(t);
+{ GET_LD
+  word w = valHandle(t);
 
   return isAtomic(w) ? TRUE : FALSE;
 }
@@ -1042,7 +1096,8 @@ PL_is_atomic(term_t t)
 
 int
 PL_is_number(term_t t)
-{ word w = valHandle(t);
+{ GET_LD
+  word w = valHandle(t);
 
   return isNumber(w) ? TRUE : FALSE;
 }
@@ -1051,7 +1106,8 @@ PL_is_number(term_t t)
 #ifdef O_STRING
 int
 PL_is_string(term_t t)
-{ word w = valHandle(t);
+{ GET_LD
+  word w = valHandle(t);
 
   return isString(w) ? TRUE : FALSE;
 }
@@ -1078,7 +1134,8 @@ PL_unify_string_nchars(term_t t, unsigned int len, const char *s)
 
 void
 PL_put_variable(term_t t)
-{ Word p = allocGlobal(1);
+{ GET_LD
+  Word p = allocGlobal(1);
 
   setVar(*p);
   setHandle(t, consPtr(p, TAG_REFERENCE|STG_GLOBAL)); /* = makeRef */
@@ -1087,19 +1144,22 @@ PL_put_variable(term_t t)
 
 void
 PL_put_atom(term_t t, atom_t a)
-{ setHandle(t, a);
+{ GET_LD
+  setHandle(t, a);
 }
 
 
 void
 PL_put_atom_chars(term_t t, const char *s)
-{ setHandle(t, lookupAtom(s));
+{ GET_LD
+  setHandle(t, lookupAtom(s));
 }
 
 
 void
 PL_put_string_chars(term_t t, const char *s)
-{ word w = globalString(s);
+{ GET_LD
+  word w = globalString(s);
 
   setHandle(t, w);
 }
@@ -1107,7 +1167,8 @@ PL_put_string_chars(term_t t, const char *s)
 
 void
 PL_put_string_nchars(term_t t,  unsigned int len, const char *s)
-{ word w = globalNString(len, s);
+{ GET_LD
+  word w = globalNString(len, s);
 
   setHandle(t, w);
 }
@@ -1115,7 +1176,8 @@ PL_put_string_nchars(term_t t,  unsigned int len, const char *s)
 
 void
 PL_put_list_chars(term_t t, const char *chars)
-{ int len = strlen(chars);
+{ GET_LD
+  int len = strlen(chars);
   
   if ( len == 0 )
   { setHandle(t, ATOM_nil);
@@ -1135,7 +1197,8 @@ PL_put_list_chars(term_t t, const char *chars)
 
 void
 PL_put_integer(term_t t, long i)
-{ setHandle(t, makeNum(i));
+{ GET_LD
+  setHandle(t, makeNum(i));
 }
 
 
@@ -1156,13 +1219,15 @@ PL_put_pointer(term_t t, void *ptr)
 
 void
 PL_put_float(term_t t, double f)
-{ setHandle(t, globalReal(f));
+{ GET_LD
+  setHandle(t, globalReal(f));
 }
 
 
 void
 PL_put_functor(term_t t, functor_t f)
-{ int arity = arityFunctor(f);
+{ GET_LD
+  int arity = arityFunctor(f);
 
   if ( arity == 0 )
   { setHandle(t, nameFunctor(f));
@@ -1179,7 +1244,8 @@ PL_put_functor(term_t t, functor_t f)
 
 void
 PL_put_list(term_t l)
-{ Word a = allocGlobal(3);
+{ GET_LD
+  Word a = allocGlobal(3);
 
   setHandle(l, consPtr(a, TAG_COMPOUND|STG_GLOBAL));
   *a++ = FUNCTOR_dot2;
@@ -1190,13 +1256,15 @@ PL_put_list(term_t l)
 
 void
 PL_put_nil(term_t l)
-{ setHandle(l, ATOM_nil);
+{ GET_LD
+  setHandle(l, ATOM_nil);
 }
 
 
 void
 PL_put_term(term_t t1, term_t t2)
-{ Word p2 = valHandleP(t2);
+{ GET_LD
+  Word p2 = valHandleP(t2);
 
   setHandle(t1, linkVal(p2));
 }
@@ -1204,7 +1272,8 @@ PL_put_term(term_t t1, term_t t2)
 
 void
 _PL_put_xpce_reference_i(term_t t, unsigned long r)
-{ Word a = allocGlobal(2);
+{ GET_LD
+  Word a = allocGlobal(2);
 
   setHandle(t, consPtr(a, TAG_COMPOUND|STG_GLOBAL));
   *a++ = FUNCTOR_xpceref1;
@@ -1214,7 +1283,8 @@ _PL_put_xpce_reference_i(term_t t, unsigned long r)
 
 void
 _PL_put_xpce_reference_a(term_t t, atom_t name)
-{ Word a = allocGlobal(2);
+{ GET_LD
+  Word a = allocGlobal(2);
 
   setHandle(t, consPtr(a, TAG_COMPOUND|STG_GLOBAL));
   *a++ = FUNCTOR_xpceref1;
@@ -1234,7 +1304,8 @@ PL_unify_atom(term_t t, atom_t a)
 
 int
 PL_unify_functor(term_t t, functor_t f)
-{ Word p = valHandleP(t);
+{ GET_LD
+  Word p = valHandleP(t);
   int arity = arityFunctor(f);
 
   deRef(p);
@@ -1337,7 +1408,8 @@ PL_unify_float(term_t t, double f)
 
 int
 PL_unify_arg(int index, term_t t, term_t a)
-{ word w = valHandle(t);
+{ GET_LD
+  word w = valHandle(t);
 
   if ( isTerm(w) &&
        index > 0 &&
@@ -1354,7 +1426,8 @@ PL_unify_arg(int index, term_t t, term_t a)
 
 int
 PL_unify_list(term_t l, term_t h, term_t t)
-{ Word p = valHandleP(l);
+{ GET_LD
+  Word p = valHandleP(l);
 
   deRef(p);
 
@@ -1494,7 +1567,7 @@ unify_termVP(term_t t, va_list_rec *argsRecP)
 
 int
 PL_unify_term(term_t t, ...)
-{
+{ 
   va_list_rec argsRec;
   int rval;
 
@@ -1509,7 +1582,8 @@ PL_unify_term(term_t t, ...)
 
 int
 _PL_unify_xpce_reference(term_t t, xpceref_t *ref)
-{ Word p = valHandleP(t);
+{ GET_LD
+  Word p = valHandleP(t);
 
   do
   { if ( isVar(*p) )
@@ -1554,7 +1628,8 @@ _PL_unify_xpce_reference(term_t t, xpceref_t *ref)
 
 atomic_t
 _PL_get_atomic(term_t t)
-{ return valHandle(t);
+{ GET_LD
+  return valHandle(t);
 }
 
 
@@ -1566,13 +1641,15 @@ _PL_unify_atomic(term_t t, atomic_t a)
 
 void
 _PL_put_atomic(term_t t, atomic_t a)
-{ setHandle(t, a);
+{ GET_LD
+  setHandle(t, a);
 }
 
 
 void
 _PL_copy_atomic(term_t t, atomic_t arg) /* internal one */
-{ word a;
+{ GET_LD
+  word a;
 
   if ( isIndirect(arg) )
     a = globalIndirect(arg);
@@ -1590,7 +1667,8 @@ _PL_copy_atomic(term_t t, atomic_t arg) /* internal one */
 
 int
 PL_term_type(term_t t)
-{ word w = valHandle(t);
+{ GET_LD
+  word w = valHandle(t);
 
   return type_map[tag(w)];
 }
@@ -1601,7 +1679,8 @@ PL_term_type(term_t t)
 
 int
 PL_unify(term_t t1, term_t t2)
-{ Word p1 = valHandleP(t1);
+{ GET_LD
+  Word p1 = valHandleP(t1);
   Word p2 = valHandleP(t2);
   mark m;
 
@@ -1621,7 +1700,8 @@ PL_unify(term_t t1, term_t t2)
 
 int
 PL_strip_module(term_t raw, module_t *m, term_t plain)
-{ Word p = valTermRef(raw);
+{ GET_LD
+  Word p = valTermRef(raw);
   
   deRef(p);
   if ( hasFunctor(*p, FUNCTOR_module2) )
@@ -1639,7 +1719,8 @@ PL_strip_module(term_t raw, module_t *m, term_t plain)
 
 module_t
 PL_context()
-{ return environment_frame ? contextModule(environment_frame)
+{ GET_LD
+  return environment_frame ? contextModule(environment_frame)
 			   : MODULE_user;
 }
 
@@ -1720,7 +1801,7 @@ PL_call_predicate(Module ctx, int flags, predicate_t pred, term_t h0)
 
 bool
 PL_call(term_t t, Module m)
-{ return callProlog(m, t, TRUE);
+{ return callProlog(m, t, PL_Q_NORMAL, NULL);
 }  
 
 
@@ -1779,7 +1860,8 @@ find_query(LocalFrame fr)
 
 int
 PL_raise_exception(term_t exception)
-{ PL_put_term(exception_bin, exception);
+{ GET_LD
+  PL_put_term(exception_bin, exception);
   exception_term = exception_bin;
 
   fail;
@@ -1788,7 +1870,8 @@ PL_raise_exception(term_t exception)
 
 int
 PL_throw(term_t exception)
-{ QueryFrame QF = find_query(environment_frame);
+{ GET_LD
+  QueryFrame QF = find_query(environment_frame);
 
   PL_put_term(exception_bin, exception);
   exception_term = exception_bin;
@@ -1822,7 +1905,8 @@ notify_registered_foreign(functor_t fd, Module m)
 
 bool
 PL_register_foreign(const char *name, int arity, Func f, int flags)
-{ Procedure proc;
+{ GET_LD
+  Procedure proc;
   Definition def;
   Module m;
   functor_t fdef = lookupFunctorDef(lookupAtom(name), arity);
@@ -1865,7 +1949,8 @@ PL_register_foreign(const char *name, int arity, Func f, int flags)
 
 bool
 PL_load_extensions(PL_extension *ext)
-{ PL_extension *e;
+{ GET_LD
+  PL_extension *e;
   Module m;
 
   m = (environment_frame ? contextModule(environment_frame)
@@ -1964,7 +2049,8 @@ PL_open_resource(Module m,
 
 void
 PL_raise(int sig)
-{ if ( sig > 0 && sig <= MAXSIGNAL )
+{ GET_LD
+  if ( sig > 0 && sig <= MAXSIGNAL )
     signalled |= (1L << (sig-1));
 }
 
@@ -1983,7 +2069,8 @@ struct abort_handle
 
 void
 PL_abort_hook(PL_abort_hook_t func)
-{ AbortHandle h = (AbortHandle) allocHeap(sizeof(struct abort_handle));
+{ GET_LD
+  AbortHandle h = (AbortHandle) allocHeap(sizeof(struct abort_handle));
   h->next = NULL;
   h->function = func;
 
@@ -1998,7 +2085,8 @@ PL_abort_hook(PL_abort_hook_t func)
 
 int
 PL_abort_unhook(PL_abort_hook_t func)
-{ AbortHandle h = abort_head;
+{ GET_LD
+  AbortHandle h = abort_head;
 
   for(; h; h = h->next)
   { if ( h->function == func )
@@ -2013,7 +2101,8 @@ PL_abort_unhook(PL_abort_hook_t func)
 
 void
 resetForeign(void)
-{ AbortHandle h = abort_head;
+{ GET_LD
+  AbortHandle h = abort_head;
 
   for(; h; h = h->next)
     if ( h->function )
@@ -2030,8 +2119,8 @@ struct initialise_handle
   PL_initialise_hook_t function;		/* The handle itself */
 };
 
-#define initialise_head (LD->fli._initialise_head)
-#define initialise_tail (LD->fli._initialise_tail)
+#define initialise_head (GD->foreign.initialise_head)
+#define initialise_tail (GD->foreign.initialise_tail)
 
 void
 PL_initialise_hook(PL_initialise_hook_t func)
@@ -2135,7 +2224,8 @@ PL_add_to_protocol(const char *buf, int n)
 
 PL_dispatch_hook_t
 PL_dispatch_hook(PL_dispatch_hook_t hook)
-{ PL_dispatch_hook_t old = dispatch_events;
+{ GET_LD
+  PL_dispatch_hook_t old = dispatch_events;
 
   dispatch_events = hook;
   return old;
@@ -2143,7 +2233,8 @@ PL_dispatch_hook(PL_dispatch_hook_t hook)
 
 int
 PL_dispatch(int fd, int wait)
-{ int rval;
+{ GET_LD
+  int rval;
 
   if ( wait == PL_DISPATCH_INSTALLED )
     return dispatch_events ? TRUE : FALSE;
@@ -2242,7 +2333,8 @@ PL_fatal_error(const char *fm, ...)
 
 int
 PL_action(int action, ...)
-{ int rval;
+{ GET_LD
+  int rval;
   va_list args;
 
   va_start(args, action);
@@ -2402,3 +2494,5 @@ PL_query(int query)
   }
 }
 
+#undef LD
+#define LD GLOBAL_LD

@@ -1,6 +1,53 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * PORTABILITY: Added patches required for MSVC 6.0 (Windows), contributed
+    by Lutz Wohlrab.
+
+  * MODIFIED: Represention of atom and functor table to be MT-safe
+    and for the atom-table to make one step towards garbage collection.
+
+  * MODIFIED: Added exception-throwing on errors to many predicates:
+    record{a,z}/3, recorded/3, erase/1, current_atom/1, current_functor/2.
+
+  * FIXED: handle --name=value arguments for compilation using -c.
+    catch exceptions during -c compilation and exit if one happens.
+  
+  * MODIFIED: the default `init-file' of a `runtime' saved-state is
+    now `none', stopping normal saved-states from reading personal
+    setup.
+
+  * DOCUMENTATION: Fixed various mistakes in the documentation: -c 
+    compilation, added unix/1 to the docs.
+
+  * IMPROVED: Raised maximum limits for the stacks from 64 Mb to 128 Mb.
+
+  * FIXED: plld to quote arguments if they contain spaces.  Required
+    on Windows to pass the SWI-Prolog include directory properly.
+    Thanks to Peter Tselios. 
+
+  * MODIFIED: Looking for user profile file.  Now searched for using
+    user_profile(ProfileFile), where ProfileFile is by default .plrc
+    on Unix and pl.ini on Windows.  The default for user_profile is
+    ., ~ on Unix and ., ~ (if it exists), SWI home and Windows directory
+    on Windows.
+
+  * MODIFIED: built-in predicates, with the exception of expand_file_name/2
+    no longer expand $ENVVAR and ~, allowing access to files with any name.
+    The old behaviour can be accessed by setting the feature
+    file_name_variables to true.
+
+  * FIXED: ( \+(!), fail ; true ) and similar cases where ! cuts
+    are placed in the condition-part of if-then-else. Resulted in 
+    ../src/pl-wam.c:xxxx: pl_alt: Assertion `0' failed.
+
+  * CONFIG: Allow specifying $CIFLAGS before running configure to
+    deal with strange locations of include files.  Fixed typo in
+    looking for readline.h.  Thanks to Stefan Mueller.
+
+VERSION 3.2.8
+=============
+
   * FIXED: Save unknown/2 status with qsave_program/2.  Reported
     by Robert van Engelen.
 

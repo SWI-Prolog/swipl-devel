@@ -363,6 +363,16 @@ A yfx			"yfx"
 A yfy			"yfy"
 A zero_divisor		"zero_divisor"
 A file_name_variables	"file_name_variables"
+A thread_option		"thread_option"
+A thread		"thread"
+A running		"running"
+A exited		"exited"
+A autoload		"autoload"
+A key			"key"
+A record		"record"
+A db_reference		"db_reference"
+A erase			"erase"
+A flag_value		"flag_value"
 
 F abs			1
 F acos			1
@@ -409,6 +419,8 @@ F equals		2
 F erased		1
 F error			2
 F evaluation_error	1
+F exited		1
+F exception		1
 F exception		3
 F existence_error	2
 F exp			1

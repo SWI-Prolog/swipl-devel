@@ -30,8 +30,7 @@ struct assoc
 #define alist LD->bags.bags		/* Each thread has its own */
 					/* storage for this */
 
-static
-void
+static void
 freeAssoc(Assoc prev, Assoc a)
 { if ( prev == NULL )
     alist = a->next;

@@ -8,11 +8,11 @@
 */
 
 /* pl-alloc.c */
-void		free_heap(Void mem, size_t n);
+void		freeHeap(void *mem, size_t n);
 void		outOfStack(Stack s, int how);
 volatile void	outOfCore(void);
 Word		allocGlobal(int words);
-Void		alloc_heap(size_t n);
+Void		allocHeap(size_t n);
 void		initMemAlloc(void);
 word		globalFunctor(functor_t def);
 int		sizeString(word w);
@@ -498,7 +498,7 @@ word		pl_depth_limit_false(term_t limit,
 				     term_t olimit, term_t oreached,
 				     term_t res);
 #endif /*O_LIMIT_DEPTH*/
-int		callProlog(Module module, term_t goal, int debug);
+int		callProlog(Module module, term_t goal, int flags, term_t *ex);
 word		pl_abort(void);
 bool		prolog(atom_t toplevel);
 word		pl_metacut(void);
@@ -602,11 +602,17 @@ void		blockSignals(void);
 void		unblockSignals(void);
 void		unblockSignal(int sig);
 void		resetSignals(void);
+int		initPrologStacks(long local,
+				 long global,
+				 long trail,
+				 long argument);
+void		initPrologLocalData(void);
 void		deallocateStacks(void);
 bool		restoreStack(Stack s);
 void		trimStacks(void);
 void		resetStacks(void);
 void		emptyStacks(void);
+void		freeStacks(PL_local_data_t *ld);
 word		pl_trim_stacks(void);
 word		pl_limit_stack(term_t s, term_t l);
 word		pl_stack_parameter(term_t s, term_t k, term_t o, term_t n);

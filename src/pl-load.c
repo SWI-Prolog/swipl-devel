@@ -610,9 +610,6 @@ pl_load_foreign1(term_t file)
   }
   DEBUG(1, Sdprintf("ok\n"));
 
-  if ( entry < (Func) &_data )
-    GD->cannot_save_program = "Foreign code loaded outside data area";
-
   DEBUG(1, Sdprintf("Loadbind() ... "));
   if ( loadbind(0, main_entry, entry) != 0 )
     return warning("load_foreign/5: loadbind: %s", OsError());

@@ -61,7 +61,7 @@ pl_rlc_color(term_t which, term_t r, term_t b, term_t g)
   if ( PL_get_integer(r, &tr) &&
        PL_get_integer(b, &tb) &&
        PL_get_integer(g, &tg) )
-  { if ( tr < 0 || tr > 255 || tb < 0 || tb > 255 | tg < 0 || tg > 255 )
+  { if ( tr < 0 || tr > 255 || (tb < 0) || tb > 255 || tg < 0 || tg > 255 )
       goto usage;
 
     rlc_color(w, RGB(tr,tb,tg));

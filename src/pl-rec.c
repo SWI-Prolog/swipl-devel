@@ -5,6 +5,7 @@
     jan@swi.psy.uva.nl
 
     Purpose: recorded database (record[az], recorded, erase)
+    MT-status: SAFE
 */
 
 /*#define O_SECURE 1*/
@@ -17,45 +18,52 @@ forwards RecordList isCurrentRecordList(word);
 #define RECORDZ 1
 
 static RecordList recordTable[RECORDHASHSIZE];
-static int	  dirtyrecords;
+
+#if O_PLMT
+static pthread_mutex_t rec_mutex = PTHREAD_MUTEX_INITIALIZER;
+#define LOCK()   pthread_mutex_lock(&rec_mutex)
+#define UNLOCK() pthread_mutex_unlock(&rec_mutex)
+#else
+#define LOCK()
+#define UNLOCK()
+#endif
 
 void
 initRecords(void)
-{ register RecordList *l;
-  register int n;
+{ RecordList *l;
+  int n;
 
   for(n=0, l=recordTable; n < (RECORDHASHSIZE-1); n++, l++)
     *l = makeTableRef(l+1);
-  dirtyrecords = 0;
 }
 
 
 static RecordList
-lookupRecordList(register word key)
+lookupRecordList(word key)
 { int v = pointerHashValue(key, RECORDHASHSIZE);
-  register RecordList l;
+  RecordList l;
 
   for(l=recordTable[v]; l && !isTableRef(l); l = l->next)
   { if (l->key == key)
       return l;
   }
-  l = (RecordList) allocHeap(sizeof(struct recordList) );
-  l->next = recordTable[v];
-  recordTable[v] = l;
+  l = (RecordList) allocHeap(sizeof(struct recordList));
   l->key = key;
-  l->firstRecord = l->lastRecord = (Record) NULL;
+  l->firstRecord = l->lastRecord = NULL;
   l->type = RECORD_TYPE;
   l->references = 0;
   l->flags = 0;
+  l->next = recordTable[v];
+  recordTable[v] = l;
 
   return l;
 }
 
 
 static RecordList
-isCurrentRecordList(register word key)
+isCurrentRecordList(word key)
 { int v = pointerHashValue(key, RECORDHASHSIZE);
-  register RecordList l;
+  RecordList l;
 
   for(l=recordTable[v]; l && !isTableRef(l); l = l->next)
   { if (l->key == key)
@@ -74,7 +82,6 @@ cleanRecordList(RecordList rl)
   { if ( r->erased )
     { *p = r->next;
       freeRecord(r);
-      dirtyrecords--;
       DEBUG(2, Sdprintf("Deleted record, %d dirty left\n", dirtyrecords));
     } else
     { p = &r->next;
@@ -113,7 +120,10 @@ typedef struct
 
 static void
 compile_term_to_heap(Word p, CompileInfo info)
-{ word w;
+{ GET_LD
+#undef LD
+#define LD LOCAL_LD
+  word w;
 
 right_recursion:
   w = *p;
@@ -195,6 +205,8 @@ right_recursion:
       p = unRef(w);
       goto right_recursion;
   }
+#undef LD
+#define LD GLOBAL_LD
 }
 
 
@@ -263,7 +275,10 @@ typedef struct
 
 static void
 copy_record(Word p, CopyInfo b)
-{ int tag;
+{ GET_LD
+#undef LD
+#define LD LOCAL_LD
+  int tag;
 
 right_recursion:
   fetchBuf(b, &tag, char);
@@ -358,6 +373,8 @@ right_recursion:
       goto right_recursion;
     }
   }
+#undef LD
+#define LD GLOBAL_LD
 }
 
 
@@ -378,13 +395,6 @@ copyRecordToGlobal(term_t copy, Record r)
   
   copy_record(valTermRef(copy), &b);
   assert(b.gstore == gTop);
-/*if ( b.gstore != gTop )
-  { Sdprintf("b.gstore = %p, gTop = %p\n", b.gstore, gTop);
-    Sdprintf("Term = ");
-    pl_write_canonical(copy);
-    Sdprintf("\n");
-  }
-*/
 
   SECURE(checkData(valTermRef(copy)));
 }
@@ -401,7 +411,10 @@ typedef struct
 
 static int
 se_record(Word p, SeInfo info)
-{ word w;
+{ GET_LD
+#undef LD
+#define LD LOCAL_LD
+  word w;
   int stag;
 
 right_recursion:
@@ -516,6 +529,8 @@ unref_cont:
       assert(0);
       fail;
   }
+#undef LD
+#define LD GLOBAL_LD
 }
 
 
@@ -619,39 +634,45 @@ record(term_t key, term_t term, term_t ref, int az)
   word k;
 
   if ( !(k = getKey(key)) )
-    return warning("record%c/3: illegal key", az == RECORDA ? 'a' : 'z');
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_key, key);
+  if ( !PL_is_variable(ref) )
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_variable, ref);
 
-  l = lookupRecordList(k);
   copy = compileTermToHeap(term);
+  PL_unify_pointer(ref, copy);
+
+  LOCK();
+  l = lookupRecordList(k);
   copy->list = l;
 
-  TRY(PL_unify_pointer(ref, copy));
   if ( !l->firstRecord )
   { copy->next = (Record) NULL;
     l->firstRecord = l->lastRecord = copy;
-    succeed;
-  }
-  if ( az == RECORDA )
+  } else if ( az == RECORDA )
   { copy->next = l->firstRecord;
     l->firstRecord = copy;
-    succeed;
+  } else
+  { copy->next = (Record) NULL;
+    l->lastRecord->next = copy;
+    l->lastRecord = copy;
   }
-  copy->next = (Record) NULL;
-  l->lastRecord->next = copy;
-  l->lastRecord = copy;
+  UNLOCK();
 
   succeed;
 }
+
 
 word
 pl_recorda(term_t key, term_t term, term_t ref)
 { return record(key, term, ref, RECORDA);
 }
 
+
 word
 pl_recordz(term_t key, term_t term, term_t ref)
 { return record(key, term, ref, RECORDZ);
 }
+
 
 word
 pl_recorded(term_t key, term_t term, term_t ref, word h)
@@ -659,75 +680,84 @@ pl_recorded(term_t key, term_t term, term_t ref, word h)
   Record record;
   word k;
   term_t copy;
-
-  DEBUG(5, Sdprintf("recorded: h=0x%lx, control = %d\n",
-		    h, ForeignControl(h)));
+  word rval;
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
       if ( PL_get_pointer(ref, (void **)&record) )
-      { if ( !isRecord(record) )
-	  return warning("recorded/3: Invalid reference");
-	if ( !unifyKey(key, record->list->key) )
-	  fail;
-	copy = PL_new_term_ref();
-	copyRecordToGlobal(copy, record);
-	return PL_unify(term, copy);
+      { LOCK();
+	if ( isRecord(record) )
+	{ if ( unifyKey(key, record->list->key) )
+	  { copy = PL_new_term_ref();
+	    copyRecordToGlobal(copy, record);
+	    rval = PL_unify(term, copy);
+	  } else
+	    rval = FALSE;
+	} else
+	  rval = PL_error("recorded", 3, NULL, ERR_TYPE, ATOM_record, record);
+	UNLOCK();
+	return rval;
       }
       if ( !(k = getKey(key)) )
-	return warning("recorded/3: illegal key");
+	return PL_error("recorded", 3, NULL, ERR_TYPE, ATOM_key, key);
       if ( !(rl = isCurrentRecordList(k)) )
 	fail;
+      LOCK();
+      rl->references++;
       record = rl->firstRecord;
       break;
     case FRG_REDO:
-    { RecordList rl;
-
-      record = ForeignContextPtr(h);
+    { record = ForeignContextPtr(h);
       rl = record->list;
 
-      if ( --rl->references == 0 && true(rl, R_DIRTY) )
-      { while(record && record->erased )
-	  record = record->next;	/* find a valid record */
-	cleanRecordList(rl);
-      }
-      DEBUG(0, assert(rl->references >= 0));
+      DEBUG(0, assert(rl->references > 0));
+
+      LOCK();
+      assert(rl->references == 1);
       break;
     }
     case FRG_CUTTED:
-    { RecordList rl;
-
-      record = ForeignContextPtr(h);
+    { record = ForeignContextPtr(h);
       rl = record->list;
 
+      LOCK();
       if ( --rl->references == 0 && true(rl, R_DIRTY) )
 	cleanRecordList(rl);
+      UNLOCK();
     }
       /* FALLTHROUGH */
     default:
       succeed;
   }
+  assert(rl->references == 1);
 
   copy = PL_new_term_ref();
-  for( ;record; record = record->next )
+  for( ; record; record = record->next )
   { mark m;
 
     if ( record->erased )
       continue;
 
     Mark(m);
-    copyRecordToGlobal(copy, record);	/* unifyRecordToGlobal()? */
+    copyRecordToGlobal(copy, record);
     if ( PL_unify(term, copy) && PL_unify_pointer(ref, record) )
     { if ( !record->next )
+      { if ( --rl->references == 0 && true(rl, R_DIRTY) )
+	  cleanRecordList(rl);
+	UNLOCK();
 	succeed;
-      else
-      { record->list->references++;
+      } else
+      { UNLOCK();
 	ForeignRedoPtr(record->next);
       }
     }
     Undo(m);
   }
 
+  if ( --rl->references == 0 && true(rl, R_DIRTY) )
+    cleanRecordList(rl);
+
+  UNLOCK();
   fail;
 }
 
@@ -737,58 +767,64 @@ pl_erase(term_t ref)
 { Record record;
   Record prev, r;
   RecordList l;
+  word rval;
 
   if ( !PL_get_pointer(ref, (void **)&record) ||
        !inCore(record))
-    return warning("erase/1: Invalid reference");
+    return PL_error("erase", 1, NULL, ERR_TYPE, ATOM_db_reference, ref);
 
   if ( isClause(record) )
   { Clause clause = (Clause) record;
   
     if ( true(clause->procedure->definition, LOCKED) &&
 	 false(clause->procedure->definition, DYNAMIC) )
-      return warning("erase/1: Attempt to erase clause from system predicate");
+      PL_error("erase", 1, NULL, ERR_PERMISSION,
+	       ATOM_clause, ATOM_erase, ref);
 
     return retractClauseProcedure(clause->procedure, clause);
   }
   
-  if ( !isRecord(record) )
-    return warning("erase/1: Invalid reference");
-
+  LOCK();
+  if ( isRecord(record) )
+  {
 #if O_DEBUGGER
-  callEventHook(PLEV_ERASED, record);
+    callEventHook(PLEV_ERASED, record);
 #endif
 
-  l = record->list;
-  if ( l->references )			/* a recorded has choicepoints */
-  { record->erased = TRUE;
-    set(l, R_DIRTY);
-    dirtyrecords++;
-    DEBUG(2, Sdprintf("%d Delayed record destruction\n", dirtyrecords));
-    succeed;
-  }
-
-  if ( record == l->firstRecord )
-  { if ( record->next == (Record) NULL )
-      l->lastRecord = (Record) NULL;
-    l->firstRecord = record->next;
-    freeRecord(record);
-    succeed;
-  }
-
-  prev = l->firstRecord;
-  r = prev->next;
-  for(; r; prev = r, r = r->next)
-  { if (r == record)
-    { if ( r->next == (Record) NULL )
-        l->lastRecord = prev;
-      prev->next = r->next;
-      freeRecord(r);
-      succeed;
+    l = record->list;
+    if ( l->references )		/* a recorded has choicepoints */
+    { record->erased = TRUE;
+      set(l, R_DIRTY);
+      DEBUG(2, Sdprintf("%d Delayed record destruction\n", dirtyrecords));
+    } else if ( record == l->firstRecord )
+    { if ( !record->next )
+	l->lastRecord = NULL;
+      l->firstRecord = record->next;
+      freeRecord(record);
+    } else
+    { prev = l->firstRecord;
+      r = prev->next;
+      for(; r; prev = r, r = r->next)
+      { if (r == record)
+	{ if ( r->next == (Record) NULL )
+	    l->lastRecord = prev;
+	  prev->next = r->next;
+	  freeRecord(r);
+	  goto ok;
+	}
+      }
+      goto nok;
     }
-  }
 
-  return warning("erase/1: Invalid reference");
+  ok:
+    rval = TRUE;
+  } else
+  { nok:
+    rval = PL_error("erase", 1, NULL, ERR_DOMAIN, ATOM_db_reference, ref);
+  }
+  UNLOCK();
+
+  return rval;
 }
 
 		 /*******************************

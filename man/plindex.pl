@@ -52,7 +52,9 @@ SEE ALSO
 	end_offset/1.
 
 online_index :-
-	online_index('$MANUAL', '$INDEX').
+	expand_file_name('$MANUAL', [Manual]),
+	expand_file_name('$INDEX', [Index]),
+	online_index(Manual, Index).
 
 online_index(In, Out) :-
 	parse_summaries('summary.doc'),

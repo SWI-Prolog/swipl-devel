@@ -138,7 +138,7 @@ addHTable(Table ht, Void name, Void value)
 { Symbol s;
   int v = pointerHashValue(name, ht->buckets);
 
-  if (lookupHTable(ht, name) != (Symbol) NULL)
+  if ( lookupHTable(ht, name) )
     fail;
   s = (Symbol) allocHeap(sizeof(struct symbol));
   s->name = (word)name;

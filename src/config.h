@@ -55,16 +55,10 @@
 /* #undef WORDS_BIGENDIAN */
 
 /* Define if BSD compatible signals (i.e. no reset when fired) */
-/* #undef BSD_SIGNALS */
+#define BSD_SIGNALS 1
 
 /* Define if mmap() can be used to allocate stacks */
 #define MMAP_STACK 1
-
-/* Define if maximum address we can map at */
-/* #undef MMAP_MAX_ADDRESS */
-
-/* Define if minimum address we can map and if > sbrk(0) */
-/* #undef MMAP_MIN_ADDRESS */
 
 /* Define if MAP_ANON is defined and works ok */
 #define HAVE_MAP_ANON 1
@@ -126,9 +120,6 @@
 /* Define if doubles cannot be aligned as longs */
 /* #undef DOUBLE_ALIGNMENT */
 
-/* Define top of heap.  See pl-setup.c */
-/* #undef TOPOFHEAP */
-
 /* Define max size of mmapp()ed stacks.  See test/mmap.c */
 /* #undef MMAP_STACKSIZE */
 
@@ -140,6 +131,12 @@
 
 /* Define to 1 not to use SIGSEGV for guarding stack-overflows */
 /* #undef NO_SEGV_HANDLING */ 
+
+/* Define if you have a working dlopen() */
+#define HAVE_DLOPEN 1
+
+/* Define to include support for multi-threading */
+/* #undef O_PLMT */
 
 /* Define if you have the access function.  */
 #define HAVE_ACCESS 1
@@ -286,7 +283,7 @@
 #define HAVE_TIMES 1
 
 /* Define if you have the <bstring.h> header file.  */
-#define HAVE_BSTRING_H 1
+/* #undef HAVE_BSTRING_H */
 
 /* Define if you have the <dirent.h> header file.  */
 #define HAVE_DIRENT_H 1
@@ -305,6 +302,9 @@
 
 /* Define if you have the <pwd.h> header file.  */
 #define HAVE_PWD_H 1
+
+/* Define if you have the <readline/readline.h> header file.  */
+#define HAVE_READLINE_READLINE_H 1
 
 /* Define if you have the <string.h> header file.  */
 #define HAVE_STRING_H 1
@@ -328,13 +328,13 @@
 #define HAVE_SYS_RESOURCE_H 1
 
 /* Define if you have the <sys/select.h> header file.  */
-/* #undef HAVE_SYS_SELECT_H */
+#define HAVE_SYS_SELECT_H 1
 
 /* Define if you have the <sys/stat.h> header file.  */
 #define HAVE_SYS_STAT_H 1
 
 /* Define if you have the <sys/termio.h> header file.  */
-#define HAVE_SYS_TERMIO_H 1
+/* #undef HAVE_SYS_TERMIO_H */
 
 /* Define if you have the <sys/termios.h> header file.  */
 #define HAVE_SYS_TERMIOS_H 1
@@ -356,6 +356,9 @@
 
 /* Define if you have the m library (-lm).  */
 #define HAVE_LIBM 1
+
+/* Define if you have the main library (-lmain).  */
+/* #undef HAVE_LIBMAIN */
 
 /* Define if you have the ncurses library (-lncurses).  */
 #define HAVE_LIBNCURSES 1

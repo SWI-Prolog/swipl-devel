@@ -5,6 +5,7 @@
     jan@swi.psy.uva.nl
 
     Purpose: atom management
+    MT-status: SAFE
 */
 
 /*#define O_DEBUG 1*/
@@ -22,16 +23,9 @@ atom  structure  is  located  by  getting  the  n-th  pointer  from  the
 atom_array dynamic array.  See atomValue() for translating the long into
 the address of the structure.
 
-Next, there is a hash-table, which is   otherwise  a quite normal `open'
-hash-table  mapping  char  *  to  the  atom  structure.  This  thing  is
-dynamically rehashed. This table is used   by lookupAtom() below. Please
-note that the end of a linked list   in the table points, using a tagged
-pointer, back to the start of the  next one. This allows for enumeration
-(current_atom) with only a single context argument.
-
-NOTE: Since the introduction of the  dynamic   array,  an  index in this
-array could be used, which would  simplify   the  code  and speed up the
-lookup a bit too.
+Next, there is a hash-table, which is a normal `open' hash-table mapping
+char * to the atom structure. This   thing is dynamically rehashed. This
+table is used by lookupAtom() below. 
 
 Atom garbage collection
 -----------------------
@@ -99,17 +93,20 @@ the atom-space grows again.
 static void	rehashAtoms();
 
 #define atom_buckets GD->atoms.buckets
-#define atom_locked  GD->atoms.locked
 #define atomTable    GD->atoms.table
-
-#define lockAtoms() { atom_locked++; }
-#define unlockAtoms() if ( --atom_locked == 0 && \
-			   atom_buckets * 2 < GD->statistics.atoms ) \
-			rehashAtoms()
 
 #if O_DEBUG
 #define lookups GD->atoms.lookups
 #define	cmps	GD->atoms.cmps
+#endif
+
+#if O_PLMT
+static pthread_mutex_t atom_mutex = PTHREAD_MUTEX_INITIALIZER;
+#define LOCK()   pthread_mutex_lock(&atom_mutex)
+#define UNLOCK() pthread_mutex_unlock(&atom_mutex)
+#else
+#define LOCK()
+#define UNLOCK()
 #endif
 
 		 /*******************************
@@ -145,26 +142,30 @@ lookupAtom(const char *s)
   int v = v0 & (atom_buckets-1);
   Atom a;
 
+  LOCK();
   DEBUG(0, lookups++);
 
-  for(a = atomTable[v]; a && !isTableRef(a); a = a->next)
+  for(a = atomTable[v]; a; a = a->next)
   { DEBUG(0, cmps++);
     if (streq(s, a->name) )
+    { UNLOCK();
       return a->atom;
+    }
   }
   a = (Atom)allocHeap(sizeof(struct atom));
-  a->next       = atomTable[v];
+  a->name       = store_string(s);
 #ifdef O_HASHTERM
   a->hash_value = v0;
 #endif
-  a->name       = store_string(s);
-  atomTable[v]  = a;
   registerAtom(a);
+  a->next       = atomTable[v];
+  atomTable[v]  = a;
   GD->statistics.atoms++;
 
-  if ( atom_buckets * 2 < GD->statistics.atoms && !atom_locked )
+  if ( atom_buckets * 2 < GD->statistics.atoms )
     rehashAtoms();
-
+  UNLOCK();
+  
   return a->atom;
 }
 
@@ -174,44 +175,26 @@ lookupAtom(const char *s)
 		 *******************************/
 
 static void
-makeAtomRefPointers()
-{ Atom *a;
-  int n;
-
-  for(n=0, a=atomTable; n < (atom_buckets-1); n++, a++)
-    *a = makeTableRef(a+1);
-  *a = NULL;
-}
-
-
-static void
 rehashAtoms()
 { Atom *oldtab   = atomTable;
   int   oldbucks = atom_buckets;
-  Atom a, n;
+  long i, mx = entriesBuffer(&atom_array, Atom);
 
   startCritical;
   atom_buckets *= 2;
   atomTable = allocHeap(atom_buckets * sizeof(Atom));
-  makeAtomRefPointers();
+  memset(atomTable, 0, atom_buckets * sizeof(Atom));
   
   DEBUG(0, Sdprintf("rehashing atoms (%d --> %d)\n", oldbucks, atom_buckets));
 
-  for(a=oldtab[0]; a; a = n)
-  { int v;
+  for(i=0; i<mx; i++)
+  { Atom a = baseBuffer(&atom_array, Atom)[i];
+    int v = a->hash_value & (atom_buckets-1);
 
-    while(isTableRef(a) )
-    { a = unTableRef(Atom, a);
-      if ( a == NULL )
-	goto out;
-    }
-    n = a->next;
-    v = a->hash_value & (atom_buckets-1);
     a->next = atomTable[v];
     atomTable[v] = a;
   }
 
-out:
   freeHeap(oldtab, oldbucks * sizeof(Atom));
   endCritical;
 }
@@ -224,17 +207,11 @@ pl_atom_hashstat(term_t idx, term_t n)
   
   if ( !PL_get_integer(idx, &i) || i < 0 || i >= atom_buckets )
     fail;
-  for(m = 0, a = atomTable[i]; a && !isTableRef(a); a = a->next)
+  for(m = 0, a = atomTable[i]; a; a = a->next)
     m++;
 
   return PL_unify_integer(n, m);
 }
-
-/* Note that the char * of the atoms is copied to the data segment.  This
-   is done because some functions temporary change the char string associated
-   with an atom (pl_concat_atom()) and GCC puts char constants in the text
-   segment.  Is this still true?
-*/
 
 
 static void
@@ -273,8 +250,8 @@ void
 initAtoms(void)
 { atom_buckets = ATOMHASHSIZE;
   atomTable = allocHeap(atom_buckets * sizeof(Atom));
-  makeAtomRefPointers();
 
+  memset(atomTable, 0, atom_buckets * sizeof(Atom));
   initBuffer(&atom_array);
   registerBuiltinAtoms();
 
@@ -284,35 +261,34 @@ initAtoms(void)
 
 word
 pl_current_atom(term_t a, word h)
-{ Atom atom;
+{ long i;
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
-      if ( PL_is_atom(a) )      succeed;
-      if ( !PL_is_variable(a) ) fail;
+      if ( PL_is_atom(a) )
+	succeed;
+      if ( !PL_is_variable(a) )
+	return PL_error("current_atom", 1, NULL, ERR_DOMAIN, ATOM_atom, a);
 
-      atom = atomTable[0];
-      lockAtoms();
+      i = 0;
       break;
     case FRG_REDO:
-      atom = ForeignContextPtr(h);
+      i = ForeignContextInt(h);
       break;
     case FRG_CUTTED:
     default:
-      unlockAtoms();
       succeed;
   }
 
-  while(atom && isTableRef(atom) )
-    atom = unTableRef(Atom, atom);
+  for( ; i < entriesBuffer(&atom_array, Atom); i++ )
+  { Atom atom;
 
-  if ( atom )
-  { PL_unify_atom(a, atom->atom);
+    if ( (atom = baseBuffer(&atom_array, Atom)[i]) )
+      PL_unify_atom(a, atom->atom);
 
-    return_next_table(Atom, atom, unlockAtoms());
+    ForeignRedoInt(i+1);
   }
 
-  unlockAtoms();
   fail;
 }
 
@@ -333,28 +309,26 @@ typedef struct match
 static bool
 allAlpha(register char *s)
 { for( ; *s; s++)
-   if ( !isAlpha(*s) )
-     fail;
-
+  { if ( !isAlpha(*s) )
+      fail;
+  }
   succeed;
 }
 
 
 static int
 extendAtom(char *prefix, bool *unique, char *common)
-{ Atom a = atomTable[0];
+{ long i, mx = entriesBuffer(&atom_array, Atom);
+  Atom a;
   bool first = TRUE;
   int lp = (int) strlen(prefix);
-
+  
   *unique = TRUE;
 
-  for(; a; a = a->next)
-  { while( isTableRef(a) )
-    { a = unTableRef(Atom, a);
-      if ( !a )
-	goto out;
-    }
-    if ( strprefix(a->name, prefix) )
+  for(i=0; i<mx; i++)
+  { a = baseBuffer(&atom_array, Atom)[i];
+
+    if ( a && strprefix(a->name, prefix) )
     { if ( strlen(a->name) >= LINESIZ )
 	continue;
       if ( first == TRUE )
@@ -371,7 +345,6 @@ extendAtom(char *prefix, bool *unique, char *common)
     }
   }
 
-out:
   return !first;
 }
 
@@ -406,16 +379,15 @@ compareMatch(const void *m1, const void *m2)
 
 static bool
 extend_alternatives(char *prefix, struct match *altv, int *altn)
-{ Atom a = atomTable[0];
+{ long i, mx = entriesBuffer(&atom_array, Atom);
+  Atom a;
   char *as;
   int l;
 
   *altn = 0;
-  for(; a; a=a->next)
-  { while( a && isTableRef(a) )
-      a = unTableRef(Atom, a);
-    if ( a == (Atom) NULL )
-      break;
+  for(i=0; i<mx; i++)
+  { if ( !(a = baseBuffer(&atom_array, Atom)[i]) )
+      continue;
     
     as = a->name;
     if ( strprefix(as, prefix) &&
@@ -470,32 +442,28 @@ so multiple Prolog threads can use this routine.
 
 char *
 PL_atom_generator(char *prefix, int state)
-{ Atom a;
+{ long i, mx = entriesBuffer(&atom_array, Atom);
 
   if ( !state )
-    a = atomTable[0];
+    i = 0;
   else
-    a = LD->atoms.generator;
+    i = LD->atoms.generator;
 
-  for(; a; a=a->next)
-  { char *as;
-    int l;
+  for(; i<mx; i++)
+  { Atom a;
 
-    while( isTableRef(a) )
-    { a = unTableRef(Atom, a);
-      if ( !a )
-	return NULL;
-    }
+    if ( !(a = baseBuffer(&atom_array, Atom)[i]) )
+      continue;
     
-    as = a->name;
-    if ( strprefix(as, prefix) &&
-	 allAlpha(as) &&
-	 (l = strlen(as)) < ALT_SIZ )
-    { LD->atoms.generator = a->next;
-      return as;
+    if ( strprefix(a->name, prefix) &&
+	 allAlpha(a->name) &&
+	 strlen(a->name) < ALT_SIZ )
+    { LD->atoms.generator = i+1;
+      return a->name;
     }
   }
 
   return NULL;
 }
+
 

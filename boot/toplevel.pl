@@ -42,12 +42,16 @@ $welcome :-
 $load_init_file(none) :- !.
 $load_init_file(Base) :-
 	loaded_init_file(Base), !.
+$load_init_file(InitFile) :-
+	is_absolute_file_name(InitFile), !,
+	ensure_loaded(user:InitFile).
 $load_init_file(Base) :-
-	member(Prefix, ['', '~/']),
-	concat(Prefix, Base, InitFile), 
-	access_file(InitFile, read), !, 
+	absolute_file_name(user_profile(Base),
+			   [ access(read),
+			     file_errors(fail)
+			   ], InitFile),
 	asserta(loaded_init_file(Base)),
-	user:ensure_loaded(InitFile).
+	ensure_loaded(user:InitFile).
 $load_init_file(_).
 
 $load_system_init_file :-
@@ -246,7 +250,7 @@ $runtoplevel :-
 
 $compile :-
 	$set_file_search_paths,
-	$compile_wic.
+	catch($compile_wic, E, (print_message(error, E), halt(1))).
 
 
 		/********************************

@@ -5,6 +5,7 @@
     jan@swi.psy.uva.nl
 
     Purpose: memory allocation
+    MT-status: SAFE
 */
 
 #include "pl-incl.h"
@@ -30,6 +31,15 @@ corresponding  unalloc()  call if memory need to be freed.  This saves a
 word to store the size of the memory segment.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#if O_PLMT
+static pthread_mutex_t alloc_mutex = PTHREAD_MUTEX_INITIALIZER;
+#define LOCK()   pthread_mutex_lock(&alloc_mutex)
+#define UNLOCK() pthread_mutex_unlock(&alloc_mutex)
+#else
+#define LOCK()
+#define UNLOCK()
+#endif
+
 typedef struct chunk *	Chunk;
 #ifndef ALIGN_SIZE
 #if defined(__sgi) && !defined(__GNUC__)
@@ -44,10 +54,10 @@ struct chunk
 { Chunk		next;		/* next of chain */
 };
 
-forwards Chunk	allocate(alloc_t size);
+forwards Chunk	allocate(size_t size);
 
 static char   *spaceptr;	/* alloc: pointer to first free byte */
-static alloc_t spacefree;	/* number of free bytes left */
+static size_t spacefree;	/* number of free bytes left */
 
 static Chunk  freeChains[ALLOCFAST/sizeof(Chunk)+1];
 
@@ -65,24 +75,24 @@ to avoid problems with 16-bit machines not supporting an ANSI compiler.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void *
-alloc_heap(size_t n)
-{ register Chunk f;
-  register alloc_t m;
+allocHeap(size_t n)
+{ Chunk f;
+  size_t m;
   
   if ( n == 0 )
     return NULL;
 
   DEBUG(9, Sdprintf("allocated %ld bytes at ", (unsigned long)n));
   n = ALLOCROUND(n);
+  LOCK();
   GD->statistics.heap += n;
 
   if (n <= ALLOCFAST)
   { m = n / (int) ALIGN_SIZE;
-    if ((f = freeChains[m]) != NULL)
+    if ( (f = freeChains[m]) )
     { freeChains[m] = f->next;
-      f->next = (Chunk) NULL;
-      DEBUG(9, Sdprintf("(r) %ld (0x%lx)\n",
-		      (unsigned long) f, (unsigned long) f));
+      f->next = NULL;
+      DEBUG(9, Sdprintf("(r) %p\n", f));
 #if ALLOC_DEBUG
       { int i;
 	char *s = (char *) f;
@@ -90,28 +100,31 @@ alloc_heap(size_t n)
 	for(i=sizeof(struct chunk); i<n; i++)
 	  assert(s[i] == ALLOC_FREE_MAGIC);
 
-	memset((char *) f, ALLOC_MAGIC, n);
+	memset(f, ALLOC_MAGIC, n);
       }
 #endif
-      return (Word) f;			/* perfect fit */
+      UNLOCK();
+      return f;				/* perfect fit */
     }
     f = allocate(n);			/* allocate from core */
 
     SetHBase(f);
     SetHTop((char *)f + n);
+    UNLOCK();
 
-    DEBUG(9, Sdprintf("(n) %ld (0x%lx)\n", (unsigned long)f, (unsigned long)f));
+    DEBUG(9, Sdprintf("(n) %p\n", f));
 #if ALLOC_DEBUG
     memset((char *) f, ALLOC_MAGIC, n);
 #endif
     return f;
   }
 
-  if ( (f = malloc(n)) == NULL )
+  if ( !(f = malloc(n)) )
     outOfCore();
 
   SetHBase(f);
   SetHTop((char *)f + n);
+  UNLOCK();
 
   DEBUG(9, Sdprintf("(b) %ld\n", (unsigned long)f));
 #if ALLOC_DEBUG
@@ -120,8 +133,9 @@ alloc_heap(size_t n)
   return f;
 }
 
+
 void
-free_heap(void *mem, size_t n)
+freeHeap(void *mem, size_t n)
 { Chunk p = (Chunk) mem;
 
   if ( mem == NULL )
@@ -131,6 +145,7 @@ free_heap(void *mem, size_t n)
 #if ALLOC_DEBUG
   memset((char *) mem, ALLOC_FREE_MAGIC, n);
 #endif
+  LOCK();
   GD->statistics.heap -= n;
   DEBUG(9, Sdprintf("freed %ld bytes at %ld\n",
 		    (unsigned long)n, (unsigned long)p));
@@ -142,6 +157,7 @@ free_heap(void *mem, size_t n)
   } else
   { free(p);
   }
+  UNLOCK();
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -166,9 +182,17 @@ allocate(size_t n)
   }
 
   if ( spacefree >= sizeof(struct chunk) )
-    freeHeap(spaceptr, (alloc_t) (spacefree/ALIGN_SIZE)*ALIGN_SIZE);
+  { int m = spacefree/ALIGN_SIZE;
 
-  if ((p = (char *) Allocate(ALLOCSIZE)) <= (char *)NULL)
+    if ( m <= (ALLOCFAST/ALIGN_SIZE) )	/* this is freeHeap(), but avoids */
+    { Chunk ch = (Chunk)spaceptr;	/* recursive LOCK() */
+
+      ch->next = freeChains[m];
+      freeChains[m] = ch;
+    }
+  }
+
+  if ( !(p = Allocate(ALLOCSIZE)) )
     outOfCore();
 
   spacefree = ALLOCSIZE;
@@ -632,3 +656,20 @@ xrealloc(void *mem, size_t size)
 
   return NULL;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

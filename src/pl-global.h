@@ -51,18 +51,20 @@ typedef struct
   char *base_of_heap;			/* lowest allocated heap address */
   ulong rounded_heap_base;		/* heap-base rounded downwards */
   int	critical;			/* heap is being modified */
-  char *cannot_save_program;		/* why program cannot be saved */
   pl_loaderstatus_t _loaderstatus;	/* status of foreign code loader */
   pl_defaults_t	    defaults;		/* system default settings */
   pl_options_t	    options;		/* command-line options */
   State		stateList;		/* list of loaded states */
-  ulong		bases[STG_MASK+1];	/* area base addresses */
   int		initialised;		/* Heap is initialised */
   int		io_initialised;		/* I/O system has been initialised */
   int		bootsession;		/* -b boot compilation */
   int		debug_level;		/* Maintenance debugging: 0..9 */
-  Feature	_feature_list;		/* global features */
   void *	resourceDB;		/* program resource database */
+
+  struct
+  { Feature	list;			/* global features */
+    pl_features_t mask;			/* Masked access to booleans */
+  } feature;
 
   struct
   { int		argc;			/* main(int argc, char **argv) */
@@ -103,7 +105,6 @@ typedef struct
   struct
   { buffer	array;			/* index --> atom */
     int		buckets;		/* # buckets in char * --> atom */
-    int		locked;			/* table is locked */
     Atom *	table;			/* hash-table */
     int		lookups;		/* # atom lookups */
     int		cmps;			/* # string compares for lookup */
@@ -116,6 +117,10 @@ typedef struct
   struct
   { ExtensionCell _ext_head;		/* head of registered extensions */
     ExtensionCell _ext_tail;		/* tail of this chain */
+
+    InitialiseHandle initialise_head;	/* PL_initialise_hook() */
+    InitialiseHandle initialise_tail;
+
     int		  _loaded;		/* system extensions are loaded */
   } foreign;
 
@@ -130,7 +135,6 @@ typedef struct
   struct
   { buffer	array;			/* index --> functor */
     int		buckets;		/* # buckets in atom --> functor */
-    int		locked;			/* table is locked */
     FunctorDef* table;			/* hash-table */
   } functors;
 
@@ -189,6 +193,7 @@ typedef struct
 { LocalFrame environment;		/* Current local frame */
   FliFrame   foreign_environment;	/* Current foreign context */
   pl_stacks_t stacks;			/* Prolog runtime stacks */
+  ulong		bases[STG_MASK+1];	/* area base addresses */
 #ifdef HAVE_SIGNAL
   sig_handler sig_handlers[MAXSIGNAL];	/* How Prolog preceives signals */
 #endif  
@@ -197,7 +202,6 @@ typedef struct
   int		aborted;		/* thread asked for abort */
   Stack		outofstack;		/* thread is out of stack */
   int		trim_stack_requested;	/* perform a trim-stack */
-  int		autoload;		/* do autoloading */
   int		in_arithmetic;		/* doing arithmetic */
 
   struct
@@ -242,7 +246,7 @@ typedef struct
   } modules;
 
   struct
-  { Atom 	generator;		/* See PL_atom_generator() */
+  { long 	generator;		/* See PL_atom_generator() */
   } atoms;
 
   struct
@@ -268,9 +272,6 @@ typedef struct
   { AbortHandle	_abort_head;		/* PL_abort_hook() */
     AbortHandle _abort_tail;
     
-    InitialiseHandle _initialise_head;	/* PL_initialise_hook() */
-    InitialiseHandle _initialise_tail;
-
     PL_dispatch_hook_t _dispatch_events; /* PL_dispatch_hook() */
 
     buffer	_discardable_buffer;	/* PL_*() character buffers */
@@ -290,20 +291,46 @@ typedef struct
   } depth_info;
 #endif
 
-  pl_gc_status_t	_gc_status;	/* Garbage collection status */
+  struct
+  { long _total_marked;			/* # marked global cells */
+    long _trailcells_deleted;		/* # garbage trailcells */
+    long _relocation_chains;		/* # relocation chains (debugging) */
+    long _relocation_cells;		/* # relocation cells */
+    long _relocated_cells;		/* # relocated cells */
+    long _needs_relocation;		/* # cells that need relocation */
+    long _local_marked;			/* # marked local -> global ptrs */
+    long _marks_swept;			/* # marks swept */
+    long _marks_unswept;		/* # marks swept */
+    long _alien_relocations;		/* # alien_into_relocation_chain() */
+    long _local_frames;			/* frame count for debugging */
+
+    pl_gc_status_t	status;		/* Garbage collection status */
+  } gc;
+
 #ifdef O_SHIFT_STACKS
   pl_shift_status_t	_shift_status;	/* Stack shifter status */
 #endif
   
   pl_debugstatus_t _debugstatus;	/* status of the debugger */
-  pl_features_t	   _features;		/* thread-local features */
+
+#ifdef O_PLMT
+  struct
+  { struct _PL_thread_info_t *info;	/* info structure */
+    long magic;
+  } thread;
+#endif
 } PL_local_data_t;
 
-GLOBAL PL_local_data_t  PL_local_data;
 GLOBAL PL_global_data_t PL_global_data;
 GLOBAL PL_code_data_t	PL_code_data;
 
-#define LD (&PL_local_data)
+#ifndef O_PLMT
+GLOBAL PL_local_data_t  PL_local_data;
+#define GET_LD
+#define LOCAL_LD  (&PL_local_data)
+#define GLOBAL_LD (&PL_local_data)
+#define LD	  GLOBAL_LD
+#endif
 #define GD (&PL_global_data)
 #define CD (&PL_code_data)
 
@@ -311,10 +338,10 @@ GLOBAL PL_code_data_t	PL_code_data;
 #define hBase			(GD->base_of_heap)
 #define heap_base		(GD->rounded_heap_base)
 #define loaderstatus		(GD->_loaderstatus)
-#define base_addresses		(GD->bases)
 #define functor_array		(GD->functors.array)
 #define atom_array		(GD->atoms.array)
 #define systemDefaults		(GD->defaults)
+#define features		(GD->feature.mask)
 
 #define environment_frame 	(LD->environment)
 #define fli_context	  	(LD->foreign_environment)
@@ -328,12 +355,12 @@ GLOBAL PL_code_data_t	PL_code_data;
 #define exception_printed	(LD->exception.printed)
 #define fileerrors		(LD->_fileerrors)
 #define float_format		(LD->_float_format)
-#define gc_status		(LD->_gc_status)
+#define gc_status		(LD->gc.status)
 #define shift_status		(LD->_shift_status)
 #define debugstatus		(LD->_debugstatus)
-#define features		(LD->_features)
 #define depth_limit		(LD->depth_info.limit)
 #define depth_reached		(LD->depth_info.reached)
+#define base_addresses		(LD->bases)
 
 #ifdef VMCODE_IS_ADDRESS
 #define dewam_table		(CD->_dewam_table)
