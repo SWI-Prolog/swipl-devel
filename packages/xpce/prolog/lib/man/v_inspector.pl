@@ -77,12 +77,12 @@ variable(reference,	'name|int*',	get).
 
 handle(w-6, h/2, link).
 
-initialise(T, Value:'any|function') :->
+initialise(T, Value:unchecked) :->
 	send(T, send_super, initialise, '', left, font(helvetica, roman, 12)),
 	send(T, display_value, Value).
 
 
-display_value(T, Value:'any|function') :->
+display_value(T, Value:unchecked) :->
 	value_text(Value, Text),
 	send(T, string, Text),
 	send(T, object, Value),
@@ -100,10 +100,13 @@ value_text(Value, String) :-
 	new(String, string('@%s/%s', Reference, ClassName)).
 value_text(@Reference, String) :- !,
 	new(String, string('@%s', Reference)).
-value_text(Atomic, Atomic).
+value_text(Atomic, Atomic) :-
+	atomic(Atomic), !.
+value_text(Term, Atomic) :-
+	term_to_atom(Term, Atomic).	% long terms!?
 
 
-object(T, Object:'any|function') :->
+object(T, Object:unchecked) :->
 	(   object(Object)
 	->  Object = @Ref,
 	    send(T, slot, reference, Ref)
@@ -286,7 +289,7 @@ title_value(AV, Text:string) :->
 	send(TextObj, string, Text).
 
 
-display_value(AV, Name:name, Value:'any|function') :->
+display_value(AV, Name:name, Value:unchecked) :->
 	new(NT, isp_label_text(Name)),
 	new(VT, isp_value_text(Value)),
 	
@@ -297,7 +300,7 @@ display_value(AV, Name:name, Value:'any|function') :->
 	send(AV, display, VT).
 
 
-value(AV, Name:name, Value:'any|function') :->
+value(AV, Name:name, Value:unchecked) :->
 	send(AV, for_some, Name,
 	     if(message(@arg1, instance_of, isp_value_text),
 		message(@arg1, display_value, Value))).
