@@ -102,14 +102,19 @@ global_url(URL, BaseURL, Global) :-
 		 *	  CREATE URL/URI	*
 		 *******************************/
 
-%	http_location(+Parts, -Location)
+%	http_location(?Parts, ?Location)
 %
 %	Translate the relevant parts of an URL into an HTTP location
 %	on a server.
 
-http_location(Parts, Location) :-
+http_location(Parts, Location) :-	% Parts --> Location
+	nonvar(Parts), !,
 	phrase(curi(Parts), String), !,
 	atom_codes(Location, String).
+http_location(Parts, Location) :-	% Location --> Parts
+	atom(Location),
+	atom_codes(Location, Codes),
+	phrase(http_location(Parts), Codes).
 
 
 curl(A0) -->
@@ -275,12 +280,17 @@ url(http, Attributes) --> !,
 
 implicit_http(Attributes) -->
 	hostport(A0),
+	http_location(A1),
+	{ append(A0, A1, Attributes)
+	}.
+
+http_location(Attributes) -->
 	(   "/"
 	->  path(Path0),
 	    { atom_concat(/, Path0, Path),
-	      A1 = [path(Path)|A0]
+	      A1 = [path(Path)]
 	    }
-	;   { A1 = [path(/)|A0]		% assume / if no path is specified
+	;   { A1 = [path(/)]		% assume / if no path is specified
 	    }
 	),
 	(   "?"

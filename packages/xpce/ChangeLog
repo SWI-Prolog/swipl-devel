@@ -1,6 +1,13 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: <-read_as_file and<-size_as_file to class char_array, so
+  atoms and strings can be opened as a Prolog stream using pce_open.
+
+* FIXED: permission-checking when opening an object from read in
+  pce_open/3, so atoms can be opened for reading.
+
+
 VERSION 5.1.6
 =============
 
