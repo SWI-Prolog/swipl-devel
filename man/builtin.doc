@@ -178,8 +178,13 @@ source-location with it.
 \begin{quote}
 {\tt '\$source_location'({\em File, Line}):{\em Clause}}
 \end{quote}
-See also expand_term/2.
-
+When compiling a module (see chapter~\ref{sec:modules} and {\tt :-}
+module/2), term_expand/2 will first try term_expansion/2 in the module
+being compiled to allow for term-expansion rules that are local to a
+module. If there is no local definition, or the local definition fails
+to translate the term, expand_term/2 will try user:term_expansion/2. For
+compatibility with SICStus and Quintus Prolog, this feature should not
+be used.  See also expand_term/2.
 .C expand_term 2 +Term1, -Term2
 This predicate is normally called by the compiler to perform preprocessing.
 First it calls term_expansion/2.  If this predicate fails it performs
@@ -2522,7 +2527,7 @@ Expand Unix file specification into an absolute path.  User home
 directory expansion (\verb+~+ and \verb+~user+) and variable expansion
 is done.  The absolute path is canonised: references to `.' and `..' are
 deleted.  SWI-Prolog uses absolute file names to register source files
-independent of the current working directory.
+independent of the current working directory.  See also absolute_file_name/3.
 .C absolute_file_name 3 +Spec, +Options, -Absolute
 Converts the given file specification into an absolute path. {\em
 Option} is a list of options to guide the conformation process:

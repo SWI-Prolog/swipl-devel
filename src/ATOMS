@@ -261,6 +261,7 @@ A singletons		"singletons"
 A subterm_positions	"subterm_positions"
 A quiet			"quiet"
 A system_init_file	"system_init_file"
+A term_expansion	"term_expansion"
 
 F abs			1
 F acos			1
@@ -354,3 +355,4 @@ F list_position		4
 F string_position	2
 F brace_term_position	3
 F term_position		5
+F term_expansion	2

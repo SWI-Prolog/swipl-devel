@@ -179,7 +179,7 @@ static struct foreign {
   FRG("nth_clause", 		3, pl_nth_clause,     NDET|META|TRACE_ME),
   FRG("retract",    		1, pl_retract,        NDET|META|TRACE_ME),
   FRG("retractall",		1, pl_retractall,	   META|TRACE_ME),
-  FRG("$xr_member",		2, pl_xr_member,	   NDET|TRACE_ME),
+  FRG("$xr_member",		2, pl_xr_member,      NDET|META|TRACE_ME),
   FRG("$wam_list",		1, pl_wam_list,			TRACE_ME),
   
   FRG("flag",			3, pl_flag,			TRACE_ME),
@@ -294,6 +294,7 @@ static struct foreign {
   FRG("$current_module",	2, pl_current_module,	   NDET|TRACE_ME),
   FRG("$module",		2, pl_module,			TRACE_ME),
   FRG("$set_source_module",	2, pl_set_source_module,	TRACE_ME),
+  FRG("$term_expansion_module",	1, pl_term_expansion_module,NDET|TRACE_ME),
   FRG("$declare_module",	2, pl_declare_module,		TRACE_ME),
   FRG("context_module",		1, pl_context_module,	   META|TRACE_ME),
   FRG("$strip_module",		3, pl_strip_module,	   META|TRACE_ME),

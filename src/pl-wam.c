@@ -1683,7 +1683,7 @@ backtrack without showing the fail ports explicitely.
 #if O_DEBUGGER
 	if ( debugstatus.debugging )
 	{ tracePort(FR, UNIFY_PORT);
-	  if ( FR->mark.trailtop == INVALID_TRAILTOP || true(FR, FR_CUT) )
+	  if ( FR->mark.trailtop == INVALID_TRAILTOP )
 	  { SetBfr(FR->backtrackFrame);
 	  } else
 	  { SetBfr(FR);
@@ -2871,8 +2871,8 @@ Testing is suffices to find out that the predicate is defined.
 	} 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Call a normal Prolog predicate.  Just load the  machine  registers  with
-values  found  in  the  clause, give a referecence to the clause and set
+Call a normal Prolog predicate.  Just   load  the machine registers with
+values found in the clause,  give  a   reference  to  the clause and set
 `lTop' to point to the first location after the current frame.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 	ARGP = argFrameP(FR, 0);
@@ -3201,7 +3201,10 @@ resume_from_body:
 
     DEF = FR->predicate;
     if ( false(DEF, FOREIGN) )
-      CL = CL->next;
+    { CL = CL->next;
+      if ( true(FR, FR_CUT) || !CL )	/* just confusing in the tracer */
+	continue;
+    }
 
 #if O_DEBUGGER
     if ( debugstatus.debugging )
@@ -3220,7 +3223,9 @@ resume_from_body:
     statistics.inferences++;
 #ifdef O_PROFILE
     if ( statistics.profiling )
+    { DEF->profile_fails++;		/* fake a failure! */
       DEF->profile_redos++;
+    }
 #endif /* O_PROFILE */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3230,10 +3235,7 @@ foreign frame we have to set BFR and do data backtracking.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
     if ( false(DEF, FOREIGN) )
-    { if ( true(FR, FR_CUT) || !CL )
-	continue;
       goto resume_frame;
-    }
 
     SetBfr(FR->backtrackFrame);
     Undo(FR->mark);

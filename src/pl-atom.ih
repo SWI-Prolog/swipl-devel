@@ -250,3 +250,4 @@
 #define ATOM_subterm_positions MK_ATOM(249)
 #define ATOM_quiet        MK_ATOM(250)
 #define ATOM_system_init_file MK_ATOM(251)
+#define ATOM_term_expansion MK_ATOM(252)

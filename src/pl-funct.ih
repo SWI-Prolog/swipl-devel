@@ -90,3 +90,4 @@
 #define FUNCTOR_string_position2 (&functors[89])
 #define FUNCTOR_brace_term_position3 (&functors[90])
 #define FUNCTOR_term_position5 (&functors[91])
+#define FUNCTOR_term_expansion2 (&functors[92])

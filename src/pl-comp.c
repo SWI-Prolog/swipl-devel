@@ -2373,6 +2373,32 @@ stepPC(Code PC)
 }
 
 
+static int
+wouldBindToDefinition(Definition from, Definition to)
+{ Module m = from->module;
+  Definition def = from;
+  Procedure proc;
+
+  while(m)
+  { if ( def )
+    { if ( def == to )			/* found it */
+	succeed;
+
+      if ( def->definition.clauses ||	/* defined and not the same */
+	   true(def, DYNAMIC|MULTIFILE|DISCONTIGUOUS) ||
+	   false(def->module, UNKNOWN) )
+	fail;
+    }
+
+    m = m->super;			/* see in super module */
+    proc = isCurrentProcedure(from->functor, m);
+    def = proc ? proc->definition : (Definition)NULL;
+  }
+
+  fail;
+}
+
+
 word
 pl_xr_member(term_t ref, term_t term, word h)
 { Clause clause;
@@ -2458,6 +2484,9 @@ pl_xr_member(term_t ref, term_t term, word h)
 	{ Procedure pa = (Procedure)PC[1];
 
 	  if ( pa->definition == proc->definition )
+	    succeed;
+	  if ( pa->definition->functor == proc->definition->functor &&
+	       wouldBindToDefinition(pa->definition, proc->definition) )
 	    succeed;
 	}
 

@@ -317,6 +317,7 @@ word		pl_current_module(term_t module, term_t file, word h);
 word		pl_strip_module(term_t spec, term_t module, term_t term);
 word		pl_module(term_t old, term_t new);
 word		pl_set_source_module(term_t old, term_t new);
+word		pl_term_expansion_module(term_t name, word h);
 word		pl_declare_module(term_t name, term_t file);
 word		pl_export_list(term_t modulename, term_t list);
 word		pl_export(term_t head);

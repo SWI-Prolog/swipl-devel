@@ -1,6 +1,18 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.7.12
+==============
+
+  * FIXED: behaviour of the tracer.  Notably included missing fail-ports
+    from the trace.  Also fixed the box-counts for the profiler.
+
+  * ADDED: expand_term/2 now first tries term_expansion/2 in the module
+    that is being loaded.  After that it tries the module user.
+
+  * FIXED: Various improvements to the explain facility, notably much
+    better location of predicate cross-references.
+
 Version 2.7.11
 ==============
 

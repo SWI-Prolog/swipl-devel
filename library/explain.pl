@@ -1,8 +1,19 @@
-/*  File:    shell.pl
-    Purpose: Limited Unix Shell Emulation
-    Author:  Jan Wielemaker
-    Date:    Dec 15,  1994
+/*  $Id$
+
+    Part of SWI-Prolog
+    Designed and implemented by Jan Wielemaker
+    E-mail: jan@swi.psy.uva.nl
+
+    Copyright (C) 1996 University of Amsterdam. All rights reserved.
 */
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The   library(explain)   describes   prolog-terms.   The   most   useful
+functionality is its cross-referencing function.
+
+Note  that  the  help-tool  for   XPCE    provides   a   nice  graphical
+cross-referencer.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 :- module(explain,
 	  [ explain/1,
@@ -61,8 +72,13 @@ explain([H|T], Explanation) :- !,
 explain(Name/Arity, Explanation) :-
 	atom(Name),
 	integer(Arity), !,
-	functor(Term, Name, Arity),
-	explain_functor(Term, Explanation).
+	functor(Head, Name, Arity),
+	current_predicate(_, Module:Head),
+	(   Module == system
+	->  true
+	;   \+ predicate_property(Module:Head, imported_from(_))
+	),
+	explain_predicate(Module:Head, Explanation).
 explain(Term, Explanation) :-
 	utter(Explanation, '"~w" is a compound term', [Term]).
 explain(Term, Explanation) :-
@@ -84,19 +100,21 @@ printable(C) :-
 		*********************************/
 
 explain_atom(A, Explanation) :-
+	referenced(A, Explanation).
+explain_atom(A, Explanation) :-
 	current_predicate(A, Module:Head),
 	(   Module == system
 	->  true
 	;   \+ predicate_property(Module:Head, imported_from(_))
 	),
 	explain_predicate(Module:Head, Explanation).
-explain_atom(A, Explanation) :-
-	referenced(A, Explanation).
 
 		/********************************
 		*            FUNCTOR             *
 		*********************************/
 
+explain_functor(Head, Explanation) :-
+	referenced(Head, Explanation).
 explain_functor(Head, Explanation) :-
 	current_predicate(_, Module:Head),
 	\+ predicate_property(Module:Head, imported_from(_)),
@@ -105,8 +123,6 @@ explain_functor(Head, Explanation) :-
 	predicate_property(M:Head, undefined),
 	functor(Head, N, A),
 	utter(Explanation, '~w:~w/~d is an undefined predicate', [M,N,A]).
-explain_functor(Head, Explanation) :-
-	referenced(Head, Explanation).
 	
 		/********************************
 		*           PREDICATE           *
@@ -165,7 +181,7 @@ referenced(Term, Explanation) :-
 	Module:Head \= help_index:predicate(_,_,_,_,_),
 	Head \= '$user_query'(_,_),
 	nth_clause(Module:Head, N, Ref),
-	(   functor(Term, _, Arity), Arity > 0, Term \= _M:_H
+	(   functor(Term, _, A), A > 0, Term \= _M:_H
 	->  '$xr_member'(Ref, user:Term)
 	;   '$xr_member'(Ref, Term)
 	),

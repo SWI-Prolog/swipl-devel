@@ -1749,7 +1749,14 @@ term_expansion(+Term1, -Term2)
 
          '$source_location'(File, Line):Clause
 
-     See also expand_term/2.
+     When compiling a module (see chapter 4 and :- module/2),
+     term_expand/2 will first try term_expansion/2 in the module
+     being compiled to allow for term-expansion rules that are local to
+     a module. If there is no local definition, or the local definition fails
+     to translate the term, expand_term/2 will try
+     user:term_expansion/2. For compatibility with SICStus and
+     Quintus Prolog, this feature should not be used. See also
+     expand_term/2.
 
 
 expand_term(+Term1, -Term2)
@@ -4494,7 +4501,8 @@ absolute_file_name(+File, -Absolute)
      directory expansion (~ and ~user) and variable expansion is done.
      The absolute path is canonised: references to `.' and `..' are
      deleted. SWI-Prolog uses absolute file names to register source
-     files independent of the current working directory.
+     files independent of the current working directory. See also
+     absolute_file_name/3.
 
 
 absolute_file_name(+Spec, +Options, -Absolute)

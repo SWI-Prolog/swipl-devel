@@ -981,8 +981,9 @@ $load_goal(use_module(_, _)) :- flag($compiling, wic, wic).
 :- user:dynamic(term_expansion/2).
 :- user:multifile(term_expansion/2).
 
-expand_term(Term, Expanded) :-
-	user:term_expansion(Term, Expanded), !.
+expand_term(Term, Expanded) :-		% local term-expansion
+	$term_expansion_module(Module),
+	Module:term_expansion(Term, Expanded), !.
 expand_term(Term, Expanded) :-
 	$translate_rule(Term, Expanded), !.
 expand_term(Term, Term).

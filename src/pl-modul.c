@@ -269,6 +269,46 @@ pl_set_source_module(term_t old, term_t new)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Find the module in which to call   term_expansion/2. This is the current
+source-module and module user, provide term_expansion/2 is defined. Note
+this predicate does not generate modules for which there is a definition
+that has no clauses. The predicate would fail anyhow.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+word
+pl_term_expansion_module(term_t name, word h)
+{ Module m = modules.source;
+  Procedure proc;
+
+  switch(ForeignControl(h))
+  { case FRG_FIRST_CALL:
+      m = modules.source;
+      break;
+    case FRG_REDO:
+      m = modules.user;
+      break;
+    default:
+      succeed;
+  }
+
+  while(1)
+  { if ( (proc = isCurrentProcedure(FUNCTOR_term_expansion2, m)) &&
+	 proc->definition->definition.clauses &&
+	 PL_unify_atom(name, modules.source->name) )
+    { if ( m == modules.user )
+	PL_succeed;
+      else
+	ForeignRedoInt(1);
+    } else
+    { if ( m == modules.user )
+	PL_fail;
+      m = modules.user;
+    }
+  }
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Declare `name' to be a module with `file' as its source  file.   If  the
 module was already loaded its public table is cleared and all procedures
 in it are abolished.
