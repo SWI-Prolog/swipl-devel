@@ -111,7 +111,7 @@ PLSRC=	../boot/syspred.pl ../boot/toplevel.pl ../boot/listing.pl \
 	../boot/profile.pl ../boot/dwim.pl ../boot/rc.pl \
 	../boot/parms.pl ../boot/autoload.pl ../boot/qlf.pl \
 	../boot/topvars.pl ../boot/messages.pl ../boot/load.pl
-PLLIB=  MANUAL helpidx.pl help.pl explain.pl \
+PLLIBS= MANUAL helpidx.pl help.pl explain.pl \
 	qsave.pl shlib.pl statistics.pl system.pl \
 	backcomp.pl \
 	bim.pl quintus.pl edinburgh.pl ctypes.pl files.pl \
@@ -119,7 +119,6 @@ PLLIB=  MANUAL helpidx.pl help.pl explain.pl \
 	tty.pl readln.pl \
 	am_match.pl oset.pl \
 	netscape.pl url.pl \
-	oset.pl \
 	threadutil.pl
 PLWIN=	wise.pl dde.pl progman.pl registry.pl
 
@@ -296,7 +295,7 @@ iboot:
 		for f in *.pl; do $(INSTALL_DATA) $$f $(PLBASE)/boot; done
 ilib:		
 		cd ../library; \
-		for f in $(PLLIB); do \
+		for f in $(PLLIBS); do \
 			$(INSTALL_DATA) $$f $(PLBASE)/library; \
 		done
 
