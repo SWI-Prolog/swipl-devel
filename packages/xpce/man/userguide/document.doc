@@ -1,0 +1,426 @@
+\section{Document rendering: Text and graphics}		\label{sec:docrender}
+
+In this section, we discuss XPCE's support for rendering `documents'.
+With documents we refer properly formatted text with graphics. These
+primitives may be used to display---for example---an HTML page. They
+provide all ingredients to render text-paragraphs mixed with graphics,
+lists, tables, etc.
+
+Although we do not intend to turn XPCE into yet-another-web-browser
+implementation, there is an increasing need to be able to display `real
+documents'. Examples are online-help systems, document-browsing tools,
+etc.
+
+
+\subsection{The model}
+
+Central to XPCE's document rendering classes is the class
+\class{parbox}. This is a subclass of \class{device}, making it a
+graphical capable of displaying other graphical objects. A parbox,
+visualises a mixture of text (represented by \class{tbox} objects) with
+graphics, controlled by \class{grbox} objects. The superclass of
+\class{tbox} and \class{grbox}, called \class{hbox} represents the
+information (dimenstions) required by the \class{parbox} object to
+format the text and graphics.  The class relations are summarised in
+\figref{fig:docclasses}.
+
+\postscriptfig[0.8*\linewidth]{docclasses}{Relations between the
+documentation classes}
+
+To visualise a document, an instance of class \class{parbox} is created
+and the document is translated into a sequence of \class{tbox},
+\class{hbox} and \class{grbox} objects that are appended to this
+\class{parbox} object.
+
+\index{sml}%
+\index{sgml}%
+\index{SP,package}%
+We have developed a Prolog library for rendering a large subset of HTML
+using these primitives. This library builds on {\em xml2pl}, a wrapper
+around \url[James Clark's SP-package]{http://www.jclark.com/}
+for reading XML and SGML documents into a nested Prolog term.
+
+The rendering library maps Prolog terms created by {\em xml2pl} first
+to abstract commands such as ``new paragraph'' and from there to a
+sequence of boxes that are appended to a \class{parbox} object.
+
+
+\subsubsection*{An example}
+
+Before going into details, we will provide a small example using plain
+XPCE calls.
+
+%
+% from examples/doc1.pl
+%
+\begin{code}
+universe :-
+	send(new(P, picture), open),
+	send(P, display, new(PB, parbox), point(25, 0)),
+	send(P, resize_message,
+	     message(PB, line_width, @arg2?width-50)),
+
+	send_list(PB,
+		  [ cdata('About the Universe', @bold_style),
+		    append(@section_skip),
+		    append(@br),
+		    cdata('The universe is ', @normal_style),
+		    cdata('big', @bold_style),
+		    cdata('!')
+		  ]).
+		  
+:- pce_global(@bold_style,   new(style(font := bold))).
+:- pce_global(@normal_style, new(style(font := normal))).
+:- pce_global(@br,	     new(hbox(rubber := rubber(linebreak := force)))).
+:- pce_global(@parskip,	     new(hbox(ascent := 10))).
+:- pce_global(@section_skip, new(hbox(descent := 20))).
+\end{code}
+
+The first three calls build a \class{picture} window, displaying a
+\class{parbox} object that changes `parbox->line_width' if the picture
+is resized. The send_list/2 call appends various \class{hbox} objects to
+the \class{parbox} object. The `parbox->cdata' method breaks the
+argument into spaces and \class{tbox} objects and appends these to the
+\class{parbox}. Spacing, expressed using plain \class{hbox} objects and
+\class{style} objects are \jargon{reusable} objects and therefore
+declared globally.  The result is shown in \figref{doc1}.
+
+\postscriptfig{doc1}{Output from the `universe' example}
+
+
+\subsection{Class documentation}
+
+Below we summarise the most important methods and behaviour of the
+classes involved in document rendering.
+
+
+\subsubsection{Class parbox}
+
+Class \class{parbox} is the central class of the document rendering
+system. It contains a sequence of \class{hbox} objects that are rendered
+as a \jargon{paragraph}: placed left-to-right line-by-line.  Box objects
+come in three flavours.  Instances of class \class{tbox} are used to
+render text using a specific \class{style}. Instances of class
+\class{grbox} embed a \class{graphical} object and finally, instances
+of the class \class{hbox} itself are used for layout.
+
+Graphicals embedded using \class{grbox} are similar to the HTML
+\element{img} element.  They can be placed at the location they appear
+in the <-content vector or be flushed to the left- or right-margin with
+text floating around them.
+
+Embedding graphicals is not only used to embed \class{image} objects.
+Any XPCE \class{graphical} object may be embedded and this mechanism
+is thus used to create effects like the HTML \element{hr} element,
+\jargon{controls} as well as realising tables and lists using
+\class{table} and \class{lbox}.  The table-cells and list-items in turn
+may be \class{parbox} objects.
+
+\begin{description}
+\getmethod{parbox}{content}{Content:vector}
+Unlike most XPCE agregate classes, the content of a \class{parbox}
+object is represented using a \class{vector} object.  The main reason is
+that \class{hbox} objects are in principle reusable (may occur in
+multiple \class{parbox} objects) and therefore we can not refer to a
+particular \class{hbox} in a particular \class{parbox} using the
+\class{hbox} reference only.  See `parbox<-find', etc.
+
+\sendmethod{parbox}{append}{Box:hbox}
+Append an \class{hbox} to the parbox. This is the principal way for
+building the parbox <-content.  Note that an \class{hbox} is never
+broken. Text consisting of multiple words is therefore normally appended
+using `parbox->cdata'.
+
+\sendmethod{parbox}{cdata}{Text:string, Style:[style], Space:[hbox],
+			   IgnoreBlanks:[{none,leading,trailing,both}]}
+The name of this method relates the the SGML term \jargon{cdata},
+meaning `character-data'. This method breaks \var{Text} into an
+alternating sequence of contiguous blank and contiguous non-blank
+characters.  Each block of contiguous non-blank characters is mapped
+onto a \class{tbox} object using the specified style.  For each block
+of contiguous blanks characters, \var{Space} is appended. If \var{Space}
+is omitted, a breakable \class{hbox} object with dimensions suitable for
+the current font is created.  Finally, using \var{IgnoreBlanks} blank
+space at either end of the string may be ignored.
+
+\bothmethod{parbox}{line_width}{Width:int}
+Controls the maximum width of a text-line.  The actual <-width of the
+\class{parbox} object is normally the same as the ->line_width, but
+there are two exceptions to this rule.  If the content does not fit
+in ->line_width, <-width is the resulting minimal width.  If
+`parbox ->auto_crop' is @on the <-width is the determined by the
+content.
+
+\bothmethod{parbox}{auto_crop}{Crop:bool}
+If @off (default), the <-width of the parbox is normally equal to
+the <-line_width.  If @on, the <-width is determined by the rendered
+<-content. This is normally used for tables, where each cell is rendered
+using a wide \class{parbox} with ->auto_crop set to @on.
+
+\getmethod{parbox}{minimum_width}{}{int}
+Calculates the minimal required <-width for rendering the <-content.
+Used for setting layout parameters for formatting tables.
+\end{description}
+
+The XPCE document rendering classes are first of all designed for
+viewing. The methods below allow for locating content in a
+\class{parbox} object and mapping content-locations to screen locations.
+
+\begin{description}
+\getmethod{parbox}{box}{At:int}{Box:hbox}
+Find box at indicated location.  See `vector <-element'.
+
+\getmethod{parbox}{locate_event}{Event:event}{Index:int}
+Compute the index of the \class{hbox} in which are \var{Event} took
+place.  This is used to create active areas.  See \secref{doc:active}
+
+\getmethod{parbox}{find}{Condition:code}{Result:tuple(ParBox, Index)}
+Find an \class{hbox} satisfying a condition.  If the \class{parbox}
+contains a \class{grbox}, this graphical is examined on the appearance
+of \class{parbox} objects and the search is continued in these
+\jargon{sub-parboxes}.  Condition is called using the following
+arguments:
+
+\begin{center}
+\begin{tabular}{ll}
+@receiver & Considered parbox \\
+@arg1     & Considered hbox \\
+@arg2	  & Index of considered hbox in parbox \\
+\end{tabular}
+\end{center}
+
+If \var{Condition} succeeds, a tuple holding the parbox containing
+the hit and the index of the hbox causing the hit are returned.
+See \secref{doc:active} for using this primitive.
+
+\getmethod{parbox}{box_area}{For:hbox|int, To:[device]}{area}
+Determine the area occupied by the nth \class{hbox} of the
+\class{parbox}.  If \arg{To} is specified, the returned area is
+in the coordinate system of the specified \class{device}.  This method
+is used to make specified locations visible.
+\end{description}
+
+\subsubsection{Class hbox}
+\subsubsection{Class rubber}
+
+\subsubsection{Class tbox}
+\subsubsection{Class grbox}
+
+\subsubsection{Class lbox}
+
+
+\subsection{Relating to the source}
+
+In general, the document rendering classes will be used to display
+generated documents. Often the original is represented in some mockup
+language like HTML or one of the other SGML related languages. In other
+cases the document is generated automatically on the bases of
+information deduced by a program that is combined with presentation
+knowledge.
+
+For various reasons it is often required to be able to relate entities
+from the source (e.g.\ \jargon{elements} from an HTML page) to the
+rendered document. This link may be used by the application to highlight 
+specific elements as well as by the user to point to elements.
+
+HTML \jargon{buttons} and \jargon{anchors} may be regarded a special
+form of such links.
+
+We distinquish three cases:
+
+\begin{itemlist}
+    \item [The element is mapped to a \class{graphical}]
+Fro embedded graphicals, \class{parbox} functions like a normal
+graphical \class{device} and therefore this case is common to other XPCE
+applications and described extensively in \secref{whoiswho}.
+    \item [The element is mapped to a \class{tbox}]
+Instances of class \class{tbox} are \jargon{reusable}, but we may decide
+to map tbox objects we wish to relate as unique objects. As these
+objects are in principle reusable, they do not know in which
+\class{parbox} they are displayed nor at which location.  See below for
+details.
+    \item [The element is mapped to a sequence of \class{hbox} objects]
+This is the common mapping of the HTML \element{a} element. We will
+handle this case in detail below.
+\end{itemlist}
+
+\paragraph{Using empty \class{hbox}} objects we can \emph{annotate} the
+stream of \class{hbox} objects without affecting the layout.  This is
+what is used to realise the HTML \element{a} element both in its source
+(button) and sink (link location) meaning.  For this purpose we first
+subclass \class{hbox}.  In the example below, class \class{button_box}
+is defined used to realise an HTML `button'. The button below
+distinguishes between two aspects of a button as commonly seen in a
+web-browser: the feedback message displayed if the user moves the
+pointer over the button and the action executed if the user presses
+the button.  The latter is represented using an XPCE \class{code} object
+and can therefore be used to represent an arbitrary action instead of
+just jumping to an \jargon{URL}.
+
+
+\begin{code}
+:- pce_begin_class(button_box, hbox,
+		   "Open/close buttons").
+
+variable(message, code*,   both, "Message executed on click").
+variable(balloon, string*, both, "Message displayed when hoovering").
+
+initialise(B, Message:code*, Balloon:[string]*) :->
+	default(Balloon, @nil, Text),
+	send_super(B, initialise),
+	send(B, message, Message),
+	send(B, balloon, Text).
+
+:- pce_end_class.
+\end{code}
+
+A button is now realised by inserting one such box at either end of the
+button content, linked using a \class{hyper}.  We will illustrate this
+using code extracted from the HTML rendering library.  
+
+\begin{code}
+button(Message, Content, Balloon) -->
+	{ new(BO, button_box(@nil)),
+	  new(BC, button_box(Message, Balloon)),
+	  new(_, hyper(BO, BC, close, open))
+	},
+	[ BO,
+	  \group([\colour(dark_green), \ul | Content]),
+	  BC
+	].
+\end{code}
+
+\paragraph{Finding a button from an event} is accomplished by
+subclassing \class{parbox} and refining the `parbox->event' method.  The
+procedure starts with finding the index of the \class{hbox} on which the
+event occurred, after which the environment is searched for the two
+hyper-linked \class{button_box} objects embracing the event-location.
+
+The `parbox<-content' is represented using a \class{vector} to
+facilitate this type of search efficiently in large \class{parbox}
+objects.  Below is the code to deal with the button.
+
+\begin{figure}
+\begin{code}
+:- pce_begin_class(pbox, parbox, "Refined parbox for viewer").
+
+:- pce_global(@pbox_recogniser,
+	      new(click_gesture(left, '', single,
+				message(@receiver, clicked, @event)))).
+
+event(PB, Ev:event) :->
+	(   send_super(PB, event, Ev)
+	;   send(@pbox_recogniser, event, Ev)
+	;   send(Ev, is_a, loc_move),
+	    send(PB, show_location, Ev)
+	).
+
+clicked(PB, Ev:event) :->
+	"Deal with a left-click"::
+	get(PB, locate_event, Ev, Index),
+	find_button(PB, Index, Button),
+	get(Button, message, Message),
+	send(Message, forward, Button).
+
+%	find_button(+Parbox, +Index, -Button)
+%
+%	Find an instance of class button_box that is linked to a button
+%	before the current index.
+
+find_button(PB, Index, Button) :-
+	find_button(PB, Index, Index, 100, Button).
+
+find_button(PB, Index0, Index, _, CB) :-
+	get(PB, box, Index, CB),
+	send(CB, instance_of, button_box),
+	get(CB, hypered, open, OB),
+	get(PB?content, index, OB, OpenIndex),
+	OpenIndex =< Index0, !.
+find_button(PB, Index0, Index, MaxDist, CB) :-
+	Index1 is Index+1,
+	Index0+MaxDist > Index,
+	find_button(PB, Index0, Index1, MaxDist, CB).
+
+:- dynamic
+	showing/1.
+
+show_location(PB, Ev:event) :->
+	"Report button-balloon if hoovering over button"::
+	get(PB, locate_event, Ev, Index),
+	(   find_button(PB, Index, Button),
+	    get(Button, balloon, Text),
+	    Text \== @nil
+	->  true
+	;   Text = ''
+	),
+	(   showing(Text)
+	->  true
+	;   retractall(showing(_)),
+	    assert(showing(Text)),
+	    send(PB, report, status, Text)
+	).
+
+:- pce_end_class.
+\end{code}
+
+\caption{Simplified pbox class to deal with buttons}
+
+\end{figure}
+
+\subsection{The Prolog library}
+
+In the above we explained the primitives for rendering documents. These
+primitives are rather low-level and therefore a Prolog application
+library has been developed to deal with more high-level layout
+primitives.
+
+Luckily, a fairly well established breakdown of layout primitives has
+been identified and expressed in various text mockup languages, such
+as HTML and \LaTeX{}.  The Prolog infrastructure has been broken down
+into a number of components designed with these primitives in mind.
+
+\begin{itemlist}
+    \item [Style handling]
+The library \pllib{doc_style} defines classes for abstract manipulation
+of style and font attributes.
+
+    \item [Layout library]
+The library \pllib{doc_layout} defines a number of classes for
+dealing with document rendering. These are specialisations of notable
+\class{parbox}, \class{lbox} for the various list environments and
+\class{hbox} for dealing with buttons, anchors, etc.
+
+    \item [Browser building blocks]
+The library \pllib{doc_browser} provides primitives for building an
+WWW-like browser with feedback, history, etc.
+
+    \item [Document rendering]
+The library \pllib{doc_print} provides an extensible framework for
+mapping layout primitives such as headers, lists, quotations, fonts,
+etc. to the \emph{Style Handling} and \emph{Layout library} layer.
+
+    \item [HTML rendering]
+The library \pllib{doc_html} provides an extensible framework integrated
+to the \emph{Document rendering} primitives to map the HTML primitives
+as represented by the output of \pllib{xml2pl}.
+\end{itemlist}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
