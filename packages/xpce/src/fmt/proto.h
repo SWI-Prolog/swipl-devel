@@ -15,6 +15,7 @@ status		makeClassLayoutInterface(Class class);
 TableRow	getRowTable(Table tab, Any y, Bool create);
 TableColumn	getColumnTable(Table tab, Any x, Bool create);
 status		changedTable(Table tab);
+void		cell_stretchability(TableCell cell, Name which, stretch *s);
 status		makeClassTable(Class class);
 
 /* ../src/fmt/tabcell.c */

@@ -7,8 +7,10 @@
     Copyright (C) 1997 University of Amsterdam. All rights reserved.
 */
 
-#include <h/kernel.h>
-#include <h/graphics.h>
+#include <box/boxes.h>			/* to exploit class rubber */
+
+static status computeRubberTableRow(TableRow row);
+static status computeRubberTableColumn(TableColumn col);
 
 static status
 initialiseTableSlice(TableSlice c)
@@ -59,10 +61,17 @@ endGroupTableSlice(TableSlice slice, Bool end)
 
 static status
 rubberTableSlice(TableSlice slice, Rubber rubber)
-{ if ( slice->rubber != rubber )	/* equalRubber? */
-  { assign(slice, rubber, rubber);
-    if ( notNil(slice->table) )
-      changedTable(slice->table);
+{ if ( isDefault(rubber) )
+  { if ( instanceOfObject(slice, ClassTableColumn) )
+      return computeRubberTableColumn((TableColumn)slice);
+    else
+      return computeRubberTableRow((TableRow)slice);
+  } else
+  { if ( slice->rubber != rubber )	/* equalRubber? */
+    { assign(slice, rubber, rubber);
+      if ( notNil(slice->table) )
+	changedTable(slice->table);
+    }
   }
 
   succeed;
@@ -116,7 +125,7 @@ static vardecl var_table_slice[] =
      NAME_layout, "Location of the reference"),
   IV(NAME_position, "int", IV_GET,
      NAME_layout, "X/Y-offset of the column/row"),
-  SV(NAME_rubber, "rubber*", IV_GET|IV_STORE, rubberTableSlice,
+  IV(NAME_rubber, "rubber*", IV_GET,
      NAME_layout, "How to handle forced width/height")
 };
   
@@ -126,7 +135,9 @@ static senddecl send_table_slice[] =
 { SM(NAME_initialise, 0, NULL, initialiseTableSlice,
      DEFAULT, "Initialise abstract instance"),
   SM(NAME_width, 1, "[int]", widthTableSlice,
-     NAME_layout, "Set (fixed) width of the table slice")
+     NAME_layout, "Set (fixed) width of the table slice"),
+  SM(NAME_rubber, 1, "[rubber]*", rubberTableSlice,
+     DEFAULT, NULL)
 };
 
 /* Get Methods */
@@ -328,6 +339,46 @@ forAllTableColumn(TableColumn col, Code code)
   succeed;
 }
 
+
+static status
+computeRubberTableColumn(TableColumn col)
+{ Table tab = col->table;
+  int ymin = valInt(getLowIndexVector(tab->rows));
+  int ymax = valInt(getHighIndexVector(tab->rows));
+  int y;
+  stretch stretches[ymax-ymin+1];
+  int nstretches = 0;
+  stretch joined;
+
+  for(y=ymin; y<=ymax; y++)
+  { TableCell cell = getCellTableColumn(col, toInt(y));
+
+    if ( cell )
+    { if ( cell->col_span == ONE )
+	cell_stretchability(cell, NAME_column, &stretches[nstretches++]);
+    }
+  }
+
+  if ( nstretches > 0 )
+  { Rubber r;
+
+    join_stretches(stretches, nstretches, &joined);
+    r = newObject(ClassRubber,
+		  ONE,
+		  toInt(joined.stretch),
+		  toInt(joined.shrink),
+		  0);
+    assign(r, minimum, toInt(joined.minimum));
+    assign(r, maximum, toInt(joined.maximum));
+    assign(r, natural, toInt(joined.ideal));
+
+    assign(col, rubber, r);
+  } else
+  { assign(col, rubber, NIL);
+  }
+
+  succeed;
+}
 
 
 /* Type declarations */
@@ -558,6 +609,14 @@ computeTableRow(TableRow row)
   assign(row, reference, toInt(t));
 
   succeed;
+}
+
+
+static status
+computeRubberTableRow(TableRow row)
+{ Cprintf("computeRubberTableRow(): Not implemented");
+  
+  fail;
 }
 
 

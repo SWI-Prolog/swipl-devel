@@ -948,7 +948,7 @@ slice_stretchability(TableSlice slice, stretch *s)
 }
 
 
-static void
+void
 cell_stretchability(TableCell cell, Name which, stretch *s)
 { Rubber r;
 
@@ -1168,7 +1168,8 @@ computeColsTable(Table tab)
     }
   }
 
-  if ( (spanned = getSpannedCellsTable(tab, NAME_colSpan)) )
+  if ( (spanned = getSpannedCellsTable(tab, NAME_colSpan)) &&
+       isDefault(tab->width) )		/* TBD: When to negotiate? */
   { Cell cell;
 
     for_cell(cell, spanned)
