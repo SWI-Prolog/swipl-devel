@@ -116,6 +116,7 @@ colourise_text_buffer(TB) :-
 	->  skip(Fd, 10)
 	;   true
 	),
+	'$style_check'(Old, Old),
 	repeat,
 	    catch(read_term(Fd, Term,
 			    [ subterm_positions(TermPos),
@@ -128,8 +129,11 @@ colourise_text_buffer(TB) :-
 	    once(colourise_term(Term, TB, TermPos)),
 	    fix_operators(Term),
 	    Term == end_of_file, !,
+	'$style_check'(_, Old),
 	close(Fd).
 
+fix_operators((:-style_check(X))) :- !,
+	style_check(X).
 fix_operators((:-Directive)) :- !,
 	asserta(user:message_hook(_,_,_), Ref),
 	ignore(xref_expand((:-Directive), _)),

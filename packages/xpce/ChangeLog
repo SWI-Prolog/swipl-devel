@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: PceEmacs: honour style-check options (notably -atom) appearing
+  in the file being coloured.
+
 * ADDED: Make `{text,text_item}->catch_all' accept methods associated
   with class String, regardless of the text<-string.
 
