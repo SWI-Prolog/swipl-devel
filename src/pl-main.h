@@ -68,20 +68,20 @@ typedef struct
 #endif
 
 #if O_DYNAMIC_STACKS || O_SHIFT_STACKS
-#define DEF_DEFLOCAL	2000
-#define DEF_DEFGLOBAL	4000
-#define DEF_DEFTRAIL	4000
+#define DEF_DEFLOCAL	(500*SIZEOF_LONG)
+#define DEF_DEFGLOBAL	(1000*SIZEOF_LONG)
+#define DEF_DEFTRAIL	(1000*SIZEOF_LONG)
 #define DEF_DEFHEAP        0		/* unlimited */
 #if O_DYNAMIC_STACKS
-#define DEF_DEFARGUMENT 1000
+#define DEF_DEFARGUMENT (250*SIZEOF_LONG)
 #else
-#define DEF_DEFARGUMENT 16
+#define DEF_DEFARGUMENT (4*SIZEOF_LONG)
 #endif /*O_DYNAMIC_STACKS*/
 #else					/* static stack areas */
-#define DEF_DEFLOCAL	200
-#define DEF_DEFGLOBAL	400
-#define DEF_DEFTRAIL	200
-#define DEF_DEFARGUMENT  16
+#define DEF_DEFLOCAL	(50*SIZEOF_LONG)
+#define DEF_DEFGLOBAL	(80*SIZEOF_LONG)
+#define DEF_DEFTRAIL	(80*SIZEOF_LONG)
+#define DEF_DEFARGUMENT	(4*SIZEOF_LONG)
 #define DEF_DEFHEAP       0		/* unlimited */
 #endif
 

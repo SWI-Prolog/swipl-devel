@@ -1048,7 +1048,7 @@ allocStacks(long local, long global, long trail, long argument)
   ulong maxarea;
 
   size_alignment = getpagesize();
-  while(size_alignment < 16 K)
+  while(size_alignment < 4*SIZEOF_LONG K)
     size_alignment *= 2;
   mapfd  = get_map_fd();
 
@@ -1059,12 +1059,12 @@ allocStacks(long local, long global, long trail, long argument)
   tsep = size_alignment;
 #endif
 
-  maxarea = (MAXTAGGEDPTR < 512 MB ? MAXTAGGEDPTR : 512 MB);
+  maxarea = (MAXTAGGEDPTR < 1024 MB ? MAXTAGGEDPTR : 1024 MB);
 
   if ( local	== 0 ) local	= maxarea;
   if ( global	== 0 ) global	= maxarea;
   if ( trail	== 0 ) trail	= maxarea;
-  if ( argument	== 0 ) argument	= 16 MB;
+  if ( argument	== 0 ) argument	= 4*SIZEOF_LONG MB;
 
   local    = (long) align_size(local);	/* Round up to page boundary */
   global   = (long) align_size(global);
@@ -1094,10 +1094,10 @@ allocStacks(long local, long global, long trail, long argument)
   init_stack((Stack) &LD->stacks.name, print, base, limit, minsize);
 #define K * 1024
 
-  INIT_STACK(global,   "global",   gbase, global,   16 K);
-  INIT_STACK(local,    "local",    lbase, local,    8 K);
-  INIT_STACK(trail,    "trail",    tbase, trail,    8 K);
-  INIT_STACK(argument, "argument", abase, argument, 1 K);
+  INIT_STACK(global,   "global",   gbase, global,   4*SIZEOF_LONG K);
+  INIT_STACK(local,    "local",    lbase, local,    2*SIZEOF_LONG K);
+  INIT_STACK(trail,    "trail",    tbase, trail,    2*SIZEOF_LONG K);
+  INIT_STACK(argument, "argument", abase, argument, 1*SIZEOF_LONG K);
 
 #ifndef NO_SEGV_HANDLING
   set_stack_guard_handler(SIGSEGV, _PL_segv_handler);
@@ -1258,10 +1258,10 @@ allocStacks(long local, long global, long trail, long argument)
   init_stack((Stack) &LD->stacks.name, print, base, limit, minsize);
 #define K * 1024
 
-  INIT_STACK(global,   "global",   gbase, global,   16 K);
-  INIT_STACK(local,    "local",    lbase, local,    8 K);
-  INIT_STACK(trail,    "trail",    tbase, trail,    8 K);
-  INIT_STACK(argument, "argument", abase, argument, 1 K);
+  INIT_STACK(global,   "global",   gbase, global,   4*SIZEOF_LONG K);
+  INIT_STACK(local,    "local",    lbase, local,    2*SIZEOF_LONG K);
+  INIT_STACK(trail,    "trail",    tbase, trail,    2*SIZEOF_LONG K);
+  INIT_STACK(argument, "argument", abase, argument, 1*SIZEOF_LONG K);
 
 #ifndef NO_SEGV_HANDLING
   set_stack_guard_handler(SIGSEGV, _PL_segv_handler);
@@ -1494,9 +1494,9 @@ static void
 allocStacks(long local, long global, long trail, long arg)
 { long old_heap = GD->statistics.heap;
 #if O_SHIFT_STACKS
-  long itrail  = 32 K;
-  long iglobal = 200 K;
-  long ilocal  = 32 K;
+  long itrail  = 8*SIZEOF_LONG K;
+  long iglobal = 50*SIZEOF_LONG K;
+  long ilocal  = 8*SIZEOF_LONG K;
 #else
   long itrail  = trail;
   long iglobal = global;
@@ -1510,10 +1510,14 @@ allocStacks(long local, long global, long trail, long arg)
   tBase = (TrailEntry)	malloc(itrail);
   aBase = (Word *)	malloc(arg);
 
-  init_stack((Stack)&LD->stacks.global,	  "global",   iglobal, global, 100 K);
-  init_stack((Stack)&LD->stacks.local,    "local",    ilocal,  local,   16 K);
-  init_stack((Stack)&LD->stacks.trail,    "trail",    itrail,  trail,    8 K);
-  init_stack((Stack)&LD->stacks.argument, "argument", arg,     arg,      0 K);
+  init_stack((Stack)&LD->stacks.global,
+	     "global",   iglobal, global,  25*SIZEOF_LONG K);
+  init_stack((Stack)&LD->stacks.local,
+	     "local",    ilocal,  local,   4*SIZEOF_LONG K);
+  init_stack((Stack)&LD->stacks.trail,
+	     "trail",    itrail,  trail,   2*SIZEOF_LONG K);
+  init_stack((Stack)&LD->stacks.argument,
+	     "argument", arg,     arg,	   0 K);
 
   GD->statistics.heap = old_heap;
 }
