@@ -1,12 +1,15 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: first steps for multi-threading support in the windows version
+    based on pthread-win32, an Open Source emulation of POSIX threads on
+    Win32.  Very incomplete.
+
 VERSION 5.0.10 (Sep 26, 2002)
 =============================
 
   * FIXED: incorrect messages about not being able to import predicates
     from module user.
-
 
 VERSION 5.0.10a (Sep 25, 2002)
 ==============================
