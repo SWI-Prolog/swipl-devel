@@ -29,39 +29,6 @@ struct timeval
 extern int	puti P((int, FILE *));
 extern int	geti P((FILE *));
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The types below should (mostly) be in stdlib.h.  They are not and this
-file keeps GCC silent while using the -Wall flag.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#if sun && !solaris
-extern int	getpid P((void));
-extern int	isatty P((int));
-extern int	fclose P(( FILE * ));
-extern int	pclose P((FILE *));
-extern int	_filbuf P((FILE *));
-extern int	_flsbuf P((unsigned char, FILE *));
-extern int	fflush P((FILE *));
-extern char *   vsprintf P((char *, char *, va_list));
-extern void	bzero P((Void, int));
-extern void	exit P((int));
-extern int	close P((int));
-extern int	read P((int, Void, int));
-extern int	access P((char *, int));
-extern unsigned	sleep P((unsigned));
-extern int	fprintf P((FILE *, char *, ...));
-extern int	printf P((char *, ...));
-extern long	putw P((long, FILE *));
-extern long	getw P((FILE *));
-extern char *	index P((char *, char));
-extern int	write P((int, Void, int));
-extern int	gettimeofday P((struct timeval *, struct timeval *));
-extern long	strtol P((char *, char**, int));
-extern int	vfprintf P((FILE *, char *, ...));
-extern int	vfork P((void));
-#endif
-
-
 		/********************************
 		*        MEMORY MANAGEMENT      *
 		*********************************/

@@ -8,6 +8,7 @@
 */
 
 #include "pl-incl.h"
+#include <string.h>
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This is a very simple stand alone program that picks  a  region  from  a
@@ -28,7 +29,8 @@ char **argv;
 
   program = argv[0];
 
-  if ( argc != 3 || (s = index(argv[1], ':')) == NULL )
+
+  if ( argc != 3 || (s = strchr(argv[1], ':')) == NULL )
     usage();
 
   *s = '\0';

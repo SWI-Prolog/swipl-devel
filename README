@@ -2,6 +2,7 @@
 
 ** Last update: Fri Dec 18 13:57:18 1992 (1.6.7)
 		Mon Jun 28 14:42:06 1993 (1.7.0)
+		Mon Nov 22 15:23:54 1993 (1.8.5)
 
 AUTHOR
 ======
@@ -25,6 +26,7 @@ The SWI-Prolog source tree consists of the following directories:
 ./include	Include files.  Mostly for handling foreign-code
 ./man		Manual (LaTeX)
 ./lisp		GNU-Emacs Lisp sources for a better Prolog-mode
+		(See swi-prolog19.el for using Emacs-19)
 
 
 BUILDING SWI-Prolog
@@ -35,11 +37,13 @@ Using gcc
 The C-compiler used for some architecture is defined in md-<machine.h>
 using the macro M_CC
 
-When available, please use  the GNU-C  compiler gcc.    SWI-Prolog has
-been developed with this  compiler.  Do not use  version 2.0,  as this
-compiler crashes on pl-wam.c. Version 2.1 is ok.  SWI-Prolog makes use
-of  GCC-2's  facilities    to deal with   label   addresses, improving
-performance with about 10%.
+When available, please use the GNU-C  compiler gcc.  SWI-Prolog has been
+developed with this compiler.  Do not use  version 2.0, as this compiler
+crashes on pl-wam.c.  Version 2.1  is   ok.   Versions  2.5.[123] have a
+broken optimiser.  When nothingelse  is   available,  recompile pl-wam.c
+without optimisation as a work-around.  SWI-Prolog  makes use of GCC-2's
+facilities to deal with  label   addresses,  improving  performance with
+about 10%.
 
 
 INSTALLATION
@@ -55,6 +59,12 @@ librl-11.tar.z in the SWI-Prolog ftp distribution directory.
 If you don't have it, compile and  install this library according to the
 instructions there.  If it is not installed in one of the default paths,
 edit the definitions of M_LDFLAGS and M_CFLAGS in md.h.
+
+The readline-1.1.tgz (or similar named) is a   bit outdated and does not
+compile on all machines.  If you  have   trouble,  check the readline as
+supplied with GDB.  If  you're  desparate   and  using  SWI-Prolog  as a
+GNU-Emacs inferior process anyway drop the O_READLINE flag from md.h.
+
 
 SWI-Prolog
 
@@ -112,10 +122,11 @@ created.  After the installation, do
 GNU-EMACS INTERFACE
 ===================
 
-In the directory ./lisp, you'll find  an interface to  GNU-EMACS.  The
-file README.SWI provides installation directives.  In  consists of the
-Quintus  Prolog  gnu-emacs  interface    with   an   additional   file
-swi-prolog.el that redefines and adds some things.
+In the directory ./lisp, you'll  find   an  interface to GNU-EMACS.  The
+file README.SWI provides installation directives.    In  consists of the
+Quintus Prolog gnu-emacs interface with an additional file swi-prolog.el
+that redefines and adds some things.   See also the swi-prolog19.el file
+for using Emacs-19.
 
 
 PROBLEMS BUILDING SWI

@@ -1,0 +1,147 @@
+Linux Software Map Entry Template                            Release: 05SEP93
+=============================================================================
+
+Synopsis:
+
+The LSM is a directory of information about each of the software packages
+available via FTP for the Linux operating system.  It is meant to be a public
+information resource.  All entries have been entered by volunteers all over
+the world via email using the template below.  New versions will appear
+first on sunsite.unc.edu and will be announced in the newsgroup
+comp.os.linux.announce .  Discussions pertaining to the LSM will be held in
+the newsgroup comp.os.linux.help .  Any questions or comments can be entered in
+comp.os.linux.help or sent to me directly at jeffk@msen.com .
+
+Instructions:
+
+Any new packages or updates to old entries should be entered in the template
+below and sent to jeffk@msen.com (Jeff Kopmanis).  Each release of the
+LSM will have the current template as part of the package.  Any changes to
+the template will be made and released there.
+
+*PLEASE* use the entry template below when submitting information.  It has
+been designed so that all you have to do is fill in the blanks and send it
+in as is.  Your entry will be read into the database directly from your
+email response with little if any hand manipulation.
+
+DO NOT RENAME FIELDS.  DO NOT REMOVE THE BEGIN OR END MARKERS.  Please pay
+attention to the field lengths listed to the left of the field names, as 
+any text beyond that length will be truncated.  If you use some of the new
+fields, be sure to use the newer Begin2 keyword to start your entry to
+save me a few headaches and file editing.
+
+Complete as many fields as possible.  As of the 05SEP93 version, you don't
+need to keep blank fields around, but I strongly encourage developers to
+complete all the fields, as its more descriptive.  Make any corrections
+that are necessary.  The initial data came from a variety of sources, 
+and is not at all assumed to be correct.
+
+Once you have completed the documentation as best as possible, email the
+modified version of this file to:   jeffk@msen.com
+
+Thank you VERY much for your time and enthusiasm.  Your contribution will
+help to ensure that the Linux Software Map will continue to be a trusted
+Linux resource.
+
+-Jeff.  :)   (jeffk@msen.com) (Jeffrey J. Kopmanis)
+
+
+============================================================================
+Changes in 05SEP93:
+
+No field lengths are needed in the actual template entry.  I've got the lengths
+in the field description section of this document.
+
+You can leave fields out.  If they're blank, leave 'em out.
+
+Expanded fields: 5 lines of descriptions, 4 lines of required, 2 lines of
+copypolicy, 4 comment lines, 3 lines of relatedfiles, 4 site/path/file/size
+groups.
+
+Site, Path, File and Size are now separate fields.  Also, there are 4 possible
+site/path/file/size groups allowed.  This should cover just about anything.
+
+Author and email have been split up.
+
+Entered and Enteredby have been split up.
+
+PkgName and Last3Rel are gone.
+
+Things that were 65 chars are now 80.  In general, areas that didn't have
+enough space were expanded to hold what was coming in.
+
+=============================================================================
+Descriptions of fields used in the LSM template
+=============================================================================
+Field:len          Description
+-----------        -----------------------------------------------------------------
+Title:40           The name of the package.  example: "Emacs text editor"
+Version:25         The version number or designation.
+Desc1:80           5 lines of text describing the package's function or purpose.
+Desc2:80              The more descriptive you are the more useful the entry will be.
+Desc3:80
+Desc4:80
+Desc5:80
+Author:65          Who wrote the package originally, or, the person who ported it.
+AuthorEmail:40     The author's email address, if known.
+Maintainer:65      Who currently maintains the code.
+MaintEmail:40      The maintainer's email address, if known.
+Site1:30           FTP address of the primary site where this package is distributed.
+Path1:50           The path at Site1 where the package is located.
+File1:40           The filename in Path1 at Site1 where the package is located.
+FileSize1:size     The size of the package.  You may use K and MB after a number.
+Site2/Path2/File2/FileSize2  (same as first one)
+Site3/Path3/File3/FileSize3  (same as first one)
+Site4/Path4/File4/FileSize4  (same as first one)
+Required1:80       Required hardware or software needed to run this package.  Please
+Required2:80          be as specific as possible, for this information is VERY
+Required3:80          important.
+Required4:80
+CopyPolicy1:80     The copyright policy of this package.
+CopyPolicy2:80
+Keywords:80        Keywords to use in searching for this package.
+Comment1:80        Put any pertenant information that doesn't fit in the above
+Comment2:80           fields or categories here.  The more you tell us, the better.
+Comment3:80
+Comment4:80
+RelFiles1:80       List any related files that come with the package here.
+RelFiles2:80
+RelFiles3:80
+Entered:12         The date you filled out this template. Ex:  05SEP93
+EnteredBy:30       Take credit for your work!
+CheckedEmail:40    Your email address (if you wish it to be in the LSM)  
+=============================================================================
+
+NOTE: The example file below contains ALL AVAILABLE fields.  You may delete
+any fields you do not use.
+-------------------------------- cut here ------------------------------------
+Begin2
+Title        = SWI-Prolog
+Version      = 1.8.5
+Desc1        = Edinburgh-style Prolog compiler including modules, autoload,
+Desc2        = libraries, Garbage-collector, stack-expandor, C-interface,
+Desc3        = GNU-readline and GNU-Emacs interface, very fast compiler,
+Desc4        = X11 interface using XPCE (info: ftp swi.psy.uva.nl:/pub/xpce)
+Author       = Jan Wielemaker
+AuthorEmail  = jan@swi.psy.uva.nl
+Maintainer   = Jan Wielemaker
+MaintEmail   = jan@swi.psy.uva.nl
+Site1        = swi.psy.uva.nl
+Path1        = /pub/SWI-Prolog
+File1        = pl-1.8.5.tar.gz
+FileSize1    = 894316
+Site2        = sunsite.unc.edu
+Path2        = ???
+File2        = pl-1.8.5.tar.gz
+FileSize2    = 894316
+Required1    = GNU-readline installed, kernel later than 99pl6
+CopyPolicy1  = Copy-left
+Keywords     = Prolog, Edinburgh, Programming Language, Symbolic, Logic
+Comment1     = Also available for many other Unix machines, DOS and OS/2.
+Comment2     = Design objectives: compatibility, good developement environment,
+Comment3     = High level GUI (Graphical User Interface) system using XPCE.
+Entered      = 22SEP93
+EnteredBy    = jan@swi.psy.uva.nl
+CheckedEmail =
+End
+
