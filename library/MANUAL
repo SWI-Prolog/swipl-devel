@@ -1443,57 +1443,131 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
     prolog-flags,  prolog-flags  with  an  atom value  and  prolog-flags
     with  an integer  value.    A boolean  prolog-flag is  true iff  the
     prolog-flag  is present aanndd the _V_a_l_u_e  is the atom true.   Currently
-    defined keys:
+    defined keys in alphabetical order:
 
-    aarrcchh _(_a_t_o_m_)
-         Identifier for  the  hardware and  operating system  SWI-Prolog
-         is running  on.   Used to  select foreign files  for the  right
-         architecture.  See also section 7.4 and file_search_path/2.
+    aabboorrtt__wwiitthh__eexxcceeppttiioonn _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
+         Determines how  abort/0 is realised.    See the description  of
+         abort/0 for details.
 
-    vveerrssiioonn _(_i_n_t_e_g_e_r_)
-         The version identifier is an integer with value:
+    aaggcc__mmaarrggiinn _(_i_n_t_e_g_e_r_, _c_h_a_n_g_e_a_b_l_e_)
+         If  this amount  of  atoms  has  been created  since  the  last
+         atom-garbage collection,  perform  atom garbage  collection  at
+         the  first  opportunity.    Initial  value  is  10,000.     May
+         be  changed.    A  value  of 0  (zero)  disables  atom  garbage
+         collection.  See also PL_register_atom().
 
-                          10000_*Major+ 100_*Minor+_P_a_t_c_h
-
-         Note that  in releases  up to 2.7.10  this prolog-flag  yielded
-         an  atom   holding  the  three   numbers  separated  by   dots.
-         The  current representation  is  much easier  for  implementing
-         version-conditional statements.
-
-    hhoommee _(_a_t_o_m_)
-         SWI-Prolog's  notion  of   the  home-directory.      SWI-Prolog
-         uses  it's  home  directory   to  find  its  startup  file   as
-         <_h_o_m_e>/boot32.prc(32-bit machines) or <_h_o_m_e>/boot64.prc (64-bit
-         machines) and to find its library as <_h_o_m_e>/library.
-
-    eexxeeccuuttaabbllee _(_a_t_o_m_)
-         Path-name of the  running executable.  Used  by qsave_program/2
-         as default emulator.
-
-    ppiidd _(_i_n_t_)
-         Process identifier of  the running Prolog  process.   Existence
-         of this flag is implementation dependent.
+    aallllooww__vvaarriiaabbllee__nnaammee__aass__ffuunnccttoorr _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
+         If true  (default  is false),  Functor(arg) is  read  as if  it
+         was written 'Functor'(arg).   Some applications use the  Prolog
+         read/1  predicate for  reading  an application  defined  script
+         language.   In these  cases, it is  often difficult to  explain
+         to  non-Prolog users  of  the  application that  constants  and
+         functions can only  start with a  lowercase letter.   Variables
+         can be  turned into atoms  starting with  an uppercase atom  by
+         calling read_term/2 using the option variable_names and binding
+         the variables to their name.   Using this feature, F(x)  can be
+         turned into valid syntax for such script languages.   Suggested
+         by Robert van Engelen.  SWI-Prolog specific.
 
     aarrggvv _(_l_i_s_t_)
          List  is  a   list  of  atoms  representing  the   command-line
          arguments used  to invoke  SWI-Prolog.   Please  note that  aallll
          arguments are included in the list returned.
 
-    ppiippee _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
-         If  true,  open(pipe(command), mode, Stream),   etc.  are  sup-
-         ported.    Can  be  changed to  disable  the use  of  pipes  in
-         applications testing this feature.  Not recommended.
+    aarrcchh _(_a_t_o_m_)
+         Identifier for  the  hardware and  operating system  SWI-Prolog
+         is running  on.   Used to  select foreign files  for the  right
+         architecture.  See also section 7.4 and file_search_path/2.
 
-    ooppeenn__sshhaarreedd__oobbjjeecctt _(_b_o_o_l_)
-         If  true,  open_shared_object/2 and  friends  are  implemented,
-         providing access  to shared  libraries (.so  files) or  dynamic
-         link libraries (.DLL files).
+    aassssoocciiaattee _(_a_t_o_m_, _c_h_a_n_g_e_a_b_l_e_)
+         On  Windows systems,  this  is  set to  the  filename-extension
+         (e.g. pl or pro associated with plwin.exe.
 
-    sshhaarreedd__oobbjjeecctt__eexxtteennssiioonn _(_a_t_o_m_)
-         Extension used  by  the operating  system for  shared  objects.
-         .so for  most Unix  systems and  .dll for  Windows.   Used  for
-         locating  files using  the  file_type  executable.    See  also
-         absolute_file_name/3.
+    aauuttoollooaadd _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
+         If true (default) autoloading of library functions  is enabled.
+         See section 2.13.
+
+    bbaacckkqquuootteedd__ssttrriinngg _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
+         If  true   (default  false),   read  translates  text   between
+         backquotes into a string object (see section 4.23).   This flag
+         is mainly for compatibility to LPA Prolog.
+
+    bboouunnddeedd _(_t_r_u_e_)
+         ISO prolog-flag describing  integer representation is bound  by
+         min_integer and min_integer.
+
+    cc__cccc _(_a_t_o_m_)
+         Name of the  C-compiler used to  compile SWI-Prolog.   Normally
+         either gcc or cc.  See section 7.7.
+
+    cc__llddffllaaggss _(_a_t_o_m_)
+         Special  linker  flags  passed   to  link  SWI-Prolog.      See
+         section 7.7.
+
+    cc__lliibbss _(_a_t_o_m_)
+         Libraries passed  to the C-linker  when SWI-Prolog was  linked.
+         May  be  used to  determine  the  libraries  needed  to  create
+         statically linked extensions for SWI-Prolog.  See section 7.7.
+
+    cchhaarr__ccoonnvveerrssiioonn _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
+         Determines  whether  character-conversion  takes   place  while
+         reading terms.  See also char_conversion/2.
+
+    cchhaarraacctteerr__eessccaappeess _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
+         If true  (default),  read/1 interprets  \  escape sequences  in
+         quoted atoms and strings.  May be changed.   This flag is local
+         to the module in which it is changed.
+
+    ccoommppiilleedd__aatt _(_a_t_o_m_)
+         Describes when the  system has been  compiled.  Only  available
+         if  the C-compiler  used  to  compile SWI-Prolog  provides  the
+         __DATE__and __TIME__macros.
+
+    ccoonnssoollee__mmeennuu _(_b_o_o_l_)
+         Set  to true  in plwin.exe  to  indicate the  console  supports
+         menus.  See also section 4.37.2.
+
+    ddddee _(_b_o_o_l_)
+         Set  to  true  if this  instance  of  Prolog  supports  DDE  as
+         described in section 4.45.
+
+    ddeebbuugg _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
+         Switch debugging  mode  on/off.   If  debug  mode is  activated
+         the  system  traps  encountered  spy-points  (see   spy/1)  and
+         trace-points  (see  trace/1).     In  addition,  tail-recursion
+         optimisation is  disabled and the  system is more  conservative
+         in destroying choice-points to simplify debugging.
+
+         Disabling these optimisations can  cause the system to run  out
+         of memory on  programs that behave  correctly if debug mode  is
+         off.
+
+    ddeebbuugg__oonn__eerrrroorr _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
+         If  true,  start  the  tracer  after   an  error  is  detected.
+         Otherwise just continue  execution.   The goal that raised  the
+         error  will normally  fail.    See  also fileerrors/2  and  the
+         prolog-flag report_error.   May be changed.   Default is  true,
+         except for the runtime version.
+
+    ddeebbuuggggeerr__pprriinntt__ooppttiioonnss _(_t_e_r_m_, _c_h_a_n_g_e_a_b_l_e_)
+         This  argument is  given  as  option-list to  write_term/2  for
+         printing  goals  by  the  debugger.     Modified  by  the  `w',
+         `p'  and  `<_N>  d'  commands  of  the  debugger.    Default  is
+         [quoted(true), portray(true), max_depth(10)].
+
+    ddeebbuuggggeerr__sshhooww__ccoonntteexxtt _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
+         If true, show  the context module while printing a  stack-frame
+         in the  tracer.   Normally controlled using  the `C' option  of
+         the tracer.
+
+    ddoouubbllee__qquuootteess _(_c_o_d_e_s_,_c_h_a_r_s_,_a_t_o_m_,_s_t_r_i_n_g_, _c_h_a_n_g_e_a_b_l_e_)
+         This flag  determines  how double-quotes  strings are  read  by
+         Prolog and is ---like  character_escapes--- maintained for  each
+         module.    If codes  (default), a  list  of character-codes  is
+         returned,  if chars  a list  of  one-character atoms,  if  atom
+         double  quotes  are the  same  as  single-quotes  and  finally,
+         string reads the text into a Prolog string  (see section 4.23).
+         See also atom_chars/2 and atom_codes/2.
 
     ddyynnaammiicc__ssttaacckkss _(_b_o_o_l_)
          If true,  the system uses some  form of `sparse-memory  manage-
@@ -1509,57 +1583,26 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
          collection or call  to trim_stacks/0 (called by prolog/0  after
          finishing a user-query).
 
-    cc__lliibbss _(_a_t_o_m_)
-         Libraries passed  to the C-linker  when SWI-Prolog was  linked.
-         May  be  used to  determine  the  libraries  needed  to  create
-         statically linked extensions for SWI-Prolog.  See section 7.7.
-
-    cc__cccc _(_a_t_o_m_)
-         Name of the  C-compiler used to  compile SWI-Prolog.   Normally
-         either gcc or cc.  See section 7.7.
-
-    cc__llddffllaaggss _(_a_t_o_m_)
-         Special  linker  flags  passed   to  link  SWI-Prolog.      See
-         section 7.7.
-
-    rreeaaddlliinnee _(_b_o_o_l_)
-         If  true,  SWI-Prolog  is linked  with  the  readline  library.
-         This is  done by  default if  you have  this library  installed
-         on your  system.    It is  also true  for  the Win32  plwin.exe
-         version of SWI-Prolog, which realises a subset  of the readline
-         functionality.
+    eeddiittoorr _(_a_t_o_m_, _c_h_a_n_g_e_a_b_l_e_)
+         Determines the  editor used  by edit/1.   See  section 4.4  for
+         details on selecting the editor used.
 
     eemmaaccss__iinnffeerriioorr__pprroocceessss _(_b_o_o_l_)
          If  true,  SWI-Prolog is  running  as an  _i_n_f_e_r_i_o_r  _p_r_o_c_e_s_s  of
          (GNU/X-)Emacs.   SWI-Prolog  assumes this  is the  case if  the
          environment variable EMACS is t and INFERIOR is yes.
 
-    ssaavveedd__pprrooggrraamm _(_b_o_o_l_)
-         If  true,   Prolog  is   started  from   a  state  saved   with
-         qsave_program/[1,2].
+    eexxeeccuuttaabbllee _(_a_t_o_m_)
+         Path-name of the  running executable.  Used  by qsave_program/2
+         as default emulator.
 
-    rruunnttiimmee _(_b_o_o_l_)
-         If true,  SWI-Prolog  is compiled  with  -DO_RUNTIME,  disabling
-         various useful development  features (currently the tracer  and
-         profiler).
-
-    mmaaxx__iinntteeggeerr _(_i_n_t_e_g_e_r_)
-         Maximum  integer  value.     Most  arithmetic  operations  will
-         automatically convert  to floats if  integer values above  this
-         are returned.
-
-    mmiinn__iinntteeggeerr _(_i_n_t_e_g_e_r_)
-         Minimum integer value.
-
-    mmaaxx__ttaaggggeedd__iinntteeggeerr _(_i_n_t_e_g_e_r_)
-         Maximum integer value represented as a `tagged' value.   Tagged
-         integers require  4-bytes storage  and are  used for  indexing.
-         Larger integers are represented as `indirect data'  and require
-         16-bytes  on  the  stacks  (though  a  copy   requires  only  4
-         additional bytes).
-
-    mmiinn__ttaaggggeedd__iinntteeggeerr _(_i_n_t_e_g_e_r_)
-         Start of the tagged-integer value range.
+    ffiillee__nnaammee__vvaarriiaabblleess _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
+         If   true  (default   false),   expand   $varname  and   ~   in
+         arguments  of  builtin-predicates  that  accept  a   file  name
+         (open/3, exists_file/1,  access_file/2,  etc.).   The  predicate
+         expand_file_name/2  should  be  used   to  expand   environment
+         variables and wildcard patterns.  This  prolog-flag is intended
+         for backward compatibility with older versions of SWI-Prolog.
 
     ffllooaatt__ffoorrmmaatt _(_a_t_o_m_, _c_h_a_n_g_e_a_b_l_e_)
          C-library printf()  format  specification used  by write/1  and
@@ -1573,58 +1616,13 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
          a decimal  dot or exponent,  so read/1  reads a floating  point
          number.  See also format/[1,2], write_term/[2,3].
 
-    ttoopplleevveell__pprriinntt__ooppttiioonnss _(_t_e_r_m_, _c_h_a_n_g_e_a_b_l_e_)
-         This  argument   is  given   as  option-list   to  write_term/2
-         for   printing    results   of   queries.         Default    is
-         [quoted(true), portray(true), max_depth(10)].
+    ggcc _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
+         If true (default), the garbage collector is active.   If false,
+         neither garbage-collection,  nor stack-shifts will take  place,
+         even not on explicit request.  May be changed.
 
-    ddeebbuuggggeerr__pprriinntt__ooppttiioonnss _(_t_e_r_m_, _c_h_a_n_g_e_a_b_l_e_)
-         This  argument is  given  as  option-list to  write_term/2  for
-         printing  goals  by  the  debugger.     Modified  by  the  `w',
-         `p'  and  `<_N>  d'  commands  of  the  debugger.    Default  is
-         [quoted(true), portray(true), max_depth(10)].
-
-    ddeebbuuggggeerr__sshhooww__ccoonntteexxtt _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
-         If true, show  the context module while printing a  stack-frame
-         in the  tracer.   Normally controlled using  the `C' option  of
-         the tracer.
-
-    ccoommppiilleedd__aatt _(_a_t_o_m_)
-         Describes when the  system has been  compiled.  Only  available
-         if  the C-compiler  used  to  compile SWI-Prolog  provides  the
-         __DATE__and __TIME__macros.
-
-    cchhaarraacctteerr__eessccaappeess _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
-         If true  (default),  read/1 interprets  \  escape sequences  in
-         quoted atoms and strings.  May be changed.   This flag is local
-         to the module in which it is changed.
-
-    ddoouubbllee__qquuootteess _(_c_o_d_e_s_,_c_h_a_r_s_,_a_t_o_m_,_s_t_r_i_n_g_, _c_h_a_n_g_e_a_b_l_e_)
-         This flag  determines  how double-quotes  strings are  read  by
-         Prolog and is ---like  character_escapes--- maintained for  each
-         module.    If codes  (default), a  list  of character-codes  is
-         returned,  if chars  a list  of  one-character atoms,  if  atom
-         double  quotes  are the  same  as  single-quotes  and  finally,
-         string reads the text into a Prolog string  (see section 4.23).
-         See also atom_chars/2 and atom_codes/2.
-
-    bbaacckkqquuootteedd__ssttrriinngg _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
-         If  true   (default  false),   read  translates  text   between
-         backquotes into a string object (see section 4.23).   This flag
-         is mainly for compatibility to LPA Prolog.
-
-    aallllooww__vvaarriiaabbllee__nnaammee__aass__ffuunnccttoorr _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
-         If true  (default  is false),  Functor(arg) is  read  as if  it
-         was written 'Functor'(arg).   Some applications use the  Prolog
-         read/1  predicate for  reading  an application  defined  script
-         language.   In these  cases, it is  often difficult to  explain
-         to  non-Prolog users  of  the  application that  constants  and
-         functions can only  start with a  lowercase letter.   Variables
-         can be  turned into atoms  starting with  an uppercase atom  by
-         calling read_term/2 using the option variable_names and binding
-         the variables to their name.   Using this feature, F(x)  can be
-         turned into valid syntax for such script languages.   Suggested
-         by Robert van Engelen.  SWI-Prolog specific.
+    gguuii _(_b_o_o_l_)
+         Set to true if XPCE is around and can be used for graphics.
 
     hhiissttoorryy _(_i_n_t_e_g_e_r_, _c_h_a_n_g_e_a_b_l_e_)
          If _i_n_t_e_g_e_r >0,  support Unix csh(1)  like history as described
@@ -1633,17 +1631,19 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
          prolog-flag  to 0  if a  commandline  editor is  provided  (see
          prolog-flag readline) and 15 otherwise.
 
-    ggcc _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
-         If true (default), the garbage collector is active.   If false,
-         neither garbage-collection,  nor stack-shifts will take  place,
-         even not on explicit request.  May be changed.
+    hhoommee _(_a_t_o_m_)
+         SWI-Prolog's  notion  of   the  home-directory.      SWI-Prolog
+         uses  it's  home  directory   to  find  its  startup  file   as
+         <_h_o_m_e>/boot32.prc(32-bit machines) or <_h_o_m_e>/boot64.prc (64-bit
+         machines) and to find its library as <_h_o_m_e>/library.
 
-    aaggcc__mmaarrggiinn _(_i_n_t_e_g_e_r_, _c_h_a_n_g_e_a_b_l_e_)
-         If  this amount  of  atoms  has  been created  since  the  last
-         atom-garbage collection,  perform  atom garbage  collection  at
-         the  first  opportunity.    Initial  value  is  10,000.     May
-         be  changed.    A  value  of 0  (zero)  disables  atom  garbage
-         collection.  See also PL_register_atom().
+    hhwwnndd _(_i_n_t_e_g_e_r_)
+         In plwin.exe,  this refers to  the MS-Windows window-handle  of
+         the console window.
+
+    iinntteeggeerr__rroouunnddiinngg__ffuunnccttiioonn _(_d_o_w_n_,_t_o_w_a_r_d___z_e_r_o_)
+         ISO prolog-flag  describing rounding by  // and rem  arithmetic
+         functions.  Value depends on the C-compiler used.
 
     iissoo _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
          Include some  weird ISO compatibility  that is incompatible  to
@@ -1669,6 +1669,33 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
            o abolish/[1,2]  raises  a permission  error  when  accessing
              static predicates.
 
+    mmaaxx__aarriittyy _(_u_n_b_o_u_n_d_e_d_)
+         ISO  prolog-flag  describing  there  is  no  maximum  arity  to
+         compound terms.
+
+    mmaaxx__iinntteeggeerr _(_i_n_t_e_g_e_r_)
+         Maximum  integer  value.     Most  arithmetic  operations  will
+         automatically convert  to floats if  integer values above  this
+         are returned.
+
+    mmaaxx__ttaaggggeedd__iinntteeggeerr _(_i_n_t_e_g_e_r_)
+         Maximum integer value represented as a `tagged' value.   Tagged
+         integers require  4-bytes storage  and are  used for  indexing.
+         Larger integers are represented as `indirect data'  and require
+         16-bytes  on  the  stacks  (though  a  copy   requires  only  4
+         additional bytes).
+
+    mmiinn__iinntteeggeerr _(_i_n_t_e_g_e_r_)
+         Minimum integer value.
+
+    mmiinn__ttaaggggeedd__iinntteeggeerr _(_i_n_t_e_g_e_r_)
+         Start of the tagged-integer value range.
+
+    ooppeenn__sshhaarreedd__oobbjjeecctt _(_b_o_o_l_)
+         If  true,  open_shared_object/2 and  friends  are  implemented,
+         providing access  to shared  libraries (.so  files) or  dynamic
+         link libraries (.DLL files).
+
     ooppttiimmiissee _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
          If true, compile in optimised mode.  The initial  value is true
          if Prolog was started with the -O commandline option.
@@ -1683,13 +1710,106 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
          code  optimisation is  never  applied  to predicates  that  are
          declared dynamic (see dynamic/1).
 
-    cchhaarr__ccoonnvveerrssiioonn _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
-         Determines  whether  character-conversion  takes   place  while
-         reading terms.  See also char_conversion/2.
+    ppiidd _(_i_n_t_)
+         Process identifier of  the running Prolog  process.   Existence
+         of this flag is implementation dependent.
 
-    aauuttoollooaadd _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
-         If true (default) autoloading of library functions  is enabled.
-         See section 2.13.
+    ppiippee _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
+         If  true,  open(pipe(command), mode, Stream),   etc.  are  sup-
+         ported.    Can  be  changed to  disable  the use  of  pipes  in
+         applications testing this feature.  Not recommended.
+
+    rreeaaddlliinnee _(_b_o_o_l_)
+         If  true,  SWI-Prolog  is linked  with  the  readline  library.
+         This is  done by  default if  you have  this library  installed
+         on your  system.    It is  also true  for  the Win32  plwin.exe
+         version of SWI-Prolog, which realises a subset  of the readline
+         functionality.
+
+    rreessoouurrccee__ddaattaabbaassee _(_a_t_o_m_)
+         Set to the absolute-filename of the attached state.   Typically
+         this is the file boot32.prc, the file specified with  -x or the
+         running executable.  See also resource/3.
+
+    rreeppoorrtt__eerrrroorr _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
+         If true, print  error messages, otherwise  suppress them.   May
+         be changed.  See also  the debug_on_error prolog-flag.   Default
+         is true, except for the runtime version.
+
+    rruunnttiimmee _(_b_o_o_l_)
+         If true,  SWI-Prolog  is compiled  with  -DO_RUNTIME,  disabling
+         various useful development  features (currently the tracer  and
+         profiler).
+
+    ssaavveedd__pprrooggrraamm _(_b_o_o_l_)
+         If  true,   Prolog  is   started  from   a  state  saved   with
+         qsave_program/[1,2].
+
+    sshhaarreedd__oobbjjeecctt__eexxtteennssiioonn _(_a_t_o_m_)
+         Extension used  by  the operating  system for  shared  objects.
+         .so for  most Unix  systems and  .dll for  Windows.   Used  for
+         locating  files using  the  file_type  executable.    See  also
+         absolute_file_name/3.
+
+    ssiiggnnaallss _(_b_o_o_l_)
+         Determine  whether   Prolog  is   handling  signals   (software
+         interrupts).   This flag is  false if the  hosting OS does  not
+         support signal handling  or the command-line option  -nosignals
+         is active.  See section 7.6.18.1 for details.
+
+    ssyysstteemm__tthhrreeaadd__iidd _(_i_n_t_)
+         On MT systems (section 6, refers to  the thread-identifier used
+         by the system for the calling thread.  See also thread_self/1.
+
+    ttaaiill__rreeccuurrssiioonn__ooppttiimmiissaattiioonn _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
+         Determines  whether  or  not  tail-recursion   optimisation  is
+         enabled.     Normally the  value  of  this  flag  is  equal  to
+         the  debug  flag.      As  programs   may  run  out  of   stack
+         if  tail-recursion optimisation  is  omitted, it  is  sometimes
+         necessary to enable it during debugging.
+
+    ttoopplleevveell__pprriinntt__aannoonn _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
+         If true, toplevel variables starting with an underscore (_) are
+         printed normally.  If false they are hidden.   This may be used
+         to hide bindings in complex queries from the toplevel.
+
+    ttoopplleevveell__pprriinntt__ooppttiioonnss _(_t_e_r_m_, _c_h_a_n_g_e_a_b_l_e_)
+         This  argument   is  given   as  option-list   to  write_term/2
+         for   printing    results   of   queries.         Default    is
+         [quoted(true), portray(true), max_depth(10)].
+
+    ttoopplleevveell__vvaarr__ssiizzee _(_i_n_t_, _c_h_a_n_g_e_a_b_l_e_)
+         Maximum  size counted  in  literals of  a  term returned  as  a
+         binding for a  variable in a toplevel  query that is saved  for
+         re-use using the $ variable reference.  See section 2.8.
+
+    ttrraaccee__ggcc _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
+         If  true  (false  is  the  default),  garbage  collections  and
+         stack-shifts  will  be  reported on  the  terminal.     May  be
+         changed.
+
+    ttttyy__ccoonnttrrooll _(_b_o_o_l_)
+         Determines whether  the terminal  is switched to  raw mode  for
+         get_single_char/1,  which also  reads the  user-actions for  the
+         trace.  May be set.  See also the +/-tty command-line option.
+
+    uunniixx _(_b_o_o_l_)
+         If  true,  the  operating  system  is  some  version  of  Unix.
+         Defined  if the  C-compiler used  to  compile this  version  of
+         SWI-Prolog either defines __unix__ or unix.
+
+    uunnkknnoowwnn _(_f_a_i_l_,_w_a_r_n_i_n_g_,_e_r_r_o_r_, _c_h_a_n_g_e_a_b_l_e_)
+         Determines  the   behaviour  if  an   undefined  procedure   is
+         encountered.   If  fail,  the predicates  fails silently.    If
+         warn,  a warning  is printed,  and  execution continues  as  if
+         the  predicate was  not  defined  and if  error  (default),  an
+         existence_error exception is  raised.   This flag  is local  to
+         each module.
+
+    vveerrbboossee _(_A_t_o_m_, _c_h_a_n_g_e_a_b_l_e_)
+         This flags is used by print_message/2.  If its value is silent,
+         messages of type informational  and banner are supressed.   The
+         -q switches the value from the initial normal to silent.
 
     vveerrbboossee__aauuttoollooaadd _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
          If  true the  normal  consult  message  will be  printed  if  a
@@ -1702,105 +1822,29 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
          Intended for  debugging  complicated file-search  paths.    See
          also file_search_path/2.
 
-    ttrraaccee__ggcc _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
-         If  true  (false  is  the  default),  garbage  collections  and
-         stack-shifts  will  be  reported on  the  terminal.     May  be
-         changed.
+    vveerrssiioonn _(_i_n_t_e_g_e_r_)
+         The version identifier is an integer with value:
 
-    mmaaxx__aarriittyy _(_u_n_b_o_u_n_d_e_d_)
-         ISO  prolog-flag  describing  there  is  no  maximum  arity  to
-         compound terms.
+                          10000_*Major+ 100_*Minor+_P_a_t_c_h
 
-    iinntteeggeerr__rroouunnddiinngg__ffuunnccttiioonn _(_d_o_w_n_,_t_o_w_a_r_d___z_e_r_o_)
-         ISO prolog-flag  describing rounding by  // and rem  arithmetic
-         functions.  Value depends on the C-compiler used.
-
-    bboouunnddeedd _(_t_r_u_e_)
-         ISO prolog-flag describing  integer representation is bound  by
-         min_integer and min_integer.
-
-    ttttyy__ccoonnttrrooll _(_b_o_o_l_)
-         Determines whether  the terminal  is switched to  raw mode  for
-         get_single_char/1,  which also  reads the  user-actions for  the
-         trace.  May be set.  See also the +/-tty command-line option.
-
-    ssiiggnnaallss _(_b_o_o_l_)
-         Determine  whether   Prolog  is   handling  signals   (software
-         interrupts).   This flag is  false if the  hosting OS does  not
-         support signal handling  or the command-line option  -nosignals
-         is active.  See section 7.6.18.1 for details.
-
-    eeddiittoorr _(_a_t_o_m_, _c_h_a_n_g_e_a_b_l_e_)
-         Determines the  editor used  by edit/1.   See  section 4.4  for
-         details on selecting the editor used.
-
-    uunnkknnoowwnn _(_f_a_i_l_,_w_a_r_n_i_n_g_,_e_r_r_o_r_, _c_h_a_n_g_e_a_b_l_e_)
-         Determines  the   behaviour  if  an   undefined  procedure   is
-         encountered.   If  fail,  the predicates  fails silently.    If
-         warn,  a warning  is printed,  and  execution continues  as  if
-         the  predicate was  not  defined  and if  error  (default),  an
-         existence_error exception is  raised.   This flag  is local  to
-         each module.
-
-    ddeebbuugg _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
-         Switch debugging  mode  on/off.   If  debug  mode is  activated
-         the  system  traps  encountered  spy-points  (see   spy/1)  and
-         trace-points  (see  trace/1).     In  addition,  tail-recursion
-         optimisation is  disabled and the  system is more  conservative
-         in destroying choice-points to simplify debugging.
-
-         Disabling these optimisations can  cause the system to run  out
-         of memory on  programs that behave  correctly if debug mode  is
-         off.
-
-    ttaaiill__rreeccuurrssiioonn__ooppttiimmiissaattiioonn _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
-         Determines  whether  or  not  tail-recursion   optimisation  is
-         enabled.     Normally the  value  of  this  flag  is  equal  to
-         the  debug  flag.      As  programs   may  run  out  of   stack
-         if  tail-recursion optimisation  is  omitted, it  is  sometimes
-         necessary to enable it during debugging.
-
-    aabboorrtt__wwiitthh__eexxcceeppttiioonn _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
-         Determines how  abort/0 is realised.    See the description  of
-         abort/0 for details.
-
-    ddeebbuugg__oonn__eerrrroorr _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
-         If  true,  start  the  tracer  after   an  error  is  detected.
-         Otherwise just continue  execution.   The goal that raised  the
-         error  will normally  fail.    See  also fileerrors/2  and  the
-         prolog-flag report_error.   May be changed.   Default is  true,
-         except for the runtime version.
-
-    rreeppoorrtt__eerrrroorr _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
-         If true, print  error messages, otherwise  suppress them.   May
-         be changed.  See also  the debug_on_error prolog-flag.   Default
-         is true, except for the runtime version.
-
-    vveerrbboossee _(_A_t_o_m_, _c_h_a_n_g_e_a_b_l_e_)
-         This flags is used by print_message/2.  If its value is silent,
-         messages of type informational  and banner are supressed.   The
-         -q switches the value from the initial normal to silent.
-
-    ffiillee__nnaammee__vvaarriiaabblleess _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
-         If   true  (default   false),   expand   $varname  and   ~   in
-         arguments  of  builtin-predicates  that  accept  a   file  name
-         (open/3, exists_file/1,  access_file/2,  etc.).   The  predicate
-         expand_file_name/2  should  be  used   to  expand   environment
-         variables and wildcard patterns.  This  prolog-flag is intended
-         for backward compatibility with older versions of SWI-Prolog.
-
-    uunniixx _(_b_o_o_l_)
-         If  true,  the  operating  system  is  some  version  of  Unix.
-         Defined  if the  C-compiler used  to  compile this  version  of
-         SWI-Prolog either defines __unix__ or unix.
+         Note that  in releases  up to 2.7.10  this prolog-flag  yielded
+         an  atom   holding  the  three   numbers  separated  by   dots.
+         The  current representation  is  much easier  for  implementing
+         version-conditional statements.
 
     wwiinnddoowwss _(_b_o_o_l_)
          If  true,   the  operating  system  is  an  implementation   of
-         Microsoft Windows (3.1, 95, NT, etc.).
+         Microsoft Windows (3.1, 95/98/ME, NT/2000/XP, etc.).
 
-    hhwwnndd _(_i_n_t_e_g_e_r_)
-         In plwin.exe,  this refers to  the MS-Windows window-handle  of
-         the console window.
+    wwrriittee__hheellpp__wwiitthh__oovveerrssttrriikkee _(_b_o_o_l_)
+         Internal flag used  by help/1 when writing  to a terminal.   If
+         true it prints bold and underlined text using _o_v_e_r_s_t_r_i_k_e.
+
+    xxppccee _(_b_o_o_l_)
+         Set to true if the XPCE graphics system is loaded.
+
+    xxppccee__vveerrssiioonn _(_a_t_o_m_)
+         Set to the version of the loaded XPCE system.
 
 
 sseett__pprroolloogg__ffllaagg((_+_K_e_y_, _+_V_a_l_u_e))
@@ -15190,7 +15234,7 @@ expand_file_search_path/2, 111         repeat/0, 168, 183
 expand_goal/2, 120                     require/1, 107, 901
 expand_query/4, 554                    reset_profiler/0, 590
 expand_term/2, 118                     reset_profiler/0, 587
-expand_answer/2, 554                   resource/3,  18,  58,  898,  899,
+expand_answer/2, 554                   resource/3, 18, 56, 58, 898, 899,
 expand_file_name/2, 56,  513, 515,           905, 907, 908
       536, 537                         retract/1, 102,  109,  208,  209,
 expand_goal/2, 56, 117, 119                  212,  228, 232,  243,  642,
@@ -15293,7 +15337,7 @@ halt/[0                                TAB
 hash_term/2, 230                       tab/1, 292
 hash_term/2, 229                       tab/2, 293
 help/0, 39, 58, 905, 965               tan/1, 430
-help/1, 38--40, 58, 965                tell/1, 20, 249,  251, 261,  262,
+help/1, 38--40, 56, 58, 965            tell/1, 20, 249,  251, 261,  262,
 helpidx _l_i_b_r_a_r_y, 38                          264, 265
 hooks, 58                              telling/1, 261, 262, 267
 HTTP, 945                              term_expansion/2, 58, 117
@@ -15323,7 +15367,7 @@ is_set/1, 461                          thread_exit/1, 648, 654
 is_list/1, 461                         thread_get_message/1,t663,h664read_join/2, 646, 648, 650, 654
 
 keysort/2, 471, 472                    thread_local/1,t232,h243,r667ead_peek_message/1, 659
-last/2, 455                            thread_self/1, 649, 651, 658
+last/2, 455                            thread_self/1, 56, 649, 651, 658
 leash/1, 47, 576, 577, 958             thread_send_message/2, 661
 length/2, 458                          thread_signal/2, 666, 676
 library_directory/1, 58, 109           threads/0, 679

@@ -4198,6 +4198,7 @@ See also convert_time/8.
 
 
 \subsection{Controlling the \program{PLWIN.EXE} console window}
+\label{sec:plwin}
 
 The Windows executable \program{PLWIN.EXE} console has a number of
 predicates to control the appearance of the console. Being totally

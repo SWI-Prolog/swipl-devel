@@ -894,163 +894,18 @@ instantiated it unify the value of the prolog-flag. Features come in
 three types: boolean prolog-flags, prolog-flags with an atom value and
 prolog-flags with an integer value. A boolean prolog-flag is true iff
 the prolog-flag is present {\bf and} the \arg{Value} is the atom
-\const{true}. Currently defined keys:
+\const{true}. Currently defined keys in alphabetical order:
 
 \begin{description}
-    \prologflagitem{arch}{atom}{r}
-Identifier for the hardware and operating system SWI-Prolog is running
-on. Used to select foreign files for the right architecture. See also
-\secref{shlib} and file_search_path/2.
+    \prologflagitem{abort_with_exception}{bool}{rw}
+Determines how abort/0 is realised.  See the description of abort/0
+for details.
 
-    \prologflagitem{version}{integer}{r}
-The version identifier is an integer with value: $$10000 \times
-\arg{Major} + 100 \times \arg{Minor} + \arg{Patch}$$
-Note that in releases up to 2.7.10 this prolog-flag yielded an atom holding
-the three numbers separated by dots. The current representation is much
-easier for implementing version-conditional statements.
-
-    \prologflagitem{home}{atom}{r}
-SWI-Prolog's notion of the home-directory.  SWI-Prolog uses it's home
-directory to find its startup file as
-\file{<home>/boot32.prc} (32-bit machines) or
-\file{<home>/boot64.prc} (64-bit machines) and to find its library as
-\file{<home>/library}.
-
-    \prologflagitem{executable}{atom}{r}
-Path-name of the running executable. Used by qsave_program/2 as
-default emulator.
-
-    \prologflagitem{pid}{int}{r}
-Process identifier of the running Prolog process.  Existence of this
-flag is implementation dependent.
-
-    \prologflagitem{argv}{list}{r}
-List is a list of atoms representing the command-line arguments used to
-invoke SWI-Prolog.  Please note that {\bf all} arguments are included
-in the list returned.
-
-    \prologflagitem{pipe}{bool}{rw}
-If true, \exam{open(pipe(command), mode, Stream)}, etc.\ are supported.
-Can be changed to disable the use of pipes in applications testing this
-feature.  Not recommended.
-
-    \prologflagitem{open_shared_object}{bool}{r}
-If true, open_shared_object/2 and friends are implemented, providing
-access to shared libraries (\fileext{so} files) or dynamic link
-libraries (\fileext{DLL} files).
-
-    \prologflagitem{shared_object_extension}{atom}{r}
-Extension used by the operating system for shared objects. \fileext{so}
-for most Unix systems and \fileext{dll} for Windows.  Used for locating
-files using the \const{file_type} \const{executable}.  See also
-absolute_file_name/3.
-
-    \prologflagitem{dynamic_stacks}{bool}{r}
-If \const{true}, the system uses some form of `sparse-memory management'
-to realise the stacks. If false, malloc()/realloc() are used for the
-stacks. In earlier days this had consequenses for foreign code. As of
-version 2.5, this is no longer the case.
-
-Systems using `sparse-memory management' are a bit faster as there is no
-stack-shifter, and checking the stack-boundary is often realised by the
-hardware using a `guard-page'. Also, memory is actually returned to the
-system after a garbage collection or call to trim_stacks/0 (called by
-prolog/0 after finishing a user-query).
-
-    \prologflagitem{c_libs}{atom}{r}
-Libraries passed to the C-linker when SWI-Prolog was linked.  May be used
-to determine the libraries needed to create statically linked extensions
-for SWI-Prolog.  See \secref{plld}.
-
-    \prologflagitem{c_cc}{atom}{r}
-Name of the C-compiler used to compile SWI-Prolog.  Normally either gcc
-or cc.  See \secref{plld}.
-
-    \prologflagitem{c_ldflags}{atom}{r}
-Special linker flags passed to link SWI-Prolog.  See \secref{plld}.
-
-    \prologflagitem{readline}{bool}{r}
-If true, SWI-Prolog is linked with the readline library.  This is done
-by default if you have this library installed on your system.  It is
-also true for the Win32 plwin.exe version of SWI-Prolog, which realises
-a subset of the readline functionality.
-
-    \prologflagitem{emacs_inferior_process}{bool}{r}
-If true, SWI-Prolog is running as an \jargon{inferior process} of
-(GNU/X-)Emacs.  SWI-Prolog assumes this is the case if the environment
-variable \env{EMACS} is \const{t} and \env{INFERIOR} is \const{yes}.
-
-    \prologflagitem{saved_program}{bool}{r}
-If true, Prolog is started from a state saved with qsave_program/[1,2].
-
-    \prologflagitem{runtime}{bool}{r}
-If true, SWI-Prolog is compiled with -DO_RUNTIME, disabling various
-useful development features (currently the tracer and profiler).
-
-    \prologflagitem{max_integer}{integer}{r}
-Maximum integer value.  Most arithmetic operations will automatically
-convert to floats if integer values above this are returned.
-
-    \prologflagitem{min_integer}{integer}{r}
-Minimum integer value.
-
-    \prologflagitem{max_tagged_integer}{integer}{r}
-Maximum integer value represented as a `tagged' value.  Tagged integers
-require 4-bytes storage and are used for indexing.  Larger integers are
-represented as `indirect data' and require 16-bytes on the stacks (though
-a copy requires only 4 additional bytes).
-
-    \prologflagitem{min_tagged_integer}{integer}{r}
-Start of the tagged-integer value range.
-
-    \prologflagitem{float_format}{atom}{rw}
-C-library printf() format specification used by write/1 and friends to
-determine how floating point numbers are printed. The default is {\tt
-\%g}. The specified value is passed to printf() without further
-checking. For example, if you want more digits printed, {\tt \%.12g}
-will print all floats using 12 digits instead of the default 6.
-
-When using quoted-write, the output is guaranteed to contain a decimal
-dot or exponent, so read/1 reads a floating point number. See also
-format/[1,2], write_term/[2,3].
-
-    \prologflagitem{toplevel_print_options}{term}{rw}
-This argument is given as option-list to write_term/2 for printing results
-of queries.  Default is \exam{[quoted(true), portray(true), max_depth(10)]}.
-
-    \prologflagitem{debugger_print_options}{term}{rw}
-This argument is given as option-list to write_term/2 for printing goals
-by the debugger.  Modified by the `w', `p' and `<N> d' commands of the
-debugger.  Default is \exam{[quoted(true), portray(true),
-max_depth(10)]}.
-
-    \prologflagitem{debugger_show_context}{bool}{rw}
-If \const{true}, show the context module while printing a stack-frame in
-the tracer.  Normally controlled using the `C' option of the tracer.
-
-    \prologflagitem{compiled_at}{atom}{r}
-Describes when the system has been compiled. Only available if the
-C-compiler used to compile SWI-Prolog provides the __DATE__ and __TIME__
-macros.
-
-    \prologflagitem{character_escapes}{bool}{rw}
-If \const{true} (default), read/1 interprets \verb$\$ escape sequences
-in quoted atoms and strings. May be changed. This flag is local to the
-module in which it is changed.
-
-    \prologflagitem{double_quotes}{codes,chars,atom,string}{rw}
-This flag determines how double-quotes strings are read by Prolog and is
----like character_escapes--- maintained for each module. If
-\const{codes} (default), a list of character-codes is returned, if
-\const{chars} a list of one-character atoms, if \const{atom} double
-quotes are the same as single-quotes and finally, \const{string} reads
-the text into a Prolog string (see \secref{strings}).   See also
-atom_chars/2 and atom_codes/2.
-
-    \prologflagitem{backquoted_string}{bool}{rw}
-If \const{true} (default \const{false}), read translates text between
-backquotes into a string object (see \secref{strings}).  This flag is
-mainly for compatibility to LPA Prolog.
+    \prologflagitem{agc_margin}{integer}{rw}
+If this amount of atoms has been created since the last atom-garbage
+collection, perform atom garbage collection at the first opportunity.
+Initial value is 10,000.   May be changed.  A value of 0 (zero) disables
+atom garbage collection.  See also PL_register_atom().
 
     \prologflagitem{allow_variable_name_as_functor}{bool}{rw}
 If true (default is false), \exam{Functor(arg)} is read as if it was
@@ -1064,6 +919,153 @@ binding the variables to their name. Using this feature, F(x) can be
 turned into valid syntax for such script languages. Suggested by Robert
 van Engelen.  SWI-Prolog specific.
 
+    \prologflagitem{argv}{list}{r}
+List is a list of atoms representing the command-line arguments used to
+invoke SWI-Prolog.  Please note that {\bf all} arguments are included
+in the list returned.
+
+    \prologflagitem{arch}{atom}{r}
+Identifier for the hardware and operating system SWI-Prolog is running
+on. Used to select foreign files for the right architecture. See also
+\secref{shlib} and file_search_path/2.
+
+    \prologflagitem{associate}{atom}{rw}
+On Windows systems, this is set to the filename-extension (e.g.\
+\const{pl} or \const{pro} associated with \program{plwin.exe}.
+
+    \prologflagitem{autoload}{bool}{rw}
+If \const{true} (default) autoloading of library functions is enabled.
+See \secref{autoload}.
+
+    \prologflagitem{backquoted_string}{bool}{rw}
+If \const{true} (default \const{false}), read translates text between
+backquotes into a string object (see \secref{strings}).  This flag is
+mainly for compatibility to LPA Prolog.
+
+    \prologflagitem{bounded}{true}{r}
+ISO prolog-flag describing integer representation is bound by
+{\tt min_integer} and {\tt min_integer}.
+
+    \prologflagitem{c_cc}{atom}{r}
+Name of the C-compiler used to compile SWI-Prolog.  Normally either gcc
+or cc.  See \secref{plld}.
+
+    \prologflagitem{c_ldflags}{atom}{r}
+Special linker flags passed to link SWI-Prolog.  See \secref{plld}.
+
+    \prologflagitem{c_libs}{atom}{r}
+Libraries passed to the C-linker when SWI-Prolog was linked.  May be used
+to determine the libraries needed to create statically linked extensions
+for SWI-Prolog.  See \secref{plld}.
+
+    \prologflagitem{char_conversion}{bool}{rw}
+Determines whether character-conversion takes place while reading terms.
+See also char_conversion/2.
+
+    \prologflagitem{character_escapes}{bool}{rw}
+If \const{true} (default), read/1 interprets \verb$\$ escape sequences
+in quoted atoms and strings. May be changed. This flag is local to the
+module in which it is changed.
+
+    \prologflagitem{compiled_at}{atom}{r}
+Describes when the system has been compiled. Only available if the
+C-compiler used to compile SWI-Prolog provides the __DATE__ and __TIME__
+macros.
+
+    \prologflagitem{console_menu}{bool}{r}
+Set to \const{true} in \program{plwin.exe} to indicate the console
+supports menus.  See also \secref{plwin}.
+
+    \prologflagitem{dde}{bool}{r}
+Set to \const{true} if this instance of Prolog supports DDE as
+described in \secref{DDE}.
+
+    \prologflagitem{debug}{bool}{rw}
+Switch debugging mode on/off.  If debug mode is activated the system
+traps encountered spy-points (see spy/1) and trace-points (see trace/1).
+In addition, tail-recursion optimisation is disabled and the system is
+more conservative in destroying choice-points to simplify debugging.
+
+Disabling these optimisations can cause the system to run out of memory
+on programs that behave correctly if debug mode is off.
+
+    \prologflagitem{debug_on_error}{bool}{rw}
+If {\tt true}, start the tracer after an error is detected.  Otherwise
+just continue execution.  The goal that raised the error will normally
+fail.  See also fileerrors/2 and the prolog-flag {\tt report_error}.  May
+be changed.  Default is {\tt true}, except for the runtime version.
+
+    \prologflagitem{debugger_print_options}{term}{rw}
+This argument is given as option-list to write_term/2 for printing goals
+by the debugger.  Modified by the `w', `p' and `<N> d' commands of the
+debugger.  Default is \exam{[quoted(true), portray(true),
+max_depth(10)]}.
+
+    \prologflagitem{debugger_show_context}{bool}{rw}
+If \const{true}, show the context module while printing a stack-frame in
+the tracer.  Normally controlled using the `C' option of the tracer.
+
+    \prologflagitem{double_quotes}{codes,chars,atom,string}{rw}
+This flag determines how double-quotes strings are read by Prolog and is
+---like character_escapes--- maintained for each module. If
+\const{codes} (default), a list of character-codes is returned, if
+\const{chars} a list of one-character atoms, if \const{atom} double
+quotes are the same as single-quotes and finally, \const{string} reads
+the text into a Prolog string (see \secref{strings}).   See also
+atom_chars/2 and atom_codes/2.
+
+    \prologflagitem{dynamic_stacks}{bool}{r}
+If \const{true}, the system uses some form of `sparse-memory management'
+to realise the stacks. If false, malloc()/realloc() are used for the
+stacks. In earlier days this had consequenses for foreign code. As of
+version 2.5, this is no longer the case.
+
+Systems using `sparse-memory management' are a bit faster as there is no
+stack-shifter, and checking the stack-boundary is often realised by the
+hardware using a `guard-page'. Also, memory is actually returned to the
+system after a garbage collection or call to trim_stacks/0 (called by
+prolog/0 after finishing a user-query).
+
+    \prologflagitem{editor}{atom}{rw}
+Determines the editor used by edit/1. See \secref{listing} for
+details on selecting the editor used.
+
+    \prologflagitem{emacs_inferior_process}{bool}{r}
+If true, SWI-Prolog is running as an \jargon{inferior process} of
+(GNU/X-)Emacs.  SWI-Prolog assumes this is the case if the environment
+variable \env{EMACS} is \const{t} and \env{INFERIOR} is \const{yes}.
+
+    \prologflagitem{executable}{atom}{r}
+Path-name of the running executable. Used by qsave_program/2 as
+default emulator.
+
+    \prologflagitem{file_name_variables}{bool}{rw}
+If \const{true} (default \const{false}), expand \file{\$\arg{varname}}
+and \file{~} in arguments of builtin-predicates that accept a file name
+(open/3, exists_file/1, access_file/2, etc.).   The predicate
+expand_file_name/2 should be used to expand environment variables
+and wildcard patterns. This prolog-flag is intended for backward
+compatibility with older versions of SWI-Prolog.
+
+    \prologflagitem{float_format}{atom}{rw}
+C-library printf() format specification used by write/1 and friends to
+determine how floating point numbers are printed. The default is {\tt
+\%g}. The specified value is passed to printf() without further
+checking. For example, if you want more digits printed, {\tt \%.12g}
+will print all floats using 12 digits instead of the default 6.
+
+When using quoted-write, the output is guaranteed to contain a decimal
+dot or exponent, so read/1 reads a floating point number. See also
+format/[1,2], write_term/[2,3].
+
+    \prologflagitem{gc}{bool}{rw}
+If true (default), the garbage collector is active.  If false, neither
+garbage-collection, nor stack-shifts will take place, even not on
+explicit request.  May be changed.
+
+    \prologflagitem{gui}{bool}{r}
+Set to \const{true} if XPCE is around and can be used for graphics.
+
     \prologflagitem{history}{integer}{rw}
 If $\arg{integer}> 0$, support Unix \program{csh(1)} like history as
 described in \secref{history}. Otherwise, only support reusing commands
@@ -1071,16 +1073,20 @@ through the commandline editor. The default is to set this prolog-flag to 0
 if a commandline editor is provided (see prolog-flag \const{readline}) and
 15 otherwise.
 
-    \prologflagitem{gc}{bool}{rw}
-If true (default), the garbage collector is active.  If false, neither
-garbage-collection, nor stack-shifts will take place, even not on
-explicit request.  May be changed.
+    \prologflagitem{home}{atom}{r}
+SWI-Prolog's notion of the home-directory.  SWI-Prolog uses it's home
+directory to find its startup file as
+\file{<home>/boot32.prc} (32-bit machines) or
+\file{<home>/boot64.prc} (64-bit machines) and to find its library as
+\file{<home>/library}.
 
-    \prologflagitem{agc_margin}{integer}{rw}
-If this amount of atoms has been created since the last atom-garbage
-collection, perform atom garbage collection at the first opportunity.
-Initial value is 10,000.   May be changed.  A value of 0 (zero) disables
-atom garbage collection.  See also PL_register_atom().
+    \prologflagitem{hwnd}{integer}{r}
+In \program{plwin.exe}, this refers to the MS-Windows window-handle of
+the console window.
+
+    \prologflagitem{integer_rounding_function}{down,toward_zero}{r}
+ISO prolog-flag describing rounding by \verb$//$ and \verb$rem$ arithmetic
+functions. Value depends on the C-compiler used.
 
     \prologflagitem{iso}{bool}{rw}
 Include some weird ISO compatibility that is incompatible to normal
@@ -1099,6 +1105,31 @@ SWI-Prolog behaviour.  Currently it has the following effect:
     \item abolish/[1,2] raises a permission error when accessing static
           predicates.
 \end{itemize}
+
+    \prologflagitem{max_arity}{unbounded}{r}
+ISO prolog-flag describing there is no maximum arity to compound terms.
+
+    \prologflagitem{max_integer}{integer}{r}
+Maximum integer value.  Most arithmetic operations will automatically
+convert to floats if integer values above this are returned.
+
+    \prologflagitem{max_tagged_integer}{integer}{r}
+Maximum integer value represented as a `tagged' value.  Tagged integers
+require 4-bytes storage and are used for indexing.  Larger integers are
+represented as `indirect data' and require 16-bytes on the stacks (though
+a copy requires only 4 additional bytes).
+
+    \prologflagitem{min_integer}{integer}{r}
+Minimum integer value.
+
+    \prologflagitem{min_tagged_integer}{integer}{r}
+Start of the tagged-integer value range.
+
+    \prologflagitem{open_shared_object}{bool}{r}
+If true, open_shared_object/2 and friends are implemented, providing
+access to shared libraries (\fileext{so} files) or dynamic link
+libraries (\fileext{DLL} files).
+
     \prologflagitem{optimise}{bool}{rw}
 If \const{true}, compile in optimised mode. The initial value is
 \const{true} if Prolog was started with the \cmdlineoption{-O}
@@ -1113,13 +1144,101 @@ expressions and other predictable constructs. Source code optimisation
 is never applied to predicates that are declared dynamic (see
 dynamic/1).
 
-    \prologflagitem{char_conversion}{bool}{rw}
-Determines whether character-conversion takes place while reading terms.
-See also char_conversion/2.
+    \prologflagitem{pid}{int}{r}
+Process identifier of the running Prolog process.  Existence of this
+flag is implementation dependent.
 
-    \prologflagitem{autoload}{bool}{rw}
-If \const{true} (default) autoloading of library functions is enabled.
-See \secref{autoload}.
+    \prologflagitem{pipe}{bool}{rw}
+If true, \exam{open(pipe(command), mode, Stream)}, etc.\ are supported.
+Can be changed to disable the use of pipes in applications testing this
+feature.  Not recommended.
+
+    \prologflagitem{readline}{bool}{r}
+If true, SWI-Prolog is linked with the readline library.  This is done
+by default if you have this library installed on your system.  It is
+also true for the Win32 plwin.exe version of SWI-Prolog, which realises
+a subset of the readline functionality.
+
+    \prologflagitem{resource_database}{atom}{r}
+Set to the absolute-filename of the attached state.  Typically this is
+the file \file{boot32.prc}, the file specified with \cmdlineoption{-x}
+or the running executable.  See also resource/3.
+
+    \prologflagitem{report_error}{bool}{rw}
+If {\tt true}, print error messages, otherwise suppress them.  May be
+changed.  See also the {\tt debug_on_error} prolog-flag.  Default is {\tt
+true}, except for the runtime version.  
+
+    \prologflagitem{runtime}{bool}{r}
+If true, SWI-Prolog is compiled with -DO_RUNTIME, disabling various
+useful development features (currently the tracer and profiler).
+
+    \prologflagitem{saved_program}{bool}{r}
+If true, Prolog is started from a state saved with qsave_program/[1,2].
+
+    \prologflagitem{shared_object_extension}{atom}{r}
+Extension used by the operating system for shared objects. \fileext{so}
+for most Unix systems and \fileext{dll} for Windows.  Used for locating
+files using the \const{file_type} \const{executable}.  See also
+absolute_file_name/3.
+
+    \prologflagitem{signals}{bool}{r}
+Determine whether Prolog is handling signals (software interrupts). This
+flag is \const{false} if the hosting OS does not support signal handling
+or the command-line option \cmdlineoption{-nosignals} is active.  See
+\secref{sigembedded} for details.
+
+    \prologflagitem{system_thread_id}{int}{r}
+On MT systems (\secref{threads}, refers to the thread-identifier used by
+the system for the calling thread.  See also thread_self/1.
+
+    \prologflagitem{tail_recursion_optimisation}{bool}{rw}
+Determines whether or not tail-recursion optimisation is enabled.
+Normally the value of this flag is equal to the \const{debug} flag.  As
+programs may run out of stack if tail-recursion optimisation is omitted,
+it is sometimes necessary to enable it during debugging.
+
+    \prologflagitem{toplevel_print_anon}{bool}{rw}
+If \const{true}, toplevel variables starting with an underscore
+(\chr{_}) are printed normally.  If \const{false} they are hidden.
+This may be used to hide bindings in complex queries from the toplevel.
+
+    \prologflagitem{toplevel_print_options}{term}{rw}
+This argument is given as option-list to write_term/2 for printing results
+of queries.  Default is \exam{[quoted(true), portray(true), max_depth(10)]}.
+
+    \prologflagitem{toplevel_var_size}{int}{rw}
+Maximum size counted in literals of a term returned as a binding for a
+variable in a toplevel query that is saved for re-use using the
+\chr{$} variable reference.  See \secref{topvars}.
+
+    \prologflagitem{trace_gc}{bool}{rw}
+If true (false is the default), garbage collections and stack-shifts
+will be reported on the terminal.  May be changed.
+
+    \prologflagitem{tty_control}{bool}{r}
+Determines whether the terminal is switched to raw mode for
+get_single_char/1, which also reads the user-actions for the trace.  May
+be set.  See also the \cmdlineoption{+/-tty} command-line option.
+
+    \prologflagitem{unix}{bool}{r}
+\index{unix}%
+If {\tt true}, the operating system is some version of Unix.  Defined
+if the C-compiler used to compile this version of SWI-Prolog either
+defines \verb$__unix__$ or \const{unix}.
+
+    \prologflagitem{unknown}{fail,warning,error}{rw}
+Determines the behaviour if an undefined procedure is encountered.  If
+\const{fail}, the predicates fails silently.  If \const{warn}, a warning
+is printed, and execution continues as if the predicate was not defined
+and if \const{error} (default), an \except{existence_error} exception
+is raised.  This flag is local to each module.
+
+    \prologflagitem{verbose}{Atom}{rw}
+This flags is used by print_message/2.  If its value is \const{silent},
+messages of type \const{informational} and \const{banner} are supressed.
+The \cmdlineoption{-q} switches the value from the initial
+\const{normal} to \const{silent}.
 
     \prologflagitem{verbose_autoload}{bool}{rw}
 If \const{true} the normal consult message will be printed if a library
@@ -1131,101 +1250,27 @@ If \const{true} (default \const{false}), print messages indicating the
 progress of absolute_file_name/[2,3] in locating files.  Intended for
 debugging complicated file-search paths.  See also file_search_path/2.
 
-    \prologflagitem{trace_gc}{bool}{rw}
-If true (false is the default), garbage collections and stack-shifts
-will be reported on the terminal.  May be changed.
-
-    \prologflagitem{max_arity}{unbounded}{r}
-ISO prolog-flag describing there is no maximum arity to compound terms.
-
-    \prologflagitem{integer_rounding_function}{down,toward_zero}{r}
-ISO prolog-flag describing rounding by \verb$//$ and \verb$rem$ arithmetic
-functions. Value depends on the C-compiler used.
-
-    \prologflagitem{bounded}{true}{r}
-ISO prolog-flag describing integer representation is bound by
-{\tt min_integer} and {\tt min_integer}.
-
-    \prologflagitem{tty_control}{bool}{r}
-Determines whether the terminal is switched to raw mode for
-get_single_char/1, which also reads the user-actions for the trace.  May
-be set.  See also the \cmdlineoption{+/-tty} command-line option.
-
-    \prologflagitem{signals}{bool}{r}
-Determine whether Prolog is handling signals (software interrupts). This
-flag is \const{false} if the hosting OS does not support signal handling
-or the command-line option \cmdlineoption{-nosignals} is active.  See
-\secref{sigembedded} for details.
-
-    \prologflagitem{editor}{atom}{rw}
-Determines the editor used by edit/1. See \secref{listing} for
-details on selecting the editor used.
-
-    \prologflagitem{unknown}{fail,warning,error}{rw}
-Determines the behaviour if an undefined procedure is encountered.  If
-\const{fail}, the predicates fails silently.  If \const{warn}, a warning
-is printed, and execution continues as if the predicate was not defined
-and if \const{error} (default), an \except{existence_error} exception
-is raised.  This flag is local to each module.
-
-    \prologflagitem{debug}{bool}{rw}
-Switch debugging mode on/off.  If debug mode is activated the system
-traps encountered spy-points (see spy/1) and trace-points (see trace/1).
-In addition, tail-recursion optimisation is disabled and the system is
-more conservative in destroying choice-points to simplify debugging.
-
-Disabling these optimisations can cause the system to run out of memory
-on programs that behave correctly if debug mode is off.
-
-    \prologflagitem{tail_recursion_optimisation}{bool}{rw}
-Determines whether or not tail-recursion optimisation is enabled.
-Normally the value of this flag is equal to the \const{debug} flag.  As
-programs may run out of stack if tail-recursion optimisation is omitted,
-it is sometimes necessary to enable it during debugging.
-
-    \prologflagitem{abort_with_exception}{bool}{rw}
-Determines how abort/0 is realised.  See the description of abort/0
-for details.
-
-    \prologflagitem{debug_on_error}{bool}{rw}
-If {\tt true}, start the tracer after an error is detected.  Otherwise
-just continue execution.  The goal that raised the error will normally
-fail.  See also fileerrors/2 and the prolog-flag {\tt report_error}.  May
-be changed.  Default is {\tt true}, except for the runtime version.
-
-    \prologflagitem{report_error}{bool}{rw}
-If {\tt true}, print error messages, otherwise suppress them.  May be
-changed.  See also the {\tt debug_on_error} prolog-flag.  Default is {\tt
-true}, except for the runtime version.  
-
-    \prologflagitem{verbose}{Atom}{rw}
-This flags is used by print_message/2.  If its value is \const{silent},
-messages of type \const{informational} and \const{banner} are supressed.
-The \cmdlineoption{-q} switches the value from the initial
-\const{normal} to \const{silent}.
-
-    \prologflagitem{file_name_variables}{bool}{rw}
-If \const{true} (default \const{false}), expand \file{\$\arg{varname}}
-and \file{~} in arguments of builtin-predicates that accept a file name
-(open/3, exists_file/1, access_file/2, etc.).   The predicate
-expand_file_name/2 should be used to expand environment variables
-and wildcard patterns. This prolog-flag is intended for backward
-compatibility with older versions of SWI-Prolog.
-
-    \prologflagitem{unix}{bool}{r}
-\index{unix}%
-If {\tt true}, the operating system is some version of Unix.  Defined
-if the C-compiler used to compile this version of SWI-Prolog either
-defines \verb$__unix__$ or \const{unix}.
+    \prologflagitem{version}{integer}{r}
+The version identifier is an integer with value: $$10000 \times
+\arg{Major} + 100 \times \arg{Minor} + \arg{Patch}$$
+Note that in releases up to 2.7.10 this prolog-flag yielded an atom holding
+the three numbers separated by dots. The current representation is much
+easier for implementing version-conditional statements.
 
     \prologflagitem{windows}{bool}{r}
 \index{windows}%
 If {\tt true}, the operating system is an implementation of Microsoft
-Windows (3.1, 95, NT, etc.).
+Windows (3.1, 95/98/ME, NT/2000/XP, etc.).
 
-    \prologflagitem{hwnd}{integer}{r}
-In \program{plwin.exe}, this refers to the MS-Windows window-handle of
-the console window.
+    \prologflagitem{write_help_with_overstrike}{bool}{r}
+Internal flag used by help/1 when writing to a terminal. If \const{true}
+it prints bold and underlined text using \jargon{overstrike}.
+
+    \prologflagitem{xpce}{bool}{r}
+Set to \const{true} if the XPCE graphics system is loaded.
+
+    \prologflagitem{xpce_version}{atom}{r}
+Set to the version of the loaded XPCE system.
 \end{description}
 
     \predicate{set_prolog_flag}{2}{+Key, +Value}
