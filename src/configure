@@ -2849,7 +2849,7 @@ else
 fi
 done
 
-    for ac_func in rl_set_prompt rl_clear_pending_input
+    for ac_func in rl_set_prompt rl_clear_pending_input rl_done
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
 echo "configure:2856: checking for $ac_func" >&5

@@ -272,6 +272,9 @@
 /* Define if you have the rl_completion_matches function.  */
 #undef HAVE_RL_COMPLETION_MATCHES
 
+/* Define if you have the rl_done function.  */
+#undef HAVE_RL_DONE
+
 /* Define if you have the rl_event_hook function.  */
 #undef HAVE_RL_EVENT_HOOK
 

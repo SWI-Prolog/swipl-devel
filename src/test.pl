@@ -23,6 +23,12 @@ available test sets. The public goals are:
 
 :- format('SWI-Prolog test suite.  To run all tests run ?- test.~n~n', []).
 
+% Required to get this always running regardless of user LANG setting.
+% Without this the tests won't run on machines with -for example- LANG=ja
+% according to NIDE Naoyuki, nide@ics.nara-wu.ac.jp.  Thanks!
+
+:- getenv('LANG', _) -> setenv('LANG', 'C'); true.
+
 
 		 /*******************************
 		 *	      SYNTAX		*

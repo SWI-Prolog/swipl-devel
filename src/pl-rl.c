@@ -60,6 +60,8 @@ SWI-Prolog.h (pl-itf.h) and SWI-Stream.h (pl-strea.h).
 #include <stdio.h>			/* readline needs it */
 #define savestring(x)			/* avoid definition there */
 #include <readline/readline.h>
+extern int rl_done;			/* should be in readline.h, but */
+					/* isn't in some versions ... */
 #ifdef HAVE_READLINE_HISTORY_H
 #include <readline/history.h>
 #else
@@ -163,7 +165,9 @@ event_hook()
 	  rl_set_prompt(my_prompt);
 	rl_forced_update_display();
 	c0 = Sinput->position->charno;
+#ifdef HAVE_RL_DONE
 	rl_done = FALSE;
+#endif
       }
     }
   } else
@@ -259,7 +263,9 @@ Sread_readline(void *handle, char *buf, int size)
 	  line = readline(prompt);
 	  rl_prep_terminal(FALSE);
 	  rl_readline_state = state;
+#ifdef HAVE_RL_DONE
 	  rl_done = 0;
+#endif
 	} else
 	  line = readline(prompt);
 	in_readline--;
