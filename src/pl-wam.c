@@ -492,7 +492,7 @@ callForeign(const Definition def, LocalFrame frame ARG_LD)
 
 
 static void
-leaveForeignFrame(LocalFrame fr)
+discardForeignFrame(LocalFrame fr)
 { Definition def = fr->predicate;
   int argc       = def->functor->arity;
   Func function  = def->definition.function;
@@ -1146,20 +1146,43 @@ copyFrameArguments(LocalFrame from, LocalFrame to, int argc ARG_LD)
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Discard  a  frame.  This  procedure  deals  with  proper  resetting  the
-predicate reference-count. For non-deterministic   foreign predicates it
-will call the foreign function to execute the required cleanup.
+{leave,discard}Frame()
+     Exit from a frame.  leaveFrame() is used for normal leaving due to
+     success or failure.  discardFrame() is used for frames that have
+     been cut.  If such frames are running a foreign predicate, the
+     functions should be called again using FRG_CUTTED context.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
 leaveFrame(LocalFrame fr)
+{ Definition def = fr->predicate;
+
+  if ( false(def, FOREIGN) )
+    leaveDefinition(def);
+
+#if O_DEBUGGER
+  if ( true(fr, FR_WATCHED) )
+    frameFinished(fr);
+#endif
+}
+
+
+static void
+leaveFramesAfter(LocalFrame fr, LocalFrame after)
+{ for(; fr && fr > after; fr = fr->parent)
+    leaveFrame(fr);
+}
+
+
+static void
+discardFrame(LocalFrame fr)
 { DEBUG(3, Sdprintf("discard #%d running %s\n",
 		    (Word)fr - (Word)lBase,
 		    predicateName(fr->predicate)));
 
   if ( true(fr->predicate, FOREIGN) )
   { if ( true(fr->predicate, NONDETERMINISTIC) )
-      leaveForeignFrame(fr);
+      discardForeignFrame(fr);
   } else
     leaveDefinition(fr->predicate);
 
@@ -1174,7 +1197,7 @@ leaveFrame(LocalFrame fr)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Discard all choice-points created after  the   creation  of the argument
-environment. See also leaveFrame().
+environment. See also discardFrame().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
@@ -1187,7 +1210,7 @@ discardChoicesAfter(LocalFrame fr)
     for(fr2 = ch;			/* ch->frame */
 	fr2 && fr2->clause && fr2 > fr;
 	fr2 = fr2->parent)
-      leaveFrame(fr2);
+      discardFrame(fr2);
   }
 
   BFR = ch;
@@ -1328,7 +1351,7 @@ discard_query(QueryFrame qf)
 
   set(FR, FR_CUT);			/* execute I_CUT */
   discardChoicesAfter(FR);
-  leaveFrame(FR);
+  discardFrame(FR);
 }
 
 
@@ -2241,7 +2264,7 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 	    *valTermRef(LD->exception.pending) = 0;
 	  }
 #endif
-	  leaveFrame(FR);
+	  discardFrame(FR);
 	}
 
 	if ( catchfr )
@@ -2340,7 +2363,7 @@ exit(Block, RVal).  First does !(Block).
 
 	if ( unify(argFrameP(blockfr, 2), rval PASS_LD) )
 	{ for( ; FR > blockfr; FR = FR->parent )
-	  { leaveFrame(FR);
+	  { discardFrame(FR);
 	    if ( FR->parent == blockfr )
 	      PC = FR->programPointer;
 	  }
@@ -3980,37 +4003,20 @@ frame_failed:				MARK(FAIL);
 #endif /*O_DEBUGGER*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Update references due to failure of this frame.  The references of  this
-frame's  clause are already updated.  All frames that can be reached via
-the parent links and are  created  after  the  backtrack  frame  can  be
-visited for dereferencing.
+Update references due to failure of this   frame. All frames that can be
+reached via the parent links and are   created after the backtrack frame
+can be visited for dereferencing.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-    if ( false(DEF, FOREIGN) )
-      leaveDefinition(DEF);
-#if O_DEBUGGER
-    if ( true(FR, FR_WATCHED) )
-      frameFinished(FR);
-#endif
+    leaveFramesAfter(FR, FR->backtrackFrame);
 
-    if ( !FR->backtrackFrame )			/* top goal failed */
-    { LocalFrame fr = FR->parent;
-
-      for(; fr; fr = fr->parent)
-        leaveFrame(fr);
-
-      QF = QueryFromQid(qid);
+    if ( FR->backtrackFrame )
+    { environment_frame = FR = FR->backtrackFrame;
+    } else				/* top goal failed */
+    { QF = QueryFromQid(qid);
       set(QF, PL_Q_DETERMINISTIC);
 
       fail;
-    }
-
-    { LocalFrame fr = FR->parent;
-
-      environment_frame = FR = FR->backtrackFrame;
-
-      for( ; fr > FR; fr = fr->parent )
-        leaveFrame(fr);
     }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -4020,18 +4026,17 @@ above as we need to put CL on the next clause.  Dereferencing the clause
 might free it!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 resume_from_body:
-
-    DEF = FR->predicate;
     if ( true(FR, FR_CUT) )
       continue;
-    if ( false(DEF, FOREIGN) && !(CL = FR->backtrack_clause) )
-      continue;
+    DEF = FR->predicate;
 
 #if O_DEBUGGER
     if ( debugstatus.debugging )
     { Undo(FR->mark);			/* data backtracking to get nice */
 					/* tracer output */
 
+      if ( false(DEF, FOREIGN) && !(CL = FR->backtrack_clause) )
+	continue;
       switch( tracePort(FR, BFR, REDO_PORT, NULL) )
       { case ACTION_FAIL:	continue;
 	case ACTION_IGNORE:	CL = NULL;
@@ -4067,7 +4072,9 @@ foreign frame we have to set BFR and do data backtracking.
       LD->stacks.trail.gced_size = (unsigned long)usedStack(trail);
 
     if ( false(DEF, FOREIGN) )
+    { CL = FR->backtrack_clause;
       goto resume_frame;
+    }
 
     SetBfr(FR->backtrackFrame);
     Undo(FR->mark);
