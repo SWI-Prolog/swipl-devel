@@ -67,10 +67,10 @@ The predicate \predref{domain}{2} fetches (first clause) or assigns
 be unified with.  In the second clause first associates the domain
 with a fresh variable and then unifies X to this variable to deal
 with the possibility that X already has a domain. The
-predicate attr_unify_hook/2 is hook called after a variable with
+predicate attr_unify_hook/2 is a hook called after a variable with
 a domain is assigned a value.  In the simple case where the variable
-is bound to a concrete value we simply check this value is in the
-domain.  Otherwise we take the intersection of the domains and either
+is bound to a concrete value we simply check whether this value is in
+the domain. Otherwise we take the intersection of the domains and either
 fail if the intersection is empty (first example), simply assign the
 value if there is only one value in the intersection (second example) or
 assign the intersection as the new domain of the variable (third
