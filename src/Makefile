@@ -18,7 +18,7 @@
 PLVERSION=2.0.2
 
 PL=pl
-prefix=/staff/jan
+prefix=~
 exec_prefix=${prefix}
 bindir=$(exec_prefix)/bin
 PLBASE=$(prefix)/lib/$(PL)-$(PLVERSION)

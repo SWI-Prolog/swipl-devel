@@ -285,6 +285,23 @@ else
 fi
 
 dnl ****************************************************************
+dnl Test whether we can use asm("nop") to separate instructions.
+dnl Needed for gcc version 2 (see pl-wam.c)
+dnl ****************************************************************
+
+AC_MSG_CHECKING("for nop");
+echo '#include "confdefs.h"' > conftest.c
+cat test/nop.c >> conftest.c
+eval $ac_link
+if test -s conftest && eval `./conftest`; then
+    AC_MSG_RESULT(yes)
+else
+    AC_DEFINE(NO_ASM_NOP)
+    AC_MSG_RESULT(no)
+fi
+
+
+dnl ****************************************************************
 dnl More tricky stuff.  Try to find out whether or not we can use mmap()
 dnl to implement dynamic stacks.  This requires mmap(), support for
 dnl `fixed' and `private' maps and support to map in the same area as

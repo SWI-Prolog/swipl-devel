@@ -140,6 +140,9 @@ A common basis for C keywords.
 
 #if __STRICT_ANSI__
 #undef TAGGED_LVALUE
+#endif
+
+#if defined(__STRICT_ANSI__) || defined(NO_ASM_NOP)
 #define ASM_NOP { static int nop; nop++; }
 #endif
 

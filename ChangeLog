@@ -15,7 +15,8 @@ Version 2.0.2
   * Support for mmap() using MAP_ANON.  Avoids a file-descriptor and hopefully
     improves portability of dynamic stacks.
   * Fix for Solaris 2.4 mmap() detection.
-
+  * Fix: added autoconf test for using asm("nop") in pl-wam.c or use slower
+    but more portable C alternative (fixes RS/6000 version)
 
 Version 2.0.1
 =============

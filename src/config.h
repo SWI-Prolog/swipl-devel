@@ -68,6 +68,9 @@
 /* Define if MAP_ANON is defined and works ok */
 /* #undef HAVE_MAP_ANON */
 
+/* Define if you can't use asm("nop") to separate two labels */
+/* #undef NO_ASM_NOP */
+
 /* Define if uchar is not defined in <sys/types.h> */
 #define NEED_UCHAR 1
 
