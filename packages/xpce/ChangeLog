@@ -2,6 +2,9 @@
 			   ==============
 
 
+VERSION 6.4.3, distributed with SWI-Prolog 5.4.3
+================================================
+
 * FIXED: Converting instances of class number to a string.  Petter Egesund.
 
 * FIXED: Win32: Drawing arcs as pie-slice with size-angle close to 0, so

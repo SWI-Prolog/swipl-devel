@@ -8,10 +8,13 @@
 					--------------------------------------
 
 
+VERSION 5.4.3 (October 18, 2004)
+================================
+
   * PORT: Solaris _FILE_OFFSET_BITS issues in rc library.  Based on
     comments from Ian Collier.
 
-  * FIXED: avoid deletion of clauses for dynamoc predicates on reload.
+  * FIXED: avoid deletion of clauses for dynamic predicates on reload.
     Hugo Ferreira.
 
 
