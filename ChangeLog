@@ -1,8 +1,11 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: Notes on slight but useful difference between ISO and SWI
+    exception-handling to the manual of throw/1.  Thanks to Bart Demoen.
+
   * ENHANCED/FIXED: expand_file_name/2.  Problems when expanding to files
-    holding wildcarts in their name and removing the limit on matching files
+    holding wildcards in their name and removing the limit on matching files
     (was 1024).  Completely re-written the filesystem code.  Pattern-matching
     code is retained.
 
