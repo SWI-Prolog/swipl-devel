@@ -224,6 +224,7 @@ typedef struct
   int		trim_stack_requested;	/* perform a trim-stack */
   int		in_arithmetic;		/* doing arithmetic */
   int		autoload_nesting;	/* Nesting level in autoloader */
+  void *	glob_info;		/* pl-glob.c */
 
   struct
   { int		active;			/* doing pipe I/O */

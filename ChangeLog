@@ -1,6 +1,11 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ENHANCED/FIXED: expand_file_name/2.  Problems when expanding to files
+    holding wildcarts in their name and removing the limit on matching files
+    (was 1024).  Completely re-written the filesystem code.  Pattern-matching
+    code is retained.
+
   * FIXED: include/1, reported by Sebastian Sardina.  Bug introduced in
     4.0.4.
 
