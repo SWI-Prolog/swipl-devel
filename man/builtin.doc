@@ -3171,17 +3171,22 @@ elements of \arg{List}, sorted to the standard order of terms (see
 the input list into a temporary array, calling the C-library function
 \manref{qsort}{3} using \funcref{PL_compare}{} for comparing the elements,
 after which the result is translated into the result list.
+
     \predicate{msort}{2}{+List, -Sorted}
 Equivalent to sort/2, but does not remove duplicates.
+
     \predicate{keysort}{2}{+List, -Sorted}
-\arg{List} is a list of \exam{\arg{Key}-\arg{Value}} pairs (e.g.\ terms
-of the functor `\const{-}' with arity~2). keysort/2 sorts \arg{List}
-like msort/2, but only compares the keys. Can be used to sort terms not
-on standard order, but on any criterion that can be expressed on a
-multi-dimensional scale. Sorting on more than one criterion can be done
-using terms as keys, putting the first criterion as argument 1, the
-second as argument 2, etc. The order of multiple elements that have the
-same \arg{Key} is not changed.
+List is a proper list whose elements are \exam{\arg{Key}-\arg{Value}},
+that is, terms whose principal functor is (-)/2, whose first argument is
+the sorting key, and whose second argument is the satellite data to be
+carried along with the key. keysort/2 sorts \arg{List} like msort/2, but
+only compares the keys. Can be used to sort terms not on standard order,
+but on any criterion that can be expressed on a multi-dimensional scale.
+Sorting on more than one criterion can be done using terms as keys,
+putting the first criterion as argument 1, the second as argument 2,
+etc. The order of multiple elements that have the same \arg{Key} is not
+changed.
+
     \predicate{predsort}{3}{+Pred, +List, -Sorted}
 Sorts similar to sort/2, but determines the order of two terms by
 calling \mbox{\arg{Pred}(-\arg{Delta}, +\arg{E1}, +\arg{E2})}.  This
