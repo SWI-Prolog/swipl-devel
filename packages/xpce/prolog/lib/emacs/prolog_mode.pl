@@ -268,11 +268,14 @@ compile_buffer(E) :->
 
 explain(E) :->
 	"Explain predicate (find references)"::
-	current_name_arity(E, Name, Arity),
+	current_name_arity(E, Module, Name, Arity),
 	(   var(Arity)
 	->  prolog_explain(Name)
 	;   functor(Head, Name, Arity),
-	    prolog_explain(Head)
+	    (	var(Module)
+	    ->  prolog_explain(Head)
+	    ;	prolog_explain(Module:Head)
+	    )
 	).
 
 
