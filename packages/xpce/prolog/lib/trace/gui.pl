@@ -26,7 +26,8 @@
 :- use_module(clause).
 :- use_module(viewterm).
 :- use_module(stack).
-:- use_module(locator).			% autoload?
+
+:- pce_autoload(prolog_source_browser, library('trace/browse')).
 
 :- multifile
 	user:prolog_event_hook/1,
@@ -319,9 +320,14 @@ nospy(F) :->
 	prolog_frame_attribute(Frame, goal, Goal),
 	nospy(Goal).
 
-locator(F) :->
+browse(F) :->
 	"Provides overview for edit/spy/break"::
-	send(prolog_locator(F), open).
+	get(F, application, App),
+	(   get(App, member, prolog_source_browser, Browser)
+	->  send(Browser, expose)
+	;   send(new(PB, prolog_source_browser('.')), open),
+	    send(PB, application, F?application)
+	).
 
 stop_at(F) :->
 	"Set stop at caret"::
@@ -414,7 +420,7 @@ button(gap,	 -,	-,		-).
 button(+up,	 "u",	'up.xpm',	'Select child frame').
 button(+down,	 "d",	'down.xpm',	'Select parent frame').
 button(gap,	 -,	-,		-).
-button(+locator,  "",	'locate.xpm',	'Find predicates').
+button(+browse,  "",	'16x16/butterfly.xpm',	'Browse program structure').
 button(gap,	 -,	-,		-).
 button(leap,	 "l",	'leap.xpm',	'Continue to spy- or breakpoint').
 button(+spy,	 "+",	'spy.xpm',	'Set spy point').
