@@ -622,6 +622,18 @@ appendDialogGroup(DialogGroup g, Graphical item, Name where)
 }
 
 
+static status
+openDialogGroup(DialogGroup g)
+{ if ( isNil(g->device) )
+  { Dialog d;
+
+    TRY( d = newObject(ClassDialog, EAV) );
+    TRY( send(d, NAME_append, g, EAV) );
+  }
+
+  return send(g->device, NAME_open, EAV);
+}
+
 		 /*******************************
 		 *	 CLASS DECLARATION	*
 		 *******************************/
@@ -706,7 +718,9 @@ static senddecl send_diagroup[] =
   SM(NAME_restore, 0, NULL, restoreDialogGroup,
      NAME_apply, "->restore all items to their <-default"),
   SM(NAME_showLabel, 1, "bool", showLabelDialogGroup,
-     NAME_appearance, "Whether label is visible")
+     NAME_appearance, "Whether label is visible"),
+  SM(NAME_open, 0, NULL, openDialogGroup,
+     NAME_organisation, "Create dialog with this item and ->open")
 };
 
 /* Get Methods */
