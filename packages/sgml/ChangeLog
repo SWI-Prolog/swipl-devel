@@ -1,3 +1,7 @@
+Dec 15, 2004
+
+  * FIXED: Bug#212: Disallow &#0; character entities.
+
 Nov 25, 2004
 
   * FIXED: utf-8 tests, avoid conflict with UTF-8 support in Prolog

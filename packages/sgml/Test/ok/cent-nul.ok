@@ -1,0 +1,2 @@
+[element(test, [], ['This content holds a  byte that should be skipped'])].
+[sgml(sgml_parser(482992), 'cent-nul.xml', 1, 'Syntax error: Bad character entity, found "#0"')].

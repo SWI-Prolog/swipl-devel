@@ -431,9 +431,13 @@ expand_pentities(dtd_parser *p, const ichar *in, ichar *out, int len)
 
       if ( (s=isee_character_entity(dtd, in, &chr)) &&
 	   representable_char(p, chr) )
-      { *out++ = chr;
-        in = s;
-        continue;
+      { if ( chr == 0 )
+	{ gripe(ERC_SYNTAX_ERROR, "Illegal character entity", in);
+	} else
+	{ *out++ = chr;
+	  in = s;
+	  continue;
+	}
       }
     }
 
@@ -520,7 +524,11 @@ expand_entities(dtd_parser *p, const ichar *in, ochar *out, int len)
 
       if ( (s=isee_character_entity(dtd, in, &chr)) )
       { if ( chr <= 0 || chr >= OUTPUT_CHARSET_SIZE )
-	  gripe(ERC_REPRESENTATION, "character");
+	{ if ( chr == 0 )
+	    gripe(ERC_SYNTAX_ERROR, "Illegal character entity", in);
+	  else
+	    gripe(ERC_REPRESENTATION, "character");
+	}
 	if ( --len <= 0 )
 	  return gripe(ERC_REPRESENTATION, "CDATA string too long");
 	*out++ = chr;
@@ -4133,7 +4141,7 @@ process_entity(dtd_parser *p, const ichar *name)
 { if ( name[0] == '#' )			/* #charcode: character entity */
   { int v = char_entity_value(name);
 
-    if ( v < 0 )
+    if ( v <= 0 )
       return gripe(ERC_SYNTAX_ERROR, "Bad character entity", name);
 
     if ( v >= OUTPUT_CHARSET_SIZE )
@@ -4177,7 +4185,10 @@ process_entity(dtd_parser *p, const ichar *name)
     { case EC_SGML:
       case EC_CDATA:
 	if ( (s=isee_character_entity(dtd, text, &chr)) && *s == '\0' )
-	{ if ( p->blank_cdata == TRUE && !HasClass(dtd, chr, CH_BLANK) )
+	{ if ( chr == 0 )
+	    return gripe(ERC_SYNTAX_ERROR, "Illegal character entity", text);
+
+	  if ( p->blank_cdata == TRUE && !HasClass(dtd, chr, CH_BLANK) )
 	  { p->cdata_must_be_empty = !open_element(p, CDATA_ELEMENT, FALSE);
 	    p->blank_cdata = FALSE;
 	  }
