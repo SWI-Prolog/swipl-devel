@@ -267,13 +267,12 @@ expand_entities(dtd *dtd, const ichar *in, ochar *out, int len)
     { const ichar *estart = in;		/* for recovery */
       int chr;
 
-      if ( (s=isee_character_entity(dtd, in, &chr)) )
+      if ( (in=isee_character_entity(dtd, in, &chr)) )
       { if ( chr <= 0 || chr >= OUTPUT_CHARSET_SIZE )
 	  gripe(ERC_REPRESENTATION, "character");
 	if ( --len <= 0 )
 	  return gripe(ERC_REPRESENTATION, "CDATA string too long");
 	*out++ = chr;
-	in = s;
 	continue;
       }
 
