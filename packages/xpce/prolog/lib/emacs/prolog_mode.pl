@@ -67,10 +67,15 @@ resource(breakpoint,   image, image('16x16/stop.xpm')).
 	  editpce		       = key('\\C-ce') + button(pce),
 	  tracepce		       = key('\\C-ct') + button(pce),
 	  spypce		       = button(pce),
+	  -			       = button(pce),
 	  what_class		       = key('\\C-cw') + button(pce),
+	  -			       = button(pce),
 	  pce_insert_require_directive = key('\\C-c\\C-r') + button(pce),
 	  pce_check_require_directives = button(pce),
-	  prolog_navigator	       = button(browse)
+	  -			       = button(pce),
+	  pce_define_class	       = button(pce),
+	  -			       = button(browse),
+	  prolog_navigator	       = button(browse) + key('\\C-c\\C-n')
 	],
 					% SYNTAX TABLE
 	[ $    = symbol,
@@ -365,19 +370,45 @@ source_file(E, F:file) :->
 
 
 prolog_module(M, Module:name) :<-
-	  "Return module defined in this class"::
-	  get(M, prolog_term, 0, ModuleTerm),
-	  ModuleTerm = (:- module(Module, _)).
+	"Return module defined in this class"::
+	get(M, prolog_term, 0, ModuleTerm),
+	ModuleTerm = (:- module(Module, _)).
 
 
 what_module(M) :->
-	  "Report the Prolog module defined in this file"::
-	  (   get(M, prolog_module, Module)
-	  ->  send(M, report, status,
-		   'File defines Prolog module "%s"', Module)
-	  ;   send(M, report, status,
-		   'Not a module file')
-	  ).
+	"Report the Prolog module defined in this file"::
+	(   get(M, prolog_module, Module)
+	->  send(M, report, status,
+		 'File defines Prolog module "%s"', Module)
+	;   send(M, report, status,
+		 'Not a module file')
+	).
+
+pce_define_class(M, Name:name,
+		 SuperClass:super='class|name', Comment:comment=string) :->
+	"Insert XPCE class definition"::
+	(   atom(SuperClass)
+	->  Super = SuperClass
+	;   get(SuperClass, name, Super)
+	),
+	sformat(QName, '~q', Name),
+	sformat(QSuper, '~q', Super),
+	send(Comment, strip),
+	get(Comment, value, C),
+	(   C == ''
+	->  send(M, format,
+		 ':- pce_begin_class(%s, %s).\n\n\
+		  :- pce_end_class(%s).\n',
+		 QName, QSuper, QName)
+	;   atom_codes(C, Codes),
+	    string_to_list(S, Codes),
+	    sformat(QComment, '~q', S),
+	    send(M, format,
+		 ':- pce_begin_class(%s, %s, %s).\n\n\
+		  :- pce_end_class(%s).\n',
+		 QName, QSuper, QComment, QName)
+	),
+	send(M, previous_line, 2).
 
 
 		 /*******************************
