@@ -81,15 +81,57 @@ predicate succeeds the debugger assumes the trace action has been taken
 care of and continues execution as described by \arg{Action}. Otherwise
 the normal Prolog debugger actions are performed.
 
-\arg{Port} is one of \const{call}, \const{redo}, \const{exit}, \const{fail} or
-\const{unify}. \arg{Frame} is an integer reference to the current local
-stack frame. \arg{PC} is the current value of the program-counter,
-relative to the start of the current clause, or 0 if it is invalid,
-for example because the current frame runs a foreign predicate, or
-no clause has been selected yet. \arg{Action} should be unified with one
-of the atoms \const{continue} (just continue execution), \const{retry}
-(retry the current goal) or \const{fail} (force the current goal to fail).
-Leaving it a variable is identical to \const{continue}.
+\arg{Port} denotes the reason to activate the tracer (`port' in the
+4/5-port, but with some additions:
+
+\begin{description}
+    \termitem{call}{}
+Normal extry through the call-port of the 4-port debugger.
+
+    \termitem{redo}{}
+Normal extry through the call-port of the 4-port debugger. The
+\const{redo} port signals resuming a predicate to generate alternative
+solutions.
+
+    \termitem{unify}{}
+The unify-port represents the \jargon{neck} instruction, signalling the
+end of the head-matching process.  This port is normally unvisible.  See
+leash/1 and visible/1.
+
+    \termitem{exit}{}
+The exit-port signals the goal is proved.  It is possible for the goal
+to have alternative. See prolog_frame_attribute/3 to examine the
+goal-stack.
+
+    \termitem{fail}{}
+The fail-port signals final failure of the goal.
+
+    \termitem{exception}{Except}
+An exception is raised and still pending.  This port is activated on
+each parent frame of the frame generating the exception until the
+exception is caught or the user restarts normal computation using
+\const{retry}.  \arg{Except} is the pending exception-term.
+
+    \termitem{break}{PC}
+A \const{break} instruction is executed.  \arg{PC} is program counter.
+This port is used by the graphical debugger.
+
+    \termitem{cut_call}{PC}
+A cut is encountered at \arg{PC}. This port is used by the graphical
+debugger. to visualise the effect of the cut.
+
+    \termitem{cut_exit}{PC}
+A cut has been executed.  See \term{cut_call}{PC} for more information.
+\end{description}
+
+\arg{Frame} is an integer reference to the current local stack frame.
+\arg{PC} is the current value of the program-counter, relative to the
+start of the current clause, or 0 if it is invalid, for example because
+the current frame runs a foreign predicate, or no clause has been
+selected yet. \arg{Action} should be unified with one of the atoms
+\const{continue} (just continue execution), \const{retry} (retry the
+current goal) or \const{fail} (force the current goal to fail). Leaving
+it a variable is identical to \const{continue}.
 
 Together with the predicates described in \secref{debugger}
 and the other predicates of this chapter this predicate enables the
