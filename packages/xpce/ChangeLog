@@ -2,9 +2,11 @@
 			   ==============
 
 
-* Fixed forcing loading of swi_compatibility.pl to ensure registration of
-  messages.
+* FIXED: Win32: Drawing arcs as pie-slice with size-angle close to 0, so
+  start and end are at the same location.
 
+* FIXED: forcing loading of swi_compatibility.pl to ensure registration of
+  messages.
 
 VERSION 6.4.0, distributed with SWI-Prolog 5.4.0
 ================================================

@@ -2151,15 +2151,34 @@ void
 r_msarc(int x, int y, int w, int h,	/* bounding box */
 	int sx, int sy,			/* starting point */
 	int ex, int ey,			/* end point */
+	int large,			/* abs(size_angle) > 180.0 */
 	Name close,			/* none,pie_slice,chord */
 	Any fill)			/* @nil or fill pattern */
 { r_update_pen();
 
+  DEBUG(NAME_arc, Cprintf("r_msarc(%d,%d,%d,%d, %d,%d, %d,%d, %s)\n",
+			  x, y, w, h, sx, sy, ex, ey, pp(close)));
+
   if ( close == NAME_none )
-  { Arc(context.hdc, x, y, x+w, y+h, sx, sy, ex, ey);
+  { if ( sx == ex && sy == ey )
+    { if ( large == TRUE )
+	r_ellipse(x, y, w, h, fill);
+    } else
+    { Arc(context.hdc, x, y, x+w, y+h, sx, sy, ex, ey);
+    }
   } else if ( close == NAME_pieSlice )
   { r_fillpattern(fill, NAME_background);
-    Pie(context.hdc, x, y, x+w, y+h, sx, sy, ex, ey);
+    if ( sx == ex && sy == ey )
+    { if ( large == FALSE )
+      { if ( context.thickness > 0 )
+	{ r_line(x+w/2, y+h/2, sx, sy);
+	}
+      } else
+      { r_ellipse(x, y, w, h, fill);
+      }
+    } else
+    { Pie(context.hdc, x, y, x+w, y+h, sx, sy, ex, ey);
+    }
   } else /* if ( close == NAME_chord ) */
   { r_fillpattern(fill, NAME_background);
     Chord(context.hdc, x, y, x+w, y+h, sx, sy, ex, ey);

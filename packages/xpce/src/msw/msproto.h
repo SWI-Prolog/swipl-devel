@@ -25,6 +25,7 @@
 void	r_msarc(int x, int y, int w, int h,
 		int sx, int sy,
 		int ex, int ey,
+		int large,
 		Name close,
 		Any fill);
 void	ws_check_intr(void);

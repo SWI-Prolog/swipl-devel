@@ -108,16 +108,20 @@ RedrawAreaArc(Arc a, Area area)
 #else /*WIN32_GRAPHICS*/
 
 { int ax, ay, bx, by;
+  double sa = valReal(a->size_angle);
+  int large;
 
-  if ( valReal(a->size_angle) >= 0.0 )
+  if ( sa >= 0.0 )
   { ax = sx, ay = sy, bx = ex, by = ey;
+    large = (sa >= 180.0);
   } else
   { ax = ex, ay = ey, bx = sx, by = sy;
+    large = (sa <= -180.0);
   }
 
   r_msarc(valInt(a->position->x) - aw, valInt(a->position->y) - ah,
 	  2*aw, 2*ah,
-	  ax, ay, bx, by,
+	  ax, ay, bx, by, large,
 	  a->close, a->fill_pattern);
 }
 
